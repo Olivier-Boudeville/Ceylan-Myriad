@@ -164,7 +164,7 @@
 %
 -define( wx_default_position, { -1, -1 } ).
 
--type wx_position() :: { 'pos', linear_2D:point() }.
+-type wx_position() :: { 'pos', gui:point() }.
 
 
 % Default size, chosen by either the windowing system or wxWidgets,
@@ -172,7 +172,7 @@
 %
 -define( wx_default_size, { -1, -1 } ).
 
--type wx_size() :: { 'size', linear_2D:dimensions() }.
+-type wx_size() :: { 'size', gui:size() }.
 
 
 -type wx_orientation() :: ?wxVERTICAL | ?wxHORIZONTAL.
@@ -217,11 +217,28 @@
 
 -type ustring() :: text_utils:ustring().
 
--type event_type() :: gui_event:event_type().
--type event_source() :: gui_event:event_source().
 
 -type wx_object_type() :: gui:wx_object_type().
 -type myriad_object_type() :: gui:myriad_object_type().
+-type myriad_instance_pid() :: gui:myriad_instance_pid().
+-type window() :: gui:window().
+-type window_style() :: gui:window_style().
+-type frame_style() :: gui:frame_style().
+-type button_style() :: gui:button_style().
+-type sizer_options() :: gui:sizer_options().
+-type sizer_flag() :: gui:sizer_flag().
+-type position() :: gui:position().
+-type size() :: gui:size().
+-type orientation() :: gui:orientation().
+-type connect_options() :: gui:connect_options().
+
+-type wx_event_type() :: gui_event:wx_event_type().
+-type event_type() :: gui_event:event_type().
+-type event_source() :: gui_event:event_source().
+
+
+% To improve:
+-type wx_sizer_options() :: sizer_options().
 
 
 % To avoid unused warnings:
@@ -338,24 +355,22 @@ from_wx_object_type( Other ) ->
 
 
 
-
-
 % Event type section.
 
 
 % @doc Converts a MyriadGUI type of event into a wx one.
--spec to_wx_event_type( event_type() ) -> gui_event:wx_event_type().
-to_wx_event_type( onWindowClosed ) ->
-	close_window;
+-spec to_wx_event_type( event_type() ) -> wx_event_type().
+to_wx_event_type( onRepaintNeeded ) ->
+	paint;
 
 to_wx_event_type( onButtonClicked ) ->
 	command_button_clicked;
 
-to_wx_event_type( onRepaintNeeded ) ->
-	paint;
-
 to_wx_event_type( onResized ) ->
 	size;
+
+to_wx_event_type( onWindowClosed ) ->
+	close_window;
 
 to_wx_event_type( Other ) ->
 	throw( { unsupported_wx_event_type, Other } ).
@@ -364,7 +379,7 @@ to_wx_event_type( Other ) ->
 
 
 % @doc onverts a wx type of event into a MyriadGUI one.
--spec from_wx_event_type( gui_event:wx_event_type() ) -> event_type().
+-spec from_wx_event_type( wx_event_type() ) -> event_type().
 from_wx_event_type( close_window ) ->
 	onWindowClosed;
 
@@ -415,9 +430,8 @@ to_wx_debug_level( _DebugLevel=life_cycle ) ->
 %
 % (helper)
 %
--spec window_style_to_bitmask( gui:window_style() ) -> bit_mask().
+-spec window_style_to_bitmask( window_style() ) -> bit_mask().
 window_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
-
 	lists:foldl( fun( S, Acc ) -> window_style_to_bitmask( S ) bor Acc end,
 				 _InitialAcc=0,
 				 _List=StyleList );
@@ -501,7 +515,7 @@ get_window_options( _Options=[ H | T ], Acc ) ->
 %
 % (helper)
 %
--spec frame_style_to_bitmask( gui:frame_style() ) -> bit_mask().
+-spec frame_style_to_bitmask( frame_style() ) -> bit_mask().
 frame_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
 
 	lists:foldl( fun( S, Acc ) -> frame_style_to_bitmask( S ) bor Acc end,
@@ -568,7 +582,7 @@ get_panel_options( Options ) ->
 %
 % (helper)
 %
--spec button_style_to_bitmask( gui:button_style() ) -> bit_mask().
+-spec button_style_to_bitmask( button_style() ) -> bit_mask().
 button_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
 
 	lists:foldl( fun( S, Acc ) -> button_style_to_bitmask( S ) bor Acc end,
@@ -607,7 +621,7 @@ button_style_to_bitmask( _Style=flat ) ->
 %
 % (helper)
 %
--spec to_wx_sizer_options( gui:sizer_options() ) -> gui:sizer_options().
+-spec to_wx_sizer_options( sizer_options() ) -> wx_sizer_options().
 to_wx_sizer_options( Options ) ->
 	to_wx_sizer_options( Options, _Acc=[] ).
 
@@ -627,7 +641,7 @@ to_wx_sizer_options(_Options=[ H | T ], Acc ) ->
 %
 % (helper)
 %
--spec sizer_flag_to_bitmask( gui:sizer_flag() ) -> bit_mask().
+-spec sizer_flag_to_bitmask( sizer_flag() ) -> bit_mask().
 sizer_flag_to_bitmask( FlagList ) when is_list( FlagList ) ->
 
 	lists:foldl( fun( F, Acc ) -> sizer_flag_to_bitmask( F ) bor Acc end,
@@ -692,7 +706,7 @@ sizer_flag_to_bitmask( _Flag=align_center_horizontal ) ->
 %
 % (helper)
 %
--spec to_wx_id( maybe( gui:myriad_instance_pid() ) ) -> wx_id().
+-spec to_wx_id( maybe( myriad_instance_pid() ) ) -> wx_id().
 to_wx_id( undefined ) ->
 	?any_id;
 
@@ -700,12 +714,13 @@ to_wx_id( Other ) ->
 	Other.
 
 
+
 % @doc Converts specified MyriadGUI identifier in a wx-specific parent widget
 % identifier.
 %
 % (helper)
 %
--spec to_wx_parent( maybe( gui:myriad_instance_pid() ) ) -> wx_id().
+-spec to_wx_parent( maybe( myriad_instance_pid() ) ) -> wx_id().
 to_wx_parent( undefined ) ->
 	?no_parent;
 
@@ -719,7 +734,7 @@ to_wx_parent( Other ) ->
 %
 % (helper)
 %
--spec to_wx_position( gui:position() ) -> wx_position().
+-spec to_wx_position( position() ) -> wx_position().
 to_wx_position( _Position=auto ) ->
 	{ pos, ?wx_default_position };
 
@@ -732,7 +747,7 @@ to_wx_position( Position ) ->
 %
 % (helper)
 %
--spec to_wx_size( gui:size() ) -> wx_size().
+-spec to_wx_size( size() ) -> wx_size().
 to_wx_size( _Size=auto ) ->
 	{ size, ?wx_default_size };
 
@@ -746,7 +761,7 @@ to_wx_size( Size ) ->
 %
 % (helper)
 %
--spec to_wx_orientation( gui:orientation() ) -> wx_orientation().
+-spec to_wx_orientation( orientation() ) -> wx_orientation().
 to_wx_orientation( vertical ) ->
 	?wxVERTICAL;
 
@@ -771,7 +786,7 @@ to_wx_orientation( horizontal ) ->
 %
 % (internal use only)
 %
--spec wx_id_to_window( wx_id() ) -> gui:window().
+-spec wx_id_to_window( wx_id() ) -> window().
 wx_id_to_window( Id ) ->
 	wxWindow:findWindowById( Id ).
 
@@ -817,7 +832,7 @@ connect( EventSource, EventType ) ->
 %
 % Note: only useful internally or when bypasssing the default main loop.
 %
--spec connect( event_source(), event_type(), gui:connect_options() ) -> void().
+-spec connect( event_source(), event_type(), connect_options() ) -> void().
 connect( #canvas_state{ panel=Panel }, EventType, Options ) ->
 	connect( Panel, EventType, Options );
 
@@ -839,4 +854,4 @@ disconnect( #canvas_state{ panel=Panel } ) ->
 	disconnect( Panel );
 
 disconnect( EventSource ) ->
-		wxEvtHandler:disconnect( EventSource ).
+	wxEvtHandler:disconnect( EventSource ).

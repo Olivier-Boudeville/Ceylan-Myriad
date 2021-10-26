@@ -88,7 +88,11 @@ Located in ``{src,test}/user-interface/textual``, see ``term_ui.erl`` for its im
 Graphical User Interface: ``gui``
 ---------------------------------
 
-This interface relied initially on ``gs`` (now deprecated), now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5 (possibly relying on the `Nitrogen web framework <http://nitrogenproject.com/>`_ for that). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been on option.
+
+For Classical 2D Applications
+.............................
+
+This interface relied initially on ``gs`` (now deprecated), now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5 (possibly relying on the `Nitrogen web framework <http://nitrogenproject.com/>`_ for that). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been an option.
 
 .. Note:: GUI services are currently being reworked, to provide a ``gs``-like concurrent API while relying underneath on ``wx``, with some additions (such as canvases).
 
@@ -98,14 +102,24 @@ The goal is to provide a small, lightweight API (including message types) that a
 So for example the messages received by the user programs shall not mention ``wx``, and they should take a form compliant with `WOOPER <https://github.com/Olivier-Boudeville/Ceylan-WOOPER>`_ message conventions, to easily enable user code to rely on WOOPER if wanted.
 
 
-Located in ``{src,test}/user-interface/graphical``, see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc., with a few tests (``gui_test.erl``, ``lorenz_test.erl``).
-
+These preliminary services are located in ``{src,test}/user-interface/graphical`` (see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc.), with a few tests (``gui_test.erl``, ``lorenz_test.erl``) and will be enriched over time, on a per-need basis.
 
 
 Related information of interest:
 
 - wxErlang: `Getting started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_ and `Speeding up <https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf>`_, by Arif Ishaq
 
-- http://wxerlang.dougedmunds.com/
+- Doug Edmunds' `wxerlang workups <http://wxerlang.dougedmunds.com/>`_
 
 .. comment 404: - http://www.idiom.com/~turner/wxtut/wxwidgets.html
+
+
+
+For 3D Applications
+...................
+
+The ``wx`` services also include a support for `OpenGL <https://en.wikipedia.org/wiki/OpenGL>`_. It can be easily tested by running ``wx:demo()`` from any Erlang shell and selecting then ``gl`` in the left example menu.
+
+We gather a few helpers in ``gui_opengl``. Of course this topic is directly associated to Myriad's `spatial services and conventions`_ and to its support of the `glTf file format`_.
+
+

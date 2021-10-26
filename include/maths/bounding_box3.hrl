@@ -25,22 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Common definitions about bounding boxes.
+% Common definitions about 3D bounding boxes.
 
 
 
 % Record declarations:
-
-
-% Circle-based 2D bounding box.
--record( circle, {
-
-	% The center of the circle:
-	center :: point2:point2(),
-
-	% The square of the radius (R^2) of this circle:
-	square_radius :: linear:square_distance() } ).
-
 
 
 % Right cuboid-based 3D bounding box (i.e. rectangular parallelepiped).
@@ -59,7 +48,7 @@
 %
 -record( right_cuboid, {
 
-	% A vertex of the cuboid:
+	% The base vertex of the cuboid, its bottom-left-near vertex:
 	base_vertex :: point3:point3(),
 
 	% The length along the abscissa axis (X):
@@ -70,3 +59,14 @@
 
 	% The length along the elevation axis (Z):
 	elevation_length :: linear:distance() } ).
+
+
+
+% Sphere-based 3D bounding box.
+-record( sphere, {
+
+	% The center of the sphere:
+	center :: point3:point3(),
+
+	% The square of the radius (R^2) of this sphere:
+	square_radius :: linear:square_distance() } ).

@@ -26,7 +26,6 @@
 % Creation date: Monday, February 15, 2010.
 
 
-
 % @doc Gathering of various <b>facilities for Graphical User Interfaces</b>
 % (GUI).
 %
@@ -56,12 +55,34 @@
 %
 % Providing improved and enriched APIs for all kinds of GUI.
 %
-% Relying optionally on:
-%
+% Relying optionally (some day) on:
 % - OpenGL, for efficient 3D rendering
-%
 % - esdl, for adequate lower-level primitives (ex: management of input devices)
 
+
+
+% General use:
+%
+% From a user process (a test, an application, etc.) the GUI support is first
+% started (gui:start/0), then widgets (windows, frames, panels, buttons, etc.)
+% are created (ex: gui:create_frame/6) and the user process subscribes to the
+% events it is interested in (as a combination of an event type and a
+% widget-as-an-event-emitter; for example:
+% gui:subscribe_to_events({onWindowClosed, MainFrame})). It triggers also any
+% relevant operation (ex: clearing widgets, setting various parameters),
+% generally shows at least a main frame and records the GUI state that it needs
+% (typically containing at least the MyriadGUI references of the widgets that it
+% created).
+%
+% Then the user process enters its (GUI) specific main loop, from which it will
+% receive the events that it subscribed too, to which it will react by
+% performing application-specific operations and/or GUI-related operations
+% (creating, modifying, deleting widgets).
+%
+% Generally at least one condition is defined in order to leave that main loop
+% and stop the GUI (gui:stop/0).
+%
+% See lorenz_test.erl as a full, executable usage example thereof.
 
 
 % Implementation notes:
@@ -107,10 +128,10 @@
 -record( gui_env, {
 
 	% Reference to the current top-level wx server:
-	wx_server :: wx:wx_object(),
+	wx_server ::wx_object(),
 
 	% PID of the main loop:
-	loop_pid :: pid() }).
+	loop_pid :: pid() } ).
 
 
 
@@ -200,7 +221,8 @@
 		  draw_cross/2, draw_cross/3, draw_cross/4, draw_labelled_cross/4,
 		  draw_labelled_cross/5, draw_circle/3, draw_circle/4,
 		  draw_numbered_points/2,
-		  load_image/2, load_image/3, blit/1, clear/1 ]).
+		  load_image/2, load_image/3,
+		  resize/2, blit/1, clear/1 ]).
 
 
 
@@ -219,16 +241,18 @@
 % Type declarations:
 
 -type length() :: linear:distance().
+
 -type coordinate() :: linear:integer_coordinate().
+% For a GUI, coordinates are integer.
 
 
--type point() :: linear_2D:integer_point().
-% linear_2D:point() would allow for floating-point coordinates.
+-type point() :: point2:integer_point2().
+% A GUI point (as point2:point2() would allow for floating-point coordinates).
 
 -type position() :: point() | 'auto'.
 
 
--type size() :: linear_2D:dimensions() | 'auto'.
+-type size() :: dimensions() | 'auto'.
 % Size, typically of a widget.
 
 
@@ -325,19 +349,6 @@
 
 -type back_buffer() :: wxMemoryDC:wxMemoryDC().
 
-
-
-% Type shorthands:
-
--type ustring() :: text_utils:ustring().
-
--type text() :: ustring().
-
--type wx_id() :: gui_wx_backend:wx_id().
-
--type integer_distance() :: linear:integer_distance().
-
--type color() :: gui_color:color().
 
 
 % Aliases:
@@ -504,6 +515,34 @@
 						   frame_style_to_bitmask/1, get_panel_options/1 ]).
 
 
+% Type shorthands:
+
+-type ustring() :: text_utils:ustring().
+
+-type text() :: ustring().
+
+-type file_path() :: file_utils:file_path().
+
+-type integer_distance() :: linear:integer_distance().
+
+-type dimensions() :: linear_2D:dimensions().
+-type line() :: linear_2D:line().
+
+
+-type size() :: gui:size().
+
+-type color() :: gui_color:color().
+-type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
+
+-type canvas() :: gui_canvas:canvas().
+
+-type event_subscription_spec() :: gui_event:event_subscription_spec().
+
+-type wx_id() :: gui_wx_backend:wx_id().
+
+-type wx_object() :: wx:wx_object().
+
+
 % GUI-specific defines:
 
 
@@ -545,8 +584,9 @@ start() ->
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
 								  [ WxServer, WxEnv ] ),
 
-	trace_utils:info_fmt( "Main loop running on ~w (created from ~w).",
-						  [ LoopPid, self() ] ),
+	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
+		"Main loop running on GUI process ~w (created from user process ~w).",
+		[ LoopPid, self() ] ) ),
 
 	GUIEnv = #gui_env{ wx_server=WxServer, loop_pid=LoopPid },
 
@@ -573,8 +613,8 @@ set_debug_level( DebugLevel ) ->
 
 
 
-% @doc Subscribes the current, calling process to the specified kind of events,
-% like {onWindowClosed, MyFrame}.
+% @doc Subscribes the current, calling process to the specified kind of events
+% (event type and emitter), like {onWindowClosed, MyFrame}.
 %
 % This process will then receive MyriadGUI callback messages whenever events
 % that match happen, such as: {onWindowClosed, [MyFrame, Context]}.
@@ -584,11 +624,11 @@ set_debug_level( DebugLevel ) ->
 % the subscriber(s) it has been dispatched to), unless the propagate_event/1
 % function is called from one of them.
 %
--spec subscribe_to_events( gui_event:event_subscription_spec() ) -> void().
+-spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 
-	trace_utils:info_fmt( "Subscribing to following events: ~p.",
-						  [ SubscribedEvents ] ),
+	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
+		"Subscribing to following events: ~p.", [ SubscribedEvents ] ) ),
 
 	GUIEnv = get_gui_env(),
 
@@ -660,7 +700,7 @@ set_tooltip( _Canvas={ myriad_object_ref, canvas, CanvasId }, Label ) ->
 set_tooltip( Window, Label ) ->
 
 	%trace_utils:debug_fmt( "Setting tooltip '~ts' to ~ts.",
-	%					   [ Label, object_to_string( Window ) ] ),
+	%                       [ Label, object_to_string( Window ) ] ),
 
 	% For an unknown reason, works on panels but never on buttons:
 	wxWindow:setToolTip( Window, Label ).
@@ -710,7 +750,7 @@ create_window( Size ) ->
 % @hidden (internal use only)
 %
 -spec create_window( position(), size(), window_style(), wx_id(), window() ) ->
-							window().
+												window().
 create_window( Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
@@ -730,7 +770,6 @@ create_window( Position, Size, Style, Id, Parent ) ->
 % @doc Creates a canvas, attached to specified parent window.
 -spec create_canvas( window() ) -> canvas().
 create_canvas( Parent ) ->
-
 	% Returns the corresponding myriad_object_ref:
 	execute_instance_creation( canvas, [ Parent ] ).
 
@@ -756,7 +795,7 @@ set_background_color( _Canvas={ myriad_object_ref, canvas, CanvasId },
 					  Color ) ->
 
 	%trace_utils:debug_fmt( "Setting background color of canvas ~w to ~p.",
-	%					   [ Canvas, Color ] ),
+	%                       [ Canvas, Color ] ),
 
 	get_main_loop_pid() ! { setCanvasBackgroundColor, [ CanvasId, Color ] };
 
@@ -769,8 +808,7 @@ set_background_color( Window, Color ) ->
 
 
 % @doc Returns the RGB value of the pixel at specified position.
--spec get_rgb( canvas(), point() ) ->
-						gui_color:color_by_decimal_with_alpha().
+-spec get_rgb( canvas(), point() ) -> color_by_decimal_with_alpha().
 get_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 
 	get_main_loop_pid() ! { getCanvasRGB, [ CanvasId, Point ], self() },
@@ -803,8 +841,7 @@ draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2 ) ->
 % @doc Draws a line between the specified two points in specified canvas, with
 % specified color.
 %
--spec draw_line( canvas(), point(), point(),
-				 color() ) -> void().
+-spec draw_line( canvas(), point(), point(), color() ) -> void().
 draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2, Color ) ->
 	get_main_loop_pid() ! { drawCanvasLine, [ CanvasId, P1, P2, Color ] }.
 
@@ -822,8 +859,7 @@ draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 % @doc Draws lines between specified list of points in specified canvas, with
 % specified color.
 %
--spec draw_lines( canvas(), [ point() ], color() ) ->
-						void().
+-spec draw_lines( canvas(), [ point() ], color() ) -> void().
 draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points, Color ) ->
 	get_main_loop_pid() ! { drawCanvasLines, [ CanvasId, Points, Color ] }.
 
@@ -834,8 +870,7 @@ draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points, Color ) ->
 % Line L must not have for equation Y=constant (i.e. its A parameter must not be
 % null).
 %
--spec draw_segment( canvas(), linear_2D:line(), coordinate(), coordinate() ) ->
-							void().
+-spec draw_segment( canvas(), line(), coordinate(), coordinate() ) -> void().
 draw_segment( _Canvas={ myriad_object_ref, canvas, CanvasId }, L, Y1, Y2 ) ->
 	get_main_loop_pid() ! { drawCanvasSegment, [ CanvasId, L, Y1, Y2 ] }.
 
@@ -892,7 +927,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % edge length and companion label.
 %
 -spec draw_labelled_cross( canvas(), point(), integer_distance(), label()  ) ->
-								 void().
+											 void().
 draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 					 EdgeLength, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
@@ -937,7 +972,7 @@ draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center, Radius,
 % one cross and a label, at the same rank order (L1 for the first point of the
 % list, L2 for the next, etc.).
 %
--spec draw_numbered_points( canvas(), [ point() ] ) ->  void().
+-spec draw_numbered_points( canvas(), [ point() ] ) -> void().
 draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
 					  Points ) ->
 	get_main_loop_pid() ! { drawCanvasNumberedPoints, [ CanvasId, Points ] }.
@@ -947,7 +982,7 @@ draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
 % @doc Loads image from specified path into specified canvas, pasting it at its
 % upper left corner.
 %
--spec load_image( canvas(), file_utils:file_name() ) -> void().
+-spec load_image( canvas(), file_path() ) -> void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Filename ] }.
 
@@ -956,11 +991,17 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 % @doc Loads image from specified path into specified canvas, pasting it at
 % specified location.
 %
--spec load_image( canvas(), point(), file_utils:file_path() ) ->
-						void().
+-spec load_image( canvas(), point(), file_path() ) -> void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
 			FilePath ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Position, FilePath ] }.
+
+
+
+% @doc Resizes specified canvas according to the specified new size.
+-spec resize( canvas(), size() ) -> void().
+resize( _Canvas={ myriad_object_ref, canvas, CanvasId }, NewSize ) ->
+	get_main_loop_pid() ! { resizeCanvas, [ CanvasId, NewSize ] }.
 
 
 
@@ -1017,6 +1058,7 @@ show( Window ) ->
 	Res.
 
 
+% (helper)
 show_helper( _Windows=[], Acc ) ->
 	Acc;
 
@@ -1026,7 +1068,7 @@ show_helper( _Windows=[ W | T ], Acc ) ->
 
 
 
-% @doc Hides specified window.
+% @doc Hides the specified window.
 %
 % Returns whether anything had to be done.
 %
@@ -1036,8 +1078,8 @@ hide( Window ) ->
 
 
 
-% @doc Returns the size (as a 2D vector, ie {Width,Height}) of specified window.
--spec get_size( window() ) -> linear_2D:vector().
+% @doc Returns the size (as {Width,Height}) of the specified window.
+-spec get_size( window() ) -> dimensions().
 get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 	%trace_utils:debug_fmt( "Getting size of canvas #~B.", [ CanvasId ] ),
@@ -1055,7 +1097,7 @@ get_size( Window ) ->
 
 
 
-% @doc Destructs specified window.
+% @doc Destructs the specified window.
 -spec destruct_window( window() ) -> void().
 destruct_window( Window ) ->
 	wxWindow:destroy( Window ).
@@ -1096,7 +1138,7 @@ create_frame( Title ) ->
 -spec create_frame( title(), size() ) -> frame().
 create_frame( Title, Size ) ->
 
-	Options =  [ to_wx_size( Size ) ],
+	Options = [ to_wx_size( Size ) ],
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
@@ -1206,8 +1248,8 @@ create_panel( Parent, Position, Size, Options ) ->
 		++ [ to_wx_position( Position ), to_wx_size( Size ) ],
 
 	%trace_utils:debug_fmt( "Creating panel: parent: ~w, position: ~w, "
-	%					   "size: ~w, options: ~w, full options: ~w.",
-	%					   [ Parent, Position, Size, Options, FullOptions ] ),
+	%                       "size: ~w, options: ~w, full options: ~w.",
+	%                       [ Parent, Position, Size, Options, FullOptions ] ),
 
 	wxPanel:new( Parent, FullOptions ).
 
@@ -1216,8 +1258,8 @@ create_panel( Parent, Position, Size, Options ) ->
 % @doc Creates a new panel, associated to specified parent, with specified
 % position, dimensions and options.
 %
--spec create_panel( window(), coordinate(), coordinate(),
-					length(), length(), panel_options() ) -> panel().
+-spec create_panel( window(), coordinate(), coordinate(), length(), length(),
+					panel_options() ) -> panel().
 create_panel( Parent, X, Y, Width, Height, Options ) ->
 
 	ActualOptions = get_panel_options( Options ),
@@ -1254,6 +1296,7 @@ create_buttons( Labels, Parent ) ->
 	create_buttons_helper( Labels, Parent, _Acc=[] ).
 
 
+% (helper)
 create_buttons_helper( _Labels=[], _Parent, Acc ) ->
 	lists:reverse( Acc );
 
@@ -1326,11 +1369,11 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 				  ( sizer(), [ { sizer_child(), sizer_options() } ] ) -> void().
 add_to_sizer( Sizer, _Element={ myriad_object_ref, canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
-	io:format( "SEND"),
+	%io:format( "SEND"),
 	receive
 
 		{ notifyCanvasPanel, AssociatedPanel } ->
-	io:format( "RECEIVED"),
+			%io:format( "RECEIVED"),
 			add_to_sizer( Sizer, AssociatedPanel )
 
 	end;
@@ -1469,7 +1512,7 @@ get_gui_env() ->
 
 		undefined ->
 			trace_utils:error_fmt( "No MyriadGUI environment available for "
-				"process ~w.", [ self() ] ),
+								   "process ~w.", [ self() ] ),
 			throw( { no_myriad_gui_env, self() } );
 
 		Env ->
@@ -1501,6 +1544,7 @@ object_to_string( { wx_ref, InstanceRef, WxObjectType, State } ) ->
 	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
 	text_utils:format( "~ts-~B whose state is ~p",
 					   [ ObjectType, InstanceRef, State ] ).
+
 
 
 % @doc Returns a textual representation of the specified GUI event context.

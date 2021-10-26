@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Unit tests for the ui toolbox.
+% Unit tests for the <b>ui (user-interface) toolbox</b>.
 %
 % See the ui.erl tested module.
 %
@@ -89,6 +89,7 @@ test_user_entry() ->
 			test_user_entry()
 
 	end.
+
 
 
 % The actual test:

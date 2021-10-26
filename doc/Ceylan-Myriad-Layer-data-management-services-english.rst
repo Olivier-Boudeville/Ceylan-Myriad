@@ -193,6 +193,8 @@ ETF files are notably used as **configuration files**. In this case following ex
 To Export 3D Scenes
 ...................
 
-Elements of `glTf <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Language Transmission Format*) version 2.0 have been implemented in ``gltf_support.{hrl,erl}``.
+A basic support of `glTf <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Language Transmission Format*) version 2.0 has been implemented in ``gltf_support.{hrl,erl}``.
+
+The various elements associated to that model (scenes, nodes, meshes, primitives, materials, lights, cameras, buffers, buffer-views, accessors) can be handled from Erlang, in an already integrated way to Myriad's `spatial services and conventions`_.
 
 See the `glTf 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information.

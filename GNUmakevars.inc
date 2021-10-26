@@ -138,7 +138,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 endif

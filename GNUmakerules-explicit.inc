@@ -12,7 +12,7 @@
 .PHONY-myriad-explicit:  all all-pre-hook all-parallel-recurse all-recurse   \
 			all-parse-transforms bootstrap-modules make-all-parse-transforms \
 			build-debug rebuild test test-recurse doc-recurse build-tests    \
-			launch shell                                                     \
+			launch shell generate-tags                                       \
 			create-include-links clean-include-links copy-beams-to-ebin      \
 			install-all install-announce install-ebin install-bin            \
 			install-src install-include install-examples install-test        \
@@ -273,6 +273,27 @@ launch: Emakefile
 shell:
 	@echo "		Launching an Erlang shell enabled for $(PROJECT_NAME)"
 	@${ERL_PARAMETERIZED_LAUNCHER} $(NODE_NAMING) shell-for-$$USER $(INTERNAL_OPTIONS)
+
+
+
+# Generates Emacs' etags, in order to record all sorts of information about
+# source files in large development projects: files, functions, variables,
+# etc. are indexed.
+#
+# See https://erlang.org/doc/apps/tools/erlang_mode_chapter.html#etags and
+# https://www.emacswiki.org/emacs/BuildTags for more information.
+#
+# The Erlang LSP server may be a more recent alternative.
+#
+# To get ctags: 'pacman -Sy ctags'
+#
+# If having strange ctags errors, wipe the content of ~/.ctags.d/.
+#
+# Better than 'find . -name "*.[he]rl" -print | etags -':
+# (we also avoid symlinks so that the includes are scanned once, not twice)
+#
+generate-tags:
+	@mkdir -p ~/.ctags.d && ctags -f ~/.ctags.d/$(PROJECT_SHORT_NAME).ctags --language-force=Erlang -e -R $$(find src/ include/ -type f -a \( -name '*.hrl' -o -name '*.erl' 2>/dev/null \))
 
 
 

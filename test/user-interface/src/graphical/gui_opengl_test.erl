@@ -57,6 +57,9 @@ run_test_gui() ->
 
 	test_facilities:display( "~nStarting the test of OpenGL support." ),
 
+	test_facilities:display( "Checking whether OpenGL hardware acceleration is "
+		"available: ~ts", [ gui_opengl:is_hardware_accelerated() ] ),
+
 	InitialState = gui:start(),
 
 	%gui:set_debug_level( [ calls, life_cycle ] ),

@@ -156,6 +156,7 @@
 (remove-hook 'kill-buffer-query-functions 'server-kill-buffer-query-function)
 
 
+(setq tags-table-list '("~/.ctags.d"))
 
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
@@ -280,6 +281,8 @@
 ;; Allows to have Emacs automatically insert newlines to word-wrap:
 ;; (see https://www.emacswiki.org/emacs/AutoFillMode)
 ;;
+;; See https://erlang.org/doc/apps/tools/erlang_mode_chapter.html
+;;
 ;; Only in some language modes, not all text modes nor even all programming
 ;; modes where it is more of a nuisance:
 ;;
@@ -298,6 +301,9 @@
 ;;
 ;;(setq erlang-electric-commands '(erlang-electric-comma
 ;;								 erlang-electric-g))
+
+;; Disable all electric commands:
+(setq erlang-electric-commands '())
 
 (setq auto-mode-alist
 	  (append '(("\\.escript$" . erlang-mode)) auto-mode-alist))

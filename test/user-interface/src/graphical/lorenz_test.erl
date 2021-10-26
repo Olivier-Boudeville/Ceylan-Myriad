@@ -25,9 +25,8 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
-% Unit test mostly for the canvas facility, based on the Lorenz equations to
-% show its strange attractor.
+% Unit test mostly for the <b>canvas facility</b>, based on the Lorenz equations
+% to show its strange attractor.
 %
 -module(lorenz_test).
 
@@ -46,31 +45,41 @@
 
 % Rendering section.
 
--type zoom_factor() :: float().
+-type zoom_factor() :: maths_utils:factor().
 
 
 % Description of a simple, local, screen coordinate system:
-%
 -record( screen, {
 
-   center :: linear_2D:point(),
+   center :: integer_point2(),
 
    zoom_x :: zoom_factor(),
-   zoom_y :: zoom_factor()
-
- }).
+   zoom_y :: zoom_factor() } ).
 
 -type screen() :: #screen{}.
 
 
 
+% Shorthands:
+
+-type coordinate() :: linear:coordinate().
+
+-type integer_point2() :: point2:integer_point2().
+
+-type point3() :: point3:point3().
+
+-type time() :: rk4_solver:time().
+-type f3p() :: rk4_solver:f3p().
 
 
-% Resolves the specified equations based on the specified initial conditions and
-% derivate function, notifying the specified listener of the new computations.
+
+% @doc Resolves the specified equations based on the specified initial
+% conditions and derivate function, notifying the specified listener of the new
+% computations.
 %
--spec solver_main_loop( rk4_solver:f(), rk4_solver:vector(), rk4_solver:time(),
-						rk4_solver:time(), screen(), pid() ) -> no_return().
+% In we are in 3D here:
+-spec solver_main_loop( f3p(), point3(), time(), time(), screen(), pid() ) ->
+															 no_return().
 solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 				  ListenerPid ) ->
 
@@ -79,8 +88,8 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 		{ set_time_step, NewTimestep } ->
 
 			% Whatever the units may be:
-			io:format( "Changing time step from ~p to ~p.~n",
-					   [ Timestep, NewTimestep ] ),
+			trace_utils:debug_fmt( "Changing time step from ~p to ~p.",
+								   [ Timestep, NewTimestep ] ),
 
 			solver_main_loop( F, CurrentPoint, CurrentTime, NewTimestep, Screen,
 							  ListenerPid );
@@ -94,24 +103,25 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 
 			% Basic version, one message per point, of course a lot too verbose:
 			% New point is yn+1, current point is yn, timestep is h:
+			%
 			%NewPoint = compute_next_estimate( F, CurrentPoint, CurrentTime,
-			%								  Timestep ),
+			%                                  Timestep ),
 
-			%io:format( "- new point computed: ~p~n", [ NewPoint ] ),
+			%trace_utils:debug_fmt( "- new point computed: ~p", [ NewPoint ] ),
 
 			%ListenerPid ! { draw_point, NewPoint, self() },
-
 
 			% New version: sending a list of PointCount points at once, moreover
 			% having already projected them on screen coordinates:
 
 			PointCount = 50,
 
-			{ NewProjectedPoints, LastPoint, NewTime } = compute_next_estimates(
-				  F, CurrentPoint, CurrentTime, Timestep, Screen, PointCount ),
+			{ NewProjectedPoints, LastPoint, NewTime } =
+				compute_next_estimates( F, CurrentPoint, CurrentTime,
+										Timestep, Screen, PointCount ),
 
-			%io:format( "Computed following points: ~w.~n",
-			%		   [ NewProjectedPoints ] ),
+			%trace_utils:debug_fmt( "Computed following points: ~w.~n",
+			%                       [ NewProjectedPoints ] ),
 
 			ListenerPid ! { draw_points, NewProjectedPoints, self() },
 
@@ -125,8 +135,7 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 
 
 
-
-% Returns a list of the next PointCount projected points, the last point
+% @doc Returns a list of the next PointCount projected points, the last point
 % computed and the corresponding next current time.
 %
 compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount ) ->
@@ -135,19 +144,19 @@ compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount ) ->
 							_Acc=[] ).
 
 
+% (helper)
 compute_next_estimates( _F, Point, NextTime, _Timestep, _Screen, _PointCount=0,
 						Acc ) ->
 	{ lists:reverse( Acc ), Point, NextTime } ;
 
 compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount, Acc ) ->
 
-	NewPoint = rk4_solver:compute_next_estimate( F, Point, Time, Timestep ),
+	NewPoint = rk4_solver:compute_next_estimate3p( F, Point, Time, Timestep ),
 
 	NewProjectedPoint = project_2D( NewPoint, Screen ),
 
 	compute_next_estimates( F, NewPoint, Time + Timestep, Timestep, Screen,
-							PointCount - 1, [ NewProjectedPoint | Acc ] ).
-
+							PointCount-1, [ NewProjectedPoint | Acc ] ).
 
 
 
@@ -156,9 +165,9 @@ compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount, Acc ) ->
 %
 % See http://en.wikipedia.org/wiki/Lorenz_system
 %
-lorenz_function( _Time, _Vector={ X0, Y0, Z0 } ) ->
+lorenz_function( _Time, _Vector=[ X0, Y0, Z0 ] ) ->
 
-	% These equations do not depend on time.
+	% These equations here happen not to depend on time.
 
 	Sigma = 10.0,
 	Rho   = 28.0,
@@ -168,7 +177,7 @@ lorenz_function( _Time, _Vector={ X0, Y0, Z0 } ) ->
 	Y1 = X0 * ( Rho - Z0 ) - Y0,
 	Z1 = X0 * Y0 - Beta * Z0,
 
-	{ X1, Y1, Z1 }.
+	[ X1, Y1, Z1 ].
 
 
 
@@ -177,24 +186,17 @@ lorenz_function( _Time, _Vector={ X0, Y0, Z0 } ) ->
 
 
 % State of the program, passed between event handlers.
-%
--record( gui_state,
-		{
-
-		  main_frame,
-		  start_button,
-		  stop_button,
-		  quit_button,
-		  canvas,
-		  screen :: screen(),
+-record( gui_state, { main_frame,
+					  start_button,
+					  stop_button,
+					  quit_button,
+					  canvas,
+					  screen :: screen(),
 
 		  % The solver table is an associative table whose keys are the PID of
-		  % each solver, and whose values are { Color, LastPoint } pairs:
+		  % each solver, and whose values are {Color, LastPoint} pairs:
 		  %
-		  solver_table :: table:table()
-
-		  }
-).
+		  solver_table :: table:table() } ).
 
 
 
@@ -202,23 +204,23 @@ lorenz_function( _Time, _Vector={ X0, Y0, Z0 } ) ->
 % the canvas.
 
 
--spec get_main_window_width() -> linear:coordinate().
+-spec get_main_window_width() -> coordinate().
 get_main_window_width() ->
 	1920.
 
 
--spec get_main_window_height() -> linear:coordinate().
+-spec get_main_window_height() -> coordinate().
 get_main_window_height() ->
 	1080.
 
 
 
-%-spec get_canvas_width() -> linear:coordinate().
+%-spec get_canvas_width() -> coordinate().
 %get_canvas_width() ->
 %	640.
 
 
-%-spec get_canvas_height() -> linear:coordinate().
+%-spec get_canvas_height() -> coordinate().
 %get_canvas_height() ->
 %	480.
 
@@ -226,14 +228,13 @@ get_main_window_height() ->
 
 
 
-% Lists all the declared names of widget identifiers.
-%
+% @doc Lists all the declared names of widget identifiers.
 get_all_id_names() ->
 	[ 'MainFrame', 'StartButton', 'StopButton', 'QuitButton' ].
 
 
 
-% Returns the numerical ID corresponding to the specified name.
+% @doc Returns the numerical ID corresponding to the specified name.
 %
 % (a good target for a parse transform)
 %
@@ -243,7 +244,8 @@ get_id( Name ) ->
 
 
 
-% Returns the name (as an atom) of the specified widget (expected to be named).
+% @doc Returns the name (as an atom) of the specified widget (expected to be
+% named).
 %
 -spec get_name( gui:id() ) -> atom().
 get_name( Id ) ->
@@ -264,8 +266,7 @@ get_name( Id ) ->
 
 
 
-% Initialises the GUI and associated parts (solver).
-%
+% @doc Initialises the GUI and associated parts (solver).
 -spec start() -> no_return().
 start() ->
 
@@ -276,10 +277,11 @@ start() ->
 	FrameSize = { get_main_window_width(), get_main_window_height() },
 
 	MainFrame = gui:create_frame( _Title="Lorenz Test", _FramePos=auto,
-			FrameSize, _FrameStyle=default, _Id=get_id( 'MainFrame' ),
-			_Parent=undefined ),
+		FrameSize, _FrameStyle=default, _Id=get_id( 'MainFrame' ),
+		_MaybeParent=undefined ),
 
-	gui:connect( MainFrame, close_window ),
+	%gui:connect( MainFrame, close_window ),
+	gui:subscribe_to_events( { onWindowClosed, MainFrame } ),
 
 	StatusBar = gui:create_status_bar( MainFrame ),
 
@@ -287,8 +289,8 @@ start() ->
 	%SolverCount = 2,
 	%SolverCount = 0,
 
-	gui:push_status_text( io_lib:format( "Initialisation of ~B solvers.",
-										 [ SolverCount ] ), StatusBar ),
+	gui:push_status_text( text_utils:format( "Initialisation of ~B solvers.",
+											 [ SolverCount ] ), StatusBar ),
 
 	LeftPanel = gui:create_panel( MainFrame ),
 
@@ -323,19 +325,22 @@ start() ->
 	StartButton = gui:create_button( "Start resolution", Position, ButtonSize,
 		ButtonStyle, get_id( 'StartButton' ), ParentButton ),
 
-	gui:connect( StartButton, command_button_clicked ),
+	%gui:connect( StartButton, command_button_clicked ),
+	gui:subscribe_to_events( { onButtonClicked, StartButton } ),
 
 
 	StopButton = gui:create_button( "Stop resolution", Position, ButtonSize,
 		ButtonStyle, get_id( 'StopButton' ), ParentButton ),
 
-	gui:connect( StopButton, command_button_clicked ),
+	%gui:connect( StopButton, command_button_clicked ),
+	gui:subscribe_to_events( { onButtonClicked, StopButton } ),
 
 
 	QuitButton = gui:create_button( "Quit", Position, ButtonSize, ButtonStyle,
 									get_id( 'QuitButton' ), ParentButton ),
 
-	gui:connect( QuitButton, command_button_clicked ),
+	%gui:connect( QuitButton, command_button_clicked ),
+	gui:subscribe_to_events( { onButtonClicked, QuitButton } ),
 
 
 	gui:set_tooltip( LeftPanel, "Controls for the Lorenz test" ),
@@ -353,14 +358,17 @@ start() ->
 	PolyBoxSizer = gui:create_sizer_with_labelled_box( vertical, RightPanel,
 													   "Phase Space" ),
 
-	Canvas = gui_canvas:create( RightPanel ),
+	Canvas = gui:create_canvas( RightPanel ),
 
-	gui_canvas:set_background_color( Canvas, red ),
+	gui:set_background_color( Canvas, red ),
 
-	gui_canvas:clear( Canvas ),
+	gui:clear( Canvas ),
 
-	gui:connect( Canvas, paint ),
-	gui:connect( Canvas, size ),
+	%gui:connect( Canvas, paint ),
+	gui:subscribe_to_events( { onRepaintNeeded, Canvas } ),
+
+	%gui:connect( Canvas, size ),
+	gui:subscribe_to_events( { onResized, Canvas } ),
 
 	gui:add_to_sizer( PolyBoxSizer, Canvas,
 					  [ { proportion, 1 }, { flag, [ expand_fully ] } ] ),
@@ -374,11 +382,10 @@ start() ->
 	% Sets the GUI to visible:
 	gui:show( MainFrame ),
 
-	Screen = #screen{
-	  center={ get_main_window_width() / 3 - 550,
-			   get_main_window_height() / 2 },
-	  zoom_x=24.0,
-	  zoom_y=24.0 },
+	Screen = #screen{ center={ get_main_window_width() / 3 - 550,
+							   get_main_window_height() / 2 },
+					  zoom_x=24.0,
+					  zoom_y=24.0 },
 
 	Colors = gui_color:get_random_colors( SolverCount ),
 
@@ -395,14 +402,13 @@ start() ->
 	SolverTable = create_solver_table( Derivative, Colors, InitialPoint,
 									   InitialTime, InitialTimestep, Screen ),
 
-	InitialState = #gui_state{  main_frame=MainFrame,
-								start_button=StartButton,
-								stop_button=StopButton,
-								quit_button=QuitButton,
-								canvas=Canvas,
-								screen=Screen,
-								solver_table=SolverTable
-							 },
+	InitialState = #gui_state{ main_frame=MainFrame,
+							   start_button=StartButton,
+							   stop_button=StopButton,
+							   quit_button=QuitButton,
+							   canvas=Canvas,
+							   screen=Screen,
+							   solver_table=SolverTable },
 
 	erlang:process_flag( priority, _Level=high ),
 
@@ -421,7 +427,7 @@ create_solver_table( Derivative, Colors, InitialPoint, InitialTime,
 						 InitialTimestep, Screen, _Acc=[] ).
 
 
-
+% (helper)
 create_solver_table( _Derivative, _Colors=[], _InitialPoint, _InitialTime,
 					 _InitialTimestep, _Screen, Acc ) ->
 	table:new( Acc );
@@ -430,14 +436,13 @@ create_solver_table( Derivative, _Colors=[ C | T ],
 					 _PreviousInitialPoint={ X, Y, Z }, InitialTime,
 					 InitialTimestep, Screen, Acc ) ->
 
-	NewInitialPoint = { X + 5.0, Y + 5.0, Z + 5.0 },
+	NewInitialPoint = { X+5.0, Y+5.0, Z+5.0 },
 
 	% For the closure:
 	TestPid = self(),
 
 	NewSolver = spawn_link( fun() -> solver_main_loop( Derivative,
-					 NewInitialPoint, InitialTime, InitialTimestep, Screen,
-					 TestPid ) end ),
+		NewInitialPoint, InitialTime, InitialTimestep, Screen, TestPid ) end ),
 
 	GUIInitialPoint = project_2D( NewInitialPoint, Screen ),
 
@@ -448,130 +453,141 @@ create_solver_table( Derivative, _Colors=[ C | T ],
 
 
 
+% The main loop of this test, driven by the receiving of MyriadGUI messages.
+gui_main_loop( State=#gui_state{ main_frame=MainFrame,
+								 start_button=StartButton,
+								 stop_button=StopButton,
+								 quit_button=QuitButton,
+								 canvas=Canvas,
+								 screen=Screen } ) ->
 
-%-spec gui_main_loop( gs_object(), integer(), maybe( gui_canvas:canvas() ) )
-%				   -> no_return().
-gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
-								  start_button=_StartButton,
-								  stop_button=_StopButton,
-								  quit_button=_QuitButton,
-								  canvas=_Canvas,
-								  screen=_Screen,
-								  solver_table=_SolverTable } ) ->
-
-	%gui_canvas:draw_line( Canvas, { 1, 1 }, { 40, 30 }, red ),
+	gui:draw_line( Canvas, { 1, 1 }, { 40, 30 }, red ),
 
 	%test_facilities:display( "~nEntering main loop." ),
 
-	%% Update = receive
+	% 'undefined' if having to quit:
+	MaybeNewState = receive
 
-	%%	% Routine messages sent by solvers shall be listed last, otherwise they
-	%%	% will eclipse other messages (ex: GUI ones):
+		% Routine messages sent by solvers shall be listed last, otherwise they
+		% will eclipse other messages (ex: GUI ones):
 
-	%%	#wx{ obj=MainFrame, event={ wxClose, close_window } } ->
-	%%		test_facilities:display( "Quitting Lorenz test." ),
-	%%		quit;
-
-
-	%%	#wx{ obj=StartButton,
-	%%		 event=#wxCommand{ type=command_button_clicked } } ->
-	%%		test_facilities:display( "Start button clicked." ),
-	%%		%NewCanvas = render_test( Canvas ),
-	%%		gui_canvas:clear( Canvas ),
-	%%		gui_canvas:draw_line( Canvas, { 1, 40 }, { 40, 1 }, blue ),
-	%%		State#gui_state{ canvas=Canvas };
+		%#wx{ obj=MainFrame, event={ wxClose, close_window } } ->
+		{ onWindowClosed, [ MainFrame, _Context ] } ->
+			test_facilities:display( "Quitting Lorenz test." ),
+			undefined;
 
 
-	%%	#wx{ obj=StopButton,
-	%%		 event=#wxCommand{ type=command_button_clicked } } ->
-	%%		test_facilities:display( "Stop button clicked." ),
-	%%		State#gui_state{ canvas=Canvas };
+		%#wx{ obj=StartButton,
+		%	 event=#wxCommand{ type=command_button_clicked } } ->
+		{ onButtonClicked, [ StartButton, _Context ] } ->
+			test_facilities:display( "Start button clicked." ),
+			%NewCanvas = render_test( Canvas ),
+			gui:clear( Canvas ),
+			gui:draw_line( Canvas, { 1, 40 }, { 40, 1 }, blue ),
+			State#gui_state{ canvas=Canvas };
 
 
-	%%	#wx{ obj=QuitButton,
-	%%		 event=#wxCommand{ type=command_button_clicked } } ->
-	%%		test_facilities:display( "Quit button clicked." ),
-
-	%%		[ SolverPid ! stop || SolverPid <- table:keys(
-	%%										State#gui_state.solver_table ) ],
-
-	%%		quit;
+		%#wx{ obj=StopButton,
+		%	 event=#wxCommand{ type=command_button_clicked } } ->
+		{ onButtonClicked, [ StopButton, _Context ] } ->
+			test_facilities:display( "Stop button clicked." ),
+			State#gui_state{ canvas=Canvas };
 
 
-	%%	#wx{ obj=Any, event=#wxCommand{ type=command_button_clicked } } ->
-	%%		test_facilities:display( "Following button clicked: ~w.", [ Any ] ),
-	%%		quit;
+		%#wx{ obj=QuitButton,
+		%	 event=#wxCommand{ type=command_button_clicked } } ->
+		{ onButtonClicked, [ QuitButton, _Context ] } ->
+			test_facilities:display( "Quit button clicked." ),
+
+			SolverTable = State#gui_state.solver_table,
+
+			[ SolverPid ! stop || SolverPid <- table:keys( SolverTable ) ],
+
+			undefined;
 
 
-	%%	% Received for example when another window overlapped:
-	%%	#wx{ event=#wxPaint{} } ->
-	%%		test_facilities:display( "Repainting." ),
-	%%		gui_canvas:clear( Canvas ),
-	%%		gui_canvas:blit( Canvas ),
-	%%		State ;
+		%#wx{ obj=Any, event=#wxCommand{ type=command_button_clicked } } ->
+		{ onButtonClicked, [ AnyOtherButton, _Context ] } ->
+			test_facilities:display( "Following button clicked: ~w.",
+									 [ AnyOtherButton ] ),
+			State;
 
 
-	%%	#wx{ event=#wxSize{ size=NewSize } } ->
-	%%		test_facilities:display( "Resizing to ~w.", [ NewSize ] ),
-	%%		NewCanvas = gui_canvas:resize( Canvas, NewSize ),
-	%%		%gui_canvas:clear( NewCanvas ),
-	%%		State#gui_state{ canvas=NewCanvas };
-
-	%%	{ draw_points, NewPoints, SendingSolverPid } ->
-
-	%%		%io:format( "Drawing ~B points from ~w.~n", [ length( NewPoints ),
-	%%		%											 SendingSolverPid ] ),
-
-	%%		{ Color, LastPoint } = table:get_value( SendingSolverPid,
-	%%											   SolverTable ),
-
-	%%		NewLastPoint = draw_lines( Canvas, [ LastPoint | NewPoints ],
-	%%								   Color ),
-
-	%%		gui_canvas:blit( Canvas ),
-
-	%%		NewSolverTable = table:add_entry( _K=SendingSolverPid,
-	%%							_V={ Color, NewLastPoint }, SolverTable ),
-
-	%%		State#gui_state{ solver_table=NewSolverTable };
+		% Received for example when another window overlapped:
+		%#wx{ event=#wxPaint{} } ->
+		{ onRepaintNeeded, [ _GUIObject, _Context ] } ->
+			test_facilities:display( "Repainting." ),
+			gui:clear( Canvas ),
+			gui:blit( Canvas ),
+			State;
 
 
-	%%	{ draw_point, NewPoint, SendingSolverPid } ->
+		%#wx{ event=#wxSize{ size=NewSize } } ->
+		{ onResized, [ _GUIObject, NewSize, _Context ] } ->
+			test_facilities:display( "Resizing to ~w.", [ NewSize ] ),
+			gui:resize( Canvas, NewSize ),
+			%gui:clear( NewCanvas ),
+			%State#gui_state{ canvas=NewCanvas };
+			State;				
 
-	%%		io:format( " - drawing ~p (from ~p)~n",
-	%%				   [ NewPoint, SendingSolverPid ] ),
+		{ draw_points, NewPoints, SendingSolverPid } ->
 
-	%%		{ Color, LastPoint } = table:get_value( SendingSolverPid,
-	%%											   SolverTable ),
+			%trace_utils:debug_fmt( "Drawing ~B points from ~w.~n",
+		   %    [ length( NewPoints ), SendingSolverPid ] ),
 
-	%%		SourceDrawPoint = project_2D( LastPoint, Screen ),
+			SolverTable = State#gui_state.solver_table,
 
-	%%		DestinationDrawPoint = project_2D( NewPoint, Screen ),
+			{ Color, LastPoint } =
+						table:get_value( SendingSolverPid, SolverTable ),
 
-	%%		gui_canvas:draw_line( Canvas, SourceDrawPoint, DestinationDrawPoint,
-	%%							  Color ),
+			NewLastPoint =
+						draw_lines( Canvas, [ LastPoint | NewPoints ], Color ),
 
-	%%		gui_canvas:blit( Canvas ),
+			gui:blit( Canvas ),
 
-	%%		NewSolverTable = table:add_entry( _K=SendingSolverPid,
-	%%							_V={ Color, NewPoint }, SolverTable ),
+			SolverTable = State#gui_state.solver_table,
 
-	%%		State#gui_state{ solver_table=NewSolverTable };
+			NewSolverTable = table:add_entry( _K=SendingSolverPid,
+								_V={ Color, NewLastPoint }, SolverTable ),
+
+			State#gui_state{ solver_table=NewSolverTable };
 
 
+		{ draw_point, NewPoint, SendingSolverPid } ->
 
-	%%	Any ->
-	%%		test_facilities:display( "GUI test got event '~w' (ignored).",
-	%%								[ Any ] ),
-	%%		State
+			trace_utils:debug_fmt( " - drawing ~p (from ~p)~n",
+								   [ NewPoint, SendingSolverPid ] ),
 
-	%% end,
+			SolverTable = State#gui_state.solver_table,
 
-	Update = fixme,
+			{ Color, LastPoint } =
+						table:get_value( SendingSolverPid, SolverTable ),
 
-	case Update of
+			SourceDrawPoint = project_2D( LastPoint, Screen ),
 
-		quit ->
+			DestinationDrawPoint = project_2D( NewPoint, Screen ),
+
+			gui:draw_line( Canvas, SourceDrawPoint, DestinationDrawPoint,
+						   Color ),
+
+			gui:blit( Canvas ),
+
+			NewSolverTable = table:add_entry( _K=SendingSolverPid,
+									_V={ Color, NewPoint }, SolverTable ),
+
+			State#gui_state{ solver_table=NewSolverTable };
+
+
+		Any ->
+			trace_utils:warning_fmt( "Lorenz test got event '~w' (ignored).",
+									 [ Any ] ),
+			State
+
+	end,
+
+	case MaybeNewState of
+
+		undefined ->
 			% Simply stop recursing:
 			ok;
 
@@ -582,9 +598,8 @@ gui_main_loop( _State=#gui_state{ main_frame=_MainFrame,
 
 
 
-% Projects the specified 3D point onto 2D screen system.
-%
--spec project_2D( linear_3D:point(), screen() ) -> linear_2D:point().
+% @doc Projects the specified 3D point onto 2D screen system.
+-spec project_2D( point3(), screen() ) -> integer_point2().
 project_2D( _Point={ X, Y, Z }, #screen{ center={ Xc, Yc },
 										 zoom_x=ZoomX,
 										 zoom_y=ZoomY } ) ->
@@ -595,22 +610,21 @@ project_2D( _Point={ X, Y, Z }, #screen{ center={ Xc, Yc },
 
 
 
-% Draws lines between all specified (already projected) points, and returns the
-% last of these points.
+% @doc Draws lines between all specified (already projected) points, and returns
+% the last of these points.
 %
 draw_lines( _Canvas, _Points=[ LastPoint ], _Color ) ->
 	LastPoint;
 
 draw_lines( Canvas, _Points=[ P1, P2 | T ], Color ) ->
 
-	gui_canvas:draw_line( Canvas, P1, P2, Color ),
+	gui:draw_line( Canvas, P1, P2, Color ),
 
 	draw_lines( Canvas, [ P2 | T ], Color ).
 
 
 
-% Runs the test.
-%
+% @doc Runs the test.
 -spec run() -> no_return().
 run() ->
 
@@ -619,12 +633,11 @@ run() ->
 	case executable_utils:is_batch() of
 
 		true ->
-			test_facilities:display( "(not running the GUI test, "
-									 "being in batch mode)" );
+			test_facilities:display(
+				"(not running the GUI test, being in batch mode)" );
 
 		false ->
 			start()
 
 	end,
-
-	test_facilities:stop().
+test_facilities:stop().

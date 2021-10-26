@@ -32,11 +32,8 @@
 % at hand.
 %
 % See:
-%
 % - `text_ui_test.erl' for the test of the most basic text interface
-%
 % - `term_ui.erl' for a more advanced text interface (ncurses-based)
-%
 % - `gui.erl' for a graphical counterpart thereof
 %
 % See also: `trace_utils.erl' for another kind of output.
@@ -772,7 +769,7 @@ set_setting( SettingKey, SettingValue ) ->
 % state.
 %
 -spec set_setting( ui_setting_key(), ui_setting_value(), ui_state() ) ->
-							ui_state().
+												   ui_state().
 set_setting( SettingKey, SettingValue, UIState ) ->
 	UIModule = get_backend_name(),
 	UIModule:set_setting( SettingKey, SettingValue, UIState ).
@@ -907,7 +904,7 @@ get_best_ui_backend() ->
 
 		true ->
 			%cond_utils:if_defined( myriad_debug_user_interface,
-			%	trace_utils:debug( "GUI backend found available, using it." ) ),
+			%   trace_utils:debug( "GUI backend found available, using it." ) ),
 			gui;
 
 		false ->

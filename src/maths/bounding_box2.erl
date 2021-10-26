@@ -26,12 +26,15 @@
 % Creation date: Monday, February 15, 2010.
 
 
-% @doc Gathering of various facilities for <b>bounding box</b> management.
+% @doc Gathering of various facilities for <b>2D bounding box</b> management.
 %
-% Currently the types of supported bounding boxes are:
-% - circle, either obtain
-% - <a href="http://en.wikipedia.org/wiki/Cuboid">cuboid</a>
-%
+% Currently the types of supported 2D bounding boxes are:
+% - bounding rectangles, which can be quickly determined
+% - "lazy" circles, directly deriving from the previous rectangle
+% - MEC (Minimal Enclosing Circles), whose processing, based on convex hull,
+% requires more processing
+
+
 % With the lazy algorithm, circle parameters are simply deduced from the
 % smallest enclosing rectangle; it is fast and easy, yet less precise than the
 % <em>Minimal Enclosing Circle</em> (MEC).
@@ -39,38 +42,53 @@
 % Determining the MEC involves computing the convex hull of the points. It is
 % expensive, but not a problem when precomputing.
 %
-% See `bounding_box_test.erl' for the corresponding test.
+% See `bounding_box2_test.erl' for the corresponding test.
 %
--module(bounding_box).
+-module(bounding_box2).
 
 
 -export([ get_lazy_circle_box/1, get_minimal_enclosing_circle_box/1,
 		  to_string/1 ]).
 
 
-% For record declarations of bounding boxes:
--include("bounding_box.hrl").
+% For record declarations of 2D bounding boxes:
+-include("bounding_box2.hrl").
+
+
+-type rectangle() :: #rectangle{}.
+% A (2D) bounding box defined based on a rectangle.
 
 
 -type circle() :: #circle{}.
-% A bounding box defined based on a circle.
+% A (2D) bounding box defined based on any circle (ex: lazy or MEC).
 
 
--type right_cuboid() :: #right_cuboid{}.
-% A bounding box defined based on a right cuboid.
+-type bounding_box2() :: rectangle() | circle().
+% All supported types of 2D bounding boxes.
 
 
--type bounding_box() :: circle() | right_cuboid().
-% All supported types of bounding boxes.
-
-
--export_type([ circle/0, right_cuboid/0, bounding_box/0 ]).
+-export_type([ rectangle/0, circle/0, bounding_box2/0 ]).
 
 
 % Implementation notes:
 %
-% Bounding-boxes at least here rely on floating-point coordinates and distances
-% (rather than on integer ones).
+% Bounding-boxes, at least here, rely on floating-point coordinates and
+% distances (rather than on integer ones).
+
+% One may believe that a solution in order to compute the Minimal Enclosing
+% Circle of a set of points is simply to determine the diameter of this set
+% (i.e. the maximum distance between any two of its points) and to use it as the
+% diameter of the (circle) bounding box. This solution is not correct, as other
+% points could still lie outside of this bounding box.
+
+% Indeed, let's name A and B two points that are (at least among, if not the
+% only) the farthest of the set, C the center of the [AB] line segment, and l
+% the AC=CB distance. If a circle bounding box was centered on C and had l for
+% radius, then, any point simulatenously distant of up to 2.l from A and up to
+% 2.l from B could be in that set; in the general case there are points in the
+% intersection of these two discs that are not in the aforementioned disc of
+% radius l centered in C.
+
 
 
 % Shorthands:
@@ -85,8 +103,8 @@
 
 
 
-% @doc Returns a circle that is a bounding-box for the specified list of points,
-% which must not be empty.
+% @doc Returns a circle that is a (2D) bounding-box for the specified list of
+% points, which must not be empty.
 %
 % Note: this bounding box is not the smallest one, but is very lightweight to
 % compute.
@@ -108,15 +126,16 @@ get_lazy_circle_box( Points ) ->
 
 
 
-% @doc Returns {Center, SquareRadius} which defines a bounding-box consisting on
-% the minimal enclosing circle (MEC) for the specified list of points.
+% @doc Returns {Center, SquareRadius} which defines a (2D) bounding-box
+% consisting on the minimal enclosing circle (MEC) for the specified list of
+% points.
 %
 % Note: this bounding box is the smallest possible circle, but requires quite a
 % lot of computations.
 %
-% Apparently there is now way of adding a point to an existing MEC without
-% recomputing everything from scratch. So we do not rely on an 'updateMEC'
-% function.
+% Apparently there is no way of adding a point to an existing MEC without
+% recomputing everything from scratch. So we do not provide a
+% update_minimal_enclosing_circle_box/2 function.
 %
 -spec get_minimal_enclosing_circle_box( [ point2() ] ) -> circle().
 get_minimal_enclosing_circle_box( _Points=[] ) ->
@@ -132,7 +151,7 @@ get_minimal_enclosing_circle_box( _Points=[ P1, P2 ] ) ->
 	CenterP = point2:get_center( P1, P2 ),
 
 	% Division by 4, not 2, as we deal with square quantities:
-	SquareRadius = linear_2D:square_distance( P1, P2 ) / 4,
+	SquareRadius = point2:square_distance( P1, P2 ) / 4,
 
 	#circle{ center=CenterP, square_radius=SquareRadius };
 
@@ -148,10 +167,10 @@ get_minimal_enclosing_circle_box( _Points=[ P1, P2, P3 ] ) ->
 	% bisectors.
 	%
 	% Let La be the perpendicular bisector of [P1,P2] and Lb the one of [P1,P3]:
-	Pa = linear_2D:get_center( P1, P2 ),
-	La = linear_2D:get_line( Pa, linear_2D:vectorize( P1, P2 ) ),
-	Pb = linear_2D:get_center( P1, P3 ),
-	Lb = linear_2D:get_line( Pb, linear_2D:vectorize( P1, P3 ) ),
+	Pa = point2:get_center( P1, P2 ),
+	La = linear_2D:get_line( Pa, point2:vectorize( P1, P2 ) ),
+	Pb = point2:get_center( P1, P3 ),
+	Lb = linear_2D:get_line( Pb, point2:vectorize( P1, P3 ) ),
 
 	case linear_2D:intersect( La, Lb ) of
 
@@ -163,7 +182,7 @@ get_minimal_enclosing_circle_box( _Points=[ P1, P2, P3 ] ) ->
 
 		CenterP ->
 			#circle{ center=CenterP,
-					 square_radius=linear_2D:square_distance( CenterP, P1 ) }
+					 square_radius=point2:square_distance( CenterP, P1 ) }
 
 	end;
 
@@ -174,7 +193,7 @@ get_minimal_enclosing_circle_box( Points ) ->
 	% See http://www.cs.mcgill.ca/~cs507/projects/1998/jacob/solutions.html
 	% for the solution.
 
-	%trace_utils:debug_fmt( "MEC for ~w.~n", [ Points ] ),
+	%trace_utils:debug_fmt( "MEC for ~w.", [ Points ] ),
 
 	case linear_2D:compute_convex_hull( Points ) of
 
@@ -201,7 +220,7 @@ find_minimal_angle( _P1, _P2, _Points=[] ) ->
 find_minimal_angle( P1, P2, _Points=[ Pfirst | OtherPoints ] ) ->
 
 	%trace_utils:debug_fmt( "Trying to find minimal angle in ~w for ~w "
-	%    "and ~w.~n", [ Points, P1, P2 ] ),
+	%    "and ~w.", [ Points, P1, P2 ] ),
 
 	BootstrapAngle = linear_2D:abs_angle_deg( Pfirst, P1, P2 ),
 
@@ -234,7 +253,7 @@ try_side( P1, P2, H ) ->
 
 	{ MinAngle, MinVertex } = find_minimal_angle( P1, P2, H ),
 
-	%trace_utils:debug_fmt( "Trying side [ ~w, ~w ], min vertex: ~w.~n",
+	%trace_utils:debug_fmt( "Trying side [ ~w, ~w ], min vertex: ~w.",
 	%    [ P1, P2, MinVertex ] ),
 
 	case MinAngle of
@@ -289,15 +308,13 @@ try_side( P1, P2, H ) ->
 
 
 
-% @doc Returns a textual description of the specified bounding box.
--spec to_string( bounding_box() ) -> ustring().
+% @doc Returns a textual description of the specified 2D bounding box.
+-spec to_string( bounding_box2() ) -> ustring().
+to_string( #rectangle{ top_left=TopLeft, bottom_right=BottomRight } ) ->
+	text_utils:format( "bounding rectangle whose top-left corner is ~ts "
+		"and bottom-right one is ~ts",
+		[ point2:to_string( TopLeft ), point2:to_string( BottomRight ) ] );
+
 to_string( #circle{ center=Center, square_radius=SquareRadius } ) ->
-	text_utils:format( "circle whose center is ~w and square radius is ~w",
-					   [ Center, SquareRadius ] );
-
-
-to_string( #right_cuboid{ base_vertex=BaseVertex, abscissa_length=XLen,
-						 ordinate_length=YLen, elevation_length=ZLen } ) ->
-	text_utils:format( "right cuboid whose base vertex is ~ts, "
-		"and lengths along the X, Y and Z axes are respectively ~w, ~w and ~w",
-		[ linear_3D:to_string( BaseVertex ), XLen, YLen, ZLen ] ).
+	text_utils:format( "bounding circle whose center is ~ts and "
+		"square radius is ~w", [ point2:to_string( Center ), SquareRadius ] ).

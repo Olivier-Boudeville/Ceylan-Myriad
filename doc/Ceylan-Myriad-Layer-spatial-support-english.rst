@@ -3,6 +3,9 @@
 
 .. _spatial:
 
+.. _`spatial services and conventions`:
+
+
 Spatial Support
 ===============
 
@@ -10,19 +13,19 @@ Spatial Support
 Motivation
 ----------
 
-The purpose of this section is to describe the Myriad-provided operations for various **spatial operations**, notably for 3D support.
+The purpose of this section is to describe the facilities offered by Myriad in terms of **spatial operations**, notably for 2D, 3D and 4D support.
 
-We introduced these elements mostly for convenience, to have them readily available in a simple, controllable form, pure Erlang, easy to enrich and without involving extra dependencies.
+We introduced these elements mostly for convenience, to have them readily available in a simple, controllable form, in pure Erlang, easy to enrich and without involving extra dependencies.
 
-This support is by no means expected to be complete, battle-tested or efficient. If looking for such traits, one may consider:
+This support is not expected to be specifically complete, battle-tested or efficient. If looking for such traits, one may consider:
 
 - the elements already available directly in Erlang, notably the `gl <https://erlang.org/doc/man/gl.html>`_ module, providing for example primitives to `load OpenGL matrices <https://erlang.org/doc/man/gl.html#loadTransposeMatrixd-1>`_ and operate on them
 - in the Erlang community: `Wings 3D <http://www.wings3d.com/>`_, an open-source modeller `whose sources <https://github.com/dgud/wings/tree/master/src>`_ of course implement many spatial operations
 
-- integrating advanced, non-Erlang libraries such as ones for linear operations implementing the `BLAS <https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms>`_ specification; using the C binding (*CBLAS interface*) of a renown implementation (optimised at length and making use of processor-specific extensions, such as `LAPACK <https://en.wikipedia.org/wiki/LAPACK>`_) and making it available to Erlang typically thanks to either NIFs (most suitable approach here) or a C-node (possibly thanks to `Ceylan-Seaplus <http://seaplus.esperide.org>`_) would certainly be an option - all the more relevant that a bulk of linear operations could be offset to it; some Erlang projects target similar objectives, like `linalg <https://github.com/sklassen/erlang-linalg-native>`_ or `matrex <https://github.com/versilov/matrex>`_; more generally a library such as `GSL <https://www.gnu.org/software/gsl/>`_ (the GNU Scientific Library) ideally could be integrated as a whole to Erlang
+- integrating advanced, non-Erlang libraries such as ones for linear operations implementing the `BLAS <https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms>`_ specification; using the C binding (*CBLAS interface*) of a renown implementation (optimised at length and making use of processor-specific extensions), such as `LAPACK <https://en.wikipedia.org/wiki/LAPACK>`_ and making it available to Erlang typically thanks to either NIFs (most suitable approach here) or a C-node (possibly thanks to `Ceylan-Seaplus <http://seaplus.esperide.org>`_) would certainly be an option - all the more relevant that a bulk of linear operations could be offset as a whole to it; some Erlang projects target similar objectives, like `linalg <https://github.com/sklassen/erlang-linalg-native>`_ or `matrex <https://github.com/versilov/matrex>`_; more generally the services implemented by a library such as `GSL <https://www.gnu.org/software/gsl/>`_ (the *GNU Scientific Library*) could, thanks to a third-party project, become available to Erlang programs
 
 
-In order to check the functional services and the correctness of operations, we recommend the use of `Scilab <https://www.scilab.org/>`_ (example on Arch: ``yay -Sy scilab``). `GNU Octave <https://www.gnu.org/software/octave/>`_ could be another good choice (example on Arch: ``pacman -Sy octave``). Beware to the lower-precision of their textual outputs (ex: use ``format long`` with Octave for 15 significant figures).
+In order to check the functional services and the correctness of operations, we recommend the use of `Scilab <https://www.scilab.org/>`_ (example on Arch: ``yay -Sy scilab``) or `GNU Octave <https://www.gnu.org/software/octave/>`_ (example on Arch: ``pacman -Sy octave``). Beware to the lower-precision of their textual outputs (ex: use ``format long`` with Octave to request 15 significant figures).
 
 
 
@@ -41,20 +44,26 @@ A linear-related **index** (ex: of a coordinate of a point, a vector or a matrix
 
 **Points** are to be specified by the user as *tuples* (preferably to lists) whose coordinates are either integer ones (for example :math:`P = \begin{pmatrix} 10 \\ 45\end{pmatrix}` translating to ``P={10,45}``, typically for GUI-related processing of on-screen coordinates) or floating-point ones (``{0.0, -1.0, 0.0}`` for a point in 3D space). This is the most natural term mapping, and their internal representation is an homogeneous tuple (i.e. whose elements are all of the corresponding type): either ``integer_point/0`` or ``point/0``.
 
-Points can be of arbitrary dimension (then they are taken in charge by the ``point`` module), or can be specialised for 2D, 3D or 4D (then they belong to the ``point{2,3,4}`` modules).
+The vast majority of the linear operations can be carried by modules operating either on:
+
+- **arbitrary** dimensions (as high as needed, and freely chosen by the user, at compile-time or runtime)
+- **specialised** dimensions, namely 2D, 3D or 4D; their interest lies in efficiency (these specialised constructs are designed to induce less computing and smaller memory footprints) and in the definition of dimension-specific operators (ex: the cross-products in 3D)
+
+
+Points can therefore be of arbitrary dimension (then they are taken in charge by the ``point`` module), or can be specialised for 2D, 3D or 4D (then they are taken in charge by the ``point{2,3,4}`` modules).
 
 
 .. As for vectors, they are to be specified by the user as *lists* of any-coordinates, i.e. integer or floating-point ones, possibly mixed (ex: ``[0.0, -7, 3.22]``); this directly corresponds their internal representation, in order to better accommodate arbitrary dimensions and linear operations.
 
-As for **vectors**, they are to be specified by the user as *lists* of floating-point coordinates (ex: :math:`\vec{V} = \begin{bmatrix} 0.0 \\ -7.3 \\ 3.22\end{bmatrix}` translating to ``V=[0.0, -7.3, 3.22]``); this directly corresponds to their internal representation, in order to better accommodate linear operations.
+As for **vectors**, they are to be specified by the user as *lists* of floating-point coordinates (ex: :math:`\vec{V} = \begin{bmatrix} 0.0 \\ -7.3 \\ 3.22\end{bmatrix}` translating to ``V=[0.0, -7.3, 3.22]``); this directly corresponds to their internal representation, in order to better accommodate linear operations (being a special case of matrices).
 
-Vectors can be of arbitrary dimension (then they are taken in charge by the ``vector`` module), or can be specialised for 2D, 3D or 4D (then they belong to the ``vector{2,3,4,}`` modules).
+So vectors also can be of arbitrary dimension (then they are taken in charge by the ``vector`` module), or can be specialised for 2D, 3D or 4D (then they are taken in charge by the ``vector{2,3,4}`` modules).
 
 
 Points and vectors (of arbitrary dimension, or specialised) can be converted both ways, see ``point*:{to,from}_vector/1`` and ``vector*:{to,from}_point/1``.
 
 
-The **matrices** handled here are often square ones, and their elements are floating-point coordinates as well.
+The **matrices** handled here can be of any dimensions (they are often square), and their elements are floating-point coordinates as well.
 
 Let's consider a :math:`m × n` matrix (m rows, n columns):
 
@@ -69,10 +78,10 @@ Let's consider a :math:`m × n` matrix (m rows, n columns):
 
 Such a matrix may be expressed:
 
-- as one of arbitrary dimension (designated from now on as an "*arbitrary matrix*"), corresponding to the ``matrix:matrix/0`` type; internally such matrices are nested lists: a list of ``m`` rows, each being a list of ``n`` elements, hence defined in `row-major order <https://en.wikipedia.org/wiki/Row-_and_column-major_order>`_ - not column-major one
-- if being square and of a well-known dimension among 2, 3 or 4 (special cases defined for convenience and performance), as a value belonging to the ``matrix2/0``, ``matrix3/0``, ``matrix4/0`` types (which are records like ``#matrix4{}``, whose fields are named according to the matrix elements, such as ``m23``); they are designated hereafter as "*specialised matrices*"
+- as one of arbitrary dimension (designated from now on as an "*arbitrary matrix*"), corresponding to the ``matrix:matrix/0`` type; internally such matrices are nested lists: a list of ``m`` rows, each being a list of ``n`` elements, hence defined in `row-major order <https://en.wikipedia.org/wiki/Row-_and_column-major_order>`_ (not column-major one)
+- if being square and of a well-known dimension among 2, 3 or 4 (special cases defined for convenience and performance), as a value belonging to the ``matrix{2,3,4}/0`` types (which are records like ``#matrix4{}``, whose fields are named according to the matrix elements, such as ``m41``); they are designated hereafter as "*specialised matrices*"
 - in a symbolic way, such as ``identity_4`` (meaning the identity 4x4 matrix)
-- for some dimensions (ex: 4D), extra representations exist (compact matrices made of a 3x3 matix and a vector3)
+- for some dimensions (ex: 3D or 4D), extra representations exist (compact 4x4 matrices, made of a 3x3 matrix and a vector3, in the context of homogeneous operations)
 
 
 Taking as an example a 2x2 matrix like:
@@ -90,22 +99,22 @@ it can be created as an arbitrary ``matrix/0`` with:
  M1 = matrix:new([ [A11,A12], [A21,A22] ])
 
 
-Alternatively it can be directly created as a specialised 2x2 matrix ``matrix2`` with:
+Alternatively it can be directly created as a specialised (presumably more efficient) 2x2 matrix ``matrix2`` with:
 
 .. code:: erlang
 
- M2 = matrix2:new(A11, A12, A21, A22)
+ M2 = matrix2:new([ [A11,A12], [A21,A22] ])
  % Or:
- M3 = matrix2:new([ [A11,A12], [A21,A22] ])
+ M3 = matrix2:from_coordinates(A11, A12, A21, A22)
  % Or even:
- M4 = matrix2:new(M1)
-
+ M4 = matrix2:from_arbitrary(M1)
+ M5 = matrix:specialise(M1)
 
 There is a priori little interest in "unspecialising" (i.e. going from specialised to arbitrary matrix) by having:
 
 .. code:: erlang
 
- M6 = matrix:new(M3)
+ M6 = matrix:unspecialise(M2)
 
 
 In practice the actual, internal terms corresponding to all these matrices would be:
@@ -113,12 +122,13 @@ In practice the actual, internal terms corresponding to all these matrices would
 .. code:: erlang
 
  % For arbitrary ones:
- M1 = M2 = [ [A11,A12],
+ % (supposing that all Axy coordinates are already floats):
+ M1 = M6 = [ [A11,A12],
 			 [A21,A22] ]
 
  % For specialised ones:
- M3 = M4 = M5 = #matrix2{ m11=A11, m12=A12,
-						  m21=A21, m22=A22 }
+ M2 = M3 = M4 = M5 = #matrix2{ m11=A11, m12=A12,
+							   m21=A21, m22=A22 }
 
 
 Note that:
@@ -128,18 +138,19 @@ Note that:
 
   - either literally specified, with a term directly corresponding to their internal form
   - or based on a ``new`` operator (ex: ``matrix:new/1``), in which case with a higher-level user-term (ex: a matrix with integer coordinates, in which case they will be automatically converted to floats)
-- for clarity and in order to provide them with specified operations (like dot product), we preferred defining vectors as a separate type from the matrix one (even if a vector could be represented as a 1-column matrix)
-- by default, for least surprise, coordinates are displayed *not* rounded (refer to the ``printout_{width,precision}`` defines in ``linear.hrl``)
+- for clarity and in order to provide them with specified operations (like dot product), we preferred defining vectors as a separate type from the matrix one (even if a vector can be seen as a 1-column matrix)
+- by default, for least surprise, coordinates are displayed in full, i.e. *not* rounded (refer to the ``printout_{width,precision}`` defines in ``linear.hrl``)
 - the procedure to check the validity of computations is the following:
 
   - first implement the arbitrary version
-  - validate it, by internal operations and by comparison with a tool like Scilab/Octave
+  - validate it, by composing internal operations and by comparison with a tool like Scilab/Octave
   - implement the specialised versions
   - validate them against the arbitrary version
 
-- operations are not implemented defensively, in the sense that a base runtime error will be triggered if a type or a size does not match, rather than being special-cased (anyway generally no useful context could be specifically reported)
-- extra runtime checks can be enabled by setting the ``myriad_check_linear`` flag (refer to ``GNUmakevars.inc``)
+- operations are not implemented defensively, in the sense that a base runtime error will be triggered if a type or a size does not match, rather than being tested explicitly (anyway generally no useful extra context could then be specifically reported)
+- additional runtime checks can nevertheless be enabled by setting the ``myriad_check_linear`` flag (refer to ``GNUmakevars.inc``)
 - for `homogeneous coordinates <https://en.wikipedia.org/wiki/Homogeneous_coordinates#Use_in_computer_graphics_and_computer_vision>`_: any implicit homogeneous `w` coordinate is ``1.0``
+- most operations here involve floating-point coordinates, rather than integer ones; as an Erlang's ``float()`` is a double-precision one, it requires more resources (CPU and memory footprint) than a basic, single-precision one; for applications not requiring extra precision, maybe the Erlang VM could be compiled in order to rely on single-precision floats instead
 
 
 
@@ -198,8 +209,8 @@ Related Services
 Elements of interest can be:
 
 - some support of polygons, in ``polygon.erl``
-- a basic support for 2D bounding-boxes (including rectangles, circles and Minimal Enclosing Circle , see ``bounding_boxes.{hrl,erl}``
-- elements to export 3D scenes with the `glTf file format`_
+- a basic support for 2D bounding-boxes (including rectangles, "lazy" circles and *Minimal Enclosing Circles* based on convex hulls; see ``bounding_boxes2.{hrl,erl}``) and corresponding 3D bounding-boxes (including right cuboids and spheres; see ``bounding_boxes3.{hrl,erl}``)
+- elements in order to import/export 3D scenes thanks to the `glTf file format`_
 
 
 
