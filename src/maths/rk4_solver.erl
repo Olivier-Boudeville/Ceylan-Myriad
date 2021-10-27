@@ -107,9 +107,43 @@
 %
 -spec compute_next_estimate3p( f3p(), point3(), time(), time() ) -> point3().
 compute_next_estimate3p( F, Point, Time, Step ) ->
-	InputVector = vector3:from_point( Point ),
-	OutputVector = compute_next_estimate3v( F, InputVector, Time, Step ),
-	vector3:to_point( OutputVector ).
+
+	% See compute_next_estimate3v/4 for comments.
+
+	K1 = vector3:from_point( F( Time, Point ) ),
+
+	HalfStep = Step / 2.0,
+
+	% tn + h/2:
+	OneHalfStepAfter = Time + HalfStep,
+
+	% yn + h/2.k1:
+	SecondPoint = point3:translate( Point, vector3:scale( K1, HalfStep ) ),
+
+	K2 = vector3:from_point( F( OneHalfStepAfter, SecondPoint ) ),
+
+	% yn + h/2.k2:
+	ThirdPoint = point3:translate( Point, vector3:scale( K2, HalfStep ) ),
+
+	K3 = vector3:from_point( F( OneHalfStepAfter, ThirdPoint ) ),
+
+	% yn + h.k3:
+	FourthPoint = point3:translate( Point, vector3:scale( K3, Step ) ),
+
+	OneFullStepAfter = Time + Step,
+	K4 = vector3:from_point( F( OneFullStepAfter, FourthPoint ) ),
+
+	MidStep = Step / 6.0,
+	FullStep = Step / 3.0,
+
+	SK1 = vector3:scale( K1, MidStep ),
+	SK2 = vector3:scale( K2, FullStep ),
+	SK3 = vector3:scale( K3, FullStep ),
+	SK4 = vector3:scale( K4, MidStep ),
+
+	% yn+1 = yn + h.( 1/6.k1 + 1/3.k2 + 1/3.k3 + 1/6.k4 )
+	ResVec = vector3:add( [ SK1, SK2, SK3, SK4 ] ),
+	point3:translate( Point, ResVec ).
 
 
 

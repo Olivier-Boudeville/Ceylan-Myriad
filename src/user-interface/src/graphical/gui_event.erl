@@ -470,7 +470,7 @@ process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
 
 	%trace_utils:debug_fmt( "Canvas: ~p", [ Canvas ] ),
 	CanvasState = get_canvas_instance_state( CanvasId,
-									LoopState#loop_state.type_table ),
+											 LoopState#loop_state.type_table ),
 
 	%trace_utils:debug_fmt( "CanvasState: ~p", [ CanvasState ] ),
 	gui_canvas:set_background_color( CanvasState, Color ),
@@ -479,7 +479,7 @@ process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
 process_event_message( { getCanvasRGB, [ CanvasId, Point ], CallerPid },
 					   LoopState ) ->
 	CanvasState = get_canvas_instance_state( CanvasId,
-									LoopState#loop_state.type_table ),
+											 LoopState#loop_state.type_table ),
 	Color = gui_canvas:get_rgb( CanvasState, Point ),
 	CallerPid ! { notifyCanvasRGB, Color },
 	LoopState;

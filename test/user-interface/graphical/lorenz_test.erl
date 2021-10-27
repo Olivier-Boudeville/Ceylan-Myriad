@@ -26,7 +26,7 @@
 
 
 % Unit test mostly for the <b>canvas facility</b>, based on the Lorenz equations
-% to show its strange attractor.
+% to show its strange attractor (and also test the `rk4_solver' module).
 %
 -module(lorenz_test).
 
@@ -79,7 +79,7 @@
 %
 % In we are in 3D here:
 -spec solver_main_loop( f3p(), point3(), time(), time(), screen(), pid() ) ->
-															 no_return().
+																no_return().
 solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 				  ListenerPid ) ->
 
@@ -101,35 +101,34 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 
 	after 0 ->
 
-			% Basic version, one message per point, of course a lot too verbose:
-			% New point is yn+1, current point is yn, timestep is h:
-			%
-			%NewPoint = compute_next_estimate( F, CurrentPoint, CurrentTime,
-			%                                  Timestep ),
+		% Basic version, one message per point, of course a lot too verbose:
+		% New point is yn+1, current point is yn, timestep is h:
+		%
+		%NewPoint = compute_next_estimate( F, CurrentPoint, CurrentTime,
+		%                                  Timestep ),
 
-			%trace_utils:debug_fmt( "- new point computed: ~p", [ NewPoint ] ),
+		%trace_utils:debug_fmt( "- new point computed: ~p", [ NewPoint ] ),
 
-			%ListenerPid ! { draw_point, NewPoint, self() },
+		%ListenerPid ! { draw_point, NewPoint, self() },
 
-			% New version: sending a list of PointCount points at once, moreover
-			% having already projected them on screen coordinates:
+		% New version: sending a list of PointCount points at once, moreover
+		% having already projected them on screen coordinates:
 
-			PointCount = 50,
+		PointCount = 50,
 
-			{ NewProjectedPoints, LastPoint, NewTime } =
-				compute_next_estimates( F, CurrentPoint, CurrentTime,
-										Timestep, Screen, PointCount ),
+		{ NewProjectedPoints, LastPoint, NewTime } =
+			compute_next_estimates( F, CurrentPoint, CurrentTime, Timestep,
+									Screen, PointCount ),
 
-			%trace_utils:debug_fmt( "Computed following points: ~w.~n",
-			%                       [ NewProjectedPoints ] ),
+		%trace_utils:debug_fmt( "Computed following points: ~w.",
+		%                       [ NewProjectedPoints ] ),
 
-			ListenerPid ! { draw_points, NewProjectedPoints, self() },
+		ListenerPid ! { draw_points, NewProjectedPoints, self() },
 
-			% Explicit yielding, otherwise you may experience problems:
-			timer:sleep( 1 ),
+		% Explicit yielding, otherwise you may experience problems:
+		timer:sleep( 1 ),
 
-			solver_main_loop( F, LastPoint, NewTime, Timestep, Screen,
-							  ListenerPid )
+		solver_main_loop( F, LastPoint, NewTime, Timestep, Screen, ListenerPid )
 
 	end.
 
@@ -161,11 +160,12 @@ compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount, Acc ) ->
 
 
 
-% Function f( t, v ) corresponding to the equations of the Lorenz system.
+% @doc Function f(t,v) corresponding to the equations of the Lorenz system.
 %
 % See http://en.wikipedia.org/wiki/Lorenz_system
 %
-lorenz_function( _Time, _Vector=[ X0, Y0, Z0 ] ) ->
+-spec lorenz_function( time(), point3() ) -> point3().
+lorenz_function( _Time, _P={ X0, Y0, Z0 } ) ->
 
 	% These equations here happen not to depend on time.
 
@@ -177,7 +177,7 @@ lorenz_function( _Time, _Vector=[ X0, Y0, Z0 ] ) ->
 	Y1 = X0 * ( Rho - Z0 ) - Y0,
 	Z1 = X0 * Y0 - Beta * Z0,
 
-	[ X1, Y1, Z1 ].
+	{ X1, Y1, Z1 }.
 
 
 
@@ -193,10 +193,11 @@ lorenz_function( _Time, _Vector=[ X0, Y0, Z0 ] ) ->
 					  canvas,
 					  screen :: screen(),
 
-		  % The solver table is an associative table whose keys are the PID of
-		  % each solver, and whose values are {Color, LastPoint} pairs:
-		  %
-		  solver_table :: table:table() } ).
+					  % The solver table is an associative table whose keys are
+					  % the PID of each solver, and whose values are {Color,
+					  % LastPoint} pairs:
+					  %
+					  solver_table :: table:table() } ).
 
 
 
@@ -217,12 +218,12 @@ get_main_window_height() ->
 
 %-spec get_canvas_width() -> coordinate().
 %get_canvas_width() ->
-%	640.
+%   640.
 
 
 %-spec get_canvas_height() -> coordinate().
 %get_canvas_height() ->
-%	480.
+%   480.
 
 
 
@@ -325,21 +326,18 @@ start() ->
 	StartButton = gui:create_button( "Start resolution", Position, ButtonSize,
 		ButtonStyle, get_id( 'StartButton' ), ParentButton ),
 
-	%gui:connect( StartButton, command_button_clicked ),
 	gui:subscribe_to_events( { onButtonClicked, StartButton } ),
 
 
 	StopButton = gui:create_button( "Stop resolution", Position, ButtonSize,
 		ButtonStyle, get_id( 'StopButton' ), ParentButton ),
 
-	%gui:connect( StopButton, command_button_clicked ),
 	gui:subscribe_to_events( { onButtonClicked, StopButton } ),
 
 
 	QuitButton = gui:create_button( "Quit", Position, ButtonSize, ButtonStyle,
 									get_id( 'QuitButton' ), ParentButton ),
 
-	%gui:connect( QuitButton, command_button_clicked ),
 	gui:subscribe_to_events( { onButtonClicked, QuitButton } ),
 
 
@@ -362,12 +360,12 @@ start() ->
 
 	gui:set_background_color( Canvas, red ),
 
+	io:format( "A1" ), timer:sleep(1000), io:format( "A1'~n" ),
+
 	gui:clear( Canvas ),
 
-	%gui:connect( Canvas, paint ),
 	gui:subscribe_to_events( { onRepaintNeeded, Canvas } ),
 
-	%gui:connect( Canvas, size ),
 	gui:subscribe_to_events( { onResized, Canvas } ),
 
 	gui:add_to_sizer( PolyBoxSizer, Canvas,
@@ -378,6 +376,8 @@ start() ->
 	gui:set_sizer( RightPanel, PolyBoxSizer ),
 
 	gui:set_sizer( MainFrame, MainSizer ),
+
+	io:format( "A10" ), timer:sleep(1000), io:format( "A10'~n" ),
 
 	% Sets the GUI to visible:
 	gui:show( MainFrame ),
@@ -453,7 +453,9 @@ create_solver_table( Derivative, _Colors=[ C | T ],
 
 
 
-% The main loop of this test, driven by the receiving of MyriadGUI messages.
+% @doc The main loop of this test, driven by the receiving of MyriadGUI
+% messages.
+%
 gui_main_loop( State=#gui_state{ main_frame=MainFrame,
 								 start_button=StartButton,
 								 stop_button=StopButton,
@@ -528,12 +530,12 @@ gui_main_loop( State=#gui_state{ main_frame=MainFrame,
 			gui:resize( Canvas, NewSize ),
 			%gui:clear( NewCanvas ),
 			%State#gui_state{ canvas=NewCanvas };
-			State;				
+			State;
 
 		{ draw_points, NewPoints, SendingSolverPid } ->
 
-			%trace_utils:debug_fmt( "Drawing ~B points from ~w.~n",
-		   %    [ length( NewPoints ), SendingSolverPid ] ),
+			%trace_utils:debug_fmt( "Drawing ~B points from ~w.",
+			%    [ length( NewPoints ), SendingSolverPid ] ),
 
 			SolverTable = State#gui_state.solver_table,
 
@@ -640,4 +642,4 @@ run() ->
 			start()
 
 	end,
-test_facilities:stop().
+	test_facilities:stop().

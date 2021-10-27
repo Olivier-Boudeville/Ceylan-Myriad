@@ -350,7 +350,7 @@ display_instant( Text ) ->
 
 
 % @doc Displays specified formatted text, as a normal non-modal message.
--spec display_instant( format_string(), [ term() ] ) -> void().
+-spec display_instant( format_string(), format_values() ) -> void().
 display_instant( FormatString, Values ) ->
 	UIModule = get_backend_name(),
 	UIModule:display_instant( FormatString, Values ).
@@ -851,7 +851,7 @@ trace( Message ) ->
 
 
 % @doc Displays and logs specified formatted text.
--spec trace( format_string(), [ term() ] ) -> void().
+-spec trace( format_string(), format_values() ) -> void().
 trace( FormatString, Values ) ->
 	UIModule = get_backend_name(),
 	UIModule:trace( FormatString, Values ).

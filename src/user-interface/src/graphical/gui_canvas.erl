@@ -99,21 +99,6 @@
 
 
 
-% Implementation notes:
-%
-% There is actually no such thing as a plain canvas in wx: here, they are
-% actually panels with bitmaps.
-%
-% So we emulate a canvas here, resulting notably in the fact that a canvas
-% object is not a reference onto a wx object, but a stateful instance that shall
-% as a result be kept from a call to another: as its state may change, the
-% result of functions returning a canvas must not be ignored.
-
-% Due to their number, canvas operations have been defined separately from the
-% gui module.
-
-
-
 % For related defines:
 -include("gui_canvas.hrl").
 
@@ -208,13 +193,13 @@ adjust_size( Canvas=#canvas_state{ panel=Panel, size=Size } ) ->
 % repainted then).
 %
 -spec resize( canvas_state(), size() ) -> canvas_state().
-resize( Canvas=#canvas_state{ bitmap=Bitmap, back_buffer=BackBuffer },
+resize( Canvas=#canvas_state{ bitmap=_Bitmap, back_buffer=_BackBuffer },
 		NewSize={ W, H } ) ->
 
 	trace_utils:debug_fmt( "Resizing canvas to ~w.", [ NewSize ] ),
 
-	wxBitmap:destroy( Bitmap ),
-	wxMemoryDC:destroy( BackBuffer ),
+	%wxBitmap:destroy( Bitmap ),
+	%wxMemoryDC:destroy( BackBuffer ),
 
 	NewBitmap = wxBitmap:new( W, H ),
 	NewBackBuffer = wxMemoryDC:new( NewBitmap ),
@@ -246,8 +231,8 @@ blit( Canvas=#canvas_state{ panel=Panel,
 	VisibleBuffer = wxWindowDC:new( Panel ),
 
 	wxDC:blit( VisibleBuffer, {0,0},
-		  { wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) },
-		  BackBuffer, {0,0} ),
+		{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) },
+		BackBuffer, {0,0} ),
 
 	wxWindowDC:destroy( VisibleBuffer ),
 
@@ -268,7 +253,6 @@ destroy( #canvas_state{ back_buffer=BackBuffer } ) ->
 	wxMemoryDC:destroy( BackBuffer ).
 
 
-
 % Color rendering section.
 
 
@@ -279,7 +263,12 @@ set_draw_color( Canvas, Color ) when is_atom( Color ) ->
 
 set_draw_color( Canvas, Color ) ->
 	NewPen = wxPen:new( Color ),
-	wxDC:setPen( Canvas#canvas_state.back_buffer, NewPen ),
+	BackBuffer = Canvas#canvas_state.back_buffer,
+
+	%trace_utils:debug_fmt( "For canvas ~n~p, setting backbuffer ~w "
+	%	"to new pen ~w.", [ Canvas, BackBuffer, NewPen ] ),
+
+	wxDC:setPen( BackBuffer, NewPen ),
 	wxPen:destroy( NewPen ).
 
 
@@ -304,10 +293,10 @@ set_fill_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 -spec set_background_color( canvas_state(), color() ) -> void().
 set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 
-	trace_utils:debug_fmt( "Setting background color of canvas to ~p.",
-						   [ Color ] ),
+	%trace_utils:debug_fmt( "Setting background color of canvas to ~p.",
+	%					   [ Color ] ),
 
-	% Must not be used, other double-deallocation core dump:
+	% Must not be used, otherwise double-deallocation core dump:
 	%_PreviousBrush = wxMemoryDC:getBrush( BackBuffer ),
 	%wxBrush:destroy( PreviousBrush ),
 
@@ -319,7 +308,7 @@ set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 
 
 
-% @doc Returns the RGB value of the pixel at specified position.
+% @doc Returns the RGB value of the pixel at the specified position.
 -spec get_rgb( canvas_state(), point2() ) -> color_by_decimal_with_alpha().
 get_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 

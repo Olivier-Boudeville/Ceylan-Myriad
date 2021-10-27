@@ -75,9 +75,9 @@
 % created).
 %
 % Then the user process enters its (GUI) specific main loop, from which it will
-% receive the events that it subscribed too, to which it will react by
-% performing application-specific operations and/or GUI-related operations
-% (creating, modifying, deleting widgets).
+% receive the events that it subscribed to, to which it will react by performing
+% application-specific operations and/or GUI-related operations (creating,
+% modifying, deleting widgets).
 %
 % Generally at least one condition is defined in order to leave that main loop
 % and stop the GUI (gui:stop/0).
