@@ -1,4 +1,4 @@
-MYRIAD_TOP = ../../../..
+MYRIAD_TOP = ../../..
 
 .PHONY: all run test-all
 

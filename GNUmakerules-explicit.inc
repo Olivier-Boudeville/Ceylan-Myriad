@@ -11,7 +11,9 @@
 
 .PHONY-myriad-explicit:  all all-pre-hook all-parallel-recurse all-recurse   \
 			all-parse-transforms bootstrap-modules make-all-parse-transforms \
-			build-debug rebuild test test-recurse doc-recurse build-tests    \
+			build-debug rebuild                                              \
+			test test-recurse test-interactive test-interactive-recurse      \
+			doc-recurse build-tests                                          \
 			launch shell generate-tags                                       \
 			create-include-links clean-include-links copy-beams-to-ebin      \
 			install-all install-announce install-ebin install-bin            \
@@ -42,7 +44,7 @@
 			clean-recurse clean-outputs clean-ast-debug real-clean track     \
 			info-platform info-hardware info-software info-source-layout     \
 			info info-files info-meta info-erlang info-python info-java      \
-			info-sync info-check info-rebar3 info-compile                    \
+			info-sync info-check info-rebar3 info-compile info-options       \
 			info-parse-transform info-doc
 
 
@@ -238,14 +240,29 @@ $(MYRIAD_TOP)/src/data-management/map_hashtable.beam: $(MYRIAD_TOP)/src/data-man
 
 
 
-
+# By default, tests are run in batch mode:
 test: all test-recurse
 	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} --batch"; then echo "Test failed." 1>&2; exit 1; else echo; fi; done
 
 
 test-recurse:
-	@echo "   Testing all in $$(basename $(PWD))"
+	@echo "   Testing all in batch mode in $$(basename $(PWD))"
 	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s test CMD_LINE_OPT="${CMD_LINE_OPT}" && cd ..; else echo "	  (directory $$m skipped)"; fi); then exit 1; fi; done
+
+
+# To run tests in interactive mode, possibly with a specific UI backend:
+#
+# (ex: 'make test-interactive UI_TEST_BACKEND=text_ui' or by modifying this
+# variable directly in GNUmakevars.inc)
+#
+test-interactive: #all test-interactive-recurse
+	@for t in $(TEST_TARGETS); do if ! $(MAKE) -s $$(echo $$t|sed 's|_test$$|_run|1') CMD_LINE_OPT="${CMD_LINE_OPT} -extra $(UI_TEST_OPT)"; then echo "Interactive test failed." 1>&2; exit 11; else echo; fi; done
+
+
+test-interactive-recurse:
+	@echo "   Testing all in interactive mode (UI backend option: '${UI_TEST_OPT}') in $$(basename $(PWD))"
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s test-interactive CMD_LINE_OPT="${CMD_LINE_OPT}" && cd ..; else echo "	  (directory $$m skipped)"; fi); then exit 11; fi; done
+
 
 
 # Best placed here rather than in GNUmakerules-docutils.inc:
@@ -264,7 +281,7 @@ build-tests: $(BEAM_FILES)
 
 launch: Emakefile
 	@echo "		Launching interpreter with default Ceylan settings"
-	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) $(CMD_LINE_OPT)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) ${CMD_LINE_OPT}
 
 
 # To have an Erlang shell with the right configuration to rely on Myriad (ex:
@@ -1231,6 +1248,18 @@ info-compile:
 	@echo "ERLANG_INTERPRETER = $(ERLANG_INTERPRETER)"
 	@echo "UNSUPPORTED_SOURCES = $(UNSUPPORTED_SOURCES)"
 	@echo "NOTIFIER_TOOL = $(NOTIFIER_TOOL)"
+
+
+# To test the propagation of variables (hint: use 'export' pass variable to a
+# sub-make; refer to
+# https://www.gnu.org/software/make/manual/html_node/Recursion.html#Recursion)
+#
+# MAKEFLAGS automatically set by make:
+#
+info-options:
+	@echo "UI_TEST_OPT = $(UI_TEST_OPT)"
+	@echo "CMD_LINE_OPT = $(CMD_LINE_OPT)"
+	@echo "MAKEFLAGS = $(MAKEFLAGS)"
 
 
 info-parse-transform:

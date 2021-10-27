@@ -638,6 +638,23 @@ ifndef BASE_PLT
 endif
 
 
+# For the user interface testing:
+ifndef UI_TEST_BACKEND
+  #UI_TEST_BACKEND = text_ui
+  UI_TEST_BACKEND = term_ui
+  #UI_TEST_BACKEND  = gui
+endif
+
+
+# Single-quoting is necessary, otherwise the selected test backend will be
+# interpreted by make as a target:
+#
+ifndef UI_TEST_OPT
+  ifdef UI_TEST_BACKEND
+	UI_TEST_OPT = "'--use-ui-backend $(UI_TEST_BACKEND)'"
+  endif
+endif
+
 
 # To test conditional checks:
 ERLANG_COMPILER_TEST_TOKEN_OPT := -Dmy_first_test_token            \
