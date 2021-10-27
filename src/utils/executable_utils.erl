@@ -179,7 +179,6 @@ lookup_executable( ExecutableName, ExtraDirs ) ->
 
 	% Let's reconstruct a proper PATH-like string:
 	ExtraStr = text_utils:join( $:, ExtraDirs ),
-text_u
 
 	FullStr = case system_utils:get_environment_variable( "PATH" ) of
 
