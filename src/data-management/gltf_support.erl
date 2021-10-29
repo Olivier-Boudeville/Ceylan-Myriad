@@ -1937,7 +1937,10 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 	IndicesBin = append_to_buffer( IndicesElementType, IndicesComponentType,
 								   Indices, TexCoordBin ),
 
-	ResultingBuffer = gltf_support:bin_to_gltf_buffer_embedded( IndicesBin ),
+	MaybeBufferName = forge_maybe_name( "Generated buffer", MaybeName ),
+
+	ResultingBuffer =
+		bin_to_gltf_buffer_embedded( IndicesBin, MaybeBufferName ),
 
 	NewBuffers = list_utils:append_at_end( ResultingBuffer, Buffers ),
 
