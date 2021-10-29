@@ -26,12 +26,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
+% The glTF version supported:
 -define( gltf_version_string, "2.0" ).
 
 
 % Gathers all information regarding a glTF 2.0 content.
 -record( gltf_content, {
+
+	% No content name defined, as no place in format was such information.
 
 	% The index of the default scene (if any) of this content:
 	default_scene = undefined :: maybe( gltf_support:scene_index() ),
@@ -39,7 +41,7 @@
 	% The in-order definition of all known scenes:
 	scenes = [] :: [ gltf_support:scene() ],
 
-	% The in-order definition of all known nodes:
+	% The in-order definition of all known (scene) nodes:
 	nodes = [] :: [ gltf_support:scene_node() ],
 
 	% The in-order definition of all known materials:
@@ -51,33 +53,33 @@
 	% The in-order definition of all known meshes:
 	meshes = [] :: [ gltf_support:mesh() ],
 
-	% The in-order definition of all known accessors:
+	% The in-order definition of all known (buffer) accessors:
 	accessors = [] :: [ gltf_support:accessor() ],
 
 	% The in-order definition of all known buffers:
 	buffers = [] :: [ gltf_support:buffer() ],
 
-	% The in-order definition of all known buffer views:
+	% The in-order definition of all known buffer-views:
 	buffer_views = [] :: [ gltf_support:buffer_view() ] } ).
 
 
 
-% A scene defined in a glTf content.
+% A scene defined in a glTF content.
 -record( gltf_scene, {
 
 	% The name (if any) of this scene:
-	name :: maybe( text_utils:bin_string() ),
+	name :: maybe( gltf_support:object_name() ),
 
 	% The indices of the nodes of this scene:
 	nodes = [] :: [ gltf_support:node_index() ] } ).
 
 
 
-% A node defined in a glTf content.
+% A node defined in a glTF content.
 -record( gltf_scene_node, {
 
 	% The name (if any) of this node:
-	name :: maybe( text_utils:bin_string() ),
+	name :: maybe( gltf_support:object_name() ),
 
 	% The index of the mesh (if any) associated to this node:
 	mesh :: maybe( gltf_support:mesh_index() ),
@@ -93,17 +95,17 @@
 
 
 
-% A light defined in a glTf content.
+% A light defined in a glTF content.
 %
-% Note that the core glTf format does not define lights (there are just
+% Note that the core glTF format does not define lights (there are just
 % represented as nodes); so no gltf_light.
 
 
 
-% A mesh defined in a glTf content.
+% A mesh defined in a glTF content.
 %
-% Meshes are defined as arrays of primitives. Primitives correspond to the data
-% required for GPU draw calls.
+% Meshes are included in nodes, and are themselves defined as arrays of
+% primitives. Primitives correspond to the data required for GPU draw calls.
 %
 % Refer to
 % https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#meshes-overview
@@ -111,7 +113,7 @@
 -record( gltf_mesh, {
 
 	% The name (if any) of this mesh:
-	name :: maybe( text_utils:bin_string() ),
+	name :: maybe( gltf_support:object_name() ),
 
 	primitives = [] :: [ gltf_support:primitive() ] } ).
 
@@ -127,6 +129,8 @@
 % https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-mesh-primitive
 %
 -record( gltf_primitive, {
+
+	% No name possibly defined.
 
 	attributes :: gltf_support:attributes(),
 
@@ -155,11 +159,11 @@
 
 
 
-% A material defined in a glTf content.
+% A material defined in a glTF content.
 -record( gltf_material, {
 
 	% The name (if any) of this material:
-	name :: maybe( text_utils:bin_string() ),
+	name :: maybe( gltf_support:object_name() ),
 
 	% Tells whether this mesh is double-sided:
 	double_sided :: maybe( boolean() ),
@@ -192,6 +196,9 @@
 %
 -record( gltf_orthographic_camera, {
 
+	% The name (if any) of this camera:
+	name :: maybe( gltf_support:object_name() ),
+
 	x_magnification :: math_utils:positive_factor(),
 
 	y_magnification :: math_utils:positive_factor(),
@@ -208,6 +215,9 @@
 % instances can be derived.
 %
 -record( gltf_perspective_camera, {
+
+	% The name (if any) of this camera:
+	name :: maybe( gltf_support:object_name() ),
 
 	% The aspect ratio of the field of view:
 	aspect_ratio :: maybe( math_utils:ratio() ),
@@ -229,6 +239,9 @@
 % https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-accessor
 %
 -record( gltf_accessor, {
+
+	% The name (if any) of this accessor:
+	name :: maybe( gltf_support:object_name() ),
 
 	buffer_view :: maybe( gltf_support:buffer_view_index() ),
 
@@ -258,6 +271,9 @@
 %
 -record( gltf_buffer, {
 
+	% The name (if any) of this buffer:
+	name :: maybe( gltf_support:object_name() ),
+
 	% The URI designating the data to be fetched for the content of this buffer:
 	uri :: web_utils:uri(),
 
@@ -272,6 +288,9 @@
 % https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-bufferview
 %
 -record( gltf_buffer_view, {
+
+	% The name (if any) of this buffer-view:
+	name :: maybe( gltf_support:object_name() ),
 
 	% The index of the target buffer:
 	buffer :: gltf_support:buffer_index(),
