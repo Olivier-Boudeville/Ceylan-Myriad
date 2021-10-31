@@ -201,8 +201,9 @@ run_test_gui() ->
 	gui:set_background_color( Canvas, pink ),
 
 	% Generally canvas need to react iff a repaint is needed:
+	%
 	% (note that resizing implies onRepaintNeeded to be triggered)
-	%CanvasEvents = { [ onRepaintNeeded, onResized ], Canvas },
+	%
 	CanvasEvents = { onRepaintNeeded, Canvas },
 
 	gui:add_to_sizer( PolyBoxSizer, Canvas,
@@ -260,9 +261,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  render_count=RenderCount,
 										  render_mode=RenderMode } ) ->
 
-	trace_utils:info_fmt( "Test main loop running, render mode is ~p, "
-		"render count is ~B, point count is ~B.",
-		[ RenderMode, RenderCount, TestState#my_test_state.point_count ] ),
+	%trace_utils:info_fmt( "Test main loop running, render mode is ~p, "
+	%	"render count is ~B, point count is ~B.",
+	%	[ RenderMode, RenderCount, TestState#my_test_state.point_count ] ),
 
 	% We use trace_utils:notice* to discriminate more easily the traces
 	% originating from this test from any MyriadGUI ones:
@@ -375,30 +376,10 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 								render_count=RenderCount+1 } );
 
 
-		
-			% FIXMEA priori useless as expected to trigger an onRepaintNeeded event:
-		{ onResized, [ Canvas, NewSize, Context ] } ->
-
-			trace_utils:notice_fmt( "Canvas ~ts resized to ~w (~ts), redrawing.",
-				[ gui:object_to_string( Canvas ), NewSize,
-				  gui:context_to_string( Context ) ] ),
-
-			 %% case RenderMode of
-
-			 %% 	test_shape_rendering ->
-			 %% 		render_shapes( Canvas );
-
-			 %% 	test_dynamic_mec ->
-			 %% 		render_mec( Canvas, TestState#my_test_state.point_count )
-
-			 %% end,
-
-			test_main_loop( TestState );
-
-
 		Other ->
+			% Extra newline for better separation:
 			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~p.", [ Other ] ),
+									 "message: ~p.~n", [ Other ] ),
 			test_main_loop( TestState )
 
 	end.
@@ -410,9 +391,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 -spec render_shapes( canvas() ) -> canvas().
 render_shapes( Canvas ) ->
 
-	trace_utils:info_fmt(
-		"Rendering shapes, redrawing canvas ~w, of size ~w.",
-		[ Canvas, gui:get_size( Canvas ) ] ),
+	%trace_utils:info_fmt(
+	%	"Rendering shapes, redrawing canvas ~w, of size ~w.",
+	%	[ Canvas, gui:get_size( Canvas ) ] ),
 
 	gui:set_background_color( Canvas, yellow ),
 

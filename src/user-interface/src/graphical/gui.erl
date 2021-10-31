@@ -630,9 +630,8 @@ set_debug_level( DebugLevel ) ->
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 
-	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
-		"User process subscribing to following events:~n ~p.",
-		[ SubscribedEvents ] ) ),
+	%trace_utils:info_fmt( "User process subscribing to following events:~n~p.",
+	%                      [ SubscribedEvents ] ),
 
 	GUIEnv = get_gui_env(),
 
@@ -1057,15 +1056,19 @@ set_sizer( Window, Sizer ) ->
 %
 -spec show( window() | [ window() ] ) -> boolean().
 show( Windows ) when is_list( Windows )->
+
+	% Note: onShow used to be sent to the MyriadGUI loop, as some widgets had to
+	% be adjusted then, but it is no longer useful.
+
 	%trace_utils:debug_fmt( "Showing windows ~p.", [ Windows ] ),
 	Res = show_helper( Windows, _Acc=false ),
-	get_main_loop_pid() ! { onShow, [ Windows ] },
+	%get_main_loop_pid() ! { onShow, [ Windows ] },
 	Res;
 
 show( Window ) ->
 	%trace_utils:debug_fmt( "Showing window ~p.", [ Window ] ),
 	Res = wxWindow:show( Window ),
-	get_main_loop_pid() ! { onShow, [ [ Window ] ] },
+	%get_main_loop_pid() ! { onShow, [ [ Window ] ] },
 	Res.
 
 
@@ -1259,8 +1262,8 @@ create_panel( Parent, Position, Size, Options ) ->
 		++ [ to_wx_position( Position ), to_wx_size( Size ) ],
 
 	%trace_utils:debug_fmt( "Creating panel: parent: ~w, position: ~w, "
-	%                       "size: ~w, options: ~w, full options: ~w.",
-	%                       [ Parent, Position, Size, Options, FullOptions ] ),
+	%    "size: ~w, options: ~w, full options: ~w.",
+	%    [ Parent, Position, Size, Options, FullOptions ] ),
 
 	wxPanel:new( Parent, FullOptions ).
 
@@ -1398,7 +1401,7 @@ add_to_sizer( Sizer, _Elements=[ { Elem, Opts } | T ] ) ->
 	add_to_sizer( Sizer, T );
 
 add_to_sizer( Sizer, Element ) ->
-	trace_utils:debug_fmt( "Adding ~w to sizer ~w.", [ Element, Sizer ] ),
+	%trace_utils:debug_fmt( "Adding ~w to sizer ~w.", [ Element, Sizer ] ),
 	wxSizer:add( Sizer, Element ).
 
 
@@ -1481,9 +1484,10 @@ push_status_text( Text, StatusBar ) ->
 						construction_parameters() ) -> myriad_object_ref().
 execute_instance_creation( ObjectType, ConstructionParams ) ->
 
-	trace_utils:debug_fmt( "Requesting the creation of a '~ts' instance, "
-		"based on following construction parameters:~n~w.",
-		[ ObjectType, ConstructionParams ] ),
+	cond_utils:if_defined( myriad_debug_gui_instances,
+		trace_utils:debug_fmt( "Requesting the creation of a '~ts' instance, "
+			"based on following construction parameters:~n~w.",
+			[ ObjectType, ConstructionParams ] ) ),
 
 	LoopPid = get_main_loop_pid(),
 
@@ -1494,8 +1498,9 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 		% Match on the object type:
 		{ instance_created, ObjectType, ObjectRef } ->
 
-			trace_utils:debug_fmt( "'~ts' instance created, now referenced "
-				"as ~w.", [ ObjectType, ObjectRef ] ),
+			cond_utils:if_defined( myriad_debug_gui_instances,
+				trace_utils:debug_fmt( "'~ts' instance created, now referenced "
+									   "as ~w.", [ ObjectType, ObjectRef ] ) ),
 
 			ObjectRef
 

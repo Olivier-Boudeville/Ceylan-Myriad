@@ -53,6 +53,11 @@
 % The canvas is only an in-memory surface (not onscreen), a back-buffer:
 % operations that are performed on it will not be visible as long as that no
 % blitting of it on the visible buffer is done (see blit/1).
+%
+% The only key event for a canvas is the onRepaintNeeded one: if a user code
+% registered this event (see gui:subscribe_to_events/1) for a canvas, this code
+% will receive a {onRepaintNeeded, [Canvas, Context]} message whenever
+% appropriate.
 
 
 % Note: these functions are meant to be executed in the context of the MyriadGUI
@@ -103,6 +108,10 @@
 -export([ load_image/2, load_image/3 ]).
 
 
+% For internal use:
+-export([ get_base_panel_events_of_interest/0 ]).
+
+
 
 % For related defines:
 -include("gui_canvas.hrl").
@@ -146,6 +155,9 @@
 -type size() :: gui:size().
 -type label() :: gui:label().
 
+-type event_type() :: gui_event:event_type().
+
+
 
 % @doc Creates a canvas, whose parent is the specified window.
 %
@@ -186,10 +198,10 @@ create_instance( [ Parent ] ) ->
 
 	% The current MyriadGUI loop process must be notified whenever the
 	% associated panel has to be repainted or is resized, so that this canvas
-	% can be notified in turn (to update its internal state). The reassign_table
-	% mechanism will take care of that:
+	% can be notified in turn (to update its internal state, for example its
+	% size). The reassign_table mechanism will take care of that:
 	%
-	gui_wx_backend:connect( Panel, _EventTypes=[ onRepaintNeeded, onResized ] ),
+	gui_wx_backend:connect( Panel, get_base_panel_events_of_interest() ),
 
 	% process_myriad_creation/4
 	% So when the panel will be resized, a wx 'size' event will be received by
@@ -200,17 +212,29 @@ create_instance( [ Parent ] ) ->
 
 
 
+% @doc Returns the types of events regarding its panel that a canvas will
+% register to by default.
+%
+-spec get_base_panel_events_of_interest() -> [ event_type() ].
+get_base_panel_events_of_interest() ->
+	% Both are strictly needed:
+	[ onRepaintNeeded, onResized ].
+
+
+
 % @doc Updates the specified canvas state so that it matches any change in size
 % of its panel, and tells whether that canvas shall be repainted.
 %
-% Typicalled called initially (onShow) and whenever the parent container is
-% resized.
+% Typically used to be called initially (onShow); now called whenever the parent
+% container is resized.
 %
 -spec adjust_size( canvas_state() ) -> { boolean(), canvas_state() }.
 adjust_size( CanvasState=#canvas_state{ panel=Panel, size=Size } ) ->
 
-	trace_utils:debug_fmt( "Adjusting size of canvas '~p': currently ~w, "
-		"while panel's is ~w.", [ CanvasState, Size, gui:get_size( Panel ) ] ),
+	cond_utils:if_defined( myriad_debug_gui_canvas,
+		trace_utils:debug_fmt( "Adjusting size of canvas '~p': currently ~w, "
+			"while panel's is ~w.",
+			[ CanvasState, Size, gui:get_size( Panel ) ] ) ),
 
 	case gui:get_size( Panel ) of
 
@@ -235,7 +259,8 @@ adjust_size( CanvasState=#canvas_state{ panel=Panel, size=Size } ) ->
 resize( CanvasState=#canvas_state{ bitmap=Bitmap, back_buffer=BackBuffer },
 		NewSize={ W, H } ) ->
 
-	trace_utils:debug_fmt( "Resizing canvas to ~w.", [ NewSize ] ),
+	cond_utils:if_defined( myriad_debug_gui_canvas,
+		trace_utils:debug_fmt( "Resizing canvas to ~w.", [ NewSize ] ) ),
 
 	% Regardless of call order and wheter either one or both of the next calls
 	% are enabled, if an error like
@@ -566,6 +591,7 @@ draw_numbered_points( Canvas, Points ) ->
 	LabelledPoints = label_points( Points, _Acc=[], _InitialCount=1 ),
 
 	%trace_utils:debug_fmt( "Labelled points: ~p.", [ LabelledPoints ] ),
+
 	[ draw_labelled_cross( Canvas, Location, _EdgeLength=6, Label )
 			|| { Label, Location } <- LabelledPoints  ].
 

@@ -60,6 +60,7 @@
 % for more architecture/implementation details about wx.
 
 
+
 % Function export section.
 
 
@@ -73,7 +74,7 @@
 
 % To silence unused warnings:
 -export([ get_subscribers_for/3, adjust_objects/3,
-		  process_only_latest_repaint_event/3, reassign_table_to_string/1,
+		  process_only_latest_repaint_event/4, reassign_table_to_string/1,
 		  get_instance_state/2, type_table_to_string/1,
 		  instance_referential_to_string/1 ]).
 
@@ -150,6 +151,10 @@
 					| 'onResized'
 					| 'onWindowClosed'.
 % Our own event types, independent from any backend.
+%
+% Note that resizing a widget (typically a canvas) implies receiving also a
+% onRepaintNeeded; so a canvas may subscribe only to onRepaintNeeded (not
+% necessarily to onResized).
 
 
 -type user_pid() :: pid().
@@ -332,6 +337,8 @@
 
 % Shorthands:
 
+-type count() :: basic_utils:count().
+
 -type ustring() :: text_utils:ustring().
 
 -type gui_object() :: gui:gui_object().
@@ -411,36 +418,44 @@ process_event_messages( LoopState ) ->
 
 	%trace_utils:info( "Waiting for event messages..." ),
 
-	% Special management of repaint requests:
-	%% NewLoopState = receive
-
-	%%	% So that no large series of repaint requests for the same object pile
-	%%	% up:
-	%%	%
-	%%	FirstWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
-
-	%%		trace_utils:debug_fmt( "Received first repaint event:~n ~p.",
-	%%							   [ FirstWxRepaintEvent ] ),
-
-	%%		process_only_latest_repaint_event( FirstWxRepaintEvent,
-	%%										   SourceObject, LoopState );
-
-	%%	OtherEvent ->
-	%%		%trace_utils:debug_fmt( "Received other event: ~p.",
-	%%		%                       [ OtherEvent ] ),
-	%%		process_event_message( OtherEvent, LoopState )
-
-	%% end,
-
-	% To bypass the "smarter" management above, for test purpose:
+	% Special management of repaint requests, to avoid useless repaintings.
+	%
+	% Indeed, even if having registered (with wxEvtHandler:connect/3) a panel
+	% only once, when resizing we notice that we receive the following event
+	% *twice*: {wx,-2017,{wx_ref,56,wxPanel,[]},[],{wxPaint,paint}}.
+	%
+	% Our dropping logic allows to repaint only once in that case.
+	%
 	NewLoopState = receive
 
-		AnyEvent ->
-			%trace_utils:debug_fmt( "Received any event: ~p.",
-			%                       [ AnyEvent ] ),
-			process_event_message( AnyEvent, LoopState )
+		% So that no large series of repaint requests for the same object pile
+		% up:
+		%
+		FirstWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
+
+			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+				trace_utils:debug_fmt( "Received first repaint event:~n ~p.",
+									   [ FirstWxRepaintEvent ] ) ),
+
+			process_only_latest_repaint_event( FirstWxRepaintEvent,
+				SourceObject, _DropCount=0, LoopState );
+
+		OtherEvent ->
+			%trace_utils:debug_fmt( "Received other event: ~p.",
+			%                       [ OtherEvent ] ),
+			process_event_message( OtherEvent, LoopState )
 
 	end,
+
+	% To bypass the "smarter" management above, for test/comparison purpose:
+	%NewLoopState = receive
+	%
+	%   AnyEvent ->
+	%       %trace_utils:debug_fmt( "Received any event: ~p.",
+	%       %                       [ AnyEvent ] ),
+	%       process_event_message( AnyEvent, LoopState )
+	%
+	%end,
 
 	process_event_messages( NewLoopState ).
 
@@ -709,7 +724,7 @@ process_event_message( { subscribeToEvents,
 
 % To account for example for a silently-resized inner panel of a canvas:
 %
-% (done only once, initially):
+% (done only once, initially; finally useless):
 %
 %process_event_message( { adjustObject, ObjectRef }, LoopState ) ->
 %
@@ -751,10 +766,10 @@ process_event_message( UnmatchedEvent, LoopState ) ->
 % @doc Drops all intermediate repaint events, and processes the last one, and
 % then the next non-repaint event.
 %
--spec process_only_latest_repaint_event( wx_event(), wx_object(),
+-spec process_only_latest_repaint_event( wx_event(), wx_object(), count(),
 										 loop_state() ) -> loop_state().
 process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
-								   LoopState ) ->
+								   DropCount, LoopState ) ->
 
 	receive
 
@@ -763,11 +778,12 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 		%
 		NewWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
 
-			%trace_utils:debug_fmt( "Received next repaint event: ~p.",
-			%                       [ NewWxRepaintEvent ] ),
+			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+				trace_utils:debug_fmt( "Dropping last repaint event received "
+					"in favor of newer one:~n ~p.", [ NewWxRepaintEvent ] ) ),
 
 			process_only_latest_repaint_event( NewWxRepaintEvent, SourceObject,
-											   LoopState );
+											   DropCount+1, LoopState );
 
 
 		OtherEvent ->
@@ -781,17 +797,51 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 			PostRepaintLoopState = process_wx_event( EventSourceId, GUIObject,
 				UserData, WxEventInfo, CurrentWxRepaintEvent, LoopState ),
 
-			%trace_utils:debug_fmt( "Received post-repaint event: ~p.",
-			%                       [ OtherEvent ] ),
+			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+				case DropCount of
+
+					0 ->
+						trace_utils:warning( "(no drop)" );
+						%throw( no_drop );
+
+					1 ->
+						trace_utils:warning( "(single drop)" );
+
+					_ ->
+						trace_utils:warning_fmt( "Received post-repaint event "
+							"after ~B drops:~n ~p.", [ DropCount, OtherEvent ] )
+						%throw( { drop_count, DropCount } )
+
+				end ),
 
 			% And then process the first non-repaint event that was just
 			% received:
 			%
 			process_event_message( OtherEvent, PostRepaintLoopState )
 
-	% We should not delay arbitrarily the processing of a unique repaint event:
-	after 5 ->
-	%after 0 ->
+	% We should not delay arbitrarily the processing of a unique repaint event,
+	% so we time-out shortly:
+	%
+	%after 5 ->
+	after 0 ->
+
+		cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+			case DropCount of
+
+				0 ->
+					trace_utils:warning( "(no time-out drop)" );
+					%throw( no_drop_time_out );
+
+				1 ->
+					trace_utils:warning( "(single time-out drop)" );
+
+				_ ->
+					trace_utils:warning_fmt( "Timed-out after ~B drops.",
+											 [ DropCount ] )
+					%throw( { drop_count, DropCount } )
+
+			end ),
+
 
 		#wx{ id=EventSourceId, obj=GUIObject, userData=UserData,
 			 event=WxEventInfo } = CurrentWxRepaintEvent,
@@ -823,10 +873,12 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 			{ GUIObject, TypeTable };
 
 		{ value, TargetGUIObject } ->
-			trace_utils:debug_fmt( "Wx event received about '~ts', "
-				"reassigned to '~ts':~n~p.",
-				[ gui:object_to_string( GUIObject ),
-				  gui:object_to_string( TargetGUIObject ), WxEventInfo ] ),
+			cond_utils:if_defined( myriad_debug_gui_events,
+				trace_utils:debug_fmt( "Wx event received about '~ts', "
+					"reassigned to '~ts':~n~p.",
+					[ gui:object_to_string( GUIObject ),
+					  gui:object_to_string( TargetGUIObject ),
+					  WxEventInfo ] ) ),
 
 			% Before notifying the event subscribers below, some special actions
 			% may be needed to update that target reassigned object first (ex:
@@ -875,8 +927,9 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 					   [ gui:object_to_string( ActualGUIObject ), EventType ] );
 
 				{ value, Subscribers } ->
-					trace_utils:debug_fmt( "Dispatching ~p event to "
-						"subscribers ~w.", [ EventType, Subscribers ] ),
+					cond_utils:if_defined( myriad_debug_gui_events,
+                        trace_utils:debug_fmt( "Dispatching ~p event to "
+						    "subscribers ~w.", [ EventType, Subscribers ] ) ),
 
 					send_event( Subscribers, EventType, EventSourceId,
 								ActualGUIObject, UserData, WxEvent )
@@ -910,17 +963,22 @@ update_instance_on_event( _GuiObject={ myriad_object_ref, canvas, CanvasId },
 			set_canvas_instance_state( CanvasId, NewCanvasState, TypeTable );
 
 		OtherWxEventType ->
-			trace_utils:debug_fmt(
-			  "No canvas update to be done for event '~ts'.",
-			  [ OtherWxEventType ] ),
+			cond_utils:if_defined( myriad_debug_gui_canvas,
+				trace_utils:debug_fmt(
+					"No canvas update to be done for event '~ts'.",
+				  [ OtherWxEventType ] ),
+				basic_utils:ignore_unused( OtherWxEventType ) ),
 			TypeTable
 
 	end;
 
 update_instance_on_event( GuiObject, WxEventInfo, TypeTable ) ->
 
-	trace_utils:debug_fmt( "No specific update needed for GUI object ~w "
-		"regarding event information ~p.", [ GuiObject, WxEventInfo ] ),
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( "No specific update needed for GUI object ~w "
+			"regarding event information ~p.", [ GuiObject, WxEventInfo ] ),
+		basic_utils:ignore_unused( GuiObject, WxEventInfo ) ),
+
 	TypeTable.
 
 
@@ -1172,16 +1230,45 @@ register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
 	NewEventTable = record_subscriptions( Canvas, EventTypes, Subscribers,
 										  EventTable ),
 
-	% A canvas is registered in wx as a panel (as wx will send events about it)
-	% that will be reassigned as a canvas:
+	% We used to connect here the panel of a canvas to the MyriadGUI main loop
+	% directly based on the user-specified types, however a panel must be
+	% connected in all cases (whether or not the user subscribed to events
+	% regarding their canvas) for onRepaintNeeded and onResized (for example to
+	% manage properly resizings), and this have already been done by
+	% gui_canvas:create_instance/1.
+	%
+	% We must thus avoid here to connect such panel again (thus more than once)
+	% for a given event type (ex: onRepaintNeeded), otherwise a logic (ex: the
+	% repaint one) could be triggered multiple times (as multiple identical
+	% messages could then be received - however in practice this is not the
+	% case, exactly one message per event type is received).
 
-	CanvasState = get_instance_state( canvas, CanvasId, TypeTable ),
+	BaseEventTypes = gui_canvas:get_base_panel_events_of_interest(),
 
-	Panel = CanvasState#canvas_state.panel,
+	% Exactly one occurrence of these types to remove:
+	NewEventTypes = list_utils:remove_first_occurrences( BaseEventTypes,
+														 EventTypes ),
 
-	% Will defer all events (paint, size) of the underlying panel to the canvas:
+	case NewEventTypes of
 
-	[ gui_wx_backend:connect( Panel, EvType ) || EvType <- EventTypes ],
+		% Shortcut:
+		[] ->
+			ok;
+
+		_ ->
+			% As a canvas is registered in wx as a panel (as wx will send events
+			% about it) that will be reassigned as a canvas:
+
+			CanvasState = get_instance_state( canvas, CanvasId, TypeTable ),
+
+			Panel = CanvasState#canvas_state.panel,
+
+			% Will defer these extra types of events of the underlying panel to
+			% the canvas:
+			%
+			gui_wx_backend:connect( Panel, NewEventTypes )
+
+	end,
 
 	LoopState#loop_state{ event_table=NewEventTable };
 
@@ -1378,7 +1465,7 @@ set_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 
 	%trace_utils:debug_fmt( "Setting state of instance ~p of type ~ts to ~p",
-	%	[ InstanceId, MyriadObjectType, InstanceState ] ),
+	%   [ InstanceId, MyriadObjectType, InstanceState ] ),
 
 	%trace_utils:debug_fmt( "~ts", [ type_table_to_string( TypeTable ) ] ),
 

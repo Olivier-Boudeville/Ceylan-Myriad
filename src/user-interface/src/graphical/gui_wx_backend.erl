@@ -247,6 +247,8 @@
 
 -type bit_mask() :: basic_utils:bit_mask().
 
+-type maybe_list(T) :: list_utils:maybe_list( T ).
+
 -type ustring() :: text_utils:ustring().
 
 
@@ -853,11 +855,14 @@ wx_id_to_string( Id ) ->
 % message-based event when the specified kind of event happens, overriding its
 % default behaviour.
 %
-% Note: only useful internally or when bypasssing the default main loop.
+% Note:
+%  - apparently registering more than once a given type has no effect (not N
+%  messages of that type sent afterwards)
+%  - only useful internally or when bypasssing the default main loop
 %
--spec connect( event_source(), event_type() ) -> void().
-connect( EventSource, EventType ) ->
-	connect( EventSource, EventType, _Options=[] ).
+-spec connect( event_source(), maybe_list( event_type() ) ) -> void().
+connect( EventSource, EventTypeOrTypes ) ->
+	connect( EventSource, EventTypeOrTypes, _Options=[] ).
 
 
 
@@ -868,14 +873,22 @@ connect( EventSource, EventType ) ->
 % message-based event when the specified kind of event happens, overriding its
 % default behaviour based on specified options.
 %
-% Note: only useful internally or when bypassing the default main loop.
+% Note:
+%  - apparently registering more than once a given type has no effect (not N
+%  messages of that type sent afterwards)
+%  - only useful internally or when bypasssing the default main loop
 %
--spec connect( event_source(), list_utils:maybe_list( event_type() ),
+-spec connect( event_source(), maybe_list( event_type() ),
 			   connect_options() ) -> void().
-connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options ) ->
-	connect( Panel, EventTypeOrTypes, Options );
+% Was not used apparently:
+%connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options ) ->
+%	connect( Panel, EventTypeOrTypes, Options );
 
 connect( SourceObject, EventTypes, Options ) when is_list( EventTypes ) ->
+
+	%trace_utils:debug_fmt( "Connecting ~p for event types ~w with options ~p.",
+	%                       [ SourceObject, EventTypes, Options ] ),
+
 	[ connect( SourceObject, ET, Options ) || ET <- EventTypes ];
 
 connect( SourceObject, EventType, Options ) ->
@@ -883,10 +896,11 @@ connect( SourceObject, EventType, Options ) ->
 	% Events to be processed through messages, not callbacks:
 	WxEventType = to_wx_event_type( EventType ),
 
-	trace_utils:debug_fmt( "Connecting event source '~ts' to ~w "
-		"for ~p (i.e. ~p).",
-		[ gui:object_to_string( SourceObject ), self(), EventType,
-		  WxEventType ] ),
+	cond_utils:if_defined( myriad_debug_gui_events,
+	   trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
+			"for ~p (i.e. ~p).",
+			[ gui:object_to_string( SourceObject ), self(), EventType,
+			  WxEventType ] ) ),
 
 	wxEvtHandler:connect( SourceObject, WxEventType, Options ).
 
