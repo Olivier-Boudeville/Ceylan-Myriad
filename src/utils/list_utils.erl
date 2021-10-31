@@ -64,8 +64,12 @@
 		  union/2, intersection/2,
 		  difference/2, differences/2,
 		  cartesian_product/1,
-		  subtract_all_duplicates/2, delete_existing/2, delete_if_existing/2,
-		  delete_all_in/2, append_at_end/2,
+		  subtract_all_duplicates/2,
+		  delete_existing/2, delete_if_existing/2,
+		  remove_element_from/2, remove_elements_from/2,
+		  remove_first_occurrence/2, remove_first_occurrences/2,
+		  delete_all_in/2,
+		  append_at_end/2,
 		  unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
 
 
@@ -738,6 +742,7 @@ delete_existing( Elem, List ) ->
 	delete_existing( Elem, List, _OriginalList=List, _Acc=[] ).
 
 
+% (helper)
 delete_existing( Elem, _List=[], OriginalList, _Acc ) ->
 	throw( { element_to_delete_not_found, Elem, OriginalList } );
 
@@ -747,6 +752,27 @@ delete_existing( Elem, _List=[ Elem | T ], _OriginalList, Acc ) ->
 
 delete_existing( Elem, _List=[ H | T ], OriginalList, Acc ) ->
 	delete_existing( Elem, T, OriginalList, [ H | Acc ] ).
+
+
+
+% @doc Deletes up to one occurrence (the first found) of the specified element
+% in the specified list, whose order is preserved.
+%
+-spec remove_first_occurrence( element(), list() ) -> list().
+remove_first_occurrence( Element, List ) ->
+	lists:delete( Element, List ).
+
+
+% @doc Deletes up to one occurrence (the first found) of each of the specified
+% elements, from the specified list, whose order is preserved.
+%
+-spec remove_first_occurrences( element(), list() ) -> list().
+remove_first_occurrences( _ElementsToRemove=[], List ) ->
+	List;
+
+remove_first_occurrences( _ElementsToRemove=[ E | T ], List ) ->
+	NewList = lists:delete( E, List ),
+	remove_first_occurrences( T, NewList ).
 
 
 
@@ -767,10 +793,59 @@ delete_if_existing( _Elem, _List=[], _Acc ) ->
 	not_found;
 
 delete_if_existing( Elem, _List=[ Elem | T ], Acc ) ->
-	lists:reverse( Acc) ++ T;
+	lists:reverse( Acc ) ++ T;
 
 delete_if_existing( Elem, _List=[ H | T ], Acc ) ->
 	delete_if_existing( Elem, T, [ H | Acc ] ).
+
+
+
+% @doc Removes all occurrences (not the first one only: possibly zero, possibly
+% more than one) of the specified element from the specified list, and returns
+% the result (in the original order).
+%
+-spec remove_element_from( element(), list() ) -> list().
+remove_element_from( Elem, List ) ->
+	remove_element_from( Elem, List, _Acc=[] ).
+
+
+% (helper)
+remove_element_from( _Elem, _List=[], Acc ) ->
+	lists:reverse( Acc );
+
+remove_element_from( Elem, _List=[ Elem | T ], Acc ) ->
+	% Dropped:
+	remove_element_from( Elem, T, Acc );
+
+remove_element_from( Elem, _List=[ H | T ], Acc ) ->
+	remove_element_from( Elem, T, [ H | Acc ] ).
+
+
+
+% @doc Removes all occurrences (not the first one only: possibly zero, possibly
+% more than one) of the specified elements from the specified list, and returns
+% the result (in the original order).
+%
+-spec remove_elements_from( [ element() ], list() ) -> list().
+remove_elements_from( Elems, List ) ->
+	remove_elements_from( Elems, List, _Acc=[] ).
+
+
+% (helper)
+remove_elements_from( _Elems, _List=[], Acc ) ->
+	lists:reverse( Acc );
+
+remove_elements_from( Elems, _List=[ E | T ], Acc ) ->
+	case lists:member( E, Elems ) of
+
+		true ->
+			% Dropped:
+			remove_elements_from( Elems, T, Acc );
+
+		_False ->
+			remove_elements_from( Elems, T, [ E | Acc ] )
+
+	end.
 
 
 
@@ -779,23 +854,11 @@ delete_if_existing( Elem, _List=[ H | T ], Acc ) ->
 %
 % The element order of the specified list is preserved.
 %
+% Note: kept only for backward compatibility; prefer remove_element_from/2.
+%
 -spec delete_all_in( element(), list() ) -> list().
 delete_all_in( Elem, List ) ->
-	% A list comprehension would have sufficed:
-	delete_all_in( Elem, List, _Acc=[] ).
-
-
-delete_all_in( _Elem, _List=[], Acc ) ->
-	lists:reverse( Acc );
-
-delete_all_in( Elem, _List=[ Elem | T ], Acc ) ->
-	% An element not to retain:
-	delete_all_in( Elem, T, Acc );
-
-delete_all_in( Elem, _List=[ H | T ], Acc ) ->
-	% Non-matching, keep it:
-	delete_all_in( Elem, T, [ H | Acc ] ).
-
+	remove_element_from( Elem, List ).
 
 
 
