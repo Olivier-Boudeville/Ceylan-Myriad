@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Testing the OpenGL support.
+% @doc Testing the <b>OpenGL support</b>.
 %
 % See the gui_opengl.erl tested module.
 %
@@ -38,18 +38,11 @@
 
 -record( my_test_state, {
 
-	% Internal state of the gui subsystem:
-	gui_state :: term(), %gui:state(),
-
 	% Test-specific state:
-	test_main_frame :: gui:frame()
-
-}).
+	test_main_frame :: gui:frame() }).
 
 -type my_test_state() :: #my_test_state{}.
 
-% FIXME:
--export_type([ my_test_state/0 ]).
 
 
 -spec run_test_gui() -> void().
@@ -60,28 +53,45 @@ run_test_gui() ->
 	test_facilities:display( "Checking whether OpenGL hardware acceleration is "
 		"available: ~ts", [ gui_opengl:is_hardware_accelerated() ] ),
 
-	InitialState = gui:start(),
+	gui:start(),
 
 	%gui:set_debug_level( [ calls, life_cycle ] ),
 
 	MainFrame = gui:create_frame( "GUI OpenGL Test" ),
 
-	_StatusBar = gui:create_status_bar( MainFrame ),
+	StatusBar = gui:create_status_bar( MainFrame ),
+
+	gui:push_status_text( "Testing OpenGL now.", StatusBar ),
 
 	gui:show( MainFrame ),
 
-	SubscribedEvents = [
-		  { MainFrame, onWindowClosed } ],
+	gui:subscribe_to_events( { onWindowClosed, MainFrame } ),
 
-	LoopState = gui:handle_events( InitialState,
-									 SubscribedEvents ),
+	InitialState = #my_test_state{ test_main_frame=MainFrame },
+
+	gui_main_loop( InitialState ),
+
+	gui:stop().
+
+
+
+% @doc The main loop of this test, driven by the receiving of MyriadGUI
+% messages.
+%
+-spec gui_main_loop( my_test_state() ) -> void().
+gui_main_loop( State=#my_test_state{ test_main_frame=MainFrame } ) ->
 
 	receive
 
-		{ onWindowClosed, [ MainFrame, _Id, _UserData, _WxEvent ] } ->
-			gui:destruct_window( MainFrame ),
+		{ onWindowClosed, [ MainFrame, _Context ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
-			gui:stop( LoopState )
+			gui:destruct_window( MainFrame );
+
+		OtherEvent ->
+			trace_utils:warning_fmt( "Test ignored event '~p'.",
+									 [ OtherEvent ] ),
+
+			gui_main_loop( State )
 
 	end.
 
@@ -89,7 +99,7 @@ run_test_gui() ->
 
 
 
-% Runs the test.
+% @doc Runs the test.
 -spec run() -> no_return().
 run() ->
 

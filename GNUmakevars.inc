@@ -146,6 +146,7 @@ endif
 # Defining check flags:
 ifeq ($(EXECUTION_TARGET),development)
 	# MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 endif
 

@@ -29,7 +29,7 @@
 % Describes a polygon, convex or not, simple or not.
 -record( polygon, {
 
-	% List of points:
+	% The points defining that polygon:
 	vertices = [] :: [ point2:integer_point2() ],
 
 
@@ -43,6 +43,6 @@
 
 
 	% Bounding-box information:
-	% (can be for example a circle or a right_cuboid)
+	% (can be for example a rectangle or a circle)
 	%
-	bounding_box = undefined :: maybe( bounding_box:bounding_box() ) } ).
+	bounding_box = undefined :: maybe( bounding_box2:bounding_box2() ) } ).

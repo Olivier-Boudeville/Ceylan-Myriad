@@ -37,11 +37,30 @@
 
 
 
+% Implementation notes:
+%
+% Apparently there is actually no such thing as a plain canvas in wx: here, they
+% are actually panels with bitmaps.
+%
+% So we emulate a canvas here, resulting notably in the fact that a canvas
+% object is not here a reference onto a wx object, but a stateful instance that
+% shall as a result be kept from a call to another: as its state may change, the
+% result of functions returning a canvas must not be ignored.
+%
+% Due to their number, canvas operations have been defined separately from the
+% gui module.
+%
+% The canvas is only an in-memory surface (not onscreen), a back-buffer:
+% operations that are performed on it will not be visible as long as that no
+% blitting of it on the visible buffer is done (see blit/1).
+
+
+% Note: these functions are meant to be executed in the context of the MyriadGUI
+% main process (not in a user process).
+
+
 
 % Rendering of canvas elements.
-
-
-% Implementation notes:
 
 
 % Canvas general operations:
@@ -84,26 +103,12 @@
 -export([ load_image/2, load_image/3 ]).
 
 
-% Implementation notes:
-%
-% There is actually no such thing as a plain canvas in wx: here, they are
-% actually panels with bitmaps.
-%
-% So we emulate a canvas here, resulting notably in the fact that a canvas
-% object is not a reference onto a wx object, but a stateful instance that shall
-% as a result be kept from a call to another: as its state may change, the
-% result of functions returning a canvas must not be ignored.
-
-% Due to their number, canvas operations have been defined separately from the
-% gui module.
-
-
 
 % For related defines:
 -include("gui_canvas.hrl").
 
 
--type canvas() :: { gui_object_ref, 'canvas', gui:myriad_instance_pid() }.
+-type canvas() :: { gui_object_ref, 'canvas', myriad_instance_id() }.
 % A specific kind of gui_object_ref().
 
 
@@ -133,11 +138,13 @@
 -type color() :: gui_color:color().
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
 
+
+-type myriad_instance_id() :: gui:myriad_instance_id().
+
 -type window() :: gui:window().
 -type panel() :: gui:panel().
 -type size() :: gui:size().
 -type label() :: gui:label().
-
 
 
 % @doc Creates a canvas, whose parent is the specified window.
@@ -153,15 +160,41 @@ create_instance( [ Parent ] ) ->
 	% Internally, a canvas is mostly an association between a dedicated panel,
 	% bitmap and back-buffer:
 
+	% A canvas is to be fully repainted when resized:
 	Panel = gui:create_panel( Parent, _Pos=auto, Size,
-						_Opt=[ { style, [ full_repaint_on_resize ] } ] ),
+							  _Opt=[ { style, [ full_repaint_on_resize ] } ] ),
 
+	% Created with no data:
 	Bitmap = wxBitmap:new( W, H ),
+
+	% Creates an actual bitmap:
+	case wxBitmap:create( Bitmap, W, H,
+						  [ { depth, ?wxBITMAP_SCREEN_DEPTH } ] ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { bitmap_creation_failed, Bitmap } )
+
+	end,
 
 	BackBuffer = wxMemoryDC:new( Bitmap ),
 
 	InitialCanvasState = #canvas_state{ panel=Panel, bitmap=Bitmap,
 										back_buffer=BackBuffer, size=Size },
+
+	% The current MyriadGUI loop process must be notified whenever the
+	% associated panel has to be repainted or is resized, so that this canvas
+	% can be notified in turn (to update its internal state). The reassign_table
+	% mechanism will take care of that:
+	%
+	gui_wx_backend:connect( Panel, _EventTypes=[ onRepaintNeeded, onResized ] ),
+
+	% process_myriad_creation/4
+	% So when the panel will be resized, a wx 'size' event will be received by
+	% our main loop and reassigned to the canvas. Last step is having this
+	% canvas manage this resizing:
 
 	{ InitialCanvasState, Panel }.
 
@@ -170,43 +203,67 @@ create_instance( [ Parent ] ) ->
 % @doc Updates the specified canvas state so that it matches any change in size
 % of its panel, and tells whether that canvas shall be repainted.
 %
+% Typicalled called initially (onShow) and whenever the parent container is
+% resized.
+%
 -spec adjust_size( canvas_state() ) -> { boolean(), canvas_state() }.
-adjust_size( Canvas=#canvas_state{ panel=Panel, size=Size } ) ->
+adjust_size( CanvasState=#canvas_state{ panel=Panel, size=Size } ) ->
 
 	trace_utils:debug_fmt( "Adjusting size of canvas '~p': currently ~w, "
-		"while panel: ~w.", [ Canvas, Size, gui:get_size( Panel ) ] ),
+		"while panel's is ~w.", [ CanvasState, Size, gui:get_size( Panel ) ] ),
 
 	case gui:get_size( Panel ) of
 
+		% Nothing to do if the size of the panel already matches the one of its
+		% canvas:
+		%
 		Size ->
-			{ _NeedsRepaint=false, Canvas };
+			{ _NeedsRepaint=false, CanvasState };
 
 		% Panel was then resized, so canvas should be as well:
 		NewSize ->
-			{ _NeedsRepaint=true, resize( Canvas, NewSize ) }
+			{ _NeedsRepaint=true, resize( CanvasState, NewSize ) }
 
 	end.
 
 
 
-% @doc Resizes specified canvas (which in most cases should be cleared and
+% @doc Resizes specified canvas (which, in most cases, should be cleared and
 % repainted then).
 %
 -spec resize( canvas_state(), size() ) -> canvas_state().
-resize( Canvas=#canvas_state{ bitmap=_Bitmap, back_buffer=_BackBuffer },
+resize( CanvasState=#canvas_state{ bitmap=Bitmap, back_buffer=BackBuffer },
 		NewSize={ W, H } ) ->
 
 	trace_utils:debug_fmt( "Resizing canvas to ~w.", [ NewSize ] ),
 
-	%wxBitmap:destroy( Bitmap ),
-	%wxMemoryDC:destroy( BackBuffer ),
+	% Regardless of call order and wheter either one or both of the next calls
+	% are enabled, if an error like
+	% {'_wxe_error_',710,{wxDC,setPen,2},{badarg,"This"}} is triggered, then
+	% probably some operation replaced these elements yet did not update their
+	% reference in the canvas/loop states.
+	%
+	wxMemoryDC:destroy( BackBuffer ),
+	wxBitmap:destroy( Bitmap ),
 
 	NewBitmap = wxBitmap:new( W, H ),
+
+	case wxBitmap:create( NewBitmap, W, H,
+						  [ { depth, ?wxBITMAP_SCREEN_DEPTH } ] ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { bitmap_recreation_failed, NewBitmap } )
+
+	end,
+
 	NewBackBuffer = wxMemoryDC:new( NewBitmap ),
 
-	Canvas#canvas_state{ bitmap=NewBitmap,
-						 back_buffer=NewBackBuffer,
-						 size=NewSize }.
+	CanvasState#canvas_state{ bitmap=NewBitmap,
+							  back_buffer=NewBackBuffer,
+							  size=NewSize }.
 
 
 
@@ -226,13 +283,19 @@ clear( #canvas_state{ back_buffer=BackBuffer } ) ->
 -spec blit( canvas_state() ) -> canvas_state().
 blit( Canvas=#canvas_state{ panel=Panel,
 							bitmap=Bitmap,
-							back_buffer=BackBuffer } ) ->
+							back_buffer=BackBuffer,
+							size=Size } ) ->
 
 	VisibleBuffer = wxWindowDC:new( Panel ),
 
-	wxDC:blit( VisibleBuffer, {0,0},
-		{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) },
-		BackBuffer, {0,0} ),
+	cond_utils:if_defined( myriad_check_user_interface,
+		Size = { wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) },
+		basic_utils:ignore_unused( Bitmap ) ),
+
+	TopLeft = {0,0},
+
+	wxDC:blit( VisibleBuffer, _Dest=TopLeft, Size, _Source=BackBuffer,
+			   _Src=TopLeft ),
 
 	wxWindowDC:destroy( VisibleBuffer ),
 
@@ -242,15 +305,22 @@ blit( Canvas=#canvas_state{ panel=Panel,
 
 % @doc Returns the size of this canvas, as {IntegerWidth, IntegerHeight}.
 -spec get_size( canvas_state() ) -> dimensions().
-get_size( #canvas_state{ back_buffer=BackBuffer } ) ->
-	wxDC:getSize( BackBuffer ).
+get_size( #canvas_state{ back_buffer=BackBuffer,
+						 size=Size } ) ->
+
+	cond_utils:if_defined( myriad_check_user_interface,
+						   Size = wxDC:getSize( BackBuffer ) ),
+
+	Size.
 
 
 
-% @doc Destroys specified canvas.
+% @doc Destroys the specified canvas.
 -spec destroy( canvas_state() ) -> void().
 destroy( #canvas_state{ back_buffer=BackBuffer } ) ->
+	% Bitmap currently not destroyed.
 	wxMemoryDC:destroy( BackBuffer ).
+
 
 
 % Color rendering section.
@@ -266,7 +336,7 @@ set_draw_color( Canvas, Color ) ->
 	BackBuffer = Canvas#canvas_state.back_buffer,
 
 	%trace_utils:debug_fmt( "For canvas ~n~p, setting backbuffer ~w "
-	%	"to new pen ~w.", [ Canvas, BackBuffer, NewPen ] ),
+	%                       "to new pen ~w.", [ Canvas, BackBuffer, NewPen ] ),
 
 	wxDC:setPen( BackBuffer, NewPen ),
 	wxPen:destroy( NewPen ).
@@ -318,7 +388,7 @@ get_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 			Color;
 
 		_ ->
-			throw( { get_rgb_failed, Point } )
+			throw( { get_rgb_failed, Point, BackBuffer } )
 
 	end.
 
@@ -480,7 +550,7 @@ draw_circle( #canvas_state{ back_buffer=BackBuffer }, Center, Radius ) ->
 % color, it may be a disc) in specified canvas.
 %
 -spec draw_circle( canvas_state(), point2(), integer_distance(), color() ) ->
-			 void().
+				void().
 draw_circle( Canvas, Center, Radius, Color ) ->
 	set_draw_color( Canvas, Color ),
 	draw_circle( Canvas, Center, Radius ).
@@ -495,9 +565,9 @@ draw_numbered_points( Canvas, Points ) ->
 
 	LabelledPoints = label_points( Points, _Acc=[], _InitialCount=1 ),
 
-	%trace_utils:debug_fmt( "Labelled points: ~p.~n", [ LabelledPoints ] ),
+	%trace_utils:debug_fmt( "Labelled points: ~p.", [ LabelledPoints ] ),
 	[ draw_labelled_cross( Canvas, Location, _EdgeLength=6, Label )
-		 || { Label, Location } <- LabelledPoints  ].
+			|| { Label, Location } <- LabelledPoints  ].
 
 
 
@@ -510,22 +580,23 @@ load_image( Canvas, Filename ) ->
 
 
 
-% @doc Loads image from specified path into specified canvas, pasting it at
+% @doc Loads image from specified path into the specified canvas, pasting it at
 % specified location.
 %
 -spec load_image( canvas_state(), point2(), file_path() ) -> void().
-load_image( #canvas_state{ back_buffer=BackBuffer }, Position, Filename ) ->
+load_image( #canvas_state{ back_buffer=BackBuffer }, Position, FilePath ) ->
 
-	case file_utils:is_existing_file( Filename ) of
+	case file_utils:is_existing_file( FilePath ) of
 
 		true ->
-			Image = wxImage:new( Filename ),
+			Image = wxImage:new( FilePath ),
 			Bitmap = wxBitmap:new( Image ),
 			wxImage:destroy( Image ),
-			wxDC:drawBitmap( BackBuffer, Bitmap, Position );
+			wxDC:drawBitmap( BackBuffer, Bitmap, Position ),
+			wxBitmap:destroy( Bitmap );
 
 		false ->
-			throw( { image_file_not_found, Filename } )
+			throw( { image_file_not_found, FilePath } )
 
 	end.
 
@@ -534,7 +605,7 @@ load_image( #canvas_state{ back_buffer=BackBuffer }, Position, Filename ) ->
 % Helper functions.
 
 
-% Adds a numbered label to each point in list.
+% @doc Adds a numbered label to each point in list.
 %
 % Transforms a list of points into a list of {PointLabel,Point} pairs while
 % keeping its order.
@@ -547,4 +618,4 @@ label_points( _Points=[], Acc, _Count ) ->
 
 label_points( _Points=[ P | T ], Acc, Count ) ->
 	Label = text_utils:format( "P~B", [ Count ] ),
-	label_points( T, [ { Label, P } | Acc ], Count + 1 ).
+	label_points( T, [ { Label, P } | Acc ], Count+1 ).

@@ -35,6 +35,10 @@
 % Implementation notes.
 
 
+% So for at least most of the functions here are executed in the context of the
+% process of the MyriadGUI main loop.
+
+
 % Events can be managed as messages or callbacks. We generally prefer the former
 % (as messages can be selectively received, any context can be kept in the
 % receive loop, no temporary process is created, no wx include is needed hence
@@ -68,8 +72,10 @@
 
 
 % To silence unused warnings:
--export([ reassign_table_to_string/1, get_instance_state/2,
-		  type_table_to_string/1, instance_referential_to_string/1 ]).
+-export([ get_subscribers_for/3, adjust_objects/3,
+		  process_only_latest_repaint_event/3, reassign_table_to_string/1,
+		  get_instance_state/2, type_table_to_string/1,
+		  instance_referential_to_string/1 ]).
 
 
 
@@ -84,11 +90,11 @@
 
 
 -type event_message() :: { event_type(), [ any() ] }.
-% An event message is a pair whose first element is the event type, as an atom
-% (ex: 'onWindowClosed'), and whose second element is a list, whose first
-% element is the GUI object that generated that event (the closed window, here),
-% and whose last element is the event context (intermediary elements carrying
-% event-specific information):
+% A (MyriadGUI) event message is a pair whose first element is the event type,
+% as an atom (ex: 'onWindowClosed'), and whose second element is a list, whose
+% first element is the GUI object that generated that event (the closed window,
+% here), and whose last element is the event context (intermediary elements
+% carrying event-specific information):
 %
 % {event_type(), [gui_object(), ..., event_context()]}
 %
@@ -225,7 +231,7 @@
 		instance_count :: instance_count(),
 
 		instance_table ::
-			table:table( myriad_instance_pid(), myriad_object_state() ) }).
+			table:table( myriad_instance_id(), myriad_object_state() ) } ).
 
 
 -type instance_referential() :: #instance_referential{}.
@@ -270,11 +276,16 @@
 		   % introduced by MyriadGUI to complement the backend (ex: canvas
 		   % instances).
 		   %
-		   type_table :: myriad_type_table(),
+		   type_table :: myriad_type_table()
 
 
 		   % List of the MyriadGUI objects that shall be adjusted after a show:
-		   objects_to_adjust=[] :: [ myriad_object_ref() ] }).
+		   %
+		   % (actually not found necessary, hence at least currently disabled)
+		   %
+		   %objects_to_adjust=[] :: [ myriad_object_ref() ]
+
+} ).
 
 
 -type loop_state() :: #loop_state{}.
@@ -312,6 +323,10 @@
 % {wxCommand,command_button_clicked,CmdString,CmdInt,...}
 
 
+-type received_event() :: wx_event() | event_message().
+% A received event is either a backend one or a MyriadGUI one.
+
+
 -export_type([ wx_event/0, wx_event_info/0 ]).
 
 
@@ -321,7 +336,7 @@
 
 -type gui_object() :: gui:gui_object().
 -type myriad_object_type() :: gui:myriad_object_type().
--type myriad_instance_pid() :: gui:myriad_instance_pid().
+-type myriad_instance_id() :: gui:myriad_instance_id().
 -type myriad_object_state() :: gui:myriad_object_state().
 -type construction_parameters() :: gui:construction_parameters().
 -type wx_server() :: gui:wx_server().
@@ -397,23 +412,33 @@ process_event_messages( LoopState ) ->
 	%trace_utils:info( "Waiting for event messages..." ),
 
 	% Special management of repaint requests:
+	%% NewLoopState = receive
+
+	%%	% So that no large series of repaint requests for the same object pile
+	%%	% up:
+	%%	%
+	%%	FirstWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
+
+	%%		trace_utils:debug_fmt( "Received first repaint event:~n ~p.",
+	%%							   [ FirstWxRepaintEvent ] ),
+
+	%%		process_only_latest_repaint_event( FirstWxRepaintEvent,
+	%%										   SourceObject, LoopState );
+
+	%%	OtherEvent ->
+	%%		%trace_utils:debug_fmt( "Received other event: ~p.",
+	%%		%                       [ OtherEvent ] ),
+	%%		process_event_message( OtherEvent, LoopState )
+
+	%% end,
+
+	% To bypass the "smarter" management above, for test purpose:
 	NewLoopState = receive
 
-		% So that no large series of repaint requests for the same object pile
-		% up:
-		%
-		FirstWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
-
-			trace_utils:debug_fmt( "Received first repaint event: ~p.",
-								   [ FirstWxRepaintEvent ] ),
-
-			process_only_latest_repaint_event( FirstWxRepaintEvent,
-											   SourceObject, LoopState );
-
-		OtherEvent ->
-			%trace_utils:debug_fmt( "Received other event: ~p.",
-			%                       [ OtherEvent ] ),
-			process_event_message( OtherEvent, LoopState )
+		AnyEvent ->
+			%trace_utils:debug_fmt( "Received any event: ~p.",
+			%                       [ AnyEvent ] ),
+			process_event_message( AnyEvent, LoopState )
 
 	end,
 
@@ -431,21 +456,27 @@ process_event_messages( LoopState ) ->
 % @doc Processes specified GUI event from the current (wx) backend.
 %
 %
-% A wx event has been received here, in this first clause:
+% A *wx* (backend) event has been received here, in this first clause:
 %
 % Structure: {wx, EventSourceId, Obj, UserData, EventInfo }, with EventInfo:
 % {WxEventName, EventType, ...}
 %
 % Ex: {wx, -2006, {wx_ref,35,wxFrame,[]}, [], {wxClose,close_window}}.
 %
+-spec process_event_message( received_event(), loop_state() ) -> loop_state().
 process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 									userData=UserData, event=WxEventInfo },
 					   LoopState ) ->
 	process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo,
 					  WxEvent, LoopState );
 
-% From now, the event messages received are MyriadGUI ones (either internal or
-% user-emanating):
+% From now, the event messages received are *MyriadGUI* ones,
+% i.e. event_message() (either internal or user-emanating):
+%
+% (some operations directly impact the canvas state as seen from MyriadGUI,
+% others, like draw operations, not, they impact only the state of backend
+% objects, thus references on them in CanvasState and thus LoopState can be kept
+% as are)
 %
 process_event_message( { setCanvasDrawColor, [ CanvasId, Color ] },
 					   LoopState ) ->
@@ -476,11 +507,11 @@ process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
 	gui_canvas:set_background_color( CanvasState, Color ),
 	LoopState;
 
-process_event_message( { getCanvasRGB, [ CanvasId, Point ], CallerPid },
+process_event_message( { getCanvasRGB, [ CanvasId, Point2 ], CallerPid },
 					   LoopState ) ->
 	CanvasState = get_canvas_instance_state( CanvasId,
 											 LoopState#loop_state.type_table ),
-	Color = gui_canvas:get_rgb( CanvasState, Point ),
+	Color = gui_canvas:get_rgb( CanvasState, Point2 ),
 	CallerPid ! { notifyCanvasRGB, Color },
 	LoopState;
 
@@ -601,6 +632,7 @@ process_event_message( { loadCanvasImage, [ CanvasId, Filename ] },
 					   LoopState ) ->
 	CanvasState = get_canvas_instance_state( CanvasId,
 											 LoopState#loop_state.type_table ),
+	% Canvas state is const (just an update of the back-buffer):
 	gui_canvas:load_image( CanvasState, Filename ),
 	LoopState;
 
@@ -612,10 +644,19 @@ process_event_message( { loadCanvasImage, [ CanvasId, Position, Filename ] },
 	LoopState;
 
 process_event_message( { resizeCanvas, [ CanvasId, NewSize ] }, LoopState ) ->
-	CanvasState = get_canvas_instance_state( CanvasId,
-											 LoopState#loop_state.type_table ),
-	gui_canvas:resize( CanvasState, NewSize ),
-	LoopState;
+
+	TypeTable = LoopState#loop_state.type_table,
+
+	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+
+	NewCanvasState = gui_canvas:resize( CanvasState, NewSize ),
+
+	%trace_utils:debug_fmt( "NewCanvasState = ~p", [ NewCanvasState ] ),
+
+	NewTypeTable = set_canvas_instance_state( CanvasId, NewCanvasState,
+											  TypeTable ),
+
+	LoopState#loop_state{ type_table=NewTypeTable };
 
 process_event_message( { blitCanvas, CanvasId }, LoopState ) ->
 	CanvasState = get_canvas_instance_state( CanvasId,
@@ -670,30 +711,34 @@ process_event_message( { subscribeToEvents,
 %
 % (done only once, initially):
 %
-process_event_message( { adjustObject, ObjectRef }, LoopState ) ->
-
-	trace_utils:debug_fmt( "Recording object to adjust: ~w.", [ ObjectRef ] ),
-
-	NewAdjustList = [ ObjectRef | LoopState#loop_state.objects_to_adjust ],
-
-	LoopState#loop_state{ objects_to_adjust=NewAdjustList };
+%process_event_message( { adjustObject, ObjectRef }, LoopState ) ->
+%
+%	trace_utils:debug_fmt( "Recording object to adjust: ~w.", [ ObjectRef ] ),
+%
+%	NewAdjustList = [ ObjectRef | LoopState#loop_state.objects_to_adjust ],
+%
+%	% To test the bypass of this mechanism:
+%	%NewAdjustList = LoopState#loop_state.objects_to_adjust,
+%
+%	LoopState#loop_state{ objects_to_adjust=NewAdjustList };
 
 
 % Currently we update widgets regardless of whether one of their parent windows
 % is reported here as shown:
 %
-process_event_message( { onShow, [ _Windows ] }, LoopState ) ->
+%process_event_message( { onShow, [ _Windows ] }, LoopState ) ->
 
-	ObjectsToAdjust = LoopState#loop_state.objects_to_adjust,
+	%ObjectsToAdjust = LoopState#loop_state.objects_to_adjust,
 
 	%trace_utils:debug_fmt( "Adjusting after show: ~p.", [ ObjectsToAdjust ] ),
 
-	EventTable = LoopState#loop_state.event_table,
+	%EventTable = LoopState#loop_state.event_table,
 
-	NewTypeTable = adjust_objects( ObjectsToAdjust, EventTable,
-								   LoopState#loop_state.type_table ),
+	%NewTypeTable = adjust_objects( ObjectsToAdjust, EventTable,
+	%							   LoopState#loop_state.type_table ),
 
-	LoopState#loop_state{ type_table=NewTypeTable, objects_to_adjust=[] };
+	% Purged:
+	%LoopState#loop_state{ type_table=NewTypeTable, objects_to_adjust=[] };
 
 
 process_event_message( UnmatchedEvent, LoopState ) ->
@@ -746,6 +791,7 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 	% We should not delay arbitrarily the processing of a unique repaint event:
 	after 5 ->
+	%after 0 ->
 
 		#wx{ id=EventSourceId, obj=GUIObject, userData=UserData,
 			 event=WxEventInfo } = CurrentWxRepaintEvent,
@@ -763,39 +809,49 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 					wx_event_info(), wx_event(), loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 				  LoopState=#loop_state{ event_table=EventTable,
-										 reassign_table=ReassignTable } ) ->
+										 reassign_table=ReassignTable,
+										 type_table=TypeTable } ) ->
 
-	ActualGUIObject = case table:lookup_entry( GUIObject, ReassignTable ) of
+	% Reassigns this event and possibly updates its actual target:
+	{ ActualGUIObject, NewTypeTable } =
+			case table:lookup_entry( GUIObject, ReassignTable ) of
 
 		key_not_found ->
-			trace_utils:info_fmt( "Wx event received about '~ts':~n~p.",
-				[ gui:object_to_string( GUIObject ), WxEventInfo ] ),
-			GUIObject;
-
+			%trace_utils:debug_fmt( "Wx event received about '~ts' "
+			%   "(no reassignment needed):~n~p.",
+			%   [ gui:object_to_string( GUIObject ), WxEventInfo ] ),
+			{ GUIObject, TypeTable };
 
 		{ value, TargetGUIObject } ->
-			trace_utils:info_fmt( "Wx event received about '~ts', "
+			trace_utils:debug_fmt( "Wx event received about '~ts', "
 				"reassigned to '~ts':~n~p.",
 				[ gui:object_to_string( GUIObject ),
 				  gui:object_to_string( TargetGUIObject ), WxEventInfo ] ),
 
-			TargetGUIObject
+			% Before notifying the event subscribers below, some special actions
+			% may be needed to update that target reassigned object first (ex:
+			% for a canvas, an OnResized event shall trigger first an update of
+			% the canvas back-buffer):
+			%
+			UpdatedTypeTable = update_instance_on_event( TargetGUIObject,
+													WxEventInfo, TypeTable ),
+
+			{ TargetGUIObject, UpdatedTypeTable }
 
 	end,
 
-	% Here some events shall be intercepted and specific processing actions
-	% shall be triggered; for example, if a canvas-owned panel is resized, then
-	% that canvas shall itself by resized, see gui_canvas:update/2.
+	NewLoopState = LoopState#loop_state{ type_table=NewTypeTable },
 
-	% Then notify the subscribers (could use get_subscribers_for/3):
+	% Then notify the user-defined subscribers, if any (could use
+	% get_subscribers_for/3):
+	%
 	case table:lookup_entry( ActualGUIObject, EventTable ) of
 
 		key_not_found ->
 			% At least one subscriber would be expected:
 			trace_utils:warning_fmt( "No event subscription for GUI "
 				"object '~ts', hence ignoring event.",
-				[ gui:object_to_string( ActualGUIObject ) ] ),
-			LoopState;
+				[ gui:object_to_string( ActualGUIObject ) ] );
 
 		{ value, DispatchTable } ->
 
@@ -809,23 +865,63 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 			case list_table:lookup_entry( EventType, DispatchTable ) of
 
+				key_not_found ->
+					ok;
+
 				{ value, _Subscribers=[] } ->
+					% Such entry should have been removed as a whole instead:
 					trace_utils:error_fmt( "For GUI object '~ts', event type "
-					   "'~ts' not registered whereas notified (abnormal).",
+					   "'~ts' had an empty list of subscribers).",
 					   [ gui:object_to_string( ActualGUIObject ), EventType ] );
 
 				{ value, Subscribers } ->
-					%trace_utils:debug_fmt( "Sending ~p event to subscribers "
-					%					   "~w.", [ EventType, Subscribers ] ),
+					trace_utils:debug_fmt( "Dispatching ~p event to "
+						"subscribers ~w.", [ EventType, Subscribers ] ),
 
 					send_event( Subscribers, EventType, EventSourceId,
 								ActualGUIObject, UserData, WxEvent )
 
-			end,
+			end
 
-			LoopState
+	end,
 
-	end.
+	NewLoopState.
+
+
+
+% @doc Updates specified GUI object (probably a MyriadGUI one, like a canvas)
+% after specified event (ex: a onResized one) has been received.
+%
+-spec update_instance_on_event( gui_object(), wx_event_info(),
+								myriad_type_table() ) -> myriad_type_table().
+update_instance_on_event( _GuiObject={ myriad_object_ref, canvas, CanvasId },
+						  WxEventInfo, TypeTable ) ->
+
+	case _WxEventType=element( 2, WxEventInfo ) of
+
+		% A canvas must be updated internally when resized:
+		size ->
+			NewSize = WxEventInfo#wxSize.size,
+
+			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+
+			NewCanvasState = gui_canvas:resize( CanvasState, NewSize ),
+
+			set_canvas_instance_state( CanvasId, NewCanvasState, TypeTable );
+
+		OtherWxEventType ->
+			trace_utils:debug_fmt(
+			  "No canvas update to be done for event '~ts'.",
+			  [ OtherWxEventType ] ),
+			TypeTable
+
+	end;
+
+update_instance_on_event( GuiObject, WxEventInfo, TypeTable ) ->
+
+	trace_utils:debug_fmt( "No specific update needed for GUI object ~w "
+		"regarding event information ~p.", [ GuiObject, WxEventInfo ] ),
+	TypeTable.
 
 
 
@@ -857,7 +953,7 @@ get_subscribers_for( GUIObject, EventType, EventTable ) ->
 
 
 
-% @doc Creates specified MyriadGUI object.
+% @doc Creates the specified MyriadGUI object.
 -spec process_myriad_creation( myriad_object_type(),
 	construction_parameters(), user_pid(), loop_state() ) -> loop_state().
 process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
@@ -880,19 +976,26 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 
 			CallerPid ! { instance_created, ObjectType, CanvasRef },
 
-			% An event about its internal panel will be reassigned to its canvas
-			% owner:
+			% An event about its (already connected by
+			% gui_canvas:create_instance/1) parent panel must be reassigned to
+			% its canvas:
 			%
 			NewReassignTable = table:add_new_entry( PanelRef, CanvasRef,
 													ReassignTable ),
 
+			%trace_utils:debug_fmt( "Events sent to panel ~w will be from now "
+			%    "reassigned to canvas ~w.", [ PanelRef, CanvasRef ] ),
+
+			% Last step is to have the canvas subscribe to these events:
+
+
 			% After this canvas is created, its panel, when finally shown, will
-			% be sized, with no specific notification; to adapt that canvas
-			% (otherwise it will be never be set at the right initial size), we
-			% post ourselves an event, the first one to be handled by our event
-			% loop:
+			% be resized, with no specific notification being propagated; to
+			% adapt that canvas (otherwise it will be never be set at the right
+			% initial size), we post ourselves an event, the first one to be
+			% handled by our event loop:
 			%
-			self() ! { adjustObject, CanvasRef },
+			%self() ! { adjustObject, CanvasRef },
 
 			LoopState#loop_state{ reassign_table=NewReassignTable,
 								  type_table=NewTypeTable };
@@ -957,7 +1060,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 
 	% Prepares the reference onto this new instance:
 	MyriadRef = #myriad_object_ref{ object_type=ObjectType,
-									myriad_instance_pid=NewInstanceId },
+									myriad_instance_id=NewInstanceId },
 
 	NewTypeTable = table:add_entry( ObjectType, NewInstanceReferential,
 									TypeTable ),
@@ -977,12 +1080,16 @@ send_event( _Subscribers=[], _EventType, _EventSourceId, _GUIObject, _UserData,
 			_Event ) ->
 	ok;
 
-% Special cases first:
+% Special cases first, when the information to return to the user process is to
+% be specifically adapted :
+%
 send_event( Subscribers, _EventType=onResized, EventSourceId, GUIObject,
 			UserData, Event ) ->
 
 	Context = #gui_event_context{ id=EventSourceId, user_data=UserData,
 								  backend_event=Event },
+
+	% Making the new size readily available:
 
 	WxEventInfo = Event#wx.event,
 
@@ -993,8 +1100,8 @@ send_event( Subscribers, _EventType=onResized, EventSourceId, GUIObject,
 
 	Msg = { onResized, [ GUIObject, NewSize, Context ] },
 
-	trace_utils:debug_fmt( "Sending following resize event to subscriber(s) ~w:"
-						   "~n~p.", [ Subscribers, Msg ] ),
+	%trace_utils:debug_fmt( "Sending back following resize event "
+	%   "to subscriber(s) ~w:~n~p.", [ Subscribers, Msg ] ),
 
 	[ SubPid ! Msg || SubPid <- Subscribers ];
 
@@ -1007,14 +1114,14 @@ send_event( Subscribers, EventType, Id, GUIObject, UserData, Event ) ->
 
 	Msg = { EventType, [ GUIObject, Context ] },
 
-	trace_utils:debug_fmt( "Sending following event to subscriber(s) ~w:~n~p.",
-						   [ Subscribers, Msg ] ),
+	%trace_utils:debug_fmt( "Sending back following event "
+	%   "to subscriber(s) ~w:~n~p.", [ Subscribers, Msg ] ),
 
 	[ SubPid ! Msg || SubPid <- Subscribers ].
 
 
 
-% @doc Enriches the specified event table with specified subscription
+% @doc Enriches the specified event table with the specified event subscription
 % information.
 %
 % (helper)
@@ -1038,7 +1145,7 @@ update_event_loop_tables( _SubscribedEvents=[
 							register_event_types_for( Obj, EventTypeList,
 													  SubscriberList, AccState )
 						end,
-						 _Acc0=LoopState,
+						_Acc0=LoopState,
 						_List=GUIObjectList ),
 
 	update_event_loop_tables( T, DefaultSubscriberPid, NewLoopState );
@@ -1065,7 +1172,6 @@ register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
 	NewEventTable = record_subscriptions( Canvas, EventTypes, Subscribers,
 										  EventTable ),
 
-
 	% A canvas is registered in wx as a panel (as wx will send events about it)
 	% that will be reassigned as a canvas:
 
@@ -1083,9 +1189,9 @@ register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
 register_event_types_for( GUIObject, EventTypes, Subscribers,
 						  LoopState=#loop_state{ event_table=EventTable } ) ->
 
-	trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
-		"regarding object '~ts'.",
-		[ Subscribers, EventTypes, gui:object_to_string( GUIObject ) ] ),
+	%trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
+	%   "regarding object '~ts'.",
+	%   [ Subscribers, EventTypes, gui:object_to_string( GUIObject ) ] ),
 
 	% Auto-connection to the current PID (i.e. the one of the internal, main
 	% event loop), so that it receives these events for their upcoming
@@ -1138,7 +1244,7 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 					DispatchTable ) ->
 
 	NewSubscribers = case list_table:lookup_entry( EventType,
-												  DispatchTable ) of
+												   DispatchTable ) of
 
 		key_not_found ->
 			list_utils:uniquify( Subscribers );
@@ -1163,7 +1269,7 @@ adjust_objects( _ObjectsToAdjust=[], _EventTable, TypeTable ) ->
 
 adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 										object_type=canvas,
-										myriad_instance_pid=CanvasId } | T ],
+										myriad_instance_id=CanvasId } | T ],
 				EventTable, TypeTable ) ->
 
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
@@ -1195,8 +1301,8 @@ adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 
 
 % @doc Returns the internal state of the specified canvas instance.
--spec get_canvas_instance_state( myriad_instance_pid(),
-						myriad_type_table() ) -> myriad_object_state().
+-spec get_canvas_instance_state( myriad_instance_id(),
+								 myriad_type_table() ) -> myriad_object_state().
 get_canvas_instance_state( CanvasId, TypeTable ) ->
 	get_instance_state( _MyriadObjectType=canvas, CanvasId, TypeTable ).
 
@@ -1246,8 +1352,8 @@ get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 
 % @doc Sets the internal state of the specified canvas instance.
--spec set_canvas_instance_state( myriad_instance_pid(),
-	myriad_object_state(), myriad_type_table() ) -> myriad_type_table().
+-spec set_canvas_instance_state( myriad_instance_id(), myriad_object_state(),
+								 myriad_type_table() ) -> myriad_type_table().
 set_canvas_instance_state( CanvasId, CanvasState, TypeTable ) ->
 	set_instance_state( _MyriadObjectType=canvas, CanvasId, CanvasState,
 						TypeTable ).
@@ -1267,9 +1373,12 @@ set_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 % @doc Returns the internal state of the specified, already-existing MyriadGUI
 % instance.
 %
--spec set_instance_state( gui:myriad_object_type(), myriad_instance_pid(),
+-spec set_instance_state( gui:myriad_object_type(), myriad_instance_id(),
 			myriad_object_state(), myriad_type_table() ) -> myriad_type_table().
 set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
+
+	%trace_utils:debug_fmt( "Setting state of instance ~p of type ~ts to ~p",
+	%	[ InstanceId, MyriadObjectType, InstanceState ] ),
 
 	%trace_utils:debug_fmt( "~ts", [ type_table_to_string( TypeTable ) ] ),
 

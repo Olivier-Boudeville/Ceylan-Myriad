@@ -300,8 +300,9 @@
 % The construction parameters of a MyriadGUI object.
 
 
--type myriad_instance_pid() :: pid().
-% Myriad-specific instance identifier, a PID.
+-type myriad_instance_id() :: count().
+% Myriad-specific instance identifier, corresponding a reference in the internal
+% MyriadGUI type table.
 
 
 -type id() :: maybe( wx_id() ).
@@ -492,7 +493,7 @@
 
 -export_type([ length/0, coordinate/0, point/0, position/0, size/0,
 			   orientation/0, object_type/0, wx_object_type/0,
-			   myriad_object_type/0, myriad_instance_pid/0,
+			   myriad_object_type/0, myriad_instance_id/0,
 			   title/0, label/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
 			   window/0, frame/0, panel/0, button/0,
@@ -516,6 +517,8 @@
 
 
 % Type shorthands:
+
+-type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 
@@ -628,7 +631,8 @@ set_debug_level( DebugLevel ) ->
 subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 
 	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
-		"Subscribing to following events: ~p.", [ SubscribedEvents ] ) ),
+		"User process subscribing to following events:~n ~p.",
+		[ SubscribedEvents ] ) ),
 
 	GUIEnv = get_gui_env(),
 
@@ -767,7 +771,7 @@ create_window( Position, Size, Style, Id, Parent ) ->
 % Canvas section.
 
 
-% @doc Creates a canvas, attached to specified parent window.
+% @doc Creates a canvas, attached to the specified parent window.
 -spec create_canvas( window() ) -> canvas().
 create_canvas( Parent ) ->
 	% Returns the corresponding myriad_object_ref:
@@ -953,6 +957,7 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 -spec draw_circle( canvas(), point(), integer_distance() ) -> void().
 draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
 			 Radius ) ->
+	%trace_utils:debug_fmt( "Drawing circle centered at ~p.", [ Center ] ),
 	get_main_loop_pid() ! { drawCanvasCircle, [ CanvasId, Center, Radius ] }.
 
 
@@ -963,8 +968,12 @@ draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
 -spec draw_circle( canvas(), point(), integer_distance(), color() ) -> void().
 draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center, Radius,
 			 Color ) ->
-	get_main_loop_pid() ! { drawCanvasCircle,
-							[ CanvasId, Center, Radius, Color ] }.
+
+	%trace_utils:debug_fmt( "Drawing circle centered at ~p, of colour ~p.",
+	%						[ Center, Color ] ),
+
+	get_main_loop_pid() !
+		{ drawCanvasCircle, [ CanvasId, Center, Radius, Color ] }.
 
 
 
@@ -979,8 +988,8 @@ draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
 
 
 
-% @doc Loads image from specified path into specified canvas, pasting it at its
-% upper left corner.
+% @doc Loads image from the specified path into specified canvas, pasting it at
+% its upper left corner.
 %
 -spec load_image( canvas(), file_path() ) -> void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
@@ -988,7 +997,7 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 
 
 
-% @doc Loads image from specified path into specified canvas, pasting it at
+% @doc Loads image from the specified path into specified canvas, pasting it at
 % specified location.
 %
 -spec load_image( canvas(), point(), file_path() ) -> void().
@@ -998,7 +1007,7 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
 
 
 
-% @doc Resizes specified canvas according to the specified new size.
+% @doc Resizes the specified canvas according to the specified new size.
 -spec resize( canvas(), size() ) -> void().
 resize( _Canvas={ myriad_object_ref, canvas, CanvasId }, NewSize ) ->
 	get_main_loop_pid() ! { resizeCanvas, [ CanvasId, NewSize ] }.
@@ -1048,11 +1057,13 @@ set_sizer( Window, Sizer ) ->
 %
 -spec show( window() | [ window() ] ) -> boolean().
 show( Windows ) when is_list( Windows )->
+	%trace_utils:debug_fmt( "Showing windows ~p.", [ Windows ] ),
 	Res = show_helper( Windows, _Acc=false ),
 	get_main_loop_pid() ! { onShow, [ Windows ] },
 	Res;
 
 show( Window ) ->
+	%trace_utils:debug_fmt( "Showing window ~p.", [ Window ] ),
 	Res = wxWindow:show( Window ),
 	get_main_loop_pid() ! { onShow, [ [ Window ] ] },
 	Res.
@@ -1532,8 +1543,8 @@ get_gui_env() ->
 % @doc Returns a textual representation of the specified GUI object.
 -spec object_to_string( gui_object() ) -> ustring().
 object_to_string( #myriad_object_ref{ object_type=ObjectType,
-									  myriad_instance_pid=InstancePid } ) ->
-	text_utils:format( "~ts-~B", [ ObjectType, InstancePid ] );
+									  myriad_instance_id=InstanceId } ) ->
+	text_utils:format( "~ts-~B", [ ObjectType, InstanceId ] );
 
 object_to_string( { wx_ref, InstanceRef, WxObjectType, _State=[] } ) ->
 	% Ex: {wx_ref,35,wxFrame,[]}

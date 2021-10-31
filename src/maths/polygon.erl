@@ -90,7 +90,7 @@
 % three vertices.
 %
 -spec get_triangle( integer_point2(), integer_point2(), integer_point2() ) ->
-			                   polygon().
+								polygon().
 get_triangle( P1, P2, P3 ) ->
 	#polygon{ vertices=[ P1, P2, P3 ] }.
 
@@ -377,9 +377,10 @@ render( Polygon, Canvas ) ->
 			case Polygon#polygon.bounding_box of
 
 				#circle{ center=Center, square_radius=SquareRadius } ->
-					gui:draw_circle( Canvas, Center,
+					IntCenter = point2:roundify( Center ),
+					gui:draw_circle( Canvas, IntCenter,
 									 round( math:sqrt( SquareRadius ) ) ),
-					gui:draw_cross( Canvas, Center, _EdgeLength=4 );
+					gui:draw_cross( Canvas, IntCenter, _EdgeLength=4 );
 
 				undefined ->
 					ok

@@ -26,8 +26,8 @@
 % Creation date: Wednesday, October 4, 2017.
 
 
-% @doc Gathers all elements relative to the (Erlang) <b>wx backend</b> (itself
-% based on WxWidgets).
+% @doc Gathers all elements relative to the (Erlang) <b>wx backend</b> version
+% 2.1 (itself based on WxWidgets).
 %
 -module(gui_wx_backend).
 
@@ -55,7 +55,8 @@
 % Understanding the wx base widgets hierarchy:
 %
 % (offsets meaning "inheriting from", corresponding local types specified
-% between brackets):
+% between brackets; a hierarchy is a truncated view as a wx class may inherit
+% from more than one parent one):
 %
 % .
 % ├── wxObject
@@ -73,44 +74,53 @@
 % └── wxTrackable
 
 
-% In a more detailed view, with the corresponding MyriadGUI types being
-% specified between brackets:
+% In a more detailed view, with the direct parent classes listed between
+% parentheses, and with the corresponding MyriadGUI types being specified
+% between brackets:
 %
-% - wxObject [gui_object]: root class of all wxWidgets classes
+% - wxObject() [gui_object]: root class of all wxWidgets classes
 %
-%   - wxEvtHandler [event_handler]: a class that can handle events from the
-%   windowing system
+%   - wxEvtHandler(wxObject) [event_handler]: a class that can handle events
+%   from the windowing system
 %
-%      - wxWindow [window]: the base class for all windows and represents any
-%      visible object on screen For colors, refer to the color module
+%      - wxWindow(wxEvtHandler) [window]: the base class for all windows and
+%      represents any visible object on screen For colors, refer to the color
+%      module
 %
-%        - wxControl: base class for a control or "widget"; generally a small
-%        window which processes user input and/or displays one or more item of
-%        data
+%        - wxControl(wxWindow): base class for a control or
+%        "widget"; generally a small window which processes user input and/or
+%        displays one or more item of data
 %
-%          - wxButton: a control that contains a text string, and is one of the
-%          most common elements of a GUI; may be placed on any window, notably
-%          dialog boxes or panels
+%          - wxButton(wxControl): a control that contains a text string, and is
+%          one of the most common elements of a GUI; may be placed on any
+%          window, notably dialog boxes or panels
 %
-%        - wxPanel [panel]: a window on which controls are placed; usually
-%        placed within a frame
+%        - wxPanel(wxWindow) [panel]: a window on which controls are placed;
+%        usually placed within a frame
 %
-%        - wxTopLevelWindow: abstract base class for wxDialog and wxFrame
+%        - wxTopLevelWindow(wxWindow): abstract base class for wxDialog and
+%        wxFrame
 %
-%           - wxDialog: a window with a title bar and sometimes a system menu,
-%           which can be moved around the screen; often used to allow the user
-%           to make some choice or to answer a question
+%           - wxDialog(wxTopLevelWindow): a window with a title bar and
+%           sometimes a system menu, which can be moved around the screen; often
+%           used to allow the user to make some choice or to answer a question
 %
-%           - wxFrame [frame]: a window whose size and position can (usually) be
-%           changed by the user. It usually has thick borders and a title bar,
-%           and can optionally contain a menu bar, toolbar and status bar. A
-%           frame can contain any window that is not a frame or dialog
+%           - wxFrame(wxTopLevelWindow) [frame]: a window whose size and
+%           position can (usually) be changed by the user. It usually has thick
+%           borders and a title bar, and can optionally contain a menu bar,
+%           toolbar and status bar. A frame can contain any window that is not a
+%           frame or dialog
 %
-%        - wxStatusBar: narrow window that can be placed along the bottom of a
-%        frame
+%      - wxStatusBar(wxEvtHandler): narrow window that can be placed along the
+%      bottom of a frame
 %
-%   - wxSizer (also derives from wxClientDataContainer): abstract base class
-%   used for laying out subwindows in a window
+%   - wxSizer(wxClientDataContainer): abstract base class used for laying out
+%   subwindows in a window
+
+
+% See also all the classes of wxwidgets:
+% https://docs.wxwidgets.org/3.0/page_class_cat.html and
+% https://docs.wxwidgets.org/3.0/classes.html
 
 
 % Additional widgets
@@ -211,6 +221,28 @@
 % No enumeration like 'wxWindow' | 'wxFrame' | ... found in wx.
 
 
+
+-type wx_window_option() :: term().
+
+-type wx_event_handler_option() :: { 'id', integer() }
+								 | { 'lastId', integer() }
+								 | { 'skip', boolean() }
+								 | 'callback'
+								 | {'callback', function() }
+								 | {'userData', term() }.
+% Refer to https://erlang.org/doc/man/wxEvtHandler.html
+
+-type wx_panel_option() :: wx_window_option() | wx_event_handler_option().
+
+
+% Just for silencing:
+-export_type([ wx_window_option/0, wx_event_handler_option/0,
+			   wx_panel_option/0 ]).
+
+
+% Preferably no -export_type here to avoid leakage of backend conventions.
+
+
 % Shorthands:
 
 -type bit_mask() :: basic_utils:bit_mask().
@@ -220,10 +252,12 @@
 
 -type wx_object_type() :: gui:wx_object_type().
 -type myriad_object_type() :: gui:myriad_object_type().
--type myriad_instance_pid() :: gui:myriad_instance_pid().
+-type myriad_instance_id() :: gui:myriad_instance_id().
 -type window() :: gui:window().
 -type window_style() :: gui:window_style().
+-type window_option() :: gui:window_option().
 -type frame_style() :: gui:frame_style().
+-type panel_option() :: gui:panel_option().
 -type button_style() :: gui:button_style().
 -type sizer_options() :: gui:sizer_options().
 -type sizer_flag() :: gui:sizer_flag().
@@ -482,6 +516,10 @@ window_style_to_bitmask( _Style=clip_children ) ->
 	?wxCLIP_CHILDREN;
 
 window_style_to_bitmask( _Style=full_repaint_on_resize ) ->
+	% Forces a complete redraw of the window whenever it is resized instead of
+	% redrawing just the part of the window affected by resizing:
+	% (see https://docs.wxwidgets.org/3.0/classwx_window.html)
+	%
 	?wxFULL_REPAINT_ON_RESIZE.
 
 
@@ -491,6 +529,7 @@ window_style_to_bitmask( _Style=full_repaint_on_resize ) ->
 %
 % (exported helper)
 %
+-spec get_window_options( [ window_option() ] ) -> [ wx_window_option() ].
 get_window_options( Options ) ->
 	get_window_options( Options, _Acc=[] ).
 
@@ -568,6 +607,7 @@ frame_style_to_bitmask( _Style=no_taskbar ) ->
 %
 % (exported helper)
 %
+-spec get_panel_options( [ panel_option() ] ) -> [ wx_panel_option() ].
 get_panel_options( Options ) ->
 	get_window_options( Options ).
 
@@ -706,7 +746,7 @@ sizer_flag_to_bitmask( _Flag=align_center_horizontal ) ->
 %
 % (helper)
 %
--spec to_wx_id( maybe( myriad_instance_pid() ) ) -> wx_id().
+-spec to_wx_id( maybe( myriad_instance_id() ) ) -> wx_id().
 to_wx_id( undefined ) ->
 	?any_id;
 
@@ -720,7 +760,7 @@ to_wx_id( Other ) ->
 %
 % (helper)
 %
--spec to_wx_parent( maybe( myriad_instance_pid() ) ) -> wx_id().
+-spec to_wx_parent( maybe( myriad_instance_id() ) ) -> wx_id().
 to_wx_parent( undefined ) ->
 	?no_parent;
 
@@ -806,43 +846,47 @@ wx_id_to_string( Id ) ->
 
 
 
-% @doc Subscribes the current process to the specified type of event of the
-% specified object (receiving for that a message).
+% @doc Subscribes the current process to the specified type(s) of events
+% regarding the specified object (receiving for that a message).
 %
-% Said otherwise: requests the specified widget to send a message-based event
-% when the specified kind of event happens, overriding its default behaviour.
+% Said otherwise: requests the specified widget to send to the current process a
+% message-based event when the specified kind of event happens, overriding its
+% default behaviour.
 %
 % Note: only useful internally or when bypasssing the default main loop.
 %
 -spec connect( event_source(), event_type() ) -> void().
-connect( #canvas_state{ panel=Panel }, EventType ) ->
-	connect( Panel, EventType );
-
 connect( EventSource, EventType ) ->
 	connect( EventSource, EventType, _Options=[] ).
 
 
 
-% @doc Subscribes the current process to the specified type of event of the
-% specified object (receiving for that a message).
+% @doc Subscribes the current process to the specified type(s) of events
+% regarding the specified object (receiving for that a message).
 %
-% Said otherwise: requests the specified widget to send a message-based event
-% when the specified kind of event happens, overriding its default behaviour
-% based on specified options.
+% Said otherwise: requests the specified widget to send to the current process a
+% message-based event when the specified kind of event happens, overriding its
+% default behaviour based on specified options.
 %
-% Note: only useful internally or when bypasssing the default main loop.
+% Note: only useful internally or when bypassing the default main loop.
 %
--spec connect( event_source(), event_type(), connect_options() ) -> void().
-connect( #canvas_state{ panel=Panel }, EventType, Options ) ->
-	connect( Panel, EventType, Options );
+-spec connect( event_source(), list_utils:maybe_list( event_type() ),
+			   connect_options() ) -> void().
+connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options ) ->
+	connect( Panel, EventTypeOrTypes, Options );
+
+connect( SourceObject, EventTypes, Options ) when is_list( EventTypes ) ->
+	[ connect( SourceObject, ET, Options ) || ET <- EventTypes ];
 
 connect( SourceObject, EventType, Options ) ->
 
 	% Events to be processed through messages, not callbacks:
 	WxEventType = to_wx_event_type( EventType ),
 
-	trace_utils:debug_fmt( "Connecting event source '~ts' to ~w for ~p.",
-		[ gui:object_to_string( SourceObject ), self(), EventType ] ),
+	trace_utils:debug_fmt( "Connecting event source '~ts' to ~w "
+		"for ~p (i.e. ~p).",
+		[ gui:object_to_string( SourceObject ), self(), EventType,
+		  WxEventType ] ),
 
 	wxEvtHandler:connect( SourceObject, WxEventType, Options ).
 
