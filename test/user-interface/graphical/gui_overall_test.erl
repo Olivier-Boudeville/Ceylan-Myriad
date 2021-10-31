@@ -36,9 +36,10 @@
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
+% For the circle record:
+-include("bounding_box2.hrl").
 
-% For gui-related defines:
-%-include("gui.hrl").
+
 
 % Shorthands:
 
@@ -50,6 +51,9 @@
 
 -type button() :: gui:button().
 -type canvas() :: gui:canvas().
+
+
+-type render_mode() :: 'test_shape_rendering' | 'test_dynamic_mec'.
 
 
 % State of the application, kept and updated by its main loop.
@@ -74,10 +78,7 @@
 
 			point_count = 0 :: count(),
 
-			render_mode = test_shape_rendering :: 'test_shape_rendering'
-												| 'test_dynamic_mec'
-
-} ).
+			render_mode = test_shape_rendering :: render_mode() } ).
 
 -type my_test_state() :: #my_test_state{}.
 
@@ -134,7 +135,7 @@ run_test_gui() ->
 
 	MainFrameSize = { get_main_window_width(), get_main_window_height() },
 
-	MainFrame = gui:create_frame( _Title="GUI Test", MainFrameSize ),
+	MainFrame = gui:create_frame( _Title="MyriadGUI Test", MainFrameSize ),
 
 	% This process will subscribe to following event:
 	MainFrameEvents = { onWindowClosed, MainFrame },
@@ -149,9 +150,9 @@ run_test_gui() ->
 	RightPanel = gui:create_panel( MainFrame ),
 
 	% To check surfaces:
-	gui:set_background_color( MainFrame, red ),
-	gui:set_background_color( LeftPanel, blue ),
-	gui:set_background_color( RightPanel, green ),
+	%gui:set_background_color( MainFrame, red ),
+	%gui:set_background_color( LeftPanel, blue ),
+	%gui:set_background_color( RightPanel, green ),
 
 	MainSizer = gui:create_sizer( _Orientation=horizontal ),
 
@@ -200,11 +201,16 @@ run_test_gui() ->
 
 	gui:set_background_color( Canvas, pink ),
 
-	% Generally canvas need to react iff a repaint is needed:
+	% Generally back-buffered canvases need to subscribe to onRepaintNeeded but
+	% also to onResized, if they just *blit* their back-buffer (not re-render
+	% it) when receiving an onRepaintNeeded event; otherwise the resized canvas
+	% will blit a different-sized back-buffer and show random parts of memory.
 	%
-	% (note that resizing implies onRepaintNeeded to be triggered)
+	% An alternative (less efficient) option is not to subscribe to onResized
+	% events and to perform a full rendering at each onRepaintNeeded.
 	%
-	CanvasEvents = { onRepaintNeeded, Canvas },
+	%CanvasEvents = { onRepaintNeeded, Canvas },
+	CanvasEvents = { [ onRepaintNeeded, onResized ], Canvas },
 
 	gui:add_to_sizer( PolyBoxSizer, Canvas,
 					  [ { proportion, 1 }, { flag, [ expand_fully ] } ] ),
@@ -224,11 +230,14 @@ run_test_gui() ->
 	%
 	gui:subscribe_to_events( EventsOfInterest ),
 
-	% Renders the GUI:
-	gui:show( MainFrame ),
-
 	InitialPointCount = 3,
 
+	InitialRenderMode = test_shape_rendering,
+
+	% First rendering not relevant here (still in default, initial size of
+	% 20x20, and a onRepaintNeeded event will happen first):
+	%
+	%render( InitialRenderMode, InitialPointCount, Canvas ),
 
 	InitialTestState = #my_test_state{ main_frame=MainFrame,
 									   render_shape_button=RenderShapeButton,
@@ -239,10 +248,14 @@ run_test_gui() ->
 									   quit_button=QuitButton,
 									   canvas=Canvas,
 									   point_count=InitialPointCount,
-									   render_mode=test_shape_rendering },
+									   render_mode=InitialRenderMode },
 
 	trace_utils:debug_fmt( "Initial ~ts",
 						   [ test_state_to_string( InitialTestState ) ] ),
+
+
+	% Renders the GUI:
+	gui:show( MainFrame ),
 
 	test_main_loop( InitialTestState ).
 
@@ -262,8 +275,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  render_mode=RenderMode } ) ->
 
 	%trace_utils:info_fmt( "Test main loop running, render mode is ~p, "
-	%	"render count is ~B, point count is ~B.",
-	%	[ RenderMode, RenderCount, TestState#my_test_state.point_count ] ),
+	%   "render count is ~B, point count is ~B.",
+	%   [ RenderMode, RenderCount, TestState#my_test_state.point_count ] ),
 
 	% We use trace_utils:notice* to discriminate more easily the traces
 	% originating from this test from any MyriadGUI ones:
@@ -272,7 +285,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onWindowClosed, [ MainFrame, Context ] } ->
 
-			trace_utils:notice_fmt( "Main frame ~ts has been closed "
+			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 				"(~ts), test success.",
 				[ gui:object_to_string( MainFrame ),
 				  gui:context_to_string( Context ) ] ),
@@ -282,32 +295,42 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			gui:stop();
 
 
-		{ onButtonClicked, [ RenderShapeButton, Context ] } ->
+		{ onButtonClicked, [ RenderShapeButton, _Context ] } ->
 
-			trace_utils:notice_fmt(
-			  "Render shape button ~ts has been clicked (~ts).",
-			  [ gui:object_to_string( QuitButton ),
-				gui:context_to_string( Context ) ] ),
+			%trace_utils:notice_fmt(
+			%  "Render shape test button ~ts has been clicked (~ts).",
+			%  [ gui:object_to_string( QuitButton ),
+			%    gui:context_to_string( Context ) ] ),
 
-			test_main_loop( TestState );
+			NewTestState = TestState#my_test_state{
+								render_mode=test_shape_rendering },
 
+			render_shapes( Canvas ),
 
-		{ onButtonClicked, [ RenderMECButton, Context ] } ->
-
-			trace_utils:notice_fmt(
-			  "Render MEC button ~ts has been clicked (~ts).",
-			  [ gui:object_to_string( QuitButton ),
-				gui:context_to_string( Context ) ] ),
-
-			test_main_loop( TestState );
+			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ AddButton, Context ] } ->
+		{ onButtonClicked, [ RenderMECButton, _Context ] } ->
 
-			trace_utils:notice_fmt(
-			  "Add point button ~ts has been clicked (~ts).",
-			  [ gui:object_to_string( QuitButton ),
-				gui:context_to_string( Context ) ] ),
+			%trace_utils:notice_fmt(
+			%  "Render MEC test button ~ts has been clicked (~ts).",
+			%  [ gui:object_to_string( QuitButton ),
+			%    gui:context_to_string( Context ) ] ),
+
+			NewTestState = TestState#my_test_state{
+								render_mode=test_dynamic_mec },
+
+			render_mec( Canvas, TestState#my_test_state.point_count ),
+
+			test_main_loop( NewTestState );
+
+
+		{ onButtonClicked, [ AddButton, _Context ] } ->
+
+			%trace_utils:notice_fmt(
+			%  "Add point test button ~ts has been clicked (~ts).",
+			%  [ gui:object_to_string( QuitButton ),
+			%    gui:context_to_string( Context ) ] ),
 
 			NewPointCount = TestState#my_test_state.point_count + 1,
 
@@ -344,58 +367,70 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked, [ QuitButton, Context ] } ->
+		{ onButtonClicked, [ QuitButton, _Context ] } ->
 
-			trace_utils:notice_fmt( "Quit button ~ts has been clicked "
-			   "(~ts), test success.",
-			   [ gui:object_to_string( QuitButton ),
-				 gui:context_to_string( Context ) ] ),
+			%trace_utils:notice_fmt( "Quit test button ~ts has been clicked "
+			%   "(~ts), test success.",
+			%   [ gui:object_to_string( QuitButton ),
+			%     gui:context_to_string( Context ) ] ),
 
 			gui:destruct_window( MainFrame ),
 
 			gui:stop();
 
 
-		{ onRepaintNeeded, [ Canvas, Context ] } ->
+		{ onRepaintNeeded, [ Canvas, _Context ] } ->
 
-			trace_utils:notice_fmt( "Canvas '~ts' needing repaint (~ts).",
-				[ gui:object_to_string( Canvas ),
-				  gui:context_to_string( Context ) ] ),
+			%trace_utils:notice_fmt( "Test canvas '~ts' needing repaint (~ts).",
+			%   [ gui:object_to_string( Canvas ),
+			%     gui:context_to_string( Context ) ] ),
 
-			case RenderMode of
-
-				test_shape_rendering ->
-					render_shapes( Canvas );
-
-				test_dynamic_mec ->
-					render_mec( Canvas, TestState#my_test_state.point_count )
-
-			end,
+			gui:blit( Canvas ),
 
 			test_main_loop( TestState#my_test_state{
 								render_count=RenderCount+1 } );
 
 
+		{ onResized, [ Canvas, _NewSize, _Context ] } ->
+
+			%trace_utils:notice_fmt( "Test canvas '~ts' resized to ~p (~ts).",
+			%   [ gui:object_to_string( Canvas ), NewSize,
+			%    gui:context_to_string( Context ) ] ),
+
+			render( RenderMode, TestState#my_test_state.point_count, Canvas ),
+
+			test_main_loop( TestState#my_test_state{
+								render_count=RenderCount+1 } );
+
 		Other ->
 			% Extra newline for better separation:
 			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~p.~n", [ Other ] ),
+									 "message:~n ~p.~n", [ Other ] ),
 			test_main_loop( TestState )
 
 	end.
 
 
 
+% @doc Renders the specified canvas.
+-spec render( render_mode(), count(), canvas() ) -> void().
+render( _RenderMode=test_shape_rendering, _PointCount, Canvas ) ->
+	render_shapes( Canvas );
+
+render( _RenderMode=test_dynamic_mec, PointCount, Canvas ) ->
+	render_mec( Canvas, PointCount ).
+
+
 
 % @doc Renders the shape examples onto the specified canvas.
--spec render_shapes( canvas() ) -> canvas().
+-spec render_shapes( canvas() ) -> void().
 render_shapes( Canvas ) ->
 
 	%trace_utils:info_fmt(
-	%	"Rendering shapes, redrawing canvas ~w, of size ~w.",
-	%	[ Canvas, gui:get_size( Canvas ) ] ),
+	%   "Rendering example shapes, redrawing canvas ~w, of size ~w.",
+	%   [ Canvas, gui:get_size( Canvas ) ] ),
 
-	gui:set_background_color( Canvas, yellow ),
+	%gui:set_background_color( Canvas, yellow ),
 
 	gui:clear( Canvas ),
 
@@ -453,12 +488,13 @@ render_shapes( Canvas ) ->
 % @doc Renders the MEC (Minimal Enclosing Circle) view, for a polygon of
 % specified number of vertices, whose coordinates are randomly determined.
 %
--spec render_mec( canvas(), count() ) -> canvas().
+-spec render_mec( canvas(), count() ) -> void().
 render_mec( Canvas, PointCount ) ->
 
-	trace_utils:info_fmt( "Rendering MEC with ~B points.", [ PointCount ] ),
+	%trace_utils:info_fmt( "Rendering MEC for ~B random points.",
+	%                      [ PointCount ] ),
 
-	gui:set_background_color( Canvas, blue ),
+	%gui:set_background_color( Canvas, blue ),
 
 	gui:clear( Canvas ),
 
@@ -488,7 +524,7 @@ render_mec( Canvas, PointCount ) ->
 	%trace_utils:debug_fmt( "Number of hull/set points: ~B/~B.",
 	%                       [ length( HullPoints ), PointCount ] ),
 
-	{ ExactCenter, SquareRadius } =
+	#circle{ center=ExactCenter, square_radius=SquareRadius } =
 		bounding_box2:get_minimal_enclosing_circle_box( HullPoints ),
 
 	Center = point2:roundify( ExactCenter ),
@@ -496,7 +532,7 @@ render_mec( Canvas, PointCount ) ->
 	Radius = math:sqrt( SquareRadius ),
 
 	%trace_utils:debug_fmt( "Bounding Minimal Enclosing Circle: "
-	%                       "center = ~p, radius = ~f.~n", [ Center, Radius ] ),
+	%                       "center = ~p, radius = ~f.", [ Center, Radius ] ),
 
 	gui:draw_labelled_cross( Canvas, Center, 5, purple, "MEC center" ),
 

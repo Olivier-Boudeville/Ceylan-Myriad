@@ -928,8 +928,8 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 				{ value, Subscribers } ->
 					cond_utils:if_defined( myriad_debug_gui_events,
-                        trace_utils:debug_fmt( "Dispatching ~p event to "
-						    "subscribers ~w.", [ EventType, Subscribers ] ) ),
+						trace_utils:debug_fmt( "Dispatching ~p event to "
+							"subscribers ~w.", [ EventType, Subscribers ] ) ),
 
 					send_event( Subscribers, EventType, EventSourceId,
 								ActualGUIObject, UserData, WxEvent )
@@ -943,7 +943,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 
 % @doc Updates specified GUI object (probably a MyriadGUI one, like a canvas)
-% after specified event (ex: a onResized one) has been received.
+% after specified event (ex: an onResized one) has been received.
 %
 -spec update_instance_on_event( gui_object(), wx_event_info(),
 								myriad_type_table() ) -> myriad_type_table().

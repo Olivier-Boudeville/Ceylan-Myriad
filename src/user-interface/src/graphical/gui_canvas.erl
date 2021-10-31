@@ -50,15 +50,40 @@
 % Due to their number, canvas operations have been defined separately from the
 % gui module.
 %
-% The canvas is only an in-memory surface (not onscreen), a back-buffer:
-% operations that are performed on it will not be visible as long as that no
-% blitting of it on the visible buffer is done (see blit/1).
-%
-% The only key event for a canvas is the onRepaintNeeded one: if a user code
-% registered this event (see gui:subscribe_to_events/1) for a canvas, this code
-% will receive a {onRepaintNeeded, [Canvas, Context]} message whenever
-% appropriate.
+% A canvas is double-buffered, in the sens that it performs its rendering in an
+% in-memory surface (not onscreen), a back-buffer: operations that are performed
+% on it will not be visible as long as that no blitting of it on the visible
+% buffer is done (see blit/1).
 
+% The main event of interest for a canvas is the onRepaintNeeded one: if a user
+% code registered this event (see gui:subscribe_to_events/1) for a canvas, this
+% code will receive a {onRepaintNeeded, [Canvas, Context]} message whenever
+% appropriate.
+%
+% Knowing that in all cases the user code shall subscribe for each canvas to its
+% onRepaintNeeded event, two options can be considered:
+%
+%  - either (recommended approach) to subscribe also to its onResized event, so
+% that only a resizing triggers a new rendering (in its back-buffer); then
+% onRepaintNeeded is just a matter of blitting this back-buffer back on the
+% visible buffer
+%
+% - or (less efficient) not to specifically subscribe to its onResized event;
+% then onRepaintNeeded shall, prior to blitting, perform a new rendering; this
+% is bound to lead to potentially many useless renderings, as repainting happens
+% for more reasons that just resizing (ex: overlapping window, application
+% tooltip being displayed, etc.)
+%
+% See gui_overall_test.erl for an example of use.
+
+
+% Strangely enough, when launching the same program twice (ex:
+% gui_overall_test), the initial backbuffer will happen to be the final one of
+% the former instance (i.e. showing the exact same content, although these OS
+% processes should be totally unrelated). This can be detected with this test by
+% clicking the 'Paste image' button on its first instance to make the previous
+% buffer different from the next one. The second test instance will start with
+% the same buffer content.
 
 % Note: these functions are meant to be executed in the context of the MyriadGUI
 % main process (not in a user process).
