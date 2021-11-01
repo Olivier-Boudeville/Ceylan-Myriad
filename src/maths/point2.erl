@@ -83,6 +83,7 @@
 		  get_center/2, get_integer_center/2,
 		  translate/2, vectorize/2,
 		  are_close/2, are_equal/2, is_within/3, square_distance/2, distance/2,
+		  draw_integer_random/2, draw_integer_random/3,
 		  check/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1, to_string/2 ] ).
@@ -90,6 +91,8 @@
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 
@@ -184,7 +187,7 @@ roundify( _P={X,Y} ) ->
 % @doc Returns a point corresponding the midpoint (middle) of the two specified
 % points.
 %
--spec get_center( point2(), point2() ) -> point2().
+-spec get_center( any_point2(), any_point2() ) -> point2().
 get_center( _P1={X1,Y1}, _P2={X2,Y2} ) ->
 	{ (X1+X2)/2, (Y1+Y2)/2 }.
 
@@ -267,6 +270,35 @@ square_distance( _P1={X1,Y1}, _P2={X2,Y2} ) ->
 -spec distance( point2(), point2() ) -> distance().
 distance( P1, P2 ) ->
 	math:sqrt( square_distance( P1, P2 ) ).
+
+
+
+% @doc Draws a random point between specified (included) bounds (for both
+% dimensions).
+%
+-spec draw_integer_random( integer_coordinate(), integer_coordinate() ) ->
+											integer_point2().
+draw_integer_random( Min, Max ) ->
+	[ X, Y ] = random_utils:get_random_values( Min, Max, _Count=2 ),
+	{ X, Y }.
+
+
+% @doc Draws the specified number of random points between specified (included)
+% bounds (for both dimensions).
+%
+-spec draw_integer_random( integer_coordinate(), integer_coordinate(),
+						   count() ) -> [ integer_point2() ].
+draw_integer_random( Min, Max, Count ) ->
+	Coords = random_utils:get_random_values( Min, Max, 2*Count ),
+	gather_as_points( Coords, _Acc=[] ).
+
+
+% (helper)
+gather_as_points( _Coords=[], Acc ) ->
+	Acc;
+
+gather_as_points( _Coords=[ X, Y | T ], Acc ) ->
+	gather_as_points( T, [ { X, Y } | Acc ] ).
 
 
 

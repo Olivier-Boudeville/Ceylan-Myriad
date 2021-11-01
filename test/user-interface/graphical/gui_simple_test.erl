@@ -25,8 +25,8 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Simple unit tests for the MyriadGUI toolbox: creates a few frames, enter a
-% main loops, and exits when the fourth frame is closed by the user.
+% <b>Simple unit tests for the MyriadGUI toolbox</b>: creates a few frames,
+% enters a main loop, and exits when the fourth frame is closed by the user.
 %
 % Note: this test showcases also how an (explicit) GUI state can be kept and
 % used, if ever needed.
@@ -51,9 +51,9 @@ run_test_gui() ->
 	test_facilities:display( "~nStarting the actual simple MyriadGUI test, "
 							 "from ~w.", [ self() ] ),
 
-	% We chose here to carry around the GUI state, whereas in general it is not
-	% necessary at all:
-	%
+	% We used to choose here to carry around the GUI state, whereas in general
+	% it is not necessary at all.
+
 	gui:start(),
 
 	%gui:set_debug_level( [ calls, life_cycle ] ),
@@ -67,7 +67,8 @@ run_test_gui() ->
 
 	FourthFrame = gui:create_frame( "This is the fourth frame" ),
 
-	trace_utils:notice( "Please close the fourth frame to end this test." ),
+	trace_utils:notice( "Please close the fourth frame to end this test "
+		"(note that most frames may be one of top of the others)." ),
 
 	Frames = [ FirstFrame, SecondFrame, ThirdFrame, FourthFrame ],
 
@@ -97,7 +98,7 @@ test_main_loop( CloseFrame ) ->
 		{ onWindowClosed, [ CloseFrame, Context ] } ->
 
 			trace_utils:info_fmt( "Closing frame ~ts has been, well, closed "
-				"(~ts), test success.",
+				"(~ts); test success.",
 				[ gui:object_to_string( CloseFrame ),
 				  gui:context_to_string( Context ) ] ),
 

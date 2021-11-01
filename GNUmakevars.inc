@@ -138,7 +138,13 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
+
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
+
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 endif
@@ -146,6 +152,7 @@ endif
 # Defining check flags:
 ifeq ($(EXECUTION_TARGET),development)
 	# MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 endif
 
@@ -637,6 +644,23 @@ ifndef BASE_PLT
   BASE_PLT = $(PREDECESSOR_PLT)
 endif
 
+
+# For the user interface testing:
+ifndef UI_TEST_BACKEND
+  #UI_TEST_BACKEND = text_ui
+  UI_TEST_BACKEND = term_ui
+  #UI_TEST_BACKEND  = gui
+endif
+
+
+# Single-quoting is necessary, otherwise the selected test backend will be
+# interpreted by make as a target:
+#
+ifndef UI_TEST_OPT
+  ifdef UI_TEST_BACKEND
+	UI_TEST_OPT = "'--use-ui-backend $(UI_TEST_BACKEND)'"
+  endif
+endif
 
 
 # To test conditional checks:

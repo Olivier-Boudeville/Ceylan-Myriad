@@ -183,9 +183,34 @@ As for the installation of `Erlang LS <https://erlang-ls.github.io/>`_ itself, w
 
 Then one would just have to ensure that ``~/Software/erlang_ls/bin`` is indeed in one's PATH.
 
-Note that not all bells and whistles of LSP may be retained, knowing that at least some of them are confused by various elements, especially when applied to code that is parse-transformed.
+Note that not all bells and whistles of LSP may be retained, knowing that at least some of them are confused by various elements, especially when applied to code that is parse-transformed; as a result we did find LS features much useful.
 
 The Emacs configuration that we use (see the corresponding `init.el <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/init.el>`_) attempts to find some sweet spot in this matter.
+
+Another option is to use ``ctags`` to generate Emacs' compliant `tags <https://www.emacswiki.org/emacs/EmacsTags>`_ (see the ``generate-tags`` make target); we did not find this solution very satisfactory either.
+
+
+
+For Documentation Generation
+----------------------------
+
+We rely on RST (*Restructured Text*, from Docutils) in order to generate both HTML targets (a set of static web pages) and PDF ones (for any of our layers), notably thanks to our ``generate-docutils.sh`` script.
+
+In the context of our HTML target, in order to output beautiful mathematical symbols (equations, matrices, etc.), we rely on MathJax. It shall thus be installed once for all first. For example, on Arch Linux, as ``root``, it is sufficient to execute:
+
+.. code:: bash
+
+   $ pacman -Sy mathjax
+
+Then, to enable the use of MathJax for a given website, run from its root (often a ``doc`` directory):
+
+.. code:: bash
+
+  make create-mathjax-symlink
+
+(this target is defined in ``myriad/doc/GNUmakerules-docutils.inc``).
+
+
 
 
 Other Conventions

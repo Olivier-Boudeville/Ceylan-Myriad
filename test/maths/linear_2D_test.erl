@@ -36,6 +36,11 @@
 -include("test_facilities.hrl").
 
 
+% For a possible silencing thereof:
+-export([ test_normal/0, test_pivot/0, test_angle/0, test_mec/0 ]).
+
+
+
 test_normal() ->
 
 	Ve = [9,1],
@@ -98,6 +103,67 @@ test_angle() ->
 
 
 
+% Number of random tests to do for each given number of points:
+-define( test_count, 1000 ).
+%-define( test_count, 100000 ).
+
+test_mec() ->
+
+	PointCountMin = 3,
+
+	%PointCountMax = 5,
+	PointCountMax = 15,
+	%PointCountMax = 50,
+	%PointCountMax = 500,
+
+	test_facilities:display( "Testing the Minimal Enclosing Circles, "
+		"from ~B to ~B points (each with ~B random tests).",
+		[ PointCountMin, PointCountMax, ?test_count ] ),
+
+	test_mec( PointCountMin, PointCountMax, _TestCount=0 ).
+
+
+
+-define( min_coord, 0 ).
+
+% To boost special cases:
+%-define( max_coord, 50 ).
+-define( max_coord, 1000 ).
+
+
+% Will progressively slow down as the number of points increases:
+test_mec( PointCountMax, PointCountMax, _TestCount=?test_count ) ->
+	ok;
+
+test_mec( PointCount, PointCountMax, _TestCount=?test_count ) ->
+
+	NewPointCount = PointCount+1,
+
+	test_facilities:display( " - testing for ~B random points",
+							 [ NewPointCount ] ),
+
+	test_mec( NewPointCount, PointCountMax, _TCount=0 );
+
+
+test_mec( PointCount, PointCountMax, TestCount ) ->
+
+	%test_facilities:display( "   * test #~B for ~B random points",
+	%						 [ TestCount, PointCount ] ),
+
+	Points = point2:draw_integer_random( ?min_coord, ?max_coord, PointCount ),
+
+	MECircle = bounding_box2:get_lazy_circle_box( Points ),
+
+	% Was so quick that wanted to check:
+	%test_facilities:display( "For points ~p, got MEC=~p.",
+	%						 [ Points, MECircle ] ),
+
+	[ true = bounding_box2:is_within( P, MECircle ) || P <- Points ],
+
+	test_mec( PointCount, PointCountMax, TestCount+1 ).
+
+
+
 -spec run() -> no_return().
 run() ->
 
@@ -106,5 +172,6 @@ run() ->
 	test_normal(),
 	test_pivot(),
 	test_angle(),
+	test_mec(),
 
 	test_facilities:stop().

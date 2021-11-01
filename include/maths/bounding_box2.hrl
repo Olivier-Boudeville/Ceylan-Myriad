@@ -23,22 +23,31 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, February 15, 2010.
 
 
-% @doc Gathering of various <b>four dimensional "linear"</b> facilities, mostly
-% dealing with homogeneous matrices for 3D.
-%
-% See `linear_4D_test.erl' for the corresponding test.
-%
--module(linear_4D).
+% Common definitions about 2D bounding boxes.
 
 
-% For printout_*, inline_size, etc.:
--include("linear.hrl").
 
--compile( inline ).
--compile( { inline_size, ?inline_size } ).
+% Record declarations:
 
 
--export([]).
+% Rectangle-based 2D bounding box.
+-record( rectangle, {
+
+	% The top-left corner of the rectangle:
+	top_left :: point2:any_point2(),
+
+	% The bottom-right corner of the rectangle:
+	bottom_right :: point2:any_point2() } ).
+
+
+
+% Circle-based 2D bounding box.
+-record( circle, {
+
+	% The center of the circle:
+	center :: point2:point2(),
+
+	% The square of the radius (R^2) of this circle:
+	square_radius :: linear:square_distance() } ).

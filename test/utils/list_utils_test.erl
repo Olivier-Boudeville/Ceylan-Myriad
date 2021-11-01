@@ -131,7 +131,13 @@ run() ->
 
 
 	% Checks order, removal of all matching elements:
-	[ 1, 3, 4 ] = list_utils:delete_all_in( 2, L1 ),
+	[ 1, 3, 4 ] = list_utils:remove_element_from( 2, L1 ),
+
+	[ a, d, e ] = list_utils:remove_elements_from( [ b, c ], L3 ),
+
+	[ 1, 3, 4, 2 ] = list_utils:remove_first_occurrence( 2, L1 ),
+
+	[ a, b, b, d, e ] = list_utils:remove_first_occurrences( [ b, c ], L3 ),
 
 
 	true  = list_utils:are_integers( [ 1, 2, 3 ] ),

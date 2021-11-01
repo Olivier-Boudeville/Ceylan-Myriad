@@ -44,8 +44,8 @@
 -export_type([ polygon/0 ]).
 
 
-% For circle record and al:
--include("bounding_box.hrl").
+% For the circle record and al:
+-include("bounding_box2.hrl").
 
 
 % Construction-related section.
@@ -90,7 +90,7 @@
 % three vertices.
 %
 -spec get_triangle( integer_point2(), integer_point2(), integer_point2() ) ->
-			polygon().
+								polygon().
 get_triangle( P1, P2, P3 ) ->
 	#polygon{ vertices=[ P1, P2, P3 ] }.
 
@@ -377,9 +377,10 @@ render( Polygon, Canvas ) ->
 			case Polygon#polygon.bounding_box of
 
 				#circle{ center=Center, square_radius=SquareRadius } ->
-					gui:draw_circle( Canvas, Center,
+					IntCenter = point2:roundify( Center ),
+					gui:draw_circle( Canvas, IntCenter,
 									 round( math:sqrt( SquareRadius ) ) ),
-					gui:draw_cross( Canvas, Center, _EdgeLength=4 );
+					gui:draw_cross( Canvas, IntCenter, _EdgeLength=4 );
 
 				undefined ->
 					ok
@@ -400,7 +401,7 @@ to_string( Polygon ) ->
 			"none available";
 
 		BB ->
-			bounding_box:to_string( BB )
+			bounding_box2:to_string( BB )
 
 	end,
 
@@ -426,7 +427,7 @@ to_string( Polygon ) ->
 -spec update_bounding_box( 'lazy_circle', polygon() ) -> polygon().
 update_bounding_box( lazy_circle, Polygon ) ->
 
-	CircleBBox = bounding_box:get_lazy_circle_box( Polygon#polygon.vertices ),
+	CircleBBox = bounding_box2:get_lazy_circle_box( Polygon#polygon.vertices ),
 
 	Polygon#polygon{ bounding_box=CircleBBox }.
 

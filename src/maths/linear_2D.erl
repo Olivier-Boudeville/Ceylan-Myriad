@@ -26,7 +26,7 @@
 % Creation date: Monday, February 15, 2010.
 
 
-% @doc Gathering of various <b>two-dimensional linear</b> facilities.
+% @doc Gathering of various <b>two-dimensional "linear"</b> facilities.
 %
 % See `linear_2D_test.erl' for the corresponding test.
 %
@@ -70,6 +70,7 @@
 -type radians() :: unit_utils:radians().
 
 -type coordinate() :: linear:coordinate().
+-type any_coordinate() :: linear:any_coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
 -type factor() :: linear:factor().
 -type square_distance() :: linear:square_distance().
@@ -110,7 +111,8 @@
 
 % Section for sets of points.
 %
-% At least most of the points below are integer-coordinate ones.
+% Most if not all functions here can operate with any points, i.e. integer
+% and/or floating-point ones.
 
 
 
@@ -119,16 +121,15 @@
 %
 % Returns {TopLeft, BottomRight}.
 %
--spec compute_smallest_enclosing_rectangle( [ integer_point2() ] ) ->
-										{ integer_point2(), integer_point2() }.
+-spec compute_smallest_enclosing_rectangle( [ any_point2() ] ) ->
+											{ any_point2(), any_point2() }.
 compute_smallest_enclosing_rectangle( Points ) ->
 	compute_smallest_enclosing_rectangle( Points, _TopLeft=undefined,
 										  _BottomRight=undefined ).
 
 
 
-
-% Helper:
+% (helper)
 compute_smallest_enclosing_rectangle( _Points=[], TopLeft, BottomRight ) ->
 	{ TopLeft, BottomRight };
 
@@ -162,8 +163,8 @@ compute_smallest_enclosing_rectangle( [ _Points={ X, Y } | Others ], { Xt, Yt },
 %
 % @end
 %
--spec compute_max_overall_distance( [ integer_point2() ] ) ->
-				{ integer_point2(), integer_point2(), square_distance() }.
+-spec compute_max_overall_distance( [ any_point2() ] ) ->
+						    { any_point2(), any_point2(), square_distance() }.
 compute_max_overall_distance( Points ) when length( Points ) < 2 ->
 	throw( { no_computable_overall_distance, Points } );
 
@@ -212,8 +213,8 @@ compute_max_overall_distance( _Points=[ P | Others ],
 % As there must have been at least one point in the list, Pmax exists here
 % (never undefined).
 %
--spec compute_max_distance_between( integer_point2(), [ integer_point2() ] )->
-				{ integer_point2(), integer_point2(), square_distance() }.
+-spec compute_max_distance_between( any_point2(), [ any_point2() ] )->
+							{ any_point2(), any_point2(), square_distance() }.
 compute_max_distance_between( _P, _Points=[] ) ->
 	throw( no_computable_max_distance );
 
@@ -221,6 +222,7 @@ compute_max_distance_between( P, Points ) ->
 	compute_max_distance_between( P, Points, _Info=undefined ).
 
 
+% (helper)
 compute_max_distance_between( P, _Points=[],
 							  _Info={ Pmax, LongestSquareDistance } ) ->
 	{ P, Pmax, LongestSquareDistance };
@@ -239,7 +241,7 @@ compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ],
 		SquareDistance when SquareDistance > LongestSquareDistance ->
 			% We have a new winner:
 			compute_max_distance_between( P, OtherPoints,
-										 _NewInfo={ Pnew, SquareDistance } );
+										  _NewInfo={ Pnew, SquareDistance } );
 
 		_LesserSquareDistance ->
 			% Previous best not beaten, let's keep it:
@@ -260,8 +262,7 @@ compute_max_distance_between( P, _Points=[ Pnew | OtherPoints ],
 % Returns {Pivot, PivotLessList} where PivotLessList is the (unordered) input
 % list, without the Pivot.
 %
--spec find_pivot( [ integer_point2() ] ) ->
-			{ integer_point2(), [ integer_point2() ] }.
+-spec find_pivot( [ any_point2() ] ) -> { any_point2(), [ any_point2() ] }.
 find_pivot( _PointList=[ FirstPivot | Others ] ) ->
 	% First found is the first pivot:
 	find_pivot( Others, FirstPivot, _PList=[] ).
@@ -281,12 +282,12 @@ find_pivot( [ Point={_X,Y} | Others ], PreviousPivot={ _Xp, Yp }, PList )
 	find_pivot( Others, Point, [ PreviousPivot | PList ] );
 
 % Same level as the pivot, but at its right, thus not wanted:
-find_pivot( [ Point={X,_Yp} | Others ], Pivot={Xp,_UselessMatchYp}, PList )
+find_pivot( [ Point={X,_Yp} | Others ], Pivot={ Xp, _UselessMatchYp }, PList )
   when X > Xp ->
 	find_pivot( Others, Pivot, [ Point | PList ] );
 
 % Same level as the pivot, but at its left, thus wanted:
-find_pivot( [ Point={X,_Yp} | Others ], PreviousPivot={Xp,_UselessMatchYp},
+find_pivot( [ Point={X,_Yp} | Others ], PreviousPivot={ Xp, _UselessMatchYp },
 			PList ) when X < Xp ->
 	find_pivot( Others, Point, [ PreviousPivot | PList ] );
 
@@ -305,7 +306,7 @@ find_pivot( [ Pivot | _Others ], Pivot, _PList ) ->
 % one, will be removed from the returned list.
 %
 -spec sort_by_angle( integer_point2(), [ integer_point2() ] ) ->
-			[ integer_point2() ].
+											    [ integer_point2() ].
 sort_by_angle( Pivot, Points ) ->
 	sort_by_angle( Pivot, Points, _LeftPoints=[], _MiddlePoint=undefined,
 				   _RightPoints=[] ).
@@ -318,8 +319,8 @@ sort_by_angle( Pivot, Points ) ->
 
 % (helper)
 %
--spec sort_by_angle( integer_point2(), [ integer_point2() ], [ angle_pair() ],
-		maybe( integer_point2() ), [ angle_pair() ] ) ->  [ integer_point2() ].
+-spec sort_by_angle( any_point2(), [ any_point2() ], [ angle_pair() ],
+				maybe( any_point2() ), [ angle_pair() ] ) ->  [ any_point2() ].
 sort_by_angle( _Pivot, _Points=[], LeftPairs, _MaybeP=undefined, RightPairs ) ->
 
 	cond_utils:if_defined( bounding_boxes, trace_utils:debug(
@@ -328,7 +329,7 @@ sort_by_angle( _Pivot, _Points=[], LeftPairs, _MaybeP=undefined, RightPairs ) ->
 	% Not having a middle point to integrate here:
 	Index = 1,
 	SortedPairs = lists:keysort( Index, LeftPairs )
-		++ lists:keysort( Index, RightPairs ),
+										++ lists:keysort( Index, RightPairs ),
 
 	cond_utils:if_defined( bounding_boxes,
 		trace_utils:debug_fmt( "Full sorted list: ~w.", [ L ] ) ),
@@ -406,7 +407,7 @@ sort_by_angle( Pivot={Xp,Yp}, [ Point={X,Y} | T ], LeftPairs, MiddlePoint,
 reverse_and_drop_angle( _AnglePairs=[], Acc ) ->
 	Acc;
 
-reverse_and_drop_angle( [ _AnglePairs={_Tangent,Point} | T ], Acc ) ->
+reverse_and_drop_angle( [ _AnglePairs={ _Tangent, Point } | T ], Acc ) ->
 	reverse_and_drop_angle( T, [ Point | Acc ] ).
 
 
@@ -431,6 +432,8 @@ get_line( _P={Xp,Yp}, _V=[Vx,Vy] ) ->
 	A = Vx,
 	B = Vy,
 	C = - ( Xp*Vx + Yp*Vy ),
+
+	% Necessarily all floating-points:
 	{ A, B, C }.
 
 
@@ -449,6 +452,8 @@ intersect( _L1={A,B,C}, _L2={U,V,W} ) ->
 	%
 	% (math_utils:is_null/0 also allows to handle integers and floats)
 	%
+    % Returns necessarily floating-point coordinates:
+
 	case math_utils:is_null( B ) of
 
 		true ->
@@ -499,7 +504,7 @@ intersect( _L1={A,B,C}, _L2={U,V,W} ) ->
 					% General case, substituing (I) in second equation we have:
 					% (B.U-V.A).X = V.C-B.D
 					%
-					Denom = B*U-V*A,
+					Denom = B*U - V*A,
 
 					case math_utils:is_null( Denom ) of
 
@@ -521,10 +526,10 @@ intersect( _L1={A,B,C}, _L2={U,V,W} ) ->
 
 % @doc Returns the abscissa of a point on line L having Y for ordinate.
 %
-% Line L must not have for equation Y=constant (ie its A parameter must not be
+% Line L must not have for equation Y=constant (i.e. its A parameter must not be
 % null).
 %
--spec get_abscissa_for_ordinate( line2(), coordinate() ) -> coordinate().
+-spec get_abscissa_for_ordinate( line2(), any_coordinate() ) -> coordinate().
 get_abscissa_for_ordinate( _L={A,B,C}, Y ) ->
 	% For y=K, x=-(C+BK)/A
 	-(C+B*Y) / A.
@@ -538,8 +543,8 @@ get_abscissa_for_ordinate( _L={A,B,C}, Y ) ->
 % @doc Returns true iff P is strictly on the right of the oriented segment going
 % from P1 to P2.
 %
--spec is_strictly_on_the_right( integer_point2(), integer_point2(),
-								integer_point2() ) -> boolean().
+-spec is_strictly_on_the_right( any_point2(), any_point2(), any_point2() ) ->
+												   boolean().
 is_strictly_on_the_right( P, P1, P2 ) ->
 
 	Vec_P1P2 = point2:vectorize( P1, P2 ),
@@ -628,7 +633,7 @@ angle_rad( A, B, C ) ->
 % AB to AC.
 %
 -spec abs_angle_deg( any_point2(), any_point2(), any_point2() ) ->
-			int_degrees().
+												int_degrees().
 abs_angle_deg( A, B, C ) ->
 	math_utils:canonify(
 		math_utils:radian_to_degree( abs_angle_rad( A, B, C ) ) ).
@@ -657,7 +662,7 @@ angle_deg( A, B, C ) ->
 %
 % Returns a list of the points that define the hull.
 %
--spec compute_convex_hull( [ integer_point2() ] ) -> [ integer_point2() ].
+-spec compute_convex_hull( [ any_point2() ] ) -> [ any_point2() ].
 compute_convex_hull( Points ) ->
 
 	{ Pivot, RemainingPoints } = find_pivot( Points ),
@@ -688,15 +693,15 @@ compute_convex_hull( Points ) ->
 
 % @doc Computes the Graham scan for the specified list of points, expected to be
 % already sorted by increasing angle between the abscissa axis and the vector
-% from the pivot to each of these points (ie in increasing order of the angle
-% they and the point P make with the x-axis, in counter-clockwise order).
+% from the pivot to each of these points (that is in increasing order of the
+% angle they and the point P make with the x-axis, in counter-clockwise order).
 %
 % See [http://en.wikipedia.org/wiki/Graham_scan].
 %
-% Returns the corresponding convex hull, in clock-wise order.
+% Returns the corresponding convex hull, in clockwise order.
 %
--spec compute_graham_scan_hull( [ integer_point2() ], integer_point2(),
-								[ integer_point2() ] ) -> [ integer_point2() ].
+-spec compute_graham_scan_hull( [ any_point2() ], any_point2(),
+								[ any_point2() ] ) -> [ any_point2() ].
 compute_graham_scan_hull( ToValidate, _Pivot, _NextPoints=[] ) ->
 	% Last new point is by construction always to pivot.
 

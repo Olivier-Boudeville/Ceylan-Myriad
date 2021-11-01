@@ -2764,6 +2764,9 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 % @doc Splits the specified string into a list of strings, based on the list of
 % specified characters to be interpreted as delimiters.
 %
+% To split a string according to the newlines (~n) that it contains, one may
+% use: text_utils:split(MyString, "\n").
+%
 % Note that a series of contiguous delimiters (ex: two spaces in a row) will
 % result in inserting empty strings (i.e. []) in the returned list. Use
 % split_per_element/2 if wanting to handle series of delimeters as if there was
@@ -2778,7 +2781,7 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 split( String, Delimiters ) ->
 
 	%trace_utils:debug_fmt( "Splitting '~ts' with '~ts'.",
-	%						[ String, Delimiters ] ),
+	%                       [ String, Delimiters ] ),
 
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
 	% and anyway both treat two or more adjacent separator graphemes clusters as

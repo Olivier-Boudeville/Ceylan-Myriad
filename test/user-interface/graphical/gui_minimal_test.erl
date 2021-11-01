@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Minimal test for the MyriadGUI toolbox: draws a few frames and exits.
+% <b>Minimal test for the MyriadGUI toolbox</b>: draws a few frames and exits.
 %
 % See the gui.erl tested module.
 %
@@ -88,7 +88,7 @@ run() ->
 
 		true ->
 			test_facilities:display(
-			  "(not running the MyriadGUI test, being in batch mode)" );
+				"(not running the MyriadGUI test, being in batch mode)" );
 
 		false ->
 			run_test_gui()

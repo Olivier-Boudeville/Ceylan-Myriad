@@ -80,6 +80,9 @@
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
+
 -type ustring() :: text_utils:ustring().
 
 
@@ -275,12 +278,12 @@ get_color_for_gnuplot( _Color={ _R, _G, _B } ) ->
 	throw( hexadecimal_conversion_not_implemented );
 
 get_color_for_gnuplot( ColorName ) ->
-	io_lib:format( "~ts", [ ColorName ] ).
+	text_utils:format( "~ts", [ ColorName ] ).
 
 
 
 % @doc Returns a list of the specified number of different colors.
--spec get_random_colors( basic_utils:count() ) -> [ color_by_decimal() ].
+-spec get_random_colors( count() ) -> [ color_by_decimal() ].
 get_random_colors( ColorCount ) ->
 
 	AllColors = get_colors(),
