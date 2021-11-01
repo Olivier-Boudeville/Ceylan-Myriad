@@ -165,8 +165,8 @@
 % The PID of an event subscriber.
 
 
--type event_subscription() :: { maybe_list( event_type() ),
-		maybe_list( gui_object() ), maybe_list( event_subscriber_pid() ) }.
+-type event_subscription() ::
+		{ maybe_list( event_type() ), maybe_list( gui_object() )}.
 % So that user process(es) can subscribe to GUI events.
 
 
