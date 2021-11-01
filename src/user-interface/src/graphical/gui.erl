@@ -532,12 +532,8 @@
 -type line() :: linear_2D:line().
 
 
--type size() :: gui:size().
-
 -type color() :: gui_color:color().
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
-
--type canvas() :: gui_canvas:canvas().
 
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
 
