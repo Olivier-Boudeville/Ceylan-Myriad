@@ -26,7 +26,7 @@
 % Creation date: Monday, February 15, 2010.
 
 
-% @doc Gathering of various <b>three dimensional linear</b> facilities.
+% @doc Gathering of various <b>three dimensional "linear"</b> facilities.
 %
 % See `linear_3D_test.erl' for the corresponding test.
 %

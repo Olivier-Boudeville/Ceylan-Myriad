@@ -26,7 +26,7 @@
 % Creation date: Monday, February 15, 2010.
 
 
-% @doc Gathering of various <b>four dimensional linear</b> facilities, mostly
+% @doc Gathering of various <b>four dimensional "linear"</b> facilities, mostly
 % dealing with homogeneous matrices for 3D.
 %
 % See `linear_4D_test.erl' for the corresponding test.
