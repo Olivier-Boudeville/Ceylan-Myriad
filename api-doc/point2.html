@@ -38,6 +38,10 @@
 <p><tt>coordinate() = <a href="linear.html#type-coordinate">linear:coordinate()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-count">count()</a></h3>
+<p><tt>count() = <a href="basic_utils.html#type-count">basic_utils:count()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-distance">distance()</a></h3>
 <p><tt>distance() = <a href="linear.html#type-distance">linear:distance()</a></tt></p>
 
@@ -92,6 +96,10 @@
  points).</td></tr>
 <tr><td valign="top"><a href="#check-1">check/1</a></td><td>Checks that the specified 2D point is legit, and returns it.</td></tr>
 <tr><td valign="top"><a href="#distance-2">distance/2</a></td><td>Returns the distance between the two specified 2D points.</td></tr>
+<tr><td valign="top"><a href="#draw_integer_random-2">draw_integer_random/2</a></td><td>Draws a random point between specified (included) bounds (for both
+ dimensions).</td></tr>
+<tr><td valign="top"><a href="#draw_integer_random-3">draw_integer_random/3</a></td><td>Draws the specified number of random points between specified (included)
+ bounds (for both dimensions).</td></tr>
 <tr><td valign="top"><a href="#from_vector-1">from_vector/1</a></td><td>Returns a 2D point corresponding to the specified vector (expected to be
  type-homogeneous).</td></tr>
 <tr><td valign="top"><a href="#get_center-2">get_center/2</a></td><td>Returns a point corresponding the midpoint (middle) of the two specified
@@ -164,6 +172,22 @@ tuple rather than a list).</td></tr>
  Note: just for comparison purposes, computing the square root is useless.
 </p>
 
+<h3 class="function"><a name="draw_integer_random-2">draw_integer_random/2</a></h3>
+<div class="spec">
+<p><tt>draw_integer_random(Min::<a href="#type-integer_coordinate">integer_coordinate()</a>, Max::<a href="#type-integer_coordinate">integer_coordinate()</a>) -&gt; <a href="#type-integer_point2">integer_point2()</a></tt><br></p>
+<p> </p>
+</div><p>Draws a random point between specified (included) bounds (for both
+ dimensions).
+</p>
+
+<h3 class="function"><a name="draw_integer_random-3">draw_integer_random/3</a></h3>
+<div class="spec">
+<p><tt>draw_integer_random(Min::<a href="#type-integer_coordinate">integer_coordinate()</a>, Max::<a href="#type-integer_coordinate">integer_coordinate()</a>, Count::<a href="#type-count">count()</a>) -&gt; [<a href="#type-integer_point2">integer_point2()</a>]</tt><br></p>
+<p> </p>
+</div><p>Draws the specified number of random points between specified (included)
+ bounds (for both dimensions).
+</p>
+
 <h3 class="function"><a name="from_vector-1">from_vector/1</a></h3>
 <div class="spec">
 <p><tt>from_vector(X1::<a href="#type-any_vector2">any_vector2()</a>) -&gt; <a href="#type-any_point2">any_point2()</a></tt><br></p>
@@ -174,7 +198,7 @@ tuple rather than a list).</td></tr>
 
 <h3 class="function"><a name="get_center-2">get_center/2</a></h3>
 <div class="spec">
-<p><tt>get_center(P1::<a href="#type-point2">point2()</a>, P2::<a href="#type-point2">point2()</a>) -&gt; <a href="#type-point2">point2()</a></tt><br></p>
+<p><tt>get_center(P1::<a href="#type-any_point2">any_point2()</a>, P2::<a href="#type-any_point2">any_point2()</a>) -&gt; <a href="#type-point2">point2()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a point corresponding the midpoint (middle) of the two specified
  points.

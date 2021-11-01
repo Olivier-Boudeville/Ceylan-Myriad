@@ -138,7 +138,17 @@ compared to random_permute/1.</td></tr>
 list.</td></tr>
 <tr><td valign="top"><a href="#remove_element_at-2">remove_element_at/2</a></td><td>Returns a list corresponding to the specified one with the element at 
 specified index removed.</td></tr>
+<tr><td valign="top"><a href="#remove_element_from-2">remove_element_from/2</a></td><td>Removes all occurrences (not the first one only: possibly zero, possibly
+ more than one) of the specified element from the specified list, and returns
+ the result (in the original order).</td></tr>
+<tr><td valign="top"><a href="#remove_elements_from-2">remove_elements_from/2</a></td><td>Removes all occurrences (not the first one only: possibly zero, possibly
+ more than one) of the specified elements from the specified list, and returns
+ the result (in the original order).</td></tr>
 <tr><td valign="top"><a href="#remove_first_elements-2">remove_first_elements/2</a></td><td>Removes the specified number first elements.</td></tr>
+<tr><td valign="top"><a href="#remove_first_occurrence-2">remove_first_occurrence/2</a></td><td>Deletes up to one occurrence (the first found) of the specified element
+ in the specified list, whose order is preserved.</td></tr>
+<tr><td valign="top"><a href="#remove_first_occurrences-2">remove_first_occurrences/2</a></td><td>Deletes up to one occurrence (the first found) of each of the specified
+ elements, from the specified list, whose order is preserved.</td></tr>
 <tr><td valign="top"><a href="#remove_last_element-1">remove_last_element/1</a></td><td>Removes the last element of the specified list.</td></tr>
 <tr><td valign="top"><a href="#set_element_at-3">set_element_at/3</a></td><td>Returns the specified list with the element at specified index replaced
  by the specified element.</td></tr>
@@ -250,7 +260,9 @@ ascending (Erlang) term order.</p>
 </div><p><p>Returns a copy of the specified list where all elements matching Elem are 
 deleted, whether or not there is any.</p>
 
- The element order of the specified list is preserved.
+ <p>The element order of the specified list is preserved.</p>
+
+ Note: kept only for backward compatibility; prefer remove_element_from/2.
 </p>
 
 <h3 class="function"><a name="delete_existing-2">delete_existing/2</a></h3>
@@ -638,6 +650,24 @@ T;</p>
  Tail recursive version.
 </p>
 
+<h3 class="function"><a name="remove_element_from-2">remove_element_from/2</a></h3>
+<div class="spec">
+<p><tt>remove_element_from(Elem::<a href="#type-element">element()</a>, List::list()) -&gt; list()</tt><br></p>
+<p> </p>
+</div><p>Removes all occurrences (not the first one only: possibly zero, possibly
+ more than one) of the specified element from the specified list, and returns
+ the result (in the original order).
+</p>
+
+<h3 class="function"><a name="remove_elements_from-2">remove_elements_from/2</a></h3>
+<div class="spec">
+<p><tt>remove_elements_from(Elems::[<a href="#type-element">element()</a>], List::list()) -&gt; list()</tt><br></p>
+<p> </p>
+</div><p>Removes all occurrences (not the first one only: possibly zero, possibly
+ more than one) of the specified elements from the specified list, and returns
+ the result (in the original order).
+</p>
+
 <h3 class="function"><a name="remove_first_elements-2">remove_first_elements/2</a></h3>
 <div class="spec">
 <p><tt>remove_first_elements(List::list(), Count::<a href="#type-count">count()</a>) -&gt; list()</tt><br></p>
@@ -645,6 +675,22 @@ T;</p>
 </div><p><p>Removes the specified number first elements.</p>
 
  Ex: [c, d, e] = list_utils:remove_first_elements([a, b, c, d, e], 2).
+</p>
+
+<h3 class="function"><a name="remove_first_occurrence-2">remove_first_occurrence/2</a></h3>
+<div class="spec">
+<p><tt>remove_first_occurrence(Element::<a href="#type-element">element()</a>, List::list()) -&gt; list()</tt><br></p>
+<p> </p>
+</div><p>Deletes up to one occurrence (the first found) of the specified element
+ in the specified list, whose order is preserved.
+</p>
+
+<h3 class="function"><a name="remove_first_occurrences-2">remove_first_occurrences/2</a></h3>
+<div class="spec">
+<p><tt>remove_first_occurrences(ElementsToRemove::<a href="#type-element">element()</a>, List::list()) -&gt; list()</tt><br></p>
+<p> </p>
+</div><p>Deletes up to one occurrence (the first found) of each of the specified
+ elements, from the specified list, whose order is preserved.
 </p>
 
 <h3 class="function"><a name="remove_last_element-1">remove_last_element/1</a></h3>

@@ -36,6 +36,10 @@
 <p><tt>color_coordinate() = float()</tt></p>
 <p> Color coordinate, in [0,1].</p>
 
+<h3 class="typedecl"><a name="type-count">count()</a></h3>
+<p><tt>count() = <a href="basic_utils.html#type-count">basic_utils:count()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-render_color">render_color()</a></h3>
 <p><tt>render_color() = {<a href="#type-color_coordinate">color_coordinate()</a>, <a href="#type-color_coordinate">color_coordinate()</a>, <a href="#type-color_coordinate">color_coordinate()</a>} | {<a href="#type-color_coordinate">color_coordinate()</a>, <a href="#type-color_coordinate">color_coordinate()</a>, <a href="#type-color_coordinate">color_coordinate()</a>, <a href="#type-color_coordinate">color_coordinate()</a>}</tt></p>
 
@@ -76,7 +80,7 @@
 
 <h3 class="function"><a name="get_random_colors-1">get_random_colors/1</a></h3>
 <div class="spec">
-<p><tt>get_random_colors(ColorCount::<a href="basic_utils.html#type-count">basic_utils:count()</a>) -&gt; [<a href="#type-color_by_decimal">color_by_decimal()</a>]</tt><br></p>
+<p><tt>get_random_colors(ColorCount::<a href="#type-count">count()</a>) -&gt; [<a href="#type-color_by_decimal">color_by_decimal()</a>]</tt><br></p>
 <p> </p>
 </div><p>Returns a list of the specified number of different colors.</p>
 <hr>

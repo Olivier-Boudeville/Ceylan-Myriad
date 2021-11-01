@@ -27,6 +27,10 @@
 <p><tt>bounding_box3() = <a href="#type-right_cuboid">right_cuboid()</a> | <a href="#type-sphere">sphere()</a></tt></p>
 <p> All supported types of 3D bounding boxes.</p>
 
+<h3 class="typedecl"><a name="type-point3">point3()</a></h3>
+<p><tt>point3() = <a href="point3.html#type-point3">point3:point3()</a></tt></p>
+<p>-type integer_point3() :: point3:integer_point3().</p>
+
 <h3 class="typedecl"><a name="type-right_cuboid">right_cuboid()</a></h3>
 <p><tt>right_cuboid() = #right_cuboid{base_vertex = <a href="point3.html#type-point3">point3:point3()</a>, abscissa_length = <a href="linear.html#type-distance">linear:distance()</a>, ordinate_length = <a href="linear.html#type-distance">linear:distance()</a>, elevation_length = <a href="linear.html#type-distance">linear:distance()</a>}</tt></p>
 <p> A (3D) bounding box defined based on a right cuboid.</p>
@@ -40,10 +44,41 @@
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td>Returns a textual description of the specified 3D bounding box.</td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_lazy_sphere_box-1">get_lazy_sphere_box/1</a></td><td>Returns a sphere that is a (3D) pseudo bounding-box for the specified 
+list of points, which must not be empty.</td></tr>
+<tr><td valign="top"><a href="#get_minimal_enclosing_sphere_box-1">get_minimal_enclosing_sphere_box/1</a></td><td>Returns {Center, SquareRadius} which defines a bounding-box consisting on 
+the minimal enclosing sphere (MEC) for the specified list of points.</td></tr>
+<tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td>Returns a textual description of the specified 3D bounding box.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="get_lazy_sphere_box-1">get_lazy_sphere_box/1</a></h3>
+<div class="spec">
+<p><tt>get_lazy_sphere_box(Points::[<a href="#type-point3">point3()</a>]) -&gt; <a href="#type-sphere">sphere()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a sphere that is a (3D) pseudo bounding-box for the specified 
+list of points, which must not be empty.</p>
+
+ <p>Note: this pseudo bounding box is very lightweight to compute.</p>
+
+ Returns the sphere information: {Center, SquareRadius}.
+</p>
+
+<h3 class="function"><a name="get_minimal_enclosing_sphere_box-1">get_minimal_enclosing_sphere_box/1</a></h3>
+<div class="spec">
+<p><tt>get_minimal_enclosing_sphere_box(Points::[<a href="#type-point3">point3()</a>]) -&gt; <a href="#type-sphere">sphere()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns {Center, SquareRadius} which defines a bounding-box consisting on 
+the minimal enclosing sphere (MEC) for the specified list of points.</p>
+
+ <p>Note: this bounding box is the smallest possible sphere, but requires quite a 
+lot of computations.</p>
+
+ Apparently there is now way of adding a point to an existing MEC without
+ recomputing everything from scratch. So we do not rely on an 'updateMEC'
+ function.
+</p>
 
 <h3 class="function"><a name="to_string-1">to_string/1</a></h3>
 <div class="spec">

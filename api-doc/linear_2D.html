@@ -10,14 +10,18 @@
 <hr>
 
 <h1>Module linear_2D</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathering of various <b>two-dimensional linear</b> facilities.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathering of various <b>two-dimensional "linear"</b> facilities.
 
 
-<h2><a name="description">Description</a></h2><p>Gathering of various <b>two-dimensional linear</b> facilities.</p>
+<h2><a name="description">Description</a></h2><p>Gathering of various <b>two-dimensional "linear"</b> facilities.</p>
 
  See <code>linear_2D_test.erl</code> for the corresponding test.
 
 <h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-any_coordinate">any_coordinate()</a></h3>
+<p><tt>any_coordinate() = <a href="linear.html#type-any_coordinate">linear:any_coordinate()</a></tt></p>
+
 
 <h3 class="typedecl"><a name="type-any_point2">any_point2()</a></h3>
 <p><tt>any_point2() = <a href="point2.html#type-any_point2">point2:any_point2()</a></tt></p>
@@ -155,7 +159,7 @@ and AC.</p>
 
 <h3 class="function"><a name="compute_convex_hull-1">compute_convex_hull/1</a></h3>
 <div class="spec">
-<p><tt>compute_convex_hull(Points::[<a href="#type-integer_point2">integer_point2()</a>]) -&gt; [<a href="#type-integer_point2">integer_point2()</a>]</tt><br></p>
+<p><tt>compute_convex_hull(Points::[<a href="#type-any_point2">any_point2()</a>]) -&gt; [<a href="#type-any_point2">any_point2()</a>]</tt><br></p>
 <p> </p>
 </div><p><p>Computes the convex hull corresponding to the specified list of points.</p>
 
@@ -164,7 +168,7 @@ and AC.</p>
 
 <h3 class="function"><a name="compute_max_overall_distance-1">compute_max_overall_distance/1</a></h3>
 <div class="spec">
-<p><tt>compute_max_overall_distance(Points::[<a href="#type-integer_point2">integer_point2()</a>]) -&gt; {<a href="#type-integer_point2">integer_point2()</a>, <a href="#type-integer_point2">integer_point2()</a>, <a href="#type-square_distance">square_distance()</a>}</tt><br></p>
+<p><tt>compute_max_overall_distance(Points::[<a href="#type-any_point2">any_point2()</a>]) -&gt; {<a href="#type-any_point2">any_point2()</a>, <a href="#type-any_point2">any_point2()</a>, <a href="#type-square_distance">square_distance()</a>}</tt><br></p>
 <p> </p>
 </div><p><p>Computes the maximum distance between two points in the specified list of 
 points.</p>
@@ -179,7 +183,7 @@ maximal among points.</p>
 
 <h3 class="function"><a name="compute_smallest_enclosing_rectangle-1">compute_smallest_enclosing_rectangle/1</a></h3>
 <div class="spec">
-<p><tt>compute_smallest_enclosing_rectangle(Points::[<a href="#type-integer_point2">integer_point2()</a>]) -&gt; {<a href="#type-integer_point2">integer_point2()</a>, <a href="#type-integer_point2">integer_point2()</a>}</tt><br></p>
+<p><tt>compute_smallest_enclosing_rectangle(Points::[<a href="#type-any_point2">any_point2()</a>]) -&gt; {<a href="#type-any_point2">any_point2()</a>, <a href="#type-any_point2">any_point2()</a>}</tt><br></p>
 <p> </p>
 </div><p><p>Computes the smallest rectangle that encloses the specified list of 
 points.</p>
@@ -189,7 +193,7 @@ points.</p>
 
 <h3 class="function"><a name="find_pivot-1">find_pivot/1</a></h3>
 <div class="spec">
-<p><tt>find_pivot(PointList::[<a href="#type-integer_point2">integer_point2()</a>]) -&gt; {<a href="#type-integer_point2">integer_point2()</a>, [<a href="#type-integer_point2">integer_point2()</a>]}</tt><br></p>
+<p><tt>find_pivot(PointList::[<a href="#type-any_point2">any_point2()</a>]) -&gt; {<a href="#type-any_point2">any_point2()</a>, [<a href="#type-any_point2">any_point2()</a>]}</tt><br></p>
 <p> </p>
 </div><p><p>Finds the pivot, that is the leftmost point with the highest ordinate.</p>
 
@@ -201,11 +205,11 @@ points.</p>
 
 <h3 class="function"><a name="get_abscissa_for_ordinate-2">get_abscissa_for_ordinate/2</a></h3>
 <div class="spec">
-<p><tt>get_abscissa_for_ordinate(L::<a href="#type-line2">line2()</a>, Y::<a href="#type-coordinate">coordinate()</a>) -&gt; <a href="#type-coordinate">coordinate()</a></tt><br></p>
+<p><tt>get_abscissa_for_ordinate(L::<a href="#type-line2">line2()</a>, Y::<a href="#type-any_coordinate">any_coordinate()</a>) -&gt; <a href="#type-coordinate">coordinate()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns the abscissa of a point on line L having Y for ordinate.</p>
 
- Line L must not have for equation Y=constant (ie its A parameter must not be
+ Line L must not have for equation Y=constant (i.e. its A parameter must not be
  null).
 </p>
 
@@ -236,7 +240,7 @@ parallel but different, or a full line, if they are the same line).</p>
 
 <h3 class="function"><a name="is_strictly_on_the_right-3">is_strictly_on_the_right/3</a></h3>
 <div class="spec">
-<p><tt>is_strictly_on_the_right(P::<a href="#type-integer_point2">integer_point2()</a>, P1::<a href="#type-integer_point2">integer_point2()</a>, P2::<a href="#type-integer_point2">integer_point2()</a>) -&gt; boolean()</tt><br></p>
+<p><tt>is_strictly_on_the_right(P::<a href="#type-any_point2">any_point2()</a>, P1::<a href="#type-any_point2">any_point2()</a>, P2::<a href="#type-any_point2">any_point2()</a>) -&gt; boolean()</tt><br></p>
 <p> </p>
 </div><p>Returns true iff P is strictly on the right of the oriented segment going
  from P1 to P2.
