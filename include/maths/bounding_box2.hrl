@@ -36,10 +36,10 @@
 -record( rectangle, {
 
 	% The top-left corner of the rectangle:
-	top_left :: point2:point2(),
+	top_left :: point2:any_point2(),
 
 	% The bottom-right corner of the rectangle:
-	bottom_right :: point2:point2() } ).
+	bottom_right :: point2:any_point2() } ).
 
 
 
