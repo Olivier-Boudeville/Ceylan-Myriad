@@ -170,7 +170,15 @@ By default, we rely on "Z-up" conventions (the Z axis being vertical and designa
 
 .. [#] Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.
 
-For each of these dimensions, generally ``1.0`` corresponds to 1 meter, otherwise to 1 `light-second <https://en.wikipedia.org/wiki/Light-second>`_ (i.e. roughly 300 000 km [#]_).
+In 2D, typically for on-screen coordinates (ex: when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes [#]_:
+
+:raw-html:`<center><img src="myriad-2D-referential.png" id="responsive-image-xsmall"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.3]{myriad-2D-referential.png} \end{figure}`
+
+.. [#] This 2D referential corresponds to the base space-time one, when the viewpoint is located in the positive Z axis and looks at the origin.
+
+
+For each of the spatial dimensions of interest, generally ``1.0`` corresponds to 1 meter, otherwise to 1 `light-second <https://en.wikipedia.org/wiki/Light-second>`_ (i.e. roughly 300 000 km [#]_).
 
 .. [#] Then for more human-sized distances, a scale of one light-nanosecond (10^-9 second) might be more convenient, as it corresponds almost to 30 cm.
 

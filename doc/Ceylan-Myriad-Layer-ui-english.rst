@@ -110,7 +110,7 @@ This interface relied initially on ``gs`` (now deprecated), now on `wx <http://e
 .. [#] Possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_ or on `N2O <https://ws.n2o.dev/>`_.
 
 
-.. Note:: ``gui`` does not adhere yet to the ``ui`` conventions, but it will ultimately will. Currently it just offers a graphical API (on top of ``wx``).
+.. Note:: ``gui`` does not adhere yet to the ``ui`` conventions, but it will ultimately will. Currently it offers a graphical API on top of ``wx``.
 
 .. Note GUI services are currently being reworked, to provide a ``gs``-like concurrent API while relying underneath on ``wx``, with some additions (such as canvases).
 
@@ -120,6 +120,10 @@ The goal is to provide a small, lightweight API (including message types) that a
 So for example the messages received by the user programs do not mention ``wx``, and respect only MyriadGUI conventions. These conventions are in line with the `WOOPER ones <https://wooper.esperide.org/#method-invocation>`_, enabling (in a fully optional manner) the user code to rely on WOOPER if wanted.
 
 The usual mode of operation is the following:
+
+:raw-html:`<center><img src="myriad-gui-mode-of-operation.png" id="responsive-image-medium"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-gui-mode-of-operation.png} \end{figure}`
+
 
 1. From a user process (a test, an application, etc.), the GUI support is first started, with ``gui:start/{0,1}``
 2. Then the various widgets (windows, frames, panels, buttons, etc.) are created (ex: thanks to ``MainFrame = gui:create_frame(...``) and the user process subscribes to the events it is interested in (as a combination of an event type and a widget-as-an-event-emitter; for example:
@@ -131,7 +135,8 @@ The usual mode of operation is the following:
 3. The user process also triggers any relevant operation (ex: clearing widgets, setting various parameters), generally shows at least a main frame and records the GUI state that it needs for future use (typically containing at least the MyriadGUI references of the widgets that it created)
 4. Then the user process enters its own (GUI-specific) main loop, from which it will receive the events that it subscribed to, and to which it will react by performing application-specific operations and/or GUI-related operations (creating, modifying, deleting widgets). Generally at least one condition is defined in order to leave that main loop and stop the GUI (``gui:stop/0``)
 
-Refer to `lorenz_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/graphical/lorenz_test.erl>`_ test as a full, executable usage example thereof.
+
+Refer to the `gui_overall_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/graphical/gui_overall_test.erl>`_ and `lorenz_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/graphical/lorenz_test.erl>`_ test full, executable usage examples thereof.
 
 
 Defining ``gui`` as an interface between the user code and a backend also allows to enrich said backend [#]_.
