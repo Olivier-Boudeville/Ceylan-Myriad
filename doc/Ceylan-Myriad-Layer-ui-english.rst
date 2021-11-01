@@ -98,6 +98,9 @@ It is located in ``{src,test}/user-interface/textual``; see ``term_ui.erl`` for 
 
 
 
+.. _`gui`:_
+
+
 Graphical User Interface: ``gui``
 ---------------------------------
 
@@ -137,6 +140,11 @@ The usual mode of operation is the following:
 
 
 Refer to the `gui_overall_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/graphical/gui_overall_test.erl>`_ and `lorenz_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/graphical/lorenz_test.erl>`_ test full, executable usage examples thereof.
+
+Here is a screenshot of the former test, where a random polygon (in green) is generated, for which are determined both the convex hull (in blue) and the MEC (*Minimum Enclosing Circle*, in purple):
+
+:raw-html:`<center><img src="myriad-minimal-enclosing-circle-test.png" id="responsive-image-medium"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-minimal-enclosing-circle-test.png} \end{figure}`
 
 
 Defining ``gui`` as an interface between the user code and a backend also allows to enrich said backend [#]_.
