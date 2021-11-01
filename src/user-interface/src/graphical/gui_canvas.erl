@@ -359,7 +359,8 @@ get_size( #canvas_state{ back_buffer=BackBuffer,
 						 size=Size } ) ->
 
 	cond_utils:if_defined( myriad_check_user_interface,
-						   Size = wxDC:getSize( BackBuffer ) ),
+		Size = wxDC:getSize( BackBuffer ),
+		basic_utils:ignore_unused( BackBuffer ) ),
 
 	Size.
 
