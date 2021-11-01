@@ -524,6 +524,9 @@ draw_polygon( #canvas_state{ back_buffer=BackBuffer }, Points ) ->
 %
 -spec draw_label( canvas_state(), point2(), label() ) -> void().
 draw_label( #canvas_state{ back_buffer=BackBuffer }, Point, LabelText ) ->
+
+	% Not needed:
+	%wxDC:setBackgroundMode( BackBuffer, ?wxPENSTYLE_TRANSPARENT ),
 	wxDC:drawText( BackBuffer, LabelText, Point ).
 
 
