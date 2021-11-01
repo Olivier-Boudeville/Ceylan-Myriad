@@ -486,7 +486,8 @@ render_shapes( Canvas ) ->
 
 
 % @doc Renders the MEC (Minimal Enclosing Circle) view, for a polygon of
-% specified number of vertices, whose coordinates are randomly determined.
+% specified number of vertices, whose coordinates are randomly determined at
+% each invocation.
 %
 -spec render_mec( canvas(), count() ) -> void().
 render_mec( Canvas, PointCount ) ->
@@ -538,13 +539,13 @@ render_mec( Canvas, PointCount ) ->
 
 	gui:draw_circle( Canvas, Center, round( Radius ) ),
 
-	gui:draw_lines( Canvas, [ Pivot | HullPoints ], red ),
+	gui:draw_lines( Canvas, [ Pivot | HullPoints ], blue ),
 
 	% Draws the crosses last, to have them on top:
 	gui:draw_labelled_cross( Canvas, Pivot, _OtherEdgeLength=10, black,
 							 "Pivot" ),
 
-	gui:set_draw_color( Canvas, white ),
+	gui:set_draw_color( Canvas, blue ),
 
 	gui:draw_numbered_points( Canvas, SortedPoints ),
 
