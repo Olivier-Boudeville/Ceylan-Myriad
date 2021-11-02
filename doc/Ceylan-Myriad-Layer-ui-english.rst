@@ -108,6 +108,10 @@ Graphical User Interface: ``gui``
 For Classical 2D Applications
 .............................
 
+
+GUI Backend
+***********
+
 This interface relied initially on ``gs`` (now deprecated), now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5 [#]_. For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been an option.
 
 .. [#] Possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_ or on `N2O <https://ws.n2o.dev/>`_.
@@ -115,8 +119,16 @@ This interface relied initially on ``gs`` (now deprecated), now on `wx <http://e
 
 .. Note:: ``gui`` does not adhere yet to the ``ui`` conventions, but it will ultimately will. Currently it offers a graphical API on top of ``wx``.
 
+As a consequence, `wxWidgets <https://www.wxwidgets.org/>`_ must be available on the host (otherwise a ``{load_driver,"No driver found"}`` exception will be raised on GUI start). This should correspond to the ``wxgtk3`` Arch Linux package, or the ``libwxgtk3.0-dev`` Debian one. This can be tested by executing ``wx-config --version`` on a shell.
+
+``wxWidgets`` must be installed *prior* to building Erlang, so that it is detected by its configuration script and a proper ``wx`` module can be used afterwards. Running then ``wx:demo()`` is a good test of the actual support.
+
+
 .. Note GUI services are currently being reworked, to provide a ``gs``-like concurrent API while relying underneath on ``wx``, with some additions (such as canvases).
 
+
+Purpose of ``gui``
+******************
 
 The goal is to provide a small, lightweight API (including message types) that are higher-level than ``wx``, and do not depend on any particular GUI backend (such as ``wx``, ``gs``, etc.; so none of their includes, records, types or functions leak in the user realm), to avoid that user programs become obsolete too quickly because of the UI backend they rely on.
 

@@ -52,7 +52,7 @@ A simple use of it is:
  $ ./install-erlang.sh --doc-install --generate-plt
 
 
-One may execute ``./install-erlang.sh --help`` for more guidance about how to configure it, notably in order to enable all modules of interest (``crypto``, ``wx``, etc.).
+One may execute ``./install-erlang.sh --help`` for more guidance about how to configure it, notably in order to enable all modules of interest (``crypto``, ``wx``, etc.). See also the `GUI Backend`_ section to secure any related prerequisite.
 
 
 
