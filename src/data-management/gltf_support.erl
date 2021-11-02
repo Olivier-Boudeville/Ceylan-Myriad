@@ -149,6 +149,10 @@
 % attributes, animation keyframes, etc.
 
 
+-type raw_buffer() :: binary().
+% An actual, raw (binary) buffer to which a glTF buffer object applies.
+
+
 
 -type buffer_view_index() :: zero_index().
 % Index of a buffer view in a glTF content.
@@ -232,7 +236,7 @@
 			   pbr_metallic_roughness/0,
 			   light_index/0, light/0,
 			   camera_type_index/0, camera_type/0, camera_node_index/0,
-			   buffer_index/0, buffer/0,
+			   buffer_index/0, buffer/0, raw_buffer/0,
 			   buffer_view_index/0, buffer_view/0,
 			   accessor_index/0, accessor/0,
 			   element_type/0, gltf_element_type/0,
@@ -290,8 +294,9 @@
 		  extract_points/4, extract_vectors/4,
 
 		  file_to_gltf_buffer_embedded/1,
-		  bin_to_gltf_buffer_embedded/1, bin_to_gltf_buffer_embedded/2,
-		  gltf_buffer_embedded_to_bin/1,
+		  raw_buffer_to_gltf_buffer_embedded/1,
+		  raw_buffer_to_gltf_buffer_embedded/2,
+		  gltf_buffer_embedded_to_raw_buffer/1,
 
 		  gltf_content_to_json/3, json_to_gltf_content/2,
 
@@ -323,6 +328,8 @@
 -type any_file_path() :: file_utils:any_file_path().
 
 -type byte_size() :: system_utils:byte_size().
+-type byte_offset() :: system_utils:byte_offset().
+
 
 -type bijective_table( F, S ) :: bijective_table:bijective_table( F, S ).
 
@@ -386,7 +393,7 @@
 % The elements that can be written to or extracted from a buffer-view.
 
 
--type buffer_table() :: table( buffer_index(), binary() ).
+-type buffer_table() :: table( buffer_index(), raw_buffer() ).
 % A table associating to a given buffer index its in-memory, decoded,
 % readily-usable binary.
 
@@ -984,25 +991,26 @@ file_to_gltf_buffer_embedded( FilePath ) ->
 	BufferName = text_utils:format(
 		"Buffer whose content was in the '~ts' file.", [ FilePath ] ),
 
-	bin_to_gltf_buffer_embedded( BinContent, BufferName ).
+	raw_buffer_to_gltf_buffer_embedded( BinContent, BufferName ).
 
 
 
 % @doc Returns an (anonymous) glTF buffer corresponding to the specified binary,
 % embedding its content directly into a relevant base64-encoded URI.
 %
--spec bin_to_gltf_buffer_embedded( binary() ) -> buffer().
-bin_to_gltf_buffer_embedded( BinContent ) ->
-	bin_to_gltf_buffer_embedded( BinContent, _MaybeBufferName=undefined ).
+-spec raw_buffer_to_gltf_buffer_embedded( raw_buffer() ) -> buffer().
+raw_buffer_to_gltf_buffer_embedded( BinContent ) ->
+	raw_buffer_to_gltf_buffer_embedded( BinContent,
+										_MaybeBufferName=undefined ).
 
 
 
 % @doc Returns a glTF buffer corresponding to the specified binary, embedding
 % its content directly into a relevant base64-encoded URI.
 %
--spec bin_to_gltf_buffer_embedded( binary(), maybe( object_name() ) ) ->
-																buffer().
-bin_to_gltf_buffer_embedded( BinContent, MaybeBufferName ) ->
+-spec raw_buffer_to_gltf_buffer_embedded( raw_buffer(),
+										  maybe( object_name() ) ) -> buffer().
+raw_buffer_to_gltf_buffer_embedded( BinContent, MaybeBufferName ) ->
 
 	Base64Uri = "data:application/octet-stream;base64,"
 					++ base64:encode_to_string( BinContent ),
@@ -1016,9 +1024,9 @@ bin_to_gltf_buffer_embedded( BinContent, MaybeBufferName ) ->
 
 
 % @doc Returns a binary corresponding to the specified glTF buffer.
--spec gltf_buffer_embedded_to_bin( buffer() ) -> binary().
-gltf_buffer_embedded_to_bin( #gltf_buffer{ uri=Base64Uri,
-										   size=ByteCount } ) ->
+-spec gltf_buffer_embedded_to_raw_buffer( buffer() ) -> raw_buffer().
+gltf_buffer_embedded_to_raw_buffer( #gltf_buffer{ uri=Base64Uri,
+												  size=ByteCount } ) ->
 
 	case Base64Uri of
 
@@ -1092,8 +1100,8 @@ gltf_content_to_json( #gltf_content{ default_scene=DefaultSceneId,
 	% Thus from json_term() to json():
 	JsonContent = json_utils:to_json( BaseTable, ParserState ),
 
-	cond_utils:if_defined( myriad_debug_gltf_support, trace_utils:debug_fmt(
-		"Converted glTF content in following JSON:~n~p", [ JsonContent ] ) ),
+	%cond_utils:if_defined( myriad_debug_gltf_support, trace_utils:debug_fmt(
+	%	"Converted glTF content in following JSON:~n~p", [ JsonContent ] ) ),
 
 	JsonContent.
 
@@ -1336,6 +1344,7 @@ gltf_buffer_to_json( #gltf_buffer{ name=MaybeName,
 	table:add_maybe_entries( [
 		{ <<"name">>, text_utils:maybe_string_to_binary( MaybeName ) } ],
 		BaseTable ).
+
 
 
 
@@ -1787,95 +1796,216 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType, IndexedTriangles,
 add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 			   IndexedTriangles, MaterialAccessorIndex,
 			   Content=#gltf_content{ meshes=Meshes,
-									  accessors=Accessors,
-									  buffers=Buffers,
-									  buffer_views=BufferViews } ) ->
+									  buffers=Buffers } ) ->
 
-	% Here, we rely on the following conventions:
+	% Here, we rely on the following conventions: in the final buffer, first all
+	% vertices ("positions") are listed (if any), then all normals (if any),
+	% then all texture coordinates (if any), then all indices (if any).
 
-	% - in the final buffer, first all positions are listed, then all normal,
-	% then all texture coordinates, then all indices
-
-	% As these indices start at 0:
+	% For the upcoming buffer; as these indices start at 0:
 	PrimBufferIndex = length( Buffers ),
 
-	% - positions are referenced through PositionAccessor, referencing
-	% PositionBufferView, whose elements are vector3() (hence components are
-	% float())
+	InitialBuffer = <<>>,
+	InitialBufferOffset = 0,
 
-	PositionAccessorIndex = length( Accessors ),
-	PositionBufferViewIndex = length( BufferViews ),
+	{ MaybePosAccessorIndex, PosBuffer, PosBufferOffset, PosContent } =
+		integrate_vertices( Vertices, MaybeName, PrimBufferIndex, InitialBuffer,
+							InitialBufferOffset, Content ),
+
+	{ MaybeNormAccessorIndex, NormBuffer, NormBufferOffset, NormContent } =
+		integrate_normals( Normals, MaybeName, PrimBufferIndex, PosBuffer,
+						   PosBufferOffset, PosContent ),
+
+	{ MaybeTexAccessorIndex, TexBuffer, TexBufferOffset, TexContent } =
+		integrate_texture_coordinates( TexCoords, MaybeName, PrimBufferIndex,
+								NormBuffer, NormBufferOffset, NormContent ),
+
+
+	Indices = triangles_to_indices( IndexedTriangles ),
+
+	{ MaybeIdxAccessorIndex, IdxBuffer, _IdxBufferOffset, IdxContent } =
+		integrate_indices( Indices, MaybeName, PrimBufferIndex, TexBuffer,
+						   TexBufferOffset, TexContent ),
+
+
+	FinalRawBuffer = IdxBuffer,
+	FinalContent = IdxContent,
+
+	MaybeBufferName = forge_maybe_name( "Generated buffer", MaybeName ),
+
+	FinalGltfBuffer =
+		raw_buffer_to_gltf_buffer_embedded( FinalRawBuffer, MaybeBufferName ),
+
+	NewBuffers = list_utils:append_at_end( FinalGltfBuffer, Buffers ),
+
+	Attributes = #gltf_attributes{ position=MaybePosAccessorIndex,
+								   normal=MaybeNormAccessorIndex,
+								   texcoord_0=MaybeTexAccessorIndex },
+
+	Primitive = #gltf_primitive{ attributes=Attributes,
+								 indices=MaybeIdxAccessorIndex,
+								 material=MaterialAccessorIndex,
+								 mode=TopologyType },
+
+	MaybeMeshName = forge_maybe_name( "Hosting mesh", MaybeName ),
+
+	Mesh = #gltf_mesh{ name=MaybeMeshName, primitives=[ Primitive ] },
+
+	MeshIndex = length( Meshes ),
+
+	NewMeshes = list_utils:append_at_end( Mesh, Meshes ),
+
+	NewContent = FinalContent#gltf_content{ meshes=NewMeshes,
+											buffers=NewBuffers },
+
+	{ MeshIndex, _PrimitiveIndex=0, NewContent }.
+
+
+
+% @doc Integrates the specified vertices (if any) in the specified buffer and
+% content, which are returned.
+%
+-spec integrate_vertices( [ specialised_vertex() ], maybe( object_name() ),
+				buffer_index(), raw_buffer(), byte_offset(), content() ) ->
+		{ maybe( accessor_index() ), raw_buffer(), byte_offset(), content() }.
+integrate_vertices( _Vertices=[], _MaybeName, _PrimBufferIndex, Buffer,
+					BufferOffset, Content ) ->
+	% Do not define empty elements, glTF importers may not support that:
+	{ _MaybeAccessorIndex=undefined, Buffer, BufferOffset, Content };
+
+integrate_vertices( Vertices, MaybeName, PrimBufferIndex, Buffer,
+					BufferOffset, Content=#gltf_content{
+												accessors=Accessors,
+												buffer_views=BufferViews } ) ->
+
+	% Vertices are integrated in terms of "Positions"; positions are referenced
+	% through PosAccessor, referencing PosBufferView, whose elements are
+	% vector3() (hence components are float()).
+
+	% As still zero-based:
+	PosAccessorIndex = length( Accessors ),
+	PosBufferViewIndex = length( BufferViews ),
 
 	{ MinVec, MaxVec } = compute_gltf_extremas( Vertices ),
 
-	PositionElementType = point3,
-	PositionComponentType = float32,
+	PosElementType = point3,
+	PosComponentType = float32,
 
-	PositionCount = length( Vertices ),
+	PosCount = length( Vertices ),
 
-	MaybePositionName = forge_maybe_name( "Position accessor", MaybeName ),
+	MaybePosName = forge_maybe_name( "Position accessor", MaybeName ),
 
-	PositionAccessor = #gltf_accessor{ name=MaybePositionName,
-									   buffer_view=PositionBufferViewIndex,
-									   element_type=PositionElementType,
-									   component_type=PositionComponentType,
-									   count=PositionCount,
-									   min=MinVec,
-									   max=MaxVec },
+	PosAccessor = #gltf_accessor{ name=MaybePosName,
+								  buffer_view=PosBufferViewIndex,
+								  element_type=PosElementType,
+								  component_type=PosComponentType,
+								  count=PosCount,
+								  min=MinVec,
+								  max=MaxVec },
 
-	PositionSize = get_size( PositionElementType, PositionComponentType,
-							 PositionCount ),
+	NewAccessors = list_utils:append_at_end( PosAccessor, Accessors ),
 
-	PositionOffset = 0,
+	PosSize = get_size( PosElementType, PosComponentType, PosCount ),
 
-	PositionBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
-											offset=PositionOffset,
-											size=PositionSize },
+	PosBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
+									   offset=BufferOffset,
+									   size=PosSize },
 
-	PositionBin = generate_buffer( PositionElementType,
-								   PositionComponentType, Vertices ),
+	NewBufferOffset = BufferOffset + PosSize,
 
+	NewBufferViews = list_utils:append_at_end( PosBufferView, BufferViews ),
 
-	% - normals are referenced through NormalAccessor, referencing
-	% NormalBufferView, whose elements are vector3() (hence components are
-	% float())
+	NewBuffer = append_to_buffer( PosElementType, PosComponentType, Vertices,
+								  Buffer ),
 
-	NormalAccessorIndex = PositionAccessorIndex+1,
-	NormalBufferViewIndex = PositionBufferViewIndex+1,
+	NewContent = Content#gltf_content{ accessors=NewAccessors,
+									   buffer_views=NewBufferViews },
 
-	NormalElementType = vector3,
-	NormalComponentType = float32,
-
-	NormalCount = length( Normals ),
-
-	MaybeNormalName = forge_maybe_name( "Normal accessor", MaybeName ),
-
-	NormalAccessor = #gltf_accessor{ name=MaybeNormalName,
-									 buffer_view=NormalBufferViewIndex,
-									 element_type=NormalElementType,
-									 component_type=NormalComponentType,
-									 count=NormalCount },
-
-	NormalSize = get_size( NormalElementType, NormalComponentType,
-						   NormalCount ),
-
-	NormalOffset = PositionSize,
-
-	NormalBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
-										  offset=NormalOffset,
-										  size=NormalSize },
-
-	NormalBin = append_to_buffer( NormalElementType, NormalComponentType,
-								  Normals, PositionBin ),
+	{ PosAccessorIndex, NewBuffer, NewBufferOffset, NewContent }.
 
 
 
-	% - texture coordinates are referenced through TexCoordAccessor,
-	% referencing TexCoordBufferView, whose elements are vector2() (hence
-	% components are float())
+% @doc Integrates the specified normals (if any) in the specified buffer and
+% content, which are returned.
+%
+-spec integrate_normals( [ specialised_vertex() ], maybe( object_name() ),
+				buffer_index(), raw_buffer(), byte_offset(), content() ) ->
+		{ maybe( accessor_index() ), raw_buffer(), byte_offset(), content() }.
+integrate_normals( _Normals=[], _MaybeName, _PrimBufferIndex, Buffer,
+					BufferOffset, Content ) ->
+	% Do not define empty elements, glTF importers may not support that:
+	{ _MaybeAccessorIndex=undefined, Buffer, BufferOffset, Content };
 
-	TexCoordAccessorIndex = NormalAccessorIndex+1,
-	TexCoordBufferViewIndex = NormalBufferViewIndex+1,
+integrate_normals( Normals, MaybeName, PrimBufferIndex, Buffer,
+				   BufferOffset, Content=#gltf_content{
+												accessors=Accessors,
+												buffer_views=BufferViews } ) ->
+
+	% Normals are referenced through NormAccessor, referencing NormBufferView,
+	% whose elements are vector3() (hence components are float()).
+
+	% As still zero-based:
+	NormAccessorIndex = length( Accessors ),
+	NormBufferViewIndex = length( BufferViews ),
+
+	NormElementType = vector3,
+	NormComponentType = float32,
+
+	NormCount = length( Normals ),
+
+	MaybeNormName = forge_maybe_name( "Normal accessor", MaybeName ),
+
+	NormAccessor = #gltf_accessor{ name=MaybeNormName,
+								   buffer_view=NormBufferViewIndex,
+								   element_type=NormElementType,
+								   component_type=NormComponentType,
+								   count=NormCount },
+
+	NewAccessors = list_utils:append_at_end( NormAccessor, Accessors ),
+
+	NormSize = get_size( NormElementType, NormComponentType, NormCount ),
+
+	NormBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
+										offset=BufferOffset,
+										size=NormSize },
+
+	NewBufferOffset = BufferOffset + NormSize,
+
+	NewBufferViews = list_utils:append_at_end( NormBufferView, BufferViews ),
+
+	NewBuffer = append_to_buffer( NormElementType, NormComponentType, Normals,
+								  Buffer ),
+
+	NewContent = Content#gltf_content{ accessors=NewAccessors,
+									   buffer_views=NewBufferViews },
+
+	{ NormAccessorIndex, NewBuffer, NewBufferOffset, NewContent }.
+
+
+
+% @doc Integrates the specified texture coordinates (if any) in the specified
+% buffer and content, which are returned.
+%
+-spec integrate_texture_coordinates( [ specialised_vertex() ],
+			maybe( object_name() ), buffer_index(), raw_buffer(), byte_offset(),
+			content() ) ->
+		{ maybe( accessor_index() ), raw_buffer(), byte_offset(), content() }.
+integrate_texture_coordinates( _TexCoord=[], _MaybeName, _PrimBufferIndex,
+							   Buffer, BufferOffset, Content ) ->
+	% Do not define empty elements, glTF importers may not support that:
+	{ _MaybeAccessorIndex=undefined, Buffer, BufferOffset, Content };
+
+integrate_texture_coordinates( TexCoords, MaybeName, PrimBufferIndex, Buffer,
+		BufferOffset, Content=#gltf_content{ accessors=Accessors,
+											 buffer_views=BufferViews } ) ->
+
+	% Texture coordinates are referenced through TexCoordAccessor, referencing
+	% TexCoordBufferView, whose elements are vector2() (hence components are
+	% float()).
+
+	% As still zero-based:
+	TexCoordAccessorIndex = length( Accessors ),
+	TexCoordBufferViewIndex = length( BufferViews ),
 
 	TexCoordElementType = vector2,
 	TexCoordComponentType = float32,
@@ -1891,94 +2021,84 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 									   component_type=TexCoordComponentType,
 									   count=TexCoordCount },
 
-	TexCoordSize = get_size( TexCoordElementType, TexCoordComponentType,
-							 TexCoordCount ),
+	NewAccessors = list_utils:append_at_end( TexCoordAccessor, Accessors ),
 
-	TexCoordOffset = NormalOffset + NormalSize,
+	TexCoordSize =
+		get_size( TexCoordElementType, TexCoordComponentType, TexCoordCount ),
 
 	TexCoordBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
-											offset=TexCoordOffset,
+											offset=BufferOffset,
 											size=TexCoordSize },
 
-	TexCoordBin = append_to_buffer( TexCoordElementType, TexCoordComponentType,
-									TexCoords, NormalBin ),
+	NewBufferOffset = BufferOffset + TexCoordSize,
 
+	NewBufferViews = list_utils:append_at_end( TexCoordBufferView,
+											   BufferViews ),
 
-	% - indices are referenced through IndicesAccessor, referencing
-	% IndicesBufferView, whose elements are scalar() (components are uint16)
+	NewBuffer = append_to_buffer( TexCoordElementType, TexCoordComponentType,
+								  TexCoords, Buffer ),
 
-	IndicesAccessorIndex = TexCoordAccessorIndex+1,
-	IndicesBufferViewIndex = TexCoordBufferViewIndex+1,
-
-	IndicesElementType = scalar,
-	IndicesComponentType = uint16,
-
-	Indices = triangles_to_indices( IndexedTriangles ),
-
-	IndicesCount = length( Indices ),
-
-	MaybeIndicesName = forge_maybe_name( "Indice accessor", MaybeName ),
-
-	IndicesAccessor = #gltf_accessor{ name=MaybeIndicesName,
-									  buffer_view=IndicesBufferViewIndex,
-									  element_type=IndicesElementType,
-									  component_type=IndicesComponentType,
-									  count=IndicesCount },
-
-	IndicesSize = get_size( IndicesElementType, IndicesComponentType,
-							IndicesCount ),
-
-	IndicesOffset = TexCoordOffset + TexCoordSize,
-
-	IndicesBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
-										   offset=IndicesOffset,
-										   size=IndicesSize },
-
-	IndicesBin = append_to_buffer( IndicesElementType, IndicesComponentType,
-								   Indices, TexCoordBin ),
-
-	MaybeBufferName = forge_maybe_name( "Generated buffer", MaybeName ),
-
-	ResultingBuffer =
-		bin_to_gltf_buffer_embedded( IndicesBin, MaybeBufferName ),
-
-	NewBuffers = list_utils:append_at_end( ResultingBuffer, Buffers ),
-
-	Attributes = #gltf_attributes{ position=PositionAccessorIndex,
-								   normal=NormalAccessorIndex,
-								   texcoord_0=TexCoordAccessorIndex },
-
-	Primitive = #gltf_primitive{ attributes=Attributes,
-								 indices=IndicesAccessorIndex,
-								 material=MaterialAccessorIndex,
-								 mode=TopologyType },
-
-	MaybeMeshName = forge_maybe_name( "Hosting mesh", MaybeName ),
-
-	Mesh = #gltf_mesh{ name=MaybeMeshName,
-					   primitives=[ Primitive ] },
-
-	MeshIndex = length( Meshes ),
-
-	NewMeshes = list_utils:append_at_end( Mesh, Meshes ),
-
-	ExtraAccessors = [ PositionAccessor, NormalAccessor, TexCoordAccessor,
-					   IndicesAccessor ],
-
-	NewAccessors = Accessors ++ ExtraAccessors,
-
-
-	ExtraBufferViews = [ PositionBufferView, NormalBufferView,
-						 TexCoordBufferView, IndicesBufferView ],
-
-	NewBufferViews = BufferViews ++ ExtraBufferViews,
-
-	NewContent = Content#gltf_content{ meshes=NewMeshes,
-									   accessors=NewAccessors,
-									   buffers=NewBuffers,
+	NewContent = Content#gltf_content{ accessors=NewAccessors,
 									   buffer_views=NewBufferViews },
 
-	{ MeshIndex, _PrimitiveIndex=0, NewContent }.
+	{ TexCoordAccessorIndex, NewBuffer, NewBufferOffset, NewContent }.
+
+
+
+% @doc Integrates the specified indices (if any) in the specified buffer and
+% content, which are returned.
+%
+-spec integrate_indices( [ indice() ], maybe( object_name() ), buffer_index(),
+						 raw_buffer(), byte_offset(), content() ) ->
+		{ maybe( accessor_index() ), raw_buffer(), byte_offset(), content() }.
+integrate_indices( _Indices=[], _MaybeName, _PrimBufferIndex, Buffer,
+					BufferOffset, Content ) ->
+	% Do not define empty elements, glTF importers may not support that:
+	{ _MaybeAccessorIndex=undefined, Buffer, BufferOffset, Content };
+
+integrate_indices( Indices, MaybeName, PrimBufferIndex, Buffer,
+				   BufferOffset, Content=#gltf_content{
+												accessors=Accessors,
+												buffer_views=BufferViews } ) ->
+
+	% Indices are referenced through IdxAccessor, referencing IdxBufferView,
+	% whose elements are scalar() (components are uint16).
+
+	IdxAccessorIndex = length( Accessors ),
+	IdxBufferViewIndex = length( BufferViews ),
+
+	IdxElementType = scalar,
+	IdxComponentType = uint16,
+
+	IdxCount = length( Indices ),
+
+	MaybeIdxName = forge_maybe_name( "Indice accessor", MaybeName ),
+
+	IdxAccessor = #gltf_accessor{ name=MaybeIdxName,
+								  buffer_view=IdxBufferViewIndex,
+								  element_type=IdxElementType,
+								  component_type=IdxComponentType,
+								  count=IdxCount },
+
+	NewAccessors = list_utils:append_at_end( IdxAccessor, Accessors ),
+
+	IdxSize = get_size( IdxElementType, IdxComponentType, IdxCount ),
+
+	IdxBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
+									   offset=BufferOffset,
+									   size=IdxSize },
+
+	NewBufferOffset = BufferOffset + IdxSize,
+
+	NewBufferViews = list_utils:append_at_end( IdxBufferView, BufferViews ),
+
+	NewBuffer = append_to_buffer( IdxElementType, IdxComponentType, Indices,
+								  Buffer ),
+
+	NewContent = Content#gltf_content{ accessors=NewAccessors,
+									   buffer_views=NewBufferViews },
+
+	{ IdxAccessorIndex, NewBuffer, NewBufferOffset, NewContent }.
 
 
 
@@ -2063,7 +2183,7 @@ get_size( ElementType, ComponentType, Count ) ->
 
 % @doc Returns a binary corresponding to the specified buffer-view.
 -spec get_buffer_view_binary( buffer_view_index(), [ buffer_view() ],
-			[ buffer() ], buffer_table() ) -> { binary(), buffer_table() }.
+			[ buffer() ], buffer_table() ) -> { raw_buffer(), buffer_table() }.
 get_buffer_view_binary( BufferViewIndex, BufferViews, Buffers, BufferTable ) ->
 
 	_BufferView = #gltf_buffer_view{ buffer=BufferIndex,
@@ -2116,20 +2236,19 @@ forge_maybe_name( BaseStr, Name ) ->
 % and cached once for all.
 %
 -spec get_buffer( buffer_index(), [ buffer() ], buffer_table() ) ->
-			{ binary(), buffer_table() }.
+			{ raw_buffer(), buffer_table() }.
 get_buffer( BufferIndex, Buffers, BufferTable ) ->
 	case table:lookup_entry( _K=BufferIndex, BufferTable ) of
 
 		key_not_found ->
-			Buffer = #gltf_buffer{ uri=Uri,
-								   size=BufferSize }
+			Buffer = #gltf_buffer{ uri=Uri, size=BufferSize }
 				= list_utils:get_element_at( Buffers, BufferIndex+1 ),
 
 			trace_utils:debug_fmt( "Caching, as entry ~B, buffer "
 				"of size ~B bytes, whose URI is:~n~ts.",
 				[ BufferIndex, BufferSize, Uri ] ),
 
-			BinBufferContent = gltf_buffer_embedded_to_bin( Buffer ),
+			BinBufferContent = gltf_buffer_embedded_to_raw_buffer( Buffer ),
 
 			% Check:
 			BufferSize = size( BinBufferContent ),
@@ -2150,7 +2269,7 @@ get_buffer( BufferIndex, Buffers, BufferTable ) ->
 
 % @doc Generates a binary buffer corresponding to the specified elements.
 -spec generate_buffer( element_type(), component_type(),
-					   [ specialised_type() ] ) -> binary().
+					   [ specialised_type() ] ) -> raw_buffer().
 generate_buffer( ElementType, ComponentType, Elements ) ->
 	append_to_buffer( ElementType, ComponentType, Elements, _AccBin= <<>> ).
 
@@ -2160,9 +2279,13 @@ generate_buffer( ElementType, ComponentType, Elements ) ->
 % binary buffer.
 %
 -spec append_to_buffer( element_type(), component_type(),
-						[ specialised_type() ], binary() ) -> binary().
+						[ specialised_type() ], raw_buffer() ) -> raw_buffer().
 append_to_buffer( _ElementType=scalar, _ComponentType=uint16, Elements,
 				  Bin ) ->
+
+	%trace_utils:debug_fmt( "Appending following ~B indices to buffer:~n ~p",
+	%					   [ length( Elements ), Elements ] ),
+
 	append_all_uint16_little( Elements, Bin );
 
 
@@ -2243,7 +2366,7 @@ get_point2( _Elements=[ {X,Y} | T ], Acc ) ->
 % @doc Appends to the specified binary all 16 bit unsigned integers specified,
 % and returns the resulting binary.
 %
--spec append_all_uint16_little( [ integer() ], binary() ) -> binary().
+-spec append_all_uint16_little( [ integer() ], raw_buffer() ) -> raw_buffer().
 append_all_uint16_little( _Elements=[], Bin ) ->
 	Bin;
 
@@ -2257,7 +2380,7 @@ append_all_uint16_little( _Elements=[ UI | T ], Bin ) ->
 % @doc Appends to the specified binary all single-precision (32 bit) floats
 % specified, and returns the resulting binary.
 %
--spec append_all_float32_little( [ float() ], binary() ) -> binary().
+-spec append_all_float32_little( [ float() ], raw_buffer() ) -> raw_buffer().
 append_all_float32_little( _Elements=[], Bin ) ->
 	Bin;
 
@@ -2270,8 +2393,8 @@ append_all_float32_little( _Elements=[ F | T ], Bin ) ->
 % @doc Extracts specified points from specified binary (typically obtained from
 % a buffer view).
 %
--spec extract_points( binary(), count(), element_type(), component_type() ) ->
-			[ specialised_point() ].
+-spec extract_points( raw_buffer(), count(), element_type(),
+					  component_type() ) ->	[ specialised_point() ].
 extract_points( Bin, ElementCount, ElemType, ComponentType ) ->
 	extract_elements( Bin, ElementCount, ElemType, ComponentType,
 					  _FinalType=point ).
@@ -2280,8 +2403,8 @@ extract_points( Bin, ElementCount, ElemType, ComponentType ) ->
 % @doc Extracts specified vectors from specified binary (typically obtained from
 % a buffer view).
 %
--spec extract_vectors( binary(), count(), element_type(), component_type() ) ->
-			[ specialised_vector() ].
+-spec extract_vectors( raw_buffer(), count(), element_type(),
+					   component_type() ) -> [ specialised_vector() ].
 extract_vectors( Bin, ElementCount, ElemType, ComponentType ) ->
 	extract_elements( Bin, ElementCount, ElemType, ComponentType,
 					  _FinalType=vector ).
@@ -2290,7 +2413,8 @@ extract_vectors( Bin, ElementCount, ElemType, ComponentType ) ->
 % @doc Extracts specified indices from specified binary (typically obtained from
 % a buffer view).
 %
--spec extract_indices( binary(), count(), component_type() ) -> [ indice() ].
+-spec extract_indices( raw_buffer(), count(), component_type() ) ->
+													[ indice() ].
 extract_indices( Bin, ElementCount, ComponentType ) ->
 	extract_elements( Bin, ElementCount, _ElemType=scalar, ComponentType,
 					  _FinalType=undefined ).
@@ -2300,7 +2424,7 @@ extract_indices( Bin, ElementCount, ComponentType ) ->
 % @doc Extracts specified elements from specified binary (typically obtained
 % from a buffer view).
 %
--spec extract_elements( binary(), count(), element_type(), component_type(),
+-spec extract_elements( raw_buffer(), count(), element_type(), component_type(),
 						final_type() ) -> [ buffer_elements() ].
 extract_elements( Bin, ElementCount, _ElemType=scalar,
 				  _ComponentType=uint16, _FinalType ) ->
@@ -2354,7 +2478,7 @@ extract_elements( Bin, ElementCount, _ElemType=vector3,
 % @doc Extracts from the specified binary all 16 bit unsigned integers, supposed
 % encoded in little-endian.
 %
--spec extract_all_uint16_little( binary() ) -> [ integer() ].
+-spec extract_all_uint16_little( raw_buffer() ) -> [ integer() ].
 extract_all_uint16_little( Bin ) ->
 	extract_all_uint16_little( Bin, _Acc=[] ).
 
@@ -2371,7 +2495,7 @@ extract_all_uint16_little( _Bin= <<UI:16/little-unsigned-integer,Rest/binary>>,
 % @doc Extracts from the specified binary all single-precision (32 bit) floats,
 % supposed encoded in little-endian.
 %
--spec extract_all_float32_little( binary() ) -> [ float() ].
+-spec extract_all_float32_little( raw_buffer() ) -> [ float() ].
 extract_all_float32_little( Bin ) ->
 	extract_all_float32_little( Bin, _Acc=[] ).
 
