@@ -171,3 +171,20 @@ In the second terminal, try to find the previous node::
 
 
 If you see ``pang`` here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones being presumably the most effective here), and apply the hints listed in the `Enabling the Interconnection of Erlang nodes`_ section.
+
+
+
+Using the Erlang Shell for Debugging
+====================================
+
+It may be convenient to run an Erlang shell in order to investigate and fix issues.
+
+One may execute ``make shell`` to launch a shell that is parameterised so that all modules of all layers (hence having Myriad from Myriad) are in its code path.
+
+The `built-in shell commands <https://erlang.org/doc/man/shell.html#shell-commands>`_ are then very convenient, notably:
+
+- ``v(-1)`` to get the *result* of the last command
+- less relevant in a Myriad context: ``c(my_module)`` to compile (if possible with default settings - thus notably with no parse transform involved)  and (re)load the specified module
+- ``l(my_module)`` to (re)load the specified module; useful when it has to be recompiled by Myriad (typically thanks to a ``make`` issued in another terminal)
+
+Do not mix up this last command with ``rl(XXX)``, which does not perform a module reload but prints a record definition (and will not complain if given an unrelated module name, thus not reloading anything...).
