@@ -56,6 +56,7 @@
 -export([ get_element_at/2, set_element_at/3, insert_element_at/3,
 		  extract_element_at/2,
 		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
+		  heads/2,
 		  get_last_element/1, extract_last_element/1,
 		  get_index_of/2, get_maybe_index_of/2, split_at/2,
 		  uniquify/1, uniquify_ordered/1,
@@ -71,6 +72,10 @@
 		  delete_all_in/2,
 		  append_at_end/2,
 		  unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
+
+
+% Less common list operations:
+-export([ dispatch_in/2, add_as_heads/2 ]).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
@@ -363,6 +368,28 @@ remove_last_element( List ) ->
 
 %remove_last_element( _List=[ H | T ], Acc ) ->
 %   remove_last_element( T, [ H | Acc ] ).
+
+
+
+% @doc Returns a pair made of the N first elements ("heads") of the specified
+% list, and of its remainder (tail).
+%
+% Ex: heads([a,b,c,d,e], _N=3) = {[a,b,c],[d,e]}.
+%
+% Like list:sublist/1 yet returning the tail (list:nthtail/1) as well.
+%
+-spec heads( list(), count() ) -> { list(), list() }.
+heads( List, N ) ->
+	heads( List, N, _Acc=[] ).
+
+
+% (helper)
+heads( List, _N=0, Acc ) ->
+	{ lists:reverse( Acc ), List };
+
+heads( _List=[ H | T ], N, Acc ) ->
+	heads( T, N-1, [ H | Acc ] ).
+
 
 
 
@@ -1014,6 +1041,56 @@ flatten_once( [ Unexpected | _T ], _Acc ) ->
 filter_out_undefined( L ) ->
 	% Or: delete_all_in( undefined, L ).
 	[ E || E <- L, E =/= undefined ].
+
+
+
+% @doc Dispatches the specified list on the specified number of sublists, each
+% element being in turn placed in the next sublist, until going back at the
+% first (like a ring).
+%
+% Note that the number of elements of the input list must be a multiple of the
+% specified number of sublists (hence all sublists will have the same length).
+%
+% The order in each sublist is preserved.
+%
+% Ex: dispatch_in(3, [a, b, c, d, e, f]) = [[a,d], [b,e], [c,f]].
+%
+-spec dispatch_in( count(), list() ) -> [ list() ].
+dispatch_in( SublistCount, List ) ->
+	AccSubLists = lists:duplicate( SublistCount, _InitSublist=[] ),
+	Res = dispatch_in( SublistCount, lists:reverse( List ), AccSubLists ),
+	lists:reverse( Res ).
+
+
+% (helper)
+dispatch_in( _SublistCount, _List=[], AccSubLists ) ->
+	AccSubLists;
+
+dispatch_in( SublistCount, List, AccSubLists ) ->
+	{ Heads, TailList } = heads( List, SublistCount ),
+	NewAccSubLists = add_as_heads( Heads, AccSubLists ),
+	dispatch_in( SublistCount, TailList, NewAccSubLists ).
+
+
+
+% @doc Adds the specified elements as heads of the specified lists.
+%
+% Ex: add_as_heads([a,b,c], [[u,v], [], [w]]) = [[a,u,v], [b], [c,w]].
+%
+% Of course the two lists shall have the same length.
+%
+add_as_heads( Heads, Lists ) ->
+	add_as_heads( Heads, Lists, _Acc=[] ).
+
+
+% (helper)
+add_as_heads( _Heads=[], _Lists=[], Acc ) ->
+	% Restores the order of augmented lists:
+	lists:reverse( Acc );
+
+add_as_heads( _Heads=[ H | TH ], _Lists=[ L | TL ], Acc ) ->
+	NewL = [ H | L ],
+	add_as_heads( TH, TL, [ NewL | Acc ] ).
 
 
 
