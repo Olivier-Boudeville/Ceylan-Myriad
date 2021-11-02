@@ -66,6 +66,7 @@
 		  difference/2, differences/2,
 		  cartesian_product/1,
 		  subtract_all_duplicates/2,
+		  get_all_permutations/1,
 		  delete_existing/2, delete_if_existing/2,
 		  remove_element_from/2, remove_elements_from/2,
 		  remove_first_occurrence/2, remove_first_occurrences/2,
@@ -75,7 +76,7 @@
 
 
 % Less common list operations:
--export([ dispatch_in/2, add_as_heads/2 ]).
+-export([ dispatch_in/2, add_as_heads/2, insert_at_all_places/2 ]).
 
 
 % For list of tuples (ex: typically used by the HDF5 binding), extended flatten
@@ -753,6 +754,45 @@ cartesian_product( [ List | OtherLists ] ) ->
 -spec subtract_all_duplicates( list(), list() ) -> list().
 subtract_all_duplicates( L1, L2 ) ->
 	lists:filter( fun( E ) -> not lists:member( E, L2 ) end, L1 ).
+
+
+
+% @doc Returns a list of all the permutations of the specified list.
+%
+% Ex: get_all_permutations([a,b,c]) = [ [c,b,a], [c,a,b], [a,c,b], [b,c,a],
+%                                       [b,a,c], [a,b,c] ]
+%
+-spec get_all_permutations( list() ) -> [ list() ].
+get_all_permutations( L=[ _E ] ) ->
+	[ L ];
+
+get_all_permutations( _L=[ H | T ] ) ->
+	% Recurse from length N to N-1:
+	TPerms = get_all_permutations( T ),
+	flatten_once( [ insert_at_all_places( H, APermL ) || APermL <- TPerms ] ).
+
+
+
+% @doc Returns all the lists obtained from the specified one L, when inserting
+% the specified element at each possible place in L (including before and
+% after).
+%
+% Ex: insert_at_all_places(a, [b,c,d]) =
+%                  [ [b,c,d,a], [b,c,a,d], [b,a,c,d], [a,b,c,d] ]
+%
+-spec insert_at_all_places( element(), list() ) -> [ list() ].
+insert_at_all_places( E, L ) ->
+	insert_at_all_places( E, L, _RevL=[], _Acc=[] ).
+
+
+insert_at_all_places( E, _L=[], RevL, Acc ) ->
+	% Last possibility is when ending with E:
+	[ lists:reverse( [ E | RevL ] ) | Acc ];
+
+insert_at_all_places( E, _L=[ H | T ], RevL, Acc ) ->
+	NewList = lists:reverse( [ H, E | RevL ] ) ++ T,
+	NewAcc = [ NewList | Acc ],
+	insert_at_all_places( E, T, [ H | RevL ], NewAcc ).
 
 
 
