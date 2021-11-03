@@ -29,7 +29,7 @@
 % @doc Gathering of various convenient facilities regarding the support of
 % various <b>locales</b> (ex: for the management of per-country bank holidays).
 %
-% @hidden Not ready.
+% Not ready.
 %
 -module(locale_utils).
 
