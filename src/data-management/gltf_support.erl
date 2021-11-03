@@ -2394,7 +2394,7 @@ append_all_float32_little( _Elements=[ F | T ], Bin ) ->
 % a buffer view).
 %
 -spec extract_points( raw_buffer(), count(), element_type(),
-					  component_type() ) ->	[ specialised_point() ].
+					  component_type() ) -> [ specialised_point() ].
 extract_points( Bin, ElementCount, ElemType, ComponentType ) ->
 	extract_elements( Bin, ElementCount, ElemType, ComponentType,
 					  _FinalType=point ).
