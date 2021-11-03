@@ -381,9 +381,7 @@
 						  | 'grab_all_keys'
 						  | 'full_repaint_on_resize'.
 % Options for windows, see
-% [http://docs.wxwidgets.org/stable/wx_wxwindow.html] and
-% [http://docs.wxwidgets.org/stable/wx_windowstyles.html#windowstyles].
-
+% [http://docs.wxwidgets.org/stable/classwx_window.html]
 
 
 -type window_style() :: window_style_opt() | [ window_style_opt() ].
@@ -408,7 +406,7 @@
 						 | 'tool_window'
 						 | 'no_taskbar'.
 % Options for frames, see
-% [http://docs.wxwidgets.org/stable/wx_wxframe.html#wxframewxframe].
+% [http://docs.wxwidgets.org/stable/classwx_frame.html].
 
 
 
@@ -417,7 +415,7 @@
 
 -type panel_option() :: window_option().
 % Options for panels, see
-% [http://docs.wxwidgets.org/stable/wx_wxpanel.html#wxpanelwxpanel].
+% [http://docs.wxwidgets.org/stable/classwx_panel.html].
 
 
 -type panel_options() :: [ panel_option() ].
@@ -431,7 +429,7 @@
 						  | 'exact_fit'
 						  | 'flat'.
 % Options for button style, see
-% [http://docs.wxwidgets.org/stable/wx_wxbutton.html#wxbuttonwxbutton].
+% [http://docs.wxwidgets.org/stable/classwx_button.html].
 
 
 -type button_style() :: button_style_opt() | [ button_style_opt() ].
@@ -454,7 +452,7 @@
 						| 'align_bottom'
 						| 'align_center_vertical'
 						| 'align_center_horizontal'.
-% Options for sizers, see [http://docs.wxwidgets.org/stable/wx_wxsizer.html].
+% Options for sizers, see [https://docs.wxwidgets.org/stable/classwx_sizer.html]
 
 
 -type sizer_flag() :: sizer_flag_opt() | [ sizer_flag_opt() ].
@@ -1128,7 +1126,7 @@ destruct_window( Window ) ->
 % a menu bar, toolbar and status bar. A frame can contain any window that is not
 % a frame or dialog.
 %
-% Source: http://docs.wxwidgets.org/stable/wx_wxframe.html#wxframewxframe
+% Source: http://docs.wxwidgets.org/stable/classwx_frame.html
 
 
 % @doc Creates a new frame, with default title, ID, parent, position, size and
