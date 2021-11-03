@@ -107,8 +107,8 @@
 
 -type dimensions() :: matrix:dimensions().
 
--type user_matrix() :: user_matrix().
--type matrix() :: matrix().
+-type user_matrix() :: matrix:user_matrix().
+-type matrix() :: matrix:matrix().
 
 
 

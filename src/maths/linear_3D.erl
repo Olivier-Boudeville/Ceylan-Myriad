@@ -42,7 +42,7 @@
 
 % Shorthands:
 
--type factor() :: maths_utils:factor().
+-type factor() :: math_utils:factor().
 
 -type normal3() :: vector3:normal3().
 -type unit_normal3() :: vector3:unit_normal3().

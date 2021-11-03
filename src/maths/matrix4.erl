@@ -116,15 +116,15 @@
 
 -type vector3() :: vector3:vector3().
 
--type user_vector4() :: user_vector4:vector4().
+-type user_vector4() :: vector4:user_vector4().
 -type vector4() :: vector4:vector4().
 
 -type dimensions() :: matrix:dimensions().
 
 -type matrix3() :: matrix3:matrix3().
 
--type user_matrix() :: user_matrix().
--type matrix() :: matrix().
+-type user_matrix() :: matrix:user_matrix().
+-type matrix() :: matrix:matrix().
 
 
 
