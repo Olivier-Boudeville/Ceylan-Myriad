@@ -399,6 +399,10 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 #USE_JSON = false
 #USE_JSON = true
 
+# To be able to serialise data with the Protobuf (Protocol Buffer) format:
+#USE_PROTOBUF = false
+#USE_PROTOBUF = true
+
 # For SQL database operations, based on SQLite 3 operations:
 #USE_SQLITE = false
 #USE_SQLITE = true
@@ -546,6 +550,48 @@ ifeq ($(USE_JSON),true)
 
 endif
 
+
+ifeq ($(USE_PROTOBUF),true)
+
+	 # We rely on the gpb compiler.
+
+	USE_GPB = true
+	#USE_GPB = false
+
+	ifeq ($(USE_GPB),true)
+
+		# The GPB compiler is available at
+		# https://github.com/tomas-abrahamsson/gpb
+
+		# Install obtained thanks to (see also
+		# https://myriad.esperide.org/#file-formats)
+		#
+		# $ mkdir -p ~/Software/gpb
+		# $ cd ~/Software/gpb
+
+		# $ git clone git@github.com:tomas-abrahamsson/gpb.git
+		#  - or -
+		# $ git clone https://github.com/tomas-abrahamsson/gpb.git
+
+		# $ ln -s gpb gpb-current-install
+
+		#GPB_OPT =
+
+		# A convention of our own that one may want to respect:
+		GPB_SOFTWARE_BASE := $$HOME/Software/gpb/gpb-current-install
+		GPB_SOFTWARE_INSTALL_BASE := $(GPB_SOFTWARE_BASE)/_build/default/lib/gpb
+
+		# No includes for GPB:
+		#INC +=
+
+		# ($(GPB_*_INSTALL_BASE)/ebin/*.beam found at runtime)
+
+		BEAM_DIRS += $(GPB_REBAR_INSTALL_BASE)/ebin
+		ABS_BEAM_DIRS += $(GPB_SOFTWARE_INSTALL_BASE)/ebin
+
+	endif
+
+endif
 
 
 # Deactivated by default, as requires specific prerequisites:

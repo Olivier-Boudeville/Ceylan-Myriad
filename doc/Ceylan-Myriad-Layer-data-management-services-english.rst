@@ -164,7 +164,10 @@ Refer to the `Myriad-level Third-Party Dependencies`_ section for further inform
 For Pure Erlang uses: the ETF File Format
 .........................................
 
-For many needs in terms of Erlang internal data storage (ex: regarding configuration settings), we recommend the use of the file format that `file:consult/1 <https://erlang.org/doc/man/file.html#consult-1>`_  can directly read, that we named, for reference purpose, ``ETF`` (for *Erlang Term Format*). We recommend that ETF files have for extension ``.etf``, like in: ``~/.ceylan-settings.etf`` (see also our support for `user preferences`_).
+For many needs in terms of Erlang internal data storage (ex: regarding configuration settings), we recommend the use of the file format that `file:consult/1 <https://erlang.org/doc/man/file.html#consult-1>`_  can directly read, that we named, for reference purpose, ``ETF`` (for *Erlang Term Format* [#]_). We recommend that ETF files have for extension ``.etf``, like in: ``~/.ceylan-settings.etf`` (see also our support for `user preferences`_).
+
+.. [#] Not to be mixed up with the `Erlang External Term Format <https://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_, which is used for serialisation_.
+
 
 ETF is just a text format for which:
 
@@ -192,6 +195,81 @@ ETF files are notably used as **configuration files**. In this case following ex
   - their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (ex: ``"James Bond"``) rather than a binary one (ex: ``<<"James Bond">>``); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include *binary* strings (not plain ones, even though plain ones are used in the configuration files)
 
 
+.. _`glTf file format`:
+
+To Export 3D Scenes
+...................
+
+A basic support of `glTf <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Language Transmission Format*) version 2.0 has been implemented in ``gltf_support.{hrl,erl}``.
+
+The various elements associated to that model (scenes, nodes, meshes, primitives, materials, lights, cameras, buffers, buffer-views, accessors) can be handled from Erlang, in an already integrated way to Myriad's `spatial services and conventions`_.
+
+See the `glTf 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information.
+
+
+
+Regarding Data Exchange
+-----------------------
+
+
+.. _`serialisation`:
+
+
+Serialisation: Marshalling / Demarshalling
+..........................................
+
+
+Purpose
+*******
+
+When trusted Erlang nodes and Erlang applications are to communicate, they are likely to rely on the (Erlang) `External Term Format <https://www.erlang.org/doc/apps/erts/erl_ext_dist.html>`_ for that.
+
+To communicate with other systems (non-Erlang and/or non-trusted) over a network stream (over a transport protocol such as TCP/IP), a common `data-serialisation format <https://en.wikipedia.org/wiki/Comparison_of_data-serialization_formats>`_ must be chosen in order to marshall and demarshall the applicative data to be exchanged.
+
+This format can be ad hoc (defined with one's conventions) or standard. We prefer here the latter solution, as a standard format favors interoperability and reduces tedious, error-prone transformations.
+
+Moreover various well-supported standard options exist, like `XDR <https://en.wikipedia.org/wiki/External_Data_Representation>`_, `ASN.1 <https://en.wikipedia.org/wiki/ASN.1>`_, `Protobuf <https://en.wikipedia.org/wiki/Protocol_Buffers>`_ (a.k.a. *Protocol Buffer*), `Piqi <http://piqi.org/>`_ and many others.
+
+
+
+Choice of format
+****************
+
+The two formats that we thought were the most suitable and standard were **ASN.1** (with a proper, efficient encoding selected), or **Protobuff**.
+
+As ASN.1 has been defined for long and is properly supported by Erlang (natively), and that there are `apparently valid claims <https://reasonablypolymorphic.com/blog/protos-are-wrong/index.html>`_ that Protobuf has some flaws, ASN.1 seemed to us the more relevant technical choice.
+
+
+About ASN.1
+***********
+
+Erlang supports, out of the box, `three main ASN.1 encodings <https://www.erlang.org/doc/man/asn1ct.html#compile-2>`_:
+
+- BER (`Basic Encoding Rules <https://en.wikipedia.org/wiki/X.690#BER_encoding>`_): a type-length-value encoding, too basic to be compact; its DER (for *Distinguished Encoding Rules*) variation is also available
+- PER (*Packed Encoding Rules*): a bit-level serialisation stream, either aligned to byte boundaries (PER) or not (UPER, for *Unaligned PER*); if both are very compact and complex to marshall/demarshall, it is especially true for the size/processing trade-off of UPER
+- JER (*JSON Encoding Rules*), hence based on JSON_
+
+Our preference goes towards first UPER, then PER, knowing that a strength of ASN.1 is the expected ability to switch encodings easily.
+
+An issue of this approach is that, beyond Erlang, the (U)PER encoding does not seem so widely available as free software: besides commercial offers (like `this one <https://www.obj-sys.com/products/asn1c/index.php>`_), some languages could be covered to some extent (ex: `Python <https://github.com/eerimoq/asn1tools>`_, Java with `[1] <https://github.com/alexvoronov/gcdc-asn1/tree/master/asn1-uper>`_ or `[2] <https://github.com/ericsson-mts/mts-asn1>`_), but for example no such solution could be found for the .NET language family (ex: for C#); also the complexity of the encoding may lead to solutions supporting only a subset of the standard.
+
+So, at least for the moment, we chose Protobuf.
+
+
+About Protobuf
+**************
+
+Compared to ASN.1 UPER, Protobuf is probably simpler/more limited, and less compact - yet also less demanding in terms of processing regarding (de)marshalling.
+
+Albeit Protobuf is considerably more recent, implementations of it in free software are rather widely available in terms of languages, with `reference implementations <https://developers.google.com/protocol-buffers/docs/reference/overview>`_ and third-party ones (example for `.NET <https://github.com/protobuf-net/protobuf-net>`_).
+
+In the case of Erlang, Protobuf is not natively supported, yet various libraries offer such a support. `gpb <https://github.com/tomas-abrahamsson/gpb>`_ seems to be the recommended option, which we retained.
+
+This support may be enabled from Myriad's ``GNUmakevars.inc``, thanks to the ``USE_PROTOBUF`` boolean variable that implies in turn the ``USE_GPB`` one.
+
+
+
+
 
 For Basic, Old-School Ciphering
 ...............................
@@ -205,17 +283,3 @@ We believe that, should the key (the combination of parameterised transformation
 So this is surely an instance of "security by obscurity", a strategy (which may be used in conjunction with the "security by design" and "open security" ones) discouraged by standards bodies, yet in our opinion likely - for data of lesser importance- to resist well (as we do not expect then attackers to specifically target our very own set of measures).
 
 Refer to ``cipher_utils`` and its associated test for more details.
-
-
-
-
-.. _`glTf file format`:
-
-To Export 3D Scenes
-...................
-
-A basic support of `glTf <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Language Transmission Format*) version 2.0 has been implemented in ``gltf_support.{hrl,erl}``.
-
-The various elements associated to that model (scenes, nodes, meshes, primitives, materials, lights, cameras, buffers, buffer-views, accessors) can be handled from Erlang, in an already integrated way to Myriad's `spatial services and conventions`_.
-
-See the `glTf 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information.
