@@ -102,8 +102,8 @@
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
 
--type vector3() :: vector:vector3().
--type any_vector3() :: vector:any_vector3().
+-type vector3() :: vector3:vector3().
+-type any_vector3() :: vector3:any_vector3().
 
 
 

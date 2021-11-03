@@ -72,10 +72,11 @@
 -type int_degrees() :: unit_utils:int_degrees().
 -type radians() :: unit_utils:radians().
 
+-type factor() :: math_utils:factor().
+
 -type coordinate() :: linear:coordinate().
 -type any_coordinate() :: linear:any_coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
--type factor() :: linear:factor().
 -type square_distance() :: linear:square_distance().
 
 -type point2() :: point2:point2().
@@ -88,9 +89,12 @@
 -type rect_dimensions() :: { Width :: coordinate(), Height :: coordinate() }.
 % Dimensions of a rectangular area, as floating-point coordinates.
 
--type integer_rect_dimensions() :: { Width :: integer_coordinate(),
+-type integer_rect_dimensions() :: { Width  :: integer_coordinate(),
 									 Height :: integer_coordinate() }.
 % Dimensions of a rectangular area, as integer coordinates.
+
+-type dimensions() :: integer_rect_dimensions().
+% Shorter form of integer_rect_dimensions/0.
 
 
 -type line2() :: { A :: factor(), B :: factor(), C :: factor() }.
@@ -107,7 +111,7 @@
 % A 2D topology type, typically of a primitive to render.
 
 
--export_type([ rect_dimensions/0, integer_rect_dimensions/0,
+-export_type([ rect_dimensions/0, integer_rect_dimensions/0, dimensions/0,
 			   line2/0, shape/0, topology_type/0 ]).
 
 

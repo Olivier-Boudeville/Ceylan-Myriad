@@ -139,7 +139,7 @@
 	material :: maybe( gltf_support:accessor_index() ),
 
 	% The topology type of primitives to render:
-	mode :: maybe( gltf_support:topology_type() ) } ).
+	mode :: maybe( linear_2D:topology_type() ) } ).
 
 
 

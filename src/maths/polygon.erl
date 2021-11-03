@@ -73,7 +73,7 @@
 
 -type ustring() :: text_utils:ustring().
 
--type integer_point2() :: vector2:integer_point2().
+-type integer_point2() :: point2:integer_point2().
 
 -type color() :: gui_color:color().
 -type canvas() :: gui:canvas().

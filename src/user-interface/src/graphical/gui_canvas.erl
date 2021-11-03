@@ -165,7 +165,7 @@
 -type integer_distance() :: linear:integer_distance().
 
 -type dimensions() :: linear_2D:dimensions().
--type line() :: linear_2D:line().
+-type line2() :: linear_2D:line2().
 
 -type point2() :: point2:point2().
 
@@ -501,8 +501,8 @@ draw_lines( Canvas, Points, Color ) ->
 % Line L must not have for equation Y=constant (i.e. its A parameter must not be
 % null).
 %
--spec draw_segment( canvas_state(), line(), coordinate(), coordinate() ) ->
-			void().
+-spec draw_segment( canvas_state(), line2(), coordinate(), coordinate() ) ->
+										void().
 draw_segment( Canvas, L, Y1, Y2 ) ->
 	draw_line( Canvas,
 		{ round( linear_2D:get_abscissa_for_ordinate( L, Y1 ) ), Y1 },

@@ -150,6 +150,10 @@
 % Any kind of specialised (fixed-size - not of arbitrary dimension) vertex.
 
 
+-type specialised_normal() :: specialised_vector().
+% Any kind of specialised (fixed-size - not of arbitrary dimension) vertex.
+
+
 -type specialised_texture_coordinates() :: specialised_point().
 % Any kind of specialised (fixed-size - not of arbitrary dimension) texture
 % coordinates.
@@ -173,7 +177,8 @@
 			   area/0,
 			   scalar/0, specialised_point/0, specialised_vector/0,
 			   specialised_matrix/0, specialised_type/0,
-			   specialised_vertex/0, specialised_texture_coordinates/0,
+			   specialised_vertex/0, specialised_normal/0,
+			   specialised_texture_coordinates/0,
 			   indice/0, indexed_triangle/0 ]).
 
 

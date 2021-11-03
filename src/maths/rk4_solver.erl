@@ -96,10 +96,10 @@
 -type scalar() :: linear:scalar().
 
 -type point2() :: point2:point2().
--type point3() :: point2:point3().
+-type point3() :: point3:point3().
 
 -type vector2() :: vector2:vector2().
--type vector3() :: vector2:vector3().
+-type vector3() :: vector3:vector3().
 
 
 % @doc Computes the next point (yn+1), based on the current one (yn), the

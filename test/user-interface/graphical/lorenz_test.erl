@@ -60,7 +60,7 @@
 -type widget_name() :: atom().
 
 
--type solver_table() :: table( solver_pid(), { gui:color(), point3() } ).
+-type solver_table() :: table( solver_pid(), { color(), point3() } ).
 % The solver table is an associative table whose keys are the PID of each
 % solver, and whose values are {Color, LastPoint} pairs.
 
@@ -70,7 +70,9 @@
 
 -type message() :: basic_utils:message().
 
--type zoom_factor() :: maths_utils:factor().
+-type zoom_factor() :: math_utils:factor().
+
+-type color() :: gui_color:color().
 
 -type coordinate() :: linear:coordinate().
 

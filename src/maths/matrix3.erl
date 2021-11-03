@@ -109,8 +109,9 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type factor() :: math_utils:factor().
+
 -type coordinate() :: linear:coordinate().
--type factor() :: linear:factor().
 -type dimension() :: linear:dimension().
 -type scalar() :: linear:scalar().
 

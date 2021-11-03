@@ -500,9 +500,14 @@
 			   bitmap/0, back_buffer/0, canvas/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
 			   window_style/0, frame_style/0, button_style/0,
+
+			   window_style_opt/0, window_option/0,
+			   frame_style_opt/0,
+			   panel_option/0, panel_options/0,
+			   button_style_opt/0,
 			   sizer_flag_opt/0, sizer_flag/0, sizer_option/0, sizer_options/0,
-			   connect_opt/0, debug_level_opt/0, debug_level/0,
-			   error_message/0 ]).
+			   connect_opt/0,
+			   debug_level_opt/0, debug_level/0, error_message/0 ]).
 
 
 % To avoid unused warnings:
@@ -531,7 +536,7 @@
 -type integer_distance() :: linear:integer_distance().
 
 -type dimensions() :: linear_2D:dimensions().
--type line() :: linear_2D:line().
+-type line2() :: linear_2D:line2().
 
 
 -type color() :: gui_color:color().
@@ -871,7 +876,7 @@ draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points, Color ) ->
 % Line L must not have for equation Y=constant (i.e. its A parameter must not be
 % null).
 %
--spec draw_segment( canvas(), line(), coordinate(), coordinate() ) -> void().
+-spec draw_segment( canvas(), line2(), coordinate(), coordinate() ) -> void().
 draw_segment( _Canvas={ myriad_object_ref, canvas, CanvasId }, L, Y1, Y2 ) ->
 	get_main_loop_pid() ! { drawCanvasSegment, [ CanvasId, L, Y1, Y2 ] }.
 
