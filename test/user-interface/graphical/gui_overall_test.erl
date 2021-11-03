@@ -395,7 +395,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			%trace_utils:notice_fmt( "Test canvas '~ts' resized to ~p (~ts).",
 			%   [ gui:object_to_string( Canvas ), NewSize,
-			%    gui:context_to_string( Context ) ] ),
+			%     gui:context_to_string( Context ) ] ),
 
 			render( RenderMode, TestState#my_test_state.point_count, Canvas ),
 
@@ -480,6 +480,19 @@ render_shapes( Canvas ) ->
 
 	polygon:render( MyTriangle, Canvas ),
 	polygon:render( MyUprightSquare, Canvas ),
+
+
+	UnitRoots = linear_2D:get_roots_of_unit( _N=7, _StartingAngle=math:pi()/4),
+
+	ScaledRoundRoots = [ point2:roundify( point2:scale( P, _Factor=50 ) )
+								  || P <- UnitRoots ],
+
+	TransVec = [ 80, 400 ],
+	TransRoots = [ point2:translate( P, TransVec ) || P <- ScaledRoundRoots ],
+
+	RootPoly = polygon:get_polygon( TransRoots ),
+
+	polygon:render( RootPoly, Canvas ),
 
 	gui:blit( Canvas ).
 
