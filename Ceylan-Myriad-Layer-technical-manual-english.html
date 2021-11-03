@@ -54,7 +54,7 @@ The next level of information is either to browse the <a class="reference extern
 </table>
 <p><span class="raw-html"></center></span></p>
 <p>The latest version of this documentation is to be found at the <a class="reference external" href="http://myriad.esperide.org">official Ceylan-Myriad website</a> (<tt class="docutils literal"><span class="pre">http://myriad.esperide.org</span></tt>).</p>
-<p><span class="raw-html">This Myriad documentation is also available in the PDF format (see <a href="Ceylan-Myriad-technical-manual-english.pdf">Ceylan-Myriad-technical-manual-english.pdf</a>), and mirrored <a href="http://olivier-boudeville.github.io/Ceylan-Myriad/">here</a>.</span></p>
+<p><span class="raw-html">This Myriad documentation is also available in the PDF format (see <a href="Ceylan-Myriad-Layer-technical-manual-english.pdf">Ceylan-Myriad-technical-manual-english.pdf</a>), and mirrored <a href="http://olivier-boudeville.github.io/Ceylan-Myriad/">here</a>.</span></p>
 <p></p>
 <p></p>
 <p><span class="raw-html"><a name="myriad_toc"></a></span></p>
@@ -977,14 +977,14 @@ $ make rebar3-local-update
 <p>Thanks to these &quot;Matryoshka&quot; APIs and the settings table, the definition of a more generic <tt class="docutils literal">ui</tt> interface has been possible. It selects automatically, based on available local software dependencies, <strong>the most advanced available backend</strong>, with the most relevant settings.</p>
 <p>For example a relevant backend will be automatically selected by:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> test/user-interface/src
+$ <span class="nb">cd</span> test/user-interface
 $ make ui_run
 </pre>
 <p>On the other hand, if wanting to select a specified backend:</p>
 <pre class="code bash literal-block">
 $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span class="s2">&quot;--use-ui-backend term_ui&quot;</span>
 </pre>
-<p>(see the corresponding <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/src/GNUmakefile">GNUmakefile</a> for more information)</p>
+<p>(see the corresponding <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/GNUmakefile">GNUmakefile</a> for more information)</p>
 </div>
 <div class="section" id="raw-text-user-interface-text-ui">
 <h3><a class="toc-backref" href="#id127">Raw Text User Interface: <tt class="docutils literal">text_ui</tt></a></h3>
@@ -1165,7 +1165,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 </div>
 </dd>
 <dt><a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/scripts/benchmark-command.escript">benchmark-command.escript</a></dt>
-<dd><p class="first">Returns a mean resource consumption for the specified shell command (one may prefer relying on <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/src/scripts/benchmark-command.sh">benchmark-command.sh</a>).</p>
+<dd><p class="first">Returns a mean resource consumption for the specified shell command (one may prefer relying on <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/benchmark-command.sh">benchmark-command.sh</a>).</p>
 <div class="line-block">
 <div class="line">Usage: benchmark-command.escript COMMAND: returns a mean resource consumption for the specified shell command.</div>
 </div>
@@ -2021,7 +2021,7 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <div class="section" id="erlang-ls">
 <span id="lsp"></span><h3><a class="toc-backref" href="#id155">Erlang LS</a></h3>
 <p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Language_Server_Protocol">Language Server Protocol</a> (also known as LSP) may be used by one's editor of choice in order to provide various services facilitating the developments in various languages, including Erlang.</p>
-<p>For that <a class="reference external" href="https://erlang-ls.github.io/">Erlang LS</a> should be used. We then recommend to rely on our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/erlang_ls.config">erlang_ls.config</a> configuration file, which may be installed that way:</p>
+<p>For that <a class="reference external" href="https://erlang-ls.github.io/">Erlang LS</a> should be used. We then recommend to rely on our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/erlang_ls.config">erlang_ls.config</a> configuration file, which may be installed that way:</p>
 <pre class="code bash literal-block">
 $ mkdir -p ~/.config/erlang_ls <span class="o">&amp;&amp;</span> <span class="nb">cd</span> ~/.config/erlang_ls/
 $ ln -sf <span class="si">${</span><span class="nv">CEYLAN_MYRIAD</span><span class="si">}</span>/conf/erlang_ls.config
@@ -2109,7 +2109,7 @@ make create-mathjax-symlink
 <h3><a class="toc-backref" href="#id163">Myriad-level Third-Party Dependencies</a></h3>
 <p>Myriad as such has no mandatory dependency (except Erlang itself of course), but <em>optional</em> ones may be enabled, for:</p>
 <ul class="simple">
-<li>a basic <a class="reference external" href="https://en.wikipedia.org/wiki/JSON">JSON</a> support (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/json_utils.erl">json_utils</a> module), thanks to a suitable actual JSON parser, either <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; note that the detection and use of these parsers are done transparently at runtime, hence none of them is a declared dependency of Myriad, which will adapt to any choice made by the overall application that includes both Myriad and one of such parsers (provided, as mentioned above, that the proper <tt class="docutils literal">USE_*</tt> make variables are set)</li>
+<li>a basic <a class="reference external" href="https://en.wikipedia.org/wiki/JSON">JSON</a> support (see our <a href="#id172"><span class="problematic" id="id173">`json_utils &lt;&gt;`_</span></a> module), thanks to a suitable actual JSON parser, either <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; note that the detection and use of these parsers are done transparently at runtime, hence none of them is a declared dependency of Myriad, which will adapt to any choice made by the overall application that includes both Myriad and one of such parsers (provided, as mentioned above, that the proper <tt class="docutils literal">USE_*</tt> make variables are set)</li>
 <li>a first-level support of the <a class="reference external" href="https://www.hdfgroup.org/HDF5/">HDF5</a> file format (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/hdf5_support.erl">hdf5_support</a> module), based on - and thus requiring - the <a class="reference external" href="https://github.com/Olivier-Boudeville-EDF/erlhdf5">enhanced fork</a> that we made of <a class="reference external" href="https://github.com/RomanShestakov/erlhdf5">erlhdf5</a></li>
 <li><a class="reference external" href="https://en.wikipedia.org/wiki/Python_(programming_language)">Python</a> (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/utils/python_utils.erl">python_utils</a> module), thanks to <a class="reference external" href="https://github.com/hdima/erlport">erlport</a></li>
 <li><a class="reference external" href="https://en.wikipedia.org/wiki/SQLite">SQLite</a> (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/sql_support.erl">sql_support</a> module), thanks to the SQLite 3 Erlang binding that we retained, <a class="reference external" href="https://github.com/alexeyr/erlang-sqlite3.git">erlang-sqlite3</a></li>
@@ -2232,6 +2232,12 @@ pong
 <p><span class="raw-html"><center><img src="myriad-title.png" id="responsive-image-small"></img></center></span>
 </p>
 <p><span class="raw-html"><a name="myriad_bottom"></a></span></p>
+</div>
+<div class="system-messages section">
+<h1>Docutils System Messages</h1>
+<div class="system-message" id="id172">
+<p class="system-message-title">System Message: ERROR/3 (<tt class="docutils">Ceylan-Myriad-Layer-gotchas-english.rst</tt>, line 67); <em><a href="#id173">backlink</a></em></p>
+Unknown target name: &quot;json_utils &lt;&gt;&quot;.</div>
 </div>
 </div>
 </body>
