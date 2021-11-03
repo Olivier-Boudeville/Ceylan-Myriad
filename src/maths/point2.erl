@@ -81,7 +81,7 @@
 		  from_vector/1, to_vector/1, to_any_vector/1,
 		  roundify/1,
 		  get_center/2, get_integer_center/2,
-		  translate/2, vectorize/2,
+		  translate/2, scale/2, vectorize/2,
 		  are_close/2, are_equal/2, is_within/3, square_distance/2, distance/2,
 		  draw_integer_random/2, draw_integer_random/3,
 		  check/1,
@@ -95,6 +95,8 @@
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
+
+-type factor() :: math_utils:factor().
 
 -type coordinate() :: linear:coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
@@ -205,9 +207,16 @@ get_integer_center( P1, P2 ) ->
 % @doc Returns a point corresponding to the specified point translated of the
 % specified vector.
 %
--spec translate( point2(), vector2() ) -> point2().
+-spec translate( any_point2(), any_vector2() ) -> any_point2().
 translate( _P={X,Y}, _V=[Vx,Vy] ) ->
 	{ X+Vx, Y+Vy }.
+
+
+
+% @doc Scales the specified 2D point of the specified scalar factor.
+-spec scale( any_point2(), factor() ) -> point2().
+scale( _V={X,Y}, Factor ) ->
+	{ Factor*X, Factor*Y }.
 
 
 
