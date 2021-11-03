@@ -52,7 +52,8 @@
 
 % Operations on sets of points:
 -export([ compute_smallest_enclosing_rectangle/1,
-		  compute_max_overall_distance/1, compute_convex_hull/1 ]).
+		  compute_max_overall_distance/1, compute_convex_hull/1,
+		  get_roots_of_unit/1, get_roots_of_unit/2 ]).
 
 
 % Only useful for tests:
@@ -65,6 +66,8 @@
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
 
 -type int_degrees() :: unit_utils:int_degrees().
 -type radians() :: unit_utils:radians().
@@ -164,7 +167,7 @@ compute_smallest_enclosing_rectangle( [ _Points={ X, Y } | Others ], { Xt, Yt },
 % @end
 %
 -spec compute_max_overall_distance( [ any_point2() ] ) ->
-						    { any_point2(), any_point2(), square_distance() }.
+							{ any_point2(), any_point2(), square_distance() }.
 compute_max_overall_distance( Points ) when length( Points ) < 2 ->
 	throw( { no_computable_overall_distance, Points } );
 
@@ -306,7 +309,7 @@ find_pivot( [ Pivot | _Others ], Pivot, _PList ) ->
 % one, will be removed from the returned list.
 %
 -spec sort_by_angle( integer_point2(), [ integer_point2() ] ) ->
-											    [ integer_point2() ].
+												[ integer_point2() ].
 sort_by_angle( Pivot, Points ) ->
 	sort_by_angle( Pivot, Points, _LeftPoints=[], _MiddlePoint=undefined,
 				   _RightPoints=[] ).
@@ -452,7 +455,7 @@ intersect( _L1={A,B,C}, _L2={U,V,W} ) ->
 	%
 	% (math_utils:is_null/0 also allows to handle integers and floats)
 	%
-    % Returns necessarily floating-point coordinates:
+	% Returns necessarily floating-point coordinates:
 
 	case math_utils:is_null( B ) of
 
@@ -771,3 +774,35 @@ compute_graham_scan_hull( ToValidate=[ P2, P1 | T ], NewPoint,
 %
 compute_graham_scan_hull( L, NewPoint, [ Next | OtherNext ] ) ->
 	compute_graham_scan_hull( [ NewPoint | L ], Next, OtherNext ).
+
+
+
+% @doc Returns a list of points forming the nth roots of unity, in the unit
+% circle centered on the origin, the first one being in the X axis.
+%
+-spec get_roots_of_unit( count() ) -> [ point2() ].
+get_roots_of_unit( N ) ->
+	get_roots_of_unit( N, _StartingAngle=0 ).
+
+
+% @doc Returns a list of points forming the nth roots of unity, in the unit
+% circle centered on the origin, the first one making the specified angle with
+% the X axis.
+%
+-spec get_roots_of_unit( count(), radians() ) -> [ point2() ].
+get_roots_of_unit( N, StartingAngle ) ->
+	AngleIncRad = 2 * math:pi() / N,
+	get_roots_of_unit( N, StartingAngle, AngleIncRad, _Acc=[] ).
+
+
+% (helper)
+get_roots_of_unit( _N=0, _CurrentAngle, _AngleIncRad, Acc ) ->
+	Acc;
+
+get_roots_of_unit( N, CurrentAngle, AngleIncRad, Acc ) ->
+
+	% As in radians:
+	P = { math:cos( CurrentAngle ), math:sin( CurrentAngle ) },
+
+	get_roots_of_unit( N-1, CurrentAngle+AngleIncRad, AngleIncRad,
+					   [ P | Acc ] ).
