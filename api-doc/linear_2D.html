@@ -31,6 +31,10 @@
 <p><tt>coordinate() = <a href="linear.html#type-coordinate">linear:coordinate()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-count">count()</a></h3>
+<p><tt>count() = <a href="basic_utils.html#type-count">basic_utils:count()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-factor">factor()</a></h3>
 <p><tt>factor() = <a href="linear.html#type-factor">linear:factor()</a></tt></p>
 
@@ -100,6 +104,11 @@ points.</td></tr>
 <tr><td valign="top"><a href="#get_abscissa_for_ordinate-2">get_abscissa_for_ordinate/2</a></td><td>Returns the abscissa of a point on line L having Y for ordinate.</td></tr>
 <tr><td valign="top"><a href="#get_line-2">get_line/2</a></td><td>Returns the three coefficients {A,B,C} for the line passing by point P
  and being perpendicular to vector V, whose equation is A.x + B.y + C = 0.</td></tr>
+<tr><td valign="top"><a href="#get_roots_of_unit-1">get_roots_of_unit/1</a></td><td>Returns a list of points forming the nth roots of unity, in the unit
+ circle centered on the origin, the first one being in the X axis.</td></tr>
+<tr><td valign="top"><a href="#get_roots_of_unit-2">get_roots_of_unit/2</a></td><td>Returns a list of points forming the nth roots of unity, in the unit
+ circle centered on the origin, the first one making the specified angle with
+ the X axis.</td></tr>
 <tr><td valign="top"><a href="#intersect-2">intersect/2</a></td><td>Returns the intersection of the two specified lines, if it is a point, 
 otherwise the 'no_point' atom (the intersection can be void, if the lines are 
 parallel but different, or a full line, if they are the same line).</td></tr>
@@ -219,6 +228,23 @@ points.</p>
 <p> </p>
 </div><p>Returns the three coefficients {A,B,C} for the line passing by point P
  and being perpendicular to vector V, whose equation is A.x + B.y + C = 0.
+</p>
+
+<h3 class="function"><a name="get_roots_of_unit-1">get_roots_of_unit/1</a></h3>
+<div class="spec">
+<p><tt>get_roots_of_unit(N::<a href="#type-count">count()</a>) -&gt; [<a href="#type-point2">point2()</a>]</tt><br></p>
+<p> </p>
+</div><p>Returns a list of points forming the nth roots of unity, in the unit
+ circle centered on the origin, the first one being in the X axis.
+</p>
+
+<h3 class="function"><a name="get_roots_of_unit-2">get_roots_of_unit/2</a></h3>
+<div class="spec">
+<p><tt>get_roots_of_unit(N::<a href="#type-count">count()</a>, StartingAngle::<a href="#type-radians">radians()</a>) -&gt; [<a href="#type-point2">point2()</a>]</tt><br></p>
+<p> </p>
+</div><p>Returns a list of points forming the nth roots of unity, in the unit
+ circle centered on the origin, the first one making the specified angle with
+ the X axis.
 </p>
 
 <h3 class="function"><a name="intersect-2">intersect/2</a></h3>

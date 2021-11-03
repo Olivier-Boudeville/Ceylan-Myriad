@@ -59,10 +59,6 @@ with OpenGL), for classical applications and multimedia ones (ex: games).</p>
 <p><tt>canvas() = <a href="gui_canvas.html#type-canvas">gui_canvas:canvas()</a></tt></p>
 <p> To be used directly from the user code.</p>
 
-<h3 class="typedecl"><a name="type-canvas">canvas()</a></h3>
-<p><tt>canvas() = <a href="gui_canvas.html#type-canvas">gui_canvas:canvas()</a></tt></p>
-<p> To be used directly from the user code.</p>
-
 <h3 class="typedecl"><a name="type-color">color()</a></h3>
 <p><tt>color() = <a href="gui_color.html#type-color">gui_color:color()</a></tt></p>
 
@@ -114,6 +110,14 @@ with OpenGL), for classical applications and multimedia ones (ex: games).</p>
 
 <h3 class="typedecl"><a name="type-file_path">file_path()</a></h3>
 <p><tt>file_path() = <a href="file_utils.html#type-file_path">file_utils:file_path()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-format_string">format_string()</a></h3>
+<p><tt>format_string() = <a href="text_utils.html#type-format_string">text_utils:format_string()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-format_values">format_values()</a></h3>
+<p><tt>format_values() = <a href="text_utils.html#type-format_values">text_utils:format_values()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-frame">frame()</a></h3>
@@ -210,10 +214,6 @@ record has no trace of the backend).</p>
 <h3 class="typedecl"><a name="type-position">position()</a></h3>
 <p><tt>position() = <a href="#type-point">point()</a> | auto</tt></p>
 
-
-<h3 class="typedecl"><a name="type-size">size()</a></h3>
-<p><tt>size() = <a href="#type-dimensions">dimensions()</a> | auto</tt></p>
-<p> Size, typically of a widget.</p>
 
 <h3 class="typedecl"><a name="type-size">size()</a></h3>
 <p><tt>size() = <a href="#type-dimensions">dimensions()</a> | auto</tt></p>
@@ -337,6 +337,8 @@ style.</td></tr>
  parent, with a box drawn around.</td></tr>
 <tr><td valign="top"><a href="#create_sizer_with_labelled_box-3">create_sizer_with_labelled_box/3</a></td><td>Creates a sizer operating on specified orientation, within specified
  parent, with a box drawn around bearing specified label.</td></tr>
+<tr><td valign="top"><a href="#create_sizer_with_labelled_box-4">create_sizer_with_labelled_box/4</a></td><td>Creates a sizer operating on specified orientation, within specified
+ parent, with a box drawn around bearing specified label.</td></tr>
 <tr><td valign="top"><a href="#create_status_bar-1">create_status_bar/1</a></td><td>Creates and attaches a status bar to the specified frame.</td></tr>
 <tr><td valign="top"><a href="#create_window-0">create_window/0</a></td><td>Creates a new window.</td></tr>
 <tr><td valign="top"><a href="#create_window-1">create_window/1</a></td><td>Creates a new window of specified size.</td></tr>
@@ -382,7 +384,8 @@ style.</td></tr>
 <tr><td valign="top"><a href="#propagate_event-1">propagate_event/1</a></td><td>Propagates the event designated by the specified context upward in the 
 widget hierarchy (instead of the default, which is considering that it has 
 been processed once for all, and thus shall not be propagated further).</td></tr>
-<tr><td valign="top"><a href="#push_status_text-2">push_status_text/2</a></td><td>Pushes specified text in the specified status bar.</td></tr>
+<tr><td valign="top"><a href="#push_status_text-2">push_status_text/2</a></td><td>Pushes the specified text in the specified status bar.</td></tr>
+<tr><td valign="top"><a href="#push_status_text-3">push_status_text/3</a></td><td>Pushes the specified text in the specified status bar.</td></tr>
 <tr><td valign="top"><a href="#resize-2">resize/2</a></td><td>Resizes the specified canvas according to the specified new size.</td></tr>
 <tr><td valign="top"><a href="#set_background_color-2">set_background_color/2</a></td><td>Sets the background color of the specified window.</td></tr>
 <tr><td valign="top"><a href="#set_debug_level-1">set_debug_level/1</a></td><td>Sets the debug level(s) of the GUI.</td></tr>
@@ -430,7 +433,10 @@ been processed once for all, and thus shall not be propagated further).</td></tr
 <div class="spec">
 <p><tt>clear(Canvas::<a href="#type-canvas">canvas()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Clears the specified canvas.</p>
+</div><p><p>Clears the specified canvas.</p>
+
+ Note: the result will not be visible until the canvas is blitted.
+</p>
 
 <h3 class="function"><a name="clear_sizer-1">clear_sizer/1</a></h3>
 <div class="spec">
@@ -591,6 +597,14 @@ style.</p>
 <h3 class="function"><a name="create_sizer_with_labelled_box-3">create_sizer_with_labelled_box/3</a></h3>
 <div class="spec">
 <p><tt>create_sizer_with_labelled_box(Orientation::<a href="#type-orientation">orientation()</a>, Parent::<a href="#type-window">window()</a>, Label::<a href="#type-label">label()</a>) -&gt; <a href="#type-sizer">sizer()</a></tt><br></p>
+<p> </p>
+</div><p>Creates a sizer operating on specified orientation, within specified
+ parent, with a box drawn around bearing specified label.
+</p>
+
+<h3 class="function"><a name="create_sizer_with_labelled_box-4">create_sizer_with_labelled_box/4</a></h3>
+<div class="spec">
+<p><tt>create_sizer_with_labelled_box(Orientation::<a href="#type-orientation">orientation()</a>, Parent::<a href="#type-window">window()</a>, FormatString::<a href="#type-format_string">format_string()</a>, FormatValues::<a href="#type-format_values">format_values()</a>) -&gt; <a href="#type-sizer">sizer()</a></tt><br></p>
 <p> </p>
 </div><p>Creates a sizer operating on specified orientation, within specified
  parent, with a box drawn around bearing specified label.
@@ -818,7 +832,13 @@ selection must only be processed by one handler.</p>
 <div class="spec">
 <p><tt>push_status_text(Text::<a href="#type-text">text()</a>, StatusBar::<a href="#type-status_bar">status_bar()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Pushes specified text in the specified status bar.</p>
+</div><p>Pushes the specified text in the specified status bar.</p>
+
+<h3 class="function"><a name="push_status_text-3">push_status_text/3</a></h3>
+<div class="spec">
+<p><tt>push_status_text(FormatString::<a href="#type-format_string">format_string()</a>, FormatValues::<a href="#type-format_values">format_values()</a>, StatusBar::<a href="#type-status_bar">status_bar()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Pushes the specified text in the specified status bar.</p>
 
 <h3 class="function"><a name="resize-2">resize/2</a></h3>
 <div class="spec">

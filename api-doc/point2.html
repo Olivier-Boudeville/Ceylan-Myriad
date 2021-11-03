@@ -46,6 +46,10 @@
 <p><tt>distance() = <a href="linear.html#type-distance">linear:distance()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-factor">factor()</a></h3>
+<p><tt>factor() = <a href="math_utils.html#type-factor">math_utils:factor()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-integer_coordinate">integer_coordinate()</a></h3>
 <p><tt>integer_coordinate() = <a href="linear.html#type-integer_coordinate">linear:integer_coordinate()</a></tt></p>
 
@@ -116,6 +120,7 @@ tuple rather than a list).</td></tr>
  the local referential.</td></tr>
 <tr><td valign="top"><a href="#roundify-1">roundify/1</a></td><td>Returns a point whose floating-point coordinates have been rounded to the
  respective nearest integers.</td></tr>
+<tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales the specified 2D point of the specified scalar factor.</td></tr>
 <tr><td valign="top"><a href="#square_distance-2">square_distance/2</a></td><td>Returns the square of the distance between the two specified 2D points.</td></tr>
 <tr><td valign="top"><a href="#to_any_vector-1">to_any_vector/1</a></td><td>Returns a 2D vector (with coordinates of the same type) corresponding to
  the specified 2D point.</td></tr>
@@ -259,6 +264,12 @@ tuple rather than a list).</p>
  respective nearest integers.
 </p>
 
+<h3 class="function"><a name="scale-2">scale/2</a></h3>
+<div class="spec">
+<p><tt>scale(V::<a href="#type-any_point2">any_point2()</a>, Factor::<a href="#type-factor">factor()</a>) -&gt; <a href="#type-point2">point2()</a></tt><br></p>
+<p> </p>
+</div><p>Scales the specified 2D point of the specified scalar factor.</p>
+
 <h3 class="function"><a name="square_distance-2">square_distance/2</a></h3>
 <div class="spec">
 <p><tt>square_distance(P1::<a href="#type-point2">point2()</a>, P2::<a href="#type-point2">point2()</a>) -&gt; <a href="#type-square_distance">square_distance()</a></tt><br></p>
@@ -331,7 +342,7 @@ tuple rather than a list).</p>
 
 <h3 class="function"><a name="translate-2">translate/2</a></h3>
 <div class="spec">
-<p><tt>translate(P::<a href="#type-point2">point2()</a>, V::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-point2">point2()</a></tt><br></p>
+<p><tt>translate(P::<a href="#type-any_point2">any_point2()</a>, V::<a href="#type-any_vector2">any_vector2()</a>) -&gt; <a href="#type-any_point2">any_point2()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a point corresponding to the specified point translated of the
  specified vector.

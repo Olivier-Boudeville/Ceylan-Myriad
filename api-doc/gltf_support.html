@@ -60,7 +60,7 @@ Transmission Format).</p>
 <p> Index of a buffer in a glTF content.</p>
 
 <h3 class="typedecl"><a name="type-buffer_table">buffer_table()</a></h3>
-<p><tt>buffer_table() = <a href="#type-table">table</a>(<a href="#type-buffer_index">buffer_index()</a>, binary())</tt></p>
+<p><tt>buffer_table() = <a href="#type-table">table</a>(<a href="#type-buffer_index">buffer_index()</a>, <a href="#type-raw_buffer">raw_buffer()</a>)</tt></p>
 <p> A table associating to a given buffer index its in-memory, decoded,
  readily-usable binary.</p>
 
@@ -210,6 +210,10 @@ matrices.</p>
 <p><tt>primitive_index() = <a href="#type-zero_index">zero_index()</a></tt></p>
 <p> Index of a primitive in a glTF mesh.</p>
 
+<h3 class="typedecl"><a name="type-raw_buffer">raw_buffer()</a></h3>
+<p><tt>raw_buffer() = binary()</tt></p>
+<p> An actual, raw (binary) buffer to which a glTF buffer object applies.</p>
+
 <h3 class="typedecl"><a name="type-scene">scene()</a></h3>
 <p><tt>scene() = #gltf_scene{name = <a href="#type-maybe">maybe</a>(<a href="gltf_support.html#type-object_name">gltf_support:object_name()</a>), nodes = [<a href="gltf_support.html#type-node_index">gltf_support:node_index()</a>]}</tt></p>
 <p> A scene defined in a glTF content.</p>
@@ -304,10 +308,6 @@ into the specified glTF content.</td></tr>
  that primitive, and the updated mesh.</td></tr>
 <tr><td valign="top"><a href="#add_scene_to_content-2">add_scene_to_content/2</a></td><td>Adds specified scene to the specified glTF content; returns the index of
  that scene, and the updated content.</td></tr>
-<tr><td valign="top"><a href="#bin_to_gltf_buffer_embedded-1">bin_to_gltf_buffer_embedded/1</a></td><td>Returns an (anonymous) glTF buffer corresponding to the specified binary,
- embedding its content directly into a relevant base64-encoded URI.</td></tr>
-<tr><td valign="top"><a href="#bin_to_gltf_buffer_embedded-2">bin_to_gltf_buffer_embedded/2</a></td><td>Returns a glTF buffer corresponding to the specified binary, embedding
- its content directly into a relevant base64-encoded URI.</td></tr>
 <tr><td valign="top"><a href="#buffer_view_target_to_gltf-1">buffer_view_target_to_gltf/1</a></td><td>Converts a (Myriad-level) buffer-view target into a (lower-level) glTF
  one.</td></tr>
 <tr><td valign="top"><a href="#component_type_to_gltf-1">component_type_to_gltf/1</a></td><td>Converts a (Myriad-level) component type into a (lower-level) glTF one.</td></tr>
@@ -340,7 +340,7 @@ targets.</td></tr>
 <tr><td valign="top"><a href="#get_element_type_associations-0">get_element_type_associations/0</a></td><td>Returns the two-way associations regarding Myriad/glTF element types.</td></tr>
 <tr><td valign="top"><a href="#get_metallic_material-0">get_metallic_material/0</a></td><td>Returns a basic, metallic, double-sided material.</td></tr>
 <tr><td valign="top"><a href="#get_topology_type_associations-0">get_topology_type_associations/0</a></td><td>Returns the two-way associations regarding Myriad/glTF topology types.</td></tr>
-<tr><td valign="top"><a href="#gltf_buffer_embedded_to_bin-1">gltf_buffer_embedded_to_bin/1</a></td><td>Returns a binary corresponding to the specified glTF buffer.</td></tr>
+<tr><td valign="top"><a href="#gltf_buffer_embedded_to_raw_buffer-1">gltf_buffer_embedded_to_raw_buffer/1</a></td><td>Returns a binary corresponding to the specified glTF buffer.</td></tr>
 <tr><td valign="top"><a href="#gltf_content_to_json-3">gltf_content_to_json/3</a></td><td>Converts the specified glTF content into a JSON counterpart.</td></tr>
 <tr><td valign="top"><a href="#gltf_to_buffer_view_target-1">gltf_to_buffer_view_target/1</a></td><td>Converts a (lower-level) glTF buffer-view target into a Myriad-level one.</td></tr>
 <tr><td valign="top"><a href="#gltf_to_component_type-1">gltf_to_component_type/1</a></td><td>Converts a (lower-level) glTF component type into a Myriad-level one.</td></tr>
@@ -349,6 +349,10 @@ targets.</td></tr>
 <tr><td valign="top"><a href="#indices_to_triangles-1">indices_to_triangles/1</a></td><td>Returns the list of (indexed) triangles corresponding to the specified
  flat list of vertex indices.</td></tr>
 <tr><td valign="top"><a href="#json_to_gltf_content-2">json_to_gltf_content/2</a></td><td>Converts the specified JSON content into an (internal) glTF counterpart.</td></tr>
+<tr><td valign="top"><a href="#raw_buffer_to_gltf_buffer_embedded-1">raw_buffer_to_gltf_buffer_embedded/1</a></td><td>Returns an (anonymous) glTF buffer corresponding to the specified binary,
+ embedding its content directly into a relevant base64-encoded URI.</td></tr>
+<tr><td valign="top"><a href="#raw_buffer_to_gltf_buffer_embedded-2">raw_buffer_to_gltf_buffer_embedded/2</a></td><td>Returns a glTF buffer corresponding to the specified binary, embedding
+ its content directly into a relevant base64-encoded URI.</td></tr>
 <tr><td valign="top"><a href="#read_gltf_content-2">read_gltf_content/2</a></td><td>Reads the glTF content defined in the specified file.</td></tr>
 <tr><td valign="top"><a href="#set_default_scene-2">set_default_scene/2</a></td><td>Sets the specified scene as the default one (overriding any prior).</td></tr>
 <tr><td valign="top"><a href="#set_node_mesh-2">set_node_mesh/2</a></td><td>Sets the specified mesh index of the specified glTF node; returns the
@@ -542,22 +546,6 @@ index of the new primitive and an updated glTF content.</p>
  that scene, and the updated content.
 </p>
 
-<h3 class="function"><a name="bin_to_gltf_buffer_embedded-1">bin_to_gltf_buffer_embedded/1</a></h3>
-<div class="spec">
-<p><tt>bin_to_gltf_buffer_embedded(BinContent::binary()) -&gt; <a href="#type-buffer">buffer()</a></tt><br></p>
-<p> </p>
-</div><p>Returns an (anonymous) glTF buffer corresponding to the specified binary,
- embedding its content directly into a relevant base64-encoded URI.
-</p>
-
-<h3 class="function"><a name="bin_to_gltf_buffer_embedded-2">bin_to_gltf_buffer_embedded/2</a></h3>
-<div class="spec">
-<p><tt>bin_to_gltf_buffer_embedded(BinContent::binary(), MaybeBufferName::<a href="#type-maybe">maybe</a>(<a href="#type-object_name">object_name()</a>)) -&gt; <a href="#type-buffer">buffer()</a></tt><br></p>
-<p> </p>
-</div><p>Returns a glTF buffer corresponding to the specified binary, embedding
- its content directly into a relevant base64-encoded URI.
-</p>
-
 <h3 class="function"><a name="buffer_view_target_to_gltf-1">buffer_view_target_to_gltf/1</a></h3>
 <div class="spec">
 <p><tt>buffer_view_target_to_gltf(BufferViewTarget::<a href="#type-buffer_view_target">buffer_view_target()</a>) -&gt; <a href="#type-gltf_buffer_view_target">gltf_buffer_view_target()</a></tt><br></p>
@@ -594,7 +582,7 @@ index of the new primitive and an updated glTF content.</p>
 
 <h3 class="function"><a name="extract_points-4">extract_points/4</a></h3>
 <div class="spec">
-<p><tt>extract_points(Bin::binary(), ElementCount::<a href="#type-count">count()</a>, ElemType::<a href="#type-element_type">element_type()</a>, ComponentType::<a href="#type-component_type">component_type()</a>) -&gt; [<a href="#type-specialised_point">specialised_point()</a>]</tt><br></p>
+<p><tt>extract_points(Bin::<a href="#type-raw_buffer">raw_buffer()</a>, ElementCount::<a href="#type-count">count()</a>, ElemType::<a href="#type-element_type">element_type()</a>, ComponentType::<a href="#type-component_type">component_type()</a>) -&gt; [<a href="#type-specialised_point">specialised_point()</a>]</tt><br></p>
 <p> </p>
 </div><p>Extracts specified points from specified binary (typically obtained from
  a buffer view).
@@ -602,7 +590,7 @@ index of the new primitive and an updated glTF content.</p>
 
 <h3 class="function"><a name="extract_vectors-4">extract_vectors/4</a></h3>
 <div class="spec">
-<p><tt>extract_vectors(Bin::binary(), ElementCount::<a href="#type-count">count()</a>, ElemType::<a href="#type-element_type">element_type()</a>, ComponentType::<a href="#type-component_type">component_type()</a>) -&gt; [<a href="#type-specialised_vector">specialised_vector()</a>]</tt><br></p>
+<p><tt>extract_vectors(Bin::<a href="#type-raw_buffer">raw_buffer()</a>, ElementCount::<a href="#type-count">count()</a>, ElemType::<a href="#type-element_type">element_type()</a>, ComponentType::<a href="#type-component_type">component_type()</a>) -&gt; [<a href="#type-specialised_vector">specialised_vector()</a>]</tt><br></p>
 <p> </p>
 </div><p>Extracts specified vectors from specified binary (typically obtained from
  a buffer view).
@@ -619,7 +607,7 @@ index of the new primitive and an updated glTF content.</p>
 
 <h3 class="function"><a name="generate_buffer-3">generate_buffer/3</a></h3>
 <div class="spec">
-<p><tt>generate_buffer(ElementType::<a href="#type-element_type">element_type()</a>, ComponentType::<a href="#type-component_type">component_type()</a>, Elements::[<a href="#type-specialised_type">specialised_type()</a>]) -&gt; binary()</tt><br></p>
+<p><tt>generate_buffer(ElementType::<a href="#type-element_type">element_type()</a>, ComponentType::<a href="#type-component_type">component_type()</a>, Elements::[<a href="#type-specialised_type">specialised_type()</a>]) -&gt; <a href="#type-raw_buffer">raw_buffer()</a></tt><br></p>
 <p> </p>
 </div><p>Generates a binary buffer corresponding to the specified elements.</p>
 
@@ -728,9 +716,9 @@ targets.</p>
  https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#_mesh_primitive_mode
 </p>
 
-<h3 class="function"><a name="gltf_buffer_embedded_to_bin-1">gltf_buffer_embedded_to_bin/1</a></h3>
+<h3 class="function"><a name="gltf_buffer_embedded_to_raw_buffer-1">gltf_buffer_embedded_to_raw_buffer/1</a></h3>
 <div class="spec">
-<p><tt>gltf_buffer_embedded_to_bin(Gltf_buffer::<a href="#type-buffer">buffer()</a>) -&gt; binary()</tt><br></p>
+<p><tt>gltf_buffer_embedded_to_raw_buffer(Gltf_buffer::<a href="#type-buffer">buffer()</a>) -&gt; <a href="#type-raw_buffer">raw_buffer()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a binary corresponding to the specified glTF buffer.</p>
 
@@ -777,6 +765,22 @@ targets.</p>
 <p><tt>json_to_gltf_content(JSonContent::<a href="#type-json">json()</a>, ParserState::<a href="#type-parser_state">parser_state()</a>) -&gt; <a href="#type-content">content()</a></tt><br></p>
 <p> </p>
 </div><p>Converts the specified JSON content into an (internal) glTF counterpart.</p>
+
+<h3 class="function"><a name="raw_buffer_to_gltf_buffer_embedded-1">raw_buffer_to_gltf_buffer_embedded/1</a></h3>
+<div class="spec">
+<p><tt>raw_buffer_to_gltf_buffer_embedded(BinContent::<a href="#type-raw_buffer">raw_buffer()</a>) -&gt; <a href="#type-buffer">buffer()</a></tt><br></p>
+<p> </p>
+</div><p>Returns an (anonymous) glTF buffer corresponding to the specified binary,
+ embedding its content directly into a relevant base64-encoded URI.
+</p>
+
+<h3 class="function"><a name="raw_buffer_to_gltf_buffer_embedded-2">raw_buffer_to_gltf_buffer_embedded/2</a></h3>
+<div class="spec">
+<p><tt>raw_buffer_to_gltf_buffer_embedded(BinContent::<a href="#type-raw_buffer">raw_buffer()</a>, MaybeBufferName::<a href="#type-maybe">maybe</a>(<a href="#type-object_name">object_name()</a>)) -&gt; <a href="#type-buffer">buffer()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a glTF buffer corresponding to the specified binary, embedding
+ its content directly into a relevant base64-encoded URI.
+</p>
 
 <h3 class="function"><a name="read_gltf_content-2">read_gltf_content/2</a></h3>
 <div class="spec">
