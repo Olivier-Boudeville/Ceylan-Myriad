@@ -204,12 +204,13 @@
 
 % Sizers:
 -export([ create_sizer/1, create_sizer_with_box/2,
-		  create_sizer_with_labelled_box/3, add_to_sizer/2, add_to_sizer/3,
+		  create_sizer_with_labelled_box/3, create_sizer_with_labelled_box/4,
+		  add_to_sizer/2, add_to_sizer/3,
 		  clear_sizer/1, clear_sizer/2 ]).
 
 
 % Status bars:
--export([ create_status_bar/1, push_status_text/2 ]).
+-export([ create_status_bar/1, push_status_text/2, push_status_text/3 ]).
 
 
 % Canvas support (forwarded to gui_canvas).
@@ -521,6 +522,9 @@
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
+
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
 
 -type text() :: ustring().
 
@@ -1019,6 +1023,9 @@ blit( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 
 % @doc Clears the specified canvas.
+%
+% Note: the result will not be visible until the canvas is blitted.
+%
 -spec clear( canvas() ) -> void().
 clear( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { clearCanvas, CanvasId }.
@@ -1373,6 +1380,16 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 	wxStaticBoxSizer:new( ActualOrientation, Parent, [ { label, Label } ] ).
 
 
+% @doc Creates a sizer operating on specified orientation, within specified
+% parent, with a box drawn around bearing specified label.
+%
+-spec create_sizer_with_labelled_box( orientation(), window(),
+			format_string(), format_values() ) -> sizer().
+create_sizer_with_labelled_box( Orientation, Parent, FormatString,
+								FormatValues ) ->
+	Label = text_utils:format( FormatString, FormatValues ),
+	create_sizer_with_labelled_box( Orientation, Parent, Label ).
+
 
 % @doc Adds specified element, or elements with options, to the specified sizer.
 -spec add_to_sizer( sizer(), sizer_child() ) -> sizer_item();
@@ -1462,11 +1479,18 @@ create_status_bar( Frame ) ->
 
 
 
-% @doc Pushes specified text in the specified status bar.
+% @doc Pushes the specified text in the specified status bar.
 -spec push_status_text( text(), status_bar() ) -> void().
 push_status_text( Text, StatusBar ) ->
 	wxStatusBar:pushStatusText( StatusBar, Text ).
 
+
+% @doc Pushes the specified text in the specified status bar.
+-spec push_status_text( format_string(), format_values(), status_bar() ) ->
+									 void().
+push_status_text( FormatString, FormatValues, StatusBar ) ->
+	Text = text_utils:format( FormatString, FormatValues ),
+	push_status_text( Text, StatusBar ).
 
 
 
