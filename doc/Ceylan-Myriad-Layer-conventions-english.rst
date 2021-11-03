@@ -163,7 +163,7 @@ Erlang LS
 
 The `Language Server Protocol <https://en.wikipedia.org/wiki/Language_Server_Protocol>`_ (also known as LSP) may be used by one's editor of choice in order to provide various services facilitating the developments in various languages, including Erlang.
 
-For that `Erlang LS <https://erlang-ls.github.io/>`_ should be used. We then recommend to rely on our `erlang_ls.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/erlang_ls.config>`_ configuration file, which may be installed that way:
+For that `Erlang LS <https://erlang-ls.github.io/>`_ should be used. We then recommend to rely on our `erlang_ls.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/erlang_ls.config>`_ configuration file, which may be installed that way:
 
 .. code:: bash
 

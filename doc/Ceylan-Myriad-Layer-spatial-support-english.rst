@@ -158,7 +158,7 @@ Geometric Conventions
 .....................
 
 :raw-html:`<center><img src="myriad-space-time-referential.png" id="responsive-image-tiny"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-space-time-referential.png} \end{figure}`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-space-time-referential} \end{figure}`
 
 For **space** coordinates, three axes are defined for a global referential:
 
@@ -173,22 +173,22 @@ By default, we rely on "Z-up" conventions (the Z axis being vertical and designa
 In 2D, typically for on-screen coordinates (ex: when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes [#]_:
 
 :raw-html:`<center><img src="myriad-2D-referential.png" id="responsive-image-xsmall"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.3]{myriad-2D-referential.png} \end{figure}`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-2D-referential} \end{figure}`
 
-.. [#] This 2D referential corresponds to the base space-time one, when the viewpoint is located in the positive Z axis and looks at the origin.
+.. [#] This 2D referential corresponds to the base space-time one, when the viewpoint is located in the negative Z axis and looks at the origin.
 
 
 For each of the spatial dimensions of interest, generally ``1.0`` corresponds to 1 meter, otherwise to 1 `light-second <https://en.wikipedia.org/wiki/Light-second>`_ (i.e. roughly 300 000 km [#]_).
 
 .. [#] Then for more human-sized distances, a scale of one light-nanosecond (10^-9 second) might be more convenient, as it corresponds almost to 30 cm.
 
-For **all angles**, the default unit is the radians, and the positive rotation is counterclockwise.
+For **all angles**, the default unit is the `radian <https://en.wikipedia.org/wiki/Radian>`_ (:math:`2π` radians is equal to 360 degrees), and the positive rotation is counterclockwise.
 
 
 For **face culling**, front-facing is determined by relying on a counter-clockwise order winding order of triangles (like default OpenGL's `GL_CCW <https://www.khronos.org/opengl/wiki/Face_Culling>`_):
 
 :raw-html:`<center><img src="myriad-culling-conventions.png" id="responsive-image-medium"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-culling-conventions.png} \end{figure}`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.5]{myriad-culling-conventions.png} \end{figure}`
 
 
 ..  Examples:

@@ -80,7 +80,12 @@ Other Datatypes
 
 They include ``pair.erl``, ``option_list.erl``, ``preferences.erl``, ``tree.erl``.
 
-One may also refer to ``set_utils.erl`` and ``ring_utils.erl``.
+One may also refer for operations on:
+
+- sets: ``set_utils.erl``
+- lists: ``list_utils.erl``
+- rings (i.e. `circular buffers <https://en.wikipedia.org/wiki/Circular_buffer>`_): ``ring_utils.erl``
+- binaries (i.e. raw binary information): ``bin_utils.erl``
 
 
 Pseudo-Builtin Types
@@ -98,7 +103,7 @@ Basic File Formats
 ..................
 
 
-A built-in very basic support for the `CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`_ (see ``csv_utils``) and `RDF <https://en.wikipedia.org/wiki/Resource_Description_Framework>`_ (see ``rdf_utils``) conventions is provided.
+A built-in very basic support for the `CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`_, for *Comma-Separated Values* (see ``csv_utils``) and `RDF <https://en.wikipedia.org/wiki/Resource_Description_Framework>`_ (see ``rdf_utils``) conventions is provided.
 
 
 Most Usual, Standard File Formats
@@ -113,7 +118,7 @@ An optional support (as it depends on third-party prerequisites) is proposed for
 
 .. _`JSON use`:
 
-Some useful information for JSON use:
+Some useful information for **JSON use**:
 
 - the nesting of elements shall be done thanks to (Erlang) maps, whose keys are binary strings (``text_utils:bin_string/0``); their order should not matter
 - it may thus be convenient to add ``-define(table_type, map_hashtable).`` in a user module, so that the ``table`` pseudo-module can be relied upon when building a ``json_term``, while being sure that the JSON parser at hand will be fed afterwards with the relevant datastructure
@@ -185,6 +190,22 @@ ETF files are notably used as **configuration files**. In this case following ex
 
   - whose first element is an atom
   - their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (ex: ``"James Bond"``) rather than a binary one (ex: ``<<"James Bond">>``); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include *binary* strings (not plain ones, even though plain ones are used in the configuration files)
+
+
+
+For Basic, Old-School Ciphering
+...............................
+
+The spirit here is to go another route than modern public-key cryptography: the classic, basic, chained, symmetric cryptography techniques used here apply to contexts where a preliminary, safe exchange can happen between peers (ex: based on a real life communication).
+
+Then any number of passes of low-key algorithms (including one based on a Mealy machine) are applied to the data that is to cypher or decypher.
+
+We believe that, should the key (the combination of parameterised transformations) remain uncompromised, the encrypted data is at least safer than if cyphered with the current, modern algorithms (which may be, intentionally or not, flawed, or may be threatened by potential progresses for example in terms of quantum computing).
+
+So this is surely an instance of "security by obscurity", a strategy (which may be used in conjunction with the "security by design" and "open security" ones) discouraged by standards bodies, yet in our opinion likely - for data of lesser importance- to resist well (as we do not expect then attackers to specifically target our very own set of measures).
+
+Refer to ``cipher_utils`` and its associated test for more details.
+
 
 
 

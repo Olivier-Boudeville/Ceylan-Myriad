@@ -17,7 +17,8 @@ These helpers (code and typing information) are thematically aggregated in modul
   - message handling
   - many miscellaneous functions
 
-- **cipher**-related facilities (basic, a bit exotic chained symmetric encryptions, notably with Mealy machines), in ``cipher_utils.erl``
+.. moved to a dedicated section in data-management: **cipher**-related facilities (basic, a bit exotic chained symmetric encryptions, notably with Mealy machines), in ``cipher_utils.erl``
+
 - functions to manage Erlang **compiled BEAM code** (``code_utils.erl``)
 - services to manage the **execution of other programs** (``executable_utils.erl``), to:
 
@@ -30,7 +31,9 @@ These helpers (code and typing information) are thematically aggregated in modul
 - services to manage identifiers of various sorts, including sortable ones (``id_utils.erl``)
 - a very basic support of **Finite State Machines** (``fsm_utils.{e,h}rl``)
 - a few operations defined on **graphs** (``graph_utils.erl``, with ``find_breadth_first/{3,4}``)
-- extra operations defined on **lists** (``list_utils.erl``), including rings
+
+.. moved to data-management: - extra operations defined on **lists** (``list_utils.erl``), including rings
+
 - support for **network**-related concerns (``net_utils.erl.{e,h}rl``)
 - services to offer **randomness** (``random_utils.erl``), with regard to various sources (the Erlang built-in algorithm, ``crypto``, newer ones like ``exsplus`` - our current default, ``exs64`` and ``exs1024``), for seeding, drawing, etc.
 - very little support of **RDF** operations, standing for `Resource Description Framework <https://en.wikipedia.org/wiki/Resource_Description_Framework>`_ (``rdf_utils.erl``)
@@ -38,13 +41,11 @@ These helpers (code and typing information) are thematically aggregated in modul
 - elements for the sending of **SMS** (``sms_utils.erl``), based either on third-party providers providing REST APIs, or via a mobile phone (typically connected thanks to a USB cable); nothing as advanced as `Ceylan-Mobile <http://mobile.esperide.org/>`_, though
 - support for operations at the **operating-system** level (``system_utils.{e,h}rl``)
 - services to handle **text** (``text_utils.erl``)
-- services to handle **binary information**, such as CRC (``bin_utils.erl``)
+.. moved to data-management:- services to handle **binary information**, such as CRC (``bin_utils.erl``)
 - functions to manage **time** information (``time_utils.erl``)
 - a few helpers to ease the writing of `escripts <http://erlang.org/doc/man/escript.html>`_ relying on the Myriad layer (``script_utils.erl``)
 - services addressed to the use of OTP, in ``otp_utils.erl``, allowing notably to run OTP applications out of an OTP context (typically through our native build/run system rather than through rebar3 and even OTP releases)
 - services about all kinds of **units** (``unit_utils.erl``); refer to the `Management of Units`_ section below for more information
-- support for **CSV** (Comma-Separated Values) files (``csv_utils.erl``)
-- support for **JSON** documents (``json_utils.erl``), based on any available parser backend (see the `JSON use`_ section for more details)
 - basic services for **trace emission** (a.k.a logging - not related to Erlang tracing), either directly through ``trace_utils.erl``, or thanks to ``trace_bridge.erl`` - typically to rely on more advanced trace systems such as `Ceylan-Traces <http://traces.esperide.org/>`_; now compliant with newer OTP logger and Syslog protocol as defined in `RFC 5424 <https://www.ietf.org/rfc/rfc5424.txt>`_, collecting bother userland traces and VM-level logs
 - very basic facilities for **applications** (not in the sense of OTP ones), in ``app_facilities.{e,h}rl`` with an example (``most_basic_example_app.erl``)
 

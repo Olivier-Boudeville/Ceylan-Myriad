@@ -55,7 +55,7 @@ For example a relevant backend will be automatically selected by:
 
 .. code:: bash
 
- $ cd test/user-interface/src
+ $ cd test/user-interface
  $ make ui_run
 
 
@@ -65,7 +65,7 @@ On the other hand, if wanting to select a specified backend:
 
  $ make ui_run CMD_LINE_OPT="--use-ui-backend term_ui"
 
-(see the corresponding `GNUmakefile <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/src/GNUmakefile>`_ for more information)
+(see the corresponding `GNUmakefile <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/GNUmakefile>`_ for more information)
 
 
 
@@ -137,7 +137,7 @@ So for example the messages received by the user programs do not mention ``wx``,
 The usual mode of operation is the following:
 
 :raw-html:`<center><img src="myriad-gui-mode-of-operation.png" id="responsive-image-medium"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-gui-mode-of-operation.png} \end{figure}`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-gui-mode-of-operation} \end{figure}`
 
 
 1. From a user process (a test, an application, etc.), the GUI support is first started, with ``gui:start/{0,1}``
@@ -156,7 +156,7 @@ Refer to the `gui_overall_test.erl <https://github.com/Olivier-Boudeville/Ceylan
 Here is a screenshot of the former test, where a random polygon (in green) is generated, for which are determined both the convex hull (in blue) and the MEC (*Minimum Enclosing Circle*, in purple):
 
 :raw-html:`<center><img src="myriad-minimal-enclosing-circle-test.png" id="responsive-image-medium"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-minimal-enclosing-circle-test.png} \end{figure}`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.4]{myriad-minimal-enclosing-circle-test} \end{figure}`
 
 
 Defining ``gui`` as an interface between the user code and a backend also allows to enrich said backend [#]_.
@@ -165,6 +165,13 @@ Defining ``gui`` as an interface between the user code and a backend also allows
 
 
 These services are located in ``{src,test}/user-interface/graphical`` (see ``gui.erl``, ``gui_color.erl``, ``gui_text.erl``, ``gui_canvas.erl``, etc.), with a few tests (``gui_test.erl``, ``lorenz_test.erl``) and will be enriched over time, on a per-need basis.
+
+.. _`Lorenz test`:
+
+This last ``lorenz_test.erl`` offers another complete example:
+
+:raw-html:`<center><img src="myriad-lorenz-test.png" id="responsive-image-full"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.2]{myriad-lorenz-test} \end{figure}`
 
 
 Related information of interest:
