@@ -199,11 +199,20 @@
 
 
 -type gltf_topology_type() :: enum().
-% Lower-level glTF specification of the datatype of a component.
+% Lower-level glTF topology ("mode") of a primitive (ex: corresponding to point,
+% line_loop, etc.).
 
 
 -type topology() :: [ indexed_triangle() ].
 % An index-based actual topology of a mesh.
+
+
+-type indice() :: linear:indice().
+% Any kind of indice.
+
+
+-type vertex_indice() :: linear:indice().
+% The indice of a vertex.
 
 
 -type buffer_view_target() :: 'array_buffer' | 'element_array_buffer'.
@@ -242,7 +251,7 @@
 			   element_type/0, gltf_element_type/0,
 			   component_type/0, gltf_component_type/0,
 			   component_value/0,
-			   gltf_topology_type/0, topology/0,
+			   gltf_topology_type/0, topology/0, indice/0, vertex_indice/0,
 			   buffer_view_target/0, gltf_buffer_view_target/0,
 			   generator_name/0, basic_content_settings/0 ]).
 
@@ -312,7 +321,11 @@
 		  get_buffer_view_target_associations/0,
 		  buffer_view_target_to_gltf/1, gltf_to_buffer_view_target/1,
 
-		  triangles_to_indices/1, indices_to_triangles/1 ]).
+		  triangles_to_indices/1, indices_to_triangles/1,
+
+
+		  % Lower-level operations:
+		  extract_all_uint16_little/1, extract_all_float32_little/1 ]).
 
 
 
@@ -339,7 +352,6 @@
 
 
 -type dimension() :: linear:dimension().
--type indice() :: linear:indice().
 -type indexed_triangle() :: linear:indexed_triangle().
 
 % Default is 'triangles':
@@ -433,7 +445,9 @@
 
 
 
-% So that we can use the 'table' pseudo-module, as JSON parsers rely on maps:
+% So that we can use the 'table' pseudo-module, knowing that JSON parsers rely
+% on maps:
+%
 -define( table_type, map_hashtable ).
 
 
@@ -951,7 +965,7 @@ write_gltf_content( GlTfContent, OutputFilePath, GeneratorName,
 
 
 
-% @doc Reads the glTF content defined in the specified file.
+% @doc Reads the glTF content defined in the specified glTF file.
 -spec read_gltf_content( any_file_path(), parser_state() ) -> content().
 read_gltf_content( InputFilePath, ParserState ) ->
 
@@ -1057,7 +1071,7 @@ gltf_buffer_embedded_to_raw_buffer( #gltf_buffer{ uri=Base64Uri,
 
 % @doc Converts the specified glTF content into a JSON counterpart.
 -spec gltf_content_to_json( content(), generator_name(), parser_state() ) ->
-			json().
+															json().
 gltf_content_to_json( #gltf_content{ default_scene=DefaultSceneId,
 									 scenes=Scenes,
 									 nodes=Nodes,
@@ -1251,14 +1265,17 @@ gltf_primitives_to_json( Primitives ) ->
 
 gltf_primitive_to_json( #gltf_primitive{ attributes=Attributes,
 										 indices=MaybeAccessIdx,
-										 material=MaybeMaterialIdx } ) ->
+										 material=MaybeMaterialIdx,
+										 mode=MaybeTopologyType } ) ->
 
 	BaseTable = table:new(
 		[ { <<"attributes">>, gltf_attributes_to_json( Attributes ) } ] ),
 
 	table:add_maybe_entries( [
 		{ <<"indices">>, MaybeAccessIdx },
-		{ <<"material">>, MaybeMaterialIdx } ], BaseTable ).
+		{ <<"material">>, MaybeMaterialIdx },
+		{ <<"mode">>, maybe_topology_to_gltf( MaybeTopologyType	) } ],
+							 BaseTable ).
 
 
 
@@ -1352,10 +1369,30 @@ gltf_buffer_to_json( #gltf_buffer{ name=MaybeName,
 
 
 % @doc Converts the specified JSON content into an (internal) glTF counterpart.
+%
+% Note: not implemented yet.
+%
 -spec json_to_gltf_content( json(), parser_state() ) -> content().
-json_to_gltf_content( _JSonContent, _ParserState ) ->
+json_to_gltf_content( JSonContent, _ParserState ) ->
 
-	% Use gltf_to_*
+	%trace_utils:debug_fmt( "Decoding following raw JSON to glTF content:~n ~p",
+	%                       [ JSonContent ] ),
+
+	JsonTerm = json_utils:from_json( JSonContent ),
+
+	%trace_utils:debug_fmt( "Decoded JSON term:~n ~p", [ JsonTerm ] ),
+
+	BufferEntries = case table:lookup_entry( _K= <<"buffers">>, JsonTerm ) of
+
+		{ value, V } ->
+			V;
+
+		key_not_found ->
+			[]
+
+	end,
+
+	GltfBuffers = [ json_to_gltf_buffer( BE ) || BE <- BufferEntries ],
 
 	DefaultSceneId = fixme,
 	Scenes  = fixme,
@@ -1364,9 +1401,8 @@ json_to_gltf_content( _JSonContent, _ParserState ) ->
 	Meshes = fixme,
 	Accessors = fixme,
 	BufferViews = fixme,
-	Buffers  = fixme,
 
-	throw( not_implemented_yet ),
+	%throw( not_implemented_yet ),
 
 	#gltf_content{ default_scene=DefaultSceneId,
 				   scenes=Scenes,
@@ -1375,7 +1411,23 @@ json_to_gltf_content( _JSonContent, _ParserState ) ->
 				   meshes=Meshes,
 				   accessors=Accessors,
 				   buffer_views=BufferViews,
-				   buffers=Buffers }.
+				   buffers=GltfBuffers }.
+
+
+
+-spec json_to_gltf_buffer( json_term() ) -> buffer().
+json_to_gltf_buffer( JsonTerm ) ->
+
+	[ ByteLen, BinUri ] = table:get_values( [ <<"byteLength">>, <<"uri">> ],
+											JsonTerm ),
+
+	MaybeBinName =
+		table:get_value_with_defaults( <<"name">>, undefined, JsonTerm ),
+
+	#gltf_buffer{ name=MaybeBinName,
+				  uri=text_utils:binary_to_string( BinUri ),
+				  size=ByteLen }.
+
 
 
 
@@ -1472,6 +1524,20 @@ get_topology_type_associations() ->
 						   { triangles, 4 },
 						   { triangle_strip, 5 },
 						   { triangle_fan, 6 } ] ).
+
+
+% @doc Converts a (Myriad-level) topology type (if any) into a (lower-level)
+% glTF one.
+%
+-spec maybe_topology_to_gltf( maybe( topology_type() ) ) ->
+			maybe( gltf_topology_type() ).
+maybe_topology_to_gltf( _MaybeTopologyType=undefined ) ->
+	% Preferred to default glTF value (4, for triangles):
+	undefined;
+
+maybe_topology_to_gltf( TopologyType ) ->
+	topology_type_to_gltf( TopologyType ).
+
 
 
 % @doc Converts a (Myriad-level) topology type into a (lower-level) glTF one.
@@ -2283,8 +2349,8 @@ generate_buffer( ElementType, ComponentType, Elements ) ->
 append_to_buffer( _ElementType=scalar, _ComponentType=uint16, Elements,
 				  Bin ) ->
 
-	%trace_utils:debug_fmt( "Appending following ~B indices to buffer:~n ~p",
-	%					   [ length( Elements ), Elements ] ),
+	%trace_utils:debug_fmt( "Appending following ~B uint16 (probably indices) "
+	%	"to buffer:~n ~p", [ length( Elements ), Elements ] ),
 
 	append_all_uint16_little( Elements, Bin );
 
@@ -2429,6 +2495,8 @@ extract_indices( Bin, ElementCount, ComponentType ) ->
 extract_elements( Bin, ElementCount, _ElemType=scalar,
 				  _ComponentType=uint16, _FinalType ) ->
 
+	% No final type applies here.
+
 	ComponentInts = extract_all_uint16_little( Bin ),
 
 	% Check:
@@ -2483,6 +2551,7 @@ extract_all_uint16_little( Bin ) ->
 	extract_all_uint16_little( Bin, _Acc=[] ).
 
 
+% (helper)
 extract_all_uint16_little( _Bin= <<>>, Acc ) ->
 	lists:reverse( Acc );
 
@@ -2500,6 +2569,7 @@ extract_all_float32_little( Bin ) ->
 	extract_all_float32_little( Bin, _Acc=[] ).
 
 
+% (helper)
 extract_all_float32_little( _Bin= <<>>, Acc ) ->
 	lists:reverse( Acc );
 
@@ -2509,7 +2579,7 @@ extract_all_float32_little( _Bin= <<F:32/float-little,Rest/binary>>, Acc ) ->
 
 
 % @doc Gathers specified components as a list of the elements of specified
-% dimension of the specifed final type.
+% dimension of the specified final type.
 %
 -spec gather_as( final_type(), dimension(), [ number() ] ) -> [ term() ].
 gather_as( FinalType, Dim, Components ) ->
@@ -2541,7 +2611,7 @@ gather_as( FinalType, Dim, Components, Acc ) ->
 % @doc Returns a flat list of vertex indices corresponding to the specified list
 % of (indexed) triangles.
 %
--spec triangles_to_indices( [ indexed_triangle() ] ) -> [ indice() ].
+-spec triangles_to_indices( [ indexed_triangle() ] ) -> [ vertex_indice() ].
 triangles_to_indices( Triangles ) ->
 	triangles_to_indices( Triangles, _Acc=[] ).
 
@@ -2560,7 +2630,7 @@ triangles_to_indices( _Triangles=[ { I1, I2, I3 } | T ], Acc ) ->
 % @doc Returns the list of (indexed) triangles corresponding to the specified
 % flat list of vertex indices.
 %
--spec indices_to_triangles( [ indice() ] ) -> [ indexed_triangle() ].
+-spec indices_to_triangles( [ vertex_indice() ] ) -> [ indexed_triangle() ].
 indices_to_triangles( Indices ) ->
 	indices_to_triangles( Indices, _Acc=[] ).
 
