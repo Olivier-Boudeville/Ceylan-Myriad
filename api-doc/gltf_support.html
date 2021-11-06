@@ -143,7 +143,8 @@ matrices.</p>
 
 <h3 class="typedecl"><a name="type-gltf_topology_type">gltf_topology_type()</a></h3>
 <p><tt>gltf_topology_type() = <a href="#type-enum">enum()</a></tt></p>
-<p> Lower-level glTF specification of the datatype of a component.</p>
+<p> Lower-level glTF topology ("mode") of a primitive (ex: corresponding to point,
+ line_loop, etc.).</p>
 
 <h3 class="typedecl"><a name="type-indexed_triangle">indexed_triangle()</a></h3>
 <p><tt>indexed_triangle() = <a href="linear.html#type-indexed_triangle">linear:indexed_triangle()</a></tt></p>
@@ -151,7 +152,7 @@ matrices.</p>
 
 <h3 class="typedecl"><a name="type-indice">indice()</a></h3>
 <p><tt>indice() = <a href="linear.html#type-indice">linear:indice()</a></tt></p>
-
+<p> Any kind of indice.</p>
 
 <h3 class="typedecl"><a name="type-json">json()</a></h3>
 <p><tt>json() = <a href="json_utils.html#type-json">json_utils:json()</a></tt></p>
@@ -202,7 +203,7 @@ matrices.</p>
  Rendering (PBR) methodology.</p>
 
 <h3 class="typedecl"><a name="type-primitive">primitive()</a></h3>
-<p><tt>primitive() = #gltf_primitive{attributes = <a href="gltf_support.html#type-attributes">gltf_support:attributes()</a>, indices = <a href="#type-maybe">maybe</a>(<a href="gltf_support.html#type-accessor_index">gltf_support:accessor_index()</a>), material = <a href="#type-maybe">maybe</a>(<a href="gltf_support.html#type-accessor_index">gltf_support:accessor_index()</a>), mode = <a href="#type-maybe">maybe</a>(<a href="gltf_support.html#type-topology_type">gltf_support:topology_type()</a>)}</tt></p>
+<p><tt>primitive() = #gltf_primitive{attributes = <a href="gltf_support.html#type-attributes">gltf_support:attributes()</a>, indices = <a href="#type-maybe">maybe</a>(<a href="gltf_support.html#type-accessor_index">gltf_support:accessor_index()</a>), material = <a href="#type-maybe">maybe</a>(<a href="gltf_support.html#type-accessor_index">gltf_support:accessor_index()</a>), mode = <a href="#type-maybe">maybe</a>(<a href="linear_2D.html#type-topology_type">linear_2D:topology_type()</a>)}</tt></p>
 <p> A primitive defined in a mesh in a glTF content, corresponding to the data
  required for GPU draw calls.</p>
 
@@ -262,6 +263,10 @@ matrices.</p>
 <p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-vertex_indice">vertex_indice()</a></h3>
+<p><tt>vertex_indice() = <a href="linear.html#type-indice">linear:indice()</a></tt></p>
+<p> The indice of a vertex.</p>
+
 <h3 class="typedecl"><a name="type-zero_index">zero_index()</a></h3>
 <p><tt>zero_index() = <a href="basic_utils.html#type-zero_index">basic_utils:zero_index()</a></tt></p>
 
@@ -315,6 +320,10 @@ into the specified glTF content.</td></tr>
  specified glTF content: returns its vertices, normals and texture coordinates.</td></tr>
 <tr><td valign="top"><a href="#decode_vertices-5">decode_vertices/5</a></td><td>Decodes the vertices defined in the specified glTF content.</td></tr>
 <tr><td valign="top"><a href="#element_type_to_gltf-1">element_type_to_gltf/1</a></td><td>Converts a (Myriad-level) component type into a (lower-level) glTF one.</td></tr>
+<tr><td valign="top"><a href="#extract_all_float32_little-1">extract_all_float32_little/1</a></td><td>Extracts from the specified binary all single-precision (32 bit) floats,
+ supposed encoded in little-endian.</td></tr>
+<tr><td valign="top"><a href="#extract_all_uint16_little-1">extract_all_uint16_little/1</a></td><td>Extracts from the specified binary all 16 bit unsigned integers, supposed
+ encoded in little-endian.</td></tr>
 <tr><td valign="top"><a href="#extract_points-4">extract_points/4</a></td><td>Extracts specified points from specified binary (typically obtained from
  a buffer view).</td></tr>
 <tr><td valign="top"><a href="#extract_vectors-4">extract_vectors/4</a></td><td>Extracts specified vectors from specified binary (typically obtained from
@@ -353,7 +362,7 @@ targets.</td></tr>
  embedding its content directly into a relevant base64-encoded URI.</td></tr>
 <tr><td valign="top"><a href="#raw_buffer_to_gltf_buffer_embedded-2">raw_buffer_to_gltf_buffer_embedded/2</a></td><td>Returns a glTF buffer corresponding to the specified binary, embedding
  its content directly into a relevant base64-encoded URI.</td></tr>
-<tr><td valign="top"><a href="#read_gltf_content-2">read_gltf_content/2</a></td><td>Reads the glTF content defined in the specified file.</td></tr>
+<tr><td valign="top"><a href="#read_gltf_content-2">read_gltf_content/2</a></td><td>Reads the glTF content defined in the specified glTF file.</td></tr>
 <tr><td valign="top"><a href="#set_default_scene-2">set_default_scene/2</a></td><td>Sets the specified scene as the default one (overriding any prior).</td></tr>
 <tr><td valign="top"><a href="#set_node_mesh-2">set_node_mesh/2</a></td><td>Sets the specified mesh index of the specified glTF node; returns the
  updated node.</td></tr>
@@ -580,6 +589,22 @@ index of the new primitive and an updated glTF content.</p>
 <p> </p>
 </div><p>Converts a (Myriad-level) component type into a (lower-level) glTF one.</p>
 
+<h3 class="function"><a name="extract_all_float32_little-1">extract_all_float32_little/1</a></h3>
+<div class="spec">
+<p><tt>extract_all_float32_little(Bin::<a href="#type-raw_buffer">raw_buffer()</a>) -&gt; [float()]</tt><br></p>
+<p> </p>
+</div><p>Extracts from the specified binary all single-precision (32 bit) floats,
+ supposed encoded in little-endian.
+</p>
+
+<h3 class="function"><a name="extract_all_uint16_little-1">extract_all_uint16_little/1</a></h3>
+<div class="spec">
+<p><tt>extract_all_uint16_little(Bin::<a href="#type-raw_buffer">raw_buffer()</a>) -&gt; [integer()]</tt><br></p>
+<p> </p>
+</div><p>Extracts from the specified binary all 16 bit unsigned integers, supposed
+ encoded in little-endian.
+</p>
+
 <h3 class="function"><a name="extract_points-4">extract_points/4</a></h3>
 <div class="spec">
 <p><tt>extract_points(Bin::<a href="#type-raw_buffer">raw_buffer()</a>, ElementCount::<a href="#type-count">count()</a>, ElemType::<a href="#type-element_type">element_type()</a>, ComponentType::<a href="#type-component_type">component_type()</a>) -&gt; [<a href="#type-specialised_point">specialised_point()</a>]</tt><br></p>
@@ -754,7 +779,7 @@ targets.</p>
 
 <h3 class="function"><a name="indices_to_triangles-1">indices_to_triangles/1</a></h3>
 <div class="spec">
-<p><tt>indices_to_triangles(Indices::[<a href="#type-indice">indice()</a>]) -&gt; [<a href="#type-indexed_triangle">indexed_triangle()</a>]</tt><br></p>
+<p><tt>indices_to_triangles(Indices::[<a href="#type-vertex_indice">vertex_indice()</a>]) -&gt; [<a href="#type-indexed_triangle">indexed_triangle()</a>]</tt><br></p>
 <p> </p>
 </div><p>Returns the list of (indexed) triangles corresponding to the specified
  flat list of vertex indices.
@@ -764,7 +789,10 @@ targets.</p>
 <div class="spec">
 <p><tt>json_to_gltf_content(JSonContent::<a href="#type-json">json()</a>, ParserState::<a href="#type-parser_state">parser_state()</a>) -&gt; <a href="#type-content">content()</a></tt><br></p>
 <p> </p>
-</div><p>Converts the specified JSON content into an (internal) glTF counterpart.</p>
+</div><p><p>Converts the specified JSON content into an (internal) glTF counterpart.</p>
+
+ Note: not implemented yet.
+</p>
 
 <h3 class="function"><a name="raw_buffer_to_gltf_buffer_embedded-1">raw_buffer_to_gltf_buffer_embedded/1</a></h3>
 <div class="spec">
@@ -786,7 +814,7 @@ targets.</p>
 <div class="spec">
 <p><tt>read_gltf_content(InputFilePath::<a href="#type-any_file_path">any_file_path()</a>, ParserState::<a href="#type-parser_state">parser_state()</a>) -&gt; <a href="#type-content">content()</a></tt><br></p>
 <p> </p>
-</div><p>Reads the glTF content defined in the specified file.</p>
+</div><p>Reads the glTF content defined in the specified glTF file.</p>
 
 <h3 class="function"><a name="set_default_scene-2">set_default_scene/2</a></h3>
 <div class="spec">
@@ -810,7 +838,7 @@ targets.</p>
 
 <h3 class="function"><a name="triangles_to_indices-1">triangles_to_indices/1</a></h3>
 <div class="spec">
-<p><tt>triangles_to_indices(Triangles::[<a href="#type-indexed_triangle">indexed_triangle()</a>]) -&gt; [<a href="#type-indice">indice()</a>]</tt><br></p>
+<p><tt>triangles_to_indices(Triangles::[<a href="#type-indexed_triangle">indexed_triangle()</a>]) -&gt; [<a href="#type-vertex_indice">vertex_indice()</a>]</tt><br></p>
 <p> </p>
 </div><p>Returns a flat list of vertex indices corresponding to the specified list
  of (indexed) triangles.

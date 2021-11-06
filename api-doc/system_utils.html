@@ -304,7 +304,7 @@ the current node.</td></tr>
  local system resources.</td></tr>
 <tr><td valign="top"><a href="#get_resource_limits_string-0">get_resource_limits_string/0</a></td><td>Returns a textual description of the current limits (ulimit) in terms of 
 local system resources.</td></tr>
-<tr><td valign="top"><a href="#get_size-1">get_size/1</a></td><td>Returns the size of specified term, in bytes, on the heap.</td></tr>
+<tr><td valign="top"><a href="#get_size-1">get_size/1</a></td><td>Returns the size of the specified term, in bytes.</td></tr>
 <tr><td valign="top"><a href="#get_size_of_vm_word-0">get_size_of_vm_word/0</a></td><td>Returns the size, in bytes, of a word of this Virtual Machine.</td></tr>
 <tr><td valign="top"><a href="#get_size_of_vm_word_string-0">get_size_of_vm_word_string/0</a></td><td>Returns a textual description of the size of a VM word.</td></tr>
 <tr><td valign="top"><a href="#get_standard_environment-0">get_standard_environment/0</a></td><td>Returns a default, standard environment for "porcelain"-like executions, 
@@ -950,13 +950,16 @@ local system resources.</p>
 
 <h3 class="function"><a name="get_size-1">get_size/1</a></h3>
 <div class="spec">
-<p><tt>get_size(Term::term()) -&gt; <a href="#type-byte_size">byte_size()</a></tt><br></p>
+<p><tt>get_size(Bin::term()) -&gt; <a href="#type-byte_size">byte_size()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the size of specified term, in bytes, on the heap.</p>
+</div><p><p>Returns the size of the specified term, in bytes.</p>
 
- Note that off-heap data (such as binaries larger than 64 bytes) is not counted
- here. The (flat) size is incremented to account for the top term word (which
- is kept in a register or on the stack).
+ <p>This size is used in RAM, usually in the process heap, except for off-heap 
+data such as "large" binaries (larger than 64 bytes), which are stored in a 
+global heap (and reference-counted).</p>
+
+ The (flat) size of on-heap terms is incremented to account for the top term
+ word (which is kept in a register or on the stack).
 </p>
 
 <h3 class="function"><a name="get_size_of_vm_word-0">get_size_of_vm_word/0</a></h3>
