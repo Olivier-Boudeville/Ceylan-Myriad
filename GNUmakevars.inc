@@ -130,6 +130,7 @@ endif
 #  - linear: for operations on vectors, matrices, etc.
 #  - bounding_boxes: for computations of bounding boxes
 #  - gltf_support: for the support of the glTf 2.0 format
+#  - protobuf_support: regarding how Protocol Buffer shall be managed
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
@@ -148,6 +149,7 @@ ifeq ($(ENABLE_DEBUG),true)
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 
 endif
 
@@ -157,6 +159,7 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 
 endif
 
@@ -385,7 +388,9 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 # the upper layers be able to decide; if not, the defaults apply)
 #
 # We chose the USE_* variables to be set with '=' rather than with ':=' yet it
-# is not believed to really matter in this case.
+# is not believed to really matter in this case, except that a makefile should
+# include this files (probably indirectly GNUmakesettings.inc) before testing
+# these variables.
 
 # For the reading and writing of large, often scientific-oriented data:
 #USE_HDF5 = false
@@ -400,7 +405,7 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 #USE_JSON = true
 
 # To be able to serialise data with the Protobuf (Protocol Buffer) format:
-#USE_PROTOBUF = false
+USE_PROTOBUF = false
 #USE_PROTOBUF = true
 
 # For SQL database operations, based on SQLite 3 operations:
@@ -551,9 +556,26 @@ ifeq ($(USE_JSON),true)
 endif
 
 
+
+# Always defined for example to clean them whereas USE_PROTOBUF disabled:
+PROTOBUF_SPEC_FILES = $(wildcard *.proto)
+
+PROTOBUF_GENERATED_HRL_FILES = $(patsubst %.proto,%.hrl,$(PROTOBUF_SPEC_FILES))
+PROTOBUF_GENERATED_ERL_FILES = $(patsubst %.proto,%.erl,$(PROTOBUF_SPEC_FILES))
+
+PROTOBUF_GENERATED_FILES = $(PROTOBUF_GENERATED_HRL_FILES) $(PROTOBUF_GENERATED_ERL_FILES)
+
 ifeq ($(USE_PROTOBUF),true)
 
-	 # We rely on the gpb compiler.
+	# Refer to https://myriad.esperide.org/#about-protobuf
+
+
+	# So that user code may conditionally include generated header files of
+	# Protobuf accessors:
+	#
+	ERLANG_COMPILER_GENERAL_OPT += -Dmyriad_uses_protobuf
+
+	# We rely on the gpb compiler.
 
 	USE_GPB = true
 	#USE_GPB = false
@@ -564,7 +586,7 @@ ifeq ($(USE_PROTOBUF),true)
 		# https://github.com/tomas-abrahamsson/gpb
 
 		# Install obtained thanks to (see also
-		# https://myriad.esperide.org/#file-formats)
+		# https://myriad.esperide.org/#about-protobuf)
 		#
 		# $ mkdir -p ~/Software/gpb
 		# $ cd ~/Software/gpb
@@ -574,12 +596,38 @@ ifeq ($(USE_PROTOBUF),true)
 		# $ git clone https://github.com/tomas-abrahamsson/gpb.git
 
 		# $ ln -s gpb gpb-current-install
-
-		#GPB_OPT =
+		# $ cd gpb && make all
 
 		# A convention of our own that one may want to respect:
 		GPB_SOFTWARE_BASE := $$HOME/Software/gpb/gpb-current-install
 		GPB_SOFTWARE_INSTALL_BASE := $(GPB_SOFTWARE_BASE)/_build/default/lib/gpb
+
+		GPB_COMPILER := $$(PATH=$(GPB_SOFTWARE_BASE)/bin:$$PATH which protoc-erl 2>/dev/null)
+
+		GBP_INC := $(GPB_SOFTWARE_BASE)/include
+
+		# For the compilation of the generated files:
+		INC += -I$(GBP_INC)
+
+		# For the meaning of options, refer to
+		# https://myriad.esperide.org/#about-protobuf
+
+		# -I$(GBP_INC) is not needed here:
+		GPB_BASE_OPT := -I. -strbin -pkgs -rename msg_fqname:snake_case -rename msg_fqname:dots_to_underscores -MMD  -Werror -W1
+
+		ifeq ($(EXECUTION_TARGET),development)
+			 GPB_OPT := $(GPB_BASE_OPT) -v always -vdrp
+		else
+			 GPB_OPT := $(GPB_BASE_OPT) -v never
+		 endif
+
+
+		# PB for Protobuff in general:
+		PB_COMPILER := $(GPB_COMPILER)
+
+		PB_OPT := $(GPB_OPT)
+
+		PB_DEPS_FILE = GNUmakedeps.protobuf
 
 		# No includes for GPB:
 		#INC +=
@@ -751,6 +799,10 @@ ifeq ($(USE_SQLITE),false)
 	EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) sql_support.erl sql_support_test.erl
 endif
 
+
+#ifeq ($(USE_PROTOBUF),false)
+#	EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) $(PROTOBUF_GENERATED_ERL_FILES)
+#endif
 
 ERL_FILES = $(filter-out $(EXCLUDED_SOURCES), $(ALL_ERL_FILES))
 

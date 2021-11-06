@@ -34,16 +34,19 @@
 			rebar3-cache-clean rebar3-info rebar3-hex-publish                \
 			rebar3-local-update                                              \
 			test-hex-package                                                 \
+			generate-protobuf                                                \
 			sync-to-server                                                   \
 			generate-api-doc generate-api-alt-doc copy-static-content        \
 			clean-api-doc clean-api-alt-doc                                  \
 			generate-list-of-erlang-types generate-list-of-local-types       \
 			generate-local-plt self-check-against-plt write-debug-key-file   \
 			check check-hook help-erl                                        \
-			clean clean-erlang clean-layer-ebin clean-python clean-database  \
-			clean-recurse clean-outputs clean-ast-debug real-clean track     \
+			clean clean-erlang clean-layer-ebin clean-python clean-protobuf  \
+			clean-database clean-recurse clean-outputs clean-ast-debug       \
+			real-clean track                                                 \
 			info-platform info-hardware info-software info-source-layout     \
 			info info-files info-meta info-erlang info-python info-java      \
+			info-protobuf                                                    \
 			info-sync info-check info-rebar3 info-compile info-options       \
 			info-parse-transform info-doc
 
@@ -340,11 +343,39 @@ clean-include-links:
 # All of them should be available only from the root of the layer:
 ifeq ($(BASE_MAKEFILE),true)
 
-
 # For a better compliance to OTP conventions:
 copy-beams-to-ebin:
 	@echo "  Copying BEAM files to local ebin ($$(pwd)/ebin)"
 	@mkdir -p ebin; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
+
+
+FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(PROJECT_NAME_FOR_REBAR)
+
+# Section for newer OTP management: we create now automatically from our actual
+# source tree (in GIT) a simpler, fake one that respects the conventions that
+# rebar3 expects (instead of trying to have our actual build tree be somewhat
+# compliant with rebar3, which proved utterly complicated and frustrating) .
+#
+# Unfortunately this will not work either, as even in this case rebar will try
+# to recompile these BEAMs... (and fail; sigh).
+#
+create-fake-otp-project: all
+	@echo "  Creating a fake OTP project for $(PROJECT_NAME_FOR_REBAR) in $(FAKE_OTP_ROOT)"
+	-@/bin/rm -rf $(FAKE_OTP_ROOT)
+	@mkdir -p $(FAKE_OTP_ROOT)/{src,include,priv,ebin}
+	@find . -name '*.erl' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/src/ ';'
+	@find . -name '*.hrl' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/include/ ';'
+	@find . -name '*.beam' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/ebin/ ';'
+	# Copy rebar.config in root, myriad.app in ebin, etc.
+
+
+real-clean: rebar3-real-clean
+
+endif
+
+# End of the section regarding installation and OTP integration:
+
+
 
 
 # Installation section (in an ad-hoc way).
@@ -872,6 +903,10 @@ test-hex-package: rebar-test-clean
 # End of the longer rebar-related section.
 
 
+# Implies PROTOBUF_GENERATED_HRL_FILES:
+generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
+
+
 # Synchronises the sources of the current layer to the specified server
 # location.
 
@@ -936,33 +971,6 @@ clean-api-alt-doc:
 #
 generate-list-of-erlang-types:
 	@if [ -z "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified."; exit 15; fi; if [ ! -d "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist."; exit 16; fi; target_file="declared-types-in-Erlang.txt"; erl="$(ERLANG_INTERPRETER)"; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1"); echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
-
-
-FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(PROJECT_NAME_FOR_REBAR)
-
-# Section for newer OTP management: we create now automatically from our actual
-# source tree (in GIT) a simpler, fake one that respects the conventions that
-# rebar3 expects (instead of trying to have our actual build tree be somewhat
-# compliant with rebar3, which proved utterly complicated and frustrating) .
-#
-# Unfortunately this will not work either, as even in this case rebar will try
-# to recompile these BEAMs... (and fail; sigh).
-#
-create-fake-otp-project: all
-	@echo "  Creating a fake OTP project for $(PROJECT_NAME_FOR_REBAR) in $(FAKE_OTP_ROOT)"
-	-@/bin/rm -rf $(FAKE_OTP_ROOT)
-	@mkdir -p $(FAKE_OTP_ROOT)/{src,include,priv,ebin}
-	@find . -name '*.erl' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/src/ ';'
-	@find . -name '*.hrl' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/include/ ';'
-	@find . -name '*.beam' -a ! -name '*_test.*' -exec /bin/cp -f '{}' $(FAKE_OTP_ROOT)/ebin/ ';'
-	# Copy rebar.config in root, myriad.app in ebin, etc.
-
-
-real-clean: rebar3-real-clean
-
-# End of the section regarding installation and OTP integration:
-endif
-
 
 
 generate-list-of-local-types:
@@ -1033,8 +1041,8 @@ help-erl:
 		"then 'hello:world().', then CTRL-C CTRL-C"
 
 
-clean: clean-erlang clean-python clean-java clean-database clean-override \
-	   clean-recurse
+clean: clean-erlang clean-python clean-java clean-protobuf clean-database \
+	   clean-override clean-recurse
 
 
 # Not calling the 'clean-layer-ebin' target from here (too demanding):
@@ -1057,6 +1065,11 @@ clean-python:
 # We can have a Java binding:
 clean-java:
 	-@/bin/rm -f *.class
+
+
+clean-protobuf:
+	@echo "   Cleaning Protobuf-generated files"
+	-@/bin/rm -f GNUmakedeps.protobuf $(PROTOBUF_GENERATED_FILES)
 
 
 clean-database:
@@ -1205,6 +1218,14 @@ info-java:
 	@echo "JINTERFACE_ROOT = $(JINTERFACE_ROOT)"
 	@echo "JAVAC_OPT = $(JAVAC_OPT)"
 
+
+info-protobuf:
+	@echo "USE_PROTOBUF = $(USE_PROTOBUF)"
+	@echo "USE_GPB = $(USE_GPB)"
+	@echo "PB_COMPILER = $(PB_COMPILER)"
+	@echo "PB_OPT = $(PB_OPT)"
+	@echo "PROTOBUF_SPEC_FILES = $(PROTOBUF_SPEC_FILES)"
+	@echo "PROTOBUF_GENERATED_FILES = $(PROTOBUF_GENERATED_FILES)"
 
 
 info-sync:

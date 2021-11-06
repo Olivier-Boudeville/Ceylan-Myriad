@@ -88,6 +88,17 @@
 
 
 
+ifeq ($(USE_PROTOBUF),true)
+
+# Single execution, two targets generated:
+%.erl %.hrl &: %.proto
+	@echo "		Generating $@ from Protobuf spec $<"
+	@"$(PB_COMPILER)" $(PB_OPT) $< 1>$(PB_DEPS_FILE)
+
+endif
+
+
+
 # Application section.
 
 

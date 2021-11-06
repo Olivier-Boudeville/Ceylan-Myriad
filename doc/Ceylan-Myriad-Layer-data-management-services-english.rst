@@ -249,11 +249,14 @@ Erlang supports, out of the box, `three main ASN.1 encodings <https://www.erlang
 - PER (*Packed Encoding Rules*): a bit-level serialisation stream, either aligned to byte boundaries (PER) or not (UPER, for *Unaligned PER*); if both are very compact and complex to marshall/demarshall, it is especially true for the size/processing trade-off of UPER
 - JER (*JSON Encoding Rules*), hence based on JSON_
 
-Our preference goes towards first UPER, then PER, knowing that a strength of ASN.1 is the expected ability to switch encodings easily.
+
+Our preference goes towards first UPER, then PER. A strength of ASN.1 is the expected ability to switch encodings easily; so, should the OER encoding (*Octet Encoding Rules*; faster to decode/encode than BER and PER, and almost as compact as PER) be supported in the future, it could be adopted "transparently".
+
 
 An issue of this approach is that, beyond Erlang, the (U)PER encoding does not seem so widely available as free software: besides commercial offers (like `this one <https://www.obj-sys.com/products/asn1c/index.php>`_), some languages could be covered to some extent (ex: `Python <https://github.com/eerimoq/asn1tools>`_, Java with `[1] <https://github.com/alexvoronov/gcdc-asn1/tree/master/asn1-uper>`_ or `[2] <https://github.com/ericsson-mts/mts-asn1>`_), but for example no such solution could be found for the .NET language family (ex: for C#); also the complexity of the encoding may lead to solutions supporting only a subset of the standard.
 
 So, at least for the moment, we chose Protobuf.
+
 
 
 About Protobuf
@@ -263,11 +266,71 @@ Compared to ASN.1 UPER, Protobuf is probably simpler/more limited, and less comp
 
 Albeit Protobuf is considerably more recent, implementations of it in free software are rather widely available in terms of languages, with `reference implementations <https://developers.google.com/protocol-buffers/docs/reference/overview>`_ and third-party ones (example for `.NET <https://github.com/protobuf-net/protobuf-net>`_).
 
-In the case of Erlang, Protobuf is not natively supported, yet various libraries offer such a support. `gpb <https://github.com/tomas-abrahamsson/gpb>`_ seems to be the recommended option, which we retained.
+In the case of Erlang, Protobuf is not natively supported, yet various libraries offer such a support.
+
+`gpb <https://github.com/tomas-abrahamsson/gpb>`_ seems to be the recommended option, this is therefore the backend that we retained. For increased performance, `enif_protobuf <https://github.com/jg513/enif_protobuf>`_ could be considered as a possible drop-in replacement.
+
+Our procedure to install ``gpb``:
+
+.. code:: bash
+
+ $ cd ~/Software/gpb
+ $ git clone git@github.com:tomas-abrahamsson/gpb.git
+ $ ln -s gpb gpb-current-install
+ $ cd gpb && make all
+
+Then, so that ``protoc-erl`` is available on the shell, one may add in one's ``~/.bashrc``:
+
+.. code:: bash
+
+ # Erlang protobuf gpb support:
+ export GPB_ROOT="${HOME}/Software/gpb/gpb-current-install"
+ export PATH="${GPB_ROOT}/bin:${PATH}"
+
+
+
+Our preferred settings (configurable, yet by default enforced natively by Myriad's build system) are: (between parentheses, the gbp API counterpart to the ``protoc-erl`` command-line options)
+
+- ``proto3`` version rather than ``proto2`` (so ``{proto_defs_version,3}``)
+- messages shall be decoded as tuples/records rather than maps (so not specifying the ``-maps`` / ``maps`` option, not even ``-mapfields-as-maps``) for a better compactness and a clearer, more statically-defined structure - even if it implies including the generated ``*.hrl`` files in the user code and complexifying the build (ex: tests having to compile with or without a Protobuff backend available, with or without generated headers; refer to ``protobuf_support_test.erl`` for a full, integrated example)
+- decoded strings should be returned as binaries rather than plain ones (so specifying the ``-strbin`` / ``strings_as_binaries`` option)
+- ``-pkgs`` /  ``use_packages`` (and ``{pkg_name, {prefix, "MyPackage"}``) to prefix a message name by its package (regardless of the ``.proto`` filename in which it is defined)
+- ``-rename msg_fqname:snake_case`` then ``-rename msg_fqname:dots_to_underscores`` (in that order), so that a message type named ``Person`` defined in package ``myriad.protobuf.test`` results in the definition of a ``myriad_protobuf_test_person()`` type and in a ``#myriad_protobuf_test_person{}`` record
+- ``-MMD`` / ``list_deps_and_generate`` to generate a ``GNUmakedeps.protobuf`` makefile tracing dependencies between message types
+- ``-v`` / ``verify`` set to  ``never``, unless ``EXECUTION_TARGET`` has been set to ``development`` (``myriad_check_protobuf`` is enabled), in which case it is set to  ``always``
+- ``-vdrp`` / ``verify_decode_required_present`` set iff ``EXECUTION_TARGET`` has been set to ``development`` (``myriad_check_protobuf`` is enabled)
+- ``-Werror`` / ``warnings_as_errors``, ``-W1`` / ``return_warnings``, ``return_errors`` (preferably to their ``report*`` counterparts)
+
+
+We prefer generating Protobuff (Erlang) accessors thanks to the command-line rather than driving the generating through a specific Erlang program relying on the gpb API.
+
+See our ``protobuf_support`` module for further information.
+
 
 This support may be enabled from Myriad's ``GNUmakevars.inc``, thanks to the ``USE_PROTOBUF`` boolean variable that implies in turn the ``USE_GPB`` one.
 
+One may also rely on our:
 
+- ``GNUmakerules-protobuf.inc``, in ``src/data-management``, to include in turn any relevant dependency information; dependencies are by default automatically generated in a ``GNUmakedeps.protobuf`` file
+- general explicit rules, for example ``generate-protobuf`` (to generate accessors), ``info-protobuf`` and ``clean-protobuf`` (to remove generated accessors)
+- automatic rules, for example ``make X.beam`` when a ``X.proto`` exists in the current directory; applies our recommended settings)
+
+
+One may note that:
+
+- a Protobuff message, i.e. the (binary) serialised form of a term (here being a record), is generally smaller than this term (for example, ``protobuf_support_test`` reports a binary of 39 bytes, to be compared to the 112 bytes reported for the corresponding record/tuple)
+- the encoding of the serialised form does not imply any specific obfuscation; for example binary strings comprised in the term to serialise may be directly readable from its binary serialisation, as clear text
+
+
+References:
+
+- `general Protobuf Wikipedia presentation <https://en.wikipedia.org/wiki/Protocol_Buffers>`_
+- `official page of Protobuf <https://developers.google.com/protocol-buffers>`_
+- `proto3 Language Guide <https://developers.google.com/protocol-buffers/docs/proto3>`_
+- gpb-related information:
+
+  - command-line options: ``protoc-erl -h``
+  - `gpb API documentation <https://hexdocs.pm/gpb/>`_, notably the many options of `gpb_compile documentation <https://hexdocs.pm/gpb/gpb_compile.html#option-use_packages>`_ and the `Erlang-Protobuff mapping <https://hexdocs.pm/gpb/gpb_compile.html#description>`_
 
 
 
