@@ -1692,15 +1692,20 @@ get_size_of_vm_word_string() ->
 
 
 
-% @doc Returns the size of specified term, in bytes, on the heap.
+% @doc Returns the size of the specified term, in bytes.
 %
-% Note that off-heap data (such as binaries larger than 64 bytes) is not counted
-% here. The (flat) size is incremented to account for the top term word (which
-% is kept in a register or on the stack).
+% This size is used in RAM, usually in the process heap, except for off-heap
+% data such as "large" binaries (larger than 64 bytes), which are stored in a
+% global heap (and reference-counted).
+%
+% The (flat) size of on-heap terms is incremented to account for the top term
+% word (which is kept in a register or on the stack).
 %
 -spec get_size( term() ) -> byte_size().
-get_size( Term ) ->
+get_size( Bin ) when is_binary( Bin ) ->
+	byte_size( Bin );
 
+get_size( Term ) ->
 	% With sharing taken into account:
 	% use ( erts_debug:size( Term ) + 1 ) * get_size_of_vm_word()
 	%
