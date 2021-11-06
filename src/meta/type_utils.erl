@@ -138,7 +138,7 @@
 
 % Let T1 be a type defined from an immediate value V of a type that is named T2
 % (hence T1 is a type comprising a single value); T1 is specified as "V"
-% (knowing that T2 can be inferred from V), and D(T1) = { T2, V }.
+% (knowing that T2 can be inferred from V), and D(T1) = {T2, V}.
 %
 % So, for example:
 %
@@ -459,6 +459,9 @@
 % floating-point values).
 
 
+-type record() :: tuple().
+% Designates a record instance, to discriminate from a mere tuple.
+
 
 % Tuploids. See also augment_tuploid/2.
 
@@ -478,7 +481,7 @@
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
-			   low_level_type/0,
+			   low_level_type/0, record/0,
 			   tuploid/0, tuploid/1 ]).
 
 
@@ -576,11 +579,11 @@ description_to_type( TypeDescription ) ->
 %scan_type( TypeDescription ) ->
 	%case tokenise_per_union( TypeDescription ) of
 
-	%	[ T ] ->
-	%		T;
+	%   [ T ] ->
+	%       T;
 
-	%	UnionisedTypes ->
-	%		{ union, [ scan_type( T ) || T <- UnionisedTypes ] }
+	%   UnionisedTypes ->
+	%       { union, [ scan_type( T ) || T <- UnionisedTypes ] }
 
 	%end;
 % Last: all other types.
@@ -980,10 +983,10 @@ get_simple_builtin_types() ->
 %
 -spec is_type( term() ) -> boolean().
 %is_type( { Tag, SubTypes } ) when is_list( SubTypes ) ->
-%	lists:member( Tag, get_elementary_types() );
+%   lists:member( Tag, get_elementary_types() );
 %
 %is_type( _T ) ->
-%	false.
+%   false.
 
 % To be implemented:
 is_type( _T ) ->
@@ -1124,8 +1127,8 @@ are_types_identical( _FirstType, _SecondType ) ->
 %
 -spec get_low_level_type_size( low_level_type() ) -> byte_size().
 get_low_level_type_size( uint8 ) -> 1;
-get_low_level_type_size( sint8 ) -> 1
-;
+get_low_level_type_size( sint8 ) -> 1;
+
 get_low_level_type_size( uint16 ) -> 2;
 get_low_level_type_size( sint16 ) -> 2;
 
