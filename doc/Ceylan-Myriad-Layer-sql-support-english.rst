@@ -122,8 +122,8 @@ Pretty reassuring.
 
 
 
-SQL Support Provided By the *Myriad* Layer
-------------------------------------------
+SQL Support Provided By the Myriad Layer
+----------------------------------------
 
 To enable this support, once the corresponding back-end (see `Database Back-end`_) and binding (see `Erlang SQL Binding`_) have been installed, the ``USE_SQLITE`` variable should be set to ``true`` in ``myriad/GNUmakevars.inc`` and ``Myriad`` shall be rebuilt.
 
