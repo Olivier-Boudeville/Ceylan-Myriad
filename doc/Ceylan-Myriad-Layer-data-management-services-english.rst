@@ -296,6 +296,7 @@ Our preferred settings (configurable, yet by default enforced natively by Myriad
 - decoded strings should be returned as binaries rather than plain ones (so specifying the ``-strbin`` / ``strings_as_binaries`` option)
 - ``-pkgs`` /  ``use_packages`` (and ``{pkg_name, {prefix, "MyPackage"}``) to prefix a message name by its package (regardless of the ``.proto`` filename in which it is defined)
 - ``-rename msg_fqname:snake_case`` then ``-rename msg_fqname:dots_to_underscores`` (in that order), so that a message type named ``Person`` defined in package ``myriad.protobuf.test`` results in the definition of a ``myriad_protobuf_test_person()`` type and in a ``#myriad_protobuf_test_person{}`` record
+- ``-preserve-unknown-fields`` (thus ``preserve_unknown_fields``) will be set iff ``EXECUTION_TARGET`` has been set to ``development`` (``myriad_check_protobuf`` is enabled), and in this case will be checked so that a warning trace is sent if decoding unknown fields
 - ``-MMD`` / ``list_deps_and_generate`` to generate a ``GNUmakedeps.protobuf`` makefile tracing dependencies between message types
 - ``-v`` / ``verify`` set to  ``never``, unless ``EXECUTION_TARGET`` has been set to ``development`` (``myriad_check_protobuf`` is enabled), in which case it is set to  ``always``
 - ``-vdrp`` / ``verify_decode_required_present`` set iff ``EXECUTION_TARGET`` has been set to ``development`` (``myriad_check_protobuf`` is enabled)

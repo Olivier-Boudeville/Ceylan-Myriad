@@ -49,54 +49,61 @@
 
 test_protobuf() ->
 
-	% See thus example.proto and the generate example.[eh]rl:
-	ProtobuffSpec = "myriad_example",
+	% See thus "myriad_example.proto" and the generated "myriad_example.[eh]rl"
+	% files:
+	%
+	SpecName = myriad_example,
 
 	test_facilities:display( "Generating Protobuf messages from the "
-							 "'~ts' specification.", [ ProtobuffSpec ] ),
+							 "'~ts' specification.", [ SpecName ] ),
 
-	BlankInstance = #myriad_protobuf_test_person{},
+	BlankMessage = #myriad_protobuf_test_person{},
 
-	test_facilities:display( "Blank instance of the "
-		"#myriad_protobuf_test_person record: ~p", [ BlankInstance ] ),
+	test_facilities:display( "Blank message of the "
+		"myriad_protobuf_test_person type: ~p", [ BlankMessage ] ),
 
 	Name = <<"James Pond">>,
 	EmailAddress = <<"james@mi6.org">>,
 
-	SetInstance = BlankInstance#myriad_protobuf_test_person{
+	TargetMessage = BlankMessage#myriad_protobuf_test_person{
 						name=Name, id=7, email=EmailAddress },
 
-	TermSize = system_utils:get_size( SetInstance ),
+	TermSize = system_utils:get_size( TargetMessage ),
 
+	% Note that depending on the settings (see -preserve-unknown-fields),
+	% additional information may be stored:
+	%
 	MinSize = lists:sum( [ system_utils:get_size( T )
 		|| T <- [ myriad_protobuf_test_person, Name, 7, EmailAddress ] ] ),
 
-	test_facilities:display( "Set instance: ~p, whose overall size is ~ts, "
+	test_facilities:display( "Set message: ~p, whose overall size is ~ts, "
 		"its elements being of total size of ~ts.",
-		[ SetInstance, system_utils:interpret_byte_size( TermSize ),
+		[ TargetMessage, system_utils:interpret_byte_size( TermSize ),
 		  system_utils:interpret_byte_size( MinSize ) ] ),
 
-	SetBin = myriad_example:encode_msg( SetInstance ),
+	EncodedBin = protobuf_support:encode( SpecName, TargetMessage ),
 
-	SetBinSize = system_utils:get_size( SetBin ),
+	EncodedBinSize = system_utils:get_size( EncodedBin ),
 
 	% Actually negative:
-	Overhead = SetBinSize - TermSize,
+	Overhead = EncodedBinSize - TermSize,
 
 	% As this serialised form is more compact:
-	test_facilities:display( "Serialisation for this instance: ~p "
+	test_facilities:display( "Serialisation for this message: ~p "
 		"whose size is ~ts, for a gain (size decrease) of ~ts.",
-		[ SetBin, system_utils:interpret_byte_size( SetBinSize ),
+		[ EncodedBin, system_utils:interpret_byte_size( EncodedBinSize ),
 		  system_utils:interpret_byte_size( -Overhead ) ] ),
 
-	DecodedInstance = myriad_example:decode_msg( SetBin,
-		_MsgName=myriad_protobuf_test_person ),
+	DecodedMessage = protobuf_support:decode( SpecName,
+		_MsgType=myriad_protobuf_test_person, EncodedBin ),
 
-	DecodedTermSize = system_utils:get_size( DecodedInstance ),
+	DecodedTermSize = system_utils:get_size( DecodedMessage ),
 
-	test_facilities:display( "Deserialised instance: ~p, "
-		"whose overall size is ~ts", [ DecodedInstance,
-			system_utils:interpret_byte_size( DecodedTermSize ) ] ).
+	test_facilities:display( "Deserialised message: ~p, "
+		"whose overall size is ~ts", [ DecodedMessage,
+			system_utils:interpret_byte_size( DecodedTermSize ) ] ),
+
+	DecodedMessage = TargetMessage.
 
 
 -else. % myriad_uses_protobuf
@@ -104,7 +111,8 @@ test_protobuf() ->
 
 test_protobuf() ->
 
-	test_facilities:display( "No Protocol Buffer support enabled (see USE_PROTOBUF in GNUmakevars.inc), hence no test thereof." ).
+	test_facilities:display( "No Protocol Buffer support enabled "
+		"(see USE_PROTOBUF in GNUmakevars.inc), hence no test thereof." ).
 
 
 -endif. % myriad_uses_protobuf

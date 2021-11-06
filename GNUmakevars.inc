@@ -71,14 +71,17 @@ ifndef EXECUTION_TARGET
 endif
 
 
-# We have to define a symbol specific to the 'production' execution target
+# We defined a symbol specific to the 'production' execution target
 # (exec_target_is_production) instead of relying only on an execution_target
-# variable that could be set either to 'development' or 'production', as the
-# Erlang preprocessor allows only to test whether a symbol is defined (with
-# -ifdef), we cannot test its value.
+# variable that could be set either to 'development' or 'production', as we
+# thought (apparently erroneously; or maybe it was improved over time) that the
+# Erlang preprocessor allowed only to test whether a symbol is defined (with
+# -ifdef), and did not allow to test its value (however '-if(...).' seems to
+# allow that).
 #
-# So the code is to use '-ifdef(target_production_exec)' instead of something
-# like '-ifdef(execution_target,production)'.
+# So our code uses '-ifdef(exec_target_is_production)' instead of something like
+# '-if(execution_target ## production)'.' where ## could be '=', '==', '=:='
+# (not able to find the syntax for such macro conditions)
 #
 ifeq ($(EXECUTION_TARGET),development)
 
@@ -616,9 +619,9 @@ ifeq ($(USE_PROTOBUF),true)
 		GPB_BASE_OPT := -I. -strbin -pkgs -rename msg_fqname:snake_case -rename msg_fqname:dots_to_underscores -MMD  -Werror -W1
 
 		ifeq ($(EXECUTION_TARGET),development)
-			 GPB_OPT := $(GPB_BASE_OPT) -v always -vdrp
+			GPB_OPT := $(GPB_BASE_OPT) -v always -vdrp -preserve-unknown-fields
 		else
-			 GPB_OPT := $(GPB_BASE_OPT) -v never
+			GPB_OPT := $(GPB_BASE_OPT) -v never
 		 endif
 
 
