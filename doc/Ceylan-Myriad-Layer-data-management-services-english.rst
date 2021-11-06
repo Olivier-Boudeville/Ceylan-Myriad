@@ -195,16 +195,16 @@ ETF files are notably used as **configuration files**. In this case following ex
   - their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (ex: ``"James Bond"``) rather than a binary one (ex: ``<<"James Bond">>``); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include *binary* strings (not plain ones, even though plain ones are used in the configuration files)
 
 
-.. _`glTf file format`:
+.. _`glTF file format`:
 
 To Export 3D Scenes
 ...................
 
-A basic support of `glTf <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Language Transmission Format*) version 2.0 has been implemented in ``gltf_support.{hrl,erl}``.
+A basic support of `glTF <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Language Transmission Format*) version 2.0 has been implemented in ``gltf_support.{hrl,erl}``.
 
 The various elements associated to that model (scenes, nodes, meshes, primitives, materials, lights, cameras, buffers, buffer-views, accessors) can be handled from Erlang, in an already integrated way to Myriad's `spatial services and conventions`_.
 
-See the `glTf 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information.
+See the `glTF 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information.
 
 
 

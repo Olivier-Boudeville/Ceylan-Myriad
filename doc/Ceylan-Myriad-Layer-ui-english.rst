@@ -195,8 +195,26 @@ it is probably the sign that an attempt was done to perform an operation on an a
 For 3D Applications
 ...................
 
-The ``wx`` services also include a support for `OpenGL <https://en.wikipedia.org/wiki/OpenGL>`_. It can be easily tested by running ``wx:demo()`` from any Erlang shell and selecting then ``gl`` in the left example menu.
+The ``wx`` services also include a support for `OpenGL <https://en.wikipedia.org/wiki/OpenGL>`_, including in order to create a suitable GL context - in addition to the related Erlang-native modules such as `gl <https://www.erlang.org/doc/man/gl.html>`_ and `glu <https://www.erlang.org/doc/man/glu.html>`_.
 
-We gather a few helpers in ``gui_opengl``. This topic directly relates to Myriad's `spatial services and conventions`_ and to its support of the `glTf file format`_.
+These services can be easily tested by running ``wx:demo()`` from any Erlang shell and selecting then ``gl`` in the left example menu.
+
+We gather a few helpers in ``gui_opengl``. This topic directly relates to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
 
 
+
+For Multimedia Applications
+...........................
+
+If the 2D/3D rendering can be done through ``wx``, apparently the **audio capabilities** (ex: `[1] <https://docs.wxwidgets.org/3.0/group__group__class__media.html>`_, `[2] <https://docs.wxwidgets.org/3.0/classwx_sound.html>`_) of wxWidgets have not been made available to Erlang.
+
+So an Erlang program needing audio output (ex: sound special effects, musics) and/or input (ex: microphone) will have to rely on another option, possibly in link, for audio rendering, with `eopenal <https://github.com/edescourtis/eopenal>`_, an (Erlang) binding of `OpenAL <https://en.wikipedia.org/wiki/OpenAL>`_.
+
+
+
+For Interactive Applications
+............................
+
+Beyond the rendering of multimedia content, user interfaces have to **collect inputs from the user**, typically through mice, keyboards and joysticks.
+
+Formerly, a port of `SDL <https://www.libsdl.org/>`_, `esdl <https://github.com/dgud/esdl>`_, was the best option, now using ``wx`` for that is recommended, as, through this port, the various input devices can be managed.
