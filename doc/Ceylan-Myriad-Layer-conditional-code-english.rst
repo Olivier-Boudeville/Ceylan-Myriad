@@ -46,7 +46,7 @@ Defining the code to inject
 
 Based on the defined tokens, code may be injected; this code can be any Erlang expression, and the value to which it will evaluate (at runtime) can be used as any other value in the program.
 
-Injecting a *single* expression (i.e. not multiple ones) is not a limitation: not only this single expression can be a function call (thus corresponding to arbitrarily many expressions), but more significantly a series of expressions can be nested in a ``begin`` / ``end`` block, making them a single expression [#]_.
+Injecting a *single* expression (i.e. not multiple ones) is not a limitation: not only this single expression can be a function call (thus corresponding to arbitrarily many expressions), but more significantly a sequence of expressions (a.k.a. a *body*) can be nested in a ``begin`` / ``end`` block, making them a single expression [#]_.
 
 
 .. [#] A previous implementation of ``cond_utils`` allowed to specify the code to inject either as an expression or as a *list* of expressions.
@@ -57,9 +57,9 @@ Injecting a *single* expression (i.e. not multiple ones) is not a limitation: no
 
 	   .. code:: erlang
 
-		  cond_utils:if_defined( my_token, [
+		  cond_utils:if_defined(my_token, [
 			  A = 1,
-			  io:format( "Hello ~p!~n", [ A ] ) ] ),
+			  io:format("Hello ~p!~n", [A])]),
 
 	   (and moreover such code will trigger a compilation error, the ``A`` in ``io:format/2`` being reported as unbounded then)
 
@@ -161,6 +161,21 @@ Example:
 
   Level = cond_utils:if_set_to(my_token, foobar_enabled, 1.0, 0.0) + 4.5
 
+
+A similar construct in spirit  is ``switch_execution_target/2``, which will, depending on the current build-time `execution target`_, inject a corresponding expression:
+
+.. code:: erlang
+
+ cond_utils:switch_execution_target(EXPR_IF_IN_DEVELOPMENT_MODE, EXPR_IF_IN_PRODUCTION_MODE)
+
+So if the current execution target is development, the compilation will inject ``EXPR_IF_IN_DEVELOPMENT_MODE``, otherwise ``EXPR_IF_IN_PRODUCTION_MODE`` will be.
+
+Example:
+
+.. code:: erlang
+
+  io:format( "We are in ~ts mode.",
+	  [cond_utils:switch_execution_target("development", "production")])
 
 
 Finally, the ``switch_set_to/{2,3}`` primitives allow to generalise these ``if``-like constructs, with one among any number of code branches selected based on the build-time value of a token, possibly with defaults (should the token not be defined at all, or defined to a value that is not among the ones associated to a code branch).

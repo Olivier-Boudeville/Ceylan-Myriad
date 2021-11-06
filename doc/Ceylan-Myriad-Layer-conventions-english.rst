@@ -130,6 +130,7 @@ The most obvious conventions are:
 As not all typos may be detected at compilation-time (ex: wrong spelling for a module), we recommend, for source code, the use of additional static checkers, as discussed in the `type-checking`_ section.
 
 
+.. _`execution target`:
 
 Execution Targets
 =================
@@ -141,7 +142,7 @@ Two execution target modes have been defined:
 
 These execution targets are *compile-time* modes, i.e. they are set once for all when building the layer at hand (probably based, if using OTP, on the rebar corresponding modes - respectively ``dev`` and ``prod``).
 
-See ``EXECUTION_TARGET`` in ``GNUmakevars.inc`` to read and/or set them.
+See the ``EXECUTION_TARGET`` variable in ``GNUmakevars.inc`` to read and/or set them.
 
 The current execution target is of course available at runtime on a per-layer level, see ``basic_utils:get_execution_target/0`` for more information.
 

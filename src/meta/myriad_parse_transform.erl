@@ -692,7 +692,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 		( _FileLocCall,
 		  _FunctionRef={ remote, _, {atom,_,cond_utils},
-						 {atom,FileLoc,if_defined} },
+							{atom,FileLoc,if_defined} },
 		  _Params=[ _Other, _ExprFormIfDef, _ExprFormIfNotDef ],
 		  _Transforms ) ->
 			ast_utils:display_error(
@@ -728,9 +728,9 @@ get_ast_global_transforms( DesiredTableType ) ->
 				% Right value found matching:
 				{ value, RequestedValue } ->
 					%ast_utils:display_debug( "Token '~p' defined and set to "
-					%           "the right value ('~p'), hence "
-					%           "injecting the expression ~p",
-					%           [ Token, RequestedValue, ExprForm ] ),
+					%   "the right value ('~p'), hence "
+					%   "injecting the expression ~p",
+					%   [ Token, RequestedValue, ExprForm ] ),
 
 					% So we will (attempt to) inject this expression:
 					inject_expression( ExprForm, Transforms, FileLocToken );
@@ -859,6 +859,44 @@ get_ast_global_transforms( DesiredTableType ) ->
 				ast_utils:file_loc_to_explicative_term( FileLoc ) } );
 
 
+		%%%%%%% Section for cond_utils:switch_execution_target/2 %%%%%%%%%%%%%%%
+
+		% switch_execution_target( A, B) shall be equivalent to:
+		% if_defined( _Token=exec_target_is_production, A, B ).
+
+		( _FileLocCall,
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+							{atom,FileLocFun,switch_execution_target} },
+		  _Params=[ ExprIfInDevMode, ExprIfProdMode ],
+		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
+
+			%ast_utils:display_debug(
+			%   "Call to cond_utils:switch_execution_target/2 found." ),
+
+			case ?table:lookup_entry( _Token=exec_target_is_production,
+									  TokenTable ) of
+
+				% Any value associated to this token will do, as we want just to
+				% detect whether it is defined at all:
+				%
+				{ value, _Any } ->
+					%ast_utils:display_debug( "Token '~p' defined, hence "
+					%    "injecting the 'production' expression ~p",
+					%    [ Token, ExprIfInDevMode ] ),
+					inject_expression( ExprIfProdMode, Transforms,
+									   FileLocFun );
+
+				key_not_found ->
+					%ast_utils:display_debug( "Token '~p' not defined, hence "
+					%    "injecting the 'developement' expression ~p",
+					%    [ Token, ExprFormIfNotDef ] ),
+					inject_expression( ExprIfInDevMode, Transforms,
+									   FileLocFun )
+
+			end;
+
+			% No token-related error case to handle here.
+
 
 		%%%%%%% Section for cond_utils:switch_set_to %%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -876,8 +914,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:switch_set_to/2 "
-			%	"found, for token '~p' and token-expression table "
-			%	"(as form):~n  ~p.", [ Token, TokenExprTableAsForm ] ),
+			%   "found, for token '~p' and token-expression table "
+			%   "(as form):~n  ~p.", [ Token, TokenExprTableAsForm ] ),
 
 			TokenValue = case ?table:lookup_entry( Token, TokenTable ) of
 
@@ -996,7 +1034,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%   "skipping as a whole expressions ~n~p",
+					%   "skipping as a whole expression ~n~p",
 					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
@@ -1011,8 +1049,8 @@ get_ast_global_transforms( DesiredTableType ) ->
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
 			%ast_utils:display_debug( "Call to cond_utils:assert/2 found, "
-			%                         "with token '~p' and expression form ~p.",
-			%                         [ Token, ExpressionForm ] ),
+			%   "with token '~p' and expression form ~p.",
+			%   [ Token, ExpressionForm ] ),
 
 			case ?table:lookup_entry( Token, TokenTable ) of
 
@@ -1026,7 +1064,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%   "skipping as a whole expressions ~n~p",
+					%   "skipping as a whole expression ~n~p",
 					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
@@ -1052,7 +1090,7 @@ get_ast_global_transforms( DesiredTableType ) ->
 				{ value, RequestedValue } ->
 					%ast_utils:display_debug( "Token '~p' defined and set to "
 					%    "the right value ('~p'), hence "
-					%    "injecting the expressions ~p",
+					%    "injecting the expression ~p",
 					%    [ Token, RequestedValue, ExpressionForm ] ),
 
 					% So we will (attempt to) inject a match expression:
@@ -1063,13 +1101,13 @@ get_ast_global_transforms( DesiredTableType ) ->
 				{ value, _OtherValue } ->
 					%ast_utils:display_debug( "Token '~p' defined but not set "
 					%   "to the right value (set to '~ts' instead of '~ts'), "
-					%   "hence skipping as a whole expressions ~n~p",
+					%   "hence skipping as a whole expression ~n~p",
 					%   [ Token, OtherValue, RequestedValue, ExpressionForm ] ),
 					{ _Expr=[], Transforms };
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%   "skipping as a whole expressions ~n~p",
+					%   "skipping as a whole expression ~n~p",
 					%   [ Token, ExprForm ] ),
 					{ _Expr=[], Transforms }
 
