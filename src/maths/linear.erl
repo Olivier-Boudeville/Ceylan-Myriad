@@ -57,9 +57,8 @@
 
 
 -type coordinate() :: float().
-
-
-% Cartesian (floating-point) coordinates in a referential.
+% Cartesian real (actually double-precision floating-point) coordinates in a
+% referential.
 
 
 -type integer_coordinate() :: integer().
