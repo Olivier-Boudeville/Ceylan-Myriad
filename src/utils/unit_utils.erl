@@ -275,7 +275,9 @@
 -type radians() :: float().
 % Angle in radians.
 %
-% Preferably to be kept in [0.0,2.Pi[.
+% 2π radians is equal to 360 degrees.
+%
+% Preferably to be kept in [0.0,2π[.
 
 
 -type degrees() :: float().
