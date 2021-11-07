@@ -44,7 +44,7 @@
 
 
 % Operations on floating-point values (in Erlang, a float is a C double):
--export([ are_close/2, are_close/3,
+-export([ are_close/2, are_close/3, are_equal/2, are_equal/3,
 		  are_relatively_close/2, are_relatively_close/3,
 		  get_relative_difference/2, is_null/1 ]).
 
@@ -335,6 +335,7 @@ squarify( L ) ->
 % Floating-point section.
 
 
+
 % @doc Returns true iff the two specified floating-point numbers are deemed
 % close enough to be equal, based on default epsilon threshold.
 %
@@ -348,6 +349,27 @@ are_close( X, Y ) ->
 %
 -spec are_close( number(), number(), number() ) -> boolean().
 are_close( X, Y, Epsilon ) ->
+	erlang:abs( X - Y ) < Epsilon.
+
+
+
+% @doc Returns true iff the two specified floating-point numbers are deemed
+% close enough to be equal, based on default epsilon threshold.
+%
+% Note: alias of are_close/2, defined for consistency.
+%
+-spec are_equal( number(), number() ) -> boolean().
+are_equal( X, Y ) ->
+	erlang:abs( X - Y ) < ?epsilon.
+
+
+% @doc Returns true iff the two specified floating-point numbers are deemed
+% close enough to be equal, based on specified epsilon threshold.
+%
+% Note: alias of are_close/3, defined for consistency.
+%
+-spec are_equal( number(), number(), number() ) -> boolean().
+are_equal( X, Y, Epsilon ) ->
 	erlang:abs( X - Y ) < Epsilon.
 
 
