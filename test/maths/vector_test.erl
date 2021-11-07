@@ -88,6 +88,22 @@ run() ->
 	test_facilities:display( "V3 = V1 + V2 = ~ts",
 							 [ vector:to_string( V3 ) ] ),
 
+	MinusV3 = [ -11.0, -27.0, 4.0 ],
+	MinusV3 = vector:scale( V3, -1.0 ),
+
+	true = math_utils:are_close( 866.0, vector:square_magnitude( V3 ) ),
+
+	% Expected to be exact:
+	1.0 = vector:magnitude( X1 ),
+	true = vector:is_unitary( X1 ),
+
+	UnitV3 = vector:normalise( V3 ),
+
+	test_facilities:display( "Unit V3 = ~ts", [ vector:to_string( V3 ) ] ),
+
+	true = math_utils:are_close( 1.0, vector:magnitude( UnitV3 ) ),
+
+
 	[ 11.0, 54.0, -12.0 ] = vector:mult( V2, V3 ),
 
 	DP = vector:dot_product( V1, V2 ),

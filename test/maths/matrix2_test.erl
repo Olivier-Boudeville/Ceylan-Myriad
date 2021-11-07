@@ -59,6 +59,23 @@ run() ->
 	test_facilities:display( "Identity matrix is: ~ts",
 							 [ matrix2:to_string( Id ) ] ),
 
+
+
+	RotAngle = math:pi() / 2,
+	Deg90Rot = matrix2:rotation( RotAngle ),
+
+	test_facilities:display( "Rotation matrix of angle ~f radians is: ~ts",
+							 [ RotAngle, matrix2:to_string( Id ) ] ),
+
+	% Transforms the abscissa axis into the ordinate one:
+	X = [ 1.0, 0.0 ],
+	Y = [ 0.0, 1.0 ],
+
+	% Check:
+	true = vector2:are_equal( Y, matrix2:apply( Deg90Rot, X ) ),
+
+
+
 	V1 = [ 10.0, 25.0 ],
 	V2 = [ 1.0, 2.0 ],
 

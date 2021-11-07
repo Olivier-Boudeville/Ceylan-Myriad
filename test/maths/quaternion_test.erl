@@ -45,6 +45,11 @@ run() ->
 
 	NullQ = quaternion:null(),
 
+	% Octave: Q = quaternion(2, 3, 4, 1)
+	% The 'quaternion' must have been installed beforehand, for example with:
+	% pkg install -forge quaternion
+	%
+	% (beware that the real part is to be specified last)
 	Q = quaternion:new( 1, 2, 3, 4 ),
 
 	test_facilities:display( "Base textual representation for Q = ~w: ~ts",
@@ -59,5 +64,23 @@ run() ->
 	test_facilities:display( "User-friendly textual representation "
 		"for Q = ~w: ~ts", [ Q, quaternion:to_user_string( Q ) ] ),
 
+	% Octave: Q1 = quaternion(7, -3, 4.0, 0)
+	Q1 = quaternion:new( 0, 7, -3, 4.0 ),
+
+	AddQ = quaternion:add( Q, Q1 ),
+	AddQ = { 1.0, 9.0, 0.0, 8.0 },
+
+	Axis = [ 12.0, 1.0, 2.0 ],
+	UnitAxis = vector3:normalise( Axis ),
+
+	RadAngle = math:pi() / 7,
+
+	DirectRot3 = matrix3:rotation( UnitAxis, RadAngle ),
+
+	UnitQ = quaternion:rotation( UnitAxis, RadAngle ),
+
+	Rot3FromQ = quaternion:to_rot_matrix3( UnitQ ),
+
+	true = matrix3:are_equal( DirectRot3, Rot3FromQ ),
 
 	test_facilities:stop().

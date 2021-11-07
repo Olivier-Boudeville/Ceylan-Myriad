@@ -93,6 +93,10 @@
 % columns.
 
 
+-type rot_matrix() :: square_matrix().
+% A matrix describing a rotation.
+
+
 -type specialised_matrix() :: matrix2:matrix2()
 							| matrix3:matrix3()
 							| matrix4:matrix4().
@@ -122,14 +126,14 @@
 
 
 -export_type([ user_row/0, row/0, column/0,
-			   user_matrix/0, matrix/0, square_matrix/0,
+			   user_matrix/0, matrix/0, rot_matrix/0, square_matrix/0,
 			   specialised_matrix/0, specialised_module/0,
 			   row_index/0, column_index/0,
 			   row_count/0, column_count/0,
 			   dimensions/0 ]).
 
 
--export([ new/1, null/1, null/2, identity/1,
+-export([ new/1, null/1, null/2, identity/1, rotation/2,
 		  from_columns/1, from_rows/1,
 		  from_coordinates/2, to_coordinates/1,
 		  dimensions/1,
@@ -137,7 +141,7 @@
 		  get_element/3, set_element/4,
 		  transpose/1,
 		  scale/2,
-		  add/2, sub/2, mult/2,
+		  add/2, sub/2, mult/2, apply/2,
 		  are_equal/2,
 		  determinant/1, comatrix/1, inverse/1,
 		  get_specialised_module_of/1, get_specialised_module_for/1,
@@ -146,11 +150,17 @@
 		  to_string/1, to_basic_string/1, to_user_string/1 ] ).
 
 
+% To avoid clash with BIF:
+-compile( { no_auto_import, [ apply/2 ] } ).
+
+
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 
 -type factor() :: math_utils:factor().
+
+-type radians() :: unit_utils:radians().
 
 -type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
@@ -158,6 +168,7 @@
 
 -type vector() :: vector:vector().
 -type user_vector() :: vector:user_vector().
+-type unit_vector() :: vector3:unit_vector3().
 
 
 
@@ -197,6 +208,34 @@ null( RowCount, ColumnCount ) ->
 identity( Dim ) ->
 	[ [ case R of C -> 1.0; _ -> 0.0 end
 			|| C <- lists:seq( 1, Dim ) ] || R <- lists:seq( 1, Dim ) ].
+
+
+
+% @doc Returns the matrix corresponding to a rotation of the specified angle
+% around the axis specified as a unit vector.
+%
+% In 2D, the axis has no meaning in this context and will thus be ignored; in 3D
+% the usual rotation matrix will be returned; in 4D the returned matrix will be
+% an homogeneous (compact) one. No dimension higher than 4 is supported.
+%
+% This will be a counterclockwise rotation for an observer placed so that the
+% specified axis points towards it.
+%
+-spec rotation( unit_vector(), radians() ) -> matrix().
+rotation( UnitAxis, RadAngle ) ->
+	SpecialisedM = case vector:dimension( UnitAxis ) of
+
+		2 ->
+			matrix2:rotation( RadAngle );
+
+		3 ->
+			matrix3:rotation( UnitAxis, RadAngle );
+
+		4 ->
+			matrix4:rotation( UnitAxis, RadAngle )
+
+	end,
+	unspecialise( SpecialisedM ).
 
 
 
@@ -397,6 +436,17 @@ mult( _M1=[], _M2, AccRows ) ->
 mult( _M1=[ R1 | T1 ], TranspM2, AccRows ) ->
 	MultRow = apply_columns( R1, TranspM2, _Acc=[] ),
 	mult( T1, TranspM2, [ MultRow | AccRows ] ).
+
+
+
+% @doc Applies (on the right) the specified vector V to the specified matrix M:
+% returns M.V.
+%
+% Not a clause of mult/2 for an increased clarity.
+%
+-spec apply( matrix(), vector() ) -> vector().
+apply( _M=Rows, V ) ->
+	[ vector:dot_product( R, V ) || R <- Rows ].
 
 
 

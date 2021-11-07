@@ -115,8 +115,9 @@ run() ->
 
 	% Expected to be exact:
 	1.0 = vector3:magnitude( X1 ),
+	true = vector3:is_unitary( X1 ),
 
-	UnitV3 = vector3:make_unit( V3 ),
+	UnitV3 = vector3:normalise( V3 ),
 
 	test_facilities:display( "Unit V3 = ~ts", [ vector3:to_string( V3 ) ] ),
 

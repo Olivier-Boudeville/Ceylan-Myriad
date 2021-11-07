@@ -78,11 +78,15 @@
 -type compact_matrix3() :: #compact_matrix3{}.
 
 
+-type rot_matrix3() :: canonical_matrix3().
+% A matrix describing a 3D rotation.
+
+
 -export_type([ user_matrix3/0, matrix3/0, canonical_matrix3/0,
-			   compact_matrix3/0 ]).
+			   compact_matrix3/0, rot_matrix3/0 ]).
 
 
--export([ new/1, new/2, null/0, identity/0,
+-export([ new/1, new/2, null/0, identity/0, rotation/2,
 		  from_columns/3, from_rows/3,
 		  from_coordinates/9, from_compact_coordinates/6,
 		  from_2D/2,
@@ -92,7 +96,7 @@
 		  get_element/3, set_element/4,
 		  transpose/1,
 		  scale/2,
-		  add/2, sub/2, mult/2,
+		  add/2, sub/2, mult/2, apply/2,
 		  are_equal/2,
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
@@ -101,6 +105,10 @@
 
 
 -import( math_utils, [ is_null/1, are_close/2 ] ).
+
+% To avoid clash with BIF:
+-compile( { no_auto_import, [ apply/2 ] } ).
+
 
 -define( dim, 3 ).
 
@@ -111,6 +119,8 @@
 
 -type factor() :: math_utils:factor().
 
+-type radians() :: unit_utils:radians().
+
 -type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
 -type scalar() :: linear:scalar().
@@ -119,6 +129,7 @@
 
 -type user_vector3() :: vector3:user_vector3().
 -type vector3() :: vector3:vector3().
+-type unit_vector3() :: vector3:unit_vector3().
 
 -type dimensions() :: matrix:dimensions().
 
@@ -172,6 +183,60 @@ null() ->
 identity() ->
 	identity_3.
 
+
+
+% @doc Returns the (3x3) matrix corresponding to a rotation of the specified
+% angle around the axis specified as a unit vector.
+%
+% This will be a counterclockwise rotation for an observer placed so that the
+% specified axis points towards it.
+%
+% A rotation matrix is orthogonal, its inverse is its transpose, and its
+% determinant is 1.0.
+%
+% These 3D rotation matrices form a group known as the special orthogonal group
+% SO(3).
+%
+% See also: quaternion:rotation/2.
+%
+-spec rotation( unit_vector3(), radians() ) -> rot_matrix3().
+rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
+
+	% Not an assertion, as UnitAxis must be ignored if no check is done:
+	cond_utils:if_defined( myriad_check_linear,
+						   true = vector3:is_unitary( UnitAxis ),
+						   basic_utils:ignore_unused( UnitAxis ) ),
+
+	% Source:
+	% https://en.wikipedia.org/wiki/Rotation_matrix#Rotation_matrix_from_axis_and_angle
+
+	% Also in matrix4:rotation/2.
+
+	C = math:cos( RadAngle ),
+	S = math:sin( RadAngle ),
+
+	% One minus C:
+	OmC = 1 - C,
+
+	Uxy = Ux * Uy,
+	Uxz = Ux * Uz,
+	Uyz = Uy * Uz,
+
+	M11 = C + Ux*Ux*OmC,
+	M12 = Uxy*OmC - Uz*S,
+	M13 = Uxz*OmC + Uy*S,
+
+	M21 = Uxy*OmC + Uz*S,
+	M22 = C + Uy*Uy*OmC,
+	M23 = Uyz*OmC - Ux*S,
+
+	M31 = Uxz*OmC - Uy*S,
+	M32 = Uyz*OmC + Ux*S,
+	M33 = C + Uz*Uz*OmC,
+
+	#matrix3{ m11=M11, m12=M12, m13=M13,
+			  m21=M21, m22=M22, m23=M23,
+			  m31=M31, m32=M32, m33=M33 }.
 
 
 % @doc Returns the 3x3 matrix whose columns correspond to the specified 3 3D
@@ -425,8 +490,8 @@ transpose( CompactMatrix ) ->
 
 % @doc Scales specified (3D) matrix of the specified factor.
 -spec scale( matrix3(), factor() ) -> matrix3().
-scale( #compact_matrix3{ m11=M11, m12=M12,tx=Tx,
-						 m21=M21, m22=M22,ty=Ty }, Factor ) ->
+scale( #compact_matrix3{ m11=M11, m12=M12, tx=Tx,
+						 m21=M21, m22=M22, ty=Ty }, Factor ) ->
 	% Not anymore a compact matrix, as last (bottom-right) implicit coordinate
 	% (1.0) must be scaled as well:
 	%
@@ -634,6 +699,38 @@ mult( _Ma=#compact_matrix3{ m11=A11, m12=A12, tx=Ax,
 
 	#compact_matrix3{ m11=C11, m12=C12, tx=Cx,
 					  m21=C21, m22=C22, ty=Cy }.
+
+
+
+% @doc Applies (on the right) the specified vector V to the specified matrix M:
+% returns M.V.
+%
+% Not a clause of mult/2 for an increased clarity.
+%
+-spec apply( matrix3(), vector3() ) -> vector3().
+apply( _M=identity_3, V ) ->
+	V;
+
+apply( _M=#matrix3{ m11=M11, m12=M12, m13=M13,
+					m21=M21, m22=M22, m23=M23,
+					m31=M31, m32=M32, m33=M33 },
+	   _V=[ Vx, Vy, Vz ] ) ->
+
+	ResX = M11*Vx + M12*Vy + M13*Vz,
+	ResY = M21*Vx + M22*Vy + M23*Vz,
+	ResZ = M31*Vx + M32*Vy + M33*Vz,
+
+	[ ResX, ResY, ResZ ];
+
+
+apply( _M=#compact_matrix3{ m11=M11, m12=M12, tx=Tx,
+							m21=M21, m22=M22, ty=Ty },
+	   _V=[ Vx, Vy, Vz ] ) ->
+	ResX = M11*Vx + M12*Vy + Tx*Vz,
+	ResY = M21*Vx + M22*Vy + Ty*Vz,
+	ResZ = Vz,
+
+	[ ResX, ResY, ResZ ].
 
 
 

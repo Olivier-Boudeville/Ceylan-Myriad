@@ -109,8 +109,9 @@
 		  dimension/1,
 		  add/2, add/1, sub/2, mult/2,
 		  are_equal/2,
-		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
+		  square_magnitude/1, magnitude/1, negate/1, scale/2, normalise/1,
 		  dot_product/2,
+		  is_unitary/1,
 		  check/1, check_integer/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
@@ -139,7 +140,7 @@
 % @doc Returns an (arbitrary) vector corresponding to the user-specified one.
 -spec new( user_vector() ) -> vector().
 %new( UserVector ) when is_tuple( UserVector ) ->
-%	new( tuple_to_list( UserVector ) );
+%   new( tuple_to_list( UserVector ) );
 % Throws bad_generator anyway if a tuple:
 new( UserVector ) -> %when is_list( UserVector ) ->
 	[ type_utils:ensure_float( UC ) || UC <- UserVector ].
@@ -274,6 +275,15 @@ magnitude( V ) ->
 
 
 
+% @doc Negates the specified vector: returns the opposite one (of the same
+% magnitude).
+%
+-spec negate( vector() ) -> vector().
+negate( V ) ->
+	[ -C || C <- V ].
+
+
+
 % @doc Scales the specified vector of the specified factor.
 -spec scale( vector(), factor() ) -> vector().
 scale( V, Factor ) ->
@@ -281,18 +291,18 @@ scale( V, Factor ) ->
 
 
 
-% @doc Returns the specified vector with an unit length (whose magnitude is thus
-% 1.0).
+% @doc Normalises the specified non-null vector, that is returns it once scaled
+% to an unit length (whose magnitude is thus 1.0).
 %
--spec make_unit( vector() ) -> unit_vector().
-make_unit( V ) ->
+-spec normalise( vector() ) -> unit_vector().
+normalise( V ) ->
 	case magnitude( V ) of
 
 		M when M < ?epsilon ->
-			throw( cannot_make_null_vector_unit );
+			throw( cannot_normalise_null_vector );
 
 		M ->
-			scale( V, 1.0 / M )
+			scale( V, 1 / M )
 
 	end.
 
@@ -310,6 +320,16 @@ dot_product( _V1=[], _V2=[], Acc ) ->
 
 dot_product( _V1=[ H1 | T1 ], _V2=[ H2 | T2 ], Acc ) ->
 	dot_product( T1, T2, Acc + H1*H2 ).
+
+
+
+% @doc Returns whether the specified vector is unitary, that is whether it is of
+% magnitude 1.0.
+%
+-spec is_unitary( vector() ) -> boolean().
+is_unitary( V ) ->
+	% No specific need of computing the square root thereof:
+	math_utils:are_equal( 1.0, square_magnitude( V ) ).
 
 
 

@@ -63,6 +63,37 @@ run() ->
 	test_facilities:display( "Identity matrix is: ~ts",
 							 [ matrix3:to_string( Id ) ] ),
 
+
+	% Performing a counterclockwise rotation of 90° around the X axis:
+
+	UnitRotVec = [ 1.0, 0.0, 0.0 ],
+
+	RotAngle = math:pi() / 2,
+
+	RotM = matrix3:rotation( UnitRotVec, RotAngle ),
+	test_facilities:display( "Rotation matrix of angle ~f radians "
+		"around the following axis (unitary vector) ~ts is ~ts",
+		[ RotAngle, vector3:to_string( UnitRotVec ),
+		  matrix3:to_string( RotM ) ] ),
+
+	XAxis = [ 1.0, 0.0, 0.0 ],
+	YAxis = [ 0.0, 1.0, 0.0 ],
+	ZAxis = [ 0.0, 0.0, 1.0 ],
+
+	% Transforms axes that way (check):
+
+	% X unchanged:
+	true = vector3:are_equal( XAxis, matrix3:apply( RotM, XAxis ) ),
+
+	% Y to become Z:
+	true = vector3:are_equal( ZAxis, matrix3:apply( RotM, YAxis ) ),
+
+	% Z to become -Y:
+	MinusYAxis = vector3:negate( YAxis ),
+
+	true = vector3:are_equal( MinusYAxis, matrix3:apply( RotM, ZAxis ) ),
+
+
 	V1 = [ 10.0, 25.0, -7.0 ],
 	V2 = [ 1.0, 2.0, 4.0 ],
 	V3 = [ 0.0, 0.0, 5.0 ],

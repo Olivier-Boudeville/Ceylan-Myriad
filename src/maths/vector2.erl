@@ -98,9 +98,10 @@
 		  from_point/1, to_point/1,
 		  add/2, add/1, cross_product/2,
 		  are_close/2, are_equal/2,
-		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
+		  square_magnitude/1, magnitude/1, negate/1, scale/2, normalise/1,
 		  normal_left/1, normal_right/1,
 		  dot_product/2,
+		  is_unitary/1,
 		  check/1, check_integer/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
@@ -129,7 +130,7 @@
 % @doc Returns a 2D vector corresponding to the user-specified one.
 -spec new( user_vector2() ) -> vector2().
 %new( UserVector ) when is_tuple( UserVector ) ->
-%	new( tuple_to_list( UserVector ) );
+%   new( tuple_to_list( UserVector ) );
 % Throws bad_generator anyway if a tuple:
 new( _UserVector=[ X, Y ] ) ->
 	[ type_utils:ensure_float( X ), type_utils:ensure_float( Y ) ].
@@ -145,7 +146,7 @@ new( X, Y ) ->
 
 % @doc Returns an integer 2D vector corresponding to the user-specified one.
 -spec new_integer( integer_coordinate(), integer_coordinate() ) ->
-						  integer_vector2().
+							integer_vector2().
 new_integer( X, Y ) when is_integer( X ) andalso is_integer( Y ) ->
 	[ X, Y ].
 
@@ -235,6 +236,15 @@ magnitude( V ) ->
 
 
 
+% @doc Negates the specified vector: returns the opposite one (of the same
+% magnitude).
+%
+-spec negate( vector2() ) -> vector2().
+negate( _V=[X,Y] ) ->
+	[ -X, -Y ].
+
+
+
 % @doc Scales the specified 2D vector of the specified scalar factor.
 -spec scale( vector2(), factor() ) -> vector2().
 scale( _V=[X,Y], Factor ) ->
@@ -242,15 +252,15 @@ scale( _V=[X,Y], Factor ) ->
 
 
 
-% @doc Returns the specified 2D vector with an unit length (whose magnitude is
-% thus 1.0).
+% @doc Normalises the specified non-null 2D vector, that is returns it once
+% scaled to an unit length (whose magnitude is thus 1.0).
 %
--spec make_unit( vector2() ) -> unit_vector2().
-make_unit( V ) ->
+-spec normalise( vector2() ) -> unit_vector2().
+normalise( V ) ->
 	case magnitude( V ) of
 
 		M when M < ?epsilon ->
-			throw( cannot_make_null_vector_unit );
+			throw( cannot_normalise_null_vector );
 
 		M ->
 			scale( V, 1.0 / M )
@@ -280,6 +290,16 @@ normal_right( _V=[X,Y] ) ->
 -spec dot_product( vector2(), vector2() ) -> float().
 dot_product( _V1=[ X1, Y1 ], _V2=[ X2, Y2 ] ) ->
 	X1*X2 + Y1*Y2.
+
+
+
+% @doc Returns whether the specified vector is unitary, that is whether it is of
+% magnitude 1.0.
+%
+-spec is_unitary( vector2() ) -> boolean().
+is_unitary( V ) ->
+	% No specific need of computing the square root thereof:
+	math_utils:are_equal( 1.0, square_magnitude( V ) ).
 
 
 

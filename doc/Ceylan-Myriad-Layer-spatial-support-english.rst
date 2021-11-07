@@ -25,7 +25,7 @@ This support is not expected to be specifically complete, battle-tested or effic
 - integrating advanced, non-Erlang libraries such as ones for linear operations implementing the `BLAS <https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms>`_ specification; using the C binding (*CBLAS interface*) of a renown implementation (optimised at length and making use of processor-specific extensions), such as `LAPACK <https://en.wikipedia.org/wiki/LAPACK>`_ and making it available to Erlang typically thanks to either NIFs (most suitable approach here) or a C-node (possibly thanks to `Ceylan-Seaplus <http://seaplus.esperide.org>`_) would certainly be an option - all the more relevant that a bulk of linear operations could be offset as a whole to it; some Erlang projects target similar objectives, like `linalg <https://github.com/sklassen/erlang-linalg-native>`_ or `matrex <https://github.com/versilov/matrex>`_; more generally the services implemented by a library such as `GSL <https://www.gnu.org/software/gsl/>`_ (the *GNU Scientific Library*) could, thanks to a third-party project, become available to Erlang programs
 
 
-In order to check the functional services and the correctness of operations, we recommend the use of `Scilab <https://www.scilab.org/>`_ (example on Arch: ``yay -Sy scilab``) or `GNU Octave <https://www.gnu.org/software/octave/>`_ (example on Arch: ``pacman -Sy octave``). Beware to the lower-precision of their textual outputs (ex: use ``format long`` with Octave to request 15 significant figures).
+In order to check the functional services and the correctness of operations, we recommend the use of `Scilab <https://www.scilab.org/>`_ (example on Arch: ``yay -Sy scilab``) or `GNU Octave <https://www.gnu.org/software/octave/>`_ (example on Arch: ``pacman -Sy octave``). Beware to the lower-precision of their textual outputs (ex: use ``format long`` with Octave to request 15 significant figures), and to the extra packages that may needed (ex: ``octave-quaternion``, available in the AUR).
 
 
 
@@ -131,10 +131,23 @@ In practice the actual, internal terms corresponding to all these matrices would
 							   m21=A21, m22=A22 }
 
 
+Finally, **quaternions** are also supported (see ``quaternion.erl``). They can be defined from 4 numbers, or as a 3D rotation. They are stored as quadruplets of floats, and can be added, multiplied, negated, scaled, normalised, conjugates, inversed, etc.
+
+.. math::
+ Q = \begin{bmatrix}
+		A \\
+		B \\
+		C \\
+		D \\
+	 \end{bmatrix}
+
+They notably provide a higher-level, more convenient counterpart to 3x3 rotation matrices (see ``matrix3:rot_matrix3()``); both can be computed from a unit axis and an angle.
+
+
 Note that:
 
 - we call a container *type-homogeneous* iff all the coordinates that it gathers are all either integer or floating-point ones
-- newer elements (ex: matrices, vectors, points) may be:
+- new instances (ex: of points, matrices, vectors, quaternions) may be:
 
   - either literally specified, with a term directly corresponding to their internal form
   - or based on a ``new`` operator (ex: ``matrix:new/1``), in which case with a higher-level user-term (ex: a matrix with integer coordinates, in which case they will be automatically converted to floats)
@@ -147,8 +160,9 @@ Note that:
   - implement the specialised versions
   - validate them against the arbitrary version
 
+- the most common operations are defined for each datatype: creating, modifying, comparing, displaying and, whenever appropriate: adding, subtracting, scaling, multiplying, rotating, measuring, transposing, reversing, etc.
 - operations are not implemented defensively, in the sense that a base runtime error will be triggered if a type or a size does not match, rather than being tested explicitly (anyway generally no useful extra context could then be specifically reported)
-- additional runtime checks can nevertheless be enabled by setting the ``myriad_check_linear`` flag (refer to ``GNUmakevars.inc``)
+- additional runtime checks (ex: to check whether parameters expected to be unit vectors are normalised indeed) can nevertheless be enabled by setting the ``myriad_check_linear`` flag (refer to ``GNUmakevars.inc``)
 - for `homogeneous coordinates <https://en.wikipedia.org/wiki/Homogeneous_coordinates#Use_in_computer_graphics_and_computer_vision>`_: any implicit homogeneous `w` coordinate is ``1.0``
 - most operations here involve floating-point coordinates, rather than integer ones; as an Erlang's ``float()`` is a double-precision one, it requires more resources (CPU and memory footprint) than a basic, single-precision one; for applications not requiring extra precision, maybe the Erlang VM could be compiled in order to rely on single-precision floats instead
 
@@ -166,7 +180,7 @@ For **space** coordinates, three axes are defined for a global referential:
 - ordinate: Y axis (in green, ``#008000``)
 - depth: Z axis (in blue, ``#0000FF``)
 
-By default, we rely on "Z-up" conventions (the Z axis being vertical and designating altitudes), like modelling software such as `Blender <https://www.blender.org/>`_ [#]_.
+By default, we consider right-handed Cartesian coordinate systems, and we rely on "Z-up" conventions (the Z axis being vertical and designating altitudes), like modelling software such as `Blender <https://www.blender.org/>`_ [#]_.
 
 .. [#] Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.
 

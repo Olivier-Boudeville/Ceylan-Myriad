@@ -98,8 +98,9 @@
 		  from_point/1, to_point/1,
 		  add/2, add/1, cross_product/2,
 		  are_close/2, are_equal/2,
-		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
+		  square_magnitude/1, magnitude/1, negate/1, scale/2, normalise/1,
 		  dot_product/2,
+		  is_unitary/1,
 		  check/1, check_integer/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1, list_to_string/1 ] ).
@@ -236,6 +237,15 @@ magnitude( V ) ->
 
 
 
+% @doc Negates the specified vector: returns the opposite one (of the same
+% magnitude).
+%
+-spec negate( vector3() ) -> vector3().
+negate( _V=[X,Y,Z] ) ->
+	[ -X, -Y, -Z ].
+
+
+
 % @doc Scales the specified 3D vector of the specified scalar factor.
 -spec scale( vector3(), factor() ) -> vector3().
 scale( _V=[X,Y,Z], Factor ) ->
@@ -243,15 +253,15 @@ scale( _V=[X,Y,Z], Factor ) ->
 
 
 
-% @doc Returns the specified 3D vector with an unit length (whose magnitude is
-% thus 1.0).
+% @doc Normalises the specified non-null 3D vector, that is returns it once
+% scaled to an unit length (whose magnitude is thus 1.0).
 %
--spec make_unit( vector3() ) -> unit_vector3().
-make_unit( V ) ->
+-spec normalise( vector3() ) -> unit_vector3().
+normalise( V ) ->
 	case magnitude( V ) of
 
 		M when M < ?epsilon ->
-			throw( cannot_make_null_vector_unit );
+			throw( cannot_normalise_null_vector );
 
 		M ->
 			scale( V, 1.0 / M )
@@ -264,6 +274,16 @@ make_unit( V ) ->
 -spec dot_product( vector3(), vector3() ) -> float().
 dot_product( _V1=[ X1, Y1, Z1 ], _V2=[ X2, Y2, Z2 ] ) ->
 	X1*X2 + Y1*Y2 + Z1*Z2.
+
+
+
+% @doc Returns whether the specified vector is unitary, that is whether it is of
+% magnitude 1.0.
+%
+-spec is_unitary( vector3() ) -> boolean().
+is_unitary( V ) ->
+	% No specific need of computing the square root thereof:
+	math_utils:are_equal( 1.0, square_magnitude( V ) ).
 
 
 

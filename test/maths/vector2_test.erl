@@ -108,8 +108,9 @@ run() ->
 	true = math_utils:are_close( 850.0, vector2:square_magnitude( V3 ) ),
 
 	1.0 = vector2:magnitude( X1 ),
+	true = vector2:is_unitary( X1 ),
 
-	UnitV3 = vector2:make_unit( V3 ),
+	UnitV3 = vector2:normalise( V3 ),
 
 	test_facilities:display( "Unit V3 = ~ts", [ vector2:to_string( V3 ) ] ),
 

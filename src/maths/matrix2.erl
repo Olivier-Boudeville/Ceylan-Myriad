@@ -61,6 +61,7 @@
 % arbitrary matrix) containing any kind of numerical coordinates.
 
 
+% Possibly to be added: {'rotation_2', radians()}.
 -type matrix2() :: 'identity_2' | canonical_matrix2().
 
 
@@ -68,11 +69,14 @@
 -type canonical_matrix2() :: #matrix2{}.
 
 
+-type rot_matrix2() :: canonical_matrix2().
+% A matrix describing a 2D rotation.
 
--export_type([ user_matrix2/0, matrix2/0, canonical_matrix2/0 ]).
+
+-export_type([ user_matrix2/0, matrix2/0, canonical_matrix2/0, rot_matrix2/0 ]).
 
 
--export([ new/1, null/0, identity/0,
+-export([ new/1, null/0, identity/0, rotation/1,
 		  from_columns/2, from_rows/2,
 		  from_coordinates/4,
 		  from_arbitrary/1, to_arbitrary/1,
@@ -81,7 +85,7 @@
 		  get_element/3, set_element/4,
 		  transpose/1,
 		  scale/2,
-		  add/2, sub/2, mult/2,
+		  add/2, sub/2, mult/2, apply/2,
 		  are_equal/2,
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1,
@@ -91,6 +95,10 @@
 
 -import( math_utils, [ are_close/2 ] ).
 
+% To avoid clash with BIF:
+-compile( { no_auto_import, [ apply/2 ] } ).
+
+
 -define( dim, 2 ).
 
 
@@ -99,6 +107,8 @@
 -type ustring() :: text_utils:ustring().
 
 -type factor() :: math_utils:factor().
+
+-type radians() :: unit_utils:radians().
 
 -type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
@@ -140,6 +150,25 @@ null() ->
 -spec identity() -> matrix2().
 identity() ->
 	identity_2.
+
+
+
+% @doc Returns the (2x2) matrix corresponding to a counterclockwise rotation
+% about the origin of the specified angle with respect to the abscissa (X) axis.
+%
+% A rotation matrix is orthogonal, its inverse is its transpose, and its
+% determinant is 1.0.
+%
+% These 2D rotation matrices form a group known as the special orthogonal group
+% SO(2).
+%
+-spec rotation( radians() ) -> rot_matrix2().
+rotation( RadAngle ) ->
+
+	Cos = math:cos( RadAngle ),
+	Sin = math:sin( RadAngle ),
+	#matrix2{ m11=Cos, m12=-Sin,
+			  m21=Sin, m22=Cos }.
 
 
 
@@ -370,6 +399,23 @@ mult( _Ma=#matrix2{ m11=A11, m12=A12,
 
 	#matrix2{ m11=C11, m12=C12,
 			  m21=C21, m22=C22 }.
+
+
+
+% @doc Applies (on the right) the specified vector V to the specified matrix M:
+% returns M.V.
+%
+% Not a clause of mult/2 for an increased clarity.
+%
+-spec apply( matrix2(), vector2() ) -> vector2().
+apply( _M=identity_2, V ) ->
+	V;
+
+apply( _M=#matrix2{ m11=M11, m12=M12,
+					m21=M21, m22=M22 }, _V=[ Vx, Vy ] ) ->
+	ResX = M11*Vx + M12*Vy,
+	ResY = M21*Vx + M22*Vy,
+	[ ResX, ResY ].
 
 
 

@@ -94,8 +94,9 @@
 		  from_point/1, to_point/1,
 		  add/2, add/1,
 		  are_close/2, are_equal/2,
-		  square_magnitude/1, magnitude/1, scale/2, make_unit/1,
+		  square_magnitude/1, magnitude/1, negate/1, scale/2, normalise/1,
 		  dot_product/2,
+		  is_unitary/1,
 		  check/1, check_integer/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
@@ -228,6 +229,15 @@ magnitude( V ) ->
 
 
 
+% @doc Negates the specified vector: returns the opposite one (of the same
+% magnitude).
+%
+-spec negate( vector4() ) -> vector4().
+negate( _V=[X,Y,Z,W] ) ->
+	[ -X, -Y, -Z, -W ].
+
+
+
 % @doc Scales the specified 4D vector of the specified scalar factor.
 -spec scale( vector4(), factor() ) -> vector4().
 scale( _V=[X,Y,Z,W], Factor ) ->
@@ -235,15 +245,15 @@ scale( _V=[X,Y,Z,W], Factor ) ->
 
 
 
-% @doc Returns the specified 4D vector with an unit length (whose magnitude is
-% thus 1.0).
+% @doc Normalises the specified non-null 4D vector, that is returns it once
+% scaled to an unit length (whose magnitude is thus 1.0).
 %
--spec make_unit( vector4() ) -> unit_vector4().
-make_unit( V ) ->
+-spec normalise( vector4() ) -> unit_vector4().
+normalise( V ) ->
 	case magnitude( V ) of
 
 		M when M < ?epsilon ->
-			throw( cannot_make_null_vector_unit );
+			throw( cannot_normalise_null_vector );
 
 		M ->
 			scale( V, 1.0 / M )
@@ -256,6 +266,17 @@ make_unit( V ) ->
 -spec dot_product( vector4(), vector4() ) -> float().
 dot_product( _V1=[ X1, Y1, Z1, W1 ], _V2=[ X2, Y2, Z2, W2 ] ) ->
 	X1*X2 + Y1*Y2 + Z1*Z2 + W1*W2.
+
+
+
+% @doc Returns whether the specified vector is unitary, that is whether it is of
+% magnitude 1.0.
+%
+-spec is_unitary( vector4() ) -> boolean().
+is_unitary( V ) ->
+	% No specific need of computing the square root thereof:
+	math_utils:are_equal( 1.0, square_magnitude( V ) ).
+
 
 
 % @doc Checks that the specified 4D vector is legit, and returns it.

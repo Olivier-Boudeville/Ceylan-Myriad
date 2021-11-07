@@ -78,11 +78,15 @@
 -type compact_matrix4() :: #compact_matrix4{}.
 
 
+-type rot_matrix4() :: canonical_matrix4().
+% A matrix describing a 4D rotation.
+
+
 -export_type([ user_matrix4/0, matrix4/0, canonical_matrix4/0,
-			   compact_matrix4/0 ]).
+			   compact_matrix4/0, rot_matrix4/0 ]).
 
 
--export([ new/1, new/3, null/0, identity/0,
+-export([ new/1, new/3, null/0, identity/0, rotation/2,
 		  from_columns/4, from_rows/4,
 		  from_coordinates/16, from_compact_coordinates/12,
 		  from_3D/2,
@@ -111,11 +115,14 @@
 
 -type factor() :: math_utils:factor().
 
+-type radians() :: unit_utils:radians().
+
 -type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
 -type scalar() :: linear:scalar().
 
 -type vector3() :: vector3:vector3().
+-type unit_vector3() :: vector3:unit_vector3().
 
 -type user_vector4() :: vector4:user_vector4().
 -type vector4() :: vector4:vector4().
@@ -173,6 +180,56 @@ null() ->
 -spec identity() -> matrix4().
 identity() ->
 	identity_4.
+
+
+
+% @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to a
+% rotation of the specified angle around the 3D axis specified as a unit vector,
+% and to no translation.
+%
+% This will be a counterclockwise rotation for an observer placed so that the
+% specified axis points towards it.
+%
+% Note that this is not the general case of a rotation in 4D (which is of little
+% use, at least here), but this corresponds to (4x4) homogeneous matrices.
+%
+-spec rotation( unit_vector3(), radians() ) -> compact_matrix4().
+rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
+
+	% Not an assertion, as UnitAxis must be ignored if no check is done:
+	cond_utils:if_defined( myriad_check_linear,
+						   true = vector3:is_unitary( UnitAxis ),
+						   basic_utils:ignore_unused( UnitAxis ) ),
+
+	% Directly taken from matrix3:rotation/2.
+
+	C = math:cos( RadAngle ),
+	S = math:sin( RadAngle ),
+
+	% One minus C:
+	OmC = 1 - C,
+
+	Uxy = Ux * Uy,
+	Uxz = Ux * Uz,
+	Uyz = Uy * Uz,
+
+	M11 = C + Ux*Ux*OmC,
+	M12 = Uxy*OmC - Uz*S,
+	M13 = Uxz*OmC + Uy*S,
+
+	M21 = Uxy*OmC + Uz*S,
+	M22 = C + Uy*Uy*OmC,
+	M23 = Uyz*OmC - Ux*S,
+
+	M31 = Uxz*OmC - Uy*S,
+	M32 = Uyz*OmC + Ux*S,
+	M33 = C + Uz*Uz*OmC,
+
+	Zero = 0.0,
+
+	#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Zero,
+					  m21=M21, m22=M22, m23=M23, ty=Zero,
+					  m31=M31, m32=M32, m33=M33, tz=Zero }.
 
 
 

@@ -67,6 +67,38 @@ run() ->
 
 	test_facilities:display( "Id(~B) = ~ts", [ Dim, matrix:to_string( Id ) ] ),
 
+
+	% Like in matrix3_test.erl, but adapted:
+
+	UnitRotVec = [ 1.0, 0.0, 0.0 ],
+
+	RotAngle = math:pi() / 2,
+
+	RotM = matrix:rotation( UnitRotVec, RotAngle ),
+	test_facilities:display( "Rotation matrix of angle ~f radians "
+		"around the following axis (unitary vector) ~ts is ~ts",
+		[ RotAngle, vector:to_string( UnitRotVec ),
+		  matrix:to_string( RotM ) ] ),
+
+	X3DAxis = [ 1.0, 0.0, 0.0 ],
+	Y3DAxis = [ 0.0, 1.0, 0.0 ],
+	Z3DAxis = [ 0.0, 0.0, 1.0 ],
+
+	% Transforms axes that way (check):
+
+	% X unchanged:
+	true = vector:are_equal( X3DAxis, matrix:apply( RotM, X3DAxis ) ),
+
+	% Y to become Z:
+	true = vector:are_equal( Z3DAxis, matrix:apply( RotM, Y3DAxis ) ),
+
+	% Z to become -Y:
+	MinusY3DAxis = vector:negate( Y3DAxis ),
+
+	true = vector:are_equal( MinusY3DAxis, matrix:apply( RotM, Z3DAxis ) ),
+
+
+
 	% Octave: M1 = [ 1, 2, 3; 4, 5, 6; 7, 8, 9 ]
 
 	M1 = matrix:new( [ [ 1.0, 2.0, 3.0 ], [ 4.0, 5.0, 6.0 ],
