@@ -131,15 +131,20 @@ In practice the actual, internal terms corresponding to all these matrices would
 							   m21=A21, m22=A22 }
 
 
-Finally, **quaternions** are also supported (see ``quaternion.erl``). They can be defined from 4 numbers, or as a 3D rotation. They are stored as quadruplets of floats, and can be added, multiplied, negated, scaled, normalised, conjugates, inversed, etc.
+Finally, **quaternions** are also supported (see ``quaternion.erl``). They can be defined from 4 numbers, or as a 3D rotation. They are stored as quadruplets of floats, and can be added, multiplied, negated, scaled, normalised, conjugates, inversed, etc., and may be represented either as
 
 .. math::
- Q = \begin{bmatrix}
+ Q = \begin{vmatrix}
 		A \\
 		B \\
 		C \\
 		D \\
-	 \end{bmatrix}
+	 \end{vmatrix}
+
+or as:
+
+.. math::
+ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 
 They notably provide a higher-level, more convenient counterpart to 3x3 rotation matrices (see ``matrix3:rot_matrix3()``); both can be computed from a unit axis and an angle.
 
