@@ -191,10 +191,11 @@
 % These strings are supposed to contain Regular Expressions, like in:
 % "*-emitter-(first|second)-*".
 %
-% Patterns are to be expressed according to the “Perl Compatible Regular
-% Expressions” conventions, or PCRE for short.
-% For more information, see following cheat sheet:
-% [http://www.bitcetera.com/page_attachments/0000/0030/regex_in_a_nutshell.pdf].
+% Patterns shall be expressed according to the "Perl Compatible Regular
+% Expressions" conventions, or PCRE for short.
+%
+% For more information, see
+% [https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions].
 %
 % See also [http://erlang.org/doc/man/re.html]
 
