@@ -136,10 +136,8 @@
 % General section.
 
 
-% @doc Floor returns the biggest integer smaller than the specified
+% @doc Returns the biggest integer smaller than the specified
 % floating-point value.
-%
-% Inspired from [http://schemecookbook.org/Erlang/NumberRounding].
 %
 % Note: used to be deprecated in favor of math:floor/1, yet we prefer the
 % version here, which returns an integer rather than a float.
@@ -169,10 +167,8 @@ floor( X ) ->
 
 
 
-% @doc Ceiling returns the smallest integer bigger than the specified
-% floating-point value.
-%
-% Inspired from [http://schemecookbook.org/Erlang/NumberRounding].
+% @doc Returns the smallest integer bigger than the specified floating-point
+% value.
 %
 % Note: used to be deprecated in favor of math:ceil/1, yet we prefer the version
 % here, which returns an integer rather than a float.
