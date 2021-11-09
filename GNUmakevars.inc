@@ -415,8 +415,8 @@ USE_PROTOBUF = false
 
 
 # To enable SQL with its default backend:
-#USE_SQL = false
-USE_SQL := true
+USE_SQL = false
+#USE_SQL := true
 
 
 # For SQL lightweight database operations, based on SQLite 3:
@@ -682,7 +682,8 @@ ifeq ($(USE_SQL),true)
 		SQL_OPTS = -Dmyriad_sql_backend=postgresql
 	endif
 
-	# myriad_sql_backend may also be either not defined, or set to 'none'.
+	# myriad_sql_backend may also be either not defined, or set to 'none':
+	SQL_OPTS = -Dmyriad_sql_backend=none
 
 	ERLANG_COMPILER_GENERAL_OPT += $(SQL_OPTS)
 

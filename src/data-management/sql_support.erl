@@ -286,8 +286,9 @@ connect( ConnSettings=#database_connection_settings{ host_name=HostnameStr,
 		{ sqlite3,
 			begin
 				basic_utils:ignore_unused(
-					[ HostnameStr, MaybePort, DbNameStr,
-					  UserName, UserPassword, TimeOut, ActualPort ] ),
+					[ ConnSettings, HostnameStr, MaybePort, DbNameStr,
+					  UserSettings, UserName, UserPassword, TimeOut,
+					  ActualPort ] ),
 				{ ok, myriad_sqlite3_connection }
 			 end },
 
@@ -299,7 +300,14 @@ connect( ConnSettings=#database_connection_settings{ host_name=HostnameStr,
 									database => DbNameStr,
 									timeout => TimeOut } ) },
 
-		{ none, throw( no_myriad_sql_backend_enabled ) } ],
+		{ none,
+			begin
+				basic_utils:ignore_unused(
+					[ ConnSettings, HostnameStr, MaybePort, DbNameStr,
+					  UserSettings, UserName, UserPassword, TimeOut,
+					  ActualPort ] ),
+				throw( no_myriad_sql_backend_enabled )
+			 end } ],
 
 		% Default:
 		none ),
@@ -322,11 +330,19 @@ close( Conn ) ->
 
 	cond_utils:switch_set_to( myriad_sql_backend, [
 
-		{ sqlite3, throw( to_do ) },
+		{ sqlite3,
+			begin
+				basic_utils:ignore_unused( Conn ),
+				throw( to_do )
+			end },
 
 		{ postgresql, epgsql:close( Conn ) },
 
-		{ none, throw( no_myriad_sql_backend_enabled ) } ],
+		{ none,
+			begin
+				basic_utils:ignore_unused( Conn ),
+				throw( no_myriad_sql_backend_enabled )
+			end } ],
 
 		% Default:
 		none ).
