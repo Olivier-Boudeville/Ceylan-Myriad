@@ -143,6 +143,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
@@ -411,9 +412,24 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 USE_PROTOBUF = false
 #USE_PROTOBUF = true
 
-# For SQL database operations, based on SQLite 3 operations:
+
+
+# To enable SQL with its default backend:
+#USE_SQL = false
+USE_SQL := true
+
+
+# For SQL lightweight database operations, based on SQLite 3:
+# (see also the 'has_sqlite3' preprocessor flag)
+#
 #USE_SQLITE = false
 #USE_SQLITE = true
+
+# For more demanding SQL database operations, based on PostgreSQL:
+#USE_POSTGRESQL = false
+#USE_POSTGRESQL = true
+
+
 
 # For using an Erlang/Python binding, based on the ErlPort library:
 #USE_PYTHON_BINDING = false
@@ -645,28 +661,81 @@ ifeq ($(USE_PROTOBUF),true)
 endif
 
 
-# Deactivated by default, as requires specific prerequisites:
-#
-# - the SQLite 3 library, ex: sqlite3 and sqlite3-dev packages in Debian, sqlite
-#    on Arch Linux
-# - the SQLite 3 Erlang binding we retained, erlang-sqlite3 (cf
-#    https://github.com/alexeyr/erlang-sqlite3.git)
-#
+
+
+ifeq ($(USE_SQL),true)
+
+	# Enforce default backend:
+	# (if set to true or not set)
+	#
+	ifneq ($(USE_SQLITE),true)
+		# Default:
+		USE_POSTGRESQL = true
+	endif
+
+
+	ifeq ($(USE_SQLITE),true)
+		SQL_OPTS = -Dmyriad_sql_backend=sqlite3
+	endif
+
+	ifeq ($(USE_POSTGRESQL),true)
+		SQL_OPTS = -Dmyriad_sql_backend=postgresql
+	endif
+
+	# myriad_sql_backend may also be either not defined, or set to 'none'.
+
+	ERLANG_COMPILER_GENERAL_OPT += $(SQL_OPTS)
+
+
+	# Deactivated by default, as requires specific prerequisites:
+	#
+	# - the SQLite 3 library, ex: sqlite3 and sqlite3-dev packages in Debian, sqlite
+	#    on Arch Linux
+	# - the SQLite 3 Erlang binding we retained, erlang-sqlite3 (cf
+	#    https://github.com/alexeyr/erlang-sqlite3.git)
+	#
+	ifeq ($(USE_SQLITE),true)
+
+		ifndef SQLITE3_BASE
+			SQLITE3_BASE := $$HOME/Software/erlang-sqlite3
+		endif
+
+		INC += -I$(SQLITE3_BASE)/include
+
+		# ($(SQLITE3_BASE)/ebin/*.beam found at runtime)
+
+		ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin
+
+	endif
+
+	# If not using a (pre-installed) pgsql command-line client, needing
+	# https://github.com/epgsql/epgsql, e.g.:
+	#  $ mkdir -p ~/Software && cd $_
+	#  $ git clone https://github.com/epgsql/epgsql.git
+	#  $ cd epgsql && make all && ln -s ./_build/default/lib/epgsql/ebin
+	#
+	ifeq ($(USE_POSTGRESQL),true)
+
+		ifndef POSTGRESQL_BASE
+			POSTGRESQL_BASE := $$HOME/Software/epgsql
+		endif
+
+		INC += -I$(POSTGRESQL_BASE)/include
+
+		ABS_BEAM_DIRS += $(POSTGRESQL_BASE)/ebin
+
+	endif
+
+endif
+
+
 ifndef USE_SQLITE
 	USE_SQLITE = false
 endif
 
 
-ifeq ($(USE_SQLITE),true)
-
-	SQLITE3_BASE := $$HOME/Software/erlang-sqlite3
-
-	INC += -I$(SQLITE3_BASE)/include
-
-	# ($(SQLITE3_BASE)/ebin/*.beam found at runtime)
-
-	ABS_BEAM_DIRS += $(SQLITE3_BASE)/ebin
-
+ifndef USE_POSTGRESQL
+	USE_POSTGRESQL = false
 endif
 
 
@@ -798,7 +867,7 @@ ifeq ($(USE_JSON),false)
 endif
 
 
-ifeq ($(USE_SQLITE),false)
+ifeq ($(USE_SQL),false)
 	EXCLUDED_SOURCES := $(EXCLUDED_SOURCES) sql_support.erl sql_support_test.erl
 endif
 
