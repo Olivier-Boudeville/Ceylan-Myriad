@@ -30,7 +30,8 @@
 % @doc Service dedicated to the <b>management of user-defined preferences</b>.
 %
 % A preferences element is designated by a key (an atom), associated to a value
-% (that can be any term).
+% (that can be any term). No difference is made between a non-registered key and
+% a key registered to 'undefined'.
 %
 % This is typically a way of storing durable information in one's user account
 % in a transverse way compared to programs and versions thereof, and of sharing
@@ -86,8 +87,11 @@
 
 
 % Shorthands:
+
 -type file_path() :: file_utils:file_path().
 -type ustring() :: text_utils:ustring().
+
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 
 
@@ -164,9 +168,10 @@ start( FileName ) ->
 			% No sensible link to be created here, so we must beware of a silent
 			% crash of this server:
 			%
-			?myriad_spawn( fun() ->
-					    server_main_run( CallerPid, RegistrationName, FileName )
-						   end ),
+			?myriad_spawn(
+			   fun() ->
+					server_main_run( CallerPid, RegistrationName, FileName )
+				end ),
 
 			receive
 
@@ -222,31 +227,41 @@ start_link( FileName ) ->
 
 
 
-% @doc Returns the value associated to specified key in the preferences (if
-% any), otherwise 'undefined', based on the default preferences file, and
-% possibly launching a corresponding preferences server if needed.
+% @doc Returns the value associated to each of the specified key(s) in the
+% preferences (if any), otherwise 'undefined', based on the default preferences
+% file, and possibly launching a corresponding preferences server if needed.
 %
--spec get( key() ) -> maybe( value() ).
-get( Key ) ->
-	get( Key, get_default_preferences_path() ).
-
-
-
-% @doc Returns the value associated to specified key in the preferences (if
-% any), otherwise 'undefined', based on the specified preferences file, and
-% possibly launching a corresponding preferences server if needed.
+% Examples:
+%  "Hello!" = preferences:get(hello)
+%  [ "Hello!", 42, undefined ] = preferences:get([hello, my_number, some_maybe])
 %
--spec get( key(), file_path() ) -> maybe( value() ).
-get( Key, FileName ) ->
+-spec get( maybe_list( key() ) ) -> maybe_list( maybe( value() ) ).
+get( KeyMaybes ) ->
+	get( KeyMaybes, get_default_preferences_path() ).
+
+
+
+% @doc Returns the value associated to each of the specified key(s) in the
+% preferences (if any), otherwise 'undefined', based on the specified
+% preferences file, and possibly launching a corresponding preferences server if
+% needed.
+%
+% Examples:
+%  "Hello!" = preferences:get(hello, "/var/foobar.etf")
+%  [ "Hello!", 42, undefined ] =
+%         preferences:get([hello, my_number, some_maybe], "/var/foobar.etf")
+%
+-spec get( maybe_list( key() ), file_path() ) -> maybe_list( maybe( value() ) ).
+get( KeyMaybes, FileName ) ->
 
 	ServerPid = start( FileName ),
 
-	ServerPid ! { get_preference, Key, self() },
+	ServerPid ! { get_preferences, KeyMaybes, self() },
 
 	receive
 
-		{ notify_preference, V } ->
-			V
+		{ notify_preferences, ValueMaybes } ->
+			ValueMaybes
 
 	end.
 
@@ -269,7 +284,7 @@ set( Key, Value, FilePath ) ->
 
 	ServerPid = start( FilePath ),
 
-	ServerPid ! { set_preference, Key, Value }.
+	ServerPid ! { set_preferences, Key, Value }.
 
 
 
@@ -433,6 +448,32 @@ server_main_run( SpawnerPid, RegistrationName, FilePath ) ->
 
 
 
+% (helper)
+get_value_maybes( Key, Table ) when is_atom( Key ) ->
+	case table:lookup_entry( Key, Table ) of
+
+		key_not_found ->
+			undefined;
+
+		{ value, V } ->
+			V
+	end;
+
+get_value_maybes( Keys, Table ) ->
+	get_value_maybes( Keys, Table, _Acc=[] ).
+
+
+
+% (helper)
+get_value_maybes( _Keys=[], _Table, Acc ) ->
+	lists:reverse( Acc );
+
+get_value_maybes( _Keys=[ K | T ], Table, Acc ) ->
+	V = get_value_maybes( K, Table ),
+	get_value_maybes( T, Table, [ V | Acc ] ).
+
+
+
 % Main loop of the preferences server.
 server_main_loop( Table ) ->
 
@@ -441,24 +482,16 @@ server_main_loop( Table ) ->
 
 	receive
 
-		{ get_preference, Key, SenderPid } ->
+		{ get_preferences, KeyMaybes, SenderPid } ->
 
-			Answer = case table:lookup_entry( Key, Table ) of
+			Answer = get_value_maybes( KeyMaybes, Table ),
 
-				key_not_found ->
-					undefined;
-
-				{ value, V } ->
-					V
-
-			end,
-
-			SenderPid ! { notify_preference, Answer },
+			SenderPid ! { notify_preferences, Answer },
 
 			server_main_loop( Table );
 
 
-		{ set_preference, Key, Value } ->
+		{ set_preferences, Key, Value } ->
 
 			NewTable = table:add_entry( Key, Value, Table ),
 
@@ -536,7 +569,7 @@ add_preferences_from( FilePath, Table ) ->
 			FlattenError = text_utils:format( "~p", [ Term ] ),
 			trace_bridge:error_fmt( "Error in preferences file '~ts' "
 				"at line ~B (~ts), no preferences read.",
-					    [ FilePath, Line, FlattenError ] ),
+									[ FilePath, Line, FlattenError ] ),
 			Table;
 
 
