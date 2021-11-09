@@ -223,7 +223,10 @@ get_backend_name() ->
 
 		{ postgresql, postgresql },
 
-		{ none, throw( no_myriad_sql_backend_enabled ) } ] ).
+		{ none, throw( no_myriad_sql_backend_enabled ) } ],
+
+		% Default token:
+		none ).
 
 
 
@@ -244,7 +247,10 @@ start() ->
 			trace_utils:debug( "Starting the SQL support, using PostgreSQL." )
 		},
 
-		{ none, throw( no_myriad_sql_backend_enabled ) } ] ).
+		{ none, throw( no_myriad_sql_backend_enabled ) } ],
+
+		% Default token:
+		none ).
 
 
 
