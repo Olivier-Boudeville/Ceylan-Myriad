@@ -105,6 +105,8 @@
 		 get_default_md5_tool/0,
 		 get_default_sha_tool/0,
 
+		 get_default_sql_client/0,
+
 		 get_default_java_runtime/0,
 		 get_default_jinterface_path/0 ]).
 
@@ -852,6 +854,11 @@ get_default_md5_tool() ->
 get_default_sha_tool() ->
 	find_executable( "shasum" ).
 
+
+% @doc Returns the default client to interact with a SQL database.
+-spec get_default_sql_client() -> executable_path().
+get_default_sql_client() ->
+	find_executable( "psql" ).
 
 
 % @doc Returns the default tool to execute Java programs.
