@@ -47,6 +47,9 @@
 
 
 % Checks regarding lists:
+%
+% (see also basic_utils:{check,are}_all_{,un}defined/1).
+%
 -export([ ensure_list/1, ensure_atoms/1, ensure_tuples/1, ensure_pids/1,
 		  are_integers/1, check_integers/1, are_pids/1, are_atoms/1,
 		  check_strictly_ascending/1 ]).

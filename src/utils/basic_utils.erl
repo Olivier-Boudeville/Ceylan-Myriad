@@ -66,7 +66,7 @@
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
 		  identity/1,
-		  check_undefined/1, check_all_undefined/1,
+		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
 		  ignore_unused/1,
 		  freeze/0, crash/0, enter_infinite_loop/0,
@@ -528,6 +528,21 @@ check_all_defined( List ) ->
 
 
 
+% @doc Returns whether all the elements specified are defined (that is are not
+% equal to the 'undefined' atom).
+%
+-spec are_all_defined( [ term() ] ) -> boolean().
+are_all_defined( _Elems=[] ) ->
+	true;
+
+are_all_defined( _Elems=[ undefined | _T ] ) ->
+	false;
+
+are_all_defined( _Elems=[ _E | T ] ) ->
+	are_all_defined( T ).
+
+
+
 % @doc Ignores specified argument.
 %
 % Useful to define, for debugging purposes, terms that will be (temporarily)
@@ -540,7 +555,7 @@ ignore_unused( _Term ) ->
 	% Preferred silent:
 	ok.
 	%trace_utils:warning_fmt( "unused term (~p) ignored "
-	%			 "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
+	%               "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
 
 
 
