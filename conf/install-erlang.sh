@@ -9,6 +9,16 @@
 
 LANG=C; export LANG
 
+# Parallel build and type checking might be quite power consuming, at the risk
+# of overheat.
+#
+# We try to prevent that by forcing a lesser (actually: least) favorable
+# scheduling for the corresponding processes; however this has little to no
+# effect, generating the PLT still leads to higher temperatures.
+#
+#nice_opt=""
+nice_opt="nice --adjustment=19"
+
 
 # Note: if one wants to download src or doc base (i.e. not patch ones) archives
 # by oneself, one may also point directly to http://erlang.org/download/.
@@ -16,6 +26,7 @@ LANG=C; export LANG
 # Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
 # order to be able to switch back and forth more easily:
 
+erlang_md5_for_24_1_5="39927334547d84ef0dc9e3a39b5c32ff"
 erlang_md5_for_24_1_4="392a5faf394304f7b8fb5cde0deca582"
 erlang_md5_for_24_1="e740b90a20c0f63108f879ce1f228582"
 erlang_md5_for_24_0="7227024b8619e4d97a7af4f4cf98d4db"
@@ -34,15 +45,15 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable (an update of the next two lines is needed):
-erlang_version="24.1.4"
-erlang_md5="${erlang_md5_for_24_1_4}"
+erlang_version="24.1.5"
+erlang_md5="${erlang_md5_for_24_1_5}"
 
 
 # Candidate version (ex: either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="24.1"
-erlang_md5_candidate="${erlang_md5_for_24_1}"
+erlang_version_candidate="24.1.4"
+erlang_md5_candidate="${erlang_md5_for_24_1_4}"
 
 base_install_dir="${HOME}/Software/Erlang"
 
@@ -120,15 +131,14 @@ For Debian-based distributions, you should preferably run beforehand, as root: '
 # Additional notes:
 
 # On some distributions (ex: Arch Linux), the wx module is not available, as
-# WxWidget is not detected.
+# wxWidgets is not detected.
 #
 # The root of the problem is that no /bin/wx-config executable is found.
 #
 # One may have to run, as root: 'cd /bin && ln -s wx-config-2.8 wx-config' for
 # example.
 #
-# Once Erlang is compiled, it can be tested with:
-# wx:demo().
+# Once Erlang is compiled, this backend can be tested with: wx:demo().
 #
 # Another related problem is that libtinfo.so might not be found. A solution is
 # to create a symlink to libncurses, which include it:
@@ -196,7 +206,7 @@ token_eaten=0
 while [ $token_eaten -eq 0 ]; do
 
 	read_parameter="$1"
-	#echo "read_parameter = $read_parameter"
+	#echo "read_parameter = ${read_parameter}"
 
 	token_eaten=1
 
@@ -271,10 +281,9 @@ while [ $token_eaten -eq 0 ]; do
 done
 
 
-# We had to define that variable, as for a (non-privileged) user U, at
-# least on some settings, sudo -u U <a command> will fail ("Sorry,
-# user U is not allowed to execute 'XXX' as U on H."), so now we
-# execute sudo iff strictly necessary:
+# We had to define that variable, as for a (non-privileged) user U, at least on
+# some settings, sudo -u U <a command> will fail ("Sorry, user U is not allowed
+# to execute 'XXX' as U on H."), so now we execute sudo iff strictly necessary:
 #
 sudo_cmd=""
 
@@ -351,12 +360,12 @@ erlang_src_archive="${erlang_src_prefix}.tar.gz"
 # As documentation archives were not generated for patch versions (ex: 24.1.4),
 # only for "base" versions" (ex: 24.1):
 #
-#erlang_doc_prefix="$(echo "otp_doc_html_${erlang_version}" | awk -F. '{print otp_doc_$1"."$2""}')"
+#erlang_doc_prefix="$(echo "otp_doc_html_${erlang_version}" | awk -F. '{print otp_doc_html_$1"."$2""}')"
 
 
 # on Github now:
 #erlang_doc_archive="${erlang_doc_prefix}.tar.gz"
-erlang_doc_archive="otp_doc_${erlang_version}.tar.gz"
+erlang_doc_archive="otp_doc_html_${erlang_version}.tar.gz"
 
 
 # Some early checkings:
@@ -412,6 +421,13 @@ if [ $do_patch -eq 0 ]; then
 fi
 
 
+if [ -n "${nice_opt}" ]; then
+
+	echo "Warning: this installation is intentionally slowed down to avoid any overheat." 1>&2
+
+fi
+
+
 md5sum="$(which md5sum)"
 
 # Archives are not available by default:
@@ -426,7 +442,7 @@ if [ $do_download -eq 0 ]; then
 
 		if [ -x "${md5sum}" ]; then
 
-			md5_res=$( ${md5sum} ${erlang_src_archive} )
+			md5_res=$( ${md5sum} "${erlang_src_archive}" )
 
 			computed_md5=$( echo ${md5_res}| awk '{printf $1}' )
 
@@ -454,7 +470,7 @@ if [ $do_download -eq 0 ]; then
 
 		echo "Downloading now ${erlang_target_src_url}"
 		set_wget
-		if ! ${sudo_cmd} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1; then
+		if ! ${sudo_cmd} ${wget} "${erlang_target_src_url}" 1>/dev/null 2>&1; then
 			echo "  Error while downloading ${erlang_target_src_url}, quitting." 1>&2
 			exit 15
 		fi
@@ -510,7 +526,7 @@ else
 
 	echo "Checksum for ${erlang_src_archive}"
 
-	md5_res=$( ${md5sum} ${erlang_src_archive} )
+	md5_res=$( ${md5sum} "${erlang_src_archive}" )
 
 	computed_md5=$( echo "${md5_res}"| awk '{printf $1}' )
 
@@ -538,7 +554,7 @@ if [ $use_prefix -eq 0 ]; then
 
 	echo "Erlang version ${erlang_version} will be installed in ${prefix}."
 
-	${sudo_cmd} ${mkdir} -p ${prefix}
+	${sudo_cmd} ${mkdir} -p "${prefix}"
 
 	# Removes any previous extracted directory, renamed or not:
 	if [ -e "${erlang_extracted_prefix}" ]; then
@@ -565,19 +581,19 @@ else
 fi
 
 
-if ! ${sudo_cmd} ${tar} xvzf ${erlang_src_archive}; then
+if ! ${sudo_cmd} ${nice_opt} ${tar} xvzf "${erlang_src_archive}"; then
 	echo "  Error while extracting ${erlang_src_archive}, quitting." 1>&2
 	exit 50
 fi
 
-initial_path=$(pwd)
+initial_path="$(pwd)"
 
 # Corrects any extracted root directory, like 'R15B03' instead of 'R15B03-1':
 if [ ! -d "${erlang_src_prefix}" ]; then
 
 	if [ -d "${erlang_extracted_prefix}" ]; then
 
-		${sudo_cmd} ${mv} -f ${erlang_extracted_prefix} ${erlang_src_prefix}
+		${sudo_cmd} ${mv} -f "${erlang_extracted_prefix}" "${erlang_src_prefix}"
 
 	else
 
@@ -590,7 +606,7 @@ fi
 
 # Starting from the source tree:
 
-cd ${erlang_src_prefix}
+cd "${erlang_src_prefix}"
 
 
 # Apparently not needed since Erlang 21.0, where 'infinity' is specified in
@@ -670,7 +686,7 @@ if ! ${sudo_cmd} ./configure ${configure_opt} ${prefix_opt}; then
 fi
 
 
-if ! ${sudo_cmd} make; then
+if ! ${sudo_cmd} ${nice_opt} make; then
 
 	echo "Build failed, exiting." 1>&2
 	exit 61
@@ -679,7 +695,7 @@ fi
 
 
 # No sudo here:
-if ! make install; then
+if ! ${nice_opt} make install; then
 
 	echo "Installation failed, exiting." 1>&2
 	exit 62
@@ -726,7 +742,7 @@ if [ -n "${prefix}" ]; then
 
 	fi
 
-	${ln} -sf Erlang-${erlang_version} Erlang-current-install
+	${ln} -sf "Erlang-${erlang_version}" Erlang-current-install
 
 fi
 
@@ -758,7 +774,7 @@ if [ $do_manage_doc -eq 0 ]; then
 
 	cd "${erlang_doc_root}"
 
-	if ! ${tar} xvzf ${initial_path}/${erlang_doc_archive}; then
+	if ! ${nice_opt} ${tar} xvzf "${initial_path}/${erlang_doc_archive}"; then
 		echo "  Error while extracting ${erlang_doc_archive}, quitting." 1>&2
 		exit 70
 	fi
@@ -772,7 +788,7 @@ if [ $do_manage_doc -eq 0 ]; then
 
 	fi
 
-	${ln} -sf ${erlang_doc_root} Erlang-current-documentation
+	${ln} -sf "${erlang_doc_root}" Erlang-current-documentation
 
 	echo "Erlang documentation successfully installed."
 
@@ -782,7 +798,7 @@ fi
 
 if [ $do_remove_build_tree -eq 0 ]; then
 
-	${rm} -rf ${initial_path}/${erlang_src_prefix}
+	${rm} -rf "${initial_path}/${erlang_src_prefix}"
 
 else
 
@@ -814,7 +830,6 @@ if [ $do_generate_plt -eq 0 ]; then
 
 	cd "${prefix}"
 
-
 	if [ ! -x "${dialyzer_exec}" ]; then
 
 		echo "  Error, no executable dialyzer found (tried '${dialyzer_exec}'), quitting." 1>&2
@@ -843,12 +858,12 @@ if [ $do_generate_plt -eq 0 ]; then
 	# ${actual_plt_file} ${actual_plt_link}' we proceed the other way round:
 
 	# No sudo, as PLT file might be in system tree:
-	${dialyzer_exec} --build_plt -r ${erlang_beam_root} --output_plt ${actual_plt_link}
+	${nice_opt} ${dialyzer_exec} --build_plt -r ${erlang_beam_root} --output_plt ${actual_plt_link}
 	res=$?
 
-	if [ $res -eq 0 ]; then
+	if [ ${res} -eq 0 ]; then
 		echo "The Erlang PLT file was successfully generated."
-	elif [ $res -eq 2 ]; then
+	elif [ ${res} -eq 2 ]; then
 		echo "The Erlang PLT file was generated, but warnings were issued."
 	else
 		echo "  Error, the PLT generation failed (error code: ${res})." 1>&2
@@ -857,7 +872,7 @@ if [ $do_generate_plt -eq 0 ]; then
 
 	# To include a PLT without knowing the current Erlang version:
 	# (reversed symlink better than a copy)
-	${ln} -s ${actual_plt_link} ${actual_plt_file}
+	${ln} -s "${actual_plt_link}" "${actual_plt_file}"
 
 fi
 
