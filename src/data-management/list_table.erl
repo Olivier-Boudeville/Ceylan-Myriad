@@ -83,24 +83,29 @@
 
 -type entry() :: hashtable:entry().
 
+
 -type entries() :: [ entry() ].
 
 -type entry_count() :: basic_utils:count().
 
 
 -opaque list_table() :: [ { key(), value() } ].
+% Not exactly as proplist:proplist/0 (pairs only, and any() as key).
 
 -opaque list_table( K, V ) :: [ { K, V } ].
 
 % Preferred naming:
 -opaque table() :: list_table().
+
 -opaque table( K, V ) :: list_table( K, V ).
+
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,
 			   list_table/0, list_table/2, table/0, table/2 ]).
 
 
 % Shorthands:
+
 -type accumulator() :: basic_utils:accumulator().
 -type ustring() :: text_utils:ustring().
 
@@ -290,7 +295,7 @@ get_value( Key, Table ) ->
 
 
 
-% @doc Extracts specified entry from specified table, ie returns the
+% @doc Extracts specified entry from specified table, that is returns the
 % associated value and removes that entry from the table.
 %
 % The key/value pair is expected to exist already in the specified table,
@@ -312,7 +317,7 @@ extract_entry( Key, Table ) ->
 
 
 
-% @doc Extracts specified entry from specified table, ie returns the
+% @doc Extracts specified entry from specified table, that is returns the
 % associated value and removes that entry from the table.
 %
 % If no such key is available, returns the specified default value and the
@@ -334,10 +339,10 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 
 
-% @doc Extracts specified entry (if any) from specified table, ie returns its
+% @doc Extracts specified entry (if any) from specified table, that is returns its
 % associated value and removes that entry from the returned table.
 %
-% Otherwise, ie if that entry does not exist, returns false.
+% Otherwise, that is if that entry does not exist, returns false.
 %
 -spec extract_entry_if_existing( key(), list_table() ) ->
 					'false' | { value(), list_table() }.
@@ -821,7 +826,7 @@ is_empty( _Table ) ->
 
 
 
-% @doc Returns the size (number of entries, ie of key/value pairs) of the
+% @doc Returns the size (number of entries, that is of key/value pairs) of the
 % specified table.
 %
 -spec size( list_table() ) -> entry_count().
