@@ -130,7 +130,8 @@
 -type wx_event_type() :: wx_repaint_event_type()
 					   | wx_click_event_type()
 					   | wx_resize_event_type()
-					   | wx_close_event_type().
+					   | wx_close_event_type()
+					   | wx_show_event_type().
 % Using the wx-event type, leaked by wx.hrl (enrich this union whenever needed).
 
 
@@ -145,11 +146,15 @@
 							 | 'query_end_session'.
 % Associated to wxCloseEvent.
 
+-type wx_show_event_type() :: 'show'.
+
+
 
 -type event_type() :: 'onRepaintNeeded'
 					| 'onButtonClicked'
 					| 'onResized'
-					| 'onWindowClosed'.
+					| 'onWindowClosed'
+					| 'onShow'.
 % Our own event types, independent from any backend.
 %
 % Note that resizing a widget (typically a canvas) implies receiving also a
@@ -416,7 +421,8 @@ start_main_event_loop( WxServer, WxEnv ) ->
 -spec process_event_messages( loop_state() ) -> no_return().
 process_event_messages( LoopState ) ->
 
-	%trace_utils:info( "Waiting for event messages..." ),
+	%trace_utils:debug_fmt( "GUI main loop ~w waiting for event messages...",
+	%                       [ self() ] ),
 
 	% Special management of repaint requests, to avoid useless repaintings.
 	%
@@ -441,8 +447,9 @@ process_event_messages( LoopState ) ->
 				SourceObject, _DropCount=0, LoopState );
 
 		OtherEvent ->
-			%trace_utils:debug_fmt( "Received other event: ~p.",
-			%                       [ OtherEvent ] ),
+			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+				trace_utils:debug_fmt( "Received other event: ~p.",
+									   [ OtherEvent ] ) ),
 			process_event_message( OtherEvent, LoopState )
 
 	end,
@@ -482,6 +489,9 @@ process_event_messages( LoopState ) ->
 process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 									userData=UserData, event=WxEventInfo },
 					   LoopState ) ->
+
+	%trace_utils:debug_fmt( "Received wx event ~p.", [ WxEvent ] ),
+
 	process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo,
 					  WxEvent, LoopState );
 
@@ -716,10 +726,16 @@ process_event_message( { createInstance, [ ObjectType, ConstructionParams ],
 process_event_message( { subscribeToEvents,
 		[ SubscribedEvents, SubscriberPid ] }, LoopState ) ->
 
-	%trace_utils:debug_fmt( "Subscribing process ~w to events ~p.",
-	%                       [ SubscriberPid, SubscribedEvents ] ),
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( "Subscribing process ~w to events ~p.",
+							   [ SubscriberPid, SubscribedEvents ] ) ),
 
-	update_event_loop_tables( SubscribedEvents, SubscriberPid, LoopState );
+	NewLoopState = update_event_loop_tables( SubscribedEvents, SubscriberPid,
+											 LoopState ),
+
+	% Now synchronous to avoid race conditions:
+	SubscriberPid ! onEventSubscriptionProcessed,
+	NewLoopState;
 
 
 % To account for example for a silently-resized inner panel of a canvas:
@@ -861,6 +877,8 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 				  LoopState=#loop_state{ event_table=EventTable,
 										 reassign_table=ReassignTable,
 										 type_table=TypeTable } ) ->
+
+	%trace_utils:debug_fmt( "Processing wx event ~p.", [ WxEvent ] ),
 
 	% Reassigns this event and possibly updates its actual target:
 	{ ActualGUIObject, NewTypeTable } =
@@ -1215,6 +1233,7 @@ update_event_loop_tables( _SubscribedEvents=[
 		[ DefaultSubscriberPid ] } | T ], DefaultSubscriberPid, LoopState ).
 
 
+
 % (helper)
 -spec register_event_types_for( gui_object(), [ event_type() ],
 				[ event_subscriber_pid() ], loop_state() ) -> loop_state().
@@ -1276,9 +1295,10 @@ register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
 register_event_types_for( GUIObject, EventTypes, Subscribers,
 						  LoopState=#loop_state{ event_table=EventTable } ) ->
 
-	%trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
-	%   "regarding object '~ts'.",
-	%   [ Subscribers, EventTypes, gui:object_to_string( GUIObject ) ] ),
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
+		   "regarding object '~ts'.",
+		   [ Subscribers, EventTypes, gui:object_to_string( GUIObject ) ] ) ),
 
 	% Auto-connection to the current PID (i.e. the one of the internal, main
 	% event loop), so that it receives these events for their upcoming

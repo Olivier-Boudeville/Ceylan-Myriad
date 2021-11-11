@@ -79,6 +79,15 @@
 % application-specific operations and/or GUI-related operations (creating,
 % modifying, deleting widgets).
 %
+% Beware of asynchronous operations (i.e. the sending of oneways) to the GUI
+% main loop process, as they may introduce nasty race conditions. For example,
+% if the subscribing to events (ex: to the main frame being shown) was left
+% asynchronous, then the operations coming next from the user code may be fast
+% enough so that a wx instance (ex: the main frame) processes these events (ex:
+% requesting the main frame to be shown) before even that the GUI main loop had
+% a chance to declare its connection to them. This would result in an expected
+% event (onShow here) never to be emitted and thus never to be received.
+%
 % Generally at least one condition is defined in order to leave that main loop
 % and stop the GUI (gui:stop/0).
 %
@@ -142,14 +151,16 @@
 % using a naming service or having to keep around a bound variable.
 
 
--type backend_event() :: gui_event:wx_event().
 % Current backend is wx (WxWidgets).
 %
 % (useful to avoid including the header of wx in our own public ones)
+-opaque backend_event() :: gui_event:wx_event().
+% An (opaque) backend GUI event.
 
 
 -type canvas() :: gui_canvas:canvas().
-% To be used directly from the user code.
+% A basic canvas (not to be mixed with an OpenGL one, that is
+% gui_opengl:canvas/0).
 
 
 % Basic GUI operations.
@@ -328,28 +339,28 @@
 % Defining the actual widget types corresponding to wx_object_type():
 
 
--type window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
+-opaque window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
 
--type frame() :: wxFrame:wxFrame().
+-opaque frame() :: wxFrame:wxFrame().
 
--type panel() :: wxPanel:wxPanel().
+-opaque panel() :: wxPanel:wxPanel().
 
--type button() :: wxButton:wxButton().
+-opaque button() :: wxButton:wxButton().
 
--type sizer() :: wxSizer:wxSizer().
+-opaque sizer() :: wxSizer:wxSizer().
 
 
--type sizer_child() :: window() | sizer().
+-opaque sizer_child() :: window() | sizer().
 % Elements that can be included in a sizer.
 
 
--type sizer_item() :: wxSizerItem:wxSizerItem().
+-opaque sizer_item() :: wxSizerItem:wxSizerItem().
 
--type status_bar() :: wxStatusBar:wxStatusBar().
+-opaque status_bar() :: wxStatusBar:wxStatusBar().
 
--type bitmap() :: wxBitmap:wxBitmap().
+-opaque bitmap() :: wxBitmap:wxBitmap().
 
--type back_buffer() :: wxMemoryDC:wxMemoryDC().
+-opaque back_buffer() :: wxMemoryDC:wxMemoryDC().
 
 
 
@@ -633,16 +644,30 @@ set_debug_level( DebugLevel ) ->
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 
-	%trace_utils:info_fmt( "User process subscribing to following events:~n~p.",
-	%                      [ SubscribedEvents ] ),
-
 	GUIEnv = get_gui_env(),
 
 	LoopPid = GUIEnv#gui_env.loop_pid,
 
-	% Oneway:
-	LoopPid ! { subscribeToEvents, [ SubscribedEvents, self() ] };
+	% This is, in logical terms, a oneway (received in
+	% gui_event:process_event_message/2), yet it must be a request (i.e. it must
+	% be synchronous), otherwise a race condition exists (ex: the user
+	% subscribes to 'onShow' for the main frame, and just after executes
+	% 'gui:show(MainFrame)'. If subscribing is non-blocking, then the main frame
+	% may be shown before being connected to the main loop, and thus it will not
+	% notify the GUI main loop it is shown...
 
+	LoopPid ! { subscribeToEvents, [ SubscribedEvents, self() ] },
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:info_fmt( "User process subscribing as ~w to ~w about "
+			"following events:~n~p.", [ self(), LoopPid, SubscribedEvents ] ) ),
+
+	receive
+
+		onEventSubscriptionProcessed ->
+		  ok
+
+	end;
 
 subscribe_to_events( SubscribedEvent ) when is_tuple( SubscribedEvent ) ->
 	subscribe_to_events( [ SubscribedEvent ] ).
@@ -746,7 +771,7 @@ create_window( Size ) ->
 	ActualId = to_wx_id( undefined ),
 	ActualParent = to_wx_parent( undefined ),
 
-	Options =  [ to_wx_size( Size ) ],
+	Options = [ to_wx_size( Size ) ],
 
 	wxWindow:new( ActualParent, ActualId, Options ).
 
@@ -760,7 +785,7 @@ create_window( Size ) ->
 create_window( Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
-				 { style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
+				{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
 	ActualId = to_wx_id( Id ),
 	ActualParent = to_wx_parent( Parent ),
@@ -773,7 +798,10 @@ create_window( Position, Size, Style, Id, Parent ) ->
 % Canvas section.
 
 
-% @doc Creates a canvas, attached to the specified parent window.
+% @doc Creates a (basic) canvas, attached to the specified parent window.
+%
+% Note: not to be mixed up with gui_opengl:create_canvas/{1,2}.
+%
 -spec create_canvas( window() ) -> canvas().
 create_canvas( Parent ) ->
 	% Returns the corresponding myriad_object_ref:

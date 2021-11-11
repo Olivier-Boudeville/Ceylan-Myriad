@@ -27,7 +27,9 @@
 
 
 
-% @doc Gathering of various facilities for <b>canvas management</b>.
+% @doc Gathering of various facilities for <b>canvas management</b>, for the
+% basic ones that MyriadGUI introduced (as opposed to the OpenGL ones, see
+% gui_opengl).
 %
 % See `gui_canvas_test.erl' for the corresponding test.
 %
@@ -40,9 +42,12 @@
 % Implementation notes:
 %
 % Apparently there is actually no such thing as a plain canvas in wx: here, they
-% are actually panels with bitmaps.
+% are actually panels with bitmaps; note however that 'Canvas =
+% wxGraphicsContext:create(Win)' and/or wxglcanvas (see gui_opengl) could be
+% options apparently, refer to the 'graphicsContext' menu entry of wx:demo() for
+% an example).
 %
-% So we emulate a canvas here, resulting notably in the fact that a canvas
+% So we emulate a basic canvas here, resulting notably in the fact that a canvas
 % object is not here a reference onto a wx object, but a stateful instance that
 % shall as a result be kept from a call to another: as its state may change, the
 % result of functions returning a canvas must not be ignored.

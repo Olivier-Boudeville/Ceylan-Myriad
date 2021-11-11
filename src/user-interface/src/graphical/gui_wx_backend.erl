@@ -155,6 +155,9 @@
 		  sizer_flag_to_bitmask/1,
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
 		  to_wx_orientation/1, wx_id_to_window/1, wx_id_to_string/1,
+
+		  to_wx_device_context_attributes/1,
+
 		  connect/2, connect/3, disconnect/1 ]).
 
 
@@ -234,10 +237,26 @@
 
 -type wx_panel_option() :: wx_window_option() | wx_event_handler_option().
 
+% Precisely:
+%    {id, integer()} |
+%    {pos, {X :: integer(), Y :: integer()}} |
+%    {size, {W :: integer(), H :: integer()}} |
+%    {style, integer()} |
+%    {name, unicode:chardata()} |
+%    {palette, wxPalette:wxPalette()}
+%
+-type other_wx_device_context_attribute() :: atom_entry().
 
-% Just for silencing:
--export_type([ wx_window_option/0, wx_event_handler_option/0,
-			   wx_panel_option/0 ]).
+
+-type wx_device_context_attribute() ::
+		{ 'attribList', integer() } | other_wx_device_context_attribute().
+% Refer to wxGLCanvas: https://www.erlang.org/doc/man/wxglcanvas#new-2.
+
+
+-export_type([ wx_native_object_type/0, wx_window_option/0,
+			   wx_event_handler_option/0, wx_panel_option/0,
+			   other_wx_device_context_attribute/0,
+			   wx_device_context_attribute/0 ]).
 
 
 % Preferably no -export_type here to avoid leakage of backend conventions.
@@ -248,6 +267,8 @@
 -type bit_mask() :: basic_utils:bit_mask().
 
 -type maybe_list(T) :: list_utils:maybe_list( T ).
+
+-type atom_entry() :: hashtable:atom_entry().
 
 -type ustring() :: text_utils:ustring().
 
@@ -272,13 +293,14 @@
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
 
+-type device_context_attribute() :: gui_opengl:device_context_attribute().
 
 % To improve:
 -type wx_sizer_options() :: sizer_options().
 
 
 % To avoid unused warnings:
--export_type([ wx_id/0, wx_native_object_type/0 ]).
+-export_type([ wx_id/0 ]).
 
 
 % For canvas_state():
@@ -408,25 +430,31 @@ to_wx_event_type( onResized ) ->
 to_wx_event_type( onWindowClosed ) ->
 	close_window;
 
+to_wx_event_type( onShow ) ->
+	show;
+
 to_wx_event_type( Other ) ->
-	throw( { unsupported_wx_event_type, Other } ).
+	throw( { unsupported_gui_event_type, Other } ).
 
 
 
 
 % @doc onverts a wx type of event into a MyriadGUI one.
 -spec from_wx_event_type( wx_event_type() ) -> event_type().
-from_wx_event_type( close_window ) ->
-	onWindowClosed;
+from_wx_event_type( paint ) ->
+	onRepaintNeeded;
 
 from_wx_event_type( command_button_clicked ) ->
 	onButtonClicked;
 
-from_wx_event_type( paint ) ->
-	onRepaintNeeded;
-
 from_wx_event_type( size ) ->
 	onResized;
+
+from_wx_event_type( close_window ) ->
+	onWindowClosed;
+
+from_wx_event_type( show ) ->
+	onShow;
 
 from_wx_event_type( Other ) ->
 	throw( { unsupported_wx_event_type, Other } ).
@@ -812,6 +840,50 @@ to_wx_orientation( horizontal ) ->
 
 
 
+% @doc Converts the specified MyriadGUI device context attributes to wx
+% conventions.
+%
+-spec to_wx_device_context_attributes( [ device_context_attribute() ] ) ->
+											[ wx_device_context_attribute() ].
+to_wx_device_context_attributes( Attrs ) ->
+	to_wx_device_context_attributes( Attrs, _Acc=[] ).
+
+
+% (helper)
+%
+% Adding in a reverse form:
+to_wx_device_context_attributes( _Attrs=[], Acc ) ->
+	lists:reverse( [ 0 | Acc ] );
+
+to_wx_device_context_attributes( _Attrs=[ rgba | T ], Acc ) ->
+	to_wx_device_context_attributes( T, [ ?WX_GL_RGBA | Acc ] );
+
+% Not existing:
+%to_wx_device_context_attributes( _Attrs=[ bgra | T ], Acc ) ->
+%   to_wx_device_context_attributes( T, [ ?WX_GL_BGRA | Acc ] );
+
+to_wx_device_context_attributes( _Attrs=[ double_buffer | T ], Acc ) ->
+	to_wx_device_context_attributes( T, [ ?WX_GL_DOUBLEBUFFER | Acc ] );
+
+to_wx_device_context_attributes( _Attrs=[ { min_red_size, S } | T ], Acc ) ->
+	to_wx_device_context_attributes( T, [ S, ?WX_GL_MIN_RED | Acc ] );
+
+to_wx_device_context_attributes( _Attrs=[ { min_green_size, S } | T ],
+								 Acc ) ->
+	to_wx_device_context_attributes( T, [ S, ?WX_GL_MIN_GREEN | Acc ] );
+
+to_wx_device_context_attributes( _Attrs=[ { min_blue_size, S } | T ], Acc ) ->
+	to_wx_device_context_attributes( T, [ S, ?WX_GL_MIN_BLUE | Acc ] );
+
+to_wx_device_context_attributes( _Attrs=[ { depth_buffer_size, S } | T ],
+								 Acc ) ->
+	to_wx_device_context_attributes( T, [ S, ?WX_GL_DEPTH_SIZE | Acc ] );
+
+to_wx_device_context_attributes( _Attrs=[ Other | _T ], _Acc ) ->
+	throw( { unsupported_device_context_attribute, Other } ).
+
+
+
 %
 % Section for the conversions from wx to MyriadGUI:
 %
@@ -846,6 +918,12 @@ wx_id_to_string( _Id=?any_id ) ->
 wx_id_to_string( Id ) ->
 	text_utils:format( "ID #~B", [ Id ] ).
 
+
+
+
+
+
+% Connection-related section.
 
 
 % @doc Subscribes the current process to the specified type(s) of events
@@ -898,9 +976,9 @@ connect( SourceObject, EventType, Options ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 	   trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
-			"for ~p (i.e. ~p).",
+			"for ~p (i.e. ~p), with options ~p.",
 			[ gui:object_to_string( SourceObject ), self(), EventType,
-			  WxEventType ] ) ),
+			  WxEventType, Options ] ) ),
 
 	wxEvtHandler:connect( SourceObject, WxEventType, Options ).
 
