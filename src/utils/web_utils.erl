@@ -26,7 +26,6 @@
 % Creation date: Tuesday, June 25, 2019.
 
 
-
 % @doc Gathering of services for <b>web-related</b> uses, notably for <b>HTML
 % generation</b> or <b>HTTP management</b>.
 %
@@ -213,6 +212,8 @@
 
 
 % Shorthands:
+
+-type activation_switch() :: basic_utils:activation_switch().
 
 -type option_list() :: option_list:option_list().
 
@@ -1191,8 +1192,8 @@ stop() ->
 % SSL-related operations.
 
 
-% @doc Returns default SSL options regarding the verification of the remote
-% peer.
+% @doc Returns default SSL options regarding the verification of remote peers
+% for HTTPS connections.
 %
 % See get_ssl_verify_options/1 for more information.
 %
@@ -1202,20 +1203,19 @@ get_ssl_verify_options() ->
 
 
 
-% @doc Returns SSL options regarding the verification of the remote peer
-% for HTTPS connections:
+% @doc Returns SSL options regarding the verification of remote peers for HTTPS
+% connections:
 %
 % - if the switch is 'disable', this peer will not be verified (exposing the
 % program to a man-in-the-middle attack)
 %
-% - if the switch is 'enabled', the system DER-encoded certificates are trusted
-% (see https://erlang.org/doc/man/ssl.html#type-cert) to check that peer, so
-% that not only the TLS protection against "casual" eavesdroppers is enjoyed,
-% but also, here, the one against Man-in-the-Middle (so we check that we
-% indeed interact with the expected server)
+% - if the switch is 'enabled', the system DER-encoded certificates are used
+% (see https://erlang.org/doc/man/ssl.html#type-cert) and trusted in order to
+% check that peer, so that not only the TLS protection against "casual"
+% eavesdroppers applies, but also, here, the one against Man-in-the-Middle (so
+% we check that we indeed interact with the expected server)
 %
--spec get_ssl_verify_options( basic_utils:activation_switch() ) ->
-									ssl_options().
+-spec get_ssl_verify_options( activation_switch() ) -> ssl_options().
 get_ssl_verify_options( enable ) ->
 
   MatchFun = public_key:pkix_verify_hostname_match_fun( https ),
@@ -1240,5 +1240,6 @@ get_ssl_verify_options( disable ) ->
 	% by certificate path validation' (however, for unspecified reasons, it is
 	% still output).
 
+	% Apparently httpc expects list_options(), not map_options():
 	%#{ verify => verify_none }.
 	[ { verify, verify_none } ].
