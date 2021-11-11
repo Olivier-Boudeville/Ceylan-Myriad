@@ -821,9 +821,10 @@ start( Option ) ->
 		ok ->
 			ok;
 
-		{ error, { already_started, Module } } ->
-			trace_bridge:info_fmt( "Starting web_utils reported that module "
-				"'~ts' was already started.", [ Module ] ),
+		% Module expected to be 'inets':
+		{ error, { already_started, _Module } } ->
+			%trace_bridge:info_fmt( "Starting web_utils reported that module "
+			%   "'~ts' was already started.", [ Module ] ),
 			ok;
 
 		{ error, InetsReason } ->
@@ -1066,7 +1067,7 @@ to_httpc_headers( Headers ) when is_map( Headers ) ->
 from_httpc_headers( Headers ) ->
 	maps:from_list( [ { text_utils:string_to_binary( K ),
 						text_utils:string_to_binary( V ) }
-					  || { K, V } <- Headers ] ).
+							   || { K, V } <- Headers ] ).
 
 
 
