@@ -211,11 +211,9 @@ has_backend( BackendName ) ->
 
 
 
-% @doc Returns the type of the currently used (build-time) SQL backend.
+% @doc Returns the type of the currently used (build-time) SQL backend (if any).
 %
-% Throws an exception if none is found available.
-%
--spec get_backend_name() -> backend_name().
+-spec get_backend_name() -> maybe( backend_name() ).
 get_backend_name() ->
 	cond_utils:switch_set_to( myriad_sql_backend, [
 
@@ -223,7 +221,7 @@ get_backend_name() ->
 
 		{ postgresql, postgresql },
 
-		{ none, throw( no_myriad_sql_backend_enabled ) } ],
+		{ none, undefined } ],
 
 		% Default token:
 		none ).

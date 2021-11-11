@@ -26,7 +26,6 @@
 % Creation date: Wednesday, June 8, 2016
 
 
-
 % @doc Unit tests for the <b>SQL support</b>, based on available backend(s).
 %
 % See the sql_support tested module.
@@ -208,30 +207,39 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	test_facilities:display( "Testing availability of known backends: ~ts",
+	test_facilities:display( "Testing the availability of known SQL "
+							 "backends: ~ts",
 		[ text_utils:strings_to_string( [ text_utils:format( "~ts: ~ts",
 				[ BN, sql_support:has_backend( BN ) ] )
 					|| BN <- sql_support:list_possible_backend_names() ] ) ] ),
 
-	BackendType = sql_support:get_backend_name(),
+	case sql_support:get_backend_name() of
 
-	test_facilities:display( "Starting SQL support with backend '~ts'.",
-							 [ BackendType ] ),
+		undefined ->
+			test_facilities:display( "No SQL backend found available, "
+									 "stopping test." );
 
-	sql_support:start(),
+		BackendType ->
+			test_facilities:display( "Starting SQL support with backend '~ts'.",
+									 [ BackendType ] ),
 
-	case BackendType of
+			sql_support:start(),
 
-		sqlite3 ->
-			test_sqlite3();
+			% Temporary:
+			case BackendType of
 
-		_ ->
-			test_myriad_sql_support()
+				sqlite3 ->
+					test_sqlite3();
+
+				_ ->
+					test_myriad_sql_support()
+
+			end,
+
+			test_facilities:display( "Stopping SQL support." ),
+			sql_support:stop()
 
 	end,
-
-	test_facilities:display( "Stopping SQL support." ),
-	sql_support:stop(),
 
 
 	test_facilities:stop().
