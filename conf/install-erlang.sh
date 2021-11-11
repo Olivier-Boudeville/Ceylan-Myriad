@@ -10,14 +10,13 @@
 LANG=C; export LANG
 
 
-# Note: if one wants to download src or doc archives by oneself, point directly
-# to http://erlang.org/download/.
-
-
+# Note: if one wants to download src or doc base (i.e. not patch ones) archives
+# by oneself, one may also point directly to http://erlang.org/download/.
 
 # Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
 # order to be able to switch back and forth more easily:
 
+erlang_md5_for_24_1_4="392a5faf394304f7b8fb5cde0deca582"
 erlang_md5_for_24_1="e740b90a20c0f63108f879ce1f228582"
 erlang_md5_for_24_0="7227024b8619e4d97a7af4f4cf98d4db"
 erlang_md5_for_23_3="d6660705f01afbe3466c0a5de21ab361"
@@ -35,15 +34,15 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable (an update of the next two lines is needed):
-erlang_version="24.1"
-erlang_md5="${erlang_md5_for_24_1}"
+erlang_version="24.1.4"
+erlang_md5="${erlang_md5_for_24_1_4}"
 
 
 # Candidate version (ex: either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="24.0"
-erlang_md5_candidate="${erlang_md5_for_24_0}"
+erlang_version_candidate="24.1"
+erlang_md5_candidate="${erlang_md5_for_24_1}"
 
 base_install_dir="${HOME}/Software/Erlang"
 
@@ -158,10 +157,15 @@ use_prefix=0
 do_patch=1
 
 
-erlang_download_location="http://erlang.org/download"
+# Only for base (non-patch) release:
+#erlang_download_location="https://erlang.org/download"
+
+
+# See list in https://github.com/erlang/otp/releases:
+erlang_download_location="https://github.com/erlang/otp/releases/download/OTP-${erlang_version}"
 
 # The user that is to perform the build (everything but installation):
-build_user=$(id -un)
+build_user="$(id -un)"
 
 
 # Sets the wget variable appropriately.
@@ -170,7 +174,7 @@ set_wget()
 
 	if [ -z "${wget}" ]; then
 
-		wget=$(which wget)
+		wget="$(which wget)"
 
 		if [ ! -x "${wget}" ]; then
 
@@ -197,14 +201,14 @@ while [ $token_eaten -eq 0 ]; do
 	token_eaten=1
 
 
-	if [ "$1" = "${help_opt_short}" -o "$1" = "${help_opt_long}" ]; then
+	if [ "$1" = "${help_opt_short}" ] || [ "$1" = "${help_opt_long}" ]; then
 
 		echo "${usage}"
 		exit
 
 	fi
 
-	if [ "$1" = "${version_opt_short}" -o "$1" = "${version_opt_long}" ]; then
+	if [ "$1" = "${version_opt_short}" ] || [ "$1" = "${version_opt_long}" ]; then
 
 		echo "${erlang_version}"
 		exit
@@ -212,7 +216,7 @@ while [ $token_eaten -eq 0 ]; do
 	fi
 
 
-	if [ "$1" = "${previous_opt_short}" -o "$1" = "${previous_opt_long}" ]; then
+	if [ "$1" = "${previous_opt_short}" ] || [ "$1" = "${previous_opt_long}" ]; then
 
 		erlang_version="${erlang_version_candidate}"
 		erlang_md5="${erlang_md5_candidate}"
@@ -225,7 +229,7 @@ while [ $token_eaten -eq 0 ]; do
 	fi
 
 
-	if [ "$1" = "${doc_opt_short}" -o "$1" = "${doc_opt_long}" ]; then
+	if [ "$1" = "${doc_opt_short}" ] || [ "$1" = "${doc_opt_long}" ]; then
 
 		echo "Will manage the corresponding documentation."
 		do_manage_doc=0
@@ -234,7 +238,7 @@ while [ $token_eaten -eq 0 ]; do
 	fi
 
 
-	if [ "$1" = "${plt_opt_short}" -o "$1" = "${plt_opt_long}" ]; then
+	if [ "$1" = "${plt_opt_short}" ] || [ "$1" = "${plt_opt_long}" ]; then
 
 		echo "Will generate the PLT file ${plt_file} for Dialyzer."
 		do_generate_plt=0
@@ -243,7 +247,7 @@ while [ $token_eaten -eq 0 ]; do
 	fi
 
 
-	if [ "$1" = "${download_opt_short}" -o "$1" = "${download_opt_long}" ]; then
+	if [ "$1" = "${download_opt_short}" ] || [ "$1" = "${download_opt_long}" ]; then
 
 		echo "No file will be downloaded."
 		do_download=1
@@ -252,7 +256,7 @@ while [ $token_eaten -eq 0 ]; do
 	fi
 
 
-	if [ "$1" = "${patch_opt_short}" -o "$1" = "${patch_opt_long}" ]; then
+	if [ "$1" = "${patch_opt_short}" ] || [ "$1" = "${patch_opt_long}" ]; then
 
 		echo "No patch will be applied to the Erlang sources."
 		do_patch=1
@@ -285,7 +289,7 @@ if [ -z "${read_parameter}" ]; then
 
    # Here no base installation directory was specified:
 
-   if [ $(id -u) -eq 0 ]; then
+   if [ "$(id -u)" = "0" ]; then
 
 	   if [ -z "${SUDO_USER}" ]; then
 
@@ -338,16 +342,21 @@ fi
 
 #echo "build_user=${build_user}"
 
-
+# On official site or on Github:
 erlang_src_prefix="otp_src_${erlang_version}"
 #erlang_src_prefix="otp-OTP-${erlang_version}"
 
 erlang_src_archive="${erlang_src_prefix}.tar.gz"
 
-# Not knowning currently where newer doc archives can be obtained:
-erlang_doc_prefix="otp_doc_html_${erlang_version}"
+# As documentation archives were not generated for patch versions (ex: 24.1.4),
+# only for "base" versions" (ex: 24.1):
+#
+#erlang_doc_prefix="$(echo "otp_doc_html_${erlang_version}" | awk -F. '{print otp_doc_$1"."$2""}')"
 
-erlang_doc_archive="${erlang_doc_prefix}.tar.gz"
+
+# on Github now:
+#erlang_doc_archive="${erlang_doc_prefix}.tar.gz"
+erlang_doc_archive="otp_doc_${erlang_version}.tar.gz"
 
 
 # Some early checkings:
@@ -375,7 +384,7 @@ if [ $check_ssl -eq 0 ]; then
 
 		read res
 
-		if [ ! "$res" = "y" ]; then
+		if [ ! "${res}" = "y" ]; then
 
 			echo "  Build stopped. Consider installing the SSL headers (typically a 'libssl-dev' package)." 1>&2
 
@@ -390,7 +399,7 @@ fi
 
 if [ $do_patch -eq 0 ]; then
 
-	patch_tool=$(which patch)
+	patch_tool="$(which patch)"
 
 	if [ ! -x "${patch_tool}" ]; then
 
@@ -403,7 +412,7 @@ if [ $do_patch -eq 0 ]; then
 fi
 
 
-md5sum=$(which md5sum)
+md5sum="$(which md5sum)"
 
 # Archives are not available by default:
 src_available=1
@@ -445,9 +454,7 @@ if [ $do_download -eq 0 ]; then
 
 		echo "Downloading now ${erlang_target_src_url}"
 		set_wget
-		${sudo_cmd} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1
-
-		if [ ! $? -eq 0 ]; then
+		if ! ${sudo_cmd} ${wget} ${erlang_target_src_url} 1>/dev/null 2>&1; then
 			echo "  Error while downloading ${erlang_target_src_url}, quitting." 1>&2
 			exit 15
 		fi
@@ -462,9 +469,7 @@ if [ $do_download -eq 0 ]; then
 
 			echo "Downloading now ${erlang_target_doc_url}"
 			set_wget
-			${sudo_cmd} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1
-
-			if [ ! $? -eq 0 ]; then
+			if ! ${sudo_cmd} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1; then
 				echo "  Error while downloading ${erlang_target_doc_url}, quitting." 1>&2
 				exit 16
 			fi
@@ -503,9 +508,11 @@ if [ ! -x "${md5sum}" ]; then
 
 else
 
+	echo "Checksum for ${erlang_src_archive}"
+
 	md5_res=$( ${md5sum} ${erlang_src_archive} )
 
-	computed_md5=$( echo ${md5_res}| awk '{printf $1}' )
+	computed_md5=$( echo "${md5_res}"| awk '{printf $1}' )
 
 	if [ "${computed_md5}" = "${erlang_md5}" ]; then
 		echo "MD5 sum for Erlang source archive matches."
@@ -558,9 +565,7 @@ else
 fi
 
 
-${sudo_cmd} ${tar} xvzf ${erlang_src_archive}
-
-if [ ! $? -eq 0 ]; then
+if ! ${sudo_cmd} ${tar} xvzf ${erlang_src_archive}; then
 	echo "  Error while extracting ${erlang_src_archive}, quitting." 1>&2
 	exit 50
 fi
@@ -622,9 +627,7 @@ End-of-script
 
 	) > ceylan-auth.patch
 
-	${sudo_cmd} ${patch_tool} -p0 < ceylan-auth.patch
-
-	if [ ! $? -eq 0 ]; then
+	if ! ${sudo_cmd} ${patch_tool} -p0 < ceylan-auth.patch; then
 
 		echo "Error, the patching of Erlang sources (auth.erl) failed." 1>&2
 
@@ -659,7 +662,7 @@ fi
 
 echo "  Building Erlang environment..."
 
-if ! ${sudo_cmd} ./configure ${configure_opt} ${prefix_opt} ; then
+if ! ${sudo_cmd} ./configure ${configure_opt} ${prefix_opt}; then
 
 	echo "Configuration failed, exiting." 1>&2
 	exit 60
@@ -690,12 +693,12 @@ echo "  Erlang successfully built and installed in ${prefix}."
 # More global than 'if [ $use_prefix -eq 0 ]; then' so that most installs
 # include these links:
 #
-if [ -n ${prefix} ]; then
+if [ -n "${prefix}" ]; then
 
 	# First, let's create a symbolic link so that this new version can be
 	# transparently used by emacs:
 	#
-	cd ${prefix}/lib/erlang
+	cd "${prefix}/lib/erlang"
 
 	# Exactly one match expected for the wildcard (ex: tools-2.8.2), useful to
 	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
@@ -712,7 +715,7 @@ if [ -n ${prefix} ]; then
 	${ln} -sf lib/jinterface-* jinterface
 
 	# Then go again in the install (not source) tree to create the base link:
-	cd ${prefix}/..
+	cd "${prefix}/.."
 
 	# Ex: we are in ${base_install_dir} now.
 
@@ -732,7 +735,7 @@ if [ $do_manage_doc -eq 0 ]; then
 
 	if [ $use_prefix -eq 0 ]; then
 
-		cd ${prefix}/..
+		cd "${prefix}/.."
 
 	else
 
@@ -755,10 +758,7 @@ if [ $do_manage_doc -eq 0 ]; then
 
 	cd "${erlang_doc_root}"
 
-	${tar} xvzf ${initial_path}/${erlang_doc_archive}
-
-
-	if [ ! $? -eq 0 ]; then
+	if ! ${tar} xvzf ${initial_path}/${erlang_doc_archive}; then
 		echo "  Error while extracting ${erlang_doc_archive}, quitting." 1>&2
 		exit 70
 	fi
@@ -803,9 +803,7 @@ fi
 if [ $do_generate_plt -eq 0 ]; then
 
 	if [ $use_prefix -eq 1 ]; then
-
 		prefix="/usr/local"
-
 	fi
 
 	actual_plt_file="${prefix}/${plt_file}"
@@ -814,7 +812,7 @@ if [ $do_generate_plt -eq 0 ]; then
 	dialyzer_exec="${prefix}/bin/dialyzer"
 	erlang_beam_root="${prefix}/lib/erlang"
 
-	cd ${prefix}
+	cd "${prefix}"
 
 
 	if [ ! -x "${dialyzer_exec}" ]; then
@@ -853,7 +851,7 @@ if [ $do_generate_plt -eq 0 ]; then
 	elif [ $res -eq 2 ]; then
 		echo "The Erlang PLT file was generated, but warnings were issued."
 	else
-		echo "  Error, the PLT generation failed (error code: $res)." 1>&2
+		echo "  Error, the PLT generation failed (error code: ${res})." 1>&2
 		exit 90
 	fi
 
