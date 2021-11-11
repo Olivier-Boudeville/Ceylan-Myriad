@@ -153,6 +153,10 @@
 % A (signed) offset expressed in bytes.
 
 
+-type bit_size() :: non_neg_integer().
+% Size, as a positive number of bits.
+
+
 -opaque cpu_usage_info() ::
 		{ integer(), integer(), integer(), integer(), integer() }.
 
@@ -318,7 +322,7 @@
 % identifier).
 
 
--export_type([ byte_size/0, byte_offset/0,
+-export_type([ byte_size/0, byte_offset/0, bit_size/0,
 			   cpu_usage_info/0, cpu_usage_percentages/0,
 			   host_static_info/0, host_dynamic_info/0,
 
