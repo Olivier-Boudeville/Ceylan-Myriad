@@ -152,8 +152,9 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl_support
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 
 endif
 
@@ -162,8 +163,9 @@ ifeq ($(EXECUTION_TARGET),development)
 
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
-	MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 
 endif
 
@@ -386,6 +388,7 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 
 # Extra prerequisite includes:
 
+
 # Optional services, relying on third-party prerequisites:
 #
 # (for them, we do not force the corresponding variable here, in order to let
@@ -393,8 +396,17 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 #
 # We chose the USE_* variables to be set with '=' rather than with ':=' yet it
 # is not believed to really matter in this case, except that a makefile should
-# include this files (probably indirectly GNUmakesettings.inc) before testing
+# include these files (probably indirectly GNUmakesettings.inc) before testing
 # these variables.
+
+# This first service is not strictly a third-party one, as if detected at build
+# time it will pertain to the standard Erlang install; yet it may or may not be
+# available, for long has not existed, and, like gs, may be deprecated some
+# day):
+#
+#USE_WXWINDOWS = false
+#USE_WXWINDOWS = true
+
 
 # For the reading and writing of large, often scientific-oriented data:
 #USE_HDF5 = false
@@ -415,17 +427,21 @@ USE_PROTOBUF = false
 
 
 # To enable SQL with its default backend:
-USE_SQL = false
-#USE_SQL := true
+#USE_SQL = false
+#USE_SQL = true
 
 
 # For SQL lightweight database operations, based on SQLite 3:
-# (see also the 'has_sqlite3' preprocessor flag)
+# (see also the 'myriad_sql_backend' preprocessor flag, possibly set to
+# 'sqlite3')
 #
 #USE_SQLITE = false
 #USE_SQLITE = true
 
 # For more demanding SQL database operations, based on PostgreSQL:
+# (see also the 'myriad_sql_backend' preprocessor flag, possibly set to
+# 'postgresql')
+#
 #USE_POSTGRESQL = false
 #USE_POSTGRESQL = true
 
@@ -439,6 +455,23 @@ USE_SQL = false
 #USE_JAVA_BINDING = false
 #USE_JAVA_BINDING = true
 
+
+# Enabled by default, as it is the GUI library used by Erlang whenever
+# available:
+#
+ifndef USE_WXWINDOWS
+	USE_USE_WXWINDOWS = true
+endif
+
+
+ifeq ($(USE_WXWINDOWS),true)
+
+	# myriad_gui_backend may also be either not defined, or set to 'none':
+	GUI_OPTS = -Dmyriad_gui_backend=wxwindows
+
+	ERLANG_COMPILER_GENERAL_OPT += $(GUI_OPTS)
+
+endif
 
 
 # Deactivated by default, as requires specific prerequisites (the HDF5 library
@@ -1012,7 +1045,7 @@ ERLANG_INTERPRETER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erl 2>/dev/n
 
 
 # Not using '-smp auto' anymore, as the SMP mode is needed even with a single
-# core if GUI (WxWindows) is to be used:
+# core if wxWindows is to be relied upon:
 #
 # (currently not used)
 #
