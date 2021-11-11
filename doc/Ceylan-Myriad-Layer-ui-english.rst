@@ -114,10 +114,16 @@ GUI Backend
 
 This interface relied initially on ``gs`` (now deprecated), now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_), maybe later in HTML 5 [#]_. For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been an option.
 
-.. [#] Possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_ or on `N2O <https://ws.n2o.dev/>`_.
+If having very demanding 2D needs, one may refer to the `3D services`_ section (as it is meant to be hardware-accelerated, and the 2D services are a special cases thereof).
+
+
+.. [#] Possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_, on `N2O <https://ws.n2o.dev/>`_ or on any relevant HTML5 framework.
 
 
 .. Note:: ``gui`` does not adhere yet to the ``ui`` conventions, but it will ultimately will. Currently it offers a graphical API on top of ``wx``.
+
+
+.. _`wx availability`:
 
 As a consequence, `wxWidgets <https://www.wxwidgets.org/>`_ must be available on the host (otherwise a ``{load_driver,"No driver found"}`` exception will be raised on GUI start). This should correspond to the ``wxgtk3`` Arch Linux package, or the ``libwxgtk3.0-dev`` Debian one. This can be tested by executing ``wx-config --version`` on a shell.
 
@@ -150,6 +156,7 @@ The usual mode of operation is the following:
 3. The user process also triggers any relevant operation (ex: clearing widgets, setting various parameters), generally shows at least a main frame and records the GUI state that it needs for future use (typically containing at least the MyriadGUI references of the widgets that it created)
 4. Then the user process enters its own (GUI-specific) main loop, from which it will receive the events that it subscribed to, and to which it will react by performing application-specific operations and/or GUI-related operations (creating, modifying, deleting widgets). Generally at least one condition is defined in order to leave that main loop and stop the GUI (``gui:stop/0``)
 
+Such a scheme based on a "man-in-the-middle" (the MyriadGUI process) is necessary to abstract out for example the types of messages induced by a given GUI backend. If performances should not be an issue for user interaction, the integration must be carefully designed, notably because a 3-actor cooperation (user code, MyriadGUI one, backend one) opens the possibility of race conditions to occur (notably some operations, like event subscribing, must then be made synchronous, as the user process may trigger direct interactions with the backend; see implementation notes for more details).
 
 Refer to the `gui_overall_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/graphical/gui_overall_test.erl>`_ and `lorenz_test.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/graphical/lorenz_test.erl>`_ test full, executable usage examples thereof.
 
@@ -195,11 +202,74 @@ it is probably the sign that an attempt was done to perform an operation on an a
 For 3D Applications
 ...................
 
-The ``wx`` services also include a support for `OpenGL <https://en.wikipedia.org/wiki/OpenGL>`_, including in order to create a suitable GL context - in addition to the related Erlang-native modules such as `gl <https://www.erlang.org/doc/man/gl.html>`_ and `glu <https://www.erlang.org/doc/man/glu.html>`_.
 
-These services can be easily tested by running ``wx:demo()`` from any Erlang shell and selecting then ``gl`` in the left example menu.
+Purpose
+*******
 
-We gather a few helpers in ``gui_opengl``. This topic directly relates to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
+In order to render 3D content, Myriad relies on `OpenGL <https://en.wikipedia.org/wiki/OpenGL>`_, a standard, cross-platform, uniform and well-designed programming interface that enables the use of video cards in order to deport most of the (2D or 3D) heavy-lifting there.
+
+Sophisticated 3D rendering is not necessarily an area where Erlang shines (perhaps, on the context of a client/server multimedia application, the client could rely on an engine like `Godot <https://en.wikipedia.org/wiki/Godot_(game_engine)>`_ instead), yet at least some level of rendering capabilities is convenient whenever performing 3D computations, implementing a server-side 3D logic, processing meshes, etc.
+
+
+
+Prerequisites
+*************
+
+So a prerequisite is that the local host enjoys at least some kind of **OpenGL support**, either in software or, preferably, with an hardware acceleration.
+
+.. _`OpenGL troubleshooting`:
+
+Just run our ``gui_opengl_test.erl`` test to have the detected local configuration examined. Another option is to run, from the command-line, the ``glxinfo`` executable, and hope to see, among the many displayed lines, ``direct rendering: Yes``.
+
+If it is not the case (no direct rendering, or a GLX error being returned - typically involving any ``BadValue``), one should investigate one's configuration (with ``lspci | grep VGA``, ``lsmod``, etc.), update one's video driver on par with the current kernel, reboot, etc.
+
+A final validation might be to run the ``glxgears`` executable, and ensure that a window appear, showing three rotating gears.
+
+As for the **Erlang side** of this OpenGL support, one may refer to `this section <https://www.erlang.org/doc/man/wxglcanvas#description>`_ to ensure that the Erlang build at hand has indeed its OpenGL support enabled.
+
+
+
+3D Services
+***********
+
+
+User API
+________
+
+
+The Myriad OpenGL utilities are defined in the ``gui_opengl`` module; the many OpenGL defines are available when having included ``gui_opengl.hrl`` (ex: as ``?GL_QUAD_STRIP``).
+
+These utilities directly relate to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
+
+The ``gui_opengl_test.erl`` offers a complete usage example.
+
+.. Note:: Almost all OpenGL operations require that an OpenGL context already exists. When it is done, all GL/GLU operations can be done as usual.
+
+		 So the point of MyriadGUI here is mostly to create a suitable OpenGL context, offer a few additional, higher-level, stricter constructs to ease the integration and use, and to connect this rendering capability to the rest of the GUI (ex: regarding event management).
+
+
+Configuration
+_____________
+
+In terms of error management, extensive verifications will apply iff the ``myriad_check_opengl_support`` flag is set.
+
+Setting the ``myriad_debug_opengl_support`` flag will result in more runtime information to be reported.
+
+
+
+
+Internal Implementation
+_______________________
+
+The MyriadGUI 2D/3D services rely on the related Erlang-native modules, namely `gl <https://www.erlang.org/doc/man/gl.html>`_ and `glu <https://www.erlang.org/doc/man/glu.html>`_.
+
+As for the ``wx`` module (see the `wx availability`_ section), it provides a convenient solution in order to create a suitable GL context (`esdl <https://github.com/dgud/esdl>`_ used to be another solution, which may be revived some day, as `SDL <https://www.libsdl.org/>`_ - i.e. *Simple DirectMedia Layer* - is still striving, and not all applications may have use of the rest of ``wx``).
+
+These Erlang-native services can be easily tested by running ``wx:demo()`` from any Erlang shell and selecting then ``gl`` in the left example menu.
+
+These platform-specific / backend-specific (ex: wx or not, and which version thereof, ex: wxWidget 2.8 vs 3.0 API) services shall remain fully invisible from MyriadGUI user code, so that it remains sheltered for good from any change at their level.
+
+The goal is to wrap only the dependencies that may change in the future (ex: wx); doing so for the ones considered (for good reasons) stable (such as gl or glu) would have no specific interest.
 
 
 
@@ -208,7 +278,7 @@ For Multimedia Applications
 
 If the 2D/3D rendering can be done through ``wx``, apparently the **audio capabilities** (ex: `[1] <https://docs.wxwidgets.org/3.0/group__group__class__media.html>`_, `[2] <https://docs.wxwidgets.org/3.0/classwx_sound.html>`_) of wxWidgets have not been made available to Erlang.
 
-So an Erlang program needing audio output (ex: sound special effects, musics) and/or input (ex: microphone) will have to rely on another option, possibly in link, for audio rendering, with `eopenal <https://github.com/edescourtis/eopenal>`_, an (Erlang) binding of `OpenAL <https://en.wikipedia.org/wiki/OpenAL>`_.
+So an Erlang program needing audio output (ex: sound special effects, musics) and/or input (ex: microphone) will have to rely on another option - possibly in link, for audio rendering, with `eopenal <https://github.com/edescourtis/eopenal>`_, an (Erlang) binding of `OpenAL <https://en.wikipedia.org/wiki/OpenAL>`_.
 
 
 
