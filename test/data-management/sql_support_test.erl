@@ -42,6 +42,15 @@
 -include("test_facilities.hrl").
 
 
+-export([ run_interactive/0 ]).
+
+
+
+% Shorthands:
+
+-type connection() :: sql_support:connection().
+
+
 
 % If using the sqlite3 backend
 %
@@ -183,8 +192,9 @@ test_myriad_sql_support() ->
 
 test_sql( ConnSettings, UserSettings ) ->
 
-	test_facilities:display( "Connecting:~n - to: ~p~n - as: ~p",
-							 [ ConnSettings, UserSettings ] ),
+	test_facilities:display( "Connecting to ~ts as ~ts.",
+		[ sql_support:connection_settings_to_string( ConnSettings ),
+		  sql_support:user_settings_to_string( UserSettings ) ] ),
 
 	Conn = case sql_support:connect( ConnSettings, UserSettings ) of
 
@@ -243,3 +253,50 @@ run() ->
 
 
 	test_facilities:stop().
+
+
+
+% @doc Connects to the tested database and returns a corresponding connection,
+% useful for interactive testing.
+%
+% Usage example: run 'make shell' from the current test directory, then:
+%
+%  1> MyConn = sql_support_test:run_interactive().
+%  2> Tables = sql_support:list_table_names(MyConn).
+%  2> sql_support:execute_query(MyConn, "select * from customers").
+%  [...]
+%  n > ok = sql_support:close(Conn).
+%
+-spec run_interactive() -> connection().
+run_interactive() ->
+
+	sql_support:start(),
+
+	{ ConnSettings, UserSettings } = case get_test_settings() of
+
+		undefined ->
+			test_facilities:display(
+			  "No sufficient settings found in preferences." ),
+			throw( no_connection_settings );
+
+		AccessSettings ->
+			AccessSettings
+
+	end,
+
+	Conn = case sql_support:connect( ConnSettings, UserSettings ) of
+
+		{ ok, C } ->
+			C;
+
+		{ error, Reason } ->
+			throw( { connection_failed, Reason, ConnSettings, UserSettings } )
+
+	end,
+
+	test_facilities:display( "Interactive connection to ~ts, as ~ts "
+		"established (~w).",
+		[ sql_support:connection_settings_to_string( ConnSettings ),
+		  sql_support:user_settings_to_string( UserSettings ), Conn ] ),
+
+	Conn.
