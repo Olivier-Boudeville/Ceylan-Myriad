@@ -706,17 +706,20 @@ ifeq ($(USE_SQL),true)
 		USE_POSTGRESQL = true
 	endif
 
-
 	ifeq ($(USE_SQLITE),true)
-		SQL_OPTS = -Dmyriad_sql_backend=sqlite3
+		SQL_BACKEND_OPT = -Dmyriad_sql_backend=sqlite3
 	endif
 
 	ifeq ($(USE_POSTGRESQL),true)
-		SQL_OPTS = -Dmyriad_sql_backend=postgresql
+		SQL_BACKEND_OPT = -Dmyriad_sql_backend=postgresql
 	endif
 
 	# myriad_sql_backend may also be either not defined, or set to 'none':
-	SQL_OPTS = -Dmyriad_sql_backend=none
+	ifndef SQL_BACKEND_OPT
+		SQL_BACKEND_OPT = -Dmyriad_sql_backend=none
+	endif
+
+	SQL_OPTS = $(SQL_BACKEND_OPT)
 
 	ERLANG_COMPILER_GENERAL_OPT += $(SQL_OPTS)
 
