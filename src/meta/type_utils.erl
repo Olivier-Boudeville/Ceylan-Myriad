@@ -478,11 +478,17 @@
 % Probably that such a tuple would contain at least an element of type T.
 
 
+-type tuple( _T ) :: tuple().
+% Designates an uniform tuple (of unspecified size), that is a tuple whose
+% elements are all of the specified type.
+
+
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   low_level_type/0, record/0,
-			   tuploid/0, tuploid/1 ]).
+			   tuploid/0, tuploid/1,
+			   tuple/1 ]).
 
 
 % Note: currently, only a very basic, ad hoc type support ("hand-made look-up
