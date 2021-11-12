@@ -54,3 +54,11 @@
 
 	% The password of a database user:
 	user_password :: sql_support:database_user_password() } ).
+
+
+% The description of a field (a column).
+-record( field_description, {
+
+	% Integrate a variation of epgsql:column().
+
+} ).
