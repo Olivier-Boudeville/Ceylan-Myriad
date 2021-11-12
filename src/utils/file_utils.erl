@@ -750,7 +750,7 @@ get_last_path_element( AnyPath ) ->
 
 
 
-% @doc Converts specified name to an acceptable filename, filesystem-wise.
+% @doc Converts the specified name into an acceptable filename, filesystem-wise.
 %
 % Returns the same string type as the parameter.
 %
@@ -765,8 +765,9 @@ convert_to_filename( Name ) ->
 	% and file names (see net_utils:generate_valid_node_name_from/1).
 
 	% Note however that now we duplicate the code instead of calling the
-	% net_utils module from here, as otherwise there would be one more module
-	% to deploy under some circumstances.
+	% net_utils module from here, as otherwise there would be one more module to
+	% deploy under some circumstances (and over time they may have to be
+	% different).
 
 	re:replace( lists:flatten( Name ), ?patterns_to_replace_for_paths,
 				?replacement_for_paths, [ global, { return, list } ] ).
@@ -3563,7 +3564,7 @@ is_absolute_path( AnyPath ) ->
 
 
 
-% @doc Returns an absolute, normalised path corresponding to specified path.
+% @doc Returns an absolute, normalised path corresponding to the specified path.
 %
 % Returns a string of the same type as the specified one.
 %
