@@ -654,7 +654,7 @@ gui_main_loop( State=#gui_state{ main_frame=MainFrame,
 
 			%trace_utils:notice_fmt( "Test canvas '~ts' resized to ~p (~ts).",
 			%   [ gui:object_to_string( Canvas ), NewSize,
-			%	  gui:context_to_string( Context ) ] ),
+			%     gui:context_to_string( Context ) ] ),
 
 			gui:clear( Canvas ),
 			State;
