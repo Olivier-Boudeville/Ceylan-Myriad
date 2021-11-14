@@ -25,7 +25,6 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
 % @doc More <b>global testing</b> of the MyriadGUI toolbox.
 %
 % See the gui.erl tested module.
@@ -40,14 +39,13 @@
 -include("bounding_box2.hrl").
 
 
-
 % Shorthands:
 
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 
--type coordinate() :: linear:coordinate().
+-type length() :: gui:length().
 
 -type button() :: gui:button().
 -type canvas() :: gui:canvas().
@@ -59,26 +57,26 @@
 % State of the application, kept and updated by its main loop.
 -record( my_test_state, {
 
-			main_frame :: gui:frame(),
+	main_frame :: gui:frame(),
 
-			render_shape_button :: button(),
-			render_mec_button   :: button(),
-			clear_canvas_button :: button(),
-			add_point_button    :: button(),
+	render_shape_button :: button(),
+	render_mec_button   :: button(),
+	clear_canvas_button :: button(),
+	add_point_button    :: button(),
 
-			% Convenient to detect canvas repaints (as disappears then):
-			paste_image_button   :: button(),
+	% Convenient to detect canvas repaints (as disappears then):
+	paste_image_button   :: button(),
 
-			quit_button         :: button(),
+	quit_button         :: button(),
 
-			canvas :: canvas(),
+	canvas :: canvas(),
 
-			% Allows to keep track of how many renderings were done:
-			render_count = 0 :: count(),
+	% Allows to keep track of how many renderings were done:
+	render_count = 0 :: count(),
 
-			point_count = 0 :: count(),
+	point_count = 0 :: count(),
 
-			render_mode = test_shape_rendering :: render_mode() } ).
+	render_mode = test_shape_rendering :: render_mode() } ).
 
 -type my_test_state() :: #my_test_state{}.
 
@@ -111,12 +109,12 @@ test_state_to_string( #my_test_state{ main_frame=MainFrame,
 
 
 
--spec get_main_window_width() -> coordinate().
+-spec get_main_window_width() -> length().
 get_main_window_width() ->
 	800.
 
 
--spec get_main_window_height() -> coordinate().
+-spec get_main_window_height() -> length().
 get_main_window_height() ->
 	600.
 
@@ -274,9 +272,10 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  render_count=RenderCount,
 										  render_mode=RenderMode } ) ->
 
-	%trace_utils:info_fmt( "Test main loop running, render mode is ~p, "
-	%   "render count is ~B, point count is ~B.",
-	%   [ RenderMode, RenderCount, TestState#my_test_state.point_count ] ),
+	cond_utils:if_defined( myriad_gui_test_verbose,
+		trace_utils:info_fmt( "Test main loop running, render mode is ~p, "
+		   "render count is ~B, point count is ~B.",
+		   [ RenderMode, RenderCount, TestState#my_test_state.point_count ] ) ),
 
 	% We use trace_utils:notice* to discriminate more easily the traces
 	% originating from this test from any MyriadGUI ones:
@@ -295,12 +294,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			gui:stop();
 
 
-		{ onButtonClicked, [ RenderShapeButton, _Context ] } ->
+		{ onButtonClicked, [ RenderShapeButton, Context ] } ->
 
-			%trace_utils:notice_fmt(
-			%  "Render shape test button ~ts has been clicked (~ts).",
-			%  [ gui:object_to_string( QuitButton ),
-			%    gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt(
+					"Render shape test button ~ts has been clicked (~ts).",
+					[ gui:object_to_string( QuitButton ),
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
 
 			NewTestState = TestState#my_test_state{
 								render_mode=test_shape_rendering },
@@ -310,12 +311,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ RenderMECButton, _Context ] } ->
+		{ onButtonClicked, [ RenderMECButton, Context ] } ->
 
-			%trace_utils:notice_fmt(
-			%  "Render MEC test button ~ts has been clicked (~ts).",
-			%  [ gui:object_to_string( QuitButton ),
-			%    gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt(
+					"Render MEC test button ~ts has been clicked (~ts).",
+					[ gui:object_to_string( QuitButton ),
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
 
 			NewTestState = TestState#my_test_state{
 								render_mode=test_dynamic_mec },
@@ -325,12 +328,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ AddButton, _Context ] } ->
+		{ onButtonClicked, [ AddButton, Context ] } ->
 
-			%trace_utils:notice_fmt(
-			%  "Add point test button ~ts has been clicked (~ts).",
-			%  [ gui:object_to_string( QuitButton ),
-			%    gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt(
+					"Add point test button ~ts has been clicked (~ts).",
+					[ gui:object_to_string( QuitButton ),
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
 
 			NewPointCount = TestState#my_test_state.point_count + 1,
 
@@ -339,12 +344,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ PasteImageButton, _Context ] } ->
+		{ onButtonClicked, [ PasteImageButton, Context ] } ->
 
-			%trace_utils:notice_fmt(
-			%  "Paste image button ~ts has been clicked (~ts).",
-			%  [ gui:object_to_string( QuitButton ),
-			%    gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt(
+					"Paste image button ~ts has been clicked (~ts).",
+					[ gui:object_to_string( QuitButton ),
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
 
 			ImagePath = "../../../doc/myriad-small.png",
 
@@ -354,12 +361,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked, [ ClearCanvasButton, _Context ] } ->
+		{ onButtonClicked, [ ClearCanvasButton, Context ] } ->
 
-			%trace_utils:notice_fmt(
-			%  "Clear canvas button ~ts has been clicked (~ts).",
-			%  [ gui:object_to_string( QuitButton ),
-			%    gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt(
+					"Clear canvas button ~ts has been clicked (~ts).",
+					[ gui:object_to_string( QuitButton ),
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
 
 			gui:clear( Canvas ),
 			gui:blit( Canvas ),
@@ -367,23 +376,28 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked, [ QuitButton, _Context ] } ->
+		{ onButtonClicked, [ QuitButton, Context ] } ->
 
-			%trace_utils:notice_fmt( "Quit test button ~ts has been clicked "
-			%   "(~ts), test success.",
-			%   [ gui:object_to_string( QuitButton ),
-			%     gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt( "Quit test button ~ts has been clicked "
+					"(~ts), test success.",
+					[ gui:object_to_string( QuitButton ),
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
 
 			gui:destruct_window( MainFrame ),
 
 			gui:stop();
 
 
-		{ onRepaintNeeded, [ Canvas, _Context ] } ->
+		{ onRepaintNeeded, [ Canvas, Context ] } ->
 
-			%trace_utils:notice_fmt( "Test canvas '~ts' needing repaint (~ts).",
-			%   [ gui:object_to_string( Canvas ),
-			%     gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt(
+					"Test canvas '~ts' needing repaint (~ts).",
+					[ gui:object_to_string( Canvas ),
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
 
 			gui:blit( Canvas ),
 
@@ -391,11 +405,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 								render_count=RenderCount+1 } );
 
 
-		{ onResized, [ Canvas, _NewSize, _Context ] } ->
+		{ onResized, [ Canvas, NewSize, Context ] } ->
 
-			%trace_utils:notice_fmt( "Test canvas '~ts' resized to ~p (~ts).",
-			%   [ gui:object_to_string( Canvas ), NewSize,
-			%     gui:context_to_string( Context ) ] ),
+			cond_utils:if_defined( myriad_gui_test_verbose,
+				trace_utils:notice_fmt(
+					"Test canvas '~ts' resized to ~p (~ts).",
+					[ gui:object_to_string( Canvas ), NewSize,
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( [ NewSize, Context ] ) ),
 
 			render( RenderMode, TestState#my_test_state.point_count, Canvas ),
 
@@ -466,7 +483,7 @@ render_shapes( Canvas ) ->
 	gui:set_fill_color( Canvas, chartreuse ),
 	gui:draw_circle( Canvas, _CircleCenter={80,80}, _Radius=80 ),
 
-	gui:set_fill_color( Canvas, none ),
+	gui:set_fill_color( Canvas, undefined ),
 	gui:draw_circle( Canvas, _OtherCircleCenter={180,180}, _OtherRadius=180 ),
 
 	% Taken from polygon_test.erl:
@@ -485,7 +502,7 @@ render_shapes( Canvas ) ->
 	UnitRoots = linear_2D:get_roots_of_unit( _N=7, _StartingAngle=math:pi()/4),
 
 	ScaledRoundRoots = [ point2:roundify( point2:scale( P, _Factor=50 ) )
-								  || P <- UnitRoots ],
+									|| P <- UnitRoots ],
 
 	TransVec = [ 80, 400 ],
 	TransRoots = [ point2:translate( P, TransVec ) || P <- ScaledRoundRoots ],
