@@ -73,9 +73,12 @@
 -type integer_vertex3() :: point3().
 % A 3D integer vertex of a mesh.
 
+-type any_vertex3() :: any_point3().
+% A 3D vertex of a polygon, with any numerical coordinates (3 of them).
+
 
 -export_type([ user_point3/0, point3/0, integer_point3/0, any_point3/0,
-			   vertex3/0, integer_vertex3/0 ]).
+			   vertex3/0, integer_vertex3/0, any_vertex3/0 ]).
 
 
 -export([ new/1, new/3, new_integer/3, null/0,

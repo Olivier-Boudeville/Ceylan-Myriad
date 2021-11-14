@@ -158,12 +158,13 @@
 % coordinates.
 
 
--type indice() :: basic_utils:zero_index().
+-type indice() :: basic_utils:positive_index().
 % The indice/index of an element (ex: of a vertex in an array thereof).
 
 
 -type indexed_triangle() :: { indice(), indice(), indice() }.
-% A definition of a triangle, based on the indices of its three vertices.
+% A definition of a triangle, based on the indices of its three vertices, in a
+% vertex container (ex: a list).
 
 
 -export_type([ dimension/0,

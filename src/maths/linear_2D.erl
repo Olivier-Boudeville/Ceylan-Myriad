@@ -76,7 +76,9 @@
 
 -type coordinate() :: linear:coordinate().
 -type any_coordinate() :: linear:any_coordinate().
--type integer_coordinate() :: linear:integer_coordinate().
+
+-type distance() :: linear:distance().
+-type integer_distance() :: linear:integer_distance().
 -type square_distance() :: linear:square_distance().
 
 -type point2() :: point2:point2().
@@ -86,12 +88,12 @@
 -type vector2() :: vector2:vector2().
 
 
--type rect_dimensions() :: { Width :: coordinate(), Height :: coordinate() }.
+-type rect_dimensions() :: { Width :: distance(), Height :: distance() }.
 % Dimensions of a rectangular area, as floating-point coordinates.
 
--type integer_rect_dimensions() :: { Width  :: integer_coordinate(),
-									 Height :: integer_coordinate() }.
-% Dimensions of a rectangular area, as integer coordinates.
+-type integer_rect_dimensions() :: { Width  :: integer_distance(),
+									 Height :: integer_distance() }.
+% Dimensions of a rectangular area, as integer distances.
 
 -type dimensions() :: integer_rect_dimensions().
 % Shorter form of integer_rect_dimensions/0.
@@ -107,7 +109,7 @@
 
 
 -type topology_type() :: 'points' | 'lines' | 'line_loop' | 'line_strip'
-						| 'triangles' | 'triangle_strip' | 'triangle_fan'.
+					   | 'triangles' | 'triangle_strip' | 'triangle_fan'.
 % A 2D topology type, typically of a primitive to render.
 
 

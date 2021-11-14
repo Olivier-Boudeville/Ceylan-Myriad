@@ -38,8 +38,9 @@
 
 -include("polygon.hrl").
 
--type polygon() :: #polygon{}.
 
+-type polygon() :: #polygon{}.
+% Describes a polygon, convex or not, simple or not.
 
 -export_type([ polygon/0 ]).
 
@@ -73,7 +74,8 @@
 
 -type ustring() :: text_utils:ustring().
 
--type integer_point2() :: point2:integer_point2().
+-type any_point2() :: point2:any_point2().
+-type any_vertex2() :: point2:any_vertex2().
 
 -type color() :: gui_color:color().
 -type canvas() :: gui:canvas().
@@ -82,6 +84,8 @@
 -type square_distance() :: linear:square_distance().
 -type area() :: linear:area().
 
+-type bounding_algorithm() :: bounding_box2:bounding_algorithm().
+
 
 % Construction-related section.
 
@@ -89,8 +93,7 @@
 % @doc Returns a triangle (defined as a polygon) corresponding to the specified
 % three vertices.
 %
--spec get_triangle( integer_point2(), integer_point2(), integer_point2() ) ->
-								polygon().
+-spec get_triangle( any_point2(), any_point2(), any_point2() ) -> polygon().
 get_triangle( P1, P2, P3 ) ->
 	#polygon{ vertices=[ P1, P2, P3 ] }.
 
@@ -99,7 +102,7 @@ get_triangle( P1, P2, P3 ) ->
 % @doc Returns an upright square corresponding to the specified center and edge
 % length.
 %
--spec get_upright_square( integer_point2(), distance() ) -> polygon().
+-spec get_upright_square( any_vertex2(), distance() ) -> polygon().
 get_upright_square( _Center={Xc,Yc}, EdgeLength ) ->
 	Offset = erlang:round( EdgeLength / 2 ),
 	X1 = Xc - Offset,
@@ -111,7 +114,7 @@ get_upright_square( _Center={Xc,Yc}, EdgeLength ) ->
 
 
 % @doc Returns a new polygon whose vertices are the specified ones.
--spec get_polygon( [ integer_point2() ] ) -> polygon().
+-spec get_polygon( [ any_vertex2() ] ) -> polygon().
 get_polygon( Vertices ) ->
 	#polygon{ vertices=Vertices }.
 
@@ -127,7 +130,7 @@ get_polygon( Vertices ) ->
 % is its square length: `SquareD = square_distance(P1, P2)'.
 %
 -spec get_diameter( polygon() ) ->
-				{ integer_point2(), integer_point2(), square_distance() }.
+				{ any_vertex2(), any_vertex2(), square_distance() }.
 get_diameter( Polygon ) ->
 
 	case Polygon#polygon.vertices of
@@ -153,7 +156,7 @@ get_diameter( Polygon ) ->
 % defines the rectangle from two opposite points.
 %
 -spec get_smallest_enclosing_rectangle( polygon() ) ->
-			{ integer_point2(), integer_point2() }.
+										    { any_point2(), any_point2() }.
 get_smallest_enclosing_rectangle( Polygon ) ->
 
 	case Polygon#polygon.vertices of
@@ -225,11 +228,11 @@ is_convex( [], _Previous, _Sign ) ->
 	% Not interrupted, thus convex (includes polygon having only one vertex):
 	true;
 
-is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
+is_convex( [ V={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
 
 	% Setting the first sign:
 	%trace_utils:debug_fmt( "initial: previous= ~w, next= ~w, sum=~w.",
-	%                       [ {Xp,Yp}, P, Xp*Y-X*Y ] ),
+	%                       [ {Xp,Yp}, V, Xp*Y-X*Y ] ),
 
 	FirstSign = case Xp*Y-X*Yp of
 
@@ -241,10 +244,10 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, _Sign=undefined ) ->
 
 	end,
 
-	is_convex( T, _NewPrevious=P, FirstSign );
+	is_convex( T, _NewPrevious=V, FirstSign );
 
 
-is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
+is_convex( [ V={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
 	%trace_utils:debug_fmt( "Iteration points: previous= ~w, next= ~w, "
 	%                       "sum=~w.", [ {Xp,Yp}, P, Xp*Y-X*Yp ] ),
@@ -267,7 +270,7 @@ is_convex( [ P={X,Y} | T ], _Previous={Xp,Yp}, Sign ) ->
 
 		Sign ->
 			% Can still be convex:
-			is_convex( T, _NewPrevious=P, Sign );
+			is_convex( T, _NewPrevious=V, Sign );
 
 		_OppositeSign ->
 			% Finished, as is concave:
@@ -405,9 +408,9 @@ to_string( Polygon ) ->
 
 	end,
 
-	text_utils:format(
-	  "  + vertices: ~w~n  + edge color: ~w~n  + fill color: ~w~n"
-	  "  + bounding-box: ~ts~n",
+	text_utils:format( "polygon defined by:~n"
+	  " - vertices: ~w~n - edge color: ~w~n - fill color: ~w~n"
+	  " - bounding-box: ~ts~n",
 	  [ Polygon#polygon.vertices, get_edge_color( Polygon ),
 		get_fill_color( Polygon ), BBText ] ).
 
@@ -417,14 +420,14 @@ to_string( Polygon ) ->
 
 
 % @doc Updates, for the specified polygon, its internal bounding-box, with
-% regard to the specified bounding-box request.
+% regard to the specified bounding-box algorithm.
 %
 % Returns a polygon with updated information.
 %
 % @end
 %
 % The lazy circle bounding box is fast to determine, but not optimal:
--spec update_bounding_box( 'lazy_circle', polygon() ) -> polygon().
+-spec update_bounding_box( bounding_algorithm(), polygon() ) -> polygon().
 update_bounding_box( lazy_circle, Polygon ) ->
 
 	CircleBBox = bounding_box2:get_lazy_circle_box( Polygon#polygon.vertices ),
@@ -442,7 +445,7 @@ update_bounding_box( lazy_circle, Polygon ) ->
 %
 % Vertices can be listed clockwise or counter-clockwise.
 %
--spec get_signed_area( [ integer_point2() ] ) -> area().
+-spec get_signed_area( [ any_vertex2() ] ) -> area().
 get_signed_area( _Vertices=[ First | T ] ) ->
 
 	% We will start from the second point, as we always deal with the current
@@ -464,6 +467,6 @@ get_signed_area( _Vertices=[ _Last={X,Y} ], _FirstOfAll={Xf,Yf},
 	( Area + LastTwoSumTerms ) / 2 ;
 
 
-get_signed_area( [ P={X,Y} | T ], FirstOfAll, _Previous={Xp,Yp}, Area ) ->
+get_signed_area( [ V={X,Y} | T ], FirstOfAll, _Previous={Xp,Yp}, Area ) ->
 	% Here we are not managing the last point:
-	get_signed_area( T, FirstOfAll, _NewPrevious=P, Area + Xp*Y-X*Yp ).
+	get_signed_area( T, FirstOfAll, _NewPrevious=V, Area + Xp*Y-X*Yp ).

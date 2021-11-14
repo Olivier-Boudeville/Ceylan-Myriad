@@ -59,6 +59,13 @@
 -include("bounding_box2.hrl").
 
 
+-type bounding_algorithm() :: 'rectangle' | 'lazy_circle' | 'mec'.
+% Allows to designate an algorithm in charge of computing a 2D bounding-box.
+% For example several algorithms allow, with different trade-offs, to compute
+% (different) instances of bounding-boxes (of the same type, ex: circle, or of
+% different types).
+
+
 -type rectangle() :: #rectangle{}.
 % A (2D) bounding box defined based on a rectangle.
 
@@ -71,7 +78,8 @@
 % All supported types of 2D bounding boxes.
 
 
--export_type([ rectangle/0, circle/0, bounding_box2/0 ]).
+-export_type([ bounding_algorithm/0,
+			   rectangle/0, circle/0, bounding_box2/0 ]).
 
 
 % Design notes:

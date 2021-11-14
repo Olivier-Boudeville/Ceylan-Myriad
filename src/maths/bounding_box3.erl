@@ -45,6 +45,10 @@
 -include("bounding_box3.hrl").
 
 
+-type bounding_box3_type() :: 'right_cuboid' | 'sphere'.
+% Allows to designate a type of 3D bounding-box.
+
+
 -type right_cuboid() :: #right_cuboid{}.
 % A (3D) bounding box defined based on a right cuboid.
 
@@ -57,7 +61,8 @@
 % All supported types of 3D bounding boxes.
 
 
--export_type([ right_cuboid/0, sphere/0, bounding_box3/0 ]).
+-export_type([ bounding_box3_type/0,
+			   right_cuboid/0, sphere/0, bounding_box3/0 ]).
 
 
 % Implementation notes:
