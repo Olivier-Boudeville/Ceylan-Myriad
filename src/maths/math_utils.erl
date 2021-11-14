@@ -36,7 +36,8 @@
 % General operations:
 -export([ floor/1, ceiling/1, round_after/2,
 		  float_to_integer/1, float_to_integer/2,
-		  modulo/2, clamp/3, squarify/1 ]).
+		  modulo/2, clamp/3, squarify/1,
+		  get_next_power_of_two/1 ]).
 
 -compile({ inline, [ floor/1, ceiling/1, round_after/2,
 					 float_to_integer/1, float_to_integer/2,
@@ -322,9 +323,27 @@ clamp( _Min, _Max, Value ) ->
 % element.
 %
 squarify( L ) ->
-	% "Taylor series", square( epsilon ) is negligible here:
+	% "Taylor series", square(epsilon) is negligible here:
 	L * ( L + ?epsilon ).
 
+
+
+% @doc Returns the smallest power of two that is greater or equal to the
+% specified integer.
+%
+% Ex: math_utils:get_next_power_of_two( 5 ) = 8.
+%
+-spec get_next_power_of_two( non_neg_integer() ) -> pos_integer().
+get_next_power_of_two( I ) ->
+	get_next_power_of_two( I, _MinCandidate=1 ).
+
+
+% (helper)
+get_next_power_of_two( I, Candidate ) when Candidate >= I ->
+	Candidate;
+
+get_next_power_of_two( I, Candidate ) ->
+	get_next_power_of_two( I, 2*Candidate ).
 
 
 

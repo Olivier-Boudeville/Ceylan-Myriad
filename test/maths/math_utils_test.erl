@@ -74,6 +74,8 @@ run() ->
 	1.0 = math_utils:clamp( 1.0, 3.0, 0 ),
 	3.0 = math_utils:clamp( 1.0, 3.0, 6 ),
 
+	8 = math_utils:get_next_power_of_two( 5 ),
+	8 = math_utils:get_next_power_of_two( 8 ),
 
 	[ test_facilities:display( "Canonical form for ~p degrees is ~p degrees.",
 							   [ A, math_utils:canonify(A) ] ) ||
