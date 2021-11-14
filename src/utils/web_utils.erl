@@ -136,6 +136,14 @@
 -type nonce() :: bin_string().
 
 
+-type media_type() :: unicode:chardata().
+% A media type (formerly known as "MIME type").
+%
+% Ex: "audio/ogg".
+%
+% Refer to [https://en.wikipedia.org/wiki/Media_type].
+
+
 -type html_element() :: any_string().
 % Ex: "<p>Hello!</p>".
 
@@ -175,6 +183,7 @@
 			   http_option/0, http_options/0, ssl_options/0,
 			   location/0, nonce/0,
 
+			   media_type/0,
 			   html_element/0, http_status_class/0, http_status_code/0 ]).
 
 
@@ -1071,7 +1080,7 @@ from_httpc_headers( Headers ) ->
 
 
 
-% @doc Returns http options suitable for httpc.
+% @doc Returns http options that are suitable for httpc.
 -spec to_httpc_options( http_options() ) -> options_for_httpc().
 to_httpc_options( HttpOptions ) when is_list( HttpOptions ) ->
 	HttpOptions;
@@ -1081,10 +1090,10 @@ to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
 	[ { K, case is_map( V ) of
 
 			   true ->
-				   maps:to_list( V );
+					maps:to_list( V );
 
 			   false ->
-				   V
+					V
 
 		   end } || { K, V } <- maps:to_list( HttpOptionMap ) ].
 
