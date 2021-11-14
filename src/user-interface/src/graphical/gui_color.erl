@@ -44,39 +44,71 @@
 		  get_random_colors/1 ]).
 
 
+-include("gui_color.hrl").
+
+
 % For related defines:
 -include("gui.hrl").
 
 
 -type color_by_name() :: atom().
 
--type color_by_decimal() :: { byte(), byte(), byte() } | 'none'.
-% No alpha coordinate here.
+-type color_by_decimal() :: { Red :: byte(), Green :: byte(), Blue :: byte() }.
+% RGB (integer) color; no alpha coordinate here.
 
--type color_by_decimal_with_alpha() :: { byte(), byte(), byte(), byte() }
-									 | 'none'.
+-type color_by_decimal_with_alpha() ::
+		{ Red :: byte(), Green :: byte(), Blue :: byte(), Alpha :: byte() }.
+% RGBA (integer) color.
 
 
 -type color() :: color_by_name() | color_by_decimal().
+% Any kind of RGB (integer) color.
 
 
 -type color_coordinate() :: float().
 % Color coordinate, in [0,1].
 
-
--type render_color() :: { color_coordinate(), color_coordinate(),
-						  color_coordinate() }
-						| { color_coordinate(), color_coordinate(),
-							color_coordinate(), color_coordinate() }.
+-type alpha_coordinate() :: color_coordinate().
+% An alpha-transparency color coordinate.
 
 
+
+-type render_rgb_color() :: { Red :: color_coordinate(),
+			Green :: color_coordinate(), Blue :: color_coordinate() }.
+% A floating-point RGB color.
+%
+% The three components shall be encoded with the sRGB transfer function.
+%
+% For example useful with OpenGL.
+
+
+-type render_rgba_color() :: { Red ::color_coordinate(),
+			Green :: color_coordinate(), Blue ::color_coordinate(),
+			Alpha :: alpha_coordinate() }.
+% A floating-point RGBA color.
+%
 % The first three components (RGB) shall be encoded with the sRGB transfer
 % function.
+%
+% For example useful with OpenGL.
 
 
--export_type ([ color_by_name/0,
-				color_by_decimal/0, color_by_decimal_with_alpha/0,
-				color/0, render_color/0 ]).
+-type render_color() :: render_rgb_color() | render_rgba_color().
+% A floating-point RGB or RGBA color.
+%
+% The first three components (RGB) shall be encoded with the sRGB transfer
+% function.
+%
+% For example useful with OpenGL.
+
+
+-export_type([ color_by_name/0,
+
+			   color_by_decimal/0, color_by_decimal_with_alpha/0,
+			   color/0,
+
+			   color_coordinate/0, alpha_coordinate/0,
+			   render_rgb_color/0, render_rgba_color/0, render_color/0 ]).
 
 
 % Shorthands:
@@ -250,14 +282,12 @@ get_colors() ->
 % @doc Returns the RGB definition of the color specified by name (atom) or
 % directly as a triplet of color components.
 %
--spec get_color( color() | 'none' ) -> color_by_decimal().
+% No 'undefined' color (meaning transparent) accepted.
+%
+-spec get_color( color() ) -> color_by_decimal().
 get_color( Color={ _R, _G, _B } ) ->
 	% Optimised for this most frequent form (first pattern):
 	Color;
-
-get_color( none ) ->
-	% none is a special case, for example to disable filling (transparent):
-	none;
 
 get_color( ColorName ) when is_atom( ColorName ) ->
 	case proplists:get_value( ColorName, get_colors() ) of
