@@ -154,7 +154,7 @@
 					| 'onButtonClicked'
 					| 'onResized'
 					| 'onWindowClosed'
-					| 'onShow'.
+					| 'onShown'.
 % Our own event types, independent from any backend.
 %
 % Note that resizing a widget (typically a canvas) implies receiving also a
@@ -402,7 +402,7 @@ start_main_event_loop( WxServer, WxEnv ) ->
 									reassign_table=EmptyTable,
 									type_table=EmptyTable },
 
-	%trace_utils:debug_fmt( "Starting main MyriadGUI loop." ] ),
+	%trace_utils:debug_fmt( "[event] Starting main MyriadGUI loop." ] ),
 
 	% Enter the infinite event loop:
 	process_event_messages( InitialLoopState ).
@@ -421,8 +421,9 @@ start_main_event_loop( WxServer, WxEnv ) ->
 -spec process_event_messages( loop_state() ) -> no_return().
 process_event_messages( LoopState ) ->
 
-	%trace_utils:debug_fmt( "GUI main loop ~w waiting for event messages...",
-	%                       [ self() ] ),
+	cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+		trace_utils:debug_fmt( "[event] GUI main loop ~w waiting "
+							   "for event messages...", [ self() ] ) ),
 
 	% Special management of repaint requests, to avoid useless repaintings.
 	%
@@ -440,15 +441,16 @@ process_event_messages( LoopState ) ->
 		FirstWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
 
 			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
-				trace_utils:debug_fmt( "Received first repaint event:~n ~p.",
-									   [ FirstWxRepaintEvent ] ) ),
+				trace_utils:debug_fmt(
+					"[event] Received first repaint event:~n ~p.",
+					[ FirstWxRepaintEvent ] ) ),
 
 			process_only_latest_repaint_event( FirstWxRepaintEvent,
 				SourceObject, _DropCount=0, LoopState );
 
 		OtherEvent ->
 			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
-				trace_utils:debug_fmt( "Received other event: ~p.",
+				trace_utils:debug_fmt( "[event] Received other event: ~p.",
 									   [ OtherEvent ] ) ),
 			process_event_message( OtherEvent, LoopState )
 
@@ -458,7 +460,7 @@ process_event_messages( LoopState ) ->
 	%NewLoopState = receive
 	%
 	%   AnyEvent ->
-	%       %trace_utils:debug_fmt( "Received any event: ~p.",
+	%       %trace_utils:debug_fmt( "[event] Received any event: ~p.",
 	%       %                       [ AnyEvent ] ),
 	%       process_event_message( AnyEvent, LoopState )
 	%
@@ -490,7 +492,7 @@ process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 									userData=UserData, event=WxEventInfo },
 					   LoopState ) ->
 
-	%trace_utils:debug_fmt( "Received wx event ~p.", [ WxEvent ] ),
+	%trace_utils:debug_fmt( "[event] Received wx event ~p.", [ WxEvent ] ),
 
 	process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo,
 					  WxEvent, LoopState );
@@ -514,11 +516,11 @@ process_event_message( { setCanvasDrawColor, [ CanvasId, Color ] },
 	LoopState;
 
 
-process_event_message( { setCanvasFillColor, [ CanvasId, Color ] },
+process_event_message( { setCanvasFillColor, [ CanvasId, MaybeColor ] },
 					   LoopState ) ->
 	CanvasState = get_canvas_instance_state( CanvasId,
 											 LoopState#loop_state.type_table ),
-	gui_canvas:set_fill_color( CanvasState, Color ),
+	gui_canvas:set_fill_color( CanvasState, MaybeColor ),
 	LoopState;
 
 process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
@@ -715,6 +717,14 @@ process_event_message( { getCanvasSize, CanvasId, CallerPid }, LoopState ) ->
 	CallerPid ! { notifyCanvasSize, Size },
 	LoopState;
 
+process_event_message( { getCanvasClientSize, CanvasId, CallerPid },
+					   LoopState ) ->
+	CanvasState = get_canvas_instance_state( CanvasId,
+											 LoopState#loop_state.type_table ),
+	Size = gui_canvas:get_client_size( CanvasState ),
+	CallerPid ! { notifyCanvasClientSize, Size },
+	LoopState;
+
 
 % MyriadGUI user request (ex: emanating from gui:create_canvas/1):
 process_event_message( { createInstance, [ ObjectType, ConstructionParams ],
@@ -727,7 +737,7 @@ process_event_message( { subscribeToEvents,
 		[ SubscribedEvents, SubscriberPid ] }, LoopState ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:debug_fmt( "Subscribing process ~w to events ~p.",
+		trace_utils:debug_fmt( "[event] Subscribing process ~w to events ~p.",
 							   [ SubscriberPid, SubscribedEvents ] ) ),
 
 	NewLoopState = update_event_loop_tables( SubscribedEvents, SubscriberPid,
@@ -757,7 +767,7 @@ process_event_message( { subscribeToEvents,
 % Currently we update widgets regardless of whether one of their parent windows
 % is reported here as shown:
 %
-%process_event_message( { onShow, [ _Windows ] }, LoopState ) ->
+%process_event_message( { onShown, [ _Windows ] }, LoopState ) ->
 
 	%ObjectsToAdjust = LoopState#loop_state.objects_to_adjust,
 
@@ -766,7 +776,7 @@ process_event_message( { subscribeToEvents,
 	%EventTable = LoopState#loop_state.event_table,
 
 	%NewTypeTable = adjust_objects( ObjectsToAdjust, EventTable,
-	%							   LoopState#loop_state.type_table ),
+	%                               LoopState#loop_state.type_table ),
 
 	% Purged:
 	%LoopState#loop_state{ type_table=NewTypeTable, objects_to_adjust=[] };
@@ -795,8 +805,9 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 		NewWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
 
 			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
-				trace_utils:debug_fmt( "Dropping last repaint event received "
-					"in favor of newer one:~n ~p.", [ NewWxRepaintEvent ] ) ),
+				trace_utils:debug_fmt( "[event] Dropping last repaint event "
+					"received in favor of newer one:~n ~p.",
+					[ NewWxRepaintEvent ] ) ),
 
 			process_only_latest_repaint_event( NewWxRepaintEvent, SourceObject,
 											   DropCount+1, LoopState );
@@ -817,15 +828,16 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 				case DropCount of
 
 					0 ->
-						trace_utils:warning( "(no drop)" );
+						trace_utils:debug( "[event] (no drop)" );
 						%throw( no_drop );
 
 					1 ->
-						trace_utils:warning( "(single drop)" );
+						trace_utils:debug( "[event](single drop)" );
 
 					_ ->
-						trace_utils:warning_fmt( "Received post-repaint event "
-							"after ~B drops:~n ~p.", [ DropCount, OtherEvent ] )
+						trace_utils:debug_fmt( "[event] Received post-repaint "
+							"event after ~B drops:~n ~p.",
+							[ DropCount, OtherEvent ] )
 						%throw( { drop_count, DropCount } )
 
 				end ),
@@ -845,14 +857,14 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 			case DropCount of
 
 				0 ->
-					trace_utils:warning( "(no time-out drop)" );
+					trace_utils:debug( "[event] (no time-out drop)" );
 					%throw( no_drop_time_out );
 
 				1 ->
-					trace_utils:warning( "(single time-out drop)" );
+					trace_utils:debug( "[event] (single time-out drop)" );
 
 				_ ->
-					trace_utils:warning_fmt( "Timed-out after ~B drops.",
+					trace_utils:debug_fmt( "[event] Timed-out after ~B drops.",
 											 [ DropCount ] )
 					%throw( { drop_count, DropCount } )
 
