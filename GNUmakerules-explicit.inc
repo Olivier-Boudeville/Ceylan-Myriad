@@ -1068,7 +1068,7 @@ clean-java:
 
 
 clean-protobuf:
-	@echo "   Cleaning Protobuf-generated files"
+	@#echo "   Cleaning Protobuf-generated files"
 	-@/bin/rm -f GNUmakedeps.protobuf $(PROTOBUF_GENERATED_FILES)
 
 
