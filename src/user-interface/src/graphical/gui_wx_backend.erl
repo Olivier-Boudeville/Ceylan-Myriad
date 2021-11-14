@@ -46,7 +46,8 @@
 % MyriadGUI-object (most probably made from wx ones, like in the case of the
 % canvas).
 %
-% GUI objects are created with new/*, and deleted with destroy/1.
+% MyriadGUI objects are created with {new,create}/*, and, when appropriate,
+% deleted with destruct/1.
 %
 % For information regarding events, refer to gui_event.erl.
 
@@ -430,7 +431,7 @@ to_wx_event_type( onResized ) ->
 to_wx_event_type( onWindowClosed ) ->
 	close_window;
 
-to_wx_event_type( onShow ) ->
+to_wx_event_type( onShown ) ->
 	show;
 
 to_wx_event_type( Other ) ->
@@ -454,7 +455,7 @@ from_wx_event_type( close_window ) ->
 	onWindowClosed;
 
 from_wx_event_type( show ) ->
-	onShow;
+	onShown;
 
 from_wx_event_type( Other ) ->
 	throw( { unsupported_wx_event_type, Other } ).

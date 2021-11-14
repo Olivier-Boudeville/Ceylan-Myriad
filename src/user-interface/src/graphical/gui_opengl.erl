@@ -27,7 +27,7 @@
 
 
 % @doc Gathering of various facilities for <b>OpenGL rendering</b>, notably done
-% through WxWidgets.
+% through wxWidgets.
 %
 % See gui_opengl_test.erl for the corresponding test.
 %
@@ -83,7 +83,7 @@
 
 
 -opaque canvas() :: wxGLCanvas:wxGLCanvas().
-% An OpenGL canvas (not to be mixed with a basic gui:canvas/0 one).
+% An OpenGL-based canvas (not to be mixed with a basic gui:canvas/0 one).
 
 
 % See https://docs.wxwidgets.org/3.0/glcanvas_8h.html#wxGL_FLAGS for more
@@ -118,7 +118,7 @@
 
 
 -opaque context() :: wxGLContext:wxGLContext().
-% An OpenGL content represents the state of an OpenGL state machine and the
+% An OpenGL context represents the state of an OpenGL state machine and the
 % connection between OpenGL and the running system.
 
 
@@ -138,7 +138,7 @@
 		  get_glxinfo_strings/0,
 
 		  create_canvas/1, create_canvas/2,
-		  create_context/1, set_context/2,
+		  create_context/1, set_context/2, swap_buffers/1,
 
 		  check_error/0, interpret_error/1 ]).
 
@@ -361,6 +361,25 @@ set_context( Canvas, Context ) ->
 
 		false ->
 			throw( failed_to_set_opengl_context )
+
+	end,
+	cond_utils:if_defined( myriad_check_opengl_support, check_error() ).
+
+
+
+% @doc Swaps the double-buffer of the corresponding window (making the
+% back-buffer the front-buffer and vice versa), so that the output of the
+% previous OpenGL commands is displayed on this window.
+%
+-spec swap_buffers( canvas() ) -> void().
+swap_buffers( Canvas ) ->
+	case wxGLCanvas:swapBuffers( Canvas ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( failed_to_swap_buffers )
 
 	end,
 	cond_utils:if_defined( myriad_check_opengl_support, check_error() ).

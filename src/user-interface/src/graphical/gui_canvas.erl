@@ -100,7 +100,7 @@
 
 % Canvas general operations:
 -export([ create_instance/1, adjust_size/1, resize/2, clear/1, blit/1,
-		  get_size/1, destroy/1 ]).
+		  get_size/1, get_client_size/1, destruct/1 ]).
 
 
 
@@ -151,7 +151,7 @@
 % A specific kind of gui_object_ref().
 
 
--export_type([ canvas_state/0, gl_canvas/0, canvas/0 ]).
+-export_type([ canvas_state/0, canvas/0 ]).
 
 
 % For all basic declarations (including distance() and al):
@@ -169,7 +169,6 @@
 -type coordinate() :: linear:coordinate().
 -type integer_distance() :: linear:integer_distance().
 
--type dimensions() :: linear_2D:dimensions().
 -type line2() :: linear_2D:line2().
 
 -type point2() :: point2:point2().
@@ -180,6 +179,7 @@
 
 -type myriad_instance_id() :: gui:myriad_instance_id().
 
+-type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 -type panel() :: gui:panel().
 -type size() :: gui:size().
@@ -255,8 +255,8 @@ get_base_panel_events_of_interest() ->
 % @doc Updates the specified canvas state so that it matches any change in size
 % of its panel, and tells whether that canvas shall be repainted.
 %
-% Typically used to be called initially (onShow); now called whenever the parent
-% container is resized.
+% Typically used to be called initially (onShown); now called whenever the
+% parent container is resized.
 %
 -spec adjust_size( canvas_state() ) -> { boolean(), canvas_state() }.
 adjust_size( CanvasState=#canvas_state{ panel=Panel, size=Size } ) ->
@@ -370,11 +370,26 @@ get_size( #canvas_state{ back_buffer=BackBuffer,
 	Size.
 
 
+% @doc Returns the client size of this canvas, as {IntegerWidth, IntegerHeight}.
+-spec get_client_size( canvas_state() ) -> dimensions().
+get_client_size( #canvas_state{ back_buffer=BackBuffer,
+						 size=Size } ) ->
 
-% @doc Destroys the specified canvas.
--spec destroy( canvas_state() ) -> void().
-destroy( #canvas_state{ back_buffer=BackBuffer } ) ->
-	% Bitmap currently not destroyed.
+	% For a canvas, we expect the client size to be the size:
+
+	cond_utils:if_defined( myriad_check_user_interface,
+		Size = wxDC:getSize( BackBuffer ),
+		basic_utils:ignore_unused( BackBuffer ) ),
+
+	Size.
+
+
+
+% @doc Destructs the specified canvas.
+-spec destruct( canvas_state() ) -> void().
+destruct( #canvas_state{ bitmap=Bitmap, back_buffer=BackBuffer } ) ->
+	% Bitmap used to be not destroyed:
+	wxBitmap:destroy( Bitmap ),
 	wxMemoryDC:destroy( BackBuffer ).
 
 
@@ -400,8 +415,12 @@ set_draw_color( Canvas, Color ) ->
 
 
 % @doc Sets the color to be using for filling surfaces.
--spec set_fill_color( canvas_state(), color() ) -> void().
-set_fill_color( #canvas_state{ back_buffer=BackBuffer }, _Color=none ) ->
+%
+% An 'undefined' color corresponds to a fully transparent one.
+%
+-spec set_fill_color( canvas_state(), maybe( color() ) ) -> void().
+set_fill_color( #canvas_state{ back_buffer=BackBuffer },
+				_MaybeColor=undefined ) ->
 	% We want transparency here:
 	wxDC:setBrush( BackBuffer, ?transparent_color );
 

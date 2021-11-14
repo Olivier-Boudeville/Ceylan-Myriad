@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2021 Olivier Boudeville
+% Copyright (C) 2010-2021 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,14 +23,14 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-
+% Creation date: Monday, February 15, 2010.
 
 
 % Describes a polygon, convex or not, simple or not.
 -record( polygon, {
 
 	% The points defining that polygon:
-	vertices = [] :: [ point2:integer_point2() ],
+	vertices = [] :: [ point2:any_vertex2() ],
 
 
 	% Rendering information, if any, as an option list.

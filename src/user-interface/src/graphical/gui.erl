@@ -55,9 +55,10 @@
 %
 % Providing improved and enriched APIs for all kinds of GUI.
 %
-% Relying optionally (some day) on:
-% - OpenGL, for efficient 3D rendering
-% - esdl, for adequate lower-level primitives (ex: management of input devices)
+% Relying optionally:
+% - on OpenGL, for efficient 2D/3D rendering (see gui_opengl.erl)
+% - possibly, some day, on esdl (https://github.com/dgud/esdl), for adequate
+% lower-level primitives (ex: management of input devices)
 
 
 
@@ -86,7 +87,16 @@
 % enough so that a wx instance (ex: the main frame) processes these events (ex:
 % requesting the main frame to be shown) before even that the GUI main loop had
 % a chance to declare its connection to them. This would result in an expected
-% event (onShow here) never to be emitted and thus never to be received.
+% event (onShown here) never to be emitted and thus never to be received.
+%
+% Another race condition can happen when destructing a resource (ex: when
+% issuing 'gui:destruct_window(MainFrame)' whereas some previous operations may
+% not have been processed yet (ex: gui_canvas:set_draw_color/2), resulting in
+% access errors (ex: {unknown_env,{wxPen,new,2}}) due to an
+% use-after-destroy. Short of making most operations synchronous, no real
+% solution seems to exist. The issue exists maybe even without MyriadGUI, but
+% having a middle process increases the likeliness of such a problem due to the
+% extra induced latency.
 %
 % Generally at least one condition is defined in order to leave that main loop
 % and stop the GUI (gui:stop/0).
@@ -159,13 +169,21 @@
 
 
 -type canvas() :: gui_canvas:canvas().
-% A basic canvas (not to be mixed with an OpenGL one, that is
-% gui_opengl:canvas/0).
+% A basic canvas (not to be mixed with an OpenGL one, opengl_canvas/0.
+
+-type opengl_canvas() :: gui_opengl:canvas().
+% An OpenGL canvas (not to be mixed with a basic one, canvas/0).
+
+-type opengl_context() :: gui_opengl:context().
+% An OpenGL context.
 
 
 % Basic GUI operations.
 -export([ is_available/0, start/0, start/1, set_debug_level/1, stop/0 ]).
 
+
+% Extra overall operations.
+-export([ batch/1 ]).
 
 
 % Event-related operations.
@@ -192,7 +210,8 @@
 
 % Windows:
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
-		  set_sizer/2, show/1, hide/1, get_size/1, destruct_window/1 ]).
+		  set_sizer/2, show/1, hide/1, get_size/1, get_client_size/1,
+		  destruct_window/1 ]).
 
 
 % Frames:
@@ -252,17 +271,23 @@
 
 % Type declarations:
 
--type length() :: linear:distance().
+-type length() :: linear:integer_distance().
+% A length, as a number of pixels.
 
 -type coordinate() :: linear:integer_coordinate().
-% For a GUI, coordinates are integer.
+% For a GUI, coordinates are an integer number of pixels.
 
 
 -type point() :: point2:integer_point2().
-% A GUI point (as point2:point2() would allow for floating-point coordinates).
+% A pixel-wise GUI point (as point2:point2() would allow for floating-point
+% coordinates).
 
 -type position() :: point() | 'auto'.
+% Position, in pixel coordinates, typically of a widget.
 
+
+-type dimensions() :: linear_2D:integer_rect_dimensions().
+% Dimensions in pixels, as {IntegerWidth,IntegerHeight}.
 
 -type size() :: dimensions() | 'auto'.
 % Size, typically of a widget.
@@ -477,6 +502,9 @@
 -type sizer_options() :: [ sizer_option() ].
 
 
+-type image() :: gui_image:image().
+
+
 -type connect_opt() ::   { 'id', integer() }
 					   | { lastId, integer() }
 					   | { skip, boolean() }
@@ -509,6 +537,7 @@
 			   window/0, frame/0, panel/0, button/0,
 			   sizer/0, sizer_child/0, sizer_item/0, status_bar/0,
 			   bitmap/0, back_buffer/0, canvas/0,
+			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
 			   window_style/0, frame_style/0, button_style/0,
 
@@ -517,6 +546,7 @@
 			   panel_option/0, panel_options/0,
 			   button_style_opt/0,
 			   sizer_flag_opt/0, sizer_flag/0, sizer_option/0, sizer_options/0,
+			   image/0,
 			   connect_opt/0,
 			   debug_level_opt/0, debug_level/0, error_message/0 ]).
 
@@ -546,7 +576,6 @@
 
 -type integer_distance() :: linear:integer_distance().
 
--type dimensions() :: linear_2D:dimensions().
 -type line2() :: linear_2D:line2().
 
 
@@ -641,6 +670,10 @@ set_debug_level( DebugLevel ) ->
 % the subscriber(s) it has been dispatched to), unless the propagate_event/1
 % function is called from one of them.
 %
+% Note that, at least when creating the main frame, if having subscribed to
+% onShown and onResized, on creation first a onResized event will be received by
+% the subscriber (typically for a 20x20 size), then a onShow event.
+%
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 
@@ -651,7 +684,7 @@ subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 	% This is, in logical terms, a oneway (received in
 	% gui_event:process_event_message/2), yet it must be a request (i.e. it must
 	% be synchronous), otherwise a race condition exists (ex: the user
-	% subscribes to 'onShow' for the main frame, and just after executes
+	% subscribes to 'onShown' for the main frame, and just after executes
 	% 'gui:show(MainFrame)'. If subscribing is non-blocking, then the main frame
 	% may be shown before being connected to the main loop, and thus it will not
 	% notify the GUI main loop it is shown...
@@ -709,6 +742,20 @@ stop() ->
 	% Remove from process dictionary:
 	put( ?gui_env_process_key, _Value=undefined ).
 
+
+
+% @doc Batches the sequence of GUI operations encasulated on the specified
+% function, and returns the value this function returned.
+%
+% May improve performance of the command processing, by grabbing the backend
+% thread so that no event processing will be done before the complete batch of
+% commands is invoked.
+%
+% Example: Result = gui:batch(fun() -> do_init(Config) end).
+%
+-spec batch( function() ) -> term().
+batch( GUIFun ) ->
+	wx:batch( GUIFun ).
 
 
 
@@ -817,7 +864,10 @@ set_draw_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 
 
 % @doc Sets the color to be using for filling surfaces.
--spec set_fill_color( canvas(), color() ) -> void().
+%
+% An undefined color corresponds to a fully transparent one.
+%
+-spec set_fill_color( canvas(), maybe( color() ) ) -> void().
 set_fill_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasFillColor, [ CanvasId, Color ] }.
 
@@ -1091,18 +1141,18 @@ set_sizer( Window, Sizer ) ->
 -spec show( window() | [ window() ] ) -> boolean().
 show( Windows ) when is_list( Windows )->
 
-	% Note: onShow used to be sent to the MyriadGUI loop, as some widgets had to
-	% be adjusted then, but it is no longer useful.
+	% Note: onShown used to be sent to the MyriadGUI loop, as some widgets had
+	% to be adjusted then, but it is no longer useful.
 
 	%trace_utils:debug_fmt( "Showing windows ~p.", [ Windows ] ),
 	Res = show_helper( Windows, _Acc=false ),
-	%get_main_loop_pid() ! { onShow, [ Windows ] },
+	%get_main_loop_pid() ! { onShown, [ Windows ] },
 	Res;
 
 show( Window ) ->
 	%trace_utils:debug_fmt( "Showing window ~p.", [ Window ] ),
 	Res = wxWindow:show( Window ),
-	%get_main_loop_pid() ! { onShow, [ [ Window ] ] },
+	%get_main_loop_pid() ! { onShown, [ [ Window ] ] },
 	Res.
 
 
@@ -1142,6 +1192,26 @@ get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 get_size( Window ) ->
 	wxWindow:getSize( Window ).
+
+
+
+% @doc Returns the client size (as {Width,Height}) of the specified window,
+% i.e. the actual size of the area that can be drawn upon (excluded menu, bars,
+% etc.)
+%
+-spec get_client_size( window() ) -> dimensions().
+get_client_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
+
+	get_main_loop_pid() ! { getCanvasClientSize, CanvasId, self() },
+	receive
+
+		{ notifyCanvasClientSize, Size } ->
+			Size
+
+	end;
+
+get_client_size( Window ) ->
+	wxWindow:getClientSize( Window ).
 
 
 
