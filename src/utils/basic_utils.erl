@@ -273,7 +273,7 @@
 
 -type zero_index() :: non_neg_integer().
 % For the indices that may be null, typically starting at zero (ex: in some file
-% formats).
+% formats). Whenever possible, prefer positive_index/0.
 
 
 -type module_name() :: atom().
