@@ -39,28 +39,28 @@
 	default_scene = undefined :: maybe( gltf_support:scene_index() ),
 
 	% The in-order definition of all known scenes:
-	scenes = [] :: [ gltf_support:scene() ],
+	scenes = [] :: [ gltf_support:gltf_scene() ],
 
 	% The in-order definition of all known (scene) nodes:
-	nodes = [] :: [ gltf_support:scene_node() ],
+	nodes = [] :: [ gltf_support:gltf_node() ],
 
 	% The in-order definition of all known materials:
-	materials = [] :: [ gltf_support:material() ],
+	materials = [] :: [ gltf_support:gltf_material() ],
 
 	% The in-order definition of all known types of cameras:
-	camera_types = [] :: [ gltf_support:camera_type() ],
+	camera_types = [] :: [ gltf_support:gltf_camera_type() ],
 
 	% The in-order definition of all known meshes:
-	meshes = [] :: [ gltf_support:mesh() ],
+	meshes = [] :: [ gltf_support:gltf_mesh() ],
 
 	% The in-order definition of all known (buffer) accessors:
-	accessors = [] :: [ gltf_support:accessor() ],
+	accessors = [] :: [ gltf_support:gltf_accessor() ],
 
 	% The in-order definition of all known buffers:
-	buffers = [] :: [ gltf_support:buffer() ],
+	buffers = [] :: [ gltf_support:gltf_buffer() ],
 
 	% The in-order definition of all known buffer-views:
-	buffer_views = [] :: [ gltf_support:buffer_view() ] } ).
+	buffer_views = [] :: [ gltf_support:gltf_buffer_view() ] } ).
 
 
 
@@ -70,13 +70,13 @@
 	% The name (if any) of this scene:
 	name :: maybe( gltf_support:object_name() ),
 
-	% The indices of the nodes of this scene:
+	% The indexes of the nodes of this scene:
 	nodes = [] :: [ gltf_support:node_index() ] } ).
 
 
 
 % A node defined in a glTF content.
--record( gltf_scene_node, {
+-record( gltf_node, {
 
 	% The name (if any) of this node:
 	name :: maybe( gltf_support:object_name() ),
@@ -98,7 +98,7 @@
 % A light defined in a glTF content.
 %
 % Note that the core glTF format does not define lights (there are just
-% represented as nodes); so no gltf_light.
+% represented as nodes); so no gltf_light record.
 
 
 
@@ -115,7 +115,7 @@
 	% The name (if any) of this mesh:
 	name :: maybe( gltf_support:object_name() ),
 
-	primitives = [] :: [ gltf_support:primitive() ] } ).
+	primitives = [] :: [ gltf_support:gltf_primitive() ] } ).
 
 
 
@@ -132,9 +132,9 @@
 
 	% No name possibly defined.
 
-	attributes :: gltf_support:attributes(),
+	attributes :: gltf_support:gltf_attributes(),
 
-	indices :: maybe( gltf_support:accessor_index() ),
+	indexes :: maybe( gltf_support:accessor_index() ),
 
 	material :: maybe( gltf_support:accessor_index() ),
 
@@ -170,7 +170,7 @@
 
 	% The Physically-Based Rendering (PBR) metallic roughness of this material:
 	pbr_metallic_roughness ::
-					maybe( gltf_support:pbr_metallic_roughness() ) } ).
+					maybe( gltf_support:gltf_pbr_metallic_roughness() ) } ).
 
 
 
@@ -298,7 +298,7 @@
 	% The byte offset of the beginning of this view compared to the beginning of
 	% its buffer:
 	%
-	offset  :: maybe( system_utils:byte_offset() ),
+	offset :: maybe( system_utils:byte_offset() ),
 
 	% The size of this view into its buffer:
 	size :: system_utils:byte_size() } ).
