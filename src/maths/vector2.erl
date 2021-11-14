@@ -102,7 +102,7 @@
 		  normal_left/1, normal_right/1,
 		  dot_product/2,
 		  is_unitary/1,
-		  check/1, check_integer/1,
+		  check/1, check_integer/1, check_unit_vector/1, check_unit_vectors/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
 
@@ -313,6 +313,21 @@ check( V=[_X,_Y] ) ->
 -spec check_integer( integer_vector2() ) -> integer_vector2().
 check_integer( V=[_X,_Y] ) ->
 	type_utils:check_integers( V ).
+
+
+
+% @doc Checks that the specified 2D vector is normalised, and returns it.
+-spec check_unit_vector( vector2() ) -> unit_vector2().
+check_unit_vector( V ) ->
+	true = is_unitary( V ),
+	V.
+
+
+% @doc Checks that the specified 2D vectors are normalised, and returns them.
+-spec check_unit_vectors( vector2() ) -> unit_vector2().
+check_unit_vectors( Vs ) ->
+	[ true = is_unitary( V ) || V <- Vs ],
+	Vs.
 
 
 

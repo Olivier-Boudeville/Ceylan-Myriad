@@ -97,7 +97,7 @@
 		  square_magnitude/1, magnitude/1, negate/1, scale/2, normalise/1,
 		  dot_product/2,
 		  is_unitary/1,
-		  check/1, check_integer/1,
+		  check/1, check_integer/1, check_unit_vector/1, check_unit_vectors/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
 
@@ -291,6 +291,21 @@ check( V ) ->
 check_integer( V ) ->
 	4 = length( V ),
 	type_utils:check_integers( V ).
+
+
+
+% @doc Checks that the specified 4D vector is normalised, and returns it.
+-spec check_unit_vector( vector4() ) -> unit_vector4().
+check_unit_vector( V ) ->
+	true = is_unitary( V ),
+	V.
+
+
+% @doc Checks that the specified 4D vectors are normalised, and returns them.
+-spec check_unit_vectors( vector4() ) -> unit_vector4().
+check_unit_vectors( Vs ) ->
+	[ true = is_unitary( V ) || V <- Vs ],
+	Vs.
 
 
 
