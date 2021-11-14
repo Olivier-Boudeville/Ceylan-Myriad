@@ -129,21 +129,31 @@ endif
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
 #  - registration: regarding naming registering
-#  - user_interface: all support regarding user interfaces of all sorts
-#  - linear: for operations on vectors, matrices, etc.
-#  - bounding_boxes: for computations of bounding boxes
-#  - gltf_support: for the support of the glTf 2.0 format
+#  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
+#
+#  - user_interface: all support regarding user interfaces of all sorts
+#  - repaint_logic: how MyriadGUI manages repaints
+#  - events: how MyriadGUI manages interface-related events
+#  - canvas: how MyriadGUI manages canvases
+#  - instances: how MyriadGUI manages widget instances
+#
+#  - linear: for operations on vectors, matrices, etc.
+#  - mesh: for the management of (3D) meshes
+#  - bounding_boxes: for computations of bounding boxes
+#  - opengl_support: for the support of OpenGL operations
+#  - gltf_support: for the support of the glTF 2.0 format
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
@@ -152,9 +162,10 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_boxes
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl_support
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 
 endif
 
@@ -162,12 +173,17 @@ endif
 ifeq ($(EXECUTION_TARGET),development)
 
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
 
 endif
+
+
+# Some test-specific debug flags:
+#MYRIAD_DEBUG_FLAGS += -Dmyriad_gui_test_verbose
 
 
 # As, with Myriad, the trace system relies on console output, the default here
