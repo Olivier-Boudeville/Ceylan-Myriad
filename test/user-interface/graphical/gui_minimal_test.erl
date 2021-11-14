@@ -44,9 +44,7 @@ run_test_gui() ->
 
 	gui:start(),
 
-
-	TestFrame = gui:create_frame( "This is the single and only frame" ),
-
+	TestFrame = gui:create_frame( "This is the single and only test frame" ),
 
 	EventOfInterest = { onWindowClosed, TestFrame },
 
@@ -63,7 +61,7 @@ run_test_gui() ->
 
 		{ onWindowClosed, [ TestFrame, Context ] } ->
 
-			trace_utils:info_fmt( "Frame '~ts' closed (~ts).",
+			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),
 
