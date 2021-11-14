@@ -429,7 +429,9 @@ connect( ConnSettings=#database_connection_settings{ host_name=HostnameStr,
 									 username => UserName,
 									 password => UserPassword,
 									 database => DbNameStr,
-									 timeout => TimeOut } ) },
+									 timeout => TimeOut,
+									 % SQL NULL not translated as 'null':
+									 nulls => [ undefined ] } ) },
 
 		{ none,
 			begin
@@ -517,7 +519,7 @@ execute_query( Conn, Query ) ->
 execute_query( Conn, QueryFormat, QueryValues ) ->
 	execute_query( Conn, text_utils:format( QueryFormat, QueryValues ) ).
 
-	
+
 
 % @doc Returns a list of all the database instances hosted by the database
 % server designated by the specified connection.
