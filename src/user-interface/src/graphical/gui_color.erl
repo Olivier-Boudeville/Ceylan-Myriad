@@ -102,13 +102,46 @@
 % For example useful with OpenGL.
 
 
+
+-type color_buffer() :: rgb_color_buffer() | rgba_color_buffer().
+% A buffer of pixel colors coded as a sequence of RGB or RGBA binary elements
+% (ex: RGBRGBRGB..., or RGBARGBARGBA...), from the top-left pixel to
+% bottom-right one, row per row.
+%
+% Useful for direct image manipulation.
+
+
+-type rgb_color_buffer() :: binary().
+% A buffer of pixel colors coded as a sequence of RGB binary elements
+% (RGBRGBRGB), from the top-left pixel to bottom-right one, row per row.
+%
+% Useful for direct image manipulation.
+
+
+-type rgba_color_buffer() :: binary().
+% A buffer of pixel colors coded as a sequence of RGBA binary elements
+% (RGBARGBARGBA), from the top-left pixel to bottom-right one, row per row.
+%
+% Useful for direct image manipulation.
+
+
+-type alpha_buffer() :: binary().
+% A buffer of pixel alpha coordinates, from the top-left pixel to bottom-right
+% one, row per row.
+%
+% Useful for direct image manipulation.
+
+
 -export_type([ color_by_name/0,
 
 			   color_by_decimal/0, color_by_decimal_with_alpha/0,
 			   color/0,
 
 			   color_coordinate/0, alpha_coordinate/0,
-			   render_rgb_color/0, render_rgba_color/0, render_color/0 ]).
+			   render_rgb_color/0, render_rgba_color/0, render_color/0,
+
+			   color_buffer/0, rgb_color_buffer/0, rgba_color_buffer/0,
+			   alpha_buffer/0 ]).
 
 
 % Shorthands:
