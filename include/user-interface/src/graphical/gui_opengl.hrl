@@ -69,3 +69,33 @@
 % provided, an hardcoded version of them may have to be placed here.
 
 %-endif.
+
+
+% Corresponds to an OpenGL texture.
+-record( texture, {
+
+	% The identifier (OpenGL "name") of that texture.
+	id :: gui_opengl:texture_id(),
+
+
+	% The pixel width of this texture:
+	width :: gui:length(),
+
+	% The pixel height of this texture:
+	height :: gui:length(),
+
+
+	min_x :: gui_opengl:length_factor(),
+	% The minimum abscissa of this texture relatively to its color buffer.
+
+	min_y :: gui_opengl:length_factor(),
+	% The minimum ordinate of this texture relatively to its color buffer.
+
+
+	max_x :: gui_opengl:length_factor(),
+	% The maximum abscissa of this texture relatively to its color buffer.
+
+	max_y :: gui_opengl:length_factor()
+	% The maximum ordinate of this texture relatively to its color buffer.
+
+} ).

@@ -114,7 +114,7 @@
 
 
 -type canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
-						| gui_wx_backend:other_wx_device_context_attribute().
+					   | gui_wx_backend:other_wx_device_context_attribute().
 
 
 -opaque context() :: wxGLContext:wxGLContext().
@@ -122,12 +122,35 @@
 % connection between OpenGL and the running system.
 
 
+-type factor() :: math_utils:factor().
+% A floating-point factor, typically in [0.0,1.0].
+
+
+-type length_factor() :: math_utils:factor().
+% A floating-point factor, typically in [0.0,1.0], typically to designate
+% widths, heights, etc.
+
+
+-type texture_id() :: non_neg_integer().
+% An OpenGL texture "name" (meant to be unique), an identifier.
+
+-type texture() :: #texture{}.
+% Information regarding to a (2D) texture.
+
+-type mipmap_level() :: non_neg_integer().
+% 0 is the base level.
+
+
 -opaque gl_error() :: enum().
 % An error code reported by OpenGL.
 
 
+
 -export_type([ enum/0, glxinfo_report/0, canvas/0, canvas_option/0,
-			   device_context_attribute/0, context/0, gl_error/0 ]).
+			   device_context_attribute/0, context/0,
+			   factor/0, length_factor/0,
+			   texture_id/0, texture/0, mipmap_level/0,
+			   gl_error/0 ]).
 
 
 
@@ -140,6 +163,8 @@
 		  create_canvas/1, create_canvas/2,
 		  create_context/1, set_context/2, swap_buffers/1,
 
+		  load_texture_from_image/1,
+
 		  check_error/0, interpret_error/1 ]).
 
 
@@ -151,6 +176,14 @@
 -type bit_size() :: system_utils:bit_size().
 
 -type window() :: gui:window().
+
+-type color_buffer() :: gui_color:color_buffer().
+
+-type rgb_color_buffer() :: gui_color:rgb_color_buffer().
+-type rgba_color_buffer() :: gui_color:rgba_color_buffer().
+-type alpha_buffer() :: gui_color:alpha_buffer().
+
+-type image() :: gui_image:image().
 
 
 
@@ -383,6 +416,91 @@ swap_buffers( Canvas ) ->
 
 	end,
 	cond_utils:if_defined( myriad_check_opengl_support, check_error() ).
+
+
+
+% @doc Creates and loads a texture from specified image.
+-spec load_texture_from_image( image() ) -> texture().
+load_texture_from_image( Image ) ->
+
+	ImgWidth = wxImage:getWidth( Image ),
+	Width = math_utils:get_next_power_of_two( ImgWidth ),
+
+	ImgHeight = wxImage:getHeight( Image ),
+	Height = math_utils:get_next_power_of_two( ImgHeight ),
+
+	% Either RGB or RGBA:
+	ColorBuffer = get_color_buffer( Image ),
+
+	% Let's create the OpenGL texture:
+
+	[ TextureId ] = gl:genTextures( _Count=1 ),
+
+	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
+
+	gl:texParameteri( _Target=?GL_TEXTURE_2D, _TexParam=?GL_TEXTURE_MAG_FILTER,
+					  _ParamValue=?GL_NEAREST ),
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_NEAREST ),
+
+	Format = case wxImage:hasAlpha( Image ) of
+
+		true ->
+			?GL_RGBA;
+
+		false ->
+			?GL_RGB
+
+	end,
+
+	% Specifies this two-dimensional texture image:
+	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=Format,
+		Width, Height, _Border=0, _InputBufferFormat=Format,
+		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
+
+	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
+			  min_x=0.0, min_y=0.0,
+			  max_x=ImgWidth / Width, max_y =ImgHeight / Height }.
+
+
+
+% @doc Returns the RGB or RGBA color buffer corresponding to the specified
+% image.
+%
+% The returned buffer shall be "const", in the sense of being neither be
+% deallocated or assigned to any image.
+%
+-spec get_color_buffer( image() ) -> color_buffer().
+get_color_buffer( Image ) ->
+
+   RGBBuffer = wxImage:getData( Image ),
+
+	case wxImage:hasAlpha( Image ) of
+
+		true ->
+			% Obtain a pointer to the array storing the alpha coordinates for
+			% the pixels of this image:
+			%
+			AlphaBuffer = wxImage:getAlpha( Image ),
+			merge_alpha( RGBBuffer, AlphaBuffer );
+
+		false ->
+			RGBBuffer
+
+	end.
+
+
+
+% @doc Merges the specified RGB and alpha buffers into a RGBA one.
+-spec merge_alpha( rgb_color_buffer(), alpha_buffer() ) -> rgba_color_buffer().
+merge_alpha( RGBBuffer, AlphaBuffer ) ->
+	% These are bitstring generators:
+	list_to_binary(
+		lists:zipwith( fun( {R,G,B}, A ) ->
+							<<R,G,B,A>>
+					   end,
+					   [ {R,G,B} || <<R,G,B>> <= RGBBuffer ],
+					   [ A || <<A>> <= AlphaBuffer ] ) ).
 
 
 
