@@ -371,11 +371,13 @@ start() ->
 			% special is needed (ex: finding ebin/sqlite3.beam results in
 			% finding automatically priv/sqlite3_drv.so).
 
-			trace_utils:debug( "Starting the SQL support, using SQLite3." )
+			%trace_utils:debug( "Starting the SQL support, using SQLite3." )
+			ok
 		},
 
 		{ postgresql,
-			trace_utils:debug( "Starting the SQL support, using PostgreSQL." )
+			%trace_utils:debug( "Starting the SQL support, using PostgreSQL." )
+			ok
 		},
 
 		{ none, throw( no_myriad_sql_backend_enabled ) } ],
@@ -448,7 +450,8 @@ connect( ConnSettings=#database_connection_settings{ host_name=HostnameStr,
 	cond_utils:if_defined( myriad_debug_sql_support,
 		trace_utils:debug_fmt( "Connection attempt to ~ts, as ~ts reported: ~w",
 			[ connection_settings_to_string( ConnSettings ),
-			  user_settings_to_string( UserSettings ), ConnRes ] ) ),
+			  user_settings_to_string( UserSettings ), ConnRes ] ),
+		basic_utils:ignore_unused( [ ConnSettings, UserSettings ] ) ),
 
 	ConnRes.
 
@@ -495,7 +498,7 @@ execute_query( Conn, Query ) ->
 					cond_utils:if_defined( myriad_debug_sql_support,
 						trace_utils:error_fmt( "Query failed: ~p.",
 											   [ QError ] ),
-						basic_utils:ignore_unused( OpCount ) ),
+						basic_utils:ignore_unused( QError ) ),
 					P
 
 			end },
