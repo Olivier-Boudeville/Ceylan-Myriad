@@ -51,7 +51,9 @@
 
 		  integer_to_string/1,
 		  integer_to_hexastring/1, integer_to_hexastring/2,
+
 		  hexastring_to_integer/1, hexastring_to_integer/2,
+		  hexabinstring_to_binary/1, hexastring_to_binary/1,
 
 		  atom_to_string/1,
 
@@ -171,6 +173,7 @@
 -define( hexa_prefix, "0x" ).
 
 
+
 % Type section.
 
 
@@ -214,6 +217,20 @@
 
 -type any_string() :: ustring() | bin_string().
 % Any kind of string (a.k.a chardata() :: charlist() | unicode_string()).
+
+
+-type hexastring() :: ustring().
+% A string containing hexadecimal values (possibly with a "0x" prefix).
+% We prefer hexadecimal (letter) characters to be uppercases.
+%
+% Ex: "0x44e390a3" or "44e390a3".
+
+
+-type hexabinstring() :: bin_string().
+% A binary string containing hexadecimal values (possibly with a "0x" prefix).
+% We prefer hexadecimal (letter) characters to be uppercases.
+%
+% Ex: <<"0x44e390a3">> or <<"44e390a3">>.
 
 
 -type unicode_string() :: unicode:chardata().
@@ -486,52 +503,95 @@ integer_to_string( IntegerValue ) ->
 	erlang:integer_to_list( IntegerValue ).
 
 
+
 % @doc Returns a plain string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix.
 %
-% Ex: "0x75BCD15".
+% Ex: integer_to_hexastring(3432) = "0xd68".
 %
--spec integer_to_hexastring( integer() ) -> ustring().
+-spec integer_to_hexastring( integer() ) -> hexastring().
 integer_to_hexastring( IntegerValue ) ->
 	integer_to_hexastring( IntegerValue, _AddPrefix=true ).
+
 
 
 % @doc Returns a plain string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix if requested.
 %
-% Ex: "0x75BCD15".
+% Ex: integer_to_hexastring(3432) = "0xd68".
 %
--spec integer_to_hexastring( integer(), boolean() ) -> ustring().
+-spec integer_to_hexastring( integer(), boolean() ) -> hexastring().
 integer_to_hexastring( IntegerValue, _AddPrefix=true ) ->
 	?hexa_prefix ++ integer_to_hexastring( IntegerValue, _Prefix=false );
 
 integer_to_hexastring( IntegerValue, _AddPrefix=false ) ->
-	erlang:integer_to_list( IntegerValue, _Base=16 ).
+	to_lowercase( erlang:integer_to_list( IntegerValue, _Base=16 ) ).
 
 
 
-% @doc Returns an integer corresponding to the specified string containing an
-% hexadecimal number as a text, and expected to start with a "0x" prefix.
+% @doc Returns an integer corresponding to the specified string containing a
+% (single) hexadecimal number as a text, and expected to start with a "0x"
+% prefix.
 %
 % Note: both uppercase and lowercase letters are supported.
 %
--spec hexastring_to_integer( ustring() ) -> integer().
+% Ex: hexastring_to_integer("0xd68") = 3432.
+%
+-spec hexastring_to_integer( hexastring() ) -> integer().
 hexastring_to_integer( HexaString ) ->
 	hexastring_to_integer( HexaString, _ExpectPrefix=true ).
 
 
-% @doc Returns an integer corresponding to the specified string containing an
-% hexadecimal number as a text, expected to start with a "0x" prefix if
+% @doc Returns an integer corresponding to the specified string containing a
+% (single) hexadecimal number as a text, expected to start with a "0x" prefix if
 % specified.
 %
 % Note: both uppercase and lowercase letters are supported.
 %
--spec hexastring_to_integer( ustring(), boolean() ) -> integer().
+% Ex: hexastring_to_integer("0xd68", _ExpectPrefix=true) = 3432.
+%
+-spec hexastring_to_integer( hexastring(), boolean() ) -> integer().
 hexastring_to_integer( ?hexa_prefix ++ HexaString, _ExpectPrefix=true ) ->
 	hexastring_to_integer( HexaString, _HasPrefix=false );
 
 hexastring_to_integer( HexaString, _ExpectPrefix=false ) ->
-	list_to_integer( HexaString, _Base=16).
+	list_to_integer( HexaString, _Base=16 ).
+
+
+
+% @doc Returns the binary corresponding to the specified binary string that
+% contains a series of hexadecimal values.
+%
+% Ex: hexabinstring_to_binary(<<"ffac01">>) = <<255,172,1>>.
+
+-spec hexabinstring_to_binary( hexabinstring() ) -> binary().
+hexabinstring_to_binary( HexaBinStr ) ->
+	hexastring_to_binary( binary_to_string( HexaBinStr ) ).
+
+
+
+% @doc Returns the binary corresponding to the specified string that contains
+% a series of hexadecimal values.
+%
+% Ex: hexastring_to_binary("ffac01") = <<255,172,1>>.
+
+-spec hexastring_to_binary( hexastring() ) -> binary().
+hexastring_to_binary( HexaStr ) ->
+	hexastring_to_binary( HexaStr, _BinAcc= <<>> ).
+
+
+% (helper)
+hexastring_to_binary( _HexaStr=[], BinAcc ) ->
+	% No reversing:
+	BinAcc;
+
+% Two hexadecimal characters account for one byte:
+hexastring_to_binary( _HexaStr=[ Hex1, Hex2 | T ], BinAcc ) ->
+	% Ex: "3c".
+	TwoCharStr = [ Hex1, Hex2 ],
+	Int = list_to_integer( TwoCharStr, _Base=16 ),
+	NewBinAcc = <<BinAcc/binary,Int/integer>>,
+	hexastring_to_binary( T, NewBinAcc ).
 
 
 
