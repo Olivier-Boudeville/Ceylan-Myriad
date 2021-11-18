@@ -46,3 +46,9 @@ message Polyline {
   repeated Point point = 1;
   string label = 2;
 }
+
+
+message DoubleList {
+	// Not packed:
+	repeated double data = 1;
+}
