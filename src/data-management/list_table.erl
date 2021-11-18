@@ -61,7 +61,7 @@
 		  remove_entry/2, remove_entries/2,
 		  lookup_entry/2, has_entry/2,
 		  extract_entry/2, extract_entry_with_defaults/3,
-		  extract_entry_if_existing/2,
+		  extract_entry_if_existing/2, extract_entries/2,
 		  get_value/2, get_value_with_defaults/3,
 		  get_values/2, get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
@@ -339,8 +339,8 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 
 
-% @doc Extracts specified entry (if any) from specified table, that is returns its
-% associated value and removes that entry from the returned table.
+% @doc Extracts specified entry (if any) from specified table, that is returns
+% its associated value and removes that entry from the returned table.
 %
 % Otherwise, that is if that entry does not exist, returns false.
 %
@@ -357,6 +357,31 @@ extract_entry_if_existing( Key, Table ) ->
 			false
 
 	end.
+
+
+
+% @doc Extracts specified entries from specified table, that is returns their
+% associated values (in-order) and removes these entries from the returned
+% table.
+%
+% Each key/value pair is expected to exist already, otherwise an exception is
+% raised (typically {badkey, KeyNotFound}).
+%
+% Ex: {[RedValue, GreenValue, BlueValue], ExtractedTable} =
+%         list_table:extract_entries([red, green, blue], MyTable)
+%
+-spec extract_entries( [ key() ], list_table() ) ->
+										{ [ value() ], list_table() }.
+extract_entries( Keys, ListHashtable ) ->
+	{ RevValues, FinalTable } = lists:foldl(
+		fun( K, { AccValues, AccTable } ) ->
+			{ V, NewAccTable } = extract_entry( K, AccTable ),
+			{ [ V | AccValues ], NewAccTable }
+		end,
+		_Acc0={ [], ListHashtable },
+		_List=Keys ),
+
+	{ lists:reverse( RevValues ), FinalTable }.
 
 
 
