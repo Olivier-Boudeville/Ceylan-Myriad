@@ -69,9 +69,19 @@
 
 
 
+-type index() :: basic_utils:positive_index().
+% An index of an element (ex: vertex, normal, texture coordinate), typically in
+% a data container such as a list or a binary buffer.
+
+
+-type indexed_triangle() :: { index(), index(), index() }.
+% Made of the corresponding three vertices.
+
+
 -export_type([ mesh/0, face/0, vertex_indice/0, normal_type/0,
 			   coloring_type/0, texture_coordinate/0,
-			   rendering_info/0 ]).
+			   rendering_info/0,
+			   index/0, indexed_triangle/0 ]).
 
 
 % For the right_cuboid, sphere records and al:
