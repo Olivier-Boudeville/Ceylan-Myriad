@@ -1933,6 +1933,8 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 
 	Indexes = triangles_to_indexes( IndexedTriangles ),
 
+	%trace_utils:debug_fmt( "Indexes: ~p", [ Indexes ] ),
+
 	{ MaybeIdxAccessorIndex, IdxBuffer, _IdxBufferOffset, IdxContent } =
 		integrate_indexes( Indexes, MaybeName, PrimBufferIndex, TexBuffer,
 						   TexBufferOffset, TexContent ),
@@ -2197,6 +2199,9 @@ integrate_indexes( Indexes, MaybeName, PrimBufferIndex, Buffer,
 	NewAccessors = list_utils:append_at_end( IdxAccessor, Accessors ),
 
 	IdxSize = get_size( IdxElementType, IdxComponentType, IdxCount ),
+
+	%trace_utils:debug_fmt( "Size of index buffer: ~B bytes.",
+	%                       [ IdxSize ] ),
 
 	IdxBufferView = #gltf_buffer_view{ buffer=PrimBufferIndex,
 									   offset=BufferOffset,
