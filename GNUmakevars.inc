@@ -149,10 +149,10 @@ ifeq ($(ENABLE_DEBUG),true)
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
@@ -164,8 +164,8 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_boxes
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl_support
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
 
@@ -175,9 +175,9 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
-	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
 
 endif
 
@@ -443,7 +443,7 @@ USE_PROTOBUF = false
 
 
 # To enable SQL with its default backend:
-#USE_SQL = false
+USE_SQL = false
 #USE_SQL = true
 
 
@@ -677,11 +677,25 @@ ifeq ($(USE_PROTOBUF),true)
 		# For the compilation of the generated files:
 		INC += -I$(GBP_INC)
 
+		PB_DEPS_FILE = GNUmakedeps.protobuf
+
 		# For the meaning of options, refer to
 		# https://myriad.esperide.org/#about-protobuf
 
-		# -I$(GBP_INC) is not needed here:
-		GPB_BASE_OPT := -I. -strbin -pkgs -rename msg_fqname:snake_case -rename msg_fqname:dots_to_underscores -MMD  -Werror -W1
+
+		# Currently the generation of dependency files has been disabled as,
+		# should an error be detected in the .proto file, it would not be
+		# displayed with the failing command but would only end up in said
+		# dependency file:
+		#
+		#GPB_SUFFIX_OPT := 1>$(PB_DEPS_FILE)
+		GPB_SUFFIX_OPT :=
+
+
+		# -I$(GBP_INC) is not needed here
+		# -MMD currently removed, as dependencies disabled (see above)
+		#
+		GPB_BASE_OPT := -I. -strbin -pkgs -rename msg_fqname:snake_case -rename msg_fqname:dots_to_underscores -Werror -W1
 
 		ifeq ($(EXECUTION_TARGET),development)
 			GPB_OPT := $(GPB_BASE_OPT) -v always -vdrp -preserve-unknown-fields
@@ -694,8 +708,6 @@ ifeq ($(USE_PROTOBUF),true)
 		PB_COMPILER := $(GPB_COMPILER)
 
 		PB_OPT := $(GPB_OPT)
-
-		PB_DEPS_FILE = GNUmakedeps.protobuf
 
 		# No includes for GPB:
 		#INC +=
