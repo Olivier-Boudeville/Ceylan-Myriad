@@ -72,6 +72,21 @@
 % (i.e. columns)
 
 
+% Binary extraction:
+%
+% When extracting the value of a field containing raw (binary) data, it comes as
+% a binary string containing hexadecimal characters that, at least with epgsql,
+% at least in some cases, are prefixed with "\\x".
+%
+% For example, if the actual content in the database is (in hexadecimal form)
+% A=<<"e3648a0024">>, then R=<<"\\xe3648a0024">> will be read.
+%
+% To get back the expected binary, when obtaining R from a record field returned
+% by a query, one may use: '<<"\\x", A/binary>> = R' to get A, and then:
+% ActualData = text_utils:hexabinstring_to_binary(A) to finally obtain the
+% requested data. See get_data/1.
+
+
 
 % For the various database records involved:
 -include("sql_support.hrl").
@@ -220,8 +235,31 @@
 
 
 
--type record() :: type_utils:tuple( maybe( binary() ) ).
+-type record() :: type_utils:tuple( field_value() ).
 % An actual record (a row).
+
+
+-type read_binary() :: binary().
+% Data as directly read, as a (prefixed) binary string containing hexadecimal
+% values.
+
+
+-type field_value() :: maybe( read_binary() ).
+% The value of a field in a returned record, that may be 'null', that is
+% translated here as 'undefined' (hence the maybe).
+
+
+-type user_name() :: ustring().
+% Any notion of user identifier.
+
+-type user_id() :: count().
+% Any notion of user identifier.
+
+
+
+-type timestamp() :: ustring().
+% A database timestamp.
+% Ex: "2021-11-08 13:33:52.895374".
 
 
 -type query_result() :: select_result() | update_result() | insert_result()
@@ -258,13 +296,14 @@
 
 			   backend_name/0, connection/0,
 
-			   query_string/0, operation_count/0, field_description/0, record/0,
+			   query_string/0, operation_count/0, field_description/0,
+
+			   record/0, read_binary/0, field_value/0,
+			   user_name/0, user_id/0, timestamp/0,
 
 			   query_result/0, query_format/0, query_values/0,
 			   select_result/0, update_result/0, insert_result/0,
-			   delete_result/0
-
-			 ]).
+			   delete_result/0 ]).
 
 
 
@@ -275,6 +314,7 @@
 		  list_database_names/1,
 		  list_schema_names/2,
 		  list_table_names/3,
+		  get_data/1,
 		  %extract_field/6,
 		  close/1,
 		  stop/0,
@@ -669,6 +709,25 @@ list_table_names( Conn, DbInstanceName, SchemaName ) ->
 
 		% Default:
 		none ).
+
+
+
+% @doc Returns the actual binary that is stored in a database data field, from
+% the one directly read (with is prefixed and in hexadecimal character).
+%
+% Refer to the 'Binary extraction' section above for further details.
+%
+-spec get_data( read_binary() ) -> binary().
+get_data( ReadBinString ) ->
+
+	% ReadBinString is a binary string containing hexadecimal characters.
+	%
+	% For some reason, at least with epgsql, a "\x" prefix is present, let's
+	% remove it:
+	%
+	<<"\\x", ReadHexaBinStr/binary>> = ReadBinString,
+
+	text_utils:hexabinstring_to_binary( ReadHexaBinStr ).
 
 
 
