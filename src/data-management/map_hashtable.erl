@@ -598,7 +598,7 @@ get_all_values( Keys, Hashtable ) ->
 
 
 
-% @doc Extracts specified entry from specified hashtable, ie returns its
+% @doc Extracts specified entry from specified hashtable, that is returns its
 % associated value and removes that entry from the returned table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
@@ -614,7 +614,7 @@ extract_entry( Key, MapHashtable ) ->
 
 
 
-% @doc Extracts specified entry from specified table, ie returns the
+% @doc Extracts specified entry from specified table, that is returns the
 % associated value and removes that entry from the table.
 %
 % If no such key is available, returns the specified default value and the
@@ -636,10 +636,10 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 
 
-% @doc Extracts specified entry (if any) from specified table, ie returns its
-% associated value and removes that entry from the returned table.
+% @doc Extracts specified entry (if any) from specified table, that is returns
+% its associated value and removes that entry from the returned table.
 %
-% Otherwise, ie if that entry does not exist, returns false.
+% Otherwise, that is if that entry does not exist, returns false.
 %
 % Typically useful to iterate over options stored as a table and extracting them
 % in turn, then to check that the resulting final table is empty as expected.
@@ -661,15 +661,15 @@ extract_entry_if_existing( Key, MapHashtable ) ->
 
 
 
-% @doc Extracts specified entries from specified hashtable, ie returns their
-% associated values (in-order) and removes these entries from the returned
+% @doc Extracts specified entries from specified hashtable, that is returns
+% their associated values (in-order) and removes these entries from the returned
 % table.
 %
 % Each key/value pair is expected to exist already, otherwise an exception is
 % raised (typically {badkey, KeyNotFound}).
 %
 % Ex: {[RedValue, GreenValue, BlueValue], ExtractedTable} =
-%         table:extract_entries([red, green, blue], MyTable)
+%         map_hashtable:extract_entries([red, green, blue], MyTable)
 %
 -spec extract_entries( [ key() ], map_hashtable() ) ->
 							{ [ value() ], map_hashtable() }.
@@ -1185,7 +1185,7 @@ is_empty( _MapHashtable ) ->
 
 
 
-% @doc Returns the size (number of entries, ie of key/value pairs) of the
+% @doc Returns the size (number of entries, that is of key/value pairs) of the
 % specified table.
 %
 -spec size( map_hashtable() ) -> entry_count().
