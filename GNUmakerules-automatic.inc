@@ -91,9 +91,11 @@
 ifeq ($(USE_PROTOBUF),true)
 
 # Single execution, two targets generated:
-%.erl %.hrl &: %.proto
+# Not compatible with older make (ex: 4.1): %.erl %.hrl &: %.proto
+%.erl %.hrl: %.proto
 	@echo "		Generating $@ from Protobuf spec $<"
-	@"$(PB_COMPILER)" $(PB_OPT) $< 1>$(PB_DEPS_FILE)
+	@"$(PB_COMPILER)" $(PB_OPT) $< $(GPB_SUFFIX_OPT)
+
 
 endif
 
