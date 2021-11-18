@@ -34,6 +34,7 @@
 -module(gltf_support).
 
 
+
 % Design notes:
 %
 % Only the glTF 2.0 format is supported, the JSON/ASCII version (*.gltf) - not
@@ -131,7 +132,7 @@
 % Index of a primitive in a glTF mesh.
 
 
--type gltf_primitive():: #gltf_primitive{}.
+-type gltf_primitive() :: #gltf_primitive{}.
 % A primitive defined in a mesh in a glTF content, corresponding to the data
 % required for GPU draw calls.
 
