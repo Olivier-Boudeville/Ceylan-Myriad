@@ -51,10 +51,23 @@
 
 
 % For re-use in other tests:
--export([ get_test_cube_info/0, get_test_cube_mesh/0,
+-export([ get_test_tetra_info/0, get_test_tetra_mesh/0,
 
-		  get_test_cube_vertices/0, get_test_cube_faces/0,
-		  get_test_cube_normals/0, get_test_cube_colors/0,
+		  get_test_tetra_vertices/0, get_test_tetra_faces/0,
+		  get_test_tetra_normals/0, get_test_tetra_colors/0,
+
+
+		  get_test_colored_cube_info/0, get_test_colored_cube_mesh/0,
+
+		  get_test_colored_cube_vertices/0, get_test_colored_cube_faces/0,
+		  get_test_colored_cube_normals/0, get_test_colored_cube_colors/0,
+
+
+		  get_test_textured_cube_info/0, get_test_textured_cube_mesh/0,
+
+		  get_test_textured_cube_vertices/0, get_test_textured_cube_faces/0,
+		  get_test_textured_cube_normals/0, get_test_textured_cube_tex_coords/0,
+
 
 		  get_test_image_path/0 ]).
 
@@ -100,7 +113,9 @@
 -type unit_normal3() :: vector3:unit_normal3().
 
 -type mesh() :: mesh:mesh().
--type face() :: mesh:face().
+-type indexed_face() :: mesh:indexed_face().
+-type indexed_triangle() :: mesh:indexed_triangle().
+-type texture_coordinate2() :: mesh:texture_coordinate2().
 
 -type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
@@ -110,29 +125,122 @@
 
 
 
-% @doc Returns the information needed in order to define a simple test cube.
--spec get_test_cube_info() -> { [ vertex3() ], [ face() ], [ unit_normal3() ],
-								[ render_rgb_color() ] }.
-get_test_cube_info() ->
+% Test tetrahedron.
+
+
+% @doc Returns the information needed in order to define a simple test
+% tetrahedron.
+%
+-spec get_test_tetra_info() -> { [ vertex3() ], [ indexed_triangle() ],
+								 [ unit_normal3() ], [ render_rgb_color() ] }.
+get_test_tetra_info() ->
 	% No texture coordinates used:
-	{ get_test_cube_vertices(), get_test_cube_faces(),
-	  get_test_cube_normals(), get_test_cube_colors() }.
+	{ get_test_tetra_vertices(), get_test_tetra_triangles(),
+	  get_test_tetra_normals(), get_test_tetra_colors() }.
 
 
 
-% @doc Returns a mesh coresponding to the test cube.
--spec get_test_cube_mesh() -> mesh().
-get_test_cube_mesh() ->
-	{ Vertices, Faces, Normals, Colors } = get_test_cube_info(),
+% @doc Returns a mesh corresponding to the test tetrahedron.
+-spec get_test_tetra_mesh() -> mesh().
+get_test_tetra_mesh() ->
+	{ Vertices, Faces, Normals, Colors } = get_test_tetra_info(),
 	RenderingInfo = { color, per_vertex, Colors },
 	mesh:create_mesh( Vertices, Faces, _NormalType=per_face, Normals,
 					  RenderingInfo ).
 
 
 
-% @doc Returns the (8) vertices of the test cube.
--spec get_test_cube_vertices() -> [ vertex3() ].
-get_test_cube_vertices() ->
+% @doc Returns the (4) vertices of the test tetrahedron.
+-spec get_test_tetra_vertices() -> [ vertex3() ].
+get_test_tetra_vertices() ->
+	[ _V1={ 0.0,  0.0,  0.0 }, % A
+	  _V2={ 5.0,  0.0,  0.0 }, % B
+	  _V3={ 0.0, 10.0,  0.0 }, % C
+	  _V4={ 0.0,  0.0, 15.0 }  % D
+	].
+
+
+
+% @doc Returns the (4) indexed faces of the test tetrahedron.
+%
+% Vertex order matters (CCW order when seen from outside)
+%
+-spec get_test_tetra_faces() -> [ indexed_face() ].
+get_test_tetra_faces() ->
+	[ _F1=[ 1, 3, 2 ], % ACB
+	  _F2=[ 1, 2, 4 ], % ABD
+	  _F3=[ 1, 4, 3 ], % ADC
+	  _F4=[ 2, 3, 4 ]  % BCD
+	].
+
+
+% @doc Returns the (4) indexed triangles of the test tetrahedron.
+%
+% Vertex order matters (CCW order when seen from outside)
+%
+-spec get_test_tetra_triangles() -> [ indexed_triangle() ].
+get_test_tetra_triangles() ->
+	mesh:indexed_faces_to_triangles( get_test_tetra_faces() ).
+
+
+
+% @doc Returns the (4) per-face unit normals of the test tetrahedron.
+-spec get_test_tetra_normals() -> [ unit_normal3() ].
+get_test_tetra_normals() ->
+	[ _NF1=[ 0.0,  0.0, -1.0 ], % normal of ACB
+	  _NF2=[ 0.0, -1.0,  0.0 ], % normal of ABD
+	  _NF3=[ -1.0, 0.0,  0.0 ], % normal of ADC
+
+	  % normal of BCD, obtained via:
+	  %  BC = point3:vectorize(B,C).
+	  %  BD = point3:vectorize(B,D).
+	  %  V = vector3:cross_product(BC,BD).
+	  %  N = vector3:normalise(V).
+	  %
+	  _NF4=[ 0.8571428571428571,0.42857142857142855,0.2857142857142857 ]
+
+	  ].
+
+
+
+% @doc Returns the (4) per-face colors of the test tetrahedron.
+-spec get_test_tetra_colors( ) -> [ render_rgb_color() ].
+get_test_tetra_colors() ->
+	[ _CF1={ 0.0, 0.0, 0.0 },
+	  _CF2={ 1.0, 0.0, 0.0 },
+	  _CF3={ 1.0, 1.0, 0.0 },
+	  _CF4={ 0.0, 0.0, 1.0 } ].
+
+
+
+
+% Test colored cube.
+
+% @doc Returns the information needed in order to define a simple test colored
+% cube.
+%
+-spec get_test_colored_cube_info() ->
+	{ [ vertex3() ], [ indexed_face() ], [ unit_normal3() ],
+	  [ render_rgb_color() ] }.
+get_test_colored_cube_info() ->
+	{ get_test_colored_cube_vertices(), get_test_colored_cube_faces(),
+	  get_test_colored_cube_normals(), get_test_colored_cube_colors() }.
+
+
+
+% @doc Returns a mesh corresponding to the test colored cube.
+-spec get_test_colored_cube_mesh() -> mesh().
+get_test_colored_cube_mesh() ->
+	{ Vertices, Faces, Normals, Colors } = get_test_colored_cube_info(),
+	RenderingInfo = { color, per_vertex, Colors },
+	mesh:create_mesh( Vertices, Faces, _NormalType=per_face, Normals,
+					  RenderingInfo ).
+
+
+
+% @doc Returns the (8) vertices of the test colored cube.
+-spec get_test_colored_cube_vertices() -> [ vertex3() ].
+get_test_colored_cube_vertices() ->
 	[ _V1={ -0.5, -0.5, -0.5 },
 	  _V2={  0.5, -0.5, -0.5 },
 	  _V3={  0.5,  0.5, -0.5 },
@@ -144,9 +252,9 @@ get_test_cube_vertices() ->
 
 
 
-% @doc Returns the (6) faces of the test cube.
--spec get_test_cube_faces() -> [ face() ].
-get_test_cube_faces() ->
+% @doc Returns the (6) faces of the test colored cube.
+-spec get_test_colored_cube_faces() -> [ indexed_face() ].
+get_test_colored_cube_faces() ->
 	[ _F1=[ 1, 2, 3, 4 ],
 	  _F2=[ 8, 1, 4, 5 ],
 	  _F3=[ 2, 7, 6, 3 ],
@@ -156,9 +264,9 @@ get_test_cube_faces() ->
 
 
 
-% @doc Returns the (6) per-face unit normals of the test cube.
--spec get_test_cube_normals() -> [ unit_normal3() ].
-get_test_cube_normals() ->
+% @doc Returns the (6) per-face unit normals of the test colored cube.
+-spec get_test_colored_cube_normals() -> [ unit_normal3() ].
+get_test_colored_cube_normals() ->
 	[ _NF1=[ 0.0, 0.0,-1.0 ],
 	  _NF2=[-1.0, 0.0, 0.0 ],
 	  _NF3=[ 1.0, 0.0, 0.0 ],
@@ -167,9 +275,9 @@ get_test_cube_normals() ->
 	  _NF6=[ 0.0,-1.0, 0.0 ] ].
 
 
-% @doc Returns the (6) per-face colors of the test cube.
--spec get_test_cube_colors( ) -> [ render_rgb_color() ].
-get_test_cube_colors() ->
+% @doc Returns the (6) per-face colors of the test colored cube.
+-spec get_test_colored_cube_colors( ) -> [ render_rgb_color() ].
+get_test_colored_cube_colors() ->
 	[ _CF1={ 0.0, 0.0, 0.0 },
 	  _CF2={ 1.0, 0.0, 0.0 },
 	  _CF3={ 1.0, 1.0, 0.0 },
@@ -178,6 +286,101 @@ get_test_cube_colors() ->
 	  _CF6={ 1.0, 1.0, 1.0 },
 	  _CF7={ 1.0, 0.0, 1.0 },
 	  _CF8={ 0.0, 0.0, 1.0 } ].
+
+
+
+
+
+% Test textured cube.
+
+% The following content data has been decoded in our higher-level form from the
+% Blender default scene.
+
+
+% @doc Returns the information needed in order to define a simple test textured
+% cube.
+%
+-spec get_test_textured_cube_info() ->
+					{ [ vertex3() ], [ indexed_face() ], [ unit_normal3() ],
+					  [ texture_coordinate2() ] }.
+get_test_textured_cube_info() ->
+	% No texture coordinates used:
+	{ get_test_textured_cube_vertices(), get_test_textured_cube_faces(),
+	  get_test_textured_cube_normals(), get_test_textured_cube_tex_coords() }.
+
+
+
+% @doc Returns a mesh corresponding to the test textured cube.
+-spec get_test_textured_cube_mesh() -> mesh().
+get_test_textured_cube_mesh() ->
+	{ Vertices, Faces, Normals, Colors } = get_test_textured_cube_info(),
+	RenderingInfo = { color, per_vertex, Colors },
+	mesh:create_mesh( Vertices, Faces, _NormalType=per_face, Normals,
+					  RenderingInfo ).
+
+
+
+% @doc Returns the (8) vertices of the test textured cube.
+-spec get_test_textured_cube_vertices() -> [ vertex3() ].
+get_test_textured_cube_vertices() ->
+	% Stangely enough, in this cube each of the 8 (3D) vertices is listed thrice
+	% in a row, so 24 of them are specified (maybe as the same indices are to be
+	% used also for normals and texture coordinates, which have per-vertex
+	% differences):
+	%
+	[ {1.0,1.0,-1.0},   {1.0,1.0,-1.0},   {1.0,1.0,-1.0},
+	  {1.0,-1.0,-1.0},  {1.0,-1.0,-1.0},  {1.0,-1.0,-1.0},
+	  {1.0,1.0,1.0},    {1.0,1.0,1.0},    {1.0,1.0,1.0},
+	  {1.0,-1.0,1.0},   {1.0,-1.0,1.0},   {1.0,-1.0,1.0},
+	  {-1.0,1.0,-1.0},  {-1.0,1.0,-1.0},  {-1.0,1.0,-1.0},
+	  {-1.0,-1.0,-1.0}, {-1.0,-1.0,-1.0}, {-1.0,-1.0,-1.0},
+	  {-1.0,1.0,1.0},   {-1.0,1.0,1.0},   {-1.0,1.0,1.0},
+	  {-1.0,-1.0,1.0},  {-1.0,-1.0,1.0},  {-1.0,-1.0,1.0} ].
+
+
+
+% @doc Returns the (6) face triangles of the test textured cube.
+-spec get_test_textured_cube_faces() -> [ indexed_triangle() ].
+get_test_textured_cube_faces() ->
+
+	% 36 indices (each in [0..23], listed once or twice):
+	Indices = [ 1, 14, 20, 1, 20, 7, 10, 6, 19, 10, 19, 23,
+				21, 18, 12, 21, 12, 15, 16, 3, 9, 16, 9, 22,
+				5, 2, 8, 5, 8, 11, 17, 13, 0, 17, 0, 4 ],
+
+	% Hence 36/3=12 triangles, 2 on each of the 6 faces:
+	gltf_support:indices_to_triangles( Indices ).
+
+
+
+% @doc Returns the 24 (3D, unitary) unit normals of the test textured cube.
+-spec get_test_textured_cube_normals() -> [ unit_normal3() ].
+get_test_textured_cube_normals() ->
+	[ [0.0,0.0,-1.0],  [0.0,1.0,-0.0],  [1.0,0.0,-0.0],
+	  [0.0,-1.0,-0.0], [0.0,0.0,-1.0],  [1.0,0.0,-0.0],
+	  [0.0,0.0,1.0],   [0.0,1.0,-0.0],  [1.0,0.0,-0.0],
+	  [0.0,-1.0,-0.0], [0.0,0.0,1.0],   [1.0,0.0,-0.0],
+	  [-1.0,0.0,-0.0], [0.0,0.0,-1.0],  [0.0,1.0,-0.0],
+	  [-1.0,0.0,-0.0], [0.0,-1.0,-0.0], [0.0,0.0,-1.0],
+	  [-1.0,0.0,-0.0], [0.0,0.0,1.0],   [0.0,1.0,-0.0],
+	  [-1.0,0.0,-0.0], [0.0,-1.0,-0.0], [0.0,0.0, 1.0] ].
+
+
+
+% @doc Returns the 24 texture (2D) coordinates (each repeated thrice) of the
+% test textured cube.
+%
+-spec get_test_textured_cube_tex_coords( ) -> [ texture_coordinate2() ].
+get_test_textured_cube_tex_coords() ->
+ [ {0.625,0.5},  {0.625,0.5},  {0.625,0.5},
+   {0.375,0.5},  {0.375,0.5},  {0.375,0.5},
+   {0.625,0.25}, {0.625,0.25}, {0.625,0.25},
+   {0.375,0.25}, {0.375,0.25}, {0.375,0.25},
+   {0.625,0.75}, {0.625,0.75}, {0.875,0.5},
+   {0.375,0.75}, {0.125,0.5},  {0.375,0.75},
+   {0.625,1.0},  {0.625,0.0},  {0.875,0.25},
+   {0.375,1.0},  {0.125,0.25}, {0.375,0.0} ].
+
 
 
 
