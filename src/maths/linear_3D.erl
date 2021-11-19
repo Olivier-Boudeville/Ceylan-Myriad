@@ -26,6 +26,43 @@
 % Creation date: Monday, February 15, 2010.
 
 
+
+% Design notes.
+
+% In terms of 3D orientation, conventions may differ:
+%
+% - Myriad, like Blender for example, considers that the "up" direction is the
+% +Z axis direction (see https://mMyriad.esperide.org/#geometric-conventions for
+% more details)
+%
+% - other tools, like glTF, define +Y as "up" (+Z as "forward", and -X as
+% "right")
+%
+% So a point P located, based on Myriad conventions, at coordinates P1={A,B,C}
+% shall be known of members of the Y-UP club as being at P2={A,C,-B}.
+%
+% Said otherwise, P2 = Pmg.P1 where the Pmg is the transition matrix from a
+% MyriadGUI referential to a glTF one, with:
+%
+% Pmg = [ 1   0  0 ]
+%       [ 0   0  1 ]
+%       [ 0  -1  0 ]
+%
+% The reverse transition is the transpose, i.e.:
+% Pgm = Pmg^-1 = tPmg = [ 1   0   0 ]
+%                       [ 0   0  -1 ]
+%                       [ 0   1   0 ]
+%
+% i.e. a point at Y-UP coordinates P1={A,B,C} shall be, internally, a point at
+% P2={A,-C,B}.
+%
+% See the point3:yup_point3/0 and vector3:yup_vector3/0 types, and
+% {point3,vector3}_to_yup/1 and yup_to_{point3,vector3}/1.
+
+
+
+
+
 % @doc Gathering of various <b>three dimensional "linear"</b> facilities.
 %
 % See `linear_3D_test.erl' for the corresponding test.

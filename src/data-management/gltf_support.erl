@@ -49,6 +49,11 @@
 % Materials are defined based on the Physically-Based Rendering (PBR)
 % methodology.
 
+% In terms of orientation, conventions may differ; Myriad considers that the
+% "up" direction is the +Z axis direction, whereas glTF defines +Y as "up"; as a
+% consequence (Myriad, Z-up) coordinates (ex: point3:point3()) will be
+% transformed here in Y-up ones (ex: point3:yup_point3()). Refer to the design
+% notes in linear_3D.erl for more details.
 
 
 % Implementation notes:
@@ -1924,10 +1929,14 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 	% vertices ("positions") are listed (if any), then all normals (if any),
 	% then all texture coordinates (if any), then all indexes (if any).
 
-	trace_utils:debug_fmt( "Vertices = ~p", [ Vertices ] ),
-	trace_utils:debug_fmt( "Normals = ~p", [ Normals ] ),
-	trace_utils:debug_fmt( "TexCoords = ~p", [ TexCoords ] ),
-	trace_utils:debug_fmt( "IndexedTriangles = ~p", [ IndexedTriangles ] ),
+	cond_utils:if_defined( gltf_exporter_verbose,
+		begin
+			trace_utils:debug_fmt( "Vertices = ~p", [ Vertices ] ),
+			trace_utils:debug_fmt( "Normals = ~p", [ Normals ] ),
+			trace_utils:debug_fmt( "TexCoords = ~p", [ TexCoords ] ),
+			trace_utils:debug_fmt( "IndexedTriangles = ~p",
+								   [ IndexedTriangles ] )
+		end ),
 
 	% For the upcoming buffer; as these indexes start at 0:
 	PrimBufferIndex = length( Buffers ),
@@ -2429,81 +2438,89 @@ append_to_buffer( _ElementType=scalar, _ComponentType=uint16, Elements,
 	append_all_uint16_little( Elements, Bin );
 
 
+append_to_buffer( _ElementType=vector3, _ComponentType=float32, Elements,
+				  Bin ) ->
+	YUPVecs = vector3:vector3_to_yups( Elements ),
+	ComponentFloats = list_utils:flatten_once( YUPVecs ),
+	%trace_utils:debug_fmt( "Appending following floats for now YUP vector3:"
+	%                       "~n~p", [ ComponentFloats ] ),
+	append_all_float32_little( ComponentFloats, Bin );
+
 append_to_buffer( ElementType, _ComponentType=float32, Elements, Bin )
 		when ElementType =:= vector2
-	  orelse ElementType =:= vector3
 	  orelse ElementType =:= vector4 ->
 	ComponentFloats = list_utils:flatten_once( Elements ),
-	trace_utils:debug_fmt( "Appending following floats for vectors:~n~p",
-						   [ ComponentFloats ] ),
+	%trace_utils:debug_fmt( "Appending following floats for vectors:~n~p",
+	%                       [ ComponentFloats ] ),
 	append_all_float32_little( ComponentFloats, Bin );
 
 append_to_buffer( _ElementType=point4, _ComponentType=float32, Elements,
 				  Bin ) ->
-	ComponentFloats = get_point4( Elements ),
+	ComponentFloats = get_coordinates_from_point4( Elements ),
 	append_all_float32_little( ComponentFloats, Bin );
 
 
 append_to_buffer( _ElementType=point3, _ComponentType=float32, Elements,
 				  Bin ) ->
-	ComponentFloats = get_point3( Elements ),
-	trace_utils:debug_fmt( "Appending following floats for point3s:~n~p",
-						   [ ComponentFloats ] ),
+	YUPPoints = point3:point3_to_yups( Elements ),
+	ComponentFloats = get_coordinates_from_point3( YUPPoints ),
+	%trace_utils:debug_fmt( "Appending following floats for now YUP point3:"
+	%                       "~n~p", [ ComponentFloats ] ),
 	append_all_float32_little( ComponentFloats, Bin );
 
 append_to_buffer( _ElementType=point2, _ComponentType=float32, Elements,
 				  Bin ) ->
-	ComponentFloats = get_point2( Elements ),
+	ComponentFloats = get_coordinates_from_point2( Elements ),
 	append_all_float32_little( ComponentFloats, Bin ).
 
 
 
 
 % @doc Returns a list of all, in-order coordinates of the specified points.
--spec get_point4( [ point4() ] ) -> [ coordinate() ].
-get_point4( Elements ) ->
-	get_point4( Elements, _Acc=[]  ).
+-spec get_coordinates_from_point4( [ point4() ] ) -> [ coordinate() ].
+get_coordinates_from_point4( Elements ) ->
+	get_coordinates_from_point4( Elements, _Acc=[]  ).
 
 
 % (helper)
-get_point4( _Elements=[], Acc ) ->
+get_coordinates_from_point4( _Elements=[], Acc ) ->
 	lists:reverse( Acc );
 
-get_point4( _Elements=[ {X,Y,Z,W} | T ], Acc ) ->
+get_coordinates_from_point4( _Elements=[ {X,Y,Z,W} | T ], Acc ) ->
 	% Will be reversed:
-	get_point4( T, [ W, Z, Y, X | Acc ] ).
+	get_coordinates_from_point4( T, [ W, Z, Y, X | Acc ] ).
 
 
 
 % @doc Returns a list of all, in-order coordinates of the specified points.
--spec get_point3( [ point3() ] ) -> [ coordinate() ].
-get_point3( Elements ) ->
-	get_point3( Elements, _Acc=[] ).
+-spec get_coordinates_from_point3( [ point3() ] ) -> [ coordinate() ].
+get_coordinates_from_point3( Elements ) ->
+	get_coordinates_from_point3( Elements, _Acc=[] ).
 
 
 % (helper)
-get_point3( _Elements=[], Acc ) ->
+get_coordinates_from_point3( _Elements=[], Acc ) ->
 	lists:reverse( Acc );
 
-get_point3( _Elements=[ {X,Y,Z} | T ], Acc ) ->
+get_coordinates_from_point3( _Elements=[ {X,Y,Z} | T ], Acc ) ->
 	% Will be reversed:
-	get_point3( T, [ Z, Y, X | Acc ] ).
+	get_coordinates_from_point3( T, [ Z, Y, X | Acc ] ).
 
 
 
 % @doc Returns a list of all, in-order coordinates of the specified points.
--spec get_point2( [ point2() ] ) -> [ coordinate() ].
-get_point2( Elements ) ->
-	get_point2( Elements, _Acc=[] ).
+-spec get_coordinates_from_point2( [ point2() ] ) -> [ coordinate() ].
+get_coordinates_from_point2( Elements ) ->
+	get_coordinates_from_point2( Elements, _Acc=[] ).
 
 
 % (helper)
-get_point2( _Elements=[], Acc ) ->
+get_coordinates_from_point2( _Elements=[], Acc ) ->
 	lists:reverse( Acc );
 
-get_point2( _Elements=[ {X,Y} | T ], Acc ) ->
+get_coordinates_from_point2( _Elements=[ {X,Y} | T ], Acc ) ->
 	% Will be reversed:
-	get_point2( T, [ Y, X | Acc ] ).
+	get_coordinates_from_point2( T, [ Y, X | Acc ] ).
 
 
 
@@ -2529,7 +2546,7 @@ append_all_float32_little( _Elements=[], Bin ) ->
 	Bin;
 
 append_all_float32_little( _Elements=[ F | T ], Bin ) ->
-	trace_utils:debug_fmt( "Appending float ~w.", [ F ] ),
+	%trace_utils:debug_fmt( "Appending float ~w.", [ F ] ),
 	NewBin = <<Bin/binary,F:32/float-little>>,
 	append_all_float32_little( T, NewBin ).
 

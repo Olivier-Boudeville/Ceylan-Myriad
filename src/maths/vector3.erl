@@ -74,6 +74,11 @@
 % Defined for documentation purpose.
 
 
+-type yup_vector3() :: vector3().
+% A vector in a 3D space, yet with Y-UP conventions (as opposed to Myriad's Z-UP
+% ones). Refer to the design notes in linear_3D.erl for further details.
+
+
 -type normal3() :: vector3().
 % A 3D vector orthogonal to a plane.
 %
@@ -90,12 +95,16 @@
 % A 3D vector containing texture coordinates.
 
 
+
 -export_type([ user_vector3/0, vector3/0, integer_vector3/0, any_vector3/0,
-			   unit_vector3/0, normal3/0, unit_normal3/0, texture_vector3/0 ]).
+			   unit_vector3/0, yup_vector3/0,
+			   normal3/0, unit_normal3/0, texture_vector3/0 ]).
 
 
 -export([ new/1, new/3, new_integer/3, null/0,
 		  from_point/1, to_point/1,
+		  vector3_to_yup/1, yup_to_vector3/1, 
+		  vector3_to_yups/1, yup_to_vector3s/1,
 		  add/2, add/1, cross_product/2,
 		  are_close/2, are_equal/2,
 		  square_magnitude/1, magnitude/1, negate/1, scale/2, normalise/1,
@@ -174,6 +183,40 @@ from_point( P3 ) ->
 -spec to_point( any_vector3() ) -> any_point3().
 to_point( V3 ) ->
 	point3:from_vector( V3 ).
+
+
+
+% @doc Converts a usual 3D vector into one that follows the Y-UP convention (as
+% opposed to the Myriad Z-UP one, see the design notes in linear_3D).
+%
+-spec vector3_to_yup( vector3() ) -> yup_vector3().
+vector3_to_yup( _V=[X,Y,Z] ) ->
+	[X,Z,-Y].
+
+
+% @doc Converts usual 3D vectors into ones that follow the Y-UP convention (as
+% opposed to the Myriad Z-UP one, see the design notes in linear_3D).
+%
+-spec vector3_to_yups( [ vector3() ] ) -> [ yup_vector3() ].
+vector3_to_yups( Vectors ) ->
+	[ vector3_to_yup( V ) || V <- Vectors ].
+
+
+
+% @doc Converts a 3D following the Y-UP convention (as opposed to the Myriad
+% Z-UP one, see the design notes in linear_3D) into a usual one.
+%
+-spec yup_to_vector3( yup_vector3() ) -> vector3().
+yup_to_vector3( _V=[X,Y,Z] ) ->
+	[X,-Z,Y].
+
+
+% @doc Converts a 3D following the Y-UP convention (as opposed to the Myriad
+% Z-UP one, see the design notes in linear_3D) into a usual one.
+%
+-spec yup_to_vector3s( [ yup_vector3() ] ) -> [ vector3() ].
+yup_to_vector3s( Vectors ) ->
+	[ yup_to_vector3( V ) || V <- Vectors ].
 
 
 

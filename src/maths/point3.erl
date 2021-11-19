@@ -77,12 +77,20 @@
 % A 3D vertex of a polygon, with any numerical coordinates (3 of them).
 
 
+-type yup_point3() :: point3().
+% A point in a 3D space, yet with Y-UP conventions (as opposed to Myriad's Z-UP
+% ones). Refer to the design notes in linear_3D.erl for further details.
+
+
+
 -export_type([ user_point3/0, point3/0, integer_point3/0, any_point3/0,
-			   vertex3/0, integer_vertex3/0, any_vertex3/0 ]).
+			   vertex3/0, integer_vertex3/0, any_vertex3/0, yup_point3/0 ]).
 
 
 -export([ new/1, new/3, new_integer/3, null/0,
 		  from_vector/1, to_vector/1, to_any_vector/1,
+		  point3_to_yup/1, yup_to_point3/1, point3_to_yups/1, yup_to_point3s/1,
+
 		  roundify/1,
 		  get_center/2, get_integer_center/2,
 		  translate/2, vectorize/2,
@@ -176,6 +184,40 @@ to_vector( P3 ) ->
 -spec to_any_vector( any_point3() ) -> any_vector3().
 to_any_vector( P3 ) ->
 	tuple_to_list( P3 ).
+
+
+
+% @doc Converts a usual 3D point into one that follows the Y-UP convention (as
+% opposed to the Myriad Z-UP one, see the design notes in linear_3D).
+%
+-spec point3_to_yup( point3() ) -> yup_point3().
+point3_to_yup( _P={X,Y,Z} ) ->
+	{X,Z,-Y}.
+
+
+% @doc Converts usual 3D points into ones that follow the Y-UP convention (as
+% opposed to the Myriad Z-UP one, see the design notes in linear_3D).
+%
+-spec point3_to_yups( [ point3() ] ) -> [ yup_point3() ].
+point3_to_yups( Points ) ->
+	[ point3_to_yup( P ) || P <- Points ].
+
+
+
+% @doc Converts a 3D following the Y-UP convention (as opposed to the Myriad
+% Z-UP one, see the design notes in linear_3D) into a usual one.
+%
+-spec yup_to_point3( yup_point3() ) -> point3().
+yup_to_point3( _P={X,Y,Z} ) ->
+	{X,-Z,Y}.
+
+
+% @doc Converts a 3D following the Y-UP convention (as opposed to the Myriad
+% Z-UP one, see the design notes in linear_3D) into a usual one.
+%
+-spec yup_to_point3s( [ yup_point3() ] ) -> [ point3() ].
+yup_to_point3s( Points ) ->
+	[ yup_to_point3( P ) || P <- Points ].
 
 
 
