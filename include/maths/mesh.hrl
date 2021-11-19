@@ -33,8 +33,8 @@
 	vertices = [] :: [ point3:any_vertex3() ],
 
 
-	% The faces defining that mesh, based on vertices:
-	faces = [] :: [ mesh:face() ],
+	% The faces defining that mesh, based on the indices of vertices:
+	faces = [] :: [ mesh:indexed_face() ],
 
 
 	% To which geometric element (ex: per vertex, per face) the next normals

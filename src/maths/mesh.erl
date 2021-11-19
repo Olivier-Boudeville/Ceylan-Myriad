@@ -41,13 +41,30 @@
 % Describes a mesh, convex or not.
 
 
+-type indice() :: linear:indice().
+% The indice of an element (ex: vertex, normal, texture coordinate), typically
+% in a data container such as a list or a binary buffer.
+%
+% As always in Myriad, indices start at 1 (ex: as opposed to zero-based indexes
+% such as glTF).
+
+
 -type vertex_indice() :: indice().
 % The indice of a vertex in a container thereof.
 
 
--type face() :: [ vertex_indice() ].
-% Describes the face of a mesh, based on a list of vertices (often 3 of them, to
-% define a triangle).
+-type indexed_face() :: [ vertex_indice() ].
+% Describes the face of a mesh, based on a list of vertices (for example 3 of
+% them, to define a triangle).
+%
+% Note usually the vertex order matters (regarding culling).
+
+
+-type indexed_triangle() ::
+			{ vertex_indice(), vertex_indice(), vertex_indice() }.
+% Made of the corresponding three vertices.
+%
+% Note usually the vertex order matters (regarding culling).
 
 
 -type normal_type() :: 'per_vertex' | 'per_face'.
@@ -57,8 +74,9 @@
 -type coloring_type() :: 'per_vertex' | 'per_face'.
 % Defines how an (uniform) coloring shall be applied to a geometry.
 
--type texture_coordinate() :: point2:any_point2().
-% A (2D) texture coordinate.
+-type texture_coordinate2() :: point2:any_point2().
+% A (2D) texture coordinate (hence with two U/V components); not a vector per
+% se.
 
 
 -type rendering_info() :: 'none'
@@ -69,19 +87,11 @@
 
 
 
--type index() :: basic_utils:positive_index().
-% An index of an element (ex: vertex, normal, texture coordinate), typically in
-% a data container such as a list or a binary buffer.
-
-
--type indexed_triangle() :: { index(), index(), index() }.
-% Made of the corresponding three vertices.
-
-
--export_type([ mesh/0, face/0, vertex_indice/0, normal_type/0,
-			   coloring_type/0, texture_coordinate/0,
-			   rendering_info/0,
-			   index/0, indexed_triangle/0 ]).
+-export_type([ mesh/0, indice/0, vertex_indice/0,
+			   indexed_face/0, indexed_triangle/0,
+			   normal_type/0,
+			   coloring_type/0, texture_coordinate2/0,
+			   rendering_info/0 ]).
 
 
 % For the right_cuboid, sphere records and al:
@@ -96,6 +106,8 @@
 -export([ %get_diameter/1, get_smallest_enclosing_rectangle/1, get_area/1,
 		  %is_in_clockwise_order/1, is_convex/1,
 		  %render/2,
+		  indexed_face_to_triangle/1,
+		  indexed_faces_to_triangles/1,
 		  to_string/1, to_compact_string/1 ]).
 
 
@@ -121,7 +133,6 @@
 %-type distance() :: linear:distance().
 %-type square_distance() :: linear:square_distance().
 
--type indice() :: linear:indice().
 -type vertex3() :: point3:vertex3().
 
 -type unit_normal3() :: vector3:unit_normal3().
@@ -135,7 +146,7 @@
 % rendering information are the specified ones, with no specific bounding-box
 % set.
 %
--spec create_mesh( [ vertex3() ], [ face() ], normal_type(),
+-spec create_mesh( [ vertex3() ], [ indexed_face() ], normal_type(),
 				   [ unit_normal3() ], rendering_info() ) -> mesh().
 create_mesh( Vertices, Faces, NormalType, Normals, RenderingInfo ) ->
 
@@ -147,6 +158,31 @@ create_mesh( Vertices, Faces, NormalType, Normals, RenderingInfo ) ->
 		   normal_type=NormalType,
 		   normals=Normals,
 		   rendering_info=RenderingInfo }.
+
+
+
+
+% Exported helpers.
+
+
+% @doc Returns the indexed triangle corresponding to the specified indexed face
+% (thus expected to comprise 3 vertices).
+%
+-spec indexed_face_to_triangle( indexed_face() ) -> indexed_triangle().
+indexed_face_to_triangle( _F=[ V1, V2, V3 ] ) ->
+	{ V1, V2, V3 }.
+
+
+
+% @doc Returns the indexed triangles corresponding to the specified indexed
+% faces (thus expected to comprise 3 vertices each).
+%
+-spec indexed_faces_to_triangles( [ indexed_face() ] ) ->
+												[ indexed_triangle() ].
+indexed_faces_to_triangles( Faces ) ->
+	[ indexed_face_to_triangle( F ) || F <- Faces ].
+
+
 
 
 
