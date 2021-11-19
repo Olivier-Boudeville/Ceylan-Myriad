@@ -256,12 +256,21 @@
 % line_loop, etc.).
 
 
--type gltf_topology() :: [ indexed_triangle() ].
+-type gltf_topology() :: [ gltf_indexed_triangle() ].
 % An index-based actual glTF topology of a glTF mesh.
+% Note that these indexes start at 0 for glTF, unlike ours.
 
 
 -type gltf_vertex_index() :: gltf_index().
-% The (glTF) index of a vertex.
+% The (glTF) index of a vertex (they start at zero).
+
+
+-type gltf_indexed_triangle() ::
+		{ gltf_vertex_index(), gltf_vertex_index(), gltf_vertex_index() }.
+% An index-based glTF triangle.
+%
+% Note that these indexes start at 0 for glTF, unlike ours, and that usually the
+% vertex order matters (regarding culling).
 
 
 -type buffer_view_target() :: 'array_buffer' | 'element_array_buffer'.
@@ -374,6 +383,7 @@
 		  buffer_view_target_to_gltf/1, gltf_to_buffer_view_target/1,
 
 		  triangles_to_indexes/1, indexes_to_triangles/1,
+		  indexed_triangles_to_gltf/1, indexed_triangle_to_gltf/1,
 
 
 		  % Lower-level operations:
@@ -438,6 +448,8 @@
 -type matrix4() :: matrix4:matrix4().
 
 %-type quaternion() :: quaternion:quaternion().
+
+-type texture_coordinate2() :: mesh:texture_coordinate2().
 
 
 % Local types:
@@ -1912,6 +1924,11 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 	% vertices ("positions") are listed (if any), then all normals (if any),
 	% then all texture coordinates (if any), then all indexes (if any).
 
+	trace_utils:debug_fmt( "Vertices = ~p", [ Vertices ] ),
+	trace_utils:debug_fmt( "Normals = ~p", [ Normals ] ),
+	trace_utils:debug_fmt( "TexCoords = ~p", [ TexCoords ] ),
+	trace_utils:debug_fmt( "IndexedTriangles = ~p", [ IndexedTriangles ] ),
+
 	% For the upcoming buffer; as these indexes start at 0:
 	PrimBufferIndex = length( Buffers ),
 
@@ -2100,12 +2117,12 @@ integrate_normals( Normals, MaybeName, PrimBufferIndex, Buffer,
 % @doc Integrates the specified texture coordinates (if any) in the specified
 % buffer and content, which are returned.
 %
--spec integrate_texture_coordinates( [ specialised_vertex() ],
+-spec integrate_texture_coordinates( [ texture_coordinate2() ],
 			maybe( object_name() ), buffer_index(), raw_buffer(), byte_offset(),
 			gltf_content() ) ->
 		{ maybe( accessor_index() ), raw_buffer(), byte_offset(),
 		  gltf_content() }.
-integrate_texture_coordinates( _TexCoord=[], _MaybeName, _PrimBufferIndex,
+integrate_texture_coordinates( _TexCoords=[], _MaybeName, _PrimBufferIndex,
 							   Buffer, BufferOffset, Content ) ->
 	% Do not define empty elements, glTF importers may not support that:
 	{ _MaybeAccessorIndex=undefined, Buffer, BufferOffset, Content };
@@ -2150,8 +2167,11 @@ integrate_texture_coordinates( TexCoords, MaybeName, PrimBufferIndex, Buffer,
 	NewBufferViews = list_utils:append_at_end( TexCoordBufferView,
 											   BufferViews ),
 
+	% Translating to vectors:
+	TexCoordsAsVecs = [ vector2:from_point( P ) || P <- TexCoords ],
+
 	NewBuffer = append_to_buffer( TexCoordElementType, TexCoordComponentType,
-								  TexCoords, Buffer ),
+								  TexCoordsAsVecs, Buffer ),
 
 	NewContent = Content#gltf_content{ accessors=NewAccessors,
 									   buffer_views=NewBufferViews },
@@ -2414,6 +2434,8 @@ append_to_buffer( ElementType, _ComponentType=float32, Elements, Bin )
 	  orelse ElementType =:= vector3
 	  orelse ElementType =:= vector4 ->
 	ComponentFloats = list_utils:flatten_once( Elements ),
+	trace_utils:debug_fmt( "Appending following floats for vectors:~n~p",
+						   [ ComponentFloats ] ),
 	append_all_float32_little( ComponentFloats, Bin );
 
 append_to_buffer( _ElementType=point4, _ComponentType=float32, Elements,
@@ -2425,6 +2447,8 @@ append_to_buffer( _ElementType=point4, _ComponentType=float32, Elements,
 append_to_buffer( _ElementType=point3, _ComponentType=float32, Elements,
 				  Bin ) ->
 	ComponentFloats = get_point3( Elements ),
+	trace_utils:debug_fmt( "Appending following floats for point3s:~n~p",
+						   [ ComponentFloats ] ),
 	append_all_float32_little( ComponentFloats, Bin );
 
 append_to_buffer( _ElementType=point2, _ComponentType=float32, Elements,
@@ -2443,7 +2467,7 @@ get_point4( Elements ) ->
 
 % (helper)
 get_point4( _Elements=[], Acc ) ->
-	Acc;
+	lists:reverse( Acc );
 
 get_point4( _Elements=[ {X,Y,Z,W} | T ], Acc ) ->
 	% Will be reversed:
@@ -2459,7 +2483,7 @@ get_point3( Elements ) ->
 
 % (helper)
 get_point3( _Elements=[], Acc ) ->
-	Acc;
+	lists:reverse( Acc );
 
 get_point3( _Elements=[ {X,Y,Z} | T ], Acc ) ->
 	% Will be reversed:
@@ -2475,7 +2499,7 @@ get_point2( Elements ) ->
 
 % (helper)
 get_point2( _Elements=[], Acc ) ->
-	Acc;
+	lists:reverse( Acc );
 
 get_point2( _Elements=[ {X,Y} | T ], Acc ) ->
 	% Will be reversed:
@@ -2505,6 +2529,7 @@ append_all_float32_little( _Elements=[], Bin ) ->
 	Bin;
 
 append_all_float32_little( _Elements=[ F | T ], Bin ) ->
+	trace_utils:debug_fmt( "Appending float ~w.", [ F ] ),
 	NewBin = <<Bin/binary,F:32/float-little>>,
 	append_all_float32_little( T, NewBin ).
 
@@ -2696,3 +2721,18 @@ indexes_to_triangles( _Indexes=[], Acc ) ->
 indexes_to_triangles( _Indexes=[ I1, I2, I3 | T ], Acc ) ->
 	Triangle = { I1, I2, I3 },
 	indexes_to_triangles( T, [ Triangle | Acc ] ).
+
+
+
+% @doc Returns (zero-based) glTF indexed triangles from the specified ones.
+-spec indexed_triangles_to_gltf( [ indexed_triangle() ] ) ->
+										[ gltf_indexed_triangle() ].
+indexed_triangles_to_gltf( IndTriangles ) ->
+	[ indexed_triangle_to_gltf( IT ) || IT <- IndTriangles ].
+
+
+
+% @doc Returns a (zero-based) glTF indexed triangle from the specified one.
+-spec indexed_triangle_to_gltf( indexed_triangle() ) -> gltf_indexed_triangle().
+indexed_triangle_to_gltf( _IndTriangle={ I1, I2, I3 } ) ->
+	{ I1-1, I2-1, I3-1 }.
