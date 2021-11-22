@@ -85,7 +85,8 @@
 		  roundify/1,
 		  get_center/2, get_integer_center/2,
 		  translate/2, scale/2, vectorize/2,
-		  are_close/2, are_equal/2, is_within/3, square_distance/2, distance/2,
+		  are_close/2, are_equal/2, is_within/3, is_within_square/3,
+		  square_distance/2, distance/2,
 		  draw_integer_random/2, draw_integer_random/3,
 		  check/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
@@ -218,7 +219,7 @@ translate( _P={X,Y}, _V=[Vx,Vy] ) ->
 
 % @doc Scales the specified 2D point of the specified scalar factor.
 -spec scale( any_point2(), factor() ) -> point2().
-scale( _V={X,Y}, Factor ) ->
+scale( _P={X,Y}, Factor ) ->
 	{ Factor*X, Factor*Y }.
 
 
@@ -249,13 +250,22 @@ are_equal( _P1={X1,Y1}, _P2={X2,Y2} ) ->
 
 
 
-% @doc Tells whether 2D point P1 is within a distance D from 2D point P2, using
-% some margin to overcome numerical errors.
+% @doc Tells whether the specified 2D point P1 is within a distance D from 2D
+% point P2, using some margin to overcome numerical errors.
 %
 -spec is_within( point2(), point2(), distance() ) -> boolean().
 is_within( P1, P2, D ) ->
 	% "Taylor series", square(epsilon) is negligible here:
 	square_distance( P1, P2 ) < D * ( D + ?epsilon ).
+
+
+
+% @doc Tells whether the specified 2D point P1 is within a square distance
+% SquareD from 2D point P2.
+%
+-spec is_within_square( point2(), point2(), square_distance() ) -> boolean().
+is_within_square( P1, P2, SquareD ) ->
+	square_distance( P1, P2 ) < SquareD.
 
 
 

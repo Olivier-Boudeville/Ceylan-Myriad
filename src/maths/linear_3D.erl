@@ -81,6 +81,8 @@
 
 -type factor() :: math_utils:factor().
 
+-type point3() :: point3:point3().
+
 -type normal3() :: vector3:normal3().
 -type unit_normal3() :: vector3:unit_normal3().
 
@@ -124,3 +126,13 @@
 
 
 -export_type([ shape/0 ]).
+
+
+-export([ get_origin/0 ]).
+
+
+% @doc Returns the origin of this referential.
+-spec get_origin() -> point3().
+get_origin() ->
+	Zero = 0.0,
+	{ Zero, Zero, Zero }.

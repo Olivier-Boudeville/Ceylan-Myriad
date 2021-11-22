@@ -93,8 +93,9 @@
 
 		  roundify/1,
 		  get_center/2, get_integer_center/2,
-		  translate/2, vectorize/2,
-		  are_close/2, are_equal/2, is_within/3, square_distance/2, distance/2,
+		  translate/2, scale/2, vectorize/2,
+		  are_close/2, are_equal/2, is_within/3, is_within_square/3,
+		  square_distance/2, distance/2,
 		  check/1,
 		  to_string/1, to_compact_string/1, to_basic_string/1,
 		  to_user_string/1 ] ).
@@ -104,6 +105,8 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+
+-type factor() :: math_utils:factor().
 
 -type coordinate() :: linear:coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
@@ -257,6 +260,13 @@ translate( _P={X,Y,Z}, _V=[Vx,Vy,Vz] ) ->
 
 
 
+% @doc Scales the specified 3D point of the specified scalar factor.
+-spec scale( any_point3(), factor() ) -> point3().
+scale( _P={X,Y,Z}, Factor ) ->
+	{ Factor*X, Factor*Y, Factor*Z }.
+
+
+
 % @doc Returns a vector V made from the specified two points: V=P2-P1.
 -spec vectorize( point3(), point3() ) -> vector3().
 vectorize( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
@@ -284,13 +294,22 @@ are_equal( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
 
 
 
-% @doc Tells whether 3D point P1 is within a distance D from 3D point P2, using
-% some margin to overcome numerical errors.
+% @doc Tells whether the specified 3D point P1 is within a distance D from 3D
+% point P2, using some margin to overcome numerical errors.
 %
 -spec is_within( point3(), point3(), distance() ) -> boolean().
 is_within( P1, P2, D ) ->
 	% "Taylor series", square(epsilon) is negligible here:
 	square_distance( P1, P2 ) < D * ( D + ?epsilon ).
+
+
+
+% @doc Tells whether the specified 3D point P1 is within a square distance
+% SquareD from 3D point P2.
+%
+-spec is_within_square( point3(), point3(), square_distance() ) -> boolean().
+is_within_square( P1, P2, SquareD ) ->
+	square_distance( P1, P2 ) < SquareD.
 
 
 
