@@ -64,15 +64,16 @@
 			{ vertex_indice(), vertex_indice(), vertex_indice() }.
 % Made of the corresponding three vertices.
 %
-% Note usually the vertex order matters (regarding culling).
+% Note that usually the vertex order matters (regarding culling).
 
 
 -type normal_type() :: 'per_vertex' | 'per_face'.
 % Defines to which geometric element a normal corresponds.
 
 
--type coloring_type() :: 'per_vertex' | 'per_face'.
-% Defines how an (uniform) coloring shall be applied to a geometry.
+-type face_coloring_type() :: 'per_vertex' | 'per_face'.
+% Defines how a coloring shall be applied to a face.
+
 
 -type texture_coordinate2() :: point2:any_point2().
 % A (2D) texture coordinate (hence with two U/V components); not a vector per
@@ -80,18 +81,26 @@
 
 
 -type rendering_info() :: 'none'
-					  | { 'wireframe', HiddenFaceRemoval :: boolean() }
-					  | { 'color', coloring_type(), [ render_rgb_color() ] }.
-% | { 'texture', ...
+
+		| { 'wireframe', EdgeColor :: render_rgb_color(),
+			HiddenFaceRemoval :: boolean() }
+
+		| { 'color', face_coloring_type(), [ render_rgb_color() ] }.
+	  % | { 'texture', ...
 % Defines how a mesh shall be rendered.
 
+-type vertex_count() :: count().
+-type normal_count() :: count().
+-type edge_count() :: count().
+-type face_count() :: count().
 
 
 -export_type([ mesh/0, indice/0, vertex_indice/0,
 			   indexed_face/0, indexed_triangle/0,
 			   normal_type/0,
-			   coloring_type/0, texture_coordinate2/0,
-			   rendering_info/0 ]).
+			   face_coloring_type/0, texture_coordinate2/0,
+			   rendering_info/0,
+			   vertex_count/0, normal_count/0, edge_count/0, face_count/0 ]).
 
 
 % For the right_cuboid, sphere records and al:
@@ -113,7 +122,7 @@
 
 % Color-related section.
 %-export([ set_edge_color/2, get_edge_color/1,
-%		  set_fill_color/2, get_fill_color/1 ]).
+%          set_fill_color/2, get_fill_color/1 ]).
 
 
 % Bounding-box related section.
@@ -122,7 +131,7 @@
 
 % Shorthands:
 
-%-type option_list() :: option_list:option_list().
+-type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 
