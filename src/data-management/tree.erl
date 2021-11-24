@@ -26,7 +26,6 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
 % @doc Gathering of facilities to manage <b>trees</b> that may be unbalanced.
 -module(tree).
 
@@ -69,21 +68,21 @@
 
 
 
-% @doc Creates a new, single-node, empty, tree.
+% @doc Creates a single-node, empty, tree.
 -spec new() -> tree().
 new() ->
 	{ _NodeContent=undefined, _Subtrees=[] }.
 
 
 
-% @doc Creates a new tree with a single node containing specified content.
+% @doc Creates a tree with a single node containing specified content.
 -spec new( node_content() ) -> tree().
 new( NodeContent ) ->
 	{ NodeContent, _Subtrees=[] }.
 
 
 
-% @doc Creates a new tree with specified content and child trees.
+% @doc Creates a tree with specified content and child trees.
 -spec new( node_content(), [ tree() ] ) -> tree().
 new( NodeContent, Subtrees ) ->
 	{ NodeContent, Subtrees }.
