@@ -26,7 +26,6 @@
 % Creation date: Friday, July 24, 2015.
 
 
-
 % @doc Gathering of <b>time management</b> facilities.
 %
 % See time_utils_test.erl for the corresponding test.
@@ -98,18 +97,18 @@
 % Time in the day; used to be {hour(), minute(), second()} or calendar:time().
 
 
--type ms_since_year_0() :: unit_utils:milliseconds().
+-type ms_since_year_0() :: milliseconds().
 % Also known as Gregorian milliseconds.
 
 
--type ms_since_epoch() :: unit_utils:milliseconds().
+-type ms_since_epoch() :: milliseconds().
 % POSIX conventions.
 
 
--type ms_monotonic() :: unit_utils:milliseconds().
+-type ms_monotonic() :: milliseconds().
 % The internal, duration-friendly monotonic time.
 
--type ms_duration() :: unit_utils:milliseconds().
+-type ms_duration() :: milliseconds().
 
 
 -type dhms_duration() :: { days(), hours(), minutes(), seconds() }.
@@ -124,7 +123,8 @@
 
 
 % Basics:
--export([ get_textual_date/1, from_posix_timestamp/1 ]).
+-export([ get_textual_date/1, from_posix_timestamp/1,
+		  get_local_timestamp/0, get_local_date/0, get_local_time/0 ]).
 
 
 % For rough, averaged conversions:
@@ -256,7 +256,30 @@ from_posix_timestamp( PosixTimestamp ) ->
 	% time:
 	%
 	calendar:universal_time_to_local_time(
-	  { { 1970 + Post1970Year, Month, Day }, Time } ).
+		{ { 1970 + Post1970Year, Month, Day }, Time } ).
+
+
+
+% @doc Returns a local timestamp (date and time), as reported by the underlying
+% operating system.
+%
+-spec get_local_timestamp() -> timestamp().
+get_local_timestamp() ->
+	calendar:local_time().
+
+
+% @doc Returns the local date, as reported by the underlying operating system.
+-spec get_local_date() -> date().
+get_local_date() ->
+	{ Date, _Time } = calendar:local_time(),
+	Date.
+
+
+% @doc Returns the local time, as reported by the underlying operating system.
+-spec get_local_time() -> time().
+get_local_time() ->
+	{ _Date, Time } = calendar:local_time(),
+	Time.
 
 
 
@@ -890,7 +913,7 @@ get_system_time() ->
 -spec get_timestamp() -> timestamp().
 get_timestamp() ->
 
-	% Was: { erlang:date(), erlang:time() }.
+	% Was: {erlang:date(), erlang:time()}.
 	%
 	% Better:
 	%
@@ -1105,7 +1128,7 @@ timestamp_to_string( Timestamp ) ->
 short_string_to_timestamp( TimestampString ) ->
 
 	%trace_utils:debug_fmt( "Converting short string '~ts' to timestamp.",
-	%					   [ TimestampString ] ),
+	%                       [ TimestampString ] ),
 
 	case string:tokens( TimestampString, _Sep=" :/" ) of
 
@@ -1136,7 +1159,7 @@ gregorian_ms_to_timestamp( GregorianMs ) ->
 	GregorianSecs = round( GregorianMs / 1000 ),
 
 	calendar:universal_time_to_local_time(
-	  calendar:gregorian_seconds_to_datetime( GregorianSecs ) ).
+		calendar:gregorian_seconds_to_datetime( GregorianSecs ) ).
 
 
 
