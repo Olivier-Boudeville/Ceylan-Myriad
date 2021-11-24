@@ -912,7 +912,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 			% Before notifying the event subscribers below, some special actions
 			% may be needed to update that target reassigned object first (ex:
-			% for a canvas, an OnResized event shall trigger first an update of
+			% for a canvas, an onResized event shall trigger first an update of
 			% the canvas back-buffer):
 			%
 			UpdatedTypeTable = update_instance_on_event( TargetGUIObject,
@@ -1186,6 +1186,7 @@ send_event( Subscribers, _EventType=onResized, EventSourceId, GUIObject,
 
 	%trace_utils:debug_fmt( "onResized event: new size is ~p.", [ NewSize ] ),
 
+	% Same structure as for OpenGL canvases:
 	Msg = { onResized, [ GUIObject, NewSize, Context ] },
 
 	%trace_utils:debug_fmt( "Sending back following resize event "
