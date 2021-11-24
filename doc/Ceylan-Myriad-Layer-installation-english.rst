@@ -87,7 +87,7 @@ The parallel build of the whole layer (services and tests alike) shall complete 
 
 One may just run ``make`` by itself in order to list the main available options.
 
-Note that by default our native, make-based, build system is used. Alternatively, a rebar3-based build can be done (see the `OTP Build`_ section for more details).
+Note that by default our native, make-based, build system is used (see the `build section <http://howtos.esperide.org/Build.html>`_ of Ceylan-HOWTOs for further details). Alternatively, a rebar3-based build can be done (refer to the `OTP Build`_ section).
 
 In this case one may run ``make create-myriad-checkout`` in order to create, based on our conventions, a suitable ``_checkouts`` directory so that rebar3 can directly take into account local, directly available (in-development) dependencies (although Myriad does not have any, beside Erlang itself - this make target is useful for the layers built on top of Myriad).
 
