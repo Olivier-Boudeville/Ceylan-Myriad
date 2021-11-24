@@ -26,7 +26,6 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
 % @doc An implementation of <b>option lists</b>, loosely based on `proplist'.
 %
 % Note that our option lists only have {Key,Value} pairs (ex: no entry is made
@@ -69,16 +68,14 @@
 
 
 
-% @doc Creates a new, empty option list.
+% @doc Returns an empty option list.
 -spec new() -> option_list().
 new() ->
 	[].
 
 
 
-% @doc Creates a new option list from specified list containing {Key,Value}
-% pairs.
-%
+% @doc Creates an option list from specified list containing {Key,Value} pairs.
 -spec new( entries() ) -> option_list().
 new( Entries ) ->
 	% The internal representation happens to be the same:
