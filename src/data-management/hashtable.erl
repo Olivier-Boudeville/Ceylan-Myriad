@@ -286,12 +286,12 @@ add_diagnosed_entries( Entries, Hashtable ) ->
 
 					% Implicitly, Diag is 'updated' here:
 					( _Entry={K,V}, _Acc={ Table, _Diag } ) ->
-						 % Returns directly { NewTable, NewDiagnosis }:
+						 % Returns directly {NewTable, NewDiagnosis}:
 						 add_diagnosed_entry( K, V, Table )
 
-					end,
-					_InitialAcc={ Hashtable, _InitialDiag=updated },
-					_List=Entries ).
+				 end,
+				 _InitialAcc={ Hashtable, _InitialDiag=updated },
+				 _List=Entries ).
 
 
 
