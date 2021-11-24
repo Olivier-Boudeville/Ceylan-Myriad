@@ -125,15 +125,15 @@
 -define( default_bullet, " + " ).
 
 
-% @doc Returns a new empty table dimensioned for the default number of entries.
+% @doc Returns an empty table dimensioned for the default number of entries.
 -spec new() -> list_table().
 new() ->
 	[].
 
 
 
-% @doc Returns a new empty table dimensioned for the specified expected number
-% of entries / a new table containing the specified (initial) entries.
+% @doc Returns an empty table dimensioned for the specified expected number of
+% entries / an table containing the specified (initial) entries.
 %
 -spec new( entry_count() | entries() ) -> list_table().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
@@ -586,9 +586,9 @@ toggle_entry( Key, Table ) ->
 
 
 
-% @doc Returns a new table, which started from TableBase and was enriched with
-% the TableAdd entries whose keys were not already in TableBase (if a key is in
-% both tables, the one from TableBase will be kept).
+% @doc Returns a table that started from TableBase and was enriched with the
+% TableAdd entries whose keys were not already in TableBase (if a key is in both
+% tables, the one from TableBase will be kept).
 %
 % Note: not the standard merge that one would expect, should values be lists.
 %
