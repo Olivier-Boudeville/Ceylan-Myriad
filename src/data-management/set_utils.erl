@@ -126,7 +126,7 @@ singleton( Element ) ->
 	?set_impl:add_element( Element, ?set_impl:new() ).
 
 
-% @doc Returns a new set, containing the elements of specified list (possibly
+% @doc Returns a set containing the elements of specified list (possibly
 % unordered and containing duplicates).
 %
 % See singleton/1 if wanting to create a set with one element.
@@ -153,7 +153,7 @@ are_equal( Set1, Set2 ) ->
 
 
 
-% @doc Returns a new set formed from the specified one with specified element
+% @doc Returns a set formed from the specified one with specified element
 % inserted. If this element is already in the specified set, the returned set is
 % the same.
 %
@@ -163,7 +163,7 @@ add( Element, Set ) ->
 
 
 
-% @doc Returns a new set formed from the specified one with specified element
+% @doc Returns a set formed from the specified one with specified element
 % inserted, checking that this element was not already in the original set
 % (otherwise a batmatch exception is thrown).
 %
