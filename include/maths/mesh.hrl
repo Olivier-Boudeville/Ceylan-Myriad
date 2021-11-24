@@ -42,22 +42,15 @@
 	%
 	normal_type :: mesh:normal_type(),
 
-
 	% The (unit) normals (if any) of that mesh, defined according to the
 	% previous normal type:
 	%
 	normals = [] :: [ vector3:unit_normal3() ],
 
-	% Rendering information, if any, as an option list.
-	%
-	% Supported options:
-	% - edge_color :: gui_color:color_by_decimal()
-	% - fill_color :: gui_color:color_by_decimal()
-	%
-	%rendering = [] :: option_list:option_list(),
 
 	% How this mesh shall be rendered:
 	rendering_info = none :: mesh:rendering_info(),
+
 
 	% Bounding-box information:
 	% (can be for example a right-cuboid or a sphere)
