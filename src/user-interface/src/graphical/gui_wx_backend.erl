@@ -254,10 +254,14 @@
 % Refer to wxGLCanvas: https://www.erlang.org/doc/man/wxglcanvas#new-2.
 
 
+-type wx_enum() :: wx:wx_enum().
+% A wxWidgets enumerated value.
+
+
 -export_type([ wx_native_object_type/0, wx_window_option/0,
 			   wx_event_handler_option/0, wx_panel_option/0,
 			   other_wx_device_context_attribute/0,
-			   wx_device_context_attribute/0 ]).
+			   wx_device_context_attribute/0, wx_enum/0 ]).
 
 
 % Preferably no -export_type here to avoid leakage of backend conventions.
