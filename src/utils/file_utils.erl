@@ -4891,13 +4891,12 @@ get_extension_for( _CompressionFormat=xz ) ->
 
 
 
-% @doc Compresses specified file: creates a new, compressed version thereof
-% (using the most efficient, compacity-wise, compression tool available), whose
+% @doc Compresses specified file: creates a compressed version thereof (using
+% the most efficient, compacity-wise, compression tool available), whose
 % filename, established based on usual conventions, is returned. If a file with
 % that name already exists, it will be overwritten.
 %
-% For example, compress( "hello.png" ) will generate a "hello.png.xz"
-% file.
+% For example, compress("hello.png") will generate a "hello.png.xz" file.
 %
 % The original file remain as is.
 %
@@ -4911,12 +4910,11 @@ compress( Filename ) ->
 
 
 
-% @doc Compresses specified file: creates a new, compressed version thereof,
-% whose filename, established based on usual conventions, is returned. If a file
-% with that name already exists, it will be overwritten.
+% @doc Compresses specified file: creates a compressed version thereof, whose
+% filename, established based on usual conventions, is returned. If a file with
+% that name already exists, it will be overwritten.
 %
-% For example, compress( "hello.png", zip ) will generate a "hello.png.zip"
-% file.
+% For example, compress("hello.png", zip) will generate a "hello.png.zip" file.
 %
 % The original file remain as is.
 %
