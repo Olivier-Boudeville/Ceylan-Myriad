@@ -140,8 +140,12 @@
 
 		  get_default_bullet/0, get_bullet_for_level/1,
 		  format_text_for_width/2,
-		  pad_string/2, pad_string_left/2, pad_string_right/2,
+
+		  pad_string/2,
+		  pad_string_left/2, pad_string_left/3,
+		  pad_string_right/2, pad_string_right/3,
 		  center_string/2, center_string/3,
+
 		  is_string/1, is_non_empty_string/1, are_strings/1,
 		  is_bin_string/1, are_binaries/1,
 		  are_of_same_string_type/2,
@@ -342,6 +346,9 @@
 
 
 % Shorthands:
+
+-type grapheme_cluster() :: string:grapheme_cluster().
+% A user-perceived character, consisting of one or more (Unicode) codepoints.
 
 -type count() :: basic_utils:count().
 
@@ -1704,9 +1711,17 @@ interpret_faulty_format( FormatString, Values ) ->
 
 				% Very common case:
 				1 ->
-					io_lib:format( " (expecting ~B values, got ~B, hence an "
-						"extra value has been specified)",
-						[ SeqCount, ValueCount ] );
+					case SeqCount of
+
+						1 ->
+							" (expecting a single value, got two of them)";
+
+						_ ->
+							io_lib:format( " (expecting ~B values, got ~B, "
+								"hence an extra value has been specified)",
+								[ SeqCount, ValueCount ] )
+
+					end;
 
 				TooMany when TooMany > 1 ->
 					io_lib:format( " (expecting ~B values, got ~B, hence ~B "
@@ -3936,7 +3951,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 			CurrentLineLen ) ->
 
 	%io:format( "Managing word '~ts' (len=~B), current line is '~ts' (len=~B), "
-	%	"width = ~B.~n", [ Word, length( Word ), CurrentLine, CurrentLineLen,
+	%   "width = ~B.~n", [ Word, length( Word ), CurrentLine, CurrentLineLen,
 	% Width ] ),
 
 	% Length should be incremented, as a space must be inserted before that
@@ -3966,6 +3981,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 				FittingLen when FittingLen =< Width ->
 					% Yes, this word fits on the current line.
 					% Avoids adding a space at the beginning of a new line:
+					%
 					{ NewCurrentLine, NewLineLen } = case CurrentLineLen of
 
 						0 ->
@@ -3978,7 +3994,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 					end,
 
 					%io:format("Current line is now '~ts'.~n",
-					%  [NewCurrentLine]),
+					%   [NewCurrentLine]),
 					join_words( RemainingWords, Width, AccLines, NewCurrentLine,
 								NewLineLen );
 
@@ -3989,7 +4005,8 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 					%io:format( "Inserting line '~ts'.~n",
 					%           [ PaddedCurrentLine ] ),
 					join_words( RemainingWords, Width,
-					  [ PaddedCurrentLine | AccLines ], Word, CompatibleWidth )
+						[ PaddedCurrentLine | AccLines ], Word,
+						CompatibleWidth )
 
 			end;
 
@@ -4013,17 +4030,31 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 % @doc Returns the specified string, padded with spaces to specified width,
 % left-justified (that is with spaces added to the right).
 %
+% Ex: pad_string("hello", 8) = ["hello",32,32,32]
+%
 -spec pad_string( ustring(), width() ) -> ustring().
-pad_string( String, Width ) when length( String ) =< Width ->
+pad_string( String, Width ) ->
 	pad_string_left( String, Width ).
-
 
 
 % @doc Returns the specified string, padded with spaces to specified width,
 % left-justified (that is with spaces added to the right).
 %
--spec pad_string_left( ustring(), width() ) -> ustring().
-pad_string_left( String, Width ) when length( String ) =< Width ->
+% Ex: pad_string_left("hello", 8) = ["hello",32,32,32]
+%
+-spec pad_string_left( ustring(), width() ) -> any_string().
+pad_string_left( String, Width ) ->
+	pad_string_left( String, Width, _PadChar=$\s ).
+
+
+% @doc Returns the specified string, padded with spaces to specified width,
+% left-justified (that is with spaces added to the right), with specified
+% padding character.
+%
+% Ex: pad_string_left("hello", 8, $*) = ["hello",42,42,42]
+%
+-spec pad_string_left( ustring(), width(), grapheme_cluster() ) -> any_string().
+pad_string_left( String, Width, PadChar ) when length( String ) =< Width ->
 
 	% Note that the settings listed in
 	% http://erlang.org/doc/apps/stdlib/unicode_usage.html shall be enforced so
@@ -4031,14 +4062,17 @@ pad_string_left( String, Width ) when length( String ) =< Width ->
 	% characters such as "e" with an accent are considered as two characters
 	% instead of one, leading to incorrect (insufficient) padding:
 	%
-	lists:flatten( io_lib:format( "~*.ts", [ -Width, String ] ) );
+	%lists:flatten( io_lib:format( "~*.ts", [ -Width, String ] ) );
 
-pad_string_left( String, Width ) ->
+	string:pad( String, Width, _Dir=trailing, PadChar );
+
+pad_string_left( String, Width, PadChar ) ->
 
 	Len = length( String ),
 
 	trace_utils:error_fmt( "String '~ts' already too long (~B characters) "
-		"to be padded (left) to width ~B.", [ String, Len, Width ] ),
+		"to be padded (left) to width ~B (with '~ts').",
+		[ String, Len, Width, PadChar ] ),
 
 	throw( { string_to_pad_left_too_long, String, Len, Width } ).
 
@@ -4047,16 +4081,33 @@ pad_string_left( String, Width ) ->
 % @doc Returns the specified string, padded with spaces to specified width,
 % right-justified (that is with spaces added to the left).
 %
--spec pad_string_right( ustring(), width() ) -> ustring().
-pad_string_right( String, Width ) when length( String ) =< Width ->
-	lists:flatten( io_lib:format( "~*.ts", [ Width, String ] ) );
-
+% Ex: pad_string_right("hello", 8) = ["   ","hello"]
+%
+-spec pad_string_right( ustring(), width() ) -> any_string().
 pad_string_right( String, Width ) ->
+	pad_string_right( String, Width, _PadChar=$\s ).
+
+
+% @doc Returns the specified string, padded with spaces to specified width,
+% right-justified (that is with spaces added to the left), with specified
+% padding character.
+%
+% Ex: pad_string_right("hello", 8, $*) = ["***","hello"]
+%
+-spec pad_string_right( ustring(), width(), grapheme_cluster() ) ->
+														any_string().
+pad_string_right( String, Width, PadChar ) when length( String ) =< Width ->
+	%lists:flatten( io_lib:format( "~*.ts", [ Width, String ] ) );
+
+	string:pad( String, Width, _Dir=leading, PadChar );
+
+pad_string_right( String, Width, PadChar ) ->
 
 	Len = length( String ),
 
 	trace_utils:error_fmt( "String '~ts' already too long (~B characters) "
-		"to be padded (right) to width ~B.", [ String, Len, Width ] ),
+		"to be padded (right) to width ~B (with '~ts').",
+		[ String, Len, Width, PadChar ] ),
 
 	throw( { string_to_pad_right_too_long, String, Len, Width } ).
 
@@ -4066,43 +4117,48 @@ pad_string_right( String, Width ) ->
 % right, in order that it is centered within specified width (expected of course
 % to be larger than the length of the specified string).
 %
--spec center_string( ustring(), width() ) -> ustring().
+% Ex: center_string("hello",8) = [" ","hello"," ",32]
+%
+-spec center_string( ustring(), width() ) -> any_string().
 center_string( String, Width ) ->
-	center_string( String, Width, _PaddingChar=$  ).
+	center_string( String, Width, _PaddingChar=$\s ).
 
 
 % @doc Returns the specified string once padded with specified character on its
 % left and right, in order that it is centered within specified width (expected
 % of course to be larger than the length of the specified string).
 %
--spec center_string( ustring(), width() , char() ) -> ustring().
+% Ex: center_string("hello",8, $*) = ["*","hello","*",42]
+%
+-spec center_string( ustring(), width(), grapheme_cluster() ) -> any_string().
 center_string( String, Width, PaddingChar ) ->
 
-	case Width - length( String ) of
+	%case Width - length( String ) of
 
-		Offset when Offset < 0 ->
-			throw( { string_to_center_too_long, String, -Offset } );
+	%	Offset when Offset < 0 ->
+	%		throw( { string_to_center_too_long, String, -Offset } );
 
-		Offset ->
-			BaseCount = Offset div 2,
-			{ LeftPadCount, RightPadCount } = case Offset rem 2 of
+	%	Offset ->
+	%		BaseCount = Offset div 2,
+	%		{ LeftPadCount, RightPadCount } = case Offset rem 2 of
 
-				0 ->
-					{ BaseCount, BaseCount };
+	%			0 ->
+	%				{ BaseCount, BaseCount };
 
-				1 ->
-					% When not able to center perfectly, we prefer here being
-					% the string to be a little on the left rather than a litlle
-					% on the right:
-					%
-					{ BaseCount, BaseCount+1 }
+	%			1 ->
+	%				% When not able to center perfectly, we prefer here being
+	%				% the string to be a little on the left rather than a litlle
+	%				% on the right:
+	%				%
+	%				{ BaseCount, BaseCount+1 }
 
-			end,
+	%		end,
 
-			lists:flatten( lists:duplicate( LeftPadCount, PaddingChar )
-				++ String ++ lists:duplicate( RightPadCount, PaddingChar ) )
+	%		lists:flatten( lists:duplicate( LeftPadCount, PaddingChar )
+	%			++ String ++ lists:duplicate( RightPadCount, PaddingChar ) )
 
-	end.
+	%end.
+	string:pad( String, Width, _Dir=both, PaddingChar ).
 
 
 
