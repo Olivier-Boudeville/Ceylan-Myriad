@@ -26,7 +26,6 @@
 % Creation date: Monday, February 15, 2010.
 
 
-
 % @doc Gathering of various facilities for <b>canvas management</b>, for the
 % basic ones that MyriadGUI introduced (as opposed to the OpenGL ones, see
 % gui_opengl).
@@ -293,10 +292,9 @@ resize( CanvasState=#canvas_state{ bitmap=Bitmap, back_buffer=BackBuffer },
 		trace_utils:debug_fmt( "Resizing canvas to ~w.", [ NewSize ] ) ),
 
 	% Regardless of call order and wheter either one or both of the next calls
-	% are enabled, if an error like
-	% {'_wxe_error_',710,{wxDC,setPen,2},{badarg,"This"}} is triggered, then
-	% probably some operation replaced these elements yet did not update their
-	% reference in the canvas/loop states.
+	% are enabled, if an error like {'_wxe_error_',710, {wxDC,setPen,2},
+	% {badarg,"This"}} is triggered, then probably some operation replaced these
+	% elements yet did not update their reference in the canvas/loop states.
 	%
 	wxMemoryDC:destroy( BackBuffer ),
 	wxBitmap:destroy( Bitmap ),
@@ -373,7 +371,7 @@ get_size( #canvas_state{ back_buffer=BackBuffer,
 % @doc Returns the client size of this canvas, as {IntegerWidth, IntegerHeight}.
 -spec get_client_size( canvas_state() ) -> dimensions().
 get_client_size( #canvas_state{ back_buffer=BackBuffer,
-						 size=Size } ) ->
+								size=Size } ) ->
 
 	% For a canvas, we expect the client size to be the size:
 
