@@ -46,9 +46,10 @@
 
 
 -export([ create_from_file/1, create_from_file/2,
-		  load/2, load/3, scale/3, scale/4 ]).
-		  % from_bitmap/1 ]).
-
+		  load/2, load/3, scale/3, scale/4,
+		  colorize/2,
+		  % from_bitmap/1,
+		  destruct/1 ]).
 
 
 -type image() :: wxImage:wxImage().
@@ -89,11 +90,17 @@
 
 -type any_file_path() :: file_utils:any_file_path().
 
--type integer_distance() :: linear:integer_distance().
-
 -type media_type() :: web_utils:media_type().
 
--type wx_enum() :: wx:wx_enum().
+-type integer_distance() :: linear:integer_distance().
+
+-type color_by_decimal() :: gui_color:color_by_decimal().
+
+-type rgba_color_buffer() :: gui_color:rgba_color_buffer().
+
+-type alpha_buffer() :: gui_color:alpha_buffer().
+
+-type wx_enum() :: gui_wx_backend:wx_enum().
 
 
 
@@ -122,7 +129,8 @@ create_from_file( AnyImagePath ) ->
 % expecting the image format of the file to be specified one.
 %
 -spec create_from_file( image_format(), any_file_path() ) -> image().
-% Currently format is ignored:
+% Currently format is ignored (unclear how to use format, perhaps to be
+% translted as a Mimetype):
 create_from_file( ImageFormat, AnyImagePath ) ->
 
 	ImagePath = text_utils:ensure_string( AnyImagePath ),
@@ -196,6 +204,17 @@ load( Image, ImageFormat, ImagePath ) ->
 
 
 
+% @doc Returns a colourized image, that is an image of the specified color,
+% modulated by the specified alpha coordinates.
+%
+-spec colorize( color_by_decimal(), alpha_buffer() ) -> rgba_color_buffer().
+colorize( AlphaBuffer, _Color={ R, G, B } ) ->
+	% Binary comprehension (and wxImage:setData/3 tells that alpha buffer size
+	% is width*height*3, hence dropping 2 out of 3 elements):
+	%
+	<< <<R:8,G:8,B:8,A:8>> || <<A:8,_:8,_:8>> <= AlphaBuffer >>.
+
+
 % @doc Converts a MyriadGUI image format into a wx one.
 -spec to_wx_image_format( image_format() ) -> media_type().
 to_wx_image_format( png ) ->
@@ -219,3 +238,14 @@ to_wx_image_quality( high ) ->
 
 to_wx_image_quality( Other ) ->
 	throw( { unknown_image_quality, Other } ).
+
+
+
+% @doc Declares that the specified instance can be destructed.
+%
+% Such it can be reference-counted, it may or may not result in an actual
+% deallocation.
+%
+-spec destruct( image() ) -> void().
+destruct( Image ) ->
+	wxImage:destroy( Image ).
