@@ -137,11 +137,13 @@ endif
 #  - events: how MyriadGUI manages interface-related events
 #  - canvas: how MyriadGUI manages canvases
 #  - instances: how MyriadGUI manages widget instances
+#  - memory: how MyriadGUI manages memory allocated and related lower-level
+#    operations
 #
 #  - linear: for operations on vectors, matrices, etc.
 #  - mesh: for the management of (3D) meshes
 #  - bounding_boxes: for computations of bounding boxes
-#  - opengl_support: for the support of OpenGL operations
+#  - opengl: outcome of OpenGL-related operations
 #  - gltf_support: for the support of the glTF 2.0 format
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
@@ -160,11 +162,12 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_boxes
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
@@ -175,7 +178,7 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
 
