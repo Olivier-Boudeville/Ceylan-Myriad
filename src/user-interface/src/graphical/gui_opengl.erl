@@ -69,9 +69,14 @@
 % Note that almost all OpenGL operations require that an OpenGL context already
 % exists, otherwise an no_gl_context error report is expected to be triggered.
 
+% Note: with OpenGL, angles are in degrees.
+
 
 % For the numerous GL defines notably:
 -include("gui_opengl.hrl").
+
+% For the mesh record:
+-include("mesh.hrl").
 
 
 -type enum() :: non_neg_integer().
@@ -145,12 +150,18 @@
 % An error code reported by OpenGL.
 
 
+-opaque glu_id() :: non_neg_integer().
+% An identifier (actually a pointer) returned by GLU (ex: when creating a
+% quadrics). A null value usually means that there was not enough memory to
+% allocate the object.
+
 
 -export_type([ enum/0, glxinfo_report/0, canvas/0, canvas_option/0,
 			   device_context_attribute/0, context/0,
 			   factor/0, length_factor/0,
 			   texture_id/0, texture/0, mipmap_level/0,
-			   gl_error/0 ]).
+			   gl_error/0,
+			   glu_id/0 ]).
 
 
 
@@ -164,6 +175,14 @@
 		  create_context/1, set_context/2, swap_buffers/1,
 
 		  load_texture_from_image/1,
+		  load_texture_from_file/1, load_texture_from_file/2,
+
+		  create_texture_from_text/4, create_texture_from_text/5,
+		  delete_texture/1, delete_textures/1,
+
+		  get_texture_dimensions/1, generate_texture_id/0,
+
+		  render_mesh/1,
 
 		  check_error/0, interpret_error/1 ]).
 
@@ -173,17 +192,36 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type any_file_path() :: file_utils:any_file_path().
+
 -type bit_size() :: system_utils:bit_size().
 
+-type any_vertex3() :: point3:any_vertex3().
+-type unit_normal3() :: vector3:unit_normal3().
+
+-type mesh() :: mesh:mesh().
+-type indexed_face() :: mesh:indexed_face().
+-type face_count() :: mesh:face_count().
+
+-type dimensions() :: gui:dimensions().
+-type width() :: gui:width().
+-type height() :: gui:height().
 -type window() :: gui:window().
+-type brush() :: gui:brush().
+
+
+-type color_by_decimal() :: gui_color:color_by_decimal().
+-type render_rgb_color() :: gui_color:render_rgb_color().
 
 -type color_buffer() :: gui_color:color_buffer().
-
 -type rgb_color_buffer() :: gui_color:rgb_color_buffer().
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().
 -type alpha_buffer() :: gui_color:alpha_buffer().
 
 -type image() :: gui_image:image().
+-type image_format() :: gui_image:image_format().
+
+-type font() :: gui_font:font().
 
 
 
@@ -195,7 +233,7 @@
 -spec get_vendor_name() -> ustring().
 get_vendor_name() ->
 	Res= gl:getString( ?GL_VENDOR ),
-	cond_utils:if_defined( myriad_check_opengl_support, check_error() ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
 
 
@@ -208,7 +246,7 @@ get_vendor_name() ->
 -spec get_renderer_name() -> ustring().
 get_renderer_name() ->
 	Res = gl:getString( ?GL_RENDERER ),
-	cond_utils:if_defined( myriad_check_opengl_support, check_error() ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
 
 
@@ -221,7 +259,7 @@ get_renderer_name() ->
 -spec get_version() -> ustring().
 get_version() ->
 	Res = gl:getString( ?GL_VERSION ),
-	cond_utils:if_defined( myriad_check_opengl_support, check_error() ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
 
 
@@ -233,7 +271,7 @@ get_version() ->
 -spec get_shading_language_version() -> ustring().
 get_shading_language_version() ->
 	Res = gl:getString( ?GL_SHADING_LANGUAGE_VERSION ),
-	cond_utils:if_defined( myriad_check_opengl_support, check_error() ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
 
 
@@ -361,7 +399,7 @@ create_canvas( Parent, Opts ) ->
 	Res = wxGLCanvas:new( Parent, WxOpts ),
 
 	% Commented-out, as an OpenGL context may not already exist:
-	%cond_utils:if_defined( myriad_check_opengl_support, check_error() ),
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	Res.
 
@@ -373,7 +411,7 @@ create_context( Canvas ) ->
 	Res = wxGLContext:new( Canvas ),
 
 	% Commented-out, as an OpenGL context may not already exist:
-	%cond_utils:if_defined( myriad_check_opengl_support, check_error() ),
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	Res.
 
@@ -396,7 +434,7 @@ set_context( Canvas, Context ) ->
 			throw( failed_to_set_opengl_context )
 
 	end,
-	cond_utils:if_defined( myriad_check_opengl_support, check_error() ).
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 
 
@@ -415,26 +453,28 @@ swap_buffers( Canvas ) ->
 			throw( failed_to_swap_buffers )
 
 	end,
-	cond_utils:if_defined( myriad_check_opengl_support, check_error() ).
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 
 
-% @doc Creates and loads a texture from specified image.
+% @doc Creates a texture from the specified image instance.
+%
+% The image instance is safe to be deallocated afterwards.
+%
 -spec load_texture_from_image( image() ) -> texture().
 load_texture_from_image( Image ) ->
 
 	ImgWidth = wxImage:getWidth( Image ),
-	Width = math_utils:get_next_power_of_two( ImgWidth ),
-
 	ImgHeight = wxImage:getHeight( Image ),
-	Height = math_utils:get_next_power_of_two( ImgHeight ),
+
+	{ Width, Height } = get_texture_dimensions( ImgWidth, ImgHeight ),
 
 	% Either RGB or RGBA:
 	ColorBuffer = get_color_buffer( Image ),
 
 	% Let's create the OpenGL texture:
 
-	[ TextureId ] = gl:genTextures( _Count=1 ),
+	TextureId = generate_texture_id(),
 
 	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
 
@@ -458,9 +498,202 @@ load_texture_from_image( Image ) ->
 		Width, Height, _Border=0, _InputBufferFormat=Format,
 		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
 
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
 			  min_x=0.0, min_y=0.0,
-			  max_x=ImgWidth / Width, max_y =ImgHeight / Height }.
+			  max_x=ImgWidth / Width, max_y=ImgHeight / Height }.
+
+
+
+% @doc Creates a texture from the specified image file.
+%
+% Prefer load_texture_from_file/2 if applicable.
+%
+-spec load_texture_from_file( any_file_path() ) -> texture().
+load_texture_from_file( ImagePath ) ->
+	Image = gui_image:create_from_file( ImagePath ),
+	Tex = load_texture_from_image( Image ),
+	gui_image:destruct( Image ),
+	Tex.
+
+
+% @doc Creates a texture from the specified image file of the specified type.
+-spec load_texture_from_file( image_format(), any_file_path() ) -> texture().
+load_texture_from_file( ImageFormat, ImagePath ) ->
+	Image = gui_image:create_from_file( ImageFormat, ImagePath ),
+	Tex = load_texture_from_image( Image ),
+	gui_image:destruct( Image ),
+	Tex.
+
+
+
+% @doc Creates a texture corresponding to the specified text, rendered with
+% specified font, brush and color.
+%
+-spec create_texture_from_text( ustring(), font(), brush(),
+								color_by_decimal() ) -> texture().
+create_texture_from_text( Text, Font, Brush, Color ) ->
+	create_texture_from_text( Text, Font, Brush, Color, _Flip=false ).
+
+
+% @doc Creates a texture corresponding to the specified text, rendered with
+% specified font, brush and color, flipping it vertically if requested.
+%
+-spec create_texture_from_text( ustring(), font(), brush(), color_by_decimal(),
+								boolean() ) -> texture().
+create_texture_from_text( Text, Font, Brush, Color, Flip ) ->
+	% Directly deriving from lib/wx/examples/demo/ex_gl.erl:
+
+	StrDims = { StrW, StrH } = gui_font:get_text_extent( Text, Font ),
+
+	{ W, H } = get_texture_dimensions( StrDims ),
+
+	Bmp = wxBitmap:new( W, H ),
+
+	cond_utils:if_defined( myriad_debug_gui_memory,
+						   true = wxBitmap:isOk( Bmp ) ),
+
+	DC = wxMemoryDC:new( Bmp ),
+
+	cond_utils:if_defined( myriad_debug_gui_memory, true = wxDC:isOk( DC ) ),
+
+	wxMemoryDC:setFont( DC, Font ),
+
+	wxMemoryDC:setBackground( DC, Brush ),
+
+	wxMemoryDC:clear( DC ),
+
+	wxMemoryDC:setTextForeground( DC, _WhiteRGB={ 255, 255, 255 } ),
+
+	wxMemoryDC:drawText( DC, Text, _Origin={ 0, 0 } ),
+
+	Img = wxBitmap:convertToImage( Bmp ),
+
+	BaseImg = case Flip of
+
+		true ->
+			FlippedImg = wxImage:mirror( Img, [ { horizontally, false } ] ),
+			wxImage:destroy( Img ),
+			FlippedImg;
+
+		false ->
+			Img
+
+	end,
+
+	AlphaValues = wxImage:getData( BaseImg ),
+	ColourizedData = gui_image:colorize( AlphaValues, Color ),
+
+	wxImage:destroy( BaseImg ),
+	wxBitmap:destroy( Bmp ),
+	wxMemoryDC:destroy( DC ),
+
+	TextureId = generate_texture_id(),
+
+	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
+
+	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
+
+	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
+	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
+
+	% Specifies this two-dimensional texture image:
+	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=?GL_RGBA,
+		W, H, _Border=0, _DataFormat=?GL_RGBA, _Type=?GL_UNSIGNED_BYTE,
+		ColourizedData ),
+
+	#texture{ id=TextureId, width=StrW, height=StrH, min_x=0.0, min_y=0.0,
+			  max_x=StrW / W, max_y=StrH / H }.
+
+
+% @doc Deletes the specified texture.
+-spec delete_texture( texture() ) -> void().
+delete_texture( #texture{ id=Id } ) ->
+	gl:deleteTextures( [ Id ] ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
+
+% @doc Deletes the specified textures.
+-spec delete_textures( [ texture() ] ) -> void().
+delete_textures( Textures ) ->
+	gl:deleteTextures( [ Id || #texture{ id=Id } <- Textures ] ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
+
+% @doc Returns texture dimensions that are suitable for a (2D) content of the
+% specified dimensions.
+%
+-spec get_texture_dimensions( dimensions() ) -> dimensions().
+get_texture_dimensions( _Dims={ W, H } ) ->
+	get_texture_dimensions( W, H ).
+
+
+% @doc Returns texture dimensions that are suitable for a (2D) content of the
+% specified dimensions.
+%
+-spec get_texture_dimensions( width(), height() ) -> dimensions().
+get_texture_dimensions( Width, Height ) ->
+	{ math_utils:get_next_power_of_two( Width ),
+	  math_utils:get_next_power_of_two( Height ) }.
+
+
+
+% @doc Returns a new, unique, texture identifier.
+-spec generate_texture_id() -> texture_id().
+generate_texture_id() ->
+	[ TextureId ] = gl:genTextures( _Count=1 ),
+	TextureId.
+
+
+
+% @doc Renders the specified mesh in a supposedly appropriate OpenGL context.
+-spec render_mesh( mesh() ) -> void().
+render_mesh( #mesh{ vertices=Vertices,
+					faces=IndexedFaces,
+					normal_type=per_face,
+					normals=Normals,
+					rendering_info={ color, per_vertex, Colors } } ) ->
+
+	% We could batch the commands sent to the GUI backend (ex: with wx:batch/1):
+	render_faces( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ).
+
+
+
+% @doc Renders the specified indexed faces.
+-spec render_faces( [ indexed_face() ], face_count(), [ any_vertex3() ],
+					[ unit_normal3() ], [ render_rgb_color() ] ) -> void().
+render_faces( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
+	ok;
+
+
+% We currently supposed we have quads:
+render_faces( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx, V4Idx } | T ], FaceCount,
+			  Vertices, Normals, Colors ) ->
+
+	gl:normal3fv( lists:nth( FaceCount, Normals ) ),
+
+	gl:color3fv( lists:nth( V1Idx, Colors ) ),
+	gl:texCoord2f( 0.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V2Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V3Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 1.0 ),
+	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V4Idx, Colors ) ),
+	gl:texCoord2f( 0.0, 1.0 ),
+	gl:vertex3fv( lists:nth( V4Idx, Vertices ) ),
+
+	render_faces( T, FaceCount+1, Vertices, Normals, Colors ).
 
 
 
