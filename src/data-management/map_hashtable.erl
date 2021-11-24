@@ -175,7 +175,7 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 
 
 
-% @doc Creates a new table from specified list of key/values pairs, expecting no
+% @doc Creates a table from specified list of key/values pairs, expecting no
 % duplicate in the keys, otherwise throwing an exception.
 %
 % Allows to safely load entries in a table without risking a silent overwrite of
@@ -750,7 +750,7 @@ map_on_values( Fun, MapHashtable ) ->
 
 	% Still not maps:map/2, whose fun takes an entry, not just a value:
 	NewEntries = [ { K, Fun( V ) }
-				   || { K, V } <- maps:to_list( MapHashtable ) ],
+					|| { K, V } <- maps:to_list( MapHashtable ) ],
 
 	maps:from_list( NewEntries ).
 
