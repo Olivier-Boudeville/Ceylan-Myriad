@@ -85,17 +85,15 @@
 	height :: gui:length(),
 
 
-	min_x :: gui_opengl:length_factor(),
 	% The minimum abscissa of this texture relatively to its color buffer.
+	min_x :: gui_opengl:length_factor(),
 
-	min_y :: gui_opengl:length_factor(),
 	% The minimum ordinate of this texture relatively to its color buffer.
+	min_y :: gui_opengl:length_factor(),
 
 
-	max_x :: gui_opengl:length_factor(),
 	% The maximum abscissa of this texture relatively to its color buffer.
+	max_x :: gui_opengl:length_factor(),
 
-	max_y :: gui_opengl:length_factor()
 	% The maximum ordinate of this texture relatively to its color buffer.
-
-} ).
+	max_y :: gui_opengl:length_factor() } ).
