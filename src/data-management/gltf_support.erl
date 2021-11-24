@@ -77,6 +77,17 @@
 % mesh() that could be mesh:mesh()).
 
 
+% Implementations taken as references:
+%
+% - Blender:
+% https://github.com/blender/blender-addons/tree/master/io_scene_gltf2;
+% typically in /usr/share/blender/x.y/scripts/addons/io_scene_gltf2
+%
+% - Wings3D:
+% https://github.com/dgud/wings/blob/master/plugins_src/import_export/wpc_gltf.erl
+%
+% - pygltflib: https://gitlab.com/dodgyville/pygltflib/-/tree/master/pygltflib
+
 
 -type object_name() :: ustring().
 % Any top-level glTF object MAY have a name string property.
