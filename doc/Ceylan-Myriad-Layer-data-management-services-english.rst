@@ -204,7 +204,7 @@ A basic support of `glTF <https://en.wikipedia.org/wiki/GlTF>`_ (*Graphics Langu
 
 The various elements associated to that model (scenes, nodes, meshes, primitives, materials, lights, cameras, buffers, buffer-views, accessors) can be handled from Erlang, in an already integrated way to Myriad's `spatial services and conventions`_.
 
-See the `glTF 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information.
+See the `glTF 2.0 Reference Guide <https://www.khronos.org/files/gltf20-reference-guide.pdf>`_ and the `glTF 2.0 Specification <https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html>`_ for more information. See also our `HOW-TO about 3D <http://howtos.esperide.org/ThreeDimensional.html>`_ for both more general and practical considerations.
 
 
 
