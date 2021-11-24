@@ -54,11 +54,11 @@
 -type color_by_name() :: atom().
 
 -type color_by_decimal() :: { Red :: byte(), Green :: byte(), Blue :: byte() }.
-% RGB (integer) color; no alpha coordinate here.
+% RGB (integer, in [0;255]) color; no alpha coordinate here.
 
 -type color_by_decimal_with_alpha() ::
 		{ Red :: byte(), Green :: byte(), Blue :: byte(), Alpha :: byte() }.
-% RGBA (integer) color.
+% RGBA (integer, in [0;255]) color.
 
 
 -type color() :: color_by_name() | color_by_decimal().
@@ -75,7 +75,7 @@
 
 -type render_rgb_color() :: { Red :: color_coordinate(),
 			Green :: color_coordinate(), Blue :: color_coordinate() }.
-% A floating-point RGB color.
+% A floating-point RGB color (whose coordinates are typically in [0.0, 1.0]).
 %
 % The three components shall be encoded with the sRGB transfer function.
 %
