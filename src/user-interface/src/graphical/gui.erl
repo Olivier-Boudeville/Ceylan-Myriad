@@ -243,6 +243,10 @@
 -export([ create_status_bar/1, push_status_text/2, push_status_text/3 ]).
 
 
+% Brushes:
+-export([ create_brush/1, destruct_brush/1 ]).
+
+
 % Canvas support (forwarded to gui_canvas).
 -export([ create_canvas/1, set_draw_color/2, set_fill_color/2,
 		  set_background_color/2, get_rgb/2, set_rgb/2,
@@ -255,6 +259,9 @@
 		  load_image/2, load_image/3,
 		  resize/2, blit/1, clear/1 ]).
 
+
+% Fonts:
+-export([ create_font/4, create_font/5 ]).
 
 
 % For related, public defines:
@@ -273,6 +280,13 @@
 
 -type length() :: linear:integer_distance().
 % A length, as a number of pixels.
+
+-type width() :: length().
+% A width, as a number of pixels.
+
+-type height() :: length().
+% An height, as a number of pixels.
+
 
 -type coordinate() :: linear:integer_coordinate().
 % For a GUI, coordinates are an integer number of pixels.
@@ -385,11 +399,24 @@
 
 -opaque bitmap() :: wxBitmap:wxBitmap().
 
+-opaque brush() :: wxBrush:wxBrush().
+
 -opaque back_buffer() :: wxMemoryDC:wxMemoryDC().
 
 
+-type font() :: gui_font:font().
 
-% Aliases:
+-type font_size() :: gui_font:font_size().
+
+-type point_size() :: gui_font:point_size().
+
+-type font_family() :: gui_font:font_family().
+
+-type font_style() :: gui_font:font_style().
+
+-type font_weight() :: gui_font:font_weight().
+
+-type font_option() :: gui_font:font_option().
 
 -type title() :: text().
 -type label() :: text().
@@ -529,14 +556,19 @@
 
 
 
--export_type([ length/0, coordinate/0, point/0, position/0, size/0,
+-export_type([ length/0, width/0, height/0,
+			   coordinate/0, point/0, position/0, size/0,
 			   orientation/0, object_type/0, wx_object_type/0,
 			   myriad_object_type/0, myriad_instance_id/0,
 			   title/0, label/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
 			   window/0, frame/0, panel/0, button/0,
 			   sizer/0, sizer_child/0, sizer_item/0, status_bar/0,
-			   bitmap/0, back_buffer/0, canvas/0,
+
+			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
+			   font_weight/0,
+
+			   bitmap/0, brush/0, back_buffer/0, canvas/0,
 			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
 			   window_style/0, frame_style/0, button_style/0,
@@ -574,12 +606,10 @@
 
 -type file_path() :: file_utils:file_path().
 
--type integer_distance() :: linear:integer_distance().
-
 -type line2() :: linear_2D:line2().
 
-
 -type color() :: gui_color:color().
+-type color_by_decimal() :: gui_color:color_by_decimal().
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
 
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
@@ -792,13 +822,13 @@ set_tooltip( Window, Label ) ->
 % are not, however, as they do not appear on screen themselves.
 
 
-% @doc Creates a new window.
+% @doc Creates a window.
 -spec create_window() -> window().
 create_window() ->
 	wxWindow:new().
 
 
-% @doc Creates a new window of specified identifier.
+% @doc Creates a window of specified identifier.
 %
 % @hidden (internal use only)
 %
@@ -811,7 +841,7 @@ create_window( Id, Parent ) ->
 	wxWindow:new( ActualParent, ActualId ).
 
 
-% @doc Creates a new window of specified size.
+% @doc Creates a window of specified size.
 -spec create_window( size() ) -> window().
 create_window( Size ) ->
 
@@ -823,7 +853,7 @@ create_window( Size ) ->
 	wxWindow:new( ActualParent, ActualId, Options ).
 
 
-% @doc Creates a new window of specified settings.
+% @doc Creates a window of specified settings.
 %
 % @hidden (internal use only)
 %
@@ -988,7 +1018,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location ) ->
 % @doc Draws an upright cross at specified location (2D point), with specified
 % edge length.
 %
--spec draw_cross( canvas(), point(), integer_distance() ) -> void().
+-spec draw_cross( canvas(), point(), length() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 			EdgeLength ) ->
 	get_main_loop_pid() ! { drawCanvasCross,
@@ -999,7 +1029,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % @doc Draws an upright cross at specified location (2D point), with specified
 % edge length and color.
 %
--spec draw_cross( canvas(), point(), integer_distance(), color() ) -> void().
+-spec draw_cross( canvas(), point(), length(), color() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 			EdgeLength, Color ) ->
 	get_main_loop_pid() ! { drawCanvasCross,
@@ -1010,8 +1040,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % @doc Draws an upright cross at specified location (2D point), with specified
 % edge length and companion label.
 %
--spec draw_labelled_cross( canvas(), point(), integer_distance(), label()  ) ->
-											 void().
+-spec draw_labelled_cross( canvas(), point(), length(), label()  ) -> void().
 draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 					 EdgeLength, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
@@ -1022,8 +1051,8 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % @doc Draws an upright cross at specified location (2D point), with specified
 % edge length and companion label, and with specified color.
 %
--spec draw_labelled_cross( canvas(), point(), integer_distance(), color(),
-						   label() ) -> void().
+-spec draw_labelled_cross( canvas(), point(), length(), color(), label() ) ->
+									 void().
 draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 					 EdgeLength, Color, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
@@ -1034,7 +1063,7 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % @doc Renders specified circle (actually, depending on the fill color, it may
 % be a disc) in specified canvas.
 %
--spec draw_circle( canvas(), point(), integer_distance() ) -> void().
+-spec draw_circle( canvas(), point(), length() ) -> void().
 draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
 			 Radius ) ->
 	%trace_utils:debug_fmt( "Drawing circle centered at ~p.", [ Center ] ),
@@ -1045,12 +1074,12 @@ draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
 % @doc Renders specified circle (actually, depending on the fill color, it may
 % be a disc) in specified canvas.
 %
--spec draw_circle( canvas(), point(), integer_distance(), color() ) -> void().
+-spec draw_circle( canvas(), point(), length(), color() ) -> void().
 draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center, Radius,
 			 Color ) ->
 
 	%trace_utils:debug_fmt( "Drawing circle centered at ~p, of colour ~p.",
-	%						[ Center, Color ] ),
+	%                       [ Center, Color ] ),
 
 	get_main_loop_pid() !
 		{ drawCanvasCircle, [ CanvasId, Center, Radius, Color ] }.
@@ -1232,7 +1261,7 @@ destruct_window( Window ) ->
 % Source: http://docs.wxwidgets.org/stable/classwx_frame.html
 
 
-% @doc Creates a new frame, with default title, ID, parent, position, size and
+% @doc Creates a frame, with default title, ID, parent, position, size and
 % style.
 %
 % Note: this version apparently does not correctly initialise the frame;
@@ -1245,14 +1274,14 @@ create_frame() ->
 	wxFrame:new().
 
 
-% @doc Creates a new frame, with default position, size, style, ID and parent.
+% @doc Creates a frame, with default position, size, style, ID and parent.
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
 	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title ).
 
 
 
-% @doc Creates a new frame, with specified size, and default ID and parent.
+% @doc Creates a frame, with specified size, and default ID and parent.
 -spec create_frame( title(), size() ) -> frame().
 create_frame( Title, Size ) ->
 
@@ -1265,7 +1294,7 @@ create_frame( Title, Size ) ->
 
 
 
-% @doc Creates a new frame, with default position, size and style.
+% @doc Creates a frame, with default position, size and style.
 %
 % (internal use only)
 %
@@ -1274,7 +1303,7 @@ create_frame( Title, Id, Parent ) ->
 	wxFrame:new( to_wx_parent( Parent ), to_wx_id( Id ), Title ).
 
 
-% @doc Creates a new frame, with default parent.
+% @doc Creates a frame, with default parent.
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
 
@@ -1288,7 +1317,7 @@ create_frame( Title, Position, Size, Style ) ->
 
 
 
-% @doc Creates a new frame.
+% @doc Creates a frame.
 %
 % (internal use only)
 %
@@ -1311,21 +1340,21 @@ create_frame( Title, Position, Size, Style, Id, Parent ) ->
 % Panel section.
 
 
-% @doc Creates a new panel.
+% @doc Creates a panel.
 -spec create_panel() -> panel().
 create_panel() ->
 	wxPanel:new().
 
 
 
-% @doc Creates a new panel, associated to specified parent.
+% @doc Creates a panel, associated to specified parent.
 -spec create_panel( window() ) -> panel().
 create_panel( Parent ) ->
 	wxPanel:new( Parent ).
 
 
 
-% @doc Creates a new panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to specified parent and with specified
 % options.
 %
 -spec create_panel( window(), panel_options() ) -> panel().
@@ -1337,7 +1366,7 @@ create_panel( Parent, Options ) ->
 
 
 
-% @doc Creates a new panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to specified parent and with specified
 % position and dimensions.
 %
 -spec create_panel( window(), coordinate(), coordinate(), length(),
@@ -1347,7 +1376,7 @@ create_panel( Parent, X, Y, Width, Height ) ->
 
 
 
-% @doc Creates a new panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to specified parent and with specified
 % position and dimensions.
 %
 -spec create_panel( window(), position(), size() ) -> panel().
@@ -1356,7 +1385,7 @@ create_panel( Parent, Position, Size ) ->
 								 { size, to_wx_size( Size ) } ] ).
 
 
-% @doc Creates a new panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to specified parent and with specified
 % position and dimensions.
 %
 -spec create_panel( window(), position(), size(), panel_options() ) -> panel().
@@ -1373,10 +1402,10 @@ create_panel( Parent, Position, Size, Options ) ->
 
 
 
-% @doc Creates a new panel, associated to specified parent, with specified
+% @doc Creates a panel, associated to specified parent, with specified
 % position, dimensions and options.
 %
--spec create_panel( window(), coordinate(), coordinate(), length(), length(),
+-spec create_panel( window(), coordinate(), coordinate(), width(), height(),
 					panel_options() ) -> panel().
 create_panel( Parent, X, Y, Width, Height, Options ) ->
 
@@ -1391,7 +1420,7 @@ create_panel( Parent, X, Y, Width, Height, Options ) ->
 
 
 
-% @doc Creates a new (labelled) button, with parent specified.
+% @doc Creates a (labelled) button, with parent specified.
 -spec create_button( label(), window() ) -> button().
 create_button( Label, Parent ) ->
 
@@ -1406,9 +1435,7 @@ create_button( Label, Parent ) ->
 
 
 
-% @doc Creates new (labelled) buttons, with their (single, common) parent
-% specified.
-%
+% @doc Creates (labelled) buttons, with their (single, common) parent specified.
 -spec create_buttons( [ label() ], window() ) -> [ button() ].
 create_buttons( Labels, Parent ) ->
 	create_buttons_helper( Labels, Parent, _Acc=[] ).
@@ -1425,7 +1452,7 @@ create_buttons_helper( [ Label | T ], Parent, Acc ) ->
 
 
 
-% @doc Creates a new button, with parent and most settings specified.
+% @doc Creates a button, with parent and most settings specified.
 %
 % (internal use only)
 %
@@ -1588,10 +1615,48 @@ push_status_text( Text, StatusBar ) ->
 
 % @doc Pushes the specified text in the specified status bar.
 -spec push_status_text( format_string(), format_values(), status_bar() ) ->
-									 void().
+										    void().
 push_status_text( FormatString, FormatValues, StatusBar ) ->
 	Text = text_utils:format( FormatString, FormatValues ),
 	push_status_text( Text, StatusBar ).
+
+
+
+% Brush section.
+
+
+% @doc Returns a brush of the specified color.
+-spec create_brush( color_by_decimal() ) -> brush().
+create_brush( RGBColor ) ->
+	wxBrush:new( RGBColor ).
+
+
+% @doc Tells that the specified (reference-counted) brush may be deleted.
+-spec destruct_brush( brush() ) -> void().
+destruct_brush( Brush ) ->
+	wxBrush:destroy( Brush ).
+
+
+
+% Font section.
+
+
+% @doc Creates a corresponding font object, to determine the appearance of
+% rendered text.
+%
+-spec create_font( font_size() | point_size(), font_family(), font_style(),
+				   font_weight() ) -> font().
+create_font( FontSize, FontFamily, FontStyle, FontWeight ) ->
+	gui_font:create( FontSize, FontFamily, FontStyle, FontWeight ).
+
+
+% @doc Creates a corresponding font object, to determine the appearance of
+% rendered text.
+%
+-spec create_font( font_size() | point_size(), font_family(), font_style(),
+				   font_weight(), [ font_option() ] ) -> font().
+create_font( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ) ->
+	gui_font:create( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ).
 
 
 
