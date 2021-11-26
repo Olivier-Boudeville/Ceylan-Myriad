@@ -34,7 +34,6 @@
 -module(gltf_support).
 
 
-
 % Design notes:
 %
 % Only the glTF 2.0 format is supported, the JSON/ASCII version (*.gltf) - not
@@ -49,6 +48,8 @@
 % Materials are defined based on the Physically-Based Rendering (PBR)
 % methodology.
 
+% Orientation section:
+%
 % In terms of orientation, conventions may differ; Myriad considers that the
 % "up" direction is the +Z axis direction, whereas glTF defines +Y as "up"; as a
 % consequence (Myriad, Z-up) coordinates (ex: point3:point3()) will be
@@ -905,7 +906,12 @@ get_metallic_material() ->
 -spec get_basic_light() -> gltf_light().
 get_basic_light() ->
 
-	% In glTF, a light is nothing but a node:
+	% In glTF, lights are not first-class citizens, as they shall be described
+	% as meshes having at least one light-emitting material.
+	%
+	% So here we only return a (named, currently empty) node, a corresponding
+	% light-emitting mesh could/should be added for this light to become
+	% functional:
 
 	LightRotQuaternion = [ 0.16907575726509094,
 						   0.7558803558349609,
@@ -917,8 +923,8 @@ get_basic_light() ->
 					  -1.0054539442062378 ],
 
 	#gltf_node{ name="Basic Myriad light",
-					  rotation=LightRotQuaternion,
-					  translation=LightPosition }.
+				rotation=LightRotQuaternion,
+				translation=LightPosition }.
 
 
 
@@ -958,7 +964,8 @@ get_basic_perspective_camera_type() ->
 							  aspect_ratio=1.5,
 							  % About 37.8°:
 							  y_field_of_view=0.660593,
-							  z_near_distance=0.0,
+							  % Ought not be out of range: z_near_distance=0.0,
+							  z_near_distance=0.1,
 							  % Preferring here infinite perspective:
 							  z_far_distance=undefined }.
 
@@ -1956,8 +1963,8 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 	InitialBufferOffset = 0,
 
 	{ MaybePosAccessorIndex, PosBuffer, PosBufferOffset, PosContent } =
-		integrate_vertices( Vertices, MaybeName, PrimBufferIndex, InitialBuffer,
-							InitialBufferOffset, Content ),
+		integrate_vertices( Vertices, MaybeName, PrimBufferIndex,
+							InitialBuffer, InitialBufferOffset, Content ),
 
 	{ MaybeNormAccessorIndex, NormBuffer, NormBufferOffset, NormContent } =
 		integrate_normals( Normals, MaybeName, PrimBufferIndex, PosBuffer,
@@ -2014,6 +2021,9 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 % @doc Integrates the specified vertices (if any) in the specified buffer and
 % content, which are returned.
 %
+% These vertices are expected to be already transformed to Y-UP conventions (see
+% the 'Orientation section' at the top of this file).
+%
 -spec integrate_vertices( [ specialised_vertex() ], maybe( object_name() ),
 				buffer_index(), raw_buffer(), byte_offset(), gltf_content() ) ->
 		{ maybe( accessor_index() ), raw_buffer(), byte_offset(),
@@ -2036,12 +2046,17 @@ integrate_vertices( Vertices, MaybeName, PrimBufferIndex, Buffer,
 	PosAccessorIndex = length( Accessors ),
 	PosBufferViewIndex = length( BufferViews ),
 
-	{ MinVec, MaxVec } = compute_gltf_extremas( Vertices ),
+	% Transforms these vertices to Y-UP conventions (refer to the 'Orientation
+	% section' at the top of this file to understand these transformations):
+	%
+	YupVertices = point3:point3_to_yups( Vertices ),
+
+	{ MinVec, MaxVec } = compute_gltf_extremas( YupVertices ),
 
 	PosElementType = point3,
 	PosComponentType = float32,
 
-	PosCount = length( Vertices ),
+	PosCount = length( YupVertices ),
 
 	MaybePosName = forge_maybe_name( "Position accessor", MaybeName ),
 
@@ -2065,7 +2080,7 @@ integrate_vertices( Vertices, MaybeName, PrimBufferIndex, Buffer,
 
 	NewBufferViews = list_utils:append_at_end( PosBufferView, BufferViews ),
 
-	NewBuffer = append_to_buffer( PosElementType, PosComponentType, Vertices,
+	NewBuffer = append_to_buffer( PosElementType, PosComponentType, YupVertices,
 								  Buffer ),
 
 	NewContent = Content#gltf_content{ accessors=NewAccessors,
@@ -2099,10 +2114,15 @@ integrate_normals( Normals, MaybeName, PrimBufferIndex, Buffer,
 	NormAccessorIndex = length( Accessors ),
 	NormBufferViewIndex = length( BufferViews ),
 
+	% Transforms these vertices to Y-UP conventions (refer to the 'Orientation
+	% section' at the top of this file to understand these transformations):
+	%
+	YupNormals = vector3:vector3_to_yups( Normals ),
+
 	NormElementType = vector3,
 	NormComponentType = float32,
 
-	NormCount = length( Normals ),
+	NormCount = length( YupNormals ),
 
 	MaybeNormName = forge_maybe_name( "Normal accessor", MaybeName ),
 
@@ -2124,8 +2144,8 @@ integrate_normals( Normals, MaybeName, PrimBufferIndex, Buffer,
 
 	NewBufferViews = list_utils:append_at_end( NormBufferView, BufferViews ),
 
-	NewBuffer = append_to_buffer( NormElementType, NormComponentType, Normals,
-								  Buffer ),
+	NewBuffer = append_to_buffer( NormElementType, NormComponentType,
+								  YupNormals, Buffer ),
 
 	NewContent = Content#gltf_content{ accessors=NewAccessors,
 									   buffer_views=NewBufferViews },
@@ -2451,9 +2471,12 @@ append_to_buffer( _ElementType=scalar, _ComponentType=uint16, Elements,
 
 append_to_buffer( _ElementType=vector3, _ComponentType=float32, Elements,
 				  Bin ) ->
-	YUPVecs = vector3:vector3_to_yups( Elements ),
-	ComponentFloats = list_utils:flatten_once( YUPVecs ),
-	%trace_utils:debug_fmt( "Appending following floats for now YUP vector3:"
+
+	% Commented out, as all vectors expected to be already Y-UP'ed:
+	% YUPVecs = vector3:vector3_to_yups( Elements ),
+
+	ComponentFloats = list_utils:flatten_once( Elements ),
+	%trace_utils:debug_fmt( "Appending following floats for YUP vector3:"
 	%                       "~n~p", [ ComponentFloats ] ),
 	append_all_float32_little( ComponentFloats, Bin );
 
@@ -2473,9 +2496,11 @@ append_to_buffer( _ElementType=point4, _ComponentType=float32, Elements,
 
 append_to_buffer( _ElementType=point3, _ComponentType=float32, Elements,
 				  Bin ) ->
-	YUPPoints = point3:point3_to_yups( Elements ),
-	ComponentFloats = get_coordinates_from_point3( YUPPoints ),
-	%trace_utils:debug_fmt( "Appending following floats for now YUP point3:"
+	% Commented out, as all points expected to be already Y-UP'ed:
+	%YUPPoints = point3:point3_to_yups( Elements ),
+
+	ComponentFloats = get_coordinates_from_point3( Elements ),
+	%trace_utils:debug_fmt( "Appending following floats for YUP point3:"
 	%                       "~n~p", [ ComponentFloats ] ),
 	append_all_float32_little( ComponentFloats, Bin );
 
