@@ -27,7 +27,7 @@
 
 
 % @doc Gathering of services for <b>web-related</b> uses, notably for <b>HTML
-% generation</b> or <b>HTTP management</b>.
+% generation</b> or <b>HTTP/HTTPS management</b>.
 %
 % See web_utils_test.erl for the corresponding test.
 %
@@ -89,8 +89,8 @@
 -type content_type() :: ustring().
 
 
--type old_style_options() :: [ { ustring(), ustring() } ].
-% [{field() :: ustring(), value() :: ustring()}].
+-type old_style_options() :: [ { Field :: ustring(), Value :: ustring() } ].
+
 
 -type new_style_options() :: maps:maps( bin_string(), bin_string() ).
 
@@ -1216,17 +1216,17 @@ get_ssl_verify_options() ->
 % @doc Returns SSL options regarding the verification of remote peers for HTTPS
 % connections:
 %
-% - if the switch is 'disable', this peer will not be verified (exposing the
-% program to a man-in-the-middle attack)
+% - if the switch is specified to 'disable', this peer will not be verified
+% (exposing the program to a man-in-the-middle attack)
 %
-% - if the switch is 'enabled', the system DER-encoded certificates are used
-% (see https://erlang.org/doc/man/ssl.html#type-cert) and trusted in order to
-% check that peer, so that not only the TLS protection against "casual"
-% eavesdroppers applies, but also, here, the one against Man-in-the-Middle (so
-% we check that we indeed interact with the expected server)
+% - if the switch is specified to 'enable', the system DER-encoded certificates
+% are used (see https://erlang.org/doc/man/ssl.html#type-cert) and trusted in
+% order to check peers, so that not only the TLS protection against "casual"
+% eavesdroppers applies, but also, here, the one against any Man-in-the-Middle
+% (so we check that we indeed interact safely with the *expected* server)
 %
 -spec get_ssl_verify_options( activation_switch() ) -> ssl_options().
-get_ssl_verify_options( enable ) ->
+get_ssl_verify_options( _Switch=enable ) ->
 
   MatchFun = public_key:pkix_verify_hostname_match_fun( https ),
 
@@ -1243,7 +1243,7 @@ get_ssl_verify_options( enable ) ->
 	{ customize_hostname_check, [ { match_fun, MatchFun } ] } ];
 
 
-get_ssl_verify_options( disable ) ->
+get_ssl_verify_options( _Switch=disable ) ->
 
 	% Was expected to suppress (compared to the same call done without that
 	% option specified) the following warning: 'Authenticity is not established
