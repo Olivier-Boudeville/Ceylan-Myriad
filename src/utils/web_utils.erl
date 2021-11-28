@@ -1104,8 +1104,8 @@ to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
 % directory (under its name in URL), with no specific HTTP options, and returns
 % the corresponding full path of that file.
 %
-% Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
-%            _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
+% Ex: web_utils:download_file(_Url="https://foobar.org/baz.txt",
+%   _TargetDir="/tmp") shall result in a "/tmp/baz.txt" file.
 %
 % Starts, if needed, the HTTP and SSL supports as a side effect.
 %
@@ -1124,13 +1124,13 @@ download_file( Url, TargetDir ) ->
 % any Man-in-the-Middle attack about any target HTTPS server (in addition to TLS
 % protection against "casual" eavesdroppers).
 %
-% Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
-%   _TargetDir="/tmp", HttpOptions ) shall result in a "/tmp/baz.txt" file.
+% Ex: web_utils:download_file(_Url="https://foobar.org/baz.txt",
+%   _TargetDir="/tmp", HttpOptions  shall result in a "/tmp/baz.txt" file.
 %
 % Starts, if needed, the HTTP and SSL supports as a side effect.
 %
 -spec download_file( url(), any_directory_path(), http_options() ) ->
-							file_path().
+													file_path().
 download_file( Url, TargetDir, HttpOptions ) ->
 
 	% Using only built-in modules:
@@ -1245,11 +1245,8 @@ get_ssl_verify_options( _Switch=enable ) ->
 
 get_ssl_verify_options( _Switch=disable ) ->
 
-	% Was expected to suppress (compared to the same call done without that
-	% option specified) the following warning: 'Authenticity is not established
-	% by certificate path validation' (however, for unspecified reasons, it is
-	% still output).
-
 	% Apparently httpc expects list_options(), not map_options():
+
 	%#{ verify => verify_none }.
+
 	[ { verify, verify_none } ].
