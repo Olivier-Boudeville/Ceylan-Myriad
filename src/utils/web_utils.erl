@@ -27,7 +27,7 @@
 
 
 % @doc Gathering of services for <b>web-related</b> uses, notably for <b>HTML
-% generation</b> or <b>HTTP management</b>.
+% generation</b> or <b>HTTP/HTTPS management</b>.
 %
 % See web_utils_test.erl for the corresponding test.
 %
@@ -89,8 +89,8 @@
 -type content_type() :: ustring().
 
 
--type old_style_options() :: [ { ustring(), ustring() } ].
-% [{field() :: ustring(), value() :: ustring()}].
+-type old_style_options() :: [ { Field :: ustring(), Value :: ustring() } ].
+
 
 -type new_style_options() :: maps:maps( bin_string(), bin_string() ).
 
@@ -1104,8 +1104,8 @@ to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
 % directory (under its name in URL), with no specific HTTP options, and returns
 % the corresponding full path of that file.
 %
-% Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
-%            _TargetDir="/tmp" ) shall result in a "/tmp/baz.txt" file.
+% Ex: web_utils:download_file(_Url="https://foobar.org/baz.txt",
+%   _TargetDir="/tmp") shall result in a "/tmp/baz.txt" file.
 %
 % Starts, if needed, the HTTP and SSL supports as a side effect.
 %
@@ -1124,13 +1124,13 @@ download_file( Url, TargetDir ) ->
 % any Man-in-the-Middle attack about any target HTTPS server (in addition to TLS
 % protection against "casual" eavesdroppers).
 %
-% Ex: web_utils:download_file( _Url="https://foobar.org/baz.txt",
-%   _TargetDir="/tmp", HttpOptions ) shall result in a "/tmp/baz.txt" file.
+% Ex: web_utils:download_file(_Url="https://foobar.org/baz.txt",
+%   _TargetDir="/tmp", HttpOptions  shall result in a "/tmp/baz.txt" file.
 %
 % Starts, if needed, the HTTP and SSL supports as a side effect.
 %
 -spec download_file( url(), any_directory_path(), http_options() ) ->
-							file_path().
+													file_path().
 download_file( Url, TargetDir, HttpOptions ) ->
 
 	% Using only built-in modules:
@@ -1216,17 +1216,17 @@ get_ssl_verify_options() ->
 % @doc Returns SSL options regarding the verification of remote peers for HTTPS
 % connections:
 %
-% - if the switch is 'disable', this peer will not be verified (exposing the
-% program to a man-in-the-middle attack)
+% - if the switch is specified to 'disable', this peer will not be verified
+% (exposing the program to a man-in-the-middle attack)
 %
-% - if the switch is 'enabled', the system DER-encoded certificates are used
-% (see https://erlang.org/doc/man/ssl.html#type-cert) and trusted in order to
-% check that peer, so that not only the TLS protection against "casual"
-% eavesdroppers applies, but also, here, the one against Man-in-the-Middle (so
-% we check that we indeed interact with the expected server)
+% - if the switch is specified to 'enable', the system DER-encoded certificates
+% are used (see https://erlang.org/doc/man/ssl.html#type-cert) and trusted in
+% order to check peers, so that not only the TLS protection against "casual"
+% eavesdroppers applies, but also, here, the one against any Man-in-the-Middle
+% (so we check that we indeed interact safely with the *expected* server)
 %
 -spec get_ssl_verify_options( activation_switch() ) -> ssl_options().
-get_ssl_verify_options( enable ) ->
+get_ssl_verify_options( _Switch=enable ) ->
 
   MatchFun = public_key:pkix_verify_hostname_match_fun( https ),
 
@@ -1243,13 +1243,10 @@ get_ssl_verify_options( enable ) ->
 	{ customize_hostname_check, [ { match_fun, MatchFun } ] } ];
 
 
-get_ssl_verify_options( disable ) ->
-
-	% Was expected to suppress (compared to the same call done without that
-	% option specified) the following warning: 'Authenticity is not established
-	% by certificate path validation' (however, for unspecified reasons, it is
-	% still output).
+get_ssl_verify_options( _Switch=disable ) ->
 
 	% Apparently httpc expects list_options(), not map_options():
+
 	%#{ verify => verify_none }.
+
 	[ { verify, verify_none } ].

@@ -338,12 +338,14 @@ References:
 For Basic, Old-School Ciphering
 ...............................
 
-The spirit here is to go another route than modern public-key cryptography: the classic, basic, chained, symmetric cryptography techniques used here apply to contexts where a preliminary, safe exchange can happen between peers (ex: based on a real life communication).
+The spirit here is to go another route than modern public-key cryptography: the classic, basic, chained, symmetric cryptography techniques used in this section apply to contexts where a preliminary, safe exchange *can* happen between peers (ex: based on a real-life communication).
 
-Then any number of passes of low-key algorithms (including one based on a Mealy machine) are applied to the data that is to cypher or decypher.
+Then any number of passes of low-key, unfashioned algorithms (including one based on a Mealy machine) are applied to the data that is to cypher or decypher.
 
-We believe that, should the key (the combination of parameterised transformations) remain uncompromised, the encrypted data is at least safer than if cyphered with the current, modern algorithms (which may be, intentionally or not, flawed, or may be threatened by potential progresses for example in terms of quantum computing).
+We believe that, should the corresponding shared "key" (the combination of parameterised transformations to apply on the data) remain uncompromised, the encrypted data is at least as safe as if cyphered with the current, modern algorithms (which may be, intentionally or not, flawed, or may be specifically threatened by potential progresses for example in terms of quantum computing).
 
-So this is surely an instance of "security by obscurity", a strategy (which may be used in conjunction with the "security by design" and "open security" ones) discouraged by standards bodies, yet in our opinion likely - for data of lesser importance- to resist well (as we do not expect then attackers to specifically target our very own set of measures).
+So this is surely an instance of "security by obscurity", a pragmatic strategy (which may be used in conjunction with the "security by design" and "open security" ones) discouraged by standards bodies, yet in our opinion likely - for data of lesser importance - to resist well (as we do not expect then attackers to specifically target our very own set of measures, since the specific efforts incurred would not be outweighed by the expected gains).
 
-Refer to ``cipher_utils`` and its associated test for more details.
+We thus see such old-school ciphering as a complementary measure to the standard, ubiquitous measures whose effectiveness is difficult to assess for individuals and thus require some level of trust.
+
+Refer to ``cipher_utils`` and its associated test for more details, and also to our `mini-HOWTO regarding cybersecurity <http://howtos.esperide.org/Cybersecurity.html>`_.
