@@ -421,8 +421,8 @@ while [ $# -gt 0 ] && [ $do_stop -eq 1 ]; do
 		shift
 
 		# No difference:
-		verbatim_opt="${verbatim_opt} $*"
-		#verbatim_opt="${verbatim_opt} $@"
+		#verbatim_opt="${verbatim_opt} $*"
+		verbatim_opt="${verbatim_opt} $@"
 
 		#echo "verbatim_opt = ${verbatim_opt}"
 
@@ -442,6 +442,10 @@ it 'as is' to command-line." 1>&2
 
 done
 
+
+#echo "Unfiltered verbatim_opt = '${verbatim_opt}'"
+
+
 # The user might have specified one (or more) '-start-verbatim-options', and
 # this option is also added for internal purpose, so we remove any duplicate of
 # it to keep only the actual verbatim options:
@@ -456,7 +460,7 @@ done
 
 verbatim_opt="${filtered_verbatim_opt}"
 
-#echo "Verbatim options: '${verbatim_opt}'."
+#echo "Filtered verbatim options: '${verbatim_opt}'."
 
 
 
@@ -868,7 +872,7 @@ else
 	# (it was then looking up a '/c/Program' executable). Now this is fixed by
 	# having a separate ${erl} command:
 
-	#echo "direct command: ${final_command}"
+	#echo "direct command: ${command}"
 
 	if [ $be_verbose -eq 0 ]; then
 
@@ -876,7 +880,8 @@ else
 
 	fi
 
-	#${final_command}
+	#${command}
+	#echo "${erl}" ${to_eval} ${command}
 	"${erl}" ${to_eval} ${command}
 
 fi
