@@ -26,7 +26,6 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-
 % @doc Service dedicated to the <b>management of user-defined preferences</b>.
 %
 % A preferences element is designated by a key (an atom), associated to a value
@@ -152,9 +151,9 @@ start_link() ->
 % Returns in any case the PID of the corresponding preferences server.
 %
 -spec start( file_path() ) -> preferences_pid().
-start( FileName ) ->
+start( FilePath ) ->
 
-	RegistrationName = get_registration_name( FileName ),
+	RegistrationName = get_registration_name( FilePath ),
 
 	case naming_utils:is_registered( RegistrationName, global ) of
 
@@ -169,8 +168,8 @@ start( FileName ) ->
 			% crash of this server:
 			%
 			?myriad_spawn(
-			   fun() ->
-					server_main_run( CallerPid, RegistrationName, FileName )
+				fun() ->
+					server_main_run( CallerPid, RegistrationName, FilePath )
 				end ),
 
 			receive
@@ -193,9 +192,9 @@ start( FileName ) ->
 % Returns in any case the PID of the corresponding preferences server.
 %
 -spec start_link( file_path() ) -> preferences_pid().
-start_link( FileName ) ->
+start_link( FilePath ) ->
 
-	RegistrationName = get_registration_name( FileName ),
+	RegistrationName = get_registration_name( FilePath ),
 
 	case naming_utils:is_registered( RegistrationName, global ) of
 
@@ -210,7 +209,7 @@ start_link( FileName ) ->
 			% crash of this server:
 			%
 			?myriad_spawn_link( fun() ->
-				server_main_run( CallerPid, RegistrationName, FileName )
+				server_main_run( CallerPid, RegistrationName, FilePath )
 								end ),
 
 			receive
@@ -233,7 +232,7 @@ start_link( FileName ) ->
 %
 % Examples:
 %  "Hello!" = preferences:get(hello)
-%  [ "Hello!", 42, undefined ] = preferences:get([hello, my_number, some_maybe])
+%  ["Hello!", 42, undefined] = preferences:get([hello, my_number, some_maybe])
 %
 -spec get( maybe_list( key() ) ) -> maybe_list( maybe( value() ) ).
 get( KeyMaybes ) ->
@@ -243,21 +242,24 @@ get( KeyMaybes ) ->
 
 % @doc Returns the value associated to each of the specified key(s) in the
 % preferences (if any), otherwise 'undefined', based on the specified
-% preferences file, and possibly launching a corresponding preferences server if
-% needed.
+% preferences file (and possibly launching a corresponding preferences server if
+% needed) or on the specified PID of an already-running preferences server.
 %
 % Examples:
 %  "Hello!" = preferences:get(hello, "/var/foobar.etf")
-%  [ "Hello!", 42, undefined ] =
-%         preferences:get([hello, my_number, some_maybe], "/var/foobar.etf")
+%  ["Hello!", 42, undefined] =
+%     preferences:get([hello, my_number, some_maybe], "/var/foobar.etf")
+%  ["Hello!", 42, undefined] =
+%     preferences:get([hello, my_number, some_maybe], MyPrefServerPid)
 %
--spec get( maybe_list( key() ), file_path() ) -> maybe_list( maybe( value() ) ).
-get( KeyMaybes, FileName ) ->
+-spec get( maybe_list( key() ), file_path() | preferences_pid() ) ->
+										maybe_list( maybe( value() ) ).
+get( KeyMaybes, FilePath ) when is_list( FilePath ) ->
+	PrefServerPid = start( FilePath ),
+	get( KeyMaybes, PrefServerPid );
 
-	ServerPid = start( FileName ),
-
-	ServerPid ! { get_preferences, KeyMaybes, self() },
-
+get( KeyMaybes, PrefServerPid ) when is_pid( PrefServerPid ) ->
+	PrefServerPid ! { get_preferences, KeyMaybes, self() },
 	receive
 
 		{ notify_preferences, ValueMaybes } ->
@@ -277,14 +279,17 @@ set( Key, Value ) ->
 
 
 % @doc Associates, in specified preferences, specified value to specified key
-% (possibly overwriting any previous value).
+% (possibly overwriting any previous value), based on the specified preferences
+% file (and possibly launching a corresponding preferences server if needed) or
+% on the specified PID of an already-running preferences server..
 %
--spec set( key(), value(), file_path() ) -> void().
-set( Key, Value, FilePath ) ->
+-spec set( key(), value(), file_path() | preferences_pid() ) -> void().
+set( Key, Value, FilePath ) when is_list( FilePath ) ->
+	PrefServerPid = start( FilePath ),
+	set( Key, Value, PrefServerPid );
 
-	ServerPid = start( FilePath ),
-
-	ServerPid ! { set_preferences, Key, Value }.
+set( Key, Value, PrefServerPid ) when is_pid( PrefServerPid ) ->
+	PrefServerPid ! { set_preferences, Key, Value }.
 
 
 
@@ -569,7 +574,7 @@ add_preferences_from( FilePath, Table ) ->
 			FlattenError = text_utils:format( "~p", [ Term ] ),
 			trace_bridge:error_fmt( "Error in preferences file '~ts' "
 				"at line ~B (~ts), no preferences read.",
-									[ FilePath, Line, FlattenError ] ),
+				[ FilePath, Line, FlattenError ] ),
 			Table;
 
 
