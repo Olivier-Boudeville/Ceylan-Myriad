@@ -3,9 +3,7 @@ MYRIAD_TOP = ../..
 .PHONY: all test-interactive-local test-non-existing-backend
 
 
-
-
-MODULES_DIRS = textual graphical
+MODULES_DIRS = textual graphical audio
 
 
 #TESTED_GUI_BACKENDS := text_ui term_ui gui
