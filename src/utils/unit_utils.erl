@@ -147,7 +147,11 @@
 
 
 -type hertz() :: float().
-% Frequency.
+% Frequency in Hz, as a floating-point number.
+
+-type integer_hertz() :: non_neg_integer().
+% Frequency in Hz, as a (non-negative) integer.
+
 
 -type time_reference_unit() :: 'seconds'.
 
@@ -169,7 +173,8 @@
 			   any_second/0, any_seconds/0, square_seconds/0,
 			   millisecond/0, milliseconds/0, canonical_millisecond/0,
 			   microsecond/0,microseconds/0, canonical_microsecond/0,
-			   mttf/0, hertz/0, time_reference_unit/0, time_units/0 ]).
+			   mttf/0, hertz/0, integer_hertz/0,
+			   time_reference_unit/0, time_units/0 ]).
 
 
 
@@ -635,8 +640,8 @@
 % Internal types.
 
 
-% Unit component:
 -type unit_component() :: ustring().
+% Unit component.
 
 
 -type operator_kind() :: 'multiply' | 'divide'.
@@ -1024,7 +1029,7 @@ parse_unit( UnitString ) ->
 	{ MultComponents, DivComponents } = split_unit_components( UnitString ),
 
 	%trace_utils:debug_fmt( "Components: multiply=~p, divide=~p.",
-	%					   [ MultComponents, DivComponents ] ),
+	%                       [ MultComponents, DivComponents ] ),
 
 	BlankUnit = #canonical_unit{},
 
@@ -1185,7 +1190,7 @@ parse_component( ComponentString ) ->
 	end,
 
 	%trace_utils:debug_fmt( "PrefixedUnit='~ts', unit exponent=~B.",
-	%					   [ PrefixedUnitString, UnitExponent ] ),
+	%                       [ PrefixedUnitString, UnitExponent ] ),
 
 	% The "k" of "km" to be transformed into 'kilo' then into 3:
 	{ BaseOrder, UnitName } = extract_prefix_and_unit( PrefixedUnitString ),
@@ -1501,10 +1506,10 @@ integrate_to_canonical_unit( _UnitName=weber, ActualOrder, NormalisedExponent,
 
 integrate_to_canonical_unit( _UnitName=tesla, ActualOrder, NormalisedExponent,
 							 CanonicalUnit=#canonical_unit{
-											  gram=GramExp,
-											  second=SecondExp,
-											  ampere=AmpereExp,
-											  order=Order } ) ->
+												gram=GramExp,
+												second=SecondExp,
+												ampere=AmpereExp,
+												order=Order } ) ->
 
 	% A Tesla is kg.s^2.A^-1:
 	CanonicalUnit#canonical_unit{ gram= GramExp + NormalisedExponent * 1,
@@ -1664,7 +1669,7 @@ integrate_to_canonical_unit( _UnitName=electronvolt, ActualOrder,
 	integrate_to_canonical_unit( joule, ActualOrder + NormalisedExponent * -19,
 								 NormalisedExponent,
 								 CanonicalUnit#canonical_unit{
-								   factor = Factor * 1.602176620898 } );
+									factor = Factor * 1.602176620898 } );
 
 
 integrate_to_canonical_unit( _UnitName=dimensionless, _ActualOrder=0,
@@ -1687,9 +1692,9 @@ integrate_to_canonical_unit( UnitName, _ActualOrder, NormalisedExponent,
 												other_units=Others} ) ->
 
 	%trace_utils:warning_fmt( "Integrating unknown unit '~ts' of order ~p, "
-	%						 "normalised exponent ~p to ~ts.",
-	%						 [  UnitName, ActualOrder, NormalisedExponent,
-	%							unit_to_string( CanonicalUnit ) ] ),
+	%   "normalised exponent ~p to ~ts.",
+	%   [ UnitName, ActualOrder, NormalisedExponent,
+	%     unit_to_string( CanonicalUnit ) ] ),
 
 	% Not merging (yet) other units, actual order ignored:
 	UnitAsAtom = text_utils:string_to_atom( UnitName ),
@@ -1843,11 +1848,11 @@ pure_unit_to_string( Unit ) ->
 
 	%SortedStrings = case [ S || { S, _Exp } <- SortedInfos ] of
 
-	%					[] ->
-	%						[ "dimensionless" ];
+	%   [] ->
+	%       [ "dimensionless" ];
 
-	%					L ->
-	%						L
+	%   L ->
+	%       L
 
 	%end,
 
