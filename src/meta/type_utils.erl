@@ -26,7 +26,6 @@
 % Creation date: Friday, December 19, 2014.
 
 
-
 % @doc Module helping to manage <b>datatypes</b>, notably in ASTs.
 %
 % See `type_utils_test.erl' for the corresponding test.
@@ -134,7 +133,7 @@
 
 % We need to be able to specify immediate values even at a type level, as we
 % might want to define a type as a set of possible values (such as: [2,3,5,7,11]
-% or [ 'orange', 'blue', 'red' ]).
+% or ['orange', 'blue', 'red']).
 
 % Let T1 be a type defined from an immediate value V of a type that is named T2
 % (hence T1 is a type comprising a single value); T1 is specified as "V"
@@ -775,8 +774,7 @@ get_type_of( Term ) ->
 %
 -spec interpret_type_of( term() ) -> ustring().
 interpret_type_of( Term ) ->
-	interpret_type_helper( Term, _CurrentNestingLevel=0,
-						   _MaxNestingLevel=1 ).
+	interpret_type_helper( Term, _CurrentNestingLevel=0, _MaxNestingLevel=1 ).
 
 
 % @doc Returns a string describing, in a user-friendly manner, the type of the
