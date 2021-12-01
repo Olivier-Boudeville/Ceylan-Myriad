@@ -81,7 +81,16 @@
 % Full information about an URL (prefer uri_string:uri_map() now).
 
 
--type body() :: ustring() | binary().
+-type body() :: string_body() | bin_body().
+% The body of a HTTP message. The binary form is usually better (more compact,
+% less problematic regarding encodings).
+
+-type string_body() :: ustring().
+% A body as a plain string (beware to encodings).
+
+-type bin_body() :: binary().
+% A body in binary form, which is the recommended one.
+
 
 -type json_body() :: body().
 % Encoded in JSON.
@@ -96,7 +105,7 @@
 
 
 -type headers_as_list() :: old_style_options().
-% Example: {"content-type", "application/jose+json"}.
+% Example: {"User-Agent", "Godzilla The Mighty"}.
 
 
 -type headers_httpc_style() :: headers_as_list().
@@ -120,15 +129,8 @@
 -type ssl_options() :: list_options(). % map_options().
 
 
--type request_result() :: { http_status_code(), headers_as_maps(), body() }
+-type request_result() :: { http_status_code(), headers_as_maps(), bin_body() }
 						| { 'error', basic_utils:error_reason() }.
-% Keys:
-%
-% - body :: body()
-%
-% - headers :: headers()
-%
-% - status_code: http_status_code()
 
 
 -type location() :: atom().
@@ -174,17 +176,69 @@
 -type http_status_code() :: non_neg_integer().
 
 
+
+% Cloud-related section.
+
+-type cloud_provider() :: 'azure' | 'aws' | 'google_cloud'.
+
+-type service_endpoint() :: bin_string().
+% The full, readily usable endpoint of a given service.
+%
+% Ex:
+% <<"https://francecentral.api.cognitive.microsoft.com/sts/v1.0/issuetoken">>.
+
+
+-type api_endpoint() :: bin_string().
+% The API endpoint (with no deployment-related prefix such as
+% "https://francecentral.") of a given service.
+%
+% Ex: <<"api.cognitive.microsoft.com/sts/v1.0/issuetoken">>.
+
+
+-type instance_key() :: bin_string().
+% The key of an instance hosted by a cloud provider.
+% Ex: <<"a59c98302e7f4a22be4b355125df8e9">>.
+
+
+-type cloud_instance_info() :: azure_instance_info().
+% Information regarding an instance hosted by a cloud provider.
+
+
+-type azure_instance_info() :: #azure_instance_info{}.
+% Information regarding an instance hosted by the Microsoft Azure cloud
+% provider.
+
+
+-type azure_instance_key() :: instance_key().
+% The key of a Microsoft Azure instance.
+% Ex: <<"a59c98302e7f4a22be4b355125df8e9">>.
+
+
+-type azure_instance_location() :: bin_string().
+% The location of a Microsoft Azure instance.
+% Ex: <<"francecentral">>.
+
+
+
 -export_type([ ssl_opt/0,
 			   url/0, bin_url/0, any_url/0,
 			   uri/0, bin_uri/0, any_uri/0,
 			   protocol_type/0, path/0, url_info/0,
 
-			   body/0, json_body/0, headers/0, map_options/0,
+			   body/0, string_body/0, bin_body/0, json_body/0,
+			   headers/0, map_options/0,
 			   http_option/0, http_options/0, ssl_options/0,
 			   location/0, nonce/0,
 
 			   media_type/0,
-			   html_element/0, http_status_class/0, http_status_code/0 ]).
+			   html_element/0, http_status_class/0, http_status_code/0,
+
+			   cloud_provider/0,
+			   service_endpoint/0, api_endpoint/0,
+			   instance_key/0, cloud_instance_info/0,
+
+			   azure_instance_info/0, azure_instance_key/0,
+			   azure_instance_location/0 ]).
 
 
 % HTTP-related section:
@@ -215,6 +269,10 @@
 
 % SSL-related operations:
 -export([ get_ssl_verify_options/0, get_ssl_verify_options/1 ]).
+
+
+% Cloud-related operations:
+-export([ get_azure_instance_information/2, cloud_instance_info_to_string/1 ]).
 
 
 -define( default_content_type, "text/html; charset=UTF-8" ).
@@ -266,9 +324,9 @@
 % Full example:
 %
 % inets:start(),
-% httpc:request( post, { "http://localhost:3000/foo", [],
+% httpc:request(post, {"http://localhost:3000/foo", [],
 %  "application/x-www-form-urlencoded",
-%  encode_as_url( [ {"username", "bob"}, {"password", "123456"} ] ) }, [], [] ).
+%  encode_as_url([{"username", "bob"}, {"password", "123456"}])}, [], []).
 %
 % Directly inspired from:
 % http://stackoverflow.com/questions/114196/url-encode-in-erlang
@@ -870,10 +928,13 @@ start( Option ) ->
 %
 % The HTTP support (possibly with SSL if needed) must be started.
 %
+% For HTTPS requests, we recommend that the HttpOptions include a {ssl,
+% web_utils:get_ssl_verify_options()} pair.
+%
 % For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
 %
--spec request( method(), uri(), headers(), http_options(), maybe( body() ),
+-spec request( method(), uri(), headers(), http_options(), maybe( bin_body() ),
 			   maybe( content_type() ) ) -> request_result().
 request( _Method=get, Uri, Headers, HttpOptions, _MaybeBody=undefined,
 		 _MaybeContentType=undefined ) ->
@@ -888,6 +949,7 @@ request( _Method=post, Uri, Headers, HttpOptions, MaybeBody,
 		 MaybeContentType ) ->
 	post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType );
 
+% Not supported: head |  put | trace | options | delete | patch:
 request( Method, Uri, _Headers, _HttpOptions, _MaybeBody, _MaybeContentType ) ->
 	throw( { invalid_method, Method, Uri } ).
 
@@ -896,6 +958,9 @@ request( Method, Uri, _Headers, _HttpOptions, _MaybeBody, _MaybeContentType ) ->
 % @doc Sends a (synchronous) HTTP/1.1 client GET request.
 %
 % The HTTP support (possibly with SSL if needed) must be started.
+%
+% For HTTPS requests, we recommend that the HttpOptions include a {ssl,
+% web_utils:get_ssl_verify_options()} pair.
 %
 % For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
@@ -915,8 +980,10 @@ get( Uri, Headers, HttpOptions ) ->
 
 	HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
 
-	% Wanting the resulting body, headers, and the entire status line:
-	Options = [ { full_result, true } ],
+	% Wanting the resulting body (as a binary rather than as a plain string),
+	% headers, and the entire status line:
+	%
+	Options = [ { full_result, true }, { body_format, binary } ],
 
 	cond_utils:if_defined( myriad_debug_web_exchanges,
 		trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc GET "
@@ -956,6 +1023,9 @@ get( Uri, Headers, HttpOptions ) ->
 %
 % The HTTP support (possibly with SSL if needed) must be started.
 %
+% For HTTPS requests, we recommend that the HttpOptions include a {ssl,
+% web_utils:get_ssl_verify_options()} pair.
+%
 % For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
 %
@@ -970,6 +1040,9 @@ post( Uri, Headers, HttpOptions ) ->
 % If a body is specified, ?default_content_type will be used.
 %
 % The HTTP support (possibly with SSL if needed) must be started.
+%
+% For HTTPS requests, we recommend that the HttpOptions include a {ssl,
+% web_utils:get_ssl_verify_options()} pair.
 %
 % For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
@@ -988,6 +1061,9 @@ post( Uri, Headers, HttpOptions, MaybeBody ) ->
 %
 % The HTTP support (possibly with SSL if needed) must be started.
 %
+% For HTTPS requests, we recommend that the HttpOptions include a {ssl,
+% web_utils:get_ssl_verify_options()} pair.
+%
 % For more advanced uses (ex: re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
 %
@@ -998,8 +1074,9 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 	cond_utils:if_defined( myriad_debug_web_exchanges,
 		trace_bridge:debug_fmt( "[~w] POST request to URI "
 			"'~ts', with following headers:~n  ~p~nHTTP options:~n  ~p~n"
-			"Body: ~p~nContent-type: ~ts", [ self(), Uri, Headers, HttpOptions,
-											MaybeBody, MaybeContentType ] ) ),
+			"Body: ~p~nContent-type: ~ts",
+			[ self(), Uri, Headers, HttpOptions, MaybeBody,
+			  MaybeContentType ] ) ),
 
 	HeadersForHttpc = to_httpc_headers( Headers ),
 
@@ -1026,8 +1103,10 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 
 	HttpOptionsForHttpc = to_httpc_options( HttpOptions ),
 
-	% Wanting the resulting body, headers, and the entire status line:
-	Options = [ { full_result, true } ],
+	% Wanting the resulting body (as a binary rather than as a plain string),
+	% headers, and the entire status line:
+	%
+	Options = [ { full_result, true }, { body_format, binary } ],
 
 	cond_utils:if_defined( myriad_debug_web_exchanges,
 		trace_bridge:debug_fmt( "[~w] Actual parameters of the httpc POST "
@@ -1043,7 +1122,7 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 			cond_utils:if_defined( myriad_debug_web_exchanges,
 				trace_bridge:debug_fmt( "[~w] Received HTTP version: ~ts, "
 					"status code: ~B, reason: ~ts; headers are:~n  ~p"
-					"Returned body is ~p", [ self(), ReqHttpVersion,
+					"Returned body is:~n ~p", [ self(), ReqHttpVersion,
 						ReqStatusCode, ReqReason, ReqHeaders, ReqBody ] ),
 				basic_utils:ignore_unused( [ ReqHttpVersion, ReqReason ] ) ),
 
@@ -1076,7 +1155,7 @@ to_httpc_headers( Headers ) when is_map( Headers ) ->
 from_httpc_headers( Headers ) ->
 	maps:from_list( [ { text_utils:string_to_binary( K ),
 						text_utils:string_to_binary( V ) }
-							   || { K, V } <- Headers ] ).
+								|| { K, V } <- Headers ] ).
 
 
 
@@ -1167,7 +1246,7 @@ download_file( Url, TargetDir, HttpOptions ) ->
 	%trace_bridge:debug_fmt( "Downloading '~ts' from '~ts'.",
 	%                        [ FilePath, Url ] ),
 
-	case httpc:request( get, { Url, _Headers=[] }, HttpOptions,
+	case httpc:request( _Method=get, _Req={ Url, _Headers=[] }, HttpOptions,
 						_Opts=[ { stream, FilePath } ] ) of
 
 		{ ok, saved_to_file } ->
@@ -1250,3 +1329,26 @@ get_ssl_verify_options( _Switch=disable ) ->
 	%#{ verify => verify_none }.
 
 	[ { verify, verify_none } ].
+
+
+
+% @doc Returns a Microsoft Azure instance information based on specified
+% settings.
+%
+-spec get_azure_instance_information( azure_instance_key(),
+						azure_instance_location() ) -> azure_instance_info().
+get_azure_instance_information( InstKey, InstLoc ) ->
+	#azure_instance_info{
+		instance_key=text_utils:ensure_binary( InstKey ),
+		instance_location=text_utils:ensure_binary( InstLoc ) }.
+
+
+
+% @doc Returns a textual description of the specified cloud instance.
+-spec cloud_instance_info_to_string( cloud_instance_info() ) -> ustring().
+cloud_instance_info_to_string( #azure_instance_info{
+									instance_key=_InstKey,
+									instance_location=InstLoc } ) ->
+	% Not disclosing of the key here:
+	text_utils:format( "Microsoft Azure instance located in '~ts'",
+					   [ InstLoc ] ).
