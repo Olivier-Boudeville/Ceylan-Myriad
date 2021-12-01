@@ -378,7 +378,7 @@
 % (then a transparent encoding will be done), yet we found it safer and offering
 % more control not to request such an automatic encoding, and to secure it by
 % ourselves, either by relying on write_ustring/{2,3} or by calling write/2 with
-% a content that is already properly encoded (see
+% a binary content that is already properly encoded (see
 % text_utils:to_unicode_{list,binary}/{1,2}); otherwise for example a double
 % encoding could easily happen or, possibly, the encoding may fail with little
 % control; so we tend now to stay away from get_default_encoding_option/0 for
@@ -389,8 +389,9 @@
 % strings like "cœur" afterwards (no matter any encoding or lack thereof was
 % experimented); as mentioned, it proved useful to open such a file for writing
 % without specifying any encoding, and then only to write it directly with
-% pre-encoded content (a "~ts" formatter then sufficed); so the 'encoding'
-% options, at least for writing, may not be that convenient
+% pre-encoded content (a "~ts" formatter then sufficed, but binaries tend to be
+% even safer bets); so the 'encoding' options, at least for writing, may not be
+% that convenient
 %
 % - so the content itself may have to be encoded before writing; for example,
 % writing "éèôù" (interpreted to be latin1 or alike) in a file opened as utf8
@@ -407,24 +408,27 @@
 %
 % - notably in this module, calls akin to text_utils:binary_to_string/1 shall be
 % carefully studied, as conversions from binaries to strings shall be avoided
-% whenever possible due to their limitations
+% whenever possible due to their limitations; sticking to binaries everywhere
+% might be a safer option
 
 % - the way the VM is started matters; see the comment about the "-noinput"
 % option, in open/{2,3}; one may use the following to check the current settings
 % of the VM:
 %
 % trace_utils:info_fmt( "Encoding: ~p.",
-%					  [ lists:keyfind(encoding, 1, io:getopts()) ] ),
+%                       [ lists:keyfind(encoding, 1, io:getopts()) ] ),
 %
 % See also:
 % [https://erlang.org/doc/apps/stdlib/unicode_usage.html#unicode-data-in-files]
+%
 % Summary: use the 'file' module only for files opened for bytewise access
 % ({encoding,latin1}) - otherwise use the 'io' module.
 
 
-% Regarding identifiers (ex: user_id), they can be converted in actual names,
-% yet apparently with nothing simpler than:
-
+% Regarding filesystem identifiers (ex: user_id), they can be converted from
+% integers to actual names, yet apparently with nothing simpler than something
+% akin to:
+%
 % awk -v val=USER_ID -F ":" '$3==val{print $1}' /etc/passwd
 
 
@@ -4649,42 +4653,45 @@ read_lines( File, FilePath, Acc ) ->
 
 
 % @doc Writes the specified content in specified file, whose filename is
-% specified as any kind of string, using the default encoding.
+% specified as any kind of string, using a default encoding if a plain string is
+% specified.
+%
+% Note that specifying a binary allows to avoid any potential unwanted encoding.
 %
 % Throws an exception on failure.
 %
 -spec write_whole( any_file_name(), ustring() | binary() ) -> void().
 write_whole( Filename, Content ) ->
-
-	% Now we prefer no automatic encoding, and ensure it has been done
-	% beforehand:
-	%
-	%Mode = [ system_utils:get_default_encoding_option() ],
-	Mode = [],
-
-	write_whole( Filename, Content, Mode ).
+	write_whole( Filename, Content, _Modes=[] ).
 
 
 
 % @doc Writes the specified content in specified file, whose filename is
-% specified as any kind of string, using the specified encoding for writing.
+% specified as any kind of string, using the specified modes options, and
+% applying before a default encoding if a plain string is specified.
 %
-% Note that no transparent encoding is expected to be specified through modes,
-% as this function performs (through text_utils:string_to_binary/1) such
-% encoding on plain strings.
+% Note that no transparent encoding-to-file is thus expected to be specified
+% through modes, as this function already performs (through
+% text_utils:string_to_binary/1) such encoding on plain strings (this would
+% result in a double encoding); specifying a binary allows to avoid any
+% potential unwanted encoding.
 %
 % Throws an exception on failure.
 %
 -spec write_whole( any_file_name(), ustring() | binary(), [ file:mode() ] ) ->
-							void().
+														void().
 write_whole( Filename, StringContent, Modes ) when is_list( StringContent ) ->
+
+	% Warning, implies performing an encoding (typically based on
+	% unicode:characters_to_binary/1):
+	%
 	write_whole( Filename, text_utils:string_to_binary( StringContent ),
 				 Modes );
 
 write_whole( Filename, BinaryContent, Modes ) ->
 
 	%trace_utils:debug_fmt( "Writing to '~ts', with modes ~p, "
-	%	"following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
+	%   "following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
 
 	% 'write' and 'binary' are implicit here; if relevant BinaryContent must be
 	% correctly Unicode-encoded:
