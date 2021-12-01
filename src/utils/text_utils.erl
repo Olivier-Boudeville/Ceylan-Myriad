@@ -86,7 +86,7 @@
 		  string_to_atom/1, strings_to_atoms/1,
 		  terms_to_string/1, terms_to_enumerated_string/1,
 		  terms_to_listed_string/1,
-		  binary_to_atom/1,
+		  binary_to_atom/1, binary_to_integer/1, binary_to_float/1,
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
@@ -2761,16 +2761,29 @@ terms_to_listed_string( Terms ) ->
 
 
 
-% @doc Converts specified list of plain strings into a corresponding list of
-% atoms.
+% @doc Converts the specified binary string into a corresponding atom.
 %
 % Note that a bounded number of atoms should be created that way, lest the atom
 % table gets saturated.
 %
 -spec binary_to_atom( bin_string() ) -> atom().
-binary_to_atom( Binary ) ->
-	String = binary_to_string( Binary ),
+binary_to_atom( BinString ) ->
+	String = binary_to_string( BinString ),
 	string_to_atom( String ).
+
+
+% @doc Converts the specified binary string into a corresponding integer.
+-spec binary_to_integer( bin_string() ) -> integer().
+binary_to_integer( BinString ) ->
+	String = binary_to_string( BinString ),
+	string_to_integer( String ).
+
+
+% @doc Converts the specified binary string into a corresponding float.
+-spec binary_to_float( bin_string() ) -> float().
+binary_to_float( BinString ) ->
+	String = binary_to_string( BinString ),
+	string_to_float( String ).
 
 
 
