@@ -391,10 +391,14 @@ MYRIAD_BEAM := $(MYRIAD_TOP)/src
 # BEAM_DIRS are relative paths of BEAM files, ABS_BEAM_DIRS are the
 # corresponding absolute paths.
 #
-# As the 'include' structure matches the one of 'src' (only drawback: includes a
+
+# As the 'include' structure mostly matches the one of 'src', we just replace
+# the first 'src' by 'include', knowing that any extra 'src' may be useful for
+# sources (as a 'doc' directory may coexist at the same level) yet has no
+# interest for includes, hence is stripped out (only drawback: includes a
 # non-necessary 'ebin' directory):
 #
-INC += $(foreach dir,$(BEAM_DIRS),-I$$(echo $(dir)|sed 's|src|include|1'))
+INC += $(foreach dir,$(BEAM_DIRS),-I$$(echo $(dir) | sed 's|src|include|1' | sed 's|/src||g'))
 
 
 # Special-cased includes for bootstrapped modules, which by default are
@@ -1137,6 +1141,7 @@ MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
 					$(MYRIAD_BEAM)/scripts                      \
 					$(MYRIAD_BEAM)/user-interface/src/graphical \
 					$(MYRIAD_BEAM)/user-interface/src/textual   \
+					$(MYRIAD_BEAM)/user-interface/src/audio     \
 					$(MYRIAD_BEAM)/user-interface/src           \
 					$(MYRIAD_BEAM)/utils
 
