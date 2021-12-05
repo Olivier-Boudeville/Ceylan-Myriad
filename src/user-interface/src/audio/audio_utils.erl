@@ -47,6 +47,13 @@
 % A standard sample rate, in kHz (ex: 24 kHz).
 
 
+-type channel_layout() :: 'mono' | 'stereo' | '5.1'.
+% The number and layout of audio channels.
+%
+% See the 'Standard speaker channels' section of
+% https://en.wikipedia.org/wiki/Surround_sound for further details.
+
+
 -type bit_rate() :: pos_integer().
 % The bit rate of an audio content, in kilobits per second (ex: 192 kbps).
 
@@ -57,11 +64,9 @@
 % Ex: 8-bit or 16-bit.
 
 
--type channel_layout() :: 'mono' | 'stereo' | '5.1'.
-% The number and layout of audio channels.
-%
-% See the 'Standard speaker channels' section of
-% https://en.wikipedia.org/wiki/Surround_sound for further details.
+-type bit_level() :: { 'bit', bit_depth() } | { 'kbps', bit_rate() }.
+% Either a bit depth or a bit rate.
+
 
 
 -type container_format() :: 'raw' | 'ogg' | 'webm' | 'riff'.
@@ -82,10 +87,10 @@
 % further details.
 
 
--type audio_stream_settings() ::
-		{ standard_sampling_rate(), channel_layout(), bit_depth() | bit_rate(),
-		  container_format(), audio_format() }.
-% The main settings that apply for an audio stream.
+% For the audio_stream_settings record:
+-include("audio_utils.hrl").
+
+-type audio_stream_settings() :: #audio_stream_settings{}.
 
 
 -type codec() :: bin_string().
@@ -94,12 +99,40 @@
 
 
 -export_type([ sample_rate/0, standard_sampling_rate/0,
-			   bit_rate/0, bit_depth/0,
 			   channel_layout/0,
+			   bit_rate/0, bit_depth/0, bit_level/0,
 			   container_format/0, audio_format/0, audio_stream_settings/0,
 			   codec/0 ]).
 
 
+-export([ audio_stream_settings_to_string/1 ]).
+
+
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+
+
+% @doc Returns a textual description of the specified audio stream settings.
+-spec audio_stream_settings_to_string( audio_stream_settings() ) -> ustring().
+audio_stream_settings_to_string( #audio_stream_settings{
+							sampling_rate=SamplingRate,
+							channel_layout=ChannelLayout,
+							bit_level=BitLevel,
+							container_format=ContainerFormat,
+							audio_format=AudioFormat } ) ->
+
+	BitStr = case BitLevel of
+
+		{ bit, BitDepth } ->
+			text_utils:format( "~B-bit", [ BitDepth ] );
+
+		{ kbps, BitRate } ->
+			text_utils:format( "~B kbps", [ BitRate ] )
+
+	end,
+
+	text_utils:format( "~ts ~ts stream whose sampling rate is ~B kHz, "
+		"encoded as ~ts-encoded audio in a ~ts container",
+		[ ChannelLayout, BitStr, SamplingRate, AudioFormat, ContainerFormat ] ).
