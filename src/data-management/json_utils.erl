@@ -22,8 +22,7 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Authors: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-%
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, February 21, 2020.
 
 
@@ -265,7 +264,7 @@ get_parser_backend_name() ->
 
 					[ _JiffyPath ] ->
 						%trace_utils:debug_fmt( "Selected JSON parser is "
-						%     "Jiffy, in '~ts'.", [ JiffyPath ] ),
+						%   "Jiffy, in '~ts'.", [ JiffyPath ] ),
 						jiffy ;
 
 					JiffyPaths ->
@@ -276,7 +275,7 @@ get_parser_backend_name() ->
 
 		[ _JsxPath ] ->
 			%trace_utils:debug_fmt( "Selected JSON parser is JSX, in '~ts'.",
-			%					   [ JsxPath ] ),
+			%                       [ JsxPath ] ),
 			jsx ;
 
 		JsxPaths ->
@@ -444,9 +443,9 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 % @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON
 % counterpart element, using the looked-up default JSON backend for that.
 %
-% Ex: `json_utils:to_json( #{ <<"protected">> => Protected,
-%							  <<"payload">> => Payload,
-%							  <<"signature">> => EncSigned } )'.
+% Ex: `json_utils:to_json( #{<<"protected">> => Protected,
+%                            <<"payload">> => Payload,
+%                            <<"signature">> => EncSigned} )'.
 %
 -spec to_json( json_term() ) -> json().
 to_json( Term ) ->
@@ -461,7 +460,7 @@ to_json( Term ) ->
 % @doc Converts (encodes) specified Erlang term into a JSON counterpart element,
 % using directly the JSON backend designated by the specified parser state.
 %
-% Ex: `json_utils:to_json( #{
+% Ex: `json_utils:to_json(#{
 %     <<"protected">> => Protected,
 %     <<"payload">> => Payload,
 %     <<"signature">> => EncSigned }, _ParserName=jsx )'.
@@ -494,10 +493,10 @@ to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 % @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON file,
 % using the looked-up default JSON backend for that.
 %
-% Ex: `json_utils:to_json_file( #{
+% Ex: `json_utils:to_json_file(#{
 %                   <<"protected">> => Protected,
 %                   <<"payload">> => Payload,
-%                   <<"signature">> => EncSigned }, TargetJsonFilePath )'.
+%                   <<"signature">> => EncSigned}, TargetJsonFilePath )'.
 %
 -spec to_json_file( json_term(), file_path() ) -> void().
 to_json_file( Term, TargetJsonFilePath ) ->
@@ -509,10 +508,10 @@ to_json_file( Term, TargetJsonFilePath ) ->
 % @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON file,
 % using the specified JSON backend for that.
 %
-% Ex: `json_utils:to_json_file( #{
+% Ex: `json_utils:to_json_file(#{
 %          <<"protected">> => Protected,
 %          <<"payload">> => Payload,
-%          <<"signature">> => EncSigned }, TargetJsonFilePath, ParserState )'.
+%          <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState )'.
 %
 -spec to_json_file( json_term(), file_path(), parser_state() ) -> void().
 to_json_file( Term, TargetJsonFilePath, ParserState ) ->
