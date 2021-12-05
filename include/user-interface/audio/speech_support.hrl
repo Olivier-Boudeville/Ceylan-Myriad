@@ -45,6 +45,9 @@
 	%
 	requester_app_name = <<"Myriad speech support">> :: text_utils:bin_string(),
 
+	% May store, as a convenience, current speech settings, for an easier reuse:
+	speech_settings :: maybe( speech_support:speech_settings() ),
+
 	% The audio settings regarding the generated output:
 	audio_settings :: audio_utils:audio_stream_settings() } ).
 
@@ -71,6 +74,7 @@
 	% The specific roles that this voice may play:
 	roles_played :: maybe( [ speech_support:role_played() ] ),
 
+
 	% The (main) locale corresponding to the language spoken by this voice:
 	locale :: locale_utils:bin_locale(),
 
@@ -92,3 +96,68 @@
 
 	% The sample rate of the rendering of this voice:
 	sample_rate :: audio_utils:sample_rate() } ).
+
+
+
+% Information regarding a speech to be recorded (many of whom are optional):
+-record( speech_settings, {
+
+	% The voice that is to speak:
+	voice_id :: speech_support:voice_id(),
+
+	% Corresponds to the language to be spoken by this voice:
+	language_locale :: maybe( speech_support:language_locale() ),
+
+	% At least usually the voice identifier already implies a gender:
+	voice_gender :: maybe( speech_support:voice_gender() ),
+
+	% Any style this voice may support:
+	speech_style :: maybe( speech_support:supported_style() ),
+
+	% Any role this voice might be able to play:
+	role :: maybe( speech_support:role_played() ) } ).
+
+
+
+% All information regarding a logical speech, probably supporting multiple,
+% different spoken locales thanks to translation:
+%
+-record( logical_speech, {
+
+	% The identifier of that speech (intentional duplicate of the corresponding
+	% key in the containing speech table):
+	%
+	id :: speech_support:speech_id(),
+
+	% A short name to designate this logical speech (ex: as a prefix of its
+	% filename); ex: <<"welcome-new-recruits">>). Not an identifier, but
+	% preferably unique.
+	%
+	base_name :: speech_support:speech_base_name(),
+
+	% Records all per-locale text information for the current logical speech.
+	%
+	% The text information of reference (probably from which the others are
+	% translated) corresponds to the entry whose key is the reference locale of
+	% the overall speech referential.
+	%
+	locale_table :: speech_support:locale_table() } ).
+
+
+
+% A datastructure collecting information regarding a set of logical speeches.
+-record( speech_referential, {
+
+	% A table associating to a speech identifier the various available
+	% information regarding each logical speech.
+	%
+	speech_table :: speech_support:speech_table(),
+
+	% The reference, primary spoken locale, from which other locales may derive:
+	reference_locale = <<"en-US">> :: speech_support:language_locale(),
+
+	% The base directory where speech record files shall be stored:
+	base_dir :: file_utils:bin_directory_path(),
+
+	% The audio settings that apply to all records in that table:
+	audio_settings :: audio_utils:audio_stream_settings() } ).
