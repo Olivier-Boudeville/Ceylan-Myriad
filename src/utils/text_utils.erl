@@ -2945,7 +2945,7 @@ split_per_element( String, Delimiters ) ->
 split_parsed( ParseString, Delimiters ) ->
 
 	%trace_utils:debug_fmt( "Splitting '~p' with delimiters '~p'...",
-	%					   [ ParseString, Delimiters ] ),
+	%                       [ ParseString, Delimiters ] ),
 
 	Res = split_parsed( ParseString, Delimiters, _AccElem=[], _AccStrs=[] ),
 
@@ -3400,8 +3400,8 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 % @doc Escapes, in specified text, all characters in the specified list, with
 % specified escaping char.
 %
-% Ex: "baz\.foobar\.org" = text_utils:escape_with( "baz.foobar.org",
-%                                                  [ $. ], $\\ ).
+% Ex: "baz\.foobar\.org" =
+%   text_utils:escape_with("baz.foobar.org", [ $. ], $\\).
 %
 -spec escape_with( ustring(), [ char() ], char() ) -> ustring().
 escape_with( Text, CharsToEscape, EscapingChar ) ->
@@ -3425,6 +3425,7 @@ escape_with( _Text=[ C | T ], CharsToEscape, EscapingChar, Acc ) ->
 	end,
 
 	escape_with( T, CharsToEscape, EscapingChar, NewAcc ).
+
 
 
 
