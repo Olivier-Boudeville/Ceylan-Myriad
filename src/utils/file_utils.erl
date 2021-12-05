@@ -240,24 +240,38 @@
 % Sometimes useful.
 
 
+-type filename_radix() :: ustring().
+% The part of a filename before the dot of the first extension.
+% Ex: the filename radix of "hello.tar.gz" is "hello".
+
+
+-type filepath_radix() :: ustring().
+% The part of a file path before the dot of the first extension.
+%
+% Ex: the filepath radix of "/home/bond/hello.tar.gz" is "/home/bond/hello".
+
 -type extension() :: ustring().
-% An extension in a filename (ex: "baz", in "foobar.baz.json").
+% An extension in a filename, either unitary (ex: "baz", in "foobar.baz.json")
+% or composed (ex: "tar.gz" in "hello.tar.gz").
 
 
 -type any_suffix() :: any_string().
-% The suffix (final part) in a path element.
+% The suffix (final part) in a path element (ex: "share" in "/usr/local/share").
 
 
 -type path_element() :: ustring().
-% A part of a path (ex: "local" in "/usr/local/share").
+% A (legit) part of a path (ex: "local" in "/usr/local/share"); preferably
+% without whitespaces.
 
 
--type bin_path_element() :: text_utils:bin_string().
-% A part of a path (ex: `<<"local">>' in "/usr/local/share").
+-type bin_path_element() :: bin_string().
+% A (legit) part of a path (ex: `<<"local">>' in "/usr/local/share"); preferably
+% without whitespaces.
 
 
 -type any_path_element() :: path_element() | bin_path_element().
-% Any type of a part of a path (ex: `<<"local">>' in "/usr/local/share").
+% Any (legit) type of a part of a path (ex: `<<"local">>' in
+% "/usr/local/share"); preferably without whitespaces.
 
 
 -type leaf_name() :: path_element().
@@ -350,7 +364,7 @@
 			   script_path/0, bin_script_path/0,
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
-			   extension/0, any_suffix/0,
+			   filename_radix/0, filepath_radix/0, extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
 			   leaf_name/0,
 			   entry_type/0, parent_creation/0,
