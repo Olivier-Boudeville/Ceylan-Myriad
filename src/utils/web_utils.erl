@@ -536,6 +536,8 @@ get_unordered_list( Elements ) ->
 % @doc Escapes specified text, so that it can be included safely as an HTML
 % content.
 %
+% Returns an HTML element, as a plain string.
+%
 -spec escape_as_html_content( any_string() ) -> html_element().
 escape_as_html_content( BinString ) when is_binary( BinString ) ->
 	escape_as_html_content( text_utils:binary_to_string( BinString ) );
@@ -545,6 +547,10 @@ escape_as_html_content( String ) ->
 	escape_as_html_content( text_utils:to_unicode_list( String ), _Acc=[] ).
 
 
+% The escaping done is exactly sufficient for XML and correct for HTML; see
+% https://stackoverflow.com/questions/7248958/which-are-the-html-and-xml-special-characters
+% for further reference.
+%
 % (helper)
 escape_as_html_content( _String=[], Acc ) ->
 	lists:reverse( text_utils:to_unicode_list( Acc ) );
@@ -556,6 +562,7 @@ escape_as_html_content( _String=[ $& | T ], Acc ) ->
 escape_as_html_content( _String=[ $< | T ], Acc ) ->
 	escape_as_html_content( T, [ ";tl&" | Acc ] ) ;
 
+% Not strictly necessary for HTML:
 escape_as_html_content( _String=[ $> | T ], Acc ) ->
 	escape_as_html_content( T, [ ";tg&" | Acc ] ) ;
 
@@ -565,8 +572,10 @@ escape_as_html_content( _String=[ $> | T ], Acc ) ->
 escape_as_html_content( _String=[ $" | T ], Acc ) ->
 	escape_as_html_content( T, [ ";touq&" | Acc ] ) ;
 
+% Not strictly necessary for HTML:
 escape_as_html_content( _String=[ $' | T ], Acc ) ->
-	escape_as_html_content( T, [ ";93#&" | Acc ] ) ;
+	%escape_as_html_content( T, [ ";93#&" | Acc ] ) ;
+	escape_as_html_content( T, [ ";sopa&" | Acc ] ) ;
 
 % All others:
 escape_as_html_content( _String=[ Other | T ], Acc ) ->
@@ -650,6 +659,9 @@ interpret_http_status_code( StatusCode ) ->
 		interpret_http_status_code_helper( StatusCode ), StatusCode,
 		http_status_class_to_string( get_http_status_class( StatusCode ) ) ] ).
 
+
+% (helper)
+%
 % informational_response class:
 interpret_http_status_code_helper( _StatusCode=100 ) ->
 	"continue";
