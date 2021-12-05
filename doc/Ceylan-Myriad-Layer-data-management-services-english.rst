@@ -109,7 +109,7 @@ A built-in very basic support for the `CSV <https://en.wikipedia.org/wiki/Comma-
 Most Usual, Standard File Formats
 .................................
 
-An optional support (as it depends on third-party prerequisites) is proposed for:
+Besides the support for XML (see ``xml_utils``), an optional support (as it depends on third-party prerequisites) is proposed for:
 
 - JSON
 - HDF5
