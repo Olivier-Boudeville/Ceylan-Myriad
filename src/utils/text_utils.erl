@@ -1609,7 +1609,7 @@ format( FormatString, Values ) ->
 				VString = basic_utils:describe_term( Values ),
 
 				Msg = "[error: badly formatted string output] "
-					  ++ case is_string( FormatString ) of
+								++ case is_string( FormatString ) of
 
 					true ->
 						case is_list( Values ) of
@@ -1641,7 +1641,7 @@ format( FormatString, Values ) ->
 				% If wanting to be extra verbose, duplicating message on the
 				% console:
 				%
-				io:format( Msg ++ "~n~n", [] ),
+				%io:format( Msg ++ "~n~n", [] ),
 
 				% Useful to obtain the stacktrace of a culprit or to check for
 				% silent errors:
