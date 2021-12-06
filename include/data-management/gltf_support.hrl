@@ -225,9 +225,12 @@
 	% The floating-point vertical field of view:
 	y_field_of_view  :: unit_utils:radians(),
 
+	% Must be strictly positive:
 	z_near_distance :: linear:distance(),
 
-	% Must be greater than z_near_distance:
+	% Must be greater than z_near_distance; as both are mapped to a cube whose
+	% edge length is 1.0, their ratio matters the most):
+	%
 	z_far_distance :: maybe( linear:distance() ) } ).
 
 
