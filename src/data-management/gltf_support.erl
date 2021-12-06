@@ -93,9 +93,20 @@
 -type object_name() :: ustring().
 % Any top-level glTF object MAY have a name string property.
 
+
+-type base_name() :: ustring().
+% A base name to be used for named glTF objects.
+
 -type gltf_object_name() :: bin_string().
 % Any top-level glTF object MAY have a name string property.
 
+
+-type mesh_name() :: gltf_object_name().
+% The name of a glTF mesh.
+
+-type primitive_name() :: gltf_object_name().
+% There exists no name per se for glTF primitives, yet their buffers can be
+% named accordingly.
 
 
 -type gltf_enum() :: pos_integer().
@@ -310,7 +321,8 @@
 % All settings corresponding to a basic content.
 
 
--export_type([ object_name/0, gltf_object_name/0,
+-export_type([ object_name/0, base_name/0, gltf_object_name/0,
+			   mesh_name/0, primitive_name/0,
 			   gltf_enum/0, gltf_content/0, gltf_index/0,
 			   scene_index/0, gltf_scene/0,
 			   node_index/0, gltf_node/0,
@@ -334,18 +346,28 @@
 			   generator_name/0, basic_content_settings/0 ]).
 
 
--export([ get_blank_content/0, get_basic_content/0,
+-export([ get_blank_content/0, get_basic_content/0, get_basic_content/1,
 
 		  % Basic additions:
 
-		  add_basics_to_content/1,
+		  add_basics_to_content/1, add_basics_to_content/2,
 
 		  add_basic_mesh_to_content/2,
+
 		  add_metallic_material_to_content/1,
-		  add_basic_light_to_content/1,
-		  add_basic_camera_to_content/1, add_camera_to_content/3,
+		  add_metallic_material_to_content/2,
+
+		  add_basic_light_to_content/1, add_basic_light_to_content/2,
+
+		  add_basic_camera_to_content/1, add_basic_camera_to_content/2,
+		  add_camera_to_content/3, add_camera_to_content/4,
+
 		  add_full_scene_to_content/1,
 
+
+		  % Generic getters:
+
+		  get_mesh/2,
 
 		  % Generic setters:
 
@@ -359,12 +381,14 @@
 		  add_accessor_to_content/2,
 		  add_buffer_to_content/2, add_buffer_view_to_content/2,
 
+		  update_mesh/3,
+
 
 		  % Basic, default glTF elements:
 
-		  get_basic_node/0,
-		  get_basic_mesh/0,
-		  get_metallic_material/0,
+		  get_basic_node/0, get_basic_node/1,
+		  get_basic_mesh/0, get_basic_mesh/1,
+		  get_metallic_material/0, get_metallic_material/1,
 		  get_basic_camera_settings/0, get_basic_camera_type/0,
 		  get_basic_orthographic_camera_type/0,
 		  get_basic_perspective_camera_type/0,
@@ -373,7 +397,7 @@
 		  write_gltf_content/3, write_gltf_content/4,
 		  read_gltf_content/2,
 
-		  add_primitive/7, add_primitive/8,
+		  add_empty_mesh/2, add_primitive/8, add_primitive/9,
 		  decode_primitive/4,
 		  decode_vertices/5,
 
@@ -517,11 +541,21 @@ get_basic_content() ->
 
 
 
+% @doc Returns all settings regarding a basic glTF content, with defaults in
+% terms of scene, material, light, camera, etc., and specified base name for the
+% various named elements.
+%
+-spec get_basic_content( base_name() ) -> basic_content_settings().
+get_basic_content( BaseName ) ->
+	add_basics_to_content( get_blank_content(), BaseName ).
+
+
+
 % @doc Adds the basics to the specified glTF content: default scene, material,
 % light, camera, etc.
 %
 -spec add_basics_to_content( gltf_content() ) -> basic_content_settings().
-add_basics_to_content( Content ) ->
+add_basics_to_content( Content  ) ->
 
 	{ MaterialIndex, MatContent } = add_metallic_material_to_content( Content ),
 
@@ -529,6 +563,32 @@ add_basics_to_content( Content ) ->
 
 	{ CameraTypeIndex, CameraNodeIndex, CamContent } =
 		add_basic_camera_to_content( LightContent ),
+
+	{ SceneIndex, SceneContent } = add_full_scene_to_content( CamContent ),
+
+	DefContent = set_default_scene( SceneIndex, SceneContent ),
+
+	{ SceneIndex, MaterialIndex, LightNodeIndex,
+	  CameraTypeIndex, CameraNodeIndex, DefContent }.
+
+
+
+% @doc Adds named basics to the specified glTF content: default scene, material,
+% light, camera, etc.
+%
+-spec add_basics_to_content( gltf_content(), base_name() ) ->
+										basic_content_settings().
+add_basics_to_content( Content, BaseName ) ->
+
+	{ MaterialIndex, MatContent } =
+		add_metallic_material_to_content( Content,
+										  "Material for " ++ BaseName ),
+
+	{ LightNodeIndex, LightContent } =
+		add_basic_light_to_content( MatContent, "Light for " ++ BaseName ),
+
+	{ CameraTypeIndex, CameraNodeIndex, CamContent } =
+		add_basic_camera_to_content( LightContent, "Camera for " ++ BaseName ),
 
 	{ SceneIndex, SceneContent } = add_full_scene_to_content( CamContent ),
 
@@ -574,19 +634,36 @@ add_metallic_material_to_content( Content ) ->
 	add_material_to_content( get_metallic_material(), Content ).
 
 
+% @doc Adds a basic, named, metallic material to the specified glTF content;
+% returns the index of that material and the updated content.
+%
+-spec add_metallic_material_to_content( gltf_content(), base_name() ) ->
+								{ material_index(), gltf_content() }.
+add_metallic_material_to_content( Content, BaseName ) ->
+	add_material_to_content( get_metallic_material( BaseName ), Content ).
+
+
 
 % @doc Adds a basic light to the specified glTF content; returns the index of
 % that light and the updated content.
 %
 -spec add_basic_light_to_content( gltf_content() ) ->
-								   { light_index(), gltf_content() }.
+									{ light_index(), gltf_content() }.
 add_basic_light_to_content( Content ) ->
 	add_light_to_content( get_basic_light(), Content ).
 
 
+% @doc Adds a basic, named, light to the specified glTF content; returns the
+% index of that light and the updated content.
+%
+-spec add_basic_light_to_content( gltf_content(), base_name() ) ->
+									{ light_index(), gltf_content() }.
+add_basic_light_to_content( Content, BaseName ) ->
+	add_light_to_content( get_basic_light( BaseName ), Content ).
 
-% @doc Adds a basic camera to the specified glTF content; returns the index of
-% that camera type and node, and the updated content.
+
+% @doc Adds a basic unamed camera to the specified glTF content; returns the
+% index of that camera type and node, and the updated content.
 %
 -spec add_basic_camera_to_content( gltf_content() ) ->
 			{ camera_type_index(), camera_node_index(), gltf_content() }.
@@ -595,9 +672,20 @@ add_basic_camera_to_content( Content ) ->
 	add_camera_to_content( BasicCamType, BasicCamNode, Content ).
 
 
+% @doc Adds a basic named camera to the specified glTF content; returns the
+% index of that camera type and node, and the updated content.
+%
+-spec add_basic_camera_to_content( gltf_content(), base_name() ) ->
+			{ camera_type_index(), camera_node_index(), gltf_content() }.
+add_basic_camera_to_content( Content, BaseName ) ->
+	{ BasicCamType, BasicCamNode } = get_basic_camera_settings(),
+	add_camera_to_content( BasicCamType, BasicCamNode, Content, BaseName ).
 
-% @doc Adds specified camera to the specified glTF content; returns the index of
-% that camera type and of a node instantiating it, and the updated content.
+
+
+% @doc Adds specified unamed camera to the specified glTF content; returns the
+% index of that camera type and of a node instantiating it, and the updated
+% content.
 %
 % Updates the specified node so that it references this camera type (hence
 % creating an instance thereof); any previous camera is replaced.
@@ -605,9 +693,26 @@ add_basic_camera_to_content( Content ) ->
 -spec add_camera_to_content( gltf_camera_type(), gltf_node(),
 							 gltf_content() ) ->
 			{ camera_type_index(), node_index(), gltf_content() }.
+add_camera_to_content( CameraType, CameraNode, Content ) ->
+	add_camera_to_content( CameraType, CameraNode, Content,
+						   _BaseName="Basic Myriad camera node instance" ).
+
+
+
+% @doc Adds specified named camera to the specified glTF content; returns the
+% index of that camera type and of a node instantiating it, and the updated
+% content.
+%
+% Updates the specified node so that it references this camera type (hence
+% creating an instance thereof); any previous camera is replaced.
+%
+-spec add_camera_to_content( gltf_camera_type(), gltf_node(),
+							 gltf_content(), base_name() ) ->
+			{ camera_type_index(), node_index(), gltf_content() }.
 add_camera_to_content( CameraType, CameraNode,
 					   Content=#gltf_content{ nodes=Nodes,
-											  camera_types=CameraTypes } )
+											  camera_types=CameraTypes },
+					   BaseName )
   when ( is_record( CameraType, gltf_orthographic_camera )
 		 orelse is_record( CameraType, gltf_perspective_camera ) )
 	   andalso is_record( CameraNode, gltf_node ) ->
@@ -620,7 +725,7 @@ add_camera_to_content( CameraType, CameraNode,
 	CameraNodeIndex = length( Nodes ),
 
 	UpdatedCameraNode = CameraNode#gltf_node{
-							name="Basic Myriad camera node instance",
+							name=BaseName,
 							camera=CameraTypeIndex },
 
 	NewNodes = list_utils:append_at_end( UpdatedCameraNode, Nodes ),
@@ -647,6 +752,14 @@ add_full_scene_to_content( Content=#gltf_content{ nodes=Nodes } ) ->
 
 	add_scene_to_content( FullScene, Content ).
 
+
+
+% Section for generic getters of glTF elements.
+
+
+-spec get_mesh( mesh_index(), gltf_content() ) -> gltf_mesh().
+get_mesh( MeshIndex, Content ) ->
+	list_utils:get_element_at( Content#gltf_content.meshes, MeshIndex+1 ).
 
 
 
@@ -707,7 +820,7 @@ add_node_to_content( Node,
 % returns the updated content.
 %
 -spec add_node_to_scene( node_index(), scene_index(), gltf_content() ) ->
-												   gltf_content().
+													gltf_content().
 add_node_to_scene( NodeIndex, SceneIndex,
 				   Content=#gltf_content{ scenes=Scenes } ) ->
 
@@ -866,6 +979,14 @@ add_buffer_view_to_content( BufferView,
 
 
 
+% @doc Updates the specified mesh in content with the specified one.
+-spec update_mesh( gltf_mesh(), mesh_index(), gltf_content() ) ->
+											gltf_content().
+update_mesh( Mesh, MeshIndex, Content=#gltf_content{ meshes=Meshes } ) ->
+	NewMeshes = list_utils:set_element_at( Mesh, Meshes, MeshIndex ),
+	Content#gltf_content{ meshes=NewMeshes }.
+
+
 
 % Section for basic, default glTF elements.
 
@@ -874,20 +995,41 @@ add_buffer_view_to_content( BufferView,
 % @doc Returns a basic, empty, unregistered glTF scene node.
 -spec get_basic_node() -> gltf_node().
 get_basic_node() ->
-	#gltf_node{ name="Basic Myriad node" }.
+	get_basic_node( "Basic Myriad node" ).
+
+
+% @doc Returns a basic, empty, named, unregistered glTF scene node.
+-spec get_basic_node( object_name() ) -> gltf_node().
+get_basic_node( NodeName ) ->
+	#gltf_node{ name=NodeName }.
 
 
 
-% @doc Returns a basic, empty glTF mesh.
+% @doc Returns a basic, empty, unregistered glTF mesh.
 -spec get_basic_mesh() -> gltf_mesh().
 get_basic_mesh() ->
-	#gltf_mesh{ name="Basic Myriad mesh" }.
+	get_basic_mesh( "Basic Myriad mesh" ).
+
+
+% @doc Returns a basic, empty, named, unregistered glTF mesh.
+-spec get_basic_mesh( object_name() ) -> gltf_mesh().
+get_basic_mesh( MeshName ) ->
+	#gltf_mesh{ name=MeshName }.
 
 
 
-% @doc Returns a basic, metallic, double-sided glTF material.
+% @doc Returns a basic, metallic, double-sided, unregistered glTF material.
 -spec get_metallic_material() -> gltf_material().
 get_metallic_material() ->
+	get_metallic_material( "Basic Myriad metallic material" ).
+
+
+
+% @doc Returns a basic, metallic, double-sided, named, unregistered glTF
+% material.
+%
+-spec get_metallic_material( object_name() ) -> gltf_material().
+get_metallic_material( MaterialName ) ->
 
 	ColorCoord = 0.800000011920929,
 
@@ -896,15 +1038,21 @@ get_metallic_material() ->
 		metallic_factor=0.0,
 		roughness_factor=0.4000000059604645 },
 
-	#gltf_material{ name="Basic Myriad metallic material",
+	#gltf_material{ name=MaterialName,
 					double_sided=true,
 					pbr_metallic_roughness=MetalRoughness }.
 
 
 
-% @doc Returns a basic glTF light.
+% @doc Returns a basic, unregistered glTF light (as a node).
 -spec get_basic_light() -> gltf_light().
 get_basic_light() ->
+	get_basic_light( "Basic Myriad light" ).
+
+
+% @doc Returns a basic, unregistered, named glTF light (as a node).
+-spec get_basic_light( object_name() ) -> gltf_light().
+get_basic_light( LightName ) ->
 
 	% In glTF, lights are not first-class citizens, as they shall be described
 	% as meshes having at least one light-emitting material.
@@ -922,7 +1070,7 @@ get_basic_light() ->
 					  5.903861999511719,
 					  -1.0054539442062378 ],
 
-	#gltf_node{ name="Basic Myriad light",
+	#gltf_node{ name=LightName,
 				rotation=LightRotQuaternion,
 				translation=LightPosition }.
 
@@ -1902,46 +2050,62 @@ decode_indexes( AccessorIndex, Accessors, Buffers, BufferViews,
 
 
 % To be added later:
-% add_pritimive( gltf_primitive(), gltf_content() ) -> gltf_content().
+% add_primitive( gltf_primitive(), gltf_content() ) -> gltf_content().
 % add_mesh( gltf_mesh(), gltf_content() ) -> gltf_content().
 
 
-% @doc Encodes the specified primitive information as a new (anonymous) mesh
-% into the specified glTF content.
-%
-% Directly embeds the resulting buffer; returns the index of the new mesh, the
-% index of the new primitive and an updated glTF content.
+% @doc Adds a named, empty mesh (that is: a mesh with no primitive) to the
+% specified content; returns the index of this mesh and the corresponding
+% updated glTF content.
 %
 % Does not create any node referencing that mesh.
+%
+-spec add_empty_mesh( mesh_name(), gltf_content() ) ->
+											{ mesh_index(), gltf_content() }.
+add_empty_mesh( MeshName, Content=#gltf_content{ meshes=Meshes } ) ->
+	NewMesh = #gltf_mesh{ name=MeshName },
+	NewMeshes = list_utils:append_at_end( NewMesh, Meshes ),
+	% As starts at zero:
+	NewMeshIndex = length( Meshes ),
+	{ NewMeshIndex, Content#gltf_content{ meshes=NewMeshes } }.
+
+
+
+% @doc Encodes the specified primitive information as an additional primitive of
+% the specified mesh of the specified glTF content.
+%
+% Directly embeds the resulting buffer; returns the index of the new primitive
+% (in that mesh) and an updated glTF content.
 %
 -spec add_primitive( [ specialised_vertex() ], [ specialised_normal() ],
 		[ specialised_texture_coordinates() ], topology_type(), gltf_topology(),
-		material_index(), gltf_content() ) ->
-					{ mesh_index(), primitive_index(), gltf_content() }.
+		  material_index(), mesh_index(), gltf_content() ) ->
+							{ primitive_index(), gltf_content() }.
 add_primitive( Vertices, Normals, TexCoords, TopologyType, IndexedTriangles,
-			   MaterialAccessorIndex, Content ) ->
+			   MaterialAccessorIndex, MeshIndex, Content ) ->
 	add_primitive( _MaybeName=undefined, Vertices, Normals, TexCoords,
-		TopologyType, IndexedTriangles, MaterialAccessorIndex, Content ).
+		TopologyType, IndexedTriangles, MaterialAccessorIndex, MeshIndex,
+		Content ).
 
 
 
-% @doc Encodes the specified primitive information as a new maybe-named mesh
-% into the specified glTF content.
+% @doc Encodes the specified primitive information as an additional primitive of
+% the specified already-existing mesh of the specified glTF content.
 %
-% Directly embeds the resulting buffer; returns the index of the new mesh, the
-% index of the new primitive and an updated glTF content.
+% Primitives do not have stored names, yet buffer names can use that
+% information.
 %
-% Does not create any node referencing that mesh.
+% Directly embeds the resulting buffer; returns the index of the new primitive
+% (in that mesh) and an updated glTF content.
 %
--spec add_primitive( maybe( object_name() ), [ specialised_vertex() ],
+-spec add_primitive( maybe( primitive_name() ), [ specialised_vertex() ],
 		[ specialised_normal() ], [ specialised_texture_coordinates() ],
-		gltf_topology_type(), gltf_topology(), material_index(),
-		gltf_content() ) ->
-						{ mesh_index(), primitive_index(), gltf_content() }.
-add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
-			   IndexedTriangles, MaterialAccessorIndex,
-			   Content=#gltf_content{ meshes=Meshes,
-									  buffers=Buffers } ) ->
+		topology_type(), gltf_topology(), material_index(), mesh_index(),
+		gltf_content() ) -> { primitive_index(), gltf_content() }.
+add_primitive( MaybePrimName, Vertices, Normals, TexCoords,
+			   TopologyType=triangles, IndexedTriangles, MaterialAccessorIndex,
+			   MeshIndex, Content=#gltf_content{ meshes=Meshes,
+												 buffers=Buffers } ) ->
 
 	% Here, we rely on the following conventions: in the final buffer, first all
 	% vertices ("positions") are listed (if any), then all normals (if any),
@@ -1949,6 +2113,7 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 
 	cond_utils:if_defined( gltf_exporter_verbose,
 		begin
+			trace_utils:debug_fmt( "MaybePrimName = ~p", [ MaybePrimName ] ),
 			trace_utils:debug_fmt( "Vertices = ~p", [ Vertices ] ),
 			trace_utils:debug_fmt( "Normals = ~p", [ Normals ] ),
 			trace_utils:debug_fmt( "TexCoords = ~p", [ TexCoords ] ),
@@ -1963,16 +2128,16 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 	InitialBufferOffset = 0,
 
 	{ MaybePosAccessorIndex, PosBuffer, PosBufferOffset, PosContent } =
-		integrate_vertices( Vertices, MaybeName, PrimBufferIndex,
+		integrate_vertices( Vertices, MaybePrimName, PrimBufferIndex,
 							InitialBuffer, InitialBufferOffset, Content ),
 
 	{ MaybeNormAccessorIndex, NormBuffer, NormBufferOffset, NormContent } =
-		integrate_normals( Normals, MaybeName, PrimBufferIndex, PosBuffer,
+		integrate_normals( Normals, MaybePrimName, PrimBufferIndex, PosBuffer,
 						   PosBufferOffset, PosContent ),
 
 	{ MaybeTexAccessorIndex, TexBuffer, TexBufferOffset, TexContent } =
-		integrate_texture_coordinates( TexCoords, MaybeName, PrimBufferIndex,
-			NormBuffer, NormBufferOffset, NormContent ),
+		integrate_texture_coordinates( TexCoords, MaybePrimName,
+			PrimBufferIndex, NormBuffer, NormBufferOffset, NormContent ),
 
 
 	Indexes = triangles_to_indexes( IndexedTriangles ),
@@ -1980,14 +2145,14 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 	%trace_utils:debug_fmt( "Indexes: ~p", [ Indexes ] ),
 
 	{ MaybeIdxAccessorIndex, IdxBuffer, _IdxBufferOffset, IdxContent } =
-		integrate_indexes( Indexes, MaybeName, PrimBufferIndex, TexBuffer,
+		integrate_indexes( Indexes, MaybePrimName, PrimBufferIndex, TexBuffer,
 						   TexBufferOffset, TexContent ),
 
 
 	FinalRawBuffer = IdxBuffer,
 	FinalContent = IdxContent,
 
-	MaybeBufferName = forge_maybe_name( "Generated buffer", MaybeName ),
+	MaybeBufferName = forge_maybe_name( "Generated buffer", MaybePrimName ),
 
 	FinalGltfBuffer =
 		raw_buffer_to_gltf_buffer_embedded( FinalRawBuffer, MaybeBufferName ),
@@ -1998,23 +2163,28 @@ add_primitive( MaybeName, Vertices, Normals, TexCoords, TopologyType=triangles,
 								   normal=MaybeNormAccessorIndex,
 								   texcoord_0=MaybeTexAccessorIndex },
 
-	Primitive = #gltf_primitive{ attributes=Attributes,
-								 indexes=MaybeIdxAccessorIndex,
-								 material=MaterialAccessorIndex,
-								 mode=TopologyType },
+	NewPrimitive = #gltf_primitive{ attributes=Attributes,
+									indexes=MaybeIdxAccessorIndex,
+									material=MaterialAccessorIndex,
+									mode=TopologyType },
 
-	MaybeMeshName = forge_maybe_name( "Hosting mesh", MaybeName ),
+	TargetMeshPos = MeshIndex+1,
 
-	Mesh = #gltf_mesh{ name=MaybeMeshName, primitives=[ Primitive ] },
+	Mesh = #gltf_mesh{ primitives=Primitives }
+				= list_utils:get_element_at( Meshes, TargetMeshPos ),
 
-	MeshIndex = length( Meshes ),
+	NewPrimitives = list_utils:append_at_end( NewPrimitive, Primitives ),
 
-	NewMeshes = list_utils:append_at_end( Mesh, Meshes ),
+	PrimIndex = length( Primitives ),
+
+	UpdatedMesh = Mesh#gltf_mesh{ primitives=NewPrimitives },
+
+	NewMeshes = list_utils:set_element_at( UpdatedMesh, Meshes, TargetMeshPos ),
 
 	NewContent = FinalContent#gltf_content{ meshes=NewMeshes,
 											buffers=NewBuffers },
 
-	{ MeshIndex, _PrimitiveIndex=0, NewContent }.
+	{ PrimIndex, NewContent }.
 
 
 
