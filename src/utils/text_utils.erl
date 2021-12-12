@@ -108,6 +108,7 @@
 -export([ get_lexicographic_distance/2, get_longest_common_prefix/1,
 		  safe_length/1,
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
+		  flatten/1,
 		  join/2,
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
@@ -284,6 +285,41 @@
 % The specific type of iolist resulting from a parsing.
 
 
+-type io_list() ::
+		maybe_improper_list( byte() | binary() | iolist(), binary() | [] ).
+% A list whose elements are either integers (characters), binaries or other
+% iolists.
+%
+% Most Erlang standard functions, like file:write_file/2 and gen_tcp:send/2,
+% accept them, so converting an iolist to a binary is generally at least
+% useless.
+%
+% For example the ["foo", $b, $a, $r, <<"baz">>] iolist represents the
+% "foobarbaz" string.
+%
+% Type redefined exactly as the standard one, almost verbatim (with a name
+% including an underscore to avoid colliding with the builtin type) for easier
+% reference.
+%
+% No such type as iostring() or io_string().
+%
+% See
+% https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax
+% for more details.
+
+
+-type io_data() :: iolist() | binary().
+% Either an iolist or a (direct, top-level) binary.
+%
+% Type redefined exactly as the standard one, almost verbatim (with a name
+% including an underscore to avoid colliding with the builtin type) for easier
+% reference.
+%
+% See
+% https://www.erlang.org/doc/reference_manual/typespec.html#types-and-their-syntax
+% for more details.
+
+
 -type translation_table() :: ?table:?table( any_string(), any_string() ).
 % To convert strings (ex: keywords) into others.
 
@@ -340,7 +376,7 @@
 			   regex_string/0, title/0, label/0,
 			   bin_string/0, any_string/0, unicode_string/0, unicode_data/0,
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
-			   parse_string/0,
+			   parse_string/0, io_list/0, io_data/0,
 			   translation_table/0, length/0, width/0, indentation_level/0,
 			   distance/0 ]).
 
@@ -2809,6 +2845,19 @@ to_lowercase( String ) ->
 -spec to_uppercase( ustring() ) -> ustring().
 to_uppercase( String ) ->
 	string:to_upper( String ).
+
+
+
+% @doc Flattens the specified IOList, that is returns a plain (non-nested)
+% string out of it.
+%
+% Note that usually a good practice is to rely on IOLists as much as possible,
+% as most standard functions can deal with them.
+%
+-spec flatten( io_list() ) -> ustring().
+flatten( IOList ) ->
+	lists:flatten( IOList ).
+
 
 
 % @doc Joins, with specified separator, the strings in specified list.
