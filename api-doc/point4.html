@@ -42,6 +42,10 @@
 <p><tt>distance() = <a href="linear.html#type-distance">linear:distance()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-factor">factor()</a></h3>
+<p><tt>factor() = <a href="math_utils.html#type-factor">math_utils:factor()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-integer_coordinate">integer_coordinate()</a></h3>
 <p><tt>integer_coordinate() = <a href="linear.html#type-integer_coordinate">linear:integer_coordinate()</a></tt></p>
 
@@ -98,8 +102,10 @@
  points.</td></tr>
 <tr><td valign="top"><a href="#get_integer_center-2">get_integer_center/2</a></td><td>Returns a point corresponding the middle of the two specified points,
  returned with integer coordinates.</td></tr>
-<tr><td valign="top"><a href="#is_within-3">is_within/3</a></td><td>Tells whether 4D point P1 is within a distance D from 4D point P2, using
- some margin to overcome numerical errors.</td></tr>
+<tr><td valign="top"><a href="#is_within-3">is_within/3</a></td><td>Tells whether the specified 4D point P1 is within a distance D from 4D
+ point P2, using some margin to overcome numerical errors.</td></tr>
+<tr><td valign="top"><a href="#is_within_square-3">is_within_square/3</a></td><td>Tells whether the specified 4D point P1 is within a square distance
+ SquareD from 4D point P2.</td></tr>
 <tr><td valign="top"><a href="#new-1">new/1</a></td><td>Returns a 4D point corresponding to the user-specified one (preferably a 
 tuple rather than a list).</td></tr>
 <tr><td valign="top"><a href="#new-4">new/4</a></td><td>Returns a 4D point corresponding to the user-specified one.</td></tr>
@@ -108,6 +114,7 @@ tuple rather than a list).</td></tr>
  the local referential.</td></tr>
 <tr><td valign="top"><a href="#roundify-1">roundify/1</a></td><td>Returns a point whose floating-point coordinates have been rounded to the
  respective nearest integers.</td></tr>
+<tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales the specified 4D point of the specified scalar factor.</td></tr>
 <tr><td valign="top"><a href="#square_distance-2">square_distance/2</a></td><td>Returns the square of the distance between the two specified 4D points.</td></tr>
 <tr><td valign="top"><a href="#to_any_vector-1">to_any_vector/1</a></td><td>Returns a 4D vector (with coordinates of the same type) corresponding to
  the specified 4D point.</td></tr>
@@ -189,8 +196,16 @@ tuple rather than a list).</td></tr>
 <div class="spec">
 <p><tt>is_within(P1::<a href="#type-point4">point4()</a>, P2::<a href="#type-point4">point4()</a>, D::<a href="#type-distance">distance()</a>) -&gt; boolean()</tt><br></p>
 <p> </p>
-</div><p>Tells whether 4D point P1 is within a distance D from 4D point P2, using
- some margin to overcome numerical errors.
+</div><p>Tells whether the specified 4D point P1 is within a distance D from 4D
+ point P2, using some margin to overcome numerical errors.
+</p>
+
+<h3 class="function"><a name="is_within_square-3">is_within_square/3</a></h3>
+<div class="spec">
+<p><tt>is_within_square(P1::<a href="#type-point4">point4()</a>, P2::<a href="#type-point4">point4()</a>, SquareD::<a href="#type-square_distance">square_distance()</a>) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Tells whether the specified 4D point P1 is within a square distance
+ SquareD from 4D point P2.
 </p>
 
 <h3 class="function"><a name="new-1">new/1</a></h3>
@@ -231,6 +246,12 @@ tuple rather than a list).</p>
 </div><p>Returns a point whose floating-point coordinates have been rounded to the
  respective nearest integers.
 </p>
+
+<h3 class="function"><a name="scale-2">scale/2</a></h3>
+<div class="spec">
+<p><tt>scale(P::<a href="#type-any_point4">any_point4()</a>, Factor::<a href="#type-factor">factor()</a>) -&gt; <a href="#type-point4">point4()</a></tt><br></p>
+<p> </p>
+</div><p>Scales the specified 4D point of the specified scalar factor.</p>
 
 <h3 class="function"><a name="square_distance-2">square_distance/2</a></h3>
 <div class="spec">

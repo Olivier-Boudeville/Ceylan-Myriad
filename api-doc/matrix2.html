@@ -49,6 +49,14 @@
 <p><tt>matrix2() = identity_2 | <a href="#type-canonical_matrix2">canonical_matrix2()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-radians">radians()</a></h3>
+<p><tt>radians() = <a href="unit_utils.html#type-radians">unit_utils:radians()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-rot_matrix2">rot_matrix2()</a></h3>
+<p><tt>rot_matrix2() = <a href="#type-canonical_matrix2">canonical_matrix2()</a></tt></p>
+<p> A matrix describing a 2D rotation.</p>
+
 <h3 class="typedecl"><a name="type-scalar">scalar()</a></h3>
 <p><tt>scalar() = <a href="linear.html#type-scalar">linear:scalar()</a></tt></p>
 
@@ -72,6 +80,8 @@
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-2">add/2</a></td><td>Returns the sum of the two specified matrices: M = Ma + Mb.</td></tr>
+<tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies (on the right) the specified vector V to the specified matrix M: 
+returns M.V.</td></tr>
 <tr><td valign="top"><a href="#are_equal-2">are_equal/2</a></td><td>Tells whether the two specified (2x2) matrices are equal.</td></tr>
 <tr><td valign="top"><a href="#check-1">check/1</a></td><td>Checks that the specified matrix is legit, and returns it.</td></tr>
 <tr><td valign="top"><a href="#column-2">column/2</a></td><td>Returns the specified column of the specified matrix.</td></tr>
@@ -96,6 +106,8 @@ iff its determinant is non-null), otherwise returns undefined.</td></tr>
 <tr><td valign="top"><a href="#new-1">new/1</a></td><td>Returns a 2D (canonical) matrix corresponding to the user-specified
  matrix.</td></tr>
 <tr><td valign="top"><a href="#null-0">null/0</a></td><td>Returns the null (2x2) matrix.</td></tr>
+<tr><td valign="top"><a href="#rotation-1">rotation/1</a></td><td>Returns the (2x2) matrix corresponding to a counterclockwise rotation 
+about the origin of the specified angle with respect to the abscissa (X) axis.</td></tr>
 <tr><td valign="top"><a href="#row-2">row/2</a></td><td>Returns the specified row of the specified matrix.</td></tr>
 <tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales specified (2D) matrix of the specified factor.</td></tr>
 <tr><td valign="top"><a href="#set_element-4">set_element/4</a></td><td>Returns a matrix identical to the specified one except that its specified
@@ -115,6 +127,16 @@ iff its determinant is non-null), otherwise returns undefined.</td></tr>
 <p><tt>add(Ma::<a href="#type-matrix2">matrix2()</a>, Mb::<a href="#type-matrix2">matrix2()</a>) -&gt; <a href="#type-matrix2">matrix2()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the sum of the two specified matrices: M = Ma + Mb.</p>
+
+<h3 class="function"><a name="apply-2">apply/2</a></h3>
+<div class="spec">
+<p><tt>apply(M::<a href="#type-matrix2">matrix2()</a>, V::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-vector2">vector2()</a></tt><br></p>
+<p> </p>
+</div><p><p>Applies (on the right) the specified vector V to the specified matrix M: 
+returns M.V.</p>
+
+ Not a clause of mult/2 for an increased clarity.
+</p>
 
 <h3 class="function"><a name="are_equal-2">are_equal/2</a></h3>
 <div class="spec">
@@ -249,6 +271,20 @@ iff its determinant is non-null), otherwise returns undefined.</p>
 <p><tt>null() -&gt; <a href="#type-canonical_matrix2">canonical_matrix2()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the null (2x2) matrix.</p>
+
+<h3 class="function"><a name="rotation-1">rotation/1</a></h3>
+<div class="spec">
+<p><tt>rotation(RadAngle::<a href="#type-radians">radians()</a>) -&gt; <a href="#type-rot_matrix2">rot_matrix2()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns the (2x2) matrix corresponding to a counterclockwise rotation 
+about the origin of the specified angle with respect to the abscissa (X) axis.</p>
+
+ <p>A rotation matrix is orthogonal, its inverse is its transpose, and its 
+determinant is 1.0.</p>
+
+ These 2D rotation matrices form a group known as the special orthogonal group
+ SO(2).
+</p>
 
 <h3 class="function"><a name="row-2">row/2</a></h3>
 <div class="spec">

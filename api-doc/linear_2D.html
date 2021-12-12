@@ -39,6 +39,10 @@
 <p><tt>dimensions() = <a href="#type-integer_rect_dimensions">integer_rect_dimensions()</a></tt></p>
 <p> Shorter form of integer_rect_dimensions/0.</p>
 
+<h3 class="typedecl"><a name="type-distance">distance()</a></h3>
+<p><tt>distance() = <a href="linear.html#type-distance">linear:distance()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-factor">factor()</a></h3>
 <p><tt>factor() = <a href="math_utils.html#type-factor">math_utils:factor()</a></tt></p>
 
@@ -47,8 +51,8 @@
 <p><tt>int_degrees() = <a href="unit_utils.html#type-int_degrees">unit_utils:int_degrees()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-integer_coordinate">integer_coordinate()</a></h3>
-<p><tt>integer_coordinate() = <a href="linear.html#type-integer_coordinate">linear:integer_coordinate()</a></tt></p>
+<h3 class="typedecl"><a name="type-integer_distance">integer_distance()</a></h3>
+<p><tt>integer_distance() = <a href="linear.html#type-integer_distance">linear:integer_distance()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-integer_point2">integer_point2()</a></h3>
@@ -56,8 +60,8 @@
 
 
 <h3 class="typedecl"><a name="type-integer_rect_dimensions">integer_rect_dimensions()</a></h3>
-<p><tt>integer_rect_dimensions() = {Width::<a href="#type-integer_coordinate">integer_coordinate()</a>, Height::<a href="#type-integer_coordinate">integer_coordinate()</a>}</tt></p>
-<p> Dimensions of a rectangular area, as integer coordinates.</p>
+<p><tt>integer_rect_dimensions() = {Width::<a href="#type-integer_distance">integer_distance()</a>, Height::<a href="#type-integer_distance">integer_distance()</a>}</tt></p>
+<p> Dimensions of a rectangular area, as integer distances.</p>
 
 <h3 class="typedecl"><a name="type-line2">line2()</a></h3>
 <p><tt>line2() = {A::<a href="#type-factor">factor()</a>, B::<a href="#type-factor">factor()</a>, C::<a href="#type-factor">factor()</a>}</tt></p>
@@ -73,7 +77,7 @@
 
 
 <h3 class="typedecl"><a name="type-rect_dimensions">rect_dimensions()</a></h3>
-<p><tt>rect_dimensions() = {Width::<a href="#type-coordinate">coordinate()</a>, Height::<a href="#type-coordinate">coordinate()</a>}</tt></p>
+<p><tt>rect_dimensions() = {Width::<a href="#type-distance">distance()</a>, Height::<a href="#type-distance">distance()</a>}</tt></p>
 <p> Dimensions of a rectangular area, as floating-point coordinates.</p>
 
 <h3 class="typedecl"><a name="type-shape">shape()</a></h3>

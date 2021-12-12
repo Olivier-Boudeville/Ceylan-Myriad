@@ -203,7 +203,7 @@ here</p>
 
 <h3 class="typedecl"><a name="type-hertz">hertz()</a></h3>
 <p><tt>hertz() = float()</tt></p>
-<p> Frequency.</p>
+<p> Frequency in Hz, as a floating-point number.</p>
 
 <h3 class="typedecl"><a name="type-hour">hour()</a></h3>
 <p><tt>hour() = integer()</tt></p>
@@ -222,6 +222,10 @@ here</p>
 <h3 class="typedecl"><a name="type-int_millimeters">int_millimeters()</a></h3>
 <p><tt>int_millimeters() = integer()</tt></p>
 
+
+<h3 class="typedecl"><a name="type-integer_hertz">integer_hertz()</a></h3>
+<p><tt>integer_hertz() = non_neg_integer()</tt></p>
+<p> Frequency in Hz, as a (non-negative) integer.</p>
 
 <h3 class="typedecl"><a name="type-joules">joules()</a></h3>
 <p><tt>joules() = float()</tt></p>
@@ -352,7 +356,9 @@ here</p>
 <p><tt>radians() = float()</tt></p>
 <p><p> Angle in radians.</p>
 
- Preferably to be kept in [0.0,2.Pi[.</p>
+ <p>2π radians is equal to 360 degrees.</p>
+
+ Preferably to be kept in [0.0,2π[.</p>
 
 <h3 class="typedecl"><a name="type-rpm">rpm()</a></h3>
 <p><tt>rpm() = float()</tt></p>

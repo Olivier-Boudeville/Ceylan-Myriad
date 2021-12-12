@@ -38,6 +38,13 @@ expensive, but not a problem if precomputing it.</p>
 <p><tt>any_point2() = <a href="point2.html#type-any_point2">point2:any_point2()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-bounding_algorithm">bounding_algorithm()</a></h3>
+<p><tt>bounding_algorithm() = rectangle | lazy_circle | mec</tt></p>
+<p> Allows to designate an algorithm in charge of computing a 2D bounding-box.
+ For example several algorithms allow, with different trade-offs, to compute
+ (different) instances of bounding-boxes (of the same type, ex: circle, or of
+ different types).</p>
+
 <h3 class="typedecl"><a name="type-bounding_box2">bounding_box2()</a></h3>
 <p><tt>bounding_box2() = <a href="#type-rectangle">rectangle()</a> | <a href="#type-circle">circle()</a></tt></p>
 <p> All supported types of 2D bounding boxes.</p>

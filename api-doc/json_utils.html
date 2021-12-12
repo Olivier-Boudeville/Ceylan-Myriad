@@ -312,9 +312,9 @@ available).</p>
 </div><p><p>Converts (encodes) specified JSON-compliant Erlang term into a JSON 
 counterpart element, using the looked-up default JSON backend for that.</p>
 
- Ex: <code>json_utils:to_json( #{ &lt;&lt;"protected"&gt;&gt; =&gt; Protected,
-							  &lt;&lt;"payload"&gt;&gt; =&gt; Payload,
-							  &lt;&lt;"signature"&gt;&gt; =&gt; EncSigned } )</code>.
+ Ex: <code>json_utils:to_json( #{&lt;&lt;"protected"&gt;&gt; =&gt; Protected,
+                            &lt;&lt;"payload"&gt;&gt; =&gt; Payload,
+                            &lt;&lt;"signature"&gt;&gt; =&gt; EncSigned} )</code>.
 </p>
 
 <h3 class="function"><a name="to_json-2">to_json/2</a></h3>
@@ -324,7 +324,7 @@ counterpart element, using the looked-up default JSON backend for that.</p>
 </div><p><p>Converts (encodes) specified Erlang term into a JSON counterpart element, 
 using directly the JSON backend designated by the specified parser state.</p>
 
- Ex: <code>json_utils:to_json( #{
+ Ex: <code>json_utils:to_json(#{
      &lt;&lt;"protected"&gt;&gt; =&gt; Protected,
      &lt;&lt;"payload"&gt;&gt; =&gt; Payload,
      &lt;&lt;"signature"&gt;&gt; =&gt; EncSigned }, _ParserName=jsx )</code>.
@@ -337,10 +337,10 @@ using directly the JSON backend designated by the specified parser state.</p>
 </div><p><p>Converts (encodes) specified JSON-compliant Erlang term into a JSON file, 
 using the looked-up default JSON backend for that.</p>
 
- Ex: <code>json_utils:to_json_file( #{
+ Ex: <code>json_utils:to_json_file(#{
                    &lt;&lt;"protected"&gt;&gt; =&gt; Protected,
                    &lt;&lt;"payload"&gt;&gt; =&gt; Payload,
-                   &lt;&lt;"signature"&gt;&gt; =&gt; EncSigned }, TargetJsonFilePath )</code>.
+                   &lt;&lt;"signature"&gt;&gt; =&gt; EncSigned}, TargetJsonFilePath )</code>.
 </p>
 
 <h3 class="function"><a name="to_json_file-3">to_json_file/3</a></h3>
@@ -350,10 +350,10 @@ using the looked-up default JSON backend for that.</p>
 </div><p><p>Converts (encodes) specified JSON-compliant Erlang term into a JSON file, 
 using the specified JSON backend for that.</p>
 
- Ex: <code>json_utils:to_json_file( #{
+ Ex: <code>json_utils:to_json_file(#{
           &lt;&lt;"protected"&gt;&gt; =&gt; Protected,
           &lt;&lt;"payload"&gt;&gt; =&gt; Payload,
-          &lt;&lt;"signature"&gt;&gt; =&gt; EncSigned }, TargetJsonFilePath, ParserState )</code>.
+          &lt;&lt;"signature"&gt;&gt; =&gt; EncSigned}, TargetJsonFilePath, ParserState )</code>.
 </p>
 <hr>
 

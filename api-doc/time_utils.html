@@ -107,19 +107,19 @@
 
 
 <h3 class="typedecl"><a name="type-ms_duration">ms_duration()</a></h3>
-<p><tt>ms_duration() = <a href="unit_utils.html#type-milliseconds">unit_utils:milliseconds()</a></tt></p>
+<p><tt>ms_duration() = <a href="#type-milliseconds">milliseconds()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-ms_monotonic">ms_monotonic()</a></h3>
-<p><tt>ms_monotonic() = <a href="unit_utils.html#type-milliseconds">unit_utils:milliseconds()</a></tt></p>
+<p><tt>ms_monotonic() = <a href="#type-milliseconds">milliseconds()</a></tt></p>
 <p> The internal, duration-friendly monotonic time.</p>
 
 <h3 class="typedecl"><a name="type-ms_since_epoch">ms_since_epoch()</a></h3>
-<p><tt>ms_since_epoch() = <a href="unit_utils.html#type-milliseconds">unit_utils:milliseconds()</a></tt></p>
+<p><tt>ms_since_epoch() = <a href="#type-milliseconds">milliseconds()</a></tt></p>
 <p> POSIX conventions.</p>
 
 <h3 class="typedecl"><a name="type-ms_since_year_0">ms_since_year_0()</a></h3>
-<p><tt>ms_since_year_0() = <a href="unit_utils.html#type-milliseconds">unit_utils:milliseconds()</a></tt></p>
+<p><tt>ms_since_year_0() = <a href="#type-milliseconds">milliseconds()</a></tt></p>
 <p> Also known as Gregorian milliseconds.</p>
 
 <h3 class="typedecl"><a name="type-posix_seconds">posix_seconds()</a></h3>
@@ -230,6 +230,10 @@ holidays, for specified year and country.</td></tr>
  French, like: "le 1/9/2009, à 11h46m53".</td></tr>
 <tr><td valign="top"><a href="#get_intertime_duration-2">get_intertime_duration/2</a></td><td>Returns the signed duration, in integer seconds, between the two 
 specified times.</td></tr>
+<tr><td valign="top"><a href="#get_local_date-0">get_local_date/0</a></td><td>Returns the local date, as reported by the underlying operating system.</td></tr>
+<tr><td valign="top"><a href="#get_local_time-0">get_local_time/0</a></td><td>Returns the local time, as reported by the underlying operating system.</td></tr>
+<tr><td valign="top"><a href="#get_local_timestamp-0">get_local_timestamp/0</a></td><td>Returns a local timestamp (date and time), as reported by the underlying
+ operating system.</td></tr>
 <tr><td valign="top"><a href="#get_monotonic_time-0">get_monotonic_time/0</a></td><td>Returns the current time, expressed in (absolute) internal time 
 (logically equivalent to a millisecond-based timestamp).</td></tr>
 <tr><td valign="top"><a href="#get_precise_duration-2">get_precise_duration/2</a></td><td>Returns the (signed) duration in milliseconds between the two specified
@@ -578,6 +582,26 @@ specified times.</p>
 
  A positive duration will be returned iff the first specified time is before
  the second one.
+</p>
+
+<h3 class="function"><a name="get_local_date-0">get_local_date/0</a></h3>
+<div class="spec">
+<p><tt>get_local_date() -&gt; <a href="#type-date">date()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the local date, as reported by the underlying operating system.</p>
+
+<h3 class="function"><a name="get_local_time-0">get_local_time/0</a></h3>
+<div class="spec">
+<p><tt>get_local_time() -&gt; <a href="#type-time">time()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the local time, as reported by the underlying operating system.</p>
+
+<h3 class="function"><a name="get_local_timestamp-0">get_local_timestamp/0</a></h3>
+<div class="spec">
+<p><tt>get_local_timestamp() -&gt; <a href="#type-timestamp">timestamp()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a local timestamp (date and time), as reported by the underlying
+ operating system.
 </p>
 
 <h3 class="function"><a name="get_monotonic_time-0">get_monotonic_time/0</a></h3>

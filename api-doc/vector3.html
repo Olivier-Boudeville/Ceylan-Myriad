@@ -100,6 +100,11 @@
 <p> An (internal) 3D vector, with (exactly) 3 floating-point coordinates.
  They are typically referenced as [X, Y, Z].</p>
 
+<h3 class="typedecl"><a name="type-yup_vector3">yup_vector3()</a></h3>
+<p><tt>yup_vector3() = <a href="#type-vector3">vector3()</a></tt></p>
+<p> A vector in a 3D space, yet with Y-UP conventions (as opposed to Myriad's Z-UP
+ ones). Refer to the design notes in linear_3D.erl for further details.</p>
+
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-1">add/1</a></td><td>Returns the sum of all 3D vectors in the specified (supposedly non-empty)
  list.</td></tr>
@@ -112,18 +117,24 @@
  vectors).</td></tr>
 <tr><td valign="top"><a href="#check-1">check/1</a></td><td>Checks that the specified 3D vector is legit, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_integer-1">check_integer/1</a></td><td>Checks that the specified 3D integer vector is legit, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_unit_vector-1">check_unit_vector/1</a></td><td>Checks that the specified 3D vector is normalised, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_unit_vectors-1">check_unit_vectors/1</a></td><td>Checks that the specified 3D vectors are normalised, and returns them.</td></tr>
 <tr><td valign="top"><a href="#cross_product-2">cross_product/2</a></td><td>Returns the cross-product of the two specified vectors, that is the
  results of a regular 3D cross product of the input vectors.</td></tr>
 <tr><td valign="top"><a href="#dot_product-2">dot_product/2</a></td><td>Returns the dot-product of the two specified 3D vectors: D = V1.V2.</td></tr>
 <tr><td valign="top"><a href="#from_point-1">from_point/1</a></td><td>Returns a 3D vector corresponding to the specified 3D point.</td></tr>
+<tr><td valign="top"><a href="#is_unitary-1">is_unitary/1</a></td><td>Returns whether the specified vector is unitary, that is whether it is of
+ magnitude 1.0.</td></tr>
 <tr><td valign="top"><a href="#list_to_string-1">list_to_string/1</a></td><td>Returns a textual representation of the specified list of 3D vectors;
  full float precision is shown.</td></tr>
 <tr><td valign="top"><a href="#magnitude-1">magnitude/1</a></td><td>Returns the magnitude of the specified 3D vector.</td></tr>
-<tr><td valign="top"><a href="#make_unit-1">make_unit/1</a></td><td>Returns the specified 3D vector with an unit length (whose magnitude is
- thus 1.0).</td></tr>
+<tr><td valign="top"><a href="#negate-1">negate/1</a></td><td>Negates the specified vector: returns the opposite one (of the same
+ magnitude).</td></tr>
 <tr><td valign="top"><a href="#new-1">new/1</a></td><td>Returns a 3D vector corresponding to the user-specified one.</td></tr>
 <tr><td valign="top"><a href="#new-3">new/3</a></td><td>Returns a 3D vector corresponding to the user-specified one.</td></tr>
 <tr><td valign="top"><a href="#new_integer-3">new_integer/3</a></td><td>Returns an integer 3D vector corresponding to the user-specified one.</td></tr>
+<tr><td valign="top"><a href="#normalise-1">normalise/1</a></td><td>Normalises the specified non-null 3D vector, that is returns it once
+ scaled to an unit length (whose magnitude is thus 1.0).</td></tr>
 <tr><td valign="top"><a href="#null-0">null/0</a></td><td>Returns the null (3D) vector, that is a 3D vector whose coordinates are
  all null.</td></tr>
 <tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales the specified 3D vector of the specified scalar factor.</td></tr>
@@ -138,6 +149,14 @@
  precision is shown.</td></tr>
 <tr><td valign="top"><a href="#to_user_string-1">to_user_string/1</a></td><td>Returns a textual, more user-friendly representation of the specified 3D 
 vector; full float precision is shown.</td></tr>
+<tr><td valign="top"><a href="#vector3_to_yup-1">vector3_to_yup/1</a></td><td>Converts a usual 3D vector into one that follows the Y-UP convention (as
+ opposed to the Myriad Z-UP one, see the design notes in linear_3D).</td></tr>
+<tr><td valign="top"><a href="#vector3_to_yups-1">vector3_to_yups/1</a></td><td>Converts usual 3D vectors into ones that follow the Y-UP convention (as
+ opposed to the Myriad Z-UP one, see the design notes in linear_3D).</td></tr>
+<tr><td valign="top"><a href="#yup_to_vector3-1">yup_to_vector3/1</a></td><td>Converts a 3D following the Y-UP convention (as opposed to the Myriad
+ Z-UP one, see the design notes in linear_3D) into a usual one.</td></tr>
+<tr><td valign="top"><a href="#yup_to_vector3s-1">yup_to_vector3s/1</a></td><td>Converts a 3D following the Y-UP convention (as opposed to the Myriad
+ Z-UP one, see the design notes in linear_3D) into a usual one.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -186,6 +205,18 @@ vector; full float precision is shown.</td></tr>
 <p> </p>
 </div><p>Checks that the specified 3D integer vector is legit, and returns it.</p>
 
+<h3 class="function"><a name="check_unit_vector-1">check_unit_vector/1</a></h3>
+<div class="spec">
+<p><tt>check_unit_vector(V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-unit_vector3">unit_vector3()</a></tt><br></p>
+<p> </p>
+</div><p>Checks that the specified 3D vector is normalised, and returns it.</p>
+
+<h3 class="function"><a name="check_unit_vectors-1">check_unit_vectors/1</a></h3>
+<div class="spec">
+<p><tt>check_unit_vectors(Vs::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-unit_vector3">unit_vector3()</a></tt><br></p>
+<p> </p>
+</div><p>Checks that the specified 3D vectors are normalised, and returns them.</p>
+
 <h3 class="function"><a name="cross_product-2">cross_product/2</a></h3>
 <div class="spec">
 <p><tt>cross_product(P1::<a href="#type-vector3">vector3()</a>, P2::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-vector3">vector3()</a></tt><br></p>
@@ -206,6 +237,14 @@ vector; full float precision is shown.</td></tr>
 <p> </p>
 </div><p>Returns a 3D vector corresponding to the specified 3D point.</p>
 
+<h3 class="function"><a name="is_unitary-1">is_unitary/1</a></h3>
+<div class="spec">
+<p><tt>is_unitary(V::<a href="#type-vector3">vector3()</a>) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified vector is unitary, that is whether it is of
+ magnitude 1.0.
+</p>
+
 <h3 class="function"><a name="list_to_string-1">list_to_string/1</a></h3>
 <div class="spec">
 <p><tt>list_to_string(Vectors::[<a href="#type-vector3">vector3()</a>]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
@@ -220,12 +259,12 @@ vector; full float precision is shown.</td></tr>
 <p> </p>
 </div><p>Returns the magnitude of the specified 3D vector.</p>
 
-<h3 class="function"><a name="make_unit-1">make_unit/1</a></h3>
+<h3 class="function"><a name="negate-1">negate/1</a></h3>
 <div class="spec">
-<p><tt>make_unit(V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-unit_vector3">unit_vector3()</a></tt><br></p>
+<p><tt>negate(V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-vector3">vector3()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the specified 3D vector with an unit length (whose magnitude is
- thus 1.0).
+</div><p>Negates the specified vector: returns the opposite one (of the same
+ magnitude).
 </p>
 
 <h3 class="function"><a name="new-1">new/1</a></h3>
@@ -245,6 +284,14 @@ vector; full float precision is shown.</td></tr>
 <p><tt>new_integer(X::<a href="#type-integer_coordinate">integer_coordinate()</a>, Y::<a href="#type-integer_coordinate">integer_coordinate()</a>, Z::<a href="#type-integer_coordinate">integer_coordinate()</a>) -&gt; <a href="#type-integer_vector3">integer_vector3()</a></tt><br></p>
 <p> </p>
 </div><p>Returns an integer 3D vector corresponding to the user-specified one.</p>
+
+<h3 class="function"><a name="normalise-1">normalise/1</a></h3>
+<div class="spec">
+<p><tt>normalise(V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-unit_vector3">unit_vector3()</a></tt><br></p>
+<p> </p>
+</div><p>Normalises the specified non-null 3D vector, that is returns it once
+ scaled to an unit length (whose magnitude is thus 1.0).
+</p>
 
 <h3 class="function"><a name="null-0">null/0</a></h3>
 <div class="spec">
@@ -305,6 +352,38 @@ vector; full float precision is shown.</td></tr>
 vector; full float precision is shown.</p>
 
  This is the recommended representation.
+</p>
+
+<h3 class="function"><a name="vector3_to_yup-1">vector3_to_yup/1</a></h3>
+<div class="spec">
+<p><tt>vector3_to_yup(V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-yup_vector3">yup_vector3()</a></tt><br></p>
+<p> </p>
+</div><p>Converts a usual 3D vector into one that follows the Y-UP convention (as
+ opposed to the Myriad Z-UP one, see the design notes in linear_3D).
+</p>
+
+<h3 class="function"><a name="vector3_to_yups-1">vector3_to_yups/1</a></h3>
+<div class="spec">
+<p><tt>vector3_to_yups(Vectors::[<a href="#type-vector3">vector3()</a>]) -&gt; [<a href="#type-yup_vector3">yup_vector3()</a>]</tt><br></p>
+<p> </p>
+</div><p>Converts usual 3D vectors into ones that follow the Y-UP convention (as
+ opposed to the Myriad Z-UP one, see the design notes in linear_3D).
+</p>
+
+<h3 class="function"><a name="yup_to_vector3-1">yup_to_vector3/1</a></h3>
+<div class="spec">
+<p><tt>yup_to_vector3(V::<a href="#type-yup_vector3">yup_vector3()</a>) -&gt; <a href="#type-vector3">vector3()</a></tt><br></p>
+<p> </p>
+</div><p>Converts a 3D following the Y-UP convention (as opposed to the Myriad
+ Z-UP one, see the design notes in linear_3D) into a usual one.
+</p>
+
+<h3 class="function"><a name="yup_to_vector3s-1">yup_to_vector3s/1</a></h3>
+<div class="spec">
+<p><tt>yup_to_vector3s(Vectors::[<a href="#type-yup_vector3">yup_vector3()</a>]) -&gt; [<a href="#type-vector3">vector3()</a>]</tt><br></p>
+<p> </p>
+</div><p>Converts a 3D following the Y-UP convention (as opposed to the Myriad
+ Z-UP one, see the design notes in linear_3D) into a usual one.
 </p>
 <hr>
 

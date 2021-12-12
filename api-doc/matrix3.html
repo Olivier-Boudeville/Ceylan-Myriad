@@ -57,8 +57,20 @@
 <p><tt>matrix3() = identity_3 | <a href="#type-canonical_matrix3">canonical_matrix3()</a> | <a href="#type-compact_matrix3">compact_matrix3()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-radians">radians()</a></h3>
+<p><tt>radians() = <a href="unit_utils.html#type-radians">unit_utils:radians()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-rot_matrix3">rot_matrix3()</a></h3>
+<p><tt>rot_matrix3() = <a href="#type-canonical_matrix3">canonical_matrix3()</a></tt></p>
+<p> A matrix describing a 3D rotation.</p>
+
 <h3 class="typedecl"><a name="type-scalar">scalar()</a></h3>
 <p><tt>scalar() = <a href="linear.html#type-scalar">linear:scalar()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-unit_vector3">unit_vector3()</a></h3>
+<p><tt>unit_vector3() = <a href="vector3.html#type-unit_vector3">vector3:unit_vector3()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-user_matrix">user_matrix()</a></h3>
@@ -88,6 +100,8 @@
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-2">add/2</a></td><td>Returns the sum of the two specified matrices: M = Ma + Mb.</td></tr>
+<tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies (on the right) the specified vector V to the specified matrix M: 
+returns M.V.</td></tr>
 <tr><td valign="top"><a href="#are_equal-2">are_equal/2</a></td><td>Tells whether the two specified (3x3) matrices are equal.</td></tr>
 <tr><td valign="top"><a href="#check-1">check/1</a></td><td>Checks that the specified matrix is legit, and returns it.</td></tr>
 <tr><td valign="top"><a href="#column-2">column/2</a></td><td>Returns the specified column of the specified matrix.</td></tr>
@@ -118,6 +132,8 @@ vectors.</td></tr>
 <tr><td valign="top"><a href="#new-2">new/2</a></td><td>Returns a 3D compact matrix corresponding to the user-specified
  row vectors.</td></tr>
 <tr><td valign="top"><a href="#null-0">null/0</a></td><td>Returns the null (3x3) matrix.</td></tr>
+<tr><td valign="top"><a href="#rotation-2">rotation/2</a></td><td>Returns the (3x3) matrix corresponding to a rotation of the specified 
+angle around the axis specified as a unit vector.</td></tr>
 <tr><td valign="top"><a href="#row-2">row/2</a></td><td>Returns the specified row of the specified matrix.</td></tr>
 <tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales specified (3D) matrix of the specified factor.</td></tr>
 <tr><td valign="top"><a href="#set_element-4">set_element/4</a></td><td>Returns a matrix identical to the specified one except that its specified
@@ -138,6 +154,16 @@ vectors.</td></tr>
 <p><tt>add(Ma::<a href="#type-matrix3">matrix3()</a>, Mb::<a href="#type-matrix3">matrix3()</a>) -&gt; <a href="#type-matrix3">matrix3()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the sum of the two specified matrices: M = Ma + Mb.</p>
+
+<h3 class="function"><a name="apply-2">apply/2</a></h3>
+<div class="spec">
+<p><tt>apply(M::<a href="#type-matrix3">matrix3()</a>, V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-vector3">vector3()</a></tt><br></p>
+<p> </p>
+</div><p><p>Applies (on the right) the specified vector V to the specified matrix M: 
+returns M.V.</p>
+
+ Not a clause of mult/2 for an increased clarity.
+</p>
 
 <h3 class="function"><a name="are_equal-2">are_equal/2</a></h3>
 <div class="spec">
@@ -294,6 +320,25 @@ vectors.</p>
 <p><tt>null() -&gt; <a href="#type-canonical_matrix3">canonical_matrix3()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the null (3x3) matrix.</p>
+
+<h3 class="function"><a name="rotation-2">rotation/2</a></h3>
+<div class="spec">
+<p><tt>rotation(UnitAxis::<a href="#type-unit_vector3">unit_vector3()</a>, RadAngle::<a href="#type-radians">radians()</a>) -&gt; <a href="#type-rot_matrix3">rot_matrix3()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns the (3x3) matrix corresponding to a rotation of the specified 
+angle around the axis specified as a unit vector.</p>
+
+ <p>This will be a counterclockwise rotation for an observer placed so that the 
+specified axis points towards it.</p>
+
+ <p>A rotation matrix is orthogonal, its inverse is its transpose, and its 
+determinant is 1.0.</p>
+
+ <p>These 3D rotation matrices form a group known as the special orthogonal group 
+SO(3).</p>
+
+ See also: quaternion:rotation/2.
+</p>
 
 <h3 class="function"><a name="row-2">row/2</a></h3>
 <div class="spec">

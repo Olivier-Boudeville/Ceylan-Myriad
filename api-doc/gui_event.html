@@ -82,7 +82,7 @@ this (object,event) combination</p>
  type stored.</p>
 
 <h3 class="typedecl"><a name="type-event_type">event_type()</a></h3>
-<p><tt>event_type() = onRepaintNeeded | onButtonClicked | onResized | onWindowClosed</tt></p>
+<p><tt>event_type() = onRepaintNeeded | onButtonClicked | onResized | onWindowClosed | onShown</tt></p>
 <p><p> Our own event types, independent from any backend.</p>
 
  Note that resizing a widget (typically a canvas) implies receiving also a
@@ -209,7 +209,7 @@ other fields.</p>
  {wxCommand,command_button_clicked,CmdString,CmdInt,...}</p>
 
 <h3 class="typedecl"><a name="type-wx_event_type">wx_event_type()</a></h3>
-<p><tt>wx_event_type() = <a href="#type-wx_repaint_event_type">wx_repaint_event_type()</a> | <a href="#type-wx_click_event_type">wx_click_event_type()</a> | <a href="#type-wx_resize_event_type">wx_resize_event_type()</a> | <a href="#type-wx_close_event_type">wx_close_event_type()</a></tt></p>
+<p><tt>wx_event_type() = <a href="#type-wx_repaint_event_type">wx_repaint_event_type()</a> | <a href="#type-wx_click_event_type">wx_click_event_type()</a> | <a href="#type-wx_resize_event_type">wx_resize_event_type()</a> | <a href="#type-wx_close_event_type">wx_close_event_type()</a> | <a href="#type-wx_show_event_type">wx_show_event_type()</a></tt></p>
 <p> Using the wx-event type, leaked by wx.hrl (enrich this union whenever needed).</p>
 
 <h3 class="typedecl"><a name="type-wx_id">wx_id()</a></h3>
@@ -230,6 +230,10 @@ other fields.</p>
 
 <h3 class="typedecl"><a name="type-wx_server">wx_server()</a></h3>
 <p><tt>wx_server() = <a href="gui.html#type-wx_server">gui:wx_server()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-wx_show_event_type">wx_show_event_type()</a></h3>
+<p><tt>wx_show_event_type() = show</tt></p>
 
 
 <h2><a name="index">Function Index</a></h2>

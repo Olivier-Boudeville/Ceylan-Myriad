@@ -1,0 +1,158 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module gui_image</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module gui_image</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathers all elements relative to the management of <b>images</b> 
+(loading, modifying, saving, scaling, resizing, clipping, etc.), in link to 
+MyriadGUI, and in a platform-independent way.
+
+
+<h2><a name="description">Description</a></h2><p>Gathers all elements relative to the management of <b>images</b> 
+(loading, modifying, saving, scaling, resizing, clipping, etc.), in link to 
+MyriadGUI, and in a platform-independent way.</p>
+
+ May be useful also for textures.
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-alpha_buffer">alpha_buffer()</a></h3>
+<p><tt>alpha_buffer() = <a href="gui_color.html#type-alpha_buffer">gui_color:alpha_buffer()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-any_file_path">any_file_path()</a></h3>
+<p><tt>any_file_path() = <a href="file_utils.html#type-any_file_path">file_utils:any_file_path()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-color_by_decimal">color_by_decimal()</a></h3>
+<p><tt>color_by_decimal() = <a href="gui_color.html#type-color_by_decimal">gui_color:color_by_decimal()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-image">image()</a></h3>
+<p><tt>image() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxImage.html#type-wxImage">wxImage:wxImage()</a></tt></p>
+<p><p> An image is a bitmap buffer of RGB bytes with an optional buffer for the alpha 
+bytes.</p>
+
+ It is thus generic, independent from platforms and image file formats.</p>
+
+<h3 class="typedecl"><a name="type-image_format">image_format()</a></h3>
+<p><tt>image_format() = png | jpeg</tt></p>
+<p><p> Designates a file format able to store images.</p>
+
+ <p>We prefer telling explicitly the type rather than trying to guess it from the 
+extension of a filename, as it is clearer and more reliable.</p>
+
+ Refer to
+ https://docs.wxwidgets.org/3.1/gdicmn_8h.html#a90a1eb6d85b5044a99b706fd979f27f5
+ for more image formats.</p>
+
+<h3 class="typedecl"><a name="type-image_quality">image_quality()</a></h3>
+<p><tt>image_quality() = normal | high</tt></p>
+<p> The requested quality for an image operation (ex: for a scaling).</p>
+
+<h3 class="typedecl"><a name="type-integer_distance">integer_distance()</a></h3>
+<p><tt>integer_distance() = <a href="linear.html#type-integer_distance">linear:integer_distance()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-rgba_color_buffer">rgba_color_buffer()</a></h3>
+<p><tt>rgba_color_buffer() = <a href="gui_color.html#type-rgba_color_buffer">gui_color:rgba_color_buffer()</a></tt></p>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#colorize-2">colorize/2</a></td><td>Returns a colourized image, that is an image of the specified color,
+ modulated by the specified alpha coordinates.</td></tr>
+<tr><td valign="top"><a href="#create_from_file-1">create_from_file/1</a></td><td>Creates an image instance whose content is read from the specified file,
+ trying to auto-detect the image format of that file.</td></tr>
+<tr><td valign="top"><a href="#create_from_file-2">create_from_file/2</a></td><td>Creates an image instance whose content is read from the specified file,
+ expecting the image format of the file to be specified one.</td></tr>
+<tr><td valign="top"><a href="#destruct-1">destruct/1</a></td><td>Declares that the specified instance can be destructed.</td></tr>
+<tr><td valign="top"><a href="#load-2">load/2</a></td><td>Loads the image stored in the specified file in the specified image
+ instance, trying to auto-detect the image format of that file.</td></tr>
+<tr><td valign="top"><a href="#load-3">load/3</a></td><td>Loads the image stored in the specified file into the specified image
+ instance, expecting the image format of the file to be the specified one.</td></tr>
+<tr><td valign="top"><a href="#scale-3">scale/3</a></td><td>Scales the specified image to the specified dimensions, with a default
+ quality.</td></tr>
+<tr><td valign="top"><a href="#scale-4">scale/4</a></td><td>Scales the specified image to the specified dimensions, with specified
+ quality.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="colorize-2">colorize/2</a></h3>
+<div class="spec">
+<p><tt>colorize(AlphaBuffer::<a href="#type-color_by_decimal">color_by_decimal()</a>, Color::<a href="#type-alpha_buffer">alpha_buffer()</a>) -&gt; <a href="#type-rgba_color_buffer">rgba_color_buffer()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a colourized image, that is an image of the specified color,
+ modulated by the specified alpha coordinates.
+</p>
+
+<h3 class="function"><a name="create_from_file-1">create_from_file/1</a></h3>
+<div class="spec">
+<p><tt>create_from_file(AnyImagePath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-image">image()</a></tt><br></p>
+<p> </p>
+</div><p>Creates an image instance whose content is read from the specified file,
+ trying to auto-detect the image format of that file.
+</p>
+
+<h3 class="function"><a name="create_from_file-2">create_from_file/2</a></h3>
+<div class="spec">
+<p><tt>create_from_file(ImageFormat::<a href="#type-image_format">image_format()</a>, AnyImagePath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-image">image()</a></tt><br></p>
+<p> </p>
+</div><p>Creates an image instance whose content is read from the specified file,
+ expecting the image format of the file to be specified one.
+</p>
+
+<h3 class="function"><a name="destruct-1">destruct/1</a></h3>
+<div class="spec">
+<p><tt>destruct(Image::<a href="#type-image">image()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p><p>Declares that the specified instance can be destructed.</p>
+
+ Such it can be reference-counted, it may or may not result in an actual
+ deallocation.
+</p>
+
+<h3 class="function"><a name="load-2">load/2</a></h3>
+<div class="spec">
+<p><tt>load(Image::<a href="#type-image">image()</a>, ImagePath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Loads the image stored in the specified file in the specified image
+ instance, trying to auto-detect the image format of that file.
+</p>
+
+<h3 class="function"><a name="load-3">load/3</a></h3>
+<div class="spec">
+<p><tt>load(Image::<a href="#type-image">image()</a>, ImageFormat::<a href="#type-image_format">image_format()</a>, ImagePath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Loads the image stored in the specified file into the specified image
+ instance, expecting the image format of the file to be the specified one.
+</p>
+
+<h3 class="function"><a name="scale-3">scale/3</a></h3>
+<div class="spec">
+<p><tt>scale(Image::<a href="#type-image">image()</a>, Width::<a href="#type-integer_distance">integer_distance()</a>, Height::<a href="#type-integer_distance">integer_distance()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Scales the specified image to the specified dimensions, with a default
+ quality.
+</p>
+
+<h3 class="function"><a name="scale-4">scale/4</a></h3>
+<div class="spec">
+<p><tt>scale(Image::<a href="#type-image">image()</a>, Width::<a href="#type-integer_distance">integer_distance()</a>, Height::<a href="#type-integer_distance">integer_distance()</a>, Quality::<a href="#type-image_quality">image_quality()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Scales the specified image to the specified dimensions, with specified
+ quality.
+</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>

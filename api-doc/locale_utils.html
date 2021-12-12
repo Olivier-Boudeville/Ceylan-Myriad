@@ -14,15 +14,57 @@
  various <b>locales</b> (ex: for the management of per-country bank holidays).
 
 
-<h2><a name="description">Description</a></h2><p>Gathering of various convenient facilities regarding the support of
- various <b>locales</b> (ex: for the management of per-country bank holidays).</p>
-
- Not ready.
+<h2><a name="description">Description</a></h2>Gathering of various convenient facilities regarding the support of
+ various <b>locales</b> (ex: for the management of per-country bank holidays).
 
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-any_locale">any_locale()</a></h3>
+<p><tt>any_locale() = <a href="#type-any_string">any_string()</a></tt></p>
+<p><p> A locale as a BCP 47 plain string or binary, like "fr-FR" or <code>&lt;&lt;"fr-FR"&gt;&gt;</code>, 
+corresponding to "French (France)" here.</p>
+
+ See http://cldr.unicode.org/ and
+ https://en.wikipedia.org/wiki/IETF_language_tag for further details.</p>
+
+<h3 class="typedecl"><a name="type-any_string">any_string()</a></h3>
+<p><tt>any_string() = <a href="text_utils.html#type-any_string">text_utils:any_string()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-bin_locale">bin_locale()</a></h3>
+<p><tt>bin_locale() = <a href="#type-bin_string">bin_string()</a></tt></p>
+<p><p> A locale as a BCP 47 binary, like <code>&lt;&lt;"fr-FR"&gt;&gt;</code>, corresponding to "French 
+(France)" here.</p>
+
+ See http://cldr.unicode.org/ and
+ https://en.wikipedia.org/wiki/IETF_language_tag for further details.</p>
+
+<h3 class="typedecl"><a name="type-bin_locale_description">bin_locale_description()</a></h3>
+<p><tt>bin_locale_description() = <a href="#type-bin_string">bin_string()</a></tt></p>
+<p> A description of a locale (ex: <code>&lt;&lt;"Afrikaans (South Africa)"&gt;&gt;</code>).</p>
+
+<h3 class="typedecl"><a name="type-bin_string">bin_string()</a></h3>
+<p><tt>bin_string() = <a href="text_utils.html#type-bin_string">text_utils:bin_string()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-country">country()</a></h3>
 <p><tt>country() = france | united_kingdom</tt></p>
+<p> Type to designate all known countries.</p>
+
+<h3 class="typedecl"><a name="type-locale_description">locale_description()</a></h3>
+<p><tt>locale_description() = <a href="#type-ustring">ustring()</a></tt></p>
+<p> A description of a locale (ex: "Afrikaans (South Africa)").</p>
+
+<h3 class="typedecl"><a name="type-string_locale">string_locale()</a></h3>
+<p><tt>string_locale() = <a href="#type-ustring">ustring()</a></tt></p>
+<p><p> A locale as a BCP 47 plain string, like "fr-FR", corresponding to "French 
+(France)" here.</p>
+
+ See http://cldr.unicode.org/ and
+ https://en.wikipedia.org/wiki/IETF_language_tag for further details.</p>
+
+<h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
+<p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
 
 <hr>
 

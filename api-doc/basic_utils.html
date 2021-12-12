@@ -316,10 +316,12 @@ toolchain:</p>
 <h3 class="typedecl"><a name="type-zero_index">zero_index()</a></h3>
 <p><tt>zero_index() = non_neg_integer()</tt></p>
 <p> For the indices that may be null, typically starting at zero (ex: in some file
- formats).</p>
+ formats). Whenever possible, prefer positive_index/0.</p>
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#check_all_defined-1">check_all_defined/1</a></td><td>Checks that all elements of the specified list are "defined" (not
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#are_all_defined-1">are_all_defined/1</a></td><td>Returns whether all the elements specified are defined (that is are not
+ equal to the 'undefined' atom).</td></tr>
+<tr><td valign="top"><a href="#check_all_defined-1">check_all_defined/1</a></td><td>Checks that all elements of the specified list are "defined" (not
  'undefined'); returns that list.</td></tr>
 <tr><td valign="top"><a href="#check_all_undefined-1">check_all_undefined/1</a></td><td>Checks that all elements of the specified list are equal to 'undefined';
  returns that list.</td></tr>
@@ -444,6 +446,14 @@ ToAdd, WaitedSenderPid}.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="are_all_defined-1">are_all_defined/1</a></h3>
+<div class="spec">
+<p><tt>are_all_defined(Elems::[term()]) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether all the elements specified are defined (that is are not
+ equal to the 'undefined' atom).
+</p>
 
 <h3 class="function"><a name="check_all_defined-1">check_all_defined/1</a></h3>
 <div class="spec">

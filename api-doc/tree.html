@@ -52,9 +52,9 @@ specified tree, and returns the corresponding result.</td></tr>
 <tr><td valign="top"><a href="#height-1">height/1</a></td><td>Returns the height (maximum depth) of specified tree, ie the number of
  edges on the longest downward path between the root and a leaf.</td></tr>
 <tr><td valign="top"><a href="#map-2">map/2</a></td><td>Maps specified function to the content of all nodes of specified tree.</td></tr>
-<tr><td valign="top"><a href="#new-0">new/0</a></td><td>Creates a new, single-node, empty, tree.</td></tr>
-<tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a new tree with a single node containing specified content.</td></tr>
-<tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a new tree with specified content and child trees.</td></tr>
+<tr><td valign="top"><a href="#new-0">new/0</a></td><td>Creates a single-node, empty, tree.</td></tr>
+<tr><td valign="top"><a href="#new-1">new/1</a></td><td>Creates a tree with a single node containing specified content.</td></tr>
+<tr><td valign="top"><a href="#new-2">new/2</a></td><td>Creates a tree with specified content and child trees.</td></tr>
 <tr><td valign="top"><a href="#set_content-2">set_content/2</a></td><td>Sets the content of specified node.</td></tr>
 <tr><td valign="top"><a href="#size-1">size/1</a></td><td>Returns the total number of nodes that specified tree contains.</td></tr>
 <tr><td valign="top"><a href="#to_string-1">to_string/1</a></td><td>Returns a textual description of specified tree.</td></tr>
@@ -119,19 +119,19 @@ specified tree, and returns the corresponding result.</p>
 <div class="spec">
 <p><tt>new() -&gt; <a href="#type-tree">tree()</a></tt><br></p>
 <p> </p>
-</div><p>Creates a new, single-node, empty, tree.</p>
+</div><p>Creates a single-node, empty, tree.</p>
 
 <h3 class="function"><a name="new-1">new/1</a></h3>
 <div class="spec">
 <p><tt>new(NodeContent::<a href="#type-node_content">node_content()</a>) -&gt; <a href="#type-tree">tree()</a></tt><br></p>
 <p> </p>
-</div><p>Creates a new tree with a single node containing specified content.</p>
+</div><p>Creates a tree with a single node containing specified content.</p>
 
 <h3 class="function"><a name="new-2">new/2</a></h3>
 <div class="spec">
 <p><tt>new(NodeContent::<a href="#type-node_content">node_content()</a>, Subtrees::[<a href="#type-tree">tree()</a>]) -&gt; <a href="#type-tree">tree()</a></tt><br></p>
 <p> </p>
-</div><p>Creates a new tree with specified content and child trees.</p>
+</div><p>Creates a tree with specified content and child trees.</p>
 
 <h3 class="function"><a name="set_content-2">set_content/2</a></h3>
 <div class="spec">

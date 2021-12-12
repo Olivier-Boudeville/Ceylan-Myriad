@@ -112,14 +112,18 @@
  vectors).</td></tr>
 <tr><td valign="top"><a href="#check-1">check/1</a></td><td>Checks that the specified 2D vector is legit, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_integer-1">check_integer/1</a></td><td>Checks that the specified 2D integer vector is legit, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_unit_vector-1">check_unit_vector/1</a></td><td>Checks that the specified 2D vector is normalised, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_unit_vectors-1">check_unit_vectors/1</a></td><td>Checks that the specified 2D vectors are normalised, and returns them.</td></tr>
 <tr><td valign="top"><a href="#cross_product-2">cross_product/2</a></td><td>Returns the cross-product of the two specified 2D points, that is the
  square magnitude of the vector that would result from a regular 3D cross
  product of the input vectors, taking their Z values implicitly as 0.</td></tr>
 <tr><td valign="top"><a href="#dot_product-2">dot_product/2</a></td><td>Returns the dot-product of the two specified 2D vectors: D = V1.V2.</td></tr>
 <tr><td valign="top"><a href="#from_point-1">from_point/1</a></td><td>Returns a 2D vector corresponding to the specified 2D point.</td></tr>
+<tr><td valign="top"><a href="#is_unitary-1">is_unitary/1</a></td><td>Returns whether the specified vector is unitary, that is whether it is of
+ magnitude 1.0.</td></tr>
 <tr><td valign="top"><a href="#magnitude-1">magnitude/1</a></td><td>Returns the magnitude of the specified 2D vector.</td></tr>
-<tr><td valign="top"><a href="#make_unit-1">make_unit/1</a></td><td>Returns the specified 2D vector with an unit length (whose magnitude is
- thus 1.0).</td></tr>
+<tr><td valign="top"><a href="#negate-1">negate/1</a></td><td>Negates the specified vector: returns the opposite one (of the same
+ magnitude).</td></tr>
 <tr><td valign="top"><a href="#new-1">new/1</a></td><td>Returns a 2D vector corresponding to the user-specified one.</td></tr>
 <tr><td valign="top"><a href="#new-2">new/2</a></td><td>Returns a 2D vector corresponding to the user-specified one.</td></tr>
 <tr><td valign="top"><a href="#new_integer-2">new_integer/2</a></td><td>Returns an integer 2D vector corresponding to the user-specified one.</td></tr>
@@ -127,6 +131,8 @@
  is on the left of V in the standard basis.</td></tr>
 <tr><td valign="top"><a href="#normal_right-1">normal_right/1</a></td><td>Returns a (non-unit) vector that is normal to the specified vector V, and
  is on the right of V in the standard basis.</td></tr>
+<tr><td valign="top"><a href="#normalise-1">normalise/1</a></td><td>Normalises the specified non-null 2D vector, that is returns it once
+ scaled to an unit length (whose magnitude is thus 1.0).</td></tr>
 <tr><td valign="top"><a href="#null-0">null/0</a></td><td>Returns the null (2D) vector, that is a 2D vector whose coordinates are
  all null.</td></tr>
 <tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales the specified 2D vector of the specified scalar factor.</td></tr>
@@ -189,6 +195,18 @@ vector; full float precision is shown.</td></tr>
 <p> </p>
 </div><p>Checks that the specified 2D integer vector is legit, and returns it.</p>
 
+<h3 class="function"><a name="check_unit_vector-1">check_unit_vector/1</a></h3>
+<div class="spec">
+<p><tt>check_unit_vector(V::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-unit_vector2">unit_vector2()</a></tt><br></p>
+<p> </p>
+</div><p>Checks that the specified 2D vector is normalised, and returns it.</p>
+
+<h3 class="function"><a name="check_unit_vectors-1">check_unit_vectors/1</a></h3>
+<div class="spec">
+<p><tt>check_unit_vectors(Vs::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-unit_vector2">unit_vector2()</a></tt><br></p>
+<p> </p>
+</div><p>Checks that the specified 2D vectors are normalised, and returns them.</p>
+
 <h3 class="function"><a name="cross_product-2">cross_product/2</a></h3>
 <div class="spec">
 <p><tt>cross_product(X1::<a href="#type-vector2">vector2()</a>, X2::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-square_distance">square_distance()</a></tt><br></p>
@@ -210,18 +228,26 @@ vector; full float precision is shown.</td></tr>
 <p> </p>
 </div><p>Returns a 2D vector corresponding to the specified 2D point.</p>
 
+<h3 class="function"><a name="is_unitary-1">is_unitary/1</a></h3>
+<div class="spec">
+<p><tt>is_unitary(V::<a href="#type-vector2">vector2()</a>) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified vector is unitary, that is whether it is of
+ magnitude 1.0.
+</p>
+
 <h3 class="function"><a name="magnitude-1">magnitude/1</a></h3>
 <div class="spec">
 <p><tt>magnitude(V::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-distance">distance()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the magnitude of the specified 2D vector.</p>
 
-<h3 class="function"><a name="make_unit-1">make_unit/1</a></h3>
+<h3 class="function"><a name="negate-1">negate/1</a></h3>
 <div class="spec">
-<p><tt>make_unit(V::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-unit_vector2">unit_vector2()</a></tt><br></p>
+<p><tt>negate(V::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-vector2">vector2()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the specified 2D vector with an unit length (whose magnitude is
- thus 1.0).
+</div><p>Negates the specified vector: returns the opposite one (of the same
+ magnitude).
 </p>
 
 <h3 class="function"><a name="new-1">new/1</a></h3>
@@ -256,6 +282,14 @@ vector; full float precision is shown.</td></tr>
 <p> </p>
 </div><p>Returns a (non-unit) vector that is normal to the specified vector V, and
  is on the right of V in the standard basis.
+</p>
+
+<h3 class="function"><a name="normalise-1">normalise/1</a></h3>
+<div class="spec">
+<p><tt>normalise(V::<a href="#type-vector2">vector2()</a>) -&gt; <a href="#type-unit_vector2">unit_vector2()</a></tt><br></p>
+<p> </p>
+</div><p>Normalises the specified non-null 2D vector, that is returns it once
+ scaled to an unit length (whose magnitude is thus 1.0).
 </p>
 
 <h3 class="function"><a name="null-0">null/0</a></h3>

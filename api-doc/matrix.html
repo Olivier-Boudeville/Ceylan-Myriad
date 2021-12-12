@@ -56,6 +56,14 @@
 <p> A matrix of arbitrary dimensions (at least one row), stored in row-major
  order (all rows shall contain the same number of elements).</p>
 
+<h3 class="typedecl"><a name="type-radians">radians()</a></h3>
+<p><tt>radians() = <a href="unit_utils.html#type-radians">unit_utils:radians()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-rot_matrix">rot_matrix()</a></h3>
+<p><tt>rot_matrix() = <a href="#type-square_matrix">square_matrix()</a></tt></p>
+<p> A matrix describing a rotation.</p>
+
 <h3 class="typedecl"><a name="type-row">row()</a></h3>
 <p><tt>row() = <a href="#type-vector">vector()</a></tt></p>
 <p> Matrix elements, left to right.</p>
@@ -85,6 +93,10 @@
 <p> A square matrix, that is whose number of rows is equal to its number of
  columns.</p>
 
+<h3 class="typedecl"><a name="type-unit_vector">unit_vector()</a></h3>
+<p><tt>unit_vector() = <a href="vector3.html#type-unit_vector3">vector3:unit_vector3()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-user_matrix">user_matrix()</a></h3>
 <p><tt>user_matrix() = [<a href="#type-user_row">user_row()</a>]</tt></p>
 <p> A user-specified matrix, as a list a rows comprising integer or floating-point
@@ -109,6 +121,8 @@
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#add-2">add/2</a></td><td>Returns the sum of the two specified matrices, supposedly of the same
  dimensions.</td></tr>
+<tr><td valign="top"><a href="#apply-2">apply/2</a></td><td>Applies (on the right) the specified vector V to the specified matrix M: 
+returns M.V.</td></tr>
 <tr><td valign="top"><a href="#are_equal-2">are_equal/2</a></td><td>Returns true iff the two specified matrices are considered equal.</td></tr>
 <tr><td valign="top"><a href="#check-1">check/1</a></td><td>Checks that the specified matrix is legit, and returns it.</td></tr>
 <tr><td valign="top"><a href="#column-2">column/2</a></td><td>Returns the specified column of the specified matrix.</td></tr>
@@ -134,6 +148,8 @@ undefined.</td></tr>
 <tr><td valign="top"><a href="#new-1">new/1</a></td><td>Returns an (arbitrary) matrix corresponding to the user-specified one.</td></tr>
 <tr><td valign="top"><a href="#null-1">null/1</a></td><td>Returns a null, square (arbitrary) matrix of the specified dimension.</td></tr>
 <tr><td valign="top"><a href="#null-2">null/2</a></td><td>Returns a null (arbitrary) matrix of the specified dimensions.</td></tr>
+<tr><td valign="top"><a href="#rotation-2">rotation/2</a></td><td>Returns the matrix corresponding to a rotation of the specified angle 
+around the axis specified as a unit vector.</td></tr>
 <tr><td valign="top"><a href="#row-2">row/2</a></td><td>Returns the specified row of the specified matrix.</td></tr>
 <tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales each coordinate of the specified matrix of the specified factor.</td></tr>
 <tr><td valign="top"><a href="#set_element-4">set_element/4</a></td><td>Returns a matrix identical to the specified one except that its specified
@@ -165,6 +181,16 @@ same space (the one with the longest representation).</td></tr>
 <p> </p>
 </div><p>Returns the sum of the two specified matrices, supposedly of the same
  dimensions.
+</p>
+
+<h3 class="function"><a name="apply-2">apply/2</a></h3>
+<div class="spec">
+<p><tt>apply(M::<a href="#type-matrix">matrix()</a>, V::<a href="#type-vector">vector()</a>) -&gt; <a href="#type-vector">vector()</a></tt><br></p>
+<p> </p>
+</div><p><p>Applies (on the right) the specified vector V to the specified matrix M: 
+returns M.V.</p>
+
+ Not a clause of mult/2 for an increased clarity.
 </p>
 
 <h3 class="function"><a name="are_equal-2">are_equal/2</a></h3>
@@ -318,6 +344,21 @@ undefined.</p>
 <p><tt>null(RowCount::<a href="#type-dimension">dimension()</a>, ColumnCount::<a href="#type-dimension">dimension()</a>) -&gt; <a href="#type-matrix">matrix()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a null (arbitrary) matrix of the specified dimensions.</p>
+
+<h3 class="function"><a name="rotation-2">rotation/2</a></h3>
+<div class="spec">
+<p><tt>rotation(UnitAxis::<a href="#type-unit_vector">unit_vector()</a>, RadAngle::<a href="#type-radians">radians()</a>) -&gt; <a href="#type-matrix">matrix()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns the matrix corresponding to a rotation of the specified angle 
+around the axis specified as a unit vector.</p>
+
+ <p>In 2D, the axis has no meaning in this context and will thus be ignored; in 3D 
+the usual rotation matrix will be returned; in 4D the returned matrix will be 
+an homogeneous (compact) one. No dimension higher than 4 is supported.</p>
+
+ This will be a counterclockwise rotation for an observer placed so that the
+ specified axis points towards it.
+</p>
 
 <h3 class="function"><a name="row-2">row/2</a></h3>
 <div class="spec">

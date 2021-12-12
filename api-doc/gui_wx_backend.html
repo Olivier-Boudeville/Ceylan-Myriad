@@ -19,6 +19,10 @@
 
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-atom_entry">atom_entry()</a></h3>
+<p><tt>atom_entry() = <a href="hashtable.html#type-atom_entry">hashtable:atom_entry()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-bit_mask">bit_mask()</a></h3>
 <p><tt>bit_mask() = <a href="basic_utils.html#type-bit_mask">basic_utils:bit_mask()</a></tt></p>
 
@@ -29,6 +33,10 @@
 
 <h3 class="typedecl"><a name="type-connect_options">connect_options()</a></h3>
 <p><tt>connect_options() = <a href="gui.html#type-connect_options">gui:connect_options()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-device_context_attribute">device_context_attribute()</a></h3>
+<p><tt>device_context_attribute() = <a href="gui_opengl.html#type-device_context_attribute">gui_opengl:device_context_attribute()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-event_source">event_source()</a></h3>
@@ -57,6 +65,10 @@
 
 <h3 class="typedecl"><a name="type-orientation">orientation()</a></h3>
 <p><tt>orientation() = <a href="gui.html#type-orientation">gui:orientation()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-other_wx_device_context_attribute">other_wx_device_context_attribute()</a></h3>
+<p><tt>other_wx_device_context_attribute() = <a href="#type-atom_entry">atom_entry()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-panel_option">panel_option()</a></h3>
@@ -94,6 +106,14 @@
 <h3 class="typedecl"><a name="type-window_style">window_style()</a></h3>
 <p><tt>window_style() = <a href="gui.html#type-window_style">gui:window_style()</a></tt></p>
 
+
+<h3 class="typedecl"><a name="type-wx_device_context_attribute">wx_device_context_attribute()</a></h3>
+<p><tt>wx_device_context_attribute() = {attribList, integer()} | <a href="#type-other_wx_device_context_attribute">other_wx_device_context_attribute()</a></tt></p>
+<p> Refer to wxGLCanvas: https://www.erlang.org/doc/man/wxglcanvas#new-2.</p>
+
+<h3 class="typedecl"><a name="type-wx_enum">wx_enum()</a></h3>
+<p><tt>wx_enum() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wx_enum">wx:wx_enum()</a></tt></p>
+<p> A wxWidgets enumerated value.</p>
 
 <h3 class="typedecl"><a name="type-wx_event_handler_option">wx_event_handler_option()</a></h3>
 <p><tt>wx_event_handler_option() = {id, integer()} | {lastId, integer()} | {skip, boolean()} | callback | {callback, function()} | {userData, term()}</tt></p>
@@ -179,6 +199,8 @@ wx-specific options.</td></tr>
 <tr><td valign="top"><a href="#sizer_flag_to_bitmask-1">sizer_flag_to_bitmask/1</a></td><td>Converts specified MyriadGUI sizer flag into the appropriate wx-specific 
 bit mask.</td></tr>
 <tr><td valign="top"><a href="#to_wx_debug_level-1">to_wx_debug_level/1</a></td><td>Converts the debug level from MyriadGUI to the one of wx.</td></tr>
+<tr><td valign="top"><a href="#to_wx_device_context_attributes-1">to_wx_device_context_attributes/1</a></td><td>Converts the specified MyriadGUI device context attributes to wx
+ conventions.</td></tr>
 <tr><td valign="top"><a href="#to_wx_event_type-1">to_wx_event_type/1</a></td><td>Converts a MyriadGUI type of event into a wx one.</td></tr>
 <tr><td valign="top"><a href="#to_wx_id-1">to_wx_id/1</a></td><td>Converts specified MyriadGUI identifier in a wx-specific widget 
 identifier.</td></tr>
@@ -308,6 +330,14 @@ bit mask.</p>
 </div><p><p>Converts the debug level from MyriadGUI to the one of wx.</p>
 
  (helper)
+</p>
+
+<h3 class="function"><a name="to_wx_device_context_attributes-1">to_wx_device_context_attributes/1</a></h3>
+<div class="spec">
+<p><tt>to_wx_device_context_attributes(Attrs::[<a href="#type-device_context_attribute">device_context_attribute()</a>]) -&gt; [<a href="#type-wx_device_context_attribute">wx_device_context_attribute()</a>]</tt><br></p>
+<p> </p>
+</div><p>Converts the specified MyriadGUI device context attributes to wx
+ conventions.
 </p>
 
 <h3 class="function"><a name="to_wx_event_type-1">to_wx_event_type/1</a></h3>

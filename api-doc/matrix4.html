@@ -57,8 +57,20 @@
 <p><tt>matrix4() = identity_4 | <a href="#type-canonical_matrix4">canonical_matrix4()</a> | <a href="#type-compact_matrix4">compact_matrix4()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-radians">radians()</a></h3>
+<p><tt>radians() = <a href="unit_utils.html#type-radians">unit_utils:radians()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-rot_matrix4">rot_matrix4()</a></h3>
+<p><tt>rot_matrix4() = <a href="#type-canonical_matrix4">canonical_matrix4()</a></tt></p>
+<p> A matrix describing a 4D rotation.</p>
+
 <h3 class="typedecl"><a name="type-scalar">scalar()</a></h3>
 <p><tt>scalar() = <a href="linear.html#type-scalar">linear:scalar()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-unit_vector3">unit_vector3()</a></h3>
+<p><tt>unit_vector3() = <a href="vector3.html#type-unit_vector3">vector3:unit_vector3()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-user_matrix">user_matrix()</a></h3>
@@ -118,6 +130,9 @@ vectors.</td></tr>
 <tr><td valign="top"><a href="#new-3">new/3</a></td><td>Returns a 4D compact matrix corresponding to the user-specified
  row vectors.</td></tr>
 <tr><td valign="top"><a href="#null-0">null/0</a></td><td>Returns the null (4x4) matrix.</td></tr>
+<tr><td valign="top"><a href="#rotation-2">rotation/2</a></td><td>Returns the (4x4) homogeneous (thus compact) matrix corresponding to a 
+rotation of the specified angle around the 3D axis specified as a unit vector, 
+and to no translation.</td></tr>
 <tr><td valign="top"><a href="#row-2">row/2</a></td><td>Returns the specified row of the specified matrix.</td></tr>
 <tr><td valign="top"><a href="#scale-2">scale/2</a></td><td>Scales specified (4D) matrix of the specified factor.</td></tr>
 <tr><td valign="top"><a href="#set_element-4">set_element/4</a></td><td>Returns a matrix identical to the specified one except that its specified
@@ -296,6 +311,21 @@ vectors.</p>
 <p><tt>null() -&gt; <a href="#type-canonical_matrix4">canonical_matrix4()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the null (4x4) matrix.</p>
+
+<h3 class="function"><a name="rotation-2">rotation/2</a></h3>
+<div class="spec">
+<p><tt>rotation(UnitAxis::<a href="#type-unit_vector3">unit_vector3()</a>, RadAngle::<a href="#type-radians">radians()</a>) -&gt; <a href="#type-compact_matrix4">compact_matrix4()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns the (4x4) homogeneous (thus compact) matrix corresponding to a 
+rotation of the specified angle around the 3D axis specified as a unit vector, 
+and to no translation.</p>
+
+ <p>This will be a counterclockwise rotation for an observer placed so that the 
+specified axis points towards it.</p>
+
+ Note that this is not the general case of a rotation in 4D (which is of little
+ use, at least here), but this corresponds to (4x4) homogeneous matrices.
+</p>
 
 <h3 class="function"><a name="row-2">row/2</a></h3>
 <div class="spec">

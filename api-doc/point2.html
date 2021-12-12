@@ -34,6 +34,10 @@
 <p><tt>any_vector2() = <a href="vector2.html#type-any_vector2">vector2:any_vector2()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-any_vertex2">any_vertex2()</a></h3>
+<p><tt>any_vertex2() = <a href="#type-any_point2">any_point2()</a></tt></p>
+<p> A 2D vertex of a polygon, with any numerical coordinates (2 of them).</p>
+
 <h3 class="typedecl"><a name="type-coordinate">coordinate()</a></h3>
 <p><tt>coordinate() = <a href="linear.html#type-coordinate">linear:coordinate()</a></tt></p>
 
@@ -110,8 +114,10 @@
  points.</td></tr>
 <tr><td valign="top"><a href="#get_integer_center-2">get_integer_center/2</a></td><td>Returns a point corresponding the middle of the two specified points,
  returned with integer coordinates.</td></tr>
-<tr><td valign="top"><a href="#is_within-3">is_within/3</a></td><td>Tells whether 2D point P1 is within a distance D from 2D point P2, using
- some margin to overcome numerical errors.</td></tr>
+<tr><td valign="top"><a href="#is_within-3">is_within/3</a></td><td>Tells whether the specified 2D point P1 is within a distance D from 2D
+ point P2, using some margin to overcome numerical errors.</td></tr>
+<tr><td valign="top"><a href="#is_within_square-3">is_within_square/3</a></td><td>Tells whether the specified 2D point P1 is within a square distance
+ SquareD from 2D point P2.</td></tr>
 <tr><td valign="top"><a href="#new-1">new/1</a></td><td>Returns a 2D point corresponding to the user-specified one (preferably a 
 tuple rather than a list).</td></tr>
 <tr><td valign="top"><a href="#new-2">new/2</a></td><td>Returns a 2D point corresponding to the user-specified one.</td></tr>
@@ -221,8 +227,16 @@ tuple rather than a list).</td></tr>
 <div class="spec">
 <p><tt>is_within(P1::<a href="#type-point2">point2()</a>, P2::<a href="#type-point2">point2()</a>, D::<a href="#type-distance">distance()</a>) -&gt; boolean()</tt><br></p>
 <p> </p>
-</div><p>Tells whether 2D point P1 is within a distance D from 2D point P2, using
- some margin to overcome numerical errors.
+</div><p>Tells whether the specified 2D point P1 is within a distance D from 2D
+ point P2, using some margin to overcome numerical errors.
+</p>
+
+<h3 class="function"><a name="is_within_square-3">is_within_square/3</a></h3>
+<div class="spec">
+<p><tt>is_within_square(P1::<a href="#type-point2">point2()</a>, P2::<a href="#type-point2">point2()</a>, SquareD::<a href="#type-square_distance">square_distance()</a>) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Tells whether the specified 2D point P1 is within a square distance
+ SquareD from 2D point P2.
 </p>
 
 <h3 class="function"><a name="new-1">new/1</a></h3>
@@ -266,7 +280,7 @@ tuple rather than a list).</p>
 
 <h3 class="function"><a name="scale-2">scale/2</a></h3>
 <div class="spec">
-<p><tt>scale(V::<a href="#type-any_point2">any_point2()</a>, Factor::<a href="#type-factor">factor()</a>) -&gt; <a href="#type-point2">point2()</a></tt><br></p>
+<p><tt>scale(P::<a href="#type-any_point2">any_point2()</a>, Factor::<a href="#type-factor">factor()</a>) -&gt; <a href="#type-point2">point2()</a></tt><br></p>
 <p> </p>
 </div><p>Scales the specified 2D point of the specified scalar factor.</p>
 

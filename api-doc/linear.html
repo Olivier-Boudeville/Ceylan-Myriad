@@ -39,7 +39,8 @@
 
 <h3 class="typedecl"><a name="type-coordinate">coordinate()</a></h3>
 <p><tt>coordinate() = float()</tt></p>
-
+<p> Cartesian real (actually double-precision floating-point) coordinates in a
+ referential.</p>
 
 <h3 class="typedecl"><a name="type-count">count()</a></h3>
 <p><tt>count() = <a href="basic_utils.html#type-count">basic_utils:count()</a></tt></p>
@@ -55,10 +56,11 @@
 
 <h3 class="typedecl"><a name="type-indexed_triangle">indexed_triangle()</a></h3>
 <p><tt>indexed_triangle() = {<a href="#type-indice">indice()</a>, <a href="#type-indice">indice()</a>, <a href="#type-indice">indice()</a>}</tt></p>
-<p> A definition of a triangle, based on the indices of its three vertices.</p>
+<p> A definition of a triangle, based on the indices of its three vertices, in a
+ vertex container (ex: a list).</p>
 
 <h3 class="typedecl"><a name="type-indice">indice()</a></h3>
-<p><tt>indice() = <a href="basic_utils.html#type-zero_index">basic_utils:zero_index()</a></tt></p>
+<p><tt>indice() = <a href="basic_utils.html#type-positive_index">basic_utils:positive_index()</a></tt></p>
 <p> The indice/index of an element (ex: of a vertex in an array thereof).</p>
 
 <h3 class="typedecl"><a name="type-integer_coordinate">integer_coordinate()</a></h3>

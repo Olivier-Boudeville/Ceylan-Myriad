@@ -10,10 +10,14 @@
 <hr>
 
 <h1>Module gui_canvas</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathering of various facilities for <b>canvas management</b>.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathering of various facilities for <b>canvas management</b>, for the 
+basic ones that MyriadGUI introduced (as opposed to the OpenGL ones, see 
+gui_opengl).
 
 
-<h2><a name="description">Description</a></h2><p>Gathering of various facilities for <b>canvas management</b>.</p>
+<h2><a name="description">Description</a></h2><p>Gathering of various facilities for <b>canvas management</b>, for the 
+basic ones that MyriadGUI introduced (as opposed to the OpenGL ones, see 
+gui_opengl).</p>
 
  <p>See <code>gui_canvas_test.erl</code> for the corresponding test.</p>
 
@@ -42,7 +46,7 @@
 
 
 <h3 class="typedecl"><a name="type-dimensions">dimensions()</a></h3>
-<p><tt>dimensions() = <a href="linear_2D.html#type-dimensions">linear_2D:dimensions()</a></tt></p>
+<p><tt>dimensions() = <a href="gui.html#type-dimensions">gui:dimensions()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-event_type">event_type()</a></h3>
@@ -51,10 +55,6 @@
 
 <h3 class="typedecl"><a name="type-file_path">file_path()</a></h3>
 <p><tt>file_path() = <a href="file_utils.html#type-file_path">file_utils:file_path()</a></tt></p>
-
-
-<h3 class="typedecl"><a name="type-gl_canvas">gl_canvas()</a></h3>
-<p><tt>gl_canvas() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxGLCanvas.html#type-wxGLCanvas">wxGLCanvas:wxGLCanvas()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-integer_distance">integer_distance()</a></h3>
@@ -95,7 +95,7 @@ of its panel, and tells whether that canvas shall be repainted.</td></tr>
 <tr><td valign="top"><a href="#blit-1">blit/1</a></td><td>Blits the back-buffer of this canvas onto its visible area.</td></tr>
 <tr><td valign="top"><a href="#clear-1">clear/1</a></td><td>Clears the back-buffer of the specified canvas.</td></tr>
 <tr><td valign="top"><a href="#create_instance-1">create_instance/1</a></td><td>Creates a canvas, whose parent is the specified window.</td></tr>
-<tr><td valign="top"><a href="#destroy-1">destroy/1</a></td><td>Destroys the specified canvas.</td></tr>
+<tr><td valign="top"><a href="#destruct-1">destruct/1</a></td><td>Destructs the specified canvas.</td></tr>
 <tr><td valign="top"><a href="#draw_circle-3">draw_circle/3</a></td><td>Renders specified circle (actually, depending on the fill color, it may
  be a disc) in specified canvas.</td></tr>
 <tr><td valign="top"><a href="#draw_circle-4">draw_circle/4</a></td><td>Renders specified circle (actually, depending on the specified fill
@@ -126,6 +126,7 @@ of its panel, and tells whether that canvas shall be repainted.</td></tr>
 <tr><td valign="top"><a href="#draw_segment-4">draw_segment/4</a></td><td>Draws a segment of the line L between the two specified ordinates.</td></tr>
 <tr><td valign="top"><a href="#get_base_panel_events_of_interest-0">get_base_panel_events_of_interest/0</a></td><td>Returns the types of events regarding its panel that a canvas will
  register to by default.</td></tr>
+<tr><td valign="top"><a href="#get_client_size-1">get_client_size/1</a></td><td>Returns the client size of this canvas, as {IntegerWidth, IntegerHeight}.</td></tr>
 <tr><td valign="top"><a href="#get_rgb-2">get_rgb/2</a></td><td>Returns the RGB value of the pixel at the specified position.</td></tr>
 <tr><td valign="top"><a href="#get_size-1">get_size/1</a></td><td>Returns the size of this canvas, as {IntegerWidth, IntegerHeight}.</td></tr>
 <tr><td valign="top"><a href="#load_image-2">load_image/2</a></td><td>Loads image from specified path into specified canvas, pasting it at its
@@ -149,8 +150,8 @@ of its panel, and tells whether that canvas shall be repainted.</td></tr>
 </div><p><p>Updates the specified canvas state so that it matches any change in size 
 of its panel, and tells whether that canvas shall be repainted.</p>
 
- Typically used to be called initially (onShow); now called whenever the parent
- container is resized.
+ Typically used to be called initially (onShown); now called whenever the
+ parent container is resized.
 </p>
 
 <h3 class="function"><a name="blit-1">blit/1</a></h3>
@@ -179,11 +180,11 @@ of its panel, and tells whether that canvas shall be repainted.</p>
  Typically called from gui:execute_instance_creation/2.
 </p>
 
-<h3 class="function"><a name="destroy-1">destroy/1</a></h3>
+<h3 class="function"><a name="destruct-1">destruct/1</a></h3>
 <div class="spec">
-<p><tt>destroy(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>destruct(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Destroys the specified canvas.</p>
+</div><p>Destructs the specified canvas.</p>
 
 <h3 class="function"><a name="draw_circle-3">draw_circle/3</a></h3>
 <div class="spec">
@@ -313,6 +314,12 @@ of its panel, and tells whether that canvas shall be repainted.</p>
  register to by default.
 </p>
 
+<h3 class="function"><a name="get_client_size-1">get_client_size/1</a></h3>
+<div class="spec">
+<p><tt>get_client_size(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>) -&gt; <a href="#type-dimensions">dimensions()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the client size of this canvas, as {IntegerWidth, IntegerHeight}.</p>
+
 <h3 class="function"><a name="get_rgb-2">get_rgb/2</a></h3>
 <div class="spec">
 <p><tt>get_rgb(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Point::<a href="#type-point2">point2()</a>) -&gt; <a href="#type-color_by_decimal_with_alpha">color_by_decimal_with_alpha()</a></tt><br></p>
@@ -363,9 +370,12 @@ of its panel, and tells whether that canvas shall be repainted.</p>
 
 <h3 class="function"><a name="set_fill_color-2">set_fill_color/2</a></h3>
 <div class="spec">
-<p><tt>set_fill_color(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>set_fill_color(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, MaybeColor::<a href="#type-maybe">maybe</a>(<a href="#type-color">color()</a>)) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Sets the color to be using for filling surfaces.</p>
+</div><p><p>Sets the color to be using for filling surfaces.</p>
+
+ An 'undefined' color corresponds to a fully transparent one.
+</p>
 
 <h3 class="function"><a name="set_rgb-2">set_rgb/2</a></h3>
 <div class="spec">

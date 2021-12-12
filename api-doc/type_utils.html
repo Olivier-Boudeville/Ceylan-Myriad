@@ -79,6 +79,15 @@ datatype.</p>
  may depend on (ex: 'list' can be specified, not 'list(float())' or anything
  like that).</p>
 
+<h3 class="typedecl"><a name="type-record">record()</a></h3>
+<p><tt>record() = tuple()</tt></p>
+<p> Designates a record instance, to discriminate from a mere tuple.</p>
+
+<h3 class="typedecl"><a name="type-tuple">tuple()</a></h3>
+<p><tt>tuple(_T) = tuple()</tt></p>
+<p> Designates an uniform tuple (of unspecified size), that is a tuple whose
+ elements are all of the specified type.</p>
+
 <h3 class="typedecl"><a name="type-tuploid">tuploid()</a></h3>
 <p><tt>tuploid(T) = tuple() | T</tt></p>
 <p> Probably that such a tuple would contain at least an element of type T.</p>
