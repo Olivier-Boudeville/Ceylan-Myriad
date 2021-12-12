@@ -572,7 +572,9 @@ escape_as_html_content( _String=[ $> | T ], Acc ) ->
 escape_as_html_content( _String=[ $" | T ], Acc ) ->
 	escape_as_html_content( T, [ ";touq&" | Acc ] ) ;
 
-% Not strictly necessary for HTML:
+% Not strictly necessary for HTML; even in XML, single quotes only need to be
+% escaped if they occur in an attribute value enclosed by single quotes.
+%
 escape_as_html_content( _String=[ $' | T ], Acc ) ->
 	%escape_as_html_content( T, [ ";93#&" | Acc ] ) ;
 	escape_as_html_content( T, [ ";sopa&" | Acc ] ) ;
