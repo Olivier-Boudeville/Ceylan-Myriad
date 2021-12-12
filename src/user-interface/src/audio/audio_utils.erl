@@ -34,10 +34,6 @@
 
 
 
-% Implementation notes:
-%
-
-
 -type sample_rate() :: unit_utils:integer_hertz() .
 % The sample rate of an audio content (ex: 16000 Hz).
 
@@ -134,5 +130,5 @@ audio_stream_settings_to_string( #audio_stream_settings{
 	end,
 
 	text_utils:format( "~ts ~ts stream whose sampling rate is ~B kHz, "
-		"encoded as ~ts-encoded audio in a ~ts container",
+		"as ~ts-encoded audio in a ~ts container",
 		[ ChannelLayout, BitStr, SamplingRate, AudioFormat, ContainerFormat ] ).
