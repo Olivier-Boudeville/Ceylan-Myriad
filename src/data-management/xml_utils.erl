@@ -43,7 +43,34 @@
 %
 % See also its User's Guide: https://www.erlang.org/doc/apps/xmerl/xmerl_ug.html
 %
-% No simple way has been found in order to pretty-print XML.
+% No simple way has been found in order to pretty-print XML here.
+
+
+
+% Defining one's XML document:
+
+% The "simple form" is the lightest, less verbose way of defining one's XML
+% document out of simple-tags (see xml_simple_tag/0); we recommend using it.
+%
+% So for example:
+%
+% XMLSimpleContent = [
+%   myFirstTag,
+%   { mySecondTag, [ myNestedTag ] },
+%   { myThirdTag,  [ { color, "red" }, { age, 71 } ],
+%       [ "This is a text!" ] } ],
+%
+% is to produce an XML string like:
+%
+% <?xml version="1.0" encoding="utf-8" ?>
+% <myFirstTag/>
+% <mySecondTag><myNestedTag/></mySecondTag>
+% <myThirdTag color="red" age="71">This is a text!</myThirdTag>
+%
+% Refer to xml_simple_tag/0; the other options to define XML elements is to use
+% IOLists and/or XML records (see xml_element/0).
+%
+% Refer to xml_utils_test.erl for more examples.
 
 
 % For xmerl's records:
@@ -55,6 +82,10 @@
 % of an XML document.
 %
 % Ex: "<birds> <bird species="crow">Arthur</bird> </birds>".
+
+
+-type xml_document() :: xml_content().
+% A full, standalone definition of a XML document.
 
 
 -type xml_tag() :: atom().
@@ -191,10 +222,10 @@
 
 % Showcasing the three simple-forms of tags:
 %
-% FirstParentTagAttrs = [{color,<<"red">>}, {age,71}].
+% FirstParentTagAttrs = [{color,"red"}, {age,71}].
 %
 % % {Tag, Content} here:
-% FirstChildTag = {childTag1, [<<"Content of child tag 1">>]}.
+% FirstChildTag = {childTag1, ["Content of child tag 1"]}.
 %
 % % {Tag, Attributes, Content} and a nested "just Tag" here:
 % FirstParentTag = {myFirstParentTag, FirstParentTagAttrs,
@@ -204,7 +235,6 @@
 %
 % xmerl:export_simple([MyXMLContent],xmerl_xml).
 
-
 % % If needing xmerl's records:
 % 1> rr(code:lib_dir(xmerl) ++ "/include/xmerl.hrl").
 
@@ -212,7 +242,7 @@
 
 
 
--export_type([ xml_text/0, xml_tag/0,
+-export_type([ xml_document/0, xml_text/0, xml_tag/0,
 
 			   attribute_record/0,
 			   xml_attribute_name/0, xml_attribute_value/0, xml_attribute/0,
