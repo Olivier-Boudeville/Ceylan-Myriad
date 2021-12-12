@@ -37,6 +37,10 @@
 -include("test_facilities.hrl").
 
 
+% For xmerl records:
+-include_lib("xml_utils.hrl").
+
+
 -spec run() -> no_return().
 run() ->
 
@@ -49,6 +53,23 @@ run() ->
 	EscapedText = xml_utils:to_xml_text( TextToEscape ),
 
 	test_facilities:display( "The escaped for XML version of text '~ts' "
-							 "is '~ts'.", [ TextToEscape, EscapedText ] ),
+							 "is '~ts'.~n", [ TextToEscape, EscapedText ] ),
+
+
+	TestXMLSimpleContent = [
+		myFirstTag,
+		{ mySecondTag, [ myNestedTag ] },
+		{ myThirdTag,  [ { color, "red" }, { age, 71 } ],
+		  [ "This is a text!" ] } ],
+
+	TextPrologValue = xml_utils:get_default_prolog()
+								++ "<!DOCTYPE birds SYSTEM \"birds.dtd\">",
+
+	ResultSimpleStr = xml_utils:xml_to_string( TestXMLSimpleContent,
+											   TextPrologValue ),
+
+	test_facilities:display( "The XML content defined as:"
+		"~n  ~p~nresults, with prolog '~ts', in the following string:~n  ~ts",
+		[ TestXMLSimpleContent, TextPrologValue, ResultSimpleStr ] ),
 
 	test_facilities:stop().
