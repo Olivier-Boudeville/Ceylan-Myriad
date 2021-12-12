@@ -138,7 +138,7 @@
 % The gender of a voice.
 
 
--type language_locale() :: locale_utils:bin_locale().
+-type language_locale() :: bin_locale().
 % The language locale to be used (ex: <<"fr-FR">>), knowing that for example a
 % voice may speak in multiple languages (ex: "Jenny Multilingual").
 
@@ -205,11 +205,12 @@
 % Information regarding a speech to be recorded (many of whom are optional).
 
 
--type ssml_text() :: any_string().
-% A text to be spoken, encoded in Speech Synthesis Markup Language (SSML).
+-type ssml_text() :: xml_document().
+% A text to be spoken, specified in Speech Synthesis Markup Language (SSML),
+% therefore as an XML document.
 %
 % Special characters, such as quotation marks, apostrophes, and brackets must be
-% escaped
+% escaped.
 %
 % Refer to https://www.w3.org/TR/2004/REC-speech-synthesis-20040907/ and
 % https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup
@@ -278,17 +279,19 @@
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
--type any_string() :: text_utils:any_string().
 
 -type bin_locale() :: locale_utils:bin_locale().
+-type any_locale() :: locale_utils:any_locale().
 
 -type json_term() :: json_utils:json_term().
 
-%-type any_file_path() :: file_utils:any_file_path().
 -type file_path() :: file_utils:file_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 -type bin_path_element() :: file_utils:bin_path_element().
 -type extension() :: file_utils:extension().
+
+-type xml_document() :: xml_utils:xml_document().
+
 
 -type audio_stream_settings() :: audio_utils:audio_stream_settings().
 
@@ -634,13 +637,16 @@ filter_by_gender( Gender, VoiceTable ) ->
 % @doc Returns a voice table corresponding to the specified one where only the
 % voice of the specified spoken locale (as primary or secondary) would be kept.
 %
--spec filter_by_locale( bin_locale(), voice_table() ) -> voice_table().
+-spec filter_by_locale( any_locale(), voice_table() ) -> voice_table().
 filter_by_locale( SpokenLocale, VoiceTable ) ->
+
+	BinLocale = text_utils:ensure_binary( SpokenLocale ),
+
 	table:fold( fun( VId, VInfo=#voice_info{ locale=Loc,
 											 secondary_locales=SecLocs },
 					 Acc ) ->
-						case Loc =:= SpokenLocale
-								orelse lists:member( SpokenLocale, SecLocs ) of
+						case Loc =:= BinLocale
+								orelse lists:member( BinLocale, SecLocs ) of
 
 							true ->
 								table:add_entry( VId, VInfo, Acc );
@@ -667,6 +673,10 @@ filter_by_locale( SpokenLocale, VoiceTable ) ->
 % with an Opus audio format and the fr-FR locale, the specified speech will be
 % stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
 %
+% A SSML message is an XML document, we recommend using the so-called "simple
+% form" to define it, refer to the "Defining one's XML document" in
+% xml_utils.erl for further details. Also spaces shall exist around tags.
+%
 % See record_speech/5 for further details.
 %
 -spec record_speech( ssml_text(), speech_base_name(), speech_state() ) ->
@@ -686,6 +696,10 @@ record_speech( SSMLText, BaseName, SpeechState ) ->
 % /home/bond/my-speeches", and the audio settings imply a Ogg container format
 % with an Opus audio format and the fr-FR locale, the specified speech will be
 % stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
+%
+% A SSML message is an XML document, we recommend using the so-called "simple
+% form" to define it, refer to the "Defining one's XML document" in
+% xml_utils.erl for further details.
 %
 % See record_speech/5 for further details.
 %
@@ -713,8 +727,15 @@ record_speech( SSMLText, BaseName, MaybeOutputDir,
 % with an Opus audio format and the fr-FR locale, the specified speech will be
 % stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
 %
+% A SSML message is an XML document, we recommend using the so-called "simple
+% form" to define it, refer to the "Defining one's XML document" in
+% xml_utils.erl for further details.
+%
 % Restrictions:
-% - this is a single-voice speech (no multiple texts per recording)
+% - the text-to-speech must be an XML document, yet may be as simple as "Hello
+% world!"
+% - this is a single-voice speech (no multiple texts per recording, as expecting
+% to split these)
 % - style adjustments: 'styledegree' (stronger or softer style, to make the
 % speech more expressive or subdued) is not used (not offered by the voices
 % of interest, and anyway the supported 'style' conveys more meaning)
@@ -748,25 +769,30 @@ record_speech( SSMLText,
 				 <<"X-Microsoft-OutputFormat">> => BinAudioFormatStr,
 				 <<"User-Agent">> => BinAppName },
 
+	% We create here the string containing the XML message expected by Azure. We
+	% now use a real XML parser (through xml_utils) rather than forging XML by
+	% ourselves as we used to, to avoid possibly complex escaping of SSML text.
+
+	% We use lists of XML attributes for flexibility, as a maybe-type (empty
+	% list or, often, single-element one).
 
 	% Text expected to be expressed in the same locale as the speaker:
-	{ LangLoc, RootDocLangPart, LangLocPart } = case MaybeLangLoc of
+	{ LangLoc, RootDocLangAttrs, LangLocAttrs } = case MaybeLangLoc of
 
 		undefined ->
 			% No clue here, so use a default for document, and implicit for
 			% voice:
 			%
-			DefaultDocLangLoc = <<"en_US">>,
+			DefaultDocLangLoc = <<"en-US">>,
 
-			DocLangLocPart =
-				text_utils:format( " xml:lang=\"~ts\"", [ DefaultDocLangLoc ] ),
+			DocLangLocXMLAttrs = [ { 'xml:lang', DefaultDocLangLoc } ],
 
-			{ DefaultDocLangLoc, DocLangLocPart, "" };
+			{ DefaultDocLangLoc, DocLangLocXMLAttrs, [] };
 
 		BinLangLoc ->
-			XMLPart = text_utils:format( " xml:lang=\"~ts\"", [ BinLangLoc ] ),
+			LangLocXMLAttrs = [ { 'xml:lang', BinLangLoc } ],
 			% Same for document and voice:
-			{ BinLangLoc, XMLPart, XMLPart }
+			{ BinLangLoc, LangLocXMLAttrs, LangLocXMLAttrs }
 
 	end,
 
@@ -788,77 +814,91 @@ record_speech( SSMLText,
 	% For Azure:
 	BinVoiceName = BinVoiceProviderId,
 
-	GenderPart = case MaybeGender of
+	% Targeting a resulting XML string akin to:
+	%
+	% <speak version="1.0"
+	%        xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="en_US">
+	%     <voice name="XXX" xml:gender="male">
+	%         <mstts:express-as style="YYY">
+	%             Properly XML-escaped, tag-rich SSML text here.
+	%         </mstts:express-as>
+	%     </voice>
+	% </speak>
+
+	GenderXMLAttrs = case MaybeGender of
 
 		undefined ->
-			% Let it be implicit:
-			"";
+			% Let it be implicit then:
+			[];
 
 		Gender ->
-			text_utils:format( " xml:gender=\"~ts\"",
-							   [ convert_gender_to_azure( Gender ) ] )
+			[ { 'xml:gender', convert_gender_to_azure( Gender ) } ]
 
 	end,
 
-	StylePart = case MaybeStyle of
+	StyleXMLAttrs = case MaybeStyle of
 
 		undefined ->
-			% Let it be implicit:
-			"";
+			% Let it be implicit then:
+			[];
 
 		Style ->
-			text_utils:format( " style=\"~ts\"",
-							   [ convert_style_to_azure( Style ) ] )
+			[ { style, convert_style_to_azure( Style ) } ]
 
 	end,
 
-	RolePart = case MaybeRole of
+	RoleXMLAttrs = case MaybeRole of
 
 		undefined ->
-			% Let it be implicit:
-			"";
+			% Let it be implicit then:
+			[];
 
 		Role ->
-			text_utils:format( " role=\"~ts\"",
-				[ convert_roleplay_to_azure( Role ) ] )
+			[ { role, convert_roleplay_to_azure( Role ) } ]
 
 	end,
 
-	% Special characters must be escaped:
-	%
-	% (should be made context-aware, not to escape inside a markup outside of
-	% quoted attribute)
-	%
-	EscapedSSMLText = text_utils:escape_as_xml_content( SSMLText ),
+	SSMLElement = case { StyleXMLAttrs, RoleXMLAttrs } of
 
-	FullSSMLText = case { MaybeStyle, MaybeRole } of
-
-		{ undefined, undefined } ->
-			EscapedSSMLText;
+		{ [], [] } ->
+			SSMLText;
 
 		_ ->
-			text_utils:format(
-				"<mstts:express-as~ts~ts>~n~ts~n       </mstts:express-as>",
-				[ StylePart, RolePart, EscapedSSMLText ] )
+			[ { _Tag='mstts:express-as', _Attrs=StyleXMLAttrs++RoleXMLAttrs,
+				_Content=SSMLText } ]
 
 	end,
 
-	BinSSMLBody = text_utils:bin_format(
-		"<speak version=\"1.0\" "
-		"xmlns=\"http://www.w3.org/2001/10/synthesis\"~ts>~n"
-		"   <voice name=\"~ts\"~ts~ts>~n"
-		"       ~ts~n"
-		"   </voice>~n"
-		"</speak>~n",
-		[ RootDocLangPart, BinVoiceName, LangLocPart, GenderPart,
-		  FullSSMLText ] ),
+	VoiceAttrs = [ { name, BinVoiceName } | LangLocAttrs ++ GenderXMLAttrs ],
 
-	trace_utils:debug_fmt( "XML record body:~n ~ts", [ BinSSMLBody ] ),
+	VoiceContent = [ { voice, VoiceAttrs, SSMLElement } ],
+
+
+	SpeakAttrs = [ { version, "1.0" },
+				   { xmlns, "http://www.w3.org/2001/10/synthesis" },
+				   { 'xmlns:mstts', "https://www.w3.org/2001/mstts" },
+				   { 'xmlns:emo', "http://www.w3.org/2009/10/emotionml" } ]
+												++ RootDocLangAttrs,
+
+	XMLContent = [ { speak, SpeakAttrs, VoiceContent } ],
+
+	%trace_utils:debug_fmt( "XML content for speech record:~n ~p",
+	%					   [ XMLContent ] ),
+
+	XMLStr = xml_utils:xml_to_string( XMLContent ),
+
+	% Specifying a binary body is strictly necessary (one as a plain string
+	% would result in encoding issues with non-Latin1 characters):
+	%
+	BinBody = text_utils:string_to_binary( XMLStr ),
+
+	%trace_utils:debug_fmt( "Resulting XML string:~n ~ts", [ BinXMLStr ] ),
+
+	%basic_utils:crash(),
 
 	ContentType = "application/ssml+xml",
 
-	case web_utils:post( Uri, Headers, HTTPOptions, BinSSMLBody,
-						 ContentType ) of
+	case web_utils:post( Uri, Headers, HTTPOptions, BinBody, ContentType ) of
 
 		{ _HTTPStatusCode=200, _Headers, BinAudio } ->
 
@@ -894,10 +934,10 @@ record_speech( SSMLText,
 
 
 
-% @doc Records the specified logical speech corresponding to the specified SSML message, according
-% to the specified speech settings, using the specified base name to forge the
-% filename in which the generated audio will be stored, in the specified
-% directory; the corresponding full path is returned.
+% @doc Records the specified logical speech corresponding to the specified SSML
+% message, according to the specified speech settings, using the specified base
+% name to forge the filename in which the generated audio will be stored, in the
+% specified directory; the corresponding full path is returned.
 %
 % Ex: if BaseName is "hello-world", the specified directory is
 % /home/bond/my-speeches", and the audio settings imply a Ogg container format

@@ -85,6 +85,7 @@ run_speech_test() ->
 	end.
 
 
+
 % @doc Testing the listing of voices.
 -spec test_list_voices( speech_state() ) -> void().
 test_list_voices( SpeechState ) ->
@@ -98,12 +99,12 @@ test_list_voices( SpeechState ) ->
 
 	FemaleVoiceTable = speech_support:filter_by_gender( female, VoiceTable ),
 
-	FrenchSpokenLocale = <<"fr-FR">>,
+	FrenchSpokenLocale = "fr-FR",
 
 	FrenchVoiceTable =
 		speech_support:filter_by_locale( FrenchSpokenLocale, VoiceTable ),
 
-	EnglishSpokenLocale = <<"en-GB">>,
+	EnglishSpokenLocale = "en-GB",
 
 	EnglishVoiceTable =
 		speech_support:filter_by_locale( EnglishSpokenLocale, VoiceTable ),
@@ -143,11 +144,15 @@ test_record_speeches( SpeechState ) ->
 		#speech_settings{ voice_id=FrenchVoiceInfoId,
 						  language_locale= <<"fr-FR">> },
 
-	FrenchSSMLText = "Ces paroles ont été générées via la synthèse vocale "
-		"mise en place par <prosody volume=\"+20.00%\">Ceylan Myriad</prosody>."
-		" N'est-ce point merveilleux ?",
+	% Hence an XML document, here created in the "simple-form" (see the
+	% "Defining one's XML document" section in xml_utils.erl for more details):
+	%
+	FrenchSSMLText = [ "Ces paroles ont été générées via la synthèse vocale "
+		"mise en place par ",
+		{ prosody, [ { volume, "+20.00%" } ], [ "Ceylan Myriad" ] },
+		". N'est-ce point merveilleux ?" ],
 
-	test_facilities:display( "Recording French SSML speech '~ts' as a ~ts.",
+	test_facilities:display( "Recording French SSML speech:~n ~p~n as a ~ts.",
 		[ FrenchSSMLText, audio_utils:audio_stream_settings_to_string(
 			SpeechState#speech_state.audio_settings ) ] ),
 
@@ -160,10 +165,10 @@ test_record_speeches( SpeechState ) ->
 							 [ FrenchFilePath ] ),
 
 
-	% EnglishVoiceInfoId = pair:second(
-	%                hd( table:enumerate( EnglishVoiceTable ) ) ),
+	%% % EnglishVoiceInfoId = pair:second(
+	%% %                hd( table:enumerate( EnglishVoiceTable ) ) ),
 
-	%EnglishVoiceInfoId = { azure, "en-GB-RyanNeural" },
+	%% %EnglishVoiceInfoId = { azure, "en-GB-RyanNeural" },
 
 	% For the test of styles (roleplays not tested here, applies only to Chinese
 	% voices):
@@ -175,11 +180,11 @@ test_record_speeches( SpeechState ) ->
 											  voice_gender=male,
 											  speech_style=customer_support },
 
-	EnglishSSMLText = "This speech has been generated through "
-		"the <prosody volume=\"+20.00%\">Ceylan Myriad</prosody> "
-		"support for speech synthesis. Wonderful, isn't it?",
+	EnglishSSMLText = [ "This speech has been generated thanks the ",
+		{ prosody, [ { volume, "+20.00%" } ], [ "Ceylan Myriad" ] },
+		" support for speech synthesis. Wonderful, isn't it?" ],
 
-	test_facilities:display( "Recording English SSML speech '~ts' as a ~ts.",
+	test_facilities:display( "Recording English SSML speech:~n ~p~n as a ~ts.",
 		[ EnglishSSMLText, audio_utils:audio_stream_settings_to_string(
 			SpeechState#speech_state.audio_settings ) ] ),
 
