@@ -36,9 +36,13 @@
 % Type to designate all known countries.
 
 
--type locale() :: atom().
-% A locale, as an atom, like 'fr-FR', corresponding to "French (France)" here.
-% See http://cldr.unicode.org/ for further details.
+
+-type string_locale() :: ustring().
+% A locale as a BCP 47 plain string, like "fr-FR", corresponding to "French
+% (France)" here.
+%
+% See http://cldr.unicode.org/ and
+% https://en.wikipedia.org/wiki/IETF_language_tag for further details.
 
 
 -type bin_locale() :: bin_string().
@@ -49,13 +53,29 @@
 % https://en.wikipedia.org/wiki/IETF_language_tag for further details.
 
 
+-type any_locale() :: any_string().
+% A locale as a BCP 47 plain string or binary, like "fr-FR" or <<"fr-FR">>,
+% corresponding to "French (France)" here.
+%
+% See http://cldr.unicode.org/ and
+% https://en.wikipedia.org/wiki/IETF_language_tag for further details.
+
+
+-type locale_description() :: ustring().
+% A description of a locale (ex: "Afrikaans (South Africa)").
+
+
 -type bin_locale_description() :: bin_string().
 % A description of a locale (ex: <<"Afrikaans (South Africa)">>).
 
 
--export_type([ country/0, locale/0, bin_locale/0, bin_locale_description/0 ]).
+-export_type([ country/0,
+			   string_locale/0, bin_locale/0, any_locale/0,
+			   locale_description/0, bin_locale_description/0 ]).
 
 
 % Shorthands:
 
+-type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+-type any_string() :: text_utils:any_string().
