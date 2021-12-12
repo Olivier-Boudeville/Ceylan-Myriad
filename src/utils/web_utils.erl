@@ -82,8 +82,8 @@
 
 
 -type body() :: string_body() | bin_body().
-% The body of a HTTP message. The binary form is usually better (more compact,
-% less problematic regarding encodings).
+% The body of a HTTP message. The binary form is strongly recommended (more
+% compact, and, more importantly, a lot less problematic regarding encodings).
 
 -type string_body() :: ustring().
 % A body as a plain string (beware to encodings).
@@ -1051,7 +1051,9 @@ post( Uri, Headers, HttpOptions ) ->
 
 % @doc Sends a (synchronous) HTTP/1.1 client POST request.
 %
-% If a body is specified, ?default_content_type will be used.
+% If a body is specified yet no content-type is set, ?default_content_type will
+% be used. To avoid encoding issues, we strongly recommend to pass binary bodies
+% rather than string ones.
 %
 % The HTTP support (possibly with SSL if needed) must be started.
 %
@@ -1071,7 +1073,8 @@ post( Uri, Headers, HttpOptions, MaybeBody ) ->
 % @doc Sends a (synchronous) HTTP/1.1 client POST request.
 %
 % If a body is specified yet no content-type is set, ?default_content_type will
-% be used.
+% be used. To avoid encoding issues, we strongly recommend to pass binary bodies
+% rather than string ones.
 %
 % The HTTP support (possibly with SSL if needed) must be started.
 %
@@ -1094,7 +1097,7 @@ post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 
 	HeadersForHttpc = to_httpc_headers( Headers ),
 
-	% Any content-type expected in headers, and no specific body for POST:
+	% Any content-type expected in headers:
 	Req = case MaybeBody of
 
 		undefined ->
