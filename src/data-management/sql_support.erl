@@ -127,7 +127,7 @@
 
 
 -type bin_database_name() :: bin_string().
-% The name of the target database instance. Ex: <<"acme_stock_db">>.
+% The name of the target database instance. Ex: `<<"acme_stock_db">>'.
 % A database instance is also designated as a catalog.
 
 
@@ -144,7 +144,7 @@
 -type bin_schema_name() :: bin_string().
 % A schema describes the organisation of the tables of a database. It defines a
 % namespace of tables, and security boundaries.
-% Ex: <<"customer_schema">>.
+% Ex: `<<"customer_schema">>'.
 
 -type any_schema_name() :: schema_name() | bin_schema_name().
 
@@ -609,7 +609,7 @@ list_database_names( Conn ) ->
 % @doc Returns a list of the names of all the existing schemas in the database
 % instance of the database server designated by the specified connection.
 %
-% Ex: [<<"pg_catalog">>, <<"information_schema">>, <<"public">>].
+% Ex: `[<<"pg_catalog">>, <<"information_schema">>, <<"public">>]'.
 %
 -spec list_schema_names( connection(), any_database_name() ) ->
 											fallible( [ bin_schema_name() ] ).
@@ -757,10 +757,6 @@ close( Conn ) ->
 		% Default:
 		none ).
 
-
-% @doc Extracts specified field of specified table.
-%-spec extract_field( ) ->
-%extract_field() ->
 
 
 % @doc Stops the SQL support.

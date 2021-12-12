@@ -315,12 +315,12 @@ normal_type_to_string( per_face ) ->
 % Bounding-box related section.
 
 
-% @doc Updates, for the specified mesh, its internal bounding-box, with
+% at-doc Updates, for the specified mesh, its internal bounding-box, with
 % regard to the specified bounding-box algorithm.
 %
 % Returns a mesh with updated information.
 %
-% @end
+% at-end
 %
 % The lazy circle bounding box is fast to determine, but not optimal:
 %-spec update_bounding_box( bounding_algorithm(), mesh() ) -> mesh().

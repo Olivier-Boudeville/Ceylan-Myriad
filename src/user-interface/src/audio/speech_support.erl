@@ -115,18 +115,18 @@
 
 -type voice_id() :: { tts_provider(), voice_id_at_provider() }.
 % The absolute (reference) identifier of a voice (ex: {azure,
-% <<"fr-FR-DeniseNeural">>}.
+% `<<"fr-FR-DeniseNeural">>'}.
 
 
 -type voice_id_at_provider() :: bin_string().
-% The identifier of a voice (ex: <<"fr-FR-DeniseNeural">>, <<"ar-SA-Naayf">>) in
-% the context of a specific TTS provider.
+% The identifier of a voice (ex: `<<"fr-FR-DeniseNeural">>',
+% `<<"ar-SA-Naayf">>') in the context of a specific TTS provider.
 
 
 -type voice_name() :: bin_string().
 % The full name (just informative) of a voice.
 %
-% Ex: <<"Foobar Server Speech Text to Speech Voice (xr-XG, Yoda)">>.
+% Ex: `<<"Foobar Server Speech Text to Speech Voice (xr-XG, Yoda)">>'.
 
 
 -type voice_type() :: 'normal'  % Basic.
@@ -139,7 +139,7 @@
 
 
 -type language_locale() :: bin_locale().
-% The language locale to be used (ex: <<"fr-FR">>), knowing that for example a
+% The language locale to be used (ex: `<<"fr-FR">>'), knowing that for example a
 % voice may speak in multiple languages (ex: "Jenny Multilingual").
 
 
@@ -228,7 +228,7 @@
 
 -type speech_base_name() :: bin_path_element().
 % A short name to designate a logical speech, able to be used as a prefix of a
-% filename; ex: <<"welcome-new-recruits">>). Not an identifier, but preferably
+% filename; ex: `<<"welcome-new-recruits">>'). Not an identifier, but preferably
 % unique.
 
 
@@ -396,7 +396,7 @@ check_tts_provider_availability( SpeechState ) ->
 
 
 
-% @spec Returns the audio format description string corresponding to specified
+% @doc Returns the audio format description string corresponding to specified
 % settings.
 %
 % Not all combinations are supported:
@@ -883,7 +883,7 @@ record_speech( SSMLText,
 	XMLContent = [ { speak, SpeakAttrs, VoiceContent } ],
 
 	%trace_utils:debug_fmt( "XML content for speech record:~n ~p",
-	%					   [ XMLContent ] ),
+	%                       [ XMLContent ] ),
 
 	XMLStr = xml_utils:xml_to_string( XMLContent ),
 
@@ -926,7 +926,7 @@ record_speech( SSMLText,
 
 
 
-% @doc Returns an empty speech referential, that is with no logical speech
+% at-doc Returns an empty speech referential, that is with no logical speech
 % defined.
 %
 %-spec create_referential( any_directory_path() ) -> speech_referential().
@@ -934,7 +934,7 @@ record_speech( SSMLText,
 
 
 
-% @doc Records the specified logical speech corresponding to the specified SSML
+% at-doc Records the specified logical speech corresponding to the specified SSML
 % message, according to the specified speech settings, using the specified base
 % name to forge the filename in which the generated audio will be stored, in the
 % specified directory; the corresponding full path is returned.

@@ -43,7 +43,8 @@
 %
 % See also its User's Guide: https://www.erlang.org/doc/apps/xmerl/xmerl_ug.html
 %
-% No simple way has been found in order to pretty-print XML here.
+% One may refer to src/scripts/show-xml-file.escript in order to pretty-print
+% XML.
 
 
 
@@ -196,20 +197,20 @@
 % Allows to define the header of the XML document, so that we becomes for
 % example:
 %
-% <?xml version="1.0" encoding="utf-8" ?>
+% `<?xml version="1.0" encoding="utf-8" ?>'
 %
 % or:
 %
-% <?xml version="1.0" encoding="utf-8" ?>
-% <!DOCTYPE birds SYSTEM "bird.dtd">
+% `<?xml version="1.0" encoding="utf-8" ?>
+% <!DOCTYPE birds SYSTEM "bird.dtd">'
 %
 % or:
 %
-% <?xml version="1.0"?>
-% <birds xmlns="http://foo.org/species" xmlns:c="http://bar.net/colors">
+% `<?xml version="1.0"?>
+% <birds xmlns="http://foo.org/species" xmlns:c="http://bar.net/colors">'
 %
 % Another option to set the prolog is to alter the root XML element with
-% attributes like: [{xmlns, SpeciesStr}, {'xmlns:c', ColorStr}]
+% attributes like: `[{xmlns, SpeciesStr}, {'xmlns:c', ColorStr}]'
 %
 % If the root element is an xmlElement record, then a (single) namespace may be
 % specified thanks to its 'namespace' field:

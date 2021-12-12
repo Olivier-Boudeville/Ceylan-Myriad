@@ -53,7 +53,7 @@
 
 -type bin_package_name() :: bin_string().
 % The name of a Protobuf package, as a binary string, such as the user-defined
-% <<"myriad.protobuf.test">> one.
+% `<<"myriad.protobuf.test">>' one.
 
 
 -type message_type() :: atom().

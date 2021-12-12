@@ -46,7 +46,7 @@
 
 
 -type bin_locale() :: bin_string().
-% A locale as a BCP 47 binary, like <<"fr-FR">>, corresponding to "French
+% A locale as a BCP 47 binary, like `<<"fr-FR">>', corresponding to "French
 % (France)" here.
 %
 % See http://cldr.unicode.org/ and
@@ -54,7 +54,7 @@
 
 
 -type any_locale() :: any_string().
-% A locale as a BCP 47 plain string or binary, like "fr-FR" or <<"fr-FR">>,
+% A locale as a BCP 47 plain string or binary, like "fr-FR" or `<<"fr-FR">>',
 % corresponding to "French (France)" here.
 %
 % See http://cldr.unicode.org/ and
@@ -66,7 +66,7 @@
 
 
 -type bin_locale_description() :: bin_string().
-% A description of a locale (ex: <<"Afrikaans (South Africa)">>).
+% A description of a locale (ex: `<<"Afrikaans (South Africa)">>').
 
 
 -export_type([ country/0,

@@ -185,19 +185,19 @@
 % The full, readily usable endpoint of a given service.
 %
 % Ex:
-% <<"https://francecentral.api.cognitive.microsoft.com/sts/v1.0/issuetoken">>.
+% `<<"https://francecentral.api.cognitive.microsoft.com/sts/v1.0/issuetoken">>'.
 
 
 -type api_endpoint() :: bin_string().
 % The API endpoint (with no deployment-related prefix such as
 % "https://francecentral.") of a given service.
 %
-% Ex: <<"api.cognitive.microsoft.com/sts/v1.0/issuetoken">>.
+% Ex: `<<"api.cognitive.microsoft.com/sts/v1.0/issuetoken">>'.
 
 
 -type instance_key() :: bin_string().
 % The key of an instance hosted by a cloud provider.
-% Ex: <<"a59c98302e7f4a22be4b355125df8e9">>.
+% Ex: `<<"a59c98302e7f4a22be4b355125df8e9">>'.
 
 
 -type cloud_instance_info() :: azure_instance_info().
@@ -211,12 +211,12 @@
 
 -type azure_instance_key() :: instance_key().
 % The key of a Microsoft Azure instance.
-% Ex: <<"a59c98302e7f4a22be4b355125df8e9">>.
+% Ex: `<<"a59c98302e7f4a22be4b355125df8e9">>'.
 
 
 -type azure_instance_location() :: bin_string().
 % The location of a Microsoft Azure instance.
-% Ex: <<"francecentral">>.
+% Ex: `<<"francecentral">>'.
 
 
 

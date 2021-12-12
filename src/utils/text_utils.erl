@@ -235,7 +235,7 @@
 % A binary string containing hexadecimal values (possibly with a "0x" prefix).
 % We prefer hexadecimal (letter) characters to be uppercases.
 %
-% Ex: <<"0x44e390a3">> or <<"44e390a3">>.
+% Ex: `<<"0x44e390a3">>' or `<<"44e390a3">>'.
 
 
 -type unicode_string() :: unicode:chardata().
@@ -294,7 +294,7 @@
 % accept them, so converting an iolist to a binary is generally at least
 % useless.
 %
-% For example the ["foo", $b, $a, $r, <<"baz">>] iolist represents the
+% For example the `["foo", $b, $a, $r, <<"baz">>]' iolist represents the
 % "foobarbaz" string.
 %
 % Type redefined exactly as the standard one, almost verbatim (with a name
@@ -605,7 +605,7 @@ hexastring_to_integer( HexaString, _ExpectPrefix=false ) ->
 % @doc Returns the binary corresponding to the specified binary string that
 % contains a series of hexadecimal values.
 %
-% Ex: hexabinstring_to_binary(<<"ffac01">>) = <<255,172,1>>.
+% Ex: `hexabinstring_to_binary(<<"ffac01">>) = <<255,172,1>>'.
 
 -spec hexabinstring_to_binary( hexabinstring() ) -> binary().
 hexabinstring_to_binary( HexaBinStr ) ->
@@ -616,7 +616,7 @@ hexabinstring_to_binary( HexaBinStr ) ->
 % @doc Returns the binary corresponding to the specified string that contains
 % a series of hexadecimal values.
 %
-% Ex: hexastring_to_binary("ffac01") = <<255,172,1>>.
+% Ex: `hexastring_to_binary("ffac01") = <<255,172,1>>'.
 
 -spec hexastring_to_binary( hexastring() ) -> binary().
 hexastring_to_binary( HexaStr ) ->
