@@ -109,11 +109,45 @@ A built-in very basic support for the `CSV <https://en.wikipedia.org/wiki/Comma-
 Most Usual, Standard File Formats
 .................................
 
-Besides the support for XML (see ``xml_utils``), an optional support (as it depends on third-party prerequisites) is proposed for:
+Besides the support for XML, an optional support (as it depends on third-party prerequisites) is proposed for:
 
 - JSON
 - HDF5
 - SQLite
+
+.. _`XML use`:
+
+Some useful information for **XML use**:
+
+- Myriad's XML support is implemented by the ``xml_utils`` module (so one shall refer to ``xml_utils.{e,h}rl`` and ``xml_utils_test.erl``), which relies on the built-in ``xmerl`` modules
+- XML documents can be parsed from strings (see ``string_to_xml/1``) or files (see ``parse_xml_file/1``), and conversely can be serialised to strings (see ``xml_to_string/{1,2}``)
+- an XML document is made from a list of XML elements, that can exist as three different forms that can be freely mixed: as "simple-form", as IOLists and/or as XML (xmerl) records
+- we recommend the use of the "simple-form", which should be sufficient for at least most cases
+
+This last form is based on simple tags, used in order to easily have (Erlang) terms that are direct counterparts of XML tags.
+
+For example the following two elements (respectively in simple-form and as an XML document) are equivalent (if using the default XML prolog):
+
+.. code:: erlang
+
+ XMLSimpleContent = [
+   myFirstTag,
+   {mySecondTag, [myNestedTag]},
+   {myThirdTag, [{color, "red"}, {age, 71}], ["This is a text!"]}].
+
+
+and:
+
+.. code:: xml
+
+ <?xml version="1.0" encoding="utf-8" ?>
+ <myFirstTag/>
+ <mySecondTag><myNestedTag/></mySecondTag>
+ <myThirdTag color="red" age="71">This is a text!</myThirdTag>
+
+
+Refer to the ``xml_utils`` module for further details.
+
 
 
 .. _`JSON use`:

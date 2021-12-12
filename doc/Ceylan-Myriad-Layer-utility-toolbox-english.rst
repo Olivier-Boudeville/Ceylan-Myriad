@@ -38,7 +38,7 @@ These helpers (code and typing information) are thematically aggregated in modul
 - support for **network**-related concerns (``net_utils.erl.{e,h}rl``)
 - services to offer **randomness** (``random_utils.erl``), with regard to various sources (the Erlang built-in algorithm, ``crypto``, newer ones like ``exsplus`` - our current default, ``exs64`` and ``exs1024``), for seeding, drawing, etc.
 - very little support of **RDF** operations, standing for `Resource Description Framework <https://en.wikipedia.org/wiki/Resource_Description_Framework>`_ (``rdf_utils.erl``)
-- support for **XML** (``xml_utils.erl``, based on standard ``xmerl``)
+- support for **XML** (``xml_utils.{e,h}rl``, based on built-in ``xmerl``), for parsing and generation
 - facilities to handle content to the web, to HTTP, etc. (``web_utils.erl``) and to perform **REST calls** (``rest_utils.erl``), using built-in ``httpc`` and ``http_client`` (including JSON services mentioned below)
 - elements for the sending of **SMS** (``sms_utils.erl``), based either on third-party providers providing REST APIs, or via a mobile phone (typically connected thanks to a USB cable); nothing as advanced as `Ceylan-Mobile <http://mobile.esperide.org/>`_, though
 - support for operations at the **operating-system** level (``system_utils.{e,h}rl``)
