@@ -26,7 +26,6 @@
 % Creation date: Tuesday, December 2, 2014.
 
 
-
 % @doc Implementation of an <b>associative table based on the <code>map</code>
 % module</b>.
 %
@@ -63,7 +62,7 @@
 
 
 % Mostly the same API as the one of hashtable (but richer):
--export([ new/0, new/1, new_from_unique_entries/1,
+-export([ new/0, singleton/2, new/1, new_from_unique_entries/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
 		  add_maybe_entry/3, add_maybe_entries/2,
 		  update_entry/3, update_entries/2,
@@ -153,6 +152,17 @@
 new() ->
 	% Empty map:
 	#{}.
+
+
+
+% @doc Returns a map-based hashtable comprising only the specified entry.
+%
+% More elegant than map_hashtable:new([{K,V}], map_hashtable:new()).
+%
+-spec singleton( key(), value() ) -> map_hashtable().
+singleton( Key, Value ) ->
+	#{ Key => Value }.
+
 
 
 % @doc Creates a table, either from specified initial entries or (solely for API
@@ -524,8 +534,8 @@ get_value( Key, MapHashtable ) ->
 % The key/value pairs are expected to exist already in the table, otherwise an
 % exception is raised.
 %
-% Ex: [Color, Age, Mass] = map_hashtable:get_values( [color, age, mass],
-%                                                    MyMapTable ] )
+% Ex: [Color, Age, Mass] =
+%               map_hashtable:get_values([color, age, mass], MyMapTable])
 %
 -spec get_values( [ key() ], map_hashtable() ) -> [ value() ].
 get_values( Keys, Hashtable ) ->
