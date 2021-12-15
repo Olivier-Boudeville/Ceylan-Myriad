@@ -101,13 +101,36 @@
 			   codec/0 ]).
 
 
--export([ audio_stream_settings_to_string/1 ]).
+-export([ playback_file/2, playback_file/3,
+		  audio_stream_settings_to_string/1 ]).
 
 
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+
+-type any_file_path() :: file_utils:any_file_path().
+
+
+
+% @doc Performs a playblack of the specified audio file, with specified
+% settings (if any), in a non-blocking (in the background) way.
+%
+-spec playback_file( any_file_path(), maybe( audio_stream_settings() ) ) ->
+											void().
+playback_file( AudioFilePath, MaybeAudioStreamSettings ) ->
+	playback_file( AudioFilePath, MaybeAudioStreamSettings, _Doblock=false ).
+
+
+% @doc Performs a playblack of the specified audio file, with specified
+% settings, either in a blocking or in a non-blocking (in the background) way.
+%
+-spec playback_file( any_file_path(), maybe( audio_stream_settings() ),
+					 boolean() ) -> void().
+playback_file( AudioFilePath, _MaybeAudioStreamSettings, DoBlock ) ->
+	executable_utils:playback_audio_file( AudioFilePath, DoBlock ).
+
 
 
 % @doc Returns a textual description of the specified audio stream settings.
