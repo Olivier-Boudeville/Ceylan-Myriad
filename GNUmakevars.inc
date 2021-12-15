@@ -123,6 +123,8 @@ endif
 # conditional compilation primitives (see cond_utils for their management):
 
 # Topics covered by flags:
+# - third_party_execution: the execution of third-party elements such as
+#    executables, commands, shell expressions
 #  - code_path: how the VM code path is managed
 #  - otp_integration: how OTP conventions (notably regarding applications) are
 #	 handled
@@ -149,6 +151,7 @@ endif
 # Defining debug flags (at least the most verbose are by default commented-out):
 ifeq ($(ENABLE_DEBUG),true)
 
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_third_party_execution
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
