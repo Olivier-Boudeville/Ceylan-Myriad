@@ -30,6 +30,9 @@ PROJECT_ICON := myriad-icon.png
 GITHUB_PAGES_BASE := $(shell basename "$(MYRIAD_WEB_MIRROR_BRANCH)")
 
 
+# Additional to WEB_CONTENT:
+EXTRA_CONTENT := speech-test-fr-FR.ogg.opus speech-test-en-US.ogg.opus
+
 
 .PHONY: all doc html pdf create-links clone-mirror                     \
 		export-doc export-doc-to-official export-doc-to-mirror         \
@@ -76,13 +79,13 @@ export-doc: export-doc-to-official export-doc-to-mirror
 #
 export-doc-to-official: check-mathjax clean-doc create-links doc
 	@echo "   Exporting Myriad documentation to official website ($(WEB_SRV))"
-	@/bin/scp $(SP) -r $(WEB_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
+	@/bin/scp $(SP) -r $(WEB_CONTENT) $(EXTRA_CONTENT) $(WEB_SRV):$(WEB_ROOT)/Myriad/
 
 
 # H option for cp so that a local MathJax is copied in target branch:
 export-doc-to-mirror: check-mathjax clean-doc create-links doc
 	@echo "   Exporting Myriad documentation to mirror website in $(MYRIAD_WEB_MIRROR_BRANCH)"
-	@/bin/cp -rfH $(WEB_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
+	@/bin/cp -rfH $(WEB_CONTENT) $(EXTRA_CONTENT) $(MYRIAD_WEB_MIRROR_BRANCH) && cd $(MYRIAD_WEB_MIRROR_BRANCH) && git add . && git merge -s ours && git commit -m "Myriad doc updated." && git push && git pull --ff-only
 
 
 
@@ -93,6 +96,7 @@ info-web:
 	@echo "HTML_TARGET = $(HTML_TARGET)"
 	@echo "SP = $(SP)"
 	@echo "WEB_CONTENT = $(WEB_CONTENT)"
+	@echo "EXTRA_CONTENT = $(EXTRA_CONTENT)"
 	@echo "WEB_SRV = $(WEB_SRV)"
 	@echo "WEB_ROOT = $(WEB_ROOT)"
 	@echo "MYRIAD_WEB_MIRROR_BRANCH = $(MYRIAD_WEB_MIRROR_BRANCH)"
