@@ -84,8 +84,8 @@
 %
 % - or, maybe better:
 %
-% erlang:element( 2, erlang:element( 2, erlang:process_info( self(),
-%   current_function ) ) ) ).
+% erlang:element(2, erlang:element(2,
+%   erlang:process_info(self(), current_function)))).
 
 
 
@@ -1589,7 +1589,7 @@ get_process_specific_value( Pid ) ->
 	Z = T+1,
 
 	% Hash part probably a bit overkill:
-	Res = X*Y*Z + erlang:phash2( erlang:make_ref() ),
+	Res = X*Y*Z + erlang:phash2( erlang:make_ref(), _MaxRange=1 bsl 32 ),
 
 	%trace_utils:debug_fmt( "Process-specific value: ~B.", [ Res ] ),
 	Res.
@@ -1625,7 +1625,7 @@ get_process_size( Pid ) ->
 	%ProcessPropList = erlang:process_info( Pid ),
 
 	%trace_utils:debug_fmt( "Process info for ~w:~n~p",
-	%					   [ Pid, ProcessPropList ] ),
+	%                       [ Pid, ProcessPropList ] ),
 
 	% Includes call stack, heap, and internal structures:
 	% (apparentlyalready in bytes, not words:
