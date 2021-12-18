@@ -26,9 +26,9 @@
 % Creation date: Monday, November 29, 2021.
 
 
-% @doc Gathering of various facilities regarding speech support, i.e. TTS (Text
-% to Speech), in order to obtain an audio content corresponding to a specified
-% text.
+% @doc Gathering of various facilities regarding <b>speech support</b>, i.e. TTS
+% (Text to Speech), in order to obtain an audio content corresponding to a
+% specified text.
 %
 -module(speech_support).
 
@@ -84,7 +84,12 @@
 %  volume="V"></prosody> to modify how the enclosed text is speeched
 %
 %  - <say-as interpret-as="S" format="F" detail="D">T</say-as>
-
+%
+%
+% This XML structure can be expressed in "simple form" (see
+% xml_utils:xml_document/0); for example:
+%
+% MySSMLText = ["Hello ", {prosody, [{volume, "+20.00%"}], [" John"]},...
 
 % Neural voices are created from samples that use a 24 khz sample rate.
 
@@ -96,13 +101,21 @@
 % English, French, Japanese, etc.).
 %
 % We define here a "logical speech", corresponding to a speech of a given
-% semantics, regardless to its translation into a set of locales.
+% semantics (meaning), regardless to its translation into a set of locales.
 
 % For that, generally a reference locale is generally elected (ex: "en-US"), and
 % each logical speech is first defined in terms of that locale, as a SSML text
-% ("Hello world!"). Then, in the context of a given locale, this logical speech
-% is to be translated in a corresponding locale-specific SSML text, and then
-% generated as an audio content.
+% (ex: "Hello world!"). Then, in the context of a given locale, this logical
+% speech is to be translated in a corresponding locale-specific SSML text (ex:
+% "Salut le monde !"), and then generated as an audio content.
+%
+% See for that create_referential/1 and record_logical_speech/5
+
+
+% Next evolutions could be adding facilities in order to export a speech
+% referential to JSON and reciprocally import it from JSON, so that afterwards
+% clients may load such files and fetch all appropriate information for a given
+% spoken locale.
 
 
 -type tts_provider() :: 'google' % Google (Wavenet)
@@ -204,22 +217,29 @@
 -type speech_settings() :: #speech_settings{}.
 % Information regarding a speech to be recorded (many of whom are optional).
 
+-type speech_settings_id() :: count().
+% The identifier of given speech settings in a table thereof.
+
+-type speech_settings_table() ::
+		table( speech_settings_id(), speech_settings() ).
+
 
 -type ssml_text() :: xml_document().
 % A text to be spoken, specified in Speech Synthesis Markup Language (SSML),
 % therefore as an XML document.
 %
-% Special characters, such as quotation marks, apostrophes, and brackets must be
-% escaped.
+% Special characters, such as quotation marks, apostrophes, and brackets will be
+% automatically escaped here.
 %
 % Refer to https://www.w3.org/TR/2004/REC-speech-synthesis-20040907/ and
 % https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup
 % for further SSML details.
 
 
--type actual_speech_info() :: { voice_id(), ssml_text() }.
-% Key information regarding an actual text-to-speech, i.e. the instantiation of
-% a logical speech.
+-type user_speech_info() :: { speech_settings_id(), ssml_text() }.
+% User-specified information regarding an actual text-to-speech, to allow for
+% the instantiation of a logical speech.
+
 
 
 -type speech_id() :: count().
@@ -232,10 +252,22 @@
 % unique.
 
 
+-type any_speech_base_name() :: any_path_element().
+% A short name (any kind of string) to designate a logical speech, able to be
+% used as a prefix of a filename; ex: "welcome-new-recruits"). Not an
+% identifier, but preferably unique.
+
 
 -type logical_speech() :: #logical_speech{}.
 % All information regarding a logical speech, possibly recorded based on
 % multiple, different spoken locales.
+
+
+-type actual_speech_info() :: #actual_speech_info{}.
+% Key information regarding an actual text-to-speech, that is the instantiation
+% of a logical speech, i.e. the speech settings that apply to this SSML text and
+% the resulting audio file (relative to the base directory of the speech
+% referential keeping track of the corresponding logical speech).
 
 
 -type locale_table() :: table( language_locale(), actual_speech_info() ).
@@ -244,8 +276,12 @@
 
 
 -type speech_table() :: table( speech_id(), logical_speech() ).
-% A table associating to a speech identifier the various available information
-% regarding that logical speech.
+% A table associating to the identifier of a logical speech the various
+% available information about it.
+
+
+-type speech_referential() :: #speech_referential{}.
+% A datastructure collecting information regarding a set of logical speeches.
 
 
 -opaque speech_state() :: #speech_state{}.
@@ -256,21 +292,30 @@
 			   voice_name/0, voice_type/0, voice_gender/0,
 			   language_locale/0, supported_style/0,
 			   voice_info/0, voice_table/0,
-			   speech_settings/0, ssml_text/0, actual_speech_info/0,
-			   speech_id/0, speech_base_name/0, logical_speech/0,
-			   speech_table/0, speech_state/0 ]).
+			   speech_settings/0, speech_settings_id/0, speech_settings_table/0,
+			   ssml_text/0, user_speech_info/0,
+			   speech_id/0, speech_base_name/0, any_speech_base_name/0,
+			   logical_speech/0, actual_speech_info/0, locale_table/0,
+			   speech_table/0, speech_referential/0, speech_state/0 ]).
 
 
 -export([ check_availability/0,
 		  get_default_audio_settings/0, get_audio_format_string/1,
-		  start/1,
+		  start/1, start/2, stop/1,
 		  list_voices/1,
 		  record_speech/3, record_speech/4, record_speech/5,
-		  stop/1,
+
+		  register_speech_settings/2,
+		  create_referential/1, record_logical_speech/3,
+		  get_audio_path_for/3,
+
 		  filter_by_gender/2, filter_by_locale/2,
-		  speech_state_to_string/1,
-		  voice_table_to_string/1,
-		  voice_info_to_string/1 ]).
+
+		  speech_state_to_string/1, voice_id_to_string/1,
+		  tts_provider_to_string/1, voice_table_to_string/1,
+		  voice_info_to_string/1, role_to_string/1,
+		  speech_settings_to_string/1, logical_speech_to_string/1,
+		  actual_speech_info_to_string/1, speech_referential_to_string/1 ]).
 
 
 % Shorthands:
@@ -285,9 +330,12 @@
 
 -type json_term() :: json_utils:json_term().
 
+-type bin_file_name() :: file_utils:bin_file_name().
 -type file_path() :: file_utils:file_path().
+-type bin_file_path() :: file_utils:bin_file_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 -type bin_path_element() :: file_utils:bin_path_element().
+-type any_path_element() :: file_utils:any_path_element().
 -type extension() :: file_utils:extension().
 
 -type xml_document() :: xml_utils:xml_document().
@@ -440,11 +488,28 @@ get_audio_format_string( #audio_stream_settings{
 
 
 
-% @doc Starts the speech support.
+% @doc Starts the speech support, initialising the embedded speech referential
+% with the current directory.
+%
 -spec start( speech_state() ) -> speech_state().
 start( SpeechState ) ->
+	start( SpeechState, _DefBaseDir="." ).
+
+
+% @doc Starts the speech support, initialising the embedded speech referential
+% with the specified directory.
+%
+-spec start( speech_state(), any_directory_path() ) -> speech_state().
+start( SpeechState=#speech_state{ audio_settings=AudioSettings },
+	   AnyBaseDir ) ->
+
+	BaseDir = file_utils:ensure_path_is_absolute( AnyBaseDir ),
+
+	SpeechReferential = create_referential( BaseDir, AudioSettings ),
+
 	web_utils:start( _Opts=ssl ),
-	SpeechState.
+
+	SpeechState#speech_state{ speech_referential=SpeechReferential }.
 
 
 
@@ -497,7 +562,7 @@ list_voices( #speech_state{ cloud_instance_info=#azure_instance_info{
 
 
 % @doc Registers the specified (non-deprecated, non-preview) voices of specified
-% TTS provider in specified voice table.
+% TTS provider in the specified voice table.
 %
 -spec register_voices( tts_provider(), json_term(), voice_table() ) ->
 															voice_table().
@@ -666,7 +731,8 @@ filter_by_locale( SpokenLocale, VoiceTable ) ->
 % @doc Records the speech corresponding to the specified SSML message, according
 % to the (supposedly set) current speech settings, using the specified base name
 % to forge the filename in which the generated audio will be stored, in the
-% current directory; the corresponding full path is returned.
+% current directory; the corresponding audio path is returned; the corresponding
+% filename (relative to the elected directory) is returned.
 %
 % Ex: if BaseName is "hello-world", the current directory is
 % /home/bond/my-speeches", and the audio settings imply a Ogg container format
@@ -677,9 +743,11 @@ filter_by_locale( SpokenLocale, VoiceTable ) ->
 % form" to define it, refer to the "Defining one's XML document" in
 % xml_utils.erl for further details. Also spaces shall exist around tags.
 %
+% Ex: record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], [" John"]},...
+%
 % See record_speech/5 for further details.
 %
--spec record_speech( ssml_text(), speech_base_name(), speech_state() ) ->
+-spec record_speech( ssml_text(), any_speech_base_name(), speech_state() ) ->
 													file_path().
 record_speech( SSMLText, BaseName, SpeechState ) ->
 	record_speech( SSMLText, BaseName, _MaybeOutputDir=undefined, SpeechState ).
@@ -689,8 +757,8 @@ record_speech( SSMLText, BaseName, SpeechState ) ->
 % @doc Records the speech corresponding to the specified SSML message, according
 % to the (supposedly set) current speech settings, using the specified base name
 % to forge the filename in which the generated audio will be stored, in the
-% specified directory (otherwise in the current one); the corresponding full
-% path is returned.
+% specified directory (otherwise in the current one); the corresponding filename
+% (relative to the elected directory) is returned.
 %
 % Ex: if BaseName is "hello-world", the specified directory is
 % /home/bond/my-speeches", and the audio settings imply a Ogg container format
@@ -701,10 +769,12 @@ record_speech( SSMLText, BaseName, SpeechState ) ->
 % form" to define it, refer to the "Defining one's XML document" in
 % xml_utils.erl for further details.
 %
+% Ex: record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], [" John"]},...
+%
 % See record_speech/5 for further details.
 %
--spec record_speech( ssml_text(), speech_base_name(),
-			maybe( any_directory_path() ), speech_state() ) -> file_path().
+-spec record_speech( ssml_text(), any_speech_base_name(),
+			maybe( any_directory_path() ), speech_state() ) -> bin_file_name().
 record_speech( _SSMLText, _BaseName, _MaybeOutputDir,
 			   #speech_state{ speech_settings=undefined } ) ->
 	throw( no_speech_settings_stored );
@@ -719,17 +789,19 @@ record_speech( SSMLText, BaseName, MaybeOutputDir,
 % @doc Records the speech corresponding to the specified SSML message, according
 % to the specified speech settings, using the specified base name to forge the
 % filename in which the generated audio will be stored, in the specified
-% directory (otherwise in the current one); the corresponding full path is
-% returned.
+% directory (otherwise in the current one); the corresponding filename (relative
+% to the elected directory) is returned.
 %
 % Ex: if BaseName is "hello-world", the specified directory is
-% /home/bond/my-speeches", and the audio settings imply a Ogg container format
+% "/home/bond/my-speeches", and the audio settings imply a Ogg container format
 % with an Opus audio format and the fr-FR locale, the specified speech will be
 % stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
 %
 % A SSML message is an XML document, we recommend using the so-called "simple
 % form" to define it, refer to the "Defining one's XML document" in
 % xml_utils.erl for further details.
+%
+% Ex: record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], [" John"]},...
 %
 % Restrictions:
 % - the text-to-speech must be an XML document, yet may be as simple as "Hello
@@ -740,10 +812,10 @@ record_speech( SSMLText, BaseName, MaybeOutputDir,
 % speech more expressive or subdued) is not used (not offered by the voices
 % of interest, and anyway the supported 'style' conveys more meaning)
 %
--spec record_speech( ssml_text(), speech_base_name(), speech_settings(),
-				maybe( any_directory_path() ), speech_state() ) -> file_path().
+-spec record_speech( ssml_text(), any_speech_base_name(), speech_settings(),
+			maybe( any_directory_path() ), speech_state() ) -> bin_file_name().
 record_speech( SSMLText,
-			   BaseName,
+			   AnyBaseName,
 			   #speech_settings{
 					voice_id={ azure, BinVoiceProviderId },
 					language_locale=MaybeLangLoc,
@@ -758,6 +830,8 @@ record_speech( SSMLText,
 					http_options=HTTPOptions,
 					requester_app_name=BinAppName,
 					audio_settings=AudioSettings } ) ->
+
+	BaseName = text_utils:ensure_binary( AnyBaseName ),
 
 	Uri = text_utils:format(
 		"https://~ts.tts.speech.microsoft.com/cognitiveservices/v1",
@@ -796,7 +870,7 @@ record_speech( SSMLText,
 
 	end,
 
-	OutputFilename = text_utils:format( "~ts-~ts.~ts",
+	BinOutputFilename = text_utils:bin_format( "~ts-~ts.~ts",
 		[ BaseName, LangLoc, get_extension_for( AudioSettings ) ] ),
 
 	OutputDir = case MaybeOutputDir of
@@ -809,7 +883,7 @@ record_speech( SSMLText,
 
 	end,
 
-	OutputFilePath = file_utils:join( OutputDir, OutputFilename ),
+	BinOutputFilePath = file_utils:join( OutputDir, BinOutputFilename ),
 
 	% For Azure:
 	BinVoiceName = BinVoiceProviderId,
@@ -906,8 +980,8 @@ record_speech( SSMLText,
 			%   "of type ~ts:~n ~p",
 			%   [ type_utils:interpret_type_of( BinAudio ), BinAudio ] ),
 
-			file_utils:write_whole( OutputFilePath, BinAudio ),
-			OutputFilePath;
+			file_utils:write_whole( BinOutputFilePath, BinAudio ),
+			BinOutputFilePath;
 
 		{ HTTPErrorCode, _Headers, BinBody } ->
 			trace_utils:error_fmt( "Failed to record speech (~ts; body: ~p)",
@@ -926,41 +1000,213 @@ record_speech( SSMLText,
 
 
 
-% at-doc Returns an empty speech referential, that is with no logical speech
-% defined.
+% @doc Registers the specified speech settings in the specified state, and
+% returns it once updated, along with the identifier assigned to these settings.
 %
-%-spec create_referential( any_directory_path() ) -> speech_referential().
-%create_referential( BaseDir, ) ->
+-spec register_speech_settings( speech_settings(), speech_state() ) ->
+						{ speech_settings_id(), speech_state() }.
+register_speech_settings( SpeechSettings,
+		SpeechState=#speech_state{ speech_settings_table=SpeechSettingsTable,
+								   next_speech_settings_id=NextId } ) ->
+
+	NewTable = table:add_new_entry( _K=NextId, _V=SpeechSettings,
+									SpeechSettingsTable ),
+
+	NewState = SpeechState#speech_state{ speech_settings_table=NewTable,
+										 next_speech_settings_id=NextId+1 },
+
+	{ NextId, NewState }.
 
 
 
-% at-doc Records the specified logical speech corresponding to the specified SSML
-% message, according to the specified speech settings, using the specified base
-% name to forge the filename in which the generated audio will be stored, in the
-% specified directory; the corresponding full path is returned.
+% @doc Returns an empty speech referential with the default "en-US" locale and
+% default audio settings, that is a referential not keeping track of any logical
+% speech defined (yet).
 %
-% Ex: if BaseName is "hello-world", the specified directory is
-% /home/bond/my-speeches", and the audio settings imply a Ogg container format
-% with an Opus audio format and the fr-FR locale, the specified speech will be
-% stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
-%
-% Restrictions:
-% - this is a single-voice speech (no multiple texts per recording)
-% - style adjustments: 'styledegree' (stronger or softer style, to make the
-% speech more expressive or subdued) is not used (not offered by the voices
-% of interest, and anyway the supported 'style' conveys more meaning)
-%
-%-spec record_logical_speech( ssml_text(), speech_base_name(), speech_settings(),
-%					 any_directory_path(), speech_state() ) -> file_path().
+-spec create_referential( any_directory_path() ) -> speech_referential().
+create_referential( BaseDir ) ->
+	create_referential( BaseDir, get_default_audio_settings() ).
 
 
+% @doc Returns an empty speech referential with the default "en-US" locale and
+% the specified audio settings, that is a referential not keeping track of any
+% logical speech defined (yet).
+%
+-spec create_referential( any_directory_path(), audio_stream_settings() ) ->
+											speech_referential().
+create_referential( BaseDir, AudioStreamSettings ) ->
+	create_referential( BaseDir, _RefLocal= <<"en-US">>, AudioStreamSettings ).
+
+
+% @doc Returns an empty speech referential with the specified reference locale
+% and audio settings, that is a referential not keeping track of any logical
+% speech defined (yet).
+%
+-spec create_referential( any_directory_path(), any_locale(),
+						  audio_stream_settings() ) -> speech_referential().
+create_referential( BaseDir, RefLocale, AudioSettings )
+				when is_record( AudioSettings, audio_stream_settings ) ->
+
+	BinBaseDir = text_utils:ensure_binary( BaseDir ),
+
+	case file_utils:is_existing_directory_or_link( BinBaseDir ) of
+
+		true ->
+			ok;
+
+		false ->
+			throw( { non_existing_referential_base_dir, BaseDir } )
+
+	end,
+
+	#speech_referential{ speech_table=table:new(),
+						 reference_locale=text_utils:ensure_binary( RefLocale ),
+						 base_dir=BinBaseDir }.
+
+
+
+% @doc Returns the identifier of the logical speech requested to be recorded,
+% together with the specified speech state whose speech referential has been
+% updated with that speech, created from a speech base name associated to a list
+% of actual speech information, so that the corresponding per-locale audio files
+% are recorded, each with their specified SSML text and speech settings, and
+% referenced.
+%
+% Note that all speech settings referenced for the generation have to have their
+% locale defined.
+%
+-spec record_logical_speech( any_speech_base_name(),
+		% A list of per-locale {speech_settings_id(), ssml_text()}:
+		[ user_speech_info() ], speech_state() ) ->
+			{ speech_id(), speech_state() }.
+record_logical_speech( AnyBaseName, UserSpeechInfos,
+		SpeechState=#speech_state{
+			speech_settings_table=SpeechSettingsTable,
+			audio_settings=AudioSettings,
+			speech_referential=SpeechRef=#speech_referential{
+					speech_table=SpeechTable,
+					base_dir=BinBaseDir,
+					next_speech_id=ThisLogSpeechId } } ) ->
+
+	% Preferably done once for all:
+	BinBaseName = text_utils:ensure_binary( AnyBaseName ),
+
+	LocTable = record_speeches( UserSpeechInfos, BinBaseName,
+		AudioSettings, BinBaseDir, _LocTable=table:new(),
+		SpeechSettingsTable, SpeechState ),
+
+	LogSpeech = #logical_speech{ id=ThisLogSpeechId,
+								 base_name=BinBaseName,
+								 locale_table=LocTable },
+
+	NewSpeechTable =
+		table:add_new_entry( ThisLogSpeechId, LogSpeech, SpeechTable ),
+
+	NewSpeechRef = SpeechRef#speech_referential{
+						speech_table=NewSpeechTable,
+						next_speech_id=ThisLogSpeechId+1 },
+
+	{ ThisLogSpeechId,
+	  SpeechState#speech_state{ speech_referential=NewSpeechRef } }.
+
+
+
+% @doc Records and references all speeches described in the specified list of
+% speech information.
+%
+record_speeches( _UserlSpeechInfos=[], _BinBaseName, _AudioSettings,
+		_BinBaseDir, LocTable, _SpeechSettingsTable, _SpeechState ) ->
+	LocTable;
+
+record_speeches( _UserlSpeechInfos=[ { SpeechSettingsId, SSMLText } | T ],
+		BinBaseName, AudioSettings, BinBaseDir, LocTable, SpeechSettingsTable,
+		SpeechState ) ->
+
+	SpeechSettings = table:get_value( SpeechSettingsId, SpeechSettingsTable ),
+
+	% Needing its locale to be set, as will be a key:
+	SpeechLocale = case SpeechSettings#speech_settings.language_locale of
+
+		undefined ->
+			throw( { no_locale_defined_for, SpeechSettings } );
+
+		Loc ->
+			Loc
+
+	end,
+
+	% Returns filename relative to BinBaseDir:
+	BinSpeechFilename = record_speech( SSMLText, BinBaseName, SpeechSettings,
+									   BinBaseDir, SpeechState ),
+
+	ActualSpeechInfo = #actual_speech_info{ ssml_text=SSMLText,
+											speech_settings_id=SpeechSettingsId,
+											audio_filename=BinSpeechFilename },
+
+	NewLocTable = table:add_new_entry( _K=SpeechLocale, ActualSpeechInfo,
+									   LocTable ),
+
+	record_speeches( T, BinBaseName, AudioSettings, BinBaseDir, NewLocTable,
+					 SpeechSettingsTable, SpeechState ).
+
+
+
+% @doc Returns the absolute path of the audio file corresponding to the logical
+% speech specified through its identifier, for the specified locale.
+%
+-spec get_audio_path_for( speech_id(), language_locale(), speech_state() ) ->
+											bin_file_path().
+get_audio_path_for( LogSpeechId, LangLocale,
+					#speech_state{ speech_referential=#speech_referential{
+										speech_table=SpeechTable,
+										base_dir=BaseDir } } ) ->
+
+	LocaleTable = case table:lookup_entry( _K=LogSpeechId, SpeechTable ) of
+
+		key_not_found ->
+			throw( { logical_speech_not_found, LogSpeechId } );
+
+		{ value, #logical_speech{ locale_table=LocT } } ->
+			LocT
+
+	end,
+
+	case table:lookup_entry( LangLocale, LocaleTable ) of
+
+		key_not_found ->
+			throw( { language_locale_not_found, LangLocale, LogSpeechId } );
+
+		{ value, #actual_speech_info{ audio_filename=AudioFilename } } ->
+			file_utils:bin_join( BaseDir, AudioFilename )
+
+	end.
+
+
+
+% Section to obtain textual descriptions of the speech-related elements.
 
 
 % @doc Returns a textual description of the specified speech state.
 -spec speech_state_to_string( speech_state() ) -> ustring().
-speech_state_to_string( #speech_state{ cloud_instance_info=InstInfo } ) ->
-	text_utils:format( "speech taken in charge by a ~ts",
-		[ web_utils:cloud_instance_info_to_string( InstInfo ) ] ).
+speech_state_to_string( #speech_state{
+		cloud_instance_info=InstInfo,
+		speech_settings_table=SpeechSettingsTable,
+		speech_referential=MaybeSpeechReferential } ) ->
+
+	RefStr = case MaybeSpeechReferential of
+
+		undefined ->
+			"no";
+
+		_ ->
+			"a"
+
+	end,
+
+	text_utils:format( "speech taken in charge by a ~ts, "
+		"referencing ~B speech settings and ~ts speech referential",
+		[ web_utils:cloud_instance_info_to_string( InstInfo ),
+		  table:size( SpeechSettingsTable ), RefStr ] ).
 
 
 
@@ -1119,6 +1365,103 @@ role_to_string( { _Gender=female, _AgePlayed=older_adult } ) ->
 
 role_to_string( narrator ) ->
 	"narrator".
+
+
+
+% @doc Returns a textual description of the specified speech settings.
+-spec speech_settings_to_string( speech_settings() ) -> ustring().
+speech_settings_to_string( #speech_settings{ voice_id=VoiceId,
+											 language_locale=MaybeLoc,
+											 voice_gender=MaybeGender,
+											 speech_style=MaybeStyle,
+											 role=MaybeRole } ) ->
+
+	GenderStr = case MaybeGender of
+
+		undefined ->
+			"with no gender specified";
+
+		Gender ->
+			text_utils:format( "of the ~ts gender", [ Gender ] )
+
+	end,
+
+	LocStr = case MaybeLoc of
+
+		undefined ->
+			"with no spoken locale specified";
+
+		Loc ->
+			text_utils:format( "with the ~ts spoken locale", [ Loc ] )
+
+	end,
+
+	StyleStr = case MaybeStyle of
+
+		undefined ->
+			"no style specified";
+
+		Style ->
+			text_utils:format( "the ~ts style", [ Style ] )
+
+	end,
+
+	RoleStr = case MaybeRole of
+
+		undefined ->
+			"no role specified";
+
+		Role ->
+			text_utils:format( "the ~ts role", [ role_to_string( Role ) ] )
+
+	end,
+
+	text_utils:format( "speech settings about ~ts, ~ts, ~ts, "
+		"with ~ts and ~ts",
+		[ voice_id_to_string( VoiceId ), GenderStr, LocStr, StyleStr,
+		  RoleStr ] ).
+
+
+
+% @doc Returns a textual description of the specified logical speech.
+-spec logical_speech_to_string( logical_speech() ) -> ustring().
+logical_speech_to_string( #logical_speech{ id=Id,
+										   base_name=BaseName,
+										   locale_table=LocaleTable } ) ->
+	text_utils:format( "logical speech of ID #~B, whose base name is '~ts', "
+		"recorded for the following locales: ~ts",
+		[ Id, BaseName,
+		  text_utils:strings_to_listed_string( table:keys( LocaleTable ) ) ] ).
+
+
+
+% @doc Returns a textual description of the specified information about an
+% actual speech.
+%
+-spec actual_speech_info_to_string( actual_speech_info() ) -> ustring().
+actual_speech_info_to_string( #actual_speech_info{
+								ssml_text=SSMLText,
+								speech_settings_id=SpeechSettingsId,
+								audio_filename=AudioFilename } ) ->
+	text_utils:format( "actual speech whose SSML is ~p, based on speech "
+		"settings ~B, recorded in '~ts'",
+		[ SSMLText, SpeechSettingsId, AudioFilename ] ).
+
+
+
+% @doc Returns a textual description of the specified speech referential.
+-spec speech_referential_to_string( speech_referential() ) -> ustring().
+speech_referential_to_string( #speech_referential{
+		speech_table=SpeechTable,
+		reference_locale=RefLocale,
+		base_dir=BaseDir
+		%next_speech_id=NextSpeechId
+								} ) ->
+	text_utils:format( "speech referential of ~B logical speeches, "
+		"whose reference locale is '~ts' and "
+		"whose base directory is '~ts'",
+		[ table:size( SpeechTable ), RefLocale, BaseDir ] ).
+
 
 
 

@@ -48,8 +48,18 @@
 	% May store, as a convenience, current speech settings, for an easier reuse:
 	speech_settings :: maybe( speech_support:speech_settings() ),
 
+	% An associated table referencing all known speech settings:
+	speech_settings_table = table:new() ::
+								speech_support:speech_settings_table(),
+
+	% The next identifier of speech settings to be used:
+	next_speech_settings_id = 1 :: basic_utils:count(),
+
 	% The audio settings regarding the generated output:
-	audio_settings :: audio_utils:audio_stream_settings() } ).
+	audio_settings :: audio_utils:audio_stream_settings(),
+
+	% Any associated speech referential:
+	speech_referential :: maybe( speech_support:speech_referential() ) } ).
 
 
 
@@ -105,7 +115,9 @@
 	% The voice that is to speak:
 	voice_id :: speech_support:voice_id(),
 
-	% Corresponds to the language to be spoken by this voice:
+	% Corresponds to the language to be spoken by this voice (some voices may
+	% speak multiple language):
+	%
 	language_locale :: maybe( speech_support:language_locale() ),
 
 	% At least usually the voice identifier already implies a gender:
@@ -125,13 +137,13 @@
 -record( logical_speech, {
 
 	% The identifier of that speech (intentional duplicate of the corresponding
-	% key in the containing speech table):
+	% key in the speech table of any containing referential):
 	%
 	id :: speech_support:speech_id(),
 
 	% A short name to designate this logical speech (ex: as a prefix of its
-	% filename); ex: <<"welcome-new-recruits">>). Not an identifier, but
-	% preferably unique.
+	% filename); ex: <<"welcome-new-recruits">>). Depending on user choice, this
+	% may or may not be also an identifier.
 	%
 	base_name :: speech_support:speech_base_name(),
 
@@ -145,19 +157,41 @@
 
 
 
+% Information regarding an actual speech, i.e. the translation for a given
+% spoken locale of a given logical speech.
+%
+-record( actual_speech_info, {
+
+	% The SSML corresponding to this actual speech:
+	ssml_text :: speech_support:ssml_text(),
+
+	% Identifies the speech settings (ex: which voice) for this actual speech:
+	speech_settings_id :: speech_support:speech_settings_id(),
+
+	% The filename, relative to the base directory of the underlying speech
+	% referential, of the corresponding audio file:
+	%
+	audio_filename :: file_utils:bin_file_name() } ).
+
+
+
 % A datastructure collecting information regarding a set of logical speeches.
 -record( speech_referential, {
 
-	% A table associating to a speech identifier the various available
-	% information regarding each logical speech.
+	% A table associating to each identifier of a logical speech the various
+	% available information about it.
 	%
 	speech_table :: speech_support:speech_table(),
 
 	% The reference, primary spoken locale, from which other locales may derive:
+	%
+	% (could be useful to better identify a logical speech from such a
+	% "reference" SSML rather than just its base name)
+	%
 	reference_locale = <<"en-US">> :: speech_support:language_locale(),
 
 	% The base directory where speech record files shall be stored:
 	base_dir :: file_utils:bin_directory_path(),
 
-	% The audio settings that apply to all records in that table:
-	audio_settings :: audio_utils:audio_stream_settings() } ).
+	% The next identifier of logical speech to be assigned:
+	next_speech_id = 1 :: speech_support:speech_id() } ).
