@@ -13,8 +13,9 @@ LANG=C; export LANG
 # of overheat.
 #
 # We try to prevent that by forcing a lesser (actually: least) favorable
-# scheduling for the corresponding processes; however this has little to no
-# effect, generating the PLT still leads to higher temperatures; see next
+# scheduling for the corresponding processes; however 'nice' has little to no
+# effect (it is only useful to enforce respective priorities between running
+# executables), generating the PLT still leads to higher temperatures; see next
 # cpulimit section.
 #
 #nice_opt=""
@@ -37,8 +38,6 @@ if [ -x "${cpulimit}" ]; then
 
 	# For testing:
 	#cpu_limit_percentage=1
-
-	echo "The cpulimit tool has been found, limiting the CPU usage of that build to ${cpu_limit_percentage}% of a single core."
 
 	# We leave any active 'nice'.
 
@@ -113,8 +112,12 @@ plt_opt_long="--generate-plt"
 download_opt_short="-n"
 download_opt_long="--no-download"
 
+# Not shown anymore:
 patch_opt_short="-np"
 patch_opt_long="--no-patch"
+
+limit_opt_short="-ncl"
+limit_opt_long="-no-cpu-limit"
 
 previous_opt_short="-p"
 previous_opt_long="--previous"
@@ -126,7 +129,7 @@ previous_opt_long="--previous"
 #   ${patch_opt_short} or ${patch_opt_long}: disable the automatic patching we
 #   make use of
 
-usage="Usage: $(basename $0) [${help_opt_short}|${help_opt_long}] [${version_opt_short}|${version_opt_long}] [${doc_opt_short}|${doc_opt_long}] [${plt_opt_short}|${plt_opt_long}] [${download_opt_short}|${download_opt_long}] [${previous_opt_short}|${previous_opt_long}] [<base install directory>]: downloads, builds and installs a fresh ${erlang_version} Erlang version in the specified base install directory (if defined), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that an 'Erlang-current-install' symbolic link always points to the latest installed version.
+usage="Usage: $(basename $0) [${help_opt_short}|${help_opt_long}] [${version_opt_short}|${version_opt_long}] [${doc_opt_short}|${doc_opt_long}] [${plt_opt_short}|${plt_opt_long}] [${download_opt_short}|${download_opt_long}] [${limit_opt_short}|${limit_opt_long}] [${previous_opt_short}|${previous_opt_long}] [<base install directory>]: downloads, builds and installs a fresh ${erlang_version} Erlang version in the specified base install directory (if defined), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that an 'Erlang-current-install' symbolic link always points to the latest installed version.
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
@@ -136,11 +139,14 @@ If no base install directory is specified, then:
 
 Otherwise, i.e. if a base install directory MY_DIR is specified, then Erlang will be installed into MY_DIR/Erlang/Erlang-${erlang_version}/.
 
+Note that unless specified otherwise the whole procedure is slowed down to avoid any overheat of the local host.
+
 Options:
 	${doc_opt_short} or ${doc_opt_long}: download and install the corresponding documentation as well
 	${version_opt_short} or ${version_opt_long}: just returns the current version of Erlang that would be installed
 	${plt_opt_short} or ${plt_opt_long}: generate the PLT file (${plt_file}) for Dialyzer corresponding to this Erlang/OTP install
 	${download_opt_short} or ${download_opt_long}: do not attempt to download anything; expect that needed files are already available (useful if not having a direct access to the Internet)
+	${limit_opt_short} or ${limit_opt_long}: do not slow down the build
 	${previous_opt_short} or ${previous_opt_long}: use, instead of the current Erlang version registered for installation (i.e. ${erlang_version}), the previous one (ex: latest supported release candidate version otherwise the lastly supported stable version), namely, currently, ${erlang_version_candidate}
 
 Example:
@@ -294,6 +300,16 @@ while [ $token_eaten -eq 0 ]; do
 
 	fi
 
+	if [ "$1" = "${limit_opt_short}" ] || [ "$1" = "${limit_opt_long}" ]; then
+
+		echo "Build will not be slowed down."
+		nice_opt=""
+		cpu_limit_expr=""
+		
+		token_eaten=0
+
+	fi
+
 
 	if [ "$1" = "${patch_opt_short}" ] || [ "$1" = "${patch_opt_long}" ]; then
 
@@ -370,6 +386,13 @@ else
 	else
 		echo "Using (non-existing yet) '${prefix}' as installation directory."
 	fi
+
+fi
+
+
+if [ -n "${cpu_limit_expr}" ]; then
+
+	echo "The slowing down of the build is enabled and the cpulimit tool has been found, so limiting the CPU usage of that build to ${cpu_limit_percentage}% of a single core."
 
 fi
 
