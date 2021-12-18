@@ -317,6 +317,8 @@ xml_to_string( XMLContent, PrologValue ) ->
    % See
    % https://www.erlang.org/doc/apps/xmerl/xmerl_ug.html#example--create-xml-out-of-arbitrary-data:
 
+	%trace_utils:debug_fmt( "XML content to serialise:~n ~p", [ XMLContent ] ),
+
 	IOList = xmerl:export_simple( XMLContent, xmerl_xml,
 								  [ { prolog, PrologValue } ] ),
 
