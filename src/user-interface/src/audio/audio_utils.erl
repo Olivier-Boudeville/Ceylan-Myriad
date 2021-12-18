@@ -120,7 +120,7 @@
 -spec playback_file( any_file_path(), maybe( audio_stream_settings() ) ) ->
 											void().
 playback_file( AudioFilePath, MaybeAudioStreamSettings ) ->
-	playback_file( AudioFilePath, MaybeAudioStreamSettings, _Doblock=false ).
+	playback_file( AudioFilePath, MaybeAudioStreamSettings, _DoBlock=false ).
 
 
 % @doc Performs a playblack of the specified audio file, with specified
