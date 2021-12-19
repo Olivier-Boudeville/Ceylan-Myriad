@@ -201,6 +201,8 @@ use_prefix=0
 #
 do_patch=1
 
+# By default, enforce a limit in CPU usage:
+do_cpulimit=0
 
 # Only for base (non-patch) release:
 #erlang_download_location="https://erlang.org/download"
@@ -303,9 +305,10 @@ while [ $token_eaten -eq 0 ]; do
 	if [ "$1" = "${limit_opt_short}" ] || [ "$1" = "${limit_opt_long}" ]; then
 
 		echo "Build will not be slowed down."
+		do_cpulimit=1
 		nice_opt=""
 		cpu_limit_expr=""
-		
+
 		token_eaten=0
 
 	fi
@@ -393,6 +396,10 @@ fi
 if [ -n "${cpu_limit_expr}" ]; then
 
 	echo "The slowing down of the build is enabled and the cpulimit tool has been found, so limiting the CPU usage of that build to ${cpu_limit_percentage}% of a single core."
+
+elif [ $do_cpulimit -eq 0 ]; then
+
+	echo "Warning: slow down enabled, yet no 'cpulimit' executable found, so no such limitation is to take place (except 'nice', if enabled)." 1>&2
 
 fi
 
