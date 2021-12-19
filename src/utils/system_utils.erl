@@ -1133,9 +1133,9 @@ get_line_helper_script() ->
 
 
 
-% @doc Returns a default, standard environment for "porcelain"-like executions,
-% that is executions that are, as much as possible, reproducible in various
-% runtime contexts (typically: with locale-independent outputs).
+% @doc Returns a default, standard, safe/secure environment for "porcelain"-like
+% executions, that is executions that are, as much as possible, reproducible in
+% various runtime contexts (typically: with locale-independent outputs).
 %
 % To be used with run_{command,executable}/n.
 %
