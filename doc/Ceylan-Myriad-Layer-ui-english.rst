@@ -220,11 +220,7 @@ So a prerequisite is that the local host enjoys at least some kind of **OpenGL s
 
 .. _`OpenGL troubleshooting`:
 
-Just run our ``gui_opengl_test.erl`` test to have the detected local configuration examined. Another option is to run, from the command-line, the ``glxinfo`` executable, and hope to see, among the many displayed lines, ``direct rendering: Yes``.
-
-If it is not the case (no direct rendering, or a GLX error being returned - typically involving any ``BadValue``), one should investigate one's configuration (with ``lspci | grep VGA``, ``lsmod``, etc.), update one's video driver on par with the current kernel, reboot, etc.
-
-A final validation might be to run the ``glxgears`` executable, and ensure that a window appear, showing three rotating gears.
+Just run our ``gui_opengl_test.erl`` test to have the detected local configuration examined. One should refer to our HOWTO section `about 3D operating system support <http://howtos.esperide.org/ThreeDimensional.html#os-support>`_ for detailed information and troubleshooting guidelines.
 
 As for the **Erlang side** of this OpenGL support, one may refer to `this section <https://www.erlang.org/doc/man/wxglcanvas#description>`_ to ensure that the Erlang build at hand has indeed its OpenGL support enabled.
 
