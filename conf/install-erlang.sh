@@ -646,7 +646,7 @@ else
 fi
 
 
-if ! ${sudo_cmd} ${nice_opt} ${cpu_limit_expr} ${tar} xvzf "${erlang_src_archive}"; then
+if ! ${sudo_cmd} ${nice_opt} ${cpu_limit_expr} ${tar} xf "${erlang_src_archive}"; then
 	echo "  Error while extracting ${erlang_src_archive}, quitting." 1>&2
 	exit 50
 fi
@@ -839,7 +839,7 @@ if [ $do_manage_doc -eq 0 ]; then
 
 	cd "${erlang_doc_root}"
 
-	if ! ${nice_opt} ${cpu_limit_expr} ${tar} xvzf "${initial_path}/${erlang_doc_archive}"; then
+	if ! ${nice_opt} ${cpu_limit_expr} ${tar} xf "${initial_path}/${erlang_doc_archive}"; then
 		echo "  Error while extracting ${erlang_doc_archive}, quitting." 1>&2
 		exit 70
 	fi
