@@ -34,12 +34,11 @@
 
 % Implementation notes:
 %
-% Inspired from:
+% Directly inspired (rewrite) from:
 % - wx:demo/0: lib/wx/examples/demo/ex_gl.erl
 % - test suite: lib/wx/test/wx_opengl_SUITE.erl
 
-% TO REMOVE:
-%-include_lib("wx/include/wx.hrl").
+
 
 % For GL/GLU defines:
 -include("gui_opengl.hrl").
@@ -76,30 +75,55 @@
 -define( interframe_duration, 20 ).
 
 
-% Test-specific GUI state:
+% Test-specific overall GUI state:
 -record( my_test_state, {
 
-	main_frame :: gui:frame(),
+	% The main window of this test:
+	parent :: window(),
 
-	canvas :: gui:opengl_canvas(),
+	% The OpenGL canvas on which rendering will be done:
+	canvas :: opengl_canvas(),
 
-	context :: gui:opengl_context(),
+	% The OpenGL context being used:
+	context :: opengl_context(),
 
-	image :: gui:image(),
+	% An image used as a material:
+	image :: image(),
 
-	% The OpenGL information kept by this test once initialised:
-	opengl_state :: maybe( my_opengl_test_state() )
+	% The various OpenGL information kept by this test once initialised:
+	opengl_state :: maybe( my_opengl_test_state() ),
 
- } ).
+	% Records the current time to update the clock texture when relevant:
+	time :: time() } ).
 
 -type my_test_state() :: #my_test_state{}.
+% Test-specific overall GUI state.
+
 
 
 % OpenGL-specific GUI test state:
 -record( my_opengl_test_state, {
 
+	% Typically the main frame:
+	window :: window(),
 
-} ).
+	mesh :: mesh(),
+
+	angle :: degrees(),
+
+	material_texture :: texture(),
+
+	alpha_texture :: texture(),
+
+	text_texture :: texture(),
+
+	clock_texture :: texture(),
+
+	font :: font(),
+
+	brush :: brush(),
+
+	sphere :: glu_id() } ).
 
 -type my_opengl_test_state() :: #my_opengl_test_state{}.
 
@@ -109,6 +133,10 @@
 
 -type file_path() :: file_utils:file_path().
 
+-type time() :: time_utils:time().
+
+-type degrees() :: unit_utils:degrees().
+
 -type vertex3() :: point3:vertex3().
 -type unit_normal3() :: vector3:unit_normal3().
 
@@ -117,11 +145,21 @@
 -type indexed_triangle() :: mesh:indexed_triangle().
 -type texture_coordinate2() :: mesh:texture_coordinate2().
 
+-type color_by_decimal() :: gui_color:color_by_decimal().
+-type render_rgb_color() :: gui_color:render_rgb_color().
+
+
 -type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 -type image() :: gui:image().
+-type font() :: gui:font().
+-type brush() :: gui:brush().
 
--type render_rgb_color() :: gui_color:render_rgb_color().
+-type opengl_canvas() :: gui:opengl_canvas().
+-type opengl_context() :: gui:opengl_context().
+-type glu_id() :: gui_opengl:glu_id().
+-type texture() :: gui_opengl:texture().
+
 
 
 
@@ -143,10 +181,12 @@ get_test_tetra_info() ->
 % @doc Returns a mesh corresponding to the test tetrahedron.
 -spec get_test_tetra_mesh() -> mesh().
 get_test_tetra_mesh() ->
-	{ Vertices, Faces, Normals, Colors } = get_test_tetra_info(),
-	RenderingInfo = { color, per_vertex, Colors },
-	mesh:create_mesh( Vertices, Faces, _NormalType=per_face, Normals,
-					  RenderingInfo ).
+
+	RenderingInfo = { color, per_vertex, get_test_tetra_colors()  },
+
+	% Needing faces, not triangles:
+	mesh:create_mesh( get_test_tetra_vertices(), get_test_tetra_faces(),
+		 _NormalType=per_face, get_test_tetra_normals(), RenderingInfo ).
 
 
 
@@ -191,25 +231,23 @@ get_test_tetra_normals() ->
 	  _NF2=[ 0.0, -1.0,  0.0 ], % normal of ABD
 	  _NF3=[ -1.0, 0.0,  0.0 ], % normal of ADC
 
-	  % normal of BCD, obtained via:
+	  % The normal of BCD can be obtained with:
 	  %  BC = point3:vectorize(B,C).
 	  %  BD = point3:vectorize(B,D).
 	  %  V = vector3:cross_product(BC,BD).
 	  %  N = vector3:normalise(V).
 	  %
-	  _NF4=[ 0.8571428571428571,0.42857142857142855,0.2857142857142857 ]
-
-	  ].
+	  _NF4=[ 0.8571428571428571,0.42857142857142855,0.2857142857142857 ] ].
 
 
 
 % @doc Returns the (4) per-face colors of the test tetrahedron.
 -spec get_test_tetra_colors( ) -> [ render_rgb_color() ].
 get_test_tetra_colors() ->
-	[ _CF1={ 0.0, 0.0, 0.0 },
-	  _CF2={ 1.0, 0.0, 0.0 },
-	  _CF3={ 1.0, 1.0, 0.0 },
-	  _CF4={ 0.0, 0.0, 1.0 } ].
+	[ _CF1={ 1.0, 1.0, 0.0 },   % white
+	  _CF2={ 1.0, 0.0, 0.0 },   % red
+	  _CF3={ 1.0, 1.0, 0.0 },   % yellow
+	  _CF4={ 0.0, 0.0, 1.0 } ]. % blue
 
 
 
@@ -275,7 +313,7 @@ get_test_colored_cube_normals() ->
 	  _NF6=[ 0.0,-1.0, 0.0 ] ].
 
 
-% @doc Returns the (6) per-face colors of the test colored cube.
+% @doc Returns the (8) per-vertex (not face) colors of the test colored cube.
 -spec get_test_colored_cube_colors( ) -> [ render_rgb_color() ].
 get_test_colored_cube_colors() ->
 	[ _CF1={ 0.0, 0.0, 0.0 },
@@ -388,8 +426,16 @@ get_test_textured_cube_tex_coords() ->
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
 	% Relative to this test directory:
-	file_utils:join( [ "..", "..", "..", "doc",
-					   "myriad-space-time-referential.png" ] ).
+	file_utils:join(
+	  [ "..", "..", "..", "doc", "myriad-space-time-referential.png" ] ).
+
+
+% @doc Returns the path to a test image.
+-spec get_logo_image_path() -> file_path().
+get_logo_image_path() ->
+	% Relative to this test directory:
+	file_utils:join(
+	  [ "..", "..", "..", "doc", "myriad-title.png" ] ).
 
 
 
@@ -415,7 +461,9 @@ run_test_opengl() ->
 	end.
 
 
-% Creates the initial test GUI.
+% @doc Creates the initial test GUI: a main frame containing a panel to which an
+% OpenGL canvas is associated, in which an OpenGL context is created.
+%
 init_test_gui() ->
 
 	MainFrame = gui:create_frame( "MyriadGUI OpenGL Test" ),
@@ -429,16 +477,16 @@ init_test_gui() ->
 					 { min_green_size, MinSize }, { min_blue_size, MinSize },
 					 { depth_buffer_size, 24 } ],
 
-	Canvas = gui_opengl:create_canvas( _Parent=Panel,
+	GLCanvas = gui_opengl:create_canvas( _Parent=Panel,
 		_Opts=[ { style, full_repaint_on_resize },
 				{ gl_attributes, GLAttributes } ] ),
 
-	Context = gui_opengl:create_context( Canvas ),
+	GLContext = gui_opengl:create_context( GLCanvas ),
 
 	gui:subscribe_to_events( { [ onShown, onWindowClosed ], MainFrame } ),
 
 	% (on Apple's Cocoa, subscribing to onRepaintNeeded might be required)
-	gui:subscribe_to_events( { onResized, Canvas } ),
+	gui:subscribe_to_events( { onResized, GLCanvas } ),
 
 	StatusBar = gui:create_status_bar( MainFrame ),
 
@@ -449,9 +497,7 @@ init_test_gui() ->
 	gui_image:scale( Image, _ScWidth=128, _ScHeight=128 ),
 
 	% No OpenGL state yet:
-	#my_test_state{ main_frame=MainFrame,
-					canvas=Canvas,
-					context=Context,
+	#my_test_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext,
 					image=Image }.
 
 
@@ -467,15 +513,16 @@ run_actual_test() ->
 	% Ignore first events to accelerate setup:
 	InitialGUIState = gui:batch( fun() -> init_test_gui() end ),
 
-	MainFrame = InitialGUIState#my_test_state.main_frame,
-
-	gui:show( MainFrame ),
+	gui:show( InitialGUIState#my_test_state.parent ),
 
 	% Uncomment to check that a no_gl_context error report is triggered indeed,
 	% as expected:
 	%
 	%gl:viewport( 0, 0, 50, 50 ),
 
+	% OpenGL will be initialised only when the corresponding frame will be ready
+	% (that is once first resized):
+	%
 	gui_main_loop( InitialGUIState ),
 
 	gui:stop().
@@ -486,16 +533,43 @@ run_actual_test() ->
 % messages.
 %
 -spec gui_main_loop( my_test_state() ) -> void().
-gui_main_loop( GUIState=#my_test_state{ main_frame=MainFrame } ) ->
+gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow } ) ->
 
 	receive
 
+		{ onResized, [ GLCanvas, NewSize, _Context ] } ->
+
+			trace_utils:debug_fmt( "Resized to ~w.", [ NewSize ] ),
+
+			% The first resizing (an event received even before onShown) is a
+			% relevant moment in order to setup OpenGL:
+
+			NewGUIState = case GUIState#my_test_state.opengl_state of
+
+				undefined ->
+					gui_opengl:set_context( GLCanvas,
+											GUIState#my_test_state.context ),
+
+					InitOpenGLState = setup_opengl( GLCanvas,
+						GUIState#my_test_state.image ),
+
+					GUIState#my_test_state{ opengl_state=InitOpenGLState };
+
+				_ ->
+					reset_opengl_on_resize( NewSize ),
+					GUIState
+
+			end,
+
+			gui_main_loop( NewGUIState );
+
+
 		% Just to showcase that this event can be intercepted:
-		{ onShown, [ MainFrame, _Content ] } ->
+		{ onShown, [ ParentWindow, _Content ] } ->
 			trace_utils:debug( "Test main frame shown." ),
 
-			% OpenGLcontext available by design, as a onResized event should
-			% have already been received and processed:
+			% An OpenGL context should be available by design, as a onResized
+			% event should have already been received and processed:
 			%
 			test_facilities:display( "Reported OpenGL settings: "
 				"vendor is '~ts', renderer is '~ts'; "
@@ -508,34 +582,9 @@ gui_main_loop( GUIState=#my_test_state{ main_frame=MainFrame } ) ->
 			gui_main_loop( GUIState );
 
 
-		{ onResized, [ Canvas, NewSize, _Context ] } ->
-			trace_utils:debug_fmt( "Resized to ~w.", [ NewSize ] ),
-
-			% The first resizing (an event received even before onShow) is a
-			% relevant moment in order to setup OpenGL:
-
-			NewGUIState = case GUIState#my_test_state.opengl_state of
-
-				undefined ->
-					gui_opengl:set_context( Canvas,
-											GUIState#my_test_state.context ),
-
-					InitOpenGLState = setup_opengl( Canvas,
-						GUIState#my_test_state.image ),
-
-					GUIState#my_test_state{ opengl_state=InitOpenGLState };
-
-				_ ->
-					reset_opengl_on_resize( NewSize ),
-					GUIState
-			end,
-
-			gui_main_loop( NewGUIState );
-
-
-		{ onWindowClosed, [ MainFrame, _Context ] } ->
+		{ onWindowClosed, [ ParentWindow, _Context ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
-			gui:destruct_window( MainFrame );
+			gui:destruct_window( ParentWindow );
 
 		OtherEvent ->
 			trace_utils:warning_fmt( "Test ignored following event:~n ~p",
@@ -545,7 +594,9 @@ gui_main_loop( GUIState=#my_test_state{ main_frame=MainFrame } ) ->
 
 	after ?interframe_duration ->
 
-		update_rendering( GUIState#my_test_state.opengl_state )
+		NewGUIState = update_rendering( GUIState ),
+
+		gui_main_loop( NewGUIState )
 
 	end.
 
@@ -553,9 +604,11 @@ gui_main_loop( GUIState=#my_test_state{ main_frame=MainFrame } ) ->
 
 % @doc Sets up OpenGL, once a proper context has been set.
 -spec setup_opengl( window(), image() ) -> void().
-setup_opengl( Window, _Image ) ->
+setup_opengl( Window, Image ) ->
 
-	Size = { _Width, _Height } = gui:get_client_size( Window ),
+	trace_utils:debug( "Setting up OpenGL." ),
+
+	Size = gui:get_client_size( Window ),
 	reset_opengl_on_resize( Size ),
 
 	gl:enable( ?GL_DEPTH_TEST ),
@@ -564,27 +617,42 @@ setup_opengl( Window, _Image ) ->
 	% Solid white:
 	gl:clearColor( 1.0, 1.0, 1.0, 1.0 ),
 
-	%MatTexture = load_texture_by_image(Image),
-	%ImgTexture = load_texture_by_image(
-	%       wxImage:new("erlang.png")),
-	%Font = wxFont:new(32, ?wxFONTFAMILY_DEFAULT, ?wxFONTSTYLE_NORMAL, ?wxFONTWEIGHT_BOLD),
-	%Brush = wxBrush:new({0,0,0}),
-	%StrTexture = load_texture_by_string(Font, Brush, {40,40,40}, "Text from wxFont", true),
-	%{_, {Hour,Min,Sec}} = calendar:local_time(),
-	%%Clock = load_texture_by_string(Font, Brush, {40, 40, 40},
-	%               [?PAD(Hour), $:, ?PAD(Min), $:, ?PAD(Sec)], false),
-	%Sphere = glu:newQuadric(),
-	%gl:enable(?GL_TEXTURE_2D),
-ok.
-	%#gl{win=Win,data={?FACES,?VS,?COLORS},deg=0.0,
-	%mat=MatTexture, alpha=ImgTexture, text=StrTexture, font = Font,
-	%brush = Brush, clock = Clock, sphere = Sphere}.
+	MatTexture = gui_opengl:load_texture_from_image( Image ),
+
+	AlphaTexture = gui_opengl:load_texture_from_file( get_logo_image_path() ),
+
+	Font = gui:create_font( _PointSize=32, _Family=default_font_family,
+							_Style=normal, _Weight=bold ),
+
+	Brush = gui:create_brush( _Black={ 0, 0, 0 } ),
+
+	TextColor = { 40, 40, 40 },
+
+	TextTexture = gui_opengl:create_texture_from_text(
+		"MyriadGUI textured text", Font, Brush, TextColor, _Flip=true ),
+
+	ClockTexture =
+		get_clock_texture( time_utils:get_local_time(), Font, Brush ),
+
+	CubeMesh = get_test_colored_cube_mesh(),
+
+	SphereId = glu:newQuadric(),
+
+	gl:enable( ?GL_TEXTURE_2D ),
+
+	#my_opengl_test_state{ window=Window, mesh=CubeMesh, angle=0.0,
+		material_texture=MatTexture, alpha_texture=AlphaTexture,
+		text_texture=TextTexture, clock_texture=ClockTexture,
+		font=Font, brush=Brush, sphere=SphereId }.
 
 
 
 % @doc Resets the OpenGL state after a resize of its window.
 -spec reset_opengl_on_resize( dimensions() ) -> void().
-reset_opengl_on_resize( _NewSize={ Width, Height } ) ->
+reset_opengl_on_resize( NewSize={ Width, Height } ) ->
+
+	trace_utils:debug_fmt( "Resetting OpenGL after resize to ~w.",
+						   [ NewSize ] ),
 
 	gl:viewport( 0, 0, Width, Height ),
 
@@ -604,8 +672,123 @@ reset_opengl_on_resize( _NewSize={ Width, Height } ) ->
 						   gui_opengl:check_error() ).
 
 
-update_rendering( _ ) ->
-	ok.
+
+% @doc Updates the OpenGL rendering.
+%
+% Expected to be called periodically.
+%
+-spec update_rendering( my_test_state() ) -> my_test_state().
+update_rendering( TestState=#my_test_state{ opengl_state=GLState,
+											time=Time } ) ->
+
+	%trace_utils:debug( "Updating rendering." ),
+
+	NewAngle = GLState#my_opengl_test_state.angle + 1.0,
+
+	AngleGLState = GLState#my_opengl_test_state{ angle=NewAngle },
+
+	NewTime = time_utils:get_local_time(),
+
+	NewGLState = case NewTime of
+
+		% Still in the same second:
+		Time ->
+			AngleGLState;
+
+		_ ->
+			update_clock_texture( NewTime, AngleGLState )
+
+	end,
+
+	render( NewGLState ),
+
+	TestState#my_test_state{ opengl_state=NewGLState,
+							 time=NewTime }.
+
+
+
+% @doc Updates the texture of the clock according to the specified time.
+-spec update_clock_texture( time(), my_opengl_test_state() ) ->
+												my_opengl_test_state().
+update_clock_texture( Time, GLState=#my_opengl_test_state{
+		clock_texture=ClockTexture, font=Font, brush=Brush } ) ->
+
+	gui_opengl:delete_texture( ClockTexture ),
+	NewClockTexture = get_clock_texture( Time, Font, Brush ),
+	GLState#my_opengl_test_state{ clock_texture=NewClockTexture }.
+
+
+
+% @doc Returns a texture corresponding to specified clock time.
+-spec get_clock_texture( time(), font(), brush() ) -> texture().
+get_clock_texture( _Time={H,M,S}, Font, Brush ) ->
+
+	% Add zero if hour, minute or second is one digit only:
+	TimeStr = [ text_utils:pad_string_right(
+					text_utils:integer_to_string( Num ), _Width=2, _PadChar=$0 )
+									 || Num <- [ H, M, S ] ],
+
+	gui_opengl:create_texture_from_text( TimeStr, Font, Brush,
+										 _TextColor={ 40, 40, 40 } ).
+
+
+% @doc Performs the rendering corresponding to the specified OpenGL state.
+-spec render( my_opengl_test_state() ) -> void().
+render( #my_opengl_test_state{ mesh=CubeMesh,
+							   angle=Angle,
+							   material_texture=MatTexture } ) ->
+
+	gl:matrixMode( ?GL_MODELVIEW ),
+	gl:loadIdentity(),
+	gl:pushMatrix(),
+	gl:translatef( 0.0, 0.5, 0.0 ),
+
+	% In degrees, around the first diagonal:
+	gl:rotatef( Angle, _X=1.0, _Y=1.0, _Z=1.0 ),
+
+	% See also https://www.khronos.org/opengl/wiki/Common_Mistakes#Swap_Buffers:
+	gl:clear( ?GL_COLOR_BUFFER_BIT bor ?GL_DEPTH_BUFFER_BIT ),
+
+	gl:bindTexture( ?GL_TEXTURE_2D, MatTexture#texture.id ),
+	gl:disable( ?GL_BLEND ),
+	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE ),
+	gl:disable( ?GL_CULL_FACE ),
+	gl:'begin'( ?GL_QUADS ),
+
+	% We could batch the commands sent to the GUI backend:
+	gui_opengl:render_mesh( CubeMesh ),
+
+	wx:foreach(fun(Face) -> drawFace(Face,Vs,Colors) end, Fs),
+	gl:'end'(),
+	gl:popMatrix(),
+
+	gl:texEnvi(?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE),
+
+	enter_2d_mode(Win),
+	{W,H} = wxWindow:getClientSize(Win),
+	Move = abs(90 - (trunc(Deg) rem 180)),
+	draw_texture((W div 2) - 50, (H div 2)-130+Move, Clock),
+	draw_texture((W div 2) - 80, (H div 2)-Move, ImgA),
+	leave_2d_mode(),
+
+	gl:pushMatrix(),
+	gl:enable(?GL_CULL_FACE),
+	gl:enable(?GL_BLEND),
+	gl:blendFunc(?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA),
+	gl:translatef(0.0,-0.8,0.0),
+	gl:bindTexture(?GL_TEXTURE_2D, Text#texture.tid),
+	glu:quadricTexture(Sphere, ?GLU_TRUE),
+	glu:quadricNormals(Sphere, ?GLU_SMOOTH),
+	glu:quadricDrawStyle(Sphere, ?GLU_FILL),
+	glu:quadricOrientation(Sphere, ?GLU_OUTSIDE),
+	%%gl:scalef(2.0, 0.5, 1.0),
+	gl:rotatef(-90.0, 1.0, 0.0, 0.0),
+	gl:rotatef(-Deg, 0.0, 0.0, 1.0),
+	glu:sphere(Sphere, 0.8, 50,40),
+	gl:popMatrix(),
+
+	wxGLCanvas:swapBuffers(Win).
+
 
 
 % @doc Runs the test.
