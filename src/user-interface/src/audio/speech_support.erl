@@ -59,7 +59,11 @@
 % SSML (see https://en.wikipedia.org/wiki/Speech_Synthesis_Markup_Language).
 
 % Special characters, such as quotation marks, apostrophes, and brackets must be
-% escaped.
+% escaped, this will be done automatically here.
+
+% Cloud services operate at a cost, refer to
+% https://azure.microsoft.com/en-us/pricing/details/cognitive-services/speech-services/
+% for Azure pricing.
 
 % Main elements that can be added in a ssml_text():
 %
@@ -78,7 +82,9 @@
 %  - '<s>S</s>' to denote a sentence
 %
 %  - '<phoneme alphabet="ipa|sapi|ups" ph="P">W</phoneme>' to specify our a word
-%  shall be speeched (we prefer the sapi alphabet)
+%  shall be speeched (we prefer the sapi phonetic alphabet, otherwise ipa);
+%  refer to
+%  https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-ssml-phonetic-sets for details
 %
 %  - <prosody pitch="P" contour="C" range="RG" rate="RT" duration="D"
 %  volume="V"></prosody> to modify how the enclosed text is speeched
