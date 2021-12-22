@@ -237,11 +237,11 @@
 
 -record( instance_referential, {
 
-		% Total count of the instances already created for that type:
-		instance_count :: instance_count(),
+	% Total count of the instances already created for that type:
+	instance_count :: instance_count(),
 
-		instance_table ::
-			table:table( myriad_instance_id(), myriad_object_state() ) } ).
+	instance_table ::
+		table:table( myriad_instance_id(), myriad_object_state() ) } ).
 
 
 -type instance_referential() :: #instance_referential{}.
@@ -261,39 +261,38 @@
 % Stores the current MyriadGUI state, as managed by its main event loop.
 -record( loop_state, {
 
-		   % Identifier of the current top-level wx server:
-		   wx_server :: wx_server(),
+	% Identifier of the current top-level wx server:
+	wx_server :: wx_server(),
 
 
-		   % To dispatch appropriately the backend-originating events:
-		   event_table :: event_table(),
+	% To dispatch appropriately the backend-originating events:
+	event_table :: event_table(),
 
 
-		   % Allows to replace an event source by another.
-		   %
-		   % For example useful when having defined a canvas (which thus embeds
-		   % a wx panel): when the internal event loop receives a 'paint' wx
-		   % event for that wx panel, the actual object referred to by the GUI
-		   % message that we will send to the user code shall not be that panel,
-		   % but the canvas that owns it (for example so that other elements of
-		   % that canvas can then be used when the user code processes this
-		   % event - like the bitmap or the back-buffer of this canvas).
-		   %
-		   reassign_table :: reassign_table(),
+	% Allows to replace an event source by another.
+	%
+	% For example useful when having defined a canvas (which thus embeds a wx
+	% panel): when the internal event loop receives a 'paint' wx event for that
+	% wx panel, the actual object referred to by the GUI message that we will
+	% send to the user code shall not be that panel, but the canvas that owns it
+	% (for example so that other elements of that canvas can then be used when
+	% the user code processes this event - like the bitmap or the back-buffer of
+	% this canvas).
+	%
+	reassign_table :: reassign_table(),
 
 
-		   % Stores, by types, the current widget instances that have been
-		   % introduced by MyriadGUI to complement the backend (ex: canvas
-		   % instances).
-		   %
-		   type_table :: myriad_type_table()
+	% Stores, by types, the current widget instances that have been introduced
+	% by MyriadGUI to complement the backend (ex: canvas instances).
+	%
+	type_table :: myriad_type_table()
 
 
-		   % List of the MyriadGUI objects that shall be adjusted after a show:
-		   %
-		   % (actually not found necessary, hence at least currently disabled)
-		   %
-		   %objects_to_adjust=[] :: [ myriad_object_ref() ]
+	% List of the MyriadGUI objects that shall be adjusted after a show:
+	%
+	% (actually not found necessary, hence at least currently disabled)
+	%
+	%objects_to_adjust=[] :: [ myriad_object_ref() ]
 
 } ).
 
@@ -428,43 +427,46 @@ process_event_messages( LoopState ) ->
 	% Special management of repaint requests, to avoid useless repaintings.
 	%
 	% Indeed, even if having registered (with wxEvtHandler:connect/3) a panel
-	% only once, when resizing we notice that we receive the following event
-	% *twice*: {wx,-2017,{wx_ref,56,wxPanel,[]},[],{wxPaint,paint}}.
+	% only once, at least in some cases, when resizing, we notice that we
+	% receive the following event *twice*:
+	% {wx,-2017,{wx_ref,56,wxPanel,[]},[],{wxPaint,paint}}.
 	%
 	% Our dropping logic allows to repaint only once in that case.
 	%
-	NewLoopState = receive
+	NewLoopState = cond_utils:if_defined( myriad_gui_skip_extra_repaints,
+		receive
 
-		% So that no large series of repaint requests for the same object pile
-		% up:
-		%
-		FirstWxRepaintEvent=#wx{ obj=SourceObject, event={wxPaint,paint} } ->
+			% So that no large series of repaint requests for the same object
+			% pile up:
+			%
+			FirstWxRepaintEvent=#wx{ obj=SourceObject,
+									 event={wxPaint,paint} } ->
 
-			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
-				trace_utils:debug_fmt(
-					"[event] Received first repaint event:~n ~p.",
-					[ FirstWxRepaintEvent ] ) ),
+				cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+					trace_utils:debug_fmt(
+						"[event] Received first repaint event:~n ~p.",
+						[ FirstWxRepaintEvent ] ) ),
 
-			process_only_latest_repaint_event( FirstWxRepaintEvent,
-				SourceObject, _DropCount=0, LoopState );
+				process_only_latest_repaint_event( FirstWxRepaintEvent,
+					SourceObject, _DropCount=0, LoopState );
 
-		OtherEvent ->
-			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
-				trace_utils:debug_fmt( "[event] Received other event: ~p.",
-									   [ OtherEvent ] ) ),
-			process_event_message( OtherEvent, LoopState )
+			OtherEvent ->
+				cond_utils:if_defined( myriad_debug_gui_repaint_logic,
+					trace_utils:debug_fmt( "[event] Received other event: ~p.",
+										   [ OtherEvent ] ) ),
+				process_event_message( OtherEvent, LoopState )
 
-	end,
+		end,
 
-	% To bypass the "smarter" management above, for test/comparison purpose:
-	%NewLoopState = receive
-	%
-	%   AnyEvent ->
-	%       %trace_utils:debug_fmt( "[event] Received any event: ~p.",
-	%       %                       [ AnyEvent ] ),
-	%       process_event_message( AnyEvent, LoopState )
-	%
-	%end,
+		% To bypass the "smarter" management above, for test/comparison purpose:
+		receive
+
+			AnyEvent ->
+				%trace_utils:debug_fmt( "[event] Received any event:~n ~p.",
+				%                       [ AnyEvent ] ),
+				process_event_message( AnyEvent, LoopState )
+
+		end ),
 
 	process_event_messages( NewLoopState ).
 
@@ -497,8 +499,8 @@ process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 	process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo,
 					  WxEvent, LoopState );
 
-% From now, the event messages received are *MyriadGUI* ones,
-% i.e. event_message() (either internal or user-emanating):
+% From now, the event messages received are *MyriadGUI* ones, i.e.
+% event_message() (either internal or user-emanating):
 %
 % (some operations directly impact the canvas state as seen from MyriadGUI,
 % others, like draw operations, not, they impact only the state of backend
