@@ -119,7 +119,7 @@
 
 
 -type canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
-					   | gui_wx_backend:other_wx_device_context_attribute().
+					    | gui_wx_backend:other_wx_device_context_attribute().
 
 
 -opaque context() :: wxGLContext:wxGLContext().
@@ -178,11 +178,16 @@
 		  load_texture_from_file/1, load_texture_from_file/2,
 
 		  create_texture_from_text/4, create_texture_from_text/5,
+
+		  render_texture/2, render_texture/3,
+
 		  delete_texture/1, delete_textures/1,
 
 		  get_texture_dimensions/1, generate_texture_id/0,
 
 		  render_mesh/1,
+
+		  enter_2d_mode/1, leave_2d_mode/0,
 
 		  check_error/0, interpret_error/1 ]).
 
@@ -208,7 +213,8 @@
 -type height() :: gui:height().
 -type window() :: gui:window().
 -type brush() :: gui:brush().
-
+-type coordinate() :: gui:coordinate().
+-type position() :: gui:position().
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type render_rgb_color() :: gui_color:render_rgb_color().
@@ -329,6 +335,9 @@ is_hardware_accelerated( GlxinfoStrs ) ->
 % @doc Returns the list of strings (if any) returned by glxinfo when requesting
 % basic information.
 %
+% Of course the 'glxinfo' executable must be available on the PATH (install it
+% on Arch Linux with 'pacman -S mesa-utils').
+%
 -spec get_glxinfo_strings() -> maybe( glxinfo_report() ).
 get_glxinfo_strings() ->
 
@@ -410,7 +419,7 @@ create_canvas( Parent, Opts ) ->
 create_context( Canvas ) ->
 	Res = wxGLContext:new( Canvas ),
 
-	% Commented-out, as an OpenGL context may not already exist:
+	% Commented-out, as the OpenGL context is not set as current yet):
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	Res.
@@ -469,6 +478,9 @@ load_texture_from_image( Image ) ->
 
 	{ Width, Height } = get_texture_dimensions( ImgWidth, ImgHeight ),
 
+	trace_utils:debug_fmt( "Image dimensions: {~B,~B}; texture dimensions: "
+		"{~B,~B}.", [ ImgWidth, ImgHeight, Width, Height ] ),
+
 	% Either RGB or RGBA:
 	ColorBuffer = get_color_buffer( Image ),
 
@@ -499,6 +511,8 @@ load_texture_from_image( Image ) ->
 		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
 
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
+	trace_utils:debug( "Texture loaded from image." ),
 
 	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
 			  min_x=0.0, min_y=0.0,
@@ -547,9 +561,12 @@ create_texture_from_text( Text, Font, Brush, Color, Flip ) ->
 
 	StrDims = { StrW, StrH } = gui_font:get_text_extent( Text, Font ),
 
-	{ W, H } = get_texture_dimensions( StrDims ),
+	{ Width, Height } = get_texture_dimensions( StrDims ),
 
-	Bmp = wxBitmap:new( W, H ),
+	%trace_utils:debug_fmt( "Text dimensions: {~B,~B}; "
+	%   "texture dimensions: {~B,~B}.", [ StrW, StrH, Width, Height ] ),
+
+	Bmp = wxBitmap:new( Width, Height ),
 
 	cond_utils:if_defined( myriad_debug_gui_memory,
 						   true = wxBitmap:isOk( Bmp ) ),
@@ -583,7 +600,7 @@ create_texture_from_text( Text, Font, Brush, Color, Flip ) ->
 	end,
 
 	AlphaValues = wxImage:getData( BaseImg ),
-	ColourizedData = gui_image:colorize( AlphaValues, Color ),
+	ColorizedData = gui_image:colorize( AlphaValues, Color ),
 
 	wxImage:destroy( BaseImg ),
 	wxBitmap:destroy( Bmp ),
@@ -604,11 +621,49 @@ create_texture_from_text( Text, Font, Brush, Color, Flip ) ->
 
 	% Specifies this two-dimensional texture image:
 	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=?GL_RGBA,
-		W, H, _Border=0, _DataFormat=?GL_RGBA, _Type=?GL_UNSIGNED_BYTE,
-		ColourizedData ),
+		Width, Height, _Border=0, _DataFormat=?GL_RGBA, _Type=?GL_UNSIGNED_BYTE,
+		ColorizedData ),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
+	%trace_utils:debug( "Texture loaded from text." ),
 
 	#texture{ id=TextureId, width=StrW, height=StrH, min_x=0.0, min_y=0.0,
-			  max_x=StrW / W, max_y=StrH / H }.
+			  max_x=StrW/Width, max_y=StrH/Height }.
+
+
+
+% @doc Renders the specified texture, at the specified position.
+-spec render_texture( texture(), position() ) -> void().
+render_texture( Texture, _Pos={X,Y} ) ->
+	render_texture( Texture, X, Y ).
+
+
+
+% @doc Renders the specified texture, at the specified position.
+-spec render_texture( texture(), coordinate(), coordinate() ) -> void().
+render_texture( #texture{ id=TextureId,
+						  width=Width,
+						  height=Height,
+						  min_x=MinX,
+						  min_y=MinY,
+						  max_x=MaxX,
+						  max_y=MaxY }, X, Y ) ->
+
+	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
+
+	% Covers the rectangular texture area thanks to two triangles:
+	gl:'begin'( ?GL_TRIANGLE_STRIP ),
+
+	OtherX = X + Width div 2,
+	OtherY = Y + Height div 2,
+
+	gl:texCoord2f( MinX, MinY ), gl:vertex2i( X, Y ),
+	gl:texCoord2f( MaxX, MinY ), gl:vertex2i( OtherX, Y ),
+	gl:texCoord2f( MinX, MaxY ), gl:vertex2i( X, OtherY ),
+	gl:texCoord2f( MaxX, MaxY ), gl:vertex2i( OtherX, OtherY ),
+
+	gl:'end'().
 
 
 % @doc Deletes the specified texture.
@@ -652,6 +707,9 @@ generate_texture_id() ->
 
 
 % @doc Renders the specified mesh in a supposedly appropriate OpenGL context.
+%
+% See gui_opengl_test.erl for an usage example.
+%
 -spec render_mesh( mesh() ) -> void().
 render_mesh( #mesh{ vertices=Vertices,
 					faces=IndexedFaces,
@@ -659,8 +717,85 @@ render_mesh( #mesh{ vertices=Vertices,
 					normals=Normals,
 					rendering_info={ color, per_vertex, Colors } } ) ->
 
-	% We could batch the commands sent to the GUI backend (ex: with wx:batch/1):
-	render_faces( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ).
+	% We could batch the commands sent to the GUI backend (ex: with wx:batch/1
+	% or wx:foreach/2).
+
+	% We currently suppose we have quad-based faces:
+	gl:'begin'( ?GL_QUADS ),
+
+	render_faces( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
+
+	gl:'end'().
+
+
+
+% @doc Enters in 2D mode for the specified window: applies relevant general
+% state changes, and specific to modelview (which is reset) and to projection (a
+% projection matrix relevant for 2D operations is applied).
+%
+-spec enter_2d_mode( window() ) -> void().
+enter_2d_mode( Window ) ->
+
+	% Directly deriving from lib/wx/examples/demo/ex_gl.erl:
+
+	{ Width, Height } = wxWindow:getClientSize( Window ),
+
+	% General state changes; depending on the current OpenGL state, other
+	% elements may have to be updated:
+
+	gl:pushAttrib( ?GL_ENABLE_BIT ),
+
+	gl:disable( ?GL_DEPTH_TEST ),
+	gl:disable( ?GL_CULL_FACE ),
+	gl:enable( ?GL_TEXTURE_2D ),
+
+	% This allows the alpha blending of 2D textures with the scene:
+	gl:enable( ?GL_BLEND ),
+	gl:blendFunc( ?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA ),
+
+	% Updating first the projection matrix for 2D:
+
+	gl:matrixMode( ?GL_PROJECTION ),
+	gl:pushMatrix(),
+	gl:loadIdentity(),
+
+	% In all referentials mentioned, abscissas are to increase when going from
+	% left to right.
+	%
+	% As for ordinates, with the Myriad 2D referential (refer to the 'Geometric
+	% Conventions' in Myriad's technical manual), like for the backend
+	% coordinates (ex: SDL, Wxwidgets), they are to increase when going from top
+	% to bottom.
+	%
+	% It is the opposite by default with OpenGL (increasing from bottom to up;
+	% the elements would therefore be upside-down in the OpenGL world), so in
+	% the orthogonal projection bottom and top coordinates are mirrored; then
+	% OpenGL complies with the previous convention.
+	%
+	% Doing so is more relevant than flipping the textures/images themselves, as
+	% the projection also applies to mouse coordinates.
+
+	% Multiplies the projection matrix with this orthographic one:
+	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
+			  _Top=0.0, _Near=0.0, _Far=1.0 ),
+
+	% Then reseting the modelview matrix:
+	gl:matrixMode( ?GL_MODELVIEW ),
+	gl:pushMatrix(),
+	gl:loadIdentity().
+
+
+
+% @doc Leaves the 2D mode, resets modelview and projection matrices.
+-spec leave_2d_mode() -> void().
+leave_2d_mode() ->
+	gl:matrixMode( ?GL_MODELVIEW ),
+	gl:popMatrix(),
+
+	gl:matrixMode( ?GL_PROJECTION ),
+	gl:popMatrix(),
+
+	gl:popAttrib().
 
 
 
@@ -671,7 +806,7 @@ render_faces( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
 	ok;
 
 
-% We currently supposed we have quads:
+% As mentioned, we currently suppose we have quad-based faces:
 render_faces( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx, V4Idx } | T ], FaceCount,
 			  Vertices, Normals, Colors ) ->
 
