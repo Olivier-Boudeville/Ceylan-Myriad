@@ -69,7 +69,7 @@
 -type application_run_context() ::
 		% If using Ceylan native build/run system:
 		'as_native'
-		% If using OTP release:
+		% If using an OTP release (hence OTP applications as well):
 	  | 'as_otp_release'.
 % Designates how an (OTP) application is run.
 
@@ -121,21 +121,21 @@
 
 -record( app_info, {
 
-		   % Stored here also only for convenience:
-		   app_name :: application_name(),
+	% Stored here also only for convenience:
+	app_name :: application_name(),
 
-		   % The (absolute) base root of that application:
-		   root_dir :: bin_directory_path(),
+	% The (absolute) base root of that application:
+	root_dir :: bin_directory_path(),
 
-		   % The (absolute) ebin directory root of that application:
-		   ebin_dir :: bin_directory_path(),
+	% The (absolute) ebin directory root of that application:
+	ebin_dir :: bin_directory_path(),
 
-		   % If set, means that it is an active application:
-		   start_mod_args ::
-				maybe( { module_name(), basic_utils:arguments() } ),
+	% If set, means that it is an active application:
+	start_mod_args ::
+			maybe( { module_name(), basic_utils:arguments() } ),
 
-		   % As contained in its .app file:
-		   spec :: app_spec() }).
+	% As contained in its .app file:
+	spec :: app_spec() } ).
 
 
 -type app_info() :: #app_info{}.
@@ -1164,7 +1164,7 @@ get_restart_setting( _ExecutionTarget=production ) ->
 check_application_run_context( _AppRunContext=as_native ) ->
 	ok;
 
-check_application_run_context( _AppRunContext=as_otp_release ) ->
+check_application_run_context( _AppRunContext=as_otp_application ) ->
 	ok;
 
 check_application_run_context( OtherAppRunContext ) ->
@@ -1178,8 +1178,8 @@ check_application_run_context( OtherAppRunContext ) ->
 application_run_context_to_string( _AppRunContext=as_native ) ->
 	"based on the Ceylan native native build/run system";
 
-application_run_context_to_string( _AppRunContext=as_otp_release ) ->
-	"as an OTP release".
+application_run_context_to_string( _AppRunContext=as_otp_application ) ->
+	"as an OTP application".
 
 
 
@@ -1211,23 +1211,23 @@ get_priv_root( ModuleName, BeSilent ) ->
 
    case code:priv_dir( ModuleName ) of
 
-	   % May happen even if being listed in the 'modules' entry of the relevant
-	   % .app/.app.src files.
-	   %
-	   { error, PError } ->
+		% May happen even if being listed in the 'modules' entry of the relevant
+		% .app/.app.src files.
+		%
+		{ error, PError } ->
 
-		   % PError=bad_name, not that useful:
-		   case BeSilent of
+			% PError=bad_name, not that useful:
+			case BeSilent of
 
-			   true ->
-				   ok;
+				true ->
+					ok;
 
-			   false ->
+				false ->
 					trace_bridge:warning_fmt( "Unable to determine 'priv' "
 						"directory from module '~ts': ~w.",
 						[ ModuleName, PError ] )
 
-		   end,
+			end,
 
 			case code:which( ModuleName ) of
 
