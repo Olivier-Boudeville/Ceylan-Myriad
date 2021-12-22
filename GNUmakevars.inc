@@ -164,6 +164,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
 
@@ -493,7 +494,8 @@ endif
 ifeq ($(USE_WXWINDOWS),true)
 
 	# myriad_gui_backend may also be either not defined, or set to 'none':
-	GUI_OPTS = -Dmyriad_gui_backend=wxwindows
+	GUI_OPTS = -Dmyriad_gui_backend=wxwindows \
+			   -Dmyriad_gui_skip_extra_repaints
 
 	ERLANG_COMPILER_GENERAL_OPT += $(GUI_OPTS)
 
