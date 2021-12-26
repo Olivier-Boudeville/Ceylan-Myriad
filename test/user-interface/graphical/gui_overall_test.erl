@@ -39,6 +39,12 @@
 -include("bounding_box2.hrl").
 
 
+% For reuse by other tests:
+-export([ get_main_window_width/0, get_main_window_height/0,
+		  get_main_window_size/0 ]).
+
+
+
 % Shorthands:
 
 -type count() :: basic_utils:count().
@@ -46,6 +52,7 @@
 -type ustring() :: text_utils:ustring().
 
 -type length() :: gui:length().
+-type dimensions() :: gui:dimensions().
 
 -type button() :: gui:button().
 -type canvas() :: gui:canvas().
@@ -54,7 +61,7 @@
 -type render_mode() :: 'test_shape_rendering' | 'test_dynamic_mec'.
 
 
-% State of the application, kept and updated by its main loop.
+% State of the test application, kept and updated by its main loop.
 -record( my_test_state, {
 
 	main_frame :: gui:frame(),
@@ -65,7 +72,7 @@
 	add_point_button    :: button(),
 
 	% Convenient to detect canvas repaints (as disappears then):
-	paste_image_button   :: button(),
+	paste_image_button  :: button(),
 
 	quit_button         :: button(),
 
@@ -119,6 +126,12 @@ get_main_window_height() ->
 	600.
 
 
+% @doc Returns the dimensions of the main test window.
+-spec get_main_window_size() -> dimensions().
+get_main_window_size() ->
+	{ get_main_window_width(), get_main_window_height() }.
+
+
 
 % Canvas dimensions automatically determined based on parent panel.
 
@@ -131,9 +144,8 @@ run_test_gui() ->
 
 	gui:start(),
 
-	MainFrameSize = { get_main_window_width(), get_main_window_height() },
-
-	MainFrame = gui:create_frame( _Title="MyriadGUI Test", MainFrameSize ),
+	MainFrame = gui:create_frame( _Title="MyriadGUI Overall Test",
+								  get_main_window_size() ),
 
 	% This process will subscribe to following event:
 	MainFrameEvents = { onWindowClosed, MainFrame },
@@ -274,8 +286,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 	cond_utils:if_defined( myriad_gui_test_verbose,
 		trace_utils:info_fmt( "Test main loop running, render mode is ~p, "
-		   "render count is ~B, point count is ~B.",
-		   [ RenderMode, RenderCount, TestState#my_test_state.point_count ] ) ),
+			"render count is ~B, point count is ~B.",
+			[ RenderMode, RenderCount,
+			  TestState#my_test_state.point_count ] ) ),
 
 	% We use trace_utils:notice* to discriminate more easily the traces
 	% originating from this test from any MyriadGUI ones:
