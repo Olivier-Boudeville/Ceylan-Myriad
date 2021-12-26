@@ -169,9 +169,14 @@
 
 
 
+% With wx, device contexts (ex: obtained from wxMemoryDC:new/1) must be
+% explicitly managed (ex: wxMemoryDC:destroy/1 must be called when finished with
+% them), which is inconvenient and error-prone.
+%
 -type device_context() :: wx_object().
 % Designates an abstract device where rendering can take place, and which can be
-% the source or target of a blit.
+% the source or target of a blit. Akin to a surface in SDL (libsdl).
+
 
 
 -type canvas() :: gui_canvas:canvas().
@@ -220,7 +225,8 @@
 % Windows:
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
 		  set_sizer/2, show/1, hide/1, get_size/1, get_client_size/1,
-		  maximise_in_parent/1, sync/1, enable_repaint/1, destruct_window/1 ]).
+		  maximise_in_parent/1, sync/1, enable_repaint/1,
+		  lock_window/1, unlock_window/1, destruct_window/1 ]).
 
 
 % Frames:
@@ -270,7 +276,13 @@
 
 
 % Bitmaps:
--export([ create_bitmap/1 ]).
+-export([ create_bitmap/1, create_blank_bitmap/1, create_blank_bitmap/2,
+		  create_blank_bitmap_for/1,
+		  lock_bitmap/1, draw_bitmap/3, unlock_bitmap/1, destruct_bitmap/1 ]).
+
+
+% Device contexts:
+-export([ clear_device_context/1, blit/5, blit/6 ]).
 
 
 % Fonts:
@@ -403,6 +415,7 @@
 
 
 -opaque window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
+% Any kind of windows, that is widget (ex: any canvas is a window).
 
 -opaque frame() :: wxFrame:wxFrame().
 
@@ -1243,8 +1256,8 @@ hide( Window ) ->
 
 
 
-% @doc Returns the size (as {Width,Height}) of the specified window.
--spec get_size( window() ) -> dimensions().
+% @doc Returns the size (as {Width,Height}) of the specified window or bitmap.
+-spec get_size( window() | bitmap() ) -> dimensions().
 get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 	%trace_utils:debug_fmt( "Getting size of canvas #~B.", [ CanvasId ] ),
@@ -1256,6 +1269,9 @@ get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 			Size
 
 	end;
+
+get_size( Bitmap={ wx_ref, _Id, wxBitmap, _List } ) ->
+	{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) };
 
 get_size( Window ) ->
 	wxWindow:getSize( Window ).
@@ -1327,6 +1343,26 @@ sync( Window ) ->
 enable_repaint( Window ) ->
 	DC= wxPaintDC:new( Window ),
 	wxPaintDC:destroy( DC ).
+
+
+
+% @doc Locks the specified window, so that direct access to its content can be
+% done, through the returned device context.
+%
+% Once the desired changes will have been made, this window must be unlocked.
+%
+-spec lock_window( window() ) -> device_context().
+lock_window( Window ) ->
+	gui_image:lock_window( Window ).
+
+
+
+% @doc Unlocks the specified window, based on the specified device context
+% obtained from a previous locking.
+%
+-spec unlock_window( device_context() ) -> void().
+unlock_window( DC ) ->
+	gui_image:unlock_window( DC ).
 
 
 
@@ -1731,6 +1767,102 @@ destruct_brush( Brush ) ->
 -spec create_bitmap( any_file_path() ) -> bitmap().
 create_bitmap( ImagePath ) ->
 	gui_image:create_bitmap( ImagePath ).
+
+
+
+% @doc Returns a blank bitmap of the specified size.
+-spec create_blank_bitmap( dimensions() ) -> bitmap().
+create_blank_bitmap( Dimensions ) ->
+	gui_image:create_blank_bitmap( Dimensions ).
+
+
+
+% @doc Returns a blank bitmap of the specified size.
+-spec create_blank_bitmap( width(), height() ) -> bitmap().
+create_blank_bitmap( Width, Height ) ->
+	gui_image:create_blank_bitmap( Width, Height ).
+
+
+
+% @doc Returns a blank bitmap whose size is the client one of the specified
+% window.
+%
+-spec create_blank_bitmap_for( window() ) -> bitmap().
+create_blank_bitmap_for( Window ) ->
+	ClientSize = wxWindow:getClientSize( Window ),
+	create_blank_bitmap( ClientSize ).
+
+
+
+% @doc Locks the specified bitmap, so that direct access to its content can be
+% done, through the returned device context.
+%
+% Once the desired changes will have been made, this bitmap must be unlocked.
+%
+-spec lock_bitmap( bitmap() ) -> device_context().
+lock_bitmap( Bitmap ) ->
+	gui_image:lock_bitmap( Bitmap ).
+
+
+
+% @doc Draws the specified bitmap in the specified device context, at the
+% specified position.
+%
+-spec draw_bitmap( bitmap(), device_context(), point() ) -> void().
+draw_bitmap( SourceBitmap, TargetDC, PosInTarget ) ->
+	gui_image:draw_bitmap( SourceBitmap, TargetDC, PosInTarget ).
+
+
+
+% @doc Unlocks the specified bitmap, based on the specified device context
+% obtained from a previous locking.
+%
+-spec unlock_bitmap( device_context() ) -> void().
+unlock_bitmap( DC ) ->
+	gui_image:unlock_bitmap( DC ).
+
+
+
+% @doc Destructs the specified bitmap (which must not be locked).
+-spec destruct_bitmap( bitmap() ) -> void().
+destruct_bitmap( Bitmap ) ->
+	gui_image:destruct_bitmap( Bitmap ).
+
+
+
+% Device context section.
+
+
+% @doc Clears the specified device context, using the current background brush.
+% If none was set, a solid white brush is used.
+%
+-spec clear_device_context( device_context() ) -> void().
+clear_device_context( DC ) ->
+	gui_image:clear_device_context( DC ).
+
+
+
+% @doc Blits (copies) the specified area of the source device context at the
+% specified position in the target device context.
+%
+% Returns a boolean of unspecified meaning.
+%
+-spec blit( device_context(), point(), dimensions() , device_context(),
+			point() ) -> boolean().
+blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ) ->
+	gui_image:blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ).
+
+
+
+% @doc Blits (copies) the specified area of the source device context at the
+% specified position in the target device context.
+%
+% Returns a boolean of unspecified meaning.
+%
+-spec blit( device_context(), point(), width(), height(), device_context(),
+			point() ) -> boolean().
+blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ) ->
+	gui_image:blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ).
 
 
 
