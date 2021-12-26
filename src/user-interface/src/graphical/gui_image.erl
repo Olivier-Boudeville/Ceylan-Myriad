@@ -55,8 +55,16 @@
 		  getSize/1,
 		  load/2, load/3, scale/3, scale/4,
 		  colorize/2,
+
 		  % from_bitmap/1,
 		  create_bitmap/1,
+		  create_blank_bitmap/1, create_blank_bitmap/2,
+		  create_blank_bitmap_for/1, destruct_bitmap/1,
+
+		  lock_bitmap/1, draw_bitmap/3, unlock_bitmap/1,
+		  lock_window/1, unlock_window/1,
+		  clear_device_context/1, blit/5, blit/6,
+
 		  destruct/1 ]).
 
 
@@ -108,9 +116,12 @@
 
 -type media_type() :: web_utils:media_type().
 
--type integer_distance() :: linear:integer_distance().
-
+-type width() :: gui:width().
+-type height() :: gui:height().
+-type point() :: gui:point().
 -type dimensions() :: gui:dimensions().
+-type window() :: gui:window().
+-type device_context() :: gui:device_context().
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 
@@ -177,7 +188,7 @@ getSize( Image ) ->
 % @doc Scales the specified image to the specified dimensions, with a default
 % quality.
 %
--spec scale( image(), integer_distance(), integer_distance() ) -> void().
+-spec scale( image(), width(), height() ) -> void().
 scale( Image, Width, Height ) ->
 	wxImage:rescale( Image, Width, Height ).
 
@@ -185,12 +196,10 @@ scale( Image, Width, Height ) ->
 % @doc Scales the specified image to the specified dimensions, with specified
 % quality.
 %
--spec scale( image(), integer_distance(), integer_distance(),
-			 image_quality() ) -> void().
+-spec scale( image(), width(), height(), image_quality() ) -> void().
 scale( Image, Width, Height, Quality ) ->
 	WxQuality = to_wx_image_quality( Quality ),
-	wxImage:rescale( Image, Width, Height,
-					 _Opts=[ { quality, WxQuality } ] ).
+	wxImage:rescale( Image, Width, Height, _Opts=[ { quality, WxQuality } ] ).
 
 
 
@@ -247,7 +256,158 @@ create_bitmap( ImagePath ) ->
 	Image = wxImage:new( ImagePath ),
 	ImgBitmap = wxBitmap:new( Image ),
 	wxImage:destroy( Image ),
+	case wxBitmap:isOk( ImgBitmap ) of
+
+		true ->
+			ImgBitmap;
+
+		false ->
+			throw( { bitmap_creation_failed, ImgBitmap } )
+
+	end,
+
 	ImgBitmap.
+
+
+
+% @doc Returns a blank bitmap of the specified size.
+-spec create_blank_bitmap( dimensions() ) -> bitmap().
+create_blank_bitmap( _Dimensions={ Width, Height } ) ->
+	create_blank_bitmap( Width, Height ).
+
+
+% @doc Returns a blank bitmap of the specified size.
+-spec create_blank_bitmap( width(), height() ) -> bitmap().
+create_blank_bitmap( Width, Height ) ->
+	ImgBitmap = wxBitmap:new( Width, Height ),
+	case wxBitmap:isOk( ImgBitmap ) of
+
+		true ->
+			ImgBitmap;
+
+		false ->
+			throw( { bitmap_creation_failed, { Width, Height } } )
+
+	end.
+
+
+
+% @doc Returns a blank bitmap whose size is the client one of the specified
+% window.
+%
+-spec create_blank_bitmap_for( window() ) -> bitmap().
+create_blank_bitmap_for( Window ) ->
+	ClientSize = wxWindow:getClientSize( Window ),
+	create_blank_bitmap( ClientSize ).
+
+
+
+% @doc Destructs the specified bitmap (which must not be locked).
+-spec destruct_bitmap( bitmap() ) -> void().
+destruct_bitmap( Bitmap ) ->
+	wxBitmap:destroy( Bitmap ).
+
+
+
+% @doc Locks the specified bitmap, so that direct access to its content can be
+% done, through the returned device context.
+%
+% Once the desired changes will have been made, this bitmap must be unlocked.
+%
+-spec lock_bitmap( bitmap() ) -> device_context().
+lock_bitmap( Bitmap ) ->
+	DC = wxMemoryDC:new( Bitmap ),
+	case wxDC:isOk( DC ) of
+
+		true ->
+			DC;
+
+		false ->
+			throw( { lock_bitmap_failed, Bitmap } )
+
+	end.
+
+
+
+% @doc Draws the specified bitmap in the specified device context, at the
+% specified position.
+%
+-spec draw_bitmap( bitmap(), device_context(), point() ) -> void().
+draw_bitmap( SourceBitmap, TargetDC, PosInTarget ) ->
+	wxDC:drawBitmap( TargetDC, SourceBitmap, PosInTarget ).
+
+
+
+% @doc Unlocks the specified bitmap, based on the specified device context
+% obtained from a previous locking.
+%
+-spec unlock_bitmap( device_context() ) -> void().
+unlock_bitmap( DC ) ->
+	wxMemoryDC:destroy( DC ).
+
+
+
+% @doc Locks the specified window, so that direct access to its content can be
+% done, through the returned device context.
+%
+% Once the desired changes will have been made, this window must be unlocked.
+%
+-spec lock_window( window() ) -> device_context().
+lock_window( Window ) ->
+	DC = wxWindowDC:new( Window ),
+	case wxDC:isOk( DC ) of
+
+		true ->
+			DC;
+
+		false ->
+			throw( { lock_window_failed, Window } )
+
+	end.
+
+
+
+% @doc Unlocks the specified window, based on the specified device context
+% obtained from a previous locking.
+%
+-spec unlock_window( device_context() ) -> void().
+unlock_window( DC ) ->
+	wxWindowDC:destroy( DC ).
+
+
+
+% @doc Clears the specified device context, using the current background brush.
+% If none was set, a solid white brush is used.
+%
+-spec clear_device_context( device_context() ) -> void().
+clear_device_context( DC ) ->
+	wxDC:clear( DC ).
+
+
+
+% @doc Blits (copies) the specified area of the source device context at the
+% specified position in the target device context.
+%
+% Returns a boolean of unspecified meaning.
+%
+-spec blit( device_context(), point(), width(), height(), device_context(),
+			point() ) -> boolean().
+blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ) ->
+	blit( SourceDC, SrcTopLeft, _Size={ Width, Height }, TargetDC, TgtTopLeft ).
+
+
+
+% @doc Blits (copies) the specified area of the source device context at the
+% specified position in the target device context.
+%
+% Returns a boolean of unspecified meaning.
+%
+-spec blit( device_context(), point(), dimensions() , device_context(),
+			point() ) -> boolean().
+blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ) ->
+	wxDC:blit( TargetDC, TgtTopLeft, Size, SourceDC, SrcTopLeft ).
+
+
 
 
 % @doc Converts a MyriadGUI image format into a wx one.
