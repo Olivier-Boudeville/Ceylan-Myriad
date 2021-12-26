@@ -46,6 +46,9 @@
 % options apparently, refer to the 'graphicsContext' menu entry of wx:demo() for
 % an example).
 %
+% Another option could be to use a panel as a canvas, like in: 'Canvas =
+% wxPanel:new(Panel, [{style, ?wxFULL_REPAINT_ON_RESIZE}])'.
+%
 % So we emulate a basic canvas here, resulting notably in the fact that a canvas
 % object is not here a reference onto a wx object, but a stateful instance that
 % shall as a result be kept from a call to another: as its state may change, the
