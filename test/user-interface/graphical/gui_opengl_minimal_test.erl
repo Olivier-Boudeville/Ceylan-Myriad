@@ -195,7 +195,7 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow } ) ->
 
 			% Done once for all:
 			NewGUIState = setup_opengl( GUIState ),
-%timer:sleep(100),
+
 			gui_main_loop( NewGUIState );
 
 
@@ -260,7 +260,6 @@ setup_opengl( TestState=#my_test_state{ parent=_MainFrame,
 % @doc Managing a resizing of the main frame.
 -spec on_main_frame_resized( my_test_state() ) -> void().
 on_main_frame_resized( #my_test_state{ canvas=GLCanvas } ) ->
-
 
 	% Maximises then canvas in the main frame:
 	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
