@@ -87,8 +87,10 @@
 % A report issued by the glxinfo executable.
 
 
--opaque canvas() :: wxGLCanvas:wxGLCanvas().
-% An OpenGL-based canvas (not to be mixed with a basic gui:canvas/0 one).
+-opaque gl_canvas() :: wxGLCanvas:wxGLCanvas().
+% An OpenGL-based, back-buffered canvas (not to be mixed with a basic
+% gui:canvas/0 one), to which an OpenGL context shall be set in order to execute
+% OpenGL commands.
 
 
 % See https://docs.wxwidgets.org/3.0/glcanvas_8h.html#wxGL_FLAGS for more
@@ -118,11 +120,12 @@
 	| { 'depth_buffer_size', bit_size() }.
 
 
--type canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
-					    | gui_wx_backend:other_wx_device_context_attribute().
+-type gl_canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
+						  | gui_wx_backend:other_wx_device_context_attribute().
+% Options of an OpenGL canvas.
 
 
--opaque context() :: wxGLContext:wxGLContext().
+-opaque gl_context() :: wxGLContext:wxGLContext().
 % An OpenGL context represents the state of an OpenGL state machine and the
 % connection between OpenGL and the running system.
 
@@ -156,8 +159,8 @@
 % allocate the object.
 
 
--export_type([ enum/0, glxinfo_report/0, canvas/0, canvas_option/0,
-			   device_context_attribute/0, context/0,
+-export_type([ enum/0, glxinfo_report/0, gl_canvas/0, gl_canvas_option/0,
+			   device_context_attribute/0, gl_context/0,
 			   factor/0, length_factor/0,
 			   texture_id/0, texture/0, mipmap_level/0,
 			   gl_error/0,
@@ -375,9 +378,10 @@ get_glxinfo_strings() ->
 %
 % Note: not to be mixed up with gui:create_canvas/1.
 %
--spec create_canvas( window() ) -> canvas().
+-spec create_canvas( window() ) -> gl_canvas().
 create_canvas( Parent ) ->
-	create_canvas( Parent, _Opts=[ rgba, double_buffer ] ).
+	DefaultGLAttributes = [ rgba, double_buffer ],
+	create_canvas( Parent, _Opts=[ { gl_attributes, DefaultGLAttributes } ] ).
 
 
 
@@ -388,14 +392,14 @@ create_canvas( Parent ) ->
 %
 % Note: not to be mixed up with gui:create_canvas/1.
 %
--spec create_canvas( window(), [ canvas_option() ] ) -> canvas().
+-spec create_canvas( window(), [ gl_canvas_option() ] ) -> gl_canvas().
 create_canvas( Parent, Opts ) ->
 
 	{ Attrs, OtherOpts } = list_table:extract_entry_with_defaults(
 		_K=gl_attributes, _Def=[ rgba, double_buffer ], Opts ),
 
-	%trace_utils:debug_fmt( "Attrs = ~p~nOtherOpts = ~p",
-	%   [ Attrs, OtherOpts ] ),
+	%trace_utils:debug_fmt( "Creating a GL canvas with Attrs = ~p~n
+	%   "and OtherOpts = ~p", [ Attrs, OtherOpts ] ),
 
 	WxAttrs = gui_wx_backend:to_wx_device_context_attributes( Attrs ),
 
@@ -407,19 +411,22 @@ create_canvas( Parent, Opts ) ->
 
 	Res = wxGLCanvas:new( Parent, WxOpts ),
 
-	% Commented-out, as an OpenGL context may not already exist:
+	% Commented-out, as not relevant (an OpenGL context may not already exist):
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	Res.
 
 
 
-% @doc Returns the OpenGL context obtained from the specified canvas.
--spec create_context( canvas() ) -> context().
+% @doc Returns the OpenGL context obtained from the specified OpenGL canvas; it
+% is created but not bound yet (not set as current, hence not usable yet, no
+% OpenGL command can be issued yet).
+%
+-spec create_context( gl_canvas() ) -> gl_context().
 create_context( Canvas ) ->
 	Res = wxGLContext:new( Canvas ),
 
-	% Commented-out, as the OpenGL context is not set as current yet):
+	% Commented-out, as the OpenGL context is not set as current yet:
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	Res.
@@ -429,10 +436,10 @@ create_context( Canvas ) ->
 % @doc Sets the specified (OpenGL) context to the specified (OpenGL) canvas, so
 % that it applies to the next operations (OpenGL calls) made on it.
 %
-% To be only called when the parent window is shown on screen. See
+% To be only called when the parent window is shown on screen; see
 % gui_opengl_test.erl for an example thereof.
 %
--spec set_context( canvas(), context() ) -> void().
+-spec set_context( gl_canvas(), gl_context() ) -> void().
 set_context( Canvas, Context ) ->
 	case wxGLCanvas:setCurrent( Canvas, Context ) of
 
@@ -447,11 +454,13 @@ set_context( Canvas, Context ) ->
 
 
 
-% @doc Swaps the double-buffer of the corresponding window (making the
+% @doc Swaps the double-buffer of the corresponding OpenGL canvas (making the
 % back-buffer the front-buffer and vice versa), so that the output of the
 % previous OpenGL commands is displayed on this window.
 %
--spec swap_buffers( canvas() ) -> void().
+% The corresponding window must already be shown.
+%
+-spec swap_buffers( gl_canvas() ) -> void().
 swap_buffers( Canvas ) ->
 	case wxGLCanvas:swapBuffers( Canvas ) of
 
@@ -481,7 +490,7 @@ load_texture_from_image( Image ) ->
 	trace_utils:debug_fmt( "Image dimensions: {~B,~B}; texture dimensions: "
 		"{~B,~B}.", [ ImgWidth, ImgHeight, Width, Height ] ),
 
-	% Either RGB or RGBA:
+	% wxImage is either RGB or RGBA:
 	ColorBuffer = get_color_buffer( Image ),
 
 	% Let's create the OpenGL texture:
@@ -490,6 +499,7 @@ load_texture_from_image( Image ) ->
 
 	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
 
+	% Sets parameters regarding the current texture:
 	gl:texParameteri( _Target=?GL_TEXTURE_2D, _TexParam=?GL_TEXTURE_MAG_FILTER,
 					  _ParamValue=?GL_NEAREST ),
 
@@ -498,9 +508,11 @@ load_texture_from_image( Image ) ->
 	Format = case wxImage:hasAlpha( Image ) of
 
 		true ->
+			%trace_utils:debug( "RGBA image detected." ),
 			?GL_RGBA;
 
 		false ->
+			%trace_utils:debug( "RGB image detected." ),
 			?GL_RGB
 
 	end,
@@ -512,7 +524,7 @@ load_texture_from_image( Image ) ->
 
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
-	trace_utils:debug( "Texture loaded from image." ),
+	%trace_utils:debug( "Texture loaded from image." ),
 
 	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
 			  min_x=0.0, min_y=0.0,
@@ -526,10 +538,16 @@ load_texture_from_image( Image ) ->
 %
 -spec load_texture_from_file( any_file_path() ) -> texture().
 load_texture_from_file( ImagePath ) ->
+
 	Image = gui_image:create_from_file( ImagePath ),
+
+	%trace_utils:debug_fmt( "Image loaded from '~ts' of size ~Bx~B.",
+	%   [ ImagePath, wxImage:getWidth( Image ), wxImage:getHeight( Image ) ] ),
+
 	Tex = load_texture_from_image( Image ),
 	gui_image:destruct( Image ),
 	Tex.
+
 
 
 % @doc Creates a texture from the specified image file of the specified type.
@@ -806,11 +824,11 @@ render_faces( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
 	ok;
 
 
-% As mentioned, we currently suppose we have quad-based faces:
-render_faces( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx, V4Idx } | T ], FaceCount,
+% We have quad-based faces here:
+render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
 			  Vertices, Normals, Colors ) ->
 
-	gl:normal3fv( lists:nth( FaceCount, Normals ) ),
+	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
 
 	gl:color3fv( lists:nth( V1Idx, Colors ) ),
 	gl:texCoord2f( 0.0, 0.0 ),
@@ -828,6 +846,26 @@ render_faces( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx, V4Idx } | T ], FaceCount,
 	gl:texCoord2f( 0.0, 1.0 ),
 	gl:vertex3fv( lists:nth( V4Idx, Vertices ) ),
 
+	render_faces( T, FaceCount+1, Vertices, Normals, Colors );
+
+% We have triangles-based faces here:
+render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
+			  Vertices, Normals, Colors ) ->
+
+	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
+
+	gl:color3fv( lists:nth( V1Idx, Colors ) ),
+	gl:texCoord2f( 0.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V2Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V3Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 1.0 ),
+	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
+
 	render_faces( T, FaceCount+1, Vertices, Normals, Colors ).
 
 
@@ -836,7 +874,7 @@ render_faces( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx, V4Idx } | T ], FaceCount,
 % image.
 %
 % The returned buffer shall be "const", in the sense of being neither be
-% deallocated or assigned to any image.
+% deallocated nor assigned to any image.
 %
 -spec get_color_buffer( image() ) -> color_buffer().
 get_color_buffer( Image ) ->
