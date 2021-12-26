@@ -168,14 +168,23 @@
 % An (opaque) backend GUI event.
 
 
--type canvas() :: gui_canvas:canvas().
-% A basic canvas (not to be mixed with an OpenGL one, opengl_canvas/0.
 
--type opengl_canvas() :: gui_opengl:canvas().
+-type device_context() :: wx_object().
+% Designates an abstract device where rendering can take place, and which can be
+% the source or target of a blit.
+
+
+-type canvas() :: gui_canvas:canvas().
+% A basic canvas (not to be mixed with an OpenGL one, opengl_canvas/0).
+
+
+
+-type opengl_canvas() :: gui_opengl:gl_canvas().
 % An OpenGL canvas (not to be mixed with a basic one, canvas/0).
 
--type opengl_context() :: gui_opengl:context().
+-type opengl_context() :: gui_opengl:gl_context().
 % An OpenGL context.
+
 
 
 % Basic GUI operations.
@@ -211,7 +220,7 @@
 % Windows:
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
 		  set_sizer/2, show/1, hide/1, get_size/1, get_client_size/1,
-		  maximise_in_parent/1, enable_repaint/1, destruct_window/1 ]).
+		  maximise_in_parent/1, sync/1, enable_repaint/1, destruct_window/1 ]).
 
 
 % Frames:
@@ -258,6 +267,10 @@
 		  draw_numbered_points/2,
 		  load_image/2, load_image/3,
 		  resize/2, blit/1, clear/1 ]).
+
+
+% Bitmaps:
+-export([ create_bitmap/1 ]).
 
 
 % Fonts:
@@ -310,6 +323,17 @@
 -type orientation() :: 'vertical' | 'horizontal'.
 % A vertical orientation means piling elements top to bottom for example, while
 % an horizontal means left to right, for example.
+
+
+-type fps() :: count().
+% Number of frames per second.
+%
+% The old Charlie Chaplin movies were shot at 16 frames per second and are
+% noticeably jerky.
+%
+% 60 frames per second is smoother than 30, and 120 is marginally better than
+% 60; beyond 120 fps has no real interest as it exceeds eye perception.
+
 
 
 
@@ -397,7 +421,14 @@
 
 -opaque status_bar() :: wxStatusBar:wxStatusBar().
 
--opaque bitmap() :: wxBitmap:wxBitmap().
+
+-opaque bitmap() :: gui_image:bitmap().
+% Platform-dependent bitmap, either monochrome or colour (with or without alpha
+% channel).
+%
+% Intended to be a wrapper of whatever is the native image format, which is
+% quickest/easiest to draw to a display context.
+
 
 -opaque brush() :: wxBrush:wxBrush().
 
@@ -530,6 +561,10 @@
 
 
 -type image() :: gui_image:image().
+% An image is a bitmap buffer of RGB bytes with an optional buffer for the alpha
+% bytes.
+%
+% It is thus generic, independent from platforms and image file formats.
 
 
 -type connect_opt() ::   { 'id', integer() }
@@ -561,7 +596,7 @@
 
 -export_type([ length/0, width/0, height/0,
 			   coordinate/0, point/0, position/0, size/0,
-			   orientation/0, object_type/0, wx_object_type/0,
+			   orientation/0, fps/0, object_type/0, wx_object_type/0,
 			   myriad_object_type/0, myriad_instance_id/0,
 			   title/0, label/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
@@ -571,7 +606,7 @@
 			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
 			   font_weight/0,
 
-			   bitmap/0, brush/0, back_buffer/0, canvas/0,
+			   bitmap/0, brush/0, back_buffer/0, device_context/0, canvas/0,
 			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
 			   window_style/0, frame_style/0, button_style/0,
@@ -607,7 +642,7 @@
 
 -type text() :: ustring().
 
--type file_path() :: file_utils:file_path().
+-type any_file_path() :: file_utils:any_file_path().
 
 -type line2() :: linear_2D:line2().
 
@@ -696,7 +731,7 @@ set_debug_level( DebugLevel ) ->
 % (event type and emitter), like {onWindowClosed, MyFrame}.
 %
 % This process will then receive MyriadGUI callback messages whenever events
-% that match happen, such as: {onWindowClosed, [MyFrame, Context]}.
+% that match happen, such as: {onWindowClosed, [MyFrame, EventContext]}.
 %
 % By default the corresponding event will not be transmitted upward in the
 % widget hierarchy (as this event will be expected to be processed for good by
@@ -1103,7 +1138,7 @@ draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
 % @doc Loads image from the specified path into specified canvas, pasting it at
 % its upper left corner.
 %
--spec load_image( canvas(), file_path() ) -> void().
+-spec load_image( canvas(), any_file_path() ) -> void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Filename ] }.
 
@@ -1112,7 +1147,7 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 % @doc Loads image from the specified path into specified canvas, pasting it at
 % specified location.
 %
--spec load_image( canvas(), point(), file_path() ) -> void().
+-spec load_image( canvas(), point(), any_file_path() ) -> void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
 			FilePath ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Position, FilePath ] }.
@@ -1247,15 +1282,37 @@ get_client_size( Window ) ->
 
 
 
-% @doc Maximises the specified widget (a specialised window) in its parent
-% (adopting its maximum client size), and returns this new size.
+% @doc Maximises the specified widget (a specialised window; ex: a panel) in its
+% parent (adopting its maximum client size), and returns the new size of this
+% widget.
 %
 -spec maximise_in_parent( window() ) -> dimensions().
 maximise_in_parent( Widget ) ->
 	ParentWindow = wxWindow:getParent( Widget ),
 	ParentWindowClientSize = wxWindow:getClientSize( ParentWindow ),
-	wxPanel:setSize( Widget, ParentWindowClientSize ),
+	wxWindow:setSize( Widget, ParentWindowClientSize ),
 	ParentWindowClientSize.
+
+
+
+% @doc Synchronises the specified window, to ensure that no past operation is
+% still pending at its level.
+%
+% Useful if there exists some means of interacting with it directly (ex: thanks
+% to an OpenGL NIF) that could create a race condition (ex: presumably
+% message-based resizing immediately followed by a direct OpenGL rendering).
+%
+% See gui_opengl_minimal_test:on_main_frame_resize/1 for further details.
+%
+-spec sync( window() ) -> dimensions().
+sync( Window ) ->
+	% The result in itself may be of no use, the point here is just, through a
+	% synchronous operation (a request), to ensure that the specified window is
+	% "ready" (that it has processed its previous messages) with a sufficient
+	% probability (with certainty if past operations were triggered by the same
+	% process as this calling one):
+	%
+	wxWindow:getSize( Window ).
 
 
 
@@ -1664,6 +1721,17 @@ create_brush( RGBColor ) ->
 -spec destruct_brush( brush() ) -> void().
 destruct_brush( Brush ) ->
 	wxBrush:destroy( Brush ).
+
+
+
+% Bitmap section.
+
+
+% @doc Returns a bitmap created from the specified image path.
+-spec create_bitmap( any_file_path() ) -> bitmap().
+create_bitmap( ImagePath ) ->
+	gui_image:create_bitmap( ImagePath ).
+
 
 
 
