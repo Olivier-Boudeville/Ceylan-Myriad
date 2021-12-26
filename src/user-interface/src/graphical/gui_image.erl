@@ -30,7 +30,10 @@
 % (loading, modifying, saving, scaling, resizing, clipping, etc.), in link to
 % MyriadGUI, and in a platform-independent way.
 %
-% May be useful also for textures.
+% Images shall be considered as just a generic, platform independent buffer of
+% RGB bytes with an optional buffer for the alpha bytes.
+%
+%  May be useful also for textures.
 %
 -module(gui_image).
 
@@ -40,15 +43,20 @@
 % We recommend using the following formats and extensions:
 % - PNG (*.png) for lossless, bitmap-like images
 % - JPEG (*.jpeg) for images akin to camera snapshots
+%
+% Note that apparently, according to our test, some images can be loaded fine
+% (ex: "erlang.png") whereas some others not (ex: ""myriad-title.png").
 
 
 % Relies on the wxWidgets backend.
 
 
 -export([ create_from_file/1, create_from_file/2,
+		  getSize/1,
 		  load/2, load/3, scale/3, scale/4,
 		  colorize/2,
 		  % from_bitmap/1,
+		  create_bitmap/1,
 		  destruct/1 ]).
 
 
@@ -74,7 +82,15 @@
  % The requested quality for an image operation (ex: for a scaling).
 
 
--export_type([ image/0, image_format/0, image_quality/0 ]).
+-opaque bitmap() :: wxBitmap:wxBitmap().
+% Platform-dependent bitmap, either monochrome or colour (with or without alpha
+% channel).
+%
+% Intended to be a wrapper of whatever is the native image format, which is
+% quickest/easiest to draw to a display context.
+
+
+-export_type([ image/0, image_format/0, image_quality/0, bitmap/0 ]).
 
 
 % For the wx defines:
@@ -93,6 +109,8 @@
 -type media_type() :: web_utils:media_type().
 
 -type integer_distance() :: linear:integer_distance().
+
+-type dimensions() :: gui:dimensions().
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 
@@ -146,6 +164,13 @@ create_from_file( ImageFormat, AnyImagePath ) ->
 			throw( { image_loading_failed, ImageFormat, ImagePath } )
 
 	end.
+
+
+
+% @doc Returns the size of this image.
+-spec getSize( image() ) -> dimensions().
+getSize( Image ) ->
+	{ wxImage:getWidth( Image ), wxImage:getHeight( Image ) }.
 
 
 
@@ -213,6 +238,16 @@ colorize( AlphaBuffer, _Color={ R, G, B } ) ->
 	% is width*height*3, hence dropping 2 out of 3 elements):
 	%
 	<< <<R:8,G:8,B:8,A:8>> || <<A:8,_:8,_:8>> <= AlphaBuffer >>.
+
+
+
+% @doc Returns a bitmap created from the specified image path.
+-spec create_bitmap( any_file_path() ) -> bitmap().
+create_bitmap( ImagePath ) ->
+	Image = wxImage:new( ImagePath ),
+	ImgBitmap = wxBitmap:new( Image ),
+	wxImage:destroy( Image ),
+	ImgBitmap.
 
 
 % @doc Converts a MyriadGUI image format into a wx one.
