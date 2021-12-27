@@ -152,6 +152,11 @@
 -type integer_hertz() :: non_neg_integer().
 % Frequency in Hz, as a (non-negative) integer.
 
+-type any_hertz() :: hertz() | integer_hertz().
+% Frequency in Hz.
+
+
+
 
 -type time_reference_unit() :: 'seconds'.
 
@@ -173,7 +178,7 @@
 			   any_second/0, any_seconds/0, square_seconds/0,
 			   millisecond/0, milliseconds/0, canonical_millisecond/0,
 			   microsecond/0,microseconds/0, canonical_microsecond/0,
-			   mttf/0, hertz/0, integer_hertz/0,
+			   mttf/0, hertz/0, integer_hertz/0, any_hertz/0,
 			   time_reference_unit/0, time_units/0 ]).
 
 
