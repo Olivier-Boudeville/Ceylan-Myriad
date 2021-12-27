@@ -130,6 +130,13 @@
 -define( library_search_path_variable, "LD_LIBRARY_PATH" ).
 
 
+% Implementation notes:
+%
+% The use of text_utils (instead of io_lib) has not been generalised, as this
+% module may be a pioneer one, and thus as such should be as autonomous as
+% possible.
+
+
 
 % Prerequisite-related section.
 
@@ -197,26 +204,26 @@
 
 -record( fs_info, {
 
-		 % Device name (ex: /dev/sda5):
-		 filesystem :: directory_path(),
+	% Device name (ex: /dev/sda5):
+	filesystem :: directory_path(),
 
-		 % Mount point (ex: /boot):
-		 mount_point :: directory_path(),
+	% Mount point (ex: /boot):
+	mount_point :: directory_path(),
 
-		 % Filesystem type (ex: 'ext4'):
-		 type :: filesystem_type(),
+	% Filesystem type (ex: 'ext4'):
+	type :: filesystem_type(),
 
-		 % Used size, in bytes:
-		 used_size :: byte_size(),
+	% Used size, in bytes:
+	used_size :: byte_size(),
 
-		 % Available size, in bytes:
-		 available_size :: byte_size(),
+	% Available size, in bytes:
+	available_size :: byte_size(),
 
-		 % Number of used inodes:
-		 used_inodes :: count(),
+	% Number of used inodes:
+	used_inodes :: count(),
 
-		 % Number of available inodes:
-		 available_inodes :: count() } ).
+	% Number of available inodes:
+	available_inodes :: count() } ).
 
 
 -type fs_info() :: #fs_info{}.
@@ -1906,6 +1913,8 @@ get_size_of_vm_word_string() ->
 % The (flat) size of on-heap terms is incremented to account for the top term
 % word (which is kept in a register or on the stack).
 %
+% See also [https://www.erlang.org/doc/efficiency_guide/advanced.html].
+%
 -spec get_size( term() ) -> byte_size().
 get_size( Bin ) when is_binary( Bin ) ->
 	byte_size( Bin );
@@ -1943,7 +1952,7 @@ interpret_byte_size( SizeInBytes ) ->
 	end,
 
 	SizeAfterGiga = SizeInBytes rem Giga,
-	%io:format( "SizeAfterGiga = ~B.~n", [ SizeAfterGiga ] ),
+	%io:format( "SizeAfterGiga = ~B.", [ SizeAfterGiga ] ),
 
 	ListWithMega = case SizeAfterGiga div Mega of
 
@@ -2181,8 +2190,9 @@ get_total_physical_memory_string() ->
 					  [ interpret_byte_size( get_total_physical_memory() ) ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no total physical RAM information could be "
-						   "obtained (~p)", [ Exception ] )
+
+		io_lib:format( "no total physical RAM information could be "
+					   "obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -2251,7 +2261,7 @@ get_total_memory_used() ->
 	% Avoid locale and greps 'buffers/cache:' (ex: on Debian) as well as
 	% 'buff/cache' (ex: on Arch)
 	%MemoryInfo = os:cmd( "LANG= free -b | grep '/cache' "
-	%					 "| awk '{print $3,$4}'" ),
+	%                     "| awk '{print $3,$4}'" ),
 
 	% Converts MemoryInfo from "a b\n" to ["a","b\n"]
 	%[ AppliUsedString, TotalFreeTermString ] =
@@ -2267,7 +2277,7 @@ get_total_memory_used() ->
 	%AppliUsedSize = text_utils:string_to_integer( AppliUsedString ),
 
 	%TotalFreeString = text_utils:remove_ending_carriage_return(
-	%													TotalFreeTermString ),
+	%                                       TotalFreeTermString ),
 
 	% This is H:
 	%TotalFreeSize = text_utils:string_to_integer( TotalFreeString ),
@@ -2692,17 +2702,15 @@ get_cpu_usage_counters() ->
 	[ "cpu", UserString, NiceString, SystemString, IdleString | T ] =
 						string:tokens( StatString, " " ),
 
-	User   = text_utils:string_to_integer( UserString ),
-	Nice   = text_utils:string_to_integer( NiceString ),
-	System = text_utils:string_to_integer( SystemString ),
-	Idle   = text_utils:string_to_integer( IdleString ),
+	[ User, Nice, System, Idle ] = [ text_utils:string_to_integer( S )
+		|| S <- [ UserString, NiceString, SystemString, IdleString ] ],
 
 	% Adapts to any architecture and update (iowait, irq, softirq, steal, guest,
 	% etc.):
 	Other = lists:sum( [ text_utils:string_to_integer( E ) || E <- T ] ),
 
 	%io:format( "user = ~f, nice = ~f, system = ~f, idle = ~f, other = ~f, "
-	%			"T = ~p~n", [ User, Nice, System, Idle, Other, T ] ),
+	%           "T = ~p~n", [ User, Nice, System, Idle, Other, T ] ),
 
 	{ User, Nice, System, Idle, Other }.
 
@@ -2795,7 +2803,7 @@ get_mount_points() ->
 get_exclude_pseudo_fs_opt() ->
 
 	Excludes = [ " --exclude-type=" ++ text_utils:atom_to_string( P )
-				 || P <- get_known_pseudo_filesystems() ],
+					|| P <- get_known_pseudo_filesystems() ],
 
 	text_utils:join( _Sep=" ", Excludes ).
 
@@ -2825,16 +2833,16 @@ get_filesystem_info( FilesystemPath ) ->
 
 					% df outputs kiB, not kB:
 					#fs_info{
-					  filesystem=Fs,
-					  mount_point=Mount,
-					  type=get_filesystem_type( Type ),
-					  used_size = 1024 * text_utils:string_to_integer( USize ),
-					  available_size = 1024 *
-						  text_utils:string_to_integer( ASize ),
-					  used_inodes = text_utils:string_to_integer( Uinodes ),
-					  available_inodes =
-						  text_utils:string_to_integer( Ainodes )
-				 };
+						filesystem=Fs,
+						mount_point=Mount,
+						type=get_filesystem_type( Type ),
+						used_size =
+							1024 * text_utils:string_to_integer( USize ),
+						available_size =
+							1024 * text_utils:string_to_integer( ASize ),
+						used_inodes = text_utils:string_to_integer( Uinodes ),
+						available_inodes =
+							text_utils:string_to_integer( Ainodes ) };
 
 				_ ->
 					get_filesystem_info_alternate( FilesystemPath )
@@ -2870,15 +2878,15 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 
 					% df outputs kiB, not kB:
 					#fs_info{
-					  filesystem=Fs,
-					  mount_point=Mount,
-					  type=unknown,
-					  used_size = 1024 * text_utils:string_to_integer( USize ),
-					  available_size = 1024 *
+						filesystem=Fs,
+						mount_point=Mount,
+						type=unknown,
+						used_size =
+							1024 * text_utils:string_to_integer( USize ),
+						available_size = 1024 *
 							text_utils:string_to_integer( ASize ),
-					  used_inodes = 0,
-					  available_inodes = 0
-					};
+						used_inodes = 0,
+						available_inodes = 0 };
 
 				_ ->
 					throw( { filesystem_inquiry_failed, FilesystemPath,
@@ -3061,8 +3069,9 @@ get_operating_system_description_string() ->
 					   [ get_operating_system_description() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no information about the operating system "
-						   "could be obtained (~p)", [ Exception ] )
+
+		io_lib:format( "no information about the operating system "
+					   "could be obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -3166,7 +3175,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 							   PackageName, "erlport" ],
 
 			DefaultDir = file_utils:normalise_path(
-						   file_utils:join( PathComponents ) ),
+							file_utils:join( PathComponents ) ),
 
 			case file_utils:is_existing_directory_or_link( DefaultDir ) of
 

@@ -122,6 +122,11 @@ create( FontSize, FontFamily, FontStyle, FontWeight ) ->
 			  font_weight(), [ font_option() ] ) -> font().
 create( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ) ->
 
+	cond_utils:if_defined( myriad_debug_gui_font, trace_utils:debug_fmt(
+		"Creating a font of family '~ts', of size ~w, "
+		"~ts style, ~ts weight and options ~p.",
+		[ FontFamily, FontSize, FontStyle, FontWeight, FontOpts ] ) ),
+
 	WxFontFamily = to_wx_font_family( FontFamily ),
 
 	WxFontStyle = to_wx_font_style( FontStyle ),
@@ -139,11 +144,15 @@ create( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ) ->
 	Font.
 
 
+
 % @doc Returns the extent used by the rendering of the specified single-line
 % text with the specified font.
 %
 -spec get_text_extent( ustring(), font() ) -> dimensions().
 get_text_extent( Text, Font ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_font, trace_utils:debug_fmt(
+		"Getting extent of text '~ts' for font ~p.", [ Text, Font ] ) ),
 
 	% We have to create dummy bitmap and device contexts in order to determine
 	% these dimensions:

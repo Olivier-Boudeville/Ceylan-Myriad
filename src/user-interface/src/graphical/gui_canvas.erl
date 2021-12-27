@@ -27,8 +27,8 @@
 
 
 % @doc Gathering of various facilities for <b>canvas management</b>, for the
-% basic ones that MyriadGUI introduced (as opposed to the OpenGL ones, see
-% gui_opengl).
+% basic ones that MyriadGUI introduced (as opposed to the OpenGL ones, which are
+% handled exclusively in our gui_opengl module).
 %
 % See `gui_canvas_test.erl' for the corresponding test.
 %
@@ -194,6 +194,10 @@
 %
 -spec create_instance( [ window() ] ) -> { canvas_state(), panel() }.
 create_instance( [ Parent ] ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_canvas,
+		trace_utils:debug_fmt( "Creating an instance of MyriadGUI canvas, "
+			"whose parent is ~w.", [ Parent ] ) ),
 
 	% Could have been: Size = auto,
 	Size = { W, H } = gui:get_size( Parent ),

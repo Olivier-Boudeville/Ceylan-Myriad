@@ -169,7 +169,8 @@
 		  get_textual_timestamp_with_dashes/1,
 		  timestamp_to_string/1, short_string_to_timestamp/1,
 		  gregorian_ms_to_timestamp/1,
-		  string_to_timestamp/1, dhms_to_string/1, time_of_day_to_string/1,
+		  string_to_timestamp/1, dhms_to_string/1,
+		  time_to_string/1, time_of_day_to_string/1,
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  timestamp_to_weekday/1, date_to_weekday/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
@@ -237,7 +238,7 @@
 % @doc Returns a string corresponding to the specified date, like: "30/11/2009".
 -spec get_textual_date( date() ) -> ustring().
 get_textual_date( { Year, Month, Day } ) ->
-	io_lib:format( "~B/~B/~B", [ Day, Month, Year ] ).
+	text_utils:format( "~B/~B/~B", [ Day, Month, Year ] ).
 
 
 
@@ -628,7 +629,7 @@ compare_helper( _FirstDate={ _Yf, _Mf, Df },
 
 % Df =:= Ds, equality:
 %compare_helper( _FirstDate={ _Yf, _Mf, _Df },
-%				_SecondDate={ _Ys, _Ms, _Ds } ) ->
+%                _SecondDate={ _Ys, _Ms, _Ds } ) ->
 compare_helper( _FirstDate, _SecondDate ) ->
 	equal.
 
@@ -750,19 +751,19 @@ string_to_dhms( DurationString ) ->
 	{ D, DRest } = case text_utils:split_at_first( $j, TrimmedDurStr ) of
 
 		none_found ->
-			% Enlish one maybe?
+			% English one maybe?
 			case text_utils:split_at_first( $d, TrimmedDurStr ) of
 
 				none_found ->
 					{ 0, TrimmedDurStr };
 
-				% Ex: { "113", "0h10m3s" } (English version)
+				% Ex: {"113", "0h10m3s"} (English version)
 				{ EnDStr, EnNonDStr } ->
 					{ text_utils:string_to_integer( EnDStr ), EnNonDStr }
 
 			end;
 
-		% Ex: { "113", "0h10m3s" } (French version)
+		% Ex: {"113", "0h10m3s"} (French version)
 		{ FrDStr, FrNonDStr } ->
 			{ text_utils:string_to_integer( FrDStr ), FrNonDStr }
 
@@ -774,7 +775,7 @@ string_to_dhms( DurationString ) ->
 		none_found ->
 			{ 0, DRest };
 
-		% Ex: { "0", "10m3s" }
+		% Ex: {"0", "10m3s"}
 		{ HStr, NonHStr } ->
 			{ text_utils:string_to_integer( HStr ), NonHStr }
 
@@ -798,7 +799,7 @@ string_to_dhms( DurationString ) ->
 		none_found ->
 			0;
 
-		% Ex: { "3", "" }
+		% Ex: {"3", ""}
 		{ SStr, _NonSStr="" } ->
 			text_utils:string_to_integer( SStr )
 
@@ -944,9 +945,9 @@ get_epoch_milliseconds_since_year_0() ->
 -spec is_timestamp( term() ) -> boolean().
 is_timestamp( { Date={ Y, M, D }, _Time={ Hour, Min, Sec } } )
   when is_integer( Y ) andalso is_integer( M ) andalso is_integer( D )
-	   andalso is_integer( Hour ) andalso is_integer( Min )
-	   andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
-	   andalso Sec =< 60 ->
+	    andalso is_integer( Hour ) andalso is_integer( Min )
+	    andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
+	    andalso Sec =< 60 ->
 	calendar:valid_date( Date );
 
 is_timestamp( _Other ) ->
@@ -1005,15 +1006,15 @@ get_textual_timestamp() ->
 %
 -spec get_textual_timestamp( timestamp() ) -> ustring().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
-	io_lib:format( "~B/~B/~B ~B:~2..0B:~2..0B",
-				   [ Year, Month, Day, Hour, Minute, Second ] ).
+	text_utils:format( "~B/~B/~B ~B:~2..0B:~2..0B",
+				       [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 % @doc Returns a string corresponding to the specified timestamp in a
 % user-friendly manner, like: "Wednesday, January 6, 2021 at 11:46:53".
 %
 get_user_friendly_textual_timestamp( { Date={ Year, Month, Day }, Time } ) ->
-	io_lib:format( "~ts, ~ts ~B, ~B, at ~ts",
+	text_utils:format( "~ts, ~ts ~B, ~B, at ~ts",
 		[ week_day_to_string( Date ), month_to_string( Month ), Day,
 		  Year, time_of_day_to_string( Time ) ] ).
 
@@ -1026,7 +1027,7 @@ get_french_textual_timestamp( { { Year, Month, Day },
 								{ Hour, Minute, Second } } ) ->
 
 	%trace_utils:debug_fmt( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
-	%					   [ Day, Month, Year, Hour, Minute, Second ] ),
+	%                       [ Day, Month, Year, Hour, Minute, Second ] ),
 
 	case Second of
 
@@ -1034,18 +1035,18 @@ get_french_textual_timestamp( { { Year, Month, Day },
 			case Minute of
 
 				0 ->
-					io_lib:format( "le ~B/~B/~B, à ~Bh",
-								   [ Day, Month, Year, Hour ] );
+					text_utils:format( "le ~B/~B/~B, à ~Bh",
+						[ Day, Month, Year, Hour ] );
 
 				_ ->
-					io_lib:format( "le ~B/~B/~B, à ~Bh~2..0B",
-								   [ Day, Month, Year, Hour, Minute ] )
+					text_utils:format( "le ~B/~B/~B, à ~Bh~2..0B",
+						[ Day, Month, Year, Hour, Minute ] )
 
 			end;
 
 		_ ->
-			io_lib:format( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
-						   [ Day, Month, Year, Hour, Minute, Second ] )
+			text_utils:format( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
+				[ Day, Month, Year, Hour, Minute, Second ] )
 
 	end.
 
@@ -1076,8 +1077,8 @@ get_time2_textual_timestamp() ->
 -spec get_time2_textual_timestamp( timestamp() ) -> ustring().
 get_time2_textual_timestamp( { { Year, Month, Day },
 							   { Hour, Minute, Second } } ) ->
-	io_lib:format( "~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B",
-				   [ Year, Month, Day, Hour, Minute, Second ] ).
+	text_utils:format( "~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B",
+					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 
@@ -1096,7 +1097,7 @@ get_textual_timestamp_for_path() ->
 -spec get_textual_timestamp_for_path( timestamp() ) -> ustring().
 get_textual_timestamp_for_path( { { Year, Month, Day },
 								  { Hour, Minute, Second } } ) ->
-	io_lib:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
+	text_utils:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
@@ -1106,7 +1107,7 @@ get_textual_timestamp_for_path( { { Year, Month, Day },
 -spec get_textual_timestamp_with_dashes( timestamp() ) -> ustring().
 get_textual_timestamp_with_dashes( { { Year, Month, Day },
 									 { Hour, Minute, Second } } ) ->
-	io_lib:format( "~B-~2..0B-~2..0B ~B:~2..0B:~2..0B",
+	text_utils:format( "~B-~2..0B-~2..0B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
@@ -1199,7 +1200,17 @@ dhms_to_string( DHMS ) ->
 
 
 
-% @doc Returns a textual description of the specified time of day.
+% @doc Returns a textual description of the specified time of day, like:
+% "09:14:57".
+%
+-spec time_to_string( time() ) -> ustring().
+time_to_string( _Time={ H, M, S } ) ->
+	text_utils:format( "~B:~2..0B:~2..0B", [ H, M, S ] ).
+
+
+% @doc Returns a textual, user-friendly description of the specified time of
+% day.
+%
 -spec time_of_day_to_string( time() ) -> ustring().
 time_of_day_to_string( _Time={ 0, 0, 0 } ) ->
 	% To be understood as very beginning of day, as opposed to very end of it:
@@ -1209,13 +1220,13 @@ time_of_day_to_string( _Time={ 12, 0, 0 } ) ->
 	"noon";
 
 time_of_day_to_string( _Time={ H, 0, 0 } ) ->
-	io_lib:format( "~B", [ H ] );
+	text_utils:format( "~B", [ H ] );
 
 time_of_day_to_string( _Time={ H, M, 0 } ) ->
-	io_lib:format( "~B:~2..0B", [ H, M ] );
+	text_utils:format( "~B:~2..0B", [ H, M ] );
 
 time_of_day_to_string( _Time={ H, M, S } ) ->
-	io_lib:format( "~B:~2..0B:~2..0B", [ H, M, S ] ).
+	text_utils:format( "~B:~2..0B:~2..0B", [ H, M, S ] ).
 
 
 
@@ -1396,7 +1407,7 @@ get_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 	% {Days, {Hour, Minute, Second}} = calendar:seconds_to_daystime(
 	%   get_duration(FirstTimestamp, SecondTimestamp)),
 
-	%lists:flatten( io_lib:format( "~B day(s), ~B hour(s), ~B minute(s) "
+	%lists:flatten( text_utils:format( "~B day(s), ~B hour(s), ~B minute(s) "
 	%  "and ~B second(s)", [ Days, Hour, Minute, Second ] ) ).
 
 	Duration = get_duration( FirstTimestamp, SecondTimestamp ),
@@ -1477,7 +1488,7 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 day" ];
 
 		_ ->
-			[ io_lib:format( "~B days", [ Days ] ) ]
+			[ text_utils:format( "~B days", [ Days ] ) ]
 
 	end,
 
@@ -1490,7 +1501,7 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 hour" | ListWithDays ];
 
 		_ ->
-			[ io_lib:format( "~B hours", [ Hours ] )
+			[ text_utils:format( "~B hours", [ Hours ] )
 			  | ListWithDays ]
 
 	end,
@@ -1504,7 +1515,7 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 		  [ "1 minute" | ListWithHours ];
 
 		_ ->
-		  [ io_lib:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
+		  [ text_utils:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
 
 	end,
 
@@ -1517,7 +1528,7 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 second" | ListWithMinutes ];
 
 		_ ->
-			[ io_lib:format( "~B seconds", [ Seconds ] ) | ListWithMinutes ]
+			[ text_utils:format( "~B seconds", [ Seconds ] ) | ListWithMinutes ]
 
 	end,
 
@@ -1532,7 +1543,7 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 millisecond" | ListWithSeconds ];
 
 		_ ->
-			[ io_lib:format( "~B milliseconds", [ ActualMilliseconds ] )
+			[ text_utils:format( "~B milliseconds", [ ActualMilliseconds ] )
 			  | ListWithSeconds ]
 
 	end,
@@ -1591,7 +1602,7 @@ duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 jour" ];
 
 		_ ->
-			[ io_lib:format( "~B jours", [ Days ] ) ]
+			[ text_utils:format( "~B jours", [ Days ] ) ]
 
 	end,
 
@@ -1604,7 +1615,7 @@ duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 heure" | ListWithDays ];
 
 		_ ->
-			[ io_lib:format( "~B heures", [ Hours ] )
+			[ text_utils:format( "~B heures", [ Hours ] )
 			  | ListWithDays ]
 
 	end,
@@ -1618,7 +1629,7 @@ duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
 		  [ "1 minute" | ListWithHours ];
 
 		_ ->
-		  [ io_lib:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
+		  [ text_utils:format( "~B minutes", [ Minutes ] ) | ListWithHours ]
 
 	end,
 
@@ -1631,7 +1642,8 @@ duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 seconde" | ListWithMinutes ];
 
 		_ ->
-			[ io_lib:format( "~B secondes", [ Seconds ] ) | ListWithMinutes ]
+			[ text_utils:format( "~B secondes", [ Seconds ] )
+						| ListWithMinutes ]
 
 	end,
 
@@ -1646,7 +1658,7 @@ duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
 			[ "1 milliseconde" | ListWithSeconds ];
 
 		_ ->
-			[ io_lib:format( "~B millisecondes", [ ActualMilliseconds ] )
+			[ text_utils:format( "~B millisecondes", [ ActualMilliseconds ] )
 			  | ListWithSeconds ]
 
 	end,

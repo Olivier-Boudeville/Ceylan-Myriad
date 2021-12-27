@@ -211,7 +211,7 @@
 % Windows:
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
 		  set_sizer/2, show/1, hide/1, get_size/1, get_client_size/1,
-		  destruct_window/1 ]).
+		  maximise_in_parent/1, enable_repaint/1, destruct_window/1 ]).
 
 
 % Frames:
@@ -535,6 +535,9 @@
 -type connect_opt() ::   { 'id', integer() }
 					   | { lastId, integer() }
 					   | { skip, boolean() }
+						% Triggers handle_sync_event/3, see the wx_object
+						% behaviour:
+						%
 					   |   callback
 					   | { callback, function() }
 					   | { userData, term() }.
@@ -1244,6 +1247,32 @@ get_client_size( Window ) ->
 
 
 
+% @doc Maximises the specified widget (a specialised window) in its parent
+% (adopting its maximum client size), and returns this new size.
+%
+-spec maximise_in_parent( window() ) -> dimensions().
+maximise_in_parent( Widget ) ->
+	ParentWindow = wxWindow:getParent( Widget ),
+	ParentWindowClientSize = wxWindow:getClientSize( ParentWindow ),
+	wxPanel:setSize( Widget, ParentWindowClientSize ),
+	ParentWindowClientSize.
+
+
+
+% @doc Updates the specified window-like object (ex: a canvas) so that its
+% client area can be painted.
+%
+% To be called from a repaint event handler.
+%
+% See [https://www.erlang.org/doc/man/wxpaintdc#description] for more details.
+%
+-spec enable_repaint( window() ) -> void().
+enable_repaint( Window ) ->
+	DC= wxPaintDC:new( Window ),
+	wxPaintDC:destroy( DC ).
+
+
+
 % @doc Destructs the specified window.
 -spec destruct_window( window() ) -> void().
 destruct_window( Window ) ->
@@ -1615,7 +1644,7 @@ push_status_text( Text, StatusBar ) ->
 
 % @doc Pushes the specified text in the specified status bar.
 -spec push_status_text( format_string(), format_values(), status_bar() ) ->
-										    void().
+											void().
 push_status_text( FormatString, FormatValues, StatusBar ) ->
 	Text = text_utils:format( FormatString, FormatValues ),
 	push_status_text( Text, StatusBar ).
