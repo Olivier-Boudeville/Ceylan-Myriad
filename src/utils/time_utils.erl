@@ -108,7 +108,12 @@
 -type ms_monotonic() :: milliseconds().
 % The internal, duration-friendly monotonic time.
 
+
 -type ms_duration() :: milliseconds().
+% A duration, in milliseconds.
+
+-type ms_period() :: ms_duration().
+% A period, in milliseconds.
 
 
 -type dhms_duration() :: { days(), hours(), minutes(), seconds() }.
@@ -119,7 +124,7 @@
 
 -export_type([ day_index/0, week_day/0, date/0, user_date/0, date_in_year/0,
 			   time/0, ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
-			   ms_duration/0, dhms_duration/0 ]).
+			   ms_duration/0, ms_period/0, dhms_duration/0 ]).
 
 
 % Basics:
@@ -138,7 +143,7 @@
 
 
 % Duration-related section.
--export([ get_intertime_duration/2,
+-export([ get_intertime_duration/2, frequency_to_period/1, wait_period_ending/2,
 		  duration_to_string/1, duration_to_string/2,
 		  duration_to_french_string/1,
 		  time_out_to_string/1, time_out_to_string/2 ]).
@@ -231,6 +236,7 @@
 -type canonical_day() :: unit_utils:canonical_day().
 -type canonical_month() :: unit_utils:canonical_month().
 
+-type any_hertz() :: unit_utils:any_hertz().
 -type country() :: locale_utils:country().
 
 
@@ -862,6 +868,41 @@ get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
 
 
 
+% @doc Returns the non-null period, in milliseconds, corresponding to the
+% specified frequency.
+%
+-spec frequency_to_period( any_hertz() ) -> ms_period().
+frequency_to_period( Freq ) ->
+	math_utils:ceiling( 1 / Freq ).
+
+
+
+% @doc Waits (approximately) until the end of the specified period, which is
+% expected to have started at the specified monotonic timestamp - which shall
+% have been obtained thanks to get_monotonic_time/0.
+%
+% Returns (after some relevant time) whether this waiting is expected to have
+% stopped on time.
+%
+-spec wait_period_ending( ms_monotonic(), ms_period() ) -> boolean().
+wait_period_ending( StartTime, Period ) ->
+
+	Now = get_monotonic_time(),
+	case _ToWait=StartTime + Period - Now of
+
+		Duration when Duration > 0 ->
+			timer:sleep( Duration ),
+			true;
+
+		_ ->
+			trace_utils:warning( "Unable to wait for the end of the "
+								 "specified period." ),
+			false
+
+	end.
+
+
+
 % Direct time-related section.
 
 
@@ -945,9 +986,9 @@ get_epoch_milliseconds_since_year_0() ->
 -spec is_timestamp( term() ) -> boolean().
 is_timestamp( { Date={ Y, M, D }, _Time={ Hour, Min, Sec } } )
   when is_integer( Y ) andalso is_integer( M ) andalso is_integer( D )
-	    andalso is_integer( Hour ) andalso is_integer( Min )
-	    andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
-	    andalso Sec =< 60 ->
+		andalso is_integer( Hour ) andalso is_integer( Min )
+		andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
+		andalso Sec =< 60 ->
 	calendar:valid_date( Date );
 
 is_timestamp( _Other ) ->
@@ -1007,7 +1048,7 @@ get_textual_timestamp() ->
 -spec get_textual_timestamp( timestamp() ) -> ustring().
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	text_utils:format( "~B/~B/~B ~B:~2..0B:~2..0B",
-				       [ Year, Month, Day, Hour, Minute, Second ] ).
+					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 % @doc Returns a string corresponding to the specified timestamp in a
