@@ -168,14 +168,28 @@
 % An (opaque) backend GUI event.
 
 
--type canvas() :: gui_canvas:canvas().
-% A basic canvas (not to be mixed with an OpenGL one, opengl_canvas/0.
 
--type opengl_canvas() :: gui_opengl:canvas().
+% With wx, device contexts (ex: obtained from wxMemoryDC:new/1) must be
+% explicitly managed (ex: wxMemoryDC:destroy/1 must be called when finished with
+% them), which is inconvenient and error-prone.
+%
+-type device_context() :: wx_object().
+% Designates an abstract device where rendering can take place, and which can be
+% the source or target of a blit. Akin to a surface in SDL (libsdl).
+
+
+
+-type canvas() :: gui_canvas:canvas().
+% A basic canvas (not to be mixed with an OpenGL one, opengl_canvas/0).
+
+
+
+-type opengl_canvas() :: gui_opengl:gl_canvas().
 % An OpenGL canvas (not to be mixed with a basic one, canvas/0).
 
--type opengl_context() :: gui_opengl:context().
+-type opengl_context() :: gui_opengl:gl_context().
 % An OpenGL context.
+
 
 
 % Basic GUI operations.
@@ -211,7 +225,8 @@
 % Windows:
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
 		  set_sizer/2, show/1, hide/1, get_size/1, get_client_size/1,
-		  maximise_in_parent/1, enable_repaint/1, destruct_window/1 ]).
+		  maximise_in_parent/1, sync/1, enable_repaint/1,
+		  lock_window/1, unlock_window/1, destruct_window/1 ]).
 
 
 % Frames:
@@ -258,6 +273,16 @@
 		  draw_numbered_points/2,
 		  load_image/2, load_image/3,
 		  resize/2, blit/1, clear/1 ]).
+
+
+% Bitmaps:
+-export([ create_bitmap/1, create_blank_bitmap/1, create_blank_bitmap/2,
+		  create_blank_bitmap_for/1,
+		  lock_bitmap/1, draw_bitmap/3, unlock_bitmap/1, destruct_bitmap/1 ]).
+
+
+% Device contexts:
+-export([ clear_device_context/1, blit/5, blit/6 ]).
 
 
 % Fonts:
@@ -310,6 +335,41 @@
 -type orientation() :: 'vertical' | 'horizontal'.
 % A vertical orientation means piling elements top to bottom for example, while
 % an horizontal means left to right, for example.
+
+
+-type fps() :: count().
+% Number of frames per second.
+%
+% The old Charlie Chaplin movies were shot at 16 frames per second and are
+% noticeably jerky.
+%
+% 60 frames per second is smoother than 30, and 120 is marginally better than
+% 60; beyond 120 fps has no real interest as it exceeds eye perception.
+
+
+
+% MVC (Model-View-Controller) section.
+%
+% Generally the view knows (i.e. has the PID of) the model, the controller knows
+% the model and the model does not know specifically either of them.
+
+% See https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller for
+% further information.
+
+-type model_pid() :: pid().
+% The PID of a process whose role is to be a Model in the sense of the MVC
+% pattern.
+
+
+-type view_pid() :: pid().
+% The PID of a process whose role is to be a View in the sense of the MVC
+% pattern.
+
+
+-type controller_pid() :: pid().
+% The PID of a process whose role is to be a Controller in the sense of the MVC
+% pattern.
+
 
 
 
@@ -379,6 +439,7 @@
 
 
 -opaque window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
+% Any kind of windows, that is widget (ex: any canvas is a window).
 
 -opaque frame() :: wxFrame:wxFrame().
 
@@ -397,7 +458,14 @@
 
 -opaque status_bar() :: wxStatusBar:wxStatusBar().
 
--opaque bitmap() :: wxBitmap:wxBitmap().
+
+-opaque bitmap() :: gui_image:bitmap().
+% Platform-dependent bitmap, either monochrome or colour (with or without alpha
+% channel).
+%
+% Intended to be a wrapper of whatever is the native image format, which is
+% quickest/easiest to draw to a display context.
+
 
 -opaque brush() :: wxBrush:wxBrush().
 
@@ -530,6 +598,10 @@
 
 
 -type image() :: gui_image:image().
+% An image is a bitmap buffer of RGB bytes with an optional buffer for the alpha
+% bytes.
+%
+% It is thus generic, independent from platforms and image file formats.
 
 
 -type connect_opt() ::   { 'id', integer() }
@@ -561,7 +633,9 @@
 
 -export_type([ length/0, width/0, height/0,
 			   coordinate/0, point/0, position/0, size/0,
-			   orientation/0, object_type/0, wx_object_type/0,
+			   orientation/0, fps/0,
+			   model_pid/0, view_pid/0, controller_pid/0,
+			   object_type/0, wx_object_type/0,
 			   myriad_object_type/0, myriad_instance_id/0,
 			   title/0, label/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
@@ -571,7 +645,7 @@
 			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
 			   font_weight/0,
 
-			   bitmap/0, brush/0, back_buffer/0, canvas/0,
+			   bitmap/0, brush/0, back_buffer/0, device_context/0, canvas/0,
 			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
 			   window_style/0, frame_style/0, button_style/0,
@@ -607,7 +681,7 @@
 
 -type text() :: ustring().
 
--type file_path() :: file_utils:file_path().
+-type any_file_path() :: file_utils:any_file_path().
 
 -type line2() :: linear_2D:line2().
 
@@ -696,7 +770,7 @@ set_debug_level( DebugLevel ) ->
 % (event type and emitter), like {onWindowClosed, MyFrame}.
 %
 % This process will then receive MyriadGUI callback messages whenever events
-% that match happen, such as: {onWindowClosed, [MyFrame, Context]}.
+% that match happen, such as: {onWindowClosed, [MyFrame, EventContext]}.
 %
 % By default the corresponding event will not be transmitted upward in the
 % widget hierarchy (as this event will be expected to be processed for good by
@@ -1103,7 +1177,7 @@ draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
 % @doc Loads image from the specified path into specified canvas, pasting it at
 % its upper left corner.
 %
--spec load_image( canvas(), file_path() ) -> void().
+-spec load_image( canvas(), any_file_path() ) -> void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Filename ] }.
 
@@ -1112,7 +1186,7 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 % @doc Loads image from the specified path into specified canvas, pasting it at
 % specified location.
 %
--spec load_image( canvas(), point(), file_path() ) -> void().
+-spec load_image( canvas(), point(), any_file_path() ) -> void().
 load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
 			FilePath ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Position, FilePath ] }.
@@ -1208,8 +1282,8 @@ hide( Window ) ->
 
 
 
-% @doc Returns the size (as {Width,Height}) of the specified window.
--spec get_size( window() ) -> dimensions().
+% @doc Returns the size (as {Width,Height}) of the specified window or bitmap.
+-spec get_size( window() | bitmap() ) -> dimensions().
 get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 	%trace_utils:debug_fmt( "Getting size of canvas #~B.", [ CanvasId ] ),
@@ -1221,6 +1295,9 @@ get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 			Size
 
 	end;
+
+get_size( Bitmap={ wx_ref, _Id, wxBitmap, _List } ) ->
+	{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) };
 
 get_size( Window ) ->
 	wxWindow:getSize( Window ).
@@ -1247,15 +1324,37 @@ get_client_size( Window ) ->
 
 
 
-% @doc Maximises the specified widget (a specialised window) in its parent
-% (adopting its maximum client size), and returns this new size.
+% @doc Maximises the specified widget (a specialised window; ex: a panel) in its
+% parent (adopting its maximum client size), and returns the new size of this
+% widget.
 %
 -spec maximise_in_parent( window() ) -> dimensions().
 maximise_in_parent( Widget ) ->
 	ParentWindow = wxWindow:getParent( Widget ),
 	ParentWindowClientSize = wxWindow:getClientSize( ParentWindow ),
-	wxPanel:setSize( Widget, ParentWindowClientSize ),
+	wxWindow:setSize( Widget, ParentWindowClientSize ),
 	ParentWindowClientSize.
+
+
+
+% @doc Synchronises the specified window, to ensure that no past operation is
+% still pending at its level.
+%
+% Useful if there exists some means of interacting with it directly (ex: thanks
+% to an OpenGL NIF) that could create a race condition (ex: presumably
+% message-based resizing immediately followed by a direct OpenGL rendering).
+%
+% See gui_opengl_minimal_test:on_main_frame_resize/1 for further details.
+%
+-spec sync( window() ) -> dimensions().
+sync( Window ) ->
+	% The result in itself may be of no use, the point here is just, through a
+	% synchronous operation (a request), to ensure that the specified window is
+	% "ready" (that it has processed its previous messages) with a sufficient
+	% probability (with certainty if past operations were triggered by the same
+	% process as this calling one):
+	%
+	wxWindow:getSize( Window ).
 
 
 
@@ -1270,6 +1369,26 @@ maximise_in_parent( Widget ) ->
 enable_repaint( Window ) ->
 	DC= wxPaintDC:new( Window ),
 	wxPaintDC:destroy( DC ).
+
+
+
+% @doc Locks the specified window, so that direct access to its content can be
+% done, through the returned device context.
+%
+% Once the desired changes will have been made, this window must be unlocked.
+%
+-spec lock_window( window() ) -> device_context().
+lock_window( Window ) ->
+	gui_image:lock_window( Window ).
+
+
+
+% @doc Unlocks the specified window, based on the specified device context
+% obtained from a previous locking.
+%
+-spec unlock_window( device_context() ) -> void().
+unlock_window( DC ) ->
+	gui_image:unlock_window( DC ).
 
 
 
@@ -1664,6 +1783,113 @@ create_brush( RGBColor ) ->
 -spec destruct_brush( brush() ) -> void().
 destruct_brush( Brush ) ->
 	wxBrush:destroy( Brush ).
+
+
+
+% Bitmap section.
+
+
+% @doc Returns a bitmap created from the specified image path.
+-spec create_bitmap( any_file_path() ) -> bitmap().
+create_bitmap( ImagePath ) ->
+	gui_image:create_bitmap( ImagePath ).
+
+
+
+% @doc Returns a blank bitmap of the specified size.
+-spec create_blank_bitmap( dimensions() ) -> bitmap().
+create_blank_bitmap( Dimensions ) ->
+	gui_image:create_blank_bitmap( Dimensions ).
+
+
+
+% @doc Returns a blank bitmap of the specified size.
+-spec create_blank_bitmap( width(), height() ) -> bitmap().
+create_blank_bitmap( Width, Height ) ->
+	gui_image:create_blank_bitmap( Width, Height ).
+
+
+
+% @doc Returns a blank bitmap whose size is the client one of the specified
+% window.
+%
+-spec create_blank_bitmap_for( window() ) -> bitmap().
+create_blank_bitmap_for( Window ) ->
+	ClientSize = wxWindow:getClientSize( Window ),
+	create_blank_bitmap( ClientSize ).
+
+
+
+% @doc Locks the specified bitmap, so that direct access to its content can be
+% done, through the returned device context.
+%
+% Once the desired changes will have been made, this bitmap must be unlocked.
+%
+-spec lock_bitmap( bitmap() ) -> device_context().
+lock_bitmap( Bitmap ) ->
+	gui_image:lock_bitmap( Bitmap ).
+
+
+
+% @doc Draws the specified bitmap in the specified device context, at the
+% specified position.
+%
+-spec draw_bitmap( bitmap(), device_context(), point() ) -> void().
+draw_bitmap( SourceBitmap, TargetDC, PosInTarget ) ->
+	gui_image:draw_bitmap( SourceBitmap, TargetDC, PosInTarget ).
+
+
+
+% @doc Unlocks the specified bitmap, based on the specified device context
+% obtained from a previous locking.
+%
+-spec unlock_bitmap( device_context() ) -> void().
+unlock_bitmap( DC ) ->
+	gui_image:unlock_bitmap( DC ).
+
+
+
+% @doc Destructs the specified bitmap (which must not be locked).
+-spec destruct_bitmap( bitmap() ) -> void().
+destruct_bitmap( Bitmap ) ->
+	gui_image:destruct_bitmap( Bitmap ).
+
+
+
+% Device context section.
+
+
+% @doc Clears the specified device context, using the current background brush.
+% If none was set, a solid white brush is used.
+%
+-spec clear_device_context( device_context() ) -> void().
+clear_device_context( DC ) ->
+	gui_image:clear_device_context( DC ).
+
+
+
+% @doc Blits (copies) the specified area of the source device context at the
+% specified position in the target device context.
+%
+% Returns a boolean of unspecified meaning.
+%
+-spec blit( device_context(), point(), dimensions() , device_context(),
+			point() ) -> boolean().
+blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ) ->
+	gui_image:blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ).
+
+
+
+% @doc Blits (copies) the specified area of the source device context at the
+% specified position in the target device context.
+%
+% Returns a boolean of unspecified meaning.
+%
+-spec blit( device_context(), point(), width(), height(), device_context(),
+			point() ) -> boolean().
+blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ) ->
+	gui_image:blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ).
+
 
 
 
