@@ -78,8 +78,6 @@
 
 % Shorthands:
 
--type milliseconds() :: unit_utils:milliseconds().
-
 %-type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 
