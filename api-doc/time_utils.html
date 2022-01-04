@@ -299,7 +299,8 @@ and Daylight Saving Time) into a timestamp expressed in universal time (UTC).</t
  "1d12h0m0s" for an English one) to a DHMS duration.</td></tr>
 <tr><td valign="top"><a href="#string_to_timestamp-1">string_to_timestamp/1</a></td><td>Parses back a timestamp in the form of "14/4/2011 18:48:51" into a
  timestamp(), that is {_Date={Year,Month,Day}, _Time={Hour,Minute,Second}}.</td></tr>
-<tr><td valign="top"><a href="#time_of_day_to_string-1">time_of_day_to_string/1</a></td><td>Returns a textual description of the specified time of day.</td></tr>
+<tr><td valign="top"><a href="#time_of_day_to_string-1">time_of_day_to_string/1</a></td><td>Returns a textual, user-friendly description of the specified time of
+ day.</td></tr>
 <tr><td valign="top"><a href="#time_out_to_string-1">time_out_to_string/1</a></td><td>Returns an approximate textual (English) description of the specified 
 time-out, expected to be expressed as a signed number of milliseconds 
 (integer; otherwise, if being floating-point, it will be rounded), or as the 
@@ -310,6 +311,8 @@ the specified language, expected to be expressed as a number of milliseconds
 'infinity' atom.</td></tr>
 <tr><td valign="top"><a href="#time_to_seconds-1">time_to_seconds/1</a></td><td>Converts a HMS duration (in Hours/Minutes/Seconds) into a duration in
  seconds.</td></tr>
+<tr><td valign="top"><a href="#time_to_string-1">time_to_string/1</a></td><td>Returns a textual description of the specified time of day, like:
+ "09:14:57".</td></tr>
 <tr><td valign="top"><a href="#timestamp_to_seconds-0">timestamp_to_seconds/0</a></td><td>Returns the number of seconds elapsed since year 0 and now.</td></tr>
 <tr><td valign="top"><a href="#timestamp_to_seconds-1">timestamp_to_seconds/1</a></td><td>Returns the number of seconds elapsed since year 0 and specified 
 timestamp.</td></tr>
@@ -908,7 +911,9 @@ and Daylight Saving Time) into a timestamp expressed in universal time (UTC).</p
 <div class="spec">
 <p><tt>time_of_day_to_string(Time::<a href="#type-time">time()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Returns a textual description of the specified time of day.</p>
+</div><p>Returns a textual, user-friendly description of the specified time of
+ day.
+</p>
 
 <h3 class="function"><a name="time_out_to_string-1">time_out_to_string/1</a></h3>
 <div class="spec">
@@ -944,6 +949,14 @@ the specified language, expected to be expressed as a number of milliseconds
 <p> </p>
 </div><p>Converts a HMS duration (in Hours/Minutes/Seconds) into a duration in
  seconds.
+</p>
+
+<h3 class="function"><a name="time_to_string-1">time_to_string/1</a></h3>
+<div class="spec">
+<p><tt>time_to_string(Time::<a href="#type-time">time()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a textual description of the specified time of day, like:
+ "09:14:57".
 </p>
 
 <h3 class="function"><a name="timestamp_to_seconds-0">timestamp_to_seconds/0</a></h3>

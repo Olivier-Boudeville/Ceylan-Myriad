@@ -199,6 +199,7 @@ specified table.</td></tr>
 specified table.</td></tr>
 <tr><td valign="top"><a href="#select_entries-2">select_entries/2</a></td><td>Returns a list of key/value pairs corresponding to the list of specified
  keys, or throws a badmatch is at least one key is not found.</td></tr>
+<tr><td valign="top"><a href="#singleton-2">singleton/2</a></td><td>Returns a map-based hashtable comprising only the specified entry.</td></tr>
 <tr><td valign="top"><a href="#size-1">size/1</a></td><td>Returns the size (number of entries, that is of key/value pairs) of the
  specified table.</td></tr>
 <tr><td valign="top"><a href="#subtract_from_entry-3">subtract_from_entry/3</a></td><td>Subtracts specified value to the value, supposed to be numerical, 
@@ -532,8 +533,8 @@ returns it directly.</p>
  <p>The key/value pairs are expected to exist already in the table, otherwise an 
 exception is raised.</p>
 
- Ex: [Color, Age, Mass] = map_hashtable:get_values( [color, age, mass],
-                                                    MyMapTable ] )
+ Ex: [Color, Age, Mass] =
+               map_hashtable:get_values([color, age, mass], MyMapTable])
 </p>
 
 <h3 class="function"><a name="has_entry-2">has_entry/2</a></h3>
@@ -762,6 +763,15 @@ specified table.</p>
 <p> </p>
 </div><p>Returns a list of key/value pairs corresponding to the list of specified
  keys, or throws a badmatch is at least one key is not found.
+</p>
+
+<h3 class="function"><a name="singleton-2">singleton/2</a></h3>
+<div class="spec">
+<p><tt>singleton(Key::<a href="#type-key">key()</a>, Value::<a href="#type-value">value()</a>) -&gt; <a href="#type-map_hashtable">map_hashtable()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a map-based hashtable comprising only the specified entry.</p>
+
+ More elegant than map_hashtable:new([{K,V}], map_hashtable:new()).
 </p>
 
 <h3 class="function"><a name="size-1">size/1</a></h3>

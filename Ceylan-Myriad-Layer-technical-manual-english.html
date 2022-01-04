@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+<meta name="generator" content="Docutils 0.16: http://docutils.sourceforge.net/" />
 <title>Welcome to the Ceylan-Myriad documentation</title>
 <meta content="Myriad, generic, general-purpose, helper code, library, layer" name="keywords" />
 <script type="text/javascript" src="mathjax/tex-mml-chtml.js?config=TeX-AMS_CHTML"></script>
@@ -24,7 +24,7 @@
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Organisation:</th><td class="field-body"><p class="first">Copyright (C) 2008-2021 Olivier Boudeville</p>
+<tr class="field"><th class="field-name">Organisation:</th><td class="field-body"><p class="first">Copyright (C) 2008-2022 Olivier Boudeville</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Contact:</th><td class="field-body"><p class="first">about (dash) myriad (at) esperide (dot) com</p>
@@ -33,7 +33,7 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Friday, December 3, 2021</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Tuesday, January 4, 2022</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.22</p>
@@ -329,8 +329,8 @@ $ make check
 </table>
 <p>For example, Myriad itself does not require any specific dependency, but projects making use of Myriad (ex: <a class="reference external" href="https://wooper.esperide.org">WOOPER</a>) may specify in their <tt class="docutils literal">rebar.config</tt>:</p>
 <pre class="code erlang literal-block">
-<span class="p">{</span><span class="n">deps</span><span class="p">,</span> <span class="p">[{</span><span class="n">myriad</span><span class="p">,</span> <span class="p">{</span><span class="n">git</span><span class="p">,</span> <span class="s">&quot;git://github.com/Olivier-Boudeville/Ceylan-Myriad&quot;</span><span class="p">,</span>
-                                      <span class="p">{</span><span class="n">branch</span><span class="p">,</span> <span class="s">&quot;master&quot;</span><span class="p">}}}]}.</span>
+<span class="p">{</span><span class="n">deps</span><span class="p">,</span><span class="w"> </span><span class="p">[{</span><span class="n">myriad</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="n">git</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;git://github.com/Olivier-Boudeville/Ceylan-Myriad&quot;</span><span class="p">,</span><span class="w">
+                                      </span><span class="p">{</span><span class="n">branch</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;master&quot;</span><span class="p">}}}]}.</span>
 </pre>
 <p>However, when having to build a dependency, rebar3 will not refer to the tip of the branch specified for it, but to any commit it may read from any pre-existing <tt class="docutils literal">rebar.lock</tt> file at the root of the current project (the underlying goal being to allow for more reproducible builds).</p>
 <p>As the <a class="reference external" href="https://www.rebar3.org/docs/workflow/#setting-up-dependencies">rebar3 recommandation</a> is to store a version of that lock file in source version control, <strong>it shall be regularly updated</strong> otherwise the dependencies of a given project will stick, for the worst, to an older version of their branch, designated by an obsolete reference (this can be detected for example when continuous integration breaks after a nevertheless legit commit of the project).</p>
@@ -371,13 +371,13 @@ $ rebar3 upgrade
 <div class="section" id="id24">
 <span id="getting-rebar3"></span><h4>Getting rebar3</h4>
 <p>There are <a class="reference external" href="https://www.rebar3.org/docs/getting-started">various ways</a>  for obtaining <tt class="docutils literal">rebar3</tt>; we prefer:</p>
-<pre class="literal-block">
-$ cd ~/Software &amp;&amp; git clone https://github.com/erlang/rebar3.git
-    &amp;&amp; cd rebar3 &amp;&amp; ./bootstrap
+<pre class="code bash literal-block">
+$ <span class="nb">cd</span> ~/Software <span class="o">&amp;&amp;</span> git clone https://github.com/erlang/rebar3.git
+   <span class="o">&amp;&amp;</span> <span class="nb">cd</span> rebar3 <span class="o">&amp;&amp;</span> ./bootstrap
 </pre>
 <p>Alternatively, should you just want to update a (pre-existing) rebar3 install, first get the current version (<tt class="docutils literal">rebar3 <span class="pre">-v</span></tt>) to check it afterwards, then issue <tt class="docutils literal">rebar3 local upgrade</tt>; however this would involve running rebar from <tt class="docutils literal">.cache/rebar3/bin</tt>, so instead we prefer using (typically from <tt class="docutils literal">~/Software/rebar3</tt>):</p>
-<pre class="literal-block">
-$ git pull &amp;&amp; ./bootstrap
+<pre class="code bash literal-block">
+$ git pull <span class="o">&amp;&amp;</span> ./bootstrap
 </pre>
 <p>Another option is to download a prebuilt version of rebar3.</p>
 <p>Finally, one may prefer using the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh">install-rebar3.sh</a> script that we devised, which automates and enforces our conventions while letting the choice between an installation from sources or from a prebuilt version thereof (just un <tt class="docutils literal"><span class="pre">install-rebar3.sh</span> <span class="pre">--help</span></tt> for guidance).</p>
@@ -611,15 +611,15 @@ $ make rebar3-local-update
 <p>No ETS table, replication (ex: per-process table copy) or message sending is involved: thanks to meta-programming, a module is generated on-the-fly, exporting as many functions as there are different keys in the table of interest. Calling a function corresponding to a key returns its associated value.</p>
 <p>More precisely, a module name (ex: <tt class="docutils literal">foobar</tt>) and a <tt class="docutils literal"><span class="pre">table:table(atom(),</span> <span class="pre">any())</span></tt> instance shall be provided to <tt class="docutils literal">const_table:generate/2</tt>; then, for each key/value pair in the specified table (ex: <tt class="docutils literal">{baz, 42.0}</tt>), a 0-arity function is generated and exported in that module, as if we had:</p>
 <pre class="code erlang literal-block">
-<span class="p">-</span><span class="ni">module</span><span class="p">(</span><span class="n">foobar</span><span class="p">).</span>
+<span class="p">-</span><span class="ni">module</span><span class="p">(</span><span class="n">foobar</span><span class="p">).</span><span class="w">
 
-<span class="p">[...]</span>
+</span><span class="p">[...]</span><span class="w">
 
-<span class="p">-</span><span class="ni">export</span><span class="p">([</span><span class="n">baz</span><span class="o">/</span><span class="mi">0</span><span class="p">]).</span>
+</span><span class="p">-</span><span class="ni">export</span><span class="p">([</span><span class="n">baz</span><span class="o">/</span><span class="mi">0</span><span class="p">]).</span><span class="w">
 
-<span class="p">-</span><span class="ni">spec</span> <span class="n">baz</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">term</span><span class="p">().</span>
-<span class="nf">baz</span><span class="p">()</span> <span class="o">-&gt;</span>
-  <span class="mi">42</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span>
+</span><span class="p">-</span><span class="ni">spec</span><span class="w"> </span><span class="n">baz</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w"> </span><span class="n">term</span><span class="p">().</span><span class="w">
+</span><span class="nf">baz</span><span class="p">()</span><span class="w"> </span><span class="o">-&gt;</span><span class="w">
+  </span><span class="mi">42</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span>
 </pre>
 <p>Then third-party code can call for example <tt class="docutils literal">foobar:foo()</tt> and have <tt class="docutils literal">42.0</tt> returned. This is presumably the most efficient way of sharing constants in Erlang.</p>
 <p>Note that no actual module file is generated (ex: no <tt class="docutils literal">foobar.beam</tt> file is ever written in the filesystem): the operation remains fully in-memory (RAM).</p>
@@ -666,10 +666,10 @@ $ make rebar3-local-update
 <p>This last form is based on simple tags, used in order to easily have (Erlang) terms that are direct counterparts of XML tags.</p>
 <p>For example the following two elements (respectively in simple-form and as an XML document) are equivalent (if using the default XML prolog):</p>
 <pre class="code erlang literal-block">
-<span class="nv">XMLSimpleContent</span> <span class="o">=</span> <span class="p">[</span>
-  <span class="n">myFirstTag</span><span class="p">,</span>
-  <span class="p">{</span><span class="n">mySecondTag</span><span class="p">,</span> <span class="p">[</span><span class="n">myNestedTag</span><span class="p">]},</span>
-  <span class="p">{</span><span class="n">myThirdTag</span><span class="p">,</span> <span class="p">[{</span><span class="n">color</span><span class="p">,</span> <span class="s">&quot;red&quot;</span><span class="p">},</span> <span class="p">{</span><span class="n">age</span><span class="p">,</span> <span class="mi">71</span><span class="p">}],</span> <span class="p">[</span><span class="s">&quot;This is a text!&quot;</span><span class="p">]}].</span>
+<span class="nv">XMLSimpleContent</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="w">
+  </span><span class="n">myFirstTag</span><span class="p">,</span><span class="w">
+  </span><span class="p">{</span><span class="n">mySecondTag</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="n">myNestedTag</span><span class="p">]},</span><span class="w">
+  </span><span class="p">{</span><span class="n">myThirdTag</span><span class="p">,</span><span class="w"> </span><span class="p">[{</span><span class="n">color</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;red&quot;</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="n">age</span><span class="p">,</span><span class="w"> </span><span class="mi">71</span><span class="p">}],</span><span class="w"> </span><span class="p">[</span><span class="s">&quot;This is a text!&quot;</span><span class="p">]}].</span>
 </pre>
 <p>and:</p>
 <pre class="code xml literal-block">
@@ -689,23 +689,23 @@ $ make rebar3-local-update
 </ul>
 <p>Example:</p>
 <pre class="code erlang literal-block">
-<span class="nv">MyJSONTerm</span> <span class="o">=</span> <span class="nn">table</span><span class="p">:</span><span class="nf">add_entries</span><span class="p">([</span>
-  <span class="p">{</span><span class="o">&lt;&lt;</span><span class="s">&quot;asset&quot;</span><span class="o">&gt;&gt;</span><span class="p">,</span> <span class="p">#{</span><span class="o">&lt;&lt;</span><span class="s">&quot;generator&quot;</span><span class="o">&gt;&gt;</span> <span class="o">=&gt;</span> <span class="o">&lt;&lt;</span><span class="s">&quot;My Generator&quot;</span><span class="o">&gt;&gt;</span><span class="p">,</span>
-                  <span class="o">&lt;&lt;</span><span class="s">&quot;version&quot;</span><span class="o">&gt;&gt;</span> <span class="o">=&gt;</span> <span class="o">&lt;&lt;</span><span class="s">&quot;2.0&quot;</span><span class="o">&gt;&gt;</span><span class="p">}},</span>
-  <span class="p">{</span><span class="o">&lt;&lt;</span><span class="s">&quot;other&quot;</span><span class="o">&gt;&gt;</span><span class="p">,</span> <span class="mi">42</span><span class="p">}</span>
-                               <span class="p">],</span> <span class="nn">table</span><span class="p">:</span><span class="nf">new</span><span class="p">()),</span>
+<span class="nv">MyJSONTerm</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">table</span><span class="p">:</span><span class="nf">add_entries</span><span class="p">([</span><span class="w">
+  </span><span class="p">{</span><span class="o">&lt;&lt;</span><span class="s">&quot;asset&quot;</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="p">#{</span><span class="o">&lt;&lt;</span><span class="s">&quot;generator&quot;</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="s">&quot;My Generator&quot;</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w">
+                  </span><span class="o">&lt;&lt;</span><span class="s">&quot;version&quot;</span><span class="o">&gt;&gt;</span><span class="w"> </span><span class="o">=&gt;</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="s">&quot;2.0&quot;</span><span class="o">&gt;&gt;</span><span class="p">}},</span><span class="w">
+  </span><span class="p">{</span><span class="o">&lt;&lt;</span><span class="s">&quot;other&quot;</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w"> </span><span class="mi">42</span><span class="p">}</span><span class="w">
+                               </span><span class="p">],</span><span class="w"> </span><span class="nn">table</span><span class="p">:</span><span class="nf">new</span><span class="p">()),</span><span class="w">
 
-<span class="nv">JSONString</span> <span class="o">=</span> <span class="nn">json_utils</span><span class="p">:</span><span class="nf">to_json</span><span class="p">(</span><span class="nv">MyJSONTerm</span><span class="p">)</span>
+</span><span class="nv">JSONString</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">json_utils</span><span class="p">:</span><span class="nf">to_json</span><span class="p">(</span><span class="nv">MyJSONTerm</span><span class="p">)</span>
 </pre>
 <p>shall result in a JSON document like:</p>
 <pre class="code json literal-block">
-<span class="p">{</span>
-  <span class="nt">&quot;asset&quot;</span><span class="p">:</span> <span class="p">{</span>
-    <span class="nt">&quot;generator&quot;</span><span class="p">:</span> <span class="s2">&quot;My Generator&quot;</span><span class="p">,</span>
-    <span class="nt">&quot;version&quot;</span><span class="p">:</span> <span class="s2">&quot;2.0&quot;</span>
-  <span class="p">},</span>
-  <span class="nt">&quot;other&quot;</span><span class="p">:</span> <span class="mi">42</span>
-<span class="p">}</span>
+<span class="p">{</span><span class="w">
+  </span><span class="nt">&quot;asset&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w">
+    </span><span class="nt">&quot;generator&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;My Generator&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="nt">&quot;version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.0&quot;</span><span class="w">
+  </span><span class="p">},</span><span class="w">
+  </span><span class="nt">&quot;other&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">42</span><span class="w">
+</span><span class="p">}</span>
 </pre>
 <p>Hint: the <a class="reference external" href="https://stedolan.github.io/jq/">jq</a> command-line tool may be very convenient in JSON contexts.</p>
 <p>Refer to the <a class="reference internal" href="#myriad-level-third-party-dependencies">Myriad-level Third-Party Dependencies</a> section for further information.</p>
@@ -855,7 +855,7 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 <p>These conditional primitives are gathered in the <tt class="docutils literal">cond_utils</tt> module.</p>
 <p>As an early example, so that a piece of code prints <tt class="docutils literal">Hello!</tt> on the console when executed iff (<em>if and only if</em>) the <tt class="docutils literal">my_token</tt> compilation token has been defined (through the <tt class="docutils literal"><span class="pre">-Dmy_token</span></tt> command-line flag), one may use:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span> <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello!&quot;</span><span class="p">))</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span><span class="w"> </span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello!&quot;</span><span class="p">))</span>
 </pre>
 <p>Of course, as such a code injection is done at compilation-time, should compilation defines be modified the modules making use of the corresponding primitives shall be recompiled so that these changes are taken into account.</p>
 <p>Let's enter a bit more in the details now.</p>
@@ -878,9 +878,9 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 <p>It was actually a mistake, as a single expression to return can be itself a list (ex: <tt class="docutils literal">[&quot;red&quot;, &quot;blue&quot;]</tt>), which bears a different semantics and should not be interpreted as a list of expressions to evaluate. For example, the result from the code to inject may be bound to a variable, in which case we expect <tt class="docutils literal"><span class="pre">A=[&quot;red&quot;,</span> &quot;blue&quot;]</tt> rather than <tt class="docutils literal"><span class="pre">A=&quot;red&quot;,</span> &quot;blue&quot;</tt> (this latter term being constructed but not used).</p>
 <p>So the following code injection <em>is</em> faulty (a <tt class="docutils literal">begin/end</tt> block was meant, not a list):</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span> <span class="p">[</span>
-    <span class="nv">A</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello </span><span class="si">~p</span><span class="s">!</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span> <span class="p">[</span><span class="nv">A</span><span class="p">])]),</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="w">
+    </span><span class="nv">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">,</span><span class="w">
+    </span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello </span><span class="si">~p</span><span class="s">!</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="nv">A</span><span class="p">])]),</span>
 </pre>
 <p class="last">(and moreover such code will trigger a compilation error, the <tt class="docutils literal">A</tt> in <tt class="docutils literal">io:format/2</tt> being reported as unbounded then)</p>
 </td></tr>
@@ -902,20 +902,20 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 </pre>
 <p>Like in:</p>
 <pre class="code erlang literal-block">
-<span class="nv">A</span> <span class="o">=</span> <span class="s">&quot;Joe&quot;</span><span class="p">,</span>
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">(</span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello </span><span class="si">~s</span><span class="s">!&quot;</span><span class="p">,[</span><span class="nv">A</span><span class="p">]))</span>
+<span class="nv">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">&quot;Joe&quot;</span><span class="p">,</span><span class="w">
+</span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">(</span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello </span><span class="si">~s</span><span class="s">!&quot;</span><span class="p">,[</span><span class="nv">A</span><span class="p">]))</span>
 </pre>
 <p>or, to illustrate expression blocks:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">(</span><span class="k">begin</span>
-                        <span class="nv">C</span><span class="o">=</span><span class="nv">B</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
-                        <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Goodbye </span><span class="si">~p</span><span class="s">&quot;</span><span class="p">,[</span><span class="nv">C</span><span class="p">])</span>
-                    <span class="k">end</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_debug</span><span class="p">(</span><span class="k">begin</span><span class="w">
+                        </span><span class="nv">C</span><span class="o">=</span><span class="nv">B</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="w">
+                        </span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Goodbye </span><span class="si">~p</span><span class="s">&quot;</span><span class="p">,[</span><span class="nv">C</span><span class="p">])</span><span class="w">
+                    </span><span class="k">end</span><span class="p">)</span>
 </pre>
 <p>These constructs will be replaced by the expression they specify for injection, at their location in the program, iff the <tt class="docutils literal">myriad_debug_mode</tt> token has been defined, otherwise they will be replaced by nothing at all (hence with exactly <em>no</em> runtime penalty; and the result of the evaluation of <tt class="docutils literal">if_debug/1</tt> is then not an expression).</p>
 <p>Similarly, <tt class="docutils literal">if_defined/2</tt>, used as:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">EXPR_IF_DEFINED</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_IF_DEFINED</span><span class="p">)</span>
 </pre>
 <p>will inject <tt class="docutils literal">EXPR_IF_DEFINED</tt> if <tt class="docutils literal">TOKEN</tt> has been defined (regardless of any value associated to this token), otherwise the <tt class="docutils literal">if_defined/2</tt> call will be removed as a whole <a class="footnote-reference" href="#id51" id="id50">[12]</a>.</p>
 <table class="docutils footnote" frame="void" id="id51" rules="none">
@@ -926,77 +926,77 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 </table>
 <p>As for <tt class="docutils literal">if_defined/3</tt>, it supports two expressions:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">EXPR_IF_DEFINED</span><span class="p">,</span> <span class="nv">EXPR_OTHERWISE</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_IF_DEFINED</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_OTHERWISE</span><span class="p">)</span>
 </pre>
 <p>For example:</p>
 <pre class="code erlang literal-block">
-<span class="c">% Older versions being less secure:
-</span><span class="nv">TLSSupportedVersions</span> <span class="o">=</span> <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">us_web_relaxed_security</span><span class="p">,</span>
-             <span class="p">[</span><span class="n">'tlsv1.3'</span><span class="p">,</span> <span class="n">'tlsv1.2'</span><span class="p">,</span> <span class="n">'tlsv1.1'</span><span class="p">,</span> <span class="n">'tlsv1'</span><span class="p">],</span>
-             <span class="p">[</span><span class="n">'tlsv1.3'</span><span class="p">])</span>
+<span class="c">% Older versions being less secure:</span><span class="w">
+</span><span class="nv">TLSSupportedVersions</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">us_web_relaxed_security</span><span class="p">,</span><span class="w">
+  </span><span class="p">[</span><span class="n">'tlsv1.3'</span><span class="p">,</span><span class="w"> </span><span class="n">'tlsv1.2'</span><span class="p">,</span><span class="w"> </span><span class="n">'tlsv1.1'</span><span class="p">,</span><span class="w"> </span><span class="n">'tlsv1'</span><span class="p">],</span><span class="w">
+  </span><span class="p">[</span><span class="n">'tlsv1.3'</span><span class="p">])</span>
 </pre>
 <p>If <tt class="docutils literal">us_web_relaxed_security</tt> has been defined, the first list will be injected, otherwise the second will.</p>
 <p>Note that a call to <tt class="docutils literal">if_defined/3</tt> results thus in an expression.</p>
 <p>Finally, with <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>, the injection will depend not only of a token being defined or not, but also onto the value (if any) to which it is set.</p>
 <p>For <tt class="docutils literal">if_set_to/3</tt>:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">VALUE</span><span class="p">,</span> <span class="nv">EXPR_IF_SET_TO_THIS_VALUE</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span><span class="w"> </span><span class="nv">VALUE</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_IF_SET_TO_THIS_VALUE</span><span class="p">)</span>
 </pre>
 <p>will inject <tt class="docutils literal">EXPR_IF_SET_TO_THIS_VALUE</tt> iff <tt class="docutils literal">TOKEN</tt> has been defined and set to <tt class="docutils literal">VALUE</tt>. As a result, the specified expression will not be injected if <tt class="docutils literal">some_token</tt> has been set to another value, or not been defined at all.</p>
 <p>Usage example, <tt class="docutils literal"><span class="pre">-Dsome_token=42</span></tt> having possibly been defined beforehand:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span> <span class="nv">SomePid</span> <span class="o">!</span> <span class="n">hello</span><span class="p">)])</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span><span class="w"> </span><span class="nv">SomePid</span><span class="w"> </span><span class="o">!</span><span class="w"> </span><span class="n">hello</span><span class="p">)])</span>
 </pre>
 <p>As for <tt class="docutils literal">if_set_to/4</tt>, in:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="nv">VALUE</span><span class="p">,</span> <span class="nv">EXPR_IF_SET_TO_THIS_VALUE</span><span class="p">,</span> <span class="nv">EXPR_OTHERWISE</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span><span class="w"> </span><span class="nv">VALUE</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_IF_SET_TO_THIS_VALUE</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_OTHERWISE</span><span class="p">)</span>
 </pre>
 <p><tt class="docutils literal">EXPR_IF_SET_TO_THIS_VALUE</tt> will be injected iff <tt class="docutils literal">TOKEN</tt> has been defined and set to <tt class="docutils literal">VALUE</tt>, otherwise (not set or set to a different value) <tt class="docutils literal">EXPR_OTHERWISE</tt> will be.</p>
 <p>Example:</p>
 <pre class="code erlang literal-block">
-<span class="nv">Level</span> <span class="o">=</span> <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span> <span class="n">foobar_enabled</span><span class="p">,</span> <span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="mi">4</span><span class="p">.</span><span class="mi">5</span>
+<span class="nv">Level</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_set_to</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span><span class="w"> </span><span class="n">foobar_enabled</span><span class="p">,</span><span class="w"> </span><span class="mi">1</span><span class="p">.</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">.</span><span class="mi">0</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">4</span><span class="p">.</span><span class="mi">5</span>
 </pre>
 <p>A similar construct in spirit  is <tt class="docutils literal">switch_execution_target/2</tt>, which will, depending on the current build-time <a class="reference internal" href="#execution-target">execution target</a>, inject a corresponding expression:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_execution_target</span><span class="p">(</span><span class="nv">EXPR_IF_IN_DEVELOPMENT_MODE</span><span class="p">,</span> <span class="nv">EXPR_IF_IN_PRODUCTION_MODE</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_execution_target</span><span class="p">(</span><span class="nv">EXPR_IF_IN_DEVELOPMENT_MODE</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_IF_IN_PRODUCTION_MODE</span><span class="p">)</span>
 </pre>
 <p>So if the current execution target is development, the compilation will inject <tt class="docutils literal">EXPR_IF_IN_DEVELOPMENT_MODE</tt>, otherwise <tt class="docutils literal">EXPR_IF_IN_PRODUCTION_MODE</tt> will be.</p>
 <p>Example:</p>
 <pre class="code erlang literal-block">
-<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span> <span class="s">&quot;We are in ~ts mode.&quot;</span><span class="p">,</span>
-    <span class="p">[</span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_execution_target</span><span class="p">(</span><span class="s">&quot;development&quot;</span><span class="p">,</span> <span class="s">&quot;production&quot;</span><span class="p">)])</span>
+<span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="w"> </span><span class="s">&quot;We are in ~ts mode.&quot;</span><span class="p">,</span><span class="w">
+    </span><span class="p">[</span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_execution_target</span><span class="p">(</span><span class="s">&quot;development&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;production&quot;</span><span class="p">)])</span>
 </pre>
 <p>Finally, the <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt> primitives allow to generalise these <tt class="docutils literal">if</tt>-like constructs, with one among any number of code branches selected based on the build-time value of a token, possibly with defaults (should the token not be defined at all, or defined to a value that is not among the ones associated to a code branch).</p>
 <p>For that we specify a list of pairs, each made of a value and of the corresponding expression to be injected if the actual token matches that value, like in:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span> <span class="p">[</span>
-       <span class="p">{</span><span class="nv">VALUE_1</span><span class="p">,</span> <span class="nv">EXPR_1</span><span class="p">},</span>
-       <span class="p">{</span><span class="nv">VALUE_2</span><span class="p">,</span> <span class="nv">EXPR_2</span><span class="p">},</span>
-       <span class="c">% [...]
-</span>       <span class="p">{</span><span class="nv">VALUE_N</span><span class="p">,</span> <span class="nv">EXPR_N</span><span class="p">}])</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="w">
+       </span><span class="p">{</span><span class="nv">VALUE_1</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_1</span><span class="p">},</span><span class="w">
+       </span><span class="p">{</span><span class="nv">VALUE_2</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_2</span><span class="p">},</span><span class="w">
+       </span><span class="c">% [...]</span><span class="w">
+       </span><span class="p">{</span><span class="nv">VALUE_N</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_N</span><span class="p">}])</span>
 </pre>
 <p>For example:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span> <span class="p">[</span>
-     <span class="p">{</span><span class="n">my_first_value</span><span class="p">,</span> <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello!&quot;</span><span class="p">)},</span>
-     <span class="p">{</span><span class="n">my_second_value</span><span class="p">,</span> <span class="k">begin</span> <span class="n">f</span><span class="p">(),</span> <span class="n">g</span><span class="p">(</span><span class="nv">X</span><span class="p">,</span><span class="n">debug</span><span class="p">),</span> <span class="n">h</span><span class="p">()</span> <span class="k">end</span><span class="p">},</span>
-     <span class="p">{</span><span class="n">some_third_value</span><span class="p">,</span> <span class="n">a</span><span class="p">(</span><span class="nv">X</span><span class="p">,</span><span class="nv">Y</span><span class="p">)}])</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="w">
+     </span><span class="p">{</span><span class="n">my_first_value</span><span class="p">,</span><span class="w"> </span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Hello!&quot;</span><span class="p">)},</span><span class="w">
+     </span><span class="p">{</span><span class="n">my_second_value</span><span class="p">,</span><span class="w"> </span><span class="k">begin</span><span class="w"> </span><span class="n">f</span><span class="p">(),</span><span class="w"> </span><span class="n">g</span><span class="p">(</span><span class="nv">X</span><span class="p">,</span><span class="n">debug</span><span class="p">),</span><span class="w"> </span><span class="n">h</span><span class="p">()</span><span class="w"> </span><span class="k">end</span><span class="p">},</span><span class="w">
+     </span><span class="p">{</span><span class="n">some_third_value</span><span class="p">,</span><span class="w"> </span><span class="n">a</span><span class="p">(</span><span class="nv">X</span><span class="p">,</span><span class="nv">Y</span><span class="p">)}])</span>
 </pre>
 <p>A compilation-time error will be raised if <tt class="docutils literal">my_token</tt> is not set, or if it is set to none of the declared values (i.e. not in <tt class="docutils literal">[my_first_value, my_second_value, some_third_value]</tt>).</p>
 <p>A variation of this primitive exists that applies a default token value if none was, or if the token was set to a value that is not listed among any of the ones designating a code branch, like in:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span>
-                         <span class="p">[</span> <span class="p">{</span><span class="nv">VALUE_1</span><span class="p">,</span> <span class="nv">EXPR_1</span><span class="p">},</span>
-                           <span class="p">{</span><span class="nv">VALUE_2</span><span class="p">,</span> <span class="nv">EXPR_2</span><span class="p">},</span>
-                           <span class="c">% [...]
-</span>                           <span class="p">{</span><span class="nv">VALUE_N</span><span class="p">,</span> <span class="nv">EXPR_N</span><span class="p">}],</span>
-                         <span class="nv">DEFAULT_VALUE</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="nv">TOKEN</span><span class="p">,</span><span class="w">
+                         </span><span class="p">[</span><span class="w"> </span><span class="p">{</span><span class="nv">VALUE_1</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_1</span><span class="p">},</span><span class="w">
+                           </span><span class="p">{</span><span class="nv">VALUE_2</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_2</span><span class="p">},</span><span class="w">
+                           </span><span class="c">% [...]</span><span class="w">
+                           </span><span class="p">{</span><span class="nv">VALUE_N</span><span class="p">,</span><span class="w"> </span><span class="nv">EXPR_N</span><span class="p">}],</span><span class="w">
+                         </span><span class="nv">DEFAULT_VALUE</span><span class="p">)</span>
 </pre>
 <p>As always with primitives that define a default, alternate branch, they always inject an expression and thus can be considered as such.</p>
 <p>For example:</p>
 <pre class="code erlang literal-block">
-<span class="nv">ModuleFilename</span> <span class="o">=</span> <span class="nb">atom_to_list</span><span class="p">(</span> <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span>
-              <span class="p">[{</span><span class="mi">1</span><span class="p">,</span> <span class="n">foo</span><span class="p">},</span> <span class="p">{</span><span class="mi">14</span><span class="p">,</span> <span class="n">bar</span><span class="p">},</span> <span class="p">{</span><span class="mi">20</span><span class="p">,</span> <span class="n">hello</span><span class="p">}],</span> <span class="mi">14</span><span class="p">)</span> <span class="o">++</span> <span class="s">&quot;.erl&quot;</span>
+<span class="nv">ModuleFilename</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">atom_to_list</span><span class="p">(</span><span class="w"> </span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">switch_set_to</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="w">
+              </span><span class="p">[{</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="n">foo</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">14</span><span class="p">,</span><span class="w"> </span><span class="n">bar</span><span class="p">},</span><span class="w"> </span><span class="p">{</span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="n">hello</span><span class="p">}],</span><span class="w"> </span><span class="mi">14</span><span class="p">)</span><span class="w"> </span><span class="o">++</span><span class="w"> </span><span class="s">&quot;.erl&quot;</span>
 </pre>
 <p>Here, if <tt class="docutils literal">some_token</tt> is not defined, or defined to a value that is neither <tt class="docutils literal">1</tt>, <tt class="docutils literal">14</tt> or <tt class="docutils literal">20</tt>, then the <tt class="docutils literal">14</tt> default value applies, and thus <tt class="docutils literal">ModuleFilename</tt> is set to <tt class="docutils literal">&quot;bar.erl&quot;</tt>.</p>
 <p>Refer to <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/meta/cond_utils_test.erl">cond_utils_test.erl</a> for further usage examples.</p>
@@ -1015,13 +1015,13 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 </pre>
 <p>Finally, an assertion may be enabled iff a token (here, <tt class="docutils literal">some_token</tt>) has been defined and set to a given value (here, <tt class="docutils literal">42</tt>), like in:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span><span class="ow">not</span> <span class="n">baz</span><span class="p">()</span> <span class="ow">andalso</span> <span class="nv">A</span><span class="p">)</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="mi">42</span><span class="p">,</span><span class="ow">not</span><span class="w"> </span><span class="n">baz</span><span class="p">()</span><span class="w"> </span><span class="ow">andalso</span><span class="w"> </span><span class="nv">A</span><span class="p">)</span>
 </pre>
 <p>This may be useful for example to control, on a per-theme basis, the level of checking performed, like in:</p>
 <pre class="code erlang literal-block">
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">basic_testing</span><span class="p">()),</span>
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">more_involved_testing</span><span class="p">()),</span>
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">paranoid_testing</span><span class="p">()),</span>
+<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="n">basic_testing</span><span class="p">()),</span><span class="w">
+</span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">more_involved_testing</span><span class="p">()),</span><span class="w">
+</span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">paranoid_testing</span><span class="p">()),</span>
 </pre>
 <p>Note that, in this case, a given level of checking should include the one just below it (ex: <tt class="docutils literal">more_involved_testing()</tt> should call <tt class="docutils literal">basic_testing()</tt>).</p>
 <p>Finally, if assertions are too limited (ex: because they lead to unused variables depending on a token being defined or not), using one of the <tt class="docutils literal">cond_utils:if*</tt> primitives relying on two branches (one expression if a condition is true, another if not) should sufficient to overcome such issue.</p>
@@ -1043,15 +1043,15 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 </pre>
 <p>or:</p>
 <pre class="code erlang literal-block">
-<span class="p">-</span><span class="ni">compile</span><span class="p">({</span><span class="n">nowarn_unused_function</span><span class="p">,[</span><span class="n">my_func</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span> <span class="n">my_other_func</span><span class="o">/</span><span class="mi">0</span><span class="p">]}).</span>
+<span class="p">-</span><span class="ni">compile</span><span class="p">({</span><span class="n">nowarn_unused_function</span><span class="p">,[</span><span class="n">my_func</span><span class="o">/</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">my_other_func</span><span class="o">/</span><span class="mi">0</span><span class="p">]}).</span>
 </pre>
 <p>As for <strong>variables</strong>, should A, B or C be reported as unused if <tt class="docutils literal">some_token</tt> was not set, then the <tt class="docutils literal">basic_utils:ignore_unused/1</tt> function (mostly a no-op) could be of use:</p>
 <pre class="code erlang literal-block">
-<span class="p">[...]</span>
-<span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span>
-                      <span class="n">f</span><span class="p">(</span><span class="nv">A</span><span class="p">,</span> <span class="nv">B</span><span class="p">,</span> <span class="nv">C</span><span class="p">),</span>
-                      <span class="nn">basic_utils</span><span class="p">:</span><span class="nf">ignore_unused</span><span class="p">([</span><span class="nv">A</span><span class="p">,</span> <span class="nv">B</span><span class="p">,</span> <span class="nv">C</span><span class="p">])),</span>
-<span class="p">[...]</span>
+<span class="p">[...]</span><span class="w">
+</span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">some_token</span><span class="p">,</span><span class="w">
+                      </span><span class="n">f</span><span class="p">(</span><span class="nv">A</span><span class="p">,</span><span class="w"> </span><span class="nv">B</span><span class="p">,</span><span class="w"> </span><span class="nv">C</span><span class="p">),</span><span class="w">
+                      </span><span class="nn">basic_utils</span><span class="p">:</span><span class="nf">ignore_unused</span><span class="p">([</span><span class="nv">A</span><span class="p">,</span><span class="w"> </span><span class="nv">B</span><span class="p">,</span><span class="w"> </span><span class="nv">C</span><span class="p">])),</span><span class="w">
+</span><span class="p">[...]</span>
 </pre>
 <p>Alternatively, <tt class="docutils literal">nowarn_unused_vars</tt> could be used instead, at least in some modules.</p>
 </div>
@@ -1160,7 +1160,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <li>Then the various widgets (windows, frames, panels, buttons, etc.) are created (ex: thanks to <tt class="docutils literal">MainFrame = <span class="pre">gui:create_frame(...</span></tt>) and the user process subscribes to the events it is interested in (as a combination of an event type and a widget-as-an-event-emitter; for example:</li>
 </ol>
 <pre class="code erlang literal-block">
-<span class="nn">gui</span><span class="p">:</span><span class="nf">subscribe_to_events</span><span class="p">({</span><span class="n">onWindowClosed</span><span class="p">,</span> <span class="nv">MainFrame</span><span class="p">}))</span>
+<span class="nn">gui</span><span class="p">:</span><span class="nf">subscribe_to_events</span><span class="p">({</span><span class="n">onWindowClosed</span><span class="p">,</span><span class="w"> </span><span class="nv">MainFrame</span><span class="p">}))</span>
 </pre>
 <ol class="arabic simple" start="3">
 <li>The user process also triggers any relevant operation (ex: clearing widgets, setting various parameters), generally shows at least a main frame and records the GUI state that it needs for future use (typically containing at least the MyriadGUI references of the widgets that it created)</li>
@@ -1206,9 +1206,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <div class="section" id="id62">
 <h5>Prerequisites</h5>
 <p>So a prerequisite is that the local host enjoys at least some kind of <strong>OpenGL support</strong>, either in software or, preferably, with an hardware acceleration.</p>
-<p id="opengl-troubleshooting">Just run our <tt class="docutils literal">gui_opengl_test.erl</tt> test to have the detected local configuration examined. Another option is to run, from the command-line, the <tt class="docutils literal">glxinfo</tt> executable, and hope to see, among the many displayed lines, <tt class="docutils literal">direct rendering: Yes</tt>.</p>
-<p>If it is not the case (no direct rendering, or a GLX error being returned - typically involving any <tt class="docutils literal">BadValue</tt>), one should investigate one's configuration (with <tt class="docutils literal">lspci | grep VGA</tt>, <tt class="docutils literal">lsmod</tt>, etc.), update one's video driver on par with the current kernel, reboot, etc.</p>
-<p>A final validation might be to run the <tt class="docutils literal">glxgears</tt> executable, and ensure that a window appear, showing three rotating gears.</p>
+<p id="opengl-troubleshooting">Just run our <tt class="docutils literal">gui_opengl_test.erl</tt> test to have the detected local configuration examined. One should refer to our HOWTO section <a class="reference external" href="http://howtos.esperide.org/ThreeDimensional.html#os-support">about 3D operating system support</a> for detailed information and troubleshooting guidelines.</p>
 <p>As for the <strong>Erlang side</strong> of this OpenGL support, one may refer to <a class="reference external" href="https://www.erlang.org/doc/man/wxglcanvas#description">this section</a> to ensure that the Erlang build at hand has indeed its OpenGL support enabled.</p>
 </div>
 <div class="section" id="d-services">
@@ -1246,6 +1244,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <p id="speech-synthesis"><span id="tts"></span>Speech synthesis (TTS, <em>Text-to-Speech</em>) is available thanks to <tt class="docutils literal">speech_utils.erl</tt>. In practice, for best results, the actual speech generation is delegated to cloud-based providers making use of AI (neural voices) for best fluidity.</p>
 <p>The input text shall preferably comply with <a class="reference external" href="https://en.wikipedia.org/wiki/Speech_Synthesis_Markup_Language">SSML</a>, typically so that it can be enriched with phonemes and prosody hints.</p>
 <p>One can listen to this <a class="reference external" href="speech-test-fr-FR.ogg.opus">French speech</a> and this <a class="reference external" href="speech-test-en-US.ogg.opus">English one</a> (most browsers are now able to playback <a class="reference external" href="https://en.wikipedia.org/wiki/Opus_(audio_format)">Opus</a> content), that have been both generated by <tt class="docutils literal">speech_utils_test.erl</tt>.</p>
+<p>Facilities to manage logical speeches (i.e. speeches designated by a base name such as <tt class="docutils literal">hello</tt> and declined in as many locales as needed) are available (see <tt class="docutils literal">speech_support:logical_speech/0</tt>), as well as for related containers (see <tt class="docutils literal">speech_support:speech_referential/0</tt>).</p>
 </div>
 <div class="section" id="for-interactive-applications">
 <h4>For Interactive Applications</h4>
@@ -1257,6 +1256,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <span id="audio"></span><h3><a class="toc-backref" href="#id144">Audio User Interface</a></h3>
 <p>If the 2D/3D rendering can be done through <tt class="docutils literal">wx</tt>, apparently the <strong>audio capabilities</strong> (ex: <a class="reference external" href="https://docs.wxwidgets.org/3.0/group__group__class__media.html">[1]</a>, <a class="reference external" href="https://docs.wxwidgets.org/3.0/classwx_sound.html">[2]</a>) of wxWidgets have not been made available to Erlang.</p>
 <p>So an Erlang program needing audio output (ex: sound special effects, musics) and/or input (ex: microphone) will have to rely on another option, possibly in link, for audio rendering, to 3D-ready <a class="reference external" href="https://github.com/edescourtis/eopenal">eopenal</a> - an (Erlang) binding of <a class="reference external" href="https://en.wikipedia.org/wiki/OpenAL">OpenAL</a>, or to a lower-level <a class="reference internal" href="#sdl-based-solution">SDL-based solution</a>. Contributions welcome!</p>
+<p>Currently only very basic support for audio output is available, as <tt class="docutils literal"><span class="pre">audio_utils:playback_file/{2,3}</span></tt>.</p>
 <p>See also our support for <a class="reference internal" href="#speech-synthesis">speech synthesis</a>.</p>
 <p></p>
 </div>
@@ -1687,31 +1687,31 @@ M = \begin{bmatrix}
 </div>
 <p>it can be created as an arbitrary <tt class="docutils literal">matrix/0</tt> with:</p>
 <pre class="code erlang literal-block">
-<span class="nv">M1</span> <span class="o">=</span> <span class="nn">matrix</span><span class="p">:</span><span class="nf">new</span><span class="p">([</span> <span class="p">[</span><span class="nv">A11</span><span class="p">,</span><span class="nv">A12</span><span class="p">],</span> <span class="p">[</span><span class="nv">A21</span><span class="p">,</span><span class="nv">A22</span><span class="p">]</span> <span class="p">])</span>
+<span class="nv">M1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">matrix</span><span class="p">:</span><span class="nf">new</span><span class="p">([</span><span class="w"> </span><span class="p">[</span><span class="nv">A11</span><span class="p">,</span><span class="nv">A12</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="nv">A21</span><span class="p">,</span><span class="nv">A22</span><span class="p">]</span><span class="w"> </span><span class="p">])</span>
 </pre>
 <p>Alternatively it can be directly created as a specialised (presumably more efficient) 2x2 matrix <tt class="docutils literal">matrix2</tt> with:</p>
 <pre class="code erlang literal-block">
-<span class="nv">M2</span> <span class="o">=</span> <span class="nn">matrix2</span><span class="p">:</span><span class="nf">new</span><span class="p">([</span> <span class="p">[</span><span class="nv">A11</span><span class="p">,</span><span class="nv">A12</span><span class="p">],</span> <span class="p">[</span><span class="nv">A21</span><span class="p">,</span><span class="nv">A22</span><span class="p">]</span> <span class="p">])</span>
-<span class="c">% Or:
-</span><span class="nv">M3</span> <span class="o">=</span> <span class="nn">matrix2</span><span class="p">:</span><span class="nf">from_coordinates</span><span class="p">(</span><span class="nv">A11</span><span class="p">,</span> <span class="nv">A12</span><span class="p">,</span> <span class="nv">A21</span><span class="p">,</span> <span class="nv">A22</span><span class="p">)</span>
-<span class="c">% Or even:
-</span><span class="nv">M4</span> <span class="o">=</span> <span class="nn">matrix2</span><span class="p">:</span><span class="nf">from_arbitrary</span><span class="p">(</span><span class="nv">M1</span><span class="p">)</span>
-<span class="nv">M5</span> <span class="o">=</span> <span class="nn">matrix</span><span class="p">:</span><span class="nf">specialise</span><span class="p">(</span><span class="nv">M1</span><span class="p">)</span>
+<span class="nv">M2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">matrix2</span><span class="p">:</span><span class="nf">new</span><span class="p">([</span><span class="w"> </span><span class="p">[</span><span class="nv">A11</span><span class="p">,</span><span class="nv">A12</span><span class="p">],</span><span class="w"> </span><span class="p">[</span><span class="nv">A21</span><span class="p">,</span><span class="nv">A22</span><span class="p">]</span><span class="w"> </span><span class="p">])</span><span class="w">
+</span><span class="c">% Or:</span><span class="w">
+</span><span class="nv">M3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">matrix2</span><span class="p">:</span><span class="nf">from_coordinates</span><span class="p">(</span><span class="nv">A11</span><span class="p">,</span><span class="w"> </span><span class="nv">A12</span><span class="p">,</span><span class="w"> </span><span class="nv">A21</span><span class="p">,</span><span class="w"> </span><span class="nv">A22</span><span class="p">)</span><span class="w">
+</span><span class="c">% Or even:</span><span class="w">
+</span><span class="nv">M4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">matrix2</span><span class="p">:</span><span class="nf">from_arbitrary</span><span class="p">(</span><span class="nv">M1</span><span class="p">)</span><span class="w">
+</span><span class="nv">M5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">matrix</span><span class="p">:</span><span class="nf">specialise</span><span class="p">(</span><span class="nv">M1</span><span class="p">)</span>
 </pre>
 <p>There is a priori little interest in &quot;unspecialising&quot; (i.e. going from specialised to arbitrary matrix) by having:</p>
 <pre class="code erlang literal-block">
-<span class="nv">M6</span> <span class="o">=</span> <span class="nn">matrix</span><span class="p">:</span><span class="nf">unspecialise</span><span class="p">(</span><span class="nv">M2</span><span class="p">)</span>
+<span class="nv">M6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nn">matrix</span><span class="p">:</span><span class="nf">unspecialise</span><span class="p">(</span><span class="nv">M2</span><span class="p">)</span>
 </pre>
 <p>In practice the actual, internal terms corresponding to all these matrices would be:</p>
 <pre class="code erlang literal-block">
-<span class="c">% For arbitrary ones:
-% (supposing that all Axy coordinates are already floats):
-</span><span class="nv">M1</span> <span class="o">=</span> <span class="nv">M6</span> <span class="o">=</span> <span class="p">[</span> <span class="p">[</span><span class="nv">A11</span><span class="p">,</span><span class="nv">A12</span><span class="p">],</span>
-            <span class="p">[</span><span class="nv">A21</span><span class="p">,</span><span class="nv">A22</span><span class="p">]</span> <span class="p">]</span>
+<span class="c">% For arbitrary ones:</span><span class="w">
+</span><span class="c">% (supposing that all Axy coordinates are already floats):</span><span class="w">
+</span><span class="nv">M1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">M6</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="p">[</span><span class="nv">A11</span><span class="p">,</span><span class="nv">A12</span><span class="p">],</span><span class="w">
+            </span><span class="p">[</span><span class="nv">A21</span><span class="p">,</span><span class="nv">A22</span><span class="p">]</span><span class="w"> </span><span class="p">]</span><span class="w">
 
-<span class="c">% For specialised ones:
-</span><span class="nv">M2</span> <span class="o">=</span> <span class="nv">M3</span> <span class="o">=</span> <span class="nv">M4</span> <span class="o">=</span> <span class="nv">M5</span> <span class="o">=</span> <span class="nl">#matrix2</span><span class="p">{</span> <span class="n">m11</span><span class="o">=</span><span class="nv">A11</span><span class="p">,</span> <span class="n">m12</span><span class="o">=</span><span class="nv">A12</span><span class="p">,</span>
-                              <span class="n">m21</span><span class="o">=</span><span class="nv">A21</span><span class="p">,</span> <span class="n">m22</span><span class="o">=</span><span class="nv">A22</span> <span class="p">}</span>
+</span><span class="c">% For specialised ones:</span><span class="w">
+</span><span class="nv">M2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">M3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">M4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nv">M5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nl">#matrix2</span><span class="p">{</span><span class="w"> </span><span class="n">m11</span><span class="o">=</span><span class="nv">A11</span><span class="p">,</span><span class="w"> </span><span class="n">m12</span><span class="o">=</span><span class="nv">A12</span><span class="p">,</span><span class="w">
+                              </span><span class="n">m21</span><span class="o">=</span><span class="nv">A21</span><span class="p">,</span><span class="w"> </span><span class="n">m22</span><span class="o">=</span><span class="nv">A22</span><span class="w"> </span><span class="p">}</span>
 </pre>
 <p>Finally, <strong>quaternions</strong> are also supported (see <tt class="docutils literal">quaternion.erl</tt>). They can be defined from 4 numbers, or as a 3D rotation. They are stored as quadruplets of floats, and can be added, multiplied, negated, scaled, normalised, conjugates, inversed, etc., and may be represented either as</p>
 <div class="math">
@@ -1969,15 +1969,15 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <h4>Checking Units</h4>
 <p>A typical example:</p>
 <pre class="code erlang literal-block">
-<span class="mi">1</span><span class="o">&gt;</span> <span class="nv">MyInputValue</span><span class="o">=</span><span class="s">&quot;-24 mS.m^-1&quot;</span><span class="p">.</span>
-<span class="mi">2</span><span class="o">&gt;</span> <span class="p">{</span><span class="nv">Value</span><span class="p">,</span><span class="nv">Unit</span><span class="p">}</span><span class="o">=</span><span class="nn">unit_utils</span><span class="p">:</span><span class="nf">parse_value_with_unit</span><span class="p">(</span><span class="nv">MyInputValue</span><span class="p">).</span>
-<span class="mi">3</span><span class="o">&gt;</span> <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Corresponding value: </span><span class="si">~f</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span> <span class="p">[</span> <span class="nv">Value</span> <span class="p">]</span> <span class="p">).</span>
-<span class="nv">Corresponding</span> <span class="nn">value</span><span class="p">:</span> <span class="o">-</span><span class="mi">24</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span>
-<span class="mi">4</span><span class="o">&gt;</span> <span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Corresponding unit: </span><span class="si">~s</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span>
-   <span class="p">[</span><span class="nn">unit_utils</span><span class="p">:</span><span class="nf">unit_to_string</span><span class="p">(</span><span class="nv">Unit</span><span class="p">)]).</span>
-<span class="s">&quot;s^3.A^2.g^-1.m^-3, of order -6&quot;</span>
-<span class="mi">5</span><span class="o">&gt;</span> <span class="nn">unit_utils</span><span class="p">:</span><span class="nf">value_with_unit_to_string</span><span class="p">(</span><span class="nv">Value</span><span class="p">,</span><span class="nv">Unit</span><span class="p">).</span>
-<span class="s">&quot;-2.4e-5 s^3.A^2.g^-1.m^-3&quot;</span>
+<span class="mi">1</span><span class="o">&gt;</span><span class="w"> </span><span class="nv">MyInputValue</span><span class="o">=</span><span class="s">&quot;-24 mS.m^-1&quot;</span><span class="p">.</span><span class="w">
+</span><span class="mi">2</span><span class="o">&gt;</span><span class="w"> </span><span class="p">{</span><span class="nv">Value</span><span class="p">,</span><span class="nv">Unit</span><span class="p">}</span><span class="o">=</span><span class="nn">unit_utils</span><span class="p">:</span><span class="nf">parse_value_with_unit</span><span class="p">(</span><span class="nv">MyInputValue</span><span class="p">).</span><span class="w">
+</span><span class="mi">3</span><span class="o">&gt;</span><span class="w"> </span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Corresponding value: </span><span class="si">~f</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="w"> </span><span class="nv">Value</span><span class="w"> </span><span class="p">]</span><span class="w"> </span><span class="p">).</span><span class="w">
+</span><span class="nv">Corresponding</span><span class="w"> </span><span class="nn">value</span><span class="p">:</span><span class="w"> </span><span class="o">-</span><span class="mi">24</span><span class="p">.</span><span class="mi">0</span><span class="p">.</span><span class="w">
+</span><span class="mi">4</span><span class="o">&gt;</span><span class="w"> </span><span class="nn">io</span><span class="p">:</span><span class="nf">format</span><span class="p">(</span><span class="s">&quot;Corresponding unit: </span><span class="si">~s</span><span class="s">.</span><span class="si">~n</span><span class="s">&quot;</span><span class="p">,</span><span class="w">
+   </span><span class="p">[</span><span class="nn">unit_utils</span><span class="p">:</span><span class="nf">unit_to_string</span><span class="p">(</span><span class="nv">Unit</span><span class="p">)]).</span><span class="w">
+</span><span class="s">&quot;s^3.A^2.g^-1.m^-3, of order -6&quot;</span><span class="w">
+</span><span class="mi">5</span><span class="o">&gt;</span><span class="w"> </span><span class="nn">unit_utils</span><span class="p">:</span><span class="nf">value_with_unit_to_string</span><span class="p">(</span><span class="nv">Value</span><span class="p">,</span><span class="nv">Unit</span><span class="p">).</span><span class="w">
+</span><span class="s">&quot;-2.4e-5 s^3.A^2.g^-1.m^-3&quot;</span>
 </pre>
 </div>
 </div>
@@ -2019,15 +2019,15 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 $ sqlite3 my_test
 </pre>
 <pre class="code sql literal-block">
-<span class="n">SQLite</span> <span class="k">version</span> <span class="mi">3</span><span class="p">.</span><span class="mi">13</span><span class="p">.</span><span class="mi">0</span> <span class="mi">2016</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">18</span> <span class="mi">10</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">30</span>
-<span class="n">Enter</span> <span class="ss">&quot;.help&quot;</span> <span class="k">for</span> <span class="k">usage</span> <span class="n">hints</span><span class="p">.</span>
-<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">create</span> <span class="k">table</span> <span class="n">tblone</span><span class="p">(</span><span class="n">one</span> <span class="nb">varchar</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="n">two</span> <span class="nb">smallint</span><span class="p">);</span>
-<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">insert</span> <span class="k">into</span> <span class="n">tblone</span> <span class="k">values</span><span class="p">(</span><span class="s1">'helloworld'</span><span class="p">,</span><span class="mi">20</span><span class="p">);</span>
-<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">insert</span> <span class="k">into</span> <span class="n">tblone</span> <span class="k">values</span><span class="p">(</span><span class="s1">'my_myriad'</span><span class="p">,</span> <span class="mi">30</span><span class="p">);</span>
-<span class="n">sqlite</span><span class="o">&gt;</span> <span class="k">select</span> <span class="o">*</span> <span class="k">from</span> <span class="n">tblone</span><span class="p">;</span>
-<span class="n">helloworld</span><span class="o">|</span><span class="mi">20</span>
-<span class="n">my_myriad</span><span class="o">|</span><span class="mi">30</span>
-<span class="n">sqlite</span><span class="o">&gt;</span> <span class="p">.</span><span class="n">quit</span>
+<span class="n">SQLite</span><span class="w"> </span><span class="k">version</span><span class="w"> </span><span class="mi">3</span><span class="p">.</span><span class="mi">13</span><span class="p">.</span><span class="mi">0</span><span class="w"> </span><span class="mi">2016</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">18</span><span class="w"> </span><span class="mi">10</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">30</span><span class="w">
+</span><span class="n">Enter</span><span class="w"> </span><span class="ss">&quot;.help&quot;</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="k">usage</span><span class="w"> </span><span class="n">hints</span><span class="p">.</span><span class="w">
+</span><span class="n">sqlite</span><span class="o">&gt;</span><span class="w"> </span><span class="k">create</span><span class="w"> </span><span class="k">table</span><span class="w"> </span><span class="n">tblone</span><span class="p">(</span><span class="n">one</span><span class="w"> </span><span class="nb">varchar</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span><span class="w"> </span><span class="n">two</span><span class="w"> </span><span class="nb">smallint</span><span class="p">);</span><span class="w">
+</span><span class="n">sqlite</span><span class="o">&gt;</span><span class="w"> </span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tblone</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="s1">'helloworld'</span><span class="p">,</span><span class="mi">20</span><span class="p">);</span><span class="w">
+</span><span class="n">sqlite</span><span class="o">&gt;</span><span class="w"> </span><span class="k">insert</span><span class="w"> </span><span class="k">into</span><span class="w"> </span><span class="n">tblone</span><span class="w"> </span><span class="k">values</span><span class="p">(</span><span class="s1">'my_myriad'</span><span class="p">,</span><span class="w"> </span><span class="mi">30</span><span class="p">);</span><span class="w">
+</span><span class="n">sqlite</span><span class="o">&gt;</span><span class="w"> </span><span class="k">select</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="k">from</span><span class="w"> </span><span class="n">tblone</span><span class="p">;</span><span class="w">
+</span><span class="n">helloworld</span><span class="o">|</span><span class="mi">20</span><span class="w">
+</span><span class="n">my_myriad</span><span class="o">|</span><span class="mi">30</span><span class="w">
+</span><span class="n">sqlite</span><span class="o">&gt;</span><span class="w"> </span><span class="p">.</span><span class="n">quit</span>
 </pre>
 <p>A file <tt class="docutils literal">my_test</tt>, identified as <tt class="docutils literal">SQLite 3.x database</tt>, must have been created, and can be safely removed.</p>
 </div>
@@ -2391,35 +2391,35 @@ $ rebar3 compile <span class="o">&amp;&amp;</span> rebar3 eunit
 <h3><a class="toc-backref" href="#id181">Testing &amp; Troubleshooting</a></h3>
 <p>In order to <strong>quick-check</strong> whether long-name connectivity is available and to rule out the most obvious culprits, open two terminals.</p>
 <p>In the first:</p>
-<pre class="literal-block">
-# Check (with root permissions) that the firewall rules are safe; for example:
-$ iptables -nL
-Chain INPUT (policy ACCEPT)
-target     prot opt source               destination
+<pre class="code bash literal-block">
+<span class="c1"># Check (with root permissions) that the firewall rules are safe; for example:
+</span>$ iptables -nL
+Chain INPUT <span class="o">(</span>policy ACCEPT<span class="o">)</span>
+target     prot opt <span class="nb">source</span>               destination
 
-Chain FORWARD (policy ACCEPT)
-target     prot opt source               destination
+Chain FORWARD <span class="o">(</span>policy ACCEPT<span class="o">)</span>
+target     prot opt <span class="nb">source</span>               destination
 
-Chain OUTPUT (policy ACCEPT)
-target     prot opt source               destination
+Chain OUTPUT <span class="o">(</span>policy ACCEPT<span class="o">)</span>
+target     prot opt <span class="nb">source</span>               destination
 
-# Just to be on the safer side for this test:
-$ killall beam.smp epmd
+<span class="c1"># Just to be on the safer side for this test:
+</span>$ killall beam.smp epmd
 
-# Then launch the target first node:
-$ ERL_EPMD_PORT=4032 erl -name n1 -setcookie aa
-Erlang/OTP 23 [erts-11.1.4] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:1] [hipe]
+<span class="c1"># Then launch the target first node:
+</span>$ <span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span> erl -name n1 -setcookie aa
+Erlang/OTP <span class="m">23</span> <span class="o">[</span>erts-11.1.4<span class="o">]</span> <span class="o">[</span>source<span class="o">]</span> <span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span> <span class="o">[</span>smp:4:4<span class="o">]</span> <span class="o">[</span>ds:4:4:10<span class="o">]</span> <span class="o">[</span>async-threads:1<span class="o">]</span> <span class="o">[</span>hipe<span class="o">]</span>
 
-Eshell V11.1.4  (abort with ^G)
-(n1&#64;hurricane.foobar.org)1&gt;
+Eshell V11.1.4  <span class="o">(</span>abort with ^G<span class="o">)</span>
+<span class="o">(</span>n1&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt;
 </pre>
 <p>In the second terminal, try to find the previous node:</p>
-<pre class="literal-block">
-$ ERL_EPMD_PORT=4032 erl -name n2 -setcookie aa
-Erlang/OTP 23 [erts-11.1.4] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:1] [hipe]
+<pre class="code bash literal-block">
+$ <span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span> erl -name n2 -setcookie aa
+Erlang/OTP <span class="m">23</span> <span class="o">[</span>erts-11.1.4<span class="o">]</span> <span class="o">[</span>source<span class="o">]</span> <span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span> <span class="o">[</span>smp:4:4<span class="o">]</span> <span class="o">[</span>ds:4:4:10<span class="o">]</span> <span class="o">[</span>async-threads:1<span class="o">]</span> <span class="o">[</span>hipe<span class="o">]</span>
 
-Eshell V11.1.4  (abort with ^G)
-(n2&#64;hurricane.foobar.org)1&gt; net_adm:ping('n1&#64;hurricane.foobar.org').
+Eshell V11.1.4  <span class="o">(</span>abort with ^G<span class="o">)</span>
+<span class="o">(</span>n2&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt; net_adm:ping<span class="o">(</span><span class="s1">'n1&#64;hurricane.foobar.org'</span><span class="o">)</span>.
 pong
 </pre>
 <p>If you see <tt class="docutils literal">pang</tt> here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones being presumably the most effective here), and apply the hints listed in the <a class="reference internal" href="#enabling-the-interconnection-of-erlang-nodes">Enabling the Interconnection of Erlang nodes</a> section.</p>
