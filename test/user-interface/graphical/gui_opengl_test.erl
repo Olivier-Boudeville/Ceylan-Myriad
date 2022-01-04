@@ -38,7 +38,7 @@
 % - wx:demo/0: lib/wx/examples/demo/ex_gl.erl
 % - test suite: lib/wx/test/wx_opengl_SUITE.erl
 %
-% As the canvas is not resized when its containers are, we listen to the
+% As the OpenGL canvas is not resized when its containers are, we listen to the
 % resizing of the parent window and adapt accordingly.
 
 
@@ -91,10 +91,10 @@
 	panel :: panel(),
 
 	% The OpenGL canvas on which rendering will be done:
-	canvas :: opengl_canvas(),
+	canvas :: gl_canvas(),
 
 	% The OpenGL context being used:
-	context :: opengl_context(),
+	context :: gl_context(),
 
 	% An image used as a material:
 	image :: image(),
@@ -113,7 +113,7 @@
 % OpenGL-specific GUI test state:
 -record( my_opengl_test_state, {
 
-	% Typically the main frame:
+	% Typically the GL canvas:
 	window :: window(),
 
 	mesh :: mesh(),
@@ -164,8 +164,9 @@
 -type font() :: gui:font().
 -type brush() :: gui:brush().
 
--type opengl_canvas() :: gui:opengl_canvas().
--type opengl_context() :: gui:opengl_context().
+-type gl_canvas() :: gui:opengl_canvas().
+-type gl_context() :: gui:opengl_context().
+
 -type glu_id() :: gui_opengl:glu_id().
 -type texture() :: gui_opengl:texture().
 
@@ -281,7 +282,8 @@ get_test_colored_cube_info() ->
 get_test_colored_cube_mesh() ->
 	{ Vertices, Faces, Normals, Colors } = get_test_colored_cube_info(),
 	% per_vertex for gradients:
-	RenderingInfo = { color, per_face, Colors },
+	%RenderingInfo = { color, per_face, Colors },
+	RenderingInfo = { color, per_vertex, Colors },
 	mesh:create_mesh( Vertices, Faces, _NormalType=per_face, Normals,
 					  RenderingInfo ).
 
@@ -441,21 +443,24 @@ get_test_textured_cube_tex_coords() ->
 
 
 
-
 % @doc Returns the path to a test image.
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
-	% Relative to this test directory:
-	file_utils:join(
-		[ "..", "..", "..", "doc", "myriad-space-time-referential.png" ] ).
+	%file_utils:join( gui_image_test:get_test_image_directory(),
+	%				 "myriad-space-time-referential.png" ).
+	%"image.jpg".
+	file_utils:join( gui_image_test:get_test_image_directory(),
+					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
 % @doc Returns the path to a test image.
 -spec get_logo_image_path() -> file_path().
 get_logo_image_path() ->
-	% Relative to this test directory:
-	file_utils:join(
-		[ "..", "..", "..", "doc", "myriad-title.png" ] ).
+	file_utils:join( gui_image_test:get_test_image_directory(),
+					 "myriad-title.png" ).
+	%file_utils:join( gui_image_test:get_test_image_directory(),
+	%				 "myriad-minimal-enclosing-circle-test.png" ).
+	%"erlang.png".
 
 
 
@@ -479,48 +484,6 @@ run_test_opengl() ->
 			run_actual_test()
 
 	end.
-
-
-
-% @doc Creates the initial test GUI: a main frame containing a panel to which an
-% OpenGL canvas is associated, in which an OpenGL context is created.
-%
-init_test_gui() ->
-
-	MainFrame = gui:create_frame( "MyriadGUI OpenGL Test" ),
-
-	Panel = gui:create_panel( MainFrame ),
-
-	% At least this number of bits per RGB component:
-	MinSize = 8,
-
-	GLAttributes = [ rgba, double_buffer, { min_red_size, MinSize },
-					 { min_green_size, MinSize }, { min_blue_size, MinSize },
-					 { depth_buffer_size, 24 } ],
-
-	GLCanvas = gui_opengl:create_canvas( _Parent=Panel,
-		_Opts=[ { style, full_repaint_on_resize },
-				{ gl_attributes, GLAttributes } ] ),
-
-	GLContext = gui_opengl:create_context( GLCanvas ),
-
-	gui:subscribe_to_events( { [ onShown, onResized, onWindowClosed ],
-							   MainFrame } ),
-
-	% (on Apple's Cocoa, subscribing to onRepaintNeeded might be required)
-	%gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
-
-	StatusBar = gui:create_status_bar( MainFrame ),
-
-	gui:push_status_text( "Testing OpenGL now.", StatusBar ),
-
-	Image = gui_image:create_from_file( get_test_image_path() ),
-
-	gui_image:scale( Image, _NewWidth=128, _NewHeight=128 ),
-
-	% No OpenGL state yet (GL context not set as current yet):
-	#my_test_state{ parent=MainFrame, panel=Panel, canvas=GLCanvas,
-					context=GLContext, image=Image }.
 
 
 
@@ -551,6 +514,50 @@ run_actual_test() ->
 
 
 
+
+% @doc Creates the initial test GUI: a main frame containing a panel to which an
+% OpenGL canvas is associated, in which an OpenGL context is created.
+%
+init_test_gui() ->
+
+	MainFrame = gui:create_frame( "MyriadGUI OpenGL Test" ),
+
+	Panel = gui:create_panel( MainFrame ),
+
+	% At least this number of bits per RGB component:
+	MinSize = 8,
+
+	GLAttributes = [ rgba, double_buffer, { min_red_size, MinSize },
+					 { min_green_size, MinSize }, { min_blue_size, MinSize },
+					 { depth_buffer_size, 24 } ],
+
+	GLCanvas = gui_opengl:create_canvas( _Parent=Panel,
+		_Opts=[ { style, full_repaint_on_resize },
+				{ gl_attributes, GLAttributes } ] ),
+
+	% Created, yet not bound yet:
+	GLContext = gui_opengl:create_context( GLCanvas ),
+
+	gui:subscribe_to_events( { [ onShown, onResized, onWindowClosed ],
+							   MainFrame } ),
+
+	% (on Apple's Cocoa, subscribing to onRepaintNeeded might be required)
+	%gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
+
+	StatusBar = gui:create_status_bar( MainFrame ),
+
+	gui:push_status_text( "Testing OpenGL now.", StatusBar ),
+
+	Image = gui_image:create_from_file( get_test_image_path() ),
+
+	gui_image:scale( Image, _NewWidth=128, _NewHeight=128 ),
+
+	% No OpenGL state yet (GL context not set as current yet):
+	#my_test_state{ parent=MainFrame, panel=Panel, canvas=GLCanvas,
+					context=GLContext, image=Image }.
+
+
+
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
 % messages.
 %
@@ -562,30 +569,32 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow,
 
 	receive
 
-		{ onResized, [ ParentWindow, NewParentSize, _Context ] } ->
+		% For a window, the first resizing event happens (just) before its
+		% onShown one, it is a suitable first location to initialise OpenGL:
+		%
+		{ onResized, [ ParentWindow, NewParentSize, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Resizing of the parent window to ~w "
 				"detected.", [ NewParentSize ] ),
 
-			% The resized parent window hosts here only a panel, itself fully
-			% occupied by an OpenGL canvas:
-
 			Panel = GUIState#my_test_state.panel,
 
+			% In main frame:
 			gui:maximise_in_parent( Panel ),
 
 			GLCanvas = GUIState#my_test_state.canvas,
 
+			% In panel:
 			NewCanvasSize = gui:maximise_in_parent( GLCanvas ),
 
-			NewGUIState = on_canvas_resized( GLCanvas, NewCanvasSize,
-											 GUIState ),
+			NewGUIState =
+				on_canvas_resized( GLCanvas, NewCanvasSize, GUIState ),
 
 			gui_main_loop( NewGUIState );
 
 
 		% Never happens, as onRepaintNeeded not listened to for the canvas:
-		%{ onResized, [ GLCanvas, NewSize, _Context ] } ->
+		%{ onResized, [ GLCanvas, NewSize, _EventContext ] } ->
 		%
 		%    trace_utils:debug_fmt( "OpenGL canvas resized to ~w.",
 		%        [ NewSize ] ),
@@ -595,7 +604,7 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow,
 
 
 		% Just to showcase that this event can be intercepted:
-		{ onShown, [ ParentWindow, _Content ] } ->
+		{ onShown, [ ParentWindow, _EventContext ] } ->
 
 			trace_utils:debug( "Test main frame shown." ),
 
@@ -614,14 +623,14 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow,
 			gui_main_loop( GUIState );
 
 
-		{ onRepaintNeeded, [ GLCanvas, _GUIContext ] } ->
-			trace_utils:debug( "Canvas repaint needed." ),
-			GLContext = GUIState#my_test_state.context,
-			gui_opengl:set_context( GLCanvas, GLContext ),
-			gui:enable_repaint( GLCanvas ),
-			gui_main_loop( GUIState );
+		% { onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
+		%	trace_utils:debug( "Canvas repaint needed." ),
+		%	GLContext = GUIState#my_test_state.context,
+		%	gui_opengl:set_context( GLCanvas, GLContext ),
+		%	gui:enable_repaint( GLCanvas ),
+		%	gui_main_loop( GUIState );
 
-		{ onWindowClosed, [ ParentWindow, _Context ] } ->
+		{ onWindowClosed, [ ParentWindow, _EventContext ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
 			gui:destruct_window( ParentWindow );
 
@@ -632,7 +641,7 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow,
 
 			gui_main_loop( GUIState )
 
-	% AS the GUI is to be updated even in the absence of user actions:
+	% As the GUI is to be updated even in the absence of user actions:
 	after ?interframe_duration ->
 
 		NewGUIState = case MaybeOpenGLState of
@@ -652,7 +661,9 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow,
 
 
 
-% @doc To be called whenever the OpenGL canvas is resized.
+% @doc To be called whenever the OpenGL canvas has been resized.
+%
+% No OpenGL state in this clause:
 on_canvas_resized( GLCanvas, _NewCancasSize, GUIState=#my_test_state{
 												context=GLContext,
 												image=Image,
@@ -660,7 +671,7 @@ on_canvas_resized( GLCanvas, _NewCancasSize, GUIState=#my_test_state{
 
 	% The first resizing (an event received even before onShown) is a relevant
 	% moment in order to setup OpenGL, i.e. to set the created context as the
-	% current one for the GL canvas):
+	% current one for the GL canvas:
 
 	trace_utils:debug( "Initial canvas context setting." ),
 
@@ -671,19 +682,20 @@ on_canvas_resized( GLCanvas, _NewCancasSize, GUIState=#my_test_state{
 	GUIState#my_test_state{ opengl_state=InitOpenGLState };
 
 
+% OpenGL state available here:
 on_canvas_resized( _GLCanvas, NewCanvasSize, GUIState ) ->
 	reset_opengl_on_resize( NewCanvasSize ),
 	GUIState.
 
 
 
-% @doc Sets up OpenGL, once a proper current context has been set.
--spec setup_opengl( window(), image() ) -> void().
-setup_opengl( Window, _Image ) ->
+% @doc Sets up OpenGL, once for all, once a proper current context has been set.
+-spec setup_opengl( gl_canvas(), image() ) -> my_opengl_test_state().
+setup_opengl( Canvas, Image ) ->
 
 	%trace_utils:debug( "Setting up OpenGL." ),
 
-	Size = gui:get_client_size( Window ),
+	Size = gui:get_client_size( Canvas ),
 	reset_opengl_on_resize( Size ),
 
 	%trace_utils:debug( "A0" ), %timer:sleep( 500 ),
@@ -694,43 +706,35 @@ setup_opengl( Window, _Image ) ->
 	% Solid white:
 	gl:clearColor( 1.0, 1.0, 1.0, 1.0 ),
 
-%trace_utils:debug( "A1" ), %timer:sleep( 500 ),
+	MatTexture = gui_opengl:load_texture_from_image( Image ),
 
-	%MatTexture = gui_opengl:load_texture_from_image( Image ),
-MatTexture=undefined,
-
-%trace_utils:debug( "A2" ),%timer:sleep( 1500 ),
-	%AlphaTexture = gui_opengl:load_texture_from_file( get_logo_image_path() ),
-AlphaTexture = undefined,
-trace_utils:debug( "A3" ),%timer:sleep( 500 ),
+	AlphaTexture = gui_opengl:load_texture_from_file( get_logo_image_path() ),
 
 	Font = gui:create_font( _PointSize=32, _Family=default_font_family,
 							_Style=normal, _Weight=bold ),
-trace_utils:debug( "A4" ),%timer:sleep( 500 ),
 
 	Brush = gui:create_brush( _Black={ 0, 0, 0 } ),
-trace_utils:debug( "A5" ),%timer:sleep( 500 ),
 
-	% Grey:
-	%TextColor = { 40, 40, 40 },
+	% Myriad dark blue:
+	TextColor = { 0, 39, 165 },
 
-	%TextTexture = gui_opengl:create_texture_from_text(
-	%	"MyriadGUI textured text", Font, Brush, TextColor, _Flip=true ),
-TextTexture = undefined,
-trace_utils:debug( "A10" ),%timer:sleep( 500 ),
-
+	TextTexture = gui_opengl:create_texture_from_text(
+		%"This is a MyriadGUI-textured text", Font, Brush, TextColor,
+		"MyriadGUI rocks!", Font, Brush, TextColor,
+		_Flip=true ),
 
 	ClockTexture =
 		get_clock_texture( time_utils:get_local_time(), Font, Brush ),
-trace_utils:debug( "A11" ),%timer:sleep( 500 ),
 
-	%CubeMesh = get_test_colored_cube_mesh(),
-CubeMesh=undefined,
+
+	TestMesh = get_test_colored_cube_mesh(),
+	%TestMesh = get_test_tetra_mesh(),
+
 	SphereId = glu:newQuadric(),
 
 	gl:enable( ?GL_TEXTURE_2D ),
 
-	#my_opengl_test_state{ window=Window, mesh=CubeMesh, angle=0.0,
+	#my_opengl_test_state{ window=Canvas, mesh=TestMesh, angle=0.0,
 		material_texture=MatTexture, alpha_texture=AlphaTexture,
 		text_texture=TextTexture, clock_texture=ClockTexture,
 		font=Font, brush=Brush, sphere=SphereId }.
@@ -824,11 +828,11 @@ get_clock_texture( Time, Font, Brush ) ->
 % @doc Performs the rendering corresponding to the specified OpenGL state.
 -spec render( my_opengl_test_state() ) -> void().
 render( #my_opengl_test_state{ window=Window,
-							   %mesh=CubeMesh,
+							   mesh=CubeMesh,
 							   angle=Angle,
-							   %material_texture=MatTexture,
-							   %alpha_texture=AlphaTexture,
-							   %text_texture=TextTexture,
+							   material_texture=_MatTexture,
+							   alpha_texture=AlphaTexture,
+							   text_texture=TextTexture,
 							   clock_texture=ClockTexture,
 							   sphere=SphereId } ) ->
 
@@ -851,7 +855,7 @@ render( #my_opengl_test_state{ window=Window,
 
 	gl:disable( ?GL_CULL_FACE ),
 
-	%gui_opengl:render_mesh( CubeMesh ),
+	gui_opengl:render_mesh( CubeMesh ),
 
 	gl:popMatrix(),
 
@@ -860,15 +864,15 @@ render( #my_opengl_test_state{ window=Window,
 
 	gui_opengl:enter_2d_mode( Window ),
 
-	{ Width, Height } = wxWindow:getClientSize( Window ),
+	{ Width, Height } = gui:get_client_size( Window ),
 
 	Move = abs( 90 - ( trunc( Angle ) rem 180 ) ),
 
 	gui_opengl:render_texture( ClockTexture, _Xc=(Width div 2) - 50,
 		_Yc=(Height div 2) - 130 + Move ),
 
-	%gui_opengl:render_texture( AlphaTexture, _Xa=(Width div 2) - 80,
-	%	_Ya=(Height div 2) - Move, AlphaTexture ),
+	gui_opengl:render_texture( AlphaTexture, _Xa=(Width div 2) - 80,
+		_Ya=(Height div 2) - Move ),
 
 	gui_opengl:leave_2d_mode(),
 
@@ -877,7 +881,7 @@ render( #my_opengl_test_state{ window=Window,
 	gl:enable( ?GL_BLEND ),
 	gl:blendFunc( ?GL_SRC_ALPHA, ?GL_ONE_MINUS_SRC_ALPHA ),
 	gl:translatef( 0.0, -0.8, 0.0 ),
-	%gl:bindTexture( ?GL_TEXTURE_2D, TextTexture#texture.id ),
+	gl:bindTexture( ?GL_TEXTURE_2D, TextTexture#texture.id ),
 
 	% Texture coordinates should be generated:
 	glu:quadricTexture( SphereId, ?GLU_TRUE ),
@@ -890,7 +894,7 @@ render( #my_opengl_test_state{ window=Window,
 	glu:sphere( SphereId, 0.8, 50,40 ),
 	gl:popMatrix(),
 
-	wxGLCanvas:swapBuffers( Window ).
+	gui_opengl:swap_buffers( Window ).
 
 
 
