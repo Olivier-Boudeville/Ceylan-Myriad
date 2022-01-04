@@ -1497,8 +1497,8 @@ run_background_executable( ExecPath, Arguments, Environment,
 % This is the recommended, most complete way of running an executable in the
 % background.
 %
--spec run_background_executable( executable_path(), environment(),
-					maybe( working_dir() ), [ port_option() ] ) -> void().
+-spec run_background_executable( executable_path(), [ command_line_argument() ],
+		environment(), maybe( working_dir() ), [ port_option() ] ) -> void().
 run_background_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
 						   PortOptions ) ->
 
