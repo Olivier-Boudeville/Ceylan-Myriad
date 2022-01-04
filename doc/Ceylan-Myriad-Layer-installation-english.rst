@@ -244,12 +244,16 @@ Myriad is not an *active* OTP application, and as such does not rely on, or prov
 Getting rebar3
 ..............
 
-There are `various ways <https://www.rebar3.org/docs/getting-started>`_  for obtaining ``rebar3``; we prefer::
+There are `various ways <https://www.rebar3.org/docs/getting-started>`_  for obtaining ``rebar3``; we prefer:
 
-  $ cd ~/Software && git clone https://github.com/erlang/rebar3.git
-	  && cd rebar3 && ./bootstrap
+.. code:: bash
 
-Alternatively, should you just want to update a (pre-existing) rebar3 install, first get the current version (``rebar3 -v``) to check it afterwards, then issue ``rebar3 local upgrade``; however this would involve running rebar from ``.cache/rebar3/bin``, so instead we prefer using (typically from ``~/Software/rebar3``)::
+ $ cd ~/Software && git clone https://github.com/erlang/rebar3.git
+	&& cd rebar3 && ./bootstrap
+
+Alternatively, should you just want to update a (pre-existing) rebar3 install, first get the current version (``rebar3 -v``) to check it afterwards, then issue ``rebar3 local upgrade``; however this would involve running rebar from ``.cache/rebar3/bin``, so instead we prefer using (typically from ``~/Software/rebar3``):
+
+.. code:: bash
 
  $ git pull && ./bootstrap
 

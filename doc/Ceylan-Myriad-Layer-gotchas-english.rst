@@ -136,7 +136,9 @@ Testing & Troubleshooting
 
 In order to **quick-check** whether long-name connectivity is available and to rule out the most obvious culprits, open two terminals.
 
-In the first::
+In the first:
+
+.. code:: bash
 
  # Check (with root permissions) that the firewall rules are safe; for example:
  $ iptables -nL
@@ -160,7 +162,9 @@ In the first::
  (n1@hurricane.foobar.org)1>
 
 
-In the second terminal, try to find the previous node::
+In the second terminal, try to find the previous node:
+
+.. code:: bash
 
  $ ERL_EPMD_PORT=4032 erl -name n2 -setcookie aa
  Erlang/OTP 23 [erts-11.1.4] [source] [64-bit] [smp:4:4] [ds:4:4:10] [async-threads:1] [hipe]

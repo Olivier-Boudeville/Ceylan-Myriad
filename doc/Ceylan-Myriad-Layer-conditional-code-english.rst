@@ -119,10 +119,10 @@ For example:
 
 .. code:: erlang
 
-   % Older versions being less secure:
-   TLSSupportedVersions = cond_utils:if_defined(us_web_relaxed_security,
-				['tlsv1.3', 'tlsv1.2', 'tlsv1.1', 'tlsv1'],
-				['tlsv1.3'])
+ % Older versions being less secure:
+ TLSSupportedVersions = cond_utils:if_defined(us_web_relaxed_security,
+   ['tlsv1.3', 'tlsv1.2', 'tlsv1.1', 'tlsv1'],
+   ['tlsv1.3'])
 
 If ``us_web_relaxed_security`` has been defined, the first list will be injected, otherwise the second will.
 
