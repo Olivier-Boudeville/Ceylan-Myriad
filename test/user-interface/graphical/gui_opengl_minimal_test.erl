@@ -29,9 +29,10 @@
 % @doc Minimal testing of the <b>OpenGL support</b>; displays a white rectangle
 % on a black background.
 %
-% Its main interest is to show a simple yet generic, appropriate structure in
-% order to properly initialise the GUI and OpenGL, handle rendering, resizing
-% and closing.
+% It is therefore a non-interactive, passive test (no spontaneous/scheduled
+% behaviour) whose main interest is to show a simple yet generic, appropriate
+% structure in order to properly initialise the GUI and OpenGL, handle
+% rendering, resizing and closing.
 %
 % See the gui_opengl.erl tested module.
 %
@@ -72,6 +73,7 @@
 
 -type my_test_state() :: #my_test_state{}.
 % Test-specific overall GUI state.
+
 
 
 % Shorthands:
