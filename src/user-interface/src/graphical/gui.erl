@@ -348,6 +348,29 @@
 
 
 
+% MVC (Model-View-Controller) section.
+%
+% Generally the view knows (i.e. has the PID of) the model, the controller knows
+% the model and the model does not know specifically either of them.
+
+% See https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller for
+% further information.
+
+-type model_pid() :: pid().
+% The PID of a process whose role is to be a Model in the sense of the MVC
+% pattern.
+
+
+-type view_pid() :: pid().
+% The PID of a process whose role is to be a View in the sense of the MVC
+% pattern.
+
+
+-type controller_pid() :: pid().
+% The PID of a process whose role is to be a Controller in the sense of the MVC
+% pattern.
+
+
 
 % Widget types.
 
@@ -609,7 +632,9 @@
 
 -export_type([ length/0, width/0, height/0,
 			   coordinate/0, point/0, position/0, size/0,
-			   orientation/0, fps/0, object_type/0, wx_object_type/0,
+			   orientation/0, fps/0,
+			   model_pid/0, view_pid/0, controller_pid/0,
+			   object_type/0, wx_object_type/0,
 			   myriad_object_type/0, myriad_instance_id/0,
 			   title/0, label/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
