@@ -44,7 +44,6 @@
 		  get_main_window_size/0 ]).
 
 
-
 % Shorthands:
 
 -type count() :: basic_utils:count().
