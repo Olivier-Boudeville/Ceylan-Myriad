@@ -838,8 +838,8 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 				{ value, [] } ->
 					% No module declared (weird); supposing that alles gut:
 					%trace_bridge:warning_fmt( "Application '~ts' did not "
-					%	"declare any module; supposing that it is fully built.",
-					%	[ AppName ] ),
+					%   "declare any module; supposing that it is fully built.",
+					%   [ AppName ] ),
 					ok;
 
 				% Testing just the first module found:
@@ -1008,7 +1008,7 @@ start_applications( [ AppName | T ], RestartType, BlacklistedApps ) ->
 
 	%?debug_fmt( "Starting application '~ts' with restart type '~ts', "
 	%   "whereas blacklisted applications are: ~p.",
-	%	[ AppName, RestartType, BlacklistedApps ] ),
+	%   [ AppName, RestartType, BlacklistedApps ] ),
 
 	case lists:member( AppName, BlacklistedApps ) of
 
@@ -1176,7 +1176,7 @@ check_application_run_context( OtherAppRunContext ) ->
 -spec application_run_context_to_string( application_run_context() ) ->
 												ustring().
 application_run_context_to_string( _AppRunContext=as_native ) ->
-	"based on the Ceylan native native build/run system";
+	"based on the Ceylan native build/run system";
 
 application_run_context_to_string( _AppRunContext=as_otp_release ) ->
 	"as an OTP release".
@@ -1211,23 +1211,23 @@ get_priv_root( ModuleName, BeSilent ) ->
 
    case code:priv_dir( ModuleName ) of
 
-	   % May happen even if being listed in the 'modules' entry of the relevant
-	   % .app/.app.src files.
-	   %
-	   { error, PError } ->
+		% May happen even if being listed in the 'modules' entry of the relevant
+		% .app/.app.src files.
+		%
+		{ error, PError } ->
 
-		   % PError=bad_name, not that useful:
-		   case BeSilent of
+			% PError=bad_name, not that useful:
+			case BeSilent of
 
-			   true ->
-				   ok;
+				true ->
+					ok;
 
-			   false ->
-					trace_bridge:warning_fmt( "Unable to determine 'priv' "
+				false ->
+					trace_bridge:warning_fmt( "Unable to determine the 'priv' "
 						"directory from module '~ts': ~w.",
 						[ ModuleName, PError ] )
 
-		   end,
+			end,
 
 			case code:which( ModuleName ) of
 
