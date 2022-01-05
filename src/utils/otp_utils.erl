@@ -1164,7 +1164,7 @@ get_restart_setting( _ExecutionTarget=production ) ->
 check_application_run_context( _AppRunContext=as_native ) ->
 	ok;
 
-check_application_run_context( _AppRunContext=as_otp_application ) ->
+check_application_run_context( _AppRunContext=as_otp_release ) ->
 	ok;
 
 check_application_run_context( OtherAppRunContext ) ->
@@ -1178,7 +1178,7 @@ check_application_run_context( OtherAppRunContext ) ->
 application_run_context_to_string( _AppRunContext=as_native ) ->
 	"based on the Ceylan native build/run system";
 
-application_run_context_to_string( _AppRunContext=as_otp_application ) ->
+application_run_context_to_string( _AppRunContext=as_otp_release ) ->
 	"as an OTP application".
 
 
