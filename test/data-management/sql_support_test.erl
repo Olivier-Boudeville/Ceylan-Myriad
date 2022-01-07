@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Wednesday, June 8, 2016
+% Creation date: Wednesday, June 8, 2016.
 
 
 % @doc Unit tests for the <b>SQL support</b>, based on available backend(s).
@@ -110,7 +110,7 @@ test_sqlite3() ->
 
 	DatabaseFilename = DatabaseName ++ ".sqlite3",
 
-	test_facilities:display( "We will first create a new SQLite3 database, "
+	test_facilities:display( "We will first create a SQLite3 database, "
 							 "in '~ts'.", [ DatabaseFilename ] ),
 
 	% Prior tests may have left it:
