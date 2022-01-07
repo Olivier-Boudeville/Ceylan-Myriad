@@ -26,6 +26,13 @@
 % Creation date: Monday, February 15, 2010.
 
 
+% @doc Gathering of various <b>three dimensional "linear"</b> facilities.
+%
+% See `linear_3D_test.erl' for the corresponding test.
+%
+-module(linear_3D).
+
+
 
 % Design notes.
 
@@ -58,16 +65,6 @@
 %
 % See the point3:yup_point3/0 and vector3:yup_vector3/0 types, and
 % {point3,vector3}_to_yup/1 and yup_to_{point3,vector3}/1.
-
-
-
-
-
-% @doc Gathering of various <b>three dimensional "linear"</b> facilities.
-%
-% See `linear_3D_test.erl' for the corresponding test.
-%
--module(linear_3D).
 
 
 % For printout_*, inline_size, etc.:
