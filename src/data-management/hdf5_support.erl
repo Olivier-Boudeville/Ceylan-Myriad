@@ -1102,7 +1102,7 @@ read( DatasetName, DataType, TupleSize, File ) ->
 % @doc Reads the specified named dataset expected to contain strings, and
 % returns an (ordered) list of these strings.
 %
--spec read( ustring(), hdf5_file() ) -> [ ustring() ].
+-spec read_strings( ustring(), hdf5_file() ) -> [ ustring() ].
 read_strings( DatasetName, File ) ->
 
 	case erlhdf5:h5lt_read_dataset_string( File, DatasetName ) of
