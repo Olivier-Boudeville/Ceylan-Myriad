@@ -46,12 +46,12 @@
 % A typed tree is polymorphic according to its node content?
 
 
--type content_fold_fun() :: fun( ( node_content(), basic_utils:accumulator() )
-									-> basic_utils:accumulator() ).
+-type content_fold_fun() ::
+		fun( ( node_content(), accumulator() ) -> accumulator() ).
 % Describes a function that can be folded onto the content of trees.
 
 
--type height() :: basic_utils:count().
+-type height() :: count().
 % Height of a tree.
 
 
@@ -64,7 +64,11 @@
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
 -type accumulator() :: basic_utils:accumulator().
+
+-type ustring() :: text_utils:ustring().
 
 
 
@@ -183,7 +187,7 @@ height( _Tree={ _Content, Subtrees } ) ->
 
 % @doc Returns the total number of nodes that specified tree contains.
 %
--spec size( tree() ) -> basic_utils:count().
+-spec size( tree() ) -> count().
 %size( _Tree={ _Content, _Subtrees=[] } ) ->
 %	1;
 %
@@ -202,14 +206,14 @@ size( _Tree={ _Content, Subtrees }, Acc ) ->
 
 
 % @doc Returns a textual description of specified tree.
--spec to_string( tree() ) -> text_utils:ustring().
+-spec to_string( tree() ) -> ustring().
 to_string( Tree ) ->
 	% Is an io_list():
 	lists:flatten( to_string( Tree, _Prefix="" ) ).
 
 
 % Helper (ad hoc fold_breadth_first):
--spec to_string( tree(), string() ) -> text_utils:ustring().
+-spec to_string( tree(), ustring() ) -> ustring().
 to_string( _Tree={ Content, _SubTrees=[] }, Prefix ) ->
 	Prefix ++ text_utils:format( "+ leaf node '~p'~n", [ Content ] );
 
@@ -221,11 +225,11 @@ to_string( _Tree={ Content, SubTrees }, Prefix ) ->
 
 	ChildPrefix = [ "  " | Prefix ],
 
-	AllStrings = lists:foldl( fun( ChildTree, AccStrings ) ->
-										[ to_string( ChildTree, ChildPrefix ) |
-										  AccStrings ]
-								end,
-								_Acc0=[ ContentString ],
-								_List=SubTrees ),
+	AllStrings = lists:foldl(
+		fun( ChildTree, AccStrings ) ->
+			[ to_string( ChildTree, ChildPrefix ) | AccStrings ]
+		end,
+		_Acc0=[ ContentString ],
+		_List=SubTrees ),
 
 	lists:reverse( AllStrings ).
