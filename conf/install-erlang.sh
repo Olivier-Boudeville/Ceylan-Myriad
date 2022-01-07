@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2009-2021 Olivier Boudeville
+# Copyright (C) 2009-2022 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
@@ -233,6 +233,8 @@ set_wget()
 	fi
 
 }
+
+wget_opts="--progress=bar"
 
 
 
@@ -482,7 +484,7 @@ fi
 
 if [ -n "${nice_opt}" ]; then
 
-	echo "Warning: this installation is intentionally slowed down with 'nice' to avoid any overheat." 1>&2
+	echo "Warning: this installation is intentionally slowed down with 'nice' to better share computing resources." 1>&2
 
 fi
 
@@ -535,7 +537,7 @@ if [ $do_download -eq 0 ]; then
 
 		echo "Downloading now ${erlang_target_src_url}"
 		set_wget
-		if ! ${sudo_cmd} ${wget} "${erlang_target_src_url}" 1>/dev/null 2>&1; then
+		if ! ${sudo_cmd} ${wget} ${wget_opts} "${erlang_target_src_url}" ; then
 			echo "  Error while downloading ${erlang_target_src_url}, quitting." 1>&2
 			exit 15
 		fi
@@ -550,7 +552,7 @@ if [ $do_download -eq 0 ]; then
 
 			echo "Downloading now ${erlang_target_doc_url}"
 			set_wget
-			if ! ${sudo_cmd} ${wget} ${erlang_target_doc_url} 1>/dev/null 2>&1; then
+			if ! ${sudo_cmd} ${wget} ${wget_opts} ${erlang_target_doc_url}; then
 				echo "  Error while downloading ${erlang_target_doc_url}, quitting." 1>&2
 				exit 16
 			fi
