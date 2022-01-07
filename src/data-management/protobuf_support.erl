@@ -136,7 +136,7 @@ decode( SpecName, MessageType, BinSerialisation ) ->
 				UnknownFields ->
 					trace_utils:warning_fmt( "For following serialised "
 						"message: ~n~p "
-						"to be decoded as type '~ts' of specification '~s', "
+						"to be decoded as type '~ts' of specification '~ts', "
 						"following unknown fields were reported:~n ~p~n"
 						"(full decoded message: ~p)",
 						[ BinSerialisation, MessageType, SpecName,
