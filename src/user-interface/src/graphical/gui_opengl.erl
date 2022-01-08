@@ -1,4 +1,4 @@
-% Copyright (C) 2010-2022 Olivier Boudeville
+% Copyright (C) 2017-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -459,6 +459,8 @@ set_context( Canvas, Context ) ->
 % previous OpenGL commands is displayed on this window.
 %
 % The corresponding window must already be shown.
+%
+% A priori does not include any kind of gl:flush/0.
 %
 -spec swap_buffers( gl_canvas() ) -> void().
 swap_buffers( Canvas ) ->
