@@ -671,7 +671,7 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow,
 
 % @doc To be called whenever the OpenGL canvas has been resized.
 %
-% No OpenGL state in this clause:
+% No OpenGL state yet in this clause:
 on_canvas_resized( GLCanvas, _NewCancasSize, GUIState=#my_test_state{
 												context=GLContext,
 												image=Image,
@@ -697,13 +697,17 @@ on_canvas_resized( _GLCanvas, NewCanvasSize, GUIState ) ->
 
 
 
-% @doc Sets up OpenGL, once for all, once a proper current context has been set.
+% @doc Sets up OpenGL, once for all for a given canvas size, and once a proper
+% current context has been set.
+%
 -spec setup_opengl( gl_canvas(), image() ) -> my_opengl_test_state().
 setup_opengl( Canvas, Image ) ->
 
-	%trace_utils:debug( "Setting up OpenGL." ),
-
 	Size = gui:get_client_size( Canvas ),
+
+	trace_utils:debug_fmt( "Setting up OpenGL, based on canvas size ~w.",
+						   [ Size ] ),
+
 	reset_opengl_on_resize( Size ),
 
 	%trace_utils:debug( "A0" ), %timer:sleep( 500 ),
