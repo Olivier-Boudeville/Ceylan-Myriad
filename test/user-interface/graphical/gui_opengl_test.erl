@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2022 Olivier Boudeville
+% Copyright (C) 2013-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -135,6 +135,7 @@
 	sphere :: glu_id() } ).
 
 -type my_opengl_test_state() :: #my_opengl_test_state{}.
+% OpenGL-specific GUI test state.
 
 
 
@@ -459,7 +460,7 @@ get_logo_image_path() ->
 	file_utils:join( gui_image_test:get_test_image_directory(),
 					 "myriad-title.png" ).
 	%file_utils:join( gui_image_test:get_test_image_directory(),
-	%				 "myriad-minimal-enclosing-circle-test.png" ).
+	%                 "myriad-minimal-enclosing-circle-test.png" ).
 	%"erlang.png".
 
 
@@ -490,6 +491,13 @@ run_test_opengl() ->
 % @doc Runs the actual test.
 -spec run_actual_test() -> void().
 run_actual_test() ->
+
+	test_facilities:display( "Starting the actual OpenGL MyriadGUI test, "
+							 "from user process ~w.", [ self() ] ),
+
+	trace_utils:notice( "A frame comprising moving, textured rectangle, cube "
+		"and sphere, and displaying with the current time as well, "
+		"will be shown, until closed by the user." ),
 
 	gui:start(),
 
@@ -720,8 +728,7 @@ setup_opengl( Canvas, Image ) ->
 
 	TextTexture = gui_opengl:create_texture_from_text(
 		%"This is a MyriadGUI-textured text", Font, Brush, TextColor,
-		"MyriadGUI rocks!", Font, Brush, TextColor,
-		_Flip=true ),
+		"MyriadGUI rocks!", Font, Brush, TextColor, _Flip=true ),
 
 	ClockTexture =
 		get_clock_texture( time_utils:get_local_time(), Font, Brush ),
