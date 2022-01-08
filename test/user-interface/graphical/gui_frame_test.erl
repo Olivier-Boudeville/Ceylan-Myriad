@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2022 Olivier Boudeville
+% Copyright (C) 2013-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -33,23 +33,27 @@
 %
 % See the gui.erl tested module.
 %
--module(gui_simple_test).
+-module(gui_frame_test).
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
 
-% Here the main loop just has to remember the frame whose closing is awaited
-% for:
-%
 -type my_test_state() :: gui:frame().
+% Here the main loop just has to remember the frame whose closing is awaited
+% for.
 
 
+% @doc Executes the actual test.
+-spec run_test_gui() -> void().
 run_test_gui() ->
 
 	test_facilities:display( "~nStarting the actual simple MyriadGUI test, "
 							 "from ~w.", [ self() ] ),
+
+	trace_utils:notice( "Please close the fourth frame to end this test "
+		"(note that most frames may be one of top of the others)." ),
 
 	% We used to choose here to carry around the GUI state, whereas in general
 	% it is not necessary at all.
@@ -63,12 +67,10 @@ run_test_gui() ->
 	SecondFrame = gui:create_frame( "This is the second frame" ),
 
 	ThirdFrame = gui:create_frame( "This is the third frame",
-			_Position={ 50, 10 }, _Size={ 150, 200 }, _Style=[ default ] ),
+		_Position={ 50, 10 }, _Size={ 150, 200 }, _Style=[ default ] ),
 
 	FourthFrame = gui:create_frame( "This is the fourth frame" ),
 
-	trace_utils:notice( "Please close the fourth frame to end this test "
-		"(note that most frames may be one of top of the others)." ),
 
 	Frames = [ FirstFrame, SecondFrame, ThirdFrame, FourthFrame ],
 
@@ -84,7 +86,7 @@ run_test_gui() ->
 
 
 
-% A very simple main loop, whose actual state is simply the GUI object
+% @doc A very simple main loop, whose actual state is simply the GUI object
 % corresponding to the frame that shall be closed to stop the test
 % (i.e. CloseFrame).
 %
@@ -125,7 +127,7 @@ test_main_loop( CloseFrame ) ->
 
 
 
-% Runs the test.
+% @doc Runs the test.
 -spec run() -> no_return().
 run() ->
 
