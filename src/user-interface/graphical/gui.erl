@@ -1394,6 +1394,8 @@ sync( Window ) ->
 %
 % See [https://www.erlang.org/doc/man/wxpaintdc#description] for more details.
 %
+% Based on our tests, does not seem strictly necessary.
+%
 -spec enable_repaint( window() ) -> void().
 enable_repaint( Window ) ->
 	DC= wxPaintDC:new( Window ),
