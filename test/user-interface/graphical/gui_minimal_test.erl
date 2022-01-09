@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2022 Olivier Boudeville
+% Copyright (C) 2013-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -46,7 +46,7 @@ run_test_gui() ->
 		"~nStarting the actual minimal test of MyriadGUI, from ~w. ",
 		[ self() ] ),
 
-	trace_utils:notice( "An empty test frame shall appear; "
+	trace_utils:notice( "An empty, resizable test frame shall appear; "
 						"the test will end as soon as it is closed." ),
 
 	gui:start(),
