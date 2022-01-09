@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% @doc Testing the <b>OpenGL support</b>, more like an integration test.
+% @doc Testing the <b>OpenGL support</b>, as an integration test.
 %
 % See the gui_opengl.erl tested module.
 %
@@ -467,8 +467,8 @@ get_logo_image_path() ->
 
 
 % @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
+-spec run_opengl_integration_test() -> void().
+run_opengl_integration_test() ->
 
 	test_facilities:display( "~nStarting the integration test of "
 							 "OpenGL support." ),
@@ -494,8 +494,8 @@ run_opengl_test() ->
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	test_facilities:display( "Starting the actual OpenGL MyriadGUI test, "
-							 "from user process ~w.", [ self() ] ),
+	test_facilities:display( "Starting the actual OpenGL MyriadGUI "
+		"integration test, from user process ~w.", [ self() ] ),
 
 	trace_utils:notice( "A resizable frame will be shown, "
 		"comprising moving, textured rectangle, cube and sphere, "
@@ -553,7 +553,7 @@ init_test_gui() ->
 							   MainFrame } ),
 
 	% (on Apple's Cocoa, subscribing to onRepaintNeeded might be required)
-	%gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
+	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
 	StatusBar = gui:create_status_bar( MainFrame ),
 
@@ -579,6 +579,33 @@ gui_main_loop( GUIState ) ->
 
 	% Matching the least-often received messages last:
 	receive
+
+
+		% Not strictly necessary, as anyway a regular redraw is to happen soon
+		% afterwards:
+		%
+		{ onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
+
+			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
+			%                       [ GLCanvas ] ),
+
+			RepaintedGUIState = case GUIState#my_gui_state.opengl_state of
+
+				% Not ready yet:
+				undefined ->
+					trace_utils:debug( "To be repainted, "
+									   "yet no OpenGL state yet." ),
+					GUIState;
+
+				GLState ->
+					gui:enable_repaint( GLCanvas ),
+					% Includes the GL flushing and the buffer swaping:
+					render( GLState ),
+					GUIState
+
+			end,
+			gui_main_loop( RepaintedGUIState );
+
 
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
@@ -623,16 +650,6 @@ gui_main_loop( GUIState ) ->
 				  gui_opengl:get_shading_language_version() ] ),
 
 			gui_main_loop( InitGUIState );
-
-
-		% onRepaintNeeded not listened to for the canvas:
-		%
-		% { onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
-		%   trace_utils:debug( "Canvas repaint needed." ),
-		%   GLContext = GUIState#my_gui_state.context,
-		%   gui_opengl:set_context( GLCanvas, GLContext ),
-		%   gui:enable_repaint( GLCanvas ),
-		%   gui_main_loop( GUIState );
 
 
 		{ onWindowClosed, [ ParentWindow, _EventContext ] } ->
@@ -684,6 +701,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% So done only once:
 	gui_opengl:set_context( GLCanvas, GLContext ),
 
+	% These settings will not change afterwards (set once for all):
+
 	%trace_utils:debug( "A0" ), %timer:sleep( 500 ),
 
 	gl:enable( ?GL_DEPTH_TEST ),
@@ -732,7 +751,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	InitGUIState = GUIState#my_gui_state{ opengl_state=InitialGLState },
 
-	% Used here and if/when an actual resizing takes place:
+	% As the initial onResized was triggered whereas no OpenGL state was
+	% already available:
+	%
 	on_main_frame_resized( InitGUIState ).
 
 
@@ -742,7 +763,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 % OpenGL context expected here to have already been set.
 %
 -spec on_main_frame_resized( my_gui_state() ) -> my_gui_state().
-% No OpenGL state yet in this clause:
 on_main_frame_resized( GUIState=#my_gui_state{ panel=Panel,
 											   canvas=GLCanvas } ) ->
 
@@ -853,8 +873,8 @@ get_clock_texture( Time, Font, Brush ) ->
 
 
 
-% @doc Performs a (pure OpenGL) rendering, based on the specified (const) OpenGL
-% state.
+% @doc Performs a ("pure OpenGL") rendering, based on the specified (const)
+% OpenGL state.
 %
 -spec render( my_opengl_state() ) -> void().
 render( #my_opengl_state{ window=Window,
@@ -930,13 +950,8 @@ render( #my_opengl_state{ window=Window,
 	glu:sphere( SphereId, 0.8, 50,40 ),
 	gl:popMatrix(),
 
-	% Ensures that the drawing commands are actually executed, rather than
-	% stored in a buffer awaiting additional OpenGL commands:
-	%
-	gl:flush(),
-
 	% Can be done here, as window-related (actually: GLCanvas) information were
-	% already necessary anyway:
+	% already necessary anyway; includes a gl:flush/0:
 	%
 	gui_opengl:swap_buffers( Window ).
 
@@ -955,7 +970,7 @@ run() ->
 				"(not running the OpenGL test, being in batch mode)" );
 
 		false ->
-			run_opengl_test()
+			run_opengl_integration_test()
 
 	end,
 
