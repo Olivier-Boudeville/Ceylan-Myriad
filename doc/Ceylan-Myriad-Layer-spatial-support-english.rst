@@ -189,12 +189,17 @@ By default, we consider right-handed Cartesian coordinate systems, and we rely o
 
 .. [#] Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.
 
-In 2D, typically for on-screen coordinates (ex: when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes [#]_:
+
+.. _`2D referential`:
+
+In 2D, typically for on-screen coordinates (ex: when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero [#]_:
 
 :raw-html:`<center><img src="myriad-2D-referential.png" id="responsive-image-xsmall"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-2D-referential} \end{figure}`
 
 .. [#] This 2D referential corresponds to the base space-time one, when the viewpoint is located in the negative Z axis and looks at the origin.
+
+	   One may also refer to ``gui_opengl:enter_2d_mode/1`` to apply these conventions.
 
 
 For each of the spatial dimensions of interest, generally ``1.0`` corresponds to 1 meter, otherwise to 1 `light-second <https://en.wikipedia.org/wiki/Light-second>`_ (i.e. roughly 300 000 km [#]_).
