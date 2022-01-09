@@ -58,7 +58,7 @@
 %
 % (no OpenGL-specific state to store, like vertices, textures or alike)
 %
--record( my_test_state, {
+-record( my_gui_state, {
 
 	% The main window of this test:
 	parent :: window(),
@@ -69,9 +69,12 @@
 	% The OpenGL context being used:
 	context :: gl_context(),
 
+	% Here just a boolean; in more complex cases, would be a maybe OpenGL state
+	% (ex: to store the loaded textures):
+	%
 	opengl_initialised = false :: boolean() } ).
 
--type my_test_state() :: #my_test_state{}.
+-type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.
 
 
@@ -117,9 +120,10 @@ run_actual_test() ->
 
 	gui:start(),
 
+	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
 
-	gui:show( InitialGUIState#my_test_state.parent ),
+	gui:show( InitialGUIState#my_gui_state.parent ),
 
 	% OpenGL will be initialised only when the corresponding frame will be ready
 	% (that is once first reported as resized):
@@ -130,11 +134,13 @@ run_actual_test() ->
 
 
 
-% @doc Creates the initial test GUI: a main frame containing an OpenGL canvas is
-% associated, in which an OpenGL context is created.
+% @doc Creates the initial test GUI: a main frame containing an OpenGL canvas to
+% which an OpenGL context is associated.
 %
-% Once the rendering is done, the buffer are swapped and it is displayed.
+% Once the rendering is done, the buffers are swapped, and the content is
+% displayed.
 %
+-spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
 	MainFrame = gui:create_frame( "MyriadGUI Minimal OpenGL Test" ),
@@ -142,22 +148,22 @@ init_test_gui() ->
 	% Using default GL attributes:
 	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame ),
 
-	% Created, yet not bound yet:
+	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
 
 	gui:subscribe_to_events( { [ onResized, onShown, onWindowClosed ],
 							   MainFrame } ),
 
-	% No OpenGL state yet (GL context not set as current yet):
-	#my_test_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext }.
+	% No OpenGL state yet (GL context cannot be set as current yet):
+	#my_gui_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext }.
 
 
 
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
 % messages.
 %
--spec gui_main_loop( my_test_state() ) -> void().
-gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow } ) ->
+-spec gui_main_loop( my_gui_state() ) -> void().
+gui_main_loop( GUIState ) ->
 
 	%trace_utils:debug( "Main loop." ),
 
@@ -167,12 +173,12 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow } ) ->
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
 		%
-		{ onResized, [ ParentWindow, _NewParentSize, _EventContext ] } ->
+		{ onResized, [ _ParentWindow, _NewParentSize, _EventContext ] } ->
 
-			%trace_utils:debug_fmt( "Resizing of the parent window to ~w "
-			%   "detected.", [ NewParentSize ] ),
+			%trace_utils:debug_fmt( "Resizing of the parent window "
+			%   (main frame) "to ~w detected.", [ NewParentSize ] ),
 
-			case GUIState#my_test_state.opengl_initialised of
+			ResizedGUIState = case GUIState#my_gui_state.opengl_initialised of
 
 				true ->
 					on_main_frame_resized( GUIState );
@@ -180,11 +186,11 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow } ) ->
 				% Not ready yet:
 				false ->
 					trace_utils:debug( "Resized, yet no OpenGL state yet." ),
-					ok
+					GUIState
 
 			end,
 
-			gui_main_loop( GUIState );
+			gui_main_loop( ResizedGUIState );
 
 
 		% The most suitable first location to initialise OpenGL, as making a GL
@@ -192,17 +198,18 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow } ) ->
 		%
 		{ onShown, [ ParentWindow, _EventContext ] } ->
 
-			trace_utils:debug_fmt( "Parent window just shown "
+			trace_utils:debug_fmt( "Parent window (main frame) just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
 
 			% Done once for all:
-			NewGUIState = setup_opengl( GUIState ),
+			InitGUIState = initialise_opengl( GUIState ),
 
-			gui_main_loop( NewGUIState );
+			gui_main_loop( InitGUIState );
 
 
 		{ onWindowClosed, [ ParentWindow, _EventContext ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
+			% No more recursing:
 			gui:destruct_window( ParentWindow );
 
 
@@ -212,26 +219,27 @@ gui_main_loop( GUIState=#my_test_state{ parent=ParentWindow } ) ->
 
 			gui_main_loop( GUIState )
 
+	% No 'after': no spontaneous action taken, in the absence of events.
+
 	end.
 
 
 
-
-% @doc Sets up OpenGL, once a proper current context has been set.
--spec setup_opengl( my_test_state() ) ->  my_test_state().
-setup_opengl( TestState=#my_test_state{ parent=_MainFrame,
-										canvas=GLCanvas,
-										context=GLContext,
-										% Check:
-										opengl_initialised=false } ) ->
+% @doc Sets up OpenGL, once for all, once a proper OpenGL context is available.
+-spec initialise_opengl( my_gui_state() ) -> my_gui_state().
+initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
+										   context=GLContext,
+										   % Check:
+										   opengl_initialised=false } ) ->
 
 	% Initial size of canvas is typically 20x20 pixels:
-	trace_utils:debug_fmt( "Setting up OpenGL (whereas canvas is of initial "
+	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
 						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
 
+	% So done only once:
 	gui_opengl:set_context( GLCanvas, GLContext ),
 
-	% These settings will not change afterwards (set once for all):
+	% These settings will not change afterwards here (set once for all):
 
 	% Clears in black:
 	gl:clearColor( 0.0, 0.0, 0.0, 0.0 ),
@@ -252,18 +260,21 @@ setup_opengl( TestState=#my_test_state{ parent=_MainFrame,
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
 
-	% Used here and when an actual resizing takes place:
-	on_main_frame_resized( TestState ),
+	InitGUIState = GUIState#my_gui_state{ opengl_initialised=true },
 
-	TestState#my_test_state{ opengl_initialised=true }.
+	% Used here and if/when an actual resizing takes place:
+	on_main_frame_resized( InitGUIState ).
 
 
 
 % @doc Managing a resizing of the main frame.
--spec on_main_frame_resized( my_test_state() ) -> void().
-on_main_frame_resized( #my_test_state{ canvas=GLCanvas } ) ->
+%
+% OpenGL context expected here to have already been set.
+%
+-spec on_main_frame_resized( my_gui_state() ) -> my_gui_state().
+on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 
-	% Maximises then canvas in the main frame:
+	% Maximises the canvas in the main frame:
 	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
 
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
@@ -284,15 +295,26 @@ on_main_frame_resized( #my_test_state{ canvas=GLCanvas } ) ->
 	%
 	gui:sync( GLCanvas ),
 
+	% Any OpenGL reset to be done because of the resizing should take place
+	% here.
+
 	render(),
 
-	gui_opengl:swap_buffers( GLCanvas ).
+	gui_opengl:swap_buffers( GLCanvas ),
+
+	% Const here:
+	GUIState.
 
 
 
 % @doc Performs a (pure OpenGL) rendering.
+%
+% In this simple case, no specific OpenGL state is needed to pass around.
+%
 -spec render() -> void().
 render() ->
+
+	%trace_utils:debug( "Rendering now." ),
 
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
@@ -307,7 +329,12 @@ render() ->
 	% Ensures that the drawing commands are actually executed, rather than
 	% stored in a buffer awaiting additional OpenGL commands:
 	%
-	gl:flush().
+	gl:flush(),
+
+	% Not swapping buffers here, as would involve GLCanvas, whereas this
+	% function is meant to remain pure OpenGL.
+
+	ok.
 
 
 
