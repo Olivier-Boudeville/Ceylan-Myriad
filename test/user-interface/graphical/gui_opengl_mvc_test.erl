@@ -145,6 +145,7 @@
 
 
 -type test_pid() :: pid().
+% PID of the main test process.
 
 
 % Shorthands:
@@ -192,10 +193,16 @@ run_opengl_mvc_test() ->
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	test_facilities:display( "This test will display a rotated textured "
-		"square, managed according to the MVC design pattern." ),
+	test_facilities:display( "Starting the actual OpenGL MyriadGUI "
+		"MVC test, from user process ~w.", [ self() ] ),
 
-	% Evaluates the model at 40 Hz, as it must be spontaneously scheduled:
+	trace_utils:notice( "A rotating textured square will be rendered, "
+		"managed according to the MVC design pattern, "
+		"until the frame is closed by the user." ),
+
+	% Evaluates the model at 40 Hz, as it must be scheduled for its spontaneous
+	% behaviour:
+	%
 	ModelEvalFreq = 40,
 
 	% Evaluates the view at 60 Hz, as rendering must be spontaneously updated:
@@ -216,14 +223,15 @@ run_actual_test() ->
 									run_controller( ModelPid, TestPid )
 								end ),
 
-	% A view depends on the model; it also knows the controller also, just in
-	% order to notify it of the main frame (that the controller has to subscribe
-	% to):
+	% A view depends on the model; it also knows the controller, so that it can
+	% send it a reference to the main frame (as the controller has to subscribe
+	% to it in order to monitor any closing thereof):
 	%
 	_ViewPid = spawn_link( fun() ->
 							run_view( ViewEvalFreq, ModelPid, ControllerPid )
-						  end ),
+						   end ),
 
+	% Just block from now:
 	trace_utils:debug_fmt( "[~w] Test process waiting for the controller "
 		"to report when the test is finished.", [ TestPid ] ),
 
@@ -234,8 +242,8 @@ run_actual_test() ->
 			trace_utils:debug_fmt( "[~w] Test reported by the controller "
 				"as having finished successfully.", [ TestPid ] ),
 
-			% Controller driving the termination of the model and of the view by
-			% itself.
+			% The controller is already driving the (asynchronous) termination
+			% of the model and of the view by itself.
 
 			trace_utils:debug_fmt( "[~w] Test finished.", [ TestPid ] ),
 			test_facilities:stop()
@@ -259,7 +267,7 @@ run_model( EvalFrequency ) ->
 	InitialModelState = #model_state{ scheduling_period=Period },
 
 	trace_utils:debug_fmt( "[~w] Model entering its main loop "
-		"(evaluation frequency: ~B Hz, hence period: ~B ms).",
+		"(evaluation frequency: ~B Hz, hence a period of ~B ms).",
 		[ self(), EvalFrequency, Period ] ),
 
 	model_main_loop( InitialModelState ).
@@ -296,10 +304,11 @@ model_main_loop( ModelState=#model_state{ spin_angle=Angle,
 	case handle_pending_model_requests( SpinModelState ) of
 
 		model_terminated ->
-			% Not recursing, hence terminating:
+			% Not recursing anymore, hence terminating:
 			trace_utils:debug_fmt( "[~w] Model terminated.", [ self() ] );
 
 		ReqModelState ->
+			% Enforce model frequency:
 			time_utils:wait_period_ending( MsStartScheduling, MsPeriod ),
 
 			model_main_loop( ReqModelState )
@@ -309,8 +318,10 @@ model_main_loop( ModelState=#model_state{ spin_angle=Angle,
 
 
 % @doc Handles any model-level pending requests.
--spec handle_pending_model_requests( model_state() ) -> model_state().
+-spec handle_pending_model_requests( model_state() ) ->
+				model_state() | 'model_terminated'.
 handle_pending_model_requests( ModelState ) ->
+
 	receive
 
 		% As a matter of fact, complies (purposedly) to the WOOPER
@@ -327,8 +338,7 @@ handle_pending_model_requests( ModelState ) ->
 			trace_utils:debug_fmt( "[~w] Model notified of termination.",
 								   [ self()] ),
 
-			% No specific terlmiantion
-			% No recursing:
+			% No specific termination:
 			model_terminated
 
 	after 0 ->
@@ -364,11 +374,11 @@ run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 												scheduling_period=Period },
 
 	trace_utils:debug_fmt( "[~w] View entering its main loop "
-		"(evaluation frequency: ~B Hz, hence period: ~B ms).",
+		"(evaluation frequency: ~B Hz, hence a period of ~B ms).",
 		[ self(), EvalFrequency, Period ] ),
 
 	% OpenGL will be initialised only when the corresponding frame will be ready
-	% (that is once first reported as resized):
+	% (that is once reported as shown):
 	%
 	view_main_loop( InitialViewState ).
 
@@ -400,6 +410,11 @@ init_test_gui() ->
 	%
 	gui:subscribe_to_events( { [ onResized, onShown ], MainFrame } ),
 
+	% Needed, otherwise if that frame is moved out of the screen or if another
+	% windows overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
+	%
+	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
+
 	gui:show( MainFrame ),
 
 	% No OpenGL state yet (GL context not set as current yet):
@@ -420,13 +435,14 @@ view_main_loop( ViewState=#view_state{ scheduling_period=MsPeriod } ) ->
 	case handle_pending_view_events( ViewState ) of
 
 		view_terminated ->
-			% Not recursing, hence terminating:
+			% Not recursing anymore, hence terminating:
 			trace_utils:debug_fmt( "[~w] View terminated.", [ self() ] );
 
 		UpdatedViewState ->
 
 			render_view( UpdatedViewState ),
 
+			% Enforce view frequency:
 			time_utils:wait_period_ending( MsStartScheduling, MsPeriod ),
 
 			view_main_loop( UpdatedViewState )
@@ -436,10 +452,38 @@ view_main_loop( ViewState=#view_state{ scheduling_period=MsPeriod } ) ->
 
 
 % @doc Handles any view-level pending events.
+-spec handle_pending_view_events( view_state() ) ->
+				view_state() | 'view_terminated'.
 handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 
 	% Matching the least-often received messages last:
 	receive
+
+		% Not strictly necessary, as anyway a regular redraw is to happen soon
+		% afterwards:
+		%
+		{ onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
+
+			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
+			%                       [ GLCanvas ] ),
+
+			RepaintedViewState = case ViewState#view_state.opengl_state of
+
+				% Not ready yet:
+				undefined ->
+					trace_utils:debug( "To be repainted, "
+									   "yet no OpenGL state yet." ),
+					ViewState;
+
+				_GLState ->
+					gui:enable_repaint( GLCanvas ),
+					% Includes the GL flushing and the buffer swaping:
+					render_view( ViewState ),
+					ViewState
+
+			end,
+			handle_pending_view_events( RepaintedViewState );
+
 
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
@@ -449,19 +493,19 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 			trace_utils:debug_fmt( "Resizing of the parent window to ~w "
 				"detected.", [ NewParentSize ] ),
 
-			case ViewState#view_state.opengl_state of
+			ResizedViewState = case ViewState#view_state.opengl_state of
 
 				% Not ready yet:
 				undefined ->
 					trace_utils:debug( "Resized, yet no OpenGL state yet." ),
-					ok;
+					ViewState;
 
 				_ ->
 					on_main_frame_resized( ViewState )
 
 			end,
 
-			handle_pending_view_events( ViewState );
+			handle_pending_view_events( ResizedViewState );
 
 
 		% The most suitable first location to initialise OpenGL, as making a GL
@@ -476,11 +520,8 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 			gui_opengl:set_context( ViewState#view_state.canvas,
 									ViewState#view_state.context ),
 
-			NewViewState = setup_opengl( ViewState ),
+			NewViewState = initialise_opengl( ViewState ),
 
-			% As the initial onResized was triggered whereas no OpenGL state was
-			% already available:
-			%
 			on_main_frame_resized( NewViewState ),
 
 			handle_pending_view_events( NewViewState );
@@ -511,16 +552,16 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 	end.
 
 
-% @doc Sets up OpenGL, once for all (even regardless of future resizes).
--spec setup_opengl( view_state() ) -> view_state().
-setup_opengl( ViewState=#view_state{ %parent=MainFrame,
-									 canvas=GLCanvas,
-									 context=GLContext,
-									 % Check:
-									 opengl_state=undefined } ) ->
+
+% @doc Sets up OpenGL, once for all, once a proper OpenGL context is available.
+-spec initialise_opengl( view_state() ) -> view_state().
+initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
+										  context=GLContext,
+										  % Check:
+										  opengl_state=undefined } ) ->
 
 	% Initial size of canvas is typically 20x20 pixels:
-	trace_utils:debug_fmt( "Setting up OpenGL (whereas canvas is of initial "
+	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
 						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
 
 	gui_opengl:set_context( GLCanvas, GLContext ),
@@ -559,13 +600,21 @@ setup_opengl( ViewState=#view_state{ %parent=MainFrame,
 	%   gui_opengl_test:get_logo_image_path() ),
 	Texture=fixme,
 
-	ViewState#view_state{ opengl_state=Texture }.
+	InitViewState = ViewState#view_state{ opengl_state=Texture },
+
+	% As the initial onResized was triggered whereas no OpenGL state was
+	% already available:
+	%
+	on_main_frame_resized( InitViewState ).
 
 
 
 % @doc Managing a resizing of the main frame.
--spec on_main_frame_resized( view_state() ) -> void().
-on_main_frame_resized( _ViewState=#view_state{ canvas=GLCanvas } ) ->
+%
+% OpenGL context expected here to have already been set.
+%
+-spec on_main_frame_resized( view_state() ) -> view_state().
+on_main_frame_resized( ViewState=#view_state{ canvas=GLCanvas } ) ->
 
 	% OpenGL state expected to be ready here:
 	%basic_utils:check_defined( Texture ),
@@ -592,14 +641,22 @@ on_main_frame_resized( _ViewState=#view_state{ canvas=GLCanvas } ) ->
 	%
 	gui:sync( GLCanvas ),
 
-	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ).
+	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
+
+	% No specific other view-related update.
+
+	% Includes the swapping of buffers:
+	render_view( ViewState ),
+
+	% Const:
+	ViewState.
 
 
 
-% @doc Performs a (pure OpenGL) rendering of the view.
+% @doc Performs a ("pure OpenGL") rendering of the view.
 -spec render_view( view_state() ) -> void().
 render_view( #view_state{ opengl_state=undefined } ) ->
-	% Not ready yet.
+	% Not ready yet, no GL context available before the main frame is shown:
 	ok;
 
 render_view( #view_state{ canvas=GLCanvas,
@@ -641,13 +698,9 @@ render_view( #view_state{ canvas=GLCanvas,
 
 	gl:popMatrix(),
 
-	% Ensures that the drawing commands are actually executed, rather than
-	% stored in a buffer awaiting additional OpenGL commands:
+	% Can be done here, as window-related (actually: GLCanvas) information were
+	% already necessary anyway; includes a gl:flush/0:
 	%
-	% (probably useless)
-	%
-	%gl:flush(),
-
 	gui_opengl:swap_buffers( GLCanvas ).
 
 
@@ -669,9 +722,9 @@ run_controller( ModelPid, TestPid ) ->
 
 	trace_utils:debug_fmt( "[~w] Controller started.", [ self() ] ),
 
-	% Sent by the view:
 	receive
 
+		% Expected to be triggered by the view:
 		{ notifyViewInformation, [ ViewPid, MainFrame, GUIEnv ] } ->
 
 			trace_utils:debug_fmt( "[~w] Controller received view-related "
@@ -686,10 +739,9 @@ run_controller( ModelPid, TestPid ) ->
 			gui:subscribe_to_events( { onWindowClosed, MainFrame } ),
 
 			% Not storing specifically the main frame:
-			InitialControllerState = #controller_state{
-				model_pid=ModelPid,
-				view_pid=ViewPid,
-				test_pid=TestPid },
+			InitialControllerState = #controller_state{ model_pid=ModelPid,
+														view_pid=ViewPid,
+														test_pid=TestPid },
 
 			controller_main_loop( InitialControllerState )
 
@@ -697,7 +749,7 @@ run_controller( ModelPid, TestPid ) ->
 
 
 
-% @doc The main loop of the controller controller, driven by the receiving of
+% @doc The main loop of the controller process, driven by the receiving of
 % MyriadGUI messages relating to user inputs.
 %
 -spec controller_main_loop( controller_state() ) -> void().
@@ -719,6 +771,7 @@ controller_main_loop( ControllerState ) ->
 			ControllerState#controller_state.test_pid ! onTestSuccess,
 
 			trace_utils:debug_fmt( "[~w] Controller terminated.", [ self() ] );
+
 
 		OtherEvent ->
 			trace_utils:warning_fmt( "[~w] Controller ignored the following "
