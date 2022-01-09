@@ -220,7 +220,7 @@ So a prerequisite is that the local host enjoys at least some kind of **OpenGL s
 
 .. _`OpenGL troubleshooting`:
 
-Just run our ``gui_opengl_test.erl`` test to have the detected local configuration examined. One should refer to our HOWTO section `about 3D operating system support <http://howtos.esperide.org/ThreeDimensional.html#os-support>`_ for detailed information and troubleshooting guidelines.
+Just run our ``gui_opengl_integration_test.erl`` test to have the detected local configuration examined. One should refer to our HOWTO section `about 3D operating system support <http://howtos.esperide.org/ThreeDimensional.html#os-support>`_ for detailed information and troubleshooting guidelines.
 
 As for the **Erlang side** of this OpenGL support, one may refer to `this section <https://www.erlang.org/doc/man/wxglcanvas#description>`_ to ensure that the Erlang build at hand has indeed its OpenGL support enabled.
 
@@ -238,11 +238,19 @@ The Myriad OpenGL utilities are defined in the ``gui_opengl`` module; the many O
 
 These utilities directly relate to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
 
-The ``gui_opengl_test.erl`` offers a complete usage example.
+Various tests offer usage examples of the MyriadGUI API for 3D rendering:
+
+- ``gui_opengl_minimal_test.erl`` runs a minimal test showcasing the proper local OpenGL support, based on normalised coordinates (in [0.0,1.0])
+- ``gui_opengl_2D_test.erl`` is a 2D test operating with absolute (non-normalised) coordinates
+- ``gui_opengl_integration_test.erl`` demonstrates more features (quadrics, textures, etc.)
+- ``gui_opengl_mvc_test.erl`` proposes a MVC architecture (`Model-View-Controller <https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller>`_) where these three elements are uncoupled in separate processes yet are properly interlinked, the view relying on the MyriadGUI OpenGL support
 
 .. Note:: Almost all OpenGL operations require that an OpenGL context already exists. When it is done, all GL/GLU operations can be done as usual.
 
 		 So the point of MyriadGUI here is mostly to create a suitable OpenGL context, offer a few additional, higher-level, stricter constructs to ease the integration and use, and to connect this rendering capability to the rest of the GUI (ex: regarding event management).
+
+		 See also our `HOWTO section about OpenGL <https://howtos.esperide.org/ThreeDimensional.html#opengl-corner>`_.
+
 
 
 Configuration
