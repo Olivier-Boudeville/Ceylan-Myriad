@@ -460,10 +460,22 @@ set_context( Canvas, Context ) ->
 %
 % The corresponding window must already be shown.
 %
-% A priori does not include any kind of gl:flush/0.
+% Includes a gl:flush/0.
 %
 -spec swap_buffers( gl_canvas() ) -> void().
 swap_buffers( Canvas ) ->
+
+	% wxGLCanvas:swapBuffers/1 may or may not include any kind of gl:flush/0; so
+	% it is preferable to trigger one by ourselves.
+
+	% Ensures that the drawing commands are actually directly triggered
+	% (i.e. started, not necessarily completed; use gl:finish/0 to make this
+	% operation synchronous, i.e. to wait for its end) rather than stored in a
+	% buffer awaiting additional OpenGL commands:
+	%
+	gl:flush(),
+	% More expensive, as blocks: gl:finish(),
+
 	case wxGLCanvas:swapBuffers( Canvas ) of
 
 		true ->
@@ -665,25 +677,36 @@ render_texture( Texture, _Pos={X,Y} ) ->
 render_texture( #texture{ id=TextureId,
 						  width=Width,
 						  height=Height,
-						  min_x=MinX,
-						  min_y=MinY,
-						  max_x=MaxX,
-						  max_y=MaxY }, X, Y ) ->
+						  min_x=MinXt,
+						  min_y=MinYt,
+						  max_x=MaxXt,
+						  max_y=MaxYt }, Xp, Yp ) ->
+
+	%trace_utils:debug_fmt( "Rendering texture ~w (size: ~wx~w), from {~w,~w} "
+	%   "to {~w,~w}.", [ TextureId, Width, Height, MinX, MinY, MaxX, MaxY ] ),
 
 	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
 
-	% Covers the rectangular texture area thanks to two triangles:
+	% Covers the rectangular texture area thanks to two (right-angled) triangles
+	% sharing an edge:
+	%
+	% (a glRect*() might be relevant as well)
+	%
 	gl:'begin'( ?GL_TRIANGLE_STRIP ),
 
-	OtherX = X + Width div 2,
-	OtherY = Y + Height div 2,
+	OtherXp = Xp + Width div 2,
+	OtherYp = Yp + Height div 2,
+	%OtherXp = Xp + Width,
+	%OtherY = Yp + Height,
 
-	gl:texCoord2f( MinX, MinY ), gl:vertex2i( X, Y ),
-	gl:texCoord2f( MaxX, MinY ), gl:vertex2i( OtherX, Y ),
-	gl:texCoord2f( MinX, MaxY ), gl:vertex2i( X, OtherY ),
-	gl:texCoord2f( MaxX, MaxY ), gl:vertex2i( OtherX, OtherY ),
+	% Associating a (2D) texture coordinate to each vertex:
+	gl:texCoord2f( MinXt, MinYt ), gl:vertex2i( Xp, Yp ),
+	gl:texCoord2f( MaxXt, MinYt ), gl:vertex2i( OtherXp, Yp ),
+	gl:texCoord2f( MinXt, MaxYt ), gl:vertex2i( Xp, OtherYp ),
+	gl:texCoord2f( MaxXt, MaxYt ), gl:vertex2i( OtherXp, OtherYp ),
 
 	gl:'end'().
+
 
 
 % @doc Deletes the specified texture.
@@ -753,6 +776,8 @@ render_mesh( #mesh{ vertices=Vertices,
 % state changes, and specific to modelview (which is reset) and to projection (a
 % projection matrix relevant for 2D operations is applied).
 %
+% Refer to https://myriad.esperide.org/#2d-referential for more details.
+%
 -spec enter_2d_mode( window() ) -> void().
 enter_2d_mode( Window ) ->
 
@@ -779,30 +804,37 @@ enter_2d_mode( Window ) ->
 	gl:pushMatrix(),
 	gl:loadIdentity(),
 
-	% In all referentials mentioned, abscissas are to increase when going from
-	% left to right.
+	% In all MyriadGUI referentials mentioned, abscissas are to increase when
+	% going from left to right.
 	%
 	% As for ordinates, with the Myriad 2D referential (refer to the 'Geometric
 	% Conventions' in Myriad's technical manual), like for the backend
-	% coordinates (ex: SDL, Wxwidgets), they are to increase when going from top
+	% coordinates (ex: SDL, wxWidgets), they are to increase when going from top
 	% to bottom.
 	%
-	% It is the opposite by default with OpenGL (increasing from bottom to up;
+	% It is the opposite by default with OpenGL (increasing from bottom to top;
 	% the elements would therefore be upside-down in the OpenGL world), so in
-	% the orthogonal projection bottom and top coordinates are mirrored; then
-	% OpenGL complies with the previous convention.
+	% the next orthogonal projection bottom and top coordinates are mirrored;
+	% then OpenGL complies with the previous convention.
 	%
 	% Doing so is more relevant than flipping the textures/images themselves, as
 	% the projection also applies to mouse coordinates.
 
-	% Multiplies the projection matrix with this orthographic one:
+	% Multiplies the projection matrix with this orthographic one, assuming that
+	% the eye is located at (0, 0, 0):
+	%
+	% (corresponds to glu:ortho2D/4)
+	%
 	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
-			  _Top=0.0, _Near=0.0, _Far=1.0 ),
+			  _Top=0.0, _Near=-1.0, _Far=1.0 ),
+
 
 	% Then reseting the modelview matrix:
 	gl:matrixMode( ?GL_MODELVIEW ),
 	gl:pushMatrix(),
-	gl:loadIdentity().
+	gl:loadIdentity(),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 
 
