@@ -36,6 +36,9 @@
 %
 % See the gui_opengl.erl tested module.
 %
+% See gui_opengl_minimal_test.erl for a similar 2D test yet operating with
+% absolute (non-normalised coordinates).
+%
 -module(gui_opengl_minimal_test).
 
 
@@ -143,7 +146,8 @@ run_actual_test() ->
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame( "MyriadGUI Minimal OpenGL Test" ),
+	MainFrame = gui:create_frame( "MyriadGUI Minimal OpenGL Test",
+								  _Size={ 500, 250 } ),
 
 	% Using default GL attributes:
 	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame ),
@@ -153,6 +157,11 @@ init_test_gui() ->
 
 	gui:subscribe_to_events( { [ onResized, onShown, onWindowClosed ],
 							   MainFrame } ),
+
+	% Needed, otherwise if that frame is moved out of the screen or if another
+	% windows overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
+	%
+	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet):
 	#my_gui_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext }.
@@ -169,6 +178,30 @@ gui_main_loop( GUIState ) ->
 
 	% Matching the least-often received messages last:
 	receive
+
+
+		{ onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
+
+			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
+			%                       [ GLCanvas ] ),
+
+			RepaintedGUIState = case GUIState#my_gui_state.opengl_initialised of
+
+				true ->
+					gui:enable_repaint( GLCanvas ),
+					render(),
+					gui_opengl:swap_buffers( GLCanvas ),
+					GUIState;
+
+				% Not ready yet:
+				false ->
+					trace_utils:debug( "To be repainted, "
+									   "yet no OpenGL state yet." ),
+					GUIState
+
+			end,
+			gui_main_loop( RepaintedGUIState );
+
 
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
@@ -252,7 +285,13 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Multiplies the current modelview matrix by an orthographic matrix, a
 	% perspective matrix that produces a parallel projection based on 6 clipping
-	% planes:
+	% planes.
+	%
+	% Here coordinates are normalised in [0.0,1.0] and as such are
+	% definition-independent (resizing the frame and then the viewport will not
+	% affect them).
+	%
+	% Like glu:ortho2D/4:
 	%
 	gl:ortho( _Left=0.0, _Right=1.0, _Bottom=0.0, _Top=1.0, _Near=-1.0,
 			  _Far=1.0 ),
@@ -262,7 +301,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	InitGUIState = GUIState#my_gui_state{ opengl_initialised=true },
 
-	% Used here and if/when an actual resizing takes place:
+	% As the initial onResized was triggered whereas no OpenGL state was
+	% already available:
+	%
 	on_main_frame_resized( InitGUIState ).
 
 
@@ -297,9 +338,13 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 
 	% Any OpenGL reset to be done because of the resizing should take place
 	% here.
+	%
+	% Using normalised coordinates (in [0.0,1.0]), so no need to update the
+	% orthographic projection.
 
 	render(),
 
+	% Includes a gl:flush/0:
 	gui_opengl:swap_buffers( GLCanvas ),
 
 	% Const here:
@@ -326,13 +371,11 @@ render() ->
 		gl:vertex3f( 0.25, 0.75, 0.0 ),
 	gl:'end'(),
 
-	% Ensures that the drawing commands are actually executed, rather than
-	% stored in a buffer awaiting additional OpenGL commands:
-	%
-	gl:flush(),
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.
+	%
+	% gl:flush/0 done when swapping buffers.
 
 	ok.
 
