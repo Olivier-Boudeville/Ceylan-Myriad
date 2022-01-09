@@ -91,9 +91,11 @@
 	% The OpenGL context being used:
 	context :: gl_context(),
 
-	% Add texture.
-
 	% The various OpenGL information kept by this test once initialised:
+	%
+	% (keeping around this texture is not necessary; a mere atom could have
+	% sufficed)
+	%
 	opengl_state :: maybe( texture() ),
 
 	model_pid :: model_pid(),
@@ -534,6 +536,8 @@ setup_opengl( ViewState=#view_state{ %parent=MainFrame,
 	% Draws in white:
 	gl:color3f( 1.0, 1.0, 1.0 ),
 
+	% These settings apparently still apply after a resize/viewport change,
+	% hence are done only once:
 
 	gl:matrixMode( ?GL_PROJECTION ),
 	gl:loadIdentity(),
@@ -542,22 +546,29 @@ setup_opengl( ViewState=#view_state{ %parent=MainFrame,
 	% perspective matrix that produces a parallel projection based on 6 clipping
 	% planes:
 	%
+	% (here does not depend on viewport size, so can be done once now)
+	%
 	gl:ortho( -50.0, 50.0, -50.0, 50.0, -1.0, 1.0 ),
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
 
-	ViewState#view_state{ opengl_state=fixme }.
+	gl:enable( ?GL_TEXTURE_2D ),
+
+	%Texture = gui_opengl:load_texture_from_file(
+	%   gui_opengl_test:get_logo_image_path() ),
+	Texture=fixme,
+
+	ViewState#view_state{ opengl_state=Texture }.
 
 
 
 % @doc Managing a resizing of the main frame.
 -spec on_main_frame_resized( view_state() ) -> void().
-on_main_frame_resized( _ViewState=#view_state{ canvas=GLCanvas,
-											   opengl_state=OpenGLState } ) ->
+on_main_frame_resized( _ViewState=#view_state{ canvas=GLCanvas } ) ->
 
-	% Shall be initialised by design:
-	basic_utils:check_defined( OpenGLState ),
+	% OpenGL state expected to be ready here:
+	%basic_utils:check_defined( Texture ),
 
 	% Maximises then canvas in the main frame:
 	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
@@ -592,6 +603,7 @@ render_view( #view_state{ opengl_state=undefined } ) ->
 	ok;
 
 render_view( #view_state{ canvas=GLCanvas,
+						  opengl_state=_Texture,
 						  model_pid=ModelPid } ) ->
 
 	%trace_utils:debug_fmt( "[~w] View rendering now.", [ self() ] ),
@@ -616,7 +628,14 @@ render_view( #view_state{ canvas=GLCanvas,
 	%trace_utils:debug_fmt( "[~w] View rotation: ~f.",
 	%                       [ self(), CurrentAngle ] ),
 
+	% Note that we rotate from scratch directly to the target angle, instead of
+	% rotating incrementally from the previous matrix each time (otherwise
+	% numercial errors would soon accumulate):
+	%
 	gl:rotatef( CurrentAngle, 0.0, 0.0, 1.0 ),
+
+	%gl:bindTexture( ?GL_TEXTURE_2D, Texture#texture.id ),
+	%gui_opengl:render_texture( Texture, 0, 0 ),
 
 	gl:rectf( -MidEdgeLen, -MidEdgeLen, MidEdgeLen, MidEdgeLen ),
 
