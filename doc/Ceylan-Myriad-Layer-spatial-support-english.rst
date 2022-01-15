@@ -176,6 +176,10 @@ Note that:
 Geometric Conventions
 .....................
 
+.. _`3D referential`:
+
+.. _`4D referential`:
+
 :raw-html:`<center><img src="myriad-space-time-referential.png" id="responsive-image-tiny"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-space-time-referential} \end{figure}`
 
