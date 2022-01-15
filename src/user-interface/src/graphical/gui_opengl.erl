@@ -821,7 +821,9 @@ enter_2d_mode( Window ) ->
 	% the projection also applies to mouse coordinates.
 
 	% Multiplies the projection matrix with this orthographic one, assuming that
-	% the eye is located at (0, 0, 0):
+	% the eye is located at (0, 0, 0); implements the MyriadGUI 2D conventions,
+	% with pixel-level coordinates (another option could have been to rely on
+	% normalised, definition-independent coordinates, ranging in [0.0, 1.0]):
 	%
 	% (corresponds to glu:ortho2D/4)
 	%
