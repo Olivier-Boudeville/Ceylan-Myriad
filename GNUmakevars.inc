@@ -448,13 +448,13 @@ BOOTSTRAP_INCLUDES := -I$(MYRIAD_TOP)/../../include/meta      \
 #USE_JSON = true
 
 # To be able to serialise data with the Protobuf (Protocol Buffer) format:
-USE_PROTOBUF = false
+#USE_PROTOBUF = false
 #USE_PROTOBUF = true
 
 
 
 # To enable SQL with its default backend:
-USE_SQL = false
+#USE_SQL = false
 #USE_SQL = true
 
 
@@ -1144,10 +1144,10 @@ MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
 					$(MYRIAD_BEAM)/maths                        \
 					$(MYRIAD_BEAM)/meta                         \
 					$(MYRIAD_BEAM)/scripts                      \
-					$(MYRIAD_BEAM)/user-interface/src/graphical \
-					$(MYRIAD_BEAM)/user-interface/src/textual   \
-					$(MYRIAD_BEAM)/user-interface/src/audio     \
-					$(MYRIAD_BEAM)/user-interface/src           \
+					$(MYRIAD_BEAM)/user-interface/graphical     \
+					$(MYRIAD_BEAM)/user-interface/textual       \
+					$(MYRIAD_BEAM)/user-interface/audio         \
+					$(MYRIAD_BEAM)/user-interface               \
 					$(MYRIAD_BEAM)/utils
 
 

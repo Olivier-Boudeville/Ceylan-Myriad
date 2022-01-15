@@ -27,7 +27,7 @@ The purpose of Myriad is not to fully integrate the many backends it *may* rely 
 
 As a consequence, for the `Ceylan <https://github.com/Olivier-Boudeville/Ceylan>`_ project, the first level of the Erlang-based software stack that we use relies on this ``Myriad`` layer - whose official, more specific name is the ``Ceylan-Myriad`` layer.
 
-The project repository is located `here <https://github.com/Olivier-Boudeville/Ceylan-Myriad>`_. We gathered also some more general Erlang-information in `our corresponding HOWTO <http://howtos.esperide.org/Ceylan-HOWTOs-Erlang.html>`_.
+The project repository is located `here <https://github.com/Olivier-Boudeville/Ceylan-Myriad>`_. We gathered also some more general Erlang-information in `our corresponding HOWTO <http://howtos.esperide.org/Erlang.html>`_.
 
 
 .. comment .. [#] It was formerly known as the ``Common`` layer.
