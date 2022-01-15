@@ -195,21 +195,8 @@ Another option is to use ``ctags`` to generate Emacs' compliant `tags <https://w
 For Documentation Generation
 ----------------------------
 
-We rely on RST (*Restructured Text*, from Docutils) in order to generate both HTML targets (a set of static web pages) and PDF ones (for any of our layers), notably thanks to our ``generate-docutils.sh`` script.
+Refer now to our `dedicated HOW-TO <http://howtos.esperide.org/DocGeneration.html>`_.
 
-In the context of our HTML target, in order to output beautiful mathematical symbols (equations, matrices, etc.), we rely on MathJax. It shall thus be installed once for all first. For example, on Arch Linux, as ``root``, it is sufficient to execute:
-
-.. code:: bash
-
-   $ pacman -Sy mathjax
-
-Then, to enable the use of MathJax for a given website, run from its root (often a ``doc`` directory):
-
-.. code:: bash
-
-  make create-mathjax-symlink
-
-(this target is defined in ``myriad/doc/GNUmakerules-docutils.inc``).
 
 
 
