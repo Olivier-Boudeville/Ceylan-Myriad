@@ -285,7 +285,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Multiplies the current modelview matrix by an orthographic matrix, a
 	% perspective matrix that produces a parallel projection based on 6 clipping
-	% planes.
+	% planes, implementing the MyriadGUI 2D conventions.
 	%
 	% Here coordinates are normalised in [0.0,1.0] and as such are
 	% definition-independent (resizing the frame and then the viewport will not
@@ -293,7 +293,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	% Like glu:ortho2D/4:
 	%
-	gl:ortho( _Left=0.0, _Right=1.0, _Bottom=0.0, _Top=1.0, _Near=-1.0,
+	gl:ortho( _Left=0.0, _Right=1.0, _Bottom=1.0, _Top=0.0, _Near=-1.0,
 			  _Far=1.0 ),
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
