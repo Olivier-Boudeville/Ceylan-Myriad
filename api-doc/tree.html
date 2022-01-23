@@ -21,11 +21,15 @@
 
 
 <h3 class="typedecl"><a name="type-content_fold_fun">content_fold_fun()</a></h3>
-<p><tt>content_fold_fun() = fun((<a href="#type-node_content">node_content()</a>, <a href="basic_utils.html#type-accumulator">basic_utils:accumulator()</a>) -&gt; <a href="basic_utils.html#type-accumulator">basic_utils:accumulator()</a>)</tt></p>
+<p><tt>content_fold_fun() = fun((<a href="#type-node_content">node_content()</a>, <a href="#type-accumulator">accumulator()</a>) -&gt; <a href="#type-accumulator">accumulator()</a>)</tt></p>
 <p> Describes a function that can be folded onto the content of trees.</p>
 
+<h3 class="typedecl"><a name="type-count">count()</a></h3>
+<p><tt>count() = <a href="basic_utils.html#type-count">basic_utils:count()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-height">height()</a></h3>
-<p><tt>height() = <a href="basic_utils.html#type-count">basic_utils:count()</a></tt></p>
+<p><tt>height() = <a href="#type-count">count()</a></tt></p>
 <p> Height of a tree.</p>
 
 <h3 class="typedecl"><a name="type-node_content">node_content()</a></h3>
@@ -40,6 +44,10 @@
 <p><b>abstract datatype</b>: <tt>tree()</tt></p>
 <p> Any tree is made of the content of its root and of any number of (ordered)
  subtrees (children trees).</p>
+
+<h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
+<p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
+
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#append_child-2">append_child/2</a></td><td>Appends the specified child tree as first child of the specified tree.</td></tr>
@@ -141,14 +149,14 @@ specified tree, and returns the corresponding result.</p>
 
 <h3 class="function"><a name="size-1">size/1</a></h3>
 <div class="spec">
-<p><tt>size(Tree::<a href="#type-tree">tree()</a>) -&gt; <a href="basic_utils.html#type-count">basic_utils:count()</a></tt><br></p>
+<p><tt>size(Tree::<a href="#type-tree">tree()</a>) -&gt; <a href="#type-count">count()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the total number of nodes that specified tree contains.
 </p>
 
 <h3 class="function"><a name="to_string-1">to_string/1</a></h3>
 <div class="spec">
-<p><tt>to_string(Tree::<a href="#type-tree">tree()</a>) -&gt; <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt><br></p>
+<p><tt>to_string(Tree::<a href="#type-tree">tree()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a textual description of specified tree.</p>
 <hr>

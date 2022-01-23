@@ -119,8 +119,8 @@
 tuple rather than a list).</td></tr>
 <tr><td valign="top"><a href="#new-3">new/3</a></td><td>Returns a 3D point corresponding to the user-specified one.</td></tr>
 <tr><td valign="top"><a href="#new_integer-3">new_integer/3</a></td><td>Returns an integer 3D point corresponding to the user-specified one.</td></tr>
-<tr><td valign="top"><a href="#null-0">null/0</a></td><td>Returns a 3D point whose coordinates are all null, that is the origin of
- the local referential.</td></tr>
+<tr><td valign="top"><a href="#null-0">null/0</a></td><td>Returns a 3D point whose coordinates are all null, that is the origin of 
+the local referential.</td></tr>
 <tr><td valign="top"><a href="#point3_to_yup-1">point3_to_yup/1</a></td><td>Converts a usual 3D point into one that follows the Y-UP convention (as
  opposed to the Myriad Z-UP one, see the design notes in linear_3D).</td></tr>
 <tr><td valign="top"><a href="#point3_to_yups-1">point3_to_yups/1</a></td><td>Converts usual 3D points into ones that follow the Y-UP convention (as
@@ -252,8 +252,10 @@ tuple rather than a list).</p>
 <div class="spec">
 <p><tt>null() -&gt; <a href="#type-point3">point3()</a></tt><br></p>
 <p> </p>
-</div><p>Returns a 3D point whose coordinates are all null, that is the origin of
- the local referential.
+</div><p><p>Returns a 3D point whose coordinates are all null, that is the origin of 
+the local referential.</p>
+
+ See also linear_3D:get_origin/0.
 </p>
 
 <h3 class="function"><a name="point3_to_yup-1">point3_to_yup/1</a></h3>

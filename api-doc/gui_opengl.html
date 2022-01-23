@@ -151,9 +151,9 @@ double-buffering.</td></tr>
  specified font, brush and color, flipping it vertically if requested.</td></tr>
 <tr><td valign="top"><a href="#delete_texture-1">delete_texture/1</a></td><td>Deletes the specified texture.</td></tr>
 <tr><td valign="top"><a href="#delete_textures-1">delete_textures/1</a></td><td>Deletes the specified textures.</td></tr>
-<tr><td valign="top"><a href="#enter_2d_mode-1">enter_2d_mode/1</a></td><td>Enters in 2D mode for the specified window: applies relevant general
- state changes, and specific to modelview (which is reset) and to projection (a
- projection matrix relevant for 2D operations is applied).</td></tr>
+<tr><td valign="top"><a href="#enter_2d_mode-1">enter_2d_mode/1</a></td><td>Enters in 2D mode for the specified window: applies relevant general 
+state changes, and specific to modelview (which is reset) and to projection (a 
+projection matrix relevant for 2D operations is applied).</td></tr>
 <tr><td valign="top"><a href="#generate_texture_id-0">generate_texture_id/0</a></td><td>Returns a new, unique, texture identifier.</td></tr>
 <tr><td valign="top"><a href="#get_glxinfo_strings-0">get_glxinfo_strings/0</a></td><td>Returns the list of strings (if any) returned by glxinfo when requesting 
 basic information.</td></tr>
@@ -262,9 +262,11 @@ and double-buffering.</p>
 <div class="spec">
 <p><tt>enter_2d_mode(Window::<a href="#type-window">window()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Enters in 2D mode for the specified window: applies relevant general
- state changes, and specific to modelview (which is reset) and to projection (a
- projection matrix relevant for 2D operations is applied).
+</div><p><p>Enters in 2D mode for the specified window: applies relevant general 
+state changes, and specific to modelview (which is reset) and to projection (a 
+projection matrix relevant for 2D operations is applied).</p>
+
+ Refer to https://myriad.esperide.org/#2d-referential for more details.
 </p>
 
 <h3 class="function"><a name="generate_texture_id-0">generate_texture_id/0</a></h3>
@@ -401,7 +403,7 @@ implementation.</p>
 
 <h3 class="function"><a name="render_texture-3">render_texture/3</a></h3>
 <div class="spec">
-<p><tt>render_texture(Texture::<a href="#type-texture">texture()</a>, X::<a href="#type-coordinate">coordinate()</a>, Y::<a href="#type-coordinate">coordinate()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>render_texture(Texture::<a href="#type-texture">texture()</a>, Xp::<a href="#type-coordinate">coordinate()</a>, Yp::<a href="#type-coordinate">coordinate()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div><p>Renders the specified texture, at the specified position.</p>
 
@@ -424,7 +426,9 @@ that it applies to the next operations (OpenGL calls) made on it.</p>
 back-buffer the front-buffer and vice versa), so that the output of the 
 previous OpenGL commands is displayed on this window.</p>
 
- The corresponding window must already be shown.
+ <p>The corresponding window must already be shown.</p>
+
+ Includes a gl:flush/0.
 </p>
 <hr>
 
