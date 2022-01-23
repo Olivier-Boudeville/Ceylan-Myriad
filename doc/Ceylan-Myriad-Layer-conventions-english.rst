@@ -55,13 +55,11 @@ For that one may use the either directly ``make stats`` from the root of the lay
 For example::
 
   In the Erlang source code found from XXX/ceylan/myriad, we have:
-  + 160 source files (*.erl), 54 header files (*.hrl)
-  + a grand total of 89151 lines:
-	- 27186 of which (30.4%) are blank lines
-	- 28751 of which (32.2%) are comments
-	- 33214 of which (37.2%) are code
-
-
+  + 208 source files (*.erl), 36 header files (*.hrl)
+  + a grand total of 118666 lines:
+	- 35959 of which (30.3%) are blank lines
+	- 37187 of which (31.3%) are comments
+	- 45520 of which (38.3%) are code
 
 The most obvious conventions are:
 

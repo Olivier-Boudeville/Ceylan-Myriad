@@ -178,11 +178,13 @@ These services are located in ``{src,test}/user-interface/graphical`` (see ``gui
 
 This last ``lorenz_test.erl`` offers another complete example:
 
-:raw-html:`<center><img src="myriad-lorenz-test.png" id="responsive-image-full"></img></center>`
+:raw-html:`<center><img src="myriad-lorenz-test.png" id="responsive-image-large"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.2]{myriad-lorenz-test} \end{figure}`
 
 
-Related information of interest:
+
+
+Finally, here are some very general wx-related information that may be of help when programming GUIs with this backend:
 
 - if receiving errors about ``{badarg,"This"}``, like in:
 
@@ -190,11 +192,16 @@ Related information of interest:
 
  {'_wxe_error_',710,{wxDC,setPen,2},{badarg,"This"}}
 
-it is probably the sign that an attempt was done to perform an operation on an already-deallocated wx object
+it is probably the sign that the user code attempted to perform an operation on an already-deallocated wx object; the corresponding life-cycle management might be error-prone, as some deallocations are implicit, others are explicit, and in a concurrent context race conditions easily happen
 
-- wxErlang: `Getting started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_ and `Speeding up <https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf>`_, by Arif Ishaq
 
-- Doug Edmunds' `wxerlang workups <http://wxerlang.dougedmunds.com/>`_
+- extra information resources about ``wx`` (besides the documentation of its modules):
+
+  - wxErlang: `Getting started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_ and `Speeding up <https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf>`_, by Arif Ishaq
+
+  - Doug Edmunds' `wxerlang workups <http://wxerlang.dougedmunds.com/>`_
+
+  - `wxWidgets itself <https://www.wxwidgets.org/>`_
 
 .. comment 404: - http://www.idiom.com/~turner/wxtut/wxwidgets.html
 
