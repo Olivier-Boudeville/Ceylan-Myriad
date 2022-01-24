@@ -117,7 +117,7 @@ patch_opt_short="-np"
 patch_opt_long="--no-patch"
 
 limit_opt_short="-ncl"
-limit_opt_long="-no-cpu-limit"
+limit_opt_long="--no-cpu-limit"
 
 previous_opt_short="-p"
 previous_opt_long="--previous"
