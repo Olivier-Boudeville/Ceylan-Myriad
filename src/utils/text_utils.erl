@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2022 Olivier Boudeville
+% Copyright (C) 2007-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -1604,8 +1604,8 @@ format( FormatString, Values ) ->
 			_:_ ->
 
 				Msg = io_lib:format( "[error: badly formatted string output] "
-						"Format string was '~p', values were '~ts'.~n",
-						[ FormatString, basic_utils:describe_term( Values ) ] ),
+					"Format string was '~p', values were '~ts'.~n",
+					[ FormatString, basic_utils:describe_term( Values ) ] ),
 
 				% Not wanting to be extra verbose in this mode:
 				%io:format( Msg ++ "~n", [] ),
@@ -1658,10 +1658,10 @@ format( FormatString, Values ) ->
 
 							false ->
 								io_lib:format(
-								  "values were not specified as a list "
-								  "(i.e. incorrectly as '~ts'; "
-								  "format was '~ts')",
-								  [ VString, FormatString ] )
+									"values were not specified as a list "
+									"(i.e. incorrectly as '~ts'; "
+									"format was '~ts')",
+									[ VString, FormatString ] )
 
 						end;
 
@@ -3142,9 +3142,9 @@ split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
 % strings in the Capitalized Case (all lower-case except for the first letter)
 % and finally joins them to get a long CamelCased string.
 %
-% Ex: tokenizable_to_camel_case( "industrial_WASTE_sOuRCe", "_" ) shall return
-% "IndustrialWasteSource", while tokenizable_to_camel_case( "ME HAZ READ J.R.R",
-% ". " ) shall return "MeHazReadJRR".
+% Ex: tokenizable_to_camel_case("industrial_WASTE_sOuRCe", "_") shall return
+% "IndustrialWasteSource", while tokenizable_to_camel_case("ME HAZ READ J.R.R",
+% ". ") shall return "MeHazReadJRR".
 %
 -spec tokenizable_to_camel_case( ustring(), ustring() ) -> ustring().
 tokenizable_to_camel_case( String, SeparatorsList ) ->
@@ -3168,6 +3168,8 @@ tokenizable_to_camel_case( String, SeparatorsList ) ->
 % (flattened once) string, not an iolist.
 %
 % Ex: duplicate(3, "abc") = "abcabcabc".
+%
+% Use directly lists:duplicate/2 if wanting for example ["abc", "abc", "abc"].
 %
 -spec duplicate( count(), ustring() ) -> ustring().
 duplicate( Count, Str ) ->
