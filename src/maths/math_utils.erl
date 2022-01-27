@@ -30,6 +30,8 @@
 %
 % See `math_utils_test.erl' for the corresponding test.
 %
+% See `random_utils` for random-related operations.
+%
 -module(math_utils).
 
 
@@ -58,6 +60,10 @@
 -export([ radian_to_degree/1, canonify/1 ]).
 
 -compile({ inline, [ radian_to_degree/1, canonify/1 ] }).
+
+
+% Operations related to functions:
+-export([ sample/4, sample_as_pairs/4, normalise/2 ]).
 
 
 % For epsilon define:
@@ -116,7 +122,17 @@
 
 
 -type probability() :: float().
-% For probabilities.
+% For probabilities, typically ranging in [0.0,1.0].
+
+
+-type probability_like() :: number().
+% A non-negative number (an integer or floating-point) that can be translated to
+% a normalized probability by scaling it.
+%
+% Ex: if considering two exclusive events whose
+% respective likeliness is quantified as 20 and 30, then these probability-like
+% elements can be translated to actual (normalized) probabilities of
+% 20/(20+30)=0.4 and 0.6.
 
 
 -type conversion_type() :: 'exact' | 'absolute' | { 'absolute', float() }
@@ -129,7 +145,13 @@
 -export_type([ factor/0, integer_factor/0, any_factor/0,
 			   positive_factor/0, non_negative_factor/0,
 			   non_zero_integer/0, standard_deviation/0, variance/0,
-			   ratio/0, percent/0, integer_percent/0, probability/0 ]).
+			   ratio/0, percent/0, integer_percent/0,
+			   probability/0, probability_like/0 ]).
+
+
+% Shorthands:
+
+-type positive_index() :: basic_utils:positive_index().
 
 
 
@@ -515,3 +537,76 @@ canonify( AngleInDegrees ) when is_integer( AngleInDegrees ) ->
 % Here we assume it is a floating-point value, positive or not.
 canonify( AngleInDegrees ) ->
 	AngleInDegrees - 360 * math:floor( AngleInDegrees / 360 ).
+
+
+
+% @doc Samples the specified function taking a single numerical argument, by
+% evaluating it on every point in turn from Start until up to Stop, with
+% specified increment: returns the ordered list of the corresponding values that
+% it took.
+%
+-spec sample( fun( ( number() ) -> T ), number(), number(), number() ) -> [ T ].
+sample( Fun, Start, Stop, Increment ) ->
+	sample( Fun, _Current=Start, Stop, Increment, _Acc=[] ).
+
+
+% (helper)
+sample( _Fun, Current, Stop, _Increment, Acc ) when Current > Stop ->
+	lists:reverse( Acc );
+
+sample( Fun, Current, Stop, Increment, Acc ) ->
+	NewValue = Fun( Current ),
+	sample( Fun, Current+Increment, Stop, Increment, [ NewValue | Acc ] ).
+
+
+
+% @doc Samples the specified function taking a single numerical argument, by
+% evaluating it on every point in turn from Start until up to Stop, with
+% specified increment: returns the ordered list of the corresponding {X,f(X)}
+% pairs that it took.
+%
+-spec sample_as_pairs( fun( ( number() ) -> T ), number(), number(),
+					   number() ) -> [ { number(), T } ].
+sample_as_pairs( Fun, Start, Stop, Increment ) ->
+	sample_as_pairs( Fun, _Current=Start, Stop, Increment, _Acc=[] ).
+
+
+% (helper)
+sample_as_pairs( _Fun, Current, Stop, _Increment, Acc ) when Current > Stop ->
+	lists:reverse( Acc );
+
+sample_as_pairs( Fun, Current, Stop, Increment, Acc ) ->
+	NewValue = Fun( Current ),
+	sample_as_pairs( Fun, Current+Increment, Stop, Increment,
+					 [ { Current, NewValue }| Acc ] ).
+
+
+
+% @doc Normalises, in the specified list of tuples, the elements at the
+% specified index (expected to be floats), so that their sum is equal to 1.0.
+%
+% Ex: normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
+%                 = [{a,0.3}, {"hello",0.5}, {1,0.2}]
+%
+-spec normalise( [ tuple() ], positive_index() ) -> [ tuple() ].
+normalise( _DataTuples=[], _Index ) ->
+	throw( no_data_tuple );
+
+normalise( DataTuples, Index ) ->
+	Sum = get_sum( DataTuples, Index, _Sum=0 ),
+	[ scale( Tuple, Index, Sum ) || Tuple <- DataTuples ].
+
+
+% (helper)
+get_sum( _DataTuples=[], _Index, Sum ) ->
+	Sum;
+
+get_sum( _DataTuples=[ Tuple | T ], Index, Sum ) ->
+	Elem = element( Index, Tuple ),
+	get_sum( T, Index, Sum + Elem ).
+
+
+% (helper)
+scale( Tuple, Index, Sum ) ->
+	NewElem = element( Index, Tuple ) / Sum,
+	setelement( Index, Tuple, NewElem ).
