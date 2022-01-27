@@ -15,7 +15,9 @@
 
 <h2><a name="description">Description</a></h2><p>Gathering of various <b>general-purpose basic math</b> facilities.</p>
 
- See <code>math_utils_test.erl</code> for the corresponding test.
+ <p>See <code>math_utils_test.erl</code> for the corresponding test.</p>
+
+ See <code>random_utils</code> for random-related operations.
 
 <h2><a name="types">Data Types</a></h2>
 
@@ -62,9 +64,23 @@
 <p><tt>positive_factor() = <a href="#type-factor">factor()</a></tt></p>
 <p> A factor expected to be strictly positive.</p>
 
+<h3 class="typedecl"><a name="type-positive_index">positive_index()</a></h3>
+<p><tt>positive_index() = <a href="basic_utils.html#type-positive_index">basic_utils:positive_index()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-probability">probability()</a></h3>
 <p><tt>probability() = float()</tt></p>
-<p> For probabilities.</p>
+<p> For probabilities, typically ranging in [0.0,1.0].</p>
+
+<h3 class="typedecl"><a name="type-probability_like">probability_like()</a></h3>
+<p><tt>probability_like() = number()</tt></p>
+<p><p> A non-negative number (an integer or floating-point) that can be translated to 
+a normalized probability by scaling it.</p>
+
+ Ex: if considering two exclusive events whose
+ respective likeliness is quantified as 20 and 30, then these probability-like
+ elements can be translated to actual (normalized) probabilities of
+ 20/(20+30)=0.4 and 0.6.</p>
 
 <h3 class="typedecl"><a name="type-ratio">ratio()</a></h3>
 <p><tt>ratio() = <a href="unit_utils.html#type-dimensionless">unit_utils:dimensionless()</a></tt></p>
@@ -108,10 +124,20 @@ specified integer.</td></tr>
 <tr><td valign="top"><a href="#is_null-1">is_null/1</a></td><td>Returns true iff the specified number (floating-point or even integer) is
  deemed close enough to zero to be null.</td></tr>
 <tr><td valign="top"><a href="#modulo-2">modulo/2</a></td><td>Returns the positive remainder of the division of X by Y, in [0;Y[.</td></tr>
+<tr><td valign="top"><a href="#normalise-2">normalise/2</a></td><td>Normalises, in the specified list of tuples, the elements at the 
+specified index (expected to be floats), so that their sum is equal to 1.0.</td></tr>
 <tr><td valign="top"><a href="#radian_to_degree-1">radian_to_degree/1</a></td><td>Converts specified angle in radian into the same angle expressed in
  degrees.</td></tr>
 <tr><td valign="top"><a href="#round_after-2">round_after/2</a></td><td>Rounds the specified floating-point number at specified offset after the 
 decimal point.</td></tr>
+<tr><td valign="top"><a href="#sample-4">sample/4</a></td><td>Samples the specified function taking a single numerical argument, by
+ evaluating it on every point in turn from Start until up to Stop, with
+ specified increment: returns the ordered list of the corresponding values that
+ it took.</td></tr>
+<tr><td valign="top"><a href="#sample_as_pairs-4">sample_as_pairs/4</a></td><td>Samples the specified function taking a single numerical argument, by
+ evaluating it on every point in turn from Start until up to Stop, with
+ specified increment: returns the ordered list of the corresponding {X,f(X)}
+ pairs that it took.</td></tr>
 <tr><td valign="top"><a href="#squarify-1">squarify/1</a></td><td>Returns the square, augmented of a little margin, of the specified
  element.</td></tr>
 </table>
@@ -278,6 +304,17 @@ specified integer.</p>
  since -5 = -2 * 3 + 1.
 </p>
 
+<h3 class="function"><a name="normalise-2">normalise/2</a></h3>
+<div class="spec">
+<p><tt>normalise(DataTuples::[tuple()], Index::<a href="#type-positive_index">positive_index()</a>) -&gt; [tuple()]</tt><br></p>
+<p> </p>
+</div><p><p>Normalises, in the specified list of tuples, the elements at the 
+specified index (expected to be floats), so that their sum is equal to 1.0.</p>
+
+ Ex: normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
+                 = [{a,0.3}, {"hello",0.5}, {1,0.2}]
+</p>
+
 <h3 class="function"><a name="radian_to_degree-1">radian_to_degree/1</a></h3>
 <div class="spec">
 <p><tt>radian_to_degree(AngleInRadians::<a href="unit_utils.html#type-radians">unit_utils:radians()</a>) -&gt; <a href="unit_utils.html#type-degrees">unit_utils:degrees()</a></tt><br></p>
@@ -294,6 +331,26 @@ specified integer.</p>
 decimal point.</p>
 
  Ex: round_after(12.3456, _DigitCount3) = 12.346.
+</p>
+
+<h3 class="function"><a name="sample-4">sample/4</a></h3>
+<div class="spec">
+<p><tt>sample(Fun::fun((number()) -&gt; T), Start::number(), Stop::number(), Increment::number()) -&gt; [T]</tt><br></p>
+<p> </p>
+</div><p>Samples the specified function taking a single numerical argument, by
+ evaluating it on every point in turn from Start until up to Stop, with
+ specified increment: returns the ordered list of the corresponding values that
+ it took.
+</p>
+
+<h3 class="function"><a name="sample_as_pairs-4">sample_as_pairs/4</a></h3>
+<div class="spec">
+<p><tt>sample_as_pairs(Fun::fun((number()) -&gt; T), Start::number(), Stop::number(), Increment::number()) -&gt; [{number(), T}]</tt><br></p>
+<p> </p>
+</div><p>Samples the specified function taking a single numerical argument, by
+ evaluating it on every point in turn from Start until up to Stop, with
+ specified increment: returns the ordered list of the corresponding {X,f(X)}
+ pairs that it took.
 </p>
 
 <h3 class="function"><a name="squarify-1">squarify/1</a></h3>

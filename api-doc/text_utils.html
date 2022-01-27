@@ -828,7 +828,9 @@ be first rounded to nearest integer.</p>
 </div><p><p>Duplicates specified string as many times as specified; returns a plain 
 (flattened once) string, not an iolist.</p>
 
- Ex: duplicate(3, "abc") = "abcabcabc".
+ <p>Ex: duplicate(3, "abc") = "abcabcabc".</p>
+
+ Use directly lists:duplicate/2 if wanting for example ["abc", "abc", "abc"].
 </p>
 
 <h3 class="function"><a name="ellipse-1">ellipse/1</a></h3>
@@ -2170,9 +2172,9 @@ separating characters provided in SeparatorsList, then turns these resulting
 strings in the Capitalized Case (all lower-case except for the first letter) 
 and finally joins them to get a long CamelCased string.</p>
 
- Ex: tokenizable_to_camel_case( "industrial_WASTE_sOuRCe", "_" ) shall return
- "IndustrialWasteSource", while tokenizable_to_camel_case( "ME HAZ READ J.R.R",
- ". " ) shall return "MeHazReadJRR".
+ Ex: tokenizable_to_camel_case("industrial_WASTE_sOuRCe", "_") shall return
+ "IndustrialWasteSource", while tokenizable_to_camel_case("ME HAZ READ J.R.R",
+ ". ") shall return "MeHazReadJRR".
 </p>
 
 <h3 class="function"><a name="trim_leading_whitespaces-1">trim_leading_whitespaces/1</a></h3>
