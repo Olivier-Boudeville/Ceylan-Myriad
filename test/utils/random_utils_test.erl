@@ -146,12 +146,11 @@ run() ->
 	SampleDataFilename = "test_pdf_actual_samples.dat",
 	ComparisonOutputFilename = "test_pdf_sampled_function.png",
 
-	WriteDataFile = true,
-	%WriteDataFile = false,
+	CheckWithDataFile = not executable_utils:is_batch(),
 
 	MaybeGnuplotPath = executable_utils:lookup_executable( "gnuplot" ),
 
-	case WriteDataFile andalso MaybeGnuplotPath =/= false of
+	case CheckWithDataFile andalso MaybeGnuplotPath =/= false of
 
 		true ->
 
@@ -167,7 +166,6 @@ run() ->
 
 			% Already as a list of {X,Fun(X)}, i.e. {SampleValue,ProbOfValue}:
 			AliasState = random_utils:generate_random_state_from( PDFPairs ),
-
 
 			Samples = random_utils:get_samples_from( PDFSampleCount,
 													  AliasState ),
