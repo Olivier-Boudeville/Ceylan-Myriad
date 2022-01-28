@@ -76,7 +76,9 @@ Let's consider a :math:`m × n` matrix (m rows, n columns):
 	 \end{bmatrix}
 
 
-Such a matrix may be expressed:
+.. _`matrix conventions`:
+
+With Myriad, such a matrix may be expressed:
 
 - as one of arbitrary dimension (designated from now on as an "*arbitrary matrix*"), corresponding to the ``matrix:matrix/0`` type; internally such matrices are nested lists: a list of ``m`` rows, each being a list of ``n`` elements, hence defined in `row-major order <https://en.wikipedia.org/wiki/Row-_and_column-major_order>`_ (not column-major one)
 - if being square and of a well-known dimension among 2, 3 or 4 (special cases defined for convenience and performance), as a value belonging to the ``matrix{2,3,4}/0`` types (which are records like ``#matrix4{}``, whose fields are named according to the matrix elements, such as ``m41``); they are designated hereafter as "*specialised matrices*"
@@ -131,7 +133,7 @@ In practice the actual, internal terms corresponding to all these matrices would
 							   m21=A21, m22=A22 }
 
 
-Finally, **quaternions** are also supported (see ``quaternion.erl``). They can be defined from 4 numbers, or as a 3D rotation. They are stored as quadruplets of floats, and can be added, multiplied, negated, scaled, normalised, conjugates, inversed, etc., and may be represented either as
+Finally, **quaternions** are also supported (see ``quaternion.erl``). They can be defined from 4 numbers, or as a 3D rotation. They are stored as quadruplets of floats, and can be added, multiplied, negated, scaled, normalised, conjugated, inversed, etc., and may be represented either as
 
 .. math::
  Q = \begin{vmatrix}
@@ -176,6 +178,10 @@ Note that:
 Geometric Conventions
 .....................
 
+.. _`3D referential`:
+
+.. _`4D referential`:
+
 :raw-html:`<center><img src="myriad-space-time-referential.png" id="responsive-image-tiny"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-space-time-referential} \end{figure}`
 
@@ -189,12 +195,17 @@ By default, we consider right-handed Cartesian coordinate systems, and we rely o
 
 .. [#] Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.
 
-In 2D, typically for on-screen coordinates (ex: when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes [#]_:
+
+.. _`2D referential`:
+
+In 2D, typically for on-screen coordinates (ex: when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero [#]_:
 
 :raw-html:`<center><img src="myriad-2D-referential.png" id="responsive-image-xsmall"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-2D-referential} \end{figure}`
 
 .. [#] This 2D referential corresponds to the base space-time one, when the viewpoint is located in the negative Z axis and looks at the origin.
+
+	   One may also refer to ``gui_opengl:enter_2d_mode/1`` to apply these conventions.
 
 
 For each of the spatial dimensions of interest, generally ``1.0`` corresponds to 1 meter, otherwise to 1 `light-second <https://en.wikipedia.org/wiki/Light-second>`_ (i.e. roughly 300 000 km [#]_).
@@ -221,7 +232,7 @@ If :math:`\vec{V}\cdot\vec{N}` (i.e. the dot-product of the view direction vecto
 - strictly negative: then the face is front-facing
 - positive: then the face is rear-facing
 
-Said otherwise, front-facing polygons are the ones whose signed area is strictly positive; see also: ``polygon:{get_area,get_signed_area}/1``.
+Said otherwise, front-facing polygons are the ones whose signed area (determinant) is strictly positive; see also: ``polygon:{get_area,get_signed_area}/1``.
 
 A fourth coordinate besides X, Y and Z could be used, as an extra axis (in yellow, ``#F6DE2D``):
 

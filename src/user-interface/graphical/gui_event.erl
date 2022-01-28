@@ -736,17 +736,17 @@ process_event_message( { createInstance, [ ObjectType, ConstructionParams ],
 
 
 process_event_message( { subscribeToEvents,
-		[ SubscribedEvents, SubscriberPid ] }, LoopState ) ->
+		[ SubscribedEvents, SubscriberPid ], SenderPid }, LoopState ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:debug_fmt( "[event] Subscribing process ~w to events ~p.",
-							   [ SubscriberPid, SubscribedEvents ] ) ),
+		trace_utils:debug_fmt( "[event] Subscribing by ~w of process ~w "
+			"to events ~p.", [ SenderPid, SubscriberPid, SubscribedEvents ] ) ),
 
 	NewLoopState = update_event_loop_tables( SubscribedEvents, SubscriberPid,
 											 LoopState ),
 
 	% Now synchronous to avoid race conditions:
-	SubscriberPid ! onEventSubscriptionProcessed,
+	SenderPid ! onEventSubscriptionProcessed,
 	NewLoopState;
 
 
@@ -756,14 +756,14 @@ process_event_message( { subscribeToEvents,
 %
 %process_event_message( { adjustObject, ObjectRef }, LoopState ) ->
 %
-%	trace_utils:debug_fmt( "Recording object to adjust: ~w.", [ ObjectRef ] ),
+%   trace_utils:debug_fmt( "Recording object to adjust: ~w.", [ ObjectRef ] ),
 %
-%	NewAdjustList = [ ObjectRef | LoopState#loop_state.objects_to_adjust ],
+%   NewAdjustList = [ ObjectRef | LoopState#loop_state.objects_to_adjust ],
 %
-%	% To test the bypass of this mechanism:
-%	%NewAdjustList = LoopState#loop_state.objects_to_adjust,
+%   % To test the bypass of this mechanism:
+%   %NewAdjustList = LoopState#loop_state.objects_to_adjust,
 %
-%	LoopState#loop_state{ objects_to_adjust=NewAdjustList };
+%   LoopState#loop_state{ objects_to_adjust=NewAdjustList };
 
 
 % Currently we update widgets regardless of whether one of their parent windows

@@ -1336,6 +1336,9 @@ draw_element( ElementList, Length ) ->
 % Using [{first,1}, {second,0}, {third,1}] instead would mean that 'second'
 % would never be drawn.
 %
+% See also random_utils:generate_random_state_from/1 and
+% random_utils:get_sample[s]_from/1.
+%
 -spec draw_element_weighted( [ { element(), number() } ] ) -> element().
 draw_element_weighted( ElementList ) ->
 	draw_element_weighted( ElementList, sum_probabilities( ElementList ) ).

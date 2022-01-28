@@ -178,11 +178,13 @@ These services are located in ``{src,test}/user-interface/graphical`` (see ``gui
 
 This last ``lorenz_test.erl`` offers another complete example:
 
-:raw-html:`<center><img src="myriad-lorenz-test.png" id="responsive-image-full"></img></center>`
+:raw-html:`<center><img src="myriad-lorenz-test.png" id="responsive-image-large"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.2]{myriad-lorenz-test} \end{figure}`
 
 
-Related information of interest:
+
+
+Finally, here are some very general wx-related information that may be of help when programming GUIs with this backend:
 
 - if receiving errors about ``{badarg,"This"}``, like in:
 
@@ -190,11 +192,16 @@ Related information of interest:
 
  {'_wxe_error_',710,{wxDC,setPen,2},{badarg,"This"}}
 
-it is probably the sign that an attempt was done to perform an operation on an already-deallocated wx object
+it is probably the sign that the user code attempted to perform an operation on an already-deallocated wx object; the corresponding life-cycle management might be error-prone, as some deallocations are implicit, others are explicit, and in a concurrent context race conditions easily happen
 
-- wxErlang: `Getting started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_ and `Speeding up <https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf>`_, by Arif Ishaq
 
-- Doug Edmunds' `wxerlang workups <http://wxerlang.dougedmunds.com/>`_
+- extra information resources about ``wx`` (besides the documentation of its modules):
+
+  - wxErlang: `Getting started <https://arifishaq.files.wordpress.com/2017/12/wxerlang-getting-started.pdf>`_ and `Speeding up <https://arifishaq.files.wordpress.com/2018/04/wxerlang-speeding-up.pdf>`_, by Arif Ishaq
+
+  - Doug Edmunds' `wxerlang workups <http://wxerlang.dougedmunds.com/>`_
+
+  - `wxWidgets itself <https://www.wxwidgets.org/>`_
 
 .. comment 404: - http://www.idiom.com/~turner/wxtut/wxwidgets.html
 
@@ -220,7 +227,7 @@ So a prerequisite is that the local host enjoys at least some kind of **OpenGL s
 
 .. _`OpenGL troubleshooting`:
 
-Just run our ``gui_opengl_test.erl`` test to have the detected local configuration examined. One should refer to our HOWTO section `about 3D operating system support <http://howtos.esperide.org/ThreeDimensional.html#os-support>`_ for detailed information and troubleshooting guidelines.
+Just run our ``gui_opengl_integration_test.erl`` test to have the detected local configuration examined. One should refer to our HOWTO section `about 3D operating system support <http://howtos.esperide.org/ThreeDimensional.html#os-support>`_ for detailed information and troubleshooting guidelines.
 
 As for the **Erlang side** of this OpenGL support, one may refer to `this section <https://www.erlang.org/doc/man/wxglcanvas#description>`_ to ensure that the Erlang build at hand has indeed its OpenGL support enabled.
 
@@ -238,11 +245,19 @@ The Myriad OpenGL utilities are defined in the ``gui_opengl`` module; the many O
 
 These utilities directly relate to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
 
-The ``gui_opengl_test.erl`` offers a complete usage example.
+Various tests offer usage examples of the MyriadGUI API for 3D rendering:
+
+- ``gui_opengl_minimal_test.erl`` runs a minimal test showcasing the proper local OpenGL support, based on normalised coordinates (in [0.0,1.0])
+- ``gui_opengl_2D_test.erl`` is a 2D test operating with absolute (non-normalised) coordinates
+- ``gui_opengl_integration_test.erl`` demonstrates more features (quadrics, textures, etc.)
+- ``gui_opengl_mvc_test.erl`` proposes a MVC architecture (`Model-View-Controller <https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller>`_) where these three elements are uncoupled in separate processes yet are properly interlinked, the view relying on the MyriadGUI OpenGL support
 
 .. Note:: Almost all OpenGL operations require that an OpenGL context already exists. When it is done, all GL/GLU operations can be done as usual.
 
 		 So the point of MyriadGUI here is mostly to create a suitable OpenGL context, offer a few additional, higher-level, stricter constructs to ease the integration and use, and to connect this rendering capability to the rest of the GUI (ex: regarding event management).
+
+		 See also our `HOWTO section about OpenGL <https://howtos.esperide.org/ThreeDimensional.html#opengl-corner>`_.
+
 
 
 Configuration

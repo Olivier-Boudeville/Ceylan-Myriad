@@ -2824,7 +2824,7 @@ remove_file( FilePath ) ->
 remove_files( FilePaths ) ->
 
 	%trace_utils:warning_fmt( "Removing following files: ~ts",
-	%						 [ text_utils:strings_to_string( FilePaths ) ] ),
+	%                         [ text_utils:strings_to_string( FilePaths ) ] ),
 
 	[ remove_file( FP ) || FP <- FilePaths ].
 
@@ -2840,12 +2840,12 @@ remove_file_if_existing( FilePath ) ->
 
 		true ->
 			%trace_bridge:debug_fmt( "Removing existing file '~ts'.",
-			%						[ FilePath ] ),
+			%                        [ FilePath ] ),
 			remove_file( FilePath );
 
 		false ->
 			%trace_bridge:debug_fmt( "No existing file '~ts' to remove.",
-			%						[ FilePath ] ),
+			%                        [ FilePath ] ),
 			ok
 
 	end.

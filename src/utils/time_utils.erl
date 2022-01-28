@@ -873,7 +873,7 @@ get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
 %
 -spec frequency_to_period( any_hertz() ) -> ms_period().
 frequency_to_period( Freq ) ->
-	math_utils:ceiling( 1 / Freq ).
+	math_utils:ceiling( _Ms=1000 / Freq ).
 
 
 
@@ -888,15 +888,17 @@ frequency_to_period( Freq ) ->
 wait_period_ending( StartTime, Period ) ->
 
 	Now = get_monotonic_time(),
-	case _ToWait=StartTime + Period - Now of
+
+	case _StillToWait=StartTime + Period - Now of
 
 		Duration when Duration > 0 ->
 			timer:sleep( Duration ),
 			true;
 
 		_ ->
-			trace_utils:warning( "Unable to wait for the end of the "
-								 "specified period." ),
+			% Too verbose for little benefit:
+			%trace_utils:warning( "Unable to wait for the end of the "
+			%                     "specified period." ),
 			false
 
 	end.

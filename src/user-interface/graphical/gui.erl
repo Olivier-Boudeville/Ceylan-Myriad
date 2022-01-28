@@ -149,7 +149,7 @@
 	% Reference to the current top-level wx server:
 	wx_server ::wx_object(),
 
-	% PID of the main loop:
+	% PID of the MyriadGUI main loop:
 	loop_pid :: pid() } ).
 
 
@@ -201,7 +201,7 @@
 
 
 % Event-related operations.
--export([ subscribe_to_events/1, propagate_event/1 ]).
+-export([ subscribe_to_events/1, subscribe_to_events/2, propagate_event/1 ]).
 
 
 
@@ -287,6 +287,11 @@
 
 % Fonts:
 -export([ create_font/4, create_font/5 ]).
+
+
+% MyriadGUI environment:
+-export([ get_gui_env/0, set_gui_env/1 ]).
+
 
 
 % For related, public defines:
@@ -781,7 +786,29 @@ set_debug_level( DebugLevel ) ->
 % the subscriber (typically for a 20x20 size), then a onShow event.
 %
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
-subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
+subscribe_to_events( SubscribedEvents ) ->
+	subscribe_to_events( SubscribedEvents, _SubscriberPid=self() ).
+
+
+
+% @doc Subscribes the specified process to the specified kind of events (event
+% type and emitter), like {onWindowClosed, MyFrame}.
+%
+% This process will then receive MyriadGUI callback messages whenever events
+% that match happen, such as: {onWindowClosed, [MyFrame, EventContext]}.
+%
+% By default the corresponding event will not be transmitted upward in the
+% widget hierarchy (as this event will be expected to be processed for good by
+% the subscriber(s) it has been dispatched to), unless the propagate_event/1
+% function is called from one of them.
+%
+% Note that, at least when creating the main frame, if having subscribed to
+% onShown and onResized, on creation first a onResized event will be received by
+% the subscriber (typically for a 20x20 size), then a onShow event.
+%
+-spec subscribe_to_events( event_subscription_spec(), pid() ) -> void().
+subscribe_to_events( SubscribedEvents, SubscriberPid )
+						when is_list( SubscribedEvents ) ->
 
 	GUIEnv = get_gui_env(),
 
@@ -795,21 +822,24 @@ subscribe_to_events( SubscribedEvents ) when is_list( SubscribedEvents ) ->
 	% may be shown before being connected to the main loop, and thus it will not
 	% notify the GUI main loop it is shown...
 
-	LoopPid ! { subscribeToEvents, [ SubscribedEvents, self() ] },
+	LoopPid !
+		{ subscribeToEvents, [ SubscribedEvents, SubscriberPid ], self() },
 
 	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:info_fmt( "User process subscribing as ~w to ~w about "
-			"following events:~n~p.", [ self(), LoopPid, SubscribedEvents ] ) ),
+		trace_utils:info_fmt( "User process ~w subscribing process ~w to ~w "
+			"about following events:~n~p.",
+			[ self(), SubscriberPid, LoopPid, SubscribedEvents ] ) ),
 
 	receive
 
 		onEventSubscriptionProcessed ->
-		  ok
+			ok
 
 	end;
 
-subscribe_to_events( SubscribedEvent ) when is_tuple( SubscribedEvent ) ->
-	subscribe_to_events( [ SubscribedEvent ] ).
+subscribe_to_events( SubscribedEvent, SubscriberPid )
+						when is_tuple( SubscribedEvent ) ->
+	subscribe_to_events( [ SubscribedEvent ], SubscriberPid ).
 
 
 
@@ -1363,6 +1393,8 @@ sync( Window ) ->
 % To be called from a repaint event handler.
 %
 % See [https://www.erlang.org/doc/man/wxpaintdc#description] for more details.
+%
+% Based on our tests, does not seem strictly necessary.
 %
 -spec enable_repaint( window() ) -> void().
 enable_repaint( Window ) ->
@@ -1961,6 +1993,10 @@ get_main_loop_pid() ->
 
 
 % @doc Fetches (from the process dictionary) the MyriadGUI environment.
+%
+% Typically useful if wanting another process to be able to issue MyriadGUI
+% commands afterwards.
+%
 -spec get_gui_env() -> gui_env().
 get_gui_env() ->
 
@@ -1976,6 +2012,29 @@ get_gui_env() ->
 
 	end.
 
+
+
+% @doc Sets (in the process dictionary) the MyriadGUI environment in the calling
+% process.
+%
+% Typically useful if wanting the current process to be able to issue MyriadGUI
+% commands afterwards.
+%
+-spec set_gui_env( gui_env() ) -> void().
+set_gui_env( GUIEnv ) ->
+
+	case get( ?gui_env_process_key ) of
+
+		undefined ->
+			put( ?gui_env_process_key, GUIEnv );
+
+		Env ->
+			trace_utils:error_fmt( "A MyriadGUI environment (~w) was already "
+				"available for process ~w.", [ Env, self() ] ),
+
+			throw( { myriad_gui_env_already_set, self(), Env } )
+
+	end.
 
 
 
