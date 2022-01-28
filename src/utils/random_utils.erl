@@ -812,10 +812,11 @@ check_random_seed( S ) ->
 % From this (const) state, computed once for all and whose construction does not
 % depend on any other random state (it is deterministic), any number of samples
 % respecting said distribution can be drawn, like in:
-%
+%  ```
 %  S1 = random_utils:generate_random_state_from(MyDistributionState),
 %  Samples = [ random_utils:get_sample_from(MyDistributionState)
 %                        || _ <- lists:seq(1, Count) ]
+%  '''
 %
 % This preprocessing uses O(N) time, where N is the number of declared samples
 % of the corresponding distribution, in order to generate its returned state.

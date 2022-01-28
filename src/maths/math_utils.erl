@@ -30,7 +30,7 @@
 %
 % See `math_utils_test.erl' for the corresponding test.
 %
-% See `random_utils` for random-related operations.
+% See `random_utils' for random-related operations.
 %
 -module(math_utils).
 
