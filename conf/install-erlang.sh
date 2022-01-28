@@ -117,7 +117,7 @@ patch_opt_short="-np"
 patch_opt_long="--no-patch"
 
 limit_opt_short="-ncl"
-limit_opt_long="-no-cpu-limit"
+limit_opt_long="--no-cpu-limit"
 
 previous_opt_short="-p"
 previous_opt_long="--previous"
@@ -159,7 +159,7 @@ Example:
   sudo install-erlang.sh
 	will install current official stable version of Erlang (${erlang_version}) in /usr/local/ (i.e. system-wide)
 
-For Debian-based distributions, you should preferably run beforehand, as root: 'apt-get update && apt-get build-dep erlang && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng3', otherwise for example the crypto, wx or observer modules might not be available or usable.
+For Debian-based distributions (Debian 10, buster for example), you should preferably run beforehand, as root: 'apt-get update && apt-get build-dep erlang && apt-get install g++ make libncurses5-dev openssl libssl-dev libwxgtk2.8-dev libgl1-mesa-dev libglu1-mesa-dev libpng16-16', otherwise for example the crypto, wx or observer modules might not be available or usable.
 "
 
 
