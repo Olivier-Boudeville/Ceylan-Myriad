@@ -199,8 +199,8 @@ gui_main_loop( GUIState ) ->
 
 				% Not ready yet:
 				false ->
-					trace_utils:debug( "To be repainted, "
-									   "yet no OpenGL state yet." ),
+					trace_utils:debug(
+						"To be repainted, yet no OpenGL state yet." ),
 					GUIState
 
 			end,
@@ -262,7 +262,9 @@ gui_main_loop( GUIState ) ->
 
 
 
-% @doc Sets up OpenGL, once for all, once a proper OpenGL context is available.
+% @doc Sets up OpenGL, once for all (regardless of next resizings), once a
+% proper OpenGL context is available.
+%
 -spec initialise_opengl( my_gui_state() ) -> my_gui_state().
 initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 										   context=GLContext,
@@ -340,7 +342,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	% Any OpenGL reset to be done because of the resizing should take place
 	% here.
 	%
-	% Using normalised coordinates (in [0.0,1.0]), so no need to update the
+	% Using here normalised coordinates (in [0.0,1.0]), so no need to update the
 	% orthographic projection.
 
 	render( CanvasWidth, CanvasHeight ),
@@ -361,13 +363,15 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 render( Width, Height ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
-	%						[ Width, Height ] ),
+	%                       [ Width, Height ] ),
 
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
-	% A white right-angled rectangle in the z=0 plane (in a black background),
+	% A white right-angled rectangle in the Z=0 plane (in a black background),
 	% whose right angle is at the center of the viewport/frame, and which faces
 	% the top-right frame corner:
+	%
+	% (using MyriadGUI 2D referential)
 
 	% Draws in white:
 	gl:color3f( 1.0, 1.0, 1.0 ),
@@ -377,9 +381,15 @@ render( Width, Height ) ->
 
 	% CCW order:
 	gl:'begin'( ?GL_TRIANGLES ),
+
 		gl:vertex2i( MidWidth, 0 ),
+
+		% Going towards the bottom of the screen:
 		gl:vertex2i( MidWidth, MidHeight ),
+
+		% Going right:
 		gl:vertex2i( Width, MidHeight ),
+
 	gl:'end'(),
 
 	% A fix-width blue "F" character:
