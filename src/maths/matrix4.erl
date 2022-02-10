@@ -158,7 +158,7 @@ new( UserMatrix ) ->
 new( UserVecRow1, UserVecRow2, UserVecRow3 ) ->
 
 	Rows = [ vector4:new( UVR )
-			 || UVR <- [ UserVecRow1, UserVecRow2, UserVecRow3 ] ],
+				|| UVR <- [ UserVecRow1, UserVecRow2, UserVecRow3 ] ],
 
 	CoordList = list_utils:flatten_once( Rows ),
 
