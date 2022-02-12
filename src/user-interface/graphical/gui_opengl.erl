@@ -71,6 +71,11 @@
 
 % Note: with OpenGL, angles are in degrees.
 
+% For most OpenGL operations to succeed, first the wx/gl NIF must be loaded
+% (hence after gui:start/0), and a GL context must be available (thus cannot
+% happen before the main frame is shown).
+
+
 
 % For the numerous GL defines notably:
 -include("gui_opengl.hrl").
@@ -85,6 +90,25 @@
 
 -type glxinfo_report() :: [ ustring() ].
 % A report issued by the glxinfo executable.
+
+
+-type vendor_name() :: bin_string().
+% The name of the OpenGL vendor of a driver, that is the company responsible for
+% the corresponding OpenGL implementation.
+%
+% For example: <<"FOOBAR Corporation">>.
+
+
+-type renderer_name() :: bin_string().
+% The name of the OpenGL renderer of a driver (typically specific to a
+% particular configuration of a hardware platform).
+%
+% For example: <<"FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2">>.
+
+
+-type platform_identifier() :: { vendor_name(), renderer_name() }.
+% Uniquely identifies an (OpenGL driver) platform; does not change from release
+% to release and should be used by platform-recognition algorithms.
 
 
 -opaque gl_canvas() :: wxGLCanvas:wxGLCanvas().
@@ -149,8 +173,84 @@
 % 0 is the base level.
 
 
+-type matrix_stack() :: ?GL_MODELVIEW
+					  | ?GL_PROJECTION
+					  | ?GL_TEXTURE
+					  | ?GL_COLOR.
+% The various matrix stacks available, a.k.a. as the current matrix mode.
+
+
+-type shader_id() :: non_neg_integer().
+% The identifier of (any kind of) a shader.
+
+
+% Types of shaders, in pipeline order:
+
+-type vertex_shader_id() :: shader_id().
+% The identifier of a vertex shader, to run on a programmable vertex processor.
+
+
+-type tessellation_control_shader_id() :: shader_id().
+% The identifier of a tessellation shader, to run on a programmable tessellation
+% processor in the control stage.
+
+
+-type tessellation_evaluation_shader_id() :: shader_id().
+% The identifier of a tessellation shader, to run on a programmable tessellation
+% processor in the evaluation stage.
+
+
+-type geometry_shader_id() :: shader_id().
+% The identifier of a geometry shader, to run on a programmable geometry
+% processor.
+
+
+-type fragment_shader_id() :: shader_id().
+% The identifier of a fragment shader, to run on a programmable fragment
+% processor.
+
+
+-type compute_shader_id() :: shader_id().
+% The identifier of a compute shader, to run on a programmable compute
+% processor.
+
+
+-type vertex_array_id() :: non_neg_integer().
+% The identifier of a vertex array.
+
+
+-type buffer_id() :: non_neg_integer().
+% The identifier of a buffer, i.e. a "buffer object name".
+
+-type vertex_attribute_buffer_id() :: non_neg_integer().
+% The identifier of a vertex attribute buffer.
+
+-type vertex_attribute_index() :: non_neg_integer().
+% The index of a vertex attribute, in a vertex attribute buffer.
+
+-type attribute_name() :: ustring().
+% The name of a user-defined attribute, meant to be set through an associated
+% index.
+
+-type user_attribute() :: { vertex_attribute_index(), attribute_name() }.
+% A user-defined attribute variable, meant to be associated to a generic vertex
+% attribute index in a GLSL program.
+
+
+-type program_id() :: non_neg_integer().
+% The identifier of GLSL, shader-based program.
+
+
+
 -opaque gl_error() :: enum().
 % An error code reported by OpenGL.
+
+-opaque glu_error() :: enum().
+% An error code reported by GLU.
+
+
+-opaque any_error() :: gl_error() | glu_error().
+% An error code reported by OpenGL or GLU.
 
 
 -opaque glu_id() :: non_neg_integer().
@@ -159,17 +259,34 @@
 % allocate the object.
 
 
--export_type([ enum/0, glxinfo_report/0, gl_canvas/0, gl_canvas_option/0,
+-export_type([ enum/0, glxinfo_report/0,
+			   vendor_name/0, renderer_name/0, platform_identifier/0,
+			   gl_canvas/0, gl_canvas_option/0,
 			   device_context_attribute/0, gl_context/0,
 			   factor/0, length_factor/0,
 			   texture_id/0, texture/0, mipmap_level/0,
-			   gl_error/0,
+			   matrix_stack/0,
+
+			   shader_id/0, vertex_shader_id/0,
+			   tessellation_control_shader_id/0,
+			   tessellation_evaluation_shader_id/0, geometry_shader_id/0,
+			   fragment_shader_id/0, compute_shader_id/0,
+
+			   vertex_array_id/0,
+			   buffer_id/0, vertex_attribute_buffer_id/0,
+
+			   vertex_attribute_index/0, attribute_name/0, user_attribute/0,
+
+			   program_id/0,
+
+			   gl_error/0, glu_error/0, any_error/0,
 			   glu_id/0 ]).
 
 
 
--export([ get_vendor_name/0, get_renderer_name/0, get_version/0,
-		  get_shading_language_version/0,
+-export([ get_vendor_name/0, get_renderer_name/0, get_platform_identifier/0,
+		  get_version/0, get_shading_language_version/0,
+		  get_supported_extensions/0, get_support_description/0,
 
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
@@ -192,6 +309,16 @@
 
 		  enter_2d_mode/1, leave_2d_mode/0,
 
+		  set_matrix/1, get_matrix/1,
+
+		  compile_vertex_shader/1, compile_tessellation_control_shader/1,
+		  compile_tessellation_evaluation_shader/1, compile_geometry_shader/1,
+		  compile_fragment_shader/1, compile_compute_shader/1,
+
+		  generate_program_from/2, generate_program/1, generate_program/2,
+
+		  bindVertexBufferObject/2,
+
 		  check_error/0, interpret_error/1 ]).
 
 
@@ -199,13 +326,19 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 -type any_file_path() :: file_utils:any_file_path().
 
 -type bit_size() :: system_utils:bit_size().
 
 -type any_vertex3() :: point3:any_vertex3().
+-type point3() :: point3:point3().
+
 -type unit_normal3() :: vector3:unit_normal3().
+
+-type matrix4() :: matrix4:matrix4().
+
 
 -type mesh() :: mesh:mesh().
 -type indexed_face() :: mesh:indexed_face().
@@ -237,9 +370,9 @@
 % @doc Returns the name of the OpenGL vendor of the current driver, that is the
 % company responsible for this OpenGL implementation.
 %
-% For example: "FOOBAR Corporation".
+% For example: <<"FOOBAR Corporation">>.
 %
--spec get_vendor_name() -> ustring().
+-spec get_vendor_name() -> vendor_name().
 get_vendor_name() ->
 	Res= gl:getString( ?GL_VENDOR ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
@@ -250,13 +383,24 @@ get_vendor_name() ->
 % @doc Returns the name of the OpenGL renderer of the current driver (typically
 % specific to a particular configuration of a hardware platform).
 %
-% For example: "FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2".
+% For example: <<"FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2">>.
 %
--spec get_renderer_name() -> ustring().
+-spec get_renderer_name() -> renderer_name().
 get_renderer_name() ->
 	Res = gl:getString( ?GL_RENDERER ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
+
+
+
+% @doc Returns the platform driver identifier.
+%
+% For example: {<<"FOOBAR Corporation">>, <<"FOOBAR Frobinator GTX 1060
+% 6GB/PCIe/SSE2">>}.
+%
+-spec get_platform_identifier() -> platform_identifier().
+ get_platform_identifier() ->
+	{ get_vendor_name(), get_renderer_name() }.
 
 
 
@@ -282,6 +426,49 @@ get_shading_language_version() ->
 	Res = gl:getString( ?GL_SHADING_LANGUAGE_VERSION ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
+
+
+
+% @doc Returns a list of the supported extensions, as strings.
+%
+% Ex: 390 extensions like "GL_AMD_multi_draw_indirect",
+% "GL_AMD_seamless_cubemap_per_texture", etc.
+%
+-spec get_supported_extensions() -> [ ustring() ].
+get_supported_extensions() ->
+	ExtStr = gl:getString( ?GL_EXTENSIONS ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+	text_utils:split( ExtStr, _Delimiters=[ $ ] ).
+
+
+
+% @doc Returns a synthetic string describing the host-local OpenGL support, also
+% known as the current GL connection.
+%
+-spec get_support_description() -> ustring().
+get_support_description() ->
+
+	VendStr = text_utils:format( "driver vendor: ~ts", [ get_vendor_name() ] ),
+
+	RendStr = text_utils:format( "driver renderer: ~ts",
+								 [ get_renderer_name() ] ),
+
+	ImplStr = text_utils:format( "implementation version: ~ts",
+								 [ get_version() ] ),
+
+	ShadStr = text_utils:format( "shading language version: ~ts",
+								 [ get_shading_language_version() ] ),
+
+	Exts = get_supported_extensions(),
+
+	% Way too long (ex: 390 extensions returned):
+	%ExtStr = text_utils:format( "~B extensions: ~ts", [ length( Exts ),
+	%   text_utils:strings_to_listed_string( Exts ) ] ),
+
+	ExtStr = text_utils:format( "~B extensions supported", [ length( Exts ) ] ),
+
+	text_utils:strings_to_string(
+		[ VendStr, RendStr, ImplStr, ShadStr, ExtStr ] ).
 
 
 
@@ -853,6 +1040,636 @@ leave_2d_mode() ->
 
 
 
+% @doc Replaces the current OpenGL matrix (top of the currently selected stack,
+% see matrix_stack/0) with the specified matrix4 instance.
+%
+-spec set_matrix( matrix4() ) -> void().
+set_matrix( M=identity_4  )  ->
+	set_matrix( matrix4:to_canonical( M ) );
+
+% Works both for canonical_matrix4 and compact_matrix4:
+set_matrix( M ) ->
+
+	% Removes the record tag, resulting in a tuple of 16 or 12 coordinates
+	% respectively:
+	%
+	ShrunkTuple = erlang:delete_element( _Index=1, M ),
+
+	% 'f' float suffix, not 'd' by definition of matrix4.
+	%
+	% Transpose, as gl:loadMatrixf expects column-major order, not row-major
+	% one:
+	%
+	gl:loadTransposeMatrixf( ShrunkTuple ).
+
+
+
+% @doc Returns the current OpenGL matrix at the top of the specified stack, as a
+% matrix4 instance.
+%
+-spec get_matrix( matrix_stack() ) -> matrix4().
+get_matrix( _Stack ) ->
+	% Not relevant: gl:getDoublev( Stack )
+	% and gl:get/1 not available through NIF.
+	% gl:get( Stack ).
+	throw( not_implemented ).
+
+
+
+% GLSL section.
+
+
+% @spec Loads and compiles a vertex shader from the specified source file (whose
+% extension is typically .vertex.glsl), and returns its identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_vertex_shader( any_file_path() ) -> vertex_shader_id().
+compile_vertex_shader( VertexShaderPath ) ->
+
+	VertexShaderBin = file_utils:read_whole( VertexShaderPath ),
+
+	% Creates an empty shader object, and returns a non-zero value by which it
+	% can be referenced:
+	%
+	VertexShaderId = gl:createShader( ?GL_VERTEX_SHADER ),
+
+	trace_utils:debug_fmt( "Compiling vertex shader '~ts'.",
+						   [ VertexShaderPath ] ),
+
+	% Associates source to empty shader:
+	ok = gl:shaderSource( VertexShaderId, [ VertexShaderBin ] ),
+
+	ok = gl:compileShader( VertexShaderId ),
+
+	MaybeLogStr = case gl:getShaderiv( VertexShaderId, ?GL_INFO_LOG_LENGTH ) of
+
+		0 ->
+			undefined;
+
+		InfoLen ->
+			gl:getShaderInfoLog( VertexShaderId, InfoLen )
+
+	end,
+
+	% Now checks compilation outcome:
+	case gl:getShaderiv( VertexShaderId, ?GL_COMPILE_STATUS ) of
+
+		?GL_TRUE ->
+			case MaybeLogStr of
+
+				undefined ->
+					ok;
+
+				LogStr ->
+					trace_utils:warning_fmt( "Compilation of the vertex shader "
+						"defined in '~ts' succeeded, yet reported that '~ts'.",
+						[ VertexShaderPath, LogStr ] )
+
+			end;
+
+		_ ->
+			MsgStr = case MaybeLogStr of
+
+				undefined ->
+					"(no report)";
+
+				LogStr ->
+					LogStr
+
+			end,
+
+			trace_utils:error_fmt( "Compilation of the vertex shader in "
+				"'~ts' failed: ~ts.", [ VertexShaderPath, MsgStr ] ),
+
+			gl:deleteShader( VertexShaderId ),
+
+			throw( { shader_compilation_failed, vertex_shader,
+					 VertexShaderPath, MsgStr } )
+
+	end,
+
+	VertexShaderId.
+
+
+
+% @spec Loads and compiles a tessellation control shader from the specified
+% source file (whose extension is typically .tess-ctrl.glsl), and returns its
+% identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_tessellation_control_shader( any_file_path() ) ->
+											tessellation_control_shader_id().
+compile_tessellation_control_shader( TessCtrlShaderPath ) ->
+
+	TessCtrlShaderBin = file_utils:read_whole( TessCtrlShaderPath ),
+
+	% Creates an empty shader object, and returns a non-zero value by which it
+	% can be referenced:
+	%
+	TessCtrlShaderId = gl:createShader( ?GL_TESS_CONTROL_SHADER ),
+
+	trace_utils:debug_fmt( "Compiling tessellation control shader '~ts'.",
+						   [ TessCtrlShaderPath ] ),
+
+	% Associates source to empty shader:
+	ok = gl:shaderSource( TessCtrlShaderId, [ TessCtrlShaderBin ] ),
+
+	ok = gl:compileShader( TessCtrlShaderId ),
+
+	MaybeLogStr = case gl:getShaderiv( TessCtrlShaderId,
+									   ?GL_INFO_LOG_LENGTH ) of
+
+		0 ->
+			undefined;
+
+		InfoLen ->
+			gl:getShaderInfoLog( TessCtrlShaderId, InfoLen )
+
+	end,
+
+	% Now checks compilation outcome:
+	case gl:getShaderiv( TessCtrlShaderId, ?GL_COMPILE_STATUS ) of
+
+		?GL_TRUE ->
+			case MaybeLogStr of
+
+				undefined ->
+					ok;
+
+				LogStr ->
+					trace_utils:warning_fmt( "Compilation of the tessellation "
+						"control shader defined in '~ts' succeeded, "
+						"yet reported that '~ts'.",
+						[ TessCtrlShaderPath, LogStr ] )
+
+			end;
+
+		_ ->
+			MsgStr = case MaybeLogStr of
+
+				undefined ->
+					"(no report)";
+
+				LogStr ->
+					LogStr
+
+			end,
+
+			trace_utils:error_fmt( "Compilation of the tessellation control "
+				"shader in '~ts' failed: ~ts.",
+				[ TessCtrlShaderPath, MsgStr ] ),
+
+			gl:deleteShader( TessCtrlShaderId ),
+
+			throw( { shader_compilation_failed,
+					 tessellation_control_shader, TessCtrlShaderPath, MsgStr } )
+
+	end,
+
+	TessCtrlShaderId.
+
+
+
+% @spec Loads and compiles a tessellation evaluation shader from the specified
+% source file (whose extension is typically .tess-eval.glsl), and returns its
+% identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_tessellation_evaluation_shader( any_file_path() ) ->
+											tessellation_evaluation_shader_id().
+compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
+
+	TessEvalShaderBin = file_utils:read_whole( TessEvalShaderPath ),
+
+	% Creates an empty shader object, and returns a non-zero value by which it
+	% can be referenced:
+	%
+	TessEvalShaderId = gl:createShader( ?GL_TESS_EVALUATION_SHADER ),
+
+	trace_utils:debug_fmt( "Compiling tessellation evaluation shader '~ts'.",
+						   [ TessEvalShaderPath ] ),
+
+	% Associates source to empty shader:
+	ok = gl:shaderSource( TessEvalShaderId, [ TessEvalShaderBin ] ),
+
+	ok = gl:compileShader( TessEvalShaderId ),
+
+	MaybeLogStr = case gl:getShaderiv( TessEvalShaderId,
+									   ?GL_INFO_LOG_LENGTH ) of
+
+		0 ->
+			undefined;
+
+		InfoLen ->
+			gl:getShaderInfoLog( TessEvalShaderId, InfoLen )
+
+	end,
+
+	% Now checks compilation outcome:
+	case gl:getShaderiv( TessEvalShaderId, ?GL_COMPILE_STATUS ) of
+
+		?GL_TRUE ->
+			case MaybeLogStr of
+
+				undefined ->
+					ok;
+
+				LogStr ->
+					trace_utils:warning_fmt( "Compilation of the tessellation "
+						"evaluation shader defined in '~ts' succeeded, "
+						"yet reported that '~ts'.",
+						[ TessEvalShaderPath, LogStr ] )
+
+			end;
+
+		_ ->
+			MsgStr = case MaybeLogStr of
+
+				undefined ->
+					"(no report)";
+
+				LogStr ->
+					LogStr
+
+			end,
+
+			trace_utils:error_fmt( "Compilation of the tessellation evaluation "
+				"shader in '~ts' failed: ~ts.",
+				[ TessEvalShaderPath, MsgStr ] ),
+
+			gl:deleteShader( TessEvalShaderId ),
+
+			throw( { shader_compilation_failed,
+					 tessellation_evaluation_shader, TessEvalShaderPath,
+					 MsgStr } )
+
+	end,
+
+	TessEvalShaderId.
+
+
+
+
+% @spec Loads and compiles a geometry shader from the specified source file
+% (whose extension is typically .geometry.glsl), and returns its identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_geometry_shader( any_file_path() ) -> geometry_shader_id().
+compile_geometry_shader( GeometryShaderPath ) ->
+
+	GeometryShaderBin = file_utils:read_whole( GeometryShaderPath ),
+
+	% Creates an empty shader object, and returns a non-zero value by which it
+	% can be referenced:
+	%
+	GeometryShaderId = gl:createShader( ?GL_GEOMETRY_SHADER ),
+
+	trace_utils:debug_fmt( "Compiling geometry shader '~ts'.",
+						   [ GeometryShaderPath ] ),
+
+	% Associates source to empty shader:
+	ok = gl:shaderSource( GeometryShaderId, [ GeometryShaderBin ] ),
+
+	ok = gl:compileShader( GeometryShaderId ),
+
+	MaybeLogStr = case gl:getShaderiv( GeometryShaderId,
+									   ?GL_INFO_LOG_LENGTH ) of
+
+		0 ->
+			undefined;
+
+		InfoLen ->
+			gl:getShaderInfoLog( GeometryShaderId, InfoLen )
+
+	end,
+
+	% Now checks compilation outcome:
+	case gl:getShaderiv( GeometryShaderId, ?GL_COMPILE_STATUS ) of
+
+		?GL_TRUE ->
+			case MaybeLogStr of
+
+				undefined ->
+					ok;
+
+				LogStr ->
+					trace_utils:warning_fmt( "Compilation of the geometry "
+						"shader defined in '~ts' succeeded, yet reported "
+						"that '~ts'.", [ GeometryShaderPath, LogStr ] )
+
+			end;
+
+		_ ->
+			MsgStr = case MaybeLogStr of
+
+				undefined ->
+					"(no report)";
+
+				LogStr ->
+					LogStr
+
+			end,
+
+			gl:deleteShader( GeometryShaderId ),
+
+			trace_utils:error_fmt( "Compilation of the geometry shader in "
+				"'~ts' failed: ~ts.", [ GeometryShaderPath, MsgStr ] ),
+
+			throw( { shader_compilation_failed, geometry_shader,
+					 GeometryShaderPath, MsgStr } )
+
+	end,
+
+	GeometryShaderId.
+
+
+
+
+% @spec Loads and compiles a fragment shader from the specified source file
+% (whose extension is typically fragment.glsl), and returns its identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_fragment_shader( any_file_path() ) -> fragment_shader_id().
+compile_fragment_shader( FragmentShaderPath ) ->
+
+	FragmentShaderBin = file_utils:read_whole( FragmentShaderPath ),
+
+	% Creates an empty shader object, and returns a non-zero value by which it
+	% can be referenced:
+	%
+	FragmentShaderId = gl:createShader( ?GL_FRAGMENT_SHADER ),
+
+	trace_utils:debug_fmt( "Compiling fragment shader '~ts'.",
+						   [ FragmentShaderPath ] ),
+
+	% Associates source to empty shader:
+	ok = gl:shaderSource( FragmentShaderId, [ FragmentShaderBin ] ),
+
+	ok = gl:compileShader( FragmentShaderId ),
+
+	MaybeLogStr = case gl:getShaderiv( FragmentShaderId,
+									   ?GL_INFO_LOG_LENGTH ) of
+
+		0 ->
+			undefined;
+
+		InfoLen ->
+			gl:getShaderInfoLog( FragmentShaderId, InfoLen )
+
+	end,
+
+	% Now checks compilation outcome:
+	case gl:getShaderiv( FragmentShaderId, ?GL_COMPILE_STATUS ) of
+
+		?GL_TRUE ->
+			case MaybeLogStr of
+
+				undefined ->
+					ok;
+
+				LogStr ->
+					trace_utils:warning_fmt( "Compilation of the fragment "
+						"shader defined in '~ts' succeeded, yet reported "
+						"that '~ts'.", [ FragmentShaderPath, LogStr ] )
+
+			end;
+
+		_ ->
+			MsgStr = case MaybeLogStr of
+
+				undefined ->
+					"(no report)";
+
+				LogStr ->
+					LogStr
+
+			end,
+
+			trace_utils:error_fmt( "Compilation of the fragment shader in "
+				"'~ts' failed: ~ts.", [ FragmentShaderPath, MsgStr ] ),
+
+			gl:deleteShader( FragmentShaderId ),
+
+			throw( { shader_compilation_failed, fragment_shader,
+					 FragmentShaderPath, MsgStr } )
+
+	end,
+
+	FragmentShaderId.
+
+
+% @spec Loads and compiles a compute shader from the specified source file
+% (whose extension is typically .compute.glsl), and returns its identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_compute_shader( any_file_path() ) -> compute_shader_id().
+compile_compute_shader( ComputeShaderPath ) ->
+
+	ComputeShaderBin = file_utils:read_whole( ComputeShaderPath ),
+
+	% Creates an empty shader object, and returns a non-zero value by which it
+	% can be referenced:
+	%
+	ComputeShaderId = gl:createShader( ?GL_COMPUTE_SHADER ),
+
+	trace_utils:debug_fmt( "Compiling compute shader '~ts'.",
+						   [ ComputeShaderPath ] ),
+
+	% Associates source to empty shader:
+	ok = gl:shaderSource( ComputeShaderId, [ ComputeShaderBin ] ),
+
+	ok = gl:compileShader( ComputeShaderId ),
+
+	MaybeLogStr = case gl:getShaderiv( ComputeShaderId,
+									   ?GL_INFO_LOG_LENGTH ) of
+
+		0 ->
+			undefined;
+
+		InfoLen ->
+			gl:getShaderInfoLog( ComputeShaderId, InfoLen )
+
+	end,
+
+	% Now checks compilation outcome:
+	case gl:getShaderiv( ComputeShaderId, ?GL_COMPILE_STATUS ) of
+
+		?GL_TRUE ->
+			case MaybeLogStr of
+
+				undefined ->
+					ok;
+
+				LogStr ->
+					trace_utils:warning_fmt( "Compilation of the compute "
+						"shader defined in '~ts' succeeded, yet reported "
+						"that '~ts'.", [ ComputeShaderPath, LogStr ] )
+
+			end;
+
+		_ ->
+			MsgStr = case MaybeLogStr of
+
+				undefined ->
+					"(no report)";
+
+				LogStr ->
+					LogStr
+
+			end,
+
+			trace_utils:error_fmt( "Compilation of the compute shader in "
+				"'~ts' failed: ~ts.", [ ComputeShaderPath, MsgStr ] ),
+
+			gl:deleteShader( ComputeShaderId ),
+
+			throw( { shader_compilation_failed, compute_shader,
+					 ComputeShaderPath, MsgStr } )
+
+	end,
+
+	ComputeShaderId.
+
+
+
+% @spec Generates a GLSL program from the shaders whose source files are
+% specified: loads and compiles the specified vertex and fragment shaders (with
+% no user-specified attributes defined), links them in a corresponding program,
+% and returns its identifier.
+%
+-spec generate_program_from( any_file_path(), any_file_path() ) -> program_id().
+generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
+
+	VertexShaderId = compile_vertex_shader( VertexShaderPath ),
+	FragmentShaderId = compile_fragment_shader( FragmentShaderPath ),
+
+	generate_program( _ShaderIds= [ VertexShaderId, FragmentShaderId ] ).
+
+
+
+% @spec Generates a GLSL program from the (already loaded and compiled) shaders
+% whose identifiers are specified, with no user-specified attributes defined:
+% links these shaders in a corresponding program, and returns its identifier.
+%
+% Deletes the specified shaders once the program is generated.
+%
+-spec generate_program( [ shader_id() ] ) -> program_id().
+generate_program( ShaderIds ) ->
+	generate_program( ShaderIds, _UserAttributes=[] ).
+
+
+
+% @spec Generates a GLSL program from the (already loaded and compiled) shaders
+% whose identifiers are specified, with user-specified attributes: links these
+% shaders in a corresponding program, and returns its identifier.
+%
+% Deletes the specified shaders once the program is generated.
+%
+-spec generate_program( [ shader_id() ], [ user_attribute() ] ) -> program_id().
+generate_program( ShaderIds, UserAttributes ) ->
+
+	% Creates an empty program object and returns a non-zero value by which it
+	% can be referenced:
+	%
+	ProgramId = gl:createProgram(),
+
+	[ gl:attachShader( ProgramId, ShdId ) || ShdId <- ShaderIds ],
+
+	% Any attribute must be bound before linking:
+	[ gl:bindAttribLocation( ProgramId, Idx, AttrName )
+									|| { Idx, AttrName } <- UserAttributes ],
+
+	gl:linkProgram( ProgramId ),
+
+	MaybeLogStr = case gl:getProgramiv( ProgramId, ?GL_INFO_LOG_LENGTH ) of
+
+		0 ->
+			undefined;
+
+		InfoLen ->
+			gl:getProgramInfoLog( ProgramId, InfoLen )
+
+	end,
+
+	% Now checks linking outcome:
+	case gl:getProgramiv( ProgramId, ?GL_LINK_STATUS ) of
+
+		?GL_TRUE ->
+			case MaybeLogStr of
+
+				undefined ->
+					ok;
+
+				LogStr ->
+					trace_utils:warning_fmt( "Linking of the program from "
+						"specified shaders succeeded, yet reported that '~ts'.",
+						[ LogStr ] )
+
+			end;
+
+		?GL_FALSE ->
+			MsgStr = case MaybeLogStr of
+
+				undefined ->
+					"(no report)";
+
+				LogStr ->
+					LogStr
+
+			end,
+
+			trace_utils:error_fmt( "Linking of the program from the specified "
+				"shaders failed: ~ts.", [ MsgStr ] ),
+
+		   gl:deleteProgram( ProgramId ),
+
+			throw( { program_linking_failed, MsgStr } )
+
+	end,
+
+	[ begin
+		gl:detachShader( ProgramId, ShdId ),
+		gl:deleteShader( ShdId )
+	  end || ShdId <- ShaderIds ],
+
+	ProgramId.
+
+
+
+% @doc Binds the specified vertices in a new vertex attribute buffer whose
+% identifier is returned.
+%
+-spec bindVertexBufferObject( [ point3() ], enum() ) ->
+			vertex_attribute_buffer_id().
+bindVertexBufferObject( Vertices, UsageHint ) ->
+
+	% One (integer) identifier of array buffer wanted:
+	[ VertexBufferId ] = gl:genBuffers( _Count=1 ),
+
+	gl:bindBuffer( ?GL_ARRAY_BUFFER, VertexBufferId ),
+
+	VBuffer = point3:to_buffer( Vertices ),
+
+	gl:bufferData( ?GL_ARRAY_BUFFER, byte_size( VBuffer ), VBuffer, UsageHint ),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
+	VertexBufferId.
+
+
+
 % @doc Renders the specified indexed faces.
 -spec render_faces( [ indexed_face() ], face_count(), [ any_vertex3() ],
 					[ unit_normal3() ], [ render_rgb_color() ] ) -> void().
@@ -966,13 +1783,19 @@ check_error() ->
 			Diagnosis = interpret_error( GlError ),
 			trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; aborting.",
 								   [ GlError, Diagnosis ] ),
+
+			% Stacktrace expected as may be useful (even if the error might have
+			% happened some time before, after the last check):
+			%
 			throw( { opengl_error, GlError, Diagnosis } )
 
 	end.
 
 
-% @doc Returns a (textual) diagnosis regarding the specified OpenGL error.
--spec interpret_error( gl_error() ) -> ustring().
+% @doc Returns a (textual) diagnosis regarding the specified OpenGL-related
+% (including GLU) error.
+%
+-spec interpret_error( any_error() ) -> ustring().
 % Reference being
 % https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetError.xhtml:
 interpret_error( ?GL_INVALID_ENUM ) ->
@@ -1002,6 +1825,6 @@ interpret_error( ?GL_STACK_OVERFLOW ) ->
 interpret_error( ?GL_NO_ERROR ) ->
 	"no OpenGL error reported (GL_NO_ERROR)";
 
-interpret_error( Other ) ->
-	text_utils:format( "unknown OpenGL error (abnormal), of code ~B.",
-					   [ Other ] ).
+interpret_error( OtherCode ) ->
+	text_utils:format( "OpenGL-related error of code ~B, interpreted as '~ts'.",
+		[ OtherCode, glu:errorString( OtherCode ) ] ).
