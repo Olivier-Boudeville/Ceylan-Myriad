@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Sunday, January 9, 2022.
+% Creation date: Wednesday, February 9, 2022.
 
 
 % @doc 2D testing of the <b>OpenGL support</b>; displays a white rectangle
@@ -33,6 +33,9 @@
 % behaviour) whose main interest is to show a simple yet generic, appropriate
 % structure in order to properly initialise the GUI and OpenGL, handle
 % rendering, resizing and closing.
+%
+% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
+% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
 %
 % See the gui_opengl.erl tested module.
 %

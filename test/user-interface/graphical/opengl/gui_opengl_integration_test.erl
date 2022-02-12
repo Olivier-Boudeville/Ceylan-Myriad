@@ -27,6 +27,9 @@
 
 % @doc Testing the <b>OpenGL support</b>, as an integration test.
 %
+% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
+% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+%
 % See the gui_opengl.erl tested module.
 %
 % See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.

@@ -34,6 +34,9 @@
 % structure in order to properly initialise the GUI and OpenGL, handle
 % rendering, resizing and closing.
 %
+% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
+% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+%
 % See the gui_opengl.erl tested module.
 %
 % See gui_opengl_minimal_test.erl for a similar 2D test yet operating with
