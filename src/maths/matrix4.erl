@@ -70,20 +70,24 @@
 -type matrix4() :: 'identity_4' | canonical_matrix4() | compact_matrix4().
 
 
-% Alias for 4x4 canonical matrices:
 -type canonical_matrix4() :: #matrix4{}.
+% Alias for 4x4 canonical matrices.
 
 
-% Aliases for 4x4 compact matrices:
 -type compact_matrix4() :: #compact_matrix4{}.
+% Aliases for 4x4 compact matrices.
 
 
 -type rot_matrix4() :: canonical_matrix4().
 % A matrix describing a 4D rotation.
 
 
+-type tuple_matrix4() :: gl:m12() | gl:m16().
+% A tuple of 12 or 16 floats.
+
+
 -export_type([ user_matrix4/0, matrix4/0, canonical_matrix4/0,
-			   compact_matrix4/0, rot_matrix4/0 ]).
+			   compact_matrix4/0, rot_matrix4/0, tuple_matrix4/0 ]).
 
 
 -export([ new/1, new/3, null/0, identity/0, rotation/2,
@@ -100,6 +104,7 @@
 		  are_equal/2,
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
+		  from_tuple/1, to_tuple/1,
 		  check/1,
 		  to_string/1 ] ).
 
@@ -1158,6 +1163,30 @@ to_compact( identity_4 ) ->
 
 to_compact( CM ) when is_record( CM, compact_matrix4 ) ->
 	CM.
+
+
+
+% @doc Returns a matrix corresponding to the specified tuple-based one.
+%
+% The elements are expected to be already floats().
+%
+-spec from_tuple( tuple_matrix4() ) -> matrix4().
+from_tuple( Tuple ) when is_tuple( Tuple ) andalso size( Tuple ) =:= 12 ->
+	erlang:insert_element( _Index=1, Tuple, compact_matrix4 );
+
+from_tuple( Tuple ) when is_tuple( Tuple ) andalso size( Tuple ) =:= 16 ->
+	erlang:insert_element( _Index=1, Tuple, matrix4 ).
+
+
+% @doc Returns a tuple-based version of the specified matrix.
+-spec to_tuple( matrix4() ) -> tuple_matrix4().
+to_tuple( M=identity_4 ) ->
+	to_tuple( to_compact( M ) );
+
+% Here either a canonical_matrix4() | compact_matrix4() record:
+to_tuple( M ) ->
+	% Just chop the record tag, returning either m16() or m12():
+	erlang:delete_element( _Index=1, M ).
 
 
 
