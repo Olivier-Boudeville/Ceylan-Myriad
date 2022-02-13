@@ -151,7 +151,6 @@ run_actual_test() ->
 							 "on a white background." ),
 
 	gui:start(),
-
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
 
@@ -179,7 +178,8 @@ init_test_gui() ->
 								  _Size={ 1024, 768 } ),
 
 	% Using default GL attributes:
-	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame ),
+	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame,
+		[ { gl_attributes, [ use_core_profile ] } ] ),
 
 	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
@@ -329,6 +329,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	gl:bindVertexArray( VertexArrayId ),
 
+	% Rely on our shader:
+	gl:useProgram( ProgramId ),
+
 	% Triangle defined by a [ point3:vertex3() ]:
 	Vertices = [ { -1.0, -1.0, 0.0 }, { 1.0, -1.0, 0.0 }, { 0.0, 1.0, 0.0 } ],
 
@@ -336,6 +339,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Targeting vertex attributes:
 	VertexBufferId = gui_opengl:bindVertexBufferObject( Vertices,
 												_UsageHint=?GL_STATIC_DRAW ),
+
+	% Could be done once for all here:
+	%gl:bindBuffer( ?GL_ARRAY_BUFFER, VertexBufferId ),
 
 	InitOpenGLState = #my_opengl_state{ program_id=ProgramId,
 										vertex_buffer_id=VertexBufferId },
@@ -420,24 +426,27 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_opengl_state()  ) -> void().
-render( _Width, _Height, #my_opengl_state{ program_id=ProgramId,
-										   vertex_buffer_id=VBufferId } ) ->
+render( _Width, _Height, #my_opengl_state{ vertex_buffer_id=VBufferId } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
-	%                        [ Width, Height ] ),
+	%                       [ Width, Height ] ),
 
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
-	% Rely on our shader:
-	gl:useProgram( ProgramId ),
+	% We already rely on our shader program.
+
+	% In this specific simple case, could have been done only once, in OpenGL
+	% initialisation:
+	%
+	gl:bindBuffer( ?GL_ARRAY_BUFFER, VBufferId ),
+
+	% From now, all operations apparently must be performed at each rendering:
 
 	% First and only attribute in buffer: the vertices.
 	VertIndex = 0,
 
 	% Uses the currently bound vertex array object;
 	gl:enableVertexAttribArray( VertIndex ),
-
-	gl:bindBuffer( ?GL_ARRAY_BUFFER, VBufferId ),
 
 	% Attribute 0; no particular reason for this index, but must match the
 	% layout in the shader:
