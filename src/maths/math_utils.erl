@@ -76,7 +76,7 @@
 -type non_zero_integer() :: pos_integer() | neg_integer().
 
 
--type factor() :: unit_utils:dimensionless().
+-type factor() :: dimensionless().
 % A floating-point factor, typically in [0.0,1.0], that is a multiplier involved
 % in an equation.
 
@@ -107,7 +107,7 @@
 % Variance, the square of a standard deviation.
 
 
--type ratio() :: unit_utils:dimensionless().
+-type ratio() :: dimensionless().
 % A ration between two values.
 
 
@@ -153,7 +153,10 @@
 
 -type positive_index() :: basic_utils:positive_index().
 
-
+-type dimensionless() :: unit_utils:dimensionless().
+-type degrees() :: unit_utils:degrees().
+-type int_degrees() :: unit_utils:int_degrees().
+-type radians() :: unit_utils:radians().
 
 
 % General section.
@@ -522,7 +525,7 @@ is_null( X ) ->
 % @doc Converts specified angle in radian into the same angle expressed in
 % degrees.
 %
--spec radian_to_degree( unit_utils:radians() ) -> unit_utils:degrees().
+-spec radian_to_degree( radians() ) -> degrees().
 radian_to_degree( AngleInRadians ) ->
 	AngleInRadians * 180 / math:pi().
 
@@ -530,7 +533,7 @@ radian_to_degree( AngleInRadians ) ->
 % @doc Canonifies specified angle in degrees, ie ensures the returned value that
 % corresponds to the specified angle is in the [0;360[ interval.
 %
--spec canonify( number() ) -> unit_utils:int_degrees().
+-spec canonify( number() ) -> int_degrees().
 canonify( AngleInDegrees ) when is_integer( AngleInDegrees ) ->
 	modulo( AngleInDegrees, 360 );
 
