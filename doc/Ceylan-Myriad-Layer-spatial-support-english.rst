@@ -13,13 +13,16 @@ Spatial Support
 Motivation
 ----------
 
-The purpose of this section is to describe the facilities offered by Myriad in terms of **spatial operations**, notably for 2D, 3D and 4D support.
+The purpose of this section is to describe the facilities offered by Myriad in terms of **spatial operations**, i.e. computations relating to linear algebra, notably for 2D, 3D and 4D support.
 
 We introduced these elements mostly for convenience, to have them readily available in a simple, controllable form, in pure Erlang, easy to enrich and without involving extra dependencies.
 
+One possible example of their use is when relying on modern OpenGL (version 3+), in which the direct matrix support has been dropped (the so-called immediate mode does not exist anymore, except in a compatibility context). So now the application has to compute such matrices (model-view, perspective, etc.) by itself (on the CPU), as inputs to its GLSL shaders. For that, applications may use dedicated libraries, such as, in C/C++, GLM (`OpenGL Mathematics <https://github.com/g-truc/glm>`_); the linear support of Myriad aims to provide, in Erlang, a relevant subset of these operations.
+
 This support is not expected to be specifically complete, battle-tested or efficient. If looking for such traits, one may consider:
 
-- the elements already available directly in Erlang, notably the `gl <https://erlang.org/doc/man/gl.html>`_ module, providing for example primitives to `load OpenGL matrices <https://erlang.org/doc/man/gl.html#loadTransposeMatrixd-1>`_ and operate on them
+- the elements already available directly in Erlang, notably the `gl <https://erlang.org/doc/man/gl.html>`_ module, providing for example primitives to `load OpenGL matrices <https://erlang.org/doc/man/gl.html#loadTransposeMatrixd-1>`_ and operate on them (note that this mode of operation is deprecated since OpenGL 3.0)
+
 - in the Erlang community: `Wings 3D <http://www.wings3d.com/>`_, an open-source modeller `whose sources <https://github.com/dgud/wings/tree/master/src>`_ of course implement many spatial operations
 
 - integrating advanced, non-Erlang libraries such as ones for linear operations implementing the `BLAS <https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms>`_ specification; using the C binding (*CBLAS interface*) of a renown implementation (optimised at length and making use of processor-specific extensions), such as `LAPACK <https://en.wikipedia.org/wiki/LAPACK>`_ and making it available to Erlang typically thanks to either NIFs (most suitable approach here) or a C-node (possibly thanks to `Ceylan-Seaplus <http://seaplus.esperide.org>`_) would certainly be an option - all the more relevant that a bulk of linear operations could be offset as a whole to it; some Erlang projects target similar objectives, like `linalg <https://github.com/sklassen/erlang-linalg-native>`_ or `matrex <https://github.com/versilov/matrex>`_; more generally the services implemented by a library such as `GSL <https://www.gnu.org/software/gsl/>`_ (the *GNU Scientific Library*) could, thanks to a third-party project, become available to Erlang programs
@@ -191,7 +194,7 @@ For **space** coordinates, three axes are defined for a global referential:
 - ordinate: Y axis (in green, ``#008000``)
 - depth: Z axis (in blue, ``#0000FF``)
 
-By default, we consider right-handed Cartesian coordinate systems, and we rely on "Z-up" conventions (the Z axis being vertical and designating altitudes), like modelling software such as `Blender <https://www.blender.org/>`_ [#]_.
+By default, we consider right-handed Cartesian coordinate systems (like OpenGL; unlike DirectX or Vulkan), and we rely on "Z-up" conventions (the Z axis being vertical and designating altitudes), like modelling software such as `Blender <https://www.blender.org/>`_ [#]_.
 
 .. [#] Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.
 
@@ -238,6 +241,15 @@ A fourth coordinate besides X, Y and Z could be used, as an extra axis (in yello
 
 - either for **homogeneous** coordinates, in which case it will be considered to be spatial as well, with the same unit as the three first ones, and preferably designated as ``W``
 - or for **time** coordinates, with a single axis defined for a global referential: the ``T`` one, for which ``1.0`` corresponds to 1 second
+
+We consider that **clip space** ranges in ``[-1.0, 1.0]`` (like OpenGL conventions; rather than for example ``[0.0, 1.0]``, which are the D3D ones).
+
+
+.. As a consequence, for GML, we are "RH_NO" (RIGHT_HANDED and
+   NEGATIVE_ONE_TO_ONE); ex: GLM_CLIP_CONTROL_RH_NO.
+   GLM is column major (like, often, implicitly OpenGL).
+   A GLM 4x4 matrix is an array of 4 vec4s. Each vec4 represents a column of the matrix.
+   For example matrix[3] is the last column of the matrix.
 
 
 
