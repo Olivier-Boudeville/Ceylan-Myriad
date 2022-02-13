@@ -24,10 +24,10 @@
 
 /* Input vertex data, different for all executions of this shader;
  * index 0 corresponds to the vector that will be assigned to the
- * user-defined shader input vertexPosition_modelspace.
+ * user-defined shader input 'my_input_vertex'.
  *
  */
-layout(location = 0) in vec3 vertexPosition_modelspace;
+layout(location = 0) in vec3 my_input_vertex;
 
 void main(){
 
@@ -36,9 +36,8 @@ void main(){
 	 *
 	 */
 
-
 	// This is an identity transformation, basically:
-	gl_Position.xyz = vertexPosition_modelspace;
+	gl_Position.xyz = my_input_vertex;
 	gl_Position.w = 1.0;
 
 }
