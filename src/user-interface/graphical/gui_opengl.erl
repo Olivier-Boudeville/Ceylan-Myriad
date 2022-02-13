@@ -39,8 +39,8 @@
 -module(gui_opengl).
 
 
-% Ex: for WX_GL_MIN_RED.
-%-include_lib("wx/include/wx.hrl").
+% Ex: for WX_GL_CORE_PROFILE.
+-include_lib("wx/include/wx.hrl").
 
 %-include_lib("wx/include/gl.hrl").
 %-include_lib("wx/include/glu.hrl").
@@ -74,6 +74,12 @@
 % For most OpenGL operations to succeed, first the wx/gl NIF must be loaded
 % (hence after gui:start/0), and a GL context must be available (thus cannot
 % happen before the main frame is shown).
+
+% Relying here only on the wx API version 3.0 (not supporting older ones such as
+% 2.8; see wx_opengl_SUITE.erl for an example of supporting both).
+
+% Currently OpenGL extensions are not specifically supported. Refer to GLEW and
+% to wings_gl.erl for an example thereof.
 
 
 
@@ -111,6 +117,16 @@
 % to release and should be used by platform-recognition algorithms.
 
 
+-type gl_version() :: basic_utils:two_digit_version().
+% An OpenGL version, typically as queried from a driver.
+
+
+-type gl_profile() :: 'core'           % Deprecated functions are disabled
+					| 'compatibility'. % Deprecated functions are allowed
+% An OpenGL profile, typically as queried from a driver. Profiles are defined
+% relatively to a particular version of OpenGL.
+
+
 -opaque gl_canvas() :: wxGLCanvas:wxGLCanvas().
 % An OpenGL-based, back-buffered canvas (not to be mixed with a basic
 % gui:canvas/0 one), to which an OpenGL context shall be set in order to execute
@@ -141,7 +157,13 @@
 	| { 'min_blue_size', bit_size() }
 
 	% The number of bits for Z-buffer (typically 0, 16 or 32):
-	| { 'depth_buffer_size', bit_size() }.
+	| { 'depth_buffer_size', bit_size() }
+
+	% Request the use of an OpenGL core profile (as opposed to a mere
+	% compatibility one); note that is implies requesting at least OpenGL
+	% version 3.0.
+	%
+	| 'use_core_profile'.
 
 
 -type gl_canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
@@ -184,7 +206,7 @@
 % The identifier of (any kind of) a shader.
 
 
-% Types of shaders, in pipeline order:
+% 6 types of shaders, in pipeline order:
 
 -type vertex_shader_id() :: shader_id().
 % The identifier of a vertex shader, to run on a programmable vertex processor.
@@ -261,6 +283,7 @@
 
 -export_type([ enum/0, glxinfo_report/0,
 			   vendor_name/0, renderer_name/0, platform_identifier/0,
+			   gl_version/0, gl_profile/0,
 			   gl_canvas/0, gl_canvas_option/0,
 			   device_context_attribute/0, gl_context/0,
 			   factor/0, length_factor/0,
@@ -285,8 +308,9 @@
 
 
 -export([ get_vendor_name/0, get_renderer_name/0, get_platform_identifier/0,
-		  get_version/0, get_shading_language_version/0,
-		  get_supported_extensions/0, get_support_description/0,
+		  get_version_string/0, get_version/0, is_profile_supported/1,
+		  get_shading_language_version/0, get_supported_extensions/0,
+		  get_support_description/0,
 
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
@@ -372,6 +396,8 @@
 %
 % For example: <<"FOOBAR Corporation">>.
 %
+% Only available if a current OpenGL context is set.
+%
 -spec get_vendor_name() -> vendor_name().
 get_vendor_name() ->
 	Res= gl:getString( ?GL_VENDOR ),
@@ -384,6 +410,8 @@ get_vendor_name() ->
 % specific to a particular configuration of a hardware platform).
 %
 % For example: <<"FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2">>.
+%
+% Only available if a current OpenGL context is set.
 %
 -spec get_renderer_name() -> renderer_name().
 get_renderer_name() ->
@@ -398,6 +426,8 @@ get_renderer_name() ->
 % For example: {<<"FOOBAR Corporation">>, <<"FOOBAR Frobinator GTX 1060
 % 6GB/PCIe/SSE2">>}.
 %
+% Only available if a current OpenGL context is set.
+%
 -spec get_platform_identifier() -> platform_identifier().
  get_platform_identifier() ->
 	{ get_vendor_name(), get_renderer_name() }.
@@ -405,15 +435,80 @@ get_renderer_name() ->
 
 
 % @doc Returns the version / release number of the currently used OpenGL
-% implementation.
+% implementation, as a string returned by the driver.
 %
 % Example: "4.6.0 FOOBAR 495.44".
 %
--spec get_version() -> ustring().
-get_version() ->
+% Only available if a current OpenGL context is set.
+%
+-spec get_version_string() -> ustring().
+get_version_string() ->
 	Res = gl:getString( ?GL_VERSION ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
+
+
+
+% @doc Returns the version / release number of the currently used OpenGL
+% implementation.
+%
+% Example: {4,6}.
+%
+% Only supported on GL contexts with version 3.0 and above (hence not very
+% convenient).
+%
+% Only available if a current OpenGL context is set.
+%
+-spec get_version() -> gl_version().
+get_version() ->
+
+	% Instead of single-element lists, extra (garbage?) elements are returned by
+	% gl:getIntegerv/1:
+	%
+	Major = hd( gl:getIntegerv( ?GL_MAJOR_VERSION ) ),
+	Minor = hd( gl:getIntegerv( ?GL_MINOR_VERSION ) ),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+	{ Major, Minor }.
+
+
+
+% @doc Returns whether the specified OpenGL profile is supportede.
+%
+% Only supported on GL contexts with version 3.0 and above.
+%
+% Only available if a current OpenGL context is set.
+%
+% Note: the current implementation may not be relevant.
+%
+-spec is_profile_supported( gl_profile() ) -> boolean().
+is_profile_supported( core ) ->
+
+	case hd( gl:getIntegerv( ?WX_GL_CORE_PROFILE ) ) of
+
+		0 ->
+			false;
+
+		% Ex: 6
+		_ ->
+			true
+
+	end;
+
+is_profile_supported( compatibility ) ->
+
+	% Case of the define is inconsistent with previous clause yet correct:
+	case hd( gl:getIntegerv( ?wx_GL_COMPAT_PROFILE ) ) of
+
+		0 ->
+			false;
+
+		% Ex: 6
+		_ ->
+			true
+
+	end.
+
 
 
 % @doc Returns the version /release number of the currently used OpenGL
@@ -453,8 +548,38 @@ get_support_description() ->
 	RendStr = text_utils:format( "driver renderer: ~ts",
 								 [ get_renderer_name() ] ),
 
-	ImplStr = text_utils:format( "implementation version: ~ts",
-								 [ get_version() ] ),
+	ImplStr = text_utils:format( "implementation version: described as '~ts', "
+		"directly reported as ~w", [ get_version_string(), get_version() ]  ),
+
+	SupportedProfiles = case is_profile_supported( core ) of
+
+		true ->
+			[ core ];
+
+		false ->
+			[]
+
+	end ++ case is_profile_supported( compatibility ) of
+
+		true ->
+			[ compatibility ];
+
+		false ->
+			[]
+
+	end,
+
+	ProfStr = text_utils:format( "supported profiles: ~ts",
+		[ case SupportedProfiles of
+
+			[] ->
+				"none";
+
+			_ ->
+				text_utils:atoms_to_listed_string( SupportedProfiles )
+
+		  end ] ),
+
 
 	ShadStr = text_utils:format( "shading language version: ~ts",
 								 [ get_shading_language_version() ] ),
@@ -468,7 +593,7 @@ get_support_description() ->
 	ExtStr = text_utils:format( "~B extensions supported", [ length( Exts ) ] ),
 
 	text_utils:strings_to_string(
-		[ VendStr, RendStr, ImplStr, ShadStr, ExtStr ] ).
+		[ VendStr, RendStr, ImplStr, ProfStr, ShadStr, ExtStr ] ).
 
 
 
@@ -611,6 +736,16 @@ create_canvas( Parent, Opts ) ->
 %
 -spec create_context( gl_canvas() ) -> gl_context().
 create_context( Canvas ) ->
+
+	% No specific, relevant option applies, like to create first an OpenGL 2.1
+	% context, possibly enable a GLEW-like service, and use an extension for the
+	% creation of an OpenGL 3.x context like with
+	% WGL_CONTEXT_{MAJOR,MINOR}_VERSION_ARB,
+	% WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB and WGL_ARB_create_context:
+	%
+	% (nevertheless we still have OprnGL 4.6.0 when querying it, see
+	% gui_opengl:get_version/1)
+	%
 	Res = wxGLContext:new( Canvas ),
 
 	% Commented-out, as the OpenGL context is not set as current yet:
@@ -628,6 +763,7 @@ create_context( Canvas ) ->
 %
 -spec set_context( gl_canvas(), gl_context() ) -> void().
 set_context( Canvas, Context ) ->
+	% Using wx API 3.0 (not supporting older ones such as 2.8):
 	case wxGLCanvas:setCurrent( Canvas, Context ) of
 
 		true ->
