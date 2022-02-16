@@ -295,9 +295,12 @@ orthographic( Left, Right, Bottom, Top, ZNear, ZFar ) ->
 %  - AspectRatio determines the field of view in the X (horizontal) direction:
 %  AspectRatio = Width/Height
 %  - ZNear specifies the distance from the viewer to the near clipping plane
-%  (always positive)
+%  (always strictly positive)
 %  - ZFar specifies the distance from the viewer to the far clipping plane
 %  (always positive)
+%
+% Ex: Mp = matrix4:perspective( _FoVYAngle=60.0,
+%   _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
 %
 % Note that the context is a right-handed referential with a clip space in
 % [-1.0, 1.0].
