@@ -43,7 +43,7 @@
 % - the canonical one (4x4 coordinates)
 %
 % - the compact one (3x4) where the last row is (implicitly) [0.0, 0.0, 0.0,
-% 1.0], typical of transformations (translation+rotation) in 3D
+% 1.0], typical of 3D transformations (translation+rotation+scaling)
 %
 % - special ones, at least the identity matrix
 
@@ -90,7 +90,8 @@
 			   compact_matrix4/0, rot_matrix4/0, tuple_matrix4/0 ]).
 
 
--export([ new/1, new/3, null/0, identity/0, rotation/2,
+-export([ new/1, new/3, null/0, identity/0, translation/1, scaling/1,
+		  rotation/2,
 		  orthographic/6, perspective/4,
 		  from_columns/4, from_rows/4,
 		  from_coordinates/16, from_compact_coordinates/12,
@@ -101,7 +102,7 @@
 		  get_element/3, set_element/4,
 		  transpose/1,
 		  scale/2,
-		  add/2, sub/2, mult/2,
+		  add/2, sub/2, mult/2, mult/1, apply/2,
 		  are_equal/2,
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
@@ -111,6 +112,9 @@
 
 
 -import( math_utils, [ is_null/1, are_close/2 ] ).
+
+% To avoid clash with BIF:
+-compile( { no_auto_import, [ apply/2 ] } ).
 
 -define( dim, 4 ).
 
@@ -131,11 +135,14 @@
 -type distance() :: linear:distance().
 -type signed_distance() :: linear:signed_distance().
 
--type vector3() :: vector3:vector3().
+-type point3() :: point3:point3().
 -type unit_vector3() :: vector3:unit_vector3().
+-type vector3() :: vector3:vector3().
+
 
 -type user_vector4() :: vector4:user_vector4().
 -type vector4() :: vector4:vector4().
+-type point4() :: point4:point4().
 
 -type dimensions() :: matrix:dimensions().
 
@@ -190,6 +197,31 @@ null() ->
 -spec identity() -> matrix4().
 identity() ->
 	identity_4.
+
+
+
+% @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to a
+% translation of the specified vector.
+%
+-spec translation( vector3() ) -> compact_matrix4().
+translation( _VT=[ Tx, Ty, Tz ] ) ->
+	Zero = 0.0,
+	One = 1.0,
+	#compact_matrix4{ m11=One,  m12=Zero, m13=Zero, tx=Tx,
+					  m21=Zero, m22=One,  m23=Zero, ty=Ty,
+					  m31=Zero, m32=Zero, m33=One,  tz=Tz }.
+
+
+
+% @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to the
+% scaling of the specified factors.
+%
+-spec scaling( { factor(), factor(), factor() } ) -> compact_matrix4().
+scaling( { Sx, Sy, Sz } ) ->
+	Zero = 0.0,
+	#compact_matrix4{ m11=Sx,   m12=Zero, m13=Zero, tx=Zero,
+					  m21=Zero, m22=Sy,   m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero, m33=Sz,   tz=Zero }.
 
 
 
@@ -426,7 +458,7 @@ from_compact_coordinates( M11, M12, M13, Tx,
 %
 -spec from_arbitrary( matrix() ) -> matrix4().
 from_arbitrary( Matrix ) ->
-	apply( fun from_rows/?dim, Matrix ).
+	erlang:apply( fun from_rows/?dim, Matrix ).
 
 
 % @doc Returns the arbitrary-dimensioned matrix corresponding to the specified
@@ -941,6 +973,163 @@ mult( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
 
 
 
+% @doc Multiplies (in-order) the specified matrices.
+%
+% Ex: mult([Ma, Mb, Mc]) = mult(mult(Ma,Mb),Mc) = Ma.Mb.Mc
+%
+-spec mult( [ matrix4() ] ) -> matrix4().
+mult( [ Ma, Mb | T ] ) ->
+	mult( [ mult( Ma, Mb ) | T ] );
+
+mult( [ M ] ) ->
+	M.
+
+
+
+% @doc Applies (on the right) the specified 3D or 4D vector V or point P to the
+% specified matrix M: returns M.V or M.P.
+%
+% If the specified vector is a 3D one (i.e. not a 4D one), we assume that its
+% fourth (Vw) coordinate is 0.0, whereas if the specified point is a 3D one
+% (i.e. not a 4D one), we assume that its fourth (Pw) coordinate is 1.0, and
+% returns a 3D point whose coordinates have been normalised regarding the W
+% coordinate resulting from the application of that extended point.
+%
+% Not a clause of mult/2 for an increased clarity.
+%
+-spec apply( matrix4(), vector3() ) -> vector3();
+		   ( matrix4(), vector4() ) -> vector4();
+		   ( matrix4(), point3() ) -> point3();
+		   ( matrix4(), point4() ) -> point4().
+apply( _M=identity_4, VorP ) ->
+	VorP;
+
+% A nice feature is that the actual, lowest-level types of vectors and points
+% are different (list vs tuple) and thus can be discriminated.
+%
+% First with a vector3 (implicitly Vw is 0.0):
+apply( _M=#matrix4{ m11=M11,  m12=M12,  m13=M13,  m14=_M14,
+					m21=M21,  m22=M22,  m23=M23,  m24=_M24,
+					m31=M31,  m32=M32,  m33=M33,  m34=_M34,
+					m41=_M41, m42=_M42, m43=_M43, m44=_M44 },
+	   _V=[ Vx, Vy, Vz ] ) ->
+
+	%Vw = 0.0,
+	ResX = M11*Vx + M12*Vy + M13*Vz,
+	ResY = M21*Vx + M22*Vy + M23*Vz,
+	ResZ = M31*Vx + M32*Vy + M33*Vz,
+	%ResW = M41*Vx + M42*Vy + M43*Vz,
+
+	[ ResX, ResY, ResZ ];
+
+
+apply( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=_Tx,
+							m21=M21, m22=M22, m23=M23, ty=_Ty,
+							m31=M31, m32=M32, m33=M33, tz=_Tz },
+	   _V=[ Vx, Vy, Vz ] ) ->
+	%Vw = 0.0,
+	ResX = M11*Vx + M12*Vy + M13*Vz,
+	ResY = M21*Vx + M22*Vy + M23*Vz,
+	ResZ = M31*Vx + M32*Vy + M33*Vz,
+	% Here ResW = Vw = 0.0,
+
+	[ ResX, ResY, ResZ ];
+
+
+% Then with a point3 (implicitly Pw is 1.0):
+apply( _M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+					m21=M21, m22=M22, m23=M23, m24=M24,
+					m31=M31, m32=M32, m33=M33, m34=M34,
+					m41=M41, m42=M42, m43=M43, m44=M44 },
+	   _P={ Px, Py, Pz } ) ->
+
+	%Pw = 1.0,
+	ResX = M11*Px + M12*Py + M13*Pz + M14,
+	ResY = M21*Px + M22*Py + M23*Pz + M24,
+	ResZ = M31*Px + M32*Py + M33*Pz + M34,
+	ResW = M41*Px + M42*Py + M43*Pz + M44,
+
+	% A point shall be normalised:
+	case math_utils:is_null( ResW ) of
+
+		true ->
+			throw( null_w_coordinate );
+
+		false ->
+			{ ResX/ResW, ResY/ResW, ResZ/ResW }
+
+	end;
+
+
+apply( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+							m21=M21, m22=M22, m23=M23, ty=Ty,
+							m31=M31, m32=M32, m33=M33, tz=Tz },
+	   _P={ Px, Py, Pz } ) ->
+	%Pw = 1.0,
+	ResX = M11*Px + M12*Py + M13*Pz + Tx,
+	ResY = M21*Px + M22*Py + M23*Pz + Ty,
+	ResZ = M31*Px + M32*Py + M33*Pz + Tz,
+	% Here ResW = Pw = 1.0,
+
+	% Already normalised:
+	{ ResX, ResY, ResZ };
+
+
+% Then with a vector4:
+apply( _M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+					m21=M21, m22=M22, m23=M23, m24=M24,
+					m31=M31, m32=M32, m33=M33, m34=M34,
+					m41=M41, m42=M42, m43=M43, m44=M44 },
+	   _V=[ Vx, Vy, Vz, Vw ] ) ->
+
+	ResX = M11*Vx + M12*Vy + M13*Vz + M14*Vw,
+	ResY = M21*Vx + M22*Vy + M23*Vz + M24*Vw,
+	ResZ = M31*Vx + M32*Vy + M33*Vz + M34*Vw,
+	ResW = M41*Vx + M42*Vy + M43*Vz + M44*Vw,
+
+	[ ResX, ResY, ResZ, ResW ];
+
+
+apply( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+							m21=M21, m22=M22, m23=M23, ty=Ty,
+							m31=M31, m32=M32, m33=M33, tz=Tz },
+	   _V=[ Vx, Vy, Vz, Vw ] ) ->
+	ResX = M11*Vx + M12*Vy + M13*Vz + Tx*Vw,
+	ResY = M21*Vx + M22*Vy + M23*Vz + Ty*Vw,
+	ResZ = M31*Vx + M32*Vy + M33*Vz + Tz*Vw,
+	ResW = Vw,
+
+	[ ResX, ResY, ResZ, ResW ];
+
+
+% Finally with a point4 (mostly the same as for vector4):
+apply( _M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
+					m21=M21, m22=M22, m23=M23, m24=M24,
+					m31=M31, m32=M32, m33=M33, m34=M34,
+					m41=M41, m42=M42, m43=M43, m44=M44 },
+	   _P={ Px, Py, Pz, Pw } ) ->
+
+	ResX = M11*Px + M12*Py + M13*Pz + M14*Pw,
+	ResY = M21*Px + M22*Py + M23*Pz + M24*Pw,
+	ResZ = M31*Px + M32*Py + M33*Pz + M34*Pw,
+	ResW = M41*Px + M42*Py + M43*Pz + M44*Pw,
+
+	{ ResX, ResY, ResZ, ResW };
+
+
+apply( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+							m21=M21, m22=M22, m23=M23, ty=Ty,
+							m31=M31, m32=M32, m33=M33, tz=Tz },
+	   _P={ Px, Py, Pz, Pw } ) ->
+	ResX = M11*Px + M12*Py + M13*Pz + Tx*Pw,
+	ResY = M21*Px + M22*Py + M23*Pz + Ty*Pw,
+	ResZ = M31*Px + M32*Py + M33*Pz + Tz*Pw,
+	ResW = Pw,
+
+	{ ResX, ResY, ResZ, ResW }.
+
+
+
 % @doc Tells whether the two specified (4x4) matrices are equal.
 -spec are_equal( matrix4(), matrix4() ) -> boolean().
 are_equal( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
@@ -1230,7 +1419,7 @@ to_canonical( M ) when is_record( M, matrix4 ) ->
 
 
 
-% @doc Returns the compact form of specified (4x4) matrix.
+% @doc Returns the compact form of the specified (4x4) matrix.
 %
 % Throws an exception if the specified matrix cannot be expressed as a compact
 % one.

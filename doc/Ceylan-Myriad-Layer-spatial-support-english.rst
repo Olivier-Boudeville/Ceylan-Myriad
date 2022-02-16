@@ -23,7 +23,7 @@ This support is not expected to be specifically complete, battle-tested or effic
 
 - the elements already available directly in Erlang, notably the `gl <https://erlang.org/doc/man/gl.html>`_ module, providing for example primitives to `load OpenGL matrices <https://erlang.org/doc/man/gl.html#loadTransposeMatrixd-1>`_ and operate on them (note that this mode of operation is deprecated since OpenGL 3.0)
 
-- in the Erlang community: `Wings 3D <http://www.wings3d.com/>`_, an open-source modeller `whose sources <https://github.com/dgud/wings/tree/master/src>`_ of course implement many spatial operations
+- in the Erlang community: `Wings3D <http://www.wings3d.com/>`_, an open-source modeller `whose sources <https://github.com/dgud/wings/tree/master/src>`_ of course implement many spatial operations, notably in `e3d <https://github.com/dgud/wings/tree/4b36b97c999c16b36a4799612aa9b52e4c31d7d0/e3d>`_ (see the `related section <https://howtos.esperide.org/ThreeDimensional.html#wings3d>`_ in our HOWTO)
 
 - integrating advanced, non-Erlang libraries such as ones for linear operations implementing the `BLAS <https://en.wikipedia.org/wiki/Basic_Linear_Algebra_Subprograms>`_ specification; using the C binding (*CBLAS interface*) of a renown implementation (optimised at length and making use of processor-specific extensions), such as `LAPACK <https://en.wikipedia.org/wiki/LAPACK>`_ and making it available to Erlang typically thanks to either NIFs (most suitable approach here) or a C-node (possibly thanks to `Ceylan-Seaplus <http://seaplus.esperide.org>`_) would certainly be an option - all the more relevant that a bulk of linear operations could be offset as a whole to it; some Erlang projects target similar objectives, like `linalg <https://github.com/sklassen/erlang-linalg-native>`_ or `matrex <https://github.com/versilov/matrex>`_; more generally the services implemented by a library such as `GSL <https://www.gnu.org/software/gsl/>`_ (the *GNU Scientific Library*) could, thanks to a third-party project, become available to Erlang programs
 
@@ -63,7 +63,9 @@ As for **vectors**, they are to be specified by the user as *lists* of floating-
 So vectors also can be of arbitrary dimension (then they are taken in charge by the ``vector`` module), or can be specialised for 2D, 3D or 4D (then they are taken in charge by the ``vector{2,3,4}`` modules).
 
 
-Points and vectors (of arbitrary dimension, or specialised) can be converted both ways, see ``point*:{to,from}_vector/1`` and ``vector*:{to,from}_point/1``.
+Points and vectors (of arbitrary dimension, or specialised) can be converted both ways, see ``point*:{to,from}_vector/1`` and ``vector*:{to,from}_point/1``. As their types differ (tuple versus list), they can be unambiguously discriminated, which is useful for some operations [#]_.
+
+.. [#] For example when applying a 3D point or a 3D vector to a 4x4 matrix, their fourth ``W`` coordinate will be respectively considered as being equal to ``1.0`` or ``0.0``, and a corresponding normalisation of the other coordinates will be done only for points.
 
 
 The **matrices** handled here can be of any dimensions (they are often square), and their elements are floating-point coordinates as well.
