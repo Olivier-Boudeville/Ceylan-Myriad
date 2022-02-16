@@ -259,7 +259,7 @@ Various tests offer usage examples of the MyriadGUI API for 3D rendering:
 - ``gui_opengl_mvc_test.erl`` proposes a MVC architecture (`Model-View-Controller <https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller>`_) where these three elements are uncoupled in separate processes yet are properly interlinked, the view relying on the MyriadGUI OpenGL support
 - ``gui_opengl_minimal_shader_test.erl`` showcases the use of more recent OpenGL APIs (3.3 core [#]_), with GLSL shaders defined in ``gui_opengl_minimal_shader.{vertex,fragment}.glsl``
 
-.. [#] Not compatible with all GPUs, notably Intel ones may only support older versions (ex: 2.1).
+.. [#] Not compatible with all GPUs; notably Intel ones may only support older versions (ex: 2.1).
 
 .. Note:: Almost all OpenGL operations require that an OpenGL context already exists. When it is done, all GL/GLU operations can be done as usual.
 
