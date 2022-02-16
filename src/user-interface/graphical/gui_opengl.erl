@@ -46,6 +46,14 @@
 %-include_lib("wx/include/glu.hrl").
 
 
+% Usage notes:
+%
+% To avoid compilation problems, shaders may be encoded in the ANSI/ASCII
+% format. Starting with OpenGL 4.2, shaders can be encoded as UTF-8
+% strings. According to the GLSL spec, non-ASCII characters are only allowed in
+% comments.
+
+
 % Implementation notes:
 %
 % Of course at least some sorts of OpenGL software and/or hardware support must
