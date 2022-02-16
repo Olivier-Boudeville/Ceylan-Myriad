@@ -25,48 +25,29 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Common definitions about 3D bounding boxes.
+% Common definitions about bounding surfaces.
 
 
 
 % Record declarations:
 
 
-% Right cuboid-based 3D bounding box (i.e. rectangular parallelepiped).
-%
-% Each of its faces is either parallel or orthogonal to each of the canonical
-% axes.
-%
-% If base_vertex={X,Y,Z}, abscissa_length is A, ordinate_length is B,
-% elevation_length is C, then this cuboid is made of all points {Xp,Yp,Zp}
-% where:
-%  - X <= Xp < X + A
-%  - Y <= Yp < X + B
-%  - Z <= Zp < Z + C
-%
-% See http://en.wikipedia.org/wiki/Cuboid
-%
--record( right_cuboid, {
+% Rectangle-based bounding surface.
+-record( rectangle, {
 
-	% The base vertex of the cuboid, its bottom-left-near vertex:
-	base_vertex :: point3:point3(),
+	% The top-left corner of the rectangle:
+	top_left :: point2:any_point2(),
 
-	% The length along the abscissa axis (X):
-	abscissa_length :: linear:distance(),
-
-	% The length along the ordinate axis (Y):
-	ordinate_length :: linear:distance(),
-
-	% The length along the elevation axis (Z):
-	elevation_length :: linear:distance() } ).
+	% The bottom-right corner of the rectangle:
+	bottom_right :: point2:any_point2() } ).
 
 
 
-% Sphere-based 3D bounding box.
--record( sphere, {
+% Circle-based bounding surface.
+-record( circle, {
 
-	% The center of the sphere:
-	center :: point3:point3(),
+	% The center of the circle:
+	center :: point2:point2(),
 
-	% The square of the radius (R^2) of this sphere:
+	% The square of the radius (R^2) of this circle:
 	square_radius :: linear:square_distance() } ).

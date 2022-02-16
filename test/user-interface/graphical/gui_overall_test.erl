@@ -36,7 +36,7 @@
 -include("test_facilities.hrl").
 
 % For the circle record:
--include("bounding_box2.hrl").
+-include("bounding_surface.hrl").
 
 
 % For reuse by other tests:
@@ -513,11 +513,11 @@ render_shapes( Canvas ) ->
 	gui:draw_circle( Canvas, _OtherCircleCenter={180,180}, _OtherRadius=180 ),
 
 	% Taken from polygon_test.erl:
-	MyTriangle = polygon:update_bounding_box( lazy_circle,
+	MyTriangle = polygon:update_bounding_surface( lazy_circle,
 		polygon:set_edge_color( fuchsia,
 			polygon:get_triangle( {110,110}, {550,155}, {420,335} ) ) ),
 
-	MyUprightSquare = polygon:update_bounding_box( lazy_circle,
+	MyUprightSquare = polygon:update_bounding_surface( lazy_circle,
 		polygon:set_edge_color( steelblue,
 			polygon:get_upright_square( _Center={250,250}, _EdgeLength=50 ) ) ),
 
@@ -582,7 +582,7 @@ render_mec( Canvas, PointCount ) ->
 	%                       [ length( HullPoints ), PointCount ] ),
 
 	#circle{ center=ExactCenter, square_radius=SquareRadius } =
-		bounding_box2:get_minimal_enclosing_circle_box( HullPoints ),
+		bounding_surface:get_minimal_enclosing_circle( HullPoints ),
 
 	Center = point2:roundify( ExactCenter ),
 

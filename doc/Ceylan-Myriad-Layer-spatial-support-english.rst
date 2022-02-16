@@ -259,7 +259,7 @@ Related Services
 Elements of interest can be:
 
 - some support of polygons, in ``polygon.erl``
-- a basic support for 2D bounding-boxes (including rectangles, "lazy" circles and *Minimal Enclosing Circles* based on convex hulls; see ``bounding_boxes2.{hrl,erl}``) and corresponding 3D bounding-boxes (including right cuboids and spheres; see ``bounding_boxes3.{hrl,erl}``)
+  - a basic support for (2D) bounding surfaces (including rectangles, "lazy" circles and *Minimal Enclosing Circles* based on convex hulls; see ``bounding_surface.{hrl,erl}``) and corresponding (3D) bounding volumes (including right cuboids and spheres; see ``bounding_volume.{hrl,erl}``)
 - elements in order to import/export 3D scenes thanks to the `glTF file format`_
 
 
