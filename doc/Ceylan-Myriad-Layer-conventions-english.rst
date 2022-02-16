@@ -149,6 +149,8 @@ This function shall be compiled once per layer to be accurate, in one of its mod
  -include_lib("myriad/utils/basic_utils.hrl").
 
 
+See also the (different) `Wings3D coding guidelines <https://github.com/dgud/wings/blob/master/CodingGuidelines>`_, that are interesting in their own right.
+
 
 
 Tooling Conventions
