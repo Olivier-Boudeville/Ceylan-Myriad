@@ -216,8 +216,15 @@ translation( _VT=[ Tx, Ty, Tz ] ) ->
 % @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to the
 % scaling of the specified factors.
 %
--spec scaling( { factor(), factor(), factor() } ) -> compact_matrix4().
+-spec scaling( { factor(), factor(), factor() } ) -> compact_matrix4();
+			 ( vector3() ) -> compact_matrix4().
 scaling( { Sx, Sy, Sz } ) ->
+	Zero = 0.0,
+	#compact_matrix4{ m11=Sx,   m12=Zero, m13=Zero, tx=Zero,
+					  m21=Zero, m22=Sy,   m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero, m33=Sz,   tz=Zero };
+
+scaling( [ Sx, Sy, Sz ] ) ->
 	Zero = 0.0,
 	#compact_matrix4{ m11=Sx,   m12=Zero, m13=Zero, tx=Zero,
 					  m21=Zero, m22=Sy,   m23=Zero, ty=Zero,

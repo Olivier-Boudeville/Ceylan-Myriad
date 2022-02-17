@@ -1,0 +1,177 @@
+% Copyright (C) 2022-2022 Olivier Boudeville
+%
+% This file is part of the Ceylan-Myriad library.
+%
+% This library is free software: you can redistribute it and/or modify
+% it under the terms of the GNU Lesser General Public License or
+% the GNU General Public License, as they are published by the Free Software
+% Foundation, either version 3 of these Licenses, or (at your option)
+% any later version.
+% You can also redistribute it and/or modify it under the terms of the
+% Mozilla Public License, version 1.1 or later.
+%
+% This library is distributed in the hope that it will be useful,
+% but WITHOUT ANY WARRANTY; without even the implied warranty of
+% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+% GNU Lesser General Public License and the GNU General Public License
+% for more details.
+%
+% You should have received a copy of the GNU Lesser General Public
+% License, of the GNU General Public License and of the Mozilla Public License
+% along with this library.
+% If not, see <http://www.gnu.org/licenses/> and
+% <http://www.mozilla.org/MPL/>.
+%
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Wednesday, February 16, 2022.
+
+
+% @doc Module implementing the support for <b>4x4 transformations</b>.
+%
+% See also matrix4.erl
+%
+-module(transform4).
+
+
+
+% Implementation notes:
+%
+% Requiring the inverse of a transformation happens frequently, so a
+% transformation is a pair of matrices: a given matrix and its precomputed
+% inverse, so that either can be easily returned.
+
+
+% For records like matrix4:
+-include("matrix4.hrl").
+
+% For the #transform4 record:
+-include("transform4.hrl").
+
+-type transform4() :: #transform4{}.
+% A 4x4 transformation, storing both its corresponding 4x4 matrix and its
+% inverse.
+
+
+
+-export_type([ transform4/0 ]).
+
+
+-export([ identity/0, new/1,
+		  get_reference/1, get_inverse/1,
+		  translate/2, rotate/2, rotate/3,
+		  inverse/1,
+		  to_string/1 ] ).
+
+
+%-import( math_utils, [ is_null/1, are_close/2 ] ).
+
+
+
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+
+-type radians() :: unit_utils:radians().
+
+-type vector3() :: vector3:vector3().
+-type unit_vector3() :: vector3:unit_vector3().
+
+-type matrix4() :: matrix4:matrix4().
+
+
+
+% @doc Returns the (4D) identity transformation.
+-spec identity() -> transform4().
+identity() ->
+	#transform4{}.
+
+
+
+% @doc Returns the (4D) identity transformation whose reference matrix is the
+% specified one.
+%
+-spec new( matrix4() ) -> transform4().
+new( M ) ->
+	case matrix4:inverse( M ) of
+
+		undefined ->
+			throw( { non_inversible_matrix, M } );
+
+		InvM ->
+			#transform4{ matrix=M, inverse=InvM }
+
+	end.
+
+
+
+% @doc Returns the reference matrix corresponding to the specified
+% transformation.
+%
+-spec get_reference( transform4() ) -> matrix4().
+get_reference( #transform4{ matrix=M } ) ->
+	M.
+
+
+
+% @doc Returns the inverse of  the matrix corresponding to the specified
+% transformation.
+%
+-spec get_inverse( transform4() ) -> matrix4().
+get_inverse( #transform4{ inverse=InvM } ) ->
+	InvM.
+
+
+
+% @doc Returns the inverse transformation of the specified one.
+-spec inverse( transform4() ) -> transform4().
+inverse( #transform4{ matrix=M, inverse=InvM } ) ->
+	#transform4{ matrix=InvM, inverse=M }.
+
+
+
+% @doc Returns the specified transformation once composed with an additional
+% translation (applied last) of the specified 3D vector.
+%
+-spec translate( transform4(), vector3() ) -> transform4().
+translate( #transform4{ matrix=M, inverse=InvM }, VT ) ->
+
+	% This new translation is to be applied last:
+	NewM = matrix4:mult( matrix4:translation( VT ), M ),
+
+	MinusVT = vector3:negate( VT ),
+
+	NewInvM = matrix4:mult( InvM, matrix4:translation( MinusVT ) ),
+
+	#transform4{ matrix=NewM, inverse=NewInvM }.
+
+
+
+% @doc Returns the specified transformation once composed with an additional
+% rotation (applied last) directly specified as a matrix.
+%
+-spec rotate( transform4(), matrix4() ) -> transform4().
+rotate( #transform4{ matrix=M, inverse=InvM }, MRot ) ->
+
+	% For orthogonal matrices like rotations, the inverse are their transpose:
+	InvMRot = matrix4:transpose( MRot ),
+
+	#transform4{ matrix=matrix4:mult( MRot, M ),
+				 inverse=matrix4:mult( InvM, InvMRot ) }.
+
+
+
+% @doc Returns the specified transformation once composed with an additional
+% rotation (applied last), specified as a (unit) axis and an angle.
+%
+-spec rotate( transform4(), unit_vector3(), radians() ) -> transform4().
+rotate( Transform, UnitAxis, RadAngle ) ->
+	MRot = matrix4:rotation( UnitAxis, RadAngle ),
+	rotate( Transform, MRot ).
+
+
+
+% @doc Returns a textual representation of the specified (4x4) transformation.
+-spec to_string( transform4() ) -> ustring().
+to_string( _Transform={ M, I } ) ->
+	text_utils:format( "4x4 transformation recording reference matrix ~ts and "
+		"its inverse ~ts", [ matrix4:to_string( M ), matrix4:to_string( I ) ] ).
