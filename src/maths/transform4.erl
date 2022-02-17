@@ -39,6 +39,19 @@
 % Requiring the inverse of a transformation happens frequently, so a
 % transformation is a pair of matrices: a given matrix and its precomputed
 % inverse, so that either can be easily returned.
+%
+% When applying to a transformation T an "operation" O (ex: translation,
+% rotation, scaling, an), we consider that this operation shall happen after the
+% transformation.
+%
+% So, in terms of matrices, if T' is the resulting transformation, Mt' = Mo.Mt,
+% so that for a vector V we have V'= Mt'.V = Mo.Mt.V = Mo.(Mt.v) i.e. first
+% apply T, then O.
+%
+% As for the stored inverse, InvMt' = InvMt.InvMo.
+%
+% The various types of matrix4 (canonical, compact, identity) are transparently
+% managed.
 
 
 % For records like matrix4:
@@ -58,7 +71,7 @@
 
 -export([ identity/0, new/1,
 		  get_reference/1, get_inverse/1,
-		  translate/2, rotate/2, rotate/3,
+		  translate/2, rotate/2, rotate/3, scale/2, mult/2, mult/1,
 		  inverse/1,
 		  to_string/1 ] ).
 
@@ -121,19 +134,13 @@ get_inverse( #transform4{ inverse=InvM } ) ->
 	InvM.
 
 
-
-% @doc Returns the inverse transformation of the specified one.
--spec inverse( transform4() ) -> transform4().
-inverse( #transform4{ matrix=M, inverse=InvM } ) ->
-	#transform4{ matrix=InvM, inverse=M }.
-
-
-
 % @doc Returns the specified transformation once composed with an additional
 % translation (applied last) of the specified 3D vector.
 %
 -spec translate( transform4(), vector3() ) -> transform4().
 translate( #transform4{ matrix=M, inverse=InvM }, VT ) ->
+
+	% TO-DO: hardcode/inline directly these operations:
 
 	% This new translation is to be applied last:
 	NewM = matrix4:mult( matrix4:translation( VT ), M ),
@@ -167,6 +174,53 @@ rotate( #transform4{ matrix=M, inverse=InvM }, MRot ) ->
 rotate( Transform, UnitAxis, RadAngle ) ->
 	MRot = matrix4:rotation( UnitAxis, RadAngle ),
 	rotate( Transform, MRot ).
+
+
+
+% @doc Returns the specified transformation once composed with an additional
+% scaling (applied last), specified as a vector (of non-null factors).
+%
+-spec scale( transform4(), vector3() ) -> transform4().
+scale( #transform4{ matrix=M, inverse=InvM }, VS=[ Vx, Vy, Vz ] ) ->
+
+	MS = matrix4:scaling( VS ),
+
+	One = 1.0,
+
+	InvMS = matrix4:scaling( [ One/Vx, One/Vy, One/Vz ] ),
+
+	#transform4{ matrix=matrix4:mult( MS, M ),
+				 inverse=matrix4:mult( InvM, InvMS ) }.
+
+
+
+% @doc Returns the transformation corresponding to the in-order multiplication
+% of the two specified ones.
+%
+-spec mult( transform4(), transform4() ) -> transform4().
+mult( #transform4{ matrix=M1, inverse=InvM1 },
+	  #transform4{ matrix=M2, inverse=InvM2 } ) ->
+	M = matrix4:mult( M2, M1 ),
+	InvM = matrix4:mult( InvM1, InvM2 ),
+	#transform4{ matrix=M, inverse=InvM }.
+
+
+% @doc Returns the transformation corresponding to the in-order multiplication
+% of the specified ones.
+%
+-spec mult( [ transform4() ] ) -> transform4().
+mult( _Transforms=[ T1, T2 | T ] ) ->
+	mult( mult( T1, T2 ), T );
+
+mult( _Transforms=[ T ] ) ->
+	T.
+
+
+% @doc Returns the inverse transformation of the specified one.
+-spec inverse( transform4() ) -> transform4().
+inverse( #transform4{ matrix=M, inverse=InvM } ) ->
+	#transform4{ matrix=InvM, inverse=M }.
+
 
 
 
