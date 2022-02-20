@@ -106,6 +106,7 @@
 
 % Other string operations:
 -export([ get_lexicographic_distance/2, get_longest_common_prefix/1,
+		  get_unique_string/2,
 		  safe_length/1,
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
 		  flatten/1,
@@ -1853,11 +1854,11 @@ format_ellipsed( FormatString, Values, MaxLen ) ->
 
 % @doc Compares the types specified through control sequences (typically
 % emanating from a format string) to the types of specified, numbered values
-% (expected to correspond), and detect some mismatches.
+% (expected to correspond), and detects some mismatches.
 %
-% Fancy sequences not taken into account: X, x, ts, etc.
+% Fancy sequences not taken into account: X, x, etc.
 %
-% Note: beware to the output error messages comprising ~XXX not be afterwards
+% Note: beware to the output error messages comprising ~XXX not being afterwards
 % interpreted as control sequences; we finally gave up including a ~ character
 % in the output sequence, as it has to be escaped a number of times that
 % depended on how many io*:format/* it was to go through (fragile at best).
@@ -2442,6 +2443,67 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 
 
 
+% @doc Returns a string, based on the specified one and guaranteed to be
+% different from all the other specified ones.
+%
+% Ex: useful to generate non-clashing names, like in:
+%  "Hello" = text_utils:get_unique_string( "Hello", [] ),
+%  "Hello2" = text_utils:get_unique_string( "Hello", ["Hello","Goodbye"] )
+%
+-spec get_unique_string( ustring(), [ ustring() ] ) -> ustring().
+get_unique_string( BaseStr, AllStrs ) ->
+	case lists:member( BaseStr, AllStrs ) of
+
+		false ->
+			BaseStr;
+
+		true ->
+			get_uniq_helper( lists:reverse( BaseStr ), AllStrs )
+
+	end.
+
+
+% Skip first any already trailing final numbers of the original string,
+% provided a prefix remains:
+%
+get_uniq_helper( _RevBaseStr=[ C | T ], AllStrs )
+								when $0 =< C, C =< $9, T /= [] ->
+	get_uniq_helper( T, AllStrs );
+
+% Prefix is BaseStr without any number-based suffix:
+get_uniq_helper( RevPrefix, AllStrs ) ->
+	Prefix = [ FirstChar | _ ] = lists:reverse( RevPrefix ),
+	SameStartStrs = [ S || S <- AllStrs, hd( S ) =:= FirstChar ],
+	% Add a trailing space if inner spaces are already used:
+	SpacedPrefix =
+			case lists:member( $ , Prefix ) andalso hd( RevPrefix ) =/= $ of
+
+		true ->
+			Prefix ++ " ";
+
+		false ->
+			Prefix
+
+	end,
+	suffix_uniq_helper( SpacedPrefix, _Count=2,
+						set_utils:new( SameStartStrs ) ).
+
+
+% Find the first relevant number for uniqueness:
+suffix_uniq_helper( Prefix, Count, Strs ) ->
+	CandidateStr = Prefix ++ integer_to_string( Count ),
+	case set_utils:member( CandidateStr, Strs ) of
+
+		true ->
+			suffix_uniq_helper( Prefix, Count+1, Strs );
+
+		false ->
+			CandidateStr
+
+	end.
+
+
+
 % @doc Returns, if possible, the length of the specified string-like argument,
 % otherwise returns 'undefined'.
 %
@@ -2686,6 +2748,8 @@ try_string_to_float( String ) when is_list( String ) ->
 	% So: if there is no dot on the left of a 'e' or a 'E', add ".0".
 	% Moreover, "1.E-4" is also rejected, it must be fixed as well.
 
+	% See also: wings_util:string_to_float/1.
+
 	% First, normalise the string, by transforming any 'E' into 'e', and by
 	% converting any comma-based decimal mark into a dot:
 	%
@@ -2823,14 +2887,15 @@ binary_to_float( BinString ) ->
 
 
 
-% @doc Returns the specified string, ensuring that its first letter is a
-% majuscule, uppercasing it if necessary.
+% @doc Capitalises the specified string, ensuring that its first letter is a
+% capital one, uppercasing it if necessary.
 %
 -spec uppercase_initial_letter( ustring() ) -> ustring().
 uppercase_initial_letter( _Letters=[] ) ->
 	[];
 
 uppercase_initial_letter( _Letters=[ First | Others ] ) ->
+	% More reliable to use First-$a+$A if $a =< First, First =< $z:
 	[ string:to_upper( First ) | Others ].
 
 

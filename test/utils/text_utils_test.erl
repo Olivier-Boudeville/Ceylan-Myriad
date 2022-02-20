@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Unit tests for the text utils toolbox.
+% @doc Unit tests for the <b>text utils toolbox.</b>
 %
 % See the text_utils.erl tested module.
 %
@@ -40,9 +40,9 @@
 % For pretty-printing test:
 %-record( my_test_record, {
 
-%	first_field,
-%	second_field = 1,
-%	third_file = "This is a test"
+%   first_field,
+%   second_field = 1,
+%   third_file = "This is a test"
 
 %} ).
 
@@ -61,7 +61,7 @@ test_format_error() ->
 	% text_utils:format/2:
 
 	test_facilities:display(
-	  "~nTesting on purpose 5 mismatching text_utils:format/2 calls:" ),
+		"~nTesting on purpose 5 mismatching text_utils:format/2 calls:" ),
 
 	% One too few:
 	_ = text_utils:format( "aaaa~tsbbbb", [] ),
@@ -184,7 +184,7 @@ run() ->
 	test_facilities:display( "Displaying text '~ts' once formatted "
 		"for a width of ~B:~n~p",
 		[ JustWideEnoughLine, NewTargetWidth, text_utils:format_text_for_width(
-								    JustWideEnoughLine, NewTargetWidth ) ] ),
+									JustWideEnoughLine, NewTargetWidth ) ] ),
 
 
 	test_facilities:display( "Displaying atom list, obtained from string "
@@ -341,19 +341,19 @@ run() ->
 
 	ResultStrings = [ text_utils:format( "'~ts': ~B", [ S,
 			text_utils:get_lexicographic_distance( RefString, S ) ] )
-					    || S <- CompareStrings ],
+						|| S <- CompareStrings ],
 
 	test_facilities:display( "Lexicographic distance between '~ts' and: ~ts",
 		[ RefString, text_utils:strings_to_string( ResultStrings ) ] ),
 
 	% Variant tested yet way too slow, hence fully disabled:
 	%VariantResultStrings = [ text_utils:format( "'~ts': ~B", [ S,
-	%		text_utils:get_lexicographic_distance_variant( RefString, S )
-	%					] ) || S <- CompareStrings ],
+	%      text_utils:get_lexicographic_distance_variant( RefString, S )
+	%                    ] ) || S <- CompareStrings ],
 
 	%test_facilities:display( "Lexicographic distance between '~ts' "
-	%						 "and (variant): ~ts",
-	%	[ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
+	%                         "and (variant): ~ts",
+	%   [ RefString, text_utils:strings_to_string( VariantResultStrings ) ] ),
 
 
 	FirstInput = [ "abca", "xyz" ],
@@ -370,6 +370,8 @@ run() ->
 	{ "abc", [ "", "b" ] } =
 		text_utils:get_longest_common_prefix( [ "abc", "abcb" ] ),
 
+	"Hello" = text_utils:get_unique_string( "Hello", [] ),
+	"Hello2" = text_utils:get_unique_string( "Hello", ["Hello","Goodbye"] ),
 
 	IndentationLevel = 3,
 	NumberedString = text_utils:strings_to_enumerated_string( CompareStrings,
@@ -520,7 +522,7 @@ run() ->
 	TwoElemSeq = "aa ~w bb~n ~w cc",
 
 	test_facilities:display(
-	  "Testing the detection of faulty control sequences." ),
+		"Testing the detection of faulty control sequences." ),
 
 	%FirstValues = [ first ],
 	FirstValues = [ first, second ],

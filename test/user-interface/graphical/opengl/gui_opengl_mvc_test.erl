@@ -40,6 +40,9 @@
 % non-interactive, only a very basic controller exists, notably to listen to
 % window-related events.
 %
+% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
+% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+%
 % See the gui_opengl.erl tested module and
 % https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller for the
 % MVC pattern.

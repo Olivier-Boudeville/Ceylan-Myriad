@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2022 Olivier Boudeville
+% Copyright (C) 2012-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -302,14 +302,20 @@
 % Strictly expected to be in [0,360[.
 
 
+-type any_degrees() :: number().
+% Angle in degrees.
+%
+% Expected to be in [0,360[.
+
+
 
 -type angle_reference_unit() :: 'radians'.
 
 -type angle_units() :: angle_reference_unit() | 'degrees' | 'int_degrees'.
 
 
--export_type([ radians/0, degrees/0, int_degrees/0, angle_reference_unit/0,
-			   angle_units/0 ]).
+-export_type([ radians/0, degrees/0, int_degrees/0, any_degrees/0,
+			   angle_reference_unit/0, angle_units/0 ]).
 
 
 
@@ -519,7 +525,7 @@
 					   | 'atto'
 					   | 'zepto'
 					   | 'yocto'.
-% Metric prefix (like 'kilo', to specify kilograms from grams):
+% Metric prefix (like 'kilo', to specify kilograms from grams).
 
 
 -type prefix_symbol() :: ustring().
@@ -650,7 +656,7 @@
 
 
 -type operator_kind() :: 'multiply' | 'divide'.
-% The various supported kinds of component operators:
+% The various supported kinds of component operators.
 
 
 % Shorthands:
@@ -983,7 +989,7 @@ parse_value_with_unit( InputString ) ->
 	end,
 
 	%trace_utils:debug_fmt( "As strings, value is '~ts', unit is '~ts'.",
-	%					   [ ValueString, UnitString ] ),
+	%                       [ ValueString, UnitString ] ),
 
 	Value = parse_as_float( ValueString ),
 

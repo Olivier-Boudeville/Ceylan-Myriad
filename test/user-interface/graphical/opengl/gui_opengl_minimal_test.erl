@@ -1,4 +1,4 @@
-% Copyright (C) 2022-2022 Olivier Boudeville
+% Copyright (C) 2021-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,10 +23,10 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Sunday, January 9, 2022.
+% Creation date: Saturday, December 25, 2021.
 
 
-% @doc 2D testing of the <b>OpenGL support</b>; displays a white rectangle
+% @doc Minimal testing of the <b>OpenGL support</b>; displays a white rectangle
 % on a black background.
 %
 % It is therefore a non-interactive, passive test (no spontaneous/scheduled
@@ -34,12 +34,15 @@
 % structure in order to properly initialise the GUI and OpenGL, handle
 % rendering, resizing and closing.
 %
+% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
+% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+%
 % See the gui_opengl.erl tested module.
 %
 % See gui_opengl_minimal_test.erl for a similar 2D test yet operating with
-% normalised coordinates (in [0.0,1.0]).
+% absolute (non-normalised coordinates).
 %
--module(gui_opengl_2D_test).
+-module(gui_opengl_minimal_test).
 
 
 % Implementation notes:
@@ -87,9 +90,6 @@
 %-type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 
--type width() :: gui:width().
--type height() :: gui:height().
-
 -type gl_canvas() :: gui:opengl_canvas().
 -type gl_context() :: gui:opengl_context().
 
@@ -99,7 +99,7 @@
 -spec run_opengl_test() -> void().
 run_opengl_test() ->
 
-	test_facilities:display( "~nStarting the test of OpenGL 2D support." ),
+	test_facilities:display( "~nStarting the minimal test of OpenGL support." ),
 
 	case gui_opengl:get_glxinfo_strings() of
 
@@ -149,7 +149,7 @@ run_actual_test() ->
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame( "MyriadGUI OpenGL 2D Test",
+	MainFrame = gui:create_frame( "MyriadGUI Minimal OpenGL Test",
 								  _Size={ 500, 250 } ),
 
 	% Using default GL attributes:
@@ -182,6 +182,7 @@ gui_main_loop( GUIState ) ->
 	% Matching the least-often received messages last:
 	receive
 
+
 		{ onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
@@ -191,9 +192,7 @@ gui_main_loop( GUIState ) ->
 
 				true ->
 					gui:enable_repaint( GLCanvas ),
-					% Simpler than storing these at each resize:
-					{ CanvasWidth, CanvasHeight } = gui:get_size( GLCanvas ),
-					render( CanvasWidth, CanvasHeight ),
+					render(),
 					gui_opengl:swap_buffers( GLCanvas ),
 					GUIState;
 
@@ -238,6 +237,9 @@ gui_main_loop( GUIState ) ->
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
 
+			% Optional yet better:
+			gui:unsubscribe_from_events( { onShown, ParentWindow } ),
+
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
 
@@ -281,6 +283,24 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Clears in black:
 	gl:clearColor( 0.0, 0.0, 0.0, 0.0 ),
 
+	% Draws in white:
+	gl:color3f( 1.0, 1.0, 1.0 ),
+
+	gl:matrixMode( ?GL_PROJECTION ),
+	gl:loadIdentity(),
+
+	% Multiplies the current modelview matrix by an orthographic matrix, a
+	% perspective matrix that produces a parallel projection based on 6 clipping
+	% planes, implementing the MyriadGUI 2D conventions.
+	%
+	% Here coordinates are normalised in [0.0,1.0] and as such are
+	% definition-independent (resizing the frame and then the viewport will not
+	% affect them).
+	%
+	% Like glu:ortho2D/4:
+	%
+	gl:ortho( _Left=0.0, _Right=1.0, _Bottom=1.0, _Top=0.0, _Near=-1.0,
+			  _Far=1.0 ),
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
@@ -322,28 +342,13 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	%
 	gui:sync( GLCanvas ),
 
-	% Multiplies the current modelview matrix by an orthographic matrix, a
-	% perspective matrix that produces a parallel projection based on 6 clipping
-	% planes.
-	%
-	% Here coordinates are absolute (based on the size of the viewport - not
-	% normalised in [0.0,1.0]), thus resizing the frame implies updating the
-	% orthographic projection.
-
-	gl:matrixMode( ?GL_PROJECTION ),
-	gl:loadIdentity(),
-
-	% Like glu:ortho2D/4:
-	gl:ortho( _Left=0.0, _Right=float( CanvasWidth ),
-			  _Bottom=float( CanvasHeight ), _Top=0.0, _Near=-1.0, _Far=1.0 ),
-
 	% Any OpenGL reset to be done because of the resizing should take place
 	% here.
 	%
 	% Using normalised coordinates (in [0.0,1.0]), so no need to update the
 	% orthographic projection.
 
-	render( CanvasWidth, CanvasHeight ),
+	render(),
 
 	% Includes a gl:flush/0:
 	gui_opengl:swap_buffers( GLCanvas ),
@@ -357,88 +362,19 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 %
 % In this simple case, no specific OpenGL state is needed to pass around.
 %
--spec render( width(), height() ) -> void().
-render( Width, Height ) ->
+-spec render() -> void().
+render() ->
 
-	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
-	%						[ Width, Height ] ),
+	%trace_utils:debug( "Rendering now." ),
 
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
-	% A white right-angled rectangle in the z=0 plane (in a black background),
-	% whose right angle is at the center of the viewport/frame, and which faces
-	% the top-right frame corner:
-
-	% Draws in white:
-	gl:color3f( 1.0, 1.0, 1.0 ),
-
-	MidWidth = Width div 2,
-	MidHeight = Height div 2,
-
-	% CCW order:
-	gl:'begin'( ?GL_TRIANGLES ),
-		gl:vertex2i( MidWidth, 0 ),
-		gl:vertex2i( MidWidth, MidHeight ),
-		gl:vertex2i( Width, MidHeight ),
-	gl:'end'(),
-
-	% A fix-width blue "F" character:
-
-	% Draws in red now:
-	gl:color3f( 1.0, 0.0, 0.0 ),
-
-	XOffset = 10,
-	YOffset = 100,
-
-	CharWidth = 20,
-	CharHeight = 35,
-
-	% All "F" except its small intermediate horizontal bar, starting from its
-	% lowest part:
-	%
-	gl:'begin'( ?GL_LINE_STRIP ),
-		gl:vertex2i( XOffset, YOffset + CharHeight ),
-		gl:vertex2i( XOffset, YOffset ),
-		gl:vertex2i( XOffset + CharWidth, YOffset ),
-	gl:'end'(),
-
-	% Finally its small intermediate horizontal bar:
-	gl:'begin'( ?GL_LINES ),
-
-		% Mid-height:
-		YBar = YOffset + CharHeight div 2,
-
-		gl:vertex2i( XOffset, YBar ),
-
-		% A little shorter than the top part:
-		gl:vertex2i( XOffset + 15, YBar ),
-
-	gl:'end'(),
-
-
-	% Draws "U" in green now:
-	gl:color3f( 0.0, 1.0, 0.0 ),
-
-	XInterletterOffset = 30,
-
-	gl:'begin'( ?GL_LINE_STRIP ),
-		gl:vertex2i( XOffset+XInterletterOffset, YOffset ),
-		gl:vertex2i( XOffset+XInterletterOffset, YOffset + CharHeight ),
-		gl:vertex2i( XOffset+XInterletterOffset+CharWidth,
-					 YOffset+CharHeight ),
-		gl:vertex2i( XOffset+XInterletterOffset+CharWidth, YOffset ),
-	gl:'end'(),
-
-	% Draws "N" in green now:
-	gl:color3f( 0.0, 0.0, 1.0 ),
-
-	gl:'begin'( ?GL_LINE_STRIP ),
-		gl:vertex2i( XOffset+2*XInterletterOffset, YOffset + CharHeight ),
-		gl:vertex2i( XOffset+2*XInterletterOffset, YOffset ),
-		gl:vertex2i( XOffset+2*XInterletterOffset+CharWidth,
-					 YOffset + CharHeight  ),
-		gl:vertex2i( XOffset+2*XInterletterOffset+CharWidth,
-					 YOffset ),
+	% A white rectangle in the z=0 plane (in a black background):
+	gl:'begin'( ?GL_POLYGON ),
+		gl:vertex3f( 0.25, 0.25, 0.0 ),
+		gl:vertex3f( 0.75, 0.25, 0.0 ),
+		gl:vertex3f( 0.75, 0.75, 0.0 ),
+		gl:vertex3f( 0.25, 0.75, 0.0 ),
 	gl:'end'(),
 
 

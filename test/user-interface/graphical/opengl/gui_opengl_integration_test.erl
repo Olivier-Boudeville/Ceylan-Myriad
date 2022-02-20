@@ -27,6 +27,9 @@
 
 % @doc Testing the <b>OpenGL support</b>, as an integration test.
 %
+% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
+% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+%
 % See the gui_opengl.erl tested module.
 %
 % See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
@@ -144,6 +147,7 @@
 % Shorthands:
 
 -type file_path() :: file_utils:file_path().
+-type directory_path() :: file_utils:directory_path().
 
 -type time() :: time_utils:time().
 
@@ -445,22 +449,30 @@ get_test_textured_cube_tex_coords() ->
 
 
 
+% @doc Returns the path to a test image directory.
+-spec get_test_image_directory() -> directory_path().
+get_test_image_directory() ->
+	% Points to myriad/doc; relative to this test directory:
+	file_utils:join( [ "..", "..", "..", "..", "doc" ] ).
+
+
+
 % @doc Returns the path to a test image.
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
-	%file_utils:join( gui_image_test:get_test_image_directory(),
-	%				 "myriad-space-time-referential.png" ).
+	%file_utils:join( get_test_image_directory(),
+	%                 "myriad-space-time-referential.png" ).
 	%"image.jpg".
-	file_utils:join( gui_image_test:get_test_image_directory(),
+	file_utils:join( get_test_image_directory(),
 					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
 % @doc Returns the path to a test image.
 -spec get_logo_image_path() -> file_path().
 get_logo_image_path() ->
-	file_utils:join( gui_image_test:get_test_image_directory(),
+	file_utils:join( get_test_image_directory(),
 					 "myriad-title.png" ).
-	%file_utils:join( gui_image_test:get_test_image_directory(),
+	%file_utils:join( get_test_image_directory(),
 	%                 "myriad-minimal-enclosing-circle-test.png" ).
 	%"erlang.png".
 

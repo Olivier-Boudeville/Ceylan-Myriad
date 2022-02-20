@@ -83,7 +83,7 @@ while [ ${token_eaten} -eq 0 ]; do
 
 	token_eaten=1
 
-	if [ "${read_parameter}" = "--verbose" -o "${read_parameter}" = "-v" ]; then
+	if [ "${read_parameter}" = "--verbose" ] || [ "${read_parameter}" = "-v" ]; then
 		verbose=0
 		quiet=1
 		echo "Verbose mode activated."
@@ -91,21 +91,21 @@ while [ ${token_eaten} -eq 0 ]; do
 	fi
 
 
-	if [ "${read_parameter}" = "--quiet" -o "${read_parameter}" = "-q" ]; then
+	if [ "${read_parameter}" = "--quiet" ] || [ "${read_parameter}" = "-q" ]; then
 		verbose=1
 		quiet=0
 		#echo "Quiet mode activated."
 		token_eaten=0
 	fi
 
-	if [ "${read_parameter}" = "--headers-only" -o "${read_parameter}" = "-hd" ]; then
+	if [ "${read_parameter}" = "--headers-only" ] || [ "${read_parameter}" = "-hd" ]; then
 		headers_only=0
 		[ ${quiet} -eq 0 ] || echo "Only headers will be displayed."
 		token_eaten=0
 
 	fi
 
-	if [ "${read_parameter}" = "--filenames-only" -o "${read_parameter}" = "-f" ]; then
+	if [ "${read_parameter}" = "--filenames-only" ] || [ "${read_parameter}" = "-f" ]; then
 
 		verbose=1
 		quiet=0
@@ -116,7 +116,7 @@ while [ ${token_eaten} -eq 0 ]; do
 	fi
 
 
-	if [ "${read_parameter}" = "--insensitive" -o "${read_parameter}" = "-i" ];	then
+	if [ "${read_parameter}" = "--insensitive" ] || [ "${read_parameter}" = "-i" ];	then
 
 		insensitive_opt="-i"
 		name_opt="-iname"
@@ -187,11 +187,11 @@ base_grep_opt="--color"
 
 if [ $headers_only -eq 0 ]; then
 	filter_erl='*.hrl'
-	filter_msg="all Erlang header files"
+	filter_msg="Erlang header files"
 else
 	# NEVER surround these single quotes by double ones:
 	filter_erl='*.?rl'
-	filter_msg="all Erlang files"
+	filter_msg="Erlang files"
 fi
 
 # Unable to properly define a correctly-protected variable:

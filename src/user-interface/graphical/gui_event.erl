@@ -178,7 +178,17 @@
 
 -type event_subscription_spec() :: maybe_list( event_subscription() ).
 % Specifies, for an event subscriber (by default: the calling process), any
-% combination of type of events and GUI objects that shall be listened to.
+% combination of types of events and GUI objects that shall be listened to.
+
+
+-type event_unsubscription() ::
+		{ maybe_list( event_type() ), maybe_list( gui_object() )}.
+% So that user process(es) can unsubscribe from GUI events.
+
+-type event_unsubscription_spec() :: maybe_list( event_unsubscription() ).
+% Specifies, for an event subscriber (by default: the calling process), any
+% combination of types of events and GUI objects to which it was suvscribed yet
+% that shall not be listened to anymore.
 
 
 -export_type([ event_message/0, event_source/0,
@@ -189,8 +199,9 @@
 			   wx_resize_event_type/0, wx_close_event_type/0,
 
 			   event_type/0, user_pid/0,
-			   event_subscriber_pid/0, event_subscription/0,
-			   event_subscription_spec/0 ]).
+			   event_subscriber_pid/0,
+			   event_subscription/0, event_subscription_spec/0,
+			   event_unsubscription/0, event_unsubscription_spec/0 ]).
 
 
 
@@ -742,12 +753,29 @@ process_event_message( { subscribeToEvents,
 		trace_utils:debug_fmt( "[event] Subscribing by ~w of process ~w "
 			"to events ~p.", [ SenderPid, SubscriberPid, SubscribedEvents ] ) ),
 
-	NewLoopState = update_event_loop_tables( SubscribedEvents, SubscriberPid,
-											 LoopState ),
+	NewLoopState = register_in_event_loop_tables( SubscribedEvents,
+												  SubscriberPid, LoopState ),
 
 	% Now synchronous to avoid race conditions:
 	SenderPid ! onEventSubscriptionProcessed,
 	NewLoopState;
+
+
+process_event_message( { unsubscribeFromEvents,
+		[ UnsubscribedEvents, SubscribedPid ], SenderPid }, LoopState ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( "[event] Unsubscribing by ~w of process ~w "
+			"from events ~p.",
+			[ SenderPid, SubscribedPid, UnsubscribedEvents ] ) ),
+
+	NewLoopState = unregister_from_event_loop_tables( UnsubscribedEvents,
+												SubscribedPid, LoopState ),
+
+	% Now synchronous to avoid race conditions:
+	SenderPid ! onEventUnsubscriptionProcessed,
+	NewLoopState;
+
 
 
 % To account for example for a silently-resized inner panel of a canvas:
@@ -1217,34 +1245,34 @@ send_event( Subscribers, EventType, Id, GUIObject, UserData, Event ) ->
 %
 % (helper)
 %
--spec update_event_loop_tables( event_subscription_spec(),
+-spec register_in_event_loop_tables( event_subscription_spec(),
 		event_subscriber_pid(), loop_state() ) -> loop_state().
-update_event_loop_tables( _SubscribedEvents=[], _DefaultSubscriberPid,
-						  LoopState ) ->
+register_in_event_loop_tables( _SubscribedEvents=[], _DefaultSubscriberPid,
+							   LoopState ) ->
 	LoopState;
 
-update_event_loop_tables( _SubscribedEvents=[
-	   { EventTypeMaybeList, GUIObjectMaybeList, SubscriberMaybeList } | T ],
-	   DefaultSubscriberPid, LoopState ) ->
+register_in_event_loop_tables( _SubscribedEvents=[
+		{ EventTypeMaybeList, GUIObjectMaybeList, SubscriberMaybeList } | T ],
+		DefaultSubscriberPid, LoopState ) ->
 
-	EventTypeList = list_utils:ensure_atoms( EventTypeMaybeList ),
-	GUIObjectList = list_utils:ensure_tuples( GUIObjectMaybeList ),
-	SubscriberList= list_utils:ensure_pids( SubscriberMaybeList ),
+	EventTypeList  = list_utils:ensure_atoms( EventTypeMaybeList ),
+	GUIObjectList  = list_utils:ensure_tuples( GUIObjectMaybeList ),
+	SubscriberList = list_utils:ensure_pids( SubscriberMaybeList ),
 
 	NewLoopState = lists:foldl(
-						fun( Obj, AccState ) ->
-							register_event_types_for( Obj, EventTypeList,
-													  SubscriberList, AccState )
-						end,
-						_Acc0=LoopState,
-						_List=GUIObjectList ),
+		fun( Obj, AccState ) ->
+			register_event_types_for( Obj, EventTypeList, SubscriberList,
+									  AccState )
+		end,
+		_Acc0=LoopState,
+		_List=GUIObjectList ),
 
-	update_event_loop_tables( T, DefaultSubscriberPid, NewLoopState );
+	register_in_event_loop_tables( T, DefaultSubscriberPid, NewLoopState );
 
-update_event_loop_tables( _SubscribedEvents=[
+register_in_event_loop_tables( _SubscribedEvents=[
 			{ EventTypeMaybeList, GUIObjectMaybeList } | T ],
-						  DefaultSubscriberPid, LoopState ) ->
-	update_event_loop_tables( [ { EventTypeMaybeList, GUIObjectMaybeList,
+							   DefaultSubscriberPid, LoopState ) ->
+	register_in_event_loop_tables( [ { EventTypeMaybeList, GUIObjectMaybeList,
 		[ DefaultSubscriberPid ] } | T ], DefaultSubscriberPid, LoopState ).
 
 
@@ -1268,7 +1296,7 @@ register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
 	% directly based on the user-specified types, however a panel must be
 	% connected in all cases (whether or not the user subscribed to events
 	% regarding their canvas) for onRepaintNeeded and onResized (for example to
-	% manage properly resizings), and this have already been done by
+	% manage properly resizings), and this has already been done by
 	% gui_canvas:create_instance/1.
 	%
 	% We must thus avoid here to connect such panel again (thus more than once)
@@ -1329,6 +1357,106 @@ register_event_types_for( GUIObject, EventTypes, Subscribers,
 
 
 
+% @doc Removes from the specified event table the specified event subscription
+% information.
+%
+% (helper)
+%
+-spec unregister_from_event_loop_tables( event_unsubscription_spec(),
+		event_subscriber_pid(), loop_state() ) -> loop_state().
+unregister_from_event_loop_tables( _SubscribedEvents=[], _DefaultSubscribedPid,
+								   LoopState ) ->
+	LoopState;
+
+unregister_from_event_loop_tables( _SubscribedEvents=[
+		{ EventTypeMaybeList, GUIObjectMaybeList, SubscribedMaybeList } | T ],
+		DefaultSubscribedPid, LoopState ) ->
+
+	EventTypeList  = list_utils:ensure_atoms( EventTypeMaybeList ),
+	GUIObjectList  = list_utils:ensure_tuples( GUIObjectMaybeList ),
+	SubscribedList = list_utils:ensure_pids( SubscribedMaybeList ),
+
+	NewLoopState = lists:foldl(
+		fun( Obj, AccState ) ->
+			unregister_event_types_from( Obj, EventTypeList, SubscribedList,
+										 AccState )
+		end,
+		_Acc0=LoopState,
+		_List=GUIObjectList ),
+
+	unregister_from_event_loop_tables( T, DefaultSubscribedPid, NewLoopState );
+
+unregister_from_event_loop_tables( _SubscribedEvents=[
+			{ EventTypeMaybeList, GUIObjectMaybeList } | T ],
+								   DefaultSubscribedPid, LoopState ) ->
+	unregister_from_event_loop_tables( [ { EventTypeMaybeList,
+		GUIObjectMaybeList, [ DefaultSubscribedPid ] } | T ],
+									   DefaultSubscribedPid, LoopState ).
+
+
+
+% (helper)
+-spec unregister_event_types_from( gui_object(), [ event_type() ],
+				[ event_subscriber_pid() ], loop_state() ) -> loop_state().
+unregister_event_types_from( Canvas={ myriad_object_ref, canvas, CanvasId },
+							 EventTypes, Unsubscribers, LoopState=#loop_state{
+											event_table=EventTable,
+											type_table=TypeTable } ) ->
+
+	%trace_utils:debug_fmt( "Unregistering subscribers ~w for event types ~p "
+	%    "regarding canvas '~ts'.", [ Unsubscribers, EventTypes,
+	%                                 gui:object_to_string( Canvas ) ] ),
+
+	NewEventTable = record_unsubscriptions( Canvas, EventTypes, Unsubscribers,
+											EventTable ),
+
+	BaseEventTypes = gui_canvas:get_base_panel_events_of_interest(),
+
+	% Exactly one occurrence of these types to remove:
+	NewEventTypes = list_utils:remove_first_occurrences( BaseEventTypes,
+														 EventTypes ),
+
+	case NewEventTypes of
+
+		% Shortcut:
+		[] ->
+			ok;
+
+		_ ->
+			% As a canvas is registered in wx as a panel (as wx will send events
+			% about it) that will be reassigned as a canvas:
+
+			CanvasState = get_instance_state( canvas, CanvasId, TypeTable ),
+
+			Panel = CanvasState#canvas_state.panel,
+
+			% Will defer these extra types of events of the underlying panel to
+			% the canvas:
+			%
+			gui_wx_backend:disconnect( Panel, NewEventTypes )
+
+	end,
+
+	LoopState#loop_state{ event_table=NewEventTable };
+
+unregister_event_types_from( GUIObject, EventTypes, Unsubscribers,
+						LoopState=#loop_state{ event_table=EventTable } ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( "Unregistering subscribers ~w "
+			"for event types ~p regarding object '~ts'.",
+		   [ Unsubscribers, EventTypes, gui:object_to_string( GUIObject ) ] ) ),
+
+	[ gui_wx_backend:disconnect( GUIObject, EvType ) || EvType <- EventTypes ],
+
+	% Remove the routing to the right subscriber:
+	NewEventTable = record_unsubscriptions( GUIObject, EventTypes,
+											Unsubscribers, EventTable ),
+
+	LoopState#loop_state{ event_table=NewEventTable }.
+
+
+
 % @doc Records the specified subscribers for each of the specified event types
 % for the specified GUI object.
 %
@@ -1346,7 +1474,34 @@ record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 			list_table:new( Entries );
 
 		{ value, DispatchTable } ->
-			update_event_table( EventTypes, Subscribers, DispatchTable )
+			enrich_event_table( EventTypes, Subscribers, DispatchTable )
+
+	end,
+
+	table:add_entry( GUIObject, NewDispatchTable, EventTable ).
+
+
+
+% @doc Records the removal of the specified subscribers for each of the
+% specified event types for the specified GUI object.
+%
+% (helper)
+%
+-spec record_unsubscriptions( gui_object(), [ event_type() ],
+			[ event_subscriber_pid() ], event_table() ) -> event_table().
+record_unsubscriptions( GUIObject, EventTypes, Unsubscribers, EventTable ) ->
+
+	NewDispatchTable= case table:lookup_entry( GUIObject, EventTable ) of
+
+		key_not_found ->
+			trace_utils:error_fmt( "Unable to unsubscribe from GUI object "
+				"~w as it is not referenced (unsubscribers: ~w; "
+				"event types: ~w); unsubscription ignored.",
+				[ GUIObject, Unsubscribers, EventTypes ] ),
+			EventTable;
+
+		{ value, DispatchTable } ->
+			shrink_event_table( EventTypes, Unsubscribers, DispatchTable )
 
 	end,
 
@@ -1357,12 +1512,12 @@ record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 % @doc Returns an event dispatch table recording specified event type /
 % subscriber associations.
 %
--spec update_event_table( [ event_type() ], [ event_subscriber_pid() ],
+-spec enrich_event_table( [ event_type() ], [ event_subscriber_pid() ],
 						  event_dispatch_table() ) -> event_dispatch_table().
-update_event_table( _EventTypes=[], _Subscribers, DispatchTable ) ->
+enrich_event_table( _EventTypes=[], _Subscribers, DispatchTable ) ->
 	DispatchTable;
 
-update_event_table( _EventTypes=[ EventType | T ], Subscribers,
+enrich_event_table( _EventTypes=[ EventType | T ], Subscribers,
 					DispatchTable ) ->
 
 	NewSubscribers = case list_table:lookup_entry( EventType,
@@ -1379,8 +1534,49 @@ update_event_table( _EventTypes=[ EventType | T ], Subscribers,
 	NewDispatchTable = list_table:add_entry( EventType, NewSubscribers,
 											 DispatchTable ),
 
-	update_event_table( T, Subscribers, NewDispatchTable ).
+	enrich_event_table( T, Subscribers, NewDispatchTable ).
 
+
+
+% @doc Returns an event dispatch table from which the specified event type /
+% subscriber associations have been removed.
+%
+-spec shrink_event_table( [ event_type() ], [ event_subscriber_pid() ],
+						  event_dispatch_table() ) -> event_dispatch_table().
+shrink_event_table( _EventTypes=[], _Subscribers, DispatchTable ) ->
+	DispatchTable;
+
+shrink_event_table( _EventTypes=[ EventType | T ], Subscribers,
+					DispatchTable ) ->
+
+	UpdatedDispatchTable = case list_table:lookup_entry( EventType,
+														 DispatchTable ) of
+
+		key_not_found ->
+			trace_utils:error_fmt( "Unable to remove subscribers (~w) "
+				"for event type '~ts' as it is not referenced in dispatch "
+				"table; removal ignored.", [ Subscribers, EventType ] ),
+			DispatchTable;
+
+		{ value, CurrentSubscribers } ->
+			% Stronger check:
+			case list_utils:delete_existing_elements( Subscribers,
+													  CurrentSubscribers ) of
+			%case list_utils:remove_first_occurrences( Subscribers,
+			%										  CurrentSubscribers ) of
+
+				[] ->
+					list_table:remove_entry( EventType, DispatchTable );
+
+				RemainingSubscribers ->
+					list_table:add_entry( EventType, RemainingSubscribers,
+										  DispatchTable )
+
+			end
+
+	end,
+
+	shrink_event_table( T, Subscribers, UpdatedDispatchTable ).
 
 
 % @doc Adjusts the specified MyriadGUI instances.

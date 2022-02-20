@@ -48,6 +48,7 @@
 
 % Filename-related operations.
 -export([ join/1, join/2, bin_join/1, bin_join/2, any_join/1, any_join/2,
+		  split/1,
 
 		  get_base_path/1, get_last_path_element/1,
 
@@ -538,7 +539,7 @@
 % Plain and binary strings can be freely used as arguments, and a plain string
 % is returned in all cases.
 %
-% See filename:split/1 for the reverse operation.
+% See split/1 for the reverse operation.
 %
 -spec join( [ any_path_element() ] ) -> path().
 join( ComponentList ) when is_list( ComponentList ) ->
@@ -565,7 +566,7 @@ join( NonList ) ->
 % Plain and binary strings can be freely used as arguments; a plain string is
 % returned in all cases.
 %
-% See filename:split/1 for the reverse operation.
+% See split/1 for the reverse operation.
 %
 % Prefer bin_join/2 if having to possibly deal with so-called "raw filenames".
 %
@@ -625,7 +626,7 @@ join( FirstPath, SecondPath ) ->
 % Plain and binary strings can be freely used as arguments, and a binary string
 % is returned in all cases.
 %
-% See filename:split/1 for the reverse operation.
+% See split/1 for the reverse operation.
 %
 -spec bin_join( [ any_path_element() ] ) -> bin_path().
 bin_join( ComponentList ) when is_list( ComponentList ) ->
@@ -678,7 +679,7 @@ bin_join( FirstPath, SecondPath ) ->
 %
 % Plain and binary strings can be freely used as arguments.
 %
-% See filename:split/1 for the reverse operation.
+% See split/1 for the reverse operation.
 %
 -spec any_join( [ any_path_element() ] ) -> any_path().
 any_join( ComponentList ) when is_list( ComponentList ) ->
@@ -709,6 +710,13 @@ any_join( _FirstPath= <<"">>, SecondPath ) ->
 %
 any_join( FirstPath, SecondPath )  ->
 	filename:join( FirstPath, SecondPath ).
+
+
+% @doc Splits the specified path in elements, returned as a list.
+-spec split( any_path() ) -> [ any_path_element() ].
+% Defined for completeness/consistency with join counterparts:
+split( Path ) ->
+	filename:split( Path ).
 
 
 
@@ -3345,11 +3353,13 @@ create_link( TargetPath, LinkName ) ->
 
 
 
-% @doc Returns a path deriving from specified one so that it is unique, meaning
-% that it does not clash with any pre-existing entry.
+% @doc Returns a path deriving from the specified one so that it is unique,
+% meaning that it does not clash with any pre-existing entry.
 %
 % Note: of course multiple, parallel calls to this function with the same base
 % path will result in potential race conditions and risks of collisions.
+%
+% See also basic_utils:get_unix_process_specific_string/0.
 %
 -spec get_non_clashing_entry_name_from( any_path() ) -> any_path().
 get_non_clashing_entry_name_from( Path ) ->
@@ -3360,11 +3370,11 @@ get_non_clashing_entry_name_from( Path ) ->
 
 	% More reliable than looping over random names forged from for example:
 	%Uniq = basic_utils:get_process_specific_value()
-	%	+ random_utils:get_random_value( _Min=0, _Max=10000 ),
+	%   + random_utils:get_random_value( _Min=0, _Max=10000 ),
 	% until no collision occurs.
 
 	%trace_utils:debug_fmt( "Testing whether path '~ts' already exists...",
-	%					   [ Path ] ),
+	%                       [ Path ] ),
 
 	case exists( Path ) of
 

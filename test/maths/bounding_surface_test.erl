@@ -25,11 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% @doc Unit tests for the <b>2D bounding-box facilities</b>.
+% @doc Unit tests for the (2D) <b>bounding surface facilities</b>.
 %
-% See the bounding_box2 tested module.
+% See the bounding_surface tested module.
 %
--module(bounding_box2_test).
+-module(bounding_surface_test).
 
 
 % For run/0 export and al:
@@ -63,13 +63,13 @@ test_mec() ->
 	AlignedPoints = [ {0,0}, {7,0}, {11,0} ],
 
 	% First check:
-	MECircle = bounding_box2:get_lazy_circle_box( AlignedPoints ),
-	[ true = bounding_box2:is_within( P, MECircle ) || P <- AlignedPoints ],
+	MECircle = bounding_surface:get_lazy_bounding_circle( AlignedPoints ),
+	[ true = bounding_surface:is_within( P, MECircle ) || P <- AlignedPoints ],
 
 	AllPerms = list_utils:get_all_permutations( AlignedPoints ),
 
 	[ % We recompute what is expected to be always the same MEC:
-	  MECircle = bounding_box2:get_lazy_circle_box( Perm )
+	  MECircle = bounding_surface:get_lazy_bounding_circle( Perm )
 			|| Perm <- AllPerms ].
 
 
@@ -102,13 +102,13 @@ test_mec( PointCount, PointCountMax, TestCount ) ->
 
 	Points = point2:draw_integer_random( ?min_coord, ?max_coord, PointCount ),
 
-	MECircle = bounding_box2:get_lazy_circle_box( Points ),
+	MECircle = bounding_surface:get_lazy_bounding_circle( Points ),
 
 	% Was so quick that wanted to check:
 	%test_facilities:display( "For points ~p, got MEC=~p.",
 	%                         [ Points, MECircle ] ),
 
-	[ true = bounding_box2:is_within( P, MECircle ) || P <- Points ],
+	[ true = bounding_surface:is_within( P, MECircle ) || P <- Points ],
 
 	test_mec( PointCount, PointCountMax, TestCount+1 ).
 

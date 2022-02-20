@@ -127,7 +127,7 @@ endif
 #    executables, commands, shell expressions
 #  - code_path: how the VM code path is managed
 #  - otp_integration: how OTP conventions (notably regarding applications) are
-#	 handled
+#    handled
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
 #  - registration: regarding naming registering
@@ -144,7 +144,7 @@ endif
 #
 #  - linear: for operations on vectors, matrices, etc.
 #  - mesh: for the management of (3D) meshes
-#  - bounding_boxes: for computations of bounding boxes
+#  - bounding_spaces: for computations of bounding spaces (surfaces, volumes)
 #  - opengl: outcome of OpenGL-related operations
 #  - gltf_support: for the support of the glTF 2.0 format
 #
@@ -170,7 +170,7 @@ ifeq ($(ENABLE_DEBUG),true)
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_boxes
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 

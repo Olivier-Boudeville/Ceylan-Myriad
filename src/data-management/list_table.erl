@@ -22,9 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Monday, December 22, 2014
+% Creation date: Monday, December 22, 2014.
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-
 
 
 % @doc Implementation of an <b>associative table relying on a simple list of
@@ -438,7 +437,7 @@ get_values( Keys, Table ) ->
 % thrown.
 %
 % Ex: [Color=red, Age=23, Mass=51] = list_table:get_all_values(
-%    [color, age, mass], [{color, red}, {mass, 51}, {age, 23}])
+%               [color, age, mass], [{color, red}, {mass, 51}, {age, 23}])
 %
 -spec get_all_values( [ key() ], list_table() ) -> [ value() ].
 get_all_values( Keys, Table ) ->
@@ -446,8 +445,8 @@ get_all_values( Keys, Table ) ->
 	case lists:foldl(
 		   fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
 
-				   { Value, ShrunkTable } = extract_entry( Key, AccTable ),
-				   { [ Value | Values ], ShrunkTable }
+				{ Value, ShrunkTable } = extract_entry( Key, AccTable ),
+				{ [ Value | Values ], ShrunkTable }
 
 		   end,
 		   _Acc0={ [], Table },
@@ -496,7 +495,7 @@ map_on_entries( Fun, Table ) ->
 % change.
 %
 -spec map_on_values( fun( ( value() ) -> value() ), list_table() ) ->
-							list_table().
+												list_table().
 map_on_values( Fun, Table ) ->
 	lists:keymap( Fun, _N=2, Table ).
 
@@ -642,7 +641,7 @@ merge_in_key( ReferenceKey, _AlternateKeys=[ K | T ], Table ) ->
 % reference key / aliases entries, but for a set thereof.
 %
 % Ex: MergedTable = merge_in_keys([{'-length', [ 'l', '-len' ]},
-%       {'-help', [ 'h' ]} ], MyTable).
+%                                  {'-help', [ 'h' ]} ], MyTable).
 %
 -spec merge_in_keys( list_table(), list_table() ) -> list_table().
 merge_in_keys( _KeyAssoc=[], Table ) ->
@@ -925,7 +924,7 @@ to_string( Table, DescriptionType ) ->
 
 				user_friendly ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
-							 || { K, V } <- lists:sort( L ) ],
+								|| { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ), text_utils:strings_to_string( Strs,
@@ -933,7 +932,7 @@ to_string( Table, DescriptionType ) ->
 
 				DescType when DescType =:= full orelse DescType =:= internal ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
-							 || { K, V } <- lists:sort( L ) ],
+								|| { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ),
@@ -943,7 +942,7 @@ to_string( Table, DescriptionType ) ->
 				% Here, ellipsed and with specified bullet:
 				Bullet ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
-							 || { K, V } <- lists:sort( L ) ],
+								|| { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ length( L ),

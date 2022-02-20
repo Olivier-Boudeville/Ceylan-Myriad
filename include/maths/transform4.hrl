@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2022 Olivier Boudeville
+% Copyright (C) 2022-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,29 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
 
-% Common definitions about 2D bounding boxes.
+% A 4x4 transformation, storing both its corresponding 4x4 matrix and its
+% inverse.
+%
+-record( transform4, {
 
+	% The reference matrix of that transformation:
+	matrix = 'identity_4' :: matrix4:matrix4(),
 
-
-% Record declarations:
-
-
-% Rectangle-based 2D bounding box.
--record( rectangle, {
-
-	% The top-left corner of the rectangle:
-	top_left :: point2:any_point2(),
-
-	% The bottom-right corner of the rectangle:
-	bottom_right :: point2:any_point2() } ).
-
-
-
-% Circle-based 2D bounding box.
--record( circle, {
-
-	% The center of the circle:
-	center :: point2:point2(),
-
-	% The square of the radius (R^2) of this circle:
-	square_radius :: linear:square_distance() } ).
+	% The inverse of the reference matrix of that transformation:
+	inverse = 'identity_4' :: matrix4:matrix4() } ).

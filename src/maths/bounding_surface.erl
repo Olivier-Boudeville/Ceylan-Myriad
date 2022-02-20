@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2022 Olivier Boudeville
+% Copyright (C) 2010-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -26,9 +26,10 @@
 % Creation date: Monday, February 15, 2010.
 
 
-% @doc Gathering of various facilities for <b>2D bounding box</b> management.
+% @doc Gathering of various facilities for (2D) <b>bounding surface</b>
+% management.
 %
-% Currently the types of supported 2D bounding boxes are:
+% Currently the types of supported bounding surfaces are:
 % - bounding rectangles, which can be quickly determined
 % - "lazy" circles, directly deriving from the previous rectangle
 % - MEC (Minimal Enclosing Circles), whose processing, based on convex hull,
@@ -41,45 +42,45 @@
 % Determining the MEC involves computing the convex hull of the points. It is
 % expensive, but not a problem if precomputing it.
 %
-% Bounding boxes operate on floating-point (not integer) coordinates.
+% Bounding surfaces operate on floating-point (not integer) coordinates.
 %
-% See `bounding_box2_test.erl' for the corresponding test.
+% See `bounding_surface_test.erl' for the corresponding test.
 %
--module(bounding_box2).
+-module(bounding_surface).
 
 
--export([ get_rectangle_box/1,
-		  get_lazy_circle_box/1, get_minimal_enclosing_circle_box/1,
+-export([ get_bounding_rectangle/1,
+		  get_lazy_bounding_circle/1, get_minimal_enclosing_circle/1,
 		  get_circle_if_in_range/3, is_within/2, is_within/3,
 		  get_circumscribed_circle_for/3,
 		  to_string/1 ]).
 
 
-% For record declarations of 2D bounding boxes:
--include("bounding_box2.hrl").
+% For record declarations of bounding surfaces:
+-include("bounding_surface.hrl").
 
 
 -type bounding_algorithm() :: 'rectangle' | 'lazy_circle' | 'mec'.
-% Allows to designate an algorithm in charge of computing a 2D bounding-box.
+% Allows to designate an algorithm in charge of computing a bounding surface.
 % For example several algorithms allow, with different trade-offs, to compute
-% (different) instances of bounding-boxes (of the same type, ex: circle, or of
-% different types).
+% (different) instances of bounding surfaces (of the same type, ex: circle, or
+% of different types).
 
 
 -type rectangle() :: #rectangle{}.
-% A (2D) bounding box defined based on a rectangle.
+% A bounding surface defined based on a rectangle.
 
 
 -type circle() :: #circle{}.
-% A (2D) bounding box defined based on any circle (ex: lazy or MEC).
+% A bounding surface defined based on any circle (ex: lazy or MEC).
 
 
--type bounding_box2() :: rectangle() | circle().
-% All supported types of 2D bounding boxes.
+-type bounding_surface() :: rectangle() | circle().
+% All supported types of bounding surfaces.
 
 
 -export_type([ bounding_algorithm/0,
-			   rectangle/0, circle/0, bounding_box2/0 ]).
+			   rectangle/0, circle/0, bounding_surface/0 ]).
 
 
 % Design notes:
@@ -93,25 +94,25 @@
 
 % Implementation notes:
 %
-% Bounding-boxes, at least here, rely on floating-point coordinates and
+% Bounding surfaces, at least here, rely on floating-point coordinates and
 % distances (rather than on integer ones).
 %
-% Ofter square distances are as useful as mere distances for algorithmd, and
+% Ofter square distances are as useful as mere distances for algorithms, and
 % require less computations (x -> x² is an increasing function).
 
 % One may believe that a solution in order to compute the Minimal Enclosing
 % Circle of a set of points is simply to determine the diameter of this set
 % (i.e. the maximum distance between any two of its points) and to use it as the
-% diameter of the (circle) bounding box. This solution is not correct, as other
-% points could still lie outside of this bounding box.
+% diameter of the (circle) bounding surface. This solution is not correct, as
+% other points could still lie outside of this bounding surface.
 
 % Indeed, let's name A and B two points that are (at least among, if not the
 % only) the mutually farthest of the set, C the center of the [AB] line segment,
-% and l the AC=CB distance. If a circle bounding box was centered on C and had l
-% for radius, then, any point simulatenously distant of up to 2.l from A and up
-% to 2.l from B could be in that set; in the general case there are points in
-% the intersection of these two discs that are not in the aforementioned disc of
-% radius l centered in C.
+% and l the AC=CB distance. If a circle bounding surface was centered on C and
+% had l for radius, then, any point simultaneously distant of up to 2.l from A
+% and up to 2.l from B could be in that set; in the general case there are
+% points in the intersection of these two discs that are not in the
+% aforementioned disc of radius l centered in C.
 
 
 
@@ -128,14 +129,14 @@
 
 
 
-% @doc Returns a rectangle that is a (2D) bounding-box for the specified list of
+% @doc Returns a rectangle that is a bounding surface for the specified list of
 % points, which must not be empty.
 %
-% Note: this bounding box is not the smallest one, but the most lightweight to
-% compute.
+% Note: this bounding surface is not the smallest one, but the most lightweight
+% to compute.
 %
--spec get_rectangle_box( [ any_point2() ] ) -> rectangle().
-get_rectangle_box( Points ) ->
+-spec get_bounding_rectangle( [ any_point2() ] ) -> rectangle().
+get_bounding_rectangle( Points ) ->
 
 	{ TopLeftP, BottomRightP } =
 		linear_2D:compute_smallest_enclosing_rectangle( Points ),
@@ -144,14 +145,14 @@ get_rectangle_box( Points ) ->
 
 
 
-% @doc Returns a circle that is a (2D) bounding-box for the specified list of
+% @doc Returns a circle that is a bounding surface for the specified list of
 % points, which must not be empty.
 %
-% Note: this bounding box is not the smallest one, but is very lightweight to
-% compute.
+% Note: this bounding surface is not the smallest one, but is very lightweight
+% to compute.
 %
--spec get_lazy_circle_box( [ any_point2() ] ) -> circle().
-get_lazy_circle_box( Points ) ->
+-spec get_lazy_bounding_circle( [ any_point2() ] ) -> circle().
+get_lazy_bounding_circle( Points ) ->
 
 	{ TopLeftP, BottomRightP } =
 		linear_2D:compute_smallest_enclosing_rectangle( Points ),
@@ -165,26 +166,26 @@ get_lazy_circle_box( Points ) ->
 
 
 
-% @doc Returns {Center, SquareRadius} which defines a (2D) bounding-box
-% consisting on the minimal enclosing circle (MEC) for the specified list of
+% @doc Returns {Center, SquareRadius} which defines a bounding surface
+% consisting in the Minimal Enclosing Circle (MEC) for the specified list of
 % points.
 %
-% Note: this bounding box is the unique, smallest possible circle, but requires
-% non-negligible computations.
+% Note: this bounding surface is the unique, smallest possible circle, but
+% requires non-negligible computations.
 %
 % Apparently there is no way of adding a point to an existing MEC without
 % recomputing everything from scratch. So we do not provide a
-% update_minimal_enclosing_circle_box/2 function.
+% update_minimal_enclosing_circle_surface/2 function.
 %
--spec get_minimal_enclosing_circle_box( [ point2() ] ) -> circle().
-get_minimal_enclosing_circle_box( _Points=[] ) ->
+-spec get_minimal_enclosing_circle( [ point2() ] ) -> circle().
+get_minimal_enclosing_circle( _Points=[] ) ->
 	throw( no_point_to_enclose );
 
-get_minimal_enclosing_circle_box( _Points=[ P ] ) ->
+get_minimal_enclosing_circle( _Points=[ P ] ) ->
 	% Only one point, epsilon-based comparison allows for a null radius:
 	{ _Center=P, _SquareRadius=0.0 };
 
-get_minimal_enclosing_circle_box( _Points=[ P1, P2 ] ) ->
+get_minimal_enclosing_circle( _Points=[ P1, P2 ] ) ->
 
 	% Here we have two points; this defines the circle:
 	CenterP = point2:get_center( P1, P2 ),
@@ -204,10 +205,10 @@ get_minimal_enclosing_circle_box( _Points=[ P1, P2 ] ) ->
 % circumscribed circle - whereas in general the circle whose diameter is made of
 % the two most distant points of the three is the MEC.
 %
-get_minimal_enclosing_circle_box( _Points=[ P1, P2, P3 ] ) ->
+get_minimal_enclosing_circle( _Points=[ P1, P2, P3 ] ) ->
 
-	cond_utils:if_defined( bounding_boxes, trace_utils:debug_fmt(
-		"get_minimal_enclosing_circle_box for 3 points: "
+	cond_utils:if_defined( bounding_surfaces, trace_utils:debug_fmt(
+		"get_minimal_enclosing_circle for 3 points: "
 		"~w, ~w and ~w.", [ P1, P2, P3 ] ) ),
 
 	% As discussed for example in
@@ -261,7 +262,7 @@ get_minimal_enclosing_circle_box( _Points=[ P1, P2, P3 ] ) ->
 	end;
 
 
-get_minimal_enclosing_circle_box( Points ) ->
+get_minimal_enclosing_circle( Points ) ->
 
 	% Here we have at least three points, let's work an the hull instead:
 	% See http://www.cs.mcgill.ca/~cs507/projects/1998/jacob/solutions.html
@@ -269,7 +270,7 @@ get_minimal_enclosing_circle_box( Points ) ->
 
 	%trace_utils:debug_fmt( "MEC for ~w.", [ Points ] ),
 
-	% This allows to operate on potentially a lot less points:
+	% This allows to operate on potentially a lot fewer points:
 	case linear_2D:compute_convex_hull( Points ) of
 
 		[ P1, P2 | OtherPoints ] ->
@@ -280,7 +281,6 @@ get_minimal_enclosing_circle_box( Points ) ->
 			throw( { unexpected_hull, Other } )
 
 	end.
-
 
 
 
@@ -316,7 +316,6 @@ is_within( P, #circle{ center=C, square_radius=SR } ) ->
 -spec is_within( any_point2(), any_point2(), square_distance() ) -> boolean().
 is_within( P, Center, SquareRadius ) ->
 	point2:square_distance( P, Center ) =< SquareRadius.
-
 
 
 
@@ -361,7 +360,7 @@ get_circumscribed_circle_for( P1, P2, P3 ) ->
 
 % @doc Returns the MEC of the three specified points, supposed to be aligned.
 -spec get_circle_for_aligned( any_point2(), any_point2(), any_point2() ) ->
-													   circle().
+														circle().
 get_circle_for_aligned( P1, P2, P3 ) ->
 
 	% Computing the square distances:
@@ -412,7 +411,7 @@ try_side( P1, P2, OtherPoints ) ->
 	{ MinAngle, MinVertex } = find_minimal_angle( P1, P2, OtherPoints ),
 
 	%trace_utils:debug_fmt( "Trying side [~w, ~w], min vertex: ~w, "
-	%						"others: ~w.", [ P1, P2, MinVertex, OtherPoints ] ),
+	%                       "others: ~w.", [ P1, P2, MinVertex, OtherPoints ] ),
 
 	case MinAngle of
 
@@ -420,7 +419,7 @@ try_side( P1, P2, OtherPoints ) ->
 			% Finished, P1 and P2 determine the diametric circle, reusing the
 			% code for that:
 			%
-			get_minimal_enclosing_circle_box( [ P1, P2 ] );
+			get_minimal_enclosing_circle( [ P1, P2 ] );
 
 		_FirstAngleTooSmall ->
 
@@ -435,7 +434,7 @@ try_side( P1, P2, OtherPoints ) ->
 
 						false ->
 							% MEC determined by P1, P2 and MinVertex:
-							get_minimal_enclosing_circle_box(
+							get_minimal_enclosing_circle(
 								[ P1, P2, MinVertex ] );
 
 						true ->
@@ -470,7 +469,6 @@ try_side( P1, P2, OtherPoints ) ->
 
 
 
-
 % @doc Returns {MinAngle, MinVertex}, the minimum angle (in canonical degrees)
 % subtended by the segment [P1, P2] among the specified list of points.
 %
@@ -498,19 +496,19 @@ find_minimal_angle( P1, P2, [ P | OtherPoints ], MinAngle, MinVertex ) ->
 
 	case linear_2D:abs_angle_deg( P, P1, P2 ) of
 
-		 Angle when Angle =< MinAngle ->
-			 % We have a new winner here:
-			 find_minimal_angle( P1, P2, OtherPoints, Angle, P );
+		Angle when Angle =< MinAngle ->
+			% We have a new winner here:
+			find_minimal_angle( P1, P2, OtherPoints, Angle, P );
 
-		 _NonMinimalAngle ->
-			 find_minimal_angle( P1, P2, OtherPoints, MinAngle, MinVertex )
+		_NonMinimalAngle ->
+			find_minimal_angle( P1, P2, OtherPoints, MinAngle, MinVertex )
 
 	 end.
 
 
 
-% @doc Returns a textual description of the specified 2D bounding box.
--spec to_string( bounding_box2() ) -> ustring().
+% @doc Returns a textual description of the specified bounding surface.
+-spec to_string( bounding_surface() ) -> ustring().
 to_string( #rectangle{ top_left=TopLeft, bottom_right=BottomRight } ) ->
 	text_utils:format( "bounding rectangle whose top-left corner is ~ts "
 		"and bottom-right one is ~ts",
