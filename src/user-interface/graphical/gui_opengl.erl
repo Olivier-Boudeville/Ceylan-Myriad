@@ -98,9 +98,14 @@
 -include("mesh.hrl").
 
 
+-type gl_base_type() :: ?GL_BYTE | ?GL_UNSIGNED_BYTE | ?GL_UNSIGNED_SHORT
+					  | ?GL_SHORT | ?GL_UNSIGNED_INT | ?GL_INT
+					  | ?GL_FLOAT | ?GL_DOUBLE.
+% The GL base numerical types.
+
+
 -type enum() :: non_neg_integer().
 % A value belonging to an OpenGL enumeration.
-
 
 -type glxinfo_report() :: [ ustring() ].
 % A report issued by the glxinfo executable.
@@ -111,6 +116,16 @@
 % the corresponding OpenGL implementation.
 %
 % For example: <<"FOOBAR Corporation">>.
+
+
+-type vendor() :: 'nvidia'
+				| 'amd' % Ex-ATI
+				| 'intel'
+				| 'unknown'.
+% Our identifier for the OpenGL vendor of a driver, that is the company
+% responsible for the corresponding OpenGL implementation.
+%
+% Useful to trigger vendor-specific fixes.
 
 
 -type renderer_name() :: bin_string().
@@ -245,18 +260,20 @@
 % processor.
 
 
--type vertex_array_id() :: non_neg_integer().
-% The identifier of a vertex array.
+
+-type vao_id() :: non_neg_integer().
+% The identifier of a Vertex Array Object (VAO).
 
 
 -type buffer_id() :: non_neg_integer().
 % The identifier of a buffer, i.e. a "buffer object name".
 
--type vertex_attribute_buffer_id() :: non_neg_integer().
-% The identifier of a vertex attribute buffer.
+-type vbo_id() :: buffer_id().
+% The identifier of a Vertex Buffer Object (VBO).
+
 
 -type vertex_attribute_index() :: non_neg_integer().
-% The index of a vertex attribute, in a vertex attribute buffer.
+% The index of a vertex attribute, in a VBO.
 
 -type attribute_name() :: ustring().
 % The name of a user-defined attribute, meant to be set through an associated
@@ -289,7 +306,7 @@
 % allocate the object.
 
 
--export_type([ enum/0, glxinfo_report/0,
+-export_type([ gl_base_type/0, enum/0, glxinfo_report/0,
 			   vendor_name/0, renderer_name/0, platform_identifier/0,
 			   gl_version/0, gl_profile/0,
 			   gl_canvas/0, gl_canvas_option/0,
@@ -303,8 +320,7 @@
 			   tessellation_evaluation_shader_id/0, geometry_shader_id/0,
 			   fragment_shader_id/0, compute_shader_id/0,
 
-			   vertex_array_id/0,
-			   buffer_id/0, vertex_attribute_buffer_id/0,
+			   vao_id/0, buffer_id/0, vbo_id/0,
 
 			   vertex_attribute_index/0, attribute_name/0, user_attribute/0,
 
@@ -315,13 +331,16 @@
 
 
 
--export([ get_vendor_name/0, get_renderer_name/0, get_platform_identifier/0,
+-export([ get_vendor_name/0, get_vendor/0,
+		  get_renderer_name/0, get_platform_identifier/0,
 		  get_version_string/0, get_version/0, is_profile_supported/1,
 		  get_shading_language_version/0, get_supported_extensions/0,
 		  get_support_description/0,
 
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
+
+		  get_size/2,
 
 		  create_canvas/1, create_canvas/2,
 		  create_context/1, set_context/2, swap_buffers/1,
@@ -349,7 +368,7 @@
 
 		  generate_program_from/2, generate_program/1, generate_program/2,
 
-		  bindVertexBufferObject/2,
+		  bind_vertex_buffer_object/2,
 
 		  check_error/0, interpret_error/1 ]).
 
@@ -357,12 +376,15 @@
 
 % Shorthands:
 
+-type count() :: basic_utils:count().
+
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 
 -type any_file_path() :: file_utils:any_file_path().
 
 -type bit_size() :: system_utils:bit_size().
+-type byte_size() :: system_utils:byte_size().
 
 -type any_vertex3() :: point3:any_vertex3().
 -type point3() :: point3:point3().
@@ -411,6 +433,51 @@ get_vendor_name() ->
 	Res= gl:getString( ?GL_VENDOR ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 	Res.
+
+
+
+% @doc Returns the identifier of the OpenGL vendor of the current driver, that
+% is the company responsible for this OpenGL implementation.
+%
+% Useful to trigger vendor-specific fixes.
+%
+% Only available if a current OpenGL context is set.
+%
+-spec get_vendor() -> vendor().
+get_vendor() ->
+	VendorName = get_vendor_name(),
+	CanonicalName = text_utils:to_lowercase( VendorName ),
+	Elems = text_utils:split_at_whitespaces( CanonicalName ),
+
+	% By decreasing discrimination power:
+	case lists:member( "nvidia", Elems ) of
+
+		true ->
+			nvidia;
+
+		false ->
+			case lists:member( "intel" , Elems ) of
+
+				true ->
+					intel;
+
+				false ->
+					case lists:member( "amd", Elems ) of
+
+						true ->
+							amd;
+
+						false ->
+							trace_utils:warning_fmt( "Unable to determine the "
+								"OpenGL vendor corresponding to '~ts'.",
+								[ VendorName ] ),
+							unknown
+
+					end
+
+			end
+
+	end.
 
 
 
@@ -625,6 +692,36 @@ is_hardware_accelerated() ->
 
 
 
+% @doc Returns the number of bytes used by the specified number of elements of
+% the specified GL type.
+%
+-spec get_size( count(), gl_base_type() ) -> byte_size().
+get_size( Count, _GLType=?GL_BYTE ) ->
+	Count;
+
+get_size( Count, _GLType=?GL_UNSIGNED_BYTE ) ->
+	Count;
+
+get_size( Count, _GLType=?GL_UNSIGNED_SHORT ) ->
+	2*Count;
+
+get_size( Count, _GLType=?GL_SHORT ) ->
+	2*Count;
+
+get_size( Count, _GLType=?GL_UNSIGNED_INT ) ->
+	4*Count;
+
+get_size( Count, _GLType=?GL_INT ) ->
+	4*Count;
+
+get_size( Count, _GLType=?GL_FLOAT ) ->
+	4*Count;
+
+get_size( Count, _GLType=?GL_DOUBLE ) ->
+	8*Count.
+
+
+
 % @doc Tells whether OpenGL hardware acceleration is available on this host,
 % based on specified glxinfo report.
 %
@@ -771,6 +868,12 @@ create_context( Canvas ) ->
 %
 -spec set_context( gl_canvas(), gl_context() ) -> void().
 set_context( Canvas, Context ) ->
+
+	% According to Wings3D (wings_gl.erl), setCurrent/2 may fail (on GTK) as the
+	% show event may be received before the window is actually displayed; so:
+	%
+	timer:sleep(200),
+
 	% Using wx API 3.0 (not supporting older ones such as 2.8):
 	case wxGLCanvas:setCurrent( Canvas, Context ) of
 
@@ -1221,6 +1324,10 @@ get_matrix( _Stack ) ->
 
 
 % GLSL section.
+
+
+% Note that, apparently, for some reason compiling the shaders twice solves
+% rendering issues on some Intel drivers.
 
 
 % @spec Loads and compiles a vertex shader from the specified source file (whose
@@ -1792,12 +1899,11 @@ generate_program( ShaderIds, UserAttributes ) ->
 
 
 
-% @doc Binds the specified vertices in a new vertex attribute buffer whose
+% @doc Binds the specified vertices in a new vertex object buffer (VBO) whose
 % identifier is returned.
 %
--spec bindVertexBufferObject( [ point3() ], enum() ) ->
-			vertex_attribute_buffer_id().
-bindVertexBufferObject( Vertices, UsageHint ) ->
+-spec bind_vertex_buffer_object( [ point3() ], enum() ) -> vbo_id().
+bind_vertex_buffer_object( Vertices, UsageHint ) ->
 
 	% One (integer) identifier of array buffer wanted:
 	[ VertexBufferId ] = gl:genBuffers( _Count=1 ),
