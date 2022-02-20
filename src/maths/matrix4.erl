@@ -47,6 +47,15 @@
 %
 % - special ones, at least the identity matrix
 
+% Supposing a right-handed referential, row-major order and matrix
+% multiplication on the right (post-multiplication).
+%
+% As a result, matrices here are the transpose of GLM or e3d ones.
+
+% Potential sources of inspiration:
+% - glm: glm/ext/matrix_clip_space.inl
+% - Wings3D: e3d/e3d_transform.erl for project, unproject, lookat, pick
+
 
 % For printout_*, inline_size, etc.:
 -include("linear.hrl").
@@ -92,7 +101,7 @@
 
 -export([ new/1, new/3, null/0, identity/0, translation/1, scaling/1,
 		  rotation/2,
-		  orthographic/6, perspective/4,
+		  orthographic/6, perspective/4, frustum/6,
 		  from_columns/4, from_rows/4,
 		  from_coordinates/16, from_compact_coordinates/12,
 		  from_3D/2,
@@ -377,6 +386,53 @@ perspective( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
 			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
 			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
 
+
+
+% @doc Returns a matrix for perspective projection corresponding to the
+% specified settings.
+%
+% Parameters are:
+%  - Left and Right are the coordinates for the left and right vertical clipping
+% planes
+%  - Bottom and Top are the coordinates for the bottom and top horizontal
+% clipping planes
+%  - ZNear specifies the distance from the viewer to the near clipping plane
+%  (always strictly positive)
+%  - ZFar specifies the distance from the viewer to the far clipping plane
+%  (always positive)
+%
+% Note that the context is a right-handed referential with a clip space in
+% [-1.0, 1.0].
+%
+-spec frustum( coordinate(), coordinate(), coordinate(), coordinate(),
+			   distance(), distance() ) -> matrix4().
+frustum( Left, Right, Bottom, Top, ZNear, ZFar ) ->
+
+	% References:
+	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glFrustum.xml
+	% and glm:frustumRH_NO.
+
+	Zero = 0.0,
+
+	VFactorInv = 1.0 / (Right - Left),
+	HFactorInv = 1.0 / (Top - Bottom),
+	MinusZFactorInv = 1.0 / (ZNear - ZFar),
+	TwoNear = 2.0 * ZNear,
+
+	M11 = TwoNear * VFactorInv,
+	M13 = (Right + Left) * VFactorInv,
+
+	M22 = TwoNear * HFactorInv,
+	M23 = (Top + Bottom) * HFactorInv,
+	M33 = (ZFar + ZNear) * MinusZFactorInv,
+
+	M34 = TwoNear * ZFar * MinusZFactorInv,
+
+	% No possible compact form:
+	#matrix4{ m11=M11,  m12=Zero, m13=M13,  m14=Zero,
+			  m21=Zero, m22=M22,  m23=M23,  m24=Zero,
+			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
+			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
 
 
 
