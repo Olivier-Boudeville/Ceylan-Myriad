@@ -237,6 +237,9 @@ gui_main_loop( GUIState ) ->
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
 
+			% Optional yet better:
+			gui:unsubscribe_from_events( { onShown, ParentWindow } ),
+
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
 
