@@ -70,7 +70,8 @@
 		  cartesian_product/1,
 		  subtract_all_duplicates/2,
 		  get_all_permutations/1,
-		  delete_existing/2, delete_if_existing/2,
+		  delete_existing/2, delete_existing_elements/2,
+		  delete_if_existing/2,
 		  remove_element_from/2, remove_elements_from/2,
 		  remove_first_occurrence/2, remove_first_occurrences/2,
 		  delete_all_in/2,
@@ -800,8 +801,8 @@ insert_at_all_places( E, _L=[ H | T ], RevL, Acc ) ->
 
 
 % @doc Returns a copy of the specified list where the first element matching
-% Elem is deleted, ensuring at least one of these elements exists (as opposed to
-% lists:delete/2). The order of the specified list is preserved.
+% Elem is deleted, ensuring that at least one of these elements exists (as
+% opposed to lists:delete/2). The order of the specified list is preserved.
 %
 -spec delete_existing( element(), list() ) -> list().
 delete_existing( Elem, List ) ->
@@ -825,6 +826,21 @@ delete_existing( Elem, _List=[ H | T ], OriginalList, Acc ) ->
 
 
 
+% @doc Returns a copy of the specified list where the first element matching
+% each of the specified elements is deleted, ensuring that at least one of these
+% elements exists (as opposed to lists:delete/2). The order of the specified
+% list is preserved.
+%
+-spec delete_existing_elements( [ element() ], list() ) -> list().
+delete_existing_elements( _Elems=[ E | T ], List ) ->
+	NewList = delete_existing( E, List ),
+	delete_existing_elements( T, NewList );
+
+delete_existing_elements( _Elems=[], List ) ->
+	List.
+
+
+
 % @doc Deletes up to one occurrence (the first found) of the specified element
 % in the specified list, whose order is preserved.
 %
@@ -836,7 +852,7 @@ remove_first_occurrence( Element, List ) ->
 % @doc Deletes up to one occurrence (the first found) of each of the specified
 % elements, from the specified list, whose order is preserved.
 %
--spec remove_first_occurrences( element(), list() ) -> list().
+-spec remove_first_occurrences( [ element() ], list() ) -> list().
 remove_first_occurrences( _ElementsToRemove=[], List ) ->
 	List;
 
@@ -946,7 +962,7 @@ delete_all_in( Elem, List ) ->
 % expecting it to be managed as a list
 %
 %append_at_end( ElemList, L ) when is_list( ElemList ) andalso is_list( L ) ->
-%	L ++ ElemList;
+%   L ++ ElemList;
 %
 append_at_end( Elem, L ) when is_list( L ) ->
 	% Should be more efficient than:
