@@ -91,11 +91,11 @@
 	% The identifier of our GLSL program:
 	program_id :: program_id(),
 
-	% The identifier of the vertex array used in this test:
-	vertex_array_id :: vertex_array_id(),
+	% The identifier of the Vertex Array Object used in this test:
+	vao_id :: vao_id(),
 
-	% The identifier of the vertex attribute buffer for the triangle:
-	vertex_buffer_id :: vertex_attribute_buffer_id() } ).
+	% The identifier of the Vertex Buffer Object for the triangle:
+	vbo_id :: vbo_id() } ).
 
 -type my_opengl_state() :: #my_opengl_state{}.
 % Test-specific overall OpenGL state.
@@ -114,8 +114,8 @@
 -type gl_canvas() :: gui:opengl_canvas().
 -type gl_context() :: gui:opengl_context().
 
--type vertex_array_id() :: gui_opengl:vertex_array_id().
--type vertex_attribute_buffer_id() :: gui_opengl:vertex_attribute_buffer_id().
+-type vao_id() :: gui_opengl:vao_id().
+-type vbo_id() :: gui_opengl:vbo_id().
 -type program_id() :: gui_opengl:program_id().
 
 
@@ -337,14 +337,14 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 	% Targeting vertex attributes:
-	VertexBufferId = gui_opengl:bindVertexBufferObject( Vertices,
+	VertexBufferId = gui_opengl:bind_vertex_buffer_object( Vertices,
 												_UsageHint=?GL_STATIC_DRAW ),
 
 	% Could be done once for all here:
 	%gl:bindBuffer( ?GL_ARRAY_BUFFER, VertexBufferId ),
 
 	InitOpenGLState = #my_opengl_state{ program_id=ProgramId,
-										vertex_buffer_id=VertexBufferId },
+										vbo_id=VertexBufferId },
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
@@ -365,14 +365,14 @@ cleanup_opengl( #my_gui_state{ opengl_state=undefined } ) ->
 
 cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 									program_id=ProgramId,
-									vertex_array_id=VertexArrayId,
-									vertex_buffer_id=VertexBufferId } } ) ->
+									vao_id=VaoId,
+									vbo_id=VboId } } ) ->
 
 	trace_utils:debug( "Cleaning up OpenGL." ),
 
 	% Cleans up VBO:
-	gl:deleteBuffers( [ VertexBufferId ] ),
-	gl:deleteVertexArrays( [ VertexArrayId ] ),
+	gl:deleteBuffers( [ VboId ] ),
+	gl:deleteVertexArrays( [ VaoId ] ),
 	gl:deleteProgram( ProgramId ).
 
 
@@ -426,7 +426,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_opengl_state()  ) -> void().
-render( _Width, _Height, #my_opengl_state{ vertex_buffer_id=VBufferId } ) ->
+render( _Width, _Height, #my_opengl_state{ vbo_id=VBufferId } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
