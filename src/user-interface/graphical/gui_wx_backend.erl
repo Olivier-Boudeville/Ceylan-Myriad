@@ -143,6 +143,9 @@
 % Function export section.
 
 
+-export([ get_wx_version/0 ]).
+
+
 % Conversions from MyriadGUI to wx:
 -export([ to_wx_object_type/1,
 		  to_wx_event_type/1, from_wx_event_type/1,
@@ -159,7 +162,7 @@
 
 		  to_wx_device_context_attributes/1,
 
-		  connect/2, connect/3, disconnect/1 ]).
+		  connect/2, connect/3, disconnect/1, disconnect/2 ]).
 
 
 % Conversions from wx to MyriadGUI:
@@ -415,6 +418,13 @@ from_wx_object_type( wxMemoryDC ) ->
 from_wx_object_type( Other ) ->
 	throw( { unsupported_wx_object_type, Other } ).
 
+
+
+% @doc Returns the build-time version of wx (wxWidgets).
+-spec get_wx_version() -> basic_utils:four_digit_version().
+get_wx_version() ->
+	{ ?wxMAJOR_VERSION, ?wxMINOR_VERSION, ?wxRELEASE_NUMBER,
+	  ?wxSUBRELEASE_NUMBER }.
 
 
 
@@ -973,7 +983,7 @@ connect( EventSource, EventTypeOrTypes ) ->
 			   connect_options() ) -> void().
 % Was not used apparently:
 %connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options ) ->
-%	connect( Panel, EventTypeOrTypes, Options );
+%   connect( Panel, EventTypeOrTypes, Options );
 
 connect( SourceObject, EventTypes, Options ) when is_list( EventTypes ) ->
 
@@ -988,7 +998,7 @@ connect( SourceObject, EventType, Options ) ->
 	WxEventType = to_wx_event_type( EventType ),
 
 	cond_utils:if_defined( myriad_debug_gui_events,
-	   trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
+		trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
 			"for ~p (i.e. ~p), with options ~p.",
 			[ gui:object_to_string( SourceObject ), self(), EventType,
 			  WxEventType, Options ] ) ),
@@ -997,10 +1007,42 @@ connect( SourceObject, EventType, Options ) ->
 
 
 
-% @doc Unsubscribes the event source, for all event types.
+% @doc Unsubscribes the current process from the specified object, for all event
+% types.
+%
+% The meaning of the returned boolean is not specified, presumably whether the
+% operation went well.
+%
 -spec disconnect( event_source() ) -> boolean().
-disconnect( #canvas_state{ panel=Panel } ) ->
+disconnect( _SourceObject=#canvas_state{ panel=Panel } ) ->
 	disconnect( Panel );
 
-disconnect( EventSource ) ->
-	wxEvtHandler:disconnect( EventSource ).
+disconnect( SourceObject ) ->
+	wxEvtHandler:disconnect( SourceObject ).
+
+
+% @doc Unsubscribes the current process from the specified object, for the
+% specified event type(s).
+%
+% The meaning of the returned boolean is not specified, presumably whether the
+% operation went well.
+%
+-spec disconnect( event_source(), maybe_list( event_type() ) ) -> boolean().
+disconnect( SourceObject, EventTypes ) when is_list( EventTypes ) ->
+	[ disconnect( SourceObject, ET ) || ET <- EventTypes ];
+
+% Single event type now:
+disconnect( #canvas_state{ panel=Panel }, EventType ) ->
+	disconnect( Panel, EventType );
+
+disconnect( SourceObject, EventType ) ->
+
+	WxEventType = to_wx_event_type( EventType ),
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( " - disconnecting event source '~ts' from ~w "
+			"for ~p (i.e. ~p).",
+			[ gui:object_to_string( SourceObject ), self(), EventType,
+			  WxEventType ] ) ),
+
+	wxEvtHandler:disconnect( SourceObject, WxEventType ).
