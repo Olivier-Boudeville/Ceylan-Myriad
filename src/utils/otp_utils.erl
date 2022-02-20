@@ -92,6 +92,8 @@
 
 		  check_application_run_context/1, application_run_context_to_string/1,
 
+		  get_application_root/1,
+
 		  get_priv_root/1, get_priv_root/2 ]).
 
 
@@ -613,8 +615,8 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 
 								{ error, bad_name } ->
 									trace_bridge:error_fmt( "Application '~ts' "
-									  "not found in any of the supported "
-									  "locations.", [ AppName ] ),
+										"not found in any of the supported "
+										"locations.", [ AppName ] ),
 									throw( { application_not_found, AppName,
 										text_utils:ensure_string( AbsBaseDir )
 										   } );
@@ -1180,6 +1182,50 @@ application_run_context_to_string( _AppRunContext=as_native ) ->
 
 application_run_context_to_string( _AppRunContext=as_otp_release ) ->
 	"as an OTP application".
+
+
+
+% @doc Returns the path to the root of the specified OTP application (i.e. its
+% top directory, a.k.a. its "library directory"), for an application located
+% under $OTPROOT/lib or on a directory referred to with environment variable
+% ERL_LIBS.
+%
+% Ex: "/home/bond/Software/Erlang/Erlang-24.2/lib/erlang/lib/mnesia-4.20.1" =
+%               otp_utils:get_application_root( mnesia ).
+%
+% For this look-up, it is expected that an application named 'foobar' defined a
+% module of the same name (which is thus expected to be compiled as
+% "foobar.beam").
+%
+-spec get_application_root( application_name() ) -> directory_path().
+get_application_root( AppName ) ->
+	case code:lib_dir( AppName ) of
+
+		{ error, bad_name } ->
+			% Alternative look-up (workaround):
+			AppMod = text_utils:format( "~ts.beam", [ AppName ] ),
+			case code:which( AppName ) of
+
+				ModPath when is_list( ModPath ) ->
+					% Hopefully a full path:
+					[ AppMod, "ebin" | RevPath ] = lists:reverse(
+						file_utils:split( ModPath ) ),
+					file_utils:join( lists:reverse( RevPath ) );
+
+				non_existing ->
+					throw( { unable_to_locate_application, AppName,
+							 no_main_module } );
+
+				Other -> % i.e.cover_compiled | preloaded
+					throw( { unable_to_locate_application, AppName,
+							 Other } )
+
+			end;
+
+		DirPath ->
+			DirPath
+
+	end.
 
 
 
