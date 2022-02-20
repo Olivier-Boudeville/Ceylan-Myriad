@@ -38,7 +38,7 @@
 % General operations:
 -export([ floor/1, ceiling/1, round_after/2,
 		  float_to_integer/1, float_to_integer/2,
-		  modulo/2, clamp/3, squarify/1,
+		  modulo/2, clamp/2, clamp/3, squarify/1,
 		  get_next_power_of_two/1 ]).
 
 -compile({ inline, [ floor/1, ceiling/1, round_after/2,
@@ -74,6 +74,16 @@
 % Type declarations:
 
 -type non_zero_integer() :: pos_integer() | neg_integer().
+
+
+-type infinite_number() :: '-infinity' | number() | 'infinity'.
+% An (unbounded) number that may be considered as equal to a (positive or
+% negative) infinite value.
+
+
+-type infinite_range() ::
+		{ Min :: infinite_number(), Max :: infinite_number() }.
+% A possibly infinite range.
 
 
 -type factor() :: dimensionless().
@@ -142,9 +152,13 @@
 % user-defined one.
 
 
+
+
 -export_type([ factor/0, integer_factor/0, any_factor/0,
 			   positive_factor/0, non_negative_factor/0,
-			   non_zero_integer/0, standard_deviation/0, variance/0,
+			   non_zero_integer/0,
+			   infinite_number/0, infinite_range/0,
+			   standard_deviation/0, variance/0,
 			   ratio/0, percent/0, integer_percent/0,
 			   probability/0, probability_like/0 ]).
 
@@ -344,6 +358,31 @@ clamp( _Min, _Max, Value ) ->
 
 
 
+% @doc Clamps the specified possibly-infinite number within the specified
+% possibly-infinite range.
+%
+-spec clamp( infinite_number(), infinite_range() ) -> infinite_number().
+clamp( Number, _R={ '-infinity', 'infinity' } ) ->
+	Number;
+
+clamp( Number, _R={ Min, 'infinity' } ) when Number < Min ->
+	Min;
+
+clamp( Number, _R={ '-infinity', Max } ) when Number > Max ->
+	Max;
+
+% Check as well:
+clamp( Number, _R={ Min, Max } ) when  Min < Max, Number < Min ->
+	Min;
+
+clamp( Number, _R={ Min, Max } ) when  Min < Max, Number > Max ->
+	Max;
+
+clamp( Number, _R={ Min, Max } ) when  Min < Max ->
+	Number.
+
+
+
 % @doc Returns the square, augmented of a little margin, of the specified
 % element.
 %
@@ -378,6 +417,9 @@ get_next_power_of_two( I, Candidate ) ->
 
 % @doc Returns true iff the two specified floating-point numbers are deemed
 % close enough to be equal, based on default epsilon threshold.
+%
+% Note that such absolute tolerance comparison fails when X and Y become large,
+% so generally are_relatively_close/2 shall be preferred.
 %
 -spec are_close( number(), number() ) -> boolean().
 are_close( X, Y ) ->
@@ -423,7 +465,7 @@ are_equal( X, Y, Epsilon ) ->
 %
 -spec are_relatively_close( number(), number() ) -> boolean().
 are_relatively_close( X, Y ) ->
-	are_relatively_close(  X, Y, ?epsilon ).
+	are_relatively_close( X, Y, ?epsilon ).
 
 
 
@@ -435,12 +477,25 @@ are_relatively_close( X, Y ) ->
 % ie the maximum tolerance.
 %
 % Ex: to know whether X and Y are equal with a 5% tolerance, use:
-% math_utils:are_relatively_close( X, Y, _Tolerance=0.05 ).
+% math_utils:are_relatively_close(X, Y, _Tolerance=0.05).
 %
 -spec are_relatively_close( number(), number(), number() ) -> boolean().
 are_relatively_close( X, Y, Epsilon ) ->
 
-	% We will divide by X+Y ... provided this is not null:
+	% are_close/2 is not satisfactory when X and Y are small:
+
+	% As for: 'abs( X - Y ) < ?epsilon * max( abs(X), abs(Y) )' it would fail
+	% when X and Y are small.
+
+	% Another approach than the one currently used below is to perform a
+	% comparison with a relative tolerance for large values, and an absolute
+	% tolerance for small values, as described by Christer Ericson in
+	% http://realtimecollisiondetection.net/blog/?p=89 and in his book
+	% "Real-Time Collision Detection", yielding to:
+	%
+	% abs( X - Y ) =< ?epsilon * max( 1.0, max( abs(X), abs(Y) ) ).
+
+	% Here, we will divide by X+Y ... provided this is not null:
 	case X+Y of
 
 		0.0 ->
