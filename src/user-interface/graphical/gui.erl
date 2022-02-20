@@ -161,6 +161,17 @@
 % using a naming service or having to keep around a bound variable.
 
 
+-type backend_identifier() :: 'gs' % Now obsolete
+							| 'wx' % Based on wxWidgets
+							| atom().
+% Identifier of a graphical backend.
+
+
+-type backend_information() ::
+		{ backend_identifier(), basic_utils:any_version() }.
+% Information regarding a graphical backend.
+
+
 % Current backend is wx (WxWidgets).
 %
 % (useful to avoid including the header of wx in our own public ones)
@@ -193,7 +204,8 @@
 
 
 % Basic GUI operations.
--export([ is_available/0, start/0, start/1, set_debug_level/1, stop/0 ]).
+-export([ is_available/0, get_backend_information/0,
+		  start/0, start/1, set_debug_level/1, stop/0 ]).
 
 
 % Extra overall operations.
@@ -201,7 +213,9 @@
 
 
 % Event-related operations.
--export([ subscribe_to_events/1, subscribe_to_events/2, propagate_event/1 ]).
+-export([ subscribe_to_events/1, subscribe_to_events/2,
+		  unsubscribe_from_events/1, unsubscribe_from_events/2,
+		  propagate_event/1 ]).
 
 
 
@@ -635,7 +649,9 @@
 
 
 
--export_type([ length/0, width/0, height/0,
+-export_type([ backend_identifier/0, backend_information/0,
+
+			   length/0, width/0, height/0,
 			   coordinate/0, point/0, position/0, size/0,
 			   orientation/0, fps/0,
 			   model_pid/0, view_pid/0, controller_pid/0,
@@ -694,6 +710,7 @@
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
 
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
+-type event_unsubscription_spec() :: gui_event:event_unsubscription_spec().
 
 -type wx_id() :: gui_wx_backend:wx_id().
 
@@ -718,6 +735,11 @@ is_available() ->
 	% As simple as:
 	system_utils:has_graphical_output().
 
+
+% @doc Returns information regarding the graphical backend in use.
+-spec get_backend_information() -> backend_information().
+get_backend_information() ->
+	{ wx, gui_wx_backend:get_wx_version() }.
 
 
 
@@ -808,7 +830,7 @@ subscribe_to_events( SubscribedEvents ) ->
 %
 -spec subscribe_to_events( event_subscription_spec(), pid() ) -> void().
 subscribe_to_events( SubscribedEvents, SubscriberPid )
-						when is_list( SubscribedEvents ) ->
+										when is_list( SubscribedEvents ) ->
 
 	GUIEnv = get_gui_env(),
 
@@ -827,7 +849,7 @@ subscribe_to_events( SubscribedEvents, SubscriberPid )
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:info_fmt( "User process ~w subscribing process ~w to ~w "
-			"about following events:~n~p.",
+			"regarding following events:~n~p.",
 			[ self(), SubscriberPid, LoopPid, SubscribedEvents ] ) ),
 
 	receive
@@ -840,6 +862,51 @@ subscribe_to_events( SubscribedEvents, SubscriberPid )
 subscribe_to_events( SubscribedEvent, SubscriberPid )
 						when is_tuple( SubscribedEvent ) ->
 	subscribe_to_events( [ SubscribedEvent ], SubscriberPid ).
+
+
+
+% @doc Unsubscribes the current, calling process from the specified kind of
+% events (event type and emitter), like {onWindowClosed, MyFrame}.
+%
+-spec unsubscribe_from_events( event_unsubscription_spec() ) -> void().
+unsubscribe_from_events( UnsubscribedEvents ) ->
+	unsubscribe_from_events( UnsubscribedEvents, _SubscriberPid=self() ).
+
+
+% @doc Subscribes the specified process from the specified kind of events (event
+% type and emitter), like {onWindowClosed, MyFrame}.
+%
+-spec unsubscribe_from_events( event_unsubscription_spec(), pid() ) -> void().
+unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
+										when is_list( UnsubscribedEvents ) ->
+
+	GUIEnv = get_gui_env(),
+
+	LoopPid = GUIEnv#gui_env.loop_pid,
+
+	% This is, in logical terms, a oneway (received in
+	% gui_event:process_event_message/2), yet it must be a request as well
+	% (refer to subscribe_to_events/2 for an explanation)
+
+	LoopPid !
+		{ unsubscribeFromEvents, [ UnsubscribedEvents, SubscribedPid ],
+		  self() },
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:info_fmt( "User process ~w unsubscribing process ~w to ~w "
+			"regarding following events:~n~p.",
+			[ self(), SubscribedPid, LoopPid, SubscribedEvents ] ) ),
+
+	receive
+
+		onEventUnsubscriptionProcessed ->
+			ok
+
+	end;
+
+unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
+						when is_tuple( UnsubscribedEvents ) ->
+	unsubscribe_from_events( [ UnsubscribedEvents ], SubscribedPid ).
 
 
 
