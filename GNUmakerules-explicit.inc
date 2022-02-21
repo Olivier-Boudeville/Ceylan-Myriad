@@ -45,6 +45,7 @@
 			clean-database clean-recurse clean-outputs clean-ast-debug       \
 			real-clean track                                                 \
 			info-platform info-hardware info-software info-source-layout     \
+			info-erlang-target-version                                       \
 			info info-files info-meta info-erlang info-python info-java      \
 			info-protobuf                                                    \
 			info-sync info-check info-rebar3 info-compile info-options       \
@@ -1154,11 +1155,21 @@ info-hardware:
 	@echo $$(free --total --human)
 
 
-# cat /etc/lsb-release would not work everywhere
+# cat /etc/lsb-release would not work everywhere:
 info-software:
-	@echo "OS: $$(lsb_release --all 2>/dev/null)"
-	@echo "Rebar: $$(rebar3 version)"
-	@echo "Erlang: $$(erl -eval '{ok, Version} = file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])), io:fwrite(Version), halt().' -noshell)"
+	@echo " - local operating system:\n\
+$$(lsb_release --all 2>/dev/null)"
+	@# Disabled as trigger a potentially blocking network access: echo " - rebar version: $$(rebar3 version)"
+	@echo " - expected Erlang version: $(ERLANG_TARGET_VERSION)"
+	@echo " - local Erlang version: $$(erl -eval '{ok, Version} = file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])), io:fwrite(Version), halt().' -noshell)"
+
+
+# Returns the Erlang version that is to be installed by Myriad, i.e. its
+# currently supported one (this is the only place where an Erlang version shall
+# be defined):
+#
+info-erlang-target-version:
+	@$(MYRIAD_TOP)/conf/install-erlang.sh --version
 
 
 info-source-layout:

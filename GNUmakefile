@@ -129,8 +129,10 @@ stats:
 # Typically useful to know the software context for continuous integration:
 info-context: info-platform info-versions info-source-layout
 
+
 info-versions:
 	@echo "MYRIAD_VERSION = $(MYRIAD_VERSION)"
+	@echo "ERLANG_TARGET_VERSION = $(ERLANG_TARGET_VERSION)"
 
 
 info-paths:

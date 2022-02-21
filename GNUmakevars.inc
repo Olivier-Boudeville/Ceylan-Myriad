@@ -213,10 +213,14 @@ endif
 #MYRIAD_DEBUG_FLAGS += -Dmyriad_add_stacktraces
 
 
+# Designates the only Erlang version to be used in all Myriad-based
+# developments:
+
+ERLANG_TARGET_VERSION = $$($(MAKE) -s info-erlang-target-version)
+
 ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS)             \
 							$(MYRIAD_CHECK_FLAGS)             \
 							$(MYRIAD_UNELLIPSED_TRACES_OPT)
-
 
 
 
