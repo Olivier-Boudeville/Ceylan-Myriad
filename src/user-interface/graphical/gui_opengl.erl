@@ -86,8 +86,8 @@
 % Relying here only on the wx API version 3.0 (not supporting older ones such as
 % 2.8; see wx_opengl_SUITE.erl for an example of supporting both).
 
-% Currently OpenGL extensions are not specifically supported. Refer to GLEW and
-% to wings_gl.erl for an example thereof.
+% Much inspiration was taken from the excellent Wings3D modeller (see
+% http://www.wings3d.com/).
 
 
 
@@ -140,14 +140,29 @@
 % to release and should be used by platform-recognition algorithms.
 
 
--type gl_version() :: basic_utils:two_digit_version().
-% An OpenGL version, typically as queried from a driver.
+-type gl_version() :: basic_utils:three_digit_version().
+% An OpenGL version (major/minor/path) typically as queried from a driver.
 
 
 -type gl_profile() :: 'core'           % Deprecated functions are disabled
 					| 'compatibility'. % Deprecated functions are allowed
 % An OpenGL profile, typically as queried from a driver. Profiles are defined
 % relatively to a particular version of OpenGL.
+
+
+-type gl_extension() :: atom().
+% An OpenGL extension.
+
+
+-type info_table_id() :: ets:tid().
+% The identifier of an ETS-based OpenGL information table, registering the
+% following static information for an easier/more efficient lookup:
+%  - {gl_version, gl_version()}
+%  - {gl_profiles, [gl_profile()]}
+%  - all extensions detected as supported by the current card (an atom entry
+%  each)
+
+
 
 
 -opaque gl_canvas() :: wxGLCanvas:wxGLCanvas().
@@ -308,7 +323,7 @@
 
 -export_type([ gl_base_type/0, enum/0, glxinfo_report/0,
 			   vendor_name/0, renderer_name/0, platform_identifier/0,
-			   gl_version/0, gl_profile/0,
+			   gl_version/0, gl_profile/0, gl_extension/0, info_table_id/0,
 			   gl_canvas/0, gl_canvas_option/0,
 			   device_context_attribute/0, gl_context/0,
 			   factor/0, length_factor/0,
@@ -333,9 +348,19 @@
 
 -export([ get_vendor_name/0, get_vendor/0,
 		  get_renderer_name/0, get_platform_identifier/0,
-		  get_version_string/0, get_version/0, is_profile_supported/1,
+		  get_version_string/0, get_version/0, get_version/1,
+		  is_profile_supported/1,
+		  get_supported_profiles/0,
 		  get_shading_language_version/0, get_supported_extensions/0,
 		  get_support_description/0,
+
+		  init_info_table/0, secure_info_table/0,
+		  is_version_compatible_with/1, is_version_compatible_with/2,
+		  is_extension_supported/1, is_extension_supported/2,
+		  are_extensions_supported/1, are_extensions_supported/2,
+		  get_unsupported_extensions/1, get_unsupported_extensions/2,
+
+		  check_requirements/3,
 
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
@@ -376,7 +401,13 @@
 
 % Shorthands:
 
+
 -type count() :: basic_utils:count().
+-type two_digit_version() :: basic_utils:two_digit_version().
+-type three_digit_version() :: basic_utils:three_digit_version().
+
+-type two_or_three_digit_version() :: two_digit_version()
+									| three_digit_version().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -509,27 +540,38 @@ get_renderer_name() ->
 
 
 
-% @doc Returns the version / release number of the currently used OpenGL
-% implementation, as a string returned by the driver.
+% @doc Returns the full version of the currently used OpenGL implementation, as
+% a string (if any) returned by the driver.
 %
 % Example: "4.6.0 FOOBAR 495.44".
 %
 % Only available if a current OpenGL context is set.
 %
--spec get_version_string() -> ustring().
+-spec get_version_string() -> maybe( ustring() ).
 get_version_string() ->
-	Res = gl:getString( ?GL_VERSION ),
+	MaybeRes = try gl:getString( ?GL_VERSION ) of
+
+			Str ->
+				Str
+
+		catch E ->
+			trace_utils:warning_fmt( "Unable to obtain the OpenGL version "
+									 "string: ~p.", [ E ] ),
+			undefined
+
+	end,
+
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-	Res.
+	MaybeRes.
 
 
 
-% @doc Returns the version / release number of the currently used OpenGL
-% implementation.
+% @doc Returns the major / minor / release version number of the currently used
+% OpenGL implementation.
 %
-% Example: {4,6}.
+% Example: {4,6,1}.
 %
-% Only supported on GL contexts with version 3.0 and above (hence not very
+% Only supported on GL contexts with version 3.0 and above (hence not that
 % convenient).
 %
 % Only available if a current OpenGL context is set.
@@ -540,15 +582,78 @@ get_version() ->
 	% Instead of single-element lists, extra (garbage?) elements are returned by
 	% gl:getIntegerv/1:
 	%
-	Major = hd( gl:getIntegerv( ?GL_MAJOR_VERSION ) ),
-	Minor = hd( gl:getIntegerv( ?GL_MINOR_VERSION ) ),
+	% (disabled as the third version number, 'release', is not available that
+	% way)
+	%
+	%Major = hd( gl:getIntegerv( ?GL_MAJOR_VERSION ) ),
+	%Minor = hd( gl:getIntegerv( ?GL_MINOR_VERSION ) ),
 
-	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-	{ Major, Minor }.
+	case get_version_string() of
+
+		undefined ->
+			AssumedVersion = { 1, 1, 0 },
+			trace_utils:warning_fmt( "Unable to determine the OpenGL version, "
+				"assuming ~ts",
+				[ basic_utils:version_to_string( AssumedVersion ) ] ),
+			AssumedVersion;
+
+		VersionStr ->
+			% Parsing "4.6.0 FOOBAR 495.44" for example:
+			{ MajStr, MinStr, Release } =
+				case text_utils:split( VersionStr, _Delimiters=[ $., $ ] ) of
+
+				% Assuming a release version 0 if not having better information:
+				[ MajorStr, MinorStr ] ->
+					trace_utils:warning( "No release version for OpenGL "
+										 "returned, assuming 0."),
+					{ MajorStr, MinorStr, _ReleaseI=0 };
+
+				[ MajorStr, MinorStr, ReleaseStr | _ ] ->
+					ReleaseI =
+						case text_utils:try_string_to_integer( ReleaseStr ) of
+
+						undefined ->
+							trace_utils:warning_fmt( "No release version for "
+								"OpenGL can be parsed from '~ts', assuming 0.",
+								[ ReleaseStr ] ),
+							0;
+
+						ReleaseInt ->
+							ReleaseInt
+
+						end,
+
+				{ MajorStr, MinorStr, ReleaseI }
+
+				end,
+
+			Major = text_utils:string_to_integer( MajStr ),
+			Minor = text_utils:string_to_integer( MinStr ),
+
+			{ Major, Minor, Release }
+
+	end.
 
 
 
-% @doc Returns whether the specified OpenGL profile is supportede.
+% @doc Returns the major / minor / release version number of the currently used
+% OpenGL implementation, based on a cached value in ETS.
+%
+% Example: {4,6,1}.
+%
+% Only supported on GL contexts with version 3.0 and above (hence not that
+% convenient).
+%
+% Only available if a current OpenGL context is set.
+%
+-spec get_version( info_table_id() ) -> gl_version().
+get_version( Tid ) ->
+	[ { _VKey, CurrentGLVersion } ] = ets:lookup( Tid, gl_version ),
+	CurrentGLVersion.
+
+
+
+% @doc Returns whether the specified OpenGL profile is supported.
 %
 % Only supported on GL contexts with version 3.0 and above.
 %
@@ -582,6 +687,39 @@ is_profile_supported( compatibility ) ->
 		_ ->
 			true
 
+	end;
+
+is_profile_supported( _Other ) ->
+	false.
+
+
+
+% No need to store profiles in ETS.
+
+
+
+% @doc Returns a list of the supported OpenGL profiles.
+-spec get_supported_profiles() -> [ gl_profile() ].
+get_supported_profiles() ->
+
+	CompList = case is_profile_supported( compatibility ) of
+
+		true ->
+			[ compatibility ];
+
+		false ->
+			[]
+
+	end,
+
+	case is_profile_supported( core ) of
+
+		true ->
+			[ core | CompList ];
+
+		false ->
+			[ CompList ]
+
 	end.
 
 
@@ -599,16 +737,17 @@ get_shading_language_version() ->
 
 
 
-% @doc Returns a list of the supported extensions, as strings.
+% @doc Returns a list of the supported extensions.
 %
-% Ex: 390 extensions like "GL_AMD_multi_draw_indirect",
-% "GL_AMD_seamless_cubemap_per_texture", etc.
+% Ex: 390 extensions like 'GL_AMD_multi_draw_indirect',
+% 'GL_AMD_seamless_cubemap_per_texture', etc.
 %
--spec get_supported_extensions() -> [ ustring() ].
+-spec get_supported_extensions() -> [ gl_extension() ].
 get_supported_extensions() ->
 	ExtStr = gl:getString( ?GL_EXTENSIONS ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-	text_utils:split( ExtStr, _Delimiters=[ $ ] ).
+	ExtStrs = text_utils:split( ExtStr, _Delimiters=[ $ ] ),
+	text_utils:strings_to_atoms( ExtStrs ).
 
 
 
@@ -623,8 +762,10 @@ get_support_description() ->
 	RendStr = text_utils:format( "driver renderer: ~ts",
 								 [ get_renderer_name() ] ),
 
+	% Checks that a proper version could be obtained indeed:
 	ImplStr = text_utils:format( "implementation version: described as '~ts', "
-		"directly reported as ~w", [ get_version_string(), get_version() ]  ),
+		"i.e. ~ts", [ get_version_string(),
+					  text_utils:version_to_string( get_version() ) ] ),
 
 	SupportedProfiles = case is_profile_supported( core ) of
 
@@ -663,12 +804,198 @@ get_support_description() ->
 
 	% Way too long (ex: 390 extensions returned):
 	%ExtStr = text_utils:format( "~B extensions: ~ts", [ length( Exts ),
-	%   text_utils:strings_to_listed_string( Exts ) ] ),
+	%   text_utils:atoms_to_listed_string( Exts ) ] ),
 
-	ExtStr = text_utils:format( "~B extensions supported", [ length( Exts ) ] ),
+	ExtStr = text_utils:format( "~B OpenGL extensions supported",
+								[ length( Exts ) ] ),
 
 	text_utils:strings_to_string(
 		[ VendStr, RendStr, ImplStr, ProfStr, ShadStr, ExtStr ] ).
+
+
+
+% @doc Initialises the OpenGL information ETS table storing (caching) related
+% static versions, profiles and extensions.
+%
+-spec init_info_table() -> info_table_id().
+init_info_table() ->
+
+	TableId = ets:new( ?gl_info_ets_name,
+					   [ named_table, public, ordered_set ] ),
+
+	ExtsAsMonoTuples = [ { E } || E <- get_supported_extensions() ],
+
+	Elems = [ { gl_version, get_version() },
+			  { gl_profiles, get_supported_profiles() } | ExtsAsMonoTuples ],
+
+	ets:insert( TableId, Elems ),
+
+	% Actually is just ?gl_info_ets_name:
+	TableId.
+
+
+
+% @doc Returns the OpenGL information ETS table, possibly after having created
+% it if necessary.
+%
+-spec secure_info_table() -> info_table_id().
+secure_info_table() ->
+
+	case ets:whereis( ?gl_info_ets_name ) of
+
+		undefined ->
+			init_info_table();
+
+		Tid ->
+			Tid
+
+	end.
+
+
+
+% @doc Tells whether the current OpenGL version is compatible with the specified
+% one, that is whether the current one matches, or is more recent than, the
+% specified one.
+%
+-spec is_version_compatible_with( two_or_three_digit_version() ) -> boolean().
+is_version_compatible_with( TargetVersion ) ->
+	is_version_compatible_with( TargetVersion, secure_info_table() ).
+
+
+% @doc Tells whether the current OpenGL version is compatible with the specified
+% one, that is whether the current one matches, or is more recent than, the
+% specified one.
+%
+-spec is_version_compatible_with( two_or_three_digit_version(),
+								  info_table_id() ) -> boolean().
+is_version_compatible_with( { Major, Minor }, Tid ) ->
+	is_version_compatible_with( { Major, Minor, _Release=0 }, Tid );
+
+is_version_compatible_with( TargetThreeDigitVersion, Tid ) ->
+	[ { _VKey, CurrentGLVersion } ] = ets:lookup( Tid, gl_version ),
+	case basic_utils:compare_versions( CurrentGLVersion,
+									   TargetThreeDigitVersion ) of
+
+		second_bigger ->
+			false;
+
+		_EqualOrFirstBigger ->
+			true
+
+	end.
+
+
+
+% @doc Tells whether the specified OpenGL extension is supported.
+-spec is_extension_supported( gl_extension() ) -> boolean().
+is_extension_supported( Extension ) ->
+	is_extension_supported( Extension, _Tid=secure_info_table() ).
+
+
+% @doc Tells whether the specified OpenGL extension is supported.
+-spec is_extension_supported( gl_extension(), info_table_id() ) -> boolean().
+is_extension_supported( Extension, Tid ) when is_atom( Extension ) ->
+	ets:member( Tid, Extension ).
+
+
+% @doc Tells whether the specified OpenGL extensions are (all) supported.
+-spec are_extensions_supported( [ gl_extension() ] ) -> boolean().
+are_extensions_supported( Extensions ) ->
+	are_extensions_supported( Extensions, secure_info_table() ).
+
+
+% @doc Tells whether the specified OpenGL extensions are (all) supported.
+-spec are_extensions_supported( [ gl_extension() ], info_table_id() ) ->
+											boolean().
+are_extensions_supported( _Exts=[], _Tid ) ->
+	true;
+
+are_extensions_supported( _Exts=[ Ext | T ], Tid ) ->
+	case is_extension_supported( Ext, Tid ) of
+
+		true ->
+			are_extensions_supported( T, Tid );
+
+		false ->
+			false
+
+	end.
+
+
+
+% @doc Returns a list of the specified OpenGL extensions that are not supported.
+-spec get_unsupported_extensions( [ gl_extension() ] ) -> [ gl_extension() ].
+get_unsupported_extensions( Extensions ) ->
+	get_unsupported_extensions( Extensions, secure_info_table() ).
+
+
+% @doc Returns a list of the specified OpenGL extensions that are not supported.
+-spec get_unsupported_extensions( [ gl_extension() ], info_table_id() ) ->
+												[ gl_extension() ].
+get_unsupported_extensions( Extensions, Tid ) ->
+	[ E || E <- Extensions, not is_extension_supported( E, Tid ) ].
+
+
+
+% @doc Checks the OpenGL requirements of this program against the local support;
+% displays an error message and throws an exception if a requirement is not met.
+%
+-spec check_requirements( two_or_three_digit_version(), gl_profile(),
+						  [ gl_extension() ] ) -> void().
+check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
+
+	Tid = gui_opengl:init_info_table(),
+
+	case is_version_compatible_with( MinOpenGLVersion, Tid ) of
+
+		true ->
+			ok;
+
+		false ->
+			LocalVersion = gui_opengl:get_version( Tid ),
+			trace_utils:error_fmt( "The local OpenGL version, ~ts, is not "
+				"compatible with the necessary one, ~ts. Drivers may have "
+				"to be updated.",
+				[ text_utils:version_to_string( LocalVersion ),
+				  text_utils:version_to_string( MinOpenGLVersion ) ] ),
+			throw( { incompatible_opengl_version, LocalVersion,
+					 MinOpenGLVersion } )
+
+	end,
+
+
+	case is_profile_supported( RequiredProfile ) of
+
+		true ->
+			ok;
+
+		false ->
+			trace_utils:error_fmt( "The local OpenGL driver does not support "
+				"the '~ts' profile. Drivers may have to be updated.",
+				[ RequiredProfile ] ),
+			throw( { unsupported_opengl_profile, RequiredProfile } )
+
+	end,
+
+
+	case get_unsupported_extensions( RequiredExtensions, Tid ) of
+
+		[] ->
+			ok;
+
+		[ LackingExt ] ->
+			trace_utils:error_fmt( "An OpenGL extension, '~ts', is lacking. "
+				"Drivers may have to be updated.", [ LackingExt ] ),
+			throw( { unsupported_opengl_extensions, [ LackingExt ] } );
+
+		LackingExts ->
+			trace_utils:error_fmt( "~B OpenGL extensions are not found "
+				"available: ~ts~nDrivers may have to be updated.",
+				[ length( LackingExts ),
+				  text_utils:atoms_to_string( LackingExts ) ] ),
+			throw( { unsupported_opengl_extensions, LackingExts } )
+
+	end.
 
 
 
@@ -826,6 +1153,7 @@ create_canvas( Parent, Opts ) ->
 
 	%trace_utils:debug_fmt( "WxOpts = ~p", [ WxOpts ] ),
 
+	% Using newer wxGL API (of arity 2, not 3):
 	Res = wxGLCanvas:new( Parent, WxOpts ),
 
 	% Commented-out, as not relevant (an OpenGL context may not already exist):
@@ -848,7 +1176,7 @@ create_context( Canvas ) ->
 	% WGL_CONTEXT_{MAJOR,MINOR}_VERSION_ARB,
 	% WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB and WGL_ARB_create_context:
 	%
-	% (nevertheless we still have OprnGL 4.6.0 when querying it, see
+	% (nevertheless we still have OpenGL 4.6.0 when querying it, see
 	% gui_opengl:get_version/1)
 	%
 	Res = wxGLContext:new( Canvas ),
