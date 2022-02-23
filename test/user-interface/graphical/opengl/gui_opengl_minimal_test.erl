@@ -243,6 +243,9 @@ gui_main_loop( GUIState ) ->
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
 
+			test_facilities:display( "Reported OpenGL support: ~ts",
+									 [ gui_opengl:get_support_description() ] ),
+
 			gui_main_loop( InitGUIState );
 
 
@@ -327,6 +330,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
 
+	% Lower-left corner and size of the viewport in the current window:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% Apparently, at least on a test setting, a race condition (discovered

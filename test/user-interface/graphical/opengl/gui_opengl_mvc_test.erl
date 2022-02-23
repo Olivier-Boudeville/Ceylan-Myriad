@@ -366,8 +366,8 @@ run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 
 	MainFrame = GUIViewState#view_state.parent,
 
-	ControllerPid ! { notifyViewInformation,
-						[ self(), MainFrame, gui:get_gui_env() ] },
+	ControllerPid !
+		{ notifyViewInformation, [ self(), MainFrame, gui:get_gui_env() ] },
 
 	Period = time_utils:frequency_to_period( EvalFrequency ),
 
@@ -644,6 +644,7 @@ on_main_frame_resized( ViewState=#view_state{ canvas=GLCanvas } ) ->
 	%
 	gui:sync( GLCanvas ),
 
+	% Lower-left corner and size of the viewport in the current window:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% No specific other view-related update.
