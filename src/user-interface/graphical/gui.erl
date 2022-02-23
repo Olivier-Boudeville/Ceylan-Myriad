@@ -744,6 +744,10 @@ get_backend_information() ->
 
 
 % @doc Starts the MyriadGUI subsystem.
+%
+% Note that OpenGL-related options are to be specified when creating a GL canvas
+% (see gui_opengl:create_canvas{1,2}).
+%
 -spec start() -> void().
 start() ->
 
