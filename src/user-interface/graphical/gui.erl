@@ -774,7 +774,7 @@ start() ->
 	GUIEnv = #gui_env{ wx_server=WxServer, loop_pid=LoopPid },
 
 	% Stored in the process dictionary of the user process, like for wx:
-	put( ?gui_env_process_key, GUIEnv ).
+	process_dictionary:put_as_new( ?gui_env_process_key, GUIEnv ).
 
 
 
@@ -943,11 +943,11 @@ propagate_event( EventContext ) ->
 -spec stop() -> void().
 stop() ->
 
+	process_dictionary:remove( ?gui_env_process_key ).
+
 	% No wx_server needed:
 	ok = wx:destroy(),
 
-	% Remove from process dictionary:
-	put( ?gui_env_process_key, _Value=undefined ).
 
 
 
@@ -2071,7 +2071,7 @@ get_main_loop_pid() ->
 -spec get_gui_env() -> gui_env().
 get_gui_env() ->
 
-	case get( ?gui_env_process_key ) of
+	case process_dictionary:get( ?gui_env_process_key ) of
 
 		undefined ->
 			trace_utils:error_fmt( "No MyriadGUI environment available for "
@@ -2094,10 +2094,10 @@ get_gui_env() ->
 -spec set_gui_env( gui_env() ) -> void().
 set_gui_env( GUIEnv ) ->
 
-	case get( ?gui_env_process_key ) of
+	case process_dictionary:get( ?gui_env_process_key ) of
 
 		undefined ->
-			put( ?gui_env_process_key, GUIEnv );
+			process_dictionary:put( ?gui_env_process_key, GUIEnv );
 
 		Env ->
 			trace_utils:error_fmt( "A MyriadGUI environment (~w) was already "
