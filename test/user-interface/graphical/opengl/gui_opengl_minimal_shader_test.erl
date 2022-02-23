@@ -267,6 +267,9 @@ gui_main_loop( GUIState ) ->
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
 
+			% Optional yet better:
+			gui:unsubscribe_from_events( { onShown, ParentWindow } ),
+
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
 
@@ -312,6 +315,22 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% First possible moment:
 	test_facilities:display( "Description of the current OpenGL support: ~ts",
 							 [ gui_opengl:get_support_description() ] ),
+
+	% These test shaders are in 3.3 core (cf. their '#version 330 core'):
+	MinOpenGLVersion = { 3, 3 },
+	%MinOpenGLVersion = { 4, 6 },
+	%MinOpenGLVersion = { 99, 0 },
+
+	TargetProfile = core,
+	%TargetProfile = non_existing_profile,
+
+	%RequiredExts = [ non_existing_extension ],
+	%RequiredExts = [ 'GL_ARB_draw_buffers' ],
+	RequiredExts = [],
+
+	gui_opengl:check_requirements( MinOpenGLVersion, TargetProfile,
+								   RequiredExts ),
+
 
 	% These settings will not change afterwards here (set once for all):
 
@@ -391,6 +410,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
 
+	% Lower-left corner and size of the viewport in the current window:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% Apparently, at least on a test setting, a race condition (discovered
