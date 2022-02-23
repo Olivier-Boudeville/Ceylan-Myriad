@@ -38,8 +38,6 @@
 % modules.
 
 
-% Note that string:tokens/1 can be used to split strings.
-
 
 % String management functions.
 
@@ -114,6 +112,7 @@
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
 		  duplicate/2, concatenate/1,
+		  remove_empty_lines/1,
 
 		  find_substring_index/2, find_substring_index/3,
 
@@ -390,6 +389,8 @@
 -type count() :: basic_utils:count().
 
 -type integer_id() :: id_utils:integer_id().
+
+-type any_millimeters() :: unit_utils:any_millimeters().
 
 
 
@@ -893,8 +894,8 @@ strings_to_string( Strings ) when is_list( Strings ) ->
 	%trace_utils:debug_fmt( "Stringifying ~p.", [ Strings ] ),
 
 	% Leading '~n' had been removed for some unknown reason:
-	io_lib:format( "~n~ts~n",
-	  [ strings_to_string_helper( Strings, _Acc=[], get_default_bullet() ) ] );
+	io_lib:format( "~n~ts~n", [ strings_to_string_helper( Strings,
+											_Acc=[], get_default_bullet() ) ] );
 
 strings_to_string( ErrorTerm ) ->
 	report_not_a_list( ErrorTerm ).
@@ -943,7 +944,7 @@ strings_to_string( Strings, Bullet )
 			when is_list( Strings ) andalso is_list( Bullet ) ->
 
 	%trace_utils:debug_fmt( "strings_to_string/2 for '~p' : bullet is '~ts'.",
-	%						[ Strings, Bullet ] ),
+	%                       [ Strings, Bullet ] ),
 
 	% Leading '~n' had been removed for some unknown reason:
 
@@ -1356,16 +1357,22 @@ proplist_to_string( Proplist ) ->
 
 	% In this context, key and value known to be strings or atoms:
 	Strings = [ io_lib:format( "~ts: ~ts", [ K, V ] )
-				|| { K, V } <- lists:sort( Proplist ) ],
+						|| { K, V } <- lists:sort( Proplist ) ],
 
 	strings_to_string( Strings ).
 
 
 
-% @doc Returns a string describing the specified three-element version.
--spec version_to_string( basic_utils:version() ) -> ustring().
+% @doc Returns a string describing the specified version.
+-spec version_to_string( basic_utils:any_version() ) -> ustring().
+version_to_string( { V1, V2 } ) ->
+	io_lib:format( "~B.~B", [ V1, V2 ] );
+
 version_to_string( { V1, V2, V3 } ) ->
-	io_lib:format( "~B.~B.~B", [ V1, V2, V3 ] ).
+	io_lib:format( "~B.~B.~B", [ V1, V2, V3 ] );
+
+version_to_string( { V1, V2, V3, V4 } ) ->
+	io_lib:format( "~B.~B.~B.~B", [ V1, V2, V3, V4 ] ).
 
 
 
@@ -1432,8 +1439,7 @@ number_to_string( Other ) ->
 %
 % Ex: for a distance of 1001.5 millimeters, returns "1m and 2mm".
 %
--spec distance_to_string( unit_utils:millimeters()
-						 | unit_utils:int_millimeters() ) -> ustring().
+-spec distance_to_string( any_millimeters() ) -> ustring().
 distance_to_string( Millimeters ) when is_float( Millimeters ) ->
 	distance_to_string( round( Millimeters ) );
 
@@ -1525,8 +1531,7 @@ distance_to_string( Millimeters ) ->
 %
 % Ex: for a distance of 1000.5 millimeters, returns "1.0m".
 %
--spec distance_to_short_string( unit_utils:millimeters()
-							   | unit_utils:int_millimeters() ) -> ustring().
+-spec distance_to_short_string( any_millimeters() ) -> ustring().
 distance_to_short_string( Millimeters ) when is_float( Millimeters ) ->
 	distance_to_short_string( round( Millimeters ) );
 
@@ -2685,7 +2690,7 @@ try_string_to_integer( String ) ->
 % Returns the 'undefined' atom if the conversion failed.
 %
 -spec try_string_to_integer( ustring(), 2..36 ) ->
-								   basic_utils:maybe( integer() ).
+									basic_utils:maybe( integer() ).
 try_string_to_integer( String, Base ) when is_list( String ) ->
 	try list_to_integer( String, Base ) of
 
@@ -2988,7 +2993,8 @@ split( String, Delimiters ) ->
 
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
 	% and anyway both treat two or more adjacent separator graphemes clusters as
-	% only one, which is generally not what we want; so we now use:
+	% only one, which is generally not what we want; so we now use our own
+	% function.
 
 	% Would be quite different, as Delimiters here would be understood as a
 	% search pattern (i.e. a "word" as a whole) instead of a list of delimiters:
@@ -3009,7 +3015,7 @@ split_helper( _Delimiters=[], Acc ) ->
 
 split_helper( _Delimiters=[ D | T ], Acc ) ->
 	SplitStrs = [ string:split( S, _SearchPattern=[ D ], _Where=all )
-				  || S <- Acc ],
+								|| S <- Acc ],
 	NewAcc = concatenate( SplitStrs ),
 	split_helper( T, NewAcc ).
 
@@ -3251,6 +3257,15 @@ duplicate( Count, Str ) ->
 -spec concatenate( [ string_like() | number() ] ) -> ustring().
 concatenate( Elements ) ->
 	lists:concat( Elements ).
+
+
+
+% @doc Returns in-order the specified list of strings once all empty ones have
+% been removed.
+%
+-spec remove_empty_lines( [ ustring() ] ) -> [ ustring() ].
+remove_empty_lines( Strs ) ->
+	[ S || S <- Strs, S =/= "" ].
 
 
 
