@@ -1502,9 +1502,9 @@ check_version( T ) ->
 
 
 
-% @doc Compares the two pairs, triplets or quadruplets, which describe two
-% version numbers (ex: {0,1,0} and {0,1,7}) and returns either first_bigger,
-% second_bigger, or equal.
+% @doc Compares the two pairs, triplets or quadruplets (expected to be of the
+% same size), which describe two version numbers (ex: {0,1,0} and {0,1,7}) and
+% returns either first_bigger, second_bigger, or equal.
 %
 % The two compared versions must have the same number of digits.
 %
