@@ -360,7 +360,7 @@
 		  are_extensions_supported/1, are_extensions_supported/2,
 		  get_unsupported_extensions/1, get_unsupported_extensions/2,
 
-		  check_requirements/3,
+		  check_requirements/1, check_requirements/2, check_requirements/3,
 
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
@@ -368,7 +368,8 @@
 		  get_size/2,
 
 		  create_canvas/1, create_canvas/2,
-		  create_context/1, set_context/2, swap_buffers/1,
+		  create_context/1, set_context_on_shown/2, set_context/2,
+		  swap_buffers/1,
 
 		  load_texture_from_image/1,
 		  load_texture_from_file/1, load_texture_from_file/2,
@@ -937,7 +938,31 @@ get_unsupported_extensions( Extensions, Tid ) ->
 
 
 
-% @doc Checks the OpenGL requirements of this program against the local support;
+% @doc Checks the OpenGL requirements of this program against the local support,
+% regarding the minimum OpenGL version; displays an error message and throws an
+% exception if this requirement is not met.
+%
+-spec check_requirements( two_or_three_digit_version() ) -> void().
+check_requirements( MinOpenGLVersion ) ->
+	check_requirements( MinOpenGLVersion, _RequiredProfile=core,
+						_RequiredExtensions=[] ).
+
+
+
+% @doc Checks the OpenGL requirements of this program against the local support,
+% regarding the minimum OpenGL version, the required profile; displays an error
+% message and throws an exception if a requirement is not met.
+%
+-spec check_requirements( two_or_three_digit_version(), gl_profile() ) ->
+															void().
+check_requirements( MinOpenGLVersion, RequiredProfile ) ->
+	check_requirements( MinOpenGLVersion, RequiredProfile,
+						_RequiredExtensions=[] ).
+
+
+
+% @doc Checks the OpenGL requirements of this program against the local support,
+% regarding the minimum OpenGL version, the required profile and extensions;
 % displays an error message and throws an exception if a requirement is not met.
 %
 -spec check_requirements( two_or_three_digit_version(), gl_profile(),
@@ -1103,7 +1128,8 @@ get_glxinfo_strings() ->
 			case system_utils:run_executable( ExecPath, [ "-B" ] ) of
 
 				{ _ReturnCode=0, ReturnedStr } ->
-					text_utils:split( ReturnedStr, "\n" );
+					text_utils:remove_empty_lines(
+						text_utils:split( ReturnedStr, "\n" ) );
 
 				{ ErrorCode, ReturnedStr } ->
 					trace_utils:error_fmt( "The ~ts query returned an error "
@@ -1188,19 +1214,31 @@ create_context( Canvas ) ->
 
 
 
-% @doc Sets the specified (OpenGL) context to the specified (OpenGL) canvas, so
-% that it applies to the next operations (OpenGL calls) made on it.
+% @doc Sets the specified (OpenGL) context to the specified (OpenGL) canvas once
+% its window is shown, so that it applies to the next operations (OpenGL calls)
+% made on it.
 %
 % To be only called when the parent window is shown on screen; see
 % gui_opengl_test.erl for an example thereof.
 %
--spec set_context( gl_canvas(), gl_context() ) -> void().
-set_context( Canvas, Context ) ->
+-spec set_context_on_shown( gl_canvas(), gl_context() ) -> void().
+set_context_on_shown( Canvas, Context ) ->
 
-	% According to Wings3D (wings_gl.erl), setCurrent/2 may fail (on GTK) as the
-	% show event may be received before the window is actually displayed; so:
+	% According to Wings3D (wings_gl.erl), wxGLCanvas:setCurrent/2 may fail (on
+	% GTK) as the show event may be received before the window is actually
+	% displayed; so:
 	%
 	timer:sleep(200),
+
+	set_context( Canvas, Context ).
+
+
+
+% @doc Sets the specified (OpenGL) context to the specified (OpenGL) canvas, so
+% that it applies to the next operations (OpenGL calls) made on it.
+%
+-spec set_context( gl_canvas(), gl_context() ) -> void().
+set_context( Canvas, Context ) ->
 
 	% Using wx API 3.0 (not supporting older ones such as 2.8):
 	case wxGLCanvas:setCurrent( Canvas, Context ) of
