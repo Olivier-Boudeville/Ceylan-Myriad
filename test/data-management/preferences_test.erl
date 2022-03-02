@@ -46,7 +46,7 @@ run() ->
 							 "~ts", [ preferences:to_string() ] ),
 
 	% May not be called (automatic launching of the service whenever needed):
-	preferences:start(),
+	preferences:start_link(),
 
 	test_facilities:display( "Preferences after the service is just started: "
 							 "~ts", [ preferences:to_string() ] ),
