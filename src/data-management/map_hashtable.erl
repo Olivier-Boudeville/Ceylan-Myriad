@@ -120,6 +120,13 @@
 % Shorthands:
 
 % As this module is not parse-transformed:
+%
+% (if a 'type maybe(_) is unused' error is reported for this type, this is the
+% sign that this module is recompiled with the Myriad parse transform, whereas
+% it should not; its compilation should be triggered from the root of Myriad,
+% rather than from the current directory of this module; not a hard problem
+% though)
+%
 -type maybe( T ) :: T | 'undefined'.
 
 
@@ -269,7 +276,7 @@ add_entries( EntryList, MapHashtable ) ->
 % already exist in this table).
 %
 -spec add_maybe_entry( key(), maybe( value() ), map_hashtable() ) ->
-			map_hashtable().
+											map_hashtable().
 add_maybe_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
 	MapHashtable;
 
@@ -496,7 +503,7 @@ has_entry( Key, MapHashtable ) ->
 	maps:is_key( Key, MapHashtable ).
 
 % has_entry( Key, #{ Key := _Value } ) ->
-%	true;
+%   true;
 
 % has_entry( _Key, _MapHashtable ) ->
 %	false.
@@ -510,7 +517,7 @@ has_entry( Key, MapHashtable ) ->
 % exception ({bad_key, Key}) is raised.
 %
 -spec get_value( key(), map_hashtable() ) -> value().
-%get_value( Key,  #{ Key := Value } ) ->
+%get_value( Key, #{ Key := Value } ) ->
 %	Value.
 get_value( Key, MapHashtable ) ->
 	try
@@ -535,7 +542,7 @@ get_value( Key, MapHashtable ) ->
 % exception is raised.
 %
 % Ex: [Color, Age, Mass] =
-%               map_hashtable:get_values([color, age, mass], MyMapTable])
+%           map_hashtable:get_values([color, age, mass], MyMapTable])
 %
 -spec get_values( [ key() ], map_hashtable() ) -> [ value() ].
 get_values( Keys, Hashtable ) ->
@@ -581,20 +588,20 @@ get_value_with_defaults( Key, DefaultValue, MapHashtable ) ->
 % raised.
 %
 % Ex: [Color=red, Age=23, Mass=51] = map_hashtable:get_all_values([color,
-%   age, mass], [{color, red}, {mass, 51}, {age, 23}])
+%                       age, mass], [{color, red}, {mass, 51}, {age, 23}])
 %
 -spec get_all_values( [ key() ], map_hashtable() ) -> [ value() ].
 get_all_values( Keys, Hashtable ) ->
 
 	{ RevValues, FinalTable } = lists:foldl(
-		   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+		fun( _Elem=Key, _Acc={ Values, Table } ) ->
 
-				   { Value, ShrunkTable } = extract_entry( Key, Table ),
-				   { [ Value | Values ], ShrunkTable }
+			{ Value, ShrunkTable } = extract_entry( Key, Table ),
+				{ [ Value | Values ], ShrunkTable }
 
-		   end,
-		   _Acc0={ [], Hashtable },
-		   _List=Keys ),
+		end,
+		_Acc0={ [], Hashtable },
+		_List=Keys ),
 
 	case is_empty( FinalTable ) of
 
@@ -616,7 +623,7 @@ get_all_values( Keys, Hashtable ) ->
 %
 -spec extract_entry( key(), map_hashtable() ) -> { value(), map_hashtable() }.
 %extract_entry( Key, MapHashtable=#{ Key := Value} ) ->
-%	{ Value, maps:remove( Key, MapHashtable ) }.
+%   { Value, maps:remove( Key, MapHashtable ) }.
 %
 extract_entry( Key, MapHashtable ) ->
 	Value = maps:get( Key, MapHashtable ),
@@ -932,7 +939,7 @@ merge_unique( _Tables=[ Table ] ) ->
 % To avoid recreating from scratch the first table:
 merge_unique( _Tables=[ HTable | T ] ) ->
 	lists:foldl( fun( Table, AccTable ) ->
-						merge_unique( Table, AccTable )
+					merge_unique( Table, AccTable )
 				 end,
 				 _Acc0=HTable,
 				 _List=T ).
@@ -1065,7 +1072,7 @@ concat_to_entry( Key, ListToConcat, MapHashtable )
 %                             MyTable ).
 %
 -spec concat_list_to_entries( list_table:list_table(), map_hashtable() ) ->
-								map_hashtable().
+										map_hashtable().
 concat_list_to_entries( KeyListValuePairs, MapHashtable )
   when is_list( KeyListValuePairs ) ->
 
@@ -1106,7 +1113,7 @@ delete_from_entry( Key, Element, MapHashtable ) ->
 % the targeted list.
 %
 -spec delete_existing_from_entry( key(), term(), map_hashtable() ) ->
-									map_hashtable().
+											map_hashtable().
 delete_existing_from_entry( Key, Element, MapHashtable ) ->
 
 	ListValue = maps:get( Key, MapHashtable ),
@@ -1249,7 +1256,7 @@ to_string( MapHashtable, DescriptionType ) ->
 
 				user_friendly ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
-							 || { K, V } <- lists:sort( L ) ],
+								|| { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ map_size( MapHashtable ),
@@ -1258,7 +1265,7 @@ to_string( MapHashtable, DescriptionType ) ->
 
 				DescType when DescType =:= full orelse DescType =:= internal ->
 					Strs = [ text_utils:format( "~p: ~p", [ K, V ] )
-							 || { K, V } <- lists:sort( L ) ],
+								|| { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ map_size( MapHashtable ),
@@ -1268,7 +1275,7 @@ to_string( MapHashtable, DescriptionType ) ->
 				% Here, ellipsed and with specified bullet:
 				Bullet ->
 					Strs = [ text_utils:format_ellipsed( "~p: ~p", [ K, V ] )
-							 || { K, V } <- lists:sort( L ) ],
+								|| { K, V } <- lists:sort( L ) ],
 
 					lists:flatten( io_lib:format( "table with ~B entries: ~ts",
 						[ map_size( MapHashtable ),
