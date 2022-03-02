@@ -218,7 +218,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
 
 	% So done only once:
-	gui_opengl:set_context( GLCanvas, GLContext ),
+	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
 	% No specific initialisation needed.
 

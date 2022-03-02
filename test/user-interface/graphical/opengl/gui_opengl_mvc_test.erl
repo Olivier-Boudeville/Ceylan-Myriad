@@ -519,10 +519,6 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 			trace_utils:debug_fmt( "Parent window just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
 
-			% Done once for all:
-			gui_opengl:set_context( ViewState#view_state.canvas,
-									ViewState#view_state.context ),
-
 			NewViewState = initialise_opengl( ViewState ),
 
 			on_main_frame_resized( NewViewState ),
@@ -567,7 +563,7 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
 						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
 
-	gui_opengl:set_context( GLCanvas, GLContext ),
+	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
 	% These settings will not change afterwards (set once for all):
 

@@ -715,7 +715,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 						   "size ~w).", [ Size ] ),
 
 	% So done only once:
-	gui_opengl:set_context( GLCanvas, GLContext ),
+	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
 	% These settings will not change afterwards (set once for all):
 
