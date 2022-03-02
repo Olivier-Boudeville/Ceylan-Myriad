@@ -105,6 +105,9 @@ It is located in ``{src,test}/user-interface/textual``; see ``term_ui.erl`` for 
 Graphical User Interface: ``gui``
 ---------------------------------
 
+The ``gui`` modules provide features like 2D/3D rendering, event handling, input management (keyboard/mouse), canvas services (basic or OpenGL), and the various related staples (management of images, texts and fonts, colors, window manager, etc.); refer to `the gui sources <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/src/user-interface/graphical>`_ for more complete information.
+
+
 
 For Classical 2D Applications
 .............................
@@ -113,15 +116,19 @@ For Classical 2D Applications
 GUI Backend
 ***********
 
-This interface relied initially on ``gs`` (now deprecated), now on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_, which belongs to the same category as GTK or Qt), maybe later in HTML 5 [#]_. For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been an option.
+This interface used to rely on (now deprecated) ``gs``, and now relies on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_, which belongs to the same category as GTK or Qt). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been an option.
+
+
+.. [#] Maybe later it will be based on HTML 5 (although we are not big fans of light clients and of using browsers for everything), possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_, on `N2O <https://ws.n2o.dev/>`_ or on any other relevant HTML5 framework.
+
+
+We also borrowed elements from the truly impressive `Wings3D <http://www.wings3d.com/>`_ (see also `our section about it <https://howtos.esperide.org/ThreeDimensional.html#wings3d>`_) modeller, and also on the remarkable `libSDL <https://libsdl.org/>`_ (2.0) library together with its `esdl2 <https://github.com/ninenines/esdl2>`_ Erlang binding.
 
 If having very demanding 2D needs, one may refer to the `3D services`_ section (as it is meant to be hardware-accelerated, and the 2D services are a special cases thereof).
 
 
-.. [#] Possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_, on `N2O <https://ws.n2o.dev/>`_ or on any relevant HTML5 framework.
 
-
-.. Note:: ``gui`` does not adhere yet to the ``ui`` conventions, but it will ultimately will. Currently it offers a graphical API on top of ``wx``.
+.. Note:: Our ``gui`` module does not adhere yet to the ``ui`` conventions, but it will ultimately will. Currently it offers a graphical API (currently on top of ``wx``).
 
 
 .. _`wx availability`:
@@ -150,7 +157,7 @@ The usual mode of operation is the following:
 
 .. code:: erlang
 
- gui:subscribe_to_events({onWindowClosed, MainFrame}))
+ gui:subscribe_to_events({onWindowClosed, MainFrame})
 
 3. The user process also triggers any relevant operation (ex: clearing widgets, setting various parameters), generally shows at least a main frame and records the GUI state that it needs for future use (typically containing at least the MyriadGUI references of the widgets that it created)
 4. Then the user process enters its own (GUI-specific) main loop, from which it will receive the events that it subscribed to, and to which it will react by performing application-specific operations and/or GUI-related operations (creating, modifying, deleting widgets). Generally at least one condition is defined in order to leave that main loop and stop the GUI (``gui:stop/0``)
