@@ -65,7 +65,7 @@
 -export([ new/0, singleton/2, new/1, new_from_unique_entries/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
 		  add_maybe_entry/3, add_maybe_entries/2,
-		  update_entry/3, update_entries/2,
+		  update_entry/3, update_entries/2, update_existing_entries/2,
 		  swap_value/3,
 		  remove_entry/2, remove_existing_entry/2,
 		  remove_entries/2, remove_existing_entries/2,
@@ -258,13 +258,13 @@ add_entry( Key, Value, MapHashtable ) ->
 % already exist in this table).
 %
 -spec add_entries( entries(), map_hashtable() ) -> map_hashtable().
-add_entries( EntryList, MapHashtable ) ->
+add_entries( Entries, MapHashtable ) ->
 	lists:foldl( fun( { K, V }, Map ) ->
 					%Map#{ K => V }
 					maps:put( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
-				 _List=EntryList ).
+				 _List=Entries ).
 
 
 
@@ -294,12 +294,12 @@ add_maybe_entry( Key, MaybeValue, MapHashtable ) ->
 % already exist in this table).
 %
 -spec add_maybe_entries( maybe_entries(), map_hashtable() ) -> map_hashtable().
-add_maybe_entries( MaybeEntryList, MapHashtable ) ->
+add_maybe_entries( MaybeEntries, MapHashtable ) ->
 	lists:foldl( fun( { K, MV }, Map ) ->
 					add_maybe_entry( K, MV, Map )
 				 end,
 				 _Acc0=MapHashtable,
-				 _List=MaybeEntryList ).
+				 _List=MaybeEntries ).
 
 
 
@@ -329,20 +329,21 @@ add_new_entry( Key, Value, MapHashtable ) ->
 % an exception is thrown).
 %
 -spec add_new_entries( entries(), map_hashtable() ) -> map_hashtable().
-add_new_entries( EntryList, MapHashtable ) ->
+add_new_entries( Entries, MapHashtable ) ->
 
 	lists:foldl( fun( { K, V }, Map ) ->
 					add_new_entry( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
-				 _List=EntryList ).
+				 _List=Entries ).
 
 
 
 % @doc Updates the specified key with the specified value in the specified map
 % hashtable.
 %
-% A pair with this key is expected to already exist in this table.
+% An entry with this key is expected to already exist in this table, otherwise
+% an exception is thrown.
 %
 -spec update_entry( key(), value(), map_hashtable() ) -> map_hashtable().
 update_entry( Key, Value, MapHashtable ) ->
@@ -369,15 +370,36 @@ update_entry( Key, Value, MapHashtable ) ->
 % in this table.
 %
 -spec update_entries( entries(), map_hashtable() ) -> map_hashtable().
-update_entries( EntryList, MapHashtable ) ->
+update_entries( Entries, MapHashtable ) ->
 
 	% Should be optimised:
-	%
 	lists:foldl( fun( { K, V }, Map ) ->
 					update_entry( K, V, Map )
 				 end,
 				 _Acc0=MapHashtable,
-				 _List=EntryList ).
+				 _List=Entries ).
+
+
+
+% @doc Returns the specified table when its already-existing keys have been
+% updated from the specified entries.
+%
+% Specified entries whose keys are not already in the specified table are
+% ignored.
+%
+-spec update_existing_entries( entries(), map_hashtable() ) -> map_hashtable().
+update_existing_entries( Entries, MapHashtable ) ->
+
+	% Should be optimised:
+	lists:foldl( fun( { K, V }, Map ) when is_map_key( K, Map ) ->
+						 Map#{ K => V };
+
+					% K not present, thus ignore entry:
+					( _E, Map ) ->
+						 Map
+				 end,
+				 _Acc0=MapHashtable,
+				 _List=Entries ).
 
 
 
@@ -914,7 +936,7 @@ merge( MapHashtableRef, MapHashtableOnlyForAdditions ) ->
 
 
 % @doc Merges the two specified tables into one, expecting that their keys are
-% unique (ie that they do not intersect), otherwise throws an exception.
+% unique (that is that they do not intersect), otherwise throws an exception.
 %
 % Note: for an improved efficiency, ideally the smaller table shall be the first
 % one.
@@ -925,11 +947,12 @@ merge_unique( FirstHashtable, SecondHashtable ) ->
 	add_new_entries( _ToAdd=FirstEntries, SecondHashtable ).
 
 
+
 % @doc Merges the all specified tables into one, expecting that their keys are
 % unique (ie that they do not intersect), otherwise throws an exception.
 %
-% Note: for an improved efficiency, ideally the tables shall be listed from the
-% smaller to the bigger.
+% Note: for an improved efficiency, ideally the tables shall be listed by
+% increasing sizes.
 %
 -spec merge_unique( [ map_hashtable() ] ) -> map_hashtable().
 % (no empty list expected)
@@ -1074,7 +1097,7 @@ concat_to_entry( Key, ListToConcat, MapHashtable )
 -spec concat_list_to_entries( list_table:list_table(), map_hashtable() ) ->
 										map_hashtable().
 concat_list_to_entries( KeyListValuePairs, MapHashtable )
-  when is_list( KeyListValuePairs ) ->
+							when is_list( KeyListValuePairs ) ->
 
 	lists:foldl( fun( { Key, ListToConcat }, AccTable ) ->
 					concat_to_entry( Key, ListToConcat, AccTable )
