@@ -4888,7 +4888,7 @@ write_terms( Terms, Header, Footer, AnyFilePath ) ->
 
 	end,
 
-	write_direct_terms( Terms, F ),
+	write_direct_terms( F, Terms ),
 
 	case Footer of
 
@@ -4913,6 +4913,7 @@ write_terms( Terms, Header, Footer, AnyFilePath ) ->
 %
 -spec write_direct_terms( file(), [ term() ] ) -> void().
 write_direct_terms( File, Terms ) ->
+	%trace_utils:debug_fmt( "Writing direct terms ~p.", [ Terms ] ),
 	[ write_ustring( File, "~p.~n", [ T ] ) || T <- Terms ].
 
 
