@@ -67,7 +67,8 @@
 -type entry_count() :: basic_utils:count().
 
 -type key() :: hashtable:key().
-% Actually any term.
+% Actually any term, yet often an atom. All 'myriad_*' atoms shall be considered
+% as reserved.
 
 -type value() :: hashtable:value().
 
@@ -208,8 +209,8 @@ to_string() ->
 
 		Pairs ->
 			Strings = lists:sort( [ text_utils:format(
-										"key '~ts' associated to value '~p'",
-										[ K, V ] ) || { K, V } <- Pairs ] ),
+				"key '~ts' associated to value '~p'",
+				[ K, V ] ) || { K, V } <- Pairs ] ),
 
 			text_utils:format( "the process dictionary of ~p contains "
 				"~B pair(s): ~ts", [ self(), length( Pairs ),
