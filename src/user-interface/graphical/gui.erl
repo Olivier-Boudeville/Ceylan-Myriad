@@ -33,8 +33,8 @@
 % in 'gui').
 %
 % The purpose of MyriadGUI is to wrap, complement and improve what we consider
-% the best set of gui backends available (previously: gs alone; now: wx+esdl,
-% with OpenGL), for classical applications and multimedia ones (ex: games).
+% the best set of gui backends available (previously: gs alone; now: wx, with
+% OpenGL), for classical applications and multimedia ones (ex: games).
 %
 % See `gui_test.erl' for the corresponding test.
 %
@@ -120,8 +120,8 @@
 % - the gui_wx_backend module for our use of wx as a backend
 % - the gui_canvas module for all canvas-related operations.
 
-% The gui module uses its own preferences server to record its defaults and also
-% elements about its environment and current state.
+% The gui module uses its own environment server to record its defaults and also
+% elements about its current state.
 
 
 % Event loops.
@@ -143,70 +143,56 @@
 % Environments.
 
 
--define( gui_pref_env_entries(), [
 
-
-	% Environment-related storage:
+% Environment-related storage of the current state of the GUI (merely
+% references):
+%
+-define( gui_env_entries, [
 
 	% The family of the current operating system, typically to adapt
-	% to specificities:
+	% to OS specificities:
 	%
 	{ 'os_family', system_utils:os_family() },
 
-								  
-	% A more precise name of the current operating system:
-	{ 'os_name', system_utils:os_name() },							  
+	% A more precise name of the current operating system, for finer control:
+	{ 'os_name', system_utils:os_name() },
 
-	% The main, top-level window (generally frame) of the application:
-	{ 'top_level_window', window() },
+	% The main, top-level window (if any; generally a frame) of the application:
+	{ 'top_level_window', maybe( window() ) },
 
 	% A table keeping track of the various mouse cursors available:
 	{ 'cursor_table', gui_mouse:cursor_table() },
 
+	% The current type of cursor (if any):
+	{ 'current_cursor_type', maybe( gui_mouse:cursor_type() ) },
 
-	{ 'current_cursor', maybe( gui_mouse:cursor_type() ) },
+	% Any backend-specific top-level server used for the GUI (here wx):
+	{ 'backend_server', wx_object() },
 
-	% Any environment defined by the GUI backend (here wx):
+	% Any backend-specific environment term used for the GUI (here wx):
 	{ 'backend_env', wx_environment() },
 
 	% The current OpenGL canvas (if any):
 	{ 'gl_canvas', maybe( opengl_canvas() ) },
 
 	% The current OpenGL context (if any):
-	{ 'gl_context', maybe( opengl_context() ) } ] ).
-% These keys, associated to values of the associated types, are used (and
-% reserved) by MyriadGUI to record application-level information, made available
-% to its processes through its preferences server.
-
-
-
-% Environment kept for MyriadGUI, usually in the process dictionary (like wx
-% does):
-%
--record( gui_env, {
-
-	% A reference to the current top-level wx server:
-	wx_server :: wx_object(),
-
-	% A reference to the wx (opaque) process environment:
-	wx_environment :: wx_environment(),
+	{ 'gl_context', maybe( opengl_context() ) },
 
 	% PID of the MyriadGUI main loop:
-	loop_pid :: pid(),
+	{ 'loop_pid', pid() }
 
-	% PID of the MyriadGUI preferences/environment process, storing the
-	% information specified in the gui_pref_env_entries define.
-	%
-	pref_env_pid :: preferences_pid() } ).
-
-
-
--type gui_env() :: #gui_env{}.
-% Stores the current, user-side (client) state (merely references) of the GUI.
+						  ] ).
+% These keys, associated to values of the associated types, are used (and
+% reserved) by MyriadGUI in order to record application-level information, made
+% available to its processes through its environment server.
 %
-% Like wx:wx_env(); kept in the process dictionary for easier sharing that if
-% using a naming service or having to keep around a bound variable.
+% At least a subset of these entries may be cached from the environment, for
+% easier/faster lookups and updates.
 
+
+-type gui_env_pid() :: environment:env_pid().
+
+-type gui_env_designator() :: environment:env_designator().
 
 -type backend_identifier() :: 'gs' % Now obsolete
 							| 'wx' % Based on wxWidgets
@@ -259,7 +245,7 @@
 
 
 % Extra overall operations.
--export([ batch/1, get_pref_env_server/0 ]).
+-export([ batch/1, get_environment_server/0 ]).
 
 
 % Event-related operations.
@@ -367,13 +353,10 @@
 -export([ create_font/4, create_font/5 ]).
 
 
-% MyriadGUI environment:
--export([ get_gui_env/0, set_gui_env/1 ]).
-
 
 % Internal, silencing exports:
--export([ create_pref_env_server/0,
-		  destruct_pref_env_server/0, destruct_pref_env_server/1]).
+-export([ create_gui_environment/0,
+		  destruct_gui_environment/0, destruct_gui_environment/1]).
 
 
 % For related, public defines:
@@ -724,7 +707,8 @@
 
 
 
--export_type([ backend_identifier/0, backend_information/0,
+-export_type([ gui_env_pid/0, gui_env_designator/0,
+			   backend_identifier/0, backend_information/0,
 
 			   length/0, width/0, height/0,
 			   coordinate/0, point/0, position/0, size/0,
@@ -776,7 +760,7 @@
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
 
--type preferences_pid() :: preferences:preferences_pid().
+-type env_pid() :: environment:env_pid().
 
 -type text() :: ustring().
 
@@ -822,13 +806,38 @@ get_backend_information() ->
 
 
 
-% @doc Starts the MyriadGUI subsystem.
+% @doc Starts the MyriadGUI subsystem; returns the PID of its environment.
 %
 % Note that OpenGL-related options are to be specified when creating a GL canvas
 % (see gui_opengl:create_canvas{1,2}).
 %
--spec start() -> void().
+-spec start() -> env_pid().
 start() ->
+	% Starting the MyriadGUI environment:
+	create_gui_environment().
+
+
+
+% @doc Starts the GUI subsystem, with the specified debug level.
+%
+% Note that OpenGL-related options are to be specified when creating a GL canvas
+% (see gui_opengl:create_canvas{1,2}).
+%
+-spec start( debug_level() ) -> env_pid().
+start( DebugLevel ) ->
+	EnvPid = start(),
+	set_debug_level( DebugLevel ),
+	EnvPid.
+
+
+
+% @doc Creates and initialises the MyriadGUI environment server.
+-spec create_gui_environment() -> env_pid().
+create_gui_environment() ->
+
+	GUIEnvRegName = ?gui_env_reg_name,
+
+	{ OSFamily, OSName } = system_utils:get_operating_system_type(),
 
 	% Initialises the wx backend (no option relevant here):
 	WxServer = wx:new(),
@@ -839,63 +848,57 @@ start() ->
 	%
 	WxEnv = wx:get_env(),
 
-	% Starting MyriadGUI preferences/environment:
-	PrefEnvPid = create_pref_env_server(),
-
 	% The event table must be initialised in the spawned process, so that
 	% connect/n can use the right actual, first-level subscriber PID, which is
-	% the internal main loop in charge of the message routing and conversion.
+	% the internal main loop in charge of the message routing and conversion:
 
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
 								  [ WxServer, WxEnv ] ),
 
+	% Caches in the calling process and initialises some GUI-related entries
+	% (refer to the gui_env_entries define):
+	%
+	GUIEnvPid = environment:start_link_cached( GUIEnvRegName, [
+
+		{ os_family, OSFamily },
+		{ os_name, OSName },
+
+		{ top_level_window, undefined },
+
+		{ backend_server, WxServer },
+		{ backend_env, WxEnv },
+
+		{ gl_canvas, undefined },
+		{ gl_context, undefined },
+		{ loop_pid, LoopPid } ] ),
+
+
 	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
 		"Main loop running on GUI process ~w (created from user process ~w), "
-		"using preferences/environment server ~w.",
-		[ LoopPid, self(), PrefEnvPid ] ) ),
+		"using environment server ~w.", [ LoopPid, self(), GUIEnvPid ] ) ),
 
-	GUIEnv = #gui_env{ wx_server=WxServer,
-					   wx_environment=WxEnv,
-					   loop_pid=LoopPid,
-					   pref_env_pid=PrefEnvPid },
+	gui_mouse:register_in_environment( GUIEnvPid ),
 
-	% Stored in the process dictionary of the user process, like for wx:
-	process_dictionary:put_as_new( ?gui_env_process_key, GUIEnv ).
+	GUIEnvPid.
 
 
-
-% @doc Starts the GUI subsystem, with specified debug level.
--spec start( debug_level() ) -> void().
-start( DebugLevel ) ->
-	start(),
-	set_debug_level( DebugLevel ).
+% @doc Destructs the MyriadGUI environment server.
+-spec destruct_gui_environment() -> void().
+destruct_gui_environment() ->
+	destruct_gui_environment( get_environment_server() ).
 
 
+% @doc Destructs the specified environment server.
+-spec destruct_gui_environment( gui_env_pid() ) -> void().
+destruct_gui_environment( GUIEnvPid ) ->
+	LoopPid = environment:get( loop_pid, GUIEnvPid ),
+	LoopPid ! terminate_gui_loop,
+	gui_mouse:unregister_from_environment( GUIEnvPid ),
+	GUIEnvPid ! stop,
 
-% @doc Creates and initialises the MyriadGUI preferences/environment server.
--spec create_pref_env_server() -> preferences_pid().
-create_pref_env_server() ->
-	PrefEnvPid = preferences:start_link( ?gui_pref_env_registration_name ),
+	% No wx_server needed:
+	ok = wx:destroy().
 
-	{ OSFamily, OSName } = system_utils:get_operating_system_type(),
-	preferences:set( [ { os_family, OSFamily }, { os_name, OSName } ],
-					  PrefEnvPid ),
-
-	gui_mouse:init_pref_env_server( PrefEnvPid ),
-	PrefEnvPid.
-
-
-% @doc Destructs the MyriadGUI preferences/environment server.
--spec destruct_pref_env_server() -> void().
-destruct_pref_env_server() ->
-	destruct_pref_env_server( get_pref_env_server() ).
-
-
-% @doc Destructs the specified preferences/environment server.
--spec destruct_pref_env_server( preferences_pid() ) -> void().
-destruct_pref_env_server( PrefEnvPid ) ->
-	gui_mouse:terminate_pref_env_server( PrefEnvPid ),
-	PrefEnvPid ! stop.
 
 
 
@@ -949,9 +952,7 @@ subscribe_to_events( SubscribedEvents ) ->
 subscribe_to_events( SubscribedEvents, SubscriberPid )
 										when is_list( SubscribedEvents ) ->
 
-	GUIEnv = get_gui_env(),
-
-	LoopPid = GUIEnv#gui_env.loop_pid,
+	LoopPid = get_main_loop_pid(),
 
 	% This is, in logical terms, a oneway (received in
 	% gui_event:process_event_message/2), yet it must be a request (i.e. it must
@@ -997,9 +998,7 @@ unsubscribe_from_events( UnsubscribedEvents ) ->
 unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
 										when is_list( UnsubscribedEvents ) ->
 
-	GUIEnv = get_gui_env(),
-
-	LoopPid = GUIEnv#gui_env.loop_pid,
+	LoopPid = get_main_loop_pid(),
 
 	% This is, in logical terms, a oneway (received in
 	% gui_event:process_event_message/2), yet it must be a request as well
@@ -1055,14 +1054,7 @@ propagate_event( EventContext ) ->
 % @doc Stops the GUI subsystem.
 -spec stop() -> void().
 stop() ->
-
-	#gui_env{ pref_env_pid=PrefEnvPid } =
-		process_dictionary:remove( ?gui_env_process_key ),
-
-	destruct_pref_env_server( PrefEnvPid ),
-
-	% No wx_server needed:
-	ok = wx:destroy().
+	destruct_gui_environment().
 
 
 
@@ -1082,12 +1074,12 @@ batch( GUIFun ) ->
 
 
 
-% @doc Returns the PID of the supposedly already-running MyriadGUI
-% preferences/environment server.
+% @doc Returns the PID of the supposedly already-running MyriadGUI environment
+% server.
 %
--spec get_pref_env_server() -> preferences_pid().
-get_pref_env_server() ->
-	preferences:get_server( ?gui_pref_env_registration_name ).
+-spec get_environment_server() -> gui_env_pid().
+get_environment_server() ->
+	environment:get_server( ?gui_env_reg_name ).
 
 
 
@@ -1179,8 +1171,8 @@ create_window( Position, Size, Style, Id, Parent ) ->
 %
 -spec record_top_level_window( window() ) -> void().
 record_top_level_window( Window ) ->
-	preferences:set( _K=top_level_window, _V=Window,
-					 _Designator=?gui_pref_env_registration_name ).
+	environment:set( _K=top_level_window, _V=Window,
+					 _Designator=?gui_env_reg_name ).
 
 
 
@@ -2276,60 +2268,11 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 
 
 % @doc Fetches (from the MyriadGUI environment) the PID of the process in charge
-% of running the main GUI loop.
+% of running the main MyriadGUI loop.
 %
 -spec get_main_loop_pid() -> pid().
 get_main_loop_pid() ->
-
-	GUIEnv = get_gui_env(),
-
-	GUIEnv#gui_env.loop_pid.
-
-
-
-% @doc Fetches (from the process dictionary) the MyriadGUI environment.
-%
-% Typically useful if wanting another process to be able to issue MyriadGUI
-% commands afterwards.
-%
--spec get_gui_env() -> gui_env().
-get_gui_env() ->
-
-	case process_dictionary:get( ?gui_env_process_key ) of
-
-		undefined ->
-			trace_utils:error_fmt( "No MyriadGUI environment available for "
-								   "process ~w.", [ self() ] ),
-			throw( { no_myriad_gui_env, self() } );
-
-		Env ->
-			Env
-
-	end.
-
-
-
-% @doc Sets (in the process dictionary) the MyriadGUI environment in the calling
-% process.
-%
-% Typically useful if wanting the current process to be able to issue MyriadGUI
-% commands afterwards.
-%
--spec set_gui_env( gui_env() ) -> void().
-set_gui_env( GUIEnv ) ->
-
-	case process_dictionary:get( ?gui_env_process_key ) of
-
-		undefined ->
-			process_dictionary:put( ?gui_env_process_key, GUIEnv );
-
-		Env ->
-			trace_utils:error_fmt( "A MyriadGUI environment (~w) was already "
-				"available for process ~w.", [ Env, self() ] ),
-
-			throw( { myriad_gui_env_already_set, self(), Env } )
-
-	end.
+	environment:get( loop_pid, ?gui_env_process_key ).
 
 
 
