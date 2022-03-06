@@ -53,6 +53,8 @@
 		  hexastring_to_integer/1, hexastring_to_integer/2,
 		  hexabinstring_to_binary/1, hexastring_to_binary/1,
 
+		  integer_to_bits/1,
+
 		  atom_to_string/1,
 
 		  pid_to_string/1, pids_to_string/1,
@@ -637,6 +639,17 @@ hexastring_to_binary( _HexaStr=[ Hex1, Hex2 | T ], BinAcc ) ->
 	Int = list_to_integer( TwoCharStr, _Base=16 ),
 	NewBinAcc = <<BinAcc/binary,Int/integer>>,
 	hexastring_to_binary( T, NewBinAcc ).
+
+
+
+% @doc Returns a plain string corresponding to the specified integer once
+% translated as a series of bits.
+%
+% Ex: "10000000010" = integer_to_bits(1024+2).
+%
+-spec integer_to_bits( integer() ) -> ustring().
+integer_to_bits( I ) ->
+	io_lib:format( "~.2B", [ I ] ).
 
 
 
