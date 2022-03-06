@@ -40,9 +40,9 @@
 -export([ is_maximised/0, maximize/0, set_title/1,
 		  reset_opengl_video_mode/2, quit/0 ]).
 
--compile( { inline, [ get_pref/1 ] } ).
+-compile( { inline, [ get_env/1 ] } ).
 
-% For gui_pref_env_registration_name:
+% For gui_env_reg_name:
 -include("gui.hrl").
 
 
@@ -58,13 +58,13 @@
 %
 -spec is_maximised() -> boolean().
 is_maximised() ->
-   gui:is_maximised( get_pref( top_level_window ) ).
+   gui:is_maximised( get_env( top_level_window ) ).
 
 
 % @doc Maximises or restores the application - that is its top-level window.
 -spec maximize() -> void().
 maximize() ->
-	gui:maximize( get_pref( top_level_window ) ).
+	gui:maximize( get_env( top_level_window ) ).
 
 
 
@@ -73,7 +73,7 @@ maximize() ->
 %
 -spec set_title( title() ) -> void().
 set_title( Title ) ->
-	gui:set_title( get_pref( top_level_window ), Title ).
+	gui:set_title( get_env( top_level_window ), Title ).
 
 
 
@@ -83,7 +83,7 @@ set_title( Title ) ->
 %
 -spec reset_opengl_video_mode( width(), height() ) -> void().
 reset_opengl_video_mode( _Width, _Height ) ->
-	[ GLCanvas, GLContext ] = preferences:get( [ gl_canvas, gl_context ] ),
+	[ GLCanvas, GLContext ] = get_env( [ gl_canvas, gl_context ] ),
 	gui:set_focus( GLCanvas ),
 	gui_opengl:set_context( GLCanvas, GLContext).
 
@@ -92,20 +92,17 @@ reset_opengl_video_mode( _Width, _Height ) ->
 % @doc Quits the application.
 -spec quit() -> void().
 quit() ->
-
-	[ TopWindow ] = preferences:get( [ top_level_window ],
-									 ?gui_pref_env_registration_name  ),
-
+	TopWindow = get_env( top_level_window  ),
 	gui:destruct_window( TopWindow ),
-
 	gui:stop().
 
 
 
-% @doc Returns the value associated to specified preferences/environment key.
+% @doc Returns the value associated to the specified key in the MyriadGUI
+% environment.
 %
 % (local helper)
 %
--spec get_pref( preferences:key() ) -> term().
-get_pref( K ) ->
-	preferences:get( K, _Designator=?gui_pref_env_registration_name ).
+-spec get_env( environment:key() ) -> term().
+get_env( Key ) ->
+	environment:get( Key, _Designator=?gui_env_reg_name ).
