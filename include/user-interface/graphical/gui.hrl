@@ -32,8 +32,8 @@
 % See gui.erl for the corresponding implementation.
 
 
-% Registration name of the MyriadGUI preferences/environment process:
--define( gui_pref_env_registration_name, myriad_gui_pref_env ).
+% Registration name of the MyriadGUI environment process:
+-define( gui_env_reg_name, 'myriad_gui_env' ).
 
 
 % Context sent to corresponding subscribers together with an event.
@@ -59,4 +59,4 @@
 	% (useful for example when deciding to propagate it upward in the widget
 	% hierarchy)
 	%
-	backend_event = undefined :: maybe( gui:backend_event() ) }).
+	backend_event = undefined :: maybe( gui:backend_event() ) } ).
