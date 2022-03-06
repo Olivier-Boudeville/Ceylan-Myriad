@@ -134,6 +134,7 @@
 
 % I/O section.
 -export([ get_default_encoding/0, get_default_encoding_option/0,
+		  latin1_file_to_unicode/1,
 		  open/2, open/3, close/1, close/2,
 		  read/2, write/2, write_ustring/2, write_ustring/3,
 		  read_whole/1, write_whole/2, write_whole/3,
@@ -4249,6 +4250,20 @@ get_default_encoding_option() ->
 
 
 
+% @doc Converts in-place the specified file, whose current encoding is expected
+% to be Latin1, to Unicode.
+%
+-spec latin1_file_to_unicode( any_file_path() ) -> void().
+latin1_file_to_unicode( AnyFilePath ) ->
+
+	{ ok, Latin1Content } = file:read_file( AnyFilePath ),
+
+	Utf8Content = unicode:characters_to_binary( Latin1Content, _From=latin1,
+												_To=utf8 ),
+
+	ok = file:write_file( AnyFilePath, Utf8Content ).
+
+
 
 % @doc Opens the file corresponding to the specified path, with specified list
 % of options (as listed for file:open/2 in
@@ -4812,6 +4827,11 @@ read_terms( AnyFilePath ) ->
 		{ error, eacces }  ->
 			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
 					 access_denied, get_access_denied_info( AnyFilePath ) } );
+
+		{ error, { _, file_io_server, invalid_unicode } } ->
+			% See also latin1_file_to_unicode/1:
+			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
+					 not_unicode } );
 
 		{ error, Error } when is_atom( Error ) ->
 			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
