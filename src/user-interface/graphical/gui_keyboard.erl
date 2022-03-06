@@ -98,6 +98,9 @@
 % Refer to the corresponding MYR_K_* defines.
 
 
+-type modifier() :: keycode().
+% Designates a modifier, like Shift, Control, Alt or Meta.
+
 
 -type key_transition() :: 'key_down'
 						| 'key_up'.
@@ -109,11 +112,11 @@
 % Corresponds to the (potentially durable) status of a key.
 
 
--export_type([ scancode/0, keycode/0,
-			   key_transition/0, key_status/0
-			 ]).
+-export_type([ scancode/0, keycode/0, modifier/0,
+			   key_transition/0, key_status/0 ]).
 
 
+-export([ is_modkey_pressed/1, is_key_pressed/1, to_lower/2 ]).
 
 % Internals:
 
@@ -125,6 +128,46 @@
 -type uint32() :: type_utils:uint32().
 
 -type wx_keycode() :: integer().
+
+
+
+% @doc Tells whether the specified key, designated as a scancode comprising a
+% modifier, is pressed.
+%
+-spec is_modkey_pressed( scancode() ) -> boolean().
+is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_SCANCODE_LCTRL ) > 0 ->
+	wx_misc:getKeyState( ?WXK_CONTROL );
+
+is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_K_LALT )  > 0 ->
+	wx_misc:getKeyState( ?WXK_ALT );
+
+is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_K_LSHIFT ) > 0 ->
+	wx_misc:getKeyState( ?WXK_SHIFT );
+
+is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_K_LSUPER ) > 0 ->
+	wx_misc:getKeyState( ?WXK_WINDOWS_LEFT )
+		orelse wx_misc:getKeyState( ?WXK_WINDOWS_RIGHT ).
+
+
+
+% @doc Tells whether the specified key, designated as a scancode, is pressed.
+-spec is_key_pressed( keycode() ) -> boolean().
+is_key_pressed( Keycode ) ->
+	wx_misc:getKeyState( myr_keycode_to_wx( Keycode ) ).
+
+
+
+% @doc Returns the specified key, once the specified pressed modifier has been
+% taken into account.
+%
+-spec to_lower( modifier(), keycode() ) -> keycode().
+to_lower( ?MYR_K_ANY_SHIFT, Char ) ->
+	Char;
+
+to_lower( _Mod, Char ) ->
+	string:to_lower( Char ).
+
+
 
 
 % Helpers related to wx:
