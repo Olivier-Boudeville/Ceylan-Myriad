@@ -47,10 +47,14 @@
 -include_lib("wx/include/wx.hrl").
 
 
+% For gui_env_reg_name:
+-include("gui.hrl").
+
+
 -type cursor_type() ::
 		'default'
 	  | 'none'
-	  | 'blank' % An invisible cursor
+	  | 'blank' % An invisible cursor, when the mouse is grabbed
 	  | 'stop' % "no entry", typically to denote a disallowed operation
 	  | 'arrow' % Typically to designate an element
 	  | 'right_arrow'
@@ -87,8 +91,8 @@
 -export_type([ cursor_type/0, cursor_table/0 ]).
 
 
--export([ init_pref_env_server/1, init_pref_env_server/2,
-		  terminate_pref_env_server/1,
+-export([ register_in_environment/1, set_cursor_types/2,
+		  unregister_from_environment/1,
 		  list_cursor_types/0, set_cursor/1 ]).
 
 
@@ -103,33 +107,53 @@
 
 % Shorthands:
 
--type preferences_pid() ::preferences:preferences_pid().
+-type gui_env_pid() :: gui:gui_env_pid().
+
+-type gui_env_designator() :: gui:gui_env_designator().
 
 
-% @doc Initialises, mouse-wise, the preferences/environment server, preparing
-% all standard mouse cursors.
+-type wxCursor() :: wxCursor:wxCursor().
+
+
+
+% @doc Registers in the MyriadGUI environment server the mouse-related settings.
 %
--spec init_pref_env_server( preferences_pid() ) -> void().
-init_pref_env_server( PrefEnvPid ) ->
+% This server is expected to already exist.
+%
+-spec register_in_environment( gui_env_pid() ) -> void().
+register_in_environment( GUIEnvPid ) ->
 	AllCursorTypes = list_cursor_types(),
-	init_pref_env_server( PrefEnvPid, AllCursorTypes ).
+	set_cursor_types( AllCursorTypes, GUIEnvPid ),
+	set_cursor( _Default=arrow, GUIEnvPid ).
 
 
-% @doc Initialises, mouse-wise, the preferences/environment server, preparing
-% the specified standard mouse cursors.
+
+% @doc Sets in the MyriadGUI environment server the specified standard mouse
+% cursors.
 %
--spec init_pref_env_server( [ cursor_type() ], preferences_pid() ) -> void().
-init_pref_env_server( CursorTypes, PrefEnvPid ) ->
-	CursorEntries = [ { CT, wxCursor:new( cursor_type_to_wx( CT ) ) }
-										|| CT <- CursorTypes ],
+-spec set_cursor_types( [ cursor_type() ], gui_env_pid() ) -> void().
+set_cursor_types( CursorTypes, GUIEnvPid ) ->
+	CursorEntries = [ { CT, case CT of
+
+								blank ->
+									blank( wxCursor:new( ?wxCURSOR_BLANK ) );
+
+								_ ->
+									wxCursor:new( cursor_type_to_wx( CT ) )
+
+							end } || CT <- CursorTypes ],
 	CursorTable = table:new( CursorEntries ),
-	preferences:set( _K=cursor_table, _Value=CursorTable, PrefEnvPid ).
+	environment:cache( { _K=cursor_table, _Value=CursorTable }, GUIEnvPid ).
 
 
-% @doc Terminates (de-inits) the specified preferences/environment server.
--spec terminate_pref_env_server( preferences_pid() ) -> void().
-terminate_pref_env_server( PrefEnvPid ) ->
-	CursorTable = preferences:get( _K=cursor_table, PrefEnvPid ),
+
+% @doc Unregisters the mouse-related settings from the MyriadGUI environment.
+-spec unregister_from_environment( gui_env_pid() ) -> void().
+unregister_from_environment( GUIEnvPid ) ->
+
+	[ CursorTable, _CurrentCursorType ] = environment:extract(
+		_Ks=[ cursor_table, current_cursor_type ], GUIEnvPid ),
+
 	[ wx:destroy( WxCT ) || WxCT <- table:values( CursorTable ) ].
 
 
@@ -145,10 +169,81 @@ list_cursor_types() ->
 	  'sizing' ].
 
 
-% @doc Sets the current mouse cursor.
+
+% @doc Sets the type of the current mouse cursor.
 -spec set_cursor( cursor_type() ) -> void().
 set_cursor( CursorType ) ->
+	set_cursor( CursorType, ?gui_env_reg_name ).
 
+
+% @doc Sets the type of the current mouse cursor.
+-spec set_cursor( cursor_type(), gui_env_designator() ) -> void().
+set_cursor( CursorType, GUIEnvDesignator ) ->
+
+	% Probably cached:
+	[ CursorTable, CurrentCursorType, OSFamily, MaybeWindow ] =
+		environment:get( [ cursor_table, current_cursor_type, os_family,
+						   top_level_window ], GUIEnvDesignator ),
+
+	case CurrentCursorType of
+
+		CursorType ->
+			ok;
+
+		_ ->
+			WxCursorType = table:get_value( CursorType, CursorTable ),
+
+			case OSFamily of
+
+				win32 ->
+					case MaybeWindow of
+
+						undefined ->
+							trace_utils:warning( "No top-level window when "
+								"changing mouse cursor." );
+
+						Win ->
+							wxWindow:setCursor( Win, WxCursorType )
+
+					end;
+
+				_ ->
+					wx_misc:setCursor( WxCursorType )
+
+			end
+
+	end.
+
+
+
+% @doc Returns a blank cursor, either the specified predefined one if legit or,
+% if it has no data associated, a new one.
+%
+-spec blank( wxCursor() ) -> wxCursor().
+blank( WxCursor ) ->
+	case wxCursor:ok( WxCursor ) of
+
+		true ->
+			WxCursor;
+
+		% Then rebuilds a correct blank cursor:
+		false ->
+			wxCursor:destroy( WxCursor ),
+			Image = wxImage:new( _W=16, _H=16 ),
+			AllBlack = <<0:(16*16*3*8)>>,
+			wxImage:setData( Image, AllBlack ),
+
+			% Black mask:
+			wxImage:setMaskColour( Image, _R=0, _G=0, _B=0 ),
+
+			% Therefore fully masked:
+			wxImage:setMask( Image ),
+
+			BlankWxCursor = wxCursor:new( Image ),
+			wxImage:destroy( Image ),
+			BlankWxCursor
+
+	end.
 
 
 
@@ -160,7 +255,9 @@ set_cursor( CursorType ) ->
 % From wx.hrl:
 cursor_type_to_wx( default ) -> ?wxCURSOR_DEFAULT;
 cursor_type_to_wx( none ) -> ?wxCURSOR_NONE;
-cursor_type_to_wx( blank ) -> ?wxCURSOR_BLANK;
+
+% Deactivated, as must be special-cased:
+%cursor_type_to_wx( blank ) -> ?wxCURSOR_BLANK;
 
 cursor_type_to_wx( stop ) -> ?wxCURSOR_NO_ENTRY;
 cursor_type_to_wx( arrow ) -> ?wxCURSOR_ARROW;
