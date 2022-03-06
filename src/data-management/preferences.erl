@@ -1,4 +1,4 @@
-% Copyright (C) 2022-2022 Olivier Boudeville
+% Copyright (C) 2013-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -32,8 +32,8 @@
 % Preferences are generally default, static settings, like user general
 % preferences, defined in a file meant to be potentially read by multiple
 % applications. This is a way of storing durable information in one's user
-% account in a transverse way regardingprograms and versions thereof, and of
-% sharing them conveniently (settings, credentials, etc.).
+% account in a transverse way regarding programs and versions thereof, and of
+% sharing these elements (settings, credentials, etc.) conveniently.
 %
 % Preferences can be application-specific or component-specific, and obtained
 % from any source (file included); they may also start blank and be exclusively
@@ -94,7 +94,7 @@
 
 -export([ start/0, start/1, start/2, start_link/0, start_link/1, start_link/2,
 		  get/1, get/2, set/2, set/3,
-		  to_string/0,
+		  to_string/0, to_bin_string/0,
 
 		  get_default_preferences_path/0,
 		  get_default_preferences_registration_name/0,
@@ -104,20 +104,24 @@
 		  stop/0 ]).
 
 
--type preferences_pid() :: environment:environment_pid().
+-type preferences_pid() :: environment:env_pid().
 % The PID of a preferences server.
 
--type preferences_designator() :: preferences_pid() | registration_name().
+-type preferences_designator() :: environment:env_designator().
 % The two standard ways according to which a preferences server can be
 % designated: either directly thanks to its PID or to the name under which it is
 % locally registered.
+
+
+-type pref_reg_name() :: environment:env_reg_name().
+% The name under which a preferences server can be (locally) registered.
 
 
 -type key() :: environment:key().
 
 -type value() :: environment:value().
 % Can be 'undefined' (no difference between a non-registered key and a key
-% registered to 'undefined').
+% associated to 'undefined').
 
 -type entry() :: table:entry().
 -type entries() :: table:entries().
@@ -135,20 +139,19 @@
 % Shorthands:
 
 -type file_path() :: file_utils:file_path().
+
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
-
--type registration_name() :: naming_utils:registration_name().
-% The name under which a preferences server can be (locally) registered.
 
 
 
 % Implementation notes:
 %
-% Preferences are managed through a singleton, locally registered process,
-% maintaining an associative table whose content can be defined programmatically
-% and/or thanks to data files.
+% Preferences are managed thanks to an environment through a singleton, locally
+% registered process, maintaining an associative table whose content can be
+% defined programmatically and/or thanks to data files.
 
 % There is a slight potential race condition with the implicit starting of this
 % service: a process could trigger its creation while its creation is in
@@ -164,21 +167,22 @@
 %-define( default_preferences_server_name, myriad_preferences_server ).
 
 
-% Name of the default preferences ETF file (searched at the root of the user
-% account):
+% Name of the default Ceylan-level preferences ETF file (searched at the root of
+% the user account):
 %
-% (must be consistent with the default_preferences_registration_name define)
+% (must be consistent with the default_preferences_pref_reg_name define)
 %
 -define( default_preferences_filename, ".ceylan-settings.etf" ).
 
 
 % Registration name of the default preferences server:
 %
-% (must be consistent with the default_preferences_filename define; defined to
-% shortcut useless conversions from filename done by potentially frequently
-% called getters and setters)
+% (must be consistent with the default_preferences_filename define - see
+% get_default_preferences_registration_name/0 for that; defined to shortcut
+% useless conversions from filename done by potentially frequently called
+% getters and setters)
 %
--define( default_preferences_registration_name, '_ceylan_settings' ).
+-define( default_preferences_pref_reg_name, '_ceylan_settings' ).
 
 
 
@@ -227,7 +231,7 @@ start_link() ->
 % Returns in any case the PID of the corresponding preferences server, already
 % existing or not, blank or not.
 %
--spec start( registration_name() | file_path() ) -> preferences_pid().
+-spec start( pref_reg_name() | file_path() ) -> preferences_pid().
 start( Param ) ->
 	environment:start( Param ).
 
@@ -246,7 +250,7 @@ start( Param ) ->
 % Returns in any case the PID of the corresponding preferences server, already
 % existing or not, blank or not.
 %
--spec start_link( registration_name() | file_path() ) -> preferences_pid().
+-spec start_link( pref_reg_name() | file_path() ) -> preferences_pid().
 start_link( Param ) ->
 	environment:start_link( Param ).
 
@@ -265,7 +269,7 @@ start_link( Param ) ->
 % Returns in any case the PID of the corresponding preferences server, already
 % existing or not.
 %
--spec start( registration_name(), file_path() ) -> preferences_pid().
+-spec start( pref_reg_name(), file_path() ) -> preferences_pid().
 start( ServerName, FilePath ) ->
 	environment:start( ServerName, FilePath ).
 
@@ -282,7 +286,7 @@ start( ServerName, FilePath ) ->
 % Returns in any case the PID of the corresponding preferences server, already
 % existing or not.
 %
--spec start_link( registration_name(), file_path() ) -> preferences_pid().
+-spec start_link( pref_reg_name(), file_path() ) -> preferences_pid().
 start_link( ServerName, FilePath ) ->
 	environment:start_link( ServerName, FilePath ).
 
@@ -293,8 +297,13 @@ start_link( ServerName, FilePath ) ->
 % file, and possibly launching a corresponding (non-linked) preferences server
 % if needed.
 %
+% Any cached key will be read from the local process cache, not from the
+% preferences server.
+%
 % Examples:
+%
 %  "Hello!" = preferences:get(hello)
+%
 %  ["Hello!", 42, undefined] = preferences:get([hello, my_number, some_maybe])
 %
 -spec get( maybe_list( key() ) ) -> maybe_list( maybe( value() ) ).
@@ -314,27 +323,19 @@ get( KeyMaybes ) ->
 % preferences server.
 %
 % Examples:
+%
 %  "Hello!" = preferences:get(hello, "/var/foobar.etf")
+%
 %  ["Hello!", 42, undefined] =
-%     preferences:get([hello, my_number, some_maybe], "/var/foobar.etf")
+%     preferences:get([hello, my_number, some_maybe], my_foobar_preferences)
+%
 %  ["Hello!", 42, undefined] =
 %     preferences:get([hello, my_number, some_maybe], MyPrefServerPid)
 %
 -spec get( maybe_list( key() ), preferences_designator() | file_path() ) ->
 										maybe_list( maybe( value() ) ).
-get( KeyMaybes, FilePath ) when is_list( FilePath ) ->
-	PrefServerPid = start( FilePath ),
-	get( KeyMaybes, PrefServerPid );
-
-% Either PID or registration atom:
-get( KeyMaybes, PrefDesignator ) ->
-	PrefDesignator ! { get_preferences, KeyMaybes, self() },
-	receive
-
-		{ notify_preferences, ValueMaybes } ->
-			ValueMaybes
-
-	end.
+get( KeyMaybes, EnvData ) ->
+	environment:get( KeyMaybes, EnvData ).
 
 
 
@@ -352,24 +353,20 @@ set( Key, Value ) when is_atom( Key ) ->
 	environment:set( Key, Value, get_default_preferences_registration_name(),
 					 get_default_preferences_path() );
 
-set( Entries, PrefDesignator ) when is_list( Entries ) ->
-	PrefDesignator ! { set_preferences, Entries }.
+set( Entries, EnvData ) ->
+	environment:set( Entries, EnvData ).
 
 
 
-% @doc Associates, in specified preferences, the specified value to the
+% @doc Associates, in the specified preferences, the specified value to the
 % specified key (possibly overwriting any previous value), based on the
 % specified preferences file (and possibly launching a corresponding preferences
 % server if needed) or on the specified PID of an already-running preferences
 % server.
 %
 -spec set( key(), value(), preferences_designator() | file_path() ) -> void().
-set( Key, Value, FilePath ) when is_list( FilePath ) ->
-	PrefServerPid = start( FilePath ),
-	set( Key, Value, PrefServerPid );
-
-set( Key, Value, PrefDesignator ) ->
-	PrefDesignator ! { set_preferences, Key, Value }.
+set( Key, Value, EnvData ) ->
+	environment:set( Key, Value, EnvData ).
 
 
 
@@ -379,6 +376,14 @@ set( Key, Value, PrefDesignator ) ->
 -spec to_string() -> ustring().
 to_string() ->
 	environment:to_string( get_default_preferences_path() ).
+
+
+% @doc Returns a textual description of the preferences server (if any), for
+% the default preferences file.
+%
+-spec to_bin_string() -> bin_string().
+to_bin_string() ->
+	environment:to_bin_string( get_default_preferences_path() ).
 
 
 
@@ -391,9 +396,9 @@ get_default_preferences_path() ->
 
 
 % @doc Returns the default registration name for the preferences.
--spec get_default_preferences_registration_name() -> registration_name().
+-spec get_default_preferences_registration_name() -> pref_reg_name().
 get_default_preferences_registration_name() ->
-	?default_preferences_registration_name.
+	?default_preferences_pref_reg_name.
 
 
 
