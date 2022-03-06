@@ -453,6 +453,8 @@ process_event_messages( LoopState ) ->
 	% Our dropping logic allows to repaint only once in that case.
 	%
 	NewLoopState = cond_utils:if_defined( myriad_gui_skip_extra_repaints,
+
+		% If skipping is allowed:
 		receive
 
 			% So that no large series of repaint requests for the same object
@@ -477,7 +479,9 @@ process_event_messages( LoopState ) ->
 
 		end,
 
-		% To bypass the "smarter" management above, for test/comparison purpose:
+		% If skipping is not allowed, bypasses the "smarter" management above,
+		% for test/comparison purpose:
+		%
 		receive
 
 			AnyEvent ->
@@ -819,6 +823,9 @@ process_event_message( { unsubscribeFromEvents,
 	% Purged:
 	%LoopState#loop_state{ type_table=NewTypeTable, objects_to_adjust=[] };
 
+process_event_message( terminate_gui_loop, _LoopState ) ->
+	%trace_utils:debug( "Main MyriadGUI loop terminating." ),
+	ok;
 
 process_event_message( UnmatchedEvent, LoopState ) ->
 	trace_utils:warning_fmt( "Ignored following unmatched event "
