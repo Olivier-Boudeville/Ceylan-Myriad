@@ -420,8 +420,8 @@ swap_value( Key, NewValue, MapHashtable ) ->
 
 
 
-% @doc Removes specified key/value pair, as designated by the key, from the
-% specified table.
+% @doc Removes the specified entry, as designated by its key, from the specified
+% table.
 %
 % Does nothing if the key is not found.
 %
@@ -434,8 +434,8 @@ remove_entry( Key, MapHashtable ) ->
 
 
 
-% @doc Removes specified key/value pair, as designated by the key, from the
-% specified table.
+% @doc Removes the specified entry, as designated by its key, from the specified
+% table.
 %
 % Throws an exception if the key is not found.
 %
@@ -637,8 +637,8 @@ get_all_values( Keys, Hashtable ) ->
 
 
 
-% @doc Extracts specified entry from specified hashtable, that is returns its
-% associated value and removes that entry from the returned table.
+% @doc Extracts the specified entry from the specified hashtable, that is
+% returns its associated value and removes that entry from the returned table.
 %
 % The key/value pair is expected to exist already, otherwise an exception is
 % raised (typically {badkey, KeyNotFound}).
@@ -653,8 +653,8 @@ extract_entry( Key, MapHashtable ) ->
 
 
 
-% @doc Extracts specified entry from specified table, that is returns the
-% associated value and removes that entry from the table.
+% @doc Extracts the specified entry from the specified table, that is returns
+% the associated value and removes that entry from the table.
 %
 % If no such key is available, returns the specified default value and the
 % original table.
@@ -675,8 +675,8 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 
 
-% @doc Extracts specified entry (if any) from specified table, that is returns
-% its associated value and removes that entry from the returned table.
+% @doc Extracts the specified entry (if any) from the specified table, that is
+% returns its associated value and removes that entry from the returned table.
 %
 % Otherwise, that is if that entry does not exist, returns false.
 %
@@ -700,14 +700,14 @@ extract_entry_if_existing( Key, MapHashtable ) ->
 
 
 
-% @doc Extracts specified entries from specified hashtable, that is returns
+% @doc Extracts the specified entries from the specified table, that is returns
 % their associated values (in-order) and removes these entries from the returned
 % table.
 %
 % Each key/value pair is expected to exist already, otherwise an exception is
 % raised (typically {badkey, KeyNotFound}).
 %
-% Ex: {[RedValue, GreenValue, BlueValue], ExtractedTable} =
+% Ex: {[RedValue, GreenValue, BlueValue], ShrunkTable} =
 %         map_hashtable:extract_entries([red, green, blue], MyTable)
 %
 -spec extract_entries( [ key() ], map_hashtable() ) ->
