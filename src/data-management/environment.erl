@@ -88,9 +88,15 @@
 % process caching that key will not be aware of this change until it requests an
 % update to this environment server.
 %
+% So a client process should cache a key mainly if no other is expected to
+% update that key, i.e. typically if the associated value is const, or if this
+% process is considered as the owner (sole controller) of that key (or if other
+% organisation ensures, possibly thanks to sync/1, that its cache is kept
+% consistent with the corresponding environment server.
+%
 % As soon as a key must be cached, its value is set in the cache; there is thus
 % always a value associated to a cache key (not a maybe-value), and thus cached
-% values may be 'undefined').
+% values may be 'undefined'.
 %
 % Multiple environments may be used concurrently. A specific case of environment
 % corresponds to the user preferences. See our preferences module for that.
@@ -101,10 +107,12 @@
 
 
 -export([ start/1, start/2, start_link/1, start_link/2,
+		  start_cached/2, start_link_cached/2,
 		  get_server/1,
 		  get/2, get/3, set/2, set/3, set/4,
-		  cache/2, sync/1, store/1, store/2,
-		  to_string/1, to_string/0,
+		  remove/2, extract/2,
+		  cache/2, uncache/1, uncache/0, sync/1, store/1, store/2,
+		  to_string/1, to_bin_string/1, to_string/0,
 		  stop/1 ]).
 
 
@@ -132,9 +140,13 @@
 -type entry() :: table:entry().
 -type entries() :: table:entries().
 
+-type cache_spec() :: maybe_list( [ key() | entry() ] ).
+% A specification of the environment keys (possibly with their initial values)
+% that shall cached in a client process.
+
 
 -export_type([ env_pid/0, env_reg_name/0, env_designator/0,
-			   key/0, value/0, entry/0, entries/0 ]).
+			   key/0, value/0, entry/0, entries/0, cache_spec/0 ]).
 
 
 % For myriad_spawn*:
@@ -450,6 +462,58 @@ start_link( ServerName, AnyFilePath ) when is_atom( ServerName ) ->
 
 
 
+% @doc Ensures explicitly that, if not running already, a specified environment
+% server is started, and caches the specified elements.
+%
+% If a name is specified: if no server already registered it, starts it with a
+% blank state.
+%
+% If instead a filename is specified: if a server with a deriving name is not
+% already registered, starts a corresponding server and initialises it with the
+% corresponding file content.
+%
+% See the cache_spec/0 type and the cache/2 function for related information
+% regarding caching.
+%
+% Does not link any started environment server to the calling process.
+%
+% Returns in any case the PID of the corresponding environment server, already
+% existing or not, and caching specified elements.
+%
+-spec start_cached( env_reg_name(), cache_spec() ) -> env_pid().
+start_cached( ServerName, CacheSpec ) ->
+	EnvPid = start( ServerName ),
+	cache( CacheSpec, ServerName ),
+	EnvPid.
+
+
+
+% @doc Ensures explicitly that, if not running already, a specified environment
+% server is started and linked, and caches the specified elements.
+%
+% If a name is specified: if no server already registered it, starts it with a
+% blank state.
+%
+% If instead a filename is specified: if a server with a deriving name is not
+% already registered, starts a corresponding server and initialises it with the
+% corresponding file content.
+%
+% See the cache_spec/0 type and the cache/2 function for related information
+% regarding caching.
+%
+% Links any started environment server to the calling process.
+%
+% Returns in any case the PID of the corresponding environment server, already
+% existing or not, and caching specified elements.
+%
+-spec start_link_cached( env_reg_name(), cache_spec() ) -> env_pid().
+start_link_cached( ServerName, CacheSpec ) ->
+	EnvPid = start_link( ServerName ),
+	cache( CacheSpec, ServerName ),
+	EnvPid.
+
+
+
 % @doc Returns the PID of a supposedly already-running environment server,
 % specified based on either its name or content filename.
 %
@@ -638,7 +702,7 @@ get_from_environment( KeyMaybes, EnvDesignator ) ->
 	EnvDesignator ! { get_environment, KeyMaybes, self() },
 	receive
 
-		{ notify_environment, ValueMaybes } ->
+		{ notify_get_environment, ValueMaybes } ->
 			ValueMaybes
 
 	end.
@@ -706,6 +770,9 @@ set( Entries, EnvPid ) when is_list( Entries ) ->
 % server if needed) or on the designated already-running environment server
 % (specified by registration name or PID).
 %
+% Any cached key will be updated in the local process cache, in addition to the
+% environment server.
+%
 -spec set( key(), value(), env_designator() | file_path() ) -> void().
 set( Key, Value, AnyEnvElem ) ->
 	set( [ { Key, Value } ], AnyEnvElem ).
@@ -716,6 +783,9 @@ set( Key, Value, AnyEnvElem ) ->
 % specified key (possibly overwriting any previous value), based on the
 % specified registration name: uses any server registered with that name,
 % otherwise uses the specified filename to start a corresponding server.
+%
+% Any cached key will be updated in the local process cache, in addition to the
+% environment server.
 %
 -spec set( key(), value(), env_reg_name(), file_path() ) -> void().
 set( Key, Value, ServerName, FilePath ) ->
@@ -729,6 +799,141 @@ set( Key, Value, ServerName, FilePath ) ->
 
 	end,
 	set( [ { Key, Value } ], EnvSrvPid ).
+
+
+
+% @doc Removes the specified entries (a single one or multiple ones) from the
+% specified environment, based on the designated already-running environment
+% server (specified by registration name or PID).
+%
+-spec remove( key(), env_designator() ) -> void();
+			( [ key() ], env_designator() ) -> void().
+remove( Keys, EnvRegName ) when is_atom( EnvRegName ) ->
+	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
+	remove( Keys, EnvPid );
+
+remove( Key, EnvPid ) when is_atom( Key ) ->
+	remove( [ Key ], EnvPid );
+
+remove( Keys, EnvPid ) when is_list( Keys ) ->
+	EnvPid ! { remove_from_environment, Keys },
+
+	% Cache update as well:
+	EnvDictKey = ?env_dictionary_key,
+	case process_dictionary:get( EnvDictKey ) of
+
+		undefined ->
+			% No environment cached at all, no cache to update:
+			ok;
+
+		AllEnvTable ->
+			case list_table:lookup_entry( EnvPid, AllEnvTable ) of
+
+				% Caching used, but not for that environment; thus we are done:
+				key_not_found ->
+					ok;
+
+				% Caching activated, including for this environment, at least
+				% for some keys:
+				%
+				{ value, { EnvRegName, EnvCacheTable } } ->
+
+					% We remove only the cached keys (as it is not an error to
+					% remove a non-existing key):
+					%
+					NewEnvCacheTable =
+						table:remove_entries( Keys, EnvCacheTable ),
+
+					NewAllEnvTable = case table:is_empty( NewEnvCacheTable ) of
+
+						true ->
+							list_table:remove_entry( EnvPid, AllEnvTable );
+
+						false ->
+							EnvInfo = { EnvRegName, NewEnvCacheTable },
+							list_table:add_entry( EnvPid, EnvInfo,
+												  AllEnvTable )
+
+					end,
+
+					process_dictionary:put( EnvDictKey, NewAllEnvTable )
+
+			end
+
+	end.
+
+
+
+% @doc Extracts the specified entries (a single one or multiple ones) from the
+% specified environment, based on the designated already-running environment
+% server (specified by registration name or PID): removes these entries
+% (including from any local cache) and returns their value.
+%
+-spec extract( key(), env_designator() ) -> value();
+			 ( [ key() ], env_designator() ) -> [ value() ].
+extract( Keys, EnvRegName ) when is_atom( EnvRegName ) ->
+	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
+	extract( Keys, EnvPid );
+
+extract( Key, EnvPid ) when is_atom( Key ) ->
+	hd( extract( [ Key ], EnvPid ) );
+
+extract( Keys, EnvPid ) when is_list( Keys ) ->
+	% Ignoring cache first, as the server has to be updated anyway:
+	EnvPid ! { extract_from_environment, Keys, self() },
+
+	% Interleaving with cache update:
+	EnvDictKey = ?env_dictionary_key,
+	case process_dictionary:get( EnvDictKey ) of
+
+		undefined ->
+			% No environment cached at all, no cache to update:
+			ok;
+
+		AllEnvTable ->
+			case list_table:lookup_entry( EnvPid, AllEnvTable ) of
+
+				% Caching used, but not for that environment; thus we are done:
+				key_not_found ->
+					ok;
+
+				% Caching activated, including for this environment, at least
+				% for some keys:
+				%
+				{ value, { EnvRegName, EnvCacheTable } } ->
+
+					% We remove only the cached keys (as it is not an error to
+					% remove a non-existing key); removal, not extraction, as
+					% the values will be received from the server anyway:
+					%
+					NewEnvCacheTable =
+						table:remove_entries( Keys, EnvCacheTable ),
+
+					NewAllEnvTable = case table:is_empty( NewEnvCacheTable ) of
+
+						true ->
+							list_table:remove_entry( EnvPid, AllEnvTable );
+
+						false ->
+							EnvInfo = { EnvRegName, NewEnvCacheTable },
+							list_table:add_entry( EnvPid, EnvInfo,
+												  AllEnvTable )
+
+					end,
+
+					process_dictionary:put( EnvDictKey, NewAllEnvTable )
+
+			end
+
+	end,
+
+	% From the extract_from_environment request:
+	receive
+
+		{ notify_extract_environment, Values } ->
+			Values
+
+	end.
 
 
 
@@ -748,7 +953,7 @@ set( Key, Value, ServerName, FilePath ) ->
 % default only the entries not already in cache will be requested from the
 % server.
 %
--spec cache( maybe_list( key() | entry() ), env_reg_name()  ) -> void().
+-spec cache( cache_spec(), env_reg_name()  ) -> void().
 cache( Key, EnvRegName ) when is_atom( Key ) ->
 	cache( [ Key ], EnvRegName );
 
@@ -861,6 +1066,53 @@ cache( KeysOrEntries, EnvRegName ) when is_atom( EnvRegName ) ->
 
 
 
+% @doc Removes any (local) cache regarding the specified environment, resulting
+% in all subsequent operations on it to happen at the level of its server.
+%
+-spec uncache( env_designator() ) -> void().
+uncache( EnvRegName ) when is_atom( EnvRegName ) ->
+	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
+	uncache( EnvPid );
+
+uncache( EnvPid ) ->
+
+	EnvDictKey = ?env_dictionary_key,
+
+	% Removing any local caching:
+	case process_dictionary:get( EnvDictKey ) of
+
+		undefined ->
+			ok;
+
+		AllEnvTable ->
+			case list_table:extract_entry_if_existing( EnvPid, AllEnvTable ) of
+
+				false ->
+					ok;
+
+				% Last environment:
+				{ _EnvPair, _ShrunkAllEnvTable=[] } ->
+					process_dictionary:remove( EnvDictKey );
+
+				% At least one environment remaining:
+				{ _EnvPair, ShrunkAllEnvTable } ->
+					process_directionary:put( EnvDictKey, ShrunkAllEnvTable )
+
+			end
+
+	end.
+
+
+
+% @doc Removes all (local) environment caches (if any), resulting in all
+% subsequent operations on environments to happen at the level of their server.
+%
+-spec uncache() -> void().
+uncache() ->
+	process_dictionary:remove( ?env_dictionary_key ).
+
+
+
 % @doc Synchronises the local cache (if any) from the specified environment
 % server, assuming the server entries are references (that is more recent than
 % the cached ones).
@@ -942,33 +1194,43 @@ store( EnvPid, TargetFilePath ) ->
 % specified from a designator thereof or from its environment file.
 %
 -spec to_string( env_designator() | file_path() ) -> ustring().
-to_string( FilePath ) when is_list( FilePath ) ->
+to_string( EnvData ) ->
+	text_utils:binary_to_string( to_bin_string( EnvData ) ).
+
+
+
+% @doc Returns a textual description of the environment server (if any)
+% specified from a designator thereof or from its environment file.
+%
+-spec to_bin_string( env_designator() | file_path() ) -> ustring().
+to_bin_string( FilePath ) when is_list( FilePath ) ->
 
 	EnvRegAtom = get_env_reg_name_from( FilePath ),
 
-	to_string( EnvRegAtom );
+	to_bin_string( EnvRegAtom );
 
-% Then supposed to be existing:
-to_string( EnvSrvPid ) when is_pid( EnvSrvPid ) ->
-
-	EnvSrvPid ! { to_string, self() },
-
-	receive
-
-		{ notify_environment_status, PrefString } ->
-			PrefString
-
-	end;
-
-to_string( EnvRegAtom ) when is_atom( EnvRegAtom ) ->
+to_bin_string( EnvRegAtom ) when is_atom( EnvRegAtom ) ->
 
 	case naming_utils:is_registered( EnvRegAtom, local ) of
 
 		not_registered ->
-			"environment server not running";
+			text_utils:bin_format( "environment server for '~ts' not running",
+								   [ EnvRegAtom ] );
 
 		EnvSrvPid->
-			to_string( EnvSrvPid )
+			to_bin_string( EnvSrvPid )
+
+	end;
+
+% Then supposed to be existing:
+to_bin_string( EnvSrvPid ) when is_pid( EnvSrvPid ) ->
+
+	EnvSrvPid ! { to_bin_string, self() },
+
+	receive
+
+		{ notify_environment_status, EnvBinString } ->
+			EnvBinString
 
 	end.
 
@@ -998,7 +1260,7 @@ to_string() ->
 					text_utils:format( "~B environments cached: ~ts",
 						[ length( EnvPairs ), text_utils:strings_to_string(
 							[ env_info_to_string( EInf, EPid )
-							  || { EInf, EPid } <- EnvPairs ] ) ] )
+								|| { EInf, EPid } <- EnvPairs ] ) ] )
 
 
 			end
@@ -1065,9 +1327,13 @@ stop( FilePath ) when is_list( FilePath ) ->
 
 	stop( EnvRegAtom );
 
-stop( EnvDesignator ) ->
-	EnvDesignator ! stop.
+stop( EnvRegName ) when is_atom( EnvRegName ) ->
+	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
+	stop( EnvPid );
 
+stop( EnvPid ) ->
+	uncache( EnvPid ),
+	EnvPid ! stop.
 
 
 
@@ -1096,7 +1362,8 @@ server_run( SpawnerPid, RegistrationName ) ->
 			SpawnerPid ! { environment_server_pid, self() },
 
 			% Never returns:
-			server_main_loop( EmptyTable, _MaybeBinFilePath=undefined );
+			server_main_loop( EmptyTable, RegistrationName,
+							  _MaybeBinFilePath=undefined );
 
 
 		ServerPid ->
@@ -1142,7 +1409,7 @@ server_run( SpawnerPid, RegistrationName, BinFilePath ) ->
 			SpawnerPid ! { environment_server_pid, self() },
 
 			% Never returns:
-			server_main_loop( FinalTable, BinFilePath );
+			server_main_loop( FinalTable, RegistrationName, BinFilePath );
 
 
 		ServerPid ->
@@ -1180,8 +1447,9 @@ get_value_maybes( _Keys=[ K | T ], Table, Acc ) ->
 
 
 % Main loop of the environment server.
--spec server_main_loop( table(), maybe( bin_file_path() ) ) -> no_return().
-server_main_loop( Table, MaybeBinFilePath ) ->
+-spec server_main_loop( table(), env_reg_name(), maybe( bin_file_path() ) ) ->
+												no_return().
+server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->
 
 	% Short:
 	%trace_bridge:debug_fmt( "Waiting for environment-related request, "
@@ -1197,23 +1465,39 @@ server_main_loop( Table, MaybeBinFilePath ) ->
 
 			Answer = get_value_maybes( KeyMaybes, Table ),
 
-			SenderPid ! { notify_environment, Answer },
+			SenderPid ! { notify_get_environment, Answer },
 
-			server_main_loop( Table, MaybeBinFilePath );
+			server_main_loop( Table, EnvRegName, MaybeBinFilePath );
 
 
 		{ set_environment, Key, Value } ->
 
 			NewTable = table:add_entry( Key, Value, Table ),
 
-			server_main_loop( NewTable, MaybeBinFilePath );
+			server_main_loop( NewTable, EnvRegName, MaybeBinFilePath );
 
 
 		{ set_environment, Entries } ->
 
 			NewTable = table:add_entries( Entries, Table ),
 
-			server_main_loop( NewTable, MaybeBinFilePath );
+			server_main_loop( NewTable, EnvRegName, MaybeBinFilePath );
+
+
+		{ remove_from_environment, Keys } ->
+
+			ShrunkTable = table:remove_entries( Keys, Table ),
+
+			server_main_loop( ShrunkTable, EnvRegName, MaybeBinFilePath );
+
+
+		{ extract_from_environment, Keys, SenderPid } ->
+
+			{ Values, ShrunkTable } = table:extract_entries( Keys, Table ),
+
+			SenderPid ! { notify_extract_environment, Values },
+
+			server_main_loop( ShrunkTable, EnvRegName, MaybeBinFilePath );
 
 
 		store ->
@@ -1233,7 +1517,7 @@ server_main_loop( Table, MaybeBinFilePath ) ->
 											   BinFilePath )
 
 			end,
-			server_main_loop( Table, MaybeBinFilePath );
+			server_main_loop( Table, EnvRegName, MaybeBinFilePath );
 
 
 		{ store, BinTargetFilePath } ->
@@ -1242,31 +1526,44 @@ server_main_loop( Table, MaybeBinFilePath ) ->
 					"in specified file '~ts'.", [ BinTargetFilePath ] ) ),
 			file_utils:write_etf_file( table:enumerate( Table ),
 									   BinTargetFilePath ),
-			server_main_loop( Table, BinTargetFilePath );
+			server_main_loop( Table, EnvRegName, BinTargetFilePath );
 
 
-		{ to_string, SenderPid } ->
+		{ to_bin_string, SenderPid } ->
 
-			Res = case table:enumerate( Table ) of
+			Msg = case table:enumerate( Table ) of
 
 				[] ->
-					"no environment recorded";
+					text_utils:format( "no entry recorded for environment "
+						"'~ts' (server: ~w)", [ EnvRegName, self() ] )
+							++ case MaybeBinFilePath of
+
+						undefined ->
+							"";
+
+						BinfilePath ->
+							text_utils:format( " (associated to file '~ts')",
+											   [ BinfilePath ] )
+
+							 end;
 
 				L ->
 
 					% Enforces a consistent order:
-					Strings = [ text_utils:format( "~p: ~p", [ K, V ] )
-								|| { K, V } <- lists:sort( L ) ],
+					Strings = [ text_utils:format( "for key '~ts', value is: "
+							"~p", [ K, V ] ) || { K, V } <- lists:sort( L ) ],
 
-					text_utils:format( "~B environment recorded: ~ts~n",
-						[ length( L ),
+					text_utils:format( "~B entries recorded in environment "
+						"'~ts' (server: ~w): ~ts~n",
+						[ length( L ), EnvRegName, self(),
 						  text_utils:strings_to_string( Strings ) ] )
 
 			end,
 
-			SenderPid ! { notify_environment_status, Res },
+			BinMsg = text_utils:string_to_binary( Msg ),
+			SenderPid ! { notify_environment_status, BinMsg },
 
-			server_main_loop( Table, MaybeBinFilePath );
+			server_main_loop( Table, EnvRegName, MaybeBinFilePath );
 
 
 		stop ->
@@ -1299,7 +1596,7 @@ add_environment_from( FilePath, Table ) ->
 
 					%trace_bridge:debug_fmt( "Loaded from environment file "
 					%    "'~ts' following entries: ~ts",
-					%    [ PrefFilePath, table:to_string( NewTable ) ] ),
+					%    [ FilePath, table:to_string( NewTable ) ] ),
 
 					%trace_bridge:debug_fmt( "Environment file '~ts' loaded.",
 					%                        [ FilePath ] ),
