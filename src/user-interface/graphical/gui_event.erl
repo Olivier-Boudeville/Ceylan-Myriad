@@ -191,11 +191,34 @@
 	| 'onShown'
 
 	% For mice:
-	| 'onMouseLeftButtonPressed'   | 'onMouseLeftButtonReleased'
+
+	% Button 1:
+	| 'onMouseLeftButtonPressed' | 'onMouseLeftButtonReleased'
+	| 'onMouseLeftButtonDoubleClicked'
+
+	% Button 2:
 	| 'onMouseMiddleButtonPressed' | 'onMouseMiddleButtonReleased'
-	| 'onMouseRightButtonPressed'  | 'onMouseRightButtonReleased'
+	| 'onMouseMiddleButtonDoubleClicked'
+
+	% Button 3:
+	| 'onMouseRightButtonPressed' | 'onMouseRightButtonReleased'
+	| 'onMouseRightButtonDoubleClicked'
+
 	| 'onMouseFourthButtonPressed' | 'onMouseFourthButtonReleased'
-	| 'onMouseFifthButtonPressed'  | 'onMouseFifthtButtonReleased'
+	| 'onMouseFourthButtonDoubleClicked'
+
+	| 'onMouseFifthButtonPressed' | 'onMouseFifthtButtonReleased'
+	| 'onMouseFifthButtonDoubleClicked'
+
+
+	| 'onMouseWheelScrolled'
+
+	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
+	| 'onMouseMoved'
+
+	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
+	| 'onMouseMoved'
+
 
 	% For keyboards:
 	| 'onCharEntered'

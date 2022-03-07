@@ -707,11 +707,11 @@ get_from_environment( KeyMaybes, EnvDesignator ) ->
 
 
 
-% @doc Sets the specified key/value pairs (possibly overwriting any previous
-% values) in the specified environment, based on the specified environment file
-% (and possibly launching a corresponding environment server if needed) or on
-% the designated already-running environment server (specified by registration
-% name or PID).
+% @doc Sets (unconditionally) the specified key/value pairs (possibly
+% overwriting any previous values) in the specified environment, based on the
+% specified environment file (and possibly launching a corresponding environment
+% server if needed) or on the designated already-running environment server
+% (specified by registration name or PID).
 %
 % Any cached key will be updated in the local process cache, in addition to the
 % environment server.
@@ -762,11 +762,11 @@ set( Entries, EnvPid ) when is_list( Entries ) ->
 
 
 
-% @doc Associates, in the specified environment, the specified value to the
-% specified key (possibly overwriting any previous value), based on the
-% specified environment file (and possibly launching a corresponding environment
-% server if needed) or on the designated already-running environment server
-% (specified by registration name or PID).
+% @doc Associates (unconditionally), in the specified environment, the specified
+% value to the specified key (possibly overwriting any previous value), based on
+% the specified environment file (and possibly launching a corresponding
+% environment server if needed) or on the designated already-running environment
+% server (specified by registration name or PID).
 %
 % Any cached key will be updated in the local process cache, in addition to the
 % environment server.
@@ -777,9 +777,9 @@ set( Key, Value, AnyEnvElem ) ->
 
 
 
-% @doc Associates, in the specified environment, the specified value to the
-% specified key (possibly overwriting any previous value), based on the
-% specified registration name: uses any server registered with that name,
+% @doc Associates (unconditionally), in the specified environment, the specified
+% value to the specified key (possibly overwriting any previous value), based on
+% the specified registration name: uses any server registered with that name,
 % otherwise uses the specified filename to start a corresponding server.
 %
 % Any cached key will be updated in the local process cache, in addition to the
@@ -799,6 +799,7 @@ set( Key, Value, ServerName, FilePath ) ->
 	set( [ { Key, Value } ], EnvSrvPid ).
 
 
+% ADD SMARTER SET with writing/sending iff necessary
 
 % @doc Removes the specified entries (a single one or multiple ones) from the
 % specified environment, based on the designated already-running environment
@@ -942,7 +943,7 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 % corresponding keys to be cached, yet a single key, if it is not already cached
 % (otherwise, it will be ignored), will trigger its value to be fetched from the
 % enviroment server whereas the value of a full entry will be cached and also
-% sent to the environment server.
+% sent to the environment server (therefore being equivalent to set/2).
 %
 % Any next setting by this process of one of these cached keys will update its
 % local cache as well as the specified environment server; as a consequence,

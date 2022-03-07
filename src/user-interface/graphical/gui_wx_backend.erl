@@ -428,7 +428,12 @@ get_wx_version() ->
 
 
 
+
 % Event type section.
+
+
+% For the MyriadGUI/wx conversions, using bijective tables could have been an
+% option.
 
 
 % @doc Converts a MyriadGUI type of event into a wx one.
@@ -457,11 +462,19 @@ to_wx_event_type( onMouseLeftButtonPressed ) ->
 to_wx_event_type( onMouseLeftButtonReleased ) ->
 	left_up;
 
+to_wx_event_type( onMouseLeftButtonDoubleClicked ) ->
+	left_dclick;
+
+
 to_wx_event_type( onMouseMiddleButtonPressed ) ->
 	middle_down;
 
 to_wx_event_type( onMouseMiddleButtonReleased ) ->
 	middle_up;
+
+to_wx_event_type( onMouseMiddleButtonDoubleClicked ) ->
+	middle_dclick;
+
 
 to_wx_event_type( onMouseRightButtonPressed ) ->
 	right_down;
@@ -469,17 +482,41 @@ to_wx_event_type( onMouseRightButtonPressed ) ->
 to_wx_event_type( onMouseRightButtonReleased ) ->
 	right_up;
 
+to_wx_event_type( onMouseRightButtonDoubleClicked ) ->
+	right_dclick;
+
+
 to_wx_event_type( onMouseFourthButtonPressed ) ->
 	aux1_down;
 
 to_wx_event_type( onMouseFourthButtonReleased ) ->
 	aux1_up;
 
+to_wx_event_type( onMouseFourthButtonDoubleClicked ) ->
+	aux1_dclick;
+
+
 to_wx_event_type( onMouseFifthButtonPressed ) ->
 	aux2_down;
 
 to_wx_event_type( onMouseFifthButtonReleased ) ->
 	aux2_up;
+
+to_wx_event_type( onMouseFifthButtonDoubleClicked ) ->
+	aux2_dclick;
+
+to_wx_event_type( onMouseWheelScrolled ) ->
+	mousewheel;
+
+
+to_wx_event_type( onMouseEnteredWindow ) ->
+	enter_window;
+
+to_wx_event_type( onMouseLeftWindow ) ->
+	leave_window;
+
+to_wx_event_type( onMouseMoved ) ->
+	motion;
 
 
 % Keyboard section:
@@ -528,11 +565,19 @@ from_wx_event_type( left_down ) ->
 from_wx_event_type( left_up ) ->
 	onMouseLeftButtonReleased;
 
+from_wx_event_type( left_dclick ) ->
+	onMouseLeftButtonDoubleClicked;
+
+
 from_wx_event_type( middle_down ) ->
 	onMouseMiddleButtonPressed;
 
-from_wx_event_type(	middle_up ) ->
+from_wx_event_type( middle_up ) ->
 	onMouseMiddleButtonReleased;
+
+from_wx_event_type( middle_dclick ) ->
+	onMouseMiddleButtonDoubleClicked;
+
 
 from_wx_event_type( right_down ) ->
 	onMouseRightButtonPressed;
@@ -540,17 +585,41 @@ from_wx_event_type( right_down ) ->
 from_wx_event_type( right_up ) ->
 	onMouseRightButtonReleased;
 
+from_wx_event_type( right_dclick ) ->
+	onMouseRightButtonDoubleClicked;
+
+
 from_wx_event_type( aux1_down ) ->
 	onMouseFourthButtonPressed;
 
 from_wx_event_type( aux1_up ) ->
 	onMouseFourthButtonReleased;
 
+from_wx_event_type( aux1_dclick ) ->
+	onMouseFourthButtonDoubleClicked;
+
+
 from_wx_event_type( aux2_down ) ->
 	onMouseFifthButtonPressed;
 
 from_wx_event_type( aux2_up ) ->
 	onMouseFifthButtonReleased;
+
+from_wx_event_type( aux2_dclick ) ->
+	onMouseFifthButtonDoubleClicked;
+
+
+from_wx_event_type( mousewheel ) ->
+	onMouseWheelScrolled;
+
+from_wx_event_type( enter_window ) ->
+	onMouseEnteredWindow;
+
+from_wx_event_type( leave_window ) ->
+	onMouseLeftWindow;
+
+from_wx_event_type( motion ) ->
+	onMouseMoved;
 
 
 % Keyboard section:

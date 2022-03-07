@@ -149,6 +149,8 @@
 %
 -define( gui_env_entries, [
 
+	% GUI-level entries:
+
 	% The family of the current operating system, typically to adapt
 	% to OS specificities:
 	%
@@ -160,11 +162,8 @@
 	% The main, top-level window (if any; generally a frame) of the application:
 	{ 'top_level_window', maybe( window() ) },
 
-	% A table keeping track of the various mouse cursors available:
-	{ 'cursor_table', gui_mouse:cursor_table() },
-
-	% The current type of cursor (if any):
-	{ 'current_cursor_type', maybe( gui_mouse:cursor_type() ) },
+	% PID of the MyriadGUI main loop:
+	{ 'loop_pid', pid() },
 
 	% Any backend-specific top-level server used for the GUI (here wx):
 	{ 'backend_server', wx_object() },
@@ -172,16 +171,34 @@
 	% Any backend-specific environment term used for the GUI (here wx):
 	{ 'backend_env', wx_environment() },
 
+
+	% OpenGL-related entries:
+
 	% The current OpenGL canvas (if any):
 	{ 'gl_canvas', maybe( opengl_canvas() ) },
 
 	% The current OpenGL context (if any):
 	{ 'gl_context', maybe( opengl_context() ) },
 
-	% PID of the MyriadGUI main loop:
-	{ 'loop_pid', pid() }
 
-						  ] ).
+	% Mouse-related entries:
+
+	% A table keeping track of the various mouse cursors available:
+	{ 'cursor_table', gui_mouse:cursor_table() },
+
+	% The current type of cursor (if any):
+	{ 'current_cursor_type', maybe( gui_mouse:cursor_type() ) },
+
+	% The stack (as a list) of the windows that grabbed the mouse cursor:
+	{ 'grab_stack', [ window() ] },
+
+	% Tells whether we are in key-released event-handling mode:
+	{ 'key_released', boolean() },
+
+	% The coordinates at which the mouse cursor shall warp:
+	{ 'warp_coordinates', maybe( point() ) }
+
+ ] ).
 % These keys, associated to values of the associated types, are used (and
 % reserved) by MyriadGUI in order to record application-level information, made
 % available to its processes through its environment server.
@@ -392,8 +409,8 @@
 
 
 -type point() :: point2:integer_point2().
-% A pixel-wise GUI point (as point2:point2() would allow for floating-point
-% coordinates).
+% A pixel-wise (tuple-based) GUI point (as point2:point2() would allow for
+% floating-point coordinates).
 
 -type position() :: point() | 'auto'.
 % Position, in pixel coordinates, typically of a widget.

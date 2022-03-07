@@ -51,6 +51,8 @@
 % Custom cursors may be defined, see
 % https://docs.wxwidgets.org/3.1/classwx_cursor.html.
 
+% Internally we rely directly on wxMouseState records (no translation to
+% SDL-like conventions).
 
 -include_lib("wx/include/wx.hrl").
 
@@ -97,12 +99,17 @@
 -type cursor_table() :: table( cursor_type(), wx_cursor_type() ).
 % A table storing the correspondance between MyriadGUI and backend cursor types.
 
--export_type([ cursor_type/0, cursor_table/0 ]).
+-type grab_status() :: 'no_grab'
+					 | 'still_grabbed'.
+
+-export_type([ cursor_type/0, cursor_table/0, grab_status/0 ]).
 
 
 -export([ register_in_environment/1, set_cursor_types/2,
 		  unregister_from_environment/1,
-		  list_cursor_types/0, set_cursor/1 ]).
+		  list_cursor_types/0, set_cursor/1,
+
+		  reset_grab/0, grab/1, ungrab/2, is_grabbed/0 ,warp/3 ]).
 
 
 
@@ -116,6 +123,8 @@
 
 % Shorthands:
 
+-type coordinate() :: gui:coordinate().
+-type window() :: gui:window().
 -type gui_env_pid() :: gui:gui_env_pid().
 
 -type gui_env_designator() :: gui:gui_env_designator().
@@ -133,7 +142,8 @@
 register_in_environment( GUIEnvPid ) ->
 	AllCursorTypes = list_cursor_types(),
 	set_cursor_types( AllCursorTypes, GUIEnvPid ),
-	set_cursor( _Default=arrow, GUIEnvPid ).
+	set_cursor( _Default=arrow, GUIEnvPid ),
+	environment:cache( { grab_stack, [] }, GUIEnvPid ).
 
 
 
@@ -183,8 +193,8 @@ set_cursor_types( CursorTypes, GUIEnvPid ) ->
 -spec unregister_from_environment( gui_env_pid() ) -> void().
 unregister_from_environment( GUIEnvPid ) ->
 
-	[ CursorTable, _CurrentCursorType ] = environment:extract(
-		_Ks=[ cursor_table, current_cursor_type ], GUIEnvPid ),
+	[ CursorTable, _CurrentCursorType, _GrabStack ] = environment:extract(
+		_Ks=[ cursor_table, current_cursor_type, grab_stack ], GUIEnvPid ),
 
 	[ wxCursor:destroy( WxCT ) || WxCT <- table:values( CursorTable ) ].
 
@@ -251,6 +261,146 @@ set_cursor( CursorType, GUIEnvDesignator ) ->
 							   GUIEnvDesignator )
 
 	end.
+
+
+
+% Section about mouse grabbing.
+
+% @doc Resets the mouse grabbing, releasing it.
+-spec reset_grab() -> void().
+reset_grab() ->
+	reset_grab( _ReleaseGrab=true ).
+
+
+% @doc Resets the mouse grabbing, releasing it if requested.
+-spec reset_grab( boolean() ) -> void().
+reset_grab( ReleaseGrab ) ->
+	GUIEnvPid = environment:get_server( ?gui_env_reg_name ),
+	reset_grab( ReleaseGrab, GUIEnvPid ).
+
+
+% @doc Resets the mouse grabbing, releasing it if requested.
+-spec reset_grab( boolean(), gui_env_pid() ) -> void().
+reset_grab( ReleaseGrab, GUIEnvPid ) ->
+	case environment:get( grab_stack, GUIEnvPid ) of
+
+		[] ->
+			ignore;
+
+		% Flush:
+		_Stack=[ Window | _T ] ->
+			environment:set( grab_stack, _EmptyStack=[], GUIEnvPid ),
+			ReleaseGrab andalso wxWindow:releaseMouse( Window )
+
+	end,
+	set_cursor( _CursorType=arrow, GUIEnvPid ).
+
+
+
+% @doc Have the specified window grab the mouse cursor.
+-spec grab( window() ) -> void().
+grab( Window ) ->
+	GUIEnvPid = environment:get_server( ?gui_env_reg_name ),
+	grab( Window, GUIEnvPid ).
+
+
+% @doc Have the specified window grab the mouse cursor.
+-spec grab( window(), gui_env_pid() ) -> void().
+grab( Window, GUIEnvPid ) ->
+	case environment:get( grab_stack, GUIEnvPid ) of
+
+		[] ->
+			set_cursor( blank, GUIEnvPid ),
+			wxWindow:captureMouse( Window ),
+			environment:set( grab_stack, [ Window ], GUIEnvPid );
+
+		% Regrab:
+		GrabStack=[ Window | _ ] ->
+			environment:set( grab_stack, [ Window | GrabStack ], GUIEnvPid );
+
+		[ OtherWindow | _T ] ->
+			trace_utils:error_fmt( "Mouse requested to be grabbed by windows "
+				"~w whereas already grabbed by ~w.", [ Window, OtherWindow ] ),
+			throw( { mouse_already_grabbed, OtherWindow, Window } )
+
+	end.
+
+
+
+% @doc Ungrabs the mouse cursor, having it appear (warp) at specified
+% coordinates, returns whether it is still grabbed.
+%
+-spec ungrab( coordinate(), coordinate() ) -> grab_status().
+ungrab( X, Y ) ->
+	GUIEnvPid = environment:get_server( ?gui_env_reg_name ),
+	ungrab( X, Y, GUIEnvPid ).
+
+
+% @doc Ungrabs the mouse cursor, having it appear (warp) at specified
+% coordinates, returns whether it is still grabbed.
+%
+-spec ungrab( coordinate(), coordinate(), gui_env_pid() ) -> grab_status().
+ungrab( X, Y, GUIEnvPid ) ->
+
+	case environment:get( grab_stack, GUIEnvPid ) of
+
+		[] ->
+			no_grab;
+
+		[ Window ] ->
+			wxWindow:releaseMouse( Window ),
+			warp( Window, X, Y ),
+			set_cursor( arrow ),
+			environment:set( grab_stack, [], GUIEnvPid ),
+			no_grab;
+
+		[ _Window | RestOfStack ] ->
+			environment:set( grab_stack, RestOfStack, GUIEnvPid ),
+			still_grabbed
+
+	end.
+
+
+
+% @doc Tells whether the mouse cursor is grabbed.
+-spec is_grabbed() -> boolean().
+is_grabbed() ->
+	GUIEnvPid = environment:get_server( ?gui_env_reg_name ),
+	is_grabbed( GUIEnvPid ).
+
+
+% @doc Tells whether the mouse cursor is grabbed.
+-spec is_grabbed( gui_env_pid() ) -> boolean().
+is_grabbed( GUIEnvPid ) ->
+
+	case environment:get( grab_stack, GUIEnvPid ) of
+
+		[] ->
+			false;
+
+		_ ->
+			true
+
+	end.
+
+
+
+% @doc Warps (moves) the mouse cursor at the specified location on the specified
+% window.
+%
+-spec warp( window(), coordinate(), coordinate() ) -> void().
+warp( Window, X, Y ) ->
+	GUIEnvPid = environment:get_server( ?gui_env_reg_name ),
+	warp( Window, X, Y, GUIEnvPid ).
+
+
+% @doc Warps (moves) the mouse cursor at the specified location on the specified
+% window.
+%
+-spec warp( window(), coordinate(), coordinate(), gui_env_pid() ) -> void().
+warp( Window, X, Y, GUIEnvPid ) ->
+	environment:set( warp_coordinates, _Point={X,Y}, GUIEnvPid ),
+	wxWindow:warpPointer( Window, X, Y ).
 
 
 
