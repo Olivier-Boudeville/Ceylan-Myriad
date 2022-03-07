@@ -57,11 +57,11 @@
 
 % Basic list operations:
 -export([ get_element_at/2, set_element_at/3, insert_element_at/3,
-		  extract_element_at/2,
+		  extract_element_at/2, extract_element_if_existing/2,
 		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
 		  heads/2,
 		  get_last_element/1, extract_last_element/1,
-		  get_index_of/2, get_maybe_index_of/2, split_at/2,
+		  get_index_of/2, get_maybe_index_of/2, split_at/2, group_by/2,
 		  uniquify/1, uniquify_ordered/1,
 		  ensure_is_once_in/2,
 		  has_duplicates/1, count_occurrences/1, get_duplicates/1,
@@ -308,6 +308,27 @@ extract_element_at( List, Index ) ->
 
 
 
+% @doc Extracts the (first occurrence of the) specified element from the
+% specified list, if existing there, then returning the shrunk list (with that
+% element removed, and in its original order), otherwise returning false.
+%
+-spec extract_element_if_existing( element(), list() ) -> 'false' | list().
+extract_element_if_existing( Elem, List ) ->
+	extract_element_if_existing( Elem, List, _Acc=[] ).
+
+
+% (helper)
+extract_element_if_existing( _Elem, _List=[], _Acc ) ->
+	false;
+
+extract_element_if_existing( Elem, _List=[ Elem | T ], Acc ) ->
+	lists:reverse( Acc ) ++ T;
+
+extract_element_if_existing( Elem, _List=[ H | T ], Acc ) ->
+	extract_element_if_existing( Elem, T, [ H | Acc ] ).
+
+
+
 % @doc Removes the specified number first elements.
 %
 % Ex: [c, d, e] = list_utils:remove_first_elements([a, b, c, d, e], 2).
@@ -494,13 +515,17 @@ get_maybe_index_of( Element, _List=[ _H | T ], Count ) ->
 
 
 % @doc Splits the specified (plain) list in two parts (two plain lists, that are
-% returned): the first contains the first elements, up to MaxLen included (in
-% reverse order), and the second the others (if any).
+% returned):
+%
+% - the first contains the first elements, up to MaxLen included, and in
+%   reverse order
+% - the second contains the remaining elements (if any)
 %
 % Ex: split_at(3, [a, b, c, d, e]) = {[c, b, a], [d, e]}
 %
 -spec split_at( count(), list() ) -> { list(), list() }.
 split_at( MaxLen, List ) ->
+	%trace_utils:debug_fmt( "Splitting ~p at position #~B.", [ List, MaxLen ] ),
 	split_at( List, _Count=0, MaxLen, _Acc=[] ).
 
 
@@ -513,9 +538,30 @@ split_at( InputList=[], _Count, _MaxLen, AccList ) ->
 	% Input list exhausted:
 	{ AccList, InputList };
 
-split_at( _List=[ H | T ], Count, MaxLen, Acc ) ->
-	split_at( T, Count+1, MaxLen, [ H | Acc ] ).
+split_at( _List=[ E | T ], Count, MaxLen, Acc ) ->
+	split_at( T, Count+1, MaxLen, [ E | Acc ] ).
 
+
+
+% @doc Splits the specified list by groups of Count elements.
+%
+% The last group may have less than Count elements.
+%
+% Ex: [[a,b], [c,d], [e]] = group_by(_Count=2, [a,b,c,d,e])
+%
+-spec group_by( count(), list() ) -> [ list() ].
+group_by( Count, List ) ->
+	group_by( Count, List, _Acc=[] ).
+
+
+% (helper)
+group_by( _Count, _List=[], Acc ) ->
+	lists:reverse( Acc );
+
+group_by( Count, List, Acc ) ->
+	{ RevFirst, RemainingList } = split_at( Count, List ),
+	NewAcc = [ lists:reverse( RevFirst ) | Acc ],
+	group_by( Count, RemainingList, NewAcc ).
 
 
 
