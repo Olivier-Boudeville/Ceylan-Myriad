@@ -50,7 +50,7 @@
 -ifndef(__MYRIAD_UI_KEYBOARD_KEYCODES_HRL__).
 -define(__MYRIAD_UI_KEYBOARD_KEYCODES_HRL__, 1).
 
-% Mask of 1000000000000000000000000000000:
+% Mask of 0b100-0000-0000-0000-0000-0000-0000-0000:
 -define(MYR_K_SCANCODE_MASK, (1 bsl 30)).
 
 % From button to character (i.e. ensuring that bit 30 is set to 1):
