@@ -30,6 +30,14 @@
 -module(gui_mouse).
 
 
+% We consider that each mouse can have up to 5 buttons, designated as:
+%  - left (a.k.a. first)
+%  - middle (a.k.a. second)
+%  - right (a.k.a. third)
+%  - fourth
+%  - fifth
+
+
 % Implementation notes:
 %
 % The goal is to offer a stable interface, as independent as possible from any
@@ -51,9 +59,10 @@
 -include("gui.hrl").
 
 
+% To be kept updated with list_cursor_types/0:
 -type cursor_type() ::
 		'default'
-	  | 'none'
+	  | 'none' % Unsupported type
 	  | 'blank' % An invisible cursor, when the mouse is grabbed
 	  | 'stop' % "no entry", typically to denote a disallowed operation
 	  | 'arrow' % Typically to designate an element
@@ -86,7 +95,7 @@
 % is, with a picture that might indicate the interpretation of a mouse click.
 
 -type cursor_table() :: table( cursor_type(), wx_cursor_type() ).
-
+% A table storing the correspondance between MyriadGUI and backend cursor types.
 
 -export_type([ cursor_type/0, cursor_table/0 ]).
 
@@ -131,17 +140,40 @@ register_in_environment( GUIEnvPid ) ->
 % @doc Sets in the MyriadGUI environment server the specified standard mouse
 % cursors.
 %
+% The GUI environment is assumed to be already known of the caller cache.
+%
 -spec set_cursor_types( [ cursor_type() ], gui_env_pid() ) -> void().
 set_cursor_types( CursorTypes, GUIEnvPid ) ->
-	CursorEntries = [ { CT, case CT of
+	CursorEntries = [ { CT,
+		case CT of
 
-								blank ->
-									blank( wxCursor:new( ?wxCURSOR_BLANK ) );
+			blank ->
+				blank( wxCursor:new( ?wxCURSOR_BLANK ) );
 
-								_ ->
-									wxCursor:new( cursor_type_to_wx( CT ) )
+			_ ->
+				WxCursorType = cursor_type_to_wx( CT ),
 
-							end } || CT <- CursorTypes ],
+				% Uncomment below to detect an unsupported cursor type:
+				%trace_utils:debug_fmt( "Declaring cursor type ~ts (in wx: ~p)",
+				%                       [ CT, WxCursorType ] ),
+				WxCursor = wxCursor:new( WxCursorType ),
+				%timer:sleep( 500 ),
+				%trace_utils:debug_fmt( "(end for cursor type ~ts)", [ CT ] ),
+
+				% Still an '"Assert failure" in InitFromStock() : unsupported
+				% cursor type' can be reported despite no error seen:
+				%
+				case wxCursor:isOk( WxCursor ) of
+
+					true ->
+						WxCursor;
+
+					false ->
+						throw( { unsupported_cursor_type, CT, WxCursorType } )
+
+				end
+
+		end } || CT <- CursorTypes ],
 	CursorTable = table:new( CursorEntries ),
 	environment:cache( { _K=cursor_table, _Value=CursorTable }, GUIEnvPid ).
 
@@ -154,14 +186,16 @@ unregister_from_environment( GUIEnvPid ) ->
 	[ CursorTable, _CurrentCursorType ] = environment:extract(
 		_Ks=[ cursor_table, current_cursor_type ], GUIEnvPid ),
 
-	[ wx:destroy( WxCT ) || WxCT <- table:values( CursorTable ) ].
+	[ wxCursor:destroy( WxCT ) || WxCT <- table:values( CursorTable ) ].
 
 
 
 % @doc Returns a list of all the standard mouse cursor types.
 -spec list_cursor_types() -> [ cursor_type() ].
 list_cursor_types() ->
-	[ 'default', 'none', 'blank', 'stop', 'arrow', 'right_arrow',
+	% To be kept updated with the cursor_type/0 type:
+	[ 'default', % 'none': unsupported,
+	  'blank', 'stop', 'arrow', 'right_arrow',
 	  'question_arrow', 'wait_arrow', 'wait', 'watch', 'hand',
 	  'closed_hand', 'point_left', 'point_right', 'char', 'cross', 'ibeam',
 	  'left_button', 'middle_button', 'right_button', 'magnifier', 'paintbrush',
@@ -181,15 +215,16 @@ set_cursor( CursorType ) ->
 set_cursor( CursorType, GUIEnvDesignator ) ->
 
 	% Probably cached:
-	[ CursorTable, CurrentCursorType, OSFamily, MaybeWindow ] =
+	[ CursorTable, MaybeCurrentCursorType, OSFamily, MaybeWindow ] =
 		environment:get( [ cursor_table, current_cursor_type, os_family,
 						   top_level_window ], GUIEnvDesignator ),
 
-	case CurrentCursorType of
+	case MaybeCurrentCursorType of
 
 		CursorType ->
 			ok;
 
+		% Includes undefined:
 		_ ->
 			WxCursorType = table:get_value( CursorType, CursorTable ),
 
@@ -210,7 +245,10 @@ set_cursor( CursorType, GUIEnvDesignator ) ->
 				_ ->
 					wx_misc:setCursor( WxCursorType )
 
-			end
+			end,
+
+			environment:cache( { _K=current_cursor_type, _Value=CursorType },
+							   GUIEnvDesignator )
 
 	end.
 

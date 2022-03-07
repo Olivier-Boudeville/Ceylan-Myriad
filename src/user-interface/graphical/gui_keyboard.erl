@@ -173,11 +173,11 @@ to_lower( _Mod, Char ) ->
 % Helpers related to wx:
 
 
-% @doc Returns the MyriadGUI scancode corresponding to the specified wx one.
+% doc Returns the MyriadGUI scancode corresponding to the specified wx one.
 %-spec wx_scancode_to_myr( wx_scancode() ) -> scancode().
 
 
-% @doc Returns the wx scancode corresponding to the specified MyriadGUI one.
+% doc Returns the wx scancode corresponding to the specified MyriadGUI one.
 %-spec myr_scancode_to_wx( scancode() ) -> wx_scancode().
 %myr_scancode_to_wx( MyrScanCode ) ->
 

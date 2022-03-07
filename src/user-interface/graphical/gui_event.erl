@@ -147,11 +147,17 @@
 
 
 % | ...
--type wx_event_type() :: wx_repaint_event_type()
+-type wx_event_type() ::
+					   % For windows:
+						 wx_repaint_event_type()
 					   | wx_click_event_type()
 					   | wx_resize_event_type()
 					   | wx_close_event_type()
-					   | wx_show_event_type().
+					   | wx_show_event_type()
+
+					   % For I/O:
+					   | wx_mouse_event_type()
+					   | wx_keyboard_event_type().
 % Using the wx-event type, leaked by wx.hrl (enrich this union whenever needed).
 
 
@@ -169,12 +175,36 @@
 -type wx_show_event_type() :: 'show'.
 
 
+-type wx_mouse_event_type() :: wxMouseEvent:wxMouseEventType().
+% For left_down | left_up | middle_down, etc.
 
--type event_type() :: 'onRepaintNeeded'
-					| 'onButtonClicked'
-					| 'onResized'
-					| 'onWindowClosed'
-					| 'onShown'.
+-type wx_keyboard_event_type() :: wxKeyEvent:wxKeyEventType().
+% For char | char_hook | key_down | key_up.
+
+
+-type event_type() ::
+	% For windows:
+	  'onRepaintNeeded'
+	| 'onButtonClicked'
+	| 'onResized'
+	| 'onWindowClosed'
+	| 'onShown'
+
+	% For mice:
+	| 'onMouseLeftButtonPressed'   | 'onMouseLeftButtonReleased'
+	| 'onMouseMiddleButtonPressed' | 'onMouseMiddleButtonReleased'
+	| 'onMouseRightButtonPressed'  | 'onMouseRightButtonReleased'
+	| 'onMouseFourthButtonPressed' | 'onMouseFourthButtonReleased'
+	| 'onMouseFifthButtonPressed'  | 'onMouseFifthtButtonReleased'
+
+	% For keyboards:
+	| 'onCharEntered'
+	| 'onCharEnteredHook'
+	| 'onKeyPressed'
+	| 'onKeyReleased'.
+
+
+
 % Our own event types, independent from any backend.
 %
 % Note that resizing a widget (typically a canvas) implies receiving also a

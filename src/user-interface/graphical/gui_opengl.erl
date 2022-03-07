@@ -115,7 +115,7 @@
 % The name of the OpenGL vendor of a driver, that is the company responsible for
 % the corresponding OpenGL implementation.
 %
-% For example: <<"FOOBAR Corporation">>.
+% For example: `<<"FOOBAR Corporation">>'.
 
 
 -type vendor() :: 'nvidia'
@@ -132,7 +132,7 @@
 % The name of the OpenGL renderer of a driver (typically specific to a
 % particular configuration of a hardware platform).
 %
-% For example: <<"FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2">>.
+% For example: `<<"FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2">>'.
 
 
 -type platform_identifier() :: { vendor_name(), renderer_name() }.
@@ -456,7 +456,7 @@
 % @doc Returns the name of the OpenGL vendor of the current driver, that is the
 % company responsible for this OpenGL implementation.
 %
-% For example: <<"FOOBAR Corporation">>.
+% For example: `<<"FOOBAR Corporation">>'.
 %
 % Only available if a current OpenGL context is set.
 %
@@ -516,7 +516,7 @@ get_vendor() ->
 % @doc Returns the name of the OpenGL renderer of the current driver (typically
 % specific to a particular configuration of a hardware platform).
 %
-% For example: <<"FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2">>.
+% For example: `<<"FOOBAR Frobinator GTX 1060 6GB/PCIe/SSE2">>'.
 %
 % Only available if a current OpenGL context is set.
 %
@@ -530,8 +530,8 @@ get_renderer_name() ->
 
 % @doc Returns the platform driver identifier.
 %
-% For example: {<<"FOOBAR Corporation">>, <<"FOOBAR Frobinator GTX 1060
-% 6GB/PCIe/SSE2">>}.
+% For example: `{<<"FOOBAR Corporation">>, <<"FOOBAR Frobinator GTX 1060
+% 6GB/PCIe/SSE2">>}'.
 %
 % Only available if a current OpenGL context is set.
 %
@@ -544,7 +544,7 @@ get_renderer_name() ->
 % @doc Returns the full version of the currently used OpenGL implementation, as
 % a string (if any) returned by the driver.
 %
-% Example: "4.6.0 FOOBAR 495.44".
+% Example: `"4.6.0 FOOBAR 495.44"'.
 %
 % Only available if a current OpenGL context is set.
 %
@@ -1696,7 +1696,7 @@ get_matrix( _Stack ) ->
 % rendering issues on some Intel drivers.
 
 
-% @spec Loads and compiles a vertex shader from the specified source file (whose
+% @doc Loads and compiles a vertex shader from the specified source file (whose
 % extension is typically .vertex.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -1771,7 +1771,7 @@ compile_vertex_shader( VertexShaderPath ) ->
 
 
 
-% @spec Loads and compiles a tessellation control shader from the specified
+% @doc Loads and compiles a tessellation control shader from the specified
 % source file (whose extension is typically .tess-ctrl.glsl), and returns its
 % identifier.
 %
@@ -1851,7 +1851,7 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 
 
 
-% @spec Loads and compiles a tessellation evaluation shader from the specified
+% @doc Loads and compiles a tessellation evaluation shader from the specified
 % source file (whose extension is typically .tess-eval.glsl), and returns its
 % identifier.
 %
@@ -1933,7 +1933,7 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 
 
 
-% @spec Loads and compiles a geometry shader from the specified source file
+% @doc Loads and compiles a geometry shader from the specified source file
 % (whose extension is typically .geometry.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -2010,7 +2010,7 @@ compile_geometry_shader( GeometryShaderPath ) ->
 
 
 
-% @spec Loads and compiles a fragment shader from the specified source file
+% @doc Loads and compiles a fragment shader from the specified source file
 % (whose extension is typically fragment.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -2085,7 +2085,7 @@ compile_fragment_shader( FragmentShaderPath ) ->
 	FragmentShaderId.
 
 
-% @spec Loads and compiles a compute shader from the specified source file
+% @doc Loads and compiles a compute shader from the specified source file
 % (whose extension is typically .compute.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -2161,7 +2161,7 @@ compile_compute_shader( ComputeShaderPath ) ->
 
 
 
-% @spec Generates a GLSL program from the shaders whose source files are
+% @doc Generates a GLSL program from the shaders whose source files are
 % specified: loads and compiles the specified vertex and fragment shaders (with
 % no user-specified attributes defined), links them in a corresponding program,
 % and returns its identifier.
@@ -2176,7 +2176,7 @@ generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 
 
 
-% @spec Generates a GLSL program from the (already loaded and compiled) shaders
+% @doc Generates a GLSL program from the (already loaded and compiled) shaders
 % whose identifiers are specified, with no user-specified attributes defined:
 % links these shaders in a corresponding program, and returns its identifier.
 %
@@ -2188,7 +2188,7 @@ generate_program( ShaderIds ) ->
 
 
 
-% @spec Generates a GLSL program from the (already loaded and compiled) shaders
+% @doc Generates a GLSL program from the (already loaded and compiled) shaders
 % whose identifiers are specified, with user-specified attributes: links these
 % shaders in a corresponding program, and returns its identifier.
 %

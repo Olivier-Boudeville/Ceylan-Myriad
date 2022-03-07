@@ -190,6 +190,10 @@
 % easier/faster lookups and updates.
 
 
+-type service() :: 'mouse'.
+% The various MyriadGUI services that may or may not be enabled.
+
+
 -type gui_env_pid() :: environment:env_pid().
 
 -type gui_env_designator() :: environment:env_designator().
@@ -355,7 +359,7 @@
 
 
 % Internal, silencing exports:
--export([ create_gui_environment/0,
+-export([ create_gui_environment/1,
 		  destruct_gui_environment/0, destruct_gui_environment/1]).
 
 
@@ -707,7 +711,8 @@
 
 
 
--export_type([ gui_env_pid/0, gui_env_designator/0,
+-export_type([ service/0,
+			   gui_env_pid/0, gui_env_designator/0,
 			   backend_identifier/0, backend_information/0,
 
 			   length/0, width/0, height/0,
@@ -806,24 +811,30 @@ get_backend_information() ->
 
 
 
-% @doc Starts the MyriadGUI subsystem; returns the PID of its environment.
+% @doc Starts the MyriadGUI subsystem, with all optional services; returns the
+% PID of its environment.
 %
 % Note that OpenGL-related options are to be specified when creating a GL canvas
 % (see gui_opengl:create_canvas{1,2}).
 %
 -spec start() -> env_pid().
 start() ->
-	% Starting the MyriadGUI environment:
-	create_gui_environment().
+	start( [ mouse ] ).
 
 
 
-% @doc Starts the GUI subsystem, with the specified debug level.
+% @doc Starts the MyriadGUI subsystem, with the specified services, or with all
+% services while setting specified debug level; returns the PID of its
+% environment.
 %
 % Note that OpenGL-related options are to be specified when creating a GL canvas
 % (see gui_opengl:create_canvas{1,2}).
 %
--spec start( debug_level() ) -> env_pid().
+-spec start( [ service() ] | debug_level() ) -> env_pid().
+start( Services ) when is_list( Services ) ->
+	% Starting the MyriadGUI environment:
+	create_gui_environment( Services );
+
 start( DebugLevel ) ->
 	EnvPid = start(),
 	set_debug_level( DebugLevel ),
@@ -832,8 +843,8 @@ start( DebugLevel ) ->
 
 
 % @doc Creates and initialises the MyriadGUI environment server.
--spec create_gui_environment() -> env_pid().
-create_gui_environment() ->
+-spec create_gui_environment( [ service() ] ) -> env_pid().
+create_gui_environment( Services ) ->
 
 	GUIEnvRegName = ?gui_env_reg_name,
 
@@ -877,9 +888,30 @@ create_gui_environment() ->
 		"Main loop running on GUI process ~w (created from user process ~w), "
 		"using environment server ~w.", [ LoopPid, self(), GUIEnvPid ] ) ),
 
-	gui_mouse:register_in_environment( GUIEnvPid ),
+	NonMouseServices =
+			case list_utils:extract_element_if_existing( mouse, Services ) of
+
+		false ->
+			Services;
+
+		MouseShrunkSvces ->
+			gui_mouse:register_in_environment( GUIEnvPid ),
+			MouseShrunkSvces
+
+	end,
+
+	case NonMouseServices of
+
+		[] ->
+			ok;
+
+		_ ->
+			throw( { unknown_services, NonMouseServices } )
+
+	end,
 
 	GUIEnvPid.
+
 
 
 % @doc Destructs the MyriadGUI environment server.

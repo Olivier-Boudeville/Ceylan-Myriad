@@ -433,6 +433,7 @@ get_wx_version() ->
 
 % @doc Converts a MyriadGUI type of event into a wx one.
 -spec to_wx_event_type( event_type() ) -> wx_event_type().
+% Window section:
 to_wx_event_type( onRepaintNeeded ) ->
 	paint;
 
@@ -448,14 +449,62 @@ to_wx_event_type( onWindowClosed ) ->
 to_wx_event_type( onShown ) ->
 	show;
 
+
+% Mouse section:
+to_wx_event_type( onMouseLeftButtonPressed ) ->
+	left_down;
+
+to_wx_event_type( onMouseLeftButtonReleased ) ->
+	left_up;
+
+to_wx_event_type( onMouseMiddleButtonPressed ) ->
+	middle_down;
+
+to_wx_event_type( onMouseMiddleButtonReleased ) ->
+	middle_up;
+
+to_wx_event_type( onMouseRightButtonPressed ) ->
+	right_down;
+
+to_wx_event_type( onMouseRightButtonReleased ) ->
+	right_up;
+
+to_wx_event_type( onMouseFourthButtonPressed ) ->
+	aux1_down;
+
+to_wx_event_type( onMouseFourthButtonReleased ) ->
+	aux1_up;
+
+to_wx_event_type( onMouseFifthButtonPressed ) ->
+	aux2_down;
+
+to_wx_event_type( onMouseFifthButtonReleased ) ->
+	aux2_up;
+
+
+% Keyboard section:
+to_wx_event_type( onCharEntered ) ->
+	char;
+
+to_wx_event_type( onCharEnteredHook ) ->
+	char_hook;
+
+to_wx_event_type( onKeyPressed ) ->
+	key_down;
+
+to_wx_event_type( onKeyReleased ) ->
+	key_up;
+
+
 to_wx_event_type( Other ) ->
 	throw( { unsupported_gui_event_type, Other } ).
 
 
 
 
-% @doc onverts a wx type of event into a MyriadGUI one.
+% @doc Converts a wx type of event into a MyriadGUI one.
 -spec from_wx_event_type( wx_event_type() ) -> event_type().
+% Window section:
 from_wx_event_type( paint ) ->
 	onRepaintNeeded;
 
@@ -470,6 +519,53 @@ from_wx_event_type( close_window ) ->
 
 from_wx_event_type( show ) ->
 	onShown;
+
+
+% Mouse section:
+from_wx_event_type( left_down ) ->
+	onMouseLeftButtonPressed;
+
+from_wx_event_type( left_up ) ->
+	onMouseLeftButtonReleased;
+
+from_wx_event_type( middle_down ) ->
+	onMouseMiddleButtonPressed;
+
+from_wx_event_type(	middle_up ) ->
+	onMouseMiddleButtonReleased;
+
+from_wx_event_type( right_down ) ->
+	onMouseRightButtonPressed;
+
+from_wx_event_type( right_up ) ->
+	onMouseRightButtonReleased;
+
+from_wx_event_type( aux1_down ) ->
+	onMouseFourthButtonPressed;
+
+from_wx_event_type( aux1_up ) ->
+	onMouseFourthButtonReleased;
+
+from_wx_event_type( aux2_down ) ->
+	onMouseFifthButtonPressed;
+
+from_wx_event_type( aux2_up ) ->
+	onMouseFifthButtonReleased;
+
+
+% Keyboard section:
+from_wx_event_type( char ) ->
+	onCharEntered;
+
+from_wx_event_type( char_hook ) ->
+	onCharEnteredHook;
+
+from_wx_event_type( key_down ) ->
+	onKeyPressed;
+
+from_wx_event_type( key_up ) ->
+	onKeyReleased;
+
 
 from_wx_event_type( Other ) ->
 	throw( { unsupported_wx_event_type, Other } ).
