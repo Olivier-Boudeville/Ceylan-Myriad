@@ -112,7 +112,8 @@
 		  flatten/1,
 		  join/2,
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
-		  split_at_first/2, split_camel_case/1, tokenizable_to_camel_case/2,
+		  split_at_first/2, split_camel_case/1, split_every/2,
+		  tokenizable_to_camel_case/2,
 		  duplicate/2, concatenate/1,
 		  remove_empty_lines/1,
 
@@ -643,13 +644,18 @@ hexastring_to_binary( _HexaStr=[ Hex1, Hex2 | T ], BinAcc ) ->
 
 
 % @doc Returns a plain string corresponding to the specified integer once
-% translated as a series of bits.
+% translated to a series of bits, listed per groups of 4.
 %
-% Ex: "10000000010" = integer_to_bits(1024+2).
+% Ex: "0b100-0000-0011" = integer_to_bits(1024+2+1).
 %
 -spec integer_to_bits( integer() ) -> ustring().
 integer_to_bits( I ) ->
-	io_lib:format( "~.2B", [ I ] ).
+	AllBits = io_lib:format( "~.2B", [ I ] ),
+	% We want to group bits per four, but from right to left:
+	RevAllBits = lists:reverse( AllBits ),
+	RevPacketRevStrs = split_every( _Count=4, RevAllBits ),
+	RevPacketStrs = [ lists:reverse( S ) || S <- RevPacketRevStrs ],
+	"0b" ++ join( _Sep=$-, lists:reverse( RevPacketStrs ) ).
 
 
 
@@ -3095,7 +3101,7 @@ split_parsed( ParseString, Delimiters ) ->
 %
 % (helper)
 %split_parsed( _ParseString=[], _Delimiters, _AccElem=[], AccStrs ) ->
-%	lists:reverse( AccStrs );
+%   lists:reverse( AccStrs );
 
 split_parsed( _ParseString=[], _Delimiters, AccElem, AccStrs ) ->
 	lists:reverse( [ lists:reverse( AccElem ) | AccStrs ] );
@@ -3170,9 +3176,9 @@ split_at_first( Marker, _ToRead=[ Other | T ], Read ) ->
 % uppercases, knowing a series of uppercase letters, except the last one, is
 % considered as an acronym, hence as a single word), in their original order.
 %
-% Ex: split_camel_case( "IndustrialWasteSource" ) shall return [ "Industrial",
-% "Waste", "Source" ], while split_camel_case( "TheySaidNYCWasGreat" ) shall
-% return [ "They", "Said", "NYC", "Was", "Great" ].
+% Ex: split_camel_case("IndustrialWasteSource") shall return ["Industrial",
+% "Waste", "Source"], while split_camel_case("TheySaidNYCWasGreat") shall return
+% ["They", "Said", "NYC", "Was", "Great"].
 %
 -spec split_camel_case( ustring() ) -> [ ustring() ].
 split_camel_case( String ) ->
@@ -3240,11 +3246,23 @@ tokenizable_to_camel_case( String, SeparatorsList ) ->
 	LowerCaseTokens = [ string:to_lower( Str ) || Str <- Tokens ],
 
 	% Capitalizes all lower-cased tokens:
-	CamelCaseTokens = [ uppercase_initial_letter( Str )
-						|| Str <- LowerCaseTokens ],
+	CamelCaseTokens =
+		[ uppercase_initial_letter( Str ) || Str <- LowerCaseTokens ],
 
 	% Concatenates the capitalized tokens:
 	lists:concat( CamelCaseTokens ).
+
+
+
+% @doc Splits the specified string every Count characters.
+%
+% The last string may have less than Count characters.
+%
+% Ex: [ "AB", "CD", "E" } = split_every( "ABCDE", _Count=2 ).
+%
+-spec split_every( count(), ustring() ) -> [ ustring() ].
+split_every( Count, Str ) ->
+	list_utils:group_by( Count, Str ).
 
 
 
