@@ -34,9 +34,7 @@
 % of its components, and makes it available to client processes.
 %
 % An environment entry is designated by a key (an atom), associated to a value
-% (that can be any term) in a pair, which is designated as an entry. No
-% difference is made between a non-registered key and a key registered to
-% 'undefined'.
+% (that can be any term) in a pair.
 %
 % Environments hold application-specific or component-specific data, obtained
 % from any source (file included); they may also start blank and be exclusively
@@ -62,14 +60,14 @@
 % The server process corresponding to an environment is locally registered; as a
 % consequence it can be designated either directly through its PID or through
 % its conventional (atom) registration name (like in
-% `environment:get(my_first_color, foobar_env_server'). No specific global
-% registration of that server is made here.
+% `environment:get(my_first_color, my_foobar_env_server'). No specific global
+% registration of servers is made.
 %
 % A (single) explicit start (with one of the start* functions) shall be
 % preferred to implicit ones (typically triggered thanks to the get* functions)
 % to avoid any risk of race conditions (should multiple processes attempt
 % concurrently to create the same environment server), and also to be able to
-% request that it is also linked to the calling process.
+% request that the server is also linked to the calling process.
 %
 % An environment is best designated as a PID, otherwise as a registered name,
 % otherwise from any filename that it uses.
@@ -90,13 +88,13 @@
 %
 % So a client process should cache a key mainly if no other is expected to
 % update that key, i.e. typically if the associated value is const, or if this
-% process is considered as the owner (sole controller) of that key (or if other
-% organisation ensures, possibly thanks to sync/1, that its cache is kept
+% process is considered as the owner (sole controller) of that key (or if some
+% other organisation ensures, possibly thanks to sync/1, that its cache is kept
 % consistent with the corresponding environment server.
 %
-% As soon as a key must be cached, its value is set in the cache; there is thus
-% always a value associated to a cache key (not a maybe-value), and thus cached
-% values may be 'undefined'.
+% As soon as a key is declared to be cached, its value is set in the cache;
+% there is thus always an actual value associated to a cached key (not a
+% maybe-value), and thus cached values may be 'undefined'.
 %
 % Multiple environments may be used concurrently. A specific case of environment
 % corresponds to the user preferences. See our preferences module for that.
@@ -120,7 +118,7 @@
 % The PID of an environment server.
 
 -type env_reg_name() :: registration_name().
-% The registration name of an environment server.
+% The name under which an environment server can be (locally) registered.
 
 
 -type env_designator() :: env_pid() | env_reg_name().
@@ -186,14 +184,14 @@
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
--type env_reg_name() :: naming_utils:env_reg_name().
-% The name under which an environment server can be (locally) registered.
+-type list_table( K, V ) :: list_table:list_table( K, V ).
 
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:any_file_path().
 
--type list_table( K, V ) :: list_table:list_table( K, V ).
+-type registration_name() :: naming_utils:registration_name().
+
 
 
 
@@ -693,8 +691,8 @@ get( KeyMaybes, ServerName, FilePath ) ->
 %
 % (helper)
 %
--spec get( maybe_list( maybe_list( key() ) ), env_designator() ) ->
-										maybe_list( maybe( value() ) ).
+-spec get_from_environment( maybe_list( maybe_list( key() ) ),
+					env_designator() ) -> maybe_list( maybe( value() ) ).
 get_from_environment( _KeyMaybes=[], _EnvDesignator ) ->
 	[];
 
@@ -936,7 +934,6 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 	end.
 
 
-
 % @doc Requests the calling process to cache the entries corresponding to the
 % specified key(s), which will thus be appropriately synchronised with the
 % server from now on, in addition to any already cached keys.
@@ -953,16 +950,18 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 % default only the entries not already in cache will be requested from the
 % server.
 %
--spec cache( cache_spec(), env_reg_name()  ) -> void().
+% The environment can be either specified through its registration name
+% (recommended) or directly through its PID, in which case at least one of its
+% entries shall already be cached (indeed a client cache stores the registration
+% name of the cached environments, which cannot be deduced from the PID).
+%
+-spec cache( cache_spec(), env_designator() ) -> void().
 cache( Key, EnvRegName ) when is_atom( Key ) ->
 	cache( [ Key ], EnvRegName );
 
 cache( Entry, EnvRegName ) when is_tuple( Entry ) ->
 	cache( [ Entry ], EnvRegName );
 
-% No direct env_pid() allowed, as we want to store the registration name as
-% well:
-%
 cache( KeysOrEntries, EnvRegName ) when is_atom( EnvRegName ) ->
 
 	cond_utils:if_defined( myriad_debug_environments,
@@ -1033,6 +1032,88 @@ cache( KeysOrEntries, EnvRegName ) when is_atom( EnvRegName ) ->
 			end
 
 	end,
+
+	finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
+					AllEnvTable, EnvDictKey );
+
+
+% Not having a registration name here; hopefully this environment is already
+% known of the cache:
+%
+cache( KeysOrEntries, EnvPid ) when is_pid( EnvPid ) ->
+
+	cond_utils:if_defined( myriad_debug_environments,
+		trace_utils:debug_fmt( "Client ~w caching, "
+			"regarding environment ~w:~n~p",
+			[ self(), EnvPid, KeysOrEntries ] ) ),
+
+	% Separates single keys from entries:
+	{ ToCacheKeys, ToCacheEntries } = lists:foldl(
+		fun( E={ _K, _V }, { AccK, AccE } ) ->
+			{ AccK, [ E | AccE ] };
+
+		   ( K, { AccK, AccE } ) ->
+			{ [ K | AccK ], AccE }
+
+		end,
+		_Acc0={ _AccK0=[], _AccE0=[] },
+		_List=KeysOrEntries ),
+
+	EnvDictKey = ?env_dictionary_key,
+
+	% We have to determine the new keys to cache whose values must be fetched
+	% from server:
+	%
+	case process_dictionary:get( EnvDictKey ) of
+
+		undefined ->
+				trace_utils:error_fmt( "Cannot cache for environment server ~w,"
+					" as the corresponding environment registration name is "
+					"not known (none is known). Elements were: ~p",
+					[ EnvPid, KeysOrEntries ] ),
+				throw( { unknown_environment_for, EnvPid } );
+
+		PrevAllEnvTable ->
+			case list_table:lookup_entry( EnvPid, PrevAllEnvTable ) of
+
+				key_not_found ->
+					% Quite same as before, this environment was not cached yet:
+					trace_utils:error_fmt( "Cannot cache for environment "
+						"server ~w, as the corresponding environment "
+						"registration name is not known.",
+						[ EnvPid, KeysOrEntries ] ),
+					throw( { unknown_environment_for, EnvPid } );
+
+				{ value, { EnvRegName, PrevEnvCacheTable } } ->
+					cond_utils:if_defined( myriad_debug_environments,
+						trace_utils:debug_fmt( "Updating cache for environment "
+							"~ts (server: PID: ~w): ~ts", [ EnvRegName, EnvPid,
+								table:to_string( PrevEnvCacheTable ) ] ) ),
+
+					% Having to add all single keys not already present in the
+					% cache table:
+					%
+					DictCachedKeys = table:keys( PrevEnvCacheTable ),
+
+					NewToCacheKeys =
+						list_utils:difference( ToCacheKeys, DictCachedKeys ),
+
+					finish_caching( EnvPid, EnvRegName, NewToCacheKeys,
+						ToCacheEntries, PrevEnvCacheTable, PrevAllEnvTable,
+						EnvDictKey )
+
+			end
+
+	end.
+
+
+
+% Part common to two cache clauses.
+%
+% (helper)
+%
+finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
+				AllEnvTable, EnvDictKey ) ->
 
 	% First the environment must be aware of these new entries:
 	EnvPid ! { set_environment, Entries },
