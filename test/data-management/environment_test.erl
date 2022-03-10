@@ -151,15 +151,41 @@ run() ->
 	7 = environment:get( FirstTargetKey, FirstEnvRegName ),
 
 	test_facilities:display( "Environment after the cache enabling: "
-							 ++ environment:to_string() ),
+								++ environment:to_string() ),
 
 	% New cache request:
-	environment:cache( { first_test_key, 8 }, FirstEnvRegName ),
+	environment:cache( { FirstTargetKey, 8 }, FirstEnvRegName ),
 
 	8 = environment:get( FirstTargetKey, FirstEnvRegName ),
 
 	% Note that first_test_key will still be at 7 in:
 	environment:store( FirstEnvRegName, ETFFilePath ),
+
+
+	test_facilities:display( "Now testing conditional setting." ),
+
+	% With a non-cached key:
+	NonCachedKey = non_cached_key,
+	Hello = hello,
+
+	environment:set_cond( NonCachedKey, Hello, FirstEnvPid ),
+
+	Hello = environment:get( NonCachedKey, FirstEnvPid ),
+
+
+	% With a cached key already set to the specified value:
+	environment:set_cond( FirstTargetKey, 8, FirstEnvPid ),
+
+	8 = environment:get( FirstTargetKey, FirstEnvRegName ),
+
+
+	% With a cached key already not set to the specified value:
+	Goodbye = goodbye,
+
+	environment:set_cond( FirstTargetKey, Goodbye, FirstEnvPid ),
+
+	Goodbye = environment:get( FirstTargetKey, FirstEnvRegName ),
+
 
 	% Useless in the general case (permanent service):
 	environment:stop( FirstEnvRegName ),

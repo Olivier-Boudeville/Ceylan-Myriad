@@ -90,11 +90,20 @@
 % update that key, i.e. typically if the associated value is const, or if this
 % process is considered as the owner (sole controller) of that key (or if some
 % other organisation ensures, possibly thanks to sync/1, that its cache is kept
-% consistent with the corresponding environment server.
+% consistent with the corresponding environment server).
 %
 % As soon as a key is declared to be cached, its value is set in the cache;
-% there is thus always an actual value associated to a cached key (not a
-% maybe-value), and thus cached values may be 'undefined'.
+% there is thus always an actual value associated to a cached key (i.e. it is
+% never a maybe-value because of the cache), and thus cached values may be
+% 'undefined'.
+%
+% Two ways of setting values are provided:
+%  - regular set/{2,3,4}, where new values are unconditionally assigned
+%  - set_cond/{2,3,4}, where each new value is compared to any currently cached
+%  one, and sent to the environment iff not matching
+%
+% This last option allows, for the cost of an extra comparison, to potentially
+% prevent useless message sendings (to the environment server).
 %
 % Multiple environments may be used concurrently. A specific case of environment
 % corresponds to the user preferences. See our preferences module for that.
@@ -107,7 +116,8 @@
 -export([ start/1, start/2, start_link/1, start_link/2,
 		  start_cached/2, start_link_cached/2,
 		  get_server/1,
-		  get/2, get/3, set/2, set/3, set/4,
+		  get/2, get/3,
+		  set/2, set/3, set/4, set_cond/2, set_cond/3, set_cond/4,
 		  remove/2, extract/2,
 		  cache/2, uncache/1, uncache/0, sync/1, store/1, store/2,
 		  to_string/1, to_bin_string/1, to_string/0,
@@ -136,11 +146,14 @@
 
 
 -type entry() :: table:entry().
+% An entry is a key/value pair.
+
 -type entries() :: table:entries().
+% Entries are lists of entry/0 terms, i.e. lists of pairs.
 
 -type cache_spec() :: maybe_list( [ key() | entry() ] ).
 % A specification of the environment keys (possibly with their initial values)
-% that shall cached in a client process.
+% that shall be cached in a client process.
 
 
 -export_type([ env_pid/0, env_reg_name/0, env_designator/0,
@@ -725,9 +738,12 @@ set( Entries, EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	set( Entries, EnvPid );
 
+% Implicitly when is_pid( EnvPid ):
 set( Entries, EnvPid ) when is_list( Entries ) ->
+	% Unconditional:
 	EnvPid ! { set_environment, Entries },
 
+	% Now update any locally cached keys:
 	EnvDictKey = ?env_dictionary_key,
 	case process_dictionary:get( EnvDictKey ) of
 
@@ -773,7 +789,7 @@ set( Entries, EnvPid ) when is_list( Entries ) ->
 %
 -spec set( key(), value(), env_designator() | file_path() ) -> void().
 set( Key, Value, AnyEnvElem ) ->
-	set( [ { Key, Value } ], AnyEnvElem ).
+	set( _Entries=[ { Key, Value } ], AnyEnvElem ).
 
 
 
@@ -787,7 +803,7 @@ set( Key, Value, AnyEnvElem ) ->
 %
 -spec set( key(), value(), env_reg_name(), file_path() ) -> void().
 set( Key, Value, ServerName, FilePath ) ->
-	EnvSrvPid = case naming_utils:is_registered( ServerName, local ) of
+	EnvPid = case naming_utils:is_registered( ServerName, local ) of
 
 		not_registered ->
 			start( FilePath );
@@ -796,10 +812,151 @@ set( Key, Value, ServerName, FilePath ) ->
 			ServerPid
 
 	end,
-	set( [ { Key, Value } ], EnvSrvPid ).
+	set( _Entries=[ { Key, Value } ], EnvPid ).
 
 
-% ADD SMARTER SET with writing/sending iff necessary
+
+
+% @doc Sets conditionally the specified key/value pairs (that is, only if
+% necessary, meaning only if the specified value does not match any currently
+% cached one for that key; possibly overwriting any previous values) in the
+% specified environment, based on the specified environment file (and possibly
+% launching a corresponding environment server if needed) or on the designated
+% already-running environment server (specified by registration name or PID).
+%
+% Any cached key will be updated in the local process cache, in addition to the
+% environment server.
+%
+-spec set_cond( [ entry() ], env_designator() | file_path() ) -> void().
+set_cond( Entries, FilePath ) when is_list( FilePath ) ->
+	EnvPid = start( FilePath ),
+	set_cond( Entries, EnvPid );
+
+set_cond( Entries, EnvRegName ) when is_atom( EnvRegName ) ->
+	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
+	set_cond( Entries, EnvPid );
+
+% Implicitly when is_pid( EnvPid ):
+set_cond( Entries, EnvPid ) when is_list( Entries ) ->
+
+	% Check any locally cached keys:
+	EnvDictKey = ?env_dictionary_key,
+	case process_dictionary:get( EnvDictKey ) of
+
+		undefined ->
+			% No caching wanted or applied, no cache to update, full sending
+			% needed:
+			%
+			EnvPid ! { set_environment, Entries };
+
+		AllEnvTable ->
+			case list_table:lookup_entry( EnvPid, AllEnvTable ) of
+
+				% Caching used, but not for that environment; thus we are done:
+				key_not_found ->
+					EnvPid ! { set_environment, Entries };
+
+				% Caching activated, including for this environment, at least
+				% for some keys:
+				%
+				{ value, { EnvRegName, EnvCacheTable } } ->
+
+					NewEnvCacheTable = case get_needed_sendings( Entries,
+											EnvCacheTable, _AccEntries=[] ) of
+
+						% Spared sending:
+						{ _ToSendEntries=[], UpdatedEnvCacheTable } ->
+							UpdatedEnvCacheTable;
+
+						% Minimal sending:
+						{ ToSendEntries, UpdatedEnvCacheTable } ->
+							EnvPid ! { set_environment, ToSendEntries },
+							UpdatedEnvCacheTable
+
+					end,
+
+					NewAllEnvTable = list_table:add_entry( EnvPid,
+						{ EnvRegName, NewEnvCacheTable }, AllEnvTable ),
+
+					process_dictionary:put( EnvDictKey, NewAllEnvTable )
+
+			end
+
+	end.
+
+
+
+% @doc Returns the non-matching entries (that thus shall be sent to the
+% environment server), and an updated environment cache.
+%
+-spec get_needed_sendings( entries(), env_cache_table(), entries() ) ->
+										{ entries(), env_cache_table() }.
+get_needed_sendings( _NewEntries=[], EnvCacheTable, AccEntries ) ->
+	{ _ToSendEntries=AccEntries, EnvCacheTable };
+
+get_needed_sendings( _NewEntries=[ E={ K, V } | T ], EnvCacheTable,
+					 AccEntries ) ->
+
+	case table:lookup_entry( K, EnvCacheTable ) of
+
+		% Not (to be) cached, thus to be sent:
+		key_not_found ->
+			get_needed_sendings( T, EnvCacheTable, [ E | AccEntries ] );
+
+		% Cached and already matching, thus nothing to do:
+		{ value, V } ->
+			get_needed_sendings( T, EnvCacheTable, AccEntries );
+
+		% Cached and not matching, thus to be updated in cache and sent:
+		{ value, _PreviousOtherV } ->
+			NewEnvCacheTable = table:add_entry( K, V, EnvCacheTable ),
+			get_needed_sendings( T, NewEnvCacheTable, [ E | AccEntries ] )
+
+	end.
+
+
+
+% @doc Associates conditionally (that is, only if necessary, meaning only if the
+% specified value does not match any currently cached one for that key), in the
+% specified environment, the specified value to the specified key (possibly
+% overwriting any previous value), based on the specified environment file (and
+% possibly launching a corresponding environment server if needed) or on the
+% designated already-running environment server (specified by registration name
+% or PID).
+%
+% Any cached key will be updated in the local process cache, in addition to the
+% environment server.
+%
+-spec set_cond( key(), value(), env_designator() | file_path() ) -> void().
+set_cond( Key, Value, AnyEnvElem ) ->
+	set_cond( _Entries=[ { Key, Value } ], AnyEnvElem ).
+
+
+
+% @doc Associates conditionally (that is, only if necessary, meaning only if the
+% specified value does not match any currently cached one for that key), in the
+% specified environment, the specified value to the specified key (possibly
+% overwriting any previous value), based on the specified registration name:
+% uses any server registered with that name, otherwise uses the specified
+% filename to start a corresponding server.
+%
+% Any cached key will be updated in the local process cache, in addition to the
+% environment server.
+%
+-spec set_cond( key(), value(), env_reg_name(), file_path() ) -> void().
+set_cond( Key, Value, ServerName, FilePath ) ->
+	EnvPid = case naming_utils:is_registered( ServerName, local ) of
+
+		not_registered ->
+			start( FilePath );
+
+		ServerPid ->
+			ServerPid
+
+	end,
+	set_cond( _Entries=[ { Key, Value } ], EnvPid ).
+
+
 
 % @doc Removes the specified entries (a single one or multiple ones) from the
 % specified environment, based on the designated already-running environment
@@ -1560,6 +1717,9 @@ server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->
 
 
 		{ set_environment, Entries } ->
+
+			%trace_utils:debug_fmt( "[environment ~ts (~w)] Setting entries "
+			%                       "~p.", [ EnvRegName, self(), Entries ] ),
 
 			NewTable = table:add_entries( Entries, Table ),
 
