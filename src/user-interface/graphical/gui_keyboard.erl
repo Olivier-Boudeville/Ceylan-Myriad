@@ -42,7 +42,7 @@
 
 
 % There are two ways to consider a keyboard:
-%  - a 101-button joystick, for which only the button's locations and
+%  - a 104-button joystick, for which only the button's locations and
 %  press/release statuses matter
 %  - a device that produces text (Unicode) inputs
 %
@@ -54,15 +54,19 @@
 % depend on any current specific keyboard layout; think of this as "the user
 % pressed the Q key as it would be on a US QWERTY keyboard" regardless of
 % whether this is actually a European keyboard or a Dvorak keyboard or
-% whatever. They correspond to the gui_keyboard:scancode/0 type.
+% whatever. Even if they return the character code for Latin-1 keys
+% corresponding to an hypothetical, canonical US keyboard for compatibility,
+% they should be used to handle special/location-based characters (such as
+% cursor arrows keys, the Home or Insert keys, etc.). They correspond to the
+% gui_keyboard:scancode/0 type.
 %
 % So the scancode is always the same key position, it basically designates a
-% button at a given location of the aforementioned 101-button joystick.
-
+% button at a given location of the aforementioned 104-button joystick.
 % As for keycodes, they are meant to be layout-dependent (and
 % location-independent). Think of this as "the user pressed the key that is
-% labelled 'Q' on a specific keyboard, wherever it is.". They correspond to the
-% gui_keyboard:keycode/0 type.
+% labelled 'Q' on a specific keyboard, wherever it is."; keycodes include
+% non-Latin-1 characters that can be entered when using national keyboard
+% layouts. They correspond to the gui_keyboard:keycode/0 type.
 
 
 % For the key defines:
@@ -78,13 +82,14 @@
 
 -type scancode() :: uint32().
 % Designates a button at a given location of the keyboard when it is considered
-% as a 101-button joystick.
+% as a 104-button joystick.
 %
 % A scancode is a "button code", it designates a location of a button on any
 % keyboard, regardless of the character displayed on the user's actual keyboard.
 %
-% These locations are designated according the characters that would be printed
-% on a virtual, canonical US QWERTY keyboard, taken as a reference.
+% These locations are designated according to the characters that would be
+% printed on a virtual, canonical US QWERTY keyboard, taken as a reference, or
+% to non-printable special keys (ex: the Home key, the Insert one).
 %
 % Refer to the corresponding MYR_SCANCODE_* defines.
 
@@ -94,6 +99,8 @@
 % Designates a layout-dependent (Unicode) character code, i.e. the key
 % corresponding to a given character, wherever that key may be on the user's
 % actual keyboard (which notably depends on its layout of choice).
+%
+% A modifier does not generate a keycode just be itself.
 %
 % Refer to the corresponding MYR_K_* defines.
 
@@ -105,7 +112,10 @@
 -type key_transition() :: 'key_down'
 						| 'key_up'.
 % Corresponds to a (punctual) state transition of a key.
-
+%
+% Note that key down/up transitions are not paired (ex: if a key is maintained
+% in a pressed state, many key down events will be generated, but only one key
+% up will be reported at the end, when the key is released).
 
 -type key_status() :: 'pressed'
 					| 'released'.
