@@ -33,7 +33,10 @@
 % preferences, defined in a file meant to be potentially read by multiple
 % applications. This is a way of storing durable information in one's user
 % account in a transverse way regarding programs and versions thereof, and of
-% sharing these elements (settings, credentials, etc.) conveniently.
+% sharing these elements (settings, credentials, etc.) conveniently. See also,
+% in the file_utils module, the get_configuration_directory/1 and
+% get_extra_configuration_directories/1 functions in order to locate first such
+% a configuration file.
 %
 % Preferences can be application-specific or component-specific, and obtained
 % from any source (file included); they may also start blank and be exclusively
@@ -55,6 +58,9 @@
 % {myHeight, 1.80}.
 % {'My name', "Sylvester the cat"}.
 % '''
+%
+% Such a file may be used to create a preferences server (ex: with start/0) or
+% to update a pre-existing one (with update_from_etf/{1,2}).
 %
 % The corresponding server process is locally registered, generally under a
 % fixed name, which may be the default Myriad one (see the
@@ -93,7 +99,7 @@
 
 
 -export([ start/0, start/1, start/2, start_link/0, start_link/1, start_link/2,
-		  get/1, get/2, set/2, set/3,
+		  get/1, get/2, set/2, set/3, update_from_etf/1, update_from_etf/2,
 		  to_string/0, to_bin_string/0,
 
 		  get_default_preferences_path/0,
@@ -139,6 +145,7 @@
 % Shorthands:
 
 -type file_path() :: file_utils:file_path().
+-type any_file_path() :: file_utils:any_file_path().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -232,8 +239,8 @@ start_link() ->
 % existing or not, blank or not.
 %
 -spec start( pref_reg_name() | file_path() ) -> preferences_pid().
-start( Param ) ->
-	environment:start( Param ).
+start( AnyParam ) ->
+	environment:start( AnyParam ).
 
 
 
@@ -370,6 +377,29 @@ set( Key, Value, EnvData ) ->
 
 
 
+% @doc Updates the default preferences with the entries found in the specified
+% ETF file.
+%
+% Loaded entries supersede any pre-existing ones.
+%
+-spec update_from_etf( any_file_path() ) -> void().
+update_from_etf( AnyETFFilePath ) ->
+	update_from_etf( AnyETFFilePath,
+					 get_default_preferences_registration_name() ).
+
+
+% @doc Updates the specified preferences with the entries found in the specified
+% ETF file.
+%
+% Loaded entries supersede any pre-existing ones.
+%
+-spec update_from_etf( any_file_path(), preferences_designator() ) -> void().
+update_from_etf( AnyETFFilePath, PrefDesignator ) ->
+	environment:update_from_etf( AnyETFFilePath, PrefDesignator ).
+
+
+
+
 % @doc Returns a textual description of the preferences server (if any), for
 % the default preferences file.
 %
@@ -388,7 +418,7 @@ to_bin_string() ->
 
 
 % @doc Returns the full, absolute path to the default preferences filename.
--spec get_default_preferences_path() -> file_utils:path().
+-spec get_default_preferences_path() -> file_path().
 get_default_preferences_path() ->
 	file_utils:join( system_utils:get_user_home_directory(),
 					 ?default_preferences_filename ).
