@@ -34,8 +34,12 @@
 -module(gui_window_manager).
 
 
+-type window_name() :: atom().
+% The name of a window, typically designating its role (ex: 'top_frame').
 
--export_type([  ]).
+
+-export_type([ window_name/0 ]).
+
 
 -export([ is_maximised/0, maximize/0, set_title/1,
 		  reset_opengl_video_mode/2, quit/0 ]).
