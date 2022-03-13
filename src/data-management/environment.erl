@@ -118,6 +118,7 @@
 		  get_server/1,
 		  get/2, get/3,
 		  set/2, set/3, set/4, set_cond/2, set_cond/3, set_cond/4,
+		  update_from_etf/2,
 		  remove/2, extract/2,
 		  cache/2, uncache/1, uncache/0, sync/1, store/1, store/2,
 		  to_string/1, to_bin_string/1, to_string/0,
@@ -221,7 +222,10 @@
 % Some accessors accept both a registration name and a file path, whereas the
 % former could be deduced from the latter. The idea is to avoid, in the case of
 % potentially frequent operations, unnecessary conversions.
-
+%
+% See also, in the file_utils module, the get_data_directory/1 and
+% get_extra_data_directories/1 functions in order to locate as environment data
+% file.
 
 % When using caching, the corresponding cached entries for a given environment
 % will be stored in the process dictionary (of each client process using that
@@ -328,6 +332,31 @@ start( FilePath ) when is_list( FilePath ) ->
 % existing or not, blank or not.
 %
 -spec start_link( env_reg_name() | file_path() ) -> env_pid().
+start_link( ServerName ) when is_atom( ServerName ) ->
+	case naming_utils:is_registered( ServerName, local ) of
+
+		not_registered ->
+
+			% A goal is to acquire the "lock" (the local name) ASAP, deferring
+			% all possible other operations:
+			%
+			CallerPid = self(),
+
+			?myriad_spawn_link(
+				fun() -> server_run( CallerPid, ServerName ) end ),
+
+			receive
+
+				{ environment_server_pid, Pid } ->
+					Pid
+
+			end;
+
+		Pid ->
+			Pid
+
+	end;
+
 start_link( FilePath ) when is_list( FilePath ) ->
 
 	RegistrationName = get_env_reg_name_from( FilePath ),
@@ -345,31 +374,6 @@ start_link( FilePath ) when is_list( FilePath ) ->
 
 			?myriad_spawn_link( fun() ->
 				server_run( CallerPid, RegistrationName, BinFilePath ) end ),
-
-			receive
-
-				{ environment_server_pid, Pid } ->
-					Pid
-
-			end;
-
-		Pid ->
-			Pid
-
-	end;
-
-start_link( ServerName ) when is_atom( ServerName ) ->
-	case naming_utils:is_registered( ServerName, local ) of
-
-		not_registered ->
-
-			% A goal is to acquire the "lock" (the local name) ASAP, deferring
-			% all possible other operations:
-			%
-			CallerPid = self(),
-
-			?myriad_spawn_link(
-				fun() -> server_run( CallerPid, ServerName ) end ),
 
 			receive
 
@@ -883,6 +887,18 @@ set_cond( Entries, EnvPid ) when is_list( Entries ) ->
 			end
 
 	end.
+
+
+
+% @doc Updates the specified environment with the entries found in the specified
+% ETF file.
+%
+% Loaded entries supersede any pre-existing ones.
+%
+-spec update_from_etf( any_file_path(), env_designator() ) -> void().
+update_from_etf( AnyETFFilePath, EnvDesignator ) ->
+	LoadedEntries = file_utils:read_etf_file( AnyETFFilePath ),
+	set( LoadedEntries, EnvDesignator ).
 
 
 
