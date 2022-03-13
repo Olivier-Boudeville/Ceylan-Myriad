@@ -131,6 +131,16 @@
 		  get_image_extensions/0, get_image_file_png/1, get_image_file_gif/1 ]).
 
 
+% OS / project / application specific paths:
+-export([ get_cache_directory/1,
+
+		  get_configuration_directory/1, get_extra_configuration_directories/1,
+
+		  get_data_directory/1, get_extra_data_directories/1,
+
+		  get_log_directory/1 ]).
+
+
 
 % I/O section.
 -export([ get_default_encoding/0, get_default_encoding_option/0,
@@ -161,6 +171,9 @@
 
 % For default_encoding*:
 -include("system_utils.hrl").
+
+% For the app_info record:
+-include("app_facilities.hrl").
 
 
 
@@ -382,6 +395,8 @@
 -type any_string() :: text_utils:any_string().
 
 -type format_string() :: text_utils:format_string().
+
+-type any_app_info() :: app_facilities:any_app_info().
 
 
 -define( default_read_ahead_size, 2000 ).
@@ -4220,6 +4235,93 @@ get_image_file_gif( Image ) ->
   filename:join( [ ?ResourceDir, "images", Image ++ ".gif"] ).
 
 
+
+% Section for OS / project / application specific paths.
+%
+% See also: app_facilities:get_app_info/3 to obtain a relevant app_info record.
+
+
+
+% @doc Returns the path location intended for the storage of transient data
+% files that the specified application may perform on the local machine, that is
+% any cache that it may use.
+%
+-spec get_cache_directory( any_app_info() ) -> directory_path().
+get_cache_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_cache_directory( AppInfoMap );
+
+get_cache_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_cache, BinAppName, _Opts=AppInfoMap ).
+
+
+
+% @doc Returns the path location intended for the storage of persistent
+% configuration files that the specified application may perform on the local
+% machine.
+%
+-spec get_configuration_directory( any_app_info() ) -> directory_path().
+get_configuration_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_configuration_directory( AppInfoMap );
+
+get_configuration_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_config, BinAppName, _Opts=AppInfoMap ).
+
+
+% @doc Returns the extra path locations intended for the storage of persistent
+% configuration files that the specified application may perform on the local
+% machine.
+%
+-spec get_extra_configuration_directories( any_app_info() ) ->
+												[ directory_path() ].
+get_extra_configuration_directories( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_extra_configuration_directories( AppInfoMap );
+
+get_extra_configuration_directories( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=site_config, BinAppName, _Opts=AppInfoMap ).
+
+
+
+% @doc Returns the path location intended for the storage of persistent data
+% files that the specified application may perform on the local machine.
+%
+-spec get_data_directory( any_app_info() ) -> directory_path().
+get_data_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_data_directory( AppInfoMap );
+
+get_data_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_data, BinAppName, _Opts=AppInfoMap ).
+
+
+
+% @doc Returns the extra path locations intended for the storage of persistent
+% data files that the specified application may perform on the local machine.
+%
+-spec get_extra_data_directories( any_app_info() ) ->
+												[ directory_path() ].
+get_extra_data_directories( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_extra_data_directories( AppInfoMap );
+
+get_extra_data_directories( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=site_data, BinAppName, _Opts=AppInfoMap ).
+
+
+
+
+% @doc Returns the path location intended for the storage of transient log files
+% that the specified application may perform on the local machine.
+%
+-spec get_log_directory( any_app_info() ) -> directory_path().
+get_log_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_log_directory( AppInfoMap );
+
+get_log_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_log, BinAppName, _Opts=AppInfoMap ).
 
 
 % I/O section.
