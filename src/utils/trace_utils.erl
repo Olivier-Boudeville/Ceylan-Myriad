@@ -1,4 +1,4 @@
-% Copyright (C) 2017-2022 Olivier Boudeville
+% Copyright (C) 2013-2022 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -173,15 +173,16 @@
  % Disables the ellipsing of traces:
  -define( ellipse_length, unlimited ).
 
--else.
+-else. % myriad_unellipsed_traces
 
  % Default:
  -define( ellipse_length, 2000 ).
 
--endif.
+-endif. % myriad_unellipsed_traces
 
 
 % Shorthand:
+
 -type ustring() :: text_utils:ustring().
 
 
@@ -262,7 +263,7 @@ info_categorized( Message, MessageCategorization ) ->
 -spec info_categorized_timed( trace_message(), trace_message_categorization(),
 							  trace_timestamp() ) -> void().
 info_categorized_timed( Message, _MessageCategorization=uncategorized,
-						 Timestamp ) ->
+						Timestamp ) ->
 	actual_display( "[info][at ~ts] ~ts", [ Timestamp, Message ] );
 
 info_categorized_timed( Message, MessageCategorization, Timestamp ) ->
@@ -299,7 +300,7 @@ notice_categorized( Message, MessageCategorization ) ->
 -spec notice_categorized_timed( trace_message(), trace_message_categorization(),
 								trace_timestamp() ) -> void().
 notice_categorized_timed( Message, _MessageCategorization=uncategorized,
-						Timestamp ) ->
+						  Timestamp ) ->
 	actual_display( "[notice][at ~ts] ~ts", [ Timestamp, Message ] );
 
 notice_categorized_timed( Message, MessageCategorization, Timestamp ) ->
@@ -404,7 +405,7 @@ critical_fmt( Format, Values ) ->
 % categorization.
 %
 -spec critical_categorized( trace_message(), trace_message_categorization() ) ->
-							void().
+											void().
 critical_categorized( Message, _MessageCategorization=uncategorized ) ->
 	severe_display( "[critical] ~ts", [ Message ] );
 
@@ -418,7 +419,7 @@ critical_categorized( Message, MessageCategorization ) ->
 -spec critical_categorized_timed( trace_message(),
 		trace_message_categorization(), trace_timestamp() ) -> void().
 critical_categorized_timed( Message, _MessageCategorization=uncategorized,
-						 Timestamp ) ->
+							Timestamp ) ->
 	severe_display( "[critical][at ~ts] ~ts", [ Timestamp, Message ] );
 
 critical_categorized_timed( Message, MessageCategorization, Timestamp ) ->
