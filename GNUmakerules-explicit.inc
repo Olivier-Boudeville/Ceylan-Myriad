@@ -343,10 +343,22 @@ clean-include-links:
 # All of them should be available only from the root of the layer:
 ifeq ($(BASE_MAKEFILE),true)
 
-# For a better compliance to OTP conventions:
+# For a better compliance to OTP conventions, copies the BEAM files of this
+# layer into its ebin directory:
+#
 copy-beams-to-ebin:
 	@echo "  Copying BEAM files to local ebin ($$(pwd)/ebin)"
 	@mkdir -p ebin; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
+
+
+# For a layer and its direct dependencies (here: none):
+#
+# (we recommend that upper layers define in their root GNUmakefile a
+# 'copy-deps-beams-to-ebin' target induced by this target in order to populate
+# all ebin directories in turn)
+#
+copy-all-beams-to-ebins: copy-beams-to-ebin
+
 
 
 FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(PROJECT_NAME_FOR_REBAR)
