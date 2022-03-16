@@ -498,7 +498,7 @@ ifeq ($(USE_WXWINDOWS),true)
 
 	# myriad_gui_backend may also be either not defined, or set to 'none':
 	GUI_OPTS = -Dmyriad_gui_backend=wxwindows \
-			   -Dmyriad_gui_skip_extra_repaints
+#			   -Dmyriad_gui_skip_extra_repaints
 
 	ERLANG_COMPILER_GENERAL_OPT += $(GUI_OPTS)
 
@@ -1496,12 +1496,13 @@ endif
 
 # 'BEAM_PATH_OPT = --beam-paths $(BEAM_DIRS)' would be shorter, but would
 # prevent adding other options to the launcher afterwards:
-# (now we use absolute directories - thanks to 'pwd' - instead of relative ones,
-# as, otherwise, as soon as a process changes the current working directory, any
-# further loading of a user-defined module, for example if used then for the
-# first time, would fail).
 #
-BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
+# (now we use absolute directories - thanks to 'realpath' - instead of relative
+# ones, as, otherwise, as soon as a process changes the current working
+# directory, any further loading of a user-defined module, for example if used
+# then for the first time, would fail)
+#
+BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $(shell realpath $(dir))) \
 				$(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
 
 
