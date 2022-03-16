@@ -31,8 +31,8 @@
 % Ceylan-Traces layer, refer to [http://traces.esperide.org/]) at runtime for
 % <b>its logging</b>, so that in all cases exactly one (and the most
 % appropriate) logging system is used, even when lower-level libraries are
-% involved, and with no change of source code to be operated on these user
-% modules.
+% involved (designed to operate with or without an advanced trace system), and
+% with no change of source code to be operated on these user modules.
 %
 % It is useful to provide native, integrated, higher-level logging to basic
 % libraries (ex: Ceylan-LEEC, see [http://leec.esperide.org]), should their user
@@ -48,7 +48,13 @@
 %  trace_utils)
 %
 %  - Ceylan-Traces: trace_bridging_test.erl (using then our advanced trace
-%  system)
+%  system) ; for example:
+%
+%   BridgeSpec = trace_bridge:get_bridge_spec( _MyEmitterName="MyBridgeTester",
+%     _MyCateg="MyTraceCategory",
+%     _BridgePid=class_TraceAggregator:get_aggregator() ),
+%
+%   trace_bridge:register( BridgeSpec ), [...]
 %
 %  - Ceylan-LEEC: most modules, including leec.erl
 %
@@ -227,6 +233,10 @@ bridge_spec_to_info( _BridgeSpec={ BinTraceEmitterName, BinTraceCategory,
 	% BridgeInfo:
 	{ BinTraceEmitterName, BinTraceCategory, Location, BridgePid,
 	  DefaultApplicationTimestamp };
+
+bridge_spec_to_info( _BridgeSpec={ _BinTraceEmitterName, _BinTraceCategory,
+								   NotAPid } ) ->
+	throw( { invalid_bridge_spec, no_bridge_pid, NotAPid } );
 
 bridge_spec_to_info( OtherBridgeSpec ) ->
 	throw( { invalid_bridge_spec, OtherBridgeSpec } ).
