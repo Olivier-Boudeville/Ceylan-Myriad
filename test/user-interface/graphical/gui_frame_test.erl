@@ -23,6 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2013.
 
 
 % <b>Simple unit tests for the MyriadGUI toolbox</b>: creates a few frames,
@@ -45,9 +46,10 @@
 % for.
 
 
+
 % @doc Executes the actual test.
--spec run_test_gui() -> void().
-run_test_gui() ->
+-spec run_gui_test() -> void().
+run_gui_test() ->
 
 	test_facilities:display( "~nStarting the actual simple MyriadGUI test, "
 							 "from ~w.", [ self() ] ),
@@ -137,10 +139,10 @@ run() ->
 
 		true ->
 			test_facilities:display(
-			  "(not running the MyriadGUI test, being in batch mode)" );
+				"(not running the MyriadGUI test, being in batch mode)" );
 
 		false ->
-			run_test_gui()
+			run_gui_test()
 
 	end,
 
