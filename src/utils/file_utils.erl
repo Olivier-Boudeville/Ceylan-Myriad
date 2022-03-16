@@ -1930,7 +1930,8 @@ has_matching_suffix( Path, [ Suffix | T ] ) ->
 % Excluded directories are all promoted to binary strings at first, so that no
 % upcoming lists:member(D, ExcludedDirs) can fail if ever D happens to be a
 % binary (because of a 'raw directory').
-
+%
+% See also filelib:wildcard/1.
 
 
 % @doc Returns a list of all files (regular ones and symlinks) found from the
