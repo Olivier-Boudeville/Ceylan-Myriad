@@ -1662,6 +1662,12 @@ EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput
 ALL_CMD_LINE_OPTIONS := $(EXEC_INTERNAL_OPTIONS) -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT)
 
 
+# Variation of ALL_CMD_LINE_OPTIONS allowing to remain on a shell (so: no
+# '-noinput'):
+#
+ALL_CMD_LINE_OPTIONS_FOR_SHELL := $(INTERNAL_OPTIONS) -start-verbatim-options -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT) --provide-shell
+
+
 ## Documentation section.
 
 # Available in Ceylan-Hull:
