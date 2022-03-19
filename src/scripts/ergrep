@@ -9,7 +9,10 @@ usage="Usage: $(basename $0) [-v|--verbose] [-q|--quiet] [-hd|--headers-only] [-
    -f or --filenames-only: display only filenames, not also the matched patterns, and if there are multiple matches in the same file, its filename will be output only once (implies quiet); useful for scripts
    -i or --insensitive: perform case-insensitive searches in the content of files, and also in the searched Erlang filenames
 
-  Example: $(basename $0) -i 'list_to_form(' /tmp"
+  Example: $(basename $0) -i 'list_to_form(' /tmp
+
+  Note that rebar-related inner workings are explicitly not searched (ex: the '_build' tree is pruned.
+"
 
 
 if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
@@ -197,6 +200,11 @@ fi
 # Unable to properly define a correctly-protected variable:
 #filter_expr="${name_opt} ${filter_erl}"
 
+
+# Not wanting to enter rebar3-originating irrelevant extra elements:
+# Unable to properly define a correctly-protected variable:
+#prune_opt="-name '_build' -prune -o -name '_checkouts'"
+
 if [ ${verbose} -eq 0 ]; then
 
 	#echo "Will search in following files from '${target_base_dir}' based on: ${find} . ${filter_expr}:"
@@ -214,11 +222,11 @@ fi
 if [ ${filenames_only} -eq 1 ]; then
 
 	# Most usual case:
-	${find} "${target_base_dir}" ${name_opt} "${filter_erl}" -exec ${grep} ${base_grep_opt} ${insensitive_opt} "${searched_expr}" '{}' ${force_multi_files} ';' 2>/dev/null
+	${find} "${target_base_dir}" } -name '_build' -prune -o -name '_checkouts' -o ${name_opt} "${filter_erl}" -exec ${grep} ${base_grep_opt} ${insensitive_opt} "${searched_expr}" '{}' ${force_multi_files} ';' 2>/dev/null
 
 else
 
-	${find} "${target_base_dir}" ${name_opt} "${filter_erl}" -exec ${grep} ${base_grep_opt} ${insensitive_opt} "${searched_expr}" '{}' ${force_multi_files} ';' 2>/dev/null | sed 's|:.*$||1' | uniq
+	${find} "${target_base_dir}" -name '_build' -prune -o -name '_checkouts' -o ${name_opt} "${filter_erl}" -exec ${grep} ${base_grep_opt} ${insensitive_opt} "${searched_expr}" '{}' ${force_multi_files} ';' 2>/dev/null | sed 's|:.*$||1' | uniq
 
 fi
 

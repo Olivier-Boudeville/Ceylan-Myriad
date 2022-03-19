@@ -496,6 +496,7 @@ run_opengl_integration_test() ->
 				"acceleration is available: ~ts; glxinfo report is: ~ts",
 				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ),
 				  text_utils:strings_to_string( GlxInfoStr ) ] ),
+
 			run_actual_test()
 
 	end.
@@ -650,6 +651,9 @@ gui_main_loop( GUIState ) ->
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
 
+			% Optional yet better:
+			gui:unsubscribe_from_events( { onShown, ParentWindow } ),
+
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
 
@@ -711,7 +715,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 						   "size ~w).", [ Size ] ),
 
 	% So done only once:
-	gui_opengl:set_context( GLCanvas, GLContext ),
+	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
 	% These settings will not change afterwards (set once for all):
 
@@ -789,6 +793,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ panel=Panel,
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
 
+	% Lower-left corner and size of the viewport in the current window:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% Apparently, at least on a test setting, a race condition (discovered

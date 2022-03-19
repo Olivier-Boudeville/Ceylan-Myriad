@@ -366,8 +366,8 @@ run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 
 	MainFrame = GUIViewState#view_state.parent,
 
-	ControllerPid ! { notifyViewInformation,
-						[ self(), MainFrame, gui:get_gui_env() ] },
+	ControllerPid !
+		{ notifyViewInformation, [ self(), MainFrame, gui:get_gui_env() ] },
 
 	Period = time_utils:frequency_to_period( EvalFrequency ),
 
@@ -519,10 +519,6 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 			trace_utils:debug_fmt( "Parent window just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
 
-			% Done once for all:
-			gui_opengl:set_context( ViewState#view_state.canvas,
-									ViewState#view_state.context ),
-
 			NewViewState = initialise_opengl( ViewState ),
 
 			on_main_frame_resized( NewViewState ),
@@ -567,7 +563,7 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
 						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
 
-	gui_opengl:set_context( GLCanvas, GLContext ),
+	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
 	% These settings will not change afterwards (set once for all):
 
@@ -644,6 +640,7 @@ on_main_frame_resized( ViewState=#view_state{ canvas=GLCanvas } ) ->
 	%
 	gui:sync( GLCanvas ),
 
+	% Lower-left corner and size of the viewport in the current window:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% No specific other view-related update.

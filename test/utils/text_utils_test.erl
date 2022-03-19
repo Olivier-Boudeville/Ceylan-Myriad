@@ -280,8 +280,8 @@ run() ->
 
 	Percent = 0.1234,
 
-	test_facilities:display( " Displaying ~p as a percentage: ~ts.",
-			  [ Percent, text_utils:percent_to_string( Percent ) ] ),
+	test_facilities:display( "Displaying ~p as a percentage: ~ts.",
+		[ Percent, text_utils:percent_to_string( Percent ) ] ),
 
 
 	test_facilities:display( " Checking string/binary conversions." ),
@@ -411,7 +411,7 @@ run() ->
 
 	[ test_facilities:display( " - '~ts' becomes '~ts'",
 				[ T, text_utils:uppercase_initial_letter( T ) ] )
-	  || T <- [ [], "a", "A", "Hello", "hello" ] ],
+		|| T <- [ [], "a", "A", "Hello", "hello" ] ],
 
 	WesternText = "I am a lonesome cowboy",
 
@@ -440,6 +440,12 @@ run() ->
 	"bar is baz." = text_utils:split_after_prefix( "Foo", "Foobar is baz." ),
 
 	no_prefix = text_utils:split_after_prefix( "ABC", "Foobar is baz." ),
+
+
+	Int = 1024 + 2 + 1,
+
+	test_facilities:display( "Displaying integer ~B as bits: ~ts",
+							 [ Int, text_utils:integer_to_bits( Int ) ] ),
 
 	"I am a lonesome cowboy" =
 		text_utils:ellipse( WesternText, _FirstMaxLen=22 ),

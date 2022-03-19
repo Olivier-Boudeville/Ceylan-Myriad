@@ -33,8 +33,8 @@
 % in 'gui').
 %
 % The purpose of MyriadGUI is to wrap, complement and improve what we consider
-% the best set of gui backends available (previously: gs alone; now: wx+esdl,
-% with OpenGL), for classical applications and multimedia ones (ex: games).
+% the best set of gui backends available (previously: gs alone; now: wx, with
+% OpenGL), for classical applications and multimedia ones (ex: games).
 %
 % See `gui_test.erl' for the corresponding test.
 %
@@ -120,6 +120,8 @@
 % - the gui_wx_backend module for our use of wx as a backend
 % - the gui_canvas module for all canvas-related operations.
 
+% The gui module uses its own environment server to record its defaults and also
+% elements about its current state.
 
 
 % Event loops.
@@ -141,25 +143,77 @@
 % Environments.
 
 
-% Environment kept for MyriadGUI, usually in the process dictionary (like wx
-% does):
-%
--record( gui_env, {
 
-	% Reference to the current top-level wx server:
-	wx_server ::wx_object(),
+% Environment-related storage of the current state of the GUI (merely
+% references):
+%
+-define( gui_env_entries, [
+
+	% GUI-level entries:
+
+	% The family of the current operating system, typically to adapt
+	% to OS specificities:
+	%
+	{ 'os_family', system_utils:os_family() },
+
+	% A more precise name of the current operating system, for finer control:
+	{ 'os_name', system_utils:os_name() },
+
+	% The main, top-level window (if any; generally a frame) of the application:
+	{ 'top_level_window', maybe( window() ) },
 
 	% PID of the MyriadGUI main loop:
-	loop_pid :: pid() } ).
+	{ 'loop_pid', pid() },
+
+	% Any backend-specific top-level server used for the GUI (here wx):
+	{ 'backend_server', wx_object() },
+
+	% Any backend-specific environment term used for the GUI (here wx):
+	{ 'backend_env', wx_environment() },
 
 
+	% OpenGL-related entries:
 
--type gui_env() :: #gui_env{}.
-% Stores the current, user-side (client) state (merely references) of the GUI.
+	% The current OpenGL canvas (if any):
+	{ 'gl_canvas', maybe( opengl_canvas() ) },
+
+	% The current OpenGL context (if any):
+	{ 'gl_context', maybe( opengl_context() ) },
+
+
+	% Mouse-related entries:
+
+	% A table keeping track of the various mouse cursors available:
+	{ 'cursor_table', gui_mouse:cursor_table() },
+
+	% The current type of cursor (if any):
+	{ 'current_cursor_type', maybe( gui_mouse:cursor_type() ) },
+
+	% The stack (as a list) of the windows that grabbed the mouse cursor:
+	{ 'grab_stack', [ window() ] },
+
+	% Tells whether we are in key-released event-handling mode:
+	{ 'key_released', boolean() },
+
+	% The coordinates at which the mouse cursor shall warp:
+	{ 'warp_coordinates', maybe( point() ) }
+
+ ] ).
+% These keys, associated to values of the associated types, are used (and
+% reserved) by MyriadGUI in order to record application-level information, made
+% available to its processes through its environment server.
 %
-% Like wx:wx_env(); kept in the process dictionary for easier sharing that if
-% using a naming service or having to keep around a bound variable.
+% At least a subset of these entries may be cached from the environment, for
+% easier/faster lookups and updates.
 
+
+-type service() :: 'mouse'.
+% The various MyriadGUI services that may or may not be enabled.
+
+
+-type gui_env_pid() :: environment:env_pid().
+
+-type gui_env_designator() :: environment:env_designator().
 
 -type backend_identifier() :: 'gs' % Now obsolete
 							| 'wx' % Based on wxWidgets
@@ -172,12 +226,15 @@
 % Information regarding a graphical backend.
 
 
-% Current backend is wx (WxWidgets).
+% Current backend is wx (based on WxWidgets).
 %
 % (useful to avoid including the header of wx in our own public ones)
 -opaque backend_event() :: gui_event:wx_event().
 % An (opaque) backend GUI event.
 
+
+-type wx_environment() :: term().
+% An (opaque) wx process environment.
 
 
 % With wx, device contexts (ex: obtained from wxMemoryDC:new/1) must be
@@ -209,7 +266,7 @@
 
 
 % Extra overall operations.
--export([ batch/1 ]).
+-export([ batch/1, get_environment_server/0 ]).
 
 
 % Event-related operations.
@@ -236,9 +293,13 @@
 
 
 
-% Windows:
+% Windows (see also the gui_window_manager module regarding the insertion of
+% windows in their environment).
+%
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
-		  set_sizer/2, show/1, hide/1, get_size/1, get_client_size/1,
+		  set_sizer/2, show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
+		  set_focus/1,
+		  get_size/1, get_client_size/1,
 		  maximise_in_parent/1, sync/1, enable_repaint/1,
 		  lock_window/1, unlock_window/1, destruct_window/1 ]).
 
@@ -248,8 +309,11 @@
 % Note that a frame is a top_level_window(), a window() and an event_handler(),
 % and thus can use their methods.
 %
--export([ create_frame/0, create_frame/1, create_frame/2, create_frame/3,
-		  create_frame/4, create_frame/6 ]).
+-export([ create_top_level_frame/1, create_top_level_frame/2,
+		  create_top_level_frame/4,
+		  create_frame/0, create_frame/1, create_frame/2, create_frame/3,
+		  create_frame/4, create_frame/6, set_icon/2,
+		  destruct_frame/1 ]).
 
 
 % Panels:
@@ -299,13 +363,21 @@
 -export([ clear_device_context/1, blit/5, blit/6 ]).
 
 
+% Input support:
+
+% Keyboard:
+%-export([ getKey/0 ]).
+
+
+
 % Fonts:
 -export([ create_font/4, create_font/5 ]).
 
 
-% MyriadGUI environment:
--export([ get_gui_env/0, set_gui_env/1 ]).
 
+% Internal, silencing exports:
+-export([ create_gui_environment/1,
+		  destruct_gui_environment/0, destruct_gui_environment/1]).
 
 
 % For related, public defines:
@@ -337,8 +409,8 @@
 
 
 -type point() :: point2:integer_point2().
-% A pixel-wise GUI point (as point2:point2() would allow for floating-point
-% coordinates).
+% A pixel-wise (tuple-based) GUI point (as point2:point2() would allow for
+% floating-point coordinates).
 
 -type position() :: point() | 'auto'.
 % Position, in pixel coordinates, typically of a widget.
@@ -435,7 +507,7 @@
 
 
 -type id() :: maybe( wx_id() ).
-% wx-specific object identifier (defined so that the gui_event_context (public)
+% wx-specific object identifier (defined so that the event_context (public)
 % record has no trace of the backend).
 %
 % May not be defined if the actual event comes from MyriadGUI itself (and thus
@@ -459,7 +531,14 @@
 -opaque window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
 % Any kind of windows, that is widget (ex: any canvas is a window).
 
+
+-type top_level_window() :: window().
+% A top-level (application-wide) window.
+
+
 -opaque frame() :: wxFrame:wxFrame().
+
+-type top_level_frame() :: frame().
 
 -opaque panel() :: wxPanel:wxPanel().
 
@@ -649,7 +728,9 @@
 
 
 
--export_type([ backend_identifier/0, backend_information/0,
+-export_type([ service/0,
+			   gui_env_pid/0, gui_env_designator/0,
+			   backend_identifier/0, backend_information/0,
 
 			   length/0, width/0, height/0,
 			   coordinate/0, point/0, position/0, size/0,
@@ -659,7 +740,9 @@
 			   myriad_object_type/0, myriad_instance_id/0,
 			   title/0, label/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
-			   window/0, frame/0, panel/0, button/0,
+			   window/0, top_level_window/0,
+			   frame/0, top_level_frame/0,
+			   panel/0, button/0,
 			   sizer/0, sizer_child/0, sizer_item/0, status_bar/0,
 
 			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
@@ -681,7 +764,7 @@
 
 
 % To avoid unused warnings:
--export_type([ myriad_object_state/0 ]).
+-export_type([ myriad_object_state/0, wx_environment/0 ]).
 
 
 % Function shorthands:
@@ -699,8 +782,11 @@
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
 
+-type env_pid() :: environment:env_pid().
+
 -type text() :: ustring().
 
+-type file_path() :: file_utils:file_path().
 -type any_file_path() :: file_utils:any_file_path().
 
 -type line2() :: linear_2D:line2().
@@ -711,6 +797,7 @@
 
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
 -type event_unsubscription_spec() :: gui_event:event_unsubscription_spec().
+-type event_context() :: gui_event:event_context().
 
 -type wx_id() :: gui_wx_backend:wx_id().
 
@@ -719,10 +806,8 @@
 
 % GUI-specific defines:
 
-
 % Key of the MyriadGUI environment, in the process dictionary:
 -define( gui_env_process_key, myriad_gui_env ).
-
 
 
 
@@ -743,9 +828,44 @@ get_backend_information() ->
 
 
 
-% @doc Starts the MyriadGUI subsystem.
--spec start() -> void().
+% @doc Starts the MyriadGUI subsystem, with all optional services; returns the
+% PID of its environment.
+%
+% Note that OpenGL-related options are to be specified when creating a GL canvas
+% (see gui_opengl:create_canvas{1,2}).
+%
+-spec start() -> env_pid().
 start() ->
+	start( [ mouse ] ).
+
+
+
+% @doc Starts the MyriadGUI subsystem, with the specified services, or with all
+% services while setting specified debug level; returns the PID of its
+% environment.
+%
+% Note that OpenGL-related options are to be specified when creating a GL canvas
+% (see gui_opengl:create_canvas{1,2}).
+%
+-spec start( [ service() ] | debug_level() ) -> env_pid().
+start( Services ) when is_list( Services ) ->
+	% Starting the MyriadGUI environment:
+	create_gui_environment( Services );
+
+start( DebugLevel ) ->
+	EnvPid = start(),
+	set_debug_level( DebugLevel ),
+	EnvPid.
+
+
+
+% @doc Creates and initialises the MyriadGUI environment server.
+-spec create_gui_environment( [ service() ] ) -> env_pid().
+create_gui_environment( Services ) ->
+
+	GUIEnvRegName = ?gui_env_reg_name,
+
+	{ OSFamily, OSName } = system_utils:get_operating_system_type(),
 
 	% Initialises the wx backend (no option relevant here):
 	WxServer = wx:new(),
@@ -758,27 +878,76 @@ start() ->
 
 	% The event table must be initialised in the spawned process, so that
 	% connect/n can use the right actual, first-level subscriber PID, which is
-	% the internal main loop in charge of the message routing and conversion.
+	% the internal main loop in charge of the message routing and conversion:
 
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
 								  [ WxServer, WxEnv ] ),
 
+	% Caches in the calling process and initialises some GUI-related entries
+	% (refer to the gui_env_entries define):
+	%
+	GUIEnvPid = environment:start_link_cached( GUIEnvRegName, [
+
+		{ os_family, OSFamily },
+		{ os_name, OSName },
+
+		{ top_level_window, undefined },
+
+		{ backend_server, WxServer },
+		{ backend_env, WxEnv },
+
+		{ gl_canvas, undefined },
+		{ gl_context, undefined },
+		{ loop_pid, LoopPid } ] ),
+
+
 	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
-		"Main loop running on GUI process ~w (created from user process ~w).",
-		[ LoopPid, self() ] ) ),
+		"Main loop running on GUI process ~w (created from user process ~w), "
+		"using environment server ~w.", [ LoopPid, self(), GUIEnvPid ] ) ),
 
-	GUIEnv = #gui_env{ wx_server=WxServer, loop_pid=LoopPid },
+	NonMouseServices =
+			case list_utils:extract_element_if_existing( mouse, Services ) of
 
-	% Stored in the process dictionary of the user process, like for wx:
-	put( ?gui_env_process_key, GUIEnv ).
+		false ->
+			Services;
+
+		MouseShrunkSvces ->
+			gui_mouse:register_in_environment( GUIEnvPid ),
+			MouseShrunkSvces
+
+	end,
+
+	case NonMouseServices of
+
+		[] ->
+			ok;
+
+		_ ->
+			throw( { unknown_services, NonMouseServices } )
+
+	end,
+
+	GUIEnvPid.
 
 
 
-% @doc Starts the GUI subsystem, with specified debug level.
--spec start( debug_level() ) -> void().
-start( DebugLevel ) ->
-	start(),
-	set_debug_level( DebugLevel ).
+% @doc Destructs the MyriadGUI environment server.
+-spec destruct_gui_environment() -> void().
+destruct_gui_environment() ->
+	destruct_gui_environment( get_environment_server() ).
+
+
+% @doc Destructs the specified environment server.
+-spec destruct_gui_environment( gui_env_pid() ) -> void().
+destruct_gui_environment( GUIEnvPid ) ->
+	LoopPid = environment:get( loop_pid, GUIEnvPid ),
+	LoopPid ! terminate_gui_loop,
+	gui_mouse:unregister_from_environment( GUIEnvPid ),
+	GUIEnvPid ! stop,
+
+	% No wx_server needed:
+	ok = wx:destroy().
+
 
 
 
@@ -832,9 +1001,7 @@ subscribe_to_events( SubscribedEvents ) ->
 subscribe_to_events( SubscribedEvents, SubscriberPid )
 										when is_list( SubscribedEvents ) ->
 
-	GUIEnv = get_gui_env(),
-
-	LoopPid = GUIEnv#gui_env.loop_pid,
+	LoopPid = get_main_loop_pid(),
 
 	% This is, in logical terms, a oneway (received in
 	% gui_event:process_event_message/2), yet it must be a request (i.e. it must
@@ -880,9 +1047,7 @@ unsubscribe_from_events( UnsubscribedEvents ) ->
 unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
 										when is_list( UnsubscribedEvents ) ->
 
-	GUIEnv = get_gui_env(),
-
-	LoopPid = GUIEnv#gui_env.loop_pid,
+	LoopPid = get_main_loop_pid(),
 
 	% This is, in logical terms, a oneway (received in
 	% gui_event:process_event_message/2), yet it must be a request as well
@@ -929,7 +1094,7 @@ unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
--spec propagate_event( gui_event_context() ) -> void().
+-spec propagate_event( event_context() ) -> void().
 propagate_event( EventContext ) ->
 	gui_event:propagate_event( EventContext ).
 
@@ -938,12 +1103,8 @@ propagate_event( EventContext ) ->
 % @doc Stops the GUI subsystem.
 -spec stop() -> void().
 stop() ->
+	destruct_gui_environment().
 
-	% No wx_server needed:
-	ok = wx:destroy(),
-
-	% Remove from process dictionary:
-	put( ?gui_env_process_key, _Value=undefined ).
 
 
 
@@ -959,6 +1120,15 @@ stop() ->
 -spec batch( function() ) -> term().
 batch( GUIFun ) ->
 	wx:batch( GUIFun ).
+
+
+
+% @doc Returns the PID of the supposedly already-running MyriadGUI environment
+% server.
+%
+-spec get_environment_server() -> gui_env_pid().
+get_environment_server() ->
+	environment:get_server( ?gui_env_reg_name ).
 
 
 
@@ -1042,6 +1212,16 @@ create_window( Position, Size, Style, Id, Parent ) ->
 
 	wxWindow:new( ActualParent, ActualId, Options ).
 
+
+% Records the specified frame as the application top-level window, in the
+% MyriadGUI environment.
+%
+% (helper)
+%
+-spec record_top_level_window( window() ) -> void().
+record_top_level_window( Window ) ->
+	environment:set( _K=top_level_window, _V=Window,
+					 _Designator=?gui_env_reg_name ).
 
 
 
@@ -1377,6 +1557,30 @@ hide( Window ) ->
 	wxWindow:show( Window, [ { show, false } ] ).
 
 
+% @doc Tells whether the specified top-level window is maximised.
+-spec is_maximised( top_level_window() ) -> boolean().
+is_maximised( TopLevelWindow ) ->
+   wxTopLevelWindow:isMaximized( TopLevelWindow ).
+
+
+% @doc Maximises the specified top-level window.
+-spec maximize( top_level_window() ) -> void().
+maximize( TopLevelWindow ) ->
+	wxTopLevelWindow:maximize( TopLevelWindow ).
+
+
+% @doc Sets the title of the specified top-level window.
+-spec set_title( top_level_window(), title() ) -> void().
+set_title( TopLevelWindow, Title ) ->
+	wxTopLevelWindow:setTitle( TopLevelWindow, Title ).
+
+
+% @doc Sets the specified window to receive keyboard input.
+-spec set_focus( window() ) -> void().
+set_focus( Window ) ->
+	wxWindow:setFocus( Window ).
+
+
 
 % @doc Returns the size (as {Width,Height}) of the specified window or bitmap.
 -spec get_size( window() | bitmap() ) -> dimensions().
@@ -1506,6 +1710,41 @@ destruct_window( Window ) ->
 %
 % Source: http://docs.wxwidgets.org/stable/classwx_frame.html
 
+% An application has generally exactly one top-level frame. Creating such kind
+% of frame allows to record it, and then the window management services are able
+% to tell whether for example the application as a whole shall be considered as
+% maximised.
+
+
+% @doc Creates a top-level frame, with default position, size, style and ID.
+-spec create_top_level_frame( title() ) -> frame().
+create_top_level_frame( Title ) ->
+	Frame = create_frame( Title ),
+	record_top_level_window( Frame ),
+	Frame.
+
+
+
+% @doc Creates a top-level frame, with specified size, and default ID.
+-spec create_top_level_frame( title(), size() ) -> frame().
+create_top_level_frame( Title, Size ) ->
+	Frame = create_frame( Title, Size ),
+	record_top_level_window( Frame ),
+	Frame.
+
+
+
+% @doc Creates a top-level frame, with specified title, position, size and
+% style.
+%
+-spec create_top_level_frame( title(), position(), size(), frame_style() ) ->
+												frame().
+create_top_level_frame( Title, Position, Size, Style ) ->
+	Frame = create_frame( Title, Position, Size, Style ),
+	record_top_level_window( Frame ),
+	Frame.
+
+
 
 % @doc Creates a frame, with default title, ID, parent, position, size and
 % style.
@@ -1520,14 +1759,18 @@ create_frame() ->
 	wxFrame:new().
 
 
-% @doc Creates a frame, with default position, size, style, ID and parent.
+% @doc Creates a titled frame, with default position, size, style, ID and
+% parent.
+%
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
 	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title ).
 
 
 
-% @doc Creates a frame, with specified size, and default ID and parent.
+% @doc Creates a frame, with specified title and size, and default ID and
+% parent.
+%
 -spec create_frame( title(), size() ) -> frame().
 create_frame( Title, Size ) ->
 
@@ -1549,7 +1792,9 @@ create_frame( Title, Id, Parent ) ->
 	wxFrame:new( to_wx_parent( Parent ), to_wx_id( Id ), Title ).
 
 
-% @doc Creates a frame, with default parent.
+% @doc Creates a frame, with specified title, position, size and style, and with
+% a default parent.
+%
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
 
@@ -1580,6 +1825,30 @@ create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
 	wxFrame:new( ActualParent, ActualId, Title, Options ).
 
+
+
+% @doc Sets the icon of the specified frame.
+%
+% Supported image formats: only BMP by default.
+%
+-spec set_icon( frame(), file_path() ) -> void().
+set_icon( Frame, IconPath ) ->
+
+	% Current no wx_image:initAllImageHandlers/* (for other formats than BMP),
+	% just wx_image:initStandardHandlers/0.
+
+	Img = wxImage:new( IconPath ),
+	Bitmap = wxBitmap:new( Img ),
+	Icon = wxIcon:new(),
+	wxIcon:copyFromBitmap( Icon, Bitmap ),
+	wxFrame:setIcon( Frame, Icon ).
+
+
+
+% @doc Destructs the specified frame.
+-spec destruct_frame( frame() ) -> void().
+destruct_frame( Frame  ) ->
+	wx:destroyFrame( Frame ).
 
 
 
@@ -2048,60 +2317,11 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 
 
 % @doc Fetches (from the MyriadGUI environment) the PID of the process in charge
-% of running the main GUI loop.
+% of running the main MyriadGUI loop.
 %
 -spec get_main_loop_pid() -> pid().
 get_main_loop_pid() ->
-
-	GUIEnv = get_gui_env(),
-
-	GUIEnv#gui_env.loop_pid.
-
-
-
-% @doc Fetches (from the process dictionary) the MyriadGUI environment.
-%
-% Typically useful if wanting another process to be able to issue MyriadGUI
-% commands afterwards.
-%
--spec get_gui_env() -> gui_env().
-get_gui_env() ->
-
-	case get( ?gui_env_process_key ) of
-
-		undefined ->
-			trace_utils:error_fmt( "No MyriadGUI environment available for "
-								   "process ~w.", [ self() ] ),
-			throw( { no_myriad_gui_env, self() } );
-
-		Env ->
-			Env
-
-	end.
-
-
-
-% @doc Sets (in the process dictionary) the MyriadGUI environment in the calling
-% process.
-%
-% Typically useful if wanting the current process to be able to issue MyriadGUI
-% commands afterwards.
-%
--spec set_gui_env( gui_env() ) -> void().
-set_gui_env( GUIEnv ) ->
-
-	case get( ?gui_env_process_key ) of
-
-		undefined ->
-			put( ?gui_env_process_key, GUIEnv );
-
-		Env ->
-			trace_utils:error_fmt( "A MyriadGUI environment (~w) was already "
-				"available for process ~w.", [ Env, self() ] ),
-
-			throw( { myriad_gui_env_already_set, self(), Env } )
-
-	end.
+	environment:get( loop_pid, ?gui_env_process_key ).
 
 
 
@@ -2130,9 +2350,9 @@ object_to_string( { wx_ref, InstanceRef, WxObjectType, State } ) ->
 
 
 % @doc Returns a textual representation of the specified GUI event context.
--spec context_to_string( gui_event_context() ) -> ustring().
-context_to_string( #gui_event_context{ id=Id, user_data=UserData,
-									   backend_event=WxEvent } ) ->
+-spec context_to_string( event_context() ) -> ustring().
+context_to_string( #event_context{ id=Id, user_data=UserData,
+								   backend_event=WxEvent } ) ->
 
 	IdString = gui_wx_backend:wx_id_to_string( Id ),
 

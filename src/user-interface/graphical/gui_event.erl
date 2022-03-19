@@ -80,6 +80,18 @@
 
 
 
+% For the event_context record:
+-include("gui.hrl").
+
+% For canvas_state():
+-include("gui_canvas.hrl").
+
+
+% For wx headers:
+-include("gui_internal_defines.hrl").
+
+
+
 % Type section.
 
 
@@ -119,7 +131,15 @@
 -type event_source() :: wx_event_handler() | myriad_event_handler().
 
 
+-type event_context() :: #event_context{}.
+% Context sent to corresponding subscribers together with an event.
+%
+% This context can be ignored in most cases.
+
+
+
 -type wx_event_handler() :: wxEvtHandler:wxEvtHandler().
+
 
 
 -type myriad_event_handler() :: gui_canvas:canvas().
@@ -127,11 +147,17 @@
 
 
 % | ...
--type wx_event_type() :: wx_repaint_event_type()
+-type wx_event_type() ::
+					   % For windows:
+						 wx_repaint_event_type()
 					   | wx_click_event_type()
 					   | wx_resize_event_type()
 					   | wx_close_event_type()
-					   | wx_show_event_type().
+					   | wx_show_event_type()
+
+					   % For I/O:
+					   | wx_mouse_event_type()
+					   | wx_keyboard_event_type().
 % Using the wx-event type, leaked by wx.hrl (enrich this union whenever needed).
 
 
@@ -149,12 +175,59 @@
 -type wx_show_event_type() :: 'show'.
 
 
+-type wx_mouse_event_type() :: wxMouseEvent:wxMouseEventType().
+% For left_down | left_up | middle_down, etc.
 
--type event_type() :: 'onRepaintNeeded'
-					| 'onButtonClicked'
-					| 'onResized'
-					| 'onWindowClosed'
-					| 'onShown'.
+-type wx_keyboard_event_type() :: wxKeyEvent:wxKeyEventType().
+% For char | char_hook | key_down | key_up.
+
+
+-type event_type() ::
+	% For windows:
+	  'onRepaintNeeded'
+	| 'onButtonClicked'
+	| 'onResized'
+	| 'onWindowClosed'
+	| 'onShown'
+
+	% For mice:
+
+	% Button 1:
+	| 'onMouseLeftButtonPressed' | 'onMouseLeftButtonReleased'
+	| 'onMouseLeftButtonDoubleClicked'
+
+	% Button 2:
+	| 'onMouseMiddleButtonPressed' | 'onMouseMiddleButtonReleased'
+	| 'onMouseMiddleButtonDoubleClicked'
+
+	% Button 3:
+	| 'onMouseRightButtonPressed' | 'onMouseRightButtonReleased'
+	| 'onMouseRightButtonDoubleClicked'
+
+	| 'onMouseFourthButtonPressed' | 'onMouseFourthButtonReleased'
+	| 'onMouseFourthButtonDoubleClicked'
+
+	| 'onMouseFifthButtonPressed' | 'onMouseFifthtButtonReleased'
+	| 'onMouseFifthButtonDoubleClicked'
+
+
+	| 'onMouseWheelScrolled'
+
+	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
+	| 'onMouseMoved'
+
+	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
+	| 'onMouseMoved'
+
+
+	% For keyboards:
+	| 'onCharEntered'
+	| 'onCharEnteredHook'
+	| 'onKeyPressed'
+	| 'onKeyReleased'.
+
+
+
 % Our own event types, independent from any backend.
 %
 % Note that resizing a widget (typically a canvas) implies receiving also a
@@ -227,7 +300,7 @@
 
 
 -type event_dispatch_table() ::
-		list_table:table( event_type(), [ event_subscriber_pid() ] ).
+		list_table:list_table( event_type(), [ event_subscriber_pid() ] ).
 % Tells, for a given event type (e.g. in the context of a specific GUI object),
 % to which event subscribers the corresponding GUI messages shall be sent.
 
@@ -372,18 +445,6 @@
 
 
 
-% For gui_event_context():
--include("gui.hrl").
-
-% For canvas_state():
--include("gui_canvas.hrl").
-
-
-% For wx headers:
--include("gui_internal_defines.hrl").
-
-
-
 
 % Implementation section.
 
@@ -445,6 +506,8 @@ process_event_messages( LoopState ) ->
 	% Our dropping logic allows to repaint only once in that case.
 	%
 	NewLoopState = cond_utils:if_defined( myriad_gui_skip_extra_repaints,
+
+		% If skipping is allowed:
 		receive
 
 			% So that no large series of repaint requests for the same object
@@ -469,7 +532,9 @@ process_event_messages( LoopState ) ->
 
 		end,
 
-		% To bypass the "smarter" management above, for test/comparison purpose:
+		% If skipping is not allowed, bypasses the "smarter" management above,
+		% for test/comparison purpose:
+		%
 		receive
 
 			AnyEvent ->
@@ -811,6 +876,9 @@ process_event_message( { unsubscribeFromEvents,
 	% Purged:
 	%LoopState#loop_state{ type_table=NewTypeTable, objects_to_adjust=[] };
 
+process_event_message( terminate_gui_loop, _LoopState ) ->
+	%trace_utils:debug( "Main MyriadGUI loop terminating." ),
+	ok;
 
 process_event_message( UnmatchedEvent, LoopState ) ->
 	trace_utils:warning_fmt( "Ignored following unmatched event "
@@ -1204,8 +1272,8 @@ send_event( _Subscribers=[], _EventType, _EventSourceId, _GUIObject, _UserData,
 send_event( Subscribers, _EventType=onResized, EventSourceId, GUIObject,
 			UserData, Event ) ->
 
-	Context = #gui_event_context{ id=EventSourceId, user_data=UserData,
-								  backend_event=Event },
+	Context = #event_context{ id=EventSourceId, user_data=UserData,
+							  backend_event=Event },
 
 	% Making the new size readily available:
 
@@ -1228,8 +1296,8 @@ send_event( Subscribers, _EventType=onResized, EventSourceId, GUIObject,
 % Base case, for all events that do not require specific treatments:
 send_event( Subscribers, EventType, Id, GUIObject, UserData, Event ) ->
 
-	Context = #gui_event_context{ id=Id, user_data=UserData,
-								  backend_event=Event },
+	Context = #event_context{ id=Id, user_data=UserData,
+							  backend_event=Event },
 
 	Msg = { EventType, [ GUIObject, Context ] },
 
@@ -1743,8 +1811,8 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
--spec propagate_event( gui_event_context() ) -> void().
-propagate_event( #gui_event_context{ backend_event=WxEvent } ) ->
+-spec propagate_event( event_context() ) -> void().
+propagate_event( #event_context{ backend_event=WxEvent } ) ->
 
 	% Honestly the skip semantics looks a bit unclear.
 	% 'skip' is here a synonymous of 'propagate'.

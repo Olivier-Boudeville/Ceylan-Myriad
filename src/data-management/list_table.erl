@@ -212,8 +212,8 @@ add_new_entries( EntryList, Table ) ->
 
 
 
-% @doc Removes the key/value pair designated by the specified key, from the
-% specified table.
+% @doc Removes the entry designated by the specified key, from the specified
+% table.
 %
 % Does nothing if the key is not found.
 %
@@ -338,8 +338,8 @@ extract_entry_with_defaults( Key, DefaultValue, Table ) ->
 
 
 
-% @doc Extracts specified entry (if any) from specified table, that is returns
-% its associated value and removes that entry from the returned table.
+% @doc Extracts the specified entry (if any) from the specified table, that is
+% returns its associated value and removes that entry from the returned table.
 %
 % Otherwise, that is if that entry does not exist, returns false.
 %

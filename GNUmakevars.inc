@@ -123,7 +123,8 @@ endif
 # conditional compilation primitives (see cond_utils for their management):
 
 # Topics covered by flags:
-# - third_party_execution: the execution of third-party elements such as
+#
+#  - third_party_execution: the execution of third-party elements such as
 #    executables, commands, shell expressions
 #  - code_path: how the VM code path is managed
 #  - otp_integration: how OTP conventions (notably regarding applications) are
@@ -133,6 +134,7 @@ endif
 #  - registration: regarding naming registering
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
+#  - environments: about the sharing/caching of application information
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - repaint_logic: how MyriadGUI manages repaints
@@ -159,6 +161,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
@@ -499,7 +502,7 @@ ifeq ($(USE_WXWINDOWS),true)
 
 	# myriad_gui_backend may also be either not defined, or set to 'none':
 	GUI_OPTS = -Dmyriad_gui_backend=wxwindows \
-			   -Dmyriad_gui_skip_extra_repaints
+#			   -Dmyriad_gui_skip_extra_repaints
 
 	ERLANG_COMPILER_GENERAL_OPT += $(GUI_OPTS)
 
@@ -1497,12 +1500,13 @@ endif
 
 # 'BEAM_PATH_OPT = --beam-paths $(BEAM_DIRS)' would be shorter, but would
 # prevent adding other options to the launcher afterwards:
-# (now we use absolute directories - thanks to 'pwd' - instead of relative ones,
-# as, otherwise, as soon as a process changes the current working directory, any
-# further loading of a user-defined module, for example if used then for the
-# first time, would fail).
 #
-BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $$(pwd)/$(dir)) \
+# (now we use absolute directories - thanks to 'realpath' - instead of relative
+# ones, as, otherwise, as soon as a process changes the current working
+# directory, any further loading of a user-defined module, for example if used
+# then for the first time, would fail)
+#
+BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $(shell realpath $(dir))) \
 				$(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
 
 
@@ -1660,6 +1664,12 @@ EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput
 # Erlang one, yet to be managed transparently for the user):
 #
 ALL_CMD_LINE_OPTIONS := $(EXEC_INTERNAL_OPTIONS) -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT)
+
+
+# Variation of ALL_CMD_LINE_OPTIONS allowing to remain on a shell (so: no
+# '-noinput'):
+#
+ALL_CMD_LINE_OPTIONS_FOR_SHELL := $(INTERNAL_OPTIONS) -start-verbatim-options -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT) --provide-shell
 
 
 ## Documentation section.

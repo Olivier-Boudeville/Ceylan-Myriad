@@ -67,8 +67,8 @@
 %
 -record( my_gui_state, {
 
-	% The main window of this test:
-	parent :: window(),
+	% The main frame of this test:
+	parent :: frame(),
 
 	% The OpenGL canvas on which rendering will be done:
 	canvas :: gl_canvas(),
@@ -106,7 +106,7 @@
 % Shorthands:
 
 %-type dimensions() :: gui:dimensions().
--type window() :: gui:window().
+-type frame() :: gui:frame().
 
 -type width() :: gui:width().
 -type height() :: gui:height().
@@ -238,7 +238,7 @@ gui_main_loop( GUIState ) ->
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
 		%
-		{ onResized, [ _ParentWindow, _NewParentSize, _EventContext ] } ->
+		{ onResized, [ _ParentFrame, _NewParentSize, _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Resizing of the parent window "
 			%   "(main frame) to ~w detected.", [ NewParentSize ] ),
@@ -262,10 +262,13 @@ gui_main_loop( GUIState ) ->
 		% The most suitable first location to initialise OpenGL, as making a GL
 		% context current requires a shown window:
 		%
-		{ onShown, [ ParentWindow, _EventContext ] } ->
+		{ onShown, [ ParentFrame, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
-				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
+				"(initial size of ~w).", [ gui:get_size( ParentFrame ) ] ),
+
+			% Optional yet better:
+			gui:unsubscribe_from_events( { onShown, ParentFrame } ),
 
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
@@ -273,12 +276,12 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( InitGUIState );
 
 
-		{ onWindowClosed, [ ParentWindow, _EventContext ] } ->
+		{ onWindowClosed, [ ParentFrame, _EventContext ] } ->
 			cleanup_opengl( GUIState ),
 			trace_utils:info( "Main frame closed, test success." ),
 
 			% No more recursing:
-			gui:destruct_window( ParentWindow );
+			gui:destruct_frame( ParentFrame );
 
 
 		OtherEvent ->
@@ -307,11 +310,27 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
 
 	% So done only once:
-	gui_opengl:set_context( GLCanvas, GLContext ),
+	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
 	% First possible moment:
 	test_facilities:display( "Description of the current OpenGL support: ~ts",
 							 [ gui_opengl:get_support_description() ] ),
+
+	% These test shaders are in 3.3 core (cf. their '#version 330 core'):
+	MinOpenGLVersion = { 3, 3 },
+	%MinOpenGLVersion = { 4, 6 },
+	%MinOpenGLVersion = { 99, 0 },
+
+	TargetProfile = core,
+	%TargetProfile = non_existing_profile,
+
+	%RequiredExts = [ non_existing_extension ],
+	%RequiredExts = [ 'GL_ARB_draw_buffers' ],
+	RequiredExts = [],
+
+	gui_opengl:check_requirements( MinOpenGLVersion, TargetProfile,
+								   RequiredExts ),
+
 
 	% These settings will not change afterwards here (set once for all):
 
@@ -391,6 +410,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
 
+	% Lower-left corner and size of the viewport in the current window:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% Apparently, at least on a test setting, a race condition (discovered

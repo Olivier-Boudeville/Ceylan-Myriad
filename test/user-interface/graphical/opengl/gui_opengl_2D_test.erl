@@ -279,7 +279,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
 
 	% So done only once:
-	gui_opengl:set_context( GLCanvas, GLContext ),
+	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
 	% These settings will not change afterwards here (set once for all):
 
@@ -312,6 +312,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
 
+	% Lower-left corner and size of the viewport in the current window:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% Apparently, at least on a test setting, a race condition (discovered

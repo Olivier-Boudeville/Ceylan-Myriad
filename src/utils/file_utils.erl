@@ -131,9 +131,20 @@
 		  get_image_extensions/0, get_image_file_png/1, get_image_file_gif/1 ]).
 
 
+% OS / project / application specific paths:
+-export([ get_cache_directory/1,
+
+		  get_configuration_directory/1, get_extra_configuration_directories/1,
+
+		  get_data_directory/1, get_extra_data_directories/1,
+
+		  get_log_directory/1 ]).
+
+
 
 % I/O section.
 -export([ get_default_encoding/0, get_default_encoding_option/0,
+		  latin1_file_to_unicode/1,
 		  open/2, open/3, close/1, close/2,
 		  read/2, write/2, write_ustring/2, write_ustring/3,
 		  read_whole/1, write_whole/2, write_whole/3,
@@ -160,6 +171,9 @@
 
 % For default_encoding*:
 -include("system_utils.hrl").
+
+% For the app_info record:
+-include("app_facilities.hrl").
 
 
 
@@ -381,6 +395,8 @@
 -type any_string() :: text_utils:any_string().
 
 -type format_string() :: text_utils:format_string().
+
+-type any_app_info() :: app_facilities:any_app_info().
 
 
 -define( default_read_ahead_size, 2000 ).
@@ -1914,7 +1930,8 @@ has_matching_suffix( Path, [ Suffix | T ] ) ->
 % Excluded directories are all promoted to binary strings at first, so that no
 % upcoming lists:member(D, ExcludedDirs) can fail if ever D happens to be a
 % binary (because of a 'raw directory').
-
+%
+% See also filelib:wildcard/1.
 
 
 % @doc Returns a list of all files (regular ones and symlinks) found from the
@@ -4220,6 +4237,93 @@ get_image_file_gif( Image ) ->
 
 
 
+% Section for OS / project / application specific paths.
+%
+% See also: app_facilities:get_app_info/3 to obtain a relevant app_info record.
+
+
+
+% @doc Returns the path location intended for the storage of transient data
+% files that the specified application may perform on the local machine, that is
+% any cache that it may use.
+%
+-spec get_cache_directory( any_app_info() ) -> directory_path().
+get_cache_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_cache_directory( AppInfoMap );
+
+get_cache_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_cache, BinAppName, _Opts=AppInfoMap ).
+
+
+
+% @doc Returns the path location intended for the storage of persistent
+% configuration files that the specified application may perform on the local
+% machine.
+%
+-spec get_configuration_directory( any_app_info() ) -> directory_path().
+get_configuration_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_configuration_directory( AppInfoMap );
+
+get_configuration_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_config, BinAppName, _Opts=AppInfoMap ).
+
+
+% @doc Returns the extra path locations intended for the storage of persistent
+% configuration files that the specified application may perform on the local
+% machine.
+%
+-spec get_extra_configuration_directories( any_app_info() ) ->
+												[ directory_path() ].
+get_extra_configuration_directories( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_extra_configuration_directories( AppInfoMap );
+
+get_extra_configuration_directories( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=site_config, BinAppName, _Opts=AppInfoMap ).
+
+
+
+% @doc Returns the path location intended for the storage of persistent data
+% files that the specified application may perform on the local machine.
+%
+-spec get_data_directory( any_app_info() ) -> directory_path().
+get_data_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_data_directory( AppInfoMap );
+
+get_data_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_data, BinAppName, _Opts=AppInfoMap ).
+
+
+
+% @doc Returns the extra path locations intended for the storage of persistent
+% data files that the specified application may perform on the local machine.
+%
+-spec get_extra_data_directories( any_app_info() ) ->
+												[ directory_path() ].
+get_extra_data_directories( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_extra_data_directories( AppInfoMap );
+
+get_extra_data_directories( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=site_data, BinAppName, _Opts=AppInfoMap ).
+
+
+
+
+% @doc Returns the path location intended for the storage of transient log files
+% that the specified application may perform on the local machine.
+%
+-spec get_log_directory( any_app_info() ) -> directory_path().
+get_log_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_log_directory( AppInfoMap );
+
+get_log_directory( AppInfoMap=#{ name := BinAppName } ) ->
+	filename:basedir( _PathType=user_log, BinAppName, _Opts=AppInfoMap ).
+
 
 % I/O section.
 
@@ -4249,10 +4353,24 @@ get_default_encoding_option() ->
 
 
 
+% @doc Converts in-place the specified file, whose current encoding is expected
+% to be Latin1, to Unicode.
+%
+-spec latin1_file_to_unicode( any_file_path() ) -> void().
+latin1_file_to_unicode( AnyFilePath ) ->
 
-% @doc Opens the file corresponding to the specified filename, with specified
-% list of options (as listed for file:open/2 in
-% [http://erlang.org/doc/man/file.html#open-2], that is read, write, append,
+	{ ok, Latin1Content } = file:read_file( AnyFilePath ),
+
+	Utf8Content = unicode:characters_to_binary( Latin1Content, _From=latin1,
+												_To=utf8 ),
+
+	ok = file:write_file( AnyFilePath, Utf8Content ).
+
+
+
+% @doc Opens the file corresponding to the specified path, with specified list
+% of options (as listed for file:open/2 in
+% [http://erlang.org/doc/man/file.html#open-2], that is: read, write, append,
 % exclusive, raw, etc).
 %
 % See read_terms/1 if planning to read that content as terms later, notably with
@@ -4285,13 +4403,13 @@ get_default_encoding_option() ->
 % specified encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC
 % 8859 being written).
 %
--spec open( any_file_name(), [ file_open_mode() ] ) -> file().
-open( Filename, Options ) ->
-	open( Filename, Options, _Default=try_once ).
+-spec open( any_file_path(), [ file_open_mode() ] ) -> file().
+open( AnyFilePath, Options ) ->
+	open( AnyFilePath, Options, _Default=try_once ).
 
 
 
-% @doc Opens the file corresponding to specified filename (first parameter) with
+% @doc Opens the file corresponding to specified path (first parameter) with
 % specified list of options (second parameter; refer to file:open/2 for detailed
 % documentation, see [http://erlang.org/doc/man/file.html#open-2]).
 %
@@ -4330,14 +4448,14 @@ open( Filename, Options ) ->
 % specified encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC
 % 8859 being written).
 %
--spec open( any_file_name(), [ file_open_mode() ],
+-spec open( any_file_path(), [ file_open_mode() ],
 			'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
-open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
+open( AnyFilePath, Options, _AttemptMode=try_endlessly_safer ) ->
 
 	%trace_utils:debug_fmt( "Opening '~ts' endlessly yet safe, "
 	%   "with options ~w.", [ Filename, Options ] ),
 
-	File = open( Filename, Options, try_endlessly ),
+	File = open( AnyFilePath, Options, try_endlessly ),
 
 	% We could check here that at least one descriptor remains, by adding a
 	% dummy file open/close and catching emfile, however one could need more
@@ -4351,12 +4469,12 @@ open( Filename, Options, _AttemptMode=try_endlessly_safer ) ->
 	File;
 
 
-open( Filename, Options, _AttemptMode=try_endlessly ) ->
+open( AnyFilePath, Options, _AttemptMode=try_endlessly ) ->
 
 	%trace_utils:debug_fmt( "Opening '~ts' endlessly, with options ~w.",
-	%					   [ Filename, Options ] ),
+	%					   [ AnyFilePath, Options ] ),
 
-	case file:open( Filename, Options ) of
+	case file:open( AnyFilePath, Options ) of
 
 		{ ok, File } ->
 			 File;
@@ -4378,53 +4496,61 @@ open( Filename, Options, _AttemptMode=try_endlessly ) ->
 
 			after Duration ->
 
-				open( Filename, Options, try_endlessly )
+				open( AnyFilePath, Options, try_endlessly )
 
 			end;
 
 		{ error, eacces } ->
-			throw( { open_failed, { Filename, Options }, access_denied,
-					 get_access_denied_info( Filename ) } );
+			throw( { open_failed,
+					 { text_utils:ensure_string( AnyFilePath ), Options },
+					 access_denied, get_access_denied_info( AnyFilePath ) } );
 
 		{ error, OtherFileError } ->
-			throw( { open_failed, { Filename, Options }, OtherFileError } )
+			throw( { open_failed,
+					 { text_utils:ensure_string( AnyFilePath ), Options },
+					 OtherFileError } )
 
 	end;
 
 
 % By far the most commonly-used clause:
-open( Filename, Options, _AttemptMode=try_once ) ->
+open( AnyFilePath, Options, _AttemptMode=try_once ) ->
 
 	%trace_utils:debug_fmt( "Opening '~ts' once, with the ~w options, "
-	%   "from '~ts'.", [ Filename, Options, get_current_directory() ] ),
+	%   "from '~ts'.", [ AnyFilePath, Options, get_current_directory() ] ),
 
-	case file:open( Filename, Options ) of
+	case file:open( AnyFilePath, Options ) of
 
 		{ ok, File } ->
 			 File;
 
 		{ error, eacces } ->
-			throw( { open_failed, { Filename, Options }, access_denied,
-					 get_access_denied_info( Filename ) } );
+			throw( { open_failed,
+					 { text_utils:ensure_string( AnyFilePath ), Options },
+					 access_denied, get_access_denied_info( AnyFilePath ) } );
 
 		{ error, emfile } ->
-			throw( { too_many_open_files, { Filename, Options } } );
+			throw( { too_many_open_files,
+					 { text_utils:ensure_string( AnyFilePath ), Options } } );
 
 		{ error, system_limit } ->
 			% Never had system_limit without this cause (yet!):
-			throw( { too_many_open_files, { Filename, Options },
+			throw( { too_many_open_files,
+					 { text_utils:ensure_string( AnyFilePath ), Options },
 					 system_limit } );
 
 		{ error, OtherError } ->
-			throw( { open_failed, { Filename, Options }, OtherError } )
+			throw( { open_failed,
+					 { text_utils:ensure_string( AnyFilePath ), Options },
+					 OtherError } )
 
 	end.
 
 
 % (helper)
-get_access_denied_info( Filename ) ->
+get_access_denied_info( AnyFilePath ) ->
 
-	Dir = filename:dirname( Filename ),
+	Dir = filename:dirname( AnyFilePath ),
 
 	case is_existing_directory( Dir ) of
 
@@ -4432,12 +4558,12 @@ get_access_denied_info( Filename ) ->
 			UserInfo = { actual_user, system_utils:get_user_name_safe(),
 						 { user_id, system_utils:get_user_id() } },
 
-			FileInfo = case is_existing_file_or_link( Filename ) of
+			FileInfo = case is_existing_file_or_link( AnyFilePath ) of
 
 				true ->
-					{ existing_file, { owner_id, get_owner_of( Filename ) },
-					  { group_id, get_group_of( Filename ) },
-					  { permissions, get_permissions_of( Filename ) } };
+					{ existing_file, { owner_id, get_owner_of( AnyFilePath ) },
+					  { group_id, get_group_of( AnyFilePath ) },
+					  { permissions, get_permissions_of( AnyFilePath ) } };
 
 				false ->
 					non_existing_file
@@ -4676,23 +4802,23 @@ read_lines( File, FilePath, Acc ) ->
 
 
 
-% @doc Writes the specified content in specified file, whose filename is
-% specified as any kind of string, using a default encoding if a plain string is
+% @doc Writes the specified content in specified file, whose path is specified
+% as any kind of string, using a default encoding if a plain string is
 % specified.
 %
 % Note that specifying a binary allows to avoid any potential unwanted encoding.
 %
 % Throws an exception on failure.
 %
--spec write_whole( any_file_name(), ustring() | binary() ) -> void().
-write_whole( Filename, Content ) ->
-	write_whole( Filename, Content, _Modes=[] ).
+-spec write_whole( any_file_path(), ustring() | binary() ) -> void().
+write_whole( AnyFilePath, Content ) ->
+	write_whole( AnyFilePath, Content, _Modes=[] ).
 
 
 
-% @doc Writes the specified content in specified file, whose filename is
-% specified as any kind of string, using the specified modes options, and
-% applying before a default encoding if a plain string is specified.
+% @doc Writes the specified content in specified file, whose path is specified
+% as any kind of string, using the specified modes options, and applying before
+% a default encoding if a plain string is specified.
 %
 % Note that no transparent encoding-to-file is thus expected to be specified
 % through modes, as this function already performs (through
@@ -4702,47 +4828,52 @@ write_whole( Filename, Content ) ->
 %
 % Throws an exception on failure.
 %
--spec write_whole( any_file_name(), ustring() | binary(), [ file:mode() ] ) ->
+-spec write_whole( any_file_path(), ustring() | binary(), [ file:mode() ] ) ->
 														void().
-write_whole( Filename, StringContent, Modes ) when is_list( StringContent ) ->
+write_whole( AnyFilePath, StringContent, Modes )
+								when is_list( StringContent ) ->
 
 	% Warning, implies performing an encoding (typically based on
 	% unicode:characters_to_binary/1):
 	%
-	write_whole( Filename, text_utils:string_to_binary( StringContent ),
+	write_whole( AnyFilePath, text_utils:string_to_binary( StringContent ),
 				 Modes );
 
-write_whole( Filename, BinaryContent, Modes ) ->
+write_whole( AnyFilePath, BinaryContent, Modes ) ->
 
 	%trace_utils:debug_fmt( "Writing to '~ts', with modes ~p, "
-	%   "following content:~n~ts", [ Filename, Modes, BinaryContent ] ),
+	%   "following content:~n~ts", [ , Modes, BinaryContent ] ),
 
 	% 'write' and 'binary' are implicit here; if relevant BinaryContent must be
 	% correctly Unicode-encoded:
 	%
-	case file:write_file( Filename, BinaryContent, Modes ) of
+	case file:write_file( AnyFilePath, BinaryContent, Modes ) of
 
 		ok ->
 			% Useless, paranoid checking:
-			%case is_existing_file( Filename ) of
+			%case is_existing_file( AnyFilePath ) of
 			%
-			%	true ->
-			%		trace_utils:debug_fmt( "'~ts' written as a whole.",
-			%							   [ Filename ] ),
-			%		ok;
+			%   true ->
+			%       trace_utils:debug_fmt( "'~ts' written as a whole.",
+			%                              [ AnyFilePath ] ),
+			%       ok;
 			%
-			%	false ->
-			%		throw( { write_whole_failed, Filename, no_file } )
+			%   false ->
+			%       throw( { write_whole_failed,
+			%            text_utils:ensure_string( AnyFilePath ), no_file } )
 			%
 			%end;
 			ok;
 
 		{ error, eacces } ->
-			throw( { write_whole_failed, { Filename, Modes }, access_denied,
-					 get_access_denied_info( Filename ) } );
+			throw( { write_whole_failed,
+					 { text_utils:ensure_string( AnyFilePath ), Modes },
+					 access_denied, get_access_denied_info( AnyFilePath ) } );
 
 		{ error, Error } ->
-			throw( { write_whole_failed, { Filename, Modes }, Error } )
+			throw( { write_whole_failed,
+					 { text_utils:ensure_string( AnyFilePath ), Modes },
+					 Error } )
 
 	end.
 
@@ -4765,9 +4896,9 @@ write_whole( Filename, BinaryContent, Modes ) ->
 %
 % Throws an exception on error.
 %
--spec read_etf_file( file_path() ) -> [ term() ].
-read_etf_file( Filename ) ->
-	read_terms( Filename ).
+-spec read_etf_file( any_file_path() ) -> [ term() ].
+read_etf_file( AnyFilePath ) ->
+	read_terms( AnyFilePath ).
 
 
 
@@ -4788,26 +4919,31 @@ read_etf_file( Filename ) ->
 %
 % Throws an exception on error.
 %
--spec read_terms( file_path() ) -> [ term() ].
-read_terms( Filename ) ->
+-spec read_terms( any_file_path() ) -> [ term() ].
+read_terms( AnyFilePath ) ->
 
-	case file:consult( Filename ) of
+	case file:consult( AnyFilePath ) of
 
 		{ ok, Terms } ->
 			Terms;
 
 		{ error, eacces }  ->
-			throw( { reading_failed, text_utils:ensure_string( Filename ),
-					 access_denied, get_access_denied_info( Filename ) } );
+			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
+					 access_denied, get_access_denied_info( AnyFilePath ) } );
+
+		{ error, { _, file_io_server, invalid_unicode } } ->
+			% See also latin1_file_to_unicode/1:
+			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
+					 not_unicode } );
 
 		{ error, Error } when is_atom( Error ) ->
-			throw( { reading_failed, text_utils:ensure_string( Filename ),
+			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
 					 Error } );
 
 		{ error, Error={ Line, Module, Term } } ->
 			Reason = file:format_error( Error ),
 			throw( { interpretation_failed,
-					 text_utils:ensure_string( Filename ), { line, Line },
+					 text_utils:ensure_string( AnyFilePath ), { line, Line },
 					 { module, Module }, { term, Term }, Reason } )
 
 	end.
@@ -4821,9 +4957,9 @@ read_terms( Filename ) ->
 %
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
--spec write_etf_file( [ term() ], file_path() ) -> void().
-write_etf_file( Terms, Filename ) ->
-	write_terms( Terms, Filename ).
+-spec write_etf_file( [ term() ], any_file_path() ) -> void().
+write_etf_file( Terms, AnyFilePath ) ->
+	write_terms( Terms, AnyFilePath ).
 
 
 
@@ -4834,9 +4970,9 @@ write_etf_file( Terms, Filename ) ->
 %
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
--spec write_terms( [ term() ], file_path() ) -> void().
-write_terms( Terms, Filename ) ->
-	write_terms( Terms, _Header=undefined, _Footer=undefined, Filename ).
+-spec write_terms( [ term() ], any_file_path() ) -> void().
+write_terms( Terms, AnyFilePath ) ->
+	write_terms( Terms, _Header=undefined, _Footer=undefined, AnyFilePath ).
 
 
 
@@ -4860,10 +4996,10 @@ write_etf_file( Terms, Header, Footer, Filename ) ->
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
 -spec write_terms( [ term() ], maybe( ustring() ), maybe( ustring() ),
-				   file_path() ) -> void().
-write_terms( Terms, Header, Footer, Filename ) ->
+				   any_file_path() ) -> void().
+write_terms( Terms, Header, Footer, AnyFilePath ) ->
 
-	F = open( Filename, _Opts=[ write, raw, delayed_write ] ),
+	F = open( AnyFilePath, _Opts=[ write, raw, delayed_write ] ),
 
 	case Header of
 
@@ -4875,7 +5011,7 @@ write_terms( Terms, Header, Footer, Filename ) ->
 
 	end,
 
-	write_direct_terms( Terms, F ),
+	write_direct_terms( F, Terms ),
 
 	case Footer of
 
@@ -4900,6 +5036,7 @@ write_terms( Terms, Header, Footer, Filename ) ->
 %
 -spec write_direct_terms( file(), [ term() ] ) -> void().
 write_direct_terms( File, Terms ) ->
+	%trace_utils:debug_fmt( "Writing direct terms ~p.", [ Terms ] ),
 	[ write_ustring( File, "~p.~n", [ T ] ) || T <- Terms ].
 
 

@@ -56,7 +56,10 @@
 		  display_error/1, display_error/2,
 		  throw_diagnosed/1, throw_diagnosed/2,
 		  debug/1, debug/2,
+
+		  % See also text_utils:version_to_string/1:
 		  parse_version/1, check_version/1, compare_versions/2,
+
 		  get_unix_process_specific_string/0,
 		  get_process_specific_value/0, get_process_specific_value/1,
 		  get_process_specific_value/2,
@@ -1502,9 +1505,9 @@ check_version( T ) ->
 
 
 
-% @doc Compares the two pairs, triplets or quadruplets, which describe two
-% version numbers (ex: {0,1,0} and {0,1,7}) and returns either first_bigger,
-% second_bigger, or equal.
+% @doc Compares the two pairs, triplets or quadruplets (expected to be of the
+% same size), which describe two version numbers (ex: {0,1,0} and {0,1,7}) and
+% returns either first_bigger, second_bigger, or equal.
 %
 % The two compared versions must have the same number of digits.
 %
