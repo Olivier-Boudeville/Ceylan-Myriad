@@ -756,7 +756,7 @@ notify_pending_messages() ->
 
 
 
-% @doc Ensures that no message is pending in the mailbox of this process
+% @doc Ensures that no message is pending in the mailbox of this process.
 %
 % Does not block.
 %
@@ -789,7 +789,7 @@ wait_for( _Message, _Count=0 ) ->
 wait_for( Message, Count ) ->
 
 	%trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
-	%                      [ Count, Message ] ),
+	%                       [ Count, Message ] ),
 	receive
 
 		Message ->

@@ -139,7 +139,7 @@ register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
 		error:badarg ->
 
-			case is_registered( Name, local ) of
+			case is_registered( Name, _Scope=local ) of
 
 				% No more information obtained:
 				not_registered ->

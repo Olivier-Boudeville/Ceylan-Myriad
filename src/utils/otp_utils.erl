@@ -1074,6 +1074,16 @@ stop_application( AppName ) ->
 			?info_fmt( "OTP Application '~ts' successfully stopped.",
 					   [ AppName ] );
 
+		{ error, { not_started, AppName } } ->
+
+			% This is not even a warning, as a given prerequisite application
+			% (ex: 'ssl') may be used by multiple applications that, when they
+			% will stop, cannot each succeed in stopping that single
+			% prerequisitea application.
+
+			?info_fmt( "The OTP application '~ts' was already stopped.",
+					   [ AppName ] );
+
 		{ error, Reason } ->
 
 			trace_bridge:error_fmt( "Application '~ts' failed to stop: ~p",
