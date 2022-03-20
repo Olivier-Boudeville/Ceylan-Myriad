@@ -248,7 +248,7 @@ remove_entries( Keys, Table ) ->
 % {value, Value}, with Value being the value associated to the specified key.
 %
 -spec lookup_entry( key(), list_table() ) ->
-							'key_not_found' | { 'value', value() }.
+								'key_not_found' | { 'value', value() }.
 lookup_entry( Key, Table ) ->
 
 	case lists:keyfind( Key, _N=1, Table ) of
@@ -288,6 +288,8 @@ get_value( Key, Table ) ->
 
 		false ->
 			% Badmatches are not informative enough:
+			trace_utils:error_fmt( "No key '~p' found in following table "
+				"(process: ~w): ~ts", [ Key, self(), to_string( Table ) ] ),
 			throw( { key_not_found, Key } )
 
 	end.
@@ -443,14 +445,14 @@ get_values( Keys, Table ) ->
 get_all_values( Keys, Table ) ->
 
 	case lists:foldl(
-		   fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
+			fun( _Elem=Key, _Acc={ Values, AccTable } ) ->
 
 				{ Value, ShrunkTable } = extract_entry( Key, AccTable ),
 				{ [ Value | Values ], ShrunkTable }
 
-		   end,
-		   _Acc0={ [], Table },
-		   _List=Keys ) of
+			end,
+			_Acc0={ [], Table },
+			_List=Keys ) of
 
 		{ RevValues, _FinalTable=[] } ->
 			lists:reverse( RevValues );
@@ -477,7 +479,7 @@ get_all_values( Keys, Table ) ->
 % One may request the returned table to be optimised after this call.
 %
 -spec map_on_entries( fun( ( entry() ) -> entry() ), list_table() ) ->
-							list_table().
+										list_table().
 map_on_entries( Fun, Table ) ->
 	[ Fun( E ) || E <- Table ].
 
@@ -536,8 +538,8 @@ add_to_entry( Key, Number, Table ) ->
 
 
 
-% @doc Subtracts specified number from the value, supposed to be numerical,
-% associated to specified key.
+% @doc Subtracts the specified number from the value, supposed to be numerical,
+% associated to the specified key.
 %
 % An exception is thrown if the key does not exist, a bad arithm is triggered if
 % no subtraction can be performed on the associated value.

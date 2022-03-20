@@ -345,20 +345,20 @@ clean-include-links:
 ifeq ($(BASE_MAKEFILE),true)
 
 # For a better compliance to OTP conventions, copies the BEAM files of this
-# layer into its ebin directory:
+# layer (only) into its ebin directory:
 #
 copy-beams-to-ebin:
 	@echo "  Copying BEAM files to local ebin ($$(pwd)/ebin)"
 	@mkdir -p ebin; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
 
 
-# For a layer and its direct dependencies (here: none):
-#
-# (we recommend that upper layers define in their root GNUmakefile a
-# 'copy-deps-beams-to-ebin' target induced by this target in order to populate
-# all ebin directories in turn)
+# For a layer and its (potentially multiple) direct dependencies (for Myriad:
+# none), knowing that this may lead in case of diamond-shaped dependencies to
+# trigger this operation more than once for a given layer (not a problem as not
+# demanding and idempotent):
 #
 copy-all-beams-to-ebins: copy-beams-to-ebin
+	@if [ -n "$(PREDECESSOR_LAYER_TOPS)" ]; then for d in $(PREDECESSOR_LAYER_TOPS); do (cd $$d && $(MAKE) -s copy-all-beams-to-ebins); done; fi
 
 
 

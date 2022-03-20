@@ -137,6 +137,7 @@ info-versions:
 
 info-paths:
 	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
+	@echo "PREDECESSOR_LAYER_TOP = $(PREDECESSOR_LAYER_TOP)"
 
 
 

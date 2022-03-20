@@ -2703,14 +2703,14 @@ list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 
 
 
-% @doc Creates specified directory ("mkdir"), without creating any intermediate
-% (parent) directory that would not exist.
+% @doc Creates the specified directory ("mkdir"), without creating any
+% intermediate (parent) directory that would not exist.
 %
 % Throws an exception if the operation failed.
 %
--spec create_directory( directory_name() ) -> void().
-create_directory( DirName ) ->
-	create_directory( DirName, create_no_parent ).
+-spec create_directory( any_directory_path() ) -> void().
+create_directory( AnyDirPath ) ->
+	create_directory( AnyDirPath, create_no_parent ).
 
 
 
@@ -2725,21 +2725,22 @@ create_directory( DirName ) ->
 % Throws an exception if the operation fails, for example if the directory is
 % already existing ({create_directory_failed, "foobar", eexist}).
 %
--spec create_directory( directory_name(), parent_creation() ) -> void().
-create_directory( DirName, create_no_parent ) ->
+-spec create_directory( any_directory_path(), parent_creation() ) -> void().
+create_directory( AnyDirPath, create_no_parent ) ->
 
-	case file:make_dir( DirName ) of
+	case file:make_dir( AnyDirPath ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
-			throw( { create_directory_failed, DirName, Reason } )
+			throw( { create_directory_failed, AnyDirPath, Reason } )
 
 	end;
 
-create_directory( DirName, create_parents ) ->
-	create_dir_elem( filename:split( DirName ), "" ).
+create_directory( AnyDirPath, create_parents ) ->
+	DirPath = text_utils:ensure_string( AnyDirPath ),
+	create_dir_elem( filename:split( DirPath ),  _Prefix="" ).
 
 
 
@@ -2764,32 +2765,33 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 
 
 
-% @doc Creates specified directory (but not any parent thereof), if not already
-% existing.
+% @doc Creates the specified directory (but not any parent thereof), if not
+% already existing.
 %
 % Throws an exception if the operation fails.
 %
--spec create_directory_if_not_existing( directory_name() ) -> void().
-create_directory_if_not_existing( DirName ) ->
-	create_directory_if_not_existing( DirName, create_no_parent ).
+-spec create_directory_if_not_existing( any_directory_path() ) -> void().
+create_directory_if_not_existing( AnyDirPath ) ->
+	create_directory_if_not_existing( AnyDirPath, create_no_parent ).
 
 
-% @doc Creates specified directory (and, if specified, any needed parent as
+
+% @doc Creates the specified directory (and, if specified, any needed parent as
 % well), if not already existing.
 %
 % Throws an exception if the operation fails.
 %
--spec create_directory_if_not_existing( directory_name(),
+-spec create_directory_if_not_existing( any_directory_path(),
 										parent_creation() ) -> void().
-create_directory_if_not_existing( DirName, ParentCreation ) ->
+create_directory_if_not_existing( AnyDirPath, ParentCreation ) ->
 
-	case is_existing_directory( DirName ) of
+	case is_existing_directory( AnyDirPath ) of
 
 		true ->
 			ok;
 
 		false ->
-			create_directory( DirName, ParentCreation )
+			create_directory( AnyDirPath, ParentCreation )
 
 	end.
 
@@ -2800,7 +2802,7 @@ create_directory_if_not_existing( DirName, ParentCreation ) ->
 %
 % See also: system_utils:get_default_temporary_directory/0
 %
--spec create_temporary_directory() -> directory_name().
+-spec create_temporary_directory() -> directory_path().
 create_temporary_directory() ->
 
 	TmpDir = join( [ system_utils:get_default_temporary_directory(),

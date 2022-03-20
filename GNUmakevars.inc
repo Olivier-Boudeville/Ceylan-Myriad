@@ -1506,8 +1506,7 @@ endif
 # directory, any further loading of a user-defined module, for example if used
 # then for the first time, would fail)
 #
-BEAM_PATH_OPT = $(foreach dir,$(BEAM_DIRS),--beam-dir $(shell realpath $(dir))) \
-				$(foreach dir,$(ABS_BEAM_DIRS),--beam-dir $(dir))
+BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Error, the '$${d}' BEAM directory does not exist; no BEAM directory set." 1>&2 ; exit 55 ; fi; done)
 
 
 OVERALL_PZ_OPT = $(foreach dir,$(BEAM_DIRS),-pz $(dir))
@@ -1915,3 +1914,10 @@ MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh
 
 
 # Not depending on any lower-level package.
+
+# Defining the top directory of the predecessor layer allows to write generic
+# rules (not depending on its actual name) able to automatically descend the
+# layer stack (ex: to copy their respective BEAM files in their respective ebin)
+# without defining specific make targets at each layer:
+
+#PREDECESSOR_LAYER_TOP :=

@@ -149,9 +149,11 @@
 
 
 % Shorthands:
+
 -type void() :: basic_utils:void().
 -type accumulator() :: basic_utils:accumulator().
 -type ustring() :: text_utils:ustring().
+
 
 
 % @doc Returns an empty, map-based hashtable.
@@ -549,8 +551,9 @@ get_value( Key, MapHashtable ) ->
 	catch
 
 		error:{ badkey, _K } ->
-			trace_utils:error_fmt( "No key '~p' found in following table: ~ts",
-								   [ Key, to_string( MapHashtable ) ] ),
+			trace_utils:error_fmt( "No key '~p' found in following table "
+				"(process: ~w): ~ts",
+				[ Key, self(), to_string( MapHashtable ) ] ),
 			throw( { key_not_found, Key } )
 
 	end.
@@ -789,7 +792,7 @@ map_on_values( Fun, MapHashtable ) ->
 
 	% Still not maps:map/2, whose fun takes an entry, not just a value:
 	NewEntries = [ { K, Fun( V ) }
-					|| { K, V } <- maps:to_list( MapHashtable ) ],
+						|| { K, V } <- maps:to_list( MapHashtable ) ],
 
 	maps:from_list( NewEntries ).
 
@@ -872,10 +875,10 @@ add_to_entry( Key, Value, MapHashtable ) ->
 -spec subtract_from_entry( key(), number(), map_hashtable() ) ->
 								map_hashtable().
 % subtract_from_entry( Key, Value, MapHashtable=#{ Key => BaseValue } ) ->
-%	MapHashtable#{ Key => BaseValue - Value };
+%   MapHashtable#{ Key => BaseValue - Value };
 %
 % subtract_from_entry( _Key, _Value, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%   throw( { key_not_found, Key } ).
 %
 subtract_from_entry( Key, Value, MapHashtable ) ->
 
@@ -899,10 +902,10 @@ subtract_from_entry( Key, Value, MapHashtable ) ->
 %
 -spec toggle_entry( key(), map_hashtable() ) -> map_hashtable().
 % toggle_entry( Key, MapHashtable=#{ Key => true } ) ->
-%	MapHashtable#{ Key => false };
+%   MapHashtable#{ Key => false };
 %
 % toggle_entry( Key, MapHashtable=#{ Key => false } ) ->
-%	MapHashtable#{ Key => true }.
+%   MapHashtable#{ Key => true }.
 toggle_entry( Key, MapHashtable )->
 
 	case maps:get( Key, MapHashtable ) of
@@ -1070,7 +1073,7 @@ append_list_to_entry( Key, Elements, MapHashtable ) ->
 %
 -spec concat_to_entry( key(), list(), map_hashtable() ) -> map_hashtable().
 concat_to_entry( Key, ListToConcat, MapHashtable )
-  when is_list( ListToConcat ) ->
+										when is_list( ListToConcat ) ->
 
 	case lookup_entry( Key, MapHashtable ) of
 
@@ -1116,10 +1119,10 @@ concat_list_to_entries( KeyListValuePairs, MapHashtable )
 %
 -spec delete_from_entry( key(), term(), map_hashtable() ) -> map_hashtable().
 %delete_from_entry( Key, Element, MapHashtable=#{ Key => ListValue } ) ->
-%	MapHashtable#{ Key => lists:delete( Element, ListValue ) };
+%   MapHashtable#{ Key => lists:delete( Element, ListValue ) };
 %
 %delete_from_entry( Key, _Element, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%   throw( { key_not_found, Key } ).
 %
 delete_from_entry( Key, Element, MapHashtable ) ->
 
@@ -1152,10 +1155,10 @@ delete_existing_from_entry( Key, Element, MapHashtable ) ->
 %
 -spec pop_from_entry( key(), map_hashtable() ) -> { term(), map_hashtable() }.
 %pop_from_entry( Key, MapHashtable=#{ Key => [ H | T ] } ) ->
-%	{ H, MapHashtable#{ Key => T } };
+%   { H, MapHashtable#{ Key => T } };
 %
 %pop_from_entry( Key, _MapHashtable ) ->
-%	throw( { key_not_found, Key } ).
+%   throw( { key_not_found, Key } ).
 %
 pop_from_entry( Key, MapHashtable ) ->
 
@@ -1181,9 +1184,7 @@ enumerate( MapHashtable ) ->
 %
 -spec select_entries( [ key() ], map_hashtable() ) -> entries().
 select_entries( Keys, MapHashtable ) ->
-
 	SubMap = maps:with( Keys, MapHashtable ),
-
 	maps:to_list( SubMap ).
 
 
@@ -1212,10 +1213,10 @@ values( MapHashtable ) ->
 %
 -spec is_empty( map_hashtable() ) -> boolean().
 %is_empty( _MapHashtable=#{} ) ->
-%	true;
+%   true;
 %
 %is_empty( _MapHashtable ) ->
-%	false.
+%   false.
 %
 is_empty( MapHashtable ) when map_size( MapHashtable ) > 0 ->
 	false;
