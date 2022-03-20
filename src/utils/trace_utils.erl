@@ -157,7 +157,7 @@
 % Logger-related API (see
 % https://erlang.org/doc/apps/kernel/logger_chapter.html):
 %
--export([ set_handler/0, add_handler/0, log/2 ]).
+-export([ set_handler/0, add_handler/0, log/2, set_logger_format_max_depth/1 ]).
 
 
 % Handler id:
@@ -741,12 +741,13 @@ get_severity_for( Other ) ->
 
 
 
-% @doc Tells whether specified severity belongs to the error-like ones
+% @doc Tells whether the specified severity belongs to the error-like ones
 % (typically the ones that must never be missed).
 %
 -spec is_error_like( trace_severity() ) -> boolean().
 is_error_like( Severity ) ->
 	lists:member( Severity, [ warning, error, critical, alert, emergency ] ).
+
 
 
 
@@ -838,7 +839,7 @@ log( _LogEvent=#{ level := Level,
 				  msg := Msg }, _Config ) ->
 
 	%io:format( "### Logging following event:~n ~p~n(with config: ~p).~n",
-	%		   [ LogEvent, Config ] ),
+	%           [ LogEvent, Config ] ),
 
 	 TraceMsg = case Msg of
 
@@ -870,13 +871,27 @@ log( LogEvent, _Config ) ->
 
 
 
+% @doc Sets the logger maximum depth when formatting messages.
+%
+% This allows to limit the error logger output in crashes.
+%
+-spec set_logger_format_max_depth( text_utils:depth() ) -> void().
+set_logger_format_max_depth( Depth ) ->
+
+	application:set_env( kernel, error_logger_format_depth, Depth ),
+
+	% Force a reset so that the previous depth applies:
+	error_logger:tty( false ),
+	error_logger:tty( true ).
+
+
 
 
 % Helper section.
 
 
 
-% @doc Displays specified message.
+% @doc Displays the specified message.
 %
 % Note: adds a carriage-return/line-feed at the end of the message.
 %
@@ -892,7 +907,7 @@ severe_display( Message ) ->
 
 
 
-% @doc Displays specified format-based message.
+% @doc Displays the specified format-based message.
 %
 % Note: adds a carriage-return/line-feed at the end of the message.
 %
@@ -905,7 +920,7 @@ severe_display( Format, Values ) ->
 
 
 
-% @doc Displays specified message.
+% @doc Displays the specified message.
 %
 % Note: adds a carriage-return/line-feed at the end of the message.
 %
@@ -922,7 +937,7 @@ actual_display( Message ) ->
 
 
 
-% @doc Displays specified format-based message.
+% @doc Displays the specified format-based message.
 %
 % Note: adds a carriage-return/line-feed at the end of the message.
 %
