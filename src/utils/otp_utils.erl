@@ -65,6 +65,9 @@
 -type supervisor_pid() :: pid().
 % The PID of an OTP supervisor.
 
+-type worker_pid() :: pid().
+% The PID of an OTP worker, managed by a supervisor.
+
 
 -type application_run_context() ::
 		% If using Ceylan native build/run system:
@@ -75,7 +78,8 @@
 
 
 -export_type([ application_name/0, string_application_name/0,
-			   any_application_name/0, restart_type/0, supervisor_pid/0,
+			   any_application_name/0, restart_type/0,
+			   supervisor_pid/0, worker_pid/0,
 			   application_run_context/0 ]).
 
 
@@ -89,6 +93,7 @@
 		  stop_application/1, stop_applications/1, stop_user_applications/1,
 
 		  get_supervisor_settings/2, get_restart_setting/1,
+		  get_maximum_shutdown_duration/1,
 
 		  check_application_run_context/1, application_run_context_to_string/1,
 
@@ -115,6 +120,7 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type milliseconds() :: unit_utils:milliseconds().
 
 -type app_spec() :: list_table:list_table().
 % Entries corresponding to the application specifications (see
@@ -1180,6 +1186,19 @@ get_restart_setting( _ExecutionTarget=development ) ->
 get_restart_setting( _ExecutionTarget=production ) ->
 	% In production, as reliable as possible:
 	_AlwaysRestarted=permanent.
+
+
+
+% @doc Returns a default, reasonable shutdown maximum duration to be used by a
+% supervisor for its basic OTP workers, depending on the specified execution
+% target.
+%
+-spec get_maximum_shutdown_duration( execution_target() ) -> milliseconds().
+get_maximum_shutdown_duration( _ExecutionTarget=development ) ->
+	2000;
+
+get_maximum_shutdown_duration( _ExecutionTarget=production ) ->
+	10000.
 
 
 

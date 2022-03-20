@@ -755,7 +755,7 @@ rebar3-populate-build-tree:
 # We generate a .app file and place it both in the OTP build tree (by default:
 # _build/lib/...) and in an ebin directory directly at the GIT root, as it is
 # expected when having specified a GIT dependency with rebar, such as: {myriad,
-# {git, "git://github.com/Olivier-Boudeville/Ceylan-Myriad"} }
+# {git, "https://github.com/Olivier-Boudeville/Ceylan-Myriad.git"} }
 #
 # For the listed modules, this target removes paths, extension, replaces
 # newlines with commas, and removes the last one.
