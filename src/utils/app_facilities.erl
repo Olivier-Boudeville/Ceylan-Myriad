@@ -56,6 +56,7 @@
 
 -type ustring() :: text_utils:ustring().
 -type any_string() :: text_utils:any_string().
+-type string_like() :: text_utils:string_like().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -95,7 +96,7 @@ stop() ->
 % @doc Returns an application information corresponding to specified application
 % name and version.
 %
--spec get_app_info( any_string(), any_version() ) -> app_info().
+-spec get_app_info( string_like(), any_version() ) -> app_info().
 get_app_info( AppName, AppVersion ) ->
 	get_app_info( AppName, AppVersion, _MaybeAuthorDesc=undefined ).
 
@@ -103,7 +104,7 @@ get_app_info( AppName, AppVersion ) ->
 % @doc Returns an application information corresponding to specified application
 % name, version and possibly author description.
 %
--spec get_app_info( any_string(), any_version(),
+-spec get_app_info( string_like(), any_version(),
 					maybe( any_string() ) ) -> app_info().
 get_app_info( AppName, AppVersion, MaybeAuthorDesc )
 								when is_tuple( AppVersion ) ->
@@ -120,7 +121,17 @@ get_app_info( AppName, AppVersion, MaybeAuthorDesc )
 
 	{ OSFamily, OSName } = system_utils:get_operating_system_type(),
 
-	#app_info{ name=text_utils:ensure_binary( AppName ),
+	BinAppName = case is_atom( AppName ) of
+
+		true ->
+			text_utils:atom_to_binary( AppName );
+
+		false ->
+			text_utils:ensure_binary( AppName )
+
+	end,
+
+	#app_info{ name=BinAppName,
 			   version=AppVersion,
 			   author=MaybeBinAuthorDesc,
 			   os_family=OSFamily,
