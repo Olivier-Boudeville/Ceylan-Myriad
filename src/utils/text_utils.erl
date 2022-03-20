@@ -360,16 +360,14 @@
 
 -type float_option() ::
 
-		% At most Decimals number of digits past the decimal point:
-		{ 'decimals', 0..253 }
+	% At most Decimals number of digits past the decimal point:
+	{ 'decimals', 0..253 }
 
-		% Scientific notation with Decimals digits of precision:
-	  | { 'scientific', 0..249 }
+	% Scientific notation with Decimals digits of precision:
+  | { 'scientific', 0..249 }
 
-		% Trailing zeros at the end of the list are truncated (if using
-		% 'decimals'):
-		%
-	  | 'compact'.
+	% Trailing zeros at the end of the list are truncated (if using 'decimals'):
+  | 'compact'.
 % See [https://erlang.org/doc/man/erlang.html#float_to_list-2] for more
 % information.
 
