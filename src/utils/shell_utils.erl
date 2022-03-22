@@ -127,7 +127,7 @@
 %    '-bar' -> [ [ "a", "b" ], [ "c" ] ]
 %    '-width -> [ [ "15" ] ]
 %     ?no_option_key -> [ "some_value" ]
-%
+
 
 
 -type unique_argument_table() ::
