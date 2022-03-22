@@ -1506,7 +1506,7 @@ endif
 # directory, any further loading of a user-defined module, for example if used
 # then for the first time, would fail)
 #
-BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Error, the '$${d}' BEAM directory does not exist; no BEAM directory set." 1>&2 ; exit 55 ; fi; done)
+BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist, hence was not set in the code path." 1>&2 ; fi; done)
 
 
 OVERALL_PZ_OPT = $(foreach dir,$(BEAM_DIRS),-pz $(dir))
