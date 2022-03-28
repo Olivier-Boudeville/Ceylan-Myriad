@@ -115,7 +115,9 @@
 
 -export([ start/1, start/2, start_link/1, start_link/2,
 		  start_cached/2, start_link_cached/2,
-		  get_server/1,
+
+		  get_server/1, wait_available/1,
+
 		  get/2, get/3,
 		  set/2, set/3, set/4, set_cond/2, set_cond/3, set_cond/4,
 		  update_from_etf/2,
@@ -125,17 +127,38 @@
 		  stop/1 ]).
 
 
--type env_pid() :: pid().
-% The PID of an environment server.
-
 -type env_reg_name() :: registration_name().
 % The name under which an environment server can be (locally) registered.
+
+-type env_pid() :: pid().
+% The PID of an environment server, the most direct reference to an environment.
+
+
+-type env_info() :: { env_reg_name(), env_pid() }.
+% The full reference to an environment.
+%
+% The registration name is needed as a key of any local cache, and the PID
+% allows to spare extra naming look-ups.
 
 
 -type env_designator() :: env_pid() | env_reg_name().
 % The two standard ways according to which an environment server can be
 % designated: either directly thanks to its PID or to the name under which it is
 % locally registered.
+
+
+-type env_data() :: env_info() | env_designator().
+% Any element designating an environment.
+
+
+-type cache_info() :: { env_reg_name(), env_cache_table() }.
+% Information stored regarding an environment, typically to be cached in the
+% process dictionary in an all_env_table() table, and indexed by the PID of the
+% corresponding environment server.
+%
+% Specifying the registration name is required for caching.
+
+
 
 
 -type key() :: atom().
@@ -157,7 +180,8 @@
 % that shall be cached in a client process.
 
 
--export_type([ env_pid/0, env_reg_name/0, env_designator/0,
+-export_type([ env_pid/0, env_reg_name/0, env_info/0, env_designator/0,
+			   env_data/0,
 			   key/0, value/0, entry/0, entries/0, cache_spec/0 ]).
 
 
@@ -172,15 +196,10 @@
 
 
 % A list_table, as it is expected to reference only very few environments:
--type all_env_table() :: list_table( env_pid(), env_info() ).
+-type all_env_table() :: list_table( env_pid(), cache_info() ).
 % Corresponds to the value associated to the env_dictionary_key key in
 % the process dictionary of a process using environment caching.
 
-
--type env_info() :: { env_reg_name(), env_cache_table() }.
-% Information stored regarding an environment, typically to be cached in the
-% process dictionary in a all_env_table() table, and indexed by the PID of the
-% corresponding environment server.
 
 
 -type env_cache_table() :: table( atom(), term() ).
@@ -189,6 +208,7 @@
 
 % Just for silencing:
 -export_type([ all_env_table/0 ]).
+
 
 
 % Shorthands:
@@ -205,7 +225,6 @@
 -type any_file_path() :: file_utils:any_file_path().
 
 -type registration_name() :: naming_utils:registration_name().
-
 
 
 
@@ -255,8 +274,8 @@
 % existing or not, blank or not.
 %
 -spec start( env_reg_name() | file_path() ) -> env_pid().
-start( ServerName ) when is_atom( ServerName ) ->
-	case naming_utils:is_registered( ServerName, local ) of
+start( ServerRegName ) when is_atom( ServerRegName ) ->
+	case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
 
@@ -268,7 +287,7 @@ start( ServerName ) when is_atom( ServerName ) ->
 			% No link to be created here, so one must beware of any silent crash
 			% of this server:
 			%
-			?myriad_spawn( fun() -> server_run( CallerPid, ServerName ) end ),
+			?myriad_spawn( fun() -> server_run( CallerPid, ServerRegName ) end ),
 
 			receive
 
@@ -332,8 +351,8 @@ start( FilePath ) when is_list( FilePath ) ->
 % existing or not, blank or not.
 %
 -spec start_link( env_reg_name() | file_path() ) -> env_pid().
-start_link( ServerName ) when is_atom( ServerName ) ->
-	case naming_utils:is_registered( ServerName, local ) of
+start_link( ServerRegName ) when is_atom( ServerRegName ) ->
+	case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
 
@@ -343,7 +362,7 @@ start_link( ServerName ) when is_atom( ServerName ) ->
 			CallerPid = self(),
 
 			?myriad_spawn_link(
-				fun() -> server_run( CallerPid, ServerName ) end ),
+				fun() -> server_run( CallerPid, ServerRegName ) end ),
 
 			receive
 
@@ -402,9 +421,9 @@ start_link( FilePath ) when is_list( FilePath ) ->
 % existing or not.
 %
 -spec start( env_reg_name(), any_file_path() ) -> env_pid().
-start( ServerName, AnyFilePath ) when is_atom( ServerName ) ->
+start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
-	case naming_utils:is_registered( ServerName, local ) of
+	case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
 
@@ -419,7 +438,7 @@ start( ServerName, AnyFilePath ) when is_atom( ServerName ) ->
 			% of this server:
 			%
 			?myriad_spawn(
-				fun() -> server_run( CallerPid, ServerName, BinFilePath ) end ),
+				fun() -> server_run( CallerPid, ServerRegName, BinFilePath ) end ),
 
 			receive
 
@@ -447,9 +466,9 @@ start( ServerName, AnyFilePath ) when is_atom( ServerName ) ->
 % existing or not.
 %
 -spec start_link( env_reg_name(), any_file_path() ) -> env_pid().
-start_link( ServerName, AnyFilePath ) when is_atom( ServerName ) ->
+start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
-	case naming_utils:is_registered( ServerName, local ) of
+	case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
 
@@ -461,7 +480,7 @@ start_link( ServerName, AnyFilePath ) when is_atom( ServerName ) ->
 			BinFilePath = text_utils:ensure_binary( AnyFilePath ),
 
 			?myriad_spawn_link(
-				fun() -> server_run( CallerPid, ServerName, BinFilePath ) end ),
+				fun() -> server_run( CallerPid, ServerRegName, BinFilePath ) end ),
 
 			receive
 
@@ -496,9 +515,9 @@ start_link( ServerName, AnyFilePath ) when is_atom( ServerName ) ->
 % existing or not, and caching specified elements.
 %
 -spec start_cached( env_reg_name(), cache_spec() ) -> env_pid().
-start_cached( ServerName, CacheSpec ) ->
-	EnvPid = start( ServerName ),
-	cache( CacheSpec, ServerName ),
+start_cached( ServerRegName, CacheSpec ) ->
+	EnvPid = start( ServerRegName ),
+	cache( CacheSpec, ServerRegName ),
 	EnvPid.
 
 
@@ -522,9 +541,9 @@ start_cached( ServerName, CacheSpec ) ->
 % existing or not, and caching specified elements.
 %
 -spec start_link_cached( env_reg_name(), cache_spec() ) -> env_pid().
-start_link_cached( ServerName, CacheSpec ) ->
-	EnvPid = start_link( ServerName ),
-	cache( CacheSpec, ServerName ),
+start_link_cached( ServerRegName, CacheSpec ) ->
+	EnvPid = start_link( ServerRegName ),
+	cache( CacheSpec, ServerRegName ),
 	EnvPid.
 
 
@@ -533,12 +552,12 @@ start_link_cached( ServerName, CacheSpec ) ->
 % specified based on either its name or content filename.
 %
 -spec get_server( env_reg_name() | file_path() ) -> env_pid().
-get_server( ServerName ) when is_atom( ServerName ) ->
+get_server( ServerRegName ) when is_atom( ServerRegName ) ->
 
-	case naming_utils:is_registered( ServerName, local ) of
+	case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
-			throw( { environment_server_not_registered, ServerName } );
+			throw( { environment_server_not_registered, ServerRegName } );
 
 		SrvPid ->
 			SrvPid
@@ -547,12 +566,12 @@ get_server( ServerName ) when is_atom( ServerName ) ->
 
 get_server( FilePath ) when is_list( FilePath ) ->
 
-	ServerName = get_env_reg_name_from( FilePath ),
+	ServerRegName = get_env_reg_name_from( FilePath ),
 
-	case naming_utils:is_registered( ServerName, local ) of
+	case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
-			throw( { environment_server_not_registered, ServerName,
+			throw( { environment_server_not_registered, ServerRegName,
 					 FilePath } );
 
 		SrvPid ->
@@ -560,6 +579,21 @@ get_server( FilePath ) when is_list( FilePath ) ->
 
 	end.
 
+
+
+% @doc Waits (up to 5 seconds, otherwise throws an exception) until the
+% specified environment server becomes available, then returns its PID.
+%
+% Allows to synchronise to an environment server typically launched
+% concurrently, before being able to look-up values from it.
+%
+-spec wait_available( env_reg_name() ) -> env_pid().
+wait_available( ServerRegName ) ->
+
+	trace_utils:debug_fmt( "Waiting until environment server '~ts' becomes "
+						   "available.", [ ServerRegName ] ),
+
+	naming_utils:wait_for_registration_of( ServerRegName, _RegScope=local ).
 
 
 
@@ -689,8 +723,8 @@ aggregate_values( _TargetKeys=[ K | Tt ], ImmediateKeys, ImmediateValues,
 %
 -spec get( maybe_list( key() ), env_reg_name(), file_path() ) ->
 										maybe_list( maybe( value() ) ).
-get( KeyMaybes, ServerName, FilePath ) ->
-	EnvSrvPid = case naming_utils:is_registered( ServerName, local ) of
+get( KeyMaybes, ServerRegName, FilePath ) ->
+	EnvSrvPid = case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
 			start( FilePath );
@@ -806,8 +840,8 @@ set( Key, Value, AnyEnvElem ) ->
 % environment server.
 %
 -spec set( key(), value(), env_reg_name(), file_path() ) -> void().
-set( Key, Value, ServerName, FilePath ) ->
-	EnvPid = case naming_utils:is_registered( ServerName, local ) of
+set( Key, Value, ServerRegName, FilePath ) ->
+	EnvPid = case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
 			start( FilePath );
@@ -893,7 +927,7 @@ set_cond( Entries, EnvPid ) when is_list( Entries ) ->
 % @doc Updates the specified environment with the entries found in the specified
 % ETF file.
 %
-% Loaded entries supersede any pre-existing ones.
+% Loaded entries supersede any pre-existing ("default") ones.
 %
 -spec update_from_etf( any_file_path(), env_designator() ) -> void().
 update_from_etf( AnyETFFilePath, EnvDesignator ) ->
@@ -960,8 +994,8 @@ set_cond( Key, Value, AnyEnvElem ) ->
 % environment server.
 %
 -spec set_cond( key(), value(), env_reg_name(), file_path() ) -> void().
-set_cond( Key, Value, ServerName, FilePath ) ->
-	EnvPid = case naming_utils:is_registered( ServerName, local ) of
+set_cond( Key, Value, ServerRegName, FilePath ) ->
+	EnvPid = case naming_utils:is_registered( ServerRegName, local ) of
 
 		not_registered ->
 			start( FilePath );
@@ -1022,8 +1056,8 @@ remove( Keys, EnvPid ) when is_list( Keys ) ->
 							list_table:remove_entry( EnvPid, AllEnvTable );
 
 						false ->
-							EnvInfo = { EnvRegName, NewEnvCacheTable },
-							list_table:add_entry( EnvPid, EnvInfo,
+							CacheInfo = { EnvRegName, NewEnvCacheTable },
+							list_table:add_entry( EnvPid, CacheInfo,
 												  AllEnvTable )
 
 					end,
@@ -1087,8 +1121,8 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 							list_table:remove_entry( EnvPid, AllEnvTable );
 
 						false ->
-							EnvInfo = { EnvRegName, NewEnvCacheTable },
-							list_table:add_entry( EnvPid, EnvInfo,
+							CacheInfo = { EnvRegName, NewEnvCacheTable },
+							list_table:add_entry( EnvPid, CacheInfo,
 												  AllEnvTable )
 
 					end,
@@ -1115,7 +1149,7 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 % Either single keys or full entries can be specified there. Both will lead the
 % corresponding keys to be cached, yet a single key, if it is not already cached
 % (otherwise, it will be ignored), will trigger its value to be fetched from the
-% enviroment server whereas the value of a full entry will be cached and also
+% environment server whereas the value of a full entry will be cached and also
 % sent to the environment server (therefore being equivalent to set/2).
 %
 % Any next setting by this process of one of these cached keys will update its
@@ -1129,12 +1163,84 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 % entries shall already be cached (indeed a client cache stores the registration
 % name of the cached environments, which cannot be deduced from the PID).
 %
--spec cache( cache_spec(), env_designator() ) -> void().
-cache( Key, EnvRegName ) when is_atom( Key ) ->
-	cache( [ Key ], EnvRegName );
+-spec cache( cache_spec(), env_data() ) -> void().
+cache( AnyElem, _EnvInfo={ EnvRegName, EnvPid } ) ->
+	cache( AnyElem, EnvRegName, EnvPid );
 
-cache( Entry, EnvRegName ) when is_tuple( Entry ) ->
-	cache( [ Entry ], EnvRegName );
+cache( Key, AnyEnvData ) when is_atom( Key ) ->
+	cache( [ Key ], AnyEnvData );
+
+cache( Entry, AnyEnvData ) when is_tuple( Entry ) ->
+	cache( [ Entry ], AnyEnvData );
+
+% Not having a registration name here; hopefully this environment is already
+% known of the cache:
+%
+cache( KeysOrEntries, EnvPid ) when is_pid( EnvPid ) ->
+
+	cond_utils:if_defined( myriad_debug_environments,
+		trace_utils:debug_fmt( "Client ~w caching, "
+			"regarding environment ~w:~n~p",
+			[ self(), EnvPid, KeysOrEntries ] ) ),
+
+	% Separates single keys from entries:
+	{ ToCacheKeys, ToCacheEntries } = lists:foldl(
+		fun( E={ _K, _V }, { AccK, AccE } ) ->
+			{ AccK, [ E | AccE ] };
+
+		   ( K, { AccK, AccE } ) ->
+			{ [ K | AccK ], AccE }
+
+		end,
+		_Acc0={ _AccK0=[], _AccE0=[] },
+		_List=KeysOrEntries ),
+
+	EnvDictKey = ?env_dictionary_key,
+
+	% We have to determine the new keys to cache whose values must be fetched
+	% from server:
+	%
+	case process_dictionary:get( EnvDictKey ) of
+
+		undefined ->
+				trace_utils:error_fmt( "Cannot cache for environment server ~w,"
+					" as the corresponding environment registration name is "
+					"not known (none is known).~nElements were: ~p",
+					[ EnvPid, KeysOrEntries ] ),
+				throw( { unknown_environment_for, EnvPid } );
+
+		PrevAllEnvTable ->
+			case list_table:lookup_entry( EnvPid, PrevAllEnvTable ) of
+
+				key_not_found ->
+					% Quite same as before, this environment was not cached yet:
+					trace_utils:error_fmt( "Cannot cache for environment "
+						"server ~w, as the corresponding environment "
+						"registration name is not known.",
+						[ EnvPid, KeysOrEntries ] ),
+					throw( { unknown_environment_for, EnvPid } );
+
+				{ value, { EnvRegName, PrevEnvCacheTable } } ->
+					cond_utils:if_defined( myriad_debug_environments,
+						trace_utils:debug_fmt( "Updating cache for environment "
+							"~ts (server: PID: ~w): ~ts", [ EnvRegName, EnvPid,
+								table:to_string( PrevEnvCacheTable ) ] ) ),
+
+					% Having to add all single keys not already present in the
+					% cache table:
+					%
+					DictCachedKeys = table:keys( PrevEnvCacheTable ),
+
+					NewToCacheKeys =
+						list_utils:difference( ToCacheKeys, DictCachedKeys ),
+
+					finish_caching( EnvPid, EnvRegName, NewToCacheKeys,
+						ToCacheEntries, PrevEnvCacheTable, PrevAllEnvTable,
+						EnvDictKey )
+
+			end
+
+	end;
 
 cache( KeysOrEntries, EnvRegName ) when is_atom( EnvRegName ) ->
 
@@ -1145,6 +1251,35 @@ cache( KeysOrEntries, EnvRegName ) when is_atom( EnvRegName ) ->
 
 	% As a PID will be needed (at least as key for the environment cache):
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
+
+	cache( KeysOrEntries, EnvRegName, EnvPid ).
+
+
+
+% @doc Requests the calling process to cache the entries corresponding to the
+% specified key(s), which will thus be appropriately synchronised with the
+% server from now on, in addition to any already cached keys.
+%
+% Either single keys or full entries can be specified there. Both will lead the
+% corresponding keys to be cached, yet a single key, if it is not already cached
+% (otherwise, it will be ignored), will trigger its value to be fetched from the
+% environment server whereas the value of a full entry will be cached and also
+% sent to the environment server (therefore being equivalent to set/2).
+%
+% Any next setting by this process of one of these cached keys will update its
+% local cache as well as the specified environment server; as a consequence,
+% here the cache is expected to start consistent with its server; afterwards by
+% default only the entries not already in cache will be requested from the
+% server.
+%
+-spec cache( cache_spec(), env_reg_name(), env_pid() ) -> void().
+cache( Key, EnvRegName, EnvPid ) when is_atom( Key ) ->
+	cache( [ Key ], EnvRegName, EnvPid );
+
+cache( Entry, EnvRegName, EnvPid ) when is_tuple( Entry ) ->
+	cache( [ Entry ], EnvRegName, EnvPid );
+
+cache( KeysOrEntries, EnvRegName, EnvPid ) ->
 
 	% Separates single keys from entries:
 	{ ToCacheKeys, ToCacheEntries } = lists:foldl(
@@ -1208,77 +1343,9 @@ cache( KeysOrEntries, EnvRegName ) when is_atom( EnvRegName ) ->
 	end,
 
 	finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
-					AllEnvTable, EnvDictKey );
+					AllEnvTable, EnvDictKey ).
 
 
-% Not having a registration name here; hopefully this environment is already
-% known of the cache:
-%
-cache( KeysOrEntries, EnvPid ) when is_pid( EnvPid ) ->
-
-	cond_utils:if_defined( myriad_debug_environments,
-		trace_utils:debug_fmt( "Client ~w caching, "
-			"regarding environment ~w:~n~p",
-			[ self(), EnvPid, KeysOrEntries ] ) ),
-
-	% Separates single keys from entries:
-	{ ToCacheKeys, ToCacheEntries } = lists:foldl(
-		fun( E={ _K, _V }, { AccK, AccE } ) ->
-			{ AccK, [ E | AccE ] };
-
-		   ( K, { AccK, AccE } ) ->
-			{ [ K | AccK ], AccE }
-
-		end,
-		_Acc0={ _AccK0=[], _AccE0=[] },
-		_List=KeysOrEntries ),
-
-	EnvDictKey = ?env_dictionary_key,
-
-	% We have to determine the new keys to cache whose values must be fetched
-	% from server:
-	%
-	case process_dictionary:get( EnvDictKey ) of
-
-		undefined ->
-				trace_utils:error_fmt( "Cannot cache for environment server ~w,"
-					" as the corresponding environment registration name is "
-					"not known (none is known). Elements were: ~p",
-					[ EnvPid, KeysOrEntries ] ),
-				throw( { unknown_environment_for, EnvPid } );
-
-		PrevAllEnvTable ->
-			case list_table:lookup_entry( EnvPid, PrevAllEnvTable ) of
-
-				key_not_found ->
-					% Quite same as before, this environment was not cached yet:
-					trace_utils:error_fmt( "Cannot cache for environment "
-						"server ~w, as the corresponding environment "
-						"registration name is not known.",
-						[ EnvPid, KeysOrEntries ] ),
-					throw( { unknown_environment_for, EnvPid } );
-
-				{ value, { EnvRegName, PrevEnvCacheTable } } ->
-					cond_utils:if_defined( myriad_debug_environments,
-						trace_utils:debug_fmt( "Updating cache for environment "
-							"~ts (server: PID: ~w): ~ts", [ EnvRegName, EnvPid,
-								table:to_string( PrevEnvCacheTable ) ] ) ),
-
-					% Having to add all single keys not already present in the
-					% cache table:
-					%
-					DictCachedKeys = table:keys( PrevEnvCacheTable ),
-
-					NewToCacheKeys =
-						list_utils:difference( ToCacheKeys, DictCachedKeys ),
-
-					finish_caching( EnvPid, EnvRegName, NewToCacheKeys,
-						ToCacheEntries, PrevEnvCacheTable, PrevAllEnvTable,
-						EnvDictKey )
-
-			end
-
-	end.
 
 
 
@@ -1445,19 +1512,61 @@ store( EnvPid, TargetFilePath ) ->
 
 
 
-% @doc Returns a textual description of the environment server (if any)
-% specified from a designator thereof or from its environment file.
+% @doc Returns a textual description of the environments known of the calling
+% process, based on its cache (if any).
 %
--spec to_string( env_designator() | file_path() ) -> ustring().
+-spec to_string() -> ustring().
+to_string() ->
+	case process_dictionary:get( ?env_dictionary_key ) of
+
+		undefined ->
+			"no caching of environments";
+
+		AllEnvTable ->
+			case list_table:enumerate( AllEnvTable ) of
+
+				[] ->
+					"no environment cached";
+
+				[ { EnvPid, CacheInfo } ] ->
+					text_utils:format( "a single environment cached, ~ts",
+						[ cache_info_to_string( CacheInfo, EnvPid ) ] );
+
+				EnvPairs ->
+					text_utils:format( "~B environments cached: ~ts",
+						[ length( EnvPairs ), text_utils:strings_to_string(
+							[ cache_info_to_string( CInf, EPid )
+								|| { CInf, EPid } <- EnvPairs ] ) ] )
+
+
+			end
+
+	end.
+
+
+
+% @doc Returns a textual description of the environment server (if any)
+% specified from an information or designator thereof, or from its environment
+% file.
+%
+% Prefer calling to_bin_string/1.
+%
+-spec to_string( env_data() | file_path() ) -> ustring().
 to_string( EnvData ) ->
 	text_utils:binary_to_string( to_bin_string( EnvData ) ).
 
 
 
 % @doc Returns a textual description of the environment server (if any)
-% specified from a designator thereof or from its environment file.
+% specified from an information or designator thereof, or from its environment
+% file.
 %
--spec to_bin_string( env_designator() | file_path() ) -> ustring().
+% To be preferred to to_string/1.
+%
+-spec to_bin_string( env_data() | file_path() ) -> bin_string().
+to_bin_string( _EnvInfo={ EnvRegName, _EnvPid } ) ->
+	to_bin_string( EnvRegName );
+
 to_bin_string( FilePath ) when is_list( FilePath ) ->
 
 	EnvRegAtom = get_env_reg_name_from( FilePath ),
@@ -1491,48 +1600,14 @@ to_bin_string( EnvSrvPid ) when is_pid( EnvSrvPid ) ->
 
 
 
-% @doc Returns a textual description of the environments known of the calling
-% process, based on its cache (if any).
-%
--spec to_string() -> ustring().
-to_string() ->
-	case process_dictionary:get( ?env_dictionary_key ) of
-
-		undefined ->
-			"no caching of environments";
-
-		AllEnvTable ->
-			case list_table:enumerate( AllEnvTable ) of
-
-				[] ->
-					"no environment cached";
-
-				[ { EnvPid, EnvInfo } ] ->
-					text_utils:format( "a single environment cached, ~ts",
-						[ env_info_to_string( EnvInfo, EnvPid ) ] );
-
-				EnvPairs ->
-					text_utils:format( "~B environments cached: ~ts",
-						[ length( EnvPairs ), text_utils:strings_to_string(
-							[ env_info_to_string( EInf, EPid )
-								|| { EInf, EPid } <- EnvPairs ] ) ] )
-
-
-			end
-
-	end.
-
-
-
-
--spec env_info_to_string( env_info(), env_pid() ) -> ustring().
-env_info_to_string( _EnvInfo={ EnvRegName, EnvCacheTable }, EnvPid ) ->
+-spec cache_info_to_string( cache_info(), env_pid() ) -> ustring().
+cache_info_to_string( _CacheInfo={ EnvRegName, EnvCacheTable }, EnvPid ) ->
 	text_utils:format( "environment '~ts' (whose server is ~w), caching ~ts",
-		[ EnvRegName, EnvPid, env_cache_to_string( EnvCacheTable ) ] ).
+		[ EnvRegName, EnvPid, cache_to_string( EnvCacheTable ) ] ).
 
 
--spec env_cache_to_string( env_cache_table() ) -> ustring().
-env_cache_to_string( EnvCacheTable ) ->
+-spec cache_to_string( env_cache_table() ) -> ustring().
+cache_to_string( EnvCacheTable ) ->
 	case table:enumerate( EnvCacheTable ) of
 
 		[] ->
