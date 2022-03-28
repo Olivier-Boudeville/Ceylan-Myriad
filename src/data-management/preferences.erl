@@ -99,8 +99,9 @@
 
 
 -export([ start/0, start/1, start/2, start_link/0, start_link/1, start_link/2,
+		  wait_available/0, wait_available/1,
 		  get/1, get/2, set/2, set/3, update_from_etf/1, update_from_etf/2,
-		  to_string/0, to_bin_string/0,
+		  to_string/0, to_bin_string/0, to_bin_string/1,
 
 		  get_default_preferences_path/0,
 		  get_default_preferences_registration_name/0,
@@ -108,6 +109,10 @@
 		  is_preferences_default_file_available/0,
 		  check_preferences_default_file/0,
 		  stop/0 ]).
+
+
+-type pref_reg_name() :: environment:env_reg_name().
+% The name under which a preferences server can be (locally) registered.
 
 
 -type preferences_pid() :: environment:env_pid().
@@ -119,8 +124,9 @@
 % locally registered.
 
 
--type pref_reg_name() :: environment:env_reg_name().
-% The name under which a preferences server can be (locally) registered.
+-type preferences_data() :: preferences_pid() | preferences_designator().
+% Any element designating a preferences server.
+
 
 
 -type key() :: environment:key().
@@ -133,7 +139,8 @@
 -type entries() :: table:entries().
 
 
--export_type([ preferences_pid/0, preferences_designator/0,
+-export_type([ pref_reg_name/0, preferences_pid/0, preferences_designator/0,
+			   preferences_data/0,
 			   key/0, value/0, entry/0, entries/0 ]).
 
 
@@ -219,7 +226,9 @@ start() ->
 %
 -spec start_link() -> preferences_pid().
 start_link() ->
-	environment:start_link( get_default_preferences_path() ).
+	PrefPid = environment:start_link( get_default_preferences_path() ),
+	trace_utils:debug_fmt( "Preferences started, as server ~w.", [ PrefPid ] ),
+	PrefPid.
 
 
 
@@ -277,8 +286,8 @@ start_link( Param ) ->
 % existing or not.
 %
 -spec start( pref_reg_name(), file_path() ) -> preferences_pid().
-start( ServerName, FilePath ) ->
-	environment:start( ServerName, FilePath ).
+start( ServerRegName, FilePath ) ->
+	environment:start( ServerRegName, FilePath ).
 
 
 
@@ -294,8 +303,32 @@ start( ServerName, FilePath ) ->
 % existing or not.
 %
 -spec start_link( pref_reg_name(), file_path() ) -> preferences_pid().
-start_link( ServerName, FilePath ) ->
-	environment:start_link( ServerName, FilePath ).
+start_link( ServerRegName, FilePath ) ->
+	environment:start_link( ServerRegName, FilePath ).
+
+
+
+% @doc Waits (up to 5 seconds, otherwise throws an exception) until the default
+% preferences server becomes available, then returns its PID.
+%
+% Allows to synchronise to a preferences server typically launched concurrently,
+% before being able to look-up preferences.
+%
+-spec wait_available() -> preferences_pid().
+wait_available() ->
+	wait_available( get_default_preferences_registration_name() ).
+
+
+
+% @doc Waits (up to 5 seconds, otherwise throws an exception) until the default
+% preferences server becomes available, then returns its PID.
+%
+% Allows to synchronise to a preferences server typically launched concurrently,
+% before being able to look-up preferences.
+%
+-spec wait_available( pref_reg_name() ) -> preferences_pid().
+wait_available( ServerRegName ) ->
+	environment:wait_available( ServerRegName ).
 
 
 
@@ -395,6 +428,10 @@ update_from_etf( AnyETFFilePath ) ->
 %
 -spec update_from_etf( any_file_path(), preferences_designator() ) -> void().
 update_from_etf( AnyETFFilePath, PrefDesignator ) ->
+
+	%trace_utils:debug_fmt( "Updating preferences designated by ~w from "
+	%                       "file '~ts'.", [ PrefDesignator, AnyETFFilePath ] ),
+
 	environment:update_from_etf( AnyETFFilePath, PrefDesignator ).
 
 
@@ -416,6 +453,12 @@ to_bin_string() ->
 	environment:to_bin_string( get_default_preferences_path() ).
 
 
+% @doc Returns a textual description of the specified preferences server.
+-spec to_bin_string( preferences_data() ) -> bin_string().
+to_bin_string( EnvData ) ->
+	environment:to_bin_string( EnvData ).
+
+
 
 % @doc Returns the full, absolute path to the default preferences filename.
 -spec get_default_preferences_path() -> file_path().
@@ -425,7 +468,7 @@ get_default_preferences_path() ->
 
 
 
-% @doc Returns the default registration name for the preferences.
+% @doc Returns the default (local) registration name for the preferences.
 -spec get_default_preferences_registration_name() -> pref_reg_name().
 get_default_preferences_registration_name() ->
 	?default_preferences_pref_reg_name.
