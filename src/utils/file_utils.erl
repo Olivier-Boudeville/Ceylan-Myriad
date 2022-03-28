@@ -4314,7 +4314,6 @@ get_extra_data_directories( AppInfoMap=#{ name := BinAppName } ) ->
 
 
 
-
 % @doc Returns the path location intended for the storage of transient log files
 % that the specified application may perform on the local machine.
 %
@@ -4325,6 +4324,7 @@ get_log_directory( AppInfo=#app_info{} ) ->
 
 get_log_directory( AppInfoMap=#{ name := BinAppName } ) ->
 	filename:basedir( _PathType=user_log, BinAppName, _Opts=AppInfoMap ).
+
 
 
 % I/O section.
