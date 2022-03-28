@@ -23,6 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2013.
 
 
 % @doc <b>Minimal test for the MyriadGUI toolbox</b>: draws a single frame and
