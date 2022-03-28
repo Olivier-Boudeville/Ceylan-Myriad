@@ -653,6 +653,13 @@ wait_for_global_registration_of( Name ) ->
 % Name} exception.
 %
 wait_for_global_registration_of( Name, _Seconds=0 ) ->
+
+	cond_utils:if_defined( myriad_debug_registration,
+		trace_utils:error_fmt( "Global registration of '~ts' timed-out; "
+			"globally registered processes: ~w",
+			[ Name, lists:sort(
+						get_registered_names( _LookUpScope=global ) ) ] ) ),
+
 	throw( { registration_waiting_timeout, Name, global } );
 
 wait_for_global_registration_of( Name, SecondsToWait ) ->
@@ -686,6 +693,13 @@ wait_for_local_registration_of( Name ) ->
 % Name}.
 %
 wait_for_local_registration_of( Name, _Seconds=0 ) ->
+
+	cond_utils:if_defined( myriad_debug_registration,
+		trace_utils:error_fmt( "Local registration of '~ts' timed-out; "
+			"locally registered processes: ~w",
+			[ Name, lists:sort(
+						get_registered_names( _LookUpScope=local ) ) ] ) ),
+
 	throw( { registration_waiting_timeout, Name, local } );
 
 wait_for_local_registration_of( Name, SecondsToWait ) ->
