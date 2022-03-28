@@ -77,10 +77,15 @@
 % Designates how an (OTP) application is run.
 
 
+% Naming deemed clearer:
+-type supervisor_settings() :: supervisor:sup_flags().
+% Settings of an OTP supervisor.
+
+
 -export_type([ application_name/0, string_application_name/0,
 			   any_application_name/0, restart_type/0,
 			   supervisor_pid/0, worker_pid/0,
-			   application_run_context/0 ]).
+			   application_run_context/0, supervisor_settings/0 ]).
 
 
 -export([ get_string_application_name/1,
@@ -92,8 +97,8 @@
 
 		  stop_application/1, stop_applications/1, stop_user_applications/1,
 
-		  get_supervisor_settings/2, get_restart_setting/1,
-		  get_maximum_shutdown_duration/1,
+		  get_supervisor_settings/2, get_child_supervisor_settings/1,
+		  get_restart_setting/1, get_maximum_shutdown_duration/1,
 
 		  check_application_run_context/1, application_run_context_to_string/1,
 
@@ -1135,16 +1140,16 @@ stop_user_applications( AppNames ) ->
 % @doc Returns the supervisor-level settings corresponding to the specified
 % restart strategy and execution context.
 %
-% Note that the execution context must be explicitly specified (typically by
-% calling a get_execution_target/0 function defined in a key module of that
-% layer, based on Myriad's basic_utils.hrl), otherwise the one that would apply
-% is the one of Myriad - not the one of the calling layer.
+% Note that the execution context must be explicitly specified here (typically
+% by calling a get_execution_target/0 function defined in a key module of that
+% layer, based on Myriad's basic_utils.hrl), as otherwise the one that would
+% apply is the one of Myriad - not the one of the calling layer.
 %
 % See [https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags]
 % for further information.
 %
 -spec get_supervisor_settings( supervisor:strategy(), execution_target() ) ->
-												supervisor:sup_flags().
+												supervisor_settings().
 get_supervisor_settings( RestartStrategy, _ExecutionTarget=development ) ->
 
 	% No restart wanted in development mode; we do not want the supervisor to
@@ -1168,13 +1173,29 @@ get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
 
 
 
+% @doc Returns supervisor-level settings for a supervisor that would be
+% supervised by a supervisor relying on the specified settings.
+%
+% Not tremendously useful.
+%
+-spec get_child_supervisor_settings( supervisor_settings() ) ->
+												supervisor_settings().
+get_child_supervisor_settings(
+				ParentSupSettings=#{ intensity := ParentIntensity } ) ->
+
+	ChildIntensity = max( ParentIntensity div 2, 1 ),
+
+	ParentSupSettings#{ intensity := ChildIntensity }.
+
+
+
 % @doc Returns default, base restart settings depending on the specified
 % execution target.
 %
-% Note that the execution context must be explicitly specified (typically by
-% calling a get_execution_target/0 function defined in a key module of that
-% layer, based on Myriad's basic_utils.hrl), otherwise the one that would apply
-% is the one of Myriad - not the one of the calling layer.
+% Note that the execution context must be explicitly specified here (typically
+% by calling a get_execution_target/0 function defined in a key module of that
+% layer, based on Myriad's basic_utils.hrl), as otherwise the one that would
+% apply is the one of Myriad - not the one of the calling layer.
 %
 -spec get_restart_setting( execution_target() ) -> supervisor:restart().
 get_restart_setting( _ExecutionTarget=development ) ->
