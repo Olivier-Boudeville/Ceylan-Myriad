@@ -116,7 +116,7 @@
 -export([ start/1, start/2, start_link/1, start_link/2,
 		  start_cached/2, start_link_cached/2,
 
-		  get_server/1, wait_available/1,
+		  get_server/1, get_server_info/1, wait_available/1,
 
 		  get/2, get/3,
 		  set/2, set/3, set/4, set_cond/2, set_cond/3, set_cond/4,
@@ -157,7 +157,6 @@
 % corresponding environment server.
 %
 % Specifying the registration name is required for caching.
-
 
 
 
@@ -287,7 +286,9 @@ start( ServerRegName ) when is_atom( ServerRegName ) ->
 			% No link to be created here, so one must beware of any silent crash
 			% of this server:
 			%
-			?myriad_spawn( fun() -> server_run( CallerPid, ServerRegName ) end ),
+			?myriad_spawn( fun() ->
+								server_run( CallerPid, ServerRegName )
+						   end ),
 
 			receive
 
@@ -320,8 +321,9 @@ start( FilePath ) when is_list( FilePath ) ->
 			% No link to be created here, so one must beware of any silent crash
 			% of this server:
 			%
-			?myriad_spawn( fun() -> server_run( CallerPid, RegistrationName,
-												BinFilePath ) end ),
+			?myriad_spawn( fun() ->
+						server_run( CallerPid, RegistrationName, BinFilePath )
+						   end ),
 
 			receive
 
@@ -437,8 +439,9 @@ start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 			% No link to be created here, so we must beware of any silent crash
 			% of this server:
 			%
-			?myriad_spawn(
-				fun() -> server_run( CallerPid, ServerRegName, BinFilePath ) end ),
+			?myriad_spawn( fun() ->
+							server_run( CallerPid, ServerRegName, BinFilePath )
+						   end ),
 
 			receive
 
@@ -479,8 +482,9 @@ start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
 			BinFilePath = text_utils:ensure_binary( AnyFilePath ),
 
-			?myriad_spawn_link(
-				fun() -> server_run( CallerPid, ServerRegName, BinFilePath ) end ),
+			?myriad_spawn_link( fun() ->
+						server_run( CallerPid, ServerRegName, BinFilePath )
+								end ),
 
 			receive
 
@@ -566,6 +570,7 @@ get_server( ServerRegName ) when is_atom( ServerRegName ) ->
 
 get_server( FilePath ) when is_list( FilePath ) ->
 
+	% Not reusing the previous clause for clearer exception:
 	ServerRegName = get_env_reg_name_from( FilePath ),
 
 	case naming_utils:is_registered( ServerRegName, local ) of
@@ -576,6 +581,40 @@ get_server( FilePath ) when is_list( FilePath ) ->
 
 		SrvPid ->
 			SrvPid
+
+	end.
+
+
+
+% @doc Returns the server information of a supposedly already-running
+% environment server, specified based on either its name or content filename.
+%
+-spec get_server_info( env_reg_name() | file_path() ) -> env_info().
+get_server_info( ServerRegName ) when is_atom( ServerRegName ) ->
+
+	case naming_utils:is_registered( ServerRegName, local ) of
+
+		not_registered ->
+			throw( { environment_server_not_registered, ServerRegName } );
+
+		SrvPid ->
+			{ ServerRegName, SrvPid }
+
+	end;
+
+get_server_info( FilePath ) when is_list( FilePath ) ->
+
+	% Not reusing the previous clause for clearer exception:
+	ServerRegName = get_env_reg_name_from( FilePath ),
+
+	case naming_utils:is_registered( ServerRegName, local ) of
+
+		not_registered ->
+			throw( { environment_server_not_registered, ServerRegName,
+					 FilePath } );
+
+		SrvPid ->
+			{ ServerRegName, SrvPid }
 
 	end.
 
@@ -601,7 +640,7 @@ wait_available( ServerRegName ) ->
 % environment (if any), otherwise 'undefined', based on the specified
 % environment file (and possibly launching a corresponding, non-linked,
 % environment server if needed) or on an already-running environment server
-% (specified as a PID or a registration name).
+% (specified as a registration name, an environment information or a PID).
 %
 % Any cached key will be read from the local process cache, not from the
 % environment server.
@@ -619,19 +658,25 @@ wait_available( ServerRegName ) ->
 %  ["Hello!", 42, undefined] =
 %     environment:get([hello, my_number, some_maybe], MyEnvServerPid)
 %
--spec get( maybe_list( key() ), env_designator() | file_path() ) ->
+%  ["Hello!", 42, undefined] =
+%     environment:get([hello, my_number, some_maybe], MyEnvInfo)
+%
+-spec get( maybe_list( key() ), env_data() | file_path() ) ->
 										maybe_list( maybe( value() ) ).
-get( KeyMaybes, FilePath ) when is_list( FilePath ) ->
-	EnvSrvPid = start( FilePath ),
-	get( KeyMaybes, EnvSrvPid );
+get( Key, AnyEnvData ) when is_atom( Key ) ->
+	hd( get( [ Key ], AnyEnvData ) );
 
-get( Key, EnvDesignator ) when is_atom( Key ) ->
-	hd( get( [ Key ], EnvDesignator ) );
+get( Keys, _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	get( Keys, EnvPid );
 
 % A designator is either a PID or a registration atom:
 get( Keys, EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	get( Keys, EnvPid );
+
+get( KeyMaybes, FilePath ) when is_list( FilePath ) ->
+	EnvSrvPid = start( FilePath ),
+	get( KeyMaybes, EnvSrvPid );
 
 get( Keys, EnvPid ) when is_list( Keys ) ->
 	case process_dictionary:get( ?env_dictionary_key ) of
@@ -762,21 +807,24 @@ get_from_environment( KeyMaybes, EnvDesignator ) ->
 % overwriting any previous values) in the specified environment, based on the
 % specified environment file (and possibly launching a corresponding environment
 % server if needed) or on the designated already-running environment server
-% (specified by registration name or PID).
+% (specified by registration name, environment information or PID).
 %
 % Any cached key will be updated in the local process cache, in addition to the
 % environment server.
 %
--spec set( [ entry() ], env_designator() | file_path() ) -> void().
-set( Entries, FilePath ) when is_list( FilePath ) ->
-	EnvPid = start( FilePath ),
+-spec set( [ entry() ], env_data() | file_path() ) -> void().
+set( Entries, _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	set( Entries, EnvPid );
 
 set( Entries, EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	set( Entries, EnvPid );
 
-% Implicitly when is_pid( EnvPid ):
+set( Entries, FilePath ) when is_list( FilePath ) ->
+	EnvPid = start( FilePath ),
+	set( Entries, EnvPid );
+
+% Implicitly: when is_pid( EnvPid ).
 set( Entries, EnvPid ) when is_list( Entries ) ->
 	% Unconditional:
 	EnvPid ! { set_environment, Entries },
@@ -820,12 +868,12 @@ set( Entries, EnvPid ) when is_list( Entries ) ->
 % value to the specified key (possibly overwriting any previous value), based on
 % the specified environment file (and possibly launching a corresponding
 % environment server if needed) or on the designated already-running environment
-% server (specified by registration name or PID).
+% server (specified by registration name, environment information or PID).
 %
 % Any cached key will be updated in the local process cache, in addition to the
 % environment server.
 %
--spec set( key(), value(), env_designator() | file_path() ) -> void().
+-spec set( key(), value(), env_data() | file_path() ) -> void().
 set( Key, Value, AnyEnvElem ) ->
 	set( _Entries=[ { Key, Value } ], AnyEnvElem ).
 
@@ -860,21 +908,26 @@ set( Key, Value, ServerRegName, FilePath ) ->
 % cached one for that key; possibly overwriting any previous values) in the
 % specified environment, based on the specified environment file (and possibly
 % launching a corresponding environment server if needed) or on the designated
-% already-running environment server (specified by registration name or PID).
+% already-running environment server (specified by registration name,
+% environment information or PID).
 %
 % Any cached key will be updated in the local process cache, in addition to the
 % environment server.
 %
--spec set_cond( [ entry() ], env_designator() | file_path() ) -> void().
-set_cond( Entries, FilePath ) when is_list( FilePath ) ->
-	EnvPid = start( FilePath ),
+-spec set_cond( [ entry() ], env_data() | file_path() ) -> void().
+set_cond( Entries, _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	set_cond( Entries, EnvPid );
 
 set_cond( Entries, EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	set_cond( Entries, EnvPid );
 
-% Implicitly when is_pid( EnvPid ):
+set_cond( Entries, FilePath ) when is_list( FilePath ) ->
+	EnvPid = start( FilePath ),
+	set_cond( Entries, EnvPid );
+
+
+% Implicitly: when is_pid( EnvPid ).
 set_cond( Entries, EnvPid ) when is_list( Entries ) ->
 
 	% Check any locally cached keys:
@@ -929,10 +982,10 @@ set_cond( Entries, EnvPid ) when is_list( Entries ) ->
 %
 % Loaded entries supersede any pre-existing ("default") ones.
 %
--spec update_from_etf( any_file_path(), env_designator() ) -> void().
-update_from_etf( AnyETFFilePath, EnvDesignator ) ->
+-spec update_from_etf( any_file_path(), env_data() ) -> void().
+update_from_etf( AnyETFFilePath, AnyEnvData ) ->
 	LoadedEntries = file_utils:read_etf_file( AnyETFFilePath ),
-	set( LoadedEntries, EnvDesignator ).
+	set( LoadedEntries, AnyEnvData ).
 
 
 
@@ -971,13 +1024,13 @@ get_needed_sendings( _NewEntries=[ E={ K, V } | T ], EnvCacheTable,
 % specified environment, the specified value to the specified key (possibly
 % overwriting any previous value), based on the specified environment file (and
 % possibly launching a corresponding environment server if needed) or on the
-% designated already-running environment server (specified by registration name
-% or PID).
+% designated already-running environment server (specified by registration name,
+% environment information or PID).
 %
 % Any cached key will be updated in the local process cache, in addition to the
 % environment server.
 %
--spec set_cond( key(), value(), env_designator() | file_path() ) -> void().
+-spec set_cond( key(), value(), env_data() | file_path() ) -> void().
 set_cond( Key, Value, AnyEnvElem ) ->
 	set_cond( _Entries=[ { Key, Value } ], AnyEnvElem ).
 
@@ -1010,16 +1063,19 @@ set_cond( Key, Value, ServerRegName, FilePath ) ->
 
 % @doc Removes the specified entries (a single one or multiple ones) from the
 % specified environment, based on the designated already-running environment
-% server (specified by registration name or PID).
+% server (specified by registration name, environment information or PID).
 %
--spec remove( key(), env_designator() ) -> void();
-			( [ key() ], env_designator() ) -> void().
+-spec remove( key(), env_data() ) -> void();
+			( [ key() ], env_data() ) -> void().
+remove( Key, EnvPid ) when is_atom( Key ) ->
+	remove( [ Key ], EnvPid );
+
+remove( Keys, _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	remove( Keys, EnvPid );
+
 remove( Keys, EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	remove( Keys, EnvPid );
-
-remove( Key, EnvPid ) when is_atom( Key ) ->
-	remove( [ Key ], EnvPid );
 
 remove( Keys, EnvPid ) when is_list( Keys ) ->
 	EnvPid ! { remove_from_environment, Keys },
@@ -1072,17 +1128,22 @@ remove( Keys, EnvPid ) when is_list( Keys ) ->
 
 % @doc Extracts the specified entries (a single one or multiple ones) from the
 % specified environment, based on the designated already-running environment
-% server (specified by registration name or PID): removes these entries
-% (including from any local cache) and returns their value.
+% server (specified by registration name, environment information or PID):
+% removes these entries (including from any local cache) and returns their
+% value.
 %
--spec extract( key(), env_designator() ) -> value();
-			 ( [ key() ], env_designator() ) -> [ value() ].
+-spec extract( key(), env_data() ) -> value();
+			 ( [ key() ], env_data() ) -> [ value() ].
+extract( Key, EnvPid ) when is_atom( Key ) ->
+	hd( extract( [ Key ], EnvPid ) );
+
+extract( Keys, _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	extract( Keys, EnvPid );
+
 extract( Keys, EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	extract( Keys, EnvPid );
 
-extract( Key, EnvPid ) when is_atom( Key ) ->
-	hd( extract( [ Key ], EnvPid ) );
 
 extract( Keys, EnvPid ) when is_list( Keys ) ->
 	% Ignoring cache first, as the server has to be updated anyway:
@@ -1142,6 +1203,7 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 	end.
 
 
+
 % @doc Requests the calling process to cache the entries corresponding to the
 % specified key(s), which will thus be appropriately synchronised with the
 % server from now on, in addition to any already cached keys.
@@ -1158,10 +1220,11 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 % default only the entries not already in cache will be requested from the
 % server.
 %
-% The environment can be either specified through its registration name
-% (recommended) or directly through its PID, in which case at least one of its
-% entries shall already be cached (indeed a client cache stores the registration
-% name of the cached environments, which cannot be deduced from the PID).
+% The environment can be specified through its information (recommended), or
+% from its registration name, otherwise directly through its PID, in which case
+% at least one of its entries shall already be cached (indeed a client cache
+% stores the registration name of the cached environments, which cannot be
+% deduced from their PID).
 %
 -spec cache( cache_spec(), env_data() ) -> void().
 cache( AnyElem, _EnvInfo={ EnvRegName, EnvPid } ) ->
@@ -1348,8 +1411,7 @@ cache( KeysOrEntries, EnvRegName, EnvPid ) ->
 
 
 
-
-% Part common to two cache clauses.
+% Part common to the two cache clauses.
 %
 % (helper)
 %
@@ -1391,7 +1453,10 @@ finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
 % @doc Removes any (local) cache regarding the specified environment, resulting
 % in all subsequent operations on it to happen at the level of its server.
 %
--spec uncache( env_designator() ) -> void().
+-spec uncache( env_data() ) -> void().
+uncache( _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	uncache( EnvPid );
+
 uncache( EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	uncache( EnvPid );
@@ -1412,7 +1477,7 @@ uncache( EnvPid ) ->
 				false ->
 					ok;
 
-				% Last environment:
+				% It was the last environment:
 				{ _EnvPair, _ShrunkAllEnvTable=[] } ->
 					process_dictionary:remove( EnvDictKey );
 
@@ -1439,7 +1504,10 @@ uncache() ->
 % server, assuming the server entries are references (that is more recent than
 % the cached ones).
 %
--spec sync( env_designator() ) -> void().
+-spec sync( env_data() ) -> void().
+sync( _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	sync( EnvPid ) ;
+
 sync( EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	sync( EnvPid );
@@ -1486,7 +1554,10 @@ sync( EnvPid ) ->
 % @doc Stores (asynchronously) the current state of the specified environment in
 % the file whence it supposedly was loaded initially.
 %
--spec store( env_designator() ) -> void().
+-spec store( env_data() ) -> void().
+store( _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	store( EnvPid );
+
 store( EnvRegName ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	store( EnvPid );
@@ -1501,7 +1572,10 @@ store( EnvPid ) ->
 %
 % The specified path becomes the reference one.
 %
--spec store( env_designator(), any_file_path() ) -> void().
+-spec store( env_data(), any_file_path() ) -> void().
+store( _EnvInfo={ _EnvRegName, EnvPid }, TargetFilePath ) ->
+	store( EnvPid, TargetFilePath );
+
 store( EnvRegName, TargetFilePath ) when is_atom( EnvRegName ) ->
 	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
 	store( EnvPid, TargetFilePath );
@@ -1567,12 +1641,6 @@ to_string( EnvData ) ->
 to_bin_string( _EnvInfo={ EnvRegName, _EnvPid } ) ->
 	to_bin_string( EnvRegName );
 
-to_bin_string( FilePath ) when is_list( FilePath ) ->
-
-	EnvRegAtom = get_env_reg_name_from( FilePath ),
-
-	to_bin_string( EnvRegAtom );
-
 to_bin_string( EnvRegAtom ) when is_atom( EnvRegAtom ) ->
 
 	case naming_utils:is_registered( EnvRegAtom, local ) of
@@ -1585,6 +1653,14 @@ to_bin_string( EnvRegAtom ) when is_atom( EnvRegAtom ) ->
 			to_bin_string( EnvSrvPid )
 
 	end;
+
+
+to_bin_string( FilePath ) when is_list( FilePath ) ->
+
+	EnvRegAtom = get_env_reg_name_from( FilePath ),
+
+	to_bin_string( EnvRegAtom );
+
 
 % Then supposed to be existing:
 to_bin_string( EnvSrvPid ) when is_pid( EnvSrvPid ) ->
@@ -1650,7 +1726,10 @@ get_env_reg_name_from( FilePath ) ->
 %
 % Never fails.
 %
--spec stop( env_designator() | file_path() ) -> void().
+-spec stop( env_data() | file_path() ) -> void().
+stop( _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	stop( EnvPid );
+
 stop( FilePath ) when is_list( FilePath ) ->
 
 	EnvRegAtom = get_env_reg_name_from( FilePath ),
