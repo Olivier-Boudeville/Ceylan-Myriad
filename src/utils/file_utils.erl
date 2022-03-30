@@ -542,11 +542,11 @@
 % @doc Joins the specified list of path elements.
 %
 % This function has been added back to this module; filename:join( Components )
-% could be used instead (at least to some extent), however filename:join( [ "",
-% "my_dir"] ) results in "/my_dir", whereas often we would want "my_dir"
-% instead - which is returned by our function; moreover, if one of the
-% components includes an absolute path (such as "/xxx" with Unix conventions),
-% the preceding components, if any, were removed from the result (which does not
+% could be used instead (at least to some extent), however filename:join(["",
+% "my_dir"]) results in "/my_dir", whereas often we would want "my_dir" instead
+% - which is returned by our function; moreover, if one of the components
+% includes an absolute path (such as "/xxx" with Unix conventions), the
+% preceding components, if any, were removed from the result (which does not
 % seem desirable); here we throw an exception instead.
 %
 % So we deem our version simpler and less prone to surprise (least
