@@ -584,8 +584,8 @@ ignore_unused( _Term ) ->
 
 % @doc Freezes the current process immediately.
 %
-% Useful to block the process while for example an ongoing termination
-% occurs.
+% Useful to block the process while for example an ongoing, asynchronous
+% termination occurs.
 %
 % See also: enter_infinite_loop/0.
 %
@@ -597,6 +597,7 @@ freeze() ->
 	receive
 
 		not_expected_to_be_received ->
+			trace_utils:error( "Process has been unexpectedly unfrozen." ),
 			freeze()
 
 	end.
