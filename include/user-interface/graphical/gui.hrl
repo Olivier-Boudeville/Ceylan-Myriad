@@ -60,3 +60,21 @@
 	% hierarchy)
 	%
 	backend_event = undefined :: maybe( gui:backend_event() ) } ).
+
+
+
+% Information regarding the splitting of a window into two fixed panes,
+% horizontally or vertically.
+%
+-record( splitter, {
+
+	% The overall splitter window (child of the split overall one):
+	splitter_window :: gui:splitter_window(),
+
+	mode,
+
+	% The top or left pane:
+	first_pane :: maybe( gui:window() ),
+
+	% The bottom or right pane:
+	second_pane :: maybe( gui:window() ) } ).
