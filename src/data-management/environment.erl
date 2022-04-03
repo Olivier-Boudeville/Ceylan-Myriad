@@ -122,7 +122,8 @@
 		  set/2, set/3, set/4, set_cond/2, set_cond/3, set_cond/4,
 		  update_from_etf/2,
 		  remove/2, extract/2,
-		  cache/2, uncache/1, uncache/0, sync/1, store/1, store/2,
+		  cache/2, cache_return/2,
+		  uncache/1, uncache/0, sync/1, store/1, store/2,
 		  to_string/1, to_bin_string/1, to_string/0,
 		  stop/1 ]).
 
@@ -1447,6 +1448,22 @@ finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
 	%   [ self(), list_table:to_string( NewAllEnvTable ) ] ),
 
 	process_dictionary:put( EnvDictKey, NewAllEnvTable ).
+
+
+
+% @doc Caches in the calling process the specified keys, and returns their
+% associated value.
+%
+% Equivalent to a call to cache/2 followed by one to get/2.
+%
+-spec cache_return( maybe_list( key() ), env_data() ) ->
+								maybe_list( maybe( value() ) ).
+cache_return( Key, AnyEnvData ) when is_atom( Key ) ->
+	cache_return( [ Key ], AnyEnvData );
+
+cache_return( Keys, AnyEnvData ) ->
+	cache( Keys, AnyEnvData ),
+	get( Keys, AnyEnvData ).
 
 
 
