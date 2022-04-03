@@ -152,7 +152,7 @@
 	% GUI-level entries:
 
 	% The family of the current operating system, typically to adapt to OS
-	% specificities:
+	% GUI specificities:
 	%
 	{ 'os_family', system_utils:os_family() },
 
@@ -269,7 +269,6 @@
 % A basic canvas (not to be mixed with an OpenGL one, opengl_canvas/0).
 
 
-
 -type opengl_canvas() :: gui_opengl:gl_canvas().
 % An OpenGL canvas (not to be mixed with a basic one, canvas/0).
 
@@ -317,7 +316,9 @@
 % windows in their environment).
 %
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
-		  set_sizer/2, show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
+		  set_foreground_color/2, set_background_color/2,
+		  set_sizer/2, add_stretch_spacer/1, split/3,
+		  show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
 		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
 		  maximise_in_parent/1, sync/1, enable_repaint/1,
@@ -365,7 +366,7 @@
 
 % Canvas support (forwarded to gui_canvas).
 -export([ create_canvas/1, set_draw_color/2, set_fill_color/2,
-		  set_background_color/2, get_rgb/2, set_rgb/2,
+		  get_rgb/2, set_rgb/2,
 		  draw_line/3, draw_line/4, draw_lines/2, draw_lines/3,
 		  draw_segment/4, draw_polygon/2,
 		  draw_label/3,
@@ -559,6 +560,10 @@
 % A top-level (application-wide) window.
 
 
+-type splitter_window() :: wxSplitterWindow:wxSplitterWindow().
+% A window able to be split into two panes.
+
+
 -opaque frame() :: wxFrame:wxFrame().
 
 -type top_level_frame() :: frame().
@@ -567,14 +572,25 @@
 
 -opaque button() :: wxButton:wxButton().
 
--opaque sizer() :: wxSizer:wxSizer().
 
+-opaque sizer() :: wxSizer:wxSizer().
+% A vertical or horizontal container whose elements are dynamically resized.
 
 -opaque sizer_child() :: window() | sizer().
 % Elements that can be included in a sizer.
 
 
 -opaque sizer_item() :: wxSizerItem:wxSizerItem().
+% An element of a sizer.
+
+
+-type splitter() :: #splitter{}.
+% Information regarding the (fixed, static) horizonta or vertical splitting of a
+% window into two ones.
+
+-type sash_gravity() :: number().
+% Tells how much the first pane of a splitter window is to grow while resizing.
+
 
 -opaque status_bar() :: wxStatusBar:wxStatusBar().
 
@@ -763,10 +779,12 @@
 			   myriad_object_type/0, myriad_instance_id/0,
 			   title/0, label/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
-			   window/0, top_level_window/0,
+			   window/0, top_level_window/0, splitter_window/0,
 			   frame/0, top_level_frame/0,
 			   panel/0, button/0,
-			   sizer/0, sizer_child/0, sizer_item/0, status_bar/0,
+			   sizer/0, sizer_child/0, sizer_item/0,
+			   splitter/0, sash_gravity/0,
+			   status_bar/0,
 
 			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
 			   font_weight/0,
@@ -1278,6 +1296,43 @@ record_top_level_window( Window ) ->
 
 
 
+% @doc Sets the foreground color of the specified window.
+-spec set_foreground_color( window(), color() ) -> void().
+set_foreground_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
+					  Color ) ->
+
+	%trace_utils:debug_fmt( "Setting foreground color of canvas ~w to ~p.",
+	%                       [ Canvas, Color ] ),
+
+	get_main_loop_pid() ! { setCanvasForegroundColor, [ CanvasId, Color ] };
+
+set_foreground_color( Window, Color ) ->
+
+	ActualColor = gui_color:get_color( Color ),
+
+	wxWindow:setForegroundColour( Window, ActualColor ).
+
+
+
+% @doc Sets the background color of the specified window.
+-spec set_background_color( window(), color() ) -> void().
+set_background_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
+					  Color ) ->
+
+	%trace_utils:debug_fmt( "Setting background color of canvas ~w to ~p.",
+	%                       [ Canvas, Color ] ),
+
+	get_main_loop_pid() ! { setCanvasBackgroundColor, [ CanvasId, Color ] };
+
+set_background_color( Window, Color ) ->
+
+	ActualColor = gui_color:get_color( Color ),
+
+	wxWindow:setBackgroundColour( Window, ActualColor ).
+
+
+
+
 % Canvas section.
 
 
@@ -1306,24 +1361,6 @@ set_draw_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 -spec set_fill_color( canvas(), maybe( color() ) ) -> void().
 set_fill_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasFillColor, [ CanvasId, Color ] }.
-
-
-
-% @doc Sets the background color of the specified window.
--spec set_background_color( window(), color() ) -> void().
-set_background_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
-					  Color ) ->
-
-	%trace_utils:debug_fmt( "Setting background color of canvas ~w to ~p.",
-	%                       [ Canvas, Color ] ),
-
-	get_main_loop_pid() ! { setCanvasBackgroundColor, [ CanvasId, Color ] };
-
-set_background_color( Window, Color ) ->
-
-	ActualColor = gui_color:get_color( Color ),
-
-	wxWindow:setBackgroundColour( Window, ActualColor ).
 
 
 
@@ -1362,7 +1399,8 @@ draw_line( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, P1, P2 ) ->
 % specified color.
 %
 -spec draw_line( canvas(), point(), point(), color() ) -> void().
-draw_line( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, P1, P2, Color ) ->
+draw_line( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, P1, P2,
+		   Color ) ->
 	get_main_loop_pid() ! { drawCanvasLine, [ CanvasId, P1, P2, Color ] }.
 
 
@@ -1380,7 +1418,8 @@ draw_lines( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points ) ->
 % specified color.
 %
 -spec draw_lines( canvas(), [ point() ], color() ) -> void().
-draw_lines( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points, Color ) ->
+draw_lines( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points,
+			Color ) ->
 	get_main_loop_pid() ! { drawCanvasLines, [ CanvasId, Points, Color ] }.
 
 
@@ -1391,7 +1430,8 @@ draw_lines( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points, Color )
 % null).
 %
 -spec draw_segment( canvas(), line2(), coordinate(), coordinate() ) -> void().
-draw_segment( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, L, Y1, Y2 ) ->
+draw_segment( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, L,
+			  Y1, Y2 ) ->
 	get_main_loop_pid() ! { drawCanvasSegment, [ CanvasId, L, Y1, Y2 ] }.
 
 
@@ -1407,7 +1447,8 @@ draw_polygon( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points ) ->
 % specified canvas, using the current draw color.
 %
 -spec draw_label( canvas(), point(), label() ) -> void().
-draw_label( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point, Label ) ->
+draw_label( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point,
+			Label ) ->
 	get_main_loop_pid() ! { drawCanvasLabel, [ CanvasId, Point, Label  ] }.
 
 
@@ -1447,8 +1488,8 @@ draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 % edge length and companion label.
 %
 -spec draw_labelled_cross( canvas(), point(), length(), label()  ) -> void().
-draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
-					 EdgeLength, LabelText ) ->
+draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
+					 Location, EdgeLength, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
 							[ CanvasId, Location, EdgeLength, LabelText  ] }.
 
@@ -1459,8 +1500,8 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Locati
 %
 -spec draw_labelled_cross( canvas(), point(), length(), color(), label() ) ->
 									 void().
-draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
-					 EdgeLength, Color, LabelText ) ->
+draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
+					 Location, EdgeLength, Color, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
 						[ CanvasId, Location, EdgeLength, Color, LabelText  ] }.
 
@@ -1481,8 +1522,8 @@ draw_circle( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Center,
 % be a disc) in specified canvas.
 %
 -spec draw_circle( canvas(), point(), length(), color() ) -> void().
-draw_circle( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Center, Radius,
-			 Color ) ->
+draw_circle( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Center,
+			 Radius, Color ) ->
 
 	%trace_utils:debug_fmt( "Drawing circle centered at ~p, of colour ~p.",
 	%                       [ Center, Color ] ),
@@ -1563,6 +1604,37 @@ set_sizer( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Sizer ) ->
 
 set_sizer( Window, Sizer ) ->
 	wxWindow:setSizer( Window, Sizer ).
+
+
+
+% @doc Adds to the specified sizer a stretch spacer, that is stretchable space,
+% and returns it.
+%
+-spec add_stretch_spacer( sizer() ) -> sizer_item().
+add_stretch_spacer( Sizer ) ->
+	wxSizer:addStretchSpacer( Sizer ).
+
+
+
+% @doc Splits the specified window based on specified sash gravity and pane
+% size, returns a corresponding splitter record.
+%
+-spec split( window(), sash_gravity(), size() ) -> splitter().
+split( ParentWindow, SashGravity, PaneSize ) ->
+
+   Style = case os:type() of
+		{unix, darwin} -> ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE;
+		{win32, _} -> ?wxSP_BORDER bor ?wxSP_LIVE_UPDATE;
+		_ -> ?wxSP_3D bor ?wxSP_LIVE_UPDATE
+		end,
+
+	SplitterWin = wxSplitterWindow:new( ParentWindow, [ {style, Style } ] ),
+
+	wxSplitterWindow:setSashGravity( SplitterWin, SashGravity ),
+
+	wxSplitterWindow:setMinimumPaneSize( SplitterWin, PaneSize ),
+
+	#splitter{ splitter_window=SplitterWin }.
 
 
 
@@ -1733,7 +1805,6 @@ sync( Window ) ->
 enable_repaint( Window ) ->
 	DC = wxPaintDC:new( Window ),
 	wxPaintDC:destroy( DC ).
-
 
 
 % @doc Locks the specified window, so that direct access to its content can be
@@ -1991,7 +2062,6 @@ create_panel( Parent, X, Y, Width, Height, Options ) ->
 	ActualOptions = get_panel_options( Options ),
 
 	wxPanel:new( Parent, X, Y, Width, Height, ActualOptions ).
-
 
 
 
