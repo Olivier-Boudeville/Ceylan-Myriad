@@ -65,7 +65,8 @@
 
 
 % Main event primitives:
--export([ start_main_event_loop/2, propagate_event/1, set_instance_state/3 ]).
+-export([ start_main_event_loop/2, propagate_event/1, set_instance_state/3,
+		  match/2 ]).
 
 
 % Stringification:
@@ -221,8 +222,20 @@
 
 
 	% For keyboards:
+
+	% Event taking into account any modifier (ex: Control, Shift, Caps Lock) for
+	% the returned logical haracter (ex: returning 'A' instead of 'a'):
+	%
 	| 'onCharEntered'
+
+	% So that parent windows can intercept keys received by focused (child)
+	% windows:
+	%
 	| 'onCharEnteredHook'
+
+	% Event just about the physical key of interest (regardless of any
+	% modifier):
+	%
 	| 'onKeyPressed'
 	| 'onKeyReleased'.
 
@@ -244,7 +257,7 @@
 
 
 -type event_subscription() ::
-		{ maybe_list( event_type() ), maybe_list( gui_object() )}.
+		{ maybe_list( event_type() ), maybe_list( gui_object() ) }.
 % So that user process(es) can subscribe to GUI events.
 
 
@@ -255,13 +268,41 @@
 
 
 -type event_unsubscription() ::
-		{ maybe_list( event_type() ), maybe_list( gui_object() )}.
+		{ maybe_list( event_type() ), maybe_list( gui_object() ) }.
 % So that user process(es) can unsubscribe from GUI events.
 
 -type event_unsubscription_spec() :: maybe_list( event_unsubscription() ).
 % Specifies, for an event subscriber (by default: the calling process), any
 % combination of types of events and GUI objects to which it was suvscribed yet
 % that shall not be listened to anymore.
+
+
+-type gui_wx_object_key() ::
+		{ gui_wx_backend:wx_widget_type(), gui_wx_backend:wx_id() }.
+% A suitable stable key corresponding to a gui_object() (notably ignoring the
+% last, 'state' element of this quadruplet).
+%
+% Ex: the gui_object() {wx_ref,63,wxFrame,AnyState} results in the {wxFrame,63}
+% key.
+
+
+-type myriad_object_key() :: { myriad_object_type(), myriad_instance_id() }.
+% The MyriadGUI type corresponding to gui_wx_object_key/0.
+%
+% Ex: the myriad_object_ref() {myriad_object_ref,myr_canvas,12} results in the
+% {myr_canvas,12} key.
+
+
+-type gui_object_key() :: gui_wx_object_key() | myriad_object_key().
+% Stable reference to a widget instance.
+%
+% This type has been introduced in order to benefit from more relevant keys for
+% event tables: previously these keys were gui_object(), until more complex GUI
+% uses shown that, after using wx_object:set_pid/2, a frame now known as
+% {wx_ref,63,wxFrame,<0.119.0>} still generated events as
+% {wx_ref,63,wxFrame,[]}, so a better, stable identifier thereof is
+% {wxFrame,63}.
+
 
 
 -export_type([ event_message/0, event_source/0,
@@ -274,19 +315,21 @@
 			   event_type/0, user_pid/0,
 			   event_subscriber_pid/0,
 			   event_subscription/0, event_subscription_spec/0,
-			   event_unsubscription/0, event_unsubscription_spec/0 ]).
+			   event_unsubscription/0, event_unsubscription_spec/0,
+
+			   gui_wx_object_key/0, myriad_object_key/0, gui_object_key/0 ]).
 
 
 
--type event_table() :: table:table( gui_object(), event_dispatch_table() ).
+-type event_table() :: table:table( gui_object_key(), event_dispatch_table() ).
 % An indirection table dispatching events according to subscription
 % specifications.
 %
 % For an incoming event, we see this type (virtually, logically) as:
 % table({gui_object(), event_type()}, set_utils:set( event_subscriber_pid())):
 %
-% - the first key is the GUI object (e.g. widget) from which the event emanates
-% (ex: a frame)
+% - the first key is the key corresponding to the GUI object (e.g. widget) from
+% which the event emanates (ex: a frame)
 %
 % - the second key is its corresponding (internal) event type (ex:
 % 'onWindowClosed')
@@ -384,8 +427,8 @@
 -type loop_state() :: #loop_state{}.
 
 
--type wx_event() :: { 'wx', wx_id(), wx:wx_object(), gui:user_data(),
-					  wx_event_info() }.
+-type wx_event() ::
+		{ 'wx', wx_id(), wx:wx_object(), gui:user_data(), wx_event_info() }.
 % A wx_event record comprises:
 %
 % - (the 'wx' record tag, if the record instance is seen as a tuple)
@@ -464,7 +507,7 @@ start_main_event_loop( WxServer, WxEnv ) ->
 	% To be done first, so that we are able to use wx from that process from now
 	% on:
 	%
-	wx:set_env( WxEnv ),
+	gui:set_backend_environment( WxEnv ),
 
 	EmptyTable = table:new(),
 
@@ -514,7 +557,7 @@ process_event_messages( LoopState ) ->
 			% pile up:
 			%
 			FirstWxRepaintEvent=#wx{ obj=SourceObject,
-									 event={wxPaint,paint} } ->
+									 event={ wxPaint, paint } } ->
 
 				cond_utils:if_defined( myriad_debug_gui_repaint_logic,
 					trace_utils:debug_fmt(
@@ -538,8 +581,8 @@ process_event_messages( LoopState ) ->
 		receive
 
 			AnyEvent ->
-				%trace_utils:debug_fmt( "[event] Received any event:~n ~p.",
-				%                       [ AnyEvent ] ),
+				trace_utils:debug_fmt( "[event] Received any event:~n ~p.",
+									   [ AnyEvent ] ),
 				process_event_message( AnyEvent, LoopState )
 
 		end ),
@@ -570,7 +613,7 @@ process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 									userData=UserData, event=WxEventInfo },
 					   LoopState ) ->
 
-	%trace_utils:debug_fmt( "[event] Received wx event ~p.", [ WxEvent ] ),
+	trace_utils:debug_fmt( "[event] Received wx event ~p.", [ WxEvent ] ),
 
 	process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo,
 					  WxEvent, LoopState );
@@ -816,7 +859,8 @@ process_event_message( { subscribeToEvents,
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "[event] Subscribing by ~w of process ~w "
-			"to events ~p.", [ SenderPid, SubscriberPid, SubscribedEvents ] ) ),
+			"to events ~w.",
+			[ SenderPid, SubscriberPid, SubscribedEvents ] ) ),
 
 	NewLoopState = register_in_event_loop_tables( SubscribedEvents,
 												  SubscriberPid, LoopState ),
@@ -963,7 +1007,7 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 				_ ->
 					trace_utils:debug_fmt( "[event] Timed-out after ~B drops.",
-											 [ DropCount ] )
+										   [ DropCount ] )
 					%throw( { drop_count, DropCount } )
 
 			end ),
@@ -988,7 +1032,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 										 reassign_table=ReassignTable,
 										 type_table=TypeTable } ) ->
 
-	%trace_utils:debug_fmt( "Processing wx event ~p.", [ WxEvent ] ),
+	%trace_utils:debug_fmt( "Processing wx event~n  ~p.", [ WxEvent ] ),
 
 	% Reassigns this event and possibly updates its actual target:
 	{ ActualGUIObject, NewTypeTable } =
@@ -1020,18 +1064,22 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 	end,
 
+	ObjectKey = get_key_from_object( ActualGUIObject ),
+
 	NewLoopState = LoopState#loop_state{ type_table=NewTypeTable },
 
 	% Then notify the user-defined subscribers, if any (could use
 	% get_subscribers_for/3):
 	%
-	case table:lookup_entry( ActualGUIObject, EventTable ) of
+	case table:lookup_entry( ObjectKey, EventTable ) of
 
 		key_not_found ->
 			% At least one subscriber would be expected:
 			trace_utils:warning_fmt( "No event subscription for GUI "
-				"object '~ts', hence ignoring event.",
-				[ gui:object_to_string( ActualGUIObject ) ] );
+				"object '~ts' (i.e. ~w, whose key is ~w), which is abnormal, "
+				"thus ignoring event; event table is ~ts.",
+				[ gui:object_to_string( ActualGUIObject ), ActualGUIObject,
+				  ObjectKey, table:to_string( EventTable ) ] );
 
 		{ value, DispatchTable } ->
 
@@ -1075,8 +1123,9 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 %
 -spec update_instance_on_event( gui_object(), wx_event_info(),
 								myriad_type_table() ) -> myriad_type_table().
-update_instance_on_event( _GuiObject={ myriad_object_ref, canvas, CanvasId },
-						  WxEventInfo, TypeTable ) ->
+update_instance_on_event(
+			_GuiObject={ myriad_object_ref, myr_canvas, CanvasId },
+			WxEventInfo, TypeTable ) ->
 
 	case _WxEventType=element( 2, WxEventInfo ) of
 
@@ -1118,7 +1167,9 @@ update_instance_on_event( GuiObject, WxEventInfo, TypeTable ) ->
 									[ event_subscriber_pid() ].
 get_subscribers_for( GUIObject, EventType, EventTable ) ->
 
-	case table:lookup_entry( GUIObject, EventTable ) of
+	ObjectKey = get_key_from_object( GUIObject ),
+
+	case table:lookup_entry( ObjectKey, EventTable ) of
 
 		key_not_found ->
 			[];
@@ -1319,6 +1370,7 @@ register_in_event_loop_tables( _SubscribedEvents=[], _DefaultSubscriberPid,
 							   LoopState ) ->
 	LoopState;
 
+% Subscription triplet:
 register_in_event_loop_tables( _SubscribedEvents=[
 		{ EventTypeMaybeList, GUIObjectMaybeList, SubscriberMaybeList } | T ],
 		DefaultSubscriberPid, LoopState ) ->
@@ -1337,9 +1389,11 @@ register_in_event_loop_tables( _SubscribedEvents=[
 
 	register_in_event_loop_tables( T, DefaultSubscriberPid, NewLoopState );
 
+% Subscription pair:
 register_in_event_loop_tables( _SubscribedEvents=[
 			{ EventTypeMaybeList, GUIObjectMaybeList } | T ],
 							   DefaultSubscriberPid, LoopState ) ->
+	% Just adding the default subscriber to have a subscription triplet:
 	register_in_event_loop_tables( [ { EventTypeMaybeList, GUIObjectMaybeList,
 		[ DefaultSubscriberPid ] } | T ], DefaultSubscriberPid, LoopState ).
 
@@ -1348,7 +1402,7 @@ register_in_event_loop_tables( _SubscribedEvents=[
 % (helper)
 -spec register_event_types_for( gui_object(), [ event_type() ],
 				[ event_subscriber_pid() ], loop_state() ) -> loop_state().
-register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
+register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 						  EventTypes, Subscribers, LoopState=#loop_state{
 											event_table=EventTable,
 											type_table=TypeTable } ) ->
@@ -1376,8 +1430,8 @@ register_event_types_for( Canvas={ myriad_object_ref, canvas, CanvasId },
 	BaseEventTypes = gui_canvas:get_base_panel_events_of_interest(),
 
 	% Exactly one occurrence of these types to remove:
-	NewEventTypes = list_utils:remove_first_occurrences( BaseEventTypes,
-														 EventTypes ),
+	NewEventTypes =
+		list_utils:remove_first_occurrences( BaseEventTypes, EventTypes ),
 
 	case NewEventTypes of
 
@@ -1408,8 +1462,8 @@ register_event_types_for( GUIObject, EventTypes, Subscribers,
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
-		   "regarding object '~ts'.",
-		   [ Subscribers, EventTypes, gui:object_to_string( GUIObject ) ] ) ),
+			"regarding object '~ts'.",
+			[ Subscribers, EventTypes, gui:object_to_string( GUIObject ) ] ) ),
 
 	% Auto-connection to the current PID (i.e. the one of the internal, main
 	% event loop), so that it receives these events for their upcoming
@@ -1466,10 +1520,9 @@ unregister_from_event_loop_tables( _SubscribedEvents=[
 % (helper)
 -spec unregister_event_types_from( gui_object(), [ event_type() ],
 				[ event_subscriber_pid() ], loop_state() ) -> loop_state().
-unregister_event_types_from( Canvas={ myriad_object_ref, canvas, CanvasId },
-							 EventTypes, Unsubscribers, LoopState=#loop_state{
-											event_table=EventTable,
-											type_table=TypeTable } ) ->
+unregister_event_types_from( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
+		EventTypes, Unsubscribers, LoopState=#loop_state{
+			event_table=EventTable, type_table=TypeTable } ) ->
 
 	%trace_utils:debug_fmt( "Unregistering subscribers ~w for event types ~p "
 	%    "regarding canvas '~ts'.", [ Unsubscribers, EventTypes,
@@ -1534,7 +1587,9 @@ unregister_event_types_from( GUIObject, EventTypes, Unsubscribers,
 			[ event_subscriber_pid() ], event_table() ) -> event_table().
 record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 
-	NewDispatchTable= case table:lookup_entry( GUIObject, EventTable ) of
+	ObjectKey = get_key_from_object( GUIObject ),
+
+	NewDispatchTable = case table:lookup_entry( ObjectKey, EventTable ) of
 
 		key_not_found ->
 			UniqueSubscribers = list_utils:uniquify( Subscribers ),
@@ -1546,7 +1601,7 @@ record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 
 	end,
 
-	table:add_entry( GUIObject, NewDispatchTable, EventTable ).
+	table:add_entry( ObjectKey, NewDispatchTable, EventTable ).
 
 
 
@@ -1559,7 +1614,9 @@ record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 			[ event_subscriber_pid() ], event_table() ) -> event_table().
 record_unsubscriptions( GUIObject, EventTypes, Unsubscribers, EventTable ) ->
 
-	NewDispatchTable= case table:lookup_entry( GUIObject, EventTable ) of
+	ObjectKey = get_key_from_object( GUIObject ),
+
+	NewDispatchTable= case table:lookup_entry( ObjectKey, EventTable ) of
 
 		key_not_found ->
 			trace_utils:error_fmt( "Unable to unsubscribe from GUI object "
@@ -1573,7 +1630,7 @@ record_unsubscriptions( GUIObject, EventTypes, Unsubscribers, EventTable ) ->
 
 	end,
 
-	table:add_entry( GUIObject, NewDispatchTable, EventTable ).
+	table:add_entry( ObjectKey, NewDispatchTable, EventTable ).
 
 
 
@@ -1631,7 +1688,7 @@ shrink_event_table( _EventTypes=[ EventType | T ], Subscribers,
 			case list_utils:delete_existing_elements( Subscribers,
 													  CurrentSubscribers ) of
 			%case list_utils:remove_first_occurrences( Subscribers,
-			%										  CurrentSubscribers ) of
+			%                                          CurrentSubscribers ) of
 
 				[] ->
 					list_table:remove_entry( EventType, DispatchTable );
@@ -1645,6 +1702,40 @@ shrink_event_table( _EventTypes=[ EventType | T ], Subscribers,
 	end,
 
 	shrink_event_table( T, Subscribers, UpdatedDispatchTable ).
+
+
+
+% Returns a suitable, stable key corresponding to the specified object
+% reference.
+%
+% (helper)
+%
+-spec get_key_from_object( gui_object() ) -> gui_object_key().
+get_key_from_object( _WxObject={wx_ref, WxId, WxType, _AnyState } ) ->
+	{ WxType, WxId };
+
+get_key_from_object( #myriad_object_ref{ object_type=ObjectType,
+										 myriad_instance_id=InstanceId } ) ->
+	{ ObjectType, InstanceId }.
+
+
+
+% @doc Tells whether the two specified GUI objects match (equality operator).
+-spec match( gui_object(), gui_object() ) -> boolean().
+% The point is to ignore the included state that should not matter:
+match( _FirstWxObject={wx_ref, WxId, WxType, _AnyFirstState },
+	   _SecondWxObject={wx_ref, WxId, WxType, _AnySecondState } ) ->
+	true;
+
+match( #myriad_object_ref{ object_type=ObjectType,
+						   myriad_instance_id=InstanceId },
+	   #myriad_object_ref{ object_type=ObjectType,
+						   myriad_instance_id=InstanceId } ) ->
+	true;
+
+match( _FirstGUIObject, _SecondGUIObject ) ->
+	false.
+
 
 
 % @doc Adjusts the specified MyriadGUI instances.
@@ -1666,8 +1757,8 @@ adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 
 			EventType = onRepaintNeeded,
 
-			Subscribers = get_subscribers_for( CanvasRef, EventType,
-											   EventTable ),
+			Subscribers =
+				get_subscribers_for( CanvasRef, EventType, EventTable ),
 
 			send_event( Subscribers, EventType, _EventSourceId=undefined,
 						CanvasRef, _UserData=[], _Event=undefined ),
@@ -1854,9 +1945,9 @@ event_table_to_string( EventTable ) ->
 
 
 % @doc Returns a textual representation of specified dispatch table.
--spec dispatch_table_to_string( gui_object(), event_dispatch_table() ) ->
+-spec dispatch_table_to_string( gui_object_key(), event_dispatch_table() ) ->
 										ustring().
-dispatch_table_to_string( GUIObject, DispatchTable ) ->
+dispatch_table_to_string( GUIObjectKey, DispatchTable ) ->
 
 	EventPairs = list_table:enumerate( DispatchTable ),
 
@@ -1867,8 +1958,8 @@ dispatch_table_to_string( GUIObject, DispatchTable ) ->
 	EventString = text_utils:strings_to_string( EventStrings,
 												_IndentationLevel=1 ),
 
-	text_utils:format( "for GUI object '~ts': ~ts",
-					   [ gui:object_to_string( GUIObject ), EventString ] ).
+	text_utils:format( "for GUI object whose key is '~ts': ~ts",
+		[ gui:object_key_to_string( GUIObjectKey ), EventString ] ).
 
 
 
@@ -1883,8 +1974,8 @@ reassign_table_to_string( ReassignTable ) ->
 
 		ObjectPairs ->
 			Strings = [ text_utils:format( "events sent to '~ts' will be "
-				"reassigned to '~ts'", [ gui:object_to_string( From ),
-										 gui:object_to_string( To ) ] )
+				"reassigned to '~ts'",
+				[ gui:object_to_string( From ), gui:object_to_string( To ) ] )
 						|| { From, To } <- ObjectPairs ],
 			text_utils:format( "~B GUI object reassignments defined: ~ts",
 				[ length( Strings), text_utils:strings_to_string( Strings ) ] )
@@ -1903,7 +1994,7 @@ type_table_to_string( Table ) ->
 			"empty type table";
 
 		Pairs ->
-			Strings = [ text_utils:format( "for type '~ts', ~ts", [ Type,
+			Strings = [ text__utils:format( "for type '~ts', ~ts", [ Type,
 					instance_referential_to_string( Referential ) ] )
 						|| { Type, Referential } <- Pairs ],
 			text_utils:format( "Type table with ~B object types registered: "
