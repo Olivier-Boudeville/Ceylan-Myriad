@@ -151,8 +151,8 @@
 
 	% GUI-level entries:
 
-	% The family of the current operating system, typically to adapt
-	% to OS specificities:
+	% The family of the current operating system, typically to adapt to OS
+	% specificities:
 	%
 	{ 'os_family', system_utils:os_family() },
 
@@ -196,9 +196,20 @@
 	{ 'key_released', boolean() },
 
 	% The coordinates at which the mouse cursor shall warp:
-	{ 'warp_coordinates', maybe( point() ) }
+	{ 'warp_coordinates', maybe( point() ) },
 
- ] ).
+
+	% Window manager related entries:
+
+	% The currently active window (if any), i.e. the one handling current
+	% events:
+	%
+	{ 'active_window', maybe( window_name() ) },
+
+	% The window (if any) currently having the focus (implicitly or because
+	% having grabbed the mouse):
+	%
+	{ 'focused_window', maybe( window_name() ) } ] ).
 % These keys, associated to values of the associated types, are used (and
 % reserved) by MyriadGUI in order to record application-level information, made
 % available to its processes through its environment server.
@@ -212,6 +223,9 @@
 
 
 -type gui_env_pid() :: environment:env_pid().
+
+-type gui_env_info() :: environment:env_info().
+
 
 -type gui_env_designator() :: environment:env_designator().
 
@@ -233,6 +247,10 @@
 % An (opaque) backend GUI event.
 
 
+-opaque backend_environment() :: wx_environment().
+% An (opaque) environment used by a GUI backend.
+
+
 -type wx_environment() :: term().
 % An (opaque) wx process environment.
 
@@ -241,7 +259,7 @@
 % explicitly managed (ex: wxMemoryDC:destroy/1 must be called when finished with
 % them), which is inconvenient and error-prone.
 %
--type device_context() :: wx_object().
+-type device_context() :: gui_object().
 % Designates an abstract device where rendering can take place, and which can be
 % the source or target of a blit. Akin to a surface in SDL (libsdl).
 
@@ -280,7 +298,7 @@
 %
 % (mostly internal purpose)
 %
--export([ object_to_string/1, context_to_string/1 ]).
+-export([ object_to_string/1, object_key_to_string/1, context_to_string/1 ]).
 
 
 
@@ -288,9 +306,11 @@
 
 
 % General-purpose:
--export([ set_tooltip/2 ]).
+-export([ set_tooltip/2, set_as_controller/1, set_controller/2 ]).
 
 
+% Miscellaneous:
+-export([ set_backend_environment/1 ]).
 
 
 % Windows (see also the gui_window_manager module regarding the insertion of
@@ -298,13 +318,16 @@
 %
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
 		  set_sizer/2, show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
-		  set_focus/1,
+		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
 		  maximise_in_parent/1, sync/1, enable_repaint/1,
 		  lock_window/1, unlock_window/1, destruct_window/1 ]).
 
 
 % Frames:
+%
+% A frame is a window whose size and position can usually be changed by the
+% user.
 %
 % Note that a frame is a top_level_window(), a window() and an event_handler(),
 % and thus can use their methods.
@@ -488,7 +511,7 @@
 % (ex: 'window', instead of 'wxWindow').
 
 
--type myriad_object_type() :: 'canvas'.
+-type myriad_object_type() :: 'myr_canvas'.
 % The additional widget types introduced by Myriad.
 
 
@@ -514,11 +537,11 @@
 % not wx).
 
 
--type gui_object() :: wx:wx_object() | myriad_object_ref().
+-type gui_object() :: wx_object() | myriad_object_ref().
 % Reference to a GUI object (often designated as "widget" here), somewhat akin
 % to a PID.
 %
-% (ex: {wx_ref,35,wxFrame,[]} or {myriad_object_ref,canvas,12}).
+% (ex: {wx_ref,35,wxFrame,[]} or {myriad_object_ref,myr_canvas,12}).
 
 
 -type wx_server() :: gui_object().
@@ -729,7 +752,7 @@
 
 
 -export_type([ service/0,
-			   gui_env_pid/0, gui_env_designator/0,
+			   gui_env_pid/0, gui_env_info/0, gui_env_designator/0,
 			   backend_identifier/0, backend_information/0,
 
 			   length/0, width/0, height/0,
@@ -764,7 +787,7 @@
 
 
 % To avoid unused warnings:
--export_type([ myriad_object_state/0, wx_environment/0 ]).
+-export_type([ myriad_object_state/0, backend_environment/0 ]).
 
 
 % Function shorthands:
@@ -782,8 +805,6 @@
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
 
--type env_pid() :: environment:env_pid().
-
 -type text() :: ustring().
 
 -type file_path() :: file_utils:file_path().
@@ -798,6 +819,9 @@
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
 -type event_unsubscription_spec() :: gui_event:event_unsubscription_spec().
 -type event_context() :: gui_event:event_context().
+-type gui_object_key() :: gui_event:gui_object_key().
+
+%-type window_name() :: gui_window_manager:window_name().
 
 -type wx_id() :: gui_wx_backend:wx_id().
 
@@ -829,39 +853,48 @@ get_backend_information() ->
 
 
 % @doc Starts the MyriadGUI subsystem, with all optional services; returns the
-% PID of its environment.
+% information regarding its environment.
 %
 % Note that OpenGL-related options are to be specified when creating a GL canvas
 % (see gui_opengl:create_canvas{1,2}).
 %
--spec start() -> env_pid().
+-spec start() -> gui_env_info().
 start() ->
 	start( [ mouse ] ).
 
 
 
 % @doc Starts the MyriadGUI subsystem, with the specified services, or with all
-% services while setting specified debug level; returns the PID of its
-% environment.
+% services while setting specified debug level; returns the information
+% regarding its environment.
 %
 % Note that OpenGL-related options are to be specified when creating a GL canvas
 % (see gui_opengl:create_canvas{1,2}).
 %
--spec start( [ service() ] | debug_level() ) -> env_pid().
+-spec start( [ service() ] | debug_level() ) -> gui_env_info().
 start( Services ) when is_list( Services ) ->
 	% Starting the MyriadGUI environment:
 	create_gui_environment( Services );
 
 start( DebugLevel ) ->
-	EnvPid = start(),
+	EnvInfo = start(),
 	set_debug_level( DebugLevel ),
-	EnvPid.
+	EnvInfo.
 
 
 
-% @doc Creates and initialises the MyriadGUI environment server.
--spec create_gui_environment( [ service() ] ) -> env_pid().
+% @doc Creates and initialises the MyriadGUI environment server; returns the
+% information of the just created MyriadGUI environment.
+%
+% Some services must be specifically declared here, as they require
+% initialisation (ex: for the loading of mouse cursors).
+%
+-spec create_gui_environment( [ service() ] ) -> gui_env_info().
 create_gui_environment( Services ) ->
+
+	cond_utils:if_defined( myriad_debug_user_interface,
+		trace_utils:info_fmt( "Starting GUI, with following services: ~p",
+							  [ Services ] ) ),
 
 	GUIEnvRegName = ?gui_env_reg_name,
 
@@ -892,13 +925,13 @@ create_gui_environment( Services ) ->
 		{ os_name, OSName },
 
 		{ top_level_window, undefined },
+		{ loop_pid, LoopPid },
 
 		{ backend_server, WxServer },
 		{ backend_env, WxEnv },
 
 		{ gl_canvas, undefined },
-		{ gl_context, undefined },
-		{ loop_pid, LoopPid } ] ),
+		{ gl_context, undefined } ] ),
 
 
 	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:info_fmt(
@@ -927,7 +960,7 @@ create_gui_environment( Services ) ->
 
 	end,
 
-	GUIEnvPid.
+	{ GUIEnvRegName, GUIEnvPid }.
 
 
 
@@ -1132,6 +1165,8 @@ get_environment_server() ->
 
 
 
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Widget section.
@@ -1145,7 +1180,7 @@ get_environment_server() ->
 
 % @doc Attaches a tooltip to specified widget.
 -spec set_tooltip( window(), label() ) -> void().
-set_tooltip( _Canvas={ myriad_object_ref, canvas, CanvasId }, Label ) ->
+set_tooltip( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Label ) ->
 	get_main_loop_pid() ! { setTooltip, [ CanvasId, Label ] };
 
 set_tooltip( Window, Label ) ->
@@ -1158,11 +1193,29 @@ set_tooltip( Window, Label ) ->
 
 
 
+% @doc Sets the current process as the controller of the specified GUI object.
+-spec set_as_controller( gui_object() ) -> gui_object().
+set_as_controller( Object ) ->
+	set_controller( Object, self() ).
+
+
+
+% @doc Sets the process of specified PID as the controller of the specified GUI
+% object.
+%
+-spec set_controller( gui_object(), pid() ) -> gui_object().
+set_controller( Object, ControllerPid ) ->
+	wx_object:set_pid( Object, ControllerPid ).
+
+
+
 % Window section.
 %
-% Base class for all windows and represents any visible object on screen. All
-% controls, top level windows and so on are windows. Sizers and device contexts
-% are not, however, as they do not appear on screen themselves.
+% Base, most general class for all windows (for example a frame is a window
+% whose size and position can usually be changed by the user). Represents any
+% visible object on screen. All controls, top level windows and so on are
+% windows. Sizers and device contexts are not, however, as they do not appear on
+% screen themselves.
 
 
 % @doc Creates a window.
@@ -1235,13 +1288,13 @@ record_top_level_window( Window ) ->
 -spec create_canvas( window() ) -> canvas().
 create_canvas( Parent ) ->
 	% Returns the corresponding myriad_object_ref:
-	execute_instance_creation( canvas, [ Parent ] ).
+	execute_instance_creation( myr_canvas, [ Parent ] ).
 
 
 
 % @doc Sets the color to be used for the drawing of the outline of shapes.
 -spec set_draw_color( canvas(), color() ) -> void().
-set_draw_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
+set_draw_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasDrawColor, [ CanvasId, Color ] }.
 
 
@@ -1251,14 +1304,14 @@ set_draw_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
 % An undefined color corresponds to a fully transparent one.
 %
 -spec set_fill_color( canvas(), maybe( color() ) ) -> void().
-set_fill_color( _Canvas={ myriad_object_ref, canvas, CanvasId }, Color ) ->
+set_fill_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 	get_main_loop_pid() ! { setCanvasFillColor, [ CanvasId, Color ] }.
 
 
 
 % @doc Sets the background color of the specified window.
 -spec set_background_color( window(), color() ) -> void().
-set_background_color( _Canvas={ myriad_object_ref, canvas, CanvasId },
+set_background_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 					  Color ) ->
 
 	%trace_utils:debug_fmt( "Setting background color of canvas ~w to ~p.",
@@ -1276,7 +1329,7 @@ set_background_color( Window, Color ) ->
 
 % @doc Returns the RGB value of the pixel at specified position.
 -spec get_rgb( canvas(), point() ) -> color_by_decimal_with_alpha().
-get_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
+get_rgb( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point ) ->
 
 	get_main_loop_pid() ! { getCanvasRGB, [ CanvasId, Point ], self() },
 
@@ -1291,7 +1344,7 @@ get_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 
 % @doc Sets the pixel at specified position to the current RGB point value.
 -spec set_rgb( canvas(), point() ) -> void().
-set_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
+set_rgb( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point ) ->
 	get_main_loop_pid() ! { setCanvasRGB, [ CanvasId, Point ] }.
 
 
@@ -1300,7 +1353,7 @@ set_rgb( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point ) ->
 % specified canvas, using current draw color.
 %
 -spec draw_line( canvas(), point(), point() ) -> void().
-draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2 ) ->
+draw_line( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, P1, P2 ) ->
 	get_main_loop_pid() ! { drawCanvasLine, [ CanvasId, P1, P2 ] }.
 
 
@@ -1309,7 +1362,7 @@ draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2 ) ->
 % specified color.
 %
 -spec draw_line( canvas(), point(), point(), color() ) -> void().
-draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2, Color ) ->
+draw_line( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, P1, P2, Color ) ->
 	get_main_loop_pid() ! { drawCanvasLine, [ CanvasId, P1, P2, Color ] }.
 
 
@@ -1318,7 +1371,7 @@ draw_line( _Canvas={ myriad_object_ref, canvas, CanvasId }, P1, P2, Color ) ->
 % using current draw color.
 %
 -spec draw_lines( canvas(), [ point() ] ) -> void().
-draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
+draw_lines( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points ) ->
 	get_main_loop_pid() ! { drawCanvasLines, [ CanvasId, Points ] }.
 
 
@@ -1327,7 +1380,7 @@ draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 % specified color.
 %
 -spec draw_lines( canvas(), [ point() ], color() ) -> void().
-draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points, Color ) ->
+draw_lines( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points, Color ) ->
 	get_main_loop_pid() ! { drawCanvasLines, [ CanvasId, Points, Color ] }.
 
 
@@ -1338,14 +1391,14 @@ draw_lines( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points, Color ) ->
 % null).
 %
 -spec draw_segment( canvas(), line2(), coordinate(), coordinate() ) -> void().
-draw_segment( _Canvas={ myriad_object_ref, canvas, CanvasId }, L, Y1, Y2 ) ->
+draw_segment( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, L, Y1, Y2 ) ->
 	get_main_loop_pid() ! { drawCanvasSegment, [ CanvasId, L, Y1, Y2 ] }.
 
 
 
 % @doc Draws the specified polygon, closing the lines and filling them.
 -spec draw_polygon( canvas(), [ point() ] ) -> void().
-draw_polygon( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
+draw_polygon( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points ) ->
 	get_main_loop_pid() ! { drawCanvasPolygon, [ CanvasId, Points ] }.
 
 
@@ -1354,7 +1407,7 @@ draw_polygon( _Canvas={ myriad_object_ref, canvas, CanvasId }, Points ) ->
 % specified canvas, using the current draw color.
 %
 -spec draw_label( canvas(), point(), label() ) -> void().
-draw_label( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point, Label ) ->
+draw_label( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point, Label ) ->
 	get_main_loop_pid() ! { drawCanvasLabel, [ CanvasId, Point, Label  ] }.
 
 
@@ -1363,7 +1416,7 @@ draw_label( _Canvas={ myriad_object_ref, canvas, CanvasId }, Point, Label ) ->
 % edge length.
 %
 -spec draw_cross( canvas(), point() ) -> void().
-draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location ) ->
+draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location ) ->
 	get_main_loop_pid() ! { drawCanvasCross, [ CanvasId, Location ] }.
 
 
@@ -1372,7 +1425,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location ) ->
 % edge length.
 %
 -spec draw_cross( canvas(), point(), length() ) -> void().
-draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
+draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 			EdgeLength ) ->
 	get_main_loop_pid() ! { drawCanvasCross,
 							[ CanvasId, Location, EdgeLength ] }.
@@ -1383,7 +1436,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % edge length and color.
 %
 -spec draw_cross( canvas(), point(), length(), color() ) -> void().
-draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
+draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 			EdgeLength, Color ) ->
 	get_main_loop_pid() ! { drawCanvasCross,
 							[ CanvasId, Location, EdgeLength, Color ] }.
@@ -1394,7 +1447,7 @@ draw_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % edge length and companion label.
 %
 -spec draw_labelled_cross( canvas(), point(), length(), label()  ) -> void().
-draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
+draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 					 EdgeLength, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
 							[ CanvasId, Location, EdgeLength, LabelText  ] }.
@@ -1406,7 +1459,7 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 %
 -spec draw_labelled_cross( canvas(), point(), length(), color(), label() ) ->
 									 void().
-draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
+draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 					 EdgeLength, Color, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
 						[ CanvasId, Location, EdgeLength, Color, LabelText  ] }.
@@ -1417,7 +1470,7 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, canvas, CanvasId }, Location,
 % be a disc) in specified canvas.
 %
 -spec draw_circle( canvas(), point(), length() ) -> void().
-draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
+draw_circle( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Center,
 			 Radius ) ->
 	%trace_utils:debug_fmt( "Drawing circle centered at ~p.", [ Center ] ),
 	get_main_loop_pid() ! { drawCanvasCircle, [ CanvasId, Center, Radius ] }.
@@ -1428,7 +1481,7 @@ draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center,
 % be a disc) in specified canvas.
 %
 -spec draw_circle( canvas(), point(), length(), color() ) -> void().
-draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center, Radius,
+draw_circle( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Center, Radius,
 			 Color ) ->
 
 	%trace_utils:debug_fmt( "Drawing circle centered at ~p, of colour ~p.",
@@ -1444,7 +1497,7 @@ draw_circle( _Canvas={ myriad_object_ref, canvas, CanvasId }, Center, Radius,
 % list, L2 for the next, etc.).
 %
 -spec draw_numbered_points( canvas(), [ point() ] ) -> void().
-draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
+draw_numbered_points( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 					  Points ) ->
 	get_main_loop_pid() ! { drawCanvasNumberedPoints, [ CanvasId, Points ] }.
 
@@ -1454,7 +1507,7 @@ draw_numbered_points( _Canvas={ myriad_object_ref, canvas, CanvasId },
 % its upper left corner.
 %
 -spec load_image( canvas(), any_file_path() ) -> void().
-load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
+load_image( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Filename ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Filename ] }.
 
 
@@ -1463,7 +1516,7 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Filename ) ->
 % specified location.
 %
 -spec load_image( canvas(), point(), any_file_path() ) -> void().
-load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
+load_image( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Position,
 			FilePath ) ->
 	get_main_loop_pid() ! { loadCanvasImage, [ CanvasId, Position, FilePath ] }.
 
@@ -1471,7 +1524,7 @@ load_image( _Canvas={ myriad_object_ref, canvas, CanvasId }, Position,
 
 % @doc Resizes the specified canvas according to the specified new size.
 -spec resize( canvas(), size() ) -> void().
-resize( _Canvas={ myriad_object_ref, canvas, CanvasId }, NewSize ) ->
+resize( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, NewSize ) ->
 	get_main_loop_pid() ! { resizeCanvas, [ CanvasId, NewSize ] }.
 
 
@@ -1481,7 +1534,7 @@ resize( _Canvas={ myriad_object_ref, canvas, CanvasId }, NewSize ) ->
 % The back-buffer remains as it was before this call.
 %
 -spec blit( canvas() ) -> void().
-blit( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
+blit( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { blitCanvas, CanvasId }.
 
 
@@ -1490,7 +1543,7 @@ blit( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 % Note: the result will not be visible until the canvas is blitted.
 %
 -spec clear( canvas() ) -> void().
-clear( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
+clear( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { clearCanvas, CanvasId }.
 
 
@@ -1498,7 +1551,7 @@ clear( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
 
 % @doc Associates specified sizer to specified window.
 -spec set_sizer( window(), sizer() ) -> void().
-set_sizer( _Canvas={ myriad_object_ref, canvas, CanvasId }, Sizer ) ->
+set_sizer( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Sizer ) ->
 	get_main_loop_pid() ! { getCanvasPanel, [ CanvasId ], self() },
 
 	receive
@@ -1560,7 +1613,7 @@ hide( Window ) ->
 % @doc Tells whether the specified top-level window is maximised.
 -spec is_maximised( top_level_window() ) -> boolean().
 is_maximised( TopLevelWindow ) ->
-   wxTopLevelWindow:isMaximized( TopLevelWindow ).
+	wxTopLevelWindow:isMaximized( TopLevelWindow ).
 
 
 % @doc Maximises the specified top-level window.
@@ -1575,6 +1628,15 @@ set_title( TopLevelWindow, Title ) ->
 	wxTopLevelWindow:setTitle( TopLevelWindow, Title ).
 
 
+
+% @doc Returns the window or control (if any) that has the current keyboard
+% focus.
+%
+-spec get_focused() -> maybe( window() ).
+get_focused() ->
+	wxWindow:findFocus().
+
+
 % @doc Sets the specified window to receive keyboard input.
 -spec set_focus( window() ) -> void().
 set_focus( Window ) ->
@@ -1584,7 +1646,7 @@ set_focus( Window ) ->
 
 % @doc Returns the size (as {Width,Height}) of the specified window or bitmap.
 -spec get_size( window() | bitmap() ) -> dimensions().
-get_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
+get_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
 	%trace_utils:debug_fmt( "Getting size of canvas #~B.", [ CanvasId ] ),
 
@@ -1609,7 +1671,7 @@ get_size( Window ) ->
 % etc.)
 %
 -spec get_client_size( window() ) -> dimensions().
-get_client_size( _Canvas={ myriad_object_ref, canvas, CanvasId } ) ->
+get_client_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
 	get_main_loop_pid() ! { getCanvasClientSize, CanvasId, self() },
 	receive
@@ -1637,8 +1699,8 @@ maximise_in_parent( Widget ) ->
 
 
 
-% @doc Synchronises the specified window, to ensure that no past operation is
-% still pending at its level.
+% @doc Synchronises the specified window with the MyriadGUI loop, to ensure that
+% no past operation is still pending at its level.
 %
 % Useful if there exists some means of interacting with it directly (ex: thanks
 % to an OpenGL NIF) that could create a race condition (ex: presumably
@@ -1648,11 +1710,11 @@ maximise_in_parent( Widget ) ->
 %
 -spec sync( window() ) -> dimensions().
 sync( Window ) ->
-	% The result in itself may be of no use, the point here is just, through a
+	% The result in itself may be of no use; the point here is just, through a
 	% synchronous operation (a request), to ensure that the specified window is
-	% "ready" (that it has processed its previous messages) with a sufficient
-	% probability (with certainty if past operations were triggered by the same
-	% process as this calling one):
+	% "ready" (that it has processed all its previous messages) with a
+	% sufficient probability (and with certainty if past operations were
+	% triggered by the same process as this calling one):
 	%
 	wxWindow:getSize( Window ).
 
@@ -1669,7 +1731,7 @@ sync( Window ) ->
 %
 -spec enable_repaint( window() ) -> void().
 enable_repaint( Window ) ->
-	DC= wxPaintDC:new( Window ),
+	DC = wxPaintDC:new( Window ),
 	wxPaintDC:destroy( DC ).
 
 
@@ -1787,7 +1849,7 @@ create_frame( Title, Size ) ->
 %
 % (internal use only)
 %
--spec create_frame( title(), wx_id(), window() ) -> frame().
+-spec create_frame( title(), wx_id(), maybe( window() ) ) -> frame().
 create_frame( Title, Id, Parent ) ->
 	wxFrame:new( to_wx_parent( Parent ), to_wx_id( Id ), Title ).
 
@@ -1827,28 +1889,30 @@ create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
 
 
-% @doc Sets the icon of the specified frame.
-%
-% Supported image formats: only BMP by default.
-%
+% @doc Sets the icon of the specified (main) frame.
 -spec set_icon( frame(), file_path() ) -> void().
 set_icon( Frame, IconPath ) ->
+
+	% Supported image formats documented as being only BMP by default, yet test
+	% on PNG succeeded.
 
 	% Current no wx_image:initAllImageHandlers/* (for other formats than BMP),
 	% just wx_image:initStandardHandlers/0.
 
+	% Apparently 'Icon = wxIcon:new( IconPath ),' could have sufficed:
 	Img = wxImage:new( IconPath ),
 	Bitmap = wxBitmap:new( Img ),
 	Icon = wxIcon:new(),
 	wxIcon:copyFromBitmap( Icon, Bitmap ),
-	wxFrame:setIcon( Frame, Icon ).
+
+	wxTopLevelWindow:setIcon( Frame, Icon ).
 
 
 
 % @doc Destructs the specified frame.
 -spec destruct_frame( frame() ) -> void().
 destruct_frame( Frame  ) ->
-	wx:destroyFrame( Frame ).
+	wxFrame:destroy( Frame ).
 
 
 
@@ -2037,7 +2101,7 @@ create_sizer_with_labelled_box( Orientation, Parent, FormatString,
 % @doc Adds specified element, or elements with options, to the specified sizer.
 -spec add_to_sizer( sizer(), sizer_child() ) -> sizer_item();
 				  ( sizer(), [ { sizer_child(), sizer_options() } ] ) -> void().
-add_to_sizer( Sizer, _Element={ myriad_object_ref, canvas, CanvasId } ) ->
+add_to_sizer( Sizer, _Element={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
 	%io:format( "SEND"),
 	receive
@@ -2067,7 +2131,7 @@ add_to_sizer( Sizer, Element ) ->
 %
 -spec add_to_sizer( sizer(), sizer_child(), sizer_options() ) -> sizer_item();
 				  ( sizer(), [ sizer_child() ], sizer_options() ) -> void().
-add_to_sizer( Sizer, _Element={ myriad_object_ref, canvas, CanvasId },
+add_to_sizer( Sizer, _Element={ myriad_object_ref, myr_canvas, CanvasId },
 			  Options ) ->
 	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
 	receive
@@ -2282,6 +2346,18 @@ create_font( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ) ->
 
 
 
+% Miscellaneous.
+
+
+% @doc Sets the specified backend environment for the calling process, so that
+% it can make use of the corresponding backend.
+%
+-spec set_backend_environment( backend_environment() ) -> void().
+set_backend_environment( WxEnv ) ->
+	wx:set_env( WxEnv ).
+
+
+
 % General MyriadGUI helpers.
 
 
@@ -2346,6 +2422,14 @@ object_to_string( { wx_ref, InstanceRef, WxObjectType, State } ) ->
 	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
 	text_utils:format( "~ts-~B whose state is ~p",
 					   [ ObjectType, InstanceRef, State ] ).
+
+
+
+% @doc Returns a textual representation of the specified GUI object key.
+-spec object_key_to_string( gui_object_key() ) -> ustring().
+object_key_to_string( { AnyObjectType, AnyInstanceId } ) ->
+	text_utils:format( "~ts-~B", [ AnyObjectType, AnyInstanceId ] ).
+
 
 
 
