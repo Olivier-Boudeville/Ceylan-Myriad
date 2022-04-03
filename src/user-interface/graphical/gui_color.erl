@@ -51,6 +51,11 @@
 -include("gui.hrl").
 
 
+% For wx color defines:
+-include_lib("wx/include/wx.hrl").
+
+
+
 -type color_by_name() :: atom().
 
 -type color_by_decimal() :: { Red :: byte(), Green :: byte(), Blue :: byte() }.
@@ -169,6 +174,7 @@ get_colors() ->
 
 	% No less than 141 color definitions follow, based on:
 	% www.uni-hamburg.de/Wiss/FB/15/Sustainability/schneider/gnuplot/colors.htm
+	% (plus extra defines)
 
 	[ { aliceblue,            { 240, 248, 255 } },
 	  { antiquewhite,         { 250, 235, 215 } },
@@ -310,7 +316,10 @@ get_colors() ->
 	  { white,                { 255, 255, 255 } },
 	  { whitesmoke,           { 245, 245, 245 } },
 	  { yellow,               { 255, 255, 0   } },
-	  { yellowgreen,          { 139, 205,  50 } } ].
+	  { yellowgreen,          { 139, 205,  50 } },
+
+	  % From wx.hrl:
+	  { window_frame_color,   ?wxSYS_COLOUR_WINDOWFRAME } ].
 
 
 
