@@ -198,7 +198,10 @@
 -type wx_id() :: maybe( integer() ).
 % The identifier (ID) of a wx element is an integer (positive or not).
 %
-% It allows to specify a 'void' (null) ID of a GUI element.
+% This identifier (ex: 63) is relative to a given type, like in:
+% {wx_ref,63,wxFrame,[]}.
+%
+% This type allows to specify a 'void' (null) ID of a GUI element.
 %
 % Sometimes the ID may be directly provided by the user or have a predefined
 % value, such as wxID_OPEN; see
@@ -223,7 +226,7 @@
 
 
 -type wx_native_object_type() :: atom().
-% Native wx object types.
+% Native wx object types (ex: 'wxFrame').
 %
 % No enumeration like 'wxWindow' | 'wxFrame' | ... found in wx.
 
@@ -767,6 +770,7 @@ get_window_options( _Options=[ H | T ], Acc ) ->
 -spec frame_style_to_bitmask( frame_style() ) -> bit_mask().
 frame_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
 
+	% 'bor ?wxWANTS_CHARS' not desirable a priori:
 	lists:foldl( fun( S, Acc ) -> frame_style_to_bitmask( S ) bor Acc end,
 				 _InitialAcc=0,
 				 _List=StyleList );
@@ -965,8 +969,8 @@ to_wx_id( Other ) ->
 
 
 
-% @doc Converts specified MyriadGUI identifier in a wx-specific parent widget
-% identifier.
+% @doc Converts the specified MyriadGUI identifier into a wx-specific parent
+% widget identifier.
 %
 % (helper)
 %
