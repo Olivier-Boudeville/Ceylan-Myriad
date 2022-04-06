@@ -12,7 +12,6 @@ Data-Management Services
 Datatypes
 ---------
 
-
 Some generic **data-structures**, in addition to the ones provided built-in with Erlang, are defined in ``myriad/src/data-management``, and described below.
 
 
@@ -167,6 +166,36 @@ As soon as a key is declared to be cached, its value is set in the cache; there 
 
 Multiple environments may be used concurrently. A specific case of environment corresponds to the user preferences. See our ``preferences`` module for that, whose default settings file is ``~/.ceylan-settings.etf``.
 
+
+
+
+Resource Management
+...................
+
+
+Principle
+*********
+
+Applications may have to manage all kinds of **data resources**, be them of classical resource types such as images or sounds, or be them specific to a project at hand.
+
+The goal is to keep track of resources of all origins (e.g. read from file or network, or generated) in a *resource holder*.
+
+These resources may be obtained:
+
+- either from the filesystem, in which case their identifier is their (preferably binary) **path** that is relative to any holder-specific root directory (the recommended option) otherwise to the current directory, or absolute
+- or from any other means, and then are designated thanks to a user-specified atom-based identifier
+
+
+
+Resource Holders
+****************
+
+Myriad provides, through its ``resource`` module, two types of holders so that resources of interest can be obtained once, returned as often as needed, and stored for as long as wanted:
+
+- resource **referentials**, which are process-local terms akin to associative tables
+- resource **servers**, i.e. dedicated processes sharing resources (especially `large-enough binaries <https://www.erlang.org/doc/efficiency_guide/binaryhandling.html#how-binaries-are-implemented>`_) between any number of consumer processes
+
+See also the ``resource.hrl`` include and the ``resource_test`` testing module.
 
 
 

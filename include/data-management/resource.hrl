@@ -29,12 +29,10 @@
 % State of a referential centralising resources.
 -record( resource_referential, {
 
-	% The root directory whence resources are loaded:
-	% (this can be an actual directory or a symbolic link)
+	% The (absolute) root directory (if any) whence file-based resources are
+	% loaded: (this can be an actual directory or a symbolic link)
 	%
-	root_directory :: file_utils:bin_directory_path(),
+	root_directory :: maybe( file_utils:bin_directory_path() ),
 
 	% The table storing the currently-loaded resources:
-	table :: resource:resource_table()
-
-} ).
+	table :: resource:resource_table() } ).
