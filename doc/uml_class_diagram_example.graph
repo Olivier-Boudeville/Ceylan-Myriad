@@ -5,100 +5,90 @@
 # Created by Olivier Boudeville on Wednesday, October 24, 2012.
 
 
-digraph G {
+digraph MyUMLClassDiagram {
+
+	/* Header section (basic settings) */
+
+	fontname="Helvetica,Arial,sans-serif"
+	node [fontname="Helvetica,Arial,sans-serif"]
+	edge [fontname="Helvetica,Arial,sans-serif" fontsize="11"]
+	labelloc="t"
+	label="UML Class diagram: Overall Example"
+	graph [splines=false]
+	color=black
+	node [shape=record style=filled fillcolor=gray95]
+
+
+	/* Composition section */
+
+	edge [arrowhead=diamond]
+
+	Dog -> Tail [taillabel="1 " headlabel="2 " ]
+	Cat -> Tail [taillabel="1 " headlabel="2 " ]
+
+
+	/* Package section */
+
+	subgraph clusterAnimalPackage {
+
+		style=filled;
+		fillcolor=lightblue;
+		color=black;
+		label = "Package animal.example"
+
+		Dog [label = "{Dog||+ bark() : void\l}"]
+
+		Cat [label = "{Cat||+ meow() : void\l}"]
+	}
+
+	subgraph cluster_1 {
+
+		style=filled;
+		fillcolor=darkseagreen3;
+		color=black;
+		label="Other package";
+
+		B
+		E
+
+	}
+
+	/* Class declaration section */
+
+	Animal [label = "{Animal|+ name : string\l+ age : int\l|+ die() : void\l}"]
 
 
 
-		/* Header section (basic settings) */
+	/* Inheritance section */
 
-		fontname = "Bitstream Vera Sans"
-		fontsize = 8
+	edge [arrowhead=empty]
 
-		node [
-				fontname = "Bitstream Vera Sans"
-				fontsize = 8
-				shape = "record"
-		]
-
-		edge [
-				fontname = "Bitstream Vera Sans"
-				fontsize = 8
-		]
-
-
-		/* Package section */
-
-		subgraph clusterAnimalPackage {
-				label = "Package animal.example"
-
-				Dog [
-						label = "{Dog||+ bark() : void\l}"
-				]
-
-				Cat [
-						label = "{Cat||+ meow() : void\l}"
-				]
-		}
-
-
-		/* Class declaration section */
-
-		Animal [
-				label = "{Animal|+ name : string\l+ age : int\l|+ die() : void\l}"
-		]
+	Dog -> Animal
+	Cat -> Animal
 
 
 
-		/* Inheritance section */
+	/* Association section */
 
-		edge [
-				arrowhead = "empty"
-		]
+	edge [arrowhead=none]
 
-		Dog -> Animal
-		Cat -> Animal
+	Alpha -> Beta [xlabel=" is composed of" taillabel="* " headlabel="3..* "]
 
 
 
-		/* Association section */
+	/* Aggregation section */
 
-		edge [
-				arrowhead = "none"
-		]
+	edge [arrowhead=odiamond]
 
-		Alpha -> Beta
+	A -> B [taillabel="* " headlabel="0..1 " ]
 
 
 
-		/* Aggregation section */
+	/* Composition section */
 
-		edge [
-				arrowhead = "ediamond"
-		]
+	edge [arrowhead=diamond]
 
-		A -> B
+	D -> E [taillabel="1 " headlabel="2 " ]
 
-
-
-		/* Composition section */
-
-		edge [
-				arrowhead = "diamond"
-		]
-
-		B -> C
-
-
-
-		/* Composition with multiplicity section */
-
-		edge [
-				arrowhead = "none"
-
-				headlabel = "0..*"
-				taillabel = "1..5"
-		]
-
-		D -> E
 
 }
