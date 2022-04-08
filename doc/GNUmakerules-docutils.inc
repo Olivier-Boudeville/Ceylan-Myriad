@@ -17,7 +17,7 @@
 # Content typically to be deployed to webservers:
 #
 # /bin/ls is used so that any lacking element in a layer (ex: no api-doc
-# generatedn, no MathJax available) does not trigger an error.
+# generated, no MathJax available) does not trigger an error.
 #
 WEB_CONTENT = $$(/bin/ls -d *.html *.css *.png *.pdf api-doc mathjax 2>/dev/null)
 
@@ -29,7 +29,8 @@ WEB_CONTENT = $$(/bin/ls -d *.html *.css *.png *.pdf api-doc mathjax 2>/dev/null
 # Image section.
 
 #IMG_VIEWER := $(which xv)
-IMG_VIEWER := $$(which eog)
+#IMG_VIEWER := $$(which eog)
+IMG_VIEWER := $$(which xdg-open)
 
 IMAGE_MAGICK := $$(which convert)
 
@@ -77,8 +78,9 @@ DOT := $$(which dot)
 
 DOT_OPT := -Gcharset=latin1
 
-# To trigger the automatic rendering of a created graph, add 'VIEW_GRAPH='
-# at the end of the command line (ex : 'make MyFSM.png VIEW_GRAPH=')
+# To trigger the automatic rendering of a created graph, adding 'VIEW_GRAPH='
+# at the end of the command line (ex : 'make MyFSM.png VIEW_GRAPH=') is sufficient.
+#
 VIEW_GRAPH := no
 #VIEW_GRAPH :=
 
@@ -352,11 +354,11 @@ MATHJAX_ROOT="/usr/share/mathjax"
 # See myriad/src/scripts/generate-docutils.sh for more details.
 #
 create-mathjax-symlink:
-	@if [ -e "${MATHJAX_ROOT}" ]; then ln -sf "${MATHJAX_ROOT}"; else echo "Error, no pre-existing MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2 ; exit 75; fi
+	@if [ -e "${MATHJAX_ROOT}" ]; then ln -sf "${MATHJAX_ROOT}"; else echo "Error, no pre-existing MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 75; fi
 
 
 check-mathjax:
-	@if [ ! -e "${MATHJAX_ROOT}" ]; then echo "Error, no MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2 ; exit 75; fi
+	@if [ ! -e "${MATHJAX_ROOT}" ]; then echo "Error, no MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 75; fi
 
 
 
