@@ -42,6 +42,18 @@
 
 
 
+% Usage notes:
+%
+% While a resource referential acts only at the level of a given process, a
+% resource server allows to share resources between processes. Thanks to the
+% sharing of (large-enough) binaries, this operation makes sense.
+%
+% The API exposed by this module (ex: get/2) can be used for any resource
+% holder, referential or server. In this last case, one may also directly
+% perform the message sending and retrieving in order to favor process
+% interleaving.
+
+
 -type resource() :: term().
 % Any resource, often as a binary term (e.g. if loaded from file).
 
@@ -108,12 +120,6 @@
 			   resource_holder/0 ]).
 
 
-
-% Implementation notes:
-%
-% While a resource referential acts only at the level of a given process, a
-% resource server allows to share resources between processes. Thanks to the
-% sharing of (large-enough) binaries, the operation makes sense.
 
 
 % Shorthands:
