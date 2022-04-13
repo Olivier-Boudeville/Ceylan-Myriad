@@ -49,12 +49,13 @@
 
 
 	% Usually of no use, as such user data is a means of preserving a state,
-	% whereas the user event loop is better to do so:
+	% whereas the user event loop is often a better solution to do so:
 	%
 	user_data = [] :: gui:user_data(),
 
 
-	% The full, lower-level event (if any) resulting in our event:
+	% The full (verbatim), lower-level (backend) event (if any) resulting in our
+	% event.
 	%
 	% (useful for example when deciding to propagate it upward in the widget
 	% hierarchy)
