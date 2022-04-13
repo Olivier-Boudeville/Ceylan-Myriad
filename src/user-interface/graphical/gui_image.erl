@@ -62,10 +62,21 @@
 		  create_blank_bitmap_for/1, destruct_bitmap/1,
 
 		  lock_bitmap/1, draw_bitmap/3, unlock_bitmap/1,
+
+		  create_bitmap_display/2, create_bitmap_display/3,
+		  destruct_bitmap_display/1,
+
+		  create_text_display/2, create_text_display/3,
+		  destruct_text_display/1,
+
 		  lock_window/1, unlock_window/1,
 		  clear_device_context/1, blit/5, blit/6,
 
 		  destruct/1 ]).
+
+
+% For the raw_bitmap record:
+-include("gui_image.hrl").
 
 
 -type image() :: wxImage:wxImage().
@@ -98,7 +109,27 @@
 % quickest/easiest to draw to a display context.
 
 
--export_type([ image/0, image_format/0, image_quality/0, bitmap/0 ]).
+-opaque bitmap_display() :: wxStaticBitmap:wxStaticBitmap().
+% A widget displaying a bitmap; a bitmap display behaves like a panel dedicated
+% to the rendering of a bitmap.
+
+
+-opaque text_display() :: wxStaticText:wxStaticText().
+% A widget displaying a text; a text display behaves like a panel dedicated
+% to the rendering of a text.
+
+
+-type raw_bitmap() :: #raw_bitmap{}.
+% A record describing a raw, ready-to-use, bitmap, as a term, possibly loaded
+% from file, or generated, etc., as opposed to an image (which respects a format
+% like PNG or JPEG, has metadata, etc.).
+%
+% Note: currently not used, as a bitmap() offers all services needed.
+
+
+-export_type([ image/0, image_format/0, image_quality/0,
+			   bitmap/0, bitmap_display/0, text_display/0,
+			   raw_bitmap/0 ]).
 
 
 % For the wx defines:
@@ -107,10 +138,6 @@
 
 
 % Shorthands:
-
-%-type count() :: basic_utils:count().
-
-%-type ustring() :: text_utils:ustring().
 
 -type any_file_path() :: file_utils:any_file_path().
 
@@ -121,12 +148,12 @@
 -type point() :: gui:point().
 -type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
+-type label() :: gui:label().
 -type device_context() :: gui:device_context().
+-type window_option() :: gui:window_option().
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
-
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().
-
 -type alpha_buffer() :: gui_color:alpha_buffer().
 
 -type wx_enum() :: gui_wx_backend:wx_enum().
@@ -265,9 +292,7 @@ create_bitmap( ImagePath ) ->
 		false ->
 			throw( { bitmap_creation_failed, ImgBitmap } )
 
-	end,
-
-	ImgBitmap.
+	end.
 
 
 
@@ -345,6 +370,50 @@ draw_bitmap( SourceBitmap, TargetDC, PosInTarget ) ->
 -spec unlock_bitmap( device_context() ) -> void().
 unlock_bitmap( DC ) ->
 	wxMemoryDC:destroy( DC ).
+
+
+
+% @doc Creates a bitmap display from the specified bitmap.
+-spec create_bitmap_display( window(), bitmap() ) -> bitmap_display().
+create_bitmap_display( Parent, Bitmap ) ->
+	create_bitmap_display( Parent, Bitmap, _Opts=[] ).
+
+
+% @doc Creates a bitmap display from the specified bitmap and with the specified
+% options.
+%
+-spec create_bitmap_display( window(), bitmap(), [ window_option() ] ) ->
+												bitmap_display().
+create_bitmap_display( Parent, Bitmap, Options ) ->
+	wxStaticBitmap:new( Parent, _Id=?wxID_ANY, Bitmap, Options ).
+
+
+% @doc Destructs the specified bitmap display.
+-spec destruct_bitmap_display( bitmap_display() ) -> void().
+destruct_bitmap_display( BitmapDisplay ) ->
+	wxStaticBitmap:destroy( BitmapDisplay ).
+
+
+
+% @doc Creates a text display from the specified label.
+-spec create_text_display( window(), label() ) -> text_display().
+create_text_display( Parent, Label ) ->
+	create_text_display( Parent, Label, _Opts=[] ).
+
+
+% @doc Creates a text display from the specified label and with the specified
+% options.
+%
+-spec create_text_display( window(), label(), [ window_option() ] ) ->
+												text_display().
+create_text_display( Parent, Label, Options ) ->
+	wxStaticText:new( Parent, _Id=?wxID_ANY, Label, Options ).
+
+
+% @doc Destructs the specified text display.
+-spec destruct_text_display( text_display() ) -> void().
+destruct_text_display( TextDisplay ) ->
+	wxStaticText:destroy( TextDisplay ).
 
 
 
