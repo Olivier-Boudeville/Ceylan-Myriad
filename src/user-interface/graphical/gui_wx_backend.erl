@@ -298,6 +298,7 @@
 -type position() :: gui:position().
 -type size() :: gui:size().
 -type orientation() :: gui:orientation().
+-type connect_opt() :: gui:connect_opt().
 -type connect_options() :: gui:connect_options().
 
 -type wx_event_type() :: gui_event:wx_event_type().
@@ -754,6 +755,7 @@ get_window_options( _Options=[ { style, Style } | T ], Acc ) ->
 	get_window_options( T,
 					[ { style, window_style_to_bitmask( Style ) } | Acc ] );
 
+% Unchanged:
 get_window_options( _Options=[ H | T ], Acc ) ->
 	get_window_options( T, [ H | Acc ] ).
 
@@ -1154,14 +1156,14 @@ connect( EventSource, EventTypeOrTypes ) ->
 %connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options ) ->
 %   connect( Panel, EventTypeOrTypes, Options );
 
-connect( SourceObject, EventTypes, Options ) when is_list( EventTypes ) ->
+connect( SourceGUIObject, EventTypes, Options ) when is_list( EventTypes ) ->
 
 	%trace_utils:debug_fmt( "Connecting ~p for event types ~w with options ~p.",
 	%                       [ SourceObject, EventTypes, Options ] ),
 
-	[ connect( SourceObject, ET, Options ) || ET <- EventTypes ];
+	[ connect( SourceGUIObject, ET, Options ) || ET <- EventTypes ];
 
-connect( SourceObject, EventType, Options ) ->
+connect( SourceGUIObject, EventType, Options ) ->
 
 	% Events to be processed through messages, not callbacks:
 	WxEventType = to_wx_event_type( EventType ),
@@ -1169,10 +1171,41 @@ connect( SourceObject, EventType, Options ) ->
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
 			"for ~p (i.e. ~p), with options ~p.",
-			[ gui:object_to_string( SourceObject ), self(), EventType,
+			[ gui:object_to_string( SourceGUIObject ), self(), EventType,
 			  WxEventType, Options ] ) ),
 
-	wxEvtHandler:connect( SourceObject, WxEventType, Options ).
+	WxConnOpts = to_wx_connect_options( Options ),
+
+	wxEvtHandler:connect( SourceGUIObject, WxEventType, WxConnOpts ).
+
+
+
+% @doc Converts MyriadGUI connect options into wx ones.
+-spec to_wx_connect_options( [ connect_opt() ] ) ->
+								[ wx_event_handler_option() ].
+to_wx_connect_options( Opts ) ->
+	[ to_wx_connect_option( O ) || O <- Opts ].
+
+
+% @doc Converts a MyriadGUI connect option into a wx one.
+-spec to_wx_connect_option( connect_opt() ) -> wx_event_handler_option().
+to_wx_connect_option( P={ id, _I } ) ->
+	P;
+
+to_wx_connect_option( { last_id, I } ) ->
+	{ lastId, I };
+
+to_wx_connect_option( P={ skip, _B } ) ->
+	P;
+
+to_wx_connect_option( T=callback ) ->
+	T;
+
+to_wx_connect_option( P={ callback, _F } ) ->
+	P;
+
+to_wx_connect_option( { user_data, T } ) ->
+	{ userData, T }.
 
 
 
