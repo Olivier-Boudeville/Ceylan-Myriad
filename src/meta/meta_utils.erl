@@ -451,6 +451,10 @@ list_exported_functions( ModuleName ) ->
 	case code_utils:is_beam_in_path( ModuleName ) of
 
 		not_found ->
+			trace_utils:error_fmt( "Module '~ts' not found in code path "
+				"(from '~ts'), which is (sorted alphabetically): ~ts",
+				[ ModuleName, file_utils:get_current_directory(),
+				  code_utils:code_path_to_string() ] ),
 			throw( { module_not_found_in_path, ModuleName } );
 
 		_ ->
