@@ -329,7 +329,10 @@ display_png_file( PNGFilePath ) ->
 -spec browse_images_in( directory_path() ) -> void().
 browse_images_in( DirectoryPath ) ->
 	system_utils:run_background_command(
-		get_default_image_browser_path() ++ " " ++ DirectoryPath ).
+		%get_default_image_browser_path() ++ " " ++ DirectoryPath ).
+		% To avoid log-like garbage outputs:
+		get_default_image_browser_path() ++ " " ++ DirectoryPath
+										 ++ " 2>/dev/null" ).
 
 
 % @doc Plays the specified audio file, in a non-blocking (in the background)
@@ -630,7 +633,8 @@ get_default_image_browser_path() ->
 
 		% Workaround for some distributions:
 		Tool="geeqie" ->
-			find_executable( Tool ) ++ " --disable-clutter";
+			%find_executable( Tool ) ++ " --disable-clutter";
+			find_executable( Tool );
 
 		OtherTool ->
 			find_executable( OtherTool )
