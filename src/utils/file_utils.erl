@@ -57,7 +57,8 @@
 		  get_extensions/1, get_extension/1, remove_extension/1,
 		  replace_extension/3,
 
-		  exists/1, get_type_of/1, get_owner_of/1, get_group_of/1,
+		  exists/1, get_type_of/1, resolve_type_of/1,
+		  get_owner_of/1, get_group_of/1,
 		  is_file/1,
 		  is_existing_file/1, is_existing_link/1,
 		  is_existing_file_or_link/1,
@@ -957,7 +958,12 @@ exists( EntryName ) ->
 
 
 
-% @doc Returns the type of the specified file entry.
+% @doc Returns the (direct) type of the specified file entry (hence may return
+% 'symlink' if the path of a symbolic link is specified).
+%
+% See resolve_type_of/1 to go through symbolic links, and return the actual,
+% ultimate entry type resolved.
+%
 -spec get_type_of( any_path() ) -> entry_type().
 get_type_of( Path ) ->
 
@@ -969,6 +975,31 @@ get_type_of( Path ) ->
 	% create dead symlinks on purpose, to store information.
 
 	case file:read_link_info( Path ) of
+
+		{ ok, #file_info{ type=FileType } } ->
+			FileType;
+
+		{ error, eloop } ->
+			% Probably a recursive symlink:
+			throw( { too_many_symlink_levels, Path } );
+
+		{ error, enoent } ->
+			throw( { non_existing_entry, Path } )
+
+	end.
+
+
+
+% @doc Returns the actual, ultimate type of the specified file entry (hence may
+% not return 'symlink').
+%
+% Refer to get_type_of/1 to return the type into which the specified entry
+% resolves first (thus possibly resolving in a symbolic link).
+%
+-spec resolve_type_of( any_path() ) -> entry_type().
+resolve_type_of( Path ) ->
+
+	case file:read_file_info( Path ) of
 
 		{ ok, #file_info{ type=FileType } } ->
 			FileType;
