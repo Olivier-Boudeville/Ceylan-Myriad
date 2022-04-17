@@ -241,6 +241,8 @@
 								 | {'callback', function() }
 								 | {'userData', term() }.
 % Refer to https://erlang.org/doc/man/wxEvtHandler.html
+% See the corresponding gui:connect_opt().
+
 
 -type wx_panel_option() :: wx_window_option() | wx_event_handler_option().
 

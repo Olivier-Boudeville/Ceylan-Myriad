@@ -103,7 +103,7 @@
 
 
 
--type gui_event() :: { event_type(), [ any() ] }.
+-type gui_event() :: { event_type(), Elements :: [ any() ] }.
 % A (MyriadGUI) event is a pair whose first element is the event type, as an
 % atom (ex: 'onWindowClosed'), and whose second element is a list, whose first
 % element is the GUI object that generated that event (the closed window, here),
@@ -114,8 +114,22 @@
 %
 % Ex: {onWindowClosed, [Window, CloseContext]}.
 %
+% So the event context can be fetched with:
+% EventContext = list_utils:get_last_element( Elements ),
+%
 % Note: these messages respect the WOOPER conventions, and this is done on
 % purpose, to facilitate any integration with upper layers.
+
+
+% Thus an actual wx:wx_object():
+-type gui_event_object() :: wx:wxEvent().
+% A Myriad GUI object (therefore the reference to a full-blown backend process -
+% not a mere datastructure like an event record received as a message) holding
+% information about an event passed to a callback or member function.
+%
+% If not ignored by such a function, it is generally propagated upward in the
+% widget hierarchy (see propagate_event/1).
+
 
 
 -type instance_count() :: basic_utils:count().
@@ -132,7 +146,7 @@
 -type event_source() :: wx_event_handler() | myriad_event_handler().
 
 
--type event_context() :: #event_context{}.
+%-type event_context() :: #event_context{}.
 % Context sent to corresponding subscribers together with an event.
 %
 % This context can be ignored in most cases.
@@ -281,10 +295,16 @@
 % that shall not be listened to anymore.
 
 
--type event_callback() :: fun( ( gui_event(), EventSource :: gui_object() ) ->
-											void() ).
+-type event_callback() ::
+		fun( ( gui_event(), gui_event_object() ) -> void() ).
 % A user-defined function to be called whenever an event occurred that
-% corresponds to an already-registered callback.
+% corresponds to an already-registered GUI callback.
+%
+% It takes two parameters, an event tuple (whose content is typically used by
+% the callback in order to process this event and act accordingly), and (the
+% reference onto) an actual MyriadGUI object that corresponds to this event
+% (typically so that it can be propagated upward in the widget hierarchy if
+% needed, see propagate_event/1).
 
 
 -type gui_wx_object_key() ::
@@ -457,7 +477,8 @@
 % - event :: wx_event_info() is the description of the event itself
 %
 % As always, same as: -record( wx,...
-
+%
+% Note: not to be mixed up with wx:wxEvent(), which is a full-blown wx_object().
 
 
 -type wx_event_info() :: tuple().
@@ -1899,9 +1920,9 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 
 
 
-% @doc Propagates the event designated by the specified context upward in the
-% widget hierarchy (instead of the default, which is considering that it has
-% been processed once for all, and thus shall not be propagated further).
+% @doc Propagates the specified event upward in the widget hierarchy (instead of
+% the default, which is considering that it has been processed once for all by
+% the current handler, and thus shall not be propagated further).
 %
 % Events are handled in order, from bottom to top in the widgets hierarchy, by
 % the last subscribed handler first. Most of the events have default event
@@ -1912,21 +1933,26 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 %
 % In general, it is recommended to propagate all non-command events to allow the
 % default handling to take place. The command events are, however, normally not
-% propagated as usually a single command such as a button click or menu item
+% propagated, as usually a single command such as a button click or menu item
 % selection must only be processed by one handler.
 %
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
--spec propagate_event( event_context() ) -> void().
-propagate_event( #event_context{ backend_event=WxEvent } ) ->
+-spec propagate_event( gui_event_object() ) -> void().
+propagate_event( GUIEventObject ) ->
 
 	% Honestly the skip semantics looks a bit unclear.
-	% 'skip' is here a synonymous of 'propagate'.
+	% 'skip' is strangely here a synonymous of 'propagate'.
 
-	% Default is having skip=true, so same as:
-	% wxEvent:skip( WxEvent, _Opts=[ { skip, true } ] ):
-	wxEvent:skip( WxEvent ).
+	% If no skip/* is used, or if skip/2 is used with { skip, false } (does not
+	% seem much useful), the event will not be processed any more (therefore if
+	% connect uses the { skip, true } option, any further event handlers will be
+	% called).
+
+	% Default of skip/1 is having skip=true, so same as:
+	% wxEvent:skip( GUIEventObject, _Opts=[ { skip, true } ] ):
+	wxEvent:skip( GUIEventObject ).
 
 
 

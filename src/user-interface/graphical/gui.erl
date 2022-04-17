@@ -154,10 +154,10 @@
 	% The family of the current operating system, typically to adapt to OS
 	% GUI specificities:
 	%
-	{ 'os_family', system_utils:os_family() },
+	{ 'os_family', os_family() },
 
 	% A more precise name of the current operating system, for finer control:
-	{ 'os_name', system_utils:os_name() },
+	{ 'os_name', os_name() },
 
 	% The main, top-level window (if any; generally a frame) of the application:
 	{ 'top_level_window', maybe( window() ) },
@@ -259,10 +259,37 @@
 % explicitly managed (ex: wxMemoryDC:destroy/1 must be called when finished with
 % them), which is inconvenient and error-prone.
 %
--type device_context() :: gui_object().
+-type device_context() :: wx:wxDC().
 % Designates an abstract device where rendering can take place, and which can be
 % the source or target of a blit. Akin to a surface in SDL (libsdl).
 
+-type paint_device_context() :: wx:wxPaintDC().
+% Designates a device context allowing to paint on the client area of a window
+% from within an onRepaintNeeded event handler.
+
+-type memory_device_context() :: wx:wxMemoryDC().
+% Provides a means of drawing graphics onto a bitmap.
+
+
+-type window_device_context() :: wx:wxWindowDC().
+% Allows to paint on the whole area of a window (client and decorations). This
+% should normally be constructed as a temporary stack object, and shall never be
+% stored.
+%
+% To draw on a window from inside an onRepaintNeeded event handler, create a
+% paint_device_context() instance instead.
+
+
+
+-type any_window_device_context() :: window_device_context()
+								   | window()
+								   | memory_device_context()
+								   | image().
+% Any window-related device context.
+
+
+-type graphic_context() :: wx:wxGraphicsContext().
+% Corresponds to a GUI object that is drawn upon. It is created by a renderer.
 
 
 -type canvas() :: gui_canvas:canvas().
@@ -289,7 +316,7 @@
 % Event-related operations.
 -export([ subscribe_to_events/1, subscribe_to_events/2,
 		  unsubscribe_from_events/1, unsubscribe_from_events/2,
-		  register_event_callback/4,
+		  register_event_callback/3, register_event_callback/4,
 		  propagate_event/1 ]).
 
 
@@ -364,7 +391,7 @@
 
 
 % Brushes:
--export([ create_brush/1, destruct_brush/1 ]).
+-export([ create_brush/1, create_transparent_brush/1, destruct_brush/1 ]).
 
 
 % Canvas support (forwarded to gui_canvas).
@@ -400,7 +427,15 @@
 
 
 % Device contexts:
--export([ clear_device_context/1, blit/5, blit/6 ]).
+-export([ get_flickerfree_paint_device_context/1,
+		  get_flickerfree_paint_device_context/2,
+		  clear_device_context/1, blit/5, blit/6 ]).
+
+
+% Graphic contexts:
+-export([ create_graphic_context/1, % already exported: set_font/3,
+		  set_font/4,
+		  draw_bitmap/4, draw_bitmap/5, draw_bitmap/6 ]).
 
 
 % Input support:
@@ -651,6 +686,9 @@
 -type label() :: text().
 
 
+-type event_callback() :: gui_event:event_callback().
+% Shorthand type.
+
 -type user_data() :: any().
 % User data, as specified in an event subscription/callback.
 
@@ -752,7 +790,7 @@
 -type sizer_option() :: { 'proportion', integer() }
 					  | { 'flag', sizer_flag() }
 					  | { 'border', integer() }
-					  | { 'user_data', gui_object() }.
+					  | { 'user_data', term() }.
 
 
 -type sizer_options() :: [ sizer_option() ].
@@ -766,14 +804,14 @@
 
 
 -type connect_opt() ::   { 'id', integer() }
-					   | { lastId, integer() }
-					   | { skip, boolean() }
+					   | { 'last_id', integer() }
+					   | { 'skip', boolean() }
 						% Triggers handle_sync_event/3, see the wx_object
 						% behaviour:
 						%
-					   |   callback
-					   | { callback, function() }
-					   | { userData, term() }.
+					   |   'callback'
+					   | { 'callback', event_callback() }
+					   | { 'user_data', user_data() }.
 % Options for event management connections.
 
 
@@ -802,7 +840,7 @@
 			   model_pid/0, view_pid/0, controller_pid/0,
 			   object_type/0, wx_object_type/0,
 			   myriad_object_type/0, myriad_instance_id/0,
-			   title/0, label/0, user_data/0,
+			   title/0, label/0, event_callback/0, user_data/0,
 			   id/0, gui_object/0, wx_server/0,
 			   window/0, top_level_window/0, splitter_window/0,
 			   frame/0, top_level_frame/0,
@@ -815,7 +853,15 @@
 			   font_weight/0,
 
 			   bitmap/0, bitmap_display/0, text_display/0,
-			   brush/0, back_buffer/0, device_context/0, canvas/0,
+			   brush/0, back_buffer/0,
+
+			   device_context/0, paint_device_context/0,
+			   memory_device_context/0, window_device_context/0,
+			   any_window_device_context/0,
+
+			   graphic_context/0,
+
+			   canvas/0,
 			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0, connect_options/0,
 			   window_style/0, frame_style/0, button_style/0,
@@ -848,6 +894,9 @@
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
+-type os_family() :: system_utils:os_family().
+%-type os_name() :: system_utils:os_name().
+
 -type ustring() :: text_utils:ustring().
 
 -type format_string() :: text_utils:format_string().
@@ -869,7 +918,7 @@
 -type event_context() :: gui_event:event_context().
 -type gui_object_key() :: gui_event:gui_object_key().
 -type event_type() :: gui_event:event_type().
-
+-type gui_event_object() :: gui_event:gui_event_object().
 
 %-type window_name() :: gui_window_manager:window_name().
 
@@ -1159,8 +1208,22 @@ unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
 
 
 % @doc Registers the specified event callback, so that, when the specified event
+% type(s) are generated by the specified (source) object, a transient process is
+% spawned and executes the specified event callback function, before
+% terminating.
+%
+-spec register_event_callback( gui_object(), maybe_list( event_type() ),
+							   event_callback() ) -> void().
+register_event_callback( SourceGUIObject, MaybeListEventType,
+						 EventCallbackFun ) ->
+	register_event_callback( SourceGUIObject, MaybeListEventType,
+							 EventCallbackFun, _MaybeUserData=undefined ).
+
+
+
+% @doc Registers the specified event callback, so that, when the specified event
 % type(s) are generated by the specified object, a transient process is spawned
-% and executes the specified callback function (before terminating).
+% and executes the specified event callback function, before terminating.
 %
 -spec register_event_callback( gui_object(), maybe_list( event_type() ),
 					event_callback(), maybe( user_data() ) ) -> void().
@@ -1183,8 +1246,12 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 
 	end,
 
+	% Recording for later used when a corresponding event is fired:
 	CallbackData = { EventCallbackFun, WxUserData },
 
+	% As we will have to convert back the received wx event into a MyriadGUI
+	% one:
+	%
 	WxOptions = [ { callback, fun event_interception_callback/2 },
 				  { userData, CallbackData } ],
 
@@ -1194,25 +1261,29 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 
 
 
-% Defined so that a wx callback can be converted to a MyriadGUI one.
-event_interception_callback( WxEvent=#wx{
+% Internal function defined so that a wx callback can be converted to a
+% MyriadGUI one before calling the user-specified callback with it.
+%
+-spec event_interception_callback( gui_event:wx_event(), wx:wxEvent() ) ->
+															void().
+event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
-							 WxObject ) ->
+							 WxEventObject ) ->
 
-	% The meaning of WxObject is unclear:
-	trace_utils:debug_fmt( "Event interception callback: WxObject is ~p",
-						   [ WxObject ] ),
+	trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
+						   [ WxEventObject ] ),
 
-	GUIEvent =
-		gui_event:wx_to_myriad_event( WxEvent#wx{ userData=ActualUserData } ),
+	MyriadGUIEvent = gui_event:wx_to_myriad_event(
+						WxEventRecord#wx{ userData=ActualUserData } ),
 
-	EventCallbackFun( GUIEvent, ActualUserData ).
-
+	EventCallbackFun( MyriadGUIEvent, WxEventObject ).
 
 
-% @doc Propagates the event designated by the specified context upward in the
-% widget hierarchy (instead of the default, which is considering that it has
-% been processed once for all, and thus shall not be propagated further).
+
+% @doc Propagates the specified event actual GUI object (not a mere event
+% record) upward in the widget hierarchy (instead of the default, which is
+% considering that it has been processed once for all, and thus shall not be
+% propagated further).
 %
 % Events are handled in order, from bottom to top in the widgets hierarchy, by
 % the last subscribed handler first. Most of the events have default event
@@ -1229,9 +1300,9 @@ event_interception_callback( WxEvent=#wx{
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
--spec propagate_event( event_context() ) -> void().
-propagate_event( EventContext ) ->
-	gui_event:propagate_event( EventContext ).
+-spec propagate_event( gui_event_object() ) -> void().
+propagate_event( GUIEventObject ) ->
+	gui_event:propagate_event( GUIEventObject ).
 
 
 
@@ -1422,16 +1493,21 @@ set_font( Window, Font ) ->
 	set_font( Window, Font, _DestructFont=false ).
 
 
-% @doc Sets the font to be used by the specified window and its children, then,
-% if requested, destructs that font.
+% @doc Sets the font to be used by the specified:
 %
--spec set_font( window(), font(), boolean() ) -> void().
+% - window and its children, then, if requested, destructs that font.
+% - graphic context, with the specified color
+-spec set_font( window(), font(), boolean() ) -> void();
+			  ( graphic_context(), font(), color() ) -> void().
 set_font( Window, Font, _DestructFont=true ) ->
 	set_font( Window, Font, _DoDestructFont=false ),
 	gui_font:destruct( Font );
 
 set_font( Window, Font, _DestructFont=false ) ->
-	wxWindow:setFont( Window, Font ).
+	wxWindow:setFont( Window, Font );
+
+set_font( GraphicContext, Font, Color ) ->
+	set_font( GraphicContext, Font, Color, _DoDestructFont=false ).
 
 
 
@@ -2395,6 +2471,12 @@ create_brush( RGBColor ) ->
 	wxBrush:new( RGBColor ).
 
 
+% @doc Returns a brush of the specified color, whose background is transparent.
+-spec create_transparent_brush( color_by_decimal() ) -> brush().
+create_transparent_brush( RGBColor ) ->
+	wxBrush:new( RGBColor, [ { style, ?wxTRANSPARENT } ] ).
+
+
 % @doc Tells that the specified (reference-counted) brush may be deleted.
 -spec destruct_brush( brush() ) -> void().
 destruct_brush( Brush ) ->
@@ -2523,6 +2605,32 @@ destruct_text_display( TextDisplay ) ->
 % Device context section.
 
 
+% @doc Returns a flicker-free paint device context corresponding to the
+% specified widget, so that its client area can be modified (from an
+% onRepaintNeeded event handler).
+%
+-spec get_flickerfree_paint_device_context( window() ) ->
+												paint_device_context().
+get_flickerfree_paint_device_context( Widget ) ->
+	get_flickerfree_paint_device_context( Widget,
+							system_utils:get_operating_system_family() ).
+
+
+% @doc Returns a flicker-free device context corresponding to the specified
+% widget (on specified OS family), so that its client area can be modified (from
+% an onRepaintNeeded event handler).
+%
+-spec get_flickerfree_paint_device_context( window(), os_family() ) ->
+											device_context().
+get_flickerfree_paint_device_context( Widget, _OSFamily=win32 ) ->
+	% Otherwise flickers on Windows:
+	wx:typeCast( wxBufferedPaintDC:new( Widget ), _NewType=wxPaintDC );
+
+get_flickerfree_paint_device_context( Widget, _OSFamily ) ->
+	wxPaintDC:new( Widget ).
+
+
+
 % @doc Clears the specified device context, using the current background brush.
 % If none was set, a solid white brush is used.
 %
@@ -2554,6 +2662,65 @@ blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ) ->
 blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ) ->
 	gui_image:blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ).
 
+
+
+
+% Graphic context section.
+
+
+% @doc Returns a graphic context created from the specified window device
+% context.
+%
+-spec create_graphic_context( window_device_context() ) -> graphic_context().
+create_graphic_context( DC ) ->
+	wxGraphicsContext:create( DC ).
+
+
+
+% set_font/3 already defined in the window() section.
+
+
+% @doc Sets the font to be used by the specified graphic context, with the
+% specified color, then, if requested, destructs that font..
+%
+-spec set_font( graphic_context(), font(), color(), boolean() ) -> void().
+set_font( GraphicContext, Font, Color, _DestructFont=true ) ->
+	set_font( GraphicContext, Font, Color, _DoDestructFont=false ),
+	gui_font:destruct( Font );
+
+set_font( GraphicContext, Font, Color, _DestructFont=false ) ->
+	wxGraphicsContext:setFont( GraphicContext, Font, Color ).
+
+
+
+% @doc Draws the specified bitmap onto the specified graphic context, at the
+% specified location.
+%
+-spec draw_bitmap( graphic_context(), bitmap(), coordinate(), coordinate() ) ->
+																void().
+draw_bitmap( GraphicContext, Bitmap, X, Y ) ->
+	Dims = get_size( Bitmap ),
+	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y, Dims ).
+
+
+% @doc Draws the specified bitmap onto the specified graphic context, at the
+% specified location with the specified dimensions.
+%
+-spec draw_bitmap( graphic_context(), bitmap(), coordinate(), coordinate(),
+				   dimensions() ) -> void().
+draw_bitmap( GraphicContext, Bitmap, X, Y, _Dims={ Width, Height } ) ->
+	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y, Width, Height ).
+
+
+
+% @doc Draws the specified bitmap onto the specified graphic context, at
+% specified location with specified dimensions.
+%
+-spec draw_bitmap( graphic_context(), bitmap(), coordinate(), coordinate(),
+				   width(), height() ) -> void().
+draw_bitmap( GraphicContext, Bitmap, X, Y, Width, Height ) ->
+	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y,
+								  Width, Height ).
 
 
 
