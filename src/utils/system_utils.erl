@@ -90,7 +90,9 @@
 		  add_path_for_library_lookup/1, add_paths_for_library_lookup/1,
 		  get_environment/0, environment_to_string/0, environment_to_string/1,
 
+		  get_operating_system_family/0, get_operating_system_name/0,
 		  get_operating_system_type/0,
+
 		  get_interpreter_version/0, get_application_version/1,
 
 
@@ -1878,7 +1880,19 @@ get_interpreter_version() ->
 
 
 
-% @doc Returns the type of the local operating system.
+% @doc Returns the family of the local operating system.
+-spec get_operating_system_family() -> os_family().
+get_operating_system_family() ->
+	pair:first( os:type() ).
+
+
+% @doc Returns the name of the local operating system.
+-spec get_operating_system_name() -> os_name().
+get_operating_system_name() ->
+	pair:second( os:type() ).
+
+
+% @doc Returns the type (family and type) of the local operating system.
 -spec get_operating_system_type() -> os_type().
 get_operating_system_type() ->
 	os:type().
