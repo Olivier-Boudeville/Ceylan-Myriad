@@ -1955,8 +1955,7 @@ propagate_event( GUIEventObject ) ->
 	wxEvent:skip( GUIEventObject ).
 
 
-
-% @doc Converts specified wx event into a MyriadGUI one.
+% @doc Converts the specified wx event into a MyriadGUI one.
 -spec wx_to_myriad_event( wx_event() ) -> gui_event().
 wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo } ) ->
 

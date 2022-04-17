@@ -792,7 +792,6 @@
 					  | { 'border', integer() }
 					  | { 'user_data', term() }.
 
-
 -type sizer_options() :: [ sizer_option() ].
 
 
