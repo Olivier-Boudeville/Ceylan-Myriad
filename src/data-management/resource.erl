@@ -31,11 +31,13 @@
 % generated as a term, and to be stored in a suitable <b>resource
 % referential</b>, possibly made available thanks to a <b>resource server</b>.
 %
+% See also the environment module for the caching of application environments.
+%
 -module(resource).
 
 
 -export([ create_referential/0, create_referential/1,
-		  get/2, has/2, register/3, remove/2, get_path/2,
+		  get/2, has/2, register/3, remove/2, locate_data/2, get_path/2,
 		  referential_to_string/1, resource_type_to_string/1,
 		  create_server/0, create_server/1,
 		  create_linked_server/0, create_linked_server/1 ]).
@@ -126,6 +128,7 @@
 
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
+-type any_file_path() :: file_utils:ant_file_path().
 -type bin_directory_path() :: file_utils:bin_directory_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 
@@ -217,6 +220,9 @@ get( BinRscFileId, RscRef=#resource_referential{ table=RscTable } )
 	case table:lookup_entry( BinRscFileId, RscTable ) of
 
 		{ value, Rsc } ->
+			cond_utils:if_defined( myriad_debug_resources,
+				trace_utils:debug_fmt( "Returning already-available "
+									   "resource '~ts'.", [ BinRscFileId ] ) ),
 			{ Rsc, RscRef };
 
 		key_not_found ->
@@ -240,12 +246,16 @@ get( BinRscFileId, RscRef=#resource_referential{ table=RscTable } )
 
 			NewRscRef = RscRef#resource_referential{ table=NewRscTable },
 
+			cond_utils:if_defined( myriad_debug_resources,
+				trace_utils:debug_fmt( "Returning loaded resource '~ts'.",
+									   [ BinRscFileId ] ) ),
+
 			{ BinRsc, NewRscRef }
 
 	end;
 
 get( RscId, RscRef=#resource_referential{ table=RscTable } )
-										when is_atom( RscId ) ->
+												when is_atom( RscId ) ->
 
 	% For atom identifiers, no resource is ever loaded: either the resource is
 	% already registered and thus returned, or this operation fails.
@@ -254,10 +264,13 @@ get( RscId, RscRef=#resource_referential{ table=RscTable } )
 	case table:lookup_entry( RscId, RscTable ) of
 
 		{ value, Rsc } ->
+			cond_utils:if_defined( myriad_debug_resources,
+				trace_utils:debug_fmt( "Returning logical resource '~ts'.",
+									   [ RscId ] ) ),
 			{ Rsc, RscRef };
 
 		key_not_found ->
-			throw( { resource_not_found, RscId } )
+			throw( { resource_not_known, RscId } )
 
 	end;
 
@@ -267,6 +280,10 @@ get( RscId, RscSrvPid ) when is_pid( RscSrvPid ) ->
 	receive
 
 		{ notifyResource, Rsc } ->
+			cond_utils:if_defined( myriad_debug_resources,
+				trace_utils:debug_fmt( "Returning received "
+					"logical resource '~ts'.", [ RscId ] ) ),
+
 			Rsc
 
 	end.
@@ -299,6 +316,10 @@ has( RscId, RscSrvPid ) ->
 % @doc Registers explicitly the specified resource, based on the specified
 % logical (atom-based) identifier, in the specified resource holder.
 %
+% Useful for resources that cannot be loaded directly from a filesystem
+% (e.g. because they have to be processed first, or are obtained through other
+% means - for example through a network or if being generated as a whole).
+%
 % Any resource previously registered under the same identifier will be replaced.
 %
 -spec register( resource_logical_id(), resource(), resource_referential() ) ->
@@ -308,6 +329,11 @@ has( RscId, RscSrvPid ) ->
 % RscLogId must be an atom:
 register( RscLogId, Rsc, RscRef=#resource_referential{ table=RscTable } )
 										when is_atom( RscLogId ) ->
+
+	cond_utils:if_defined( myriad_debug_resources,
+		trace_utils:debug_fmt( "Registering logical resource '~ts', "
+			"whose content is ~w.", [ RscLogId, Rsc ] ) ),
+
 	NewRscTable = table:add_entry( RscLogId, Rsc, RscTable ),
 	RscRef#resource_referential{ table=NewRscTable };
 
@@ -347,9 +373,70 @@ remove( RscId, RscSrvPid ) ->
 
 
 
-% @doc Returns the full, absolute path to the file-based resource specified
-% through its identifier in the specified resource holder, provided it is
-% actually registered.
+% @doc Returns the full, absolute path to the file-based specified data (not a
+% resource per se) whose relative path to the resource directory is specified;
+% ensures that the returned file exists indeed (as a regular file or a symbolic
+% link).
+%
+% Especially useful with register/3, in order to locate data files through the
+% resource root directory, so that a logical resource is first obtained from
+% them, and then registered as such.
+%
+-spec locate_data( any_file_path(), resource_holder() ) -> bin_file_path().
+% As strings are tolerated:
+locate_data( DataRelPathStr, AnyRscHolder ) when is_list( DataRelPathStr ) ->
+	locate_data( text_utils:string_to_binary( DataRelPathStr ), AnyRscHolder );
+
+% Binary string expected from here:
+locate_data( BinDataRelPath, RscSrvPid ) when is_pid( RscSrvPid ) ->
+	RscSrvPid ! { locateData, BinDataRelPath, self() },
+	receive
+
+		{ notifyDataLocation, BinDataAbsPath } ->
+			BinDataAbsPath
+
+	end;
+
+locate_data( BinDataPath, RscRef ) ->
+	locate_data_from_ref( BinDataPath, RscRef ).
+
+
+
+% (helper)
+locate_data_from_ref( BinDataPath,
+					  #resource_referential{ root_directory=undefined } ) ->
+	case file_utils:is_existing_file_or_link( BinDataPath ) of
+
+		true ->
+			file_utils:ensure_path_is_absolute( BinDataPath );
+
+		false ->
+			throw( { data_file_not_found, BinDataPath,
+					 file_utils:get_current_directory() } )
+
+	end;
+
+locate_data_from_ref( BinDataPath,
+					  #resource_referential{ root_directory=BinRootDir } ) ->
+
+	AbsBinDataPath =
+		file_utils:ensure_path_is_absolute( BinDataPath, BinRootDir ),
+
+	case file_utils:is_existing_file_or_link( AbsBinDataPath ) of
+
+		true ->
+			AbsBinDataPath;
+
+		false ->
+			throw( { data_file_not_found, BinDataPath, BinRootDir,
+					 file_utils:get_current_directory() } )
+
+	end.
+
+
+
+% @doc Returns the full, absolute path to the file-based, already-registered
+% resource specified through its identifier in the specified resource holder.
 %
 -spec get_path( any_resource_file_id(), resource_holder() ) -> bin_file_path().
 % As strings are tolerated:
@@ -374,8 +461,14 @@ get_path( BinRscFileId, #resource_referential{ root_directory=MaybeBinRootDir,
 
 			end;
 
-		key_not_found ->
-			throw( { resource_not_found, BinRscFileId } )
+		false ->
+			cond_utils:if_defined( myriad_debug_resources,
+				trace_utils:error_fmt( "Resource '~ts' not known; referenced "
+					"ones are: ~ts", [ BinRscFileId,
+						text_utils:strings_to_string(
+							[ R || R <- table:keys( RscTable ) ] ) ] ) ),
+
+			throw( { resource_not_known, BinRscFileId } )
 
 	end;
 
@@ -495,6 +588,12 @@ server_main_loop( RscRef ) ->
 		{ remove, RscId } ->
 			NewRscRef = remove( RscId, RscRef ),
 			server_main_loop( NewRscRef );
+
+		% Request:
+		{ locateData, RelFilePathBin, SenderPid } ->
+			BinDataAbsPath = locate_data_from_ref( RelFilePathBin, RscRef ),
+			SenderPid ! { notifyDataLocation, BinDataAbsPath },
+			server_main_loop( RscRef );
 
 		% Request:
 		{ getPath, RscFileId, SenderPid } ->

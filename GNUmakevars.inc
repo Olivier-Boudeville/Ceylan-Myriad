@@ -135,6 +135,7 @@ endif
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
 #  - environments: about the sharing/caching of application information
+#  - resources: about the management of resources
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - repaint_logic: how MyriadGUI manages repaints
@@ -162,6 +163,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
