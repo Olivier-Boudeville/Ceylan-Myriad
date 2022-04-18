@@ -127,6 +127,24 @@
 % Note: currently not used, as a bitmap() offers all services needed.
 
 
+-type text_display_option() :: { 'pos', point() }
+							 | { 'size', size() }
+							 | { 'style', [ text_display_style_opt() ] }.
+% Text display specific options.
+
+
+-type text_display_style_opt() ::
+		'align_left'   % Align the text to the left.
+	  | 'align_right'  % Align the text to the right.
+	  | 'center'       % Center the text (horizontally).
+	  | 'fixed_size'   % No auto-resize.
+	  | 'ellipsize_beginning' % Any shrinking done from the start of the text.
+	  | 'ellipsize_middle'    % Any shrinking done at the middle of the text.
+	  | 'ellipsize_end'.      % Any shrinking done at the middle of the text.
+% Options for text displays. See also
+% [http://docs.wxwidgets.org/stable/classwx_static_text.html]
+
+
 -export_type([ image/0, image_format/0, image_quality/0,
 			   bitmap/0, bitmap_display/0, text_display/0,
 			   raw_bitmap/0 ]).
@@ -146,6 +164,7 @@
 -type width() :: gui:width().
 -type height() :: gui:height().
 -type point() :: gui:point().
+-type size() :: gui:size().
 -type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 -type label() :: gui:label().
@@ -407,7 +426,8 @@ create_text_display( Parent, Label ) ->
 -spec create_text_display( window(), label(), [ window_option() ] ) ->
 												text_display().
 create_text_display( Parent, Label, Options ) ->
-	wxStaticText:new( Parent, _Id=?wxID_ANY, Label, Options ).
+	wxStaticText:new( Parent, _Id=?wxID_ANY, Label,
+					  to_wx_static_text_options( Options ) ).
 
 
 % @doc Destructs the specified text display.
@@ -504,6 +524,54 @@ to_wx_image_quality( high ) ->
 to_wx_image_quality( Other ) ->
 	throw( { unknown_image_quality, Other } ).
 
+
+
+% @doc Converts specified MyriadGUI text display options into wx static text
+% ones.
+%
+-spec to_wx_static_text_options( [ text_display_option() ] ) -> list().
+to_wx_static_text_options( Options ) ->
+	[ to_wx_static_text_option( Opt ) || Opt <- Options ].
+
+
+
+% @doc Converts specified MyriadGUI text display option into a wx static text
+% one.
+%
+-spec to_wx_static_text_option( text_display_option() ) -> pair:pair().
+to_wx_static_text_option( { style, TextDisplayStyle }  ) ->
+	{ style, to_wx_static_text_style( TextDisplayStyle ) };
+
+% pos, size are to go through:
+to_wx_static_text_option( Opt ) ->
+	Opt.
+
+
+
+% @doc Converts specified MyriadGUI text display style into a wx static text
+% one.
+%
+-spec to_wx_static_text_style( text_display_style_opt() ) -> wx:enum().
+to_wx_static_text_style( _TextDisplayStyle=align_left ) ->
+	?wxALIGN_LEFT;
+
+to_wx_static_text_style( _TextDisplayStyle=align_right ) ->
+	?wxALIGN_RIGHT;
+
+to_wx_static_text_style( _TextDisplayStyle=center ) ->
+	?wxALIGN_CENTRE_HORIZONTAL;
+
+to_wx_static_text_style( _TextDisplayStyle=fixed_size ) ->
+	?wxST_NO_AUTORESIZE;
+
+to_wx_static_text_style( _TextDisplayStyle=ellipsize_beginning ) ->
+	?wxST_ELLIPSIZE_START;
+
+to_wx_static_text_style( _TextDisplayStyle=ellipsize_middle ) ->
+	?wxST_ELLIPSIZE_MIDDLE;
+
+to_wx_static_text_style( _TextDisplayStyle=ellipsize_end ) ->
+	?wxST_ELLIPSIZE_END.
 
 
 % @doc Declares that the specified instance can be destructed.

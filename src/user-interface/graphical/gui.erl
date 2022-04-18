@@ -429,12 +429,14 @@
 % Device contexts:
 -export([ get_flickerfree_paint_device_context/1,
 		  get_flickerfree_paint_device_context/2,
+		  destruct_paint_device_context/1,
 		  clear_device_context/1, blit/5, blit/6 ]).
 
 
 % Graphic contexts:
 -export([ create_graphic_context/1, % already exported: set_font/3,
-		  set_font/4,
+		  set_brush/2,
+		  set_font/4, get_text_extent/2, draw_text/4,
 		  draw_bitmap/4, draw_bitmap/5, draw_bitmap/6 ]).
 
 
@@ -447,7 +449,7 @@
 
 % Fonts:
 -export([ create_font/1, create_font/2, create_font/3, create_font/4,
-		  create_font/5 ]).
+		  create_font/5, destruct_font/1 ]).
 
 
 
@@ -710,7 +712,7 @@
 						  | 'clip_children'
 						  | 'grab_all_keys'
 						  | 'full_repaint_on_resize'.
-% Options for windows, see
+% Options for windows. See also
 % [http://docs.wxwidgets.org/stable/classwx_window.html]
 
 
@@ -719,6 +721,7 @@
 -type window_option() :: { pos, point() }
 					   | { size, size() }
 					   | { style, [ window_style_opt() ] }.
+% Window-specific options (quite common).
 
 % Unused: -type window_options() :: [ window_option() ].
 
@@ -735,7 +738,7 @@
 						 | 'resize_border'
 						 | 'tool_window'
 						 | 'no_taskbar'.
-% Options for frames, see
+% Options for frames. See also
 % [http://docs.wxwidgets.org/stable/classwx_frame.html].
 
 
@@ -918,6 +921,8 @@
 -type gui_object_key() :: gui_event:gui_object_key().
 -type event_type() :: gui_event:event_type().
 -type gui_event_object() :: gui_event:gui_event_object().
+
+-type text_display_option() :: gui_image:text_display_option().
 
 %-type window_name() :: gui_window_manager:window_name().
 
@@ -1269,8 +1274,9 @@ event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
 							 WxEventObject ) ->
 
-	trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
-						   [ WxEventObject ] ),
+	% Ex: WxEventObject={ wx_ref, 92, wxPaintEvent, [] }:
+	%trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
+	%                       [ WxEventObject ] ),
 
 	MyriadGUIEvent = gui_event:wx_to_myriad_event(
 						WxEventRecord#wx{ userData=ActualUserData } ),
@@ -1493,9 +1499,9 @@ set_font( Window, Font ) ->
 
 
 % @doc Sets the font to be used by the specified:
-%
 % - window and its children, then, if requested, destructs that font.
 % - graphic context, with the specified color
+%
 -spec set_font( window(), font(), boolean() ) -> void();
 			  ( graphic_context(), font(), color() ) -> void().
 set_font( Window, Font, _DestructFont=true ) ->
@@ -1917,9 +1923,11 @@ get_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 	end;
 
 get_size( Bitmap={ wx_ref, _Id, wxBitmap, _List } ) ->
+	% No wxBitmap:getSize/1 implemented in wx:
 	{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) };
 
 get_size( Window ) ->
+	%trace_utils:debug_fmt( "get_size for ~w.", [ Window ] ),
 	wxWindow:getSize( Window ).
 
 
@@ -2588,8 +2596,8 @@ create_text_display( Parent, Label ) ->
 % @doc Creates a text display from the specified label and with the specified
 % options.
 %
--spec create_text_display( window(), label(), [ window_option() ] ) ->
-												text_display().
+-spec create_text_display( window(), label(), [ text_display_option() ] ) ->
+													text_display().
 create_text_display( Parent, Label, Options ) ->
 	gui_image:create_text_display( Parent, Label, Options ).
 
@@ -2620,13 +2628,19 @@ get_flickerfree_paint_device_context( Widget ) ->
 % an onRepaintNeeded event handler).
 %
 -spec get_flickerfree_paint_device_context( window(), os_family() ) ->
-											device_context().
+													paint_device_context().
 get_flickerfree_paint_device_context( Widget, _OSFamily=win32 ) ->
 	% Otherwise flickers on Windows:
 	wx:typeCast( wxBufferedPaintDC:new( Widget ), _NewType=wxPaintDC );
 
 get_flickerfree_paint_device_context( Widget, _OSFamily ) ->
 	wxPaintDC:new( Widget ).
+
+
+% @doc Destructs the specified paint device context.
+-spec destruct_paint_device_context( paint_device_context() ) -> void().
+destruct_paint_device_context( PaintDeviceContext ) ->
+	wxPaintDC:destroy( PaintDeviceContext ).
 
 
 
@@ -2675,6 +2689,11 @@ create_graphic_context( DC ) ->
 	wxGraphicsContext:create( DC ).
 
 
+-spec set_brush( graphic_context(), brush() ) -> void().
+set_brush( GraphicContext, Brush ) ->
+	wxGraphicsContext:setBrush( GraphicContext, Brush ).
+
+
 
 % set_font/3 already defined in the window() section.
 
@@ -2692,14 +2711,35 @@ set_font( GraphicContext, Font, Color, _DestructFont=false ) ->
 
 
 
+% @doc Returns the extent corresponding to the rendering of the specified
+% string, using the currently selected font.
+%
+-spec get_text_extent( graphic_context(), ustring() ) ->
+				{ width(), height(),
+				  Descent :: length(), ExternalLeading :: length() }.
+get_text_extent( GraphicContext, Text ) ->
+	wxGraphicsContext:getTextExtent( GraphicContext, Text ).
+
+
+
+% @doc Renders the specified text on the specified graphic context at the
+% specified position.
+%
+-spec draw_text( graphic_context(), ustring(), coordinate(), coordinate() ) ->
+										void().
+draw_text( GraphicContext, Text, X, Y ) ->
+	wxGraphicsContext:drawText( GraphicContext, Text, X, Y ).
+
+
+
 % @doc Draws the specified bitmap onto the specified graphic context, at the
 % specified location.
 %
 -spec draw_bitmap( graphic_context(), bitmap(), coordinate(), coordinate() ) ->
 																void().
 draw_bitmap( GraphicContext, Bitmap, X, Y ) ->
-	Dims = get_size( Bitmap ),
-	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y, Dims ).
+	{ W, H } = get_size( Bitmap ),
+	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y, W, H ).
 
 
 % @doc Draws the specified bitmap onto the specified graphic context, at the
@@ -2767,6 +2807,12 @@ create_font( FontSize, FontFamily, FontStyle, FontWeight ) ->
 				   font_weight(), [ font_option() ] ) -> font().
 create_font( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ) ->
 	gui_font:create( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ).
+
+
+% @doc Destructs the specified font object.
+-spec destruct_font( font() ) -> void().
+destruct_font( Font ) ->
+	wxFont:destroy( Font ).
 
 
 

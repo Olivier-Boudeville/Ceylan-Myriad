@@ -111,7 +111,7 @@
 %
 -spec create( font_size() | point_size() ) -> font().
 create( FontSize ) ->
-	create( FontSize, _FontFamily=default_font_famil ).
+	create( FontSize, _FontFamily=default_font_family ).
 
 
 % @doc Creates a font object from specified requirements, to determine the

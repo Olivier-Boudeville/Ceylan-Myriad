@@ -593,7 +593,7 @@ process_event_messages( LoopState ) ->
 
 				cond_utils:if_defined( myriad_debug_gui_repaint_logic,
 					trace_utils:debug_fmt(
-						"[event] Received first repaint event:~n ~p.",
+						"[event] Received first repaint event:~n ~w.",
 						[ FirstWxRepaintEvent ] ) ),
 
 				process_only_latest_repaint_event( FirstWxRepaintEvent,
@@ -601,7 +601,7 @@ process_event_messages( LoopState ) ->
 
 			OtherEvent ->
 				cond_utils:if_defined( myriad_debug_gui_repaint_logic,
-					trace_utils:debug_fmt( "[event] Received other event: ~p.",
+					trace_utils:debug_fmt( "[event] Received other event: ~w.",
 										   [ OtherEvent ] ) ),
 				process_event_message( OtherEvent, LoopState )
 
@@ -613,7 +613,7 @@ process_event_messages( LoopState ) ->
 		receive
 
 			AnyEvent ->
-				trace_utils:debug_fmt( "[event] Received any event:~n ~p.",
+				trace_utils:debug_fmt( "[event] Received any event:~n ~w.",
 									   [ AnyEvent ] ),
 				process_event_message( AnyEvent, LoopState )
 
@@ -649,7 +649,7 @@ process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 									userData=UserData, event=WxEventInfo },
 					   LoopState ) ->
 
-	trace_utils:debug_fmt( "[event] Received wx event ~p.", [ WxEvent ] ),
+	trace_utils:debug_fmt( "[event] Received wx event ~w.", [ WxEvent ] ),
 
 	process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo,
 					  WxEvent, LoopState );
@@ -1014,7 +1014,7 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 					_ ->
 						trace_utils:debug_fmt( "[event] Received post-repaint "
-							"event after ~B drops:~n ~p.",
+							"event after ~B drops:~n ~w.",
 							[ DropCount, OtherEvent ] )
 						%throw( { drop_count, DropCount } )
 

@@ -65,6 +65,8 @@
 		{ Red :: byte(), Green :: byte(), Blue :: byte(), Alpha :: byte() }.
 % RGBA (integer, in [0;255]) color.
 
+-type any_color_by_decimal() ::
+		color_by_decimal() | color_by_decimal_with_alpha().
 
 -type color() :: color_by_name() | color_by_decimal().
 % Any kind of RGB (integer) color.
@@ -142,6 +144,7 @@
 -export_type([ color_by_name/0,
 
 			   color_by_decimal/0, color_by_decimal_with_alpha/0,
+			   any_color_by_decimal/0,
 			   color/0,
 
 			   color_coordinate/0, alpha_coordinate/0,
@@ -169,14 +172,17 @@
 
 
 % @doc Returns a list of known {color_name, ColorDefinition} associations.
--spec get_colors() -> [ { color_by_name(), color_by_decimal() } ].
+-spec get_colors() -> [ { color_by_name(), any_color_by_decimal() } ].
 get_colors() ->
 
-	% No less than 141 color definitions follow, based on:
-	% www.uni-hamburg.de/Wiss/FB/15/Sustainability/schneider/gnuplot/colors.htm
-	% (plus extra defines)
+	% First, "functional" (RGBA) colors (from wx.hrl):
+	[ { window_frame_color,
+		wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ) },
 
-	[ { aliceblue,            { 240, 248, 255 } },
+	  % No less than 141 RGB color definitions follow, based on
+	  %www.uni-hamburg.de/Wiss/FB/15/Sustainability/schneider/gnuplot/colors.htm
+
+	  { aliceblue,            { 240, 248, 255 } },
 	  { antiquewhite,         { 250, 235, 215 } },
 	  { aqua,                 {   0, 255, 255 } },
 	  { aquamarine,           { 127, 255, 212 } },
@@ -316,10 +322,8 @@ get_colors() ->
 	  { white,                { 255, 255, 255 } },
 	  { whitesmoke,           { 245, 245, 245 } },
 	  { yellow,               { 255, 255, 0   } },
-	  { yellowgreen,          { 139, 205,  50 } },
+	  { yellowgreen,          { 139, 205,  50 } } ].
 
-	  % From wx.hrl:
-	  { window_frame_color,   ?wxSYS_COLOUR_WINDOWFRAME } ].
 
 
 
