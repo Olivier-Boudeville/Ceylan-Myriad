@@ -1457,7 +1457,7 @@ finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
 % @doc Caches in the calling process the specified keys, and returns their
 % associated value.
 %
-% Equivalent to a call to cache/2 followed by one to get/2.
+% Equivalent to a call to cache/2 followed by one to get/2 with the same keys.
 %
 -spec cache_return( maybe_list( key() ), env_data() ) ->
 								maybe_list( maybe( value() ) ).
