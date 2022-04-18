@@ -44,15 +44,16 @@
 % are actually panels with bitmaps; note however that 'Canvas =
 % wxGraphicsContext:create(Win)' and/or wxglcanvas (see gui_opengl) could be
 % options apparently, refer to the 'graphicsContext' menu entry of wx:demo() for
-% an example).
+% an example, and to https://www.erlang.org/doc/man/wxgraphicscontext).
 %
 % Another option could be to use a panel as a canvas, like in: 'Canvas =
-% wxPanel:new(Panel, [{style, ?wxFULL_REPAINT_ON_RESIZE}])'.
+% wxPanel:new(Panel, [{style, ?wxFULL_REPAINT_ON_RESIZE}])' and/or to create a
+% new "class" of widget, with the wx_object behaviour.
 %
-% So we emulate a basic canvas here, resulting notably in the fact that a canvas
-% object is not here a reference onto a wx object, but a stateful instance that
-% shall as a result be kept from a call to another: as its state may change, the
-% result of functions returning a canvas must not be ignored.
+% In any case we emulate a basic canvas here, resulting notably in the fact that
+% a canvas object is not here a reference onto a wx object, but a stateful
+% instance that shall as a result be kept from a call to another: as its state
+% may change, the result of functions returning a canvas must not be ignored.
 %
 % Due to their number, canvas operations have been defined separately from the
 % gui module.
