@@ -1197,8 +1197,8 @@ to_wx_connect_option( P={ id, _I } ) ->
 to_wx_connect_option( { last_id, I } ) ->
 	{ lastId, I };
 
-to_wx_connect_option( P={ skip, _B } ) ->
-	P;
+to_wx_connect_option( propagate ) ->
+	{ skip, true };
 
 to_wx_connect_option( T=callback ) ->
 	T;
