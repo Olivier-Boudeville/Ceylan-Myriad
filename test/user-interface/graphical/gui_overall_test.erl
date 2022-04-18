@@ -23,6 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2013.
 
 
 % @doc More <b>global testing</b> of the MyriadGUI toolbox.
@@ -308,18 +309,6 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 	receive
 
-		{ onWindowClosed, [ MainFrame, Context ] } ->
-
-			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
-				"(~ts), test success.",
-				[ gui:object_to_string( MainFrame ),
-				  gui:context_to_string( Context ) ] ),
-
-			gui:destruct_window( MainFrame ),
-
-			gui:stop();
-
-
 		{ onButtonClicked, [ RenderShapeButton, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
@@ -444,6 +433,19 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			test_main_loop( TestState#my_test_state{
 								render_count=RenderCount+1 } );
+
+
+		{ onWindowClosed, [ MainFrame, Context ] } ->
+
+			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
+				"(~ts), test success.",
+				[ gui:object_to_string( MainFrame ),
+				  gui:context_to_string( Context ) ] ),
+
+			gui:destruct_window( MainFrame ),
+
+			gui:stop();
+
 
 		Other ->
 			% Extra newline for better separation:
