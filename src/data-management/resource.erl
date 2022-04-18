@@ -37,7 +37,8 @@
 
 
 -export([ create_referential/0, create_referential/1,
-		  get/2, has/2, register/3, remove/2, locate_data/2, get_path/2,
+		  get/2, has/2, register/2, register/3,
+		  remove/2, locate_data/2, get_path/2,
 		  referential_to_string/1, resource_type_to_string/1,
 		  create_server/0, create_server/1,
 		  create_linked_server/0, create_linked_server/1 ]).
@@ -126,6 +127,8 @@
 
 % Shorthands:
 
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:ant_file_path().
@@ -134,6 +137,8 @@
 
 -type ustring() :: text_utils:ustring().
 
+
+-compile( { no_auto_import, [ register/2 ] } ).
 
 
 
@@ -313,8 +318,39 @@ has( RscId, RscSrvPid ) ->
 
 
 
-% @doc Registers explicitly the specified resource, based on the specified
-% logical (atom-based) identifier, in the specified resource holder.
+% @doc Registers explicitly the specified logical resource(s) in the specified
+% resource holder, based on either a pair made of a logical (atom-based)
+% identifier and the resource itself, or a list of such pairs.
+%
+% Useful for resources that cannot be loaded directly from a filesystem
+% (e.g. because they have to be processed first, or are obtained through other
+% means - for example through a network or if being generated as a whole).
+%
+% Any resource previously registered under the same identifier will be replaced.
+%
+-spec register( maybe_list( { resource_logical_id(), resource() } ),
+				resource_referential() ) -> resource_referential();
+			  ( maybe_list( { resource_logical_id(), resource() } ),
+				resource_server_pid() ) -> void().
+register( RscPairs, RscRef=#resource_referential{ table=RscTable } )
+											when is_list( RscPairs ) ->
+
+	cond_utils:if_defined( myriad_debug_resources,
+		trace_utils:debug_fmt( "Registering logical resources ~ts.",
+			[ [ text_utils:atoms_to_string( I )
+						|| { I, _R } <- RscPairs ] ] ) ),
+
+	NewRscTable = table:add_entries( RscPairs, RscTable ),
+	RscRef#resource_referential{ table=NewRscTable };
+
+register( RscPairs, RscSrvPid ) ->
+	RscSrvPid ! { register, [ RscPairs ] }.
+
+
+
+% @doc Registers explicitly the specified (single, logical) resource, based on
+% the specified logical (atom-based) identifier, in the specified resource
+% holder.
 %
 % Useful for resources that cannot be loaded directly from a filesystem
 % (e.g. because they have to be processed first, or are obtained through other
@@ -537,9 +573,6 @@ resource_type_to_string( RscId )
 
 
 
-
-
-
 % Resource server implementation.
 
 -spec server_init() -> no_return().
@@ -579,10 +612,15 @@ server_main_loop( RscRef ) ->
 			SenderPid ! { notifyResourceAvailability, Bool },
 			server_main_loop( RscRef );
 
-		% Oneway:
+		% Oneways:
+		{ register, [ RscPairs ] } ->
+			NewRscRef = register( RscPairs, RscRef ),
+			server_main_loop( NewRscRef );
+
 		{ register, [ RscLogId, Rsc ] } ->
 			NewRscRef = register( RscLogId, Rsc, RscRef ),
 			server_main_loop( NewRscRef );
+
 
 		% Oneway:
 		{ remove, RscId } ->
