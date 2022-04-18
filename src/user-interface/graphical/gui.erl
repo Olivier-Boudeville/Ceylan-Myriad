@@ -118,7 +118,7 @@
 %
 % See also:
 % - the gui_wx_backend module for our use of wx as a backend
-% - the gui_canvas module for all canvas-related operations.
+% - the gui_canvas module for all canvas-related operations
 
 % The gui module uses its own environment server to record its defaults and also
 % elements about its current state.
@@ -346,8 +346,8 @@
 -export([ create_window/0, create_window/1, create_window/2, create_window/5,
 		  set_foreground_color/2, set_background_color/2,
 		  set_font/2, set_font/3,
-		  set_sizer/2, add_stretch_spacer/1, layout/1,
-		  split/3,
+		  set_sizer/2, add_stretch_spacer/1, layout/1, fit_to_sizer/2,
+		  split/3, split/4,
 		  show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
 		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
@@ -643,8 +643,15 @@
 % Information regarding the (fixed, static) horizonta or vertical splitting of a
 % window into two ones.
 
+
 -type sash_gravity() :: number().
-% Tells how much the first pane of a splitter window is to grow while resizing.
+% Tells how much the first pane of a splitter window is to grow while resizing
+% it:
+%  - 0.0: only the bottom/right window is automatically resized
+%  - 0.5: both windows grow by equal size
+%  - 1.0: only left/top window grows
+%
+% Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 
 
 -opaque status_bar() :: wxStatusBar:wxStatusBar().
@@ -807,11 +814,17 @@
 
 -type connect_opt() ::   { 'id', integer() }
 					   | { 'last_id', integer() }
-					   | { 'skip', boolean() }
-						% Triggers handle_sync_event/3, see the wx_object
-						% behaviour:
-						%
-					   |   'callback'
+
+						 % Processes the event and also propagate it upward in
+						 % the widget hierarchy:
+						 %
+					   | 'propagate'
+
+						 % Triggers handle_sync_event/3, see the wx_object
+						 % behaviour:
+						 %
+					   | 'callback'
+
 					   | { 'callback', event_callback() }
 					   | { 'user_data', user_data() }.
 % Options for event management connections.
@@ -896,6 +909,7 @@
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
+-type os_type() :: system_utils:os_type().
 -type os_family() :: system_utils:os_family().
 %-type os_name() :: system_utils:os_name().
 
@@ -1126,8 +1140,9 @@ subscribe_to_events( SubscribedEvents ) ->
 %
 % By default the corresponding event will not be transmitted upward in the
 % widget hierarchy (as this event will be expected to be processed for good by
-% the subscriber(s) it has been dispatched to), unless the propagate_event/1
-% function is called from one of them.
+% the subscriber(s) it has been dispatched to), unless the propagate_event
+% option has been specified at subscription, or if the propagate_event/1
+% function is called once the event handler processes such an event.
 %
 % Note that, at least when creating the main frame, if having subscribed to
 % onShown and onResized, on creation first a onResized event will be received by
@@ -1383,6 +1398,10 @@ set_as_controller( Object ) ->
 %
 -spec set_controller( gui_object(), pid() ) -> gui_object().
 set_controller( Object, ControllerPid ) ->
+
+	% Typically takes { wx_ref, Id, WxObjectType, _State=[] }, and returns:
+	% { wx_ref, Id, WxObjectTypewxFrame, ControllerPid }
+
 	wx_object:set_pid( Object, ControllerPid ).
 
 
@@ -1773,7 +1792,7 @@ clear( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
 
 
-% @doc Associates specified sizer to specified window.
+% @doc Associates specified sizer to the specified window.
 -spec set_sizer( window(), sizer() ) -> void().
 set_sizer( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Sizer ) ->
 	get_main_loop_pid() ! { getCanvasPanel, [ CanvasId ], self() },
@@ -1807,20 +1826,46 @@ layout( Window ) ->
 	wxWindow:layout( Window ).
 
 
+% @doc Resizes the specified window so that its client area matches the minimal
+% size of the specified sizer.
+%
+-spec fit_to_sizer( window(), sizer() ) -> void().
+fit_to_sizer( Window, Sizer ) ->
+	wxSizer:fit( Sizer, Window ).
+
+
+
 
 % @doc Splits the specified window based on the specified sash gravity and pane
-% size, returns a corresponding splitter record.
+% size, returning a corresponding splitter record.
 %
 -spec split( window(), sash_gravity(), size() ) -> splitter().
 split( ParentWindow, SashGravity, PaneSize ) ->
+	split( ParentWindow, SashGravity, PaneSize,
+		   system_utils:get_operating_system_type() ).
 
-   Style = case os:type() of
-		{unix, darwin} -> ?wxSP_3DSASH bor ?wxSP_LIVE_UPDATE;
-		{win32, _} -> ?wxSP_BORDER bor ?wxSP_LIVE_UPDATE;
-		_ -> ?wxSP_3D bor ?wxSP_LIVE_UPDATE
+
+% @doc Splits the specified window based on the specified sash gravity and
+% minimum pane size, according to the specified OS, returning a corresponding
+% splitter record.
+%
+-spec split( window(), sash_gravity(), size(), os_type() ) -> splitter().
+split( ParentWindow, SashGravity, PaneSize, OSType ) ->
+
+   WxStyle = case OSType of
+
+		{ _OSFamily=unix, _OSName=darwin } ->
+			?wxSP_LIVE_UPDATE bor ?wxSP_3DSASH;
+
+		{ win32, _ } ->
+			?wxSP_LIVE_UPDATE bor ?wxSP_BORDER;
+
+		_ ->
+			?wxSP_LIVE_UPDATE bor ?wxSP_3D
+
 		end,
 
-	SplitterWin = wxSplitterWindow:new( ParentWindow, [ {style, Style } ] ),
+	SplitterWin = wxSplitterWindow:new( ParentWindow, [ {style, WxStyle } ] ),
 
 	wxSplitterWindow:setSashGravity( SplitterWin, SashGravity ),
 
@@ -2192,7 +2237,10 @@ create_panel() ->
 
 
 % @doc Creates a panel, associated to specified parent.
--spec create_panel( window() ) -> panel().
+-spec create_panel( window() | splitter() ) -> panel().
+create_panel( _Parent=#splitter{ splitter_window=Win } ) ->
+	wxPanel:new( Win );
+
 create_panel( Parent ) ->
 	wxPanel:new( Parent ).
 
@@ -2201,7 +2249,10 @@ create_panel( Parent ) ->
 % @doc Creates a panel, associated to specified parent and with specified
 % options.
 %
--spec create_panel( window(), panel_options() ) -> panel().
+-spec create_panel( window() | splitter(), panel_options() ) -> panel().
+create_panel( _Parent=#splitter{ splitter_window=Win }, Options ) ->
+	create_panel( Win, Options );
+
 create_panel( Parent, Options ) ->
 
 	ActualOptions = get_panel_options( Options ),
