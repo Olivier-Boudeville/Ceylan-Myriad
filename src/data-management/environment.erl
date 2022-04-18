@@ -71,6 +71,10 @@
 %
 % An environment is best designated as a PID, otherwise as a registered name,
 % otherwise from any filename that it uses.
+%
+% See also the resource module for the sharing of any kind of data resource.
+%
+-module(environment).
 
 
 % About the caching of environment entries:
@@ -109,8 +113,7 @@
 % corresponds to the user preferences. See our preferences module for that.
 %
 % Refer to https://myriad.esperide.org/#etf for more information.
-%
--module(environment).
+
 
 
 -export([ start/1, start/2, start_link/1, start_link/2,
