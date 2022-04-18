@@ -76,7 +76,8 @@
 -export_type([ bridge_pid/0 ]).
 
 
--export([ get_bridge_spec/3, register/1, register_if_not_already/1,
+-export([ get_bridge_spec/2, get_bridge_spec/3,
+		  register/1, register_if_not_already/1,
 		  get_bridge_info/0, set_bridge_info/1,
 		  set_application_timestamp/1, unregister/0,
 
@@ -118,6 +119,11 @@
 % Not special-casing the 'void' severity, as not used frequently enough.
 
 
+-type user_bridge_info() :: { TraceCategory :: any_string(),
+							  BridgePid :: bridge_pid() }.
+% Bridging information typically specified by the user.
+
+
 -opaque bridge_spec() :: { TraceEmitterName :: bin_string(),
 						   TraceCategory :: bin_string(),
 						   BridgePid :: bridge_pid() }.
@@ -125,7 +131,8 @@
 % lower-level process that may or may not use advanced logging.
 
 
--export_type([ bridge_spec/0 ]).
+-export_type([ user_bridge_info/0, bridge_spec/0 ]).
+
 
 
 -opaque bridge_info() :: { TraceEmitterName :: bin_string(),
@@ -139,6 +146,15 @@
 % To silence warning:
 -export_type([ bridge_info/0 ]).
 
+
+
+% @doc Returns the information to pass to a process so that it can register to
+% the corresponding trace bridge and use it automatically from then.
+%
+-spec get_bridge_spec( any_string(), user_bridge_info() ) -> bridge_spec().
+get_bridge_spec( TraceEmitterName,
+				 _UserBridgeInfo={ TraceCategory, BridgePid } ) ->
+	get_bridge_spec( TraceEmitterName, TraceCategory, BridgePid ).
 
 
 % @doc Returns the information to pass to a process so that it can register to
