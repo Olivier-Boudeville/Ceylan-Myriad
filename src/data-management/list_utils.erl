@@ -51,6 +51,7 @@
 % (see also basic_utils:{check,are}_all_{,un}defined/1).
 %
 -export([ ensure_list/1, ensure_atoms/1, ensure_tuples/1, ensure_pids/1,
+		  ensure_proplist/1,
 		  are_integers/1, check_integers/1, are_pids/1, are_atoms/1,
 		  check_strictly_ascending/1 ]).
 
@@ -109,7 +110,10 @@
 -export_type([ maybe_list/1 ]).
 
 
+
 % Shorthands:
+
+-type proplist() :: proplists:proplist().
 
 -type count() :: basic_utils:count().
 
@@ -122,7 +126,7 @@
 
 
 % @doc Ensures that the specified argument is a list: encloses it in a list of
-% its own if not already a list.
+% its own if not already a list; respects any original order.
 %
 % Note: not to be applied on strings for example.
 %
@@ -137,7 +141,7 @@ ensure_list( Term ) ->
 
 % @doc Ensures that the specified argument is a list of atoms: encloses any atom
 % in a list of its own if not already a list, or check that this list is only
-% populated of atoms.
+% populated of atoms; respects any original order.
 %
 ensure_atoms( Atom ) when is_atom( Atom ) ->
 	[ Atom ];
@@ -160,7 +164,7 @@ ensure_atoms( Other ) ->
 
 % @doc Ensures that the specified argument is a list of tuples: encloses any
 % tuple in a list of its own if not already a list, or check that this list is
-% only populated of tuples.
+% only populated of tuples; respects any original order.
 %
 ensure_tuples( Tuple ) when is_tuple( Tuple ) ->
 	[ Tuple ];
@@ -183,7 +187,7 @@ ensure_tuples( Other ) ->
 
 % @doc Ensures that the specified argument is a list of PIDs: encloses any PID
 % in a list of its own if not already a list, or check that this list is only
-% populated of PIDs.
+% populated of PIDs; respects any original order.
 %
 ensure_pids( Pid ) when is_pid( Pid ) ->
 	[ Pid ];
@@ -201,6 +205,41 @@ ensure_pids( List ) when is_list( List ) ->
 
 ensure_pids( Other ) ->
 	throw( { neither_list_nor_pid, Other } ).
+
+
+
+% @doc Ensures that the specified argument is a proplist, that is a list of
+% atoms or of pairs whose first argument is an atom: encloses any of such
+% element in a list of its own if not already a list, or check that this list is
+% only populated as expected; respects any original order.
+%
+-spec ensure_proplist( maybe_list( atom() | { atom(), any() } ) ) -> proplist().
+ensure_proplist( Atom ) when is_atom( Atom ) ->
+	[ Atom ];
+
+ensure_proplist( P={ Atom, _Any } ) when is_atom( Atom ) ->
+	[ P ];
+
+ensure_proplist( L ) when is_list( L ) ->
+	ensure_proplist_helper( L, _Acc=[] );
+
+ensure_proplist( Other ) ->
+	throw( { not_proplistable, Other } ).
+
+
+% Not using here ensure_proplist/1 are nested lists not permitted:
+ensure_proplist_helper( _L=[], Acc ) ->
+	lists:reverse( Acc );
+
+ensure_proplist_helper( _L=[ Atom | T ], Acc ) when is_atom( Atom ) ->
+	ensure_proplist_helper( T, [ Atom | Acc ] );
+
+ensure_proplist_helper( _L=[ P={ Atom, _Any } | T ], Acc )
+										when is_atom( Atom ) ->
+	ensure_proplist_helper( T, [ P | Acc ] );
+
+ensure_proplist_helper( [ Other | _T ], _Acc ) ->
+	throw( { invalid_proplist_element, Other } ).
 
 
 
