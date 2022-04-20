@@ -352,11 +352,11 @@ start() ->
 
 	% Constant width:
 	gui:add_to_sizer( MainSizer, LeftPanel,
-					  [ { proportion, 0 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 0 }, expand_fully ] ),
 
 	% Grows with the window:
 	gui:add_to_sizer( MainSizer, RightPanel,
-					  [ { proportion, 2 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 2 }, expand_fully ] ),
 
 	ControlBoxSizer = gui:create_sizer_with_labelled_box( vertical, LeftPanel,
 														  "Controls" ),
@@ -399,9 +399,7 @@ start() ->
 
 	gui:set_tooltip( LeftPanel, "Controls for the Lorenz test" ),
 
-	ButtonOpt = [ { flag, [ expand_fully ] } ],
-
-	[ gui:add_to_sizer( ControlBoxSizer, B, ButtonOpt ) || B <- Buttons ],
+	[ gui:add_to_sizer( ControlBoxSizer, B, expand_fully ) || B <- Buttons ],
 
 	gui:set_sizer( LeftPanel, ControlBoxSizer ),
 
@@ -417,7 +415,7 @@ start() ->
 	gui:subscribe_to_events( { [ onRepaintNeeded, onResized ], Canvas } ),
 
 	gui:add_to_sizer( PolyBoxSizer, Canvas,
-					  [ { proportion, 1 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 1 }, expand_fully ] ),
 
 	gui:set_tooltip( Canvas, "Lorenz Attractor." ),
 

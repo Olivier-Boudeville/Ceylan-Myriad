@@ -181,11 +181,11 @@ run_test_gui() ->
 
 	% Constant width:
 	gui:add_to_sizer( MainSizer, LeftPanel,
-					  [ { proportion, 0 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 0 }, expand_fully ] ),
 
 	% Grows with the window:
 	gui:add_to_sizer( MainSizer, RightPanel,
-					  [ { proportion, 2 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 2 }, expand_fully ] ),
 
 
 	ControlBoxSizer = gui:create_sizer_with_labelled_box( vertical, LeftPanel,
@@ -211,9 +211,7 @@ run_test_gui() ->
 	gui:set_tooltip( ClearCanvasButton, "Clear canvas" ),
 	gui:set_tooltip( QuitButton, "Quit" ),
 
-	ButtonOpt = [ { flag, [ expand_fully ] } ],
-
-	gui:add_to_sizer( ControlBoxSizer, ControlButtons, ButtonOpt ),
+	gui:add_to_sizer( ControlBoxSizer, ControlButtons, expand_fully ),
 
 	gui:set_sizer( LeftPanel, ControlBoxSizer ),
 
@@ -236,7 +234,7 @@ run_test_gui() ->
 	CanvasEvents = { [ onRepaintNeeded, onResized ], Canvas },
 
 	gui:add_to_sizer( PolyBoxSizer, Canvas,
-					  [ { proportion, 1 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 1 }, expand_fully ] ),
 
 	gui:set_tooltip( Canvas, "Random polygons and their MEC\n"
 							 "(Minimum Enclosing Circle Box) are drawn here." ),

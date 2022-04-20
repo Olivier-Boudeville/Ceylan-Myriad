@@ -116,11 +116,11 @@ init_app_gui() ->
 
 	% Constant width:
 	gui:add_to_sizer( MainSizer, LeftPanel,
-					  [ { proportion, 0 }, { flag,[ expand_fully ] } ] ),
+					  [ { proportion, 0 }, expand_fully ] ),
 
 	% Grows with the window:
 	gui:add_to_sizer( MainSizer, RightPanel,
-					  [ { proportion, 2 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 2 }, expand_fully ] ),
 
 	LeftSizer = gui:create_sizer( vertical ),
 
@@ -149,10 +149,8 @@ init_app_gui() ->
 	% Not working apparently:
 	gui:set_tooltip( LoadImageButton, "Load image" ),
 
-	ButtonOpt = [ { flag, [ expand_fully ] } ],
-
 	gui:add_to_sizer( ControlBoxSizer, [ LoadImageButton, QuitButton ],
-					  ButtonOpt ),
+					  expand_fully ),
 
 
 	gui:set_sizer( LeftPanel, LeftSizer ),
@@ -165,7 +163,7 @@ init_app_gui() ->
 	gui_canvas:set_background_color( Canvas, pink ),
 
 	gui:add_to_sizer( AssetBoxSizer, Canvas,
-					  [ { proportion, 1 }, { flag, [ expand_fully ] } ] ),
+					  [ { proportion, 1 }, expand_fully ] ),
 
 	gui:set_tooltip( Canvas, "Asset view." ),
 
@@ -295,7 +293,7 @@ update_information_sizer( InfoSizer, Panel, Texts ) ->
 
 	%gui:clear_sizer( InfoSizer ),
 
-	TextOpts = [ { flag, [ expand_fully ] }, { border, 10 } ],
+	TextOpts = [ { border, 10 }, expand_fully ],
 
    [ gui:add_to_sizer( InfoSizer, gui_text:create_static( Panel, T ),
 					   TextOpts ) || T <- Texts ].
