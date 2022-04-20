@@ -64,7 +64,7 @@
 
 
 
-% Information regarding the splitting of a window into two fixed panes,
+% Information regarding the splitting of a window into (up to) two panes,
 % horizontally or vertically.
 %
 -record( splitter, {
@@ -74,8 +74,8 @@
 
 	mode,
 
-	% The top or left pane:
+	% The top or left pane (if any):
 	first_pane :: maybe( gui:window() ),
 
-	% The bottom or right pane:
+	% The bottom or right pane (if any):
 	second_pane :: maybe( gui:window() ) } ).
