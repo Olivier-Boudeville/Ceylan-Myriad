@@ -347,7 +347,7 @@
 		  set_foreground_color/2, set_background_color/2,
 		  set_font/2, set_font/3,
 		  set_sizer/2, add_stretch_spacer/1, layout/1, fit_to_sizer/2,
-		  split/3, split/4,
+		  create_splitter/3, create_splitter/4,
 		  show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
 		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
@@ -436,7 +436,10 @@
 % Graphic contexts:
 -export([ create_graphic_context/1, % already exported: set_font/3,
 		  set_brush/2,
-		  set_font/4, get_text_extent/2, draw_text/4,
+		  set_font/4,
+		  get_text_extent/2, get_text_width/2, get_text_height/2,
+		  get_text_dimensions/2,
+		  draw_text/4,
 		  draw_bitmap/4, draw_bitmap/5, draw_bitmap/6 ]).
 
 
@@ -474,13 +477,23 @@
 % Type declarations:
 
 -type length() :: linear:integer_distance().
-% A length, as a number of pixels.
+% A length, as an integer number of pixels.
 
 -type width() :: length().
-% A width, as a number of pixels.
+% A width, as an integer number of pixels.
 
 -type height() :: length().
-% An height, as a number of pixels.
+% An height, as an integer number of pixels.
+
+
+-type any_length() :: linear:any_distance().
+% A length, as a number (integer or floating-point) of pixels.
+
+-type any_width() :: any_length().
+% A width, as a number (integer or floating-point) of pixels.
+
+-type any_height() :: any_length().
+% An height, as a number (integer or floating-point) of pixels.
 
 
 -type coordinate() :: linear:integer_coordinate().
@@ -758,7 +771,7 @@
 % [http://docs.wxwidgets.org/stable/classwx_panel.html].
 
 
--type panel_options() :: [ panel_option() ].
+-type panel_options() :: maybe_list( panel_option() ).
 
 
 -type button_style_opt() :: 'default'
@@ -795,12 +808,22 @@
 % Options for sizers, see [https://docs.wxwidgets.org/stable/classwx_sizer.html]
 
 
--type sizer_flag() :: sizer_flag_opt() | [ sizer_flag_opt() ].
+-type weight_factor() :: non_neg_integer().
+% A weight factor akin to a proportion, typically of an element (widget or
+% sizer) in a sizer.
+%
+% 0 means that the corresponding element is fixed-sized (in the direction of the
+% sizer), whereas strictly positive values specify the weight (expansion factor)
+% of that element relative to the other elements.
 
--type sizer_option() :: { 'proportion', integer() }
-					  | { 'flag', sizer_flag() }
+
+% Simplification for the user: no specific flag needed.
+-type sizer_option() :: { 'proportion', weight_factor() }
 					  | { 'border', integer() }
-					  | { 'user_data', term() }.
+					  | { 'user_data', term() }
+					  | sizer_flag_opt().
+% An option when creating a sizer.
+
 
 -type sizer_options() :: [ sizer_option() ].
 
@@ -850,6 +873,7 @@
 			   backend_identifier/0, backend_information/0,
 
 			   length/0, width/0, height/0,
+			   any_length/0, any_width/0, any_height/0,
 			   coordinate/0, point/0, position/0, size/0,
 			   orientation/0, fps/0,
 			   model_pid/0, view_pid/0, controller_pid/0,
@@ -885,7 +909,7 @@
 			   frame_style_opt/0,
 			   panel_option/0, panel_options/0,
 			   button_style_opt/0,
-			   sizer_flag_opt/0, sizer_flag/0, sizer_option/0, sizer_options/0,
+			   sizer_flag_opt/0, sizer_option/0, sizer_options/0,
 			   image/0,
 			   connect_opt/0,
 			   debug_level_opt/0, debug_level/0, error_message/0 ]).
@@ -1518,7 +1542,7 @@ set_font( Window, Font ) ->
 
 
 % @doc Sets the font to be used by the specified:
-% - window and its children, then, if requested, destructs that font.
+% - window and its children, then, if requested, destructs that font
 % - graphic context, with the specified color
 %
 -spec set_font( window(), font(), boolean() ) -> void();
@@ -1532,6 +1556,31 @@ set_font( Window, Font, _DestructFont=false ) ->
 
 set_font( GraphicContext, Font, Color ) ->
 	set_font( GraphicContext, Font, Color, _DoDestructFont=false ).
+
+
+
+% @doc Sets the font and color to be used by the specified window (and its
+% children) or graphic context, then, if requested, destructs that font.
+%
+% For windows, a side-effect is setting the foreground color.
+%
+-spec set_font( window() | graphic_context(), font(), color(), boolean() ) ->
+										void().
+set_font( GraphicContext, Font, Color, _DestructFont=true ) ->
+	set_font( GraphicContext, Font, Color, _DoDestructFont=false ),
+	gui_font:destruct( Font );
+
+set_font( GraphicContext={ wx_ref, _Id, wxGraphicsContext, _State }, Font,
+		  Color, _DestructFont=false ) ->
+	wxGraphicsContext:setFont( GraphicContext, Font,
+							   gui_color:get_color( Color ) );
+
+% wxWindow, wxPanel, etc.:
+set_font( Window={ wx_ref, _Id, _AnyWxWindowLike, _State }, Font, Color,
+		  _DestructFont=false ) ->
+	wxWindow:setFont( Window, Font ),
+	wxWindow:setForegroundColour( Window,  gui_color:get_color( Color ) ).
+
 
 
 
@@ -1836,21 +1885,24 @@ fit_to_sizer( Window, Sizer ) ->
 
 
 
-% @doc Splits the specified window based on the specified sash gravity and pane
-% size, returning a corresponding splitter record.
+% @doc Creates a splitter in the specified window, based on the specified sash
+% gravity and pane size, returning a corresponding splitter record so that the
+% up to two subwindows can be declared afterwards.
 %
--spec split( window(), sash_gravity(), size() ) -> splitter().
-split( ParentWindow, SashGravity, PaneSize ) ->
-	split( ParentWindow, SashGravity, PaneSize,
-		   system_utils:get_operating_system_type() ).
+-spec create_splitter( window(), sash_gravity(), size() ) -> splitter().
+create_splitter( ParentWindow, SashGravity, PaneSize ) ->
+	create_splitter( ParentWindow, SashGravity, PaneSize,
+					 system_utils:get_operating_system_type() ).
 
 
-% @doc Splits the specified window based on the specified sash gravity and
-% minimum pane size, according to the specified OS, returning a corresponding
-% splitter record.
+% @doc Creates a splitter in the specified window, based on the specified sash
+% gravity and pane size, according to the specified OS, returning a
+% corresponding splitter record so that the up to two subwindows can be declared
+% afterwards.
 %
--spec split( window(), sash_gravity(), size(), os_type() ) -> splitter().
-split( ParentWindow, SashGravity, PaneSize, OSType ) ->
+-spec create_splitter( window(), sash_gravity(), size(), os_type() ) ->
+													splitter().
+create_splitter( ParentWindow, SashGravity, PaneSize, OSType ) ->
 
    WxStyle = case OSType of
 
@@ -2236,7 +2288,7 @@ create_panel() ->
 
 
 
-% @doc Creates a panel, associated to specified parent.
+% @doc Creates a panel, associated to the specified parent.
 -spec create_panel( window() | splitter() ) -> panel().
 create_panel( _Parent=#splitter{ splitter_window=Win } ) ->
 	wxPanel:new( Win );
@@ -2442,8 +2494,10 @@ add_to_sizer( Sizer, Element ) ->
 % @doc Adds specified element (or elements), with (common) options, to the
 % specified sizer.
 %
--spec add_to_sizer( sizer(), sizer_child(), sizer_options() ) -> sizer_item();
-				  ( sizer(), [ sizer_child() ], sizer_options() ) -> void().
+-spec add_to_sizer( sizer(), sizer_child(), maybe_list( sizer_options() ) ) ->
+											sizer_item();
+				  ( sizer(), [ sizer_child() ],
+								maybe_list( sizer_options() ) ) -> void().
 add_to_sizer( Sizer, _Element={ myriad_object_ref, myr_canvas, CanvasId },
 			  Options ) ->
 	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
@@ -2468,8 +2522,8 @@ add_to_sizer( Sizer, Element, Options ) ->
 
 
 % @doc Adds a spacer child to the specified sizer.
--spec add_spacer_to_sizer( sizer(), width(), height(), sizer_options() ) ->
-													sizer_item().
+-spec add_spacer_to_sizer( sizer(), width(), height(),
+						   maybe_list( sizer_options() ) ) -> sizer_item().
 add_spacer_to_sizer( Sizer, Width, Height, Options ) ->
 	ActualOptions = gui_wx_backend:to_wx_sizer_options( Options ),
 	wxSizer:add( Sizer, Width, Height, ActualOptions ).
@@ -2746,30 +2800,58 @@ set_brush( GraphicContext, Brush ) ->
 
 
 
-% set_font/3 already defined in the window() section.
-
-
-% @doc Sets the font to be used by the specified graphic context, with the
-% specified color, then, if requested, destructs that font..
-%
--spec set_font( graphic_context(), font(), color(), boolean() ) -> void().
-set_font( GraphicContext, Font, Color, _DestructFont=true ) ->
-	set_font( GraphicContext, Font, Color, _DoDestructFont=false ),
-	gui_font:destruct( Font );
-
-set_font( GraphicContext, Font, Color, _DestructFont=false ) ->
-	wxGraphicsContext:setFont( GraphicContext, Font, Color ).
+% set_font/{3,4} are already defined in the window() section.
 
 
 
 % @doc Returns the extent corresponding to the rendering of the specified
 % string, using the currently selected font.
 %
+% Note that the returned dimensions may be integer or floating-point numbers.
+%
 -spec get_text_extent( graphic_context(), ustring() ) ->
-				{ width(), height(),
-				  Descent :: length(), ExternalLeading :: length() }.
+				{ any_width(), any_height(),
+				  Descent :: any_length(), ExternalLeading :: any_length() }.
 get_text_extent( GraphicContext, Text ) ->
 	wxGraphicsContext:getTextExtent( GraphicContext, Text ).
+
+
+% @doc Returns the (integer) width corresponding to the rendering of the
+% specified string, using the currently selected font.
+%
+-spec get_text_width( graphic_context(), ustring() ) -> width().
+get_text_width( GraphicContext, Text ) ->
+
+	{ W, _H, _D, _EL } =
+		wxGraphicsContext:getTextExtent( GraphicContext, Text ),
+
+	type_utils:ensure_rounded_integer( W ).
+
+
+% @doc Returns the (integer) height corresponding to the rendering of the
+% specified string, using the currently selected font.
+%
+-spec get_text_height( graphic_context(), ustring() ) -> height().
+get_text_height( GraphicContext, Text ) ->
+
+	{ _W, H, _D, _EL } =
+		wxGraphicsContext:getTextExtent( GraphicContext, Text ),
+
+	type_utils:ensure_rounded_integer( H ).
+
+
+% @doc Returns the (integer) dimensions corresponding to the rendering of the
+% specified string, using the currently selected font.
+%
+-spec get_text_dimensions( graphic_context(), ustring() ) -> dimensions().
+get_text_dimensions( GraphicContext, Text ) ->
+
+	{ W, H, _D, _EL } =
+		wxGraphicsContext:getTextExtent( GraphicContext, Text ),
+
+	{ type_utils:ensure_rounded_integer( W ),
+	  type_utils:ensure_rounded_integer( H ) }.
+
 
 
 
