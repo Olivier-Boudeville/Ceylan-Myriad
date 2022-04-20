@@ -518,7 +518,8 @@
 
 
 % Conversion:
--export([ ensure_integer/1, ensure_float/1, ensure_number/1, ensure_boolean/1,
+-export([ ensure_integer/1, ensure_rounded_integer/1,
+		  ensure_float/1, ensure_number/1, ensure_boolean/1,
 		  ensure_string/1, ensure_binary/1 ]).
 
 
@@ -570,11 +571,8 @@
 %
 -spec description_to_type( type_description() ) -> type().
 description_to_type( TypeDescription ) ->
-
 	CanonicalDesc = text_utils:remove_whitespaces( TypeDescription ),
-
 	%io:format( "CanonicalDesc = '~ts'~n", [ CanonicalDesc ] ),
-
 	scan_type( CanonicalDesc ).
 
 
@@ -843,7 +841,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 											MaxNestingLevel ),
 					 interpret_type_helper( V, CurrentNestingLevel + 1,
 											MaxNestingLevel ) ] )
-			  || { K, V } <- maps:to_list( Term ) ],
+				|| { K, V } <- maps:to_list( Term ) ],
 
 	text_utils:format( "map of ~B elements: ~ts", [ maps:size( Term ),
 			text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
@@ -883,7 +881,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 					text_utils:format( "list of ~B elements: ~ts",
 						[ length( Term ),
 						  text_utils:strings_to_enumerated_string( Elems,
-												   CurrentNestingLevel ) ] )
+												CurrentNestingLevel ) ] )
 
 			end
 
@@ -906,7 +904,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 
 	Elems = [ interpret_type_helper( E, CurrentNestingLevel + 1,
 									 MaxNestingLevel )
-			  || E <- tuple_to_list( Term ) ],
+			    || E <- tuple_to_list( Term ) ],
 
 	BaseTupleDesc = interpret_type_helper( Term, MaxNestingLevel,
 										   MaxNestingLevel ),
@@ -1180,6 +1178,23 @@ ensure_integer( N ) when is_float( N ) ->
 
 ensure_integer( N ) ->
 	throw( { cannot_be_cast_to_integer, N } ).
+
+
+
+% @doc Ensures that the specified term is an integer, and returns it.
+%
+% If it is a float, will return a rounded (integer) version of it.
+%
+-spec ensure_rounded_integer( number() ) -> integer().
+ensure_rounded_integer( N ) when is_integer( N ) ->
+	N;
+
+ensure_rounded_integer( N ) when is_float( N ) ->
+	round( N );
+
+ensure_rounded_integer( N ) ->
+	throw( { cannot_be_cast_to_integer, N } ).
+
 
 
 
