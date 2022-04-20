@@ -296,7 +296,7 @@
 -type panel_option() :: gui:panel_option().
 -type button_style() :: gui:button_style().
 -type sizer_options() :: gui:sizer_options().
--type sizer_flag() :: gui:sizer_flag().
+-type sizer_flag_opt() :: gui:sizer_flag_opt().
 -type position() :: gui:position().
 -type size() :: gui:size().
 -type orientation() :: gui:orientation().
@@ -740,14 +740,19 @@ window_style_to_bitmask( _Style=full_repaint_on_resize ) ->
 
 
 
-% @doc Converts specified MyriadGUI window options into the appropriate
+% @doc Converts the specified MyriadGUI window option(s) into the appropriate
 % wx-specific options.
 %
 % (exported helper)
 %
--spec get_window_options( [ window_option() ] ) -> [ wx_window_option() ].
-get_window_options( Options ) ->
-	get_window_options( Options, _Acc=[] ).
+-spec get_window_options( maybe_list( window_option() ) ) ->
+								[ wx_window_option() ].
+get_window_options( Options ) when is_list( Options ) ->
+	get_window_options( Options, _Acc=[] );
+
+get_window_options( Option ) ->
+	get_window_options( [ Option ] ).
+
 
 
 get_window_options( _Options=[], Acc ) ->
@@ -820,12 +825,13 @@ frame_style_to_bitmask( _Style=no_taskbar ) ->
 % Panels section.
 
 
-% @doc Converts specified MyriadGUI panel options into the appropriate
+% @doc Converts specified MyriadGUI panel option(s) into the appropriate
 % wx-specific options.
 %
 % (exported helper)
 %
--spec get_panel_options( [ panel_option() ] ) -> [ wx_panel_option() ].
+-spec get_panel_options( maybe_list( panel_option() ) ) ->
+											[ wx_panel_option() ].
 get_panel_options( Options ) ->
 	get_window_options( Options ).
 
@@ -879,27 +885,42 @@ button_style_to_bitmask( _Style=flat ) ->
 %
 % (helper)
 %
--spec to_wx_sizer_options( sizer_options() ) -> wx_sizer_options().
-to_wx_sizer_options( Options ) ->
-	to_wx_sizer_options( Options, _Acc=[] ).
+-spec to_wx_sizer_options( maybe_list( sizer_options() ) ) ->
+											wx_sizer_options().
+to_wx_sizer_options( Options ) when is_list( Options ) ->
+	to_wx_sizer_options( Options, _AccOpts=[], _AccFlags=[] );
 
-to_wx_sizer_options( _Options=[], Acc ) ->
-	Acc;
-
-to_wx_sizer_options( _Options=[ { flag, Flag } | T ], Acc ) ->
-	to_wx_sizer_options( T, [ { flag, sizer_flag_to_bitmask( Flag ) } | Acc ] );
-
-to_wx_sizer_options(_Options=[ H | T ], Acc ) ->
-	to_wx_sizer_options( T, [ H | Acc ] ).
+to_wx_sizer_options( Option ) ->
+	to_wx_sizer_options( [ Option ] ).
 
 
 
-% @doc Converts specified MyriadGUI sizer flag into the appropriate wx-specific
-% bit mask.
+% (helper)
+to_wx_sizer_options( _Options=[], AccOpts, _AccFlags=[]  ) ->
+	AccOpts;
+
+to_wx_sizer_options( _Options=[], AccOpts, AccFlags ) ->
+	[ { flag, sizer_flag_to_bitmask( AccFlags ) } | AccOpts ];
+
+to_wx_sizer_options( _Options=[ { userData, Data } | T ], AccOpts, AccFlags ) ->
+	to_wx_sizer_options( T, [ { user_data, Data } | AccOpts ], AccFlags );
+
+% Letting {proportion, integer()} and {border, integer()} go through:
+to_wx_sizer_options( _Options=[ P | T ], AccOpts, AccFlags )
+											when is_tuple( P ) ->
+	to_wx_sizer_options( T, [ P | AccOpts ], AccFlags );
+
+to_wx_sizer_options( _Options=[ F | T ], AccOpts, AccFlags ) ->
+	to_wx_sizer_options( T, AccOpts, [ F | AccFlags ] ).
+
+
+% @doc Converts specified MyriadGUI sizer flag option(s) into the appropriate
+% wx-specific bit mask.
 %
 % (helper)
 %
--spec sizer_flag_to_bitmask( sizer_flag() ) -> bit_mask().
+-spec sizer_flag_to_bitmask( sizer_flag_opt() | [ sizer_flag_opt() ] ) ->
+											bit_mask().
 sizer_flag_to_bitmask( FlagList ) when is_list( FlagList ) ->
 
 	lists:foldl( fun( F, Acc ) -> sizer_flag_to_bitmask( F ) bor Acc end,
