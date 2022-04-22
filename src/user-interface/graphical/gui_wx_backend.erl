@@ -686,14 +686,11 @@ window_style_to_bitmask( StyleList ) when is_list( StyleList ) ->
 				 _InitialAcc=0,
 				 _List=StyleList );
 
-window_style_to_bitmask( _Style=default ) ->
+window_style_to_bitmask( _Style=default_border ) ->
 	?wxBORDER_SIMPLE;
 
 window_style_to_bitmask( _Style=simple_border ) ->
 	?wxBORDER_SIMPLE;
-
-window_style_to_bitmask( _Style=double_border ) ->
-	?wxBORDER_DOUBLE;
 
 window_style_to_bitmask( _Style=sunken_border ) ->
 	?wxBORDER_SUNKEN;
@@ -709,6 +706,10 @@ window_style_to_bitmask( _Style=theme_border ) ->
 
 window_style_to_bitmask( _Style=no_border ) ->
 	?wxBORDER_NONE;
+
+window_style_to_bitmask( _Style=double_border ) ->
+	?wxBORDER_DOUBLE;
+
 
 window_style_to_bitmask( _Style=transparent ) ->
 	?wxTRANSPARENT_WINDOW;
@@ -818,7 +819,14 @@ frame_style_to_bitmask( _Style=tool_window ) ->
 	?wxFRAME_TOOL_WINDOW;
 
 frame_style_to_bitmask( _Style=no_taskbar ) ->
-	?wxFRAME_NO_TASKBAR.
+	?wxFRAME_NO_TASKBAR;
+
+frame_style_to_bitmask( _Style=float_on_parent) ->
+	?wxFRAME_FLOAT_ON_PARENT;
+
+frame_style_to_bitmask( _Style=shaped) ->
+	?wxFRAME_SHAPED.
+
 
 
 

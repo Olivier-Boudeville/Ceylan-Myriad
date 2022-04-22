@@ -347,7 +347,7 @@
 		  set_foreground_color/2, set_background_color/2,
 		  set_font/2, set_font/3,
 		  set_sizer/2, add_stretch_spacer/1, layout/1, fit_to_sizer/2,
-		  create_splitter/3, create_splitter/4,
+		  create_splitter/3, create_splitter/4, set_unique_pane/2,
 		  show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
 		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
@@ -620,8 +620,9 @@
 % Defining the actual widget types corresponding to wx_object_type():
 
 
+% Includes wx:null(), i.e. a #wx_ref{ref=0, type=wx}.
 -opaque window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
-% Any kind of windows, that is widget (ex: any canvas is a window).
+% Any kind of window, that is widget (ex: any canvas is a window).
 
 
 -type top_level_window() :: window().
@@ -715,22 +716,22 @@
 % User data, as specified in an event subscription/callback.
 
 
--type window_style_opt() :: 'default'
+-type window_style_opt() :: 'default_border'
 						  | 'simple_border'
-						  | 'double_border'
 						  | 'sunken_border'
 						  | 'raised_border'
 						  | 'static_border'
 						  | 'theme_border'
 						  | 'no_border'
-						  | 'transparent'
+						  | 'double_border'
+
+						  | 'transparent' % Windows-only
 						  | 'tab_traversable'
 						  | 'grab_all_keys'
 						  | 'with_vertical_scrollbar'
 						  | 'with_horizontal_scrollbar'
 						  | 'never_hide_scrollbars'
 						  | 'clip_children'
-						  | 'grab_all_keys'
 						  | 'full_repaint_on_resize'.
 % Options for windows. See also
 % [http://docs.wxwidgets.org/stable/classwx_window.html]
@@ -746,20 +747,29 @@
 % Unused: -type window_options() :: [ window_option() ].
 
 
+% 'iconized' not kept (duplicate of 'minimize').
 -type frame_style_opt() :: 'default'
 						 | 'caption'
-						 | 'minimize'
+						 | 'minimize' % Windows-only
 						 | 'minimize_box'
-						 | 'maximize'
+						 | 'maximize' % Windows and GTK+ only
 						 | 'maximize_box'
 						 | 'close_box'
 						 | 'stay_on_top'
 						 | 'system_menu'
 						 | 'resize_border'
 						 | 'tool_window'
-						 | 'no_taskbar'.
-% Options for frames. See also
-% [http://docs.wxwidgets.org/stable/classwx_frame.html].
+						 | 'no_taskbar'
+						 | 'float_on_parent'
+						 | 'shaped'.
+% Options for frames.
+%
+% Note that:
+% - specifying an empty option list does not enable any option
+% - the 'default' option corresponds to the use of minimize_box, maximize_box,
+% resize_border, system_menu, caption, close_box and clip_children
+%
+% See also [http://docs.wxwidgets.org/stable/classwx_frame.html].
 
 
 
@@ -1449,10 +1459,15 @@ create_window() ->
 %
 % @hidden (internal use only)
 %
--spec create_window( wx_id(), window() ) -> window().
+-spec create_window( maybe( wx_id() ), window() ) -> window().
 create_window( Id, Parent ) ->
 
 	ActualId = to_wx_id( Id ),
+
+	% Should not be 'undefined', otherwise: "wxWidgets Assert failure:
+	% ./src/gtk/window.cpp(2586): \"parent\" in PreCreation() : Must have
+	% non-NULL parent"}
+	%
 	ActualParent = to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId ).
@@ -1927,6 +1942,15 @@ create_splitter( ParentWindow, SashGravity, PaneSize, OSType ) ->
 
 
 
+% @doc Sets the specified splitter in a single pane configuration, using for
+% that specified window.
+%
+-spec set_unique_pane( splitter(), window() ) -> void().
+set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
+	wxSplitterWindow:initialize( SplitterWin, WindowPane ).
+
+
+
 % @doc Shows (renders) specified window (or subclass thereof).
 %
 % Returns whether anything had to be done.
@@ -2180,6 +2204,11 @@ create_top_level_frame( Title, Position, Size, Style ) ->
 %
 -spec create_frame() -> frame().
 create_frame() ->
+	% We could see a case where a call to wxFrame:new/0 issued by an helper
+	% spawned process (having set its environment) would trigger a segmentation
+	% fault, whereas wxFrame:new(wx:null(), ?wxID_ANY, "Hello") worked
+	% flawlessly:
+	%
 	wxFrame:new().
 
 
@@ -2211,7 +2240,7 @@ create_frame( Title, Size ) ->
 %
 % (internal use only)
 %
--spec create_frame( title(), wx_id(), maybe( window() ) ) -> frame().
+-spec create_frame( title(), maybe( wx_id() ), maybe( window() ) ) -> frame().
 create_frame( Title, Id, Parent ) ->
 	wxFrame:new( to_wx_parent( Parent ), to_wx_id( Id ), Title ).
 
@@ -2222,8 +2251,8 @@ create_frame( Title, Id, Parent ) ->
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
 
-	Options =  [ to_wx_position( Position ), to_wx_size( Size ),
-				 { style, frame_style_to_bitmask( Style ) } ],
+	Options = [ to_wx_position( Position ), to_wx_size( Size ),
+				{ style, frame_style_to_bitmask( Style ) } ],
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
@@ -2232,16 +2261,17 @@ create_frame( Title, Position, Size, Style ) ->
 
 
 
-% @doc Creates a frame.
+% @doc Creates a frame, with specified title, position, size and style, and with
+% a default parent.
 %
-% (internal use only)
+% (internal use only: wx exposed)
 %
 -spec create_frame( title(), position(), size(), frame_style(), wx_id(),
 					window() ) -> frame().
 create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
-	Options =  [ to_wx_position( Position ), to_wx_size( Size ),
-				 { style, frame_style_to_bitmask( Style ) } ],
+	Options = [ to_wx_position( Position ), to_wx_size( Size ),
+				{ style, frame_style_to_bitmask( Style ) } ],
 
 	ActualId = to_wx_id( Id ),
 
@@ -2338,8 +2368,8 @@ create_panel( Parent, Position, Size ) ->
 -spec create_panel( window(), position(), size(), panel_options() ) -> panel().
 create_panel( Parent, Position, Size, Options ) ->
 
-	FullOptions = get_panel_options( Options )
-		++ [ to_wx_position( Position ), to_wx_size( Size ) ],
+	FullOptions = [ to_wx_position( Position ), to_wx_size( Size )
+						| get_panel_options( Options ) ],
 
 	%trace_utils:debug_fmt( "Creating panel: parent: ~w, position: ~w, "
 	%    "size: ~w, options: ~w, full options: ~w.",
