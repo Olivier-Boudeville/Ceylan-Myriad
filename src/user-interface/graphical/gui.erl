@@ -159,6 +159,10 @@
 	% A more precise name of the current operating system, for finer control:
 	{ 'os_name', os_name() },
 
+
+	% The PID of the allocator of unique backend identifiers:
+	{ 'id_allocator_pid', id_allocator_pid() },
+
 	% The main, top-level window (if any; generally a frame) of the application:
 	{ 'top_level_window', maybe( window() ) },
 
@@ -443,6 +447,22 @@
 		  draw_bitmap/4, draw_bitmap/5, draw_bitmap/6 ]).
 
 
+% Menus:
+%-export([ create_top_menu/0, create_popup_menu/0 ]).
+-export([ create_menu/0, create_menu/1, create_menu/2,
+		  destruct_menu/1,
+		  add_item/2, add_item/3, append_item/2,
+		  append_submenu/4, append_submenu/5,
+		  add_checkable_item/2, add_checkable_item/3, add_checkable_item/4,
+		  set_checkable_menu_item/3,
+		  add_radio_item/3, add_radio_item/4,
+		  add_separator/1,
+		  set_menu_item_status/3, remove_menu_item/2,
+		  create_menu_bar/0, % create_menu_bar/1
+		  activate_popup_menu/2
+		]).
+
+
 % Input support:
 
 % Keyboard:
@@ -457,7 +477,7 @@
 
 
 % Internal, silencing exports:
--export([ create_gui_environment/1,
+-export([ create_gui_environment/2,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
 		  event_interception_callback/2 ]).
 
@@ -593,19 +613,6 @@
 % The construction parameters of a MyriadGUI object.
 
 
--type myriad_instance_id() :: count().
-% Myriad-specific instance identifier, corresponding a reference in the internal
-% MyriadGUI type table.
-
-
--type id() :: maybe( wx_id() ).
-% wx-specific object identifier (defined so that the event_context (public)
-% record has no trace of the backend).
-%
-% May not be defined if the actual event comes from MyriadGUI itself (and thus
-% not wx).
-
-
 -type gui_object() :: wx_object() | myriad_object_ref().
 % Reference to a GUI object (often designated as "widget" here), somewhat akin
 % to a PID.
@@ -617,12 +624,21 @@
 % Alias to designate more clearly the wx server.
 
 
+
 % Defining the actual widget types corresponding to wx_object_type():
+
+
+-type widget() :: window().
+% Any kind of widget (graphical component).
+%
+% Clearer naming than window, as not necessarily directly akin to a regular
+% window.
 
 
 % Includes wx:null(), i.e. a #wx_ref{ref=0, type=wx}.
 -opaque window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
 % Any kind of window, that is widget (ex: any canvas is a window).
+
 
 
 -type top_level_window() :: window().
@@ -687,9 +703,55 @@
 
 
 -opaque brush() :: wxBrush:wxBrush().
+% A brush, used to draw elements.
 
 -opaque back_buffer() :: wxMemoryDC:wxMemoryDC().
+% A non-displayed buffer to which rendering shall be done, before being made
+% visible as a whole, to avoid flicker.
 
+-opaque menu() :: wxMenu:wxMenu().
+% The definition of a menu, to be assigned to a menu bar or a popup menu.
+
+-type menu_option() :: 'detachable'.
+% An option when creating a menu.
+
+-opaque menu_item() :: wxMenuItem:wxMenuItem().
+% An entry registered in a menu; possibly a basic item, a submenu or a
+% separator.
+
+-type menu_item_label() :: label().
+% The text to display for a menu item.
+
+-type menu_item_kind() :: 'normal'    % Basic menu item
+						| 'check'     % Menu item that can be checkd/checked
+						| 'radio'     % Menu item with a radio item
+						| 'separator' % Separator between menu items
+						| 'dropdown'.
+% A kind of menu item.
+
+-type menu_item_status() :: 'enabled' | 'disabled'.
+% Tells whether a menu item is enabled or disabled (greyed out).
+
+
+-type menu_item_id() :: 'new'
+					  | 'open'
+					  | 'save'
+					  | 'clear'
+					  | 'undo'
+					  | 'redo'
+					  | 'help'
+					  | 'about'
+					  | 'exit'
+					  | id().
+% The identifier of a menu item, possibly having a specific, named (standard or
+% not) meaning and graphical representation.
+%
+% The atoms listed here are reserved name identifiers, as 'undefined' is.
+
+-opaque menu_bar() :: wxMenuBar:wxMenuBar().
+% A menu bar is a series of menus in a row, accessible from the top of a frame.
+
+% Not existing? -type menu_bar_option() :: ''.
 
 -type font() :: gui_font:font().
 
@@ -707,6 +769,7 @@
 
 -type title() :: text().
 -type label() :: text().
+-type help_info() :: text().
 
 
 -type event_callback() :: gui_event:event_callback().
@@ -888,15 +951,20 @@
 			   orientation/0, fps/0,
 			   model_pid/0, view_pid/0, controller_pid/0,
 			   object_type/0, wx_object_type/0,
-			   myriad_object_type/0, myriad_instance_id/0,
+			   myriad_object_type/0,
 			   title/0, label/0, event_callback/0, user_data/0,
-			   id/0, gui_object/0, wx_server/0,
+			   gui_object/0, wx_server/0,
+			   widget/0,
 			   window/0, top_level_window/0, splitter_window/0,
 			   frame/0, top_level_frame/0,
 			   panel/0, button/0,
 			   sizer/0, sizer_child/0, sizer_item/0,
 			   splitter/0, sash_gravity/0,
 			   status_bar/0,
+
+			   menu/0, menu_option/0,
+			   menu_item/0, menu_item_label/0, menu_item_kind/0,
+			   menu_item_id/0, menu_bar/0,
 
 			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
 			   font_weight/0,
@@ -930,7 +998,7 @@
 
 
 % Function shorthands:
--import( gui_wx_backend, [ to_wx_parent/1, to_wx_id/1, to_wx_position/1,
+-import( gui_wx_backend, [ to_wx_parent/1, to_wx_position/1,
 						   to_wx_size/1, to_wx_orientation/1,
 						   frame_style_to_bitmask/1, get_panel_options/1 ]).
 
@@ -962,6 +1030,8 @@
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
 
+-type id_allocator_pid() :: gui_id:id_allocator_pid().
+
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
 -type event_unsubscription_spec() :: gui_event:event_unsubscription_spec().
 -type event_callback() :: gui_event:event_callback().
@@ -974,7 +1044,8 @@
 
 %-type window_name() :: gui_window_manager:window_name().
 
--type wx_id() :: gui_wx_backend:wx_id().
+-type id() :: gui_id:id().
+-type backend_id() :: gui_id:backend_id().
 
 -type wx_object() :: wx:wx_object().
 
@@ -1024,13 +1095,17 @@ start() ->
 %
 -spec start( [ service() ] | debug_level() ) -> gui_env_info().
 start( Services ) when is_list( Services ) ->
+
+	IdAllocPid = ?myriad_spawn_link( fun gui_id:create_id_allocator/0 ),
+
 	% Starting the MyriadGUI environment:
-	create_gui_environment( Services );
+	create_gui_environment( Services, IdAllocPid );
 
 start( DebugLevel ) ->
 	EnvInfo = start(),
 	set_debug_level( DebugLevel ),
 	EnvInfo.
+
 
 
 
@@ -1040,8 +1115,9 @@ start( DebugLevel ) ->
 % Some services must be specifically declared here, as they require
 % initialisation (ex: for the loading of mouse cursors).
 %
--spec create_gui_environment( [ service() ] ) -> gui_env_info().
-create_gui_environment( Services ) ->
+-spec create_gui_environment( [ service() ], id_allocator_pid() ) ->
+													gui_env_info().
+create_gui_environment( Services, IdAllocPid ) ->
 
 	cond_utils:if_defined( myriad_debug_user_interface,
 		trace_utils:info_fmt( "Starting GUI, with following services: ~p",
@@ -1074,6 +1150,8 @@ create_gui_environment( Services ) ->
 
 		{ os_family, OSFamily },
 		{ os_name, OSName },
+
+		{ id_allocator_pid, IdAllocPid },
 
 		{ top_level_window, undefined },
 		{ loop_pid, LoopPid },
@@ -1212,7 +1290,7 @@ subscribe_to_events( SubscribedEvents, SubscriberPid )
 	end;
 
 subscribe_to_events( SubscribedEvent, SubscriberPid )
-						when is_tuple( SubscribedEvent ) ->
+								when is_tuple( SubscribedEvent ) ->
 	subscribe_to_events( [ SubscribedEvent ], SubscriberPid ).
 
 
@@ -1318,7 +1396,7 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 % MyriadGUI one before calling the user-specified callback with it.
 %
 -spec event_interception_callback( gui_event:wx_event(), wx:wxEvent() ) ->
-															void().
+																void().
 event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
 							 WxEventObject ) ->
@@ -1459,10 +1537,10 @@ create_window() ->
 %
 % @hidden (internal use only)
 %
--spec create_window( maybe( wx_id() ), window() ) -> window().
+-spec create_window( id(), window() ) -> window().
 create_window( Id, Parent ) ->
 
-	ActualId = to_wx_id( Id ),
+	ActualId = resolve_id( Id ),
 
 	% Should not be 'undefined', otherwise: "wxWidgets Assert failure:
 	% ./src/gtk/window.cpp(2586): \"parent\" in PreCreation() : Must have
@@ -1477,7 +1555,7 @@ create_window( Id, Parent ) ->
 -spec create_window( size() ) -> window().
 create_window( Size ) ->
 
-	ActualId = to_wx_id( undefined ),
+	ActualId = resolve_id( undefined ),
 	ActualParent = to_wx_parent( undefined ),
 
 	Options = [ to_wx_size( Size ) ],
@@ -1489,14 +1567,14 @@ create_window( Size ) ->
 %
 % @hidden (internal use only)
 %
--spec create_window( position(), size(), window_style(), wx_id(), window() ) ->
-												window().
+-spec create_window( position(), size(), window_style(), id(), window() ) ->
+													window().
 create_window( Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 				{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
-	ActualId = to_wx_id( Id ),
+	ActualId = resolve_id( Id ),
 	ActualParent = to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId, Options ).
@@ -1580,7 +1658,7 @@ set_font( GraphicContext, Font, Color ) ->
 % For windows, a side-effect is setting the foreground color.
 %
 -spec set_font( window() | graphic_context(), font(), color(), boolean() ) ->
-										void().
+																void().
 set_font( GraphicContext, Font, Color, _DestructFont=true ) ->
 	set_font( GraphicContext, Font, Color, _DoDestructFont=false ),
 	gui_font:destruct( Font );
@@ -1594,7 +1672,7 @@ set_font( GraphicContext={ wx_ref, _Id, wxGraphicsContext, _State }, Font,
 set_font( Window={ wx_ref, _Id, _AnyWxWindowLike, _State }, Font, Color,
 		  _DestructFont=false ) ->
 	wxWindow:setFont( Window, Font ),
-	wxWindow:setForegroundColour( Window,  gui_color:get_color( Color ) ).
+	wxWindow:setForegroundColour( Window, gui_color:get_color( Color ) ).
 
 
 
@@ -1734,8 +1812,8 @@ draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location ) ->
 -spec draw_cross( canvas(), point(), length() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 			EdgeLength ) ->
-	get_main_loop_pid() ! { drawCanvasCross,
-							[ CanvasId, Location, EdgeLength ] }.
+	get_main_loop_pid() !
+		{ drawCanvasCross, [ CanvasId, Location, EdgeLength ] }.
 
 
 
@@ -1745,8 +1823,8 @@ draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 -spec draw_cross( canvas(), point(), length(), color() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 			EdgeLength, Color ) ->
-	get_main_loop_pid() ! { drawCanvasCross,
-							[ CanvasId, Location, EdgeLength, Color ] }.
+	get_main_loop_pid() !
+		{ drawCanvasCross, [ CanvasId, Location, EdgeLength, Color ] }.
 
 
 
@@ -1765,7 +1843,7 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 % edge length and companion label, and with specified color.
 %
 -spec draw_labelled_cross( canvas(), point(), length(), color(), label() ) ->
-									 void().
+																void().
 draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 					 Location, EdgeLength, Color, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
@@ -2217,7 +2295,7 @@ create_frame() ->
 %
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
-	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title ).
+	wxFrame:new( to_wx_parent( undefined ), resolve_id( undefined ), Title ).
 
 
 
@@ -2231,7 +2309,7 @@ create_frame( Title, Size ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title,
+	wxFrame:new( to_wx_parent( undefined ), resolve_id( undefined ), Title,
 				 Options ).
 
 
@@ -2240,9 +2318,9 @@ create_frame( Title, Size ) ->
 %
 % (internal use only)
 %
--spec create_frame( title(), maybe( wx_id() ), maybe( window() ) ) -> frame().
+-spec create_frame( title(), id(), maybe( window() ) ) -> frame().
 create_frame( Title, Id, Parent ) ->
-	wxFrame:new( to_wx_parent( Parent ), to_wx_id( Id ), Title ).
+	wxFrame:new( to_wx_parent( Parent ), resolve_id( Id ), Title ).
 
 
 % @doc Creates a frame, with specified title, position, size and style, and with
@@ -2256,7 +2334,7 @@ create_frame( Title, Position, Size, Style ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), to_wx_id( undefined ), Title,
+	wxFrame:new( to_wx_parent( undefined ), resolve_id( undefined ), Title,
 				 Options ).
 
 
@@ -2266,14 +2344,14 @@ create_frame( Title, Position, Size, Style ) ->
 %
 % (internal use only: wx exposed)
 %
--spec create_frame( title(), position(), size(), frame_style(), wx_id(),
+-spec create_frame( title(), position(), size(), frame_style(), id(),
 					window() ) -> frame().
 create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 				{ style, frame_style_to_bitmask( Style ) } ],
 
-	ActualId = to_wx_id( Id ),
+	ActualId = resolve_id( Id ),
 
 	ActualParent = to_wx_parent( Parent ),
 
@@ -2432,7 +2510,7 @@ create_buttons_helper( [ Label | T ], Parent, Acc ) ->
 %
 % (internal use only)
 %
--spec create_button( label(), position(), size(), button_style(), wx_id(),
+-spec create_button( label(), position(), size(), button_style(), id(),
 					 window() ) -> button().
 create_button( Label, Position, Size, Style, Id, Parent ) ->
 
@@ -2442,7 +2520,7 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 
 	%trace_utils:info_fmt( "Button options for ID #~B: ~p.", [ Id, Options ] ),
 
-	wxButton:new( Parent, Id, Options ).
+	wxButton:new( Parent, resolve_id( Id ), Options ).
 
 
 
@@ -2926,6 +3004,219 @@ draw_bitmap( GraphicContext, Bitmap, X, Y, Width, Height ) ->
 
 
 
+% Menu section.
+%
+% A menu can be generically designed, before being assigned to a menu bar or a
+% popup menu.
+%
+% Items are added at the current bottom of a menu.
+%
+% A submenu may be attached up to once in a menu.
+
+
+% @doc Creates a menu, either to be attached to a menu bar, or to be used as a
+% popup menu.
+%
+-spec create_menu() -> menu().
+create_menu() ->
+	wxMenu:new().
+
+
+% @doc Creates a menu with the specified options, either to be attached to a
+% menu bar, or to be used as a popup menu.
+%
+-spec create_menu( maybe_list( menu_option() ) ) -> menu().
+create_menu( MaybeOptions ) ->
+	WxStyleOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
+	wxMenu:new( [ { style, WxStyleOpts } ] ).
+
+
+% @doc Creates a menu with the specified title and options, either to be
+% attached to a menu bar, or to be used as a popup menu.
+%
+-spec create_menu( title(), maybe_list( menu_option() ) ) -> menu().
+create_menu( Title, MaybeOptions ) ->
+	WxStyleOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
+	wxMenu:new( Title, [ { style, WxStyleOpts } ] ).
+
+
+% @doc Destructs the specified menu.
+-spec destruct_menu( menu() ) -> void().
+destruct_menu( Menu ) ->
+	wxMenu:destroy( Menu ).
+
+
+
+% @doc Creates a menu item based on the specified label, adds it to the
+% specified menu, and returns that menu item.
+%
+-spec add_item( menu(), menu_item_label() ) -> menu_item().
+add_item( Menu, MenuItemLabel ) ->
+	add_item( Menu, _MenuItemId=undefined, MenuItemLabel ).
+
+
+% @doc Creates a menu item based on the specified identifier and label, adds it
+% to the specified menu, and returns that menu item.
+%
+-spec add_item( menu(), menu_item_id(), menu_item_label() ) -> menu_item().
+add_item( Menu, MenuItemId, MenuItemLabel ) ->
+	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
+	wxMenu:append( Menu, WxId, MenuItemLabel ).
+
+
+% @doc Appends the specified already-created menu item (not a mere label) to the
+% specified menu, and returns a possibly updated version of that menu item.
+%
+-spec append_item( menu(), menu_item() ) -> menu_item().
+append_item( Menu, MenuItem ) ->
+	wxMenu:append( Menu, MenuItem ).
+
+
+% @doc Adds the specified labelled submenu, associated to the specified
+% identifier, to the specified menu, and returns the corresponding menu item.
+%
+-spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu() ) ->
+													menu_item().
+append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
+	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
+	wxMenu:append( Menu, WxId, MenuItemLabel, SubMenu ).
+
+
+% @doc Adds the specified labelled submenu, associated to the specified
+% identifier and help information, to the specified menu, and returns that item.
+%
+-spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu(),
+					  help_info() ) -> menu_item().
+append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu, HelpInfoStr ) ->
+	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
+	wxMenu:append( Menu, WxId, MenuItemLabel, SubMenu,
+				   [ { help, HelpInfoStr } ] ).
+
+
+% @doc Creates a menu item that can be toggled/checked, based on the specified
+% label, adds it to the specified menu, and returns that menu item.
+%
+-spec add_checkable_item( menu(), menu_item_label() ) -> menu_item().
+add_checkable_item( Menu, MenuItemLabel ) ->
+	add_checkable_item( Menu, _MenuItemId=undefined, MenuItemLabel ).
+
+
+% @doc Creates a menu item that can be toggled/checked, based on the specified
+% identifier and label, adds it to the specified menu, and returns that menu
+% item.
+%
+-spec add_checkable_item( menu(), menu_item_id(), menu_item_label() ) ->
+													menu_item().
+add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
+	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
+	wxMenu:appendCheckItem( Menu, WxId, MenuItemLabel ).
+
+
+% @doc Creates a menu item that can be toggled/checked, based on the specified
+% identifier, label and help information, adds it to the specified menu, and
+% returns that menu item.
+%
+-spec add_checkable_item( menu(), menu_item_id(), menu_item_label(),
+						  help_info() ) -> menu_item().
+add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
+	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
+	wxMenu:appendCheckItem( Menu, WxId, MenuItemLabel,
+							[ { help, HelpInfoStr } ] ).
+
+
+% @doc Checks/unchecks the (checkable) menu item specified by its identifier
+% (not by its menu item reference).
+%
+-spec set_checkable_menu_item( menu(), menu_item_id(), boolean() ) -> void().
+set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
+	wxMenu:check( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ),
+				  SetAsChecked ).
+
+
+% @doc Adds the specified radio item to the specified menu, and returns that
+% item.
+%
+% All consequent radio items form a group and when an item in the group is
+% checked, all the others are automatically unchecked.
+%
+-spec add_radio_item( menu(), menu_item_id(), menu_item_label() ) ->
+													menu_item().
+add_radio_item( Menu, Id, MenuItemLabel ) ->
+	WxId = gui_wx_backend:to_new_wx_menu_item_id( Id ),
+	wxMenu:appendRadioItem( Menu, WxId, MenuItemLabel ).
+
+
+% @doc Adds the specified labelled item that can be checkd/checked to the
+% specified menu, and returns that item.
+%
+-spec add_radio_item( menu(), menu_item_id(), menu_item_label(),
+					  help_info() ) -> menu_item().
+add_radio_item( Menu, Id, MenuItemLabel, HelpInfoStr ) ->
+	WxId = gui_wx_backend:to_new_wx_menu_item_id( Id ),
+	wxMenu:appendRadioItem( Menu, WxId, MenuItemLabel,
+							[ { help, HelpInfoStr } ] ).
+
+
+% @doc Adds a separator to the specified menu, and returns that separator.
+-spec add_separator( menu() ) -> menu_item().
+add_separator( Menu ) ->
+	wxMenu:appendSeparator( Menu ).
+
+
+% @doc Sets the enabled/disabled status of the specified menu item.
+-spec set_menu_item_status( menu(), menu_item_id(), menu_item_status() ) ->
+														void().
+set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=enabled ) ->
+	wxMenu:enable( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ),
+				   _Check=true );
+
+set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
+	wxMenu:enable( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ),
+				   _Check=false ).
+
+
+
+% @doc Removes the specified item from the specified menu.
+%
+% If the item is a submenu, it is removed yet not deallocated.
+%
+-spec remove_menu_item( menu(), menu_item_id() ) -> void().
+remove_menu_item( Menu, MenuItemId ) ->
+	wxMenu:delete( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ) ).
+
+
+
+% @doc Creates an empty menu bar, at the top of the specified parent window.
+-spec create_menu_bar() -> menu_bar().
+create_menu_bar() ->
+	wxMenuBar:new().
+
+
+% @doc Activates the specified menu as a popup one on the specified widget.
+%
+% Typically called on receiving of a onMouseRightButtonReleased event.
+%
+-spec activate_popup_menu( widget(), menu() ) -> void().
+activate_popup_menu( Widget, Menu) ->
+	% Meaning on returned boolean unclear:
+	wxWindow:popupMenu( Widget, Menu ).
+
+
+% @doc Creates an empty menu bar of specified style, at the top of the specified
+% parent window.
+% -spec create_menu_bar( maybe_list( menu_bar_option() ) ) -> menu_bar().
+% create_menu_bar( MaybeOptions ) ->
+%	WxStyleOpts = gui_wx_backend:to_wx_menu_bar_options( MaybeOptions ),
+%	wxMenuBar:new( [ { style, WxStyleOpts } ] ).
+
+
+
+%% % @doc Creates a menu at the top of the specified parent window.
+%% -spec create_popup_menu() -> popup_menu().
+%% create_popup_menu() ->
+%%	wxMenu:new().
+
+
 % Font section.
 
 
@@ -3031,6 +3322,22 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 -spec get_main_loop_pid() -> pid().
 get_main_loop_pid() ->
 	environment:get( loop_pid, ?gui_env_process_key ).
+
+
+
+% @doc Returns the backend-specific widget identifier corresponding to the
+% specified identifier.
+%
+-spec resolve_id( id() ) -> backend_id().
+% Module-local, meant to resolve quickly most cases.
+resolve_id( undefined ) ->
+	?wxID_ANY;
+
+resolve_id( Id ) when is_integer( Id ) ->
+	Id;
+
+resolve_id( NameId ) ->
+	gui_id:resolve_id( NameId ).
 
 
 

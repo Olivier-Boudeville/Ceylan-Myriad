@@ -205,6 +205,9 @@
 	| 'onWindowClosed'
 	| 'onShown'
 
+	% For menus:
+	| 'onMenuItemSelected'
+
 	% For mice:
 
 	% Button 1:
@@ -1458,7 +1461,12 @@ register_in_event_loop_tables( _SubscribedEvents=[
 		_Acc0=LoopState,
 		_List=GUIObjectList ),
 
-	register_in_event_loop_tables( T, DefaultSubscriberPid, NewLoopState ).
+	register_in_event_loop_tables( T, DefaultSubscriberPid, NewLoopState );
+
+register_in_event_loop_tables( _SubscribedEvents=[ Invalid | _T ],
+							   _DefaultSubscriberPid, _LoopState ) ->
+	throw( { invalid_event_subscription_spec, Invalid } ).
+
 
 
 % (helper)

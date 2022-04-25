@@ -36,6 +36,10 @@
 -define( gui_env_reg_name, 'myriad_gui_env' ).
 
 
+% Registration name of the MyriadGUI identifier allocator process (see gui_id):
+-define( gui_id_alloc_reg_name, 'myriad_gui_id_allocator' ).
+
+
 % Context sent to corresponding subscribers together with an event.
 %
 % This context can be ignored in most cases.

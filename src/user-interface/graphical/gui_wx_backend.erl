@@ -150,13 +150,19 @@
 -export([ to_wx_object_type/1,
 		  to_wx_event_type/1, from_wx_event_type/1,
 		  to_wx_debug_level/1,
-		  window_style_to_bitmask/1,
-		  get_window_options/1,
+
+		  window_style_to_bitmask/1, get_window_options/1,
 		  frame_style_to_bitmask/1,
 		  get_panel_options/1,
 		  button_style_to_bitmask/1,
-		  to_wx_sizer_options/1,
-		  sizer_flag_to_bitmask/1,
+
+		  to_wx_sizer_options/1, sizer_flag_to_bitmask/1,
+
+		  to_wx_menu_options/1,
+		  to_wx_menu_item_id/1, to_new_wx_menu_item_id/1,
+		  to_menu_item_kind/1,
+		  %to_wx_menu_item_options/1,
+
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
 		  to_wx_orientation/1, wx_id_to_window/1, wx_id_to_string/1,
 
@@ -295,8 +301,14 @@
 -type frame_style() :: gui:frame_style().
 -type panel_option() :: gui:panel_option().
 -type button_style() :: gui:button_style().
+
 -type sizer_options() :: gui:sizer_options().
 -type sizer_flag_opt() :: gui:sizer_flag_opt().
+
+-type menu_option() :: gui:menu_option().
+-type menu_item_id() :: gui:menu_item_id().
+-type menu_item_kind() :: gui:menu_item_kind().
+
 -type position() :: gui:position().
 -type size() :: gui:size().
 -type orientation() :: gui:orientation().
@@ -444,24 +456,11 @@ get_wx_version() ->
 
 % @doc Converts a MyriadGUI type of event into a wx one.
 -spec to_wx_event_type( event_type() ) -> wx_event_type().
-% Window section:
-to_wx_event_type( onRepaintNeeded ) ->
-	paint;
 
-to_wx_event_type( onButtonClicked ) ->
-	command_button_clicked;
+% Presumably by decreasing order of probability (not much stake in this
+% direction of conversion).
 
-to_wx_event_type( onResized ) ->
-	size;
-
-to_wx_event_type( onWindowClosed ) ->
-	close_window;
-
-to_wx_event_type( onShown ) ->
-	show;
-
-
-% Mouse section:
+% First mouse section:
 to_wx_event_type( onMouseLeftButtonPressed ) ->
 	left_down;
 
@@ -492,6 +491,44 @@ to_wx_event_type( onMouseRightButtonDoubleClicked ) ->
 	right_dclick;
 
 
+% Menu section:
+to_wx_event_type( onMenuItemSelected ) ->
+	command_menu_selected;
+
+% Window section:
+to_wx_event_type( onRepaintNeeded ) ->
+	paint;
+
+to_wx_event_type( onButtonClicked ) ->
+	command_button_clicked;
+
+to_wx_event_type( onResized ) ->
+	size;
+
+to_wx_event_type( onWindowClosed ) ->
+	close_window;
+
+to_wx_event_type( onShown ) ->
+	show;
+
+
+
+% Keyboard section:
+to_wx_event_type( onCharEntered ) ->
+	char;
+
+to_wx_event_type( onCharEnteredHook ) ->
+	char_hook;
+
+to_wx_event_type( onKeyPressed ) ->
+	key_down;
+
+to_wx_event_type( onKeyReleased ) ->
+	key_up;
+
+
+
+% Seond mouse section:
 to_wx_event_type( onMouseFourthButtonPressed ) ->
 	aux1_down;
 
@@ -525,20 +562,6 @@ to_wx_event_type( onMouseMoved ) ->
 	motion;
 
 
-% Keyboard section:
-to_wx_event_type( onCharEntered ) ->
-	char;
-
-to_wx_event_type( onCharEnteredHook ) ->
-	char_hook;
-
-to_wx_event_type( onKeyPressed ) ->
-	key_down;
-
-to_wx_event_type( onKeyReleased ) ->
-	key_up;
-
-
 to_wx_event_type( Other ) ->
 	throw( { unsupported_gui_event_type, Other } ).
 
@@ -547,24 +570,11 @@ to_wx_event_type( Other ) ->
 
 % @doc Converts a wx type of event into a MyriadGUI one.
 -spec from_wx_event_type( wx_event_type() ) -> event_type().
-% Window section:
-from_wx_event_type( paint ) ->
-	onRepaintNeeded;
 
-from_wx_event_type( command_button_clicked ) ->
-	onButtonClicked;
+% Presumably by decreasing order of probability (more stake in this direction of
+% conversion; a table may be more suitable).
 
-from_wx_event_type( size ) ->
-	onResized;
-
-from_wx_event_type( close_window ) ->
-	onWindowClosed;
-
-from_wx_event_type( show ) ->
-	onShown;
-
-
-% Mouse section:
+% First mouse section:
 from_wx_event_type( left_down ) ->
 	onMouseLeftButtonPressed;
 
@@ -595,24 +605,25 @@ from_wx_event_type( right_dclick ) ->
 	onMouseRightButtonDoubleClicked;
 
 
-from_wx_event_type( aux1_down ) ->
-	onMouseFourthButtonPressed;
+% Menu section:
+from_wx_event_type( command_menu_selected ) ->
+	onMenuItemSelected;
 
-from_wx_event_type( aux1_up ) ->
-	onMouseFourthButtonReleased;
+% Window section:
+from_wx_event_type( paint ) ->
+	onRepaintNeeded;
 
-from_wx_event_type( aux1_dclick ) ->
-	onMouseFourthButtonDoubleClicked;
+from_wx_event_type( command_button_clicked ) ->
+	onButtonClicked;
 
+from_wx_event_type( size ) ->
+	onResized;
 
-from_wx_event_type( aux2_down ) ->
-	onMouseFifthButtonPressed;
+from_wx_event_type( close_window ) ->
+	onWindowClosed;
 
-from_wx_event_type( aux2_up ) ->
-	onMouseFifthButtonReleased;
-
-from_wx_event_type( aux2_dclick ) ->
-	onMouseFifthButtonDoubleClicked;
+from_wx_event_type( show ) ->
+	onShown;
 
 
 from_wx_event_type( mousewheel ) ->
@@ -640,6 +651,29 @@ from_wx_event_type( key_down ) ->
 
 from_wx_event_type( key_up ) ->
 	onKeyReleased;
+
+
+% Second mouse section:
+
+from_wx_event_type( aux1_down ) ->
+	onMouseFourthButtonPressed;
+
+from_wx_event_type( aux1_up ) ->
+	onMouseFourthButtonReleased;
+
+from_wx_event_type( aux1_dclick ) ->
+	onMouseFourthButtonDoubleClicked;
+
+
+from_wx_event_type( aux2_down ) ->
+	onMouseFifthButtonPressed;
+
+from_wx_event_type( aux2_up ) ->
+	onMouseFifthButtonReleased;
+
+from_wx_event_type( aux2_dclick ) ->
+	onMouseFifthButtonDoubleClicked;
+
 
 
 from_wx_event_type( Other ) ->
@@ -985,6 +1019,117 @@ sizer_flag_to_bitmask( _Flag=align_center_vertical ) ->
 
 sizer_flag_to_bitmask( _Flag=align_center_horizontal ) ->
 	?wxALIGN_CENTER_HORIZONTAL.
+
+
+
+% @doc Converts specified menu option(s) into wx-specific ones.
+-spec to_wx_menu_options( maybe_list( menu_option() ) ) -> list().
+to_wx_menu_options( Options ) when is_list( Options ) ->
+	[ to_wx_menu_option( O ) || O <- Options ];
+
+to_wx_menu_options( Opt ) ->
+	[ to_wx_menu_option( Opt ) ].
+
+
+% (helper)
+to_wx_menu_option( _Opt=detachable ) ->
+	?wxMENU_TEAROFF.
+
+
+
+% @doc Converts the specified menu identifier (for an already-existing menu
+% item) into a wx-specific one.
+%
+-spec to_wx_menu_item_id( menu_item_id() ) -> wx_id().
+to_wx_menu_item_id( MenuId ) ->
+	case to_wx_menu_item_id_helper( MenuId ) of
+
+		undefined ->
+			gui_id:resolve_id( MenuId );
+
+		WxId ->
+			WxId
+
+	end.
+
+
+% @doc Converts the specified menu identifier for a new menu item into a
+% wx-specific one.
+%
+-spec to_new_wx_menu_item_id( menu_item_id() ) -> wx_id().
+to_new_wx_menu_item_id( MenuId ) ->
+	case to_wx_menu_item_id_helper( MenuId ) of
+
+		undefined ->
+			gui_id:declare_id( MenuId );
+
+		WxId ->
+			WxId
+
+	end.
+
+
+% (helper)
+-spec to_wx_menu_item_id_helper( menu_item_id() ) -> maybe( wx_id() ).
+to_wx_menu_item_id_helper( _MenuId=new ) ->
+	?wxID_NEW;
+
+to_wx_menu_item_id_helper( _MenuId=open ) ->
+	?wxID_OPEN;
+
+to_wx_menu_item_id_helper( _MenuId=save ) ->
+	?wxID_SAVE;
+
+to_wx_menu_item_id_helper( _MenuId=clear ) ->
+	?wxID_CLEAR;
+
+to_wx_menu_item_id_helper( _MenuId=undo ) ->
+	?wxID_UNDO;
+
+to_wx_menu_item_id_helper( _MenuId=redo ) ->
+	?wxID_REDO;
+
+to_wx_menu_item_id_helper( _MenuId=help ) ->
+	?wxID_HELP;
+
+to_wx_menu_item_id_helper( _MenuId=about ) ->
+	?wxID_ABOUT;
+
+to_wx_menu_item_id_helper( _MenuId=exit ) ->
+	?wxID_EXIT;
+
+to_wx_menu_item_id_helper( _MenuId=undefined ) ->
+	?wxID_ANY;
+
+to_wx_menu_item_id_helper( MenuId ) when is_integer( MenuId ) ->
+	MenuId;
+
+to_wx_menu_item_id_helper( _Other )  ->
+	undefined.
+
+
+
+
+%to_wx_menu_item_options( _Opt=detachable ) ->
+
+% @doc Converts the specified kind of menu identifier into a wx-specific one.
+-spec to_menu_item_kind( menu_item_kind() ) -> wx_enum().
+to_menu_item_kind( _Kind=normal ) ->
+	?wxITEM_NORMAL;
+
+to_menu_item_kind( _Kind=toggle ) ->
+	?wxITEM_CHECK;
+
+to_menu_item_kind( _Kind=radio ) ->
+	?wxITEM_RADIO;
+
+to_menu_item_kind( _Kind=separator ) ->
+	?wxITEM_SEPARATOR;
+
+to_menu_item_kind( _Kind=dropdown ) ->
+	?wxITEM_DROPDOWN.
+
+% No ?wxITEM_MAX
 
 
 
