@@ -121,7 +121,7 @@ This interface used to rely on (now deprecated) ``gs``, and now relies on `wx <h
 .. [#] Maybe later it will be based on HTML 5 (although we are not big fans of light clients and of using browsers for everything), possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_, on `N2O <https://ws.n2o.dev/>`_ or on any other relevant HTML5 framework.
 
 
-We also borrowed elements from the truly impressive `Wings3D <http://www.wings3d.com/>`_ (see also `our section about it <https://howtos.esperide.org/ThreeDimensional.html#wings3d>`_) modeller, and also on the remarkable `libSDL <https://libsdl.org/>`_ (2.0) library together with its `esdl2 <https://github.com/ninenines/esdl2>`_ Erlang binding.
+We also borrowed elements from the truly impressive `Wings3D <http://www.wings3d.com/>`_ (see also `our HOWTO section about it <https://howtos.esperide.org/ThreeDimensional.html#wings3d>`_) modeller, and also on the remarkable `libSDL <https://libsdl.org/>`_ (2.0) library together with its `esdl2 <https://github.com/ninenines/esdl2>`_ Erlang binding.
 
 If having very demanding 2D needs, one may refer to the `3D services`_ section (as it is meant to be hardware-accelerated, and the 2D services are a special cases thereof).
 
