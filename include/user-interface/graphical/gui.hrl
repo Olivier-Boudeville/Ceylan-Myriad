@@ -46,10 +46,11 @@
 %
 -record( event_context, {
 
-	% The identifier of the event source (generally not useful, as the
-	% gui_object shall be enough):
+	% The (lower-level, backend-specific) identifier of the event source
+	% (generally not useful, as the top-level gui_object() and any
+	% gui_id:name_id() shall be enough):
 	%
-	id :: gui:id(),
+	id :: gui_id:backend_id(),
 
 
 	% Usually of no use, as such user data is a means of preserving a state,
