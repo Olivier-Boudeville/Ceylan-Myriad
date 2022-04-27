@@ -458,7 +458,7 @@
 		  add_radio_item/3, add_radio_item/4,
 		  add_separator/1,
 		  set_menu_item_status/3, remove_menu_item/2,
-		  create_menu_bar/0, % create_menu_bar/1
+		  create_menu_bar/0, add_menu/3, set_menu_bar/2,
 		  activate_popup_menu/2
 		]).
 
@@ -709,18 +709,33 @@
 % A non-displayed buffer to which rendering shall be done, before being made
 % visible as a whole, to avoid flicker.
 
+
 -opaque menu() :: wxMenu:wxMenu().
 % The definition of a menu, to be assigned to a menu bar or a popup menu.
 
+
 -type menu_option() :: 'detachable'.
 % An option when creating a menu.
+
 
 -opaque menu_item() :: wxMenuItem:wxMenuItem().
 % An entry registered in a menu; possibly a basic item, a submenu or a
 % separator.
 
--type menu_item_label() :: label().
-% The text to display for a menu item.
+
+-type menu_title() :: label().
+% The title associated to a menu element.
+%
+% Use ampersand to denote a shortcut character, e.g. "&File" or "&Print code".
+
+
+-type menu_label() :: menu_title().
+% The text to display for a menu item (typically of a menu bar).
+
+
+-type menu_item_label() :: menu_title().
+% The text to display for a menu item (typically of a menu).
+
 
 -type menu_item_kind() :: 'normal'    % Basic menu item
 						| 'check'     % Menu item that can be checkd/checked
@@ -963,8 +978,8 @@
 			   status_bar/0,
 
 			   menu/0, menu_option/0,
-			   menu_item/0, menu_item_label/0, menu_item_kind/0,
-			   menu_item_id/0, menu_bar/0,
+			   menu_item/0, menu_title/0, menu_label/0,
+			   menu_item_label/0, menu_item_kind/0, menu_item_id/0, menu_bar/0,
 
 			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
 			   font_weight/0,
@@ -3004,6 +3019,7 @@ draw_bitmap( GraphicContext, Bitmap, X, Y, Width, Height ) ->
 
 
 
+
 % Menu section.
 %
 % A menu can be generically designed, before being assigned to a menu bar or a
@@ -3186,10 +3202,29 @@ remove_menu_item( Menu, MenuItemId ) ->
 
 
 
+% Menu bar subsection.
+
+
 % @doc Creates an empty menu bar, at the top of the specified parent window.
 -spec create_menu_bar() -> menu_bar().
 create_menu_bar() ->
 	wxMenuBar:new().
+
+
+% @doc Adds the specified menu to the specified menu bar.
+-spec add_menu( menu_bar(), menu(), menu_label() ) -> void().
+add_menu( MenuBar, Menu, MenuTitle ) ->
+	true = wxMenuBar:append( MenuBar, Menu, MenuTitle ).
+
+
+% @doc Assigns the specified menu bar to the specified frame.
+-spec set_menu_bar( frame(), menu_bar() ) -> void().
+set_menu_bar( Frame, MenuBar ) ->
+	wxFrame:setMenuBar( Frame, MenuBar ).
+
+
+
+% Popup menu subsection.
 
 
 % @doc Activates the specified menu as a popup one on the specified widget.
