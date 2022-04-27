@@ -38,7 +38,8 @@
 -export([ get_id_allocator_pid/0,
 		  allocate_id/0, allocate_id/1, allocate_ids/1, allocate_ids/2,
 		  declare_id/1, declare_id/2, declare_ids/1, declare_ids/2,
-		  resolve_id/1, resolve_id/2, resolve_ids/1, resolve_ids/2 ]).
+		  resolve_id/1, resolve_id/2, resolve_ids/1, resolve_ids/2,
+		  try_resolve_id/1 ]).
 
 
 % Internals:
@@ -94,8 +95,9 @@
 % identifiers (name_id()) instead of direct, raw numerical identifiers
 
 
--type name_table() :: table( name_id(), backend_id() ).
-% A table to convert name identifiers into backend ones.
+-type name_table() :: bijective_table( name_id(), backend_id() ).
+% A table to convert between name identifiers and backend ones.
+
 
 
 % Shorthands:
@@ -103,6 +105,8 @@
 -type count() :: basic_utils:count().
 
 -type wx_id() :: gui_wx_backend:wx_id().
+
+-type bijective_table( F, S ) :: bijective_table:bijective_table( F, S ).
 
 
 
@@ -118,7 +122,8 @@ create_id_allocator() ->
 	naming_utils:register_as( ?gui_id_alloc_reg_name, _RegScope=local_only ),
 
 	% So that the first identifier to be returned will typically be 10000:
-	id_allocator_main_loop( _InitialId=?wxID_HIGHEST + 4001, table:new() ).
+	id_allocator_main_loop( _InitialId=?wxID_HIGHEST + 4001,
+							bijective_table:new() ).
 
 
 % The main loop of the process serving widget identifiers.
@@ -144,7 +149,8 @@ id_allocator_main_loop( NextId, NameTable ) ->
 		% For name identifiers:
 
 		{ declare_id, [ NameId ], RequesterPid } ->
-			NewNameTable = table:add_new_entry( NameId, NextId, NameTable ),
+			NewNameTable =
+				bijective_table:add_new_entry( NameId, NextId, NameTable ),
 			RequesterPid ! { notify_declared_id, NextId },
 			id_allocator_main_loop( NextId+1, NewNameTable );
 
@@ -153,25 +159,41 @@ id_allocator_main_loop( NextId, NameTable ) ->
 			Ids = lists:seq( NextId, NextId+Count-1 ),
 			RequesterPid ! { notify_declared_ids, Ids },
 			NewEntries = lists:zip( NameIds, Ids ),
-			NewNameTable = table:add_new_entries( NewEntries, NameTable ),
+			NewNameTable =
+				bijective_table:add_new_entries( NewEntries, NameTable ),
 			id_allocator_main_loop( NextId+Count, NewNameTable );
 
 
 		{ resolve_id, [ NameId ], RequesterPid } ->
-			Id = table:get_value( NameId, NameTable ),
+			Id = bijective_table:get_second_for( NameId, NameTable ),
 			RequesterPid ! { notify_resolved_id, Id },
 			id_allocator_main_loop( NextId, NameTable );
 
 		{ resolve_ids, [ NameIds ], RequesterPid } ->
-			Ids = table:get_values( NameIds, NameTable ),
+			Ids = bijective_table:get_second_elements_for( NameIds, NameTable ),
 			RequesterPid ! { notify_resolved_ids, Ids },
+			id_allocator_main_loop( NextId, NameTable );
+
+		{ try_resolve_id, [ BackendId ], RequesterPid } ->
+			BestId = case bijective_table:get_maybe_first_for( BackendId,
+															   NameTable ) of
+
+				undefined ->
+					BackendId;
+
+				NameId ->
+					NameId
+
+			end,
+			RequesterPid ! { notify_resolved_any_id, BestId },
 			id_allocator_main_loop( NextId, NameTable );
 
 		% No real interest in having the client know the actual numerical
 		% identifiers:
 		%
 		{ request_id, [ NameId ], RequesterPid } ->
-			NewNameTable = table:add_new_entry( NameId, NextId, NameTable ),
+			NewNameTable =
+				bijective_table:add_new_entry( NameId, NextId, NameTable ),
 			RequesterPid ! { notify_requested_id, NextId },
 			id_allocator_main_loop( NextId+1, NewNameTable );
 
@@ -179,7 +201,8 @@ id_allocator_main_loop( NextId, NameTable ) ->
 			Count = length( NameIds ),
 			Ids = lists:seq( NextId, NextId+Count-1 ),
 			NewEntries = lists:zip( NameIds, Ids ),
-			NewNameTable = table:add_new_entries( NewEntries, NameTable ),
+			NewNameTable =
+				bijective_table:add_new_entries( NewEntries, NameTable ),
 			RequesterPid ! { notify_requested_ids, Ids },
 			id_allocator_main_loop( NextId+Count, NewNameTable );
 
@@ -381,5 +404,20 @@ resolve_ids( NameIds, IdAllocPid ) ->
 
 		{ notify_resolved_ids, ResolvedIds } ->
 			ResolvedIds
+
+	end.
+
+
+% @doc Tries to resolve the specified lower-level, backend-specific identifier:
+% returns any corresponding named one, otherwise returns that backend identifier
+% as it is.
+%
+-spec try_resolve_id( backend_id() ) -> id().
+try_resolve_id( BackendId ) ->
+	?gui_id_alloc_reg_name ! { try_resolve_id, [ BackendId ], self() },
+	receive
+
+		{ notify_resolved_any_id, ResolvedAnyId } ->
+			ResolvedAnyId
 
 	end.
