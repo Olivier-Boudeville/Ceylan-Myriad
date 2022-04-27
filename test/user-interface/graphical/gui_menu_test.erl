@@ -34,9 +34,37 @@
 -include("test_facilities.hrl").
 
 
--type my_test_state() :: { gui:frame(), gui:menu() }.
+% Shorthands:
+
+-type frame() :: gui:frame().
+-type menu() :: gui:menu().
+
+
+-type my_test_state() :: { frame(), menu() }.
 % Here the main loop just has to remember the popup menu to activate in case of
 % right click on the main frame, and this frame whose closing is awaited for.
+
+
+-spec create_test_menu_bar( frame() ) -> menu().
+create_test_menu_bar( Frame ) ->
+
+	MenuBar = gui:create_menu_bar(),
+
+	% First drop-down:
+	FirstMenu = gui:create_menu(),
+
+	StandardItemNames =
+		[ new, open, save, clear, undo, redo, help, about, exit ],
+
+	[ gui:add_item( FirstMenu, N,
+					_Label=text_utils:format( "Item &~ts", [ N ] ) )
+								|| N <- StandardItemNames ],
+
+	gui:add_menu( MenuBar, FirstMenu, "&First menu" ),
+
+	gui:set_menu_bar( Frame, MenuBar ),
+
+	FirstMenu.
 
 
 
@@ -44,15 +72,15 @@
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
-	test_facilities:display( "~nStarting the menu test." ),
-
+	test_facilities:display( "~nStarting the menu test; use the menu bar "
+		"and/or right-click on the frame to obtain a popup menu." ),
 
 	% We used to choose here to carry around the GUI state, whereas in general
 	% it is not necessary at all.
 
 	gui:start(),
 
-	Frame = gui:create_frame( "This is the overall frame" ),
+	Frame = gui:create_frame( "This is the overall frame for menu testing" ),
 
 	MainMenu = gui:create_menu(),
 
@@ -61,6 +89,7 @@ run_gui_test() ->
 
 	FirstSubMenu = gui:create_menu(),
 
+	% Using here allocated numerical identifiers:
 	IdAllocPid = gui_id:get_id_allocator_pid(),
 
 	[ CId, DId ] = gui_id:allocate_ids( _Count=2, IdAllocPid ),
@@ -91,15 +120,15 @@ run_gui_test() ->
 	gui:set_menu_item_status( MainMenu, CId, enabled ),
 	gui:set_menu_item_status( MainMenu, DId, disabled ),
 
-	_MenuBar = gui:create_menu_bar(),
+	FileMenu = create_test_menu_bar( Frame ),
+
+	AllMenus = [ MainMenu, FirstSubMenu, SecondSubMenu, FileMenu ],
 
 	gui:show( Frame ),
 
-	AllMenus = [ MainMenu, FirstSubMenu, SecondSubMenu ],
-
 	gui:subscribe_to_events( [
 		{ [ onMouseRightButtonReleased, onWindowClosed ], Frame },
-		{ onMenuItemSelected, AllMenus } ] ),
+		{ onMenuItemSelected, [ Frame | AllMenus ] } ] ),
 
 	test_main_loop( _InitialState={ Frame, MainMenu } ).
 
@@ -121,9 +150,10 @@ test_main_loop( State={ Frame, MainMenu } ) ->
 			gui:activate_popup_menu( Frame, MainMenu ),
 			test_main_loop( State );
 
-		{ onMenuItemSelected, [ Menu, Context ] } ->
-			trace_utils:debug_fmt( "Received for menu ~w: ~w",
-								   [  Menu, Context ] ),
+		{ onMenuItemSelected, [ _Menu, ItemId, _Context ] } ->
+			%trace_utils:debug_fmt( "Received for menu ~w: ~w",
+			%					   [  Menu, Context ] ),
+			trace_utils:info_fmt( "Menu item '~w' selected.", [ ItemId ] ),
 			test_main_loop( State );
 
 		{ onWindowClosed, [ Frame, _Context ] } ->
