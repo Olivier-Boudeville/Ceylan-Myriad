@@ -159,9 +159,15 @@
 		  to_wx_sizer_options/1, sizer_flag_to_bitmask/1,
 
 		  to_wx_menu_options/1,
-		  to_wx_menu_item_id/1, to_new_wx_menu_item_id/1,
+		  to_wx_menu_item_id/1, to_wx_menu_item_maybe_id/1,
+		  to_new_wx_menu_item_id/1,
 		  to_menu_item_kind/1,
 		  %to_wx_menu_item_options/1,
+
+		  to_wx_bitmap_id/1, to_wx_icon_id/1,
+
+		  to_wx_status_bar_style/1, to_wx_toolbar_style/1,
+
 
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
 		  to_wx_orientation/1, wx_id_to_window/1, wx_id_to_string/1,
@@ -277,8 +283,11 @@
 			   other_wx_device_context_attribute/0,
 			   wx_device_context_attribute/0, wx_enum/0 ]).
 
+-type wx_art_id() :: unicode:chardata().
+% Ex: "wxART_NEW".
 
-% Preferably no -export_type here to avoid leakage of backend conventions.
+
+% Preferably no '-export_type' here to avoid leakage of backend conventions.
 
 
 % Shorthands:
@@ -302,12 +311,18 @@
 -type panel_option() :: gui:panel_option().
 -type button_style() :: gui:button_style().
 
+-type bitmap_name_id() :: gui:bitmap_name_id().
+-type icon_name_id() :: gui:icon_name_id().
+
 -type sizer_options() :: gui:sizer_options().
 -type sizer_flag_opt() :: gui:sizer_flag_opt().
 
 -type menu_option() :: gui:menu_option().
 -type menu_item_id() :: gui:menu_item_id().
 -type menu_item_kind() :: gui:menu_item_kind().
+
+-type status_bar_style() :: gui:status_bar_style().
+-type toolbar_style() :: gui:toolbar_style().
 
 -type position() :: gui:position().
 -type size() :: gui:size().
@@ -460,7 +475,11 @@ get_wx_version() ->
 % Presumably by decreasing order of probability (not much stake in this
 % direction of conversion).
 
-% First mouse section:
+% First, the mouse section:
+
+to_wx_event_type( onMouseMoved ) ->
+	motion;
+
 to_wx_event_type( onMouseLeftButtonPressed ) ->
 	left_down;
 
@@ -558,10 +577,6 @@ to_wx_event_type( onMouseEnteredWindow ) ->
 to_wx_event_type( onMouseLeftWindow ) ->
 	leave_window;
 
-to_wx_event_type( onMouseMoved ) ->
-	motion;
-
-
 to_wx_event_type( Other ) ->
 	throw( { unsupported_gui_event_type, Other } ).
 
@@ -574,7 +589,10 @@ to_wx_event_type( Other ) ->
 % Presumably by decreasing order of probability (more stake in this direction of
 % conversion; a table may be more suitable).
 
-% First mouse section:
+% First, the mouse section:
+from_wx_event_type( motion ) ->
+	onMouseMoved;
+
 from_wx_event_type( left_down ) ->
 	onMouseLeftButtonPressed;
 
@@ -634,9 +652,6 @@ from_wx_event_type( enter_window ) ->
 
 from_wx_event_type( leave_window ) ->
 	onMouseLeftWindow;
-
-from_wx_event_type( motion ) ->
-	onMouseMoved;
 
 
 % Keyboard section:
@@ -1037,12 +1052,12 @@ to_wx_menu_option( _Opt=detachable ) ->
 
 
 
-% @doc Converts the specified menu identifier (for an already-existing menu
+% @doc Converts the specified menu item identifier (for an already-existing menu
 % item) into a wx-specific one.
 %
 -spec to_wx_menu_item_id( menu_item_id() ) -> wx_id().
 to_wx_menu_item_id( MenuId ) ->
-	case to_wx_menu_item_id_helper( MenuId ) of
+	case to_wx_menu_item_maybe_id( MenuId ) of
 
 		undefined ->
 			gui_id:resolve_id( MenuId );
@@ -1058,7 +1073,7 @@ to_wx_menu_item_id( MenuId ) ->
 %
 -spec to_new_wx_menu_item_id( menu_item_id() ) -> wx_id().
 to_new_wx_menu_item_id( MenuId ) ->
-	case to_wx_menu_item_id_helper( MenuId ) of
+	case to_wx_menu_item_maybe_id( MenuId ) of
 
 		undefined ->
 			gui_id:declare_id( MenuId );
@@ -1069,48 +1084,289 @@ to_new_wx_menu_item_id( MenuId ) ->
 	end.
 
 
+% Converts wx standard menu item identifiers.
+%
 % (helper)
--spec to_wx_menu_item_id_helper( menu_item_id() ) -> maybe( wx_id() ).
-to_wx_menu_item_id_helper( _MenuId=new ) ->
+-spec to_wx_menu_item_maybe_id( menu_item_id() ) -> maybe( wx_id() ).
+to_wx_menu_item_maybe_id( _MenuId=new_menu_item ) ->
 	?wxID_NEW;
 
-to_wx_menu_item_id_helper( _MenuId=open ) ->
+to_wx_menu_item_maybe_id( _MenuId=open_menu_item ) ->
 	?wxID_OPEN;
 
-to_wx_menu_item_id_helper( _MenuId=save ) ->
+to_wx_menu_item_maybe_id( _MenuId=save_menu_item ) ->
 	?wxID_SAVE;
 
-to_wx_menu_item_id_helper( _MenuId=clear ) ->
+to_wx_menu_item_maybe_id( _MenuId=clear_menu_item ) ->
 	?wxID_CLEAR;
 
-to_wx_menu_item_id_helper( _MenuId=undo ) ->
+to_wx_menu_item_maybe_id( _MenuId=undo_menu_item ) ->
 	?wxID_UNDO;
 
-to_wx_menu_item_id_helper( _MenuId=redo ) ->
+to_wx_menu_item_maybe_id( _MenuId=redo_menu_item ) ->
 	?wxID_REDO;
 
-to_wx_menu_item_id_helper( _MenuId=help ) ->
+to_wx_menu_item_maybe_id( _MenuId=help_menu_item ) ->
 	?wxID_HELP;
 
-to_wx_menu_item_id_helper( _MenuId=about ) ->
+to_wx_menu_item_maybe_id( _MenuId=about_menu_item ) ->
 	?wxID_ABOUT;
 
-to_wx_menu_item_id_helper( _MenuId=exit ) ->
+to_wx_menu_item_maybe_id( _MenuId=exit_menu_item ) ->
 	?wxID_EXIT;
 
-to_wx_menu_item_id_helper( _MenuId=undefined ) ->
+to_wx_menu_item_maybe_id( _MenuId=undefined ) ->
 	?wxID_ANY;
 
-to_wx_menu_item_id_helper( MenuId ) when is_integer( MenuId ) ->
+to_wx_menu_item_maybe_id( MenuId ) when is_integer( MenuId ) ->
 	MenuId;
 
-to_wx_menu_item_id_helper( _Other )  ->
+to_wx_menu_item_maybe_id( _Other )  ->
 	undefined.
 
 
 
+% @doc Converts the specified bitmap identifier (for an already-existing menu
+% item) into a wx-specific one.
+%
+-spec to_wx_bitmap_id( bitmap_name_id() ) -> wx_art_id().
+to_wx_bitmap_id( BitmapId ) ->
+	case to_wx_bitmap_maybe_id( BitmapId ) of
+
+		undefined ->
+			throw( { unknown_bitmap_id, BitmapId } );
+
+		WxArtId ->
+			WxArtId
+
+	end.
+
+
+% Converts wx standard bitmap identifiers.
+%
+% (helper)
+-spec to_wx_bitmap_maybe_id( bitmap_name_id() ) -> maybe( wx_art_id() ).
+to_wx_bitmap_maybe_id( _BitmapId=error_bitmap ) ->
+	"wxART_ERROR";
+
+to_wx_bitmap_maybe_id( _BitmapId=question_bitmap ) ->
+	"wxART_QUESTION";
+
+to_wx_bitmap_maybe_id( _BitmapId=warning_bitmap ) ->
+	"wxART_WARNING";
+
+to_wx_bitmap_maybe_id( _BitmapId=information_bitmap ) ->
+	"wxART_INFORMATION";
+
+to_wx_bitmap_maybe_id( _BitmapId=add_bookmark_bitmap ) ->
+	"wxART_ADD_BOOKMARK";
+
+to_wx_bitmap_maybe_id( _BitmapId=delete_bookmark_bitmap ) ->
+	"wxART_DEL_BOOKMARK";
+
+to_wx_bitmap_maybe_id( _BitmapId=help_side_panel_bitmap ) ->
+	"wxART_HELP_SIDE_PANEL";
+
+to_wx_bitmap_maybe_id( _BitmapId=help_settings_bitmap ) ->
+	"wxART_HELP_SETTINGS";
+
+to_wx_bitmap_maybe_id( _BitmapId=help_book_bitmap ) ->
+	"wxART_HELP_BOOK";
+
+to_wx_bitmap_maybe_id( _BitmapId=help_folder_bitmap ) ->
+	"wxART_HELP_FOLDER";
+
+to_wx_bitmap_maybe_id( _BitmapId=help_page_bitmap ) ->
+	"wxART_HELP_PAGE";
+
+to_wx_bitmap_maybe_id( _BitmapId=go_back_bitmap ) ->
+	"wxART_GO_BACK";
+
+to_wx_bitmap_maybe_id( _BitmapId=go_forward_bitmap ) ->
+	"wxART_GO_FORWARD";
+
+to_wx_bitmap_maybe_id( _BitmapId=go_up_bitmap ) ->
+	"wxART_GO_UP";
+
+to_wx_bitmap_maybe_id( _BitmapId=go_down_bitmap ) ->
+	"wxART_GO_DOWN";
+
+to_wx_bitmap_maybe_id( _BitmapId=go_to_parent_bitmap ) ->
+	"wxART_GO_TO_PARENT";
+
+to_wx_bitmap_maybe_id( _BitmapId=go_home_bitmap ) ->
+	"wxART_GO_HOME";
+
+to_wx_bitmap_maybe_id( _BitmapId=goto_first_bitmap ) ->
+	"wxART_GOTO_FIRST";
+
+to_wx_bitmap_maybe_id( _BitmapId=goto_last_bitmap ) ->
+	"wxART_GOTO_LAST";
+
+to_wx_bitmap_maybe_id( _BitmapId=print_bitmap ) ->
+	"wxART_PRINT";
+
+to_wx_bitmap_maybe_id( _BitmapId=help_bitmap ) ->
+	"wxART_HELP";
+
+to_wx_bitmap_maybe_id( _BitmapId=tip_bitmap ) ->
+	"wxART_TIP";
+
+to_wx_bitmap_maybe_id( _BitmapId=report_view_bitmap ) ->
+	"wxART_REPORT_VIEW";
+
+to_wx_bitmap_maybe_id( _BitmapId=list_view_bitmap ) ->
+	"wxART_LIST_VIEW";
+
+to_wx_bitmap_maybe_id( _BitmapId=new_folder_bitmap ) ->
+	"wxART_NEW_DIR";
+
+to_wx_bitmap_maybe_id( _BitmapId=folder_bitmap ) ->
+	"wxART_FOLDER";
+
+to_wx_bitmap_maybe_id( _BitmapId=open_folder_bitmap ) ->
+	"wxART_FOLDER_OPEN";
+
+to_wx_bitmap_maybe_id( _BitmapId=go_folder_up_bitmap ) ->
+	"wxART_GO_DIR_UP";
+
+to_wx_bitmap_maybe_id( _BitmapId=executable_file_bitmap ) ->
+	"wxART_EXECUTABLE_FILE";
+
+to_wx_bitmap_maybe_id( _BitmapId=normal_file_bitmap ) ->
+	"wxART_NORMAL_FILE";
+
+to_wx_bitmap_maybe_id( _BitmapId=tick_mark_bitmap ) ->
+	"wxART_TICK_MARK";
+
+to_wx_bitmap_maybe_id( _BitmapId=cross_mark_bitmap ) ->
+	"wxART_CROSS_MARK";
+
+to_wx_bitmap_maybe_id( _BitmapId=missing_image_bitmap ) ->
+	"wxART_MISSING_IMAGE";
+
+to_wx_bitmap_maybe_id( _BitmapId=new_bitmap ) ->
+	"wxART_NEW";
+
+to_wx_bitmap_maybe_id( _BitmapId=file_open_bitmap ) ->
+	"wxART_FILE_OPEN";
+
+to_wx_bitmap_maybe_id( _BitmapId=file_save_bitmap ) ->
+	"wxART_FILE_SAVE";
+
+to_wx_bitmap_maybe_id( _BitmapId=file_save_as_bitmap ) ->
+	"wxART_FILE_SAVE_AS";
+
+to_wx_bitmap_maybe_id( _BitmapId=file_delete_bitmap ) ->
+	"wxART_DELETE";
+
+to_wx_bitmap_maybe_id( _BitmapId=copy_bitmap ) ->
+	"wxART_COPY";
+
+to_wx_bitmap_maybe_id( _BitmapId=cut_bitmap ) ->
+	"wxART_CUT";
+
+to_wx_bitmap_maybe_id( _BitmapId=paste_bitmap ) ->
+	"wxART_PASTE";
+
+to_wx_bitmap_maybe_id( _BitmapId=undo_bitmap ) ->
+	"wxART_UNDO";
+
+to_wx_bitmap_maybe_id( _BitmapId=redo_bitmap ) ->
+	"wxART_REDO";
+
+to_wx_bitmap_maybe_id( _BitmapId=plus_bitmap ) ->
+	"wxART_PLUS";
+
+to_wx_bitmap_maybe_id( _BitmapId=minus_bitmap ) ->
+	"wxART_MINUS";
+
+to_wx_bitmap_maybe_id( _BitmapId=close_bitmap ) ->
+	"wxART_CLOSE";
+
+to_wx_bitmap_maybe_id( _BitmapId=quit_bitmap ) ->
+	"wxART_QUIT";
+
+to_wx_bitmap_maybe_id( _BitmapId=find_bitmap ) ->
+	"wxART_FIND";
+
+to_wx_bitmap_maybe_id( _BitmapId=find_and_replace_bitmap ) ->
+	"wxART_FIND_AND_REPLACE";
+
+to_wx_bitmap_maybe_id( _BitmapId=full_screen_bitmap ) ->
+	"wxART_FULL_SCREEN";
+
+to_wx_bitmap_maybe_id( _BitmapId=edit_bitmap ) ->
+	"wxART_EDIT";
+
+to_wx_bitmap_maybe_id( _BitmapId=hard_disk_bitmap ) ->
+	"wxART_HARDDISK";
+
+to_wx_bitmap_maybe_id( _BitmapId=floppy_bitmap ) ->
+	"wxART_FLOPPY";
+
+to_wx_bitmap_maybe_id( _BitmapId=cdrom_bitmap ) ->
+	"wxART_CDROM";
+
+to_wx_bitmap_maybe_id( _BitmapId=removable_bitmap ) ->
+	"wxART_REMOVABLE";
+
+to_wx_bitmap_maybe_id( _BitmapId=backend_logo_bitmap ) ->
+	"wxART_WX_LOGO";
+
+to_wx_bitmap_maybe_id( _OtherBitmapId ) ->
+	undefined.
+
+
+
+% @doc Converts the specified icon identifier into a wx-specific one.
+-spec to_wx_icon_id( icon_name_id() ) -> wx_art_id().
+to_wx_icon_id( IconId ) ->
+	case to_wx_icon_maybe_id( IconId ) of
+
+		undefined ->
+			throw( { unknown_icon_id, IconId } );
+
+		WxIconId ->
+			WxIconId
+
+	end.
+
+
+% Converts wx standard bitmap identifiers.
+%
+% (helper)
+-spec to_wx_icon_maybe_id( icon_name_id() ) -> maybe( wx_art_id() ).
+to_wx_icon_maybe_id( _IconId=asterisk_icon ) ->
+	?wxICON_ASTERISK;
+
+to_wx_icon_maybe_id( _IconId=stop_icon ) ->
+	?wxICON_STOP;
+
+to_wx_icon_maybe_id( _IconId=information_icon ) ->
+	?wxICON_INFORMATION;
+
+to_wx_icon_maybe_id( _IconId=question_icon ) ->
+	?wxICON_QUESTION;
+
+to_wx_icon_maybe_id( _IconId=error_icon ) ->
+	?wxICON_ERROR;
+
+to_wx_icon_maybe_id( _IconId=warning_icon ) ->
+	?wxICON_WARNING;
+
+to_wx_icon_maybe_id( _IconId=hand_icon ) ->
+	?wxICON_HAND;
+
+to_wx_icon_maybe_id( _IconId=exclamation_icon ) ->
+	?wxICON_EXCLAMATION;
+
+to_wx_icon_maybe_id( _OtherIconId ) ->
+	undefined.
+
 
 %to_wx_menu_item_options( _Opt=detachable ) ->
+
 
 % @doc Converts the specified kind of menu identifier into a wx-specific one.
 -spec to_menu_item_kind( menu_item_kind() ) -> wx_enum().
@@ -1130,6 +1386,66 @@ to_menu_item_kind( _Kind=dropdown ) ->
 	?wxITEM_DROPDOWN.
 
 % No ?wxITEM_MAX
+
+
+
+
+% @doc Converts the specified style of status bar into a wx-specific one.
+-spec to_wx_status_bar_style( status_bar_style() ) -> wx_enum().
+to_wx_status_bar_style( _StatusBarStyle=normal ) ->
+	?wxSB_NORMAL;
+
+to_wx_status_bar_style( _StatusBarStyle=flat ) ->
+	?wxSB_FLAT;
+
+to_wx_status_bar_style( _StatusBarStyle=raised ) ->
+	?wxSB_RAISED;
+
+to_wx_status_bar_style( _StatusBarStyle=sunken ) ->
+	?wxSB_SUNKEN.
+
+
+
+% @doc Converts the specified style of toolbar into a wx-specific one.
+-spec to_wx_toolbar_style( toolbar_style() ) -> wx_enum().
+to_wx_toolbar_style( _ToolbarStyle=top ) ->
+	?wxTB_TOP;
+
+to_wx_toolbar_style( _ToolbarStyle=bottom ) ->
+	?wxTB_BOTTOM;
+
+to_wx_toolbar_style( _ToolbarStyle=left ) ->
+	?wxTB_VERTICAL;
+
+to_wx_toolbar_style( _ToolbarStyle=right ) ->
+	?wxTB_RIGHT;
+
+to_wx_toolbar_style( _ToolbarStyle=flat ) ->
+	?wxTB_FLAT;
+
+to_wx_toolbar_style( _ToolbarStyle=dockable ) ->
+	?wxTB_DOCKABLE;
+
+to_wx_toolbar_style( _ToolbarStyle=no_icons ) ->
+	?wxTB_NOICONS;
+
+to_wx_toolbar_style( _ToolbarStyle=text ) ->
+	?wxTB_TEXT;
+
+to_wx_toolbar_style( _ToolbarStyle=no_divider ) ->
+	?wxTB_NODIVIDER;
+
+to_wx_toolbar_style( _ToolbarStyle=no_align ) ->
+	?wxTB_NOALIGN;
+
+to_wx_toolbar_style( _ToolbarStyle=horizontal_layout ) ->
+	?wxTB_HORZ_LAYOUT;
+
+to_wx_toolbar_style( _ToolbarStyle=no_tooltips ) ->
+	?wxTB_NO_TOOLTIPS;
+
+to_wx_toolbar_style( _ToolbarStyle=default ) ->
+	?wxTB_DEFAULT_STYLE.
 
 
 

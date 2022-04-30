@@ -26,7 +26,9 @@
 % Creation date: Friday, April 22, 2022.
 
 
-% <b>Simple unit tests for the management of menus</b>.
+% @doc Unit tests for the management of <b>menus</b>, in menu bars and popup
+% menus.
+%
 -module(gui_menu_test).
 
 
@@ -53,12 +55,9 @@ create_test_menu_bar( Frame ) ->
 	% First drop-down:
 	FirstMenu = gui:create_menu(),
 
-	StandardItemNames =
-		[ new, open, save, clear, undo, redo, help, about, exit ],
-
 	[ gui:add_item( FirstMenu, N,
-					_Label=text_utils:format( "Item &~ts", [ N ] ) )
-								|| N <- StandardItemNames ],
+					_Label=text_utils:format( "I am &~ts", [ N ] ) )
+								|| N <- gui:get_standard_item_names() ],
 
 	gui:add_menu( MenuBar, FirstMenu, "&First menu" ),
 
@@ -74,9 +73,6 @@ run_gui_test() ->
 
 	test_facilities:display( "~nStarting the menu test; use the menu bar "
 		"and/or right-click on the frame to obtain a popup menu." ),
-
-	% We used to choose here to carry around the GUI state, whereas in general
-	% it is not necessary at all.
 
 	gui:start(),
 
@@ -123,7 +119,7 @@ run_gui_test() ->
 	FileMenu = create_test_menu_bar( Frame ),
 
 	AllMenus = [ MainMenu, FirstSubMenu, SecondSubMenu, FileMenu ],
-
+  wxFrame:connect(Frame, motion, []),
 	gui:show( Frame ),
 
 	gui:subscribe_to_events( [
@@ -150,9 +146,12 @@ test_main_loop( State={ Frame, MainMenu } ) ->
 			gui:activate_popup_menu( Frame, MainMenu ),
 			test_main_loop( State );
 
+		{ onMenuItemSelected, [ _Menu, _ItemId=exit_menu_item, _Context ] } ->
+			trace_utils:info( "Exit menu item selected, stopping test." );
+
 		{ onMenuItemSelected, [ _Menu, ItemId, _Context ] } ->
 			%trace_utils:debug_fmt( "Received for menu ~w: ~w",
-			%					   [  Menu, Context ] ),
+			%                       [  Menu, Context ] ),
 			trace_utils:info_fmt( "Menu item '~w' selected.", [ ItemId ] ),
 			test_main_loop( State );
 

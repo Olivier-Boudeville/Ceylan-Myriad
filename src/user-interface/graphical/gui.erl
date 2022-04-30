@@ -370,7 +370,8 @@
 -export([ create_top_level_frame/1, create_top_level_frame/2,
 		  create_top_level_frame/4,
 		  create_frame/0, create_frame/1, create_frame/2, create_frame/3,
-		  create_frame/4, create_frame/6, set_icon/2,
+		  create_frame/4, create_frame/6,
+		  set_icon/2, create_toolbar/1, set_toolbar/2,
 		  destruct_frame/1 ]).
 
 
@@ -390,8 +391,17 @@
 		  clear_sizer/1, clear_sizer/2 ]).
 
 
+
 % Status bars:
--export([ create_status_bar/1, push_status_text/2, push_status_text/3 ]).
+-export([ create_status_bar/1, create_status_bar/2,
+		  destruct_status_bar/1,
+		  set_field_count/2, set_field_widths/2,
+		  push_status_text/2, push_status_text/3,
+		  push_field_status_text/3, push_field_status_text/4 ]).
+
+
+% Toolbars:
+-export([ add_control/2, add_tool/5, add_tool/7, update_tools/1 ]).
 
 
 % Brushes:
@@ -450,7 +460,7 @@
 % Menus:
 %-export([ create_top_menu/0, create_popup_menu/0 ]).
 -export([ create_menu/0, create_menu/1, create_menu/2,
-		  destruct_menu/1,
+		  destruct_menu/1, get_standard_item_names/0,
 		  add_item/2, add_item/3, append_item/2,
 		  append_submenu/4, append_submenu/5,
 		  add_checkable_item/2, add_checkable_item/3, add_checkable_item/4,
@@ -479,7 +489,8 @@
 % Internal, silencing exports:
 -export([ create_gui_environment/2,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
-		  event_interception_callback/2 ]).
+		  event_interception_callback/2,
+		  resolve_id/1 ]).
 
 
 % For related, public defines:
@@ -685,7 +696,53 @@
 
 
 -opaque status_bar() :: wxStatusBar:wxStatusBar().
+% A thin space at the bottom of a frame where texts are typically displayed.
 
+-type status_bar_style() :: 'normal'
+						  | 'flat'
+						  | 'raised'
+						  | 'sunken'.
+% A style of status bar.
+
+
+-type toolbar() :: wxToolBar:wxToolBar().
+% A bar of buttons and/or other controls usually placed below the menu bar of a
+% frame.
+
+
+-type toolbar_style() :: 'top' | 'bottom' | 'left' | 'right'
+					   | 'flat'
+					   | 'dockable'
+					   | 'no_icons'
+					   | 'text'
+					   | 'no_divider'
+					   | 'no_align'
+					   | 'horizontal_layout'
+					   | 'no_tooltips'
+					   | 'default'.
+% A style of toolbar.
+
+
+-type tool() :: wx:wx_object().
+% A tool, as an element of a toolbar.
+
+
+-type control() :: wxControl:wxControl().
+% A control is generally a small window which processes user input and/or
+% displays one or more item of data.
+
+
+-type field_count() :: count().
+% A number of fields in a status bar.
+
+-type field_index() :: positive_index().
+% The index (1 or more) of a field in a status bar.
+
+-type field_width() :: integer().
+% The width of a field in a status bar.
+%
+% If positive, designates a fixed width, in pixels.
+% If negative, designates a width ratio among all variable-width fields.
 
 -opaque bitmap() :: gui_image:bitmap().
 % Platform-dependent bitmap, either monochrome or colour (with or without alpha
@@ -697,6 +754,11 @@
 
 -opaque bitmap_display() :: gui_image:bitmap_display().
 % A widget displaying a bitmap.
+
+
+-opaque icon() :: gui_image:icon().
+% A small rectangular bitmap usually used for denoting a minimised application.
+
 
 -opaque text_display() :: gui_image:text_display().
 % A widget displaying a text.
@@ -748,25 +810,65 @@
 % Tells whether a menu item is enabled or disabled (greyed out).
 
 
--type menu_item_id() :: 'new'
-					  | 'open'
-					  | 'save'
-					  | 'clear'
-					  | 'undo'
-					  | 'redo'
-					  | 'help'
-					  | 'about'
-					  | 'exit'
-					  | id().
+-type standard_menu_item_name_id() :: 'new_menu_item'
+									| 'open_menu_item'
+									| 'save_menu_item'
+									| 'clear_menu_item'
+									| 'undo_menu_item'
+									| 'redo_menu_item'
+									| 'help_menu_item'
+									| 'about_menu_item'
+									| 'exit_menu_item'.
+% The name identifiers of the standard menu items.
+
+
+-type menu_item_id() :: standard_menu_item_name_id() | id().
 % The identifier of a menu item, possibly having a specific, named (standard or
 % not) meaning and graphical representation.
 %
 % The atoms listed here are reserved name identifiers, as 'undefined' is.
 
+
 -opaque menu_bar() :: wxMenuBar:wxMenuBar().
 % A menu bar is a series of menus in a row, accessible from the top of a frame.
 
 % Not existing? -type menu_bar_option() :: ''.
+
+
+-type standard_icon_name_id() ::
+		'asterisk_icon' | 'stop_icon' | 'information_icon'
+	  | 'question_icon' | 'error_icon' | 'warning_icon' | 'hand_icon'
+	  | 'exclamation_icon'.
+% The name identifiers of the standard icons.
+
+
+-type icon_name_id() :: standard_icon_name_id() | id().
+
+
+-type standard_bitmap_name_id() ::
+	  'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
+	| 'information_bitmap' | 'add_bookmark_bitmap'
+	| 'delete_bookmark_bitmap' | 'help_side_panel_bitmap'
+	| 'help_settings_bitmap' | 'help_book_bitmap' | 'help_folder_bitmap'
+	| 'help_page_bitmap' | 'go_back_bitmap' | 'go_forward_bitmap'
+	| 'go_up_bitmap' | 'go_down_bitmap' | 'go_to_parent_bitmap'
+	| 'go_home_bitmap' | 'goto_first_bitmap' | 'goto_last_bitmap'
+	| 'print_bitmap' | 'help_bitmap' | 'tip_bitmap' | 'report_view_bitmap'
+	| 'list_view_bitmap' | 'new_folder_bitmap' | 'folder_bitmap'
+	| 'open_folder_bitmap' | 'go_folder_up_bitmap' | 'executable_file_bitmap'
+	| 'normal_file_bitmap' | 'tick_mark_bitmap' | 'cross_mark_bitmap'
+	| 'missing_image_bitmap' | 'new_bitmap' | 'file_open_bitmap'
+	| 'file_save_bitmap' | 'file_save_as_bitmap' | 'file_delete_bitmap'
+	| 'copy_bitmap' | 'cut_bitmap' | 'paste_bitmap' | 'undo_bitmap'
+	| 'redo_bitmap' | 'plus_bitmap' | 'minus_bitmap' | 'close_bitmap'
+	| 'quit_bitmap' | 'find_bitmap' | 'find_and_replace_bitmap'
+	| 'full_screen_bitmap' | 'edit_bitmap' | 'hard_disk_bitmap'
+	| 'floppy_bitmap' | 'cdrom_bitmap' | 'removable_bitmap'
+	| 'backend_logo_bitmap'.
+% The name identifiers of the standard bitmaps.
+
+
+-type bitmap_name_id() :: standard_bitmap_name_id() | id().
 
 -type font() :: gui_font:font().
 
@@ -975,16 +1077,23 @@
 			   panel/0, button/0,
 			   sizer/0, sizer_child/0, sizer_item/0,
 			   splitter/0, sash_gravity/0,
-			   status_bar/0,
+			   status_bar/0, status_bar_style/0,
+
+			   toolbar/0, toolbar_style/0, tool/0,
+			   control/0,
 
 			   menu/0, menu_option/0,
 			   menu_item/0, menu_title/0, menu_label/0,
-			   menu_item_label/0, menu_item_kind/0, menu_item_id/0, menu_bar/0,
+			   menu_item_label/0, menu_item_kind/0,
+			   standard_menu_item_name_id/0, menu_item_id/0, menu_bar/0,
+
+			   standard_icon_name_id/0, icon_name_id/0,
+			   standard_bitmap_name_id/0, bitmap_name_id/0,
 
 			   font/0, font_size/0, point_size/0, font_family/0, font_style/0,
 			   font_weight/0,
 
-			   bitmap/0, bitmap_display/0, text_display/0,
+			   bitmap/0, bitmap_display/0, icon/0, text_display/0,
 			   brush/0, back_buffer/0,
 
 			   device_context/0, paint_device_context/0,
@@ -1023,6 +1132,7 @@
 % Type shorthands:
 
 -type count() :: basic_utils:count().
+-type positive_index() :: basic_utils:positive_index().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -1060,6 +1170,8 @@
 %-type window_name() :: gui_window_manager:window_name().
 
 -type id() :: gui_id:id().
+-type name_id() :: gui_id:name_id().
+
 -type backend_id() :: gui_id:backend_id().
 
 -type wx_object() :: wx:wx_object().
@@ -1555,7 +1667,7 @@ create_window() ->
 -spec create_window( id(), window() ) -> window().
 create_window( Id, Parent ) ->
 
-	ActualId = resolve_id( Id ),
+	ActualId = declare_id( Id ),
 
 	% Should not be 'undefined', otherwise: "wxWidgets Assert failure:
 	% ./src/gtk/window.cpp(2586): \"parent\" in PreCreation() : Must have
@@ -1570,7 +1682,7 @@ create_window( Id, Parent ) ->
 -spec create_window( size() ) -> window().
 create_window( Size ) ->
 
-	ActualId = resolve_id( undefined ),
+	ActualId = declare_id( undefined ),
 	ActualParent = to_wx_parent( undefined ),
 
 	Options = [ to_wx_size( Size ) ],
@@ -1589,7 +1701,7 @@ create_window( Position, Size, Style, Id, Parent ) ->
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 				{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
-	ActualId = resolve_id( Id ),
+	ActualId = declare_id( Id ),
 	ActualParent = to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId, Options ).
@@ -2310,7 +2422,7 @@ create_frame() ->
 %
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
-	wxFrame:new( to_wx_parent( undefined ), resolve_id( undefined ), Title ).
+	wxFrame:new( to_wx_parent( undefined ), declare_id( undefined ), Title ).
 
 
 
@@ -2324,7 +2436,7 @@ create_frame( Title, Size ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), resolve_id( undefined ), Title,
+	wxFrame:new( to_wx_parent( undefined ), declare_id( undefined ), Title,
 				 Options ).
 
 
@@ -2335,7 +2447,7 @@ create_frame( Title, Size ) ->
 %
 -spec create_frame( title(), id(), maybe( window() ) ) -> frame().
 create_frame( Title, Id, Parent ) ->
-	wxFrame:new( to_wx_parent( Parent ), resolve_id( Id ), Title ).
+	wxFrame:new( to_wx_parent( Parent ), declare_id( Id ), Title ).
 
 
 % @doc Creates a frame, with specified title, position, size and style, and with
@@ -2349,7 +2461,7 @@ create_frame( Title, Position, Size, Style ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), resolve_id( undefined ), Title,
+	wxFrame:new( to_wx_parent( undefined ), declare_id( undefined ), Title,
 				 Options ).
 
 
@@ -2366,7 +2478,7 @@ create_frame( Title, Position, Size, Style, Id, Parent ) ->
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 				{ style, frame_style_to_bitmask( Style ) } ],
 
-	ActualId = resolve_id( Id ),
+	ActualId = declare_id( Id ),
 
 	ActualParent = to_wx_parent( Parent ),
 
@@ -2391,6 +2503,19 @@ set_icon( Frame, IconPath ) ->
 	wxIcon:copyFromBitmap( Icon, Bitmap ),
 
 	wxTopLevelWindow:setIcon( Frame, Icon ).
+
+
+
+% @doc Creates a toolbar in the specified frame.
+-spec create_toolbar( frame() ) -> toolbar().
+create_toolbar( Frame ) ->
+	wxFrame:createToolBar( Frame ).
+
+
+% @doc Sets the specified toolbar in the specified frame.
+-spec set_toolbar( frame(), toolbar() ) -> void().
+set_toolbar( Frame, Toolbar ) ->
+	wxFrame:setToolBar( Frame, Toolbar ).
 
 
 
@@ -2535,7 +2660,7 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 
 	%trace_utils:info_fmt( "Button options for ID #~B: ~p.", [ Id, Options ] ),
 
-	wxButton:new( Parent, resolve_id( Id ), Options ).
+	wxButton:new( Parent, declare_id( Id ), Options ).
 
 
 
@@ -2672,28 +2797,151 @@ clear_sizer( Sizer, DeleteWindows ) ->
 % Status bar section.
 %
 % Status bars are very useful to trace events.
+% They can be split in separate fields.
 
 
-% @doc Creates and attaches a status bar to the specified frame.
+% @doc Creates and attaches a status bar at the bottom of the specified frame.
 -spec create_status_bar( frame() ) -> status_bar().
 create_status_bar( Frame ) ->
-	% No interesting option:
+	% No interesting option (winid):
 	wxFrame:createStatusBar( Frame ).
 
 
+% @doc Creates and attaches a status bar of the specified style at the bottom of
+% the specified frame.
+%
+-spec create_status_bar( frame(), status_bar_style() ) -> status_bar().
+create_status_bar( Frame, StatusBarStyle ) ->
+	% No interesting option (winid):
+	wxFrame:createStatusBar( Frame, [ { style,
+			gui_wx_backend:to_wx_status_bar_style( StatusBarStyle ) } ] ).
 
-% @doc Pushes the specified text in the specified status bar.
+
+% @doc Destructs the specified status bar.
+-spec destruct_status_bar( status_bar() ) -> void().
+destruct_status_bar( StatusBar ) ->
+	wxStatusBar:destroy( StatusBar ).
+
+
+% @doc Sets the number of fields in which the specified status bar is to be
+% (evenly) split.
+%
+-spec set_field_count( status_bar(), field_count() ) -> void().
+set_field_count( StatusBar, FieldCount ) ->
+	wxStatusBar:setFieldsCount( StatusBar, FieldCount ).
+
+
+% @doc Sets the width of the fields of the specified status bar (and thus
+% determines their number as well).
+%
+-spec set_field_widths( status_bar(), [ field_width() ] ) -> void().
+set_field_widths( StatusBar, FieldWidths ) ->
+	wxStatusBar:setFieldsCount( StatusBar, length( FieldWidths ),
+								[ { widths, FieldWidths } ] ).
+
+
+
+% @doc Pushes the specified text in the (first field of the) specified status
+% bar.
+%
 -spec push_status_text( text(), status_bar() ) -> void().
 push_status_text( Text, StatusBar ) ->
 	wxStatusBar:pushStatusText( StatusBar, Text ).
 
 
-% @doc Pushes the specified text in the specified status bar.
+% @doc Pushes the specified text in the (first field of the) specified status
+% bar.
+%
 -spec push_status_text( format_string(), format_values(), status_bar() ) ->
 											void().
 push_status_text( FormatString, FormatValues, StatusBar ) ->
 	Text = text_utils:format( FormatString, FormatValues ),
 	push_status_text( Text, StatusBar ).
+
+
+
+% @doc Pushes the specified text in the specified field of the specified status
+% bar.
+%
+-spec push_field_status_text( text(), status_bar(), field_index() ) -> void().
+push_field_status_text( Text, StatusBar, FieldIndex ) ->
+	% Wx starts at zero:
+	wxStatusBar:pushStatusText( StatusBar, Text, [ { number, FieldIndex-1 } ] ).
+
+
+% @doc Pushes the specified text in the specified status bar.
+-spec push_field_status_text( format_string(), format_values(), status_bar(),
+							  field_index() ) -> void().
+push_field_status_text( FormatString, FormatValues, StatusBar, FieldIndex ) ->
+	Text = text_utils:format( FormatString, FormatValues ),
+	push_field_status_text( Text, StatusBar, FieldIndex ).
+
+
+
+
+% Toolbar section.
+%
+% Refer to create_toolbar/1 in order to obtain a toolbar object.
+
+
+% @doc Adds the specified control to the specified toolbar.
+-spec add_control( toolbar(), control() ) -> void().
+add_control( Toolbar, Control ) ->
+	wxToolBar:addControl( Toolbar, Control ).
+
+
+% For add_separator/1, refer to the menu section.
+
+
+% @doc Adds the specified tool, represented by the specified bitmap, with the
+% specified identifier (if any) and short help, to the specified toolbar.
+%
+% update_tools/1 should be called once additions have been done, so that they
+% are taken into account.
+%
+-spec add_tool( toolbar(), id(), label(), bitmap(), help_info() ) -> void().
+add_tool( Toolbar, Id, Label, Bitmap, ShortHelp ) ->
+	Opts = case ShortHelp of
+		undefined -> [];
+		_ -> [ { shortHelp, ShortHelp } ]
+	end,
+
+	wxToolBar:addTool( Toolbar, declare_id( Id ), Label, Bitmap, Opts ).
+
+
+% @doc Adds the specified tool, represented by the specified enabled/disabled
+% bitmaps, with the specified identifier (if any) and short/long helps, to the
+% specified toolbar.
+%
+% update_tools/1 should be called once additions have been done, so that they
+% are taken into account.
+%
+% Use our gui_frame_bars_test.erl test in order to display all known tools.
+%
+-spec add_tool( toolbar(), id(), label(), bitmap(), bitmap(), help_info(),
+				help_info() ) -> void().
+add_tool( Toolbar, Id, Label, BitmapIfEnabled, BitmapIfDisabled,
+		  ShortHelp, LongHelp ) ->
+
+	Opts = case ShortHelp of
+		undefined -> [];
+		_ -> [ { shortHelp, ShortHelp } ]
+	end ++ case LongHelp  of
+		undefined -> [];
+		_ -> [ { longHelp, LongHelp } ]
+	end,
+
+	wxToolBar:addTool( Toolbar, declare_id( Id ), Label,
+					   BitmapIfEnabled, BitmapIfDisabled, Opts ).
+
+
+
+% @doc Updates the specified toolbar so that it takes into account any new
+% tools; returns whether an update had to be done.
+%
+-spec update_tools( toolbar() ) -> boolean().
+update_tools( Toolbar ) ->
+	wxToolBar:realize( Toolbar ).
 
 
 
@@ -3062,6 +3310,13 @@ destruct_menu( Menu ) ->
 	wxMenu:destroy( Menu ).
 
 
+% @doc Returns a list of the names of the standard menu item identifiers.
+-spec get_standard_item_names() -> [ name_id() ].
+get_standard_item_names() ->
+	[ new_menu_item, open_menu_item, save_menu_item, clear_menu_item,
+	  undo_menu_item, redo_menu_item, help_menu_item, about_menu_item,
+	  exit_menu_item ].
+
 
 % @doc Creates a menu item based on the specified label, adds it to the
 % specified menu, and returns that menu item.
@@ -3173,10 +3428,18 @@ add_radio_item( Menu, Id, MenuItemLabel, HelpInfoStr ) ->
 							[ { help, HelpInfoStr } ] ).
 
 
-% @doc Adds a separator to the specified menu, and returns that separator.
--spec add_separator( menu() ) -> menu_item().
-add_separator( Menu ) ->
-	wxMenu:appendSeparator( Menu ).
+% @doc Adds a separator to the specified menu or toolbar, and returns that
+% separator.
+%
+-spec add_separator( menu() | toolbar() ) -> menu_item().
+add_separator( Menu={ wx_ref, _InstanceRef, _WxObjectType=wxMenu, _State } ) ->
+	wxMenu:appendSeparator( Menu );
+
+add_separator(
+		Toolbar={ wx_ref, _InstanceRef, _WxObjectType=wxToolbar, _State } ) ->
+	wxToolbar:appendSeparator( Toolbar ).
+
+
 
 
 % @doc Sets the enabled/disabled status of the specified menu item.
@@ -3360,8 +3623,24 @@ get_main_loop_pid() ->
 
 
 
+% @doc Returns a backend-specific widget identifier associated to the specified
+% new identifier, expected not to have already been declared.
+%
+-spec declare_id( id() ) -> backend_id().
+% Module-local, meant to declare quickly most cases.
+declare_id( undefined ) ->
+	?wxID_ANY;
+
+declare_id( Id ) when is_integer( Id ) ->
+	Id;
+
+declare_id( NameId ) ->
+	gui_id:declare_id( NameId ).
+
+
+
 % @doc Returns the backend-specific widget identifier corresponding to the
-% specified identifier.
+% specified identifier, expected to have already been declared.
 %
 -spec resolve_id( id() ) -> backend_id().
 % Module-local, meant to resolve quickly most cases.
@@ -3373,7 +3652,6 @@ resolve_id( Id ) when is_integer( Id ) ->
 
 resolve_id( NameId ) ->
 	gui_id:resolve_id( NameId ).
-
 
 
 %

@@ -93,8 +93,10 @@
 % - the next free numerical identifier, to ensure that no two new ones collide
 % - a conversion table so that the user can only handle symbolic (atom, named)
 % identifiers (name_id()) instead of direct, raw numerical identifiers
-
-
+%
+% Note that the standard name/id associations (typically the standard menu
+% items, like 'undo_menu_item') are reserved and automatically registered.
+%
 -type name_table() :: bijective_table( name_id(), backend_id() ).
 % A table to convert between name identifiers and backend ones.
 
@@ -116,14 +118,23 @@
 % Otherwise the user would have to hardcode its own identifiers (ex: for menu
 % items), which is fragile and error-prone.
 %
+% Note that the standard name/id associations (typically the standard menu
+% items, like 'undo_menu_item') are reserved and automatically registered.
+%
 -spec create_id_allocator() -> no_return().
 create_id_allocator() ->
 
 	naming_utils:register_as( ?gui_id_alloc_reg_name, _RegScope=local_only ),
 
+	% Statically known name/id associations:
+	InitialEntries = [ { N, gui_wx_backend:to_wx_menu_item_maybe_id( N ) }
+								|| N <- gui:get_standard_item_names() ],
+
+	InitialBijTable = bijective_table:new( InitialEntries ),
+
 	% So that the first identifier to be returned will typically be 10000:
 	id_allocator_main_loop( _InitialId=?wxID_HIGHEST + 4001,
-							bijective_table:new() ).
+							InitialBijTable ).
 
 
 % The main loop of the process serving widget identifiers.
@@ -288,6 +299,9 @@ allocate_ids( Count, IdAllocPid ) ->
 % the MyriadGUI identifier allocator, and returns the associated backend object
 % identifier.
 %
+% Note that the standard name/id association (typically the standard menu items
+% like 'undo_menu_item') are reserved and already registered.
+%
 -spec declare_id( name_id() ) -> backend_id().
 declare_id( NameId ) ->
 	?gui_id_alloc_reg_name ! { declare_id, [ NameId ], self() },
@@ -302,6 +316,9 @@ declare_id( NameId ) ->
 % @doc Declares the specified named identifier, so that it becomes registered by
 % the specified identifier allocator, and returns the associated backend object
 % identifier.
+%
+% Note that the standard name/id associations (typically the standard menu
+% items, like 'undo_menu_item') are reserved and automatically registered.
 %
 -spec declare_id( name_id(), id_allocator_pid() ) -> void().
 declare_id( NameId, IdAllocPid ) ->
@@ -318,6 +335,10 @@ declare_id( NameId, IdAllocPid ) ->
 % @doc Declares the specified named identifiers, so that they become registered
 % by the MyriadGUI identifier allocator.
 %
+% Note that the standard name/id associations (typically the standard menu
+% items, like 'undo_menu_item') are reserved and automatically registered.
+%
+%
 -spec declare_ids( [ name_id() ] ) -> void().
 declare_ids( NameIds ) ->
 	?gui_id_alloc_reg_name ! { declare_ids, [ NameIds ], self() },
@@ -331,6 +352,9 @@ declare_ids( NameIds ) ->
 
 % @doc Declares the specified named identifiers, so that they become registered
 % by the specified identifier allocator.
+%
+% Note that the standard name/id associations (typically the standard menu
+% items, like 'undo_menu_item') are reserved and automatically registered.
 %
 -spec declare_ids( [ name_id() ], id_allocator_pid() ) -> void().
 declare_ids( NameIds, IdAllocPid ) ->

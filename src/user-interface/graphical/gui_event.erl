@@ -60,6 +60,10 @@
 % for more architecture/implementation details about wx.
 
 
+% An improvement could possibly be to integrate the name/id bijective table of
+% gui_id directly in the event main loop here, rather than having names resolved
+% through a separate gui_id-based process.
+
 
 % Function export section.
 
@@ -1424,9 +1428,15 @@ send_event( Subscribers, _EventType=onResized, EventSourceId, GUIObject,
 
 
 % Base case, for all events that do not require specific treatments:
-send_event( Subscribers, EventType, Id, GUIObject, UserData, Event ) ->
+send_event( Subscribers, EventType, EventSourceId, GUIObject, UserData,
+			Event ) ->
 
-	Context = #event_context{ id=Id, user_data=UserData,
+	% Note: integrates the lower-level backend identifier; no attempt of
+	% translation to name like with:
+	%
+	% BestId = gui_id:try_resolve_id( EventSourceId ),
+
+	Context = #event_context{ id=EventSourceId, user_data=UserData,
 							  backend_event=Event },
 
 	Msg = { EventType, [ GUIObject, Context ] },

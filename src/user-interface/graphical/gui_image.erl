@@ -27,11 +27,13 @@
 
 
 % @doc Gathers all elements relative to the management of <b>images</b>
-% (loading, modifying, saving, scaling, resizing, clipping, etc.), in link to
-% MyriadGUI, and in a platform-independent way.
+% (including bitmaps, icons, etc.), for loading, modifying, saving, scaling,
+% resizing, clipping, etc., in link to MyriadGUI, and in a platform-independent
+% way.
 %
-% Images shall be considered as just a generic, platform independent buffer of
-% RGB bytes with an optional buffer for the alpha bytes.
+% Images shall be considered as just a generic, platform-independent buffer of
+% RGB bytes with an optional buffer for the alpha bytes, whereas bitmaps are
+% platform-specific, readily-usable graphical content.
 %
 % May be useful also for textures.
 %
@@ -56,10 +58,14 @@
 		  load/2, load/3, scale/3, scale/4,
 		  colorize/2,
 
+		  get_standard_icon/1,
+
 		  % from_bitmap/1,
 		  create_bitmap/1,
 		  create_blank_bitmap/1, create_blank_bitmap/2,
-		  create_blank_bitmap_for/1, destruct_bitmap/1,
+		  create_blank_bitmap_for/1,
+		  get_standard_bitmap/1,
+		  destruct_bitmap/1,
 
 		  lock_bitmap/1, draw_bitmap/3, unlock_bitmap/1,
 
@@ -114,6 +120,10 @@
 % to the rendering of a bitmap.
 
 
+-opaque icon() :: wxIcon:wxIcon().
+% A small rectangular bitmap usually used for denoting a minimised application.
+
+
 -opaque text_display() :: wxStaticText:wxStaticText().
 % A widget displaying a text; a text display behaves like a panel dedicated
 % to the rendering of a text.
@@ -146,7 +156,7 @@
 
 
 -export_type([ image/0, image_format/0, image_quality/0,
-			   bitmap/0, bitmap_display/0, text_display/0,
+			   bitmap/0, bitmap_display/0, icon/0, text_display/0,
 			   raw_bitmap/0 ]).
 
 
@@ -170,6 +180,8 @@
 -type label() :: gui:label().
 -type device_context() :: gui:device_context().
 -type window_option() :: gui:window_option().
+-type standard_icon_name_id() :: gui:standard_icon_name_id().
+-type standard_bitmap_name_id() :: gui:standard_bitmap_name_id().
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().
@@ -296,6 +308,26 @@ colorize( AlphaBuffer, _Color={ R, G, B } ) ->
 	<< <<R:8,G:8,B:8,A:8>> || <<A:8,_:8,_:8>> <= AlphaBuffer >>.
 
 
+% @doc Returns the standard icon corresponding to the specified identifier.
+-spec get_standard_icon( standard_icon_name_id() ) -> icon().
+get_standard_icon( StdIconId ) ->
+
+	WxArtId = gui_wx_backend:to_wx_icon_id( StdIconId ),
+
+	% Computed (not a literal constant):
+	NullIcon = ?wxNullIcon,
+
+	case wxArtProvider:getIcon( WxArtId ) of
+
+		NullIcon ->
+			throw( { standard_icon_not_available, StdIconId, WxArtId } );
+
+		Icon ->
+			Icon
+
+	end.
+
+
 
 % @doc Returns a bitmap created from the specified image path.
 -spec create_bitmap( any_file_path() ) -> bitmap().
@@ -345,6 +377,25 @@ create_blank_bitmap_for( Window ) ->
 	ClientSize = wxWindow:getClientSize( Window ),
 	create_blank_bitmap( ClientSize ).
 
+
+% @doc Returns the standard bitmap corresponding to the specified identifier.
+-spec get_standard_bitmap( standard_bitmap_name_id() ) -> bitmap().
+get_standard_bitmap( StdBitmapId ) ->
+
+	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
+
+	% Computed (not a literal constant):
+	NullBitmap = ?wxNullBitmap,
+
+	case wxArtProvider:getBitmap( WxArtId ) of
+
+		NullBitmap ->
+			throw( { standard_bitmap_not_available, StdBitmapId, WxArtId } );
+
+		Bitmap ->
+			Bitmap
+
+	end.
 
 
 % @doc Destructs the specified bitmap (which must not be locked).

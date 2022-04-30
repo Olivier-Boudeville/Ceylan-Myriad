@@ -95,6 +95,9 @@
 	  | 'sizing'.
 % A cursor is a small bitmap usually used for denoting where the mouse pointer
 % is, with a picture that might indicate the interpretation of a mouse click.
+%
+% Refer to the 'cursor' example of wx:demo/0 that showcases them all.
+
 
 -type cursor_table() :: table( cursor_type(), wx_cursor_type() ).
 % A table storing the correspondance between MyriadGUI and backend cursor types.
