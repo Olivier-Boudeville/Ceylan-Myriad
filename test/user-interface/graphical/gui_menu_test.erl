@@ -85,20 +85,15 @@ run_gui_test() ->
 
 	FirstSubMenu = gui:create_menu(),
 
-	% Using here allocated numerical identifiers:
-	IdAllocPid = gui_id:get_id_allocator_pid(),
-
-	[ CId, DId ] = gui_id:allocate_ids( _Count=2, IdAllocPid ),
-
-	_C = gui:append_submenu( MainMenu, CId, "Item C", FirstSubMenu ),
+	% Defining here named identifiers rathen than auto-set numerical ones:
+	_C = gui:append_submenu( MainMenu, item_c, "Item C", FirstSubMenu ),
 
 	SecondSubMenu = gui:create_menu(),
 
-	_D = gui:append_submenu( MainMenu, DId, "Item D", SecondSubMenu,
+	_D = gui:append_submenu( MainMenu, item_d, "Item D", SecondSubMenu,
 							 "I am D's help" ),
 
 
-	% Defining here named identifiers rathen than auto-set numerical ones:
 	_E = gui:add_checkable_item( FirstSubMenu, _EId=item_e, "Item E" ),
 	_F = gui:add_checkable_item( FirstSubMenu, _FId=item_f, "Item F",
 								"I am F's help" ),
@@ -113,13 +108,13 @@ run_gui_test() ->
 
 	_J = gui:add_separator( MainMenu ),
 
-	gui:set_menu_item_status( MainMenu, CId, enabled ),
-	gui:set_menu_item_status( MainMenu, DId, disabled ),
+	gui:set_menu_item_status( MainMenu, item_c, enabled ),
+	gui:set_menu_item_status( MainMenu, item_d, disabled ),
 
 	FileMenu = create_test_menu_bar( Frame ),
 
 	AllMenus = [ MainMenu, FirstSubMenu, SecondSubMenu, FileMenu ],
-  wxFrame:connect(Frame, motion, []),
+
 	gui:show( Frame ),
 
 	gui:subscribe_to_events( [
@@ -142,7 +137,7 @@ test_main_loop( State={ Frame, MainMenu } ) ->
 
 	receive
 
-		{ onMouseRightButtonReleased, [ Frame, _Context ] } ->
+		{ onMouseRightButtonReleased, [ Frame, _FrameId, _Context ] } ->
 			gui:activate_popup_menu( Frame, MainMenu ),
 			test_main_loop( State );
 
@@ -155,7 +150,7 @@ test_main_loop( State={ Frame, MainMenu } ) ->
 			trace_utils:info_fmt( "Menu item '~w' selected.", [ ItemId ] ),
 			test_main_loop( State );
 
-		{ onWindowClosed, [ Frame, _Context ] } ->
+		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui:destruct_window( Frame ),
 			gui:stop();

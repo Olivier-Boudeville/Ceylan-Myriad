@@ -161,12 +161,13 @@
 		  to_wx_menu_options/1,
 		  to_wx_menu_item_id/1, to_wx_menu_item_maybe_id/1,
 		  to_new_wx_menu_item_id/1,
-		  to_menu_item_kind/1,
+		  to_wx_menu_item_kind/1,
 		  %to_wx_menu_item_options/1,
 
 		  to_wx_bitmap_id/1, to_wx_icon_id/1,
 
 		  to_wx_status_bar_style/1, to_wx_toolbar_style/1,
+		  to_wx_tool_kind/1,
 
 
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
@@ -303,7 +304,6 @@
 
 -type wx_object_type() :: gui:wx_object_type().
 -type myriad_object_type() :: gui:myriad_object_type().
--type myriad_instance_id() :: gui:myriad_instance_id().
 -type window() :: gui:window().
 -type window_style() :: gui:window_style().
 -type window_option() :: gui:window_option().
@@ -322,13 +322,17 @@
 -type menu_item_kind() :: gui:menu_item_kind().
 
 -type status_bar_style() :: gui:status_bar_style().
+
 -type toolbar_style() :: gui:toolbar_style().
+-type tool_kind() :: gui:tool_kind().
 
 -type position() :: gui:position().
 -type size() :: gui:size().
 -type orientation() :: gui:orientation().
 -type connect_opt() :: gui:connect_opt().
 -type connect_options() :: gui:connect_options().
+
+-type myriad_instance_id() :: gui_id:myriad_instance_id().
 
 -type wx_event_type() :: gui_event:wx_event_type().
 -type event_type() :: gui_event:event_type().
@@ -514,6 +518,12 @@ to_wx_event_type( onMouseRightButtonDoubleClicked ) ->
 to_wx_event_type( onMenuItemSelected ) ->
 	command_menu_selected;
 
+
+% Tool section:
+to_wx_event_type( onCommandToolEntered ) ->
+	command_tool_enter;
+
+
 % Window section:
 to_wx_event_type( onRepaintNeeded ) ->
 	paint;
@@ -626,6 +636,10 @@ from_wx_event_type( right_dclick ) ->
 % Menu section:
 from_wx_event_type( command_menu_selected ) ->
 	onMenuItemSelected;
+
+% Tool section:
+from_wx_event_type( command_tool_enter ) ->
+	onCommandToolEntered;
 
 % Window section:
 from_wx_event_type( paint ) ->
@@ -1369,20 +1383,20 @@ to_wx_icon_maybe_id( _OtherIconId ) ->
 
 
 % @doc Converts the specified kind of menu identifier into a wx-specific one.
--spec to_menu_item_kind( menu_item_kind() ) -> wx_enum().
-to_menu_item_kind( _Kind=normal ) ->
+-spec to_wx_menu_item_kind( menu_item_kind() ) -> wx_enum().
+to_wx_menu_item_kind( _Kind=normal ) ->
 	?wxITEM_NORMAL;
 
-to_menu_item_kind( _Kind=toggle ) ->
+to_wx_menu_item_kind( _Kind=toggle ) ->
 	?wxITEM_CHECK;
 
-to_menu_item_kind( _Kind=radio ) ->
+to_wx_menu_item_kind( _Kind=radio ) ->
 	?wxITEM_RADIO;
 
-to_menu_item_kind( _Kind=separator ) ->
+to_wx_menu_item_kind( _Kind=separator ) ->
 	?wxITEM_SEPARATOR;
 
-to_menu_item_kind( _Kind=dropdown ) ->
+to_wx_menu_item_kind( _Kind=dropdown ) ->
 	?wxITEM_DROPDOWN.
 
 % No ?wxITEM_MAX
@@ -1407,7 +1421,12 @@ to_wx_status_bar_style( _StatusBarStyle=sunken ) ->
 
 
 % @doc Converts the specified style of toolbar into a wx-specific one.
--spec to_wx_toolbar_style( toolbar_style() ) -> wx_enum().
+-spec to_wx_toolbar_style( maybe_list( toolbar_style() ) ) -> wx_enum().
+to_wx_toolbar_style( ToolbarStyles ) when is_list( ToolbarStyles ) ->
+	lists:foldl( fun( S, Acc ) -> to_wx_toolbar_style( S ) bor Acc end,
+				 _InitialAcc=0,
+				 _List=ToolbarStyles );
+
 to_wx_toolbar_style( _ToolbarStyle=top ) ->
 	?wxTB_TOP;
 
@@ -1446,6 +1465,12 @@ to_wx_toolbar_style( _ToolbarStyle=no_tooltips ) ->
 
 to_wx_toolbar_style( _ToolbarStyle=default ) ->
 	?wxTB_DEFAULT_STYLE.
+
+
+% @doc Converts the specified kind of tool into a wx-specific one.
+-spec to_wx_tool_kind( tool_kind() ) -> wx_enum().
+to_wx_tool_kind( ToolKind ) ->
+	to_wx_menu_item_kind( ToolKind ).
 
 
 

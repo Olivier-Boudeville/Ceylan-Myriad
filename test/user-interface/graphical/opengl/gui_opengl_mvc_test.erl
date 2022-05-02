@@ -153,7 +153,6 @@
 
 % Shorthands:
 
-%-type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 
 -type any_hertz() :: unit_utils:any_hertz().
@@ -335,6 +334,7 @@ handle_pending_model_requests( ModelState ) ->
 			% As in the general case multiple requests might be pending:
 			handle_pending_model_requests( ModelState );
 
+
 		% Typically sent by the controller:
 		onModelTermination ->
 
@@ -366,8 +366,8 @@ run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 
 	MainFrame = GUIViewState#view_state.parent,
 
-	ControllerPid !
-		{ notifyViewInformation, [ self(), MainFrame, gui:get_gui_env() ] },
+	ControllerPid ! { notifyViewInformation,
+						[ self(), MainFrame, gui:get_backend_environment() ] },
 
 	Period = time_utils:frequency_to_period( EvalFrequency ),
 
@@ -465,7 +465,7 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 		% Not strictly necessary, as anyway a regular redraw is to happen soon
 		% afterwards:
 		%
-		{ onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
+		{ onRepaintNeeded, [ GLCanvas, _GLCanvasId, _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
 			%                       [ GLCanvas ] ),
@@ -474,8 +474,8 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 
 				% Not ready yet:
 				undefined ->
-					trace_utils:debug( "To be repainted, "
-									   "yet no OpenGL state yet." ),
+					trace_utils:debug(
+						"To be repainted, yet no OpenGL state yet." ),
 					ViewState;
 
 				_GLState ->
@@ -491,7 +491,8 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
 		%
-		{ onResized, [ ParentWindow, NewParentSize, _EventContext ] } ->
+		{ onResized, [ ParentWindow, _ParentWindowId, NewParentSize,
+					   _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Resizing of the parent window to ~w "
 				"detected.", [ NewParentSize ] ),
@@ -514,7 +515,7 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 		% The most suitable first location to initialise OpenGL, as making a GL
 		% context current requires a shown window:
 		%
-		{ onShown, [ ParentWindow, _EventContext ] } ->
+		{ onShown, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
@@ -540,7 +541,7 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 
 		OtherEvent ->
 			trace_utils:warning_fmt( "[~w] View ignored the following "
-				"event:~n ~p", [ self(), OtherEvent ] ),
+				"event:~n ~w", [ self(), OtherEvent ] ),
 
 			handle_pending_view_events( ViewState )
 
@@ -725,13 +726,15 @@ run_controller( ModelPid, TestPid ) ->
 	receive
 
 		% Expected to be triggered by the view:
-		{ notifyViewInformation, [ ViewPid, MainFrame, GUIEnv ] } ->
+		{ notifyViewInformation, [ ViewPid, MainFrame, BackendEnv ] } ->
 
 			trace_utils:debug_fmt( "[~w] Controller received view-related "
 				"information.", [ self() ] ),
 
-			% So that this controller can interact with MyriadGUI:
-			gui:set_gui_env( GUIEnv ),
+			% So that this controller can interact with the backend used by a
+			% MyriadGUI:
+			%
+			gui:set_backend_environment( BackendEnv ),
 
 			% We consider here that the following event is controller-specific,
 			% rather than view-specific:
@@ -759,7 +762,7 @@ controller_main_loop( ControllerState ) ->
 
 	receive
 
-		{ onWindowClosed, [ _ParentWindow, _EventContext ] } ->
+		{ onWindowClosed, [ _ParentWindow, _ParentWindowId, _EventContext ] } ->
 			trace_utils:info_fmt( "[~w] Controller notified of the "
 				"closing of the main frame, test success.", [ self() ] ),
 
@@ -775,7 +778,7 @@ controller_main_loop( ControllerState ) ->
 
 		OtherEvent ->
 			trace_utils:warning_fmt( "[~w] Controller ignored the following "
-				"event:~n ~p", [ self(), OtherEvent ] ),
+				"event:~n ~w", [ self(), OtherEvent ] ),
 			controller_main_loop( ControllerState )
 
 	end.

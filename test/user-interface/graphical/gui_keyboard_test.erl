@@ -81,7 +81,7 @@ test_main_loop( TestFrame ) ->
 
 	receive
 
-		{ onWindowClosed, [ TestFrame, Context ] } ->
+		{ onWindowClosed, [ TestFrame, _TestFrameId, Context ] } ->
 
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),

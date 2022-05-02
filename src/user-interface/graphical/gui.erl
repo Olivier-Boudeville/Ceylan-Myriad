@@ -341,7 +341,7 @@
 
 
 % Miscellaneous:
--export([ set_backend_environment/1 ]).
+-export([ get_backend_environment/0, set_backend_environment/1 ]).
 
 
 % Windows (see also the gui_window_manager module regarding the insertion of
@@ -371,7 +371,7 @@
 		  create_top_level_frame/4,
 		  create_frame/0, create_frame/1, create_frame/2, create_frame/3,
 		  create_frame/4, create_frame/6,
-		  set_icon/2, create_toolbar/1, set_toolbar/2,
+		  set_icon/2, create_toolbar/1, create_toolbar/3, set_toolbar/2,
 		  destruct_frame/1 ]).
 
 
@@ -487,7 +487,7 @@
 
 
 % Internal, silencing exports:
--export([ create_gui_environment/2,
+-export([ create_gui_environment/1,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
 		  event_interception_callback/2,
 		  resolve_id/1 ]).
@@ -708,6 +708,8 @@
 -type toolbar() :: wxToolBar:wxToolBar().
 % A bar of buttons and/or other controls usually placed below the menu bar of a
 % frame.
+%
+% A toolbar emits menu commands in the same way that a frame menubar does.
 
 
 -type toolbar_style() :: 'top' | 'bottom' | 'left' | 'right'
@@ -725,6 +727,11 @@
 
 -type tool() :: wx:wx_object().
 % A tool, as an element of a toolbar.
+
+
+% Corresponds to menu items:
+-type tool_kind() :: menu_item_kind().
+% The kind of a tool in a toolbar.
 
 
 -type control() :: wxControl:wxControl().
@@ -800,10 +807,11 @@
 
 
 -type menu_item_kind() :: 'normal'    % Basic menu item
-						| 'check'     % Menu item that can be checkd/checked
-						| 'radio'     % Menu item with a radio item
+						| 'check'     % Menu item that can be checked/toggled
+						| 'radio'     % Menu item with a radio element
 						| 'separator' % Separator between menu items
-						| 'dropdown'.
+						| 'dropdown'. % A normal menu item with a dropdown arrow
+									  % next to it.
 % A kind of menu item.
 
 -type menu_item_status() :: 'enabled' | 'disabled'.
@@ -1079,7 +1087,7 @@
 			   splitter/0, sash_gravity/0,
 			   status_bar/0, status_bar_style/0,
 
-			   toolbar/0, toolbar_style/0, tool/0,
+			   toolbar/0, toolbar_style/0, tool/0, tool_kind/0,
 			   control/0,
 
 			   menu/0, menu_option/0,
@@ -1155,8 +1163,6 @@
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
 
--type id_allocator_pid() :: gui_id:id_allocator_pid().
-
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
 -type event_unsubscription_spec() :: gui_event:event_unsubscription_spec().
 -type event_callback() :: gui_event:event_callback().
@@ -1223,10 +1229,14 @@ start() ->
 -spec start( [ service() ] | debug_level() ) -> gui_env_info().
 start( Services ) when is_list( Services ) ->
 
-	IdAllocPid = ?myriad_spawn_link( fun gui_id:create_id_allocator/0 ),
+	% Now the identifier allocator is directly integrated in the gui_event main
+	% loop:
+	%
+	%IdAllocPid = ?myriad_spawn_link( fun gui_id:create_id_allocator/0 ),
 
 	% Starting the MyriadGUI environment:
-	create_gui_environment( Services, IdAllocPid );
+	%create_gui_environment( Services, IdAllocPid );
+	create_gui_environment( Services );
 
 start( DebugLevel ) ->
 	EnvInfo = start(),
@@ -1242,9 +1252,11 @@ start( DebugLevel ) ->
 % Some services must be specifically declared here, as they require
 % initialisation (ex: for the loading of mouse cursors).
 %
--spec create_gui_environment( [ service() ], id_allocator_pid() ) ->
-													gui_env_info().
-create_gui_environment( Services, IdAllocPid ) ->
+%-spec create_gui_environment( [ service() ], id_allocator_pid() ) ->
+%													gui_env_info().
+-spec create_gui_environment( [ service() ] ) -> gui_env_info().
+%create_gui_environment( Services, IdAllocPid ) ->
+create_gui_environment( Services ) ->
 
 	cond_utils:if_defined( myriad_debug_user_interface,
 		trace_utils:info_fmt( "Starting GUI, with following services: ~p",
@@ -1278,7 +1290,7 @@ create_gui_environment( Services, IdAllocPid ) ->
 		{ os_family, OSFamily },
 		{ os_name, OSName },
 
-		{ id_allocator_pid, IdAllocPid },
+		%{ id_allocator_pid, IdAllocPid },
 
 		{ top_level_window, undefined },
 		{ loop_pid, LoopPid },
@@ -1350,11 +1362,34 @@ set_debug_level( DebugLevel ) ->
 
 
 
-% @doc Subscribes the current, calling process to the specified kind of events
-% (event type and emitter), like {onWindowClosed, MyFrame}.
+% @doc Subscribes the current, calling process to the specified kind of events,
+% resulting in corresponding MyriadGUI callback messages being received whenever
+% such events occur, like:
+% {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
 %
-% This process will then receive MyriadGUI callback messages whenever events
-% that match happen, such as: {onWindowClosed, [MyFrame, EventContext]}.
+% The MyriadGUI general convention is to send to the subscribers a message as a
+% tuple whose:
+%
+% - first element corresponds to the type of event having happened, as an atom
+% (ex: 'onWindowClosed', 'onResized', etc.)
+%
+% - second is a list whose elements depend on the type of this event
+%
+% In any case, this list respects the following structure:
+% [EmitterGUIObject, EmitterId, ..., EventContext]; indeed it begins with:
+%   - first the reference onto the actual event emitter, as a gui_object()
+%   - second its identifier (any user-specified name, otherwise the lower-level
+% backend one), as a gui_id:id()
+%   - ends with an event context record (see gui_event:event_context())
+% concentrating all available information
+%
+% In-between, there may be key information for that type of event inserted (like
+% the new dimensions for a onResized event, to have readily available instead of
+% having to peek in the associated event context).
+%
+% So typical messages may be:
+%  - {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
+%  - {onResized, [WidgetGUIObject, WidgetId, NewSize, EventContext]}
 %
 % By default the corresponding event will not be transmitted upward in the
 % widget hierarchy (as this event will be expected to be processed for good by
@@ -1371,21 +1406,12 @@ subscribe_to_events( SubscribedEvents ) ->
 
 
 
-% @doc Subscribes the specified process to the specified kind of events (event
-% type and emitter), like {onWindowClosed, MyFrame}.
+% @doc Subscribes the specified process to the specified kind of events,
+% resulting in corresponding MyriadGUI callback messages being received whenever
+% such events occur, like:
+% {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
 %
-% This process will then receive MyriadGUI callback messages whenever events
-% that match happen, such as: {onWindowClosed, [MyFrame, EventContext]}.
-%
-% By default the corresponding event will not be transmitted upward in the
-% widget hierarchy (as this event will be expected to be processed for good by
-% the subscriber(s) it has been dispatched to), unless the propagate_event
-% option has been specified at subscription, or if the propagate_event/1
-% function is called once the event handler processes such an event.
-%
-% Note that, at least when creating the main frame, if having subscribed to
-% onShown and onResized, on creation first a onResized event will be received by
-% the subscriber (typically for a 20x20 size), then a onShow event.
+% Refer to subscribe_to_events/1 for further information.
 %
 -spec subscribe_to_events( event_subscription_spec(), pid() ) -> void().
 subscribe_to_events( SubscribedEvents, SubscriberPid )
@@ -1850,7 +1876,7 @@ get_rgb( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point ) ->
 
 
 
-% @doc Sets the pixel at specified position to the current RGB point value.
+% @doc Sets the pixel at the specified position to the current RGB point value.
 -spec set_rgb( canvas(), point() ) -> void().
 set_rgb( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point ) ->
 	get_main_loop_pid() ! { setCanvasRGB, [ CanvasId, Point ] }.
@@ -2510,6 +2536,20 @@ set_icon( Frame, IconPath ) ->
 -spec create_toolbar( frame() ) -> toolbar().
 create_toolbar( Frame ) ->
 	wxFrame:createToolBar( Frame ).
+
+
+% @doc Creates a toolbar in the specified frame, with the specified identifier
+% (if any) and style.
+%
+% Apparently up to one toolbar can be associated to a frame (ex: no top and left
+% toolbars allowed simultaneously).
+%
+-spec create_toolbar( frame(), id(), maybe_list( toolbar_style() ) ) ->
+											toolbar().
+create_toolbar( Frame, Id, MaybeToolbarStyles ) ->
+	wxFrame:createToolBar( Frame, [ { id, declare_id( Id ) },
+		{ style, gui_wx_backend:to_wx_toolbar_style( MaybeToolbarStyles ) } ] ).
+
 
 
 % @doc Sets the specified toolbar in the specified frame.
@@ -3331,8 +3371,7 @@ add_item( Menu, MenuItemLabel ) ->
 %
 -spec add_item( menu(), menu_item_id(), menu_item_label() ) -> menu_item().
 add_item( Menu, MenuItemId, MenuItemLabel ) ->
-	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
-	wxMenu:append( Menu, WxId, MenuItemLabel ).
+	wxMenu:append( Menu, resolve_id( MenuItemId ), MenuItemLabel ).
 
 
 % @doc Appends the specified already-created menu item (not a mere label) to the
@@ -3349,8 +3388,8 @@ append_item( Menu, MenuItem ) ->
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu() ) ->
 													menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
-	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
-	wxMenu:append( Menu, WxId, MenuItemLabel, SubMenu ).
+	% Not resolve_id( MenuItemId ):
+	wxMenu:append( Menu, declare_id( MenuItemId ), MenuItemLabel, SubMenu ).
 
 
 % @doc Adds the specified labelled submenu, associated to the specified
@@ -3359,8 +3398,7 @@ append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu(),
 					  help_info() ) -> menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu, HelpInfoStr ) ->
-	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
-	wxMenu:append( Menu, WxId, MenuItemLabel, SubMenu,
+	wxMenu:append( Menu, declare_id( MenuItemId ), MenuItemLabel, SubMenu,
 				   [ { help, HelpInfoStr } ] ).
 
 
@@ -3379,8 +3417,7 @@ add_checkable_item( Menu, MenuItemLabel ) ->
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
-	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
-	wxMenu:appendCheckItem( Menu, WxId, MenuItemLabel ).
+	wxMenu:appendCheckItem( Menu, declare_id( MenuItemId ), MenuItemLabel ).
 
 
 % @doc Creates a menu item that can be toggled/checked, based on the specified
@@ -3390,8 +3427,7 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label(),
 						  help_info() ) -> menu_item().
 add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
-	WxId = gui_wx_backend:to_new_wx_menu_item_id( MenuItemId ),
-	wxMenu:appendCheckItem( Menu, WxId, MenuItemLabel,
+	wxMenu:appendCheckItem( Menu, declare_id( MenuItemId ), MenuItemLabel,
 							[ { help, HelpInfoStr } ] ).
 
 
@@ -3400,8 +3436,7 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
 %
 -spec set_checkable_menu_item( menu(), menu_item_id(), boolean() ) -> void().
 set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
-	wxMenu:check( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ),
-				  SetAsChecked ).
+	wxMenu:check( Menu, resolve_id( MenuItemId ), SetAsChecked ).
 
 
 % @doc Adds the specified radio item to the specified menu, and returns that
@@ -3412,9 +3447,8 @@ set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
 %
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
-add_radio_item( Menu, Id, MenuItemLabel ) ->
-	WxId = gui_wx_backend:to_new_wx_menu_item_id( Id ),
-	wxMenu:appendRadioItem( Menu, WxId, MenuItemLabel ).
+add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
+	wxMenu:appendRadioItem( Menu, resolve_id( MenuItemId ), MenuItemLabel ).
 
 
 % @doc Adds the specified labelled item that can be checkd/checked to the
@@ -3422,9 +3456,8 @@ add_radio_item( Menu, Id, MenuItemLabel ) ->
 %
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label(),
 					  help_info() ) -> menu_item().
-add_radio_item( Menu, Id, MenuItemLabel, HelpInfoStr ) ->
-	WxId = gui_wx_backend:to_new_wx_menu_item_id( Id ),
-	wxMenu:appendRadioItem( Menu, WxId, MenuItemLabel,
+add_radio_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
+	wxMenu:appendRadioItem( Menu, resolve_id( MenuItemId ), MenuItemLabel,
 							[ { help, HelpInfoStr } ] ).
 
 
@@ -3446,12 +3479,10 @@ add_separator(
 -spec set_menu_item_status( menu(), menu_item_id(), menu_item_status() ) ->
 														void().
 set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=enabled ) ->
-	wxMenu:enable( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ),
-				   _Check=true );
+	wxMenu:enable( Menu, resolve_id( MenuItemId ), _Check=true );
 
 set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
-	wxMenu:enable( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ),
-				   _Check=false ).
+	wxMenu:enable( Menu, resolve_id( MenuItemId ), _Check=false ).
 
 
 
@@ -3461,7 +3492,7 @@ set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
 %
 -spec remove_menu_item( menu(), menu_item_id() ) -> void().
 remove_menu_item( Menu, MenuItemId ) ->
-	wxMenu:delete( Menu, gui_wx_backend:to_wx_menu_item_id( MenuItemId ) ).
+	wxMenu:delete( Menu, resolve_id( MenuItemId ) ).
 
 
 
@@ -3486,7 +3517,6 @@ set_menu_bar( Frame, MenuBar ) ->
 	wxFrame:setMenuBar( Frame, MenuBar ).
 
 
-
 % Popup menu subsection.
 
 
@@ -3495,24 +3525,10 @@ set_menu_bar( Frame, MenuBar ) ->
 % Typically called on receiving of a onMouseRightButtonReleased event.
 %
 -spec activate_popup_menu( widget(), menu() ) -> void().
-activate_popup_menu( Widget, Menu) ->
+activate_popup_menu( Widget, Menu ) ->
 	% Meaning on returned boolean unclear:
 	wxWindow:popupMenu( Widget, Menu ).
 
-
-% @doc Creates an empty menu bar of specified style, at the top of the specified
-% parent window.
-% -spec create_menu_bar( maybe_list( menu_bar_option() ) ) -> menu_bar().
-% create_menu_bar( MaybeOptions ) ->
-%	WxStyleOpts = gui_wx_backend:to_wx_menu_bar_options( MaybeOptions ),
-%	wxMenuBar:new( [ { style, WxStyleOpts } ] ).
-
-
-
-%% % @doc Creates a menu at the top of the specified parent window.
-%% -spec create_popup_menu() -> popup_menu().
-%% create_popup_menu() ->
-%%	wxMenu:new().
 
 
 % Font section.
@@ -3571,6 +3587,15 @@ destruct_font( Font ) ->
 % Miscellaneous.
 
 
+% @doc Gets the backend environment currently used by the calling process,
+% typically to transmit it to any other process in order to enable it to use
+% that backend.
+%
+-spec get_backend_environment() -> backend_environment().
+get_backend_environment() ->
+	wx:get_env().
+
+
 % @doc Sets the specified backend environment for the calling process, so that
 % it can make use of the corresponding backend.
 %
@@ -3592,7 +3617,7 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_instances,
 		trace_utils:debug_fmt( "Requesting the creation of a '~ts' instance, "
-			"based on following construction parameters:~n~w.",
+			"based on the following construction parameters:~n~w.",
 			[ ObjectType, ConstructionParams ] ) ),
 
 	LoopPid = get_main_loop_pid(),
@@ -3622,7 +3647,6 @@ get_main_loop_pid() ->
 	environment:get( loop_pid, ?gui_env_process_key ).
 
 
-
 % @doc Returns a backend-specific widget identifier associated to the specified
 % new identifier, expected not to have already been declared.
 %
@@ -3635,12 +3659,19 @@ declare_id( Id ) when is_integer( Id ) ->
 	Id;
 
 declare_id( NameId ) ->
-	gui_id:declare_id( NameId ).
+	get_main_loop_pid() ! { declareNameId, NameId, self() },
+	receive
+
+		{ notifyingAssignedId, BackendId } ->
+			BackendId
+
+	end.
 
 
 
-% @doc Returns the backend-specific widget identifier corresponding to the
-% specified identifier, expected to have already been declared.
+% @doc Returns the backend-specific widget identifier supposed to be already
+% associated to the specified identifier, expected not to have already been
+% resolved.
 %
 -spec resolve_id( id() ) -> backend_id().
 % Module-local, meant to resolve quickly most cases.
@@ -3651,7 +3682,15 @@ resolve_id( Id ) when is_integer( Id ) ->
 	Id;
 
 resolve_id( NameId ) ->
-	gui_id:resolve_id( NameId ).
+	get_main_loop_pid() ! { resolveNameId, NameId, self() },
+	receive
+
+		{ notifyResolvedIdentifier, BackendId } ->
+			BackendId
+
+	end.
+
+
 
 
 %

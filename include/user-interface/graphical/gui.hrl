@@ -39,6 +39,9 @@
 % Registration name of the MyriadGUI identifier allocator process (see gui_id):
 -define( gui_id_alloc_reg_name, 'myriad_gui_id_allocator' ).
 
+% Registration name of the MyriadGUI main event loop:
+-define( gui_event_loop_reg_name, 'myriad_gui_event_loop' ).
+
 
 % Context sent to corresponding subscribers together with an event.
 %

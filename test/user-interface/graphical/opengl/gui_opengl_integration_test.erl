@@ -597,7 +597,7 @@ gui_main_loop( GUIState ) ->
 		% Not strictly necessary, as anyway a regular redraw is to happen soon
 		% afterwards:
 		%
-		{ onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
+		{ onRepaintNeeded, [ GLCanvas, _GLCanvasId, _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
 			%                       [ GLCanvas ] ),
@@ -606,8 +606,8 @@ gui_main_loop( GUIState ) ->
 
 				% Not ready yet:
 				undefined ->
-					trace_utils:debug( "To be repainted, "
-									   "yet no OpenGL state yet." ),
+					trace_utils:debug(
+						"To be repainted, yet no OpenGL state yet." ),
 					GUIState;
 
 				GLState ->
@@ -623,7 +623,8 @@ gui_main_loop( GUIState ) ->
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
 		%
-		{ onResized, [ _ParentWindow, _NewParentSize, _EventContext ] } ->
+		{ onResized, [ _ParentWindow, _ParentWindowId, _NewParentSize, 
+					   _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Resizing of the parent window "
 			%   (main frame) "to ~w detected.", [ NewParentSize ] ),
@@ -646,7 +647,7 @@ gui_main_loop( GUIState ) ->
 		% The most suitable first location to initialise OpenGL, as making a GL
 		% context current requires a shown window:
 		%
-		{ onShown, [ ParentWindow, _EventContext ] } ->
+		{ onShown, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
@@ -668,7 +669,7 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( InitGUIState );
 
 
-		{ onWindowClosed, [ ParentWindow, _EventContext ] } ->
+		{ onWindowClosed, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
 			gui:destruct_window( ParentWindow );
 
@@ -861,8 +862,7 @@ update_rendering( GUIState=#my_gui_state{ opengl_state=GLState,
 	% Then call OpenGL accordingly:
 	render( NewGLState ),
 
-	GUIState#my_gui_state{ opengl_state=NewGLState,
-						   time=NewTime }.
+	GUIState#my_gui_state{ opengl_state=NewGLState, time=NewTime }.
 
 
 

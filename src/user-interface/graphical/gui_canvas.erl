@@ -180,7 +180,7 @@
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
 
 
--type myriad_instance_id() :: gui:myriad_instance_id().
+-type myriad_instance_id() :: gui_id:myriad_instance_id().
 
 -type dimensions() :: gui:dimensions().
 -type window() :: gui:window().

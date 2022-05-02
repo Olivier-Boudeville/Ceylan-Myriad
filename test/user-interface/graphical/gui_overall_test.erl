@@ -307,7 +307,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 	receive
 
-		{ onButtonClicked, [ RenderShapeButton, Context ] } ->
+		{ onButtonClicked,
+				[ RenderShapeButton, _RenderShapeButtonId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
@@ -324,7 +325,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ RenderMECButton, Context ] } ->
+		{ onButtonClicked, [ RenderMECButton, _RenderMECButtonId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
@@ -341,7 +342,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ AddButton, Context ] } ->
+		{ onButtonClicked, [ AddButton, _AddButtonId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
@@ -357,7 +358,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ PasteImageButton, Context ] } ->
+		{ onButtonClicked,
+					[ PasteImageButton, _PasteImageButtonId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
@@ -374,7 +376,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked, [ ClearCanvasButton, Context ] } ->
+		{ onButtonClicked,
+				[ ClearCanvasButton, _ClearCanvasButtonId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
@@ -389,7 +392,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked, [ QuitButton, Context ] } ->
+		{ onButtonClicked, [ QuitButton, _QuitButtonId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt( "Quit test button ~ts has been clicked "
@@ -403,7 +406,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			gui:stop();
 
 
-		{ onRepaintNeeded, [ Canvas, Context ] } ->
+		{ onRepaintNeeded, [ Canvas, _CanvasId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
@@ -418,7 +421,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 								render_count=RenderCount+1 } );
 
 
-		{ onResized, [ Canvas, NewSize, Context ] } ->
+		{ onResized, [ Canvas, _CanvasId, NewSize, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
@@ -433,7 +436,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 								render_count=RenderCount+1 } );
 
 
-		{ onWindowClosed, [ MainFrame, Context ] } ->
+		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
 
 			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 				"(~ts), test success.",

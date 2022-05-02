@@ -209,7 +209,7 @@ gui_main_loop( GUIState ) ->
 	receive
 
 
-		{ onRepaintNeeded, [ GLCanvas, _EventContext ] } ->
+		{ onRepaintNeeded, [ GLCanvas, _GLCanvasId, _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
 			%                       [ GLCanvas ] ),
@@ -238,7 +238,8 @@ gui_main_loop( GUIState ) ->
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
 		%
-		{ onResized, [ _ParentFrame, _NewParentSize, _EventContext ] } ->
+		{ onResized, [ _ParentFrame, _ParentFrameId, _NewParentSize,
+					   _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Resizing of the parent window "
 			%   "(main frame) to ~w detected.", [ NewParentSize ] ),
@@ -262,7 +263,7 @@ gui_main_loop( GUIState ) ->
 		% The most suitable first location to initialise OpenGL, as making a GL
 		% context current requires a shown window:
 		%
-		{ onShown, [ ParentFrame, _EventContext ] } ->
+		{ onShown, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
 				"(initial size of ~w).", [ gui:get_size( ParentFrame ) ] ),
@@ -276,7 +277,7 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( InitGUIState );
 
 
-		{ onWindowClosed, [ ParentFrame, _EventContext ] } ->
+		{ onWindowClosed, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
 			cleanup_opengl( GUIState ),
 			trace_utils:info( "Main frame closed, test success." ),
 

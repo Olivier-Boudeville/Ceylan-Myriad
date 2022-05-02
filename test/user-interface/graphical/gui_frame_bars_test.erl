@@ -43,8 +43,8 @@
 
 
 -type my_test_state() :: { frame(), toolbar() }.
-% Here the main loop just has to remember the popup menu to activate in case of
-% right click on the main frame, and this frame whose closing is awaited for.
+% Here the main loop just has to remember the created toolbar, and this frame
+% whose closing is awaited for.
 
 
 
@@ -67,7 +67,12 @@ run_gui_test() ->
 	gui:push_field_status_text( "First field", StatusBar, _FieldIndex=1 ),
 	gui:push_field_status_text( "Second, wider field", StatusBar, _FIndex=2 ),
 
-	Toolbar = gui:create_toolbar( Frame ),
+	ToolbarStyle = [ top, dockable, flat, text ],
+	%ToolbarStyle = bottom,
+	%ToolbarStyle = left,
+	%ToolbarStyle = right,
+
+	Toolbar = gui:create_toolbar( Frame, _ToobarId=undefined, ToolbarStyle ),
 
 	NewBitmap = gui_image:get_standard_bitmap( new_bitmap ),
 	gui:add_tool( Toolbar, _Id=my_new_id, _Label="New", NewBitmap,
@@ -82,8 +87,8 @@ run_gui_test() ->
 				  "Warning short help" ),
 
 	InformationBitmap = gui_image:get_standard_bitmap( information_bitmap ),
-	gui:add_tool( Toolbar, my_information_id, "Information", InformationBitmap,
-				  "Information short help" ),
+	gui:add_tool( Toolbar, my_information_id, "Information",
+				  InformationBitmap, "Information short help" ),
 
 	AddBookmarkBitmap = gui_image:get_standard_bitmap( add_bookmark_bitmap ),
 	gui:add_tool( Toolbar, my_add_bookmark_id, "Add Bookmark",
@@ -92,6 +97,7 @@ run_gui_test() ->
 	DelBookmarkBitmap = gui_image:get_standard_bitmap( delete_bookmark_bitmap ),
 	gui:add_tool( Toolbar, my_del_bookmark_id, "Delete Bookmark",
 				  DelBookmarkBitmap, "Delete bookmark short help" ),
+
 
 	% Some bitmaps may be unavailable (yielding a bitmap.IsOk() wxWidgets Assert
 	% failure):
@@ -108,26 +114,27 @@ run_gui_test() ->
 				   cross_mark_bitmap, missing_image_bitmap, new_bitmap,
 				   file_open_bitmap, file_save_bitmap, file_save_as_bitmap,
 				   file_delete_bitmap, copy_bitmap, cut_bitmap,
-				   paste_bitmap, undo_bitmap,
-				   redo_bitmap, plus_bitmap, minus_bitmap, close_bitmap,
+				   paste_bitmap, undo_bitmap, redo_bitmap,
+				   plus_bitmap, minus_bitmap, close_bitmap,
 				   quit_bitmap, find_bitmap, find_and_replace_bitmap,
 				   full_screen_bitmap, edit_bitmap, hard_disk_bitmap,
 				   floppy_bitmap, cdrom_bitmap, removable_bitmap,
 				   backend_logo_bitmap ],
 
-	[ gui:add_tool( Toolbar, undefined, "Generic label",
-					gui_image:get_standard_bitmap( N ), "Generic help" )
-											|| N <- OtherNames ],
+	[ gui:add_tool( Toolbar, undefined, "Other label",
+		gui_image:get_standard_bitmap( N ), "Other short help" )
+													|| N <- OtherNames ],
 
 	% May not be necessary in this case:
 	gui:update_tools( Toolbar ),
 
-	% Not subscribing here to any toolbar-related events.
-
-	gui:show( Frame ),
+	[ wxControl:connect( Toolbar, E ) || E <- [command_menu_selected, command_tool_rclicked, tool_dropdown ] ],
 
 	gui:subscribe_to_events( [
-		{ [ onMouseRightButtonReleased, onWindowClosed ], Frame } ] ),
+		{ [ onMouseRightButtonReleased, onWindowClosed ], Frame },
+		{ [ onCommandToolEntered ], Toolbar } ] ),
+
+	gui:show( Frame ),
 
 	test_main_loop( _InitialState={ Frame, Toolbar } ).
 
@@ -145,14 +152,16 @@ test_main_loop( State={ Frame, _Toolbar } ) ->
 
 	receive
 
-		{ onWindowClosed, [ Frame, _Context ] } ->
+		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui:destruct_window( Frame ),
 			gui:stop();
 
+		% quit_bitmap
+
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~p.", [ Other ] ),
+									 "message: ~w.", [ Other ] ),
 			test_main_loop( State )
 
 	end.
