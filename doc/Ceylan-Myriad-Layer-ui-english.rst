@@ -116,7 +116,9 @@ For Classical 2D Applications
 Base GUI Backend
 ****************
 
-This interface used to rely on (now deprecated) ``gs``, and now relies on `wx <http://erlang.org/doc/man/wx.html>`_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_, which belongs to the same category as GTK or Qt). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been an option.
+This interface used to rely on (now deprecated) ``gs``, and now relies on `wx <http://erlang.org/doc/man/wx.html>`_ [#]_ [#]_ (a port of `wxWidgets <https://www.wxwidgets.org/>`_, which belongs to the same category as GTK or Qt). For the base dialogs, `Zenity <https://en.wikipedia.org/wiki/Zenity>`_ could have been an option.
+
+.. [#] What are the main differences between MyriadGUI and wx? The MyriadGUI API is backend-agnostic (no trace of wx when using it), a bit higher-level (ex: user-defined widget identifiers being atoms rather than integer constants; relying on more flexible options; integrating a few workarounds), and based on fewer modules. However, as a strict subset of wx, it is by design less complete - yet it is quite easy to extend on a per-need basis.
 
 .. [#] Maybe later it will be based on HTML 5 (although we are not big fans of light clients and of using browsers for everything), possibly relying some day for that on the `Nitrogen web framework <http://nitrogenproject.com/>`_, on `N2O <https://ws.n2o.dev/>`_ or on any other relevant HTML5 framework.
 
