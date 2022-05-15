@@ -152,8 +152,8 @@ run_actual_test() ->
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame( "MyriadGUI OpenGL 2D Test",
-								  _Size={ 500, 250 } ),
+	MainFrame =
+		gui:create_frame( "MyriadGUI OpenGL 2D Test", _Size={ 500, 250 } ),
 
 	% Using default GL attributes:
 	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame ),
@@ -213,7 +213,7 @@ gui_main_loop( GUIState ) ->
 		% For a window, the first resizing event happens (just) before its
 		% onShown one:
 		%
-		{ onResized, [ _ParentWindow, _ParentWindowId, _NewParentSize, 
+		{ onResized, [ _ParentWindow, _ParentWindowId, _NewParentSize,
 					   _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Resizing of the parent window "
