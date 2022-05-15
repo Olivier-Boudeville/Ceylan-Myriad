@@ -1170,6 +1170,7 @@
 -type gui_object_key() :: gui_event:gui_object_key().
 -type event_type() :: gui_event:event_type().
 -type gui_event_object() :: gui_event:gui_event_object().
+-type event_subscriber() :: gui_event:event_subscriber().
 
 -type text_display_option() :: gui_image:text_display_option().
 
@@ -1276,8 +1277,8 @@ create_gui_environment( Services ) ->
 	WxEnv = wx:get_env(),
 
 	% The event table must be initialised in the spawned process, so that
-	% connect/n can use the right actual, first-level subscriber PID, which is
-	% the internal main loop in charge of the message routing and conversion:
+	% connect/n can use the right actual, first-level subscriber PID/name, which
+	% is the internal main loop in charge of the message routing and conversion:
 
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
 								  [ WxServer, WxEnv ] ),
@@ -1381,7 +1382,7 @@ set_debug_level( DebugLevel ) ->
 %   - second its identifier (any user-specified name, otherwise the lower-level
 % backend one), as a gui_id:id()
 %   - ends with an event context record (see gui_event:event_context())
-% concentrating all available information
+% concentrating all available information, should it be needed
 %
 % In-between, there may be key information for that type of event inserted (like
 % the new dimensions for a onResized event, to have readily available instead of
@@ -1393,16 +1394,16 @@ set_debug_level( DebugLevel ) ->
 %
 % By default the corresponding event will not be transmitted upward in the
 % widget hierarchy (as this event will be expected to be processed for good by
-% the subscriber(s) it has been dispatched to), unless the propagate_event/1
+% the subscriber(s) it has been dispatched to) - unless the propagate_event/1
 % function is called from one of them.
 %
 % Note that, at least when creating the main frame, if having subscribed to
 % onShown and onResized, on creation first a onResized event will be received by
-% the subscriber (typically for a 20x20 size), then a onShow event.
+% the subscriber (typically for a 20x20 size), then a onShown event.
 %
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) ->
-	subscribe_to_events( SubscribedEvents, _SubscriberPid=self() ).
+	subscribe_to_events( SubscribedEvents, _SubscriberDesignator=self() ).
 
 
 
@@ -1413,8 +1414,9 @@ subscribe_to_events( SubscribedEvents ) ->
 %
 % Refer to subscribe_to_events/1 for further information.
 %
--spec subscribe_to_events( event_subscription_spec(), pid() ) -> void().
-subscribe_to_events( SubscribedEvents, SubscriberPid )
+-spec subscribe_to_events( event_subscription_spec(), event_subscriber() ) ->
+											void().
+subscribe_to_events( SubscribedEvents, SubscriberDesignator )
 										when is_list( SubscribedEvents ) ->
 
 	LoopPid = get_main_loop_pid(),
@@ -1427,13 +1429,13 @@ subscribe_to_events( SubscribedEvents, SubscriberPid )
 	% may be shown before being connected to the main loop, and thus it will not
 	% notify the GUI main loop it is shown...
 
-	LoopPid !
-		{ subscribeToEvents, [ SubscribedEvents, SubscriberPid ], self() },
+	LoopPid ! { subscribeToEvents, [ SubscribedEvents, SubscriberDesignator ],
+				self() },
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:info_fmt( "User process ~w subscribing process ~w to ~w "
 			"regarding following events:~n~p.",
-			[ self(), SubscriberPid, LoopPid, SubscribedEvents ] ) ),
+			[ self(), SubscriberDesignator, LoopPid, SubscribedEvents ] ) ),
 
 	receive
 
@@ -1442,9 +1444,9 @@ subscribe_to_events( SubscribedEvents, SubscriberPid )
 
 	end;
 
-subscribe_to_events( SubscribedEvent, SubscriberPid )
+subscribe_to_events( SubscribedEvent, SubscriberDesignator )
 								when is_tuple( SubscribedEvent ) ->
-	subscribe_to_events( [ SubscribedEvent ], SubscriberPid ).
+	subscribe_to_events( [ SubscribedEvent ], SubscriberDesignator ).
 
 
 
@@ -1453,14 +1455,15 @@ subscribe_to_events( SubscribedEvent, SubscriberPid )
 %
 -spec unsubscribe_from_events( event_unsubscription_spec() ) -> void().
 unsubscribe_from_events( UnsubscribedEvents ) ->
-	unsubscribe_from_events( UnsubscribedEvents, _SubscriberPid=self() ).
+	unsubscribe_from_events( UnsubscribedEvents, _SubscriberDesignator=self() ).
 
 
 % @doc Subscribes the specified process from the specified kind of events (event
 % type and emitter), like {onWindowClosed, MyFrame}.
 %
--spec unsubscribe_from_events( event_unsubscription_spec(), pid() ) -> void().
-unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
+-spec unsubscribe_from_events( event_unsubscription_spec(),
+							   event_subscriber() ) -> void().
+unsubscribe_from_events( UnsubscribedEvents, SubscribedDesignator )
 										when is_list( UnsubscribedEvents ) ->
 
 	LoopPid = get_main_loop_pid(),
@@ -1470,13 +1473,13 @@ unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
 	% (refer to subscribe_to_events/2 for an explanation)
 
 	LoopPid !
-		{ unsubscribeFromEvents, [ UnsubscribedEvents, SubscribedPid ],
+		{ unsubscribeFromEvents, [ UnsubscribedEvents, SubscribedDesignator ],
 		  self() },
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:info_fmt( "User process ~w unsubscribing process ~w to ~w "
 			"regarding following events:~n~p.",
-			[ self(), SubscribedPid, LoopPid, SubscribedEvents ] ) ),
+			[ self(), SubscribedDesignator, LoopPid, SubscribedEvents ] ) ),
 
 	receive
 
@@ -1485,9 +1488,9 @@ unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
 
 	end;
 
-unsubscribe_from_events( UnsubscribedEvents, SubscribedPid )
-						when is_tuple( UnsubscribedEvents ) ->
-	unsubscribe_from_events( [ UnsubscribedEvents ], SubscribedPid ).
+unsubscribe_from_events( UnsubscribedEvents, SubscribedDesignator )
+									when is_tuple( UnsubscribedEvents ) ->
+	unsubscribe_from_events( [ UnsubscribedEvents ], SubscribedDesignator ).
 
 
 
@@ -1654,7 +1657,7 @@ set_tooltip( Window, Label ) ->
 % @doc Sets the current process as the controller of the specified GUI object.
 -spec set_as_controller( gui_object() ) -> gui_object().
 set_as_controller( Object ) ->
-	set_controller( Object, self() ).
+	set_controller( Object, _ControllerPid=self() ).
 
 
 
