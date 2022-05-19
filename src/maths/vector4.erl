@@ -26,7 +26,6 @@
 % Creation date: Sunday, October 10, 2021.
 
 
-
 % @doc Module implementing the support for <b>4D vectors</b>.
 %
 % See also:
@@ -117,7 +116,6 @@
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
 
--type point4() :: point4().
 -type any_point4() :: any_point4().
 
 

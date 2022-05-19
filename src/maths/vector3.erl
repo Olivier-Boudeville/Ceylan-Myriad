@@ -129,7 +129,6 @@
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
 
--type point3() :: point3().
 -type any_point3() :: any_point3().
 
 

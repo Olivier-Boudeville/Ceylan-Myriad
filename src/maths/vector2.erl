@@ -26,7 +26,6 @@
 % Creation date: Saturday, October 9, 2021.
 
 
-
 % @doc Module implementing the support for <b>2D vectors</b>.
 %
 % See also:
@@ -122,7 +121,6 @@
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
 
--type point2() :: point2().
 -type any_point2() :: any_point2().
 
 
