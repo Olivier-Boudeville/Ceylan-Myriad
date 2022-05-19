@@ -174,10 +174,15 @@
 % @doc Returns a list of known {color_name, ColorDefinition} associations.
 -spec get_colors() -> [ { color_by_name(), any_color_by_decimal() } ].
 get_colors() ->
+	[
 
-	% First, "functional" (RGBA) colors (from wx.hrl):
-	[ { window_frame_color,
-		wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ) },
+	  % Initially, first, "functional" (RGBA) colors were listed (from wx.hrl),
+	  % yet it must be avoided as the next call would require wx to be
+	  % initialised and its environment to be available, which is not the case
+	  % generally:
+	  %
+	  %{ window_frame_color,
+	  %  wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ) },
 
 	  % No less than 141 RGB color definitions follow, based on
 	  %www.uni-hamburg.de/Wiss/FB/15/Sustainability/schneider/gnuplot/colors.htm
