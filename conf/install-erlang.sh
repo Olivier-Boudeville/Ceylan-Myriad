@@ -53,6 +53,7 @@ fi
 # Now we keep the MD5 sums of the sources of former Erlang/OTP versions, in
 # order to be able to switch back and forth more easily:
 
+erlang_md5_for_25_0="3c4c9da083f2a6b89aa1766415339d0c"
 erlang_md5_for_24_3="eb6dd8eaee8c97cf076eda0091abbc4c"
 erlang_md5_for_24_2="ebb6e865738255ae31ff680cc96d71a9"
 erlang_md5_for_24_1_5="39927334547d84ef0dc9e3a39b5c32ff"
@@ -74,15 +75,15 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable (an update of the next two lines is needed):
-erlang_version="24.3"
-erlang_md5="${erlang_md5_for_24_3}"
+erlang_version="25.0"
+erlang_md5="${erlang_md5_for_25_0}"
 
 
 # Candidate version (ex: either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="24.2"
-erlang_md5_candidate="${erlang_md5_for_24_2}"
+erlang_version_candidate="24.3"
+erlang_md5_candidate="${erlang_md5_for_24_3}"
 
 base_install_dir="${HOME}/Software/Erlang"
 
