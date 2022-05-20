@@ -40,8 +40,8 @@
 
 
 % Color-related operations.
--export([ get_colors/0, get_color/1, get_color_for_gnuplot/1,
-		  get_random_colors/1 ]).
+-export([ get_colors/0, get_color/1, get_logical_color/1,
+		  get_color_for_gnuplot/1, get_random_colors/1 ]).
 
 
 -include("gui_color.hrl").
@@ -57,6 +57,11 @@
 
 
 -type color_by_name() :: atom().
+% A color, as designated by an atom (ex: 'aliceblue').
+
+-type logical_color() :: color_by_name().
+% A logicial color, like 'window_frame_color'.
+
 
 -type color_by_decimal() :: { Red :: byte(), Green :: byte(), Blue :: byte() }.
 % RGB (integer, in [0;255]) color; no alpha coordinate here.
@@ -141,7 +146,7 @@
 % Useful for direct image manipulation.
 
 
--export_type([ color_by_name/0,
+-export_type([ color_by_name/0, logical_color/0,
 
 			   color_by_decimal/0, color_by_decimal_with_alpha/0,
 			   any_color_by_decimal/0,
@@ -183,6 +188,7 @@ get_colors() ->
 	  %
 	  %{ window_frame_color,
 	  %  wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ) },
+	  % See now get_logical_color/1.
 
 	  % No less than 141 RGB color definitions follow, based on
 	  %www.uni-hamburg.de/Wiss/FB/15/Sustainability/schneider/gnuplot/colors.htm
@@ -352,6 +358,18 @@ get_color( ColorName ) when is_atom( ColorName ) ->
 			Color
 
 	end.
+
+
+
+% @doc Returns the RGB definition of the specified logical color.
+%
+% Note that the underlying GUI backend must be initialised and usable by this
+% process first.
+%
+-spec get_logical_color( logical_color() ) -> color_by_decimal_with_alpha().
+% Requires a process-level wx environment:
+get_logical_color( _LogicalColor=window_frame_color ) ->
+	  wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ).
 
 
 
