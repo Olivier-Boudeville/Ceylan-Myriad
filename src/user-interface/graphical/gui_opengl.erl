@@ -75,7 +75,8 @@
 % pure OpenGL ones (ex: ?GL_DOUBLEBUFFER). Of course we prefer the latter ones.
 %
 % Note that almost all OpenGL operations require that an OpenGL context already
-% exists, otherwise an no_gl_context error report is expected to be triggered.
+% exists, otherwise an no_gl_context error report is expected to be triggered
+% (ex: {'_egl_error_',5086,no_gl_context}).
 
 % Note: with OpenGL, angles are in degrees.
 
