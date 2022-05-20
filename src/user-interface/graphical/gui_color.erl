@@ -40,7 +40,7 @@
 
 
 % Color-related operations.
--export([ get_colors/0, get_color/1, get_logical_color/1,
+-export([ get_colors/0, get_color/1, get_logical_colors/0, get_logical_color/1,
 		  get_color_for_gnuplot/1, get_random_colors/1 ]).
 
 
@@ -57,7 +57,7 @@
 
 
 -type color_by_name() :: atom().
-% A color, as designated by an atom (ex: 'aliceblue').
+% A color, as designated by an atom (ex: 'aliceblue'); possibly a logical color.
 
 -type logical_color() :: color_by_name().
 % A logicial color, like 'window_frame_color'.
@@ -348,16 +348,35 @@ get_color( Color={ _R, _G, _B } ) ->
 	% Optimised for this most frequent form (first pattern):
 	Color;
 
+% Covers the logical colors as well:
+get_color( _LogicalColor=window_frame_color ) ->
+	wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME );
+
 get_color( ColorName ) when is_atom( ColorName ) ->
-	case proplists:get_value( ColorName, get_colors() ) of
+	case lists:member( ColorName, get_logical_colors() ) of
 
-		undefined ->
-			throw( { unknown_color, ColorName } );
+		true ->
+			get_logical_color( ColorName );
 
-		Color ->
-			Color
+		false ->
+			case proplists:get_value( ColorName, get_colors() ) of
+
+				undefined ->
+					throw( { unknown_color, ColorName } );
+
+				Color ->
+					Color
+
+			end
 
 	end.
+
+
+
+% @doc Returns the known logical colors.
+-spec get_logical_colors() -> [ logical_color() ].
+get_logical_colors() ->
+	[ window_frame_color ].
 
 
 
@@ -369,7 +388,10 @@ get_color( ColorName ) when is_atom( ColorName ) ->
 -spec get_logical_color( logical_color() ) -> color_by_decimal_with_alpha().
 % Requires a process-level wx environment:
 get_logical_color( _LogicalColor=window_frame_color ) ->
-	  wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ).
+	wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME );
+
+get_logical_color( Other ) ->
+	throw( { unknown_logical_color, Other } ).
 
 
 
