@@ -260,7 +260,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.23
+MYRIAD_VERSION := 1.0.24
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -1388,12 +1388,12 @@ ERLANG_COMPILER_WARNING_OPT += $(ERLANG_COMPILER_BASE_WARNING_OPT)
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
 ERLANG_COMPILER_OPT_BASE +=                \
-    $(ERLANG_COMPILER_GENERAL_OPT) $(INC)     \
-    $(ERLANG_COMPILER_EXEC_TARGET_OPT)        \
-    $(ERLANG_COMPILER_DEBUG_OPT)              \
-    $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT) \
-    $(ERLANG_COMPILER_WARNING_OPT)            \
-    $(ERLANG_COMPILER_OPT_DEBUG)
+	$(ERLANG_COMPILER_GENERAL_OPT) $(INC)     \
+	$(ERLANG_COMPILER_EXEC_TARGET_OPT)        \
+	$(ERLANG_COMPILER_DEBUG_OPT)              \
+	$(ERLANG_COMPILER_NATIVE_COMPILATION_OPT) \
+	$(ERLANG_COMPILER_WARNING_OPT)            \
+	$(ERLANG_COMPILER_OPT_DEBUG)
 
 
 # Base options to compile parse transforms themselves (and their helper
