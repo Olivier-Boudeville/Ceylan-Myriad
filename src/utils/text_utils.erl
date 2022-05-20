@@ -91,7 +91,7 @@
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 
-		  format/2, bin_format/2, atom_format/2, format/3,
+		  format/2, format_failsafe/1, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
 		  format_as_comment/4,
@@ -1839,6 +1839,37 @@ requires_value( _ ) ->
 
 -endif. % exec_target_is_production
 
+
+
+% @doc Formats specified values in a fail-safe manner; returns a string meant to
+% correspond as much as possible to these values (rather than diagnosing any
+% problem detected as format/2); cannot fail (so that for example a badly
+% formatted log cannot crash anymore its emitter process).
+%
+% Typically useful as a failsafe solution, should a previous format string be
+% detected as faulty (ex: containing '~s' where '~ts' should have been used).
+%
+-spec format_failsafe( format_values() ) -> ustring().
+format_failsafe( Values ) ->
+	format_failsafe( Values, Values, _AccFmtStr=[] ).
+
+
+% (helper)
+format_failsafe( _Vs=[], Values, AccFmtStr ) ->
+	FmtStr = lists:flatten( lists:reverse( AccFmtStr ) ),
+	io_lib:format( FmtStr, Values );
+
+format_failsafe( _Vs=[ V | T ], Values, AccFmtStr ) ->
+	VFmt = case is_string( V ) of
+
+		true ->
+			"~ts";
+
+		false ->
+			"~p"
+
+	end,
+	format_failsafe( T, Values, [ VFmt | AccFmtStr ] ).
 
 
 
@@ -4342,7 +4373,7 @@ center_string( String, Width, PaddingChar ) ->
 % Taken from http://lethain.com
 % (see distinguishing-strings-from-lists-in-erlang)
 %
-% Note: something like [ $e, 1, 2, $r ] is deemed to be a string.
+% Note: something like [$e, 1, 2, $r] is deemed to be a string.
 %
 -spec is_string( term() ) -> boolean().
 is_string( [] ) ->
@@ -4359,7 +4390,7 @@ is_string( _Other ) ->
 
 % Alternate, less efficient version:
 %is_string( Term ) when is_list( Term ) ->
-%			lists:all( fun erlang:is_integer/1, Term );
+%    lists:all( fun erlang:is_integer/1, Term );
 %
 %is_string( _Term ) -> false.
 
