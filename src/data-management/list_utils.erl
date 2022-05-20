@@ -605,17 +605,22 @@ group_by( Count, List, Acc ) ->
 
 
 % @doc Returns a list whose elements are the ones of the specified list, except
-% that they are unique (all their duplicates have been removed).
+% that they are unique (all their next duplicates have been removed).
 %
 % No specific order is respected in the returned list.
 %
 % Ex: if L = [1,2,3,2,2,4,5,5,4,6,6,5], then uniquify(L) is:
-% [3,6,2,5,1,4].
+% [1,2,3,4,5,6].
 %
 -spec uniquify( list() ) -> list().
 uniquify( List ) ->
 	% There is probably a more efficient way of doing the same:
-	sets:to_list( sets:from_list( List ) ).
+	% (previously order was not respected in the returned list)
+	%sets:to_list( sets:from_list( List ) ).
+
+	% Now the following is readily available, and preserves order:
+	lists:uniq( List ).
+
 
 
 % @doc Returns a list whose elements are the ones of the specified list, except
