@@ -210,8 +210,8 @@ ensure_pids( Other ) ->
 
 % @doc Ensures that the specified argument is a proplist, that is a list of
 % atoms or of pairs whose first argument is an atom: encloses any of such
-% element in a list of its own if not already a list, or check that this list is
-% only populated as expected; respects any original order.
+% element in a list of its own if not already a list, or checks that this list
+% is only populated as expected; respects any original order.
 %
 -spec ensure_proplist( maybe_list( atom() | { atom(), any() } ) ) -> proplist().
 ensure_proplist( Atom ) when is_atom( Atom ) ->
@@ -227,7 +227,7 @@ ensure_proplist( Other ) ->
 	throw( { not_proplistable, Other } ).
 
 
-% Not using here ensure_proplist/1 are nested lists not permitted:
+% Not using here ensure_proplist/1, as nested lists are not permitted:
 ensure_proplist_helper( _L=[], Acc ) ->
 	lists:reverse( Acc );
 
