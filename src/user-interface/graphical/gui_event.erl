@@ -124,7 +124,7 @@
 % purpose, to facilitate any integration with upper layers.
 
 
-% Thus an actual wx:wx_object():
+% Thus an actual wx:wx_object(), i.e. a #wx_ref record:
 -type gui_event_object() :: wx:wxEvent().
 % A Myriad GUI object (therefore the reference to a full-blown backend process -
 % not a mere datastructure like an event record received as a message) holding
@@ -2053,9 +2053,9 @@ propagate_event( GUIEventObject ) ->
 	% The skip semantics is a bit unclear.
 	% 'skip' is strangely here a synonymous of 'propagate'.
 
-	% If no skip/* is used, or if skip/2 is used with { skip, false } (does not
+	% If no skip/* is used, or if skip/2 is used with {skip, false} (does not
 	% seem much useful), the event will not be processed any more (therefore if
-	% connect uses the { skip, true } option, any further event handlers will be
+	% connect uses the {skip, true} option, any further event handlers will be
 	% called).
 
 	% Default of skip/1 is having skip=true, so same as:
