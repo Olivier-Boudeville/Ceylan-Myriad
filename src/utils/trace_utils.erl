@@ -742,7 +742,8 @@ get_severity_for( Other ) ->
 
 
 % @doc Tells whether the specified severity belongs to the error-like ones
-% (typically the ones that must never be missed).
+% (typically the ones that must never be missed by the user, hence are echoed on
+% the console as well).
 %
 -spec is_error_like( trace_severity() ) -> boolean().
 is_error_like( Severity ) ->
