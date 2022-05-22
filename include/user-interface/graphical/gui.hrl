@@ -80,7 +80,8 @@
 	% The overall splitter window (child of the split overall one):
 	splitter_window :: gui:splitter_window(),
 
-	mode,
+	% Tells whether this is an horizontal or a vertical splitter:
+	orientation :: gui:orientation(),
 
 	% The top or left pane (if any):
 	first_pane :: maybe( gui:window() ),
