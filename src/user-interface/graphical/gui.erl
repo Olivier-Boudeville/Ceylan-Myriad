@@ -351,7 +351,7 @@
 		  set_foreground_color/2, set_background_color/2,
 		  set_font/2, set_font/3,
 		  set_sizer/2, add_stretch_spacer/1, layout/1, fit_to_sizer/2,
-		  create_splitter/3, create_splitter/4, set_unique_pane/2,
+		  create_splitter/4, create_splitter/5, set_unique_pane/2,
 		  show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
 		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
@@ -548,7 +548,7 @@
 
 -type orientation() :: 'vertical' | 'horizontal'.
 % A vertical orientation means piling elements top to bottom for example, while
-% an horizontal means left to right, for example.
+% an horizontal one means left to right, for example.
 
 
 -type fps() :: count().
@@ -725,7 +725,7 @@
 % A style of toolbar.
 
 
--type tool() :: wx:wx_object().
+-type tool() :: wx_object().
 % A tool, as an element of a toolbar.
 
 
@@ -1182,6 +1182,7 @@
 -type backend_id() :: gui_id:backend_id().
 
 -type wx_object() :: wx:wx_object().
+% Shorthand for a wx_object(), that is a #wx_ref record.
 
 
 % GUI-specific defines:
@@ -1365,14 +1366,14 @@ set_debug_level( DebugLevel ) ->
 
 % @doc Subscribes the current, calling process to the specified kind of events,
 % resulting in corresponding MyriadGUI callback messages being received whenever
-% such events occur, like:
-% {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
+% such events occur, typically like:
+%    {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
 %
 % The MyriadGUI general convention is to send to the subscribers a message as a
 % tuple whose:
 %
 % - first element corresponds to the type of event having happened, as an atom
-% (ex: 'onWindowClosed', 'onResized', etc.)
+% (ex: 'onWindowClosed', 'onResized', 'onShown', etc.)
 %
 % - second is a list whose elements depend on the type of this event
 %
@@ -1384,18 +1385,20 @@ set_debug_level( DebugLevel ) ->
 %   - ends with an event context record (see gui_event:event_context())
 % concentrating all available information, should it be needed
 %
-% In-between, there may be key information for that type of event inserted (like
-% the new dimensions for a onResized event, to have readily available instead of
-% having to peek in the associated event context).
+% In-between, there may be additional key information for that type of event
+% inserted (like the new dimensions for a onResized event, to have readily
+% available instead of having to peek in the associated event context).
 %
 % So typical messages may be:
 %  - {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
 %  - {onResized, [WidgetGUIObject, WidgetId, NewSize, EventContext]}
 %
-% By default the corresponding event will not be transmitted upward in the
-% widget hierarchy (as this event will be expected to be processed for good by
-% the subscriber(s) it has been dispatched to) - unless the propagate_event/1
-% function is called from one of them.
+% By default, subscribing to an event type implies that the corresponding events
+% will *not* be transmitted upward in the widget hierarchy (as this event will
+% be expected to be processed for good by the subscriber(s) it has been
+% dispatched to) - unless the propagate_event/1 function is called from one of
+% them. Therefore subscribing to an event and not propagating it may disable key
+% GUI behaviours (such as the automatic resizing of widgets).
 %
 % Note that, at least when creating the main frame, if having subscribed to
 % onShown and onResized, on creation first a onResized event will be received by
@@ -1584,6 +1587,9 @@ event_interception_callback( WxEventRecord=#wx{
 % default handling to take place. The command events are, however, normally not
 % propagated as usually a single command such as a button click or menu item
 % selection must only be processed by one handler.
+%
+% To enable event propagation, it is recommended to use the 'propagate_event'
+% option when subscribing to this event type rather than calling this function.
 %
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
@@ -2134,26 +2140,28 @@ fit_to_sizer( Window, Sizer ) ->
 
 
 
-% @doc Creates a splitter in the specified window, based on the specified sash
-% gravity and pane size, returning a corresponding splitter record so that the
-% up to two subwindows can be declared afterwards.
+% @doc Creates a splitter of the specified orientation, in the specified window,
+% based on the specified sash gravity and pane size, returning a corresponding
+% splitter record so that the up to two subwindows can be declared afterwards.
 %
--spec create_splitter( window(), sash_gravity(), size() ) -> splitter().
-create_splitter( ParentWindow, SashGravity, PaneSize ) ->
-	create_splitter( ParentWindow, SashGravity, PaneSize,
+-spec create_splitter( window(), orientation(), sash_gravity(), size() ) ->
+								splitter().
+create_splitter( ParentWindow, Orientation, SashGravity, PaneSize ) ->
+	create_splitter( ParentWindow, Orientation, SashGravity, PaneSize,
 					 system_utils:get_operating_system_type() ).
 
 
-% @doc Creates a splitter in the specified window, based on the specified sash
-% gravity and pane size, according to the specified OS, returning a
-% corresponding splitter record so that the up to two subwindows can be declared
-% afterwards.
+% @doc Creates a splitter of the specified orientation, in the specified window,
+% based on the specified sash gravity and pane size, according to the specified
+% OS, returning a corresponding splitter record so that the up to two subwindows
+% can be declared afterwards.
 %
--spec create_splitter( window(), sash_gravity(), size(), os_type() ) ->
-													splitter().
-create_splitter( ParentWindow, SashGravity, PaneSize, OSType ) ->
+-spec create_splitter( window(), orientation(), sash_gravity(), size(),
+					   os_type() ) -> splitter().
+create_splitter( ParentWindow, Orientation, SashGravity, PaneSize, OSType ) ->
 
-   WxStyle = case OSType of
+	check_orientation( Orientation ),
+	WxStyle = case OSType of
 
 		{ _OSFamily=unix, _OSName=darwin } ->
 			?wxSP_LIVE_UPDATE bor ?wxSP_3DSASH;
@@ -2166,13 +2174,26 @@ create_splitter( ParentWindow, SashGravity, PaneSize, OSType ) ->
 
 		end,
 
-	SplitterWin = wxSplitterWindow:new( ParentWindow, [ {style, WxStyle } ] ),
+	SplitterWin = wxSplitterWindow:new( ParentWindow, [ { style, WxStyle } ] ),
 
 	wxSplitterWindow:setSashGravity( SplitterWin, SashGravity ),
 
 	wxSplitterWindow:setMinimumPaneSize( SplitterWin, PaneSize ),
 
-	#splitter{ splitter_window=SplitterWin }.
+	#splitter{ splitter_window=SplitterWin,
+			   orientation=Orientation }.
+
+
+% (helper)
+-spec check_orientation( term() ) -> void().
+check_orientation( vertical ) ->
+	ok;
+
+check_orientation( horizontal ) ->
+	ok;
+
+check_orientation( Other ) ->
+	throw( { invalid_orientation, Other } ).
 
 
 
