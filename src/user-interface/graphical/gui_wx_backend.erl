@@ -27,13 +27,13 @@
 
 
 % @doc Gathers all elements relative to the (Erlang) <b>wx backend</b> version
-% 2.1 (itself based on WxWidgets).
+% 2.1 (itself based on [wxWidgets](https://www.wxwidgets.org/)).
 %
 -module(gui_wx_backend).
 
 
 
-% Usually a class of WxWidgets is represented as a module in Erlang.
+% Usually a class of wxWidgets is represented as a module in Erlang.
 %
 % GUI objects (e.g. widgets) correspond to (Erlang) processes. They are
 % designated here with gui_object() values, which are references, either to wx
@@ -126,7 +126,7 @@
 
 % Additional widgets
 %
-% Some types of widgets seem to be lacking to WxWidgets, such as canvases that
+% Some types of widgets seem to be lacking to wxWidgets, such as canvases that
 % would be first-level citizens (ex: able to emit and receive events, when
 % needing repaint or being resized).
 %
@@ -149,6 +149,7 @@
 % Conversions from MyriadGUI to wx:
 -export([ to_wx_object_type/1,
 		  to_wx_event_type/1, from_wx_event_type/1,
+		  to_wx_connect_options/1,
 		  to_wx_debug_level/1,
 
 		  window_style_to_bitmask/1, get_window_options/1,
@@ -707,8 +708,6 @@ from_wx_event_type( aux2_dclick ) ->
 
 from_wx_event_type( Other ) ->
 	throw( { unsupported_wx_event_type, Other } ).
-
-
 
 
 %
@@ -1660,7 +1659,8 @@ connect( EventSource, EventTypeOrTypes ) ->
 %
 % Said otherwise: requests the specified widget to send to the current process a
 % message-based event when the specified kind of event happens, overriding its
-% default behaviour based on specified options.
+% default behaviour based on specified options (the propagate_event option
+% allows adding an handler rather than replacing the former one).
 %
 % Note:
 %  - apparently registering more than once a given type has no effect (not N
@@ -1712,7 +1712,7 @@ to_wx_connect_option( P={ id, _I } ) ->
 to_wx_connect_option( { last_id, I } ) ->
 	{ lastId, I };
 
-to_wx_connect_option( propagate ) ->
+to_wx_connect_option( propagate_event ) ->
 	{ skip, true };
 
 to_wx_connect_option( T=callback ) ->
