@@ -32,7 +32,7 @@
 % <b>its logging</b>, so that in all cases exactly one (and the most
 % appropriate) logging system is used, even when lower-level libraries are
 % involved (designed to operate with or without an advanced trace system), and
-% with no change of source code to be operated on these user modules.
+% with no change in the source code of these user modules to be operated.
 %
 % It is useful to provide native, integrated, higher-level logging to basic
 % libraries (ex: Ceylan-LEEC, see [http://leec.esperide.org]), should their user
@@ -48,7 +48,7 @@
 %  trace_utils)
 %
 %  - Ceylan-Traces: trace_bridging_test.erl (using then our advanced trace
-%  system) ; for example:
+%  system); for example:
 %
 %   BridgeSpec = trace_bridge:get_bridge_spec( _MyEmitterName="MyBridgeTester",
 %     _MyCateg="MyTraceCategory",
@@ -80,6 +80,7 @@
 		  register/1, register_if_not_already/1,
 		  get_bridge_info/0, set_bridge_info/1,
 		  set_application_timestamp/1, unregister/0,
+		  wait_bridge_sync/0,
 
 		  debug/1, debug_fmt/2,
 		  info/1, info_fmt/2,
@@ -119,8 +120,8 @@
 % Not special-casing the 'void' severity, as not used frequently enough.
 
 
--type user_bridge_info() :: { TraceCategory :: any_string(),
-							  BridgePid :: bridge_pid() }.
+-type user_bridge_info() ::
+		{ TraceCategory :: any_string(), BridgePid :: bridge_pid() }.
 % Bridging information typically specified by the user.
 
 
@@ -481,19 +482,69 @@ send_bridge( SeverityType, Message,
 			 _BridgeInfo={ TraceEmitterName, TraceEmitterCategorization,
 						   BinLocation, BridgePid, AppTimestamp } ) ->
 
+	%trace_utils:debug_fmt( "Sending '~ts', with ~ts severity, to ~w.",
+	%                       [ Message, SeverityType, BridgePid ] ),
+
 	AppTimestampString = text_utils:term_to_binary( AppTimestamp ),
 
-	TimestampText = text_utils:string_to_binary(
-						time_utils:get_textual_timestamp() ),
+	BinTimestampText = time_utils:get_bin_textual_timestamp(),
 
-	BridgePid ! { send,
-		[ _TraceEmitterPid=self(),
-		  TraceEmitterName,
-		  TraceEmitterCategorization,
-		  AppTimestampString,
-		  _Time=TimestampText,
-		  _Location=BinLocation,
-		  _MessageCategorization='Trace Bridge',
-		  %_MessageCategorization=uncategorized,
-		  _Priority=trace_utils:get_priority_for( SeverityType ),
-		  _Message=text_utils:string_to_binary( Message ) ] }.
+	MessageCategorization = 'Trace Bridge',
+
+	Msg = [ _TraceEmitterPid=self(),
+			TraceEmitterName,
+			TraceEmitterCategorization,
+			AppTimestampString,
+			BinTimestampText,
+			_Location=BinLocation,
+			MessageCategorization,
+			%_MessageCategorization=uncategorized,
+			_Priority=trace_utils:get_priority_for( SeverityType ),
+			_Message=text_utils:string_to_binary( Message ) ],
+
+	% Error-like messages are echoed on the console and made synchronous, to
+	% ensure that they are not missed:
+	%
+	case trace_utils:is_error_like( SeverityType ) of
+
+		true ->
+			% A bit of interleaving:
+			BridgePid ! { sendSync, Msg, self() },
+
+			trace_utils:echo( Message, SeverityType, MessageCategorization,
+							  BinTimestampText ),
+
+			wait_bridge_sync();
+
+		false ->
+			% Unechoed fire and forget here:
+			BridgePid ! { send, Msg }
+
+	end.
+
+
+
+% @doc Waits for the bridge to report that a trace synchronisation has been
+% completed.
+%
+% (helper)
+%
+-spec wait_bridge_sync() -> void().
+wait_bridge_sync() ->
+	receive
+
+		% A little breach of opaqueness; any actual bridge aggregator shall
+		% acknowledge a trace sending with such a message:
+		%
+		% (we could have recorded in the bridge the module name of the
+		% aggregator at hand - e.g. class_TraceAggregator - and called an
+		% exported function thereof to determine the acknowledgement message to
+		% expect, like in 'class_TraceAggregator:get_acknowledge_message() ->
+		% {wooper_result, trace_aggregator_synchronised}' yet, at least
+		% currently, we prefer being bound only by message structures, not by
+		% module calls)
+		%
+		{ wooper_result, trace_aggregator_synchronised } ->
+			ok
+
+	end.
