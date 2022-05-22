@@ -174,6 +174,7 @@
 		  get_epoch_timestamp/0, get_epoch_milliseconds_since_year_0/0,
 		  is_timestamp/1, check_timestamp/1, check_maybe_timestamp/1,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
+		  get_bin_textual_timestamp/0,
 		  get_user_friendly_textual_timestamp/1,
 		  get_french_textual_timestamp/1,
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
@@ -217,6 +218,7 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 -type microseconds() :: unit_utils:microseconds().
 -type milliseconds() :: unit_utils:milliseconds().
@@ -1058,6 +1060,19 @@ get_textual_timestamp() ->
 get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	text_utils:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 					   [ Year, Month, Day, Hour, Minute, Second ] ).
+
+
+
+% @doc Returns a binary string corresponding to the current timestamp, like:
+% <<"2009/9/1 11:46:53">>.
+%
+% Note that the display order here is YY-MM-DD (same as when specifying the
+% timestamp), as opposed to DD-MM-YY, which is maybe more usual.
+%
+-spec get_bin_textual_timestamp() -> bin_string().
+get_bin_textual_timestamp() ->
+	text_utils:string_to_binary( get_textual_timestamp() ).
+
 
 
 % @doc Returns a string corresponding to the specified timestamp in a
