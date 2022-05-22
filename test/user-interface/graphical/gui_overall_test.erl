@@ -528,7 +528,7 @@ render_shapes( Canvas ) ->
 	polygon:render( MyUprightSquare, Canvas ),
 
 
-	UnitRoots = linear_2D:get_roots_of_unit( _N=7, _StartingAngle=math:pi()/4),
+	UnitRoots = linear_2D:get_roots_of_unit( _N=7, _StartingAngle=math:pi()/4 ),
 
 	ScaledRoundRoots = [ point2:roundify( point2:scale( P, _Factor=50 ) )
 									|| P <- UnitRoots ],
