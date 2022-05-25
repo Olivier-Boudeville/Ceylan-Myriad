@@ -82,10 +82,37 @@
 % Settings of an OTP supervisor.
 
 
+
+-type otp_state() :: term().
+% The state of a process implementing an OTP behaviour, typically the gen_server
+% one.
+
+
+-type continue_data() :: term().
+% Data specified to be used in a continue callback.
+
+
+-type termination_reason() :: 'normal' | 'shutdown' | { 'shutdown', term() }
+							| term().
+% Denotes the reason for stopping.
+
+
+-type handle_return() ::
+	{ 'noreply', otp_state() }
+  | { 'noreply', otp_state(), time_out() }
+  | { 'noreply', otp_state(), 'hibernate' }
+  | { 'noreply', otp_state(), { 'continue', continue_data() } }
+  | { 'stop', termination_reason(), otp_state() }.
+% The type corresponding to the values to be returned by
+% gen_server:handle_{cast,continue,info}/2.
+
+
 -export_type([ application_name/0, string_application_name/0,
 			   any_application_name/0, restart_type/0,
 			   supervisor_pid/0, worker_pid/0,
-			   application_run_context/0, supervisor_settings/0 ]).
+			   application_run_context/0, supervisor_settings/0,
+			   otp_state/0, continue_data/0, termination_reason/0,
+			   handle_return/0 ]).
 
 
 -export([ get_string_application_name/1,
@@ -130,6 +157,8 @@
 -type app_spec() :: list_table:list_table().
 % Entries corresponding to the application specifications (see
 % [https://erlang.org/doc/man/app.html]) read from a .app file.
+
+-type time_out() :: time_utils:time_out().
 
 
 -record( app_info, {
