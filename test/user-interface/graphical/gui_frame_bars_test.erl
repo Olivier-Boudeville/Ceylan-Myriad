@@ -121,18 +121,18 @@ run_gui_test() ->
 				   floppy_bitmap, cdrom_bitmap, removable_bitmap,
 				   backend_logo_bitmap ],
 
-	[ gui:add_tool( Toolbar, undefined, "Other label",
+	[ gui:add_tool( Toolbar, _ToolId=N,
+		text_utils:atom_to_string( N ),
 		gui_image:get_standard_bitmap( N ), "Other short help" )
 													|| N <- OtherNames ],
 
 	% May not be necessary in this case:
 	gui:update_tools( Toolbar ),
 
-	[ wxControl:connect( Toolbar, E ) || E <- [command_menu_selected, command_tool_rclicked, tool_dropdown ] ],
-
 	gui:subscribe_to_events( [
 		{ [ onMouseRightButtonReleased, onWindowClosed ], Frame },
-		{ [ onCommandToolEntered ], Toolbar } ] ),
+		{ [ onToolbarEntered, onItemSelected, onToolRightClicked ],
+		  Toolbar } ] ),
 
 	gui:show( Frame ),
 
@@ -146,18 +146,35 @@ run_gui_test() ->
 % (i.e. CloseFrame).
 %
 -spec test_main_loop( my_test_state() ) -> no_return().
-test_main_loop( State={ Frame, _Toolbar } ) ->
+test_main_loop( State={ Frame, Toolbar } ) ->
 
 	trace_utils:info( "Test main loop running..." ),
 
 	receive
 
+		{ onToolbarEntered, [ Toolbar, _ToolbarId, _EventContext ] } ->
+			trace_utils:debug_fmt( "Entering toolbar ~w.", [ Toolbar ] ),
+			test_main_loop( State );
+
+		{ onItemSelected, [ Toolbar, quit_bitmap, _EventContext ] } ->
+			trace_utils:debug(
+				"Toolbar quit item selected, quitting; test success." ),
+			gui:destruct_window( Frame ),
+			gui:stop();
+
+		{ onItemSelected, [ Toolbar, ToolId, _EventContext ] } ->
+			trace_utils:debug_fmt( "Toolbar item ~p selected.", [ ToolId ] ),
+			test_main_loop( State );
+
+		{ onToolRightClicked, [ Toolbar, ToolId, _EventContext ] } ->
+			trace_utils:debug_fmt( "Toolbar item ~p right-clicked.",
+								   [ ToolId ]  ),
+			test_main_loop( State );
+
 		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui:destruct_window( Frame ),
 			gui:stop();
-
-		% quit_bitmap
 
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "

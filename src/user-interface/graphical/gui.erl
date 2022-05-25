@@ -321,7 +321,7 @@
 -export([ subscribe_to_events/1, subscribe_to_events/2,
 		  unsubscribe_from_events/1, unsubscribe_from_events/2,
 		  register_event_callback/3, register_event_callback/4,
-		  propagate_event/1 ]).
+		  trap_event/1 ]).
 
 
 
@@ -377,7 +377,7 @@
 
 % Panels:
 -export([ create_panel/0, create_panel/1, create_panel/2, create_panel/4,
-		  create_panel/5, create_panel/6 ]).
+		  create_panel/5, create_panel/6, destruct_panel/1 ]).
 
 
 % Buttons:
@@ -401,6 +401,10 @@
 
 
 % Toolbars:
+%
+% Notable emitted events: command_event_type(), that is onToolbarEntered,
+% onItemSelected, onToolRightClicked.
+%
 -export([ add_control/2, add_tool/5, add_tool/7, update_tools/1 ]).
 
 
@@ -458,7 +462,6 @@
 
 
 % Menus:
-%-export([ create_top_menu/0, create_popup_menu/0 ]).
 -export([ create_menu/0, create_menu/1, create_menu/2,
 		  destruct_menu/1, get_standard_item_names/0,
 		  add_item/2, add_item/3, append_item/2,
@@ -469,8 +472,7 @@
 		  add_separator/1,
 		  set_menu_item_status/3, remove_menu_item/2,
 		  create_menu_bar/0, add_menu/3, set_menu_bar/2,
-		  activate_popup_menu/2
-		]).
+		  activate_popup_menu/2 ]).
 
 
 % Input support:
@@ -818,16 +820,74 @@
 % Tells whether a menu item is enabled or disabled (greyed out).
 
 
+% See gui_menu_test.erl to inspect them; we listed here only a subset of the
+% standard menu items, which are quite numerous:
+%
 -type standard_menu_item_name_id() :: 'new_menu_item'
 									| 'open_menu_item'
+									| 'close_menu_item'
 									| 'save_menu_item'
+									| 'save_as_menu_item'
+									| 'revert_to_saved_menu_item'
+									| 'undelete_menu_item'
+									| 'print_menu_item'
+									| 'preview_menu_item'
+									| 'revert_menu_item'
+									| 'edit_menu_item'
+									| 'file_menu_item'
+									| 'properties_menu_item'
+									| 'cut_menu_item'
+									| 'copy_menu_item'
+									| 'paste_menu_item'
+									| 'delete_menu_item'
 									| 'clear_menu_item'
+									| 'find_menu_item'
+									| 'select_all_menu_item'
+									| 'replace_menu_item'
+									| 'replace_all_menu_item'
+									| 'clear_menu_item'
+									| 'ok_menu_item'
+									| 'cancel_menu_item'
+									| 'apply_menu_item'
+									| 'yes_menu_item'
+									| 'no_menu_item'
+									| 'add_menu_item'
+									| 'remove_menu_item'
+									| 'convert_menu_item'
+									| 'execute_menu_item'
+									| 'home_menu_item'
+									| 'refresh_menu_item'
+									| 'stop_menu_item'
+									| 'index_menu_item'
+									| 'select_color_menu_item'
+									| 'select_font_menu_item'
+									| 'forward_menu_item'
+									| 'backward_menu_item'
+									| 'up_menu_item'
+									| 'down_menu_item'
+									| 'top_menu_item'
+									| 'bottom_menu_item'
+									| 'first_menu_item'
+									| 'last_menu_item'
+									| 'jump_to_menu_item'
+									| 'info_menu_item'
+									| 'zoom_factor_one'
+									| 'zoom_factor_fit'
+									| 'zoom_factor_in'
+									| 'zoom_factor_out'
 									| 'undo_menu_item'
 									| 'redo_menu_item'
 									| 'help_menu_item'
+									| 'preferences_menu_item'
 									| 'about_menu_item'
+									| 'floppy_menu_item'
+									| 'hard_disk_menu_item'
+									| 'network_menu_item'
 									| 'exit_menu_item'.
 % The name identifiers of the standard menu items.
+%
+% Such standard items are specifically managed (ex: they have a corresponding
+% icon automatically associated).
 
 
 -type menu_item_id() :: standard_menu_item_name_id() | id().
@@ -1036,10 +1096,10 @@
 -type connect_opt() ::   { 'id', integer() }
 					   | { 'last_id', integer() }
 
-						 % Processes the event and also propagate it upward in
-						 % the widget hierarchy:
+						 % Processes the event but does not propagate it upward
+						 % in the widget hierarchy afterwards:
 						 %
-					   | 'propagate'
+					   | 'trap_event'
 
 						 % Triggers handle_sync_event/3, see the wx_object
 						 % behaviour:
@@ -1394,13 +1454,16 @@ set_debug_level( DebugLevel ) ->
 %  - {onResized, [WidgetGUIObject, WidgetId, NewSize, EventContext]}
 %
 % By default, subscribing to an event type implies that the corresponding events
-% will *not* be transmitted upward in the widget hierarchy (as this event will
-% be expected to be processed for good by the subscriber(s) it has been
-% dispatched to) - unless the propagate_event/1 function is called from one of
-% them. Therefore subscribing to an event and not propagating it may disable key
-% GUI behaviours (such as the automatic resizing of widgets).
+% will still be transmitted upward in the widget hierarchy, so that other event
+% handlers can apply; if wanting to disable this propagation - so that this
+% event is considered to be processed for good by the current handler - either
+% specify here the 'trap_event' subscription option or, later, in the
+% corresponding event handler, call the trap_event/1 function.
 %
-% Note that, at least when creating the main frame, if having subscribed to
+% Note that trapping non-command events may prevent GUI updates done by the
+% backend.
+%
+% Note also that, at least when creating the main frame, if having subscribed to
 % onShown and onResized, on creation first a onResized event will be received by
 % the subscriber (typically for a 20x20 size), then a onShown event.
 %
@@ -1571,32 +1634,29 @@ event_interception_callback( WxEventRecord=#wx{
 
 
 
-% @doc Propagates the specified event actual GUI object (not a mere event
-% record) upward in the widget hierarchy (instead of the default, which is
-% considering that it has been processed once for all, and thus shall not be
-% propagated further).
+% @doc Traps the specified event: does not propagate it upward in the widget
+% hierarchy, thus considering that it has been processed once for all by the
+% current handler.
 %
-% Events are handled in order, from bottom to top in the widgets hierarchy, by
+% Events are handled in order, from bottom to top in the widget hierarchy, by
 % the last subscribed handler first. Most of the events have default event
 % handler(s) set.
 %
 % As a result, calling this function results in having the corresponding event
-% handled by the other handler(s) afterwards.
+% not be handled by the other handler(s) afterwards.
 %
-% In general, it is recommended to propagate all non-command events to allow the
-% default handling to take place. The command events are, however, normally not
-% propagated as usually a single command such as a button click or menu item
-% selection must only be processed by one handler.
-%
-% To enable event propagation, it is recommended to use the 'propagate_event'
-% option when subscribing to this event type rather than calling this function.
+% In general, it is recommended to let all non-command events propagate, in
+% order to allow the default handling of the backend GUI to take place. The
+% command events are, however, normally not propagated, as usually a single
+% command such as a button click or menu item selection must only be processed
+% by one handler; this trap_event/1 function may then be useful.
 %
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
--spec propagate_event( gui_event_object() ) -> void().
-propagate_event( GUIEventObject ) ->
-	gui_event:propagate_event( GUIEventObject ).
+-spec trap_event( gui_event_object() ) -> void().
+trap_event( GUIEventObject ) ->
+	gui_event:trap_event( GUIEventObject ).
 
 
 
@@ -2674,6 +2734,13 @@ create_panel( Parent, X, Y, Width, Height, Options ) ->
 
 
 
+% @doc Destructs the specified panel.
+-spec destruct_panel( panel() ) -> void().
+destruct_panel( Panel ) ->
+	wxPanel:destroy( Panel ).
+
+
+
 % Button section.
 
 
@@ -2965,9 +3032,15 @@ add_control( Toolbar, Control ) ->
 %
 -spec add_tool( toolbar(), id(), label(), bitmap(), help_info() ) -> void().
 add_tool( Toolbar, Id, Label, Bitmap, ShortHelp ) ->
+
 	Opts = case ShortHelp of
-		undefined -> [];
-		_ -> [ { shortHelp, ShortHelp } ]
+
+		undefined ->
+			[];
+
+		_ ->
+			[ { shortHelp, ShortHelp } ]
+
 	end,
 
 	wxToolBar:addTool( Toolbar, declare_id( Id ), Label, Bitmap, Opts ).
@@ -3377,8 +3450,31 @@ destruct_menu( Menu ) ->
 % @doc Returns a list of the names of the standard menu item identifiers.
 -spec get_standard_item_names() -> [ name_id() ].
 get_standard_item_names() ->
-	[ new_menu_item, open_menu_item, save_menu_item, clear_menu_item,
-	  undo_menu_item, redo_menu_item, help_menu_item, about_menu_item,
+	% Must correspond to standard_menu_item_name_id():
+	[ new_menu_item, open_menu_item, close_menu_item,
+	  save_menu_item, save_as_menu_item,
+	  revert_to_saved_menu_item,
+	  undelete_menu_item,
+	  print_menu_item, preview_menu_item,
+	  revert_menu_item, edit_menu_item, file_menu_item, properties_menu_item,
+	  cut_menu_item, copy_menu_item, paste_menu_item, delete_menu_item,
+	  find_menu_item, select_all_menu_item,
+	  replace_menu_item, replace_all_menu_item,
+	  clear_menu_item,
+	  ok_menu_item, cancel_menu_item, apply_menu_item,
+	  yes_menu_item, no_menu_item,
+	  add_menu_item, remove_menu_item,
+	  convert_menu_item, execute_menu_item,
+	  home_menu_item, refresh_menu_item, stop_menu_item, index_menu_item,
+	  select_color_menu_item, select_font_menu_item,
+	  forward_menu_item, backward_menu_item,
+	  up_menu_item, down_menu_item,
+	  top_menu_item, bottom_menu_item, first_menu_item, last_menu_item,
+	  jump_to_menu_item, info_menu_item,
+	  zoom_factor_one, zoom_factor_fit, zoom_factor_in, zoom_factor_out,
+	  undo_menu_item, redo_menu_item, help_menu_item, preferences_menu_item,
+	  about_menu_item,
+	  floppy_menu_item, hard_disk_menu_item, network_menu_item,
 	  exit_menu_item ].
 
 
@@ -3390,12 +3486,27 @@ add_item( Menu, MenuItemLabel ) ->
 	add_item( Menu, _MenuItemId=undefined, MenuItemLabel ).
 
 
+
 % @doc Creates a menu item based on the specified identifier and label, adds it
 % to the specified menu, and returns that menu item.
 %
 -spec add_item( menu(), menu_item_id(), menu_item_label() ) -> menu_item().
-add_item( Menu, MenuItemId, MenuItemLabel ) ->
-	wxMenu:append( Menu, resolve_id( MenuItemId ), MenuItemLabel ).
+add_item( Menu, MenuItemId, MenuItemLabel ) when is_integer( MenuItemId ) ->
+	wxMenu:append( Menu, declare_id( MenuItemId ), MenuItemLabel );
+
+add_item( Menu, MenuItemId, MenuItemLabel ) when is_atom( MenuItemId ) ->
+	% We must not declare a standard name identifier (as it already is):
+	BackendId = case lists:member( MenuItemId, get_standard_item_names() ) of
+
+		true ->
+			resolve_id( MenuItemId );
+
+		false ->
+			declare_id( MenuItemId )
+
+	end,
+	wxMenu:append( Menu, BackendId, MenuItemLabel ).
+
 
 
 % @doc Appends the specified already-created menu item (not a mere label) to the

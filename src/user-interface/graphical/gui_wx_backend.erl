@@ -515,14 +515,17 @@ to_wx_event_type( onMouseRightButtonDoubleClicked ) ->
 	right_dclick;
 
 
-% Menu section:
-to_wx_event_type( onMenuItemSelected ) ->
+% Menu/tool(bar) section:
+to_wx_event_type( onItemSelected ) ->
 	command_menu_selected;
 
 
-% Tool section:
-to_wx_event_type( onCommandToolEntered ) ->
+% Tool(bar) section:
+to_wx_event_type( onToolbarEntered ) ->
 	command_tool_enter;
+
+to_wx_event_type( onToolRightClicked ) ->
+	command_tool_rclicked;
 
 
 % Window section:
@@ -634,13 +637,19 @@ from_wx_event_type( right_dclick ) ->
 	onMouseRightButtonDoubleClicked;
 
 
-% Menu section:
+% Menu section/tool(bar) section:
 from_wx_event_type( command_menu_selected ) ->
-	onMenuItemSelected;
+	onItemSelected;
 
-% Tool section:
+
+% Tool(bar) section:
+
 from_wx_event_type( command_tool_enter ) ->
-	onCommandToolEntered;
+	onToolbarEntered;
+
+from_wx_event_type( command_tool_rclicked ) ->
+	onToolRightClicked;
+
 
 % Window section:
 from_wx_event_type( paint ) ->
@@ -1107,11 +1116,152 @@ to_wx_menu_item_maybe_id( _MenuId=new_menu_item ) ->
 to_wx_menu_item_maybe_id( _MenuId=open_menu_item ) ->
 	?wxID_OPEN;
 
+to_wx_menu_item_maybe_id( _MenuId=close_menu_item ) ->
+	?wxID_CLOSE;
+
 to_wx_menu_item_maybe_id( _MenuId=save_menu_item ) ->
 	?wxID_SAVE;
 
+to_wx_menu_item_maybe_id( _MenuId=save_as_menu_item ) ->
+	?wxID_SAVEAS;
+
+to_wx_menu_item_maybe_id( _MenuId=revert_to_saved_menu_item ) ->
+	?wxID_REVERT_TO_SAVED;
+
+to_wx_menu_item_maybe_id( _MenuId=undelete_menu_item ) ->
+	?wxID_UNDELETE;
+
+to_wx_menu_item_maybe_id( _MenuId=print_menu_item ) ->
+	?wxID_PRINT;
+
+to_wx_menu_item_maybe_id( _MenuId=preview_menu_item ) ->
+	?wxID_PREVIEW;
+
+to_wx_menu_item_maybe_id( _MenuId=revert_menu_item ) ->
+	?wxID_REVERT;
+
+to_wx_menu_item_maybe_id( _MenuId=edit_menu_item ) ->
+	?wxID_EDIT;
+
+to_wx_menu_item_maybe_id( _MenuId=file_menu_item ) ->
+	?wxID_FILE;
+
+to_wx_menu_item_maybe_id( _MenuId=properties_menu_item ) ->
+	?wxID_PROPERTIES;
+
+to_wx_menu_item_maybe_id( _MenuId=cut_menu_item ) ->
+	?wxID_CUT;
+
+to_wx_menu_item_maybe_id( _MenuId=copy_menu_item ) ->
+	?wxID_COPY;
+
+to_wx_menu_item_maybe_id( _MenuId=paste_menu_item ) ->
+	?wxID_PASTE;
+
+to_wx_menu_item_maybe_id( _MenuId=delete_menu_item ) ->
+	?wxID_DELETE;
+
+to_wx_menu_item_maybe_id( _MenuId=find_menu_item ) ->
+	?wxID_FIND;
+
+to_wx_menu_item_maybe_id( _MenuId=select_all_menu_item ) ->
+	?wxID_SELECTALL;
+
+to_wx_menu_item_maybe_id( _MenuId=replace_menu_item ) ->
+	?wxID_REPLACE;
+
+to_wx_menu_item_maybe_id( _MenuId=replace_all_menu_item ) ->
+	?wxID_REPLACE_ALL;
+
 to_wx_menu_item_maybe_id( _MenuId=clear_menu_item ) ->
 	?wxID_CLEAR;
+
+to_wx_menu_item_maybe_id( _MenuId=ok_menu_item ) ->
+	?wxID_OK;
+
+to_wx_menu_item_maybe_id( _MenuId=cancel_menu_item ) ->
+	?wxID_CANCEL;
+
+to_wx_menu_item_maybe_id( _MenuId=apply_menu_item ) ->
+	?wxID_APPLY;
+
+to_wx_menu_item_maybe_id( _MenuId=yes_menu_item ) ->
+	?wxID_YES;
+
+to_wx_menu_item_maybe_id( _MenuId=no_menu_item ) ->
+	?wxID_NO;
+
+to_wx_menu_item_maybe_id( _MenuId=add_menu_item ) ->
+	?wxID_ADD;
+
+to_wx_menu_item_maybe_id( _MenuId=convert_menu_item ) ->
+	?wxID_CONVERT;
+
+to_wx_menu_item_maybe_id( _MenuId=execute_menu_item ) ->
+	?wxID_EXECUTE;
+
+to_wx_menu_item_maybe_id( _MenuId=remove_menu_item ) ->
+	?wxID_REMOVE;
+
+to_wx_menu_item_maybe_id( _MenuId=home_menu_item ) ->
+	?wxID_HOME;
+
+to_wx_menu_item_maybe_id( _MenuId=refresh_menu_item ) ->
+	?wxID_REFRESH;
+
+to_wx_menu_item_maybe_id( _MenuId=stop_menu_item ) ->
+	?wxID_STOP;
+
+to_wx_menu_item_maybe_id( _MenuId=index_menu_item ) ->
+	?wxID_INDEX;
+
+to_wx_menu_item_maybe_id( _MenuId=select_color_menu_item ) ->
+	?wxID_SELECT_COLOR;
+
+to_wx_menu_item_maybe_id( _MenuId=select_font_menu_item ) ->
+	?wxID_SELECT_FONT;
+
+to_wx_menu_item_maybe_id( _MenuId=forward_menu_item ) ->
+	?wxID_FORWARD;
+
+to_wx_menu_item_maybe_id( _MenuId=backward_menu_item ) ->
+	?wxID_BACKWARD;
+
+to_wx_menu_item_maybe_id( _MenuId=up_menu_item ) ->
+	?wxID_UP;
+
+to_wx_menu_item_maybe_id( _MenuId=down_menu_item ) ->
+	?wxID_DOWN;
+
+to_wx_menu_item_maybe_id( _MenuId=top_menu_item ) ->
+	?wxID_TOP;
+
+to_wx_menu_item_maybe_id( _MenuId=bottom_menu_item ) ->
+	?wxID_BOTTOM;
+
+to_wx_menu_item_maybe_id( _MenuId=first_menu_item ) ->
+	?wxID_FIRST;
+
+to_wx_menu_item_maybe_id( _MenuId=last_menu_item ) ->
+	?wxID_LAST;
+
+to_wx_menu_item_maybe_id( _MenuId=jump_to_menu_item ) ->
+	?wxID_JUMP_TO;
+
+to_wx_menu_item_maybe_id( _MenuId=info_menu_item ) ->
+	?wxID_INFO;
+
+to_wx_menu_item_maybe_id( _MenuId=zoom_factor_one ) ->
+	?wxID_ZOOM_100;
+
+to_wx_menu_item_maybe_id( _MenuId=zoom_factor_fit ) ->
+	?wxID_ZOOM_FIT;
+
+to_wx_menu_item_maybe_id( _MenuId=zoom_factor_in ) ->
+	?wxID_ZOOM_IN;
+
+to_wx_menu_item_maybe_id( _MenuId=zoom_factor_out ) ->
+	?wxID_ZOOM_OUT;
 
 to_wx_menu_item_maybe_id( _MenuId=undo_menu_item ) ->
 	?wxID_UNDO;
@@ -1122,8 +1272,20 @@ to_wx_menu_item_maybe_id( _MenuId=redo_menu_item ) ->
 to_wx_menu_item_maybe_id( _MenuId=help_menu_item ) ->
 	?wxID_HELP;
 
+to_wx_menu_item_maybe_id( _MenuId=preferences_menu_item ) ->
+	?wxID_PREFERENCES;
+
 to_wx_menu_item_maybe_id( _MenuId=about_menu_item ) ->
 	?wxID_ABOUT;
+
+to_wx_menu_item_maybe_id( _MenuId=floppy_menu_item ) ->
+	?wxID_FLOPPY;
+
+to_wx_menu_item_maybe_id( _MenuId=hard_disk_menu_item ) ->
+	?wxID_HARDDISK;
+
+to_wx_menu_item_maybe_id( _MenuId=network_menu_item ) ->
+	?wxID_NETWORK;
 
 to_wx_menu_item_maybe_id( _MenuId=exit_menu_item ) ->
 	?wxID_EXIT;
@@ -1655,12 +1817,14 @@ connect( EventSource, EventTypeOrTypes ) ->
 
 
 % @doc Subscribes the current process to the specified type(s) of events
-% regarding the specified object (receiving for that a message).
+% regarding the specified object; this process will thus receive a gui_event()
+% message whenever a corresponding event occurs.
 %
 % Said otherwise: requests the specified widget to send to the current process a
-% message-based event when the specified kind of event happens, overriding its
-% default behaviour based on specified options (the propagate_event option
-% allows adding an handler rather than replacing the former one).
+% message-based event when the specified kind of event happens, knowing that by
+% default this event will also be propagated upward in the widget hierarchy,
+% through the corresponding event handlers (the trap_event option allows not to
+% propagate this event).
 %
 % Note:
 %  - apparently registering more than once a given type has no effect (not N
@@ -1701,28 +1865,36 @@ connect( SourceGUIObject, EventType, Options ) ->
 -spec to_wx_connect_options( [ connect_opt() ] ) ->
 								[ wx_event_handler_option() ].
 to_wx_connect_options( Opts ) ->
-	[ to_wx_connect_option( O ) || O <- Opts ].
+	% Default is letting events propagate (not trapping):
+	to_wx_connect_options( Opts, _TrapEvent=false, _Acc=[] ).
 
 
-% @doc Converts a MyriadGUI connect option into a wx one.
--spec to_wx_connect_option( connect_opt() ) -> wx_event_handler_option().
-to_wx_connect_option( P={ id, _I } ) ->
-	P;
+% (helper)
+to_wx_connect_options( _Opts=[], _TrapEvent=false, Acc ) ->
+	% Thus let propagate:
+	[ _Propagate={ skip, true } | Acc ];
 
-to_wx_connect_option( { last_id, I } ) ->
-	{ lastId, I };
+% TrapEvent=true is implicit here, not skip wanted:
+to_wx_connect_options( _Opts=[], _TrapEvent=true, Acc ) ->
+	Acc;
 
-to_wx_connect_option( propagate_event ) ->
-	{ skip, true };
+to_wx_connect_options( _Opts=[ P={ id, _I } | T ], TrapEvent, Acc ) ->
+	to_wx_connect_options( T, TrapEvent, [ P | Acc ] );
 
-to_wx_connect_option( T=callback ) ->
-	T;
+to_wx_connect_options( _Opts=[ { last_id, I } | T ], TrapEvent, Acc ) ->
+	to_wx_connect_options( T, TrapEvent, [ { lastId, I } | Acc ] );
 
-to_wx_connect_option( P={ callback, _F } ) ->
-	P;
+to_wx_connect_options( _Opts=[ trap_event | T ], _TrapEvent, Acc ) ->
+	to_wx_connect_options(  T, _NowTrapEvent=true, Acc );
 
-to_wx_connect_option( { user_data, T } ) ->
-	{ userData, T }.
+to_wx_connect_options( _Opts=[ callback | T ], TrapEvent, Acc ) ->
+	to_wx_connect_options( T, TrapEvent, [ callback | Acc ] );
+
+to_wx_connect_options( _Opts=[ P={ callback, _F } | T ], TrapEvent, Acc ) ->
+	to_wx_connect_options( T, TrapEvent, [ P | Acc ] );
+
+to_wx_connect_options( _Opts=[ { user_data, D } | T ], TrapEvent, Acc ) ->
+	to_wx_connect_options( T, TrapEvent, [ { userData, D } | Acc ] ).
 
 
 

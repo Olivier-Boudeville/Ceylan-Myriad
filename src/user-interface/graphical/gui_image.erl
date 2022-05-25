@@ -27,7 +27,7 @@
 
 
 % @doc Gathers all elements relative to the management of <b>images</b>
-% (including bitmaps, icons, etc.), for loading, modifying, saving, scaling,
+% (including bitmaps, icons, etc.), for loadaing, modifying, saving, scaling,
 % resizing, clipping, etc., in link to MyriadGUI, and in a platform-independent
 % way.
 %

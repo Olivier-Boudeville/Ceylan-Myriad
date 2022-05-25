@@ -119,6 +119,7 @@
 -type count() :: basic_utils:count().
 
 -type wx_id() :: gui_wx_backend:wx_id().
+% Just an integer.
 
 -type bijective_table( F, S ) :: bijective_table:bijective_table( F, S ).
 
