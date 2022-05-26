@@ -68,8 +68,8 @@
 
 
 % Main event primitives:
--export([ start_main_event_loop/2, trap_event/1, wx_to_myriad_event/1,
-		  set_instance_state/3, match/2 ]).
+-export([ start_main_event_loop/2, trap_event/1, propagate_event/1,
+		  wx_to_myriad_event/1, set_instance_state/3, match/2 ]).
 
 
 % Stringification:
@@ -134,8 +134,8 @@
 % information about an event passed to a callback or member function.
 %
 % Unless explicitly trapped by such a function (see the 'trap_event'
-% subscription option, or the gui:trap_event/1 function), it is propagated
-% upward in the widget hierarchy.
+% subscription option, or the gui:trap_event/1 function), most event types are
+% propagated upward in the widget hierarchy.
 
 
 
@@ -209,17 +209,39 @@
 					| mouse_event_type()
 					| keyboard_event_type().
 % A type of MyriadGUI event, independent from any backend.
+%
+% Unless specified otherwise, by default the events of a given type will
+% propagate: subscribing to them does not preclude them from being sent also to
+% the parent event handlers in the widget hierarchy.
+%
+% For some other, less numerous event types (ex: onWindowClosed), they will be
+% by default trapped (their events will not be propagated, so they will be
+% processed only by the user event handler).
+%
+% For the event types that propagate by default, specifying the 'trap_event'
+% subscription option, or calling the trap_event/1 function in one's event
+% handler, will disable that propagation.
+%
+% Conversely, for the event types that are trapped by default, specifying the
+% 'propagate_event' subscription option or calling the propagate_event/1
+% function in one's event handler will enable that propagation.
 
 
--type window_event_type() :: 'onRepaintNeeded'
-						   | 'onButtonClicked'
-						   | 'onResized'
-						   | 'onWindowClosed'
-						   | 'onShown'.
+-type window_event_type() ::
+		'onRepaintNeeded'
+	  | 'onButtonClicked'
+	  | 'onResized'
+
+		% Trapped by default, to avoid race condition in termination procedures
+		% between user handlers and backend ones:
+		%
+	  | 'onWindowClosed'
+
+	  | 'onShown'.
 % A type of event possibly emitted by a window.
 %
 % Note that resizing a widget (typically a canvas) implies receiving also a
-% onRepaintNeeded; so a canvas may subscribe only to onRepaintNeeded (not
+% onRepaintNeeded event; so a canvas may subscribe only to onRepaintNeeded (not
 % necessarily to onResized).
 
 
@@ -237,7 +259,10 @@
 	  | 'onToolRightClicked'.
 % Types of events emitted by commands, a variety of simple controls (ex: menus,
 % toolbars).
-
+%
+% Generally these command events are meant to be trapped (not propagated in the
+% widget hierarchy), as a single, user-defined handler suffice; as a result, by
+% default, all of them are trapped.
 
 
 -type mouse_event_type() ::
@@ -260,11 +285,7 @@
 	| 'onMouseFifthButtonPressed' | 'onMouseFifthtButtonReleased'
 	| 'onMouseFifthButtonDoubleClicked'
 
-
 	| 'onMouseWheelScrolled'
-
-	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
-	| 'onMouseMoved'
 
 	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
 	| 'onMouseMoved'.
@@ -293,19 +314,25 @@
 
 
 -type event_subscription_option() ::
-	% By default, once an event has been processed by a user-defined handler, it
-	% is propagated upward in the widget hierarchy, so that further event
-	% handlers (including the built-in backend ones) can be triggered.
-	% It is usually necessary so that the GUI backend can update the
-	% other widgets accordingly (ex: for proper resizes).
-	%
-	% Specifying this option disable this automatic propagation; note that this
-	% may disable in turn key GUI update behaviours (such as the automatic
-	% resizing of widgets).
-	%
-	'trap_event'.
-% The options that can be specified whenever subscribing to a type of event.
 
+	 % Disables any automatic event propagation:
+	'trap_event'
+
+	 % Enables automatic event propagation:
+  | 'propagate_event'.
+% The options that can be specified whenever subscribing to a type of events.
+%
+% For most event types, by default, once an event has been processed by a
+% user-defined handler, it is propagated upward in the widget hierarchy, so that
+% further event handlers (including the built-in backend ones) can be triggered.
+% It is usually necessary so that the GUI backend can update the other widgets
+% accordingly (ex: for proper resizes). Specifying the 'trap_event' option
+% disable this automatic propagation; note that this may disable in turn key GUI
+% update behaviours (such as the automatic resizing of widgets).
+%
+% Conversely, for the fewer event types for which by default no event
+% propagation occurs, such a propagation to parent event handlers may be enabled
+% by specifying the 'propagate_event' option.
 
 
 -type user_pid() :: pid().
@@ -322,11 +349,11 @@
 		% Default options and subscriber.
 
 	  | { maybe_list( event_type() ), maybe_list( gui_object() ),
-		  maybe_list( event_subscription_option() ) }
+		  maybe_list( event_subscription_opt() ) }
 		% Default subscriber.
 
 	  | { maybe_list( event_type() ), maybe_list( gui_object() ),
-		  maybe_list( event_subscription_option() ),
+		  maybe_list( event_subscription_opt() ),
 		  maybe_list( event_subscriber() ) }.
 % Describes, in the context of an event subscription, the type(s) of events
 % generated by specific GUI object(s) to be listened to, with any relevant
@@ -571,7 +598,7 @@
 -type myriad_object_state() :: gui:myriad_object_state().
 -type construction_parameters() :: gui:construction_parameters().
 -type wx_server() :: gui:wx_server().
--type connect_opt() :: gui:connect_opt().
+-type event_subscription_opt() :: gui:event_subscription_opt().
 
 -type backend_id() :: gui_id:backend_id().
 -type wx_id() :: gui_id:wx_id().
@@ -1527,7 +1554,7 @@ register_in_event_loop_tables( _SubscribedEvents=[
 		DefaultSubscriberDesignator, LoopState ) ->
 	% Just adding the default subscriber to have a subscription quadruplet:
 	register_in_event_loop_tables( [ { EventTypeMaybeList, GUIObjectMaybeList,
-		SubscriptionMaybeOpts, DefaultSubscriberDesignator } | T ],
+		SubscriptionMaybeOpts, [ DefaultSubscriberDesignator ] } | T ],
 		DefaultSubscriberDesignator, LoopState );
 
 % Full, canonical subscription quadruplet:
@@ -1560,7 +1587,7 @@ register_in_event_loop_tables( _SubscribedEvents=[ Invalid | _T ],
 
 % (helper)
 -spec register_event_types_for( gui_object(), [ event_type() ],
-			[ connect_opt() ], [ event_subscriber() ], loop_state() ) ->
+		[ event_subscription_opt() ], [ event_subscriber() ], loop_state() ) ->
 											loop_state().
 register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 						  EventTypes, SubOpts, Subscribers,
@@ -2051,21 +2078,7 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 % hierarchy, thus considering that it has been processed once for all by the
 % current handler.
 %
-% Events are handled in order, from bottom to top in the widget hierarchy, by
-% the last subscribed handler first. Most of the events have default event
-% handler(s) set.
-%
-% As a result, calling this function results in having the corresponding event
-% not be handled by the other handler(s) afterwards.
-%
-% In general, it is recommended to let all non-command events propagate, in
-% order to allow the default handling of the backend GUI to take place. The
-% command events are, however, normally not propagated, as usually a single
-% command such as a button click or menu item selection must only be processed
-% by one handler; this trap_event/1 function may then be useful.
-%
-% Note: to be called from an event handler, i.e. at least from a process which
-% set the wx environment.
+% Refer to gui:trap_event/1 for all details.
 %
 -spec trap_event( gui_event_object() ) -> void().
 trap_event( GUIEventObject ) ->
@@ -2080,6 +2093,20 @@ trap_event( GUIEventObject ) ->
 
 	% Default of skip/1 is having skip=true.
 	wxEvent:skip( GUIEventObject, _Opts=[ { skip, false } ] ).
+
+
+
+% @doc Propagates the specified event upward in the widget hierarchy, so that it
+% can be processed by parent handlers knowing that, for some event types, by
+% default no event propagation is enabled.
+%
+% Refer to gui:propagate_event/1 for all details.
+%
+-spec propagate_event( gui_event_object() ) -> void().
+propagate_event( GUIEventObject ) ->
+	% Default of skip/1 is having skip=true:
+	wxEvent:skip( GUIEventObject ).
+
 
 
 % @doc Converts the specified wx event into a MyriadGUI one.

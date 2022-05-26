@@ -269,7 +269,16 @@ Setting the ``myriad_debug_opengl_support`` flag will result in more runtime inf
 Internal Implementation
 _______________________
 
-The MyriadGUI 2D/3D services rely on the related Erlang-native modules, namely `gl <https://www.erlang.org/doc/man/gl.html>`_ and `glu <https://www.erlang.org/doc/man/glu.html>`_, which are NIF-based bindings to the local OpenGL library.
+MyriadGUI is a wrapper on top of wx. What are the main differences between MyriadGUI and wx?
+
+- preferred namings introduced (ex: ``onWindowClosed`` events found clearer than ``close_window`` ones)
+- widget identifiers are user-defined atoms in MyriadGUI (ex: ``my_widget_id``) rather than numerical constants (ex: ``-define(MY_WIDGET_ID, 2051)``) that have, with wx, to be defined, shared, uniquified accross user modules
+- by default, events will propagate or be trapped by user-defined handlers depending on the type of these events (most of them being propagated by default; of course the user is able to override these defaults, either at subscription-time - using the ``propagate_event`` or ``trap_event`` option, or in one's handler - using the ``gui:propagate_event/1`` or ``gui:trap_event/1`` function); this contrasts with wx, in which by default all subscribed events are trapped, regardless of their type (then forgetting to propagate them explicitly may result in built-in mechanisms of wx to be disabled, like when resizing)
+- code using MyriadGUI will not depend on wx, opening the possibility that, should the main Erlang GUI backend change, user code is nevertheless preserved
+
+See also our little `Using wx <https://howtos.esperide.org/Erlang.html#using-wx>`_ HOWTO.
+
+Regarding hardware acceleration, the MyriadGUI 2D/3D services rely on the related Erlang-native modules, namely `gl <https://www.erlang.org/doc/man/gl.html>`_ and `glu <https://www.erlang.org/doc/man/glu.html>`_, which are NIF-based bindings to the local OpenGL library.
 
 As for the ``wx`` module (see the `wx availability`_ section), it provides a convenient solution in order to create a suitable OpenGL context.
 

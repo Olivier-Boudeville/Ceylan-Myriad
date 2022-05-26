@@ -321,7 +321,7 @@
 -export([ subscribe_to_events/1, subscribe_to_events/2,
 		  unsubscribe_from_events/1, unsubscribe_from_events/2,
 		  register_event_callback/3, register_event_callback/4,
-		  trap_event/1 ]).
+		  trap_event/1, propagate_event/1 ]).
 
 
 
@@ -1093,25 +1093,58 @@
 % It is thus generic, independent from platforms and image file formats.
 
 
--type connect_opt() ::   { 'id', integer() }
-					   | { 'last_id', integer() }
+-type event_subscription_opt() ::
 
-						 % Processes the event but does not propagate it upward
-						 % in the widget hierarchy afterwards:
-						 %
-					   | 'trap_event'
+	{ 'id', id() }
 
-						 % Triggers handle_sync_event/3, see the wx_object
-						 % behaviour:
-						 %
-					   | 'callback'
+  | { 'last_id', id() }
 
-					   | { 'callback', event_callback() }
-					   | { 'user_data', user_data() }.
-% Options for event management connections.
+	% Processes the event but does not propagate it upward in the widget
+	% hierarchy afterwards (which is the default for most event types).
+	%
+	% See trap_event/1 and https://howtos.esperide.org/Erlang.html#using-wx for
+	% a clarification of the use of this option.
+	%
+  | 'trap_event'
+
+	% Processes the event and propagates it upward in the widget hierarchy
+	% afterwards (some event types by default trap events).
+	%
+	% See propagate_event/1 and https://howtos.esperide.org/Erlang.html#using-wx
+	% for a clarification of the use of this option.
+	%
+  | 'propagate_event'
+
+	% Triggers handle_sync_event/3, see the wx_object behaviour:
+  | 'callback'
+
+  | { 'callback', event_callback() }
+  | { 'user_data', user_data() }.
+% Options for the subscription to events.
+%
+% Note that with MyriadGUI by default most types of events are propagated to
+% parent handlers; it allows notably the GUI backend to update the state of the
+% widget hierarchy accordingly (otherwise for example the user code subscribing
+% to onResized events would prevent the corresponding resizes to be properly
+% taken into account by the backend).
+%
+% However it may result in race conditions for example when shutting the
+% application after the receiving of a onWindowClosed message, as the backend
+% would be destroying the application GUI resources concurrently to any
+% corresponding user-defined event handler; this is why the subscription to some
+% event types implies that by default their events are trapped.
+%
+% Use the 'trap_event' option or the trap_event/1 function to prevent any
+% default event propagation to happen, so that the user code is the sole manager
+% of such events (ex: of the application termination).
+%
+% Conversely, use the 'propagate_event' option or the propagate_event/1 function
+% to force event propagation despite an event type implying that by default
+% these events are trapped.
 
 
--type connect_options() :: connect_opt() | [ connect_opt() ].
+-type event_subscription_options() ::
+		event_subscription_opt() | [ event_subscription_opt() ].
 
 
 -type debug_level_opt() :: 'none' | 'calls' | 'life_cycle'.
@@ -1172,7 +1205,8 @@
 
 			   canvas/0,
 			   opengl_canvas/0, opengl_context/0,
-			   construction_parameters/0, backend_event/0, connect_options/0,
+			   construction_parameters/0, backend_event/0,
+			   event_subscription_options/0,
 			   window_style/0, frame_style/0, button_style/0,
 
 			   window_style_opt/0, window_option/0,
@@ -1181,7 +1215,7 @@
 			   button_style_opt/0,
 			   sizer_flag_opt/0, sizer_option/0, sizer_options/0,
 			   image/0,
-			   connect_opt/0,
+			   event_subscription_opt/0,
 			   debug_level_opt/0, debug_level/0, error_message/0 ]).
 
 
@@ -1649,14 +1683,47 @@ event_interception_callback( WxEventRecord=#wx{
 % order to allow the default handling of the backend GUI to take place. The
 % command events are, however, normally not propagated, as usually a single
 % command such as a button click or menu item selection must only be processed
-% by one handler; this trap_event/1 function may then be useful.
+% by one handler; this trap_event/1 function may then be useful, if the
+% corresponding event type does not already imply trapping and if the
+% 'trap_event' option was not already specified when subscribing to this event
+% type. See also https://howtos.esperide.org/Erlang.html#using-wx for more
+% clarifications about when trapping events is of use.
 %
 % Note: to be called from an event handler, i.e. at least from a process which
 % set the wx environment.
 %
+% See propagate_event/1 for the opposition operation (forcing propagation of an
+% event).
+%
 -spec trap_event( gui_event_object() ) -> void().
 trap_event( GUIEventObject ) ->
 	gui_event:trap_event( GUIEventObject ).
+
+
+% @doc Propagates the specified event upward in the widget hierarchy, so that it
+% can be processed by parent handlers knowing that, for some event types, by
+% default no event propagation is enabled.
+%
+% Calling this function (from a user event handler) may be a way to trigger the
+% backend built-in operations for this event only when prerequisite operations
+% have been done (thus sequentially).
+%
+% Otherwise, if the propagation is simply enabled once for all at subscription
+% time, then the user code is triggered asynchronously (through the receiving of
+% a message), resulting in the built-in handlers to operate in parallel to this
+% user handler. This may be a problem for example when terminating, as the
+% onWindowClosed event would be propagated in the backend, leading to resources
+% being deallocated, whereas the user handler is still performing its tasks -
+% that may rely on these resources. A better option is having the user handler
+% perform its shutdown operations, then unblock the closing mechanisms by
+% propagating it in the backend thanks to this function.
+%
+% Refer to trap_event/1, the opposite operation, for more propagation-related
+% information.
+%
+-spec propagate_event( gui_event_object() ) -> void().
+propagate_event( GUIEventObject ) ->
+	gui_event:propagate_event( GUIEventObject ).
 
 
 
