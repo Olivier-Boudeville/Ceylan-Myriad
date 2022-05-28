@@ -87,7 +87,6 @@
 
 % Shorthands:
 
-%-type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 
 -type width() :: gui:width().

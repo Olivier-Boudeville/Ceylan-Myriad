@@ -85,6 +85,7 @@ create_popup_menu() ->
 
 	PopupMenu = gui:create_menu(),
 
+	% No name specified, so they will rely on an arbitrary integer identifier:
 	_A = gui:add_item( PopupMenu, _Label="Item A" ),
 	_B = gui:add_item( PopupMenu, _Id=undefined, "Item B" ),
 
@@ -103,7 +104,7 @@ create_popup_menu() ->
 
 	_E = gui:add_checkable_item( FirstSubMenu, _EId=item_e, "Item E" ),
 	_F = gui:add_checkable_item( FirstSubMenu, _FId=item_f, "Item F",
-								"I am F's help" ),
+								 "I am F's help" ),
 	_G = gui:add_checkable_item( FirstSubMenu, _GId=item_g, "Item G" ),
 
 	% E let as it is.

@@ -102,14 +102,14 @@
 -type cursor_table() :: table( cursor_type(), wx_cursor_type() ).
 % A table storing the correspondance between MyriadGUI and backend cursor types.
 
--type grab_status() :: 'no_grab'
-					 | 'still_grabbed'.
+-type grab_status() :: 'no_grab' | 'still_grabbed'.
 
 -export_type([ cursor_type/0, cursor_table/0, grab_status/0 ]).
 
 
 -export([ register_in_environment/1, set_cursor_types/2,
 		  unregister_from_environment/1,
+		  get_event_types_to_trap/0,
 		  list_cursor_types/0, set_cursor/1,
 
 		  reset_grab/0, grab/1, ungrab/2, is_grabbed/0 ,warp/3 ]).
@@ -132,6 +132,7 @@
 
 -type gui_env_designator() :: gui:gui_env_designator().
 
+-type mouse_event_type() :: gui_event:mouse_event_type().
 
 -type wxCursor() :: wxCursor:wxCursor().
 
@@ -147,7 +148,6 @@ register_in_environment( GUIEnvPid ) ->
 	set_cursor_types( AllCursorTypes, GUIEnvPid ),
 	set_cursor( _Default=arrow, GUIEnvPid ),
 	environment:cache( { grab_stack, [] }, GUIEnvPid ).
-
 
 
 % @doc Sets in the MyriadGUI environment server the specified standard mouse
@@ -200,6 +200,43 @@ unregister_from_environment( GUIEnvPid ) ->
 		_Ks=[ cursor_table, current_cursor_type, grab_stack ], GUIEnvPid ),
 
 	[ wxCursor:destroy( WxCT ) || WxCT <- table:values( CursorTable ) ].
+
+
+
+% @doc Returns a list of the types of mouse-related events that shall be trapped
+% by default.
+%
+-spec get_event_types_to_trap() -> [ mouse_event_type() ].
+get_event_types_to_trap() ->
+
+	% To be kept in line with gui:mouse_event_type().
+
+	[ % Button 1:
+	  onMouseLeftButtonPressed,
+	  onMouseLeftButtonReleased, onMouseLeftButtonDoubleClicked,
+
+
+	  % Button 2:
+	  onMouseMiddleButtonPressed, onMouseMiddleButtonReleased,
+	  onMouseMiddleButtonDoubleClicked,
+
+	  % Button 3:
+	  onMouseRightButtonPressed, onMouseRightButtonReleased,
+	  onMouseRightButtonDoubleClicked,
+
+	  % Button 4:
+	  onMouseFourthButtonPressed, onMouseFourthButtonReleased,
+	  onMouseFourthButtonDoubleClicked,
+
+	  % Button 5:
+	  onMouseFifthButtonPressed, onMouseFifthtButtonReleased,
+	  onMouseFifthButtonDoubleClicked,
+
+	  % Wheel:
+	  onMouseWheelScrolled,
+
+	  onMouseEnteredWindow, onMouseLeftWindow,
+	  onMouseMoved ].
 
 
 

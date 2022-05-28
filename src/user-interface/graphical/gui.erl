@@ -166,8 +166,11 @@
 	% The main, top-level window (if any; generally a frame) of the application:
 	{ 'top_level_window', maybe( window() ) },
 
-	% PID of the MyriadGUI main loop:
+	% PID of the MyriadGUI main event loop:
 	{ 'loop_pid', pid() },
+
+	% The event types that are trapped by default:
+	{ trap_set, trap_set() },
 
 	% Any backend-specific top-level server used for the GUI (here wx):
 	{ 'backend_server', wx_object() },
@@ -1371,12 +1374,17 @@ create_gui_environment( Services ) ->
 	%
 	WxEnv = wx:get_env(),
 
+	% Needed both directly in the main event loop and in the GUI environment
+	% (ex: for when creating a plain canvas with no specific context):
+	%
+	TrapSet = gui_event:get_trapped_event_types( Services ),
+
 	% The event table must be initialised in the spawned process, so that
 	% connect/n can use the right actual, first-level subscriber PID/name, which
 	% is the internal main loop in charge of the message routing and conversion:
 
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
-								  [ WxServer, WxEnv ] ),
+								  [ WxServer, WxEnv, TrapSet ] ),
 
 	% Caches in the calling process and initialises some GUI-related entries
 	% (refer to the gui_env_entries define):
@@ -1389,7 +1397,9 @@ create_gui_environment( Services ) ->
 		%{ id_allocator_pid, IdAllocPid },
 
 		{ top_level_window, undefined },
+
 		{ loop_pid, LoopPid },
+		{ trap_set, TrapSet },
 
 		{ backend_server, WxServer },
 		{ backend_env, WxEnv },

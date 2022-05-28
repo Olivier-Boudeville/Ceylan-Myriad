@@ -1144,10 +1144,11 @@ get_glxinfo_strings() ->
 
 
 
-% @doc Creates and returns an OpenGL canvas with default settings: RGBA and
-% double-buffering.
+% @doc Creates and returns an OpenGL canvas with specified parent widget and
+% default settings: RGBA and double-buffering.
 %
-% Note: not to be mixed up with gui:create_canvas/1.
+% Note: not to be mixed up with gui:create_canvas/1, which creates a basic
+% (non-OpenGL) canvas.
 %
 -spec create_canvas( window() ) -> gl_canvas().
 create_canvas( Parent ) ->
@@ -1156,12 +1157,14 @@ create_canvas( Parent ) ->
 
 
 
-% @doc Creates and returns an OpenGL canvas with specified settings.
+% @doc Creates and returns an OpenGL canvas with specified parent widget and
+% options.
 %
 % If the device context attributes are not set, following default apply: RGBA
 % and double-buffering.
 %
-% Note: not to be mixed up with gui:create_canvas/1.
+% Note: not to be mixed up with gui:create_canvas/1, which creates a basic
+% (non-OpenGL) canvas.
 %
 -spec create_canvas( window(), [ gl_canvas_option() ] ) -> gl_canvas().
 create_canvas( Parent, Opts ) ->
@@ -1228,10 +1231,10 @@ create_context( Canvas ) ->
 set_context_on_shown( Canvas, Context ) ->
 
 	% According to Wings3D (wings_gl.erl), wxGLCanvas:setCurrent/2 may fail (on
-	% GTK) as the show event may be received before the window is actually
+	% GTK) as the 'show' event may be received before the window is actually
 	% displayed; so:
 	%
-	timer:sleep(200),
+	timer:sleep( 250 ),
 
 	set_context( Canvas, Context ).
 
@@ -1244,15 +1247,9 @@ set_context_on_shown( Canvas, Context ) ->
 set_context( Canvas, Context ) ->
 
 	% Using wx API 3.0 (not supporting older ones such as 2.8):
-	case wxGLCanvas:setCurrent( Canvas, Context ) of
+	wxGLCanvas:setCurrent( Canvas, Context )
+		orelse throw( failed_to_set_opengl_context ),
 
-		true ->
-			ok;
-
-		false ->
-			throw( failed_to_set_opengl_context )
-
-	end,
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 

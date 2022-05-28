@@ -68,7 +68,8 @@
 
 
 % Main event primitives:
--export([ start_main_event_loop/2, trap_event/1, propagate_event/1,
+-export([ start_main_event_loop/3,
+		  get_trapped_event_types/1, trap_event/1, propagate_event/1,
 		  wx_to_myriad_event/1, set_instance_state/3, match/2 ]).
 
 
@@ -225,6 +226,9 @@
 % Conversely, for the event types that are trapped by default, specifying the
 % 'propagate_event' subscription option or calling the propagate_event/1
 % function in one's event handler will enable that propagation.
+%
+% Note: if adding event types, consider updating gui:get_event_types_to_trap/0
+% as well.
 
 
 -type window_event_type() ::
@@ -265,6 +269,7 @@
 % default, all of them are trapped.
 
 
+% To be kept in line with gui_mouse:get_event_types_to_trap/0.
 -type mouse_event_type() ::
 
 	% Button 1:
@@ -279,12 +284,15 @@
 	| 'onMouseRightButtonPressed' | 'onMouseRightButtonReleased'
 	| 'onMouseRightButtonDoubleClicked'
 
+	% Button 4:
 	| 'onMouseFourthButtonPressed' | 'onMouseFourthButtonReleased'
 	| 'onMouseFourthButtonDoubleClicked'
 
+	% Button 5:
 	| 'onMouseFifthButtonPressed' | 'onMouseFifthtButtonReleased'
 	| 'onMouseFifthButtonDoubleClicked'
 
+	% Wheel:
 	| 'onMouseWheelScrolled'
 
 	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
@@ -527,6 +535,8 @@
 	%
 	type_table :: myriad_type_table(),
 
+	% The precomputed set of event types that shall be trapped by default:
+	trap_set :: trap_set(),
 
 	id_next :: backend_id(),
 	% The next backend identifier that will be allocated.
@@ -584,7 +594,10 @@
 % A received event is either a backend one or a MyriadGUI one.
 
 
--export_type([ wx_event/0, wx_event_info/0 ]).
+-type trap_set() :: set( [ event_type() ] ).
+% A set of event types that shall be trapped by default.
+
+-export_type([ wx_event/0, wx_event_info/0, trap_set/0 ]).
 
 
 % Shorthands:
@@ -592,6 +605,8 @@
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
+
+-type set( T ) :: set_utils:set( T ).
 
 -type gui_object() :: gui:gui_object().
 -type myriad_object_type() :: gui:myriad_object_type().
@@ -603,6 +618,7 @@
 -type backend_id() :: gui_id:backend_id().
 -type wx_id() :: gui_id:wx_id().
 -type id_name_alloc_table() :: gui_id:id_name_alloc_table().
+-type service() :: gui:service().
 
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
 
@@ -626,8 +642,9 @@
 % The goal is to devise a generic event loop, while still being able to be
 % notified of all relevant information (and only them).
 %
--spec start_main_event_loop( wx_server(), wx_env() ) -> no_return().
-start_main_event_loop( WxServer, WxEnv ) ->
+-spec start_main_event_loop( wx_server(), wx_env(), trap_set() ) ->
+											no_return().
+start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
 
 	% Yet it can be, often preferably, reached through an environment:
 	naming_utils:register_as( ?gui_event_loop_reg_name, _Scope=local_only ),
@@ -644,6 +661,7 @@ start_main_event_loop( WxServer, WxEnv ) ->
 		event_table=EmptyTable,
 		reassign_table=EmptyTable,
 		type_table=EmptyTable,
+		trap_set=TrapSet,
 		id_next=gui_id:get_first_allocatable_id(),
 		id_name_alloc_table=gui_id:get_initial_allocation_table() },
 
@@ -651,6 +669,43 @@ start_main_event_loop( WxServer, WxEnv ) ->
 
 	% Enter the infinite event loop:
 	process_event_messages( InitialLoopState ).
+
+
+
+% @doc Returns the set of event types that shall be trapped by default.
+-spec get_trapped_event_types( [ service() ] ) -> trap_set().
+get_trapped_event_types( Services ) ->
+
+	% Precomputation, once for all, of the subset of event types that shall be
+	% trapped (otherwise they may trigger parent-level handlers spuriously);
+	% refer to the event_type() specification to understand why these specific
+	% event types are trapped by default:
+
+	WindowEventTypes = [ onButtonClicked, onWindowClosed ],
+
+	CommandEventTypes = [ onToolbarEntered, onItemSelected,
+						  onToolRightClicked ],
+
+	% Could/should be added: keyboard presses (see keyboard_event_type()).
+
+	AllEventTypesToTrap = WindowEventTypes ++ CommandEventTypes
+		++ case lists:member( mouse, Services ) of
+
+			true ->
+				gui_mouse:get_event_types_to_trap();
+
+			false ->
+				[]
+
+		   end,
+
+	% For faster lookup:
+	TrapSet = set_utils:new( AllEventTypesToTrap ),
+
+	%trace_utils:debug_fmt( "Trap set is: ~ts",
+	%                       [ set_utils:to_string( TrapSet ) ] ),
+
+	TrapSet.
 
 
 
@@ -1592,7 +1647,8 @@ register_in_event_loop_tables( _SubscribedEvents=[ Invalid | _T ],
 register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 						  EventTypes, SubOpts, Subscribers,
 						  LoopState=#loop_state{ event_table=EventTable,
-												 type_table=TypeTable } ) ->
+												 type_table=TypeTable,
+												 trap_set=TrapSet } ) ->
 
 	%trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
 	%    "regarding canvas '~ts'.", [ Subscribers, EventTypes,
@@ -1637,7 +1693,7 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 			% Will defer these extra types of events of the underlying panel to
 			% the canvas:
 			%
-			gui_wx_backend:connect( Panel, NewEventTypes, SubOpts )
+			gui_wx_backend:connect( Panel, NewEventTypes, SubOpts, TrapSet )
 
 	end,
 
@@ -1645,7 +1701,8 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 
 
 register_event_types_for( GUIObject, EventTypes, SubOpts, Subscribers,
-						  LoopState=#loop_state{ event_table=EventTable } ) ->
+						  LoopState=#loop_state{ event_table=EventTable,
+												 trap_set=TrapSet } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
@@ -1657,7 +1714,7 @@ register_event_types_for( GUIObject, EventTypes, SubOpts, Subscribers,
 	% event loop), so that it receives these events for their upcoming
 	% dispatching to the actual subscribers:
 	%
-	[ gui_wx_backend:connect( GUIObject, EvType, SubOpts )
+	[ gui_wx_backend:connect( GUIObject, EvType, SubOpts, TrapSet )
 								|| EvType <- EventTypes ],
 
 	% Now prepare the upcoming routing to the right subscriber:

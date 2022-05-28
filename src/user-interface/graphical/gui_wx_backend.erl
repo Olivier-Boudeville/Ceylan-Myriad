@@ -149,7 +149,7 @@
 % Conversions from MyriadGUI to wx:
 -export([ to_wx_object_type/1,
 		  to_wx_event_type/1, from_wx_event_type/1,
-		  to_wx_connect_options/2,
+		  to_wx_connect_options/3,
 		  to_wx_debug_level/1,
 
 		  window_style_to_bitmask/1, get_window_options/1,
@@ -176,7 +176,7 @@
 
 		  to_wx_device_context_attributes/1,
 
-		  connect/2, connect/3, disconnect/1, disconnect/2 ]).
+		  connect/2, connect/3, connect/4, disconnect/1, disconnect/2 ]).
 
 
 % Conversions from wx to MyriadGUI:
@@ -338,6 +338,7 @@
 -type wx_event_type() :: gui_event:wx_event_type().
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
+-type trap_set() :: gui_event:trap_set().
 
 -type device_context_attribute() :: gui_opengl:device_context_attribute().
 
@@ -1801,50 +1802,67 @@ wx_id_to_string( Id ) ->
 % @doc Subscribes the current process to the specified type(s) of events
 % regarding the specified object (receiving for that a message).
 %
-% Said otherwise: requests the specified widget to send to the current process a
-% message-based event when the specified kind of event happens, overriding its
-% default behaviour.
-%
-% Note:
-%  - apparently registering more than once a given type has no effect (not N
-%  messages of that type sent afterwards)
-%  - only useful internally or when bypasssing the default main loop
+% The versions of that function specifying a trap set parameter shall be
+% preferred.
 %
 -spec connect( event_source(), maybe_list( event_type() ) ) -> void().
 connect( EventSource, EventTypeOrTypes ) ->
-	connect( EventSource, EventTypeOrTypes, _Options=[] ).
+
+	% Here no trap set specified, trying to secure it:
+	GUIEnvPid = gui:get_environment_server(),
+
+	TrapSet = environment:get( trap_set, GUIEnvPid ),
+	basic_utils:check_defined( TrapSet ),
+
+	connect( EventSource, EventTypeOrTypes, TrapSet ).
 
 
 
 % @doc Subscribes the current process to the specified type(s) of events
-% regarding the specified object; this process will thus receive a gui_event()
-% message whenever a corresponding event occurs.
+% regarding the specified object (receiving for that a message).
 %
 % Said otherwise: requests the specified widget to send to the current process a
 % message-based event when the specified kind of event happens, knowing that by
-% default this event will also be propagated upward in the widget hierarchy,
-% through the corresponding event handlers (the trap_event option allows not to
-% propagate this event).
+% default, depending on its type, this event may also be propagated upward in
+% the widget hierarchy, through the corresponding event handlers (the trap_event
+% option allows not to propagate this event).
 %
 % Note:
 %  - apparently registering more than once a given type has no effect (not N
 %  messages of that type sent afterwards)
-%  - only useful internally or when bypasssing the default main loop
+%  - only useful internally or when bypassing the default main loop
+%
+-spec connect( event_source(), maybe_list( event_type() ), trap_set() ) ->
+														void().
+connect( EventSource, EventTypeOrTypes, TrapSet ) ->
+	connect( EventSource, EventTypeOrTypes, _Options=[], TrapSet ).
+
+
+
+% @doc Subscribes the current process to the specified type(s) of events
+% regarding the specified object, with the specified options; this process will
+% thus receive a gui_event() message whenever a corresponding event occurs.
+%
+% The {trap,propagate}_event options (or the corresponding
+% {trap,propagate}_event/1 functions) can override these defaults.
+%
+% Refer to connect/3 for all details.
 %
 -spec connect( event_source(), maybe_list( event_type() ),
-			   connect_options() ) -> void().
+			   connect_options(), trap_set() ) -> void().
 % Was not used apparently:
-%connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options ) ->
-%   connect( Panel, EventTypeOrTypes, Options );
+%connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options, TrapSet ) ->
+%   connect( Panel, EventTypeOrTypes, Options, TrapSet );
 
-connect( SourceGUIObject, EventTypes, Options ) when is_list( EventTypes ) ->
+connect( SourceGUIObject, EventTypes, Options, TrapSet )
+										when is_list( EventTypes ) ->
 
 	%trace_utils:debug_fmt( "Connecting ~p for event types ~w with options ~p.",
 	%                       [ SourceObject, EventTypes, Options ] ),
 
-	[ connect( SourceGUIObject, ET, Options ) || ET <- EventTypes ];
+	[ connect( SourceGUIObject, ET, Options, TrapSet ) || ET <- EventTypes ];
 
-connect( SourceGUIObject, EventType, Options ) ->
+connect( SourceGUIObject, EventType, Options, TrapSet ) ->
 
 	% Events to be processed through messages, not callbacks:
 	WxEventType = to_wx_event_type( EventType ),
@@ -1855,7 +1873,7 @@ connect( SourceGUIObject, EventType, Options ) ->
 			[ gui:object_to_string( SourceGUIObject ), self(), EventType,
 			  WxEventType, Options ] ) ),
 
-	WxConnOpts = to_wx_connect_options( Options, EventType ),
+	WxConnOpts = to_wx_connect_options( Options, EventType, TrapSet ),
 
 	wxEvtHandler:connect( SourceGUIObject, WxEventType, WxConnOpts ).
 
@@ -1866,24 +1884,25 @@ connect( SourceGUIObject, EventType, Options ) ->
 % The corresponding event type must be specified in order to apply per-type
 % defaults.
 %
--spec to_wx_connect_options( [ connect_opt() ], event_type() ) ->
+-spec to_wx_connect_options( [ connect_opt() ], event_type(), trap_set() ) ->
 								[ wx_event_handler_option() ].
-to_wx_connect_options( Opts, EventType ) ->
-	to_wx_connect_options( Opts, EventType, _PropagationSetting=undefined,
-						   _Acc=[] ).
+to_wx_connect_options( Opts, EventType, TrapSet ) ->
+	to_wx_connect_options( Opts, EventType, TrapSet,
+						   _PropagationSetting=undefined, _Acc=[] ).
 
 
 % (helper)
--spec to_wx_connect_options( [ connect_opt() ], event_type(),
+-spec to_wx_connect_options( [ connect_opt() ], event_type(), trap_set(),
 							 maybe( 'propagate' | 'trap' ), event_type() ) ->
 										[ wx_event_handler_option() ].
 % End of recursion, propagation explicitly requested by the user:
-to_wx_connect_options( _Opts=[], _EventType, _PropagationSetting=propagate,
-					   Acc ) ->
+to_wx_connect_options( _Opts=[], _EventType, _TrapSet,
+					   _PropagationSetting=propagate, Acc ) ->
 	[ _Propagate={ skip, true } | Acc ];
 
 % End of recursion, propagation explicitly denied by the user:
-to_wx_connect_options( _Opts=[], _EventType, _PropagationSetting=trap, Acc ) ->
+to_wx_connect_options( _Opts=[], _EventType, _TrapSet,
+					   _PropagationSetting=trap, Acc ) ->
 	% As skip=False is the default:
 	%[ _Trap={ skip, false } | Acc ];
 	Acc;
@@ -1891,23 +1910,10 @@ to_wx_connect_options( _Opts=[], _EventType, _PropagationSetting=trap, Acc ) ->
 % End of recursion, no user-defined propagation setting, applying thus per-type
 % defaults:
 %
-to_wx_connect_options( _Opts=[], EventType, _PropagationSetting=undefined,
-					   Acc ) ->
+to_wx_connect_options( _Opts=[], EventType, TrapSet,
+					   _PropagationSetting=undefined, Acc ) ->
 
-	% Refer to the event_type() specification to understand why these event
-	% types are trapped by default:
-
-	WindowEventTypes = [ onButtonClicked, onWindowClosed ],
-
-	CommandEventTypes = [ onToolbarEntered, onItemSelected,
-						  onToolRightClicked ],
-
-	% Could/should be added: all mouse clicks (see mouse_event_type()) and
-	% keyboard presses (see keyboard_event_type()).
-	%
-	TrappingEventTypes = WindowEventTypes ++ CommandEventTypes,
-
-	case lists:member( EventType, TrappingEventTypes ) of
+	case set_utils:member( EventType, TrapSet ) of
 
 		true ->
 			% As skip=False is the default:
@@ -1919,40 +1925,43 @@ to_wx_connect_options( _Opts=[], EventType, _PropagationSetting=undefined,
 
 	end;
 
-to_wx_connect_options( _Opts=[ P={ id, _I } | T ], EventType,
+to_wx_connect_options( _Opts=[ P={ id, _I } | T ], EventType, TrapSet,
 					   PropagationSetting, Acc ) ->
-	to_wx_connect_options( T, EventType, PropagationSetting, [ P | Acc ] );
+	to_wx_connect_options( T, EventType, TrapSet, PropagationSetting,
+						   [ P | Acc ] );
 
-to_wx_connect_options( _Opts=[ { last_id, I } | T ], EventType,
+to_wx_connect_options( _Opts=[ { last_id, I } | T ], EventType, TrapSet,
 					   PropagationSetting, Acc ) ->
-	to_wx_connect_options( T, EventType, PropagationSetting,
+	to_wx_connect_options( T, EventType, TrapSet, PropagationSetting,
 						   [ { lastId, I } | Acc ] );
 
-to_wx_connect_options( _Opts=[ trap_event | T ], EventType,
+to_wx_connect_options( _Opts=[ trap_event | T ], EventType, TrapSet,
 					   _PropagationSetting, Acc ) ->
-	to_wx_connect_options( T, EventType, _ForcedPropagationSetting=trap, Acc );
+	to_wx_connect_options( T, EventType, TrapSet,
+						   _ForcedPropagationSetting=trap, Acc );
 
-to_wx_connect_options( _Opts=[ propagate_event | T ], EventType,
+to_wx_connect_options( _Opts=[ propagate_event | T ], EventType, TrapSet,
 					   _PropagationSetting, Acc ) ->
-	to_wx_connect_options( T, EventType, _ForcedPropagationSetting=propagate,
-						   Acc );
+	to_wx_connect_options( T, EventType, TrapSet,
+						   _ForcedPropagationSetting=propagate, Acc );
 
-to_wx_connect_options( _Opts=[ callback | T ], EventType, PropagationSetting,
-					   Acc ) ->
-	to_wx_connect_options( T, EventType, PropagationSetting,
+to_wx_connect_options( _Opts=[ callback | T ], EventType, TrapSet,
+					   PropagationSetting, Acc ) ->
+	to_wx_connect_options( T, EventType, TrapSet, PropagationSetting,
 						   [ callback | Acc ] );
 
-to_wx_connect_options( _Opts=[ P={ callback, _F } | T ], EventType,
+to_wx_connect_options( _Opts=[ P={ callback, _F } | T ], EventType, TrapSet,
 					   PropagationSetting, Acc ) ->
-	to_wx_connect_options( T, EventType, PropagationSetting, [ P | Acc ] );
+	to_wx_connect_options( T, EventType, TrapSet, PropagationSetting,
+						   [ P | Acc ] );
 
-to_wx_connect_options( _Opts=[ { user_data, D } | T ], EventType,
+to_wx_connect_options( _Opts=[ { user_data, D } | T ], EventType, TrapSet,
 					   PropagationSetting, Acc ) ->
-	to_wx_connect_options( T, EventType, PropagationSetting,
+	to_wx_connect_options( T, EventType, TrapSet, PropagationSetting,
 						   [ { userData, D } | Acc ] );
 
-to_wx_connect_options( _Opts=[ Other | _T ], _EventType, _PropagationSetting,
-					   _Acc ) ->
+to_wx_connect_options( _Opts=[ Other | _T ], _EventType, _TrapSet,
+					   _PropagationSetting, _Acc ) ->
 	throw( { invalid_event_subscription_option, Other } ).
 
 
