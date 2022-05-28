@@ -170,7 +170,12 @@
 	{ 'loop_pid', pid() },
 
 	% The event types that are trapped by default:
-	{ trap_set, trap_set() },
+	{ 'trap_set', trap_set() },
+
+	% A bijective table to translate wx and MyriadGUI event types back and
+	% forth:
+	%
+	{ 'event_translation_table', event_translation_table() },
 
 	% Any backend-specific top-level server used for the GUI (here wx):
 	{ 'backend_server', wx_object() },
@@ -1379,12 +1384,14 @@ create_gui_environment( Services ) ->
 	%
 	TrapSet = gui_event:get_trapped_event_types( Services ),
 
+	EventTranslationTable = gui_event:get_event_translation_table(),
+
 	% The event table must be initialised in the spawned process, so that
 	% connect/n can use the right actual, first-level subscriber PID/name, which
 	% is the internal main loop in charge of the message routing and conversion:
 
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
-								  [ WxServer, WxEnv, TrapSet ] ),
+		[ WxServer, WxEnv, TrapSet, EventTranslationTable ] ),
 
 	% Caches in the calling process and initialises some GUI-related entries
 	% (refer to the gui_env_entries define):
@@ -1400,6 +1407,7 @@ create_gui_environment( Services ) ->
 
 		{ loop_pid, LoopPid },
 		{ trap_set, TrapSet },
+		{ event_translation_table, EventTranslationTable },
 
 		{ backend_server, WxServer },
 		{ backend_env, WxEnv },

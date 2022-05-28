@@ -68,8 +68,9 @@
 
 
 % Main event primitives:
--export([ start_main_event_loop/3,
+-export([ start_main_event_loop/4,
 		  get_trapped_event_types/1, trap_event/1, propagate_event/1,
+		  get_event_translation_table/0,
 		  wx_to_myriad_event/1, set_instance_state/3, match/2 ]).
 
 
@@ -535,8 +536,16 @@
 	%
 	type_table :: myriad_type_table(),
 
+
 	% The precomputed set of event types that shall be trapped by default:
 	trap_set :: trap_set(),
+
+
+	% A bijective table to translate wx and MyriadGUI event types back and
+	% forth.
+	%
+	event_translation_table :: event_translation_table(),
+
 
 	id_next :: backend_id(),
 	% The next backend identifier that will be allocated.
@@ -595,9 +604,17 @@
 
 
 -type trap_set() :: set( [ event_type() ] ).
-% A set of event types that shall be trapped by default.
+% A set of the event types that shall be trapped by default.
 
--export_type([ wx_event/0, wx_event_info/0, trap_set/0 ]).
+
+-type event_translation_table() ::
+   bijective_table:bijective_table( wx_event_type(), event_type() ).
+% A table to implement an effecient two-way translation between the event types
+% of wx and of MyriadGUI.
+
+
+-export_type([ wx_event/0, wx_event_info/0,
+			   trap_set/0, event_translation_table/0 ]).
 
 
 % Shorthands:
@@ -642,9 +659,9 @@
 % The goal is to devise a generic event loop, while still being able to be
 % notified of all relevant information (and only them).
 %
--spec start_main_event_loop( wx_server(), wx_env(), trap_set() ) ->
-											no_return().
-start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
+-spec start_main_event_loop( wx_server(), wx_env(), trap_set(),
+							 event_translation_table() ) -> no_return().
+start_main_event_loop( WxServer, WxEnv, TrapSet, EventTranslationTable ) ->
 
 	% Yet it can be, often preferably, reached through an environment:
 	naming_utils:register_as( ?gui_event_loop_reg_name, _Scope=local_only ),
@@ -662,6 +679,7 @@ start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
 		reassign_table=EmptyTable,
 		type_table=EmptyTable,
 		trap_set=TrapSet,
+		event_translation_table=EventTranslationTable,
 		id_next=gui_id:get_first_allocatable_id(),
 		id_name_alloc_table=gui_id:get_initial_allocation_table() },
 
@@ -706,6 +724,71 @@ get_trapped_event_types( Services ) ->
 	%                       [ set_utils:to_string( TrapSet ) ] ),
 
 	TrapSet.
+
+
+
+% @doc Returns a bijective table to translate wx and MyriadGUI event types back
+% and forth.
+%
+-spec get_event_translation_table() -> event_translation_table().
+get_event_translation_table() ->
+
+	% {wx_event_type(), event_type()} entries:
+
+	% Mouse section:
+	MouseEntries = [
+		{ motion, onMouseMoved },
+
+		{ left_down,   onMouseLeftButtonPressed },
+		{ left_up,     onMouseLeftButtonReleased },
+		{ left_dclick, onMouseLeftButtonDoubleClicked },
+
+		{ middle_down,   onMouseMiddleButtonPressed },
+		{ middle_up,     onMouseMiddleButtonReleased },
+		{ middle_dclick, onMouseMiddleButtonDoubleClicked },
+
+		{ right_down,   onMouseRightButtonPressed },
+		{ right_up,     onMouseRightButtonReleased },
+		{ right_dclick, onMouseRightButtonDoubleClicked },
+
+		{ aux1_down,   onMouseFourthButtonPressed },
+		{ aux1_up,     onMouseFourthButtonReleased },
+		{ aux1_dclick, onMouseFourthButtonDoubleClicked },
+
+		{ aux2_down,   onMouseFifthButtonPressed },
+		{ aux2_up,     onMouseFifthButtonReleased },
+		{ aux2_dclick, onMouseFifthButtonDoubleClicked },
+
+		{ mousewheel, onMouseWheelScrolled },
+
+		{ enter_window, onMouseEnteredWindow },
+		{ leave_window, onMouseLeftWindow } ],
+
+	% Keyboard section:
+	KeyboardEntries = [
+		{ char,      onCharEntered },
+		{ char_hook, onCharEnteredHook },
+		{ key_down,  onKeyPressed },
+		{ key_up,    onKeyReleased } ],
+
+	% Menu section/tool(bar) section:
+	MenuToolEntries = [
+		{ command_menu_selected, onItemSelected },
+		{ command_tool_enter,    onToolbarEntered },
+		{ command_tool_rclicked, onToolRightClicked } ],
+
+	% Window section:
+	WindowEntries = [
+		{ show,                   onShown },
+		{ size,                   onResized },
+		{ paint,                  onRepaintNeeded },
+		{ command_button_clicked, onButtonClicked },
+		{ close_window,           onWindowClosed } ],
+
+	AllEventEntries = MouseEntries ++ KeyboardEntries ++ MenuToolEntries
+											++ WindowEntries,
+
+	bijective_table:new( AllEventEntries ).
 
 
 
@@ -1234,10 +1317,12 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 -spec process_wx_event( wx_id(), wx_object(), gui:user_data(),
 					wx_event_info(), wx_event(), loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
-				  LoopState=#loop_state{ event_table=EventTable,
-										 reassign_table=ReassignTable,
-										 type_table=TypeTable,
-										 id_name_alloc_table=NameTable } ) ->
+				  LoopState=#loop_state{
+							   event_table=EventTable,
+							   reassign_table=ReassignTable,
+							   type_table=TypeTable,
+							   event_translation_table=EventTranslationTable,
+							   id_name_alloc_table=NameTable } ) ->
 
 	%trace_utils:debug_fmt( "Processing wx event~n  ~p.", [ WxEvent ] ),
 
@@ -1296,7 +1381,8 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 			WxEventType = element( 2, WxEventInfo ),
 
 			% Converting to a MyriadGUI event to look-up any subscribers:
-			EventType = gui_wx_backend:from_wx_event_type( WxEventType ),
+			EventType = gui_wx_backend:from_wx_event_type( WxEventType,
+								EventTranslationTable ),
 
 			case list_table:lookup_entry( EventType, DispatchTable ) of
 
@@ -1646,9 +1732,11 @@ register_in_event_loop_tables( _SubscribedEvents=[ Invalid | _T ],
 											loop_state().
 register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 						  EventTypes, SubOpts, Subscribers,
-						  LoopState=#loop_state{ event_table=EventTable,
-												 type_table=TypeTable,
-												 trap_set=TrapSet } ) ->
+						  LoopState=#loop_state{
+							event_table=EventTable,
+							type_table=TypeTable,
+							trap_set=TrapSet,
+							event_translation_table=EventTranslationTable} ) ->
 
 	%trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
 	%    "regarding canvas '~ts'.", [ Subscribers, EventTypes,
@@ -1693,7 +1781,8 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 			% Will defer these extra types of events of the underlying panel to
 			% the canvas:
 			%
-			gui_wx_backend:connect( Panel, NewEventTypes, SubOpts, TrapSet )
+			gui_wx_backend:connect( Panel, NewEventTypes, SubOpts, TrapSet,
+									EventTranslationTable )
 
 	end,
 
@@ -1701,8 +1790,10 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 
 
 register_event_types_for( GUIObject, EventTypes, SubOpts, Subscribers,
-						  LoopState=#loop_state{ event_table=EventTable,
-												 trap_set=TrapSet } ) ->
+						  LoopState=#loop_state{
+						   event_table=EventTable,
+						   trap_set=TrapSet,
+						   event_translation_table=EventTranslationTable } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
@@ -1714,8 +1805,8 @@ register_event_types_for( GUIObject, EventTypes, SubOpts, Subscribers,
 	% event loop), so that it receives these events for their upcoming
 	% dispatching to the actual subscribers:
 	%
-	[ gui_wx_backend:connect( GUIObject, EvType, SubOpts, TrapSet )
-								|| EvType <- EventTypes ],
+	[ gui_wx_backend:connect( GUIObject, EvType, SubOpts, TrapSet,
+							  EventTranslationTable ) || EvType <- EventTypes ],
 
 	% Now prepare the upcoming routing to the right subscriber:
 	NewEventTable = record_subscriptions( GUIObject, EventTypes, Subscribers,
@@ -1769,7 +1860,9 @@ unregister_from_event_loop_tables( _SubscribedEvents=[
 				[ event_subscriber() ], loop_state() ) -> loop_state().
 unregister_event_types_from( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 		EventTypes, Unsubscribers, LoopState=#loop_state{
-			event_table=EventTable, type_table=TypeTable } ) ->
+			event_table=EventTable,
+			event_translation_table=EventTranslationTable,
+			type_table=TypeTable } ) ->
 
 	%trace_utils:debug_fmt( "Unregistering subscribers ~w for event types ~p "
 	%    "regarding canvas '~ts'.", [ Unsubscribers, EventTypes,
@@ -1801,14 +1894,17 @@ unregister_event_types_from( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 			% Will defer these extra types of events of the underlying panel to
 			% the canvas:
 			%
-			gui_wx_backend:disconnect( Panel, NewEventTypes )
+			gui_wx_backend:disconnect( Panel, NewEventTypes,
+									   EventTranslationTable )
 
 	end,
 
 	LoopState#loop_state{ event_table=NewEventTable };
 
 unregister_event_types_from( GUIObject, EventTypes, Unsubscribers,
-						LoopState=#loop_state{ event_table=EventTable } ) ->
+						LoopState=#loop_state{
+							event_table=EventTable,
+							event_translation_table=EventTranslationTable } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Unregistering subscribers ~w "
@@ -1816,7 +1912,8 @@ unregister_event_types_from( GUIObject, EventTypes, Unsubscribers,
 			[ Unsubscribers, EventTypes,
 			  gui:object_to_string( GUIObject ) ] ) ),
 
-	[ gui_wx_backend:disconnect( GUIObject, EvType ) || EvType <- EventTypes ],
+	[ gui_wx_backend:disconnect( GUIObject, EvType, EventTranslationTable )
+											|| EvType <- EventTypes ],
 
 	% Remove the routing to the right subscriber:
 	NewEventTable = record_unsubscriptions( GUIObject, EventTypes,

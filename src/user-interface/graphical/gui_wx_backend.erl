@@ -148,7 +148,7 @@
 
 % Conversions from MyriadGUI to wx:
 -export([ to_wx_object_type/1,
-		  to_wx_event_type/1, from_wx_event_type/1,
+		  to_wx_event_type/2, from_wx_event_type/2,
 		  to_wx_connect_options/3,
 		  to_wx_debug_level/1,
 
@@ -176,7 +176,7 @@
 
 		  to_wx_device_context_attributes/1,
 
-		  connect/2, connect/3, connect/4, disconnect/1, disconnect/2 ]).
+		  connect/2, connect/4, connect/5, disconnect/1, disconnect/3 ]).
 
 
 % Conversions from wx to MyriadGUI:
@@ -339,6 +339,7 @@
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
 -type trap_set() :: gui_event:trap_set().
+-type event_translation_table() :: gui_event:event_translation_table().
 
 -type device_context_attribute() :: gui_opengl:device_context_attribute().
 
@@ -471,253 +472,18 @@ get_wx_version() ->
 % Event type section.
 
 
-% For the MyriadGUI/wx conversions, using bijective tables could have been an
-% option.
-
-
 % @doc Converts a MyriadGUI type of event into a wx one.
--spec to_wx_event_type( event_type() ) -> wx_event_type().
-
-% Presumably by decreasing order of probability (not much stake in this
-% direction of conversion).
-
-% First, the mouse section:
-
-to_wx_event_type( onMouseMoved ) ->
-	motion;
-
-to_wx_event_type( onMouseLeftButtonPressed ) ->
-	left_down;
-
-to_wx_event_type( onMouseLeftButtonReleased ) ->
-	left_up;
-
-to_wx_event_type( onMouseLeftButtonDoubleClicked ) ->
-	left_dclick;
-
-
-to_wx_event_type( onMouseMiddleButtonPressed ) ->
-	middle_down;
-
-to_wx_event_type( onMouseMiddleButtonReleased ) ->
-	middle_up;
-
-to_wx_event_type( onMouseMiddleButtonDoubleClicked ) ->
-	middle_dclick;
-
-
-to_wx_event_type( onMouseRightButtonPressed ) ->
-	right_down;
-
-to_wx_event_type( onMouseRightButtonReleased ) ->
-	right_up;
-
-to_wx_event_type( onMouseRightButtonDoubleClicked ) ->
-	right_dclick;
-
-
-% Menu/tool(bar) section:
-to_wx_event_type( onItemSelected ) ->
-	command_menu_selected;
-
-
-% Tool(bar) section:
-to_wx_event_type( onToolbarEntered ) ->
-	command_tool_enter;
-
-to_wx_event_type( onToolRightClicked ) ->
-	command_tool_rclicked;
-
-
-% Window section:
-to_wx_event_type( onRepaintNeeded ) ->
-	paint;
-
-to_wx_event_type( onButtonClicked ) ->
-	command_button_clicked;
-
-to_wx_event_type( onResized ) ->
-	size;
-
-to_wx_event_type( onWindowClosed ) ->
-	close_window;
-
-to_wx_event_type( onShown ) ->
-	show;
-
-
-
-% Keyboard section:
-to_wx_event_type( onCharEntered ) ->
-	char;
-
-to_wx_event_type( onCharEnteredHook ) ->
-	char_hook;
-
-to_wx_event_type( onKeyPressed ) ->
-	key_down;
-
-to_wx_event_type( onKeyReleased ) ->
-	key_up;
-
-
-
-% Seond mouse section:
-to_wx_event_type( onMouseFourthButtonPressed ) ->
-	aux1_down;
-
-to_wx_event_type( onMouseFourthButtonReleased ) ->
-	aux1_up;
-
-to_wx_event_type( onMouseFourthButtonDoubleClicked ) ->
-	aux1_dclick;
-
-
-to_wx_event_type( onMouseFifthButtonPressed ) ->
-	aux2_down;
-
-to_wx_event_type( onMouseFifthButtonReleased ) ->
-	aux2_up;
-
-to_wx_event_type( onMouseFifthButtonDoubleClicked ) ->
-	aux2_dclick;
-
-to_wx_event_type( onMouseWheelScrolled ) ->
-	mousewheel;
-
-
-to_wx_event_type( onMouseEnteredWindow ) ->
-	enter_window;
-
-to_wx_event_type( onMouseLeftWindow ) ->
-	leave_window;
-
-to_wx_event_type( Other ) ->
-	throw( { unsupported_gui_event_type, Other } ).
-
-
+-spec to_wx_event_type( event_type(), event_translation_table() ) ->
+											wx_event_type().
+to_wx_event_type( EventType, EventTranslationTable ) ->
+	bijective_table:get_first_for( EventType, EventTranslationTable ).
 
 
 % @doc Converts a wx type of event into a MyriadGUI one.
--spec from_wx_event_type( wx_event_type() ) -> event_type().
-
-% Presumably by decreasing order of probability (more stake in this direction of
-% conversion; a table may be more suitable).
-
-% First, the mouse section:
-from_wx_event_type( motion ) ->
-	onMouseMoved;
-
-from_wx_event_type( left_down ) ->
-	onMouseLeftButtonPressed;
-
-from_wx_event_type( left_up ) ->
-	onMouseLeftButtonReleased;
-
-from_wx_event_type( left_dclick ) ->
-	onMouseLeftButtonDoubleClicked;
-
-
-from_wx_event_type( middle_down ) ->
-	onMouseMiddleButtonPressed;
-
-from_wx_event_type( middle_up ) ->
-	onMouseMiddleButtonReleased;
-
-from_wx_event_type( middle_dclick ) ->
-	onMouseMiddleButtonDoubleClicked;
-
-
-from_wx_event_type( right_down ) ->
-	onMouseRightButtonPressed;
-
-from_wx_event_type( right_up ) ->
-	onMouseRightButtonReleased;
-
-from_wx_event_type( right_dclick ) ->
-	onMouseRightButtonDoubleClicked;
-
-
-% Menu section/tool(bar) section:
-from_wx_event_type( command_menu_selected ) ->
-	onItemSelected;
-
-
-% Tool(bar) section:
-
-from_wx_event_type( command_tool_enter ) ->
-	onToolbarEntered;
-
-from_wx_event_type( command_tool_rclicked ) ->
-	onToolRightClicked;
-
-
-% Window section:
-from_wx_event_type( paint ) ->
-	onRepaintNeeded;
-
-from_wx_event_type( command_button_clicked ) ->
-	onButtonClicked;
-
-from_wx_event_type( size ) ->
-	onResized;
-
-from_wx_event_type( close_window ) ->
-	onWindowClosed;
-
-from_wx_event_type( show ) ->
-	onShown;
-
-
-from_wx_event_type( mousewheel ) ->
-	onMouseWheelScrolled;
-
-from_wx_event_type( enter_window ) ->
-	onMouseEnteredWindow;
-
-from_wx_event_type( leave_window ) ->
-	onMouseLeftWindow;
-
-
-% Keyboard section:
-from_wx_event_type( char ) ->
-	onCharEntered;
-
-from_wx_event_type( char_hook ) ->
-	onCharEnteredHook;
-
-from_wx_event_type( key_down ) ->
-	onKeyPressed;
-
-from_wx_event_type( key_up ) ->
-	onKeyReleased;
-
-
-% Second mouse section:
-
-from_wx_event_type( aux1_down ) ->
-	onMouseFourthButtonPressed;
-
-from_wx_event_type( aux1_up ) ->
-	onMouseFourthButtonReleased;
-
-from_wx_event_type( aux1_dclick ) ->
-	onMouseFourthButtonDoubleClicked;
-
-
-from_wx_event_type( aux2_down ) ->
-	onMouseFifthButtonPressed;
-
-from_wx_event_type( aux2_up ) ->
-	onMouseFifthButtonReleased;
-
-from_wx_event_type( aux2_dclick ) ->
-	onMouseFifthButtonDoubleClicked;
-
-
-
-from_wx_event_type( Other ) ->
-	throw( { unsupported_wx_event_type, Other } ).
+-spec from_wx_event_type( wx_event_type(), event_translation_table() ) ->
+														event_type().
+from_wx_event_type( WxEventType, EventTranslationTable ) ->
+	bijective_table:get_second_for( WxEventType, EventTranslationTable ).
 
 
 %
@@ -1802,8 +1568,8 @@ wx_id_to_string( Id ) ->
 % @doc Subscribes the current process to the specified type(s) of events
 % regarding the specified object (receiving for that a message).
 %
-% The versions of that function specifying a trap set parameter shall be
-% preferred.
+% Only useful for context-less calls; the versions of that function specifying a
+% "trap set" parameter shall be preferred, as they are more efficient.
 %
 -spec connect( event_source(), maybe_list( event_type() ) ) -> void().
 connect( EventSource, EventTypeOrTypes ) ->
@@ -1811,10 +1577,10 @@ connect( EventSource, EventTypeOrTypes ) ->
 	% Here no trap set specified, trying to secure it:
 	GUIEnvPid = gui:get_environment_server(),
 
-	TrapSet = environment:get( trap_set, GUIEnvPid ),
-	basic_utils:check_defined( TrapSet ),
+	[ TrapSet, EventTranslationTable ] = environment:get(
+		[ trap_set, event_translation_table ], GUIEnvPid ),
 
-	connect( EventSource, EventTypeOrTypes, TrapSet ).
+	connect( EventSource, EventTypeOrTypes, TrapSet, EventTranslationTable ).
 
 
 
@@ -1832,10 +1598,11 @@ connect( EventSource, EventTypeOrTypes ) ->
 %  messages of that type sent afterwards)
 %  - only useful internally or when bypassing the default main loop
 %
--spec connect( event_source(), maybe_list( event_type() ), trap_set() ) ->
-														void().
-connect( EventSource, EventTypeOrTypes, TrapSet ) ->
-	connect( EventSource, EventTypeOrTypes, _Options=[], TrapSet ).
+-spec connect( event_source(), maybe_list( event_type() ), trap_set(),
+			   event_translation_table() ) -> void().
+connect( EventSource, EventTypeOrTypes, TrapSet, EventTranslationTable ) ->
+	connect( EventSource, EventTypeOrTypes, _Options=[], TrapSet,
+			 EventTranslationTable ).
 
 
 
@@ -1849,23 +1616,25 @@ connect( EventSource, EventTypeOrTypes, TrapSet ) ->
 % Refer to connect/3 for all details.
 %
 -spec connect( event_source(), maybe_list( event_type() ),
-			   connect_options(), trap_set() ) -> void().
+		connect_options(), trap_set(), event_translation_table() ) -> void().
 % Was not used apparently:
 %connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options, TrapSet ) ->
 %   connect( Panel, EventTypeOrTypes, Options, TrapSet );
 
-connect( SourceGUIObject, EventTypes, Options, TrapSet )
+connect( SourceGUIObject, EventTypes, Options, TrapSet, EventTranslationTable )
 										when is_list( EventTypes ) ->
 
 	%trace_utils:debug_fmt( "Connecting ~p for event types ~w with options ~p.",
 	%                       [ SourceObject, EventTypes, Options ] ),
 
-	[ connect( SourceGUIObject, ET, Options, TrapSet ) || ET <- EventTypes ];
+	[ connect( SourceGUIObject, ET, Options, TrapSet, EventTranslationTable )
+								|| ET <- EventTypes ];
 
-connect( SourceGUIObject, EventType, Options, TrapSet ) ->
+connect( SourceGUIObject, EventType, Options, TrapSet,
+		 EventTranslationTable ) ->
 
 	% Events to be processed through messages, not callbacks:
-	WxEventType = to_wx_event_type( EventType ),
+	WxEventType = to_wx_event_type( EventType, EventTranslationTable ),
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
@@ -1980,23 +1749,27 @@ disconnect( SourceObject ) ->
 	wxEvtHandler:disconnect( SourceObject ).
 
 
+
 % @doc Unsubscribes the current process from the specified object, for the
 % specified event type(s).
 %
 % The meaning of the returned boolean is not specified, presumably whether the
 % operation went well.
 %
--spec disconnect( event_source(), maybe_list( event_type() ) ) -> boolean().
-disconnect( SourceObject, EventTypes ) when is_list( EventTypes ) ->
-	[ disconnect( SourceObject, ET ) || ET <- EventTypes ];
+-spec disconnect( event_source(), maybe_list( event_type() ),
+				  event_translation_table() ) -> boolean().
+disconnect( SourceObject, EventTypes, EventTranslationTable )
+								when is_list( EventTypes ) ->
+	[ disconnect( SourceObject, ET, EventTranslationTable )
+											|| ET <- EventTypes ];
 
 % Single event type now:
-disconnect( #canvas_state{ panel=Panel }, EventType ) ->
-	disconnect( Panel, EventType );
+disconnect( #canvas_state{ panel=Panel }, EventType, EventTranslationTable ) ->
+	disconnect( Panel, EventType, EventTranslationTable );
 
-disconnect( SourceObject, EventType ) ->
+disconnect( SourceObject, EventType, EventTranslationTable ) ->
 
-	WxEventType = to_wx_event_type( EventType ),
+	WxEventType = to_wx_event_type( EventType, EventTranslationTable ),
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( " - disconnecting event source '~ts' from ~w "
