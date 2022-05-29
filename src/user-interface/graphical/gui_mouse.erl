@@ -104,12 +104,44 @@
 
 -type grab_status() :: 'no_grab' | 'still_grabbed'.
 
--export_type([ cursor_type/0, cursor_table/0, grab_status/0 ]).
+
+% To be kept in line with get_{all_mouse_event_types,event_types_to_trap}/0.
+-type mouse_event_type() ::
+
+	% Button 1:
+	  'onMouseLeftButtonPressed' | 'onMouseLeftButtonReleased'
+	| 'onMouseLeftButtonDoubleClicked'
+
+	% Button 2:
+	| 'onMouseMiddleButtonPressed' | 'onMouseMiddleButtonReleased'
+	| 'onMouseMiddleButtonDoubleClicked'
+
+	% Button 3:
+	| 'onMouseRightButtonPressed' | 'onMouseRightButtonReleased'
+	| 'onMouseRightButtonDoubleClicked'
+
+	% Button 4:
+	| 'onMouseFourthButtonPressed' | 'onMouseFourthButtonReleased'
+	| 'onMouseFourthButtonDoubleClicked'
+
+	% Button 5:
+	| 'onMouseFifthButtonPressed' | 'onMouseFifthtButtonReleased'
+	| 'onMouseFifthButtonDoubleClicked'
+
+	% Wheel:
+	| 'onMouseWheelScrolled'
+
+	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
+	| 'onMouseMoved'.
+% A type of event possibly emitted by a mouse.
+
+-export_type([ cursor_type/0, cursor_table/0, grab_status/0,
+			   mouse_event_type/0 ]).
 
 
 -export([ register_in_environment/1, set_cursor_types/2,
 		  unregister_from_environment/1,
-		  get_event_types_to_trap/0,
+		  get_all_mouse_event_types/0, get_event_types_to_trap/0,
 		  list_cursor_types/0, set_cursor/1,
 
 		  reset_grab/0, grab/1, ungrab/2, is_grabbed/0 ,warp/3 ]).
@@ -203,13 +235,11 @@ unregister_from_environment( GUIEnvPid ) ->
 
 
 
-% @doc Returns a list of the types of mouse-related events that shall be trapped
-% by default.
-%
--spec get_event_types_to_trap() -> [ mouse_event_type() ].
-get_event_types_to_trap() ->
+% @doc Returns a list of all types of mouse-related events.
+-spec get_all_mouse_event_types() -> [ mouse_event_type() ].
+get_all_mouse_event_types() ->
 
-	% To be kept in line with gui:mouse_event_type().
+	% To be kept in line with mouse_event_type().
 
 	[ % Button 1:
 	  onMouseLeftButtonPressed,
@@ -237,6 +267,15 @@ get_event_types_to_trap() ->
 
 	  onMouseEnteredWindow, onMouseLeftWindow,
 	  onMouseMoved ].
+
+
+
+% @doc Returns a list of the types of mouse-related events that shall be trapped
+% by default.
+%
+-spec get_event_types_to_trap() -> [ mouse_event_type() ].
+get_event_types_to_trap() ->
+	get_all_mouse_event_types().
 
 
 

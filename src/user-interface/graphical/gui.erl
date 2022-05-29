@@ -363,6 +363,7 @@
 		  show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
 		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
+		  get_best_size/1, set_client_size/2, fit/1,
 		  maximise_in_parent/1, sync/1, enable_repaint/1,
 		  lock_window/1, unlock_window/1, destruct_window/1 ]).
 
@@ -499,7 +500,7 @@
 % Internal, silencing exports:
 -export([ create_gui_environment/1,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
-		  event_interception_callback/2,
+		  event_interception_callback/3,
 		  resolve_id/1 ]).
 
 
@@ -1004,26 +1005,50 @@
 
 
 % 'iconized' not kept (duplicate of 'minimize').
--type frame_style_opt() :: 'default'
-						 | 'caption'
-						 | 'minimize' % Windows-only
-						 | 'minimize_box'
-						 | 'maximize' % Windows and GTK+ only
-						 | 'maximize_box'
-						 | 'close_box'
-						 | 'stay_on_top'
-						 | 'system_menu'
-						 | 'resize_border'
-						 | 'tool_window'
-						 | 'no_taskbar'
-						 | 'float_on_parent'
-						 | 'shaped'.
+-type frame_style_opt() ::
+
+		% Corresponds to the following options: minimize_icon, maximize_icon,
+		% resize_border, system_menu, caption, close_icon and clip_children.
+		%
+		'default'
+
+		% Displays a caption on the title bar of this frame (needed for icons).
+	  | 'caption'
+
+		% Displays a minimize icon on the title bar of this frame.
+	  | 'minimize_icon'
+
+		% Displays a maximize icon on the title bar of this frame.
+	  | 'maximize_icon'
+
+		% Displays a close icon on the title bar of this frame.
+	  | 'close_icon'
+
+		% Stays on top of all other windows.
+	  | 'stay_on_top'
+
+		% Displays a system menu containing the list of various windows commands
+		% in the window title bar.
+		%
+	  | 'system_menu'
+
+		% Displays a resizable border around the window.
+	  | 'resize_border'
+
+		% This frame will have a small title bar:
+	  | 'tool_window'
+
+		% Requests that this frame does not appear in the taskbar:
+	  | 'no_taskbar'
+
+		 % Stays on top of (only) its parent:
+	  | 'float_on_parent'
+
+		 % Allows this frame to have its shape changed:
+	  | 'shaped'.
 % Options for frames.
 %
-% Note that:
-% - specifying an empty option list does not enable any option
-% - the 'default' option corresponds to the use of minimize_box, maximize_box,
-% resize_border, system_menu, caption, close_box and clip_children
+% Note that specifying an empty option list does not enable any option.
 %
 % See also [http://docs.wxwidgets.org/stable/classwx_frame.html].
 
@@ -1273,6 +1298,7 @@
 -type event_type() :: gui_event:event_type().
 -type gui_event_object() :: gui_event:gui_event_object().
 -type event_subscriber() :: gui_event:event_subscriber().
+-type event_translation_table() :: gui_event:event_translation_table().
 
 -type text_display_option() :: gui_image:text_display_option().
 
@@ -1640,6 +1666,14 @@ register_event_callback( SourceGUIObject, EventType, EventCallbackFun,
 register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 						 MaybeUserData ) ->
 
+	trace_utils:debug_fmt( "Registering event callback for ~w: events of "
+		"types ~w will trigger ~w with user data ~w.",
+		[ SourceGUIObject, EventTypes, EventCallbackFun, MaybeUserData ] ),
+
+	LoopPid = get_main_loop_pid(),
+
+	LoopPid ! { getEventTranslationTable, [], self() },
+
 	WxUserData = case MaybeUserData of
 
 		undefined ->
@@ -1654,33 +1688,58 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 	% Recording for later used when a corresponding event is fired:
 	CallbackData = { EventCallbackFun, WxUserData },
 
+	% Interleaving:
+	EventTranslationTable = receive
+
+		{ notifyEventTranslationTable, EvTransTable } ->
+			EvTransTable
+
+	end,
+
 	% As we will have to convert back the received wx event into a MyriadGUI
 	% one:
-	%
-	WxOptions = [ { callback, fun event_interception_callback/2 },
+
+	% Closure needed to embed the translation table:
+	WxCallback = fun( WxEventRecord, WxEventObject ) ->
+		event_interception_callback( WxEventRecord, WxEventObject,
+									 EventTranslationTable )
+				 end,
+
+	% No other option found interesting ('skip' would be ignored here):
+	WxOptions = [ { callback, WxCallback },
 				  { userData, CallbackData } ],
 
-	[ wxEvtHandler:connect( SourceGUIObject,
-							gui_wx_backend:to_wx_event_type( ET ), WxOptions )
-								|| ET <- EventTypes ].
+	[ begin
+
+			WxEventType = gui_wx_backend:to_wx_event_type( ET,
+										EventTranslationTable ),
+
+			%trace_utils:debug_fmt( "Callback-connecting object ~w "
+			%   "for event type ~w with options ~w.",
+			%   [ SourceGUIObject, WxEventType, WxOptions ] ),
+
+			wxEvtHandler:connect( SourceGUIObject, WxEventType,
+								  WxOptions )
+
+	  end || ET <- EventTypes ].
 
 
 
 % Internal function defined so that a wx callback can be converted to a
 % MyriadGUI one before calling the user-specified callback with it.
 %
--spec event_interception_callback( gui_event:wx_event(), wx:wxEvent() ) ->
-																void().
+-spec event_interception_callback( gui_event:wx_event(), wx:wxEvent(),
+								   event_translation_table() ) -> void().
 event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
-							 WxEventObject ) ->
+							 WxEventObject, EventTranslationTable ) ->
 
 	% Ex: WxEventObject={ wx_ref, 92, wxPaintEvent, [] }:
 	%trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
 	%                       [ WxEventObject ] ),
 
 	MyriadGUIEvent = gui_event:wx_to_myriad_event(
-						WxEventRecord#wx{ userData=ActualUserData } ),
+		WxEventRecord#wx{ userData=ActualUserData }, EventTranslationTable ),
 
 	EventCallbackFun( MyriadGUIEvent, WxEventObject ).
 
@@ -2414,15 +2473,13 @@ set_title( TopLevelWindow, Title ) ->
 
 
 
-% @doc Returns the window or control (if any) that has the current keyboard
-% focus.
-%
+% @doc Returns the widget (if any) that has the current keyboard focus.
 -spec get_focused() -> maybe( window() ).
 get_focused() ->
 	wxWindow:findFocus().
 
 
-% @doc Sets the specified window to receive keyboard input.
+% @doc Sets the specified widget to receive keyboard input.
 -spec set_focus( window() ) -> void().
 set_focus( Window ) ->
 	wxWindow:setFocus( Window ).
@@ -2453,7 +2510,7 @@ get_size( Window ) ->
 
 
 
-% @doc Returns the client size (as {Width,Height}) of the specified window,
+% @doc Returns the client size (as {Width,Height}) of the specified widget,
 % i.e. the actual size of the area that can be drawn upon (excluded menu, bars,
 % etc.)
 %
@@ -2470,6 +2527,48 @@ get_client_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
 get_client_size( Window ) ->
 	wxWindow:getClientSize( Window ).
+
+
+
+% @doc Returns the best size (as {Width,Height}) of the specified widget, that
+% is its best acceptable minimal size.
+%
+-spec get_best_size( window() ) -> dimensions().
+get_best_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
+
+	get_main_loop_pid() ! { getCanvasClientSize, CanvasId, self() },
+	receive
+
+		{ notifyCanvasClientSize, Size } ->
+			Size
+
+	end;
+
+get_best_size( Window ) ->
+	wxWindow:getBestSize( Window ).
+
+
+
+% @doc Sets the size of the client area of the specified widget
+-spec set_client_size( window(), dimensions() ) -> void().
+set_client_size( _Canvas={ myriad_object_ref, myr_canvas, _CanvasId },
+				 _Size ) ->
+	throw( not_implemented );
+
+set_client_size( Window, Size ) ->
+	wxWindow:setClientSize( Window, Size ).
+
+
+% @doc Fits the specified widget to its best size.
+%
+% Corresponds to setting its client size to its best one.
+%
+-spec fit( window() ) -> void().
+fit( _Canvas={ myriad_object_ref, myr_canvas, _CanvasId } ) ->
+	throw( not_implemented );
+
+fit( Window ) ->
+	wxWindow:fit( Window).
 
 
 

@@ -71,7 +71,7 @@
 -export([ start_main_event_loop/4,
 		  get_trapped_event_types/1, trap_event/1, propagate_event/1,
 		  get_event_translation_table/0,
-		  wx_to_myriad_event/1, set_instance_state/3, match/2 ]).
+		  wx_to_myriad_event/2, set_instance_state/3, match/2 ]).
 
 
 % Stringification:
@@ -268,56 +268,6 @@
 % Generally these command events are meant to be trapped (not propagated in the
 % widget hierarchy), as a single, user-defined handler suffice; as a result, by
 % default, all of them are trapped.
-
-
-% To be kept in line with gui_mouse:get_event_types_to_trap/0.
--type mouse_event_type() ::
-
-	% Button 1:
-	  'onMouseLeftButtonPressed' | 'onMouseLeftButtonReleased'
-	| 'onMouseLeftButtonDoubleClicked'
-
-	% Button 2:
-	| 'onMouseMiddleButtonPressed' | 'onMouseMiddleButtonReleased'
-	| 'onMouseMiddleButtonDoubleClicked'
-
-	% Button 3:
-	| 'onMouseRightButtonPressed' | 'onMouseRightButtonReleased'
-	| 'onMouseRightButtonDoubleClicked'
-
-	% Button 4:
-	| 'onMouseFourthButtonPressed' | 'onMouseFourthButtonReleased'
-	| 'onMouseFourthButtonDoubleClicked'
-
-	% Button 5:
-	| 'onMouseFifthButtonPressed' | 'onMouseFifthtButtonReleased'
-	| 'onMouseFifthButtonDoubleClicked'
-
-	% Wheel:
-	| 'onMouseWheelScrolled'
-
-	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
-	| 'onMouseMoved'.
-% A type of event possibly emitted by a mouse.
-
-
--type keyboard_event_type() ::
-
-	% Event taking into account any modifier (ex: Control, Shift, Caps Lock) for
-	% the returned logical haracter (ex: returning 'A' instead of 'a'):
-	%
-	'onCharEntered'
-
-	% So that parent windows can intercept keys received by focused (child)
-	% windows:
-	%
-	| 'onCharEnteredHook'
-
-	% Event just about the physical key of interest (regardless of any
-	% modifier):
-	%
-	| 'onKeyPressed'
-	| 'onKeyReleased'.
 
 
 
@@ -623,6 +573,8 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
 -type set( T ) :: set_utils:set( T ).
 
 -type gui_object() :: gui:gui_object().
@@ -631,18 +583,19 @@
 -type construction_parameters() :: gui:construction_parameters().
 -type wx_server() :: gui:wx_server().
 -type event_subscription_opt() :: gui:event_subscription_opt().
+-type service() :: gui:service().
 
 -type backend_id() :: gui_id:backend_id().
 -type wx_id() :: gui_id:wx_id().
 -type id_name_alloc_table() :: gui_id:id_name_alloc_table().
--type service() :: gui:service().
-
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
+
+-type keyboard_event_type() :: gui_keyboard:keyboard_event_type().
+-type mouse_event_type() :: gui_mouse:mouse_event_type().
 
 -type wx_object() :: wx:wx_object().
 -type wx_env() :: wx:wx_env().
 
--type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 
 
@@ -1174,6 +1127,11 @@ process_event_message( { unsubscribeFromEvents,
 	SenderPid ! onEventUnsubscriptionProcessed,
 	NewLoopState;
 
+process_event_message( { getEventTranslationTable, [], SenderPid },
+					   LoopState=#loop_state{
+							event_translation_table=EventTranslationTable } ) ->
+	SenderPid ! { notifyEventTranslationTable, EventTranslationTable },
+	LoopState;
 
 
 % To account for example for a silently-resized inner panel of a canvas:
@@ -2264,15 +2222,18 @@ propagate_event( GUIEventObject ) ->
 
 
 % @doc Converts the specified wx event into a MyriadGUI one.
--spec wx_to_myriad_event( wx_event() ) -> gui_event().
-wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo } ) ->
+-spec wx_to_myriad_event( wx_event(), event_translation_table() ) ->
+											gui_event().
+wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo },
+					EventTranslationTable ) ->
 
 	% Example: WxEventType=close_window (the first element being the record
 	% name, such as 'wxClose').
 	%
 	WxEventType = element( 2, WxEventInfo ),
 
-	MyriadEventType = gui_wx_backend:from_wx_event_type( WxEventType ),
+	MyriadEventType =
+		gui_wx_backend:from_wx_event_type( WxEventType, EventTranslationTable ),
 
 	EventContext = #event_context{ id=WxId, user_data=UserData,
 								   backend_event=WxEvent },

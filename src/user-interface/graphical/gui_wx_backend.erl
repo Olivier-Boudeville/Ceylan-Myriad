@@ -408,8 +408,9 @@ to_wx_object_type( bitmap ) ->
 to_wx_object_type( memory_device_context ) ->
 	wxMemoryDC;
 
-to_wx_object_type( Other ) ->
-	throw( { unsupported_object_type, Other } ).
+to_wx_object_type( _Other ) ->
+	%throw( { unsupported_object_type, Other } ).
+	unknown_wx_object_type.
 
 
 
@@ -455,9 +456,9 @@ from_wx_object_type( wxBitmap ) ->
 from_wx_object_type( wxMemoryDC ) ->
 	memory_device_context;
 
-from_wx_object_type( Other ) ->
-	throw( { unsupported_wx_object_type, Other } ).
-
+from_wx_object_type( _Other ) ->
+%	throw( { unsupported_wx_object_type, Other } ).
+	unknown_wx_object_type.
 
 
 % @doc Returns the build-time version of wx (wxWidgets).
@@ -629,19 +630,21 @@ frame_style_to_bitmask( _Style=default ) ->
 frame_style_to_bitmask( _Style=caption ) ->
 	?wxCAPTION;
 
-frame_style_to_bitmask( _Style=minimize ) ->
-	?wxMINIMIZE;
+% Useless 'minimize' (Windows-only);
+%frame_style_to_bitmask( _Style=minimize ) ->
+%	?wxMINIMIZE;
 
-frame_style_to_bitmask( _Style=minimize_box ) ->
+frame_style_to_bitmask( _Style=minimize_icon ) ->
 	?wxMINIMIZE_BOX;
 
-frame_style_to_bitmask( _Style=maximize ) ->
-	?wxMAXIMIZE;
+% Useless 'maximize' (Windows-only);
+%frame_style_to_bitmask( _Style=maximize ) ->
+%	?wxMAXIMIZE;
 
-frame_style_to_bitmask( _Style=maximize_box ) ->
+frame_style_to_bitmask( _Style=maximize_icon ) ->
 	?wxMAXIMIZE_BOX;
 
-frame_style_to_bitmask( _Style=close_box ) ->
+frame_style_to_bitmask( _Style=close_icon ) ->
 	?wxCLOSE_BOX;
 
 frame_style_to_bitmask( _Style=stay_on_top ) ->
@@ -659,10 +662,10 @@ frame_style_to_bitmask( _Style=tool_window ) ->
 frame_style_to_bitmask( _Style=no_taskbar ) ->
 	?wxFRAME_NO_TASKBAR;
 
-frame_style_to_bitmask( _Style=float_on_parent) ->
+frame_style_to_bitmask( _Style=float_on_parent ) ->
 	?wxFRAME_FLOAT_ON_PARENT;
 
-frame_style_to_bitmask( _Style=shaped) ->
+frame_style_to_bitmask( _Style=shaped ) ->
 	?wxFRAME_SHAPED.
 
 

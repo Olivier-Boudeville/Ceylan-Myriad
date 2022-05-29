@@ -26,7 +26,7 @@
 % Creation date: Sunday, March 6, 2022.
 
 
-% @doc Testing of the <b>MyriadGUI keyboard support</b>.% exits.
+% @doc Testing of the <b>MyriadGUI keyboard support</b>.
 %
 % See the gui_keyboard.erl tested module.
 %
@@ -55,7 +55,8 @@ run_test_gui() ->
 
 	gui:start(),
 
-	TestFrame = gui:create_frame( "This is the single and only test frame" ),
+	TestFrame = gui:create_frame( "This is the single and only test frame, "
+								  "for keyboard testing" ),
 
 	EventTypes = [ onWindowClosed, onKeyPressed, onKeyReleased, onCharEntered ],
 

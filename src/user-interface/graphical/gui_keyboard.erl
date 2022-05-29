@@ -117,13 +117,35 @@
 % in a pressed state, many key down events will be generated, but only one key
 % up will be reported at the end, when the key is released).
 
+
 -type key_status() :: 'pressed'
 					| 'released'.
 % Corresponds to the (potentially durable) status of a key.
 
 
+-type keyboard_event_type() ::
+
+	% Event taking into account any modifier (ex: Control, Shift, Caps Lock) for
+	% the returned logical haracter (ex: returning 'A' instead of 'a'):
+	%
+	'onCharEntered'
+
+	% So that parent windows can intercept keys received by focused (child)
+	% windows:
+	%
+	| 'onCharEnteredHook'
+
+	% Event just about the physical key of interest (regardless of any
+	% modifier):
+	%
+	| 'onKeyPressed'
+	| 'onKeyReleased'.
+
+
+
 -export_type([ scancode/0, keycode/0, modifier/0,
-			   key_transition/0, key_status/0 ]).
+			   key_transition/0, key_status/0,
+			   keyboard_event_type/0 ]).
 
 
 -export([ is_modkey_pressed/1, is_key_pressed/1, to_lower/2 ]).
