@@ -1219,8 +1219,8 @@ atoms_to_string( [], Acc ) ->
 	 Acc;
 
 atoms_to_string( [ H | T ], Acc ) when is_atom( H )  ->
-	atoms_to_string( T, Acc ++ get_default_bullet()
-						 ++ io_lib:format(  "~ts~n", [ H ] ) ).
+	atoms_to_string( T,
+		Acc ++ get_default_bullet() ++ io_lib:format(  "~ts~n", [ H ] ) ).
 
 
 
