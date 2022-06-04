@@ -1004,7 +1004,7 @@ comatrix( _M=#compact_matrix3{ m11=M11, m12=M12, tx=Tx,
 
 
 
-% @doc Returns the inverse of the specified matrix, if it is inversible (that is
+% @doc Returns the inverse of the specified matrix, if it is invertible (that is
 % iff its determinant is non-null), otherwise returns undefined.
 %
 -spec inverse( matrix3() ) -> maybe( matrix3() ).

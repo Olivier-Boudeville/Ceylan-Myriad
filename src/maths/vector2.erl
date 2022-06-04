@@ -94,6 +94,7 @@
 
 
 -export([ new/1, new/2, new_integer/2, null/0,
+		  x_axis/0, y_axis/0,
 		  from_point/1, to_point/1,
 		  add/2, add/1, cross_product/2,
 		  are_close/2, are_equal/2,
@@ -157,6 +158,24 @@ new_integer( X, Y ) when is_integer( X ) andalso is_integer( Y ) ->
 null() ->
 	Zero = 0.0,
 	[ Zero, Zero ].
+
+
+
+
+% @doc Returns a 2D vector corresponding to the X axis of the current
+% referential.
+%
+-spec x_axis() -> vector2().
+x_axis() ->
+	[ 1.0, 0.0 ].
+
+
+% @doc Returns a 2D vector corresponding to the Y axis of the current
+% referential.
+%
+-spec y_axis() -> vector2().
+y_axis() ->
+	[  0.0, 1.0 ].
 
 
 
