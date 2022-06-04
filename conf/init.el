@@ -1,6 +1,9 @@
-;; This is an initialization script written in elisp.
-;; Refer to https://www.gnu.org/software/emacs/manual/html_node/elisp/
+;;; package --- This is an initialization script written in elisp.
 
+;;; Commentary: refer to
+;;; https://www.gnu.org/software/emacs/manual/html_node/elisp/
+
+;;; Code: (below)"
 
 ;; Section for package management with straight.el
 
@@ -965,11 +968,27 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 			(expand-file-name
 			 (concat "#%" (buffer-name) "#")))))
 
-;; Put backup files (ie foo~) in one place too. (The backup-directory-alist
-;; list contains regexp=>directory mappings; filenames matching a regexp are
-;; backed up in the corresponding directory. Emacs will mkdir it if necessary.)
+;; Put backup files (i.e. foo~) in one place too.
+
+;; (The backup-directory-alist list contains regexp=>directory mappings;
+;; filenames matching a regexp are backed up in the corresponding
+;; directory. Emacs will mkdir it if necessary.)
+
 (defvar backup-dir (concat "/tmp/emacs_backups/" (user-login-name) "/"))
+
 (setq backup-directory-alist (list (cons "." backup-dir)))
+
+(setq make-backup-files t               ; backup of a file the first time it is saved.
+	  backup-by-copying t               ; don't clobber symlinks
+	  version-control t                 ; version numbers for backup files
+	  delete-old-versions t             ; delete excess backup files silently
+	  delete-by-moving-to-trash t
+	  kept-old-versions 6               ; oldest versions to keep when a new numbered backup is made (default: 2)
+	  kept-new-versions 9               ; newest versions to keep when a new numbered backup is made (default: 2)
+	  auto-save-default t               ; auto-save every buffer that visits a file
+	  auto-save-timeout 20              ; number of seconds idle time before auto-save (default: 30)
+	  auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
+	  )
 
 (message "<<<<<<######### init.el version 1.2 #########>>>>>>")
 
