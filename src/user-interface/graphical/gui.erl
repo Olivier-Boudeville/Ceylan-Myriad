@@ -1666,9 +1666,9 @@ register_event_callback( SourceGUIObject, EventType, EventCallbackFun,
 register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 						 MaybeUserData ) ->
 
-	trace_utils:debug_fmt( "Registering event callback for ~w: events of "
-		"types ~w will trigger ~w with user data ~w.",
-		[ SourceGUIObject, EventTypes, EventCallbackFun, MaybeUserData ] ),
+	%trace_utils:debug_fmt( "Registering event callback for ~w: events of "
+	%   "types ~w will trigger ~w with user data ~w.",
+	%   [ SourceGUIObject, EventTypes, EventCallbackFun, MaybeUserData ] ),
 
 	LoopPid = get_main_loop_pid(),
 
