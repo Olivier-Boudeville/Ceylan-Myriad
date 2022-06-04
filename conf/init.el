@@ -4,8 +4,11 @@
 
 ;; Section for package management with straight.el
 
-; straight.el is a replacement for package.el (not use-package).
+;; straight.el is a replacement for package.el (not use-package).
 ;; use-package can be used with either package.el or straight.el.
+
+;; Must be kept, in order to prevent package.el loading packages prior to their
+;; init-file loading:
 
 (setq package-enable-at-startup nil)
 
