@@ -1002,8 +1002,9 @@ start_application( AppName, RestartType, BlacklistedApps ) ->
 					ok;
 
 				{ error, Reason } ->
-					trace_bridge:error_fmt( "Application '~ts' failed to "
-											"start: ~p", [ AppName, Reason ] ),
+					trace_bridge:error_fmt(
+						"Application '~ts' failed to start: ~p",
+						[ AppName, Reason ] ),
 
 					throw( { app_start_failed, AppName, RestartType, Reason } )
 
