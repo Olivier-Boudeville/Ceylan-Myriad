@@ -70,7 +70,7 @@
 		  list_dir_elements/1, list_dir_elements/2,
 
 		  get_size/1, get_last_modification_time/1, touch/1,
-		  create_empty_file/1,
+		  create_empty_file/1, create_non_clashing_file/0,
 
 		  get_current_directory/0, get_bin_current_directory/0,
 		  set_current_directory/1,
@@ -149,6 +149,7 @@
 		  open/2, open/3, close/1, close/2,
 		  read/2, write/2, write_ustring/2, write_ustring/3,
 		  read_whole/1, write_whole/2, write_whole/3,
+		  write_whole_in_non_clashing/1,
 		  read_lines/1,
 		  read_etf_file/1, read_terms/1,
 		  write_etf_file/2, write_etf_file/4,
@@ -1582,6 +1583,32 @@ create_empty_file( FilePath ) ->
 
 
 
+% @doc Creates on the filesystem a file whose path is guaranteed not to clash
+% with any other.
+%
+% Typically useful to create a temporary file.
+%
+% An empty file is created for that name, whose path is returned.
+%
+% May for example return "/tmp/tmp.QgHRjzI2TZ".
+%
+-spec create_non_clashing_file() -> file_path().
+create_non_clashing_file() ->
+	% Typically in /bin/mktemp:
+	MkTempExecPath = executable_utils:find_executable( "mktemp" ),
+
+	case system_utils:run_executable( MkTempExecPath ) of
+
+		{ _ReturnCode=0, CmdOutput } ->
+			CmdOutput;
+
+		{ ErrorCode, Output } ->
+			throw( { non_clashing_file_creation_failed, Output, ErrorCode } )
+
+	end.
+
+
+
 % @doc Returns the current directory, as a plain string.
 %
 % Throws an exception on failure.
@@ -2853,7 +2880,7 @@ create_temporary_directory() ->
 
 
 
-% @doc Removes (deletes) specified file, specified as any kind of string.
+% @doc Removes (deletes) the specified file, specified as any kind of string.
 %
 % Throws an exception if any problem occurs.
 %
@@ -4909,6 +4936,19 @@ write_whole( AnyFilePath, BinaryContent, Modes ) ->
 					 Error } )
 
 	end.
+
+
+
+% @doc Writes the specified content in a new file, whose path is chosen not to
+% clash with any other (typically a temporary file), and returns that path.
+%
+% Throws an exception on failure.
+%
+-spec write_whole_in_non_clashing( ustring() | binary() ) -> file_path().
+write_whole_in_non_clashing( Content ) ->
+	FilePath = create_non_clashing_file(),
+	write_whole( FilePath, Content ),
+	FilePath.
 
 
 

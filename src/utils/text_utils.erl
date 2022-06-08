@@ -876,7 +876,7 @@ strings_to_enumerated_string( Strings, IndentationLevel ) ->
 			{ Count+1, NewStrs }
 
 		end,
-		_Acc0={ 1, "" },
+		_Acc0={ 1, [] },
 		_List=Strings ),
 
 	OrderedStrings = lists:reverse( ReversedStrings ),
@@ -2056,34 +2056,34 @@ match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count ) ->
 
 
 
-% @doc Formats specified text as a comment, based on the default character
-% denoting comments (namely "%"), for a line width of 80 characters.
+% @doc Formats the specified text as a comment, based on the default character
+% denoting comments (namely "%"), and for a line width of 80 characters.
 %
 -spec format_as_comment( ustring() ) -> ustring().
 format_as_comment( Text ) ->
 	format_as_comment( Text, _CommentChar=$% ).
 
 
-% @doc Formats specified format string with values as a comment, based on the
-% default character denoting comments (namely "%"), for a line width of 80
-% characters.
+% @doc Formats the specified format string with values as a comment, based on
+% the default character denoting comments (namely "%"), and for a line width of
+% 80 characters.
 %
--spec format_as_comment( format_string(), [ term() ] ) -> ustring();
+-spec format_as_comment( format_string(), format_values() ) -> ustring();
 					   ( ustring(), char() ) -> ustring().
 format_as_comment( FormatString, Values ) when is_list( Values ) ->
 	Text = format( FormatString, Values ),
 	format_as_comment( Text );
 
-% Formats specified text as a comment, based on specified character denoting
-% comments, for a line width of 80 characters.
+% Formats the specified text as a comment, based on the specified character
+% denoting comments, and for a line width of 80 characters.
 %
 format_as_comment( Text, CommentChar ) ->
 	format_as_comment( Text, CommentChar, _LineWidth=80 ).
 
 
 
-% @doc Formats specified text as a comment, based on specified character
-% denoting comments, for specified line width.
+% @doc Formats specified text as a comment, based on the specified character
+% denoting comments, and for the specified line width (in characters).
 %
 -spec format_as_comment( any_string(), char(), width() ) -> ustring().
 format_as_comment( Text, CommentChar, LineWidth ) when is_binary( Text ) ->
@@ -2101,11 +2101,12 @@ format_as_comment( Text, CommentChar, LineWidth ) when is_list( Text ) ->
 
 
 
-% @doc Formats specified format string with values as a comment, based on
-% specified character denoting comments, for specified line width.
+% @doc Formats the specified format string with values as a comment, based on
+% the specified character denoting comments, and for the specified line width
+% (in characters).
 %
--spec format_as_comment( format_string(), [ term() ] , char(), width() ) ->
-							   ustring().
+-spec format_as_comment( format_string(), format_values(), char(), width() ) ->
+															ustring().
 format_as_comment( FormatString, Values, CommentChar, LineWidth ) ->
 	Text = format( FormatString, Values ),
 	format_as_comment( Text, CommentChar, LineWidth ).
@@ -2158,7 +2159,7 @@ get_formatted_line( CommentChar, Line ) ->
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
 %
--spec bin_format( format_string(), [ term() ] ) -> bin_string().
+-spec bin_format( format_string(), format_values() ) -> bin_string().
 bin_format( FormatString, Values ) ->
 
 	String = format( FormatString, Values ),
@@ -2175,7 +2176,7 @@ bin_format( FormatString, Values ) ->
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
 %
--spec atom_format( format_string(), [ term() ] ) -> atom().
+-spec atom_format( format_string(), format_values() ) -> atom().
 atom_format( FormatSt, FormatValues ) ->
 	string_to_atom( format( FormatSt, FormatValues ) ).
 
@@ -3122,6 +3123,7 @@ split_parsed( ParseString, Delimiters ) ->
 	Res.
 
 
+
 % @doc Collecting chars in elements (AccElem), then elements in the overall
 % accumulator (AccStrs).
 %
@@ -3136,7 +3138,7 @@ split_parsed( _ParseString=[], _Delimiters, AccElem, AccStrs ) ->
 	lists:reverse( [ lists:reverse( AccElem ) | AccStrs ] );
 
 split_parsed( _ParseString=[ C | T ], Delimiters, AccElem, AccStrs )
-	   when is_integer( C ) ->
+												when is_integer( C ) ->
 	case lists:member( C, Delimiters ) of
 
 		true ->
@@ -3160,8 +3162,12 @@ split_parsed( _ParseString=[ C | T ], Delimiters, AccElem, AccStrs )
 	end;
 
 split_parsed( _ParseString=[ Str | T ], Delimiters, AccElem, AccStrs )
-	   when is_list( Str ) ->
-	split_parsed( T, Delimiters, lists:reverse( Str ) ++ AccElem, AccStrs ).
+														when is_list( Str ) ->
+	split_parsed( T, Delimiters, lists:reverse( Str ) ++ AccElem, AccStrs );
+
+split_parsed( _ParseString=[ Other | _T ], _Delimiters, _AccElem, _AccStrs ) ->
+	throw( { unexpected_parsed_element, Other } ).
+
 
 
 
@@ -3627,13 +3633,13 @@ remove_newlines( String ) ->
 
 
 
-% @doc Parses specified plain (non-iolist) string (that is a mere list of
+% @doc Parses the specified plain (non-iolist) string (that is a mere list of
 % characters), based on two quoting characters (single and double quotes) and
 % one escaping character (backslash), returning a specific kind of iolist
 % containing either characters or plain strings, the latter corresponding to the
-% found quoted texts, provided they were not escaped.
+% found quoted texts, provided that they were not escaped.
 %
-% For example, let's consider an input string such as (using from now § to
+% For example, let's consider an input string such as (using, from now, '§' to
 % delimit strings):
 %
 % §This is an "example \" 'convoluted" string' with various 'quoting elements'.§
@@ -3659,12 +3665,11 @@ parse_quoted( InputStr ) ->
 
 
 
-% @doc Parses specified plain (non-iolist) string (ie a mere list of
-% characters), returning a specific kind of iolist containing either characters
-% or plain strings, the latter corresponding to the found quoted texts, provided
-% they were not escaped.
-%
-% Supports user-specified quoting characters and escaping ones.
+% @doc Parses the specified plain (non-iolist) string (that is a mere list of
+% characters), based on the specified quoting characters and escaping
+% characters, returning a specific kind of iolist containing either individual
+% characters or plain strings, the latter corresponding to the found quoted
+% texts, provided that they were not escaped.
 %
 % See parse_quoted/1 regarding parsing/escaping rules, and text_utils_test.erl
 % for a full example with additional explanations.
@@ -3672,15 +3677,20 @@ parse_quoted( InputStr ) ->
 % @see parse_quoted/1
 %
 -spec parse_quoted( plain_string(), [ uchar() ], [ uchar() ] ) ->
-								parse_string().
+														parse_string().
 parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
 
 	%trace_utils:debug_fmt( "Parsing §~ts§, with quoting §~ts§ and "
-	%    "escaping §~ts§:", [ InputStr, QuotingChars, EscapingChars ] ),
+	%   "escaping §~ts§:", [ InputStr, QuotingChars, EscapingChars ] ),
 
-	parse_helper( InputStr, QuotingChars, EscapingChars,
+	Res = parse_helper( InputStr, QuotingChars, EscapingChars,
 		_CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
-		_PreviousChar=undefined, _Acc=[] ).
+		_PreviousChar=undefined, _Acc=[] ),
+
+	%trace_utils:debug_fmt( "Parsed string is:~n ~p", [ Res ] ),
+
+	Res.
+
 
 
 % In examples below, double quotes are a quoting character, and backslash an
@@ -3707,6 +3717,8 @@ parse_helper( _InputStr=[], _QuotingChars, _EscapingChars,
 	lists:reverse( Acc );
 
 % Most usual (normal) ending (not in a quoted context):
+% (this clause just has PreviousChar =/= undefined)
+%
 parse_helper( _InputStr=[], _QuotingChars, _EscapingChars,
 			  _CurrentQuoteChar=undefined, _CurrentQuotedText=undefined,
 			  PreviousChar, Acc ) ->
@@ -3743,7 +3755,7 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 
 	%trace_utils:debug_fmt( "Out of quoted context, read §~ts§ "
 	%    "(previous: §~p§), while current, reversed accumulator is:~n  §~p§.",
-	%	[ [C], [PrevC], lists:reverse( Acc ) ] ),
+	%    [ [ C ], [ PrevC ], lists:reverse( Acc ) ] ),
 
 	% lists:member/2 not a valid guard, so:
 	%
@@ -3780,7 +3792,15 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 				% (PrevC possibly equal to 'undefined' here)
 				%
 				false ->
-					NewAcc = [ PrevC | Acc ],
+					NewAcc = case PrevC of
+
+						undefined ->
+							Acc;
+
+						_ ->
+							[ PrevC | Acc ]
+
+					end,
 
 					%trace_utils:debug_fmt( "Entering a quoting section with "
 					%   "§~ts§, while current, reversed accumulator is:~n  "
@@ -3861,8 +3881,8 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 					end,
 
 					%trace_utils:debug_fmt( "Closing a quoting section "
-					%	"(result:'~ts') with '~ts', while reversed accumulator "
-					%	"is:~n~p", [ Quoted, [C], lists:reverse( Acc ) ] ),
+					%   "(result:'~ts') with '~ts', while reversed accumulator "
+					%   "is:~n~p", [ Quoted, [C], lists:reverse( Acc ) ] ),
 
 					parse_helper( T, QuotingChars, EscapingChars,
 						_CurrentQuoteChar=undefined,
@@ -3896,17 +3916,17 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 		CurrentQuoteChar, CurrentQuotedText, _PreviousChar=undefined, Acc ) ->
 
 	%trace_utils:debug_fmt( "Just recording, in quoted context, "
-	%   "current char: §~ts§", [ [C] ] ),
+	%   "current char: §~ts§", [ [ C ] ] ),
 
 	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
 				  CurrentQuotedText, _PrevChar=C, Acc );
 
-% Same but with a previous char:
+% Same but with a previous (non-undefined) char:
 parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 			  CurrentQuoteChar, CurrentQuotedText, PreviousChar, Acc ) ->
 
 	%trace_utils:debug_fmt( "Recording, in quoted context, "
-	%   "current char: §~ts§", [ [C] ] ),
+	%   "current char: §~ts§", [ [ C ] ] ),
 
 	parse_helper( T, QuotingChars, EscapingChars, CurrentQuoteChar,
 				  [ PreviousChar | CurrentQuotedText ], _PrevChar=C, Acc ).
@@ -4390,7 +4410,7 @@ is_string( _Other ) ->
 
 % Alternate, less efficient version:
 %is_string( Term ) when is_list( Term ) ->
-%    lists:all( fun erlang:is_integer/1, Term );
+%			lists:all( fun erlang:is_integer/1, Term );
 %
 %is_string( _Term ) -> false.
 

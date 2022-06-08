@@ -132,6 +132,7 @@ endif
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
 #  - registration: regarding naming registering
+#  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
 #  - environments: about the sharing/caching of application information
@@ -160,6 +161,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments

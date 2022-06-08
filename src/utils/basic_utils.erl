@@ -74,7 +74,7 @@
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
 		  ignore_unused/1,
-		  freeze/0, crash/0, enter_infinite_loop/0,
+		  freeze/0, crash/0, crash/1, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
 
 
@@ -613,6 +613,25 @@ crash() ->
 
 	trace_bridge:warning_fmt( "*** Crashing on purpose process ~w ***",
 							  [ self() ] ),
+
+	% Must outsmart the compiler; there should be simpler solutions:
+	A = system_utils:get_core_count(),
+	B = system_utils:get_core_count(),
+
+	% Dividing thus by zero:
+	1 / ( A - B ).
+
+
+
+% @doc Crashes the current process immediately, displaying the specified term.
+%
+% Useful for testing reliability, for example.
+%
+-spec crash( term() ) -> any().
+crash( Term ) ->
+
+	trace_bridge:warning_fmt( "*** Crashing on purpose process ~w: ~p ***",
+							  [ self(), Term ] ),
 
 	% Must outsmart the compiler; there should be simpler solutions:
 	A = system_utils:get_core_count(),

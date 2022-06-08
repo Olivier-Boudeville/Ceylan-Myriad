@@ -114,6 +114,8 @@
 
 		 get_default_sql_client/0,
 
+		 get_default_xml_prettyprinter/0,
+
 		 get_default_java_runtime/0,
 		 get_default_jinterface_path/0 ]).
 
@@ -963,6 +965,12 @@ get_default_sha_tool() ->
 -spec get_default_sql_client() -> executable_path().
 get_default_sql_client() ->
 	find_executable( "psql" ).
+
+
+% @doc Returns the default client to pretty-print XML content.
+-spec get_default_xml_prettyprinter() -> executable_path().
+get_default_xml_prettyprinter() ->
+	find_executable( "xmllint" ).
 
 
 % @doc Returns the default tool to execute Java programs.

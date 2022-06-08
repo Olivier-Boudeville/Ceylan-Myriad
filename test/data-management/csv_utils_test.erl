@@ -23,9 +23,10 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2016.
 
 
-% Unit tests for the management of CVS files.
+% @doc Unit tests for the management of <b>CSV files</b>.
 %
 % See the csv_utils.erl tested module.
 %
@@ -56,7 +57,7 @@ run() ->
 	%
 	case csv_utils:interpret_file( CSVFilename, Separator ) of
 
-		{ FieldCount, MixedContent, MatchCount=5, _UnmatchCount=0, 
+		{ FieldCount, MixedContent, MatchCount=5, _UnmatchCount=0,
 		  _DropCount=8 } ->
 			MatchCount = length( MixedContent ),
 			test_facilities:display( "Interpreted mixed content: ~p",
@@ -75,6 +76,9 @@ run() ->
 		[ RowCount, FieldCount, csv_utils:content_to_string( Content ) ] ),
 
 	NewCSVFilename = "example-written.csv",
+
+	% Should a prior test have failed:
+	file_utils:remove_file_if_existing( NewCSVFilename ),
 
 	% The internal data (i.e. comments aside) shall match exactly the one of
 	% CSVFilename:
