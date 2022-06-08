@@ -114,6 +114,7 @@
 
 	get_default_sql_client/0,
 
+<<<<<<< HEAD
 	get_default_xml_prettyprinter/0,
 
 	get_default_java_runtime/0,
@@ -121,6 +122,12 @@
 
 	get_default_graph_stream_tool_name/0,
 	get_default_graph_stream_tool_path/0 ]).
+=======
+		 get_default_xml_prettyprinter/0,
+
+		 get_default_java_runtime/0,
+		 get_default_jinterface_path/0 ]).
+>>>>>>> 794919d7 (Downstream update.)
 
 
 -type executable_name() :: ustring().
