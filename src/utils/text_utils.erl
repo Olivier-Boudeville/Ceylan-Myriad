@@ -65,7 +65,12 @@
 		  strings_to_string/1, strings_to_string/2,
 		  strings_to_spaced_string/1, strings_to_spaced_string/2,
 		  strings_to_sorted_string/1, strings_to_sorted_string/2,
+
 		  strings_to_enumerated_string/1, strings_to_enumerated_string/2,
+		  strings_to_enumerated_string/3,
+
+		  strings_to_enumerated_comment/1, strings_to_enumerated_comment/2,
+
 		  strings_to_listed_string/1, strings_to_listed_string/2,
 
 		  binaries_to_string/1, binaries_to_string/2,
@@ -847,31 +852,43 @@ strings_to_string_helper( _Strings=[ H | _T ], _Acc, _Bullet ) ->
 
 
 
-% @doc Returns a string that pretty-prints specified list of strings, with
-% enumerated (that is 1, 2, 3) bullets.
+% @doc Returns a string that pretty-prints the specified list of strings, with
+% enumerated (that is 1, 2, 3) bullets, not specifically indented.
 %
 -spec strings_to_enumerated_string( [ ustring() ] ) -> ustring().
 strings_to_enumerated_string( Strings ) ->
 	strings_to_enumerated_string( Strings, _DefaultIndentationLevel=0 ).
 
 
-% @doc Returns a string that pretty-prints specified list of strings, with
-% enumerated (that is 1, 2, 3) bullets, for specified indentation.
+
+% @doc Returns a string that pretty-prints the specified list of strings, with
+% enumerated (that is 1, 2, 3) bullets, for specified indentation and not
+% prefixed.
 %
 -spec strings_to_enumerated_string( [ ustring() ], indentation_level() ) ->
 											ustring().
-strings_to_enumerated_string( _Strings=[ Str ], _IndentationLevel ) ->
+strings_to_enumerated_string( Strings, IndentationLevel ) ->
+	strings_to_enumerated_string( Strings, IndentationLevel, _Prefix="" ).
+
+
+
+% @doc Returns a string that pretty-prints the specified list of strings, with
+% enumerated (that is 1, 2, 3) bullets, indented after specified prefix.
+%
+-spec strings_to_enumerated_string( [ ustring() ], indentation_level(),
+									ustring() ) -> ustring().
+strings_to_enumerated_string( _Strings=[ Str ], _IndentationLevel, _Prefix ) ->
 	Str;
 
-strings_to_enumerated_string( Strings, IndentationLevel ) ->
+strings_to_enumerated_string( Strings, IndentationLevel, Prefix ) ->
 
-	Prefix = get_indentation_offset_for_level( IndentationLevel ),
+	IndentStr = get_indentation_offset_for_level( IndentationLevel ),
 
 	{ _FinalCount, ReversedStrings } = lists:foldl(
 		fun( String, _Acc={ Count, Strs } ) ->
 
-			NewStrs =
-				[ format( "~n~ts~B. ~ts", [ Prefix, Count, String ] ) | Strs ],
+			NewStrs = [ format( "~n~ts~ts~B. ~ts",
+								[ Prefix, IndentStr, Count, String ] ) | Strs ],
 
 			{ Count+1, NewStrs }
 
@@ -882,6 +899,27 @@ strings_to_enumerated_string( Strings, IndentationLevel ) ->
 	OrderedStrings = lists:reverse( ReversedStrings ),
 
 	format( "~ts", [ lists:flatten( OrderedStrings ) ] ).
+
+
+
+% @doc Returns a (Erlang) comment string (a series of lines starting with '%')
+% that pretty-prints the specified list of strings, with enumerated (that is 1,
+% 2, 3) bullets, not specifically indented.
+%
+-spec strings_to_enumerated_comment( [ ustring() ] ) -> ustring().
+strings_to_enumerated_comment( Strings ) ->
+	strings_to_enumerated_comment( Strings, _IndentationLevel=0 ).
+
+
+
+% @doc Returns a (Erlang) comment string (a series of lines starting with '%')
+% that pretty-prints the specified list of strings, with enumerated (that is 1,
+% 2, 3) bullets, with specified indentation at each beginning of comment line.
+%
+-spec strings_to_enumerated_comment( [ ustring() ], indentation_level() ) ->
+															ustring().
+strings_to_enumerated_comment( Strings, IndentationLevel ) ->
+	strings_to_enumerated_string( Strings, IndentationLevel, _Prefix="% " ).
 
 
 
@@ -3528,9 +3566,9 @@ double_quote_strings( AnyStrs ) ->
 
 
 
-% @doc Returns specified text, in which single quotes have been escaped
-% (that is "'" has been replaced with "\'" - ignore the double quotes in this
-% example).
+% @doc Returns the specified text, in which single quotes have been escaped
+% (that is: all "'" characters have been replaced with "\'" ones - ignore the
+% double quotes in this example).
 %
 -spec escape_single_quotes( ustring() ) -> ustring().
 escape_single_quotes( Text ) ->
@@ -3549,9 +3587,9 @@ escape_single_quotes_helper( _Text=[ C | T ], Acc ) ->
 
 
 
-% @doc Returns specified text, in which double quotes have been escaped
-% (that is '"' has been replaced with '\"' - ignore the single quotes in this
-% example).
+% @doc Returns the specified text, in which double quotes have been escaped
+% (that is: all '"' characters have been replaced with '\"' ones - ignore the
+% single quotes in this example).
 %
 -spec escape_double_quotes( ustring() ) -> ustring().
 escape_double_quotes( Text ) ->

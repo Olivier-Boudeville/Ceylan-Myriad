@@ -397,6 +397,7 @@
 -type any_string() :: text_utils:any_string().
 
 -type format_string() :: text_utils:format_string().
+-type format_values() :: format_values().
 
 -type any_app_info() :: app_facilities:any_app_info().
 
@@ -4772,9 +4773,9 @@ write_ustring( File, Str ) ->
 %
 % Throws an exception on failure.
 %
--spec write_ustring( file(), format_string(), [ term() ] ) -> void().
-write_ustring( File, FormatString, Values ) ->
-	Text = text_utils:format( FormatString, Values ),
+-spec write_ustring( file(), format_string(), format_values() ) -> void().
+write_ustring( File, FormatString, FormatValues ) ->
+	Text = text_utils:format( FormatString, FormatValues ),
 	write_ustring( File, Text ).
 
 
