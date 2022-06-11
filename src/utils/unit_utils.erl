@@ -186,6 +186,8 @@
 % Length-related section.
 
 -type meters() :: float().
+-type int_meters() :: float().
+-type any_meters() :: float().
 
 -type kilometers() :: float().
 
@@ -193,14 +195,29 @@
 -type int_millimeters() :: integer().
 -type any_millimeters() :: millimeters() | int_millimeters().
 
+
+-type light_year() :: float().
+% A light-year express astronomical distances, and is equivalent to about
+% 9.46.10^12 km.
+%
+% Also abbreviated as "ly".
+
+-type light_years() :: light_year().
+
+% Exact number:
+-define(meters_per_light_year, 9460730472580800 ).
+
+
 -type length_reference_unit() :: 'meters'.
 
 -type length_units() :: length_reference_unit() | 'millimeters'
 					  | 'int_millimeters'.
 
 
--export_type([ meters/0, kilometers/0,
+-export_type([ meters/0, int_meters/0, any_meters/0,
+			   kilometers/0,
 			   millimeters/0, int_millimeters/0, any_millimeters/0,
+			   light_year/0, light_years/0,
 			   length_reference_unit/0, length_units/0 ]).
 
 
@@ -646,7 +663,8 @@
 % Stringification section.
 
 -export([ temperature_to_string/1, maybe_temperature_to_string/1,
-		  rpm_to_string/1, maybe_rpm_to_string/1 ]).
+		  rpm_to_string/1, maybe_rpm_to_string/1,
+		  meters_to_string/1 ]).
 
 
 
@@ -660,6 +678,9 @@
 -type operator_kind() :: 'multiply' | 'divide'.
 % The various supported kinds of component operators.
 
+
+% Number of digits after the decimal point:
+-define( digits_after_decimal, "3" ).
 
 % Shorthands:
 
@@ -741,6 +762,55 @@ maybe_rpm_to_string( _Rpm=undefined ) ->
 
 maybe_rpm_to_string( Rpm ) ->
 	rpm_to_string( Rpm ).
+
+
+
+% @doc Returns a textual, user-friendly, short (possibly rounded) description of
+% the specified distance.
+%
+% See also: text_utils:distance_to_string/1.
+%
+-spec meters_to_string( meters() ) -> ustring().
+meters_to_string( Meters ) when is_integer( Meters ) ->
+	meters_to_string( float( Meters ) );
+
+meters_to_string( Meters ) when Meters < 0.0 ->
+	"-" ++ meters_to_string( - Meters );
+
+meters_to_string( Meters ) when Meters >= 1.0 ->
+
+	case Meters / 1000.0 of
+
+		Km when Km >= 1.0 ->
+			case Meters / ?meters_per_light_year of
+
+				Ly when Ly >= 0.001 ->
+					text_utils:format( "~." ++ ?digits_after_decimal
+									   ++ "f ly", [ Ly ] );
+
+				_ ->
+					text_utils:format( "~." ++ ?digits_after_decimal
+									   ++ "g km", [ Km ] )
+
+			end;
+
+		_ ->
+			text_utils:format( "~." ++ ?digits_after_decimal ++ "gm",
+							   [ Meters ] )
+
+	end;
+
+% From here Meters < 1.0; less than 1 cm:
+meters_to_string( Meters ) when Meters < 0.01 ->
+	Millimeters = Meters * 1000,
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "gmm",
+					   [ Millimeters ] );
+
+% Between 1cm and 1m:
+meters_to_string( Meters ) ->
+	Centimeters = Meters * 100,
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "gcm",
+					   [ Centimeters ] ).
 
 
 
