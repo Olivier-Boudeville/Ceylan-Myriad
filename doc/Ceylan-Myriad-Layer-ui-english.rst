@@ -236,9 +236,11 @@ The many OpenGL defines are available when having included ``gui_opengl.hrl`` (e
 
 These utilities directly relate to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
 
+.. _octrees:
+
 To manage larger 3D scenes, a basic support of `octrees <https://en.wikipedia.org/wiki/Octree>`_ is also available (see  `octree.erl <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/sr/data-management/octree.erl>`_); following conventions apply:
 
-:raw-html:`<center><img src="myriad-octrees.png" id="responsive-image-medium"></img></center>`
+:raw-html:`<center><img src="myriad-octrees.png" id="responsive-image-reduced"></img></center>`
 :raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.2]{myriad-octrees} \end{figure}`
 
 
