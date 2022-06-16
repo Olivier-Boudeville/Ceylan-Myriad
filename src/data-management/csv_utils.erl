@@ -40,7 +40,7 @@
 -module(csv_utils).
 
 
-% Usual extension of CSV files:
+% Usual extension of CSV files, which we recommend:
 -define( csv_extension, ".csv" ).
 
 
@@ -49,7 +49,7 @@
 % comma, sometimes semicolon or alike).
 
 
-% The default separator of CSV is, well, a comma:
+% The default separator of CSV is, well, a comma (even with Excel):
 -define( default_separator, $, ).
 
 
@@ -760,8 +760,14 @@ select_most_likely_separator( SepPairs ) ->
 
 
 
-% @doc Writes the specified content (that is a list of homogeneous row tuples)
-% in the specified CSV file, using the default separator for that.
+% @doc Writes the specified content, a list of row tuples whose elements are
+% serialised according to the standard Erlang syntax (as ~w), in the specified
+% CSV file, using the default separator for that.
+%
+% Rows may have a different number of elements.
+%
+% In terms of file extension, we recommend the one specified through our
+% csv_extension define.
 %
 -spec write_file( content(), any_file_path() ) -> void().
 write_file( Content, TargetFilePath ) ->
@@ -769,21 +775,21 @@ write_file( Content, TargetFilePath ) ->
 
 
 
-% @doc Writes the specified content (that is a list of homogeneous row tuples)
-% in the specified CSV file, using the specified separator for that.
+% @doc Writes the specified content, a list of row tuples whose elements are
+% serialised according to the standard Erlang syntax (as ~w), in the specified
+% CSV file, using the specified separator for that.
+%
+% Rows may have a different number of elements.
+%
+% In terms of file extension, we recommend the one specified through our
+% csv_extension define.
 %
 -spec write_file( content(), any_file_path(), separator() ) -> void().
 write_file( Content, TargetFilePath, Separator ) ->
 
-	case file_utils:exists( TargetFilePath ) of
-
-		true ->
-			throw( { already_existing, TargetFilePath } );
-
-		false ->
-			ok
-
-	end,
+	file_utils:exists( TargetFilePath ) andalso
+		throw( { already_existing_csv_file,
+				 text_utils:ensure_string( TargetFilePath ) } ),
 
 	WriteOpts = [ write, raw, delayed_write ],
 
@@ -791,6 +797,11 @@ write_file( Content, TargetFilePath, Separator ) ->
 
 	% Add a space for readability:
 	FullSeparator = [ Separator, $ ],
+
+	% Specifically checking rows (in terms of datatypes, number of elements,
+	% etc.) has little interest, as supporting heterogeneous rows may be a
+	% feature; moreover the content data originates from the program and thus is
+	% probably already correct by design.
 
 	write_rows( Content, FullSeparator, File ),
 
@@ -818,23 +829,16 @@ write_rows( _Content=[ Row | T ], Separator, File ) ->
 
 
 
-% @doc Returns a file handle to read specified file.
+% @doc Returns a file handle to read the specified file.
 -spec get_file_for_reading( any_file_path() ) -> file().
 get_file_for_reading( FilePath ) ->
 
 	%trace_utils:debug_fmt( "Opening '~ts' with options ~w.",
 	%                       [ FilePath, ?read_options ] ),
 
-	case file_utils:is_existing_file_or_link( FilePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { csv_file_not_found, FilePath,
-					 file_utils:get_current_directory() } )
-
-	end,
+	file_utils:is_existing_file_or_link( FilePath ) orelse
+		throw( { csv_file_not_found, FilePath,
+				 file_utils:get_current_directory() } ),
 
 	File = file_utils:open( FilePath, ?read_options ),
 
