@@ -304,8 +304,9 @@
 									| 'record'
 									| 'reference'
 									| 'tuple'.
-% The "most precise" description of a primitive, simple type (ex: 'boolean' and
-% 'atom') coexist, 'number' are not used, etc.
+% The "most precise" description of a primitive, in which:
+% - simple types (ex: 'boolean' and 'atom') coexist (despite overlapping)
+% - 'number' and 'bitstring' are not used
 %
 % A note about Erlang floats: they are actually IEEE 754 double-precision
 % floating-point numbers, a format that occupies 8 bytes (64 bits) per float in
@@ -800,32 +801,32 @@ interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
 %
 -spec interpret_type_helper( term(), level(), level() ) -> ustring().
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_boolean( Term ) ->
+		when is_boolean( Term ) ->
 	text_utils:format( "boolean of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_atom( Term ) ->
+		when is_atom( Term ) ->
 	text_utils:format( "atom of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_binary( Term ) ->
+		when is_binary( Term ) ->
 	% Text might be incorrectly encoded ('~ts' would be needed):
 	text_utils:format( "binary of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_float( Term ) ->
+		when is_float( Term ) ->
 	text_utils:format( "float of value '~f'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_function( Term ) ->
+		when is_function( Term ) ->
 	text_utils:format( "function of value '~w'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_integer( Term ) ->
+		when is_integer( Term ) ->
 	text_utils:format( "integer of value '~B'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_pid( Term ) ->
+		when is_pid( Term ) ->
 	text_utils:format( "PID of value '~w'", [ Term ] );
 
 
@@ -848,18 +849,18 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_port( Term ) ->
+		when is_port( Term ) ->
 	text_utils:format( "port of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_reference( Term ) ->
+		when is_reference( Term ) ->
 	text_utils:format( "reference of value '~p'", [ Term ] );
 
 interpret_type_helper( _Term=[], _CurrentNestingLevel, _MaxNestingLevel ) ->
 	"empty list/string";
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-  when is_list( Term ) ->
+		when is_list( Term ) ->
 
 	case text_utils:is_string( Term ) of
 
@@ -900,11 +901,11 @@ interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 	text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-  when is_tuple( Term ) ->
+		when is_tuple( Term ) ->
 
 	Elems = [ interpret_type_helper( E, CurrentNestingLevel + 1,
 									 MaxNestingLevel )
-			    || E <- tuple_to_list( Term ) ],
+				|| E <- tuple_to_list( Term ) ],
 
 	BaseTupleDesc = interpret_type_helper( Term, MaxNestingLevel,
 										   MaxNestingLevel ),
@@ -914,11 +915,11 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 												 CurrentNestingLevel ) ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_port( Term ) ->
+		when is_port( Term ) ->
 	text_utils:format( "port of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-  when is_reference( Term ) ->
+		when is_reference( Term ) ->
 	text_utils:format( "reference of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel ) ->
