@@ -529,7 +529,9 @@
 
 
 % Checking (see also: list_utils:are_*/1):
--export([ check_atom/1, check_boolean/1, check_pid/1,
+-export([ check_atom/1, check_boolean/1,
+
+		  check_pid/1, check_maybe_pid/1,
 
 		  check_integer/1, check_maybe_integer/1,
 		  check_integers/1, check_maybe_integers/1,
@@ -801,32 +803,32 @@ interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
 %
 -spec interpret_type_helper( term(), level(), level() ) -> ustring().
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_boolean( Term ) ->
+				when is_boolean( Term ) ->
 	text_utils:format( "boolean of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_atom( Term ) ->
+				when is_atom( Term ) ->
 	text_utils:format( "atom of value '~ts'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_binary( Term ) ->
+				when is_binary( Term ) ->
 	% Text might be incorrectly encoded ('~ts' would be needed):
 	text_utils:format( "binary of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_float( Term ) ->
+				when is_float( Term ) ->
 	text_utils:format( "float of value '~f'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_function( Term ) ->
+				when is_function( Term ) ->
 	text_utils:format( "function of value '~w'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_integer( Term ) ->
+				when is_integer( Term ) ->
 	text_utils:format( "integer of value '~B'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_pid( Term ) ->
+				when is_pid( Term ) ->
 	text_utils:format( "PID of value '~w'", [ Term ] );
 
 
@@ -835,7 +837,7 @@ interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 	text_utils:format( "map of ~B elements", [ maps:size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-  when is_map( Term ) ->
+				when is_map( Term ) ->
 
 	Elems = [ text_utils:format( "key ~ts associated to value ~ts",
 				   [ interpret_type_helper( K, CurrentNestingLevel + 1,
@@ -849,18 +851,18 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_port( Term ) ->
+				when is_port( Term ) ->
 	text_utils:format( "port of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_reference( Term ) ->
+				when is_reference( Term ) ->
 	text_utils:format( "reference of value '~p'", [ Term ] );
 
 interpret_type_helper( _Term=[], _CurrentNestingLevel, _MaxNestingLevel ) ->
 	"empty list/string";
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-		when is_list( Term ) ->
+				when is_list( Term ) ->
 
 	case text_utils:is_string( Term ) of
 
@@ -901,7 +903,7 @@ interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 	text_utils:format( "tuple of ~B elements", [ size( Term ) ] );
 
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-		when is_tuple( Term ) ->
+				when is_tuple( Term ) ->
 
 	Elems = [ interpret_type_helper( E, CurrentNestingLevel + 1,
 									 MaxNestingLevel )
@@ -915,11 +917,11 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 												 CurrentNestingLevel ) ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_port( Term ) ->
+				when is_port( Term ) ->
 	text_utils:format( "port of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
-		when is_reference( Term ) ->
+				when is_reference( Term ) ->
 	text_utils:format( "reference of value '~p'", [ Term ] );
 
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel ) ->
@@ -1416,6 +1418,20 @@ check_pid( Pid ) when is_pid( Pid ) ->
 
 check_pid( Other ) ->
 	throw( { not_pid, Other } ).
+
+
+% @doc Checks that the specified term is a PID indeed or the 'undefined' atom,
+% and returns it.
+%
+-spec check_maybe_pid( term() ) -> maybe( pid() ).
+check_maybe_pid( Pid ) when is_pid( Pid ) ->
+	Pid;
+
+check_maybe_pid( undefined ) ->
+	undefined;
+
+check_maybe_pid( Other ) ->
+	throw( { not_maybe_pid, Other } ).
 
 
 

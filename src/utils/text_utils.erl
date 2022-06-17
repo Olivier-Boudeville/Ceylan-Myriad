@@ -1501,6 +1501,11 @@ number_to_string( Other ) ->
 distance_to_string( Millimeters ) when is_float( Millimeters ) ->
 	distance_to_string( round( Millimeters ) );
 
+% Returns an exact textual description of the specified distance, expected to be
+% expressed as an integer number of millimeters.
+%
+% Ex: for an integer distance of 1000001 millimeters, returns "1km and 1mm".
+%
 distance_to_string( Millimeters ) ->
 
 	Centimeters = 10,
@@ -1553,7 +1558,7 @@ distance_to_string( Millimeters ) ->
 
 		AtLeastOneMillimeter ->
 			 [ io_lib:format( "~Bmm", [ AtLeastOneMillimeter ] )
-			    | ListWithCentimeters ]
+			   | ListWithCentimeters ]
 
 	end,
 
@@ -2269,7 +2274,7 @@ ensure_string( String, _CanFailDueToTranscoding ) when is_list( String ) ->
 	String;
 
 ensure_string( BinString, CanFailDueToTranscoding )
-  when is_binary( BinString ) ->
+											when is_binary( BinString ) ->
 	binary_to_string( BinString, CanFailDueToTranscoding );
 
 %ensure_string( Int, _CanFailDueToTranscodin ) when is_integer( Int ) ->

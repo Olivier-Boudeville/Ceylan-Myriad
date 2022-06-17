@@ -247,7 +247,7 @@
 -export([ encode_as_url/1, encode_element_as_url/1, escape_as_url/1,
 		  get_last_path_element/1,
 
-		  % Deprecated in favor ofthe standard uri_string module:
+		  % Deprecated in favor of the standard uri_string module:
 		  url_info_to_string/1, string_to_url_info/1, string_to_uri_map/1 ]).
 
 
@@ -291,8 +291,6 @@
 -type any_directory_path() :: file_utils:any_directory_path().
 -type file_path() :: file_utils:file_path().
 -type file_name() :: file_utils:file_name().
-
-%-type time_out() :: time_utils:time_out().
 
 -type method() :: rest_utils:method().
 
@@ -447,8 +445,8 @@ url_info_to_string( #url_info{ protocol=Protocol, host_identifier=Host,
 % Note that other information (fragment, query, userinfo) will be ignored and
 % lost.
 %
-% Note: using string_to_uri_map/1 might be a more complete option; this function
-% remains mostly for backward compatibility.
+% Note: using string_to_uri_map/1 might be a more complete option; the current
+% function remains mostly for backward compatibility.
 %
 -spec string_to_url_info( ustring() ) -> url_info().
 string_to_url_info( String ) ->
@@ -474,7 +472,7 @@ string_to_url_info( String ) ->
 
 	   %userinfo => unicode:chardata()
 
-		 } = string_to_uri_map( String ),
+		} = string_to_uri_map( String ),
 
 	#url_info{ protocol=Scheme, host_identifier=Host, port=MaybePort,
 			   path=Path }.
@@ -526,7 +524,7 @@ get_ordered_list( Elements ) ->
 get_unordered_list( Elements ) ->
 
 	HTMLElems = [ text_utils:format( "    <li>~ts</li>~n", [ E ] )
-				  || E <- Elements ],
+								|| E <- Elements ],
 
 	text_utils:format( "  <ul>~n~ts  </ul>~n", [ lists:flatten( HTMLElems ) ] ).
 
@@ -552,7 +550,7 @@ escape_as_html_content( String ) ->
 %
 % Newly-introduced (R25) uri_string:quote/1 and uri_string:unquote might be
 % used.
-
+%
 % (helper)
 escape_as_html_content( _String=[], Acc ) ->
 	lists:reverse( text_utils:to_unicode_list( Acc ) );
@@ -653,7 +651,7 @@ http_status_class_to_string( Other ) ->
 
 
 
-% @doc Returns a textual description of specified HTTP code.
+% @doc Returns a textual description of the specified HTTP code.
 %
 % Source: [https://en.wikipedia.org/wiki/List_of_HTTP_status_codes].
 %
@@ -882,7 +880,7 @@ interpret_http_status_code_helper( _StatusCode ) ->
 %
 -spec start() -> void().
 start() ->
-	start( no_ssl ).
+	start( _Option=no_ssl ).
 
 
 
@@ -1198,7 +1196,7 @@ to_httpc_options( HttpOptionMap ) when is_map( HttpOptionMap ) ->
 
 
 
-% @doc Downloads the file designated by specified URL, in the specified
+% @doc Downloads the file designated by the specified URL, in the specified
 % directory (under its name in URL), with no specific HTTP options, and returns
 % the corresponding full path of that file.
 %
@@ -1351,7 +1349,7 @@ get_ssl_verify_options( _Switch=disable ) ->
 
 
 
-% @doc Returns a Microsoft Azure instance information based on specified
+% @doc Returns a Microsoft Azure instance information based on the specified
 % settings.
 %
 -spec get_azure_instance_information( azure_instance_key(),
@@ -1366,8 +1364,8 @@ get_azure_instance_information( InstKey, InstLoc ) ->
 % @doc Returns a textual description of the specified cloud instance.
 -spec cloud_instance_info_to_string( cloud_instance_info() ) -> ustring().
 cloud_instance_info_to_string( #azure_instance_info{
-									instance_key=_InstKey,
+									%instance_key=InstKey,
 									instance_location=InstLoc } ) ->
-	% Not disclosing of the key here:
+	% No disclosing of the key here:
 	text_utils:format( "Microsoft Azure instance located in '~ts'",
 					   [ InstLoc ] ).

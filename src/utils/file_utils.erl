@@ -4740,6 +4740,11 @@ write( File, Content ) ->
 % Operates on files opened in raw mode (only way to do so), or not (works for
 % normal mode as well).
 %
+% Note that no control character (even no "~n", for newlines) must exist in the
+% specified string, otherwise they will be written literally. To convert them,
+% use: 'write_ustring( File, Str, _FormatValues=[] )'.
+
+
 % Throws an exception on failure.
 %
 -spec write_ustring( file(), ustring() ) -> void().
@@ -4759,8 +4764,8 @@ write_ustring( File, Str ) ->
 		ok ->
 			ok;
 
-		% If Reason is badarg, possibly an encoding issue (ex: having used '~ts'
-		% instead of '~ts'):
+		% If Reason is badarg, possibly an encoding issue (for example if having
+		% used '~s' instead of '~ts'):
 		%
 		{ error, Reason } ->
 			throw( { write_ustring_failed, Reason, Str, File } )

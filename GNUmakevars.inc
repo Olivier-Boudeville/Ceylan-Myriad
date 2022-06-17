@@ -132,6 +132,7 @@ endif
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
 #  - registration: regarding naming registering
+#  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
 #  - environments: about the sharing/caching of application information
@@ -160,6 +161,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
@@ -569,8 +571,6 @@ ifeq ($(USE_JSON),true)
 		# $ mkdir -p ~/Software/jsx
 		# $ cd ~/Software/jsx
 
-		# $ git clone git@github.com:talentdeficit/jsx.git
-		#  - or -
 		# $ git clone https://github.com/talentdeficit/jsx.git
 
 		# $ ln -s jsx jsx-current-install
@@ -613,7 +613,7 @@ ifeq ($(USE_JSON),true)
 		#
 		# $ mkdir -p ~/Software/jiffy
 		# $ cd ~/Software/jiffy
-		# $ git clone git@github.com:davisp/jiffy.git
+		# $ git clone https://github.com/davisp/jiffy.git
 		# $ ln -s jiffy jiffy-current-install
 		# $ cd jiffy/
 		# $ rebar3 compile && rebar3 eunit
@@ -646,7 +646,7 @@ endif
 
 
 
-# Always defined for example to clean them whereas USE_PROTOBUF disabled:
+# Always defined, for example to clean them whereas USE_PROTOBUF is disabled:
 PROTOBUF_SPEC_FILES = $(wildcard *.proto)
 
 PROTOBUF_GENERATED_HRL_FILES = $(patsubst %.proto,%.hrl,$(PROTOBUF_SPEC_FILES))
@@ -680,8 +680,6 @@ ifeq ($(USE_PROTOBUF),true)
 		# $ mkdir -p ~/Software/gpb
 		# $ cd ~/Software/gpb
 
-		# $ git clone git@github.com:tomas-abrahamsson/gpb.git
-		#  - or -
 		# $ git clone https://github.com/tomas-abrahamsson/gpb.git
 
 		# $ ln -s gpb gpb-current-install
