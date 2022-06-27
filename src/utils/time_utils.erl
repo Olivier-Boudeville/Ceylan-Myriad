@@ -118,7 +118,8 @@
 % A period, in milliseconds.
 
 
--type dhms_duration() :: { days(), hours(), minutes(), seconds() }.
+-type dhms_duration() :: { D :: days(), H :: hours(), M :: minutes(),
+						   S :: seconds() }.
 % Day/Hour/Minute/Second duration, for example used with MTTF (not necessarily
 % in a canonical form, for example more than 24 hours or 60 minutes can be
 % specified).
@@ -745,8 +746,8 @@ hours_to_seconds( HourDuration ) ->
 %
 -spec is_dhms_duration( term() ) -> boolean().
 is_dhms_duration( { Days, Hours, Minutes, Seconds } ) when
-	  is_integer( Days ) andalso is_integer( Hours )
-	  andalso is_integer( Minutes ) andalso is_integer( Seconds ) ->
+		is_integer( Days ) andalso is_integer( Hours )
+		andalso is_integer( Minutes ) andalso is_integer( Seconds ) ->
 	true;
 
 is_dhms_duration( _Other ) ->
