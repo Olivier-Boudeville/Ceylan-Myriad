@@ -50,18 +50,19 @@
 -type ssl_opt() :: 'no_ssl' | 'ssl'.
 % Tells whether the SSL support is needed (typically for https).
 
--type url() :: ustring().
-
--type bin_url() :: bin_string().
-
--type any_url() :: url() | bin_url().
-
 
 -type uri() :: ustring().
 
 -type bin_uri() :: bin_string().
 
 -type any_uri() :: uri() | bin_uri().
+
+
+-type url() :: uri().
+
+-type bin_url() :: bin_uri().
+
+-type any_url() :: url() | bin_url().
 
 
 -type protocol_type() :: 'http' | 'https' | 'ftp'.
