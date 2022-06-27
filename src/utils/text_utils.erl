@@ -119,7 +119,7 @@
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, split_every/2,
 		  tokenizable_to_camel_case/2,
-		  duplicate/2, concatenate/1,
+		  duplicate/2, concatenate/1, bin_concatenate/2,
 		  remove_empty_lines/1,
 
 		  find_substring_index/2, find_substring_index/3,
@@ -157,6 +157,7 @@
 
 		  is_string/1, is_non_empty_string/1, are_strings/1,
 		  is_bin_string/1, are_binaries/1,
+		  is_any_string/1,
 		  are_of_same_string_type/2,
 		  try_convert_to_unicode_list/1, to_unicode_list/1, to_unicode_list/2,
 		  try_convert_to_unicode_binary/1, to_unicode_binary/1,
@@ -445,7 +446,7 @@ term_to_bounded_string( Term ) ->
 
 
 
-% @doc Returns a human-readable string describing specified term, within the
+% @doc Returns a human-readable string describing the specified term, within the
 % specified length.
 %
 % See also term_to_string/3.
@@ -462,7 +463,16 @@ term_to_bounded_string( Term, MaxLen ) ->
 			format( "[as set] ~p", [ set_utils:to_list( Term ) ] );
 
 		false ->
-			format( "~p", [ Term ] )
+			% Might not respect Unicode encoding:
+			case is_any_string( Term ) of
+
+				true ->
+					format( "~ts", [ Term ] );
+
+				false ->
+					format( "~p", [ Term ] )
+
+			end
 
 	end,
 
@@ -3366,6 +3376,13 @@ concatenate( Elements ) ->
 	lists:concat( Elements ).
 
 
+% @doc Concatenates the two specified binary strings into the returned one.
+-spec bin_concatenate( bin_string(), bin_string() ) -> bin_string().
+bin_concatenate( FirstBinStr, SecondBinStr ) ->
+	% Presumably better than bin_format("~ts~ts", [FirstBinStr, SecondBinStr]):
+	<<FirstBinStr/binary, SecondBinStr/binary>>.
+
+
 
 % @doc Returns in-order the specified list of strings once all empty ones have
 % been removed.
@@ -3741,6 +3758,13 @@ parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
 % just before it iff relevant.
 
 % Normal endings:
+
+% Not in quoted:
+parse_helper( _InputStr=[], _QuotingChars, _EscapingChars, CurrentQuoteChar,
+			  _CurrentQuotedText=undefined, _PreviousChar=CurrentQuoteChar,
+			  Acc ) ->
+	% Closing for good then:
+	lists:reverse( Acc );
 
 % Ending while a quoting sequence is still open, but here the last (previous)
 % character was a closing quoting one:
@@ -4456,6 +4480,21 @@ is_string( _Other ) ->
 %is_string( _Term ) -> false.
 
 
+
+% @doc Returns true iff the parameter is any kind (plain or binary) of
+% (non-nested) string.
+%
+% Note: something like [$e, 1, 2, $r] is deemed to be a string.
+%
+-spec is_any_string( term() ) -> boolean().
+is_any_string( Bin ) when is_binary( Bin ) ->
+	is_bin_string( Bin );
+
+is_any_string( Term ) ->
+	is_string( Term ).
+
+
+
 % @doc Returns true iif the parameter is a (non-nested) non-empty string
 % (actually a plain list of at least one integer).
 %
@@ -4507,8 +4546,8 @@ are_strings( _Other ) ->
 % @doc Returns true iff the specified parameter is a binary string.
 -spec is_bin_string( term() ) -> boolean().
 is_bin_string( Term ) when is_binary( Term ) ->
-	%is_string( binary_to_list( Term ) );
-	true;
+	is_string( binary_to_list( Term ) );
+	%true;
 
 is_bin_string( _Term ) ->
 	false.
@@ -4532,8 +4571,8 @@ are_binaries( _NotList ) ->
 are_of_same_string_type( S1, S2 ) when is_list( S1 ) andalso is_list( S2 ) ->
 	true;
 
-are_of_same_string_type( S1, S2 ) when is_binary( S1 )
-									   andalso is_binary( S2 ) ->
+are_of_same_string_type( S1, S2 )
+				when is_binary( S1 ) andalso is_binary( S2 ) ->
 	true;
 
 are_of_same_string_type( _S1, _S2 ) ->
