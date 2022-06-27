@@ -142,8 +142,14 @@
 % Microsecond in the second.
 
 
+-type mtbf() :: time_utils:dhms_duration().
+% Mean Time Between (recoverable) Failures.
+
 -type mttf() :: time_utils:dhms_duration().
-% Mean Time To Failure.
+% Mean Time To (unrecoverable) Failure.
+
+-type mttr() :: time_utils:dhms_duration().
+% Mean Time To Repair.
 
 
 -type hertz() :: float().
@@ -178,7 +184,8 @@
 			   any_second/0, any_seconds/0, square_seconds/0,
 			   millisecond/0, milliseconds/0, canonical_millisecond/0,
 			   microsecond/0,microseconds/0, canonical_microsecond/0,
-			   mttf/0, hertz/0, integer_hertz/0, any_hertz/0,
+			   mtbf/0, mttf/0, mttr/0,
+			   hertz/0, integer_hertz/0, any_hertz/0,
 			   time_reference_unit/0, time_units/0 ]).
 
 
