@@ -67,7 +67,7 @@
 % - the actual JSON encoding of a given Erlang term depends on the parser
 % backend (ex: the order of JSON keys might differ - note that the JSON RFC (RFC
 % 4627) indicates that order of object members should not matter)
-
+%
 % - for each parser, we expect that from_json . to_json = Id, i.e. for each
 % valid Erlang term T, from_json( to_json( T ) ) = T
 
@@ -397,14 +397,14 @@ check_parser_operational( ParserState={ jsx, _InternalBackendState } ) ->
 
 		error:undef ->
 			trace_utils:error_fmt(
-			  "The JSX JSON parser is not operational.~n~ts",
-			  [ system_utils:get_json_unavailability_hint( jsx ) ] ),
+				"The JSX JSON parser is not operational.~n~ts",
+				[ system_utils:get_json_unavailability_hint( jsx ) ] ),
 			throw( { json_parser_not_operational, jsx } );
 
 		OtherError ->
 			trace_utils:error_fmt(
-			  "The JSX JSON parser does not work properly: ~p.",
-			  [ OtherError ] ),
+				"The JSX JSON parser does not work properly: ~p.",
+				[ OtherError ] ),
 			throw( { json_parser_dysfunctional, jsx, OtherError } )
 
 	end;
@@ -422,8 +422,8 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 
 		error:undef ->
 			trace_utils:error_fmt(
-			  "The Jiffy JSON parser is not operational.~n~ts",
-			  [ system_utils:get_json_unavailability_hint( jiffy ) ] ),
+				"The Jiffy JSON parser is not operational.~n~ts",
+				[ system_utils:get_json_unavailability_hint( jiffy ) ] ),
 			throw( { json_parser_not_operational, jiffy } );
 
 		OtherError ->
@@ -471,7 +471,7 @@ to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 	Opts = get_base_json_encoding_options( jsx ),
 
 	%trace_utils:debug_fmt( "JSX is to encode, with options ~p:~n ~p",
-	%					   [ Opts, Term ] ),
+	%                       [ Opts, Term ] ),
 
 	R = jsx:encode( Term, Opts ),
 
@@ -484,7 +484,7 @@ to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 	Opts = get_base_json_encoding_options( jiffy ),
 
 	%trace_utils:debug_fmt( "Jiffy is to encode, with options ~p:~n ~p",
-	%					   [ Opts, Term ] ),
+	%                       [ Opts, Term ] ),
 
 	jiffy:encode( Term, Opts ).
 
