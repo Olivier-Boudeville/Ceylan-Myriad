@@ -797,7 +797,7 @@ get_last_path_element( AnyPath ) ->
 
 % @doc Converts the specified name into an acceptable filename, filesystem-wise.
 %
-% Returns the same string type as the parameter.
+% Returns the same type of string as the provided one.
 %
 -spec convert_to_filename( any_string() ) -> any_file_name().
 convert_to_filename( BinName ) when is_binary( BinName ) ->
