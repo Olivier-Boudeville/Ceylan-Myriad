@@ -57,67 +57,70 @@
 % Section about default tools:
 -export([
 
-		 get_default_image_viewer_name/0,
-		 get_default_image_viewer_path/0,
+	get_default_image_viewer_name/0,
+	get_default_image_viewer_path/0,
 
-		 get_default_image_browser_name/0,
-		 get_default_image_browser_path/0,
+	get_default_image_browser_name/0,
+	get_default_image_browser_path/0,
 
-		 get_default_web_browser_name/0,
-		 get_default_web_browser_path/0,
+	get_default_web_browser_name/0,
+	get_default_web_browser_path/0,
 
-		 get_default_pdf_viewer_name/0,
-		 get_default_pdf_viewer_path/0,
+	get_default_pdf_viewer_name/0,
+	get_default_pdf_viewer_path/0,
 
-		 get_default_text_viewer_name/0,
-		 get_default_text_viewer_path/0,
+	get_default_text_viewer_name/0,
+	get_default_text_viewer_path/0,
 
-		 get_default_wide_text_viewer_name/1,
-		 get_default_wide_text_viewer_path/1,
+	get_default_wide_text_viewer_name/1,
+	get_default_wide_text_viewer_path/1,
 
-		 get_default_audio_player_name/0,
-		 get_secondary_default_audio_player_name/0,
-		 get_default_audio_player_info/0,
-		 get_default_audio_player_options/1,
+	get_default_audio_player_name/0,
+	get_secondary_default_audio_player_name/0,
+	get_default_audio_player_info/0,
+	get_default_audio_player_options/1,
 
-		 get_default_trace_viewer_name/0,
-		 get_default_trace_viewer_path/0,
+	get_default_trace_viewer_name/0,
+	get_default_trace_viewer_path/0,
 
-		 get_default_erlang_root/0,
-		 get_default_erlang_interpreter_name/0,
-		 get_default_erlang_interpreter_path/0,
+	get_default_erlang_root/0,
+	get_default_erlang_interpreter_name/0,
+	get_default_erlang_interpreter_path/0,
 
-		 get_default_ssh_client_name/0,
-		 get_default_ssh_client_path/0,
+	get_default_ssh_client_name/0,
+	get_default_ssh_client_path/0,
 
-		 get_default_scp_executable_name/0,
-		 get_default_scp_executable_path/0,
+	get_default_scp_executable_name/0,
+	get_default_scp_executable_path/0,
 
-		 get_default_openssl_executable_name/0,
-		 get_default_openssl_executable_path/0,
+	get_default_openssl_executable_name/0,
+	get_default_openssl_executable_path/0,
 
-		 get_gnuplot_path/0,
-		 get_current_gnuplot_version/0,
-		 get_current_gnuplot_version/1,
+	get_gnuplot_path/0,
+	get_current_gnuplot_version/0,
+	get_current_gnuplot_version/1,
 
-		 get_default_zip_compress_tool/0,
-		 get_default_zip_decompress_tool/0,
+	get_default_zip_compress_tool/0,
+	get_default_zip_decompress_tool/0,
 
-		 get_default_bzip2_compress_tool/0,
-		 get_default_bzip2_decompress_tool/0,
+	get_default_bzip2_compress_tool/0,
+	get_default_bzip2_decompress_tool/0,
 
-		 get_default_xz_compress_tool/0,
-		 get_default_xz_decompress_tool/0,
+	get_default_xz_compress_tool/0,
+	get_default_xz_decompress_tool/0,
 
-		 get_default_md5_tool/0,
-		 get_default_sha_tool/0,
+	get_default_md5_tool/0,
+	get_default_sha_tool/0,
 
-		 get_default_sql_client/0,
+	get_default_sql_client/0,
 
-		 get_default_xml_prettyprinter/0,
+	get_default_xml_prettyprinter/0,
 
-		 get_default_java_runtime/0,
-		 get_default_jinterface_path/0 ]).
+	get_default_java_runtime/0,
+	get_default_jinterface_path/0,
+
+	get_default_graph_stream_tool_name/0,
+	get_default_graph_stream_tool_path/0 ]).
 
 
 -type executable_name() :: ustring().
@@ -1024,6 +1027,26 @@ get_default_jinterface_path() ->
 			throw( { jinterface_base_path_not_found, JInterfaceBase } )
 
 	end.
+
+
+
+
+% @doc Returns the name of the default tool used to process streamed graphs.
+-spec get_default_graph_stream_tool_name() -> executable_name().
+get_default_graph_stream_tool_name() ->
+	% See https://gephi.org/:
+	"gephi".
+
+
+
+% @doc Returns an absolute path to the default tool used to process streamed
+% graphs.
+%
+-spec get_default_graph_stream_tool_path() -> executable_path().
+get_default_graph_stream_tool_path() ->
+	% Note: expected to be on the PATH:
+	find_executable( get_default_graph_stream_tool_name() ).
+
 
 
 % Miscellaneous section:

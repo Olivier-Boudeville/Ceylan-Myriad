@@ -334,15 +334,15 @@
 %
 -spec encode_as_url( option_list() ) -> ustring().
 encode_as_url( OptionList ) ->
-   encode_as_url( OptionList, _Acc=[] ).
+	encode_as_url( OptionList, _Acc=[] ).
 
 encode_as_url( _OptionList=[], Acc ) ->
 	Acc;
 
 % First entry:
 encode_as_url( [ { Key, Value } | T ], _Acc=[] ) ->
-	encode_as_url( T, encode_element_as_url( Key ) ++ "="
-				   ++ encode_element_as_url( Value ) );
+	encode_as_url( T,
+		encode_element_as_url( Key ) ++ "=" ++ encode_element_as_url( Value ) );
 
 encode_as_url( [ { Key, Value } | T ], Acc ) ->
 	encode_as_url( T, Acc ++ "&" ++ encode_element_as_url( Key ) ++ "="
@@ -391,7 +391,7 @@ escape_key( Key ) when is_atom( Key ) ->
 -spec escape_value( ustring() ) -> ustring().
 escape_value( String ) ->
 	R = lists:flatten( [ escape_char( C ) || C <- String ] ),
-	%io:format( "'~ts' became '~ts'.~n", [ String, R ] ),
+	%trace_utils:debug_fmt( "'~ts' became '~ts'.", [ String, R ] ),
 	R.
 
 
@@ -601,23 +601,23 @@ escape_term_as_html_content( Term ) ->
 -spec get_http_status_class( http_status_code() ) ->
 								maybe( http_status_class() ).
 get_http_status_class( StatusCode )
-  when StatusCode >= 100 andalso StatusCode < 200 ->
+							when StatusCode >= 100 andalso StatusCode < 200 ->
 	informational_response;
 
 get_http_status_class( StatusCode )
-  when StatusCode >= 200 andalso StatusCode < 300 ->
+							when StatusCode >= 200 andalso StatusCode < 300 ->
 	successful;
 
 get_http_status_class( StatusCode )
-  when StatusCode >= 300 andalso StatusCode < 400 ->
+							when StatusCode >= 300 andalso StatusCode < 400 ->
 	redirection;
 
 get_http_status_class( StatusCode )
-  when StatusCode >= 400 andalso StatusCode < 500 ->
+							when StatusCode >= 400 andalso StatusCode < 500 ->
 	client_error;
 
 get_http_status_class( StatusCode )
-  when StatusCode >= 500 andalso StatusCode < 600 ->
+							when StatusCode >= 500 andalso StatusCode < 600 ->
 	server_error;
 
 get_http_status_class( StatusCode ) when is_integer( StatusCode ) ->
@@ -625,6 +625,7 @@ get_http_status_class( StatusCode ) when is_integer( StatusCode ) ->
 
 get_http_status_class( StatusCode ) ->
 	throw( { invalid_status_code, StatusCode } ).
+
 
 
 % @doc Returns a textual description of specified HTTP status class.
@@ -964,7 +965,7 @@ request( _Method=post, Uri, Headers, HttpOptions, MaybeBody,
 		 MaybeContentType ) ->
 	post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType );
 
-% Not supported: head |  put | trace | options | delete | patch:
+% Not supported (yet): head |  put | trace | options | delete | patch:
 request( Method, Uri, _Headers, _HttpOptions, _MaybeBody, _MaybeContentType ) ->
 	throw( { invalid_method, Method, Uri } ).
 
@@ -1165,7 +1166,7 @@ to_httpc_headers( Headers ) when is_list( Headers ) ->
 
 to_httpc_headers( Headers ) when is_map( Headers ) ->
 	[ { text_utils:binary_to_string( K ), text_utils:binary_to_string( V ) }
-		|| { K, V } <- maps:to_list( Headers ) ].
+			|| { K, V } <- maps:to_list( Headers ) ].
 
 
 % @doc Converts httpc headers into map-based ones.

@@ -88,7 +88,10 @@
 
 
 
--export([ % Stateless versions:
+-export([ get_parser_name_paths/0, get_paths_for/1,
+
+
+		  % Stateless versions:
 
 		  start_parser/0, stop_parser/0,
 
@@ -201,6 +204,81 @@
 -type any_file_path() :: file_utils:any_file_path().
 
 -type directory_path() :: file_utils:directory_path().
+-type resolvable_path() :: file_utils:resolvable_path().
+
+
+
+% @doc Returns information regarding any JSON parser found, as a triplet made of
+% its name, a resolvable path to its ebin directory (for example useful to any
+% upcoming deployment of a vanilla node) and a directly resolved one; otherwise
+% throws an exception.
+%
+-spec get_parser_name_paths() ->
+		  { parser_backend_name(), resolvable_path(), directory_path() }.
+get_parser_name_paths() ->
+	case get_paths_for( jsx ) of
+
+		undefined ->
+			case get_paths_for( jiffy ) of
+
+				undefined ->
+					throw( unresolvable_json_parser );
+
+				{ JiffyRes, JiffyPlain } ->
+					{ jiffy, JiffyRes, JiffyPlain }
+
+			end;
+
+		{ JsxRes, JsxPlain } ->
+			{ jsx, JsxRes, JsxPlain }
+
+	end.
+
+
+
+% @doc Returns an existing path (if any, and according to the Myriad
+% conventions), as both a resolvable one and a directly resolved one, to the
+% ebin directory of the specified JSON parser.
+%
+-spec get_paths_for( parser_backend_name() ) ->
+						maybe( { resolvable_path(), directory_path() } ).
+get_paths_for( _ParserName=jsx ) ->
+
+	ResolvablePath = [ home, "Software", "jsx", "jsx-current-install", "_build",
+					  "default", "lib", "jsx", "ebin" ],
+
+	ResolvedPath = file_utils:resolve_path( ResolvablePath ),
+
+	case file_utils:is_existing_directory_or_link( ResolvedPath ) of
+
+		true ->
+			{ ResolvablePath, ResolvedPath };
+
+
+		false ->
+			undefined
+
+	end;
+
+
+get_paths_for( _ParserName=jiffy ) ->
+
+	% Maybe to be updated:
+	ResolvablePath =
+		[ home, "Software", "jiffy", "jiffy-current-install", "ebin" ],
+
+	ResolvedPath = file_utils:resolve_path( ResolvablePath ),
+
+	case file_utils:is_existing_directory_or_link( ResolvedPath ) of
+
+		true ->
+			{ ResolvablePath, ResolvedPath };
+
+
+		false ->
+			undefined
+
+	end.
 
 
 
@@ -224,7 +302,7 @@ start_parser() ->
 %
 -spec start_parser( parser_backend_name() ) -> parser_state().
 start_parser( BackendName )
-  when BackendName =:= jsx orelse BackendName =:= jiffy ->
+				when BackendName =:= jsx orelse BackendName =:= jiffy ->
 
 	% Appropriate for both JSX and Jiffy:
 

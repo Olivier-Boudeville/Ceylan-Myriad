@@ -52,6 +52,8 @@
 
 		  get_base_path/1, get_last_path_element/1,
 
+		  resolve_path/1, resolve_any_path/1,
+
 		  convert_to_filename/1, escape_path/1,
 
 		  get_extensions/1, get_extension/1, remove_extension/1,
@@ -192,6 +194,52 @@
 
 -type any_path() :: path() | bin_path().
 % We do not believe that atoms shall be legit paths.
+
+
+
+-type resolvable_path() :: [ resolvable_path_element() ].
+% A path that is resolved at runtime, all its elements being joined accordingly.
+%
+% Ex: [home, "Project", lang, <<"simulation">>, user] being translated to the
+% "/home/bond/Project/en_GB.utf8/simulation/bond" path.
+%
+% See resolve_path/1.
+
+
+-type resolvable_path_element() :: any_path() | resolvable_token_path().
+% An element of a resolvable path.
+
+
+-type resolvable_token_path() ::
+
+	  'user_name' % Will be translated to the name of the current OS-level
+				  % user; ex: "bond".
+
+	| 'user_id' % Will be translated to the OS-level (typically UNIX uid)
+				% identifier of the current user; ex: "61917".
+
+	| 'group_name' % Will be translated to the name of the current OS-level
+				   % group; ex: "wheel".
+
+	| 'group_id' % Will be translated to the OS-level (typically UNIX gid)
+				 % identifier of the current group; ex: "61000".
+
+	| 'home' % Will be translated to the path to the home directory of the
+			 % current user; ex: "/home/bond".
+
+	| 'locale_charset' % Will be translated to the current locale with the
+					   % associated character set; ex: "en_GB.utf8".
+
+	| 'fqdn' % Will be translated to the current FQDN of the local host;
+			 % ex: "hurricane.foobar.org".
+
+	| 'short_hostname'. % Will be translated to the current short name of
+						% the local host; ex: "hurricane".
+% A token translated at runtime as a path element.
+
+
+-type possibly_resolvable_path() :: resolvable_path() | any_path().
+% Any kind of path, resolvable or not.
 
 
 -type file_name() :: path().
@@ -373,9 +421,14 @@
 
 
 -export_type([ path/0, bin_path/0, any_path/0,
+
+			   resolvable_path/0, resolvable_path_element/0,
+			   resolvable_token_path/0, possibly_resolvable_path/0,
+
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
 			   any_file_name/0, any_file_path/0,
+
 			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
 			   executable_name/0, executable_path/0, bin_executable_path/0,
 			   script_path/0, bin_script_path/0,
@@ -544,7 +597,7 @@
 
 % @doc Joins the specified list of path elements.
 %
-% This function has been added back to this module; filename:join( Components )
+% This function has been added back to this module; filename:join(Components)
 % could be used instead (at least to some extent), however filename:join(["",
 % "my_dir"]) results in "/my_dir", whereas often we would want "my_dir" instead
 % - which is returned by our function; moreover, if one of the components
@@ -792,6 +845,83 @@ get_base_path( AnyPath ) ->
 get_last_path_element( AnyPath ) ->
 	filename:basename( AnyPath ).
 
+
+
+% @doc Resolves the specified resolvable path as a standard path.
+-spec resolve_path( resolvable_path() ) -> path().
+resolve_path( ResolvablePath ) when is_list( ResolvablePath ) ->
+	resolve_path( ResolvablePath, _Acc=[] ).
+
+
+% (helper)
+resolve_path( _ResolvablePath=[], Acc ) ->
+	join( lists:reverse( Acc ) );
+
+resolve_path( _ResolvablePath=[ user_name | T ], Acc ) ->
+	NewAcc = [ system_utils:get_user_name() | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ user_id | T ], Acc ) ->
+	NewAcc = [ system_utils:get_user_id() | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ group_name | T ], Acc ) ->
+	NewAcc = [ system_utils:get_group_name() | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ group_id | T ], Acc ) ->
+	NewAcc = [ system_utils:get_group_id() | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ home | T ], Acc ) ->
+	NewAcc = [ system_utils:get_user_home_directory() | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ locale_charset | T ], Acc ) ->
+	NewAcc = [ locale_utils:get_locale_charset() | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ fqdn | T ], Acc ) ->
+	NewAcc = [ net_utils:localhost( fqdn ) | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ short_hostname | T ], Acc ) ->
+	NewAcc = [ net_utils:localhost( short ) | Acc ],
+	resolve_path( T, NewAcc );
+
+resolve_path( _ResolvablePath=[ UnexpectedToken | _T ], _Acc )
+						when is_atom( UnexpectedToken ) ->
+	throw( { unexpected_resolvable_token_path, UnexpectedToken } );
+
+resolve_path( _ResolvablePath=[ S | T ], Acc )
+						when is_list( S ) orelse is_binary( S ) ->
+	resolve_path( T, [ S| Acc ] );
+resolve_path( _ResolvablePath=[ UnexpectedTerm | _T ], _Acc ) ->
+	throw( { invalid_resolvable_token_path, UnexpectedTerm } ).
+
+
+
+% @doc Resolves the specified path - either a standard one or a resolvable one -
+% in all cases as a plain, standard path.
+%
+-spec resolve_any_path( possibly_resolvable_path() ) -> path().
+resolve_any_path( BinPath ) when is_binary( BinPath ) ->
+	text_utils:binary_to_string( BinPath );
+
+resolve_any_path( AnyPath ) when is_list( AnyPath ) ->
+	% Either already a plain string or a resolvable path:
+	case text_utils:is_string( AnyPath ) of
+
+		true ->
+			AnyPath;
+
+		false ->
+			resolve_path( AnyPath )
+
+	end;
+
+resolve_any_path( Other ) ->
+	throw( { invalid_path, Other } ).
 
 
 

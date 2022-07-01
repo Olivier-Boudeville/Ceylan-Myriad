@@ -37,6 +37,7 @@
 -export([ get_code_for/1, get_md5_for_loaded_module/1,
 		  get_md5_for_stored_module/1, is_loaded_module_same_on_filesystem/1,
 		  deploy_modules/2, deploy_modules/3,
+		  resolve_code_path/1,
 		  declare_beam_directory/1, declare_beam_directory/2,
 		  declare_beam_directories/1, declare_beam_directories/2,
 		  remove_beam_directory/1, remove_beam_directory_if_set/1,
@@ -63,6 +64,10 @@
 % PYTHONPATH, Java classpath, etc.).
 
 
+-type resolvable_code_path() :: [ possibly_resolvable_path() ].
+% A code path that may comprise plain or resolvable paths.
+
+
 -type code_path_position() :: 'first_position' | 'last_position'.
 
 
@@ -70,7 +75,7 @@
 					  | list_table:list_table( atom(), term() ).
 % The last element of a stack item.
 %
-% Ex: [ { file, file_path() }, { line, meta_utils:line() } ].
+% Ex: [{file,file_path()}, {line, meta_utils:line()}].
 
 
 -type stack_item() :: { module_name(), function_name(), arity(),
@@ -89,7 +94,7 @@
 % module.
 
 
--export_type([ code_path/0, code_path_position/0,
+-export_type([ code_path/0, resolvable_code_path/0, code_path_position/0,
 			   stack_info/0, stack_item/0, stack_trace/0, error_map/0 ]).
 
 
@@ -116,6 +121,7 @@
 
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
+-type possibly_resolvable_path() :: file_utils:possibly_resolvable_path().
 
 -type atom_node_name() :: net_utils:atom_node_name().
 
@@ -195,6 +201,15 @@ is_loaded_module_same_on_filesystem( ModuleName ) ->
 	StoredMD5 = get_md5_for_stored_module( ModuleName ),
 	%io:format( "Loaded MD5: ~p~nStored MD5: ~p~n", [ LoadedMD5, StoredMD5 ] ),
 	LoadedMD5 == StoredMD5.
+
+
+
+% @doc Resolves the specified resolvable code path: returns a plain, immediately
+% usable code path (of course preserving path order).
+%
+-spec resolve_code_path( resolvable_code_path() ) -> code_path().
+resolve_code_path( AnyCodePaths ) ->
+	[ file_utils:resolve_any_path( P ) || P <- AnyCodePaths ].
 
 
 

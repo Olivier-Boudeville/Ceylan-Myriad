@@ -456,7 +456,7 @@ filter_interfaces( _IfList=[ _If={ Name, Options } | T ], FirstIfs, LastIfs,
 				   Loopback ) ->
 
 	%trace_utils:debug_fmt( "Examining interface named '~p', with options ~p.",
-	%						[ Name, Options ] ),
+	%                       [ Name, Options ] ),
 
 	case proplists:get_value( _K=addr, Options ) of
 
@@ -1504,7 +1504,6 @@ wait_unavailable( NodeName, AttemptCount, Duration ) when is_atom( NodeName ) ->
 	%catch
 
 	%   _T:E ->
-
 	%       trace_utils:debug_fmt( "Error while pinging node '~ts': "
 	%           "exception '~p'.", [ NodeName, E ] )
 
@@ -1693,15 +1692,8 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 -spec send_file( file_path(), pid() ) -> void().
 send_file( FilePath, RecipientPid ) ->
 
-	case file_utils:is_existing_file( FilePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { file_to_send_not_found, FilePath } )
-
-	end,
+	file_utils:is_existing_file( FilePath ) orelse
+		throw( { file_to_send_not_found, FilePath } ),
 
 	Permissions = case file:read_file_info( FilePath ) of
 
