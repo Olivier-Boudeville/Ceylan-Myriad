@@ -56,8 +56,8 @@
 
 		  convert_to_filename/1, escape_path/1,
 
-		  get_extensions/1, get_extension/1, remove_extension/1,
-		  replace_extension/3,
+		  get_extensions/1, get_extension/1,
+		  remove_extension/1, remove_extension/2, replace_extension/3,
 
 		  exists/1, get_type_of/1, resolve_type_of/1,
 		  get_owner_of/1, get_group_of/1,
@@ -315,9 +315,12 @@
 %
 % Ex: the filepath radix of "/home/bond/hello.tar.gz" is "/home/bond/hello".
 
+
 -type extension() :: ustring().
 % An extension in a filename, either unitary (ex: "baz", in "foobar.baz.json")
 % or composed (ex: "tar.gz" in "hello.tar.gz").
+%
+% An extension by itself does not include the leading dot (ex: "gz", not ".gz").
 
 
 -type any_suffix() :: any_string().
@@ -1028,9 +1031,10 @@ get_extension( Filename ) ->
 
 
 
-% @doc Removes the (last) extension of the specified file path.
+% @doc Removes the (last) extension (regardless of its actual value) of the
+% specified file path.
 %
-% Ex: "/home/jack/rosie.tmp" = remove_extension( "/home/jack/rosie.tmp.ttf" )
+% Ex: "/home/jack/rosie.tmp" = remove_extension("/home/jack/rosie.tmp.ttf")
 %
 -spec remove_extension( file_path() ) -> file_path().
 remove_extension( FilePath ) ->
@@ -1052,10 +1056,44 @@ remove_extension( FilePath ) ->
 
 
 
+% @doc Checks that the (last) extension of the specified file path is the
+% specified one, and returns that path once this extension has been removed.
+%
+% Ex: "/home/jack/rosie" = remove_extension("/home/jack/rosie.tmp.ttf", "ttf")
+%
+-spec remove_extension( file_path(), extension() ) -> file_path().
+remove_extension( FilePath, ExpectedExtension ) ->
+
+	Separator = $.,
+
+	case text_utils:split( FilePath, _Delimiters=[ Separator ] ) of
+
+		[] ->
+			throw( empty_path );
+
+		BasenamePlusExtensions ->
+			case list_utils:extract_last_element( BasenamePlusExtensions ) of
+
+				{ ExpectedExtension, BasenamePlusFirstExtensions } ->
+					text_utils:join( Separator, BasenamePlusFirstExtensions );
+
+				{ OtherExtension, _ } ->
+					throw( { unmatching_extension, OtherExtension,
+							 ExpectedExtension, FilePath } )
+
+			end
+
+	end.
+
+
+
 % @doc Returns a new file path whose extension has been updated.
 %
-% Ex: replace_extension("/home/jack/rosie.ttf", ".ttf", ".wav") should return
+% Ex: replace_extension("/home/jack/rosie.ttf", "ttf", "wav") should return
 % "/home/jack/rosie.wav".
+%
+% Specifying as target extension the empty string results in removing the
+% specified extension.
 %
 -spec replace_extension( file_path(), extension(), extension() ) -> file_path().
 replace_extension( FilePath, SourceExtension, TargetExtension ) ->
