@@ -245,7 +245,7 @@ get_parser_name_paths() ->
 get_paths_for( _ParserName=jsx ) ->
 
 	ResolvablePath = [ home, "Software", "jsx", "jsx-current-install", "_build",
-					  "default", "lib", "jsx", "ebin" ],
+					   "default", "lib", "jsx", "ebin" ],
 
 	ResolvedPath = file_utils:resolve_path( ResolvablePath ),
 
