@@ -66,6 +66,10 @@
 -export([ sample/4, sample_as_pairs/4, normalise/2 ]).
 
 
+% Operations related to probabilities:
+-export([ probability_to_string/1, probability_like_to_string/1 ]).
+
+
 % For epsilon define:
 -include("math_utils.hrl").
 
@@ -131,18 +135,22 @@
 % For integer percentages (in [0..100] generally).
 
 
+
+% See also the random_utils module for:
+
 -type probability() :: float().
 % For probabilities, typically ranging in [0.0,1.0].
 
 
 -type probability_like() :: number().
 % A non-negative number (an integer or floating-point) that can be translated to
-% a normalized probability by scaling it.
+% a normalised probability by scaling it to [0.0,1.0].
 %
 % Ex: if considering two exclusive events whose
 % respective likeliness is quantified as 20 and 30, then these probability-like
-% elements can be translated to actual (normalized) probabilities of
+% elements can be translated to actual (normalised) probabilities of
 % 20/(20+30)=0.4 and 0.6.
+
 
 
 -type conversion_type() :: 'exact' | 'absolute' | { 'absolute', float() }
@@ -166,6 +174,8 @@
 % Shorthands:
 
 -type positive_index() :: basic_utils:positive_index().
+
+-type ustring() :: text_utils:ustring().
 
 -type dimensionless() :: unit_utils:dimensionless().
 -type degrees() :: unit_utils:degrees().
@@ -598,6 +608,7 @@ canonify( AngleInDegrees ) ->
 
 
 
+
 % @doc Samples the specified function taking a single numerical argument, by
 % evaluating it on every point in turn from Start until up to Stop, with
 % specified increment: returns the ordered list of the corresponding values that
@@ -640,8 +651,10 @@ sample_as_pairs( Fun, Current, Stop, Increment, Acc ) ->
 
 
 
+
 % @doc Normalises, in the specified list of tuples, the elements at the
-% specified index (expected to be floats), so that their sum is equal to 1.0.
+% specified index (expected to be numbers, whose sum is non-null), so that their
+% sum is equal to 1.0.
 %
 % Ex: normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
 %                 = [{a,0.3}, {"hello",0.5}, {1,0.2}]
@@ -668,3 +681,23 @@ get_sum( _DataTuples=[ Tuple | T ], Index, Sum ) ->
 scale( Tuple, Index, Sum ) ->
 	NewElem = element( Index, Tuple ) / Sum,
 	setelement( Index, Tuple, NewElem ).
+
+
+
+% @doc Returns a textual description of the specified probability.
+-spec probability_to_string( probability() ) -> ustring().
+probability_to_string( Probability ) ->
+	% Only oe significant number after the comma for readibility:
+	text_utils:format( "probability of about ~.1f%", [ 100 * Probability ] ).
+
+
+
+% @doc Returns a textual description of the specified probability.
+-spec probability_like_to_string( probability_like() ) -> ustring().
+probability_like_to_string( ProbLike ) when is_float( ProbLike )
+		andalso ProbLike >= 0.0 andalso ProbLike =< 1.0 ->
+	% Supposedly normalised then:
+	probability_to_string( ProbLike );
+
+probability_like_to_string( ProbLike ) ->
+	text_utils:format( "non-normalised probability of ~w", [ ProbLike ] ).
