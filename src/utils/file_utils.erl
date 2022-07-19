@@ -3954,9 +3954,13 @@ filter_elems_plain( _ElemList=[], Acc ) ->
 filter_elems_plain( _ElemList=[ "." | T ], Acc ) ->
 	filter_elems_plain( T, Acc );
 
-% We can remove one level iff there is at least one:
-filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ _ | AccT ] ) ->
+% We can remove one level iff there is at least one accumulated *and* this one
+% is not already ".." (otherwise the ".." will cancel out):
+%
+filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ PrevElem | AccT ] )
+						when PrevElem =/= ".." ->
 	filter_elems_plain( T, AccT );
+
 
 % No level left, so this ".." should not be filtered out:
 %
