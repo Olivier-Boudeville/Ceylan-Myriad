@@ -533,6 +533,9 @@
 
 		  check_pid/1, check_maybe_pid/1,
 
+		  check_number/1, check_maybe_number/1,
+		  check_numbers/1, check_maybe_numbers/1,
+
 		  check_integer/1, check_maybe_integer/1,
 		  check_integers/1, check_maybe_integers/1,
 
@@ -1432,6 +1435,50 @@ check_maybe_pid( undefined ) ->
 
 check_maybe_pid( Other ) ->
 	throw( { not_maybe_pid, Other } ).
+
+
+
+
+% @doc Checks that the specified term is an number indeed, and returns it.
+-spec check_number( term() ) -> number().
+check_number( Num ) when is_number( Num ) ->
+	Num;
+
+check_number( Other ) ->
+	throw( { not_number, Other } ).
+
+
+
+% @doc Checks that the specified term is a maybe-number indeed, and returns it.
+-spec check_maybe_number( term() ) -> maybe( number() ).
+check_maybe_number( undefined ) ->
+	undefined;
+
+check_maybe_number( Num ) when is_number( Num ) ->
+	Num;
+
+check_maybe_number( Other ) ->
+	throw( { not_maybe_number, Other } ).
+
+
+
+% @doc Checks that the specified term is a list of numbers indeed, and returns
+% it.
+%
+-spec check_numbers( term() ) -> [ number() ].
+check_numbers( Numbers ) ->
+	[ check_number( N ) || N <- Numbers ].
+
+
+
+% @doc Checks that the specified term is a list of maybe-numbers indeed, and
+% returns it.
+%
+-spec check_maybe_numbers( term() ) -> [ maybe( number() ) ].
+check_maybe_numbers( MaybeNumbers ) ->
+	[ check_maybe_number( MN ) || MN <- MaybeNumbers ].
+
+
 
 
 
