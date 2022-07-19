@@ -451,10 +451,23 @@ list_exported_functions( ModuleName ) ->
 	case code_utils:is_beam_in_path( ModuleName ) of
 
 		not_found ->
+
+			FilteredCodePath = [
+				case file_utils:is_existing_directory_or_link( P ) of
+
+					true ->
+						P;
+
+					false ->
+						text_utils:format( "(~ts)", [ P ] )
+
+				end || P <- code_utils:get_code_path(), P =/= "" ],
+
 			trace_utils:error_fmt( "Module '~ts' not found in code path "
-				"(from '~ts'), which is (sorted alphabetically): ~ts",
+				"(from '~ts'), which is (sorted alphabetically, "
+				"non-existing directories being parenthesized): ~ts",
 				[ ModuleName, file_utils:get_current_directory(),
-				  code_utils:code_path_to_string() ] ),
+				  code_utils:code_path_to_string( FilteredCodePath ) ] ),
 			throw( { module_not_found_in_path, ModuleName } );
 
 		_ ->
