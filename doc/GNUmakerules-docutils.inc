@@ -68,6 +68,20 @@ BORDERED_PNG = $(patsubst %.png,%-bordered.png,$(wildcard *.png))
 
 
 
+# Generating plots from MATLAB-like tools (Scilab or Octave):
+
+DATA_PROCESSOR := $$(which octave)
+
+DATA_PROCESSOR_OPTS = --silent --no-gui
+# --no-window-system
+
+
+%.png: %.m
+	@echo "  Using $(DATA_PROCESSOR) to generate $@ from $<"
+	@$(DATA_PROCESSOR) $(DATA_PROCESSOR_OPTS) $<
+
+
+
 # Graph rendering section.
 
 
