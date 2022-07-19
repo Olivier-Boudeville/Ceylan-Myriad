@@ -1345,10 +1345,10 @@ endif
 ifndef ERLANG_COMPILER_BASE_WARNING_OPT
 
 	ERLANG_COMPILER_BASE_WARNING_OPT = -W$(WARNING_LEVEL) +warn_export_all \
-		   +warn_export_vars +warn_shadow_vars +warn_unused_function       \
-		   +warn_deprecated_function +warn_deprecated_type +warn_removed   \
-		   +warn_obsolete_guards +warn_unused_import +warn_unused_record   \
-		   +warn_nif_inline +warnings_as_errors
+		+warn_export_vars +warn_shadow_vars +warn_unused_function          \
+		+warn_deprecated_function +warn_deprecated_type +warn_removed      \
+		+warn_obsolete_guards +warn_unused_import +warn_unused_record      \
+		+warn_nif_inline +warnings_as_errors
 
 endif
 
@@ -1385,7 +1385,7 @@ ERLANG_COMPILER_WARNING_OPT += $(ERLANG_COMPILER_BASE_WARNING_OPT)
 #
 # Instead 'export ERL_COMPILER_OPTIONS=bin_opt_info' shall be punctually used.
 #
-ERLANG_COMPILER_OPT_BASE +=                \
+ERLANG_COMPILER_OPT_BASE +=                   \
 	$(ERLANG_COMPILER_GENERAL_OPT) $(INC)     \
 	$(ERLANG_COMPILER_EXEC_TARGET_OPT)        \
 	$(ERLANG_COMPILER_DEBUG_OPT)              \

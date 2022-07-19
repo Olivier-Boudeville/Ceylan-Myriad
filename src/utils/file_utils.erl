@@ -3476,16 +3476,8 @@ copy_file_in( SourcePath, DestinationDirectory ) ->
 %
 -spec copy_file_if_existing( any_file_path(), any_file_path() ) -> void().
 copy_file_if_existing( SourceFilePath, DestinationFilePath ) ->
-
-	case is_existing_file( SourceFilePath ) of
-
-		true ->
-			copy_file( SourceFilePath, DestinationFilePath );
-
-		false ->
-			ok
-
-	end.
+	is_existing_file( SourceFilePath )
+		andalso copy_file( SourceFilePath, DestinationFilePath ).
 
 
 
@@ -3493,25 +3485,11 @@ copy_file_if_existing( SourceFilePath, DestinationFilePath ) ->
 -spec copy_tree( any_directory_path(), any_directory_path() ) -> void().
 copy_tree( SourceTreePath, TargetDirectory ) ->
 
-	case is_existing_directory_or_link( SourceTreePath ) of
+	is_existing_directory_or_link( SourceTreePath )
+		orelse throw( { non_existing_source_tree, SourceTreePath } ),
 
-		true ->
-			ok;
-
-		false ->
-			throw( { non_existing_source_tree, SourceTreePath } )
-
-	end,
-
-	case is_existing_directory_or_link( TargetDirectory ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { non_existing_target_directory, TargetDirectory } )
-
-	end,
+	 is_existing_directory_or_link( TargetDirectory )
+		orelse throw( { non_existing_target_directory, TargetDirectory } ),
 
 	Cmd = text_utils:format( "/bin/cp -r '~ts' '~ts'",
 							 [ SourceTreePath, TargetDirectory ] ),
@@ -3552,7 +3530,7 @@ rename( SourceFilePath, DestinationFilePath ) ->
 move_file( SourceFilePath, DestinationFilePath ) ->
 
 	%trace_utils:warning_fmt( "## Moving file '~ts' to '~ts'.",
-	%						  [ SourceFilePath, DestinationFilePath ] ),
+	%                         [ SourceFilePath, DestinationFilePath ] ),
 
 	%copy_file( SourceFilePath, DestinationFilePath ),
 	%remove_file( SourceFilePath ).
@@ -3565,7 +3543,7 @@ move_file( SourceFilePath, DestinationFilePath ) ->
 
 		{ error, exdev } ->
 			%trace_utils:info_fmt( "Moving across filesystems '~ts' to '~ts'.",
-			%					   [ SourceFilePath, DestinationFilePath ] ),
+			%                      [ SourceFilePath, DestinationFilePath ] ),
 			copy_file( SourceFilePath, DestinationFilePath ),
 			remove_file( SourceFilePath );
 
@@ -3584,7 +3562,7 @@ move_file( SourceFilePath, DestinationFilePath ) ->
 create_link( TargetPath, LinkName ) ->
 
 	%trace_utils:debug_fmt( "Creating a link '~ts' to '~ts', while in '~ts'.",
-	%					   [ LinkName, TargetPath, get_current_directory() ] ),
+	%                       [ LinkName, TargetPath, get_current_directory() ] ),
 
 	case file:make_symlink( TargetPath, LinkName ) of
 
@@ -3599,8 +3577,8 @@ create_link( TargetPath, LinkName ) ->
 
 
 
-% @doc Returns a path deriving from the specified one so that it is unique,
-% meaning that it does not clash with any pre-existing entry.
+% @doc Returns a path deriving from the specified one (and of the same type) so
+% that it is unique, meaning that it does not clash with any pre-existing entry.
 %
 % Note: of course multiple, parallel calls to this function with the same base
 % path will result in potential race conditions and risks of collisions.
@@ -3625,8 +3603,9 @@ get_non_clashing_entry_name_from( Path ) ->
 	case exists( Path ) of
 
 		true ->
-			PathToTest = case string:split( Path, _SearchPattern="-",
-											_Where=trailing ) of
+			PathStr = text_utils:ensure_string( Path ),
+			PathToTestStr = case string:split( PathStr, _SearchPattern="-",
+											   _Where=trailing ) of
 
 				[ _Path ] ->
 					text_utils:format( "~ts-1", [ Path ] );
@@ -3642,6 +3621,16 @@ get_non_clashing_entry_name_from( Path ) ->
 							text_utils:format( "~ts-~B", [ BasePath, Count+1 ] )
 
 					end
+
+			end,
+
+			PathToTest = case is_binary( Path ) of
+
+				true ->
+					text_utils:string_to_binary( PathToTestStr );
+
+				false ->
+					PathToTestStr
 
 			end,
 
@@ -3938,7 +3927,7 @@ normalise_path( Path ) when is_list( Path ) ->
 	ResPath = join( filter_elems_plain( ElemList, _Acc=[] ) ),
 
 	%trace_utils:debug_fmt( "Normalising path '~ts' as '~ts'.",
-	%					   [ Path, ResPath ] ),
+	%                       [ Path, ResPath ] ),
 
 	ResPath;
 
@@ -3952,7 +3941,7 @@ normalise_path( BinPath ) when is_binary( BinPath ) ->
 	ResPath = bin_join( filter_elems_bin( ElemList, _Acc=[] ) ),
 
 	%trace_utils:debug_fmt( "Normalising path '~ts' as '~ts'.",
-	%					   [ BinPath, ResPath ] ),
+	%                       [ BinPath, ResPath ] ),
 
 	ResPath.
 
@@ -3965,9 +3954,13 @@ filter_elems_plain( _ElemList=[], Acc ) ->
 filter_elems_plain( _ElemList=[ "." | T ], Acc ) ->
 	filter_elems_plain( T, Acc );
 
-% We can remove one level iff there is at least one:
-filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ _ | AccT ] ) ->
+% We can remove one level iff there is at least one accumulated *and* this one
+% is not already ".." (otherwise the ".." will cancel out):
+%
+filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ PrevElem | AccT ] )
+						when PrevElem =/= ".." ->
 	filter_elems_plain( T, AccT );
+
 
 % No level left, so this ".." should not be filtered out:
 %
@@ -4093,7 +4086,7 @@ make_relative_plain( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
 make_relative_plain( PathElems, RefPathElems ) ->
 
 	%trace_utils:debug_fmt( "Paths split at: ~p vs ~p.",
-	%					   [ PathElems, RefPathElems ] ),
+	%						[ PathElems, RefPathElems ] ),
 
 	FromRef = [ ".." || _ <- lists:seq( 1, length( RefPathElems ) ) ],
 
@@ -4143,7 +4136,7 @@ make_relative_binary( PathElems, RefPathElems ) ->
 get_longest_common_path( DirPaths ) ->
 
 	%trace_utils:debug_fmt( "Getting longest common path for:~n~p",
-	%					   [ DirPaths ] ),
+	%                       [ DirPaths ] ),
 
 	DirElems = [ filename:split( D ) || D <- DirPaths ],
 
@@ -4154,7 +4147,7 @@ get_longest_common_path( DirPaths ) ->
 get_longest_common_path_helper( DirElems, AccCommon ) ->
 
 	%trace_utils:debug_fmt( "get_longest_common_path_helper from ~p "
-	%						"(acc being ~p).", [ DirElems, AccCommon ] ),
+	%                       "(acc being ~p).", [ DirElems, AccCommon ] ),
 
 	case get_common_head_of( DirElems ) of
 
@@ -4338,10 +4331,10 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 % original file into a target, updated one (supposedly non-already existing; and
 % with the specified encoding), in which all the specified keywords (the keys of
 % the translation table) have been replaced with their associated value
-% (i.e. the value in table corresponding to that key).
+% (that is the value in table corresponding to that key).
 %
-% Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
-%  [{"hello", "goodbye" }, {"Blue", "Red"}]).
+% Ex: file_utils:update_with_keywords("original.txt", "updated.txt",
+%   table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
 		text_utils:translation_table(), system_utils:encoding_options() ) ->
@@ -4349,15 +4342,8 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
 					  EncodingOpts ) ->
 
-	case exists( TargetFilePath ) of
-
-		true ->
-			throw( { already_existing, TargetFilePath } );
-
-		false ->
-			ok
-
-	end,
+	exists( TargetFilePath )
+		andalso throw( { already_existing, TargetFilePath } ),
 
 	BinOrigContent = read_whole( OriginalFilePath ),
 
@@ -4365,8 +4351,8 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
 														 TranslationTable ),
 
 	%trace_utils:debug_fmt( "Original content: ~ts;~n Translation table: ~p;~n"
-	%		" Updated content: ~ts.",
-	%		[ BinOrigContent, TranslationTable, BinUpdatedContent ] ),
+	%   " Updated content: ~ts.",
+	%   [ BinOrigContent, TranslationTable, BinUpdatedContent ] ),
 
 	write_whole( TargetFilePath, BinUpdatedContent, EncodingOpts ).
 
@@ -4455,14 +4441,14 @@ get_image_extensions() ->
 % @doc Returns the image path corresponding to the specified file.
 -spec get_image_file_png( file_name() ) -> path().
 get_image_file_png( Image ) ->
-  filename:join( [ ?ResourceDir, "images", Image ++ ".png"] ).
+	filename:join( [ ?ResourceDir, "images", Image ++ ".png"] ).
 
 
 
 % @doc Returns the image path corresponding to the specified file.
 -spec get_image_file_gif( file_name() ) -> path().
 get_image_file_gif( Image ) ->
-  filename:join( [ ?ResourceDir, "images", Image ++ ".gif"] ).
+	filename:join( [ ?ResourceDir, "images", Image ++ ".gif"] ).
 
 
 
@@ -4706,7 +4692,7 @@ open( AnyFilePath, Options, _AttemptMode=try_endlessly ) ->
 	case file:open( AnyFilePath, Options ) of
 
 		{ ok, File } ->
-			 File;
+			File;
 
 		{ error, FileError } when FileError == emfile
 				orelse FileError == system_limit ->

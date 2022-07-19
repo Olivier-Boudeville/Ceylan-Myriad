@@ -31,6 +31,8 @@
 %
 % See random_utils_test.erl for the corresponding test.
 %
+% See math_utils for basic probability support.
+%
 -module(random_utils).
 
 

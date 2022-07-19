@@ -6,10 +6,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 %
 % Released as LGPL software.
+% Creation date: 2016.
 
 
 % @doc Module in charge of providing the actual support for the <b>management of
-% filesystem trees</b> (merging, unifiquation, comparison, etc).
+% filesystem trees</b> (merging, unifiquation, comparison, etc.).
 %
 % Note that it is currently architectured mostly as a program rather than as a
 % library (most services of interest are not exported currently).
@@ -32,15 +33,15 @@
 % by symlinks: scp will create a regular file for each symlink.
 %
 % So prefer using rsync:
-% rsync --links
+% $ rsync --links
 %    or
-% rsync -avz -e "ssh -p MY_PORT" SRC HOST:DEST
+% $ rsync -avz -e "ssh -p MY_PORT" SRC HOST:DEST
 
 -define( merge_cache_filename, <<".merge-tree.cache">> ).
 
 
 % Version of this tool:
--define( merge_script_version, "0.1.3" ).
+-define( merge_script_version, "0.1.4" ).
 
 
 % Centralised:
@@ -374,7 +375,7 @@ main( ArgTable ) ->
 										undefined, BaseArgTable ) of
 
 				{ [ [ RefTreePath ] ], NoRefArgTable }
-				  when is_list( RefTreePath ) ->
+								when is_list( RefTreePath ) ->
 					handle_reference_option( RefTreePath, NoRefArgTable,
 											 BinBaseDir );
 
@@ -409,7 +410,7 @@ handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 
 		% Here, an input tree was specified as well:
 		{ [ [ InputTreePath ] ], NewArgumentTable }
-		  when is_list( InputTreePath ) ->
+						when is_list( InputTreePath ) ->
 			%trace_bridge:debug_fmt( "InputTreePath: ~p", [ InputTreePath ] ),
 
 			% RefTreePath is already vetted:
@@ -455,7 +456,7 @@ handle_non_reference_option( ArgumentTable, BinBaseDir ) ->
 
 							% A rescan was requested:
 						{ [ [ RescanTreePath ] ], RescanArgTable }
-								  when is_list( RescanTreePath ) ->
+									when is_list( RescanTreePath ) ->
 							handle_rescan_option( RescanTreePath,
 												  RescanArgTable, BinBaseDir );
 
@@ -522,7 +523,7 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 							?check_opt, undefined, NoUniqArgTable ) of
 
 						{ [ [ TreePath, MergeFilePath ] ], CheckArgTable }
-						  when is_list( TreePath )
+										when is_list( TreePath )
 							   andalso is_list( MergeFilePath ) ->
 							handle_check_against_option( TreePath,
 								MergeFilePath, CheckArgTable, BinBaseDir );
@@ -554,7 +555,7 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 					end;
 
 				{ [ [ UniqTreePath ] ], NoUniqArgTable }
-				  when is_list( UniqTreePath ) ->
+								when is_list( UniqTreePath ) ->
 					handle_uniquify_option( UniqTreePath, NoUniqArgTable,
 											BinBaseDir );
 
@@ -565,7 +566,7 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 			end;
 
 		{ [ [ ResyncTreePath ] ], NoResyncArgTable }
-		  when is_list( ResyncTreePath ) ->
+							when is_list( ResyncTreePath ) ->
 				handle_resync_option( ResyncTreePath, NoResyncArgTable,
 									  BinBaseDir );
 
@@ -582,13 +583,13 @@ handle_equalize_option( FirstTreePath, SecondTreePath, EqualizeArgTable,
 
 	BinFirstTreePath = text_utils:ensure_binary( FirstTreePath ),
 
-	BinAbsFirstTreePath = file_utils:ensure_path_is_absolute( BinFirstTreePath,
-															  BinBaseDir ),
+	BinAbsFirstTreePath =
+		file_utils:ensure_path_is_absolute( BinFirstTreePath, BinBaseDir ),
 
 	BinSecondTreePath = text_utils:ensure_binary( SecondTreePath ),
 
 	BinAbsSecondTreePath =
-		file_utils:ensure_path_is_absolute(	BinSecondTreePath, BinBaseDir ),
+		file_utils:ensure_path_is_absolute( BinSecondTreePath, BinBaseDir ),
 
 	% Prepare for various outputs:
 	UserState = start_user_service( ?default_log_filename ),
@@ -620,13 +621,13 @@ handle_equalize_option( FirstTreePath, SecondTreePath, EqualizeArgTable,
 	ui:display_instant( "Equalizing trees '~ts' and '~ts'...",
 						[ BinAbsFirstTreePath, BinAbsSecondTreePath ] ),
 
-	FirstTree = update_content_tree( BinAbsFirstTreePath, AnalyzerRing,
-									 UserState ),
+	FirstTree =
+		update_content_tree( BinAbsFirstTreePath, AnalyzerRing, UserState ),
 
 	ui:set_setting( title, "Updating second tree..." ),
 
-	SecondTree = update_content_tree( BinAbsSecondTreePath, AnalyzerRing,
-									  UserState ),
+	SecondTree =
+		update_content_tree( BinAbsSecondTreePath, AnalyzerRing, UserState ),
 
 	ui:set_setting( title, "Equalizing in progress..." ),
 
@@ -780,29 +781,19 @@ handle_check_against_option( UserTreePath, UserMergeFilePath, CheckArgTable,
 
 	check_no_option_remains( CheckArgTable ),
 
-	case file_utils:is_existing_directory_or_link( BinAbsTreePath ) of
-
-		true ->
-			ok;
-
-		false ->
+	file_utils:is_existing_directory_or_link( BinAbsTreePath ) orelse
+		begin
 			ui:display_error( "The specified tree ('~ts') does not exist.",
 							  [ BinAbsTreePath ] ),
 			throw( { non_existing_directory_to_check, BinAbsTreePath } )
+		end,
 
-	end,
-
-	case file_utils:is_existing_file_or_link( BinAbsCachePath ) of
-
-		true ->
-			ok;
-
-		false ->
+	file_utils:is_existing_file_or_link( BinAbsCachePath ) orelse
+		begin
 			ui:display_error( "The specified merge cache file ('~ts') does "
 							  "not exist.", [ BinAbsCachePath  ] ),
 			throw( { non_existing_merge_cache_file, BinAbsCachePath } )
-
-	end,
+		end,
 
 	AnalyzerRing = create_analyzer_ring( UserState ),
 
@@ -818,18 +809,12 @@ handle_check_against_option( UserTreePath, UserMergeFilePath, CheckArgTable,
 
 
 check_no_option_remains( ArgTable ) ->
-
-	case list_table:is_empty( ArgTable ) of
-
-		true ->
-			ok;
-
-		false ->
+	list_table:is_empty( ArgTable ) orelse
+		begin
 			Msg = text_utils:format( "unexpected extra options specified: ~ts",
 				[ shell_utils:argument_table_to_string( ArgTable ) ] ),
 			display_error_and_stop( Msg, 20 )
-
-	end.
+		end.
 
 
 
@@ -1019,17 +1004,12 @@ rescan( BinTreePath, AnalyzerRing, UserState ) ->
 					 text_utils:format( "Rescan of ~ts", [ BinTreePath ] ) },
 					   { title, "Rescan in progress..." } ] ),
 
-	case file_utils:is_existing_directory_or_link( BinTreePath ) of
-
-		true ->
-			ok;
-
-		false ->
+	file_utils:is_existing_directory_or_link( BinTreePath ) orelse
+		begin
 			ui:display_error( "Specified tree to rescan ('~ts') is not "
 				"an existing directory; aborting now.", [ BinTreePath ] ),
 			throw( { non_existing_directory_to_rescan, BinTreePath } )
-
-	end,
+		end,
 
 	CacheFilename = get_cache_path_for( BinTreePath ),
 
@@ -1424,17 +1404,12 @@ resync( BinTreePath, AnalyzerRing, UserState ) ->
 					 text_utils:format( "Resync of ~ts", [ BinTreePath ] ) },
 					   { title, "Resync in progress..." } ] ),
 
-	case file_utils:is_existing_directory_or_link( BinTreePath ) of
-
-		true ->
-			ok;
-
-		false ->
+	file_utils:is_existing_directory_or_link( BinTreePath ) orelse
+		begin
 			ui:display_error( "Specified tree to resync ('~ts') is not "
 				"an existing directory; aborting now.", [ BinTreePath ] ),
 			throw( { non_existing_directory_to_resync, BinTreePath } )
-
-	end,
+		end,
 
 	CacheFilename = get_cache_path_for( BinTreePath ),
 
@@ -1590,10 +1565,10 @@ resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			%
 			lists:foldl(
 			  fun( Filename, AccRing ) ->
-					  { AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
-					  AnalyzerPid !
-						  { checkNewFile, [ BinTreePath, Filename ], self() },
-					  NewAccRing
+					{ AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
+					AnalyzerPid !
+						{ checkNewFile, [ BinTreePath, Filename ], self() },
+					NewAccRing
 			  end,
 			  _Acc0=AnalyzerRing,
 			  _List=ExtraFiles ),
@@ -1843,17 +1818,12 @@ merge( InputTreePath, ReferenceTreePath ) ->
 	UserState = start_user_service( ?default_log_filename ),
 
 	% To avoid annihilation of a tree by itself:
-	case InputTreePath of
-
-		ReferenceTreePath ->
+	InputTreePath =:= ReferenceTreePath andalso
+		begin
 			ui:display_error( "The same tree ('~ts') is specified both as "
 				"merge reference and input.", [ ReferenceTreePath ] ),
-			throw( { merge_on_same_directory, ReferenceTreePath } );
-
-		_ ->
-			ok
-
-	end,
+			throw( { merge_on_same_directory, ReferenceTreePath } )
+		end,
 
 	trace_debug(
 		"Merging (possibly newer) tree '~ts' into reference tree '~ts'...",
@@ -2760,7 +2730,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 			FileCount = length( MultipleFileData ),
 
 			ContentPaths = [ ContentPath
-				 || #file_data{ path=ContentPath } <- MultipleFileData ],
+				|| #file_data{ path=ContentPath } <- MultipleFileData ],
 
 			Prompt = text_utils:format( "The same content can be found in "
 				"the following ~B input files (all relative to '~ts'): ~ts~n~n"
@@ -2836,7 +2806,7 @@ cherry_pick_files_to_merge( _SHA1sToPick=[ SHA1 | T ], InputRootDir,
 						yes ->
 							ToDelFiles =
 								[ file_utils:bin_join( InputRootDir, P )
-								  || P <- ContentPaths ],
+										|| P <- ContentPaths ],
 
 							remove_files( ToDelFiles, UserState );
 
@@ -2932,15 +2902,8 @@ safe_move( SourceRootDir, SourceRelPath, TargetRootDir, TargetSubPath,
 	AbsSourcePath = file_utils:bin_join( SourceRootDir, SourceRelPath ),
 
 	% Check:
-	case file_utils:is_existing_file_or_link( AbsSourcePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { not_file, AbsSourcePath } )
-
-	end,
+	file_utils:is_existing_file_or_link( AbsSourcePath )
+		orelse throw( { not_file, AbsSourcePath } ),
 
 	RelTargetPath = file_utils:bin_join( TargetSubPath, SourceRelPath ),
 
@@ -2956,8 +2919,8 @@ safe_move( SourceRootDir, SourceRelPath, TargetRootDir, TargetSubPath,
 
 			ui:display_warning(
 				"File '~ts', due to a clash in target location '~ts', "
-			  "had to be moved to '~ts' instead.",
-			  [ AbsSourcePath, AbsTargetPath, FixedAbsTargetPath ] ),
+				"had to be moved to '~ts' instead.",
+				[ AbsSourcePath, AbsTargetPath, FixedAbsTargetPath ] ),
 
 			% Nothing simpler than:
 			FixedRelTargetPath = file_utils:make_relative( FixedAbsTargetPath,
@@ -2983,7 +2946,7 @@ safe_move( SourceRootDir, SourceRelPath, TargetRootDir, TargetSubPath,
 
 
 
-% @doc Copies "safely" specified file, from path RelFilePath relative to
+% @doc Copies "safely" the specified file, from path RelFilePath relative to
 % SourceRootDir to the same RelFilePath path but this time relatively to
 % TargetRootDir, by ensuring (through any renaming needed) that no clash happens
 % at target.
@@ -3160,29 +3123,19 @@ stop_user_service( UserState=#user_state{ log_file=LogFile } ) ->
 									void().
 check_content_trees( InputTreePath, ReferenceTreePath ) ->
 
-	case file_utils:is_existing_directory_or_link( InputTreePath ) of
-
-		true ->
-			ok;
-
-		false ->
+	file_utils:is_existing_directory_or_link( InputTreePath ) orelse
+		begin
 			ui:display_error( "Specified input tree ('~ts') "
 				"does not exist, aborting now.", [ InputTreePath ] ),
 			throw( { non_existing_input_tree, InputTreePath } )
+		end,
 
-	end,
-
-	case file_utils:is_existing_directory_or_link( ReferenceTreePath ) of
-
-		true ->
-			ok;
-
-		false ->
+	file_utils:is_existing_directory_or_link( ReferenceTreePath ) orelse
+		begin
 			ui:display_error( "Specified reference tree ('~ts') "
 				"does not exist, aborting now.", [ ReferenceTreePath ] ),
 			throw( { non_existing_reference_tree, ReferenceTreePath } )
-
-	end.
+		end.
 
 
 
@@ -3198,18 +3151,12 @@ get_cache_path_for( BinTreePath ) ->
 % @doc Ensures that specified tree path exists.
 -spec check_tree_path_exists( any_directory_path() ) -> void().
 check_tree_path_exists( AnyTreePath ) ->
-
-	case file_utils:is_existing_directory_or_link( AnyTreePath ) of
-
-		true ->
-			ok;
-
-		false ->
+	file_utils:is_existing_directory_or_link( AnyTreePath ) orelse
+		begin
 			ui:display_error( "The path '~ts' does not exist.",
 							  [ AnyTreePath ] ),
 			throw( { non_existing_content_tree, AnyTreePath } )
-
-	end.
+		end.
 
 
 
@@ -3581,11 +3528,11 @@ write_entries( File,
 get_file_content_for( SHA1, FileDataElems ) ->
 	% Storage format a bit different from working one:
 	[ { SHA1, RelativePath, Size, Timestamp }
-	  || #file_data{ path=RelativePath,
-					 % type: not to store
-					 size=Size,
-					 timestamp=Timestamp,
-					 sha1_sum=RecSHA1 } <- FileDataElems, RecSHA1 =:= SHA1 ].
+		|| #file_data{ path=RelativePath,
+					   % type: not to store
+					   size=Size,
+					   timestamp=Timestamp,
+					   sha1_sum=RecSHA1 } <- FileDataElems, RecSHA1 =:= SHA1 ].
 
 
 
@@ -3644,7 +3591,7 @@ read_cache_file( CacheFilePath, UserState ) ->
 spawn_data_analyzers( Count, _UserState ) ->
 	%trace_debug( "Spawning ~B data analyzers.", [ Count ], UserState ),
 	[ ?myriad_spawn_link( fun() -> analyze_loop() end )
-	  || _C <- lists:seq( 1, Count ) ].
+				|| _C <- lists:seq( 1, Count ) ].
 
 
 
@@ -3722,7 +3669,7 @@ scan_files( _Files=[ Filename | T ], TreeData=#tree_data{ root=BinAbsTreePath },
 	{ AnalyzerPid, NewRing } = ring_utils:head( AnalyzerRing ),
 
 	%trace_debug( "Requesting analysis of '~ts' by ~w.",
-	%			 [ FullPath, AnalyzerPid ] ),
+	%             [ FullPath, AnalyzerPid ] ),
 
 	trace_debug( " - scanning ~ts", [ Filename ], UserState ),
 
@@ -3736,7 +3683,6 @@ scan_files( _Files=[ Filename | T ], TreeData=#tree_data{ root=BinAbsTreePath },
 	receive
 
 		{ file_analyzed, FileData } ->
-
 			NewTreeData = manage_received_data( FileData, TreeData ),
 			% Plus one (sending) minus one (receiving) waited:
 			scan_files( T, NewTreeData, NewRing, WaitedCount, UserState )
@@ -3761,7 +3707,7 @@ manage_received_data( FileData=#file_data{ type=Type, sha1_sum=Sum },
 										   other_count=OtherCount } ) ->
 
 	%trace_debug( "Data received: ~ts",
-	%			 [ file_data_to_string( FileData ) ] ),
+	%             [ file_data_to_string( FileData ) ] ),
 
 	% Ensures that we associate a list to each SHA1 sum:
 	NewEntries = case table:lookup_entry( Sum, Entries ) of
@@ -3841,13 +3787,13 @@ analyze_loop() ->
 
 				true ->
 					FileData = #file_data{
-					   % We prefer storing relative filenames:
-					   path=RelativeBinFilename,
-					   type=file_utils:get_type_of( BinFilePath ),
-					   size=file_utils:get_size( BinFilePath ),
-					   timestamp=file_utils:get_last_modification_time(
+						% We prefer storing relative filenames:
+						path=RelativeBinFilename,
+						type=file_utils:get_type_of( BinFilePath ),
+						size=file_utils:get_size( BinFilePath ),
+						timestamp=file_utils:get_last_modification_time(
 									BinFilePath ),
-					   sha1_sum=
+						sha1_sum=
 							executable_utils:compute_sha1_sum( BinFilePath ) },
 
 					% To avoid overheating:
@@ -3886,7 +3832,7 @@ analyze_loop() ->
 				file_utils:bin_join( AbsTreeBinPath, RelativeBinFilename ),
 
 			%trace_bridge:debug_fmt( "Analyzer ~w checking '~ts' "
-			%						[ self(), BinFilePath ] ),
+			%                        [ self(), BinFilePath ] ),
 
 			FileData = #file_data{
 				% We prefer storing relative filenames:
@@ -4478,17 +4424,12 @@ keep_shortest_path( Prefix, TrimmedPaths, BinRootDir, CreateSymlinks,
 
 	remove_files( ToRemoveFullPaths, UserState ),
 
-	case CreateSymlinks of
-
-		true ->
+	CreateSymlinks andalso
+		begin
 			AbsKeptFilePath =
 				file_utils:join( [ BinRootDir, Prefix, KeptFilePath ] ),
-			create_links_to( AbsKeptFilePath, FutureLinkPaths, BinRootDir );
-
-		false ->
-			ok
-
-	end,
+			create_links_to( AbsKeptFilePath, FutureLinkPaths, BinRootDir )
+		end,
 
 	file_utils:bin_join( [ Prefix, KeptFilePath ] ).
 
@@ -4712,7 +4653,7 @@ quick_cache_check_helper( BinFQDN, ContentFiles, BinActualTreePath,
 	CachedFileCount = length( FileInfos ),
 
 	CachedFilePairs = [ { Path, Size }
-		  || { file_info, _SHA1, Path, Size, _Timestamp } <- FileInfos ],
+			|| { file_info, _SHA1, Path, Size, _Timestamp } <- FileInfos ],
 
 	case ActualFileCount of
 
@@ -4927,7 +4868,7 @@ prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 	% preferring the root of the user account (so in neither tree paths):
 	%
 	%DeltaFilePath = file_utils:any_join( file_utils:get_current_directory(),
-	%									 DeltaFilename ),
+	%                                     DeltaFilename ),
 	%
 	DeltaFilePath = file_utils:any_join(
 		system_utils:get_user_home_directory(), DeltaFilename ),
@@ -4964,15 +4905,7 @@ list_lacking_content( _SHA1s=[ SHA1 ], SHA1Table, OtherTreeDesc, MaybeRootPath,
 		  describe_content( SHA1, SHA1Table, MaybeRootPath, MaybeDeltaFile ) ],
 		?max_text_length ),
 
-	case MaybeDeltaFile of
-
-		undefined ->
-			ok;
-
-		_ ->
-			file_utils:close( MaybeDeltaFile )
-
-	end,
+	MaybeDeltaFile =:= undefined orelse file_utils:close( MaybeDeltaFile ),
 
 	Str;
 
@@ -4984,17 +4917,9 @@ list_lacking_content( SHA1s, SHA1Table, OtherTreeDesc, MaybeRootPath,
 		"The contents lacking in ~ts tree are: ~ts",
 		[ OtherTreeDesc, text_utils:strings_to_enumerated_string(
 			[ describe_content( S, SHA1Table, MaybeRootPath, MaybeDeltaFile )
-			  || S <- SHA1s ] ) ], ?max_text_length ),
+				|| S <- SHA1s ] ) ], ?max_text_length ),
 
-	case MaybeDeltaFile of
-
-		undefined ->
-			ok;
-
-		DeltaFile ->
-			file_utils:close( DeltaFile )
-
-	end,
+	MaybeDeltaFile =:= undefined orelse file_utils:close( MaybeDeltaFile ),
 
 	Str.
 
@@ -5023,16 +4948,12 @@ describe_content( SHA1, SHA1Table, RootPath, MaybeDeltaFile ) ->
 
 	end,
 
-	case MaybeDeltaFile of
-
-		undefined ->
-			ok;
-
-		DeltaFile ->
+	MaybeDeltaFile =:= undefined orelse
+		begin
 			AbsContentPath = file_utils:any_join( RootPath, ContentPath ),
-			file_utils:write_ustring( DeltaFile, "~ts~n", [ AbsContentPath ] )
-
-	end,
+			file_utils:write_ustring( MaybeDeltaFile, "~ts~n",
+									  [ AbsContentPath ] )
+		end,
 
 	Str.
 
@@ -5206,8 +5127,10 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 					text_utils:format( "~ts and ~B regular files"
 						" (hence with ~ts)", [ count_content( ContentCount ),
 											   FileCount, case DupCount of
+
 							1 ->
 								"a single duplicate";
+
 							_ ->
 								text_utils:format( "a total of ~B duplicates",
 												   [ DupCount ] )
@@ -5215,9 +5138,9 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 
 				false ->
 					trace_bridge:error_fmt(
-					  "~B regular files, ~ts; abnormal: ~ts",
-					  [ FileCount, count_content( ContentCount ),
-						tree_data_to_string( TreeData ) ] ),
+						"~B regular files, ~ts; abnormal: ~ts",
+						[ FileCount, count_content( ContentCount ),
+						  tree_data_to_string( TreeData ) ] ),
 					throw( { inconsistency_detected, FileCount, ContentCount } )
 
 			end
@@ -5265,8 +5188,8 @@ tree_data_to_string( #tree_data{ root=BinRootDir,
 
 		FileCount ->
 			text_utils:format(
-			  "tree '~ts' having ~B files, each with unique content",
-			  [ BinRootDir, FileCount ] );
+				"tree '~ts' having ~B files, each with unique content",
+				[ BinRootDir, FileCount ] );
 
 		ContentCount ->
 			text_utils:format( "tree '~ts' having ~B files, corresponding only "

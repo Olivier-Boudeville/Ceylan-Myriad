@@ -661,13 +661,14 @@ get_code_path() ->
 % @doc Returns a textual representation of the current code path, sorted in
 % alphabetical order.
 %
-% Note that the sorting is more convenient for inspection yet implies that the
-% actual lookup order through these directories is most probably different.
+% Note that the sorting is more convenient for inspection, yet implies that the
+% actual lookup order used by the VM through this code path is most probably
+% different.
 %
 -spec get_code_path_as_string() -> ustring().
 get_code_path_as_string() ->
 	text_utils:format( "current code path (in alphabetical order) is: ~ts",
-					   [ text_utils:strings_to_string( get_code_path() ) ] ).
+		[ text_utils:strings_to_string( get_code_path() ) ] ).
 
 
 
@@ -689,6 +690,12 @@ code_path_to_string( _CodePath=[] ) ->
 	"empty code path";
 
 code_path_to_string( CodePath ) ->
+	%trace_utils:debug_fmt( "Raw code path:~n ~p", [ CodePath ] ),
+
+	% Should an empty path possibly happen, would be unclear, so:
+	%FilteredCodePath = [ P || P <- CodePath, P =/= "" ],
+	%text_utils:strings_to_enumerated_string( FilteredCodePath ).
+
 	text_utils:strings_to_enumerated_string( CodePath ).
 
 
@@ -813,8 +820,8 @@ get_stacktrace( SkipLastElemCount ) ->
 
 		%trace_utils:debug_fmt( "Got stacktrace: ~p", [ Stacktrace ] ),
 
-		% To remove the initial code_utils:get_stacktrace/0, by design at the
-		% top of the stack:
+		% To remove the initial call to code_utils:get_stacktrace/0, by design
+		% at the top of the stack:
 		%
 		list_utils:remove_first_elements( Stacktrace, SkipLastElemCount+1 )
 
@@ -1093,14 +1100,14 @@ error_reason_to_string( Reason ) ->
 			basic_utils:function_name(), arity() ) -> ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
-	case code_utils:is_beam_in_path( ModuleName ) of
+	case is_beam_in_path( ModuleName ) of
 
 		not_found ->
 			text_utils:format( "no module ~ts found in code path, "
 				"which explains why its ~ts/~B function is reported "
 				"as being undefined; ~ts",
 				[ ModuleName, FunctionName, Arity,
-				  code_utils:get_code_path_as_string() ] );
+				  get_code_path_as_string() ] );
 
 
 		ModulePath ->
