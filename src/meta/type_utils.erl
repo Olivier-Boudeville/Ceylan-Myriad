@@ -542,6 +542,9 @@
 		  check_float/1, check_maybe_float/1,
 		  check_floats/1, check_maybe_floats/1,
 
+		  check_strictly_positive_float/1,
+		  check_maybe_strictly_positive_float/1,
+
 		  check_list/1,
 		  check_binary/1, check_binaries/1,
 		  check_tuple/1 ]).
@@ -1561,6 +1564,35 @@ check_floats( Floats ) ->
 -spec check_maybe_floats( term() ) -> [ maybe( float() ) ].
 check_maybe_floats( MaybeFloats ) ->
 	[ check_maybe_float( MF ) || MF <- MaybeFloats ].
+
+
+
+% @doc Checks that the specified term is a strictly positive float indeed, and
+% returns it.
+%
+-spec check_strictly_positive_float( term() ) -> float().
+check_strictly_positive_float( Float )
+			when is_float( Float ) andalso Float > 0.0 ->
+	Float;
+
+check_strictly_positive_float( Other ) ->
+	throw( { not_strictly_positive_float, Other } ).
+
+
+
+% @doc Checks that the specified term is a maybe-(strictly positive float)
+% indeed, and returns it.
+%
+-spec check_maybe_strictly_positive_float( term() ) -> maybe( float() ).
+check_maybe_strictly_positive_float( undefined ) ->
+	undefined;
+
+check_maybe_strictly_positive_float( Float )
+			when is_float( Float ) andalso Float > 0.0 ->
+	Float;
+
+check_maybe_strictly_positive_float( Other ) ->
+	throw( { not_maybe_strictly_positive_float, Other } ).
 
 
 
