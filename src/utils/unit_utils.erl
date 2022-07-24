@@ -255,6 +255,8 @@
 % Volume-related section.
 
 -type cubic_meters() :: float().
+
+% Thus dm^3:
 -type litre() :: float().
 
 -type volume_reference_unit() :: cubic_meters().
