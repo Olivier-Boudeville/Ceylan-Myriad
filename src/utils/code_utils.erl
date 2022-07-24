@@ -940,8 +940,8 @@ get_location_from( StackInfo, FullPathsWanted ) ->
 	NoErrInfo = list_table:remove_entry( error_info, StackInfo ),
 
 	{ MaybeFilePath, FileLessInfo } =
-		case list_table:extract_entry_with_defaults( file, undefined,
-													 NoErrInfo ) of
+		case list_table:extract_entry_with_default( file, undefined,
+													NoErrInfo ) of
 
 			P={ undefined, _SInfo } ->
 				P;
@@ -960,8 +960,8 @@ get_location_from( StackInfo, FullPathsWanted ) ->
 
 		end,
 
-	{ MaybeLine, LineLessInfo } = list_table:extract_entry_with_defaults( line,
-									undefined, FileLessInfo ),
+	{ MaybeLine, LineLessInfo } =
+		list_table:extract_entry_with_default( line, undefined, FileLessInfo ),
 
 	ExtraStr = case LineLessInfo of
 

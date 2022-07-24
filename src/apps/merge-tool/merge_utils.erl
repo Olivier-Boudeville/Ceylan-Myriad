@@ -354,7 +354,7 @@ main( ArgTable ) ->
 
 		false ->
 			{ BaseDir, BaseArgTable } = case
-					list_table:extract_entry_with_defaults( ?base_dir_opt,
+					list_table:extract_entry_with_default( ?base_dir_opt,
 						[ file_utils:get_current_directory() ],
 						FilteredArgTable ) of
 
@@ -371,7 +371,7 @@ main( ArgTable ) ->
 
 			BinBaseDir = text_utils:ensure_binary( BaseDir ),
 
-			case list_table:extract_entry_with_defaults( ?reference_opt,
+			case list_table:extract_entry_with_default( ?reference_opt,
 										undefined, BaseArgTable ) of
 
 				{ [ [ RefTreePath ] ], NoRefArgTable }
@@ -405,8 +405,8 @@ handle_reference_option( RefTreePath, ArgumentTable, BinBaseDir ) ->
 	% If there is a --reference option, it is a merge, and there must be a
 	% --input option as well:
 
-	case list_table:extract_entry_with_defaults( ?input_opt, undefined,
-												 ArgumentTable ) of
+	case list_table:extract_entry_with_default( ?input_opt, undefined,
+												ArgumentTable ) of
 
 		% Here, an input tree was specified as well:
 		{ [ [ InputTreePath ] ], NewArgumentTable }
@@ -434,19 +434,19 @@ handle_non_reference_option( ArgumentTable, BinBaseDir ) ->
 	% No reference, it must then be an equalize, a pure scan, a rescan, a resync
 	% or a uniquify here:
 	%
-	case list_table:extract_entry_with_defaults( ?equalize_opt, undefined,
-												 ArgumentTable ) of
+	case list_table:extract_entry_with_default( ?equalize_opt, undefined,
+												ArgumentTable ) of
 
 		% Not an equalize, then a scan?
 		{ undefined, NoEqualizeArgTable } ->
 
-			case list_table:extract_entry_with_defaults( ?scan_opt, undefined,
-														 NoEqualizeArgTable ) of
+			case list_table:extract_entry_with_default( ?scan_opt, undefined,
+														NoEqualizeArgTable ) of
 
 				% Not a scan, then a rescan?
 				{ undefined, NoScanArgTable } ->
 
-					case list_table:extract_entry_with_defaults( ?rescan_opt,
+					case list_table:extract_entry_with_default( ?rescan_opt,
 												undefined, NoScanArgTable ) of
 
 						% Not a rescan either:
@@ -509,22 +509,22 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 
 	% Not a scan or rescan, then a resync, a uniquify or a check-against?
 
-	case list_table:extract_entry_with_defaults( ?resync_opt, undefined,
-												 ArgTable ) of
+	case list_table:extract_entry_with_default( ?resync_opt, undefined,
+												ArgTable ) of
 
 		{ undefined, NoResyncArgTable } ->
 
-			case list_table:extract_entry_with_defaults( ?uniquify_opt,
+			case list_table:extract_entry_with_default( ?uniquify_opt,
 											undefined, NoResyncArgTable ) of
 
 				{ undefined, NoUniqArgTable } ->
 
-					case list_table:extract_entry_with_defaults(
+					case list_table:extract_entry_with_default(
 							?check_opt, undefined, NoUniqArgTable ) of
 
 						{ [ [ TreePath, MergeFilePath ] ], CheckArgTable }
 										when is_list( TreePath )
-							   andalso is_list( MergeFilePath ) ->
+											 andalso is_list( MergeFilePath ) ->
 							handle_check_against_option( TreePath,
 								MergeFilePath, CheckArgTable, BinBaseDir );
 

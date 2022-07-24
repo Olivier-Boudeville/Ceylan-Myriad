@@ -70,9 +70,9 @@
 		  remove_entry/2, remove_existing_entry/2,
 		  remove_entries/2, remove_existing_entries/2,
 		  lookup_entry/2, has_entry/2,
-		  extract_entry/2, extract_entry_with_defaults/3,
+		  extract_entry/2, extract_entry_with_default/3,
 		  extract_entry_if_existing/2, extract_entries/2,
-		  get_value/2, get_values/2, get_value_with_defaults/3,
+		  get_value/2, get_values/2, get_value_with_default/3,
 		  get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
 		  append_to_existing_entry/3, append_list_to_existing_entry/3,
@@ -587,11 +587,11 @@ get_values( Keys, Hashtable ) ->
 
 
 
-% @doc Looks for specified entry in specified table and, if found, returns the
-% associated value; otherwise returns the specified default value.
+% @doc Looks for the specified entry in specified table and, if found, returns
+% the associated value; otherwise returns the specified default value.
 %
--spec get_value_with_defaults( key(), value(), map_hashtable() ) -> value().
-get_value_with_defaults( Key, DefaultValue, MapHashtable ) ->
+-spec get_value_with_default( key(), value(), map_hashtable() ) -> value().
+get_value_with_default( Key, DefaultValue, MapHashtable ) ->
 
 	case maps:find( Key, MapHashtable ) of
 
@@ -662,9 +662,9 @@ extract_entry( Key, MapHashtable ) ->
 % If no such key is available, returns the specified default value and the
 % original table.
 %
--spec extract_entry_with_defaults( key(), value(), map_hashtable() ) ->
+-spec extract_entry_with_default( key(), value(), map_hashtable() ) ->
 										{ value(), map_hashtable() }.
-extract_entry_with_defaults( Key, DefaultValue, Table ) ->
+extract_entry_with_default( Key, DefaultValue, Table ) ->
 
 	case has_entry( Key, Table ) of
 
