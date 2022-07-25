@@ -44,9 +44,10 @@ PNG_FROM_PYTHON_NEGATED = $(patsubst %-png-generator.py,%-negated.png,$(wildcard
 
 NEGATED_PNG = $(patsubst %.png,%-negated.png,$(wildcard *.png))
 
+# Channel specified so that alpha is not messed up:
 %-negated.png: %.png
 	@echo "    Generating $@ from $< with $(IMAGE_MAGICK)"
-	@$(IMAGE_MAGICK) $< -negate $@
+	@$(IMAGE_MAGICK) $< -channel RGB -negate $@
 
 
 

@@ -410,7 +410,7 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 					% that the corresponding .app file and also the BEAM files
 					% of that application can be found by OTP when starting it).
 					%
-					DepAppNames = list_table:get_value_with_defaults(
+					DepAppNames = list_table:get_value_with_default(
 						applications, _DefNoDep=[], AppEntries ),
 
 					?debug_fmt( "Preparing for the execution of application "
@@ -872,7 +872,7 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
 		[ { application, AppName, Entries } ] ->
 
-			ActiveInfo = list_table:get_value_with_defaults( mod,
+			ActiveInfo = list_table:get_value_with_default( mod,
 												_Def=undefined, Entries ),
 
 			% To check whether this application is compiled, we cannot rely on

@@ -1169,7 +1169,7 @@ create_canvas( Parent ) ->
 -spec create_canvas( window(), [ gl_canvas_option() ] ) -> gl_canvas().
 create_canvas( Parent, Opts ) ->
 
-	{ Attrs, OtherOpts } = list_table:extract_entry_with_defaults(
+	{ Attrs, OtherOpts } = list_table:extract_entry_with_default(
 		_K=gl_attributes, _Def=[ rgba, double_buffer ], Opts ),
 
 	%trace_utils:debug_fmt( "Creating a GL canvas with Attrs = ~p~n
