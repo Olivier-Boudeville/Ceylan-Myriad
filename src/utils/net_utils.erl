@@ -733,7 +733,7 @@ set_unique_node_name() ->
 	random_utils:start_random_source( time_based_seed ),
 
 	% math:pow(10, 8) not an integer:
-	N = random_utils:get_random_value( 100000000 ),
+	N = random_utils:get_uniform_value( 100000000 ),
 
 	AtomName = text_utils:string_to_atom(
 					text_utils:format( "myriad_node_~B", [ N ] ) ),

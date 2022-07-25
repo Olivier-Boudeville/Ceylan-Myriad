@@ -1886,6 +1886,11 @@ DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 
 # Options for Dialyzer, see http://www.erlang.org/doc/man/dialyzer.html:
 # Could be added: -Wunderspecs (obsolete: -Wbehaviours)
+#
+# No debug key to decrypt BEAM files specified here; it shall be defined in
+# ~/.erlang.crypt; refer to the 'self-check-against-plt' target for further
+# details.
+#
 DIALYZER_OPT := -Wrace_conditions
 
 

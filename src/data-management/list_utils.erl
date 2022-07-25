@@ -1348,7 +1348,7 @@ random_permute( List, RemainingLen ) ->
 	% (using remove_element_at/2 should be quicker than using
 	% proplists:delete/2, as we stop at the first matching element found)
 	%
-	Index = random_utils:get_random_value( RemainingLen ),
+	Index = random_utils:get_uniform_value( RemainingLen ),
 
 	%io:format( "Index=~p, ", [ Index ] ),
 
@@ -1374,7 +1374,7 @@ random_permute_reciprocal( List ) ->
 	% value. So we draw them all first, and start by the end of that list,
 	% taking into account that the range is decremented at each draw:
 	%
-	ReciprocalIndex = lists:reverse( [ random_utils:get_random_value( L )
+	ReciprocalIndex = lists:reverse( [ random_utils:get_uniform_value( L )
 			|| L <- lists:reverse( lists:seq( 1, length( List ) ) ) ] ),
 
 	%io:format( "Reciprocal index = ~p~n", [ ReciprocalIndex ] ),
@@ -1416,7 +1416,7 @@ draw_element( ElementList ) ->
 -spec draw_element( list(), count() ) -> element().
 draw_element( ElementList, Length ) ->
 
-	DrawnIndex = random_utils:get_random_value( Length ),
+	DrawnIndex = random_utils:get_uniform_value( Length ),
 
 	get_element_at( ElementList, DrawnIndex ).
 
@@ -1468,7 +1468,7 @@ draw_element_weighted( _ElementList, 0 ) ->
 	throw( null_total_probability );
 
 draw_element_weighted( ElementList, Sum ) ->
-	DrawnValue = random_utils:get_random_value( Sum ),
+	DrawnValue = random_utils:get_uniform_value( Sum ),
 	%io:format( "draw_element: drawn ~B.~n", [ DrawnValue ] ),
 	select_element( ElementList, DrawnValue, _CurrentSum=0 ).
 

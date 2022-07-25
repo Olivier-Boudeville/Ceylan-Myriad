@@ -129,10 +129,27 @@
 % A duration expressed as a number of full days (ex: one way to express an age).
 
 
+-type iso8601_string() :: ustring().
+% A (plain) string representing a timestamp according to ISO 8601.
+%
+% Ex: "2022-07-04T14:23:18Z".
+%
+% Refer to https://en.wikipedia.org/wiki/ISO_8601 for further information.
+
+
+-type iso8601_bin_string() :: ustring().
+% A binary string representing a timestamp according to ISO 8601.
+%
+% Ex: "2022-07-04T14:23:18Z".
+%
+% Refer to https://en.wikipedia.org/wiki/ISO_8601 for further information.
+
+
 -export_type([ day_index/0, week_day/0, date/0, birth_date/0, user_date/0,
 			   date_in_year/0,
 			   time/0, ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
-			   ms_duration/0, ms_period/0, dhms_duration/0, day_duration/0 ]).
+			   ms_duration/0, ms_period/0, dhms_duration/0, day_duration/0,
+			   iso8601_string/0, iso8601_bin_string/0 ]).
 
 
 % Basics:
@@ -181,8 +198,9 @@
 		  get_time2_textual_timestamp/0, get_time2_textual_timestamp/1,
 		  get_textual_timestamp_for_path/0, get_textual_timestamp_for_path/1,
 		  get_textual_timestamp_with_dashes/1,
-		  timestamp_to_string/1, short_string_to_timestamp/1,
-		  gregorian_ms_to_timestamp/1,
+		  timestamp_to_string/1,
+		  timestamp_to_iso8601_string/1, timestamp_to_iso8601_bin_string/1,
+		  short_string_to_timestamp/1, gregorian_ms_to_timestamp/1,
 		  string_to_timestamp/1, dhms_to_string/1,
 		  time_to_string/1, time_of_day_to_string/1,
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
@@ -997,10 +1015,10 @@ get_epoch_milliseconds_since_year_0() ->
 %
 -spec is_timestamp( term() ) -> boolean().
 is_timestamp( { Date={ Y, M, D }, _Time={ Hour, Min, Sec } } )
-  when is_integer( Y ) andalso is_integer( M ) andalso is_integer( D )
-		andalso is_integer( Hour ) andalso is_integer( Min )
-		andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
-		andalso Sec =< 60 ->
+		when is_integer( Y ) andalso is_integer( M ) andalso is_integer( D )
+			andalso is_integer( Hour ) andalso is_integer( Min )
+			andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
+			andalso Sec =< 60 ->
 	calendar:valid_date( Date );
 
 is_timestamp( _Other ) ->
@@ -1058,7 +1076,8 @@ get_textual_timestamp() ->
 % timestamp, like: "2009/9/1 11:46:53".
 %
 -spec get_textual_timestamp( timestamp() ) -> ustring().
-get_textual_timestamp( { { Year, Month, Day }, { Hour, Minute, Second } } ) ->
+get_textual_timestamp(
+			_Timestamp={ { Year, Month, Day }, { Hour, Minute, Second } } ) ->
 	text_utils:format( "~B/~B/~B ~B:~2..0B:~2..0B",
 					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
@@ -1079,7 +1098,8 @@ get_bin_textual_timestamp() ->
 % @doc Returns a string corresponding to the specified timestamp in a
 % user-friendly manner, like: "Wednesday, January 6, 2021 at 11:46:53".
 %
-get_user_friendly_textual_timestamp( { Date={ Year, Month, Day }, Time } ) ->
+get_user_friendly_textual_timestamp(
+						_Timestamp={ Date={ Year, Month, Day }, Time } ) ->
 	text_utils:format( "~ts, ~ts ~B, ~B, at ~ts",
 		[ week_day_to_string( Date ), month_to_string( Month ), Day,
 		  Year, time_of_day_to_string( Time ) ] ).
@@ -1089,8 +1109,8 @@ get_user_friendly_textual_timestamp( { Date={ Year, Month, Day }, Time } ) ->
 % French, like: "le 1/9/2009, à 11h46m53".
 %
 -spec get_french_textual_timestamp( timestamp() ) -> ustring().
-get_french_textual_timestamp( { { Year, Month, Day },
-								{ Hour, Minute, Second } } ) ->
+get_french_textual_timestamp( _Timestamp={ { Year, Month, Day },
+										   { Hour, Minute, Second } } ) ->
 
 	%trace_utils:debug_fmt( "le ~B/~B/~B, à ~Bh~2..0Bm~2..0Bs",
 	%                       [ Day, Month, Year, Hour, Minute, Second ] ),
@@ -1141,8 +1161,8 @@ get_time2_textual_timestamp() ->
 % https://awstats.sourceforge.io/docs/awstats_faq.html#PERSONALIZEDLOG).
 %
 -spec get_time2_textual_timestamp( timestamp() ) -> ustring().
-get_time2_textual_timestamp( { { Year, Month, Day },
-							   { Hour, Minute, Second } } ) ->
+get_time2_textual_timestamp( _Timestamp={ { Year, Month, Day },
+										  { Hour, Minute, Second } } ) ->
 	text_utils:format( "~4..0B-~2..0B-~2..0B ~2..0B:~2..0B:~2..0B",
 					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
@@ -1161,8 +1181,8 @@ get_textual_timestamp_for_path() ->
 % a part of a path, like: "2010-11-18-at-13h-30m-35s".
 %
 -spec get_textual_timestamp_for_path( timestamp() ) -> ustring().
-get_textual_timestamp_for_path( { { Year, Month, Day },
-								  { Hour, Minute, Second } } ) ->
+get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
+											 { Hour, Minute, Second } } ) ->
 	text_utils:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
@@ -1171,8 +1191,8 @@ get_textual_timestamp_for_path( { { Year, Month, Day },
 % conventions (ex: used by jsgantt), like: "2017-05-20 12:00:17".
 %
 -spec get_textual_timestamp_with_dashes( timestamp() ) -> ustring().
-get_textual_timestamp_with_dashes( { { Year, Month, Day },
-									 { Hour, Minute, Second } } ) ->
+get_textual_timestamp_with_dashes( _Timestamp={ { Year, Month, Day },
+												{ Hour, Minute, Second } } ) ->
 	text_utils:format( "~B-~2..0B-~2..0B ~B:~2..0B:~2..0B",
 				   [ Year, Month, Day, Hour, Minute, Second ] ).
 
@@ -1184,6 +1204,21 @@ timestamp_to_string( Timestamp ) ->
 	get_textual_timestamp( Timestamp ).
 
 
+% @doc Returns a textual ISO8601 description of the specified timestamp.
+-spec timestamp_to_iso8601_string( timestamp() ) -> iso8601_string().
+timestamp_to_iso8601_string( _Timestamp={ { Year, Month, Day },
+										  { Hour, Minute, Second } } ) ->
+	text_utils:format( "~.4.0B-~.2.0B-~.2.0BT~.2.0B:~.2.0B:~.2.0BZ",
+					   [ Year, Month, Day, Hour, Minute, Second ] ).
+
+
+
+% @doc Returns a textual ISO8601 description of the specified timestamp.
+-spec timestamp_to_iso8601_bin_string( timestamp() ) -> iso8601_bin_string().
+timestamp_to_iso8601_bin_string( _Timestamp={ { Year, Month, Day },
+										  { Hour, Minute, Second } } ) ->
+	text_utils:bin_format( "~.4.0B-~.2.0B-~.2.0BT~.2.0B:~.2.0B:~.2.0BZ",
+						   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 

@@ -26,7 +26,6 @@
 % Creation date: Saturday, October 9, 2021.
 
 
-
 % @doc Module implementing the support for <b>2D points</b>.
 %
 % See also:
@@ -301,7 +300,7 @@ distance( P1, P2 ) ->
 -spec draw_integer_random( integer_coordinate(), integer_coordinate() ) ->
 											integer_point2().
 draw_integer_random( Min, Max ) ->
-	[ X, Y ] = random_utils:get_random_values( Min, Max, _Count=2 ),
+	[ X, Y ] = random_utils:get_uniform_values( Min, Max, _Count=2 ),
 	{ X, Y }.
 
 
@@ -311,7 +310,7 @@ draw_integer_random( Min, Max ) ->
 -spec draw_integer_random( integer_coordinate(), integer_coordinate(),
 						   count() ) -> [ integer_point2() ].
 draw_integer_random( Min, Max, Count ) ->
-	Coords = random_utils:get_random_values( Min, Max, 2*Count ),
+	Coords = random_utils:get_uniform_values( Min, Max, 2*Count ),
 	gather_as_points( Coords, _Acc=[] ).
 
 

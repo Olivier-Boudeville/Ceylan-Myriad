@@ -560,8 +560,8 @@ render_mec( Canvas, PointCount ) ->
 
 	gui:set_draw_color( Canvas, white ),
 
-	RandomPoints = [ { random_utils:get_random_value( 200 ) + 300,
-					   random_utils:get_random_value( 300 ) + 100 }
+	RandomPoints = [ { random_utils:get_uniform_value( 200 ) + 300,
+					   random_utils:get_uniform_value( 300 ) + 100 }
 							|| _Count <- lists:seq( 1, PointCount ) ],
 
 	%trace_utils:debug_fmt( "Random points: ~w.", [ RandomPoints ] ),
