@@ -142,11 +142,16 @@
 
 
 % The type identifier() is a builtin type; it cannot be redefined:
--type id() :: uuid() | integer_id() | sortable_id() | term().
+-type id() :: uuid() | integer_id() | sortable_id() | pid() | reference()
+			| term().
 % Any type of identifier.
+%
+% Identifiers may be transient (ex: PIDs are unique during the life of a VM) or
+% permanent (ex: UUID), local to a node or global.
 %
 % Besides being each unique, all of them are expected to be directly comparable
 % thanks to the base, Erlang term order.
+
 
 
 -export_type([ id/0 ]).
