@@ -288,14 +288,17 @@ launch: Emakefile
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) ${CMD_LINE_OPT}
 
 
-# To have an Erlang shell with the right configuration in order to rely on
-# Myriad (ex: with regard to code path); its node name includes the current
+# To have an Erlang shell with the right configuration in order to rely on the
+# current project (e.g.with regard to its standard, base code path, including
+# all lower layers).
+#
+# The node name of that shell includes the project name, user and current
 # directory, so that multiple, non-colliding shell instances can be created more
-# easily):
+# easily from the same code base:
 #
 shell:
 	@echo "		Launching an Erlang shell enabled for $(PROJECT_NAME)"
-	@${ERL_PARAMETERIZED_LAUNCHER} $(NODE_NAMING) shell-for-$$USER-from-$$(basename $$(pwd)) $(INTERNAL_OPTIONS)
+	@${ERL_PARAMETERIZED_LAUNCHER} $(NODE_NAMING) $(PROJECT_SHORT_NAME)-shell-for-$$USER-at-$$(basename $$(pwd)) $(INTERNAL_OPTIONS)
 
 
 
