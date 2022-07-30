@@ -356,9 +356,12 @@
 % Of course, switching random engines will generate different random series.
 %
 % They may also have different behaviours (ex: with regards to processes not
-% being explictly seeded, inheriting from a seed that is constant or not - the
+% being explicitly seeded, inheriting from a seed that is constant or not - the
 % shortest path to break reproducibility).
 %
+% Note that modules relying on an implicit state (e.g. for seeding) generally
+% use the process dictionary to store it (e.g. 'rand').
+
 %-define(use_crypto_module,).
 
 
@@ -728,7 +731,9 @@ can_be_seeded() ->
 
 % doc: Resets the random source with a new seed.
 reset_random_source( Seed ) ->
-	% New seeding, as opposed to the setting of a previously defined state:
+	% New seeding (stored in the process dictionary), as opposed to the setting
+	% of a previously defined state:
+	%
 	rand:seed( ?rand_algorithm, Seed ).
 
 
@@ -866,7 +871,7 @@ get_random_state() ->
 %
 set_random_state( RandomState ) ->
 
-	% Process dictionary:
+	% All are in the process dictionary (beware!):
 	%erlang:put( random_seed, NewState ).
 	%erlang:put( rand_seed, NewState ).
 	rand:seed( RandomState ).
