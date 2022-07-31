@@ -48,7 +48,8 @@
 %
 % They are to provide the same API (signatures and contracts).
 %
-% See also: `list_utils.erl'.
+% See also: `list_utils.erl' and our quite similar yet less useful
+% `option_list.erl`.
 %
 -module(list_table).
 
@@ -296,8 +297,8 @@ get_value( Key, Table ) ->
 
 
 
-% @doc Extracts specified entry from specified table, that is returns the
-% associated value and removes that entry from the table.
+% @doc Extracts the specified entry from the specified table, that is returns
+% the associated value and removes that entry from the table.
 %
 % The key/value pair is expected to exist already in the specified table,
 % otherwise an exception is thrown.
@@ -318,8 +319,8 @@ extract_entry( Key, Table ) ->
 
 
 
-% @doc Extracts specified entry from specified table, that is returns the
-% associated value and removes that entry from the table.
+% @doc Extracts the specified entry from the specified table, that is returns
+% the associated value and removes that entry from the table.
 %
 % If no such key is available, returns the specified default value and the
 % original table.
