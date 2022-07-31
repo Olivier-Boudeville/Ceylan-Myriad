@@ -73,7 +73,7 @@
 
 % There are reserved type-related names (atoms), which correspond to:
 %  - built-in types: atom, integer, float, boolean, string, any, none
-%  - type constructs: list, union, tuple, table
+%  - type constructs: list, map, tuple, union
 
 
 % A type signature is made from the type name and from a list of the type names
@@ -161,9 +161,9 @@
 %
 % The supported type constructs are:
 %  - list
-%  - union
+%  - map
 %  - tuple
-%  - table
+%  - union
 %
 % Note: they can also be seen as built-in polymorphic types.
 
@@ -179,6 +179,41 @@
 % D(my_integer_list_type) = D([integer]) = {list, integer}
 %
 % A value of that type may be [] or [4, 9, 147, 5, 9].
+
+
+% On maps / (associative) tables:
+%
+% Let T be an associative table whose keys are of type Tk and values are of type
+% Tv.
+%
+% D(T) = {table, [D(Tk),D(Tv)]}.
+%
+% For example, if my_table_type is defined as "table(integer, string)" then
+% D(my_table_type)= {table, [integer, string]}.
+%
+% Values of that type are opaque (their translation as terms should remain
+% unbeknownst to the user, as if they were black boxes); such terms are to be
+% solely created and handled as a whole by the 'table' pseudo-module.
+%
+% For example, MyEmptyTable = table:table(), MyTable =
+% table:add_new_entry(42,"This is the answer"), MyOtherTable = table:new([{1,
+% "One"}, {2, "Two"}, {5, "Five"}]).
+%
+% Note: maps/tables are not yet supported.
+
+
+% On tuples:
+%
+% Let T be a type corresponding to a fixed-size, ordered container whose
+% elements are respectively of type T1, T2, Tk.
+%
+% D(T) = {tuple, [D(T1), D(T2), ..., D(Tk)]}.
+%
+% For example, if my_tuple_type is defined as "{integer,boolean|float,[atom]}"
+% then D(my_tuple_type)= {list, [integer, {union, [boolean, float]},
+% {list,atom}]}.
+%
+% Values of that type may be {1, true, []} or {42,8.9,[joe,dalton]}.
 
 
 % On unions:
@@ -201,42 +236,6 @@
 % We can see here that the boolean type is nothing but the 'true'|'false' union
 % and is not in an irreducible form (yet it is still considered as being fully
 % explicit).
-
-
-% On tuples:
-%
-% Let T be a type corresponding to a fixed-size, ordered container whose
-% elements are respectively of type T1, T2, Tk.
-%
-% D(T) = {tuple, [D(T1), D(T2), ..., D(Tk)]}.
-%
-% For example, if my_tuple_type is defined as "{integer,boolean|float,[atom]}"
-% then D(my_tuple_type)= {list, [integer, {union, [boolean, float]},
-% {list,atom}]}.
-%
-% Values of that type may be {1, true, []} or {42,8.9,[joe,dalton]}.
-
-
-% On (associative) tables:
-%
-% Let T be an associative table whose keys are of type Tk and values are of type
-% Tv.
-%
-% D(T) = {table, [D(Tk),D(Tv)]}.
-%
-% For example, if my_table_type is defined as "table(integer, string)" then
-% D(my_table_type)= {table, [integer, string]}.
-%
-% Values of that type are opaque (their translation as terms should remain
-% unbeknownst to the user, as if they were black boxes); such terms are to be
-% solely created and handled as a whole by the 'table' pseudo-module.
-%
-% For example, MyEmptyTable = table:table(), MyTable =
-% table:add_new_entry(42,"This is the answer"), MyOtherTable = table:new([{1,
-% "One"}, {2, "Two"}, {5, "Five"}]).
-%
-% Note: tables are not yet supported.
-
 
 
 % To contrast, here are a few Erlang examples, obtained thanks to
@@ -299,6 +298,7 @@
 									| 'function'
 									| 'integer'
 									| 'list'
+									| 'map' % Could have been 'table'
 									| 'pid'
 									| 'port'
 									| 'record'
@@ -306,7 +306,8 @@
 									| 'tuple'.
 % The "most precise" description of a primitive, in which:
 % - simple types (ex: 'boolean' and 'atom') coexist (despite overlapping)
-% - 'number' and 'bitstring' are not used
+% - 'number' and 'bitstring' are not used (as they derive respectively from
+% float()|integer() and binary())
 %
 % A note about Erlang floats: they are actually IEEE 754 double-precision
 % floating-point numbers, a format that occupies 8 bytes (64 bits) per float in
@@ -324,6 +325,7 @@
 % The description of any given type is based on primitive_type_description/0)
 % and can be done in two complementary forms: the textual one, and the internal
 % one, which are relatively different.
+
 
 
 
@@ -363,11 +365,11 @@
 % merely used), then (non-empty) parentheses could be introduced
 %
 % - be able to nevertheless *use* polymorphic types, as they are certainly
-% useful (ex: associative tables, lists, etc.); a problem is that, in terms (as
-% opposed to in the textual counterpart), parentheses cannot be used to express
-% these polymorphic types (not only they denote function calls, but also are
-% not legit components of a term); therefore the convention chosen here is to
-% specify types as pairs, the first element being the name of the type, the
+% useful (ex: maps/associative tables, lists, etc.); a problem is that, in terms
+% (as opposed to in the textual counterpart), parentheses cannot be used to
+% express these polymorphic types (not only they denote function calls, but also
+% are not legit components of a term); therefore the convention chosen here is
+% to specify types as pairs, the first element being the name of the type, the
 % second one being the (ordered) list of the types it depends on; then the
 % textual type "a( T1, T2 )" is translated to the {a,[T1,T2]} type term; most
 % types being "monomorphic", they are represented as {my_simple_type,[]} (which
@@ -412,13 +414,13 @@
 % Next steps:
 %
 % - define and document the full type language (elementary datatypes - like
-% boolean, integer, float, symbols - and constructs - like list, tuple, union,
-% atom)
+% boolean, integer, float, atoms - and constructs - like list, map, tuple,
+% union)
 %
 % - support it, notably define functions to tell whether a given term is an
 % instance of a specified type
 %
-% Experiment with meta_utils:string_to_form/1 and have fun!
+% Experiment with ast_utils:string_to_form/1 and have fun!
 %
 % Ex: "-type a() :: [foobar()]." yields: '{attribute,1,type, {a,{type,1,
 %    list,[{user_type,1,foobar,[]}]},[]}}'.
@@ -430,8 +432,8 @@
 % expression evaluated with functions that we can bind to obtain a closer term,
 % such as: float() -> {float, []}.
 %
-% Of course, on a related note, if TextualType = "{ list, [
-% {tuple,[float,boolean]} ] }", then meta_utils:string_to_value( TextualType )
+% Of course, on a related note, if TextualType = "{list, [
+% {tuple, [float, boolean]}]}", then ast_utils:string_to_value(TextualType)
 % will return the expected: {list, [{tuple, [{float, []}, {boolean, []}]}]}
 %
 % Note that such a type may not be fully explicit, as it may contain unresolved
@@ -468,11 +470,11 @@
 
 
 -type tuploid() :: tuploid( term() ).
-% We name tuploid a pseudo-tuple, i.e. a value that is either an actual tuple or
-% a single, standalone term, designated as a "basic tuploid".
+% We name tuploid a pseudo-tuple, that is a value that is either an actual tuple
+% or a single, standalone term, designated as a "basic tuploid".
 %
 % That is, a tuploid is a tuple of any size, except that the tuploid of size 1
-% is MyTerm, not {MYterm}.
+% is MyTerm, not {MyTerm}.
 
 
 -type tuploid( T ) :: tuple() | T.
@@ -489,12 +491,19 @@
 % elements are all of the specified type.
 
 
+-type transient_term() :: pid() | port() | reference().
+% Designates values that are transient, that is that are runtime-specific and
+% cannot be reproduced a priori.
+%
+% Anonymous functions may belong to this type.
+
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   low_level_type/0, record/0,
 			   tuploid/0, tuploid/1,
-			   pair/0, triplet/0, tuple/1 ]).
+			   pair/0, triplet/0, tuple/1,
+			   transient_term/0 ]).
 
 
 % Note: currently, only a very basic, ad hoc type support ("hand-made look-up
@@ -514,7 +523,8 @@
 		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
 		  are_types_identical/2,
-		  get_low_level_type_size/1 ]).
+		  get_low_level_type_size/1,
+		  is_transient/1 ]).
 
 
 
@@ -547,7 +557,7 @@
 
 		  check_list/1,
 		  check_binary/1, check_binaries/1,
-		  check_tuple/1 ]).
+		  check_map/1, check_tuple/1 ]).
 
 
 % Specials for datatypes:
@@ -681,18 +691,18 @@ type_to_description( _Type=none ) ->
 type_to_description( _Type={ list, T } ) ->
 	"[" ++ type_to_description( T ) ++ "]";
 
-type_to_description( _Type={ union, TypeList } ) when is_list( TypeList ) ->
-	text_utils:join( _Separator="|",
-					 [ type_to_description( T ) || T <- TypeList ] );
+type_to_description( _Type={ map, [ Tk, Tv ] } ) ->
+	"map(" ++ type_to_description( Tk ) ++ "," ++ type_to_description( Tv )
+		++ ")";
 
 type_to_description( _Type={ tuple, TypeList } ) when is_list( TypeList ) ->
 	TypeString = text_utils:join( _Separator=",",
-								[ type_to_description( T ) || T <- TypeList ] ),
+		[ type_to_description( T ) || T <- TypeList ] ),
 	"{" ++ TypeString ++ "}";
 
-type_to_description( _Type={ table, [ Tk, Tv ] } ) ->
-	"table(" ++ type_to_description( Tk ) ++ "," ++ type_to_description( Tv )
-		++ ")";
+type_to_description( _Type={ union, TypeList } ) when is_list( TypeList ) ->
+	text_utils:join( _Separator="|",
+					 [ type_to_description( T ) || T <- TypeList ] );
 
 type_to_description( Type ) ->
 
@@ -837,25 +847,6 @@ interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
 				when is_pid( Term ) ->
 	text_utils:format( "PID of value '~w'", [ Term ] );
 
-
-interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
-					   MaxNestingLevel ) when is_map( Term ) ->
-	text_utils:format( "map of ~B elements", [ maps:size( Term ) ] );
-
-interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
-				when is_map( Term ) ->
-
-	Elems = [ text_utils:format( "key ~ts associated to value ~ts",
-				   [ interpret_type_helper( K, CurrentNestingLevel + 1,
-											MaxNestingLevel ),
-					 interpret_type_helper( V, CurrentNestingLevel + 1,
-											MaxNestingLevel ) ] )
-				|| { K, V } <- maps:to_list( Term ) ],
-
-	text_utils:format( "map of ~B elements: ~ts", [ maps:size( Term ),
-			text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
-
-
 interpret_type_helper( Term, _CurrentNestingLevel, _MaxNestingLevel )
 				when is_port( Term ) ->
 	text_utils:format( "port of value '~p'", [ Term ] );
@@ -884,7 +875,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 
 				_ ->
 					Elems = [ interpret_type_helper( E,
-								CurrentNestingLevel + 1, MaxNestingLevel )
+								CurrentNestingLevel+1, MaxNestingLevel )
 										|| E <- Term ],
 
 					text_utils:format( "list of ~B elements: ~ts",
@@ -895,6 +886,24 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 			end
 
 	end;
+
+interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
+					   MaxNestingLevel ) when is_map( Term ) ->
+	text_utils:format( "map of ~B entries", [ maps:size( Term ) ] );
+
+interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
+				when is_map( Term ) ->
+
+	Elems = [ text_utils:format( "key ~ts associated to value ~ts",
+				[ interpret_type_helper( K, CurrentNestingLevel+1,
+										 MaxNestingLevel ),
+				  interpret_type_helper( V, CurrentNestingLevel+1,
+										 MaxNestingLevel ) ] )
+						|| { K, V } <- maps:to_list( Term ) ],
+
+	text_utils:format( "map of ~B entries: ~ts", [ maps:size( Term ),
+		text_utils:strings_to_string( Elems, CurrentNestingLevel ) ] );
+
 
 interpret_type_helper( _Term={ _A, _B }, _CurrentNestingLevel=MaxNestingLevel,
 					   MaxNestingLevel ) ->
@@ -911,7 +920,7 @@ interpret_type_helper( Term, _CurrentNestingLevel=MaxNestingLevel,
 interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 				when is_tuple( Term ) ->
 
-	Elems = [ interpret_type_helper( E, CurrentNestingLevel + 1,
+	Elems = [ interpret_type_helper( E, CurrentNestingLevel+1,
 									 MaxNestingLevel )
 				|| E <- tuple_to_list( Term ) ],
 
@@ -984,8 +993,8 @@ get_ast_simple_builtin_types() ->
 -spec get_elementary_types() -> [ type_name() ].
 get_elementary_types() ->
 	get_immediate_types() ++
-		[ 'function', 'list', 'pid', 'port', 'record', 'reference', 'tuple',
-		  'any' ].
+		[ 'function', 'list', 'map', 'pid', 'port', 'record', 'reference',
+		  'tuple', 'any' ].
 
 
 % @doc Returns a list of the built-in, non-polymorphic types that can be
@@ -1029,16 +1038,7 @@ is_of_type( Term, _Type='string' ) when is_list( Term ) ->
 	text_utils:is_string( Term );
 
 is_of_type( Term, Type ) ->
-
-	case get_type_of( Term ) of
-
-		Type ->
-			true;
-
-		_ ->
-			false
-
-	end.
+	get_type_of( Term ) =:= Type.
 
 
 
@@ -1059,8 +1059,8 @@ is_of_described_type( _Term, _TypeDescription ) ->
 
 
 
-% @doc Tells whether specified non-empty container (list or tuple) is
-% homogeneous in terms of type, ie whether all its elements are of the same
+% @doc Tells whether specified non-empty monomorphic container (list or tuple)
+% is homogeneous in terms of type, ie whether all its elements are of the same
 % type.
 %
 % If true, returns the common type.
@@ -1074,22 +1074,18 @@ is_homogeneous( _List=[] ) ->
 	throw( empty_container );
 
 is_homogeneous( _List=[ H | T ] ) ->
-
 	Type = get_type_of( H ),
-
 	is_homogeneous_full_helper( T, Type );
 
 is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
-
 	ElemList = tuple_to_list( Tuple ),
-
 	is_homogeneous( ElemList ).
 
 
 
-% @doc Tells whether specified non-empty container (list or tuple) is
-% homogeneous in terms of type, ie whether all its elements are of the same,
-% specified, primitive type.
+% @doc Tells whether specified non-empty monomorphic container (list or tuple)
+% is homogeneous in terms of type, that is whether all its elements are of the
+% same, specified, primitive type.
 %
 -spec is_homogeneous( list() | tuple(), primitive_type_description() ) ->
 							boolean().
@@ -1101,9 +1097,7 @@ is_homogeneous( List, Type ) when is_list( List ) ->
 	is_homogeneous_helper( List, Type );
 
 is_homogeneous( Tuple, Type ) when is_tuple( Tuple ) ->
-
 	ElemList = tuple_to_list( Tuple ),
-
 	is_homogeneous_helper( ElemList, Type ).
 
 
@@ -1162,6 +1156,17 @@ get_low_level_type_size( sint64 ) -> 8;
 get_low_level_type_size( float32 ) -> 4;
 get_low_level_type_size( float64 ) -> 8.
 
+
+
+% @doc Tells whether the specified term is, just by itself, a transient one.
+-spec is_transient( term() ) -> boolean().
+% Maybe is_function/1 could be relevant here:
+is_transient( T ) when is_pid( T ) orelse is_port( T )
+					   orelse is_reference( T ) ->
+	true;
+
+is_transient( _T ) ->
+	false.
 
 
 
@@ -1624,6 +1629,16 @@ check_binaries( Binaries ) ->
 
 
 
+% @doc Checks that the specified term is a map indeed, and returns it.
+-spec check_map( term() ) -> map().
+check_map( Map ) when is_map( Map ) ->
+	Map;
+
+check_map( Other ) ->
+	throw( { not_map, Other } ).
+
+
+
 % @doc Checks that the specified term is a tuple indeed, and returns it.
 -spec check_tuple( term() ) -> tuple().
 check_tuple( Tuple ) when is_tuple( Tuple ) ->
@@ -1634,7 +1649,8 @@ check_tuple( Other ) ->
 
 
 
-% @doc Augments the specified tuploid with specified term.
+% @doc Augments the specified tuploid with specified term, placed as new last
+% element.
 %
 % Ex: augment_tuploid(a, 2.0) = {a, 2.0}
 %     augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}
@@ -1642,7 +1658,7 @@ check_tuple( Other ) ->
 % Useful typically to augment returned error tuploids (either a single error
 % term such as 'invalid_name', or a tuple like '{invalid_name,"Arnold"}' with
 % caller-local information, to obtain in all cases a tuploid (a tuple here) with
-% that extra information.
+% this extra information.
 %
 -spec augment_tuploid( tuploid(), term() ) -> tuploid().
 augment_tuploid( Tuploid, ExtraTerm ) when is_tuple( Tuploid ) ->
