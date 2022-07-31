@@ -1229,16 +1229,7 @@ get_group_of( Path ) ->
 %
 -spec is_file( any_path() ) -> boolean().
 is_file( Path ) ->
-
-	case get_type_of( Path ) of
-
-		regular ->
-			true ;
-
-		_ ->
-			false
-
-	end.
+	get_type_of( Path ) =:= regular.
 
 
 
@@ -1248,16 +1239,7 @@ is_file( Path ) ->
 %
 -spec is_existing_file( any_path() ) -> boolean().
 is_existing_file( Path ) ->
-
-	case exists( Path ) andalso get_type_of( Path ) of
-
-		regular ->
-			true ;
-
-		_ ->
-			false
-
-	end.
+	exists( Path ) andalso get_type_of( Path ) =:= regular.
 
 
 
@@ -1267,16 +1249,7 @@ is_existing_file( Path ) ->
 %
 -spec is_existing_link( any_path() ) -> boolean().
 is_existing_link( Path ) ->
-
-	case exists( Path ) andalso get_type_of( Path ) of
-
-		symlink ->
-			true ;
-
-		_ ->
-			false
-
-	end.
+	exists( Path ) andalso get_type_of( Path ) =:= symlink.
 
 
 
@@ -1515,16 +1488,7 @@ is_user_executable( Path ) ->
 %
 -spec is_directory( any_path() ) -> boolean().
 is_directory( Path ) ->
-
-	case get_type_of( Path ) of
-
-		directory ->
-			true ;
-
-		_ ->
-			false
-
-	end.
+	get_type_of( Path ) =:= directory.
 
 
 
@@ -1534,16 +1498,7 @@ is_directory( Path ) ->
 %
 -spec is_existing_directory( any_path() ) -> boolean().
 is_existing_directory( Path ) ->
-
-	case exists( Path ) andalso get_type_of( Path ) of
-
-		directory ->
-			true ;
-
-		_ ->
-			false
-
-	end.
+	exists( Path ) andalso get_type_of( Path ) =:= directory.
 
 
 
@@ -2925,8 +2880,7 @@ list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 							 Acc ) ->
 	list_directories_in_subdirs( T, RootDir, CurrentRelativeDir,
 		find_directories_from( RootDir, any_join( CurrentRelativeDir, H ),
-							   _Acc=[] )
-		++ Acc ).
+							   _Acc=[] ) ++ Acc ).
 
 
 
@@ -2979,15 +2933,8 @@ create_dir_elem( _Elems=[ H | T ], Prefix ) ->
 
 	NewPrefix = join( Prefix, H ),
 
-	case exists( NewPrefix ) of
+	exists( NewPrefix ) orelse create_directory( NewPrefix, create_no_parent ),
 
-		true ->
-			ok ;
-
-		false ->
-			create_directory( NewPrefix, create_no_parent )
-
-	end,
 	create_dir_elem( T, NewPrefix ).
 
 
@@ -3011,16 +2958,8 @@ create_directory_if_not_existing( AnyDirPath ) ->
 -spec create_directory_if_not_existing( any_directory_path(),
 										parent_creation() ) -> void().
 create_directory_if_not_existing( AnyDirPath, ParentCreation ) ->
-
-	case is_existing_directory( AnyDirPath ) of
-
-		true ->
-			ok;
-
-		false ->
-			create_directory( AnyDirPath, ParentCreation )
-
-	end.
+	is_existing_directory( AnyDirPath ) orelse
+		create_directory( AnyDirPath, ParentCreation ).
 
 
 
@@ -3594,7 +3533,7 @@ get_non_clashing_entry_name_from( Path ) ->
 
 	% More reliable than looping over random names forged from for example:
 	%Uniq = basic_utils:get_process_specific_value()
-	%   + random_utils:get_random_value( _Min=0, _Max=10000 ),
+	%   + random_utils:get_uniform_value( _Min=0, _Max=10000 ),
 	% until no collision occurs.
 
 	%trace_utils:debug_fmt( "Testing whether path '~ts' already exists...",

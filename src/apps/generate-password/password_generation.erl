@@ -147,7 +147,7 @@ main( ArgTable ) ->
 	%trace_utils:debug_fmt( "Alphabet spec: ~ts", [ AlphabetSpec ] ),
 
 	[ Length ] =
-		random_utils:get_random_values( MinLength, MaxLength, _Count=1 ),
+		random_utils:get_uniform_values( MinLength, MaxLength, _Count=1 ),
 
 	case list_table:keys( AlphaTable ) of
 
@@ -238,7 +238,7 @@ generate_helper( _CharCount=0, _Alphabet, _AlphaSize, Acc ) ->
 
 generate_helper( CharCount, Alphabet, AlphaSize, Acc ) ->
 
-	NewCharIndex = random_utils:get_random_value( AlphaSize ),
+	NewCharIndex = random_utils:get_uniform_value( AlphaSize ),
 	NewChar = list_utils:get_element_at( Alphabet, NewCharIndex ),
 
 	%trace_utils:debug_fmt( "Drawn '~B' (~ts), at index #~B",
