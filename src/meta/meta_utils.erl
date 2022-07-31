@@ -211,7 +211,7 @@
 -type type_info() :: ast_info:type_info().
 -type function_info() :: ast_info:function_info().
 
-
+-type ast_transforms() :: ast_transform:ast_transforms().
 
 
 % Parse-transform related functions:
@@ -253,9 +253,8 @@ add_function( FunctionName, FunctionArity, Clauses,
 	% Let's check first that the function is not already defined:
 	FunId = { FunctionName, FunctionArity },
 
-	case ?table:has_entry( FunId, FunTable ) of
-
-		true ->
+	?table:has_entry( FunId, FunTable ) andalso
+		begin
 			CurrentFunInfo = ?table:get_value( FunId, FunTable ),
 			CurrentFunString =
 				ast_info:function_info_to_string( CurrentFunInfo ),
@@ -263,12 +262,9 @@ add_function( FunctionName, FunctionArity, Clauses,
 			ast_utils:display_error( "Function ~p already defined, as ~ts.",
 									 [ FunId, CurrentFunString ] ),
 
-			throw( { function_already_defined, FunId } );
+			throw( { function_already_defined, FunId } )
 
-		false ->
-			ok
-
-	end,
+		end,
 
 	DefASTLoc = ?table:get_value( definition_functions_marker, MarkerTable ),
 
@@ -341,9 +337,8 @@ add_type( TypeInfo=#type_info{ variables=TypeVariables,
 	% Let's check first that the type is not already defined:
 	TypeId = { TypeInfo#type_info.name, Arity },
 
-	case ?table:has_entry( TypeId, TypeTable ) of
-
-		true ->
+	?table:has_entry( TypeId, TypeTable ) andalso
+		begin
 			CurrentTypeInfo = ?table:get_value( TypeId, TypeTable ),
 			CurrentTypeString = ast_info:type_info_to_string( CurrentTypeInfo ),
 
@@ -353,12 +348,9 @@ add_type( TypeInfo=#type_info{ variables=TypeVariables,
 				"whereas to be added, as ~ts.",
 				[ TypeId, CurrentTypeString, AddedTypeString ] ),
 
-			throw( { type_already_defined, TypeId } );
+			throw( { type_already_defined, TypeId } )
 
-		false ->
-			ok
-
-	end,
+		end,
 
 	NewTypeTable = ?table:add_entry( TypeId, TypeInfo, TypeTable ),
 
@@ -394,8 +386,8 @@ remove_type( TypeInfo=#type_info{ variables=TypeVariables,
 	end,
 
 	% Then its exports:
-	NewExportTable = ast_info:ensure_type_not_exported( TypeId, ExportLocs,
-														ExportTable ),
+	NewExportTable =
+		ast_info:ensure_type_not_exported( TypeId, ExportLocs, ExportTable ),
 
 	ModuleInfo#module_info{ type_exports=NewExportTable,
 							types=NewTypeTable }.
@@ -407,8 +399,8 @@ remove_type( TypeInfo=#type_info{ variables=TypeVariables,
 %
 % (helper)
 %
--spec apply_ast_transforms( module_info(), ast_transform:ast_transforms() ) ->
-						{ module_info(), ast_transform:ast_transforms() }.
+-spec apply_ast_transforms( module_info(), ast_transforms() ) ->
+						{ module_info(), ast_transforms() }.
 apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
 											   records=RecordTable,
 											   functions=FunctionTable },
@@ -448,9 +440,8 @@ apply_ast_transforms( ModuleInfo=#module_info{ types=TypeTable,
 list_exported_functions( ModuleName ) ->
 
 	% To avoid a unclear message like 'undefined function XXX:module_info/1':
-	case code_utils:is_beam_in_path( ModuleName ) of
-
-		not_found ->
+	code_utils:is_beam_in_path( ModuleName ) =:= not_found andalso
+		begin
 
 			FilteredCodePath = [
 				case file_utils:is_existing_directory_or_link( P ) of
@@ -468,10 +459,7 @@ list_exported_functions( ModuleName ) ->
 				"non-existing directories being parenthesized): ~ts",
 				[ ModuleName, file_utils:get_current_directory(),
 				  code_utils:code_path_to_string( FilteredCodePath ) ] ),
-			throw( { module_not_found_in_path, ModuleName } );
-
-		_ ->
-			ok
+			throw( { module_not_found_in_path, ModuleName } )
 
 	end,
 
@@ -529,8 +517,8 @@ is_function_exported( ModuleName, FunctionName, Arity ) ->
 		[ basic_utils:argument() ] ) ->
 				'ok' | 'module_not_found' | 'function_not_exported'.
 check_potential_call( ModuleName, FunctionName, Arguments )
-  when is_atom( ModuleName ) andalso is_atom( FunctionName )
-	   andalso is_list( Arguments ) ->
+				when is_atom( ModuleName ) andalso is_atom( FunctionName )
+					 andalso is_list( Arguments ) ->
 
 	case code_utils:is_beam_in_path( ModuleName ) of
 
@@ -553,25 +541,11 @@ check_potential_call( ModuleName, FunctionName, Arguments )
 
 check_potential_call( ModuleName, FunctionName, Arguments ) ->
 
-	case is_atom( ModuleName ) of
+	is_atom( ModuleName ) orelse
+		throw( { non_atom_module_name, ModuleName } ),
 
-		true ->
-			ok;
-
-		false ->
-			throw( { non_atom_module_name, ModuleName } )
-
-	end,
-
-	case is_atom( FunctionName ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { non_atom_function_name, FunctionName } )
-
-	end,
+	is_atom( FunctionName ) orelse
+		throw( { non_atom_function_name, FunctionName } ),
 
 	% Only remaining possibility:
 	throw( { non_list_arguments, Arguments } ).
