@@ -1,3 +1,8 @@
+;; This is the Ceylan-Myriad default Emacs configuration file, typically to
+;; exist as ~/.emacs/init.el; check that none of the many other Emacs
+;; configuration file gets in the way.
+
+
 ;;; package --- This is an initialization script written in elisp.
 
 ;;; Commentary: refer to
