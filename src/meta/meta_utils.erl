@@ -195,15 +195,32 @@
 % The name of a variable (ex: 'X', or '_' in some cases).
 
 
+-type term_transformer() :: fun( ( term(), user_data() ) ->
+										{ term(), user_data() } ).
+% Type of functions to transform terms during a recursive traversal (see
+% transform_term/4).
+%
+% Such a transformer can operate on ASTs, but more generally on any kind of
+% terms.
+%
+% Note: apparently we cannot use the 'when' notation here (InputTerm ... when
+% InputTerm :: term()).
+
+
 -export_type([ parse_transform_options/0,
 			   module_name/0,
 			   function_name/0, function_arity/0, function_id/0,
 			   function_type/0,
-			   clause_def/0, function_spec/0, variable_name/0 ]).
+			   clause_def/0, function_spec/0, variable_name/0,
+			   term_transformer/0 ]).
 
 
 
-% Local shorthands:
+% Shorthands:
+
+-type user_data() :: basic_utils:user_data().
+
+-type primitive_type_description() :: type_utils:primitive_type_description().
 
 -type form() :: ast_base:form().
 
@@ -221,10 +238,13 @@
 
 
 
-% General functions, not operating an ASTs:
+% General functions about functions, not operating on ASTs:
 -export([ list_exported_functions/1, get_arities_for/2,
 		  is_function_exported/3, check_potential_call/3 ]).
 
+
+% More general-purpose, term-oriented functions:
+-export([ transform_term/4 ]).
 
 
 
@@ -549,3 +569,199 @@ check_potential_call( ModuleName, FunctionName, Arguments ) ->
 
 	% Only remaining possibility:
 	throw( { non_list_arguments, Arguments } ).
+
+
+
+
+% @doc Transforms "blindly" (that is with no a-priori knowledge about its
+% structure) the specified arbitrary term (possibly with nested subterms, as the
+% function recurses in lists, tuples and maps), calling specified transformer
+% function on each instance of the specified type, in order to replace that
+% instance by the result of that function.
+%
+% Note that specifying 'undefined' as type description leads to transform
+% (exactly) all non-container types.
+%
+% Returns an updated term, with these replacements made.
+%
+% Ex: the input term could be `T={a, ["foo", {c, [2.0, 45]}]}' and the function
+% might replace, for example, floats by `<<bar>>'; then `{a, ["foo", {c,
+% [<<bar>>, 45]}]}' would be returned.
+%
+% Note: the transformed terms are themselves recursively transformed, to ensure
+% nesting is managed. Of course this implies that the term transform should not
+% result in iterating the transformation infinitely.
+%
+% As a result it may appear that a term of the targeted type is transformed
+% almost systematically twice: it is first transformed as such, and the result
+% is transformed in turn. If the transformed term is the same as the original
+% one, then that content will be shown as analysed twice.
+%
+-spec transform_term( term(), basic_utils:maybe( primitive_type_description() ),
+				term_transformer(), user_data() ) -> { term(), user_data() }.
+% Here the term is a list and this is the type we want to intercept:
+transform_term( TargetTerm, TypeDescription=list, TermTransformer, UserData )
+								when is_list( TargetTerm ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	transform_transformed_term( TransformedTerm, TypeDescription,
+								TermTransformer, NewUserData );
+
+
+% Here the term is a list and we are not interested in them:
+transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+								when is_list( TargetTerm ) ->
+	transform_list( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Here the term is a map and this is the type we want to intercept:
+transform_term( TargetTerm, TypeDescription=map, TermTransformer, UserData )
+								when is_map( TargetTerm ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	transform_transformed_term( TransformedTerm, TypeDescription,
+								TermTransformer, NewUserData );
+
+
+% Here the term is a map and we are not interested in them:
+transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+								when is_map( TargetTerm ) ->
+	transform_map( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+
+% Here the term is a tuple (or a record...), and we want to intercept them:
+transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+		when is_tuple( TargetTerm ) andalso (
+			TypeDescription =:= tuple orelse TypeDescription =:= record ) ->
+
+	{ TransformedTerm, NewUserData } = TermTransformer( TargetTerm, UserData ),
+
+	transform_transformed_term( TransformedTerm, TypeDescription,
+								TermTransformer, NewUserData );
+
+
+% Here the term is a tuple (or a record...), and we are not interested in them:
+transform_term( TargetTerm, TypeDescription, TermTransformer, UserData )
+								when is_tuple( TargetTerm ) ->
+	transform_tuple( TargetTerm, TypeDescription, TermTransformer, UserData );
+
+
+% Base case (current term is not a binding structure, it is a leaf of the
+% underlying syntax tree):
+%
+transform_term( TargetTerm, _TypeDescription=undefined, TermTransformer,
+				UserData ) ->
+	% All non-container types selected:
+	TermTransformer( TargetTerm, UserData );
+
+transform_term( TargetTerm, TypeDescription, TermTransformer, UserData ) ->
+
+	case type_utils:get_type_of( TargetTerm ) of
+
+		TypeDescription ->
+			TermTransformer( TargetTerm, UserData );
+
+		_ ->
+			% Unchanged:
+			{ TargetTerm, UserData }
+
+	end.
+
+
+
+% @doc Transforms the elements of a list (helper).
+transform_list( TargetList, TypeDescription, TermTransformer, UserData ) ->
+
+	{ NewList, NewUserData } = lists:foldl(
+		fun( Elem, { AccList, AccData } ) ->
+
+			{ TransformedElem, UpdatedData } = transform_term( Elem,
+				TypeDescription, TermTransformer, AccData ),
+
+			% New accumulator, produces a reversed element list:
+			{ [ TransformedElem | AccList ], UpdatedData }
+
+		end,
+
+		_Acc0={ _Elems=[], UserData },
+
+		TargetList ),
+
+	{ lists:reverse( NewList ), NewUserData }.
+
+
+
+% @doc Transforms the entries of a map (helper).
+%
+% The transformation is applied entry by entry and, for each of them, first on
+% the key, then on the value.
+%
+transform_map( TargetMap, TypeDescription, TermTransformer, UserData ) ->
+
+	{ NewMap, NewUserData } = maps:foldl(
+		fun( K, V, _Acc={ AccMap, AccData } ) ->
+
+			{ TransformedK, UpdatedKData } = transform_term( K,
+				TypeDescription, TermTransformer, AccData ),
+
+			{ TransformedV, UpdatedVData } = transform_term( V,
+				TypeDescription, TermTransformer, UpdatedKData ),
+
+			NewAccMap = AccMap#{ TransformedK => TransformedV },
+
+			% New accumulator, produces a reversed element map:
+			{ NewAccMap, UpdatedVData }
+
+		end,
+
+		_Acc0={ _EmptyMap=#{}, UserData },
+
+		TargetMap ),
+
+	{ NewMap, NewUserData }.
+
+
+
+% @doc Transforms the elements of a tuple (helper).
+transform_tuple( TargetTuple, TypeDescription, TermTransformer, UserData ) ->
+
+	% We do exactly as with lists:
+	TermAsList = tuple_to_list( TargetTuple ),
+
+	{ NewList, NewUserData } = transform_list( TermAsList, TypeDescription,
+											   TermTransformer, UserData ),
+
+	{ list_to_tuple( NewList ), NewUserData }.
+
+
+
+% @doc Transforms any term by traversing it (helper).
+%
+% Helper to traverse a transformed term (ex: if looking for a {user_id, String}
+% pair, we must recurse in nested tuples like: {3, {user_id, "Hello"}, 1}.
+%
+transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
+							UserData ) ->
+
+	case TermTransformer( TargetTerm, UserData ) of
+
+		{ TransformedTerm, NewUserData } when is_list( TransformedTerm ) ->
+			transform_list( TransformedTerm, TypeDescription, TermTransformer,
+							NewUserData );
+
+		{ TransformedTerm, NewUserData } when is_map( TransformedTerm ) ->
+			transform_map( TransformedTerm, TypeDescription, TermTransformer,
+							NewUserData );
+
+		{ TransformedTerm, NewUserData } when is_tuple( TransformedTerm ) ->
+			transform_tuple( TransformedTerm, TypeDescription, TermTransformer,
+							 NewUserData );
+
+		% { ImmediateTerm, NewUserData } ->
+		Other ->
+			Other
+
+	end.
