@@ -788,7 +788,7 @@ compute_graham_scan_hull( L, NewPoint, [ Next | OtherNext ] ) ->
 %
 -spec get_roots_of_unit( count() ) -> [ point2() ].
 get_roots_of_unit( N ) ->
-	get_roots_of_unit( N, _StartingAngle=0 ).
+	get_roots_of_unit( N, _StartingAngle=0.0 ).
 
 
 % @doc Returns a list of points forming the nth roots of unity, in the unit

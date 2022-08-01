@@ -69,7 +69,7 @@
 % 4627) indicates that order of object members should not matter)
 %
 % - for each parser, we expect that from_json . to_json = Id, i.e. for each
-% valid Erlang term T, from_json( to_json( T ) ) = T
+% valid Erlang term T, from_json(to_json(T)) = T
 
 
 % Curently no extra (transverse) user-specified encoding/decoding options are
@@ -274,7 +274,6 @@ get_paths_for( _ParserName=jiffy ) ->
 		true ->
 			{ ResolvablePath, ResolvedPath };
 
-
 		false ->
 			undefined
 
@@ -417,7 +416,7 @@ is_parser_backend_available( BackendName ) ->
 %
 -spec get_parser_backend_name( parser_state() ) -> parser_backend_name().
 get_parser_backend_name(
-					_ParserState={ BackendName, _InternalBackendState } ) ->
+		_ParserState={ BackendName, _InternalBackendState } ) ->
 	BackendName.
 
 
@@ -439,7 +438,7 @@ get_available_parser_backend_name() ->
 
 		ParserName ->
 			%trace_utils:info_fmt( "Selected JSON parser: ~ts.",
-			%                      ParserName ] ),
+			%                      [ ParserName ] ),
 			ParserName
 
 	end.
@@ -506,8 +505,8 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 
 		OtherError ->
 			trace_utils:error_fmt(
-			  "The Jiffy JSON parser does not work properly: ~p.",
-			  [ OtherError ] ),
+				"The Jiffy JSON parser does not work properly: ~p.",
+				[ OtherError ] ),
 			throw( { json_parser_dysfunctional, jiffy, OtherError } )
 
 	end.
@@ -631,9 +630,7 @@ get_base_json_encoding_options( _BackendName=jiffy ) ->
 %
 -spec from_json( json() ) -> json_term().
 from_json( Json ) ->
-
 	ParserState = get_parser_backend_state(),
-
 	from_json( Json, ParserState ).
 
 

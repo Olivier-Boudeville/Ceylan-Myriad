@@ -123,7 +123,9 @@ The most obvious conventions are:
 
 .. Note:: Mute variables are however actually bound, thus if for example there is in the same scope ``_Min=3`` and later ``_Min=4``, then a badmatch will be triggered at runtime; therefore names of mute variables should be generally kept unique in a given scope.
 
- - type shorthands may be defined; for example, if using repeatedly within a module ``text_utils:ustring()``, a local, non-exported type shorthand (``-type ustring() :: text_utils:ustring()``) may be defined so that all other uses of this type become simply ``ustring()``
+- as opposed to records, types shall never defined in header files (``*.hrl``): a given type shall be defined once, as a reference, and exported by its module; other modules may then just refer to it
+
+- type shorthands may be defined; for example, if using repeatedly within a module ``text_utils:ustring()``, a local, non-exported type shorthand (``-type ustring() :: text_utils:ustring()``) may be defined so that all other uses of this type become simply ``ustring()`` in this module
 
 As not all typos may be detected at compilation-time (ex: wrong spelling for a module), we recommend, for source code, the use of additional static checkers, as discussed in the `type-checking`_ section.
 

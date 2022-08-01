@@ -125,6 +125,13 @@
 -type any_host_name() :: any_string().
 
 
+-type possibly_local_hostname() :: 'localhost' | string_host_name().
+% For situations where the local host shall be discriminated from all others.
+
+-type possibly_local_bin_hostname() :: 'localhost' | bin_host_name().
+% For situations where the local host shall be discriminated from all others.
+
+
 -type host_name() :: atom_host_name() | string_host_name() | bin_host_name().
 
 -type host_identifier() :: string_host_name() | ip_address().
@@ -189,6 +196,8 @@
 			   atom_node_name/0, string_node_name/0, bin_node_name/0,
 			   node_name/0, node_type/0,
 			   atom_host_name/0, string_host_name/0, bin_host_name/0,
+			   any_host_name/0,
+			   possibly_local_hostname/0, possibly_local_bin_hostname/0,
 			   host_name/0, host_identifier/0,
 			   atom_fqdn/0, string_fqdn/0, bin_fqdn/0, fqdn/0,
 			   domain_name/0, bin_domain_name/0, subdomain/0, bin_subdomain/0,
@@ -232,12 +241,14 @@
 %
 % A port could be used also.
 %
--spec ping( string_host_name() ) -> boolean().
-ping( Hostname ) when is_list( Hostname ) ->
+-spec ping( any_host_name() ) -> boolean().
+ping( Hostname ) ->
 
-	Command = "/bin/ping " ++ Hostname ++ " -q -c 1 ",
+	HostnameStr = text_utils:ensure_string( Hostname ),
 
-	%trace_utils:debug_fmt( "Ping command: ~ts.", [ Command ] ),
+	Command = "/bin/ping " ++ HostnameStr ++ " -q -c 1 ",
+
+	%trace_utils:debug_fmt( "Ping command: '~ts'.", [ Command ] ),
 
 	case system_utils:run_command( Command ) of
 

@@ -223,7 +223,7 @@ scale( _P={X,Y}, Factor ) ->
 
 
 
-% @doc Returns a vector V made from the specified two points: V=P2-P1.
+% @doc Returns a vector V made from the specified two points P1 and P2: V=P2-P1.
 -spec vectorize( point2(), point2() ) -> vector2().
 vectorize( _P1={X1,Y1}, _P2={X2,Y2} ) ->
 	[ X2-X1, Y2-Y1 ].

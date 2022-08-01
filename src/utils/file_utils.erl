@@ -56,7 +56,7 @@
 
 		  convert_to_filename/1, escape_path/1,
 
-		  get_extensions/1, get_extension/1,
+		  get_extensions/1, get_extension/1, get_dotted_extension_for/1,
 		  remove_extension/1, remove_extension/2, replace_extension/3,
 
 		  exists/1, get_type_of/1, resolve_type_of/1,
@@ -323,6 +323,11 @@
 % An extension by itself does not include the leading dot (ex: "gz", not ".gz").
 
 
+-type dotted_extension() :: ustring().
+% A dot followed by the extension of a filename, either unitary (ex: ".baz", in
+% "foobar.baz.json") or composed (ex: ".tar.gz" in "hello.tar.gz").
+
+
 -type any_suffix() :: any_string().
 % The suffix (final part) in a path element (ex: "share" in "/usr/local/share").
 
@@ -437,7 +442,8 @@
 			   script_path/0, bin_script_path/0,
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
-			   filename_radix/0, filepath_radix/0, extension/0, any_suffix/0,
+			   filename_radix/0, filepath_radix/0,
+			   extension/0, dotted_extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
 			   leaf_name/0,
 			   entry_type/0, parent_creation/0,
@@ -841,8 +847,8 @@ get_base_path( AnyPath ) ->
 % Note that the return type is the same of the input path, i.e. plain string or
 % binary string.
 %
-% Replacement name for filename:basename/1 (in file_utils, and hopefully
-% clearer).
+% Replacement name for filename:basename/1 (more convenient if in file_utils,
+% and hopefully clearer).
 %
 -spec get_last_path_element( any_path() ) -> any_path().
 get_last_path_element( AnyPath ) ->
@@ -1071,6 +1077,9 @@ remove_extension( FilePath, ExpectedExtension ) ->
 		[] ->
 			throw( empty_path );
 
+		[ _SingleElem ] ->
+			throw( { no_extension_in_path, FilePath } );
+
 		BasenamePlusExtensions ->
 			case list_utils:extract_last_element( BasenamePlusExtensions ) of
 
@@ -1092,8 +1101,8 @@ remove_extension( FilePath, ExpectedExtension ) ->
 % Ex: replace_extension("/home/jack/rosie.ttf", "ttf", "wav") should return
 % "/home/jack/rosie.wav".
 %
-% Specifying as target extension the empty string results in removing the
-% specified extension.
+% Use remove_extension/2 to remove extension, as replacing an extension by an
+% empty one would leave the leading dot.
 %
 -spec replace_extension( file_path(), extension(), extension() ) -> file_path().
 replace_extension( FilePath, SourceExtension, TargetExtension ) ->
@@ -1104,7 +1113,7 @@ replace_extension( FilePath, SourceExtension, TargetExtension ) ->
 			throw( { extension_not_found, SourceExtension, FilePath } );
 
 		Index ->
-			string:substr( FilePath, 1, Index-1 ) ++ TargetExtension
+			string:substr( FilePath, _From=1, Index-1 ) ++ TargetExtension
 
 	end.
 
@@ -3156,58 +3165,23 @@ remove_empty_tree( DirectoryPath ) ->
 	%						 [ DirectoryPath ] ),
 
 	% For clarity:
-	case is_existing_directory( DirectoryPath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { directory_not_found, DirectoryPath } )
-
-	end,
+	is_existing_directory( DirectoryPath ) orelse
+		throw( { directory_not_found, DirectoryPath } ),
 
 	{ RegularFiles, Symlinks, Directories, OtherFiles, Devices } =
 		list_dir_elements( DirectoryPath, _ImproperEncodingAction=include ),
 
-	case RegularFiles of
+	RegularFiles =:= [] orelse
+		throw( { regular_files_found, RegularFiles, DirectoryPath } ),
 
-		[] ->
-			ok;
+	Symlinks =:= [] orelse
+		throw( { symbolic_links_found, Symlinks, DirectoryPath } ),
 
-		_ ->
-			throw( { regular_files_found, RegularFiles, DirectoryPath } )
+	OtherFiles =:= [] orelse
+		throw( { other_files_found, OtherFiles, DirectoryPath } ),
 
-	end,
-
-	case Symlinks of
-
-		[] ->
-			ok;
-
-		_ ->
-			throw( { symbolic_links_found, Symlinks, DirectoryPath } )
-
-	end,
-
-	case OtherFiles of
-
-		[] ->
-			ok;
-
-		_ ->
-			throw( { other_files_found, OtherFiles, DirectoryPath } )
-
-	end,
-
-	case Devices of
-
-		[] ->
-			ok;
-
-		_ ->
-			throw( { devices_found, Devices, DirectoryPath } )
-
-	end,
+	Devices =:= [] orelse
+		throw( { devices_found, Devices, DirectoryPath } ),
 
 	[ remove_empty_tree( any_join( DirectoryPath, D ) ) || D <- Directories ],
 
@@ -3237,25 +3211,17 @@ remove_directory( DirectoryName ) ->
 	{ RegularFiles, Symlinks, Directories, OtherFiles, Devices } =
 		list_dir_elements( DirectoryName, _ImproperEncodingAction=include ),
 
-	case Devices of
-
-		[] ->
-			ok;
-
-		_ ->
+	Devices =:= [] orelse
+		begin
 			trace_utils:error_fmt( "Interrupting removal of directory '~ts', "
 				"as device entries have been found: ~p.", [ Devices ] ),
 
 			throw( { device_entries_found, Devices } )
 
-	end,
+		end,
 
-	case OtherFiles of
-
-		[] ->
-			ok;
-
-		_ ->
+	OtherFiles =:= [] orelse
+		begin
 			trace_utils:error_fmt( "Interrupting removal of directory '~ts', "
 				"as unexpected filesystem entries have been found: ~p.",
 				[ OtherFiles ] ),
@@ -3266,11 +3232,11 @@ remove_directory( DirectoryName ) ->
 
 	% Depth-first of course:
 	[ remove_directory( any_join( DirectoryName, SubDir ) )
-	  || SubDir <- Directories ],
+						|| SubDir <- Directories ],
 
 	% Then removing all local regular files and symlinks:
 	[ remove_file( any_join( DirectoryName, F ) )
-	  || F <- Symlinks ++ RegularFiles ],
+						|| F <- Symlinks ++ RegularFiles ],
 
 	% Finally removing this (now empty) directory as well:
 	remove_empty_directory( DirectoryName ).
@@ -3364,15 +3330,7 @@ try_copy_file( SourceFilePath, DestinationFilePath ) ->
 
 				{ ok, _ByteCount } ->
 					% Now sets the permissions of the copy:
-					case file:change_mode( DestinationFilePath, Mode ) of
-
-						ok ->
-							ok;
-
-						ChgModeError ->
-							ChgModeError
-
-					end;
+					file:change_mode( DestinationFilePath, Mode );
 
 				CopyError ->
 					CopyError
@@ -5173,27 +5131,11 @@ write_terms( Terms, Header, Footer, AnyFilePath ) ->
 
 	F = open( AnyFilePath, _Opts=[ write, raw, delayed_write ] ),
 
-	case Header of
-
-		undefined ->
-			ok;
-
-		_ ->
-			write_ustring( F, "% ~ts~n~n~n", [ Header ] )
-
-	end,
+	Header =:= undefined orelse write_ustring( F, "% ~ts~n~n~n", [ Header ] ),
 
 	write_direct_terms( F, Terms ),
 
-	case Footer of
-
-		undefined ->
-			ok;
-
-		_ ->
-			write_ustring( F, "~n~n% ~ts~n", [ Footer ] )
-
-	end,
+	Footer =:= undefined orelse write_ustring( F, "~n~n% ~ts~n", [ Footer ] ),
 
 	close( F ).
 
@@ -5221,13 +5163,21 @@ write_direct_terms( File, Terms ) ->
 %
 -spec get_extension_for( compression_format() ) -> extension().
 get_extension_for( _CompressionFormat=zip ) ->
-	".zip";
+	"zip";
 
 get_extension_for( _CompressionFormat=bzip2 ) ->
-	".bz2";
+	"bz2";
 
 get_extension_for( _CompressionFormat=xz ) ->
-	".xz".
+	"xz".
+
+
+% @doc Returns the dotted file extension (ex: ".xz", not just "xz")
+% corresponding to filenames compressed with specified format.
+%
+-spec get_dotted_extension_for( compression_format() ) -> dotted_extension().
+get_dotted_extension_for( CompressionFormat ) ->
+	[ $. | get_extension_for( CompressionFormat ) ].
 
 
 
@@ -5269,7 +5219,7 @@ compress( Filename, _CompressionFormat=zip ) ->
 
 	%ZipExec = executable_utils:get_default_zip_compress_tool(),
 
-	ZipFilename = Filename ++ get_extension_for( zip ),
+	ZipFilename = Filename ++ get_dotted_extension_for( zip ),
 
 	% Exactly this one file in the archive:
 	%Command = ZipExec ++ " --quiet " ++ ZipFilename ++ " " ++ Filename,
@@ -5294,7 +5244,7 @@ compress( Filename, _CompressionFormat=bzip2 ) ->
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
-			Bzip2Filename = Filename ++ get_extension_for( bzip2 ),
+			Bzip2Filename = Filename ++ get_dotted_extension_for( bzip2 ),
 			true = is_existing_file( Bzip2Filename ),
 			Bzip2Filename;
 
@@ -5317,7 +5267,7 @@ compress( Filename, _CompressionFormat=xz ) ->
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
-			XZFilename = Filename ++ get_extension_for( xz ),
+			XZFilename = Filename ++ get_dotted_extension_for( xz ),
 			true = is_existing_file( XZFilename ),
 			XZFilename;
 
@@ -5391,7 +5341,7 @@ decompress( ZipFilename, _CompressionFormat=zip ) ->
 	%UnzipExec = executable_utils:get_default_zip_decompress_tool(),
 
 	% Checks and removes extension:
-	%Filename = replace_extension( ZipFilename, get_extension_for( zip ), "" ),
+	%Filename = remove_extension( ZipFilename, get_extension_for( zip ) ),
 
 	% Quiet, overwrite:
 	%Command = UnzipExec ++ " -q -o " ++ ZipFilename,
@@ -5414,8 +5364,7 @@ decompress( Bzip2Filename, _CompressionFormat=bzip2 ) ->
 	Bzip2Exec = executable_utils:get_default_bzip2_decompress_tool(),
 
 	% Checks and removes extension:
-	Filename = replace_extension( Bzip2Filename, get_extension_for( bzip2 ),
-								  "" ),
+	Filename = remove_extension( Bzip2Filename, get_extension_for( bzip2 ) ),
 
 	% The result will be named Filename by bunzip2:
 
@@ -5424,7 +5373,7 @@ decompress( Bzip2Filename, _CompressionFormat=bzip2 ) ->
 
 		{ _ExitCode=0, _Output=[] } ->
 			% Check:
-			Bzip2Filename = Filename ++ get_extension_for( bzip2 ),
+			Bzip2Filename = Filename ++ get_dotted_extension_for( bzip2 ),
 			true = is_existing_file( Filename ),
 			Filename;
 
@@ -5442,7 +5391,7 @@ decompress( XzFilename, _CompressionFormat=xz ) ->
 	XZExec = executable_utils:get_default_xz_decompress_tool(),
 
 	% Checks and removes extension:
-	Filename = replace_extension( XzFilename, get_extension_for( xz ), "" ),
+	Filename = remove_extension( XzFilename, get_extension_for( xz ) ),
 
 	case system_utils:run_command(
 			XZExec ++ " --keep --force --quiet " ++ XzFilename ) of

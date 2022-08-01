@@ -115,7 +115,7 @@
 		  safe_length/1,
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
 		  flatten/1,
-		  join/2,
+		  join/2, bin_join/2,
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, split_every/2,
 		  tokenizable_to_camel_case/2,
@@ -1785,7 +1785,7 @@ interpret_faulty_format( FormatString, Values ) ->
 	ValueCount = length( Values ),
 
 	% The always-existing prefix before the first ~ is of no interest:
-	SplitSeqs = tl( split( FormatString, _Delimiters=[ $~ ] ) ),
+	SplitSeqs = tl( split( FormatString, _Separators=[ $~ ] ) ),
 
 	%trace_utils:debug_fmt( "SplitSeqs = ~p.", [ SplitSeqs ] ),
 
@@ -3030,7 +3030,8 @@ flatten( IOList ) ->
 
 
 
-% @doc Joins, with specified separator, the strings in specified list.
+% @doc Joins, with the specified separator, the specified (plain) strings, and
+% returns another plain string.
 %
 % join(Separator, StringsToJoin), to be used like in:
 %      join($-, ["Barbara", "Ann"]) = "Barbara-Ann".
@@ -3042,8 +3043,8 @@ flatten( IOList ) ->
 %
 % Inspired from http://www.trapexit.org/String_join_with.
 %
-% For file-related paths, you are expected to use portable standard
-% filename:join/{1,2} functions instead.
+% For file-related paths, you are expected to use the file_utils:join/{1,2}
+% functions instead.
 %
 % Note: conversely, use split/2 to split the string.
 %
@@ -3052,30 +3053,47 @@ join( _Separator, _ListToJoin=[] ) ->
 	"";
 
 join( Separator, ListToJoin ) ->
+
 	%io:format( "ListToJoin = ~p~n", [ ListToJoin ] ),
-	lists:flatten( lists:reverse( join( Separator, ListToJoin, _Acc=[] ) ) ).
+
+	IntercalList =
+		list_utils:intercalate( _Elem=Separator, _TargetList=ListToJoin ),
+
+	lists:flatten( IntercalList ).
 
 
-% Helper:
-join( _Separator, _ListToJoin=[], Acc) ->
-	Acc;
 
-join( _Separator, _ListToJoin=[ H | [] ], Acc ) ->
-	[ H | Acc ];
+% @doc Joins, with the specified separator, the specified strings (of any type),
+% and returns a corresponding binary string.
+%
+% bin_join(Separator, BinStringsToJoin), to be used like in:
+%      join($-, [<<"Barbara">>, <<"Ann">>]) = <<"Barbara-Ann">>.
+%
+% Separator can be a character, like $a, or any string, like ", " or
+% <<"hello">>.
+%
+% For file-related paths, you are expected to use the file_utils:bin_join/{1,2}
+% functions instead.
+%
+% Note: conversely, use split/2 to split the string.
+%
+-spec bin_join( any_string() | uchar(), [ any_string() ] ) -> bin_string().
+bin_join( Separator, ListToJoin ) ->
 
-join( Separator, _ListToJoin=[ H | T ], Acc ) ->
-	join( Separator, T, [ Separator, H | Acc ] ).
+	IntercalList =
+		list_utils:intercalate( _Elem=Separator, _TargetList=ListToJoin ),
 
+	erlang:iolist_to_binary( IntercalList ).
 
 
 
 % @doc Splits the specified string into a list of strings, based on the list of
-% specified characters to be interpreted as delimiters.
+% specified characters to be interpreted as separators.
 %
 % To split a string according to the newlines (~n) that it contains, one may
 % use: text_utils:split(MyString, "\n").
 %
-% Note that a series of contiguous delimiters (ex: two spaces in a row) will
+% Note that a series of contiguous separators (ex: two spaces in a row) will
 % result in inserting empty strings (i.e. []) in the returned list. Use
 % split_per_element/2 if wanting to handle series of delimeters as if there was
 % only one of them (i.e. if not wanting the returned list to include empty
@@ -3086,34 +3104,34 @@ join( Separator, _ListToJoin=[ H | T ], Acc ) ->
 % See also: split_at_whitespaces/0.
 %
 -spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
-split( String, Delimiters ) ->
+split( String, Separators ) ->
 
 	%trace_utils:debug_fmt( "Splitting '~ts' with '~ts'.",
-	%                       [ String, Delimiters ] ),
+	%                       [ String, Separators ] ),
 
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
 	% and anyway both treat two or more adjacent separator graphemes clusters as
 	% only one, which is generally not what we want; so we now use our own
 	% function.
 
-	% Would be quite different, as Delimiters here would be understood as a
-	% search pattern (i.e. a "word" as a whole) instead of a list of delimiters:
+	% Would be quite different, as Separators here would be understood as a
+	% search pattern (i.e. a "word" as a whole) instead of a list of separators:
 	%
-	%string:split( String, _SearchPattern=Delimiters, _Where=all ).
+	%string:split( String, _SearchPattern=Separators, _Where=all ).
 
 	% Would lead to a breach of contract (no empty string ever inserted):
-	%string:lexemes( String, Delimiters ).
+	%string:lexemes( String, Separators ).
 
-	% So we go for a multi-pass splitting (one pass per delimiter):
-	split_helper( Delimiters, _Acc=[ String ] ).
+	% So we go for a multi-pass splitting (one pass per separator):
+	split_helper( Separators, _Acc=[ String ] ).
 
 
 
 % (helper)
-split_helper( _Delimiters=[], Acc ) ->
+split_helper( _Separators=[], Acc ) ->
 	Acc;
 
-split_helper( _Delimiters=[ D | T ], Acc ) ->
+split_helper( _Separators=[ D | T ], Acc ) ->
 	SplitStrs = [ string:split( S, _SearchPattern=[ D ], _Where=all )
 								|| S <- Acc ],
 	NewAcc = concatenate( SplitStrs ),
@@ -3122,31 +3140,31 @@ split_helper( _Delimiters=[ D | T ], Acc ) ->
 
 
 % @doc Splits the specified string into a list of strings, based on the list of
-% specified characters to be interpreted as delimiters.
+% specified characters to be interpreted as separators.
 %
-% Note that a series of contiguous delimiters (ex: two spaces in a row) will be
+% Note that a series of contiguous separators (ex: two spaces in a row) will be
 % handled as if there was only one of them (i.e. if the returned list should not
 % include empty strings).
 %
 % See also: split/2.
 %
 -spec split_per_element( ustring(), [ uchar() ] ) -> [ ustring() ].
-split_per_element( String, Delimiters ) ->
-	%[ Elem || Elem <- split( String, Delimiters ), Elem =/= [] ].
-	string:lexemes( String, Delimiters ).
+split_per_element( String, Separators ) ->
+	%[ Elem || Elem <- split( String, Separators ), Elem =/= [] ].
+	string:lexemes( String, Separators ).
 
 
 
 % @doc Splits the specified parse string (typically returned by
 % parse_quoted/{1,3}) into a list of plain strings, based on the list of
-% specified characters to be interpreted as delimiters.
+% specified characters to be interpreted as separators.
 %
 % Note: implemented in an ad hoc way, so that any plain string found in the
 % input character stream is properly handled (i.e. not searched for any
-% delimiter).
+% separator).
 %
 % In this example, parsing is needed so that the comma just after the first
-% "Bond" is not considered as a delimiter (since it is in a quoted context):
+% "Bond" is not considered as a separator (since it is in a quoted context):
 %
 % ParsedString = text_utils:parse_quoted( "Hello,'Mr Bond,James Bond',MI6",
 %                   _QuotingChars=[ $' ], _EscapingChars=[] ),
@@ -3162,12 +3180,12 @@ split_per_element( String, Delimiters ) ->
 % See also: split/2, split_per_element/2.
 %
 -spec split_parsed( parse_string(), [ uchar() ] ) -> [ ustring() ].
-split_parsed( ParseString, Delimiters ) ->
+split_parsed( ParseString, Separators ) ->
 
-	%trace_utils:debug_fmt( "Splitting '~p' with delimiters '~p'...",
-	%                       [ ParseString, Delimiters ] ),
+	%trace_utils:debug_fmt( "Splitting '~p' with separators '~p'...",
+	%                       [ ParseString, Separators ] ),
 
-	Res = split_parsed( ParseString, Delimiters, _AccElem=[], _AccStrs=[] ),
+	Res = split_parsed( ParseString, Separators, _AccElem=[], _AccStrs=[] ),
 
 	%trace_utils:debug_fmt( "... returned: ~p.", [ Res ] ),
 
@@ -3182,48 +3200,48 @@ split_parsed( ParseString, Delimiters ) ->
 % CSV files), hence re-enabled (previous version left commented).
 %
 % (helper)
-%split_parsed( _ParseString=[], _Delimiters, _AccElem=[], AccStrs ) ->
+%split_parsed( _ParseString=[], _Separators, _AccElem=[], AccStrs ) ->
 %   lists:reverse( AccStrs );
 
-split_parsed( _ParseString=[], _Delimiters, AccElem, AccStrs ) ->
+split_parsed( _ParseString=[], _Separators, AccElem, AccStrs ) ->
 	lists:reverse( [ lists:reverse( AccElem ) | AccStrs ] );
 
-split_parsed( _ParseString=[ C | T ], Delimiters, AccElem, AccStrs )
+split_parsed( _ParseString=[ C | T ], Separators, AccElem, AccStrs )
 												when is_integer( C ) ->
-	case lists:member( C, Delimiters ) of
+	case lists:member( C, Separators ) of
 
 		true ->
-			split_parsed( T, Delimiters, _AccElem=[],
+			split_parsed( T, Separators, _AccElem=[],
 						  [ lists:reverse( AccElem ) | AccStrs ] );
 
 			%case AccElem of
 			%
 			%	[] ->
-			%		split_parsed( T, Delimiters, _AccElem=[], AccStrs );
+			%		split_parsed( T, Separators, _AccElem=[], AccStrs );
 			%
 			%	_ ->
-			%		split_parsed( T, Delimiters, _AccElem=[],
+			%		split_parsed( T, Separators, _AccElem=[],
 			%					  [ lists:reverse( AccElem ) | AccStrs ] )
 			%
 			%end;
 
 		false ->
-			split_parsed( T, Delimiters, [ C | AccElem ], AccStrs )
+			split_parsed( T, Separators, [ C | AccElem ], AccStrs )
 
 	end;
 
-split_parsed( _ParseString=[ Str | T ], Delimiters, AccElem, AccStrs )
+split_parsed( _ParseString=[ Str | T ], Separators, AccElem, AccStrs )
 														when is_list( Str ) ->
-	split_parsed( T, Delimiters, lists:reverse( Str ) ++ AccElem, AccStrs );
+	split_parsed( T, Separators, lists:reverse( Str ) ++ AccElem, AccStrs );
 
-split_parsed( _ParseString=[ Other | _T ], _Delimiters, _AccElem, _AccStrs ) ->
+split_parsed( _ParseString=[ Other | _T ], _Separators, _AccElem, _AccStrs ) ->
 	throw( { unexpected_parsed_element, Other } ).
 
 
 
 
 % @doc Splits the specified string into a list of strings, using whitespaces as
-% delimiters.
+% separators.
 %
 -spec split_at_whitespaces( ustring() ) -> [ ustring() ].
 split_at_whitespaces( String ) ->
@@ -3379,7 +3397,9 @@ concatenate( Elements ) ->
 % @doc Concatenates the two specified binary strings into the returned one.
 -spec bin_concatenate( bin_string(), bin_string() ) -> bin_string().
 bin_concatenate( FirstBinStr, SecondBinStr ) ->
-	% Presumably better than bin_format("~ts~ts", [FirstBinStr, SecondBinStr]):
+	% Presumably better than bin_format("~ts~ts", [FirstBinStr, SecondBinStr]),
+	% mostly the same as erlang:iolist_to_binary([FirstBinStr, SecondBinStr]):
+	%
 	<<FirstBinStr/binary, SecondBinStr/binary>>.
 
 

@@ -738,12 +738,12 @@ decompress_cipher( CipheredFilePath, TargetFilePath, CompressFormat ) ->
 
 	%NewCipheredFilePath = CipheredFilePath
 	NewCipheredFilePath = generate_filename()
-		++ file_utils:get_extension_for( CompressFormat ),
+		++ file_utils:get_dotted_extension_for( CompressFormat ),
 
 	file_utils:rename( CipheredFilePath, NewCipheredFilePath ),
 
-	DecompressedFilePath = file_utils:decompress( NewCipheredFilePath,
-												  CompressFormat ),
+	DecompressedFilePath =
+		file_utils:decompress( NewCipheredFilePath, CompressFormat ),
 
 	file_utils:rename( NewCipheredFilePath, CipheredFilePath ),
 
@@ -753,7 +753,7 @@ decompress_cipher( CipheredFilePath, TargetFilePath, CompressFormat ) ->
 
 
 insert_random_cipher( SourceFilePath, CipheredFilePath, Range )
-  when Range > 1 ->
+							when Range > 1 ->
 
 	SourceFile = file_utils:open( SourceFilePath, ?bin_read_opts ),
 
@@ -762,7 +762,7 @@ insert_random_cipher( SourceFilePath, CipheredFilePath, Range )
 	_InsertedCount = insert_helper( SourceFile, TargetFile, Range, _Count=0 ).
 
 	%trace_utils:debug_fmt( "insert_random_cipher: inserted ~B bytes.",
-	%						[ InsertedCount ] ).
+	%                       [ InsertedCount ] ).
 
 
 % We insert at random places random values in the content:

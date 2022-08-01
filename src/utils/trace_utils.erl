@@ -107,7 +107,7 @@
 % Values corresponding to format quantifiers.
 
 
--type trace_message_categorization() :: ustring().
+-type trace_message_categorization() :: atom().
 % Categorization of a trace message.
 
 

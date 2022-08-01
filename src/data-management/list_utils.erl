@@ -76,7 +76,7 @@
 		  remove_element_from/2, remove_elements_from/2,
 		  remove_first_occurrence/2, remove_first_occurrences/2,
 		  delete_all_in/2,
-		  append_at_end/2,
+		  intercalate/2, append_at_end/2,
 		  unordered_compare/2, flatten_once/1, filter_out_undefined/1 ]).
 
 
@@ -1035,6 +1035,32 @@ remove_elements_from( Elems, _List=[ E | T ], Acc ) ->
 -spec delete_all_in( element(), list() ) -> list().
 delete_all_in( Elem, List ) ->
 	remove_element_from( Elem, List ).
+
+
+
+% @doc Intercalates the specified term between all elements of the specified
+% list.
+%
+% For example:
+%  [] = list_utils:intercalate('a', []),
+%  [1] = list_utils:intercalate('a', [1]),
+%  [1,a,2] = list_utils:intercalate('a', [1,2]),
+%  [1,a,2,a,3] = list_utils:intercalate('a', [1,2,3]).
+%
+-spec intercalate( element(), list() ) -> list().
+intercalate( _Elem, _TargetList=[] ) ->
+	[];
+
+intercalate( Elem, TargetList ) ->
+	intercalate( Elem, TargetList, _Acc=[] ).
+
+
+% (helper)
+intercalate( _Elem, _TargetList=[ H | [] ], Acc ) ->
+	lists:reverse( [ H | Acc ] );
+
+intercalate( Elem, _TargetList=[ H | T ], Acc ) ->
+	intercalate( Elem, T, [ Elem, H | Acc ] ).
 
 
 
