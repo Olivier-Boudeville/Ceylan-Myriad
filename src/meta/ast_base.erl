@@ -26,7 +26,6 @@
 % Creation date: Sunday, February 4, 2018.
 
 
-
 % @doc Module in charge of providing <b>base, transverse constructs to manage
 % ASTs</b>, notably in order to transform them (meta-programming).
 %

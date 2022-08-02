@@ -36,8 +36,8 @@
 
 % Implementation notes:
 %
-% Native support in Erlang for time-related operations is mostly located in the
-% calendar module.
+% The native support in Erlang for time-related operations is mostly located in
+% the calendar module.
 %
 % A typical date format of interest here is: "Friday, July 24, 2015".
 %
@@ -137,7 +137,7 @@
 % Refer to https://en.wikipedia.org/wiki/ISO_8601 for further information.
 
 
--type iso8601_bin_string() :: ustring().
+-type iso8601_bin_string() :: bin_string().
 % A binary string representing a timestamp according to ISO 8601.
 %
 % Ex: "2022-07-04T14:23:18Z".
@@ -1208,7 +1208,8 @@ timestamp_to_string( Timestamp ) ->
 -spec timestamp_to_iso8601_string( timestamp() ) -> iso8601_string().
 timestamp_to_iso8601_string( _Timestamp={ { Year, Month, Day },
 										  { Hour, Minute, Second } } ) ->
-	text_utils:format( "~.4.0B-~.2.0B-~.2.0BT~.2.0B:~.2.0B:~.2.0BZ",
+	% Note that the format specifier must be ~w, not ~B:
+	text_utils:bin_format( "~.4.0w-~.2.0w-~.2.0wT~.2.0w:~.2.0w:~.2.0wZ",
 					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
@@ -1217,7 +1218,8 @@ timestamp_to_iso8601_string( _Timestamp={ { Year, Month, Day },
 -spec timestamp_to_iso8601_bin_string( timestamp() ) -> iso8601_bin_string().
 timestamp_to_iso8601_bin_string( _Timestamp={ { Year, Month, Day },
 										  { Hour, Minute, Second } } ) ->
-	text_utils:bin_format( "~.4.0B-~.2.0B-~.2.0BT~.2.0B:~.2.0B:~.2.0BZ",
+	% Note that the format specifier must be ~w, not ~B:
+	text_utils:bin_format( "~.4.0w-~.2.0w-~.2.0wT~.2.0w:~.2.0w:~.2.0wZ",
 						   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 

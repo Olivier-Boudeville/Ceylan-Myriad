@@ -165,9 +165,9 @@
 -type decoded_json() :: json_term().
 
 
--type json_term() :: map_hashtable:map_hashtable( decoded_json_key(),
-												  decoded_json_value() )
-						| integer() | float() | binary() | atom() | term().
+-type json_term() ::
+		map_hashtable:map_hashtable( decoded_json_key(), decoded_json_value() )
+	  | integer() | float() | binary() | atom() | term().
 % An (Erlang) term corresponding to a JSON document (ex: a decoded one, or one
 % not encoded yet), at least often a map whose keys are binary strings and whose
 % values are json_term() or basic types such as integers, floats, strings,
@@ -365,16 +365,7 @@ get_parser_backend_name() ->
 % @doc Tells whether a suitable JSON parser is available.
 -spec is_parser_available() -> boolean().
 is_parser_available() ->
-
-	case get_parser_backend_name() of
-
-		undefined ->
-			false;
-
-		_ ->
-			true
-
-	end.
+	get_parser_backend_name() =/= undefined.
 
 
 

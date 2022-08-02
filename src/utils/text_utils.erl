@@ -3077,6 +3077,8 @@ join( Separator, ListToJoin ) ->
 %
 % Note: conversely, use split/2 to split the string.
 %
+% See also bin_concatenate/2.
+%
 -spec bin_join( any_string() | uchar(), [ any_string() ] ) -> bin_string().
 bin_join( Separator, ListToJoin ) ->
 
