@@ -4933,14 +4933,14 @@ write_whole( AnyFilePath, Content ) ->
 
 
 
-% @doc Writes the specified content in specified file, whose path is specified
-% as any kind of string, using the specified modes options, and applying before
-% a default encoding if a plain string is specified.
+% @doc Writes the specified content in the file whose path is specified as any
+% kind of string, using the specified modes options, and applying before a
+% default encoding if a plain string is specified.
 %
 % Note that no transparent encoding-to-file is thus expected to be specified
 % through modes, as this function already performs (through
-% text_utils:string_to_binary/1) such encoding on plain strings (this would
-% result in a double encoding); specifying a binary allows to avoid any
+% text_utils:string_to_binary/1) such encoding on plain strings (otherwise this
+% would result in a double encoding); specifying a binary allows to avoid any
 % potential unwanted encoding.
 %
 % Throws an exception on failure.
