@@ -119,7 +119,8 @@
 		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, split_every/2,
 		  tokenizable_to_camel_case/2,
-		  duplicate/2, concatenate/1, bin_concatenate/2,
+		  duplicate/2,
+		  concatenate/1, bin_concatenate/1, bin_concatenate/2,
 		  remove_empty_lines/1,
 
 		  find_substring_index/2, find_substring_index/3,
@@ -3385,6 +3386,9 @@ duplicate( Count, Str ) ->
 
 
 
+% concatenate/2 on plain strings is just '++'.
+
+
 % @doc Concatenates all elements (string-like ones or numbers) in the specified
 % list into a single (plain) string.
 %
@@ -3396,6 +3400,7 @@ concatenate( Elements ) ->
 	lists:concat( Elements ).
 
 
+
 % @doc Concatenates the two specified binary strings into the returned one.
 -spec bin_concatenate( bin_string(), bin_string() ) -> bin_string().
 bin_concatenate( FirstBinStr, SecondBinStr ) ->
@@ -3403,6 +3408,12 @@ bin_concatenate( FirstBinStr, SecondBinStr ) ->
 	% mostly the same as erlang:iolist_to_binary([FirstBinStr, SecondBinStr]):
 	%
 	<<FirstBinStr/binary, SecondBinStr/binary>>.
+
+
+% @doc Concatenates the specified binary strings into the returned one.
+-spec bin_concatenate( [ bin_string() ] ) -> bin_string().
+bin_concatenate( BinStrs ) ->
+	erlang:iolist_to_binary( BinStrs ).
 
 
 
