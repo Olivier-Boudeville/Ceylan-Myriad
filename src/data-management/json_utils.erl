@@ -42,8 +42,12 @@
 % (https://github.com/talentdeficit/jsx/), version 3.0.0 at the time of this
 % writing; we expect the BEAM files from JSX to be available on the code path
 % (out of a rebar3 context, we typically expect to find them in
-% ~/Software/jsx/jsx-current-install).
+% ~/Software/jsx/jsx-current-install/ebin).
 %
+% Refer to the 'JSX Installation' section in GNUmakevars.inc in order to perform
+% an installation thereof according to our standards - which is strongly
+% recommended.
+
 % Jiffy (https://github.com/davisp/jiffy) is the second supported backend
 % option (with no specific action needed to be able to use it).
 %

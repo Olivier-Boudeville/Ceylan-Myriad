@@ -562,23 +562,30 @@ ifeq ($(USE_JSON),true)
 
 	ifeq ($(USE_JSX),true)
 
+		# JSX Installation section.
+
 		# The JSX JSON parser is available at
 		# https://github.com/talentdeficit/jsx.
 
-		# Install obtained thanks to (see also
-		# https://myriad.esperide.org/#file-formats)
-		#
+		# An install of it can be obtained thanks to (see also
+		# https://myriad.esperide.org/#file-formats):
 		# $ mkdir -p ~/Software/jsx
 		# $ cd ~/Software/jsx
-
 		# $ git clone https://github.com/talentdeficit/jsx.git
-
 		# $ ln -s jsx jsx-current-install
 
-		# Rebar3 must be already available (otherwise see Ceylan-Hull's
-		# install-rebar3.sh script):
-		#
+		# Rebar3 must be already available for the build of jsx (otherwise refer
+		# to Ceylan-Hull's install-rebar3.sh script):
 		# $ cd jsx/ && rebar3 compile && rebar3 eunit
+
+		# Unfortunately, this build will not result in a proper
+		# ~/Software/jsx/jsx-current-install/ebin directory to be
+		# created. However this is not a problem, as Myriad is able to overcome
+		# this issue; yet for the sake of clarity/completeness one may create such a
+		# directory with:
+		# $ cd ~/Software/jsx/jsx-current-install
+		#     && ln -s _build/default/lib/jsx/ebin/
+
 
 		# Actually not used, as decided at runtime rather than at compile time:
 		#JSON_OPT = -Duse_jsx_json_backend
