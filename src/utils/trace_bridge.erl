@@ -27,12 +27,13 @@
 
 
 % @doc The <b>trace bridge</b> allows modules to depend only on the
-% Ceylan-Myriad layer, yet to rely optionally on a non-Myriad code (possibly the
-% Ceylan-Traces layer, refer to [http://traces.esperide.org/]) at runtime for
-% <b>its logging</b>, so that in all cases exactly one (and the most
-% appropriate) logging system is used, even when lower-level libraries are
-% involved (designed to operate with or without an advanced trace system), and
-% with no change in the source code of these user modules to be operated.
+% Ceylan-Myriad layer, yet to rely optionally on a non-Myriad code for
+% traces/logs (possibly the Ceylan-Traces layer, refer to
+% [http://traces.esperide.org/]) at runtime for <b>its logging</b>, so that in
+% all cases exactly one (and the most appropriate) logging system is used, even
+% when lower-level libraries are involved (designed to operate with or without
+% an advanced trace system), and with no change in the source code of these user
+% modules to be operated.
 %
 % It is useful to provide native, integrated, higher-level logging to basic
 % libraries (ex: Ceylan-LEEC, see [http://leec.esperide.org]), should their user
@@ -115,7 +116,9 @@
 % Implementation notes:
 %
 % The process dictionary is used in order to avoid carrying along too many
-% parameters.
+% parameters: the myriad_trace_bridge_key define corresponds to the key to which
+% a bridge_info() term may be associated so that the current process is bridged
+% to a Trace system.
 %
 % Not special-casing the 'void' severity, as not used frequently enough.
 
@@ -223,19 +226,15 @@ register_if_not_already( BridgeSpec ) ->
 
 	BridgeKey = ?myriad_trace_bridge_key,
 
-	case process_dictionary:get( BridgeKey ) of
-
-		undefined ->
+	process_dictionary:get( BridgeKey ) =:= undefined andalso
+		begin
 
 			BridgeInfo = bridge_spec_to_info( BridgeSpec ),
 
 			process_dictionary:put( BridgeKey, BridgeInfo ),
-			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
+			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] )
 
-		_ ->
-			ok
-
-	end.
+		end.
 
 
 
