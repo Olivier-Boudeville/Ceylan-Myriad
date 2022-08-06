@@ -539,12 +539,21 @@
 
 
 % Checking (see also: list_utils:are_*/1):
+%
+% (we prefer 'positive' vs 'strictly positive', deemed cleared than 'non_neg' vs
+% 'positive', this latter one excluding zero)
+%
 -export([ check_atom/1, check_boolean/1,
 
 		  check_pid/1, check_maybe_pid/1,
 
+
 		  check_number/1, check_maybe_number/1,
+		  check_positive_number/1,
+		  check_strictly_positive_number/1,
+
 		  check_numbers/1, check_maybe_numbers/1,
+
 
 		  check_integer/1, check_maybe_integer/1,
 		  check_integers/1, check_maybe_integers/1,
@@ -1447,7 +1456,7 @@ check_maybe_pid( Other ) ->
 
 
 
-% @doc Checks that the specified term is an number indeed, and returns it.
+% @doc Checks that the specified term is a number indeed, and returns it.
 -spec check_number( term() ) -> number().
 check_number( Num ) when is_number( Num ) ->
 	Num;
@@ -1467,6 +1476,30 @@ check_maybe_number( Num ) when is_number( Num ) ->
 
 check_maybe_number( Other ) ->
 	throw( { not_maybe_number, Other } ).
+
+
+
+% @doc Checks that the specified term is a positive or null number indeed, and
+% returns it.
+%
+-spec check_positive_number( term() ) -> number().
+check_positive_number( Num ) when is_number( Num ) andalso Num >= 0 ->
+	true;
+
+check_positive_number( _Num ) ->
+	false.
+
+
+
+% @doc Checks that the specified term is a strictly positive number indeed, and
+% returns it.
+%
+-spec check_strictly_positive_number( term() ) -> number().
+check_strictly_positive_number( Num ) when is_number( Num ) andalso Num > 0 ->
+	true;
+
+check_strictly_positive_number( _Num ) ->
+	false.
 
 
 
