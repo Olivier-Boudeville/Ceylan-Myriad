@@ -3068,10 +3068,10 @@ join( Separator, ListToJoin ) ->
 % and returns a corresponding binary string.
 %
 % bin_join(Separator, BinStringsToJoin), to be used like in:
-%      join($-, [<<"Barbara">>, <<"Ann">>]) = <<"Barbara-Ann">>.
+%      join($-, [`<<"Barbara">>', `<<"Ann">>']) = `<<"Barbara-Ann">>'.
 %
 % Separator can be a character, like $a, or any string, like ", " or
-% <<"hello">>.
+% `<<"hello">>'.
 %
 % For file-related paths, you are expected to use the file_utils:bin_join/{1,2}
 % functions instead.

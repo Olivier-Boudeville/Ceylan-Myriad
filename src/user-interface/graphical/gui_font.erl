@@ -124,8 +124,8 @@ create( FontSize, FontFamily ) ->
 % @doc Creates a font object from specified requirements, to determine the
 % appearance of rendered text.
 %
--spec create( font_size() | point_size(), font_family(), font_style(),
-			  font_weight() ) -> font().
+-spec create( font_size() | point_size(), font_family(), font_style() ) ->
+											font().
 create( FontSize, FontFamily, FontStyle ) ->
 	create( FontSize, FontFamily, FontStyle, _FontWeight=normal ).
 

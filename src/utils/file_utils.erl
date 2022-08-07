@@ -200,7 +200,7 @@
 -type resolvable_path() :: [ resolvable_path_element() ].
 % A path that is resolved at runtime, all its elements being joined accordingly.
 %
-% Ex: [home, "Project", lang, <<"simulation">>, user] being translated to the
+% Ex: `[home, "Project", lang, <<"simulation">>', user] being translated to the
 % "/home/bond/Project/en_GB.utf8/simulation/bond" path.
 %
 % See resolve_path/1.

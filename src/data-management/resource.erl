@@ -64,7 +64,7 @@
 -type resource_file_id() :: bin_file_path().
 % An identifier of a file resource, that is a resource that can be read directly
 % from a filesystem, as a path either absolute or relative to an (implicit)
-% resource root directory. Ex: <<"images/hello.png">>.
+% resource root directory. Ex: `<<"images/hello.png">>'.
 
 
 -type resource_file_id_string() :: file_path().
