@@ -160,6 +160,14 @@
 <p><tt>node_type() = visible | hidden | all</tt></p>
 <p> See net_kernel:monitor_nodes/2 for more information.</p>
 
+<h3 class="typedecl"><a name="type-possibly_local_bin_hostname">possibly_local_bin_hostname()</a></h3>
+<p><tt>possibly_local_bin_hostname() = localhost | <a href="#type-bin_host_name">bin_host_name()</a></tt></p>
+<p> For situations where the local host shall be discriminated from all others.</p>
+
+<h3 class="typedecl"><a name="type-possibly_local_hostname">possibly_local_hostname()</a></h3>
+<p><tt>possibly_local_hostname() = localhost | <a href="#type-string_host_name">string_host_name()</a></tt></p>
+<p> For situations where the local host shall be discriminated from all others.</p>
+
 <h3 class="typedecl"><a name="type-string_fqdn">string_fqdn()</a></h3>
 <p><tt>string_fqdn() = nonempty_string()</tt></p>
 
@@ -740,7 +748,7 @@ the current node is a distributed one.</p>
 
 <h3 class="function"><a name="ping-1">ping/1</a></h3>
 <div class="spec">
-<p><tt>ping(Hostname::<a href="#type-string_host_name">string_host_name()</a>) -&gt; boolean()</tt><br></p>
+<p><tt>ping(Hostname::<a href="#type-any_host_name">any_host_name()</a>) -&gt; boolean()</tt><br></p>
 <p> </p>
 </div><p><p>Pings specified hostname, and returns true iff it could be ping'd.</p>
 

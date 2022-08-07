@@ -333,7 +333,9 @@ needing to open a file for writing - should such an option be used.</td></tr>
  pseudo-filesystems).</td></tr>
 <tr><td valign="top"><a href="#get_operating_system_description-0">get_operating_system_description/0</a></td><td>Returns a string describing the current operating system.</td></tr>
 <tr><td valign="top"><a href="#get_operating_system_description_string-0">get_operating_system_description_string/0</a></td><td>Returns a textual description of the operating system being used.</td></tr>
-<tr><td valign="top"><a href="#get_operating_system_type-0">get_operating_system_type/0</a></td><td>Returns the type of the local operating system.</td></tr>
+<tr><td valign="top"><a href="#get_operating_system_family-0">get_operating_system_family/0</a></td><td>Returns the family of the local operating system.</td></tr>
+<tr><td valign="top"><a href="#get_operating_system_name-0">get_operating_system_name/0</a></td><td>Returns the name of the local operating system.</td></tr>
+<tr><td valign="top"><a href="#get_operating_system_type-0">get_operating_system_type/0</a></td><td>Returns the type (family and type) of the local operating system.</td></tr>
 <tr><td valign="top"><a href="#get_process_count-0">get_process_count/0</a></td><td>Returns the number of live Erlang processes on the current node.</td></tr>
 <tr><td valign="top"><a href="#get_process_count_string-0">get_process_count_string/0</a></td><td>Returns a textual description of the number of live Erlang processes on 
 the current node.</td></tr>
@@ -983,11 +985,23 @@ needing to open a file for writing - should such an option be used.</p>
  Cannot crash.
 </p>
 
+<h3 class="function"><a name="get_operating_system_family-0">get_operating_system_family/0</a></h3>
+<div class="spec">
+<p><tt>get_operating_system_family() -&gt; <a href="#type-os_family">os_family()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the family of the local operating system.</p>
+
+<h3 class="function"><a name="get_operating_system_name-0">get_operating_system_name/0</a></h3>
+<div class="spec">
+<p><tt>get_operating_system_name() -&gt; <a href="#type-os_name">os_name()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the name of the local operating system.</p>
+
 <h3 class="function"><a name="get_operating_system_type-0">get_operating_system_type/0</a></h3>
 <div class="spec">
 <p><tt>get_operating_system_type() -&gt; <a href="#type-os_type">os_type()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the type of the local operating system.</p>
+</div><p>Returns the type (family and type) of the local operating system.</p>
 
 <h3 class="function"><a name="get_process_count-0">get_process_count/0</a></h3>
 <div class="spec">

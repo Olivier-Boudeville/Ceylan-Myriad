@@ -83,11 +83,19 @@
 <p><tt>module_name() = <a href="basic_utils.html#type-module_name">basic_utils:module_name()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-possibly_resolvable_path">possibly_resolvable_path()</a></h3>
+<p><tt>possibly_resolvable_path() = <a href="file_utils.html#type-possibly_resolvable_path">file_utils:possibly_resolvable_path()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-resolvable_code_path">resolvable_code_path()</a></h3>
+<p><tt>resolvable_code_path() = [<a href="#type-possibly_resolvable_path">possibly_resolvable_path()</a>]</tt></p>
+<p> A code path that may comprise plain or resolvable paths.</p>
+
 <h3 class="typedecl"><a name="type-stack_info">stack_info()</a></h3>
 <p><tt>stack_info() = <a href="map_hashtable.html#type-map_hashtable">map_hashtable:map_hashtable</a>(atom(), term()) | <a href="list_table.html#type-list_table">list_table:list_table</a>(atom(), term())</tt></p>
 <p><p> The last element of a stack item.</p>
 
- Ex: [ { file, file_path() }, { line, meta_utils:line() } ].</p>
+ Ex: [{file,file_path()}, {line, meta_utils:line()}].</p>
 
 <h3 class="typedecl"><a name="type-stack_item">stack_item()</a></h3>
 <p><tt>stack_item() = {<a href="#type-module_name">module_name()</a>, <a href="#type-function_name">function_name()</a>, arity(), <a href="#type-stack_info">stack_info()</a>}</tt></p>
@@ -174,6 +182,8 @@ the ebin directory of a specified application) from the current code path.</td><
 <tr><td valign="top"><a href="#remove_beam_directory_if_set-1">remove_beam_directory_if_set/1</a></td><td>Removes specified directory (either specified verbatim or designated as 
 the ebin directory of a specified application) from the current code path, if 
 it was already set (otherwise does nothing).</td></tr>
+<tr><td valign="top"><a href="#resolve_code_path-1">resolve_code_path/1</a></td><td>Resolves the specified resolvable code path: returns a plain, immediately
+ usable code path (of course preserving path order).</td></tr>
 <tr><td valign="top"><a href="#stack_info_to_string-1">stack_info_to_string/1</a></td><td>Returns a textual description of specified stack information.</td></tr>
 </table>
 
@@ -387,8 +397,9 @@ alphabetical order (without duplicates).</p>
 </div><p><p>Returns a textual representation of the current code path, sorted in 
 alphabetical order.</p>
 
- Note that the sorting is more convenient for inspection yet implies that the
- actual lookup order through these directories is most probably different.
+ Note that the sorting is more convenient for inspection, yet implies that the
+ actual lookup order used by the VM through this code path is most probably
+ different.
 </p>
 
 <h3 class="function"><a name="get_erlang_root_path-0">get_erlang_root_path/0</a></h3>
@@ -541,6 +552,14 @@ the ebin directory of a specified application) from the current code path, if
 it was already set (otherwise does nothing).</p>
 
  Throws an exception if the operation failed otherwise.
+</p>
+
+<h3 class="function"><a name="resolve_code_path-1">resolve_code_path/1</a></h3>
+<div class="spec">
+<p><tt>resolve_code_path(AnyCodePaths::<a href="#type-resolvable_code_path">resolvable_code_path()</a>) -&gt; <a href="#type-code_path">code_path()</a></tt><br></p>
+<p> </p>
+</div><p>Resolves the specified resolvable code path: returns a plain, immediately
+ usable code path (of course preserving path order).
 </p>
 
 <h3 class="function"><a name="stack_info_to_string-1">stack_info_to_string/1</a></h3>

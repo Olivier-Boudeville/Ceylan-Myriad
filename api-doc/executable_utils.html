@@ -114,6 +114,9 @@ the dot (graphviz) syntax.</td></tr>
 <tr><td valign="top"><a href="#get_default_erlang_interpreter_path-0">get_default_erlang_interpreter_path/0</a></td><td>Returns an absolute path to the default Erlang interpreter.</td></tr>
 <tr><td valign="top"><a href="#get_default_erlang_root-0">get_default_erlang_root/0</a></td><td>Returns an absolute path to the root directory of the current Erlang 
 installation.</td></tr>
+<tr><td valign="top"><a href="#get_default_graph_stream_tool_name-0">get_default_graph_stream_tool_name/0</a></td><td>Returns the name of the default tool used to process streamed graphs.</td></tr>
+<tr><td valign="top"><a href="#get_default_graph_stream_tool_path-0">get_default_graph_stream_tool_path/0</a></td><td>Returns an absolute path to the default tool used to process streamed
+ graphs.</td></tr>
 <tr><td valign="top"><a href="#get_default_image_browser_name-0">get_default_image_browser_name/0</a></td><td>Returns the name of the default image browser tool.</td></tr>
 <tr><td valign="top"><a href="#get_default_image_browser_path-0">get_default_image_browser_path/0</a></td><td>Returns an absolute path to the default image browser tool.</td></tr>
 <tr><td valign="top"><a href="#get_default_image_viewer_name-0">get_default_image_viewer_name/0</a></td><td>Returns the name of the default image viewer tool.</td></tr>
@@ -140,6 +143,7 @@ namely 'OtpErlang.jar'.</td></tr>
 <tr><td valign="top"><a href="#get_default_web_browser_path-0">get_default_web_browser_path/0</a></td><td>Returns an absolute path to the default web browser tool.</td></tr>
 <tr><td valign="top"><a href="#get_default_wide_text_viewer_name-1">get_default_wide_text_viewer_name/1</a></td><td>Returns the name of the default viewer tool for wider texts.</td></tr>
 <tr><td valign="top"><a href="#get_default_wide_text_viewer_path-1">get_default_wide_text_viewer_path/1</a></td><td>Returns an absolute path to the default viewer tool for wider texts.</td></tr>
+<tr><td valign="top"><a href="#get_default_xml_prettyprinter-0">get_default_xml_prettyprinter/0</a></td><td>Returns the default client to pretty-print XML content.</td></tr>
 <tr><td valign="top"><a href="#get_default_xz_compress_tool-0">get_default_xz_compress_tool/0</a></td><td>Returns the default tool to use to compress in the XZ format.</td></tr>
 <tr><td valign="top"><a href="#get_default_xz_decompress_tool-0">get_default_xz_decompress_tool/0</a></td><td>Returns the default tool to use to decompress in the XZ format.</td></tr>
 <tr><td valign="top"><a href="#get_default_zip_compress_tool-0">get_default_zip_compress_tool/0</a></td><td>Returns the default tool to use to compress in the ZIP format.</td></tr>
@@ -368,6 +372,20 @@ installation.</p>
  ~/Software/Erlang/Erlang-current-install.
 </p>
 
+<h3 class="function"><a name="get_default_graph_stream_tool_name-0">get_default_graph_stream_tool_name/0</a></h3>
+<div class="spec">
+<p><tt>get_default_graph_stream_tool_name() -&gt; <a href="#type-executable_name">executable_name()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the name of the default tool used to process streamed graphs.</p>
+
+<h3 class="function"><a name="get_default_graph_stream_tool_path-0">get_default_graph_stream_tool_path/0</a></h3>
+<div class="spec">
+<p><tt>get_default_graph_stream_tool_path() -&gt; <a href="#type-executable_path">executable_path()</a></tt><br></p>
+<p> </p>
+</div><p>Returns an absolute path to the default tool used to process streamed
+ graphs.
+</p>
+
 <h3 class="function"><a name="get_default_image_browser_name-0">get_default_image_browser_name/0</a></h3>
 <div class="spec">
 <p><tt>get_default_image_browser_name() -&gt; <a href="#type-executable_name">executable_name()</a></tt><br></p>
@@ -549,6 +567,12 @@ with ERLANG_ROOT being typically ~/Software/Erlang/Erlang-current-install.</p>
 <p><tt>get_default_wide_text_viewer_path(CharacterWidth::<a href="#type-width">width()</a>) -&gt; <a href="#type-executable_path">executable_path()</a></tt><br></p>
 <p> </p>
 </div><p>Returns an absolute path to the default viewer tool for wider texts.</p>
+
+<h3 class="function"><a name="get_default_xml_prettyprinter-0">get_default_xml_prettyprinter/0</a></h3>
+<div class="spec">
+<p><tt>get_default_xml_prettyprinter() -&gt; <a href="#type-executable_path">executable_path()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the default client to pretty-print XML content.</p>
 
 <h3 class="function"><a name="get_default_xz_compress_tool-0">get_default_xz_compress_tool/0</a></h3>
 <div class="spec">

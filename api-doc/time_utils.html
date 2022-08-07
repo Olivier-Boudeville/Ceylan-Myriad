@@ -27,6 +27,10 @@
 <p><tt>any_hertz() = <a href="unit_utils.html#type-any_hertz">unit_utils:any_hertz()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-bin_string">bin_string()</a></h3>
+<p><tt>bin_string() = <a href="text_utils.html#type-bin_string">text_utils:bin_string()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-birth_date">birth_date()</a></h3>
 <p><tt>birth_date() = <a href="#type-date">date()</a></tt></p>
 <p> A canonical date of birth.</p>
@@ -81,7 +85,7 @@
 
 
 <h3 class="typedecl"><a name="type-dhms_duration">dhms_duration()</a></h3>
-<p><tt>dhms_duration() = {<a href="#type-days">days()</a>, <a href="#type-hours">hours()</a>, <a href="#type-minutes">minutes()</a>, <a href="#type-seconds">seconds()</a>}</tt></p>
+<p><tt>dhms_duration() = {D::<a href="#type-days">days()</a>, H::<a href="#type-hours">hours()</a>, M::<a href="#type-minutes">minutes()</a>, S::<a href="#type-seconds">seconds()</a>}</tt></p>
 <p> Day/Hour/Minute/Second duration, for example used with MTTF (not necessarily
  in a canonical form, for example more than 24 hours or 60 minutes can be
  specified).</p>
@@ -93,6 +97,22 @@
 <h3 class="typedecl"><a name="type-hours">hours()</a></h3>
 <p><tt>hours() = <a href="unit_utils.html#type-hours">unit_utils:hours()</a></tt></p>
 
+
+<h3 class="typedecl"><a name="type-iso8601_bin_string">iso8601_bin_string()</a></h3>
+<p><tt>iso8601_bin_string() = <a href="#type-bin_string">bin_string()</a></tt></p>
+<p><p> A binary string representing a timestamp according to ISO 8601.</p>
+
+ <p>Ex: "2022-07-04T14:23:18Z".</p>
+
+ Refer to https://en.wikipedia.org/wiki/ISO_8601 for further information.</p>
+
+<h3 class="typedecl"><a name="type-iso8601_string">iso8601_string()</a></h3>
+<p><tt>iso8601_string() = <a href="#type-ustring">ustring()</a></tt></p>
+<p><p> A (plain) string representing a timestamp according to ISO 8601.</p>
+
+ <p>Ex: "2022-07-04T14:23:18Z".</p>
+
+ Refer to https://en.wikipedia.org/wiki/ISO_8601 for further information.</p>
 
 <h3 class="typedecl"><a name="type-megaseconds">megaseconds()</a></h3>
 <p><tt>megaseconds() = <a href="unit_utils.html#type-megaseconds">unit_utils:megaseconds()</a></tt></p>
@@ -227,6 +247,8 @@ the specified duration, expected to be expressed as a number of milliseconds
  standard timestamp.</td></tr>
 <tr><td valign="top"><a href="#get_bank_holidays_for-2">get_bank_holidays_for/2</a></td><td>Returns a (non chronologically-ordered) list of the dates of the bank 
 holidays, for specified year and country.</td></tr>
+<tr><td valign="top"><a href="#get_bin_textual_timestamp-0">get_bin_textual_timestamp/0</a></td><td>Returns a binary string corresponding to the current timestamp, like:
+ <code>&lt;&lt;"2009/9/1 11:46:53"&gt;&gt;</code>.</td></tr>
 <tr><td valign="top"><a href="#get_date_after-2">get_date_after/2</a></td><td>Returns the date corresponding to the specified one augmented of the
  specified number of days (possibly a negative number).</td></tr>
 <tr><td valign="top"><a href="#get_date_difference-2">get_date_difference/2</a></td><td>Returns the signed duration, in days, between the two specified dates.</td></tr>
@@ -330,6 +352,8 @@ the specified language, expected to be expressed as a number of milliseconds
  seconds.</td></tr>
 <tr><td valign="top"><a href="#time_to_string-1">time_to_string/1</a></td><td>Returns a textual description of the specified time of day, like:
  "09:14:57".</td></tr>
+<tr><td valign="top"><a href="#timestamp_to_iso8601_bin_string-1">timestamp_to_iso8601_bin_string/1</a></td><td>Returns a textual ISO8601 description of the specified timestamp.</td></tr>
+<tr><td valign="top"><a href="#timestamp_to_iso8601_string-1">timestamp_to_iso8601_string/1</a></td><td>Returns a textual ISO8601 description of the specified timestamp.</td></tr>
 <tr><td valign="top"><a href="#timestamp_to_seconds-0">timestamp_to_seconds/0</a></td><td>Returns the number of seconds elapsed since year 0 and now.</td></tr>
 <tr><td valign="top"><a href="#timestamp_to_seconds-1">timestamp_to_seconds/1</a></td><td>Returns the number of seconds elapsed since year 0 and specified 
 timestamp.</td></tr>
@@ -534,6 +558,17 @@ holidays, for specified year and country.</p>
  ("fixed" days have then been factored).
 </p>
 
+<h3 class="function"><a name="get_bin_textual_timestamp-0">get_bin_textual_timestamp/0</a></h3>
+<div class="spec">
+<p><tt>get_bin_textual_timestamp() -&gt; <a href="#type-bin_string">bin_string()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a binary string corresponding to the current timestamp, like:
+ <code>&lt;&lt;"2009/9/1 11:46:53"&gt;&gt;</code>.</p>
+
+ Note that the display order here is YY-MM-DD (same as when specifying the
+ timestamp), as opposed to DD-MM-YY, which is maybe more usual.
+</p>
+
 <h3 class="function"><a name="get_date_after-2">get_date_after/2</a></h3>
 <div class="spec">
 <p><tt>get_date_after(BaseDate::<a href="#type-date">date()</a>, Days::<a href="#type-days">days()</a>) -&gt; <a href="#type-date">date()</a></tt><br></p>
@@ -598,7 +633,7 @@ holidays, for specified year and country.</p>
 
 <h3 class="function"><a name="get_french_textual_timestamp-1">get_french_textual_timestamp/1</a></h3>
 <div class="spec">
-<p><tt>get_french_textual_timestamp(X1::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>get_french_textual_timestamp(Timestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a string corresponding to the specified timestamp expressed in
  French, like: "le 1/9/2009, à 11h46m53".
@@ -719,7 +754,7 @@ Secs, MicroSecs}.</p>
 
 <h3 class="function"><a name="get_textual_timestamp-1">get_textual_timestamp/1</a></h3>
 <div class="spec">
-<p><tt>get_textual_timestamp(X1::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>get_textual_timestamp(Timestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a (clear, non-ambiguous) string corresponding to the specified
  timestamp, like: "2009/9/1 11:46:53".
@@ -735,7 +770,7 @@ Secs, MicroSecs}.</p>
 
 <h3 class="function"><a name="get_textual_timestamp_for_path-1">get_textual_timestamp_for_path/1</a></h3>
 <div class="spec">
-<p><tt>get_textual_timestamp_for_path(X1::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>get_textual_timestamp_for_path(Timestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a string corresponding to the specified timestamp and able to be
  a part of a path, like: "2010-11-18-at-13h-30m-35s".
@@ -743,7 +778,7 @@ Secs, MicroSecs}.</p>
 
 <h3 class="function"><a name="get_textual_timestamp_with_dashes-1">get_textual_timestamp_with_dashes/1</a></h3>
 <div class="spec">
-<p><tt>get_textual_timestamp_with_dashes(X1::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>get_textual_timestamp_with_dashes(Timestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a string corresponding to the specified timestamp, with "dash"
  conventions (ex: used by jsgantt), like: "2017-05-20 12:00:17".
@@ -764,7 +799,7 @@ Secs, MicroSecs}.</p>
 
 <h3 class="function"><a name="get_time2_textual_timestamp-1">get_time2_textual_timestamp/1</a></h3>
 <div class="spec">
-<p><tt>get_time2_textual_timestamp(X1::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>get_time2_textual_timestamp(Timestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns a string corresponding to the specified timestamp expressed as 
 the "%time2" Date and time format, that is "yyyy-mm-dd hh-mm-ss"; for example: 
@@ -788,7 +823,7 @@ time zone and Daylight Saving Time correction depending on the underlying OS.</p
 
 <h3 class="function"><a name="get_user_friendly_textual_timestamp-1">get_user_friendly_textual_timestamp/1</a></h3>
 <div class="spec">
-<p><tt>get_user_friendly_textual_timestamp(X1) -&gt; any()</tt></p>
+<p><tt>get_user_friendly_textual_timestamp(Timestamp) -&gt; any()</tt></p>
 <p> </p>
 </div><p>Returns a string corresponding to the specified timestamp in a
  user-friendly manner, like: "Wednesday, January 6, 2021 at 11:46:53".
@@ -986,6 +1021,18 @@ the specified language, expected to be expressed as a number of milliseconds
 </div><p>Returns a textual description of the specified time of day, like:
  "09:14:57".
 </p>
+
+<h3 class="function"><a name="timestamp_to_iso8601_bin_string-1">timestamp_to_iso8601_bin_string/1</a></h3>
+<div class="spec">
+<p><tt>timestamp_to_iso8601_bin_string(Timestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-iso8601_bin_string">iso8601_bin_string()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a textual ISO8601 description of the specified timestamp.</p>
+
+<h3 class="function"><a name="timestamp_to_iso8601_string-1">timestamp_to_iso8601_string/1</a></h3>
+<div class="spec">
+<p><tt>timestamp_to_iso8601_string(Timestamp::<a href="#type-timestamp">timestamp()</a>) -&gt; <a href="#type-iso8601_string">iso8601_string()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a textual ISO8601 description of the specified timestamp.</p>
 
 <h3 class="function"><a name="timestamp_to_seconds-0">timestamp_to_seconds/0</a></h3>
 <div class="spec">
