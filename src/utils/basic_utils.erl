@@ -206,8 +206,23 @@
 
 
 -type maybe( T ) :: T | 'undefined'.
+% Denotes a value that may be set to one in T, or that may not be set at all.
+%
 % Quite often, variables (ex: record fields) are set to 'undefined'
 % (i.e. "Nothing") before being set later.
+%
+% Note that the type T should not include the 'undefined' atom, otherwise one
+% cannot discriminate between a value that happens to be set to 'undefined'
+% versus a value not defined at all.
+
+
+-type safe_maybe( T ) :: { 'just', T } | 'nothing'.
+% Denotes a value that may be set to one in T, or that may not be set at all,
+% with no restriction on type T.
+%
+% A bit more expensive than maybe/1.
+%
+% Obviously a node to Haskell.
 
 
 -type wildcardable( T ) :: T | 'any'.
@@ -380,7 +395,9 @@
 			   error_diagnosis/0, error_bin_diagnosis/0,
 			   error_type/0, error_tuploid/0, error_message/0,
 			   diagnosed_error_reason/0, error_term/0, diagnosed_error_term/0,
-			   base_status/0, maybe/1, wildcardable/1,
+			   base_status/0,
+			   maybe/1, safe_maybe/1,
+			   wildcardable/1,
 			   fallible/1, fallible/2,
 			   diagnosed_fallible/1, diagnosed_fallible/2,
 			   external_data/0, unchecked_data/0, user_data/0,
