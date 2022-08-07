@@ -540,8 +540,11 @@
 
 % Checking (see also: list_utils:are_*/1):
 %
-% (we prefer 'positive' vs 'strictly positive', deemed cleared than 'non_neg' vs
-% 'positive', this latter one excluding zero)
+% We prefer 'positive' vs 'strictly positive', deemed cleared than 'non_neg' vs
+% 'positive', this latter one excluding zero.
+%
+% So, at least here, 'positive' includes zero (shall be understood as 'positive
+% or null'), in constrast to 'strictly positive'.
 %
 -export([ check_atom/1, check_boolean/1,
 
@@ -556,6 +559,8 @@
 
 
 		  check_integer/1, check_maybe_integer/1,
+		  check_positive_integer/1, check_maybe_positive_integer/1,
+
 		  check_integers/1, check_maybe_integers/1,
 
 		  check_float/1, check_maybe_float/1,
@@ -1543,6 +1548,33 @@ check_maybe_integer( Int ) when is_integer( Int ) ->
 
 check_maybe_integer( Other ) ->
 	throw( { not_maybe_integer, Other } ).
+
+
+
+% @doc Checks that the specified term is a positive or null integer, and returns
+% it.
+%
+-spec check_positive_integer( term() ) -> pos_integer().
+check_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+	Int;
+
+check_positive_integer( Other ) ->
+	throw( { not_positive_integer, Other } ).
+
+
+
+% @doc Checks that the specified term is a positive or null integer or the
+% 'undefined' atom, and returns it.
+%
+-spec check_maybe_positive_integer( term() ) -> maybe( pos_integer() ).
+check_maybe_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+	Int;
+
+check_maybe_positive_integer( undefined ) ->
+	undefined;
+
+check_maybe_positive_integer( Other ) ->
+	throw( { not_maybe_positive_integer, Other } ).
 
 
 
