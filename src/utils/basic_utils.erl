@@ -208,21 +208,21 @@
 -type maybe( T ) :: T | 'undefined'.
 % Denotes a value that may be set to one in T, or that may not be set at all.
 %
-% Quite often, variables (ex: record fields) are set to 'undefined'
-% (i.e. "Nothing") before being set later.
-%
 % Note that the type T should not include the 'undefined' atom, otherwise one
 % cannot discriminate between a value that happens to be set to 'undefined'
 % versus a value not defined at all.
+%
+% Quite often, variables (ex: record fields) are set to 'undefined' before being
+% set later.
 
 
 -type safe_maybe( T ) :: { 'just', T } | 'nothing'.
-% Denotes a value that may be set to one in T, or that may not be set at all,
-% with no restriction on type T.
+% Denotes a value that may be set to one of type T (with no restriction on T),
+% or that may not be set at all.
 %
 % A bit more expensive than maybe/1.
 %
-% Obviously a node to Haskell.
+% Obviously a nod to Haskell.
 
 
 -type wildcardable( T ) :: T | 'any'.
@@ -903,10 +903,10 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 			   AckReceiveAtom, ThrowAtom ) ->
 
 	%trace_bridge:debug_fmt( "Waiting for ~p (period: ~ts, max duration: ~ts, "
-	%	"ack atom: '~ts', throw atom: '~ts').",
-	%	[ WaitedSenders, time_utils:duration_to_string( Period ),
-	%	  time_utils:duration_to_string( MaxDurationInSeconds ),
-	%	  AckReceiveAtom, ThrowAtom ] ),
+	%   "ack atom: '~ts', throw atom: '~ts').",
+	%   [ WaitedSenders, time_utils:duration_to_string( Period ),
+	%     time_utils:duration_to_string( MaxDurationInSeconds ),
+	%     AckReceiveAtom, ThrowAtom ] ),
 
 	InitialTimestamp = time_utils:get_timestamp(),
 
@@ -917,7 +917,7 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 
 % (helper)
 wait_for_acks_helper( _WaitedSenders=[], _InitialTimestamp,
-			_MaxDurationInSeconds, _Period, _AckReceiveAtom, _ThrowAtom ) ->
+		_MaxDurationInSeconds, _Period, _AckReceiveAtom, _ThrowAtom ) ->
 	ok;
 
 wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
@@ -930,7 +930,7 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
 
 			%trace_bridge:debug_fmt( "(received ~p, still waiting for "
-			%						"instances ~p)", [ WaitedPid, NewWaited ] ),
+			%   "instances ~p)", [ WaitedPid, NewWaited ] ),
 
 			wait_for_acks_helper( NewWaited, InitialTimestamp,
 				  MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom )
@@ -948,7 +948,7 @@ wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
 				false ->
 					% Still waiting then:
 					%trace_bridge:debug_fmt( "(still waiting for instances ~p)",
-					%						[ WaitedSenders ] ),
+					%                        [ WaitedSenders ] ),
 
 					wait_for_acks_helper( WaitedSenders, InitialTimestamp,
 						MaxDurationInSeconds, Period, AckReceiveAtom,
@@ -1089,13 +1089,7 @@ wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, Period,
 wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 		MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ) ->
 
-	case set_utils:is_empty( WaitedSenders ) of
-
-		true ->
-			ok;
-
-		false ->
-
+	set_utils:is_empty( WaitedSenders ) orelse
 			receive
 
 				{ AckReceiveAtom, WaitedPid } ->
@@ -1104,7 +1098,8 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 														   WaitedSenders ),
 
 					wait_for_many_acks_helper( NewWaited, InitialTimestamp,
-					   MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom )
+						MaxDurationInSeconds, Period, AckReceiveAtom,
+						ThrowAtom )
 
 			after Period ->
 
@@ -1124,9 +1119,7 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 
 					end
 
-			end
-
-	end.
+			end.
 
 
 
@@ -1360,7 +1353,7 @@ display( Message ) ->
 display( Format, Values ) ->
 
 	%io:format( "Displaying format '~p' and values '~p'.~n",
-	%		   [ Format, Values ] ),
+	%           [ Format, Values ] ),
 
 	Message = text_utils:format( Format, Values ),
 
@@ -1398,7 +1391,7 @@ display_timed( Message, TimeOut ) ->
 display_timed( Format, Values, TimeOut ) ->
 
 	%trace_utils:debug_fmt( "Displaying format '~p' and values '~p'.",
-	%						[ Format, Values ] ),
+	%                       [ Format, Values ] ),
 
 	Message = text_utils:format( Format, Values ),
 
@@ -1651,11 +1644,8 @@ get_process_specific_value( Pid ) ->
 % @doc Returns a (Erlang) process-specific value in [Min,Max[.
 -spec get_process_specific_value( integer(), integer() ) -> integer().
 get_process_specific_value( Min, Max ) ->
-
 	Value = get_process_specific_value(),
-
 	{ H, M, S } = erlang:time(),
-
 	( ( ( H + M + S + 1 ) * Value ) rem ( Max - Min ) ) + Min.
 
 
@@ -1751,24 +1741,16 @@ is_alive( TargetPid, Node, Verbose ) when is_pid( TargetPid ) ->
 			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
 			%  "on node ~p.", [ TargetPid, Node ] ),
 			case rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
-					  _Args=[ TargetPid ] ) of
+						   _Args=[ TargetPid ] ) of
 
 				Res when is_boolean( Res ) ->
 					Res;
 
 				{ badrpc, nodedown } ->
-					case Verbose of
-
-						true ->
-							trace_utils:warning_fmt( "Reporting that process "
-								"of PID ~w is not alive as its node ('~ts') "
-								"is reported as down.", [ TargetPid, Node ] );
-
-						false ->
-							ok
-
-					end,
-					false;
+					Verbose andalso
+						trace_utils:warning_fmt( "Reporting that process "
+							"of PID ~w is not alive as its node ('~ts') "
+							"is reported as down.", [ TargetPid, Node ] );
 
 				Other ->
 					throw( { unexpected_liveliness_report, Other } )
