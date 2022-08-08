@@ -1278,7 +1278,7 @@ determine_tuple_info( _TupleList=[] ) ->
 	throw( empty_list );
 
 determine_tuple_info( _TupleList=[ FirstTuple | T ] )
-  when is_tuple( FirstTuple ) ->
+								when is_tuple( FirstTuple ) ->
 	TupleSize = size( FirstTuple ),
 	Count = check_tuple_length( T, TupleSize, _AccCount=1 ),
 	{ Count, TupleSize }.
