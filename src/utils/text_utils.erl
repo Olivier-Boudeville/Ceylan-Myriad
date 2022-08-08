@@ -72,6 +72,7 @@
 		  strings_to_enumerated_comment/1, strings_to_enumerated_comment/2,
 
 		  strings_to_listed_string/1, strings_to_listed_string/2,
+		  maybe_strings_to_listed_string/1,
 
 		  binaries_to_string/1, binaries_to_string/2,
 		  binaries_to_sorted_string/1, binaries_to_listed_string/1,
@@ -1336,8 +1337,8 @@ integer_ids_to_listed_string( IntegerIds ) ->
 % @doc Returns a string that pretty-prints the specified list of strings, listed
 % directly along the text (not one item per line).
 %
-% Ex: strings_to_listed_string( [ "red", "blue", "green" ] ) returns "red, blue
-% and green".
+% Ex: strings_to_listed_string([ "red", "blue", "green"]) returns "red, blue and
+% green".
 %
 %strings_to_listed_string( _Strings=[] ) ->
 %   throw( empty_list_of_strings_to_list );
@@ -1356,7 +1357,7 @@ strings_to_listed_string( Strings ) ->
 % green".
 %
 %strings_to_listed_string( _Strings=[] ) ->
-%	throw( empty_list_of_strings_to_list );
+%   throw( empty_list_of_strings_to_list );
 % Probably more relevant:
 -spec strings_to_listed_string( [ ustring() ],
 								language_utils:human_language() ) -> ustring().
@@ -1375,8 +1376,8 @@ strings_to_listed_string( Strings, Lang ) ->
 	% bootstrapped, as this current function might be called from the Myriad
 	% parse transform.
 
-	%{ LastString, OtherStrings } = list_utils:extract_last_element(
-	%								 Strings ),
+	%{ LastString, OtherStrings } =
+	%   list_utils:extract_last_element( Strings ),
 
 	% A somewhat inlined version of it:
 	[ LastString | RevOtherStrings ] = lists:reverse( Strings ),
@@ -1394,6 +1395,21 @@ strings_to_listed_string( Strings, Lang ) ->
 			format( "~ts and ~ts", [ OtherStringsString, LastString ] )
 
 	end.
+
+
+
+% @doc Returns a string that pretty-prints the specified list of maybe-strings
+% (ignoring undefined ones), listed directly along the text (not one item per
+% line).
+%
+% Ex: maybe_strings_to_listed_string([ "red", "blue", undefined, "green",
+% undefined]) returns "red, blue and green".
+%
+
+-spec maybe_strings_to_listed_string( [ basic_utils:maybe( ustring() ) ] ) ->
+											ustring().
+maybe_strings_to_listed_string( Strings ) ->
+	strings_to_listed_string( [ S || S <- Strings, S =/= undefined ] ).
 
 
 
