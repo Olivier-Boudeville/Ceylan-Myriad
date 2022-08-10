@@ -62,10 +62,8 @@
 -module(trace_bridge).
 
 
-% Suspiciously akin to Ceylan-Traces conventions:
-
-%-type trace_emitter_name() :: bin_string().
-%-type trace_categorization() :: bin_string().
+% The conventions retained here are suspiciously similar to the Ceylan-Traces
+% ones.
 
 -type bridge_pid() :: pid().
 % Possibly a class_TraceAggregator:aggregator_pid().
