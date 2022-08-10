@@ -873,11 +873,11 @@ interpret_stacktrace( Stacktrace=[ FirstStackItem | OtherStackItems ],
 	ErrorStr = interpret_stack_item( FirstStackItem, FullPathsWanted )
 		++ case MaybeErrorTerm of
 
-			   undefined ->
-				   "";
+			undefined ->
+				"";
 
-			   ErrorTerm ->
-				   interpret_error( ErrorTerm, Stacktrace )
+			ErrorTerm ->
+				interpret_error( ErrorTerm, Stacktrace )
 
 		   end,
 
@@ -1014,7 +1014,7 @@ interpret_error( ErrorTerm, Stacktrace=[
 		StackInfo={ _Module, _Function, _Arguments, InfoListTable } | _ ] ) ->
 
 	%trace_utils:debug_fmt( "interpret_error: Reason=~p, Stacktrace=~n ~p",
-	%						[ Reason, Stacktrace ] ),
+	%                       [ ErrorTerm, Stacktrace ] ),
 
 	case list_table:lookup_entry( error_info, InfoListTable ) of
 
@@ -1023,6 +1023,9 @@ interpret_error( ErrorTerm, Stacktrace=[
 
 				% Typically erl_erts_errors for BIFs:
 				{ value, ErrorInfoModule } ->
+					% Possibly erl_erts_errors;
+					%trace_utils:debug_fmt( "Error info module: '~ts'.",
+					%                       [ ErrorInfoModule ] ),
 					DiagnoseMap =
 						ErrorInfoModule:format_error( ErrorTerm, Stacktrace ),
 					error_map_to_string( DiagnoseMap, ErrorTerm );
@@ -1063,11 +1066,15 @@ stack_info_to_string( StackInfo ) ->
 -spec error_map_to_string( error_map(), error_reason() ) -> ustring().
 error_map_to_string( ErrorMap, Reason ) ->
 
+	%trace_utils:debug_fmt( "ErrorMap=~p, Reason=~p.", [ ErrorMap, Reason ] ),
+
 	case lists:sort( map_hashtable:enumerate( ErrorMap ) ) of
 
 		[] ->
-			text_utils:format( "~ts (whereas no error listed - abnormal)",
-				[ error_reason_to_string( Reason ), ErrorMap ] );
+			% This may happen (e.g. if executing <<"hello">> ++ [world]):
+			%text_utils:format( "~ts (whereas no error listed - abnormal)",
+			%                   [ error_reason_to_string( Reason ) ] );
+			error_reason_to_string( Reason );
 
 		% Special case as with the next one two ':' in the same sentence would
 		% be used:
