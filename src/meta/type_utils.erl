@@ -530,7 +530,8 @@
 
 % Conversion:
 -export([ ensure_integer/1, ensure_rounded_integer/1,
-		  ensure_float/1, ensure_number/1, ensure_boolean/1,
+		  ensure_float/1, ensure_positive_float/1,
+		  ensure_number/1, ensure_boolean/1,
 		  ensure_string/1, ensure_binary/1 ]).
 
 
@@ -1205,7 +1206,7 @@ ensure_integer( N ) when is_float( N ) ->
 	trunc( N );
 
 ensure_integer( N ) ->
-	throw( { cannot_be_cast_to_integer, N } ).
+	throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -1221,7 +1222,7 @@ ensure_rounded_integer( N ) when is_float( N ) ->
 	round( N );
 
 ensure_rounded_integer( N ) ->
-	throw( { cannot_be_cast_to_integer, N } ).
+	throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -1238,7 +1239,24 @@ ensure_float( N ) when is_integer( N ) ->
 	float( N );
 
 ensure_float( N ) ->
-	throw( { cannot_be_cast_to_float, N } ).
+	throw( { cannot_coerce_to_float, N } ).
+
+
+
+% @doc Ensures that the specified term is a postive (possibly null) float, and
+% returns it.
+%
+% If it is an integer, will return a floating-point version of it.
+%
+-spec ensure_positive_float( number() ) -> float().
+ensure_positive_float( F ) when is_float( F ) andalso F >= 0.0 ->
+	F;
+
+ensure_positive_float( I ) when is_integer( I ) andalso I >= 0 ->
+	float( I );
+
+ensure_positive_float( Other ) ->
+	throw( { cannot_coerce_to_positive_float, Other } ).
 
 
 
