@@ -113,7 +113,7 @@
 % Other string operations:
 -export([ get_lexicographic_distance/2, get_longest_common_prefix/1,
 		  get_unique_string/2,
-		  safe_length/1,
+		  safe_length/1, length/1,
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
 		  flatten/1,
 		  join/2, bin_join/2,
@@ -410,6 +410,9 @@
 %
 -compile( { inline, [ format/2 ] } ).
 
+% Defining here length/1, so having to prefix the otherwise auto-imported
+% length/1 with its 'erlang' module.
+
 
 
 % String management functions.
@@ -541,7 +544,7 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 	end,
 
 	% Then limit the length:
-	case length( FullString ) of
+	case erlang:length( FullString ) of
 
 		L when L > MaxLength ->
 			% We have to truncate here, length( "..." ) = 3
@@ -1131,7 +1134,7 @@ strings_to_spaced_string( _Strings, IncorrectBullet ) ->
 -spec strings_to_sorted_string( [ ustring() ],
 								indentation_level_or_bullet() ) -> ustring().
 strings_to_sorted_string( Strings, IndentationOrBullet )
-  when is_list( Strings ) ->
+											when is_list( Strings ) ->
 	strings_to_string( lists:sort( Strings ), IndentationOrBullet );
 
 strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
@@ -1585,7 +1588,7 @@ distance_to_string( Millimeters ) ->
 
 		AtLeastOneMillimeter ->
 			 [ io_lib:format( "~Bmm", [ AtLeastOneMillimeter ] )
-			   | ListWithCentimeters ]
+							| ListWithCentimeters ]
 
 	end,
 
@@ -1799,7 +1802,7 @@ interpret_faulty_format( FormatString, Values ) ->
 	%trace_utils:debug_fmt( "FormatString: ~p;~nValues: ~p.",
 	%                       [ FormatString, Values ] ),
 
-	ValueCount = length( Values ),
+	ValueCount = erlang:length( Values ),
 
 	% The always-existing prefix before the first ~ is of no interest:
 	SplitSeqs = tl( split( FormatString, _Separators=[ $~ ] ) ),
@@ -1826,7 +1829,7 @@ interpret_faulty_format( FormatString, Values ) ->
 			%
 			VSeqs = [ S || S <- Seqs, requires_value( S ) ],
 
-			SeqCount = length( VSeqs ),
+			SeqCount = erlang:length( VSeqs ),
 
 			% Counting value-based control sequences:
 			case ValueCount - SeqCount of
@@ -2011,11 +2014,11 @@ match_types( _Seqs=[ _Seq="s" | Ts ], _Values=[ V | Tv ], Count ) ->
 
 		false ->
 			io_lib:format( "type mismatch for value #~B (i.e. '~ts'); got ~ts, "
-					"whereas expecting string-like, as the control "
-					% Correct, but commented-out for homogeneity with the other
-					% clauses:
-					% "sequence is ~~~~ts)", [ Count, VString, VType ] )
-					"sequence is 's'", [ Count, VString, VType ] )
+				"whereas expecting string-like, as the control "
+				% Correct, but commented-out for homogeneity with the other
+				% clauses:
+				% "sequence is ~~~~ts)", [ Count, VString, VType ] )
+				"sequence is 's'", [ Count, VString, VType ] )
 
 	end;
 
@@ -2096,9 +2099,9 @@ match_types( _Seqs=[ Seq="c" | Ts ], _Values=[ V | Tv ], Count ) ->
 
 		false ->
 			io_lib:format( "type mismatch for value #~B (i.e. '~ts'): got ~ts, "
-					"whereas expecting char, as the control "
-					%"sequence is ~~~c)", [ Count, VString, VType, Seq ] )
-					"sequence is '~ts'", [ Count, VString, VType, Seq ] )
+				"whereas expecting char, as the control "
+				%"sequence is ~~~c)", [ Count, VString, VType, Seq ] )
+				"sequence is '~ts'", [ Count, VString, VType, Seq ] )
 
 	end;
 
@@ -2190,7 +2193,7 @@ format_as_comment_helper( _Text=[], CommentChar, _LineWidth, AccLines, AccLine,
 format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
 						  AccLine, RemainWidth ) ->
 
-	WordWidth = length( Word ),
+	WordWidth = erlang:length( Word ),
 
 	case WordWidth >= RemainWidth of
 
@@ -2259,7 +2262,7 @@ format( A, B, C ) ->
 	trace_utils:error_fmt( "Call to non-existing function text_utils:format/3; "
 		"extra comma in format string? Parameters were: ~ts",
 		[ strings_to_enumerated_string( [
-				basic_utils:describe_term( T ) || T <- [ A, B, C ] ] ) ] ),
+			basic_utils:describe_term( T ) || T <- [ A, B, C ] ] ) ] ),
 
 	throw( { faulty_format_call, { A, B, C } } ).
 
@@ -2386,7 +2389,7 @@ ensure_binary( AnyString ) ->
 %
 -spec ensure_binary( any_string(), boolean() ) -> bin_string().
 ensure_binary( BinString, _CanFailDueToTranscoding )
-  when is_binary( BinString ) ->
+										when is_binary( BinString ) ->
 	BinString;
 
 ensure_binary( String, CanFailDueToTranscoding ) when is_list( String ) ->
@@ -2447,10 +2450,10 @@ ensure_binaries( Elems, CanFailDueToTranscoding ) ->
 
 % This basic implementation is correct, yet way too inefficient:
 %get_lexicographic_distance_variant( FirstString, _SecondString=[] ) ->
-%	length( FirstString );
+%	erlang:length( FirstString );
 
 %get_lexicographic_distance_variant( _FirstString=[], SecondString ) ->
-%	length( SecondString );
+%	erlang:length( SecondString );
 
 %get_lexicographic_distance_variant( _FirstString=[ H | T1 ],
 %									_SecondString=[ H | T2 ] ) ->
@@ -2473,12 +2476,12 @@ get_lexicographic_distance( FirstString, SecondString ) ->
 
 % Actual helper:
 get_lexicographic_distance( _FirstString=[], SecondString, AccTable ) ->
-	Len = length( SecondString ),
+	Len = erlang:length( SecondString ),
 	NewTable = ?table:add_entry( _K={ [], SecondString }, _V=Len, AccTable ),
 	{ Len, NewTable };
 
 get_lexicographic_distance( FirstString, _SecondString=[], AccTable ) ->
-	Len = length( FirstString ),
+	Len = erlang:length( FirstString ),
 	NewTable = ?table:add_entry( _K={ FirstString, [] }, _V=Len, AccTable ),
 	{ Len, NewTable };
 
@@ -2625,6 +2628,8 @@ suffix_uniq_helper( Prefix, Count, Strs ) ->
 	end.
 
 
+% For plain string, just use the length/1 built-in function.
+
 
 % @doc Returns, if possible, the length of the specified string-like argument,
 % otherwise returns 'undefined'.
@@ -2645,6 +2650,13 @@ safe_length( PseudoStr ) ->
 
 	end.
 
+
+% @doc Returns the length (precisely, the number of grapheme clusters) of the
+% specified any-string.
+%
+-spec length( any_string() ) -> length().
+length( AnyString ) ->
+	string:length( AnyString ).
 
 
 % @doc Converts a plain (list-based) string into a binary.
@@ -2707,7 +2719,9 @@ maybe_string_to_binary( MaybeString ) ->
 
 
 
-% @doc Converts a binary into a plain (list-based) string.
+% @doc Converts a Unicode binary into a plain (list-based) string.
+%
+% Use binary_to_list/1 for other encodings like ISO-8859.
 %
 % Never fails because of any transcoding involved.
 %
@@ -2717,7 +2731,9 @@ binary_to_string( Binary ) when is_binary( Binary ) ->
 
 
 
-% @doc Converts a binary into a plain (list-based) string.
+% @doc Converts a Unicode binary into a plain (list-based) string.
+%
+% Use binary_to_list/1 for other encodings like ISO-8859.
 %
 % CanFailDueToTranscoding tells whether, should a transcoding fail, this
 % function is allowed to fail in turn.
@@ -3023,15 +3039,28 @@ uppercase_initial_letter( _Letters=[ First | Others ] ) ->
 
 
 % @doc Sets the specified string to lowercase, that is downcase it (as a whole).
--spec to_lowercase( ustring() ) -> ustring().
-to_lowercase( String ) ->
-	string:to_lower( String ).
+-spec to_lowercase( ustring() ) -> ustring();
+				  ( bin_string() ) -> bin_string().
+to_lowercase( String ) when is_list( String ) ->
+	string:to_lower( String );
+
+to_lowercase( BinString ) when is_binary( BinString ) ->
+	Str = binary_to_string( BinString ),
+	LowStr = string:to_lower( Str ),
+	string_to_binary( LowStr ).
+
 
 
 % @doc Sets the specified string to uppercase.
--spec to_uppercase( ustring() ) -> ustring().
-to_uppercase( String ) ->
-	string:to_upper( String ).
+-spec to_uppercase( ustring() ) -> ustring();
+				  ( bin_string() ) -> bin_string().
+to_uppercase( String ) when is_list( String ) ->
+	string:to_upper( String );
+
+to_uppercase( BinString ) when is_binary( BinString ) ->
+	Str = binary_to_string( BinString ),
+	UpStr = string:to_upper( Str ),
+	string_to_binary( UpStr ).
 
 
 
@@ -3151,8 +3180,10 @@ split_helper( _Separators=[], Acc ) ->
 	Acc;
 
 split_helper( _Separators=[ D | T ], Acc ) ->
+
 	SplitStrs = [ string:split( S, _SearchPattern=[ D ], _Where=all )
-								|| S <- Acc ],
+											|| S <- Acc ],
+
 	NewAcc = concatenate( SplitStrs ),
 	split_helper( T, NewAcc ).
 
@@ -3273,7 +3304,7 @@ split_at_whitespaces( String ) ->
 % all characters strictly before and strictly after the first occurrence of the
 % marker (which thus is not kept).
 %
-% Ex: split_at_first( $x, "  aaaxbbbxccc" ) shall return { "  aaa", "bbbxccc" }.
+% Ex: split_at_first($x, "  aaaxbbbxccc") shall return {"  aaa", "bbbxccc"}.
 %
 -spec split_at_first( uchar(), ustring() ) ->
 							'none_found' | { ustring(), ustring() }.
@@ -3589,10 +3620,8 @@ update_with_keywords( Content, TranslationTable ) ->
 
 	% As many passes as keyword pairs:
 	lists:foldl(
-
 		fun( { SearchP, Replacement }, ContentAcc ) ->
 			string:replace( ContentAcc, SearchP, Replacement, _Where=all )
-
 		end,
 		_Acc0=Content,
 		_List=TransPairs ).
@@ -3810,8 +3839,7 @@ parse_quoted( InputStr, QuotingChars, EscapingChars ) ->
 
 % Not in quoted:
 parse_helper( _InputStr=[], _QuotingChars, _EscapingChars, CurrentQuoteChar,
-			  _CurrentQuotedText=undefined, _PreviousChar=CurrentQuoteChar,
-			  Acc ) ->
+		_CurrentQuotedText=undefined, _PreviousChar=CurrentQuoteChar, Acc ) ->
 	% Closing for good then:
 	lists:reverse( Acc );
 
@@ -4100,7 +4128,7 @@ remove_last_characters( String, Count ) ->
 	% Not necessarily the most efficient, but at least it is not an illegal
 	% pattern:
 	%
-	case length( String ) of
+	case erlang:length( String ) of
 
 		C when C >= Count ->
 			string:substr( String, 1, C - Count );
@@ -4182,7 +4210,7 @@ ellipse( String, MaxLen ) ->
 	% To avoid countless computations of a constant:
 	SuffixLen = 6,
 
-	case length( String ) of
+	case erlang:length( String ) of
 
 		L when L > MaxLen ->
 			TargetLen = MaxLen - SuffixLen,
@@ -4237,7 +4265,7 @@ tail( String, MaxLen ) ->
 	% To avoid countless computations of a constant:
 	PrefixLen = 6,
 
-	Len = length( String ),
+	Len = erlang:length( String ),
 
 	ExtraCount = Len - MaxLen,
 
@@ -4290,8 +4318,8 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 			CurrentLineLen ) ->
 
 	%io:format( "Managing word '~ts' (len=~B), current line is '~ts' (len=~B), "
-	%   "width = ~B.~n", [ Word, length( Word ), CurrentLine, CurrentLineLen,
-	% Width ] ),
+	%   "width = ~B.~n", [ Word, erlang:length( Word ), CurrentLine,
+	%   CurrentLineLen, Width ] ),
 
 	% Length should be incremented, as a space must be inserted before that
 	% word, however we want to accept words whose width would be exactly equal
@@ -4300,12 +4328,12 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 	ActualLength = case CurrentLine of
 
 		"" ->
-			length( Word );
+			erlang:length( Word );
 
 		_NonEmpty ->
 			% Already at least a letter, we therefore must add a space before
 			% the new word:
-			length( Word ) + 1
+			erlang:length( Word ) + 1
 
 	end,
 
@@ -4354,7 +4382,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 
 			% Will break words as many times as needed:
 			%io:format( "Word '~ts' is too large (len=~B), breaking it.~n",
-			%           [ Word, length( Word ) ] ),
+			%           [ Word, erlang:length( Word ) ] ),
 			Subwords = break_word( Word, Width ),
 
 			PaddedCurrentLine = pad_string( CurrentLine, Width ),
@@ -4393,7 +4421,8 @@ pad_string_left( String, Width ) ->
 % Ex: pad_string_left("hello", 8, $*) = ["hello",42,42,42]
 %
 -spec pad_string_left( ustring(), width(), grapheme_cluster() ) -> any_string().
-pad_string_left( String, Width, PadChar ) when length( String ) =< Width ->
+pad_string_left( String, Width, PadChar )
+								when erlang:length( String ) =< Width ->
 
 	% Note that the settings listed in
 	% http://erlang.org/doc/apps/stdlib/unicode_usage.html shall be enforced so
@@ -4407,7 +4436,7 @@ pad_string_left( String, Width, PadChar ) when length( String ) =< Width ->
 
 pad_string_left( String, Width, PadChar ) ->
 
-	Len = length( String ),
+	Len = erlang:length( String ),
 
 	trace_utils:error_fmt( "String '~ts' already too long (~B characters) "
 		"to be padded (left) to width ~B (with '~ts').",
@@ -4435,14 +4464,15 @@ pad_string_right( String, Width ) ->
 %
 -spec pad_string_right( ustring(), width(), grapheme_cluster() ) ->
 														any_string().
-pad_string_right( String, Width, PadChar ) when length( String ) =< Width ->
+pad_string_right( String, Width, PadChar )
+									when erlang:length( String ) =< Width ->
 	%lists:flatten( io_lib:format( "~*.ts", [ Width, String ] ) );
 
 	string:pad( String, Width, _Dir=leading, PadChar );
 
 pad_string_right( String, Width, PadChar ) ->
 
-	Len = length( String ),
+	Len = erlang:length( String ),
 
 	trace_utils:error_fmt( "String '~ts' already too long (~B characters) "
 		"to be padded (right) to width ~B (with '~ts').",
@@ -4472,7 +4502,7 @@ center_string( String, Width ) ->
 -spec center_string( ustring(), width(), grapheme_cluster() ) -> any_string().
 center_string( String, Width, PaddingChar ) ->
 
-	%case Width - length( String ) of
+	%case Width - erlang:length( String ) of
 
 	%	Offset when Offset < 0 ->
 	%		throw( { string_to_center_too_long, String, -Offset } );
@@ -4524,7 +4554,7 @@ is_string( _Other ) ->
 
 % Alternate, less efficient version:
 %is_string( Term ) when is_list( Term ) ->
-%			lists:all( fun erlang:is_integer/1, Term );
+%   lists:all( fun erlang:is_integer/1, Term );
 %
 %is_string( _Term ) -> false.
 
@@ -4644,7 +4674,7 @@ break_word( Word, Width ) ->
 	%
 	% Used to cut into halves, then preferring truncating a first full-length
 	% chunk, finally directly cutting the word into appropriate pieces:
-	% CutIndex = length(Word) div 2,
+	% CutIndex = erlang:length(Word) div 2,
 	% CutIndex = Width-1,
 	cut_into_chunks( Word, Width, _Acc=[] ).
 
@@ -4658,7 +4688,8 @@ cut_into_chunks( _String=[], _ChunkSize, Acc ) ->
 	lists:reverse( Acc );
 
 % Last word may take the full width (no dash to add):
-cut_into_chunks( String, ChunkSize, Acc ) when length( String ) =< ChunkSize ->
+cut_into_chunks( String, ChunkSize, Acc )
+								when erlang:length( String ) =< ChunkSize ->
 	cut_into_chunks( [], ChunkSize, [ String | Acc ] );
 
 % Here we have to cut the string anyway:
@@ -4671,7 +4702,7 @@ cut_into_chunks( String, ChunkSize, Acc ) ->
 
 	% Each underscore will result into another character (\) being added:
 	%io:format( "FirstPart = '~ts' (~B), Remaining = '~ts'.~n",
-	%   [ FirstPart, length( FirstPart ), Remaining ] ),
+	%   [ FirstPart, erlang:length( FirstPart ), Remaining ] ),
 	cut_into_chunks( Remaining, ChunkSize, [ FirstPart ++ "-" | Acc ] ).
 
 
@@ -4742,15 +4773,16 @@ to_unicode_list( Data ) ->
 % If enabled, fails if the conversion cannot be properly done, otherwise can
 % return a bogus string.
 %
+% Note that at least some ISO-8859 contents (thus non-Unicode) may not properly
+% be converted by this function; use binary_to_list(Data) (or
+% io_lib:format("~ts", [Data])) instead.
+%
 % (exported helper, for re-use)
 %
 -spec to_unicode_list( unicode_data(), boolean() ) -> ustring().
 to_unicode_list( Data, CanFail ) ->
 
 	% A binary_to_list/1 would not be sufficient here.
-
-	% It seems that using io_lib:format( "~ts", [ Data ] ) could still be an
-	% option.
 
 	% Possibly a deep list:
 	case unicode:characters_to_list( Data ) of
@@ -4759,11 +4791,13 @@ to_unicode_list( Data, CanFail ) ->
 			Str;
 
 		{ error, Prefix, Remaining } ->
+
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
 				"a proper Unicode string:~nafter prefix '~ts', "
 				"cannot convert '~w'.~nStacktrace was: ~ts",
 				[ Data, Prefix, Remaining,
 				  code_utils:interpret_shortened_stacktrace( 1 ) ] ),
+
 			case CanFail of
 
 				true ->
@@ -4778,9 +4812,11 @@ to_unicode_list( Data, CanFail ) ->
 			end;
 
 		{ incomplete, Prefix, Bin } ->
+
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
 				"a proper Unicode string:~nafter prefix '~ts', "
 				"'~p' is incomplete.", [ Data, Prefix, Bin ] ),
+
 			case CanFail of
 
 				true ->
@@ -4853,9 +4889,11 @@ to_unicode_binary( Data, CanFail ) ->
 			Bin;
 
 		{ error, Prefix, Remaining } ->
+
 			trace_bridge:error_fmt( "Cannot transform data '~p' into "
 				"a proper Unicode binary:~nafter prefix '~ts', "
 				"cannot convert '~p'.", [ Data, Prefix, Remaining ] ),
+
 			case CanFail of
 
 				true ->
@@ -4900,7 +4938,7 @@ generate_title( Title, Level ) ->
 
 	{ Char, Layout } = get_title_rendering_for( Level ),
 
-	TitleLine = get_line_of( Char, length( Title ) ) ++ "\n",
+	TitleLine = get_line_of( Char, erlang:length( Title ) ) ++ "\n",
 
 	case Layout of
 
