@@ -89,7 +89,9 @@
 		  critical/1, critical_fmt/2,
 		  alert/1, alert_fmt/2,
 		  emergency/1, emergency_fmt/2,
-		  void/1, void_fmt/2 ]).
+		  void/1, void_fmt/2,
+
+		  send/2, send/3 ]).
 
 
 % Keys defined in the process dictionary:
@@ -196,10 +198,12 @@ register( BridgeSpec ) ->
 			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
 
 		UnexpectedInfo ->
+
 			error_fmt( "Myriad trace bridge already registered (as ~p), "
 				%"ignoring newer registration (as ~p).",
 				"whereas a newer registration (as ~p) was requested.",
 				[ BridgeInfo, UnexpectedInfo ] ),
+
 			throw( { myriad_trace_bridge_already_registered, UnexpectedInfo,
 					 BridgeInfo } )
 
