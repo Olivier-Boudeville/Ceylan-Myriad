@@ -1727,6 +1727,9 @@ format( FormatString, Values ) ->
 % In development mode here:
 format( FormatString, Values ) ->
 
+	%io:format( "FormatString='~ts', Values='~p'.~n",
+	%           [ FormatString, Values ] ),
+
 	String =
 		try
 
