@@ -1450,14 +1450,12 @@ proplist_to_string( Proplist ) ->
 
 % @doc Returns a string describing the specified version.
 -spec version_to_string( basic_utils:any_version() ) -> ustring().
-version_to_string( { V1, V2 } ) ->
-	io_lib:format( "~B.~B", [ V1, V2 ] );
-
-version_to_string( { V1, V2, V3 } ) ->
-	io_lib:format( "~B.~B.~B", [ V1, V2, V3 ] );
-
-version_to_string( { V1, V2, V3, V4 } ) ->
-	io_lib:format( "~B.~B.~B.~B", [ V1, V2, V3, V4 ] ).
+version_to_string( VersionTuple ) ->
+	Elems = tuple_to_list( VersionTuple ),
+	ElemCount = erlang:length( Elems ),
+	ControlSeq = list_utils:duplicate( "~B", ElemCount ),
+	FormatStr = flatten( list_utils:intercalate( $., ControlSeq ) ),
+	io_lib:format( FormatStr, Elems ).
 
 
 
@@ -3253,6 +3251,7 @@ split_parsed( ParseString, Separators ) ->
 % CSV files), hence re-enabled (previous version left commented).
 %
 % (helper)
+
 %split_parsed( _ParseString=[], _Separators, _AccElem=[], AccStrs ) ->
 %   lists:reverse( AccStrs );
 
