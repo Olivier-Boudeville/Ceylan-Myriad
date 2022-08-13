@@ -290,7 +290,8 @@
 -type three_digit_version() ::
 		{ version_number(), version_number(), version_number() }.
 % Version as a triplet of integers, typically {MajorVersion, MinorVersion,
-% ReleaseVersion}.
+% ReleaseVersion}, or {MajorVersion, Enhancements, BugFixes}, or {MajorVersion,
+% MinorVersion, Path} (see semantic versioning, https://semver.org/).
 
 
 
