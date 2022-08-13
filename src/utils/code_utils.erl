@@ -46,6 +46,7 @@
 		  get_code_path/0, get_code_path_as_string/0,
 		  code_path_to_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
+		  recompile/1,
 		  get_erlang_root_path/0,
 		  get_stacktrace/0, get_stacktrace/1,
 		  interpret_stacktrace/0,
@@ -72,14 +73,14 @@
 
 
 -type stack_info() :: map_hashtable:map_hashtable( atom(), term() )
-					  | list_table:list_table( atom(), term() ).
+					| list_table:list_table( atom(), term() ).
 % The last element of a stack item.
 %
 % Ex: [{file,file_path()}, {line, meta_utils:line()}].
 
 
--type stack_item() :: { module_name(), function_name(), arity(),
-						stack_info() }.
+-type stack_item() ::
+	{ module_name(), function_name(), arity(),stack_info() }.
 
 
 -type stack_trace() :: [ stack_item() ].
@@ -111,6 +112,7 @@
 -type module_name() :: basic_utils:module_name().
 -type function_name() :: basic_utils:function_name().
 -type count() :: basic_utils:count().
+-type base_status() :: basic_utils:base_status().
 -type error_reason() :: basic_utils:error_reason().
 -type error_term() :: basic_utils:error_term().
 
@@ -144,8 +146,8 @@
 get_code_for( ModuleName ) ->
 
 	%trace_utils:debug_fmt( "Getting code for module '~ts', "
-	%					   "from current working directory '~ts'.",
-	%					   [ ModuleName, file_utils:get_current_directory() ] ),
+	%   "from current working directory '~ts'.",
+	%   [ ModuleName, file_utils:get_current_directory() ] ),
 
 	case code:get_object_code( ModuleName ) of
 
@@ -282,7 +284,7 @@ deploy_module( ModuleName, { ModuleBinary, ModuleFilename }, Nodes, Timeout ) ->
 	%   [ ModuleName, ModuleFilename, Nodes, Timeout ] ),
 
 	{ ResList, BadNodes } = rpc:multicall( Nodes, code, load_binary,
-				[ ModuleName, ModuleFilename, ModuleBinary ], Timeout ),
+		[ ModuleName, ModuleFilename, ModuleBinary ], Timeout ),
 
 	%trace_utils:debug_fmt( "ResList = ~p, BadNodes = ~p~n",
 	%                       [ ResList, BadNodes ] ),
@@ -383,35 +385,23 @@ declare_beam_directory( Dir, first_position ) ->
 	DirStr = text_utils:ensure_string( Dir ),
 
 	% No need to check directory for existence, code:add_patha/1 will do it:
-	case code:add_patha( DirStr ) of
-
-		true ->
-			ok;
-
-		{ error, bad_directory } ->
-			throw( { non_existing_beam_directory, DirStr } )
-
-	end;
+	code:add_patha( DirStr ) =:= true orelse
+		%{ error, bad_directory } ->
+		throw( { non_existing_beam_directory, DirStr } );
 
 declare_beam_directory( Dir, last_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Declaring in last position BEAM directory '~ts' "
-							 "in VM code path.", [ Dir ] ) ),
+		trace_utils:debug_fmt( "Declaring in last position BEAM directory "
+			"'~ts' in VM code path.", [ Dir ] ) ),
 
 	% Plain string needed:
 	DirStr = text_utils:ensure_string( Dir ),
 
 	% No need to check directory for existence, code:add_pathz/1 will do it:
-	case code:add_pathz( DirStr ) of
-
-		true ->
-			ok;
-
-		{ error, bad_directory } ->
-			throw( { non_existing_beam_directory, DirStr } )
-
-	end.
+	code:add_pathz( DirStr ) =:= true orelse
+		%{ error, bad_directory } ->of
+		throw( { non_existing_beam_directory, DirStr } ).
 
 
 
@@ -422,7 +412,7 @@ declare_beam_directory( Dir, last_position ) ->
 %
 -spec declare_beam_directories( code_path() ) -> void().
 declare_beam_directories( Dirs ) ->
-	declare_beam_directories( Dirs, first_position ).
+	declare_beam_directories( Dirs, _Pos=first_position ).
 
 
 
@@ -433,11 +423,12 @@ declare_beam_directories( Dirs ) ->
 % Throws an exception if at least one of the directories does not exist.
 %
 -spec declare_beam_directories( code_path(), code_path_position() ) -> void().
-declare_beam_directories( Dirs, first_position ) ->
+declare_beam_directories( Dirs, _Pos=first_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Declaring in first position BEAM directories ~ts "
-		"in VM code path.", [ text_utils:strings_to_listed_string( Dirs ) ] ) ),
+		trace_utils:debug_fmt( "Declaring in first position BEAM directories "
+			"~ts in VM code path.",
+			[ text_utils:strings_to_listed_string( Dirs ) ] ) ),
 
 	% As code:add_pathsa/1 does not report non-existing directories:
 	check_beam_dirs( Dirs ),
@@ -448,8 +439,9 @@ declare_beam_directories( Dirs, first_position ) ->
 declare_beam_directories( Dirs, last_position ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Declaring in last position BEAM directories ~ts "
-		"in VM code path.", [ text_utils:strings_to_listed_string( Dirs ) ] ) ),
+		trace_utils:debug_fmt( "Declaring in last position BEAM directories "
+			"~ts in VM code path.",
+			[ text_utils:strings_to_listed_string( Dirs ) ] ) ),
 
 	% As code:add_pathsz/1 does not report non-existing directories:
 	check_beam_dirs( Dirs ),
@@ -491,8 +483,8 @@ check_beam_dirs( _Dirs=[ D | T ] ) ->
 remove_beam_directory( NameOrDir ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Removing directory designated by '~ts' "
-							 "from VM code path.", [ NameOrDir ] ) ),
+		trace_utils:debug_fmt( "Removing directory designated by '~ts' "
+							   "from VM code path.", [ NameOrDir ] ) ),
 
 	case code:del_path( NameOrDir ) of
 
@@ -520,8 +512,8 @@ remove_beam_directory( NameOrDir ) ->
 remove_beam_directory_if_set( NameOrDir ) ->
 
 	cond_utils:if_defined( myriad_debug_code_path,
-	  trace_utils:debug_fmt( "Removing directory designated by '~ts' "
-							 "from VM code path (if set).", [ NameOrDir ] ) ),
+		trace_utils:debug_fmt( "Removing directory designated by '~ts' "
+							   "from VM code path (if set).", [ NameOrDir ] ) ),
 
 	case code:del_path( NameOrDir ) of
 
@@ -579,8 +571,7 @@ get_beam_dirs_for( VariableName ) ->
 			end,
 
 			Command = io_lib:format(
-						"cd ~ts && make list-beam-dirs 2>/dev/null",
-						[ BaseDir ] ),
+				"cd ~ts && make list-beam-dirs 2>/dev/null", [ BaseDir ] ),
 
 			Dirs = string:tokens( os:cmd( Command ), _Sep="\n" ),
 			%io:format( "Dirs:~n~p", [ Dirs ] )
@@ -715,8 +706,8 @@ list_beams_in_path() ->
 	% http://alind.io/post/5664209650/all-erlang-modules-in-the-code-path
 
 	Files = [ list_to_atom( filename:basename( File, ?beam_extension ) )
-			  || Path <- code:get_path(),
-				 File <- filelib:wildcard( "*.beam", Path ) ],
+				|| Path <- code:get_path(),
+				   File <- filelib:wildcard( "*.beam", Path ) ],
 
 	lists:sort( Files ).
 
@@ -727,9 +718,7 @@ list_beams_in_path() ->
 %
 -spec get_beam_filename( module_name() ) -> file_name().
 get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
-
 	ModuleNameString = text_utils:atom_to_string( ModuleName ),
-
 	ModuleNameString ++ ?beam_extension.
 
 
@@ -737,24 +726,22 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 % @doc Tells whether specified module has its BEAM file in the current code
 % path.
 %
-% Returns either a list of its absolute, canonicalised, unordered paths (if
-% being available at least once), or 'not_found'.
+% Returns either a list of its absolute, canonicalised, unordered paths that
+% include this BEAM file (if being available at least once), or 'not_found'.
 %
 % Note:
-%
 %  - hence this function does not return a boolean
-%
 %  - the returned list (if any) of paths respects the order in the code path; as
-%  a result, its first element corresponds to the path containing the BEAM file
-%  that would be loaded for the specified module
+%  a result, its first element corresponds to the path of the BEAM file that
+%  would be loaded for the specified module
 %
--spec is_beam_in_path( module_name() ) -> 'not_found' | [ directory_path() ].
+-spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_path() ].
 is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 	ModuleFilename = text_utils:atom_to_string( ModuleName ) ++ ?beam_extension,
 
 	%trace_utils:info_fmt( "Paths for module filename '~ts':~n  ~p",
-	%					   [ ModuleFilename, code:get_path() ] ),
+	%                      [ ModuleFilename, code:get_path() ] ),
 
 	% We have to ensure that all paths are absolute and normalised, so that we
 	% can eliminate any duplicates among them (otherwise some module files could
@@ -782,6 +769,68 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 is_beam_in_path( Other ) ->
 	throw( { non_atom_module_name, Other } ).
+
+
+
+% @doc Recompiles the specified module.
+%
+% Relies on our build system, rules and parametrisation, that we deem is the
+% most flexible and robust option.
+%
+-spec recompile( module_name() ) -> base_status().
+recompile( ModuleName ) ->
+
+	% compile:file/2, the 'make' module, 'erl -compile' or 'erlc' could be used
+	% instead, but then plenty of options would have to be taken into account.
+
+	%trace_utils:debug_fmt( "Compiling module name '~ts'.", [ ModuleName ] ),
+
+	case is_beam_in_path( ModuleName ) of
+
+		not_found ->
+			{ error, { module_not_found, ModuleName } };
+
+		[ SinglePath ] ->
+			{  BaseDir, BEAMFilename } = file_utils:split_path( SinglePath ),
+			MakeExecPath = executable_utils:get_make_path(),
+
+			% We could use the -C/--directory but to better emulate the usual
+			% context, we change directory by ourselves for this execution
+			% (only):
+			%
+			% (-s: silent)
+			%
+			Args = [ "-s", BEAMFilename ],
+
+			case system_utils:run_executable( MakeExecPath, Args,
+					system_utils:get_standard_environment(),
+					_WorkingDir=BaseDir ) of
+
+				{ _ReturnCode=0, _Output="" } ->
+					%trace_utils:debug_fmt( "Module '~ts' successfully "
+					%   "recompiled, with no specific output.",
+					%    ModuleName ] ),
+					ok;
+
+				{ _ReturnCode=0, Output } ->
+					trace_utils:warning_fmt( "Module '~ts' successfully "
+						"recompiled, with output: '~ts'.",
+						[ ModuleName, Output ] ),
+					ok;
+
+				{ ErrorCode, Output } ->
+					trace_utils:error_fmt( "Failed to recompile module '~ts': "
+						"error code ~B, output: '~ts'.",
+						[ ModuleName, ErrorCode, Output ] ),
+					{ error,
+					  { module_recompilation_failed, ModuleName, Output } }
+
+			end;
+
+		MultiplePaths ->
+			{ error, { multiple_modules_found, ModuleName, MultiplePaths } }
+
+	end.
 
 
 
@@ -912,7 +961,7 @@ interpret_stack_item( { Module, Function, Arity, StackInfo },
 % more informative):
 %
 interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
-  when is_list( Args ) ->
+									when is_list( Args ) ->
 	text_utils:format( "~ts:~ts/~B called with following arguments:"
 					   "~n  ~p~ts",
 		[ Module, Function, length( Args ), Args,
@@ -929,7 +978,7 @@ interpret_stack_item( I, _FullPathsWanted ) ->
 %
 -spec get_location_from( stack_info(), boolean() ) -> ustring().
 get_location_from( StackInfo, FullPathsWanted )
-  when is_map( StackInfo ) ->
+									when is_map( StackInfo ) ->
 	get_location_from( map_hashtable:enumerate( StackInfo ), FullPathsWanted );
 
 get_location_from( StackInfo, FullPathsWanted ) ->
@@ -990,9 +1039,6 @@ get_location_from( StackInfo, FullPathsWanted ) ->
 							   [ FilePath, Line ] )
 
 	end.
-
-
-
 
 
 
@@ -1156,7 +1202,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 
 				_ ->
 					Ars = [ text_utils:integer_to_string( I )
-							|| I <- lists:sort( Arities ) ],
+								|| I <- lists:sort( Arities ) ],
 
 					ArsStr = text_utils:strings_to_listed_string( Ars ),
 
