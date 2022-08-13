@@ -58,7 +58,9 @@
 		  debug/1, debug/2,
 
 		  % See also text_utils:version_to_string/1:
-		  parse_version/1, check_version/1, compare_versions/2,
+		  parse_version/1,
+		  check_three_digit_version/1, check_any_version/1,
+		  compare_versions/2,
 
 		  get_unix_process_specific_string/0,
 		  get_process_specific_value/0, get_process_specific_value/1,
@@ -285,8 +287,8 @@
 % Version as a pair of integerss, typically {MajorVersion, MinorVersion}.
 
 
--type three_digit_version() :: { version_number(), version_number(),
-								 version_number() }.
+-type three_digit_version() ::
+		{ version_number(), version_number(), version_number() }.
 % Version as a triplet of integers, typically {MajorVersion, MinorVersion,
 % ReleaseVersion}.
 
@@ -1524,19 +1526,38 @@ parse_version( VersionString ) ->
 
 
 
-% @doc Checks that specified term is a triplet-based version.
--spec check_version( term() ) -> void().
-check_version( { A, B, C } ) when is_integer( A ) andalso is_integer( B )
-								  andalso is_integer( C )->
-	ok;
+% @doc Checks that specified term is a three-digit version, and returns it.
+-spec check_three_digit_version( term() ) -> three_digit_version().
+check_three_digit_version( T={ A, B, C } ) when is_integer( A )
+				andalso is_integer( B ) andalso is_integer( C ) ->
+	T;
 
-check_version( T ) ->
-	throw( { invalid_triplet_version, T } ).
+check_three_digit_version( T ) ->
+	throw( { invalid_three_digit_version, T } ).
 
 
 
-% @doc Compares the two pairs, triplets or quadruplets (expected to be of the
-% same size), which describe two version numbers (ex: {0,1,0} and {0,1,7}) and
+% @doc Checks that the specified term is a any-version, and returns it.
+-spec check_any_version( term() ) -> any_version().
+check_any_version( T ) when is_tuple( T ) ->
+	case lists:all( fun( E ) -> is_integer( E ) andalso E >= 0 end,
+					tuple_to_list( T ) ) of
+
+		true ->
+			T;
+
+		false ->
+			throw( { invalid_any_version, T } )
+
+	end;
+
+check_any_version( V ) ->
+	throw( { invalid_any_version, V } ).
+
+
+
+% @doc Compares the two specified any-versions (expected to be of the same
+% size), which describe two version numbers (ex: {0,1,0} and {0,1,7}) and
 % returns either first_bigger, second_bigger, or equal.
 %
 % The two compared versions must have the same number of digits.
