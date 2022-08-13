@@ -50,7 +50,7 @@
 -export([ join/1, join/2, bin_join/1, bin_join/2, any_join/1, any_join/2,
 		  split/1,
 
-		  get_base_path/1, get_last_path_element/1,
+		  get_base_path/1, get_last_path_element/1, split_path/1,
 
 		  resolve_path/1, resolve_any_path/1,
 
@@ -832,6 +832,8 @@ get_last_element( _List=[ _H | T ] ) ->
 % Alias name for filename:dirname/1 (better in file_utils, and hopefully
 % clearer).
 %
+% See get_last_path_element/1 for the counterpart function.
+%
 -spec get_base_path( any_path() ) -> any_path().
 get_base_path( AnyPath ) ->
 	filename:dirname( AnyPath ).
@@ -850,9 +852,23 @@ get_base_path( AnyPath ) ->
 % Replacement name for filename:basename/1 (more convenient if in file_utils,
 % and hopefully clearer).
 %
--spec get_last_path_element( any_path() ) -> any_path().
+% See get_base_path/1 for the counterpart function.
+%
+-spec get_last_path_element( any_path() ) ->  any_path_element().
 get_last_path_element( AnyPath ) ->
 	filename:basename( AnyPath ).
+
+
+
+% @doc Splits the specified path into a full base directory path and a final
+% entry (filename or directory name).
+%
+% Ex: {"/aaa/bbb/ccc", "foobar.txt"} =
+%       file_utils:split_path("/aaa/bbb/ccc/foobar.txt")
+%
+-spec split_path( any_path() ) -> { any_path(), any_path_element() }.
+split_path( AnyPath ) ->
+	{ get_base_path( AnyPath ), get_last_path_element( AnyPath ) }.
 
 
 
