@@ -3013,7 +3013,8 @@ create_temporary_directory() ->
 
 
 
-% @doc Removes (deletes) the specified file, specified as any kind of string.
+% @doc Removes (deletes) the specified file (regular, or symbolic link),
+% specified as any kind of string.
 %
 % Throws an exception if any problem occurs.
 %
