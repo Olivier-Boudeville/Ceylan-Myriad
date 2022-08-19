@@ -189,8 +189,10 @@
 -type diagnosed_error_reason( T ) :: { error_tuploid( T ), error_message() }.
 % An error with its textual diagnosis.
 
+-type tagged_error() :: { 'error', error_reason() }.
+% The most classical way of reporting an error.
 
--type error_term() :: { 'error', error_reason() } | error_reason().
+-type error_term() :: tagged_error() | error_reason().
 % A (possibly tagged) error term. Ex: 'badarg'.
 
 
@@ -205,6 +207,12 @@
 -type base_status() :: 'ok' | error_term().
 % Tells whether an operation succeeded; if not, an error reason is specified (as
 % a term).
+
+
+% Tells whether an operation succeeded; if not, an error reason is specified (as
+% a pair).
+%
+-type base_outcome() :: 'ok' | error_term().
 
 
 -type maybe( T ) :: T | 'undefined'.
@@ -397,8 +405,9 @@
 			   reason/0, exit_reason/0, error_reason/0,
 			   error_diagnosis/0, error_bin_diagnosis/0,
 			   error_type/0, error_tuploid/0, error_message/0,
-			   diagnosed_error_reason/0, error_term/0, diagnosed_error_term/0,
-			   base_status/0,
+			   diagnosed_error_reason/0, tagged_error/0,
+			   error_term/0, diagnosed_error_term/0,
+			   base_status/0, base_outcome/0,
 			   maybe/1, safe_maybe/1,
 			   wildcardable/1,
 			   fallible/1, fallible/2,
@@ -449,9 +458,7 @@
 %
 -spec create_uniform_tuple( Size :: count(), Value :: any() ) -> tuple().
 create_uniform_tuple( Size, Value ) ->
-
 	List = lists:duplicate( Size, Value ),
-
 	list_to_tuple( List ).
 
 
@@ -526,10 +533,10 @@ identity( Term ) ->
 
 
 
-% @doc Checks that specified term is 'undefined'.
--spec check_undefined( term() ) -> void().
+% @doc Checks that specified term is 'undefined', and returns it.
+-spec check_undefined( term() ) -> 'undefined'.
 check_undefined( undefined ) ->
-	ok;
+	undefined;
 
 check_undefined( Term ) ->
 	throw( { not_undefined, Term } ).
@@ -539,7 +546,7 @@ check_undefined( Term ) ->
 % @doc Checks that all elements of the specified list are equal to 'undefined';
 % returns that list.
 %
--spec check_all_undefined( term() ) -> void().
+-spec check_all_undefined( term() ) -> [ term() ].
 check_all_undefined( List ) ->
 	[ check_undefined( Term ) || Term <- List ].
 
@@ -554,8 +561,8 @@ check_not_undefined( Term ) ->
 
 
 
-% @doc Checks that specified term is "defined" (not 'undefined'); returns that
-% term.
+% @doc Checks that specified term is "defined" (not equal to 'undefined');
+% returns that term.
 %
 -spec check_defined( term() ) -> term().
 check_defined( Term ) ->
@@ -790,6 +797,7 @@ notify_pending_messages() ->
 			notify_pending_messages()
 
 	after 0 ->
+
 		ok
 
 	end.
@@ -1020,7 +1028,7 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
 
 			%io:format( "(received ~p, still waiting for instances ~p)~n",
-			%		   [ WaitedPid, NewWaited ] ),
+			%           [ WaitedPid, NewWaited ] ),
 
 			wait_for_summable_acks_helper( NewWaited, CurrentValue + ToAdd,
 				  InitialTimestamp, MaxDurationInSeconds, Period,
@@ -1296,7 +1304,7 @@ display_process_info( Pid ) when is_pid( Pid ) ->
 				PropList ->
 
 					Strings = [ io_lib:format( "~ts: ~p", [ K, V ] )
-								|| { K, V } <- PropList ],
+											|| { K, V } <- PropList ],
 
 					io:format( "PID ~w refers to a live process on "
 						"remote node ~ts, whose information are: ~ts",
@@ -1707,13 +1715,11 @@ get_process_size( Pid ) ->
 % this call.
 %
 % Note:
-%
 % - the process may run on the local node or not
-%
 % - generally not to be used, when relying on a good design
 %
 -spec is_alive( pid() | ustring() | naming_utils:registration_name() ) ->
-			boolean().
+											boolean().
 is_alive( TargetPid ) when is_pid( TargetPid ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
