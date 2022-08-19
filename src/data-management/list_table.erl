@@ -49,7 +49,7 @@
 % They are to provide the same API (signatures and contracts).
 %
 % See also: `list_utils.erl' and our quite similar yet less useful
-% `option_list.erl`.
+% `option_list.erl'.
 %
 -module(list_table).
 

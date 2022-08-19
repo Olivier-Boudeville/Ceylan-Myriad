@@ -371,9 +371,9 @@
 % This type has been introduced in order to benefit from more relevant keys for
 % event tables: previously these keys were gui_object(), until more complex GUI
 % uses shown that, after using wx_object:set_pid/2, a frame now known as
-% {wx_ref,63,wxFrame,<0.119.0>} still generated events as
-% {wx_ref,63,wxFrame,[]}, so a better, stable identifier thereof is
-% {wxFrame,63}.
+% `{wx_ref,63,wxFrame,<0.119.0>}' still generated events as
+% `{wx_ref,63,wxFrame,[]}', so a better, stable identifier thereof is
+% `{wxFrame,63}'.
 
 
 

@@ -95,7 +95,7 @@ One may also refer for operations on:
 Pseudo-Builtin Types
 ....................
 
-Such types, as ``void/0`` (for functions only useful for their side-effects - this happens!), ``maybe/1`` (``maybe(T)`` is either ``T`` or ``undefined``), and ``fallible/{1,2}`` (an operation either is successful and returns a result, or returns an error) are supported, thanks to the Myriad parse-transform.
+Such types, as ``void/0`` (for functions only useful for their side-effects - this happens!), ``maybe/1`` (``maybe(T)`` is either ``T`` or ``undefined``), ``safe_maybe/1`` (either ``{just,T}`` or ``nothing``) and ``fallible/{1,2}`` (an operation either is successful and returns a result, or returns an error) are supported, thanks to `the Myriad parse-transform`_.
 
 
 

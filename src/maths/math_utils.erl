@@ -56,6 +56,10 @@
 					 get_relative_difference/2, is_null/1 ] }).
 
 
+% Operations on number():
+-export([ is_null_number/1 ]).
+
+
 % Operations with angles:
 -export([ radian_to_degree/1, canonify/1 ]).
 
@@ -68,6 +72,10 @@
 
 % Operations related to probabilities:
 -export([ probability_to_string/1, probability_like_to_string/1 ]).
+
+
+% Operations related to percentages:
+-export([ check_percent_basic_range/1 ]).
 
 
 % For epsilon define:
@@ -577,6 +585,21 @@ is_null( X ) ->
 
 
 
+% @doc Returns true iff the specified number is deemed close enough to zero to
+% be null.
+%
+-spec is_null_number( number() ) -> boolean().
+is_null_number( 0 ) ->
+	true;
+
+is_null_number( I ) when is_integer( I )  ->
+	false;
+
+% float() expected then:
+is_null_number( F ) ->
+	erlang:abs( F ) < ?epsilon.
+
+
 
 % Angle section.
 
@@ -701,3 +724,15 @@ probability_like_to_string( ProbLike ) when is_float( ProbLike )
 
 probability_like_to_string( ProbLike ) ->
 	text_utils:format( "non-normalised probability of ~w", [ ProbLike ] ).
+
+
+% @doc Checks that the specified percentage is in the usual [0.0, 1.0] range.
+%
+% Returns that percentage.
+%
+-spec check_percent_basic_range( percent() ) -> percent().
+check_percent_basic_range( P ) when P >= 0.0 andalso P =< 1.0 ->
+	P;
+
+check_percent_basic_range( P ) ->
+	throw( { percentage_not_in_range, P } ).

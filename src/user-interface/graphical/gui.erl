@@ -806,7 +806,8 @@
 -type menu_title() :: label().
 % The title associated to a menu element.
 %
-% Use ampersand to denote a shortcut character, e.g. "&File" or "&Print code".
+% Use ampersand to denote a shortcut character, e.g. `"&File"' or `"&Print
+% code"'.
 
 
 -type menu_label() :: menu_title().
@@ -1292,7 +1293,6 @@
 
 -type event_subscription_spec() :: gui_event:event_subscription_spec().
 -type event_unsubscription_spec() :: gui_event:event_unsubscription_spec().
--type event_callback() :: gui_event:event_callback().
 -type event_context() :: gui_event:event_context().
 -type gui_object_key() :: gui_event:gui_object_key().
 -type event_type() :: gui_event:event_type().

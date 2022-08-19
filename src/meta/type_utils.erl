@@ -530,7 +530,8 @@
 
 % Conversion:
 -export([ ensure_integer/1, ensure_rounded_integer/1,
-		  ensure_float/1, ensure_number/1, ensure_boolean/1,
+		  ensure_float/1, ensure_positive_float/1,
+		  ensure_number/1, ensure_boolean/1,
 		  ensure_string/1, ensure_binary/1 ]).
 
 
@@ -539,14 +540,32 @@
 
 
 % Checking (see also: list_utils:are_*/1):
+%
+% We prefer 'positive' vs 'strictly positive', deemed cleared than 'non_neg' vs
+% 'positive', this latter one excluding zero.
+%
+% So, at least here, 'positive' includes zero (shall be understood as 'positive
+% or null'), in constrast to 'strictly positive'.
+%
+% See also, in basic_utils: check_undefined/1, check_all_undefined/1,
+% are_all_defined/1, check_defined/1, check_not_undefined/1,
+% check_all_defined/1.
+%
 -export([ check_atom/1, check_boolean/1,
 
 		  check_pid/1, check_maybe_pid/1,
 
+
 		  check_number/1, check_maybe_number/1,
+		  check_positive_number/1,
+		  check_strictly_positive_number/1,
+
 		  check_numbers/1, check_maybe_numbers/1,
 
+
 		  check_integer/1, check_maybe_integer/1,
+		  check_positive_integer/1, check_maybe_positive_integer/1,
+
 		  check_integers/1, check_maybe_integers/1,
 
 		  check_float/1, check_maybe_float/1,
@@ -1191,7 +1210,7 @@ ensure_integer( N ) when is_float( N ) ->
 	trunc( N );
 
 ensure_integer( N ) ->
-	throw( { cannot_be_cast_to_integer, N } ).
+	throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -1207,7 +1226,7 @@ ensure_rounded_integer( N ) when is_float( N ) ->
 	round( N );
 
 ensure_rounded_integer( N ) ->
-	throw( { cannot_be_cast_to_integer, N } ).
+	throw( { cannot_coerce_to_integer, N } ).
 
 
 
@@ -1224,7 +1243,24 @@ ensure_float( N ) when is_integer( N ) ->
 	float( N );
 
 ensure_float( N ) ->
-	throw( { cannot_be_cast_to_float, N } ).
+	throw( { cannot_coerce_to_float, N } ).
+
+
+
+% @doc Ensures that the specified term is a postive (possibly null) float, and
+% returns it.
+%
+% If it is an integer, will return a floating-point version of it.
+%
+-spec ensure_positive_float( number() ) -> float().
+ensure_positive_float( F ) when is_float( F ) andalso F >= 0.0 ->
+	F;
+
+ensure_positive_float( I ) when is_integer( I ) andalso I >= 0 ->
+	float( I );
+
+ensure_positive_float( Other ) ->
+	throw( { cannot_coerce_to_positive_float, Other } ).
 
 
 
@@ -1447,7 +1483,7 @@ check_maybe_pid( Other ) ->
 
 
 
-% @doc Checks that the specified term is an number indeed, and returns it.
+% @doc Checks that the specified term is a number indeed, and returns it.
 -spec check_number( term() ) -> number().
 check_number( Num ) when is_number( Num ) ->
 	Num;
@@ -1467,6 +1503,30 @@ check_maybe_number( Num ) when is_number( Num ) ->
 
 check_maybe_number( Other ) ->
 	throw( { not_maybe_number, Other } ).
+
+
+
+% @doc Checks that the specified term is a positive or null number indeed, and
+% returns it.
+%
+-spec check_positive_number( term() ) -> number().
+check_positive_number( Num ) when is_number( Num ) andalso Num >= 0 ->
+	true;
+
+check_positive_number( _Num ) ->
+	false.
+
+
+
+% @doc Checks that the specified term is a strictly positive number indeed, and
+% returns it.
+%
+-spec check_strictly_positive_number( term() ) -> number().
+check_strictly_positive_number( Num ) when is_number( Num ) andalso Num > 0 ->
+	true;
+
+check_strictly_positive_number( _Num ) ->
+	false.
 
 
 
@@ -1510,6 +1570,33 @@ check_maybe_integer( Int ) when is_integer( Int ) ->
 
 check_maybe_integer( Other ) ->
 	throw( { not_maybe_integer, Other } ).
+
+
+
+% @doc Checks that the specified term is a positive or null integer, and returns
+% it.
+%
+-spec check_positive_integer( term() ) -> pos_integer().
+check_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+	Int;
+
+check_positive_integer( Other ) ->
+	throw( { not_positive_integer, Other } ).
+
+
+
+% @doc Checks that the specified term is a positive or null integer or the
+% 'undefined' atom, and returns it.
+%
+-spec check_maybe_positive_integer( term() ) -> maybe( pos_integer() ).
+check_maybe_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+	Int;
+
+check_maybe_positive_integer( undefined ) ->
+	undefined;
+
+check_maybe_positive_integer( Other ) ->
+	throw( { not_maybe_positive_integer, Other } ).
 
 
 

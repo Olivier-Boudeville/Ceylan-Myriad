@@ -96,6 +96,8 @@
 	get_default_openssl_executable_name/0,
 	get_default_openssl_executable_path/0,
 
+	get_make_path/0,
+
 	get_gnuplot_path/0,
 	get_current_gnuplot_version/0,
 	get_current_gnuplot_version/1,
@@ -863,6 +865,11 @@ get_default_openssl_executable_path() ->
 	% Note: expected to be on the PATH:
 	find_executable( get_default_openssl_executable_name() ).
 
+
+% @doc Returns an absolute path to the default (GNU) make executable.
+-spec get_make_path() -> executable_path().
+get_make_path() ->
+	find_executable( "make" ).
 
 
 % @doc Returns an absolute path to a gnuplot executable.

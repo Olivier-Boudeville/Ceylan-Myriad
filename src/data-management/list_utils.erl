@@ -65,7 +65,7 @@
 		  get_index_of/2, get_maybe_index_of/2, split_at/2, group_by/2,
 		  uniquify/1, uniquify_ordered/1,
 		  ensure_is_once_in/2,
-		  has_duplicates/1, count_occurrences/1, get_duplicates/1,
+		  duplicate/2, has_duplicates/1, count_occurrences/1, get_duplicates/1,
 		  union/2, intersection/2,
 		  difference/2, differences/2,
 		  cartesian_product/1,
@@ -674,6 +674,15 @@ ensure_is_once_in( Elem, List ) ->
 
 
 
+% @doc Returns a list made of the specified number of occurrences of the
+% specified element.
+%
+-spec duplicate( element(), count() ) -> [ element() ].
+duplicate( Elem, Count ) ->
+	%[ Elem || _ <- lists:seq( 1, Count ) ].
+	lists:duplicate( Count, Elem ).
+
+
 % @doc Tells whether there are in the specified list elements that are present
 % more than once.
 %
@@ -1278,7 +1287,7 @@ determine_tuple_info( _TupleList=[] ) ->
 	throw( empty_list );
 
 determine_tuple_info( _TupleList=[ FirstTuple | T ] )
-  when is_tuple( FirstTuple ) ->
+								when is_tuple( FirstTuple ) ->
 	TupleSize = size( FirstTuple ),
 	Count = check_tuple_length( T, TupleSize, _AccCount=1 ),
 	{ Count, TupleSize }.

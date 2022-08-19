@@ -164,8 +164,6 @@
 
 -type gui_env_designator() :: gui:gui_env_designator().
 
--type mouse_event_type() :: gui_event:mouse_event_type().
-
 -type wxCursor() :: wxCursor:wxCursor().
 
 
@@ -308,13 +306,10 @@ set_cursor( CursorType, GUIEnvDesignator ) ->
 		environment:get( [ cursor_table, current_cursor_type, os_family,
 						   top_level_window ], GUIEnvDesignator ),
 
-	case MaybeCurrentCursorType of
-
-		CursorType ->
-			ok;
-
+	MaybeCurrentCursorType =:= CursorType orelse
 		% Includes undefined:
-		_ ->
+		begin
+
 			WxCursorType = table:get_value( CursorType, CursorTable ),
 
 			case OSFamily of
@@ -339,7 +334,7 @@ set_cursor( CursorType, GUIEnvDesignator ) ->
 			environment:cache( { _K=current_cursor_type, _Value=CursorType },
 							   GUIEnvDesignator )
 
-	end.
+		end.
 
 
 

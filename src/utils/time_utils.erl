@@ -1084,7 +1084,7 @@ get_textual_timestamp(
 
 
 % @doc Returns a binary string corresponding to the current timestamp, like:
-% <<"2009/9/1 11:46:53">>.
+% `<<"2009/9/1 11:46:53">>'.
 %
 % Note that the display order here is YY-MM-DD (same as when specifying the
 % timestamp), as opposed to DD-MM-YY, which is maybe more usual.
