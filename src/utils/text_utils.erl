@@ -714,7 +714,7 @@ pid_to_short_string( Pid ) ->
 
 % @doc Returns a short, plain string corresponding to the specified PIDs.
 %
-% For example, `[<0.33.0>,<0.35.0>]' returned as `"|33,35|"' (7 characters
+% For example, `[<0.33.0>,<0.35.0>]' is returned as `"|33,35|"' (7 characters
 % instead of 19, almost one-third).
 %
 -spec pids_to_short_string( [ pid() ] ) -> ustring().
