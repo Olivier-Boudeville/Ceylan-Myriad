@@ -547,6 +547,10 @@
 % So, at least here, 'positive' includes zero (shall be understood as 'positive
 % or null'), in constrast to 'strictly positive'.
 %
+% See also, in basic_utils: check_undefined/1, check_all_undefined/1,
+% are_all_defined/1, check_defined/1, check_not_undefined/1,
+% check_all_defined/1.
+%
 -export([ check_atom/1, check_boolean/1,
 
 		  check_pid/1, check_maybe_pid/1,
