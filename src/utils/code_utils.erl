@@ -46,7 +46,10 @@
 		  get_code_path/0, get_code_path_as_string/0,
 		  code_path_to_string/0, code_path_to_string/1,
 		  list_beams_in_path/0, get_beam_filename/1, is_beam_in_path/1,
-		  recompile/1,
+		  get_source_filename/1,
+		  find_module_source/1,
+		  ensure_compiled/1, ensure_compiled/2, ensure_compiled/3,
+		  recompile/1, recompile/2, recompile/3, recompile/4,
 		  get_erlang_root_path/0,
 		  get_stacktrace/0, get_stacktrace/1,
 		  interpret_stacktrace/0,
@@ -95,11 +98,26 @@
 % module.
 
 
+
+-type define_name() :: ustring().
+% Name of a preprocessor define.
+
+-type define_value() :: ustring().
+% Value of a preprocessor define.
+
+
+-type define() :: define_name() | { define_name(), define_value() }.
+% Describes a preprocessor define.
+
+
 -export_type([ code_path/0, resolvable_code_path/0, code_path_position/0,
 			   stack_info/0, stack_item/0, stack_trace/0, error_map/0 ]).
 
 
-% The file extension of a BEAM file:
+% The dotted file extension of an Erlang source file:
+-define( erl_extension, ".erl" ).
+
+% The dotted file extension of a BEAM file:
 -define( beam_extension, ".beam" ).
 
 
@@ -772,13 +790,185 @@ is_beam_in_path( Other ) ->
 
 
 
-% @doc Recompiles the specified module.
+% @doc Returns the filename of the (Erlang) source file corresponding to the
+% specified module.
 %
-% Relies on our build system, rules and parametrisation, that we deem is the
-% most flexible and robust option.
+-spec get_source_filename( module_name() ) -> file_name().
+get_source_filename( ModuleName ) when is_atom( ModuleName ) ->
+	ModuleNameString = text_utils:atom_to_string( ModuleName ),
+	ModuleNameString ++ ?erl_extension.
+
+
+
+% @doc Tries to find the source file of the specified module in the current code
+% path.
+%
+% Useful to be able to compile it.
+%
+-spec find_module_source( module_name() ) -> fallible( file_path() ).
+find_module_source( ModuleName ) ->
+
+	SrcFilename = get_source_filename( ModuleName ),
+
+	MaybeSrcPaths = [
+		begin
+			SrcPath = file_utils:join( P, SrcFilename ),
+			case file_utils:is_existing_file_or_link( SrcPath ) of
+
+				true ->
+					SrcPath;
+
+				false ->
+					undefined
+
+			end
+
+		end || P <- code:get_path() ],
+
+
+	case [ P || P <- MaybeSrcPaths, P =/= undefined ] of
+
+		[ SingleSrcPath ] ->
+			{ ok, SingleSrcPath };
+
+		[] ->
+			{ error, { source_file_not_found, SrcFilename } };
+
+		MultipleSrcPaths ->
+			{ error, { multiple_source_files_found, MultipleSrcPaths } }
+
+	end.
+
+
+
+% @doc Compiles the specified module, by searching its sources through the code
+% path and requiring Myriad's build system to ensure its BEAM exists.
+%
+% If a corresponding BEAM file exists, it will be rebuilt iff the build system
+% considers it should.
+%
+-spec ensure_compiled( module_name() ) -> base_status().
+ensure_compiled( ModuleName ) ->
+
+	% Works whether or not a corresponding BEAM file exists:
+	{ ok, ModSrcPath } = find_module_source( ModuleName ),
+
+	BaseDir = file_utils:get_base_path( ModSrcPath ),
+
+	ensure_compiled( ModuleName, BaseDir ).
+
+
+
+% @doc Ensures that the BEAM file corresponding to the specified module
+% exists in the specified directory.
+%
+% Will compile the specified module in that directory (with no specific defines)
+% iff the build system considers it should.
+%
+-spec ensure_compiled( module_name(), directory_path() ) -> base_status().
+ensure_compiled( ModuleName, BaseDir ) ->
+	ensure_compiled( ModuleName, BaseDir, _Defines=[] ).
+
+
+
+% @doc Ensures that the BEAM file corresponding to the specified module
+% exists in the specified directory.
+%
+% Will compile the specified module in that directory, with the specified
+% defines, iff the build system considers it should.
+%
+-spec ensure_compiled( module_name(), directory_path(), [ define() ] ) ->
+										base_status().
+ensure_compiled( ModuleName, BaseDir, Defines ) ->
+
+	BEAMFilename = get_beam_filename( ModuleName ),
+
+	MakeExecPath = executable_utils:get_make_path(),
+
+	% We could use the -C/--directory but, in order to better emulate the usual
+	% context, we change directory by ourselves for this execution (only):
+	%
+	% (-s: silent)
+	%
+	Args = [ "-s", BEAMFilename ] ++ make_options_for( Defines ),
+
+	case system_utils:run_executable( MakeExecPath, Args,
+			system_utils:get_standard_environment(),
+			_WorkingDir=BaseDir ) of
+
+		{ _ReturnCode=0, _Output="" } ->
+			%trace_utils:debug_fmt( "Module '~ts' successfully "
+			%   "recompiled, with no specific output.",
+			%    ModuleName ] ),
+			ok;
+
+		{ _ReturnCode=0, Output } ->
+			% Generally just the base build message like:
+			% "   Compiling standard module foobar.beam".
+			%
+			trace_utils:warning_fmt( "Module '~ts' successfully "
+				"recompiled, with output: '~ts'.",
+				[ ModuleName, Output ] ),
+			ok;
+
+		{ ErrorCode, Output } ->
+			trace_utils:error_fmt( "Failed to recompile module '~ts': "
+				"error code ~B, output: '~ts'.",
+				[ ModuleName, ErrorCode, Output ] ),
+			{ error,
+			  { module_recompilation_failed, ModuleName, Output } }
+
+	end.
+
+
+
+% @doc Recompiles forcibly the specified module (even if the build system does
+% not detect a source change; this is typically useful if changing compilation
+% settings), with no specific define.
+%
+% A (single) corresponding (possibly obsolete) BEAM file is expected to already
+% exist.
+%
+% Relies on Myriad's build system, rules and parametrisation, that we deem is
+% the most flexible and robust option.
 %
 -spec recompile( module_name() ) -> base_status().
 recompile( ModuleName ) ->
+	recompile( ModuleName, _ForceRecompilation=true ).
+
+
+
+% @doc Recompiles forcibly the specified module (even if the build system does
+% not detect a source change; this is typically useful if changing compilation
+% settings).
+%
+% A (single) corresponding (possibly obsolete) BEAM file is expected to already
+% exist.
+%
+% Relies on Myriad's build system, rules and parametrisation, that we deem is
+% the most flexible and robust option.
+%
+-spec recompile( module_name(), boolean() ) -> base_status().
+recompile( ModuleName, ForceRecompilation ) ->
+	recompile( ModuleName, ForceRecompilation, _Defines=[] ).
+
+
+
+% @doc Recompiles the specified module, forcibly or not, with the specified
+% preprocessor defines.
+%
+% If ForceRecompilation is true, the specified module will be recompiled even if
+% the build system does not detect a source change; this is typically useful if
+% changing compilation settings.
+%
+% A (single) corresponding (possibly obsolete) BEAM file is expected to already
+% exist.
+%
+% Relies on Myriad's build system, rules and parametrisation, that we deem is
+% the most flexible and robust option.
+%
+-spec recompile( module_name(), boolean(), [ define() ] ) -> base_status().
+recompile( ModuleName, ForceRecompilation, Defines ) ->
 
 	% compile:file/2, the 'make' module, 'erl -compile' or 'erlc' could be used
 	% instead, but then plenty of options would have to be taken into account.
@@ -791,46 +981,80 @@ recompile( ModuleName ) ->
 			{ error, { module_not_found, ModuleName } };
 
 		[ SinglePath ] ->
-			{  BaseDir, BEAMFilename } = file_utils:split_path( SinglePath ),
-			MakeExecPath = executable_utils:get_make_path(),
-
-			% We could use the -C/--directory but to better emulate the usual
-			% context, we change directory by ourselves for this execution
-			% (only):
-			%
-			% (-s: silent)
-			%
-			Args = [ "-s", BEAMFilename ],
-
-			case system_utils:run_executable( MakeExecPath, Args,
-					system_utils:get_standard_environment(),
-					_WorkingDir=BaseDir ) of
-
-				{ _ReturnCode=0, _Output="" } ->
-					%trace_utils:debug_fmt( "Module '~ts' successfully "
-					%   "recompiled, with no specific output.",
-					%    ModuleName ] ),
-					ok;
-
-				{ _ReturnCode=0, Output } ->
-					trace_utils:warning_fmt( "Module '~ts' successfully "
-						"recompiled, with output: '~ts'.",
-						[ ModuleName, Output ] ),
-					ok;
-
-				{ ErrorCode, Output } ->
-					trace_utils:error_fmt( "Failed to recompile module '~ts': "
-						"error code ~B, output: '~ts'.",
-						[ ModuleName, ErrorCode, Output ] ),
-					{ error,
-					  { module_recompilation_failed, ModuleName, Output } }
-
-			end;
+			BaseDir = file_utils:get_base_path( SinglePath ),
+			recompile( ModuleName, BaseDir, ForceRecompilation, Defines );
 
 		MultiplePaths ->
 			{ error, { multiple_modules_found, ModuleName, MultiplePaths } }
 
 	end.
+
+
+
+% @doc Recompiles the specified module, forcibly or not, with the specified
+% preprocessor defines, in the specified directory.
+%
+% If ForceRecompilation is true, the specified module will be recompiled even if
+% the build system does not detect a source change; this is typically useful if
+% changing compilation settings.
+%
+% A (single) corresponding (possibly obsolete) BEAM file is expected to already
+% exist.
+%
+% Relies on Myriad's build system, rules and parametrisation, that we deem is
+% the most flexible and robust option.
+%
+-spec recompile( module_name(), directory_path(), boolean(), [ define() ] ) ->
+									base_status().
+recompile( ModuleName, BaseDir, ForceRecompilation, Defines ) ->
+
+	BeamPath = file_utils:join( BaseDir, get_beam_filename( ModuleName ) ),
+
+	ForceRecompilation andalso file_utils:remove_file_if_existing( BeamPath ),
+
+	ensure_compiled( ModuleName, BaseDir, Defines ).
+
+
+
+% Returns a list of arguments corresponding to any specified preprocessor
+% defines; if none is specified, the defaults will be applied (as opposed to
+% resetting to no option).
+%
+% Other compilation options may be supported in the future.
+%
+% Returning a list allows no argument to be returned, whereas an empty one ("")
+% would still be seen by make afterwards (e.g. "make: *** empty string invalid
+% as file name.  Stop.").
+%
+% Returning for example [ "ERLANG_COMPILER_EXTRA_OPTS='-Dfoo -Dbar=1'" ].
+%
+% (helper)
+%
+-spec make_options_for( [ define() ] ) -> [ ustring() ].
+make_options_for( _Defines=[] ) ->
+	% Let defaults apply, rather than discarding them with
+	% ERLANG_COMPILER_EXTRA_OPTS="":
+	%
+	[];
+
+make_options_for( Defines ) ->
+	make_options_for( Defines, _Acc=[] ).
+
+
+make_options_for( _Defines=[], Acc ) ->
+	% Preferring to respect define order:
+	[ "ERLANG_COMPILER_EXTRA_OPTS='"
+		++ list_utils:flatten_once( lists:reverse( Acc ) ) ++ "'" ];
+
+make_options_for( _Defines=[ { DefineNameStr, DefineValueStr } | T ], Acc ) ->
+
+	DefStr = text_utils:format( "-D~ts=~ts",
+								[ DefineNameStr, DefineValueStr ] ),
+
+	make_options_for( T, [ DefStr | Acc ] );
+
+make_options_for( _Defines=[ DefineNameStr | T ], Acc ) ->
+	make_options_for( T, [ "-D" ++ DefineNameStr | Acc ] ).
 
 
 
