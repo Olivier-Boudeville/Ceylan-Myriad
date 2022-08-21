@@ -87,7 +87,7 @@ The most obvious conventions are:
 
 - the **latest stable version of Erlang** should be used, preferably built thanks to our ``myriad/conf/install-erlang.sh`` script
 
-- the official *Programming Rules and Conventions* should be enforced, as defined `here <http://www.erlang.se/doc/programming_rules.shtml>`_
+- the official *Programming Rules and Conventions* should be enforced, as defined `here <http://www.erlang.se/doc/programming_rules.shtml>`_ (possibly a dead link now; one may try `this mirror <https://docs.jj1bdx.tokyo/Erlang_Programming_Rules.html>`_ instead)
 
 - the function definitions shall follow **the same order** as the one of their exports
 
