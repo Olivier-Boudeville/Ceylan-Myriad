@@ -541,8 +541,8 @@
 
 % Checking (see also: list_utils:are_*/1):
 %
-% We prefer 'positive' vs 'strictly positive', deemed cleared than 'non_neg' vs
-% 'positive', this latter one excluding zero.
+% We prefer the "'positive' vs 'strictly positive'" naming, deemed clearer than
+% the "'non_neg' vs 'positive'" one, this 'positive' excluding zero.
 %
 % So, at least here, 'positive' includes zero (shall be understood as 'positive
 % or null'), in constrast to 'strictly positive'.
@@ -570,6 +570,10 @@
 
 		  check_float/1, check_maybe_float/1,
 		  check_floats/1, check_maybe_floats/1,
+
+		  check_positive_float/1,
+		  check_maybe_positive_float/1,
+		  check_positive_floats/1,
 
 		  check_strictly_positive_float/1,
 		  check_maybe_strictly_positive_float/1,
@@ -1657,6 +1661,45 @@ check_floats( Floats ) ->
 check_maybe_floats( MaybeFloats ) ->
 	[ check_maybe_float( MF ) || MF <- MaybeFloats ].
 
+
+
+% @doc Checks that the specified term is a positive (or null) float indeed, and
+% returns it.
+%
+-spec check_positive_float( term() ) -> float().
+check_positive_float( Float )
+			when is_float( Float ) andalso Float >= 0.0 ->
+	Float;
+
+check_positive_float( Other ) ->
+	throw( { not_positive_float, Other } ).
+
+
+
+% @doc Checks that the specified term is a maybe-(positive float) indeed, and
+% returns it.
+%
+-spec check_maybe_positive_float( term() ) -> maybe( float() ).
+check_maybe_positive_float( undefined ) ->
+	undefined;
+
+check_maybe_positive_float( Float )
+			when is_float( Float ) andalso Float >= 0.0 ->
+	Float;
+
+check_maybe_positive_float( Other ) ->
+	throw( { not_maybe_positive_float, Other } ).
+
+
+
+% @doc Checks that the specified term is a list of positive (or null) floats
+% indeed, and returns it.
+%
+-spec check_positive_floats( term() ) -> [ float() ].
+check_positive_floats( Floats ) ->
+	[ ( is_float( F ) andalso F >= 0.0 ) orelse
+		throw( { not_positive_float, F } ) || F <- Floats ],
+	Floats.
 
 
 % @doc Checks that the specified term is a strictly positive float indeed, and
