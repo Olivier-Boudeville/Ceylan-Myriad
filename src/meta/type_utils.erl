@@ -757,6 +757,9 @@ type_to_string( Type ) ->
 % specific type (this is not strictly the same need, as a given term in general
 % may be seen of being of multiple types).
 %
+% The lowest-level/most precising typing can be obtained with the (undocumented)
+% erts_internal:term_type/1 function.
+%
 -spec get_type_of( term() ) -> primitive_type_description().
 get_type_of( Term ) when is_boolean( Term ) ->
 	'boolean';
