@@ -241,6 +241,11 @@
 % service: a process could trigger its creation whereas it is already in
 % progress, due to an earlier trigger.
 
+% When requiring that an environment server is started, it will be returned
+% directly if it is found already available; yet then the link status may not be
+% honored (e.g. a start_link may thus return the PID of a non-linked process).
+
+
 % Some accessors accept both a registration name and a file path, whereas the
 % former could be deduced from the latter. The idea is to avoid, in the case of
 % potentially frequent operations, unnecessary conversions.
