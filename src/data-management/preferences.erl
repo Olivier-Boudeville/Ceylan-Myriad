@@ -170,7 +170,10 @@
 % There is a slight potential race condition with the implicit starting of this
 % service: a process could trigger its creation while its creation is in
 % progress, due to an earlier trigger.
-
+%
+% When requiring that the preferences server is started, it will be returned
+% directly if it is found already available; yet then the link status may not be
+% honored (e.g. a start_link may thus return the PID of a non-linked process).
 
 
 % Default name for local registration:
