@@ -3016,7 +3016,8 @@ create_temporary_directory() ->
 % @doc Removes (deletes) the specified file (regular, or symbolic link),
 % specified as any kind of string.
 %
-% Throws an exception if any problem occurs.
+% Throws an exception if any problem occurs (e.g. the file does not exist, or
+% could not be removed for any reason).
 %
 -spec remove_file( any_file_path() ) -> void().
 remove_file( FilePath ) ->
@@ -3038,6 +3039,9 @@ remove_file( FilePath ) ->
 
 % @doc Removes (deletes) specified files, specified as a list of any kind of
 % strings.
+%
+% Throws an exception if any problem occurs (e.g. a file does not exist, or
+% could not be removed for any reason).
 %
 -spec remove_files( [ any_file_path() ] ) -> void().
 remove_files( FilePaths ) ->
@@ -4942,6 +4946,8 @@ read_lines( File, FilePath, Acc ) ->
 %
 % Note that specifying a binary allows to avoid any potential unwanted encoding.
 %
+% Any already-existing file at that path will be silently overwritten.
+%
 % Throws an exception on failure.
 %
 -spec write_whole( any_file_path(), ustring() | binary() ) -> void().
@@ -4959,6 +4965,8 @@ write_whole( AnyFilePath, Content ) ->
 % text_utils:string_to_binary/1) such encoding on plain strings (otherwise this
 % would result in a double encoding); specifying a binary allows to avoid any
 % potential unwanted encoding.
+%
+% Any already-existing file at that path will be silently overwritten.
 %
 % Throws an exception on failure.
 %
