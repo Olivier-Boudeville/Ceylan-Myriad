@@ -83,7 +83,7 @@
 
 
 
-% Registration functions.
+% Registration information.
 %
 % Note that:
 % - only local processes can be registered locally
@@ -92,6 +92,18 @@
 % automatically unregistered (see
 % http://erlang.org/doc/reference_manual/processes.html and
 % http://erlang.org/doc/man/global.html)
+
+% - designating a process by its PID is certainly the most effective approach;
+% designating it by a name certainly involves a round-trip communication to
+% a process in charge of the naming service (two messages), yet provides
+% interesting features:
+%
+%   * such designated process becomes a singleton by design (either on the local
+%   node or globally)
+%
+%   * if the designated process offers a service, this additional level of
+%   indirection allows this process to be transparently restarted / upgraded
+
 
 
 % Shorthands:
