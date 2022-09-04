@@ -49,7 +49,8 @@
 
 % For more cryptographic-related term hashing:
 -export([ start_crypto_hashing/0, stop_crypto_hashing/0,
-		  get_hash/2, get_recommended_hash/1 ]).
+		  get_hash/2, get_recommended_hash/1,
+		  list_hash_algorithms/0, check_hash_algorithm/1 ]).
 
 
 
@@ -215,10 +216,29 @@
 % Any kind of hash value ("digest").
 
 
+-type passphrase_hash() :: binary_hash().
+% The passphrase (binary) hash value of an account.
+%
+% Should be salted. May be stored.
+
+
+-type salt_value() :: binary().
+% A salt value used to generate safer hashes of passphrase.
+%
+% A constant, system-wide salt is pointless to mitigate attacks; it would just
+% make passphrases longer.
+%
+% Instead a random salt should be generated each time a new credential is issued
+% (login/passphrase pair); then the passphrase would not be stored, but this
+% salt value and the corresponding hash of the salted passphrase would,
+% preferably in different locations.
+
+
 -export_type([ integer_hash/0, portable_integer_hash/0, binary_hash/0,
 			   md5_sum/0, sha1_sum/0, sha2_sum/0, sha2_512_sum/0, sha3_sum/0,
 			   sha_sum/0,
-			   any_hash/0 ]).
+			   any_hash/0,
+			   passphrase_hash/0, salt_value/0 ]).
 
 
 
@@ -404,6 +424,31 @@ get_hash( Term, Alg ) ->
 get_recommended_hash( Term ) ->
 	get_hash( Term, get_recommended_algorithm() ).
 
+
+
+% @doc Returns a list of the supported hashing algorithms.
+-spec list_hash_algorithms() -> [ hash_algorithm() ].
+list_hash_algorithms() ->
+	% See the hash_algorithm() type:
+	[ md5, sha1,
+	  sha2_224, sha2_256, sha2_384, sha2_512, sha2_512_224, sha2_512_256,
+	  sha3_224, sha3_256, sha3_384, sha3_512 ].
+
+
+% @doc Checks whether the specified atom corresponds to a supported hashing
+% algorithm; if yes, returns it, otherwise raises an exception.
+%
+-spec check_hash_algorithm( atom() ) -> hash_algorithm().
+check_hash_algorithm( Alg ) ->
+	case lists:member( Alg, list_hash_algorithms() ) of
+
+		true ->
+			Alg;
+
+		false ->
+			throw( { unsupported_hash_algorithm, Alg } )
+
+	end.
 
 
 % Helpers.
