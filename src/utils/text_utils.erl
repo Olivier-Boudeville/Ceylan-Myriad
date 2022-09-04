@@ -580,7 +580,7 @@ integer_to_string( IntegerValue ) ->
 %
 -spec integer_to_hexastring( integer() ) -> hexastring().
 integer_to_hexastring( IntegerValue ) ->
-	integer_to_hexastring( IntegerValue, _AddPrefix=true ).
+	integer_to_hexastring( IntegerValue, _AddPrefix=false ).
 
 
 
@@ -891,7 +891,7 @@ strings_to_string_helper( _Strings=[], Acc, _Bullet ) ->
 
 % We do not want an extra newline at the end:
 strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
-  when is_list( LastString ) orelse is_binary( LastString ) ->
+		when is_list( LastString ) orelse is_binary( LastString ) ->
 	%Pattern = "~ts~n",
 	% Added back, as makes sense?
 	% Nope:
@@ -900,7 +900,7 @@ strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
 
 % We allow also for bin_string():
 strings_to_string_helper( _Strings=[ H | T ], Acc, Bullet )
-  when is_list( H ) orelse is_binary( H ) ->
+		when is_list( H ) orelse is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
 	strings_to_string_helper( T,
 		Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ), Bullet );
@@ -990,7 +990,7 @@ strings_to_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_string( Strings=[ SingleString ] )
-  when is_list( SingleString ) orelse is_binary( SingleString ) ->
+			when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
@@ -1093,7 +1093,7 @@ strings_to_spaced_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_spaced_string( Strings=[ SingleString ] )
-  when is_list( SingleString ) orelse is_binary( SingleString ) ->
+		when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
