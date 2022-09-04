@@ -77,29 +77,39 @@
 -module(environment).
 
 
+% Designating environments:
+%
+% An environment server can be designated either directly through its PID or
+% through its conventional (atom) registration name (potentially deriving from
+% its associated filename). The former approach is a bit more effective, but
+% the later one is more robust (the server can be transparently
+% restarted/upgraded).
+
+
 % About the caching of environment entries:
 
 % For faster accesses (not involving any inter-process messaging), and if
-% considering that their changes are rather infrequent (or never happening), at
-% least some entries managed by an environment server may be cached directly in
-% client processes.
+% considering that their changes are rather infrequent (or even never
+% happening), at least some entries managed by an environment server may be
+% cached directly in any client process of choice.
 %
 % In this case, the process dictionary of these clients is used to store the
 % cached entries, and when updating a cached key from a client process the
-% corresponding environment server is updated in turn. However any other client
-% process caching that key will not be aware of this change until it requests an
-% update to this environment server.
+% corresponding environment server is updated in turn. However note that any
+% other client process caching that key will not be aware of this change until
+% it requests an update to this environment server (as such servers do not keep
+% track of their clients).
 %
 % So a client process should cache a key mainly if no other is expected to
 % update that key, i.e. typically if the associated value is const, or if this
-% process is considered as the owner (sole controller) of that key (or if some
+% process is considered as the "owner" (sole controller) of that key (or if some
 % other organisation ensures, possibly thanks to sync/1, that its cache is kept
 % consistent with the corresponding environment server).
 %
 % As soon as a key is declared to be cached, its value is set in the cache;
 % there is thus always an actual value associated to a cached key (i.e. it is
-% never a maybe-value because of the cache), and thus cached values may be
-% 'undefined'.
+% never a maybe-value because of the cache), and thus cached values are allowed
+% to be set to 'undefined'.
 %
 % Two ways of setting values are provided:
 %  - regular set/{2,3,4}, where new values are unconditionally assigned
@@ -115,8 +125,17 @@
 % Refer to https://myriad.esperide.org/#etf for more information.
 
 
+% About the API:
+%
+% The API hides the actual messaging taking place between the helper executed by
+% the caller and the environment server.
+%
+% We rely here on a custom (ad hoc) protocol, rather than following WOOPER
+% message conventions.
+
 
 -export([ start/1, start/2, start_link/1, start_link/2,
+		  start_with_defaults/2, start_link_with_defaults/2,
 		  start_cached/2, start_link_cached/2,
 
 		  get_server/1, get_server_info/1, wait_available/1,
@@ -126,7 +145,9 @@
 		  update_from_etf/2,
 		  remove/2, extract/2,
 		  cache/2, cache_return/2,
-		  uncache/1, uncache/0, sync/1, store/1, store/2,
+		  uncache/1, uncache/0, sync/1,
+		  ensure_binary/2,
+		  store/1, store/2,
 		  to_string/1, to_bin_string/1, to_string/0,
 		  stop/1 ]).
 
@@ -152,7 +173,7 @@
 
 
 -type env_data() :: env_info() | env_designator().
-% Any element designating an environment.
+% Any element designating an environment (most general handle).
 
 
 -type cache_info() :: { env_reg_name(), env_cache_table() }.
@@ -180,7 +201,8 @@
 
 -type cache_spec() :: maybe_list( [ key() | entry() ] ).
 % A specification of the environment keys (possibly with their initial values)
-% that shall be cached in a client process.
+% that shall be cached in a client process (hence locally, in addition to the
+% environment server).
 
 
 -export_type([ env_pid/0, env_reg_name/0, env_info/0, env_designator/0,
@@ -204,9 +226,9 @@
 % the process dictionary of a process using environment caching.
 
 
-
 -type env_cache_table() :: table( atom(), term() ).
 % A table storing the (local) cached entries for a given environment.
+
 
 
 % Just for silencing:
@@ -245,6 +267,8 @@
 % directly if it is found already available; yet then the link status may not be
 % honored (e.g. a start_link may thus return the PID of a non-linked process).
 
+% More generally, relying on transparent, implicit launching is generally not
+% recommended, as it is more error-prone.
 
 % Some accessors accept both a registration name and a file path, whereas the
 % former could be deduced from the latter. The idea is to avoid, in the case of
@@ -263,6 +287,9 @@
 % all_env_table() table associating to each cached environment (designated by
 % the PID of its server) the registration name of that server and a table of its
 % cached entries.
+
+% May start functions look the same, but are not, minor variations prevent much
+% factorisation.
 
 
 
@@ -283,7 +310,7 @@
 %
 -spec start( env_reg_name() | file_path() ) -> env_pid().
 start( ServerRegName ) when is_atom( ServerRegName ) ->
-	case naming_utils:is_registered( ServerRegName, local ) of
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
 
 		not_registered ->
 
@@ -296,7 +323,8 @@ start( ServerRegName ) when is_atom( ServerRegName ) ->
 			% of this server:
 			%
 			?myriad_spawn( fun() ->
-								server_run( CallerPid, ServerRegName )
+							server_run( CallerPid, ServerRegName,
+										_MaybeDefaultEntries=[] )
 						   end ),
 
 			receive
@@ -316,7 +344,7 @@ start( FilePath ) when is_list( FilePath ) ->
 
 	RegistrationName = get_env_reg_name_from( FilePath ),
 
-	case naming_utils:is_registered( RegistrationName, local ) of
+	case naming_utils:is_registered( RegistrationName, _LookupScope=local ) of
 
 		not_registered ->
 
@@ -331,7 +359,8 @@ start( FilePath ) when is_list( FilePath ) ->
 			% of this server:
 			%
 			?myriad_spawn( fun() ->
-						server_run( CallerPid, RegistrationName, BinFilePath )
+							server_run( CallerPid, RegistrationName,
+										BinFilePath, _MaybeDefaultEntries=[] )
 						   end ),
 
 			receive
@@ -343,6 +372,93 @@ start( FilePath ) when is_list( FilePath ) ->
 
 		Pid ->
 			Pid
+
+	end.
+
+
+
+% @doc Starts and initialises an environment server based first on the specified
+% defaults.
+%
+% If a name is specified: registers it under that name, and starts it just with
+% the specified defaults.
+%
+% If instead a filename is specified: starts a corresponding server with a
+% deriving name, and initialises it first with the specified defaults, then with
+% the corresponding file content (thus potentially overriding these defaults).
+%
+% Ensures that no prior corresponding environment server already exists, as the
+% specified defaults could not then be properly taken into account.
+%
+% Does not link the started environment server to the calling process.
+%
+% Returns the PID of the corresponding, just created, environment server.
+%
+-spec start_with_defaults( env_reg_name() | file_path(), entries() ) ->
+													env_pid().
+start_with_defaults( ServerRegName, DefaultEntries )
+										when is_atom( ServerRegName ) ->
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
+
+		not_registered ->
+
+			% A goal is to acquire the "lock" (the local name) ASAP, deferring
+			% all possible other operations:
+			%
+			CallerPid = self(),
+
+			% No link to be created here, so one must beware of any silent crash
+			% of this server:
+			%
+			?myriad_spawn( fun() ->
+							server_run( CallerPid, ServerRegName,
+										DefaultEntries )
+						   end ),
+
+			receive
+
+				{ environment_server_pid, Pid } ->
+					Pid
+
+			end;
+
+		Pid ->
+			throw( { already_existing_environment, ServerRegName, Pid } )
+
+	end;
+
+start_with_defaults( FilePath, DefaultEntries ) when is_list( FilePath ) ->
+
+	RegistrationName = get_env_reg_name_from( FilePath ),
+
+	case naming_utils:is_registered( RegistrationName, _LookupScope=local ) of
+
+		not_registered ->
+
+			% A goal is to acquire the "lock" (the local name) ASAP, deferring
+			% all possible other operations:
+			%
+			CallerPid = self(),
+
+			BinFilePath = text_utils:string_to_binary( FilePath ),
+
+			% No link to be created here, so one must beware of any silent crash
+			% of this server:
+			%
+			?myriad_spawn( fun() ->
+							server_run( CallerPid, RegistrationName,
+										BinFilePath, DefaultEntries )
+						   end ),
+
+			receive
+
+				{ environment_server_pid, Pid } ->
+					Pid
+
+			end;
+
+		Pid ->
+			throw( { already_existing_environment, FilePath, Pid } )
 
 	end.
 
@@ -363,7 +479,7 @@ start( FilePath ) when is_list( FilePath ) ->
 %
 -spec start_link( env_reg_name() | file_path() ) -> env_pid().
 start_link( ServerRegName ) when is_atom( ServerRegName ) ->
-	case naming_utils:is_registered( ServerRegName, local ) of
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
 
 		not_registered ->
 
@@ -372,8 +488,10 @@ start_link( ServerRegName ) when is_atom( ServerRegName ) ->
 			%
 			CallerPid = self(),
 
-			?myriad_spawn_link(
-				fun() -> server_run( CallerPid, ServerRegName ) end ),
+			?myriad_spawn_link( fun() ->
+									server_run( CallerPid, ServerRegName,
+												_MaybeDefaultEntries=[] )
+								end ),
 
 			receive
 
@@ -391,7 +509,7 @@ start_link( FilePath ) when is_list( FilePath ) ->
 
 	RegistrationName = get_env_reg_name_from( FilePath ),
 
-	case naming_utils:is_registered( RegistrationName, local ) of
+	case naming_utils:is_registered( RegistrationName, _LookupScope=local ) of
 
 		not_registered ->
 
@@ -403,7 +521,9 @@ start_link( FilePath ) when is_list( FilePath ) ->
 			BinFilePath = text_utils:string_to_binary( FilePath ),
 
 			?myriad_spawn_link( fun() ->
-				server_run( CallerPid, RegistrationName, BinFilePath ) end ),
+									server_run( CallerPid, RegistrationName,
+										BinFilePath, _MaybeDefaultEntries=[] )
+								end ),
 
 			receive
 
@@ -414,6 +534,87 @@ start_link( FilePath ) when is_list( FilePath ) ->
 
 		Pid ->
 			Pid
+
+	end.
+
+
+
+% @doc Starts, links and initialises an environment server based first on the
+% specified defaults.
+%
+% If a name is specified: registers it under that name, and starts-linked it
+% just with the specified defaults.
+%
+% If instead a filename is specified: starts-linked a corresponding server with
+% a deriving name, and initialises it first with the specified defaults, then
+% with the corresponding file content (thus potentially overriding these
+% defaults).
+%
+% Ensures that no prior corresponding environment server already exists, as the
+% specified defaults could not then be properly taken into account.
+%
+% Returns the PID of the corresponding, just created, environment server.
+%
+-spec start_link_with_defaults( env_reg_name() | file_path(), entries() ) ->
+													env_pid().
+start_link_with_defaults( ServerRegName, DefaultEntries )
+								when is_atom( ServerRegName ) ->
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
+
+		not_registered ->
+
+			% A goal is to acquire the "lock" (the local name) ASAP, deferring
+			% all possible other operations:
+			%
+			CallerPid = self(),
+
+			?myriad_spawn_link( fun() ->
+									server_run( CallerPid, ServerRegName,
+												DefaultEntries )
+								end ),
+
+			receive
+
+				{ environment_server_pid, Pid } ->
+					Pid
+
+			end;
+
+		Pid ->
+			throw( { already_existing_environment, ServerRegName, Pid } )
+
+	end;
+
+start_link_with_defaults( FilePath, DefaultEntries )
+										when is_list( FilePath ) ->
+
+	RegistrationName = get_env_reg_name_from( FilePath ),
+
+	case naming_utils:is_registered( RegistrationName, _LookupScope=local ) of
+
+		not_registered ->
+
+			% A goal is to acquire the "lock" (the local name) ASAP, deferring
+			% all possible other operations:
+			%
+			CallerPid = self(),
+
+			BinFilePath = text_utils:string_to_binary( FilePath ),
+
+			?myriad_spawn_link( fun() ->
+									server_run( CallerPid, RegistrationName,
+												BinFilePath, DefaultEntries )
+								end ),
+
+			receive
+
+				{ environment_server_pid, Pid } ->
+					Pid
+
+			end;
+
+		Pid ->
+			throw( { already_existing_environment, FilePath, Pid } )
 
 	end.
 
@@ -434,7 +635,7 @@ start_link( FilePath ) when is_list( FilePath ) ->
 -spec start( env_reg_name(), any_file_path() ) -> env_pid().
 start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
-	case naming_utils:is_registered( ServerRegName, local ) of
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
 
 		not_registered ->
 
@@ -480,7 +681,7 @@ start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 -spec start_link( env_reg_name(), any_file_path() ) -> env_pid().
 start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
-	case naming_utils:is_registered( ServerRegName, local ) of
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
 
 		not_registered ->
 
@@ -492,7 +693,8 @@ start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 			BinFilePath = text_utils:ensure_binary( AnyFilePath ),
 
 			?myriad_spawn_link( fun() ->
-						server_run( CallerPid, ServerRegName, BinFilePath )
+									server_run( CallerPid, ServerRegName,
+												BinFilePath )
 								end ),
 
 			receive
@@ -567,7 +769,7 @@ start_link_cached( ServerRegName, CacheSpec ) ->
 -spec get_server( env_reg_name() | file_path() ) -> env_pid().
 get_server( ServerRegName ) when is_atom( ServerRegName ) ->
 
-	case naming_utils:is_registered( ServerRegName, local ) of
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
 
 		not_registered ->
 			throw( { environment_server_not_registered, ServerRegName } );
@@ -582,7 +784,7 @@ get_server( FilePath ) when is_list( FilePath ) ->
 	% Not reusing the previous clause for clearer exception:
 	ServerRegName = get_env_reg_name_from( FilePath ),
 
-	case naming_utils:is_registered( ServerRegName, local ) of
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
 
 		not_registered ->
 			throw( { environment_server_not_registered, ServerRegName,
@@ -616,7 +818,7 @@ get_server_info( FilePath ) when is_list( FilePath ) ->
 	% Not reusing the previous clause for clearer exception:
 	ServerRegName = get_env_reg_name_from( FilePath ),
 
-	case naming_utils:is_registered( ServerRegName, local ) of
+	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
 
 		not_registered ->
 			throw( { environment_server_not_registered, ServerRegName,
@@ -778,7 +980,8 @@ aggregate_values( _TargetKeys=[ K | Tt ], ImmediateKeys, ImmediateValues,
 -spec get( maybe_list( key() ), env_reg_name(), file_path() ) ->
 										maybe_list( maybe( value() ) ).
 get( KeyMaybes, ServerRegName, FilePath ) ->
-	EnvSrvPid = case naming_utils:is_registered( ServerRegName, local ) of
+	EnvSrvPid = case naming_utils:is_registered( ServerRegName,
+												 _LookupScope=local ) of
 
 		not_registered ->
 			start( FilePath );
@@ -898,7 +1101,8 @@ set( Key, Value, AnyEnvElem ) ->
 %
 -spec set( key(), value(), env_reg_name(), file_path() ) -> void().
 set( Key, Value, ServerRegName, FilePath ) ->
-	EnvPid = case naming_utils:is_registered( ServerRegName, local ) of
+	EnvPid = case naming_utils:is_registered( ServerRegName,
+											  _LookupScope=local ) of
 
 		not_registered ->
 			start( FilePath );
@@ -1057,7 +1261,8 @@ set_cond( Key, Value, AnyEnvElem ) ->
 %
 -spec set_cond( key(), value(), env_reg_name(), file_path() ) -> void().
 set_cond( Key, Value, ServerRegName, FilePath ) ->
-	EnvPid = case naming_utils:is_registered( ServerRegName, local ) of
+	EnvPid = case naming_utils:is_registered( ServerRegName,
+											  _LookupScope=local ) of
 
 		not_registered ->
 			start( FilePath );
@@ -1219,9 +1424,9 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 %
 % Either single keys or full entries can be specified there. Both will lead the
 % corresponding keys to be cached, yet a single key, if it is not already cached
-% (otherwise, it will be ignored), will trigger its value to be fetched from the
-% environment server whereas the value of a full entry will be cached and also
-% sent to the environment server (therefore being equivalent to set/2).
+% (otherwise, its update will be ignored), will trigger its value to be fetched
+% from the environment server whereas the value of a full entry will be cached
+% and also sent to the environment server (therefore being equivalent to set/2).
 %
 % Any next setting by this process of one of these cached keys will update its
 % local cache as well as the specified environment server; as a consequence,
@@ -1576,6 +1781,25 @@ sync( EnvPid ) ->
 
 
 
+% @doc Ensures that the specified key(s), expected to be some kind of strings,
+% are binary strings.
+%
+% Typically useful so that default plain strings may be specified, even if
+% internally they should be binary ones.
+%
+-spec ensure_binary( maybe_list( key() ), env_data() ) -> void().
+ensure_binary( KeyMaybeList, _EnvInfo={ _EnvRegName, EnvPid } ) ->
+	ensure_binary( KeyMaybeList, EnvPid );
+
+ensure_binary( KeyMaybeList, EnvRegName ) when is_atom( EnvRegName ) ->
+	EnvPid = naming_utils:get_registered_pid_for( EnvRegName, _Scope=local ),
+	ensure_binary( KeyMaybeList, EnvPid );
+
+ensure_binary( KeyMaybeList, EnvPid ) ->
+	EnvPid ! { ensure_binary, [ KeyMaybeList ] }.
+
+
+
 % @doc Stores (asynchronously) the current state of the specified environment in
 % the file whence it supposedly was loaded initially.
 %
@@ -1737,6 +1961,7 @@ cache_to_string( EnvCacheTable ) ->
 %
 -spec get_env_reg_name_from( file_path() ) -> env_reg_name().
 get_env_reg_name_from( FilePath ) ->
+
 	CoreFilePath = file_utils:remove_upper_levels_and_extension( FilePath ),
 
 	RegistrationName =
@@ -1774,12 +1999,14 @@ stop( EnvPid ) ->
 % Section for the environment server itself.
 
 
-% Launcher of the environment server, to start with a blank state.
--spec server_run( pid(), env_reg_name() ) -> no_return().
-server_run( SpawnerPid, RegistrationName ) ->
+% Launcher of the environment server, to start with either a blank state or with
+% default entries.
+%
+-spec server_run( pid(), env_reg_name(), maybe( entries() ) ) -> no_return().
+server_run( SpawnerPid, RegistrationName, MaybeDefaultEntries ) ->
 
 	cond_utils:if_defined( myriad_debug_environments, trace_utils:debug_fmt(
-		"Spawning a blank environment server named '~ts' from ~w.",
+		"Spawning an environment server named '~ts' from ~w.",
 		[ RegistrationName, SpawnerPid ] ) ),
 
 	case naming_utils:register_or_return_registered( RegistrationName,
@@ -1790,13 +2017,21 @@ server_run( SpawnerPid, RegistrationName ) ->
 			% We gained the shared name, we are the one and only server for that
 			% name.
 
-			EmptyTable = table:new(),
+			InitialTable = case MaybeDefaultEntries of
+
+				undefined ->
+					table:new();
+
+				DefaultEntries ->
+					table:new( DefaultEntries )
+
+			end,
 
 			% Spawner could already know that PID in this case:
 			SpawnerPid ! { environment_server_pid, self() },
 
 			% Never returns:
-			server_main_loop( EmptyTable, RegistrationName,
+			server_main_loop( InitialTable, RegistrationName,
 							  _MaybeBinFilePath=undefined );
 
 
@@ -1808,9 +2043,12 @@ server_run( SpawnerPid, RegistrationName ) ->
 
 
 
-% Launcher of the environment server, to be initialised with the specified file.
--spec server_run( pid(), env_reg_name(), bin_string() ) -> no_return().
-server_run( SpawnerPid, RegistrationName, BinFilePath ) ->
+% Launcher of the environment server, to be initialised with any specified
+% default entries, then with the specified file.
+%
+-spec server_run( pid(), env_reg_name(), bin_string(), maybe( entries() ) ) ->
+												no_return().
+server_run( SpawnerPid, RegistrationName, BinFilePath, MaybeDefaultEntries ) ->
 
 	cond_utils:if_defined( myriad_debug_environments, trace_utils:debug_fmt(
 		"Spawning environment server named '~ts' from ~w, based on file '~ts'.",
@@ -1824,18 +2062,26 @@ server_run( SpawnerPid, RegistrationName, BinFilePath ) ->
 			% We gained the shared name, we are the one and only server for that
 			% name.
 
-			EmptyTable = table:new(),
+			InitialTable = case MaybeDefaultEntries of
+
+				undefined ->
+					table:new();
+
+				DefaultEntries ->
+					table:new( DefaultEntries )
+
+			end,
 
 			FinalTable =
 					case file_utils:is_existing_file_or_link( BinFilePath ) of
 
 				true ->
-					add_environment_from( BinFilePath, EmptyTable );
+					add_environment_from( BinFilePath, InitialTable );
 
 				false ->
 					trace_bridge:info_fmt( "No environment file found "
-						"(searched for '~ts').~n", [ BinFilePath ] ),
-					EmptyTable
+						"(searched for '~ts').", [ BinFilePath ] ),
+					InitialTable
 
 			end,
 
@@ -1855,6 +2101,8 @@ server_run( SpawnerPid, RegistrationName, BinFilePath ) ->
 
 
 % (helper)
+-spec get_value_maybes( key(), entries() ) -> value();
+					  ( [ key() ], entries() ) -> [ value() ].
 get_value_maybes( Key, Table ) when is_atom( Key ) ->
 	case table:lookup_entry( Key, Table ) of
 
@@ -1863,6 +2111,7 @@ get_value_maybes( Key, Table ) when is_atom( Key ) ->
 
 		{ value, V } ->
 			V
+
 	end;
 
 get_value_maybes( Keys, Table ) ->
@@ -1879,6 +2128,15 @@ get_value_maybes( _Keys=[ K | T ], Table, Acc ) ->
 	get_value_maybes( T, Table, [ V | Acc ] ).
 
 
+% (helper)
+-spec ensure_binaries( [ key() ], entries() ) -> entries().
+ensure_binaries( Keys, Table ) ->
+	AnyStrs = table:get_values( Keys, Table ),
+	BinStrs = text_utils:ensure_binaries( AnyStrs ),
+	NewEntries = lists:zip( Keys, BinStrs ),
+	table:add_entries( NewEntries, Table ).
+
+
 
 % Main loop of the environment server.
 -spec server_main_loop( table(), env_reg_name(), maybe( bin_file_path() ) ) ->
@@ -1892,6 +2150,9 @@ server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->
 	% Detailed:
 	%trace_bridge:debug_fmt( "Waiting for environment-related request, "
 	%   "storing a ~ts.", [ table:to_string( Table ) ] ),
+
+	% Ad-hoc message conventions are a bit more flexible and involve no external
+	% naming (like wooper_result atoms):
 
 	receive
 
@@ -1964,6 +2225,15 @@ server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->
 			file_utils:write_etf_file( table:enumerate( Table ),
 									   BinTargetFilePath ),
 			server_main_loop( Table, EnvRegName, BinTargetFilePath );
+
+
+		{ ensure_binary, SingleKey } when is_atom( SingleKey ) ->
+			NewTable = ensure_binaries( [ SingleKey ], Table ),
+			server_main_loop( NewTable, EnvRegName, MaybeBinFilePath );
+
+		{ ensure_binary, KeyMaybes } ->
+			NewTable = ensure_binaries( KeyMaybes, Table ),
+			server_main_loop( NewTable, EnvRegName, MaybeBinFilePath );
 
 
 		{ to_bin_string, SenderPid } ->
