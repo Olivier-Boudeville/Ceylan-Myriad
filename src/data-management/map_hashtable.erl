@@ -530,7 +530,7 @@ has_entry( Key, MapHashtable ) ->
 %   true;
 
 % has_entry( _Key, _MapHashtable ) ->
-%	false.
+%   false.
 
 
 
@@ -542,7 +542,7 @@ has_entry( Key, MapHashtable ) ->
 %
 -spec get_value( key(), map_hashtable() ) -> value().
 %get_value( Key, #{ Key := Value } ) ->
-%	Value.
+%   Value.
 get_value( Key, MapHashtable ) ->
 	try
 
