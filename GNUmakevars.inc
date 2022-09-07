@@ -1837,8 +1837,8 @@ MYRIAD_REBAR_FIRST_FILES := \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_M
 # Transforming a recursively expanded variable into a simply expanded, otherwise
 # later transformations will fail (cannot be nested):
 #
-# Note: is correct as happens last in the parsing process (after all layers, all
-# GNUmake* files)
+# Note: is correct, as happens last in the parsing process (after all layers,
+# all GNUmake* files)
 #
 STABLE_INC := $(INC)
 
