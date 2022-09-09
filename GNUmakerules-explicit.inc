@@ -996,6 +996,12 @@ generate-list-of-local-types:
 	@$(MYRIAD_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
 
 
+
+# Section of type verification.
+
+
+## Dialyzer subsection.
+
 # Yes, this is an explicit, not automatic, rule:
 $(PLT_FILE): generate-local-plt
 
@@ -1013,7 +1019,7 @@ $(PLT_FILE): generate-local-plt
 #
 generate-local-plt: add-prerequisite-plts
 	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT)"
-	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src $(PACKAGE_TOP)/test --plt $(BASE_PLT); if [ $$? -eq 1 ]; then exit 1; else exit 0; fi
+	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src $(PACKAGE_TOP)/test --plt $(BASE_PLT); if [ $$? -eq 1 ]; then exit 5; else exit 0; fi
 
 
 # Made to be enriched (with child targets) on a per-layer basis:
@@ -1033,8 +1039,25 @@ add-prerequisite-plts:
 # See also the write-debug-key-file target.
 #
 self-check-against-plt: all $(PLT_FILE)
-	@echo " Checking $(PACKAGE_NAME) against its PLT ($(PLT_FILE))"
-	@$(DIALYZER) $(DIALYZER_OPT) --plt $(PLT_FILE) -r .
+	@echo "    Checking $(PACKAGE_NAME) with Dialyzer against its PLT ($(PLT_FILE))"
+	@$(DIALYZER) $(DIALYZER_OPTS) --plt $(PLT_FILE) -r .
+
+
+
+## Gradualizer subsection.
+
+
+# Runs Gradualizer to perform static type checking.
+#
+# (a recompilation is triggered to be sure that the latest version of BEAMs are
+# examined)
+#
+check-static-typing:
+	@if [ -z "$(TARGETS_TO_CHECK)" ]; then echo "  Error, no target specified for checking. One may execute 'make check-static-typing TARGETS_TO_CHECK="src/foo.beam src/bar.beam ebin"', should the current directory contain no BEAM files." 1>&2; exit 65; fi
+	@echo "    Checking $(TARGETS_TO_CHECK) with Gradualizer"
+	@$(MAKE) -s $(TARGETS_TO_CHECK)
+	@$(GRADUALIZER) $(GRADUALIZER_OPTS) $(OVERALL_PA_OPTS) -- $(TARGETS_TO_CHECK)
+
 
 
 # Stores on disk the current debug key for BEAMs, so that tools like Dialyzer
@@ -1267,7 +1290,10 @@ info-sync:
 
 info-check:
 	@echo "DIALYZER = $(DIALYZER)"
-	@echo "DIALYZER_OPT = $(DIALYZER_OPT)"
+	@echo "DIALYZER_OPTS = $(DIALYZER_OPTS)"
+	@echo "GRADUALIZER = $(GRADUALIZER)"
+	@echo "GRADUALIZER_OPTS = $(GRADUALIZER_OPTS)"
+
 
 
 # Useful to extract information to be specified in a parallel rebar.config:
