@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Saturday, May 4, 2019.
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Saturday, May 4, 2019.
 
 
 % @doc Datastructure allowing to perform <b>bidirectional conversions between
@@ -195,7 +195,7 @@ get_first_for( Second,
 -spec get_maybe_first_for( second_type(), bijective_table() ) ->
 											maybe( first_type() ).
 get_maybe_first_for( Second,
-			   _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+				_BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
 	case table:lookup_entry( Second, SecondToFirstTable ) of
 
 		key_not_found ->
@@ -214,7 +214,7 @@ get_maybe_first_for( Second,
 -spec get_first_elements_for( [ second_type() ], bijective_table() ) ->
 											[ first_type() ].
 get_first_elements_for( SecondElems,
-			   _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+				_BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
 	table:get_values( SecondElems, SecondToFirstTable ).
 
 
@@ -283,7 +283,7 @@ remove_entry_by_first( First,
 % Returns an updated table.
 %
 -spec remove_entry_by_second( second_type(), bijective_table() ) ->
-											bijective_table().
+												bijective_table().
 remove_entry_by_second( Second,
 				_BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
 	First = table:get_value( Second, SecondToFirstTable ),
