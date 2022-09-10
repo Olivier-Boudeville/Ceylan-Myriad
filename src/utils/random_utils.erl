@@ -326,9 +326,9 @@
 
 % About pseudorandom number generator (PRNG):
 %
-% If use_crypto_module is defined, the (now deprecated here) crypto module will
-% be used, otherwise (which is the default now) the rand module will be used
-% instead (the random module being now deprecated).
+% If use_crypto_module is defined, the (now deprecated here, for this use)
+% crypto module will be used, otherwise (which is the default now) the rand
+% module will be used instead (the random module being now deprecated).
 %
 % Currently the crypto module is not used by default, as:
 %
@@ -346,7 +346,8 @@
 % Therefore crypto cannot be easily swapped with other random generators.
 %
 % Finally, the requirements of a Cryptographically-secure PRNG (CSPRNG) exceed
-% the general PRNGs, and may be useless / of higher costs in other contexts.
+% the general PRNGs, and may be useless / of higher costs in other
+% contexts. Refer to our hash_utils module for more information on that topic.
 %
 % The current module considered using TinyMT and/or SFMT, yet now they have been
 % superseded by the xorshift, xoroshiro, and xoshiro algorithms by Sebastiano

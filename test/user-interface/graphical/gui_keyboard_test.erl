@@ -50,22 +50,27 @@ run_test_gui() ->
 		"~nStarting the actual keyboard test of MyriadGUI, from ~w. ",
 		[ self() ] ),
 
-	trace_utils:notice( "An empty, resizable test frame shall appear; "
-						"the test will end as soon as it is closed." ),
+	trace_utils:notice( "An empty, resizable test frame shall appear; pressing "
+		"keys while this frame has the focus should display the corresponding "
+		"generated keyboard events. " ),
 
 	gui:start(),
 
 	TestFrame = gui:create_frame( "This is the single and only test frame, "
 								  "for keyboard testing" ),
 
+	gui:subscribe_to_events( { onWindowClosed, TestFrame } ),
+
+
+	% A frame cannot handle key events, so we create a panel within it:
+	TestPanel = gui:create_panel( _Parent=TestFrame ),
+
 	EventTypes = [ onWindowClosed, onKeyPressed, onKeyReleased, onCharEntered ],
 
-	EventOfInterest = { EventTypes, TestFrame },
+	gui:subscribe_to_events( { EventTypes, TestPanel } ),
 
-	gui:subscribe_to_events( EventOfInterest ),
-
-
-	gui:set_focus( TestFrame ),
+	% Focus needed to receive events:
+	gui:set_focus( TestPanel ),
 
 	trace_utils:notice( "Please close the frame to end this test." ),
 
@@ -82,6 +87,33 @@ test_main_loop( TestFrame ) ->
 
 	receive
 
+		{ onCharEntered, [ _TestPanel, _TestPanelId, Context ] } ->
+
+			WxKeyEvent = gui_event:get_event_info( Context ),
+
+			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
+
+			test_main_loop( TestFrame );
+
+
+		{ onKeyPressed, [ _TestPanel, _TestPanelId, Context ] } ->
+
+			WxKeyEvent = gui_event:get_event_info( Context ),
+
+			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
+
+			test_main_loop( TestFrame );
+
+
+		{ onKeyReleased, [ _TestPanel, _TestPanelId, Context ] } ->
+
+			WxKeyEvent = gui_event:get_event_info( Context ),
+
+			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
+
+			test_main_loop( TestFrame );
+
+
 		{ onWindowClosed, [ TestFrame, _TestFrameId, Context ] } ->
 
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
@@ -94,6 +126,7 @@ test_main_loop( TestFrame ) ->
 			trace_utils:info( "Test frame closed, test success." ),
 
 			gui:stop();
+
 
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "

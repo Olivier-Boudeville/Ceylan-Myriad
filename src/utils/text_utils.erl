@@ -48,10 +48,13 @@
 		  term_to_binary/1,
 
 		  integer_to_string/1,
+
 		  integer_to_hexastring/1, integer_to_hexastring/2,
 
 		  hexastring_to_integer/1, hexastring_to_integer/2,
+
 		  hexabinstring_to_binary/1, hexastring_to_binary/1,
+		  binary_to_hexastring/1, binary_to_hexastring/2,
 
 		  integer_to_bits/1,
 
@@ -577,7 +580,7 @@ integer_to_string( IntegerValue ) ->
 %
 -spec integer_to_hexastring( integer() ) -> hexastring().
 integer_to_hexastring( IntegerValue ) ->
-	integer_to_hexastring( IntegerValue, _AddPrefix=true ).
+	integer_to_hexastring( IntegerValue, _AddPrefix=false ).
 
 
 
@@ -620,16 +623,49 @@ hexastring_to_integer( HexaString ) ->
 hexastring_to_integer( ?hexa_prefix ++ HexaString, _ExpectPrefix=true ) ->
 	hexastring_to_integer( HexaString, _HasPrefix=false );
 
+hexastring_to_integer( Other, _ExpectPrefix=true ) ->
+	throw( { invalid_hexastring, Other, { lacking_prefix, ?hexa_prefix } } );
+
 hexastring_to_integer( HexaString, _ExpectPrefix=false ) ->
 	list_to_integer( HexaString, _Base=16 ).
+
+
+
+
+% @doc Returns a plain string corresponding to the specified binary, in
+% hexadecimal form, with a "0x" prefix.
+%
+% Ex: `binary_to_hexastring(<<"hello">>) = "0x68656c6c6f"'.
+%
+-spec binary_to_hexastring( binary() ) -> hexastring().
+binary_to_hexastring( Bin ) ->
+	binary_to_hexastring( Bin, _AddPrefix=true ).
+
+
+
+% @doc Returns a plain string corresponding to the specified binary, in
+% hexadecimal form, with a "0x" prefix if requested.
+%
+% Ex: `binary_to_hexastring(<<"hello">>, _AddPrefix=true) = "0x68656c6c6f"'.
+%
+-spec binary_to_hexastring( binary(), boolean() ) -> hexastring().
+binary_to_hexastring( Bin, _AddPrefix=true ) ->
+	?hexa_prefix ++ binary_to_hexastring( Bin, _Prefix=false );
+
+binary_to_hexastring( Bin, _AddPrefix=false ) ->
+	% Binary comprehension:
+	to_lowercase( flatten( [ erlang:integer_to_list( Int, _Base=16 )
+								|| <<Int>> <= Bin ] ) ).
 
 
 
 % @doc Returns the binary corresponding to the specified binary string that
 % contains a series of hexadecimal values.
 %
+% No "0x" prefix is expected.
+%
 % Ex: `hexabinstring_to_binary(<<"ffac01">>) = <<255,172,1>>'.
-
+%
 -spec hexabinstring_to_binary( hexabinstring() ) -> binary().
 hexabinstring_to_binary( HexaBinStr ) ->
 	hexastring_to_binary( binary_to_string( HexaBinStr ) ).
@@ -639,8 +675,10 @@ hexabinstring_to_binary( HexaBinStr ) ->
 % @doc Returns the binary corresponding to the specified string that contains
 % a series of hexadecimal values.
 %
+% No "0x" prefix is expected.
+%
 % Ex: `hexastring_to_binary("ffac01") = <<255,172,1>>'.
-
+%
 -spec hexastring_to_binary( hexastring() ) -> binary().
 hexastring_to_binary( HexaStr ) ->
 	hexastring_to_binary( HexaStr, _BinAcc= <<>> ).
@@ -657,7 +695,13 @@ hexastring_to_binary( _HexaStr=[ Hex1, Hex2 | T ], BinAcc ) ->
 	TwoCharStr = [ Hex1, Hex2 ],
 	Int = list_to_integer( TwoCharStr, _Base=16 ),
 	NewBinAcc = <<BinAcc/binary,Int/integer>>,
-	hexastring_to_binary( T, NewBinAcc ).
+	hexastring_to_binary( T, NewBinAcc );
+
+% Odd number of hexadecimal characters, at least currently not knowing the
+% corresponding byte to insert:
+%
+hexastring_to_binary( _HexaStr=[ SingleHex ], BinAcc ) ->
+	throw( { single_hex_remaining, SingleHex, BinAcc } ).
 
 
 
@@ -847,7 +891,7 @@ strings_to_string_helper( _Strings=[], Acc, _Bullet ) ->
 
 % We do not want an extra newline at the end:
 strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
-  when is_list( LastString ) orelse is_binary( LastString ) ->
+		when is_list( LastString ) orelse is_binary( LastString ) ->
 	%Pattern = "~ts~n",
 	% Added back, as makes sense?
 	% Nope:
@@ -856,7 +900,7 @@ strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
 
 % We allow also for bin_string():
 strings_to_string_helper( _Strings=[ H | T ], Acc, Bullet )
-  when is_list( H ) orelse is_binary( H ) ->
+		when is_list( H ) orelse is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
 	strings_to_string_helper( T,
 		Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ), Bullet );
@@ -946,7 +990,7 @@ strings_to_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_string( Strings=[ SingleString ] )
-  when is_list( SingleString ) orelse is_binary( SingleString ) ->
+			when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
@@ -1049,7 +1093,7 @@ strings_to_spaced_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_spaced_string( Strings=[ SingleString ] )
-  when is_list( SingleString ) orelse is_binary( SingleString ) ->
+		when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:

@@ -245,9 +245,9 @@ get_test_tetra_triangles() ->
 % @doc Returns the (4) per-face unit normals of the test tetrahedron.
 -spec get_test_tetra_normals() -> [ unit_normal3() ].
 get_test_tetra_normals() ->
-	[ _NF1=[ 0.0,  0.0, -1.0 ], % normal of ACB
-	  _NF2=[ 0.0, -1.0,  0.0 ], % normal of ABD
-	  _NF3=[ -1.0, 0.0,  0.0 ], % normal of ADC
+	[ _NF1=[  0.0,  0.0, -1.0 ], % normal of ACB
+	  _NF2=[  0.0, -1.0,  0.0 ], % normal of ABD
+	  _NF3=[ -1.0,  0.0,  0.0 ], % normal of ADC
 
 	  % NF4, the normal of face BCD, can be obtained with:
 	  %  BC = point3:vectorize(B, C).
@@ -297,6 +297,9 @@ get_test_colored_cube_mesh() ->
 
 
 % @doc Returns the (8) vertices of the test colored cube.
+%
+% See also gui_opengl_cube_referential_test:get_cube_vertices_as_triangles/0.
+%
 -spec get_test_colored_cube_vertices() -> [ vertex3() ].
 get_test_colored_cube_vertices() ->
 	[ _V1={ -0.5, -0.5, -0.5 },

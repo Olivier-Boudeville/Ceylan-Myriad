@@ -1523,8 +1523,10 @@ endif
 BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2 ; fi; done)
 
 
-
-OVERALL_PZ_OPT = $(foreach dir,$(BEAM_DIRS),-pz $(dir))
+# -pa rather than -pz, notably for Gradualizer (moreover a bit safer, including
+# for the layers above):
+#
+OVERALL_PA_OPTS = $(foreach dir,$(BEAM_DIRS),-pa $(dir))
 
 
 # Increases the distribution buffer busy limit (default is 1024):
@@ -1837,8 +1839,8 @@ MYRIAD_REBAR_FIRST_FILES := \"`echo $(patsubst ../%.beam,\"%.erl\",$(BOOTSTRAP_M
 # Transforming a recursively expanded variable into a simply expanded, otherwise
 # later transformations will fail (cannot be nested):
 #
-# Note: is correct as happens last in the parsing process (after all layers, all
-# GNUmake* files)
+# Note: is correct, as happens last in the parsing process (after all layers,
+# all GNUmake* files)
 #
 STABLE_INC := $(INC)
 
@@ -1888,23 +1890,210 @@ endif
 # Verification settings.
 
 
+# Section for static type checking.
+# See also http://howtos.esperide.org/Erlang.html#static-typing
+
+# As we are making use of parse-transforms, checking tools shall operate on the
+# resulting BEAM files, not on the .erl sources.
+
+# Dialyzer is integrated in Erlang distributions (built-in); see also
+# https://www.erlang.org/doc/man/dialyzer.html
+#
 DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 
 
-# Options for Dialyzer, see http://www.erlang.org/doc/man/dialyzer.html:
-# Could be added: -Wunderspecs (obsolete: -Wbehaviours)
+# Options for Dialyzer, see http://www.erlang.org/doc/man/dialyzer.html.
+#
+# Note that options may be added incrementally, and by category (essential, then
+# contextual, then possibly disabled ones) to avoid being overwhelmed.
 #
 # No debug key to decrypt BEAM files specified here; it shall be defined in
 # ~/.erlang.crypt; refer to the 'self-check-against-plt' target for further
 # details.
 #
-DIALYZER_OPT := -Wrace_conditions
+DIALYZER_OPTS := $(DIALYZER_ESSENTIAL_OPTS)  \
+				 $(DIALYZER_CONTEXTUAL_OPTS)
+
+
+# These Dialyzer options are nearly always useful.
+#
+# -Wextra_return: warns about functions that return values that are not part of
+#  their specification
+#
+# -Wmissing_return: warns about functions whose specification explicitly
+#  includes types that the function cannot return; this may happen if a function
+#  obeys to a more general API
+#
+# -Wno_opaque: disables the warnings about breaking the opaqueness of a type
+#  defined in another module; these warnings are left enabled (hence this option
+#  is not retained here), as, even if disassembling types directly is both
+#  efficient and often rather natural, it is just the sign that such types
+#  should not be opaque
+#
+# -Wno_return: disables the warnings for functions that will never return a
+#  value; if a correct function A calls a faulty function B, by default A will
+#  trigger the not-so-useful "modulename:line:character: Function A has no local
+#  return" warning; then the chained called shall be rewinded until finding the
+#  actual culprit function (not A, but B or a function ultimately called by B);
+#  generally these warnings do not teach much
+#
+DIALYZER_ESSENTIAL_OPTS := -Wextra_return -Wmissing_return -Wno_return
+
+
+
+# Such Dialyzer options may not be always useful (so they might be at least
+# temporarily disabled).
+#
+# -Werror_handling: warns about functions that only return by an exception; this
+#  may be normal (e.g. when a function is meant to be overridden one way or
+#  another)
+#
+# -Wno_improper_lists: disables warnings about improper lists; this option may
+#  be relevant, as improper lists have their use (they allow for an increased
+#  compactness, see http://howtos.esperide.org/Erlang.html#improper-lists)
+#
+# -Wno_unused: disables the warnings about unused and unexported functions; if a
+#  function A is to call a function B, yet A always crashes before, B will
+#  unfortunately be considered unused; as the compiler is supposed to catch
+#  functions that are neither used locally nor exported, these warnings can be
+#  disabled, and thus this option can be retained
+#
+# -Wunderspecs: enables warnings about functions whose specification allows
+#  arguments that the function actually cannot handle (hence arguments complying
+#  with its spec may make this function crash); either the spec shall be
+#  restricted or the function shall be generalised
+#
+# -Wunmatched_returns: enables warnings about function calls that ignore a
+#  structured return value or do not match against one of many possible return
+#  values (however, no warnings are included if the possible return values are a
+#  union of atoms or a union of numbers); may be useful to ensure that all cases
+#  are covered
+#
+DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wno_unused -Wunderspecs
+
+
+# Such options are not deemed useful in our context; ad hoc, function-level
+# suppressions are usually better.
+#
+# -Wno_missing_calls: disables warnings about calls to missing (not defined, or
+#  not exported functions; such warnings are quite useful, so this option is not
+#  even retained here
+#
+# -Wno_fail_call: disables warnings about failing calls; such warnings are quite
+#  useful, so this option is not even retained here
+#
+# -Woverspecs: enables warnings about functions whose specification does not
+#  include arguments that the function actually could handle (hence, according
+#  to the success typing, some arguments not covered by the specification look
+#  acceptable for this function); so the spec could be generalised, or the
+#  function could be restricted, or, often, this warning may be ignored as a
+#  whole, considering that this restriction is legit (so the overspecs option
+#  matters a lot less than underspecs)
+#
+# -Wspecdiffs: enables warnings about functions whose specification is different
+#  from the success typing; union of underspecs, overspecs: detection of
+#  spec-allowed yet crashing arguments, and spec-prohibited yet non-crashing
+#  arguments; tells whether the function is a supertype of the success typing if
+#  it is an underspec, a subtype of the success typing if it is an overspec, and
+#  not equal to the success typing if it is both at the same time; generally too
+#  picky/verbose, hence not retained here
+#
+# -Wno_behaviours: disables warnings about behavior callbacks that drift from
+#  the published recommended interfaces; such warnings are quite useful, so this
+#  option is not even retained here
+#
+# -Wno_fun_app: disables warnings about fun applications that will fail; such
+#  warnings are quite useful, so this option is not even retained here
+#
+# -Wno_contracts: disables warnings about invalid contracts (wrong
+#  specifications); option not well-known, so currently kept
+#
+# -Wno_undefined_callbacks: disables warnings about behaviors that have no
+#  -callback attributes for their callbacks; such warnings are quite useful, so
+#  -this option is not retained here
+#
+# -Wno_match: disables warnings about patterns that are unused or cannot match;
+#  such warnings are quite useful, so this option is not retained here
+#
+# -Wunknown: have unknown functions and types affect the exit status of
+#  command-line Dialyzer; current this option is not retained; presumably
+#  optional dependencies would be a problem if used
+#
+DIALYZER_DISABLED_OPTS := -Woverspecs -Wno_contracts
 
 
 # To use a generic rule to produce it (unless already defined):
 ifndef PLT_FILE
 	PLT_FILE := $(PACKAGE_TOP)/$(PACKAGE_NAME).plt
 endif
+
+
+
+# A third-party, open-source quite complementary to Dializer; see
+# https://github.com/josefs/Gradualizer
+#
+# To install it, we recommend the following procedure:
+# $ cd ~/Software
+# $ git clone https://github.com/josefs/Gradualizer.git
+# $ cd Gradualizer/
+# $ make escript
+#
+# Then ensure that ~/Software/Gradualizer/bin is in your PATH so that
+# 'gradualizer' can be run directly.
+#
+GRADUALIZER := $$(which gradualizer 2>/dev/null)
+
+
+
+# These Gradualizer options are nearly always useful.
+#
+# --infer: infers type information from literals and other language constructs,
+# rather than only using type information from function specs
+#
+# --fmt_location verbose: for human consumption
+#
+# --fancy: to have fancy error messages when possible
+#
+# --color always: as we like fancy colors
+#
+GRADUALIZER_ESSENTIAL_OPTS := --infer --fmt_location verbose --fancy --color always
+
+
+# Such Gradualizer options may not be always useful (so they might be at least
+# temporarily disabled).
+#
+# --stop_on_first_error: useful to fix errors one by one, without being
+#  overwhelmed; yet may crash some versions of Gradualizer
+#
+#GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
+GRADUALIZER_CONTEXTUAL_OPTS :=
+
+
+# Refer to 'gradualizer --help' for further guidance.
+#
+GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
+					$(GRADUALIZER_CONTEXTUAL_OPTS)
+
+
+
+# Designates the target(s), files and/or directories, that shall be checked,
+# typically by Gradualizer.
+#
+# Note that:
+#
+# - only the direct content of directories is selected (they are not scanned
+#   recursively)
+#
+# - specifying a directory will select any .erl file in it, which, due to any
+#  use of parse-transforms, is bound to fail
+#
+# By default all BEAMs in the current directory will be checked (of course this
+# can be overridden from the command-line, like in: 'make check-static-typing
+# TARGETS_TO_CHECK="foo.beam bar.beam"'.
+#
+TARGETS_TO_CHECK := $(wildcard *.beam)
+
+
 
 # To use a generic rule to produce it (unless already defined):
 ifndef TYPE_LIST_FILE
@@ -1914,6 +2103,9 @@ endif
 
 # For later reuse in the next layer of the software stack:
 MYRIAD_PLT_FILE := $(MYRIAD_TOP)/Ceylan-Myriad.plt
+
+
+
 
 
 # Shorthand:

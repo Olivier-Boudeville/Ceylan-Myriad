@@ -3,9 +3,9 @@
 % Transferred from merge-tree.escript to benefit from a more user-friendly
 % debugging.
 %
-% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-%
 % Released as LGPL software.
+%
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2016.
 
 
@@ -80,8 +80,8 @@
 -type format_string() :: text_utils:format_string().
 
 
-% Thus a (large) integer:
--type sha1() :: executable_utils:sha1_sum().
+% Thus a binary:
+-type sha1() :: hash_utils:sha1_sum().
 
 -type command_line_option() :: shell_utils:command_line_option().
 -type command_line_value() :: shell_utils:command_line_value().
@@ -129,7 +129,7 @@
 	%
 	timestamp :: posix_seconds(),
 
-	% SHA1 sum of the content of that file:
+	% SHA1 sum (as a binary) of the content of that file:
 	sha1_sum :: sha1() } ).
 
 -type file_data() :: #file_data{}.
@@ -144,8 +144,6 @@
 % uniquified)
 
 
-
-%-type sha1_set() :: set( sha1() ).
 
 -type sha1_entry() :: { sha1(), [ file_data() ] }.
 % Pair entries of a sha1_table/0.
@@ -344,7 +342,7 @@ main( ArgTable ) ->
 	% of the so-called 'raw' elements).
 
 	%trace_bridge:debug_fmt( "Script-specific argument(s): ~ts",
-	%	   [ shell_utils:argument_table_to_string( FilteredArgTable ) ] ),
+	%   [ shell_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
 			orelse list_table:has_entry( ?help_opt, FilteredArgTable ) of
@@ -539,7 +537,7 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 
 								false ->
 									"; instead " ++
-						  shell_utils:argument_table_to_string( NoUniqArgTable )
+						shell_utils:argument_table_to_string( NoUniqArgTable )
 
 							end,
 
@@ -597,17 +595,12 @@ handle_equalize_option( FirstTreePath, SecondTreePath, EqualizeArgTable,
 	check_no_option_remains( EqualizeArgTable ),
 
 	% To avoid the mirroring of a tree in itself:
-	case BinAbsFirstTreePath of
-
-		BinAbsSecondTreePath ->
+	BinAbsFirstTreePath =:= BinAbsSecondTreePath andalso
+		begin
 			ui:display_error( "The same tree ('~ts') is specified for both "
 				"trees to equalize.", [ BinAbsFirstTreePath ] ),
-			throw( { equalize_on_same_directory, BinAbsFirstTreePath } );
-
-		_ ->
-			ok
-
-	end,
+			throw( { equalize_on_same_directory, BinAbsFirstTreePath } )
+		end,
 
 	trace_debug( "Equalizing trees '~ts' and '~ts'...",
 				 [ BinAbsFirstTreePath, BinAbsSecondTreePath ], UserState ),
@@ -1163,29 +1156,29 @@ rescan_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			% kept):
 			%
 			lists:foldl(
-			  fun( Filename, AccRing ) ->
-				{ AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
-				trace_debug( "Checking new file ~ts", [ Filename ],
-							 UserState ),
-				AnalyzerPid !
-					{ checkNewFile, [ BinTreePath, Filename ], self() },
-				NewAccRing
-			  end,
-			  _Acc0=AnalyzerRing,
-			  _List=ExtraFiles ),
+				fun( Filename, AccRing ) ->
+					{ AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
+					trace_debug( "Checking new file ~ts", [ Filename ],
+								 UserState ),
+					AnalyzerPid !
+						{ checkNewFile, [ BinTreePath, Filename ], self() },
+					NewAccRing
+				end,
+				_Acc0=AnalyzerRing,
+				_List=ExtraFiles ),
 
 			% Waiting for all corresponding file_data elements:
 			ExtraFileDatas = lists:foldl(
-			  fun( _Count, AccFileDatas ) ->
-				receive
+				fun( _Count, AccFileDatas ) ->
+					receive
 
-					  { file_checked, FileData } ->
+						{ file_checked, FileData } ->
 						  [ FileData | AccFileDatas ]
 
-				end
-			  end,
-			  _SecondAcc0=[],
-			  _SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
+					end
+				end,
+				_SecondAcc0=[],
+				_SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
 
 			ExtraNotif = text_utils:format( "following ~B extra files were "
 				"added (not referenced yet): ~ts",
@@ -1320,7 +1313,7 @@ check_file_datas_for_scan( _FileDatas=[
 		%
 		ShrunkFileSet ->
 			{ UpdatedFileData, UpdatedNotifs } = case
-				   file_utils:get_last_modification_time( FullPath ) of
+					file_utils:get_last_modification_time( FullPath ) of
 
 				% Time matches here, maybe size as well:
 				RecordedTimestamp ->
@@ -1339,7 +1332,7 @@ check_file_datas_for_scan( _FileDatas=[
 								"from '~ts' to '~ts'), it has thus been "
 								"reindexed.",
 								[ FullPath, system_utils:interpret_byte_size(
-											  RecordedSize ),
+														RecordedSize ),
 								  system_utils:interpret_byte_size( OtherSize )
 								] ),
 
@@ -1351,8 +1344,7 @@ check_file_datas_for_scan( _FileDatas=[
 						type=regular,
 						size=OtherSize,
 						timestamp=RecordedTimestamp,
-						sha1_sum=
-								executable_utils:compute_sha1_sum( FullPath ) },
+						sha1_sum=hash_utils:compute_file_sha1_sum( FullPath ) },
 
 							{ NewFileData, [ NewNotif | ExtraNotifications ] }
 
@@ -1374,8 +1366,7 @@ check_file_datas_for_scan( _FileDatas=[
 						type=regular,
 						size=file_utils:get_size( FullPath ),
 						timestamp=OtherTimestamp,
-						sha1_sum=
-							executable_utils:compute_sha1_sum( FullPath ) },
+						sha1_sum=hash_utils:compute_file_sha1_sum( FullPath ) },
 
 					{ NewFileData, [ NewNotif | ExtraNotifications ] }
 
@@ -1564,27 +1555,27 @@ resync_files( FileSet, _Entries=[], TreeData, BinTreePath, AnalyzerRing,
 			% kept):
 			%
 			lists:foldl(
-			  fun( Filename, AccRing ) ->
+				fun( Filename, AccRing ) ->
 					{ AnalyzerPid, NewAccRing } = ring_utils:head( AccRing ),
 					AnalyzerPid !
 						{ checkNewFile, [ BinTreePath, Filename ], self() },
 					NewAccRing
-			  end,
-			  _Acc0=AnalyzerRing,
-			  _List=ExtraFiles ),
+				end,
+				_Acc0=AnalyzerRing,
+				_List=ExtraFiles ),
 
 			% Waiting for all corresponding file_data elements:
 			ExtraFileDatas = lists:foldl(
-			  fun( _Count, AccFileDatas ) ->
-						receive
+				fun( _Count, AccFileDatas ) ->
+					receive
 
-							{ file_checked, FileData } ->
-								[ FileData | AccFileDatas ]
+						{ file_checked, FileData } ->
+							[ FileData | AccFileDatas ]
 
-						end
-			  end,
-			  _SecondAcc0=[],
-			  _SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
+					end
+				end,
+				_SecondAcc0=[],
+				_SecondList=lists:seq( 1, length( ExtraFiles ) ) ),
 
 			ExtraNotif = text_utils:format( "following ~B extra files were "
 				"added (not referenced yet): ~ts",
@@ -1636,7 +1627,7 @@ check_file_datas_for_sync( _FileDatas=[], SHA1, FileSet,
 
 	NewEntries = lists:foldl(
 		fun( FD=#file_data{ sha1_sum=ThisSHA1 }, AccEntries ) ->
-				table:append_to_entry( ThisSHA1, FD, AccEntries )
+			table:append_to_entry( ThisSHA1, FD, AccEntries )
 		end,
 		_Acc0=WipedEntries,
 		_List=NewFileDatas ),
@@ -1661,7 +1652,6 @@ check_file_datas_for_sync( _FileDatas=[
 
 		% File not found anymore:
 		false ->
-
 			NewNotif = case file_utils:is_existing_link( FullPath ) of
 
 				true ->
@@ -1695,13 +1685,13 @@ check_file_datas_for_sync( _FileDatas=[
 						% Different size, recreating the record from scratch:
 						OtherSize ->
 							NewNotif = text_utils:format(
-								 "file '~ts' had a different size (moved "
-								 "from '~ts' to '~ts'), it has thus been "
-								 "reindexed.",
-								 [ FullPath, system_utils:interpret_byte_size(
-											   RecordedSize ),
-								   system_utils:interpret_byte_size( OtherSize )
-								 ] ),
+								"file '~ts' had a different size (moved "
+								"from '~ts' to '~ts'), it has thus been "
+								"reindexed.",
+								[ FullPath, system_utils:interpret_byte_size(
+												RecordedSize ),
+								  system_utils:interpret_byte_size( OtherSize )
+								] ),
 
 							trace_debug( NewNotif, UserState ),
 
@@ -1712,8 +1702,7 @@ check_file_datas_for_sync( _FileDatas=[
 						size=OtherSize,
 						timestamp=
 							file_utils:get_last_modification_time( FullPath ),
-						sha1_sum=
-							executable_utils:compute_sha1_sum( FullPath ) },
+						sha1_sum=hash_utils:compute_file_sha1_sum( FullPath ) },
 
 							{ NewFileData, [ NewNotif | ExtraNotifications ] }
 
@@ -2317,16 +2306,15 @@ move_content_to_integrate( _ToMove=[ SHA1 | T ], InputRootDir, InputEntries,
 	SHA1 = ElectedFileData#file_data.sha1_sum,
 
 	SourceRelPath = ElectedFileData#file_data.path,
-	%	text_utils:binary_to_string( ElectedFileData#file_data.path ),
 
 	{ NewAbsPath, NewRelPath } = safe_move( InputRootDir, SourceRelPath,
 								ReferenceRootDir, TargetSubPath, UserState ),
 
 	% Selective update:
 	NewFileData = ElectedFileData#file_data{
-			path=NewRelPath,
-			% To avoid any kind of discrepancy:
-			timestamp=file_utils:get_last_modification_time( NewAbsPath ) },
+		path=NewRelPath,
+		% To avoid any kind of discrepancy:
+		timestamp=file_utils:get_last_modification_time( NewAbsPath ) },
 
 	% New content in reference:
 	NewReferenceEntries =
@@ -3792,9 +3780,9 @@ analyze_loop() ->
 						type=file_utils:get_type_of( BinFilePath ),
 						size=file_utils:get_size( BinFilePath ),
 						timestamp=file_utils:get_last_modification_time(
-									BinFilePath ),
-						sha1_sum=
-							executable_utils:compute_sha1_sum( BinFilePath ) },
+												BinFilePath ),
+						sha1_sum=hash_utils:compute_file_sha1_sum( BinFilePath )
+								 },
 
 					% To avoid overheating:
 					timer:sleep( 50 ),
@@ -3840,7 +3828,7 @@ analyze_loop() ->
 				type=file_utils:get_type_of( BinFilePath ),
 				size=file_utils:get_size( BinFilePath ),
 				timestamp=file_utils:get_last_modification_time( BinFilePath ),
-				sha1_sum=executable_utils:compute_sha1_sum( BinFilePath ) },
+				sha1_sum=hash_utils:compute_file_sha1_sum( BinFilePath ) },
 
 			SenderPid ! { file_checked, FileData },
 			analyze_loop();
@@ -5235,4 +5223,4 @@ file_data_to_string( #file_data{ path=Path,
 sha1_to_string( SHA1 ) ->
 	% Mimics the output of the sha1sum executable:
 	text_utils:to_lowercase(
-		text_utils:integer_to_hexastring( SHA1, _AddPrefix=false ) ).
+		text_utils:binary_to_hexastring( SHA1, _AddPrefix=false ) ).
