@@ -462,6 +462,23 @@
 % floating-point values).
 
 
+% Definition of actual datatypes (useful for typing variables):
+-type uint8() :: 0..255.
+-type sint8() :: fixme.
+
+-type uint16() :: fixme.
+-type sint16() :: fixme.
+
+-type uint32() :: fixme.
+-type sint32() :: fixme.
+
+-type uint64() :: fixme.
+-type sint64() :: fixme.
+
+-type float32() :: fixme.
+-type float64() :: fixme.
+
+
 -type record() :: tuple().
 % Designates a record instance, to discriminate from a mere tuple.
 
@@ -500,7 +517,11 @@
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
-			   low_level_type/0, record/0,
+			   low_level_type/0,
+			   uint8/0, sint8/0, uint16/0, sint16/0,
+			   uint32/0, sint32/0, uint64/0, sint64/0,
+			   float32/0, float64/0,
+			   record/0,
 			   tuploid/0, tuploid/1,
 			   pair/0, triplet/0, tuple/1,
 			   transient_term/0 ]).
