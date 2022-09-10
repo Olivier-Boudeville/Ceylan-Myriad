@@ -1523,7 +1523,9 @@ endif
 BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2 ; fi; done)
 
 
-# -pa rather than -pz, notably for Gradualizer:
+# -pa rather than -pz, notably for Gradualizer (moreover a bit safer, including
+# for the layers above):
+#
 OVERALL_PA_OPTS = $(foreach dir,$(BEAM_DIRS),-pa $(dir))
 
 
