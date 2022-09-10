@@ -85,7 +85,8 @@ corresponding environment server.</p>
 <h3 class="typedecl"><a name="type-cache_spec">cache_spec()</a></h3>
 <p><tt>cache_spec() = <a href="#type-maybe_list">maybe_list</a>([<a href="#type-key">key()</a> | <a href="#type-entry">entry()</a>])</tt></p>
 <p> A specification of the environment keys (possibly with their initial values)
- that shall be cached in a client process.</p>
+ that shall be cached in a client process (hence locally, in addition to the
+ environment server).</p>
 
 <h3 class="typedecl"><a name="type-entries">entries()</a></h3>
 <p><tt>entries() = <a href="table.html#type-entries">table:entries()</a></tt></p>
@@ -101,7 +102,7 @@ corresponding environment server.</p>
 
 <h3 class="typedecl"><a name="type-env_data">env_data()</a></h3>
 <p><tt>env_data() = <a href="#type-env_info">env_info()</a> | <a href="#type-env_designator">env_designator()</a></tt></p>
-<p> Any element designating an environment.</p>
+<p> Any element designating an environment (most general handle).</p>
 
 <h3 class="typedecl"><a name="type-env_designator">env_designator()</a></h3>
 <p><tt>env_designator() = <a href="#type-env_pid">env_pid()</a> | <a href="#type-env_reg_name">env_reg_name()</a></tt></p>
@@ -159,6 +160,8 @@ specified key(s), which will thus be appropriately synchronised with the
 server from now on, in addition to any already cached keys.</td></tr>
 <tr><td valign="top"><a href="#cache_return-2">cache_return/2</a></td><td>Caches in the calling process the specified keys, and returns their 
 associated value.</td></tr>
+<tr><td valign="top"><a href="#ensure_binary-2">ensure_binary/2</a></td><td>Ensures that the specified key(s), expected to be some kind of strings, 
+are binary strings.</td></tr>
 <tr><td valign="top"><a href="#extract-2">extract/2</a></td><td>Extracts the specified entries (a single one or multiple ones) from the
  specified environment, based on the designated already-running environment
  server (specified by registration name, environment information or PID):
@@ -227,6 +230,10 @@ started and linked with the specified registration name, and based on the
 specified file.</td></tr>
 <tr><td valign="top"><a href="#start_link_cached-2">start_link_cached/2</a></td><td>Ensures explicitly that, if not running already, a specified environment 
 server is started and linked, and caches the specified elements.</td></tr>
+<tr><td valign="top"><a href="#start_link_with_defaults-2">start_link_with_defaults/2</a></td><td>Starts, links and initialises an environment server based first on the 
+specified defaults.</td></tr>
+<tr><td valign="top"><a href="#start_with_defaults-2">start_with_defaults/2</a></td><td>Starts and initialises an environment server based first on the specified 
+defaults.</td></tr>
 <tr><td valign="top"><a href="#stop-1">stop/1</a></td><td>Stops (asynchronously) the environment server designated by the specified 
 registration name or file, if it is running.</td></tr>
 <tr><td valign="top"><a href="#store-1">store/1</a></td><td>Stores (asynchronously) the current state of the specified environment in
@@ -266,9 +273,9 @@ server from now on, in addition to any already cached keys.</p>
 
  <p>Either single keys or full entries can be specified there. Both will lead the 
 corresponding keys to be cached, yet a single key, if it is not already cached 
-(otherwise, it will be ignored), will trigger its value to be fetched from the 
-environment server whereas the value of a full entry will be cached and also 
-sent to the environment server (therefore being equivalent to set/2).</p>
+(otherwise, its update will be ignored), will trigger its value to be fetched 
+from the environment server whereas the value of a full entry will be cached 
+and also sent to the environment server (therefore being equivalent to set/2).</p>
 
  <p>Any next setting by this process of one of these cached keys will update its 
 local cache as well as the specified environment server; as a consequence, 
@@ -291,6 +298,17 @@ server.</p>
 associated value.</p>
 
  Equivalent to a call to cache/2 followed by one to get/2 with the same keys.
+</p>
+
+<h3 class="function"><a name="ensure_binary-2">ensure_binary/2</a></h3>
+<div class="spec">
+<p><tt>ensure_binary(KeyMaybeList::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-key">key()</a>), EnvInfo::<a href="#type-env_data">env_data()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p><p>Ensures that the specified key(s), expected to be some kind of strings, 
+are binary strings.</p>
+
+ Typically useful so that default plain strings may be specified, even if
+ internally they should be binary ones.
 </p>
 
 <h3 class="function"><a name="extract-2">extract/2</a></h3>
@@ -585,6 +603,49 @@ regarding caching.</p>
 
  Returns in any case the PID of the corresponding environment server, already
  existing or not, and caching specified elements.
+</p>
+
+<h3 class="function"><a name="start_link_with_defaults-2">start_link_with_defaults/2</a></h3>
+<div class="spec">
+<p><tt>start_link_with_defaults(ServerRegName::<a href="#type-env_reg_name">env_reg_name()</a> | <a href="#type-file_path">file_path()</a>, DefaultEntries::<a href="#type-entries">entries()</a>) -&gt; <a href="#type-env_pid">env_pid()</a></tt><br></p>
+<p> </p>
+</div><p><p>Starts, links and initialises an environment server based first on the 
+specified defaults.</p>
+
+ <p>If a name is specified: registers it under that name, and starts-linked it 
+just with the specified defaults.</p>
+
+ <p>If instead a filename is specified: starts-linked a corresponding server with 
+a deriving name, and initialises it first with the specified defaults, then 
+with the corresponding file content (thus potentially overriding these 
+defaults).</p>
+
+ <p>Ensures that no prior corresponding environment server already exists, as the 
+specified defaults could not then be properly taken into account.</p>
+
+ Returns the PID of the corresponding, just created, environment server.
+</p>
+
+<h3 class="function"><a name="start_with_defaults-2">start_with_defaults/2</a></h3>
+<div class="spec">
+<p><tt>start_with_defaults(ServerRegName::<a href="#type-env_reg_name">env_reg_name()</a> | <a href="#type-file_path">file_path()</a>, DefaultEntries::<a href="#type-entries">entries()</a>) -&gt; <a href="#type-env_pid">env_pid()</a></tt><br></p>
+<p> </p>
+</div><p><p>Starts and initialises an environment server based first on the specified 
+defaults.</p>
+
+ <p>If a name is specified: registers it under that name, and starts it just with 
+the specified defaults.</p>
+
+ <p>If instead a filename is specified: starts a corresponding server with a 
+deriving name, and initialises it first with the specified defaults, then with 
+the corresponding file content (thus potentially overriding these defaults).</p>
+
+ <p>Ensures that no prior corresponding environment server already exists, as the 
+specified defaults could not then be properly taken into account.</p>
+
+ <p>Does not link the started environment server to the calling process.</p>
+
+ Returns the PID of the corresponding, just created, environment server.
 </p>
 
 <h3 class="function"><a name="stop-1">stop/1</a></h3>

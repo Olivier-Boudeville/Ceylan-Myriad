@@ -33,10 +33,10 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Sunday, August 7, 2022</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, September 10, 2022</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.27</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.29</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
@@ -2315,7 +2315,7 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <li><strong>spacing homogeneity</strong> across source files should be enforced; for example three blank lines should exist between two function definitions, one between the clauses of any given function (possibly two in case of longer clauses); for the sake of &quot;visual parsing&quot;, arguments should be separated by spaces (ex: <tt class="docutils literal">f( X ) <span class="pre">-&gt;</span> ...</tt>, not <tt class="docutils literal">f(X) <span class="pre">-&gt;</span> ...</tt>), especially if they are a bit complex (<tt class="docutils literal">f( <span class="pre">A={U,V},</span> B, _C ) <span class="pre">-&gt;</span> ...</tt>, not <tt class="docutils literal"><span class="pre">f(A={U,V},B,_C)</span> <span class="pre">-&gt;</span> ...</tt> or the usual <tt class="docutils literal"><span class="pre">f(A={U,V},</span> B, _C) <span class="pre">-&gt;</span> ...</tt>)</li>
 <li>for <strong>type-related conventions</strong>, at least all exported functions shall have a <tt class="docutils literal"><span class="pre">-spec</span></tt> declaration; if an actual type is referenced more than once (notably in a given module), a specific user-defined type shall be defined; types shall be defined in &quot;semantic&quot; terms rather than on technical ones (ex: <tt class="docutils literal"><span class="pre">-type</span> temperature() :: ...</tt> than <tt class="docutils literal">float()</tt>; developers may refer to, or enrich, <tt class="docutils literal">myriad/src/utils/unit_utils.erl</tt> for that)</li>
 <li>the <strong>latest stable version of Erlang</strong> should be used, preferably built thanks to our <tt class="docutils literal"><span class="pre">myriad/conf/install-erlang.sh</span></tt> script</li>
-<li>the official <em>Programming Rules and Conventions</em> should be enforced, as defined <a class="reference external" href="http://www.erlang.se/doc/programming_rules.shtml">here</a></li>
+<li>the official <em>Programming Rules and Conventions</em> should be enforced, as defined <a class="reference external" href="http://www.erlang.se/doc/programming_rules.shtml">here</a> (possibly a dead link now; one may try <a class="reference external" href="https://docs.jj1bdx.tokyo/Erlang_Programming_Rules.html">this mirror</a> instead)</li>
 <li>the function definitions shall follow <strong>the same order</strong> as the one of their exports</li>
 <li>helper functions <strong>shall preferably be identified as such</strong>, with an <tt class="docutils literal">(helper)</tt> comment</li>
 <li>if an helper function is specific to an exported function, it shall be defined just after this function; otherwise it should be defined in the <strong>helper section</strong>, placed just after the definition of the exported functions</li>

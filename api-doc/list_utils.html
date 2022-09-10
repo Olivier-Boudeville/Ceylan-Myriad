@@ -97,6 +97,8 @@ knowing that they all have the same probability of being drawn initially, but
 when an element is drawn, it is removed from the candidate list so that the 
 next drawing operates on the resulting shortened list, so that any element is 
 drawn up to once.</td></tr>
+<tr><td valign="top"><a href="#duplicate-2">duplicate/2</a></td><td>Returns a list made of the specified number of occurrences of the
+ specified element.</td></tr>
 <tr><td valign="top"><a href="#ensure_atoms-1">ensure_atoms/1</a></td><td>Ensures that the specified argument is a list of atoms: encloses any atom
  in a list of its own if not already a list, or check that this list is only
  populated of atoms; respects any original order.</td></tr>
@@ -429,6 +431,14 @@ drawn up to once.</p>
 
  Note that the specified list must contain at least the specified count of
  elements.
+</p>
+
+<h3 class="function"><a name="duplicate-2">duplicate/2</a></h3>
+<div class="spec">
+<p><tt>duplicate(Elem::<a href="#type-element">element()</a>, Count::<a href="#type-count">count()</a>) -&gt; [<a href="#type-element">element()</a>]</tt><br></p>
+<p> </p>
+</div><p>Returns a list made of the specified number of occurrences of the
+ specified element.
 </p>
 
 <h3 class="function"><a name="ensure_atoms-1">ensure_atoms/1</a></h3>

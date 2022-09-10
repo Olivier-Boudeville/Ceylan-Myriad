@@ -37,6 +37,14 @@ ASTs.</p>
 <p> An explicit type is a type that has been fully resolved in terms of built-in
  constructs; it is thus autonomous, self-standing.</p>
 
+<h3 class="typedecl"><a name="type-float32">float32()</a></h3>
+<p><tt>float32() = fixme</tt></p>
+
+
+<h3 class="typedecl"><a name="type-float64">float64()</a></h3>
+<p><tt>float64() = fixme</tt></p>
+
+
 <h3 class="typedecl"><a name="type-level">level()</a></h3>
 <p><tt>level() = <a href="basic_utils.html#type-level">basic_utils:level()</a></tt></p>
 
@@ -75,6 +83,22 @@ ASTs.</p>
 <h3 class="typedecl"><a name="type-record">record()</a></h3>
 <p><tt>record() = tuple()</tt></p>
 <p> Designates a record instance, to discriminate from a mere tuple.</p>
+
+<h3 class="typedecl"><a name="type-sint16">sint16()</a></h3>
+<p><tt>sint16() = fixme</tt></p>
+
+
+<h3 class="typedecl"><a name="type-sint32">sint32()</a></h3>
+<p><tt>sint32() = fixme</tt></p>
+
+
+<h3 class="typedecl"><a name="type-sint64">sint64()</a></h3>
+<p><tt>sint64() = fixme</tt></p>
+
+
+<h3 class="typedecl"><a name="type-sint8">sint8()</a></h3>
+<p><tt>sint8() = fixme</tt></p>
+
 
 <h3 class="typedecl"><a name="type-transient_term">transient_term()</a></h3>
 <p><tt>transient_term() = pid() | port() | reference()</tt></p>
@@ -223,12 +247,36 @@ for polymorphic ones).</p>
 
  Ex: 'my_count'.</p>
 
+<h3 class="typedecl"><a name="type-uint16">uint16()</a></h3>
+<p><tt>uint16() = fixme</tt></p>
+
+
+<h3 class="typedecl"><a name="type-uint32">uint32()</a></h3>
+<p><tt>uint32() = fixme</tt></p>
+
+
+<h3 class="typedecl"><a name="type-uint64">uint64()</a></h3>
+<p><tt>uint64() = fixme</tt></p>
+
+
+<h3 class="typedecl"><a name="type-uint8">uint8()</a></h3>
+<p><tt>uint8() = 0..255</tt></p>
+
+
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
 <p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#are_types_identical-2">are_types_identical/2</a></td><td>Tells whether the two specified types are the same (ie designate the same
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#are_binaries-1">are_binaries/1</a></td><td>Returns whether the specified term is a list of binaries.</td></tr>
+<tr><td valign="top"><a href="#are_floats-1">are_floats/1</a></td><td>Returns whether the specified term is a list of floats.</td></tr>
+<tr><td valign="top"><a href="#are_integers-1">are_integers/1</a></td><td>Returns whether the specified term is a list of integers.</td></tr>
+<tr><td valign="top"><a href="#are_maybe_floats-1">are_maybe_floats/1</a></td><td>Returns whether the specified term is a list of maybe-floats.</td></tr>
+<tr><td valign="top"><a href="#are_maybe_integers-1">are_maybe_integers/1</a></td><td>Returns whether the specified term is a list of maybe-integers.</td></tr>
+<tr><td valign="top"><a href="#are_maybe_numbers-1">are_maybe_numbers/1</a></td><td>Returns whether the specified term is a list of maybe-numbers.</td></tr>
+<tr><td valign="top"><a href="#are_numbers-1">are_numbers/1</a></td><td>Returns whether the specified term is a list of numbers.</td></tr>
+<tr><td valign="top"><a href="#are_positive_floats-1">are_positive_floats/1</a></td><td>Returns whether the specified term is a list of positive floats.</td></tr>
+<tr><td valign="top"><a href="#are_types_identical-2">are_types_identical/2</a></td><td>Tells whether the two specified types are the same (ie designate the same
  actual type, are aliases).</td></tr>
 <tr><td valign="top"><a href="#augment_tuploid-2">augment_tuploid/2</a></td><td>Augments the specified tuploid with specified term, placed as new last 
 element.</td></tr>
@@ -256,6 +304,8 @@ element.</td></tr>
  returns it.</td></tr>
 <tr><td valign="top"><a href="#check_maybe_pid-1">check_maybe_pid/1</a></td><td>Checks that the specified term is a PID indeed or the 'undefined' atom,
  and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_maybe_positive_float-1">check_maybe_positive_float/1</a></td><td>Checks that the specified term is a maybe-(positive float) indeed, and
+ returns it.</td></tr>
 <tr><td valign="top"><a href="#check_maybe_positive_integer-1">check_maybe_positive_integer/1</a></td><td>Checks that the specified term is a positive or null integer or the
  'undefined' atom, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_maybe_strictly_positive_float-1">check_maybe_strictly_positive_float/1</a></td><td>Checks that the specified term is a maybe-(strictly positive float)
@@ -264,11 +314,17 @@ element.</td></tr>
 <tr><td valign="top"><a href="#check_numbers-1">check_numbers/1</a></td><td>Checks that the specified term is a list of numbers indeed, and returns
  it.</td></tr>
 <tr><td valign="top"><a href="#check_pid-1">check_pid/1</a></td><td>Checks that the specified term is a PID indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_positive_float-1">check_positive_float/1</a></td><td>Checks that the specified term is a positive (or null) float indeed, and
+ returns it.</td></tr>
+<tr><td valign="top"><a href="#check_positive_floats-1">check_positive_floats/1</a></td><td>Checks that the specified term is a list of positive (or null) floats
+ indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_positive_integer-1">check_positive_integer/1</a></td><td>Checks that the specified term is a positive or null integer, and returns
  it.</td></tr>
 <tr><td valign="top"><a href="#check_positive_number-1">check_positive_number/1</a></td><td>Checks that the specified term is a positive or null number indeed, and
  returns it.</td></tr>
 <tr><td valign="top"><a href="#check_strictly_positive_float-1">check_strictly_positive_float/1</a></td><td>Checks that the specified term is a strictly positive float indeed, and
+ returns it.</td></tr>
+<tr><td valign="top"><a href="#check_strictly_positive_integer-1">check_strictly_positive_integer/1</a></td><td>Checks that the specified term is a strictly positive integer, and
  returns it.</td></tr>
 <tr><td valign="top"><a href="#check_strictly_positive_number-1">check_strictly_positive_number/1</a></td><td>Checks that the specified term is a strictly positive number indeed, and
  returns it.</td></tr>
@@ -280,6 +336,8 @@ parses the specified string to determine the type described therein.</td></tr>
 <tr><td valign="top"><a href="#ensure_float-1">ensure_float/1</a></td><td>Ensures that the specified term is a float, and returns it.</td></tr>
 <tr><td valign="top"><a href="#ensure_integer-1">ensure_integer/1</a></td><td>Ensures that the specified term is an integer, and returns it.</td></tr>
 <tr><td valign="top"><a href="#ensure_number-1">ensure_number/1</a></td><td>Ensures that the specified term is a number, and returns it.</td></tr>
+<tr><td valign="top"><a href="#ensure_positive_float-1">ensure_positive_float/1</a></td><td>Ensures that the specified term is a positive (possibly null) float, and 
+returns it.</td></tr>
 <tr><td valign="top"><a href="#ensure_rounded_integer-1">ensure_rounded_integer/1</a></td><td>Ensures that the specified term is an integer, and returns it.</td></tr>
 <tr><td valign="top"><a href="#ensure_string-1">ensure_string/1</a></td><td>Ensures that the specified term is a string, and returns it.</td></tr>
 <tr><td valign="top"><a href="#get_ast_simple_builtin_types-0">get_ast_simple_builtin_types/0</a></td><td>Returns a list of the possible types for immediate values (typically 
@@ -322,6 +380,54 @@ whitespaces) corresponding to specified type.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="are_binaries-1">are_binaries/1</a></h3>
+<div class="spec">
+<p><tt>are_binaries(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of binaries.</p>
+
+<h3 class="function"><a name="are_floats-1">are_floats/1</a></h3>
+<div class="spec">
+<p><tt>are_floats(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of floats.</p>
+
+<h3 class="function"><a name="are_integers-1">are_integers/1</a></h3>
+<div class="spec">
+<p><tt>are_integers(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of integers.</p>
+
+<h3 class="function"><a name="are_maybe_floats-1">are_maybe_floats/1</a></h3>
+<div class="spec">
+<p><tt>are_maybe_floats(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of maybe-floats.</p>
+
+<h3 class="function"><a name="are_maybe_integers-1">are_maybe_integers/1</a></h3>
+<div class="spec">
+<p><tt>are_maybe_integers(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of maybe-integers.</p>
+
+<h3 class="function"><a name="are_maybe_numbers-1">are_maybe_numbers/1</a></h3>
+<div class="spec">
+<p><tt>are_maybe_numbers(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of maybe-numbers.</p>
+
+<h3 class="function"><a name="are_numbers-1">are_numbers/1</a></h3>
+<div class="spec">
+<p><tt>are_numbers(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of numbers.</p>
+
+<h3 class="function"><a name="are_positive_floats-1">are_positive_floats/1</a></h3>
+<div class="spec">
+<p><tt>are_positive_floats(T::term()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns whether the specified term is a list of positive floats.</p>
 
 <h3 class="function"><a name="are_types_identical-2">are_types_identical/2</a></h3>
 <div class="spec">
@@ -463,6 +569,14 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
  and returns it.
 </p>
 
+<h3 class="function"><a name="check_maybe_positive_float-1">check_maybe_positive_float/1</a></h3>
+<div class="spec">
+<p><tt>check_maybe_positive_float(Float::term()) -&gt; <a href="#type-maybe">maybe</a>(float())</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a maybe-(positive float) indeed, and
+ returns it.
+</p>
+
 <h3 class="function"><a name="check_maybe_positive_integer-1">check_maybe_positive_integer/1</a></h3>
 <div class="spec">
 <p><tt>check_maybe_positive_integer(Int::term()) -&gt; <a href="#type-maybe">maybe</a>(pos_integer())</tt><br></p>
@@ -499,6 +613,22 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 <p> </p>
 </div><p>Checks that the specified term is a PID indeed, and returns it.</p>
 
+<h3 class="function"><a name="check_positive_float-1">check_positive_float/1</a></h3>
+<div class="spec">
+<p><tt>check_positive_float(Float::term()) -&gt; float()</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a positive (or null) float indeed, and
+ returns it.
+</p>
+
+<h3 class="function"><a name="check_positive_floats-1">check_positive_floats/1</a></h3>
+<div class="spec">
+<p><tt>check_positive_floats(Floats::term()) -&gt; [float()]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of positive (or null) floats
+ indeed, and returns it.
+</p>
+
 <h3 class="function"><a name="check_positive_integer-1">check_positive_integer/1</a></h3>
 <div class="spec">
 <p><tt>check_positive_integer(Int::term()) -&gt; pos_integer()</tt><br></p>
@@ -520,6 +650,14 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 <p><tt>check_strictly_positive_float(Float::term()) -&gt; float()</tt><br></p>
 <p> </p>
 </div><p>Checks that the specified term is a strictly positive float indeed, and
+ returns it.
+</p>
+
+<h3 class="function"><a name="check_strictly_positive_integer-1">check_strictly_positive_integer/1</a></h3>
+<div class="spec">
+<p><tt>check_strictly_positive_integer(Int::term()) -&gt; pos_integer()</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a strictly positive integer, and
  returns it.
 </p>
 
@@ -583,6 +721,16 @@ parses the specified string to determine the type described therein.</p>
 <p><tt>ensure_number(N::number()) -&gt; number()</tt><br></p>
 <p> </p>
 </div><p>Ensures that the specified term is a number, and returns it.</p>
+
+<h3 class="function"><a name="ensure_positive_float-1">ensure_positive_float/1</a></h3>
+<div class="spec">
+<p><tt>ensure_positive_float(F::number()) -&gt; float()</tt><br></p>
+<p> </p>
+</div><p><p>Ensures that the specified term is a positive (possibly null) float, and 
+returns it.</p>
+
+ If it is an integer, will return a floating-point version of it.
+</p>
 
 <h3 class="function"><a name="ensure_rounded_integer-1">ensure_rounded_integer/1</a></h3>
 <div class="spec">
@@ -664,10 +812,13 @@ the specified primitive term.</p>
 
  <p>is_number/1, is_record/1, etc. not usable here.</p>
 
- Note: often we do not want to retrieve the actual type of a term but need
- instead to determine whether the term can be considered as an instance of a
- specific type (this is not strictly the same need, as a given term in general
- may be seen of being of multiple types).
+ <p>Note: often we do not want to retrieve the actual type of a term but need 
+instead to determine whether the term can be considered as an instance of a 
+specific type (this is not strictly the same need, as a given term in general 
+may be seen of being of multiple types).</p>
+
+ The lowest-level/most precising typing can be obtained with the (undocumented)
+ erts_internal:term_type/1 function.
 </p>
 
 <h3 class="function"><a name="interpret_type_of-1">interpret_type_of/1</a></h3>

@@ -84,6 +84,10 @@ _BridgePid=class_TraceAggregator:get_aggregator() ),</p>
 <p><tt>trace_message() = <a href="#type-ustring">ustring()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-trace_severity">trace_severity()</a></h3>
+<p><tt>trace_severity() = <a href="trace_utils.html#type-trace_severity">trace_utils:trace_severity()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-trace_timestamp">trace_timestamp()</a></h3>
 <p><tt>trace_timestamp() = <a href="trace_utils.html#type-trace_timestamp">trace_utils:trace_timestamp()</a></tt></p>
 
@@ -120,6 +124,8 @@ _BridgePid=class_TraceAggregator:get_aggregator() ),</p>
 <tr><td valign="top"><a href="#register_if_not_already-1">register_if_not_already/1</a></td><td>Registers the current process to the specified trace bridge (if any), and 
 provided that no bridge was already registered (otherwise maintains the 
 previous bridge and ignores silently that extraneous call).</td></tr>
+<tr><td valign="top"><a href="#send-2">send/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#send-3">send/3</a></td><td></td></tr>
 <tr><td valign="top"><a href="#set_application_timestamp-1">set_application_timestamp/1</a></td><td>Sets the current application timestamp.</td></tr>
 <tr><td valign="top"><a href="#set_bridge_info-1">set_bridge_info/1</a></td><td>Sets the specified bridge information for the current process.</td></tr>
 <tr><td valign="top"><a href="#unregister-0">unregister/0</a></td><td>Unregisters the current process, which acted as a trace bridge; never
@@ -270,6 +276,18 @@ previous bridge and ignores silently that extraneous call).</p>
  Useful to have a bridge yet accept that the caller may have already set its
  bridge.
 </p>
+
+<h3 class="function"><a name="send-2">send/2</a></h3>
+<div class="spec">
+<p><tt>send(SeverityType::<a href="#type-trace_severity">trace_severity()</a>, Message::<a href="#type-trace_message">trace_message()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="send-3">send/3</a></h3>
+<div class="spec">
+<p><tt>send(SeverityType::<a href="#type-trace_severity">trace_severity()</a>, MessageFormat::<a href="#type-format_string">format_string()</a>, MessageValues::<a href="#type-format_values">format_values()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div>
 
 <h3 class="function"><a name="set_application_timestamp-1">set_application_timestamp/1</a></h3>
 <div class="spec">

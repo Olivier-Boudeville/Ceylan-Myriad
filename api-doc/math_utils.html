@@ -140,6 +140,7 @@ deemed close enough, relatively, to be equal.</td></tr>
  corresponds to the specified angle is in the [0;360[ interval.</td></tr>
 <tr><td valign="top"><a href="#ceiling-1">ceiling/1</a></td><td>Returns the smallest integer bigger than the specified floating-point 
 value.</td></tr>
+<tr><td valign="top"><a href="#check_percent_basic_range-1">check_percent_basic_range/1</a></td><td>Checks that the specified percentage is in the usual [0.0, 1.0] range.</td></tr>
 <tr><td valign="top"><a href="#clamp-2">clamp/2</a></td><td>Clamps the specified possibly-infinite number within the specified
  possibly-infinite range.</td></tr>
 <tr><td valign="top"><a href="#clamp-3">clamp/3</a></td><td>Clamps specified value between specified bounds: the returned value V is 
@@ -154,6 +155,8 @@ specified integer.</td></tr>
 <tr><td valign="top"><a href="#get_relative_difference-2">get_relative_difference/2</a></td><td>Returns the relative difference between the two specified numbers.</td></tr>
 <tr><td valign="top"><a href="#is_null-1">is_null/1</a></td><td>Returns true iff the specified number (floating-point or even integer) is
  deemed close enough to zero to be null.</td></tr>
+<tr><td valign="top"><a href="#is_null_number-1">is_null_number/1</a></td><td>Returns true iff the specified number is deemed close enough to zero to
+ be null.</td></tr>
 <tr><td valign="top"><a href="#modulo-2">modulo/2</a></td><td>Returns the positive remainder of the division of X by Y, in [0;Y[.</td></tr>
 <tr><td valign="top"><a href="#normalise-2">normalise/2</a></td><td>Normalises, in the specified list of tuples, the elements at the 
 specified index (expected to be numbers, whose sum is non-null), so that their 
@@ -263,6 +266,15 @@ value.</p>
  here, which returns an integer rather than a float.
 </p>
 
+<h3 class="function"><a name="check_percent_basic_range-1">check_percent_basic_range/1</a></h3>
+<div class="spec">
+<p><tt>check_percent_basic_range(P::<a href="#type-percent">percent()</a>) -&gt; <a href="#type-percent">percent()</a></tt><br></p>
+<p> </p>
+</div><p><p>Checks that the specified percentage is in the usual [0.0, 1.0] range.</p>
+
+ Returns that percentage.
+</p>
+
 <h3 class="function"><a name="clamp-2">clamp/2</a></h3>
 <div class="spec">
 <p><tt>clamp(Number::<a href="#type-infinite_number">infinite_number()</a>, R::<a href="#type-infinite_range">infinite_range()</a>) -&gt; <a href="#type-infinite_number">infinite_number()</a></tt><br></p>
@@ -337,6 +349,14 @@ specified integer.</p>
 <p> </p>
 </div><p>Returns true iff the specified number (floating-point or even integer) is
  deemed close enough to zero to be null.
+</p>
+
+<h3 class="function"><a name="is_null_number-1">is_null_number/1</a></h3>
+<div class="spec">
+<p><tt>is_null_number(I::number()) -&gt; boolean()</tt><br></p>
+<p> </p>
+</div><p>Returns true iff the specified number is deemed close enough to zero to
+ be null.
 </p>
 
 <h3 class="function"><a name="modulo-2">modulo/2</a></h3>

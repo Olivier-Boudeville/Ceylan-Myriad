@@ -252,9 +252,13 @@ listed directly along the text (not one item per line).</td></tr>
 <tr><td valign="top"><a href="#binaries_to_strings-1">binaries_to_strings/1</a></td><td>Converts a list of binaries into list of plain (list-based) strings.</td></tr>
 <tr><td valign="top"><a href="#binary_to_atom-1">binary_to_atom/1</a></td><td>Converts the specified binary string into a corresponding atom.</td></tr>
 <tr><td valign="top"><a href="#binary_to_float-1">binary_to_float/1</a></td><td>Converts the specified binary string into a corresponding float.</td></tr>
+<tr><td valign="top"><a href="#binary_to_hexastring-1">binary_to_hexastring/1</a></td><td>Returns a plain string corresponding to the specified binary, in 
+hexadecimal form, with a "0x" prefix.</td></tr>
+<tr><td valign="top"><a href="#binary_to_hexastring-2">binary_to_hexastring/2</a></td><td>Returns a plain string corresponding to the specified binary, in 
+hexadecimal form, with a "0x" prefix if requested.</td></tr>
 <tr><td valign="top"><a href="#binary_to_integer-1">binary_to_integer/1</a></td><td>Converts the specified binary string into a corresponding integer.</td></tr>
-<tr><td valign="top"><a href="#binary_to_string-1">binary_to_string/1</a></td><td>Converts a binary into a plain (list-based) string.</td></tr>
-<tr><td valign="top"><a href="#binary_to_string-2">binary_to_string/2</a></td><td>Converts a binary into a plain (list-based) string.</td></tr>
+<tr><td valign="top"><a href="#binary_to_string-1">binary_to_string/1</a></td><td>Converts a Unicode binary into a plain (list-based) string.</td></tr>
+<tr><td valign="top"><a href="#binary_to_string-2">binary_to_string/2</a></td><td>Converts a Unicode binary into a plain (list-based) string.</td></tr>
 <tr><td valign="top"><a href="#center_string-2">center_string/2</a></td><td>Returns the specified string once padded with spaces on its left and 
 right, in order that it is centered within specified width (expected of course 
 to be larger than the length of the specified string).</td></tr>
@@ -391,11 +395,16 @@ list of integers).</td></tr>
 <tr><td valign="top"><a href="#is_uppercase-1">is_uppercase/1</a></td><td>Tells whether specified character is an uppercase one.</td></tr>
 <tr><td valign="top"><a href="#join-2">join/2</a></td><td>Joins, with the specified separator, the specified (plain) strings, and 
 returns another plain string.</td></tr>
+<tr><td valign="top"><a href="#length-1">length/1</a></td><td>Returns the length (precisely, the number of grapheme clusters) of the
+ specified any-string.</td></tr>
 <tr><td valign="top"><a href="#list_whitespaces-0">list_whitespaces/0</a></td><td>Returns a list of all known whitespaces.</td></tr>
 <tr><td valign="top"><a href="#match_types-3">match_types/3</a></td><td>Compares the types specified through control sequences (typically 
 emanating from a format string) to the types of specified, numbered values 
 (expected to correspond), and detects some mismatches.</td></tr>
 <tr><td valign="top"><a href="#maybe_string_to_binary-1">maybe_string_to_binary/1</a></td><td>Converts a plain (list-based) maybe-string into a binary.</td></tr>
+<tr><td valign="top"><a href="#maybe_strings_to_listed_string-1">maybe_strings_to_listed_string/1</a></td><td>Returns a string that pretty-prints the specified list of maybe-strings 
+(ignoring undefined ones), listed directly along the text (not one item per 
+line).</td></tr>
 <tr><td valign="top"><a href="#number_to_string-1">number_to_string/1</a></td><td>Returns a textual description of the specified (dot-based, not
  comma-based) number.</td></tr>
 <tr><td valign="top"><a href="#pad_string-2">pad_string/2</a></td><td>Returns the specified string, padded with spaces to specified width, 
@@ -790,6 +799,26 @@ listed directly along the text (not one item per line).</p>
 <p> </p>
 </div><p>Converts the specified binary string into a corresponding float.</p>
 
+<h3 class="function"><a name="binary_to_hexastring-1">binary_to_hexastring/1</a></h3>
+<div class="spec">
+<p><tt>binary_to_hexastring(Bin::binary()) -&gt; <a href="#type-hexastring">hexastring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a plain string corresponding to the specified binary, in 
+hexadecimal form, with a "0x" prefix.</p>
+
+ Ex: <code>binary_to_hexastring(&lt;&lt;"hello"&gt;&gt;) = "0x68656c6c6f"</code>.
+</p>
+
+<h3 class="function"><a name="binary_to_hexastring-2">binary_to_hexastring/2</a></h3>
+<div class="spec">
+<p><tt>binary_to_hexastring(Bin::binary(), AddPrefix::boolean()) -&gt; <a href="#type-hexastring">hexastring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a plain string corresponding to the specified binary, in 
+hexadecimal form, with a "0x" prefix if requested.</p>
+
+ Ex: <code>binary_to_hexastring(&lt;&lt;"hello"&gt;&gt;, _AddPrefix=true) = "0x68656c6c6f"</code>.
+</p>
+
 <h3 class="function"><a name="binary_to_integer-1">binary_to_integer/1</a></h3>
 <div class="spec">
 <p><tt>binary_to_integer(BinString::<a href="#type-bin_string">bin_string()</a>) -&gt; integer()</tt><br></p>
@@ -800,7 +829,9 @@ listed directly along the text (not one item per line).</p>
 <div class="spec">
 <p><tt>binary_to_string(Binary::<a href="#type-bin_string">bin_string()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p><p>Converts a binary into a plain (list-based) string.</p>
+</div><p><p>Converts a Unicode binary into a plain (list-based) string.</p>
+
+ <p>Use binary_to_list/1 for other encodings like ISO-8859.</p>
 
  Never fails because of any transcoding involved.
 </p>
@@ -809,7 +840,9 @@ listed directly along the text (not one item per line).</p>
 <div class="spec">
 <p><tt>binary_to_string(Binary, CanFailDueToTranscoding) -&gt; any()</tt></p>
 <p> </p>
-</div><p><p>Converts a binary into a plain (list-based) string.</p>
+</div><p><p>Converts a Unicode binary into a plain (list-based) string.</p>
+
+ <p>Use binary_to_list/1 for other encodings like ISO-8859.</p>
 
  CanFailDueToTranscoding tells whether, should a transcoding fail, this
  function is allowed to fail in turn.
@@ -1341,7 +1374,10 @@ different from all the other specified ones.</p>
 </div><p><p>Returns the binary corresponding to the specified binary string that 
 contains a series of hexadecimal values.</p>
 
- Ex: <code>hexabinstring_to_binary(&lt;&lt;"ffac01"&gt;&gt;) = &lt;&lt;255,172,1&gt;&gt;</code>.</p>
+ <p>No "0x" prefix is expected.</p>
+
+ Ex: <code>hexabinstring_to_binary(&lt;&lt;"ffac01"&gt;&gt;) = &lt;&lt;255,172,1&gt;&gt;</code>.
+</p>
 
 <h3 class="function"><a name="hexastring_to_binary-1">hexastring_to_binary/1</a></h3>
 <div class="spec">
@@ -1350,7 +1386,10 @@ contains a series of hexadecimal values.</p>
 </div><p><p>Returns the binary corresponding to the specified string that contains 
 a series of hexadecimal values.</p>
 
- Ex: <code>hexastring_to_binary("ffac01") = &lt;&lt;255,172,1&gt;&gt;</code>.</p>
+ <p>No "0x" prefix is expected.</p>
+
+ Ex: <code>hexastring_to_binary("ffac01") = &lt;&lt;255,172,1&gt;&gt;</code>.
+</p>
 
 <h3 class="function"><a name="hexastring_to_integer-1">hexastring_to_integer/1</a></h3>
 <div class="spec">
@@ -1509,6 +1548,14 @@ functions instead.</p>
  Note: conversely, use split/2 to split the string.
 </p>
 
+<h3 class="function"><a name="length-1">length/1</a></h3>
+<div class="spec">
+<p><tt>length(AnyString::<a href="#type-any_string">any_string()</a>) -&gt; <a href="#type-length">length()</a></tt><br></p>
+<p> </p>
+</div><p>Returns the length (precisely, the number of grapheme clusters) of the
+ specified any-string.
+</p>
+
 <h3 class="function"><a name="list_whitespaces-0">list_whitespaces/0</a></h3>
 <div class="spec">
 <p><tt>list_whitespaces() -&gt; [char()]</tt><br></p>
@@ -1540,6 +1587,18 @@ undefined if the argument string is itself undefined.</p>
 
  CanFailDueToTranscoding tells whether, should a transcoding fail, this
  function is allowed to fail in turn.
+</p>
+
+<h3 class="function"><a name="maybe_strings_to_listed_string-1">maybe_strings_to_listed_string/1</a></h3>
+<div class="spec">
+<p><tt>maybe_strings_to_listed_string(Strings::[<a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-ustring">ustring()</a>)]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a string that pretty-prints the specified list of maybe-strings 
+(ignoring undefined ones), listed directly along the text (not one item per 
+line).</p>
+
+ Ex: maybe_strings_to_listed_string([ "red", "blue", undefined, "green",
+ undefined]) returns "red, blue and green".
 </p>
 
 <h3 class="function"><a name="number_to_string-1">number_to_string/1</a></h3>
@@ -1697,7 +1756,7 @@ texts, provided that they were not escaped.</p>
 <p> </p>
 </div><p><p>Returns a short, plain string corresponding to the specified PIDs.</p>
 
- For example, <code>[&lt;0.33.0&gt;,&lt;0.35.0&gt;]</code> returned as <code>"|33,35|"</code> (7 characters
+ For example, <code>[&lt;0.33.0&gt;,&lt;0.35.0&gt;]</code> is returned as <code>"|33,35|"</code> (7 characters
  instead of 19, almost one-third).
 </p>
 
@@ -1859,7 +1918,7 @@ specified character: returns a pair of two strings, containing respectively
 all characters strictly before and strictly after the first occurrence of the 
 marker (which thus is not kept).</p>
 
- Ex: split_at_first( $x, "  aaaxbbbxccc" ) shall return { "  aaa", "bbbxccc" }.
+ Ex: split_at_first($x, "  aaaxbbbxccc") shall return {"  aaa", "bbbxccc"}.
 </p>
 
 <h3 class="function"><a name="split_at_whitespaces-1">split_at_whitespaces/1</a></h3>
@@ -2069,8 +2128,8 @@ strings supposedly composing the specified list.</p>
 </div><p><p>Returns a string that pretty-prints the specified list of strings, listed 
 directly along the text (not one item per line).</p>
 
- <p>Ex: strings_to_listed_string( [ "red", "blue", "green" ] ) returns "red, blue 
-and green".</p>
+ <p>Ex: strings_to_listed_string([ "red", "blue", "green"]) returns "red, blue and 
+green".</p>
 
 strings_to_listed_string( _Strings=[] ) -&gt;
    throw( empty_list_of_strings_to_list );
@@ -2088,7 +2147,7 @@ directly along the text (not one item per line), according to specified
 green".</p>
 
 strings_to_listed_string( _Strings=[] ) -&gt;
-	throw( empty_list_of_strings_to_list );
+   throw( empty_list_of_strings_to_list );
  Probably more relevant:</p>
 
 <h3 class="function"><a name="strings_to_sorted_string-1">strings_to_sorted_string/1</a></h3>
@@ -2264,7 +2323,8 @@ that the "..." marker can be inserted).</p>
 
 <h3 class="function"><a name="to_lowercase-1">to_lowercase/1</a></h3>
 <div class="spec">
-<p><tt>to_lowercase(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>to_lowercase(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p><p><tt>to_lowercase(String::<a href="#type-bin_string">bin_string()</a>) -&gt; <a href="#type-bin_string">bin_string()</a></tt><br></p>
+<p> </p>
 <p> </p>
 </div><p>Sets the specified string to lowercase, that is downcase it (as a whole).</p>
 
@@ -2315,12 +2375,17 @@ Unicode string.</p>
  <p>If enabled, fails if the conversion cannot be properly done, otherwise can 
 return a bogus string.</p>
 
+ <p>Note that at least some ISO-8859 contents (thus non-Unicode) may not properly 
+be converted by this function; use binary_to_list(Data) (or 
+io_lib:format("~ts", [Data])) instead.</p>
+
  (exported helper, for re-use)
 </p>
 
 <h3 class="function"><a name="to_uppercase-1">to_uppercase/1</a></h3>
 <div class="spec">
-<p><tt>to_uppercase(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>to_uppercase(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p><p><tt>to_uppercase(String::<a href="#type-bin_string">bin_string()</a>) -&gt; <a href="#type-bin_string">bin_string()</a></tt><br></p>
+<p> </p>
 <p> </p>
 </div><p>Sets the specified string to uppercase.</p>
 
@@ -2436,7 +2501,7 @@ table).</p>
 
 <h3 class="function"><a name="version_to_string-1">version_to_string/1</a></h3>
 <div class="spec">
-<p><tt>version_to_string(X1::<a href="basic_utils.html#type-any_version">basic_utils:any_version()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>version_to_string(VersionTuple::<a href="basic_utils.html#type-any_version">basic_utils:any_version()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a string describing the specified version.</p>
 <hr>

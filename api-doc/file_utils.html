@@ -513,11 +513,12 @@ shell command.</td></tr>
 specified file path.</td></tr>
 <tr><td valign="top"><a href="#remove_extension-2">remove_extension/2</a></td><td>Checks that the (last) extension of the specified file path is the 
 specified one, and returns that path once this extension has been removed.</td></tr>
-<tr><td valign="top"><a href="#remove_file-1">remove_file/1</a></td><td>Removes (deletes) the specified file, specified as any kind of string.</td></tr>
+<tr><td valign="top"><a href="#remove_file-1">remove_file/1</a></td><td>Removes (deletes) the specified file (regular, or symbolic link), 
+specified as any kind of string.</td></tr>
 <tr><td valign="top"><a href="#remove_file_if_existing-1">remove_file_if_existing/1</a></td><td>Removes specified file, specified as any kind of string, iff it is
  already existing, otherwise does nothing.</td></tr>
-<tr><td valign="top"><a href="#remove_files-1">remove_files/1</a></td><td>Removes (deletes) specified files, specified as a list of any kind of
- strings.</td></tr>
+<tr><td valign="top"><a href="#remove_files-1">remove_files/1</a></td><td>Removes (deletes) specified files, specified as a list of any kind of 
+strings.</td></tr>
 <tr><td valign="top"><a href="#remove_files_if_existing-1">remove_files_if_existing/1</a></td><td>Removes each specified file, in specified list of any kind of strings,
  iff it is already existing.</td></tr>
 <tr><td valign="top"><a href="#remove_symlink-1">remove_symlink/1</a></td><td>Removes (deletes) specified symbolic link, specified as any kind 
@@ -533,6 +534,8 @@ extension of the resulting file name.</td></tr>
 not return 'symlink').</td></tr>
 <tr><td valign="top"><a href="#set_current_directory-1">set_current_directory/1</a></td><td>Sets the specified directory as current directory.</td></tr>
 <tr><td valign="top"><a href="#split-1">split/1</a></td><td>Splits the specified path in elements, returned as a list.</td></tr>
+<tr><td valign="top"><a href="#split_path-1">split_path/1</a></td><td>Splits the specified path into a full base directory path and a final 
+entry (filename or directory name).</td></tr>
 <tr><td valign="top"><a href="#to_permission_mask-1">to_permission_mask/1</a></td><td>Encodes the specified symbolic permission(s) into its/their low-level
  counterpart mask(s).</td></tr>
 <tr><td valign="top"><a href="#touch-1">touch/1</a></td><td>Updates the modification time (the last time at which its content was 
@@ -1264,8 +1267,10 @@ file_utils:get_base_path("/aaa/bbb/ccc/foobar.txt").</p>
  <p>Note that the return type is the same of the input path, i.e. plain string or 
 binary string.</p>
 
- Alias name for filename:dirname/1 (better in file_utils, and hopefully
- clearer).
+ <p>Alias name for filename:dirname/1 (better in file_utils, and hopefully 
+clearer).</p>
+
+ See get_last_path_element/1 for the counterpart function.
 </p>
 
 <h3 class="function"><a name="get_bin_current_directory-0">get_bin_current_directory/0</a></h3>
@@ -1438,7 +1443,7 @@ filesystem.</p>
 
 <h3 class="function"><a name="get_last_path_element-1">get_last_path_element/1</a></h3>
 <div class="spec">
-<p><tt>get_last_path_element(AnyPath::<a href="#type-any_path">any_path()</a>) -&gt; <a href="#type-any_path">any_path()</a></tt><br></p>
+<p><tt>get_last_path_element(AnyPath::<a href="#type-any_path">any_path()</a>) -&gt; <a href="#type-any_path_element">any_path_element()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns the final, "file" part of specified path, that is its last 
 element, as a one-element path, corresponding either to a file or a directory.</p>
@@ -1449,8 +1454,10 @@ element, as a one-element path, corresponding either to a file or a directory.</
  <p>Note that the return type is the same of the input path, i.e. plain string or 
 binary string.</p>
 
- Replacement name for filename:basename/1 (more convenient if in file_utils,
- and hopefully clearer).
+ <p>Replacement name for filename:basename/1 (more convenient if in file_utils, 
+and hopefully clearer).</p>
+
+ See get_base_path/1 for the counterpart function.
 </p>
 
 <h3 class="function"><a name="get_log_directory-1">get_log_directory/1</a></h3>
@@ -2116,9 +2123,11 @@ specified one, and returns that path once this extension has been removed.</p>
 <div class="spec">
 <p><tt>remove_file(FilePath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p><p>Removes (deletes) the specified file, specified as any kind of string.</p>
+</div><p><p>Removes (deletes) the specified file (regular, or symbolic link), 
+specified as any kind of string.</p>
 
- Throws an exception if any problem occurs.
+ Throws an exception if any problem occurs (e.g. the file does not exist, or
+ could not be removed for any reason).
 </p>
 
 <h3 class="function"><a name="remove_file_if_existing-1">remove_file_if_existing/1</a></h3>
@@ -2133,8 +2142,11 @@ specified one, and returns that path once this extension has been removed.</p>
 <div class="spec">
 <p><tt>remove_files(FilePaths::[<a href="#type-any_file_path">any_file_path()</a>]) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Removes (deletes) specified files, specified as a list of any kind of
- strings.
+</div><p><p>Removes (deletes) specified files, specified as a list of any kind of 
+strings.</p>
+
+ Throws an exception if any problem occurs (e.g. a file does not exist, or
+ could not be removed for any reason).
 </p>
 
 <h3 class="function"><a name="remove_files_if_existing-1">remove_files_if_existing/1</a></h3>
@@ -2230,6 +2242,17 @@ not return 'symlink').</p>
 <p><tt>split(Path::<a href="#type-any_path">any_path()</a>) -&gt; [<a href="#type-any_path_element">any_path_element()</a>]</tt><br></p>
 <p> </p>
 </div><p>Splits the specified path in elements, returned as a list.</p>
+
+<h3 class="function"><a name="split_path-1">split_path/1</a></h3>
+<div class="spec">
+<p><tt>split_path(AnyPath::<a href="#type-any_path">any_path()</a>) -&gt; {<a href="#type-any_path">any_path()</a>, <a href="#type-any_path_element">any_path_element()</a>}</tt><br></p>
+<p> </p>
+</div><p><p>Splits the specified path into a full base directory path and a final 
+entry (filename or directory name).</p>
+
+ Ex: {"/aaa/bbb/ccc", "foobar.txt"} =
+       file_utils:split_path("/aaa/bbb/ccc/foobar.txt")
+</p>
 
 <h3 class="function"><a name="to_permission_mask-1">to_permission_mask/1</a></h3>
 <div class="spec">
@@ -2402,6 +2425,8 @@ specified.</p>
 
  <p>Note that specifying a binary allows to avoid any potential unwanted encoding.</p>
 
+ <p>Any already-existing file at that path will be silently overwritten.</p>
+
  Throws an exception on failure.
 </p>
 
@@ -2418,6 +2443,8 @@ through modes, as this function already performs (through
 text_utils:string_to_binary/1) such encoding on plain strings (otherwise this 
 would result in a double encoding); specifying a binary allows to avoid any 
 potential unwanted encoding.</p>
+
+ <p>Any already-existing file at that path will be silently overwritten.</p>
 
  Throws an exception on failure.
 </p>
