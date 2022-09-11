@@ -4815,8 +4815,7 @@ write( File, Content ) ->
 % Note that no control character (even no "~n", for newlines) must exist in the
 % specified string, otherwise they will be written literally. To convert them,
 % use: 'write_ustring( File, Str, _FormatValues=[] )'.
-
-
+%
 % Throws an exception on failure.
 %
 -spec write_ustring( file(), ustring() ) -> void().
