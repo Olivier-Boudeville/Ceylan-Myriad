@@ -508,11 +508,34 @@
 % elements are all of the specified type.
 
 
--type transient_term() :: pid() | port() | reference().
+-type permanent_term() :: integer() | float() | atom() | boolean() | binary()
+		| list( permanent_term() ) | tuple( permanent_term() )
+		% (maps:)map/2 does not exist apparently:
+		%| map( permanent_term(), permanent_term() )
+		| map().
+% Designates values that are permanent, that is that are context-free, not
+% runtime-specific and can be reproduced (e.g. serialised).
+%
+% As for compound datatypes (lists, tuples and thus records, maps), they are
+% also permanent iff all the terms they aggregate are themselves permanent
+% terms.
+%
+% Permanent terms are the opposite of transient ones.
+
+
+-type transient_term() :: pid() | port() | reference() | fun().
 % Designates values that are transient, that is that are runtime-specific and
 % cannot be reproduced a priori.
 %
-% Anonymous functions may belong to this type.
+% PIDs belong to this type, ports, references, anonymous functions may also.
+%
+% As for compound datatypes (lists, tuples and thus records, maps), they are
+% also transient iff at least one of the terms they aggregate is itself a
+% transient term.
+%
+% Transient terms are the opposite of permanent ones.
+
+
 
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
@@ -524,7 +547,7 @@
 			   record/0,
 			   tuploid/0, tuploid/1,
 			   pair/0, triplet/0, tuple/1,
-			   transient_term/0 ]).
+			   permanent_term/0, transient_term/0 ]).
 
 
 % Note: currently, only a very basic, ad hoc type support ("hand-made look-up
