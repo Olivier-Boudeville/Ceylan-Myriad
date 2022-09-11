@@ -33,6 +33,15 @@
 % allowing to transform any element of a set into its (unique) corresponding
 % element in the other one.
 %
+% See also const_bijective_table.erl for constant bijective tables that can be
+% requested from any number (potentially extremely large) of callers very
+% efficiently thanks to the generation (only in memory, or in file) of a
+% corresponding module.
+%
+% Refer to:
+% - bijective_table_test.erl for an usage example and testing thereof
+% - const_bijective_table.erl for a constant, compile-time bijective table
+%
 -module(bijective_table).
 
 
@@ -62,7 +71,7 @@
 -type entry() :: { first_type(), second_type() }.
 
 -type entries() :: [ entry() ].
-
+% Entries that can be fed to a bijective table.
 
 -export_type([ bijective_table/0, bijective_table/2 ]).
 
