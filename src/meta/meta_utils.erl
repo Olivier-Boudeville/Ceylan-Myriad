@@ -246,6 +246,9 @@
 % More general-purpose, term-oriented functions:
 -export([ transform_term/4 ]).
 
+% Common settings:
+-export([ get_compile_base_opts/0 ]).
+
 
 
 % Function addition/removal section.
@@ -283,7 +286,6 @@ add_function( FunctionName, FunctionArity, Clauses,
 									 [ FunId, CurrentFunString ] ),
 
 			throw( { function_already_defined, FunId } )
-
 		end,
 
 	DefASTLoc = ?table:get_value( definition_functions_marker, MarkerTable ),
@@ -765,3 +767,18 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 			Other
 
 	end.
+
+
+
+% @doc Returns the recommended base compilation options to be used for
+% code generation (that is the compilation of forms).
+%
+-spec get_compile_base_opts() -> [ compile:option() ].
+get_compile_base_opts() ->
+	% We want here all generated functions to be exported:
+	%
+	% Could be added: compressed, debug_info (but then add also a relevant
+	% debug_info_key).
+	%
+	[ verbose,report_errors,report_warnings, warnings_as_errors, export_all,
+	  no_line_info ].
