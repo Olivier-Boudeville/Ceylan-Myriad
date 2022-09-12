@@ -383,7 +383,7 @@ check_unit_vector( V ) ->
 
 
 % @doc Checks that the specified 3D vectors are normalised, and returns them.
--spec check_unit_vectors( vector3() ) -> unit_vector3().
+-spec check_unit_vectors( [ vector3() ] ) -> [ unit_vector3() ].
 check_unit_vectors( Vs ) ->
 	[ true = is_unitary( V ) || V <- Vs ],
 	Vs.

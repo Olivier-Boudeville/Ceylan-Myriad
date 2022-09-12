@@ -77,7 +77,7 @@
 -type months()       :: integer().
 
 -type canonical_month() :: 1..12.
-% Month in the year; could be calendar:month().
+% Month in the year; semantically equivalent to calendar:month().
 
 
 -type absolute_month() :: { year(), canonical_month() }.
@@ -91,7 +91,7 @@
 
 
 -type canonical_day() :: 1..31.
-% Day in the month.
+% Day in the month; semantically equivalent to calendar:day().
 
 
 -type hour()         :: integer().

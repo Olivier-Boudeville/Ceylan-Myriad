@@ -102,7 +102,7 @@
 -type old_style_options() :: [ { Field :: ustring(), Value :: ustring() } ].
 
 
--type new_style_options() :: maps:maps( bin_string(), bin_string() ).
+-type new_style_options() :: type_utils:map( bin_string(), bin_string() ).
 
 
 -type headers_as_list() :: old_style_options().

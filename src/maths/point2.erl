@@ -47,9 +47,10 @@
 -include("math_utils.hrl").
 
 
--type user_point2() :: any_point2() | [ any_coordinate() ].
+-type user_point2() :: any_point2()
+					 | [ coordinate() ] | [ integer_coordinate() ].
 % A user-specified point, preferably as a tuple, otherwise as a list (hence as a
-% vector), with 2 integer or floating-point coordinates.
+% vector), with two integer or floating-point coordinates.
 
 
 -type point2() :: { X :: coordinate(), Y :: coordinate() }.
@@ -103,13 +104,13 @@
 
 -type coordinate() :: linear:coordinate().
 -type integer_coordinate() :: linear:integer_coordinate().
--type any_coordinate() :: linear:any_coordinate().
 -type user_coordinate() :: linear:user_coordinate().
 
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
 
 -type vector2() :: vector2:vector2().
+-type integer_vector2() :: vector2:integer_vector2().
 -type any_vector2() :: vector2:any_vector2().
 
 
@@ -224,7 +225,8 @@ scale( _P={X,Y}, Factor ) ->
 
 
 % @doc Returns a vector V made from the specified two points P1 and P2: V=P2-P1.
--spec vectorize( point2(), point2() ) -> vector2().
+-spec vectorize( point2(), point2() ) -> vector2();
+			   ( integer_point2(), integer_point2() ) -> integer_vector2().
 vectorize( _P1={X1,Y1}, _P2={X2,Y2} ) ->
 	[ X2-X1, Y2-Y1 ].
 

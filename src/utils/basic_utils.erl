@@ -635,7 +635,7 @@ freeze() ->
 %
 % Useful for testing reliability, for example.
 %
--spec crash() -> any().
+-spec crash() -> void().
 crash() ->
 
 	trace_bridge:warning_fmt( "*** Crashing on purpose process ~w ***",

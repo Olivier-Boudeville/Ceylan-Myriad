@@ -996,12 +996,6 @@ generate-list-of-local-types:
 	@$(MYRIAD_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
 
 
-
-# Section of type verification.
-
-
-## Dialyzer subsection.
-
 # Yes, this is an explicit, not automatic, rule:
 $(PLT_FILE): generate-local-plt
 
@@ -1039,25 +1033,8 @@ add-prerequisite-plts:
 # See also the write-debug-key-file target.
 #
 self-check-against-plt: all $(PLT_FILE)
-	@echo "    Checking $(PACKAGE_NAME) with Dialyzer against its PLT ($(PLT_FILE))"
+	@echo "    Checking $(PACKAGE_NAME) against its PLT ($(PLT_FILE))"
 	@$(DIALYZER) $(DIALYZER_OPTS) --plt $(PLT_FILE) -r .
-
-
-
-## Gradualizer subsection.
-
-
-# Runs Gradualizer to perform static type checking.
-#
-# (a recompilation is triggered to be sure that the latest version of BEAMs are
-# examined)
-#
-check-static-typing:
-	@if [ -z "$(TARGETS_TO_CHECK)" ]; then echo "  Error, no target specified for checking. One may execute 'make check-static-typing TARGETS_TO_CHECK="src/foo.beam src/bar.beam ebin"', should the current directory contain no BEAM files." 1>&2; exit 65; fi
-	@echo "    Checking $(TARGETS_TO_CHECK) with Gradualizer"
-	@$(MAKE) -s $(TARGETS_TO_CHECK)
-	@$(GRADUALIZER) $(GRADUALIZER_OPTS) $(OVERALL_PA_OPTS) -- $(TARGETS_TO_CHECK)
-
 
 
 # Stores on disk the current debug key for BEAMs, so that tools like Dialyzer
@@ -1316,7 +1293,7 @@ info-compile:
 	@echo "ERLANG_COMPILER_NATIVE_COMPILATION_OPT = $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)"
 	@echo "ERLANG_COMPILER_WARNING_OPT = $(ERLANG_COMPILER_WARNING_OPT)"
 	@echo "ERLANG_COMPILER_OPT_BASE = $(ERLANG_COMPILER_OPT_BASE)"
-	@echo "OVERALL_PZ_OPT = $(OVERALL_PZ_OPT)"
+	@echo "OVERALL_PA_OPTS = $(OVERALL_PA_OPTS)"
 	@echo "ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES = $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES)"
 	@echo "EXECUTION_TARGET = $(EXECUTION_TARGET)"
 	@echo "ENABLE_DEBUG = $(ENABLE_DEBUG)"

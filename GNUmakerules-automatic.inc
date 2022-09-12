@@ -288,4 +288,4 @@ endif
 
 %.plt: %.beam
 	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"
-	@"$(DIALYZER)" $(DIALYZER_OPT) --plt $(PLT_FILE) $<
+	@"$(DIALYZER)" $(DIALYZER_OPTS) --plt $(PLT_FILE) $<

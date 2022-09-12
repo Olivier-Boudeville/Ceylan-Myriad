@@ -89,15 +89,18 @@
 -type entry_count() :: basic_utils:count().
 
 
--opaque list_table() :: [ { key(), value() } ].
+% Cannot be kept opaque:
+-type list_table() :: [ { key(), value() } ].
 % Not exactly as proplist:proplist/0 (pairs only, and any() as key).
 
--opaque list_table( K, V ) :: [ { K, V } ].
+% Cannot be kept opaque:
+-type list_table( K, V ) :: [ { K, V } ].
 
-% Preferred naming:
--opaque table() :: list_table().
 
--opaque table( K, V ) :: list_table( K, V ).
+% Possible alternate naming:
+-type table() :: list_table().
+
+-type table( K, V ) :: list_table( K, V ).
 
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,

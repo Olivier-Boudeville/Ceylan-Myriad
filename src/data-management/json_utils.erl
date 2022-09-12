@@ -47,6 +47,10 @@
 % Refer to the 'JSX Installation' section in GNUmakevars.inc in order to perform
 % an installation thereof according to our standards - which is strongly
 % recommended.
+%
+% Refer to the 'JSX Installation' section in GNUmakevars.inc in order to perform
+% an installation thereof according to our standards - which is strongly
+% recommended.
 
 % Jiffy (https://github.com/davisp/jiffy) is the second supported backend
 % option (with no specific action needed to be able to use it).

@@ -131,7 +131,7 @@
 
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
--type any_file_path() :: file_utils:ant_file_path().
+-type any_file_path() :: file_utils:any_file_path().
 -type bin_directory_path() :: file_utils:bin_directory_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 

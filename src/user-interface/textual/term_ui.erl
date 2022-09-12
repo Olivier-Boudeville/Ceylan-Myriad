@@ -873,7 +873,7 @@ get_text( Prompt,
 %
 % (const)
 %
--spec get_text_as_integer( prompt() ) -> text().
+-spec get_text_as_integer( prompt() ) -> integer().
 get_text_as_integer( Prompt ) ->
 	get_text_as_integer( Prompt, _UIState=get_state() ).
 
@@ -883,7 +883,7 @@ get_text_as_integer( Prompt ) ->
 %
 % (const)
 %
--spec get_text_as_integer( prompt(), ui_state() ) -> text().
+-spec get_text_as_integer( prompt(), ui_state() ) -> integer().
 get_text_as_integer( Prompt, UIState ) ->
 	Text = get_text( Prompt, UIState ),
 	text_utils:string_to_integer( Text ).
@@ -895,7 +895,7 @@ get_text_as_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec read_text_as_integer( prompt() ) -> text().
+-spec read_text_as_integer( prompt() ) -> integer().
 read_text_as_integer( Prompt ) ->
 	read_text_as_integer( Prompt, _UIState=get_state() ).
 
@@ -905,7 +905,7 @@ read_text_as_integer( Prompt ) ->
 %
 % (const)
 %
--spec read_text_as_integer( prompt(), ui_state() ) -> text().
+-spec read_text_as_integer( prompt(), ui_state() ) -> integer().
 read_text_as_integer( Prompt, UIState ) ->
 
 	Text = get_text( Prompt, UIState ),
@@ -929,7 +929,7 @@ read_text_as_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+-spec get_text_as_maybe_integer( prompt() ) -> maybe( integer() ).
 get_text_as_maybe_integer( Prompt ) ->
 	get_text_as_maybe_integer( Prompt, _UIState=get_state() ).
 
@@ -939,7 +939,7 @@ get_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( integer() ).
 get_text_as_maybe_integer( Prompt, UIState ) ->
 
 	case get_text( Prompt, UIState ) of
@@ -961,7 +961,7 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+-spec read_text_as_maybe_integer( prompt() ) -> maybe( integer() ).
 read_text_as_maybe_integer( Prompt ) ->
 	read_text_as_maybe_integer( Prompt, _UIState=get_state() ).
 
@@ -973,7 +973,7 @@ read_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( integer() ).
 read_text_as_maybe_integer( Prompt, UIState ) ->
 
 	case get_text( Prompt, UIState ) of

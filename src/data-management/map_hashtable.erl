@@ -105,11 +105,10 @@
 -type entry_count() :: basic_utils:count().
 
 
--opaque map_hashtable() :: map().
+-type map_hashtable() :: map().
 
-% Since 18.0, map/2 does not seem to exist anymore:
-%-opaque map_hashtable( K, V ) :: map( K, V ).
--opaque map_hashtable( _K, _V ) :: map().
+% Opaqueness difficult to preserve:
+-type map_hashtable( K, V ) :: type_utils:map( K, V ).
 
 
 -export_type([ key/0, value/0, entry/0, entries/0,
