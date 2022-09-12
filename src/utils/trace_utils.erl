@@ -784,7 +784,7 @@ set_handler() ->
 		ok ->
 			ok;
 
-		{ error, AddErrReason, TargetHandler } ->
+		{ error, AddErrReason } ->
 			throw( { unable_to_set_myriad_log_handler, AddErrReason,
 					 TargetHandler } )
 
@@ -865,7 +865,7 @@ log( _LogEvent=#{ level := Level,
 	%   [ LogEvent, Config, TraceMsg, Severity ] ),
 
 	% No the standard level corresponds directly to our severity:
-	echo( TraceMsg, _Severity=Level, "erlang_logger" );
+	echo( TraceMsg, _Severity=Level, 'erlang_logger' );
 
 log( LogEvent, _Config ) ->
 	throw( { unexpected_log_event, LogEvent } ).

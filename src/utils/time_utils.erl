@@ -81,14 +81,16 @@
 
 -type date() :: { year(), canonical_month(), canonical_day() }.
 % A canonical calendar date; used instead of the less precise calendar:date/0
-% type. See also: user_date/0.
+% type (yet with similar types and order thereof). See also: user_date/0.
+
 
 -type birth_date() :: date().
 % A canonical date of birth.
 
 
 -type user_date() :: { canonical_day(), canonical_month(), year() }.
-% A date in a format that is considered common to most users. See also: date/0.
+% A date in a format (reversed compared to a canonical date()) that is
+% considered common to most users. See also: date/0.
 
 
 -type date_in_year() :: { canonical_month(), canonical_day() }.
@@ -339,12 +341,11 @@ canonicalise_month( M ) when is_integer( M ) andalso M >= 0 ->
 	end.
 
 
-
-% @doc Checks that specified month is a canonical one.
--spec check_month_canonical( month() ) -> void().
+% @doc Checks that the specified month is a canonical one.
+-spec check_month_canonical( term() ) -> month().
 check_month_canonical( Month ) when is_integer( Month ) andalso Month >= 1
 									andalso Month =< 12 ->
-	ok;
+	Month;
 
 check_month_canonical( Month ) ->
 	throw( { non_canonical_month, Month } ).
@@ -361,16 +362,9 @@ check_month_order( Start={ StartYear, StartMonth },
 	check_month_canonical( StartMonth ),
 	check_month_canonical( StopMonth ),
 
-	case ( StartYear < StopYear ) orelse ( StartYear =:= StopYear andalso
-										   StartMonth < StopMonth ) of
-
-		true ->
-			ok;
-
-		_False ->
-			throw( { wrong_month_order, Start, Stop } )
-
-	end.
+	( StartYear < StopYear ) orelse ( StartYear =:= StopYear andalso
+									  StartMonth < StopMonth ) orelse
+		throw( { wrong_month_order, Start, Stop } ).
 
 
 
@@ -423,8 +417,8 @@ month_to_string( MonthIndex ) ->
 % holiday.
 %
 -spec is_bank_holiday( date(), country() ) -> boolean().
-is_bank_holiday( Date={ _D, _M, Y }, Country ) ->
-	lists:member( Date, get_bank_holidays_for( Y, Country ) ).
+is_bank_holiday( _Date={ Y, M, D }, Country ) ->
+	lists:member( { M, D }, get_bank_holidays_for( Y, Country ) ).
 
 
 
@@ -437,27 +431,27 @@ is_bank_holiday( Date={ _D, _M, Y }, Country ) ->
 -spec get_bank_holidays_for( year(), country() ) -> [ date_in_year() ].
 get_bank_holidays_for( _Year=2020, Country=france ) ->
 	get_fixed_bank_holidays_for( Country )
-		++ [ {1,6}, {12,4}, {13,4}, {21,5}, {31,5} ];
+		++ [ {6,1}, {4,12}, {4,13}, {5,21}, {5,31} ];
 
 get_bank_holidays_for( _Year=2021, Country=france ) ->
 	get_fixed_bank_holidays_for( Country )
-		++ [ {4,4}, {5,4}, {13,5}, {23,5}, {24,5} ];
+		++ [ {4,4}, {4,5}, {5,13}, {5,23}, {5,24} ];
 
 get_bank_holidays_for( _Year=2022, Country=france ) ->
 	get_fixed_bank_holidays_for( Country )
-		++ [ {5,6}, {6,6}, {17,4}, {18,4}, {26,5} ];
+		++ [ {6,5}, {6,6}, {4,17}, {4,18}, {5,26} ];
 
 get_bank_holidays_for( _Year=2023, Country=france ) ->
 	get_fixed_bank_holidays_for( Country )
-		++ [ {9,4}, {10,4}, {18,5}, {28,5}, {29,5} ];
+		++ [ {4,9}, {4,10}, {5,18}, {5,28}, {5,29} ];
 
 get_bank_holidays_for( _Year=2024, Country=france ) ->
 	get_fixed_bank_holidays_for( Country )
-		++ [ {1,4}, {9,5}, {19,5}, {20,5}, {31,3} ];
+		++ [ {4,1}, {5,9}, {5,19}, {5,20}, {3,31} ];
 
 get_bank_holidays_for( _Year=2025, Country=france ) ->
 	get_fixed_bank_holidays_for( Country )
-		++ [ {8,6}, {9,6}, {20,4}, {21,4}, {29,5} ];
+		++ [ {6,8}, {6,9}, {4,20}, {4,21}, {5,29} ];
 
 get_bank_holidays_for( Year, Country ) ->
 	throw( { no_info_for, Year, Country } ).
@@ -473,7 +467,7 @@ get_fixed_bank_holidays_for( _Country=france ) ->
 	% time_utils:find_common_bank_holidays(2020, 2026, france).
 	% (prior to factoring them of course)
 	%
-	[ {1,1}, {1,5}, {1,11}, {8,5}, {11,11}, {14,7}, {15,8}, {25,12} ].
+	[ {1,1}, {5,1}, {11,1}, {5,8}, {11,11}, {7,14}, {8,15}, {12,25} ].
 
 
 
@@ -576,13 +570,13 @@ is_canonical_date( _Other ) ->
 
 
 
-% @doc Checks that the specified date is a canonical one.
--spec check_canonical_date( date() ) -> void().
+% @doc Checks that the specified date is a canonical one, and returns it.
+-spec check_canonical_date( term() ) -> date().
 check_canonical_date( Date ) ->
 	case is_canonical_date( Date ) of
 
 		true ->
-			ok;
+			Date;
 
 		false ->
 			throw( { non_canonical_date, Date } )
@@ -604,13 +598,13 @@ is_user_date( _Other ) ->
 
 
 
-% @doc Checks that the specified date is a user one.
--spec check_user_date( user_date() ) -> void().
+% @doc Checks that the specified date is a user one, and returns it.
+-spec check_user_date( term() ) -> user_date().
 check_user_date( Date ) ->
 	case is_user_date( Date ) of
 
 		true ->
-			ok;
+			Date;
 
 		false ->
 			throw( { non_user_date, Date } )
@@ -726,7 +720,9 @@ canonical_to_user_date( { Y, M, D } ) ->
 %
 -spec years_to_seconds( years() ) -> float_seconds().
 years_to_seconds( YearDuration ) ->
-	% 365.25 days per year one average here:
+	% 365.25 days per year one average here (Gradualizer erroneously wanting all
+	% factors to be floats):
+	%
 	YearDuration * 365.25 * 24 * 3600.
 
 
@@ -1026,8 +1022,8 @@ is_timestamp( _Other ) ->
 
 
 
-% @doc Checks that specified term is a timestamp indeed, and returns it.
--spec check_timestamp( timestamp() ) -> timestamp().
+% @doc Checks that the specified term is a timestamp indeed, and returns it.
+-spec check_timestamp( term() ) -> timestamp().
 check_timestamp( Term ) ->
 
 	case is_timestamp( Term ) of
@@ -1043,7 +1039,7 @@ check_timestamp( Term ) ->
 
 
 % @doc Checks that specified term is a maybe-timestamp indeed.
--spec check_maybe_timestamp( maybe( timestamp() ) ) -> maybe( timestamp() ).
+-spec check_maybe_timestamp( term() ) -> maybe( timestamp() ).
 check_maybe_timestamp( Term=undefined ) ->
 	Term;
 

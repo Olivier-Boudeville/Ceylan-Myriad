@@ -463,20 +463,83 @@
 
 
 % Definition of actual datatypes (useful for typing variables):
+
+
+% Unsigned integers:
+
 -type uint8() :: 0..255.
--type sint8() :: fixme.
+% Non-negative 8-bit integer, ranging from 0 to 255 (both included).
 
--type uint16() :: fixme.
--type sint16() :: fixme.
+-type uint16() :: 0..65535.
+% Non-negative 16-bit integer, ranging from 0 to 65,535 (both included).
 
--type uint32() :: fixme.
--type sint32() :: fixme.
+-type uint32() :: 0..4294967295.
+% Non-negative 32-bit integer, ranging from 0 to 4,294,967,295 (both included).
 
--type uint64() :: fixme.
--type sint64() :: fixme.
+-type uint64() :: 0..18446744073709551615.
+% Non-negative 64-bit integer, ranging from 0 to 18,446,744,073,709,551,615
+% (both included).
 
--type float32() :: fixme.
--type float64() :: fixme.
+
+% Signed integers:
+
+-type sint8() :: -128..127.
+% Signed 8-bit integer, ranging from -128 to 127 (both included).
+
+-type sint16() :: -32768..32767.
+% Signed 16-bit integer, ranging from -32,768 to 32,767 (both included).
+
+-type sint32() :: -2147483648..2147483647.
+% Signed 32-bit integer, ranging from -2,147,483,648 to 2,147,483,647 (both
+% included).
+
+-type sint64() :: -9223372036854775808..9223372036854775807.
+% Signed 64-bit integer, ranging from -9,223,372,036,854,775,808 to
+% 9,223,372,036,854,775,807 (both included).
+
+
+% Maybe-signed, ambiguous integers:
+
+-type int8() :: uint8() | sint8().
+% 8-bit integer, potentially ranging from -128 to 255 (both included).
+
+-type int16() :: uint16() | sint16().
+% 16-bit integer, potentially ranging from -32,768 to 65,535 (both included).
+
+-type int32() :: uint32() | sint32().
+% 32-bit integer, potentially ranging from -2,147,483,648 to 4,294,967,295 (both
+% included).
+
+-type int64() :: uint64() | sint64().
+% 64-bit integer, potentially ranging from -9,223,372,036,854,775,808 to
+% 18,446,744,073,709,551,615 (both included).
+
+
+-type float32() :: float().
+% A single-precision, IEEE 754 32-bit base-2 floating-point value.
+%
+% Exact for all integers with up to 7 decimal digits, and for any 2^N for an
+% integer number N in [-149,127].
+%
+% See [https://en.wikipedia.org/wiki/Single-precision_floating-point_format] for
+% more information.
+%
+% Note that in Erlang this datatype does not exist as such, only floars are
+% float64() ones.
+
+
+-type float64() :: float().
+% A binary64/double-precision, IEEE 754 64-bit base-2 floating-point value.
+%
+% Exact notably for integers from -2^253 to 2^253 (-9,007,199,254,740,992 to
+% 9,007,199,254,740,992).
+%
+% See [https://en.wikipedia.org/wiki/Double-precision_floating-point_format] for
+% more information.
+
+
+-export_type([ ]).
+
 
 
 -type record() :: tuple().
@@ -508,11 +571,17 @@
 % elements are all of the specified type.
 
 
+% Not needed or useful as map() is a built-in type:
+%-type map() :: map( any(), any() ).
+
+-type map( _K, _V ) :: map().
+% As (maps:)map/2 does not even exist apparently, at least not since 18.0.
+
+
+
 -type permanent_term() :: integer() | float() | atom() | boolean() | binary()
 		| list( permanent_term() ) | tuple( permanent_term() )
-		% (maps:)map/2 does not exist apparently:
-		%| map( permanent_term(), permanent_term() )
-		| map().
+		| map( permanent_term(), permanent_term() ).
 % Designates values that are permanent, that is that are context-free, not
 % runtime-specific and can be reproduced (e.g. serialised).
 %
@@ -541,12 +610,16 @@
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   low_level_type/0,
-			   uint8/0, sint8/0, uint16/0, sint16/0,
-			   uint32/0, sint32/0, uint64/0, sint64/0,
+
+			   uint8/0, uint16/0, uint32/0, uint64/0,
+			   sint8/0, sint16/0, sint32/0, sint64/0,
+			   int8/0, int16/0, int32/0, int64/0,
 			   float32/0, float64/0,
+
 			   record/0,
 			   tuploid/0, tuploid/1,
 			   pair/0, triplet/0, tuple/1,
+			   map/2,
 			   permanent_term/0, transient_term/0 ]).
 
 

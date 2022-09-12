@@ -286,7 +286,7 @@
 -type ustring() :: unicode_string().
 % Now is our default type of (plain) string.
 %
-% (unfortunately we cannot define a text_utils:string/0 type, as "type ustring()
+% (unfortunately we cannot define a text_utils:string/0 type, as "type string()
 % is a builtin type; it cannot be redefined").
 
 
@@ -389,8 +389,8 @@
 			   bin_string/0, any_string/0, unicode_string/0, unicode_data/0,
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
 			   parse_string/0, io_list/0, io_data/0,
-			   translation_table/0, length/0, width/0, indentation_level/0,
-			   distance/0 ]).
+			   translation_table/0, length/0, width/0, depth/0,
+			   indentation_level/0, distance/0 ]).
 
 
 % Shorthands:

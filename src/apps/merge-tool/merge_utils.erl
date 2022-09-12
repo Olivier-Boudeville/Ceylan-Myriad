@@ -967,7 +967,8 @@ scan( BinTreePath, AnalyzerRing, UserState ) ->
 	end,
 
 	ui:set_setting( title, "Scan report" ),
-	display_tree_data( TreeData, Prompt, UserState ).
+	display_tree_data( TreeData, Prompt, UserState ),
+	TreeData.
 
 
 
@@ -1934,7 +1935,7 @@ purge_tree_from( Tree=#tree_data{ root=BinRootDir,
 		purge_helper( SHA1s, Entries, BinRootDir, _RemoveCount=0, UserState ),
 
 	Tree#tree_data{ entries=PurgedEntries,
-					file_count=FileCount - RemoveCount }.
+					file_count=FileCount-RemoveCount }.
 
 
 % (helper)
