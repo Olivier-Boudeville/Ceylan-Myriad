@@ -133,7 +133,7 @@ test_in_file_generation() ->
 -spec run() -> no_return().
 run() ->
 
-	test_facilities:display( "Testing the const_table services, "
+	test_facilities:display( "Testing the const_bijective_table services, "
 		"both in-memory and in-file." ),
 
 	test_facilities:start( ?MODULE ),

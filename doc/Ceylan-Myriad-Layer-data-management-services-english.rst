@@ -22,7 +22,6 @@ Some generic **data-structures**, in addition to the ones provided built-in with
 Table Types
 ...........
 
-
 A set of types for **associative tables** is available, each offering a rather complete interface (to create, update, enrich, search, query, list, map, fold, merge, display, etc. a table - or entries thereof) and a different trade-off.
 
 Various implementations are defined (with tests and benchmarks), in:
@@ -46,16 +45,16 @@ For example, specifying ``-table_type(list_table).`` will result in the current 
 
 .. _`bijective table`:
 
-Another type of table is the ``bijective_table``, which allows efficient bidirectional conversions between two sets.
+Another type of table is the ``bijective_table``, which allows efficient (runtime) bidirectional conversions between two sets, each having unique elements (no duplicates).
 
 
 .. _`const table`:
 
-Finally, a way of **generating read-only associative tables** whose key/value pairs can be read very efficiently from any number (potentially extremely large) of readers (processes) is provided with ``const_table.erl``.
+Finally, a way of **generating read-only associative tables** whose key/value pairs can be read very efficiently from any number (potentially extremely large) of readers (processes) is provided with ``const_table.erl`` (refer to ``const_table_test.erl`` for a test thereof).
 
 No ETS table, replication (ex: per-process table copy) or message sending is involved: thanks to meta-programming, a module is generated on-the-fly, exporting as many functions as there are different keys in the table of interest. Calling a function corresponding to a key returns its associated value.
 
-More precisely, a module name (ex: ``foobar``) and a ``table:table(atom(), any())`` instance shall be provided to ``const_table:generate/2``; then, for each key/value pair in the specified table (ex: ``{baz, 42.0}``), a 0-arity function is generated and exported in that module, as if we had:
+More precisely, a module name (ex: ``foobar``) and a list of ``{atom(), type_utils:permanent_term()}`` [#]_ entries shall be provided to ``const_table:generate_in_{memory,file}/2``; then, for each key/value pair in the specified table (ex: ``{baz, 42.0}``), a 0-arity function is generated and exported in that module, as if we had:
 
 .. code:: erlang
 
@@ -69,14 +68,22 @@ More precisely, a module name (ex: ``foobar``) and a ``table:table(atom(), any()
   baz() ->
 	42.0.
 
+.. [#] Of course transient terms like PIDs, references, etc. cannot/should not stored in such tables.
 
-Then third-party code can call for example ``foobar:foo()`` and have ``42.0`` returned. This is presumably the most efficient way of sharing constants in Erlang.
 
-Note that no actual module file is generated (ex: no ``foobar.beam`` file is ever written in the filesystem): the operation remains fully in-memory (RAM).
+Then third-party code can call for example ``foobar:foo()`` and have ``42.0`` returned. This is presumably the most efficient way of sharing constants in Erlang between many processes (supposedly at least on par with `persistent_term <https://www.erlang.org/doc/man/persistent_term.html>`_).
+
+Note that with ``generate_in_memory/2`` no actual module file is created (ex: no ``foobar.beam`` file is ever written in the filesystem): the operation remains fully in-memory (RAM). With ``generate_in_file/{2,3}`` a suitable module file is written on disk, so that the corresponding module can be loaded in the future like any other module.
 
 Keys must be atoms, and the table of interest shall be immutable (const), even if, thanks to hot code upgrade, one may imagine updating the table at will, having any number of successive versions of it.
 
-Generating a table of the same name more than once should be done with care, as if a given table is generated thrice, the initial table would first switch from "current" to "old", and then would be removed. Any process that would linger in a function of this module would then be terminated (see `code replacement <http://www.erlang.org/doc/reference_manual/code_loading.html>`_). However, due to the nature of these tables (just one-shot fully-qualified calls, no recursion or message-waiting construct), this is not expected to happen.
+Generating a table of the same name more than once should be done with care, as if a given table is generated thrice (hence updated twice), the initial table would first switch from "current" to "old", and then would be removed. Any process that would linger in a function of this module would then be terminated (see `code replacement <http://www.erlang.org/doc/reference_manual/code_loading.html>`_). However, due to the nature of these tables (just one-shot fully-qualified calls, no recursion or message-waiting construct), this is not expected to happen.
+
+Finally, two extra table types exist:
+
+- ``const_bijective_table``, like a crossbreeding of ``const_table`` and ``bijective_table``, to rely on module-supported const, bijective tables: a list of ``{type_utils:permanent_term(), type_utils:permanent_term()}`` entries can then provided so that a corresponding module (e.g. ``foobar``) is generated (either in-memory or as a file) that allows to resolve any element of a pair into the other one, thanks to two functions, ``foobar:get_first_for/1`` and ``foobar:get_second_for/1``, automatically defined in that module; this is especially useful for larger (const, bijective) tables; refer to ``const_bijective_table_test.erl`` for an example and a test thereof
+- ``const_bijective_topics`` is the same as the previous type, except that it allows *multiple* of such (const, bijective) tables (named "topics" here) to be defined in the same module (e.g. ``foobar``); for that, each of such tables is designated by a topic (an atom, like: ``colour``, ``bar_identifier`` or ``font_style``) that is associated to a declared list of associated entries (here alson each with no duplicate); then, for each of these topics (e.g. ``colour``), two functions are automatically defined: ``foobar:get_first_for_colour/1`` and ``foobar:get_second_for_colour/1``, returning respective elements of the specified pair, for the specified topic; refer to ``const_bijective_topics_test.erl`` for an example and a test thereof; the ability of defining multiple const, bijective tables in a single generated module can be useful typically when developping a binding (e.g. for a GUI) / translating protocols (e.g. between a third-party library and internal conventions); refer to `Ceylan-Oceanic <http://oceanic.esperide.org>`_ for an example thereof)
+
 
 
 Other Datatypes
