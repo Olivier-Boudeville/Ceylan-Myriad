@@ -2268,7 +2268,7 @@ get_formatted_line( CommentChar, Line ) ->
 
 
 
-% @doc Formats specified string as a (flattened) binary, as io_lib:format/2
+% @doc Formats the specified string as a (flattened) binary, as io_lib:format/2
 % would do, except it cannot fail (so that for example a badly formatted log
 % cannot crash anymore its emitter process).
 %
@@ -2286,15 +2286,15 @@ bin_format( FormatString, Values ) ->
 
 
 
-% @doc Formats specified string as an atom; cannot fail (so that for example a
-% badly formatted log cannot crash anymore its emitter process).
+% @doc Formats the specified string as an atom; cannot fail (so that for example
+% a badly formatted log cannot crash anymore its emitter process).
 %
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
 %
 -spec atom_format( format_string(), format_values() ) -> atom().
-atom_format( FormatSt, FormatValues ) ->
-	string_to_atom( format( FormatSt, FormatValues ) ).
+atom_format( FormatStr, FormatValues ) ->
+	string_to_atom( format( FormatStr, FormatValues ) ).
 
 
 
