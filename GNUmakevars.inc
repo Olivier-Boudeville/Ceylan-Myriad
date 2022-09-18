@@ -158,7 +158,7 @@ ifeq ($(ENABLE_DEBUG),true)
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_third_party_execution
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_generation
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_generation
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
@@ -188,7 +188,7 @@ endif
 # Defining check flags:
 ifeq ($(EXECUTION_TARGET),development)
 
-	MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
