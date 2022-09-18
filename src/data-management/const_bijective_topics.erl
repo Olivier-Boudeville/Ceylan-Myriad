@@ -322,6 +322,18 @@ generate_topic_forms( ModuleName, TopicSpecs ) ->
 
 	Line = 0,
 
+	Topics = type_utils:check_atoms( [ T || { T, _S } <- TopicSpecs ] ),
+
+	case list_utils:get_duplicates( Topics ) of
+
+		[] ->
+			ok;
+
+		Dups ->
+			throw( { duplicated_bijective_topics, Dups } )
+
+	end,
+
 	[ generate_header_form( ModuleName, Line ) | list_utils:flatten_once(
 		[ begin
 
