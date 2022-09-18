@@ -47,6 +47,8 @@ For example, specifying ``-table_type(list_table).`` will result in the current 
 
 Another type of table is the ``bijective_table``, which allows efficient (runtime) bidirectional conversions between two sets, each having unique elements (no duplicates).
 
+As a mere convention, when one set is dealing with internal identifiers and the other on third-party ones, we recommend that the internal identifiers are selected as the first elements, and the third party as second elements.
+
 
 .. _`const table`:
 
