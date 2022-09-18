@@ -53,7 +53,7 @@
 
 
 #dummy:
-#	@echo "You are executing the default, do-nothing make rule. You may want specify an actual target instead (ex: 'make foo')."
+#	@echo "You are executing the default, do-nothing make rule. You may want to specify an actual target instead (e.g. 'make foo')."
 
 
 
@@ -288,9 +288,9 @@ launch: Emakefile
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) ${CMD_LINE_OPT}
 
 
-# To have an Erlang shell with the right configuration in order to rely on the
-# current project (e.g.with regard to its standard, base code path, including
-# all lower layers).
+# To obtain an Erlang shell with the right configuration in order to be able to
+# use the current project (e.g. with regard to its full, standard, base code
+# path, including the one of all lower layers).
 #
 # The node name of that shell includes the project name, user and current
 # directory, so that multiple, non-colliding shell instances can be created more
