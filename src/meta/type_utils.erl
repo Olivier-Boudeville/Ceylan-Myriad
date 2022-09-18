@@ -687,7 +687,8 @@
 % check_all_undefined/1, are_all_defined/1, check_defined/1,
 % check_not_undefined/1, check_all_defined/1.
 %
--export([ check_atom/1, check_boolean/1,
+-export([ check_atom/1, check_atoms/1,
+		  check_boolean/1, check_booleans/1,
 
 		  check_pid/1, check_maybe_pid/1,
 
@@ -1698,6 +1699,12 @@ check_atom( Other ) ->
 	throw( { not_atom, Other } ).
 
 
+% @doc Checks that the specified term is a list of atoms indeed, and returns it.
+-spec check_atoms( term() ) -> [ atom() ].
+check_atoms( Atoms ) ->
+	[ check_atom( T ) || T <- Atoms ],
+	Atoms.
+
 
 % @doc Checks that the specified term is a boolean indeed, and returns it.
 -spec check_boolean( term() ) -> atom().
@@ -1710,6 +1717,14 @@ check_boolean( false ) ->
 check_boolean( Other ) ->
 	throw( { not_boolean, Other } ).
 
+
+
+% @doc Checks that the specified term is a list of booleans indeed, and returns
+% it.
+-spec check_booleans( term() ) -> [ boolean() ].
+check_booleans( Booleans ) ->
+	[ check_boolean( T ) || T <- Booleans ],
+	Booleans.
 
 
 % @doc Checks that the specified term is a PID indeed, and returns it.
