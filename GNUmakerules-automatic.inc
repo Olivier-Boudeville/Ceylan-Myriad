@@ -50,8 +50,8 @@
 # For that we generally rely on the convention that the main module of that
 # project (e.g. foobar) is then to define and export a
 # generate_support_modules/0 function (whose spec is: generate_support_modules()
-# -> no_return()) in charge of the generation of such support modules, as BEAM
-# files, comprising at least a 'foobar_generated' module.
+# -> no_return()) in charge of the generation of such support modules (as BEAM
+# files), including at least a 'foobar_generated' module.
 #
 # The role of the present make target is to call that function: 'make
 # foobar_generate_support_modules' will run foobar:generate_support_modules/0,

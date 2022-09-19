@@ -975,8 +975,10 @@ endif
 ERL_FILES = $(filter-out $(EXCLUDED_SOURCES), $(ALL_ERL_FILES))
 
 
-# Includes test beams:
-BEAM_FILES = $(patsubst %.erl,%.beam,$(ERL_FILES))
+# Includes test beams; EXTRA_BEAM_FILES introduced for example to build
+# generated modules.
+#
+BEAM_FILES = $(patsubst %.erl,%.beam,$(ERL_FILES)) $(EXTRA_BEAM_FILES)
 
 
 # Excludes the tests depending on prerequisites:

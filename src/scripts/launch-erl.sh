@@ -892,12 +892,14 @@ res=$?
 if [ ! ${res} -eq 0 ]; then
 
 	reset_keyboard
-	echo "(command failed, with error result ${res})" 1>&2
+	echo "(launch command failed, with error result ${res})" 1>&2
 	exit ${res}
 
 elif [ ${use_run_erl} -eq 1 ]; then
 
-	echo "(command success reported)"
+	# Dispensable:
+	#echo "(launch command success reported)"
+	:
 
 fi
 
@@ -905,7 +907,7 @@ fi
 
 # Commented out, as pid never set:
 #if [ $in_background -eq 0 ]; then
-#	echo "(PID of launched interpreter is $pid)"
+#   echo "(PID of launched interpreter is $pid)"
 #fi
 
 

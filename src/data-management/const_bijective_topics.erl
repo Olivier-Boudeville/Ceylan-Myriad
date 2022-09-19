@@ -60,7 +60,7 @@
 % together with their respective list of `{any(), any()}' entries must be
 % provided to the `const_bijective_topics:generate*/*' functions; for any given
 % topic (e.g. 'packet_type'), any element E of any pair in the resulting table
-% (e.g. 'discover_packet') in `{'discover_packet', , <<42,11>>}') can then be
+% (e.g. 'discover_packet') in `{'discover_packet', <<42,11>>}') can then be
 % accessed thanks to foobar:get_{first|second}_for_TOPIC/1 (e.g. discover_packet
 % = foobar:get_first_for_packet_type(<<42,11>>)).
 %
@@ -91,6 +91,34 @@
 -module(const_bijective_topics).
 
 
+% For example, we may want to support, thanks to a 'foobar' generated module,
+% three topic-based bijective tables, namely:
+%
+% - 'identifier', whose first elements are of type my_id(), and second ones
+% buz_id()
+%
+% - 'packet_type', whose first elements are of type my_type(), and second ones
+% buz_type()
+%
+% - 'color', whose first elements are of type color_by_name(), and second ones
+% color_by_rgb()
+%
+% Then the 'foobar' generated module will include three pairs (one per topic) of
+% corresponding functions:
+%
+% - for topic 'identifier':
+%     -spec get_first_for_identifier( buz_id() ) -> my_id().
+%     -spec get_second_for_identifier( my_id() ) -> buz_id().
+%
+% - for topic 'packet_type':
+%     -spec get_first_for_packet_type( buz_type() ) -> my_type().
+%     -spec get_second_for_packet_type( my_type() ) -> buz_type().
+%
+% - for topic 'color':
+%     -spec get_first_for_color( color_by_rgb() ) -> color_by_name().
+%     -spec get_second_for_color( color_by_name() ) -> color_by_rgb().
+
+
 -export([ generate_in_memory/2, generate_in_file/2, generate_in_file/3 ]).
 
 
@@ -101,6 +129,7 @@
 -type topic() :: atom().
 % A topic name, designating a specific table shared by a generated module.
 % Example of such topic names: colour, bar_identifier, font_style.
+
 
 
 -type first_type() :: permanent_term().
