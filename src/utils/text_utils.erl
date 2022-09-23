@@ -108,7 +108,7 @@
 		  ensure_string/1, ensure_string/2,
 		  ensure_strings/1, ensure_strings/2,
 
-		  ensure_binary/1, ensure_binary/2,
+		  ensure_binary/1, ensure_binary/2, ensure_maybe_binary/1,
 		  ensure_binaries/1, ensure_binaries/2 ]).
 
 
@@ -399,6 +399,9 @@
 % A user-perceived character, consisting of one or more (Unicode) codepoints.
 
 -type count() :: basic_utils:count().
+
+% As this pioneer module is not parse-transformed:
+-type maybe( T ) :: basic_utils:maybe( T ).
 
 -type integer_id() :: id_utils:integer_id().
 
@@ -1453,8 +1456,7 @@ strings_to_listed_string( Strings, Lang ) ->
 % undefined]) returns "red, blue and green".
 %
 
--spec maybe_strings_to_listed_string( [ basic_utils:maybe( ustring() ) ] ) ->
-											ustring().
+-spec maybe_strings_to_listed_string( [ maybe( ustring() ) ] ) -> ustring().
 maybe_strings_to_listed_string( Strings ) ->
 	strings_to_listed_string( [ S || S <- Strings, S =/= undefined ] ).
 
@@ -2445,6 +2447,18 @@ ensure_binary( String, _CanFailDueToTranscoding ) ->
 
 
 
+% @doc Returns a binary string version of the specified text-like parameter
+% (binary or plain string), if any.
+%
+-spec ensure_maybe_binary( maybe( any_string() ) ) -> maybe( bin_string() ).
+ensure_maybe_binary( undefined ) ->
+	undefined;
+
+ensure_maybe_binary( AnyString ) ->
+	ensure_binary( AnyString ).
+
+
+
 % @doc Returns a list of binary string versions of the string-like elements of
 % the specified list.
 %
@@ -2683,7 +2697,7 @@ suffix_uniq_helper( Prefix, Count, Strs ) ->
 % string:length/1 would have thrown a badarg exception, typically because of an
 % inconsistent encoding).
 %
--spec safe_length( unicode_data() ) -> basic_utils:maybe( length() ).
+-spec safe_length( unicode_data() ) -> maybe( length() ).
 safe_length( PseudoStr ) ->
 	try string:length( PseudoStr ) of
 
@@ -2754,8 +2768,7 @@ string_to_binary( Other, _CanFailDueToTranscoding ) ->
 % CanFailDueToTranscoding tells whether, should a transcoding fail, this
 % function is allowed to fail in turn.
 %
--spec maybe_string_to_binary( basic_utils:maybe( ustring() ) ) ->
-									basic_utils:maybe( bin_string() ).
+-spec maybe_string_to_binary( maybe( ustring() ) ) -> maybe( bin_string() ).
 maybe_string_to_binary( _MaybeString=undefined ) ->
 	undefined;
 
@@ -2856,7 +2869,7 @@ string_to_integer( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_integer( ustring() ) -> basic_utils:maybe( integer() ).
+-spec try_string_to_integer( ustring() ) -> maybe( integer() ).
 try_string_to_integer( String ) ->
 	try_string_to_integer( String, _Base=10 ).
 
@@ -2867,8 +2880,7 @@ try_string_to_integer( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_integer( ustring(), 2..36 ) ->
-									basic_utils:maybe( integer() ).
+-spec try_string_to_integer( ustring(), 2..36 ) -> maybe( integer() ).
 try_string_to_integer( String, Base ) when is_list( String ) ->
 	try list_to_integer( String, Base ) of
 
@@ -2912,7 +2924,7 @@ string_to_float( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_float( ustring() ) -> basic_utils:maybe( float() ).
+-spec try_string_to_float( ustring() ) -> maybe( float() ).
 try_string_to_float( String ) when is_list( String ) ->
 
 	% Erlang is very picky (too much?) when interpreting floats-as-a-string: if
@@ -4780,7 +4792,7 @@ aggregate_word( [ H | T ], Count, Acc ) ->
 % (exported helper, for re-use)
 %
 -spec try_convert_to_unicode_list( unicode:unicode_data() ) ->
-											basic_utils:maybe( ustring() ).
+											maybe( ustring() ).
 try_convert_to_unicode_list( Data ) ->
 
 	% A binary_to_list/1 would not be sufficient here.
@@ -4883,8 +4895,7 @@ to_unicode_list( Data, CanFail ) ->
 %
 % (exported helper, for re-use)
 %
--spec try_convert_to_unicode_binary( unicode_data() ) ->
-											basic_utils:maybe( bin_string() ).
+-spec try_convert_to_unicode_binary( unicode_data() ) -> maybe( bin_string() ).
 try_convert_to_unicode_binary( Data ) ->
 
 	% A list_to_binary/1 would not be sufficient here.
