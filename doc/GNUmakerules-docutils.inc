@@ -361,7 +361,11 @@ make-doc-repository:
 
 
 
-MATHJAX_ROOT="/usr/share/mathjax"
+ifndef MATHJAX_ROOT
+  MATHJAX_ROOT="/usr/share/mathjax"
+  #MATHJAX_ROOT="$HOME/Software/Mathjax"
+endif
+
 
 # In order to generate beautiful math formulas for the HTML output; here a local
 # MathJax install is expected.
@@ -369,11 +373,11 @@ MATHJAX_ROOT="/usr/share/mathjax"
 # See myriad/src/scripts/generate-docutils.sh for more details.
 #
 create-mathjax-symlink:
-	@if [ -e "${MATHJAX_ROOT}" ]; then ln -sf "${MATHJAX_ROOT}"; else echo "Error, no pre-existing MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 75; fi
+	@if [ -e "${MATHJAX_ROOT}" ]; then ln -sf "${MATHJAX_ROOT}" mathjax; else echo "  Error, no pre-existing MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 75; fi
 
 
 check-mathjax:
-	@if [ ! -e "${MATHJAX_ROOT}" ]; then echo "Error, no MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 75; fi
+	@if [ ! -e "mathjax" ]; then echo "  Error, no MathJax install found (no local 'mathjax' found, whereas MATHJAX_ROOT='${MATHJAX_ROOT}'); consider installing it with 'pacman -Sy mathjax' or alike." 1>&2; exit 75; fi
 
 
 
