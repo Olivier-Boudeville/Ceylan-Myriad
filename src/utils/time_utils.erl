@@ -214,14 +214,21 @@
 		  get_textual_duration/2, get_french_textual_duration/2,
 		  get_precise_timestamp/0, get_precise_duration/2,
 		  get_precise_duration_since/1,
-		  get_date_after/2 ]).
+		  get_date_after/2,
+		  check_time_frame/1 ]).
 
 
 -type timestamp() :: { date(), time() }.
 % Used to be calendar:datetime(), now uses our types.
+%
+% A timestamp shall preferably be canonical (e.g. with a canonical month).
 
 
 -type precise_timestamp() :: { megaseconds(), seconds(), microseconds() }.
+
+
+-type time_frame() :: { Start :: timestamp(), End :: timestamp() }.
+% A time frame.
 
 
 -type time_out() :: 'infinity' | milliseconds().
@@ -233,7 +240,8 @@
 % is 1970-01-01 00:00 UTC.
 
 
--export_type([ timestamp/0, precise_timestamp/0, time_out/0, posix_seconds/0 ]).
+-export_type([ timestamp/0, precise_timestamp/0, time_frame/0, time_out/0,
+			   posix_seconds/0 ]).
 
 
 % Shorthands:
@@ -463,8 +471,7 @@ get_bank_holidays_for( Year, Country ) ->
 %
 -spec get_fixed_bank_holidays_for( country() ) -> [ date_in_year() ].
 get_fixed_bank_holidays_for( _Country=france ) ->
-	% Computed thanks to:
-	% time_utils:find_common_bank_holidays(2020, 2026, france).
+	% Computed thanks to find_common_bank_holidays(2020, 2026, france)
 	% (prior to factoring them of course)
 	%
 	[ {1,1}, {5,1}, {11,1}, {5,8}, {11,11}, {7,14}, {8,15}, {12,25} ].
@@ -1005,7 +1012,7 @@ get_epoch_milliseconds_since_year_0() ->
 
 
 
-% @doc Returns whether specified term is a legit timestamp.
+% @doc Returns whether specified term is a legit (canonical) timestamp.
 %
 % Useful to vet user-specified timestamps.
 %
@@ -1013,8 +1020,9 @@ get_epoch_milliseconds_since_year_0() ->
 is_timestamp( { Date={ Y, M, D }, _Time={ Hour, Min, Sec } } )
 		when is_integer( Y ) andalso is_integer( M ) andalso is_integer( D )
 			andalso is_integer( Hour ) andalso is_integer( Min )
-			andalso is_integer( Sec ) andalso Hour =< 24 andalso Min =< 60
-			andalso Sec =< 60 ->
+			andalso is_integer( Sec ) andalso Hour < 24 andalso Min < 60
+			andalso Sec < 60 ->
+	% Includes the checking that the month is canonical:
 	calendar:valid_date( Date );
 
 is_timestamp( _Other ) ->
@@ -1022,7 +1030,9 @@ is_timestamp( _Other ) ->
 
 
 
-% @doc Checks that the specified term is a timestamp indeed, and returns it.
+% @doc Checks that the specified term is a (possibly non-canonical) timestamp
+% indeed, and returns it.
+%
 -spec check_timestamp( term() ) -> timestamp().
 check_timestamp( Term ) ->
 
@@ -1877,3 +1887,26 @@ get_date_after( BaseDate, Days ) ->
 	DayCount = calendar:date_to_gregorian_days( BaseDate ) + Days,
 
 	calendar:gregorian_days_to_date( DayCount ).
+
+
+
+% @doc Checks that the specified term is a time-frame of strictly positive
+% duration indeed, and returns it.
+%
+-spec check_time_frame( term() ) -> time_frame().
+check_time_frame( TF={ StartTimestamp, EndTimestamp } ) ->
+	check_timestamp( StartTimestamp ),
+	check_timestamp( EndTimestamp ),
+	case get_duration( StartTimestamp, EndTimestamp ) of
+
+		DSecs when DSecs > 0 ->
+			TF;
+
+		OtherDSecs ->
+			throw( { invalid_time_frame, StartTimestamp, EndTimestamp,
+					 OtherDSecs } )
+
+	end;
+
+check_time_frame( Other ) ->
+	throw( { invalid_time_frame, Other } ).
