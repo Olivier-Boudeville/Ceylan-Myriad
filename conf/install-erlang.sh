@@ -783,7 +783,6 @@ if ! ${sudo_cmd} ${nice_opt} ${cpu_limit_expr} make; then
 
 fi
 
-echo "ZZZ ${nice_opt} ${cpu_limit_expr} make install"
 
 # No sudo here:
 if ! ${nice_opt} ${cpu_limit_expr} make install; then
