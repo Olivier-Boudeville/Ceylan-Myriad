@@ -49,7 +49,8 @@
 %
 % These tables may be kept in-memory only (hence with the corresponding modules
 % being generated and used at runtime) and/or be generated and stored in an
-% actual BEAM file, for a later direct (re)loading thereof.
+% actual BEAM file, for a single generation and later direct (re)loading(s)
+% thereof.
 %
 % No ETS table, replication (ex: per-user table copy) or message sending is
 % involved: thanks to metaprogramming, a module is generated on-the-fly,
@@ -126,9 +127,12 @@
 -export([ generate_header_form/2, generate_footer_form/1, generate_forms/4 ]).
 
 
--type topic() :: atom().
+-type topic_name() :: atom().
 % A topic name, designating a specific table shared by a generated module.
 % Example of such topic names: colour, bar_identifier, font_style.
+%
+% These atom should be acceptable suffixes to a function name (e.g. not
+% including spaces, dashes, etc.).
 
 
 
@@ -148,11 +152,24 @@
 % Entries that can be fed to a const-bijective table.
 
 
--type topic_spec() :: { topic(), entries() }.
-% The specified of a topic: name and entries.
+-type element_lookup() :: 'strict' % Throws an exception if element not found
+						| 'maybe'. % Returns 'undefined' if element not found
+% Tells how elements shall be looked up.
+%
+% Note that selecting the 'maybe' element look-up is not recommended if either
+% of the first and second sets contains the 'undefined' atom, as it leads to
+% ambiguity.
 
--export_type([ topic/0, first_type/0, second_type/0, entry/0, entries/0,
-			   topic_spec/0 ]).
+
+
+-type topic_spec() :: { topic_name(), entries() }
+					| { topic_name(), entries(), element_lookup() }.
+% The specified of a topic: name, entries and type of element look-up.
+
+
+-export_type([ topic_name/0, first_type/0, second_type/0, entry/0, entries/0,
+			   element_lookup/0, topic_spec/0 ]).
+
 
 
 % Implementation notes:
@@ -162,21 +179,29 @@
 % / less duplicated in memory than using any table in the generated module, for
 % all numbers of entries, but as long as not tested this remains an assumption.
 
+% For each topic T it can be defined how elements shall be looked up:
+%
+%  - strict: only get_{first,second}_for_T/1 are defined, throwing directly an
+%  exception if an element is not found
+%
+%  - maybe: get_maybe_{first,second}_for_T/1 are defined, returning 'undefined'
+%  if an element is not found, and get_{first,second}_for_T/1 are defined from
+%  them, throwing an exception if an element is not found
+
 
 % Shorthands:
 
 -type module_name() :: basic_utils:module_name().
+-type error_type() :: basic_utils:error_type().
 
 -type file_name() :: file_utils:file_name().
 -type any_directory_path() :: file_utils:any_directory_path().
 
 -type permanent_term() :: type_utils:permanent_term().
 
--type function_name() :: meta_utils:function_name().
-
 -type form() :: ast_base:form().
 
--type line() :: ast_base:line().
+-type file_loc() :: ast_base:file_loc().
 
 
 
@@ -331,17 +356,17 @@ get_generated_beam_filename_for( ModName ) ->
 
 
 % @doc Returns the header forms corresponding to the specified module, declared
-% at the specified line.
+% at the specified file location.
 %
--spec generate_header_form( module_name(), line() ) -> form().
-generate_header_form( ModuleName, Line ) ->
-	{ attribute, Line, module, ModuleName }.
+-spec generate_header_form( module_name(), file_loc() ) -> form().
+generate_header_form( ModuleName, FileLoc ) ->
+	{ attribute, FileLoc, module, ModuleName }.
 
 
 % @doc Returns suitable footer forms.
--spec generate_footer_form( line() ) -> form().
-generate_footer_form( Line ) ->
-	{ eof, Line }.
+-spec generate_footer_form( file_loc() ) -> form().
+generate_footer_form( FileLoc ) ->
+	{ eof, FileLoc }.
 
 
 
@@ -349,9 +374,10 @@ generate_footer_form( Line ) ->
 -spec generate_topic_forms( module_name(), [ topic_spec() ] ) -> [ form() ].
 generate_topic_forms( ModuleName, TopicSpecs ) ->
 
-	Line = 0,
+	FileLoc = ast_utils:get_generated_code_location(),
 
-	Topics = type_utils:check_atoms( [ T || { T, _S } <- TopicSpecs ] ),
+	Topics = type_utils:check_atoms(
+				[ element( _Index=1, TS ) || TS <- TopicSpecs ] ),
 
 	case list_utils:get_duplicates( Topics ) of
 
@@ -363,95 +389,257 @@ generate_topic_forms( ModuleName, TopicSpecs ) ->
 
 	end,
 
-	[ generate_header_form( ModuleName, Line ) | list_utils:flatten_once(
-		[ begin
+	CanonicalTopicSpecs = [ case TS of
 
-			FirstFunName = text_utils:atom_format( "get_first_for_~ts",
-												   [ TP ] ),
-			SecondFunName = text_utils:atom_format( "get_second_for_~ts",
-													[ TP ] ),
+								{ T, E } ->
+									{ T, E, _DefaultLookup=strict };
 
-			generate_forms( FirstFunName, SecondFunName, ET, Line )
+								Triplet={ _T, _E, _LU } ->
+									Triplet
 
-		  end || { TP, ET } <- TopicSpecs ] ) ]
-		++ [ generate_footer_form( Line ) ].
+							end || TS <- TopicSpecs ],
+
+	[ generate_header_form( ModuleName, FileLoc ) | list_utils:flatten_once(
+		[ generate_forms( TP, ET, LU, FileLoc )
+					|| { TP, ET, LU } <- CanonicalTopicSpecs ] ) ]
+		++ [ generate_footer_form( FileLoc ) ].
 
 
 
 % @doc Generates the forms corresponding to the specified first/second function
-% names, entries and module.
+% names, entries and module, depending on the specified look-up.
 %
--spec generate_forms( function_name(), function_name(), [ entries() ],
-					  line() ) -> [ form() ].
-generate_forms( FirstFunName, SecondFunName, Entries, Line ) ->
+-spec generate_forms( topic_name(), [ entries() ], element_lookup(),
+					  file_loc() ) -> [ form() ].
+generate_forms( TopicName, Entries, _ElementLookup=strict, FileLoc ) ->
 
-	% We prefer defining get_first_for/1 then get_second_for/1, and respecting
-	% the order of the specified entries; preferably ends with end of file:
+	% We prefer defining get_first_for_TOPIC/1 then get_second_for_TOPIC/1, and
+	% respecting the order of the specified entries; preferably ends with end of
+	% file:
 	%
 	% (refer to https://www.erlang.org/doc/apps/erts/absform.html)
 
+	FirstFunName = text_utils:atom_format( "get_first_for_~ts", [ TopicName ] ),
+
+	SecondFunName = text_utils:atom_format( "get_second_for_~ts",
+											[ TopicName ] ),
+
 	RevEntries = lists:reverse( Entries ),
 
-	FirstFunForm = generate_fun_form_for_first( RevEntries, FirstFunName,
-												Line ),
+	FirstFunForm = generate_strict_fun_form_for_first( RevEntries, FirstFunName,
+													   TopicName, FileLoc ),
 
-	SecondFunForm = generate_fun_form_for_second( RevEntries, SecondFunName,
-												  Line ),
+	SecondFunForm = generate_strict_fun_form_for_second( RevEntries,
+						SecondFunName, TopicName, FileLoc ),
 
-	[ FirstFunForm, SecondFunForm ].
+	[ FirstFunForm, SecondFunForm ];
+
+
+generate_forms( TopicName, Entries, _ElementLookup=maybe, FileLoc ) ->
+
+	RevEntries = lists:reverse( Entries ),
+
+	FirstFunForms =
+		generate_maybe_fun_forms_for_first( RevEntries, TopicName, FileLoc ),
+
+	%trace_utils:debug_fmt( "Generated first maybe-form for topic '~ts':~n ~p",
+	%                       [ TopicName, FirstFunForms ] ),
+
+	SecondFunForms =
+		generate_maybe_fun_forms_for_second( RevEntries, TopicName, FileLoc ),
+
+	FirstFunForms ++ SecondFunForms.
 
 
 
-% Generates the form corresponding to foobar:FirstFunName/1.
-generate_fun_form_for_first( Entries, FirstFunName, Line ) ->
+% Generates the strict form corresponding to foobar:FirstFunName/1.
+generate_strict_fun_form_for_first( Entries, FirstFunName, TopicName,
+									FileLoc ) ->
 
-	% We have here to generate first the 'foobar:get_first_for(Sn) -> Fn;'
+	% We have here to generate first the 'foobar:get_first_for_TOPIC(Sn) -> Fn;'
 	% clauses:
 	%
-	Clauses = generate_first_clauses( Entries, Line, _Acc=[] ),
+	Clauses = generate_first_clauses( Entries, FileLoc,
+		_Acc=[ catch_all_clause( second_not_found, TopicName, _Lookup=strict,
+								 FileLoc ) ] ),
 
-	{ function, Line, FirstFunName, _Arity=1, Clauses }.
+	{ function, FileLoc, FirstFunName, _Arity=1, Clauses }.
 
 
 % (helper)
-generate_first_clauses( _Entries=[], _Line, Acc ) ->
+generate_first_clauses( _Entries=[], _FileLoc, Acc ) ->
 	% Already reversed:
 	Acc;
 
-generate_first_clauses( _Entries=[ _E={ F, S } | T ], Line, Acc ) ->
+generate_first_clauses( _Entries=[ _E={ F, S } | T ], FileLoc, Acc ) ->
 
 	ASTForF = ast_utils:term_to_form( F ),
 	ASTForS = ast_utils:term_to_form( S ),
 
-	NewAcc = [ { clause, Line, _PatternSeq=[ ASTForS ], _GuardSeq=[],
+	NewAcc = [ { clause, FileLoc, _PatternSeq=[ ASTForS ], _GuardSeq=[],
 				 _Body=[ ASTForF ] } | Acc ],
 
-	generate_first_clauses( T, Line, NewAcc ).
+	generate_first_clauses( T, FileLoc, NewAcc ).
 
 
 % Generates the form corresponding to foobar:SecondFunName/1.
-generate_fun_form_for_second( Entries, SecondFunName, Line ) ->
+generate_strict_fun_form_for_second( Entries, SecondFunName, TopicName,
+									 FileLoc ) ->
 
-	% We have here to generate second the 'foobar:get_second_for(Sn) -> Fn;'
-	% clauses:
+	% We have here to generate second the
+	% 'foobar:get_second_for_TOPIC(Sn) -> Fn;' clauses:
 	%
-	Clauses = generate_second_clauses( Entries, Line, _Acc=[] ),
+	Clauses = generate_second_clauses( Entries, FileLoc,
+		_Acc=[ catch_all_clause( first_not_found, TopicName, _Lookup=strict,
+								 FileLoc ) ] ),
 
-	{ function, Line, SecondFunName, _Arity=1, Clauses }.
+	{ function, FileLoc, SecondFunName, _Arity=1, Clauses }.
 
 
 % (helper)
-generate_second_clauses( _Entries=[], _Line, Acc ) ->
+generate_second_clauses( _Entries=[], _FileLoc, Acc ) ->
 	% Already reversed:
 	Acc;
 
-generate_second_clauses( _Entries=[ _E={ F, S } | T ], Line, Acc ) ->
+generate_second_clauses( _Entries=[ _E={ F, S } | T ], FileLoc, Acc ) ->
 
 	ASTForF = ast_utils:term_to_form( F ),
 	ASTForS = ast_utils:term_to_form( S ),
 
 	% Note the F/S swapping compared to generate_first_clauses/3:
-	NewAcc = [ { clause, Line, _PatternSeq=[ ASTForF ], _GuardSeq=[],
+	NewAcc = [ { clause, FileLoc, _PatternSeq=[ ASTForF ], _GuardSeq=[],
 				 _Body=[ ASTForS ] } | Acc ],
 
-	generate_second_clauses( T, Line, NewAcc ).
+	generate_second_clauses( T, FileLoc, NewAcc ).
+
+
+
+% (helper)
+generate_maybe_fun_forms_for_first( Entries, TopicName, FileLoc ) ->
+
+	% We generate first a full maybe function, then derive its strict
+	% counterpart from it (the strict one calling the maybe one):
+
+	Arity = 1,
+
+	MaybeFunName =
+		text_utils:atom_format( "get_maybe_first_for_~ts", [ TopicName ] ),
+
+	MaybeClauses = generate_first_clauses( Entries, FileLoc,
+		_MAcc=[ catch_all_clause( second_not_found, TopicName, _Lookup='maybe',
+								  FileLoc ) ] ),
+
+	MaybeFunForm = { function, FileLoc, MaybeFunName, Arity, MaybeClauses },
+
+
+	StrictFunName =
+		text_utils:atom_format( "get_first_for_~ts", [ TopicName ] ),
+
+	StrictClauses = generate_strict_calling_clauses(
+		_ErrorAtom=second_not_found, MaybeFunName, TopicName, FileLoc ),
+
+	%trace_utils:debug_fmt( "Strict clauses:~n ~p", [ StrictClauses ] ),
+
+	StrictFunForm = { function, FileLoc, StrictFunName, Arity, StrictClauses },
+
+	[ MaybeFunForm, StrictFunForm ].
+
+
+generate_maybe_fun_forms_for_second( Entries, TopicName, FileLoc ) ->
+
+	Arity = 1,
+
+	MaybeFunName =
+		text_utils:atom_format( "get_maybe_second_for_~ts", [ TopicName ] ),
+
+	MaybeClauses = generate_second_clauses( Entries, FileLoc,
+		_MAcc=[ catch_all_clause( first_not_found, TopicName, _Lookup='maybe',
+								  FileLoc ) ] ),
+
+	MaybeFunForm = { function, FileLoc, MaybeFunName, _Arity=1, MaybeClauses },
+
+
+	StrictFunName =
+		text_utils:atom_format( "get_second_for_~ts", [ TopicName ] ),
+
+	StrictClauses = generate_strict_calling_clauses(
+		_ErrorAtom=first_not_found, MaybeFunName, TopicName, FileLoc ),
+
+	StrictFunForm = { function, FileLoc, StrictFunName, Arity, StrictClauses },
+
+	[ MaybeFunForm, StrictFunForm ].
+
+
+
+% (helper)
+generate_strict_calling_clauses( ErrorAtom, MaybeFunName, TopicName,
+								 FileLoc ) ->
+
+	% Corresponds to a clause:
+	%  FUNC( X ) ->
+	%    case MaybeFunName( X ) of
+	%
+	%        undefined ->
+	%            throw( { ErrorAtom, TopicName, X } );
+	%
+	%        V ->
+	%            V
+	%
+	%    end
+
+	XVar = {var,FileLoc,'X'},
+
+	VVar = {var,FileLoc,'V'},
+
+	ThrowTuple = { tuple, FileLoc, [ {atom,FileLoc,ErrorAtom},
+									 {atom,FileLoc,TopicName}, XVar ] },
+
+	% Single clause:
+	[ { clause, FileLoc, _PatternSeq=[ XVar ], _GuardSeq=[],
+		[ { 'case', FileLoc,
+			{ call, FileLoc, {atom,FileLoc,MaybeFunName}, [ XVar ] },
+			[ { clause, FileLoc, [{atom,FileLoc,undefined}], [],
+				[ { call, FileLoc, _Fun={atom,FileLoc,throw},
+				  _Args=[ ThrowTuple ] } ] },
+			  { clause, FileLoc, [VVar], [],
+				[ VVar ] } ] } ] } ].
+
+
+
+% @doc Returns a catch-all clause throwing an (hopefully) informative
+% {ErrorAtom, TopicName, Value} exception, like {first_not_found, my_topic,
+% MyUnexpectedValue} (rather than a {my_generated_module,
+% '-inlined-get_second_for_TOPIC/1-', ... function_clause).
+%
+% Thus results in { {nocatch, {first_not_found, my_topic, MyUnexpectedValue} },
+% [{my_generated_module, get_second_for_my_topic,1,[]}, ...
+%
+-spec catch_all_clause( error_type(), topic_name(), element_lookup(),
+						file_loc() ) -> form().
+catch_all_clause( ErrorAtom, TopicName, _Lookup=strict, FileLoc ) ->
+
+	% Corresponds to a clause:
+	%  FUNC( NotMatched ) ->
+	%    throw( { ErrorAtom, TopicName, NotMatched } )
+
+	NotMatchedVar = { var, FileLoc, 'NotMatched' },
+
+	% Not {remote, FileLoc, _Mod={atom,FileLoc,erlang}, _FunThrow...
+	ThrowCall = { call, FileLoc, _Fun={atom,FileLoc,throw},
+		_Args=[ { tuple, FileLoc, [ {atom,FileLoc,ErrorAtom},
+								{atom,FileLoc,TopicName}, NotMatchedVar ] } ] },
+
+	{ clause, FileLoc, _PatternSeq=[ NotMatchedVar ], _GuardSeq=[],
+		_Body=[ ThrowCall ] };
+
+
+catch_all_clause( _ErrorAtom, _TopicName, _Lookup=maybe, FileLoc ) ->
+
+	% Corresponds to a clause:
+	%  FUNC( _NotMatched ) ->
+	%    undefined.
+
+	NotMatchedVar = { var, FileLoc, '_' },
+
+	{ clause, FileLoc, _PatternSeq=[ NotMatchedVar ], _GuardSeq=[],
+		_Body=[ {atom,FileLoc,'undefined'} ] }.
