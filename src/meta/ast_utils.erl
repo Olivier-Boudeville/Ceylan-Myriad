@@ -423,32 +423,33 @@ beam_to_ast( BeamFilename ) ->
 
 	% Everything:
 	%Chunks = [ abstract_code, attributes, compile_info, exports,
-	%			labeled_exports, imports, indexed_imports, locals,
-	%			labeled_locals, atoms ],
+	%           labeled_exports, imports, indexed_imports, locals,
+	%           labeled_locals, atoms ],
 
 	% Just the code AST:
 	Chunks = [ abstract_code ],
 
 	% Everything but the code AST:
 	% OtherChunks = [ attributes, compile_info, exports,
-	%				  labeled_exports, imports, indexed_imports, locals,
-	%				  labeled_locals, atoms ],
+	%                 labeled_exports, imports, indexed_imports, locals,
+	%                 labeled_locals, atoms ],
 
 	%Options = [ allow_missing_chunks ],
 
 	Options=[],
 
-	MyriadCryptoKeyFun = fun( init ) ->
-								 ok;
+	MyriadCryptoKeyFun =
+		fun( init ) ->
+			ok;
 
-							( { debug_info, _Mode, _Module, _Filename } ) ->
-								 % Refer to GNUmakevars.inc:
-								 _Key="Ceylan-Myriad";
+		   ( { debug_info, _Mode, _Module, _Filename } ) ->
+				% Refer to GNUmakevars.inc:
+				_Key="Ceylan-Myriad";
 
-							( clear ) ->
-								 ok
+		   ( clear ) ->
+				ok
 
-						 end,
+	end,
 
 	ok = beam_lib:crypto_key_fun( MyriadCryptoKeyFun ),
 
@@ -518,8 +519,8 @@ variable_names_to_ast( VariableNames, FileLoc ) ->
 % generated code).
 %
 % Ex: string_to_form("f() -> hello_world.") may return
-%   {function,  {0,1}, f, 0, [{clause,  {0,1}, [], [],
-%       [ {atom,  {0,1}, hello_world} ] } ] }
+%   {function, {0,1}, f, 0, [{clause, {0,1}, [], [],
+%       [ {atom, {0,1}, hello_world} ] } ] }
 %
 -spec string_to_form( ustring() ) -> form().
 string_to_form( FormString ) ->
