@@ -53,7 +53,7 @@
 -spec get_topic_specs() -> [ topic_spec() ].
 get_topic_specs() ->
 
-	% First, for topic alpha:
+	% First, for topic alpha, which relies, by default, on strict look-up:
 
 	NestedTerm = { "semper fidelis", true, [ 1, 1.0, ?MODULE ] },
 
@@ -64,12 +64,16 @@ get_topic_specs() ->
 
 	AlphaTopicSpec = { alpha, AlphaEntries },
 
-	% Second, topic beta:
+	% Second, topic beta, which relies on a maybe look-up:
 	BetaEntries = [ { "beta_1", <<"train">> },
 					{ <<"beta_2">>, "car" },
 					{ beta_3, <<"bicycle">> } ],
 
-	BetaTopicSpec = { beta, BetaEntries },
+	% Then there would not be any get_maybe_*/1 (like
+	% frobnicator:get_maybe_second_for_beta/1):
+	%
+	%BetaTopicSpec = { beta, BetaEntries, strict },
+	BetaTopicSpec = { beta, BetaEntries, maybe },
 
 	[ AlphaTopicSpec, BetaTopicSpec ].
 
@@ -100,11 +104,45 @@ test_in_memory_generation() ->
 	<<"hello">> = frobnicator:get_second_for_alpha( 1 ),
 	foo = frobnicator:get_first_for_alpha( 42.0 ),
 
-	"car" = frobnicator:get_second_for_beta( <<"beta_2">> ),
-	beta_3 = frobnicator:get_first_for_beta( <<"bicycle">> ).
+	% Function not defined, as strict lookup for alpha:
+	try
 
-	%will_crash = frobnicator:get_second_for_alpha( 'non_existing' ).
-	%will_crash = frobnicator:get_second_for_gamma( 'any' ).
+		would_crash = frobnicator:get_maybe_first_for_alpha( <<"Zorblug">> )
+
+	catch
+
+		error:undef ->
+			ok
+
+	end,
+
+	"car" = frobnicator:get_second_for_beta( <<"beta_2">> ),
+	beta_3 = frobnicator:get_first_for_beta( <<"bicycle">> ),
+
+	try
+
+		would_crash = frobnicator:get_second_for_beta( 'non_existing' )
+
+	catch
+
+		throw:{ first_not_found, beta, non_existing } ->
+			ok
+
+	end,
+
+	undefined = frobnicator:get_maybe_second_for_beta( 'non_existing' ),
+	undefined = frobnicator:get_maybe_first_for_beta( 'non_existing' ),
+
+	try
+
+		would_crash = frobnicator:get_second_for_gamma( 'any' )
+
+	catch
+
+		error:undef ->
+			ok
+
+	end.
 
 
 
@@ -130,11 +168,48 @@ test_in_file_generation() ->
 	<<"hello">> = darbar_test_generated:get_second_for_alpha( 1 ),
 	foo = darbar_test_generated:get_first_for_alpha( 42.0 ),
 
+	% Function not defined (alpha lookup being strict):
+	try
+
+		would_crash =
+			darbar_test_generated:get_maybe_second_for_alpha( 'non_existing' )
+
+	catch
+
+		error:undef ->
+			ok
+
+	end,
+
 	<<"train">> = darbar_test_generated:get_second_for_beta( "beta_1" ),
 	beta_3 = darbar_test_generated:get_first_for_beta( <<"bicycle">> ),
 
-	%will_crash = darbar_test_generated:get_second_for_alpha( 'non_existing' ).
-	%will_crash = darbar_test_generated:get_second_for_gamma( 'any' ).
+	try
+
+		would_crash =
+			darbar_test_generated:get_second_for_alpha( 'non_existing' )
+
+	catch
+
+		throw:{ first_not_found, alpha, non_existing } ->
+			ok
+
+	end,
+
+	% As beta lookup is maybe:
+	undefined =
+		darbar_test_generated:get_maybe_second_for_beta( 'non_existing' ),
+
+	try
+
+		would_crash = darbar_test_generated:get_second_for_gamma( 'any' )
+
+	catch
+
+		error:undef ->
+			ok
+
+	end,
 
 	ModFullPath = file_utils:ensure_path_is_absolute( ModFilename ),
 	{ file, ModFullPath } = code:is_loaded( InFileModName ),
