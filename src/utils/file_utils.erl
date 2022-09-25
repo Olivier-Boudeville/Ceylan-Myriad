@@ -243,7 +243,7 @@
 
 
 -type file_name() :: path().
-% Designates a filename, generally without a path (ex: "foobar.txt").
+% Designates a filename, generally without a path (e.g. "foobar.txt").
 
 
 -type filename() :: file_name().
@@ -251,8 +251,13 @@
 
 
 -type file_path() :: path().
-% Designates a path to a file (including its filename); ex:
-% "../my_dir/other/foobar.txt".
+% Designates a path to a file (including its filename),
+% e.g. "../my_dir/other/foobar.txt".
+
+
+-type device_path() :: path().
+% Designates a path to a device (including its device name), e.g.
+% "/dev/ttyUSB0".
 
 
 -type bin_file_name() :: bin_string().
@@ -363,7 +368,7 @@
 
 %-type file_open_mode() :: file:mode() | 'ram'.
 -type file_open_mode() :: tuple() | atom() | 'ram'.
-% Relevant flags when opening a file (ex: read, write, append, exclusive, raw,
+% Relevant flags when opening a file (e.g. read, write, append, exclusive, raw,
 % etc.).
 %
 % See [http://erlang.org/doc/man/file.html#open-2] for their detailed
@@ -436,6 +441,8 @@
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
 			   any_file_name/0, any_file_path/0,
+
+			   device_path/0,
 
 			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
 			   executable_name/0, executable_path/0, bin_executable_path/0,
