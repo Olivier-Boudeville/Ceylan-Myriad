@@ -656,9 +656,19 @@ binary_to_hexastring( Bin, _AddPrefix=true ) ->
 	?hexa_prefix ++ binary_to_hexastring( Bin, _Prefix=false );
 
 binary_to_hexastring( Bin, _AddPrefix=false ) ->
-	% Binary comprehension:
-	to_lowercase( flatten( [ erlang:integer_to_list( Int, _Base=16 )
-								|| <<Int>> <= Bin ] ) ).
+	% Binary comprehension; left-padding with a zero, as
+	% erlang:integer_to_list(I) for I in [0,10] results in "I", not "0I":
+	%
+	to_lowercase( flatten( [
+		case erlang:integer_to_list( Int, _Base=16 ) of
+
+			[ SingleChar ] ->
+				[ $0, SingleChar ];
+
+			TwoChars ->
+				TwoChars
+
+		end || <<Int>> <= Bin ] ) ).
 
 
 
