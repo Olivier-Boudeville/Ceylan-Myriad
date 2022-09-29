@@ -733,7 +733,11 @@ count_occurrences( _List=[ Term | T ], Acc ) ->
 % count_occurrences/1 if wanting to include the terms that are listed only once
 % each.
 %
-% Ex: list_utils:get_duplicates([a,a,b,b,b,c,d,d]) = [{b,3},{d,2},{a,2}]
+% Ex: L = [a,a,b,b,b,c,d,d],
+%     [{b,3},{d,2},{a,2}] = list_utils:get_duplicates(L)
+%
+% Use lists:keysort(2, list_utils:get_duplicates(L)) to sort duplicates by
+% increasing number of occurrences (e.g. [{d,2},{a,2},{b,3}] here).
 %
 -spec get_duplicates( list() ) -> [ { element(), count() } ].
 get_duplicates( List ) ->
