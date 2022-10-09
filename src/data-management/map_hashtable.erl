@@ -586,8 +586,10 @@ get_values( Keys, Hashtable ) ->
 
 
 
-% @doc Looks for the specified entry in specified table and, if found, returns
-% the associated value; otherwise returns the specified default value.
+% @doc Looks for the specified entry in the specified table and, if found,
+% returns the associated value; otherwise returns the specified default value.
+%
+% Allows to perform in a single operation a look-up followed by a fetch.
 %
 -spec get_value_with_default( key(), value(), map_hashtable() ) -> value().
 get_value_with_default( Key, DefaultValue, MapHashtable ) ->
