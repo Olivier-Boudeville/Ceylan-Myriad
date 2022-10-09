@@ -50,6 +50,8 @@
 		  integer_to_string/1,
 
 		  integer_to_hexastring/1, integer_to_hexastring/2,
+		  integer_to_hexasbintring/1, integer_to_hexabinstring/2,
+
 
 		  hexastring_to_integer/1, hexastring_to_integer/2,
 
@@ -590,7 +592,7 @@ integer_to_hexastring( IntegerValue ) ->
 % @doc Returns a plain string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix if requested.
 %
-% Ex: integer_to_hexastring(3432) = "0xd68".
+% Ex: integer_to_hexastring(3432, true) = "0xd68".
 %
 -spec integer_to_hexastring( integer(), boolean() ) -> hexastring().
 integer_to_hexastring( IntegerValue, _AddPrefix=true ) ->
@@ -598,6 +600,27 @@ integer_to_hexastring( IntegerValue, _AddPrefix=true ) ->
 
 integer_to_hexastring( IntegerValue, _AddPrefix=false ) ->
 	to_lowercase( erlang:integer_to_list( IntegerValue, _Base=16 ) ).
+
+
+
+% @doc Returns a binary string corresponding to the specified integer, in
+% hexadecimal form, with a "0x" prefix.
+%
+% Ex: integer_to_hexabinstring(3432) = <<"0xd68">>.
+%
+-spec integer_to_hexasbintring( integer() ) -> hexastring().
+integer_to_hexasbintring( IntegerValue ) ->
+	string_to_binary( integer_to_hexastring( IntegerValue ) ).
+
+
+% @doc Returns a binary string corresponding to the specified integer, in
+% hexadecimal form, with a "0x" prefix if requested.
+%
+% Ex: integer_to_hexabinstring(3432, true) = <<"0xd68">>.
+%
+-spec integer_to_hexabinstring( integer(), boolean() ) -> hexastring().
+integer_to_hexabinstring( IntegerValue, AddPrefix ) ->
+	string_to_binary( integer_to_hexastring( IntegerValue, AddPrefix ) ).
 
 
 
