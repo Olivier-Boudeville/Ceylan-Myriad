@@ -628,8 +628,8 @@ get_default_preferences_registration_name() ->
 
 
 
-% @doc Returns whether the default preferences file is available and its full
-% path.
+% @doc Returns whether the default preferences file is available, together with
+% its full path.
 %
 -spec is_preferences_default_file_available() -> { boolean(), file_path() }.
 is_preferences_default_file_available() ->
