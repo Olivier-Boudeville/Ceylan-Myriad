@@ -321,6 +321,10 @@ ETF is just a text format for which:
 - a line starting with a ``%`` character is considered to be a comment, and is thus ignored
 - other lines are terminated by a dot, and correspond each to an Erlang term (ex: ``{base_log_dir, "/var/log"}.``)
 
+Note that no mute variable can be used there (e.g. ``_Name="James Bond"`` cannot be specified in such a file; only terms like ``"James Bond"`` can be parsed); so, in order to add any information of interest, one shall use comment lines instead.
+
+Records are not known either; however they can be specified as tagged tuples (e.g. instead of specifying ``#foo{ bar=7, ...}``, use ``{foo, 7, ...}``).
+
 See `this example <https://github.com/Olivier-Boudeville/us-common/blob/master/priv/for-testing/us.config>`_ of a full ETF file.
 
 A basic support for these ETF files is available in ``file_utils:{read,write}_etf_file/*``.
