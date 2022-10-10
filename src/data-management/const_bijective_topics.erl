@@ -123,8 +123,10 @@
 -export([ generate_in_memory/2, generate_in_file/2, generate_in_file/3 ]).
 
 
-% For re-used in other modules (ex: const_bijective_table:
--export([ generate_header_form/2, generate_footer_form/1, generate_forms/4 ]).
+% For re-used in other modules (e.g. const_bijective_table):
+-export([ generate_header_form/2, generate_footer_form/1, generate_forms/4,
+		  generate_strict_calling_clauses/4,
+		  generate_first_clauses/3, generate_second_clauses/3 ]).
 
 
 -type topic_name() :: atom().
@@ -187,6 +189,8 @@
 %  - maybe: get_maybe_{first,second}_for_T/1 are defined, returning 'undefined'
 %  if an element is not found, and get_{first,second}_for_T/1 are defined from
 %  them, throwing an exception if an element is not found
+%
+% (therefore the 'maybe' element look-up implies the 'strict' one)
 
 
 % Shorthands:
@@ -399,9 +403,13 @@ generate_topic_forms( ModuleName, TopicSpecs ) ->
 
 							end || TS <- TopicSpecs ],
 
+	% Now we add an initial '_' before each topic (e.g. 'color' becomes
+	% '_color') so that const-bijective table can request generate_forms/4 to
+	% generate for example 'get_first_for', not 'get_first_for_':
+	%
 	[ generate_header_form( ModuleName, FileLoc ) | list_utils:flatten_once(
 		[ generate_forms( TP, ET, LU, FileLoc )
-					|| { TP, ET, LU } <- CanonicalTopicSpecs ] ) ]
+							|| { TP, ET, LU } <- CanonicalTopicSpecs ] ) ]
 		++ [ generate_footer_form( FileLoc ) ].
 
 
@@ -409,8 +417,8 @@ generate_topic_forms( ModuleName, TopicSpecs ) ->
 % @doc Generates the forms corresponding to the specified first/second function
 % names, entries and module, depending on the specified look-up.
 %
--spec generate_forms( topic_name(), [ entries() ], element_lookup(),
-					  file_loc() ) -> [ form() ].
+-spec generate_forms( topic_name(), entries(), element_lookup(), file_loc() ) ->
+								[ form() ].
 generate_forms( TopicName, Entries, _ElementLookup=strict, FileLoc ) ->
 
 	% We prefer defining get_first_for_TOPIC/1 then get_second_for_TOPIC/1, and
@@ -482,7 +490,7 @@ generate_first_clauses( _Entries=[ _E={ F, S } | T ], FileLoc, Acc ) ->
 	generate_first_clauses( T, FileLoc, NewAcc ).
 
 
-% Generates the form corresponding to foobar:SecondFunName/1.
+% Generates the strict form corresponding to foobar:SecondFunName/1.
 generate_strict_fun_form_for_second( Entries, SecondFunName, TopicName,
 									 FileLoc ) ->
 
@@ -494,6 +502,7 @@ generate_strict_fun_form_for_second( Entries, SecondFunName, TopicName,
 								 FileLoc ) ] ),
 
 	{ function, FileLoc, SecondFunName, _Arity=1, Clauses }.
+
 
 
 % (helper)
@@ -514,7 +523,7 @@ generate_second_clauses( _Entries=[ _E={ F, S } | T ], FileLoc, Acc ) ->
 
 
 
-% (helper)
+% Generates the maybe forms corresponding to foobar:get_maybe_first_for_TOPIC/1.
 generate_maybe_fun_forms_for_first( Entries, TopicName, FileLoc ) ->
 
 	% We generate first a full maybe function, then derive its strict
@@ -545,6 +554,10 @@ generate_maybe_fun_forms_for_first( Entries, TopicName, FileLoc ) ->
 	[ MaybeFunForm, StrictFunForm ].
 
 
+
+% Generates the maybe forms corresponding to
+% foobar:get_maybe_second_for_TOPIC/1.
+%
 generate_maybe_fun_forms_for_second( Entries, TopicName, FileLoc ) ->
 
 	Arity = 1,
@@ -556,7 +569,7 @@ generate_maybe_fun_forms_for_second( Entries, TopicName, FileLoc ) ->
 		_MAcc=[ catch_all_clause( first_not_found, TopicName, _Lookup='maybe',
 								  FileLoc ) ] ),
 
-	MaybeFunForm = { function, FileLoc, MaybeFunName, _Arity=1, MaybeClauses },
+	MaybeFunForm = { function, FileLoc, MaybeFunName, Arity, MaybeClauses },
 
 
 	StrictFunName =

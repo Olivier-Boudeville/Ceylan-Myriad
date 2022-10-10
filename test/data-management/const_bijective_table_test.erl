@@ -80,6 +80,9 @@ test_in_memory_generation() ->
 	NestedTerm = frobnicator:get_second_for( "guitar" ),
 	"guitar" = frobnicator:get_first_for( NestedTerm ).
 
+	% No get_maybe_{first,second}_for/1 tested as using here the default
+	% 'strict' element look-up.
+
 	%will_crash = frobnicator:get_second_for( 'non_existing' ).
 
 
@@ -104,7 +107,7 @@ test_in_file_generation() ->
 					  { NestedTerm, SomeTerm } ],
 
 	ModFilename = const_bijective_table:generate_in_file( InFileModName,
-														  TargetEntries ),
+						TargetEntries, _ElementLookup='maybe' ),
 
 	true = file_utils:is_existing_file( ModFilename ),
 	false = code:is_loaded( InFileModName ),
@@ -117,6 +120,13 @@ test_in_file_generation() ->
 
 	SomeTerm = InFileModName:get_second_for( NestedTerm ),
 	NestedTerm = InFileModName:get_first_for( SomeTerm ),
+
+	% Neither among the first elements nor the second ones:
+	NonExisting = 2,
+
+	% As using here a 'maybe' element look-up:
+	undefined = InFileModName:get_maybe_first_for( NonExisting ),
+	undefined = InFileModName:get_maybe_second_for( NonExisting ),
 
 	ModFullPath = file_utils:ensure_path_is_absolute( ModFilename ),
 	{ file, ModFullPath } = code:is_loaded( InFileModName ),
