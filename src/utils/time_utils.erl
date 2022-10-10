@@ -192,7 +192,8 @@
 %
 -export([ get_timestamp/0,
 		  get_epoch_timestamp/0, get_epoch_milliseconds_since_year_0/0,
-		  is_timestamp/1, check_timestamp/1, check_maybe_timestamp/1,
+		  is_timestamp/1, is_date/1, is_time/1,
+		  check_timestamp/1, check_maybe_timestamp/1,
 		  get_textual_timestamp/0, get_textual_timestamp/1,
 		  get_bin_textual_timestamp/0,
 		  get_user_friendly_textual_timestamp/1,
@@ -215,13 +216,16 @@
 		  get_precise_timestamp/0, get_precise_duration/2,
 		  get_precise_duration_since/1,
 		  get_date_after/2,
-		  check_time_frame/1 ]).
+		  check_time_frame/1, time_frame_to_string/1,
+		  canonicalise_time_frame/1 ]).
 
 
 -type timestamp() :: { date(), time() }.
 % Used to be calendar:datetime(), now uses our types.
 %
 % A timestamp shall preferably be canonical (e.g. with a canonical month).
+%
+% For example: {{2022,11,7}, {13,14,53}}.
 
 
 -type precise_timestamp() :: { megaseconds(), seconds(), microseconds() }.
@@ -229,6 +233,13 @@
 
 -type time_frame() :: { Start :: timestamp(), End :: timestamp() }.
 % A time frame.
+
+
+-type user_time_frame() :: { Start :: timestamp() | date(),
+							 End :: timestamp() | date() }.
+% Typically a user-defined time frame, to be transformed into a legit
+% time_frame/0.
+
 
 
 -type time_out() :: 'infinity' | milliseconds().
@@ -240,8 +251,9 @@
 % is 1970-01-01 00:00 UTC.
 
 
--export_type([ timestamp/0, precise_timestamp/0, time_frame/0, time_out/0,
-			   posix_seconds/0 ]).
+-export_type([ timestamp/0, precise_timestamp/0,
+			   time_frame/0, user_time_frame/0,
+			   time_out/0, posix_seconds/0 ]).
 
 
 % Shorthands:
@@ -1012,21 +1024,46 @@ get_epoch_milliseconds_since_year_0() ->
 
 
 
-% @doc Returns whether specified term is a legit (canonical) timestamp.
+% @doc Returns whether the specified term is a legit (canonical) timestamp.
 %
 % Useful to vet user-specified timestamps.
 %
 -spec is_timestamp( term() ) -> boolean().
-is_timestamp( { Date={ Y, M, D }, _Time={ Hour, Min, Sec } } )
-		when is_integer( Y ) andalso is_integer( M ) andalso is_integer( D )
-			andalso is_integer( Hour ) andalso is_integer( Min )
-			andalso is_integer( Sec ) andalso Hour < 24 andalso Min < 60
-			andalso Sec < 60 ->
-	% Includes the checking that the month is canonical:
-	calendar:valid_date( Date );
+is_timestamp( { Date, Time } ) ->
+	is_date( Date ) andalso is_time( Time ).
 
-is_timestamp( _Other ) ->
+
+
+% @doc Returns whether the specified term is a legit (canonical) date.
+%
+% Useful to vet user-specified dates.
+%
+-spec is_date( term() ) -> boolean().
+%is_date( _Date={ Y, M, D } ) when is_integer( Y ) andalso is_integer( M )
+%								  andalso is_integer( D ) ->
+%	true;
+%
+%is_date( _Other ) ->
+%	false.
+is_date( Term ) ->
+	% Includes the checking that the month is canonical:
+	calendar:valid_date( Term ).
+
+
+
+% @doc Returns whether the specified term is a legit (canonical) time.
+%
+% Useful to vet user-specified times.
+%
+-spec is_time( term() ) -> boolean().
+is_time( _Time={ Hour, Min, Sec } ) when is_integer( Hour )
+			andalso is_integer( Min ) andalso is_integer( Sec )
+			andalso Hour < 24 andalso Min < 60 andalso Sec < 60 ->
+	true;
+
+is_time( _Other ) ->
 	false.
+
 
 
 
@@ -1910,3 +1947,61 @@ check_time_frame( TF={ StartTimestamp, EndTimestamp } ) ->
 
 check_time_frame( Other ) ->
 	throw( { invalid_time_frame, Other } ).
+
+
+
+% @doc Returns a textual description of the specified time frame.
+-spec time_frame_to_string( time_frame() ) -> ustring().
+time_frame_to_string( _TimeFrame={ Start, End } ) ->
+	text_utils:format( "timeframe from ~ts to ~ts",
+		[ get_textual_timestamp( Start ), get_textual_timestamp( End ) ] ).
+
+
+
+% @doc Returns a legit, checked time-frame from the user specified one.
+%
+% If a date is specified with no corresponding time, we consider time is
+% 00:00:00.
+%
+-spec canonicalise_time_frame( user_time_frame() ) -> time_frame().
+canonicalise_time_frame( { Start, End } ) ->
+	CanonicalStart = case is_timestamp( Start ) of
+
+		true ->
+			Start;
+
+		false ->
+			case is_date( Start ) of
+
+				true ->
+					{ Start, _StartTime={ 0, 0, 0 } };
+
+				false ->
+					throw( { not_a_date, Start } )
+
+			end
+
+	end,
+
+	CanonicalEnd = case is_timestamp( End ) of
+
+		true ->
+			End;
+
+		false ->
+			case is_date( End ) of
+
+				true ->
+					{ End, _EndTime={ 0, 0, 0 } };
+
+				false ->
+					throw( { not_a_date, End } )
+
+			end
+
+	end,
+
+	check_time_frame( { CanonicalStart, CanonicalEnd } );
+
+canonicalise_time_frame( Other ) ->
+	throw( { invalid_user_time_frame, Other } ).
