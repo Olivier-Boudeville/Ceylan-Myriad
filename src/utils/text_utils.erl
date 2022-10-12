@@ -578,10 +578,32 @@ integer_to_string( IntegerValue ) ->
 
 
 
-% @doc Returns a plain string corresponding to the specified integer, in
-% hexadecimal form, with a "0x" prefix.
+
+% Hexadecimal notes:
+
+% Regarding zero-padding:
 %
-% Ex: integer_to_hexastring(3432) = "0xd68".
+% None is done (no zeros added on the left of the resulting hexastring), as the
+% expected size of the corresponding value type cannot be determined; for
+% example integer_to_hexastring(16#f) returns "f" - but "0f", "00f", etc. would
+% be equally true. It is up to the caller, if appropriate, to pad the returned
+% hexastring with zeros, possibly with: pad_string_right(HexaStr,_Width=3, $0)
+% in order to obtain, once flattened, "00f" instead of "f".
+
+% Regarding the "0x" prefix:
+%
+% We consider the "0x" hexadecimal prefix as fully optional: now, by default,
+% none is expected, none is added.
+
+
+
+% @doc Returns a plain string corresponding to the specified integer, in
+% hexadecimal form (with no "0x" prefix).
+%
+% Ex: integer_to_hexastring(3432) = "d68".
+%
+% Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+% "0x" prefixing.
 %
 -spec integer_to_hexastring( integer() ) -> hexastring().
 integer_to_hexastring( IntegerValue ) ->
@@ -592,7 +614,10 @@ integer_to_hexastring( IntegerValue ) ->
 % @doc Returns a plain string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix if requested.
 %
-% Ex: integer_to_hexastring(3432, true) = "0xd68".
+% Ex: integer_to_hexastring(3432, _AddPrefix=true) = "0xd68".
+%
+% Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+% "0x" prefixing.
 %
 -spec integer_to_hexastring( integer(), boolean() ) -> hexastring().
 integer_to_hexastring( IntegerValue, _AddPrefix=true ) ->
@@ -606,7 +631,10 @@ integer_to_hexastring( IntegerValue, _AddPrefix=false ) ->
 % @doc Returns a binary string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix.
 %
-% Ex: integer_to_hexabinstring(3432) = <<"0xd68">>.
+% Ex: integer_to_hexabinstring(3432) = <<"d68">>.
+%
+% Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+% "0x" prefixing.
 %
 -spec integer_to_hexasbintring( integer() ) -> hexastring().
 integer_to_hexasbintring( IntegerValue ) ->
@@ -616,7 +644,10 @@ integer_to_hexasbintring( IntegerValue ) ->
 % @doc Returns a binary string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix if requested.
 %
-% Ex: integer_to_hexabinstring(3432, true) = <<"0xd68">>.
+% Ex: integer_to_hexabinstring(3432, _AddPrefix=true) = <<"0xd68">>.
+%
+% Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+% "0x" prefixing.
 %
 -spec integer_to_hexabinstring( integer(), boolean() ) -> hexastring().
 integer_to_hexabinstring( IntegerValue, AddPrefix ) ->
@@ -630,11 +661,11 @@ integer_to_hexabinstring( IntegerValue, AddPrefix ) ->
 %
 % Note: both uppercase and lowercase letters are supported.
 %
-% Ex: hexastring_to_integer("0xd68") = 3432.
+% Ex: hexastring_to_integer("d68") = 3432.
 %
 -spec hexastring_to_integer( hexastring() ) -> integer().
 hexastring_to_integer( HexaString ) ->
-	hexastring_to_integer( HexaString, _ExpectPrefix=true ).
+	hexastring_to_integer( HexaString, _ExpectPrefix=false ).
 
 
 % @doc Returns an integer corresponding to the specified string containing a
@@ -661,11 +692,11 @@ hexastring_to_integer( HexaString, _ExpectPrefix=false ) ->
 % @doc Returns a plain string corresponding to the specified binary, in
 % hexadecimal form, with a "0x" prefix.
 %
-% Ex: `binary_to_hexastring(<<"hello">>) = "0x68656c6c6f"'.
+% Ex: `binary_to_hexastring(<<"hello">>) = "68656c6c6f"'.
 %
 -spec binary_to_hexastring( binary() ) -> hexastring().
 binary_to_hexastring( Bin ) ->
-	binary_to_hexastring( Bin, _AddPrefix=true ).
+	binary_to_hexastring( Bin, _AddPrefix=false ).
 
 
 
@@ -4457,11 +4488,15 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 								NewLineLen );
 
 				_ExceedingLen ->
+
 					% No, with this word the current line would be too wide,
 					% inserting it on new line instead:
+					%
 					PaddedCurrentLine = pad_string( CurrentLine, Width ),
+
 					%io:format( "Inserting line '~ts'.~n",
 					%           [ PaddedCurrentLine ] ),
+
 					join_words( RemainingWords, Width,
 						[ PaddedCurrentLine | AccLines ], Word,
 						CompatibleWidth )
@@ -4531,16 +4566,17 @@ pad_string_left( String, Width, PadChar ) ->
 
 	trace_utils:error_fmt( "String '~ts' already too long (~B characters) "
 		"to be padded (left) to width ~B (with '~ts').",
-		[ String, Len, Width, PadChar ] ),
+		[ String, Len, Width, case is_integer( PadChar ) of
+			true -> [ PadChar ]; false -> PadChar end ] ),
 
-	throw( { string_to_pad_left_too_long, String, Len, Width } ).
+	throw( { string_too_long_to_pad_left, String, Len, Width } ).
 
 
 
 % @doc Returns the specified string, padded with spaces to specified width,
 % right-justified (that is with spaces added to the left).
 %
-% Ex: pad_string_right("hello", 8) = ["   ","hello"]
+% Ex: pad_string_right("hello", 8) = ["   ", "hello"]
 %
 -spec pad_string_right( ustring(), width() ) -> any_string().
 pad_string_right( String, Width ) ->
@@ -4551,7 +4587,7 @@ pad_string_right( String, Width ) ->
 % right-justified (that is with spaces added to the left), with specified
 % padding character.
 %
-% Ex: pad_string_right("hello", 8, $*) = ["***","hello"]
+% Ex: pad_string_right("hello", 8, $*) = ["***", "hello"]
 %
 -spec pad_string_right( ustring(), width(), grapheme_cluster() ) ->
 														any_string().
@@ -4567,9 +4603,10 @@ pad_string_right( String, Width, PadChar ) ->
 
 	trace_utils:error_fmt( "String '~ts' already too long (~B characters) "
 		"to be padded (right) to width ~B (with '~ts').",
-		[ String, Len, Width, PadChar ] ),
+		[ String, Len, Width, case is_integer( PadChar ) of
+			true -> [ PadChar ]; false -> PadChar end ] ),
 
-	throw( { string_to_pad_right_too_long, String, Len, Width } ).
+	throw( { string_too_long_to_pad_right, String, Len, Width } ).
 
 
 
