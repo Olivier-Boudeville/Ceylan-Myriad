@@ -500,7 +500,7 @@ remove_existing_entries( Keys, MapHashtable ) ->
 						'key_not_found' | { 'value', value() }.
 % Not supported in 17.3:
 % lookup_entry( Key, #{ Key := Value } ) ->
-%   { value, Key };
+%   { value, Value };
 
 % lookup_entry( _Key, _MapHashtable ) ->
 %   key_not_found.
