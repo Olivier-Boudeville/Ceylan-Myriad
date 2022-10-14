@@ -1030,7 +1030,10 @@ get_epoch_milliseconds_since_year_0() ->
 %
 -spec is_timestamp( term() ) -> boolean().
 is_timestamp( { Date, Time } ) ->
-	is_date( Date ) andalso is_time( Time ).
+	is_date( Date ) andalso is_time( Time );
+
+is_timestamp( _Other ) ->
+	false.
 
 
 

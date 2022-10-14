@@ -167,6 +167,8 @@
 -type topic_spec() :: { topic_name(), entries() }
 					| { topic_name(), entries(), element_lookup() }.
 % The specified of a topic: name, entries and type of element look-up.
+%
+% The 'strict' element look-up is the default one.
 
 
 -export_type([ topic_name/0, first_type/0, second_type/0, entry/0, entries/0,

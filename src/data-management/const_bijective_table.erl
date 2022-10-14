@@ -154,9 +154,9 @@
 
 
 % @doc Generates in memory (only) and loads a module sharing bijectively the
-% specified entries by exporting suitably-generated get_first_for/1 and
-% get_second_for/1 (strict look-up) functions in order to access either element
-% of the recorded pairs.
+% specified entries by exporting suitably-generated get_{first,second}_for/1
+% functions ('strict' look-up) in order to access either element of the recorded
+% pairs.
 %
 % Note that no actual module file is generated (ex: no 'foobar.beam'), the
 % operation remains fully in-memory.
@@ -171,11 +171,13 @@ generate_in_memory( ModuleName, Entries ) ->
 % specified entries by exporting suitably-generated functions in order to access
 % either element of the recorded pairs.
 %
-% If the strict element look-up is selected, the get_first_for/1 and
-% get_second_for/1 functions will be available.
+% If the 'strict' element look-up is selected, the get_{first,second}_for/1
+% functions will be available.
 %
-% If the maybe element look-up is selected, additionally to the strict case the
-% get_maybe_first_for/1 and get_maybe_second_for/1 functions will be available.
+% If the 'maybe' element look-up is selected, additionally to the 'strict' case
+% the get_maybe_{first,second}_for/1 functions will be available. Selecting that
+% 'maybe' element look-up is not recommended if either of the first and second
+% sets contains the 'undefined' atom, as it leads to ambiguity.
 %
 % Note that no actual module file is generated (ex: no 'foobar.beam'), the
 % operation remains fully in-memory.
@@ -226,8 +228,8 @@ generate_in_memory( ModuleName, Entries, ElementLookup ) ->
 
 % @doc Generates in-file (a BEAM file created in the current directory) a module
 % sharing bijectively the specified entries by exporting suitably-generated
-% get_first_for/1 and get_second_for/1 (strict look-up) functions in order to
-% access either element of the recorded pairs.
+% get_{first,second}_for/1 functions ('strict' look-up) in order to access
+% either element of the recorded pairs.
 %
 % For a clearer setting, generated modules may be named as such
 % (e.g. 'foobar_generated').
@@ -246,11 +248,13 @@ generate_in_file( ModuleName, Entries ) ->
 % sharing bijectively the specified entries by exporting suitably-generated
 % functions in order to access either element of the recorded pairs.
 %
-% If the strict element look-up is selected, the get_first_for/1 and
-% get_second_for/1 functions will be available.
+% If the 'strict' element look-up is selected, the get_{first,second}_for/1
+% functions will be available.
 %
-% If the maybe element look-up is selected, additionally to the strict case the
-% get_maybe_first_for/1 and get_maybe_second_for/1 functions will be available.
+% If the 'maybe' element look-up is selected, additionally to the 'strict' case
+% the get_maybe_{first,second}_for/1 functions will be available. Selecting that
+% 'maybe' element look-up is not recommended if either of the first and second
+% sets contains the 'undefined' atom, as it leads to ambiguity.
 %
 % For a clearer setting, generated modules may be named as such
 % (e.g. 'foobar_generated').
@@ -272,11 +276,13 @@ generate_in_file( ModuleName, Entries, ElementLookup ) ->
 % suitably-generated functions in order to access either element of the recorded
 % pairs.
 %
-% If the strict element look-up is selected, the get_first_for/1 and
-% get_second_for/1 functions will be available.
+% If the 'strict' element look-up is selected, the get_{first,second}_for/1
+% functions will be available.
 %
-% If the maybe element look-up is selected, additionally to the strict case the
-% get_maybe_first_for/1 and get_maybe_second_for/1 functions will be available.
+% If the 'maybe' element look-up is selected, additionally to the 'strict' case
+% the get_maybe_{first,second}_for/1 functions will be available. Selecting that
+% 'maybe' element look-up is not recommended if either of the first and second
+% sets contains the 'undefined' atom, as it leads to ambiguity.
 %
 % For a clearer setting, generated modules may be named as such
 % (e.g. 'foobar_generated').
@@ -335,8 +341,8 @@ generate_in_file( ModuleName, Entries, ElementLookup, TargetDir ) ->
 
 
 
-% Helper section.
 
+% Helper section.
 
 
 % @doc Returns a filename corresponding to the specified BEAM module to be
