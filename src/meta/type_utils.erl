@@ -221,8 +221,8 @@
 % Let U be a type corresponding to the union of a set of types T1, T2, Tk; a
 % value of type U is thus of at least one of the types of that union.
 %
-% U is written as "T1|T2|...|Tk" and defined as D(U) = { union,
-% [D(T1),D(T2),...,D(Tk)] }.
+% U is written as "T1|T2|...|Tk" and defined as D(U) = {union,
+% [D(T1),D(T2),...,D(Tk)]}.
 %
 % For example, if my_type is defined as "foo|'kazoo'|[integer]", then D(my_type)
 % = {union, [foo, {atom,'kazoo'}, {list,integer}]}.
@@ -343,7 +343,7 @@
 -type nesting_depth() :: { count(), count() }.
 % Description of a nesting depth reached when parsing a type description.
 %
-% It is in pratice a {P,B} pair, where P is the parenthesis depth (ie the
+% It is in pratice a {P,B} pair, where P is the parenthesis depth (that is the
 % number of the parentheses that have been opened and not closed yet) and B is
 % the bracket depth (ie the same principle, for "[]" instead of for "()").
 
@@ -1851,7 +1851,7 @@ check_maybe_integer( Other ) ->
 % it.
 %
 -spec check_positive_integer( term() ) -> pos_integer().
-check_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+check_positive_integer( Int ) when is_integer( Int ) andalso ( Int >= 0 ) ->
 	Int;
 
 check_positive_integer( Other ) ->
@@ -1863,7 +1863,7 @@ check_positive_integer( Other ) ->
 % returns it.
 %
 -spec check_strictly_positive_integer( term() ) -> pos_integer().
-check_strictly_positive_integer( Int ) when is_integer( Int ) and Int > 0 ->
+check_strictly_positive_integer( Int ) when is_integer( Int ) andalso Int > 0 ->
 	Int;
 
 check_strictly_positive_integer( Other ) ->
@@ -1875,7 +1875,7 @@ check_strictly_positive_integer( Other ) ->
 % 'undefined' atom, and returns it.
 %
 -spec check_maybe_positive_integer( term() ) -> maybe( pos_integer() ).
-check_maybe_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+check_maybe_positive_integer( Int ) when is_integer( Int ) andalso Int >= 0 ->
 	Int;
 
 check_maybe_positive_integer( undefined ) ->

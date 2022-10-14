@@ -1192,6 +1192,7 @@ MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
 BEAM_DIRS += $(MYRIAD_BEAM_DIRS) $(MYRIAD_TOP)/.. $(MYRIAD_TOP)/ebin
 
 
+# The script that Myriad uses in order to launch its VMs:
 ERL_LAUNCHER = "$(MYRIAD_SRC)/scripts/launch-erl.sh"
 
 
@@ -1501,6 +1502,11 @@ EPMD_PORT := 4506
 FIREWALL_OPT := --tcp-range 50000 55000 --epmd-port $(EPMD_PORT)
 
 
+# To override the base maximum number of processes, knowing that:
+#  - Erlang default limit is only 32768 processes
+#  - yet ERL_LAUNCHER (i.e. launch-erl.sh) already set it by default to an
+# higher value of a few thousands; refer to its max_process_count variable
+#
 ifdef MAX_PROCESS_COUNT
 	MAX_PROCESS_OPT := --max-process-count $(MAX_PROCESS_COUNT)
 endif
