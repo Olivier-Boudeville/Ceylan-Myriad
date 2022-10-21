@@ -1610,32 +1610,24 @@ get_unix_process_specific_string() ->
 
 
 
-% @doc Returns a value (a strictly positive integer) expected to be as much as
-% possible specific to the current (Erlang) process.
+% @doc Returns a stable, reproducible value (a strictly positive integer)
+% expected to be as much as possible specific to the current (Erlang) process.
 %
-% Mostly based on its PID.
-%
-% Useful for example when a large number of similar processes try to access to
-% the same resource (ex: a set of file descriptors) at the same time: they can
-% rely on some random waiting based on that process-specific value in order to
-% smooth the accesses over time.
-%
-% We could imagine taking into account as well the current time, the process
-% reductions, etc. or generating a reference.
+% Refer to get_process_specific_value/1 for further details, and to
+% get_process_specific_value/1 to generate a value in a given range.
 %
 -spec get_process_specific_value() -> pos_integer().
 get_process_specific_value() ->
-	get_process_specific_value( self() ).
+	get_process_specific_value( _Pid=self() ).
 
 
 
-% @doc Returns a value (a strictly positive integer) expected to be as much as
-% possible specific to the specified (Erlang) PID.
+% @doc Returns a stable, reproducible value (a strictly positive integer)
+% expected to be as much as possible specific to the specified (Erlang) PID.
 %
-% Useful for example when a large number of similar processes try to access to
-% the same resource (ex: a set of file descriptors) at the same time: they can
-% rely on some random waiting based on that process-specific value in order to
-% smooth the accesses over time.
+% This value is meant to be process-specific *and* reproducible, that is
+% returning always the same value for the same PID. This may be useful when
+% having to generate an integer identifier corresponding to a given process.
 %
 % We could imagine taking into account as well the current time, the process
 % reductions, etc. or generating a reference.
@@ -1660,18 +1652,32 @@ get_process_specific_value( Pid ) ->
 	{ T, [] } = string:to_integer( ExtractedThird ),
 
 	X = F+1,
+
+	% Key part of PID, never null:
 	Y = S,
+
 	Z = T+1,
 
-	% Hash part probably a bit overkill:
-	Res = X*Y*Z + erlang:phash2( erlang:make_ref(), _MaxRange=1 bsl 32 ),
+	% Hash part probably a bit overkill and, a lot more importantly, including a
+	% reference would break reproducibility - much undesirable here:
+	%
+	%Res = X*Y*Z + erlang:phash2( erlang:make_ref(), _MaxRange=1 bsl 32 ),
+
+	Res = X*Y*Z,
 
 	%trace_utils:debug_fmt( "Process-specific value: ~B.", [ Res ] ),
 	Res.
 
 
 
-% @doc Returns a (Erlang) process-specific value in [Min,Max[.
+% @doc Returns an (Erlang), non-reproducible, process-specific value in
+% [Min,Max[.
+%
+% Useful for example when a large number of similar processes try to access to
+% the same resource (ex: a set of file descriptors) at the same time: they can
+% rely on some random waiting based on that process-specific value in order to
+% smooth the accesses over time. Reproducibility does not matter here.
+%
 -spec get_process_specific_value( integer(), integer() ) -> integer().
 get_process_specific_value( Min, Max ) ->
 	Value = get_process_specific_value(),

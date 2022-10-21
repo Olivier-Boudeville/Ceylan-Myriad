@@ -4241,8 +4241,8 @@ remove_ending_carriage_return( String ) when is_list( String ) ->
 
 
 
-% @doc Removes the last Count characters from specified string, and returns the
-% result.
+% @doc Removes the last Count characters from the specified string, and returns
+% the result.
 %
 -spec remove_last_characters( ustring(), count() ) -> ustring().
 remove_last_characters( String, Count ) ->
@@ -4262,15 +4262,17 @@ remove_last_characters( String, Count ) ->
 
 
 
-% @doc Removes all whitespaces from specified string, and returns the result.
+% @doc Removes all whitespaces from the specified string, and returns the
+% result.
+%
 -spec remove_whitespaces( ustring() ) -> ustring().
 remove_whitespaces( String ) ->
 	re:replace( String, "\s", "", [ global, unicode, { return, list } ] ).
 
 
 
-% @doc Removes all leading and trailing whitespaces from specified string, and
-% returns the result.
+% @doc Removes all leading and trailing whitespaces from the specified string,
+% and returns the result.
 %
 -spec trim_whitespaces( ustring() ) -> ustring().
 trim_whitespaces( String ) ->
@@ -4280,8 +4282,9 @@ trim_whitespaces( String ) ->
 
 
 
-% @doc Removes all leading whitespaces from specified string, and returns the
-% result.
+% @doc Removes all leading whitespaces from the specified string, and returns
+% the result.
+%
 -spec trim_leading_whitespaces( ustring() ) -> ustring().
 trim_leading_whitespaces( String ) ->
 
@@ -4290,8 +4293,8 @@ trim_leading_whitespaces( String ) ->
 
 
 
-% @doc Removes all trailing whitespaces from specified string, and returns the
-% result.
+% @doc Removes all trailing whitespaces from the specified string, and returns
+% the result.
 %
 -spec trim_trailing_whitespaces( ustring() ) -> ustring().
 trim_trailing_whitespaces( String ) ->
