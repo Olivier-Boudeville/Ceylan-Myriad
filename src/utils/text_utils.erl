@@ -83,6 +83,8 @@
 		  binaries_to_sorted_string/1, binaries_to_listed_string/1,
 		  binaries_to_binary/1, binaries_to_binary/2,
 
+		  buffer_to_string/1, buffer_to_binstring/1,
+
 		  atoms_to_string/1, atoms_to_sorted_string/1, atoms_to_listed_string/1,
 		  atoms_to_quoted_listed_string/1,
 		  integers_to_listed_string/1, integer_ids_to_listed_string/1,
@@ -1387,6 +1389,47 @@ binaries_to_binary( Binaries, Bullet ) when is_list( Bullet ) ->
 
 binaries_to_binary( _Binaries, IncorrectBullet ) ->
 	throw( { bullet_not_a_string, IncorrectBullet } ).
+
+
+
+% @doc Returns a (plain) string corresponding to the specified (byte) buffer,
+% expected to contain a 8 bit ASCII null-terminated string.
+%
+-spec buffer_to_string( binary() ) -> ustring().
+buffer_to_string( Bin ) ->
+	buffer_to_string( Bin, _Acc=[], Bin ).
+
+
+% (helper)
+buffer_to_string( _Bin= <<>>, _Acc, OriginalBin ) ->
+	throw( { not_null_terminated, OriginalBin } );
+
+% End of string found:
+buffer_to_string( _Bin= <<0,_T/binary>>, Acc, _OriginalBin ) ->
+	lists:reverse( Acc );
+
+buffer_to_string( _Bin= <<H,T/binary>>, Acc, OriginalBin ) ->
+	buffer_to_string( T, [ H | Acc ], OriginalBin ).
+
+
+
+% @doc Returns a binary string corresponding to the specified (byte) buffer,
+% expected to contain a 8 bit ASCII null-terminated string.
+%
+-spec buffer_to_binstring( binary() ) -> bin_string().
+buffer_to_binstring( Bin ) ->
+	%string_to_binary( buffer_to_string( Bin ) ).
+	% Possibly more efficient:
+	case binary:split( Bin, _Null= <<0>> ) of
+
+		[ _SingleElem ] ->
+			throw( { not_null_terminated, Bin } );
+
+		% Never empty by design:
+		[ FirstElemBin | _T ] ->
+			FirstElemBin
+
+	end.
 
 
 
