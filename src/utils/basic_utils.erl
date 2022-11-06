@@ -269,8 +269,8 @@
 % compilation warning telling it is "underspecified and therefore meaningless").
 
 
-% Designates data whose type and value have not been checked yet.
 -type unchecked_data() :: term().
+% Designates data whose type and value have not been checked yet.
 
 
 -type user_data() :: external_data().
@@ -285,6 +285,7 @@
 
 
 -type version_number() :: non_neg_integer().
+% A component of a version.
 
 
 -type version() :: three_digit_version().
@@ -306,7 +307,7 @@
 -type four_digit_version() :: { version_number(), version_number(),
 								version_number(), version_number() }.
 % Version as a quadruplet of integers, typically {MajorVersion, MinorVersion,
-% ReleaseVersion, SubreleaseVersion}.
+% ReleaseVersion, BuildVersion}.
 
 
 -type any_version() :: two_digit_version() | three_digit_version()
