@@ -169,7 +169,6 @@ rebuild: clean all
 
 
 
-
 # Bootstrap section.
 
 
@@ -581,7 +580,7 @@ rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 set-rebar-conf:
 	@echo "  Setting rebar configuration"
 	@/bin/rm -f rebar.config 2>/dev/null
-	@cd conf && $(MAKE) -s rebar.config && /bin/cp -f rebar.config ../
+	@cd conf && $(MAKE) -s rebar.config && /bin/cp -f rebar.config ../ && echo "  (rebar.config copied to root directory)"
 
 
 set-rebar-conf-for-hex:
