@@ -336,7 +336,7 @@ from_compact_coordinates( M11, M12, Tx,
 %
 -spec from_arbitrary( matrix() ) -> matrix3().
 from_arbitrary( Matrix ) ->
-	apply( fun from_rows/?dim, Matrix ).
+	erlang:apply( fun from_rows/?dim, Matrix ).
 
 
 % @doc Returns the arbitrary-dimensioned matrix corresponding to the specified

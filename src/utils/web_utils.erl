@@ -102,7 +102,7 @@
 -type old_style_options() :: [ { Field :: ustring(), Value :: ustring() } ].
 
 
--type new_style_options() :: maps:maps( bin_string(), bin_string() ).
+-type new_style_options() :: type_utils:map( bin_string(), bin_string() ).
 
 
 -type headers_as_list() :: old_style_options().
@@ -378,7 +378,7 @@ escape_as_url( [ { Key, Value } | T ], _Acc=[] ) ->
 
 escape_as_url( [ { Key, Value } | T ], Acc ) ->
 	escape_as_url( T, Acc ++ "&" ++ escape_key( Key ) ++ "="
-			++ escape_value( Value ) ).
+		++ escape_value( Value ) ).
 
 
 

@@ -221,8 +221,8 @@
 % Let U be a type corresponding to the union of a set of types T1, T2, Tk; a
 % value of type U is thus of at least one of the types of that union.
 %
-% U is written as "T1|T2|...|Tk" and defined as D(U) = { union,
-% [D(T1),D(T2),...,D(Tk)] }.
+% U is written as "T1|T2|...|Tk" and defined as D(U) = {union,
+% [D(T1),D(T2),...,D(Tk)]}.
 %
 % For example, if my_type is defined as "foo|'kazoo'|[integer]", then D(my_type)
 % = {union, [foo, {atom,'kazoo'}, {list,integer}]}.
@@ -343,7 +343,7 @@
 -type nesting_depth() :: { count(), count() }.
 % Description of a nesting depth reached when parsing a type description.
 %
-% It is in pratice a {P,B} pair, where P is the parenthesis depth (ie the
+% It is in pratice a {P,B} pair, where P is the parenthesis depth (that is the
 % number of the parentheses that have been opened and not closed yet) and B is
 % the bracket depth (ie the same principle, for "[]" instead of for "()").
 
@@ -463,20 +463,83 @@
 
 
 % Definition of actual datatypes (useful for typing variables):
+
+
+% Unsigned integers:
+
 -type uint8() :: 0..255.
--type sint8() :: fixme.
+% Non-negative 8-bit integer, ranging from 0 to 255 (both included).
 
--type uint16() :: fixme.
--type sint16() :: fixme.
+-type uint16() :: 0..65535.
+% Non-negative 16-bit integer, ranging from 0 to 65,535 (both included).
 
--type uint32() :: fixme.
--type sint32() :: fixme.
+-type uint32() :: 0..4294967295.
+% Non-negative 32-bit integer, ranging from 0 to 4,294,967,295 (both included).
 
--type uint64() :: fixme.
--type sint64() :: fixme.
+-type uint64() :: 0..18446744073709551615.
+% Non-negative 64-bit integer, ranging from 0 to 18,446,744,073,709,551,615
+% (both included).
 
--type float32() :: fixme.
--type float64() :: fixme.
+
+% Signed integers:
+
+-type sint8() :: -128..127.
+% Signed 8-bit integer, ranging from -128 to 127 (both included).
+
+-type sint16() :: -32768..32767.
+% Signed 16-bit integer, ranging from -32,768 to 32,767 (both included).
+
+-type sint32() :: -2147483648..2147483647.
+% Signed 32-bit integer, ranging from -2,147,483,648 to 2,147,483,647 (both
+% included).
+
+-type sint64() :: -9223372036854775808..9223372036854775807.
+% Signed 64-bit integer, ranging from -9,223,372,036,854,775,808 to
+% 9,223,372,036,854,775,807 (both included).
+
+
+% Maybe-signed, ambiguous integers:
+
+-type int8() :: uint8() | sint8().
+% 8-bit integer, potentially ranging from -128 to 255 (both included).
+
+-type int16() :: uint16() | sint16().
+% 16-bit integer, potentially ranging from -32,768 to 65,535 (both included).
+
+-type int32() :: uint32() | sint32().
+% 32-bit integer, potentially ranging from -2,147,483,648 to 4,294,967,295 (both
+% included).
+
+-type int64() :: uint64() | sint64().
+% 64-bit integer, potentially ranging from -9,223,372,036,854,775,808 to
+% 18,446,744,073,709,551,615 (both included).
+
+
+-type float32() :: float().
+% A single-precision, IEEE 754 32-bit base-2 floating-point value.
+%
+% Exact for all integers with up to 7 decimal digits, and for any 2^N for an
+% integer number N in [-149,127].
+%
+% See [https://en.wikipedia.org/wiki/Single-precision_floating-point_format] for
+% more information.
+%
+% Note that in Erlang this datatype does not exist as such, only floars are
+% float64() ones.
+
+
+-type float64() :: float().
+% A binary64/double-precision, IEEE 754 64-bit base-2 floating-point value.
+%
+% Exact notably for integers from -2^253 to 2^253 (-9,007,199,254,740,992 to
+% 9,007,199,254,740,992).
+%
+% See [https://en.wikipedia.org/wiki/Double-precision_floating-point_format] for
+% more information.
+
+
+-export_type([ ]).
+
 
 
 -type record() :: tuple().
@@ -508,23 +571,56 @@
 % elements are all of the specified type.
 
 
--type transient_term() :: pid() | port() | reference().
+% Not needed or useful as map() is a built-in type:
+%-type map() :: map( any(), any() ).
+
+-type map( _K, _V ) :: map().
+% As (maps:)map/2 does not even exist apparently, at least not since 18.0.
+
+
+
+-type permanent_term() :: integer() | float() | atom() | boolean() | binary()
+		| list( permanent_term() ) | tuple( permanent_term() )
+		| map( permanent_term(), permanent_term() ).
+% Designates values that are permanent, that is that are context-free, not
+% runtime-specific and can be reproduced (e.g. serialised).
+%
+% As for compound datatypes (lists, tuples and thus records, maps), they are
+% also permanent iff all the terms they aggregate are themselves permanent
+% terms.
+%
+% Permanent terms are the opposite of transient ones.
+
+
+-type transient_term() :: pid() | port() | reference() | fun().
 % Designates values that are transient, that is that are runtime-specific and
 % cannot be reproduced a priori.
 %
-% Anonymous functions may belong to this type.
+% PIDs belong to this type, ports, references, anonymous functions may also.
+%
+% As for compound datatypes (lists, tuples and thus records, maps), they are
+% also transient iff at least one of the terms they aggregate is itself a
+% transient term.
+%
+% Transient terms are the opposite of permanent ones.
+
+
 
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   low_level_type/0,
-			   uint8/0, sint8/0, uint16/0, sint16/0,
-			   uint32/0, sint32/0, uint64/0, sint64/0,
+
+			   uint8/0, uint16/0, uint32/0, uint64/0,
+			   sint8/0, sint16/0, sint32/0, sint64/0,
+			   int8/0, int16/0, int32/0, int64/0,
 			   float32/0, float64/0,
+
 			   record/0,
 			   tuploid/0, tuploid/1,
 			   pair/0, triplet/0, tuple/1,
-			   transient_term/0 ]).
+			   map/2,
+			   permanent_term/0, transient_term/0 ]).
 
 
 % Note: currently, only a very basic, ad hoc type support ("hand-made look-up
@@ -591,7 +687,8 @@
 % check_all_undefined/1, are_all_defined/1, check_defined/1,
 % check_not_undefined/1, check_all_defined/1.
 %
--export([ check_atom/1, check_boolean/1,
+-export([ check_atom/1, check_atoms/1,
+		  check_boolean/1, check_booleans/1,
 
 		  check_pid/1, check_maybe_pid/1,
 
@@ -1602,6 +1699,12 @@ check_atom( Other ) ->
 	throw( { not_atom, Other } ).
 
 
+% @doc Checks that the specified term is a list of atoms indeed, and returns it.
+-spec check_atoms( term() ) -> [ atom() ].
+check_atoms( Atoms ) ->
+	[ check_atom( T ) || T <- Atoms ],
+	Atoms.
+
 
 % @doc Checks that the specified term is a boolean indeed, and returns it.
 -spec check_boolean( term() ) -> atom().
@@ -1614,6 +1717,14 @@ check_boolean( false ) ->
 check_boolean( Other ) ->
 	throw( { not_boolean, Other } ).
 
+
+
+% @doc Checks that the specified term is a list of booleans indeed, and returns
+% it.
+-spec check_booleans( term() ) -> [ boolean() ].
+check_booleans( Booleans ) ->
+	[ check_boolean( T ) || T <- Booleans ],
+	Booleans.
 
 
 % @doc Checks that the specified term is a PID indeed, and returns it.
@@ -1740,7 +1851,7 @@ check_maybe_integer( Other ) ->
 % it.
 %
 -spec check_positive_integer( term() ) -> pos_integer().
-check_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+check_positive_integer( Int ) when is_integer( Int ) andalso ( Int >= 0 ) ->
 	Int;
 
 check_positive_integer( Other ) ->
@@ -1752,7 +1863,7 @@ check_positive_integer( Other ) ->
 % returns it.
 %
 -spec check_strictly_positive_integer( term() ) -> pos_integer().
-check_strictly_positive_integer( Int ) when is_integer( Int ) and Int > 0 ->
+check_strictly_positive_integer( Int ) when is_integer( Int ) andalso Int > 0 ->
 	Int;
 
 check_strictly_positive_integer( Other ) ->
@@ -1764,7 +1875,7 @@ check_strictly_positive_integer( Other ) ->
 % 'undefined' atom, and returns it.
 %
 -spec check_maybe_positive_integer( term() ) -> maybe( pos_integer() ).
-check_maybe_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+check_maybe_positive_integer( Int ) when is_integer( Int ) andalso Int >= 0 ->
 	Int;
 
 check_maybe_positive_integer( undefined ) ->

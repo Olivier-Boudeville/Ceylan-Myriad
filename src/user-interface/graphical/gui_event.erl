@@ -82,7 +82,7 @@
 -export([ get_subscribers_for/3, adjust_objects/4,
 		  process_only_latest_repaint_event/4, reassign_table_to_string/1,
 		  get_instance_state/2, type_table_to_string/1,
-		  instance_referential_to_string/1 ]).
+		  instance_referential_to_string/1, set_canvas_instance_state/3 ]).
 
 
 
@@ -130,7 +130,7 @@
 
 
 % Thus an actual wx:wx_object(), i.e. a #wx_ref record:
--type gui_event_object() :: wx:wxEvent().
+-type gui_event_object() :: wxEvent:wxEvent().
 % A Myriad GUI object (therefore the reference to a full-blown backend process -
 % not a mere datastructure like an event record received as a message) holding
 % information about an event passed to a callback or member function.
@@ -155,7 +155,7 @@
 -type event_source() :: wx_event_handler() | myriad_event_handler().
 
 
-%-type event_context() :: #event_context{}.
+-type event_context() :: #event_context{}.
 % Context sent to corresponding subscribers together with an event.
 %
 % This context can be ignored in most cases.
@@ -389,6 +389,7 @@
 			   event_subscription/0, event_subscription_spec/0,
 			   event_unsubscription/0, event_unsubscription_spec/0,
 			   event_callback/0,
+			   gui_event_object/0, event_context/0,
 
 			   gui_wx_object_key/0, myriad_object_key/0, gui_object_key/0 ]).
 
@@ -949,10 +950,15 @@ process_event_message( { drawCanvasLines, [ CanvasId, Points, Color ] },
 	gui_canvas:draw_lines( CanvasState, Points, Color ),
 	LoopState;
 
-process_event_message( { drawCanvasSegment, [ CanvasId, Points ] },
+process_event_message( { drawCanvasSegment, [ CanvasId, _Points ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
-	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_segment( CanvasState, Points ),
+	_CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
+	throw( not_implemented ),
+	% 2 missing arguments in:
+	%gui_canvas:draw_segment( CanvasState, Points ),
+	%gui_canvas:draw_segment(canvas_state(), line2(), coordinate(),
+	% coordinate()),
+
 	LoopState;
 
 process_event_message( { drawCanvasPolygon, [ CanvasId, Points ] },
@@ -1410,7 +1416,7 @@ update_instance_on_event( GuiObject, WxEventInfo, TypeTable ) ->
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "No specific update needed for GUI object ~w "
 			"regarding event information ~p.", [ GuiObject, WxEventInfo ] ),
-		basic_utils:ignore_unused( GuiObject, WxEventInfo ) ),
+		basic_utils:ignore_unused( [ GuiObject, WxEventInfo ] ) ),
 
 	TypeTable.
 

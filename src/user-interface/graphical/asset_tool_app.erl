@@ -45,7 +45,7 @@
 	quit_button :: gui:button(),
 	info_sizer :: gui:sizer(),
 	left_panel :: gui:panel(),
-	canvas :: gui:canvas() }).
+	canvas :: gui:canvas() } ).
 
 
 -type app_state() :: #app_state{}.
@@ -54,7 +54,7 @@
 
 % Shorthands:
 
--type coordinate() :: linear:coordinate().
+-type integer_coordinate() :: linear:integer_coordinate().
 -type canvas() :: gui_canvas:canvas().
 
 % Temporary:
@@ -64,25 +64,25 @@
 
 
 % @doc Returns the width of the main window.
--spec get_main_window_width() -> coordinate().
+-spec get_main_window_width() -> integer_coordinate().
 get_main_window_width() ->
 	800.
 
 
 % @doc Returns the height of the main window.
--spec get_main_window_height() -> coordinate().
+-spec get_main_window_height() -> integer_coordinate().
 get_main_window_height() ->
 	600.
 
 
 % @doc Returns the width of the displayed canvas.
--spec get_canvas_width() -> coordinate().
+-spec get_canvas_width() -> integer_coordinate().
 get_canvas_width() ->
 	640.
 
 
 % @doc Returns the height of the displayed canvas.
--spec get_canvas_height() -> coordinate().
+-spec get_canvas_height() -> integer_coordinate().
 get_canvas_height() ->
 	480.
 
@@ -98,7 +98,7 @@ init_app_gui() ->
 
 	MainFrame = gui:create_frame( _Title="Asset tool", FrameSize ),
 
-	gui:connect( MainFrame, close_window ),
+	gui:subscribe_to_events( { close_window, MainFrame } ),
 
 	%gui:set_background_color( MainFrame, red ),
 	%gui:set_background_color( LeftPanel, blue ),
@@ -158,7 +158,7 @@ init_app_gui() ->
 	AssetBoxSizer = gui:create_sizer_with_labelled_box( vertical, RightPanel,
 														"Asset View" ),
 
-	Canvas = gui_canvas:create( RightPanel ),
+	Canvas = gui_canvas:create_instance( RightPanel ),
 
 	gui_canvas:set_background_color( Canvas, pink ),
 

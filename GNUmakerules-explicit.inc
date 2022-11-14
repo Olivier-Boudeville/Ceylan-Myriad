@@ -53,7 +53,7 @@
 
 
 #dummy:
-#	@echo "You are executing the default, do-nothing make rule. You may want specify an actual target instead (ex: 'make foo')."
+#	@echo "You are executing the default, do-nothing make rule. You may want to specify an actual target instead (e.g. 'make foo')."
 
 
 
@@ -72,8 +72,7 @@ ifeq ($(BASE_MAKEFILE),true)
 #
 all: all-pre-hook all-parse-transforms create-include-links
 	@echo "  Building all, in parallel over $(CORE_COUNT) core(s), from $(PWD)"
-	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && \
-		$(MAKE) -s all-recurse -j $(CORE_COUNT) && cd ..; else echo "     (directory $$m skipped)"; \
+	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s all-recurse -j $(CORE_COUNT) && cd ..; else echo "     (directory $$m skipped)"; \
 	fi); then exit 1; fi; done
 
 
@@ -141,8 +140,9 @@ all-recurse-pre-hook:
 
 # This rule is not used by default, as we use the -j option from the root
 # makefile, letting then 'make' use its job server for that task:
+#
 all-parallel-recurse:
-	@echo "  Building all on parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
+	@echo "  Building all in parallel over $(CORE_COUNT) cores (in "$(PWD) #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s all -j $(CORE_COUNT) CMD_LINE_OPT="${CMD_LINE_OPT}" && cd ..; else echo "    (directory $$m skipped)"; fi); then exit 1; fi; done
 
 
@@ -155,7 +155,7 @@ all-parallel-recurse:
 # command is conditional.
 #
 all-recurse: $(BEAM_FILES)
-	@echo "  Building all in "$(PWD) #$$(basename $(PWD))
+	@echo "  Building all in $(PWD)" #$$(basename $(PWD))
 	@for m in $(MODULES_DIRS); do if ! (if [ -d $$m ]; then cd $$m && $(MAKE) -s all CMD_LINE_OPT="${CMD_LINE_OPT}" USE_HDF5=$(USE_HDF5) USE_JSON=$(USE_JSON) USE_REST=$(USE_REST) USE_SQLITE=$(USE_SQLITE) && cd ..; else echo "  (directory $$m skipped)"; fi); then exit 1; fi; done
 
 
@@ -288,9 +288,9 @@ launch: Emakefile
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) test_shell-$$USER $(EXEC_INTERNAL_OPTIONS) ${CMD_LINE_OPT}
 
 
-# To have an Erlang shell with the right configuration in order to rely on the
-# current project (e.g.with regard to its standard, base code path, including
-# all lower layers).
+# To obtain an Erlang shell with the right configuration in order to be able to
+# use the current project (e.g. with regard to its full, standard, base code
+# path, including the one of all lower layers).
 #
 # The node name of that shell includes the project name, user and current
 # directory, so that multiple, non-colliding shell instances can be created more
@@ -562,7 +562,7 @@ create-myriad-checkout:
 # ('remove-rebar-conf' target not kept, as rebar.config shall not be deleted in
 # GIT)
 #
-rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf      \
+rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 					create-include-links rebar3-hide-unsupported-sources \
 					rebar3-create-app-file
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
@@ -996,12 +996,6 @@ generate-list-of-local-types:
 	@$(MYRIAD_TOP)/src/scripts/list-available-types.sh > $(TYPE_LIST_FILE)
 
 
-
-# Section of type verification.
-
-
-## Dialyzer subsection.
-
 # Yes, this is an explicit, not automatic, rule:
 $(PLT_FILE): generate-local-plt
 
@@ -1039,25 +1033,8 @@ add-prerequisite-plts:
 # See also the write-debug-key-file target.
 #
 self-check-against-plt: all $(PLT_FILE)
-	@echo "    Checking $(PACKAGE_NAME) with Dialyzer against its PLT ($(PLT_FILE))"
+	@echo "    Checking $(PACKAGE_NAME) against its PLT ($(PLT_FILE))"
 	@$(DIALYZER) $(DIALYZER_OPTS) --plt $(PLT_FILE) -r .
-
-
-
-## Gradualizer subsection.
-
-
-# Runs Gradualizer to perform static type checking.
-#
-# (a recompilation is triggered to be sure that the latest version of BEAMs are
-# examined)
-#
-check-static-typing:
-	@if [ -z "$(TARGETS_TO_CHECK)" ]; then echo "  Error, no target specified for checking. One may execute 'make check-static-typing TARGETS_TO_CHECK="src/foo.beam src/bar.beam ebin"', should the current directory contain no BEAM files." 1>&2; exit 65; fi
-	@echo "    Checking $(TARGETS_TO_CHECK) with Gradualizer"
-	@$(MAKE) -s $(TARGETS_TO_CHECK)
-	@$(GRADUALIZER) $(GRADUALIZER_OPTS) $(OVERALL_PA_OPTS) -- $(TARGETS_TO_CHECK)
-
 
 
 # Stores on disk the current debug key for BEAMs, so that tools like Dialyzer
@@ -1316,7 +1293,7 @@ info-compile:
 	@echo "ERLANG_COMPILER_NATIVE_COMPILATION_OPT = $(ERLANG_COMPILER_NATIVE_COMPILATION_OPT)"
 	@echo "ERLANG_COMPILER_WARNING_OPT = $(ERLANG_COMPILER_WARNING_OPT)"
 	@echo "ERLANG_COMPILER_OPT_BASE = $(ERLANG_COMPILER_OPT_BASE)"
-	@echo "OVERALL_PZ_OPT = $(OVERALL_PZ_OPT)"
+	@echo "OVERALL_PA_OPTS = $(OVERALL_PA_OPTS)"
 	@echo "ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES = $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES)"
 	@echo "EXECUTION_TARGET = $(EXECUTION_TARGET)"
 	@echo "ENABLE_DEBUG = $(ENABLE_DEBUG)"
