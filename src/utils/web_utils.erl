@@ -378,7 +378,7 @@ escape_as_url( [ { Key, Value } | T ], _Acc=[] ) ->
 
 escape_as_url( [ { Key, Value } | T ], Acc ) ->
 	escape_as_url( T, Acc ++ "&" ++ escape_key( Key ) ++ "="
-			++ escape_value( Value ) ).
+		++ escape_value( Value ) ).
 
 
 
