@@ -231,11 +231,11 @@
 -type precise_timestamp() :: { megaseconds(), seconds(), microseconds() }.
 
 
--type time_frame() :: { Start :: timestamp(), End :: timestamp() }.
+-type time_frame() :: { Begin :: timestamp(), End :: timestamp() }.
 % A time frame.
 
 
--type user_time_frame() :: { Start :: timestamp() | date(),
+-type user_time_frame() :: { Begin :: timestamp() | date(),
 							 End :: timestamp() | date() }.
 % Typically a user-defined time frame, to be transformed into a legit
 % time_frame/0.
@@ -1024,8 +1024,13 @@ get_epoch_milliseconds_since_year_0() ->
 
 
 
-% @doc Returns whether the specified term is a legit (canonical) timestamp.
+% @doc Returns whether the specified term is a legit, valid (canonical)
+% timestamp.
 %
+% A timestamp must be valid in terms of type (a pair of triplet of integers) and
+% also of semantics (e.g. {{2022,9,31}, {18,0,0}} is not valid, at not 31st
+% exists in September).
+
 % Useful to vet user-specified timestamps.
 %
 -spec is_timestamp( term() ) -> boolean().
@@ -1070,8 +1075,8 @@ is_time( _Other ) ->
 
 
 
-% @doc Checks that the specified term is a (possibly non-canonical) timestamp
-% indeed, and returns it.
+% @doc Checks that the specified term is a (possibly non-canonical) valid
+% timestamp indeed, and returns it.
 %
 -spec check_timestamp( term() ) -> timestamp().
 check_timestamp( Term ) ->
@@ -1082,13 +1087,15 @@ check_timestamp( Term ) ->
 			Term;
 
 		false ->
-			throw( { not_a_timestamp, Term } )
+			throw( { not_a_valid_timestamp, Term } )
 
 	end.
 
 
 
-% @doc Checks that specified term is a maybe-timestamp indeed.
+% @doc Checks that specified term is a maybe-timestamp (then a valid one)
+% indeed.
+%
 -spec check_maybe_timestamp( term() ) -> maybe( timestamp() ).
 check_maybe_timestamp( Term=undefined ) ->
 	Term;
@@ -1101,7 +1108,7 @@ check_maybe_timestamp( Term ) ->
 			Term;
 
 		false ->
-			throw( { not_a_maybe_timestamp, Term } )
+			throw( { not_a_valid_maybe_timestamp, Term } )
 
 	end.
 
@@ -1934,16 +1941,16 @@ get_date_after( BaseDate, Days ) ->
 % duration indeed, and returns it.
 %
 -spec check_time_frame( term() ) -> time_frame().
-check_time_frame( TF={ StartTimestamp, EndTimestamp } ) ->
-	check_timestamp( StartTimestamp ),
+check_time_frame( TF={ BeginTimestamp, EndTimestamp } ) ->
+	check_timestamp( BeginTimestamp ),
 	check_timestamp( EndTimestamp ),
-	case get_duration( StartTimestamp, EndTimestamp ) of
+	case get_duration( BeginTimestamp, EndTimestamp ) of
 
 		DSecs when DSecs > 0 ->
 			TF;
 
 		OtherDSecs ->
-			throw( { invalid_time_frame, StartTimestamp, EndTimestamp,
+			throw( { invalid_time_frame, BeginTimestamp, EndTimestamp,
 					 OtherDSecs } )
 
 	end;
@@ -1955,9 +1962,9 @@ check_time_frame( Other ) ->
 
 % @doc Returns a textual description of the specified time frame.
 -spec time_frame_to_string( time_frame() ) -> ustring().
-time_frame_to_string( _TimeFrame={ Start, End } ) ->
+time_frame_to_string( _TimeFrame={ Begin, End } ) ->
 	text_utils:format( "timeframe from ~ts to ~ts",
-		[ get_textual_timestamp( Start ), get_textual_timestamp( End ) ] ).
+		[ get_textual_timestamp( Begin ), get_textual_timestamp( End ) ] ).
 
 
 
@@ -1967,20 +1974,20 @@ time_frame_to_string( _TimeFrame={ Start, End } ) ->
 % 00:00:00.
 %
 -spec canonicalise_time_frame( user_time_frame() ) -> time_frame().
-canonicalise_time_frame( { Start, End } ) ->
-	CanonicalStart = case is_timestamp( Start ) of
+canonicalise_time_frame( { Begin, End } ) ->
+	CanonicalBegin = case is_timestamp( Begin ) of
 
 		true ->
-			Start;
+			Begin;
 
 		false ->
-			case is_date( Start ) of
+			case is_date( Begin ) of
 
 				true ->
-					{ Start, _StartTime={ 0, 0, 0 } };
+					{ Begin, _BeginTime={ 0, 0, 0 } };
 
 				false ->
-					throw( { not_a_date, Start } )
+					throw( { not_a_date, Begin } )
 
 			end
 
@@ -2004,7 +2011,7 @@ canonicalise_time_frame( { Start, End } ) ->
 
 	end,
 
-	check_time_frame( { CanonicalStart, CanonicalEnd } );
+	check_time_frame( { CanonicalBegin, CanonicalEnd } );
 
 canonicalise_time_frame( Other ) ->
 	throw( { invalid_user_time_frame, Other } ).
