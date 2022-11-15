@@ -1032,3 +1032,4 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 
 (delete-other-windows)
+(put 'downcase-region 'disabled nil)

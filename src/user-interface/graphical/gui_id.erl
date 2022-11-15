@@ -88,7 +88,8 @@
 % integer in wx object references, like {wx_ref,35,wxFrame,[]}).
 
 
--export_type([ name_id/0, id/0, id_allocator_pid/0, myriad_instance_id/0 ]).
+-export_type([ name_id/0, id/0, id_allocator_pid/0, myriad_instance_id/0,
+			   backend_id/0, wx_id/0, id_name_alloc_table/0 ]).
 
 
 

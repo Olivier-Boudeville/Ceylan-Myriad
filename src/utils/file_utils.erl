@@ -243,7 +243,7 @@
 
 
 -type file_name() :: path().
-% Designates a filename, generally without a path (ex: "foobar.txt").
+% Designates a filename, generally without a path (e.g. "foobar.txt").
 
 
 -type filename() :: file_name().
@@ -251,8 +251,13 @@
 
 
 -type file_path() :: path().
-% Designates a path to a file (including its filename); ex:
-% "../my_dir/other/foobar.txt".
+% Designates a path to a file (including its filename),
+% e.g. "../my_dir/other/foobar.txt".
+
+
+-type device_path() :: path().
+% Designates a path to a device (including its device name), e.g.
+% "/dev/ttyUSB0".
 
 
 -type bin_file_name() :: bin_string().
@@ -363,7 +368,7 @@
 
 %-type file_open_mode() :: file:mode() | 'ram'.
 -type file_open_mode() :: tuple() | atom() | 'ram'.
-% Relevant flags when opening a file (ex: read, write, append, exclusive, raw,
+% Relevant flags when opening a file (e.g. read, write, append, exclusive, raw,
 % etc.).
 %
 % See [http://erlang.org/doc/man/file.html#open-2] for their detailed
@@ -436,6 +441,8 @@
 			   file_name/0, filename/0, file_path/0,
 			   bin_file_name/0, bin_file_path/0,
 			   any_file_name/0, any_file_path/0,
+
+			   device_path/0,
 
 			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
 			   executable_name/0, executable_path/0, bin_executable_path/0,
@@ -3016,7 +3023,8 @@ create_temporary_directory() ->
 % @doc Removes (deletes) the specified file (regular, or symbolic link),
 % specified as any kind of string.
 %
-% Throws an exception if any problem occurs.
+% Throws an exception if any problem occurs (e.g. the file does not exist, or
+% could not be removed for any reason).
 %
 -spec remove_file( any_file_path() ) -> void().
 remove_file( FilePath ) ->
@@ -3038,6 +3046,9 @@ remove_file( FilePath ) ->
 
 % @doc Removes (deletes) specified files, specified as a list of any kind of
 % strings.
+%
+% Throws an exception if any problem occurs (e.g. a file does not exist, or
+% could not be removed for any reason).
 %
 -spec remove_files( [ any_file_path() ] ) -> void().
 remove_files( FilePaths ) ->
@@ -4811,8 +4822,7 @@ write( File, Content ) ->
 % Note that no control character (even no "~n", for newlines) must exist in the
 % specified string, otherwise they will be written literally. To convert them,
 % use: 'write_ustring( File, Str, _FormatValues=[] )'.
-
-
+%
 % Throws an exception on failure.
 %
 -spec write_ustring( file(), ustring() ) -> void().
@@ -4942,6 +4952,8 @@ read_lines( File, FilePath, Acc ) ->
 %
 % Note that specifying a binary allows to avoid any potential unwanted encoding.
 %
+% Any already-existing file at that path will be silently overwritten.
+%
 % Throws an exception on failure.
 %
 -spec write_whole( any_file_path(), ustring() | binary() ) -> void().
@@ -4959,6 +4971,8 @@ write_whole( AnyFilePath, Content ) ->
 % text_utils:string_to_binary/1) such encoding on plain strings (otherwise this
 % would result in a double encoding); specifying a binary allows to avoid any
 % potential unwanted encoding.
+%
+% Any already-existing file at that path will be silently overwritten.
 %
 % Throws an exception on failure.
 %
@@ -5026,8 +5040,8 @@ write_whole_in_non_clashing( Content ) ->
 
 
 
-% @doc Reads specified file supposedly in ETF format (Erlang Term Format): tries
-% to parse a list of terms (one per line, terminating with a dot) from it
+% @doc Reads the specified file, supposedly in ETF format (Erlang Term Format):
+% tries to parse a list of terms (one per line, terminating with a dot) from it
 % (as file:consult/1 does), and returns it. Lines starting with '%' are ignored
 % (just considered as comments).
 %

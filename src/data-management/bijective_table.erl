@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Saturday, May 4, 2019.
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Saturday, May 4, 2019.
 
 
 % @doc Datastructure allowing to perform <b>bidirectional conversions between
@@ -32,6 +32,15 @@
 % One can see it as a `[{first_type(), second_type()}]' associative table
 % allowing to transform any element of a set into its (unique) corresponding
 % element in the other one.
+%
+% See also const_bijective_table.erl for constant bijective tables that can be
+% requested from any number (potentially extremely large) of callers very
+% efficiently thanks to the generation (only in memory, or in file) of a
+% corresponding module.
+%
+% Refer to:
+% - bijective_table_test.erl for an usage example and testing thereof
+% - const_bijective_table.erl for a constant, compile-time bijective table
 %
 -module(bijective_table).
 
@@ -62,7 +71,7 @@
 -type entry() :: { first_type(), second_type() }.
 
 -type entries() :: [ entry() ].
-
+% Entries that can be fed to a bijective table.
 
 -export_type([ bijective_table/0, bijective_table/2 ]).
 
@@ -195,7 +204,7 @@ get_first_for( Second,
 -spec get_maybe_first_for( second_type(), bijective_table() ) ->
 											maybe( first_type() ).
 get_maybe_first_for( Second,
-			   _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+				_BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
 	case table:lookup_entry( Second, SecondToFirstTable ) of
 
 		key_not_found ->
@@ -214,7 +223,7 @@ get_maybe_first_for( Second,
 -spec get_first_elements_for( [ second_type() ], bijective_table() ) ->
 											[ first_type() ].
 get_first_elements_for( SecondElems,
-			   _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
+				_BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
 	table:get_values( SecondElems, SecondToFirstTable ).
 
 
@@ -283,7 +292,7 @@ remove_entry_by_first( First,
 % Returns an updated table.
 %
 -spec remove_entry_by_second( second_type(), bijective_table() ) ->
-											bijective_table().
+												bijective_table().
 remove_entry_by_second( Second,
 				_BijTable={ FirstToSecondTable, SecondToFirstTable } ) ->
 	First = table:get_value( Second, SecondToFirstTable ),

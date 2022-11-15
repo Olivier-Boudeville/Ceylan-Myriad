@@ -168,7 +168,7 @@
 % Name of a (third-party) prerequisite package (ex: "ErlPort", "jsx", etc.).
 
 
--export_type([ package_name/0 ]).
+-export_type([ package_name/0, os_family/0, os_name/0, os_type/0 ]).
 
 
 -export([ get_dependency_base_directory/1, get_dependency_code_directory/1,

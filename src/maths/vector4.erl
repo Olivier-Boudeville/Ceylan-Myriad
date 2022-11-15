@@ -342,7 +342,7 @@ check_unit_vector( V ) ->
 
 
 % @doc Checks that the specified 4D vectors are normalised, and returns them.
--spec check_unit_vectors( vector4() ) -> unit_vector4().
+-spec check_unit_vectors( [ vector4() ] ) -> [ unit_vector4() ].
 check_unit_vectors( Vs ) ->
 	[ true = is_unitary( V ) || V <- Vs ],
 	Vs.

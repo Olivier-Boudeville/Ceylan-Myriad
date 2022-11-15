@@ -902,13 +902,13 @@ ensure_compiled( ModuleName, BaseDir, Defines ) ->
 			%    ModuleName ] ),
 			ok;
 
-		{ _ReturnCode=0, Output } ->
+		{ _ReturnCode=0, _Output } ->
 			% Generally just the base build message like:
 			% "   Compiling standard module foobar.beam".
 			%
-			trace_utils:warning_fmt( "Module '~ts' successfully "
-				"recompiled, with output: '~ts'.",
-				[ ModuleName, Output ] ),
+			%trace_utils:warning_fmt( "Module '~ts' successfully "
+			%   "recompiled, with output: '~ts'.",
+			%   [ ModuleName, Output ] ),
 			ok;
 
 		{ ErrorCode, Output } ->

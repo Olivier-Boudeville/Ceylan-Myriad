@@ -81,6 +81,10 @@
 -export([ is_routable/1 ]).
 
 
+% Checkings:
+-export([ check_port/1, check_ephemeral_port/1]).
+
+
 % Stringifications:
 -export([ ipv4_to_string/1, ipv4_to_string/2,
 		  ipv6_to_string/1, ipv6_to_string/2,
@@ -175,8 +179,15 @@
 
 
 -type net_port() :: non_neg_integer().
+% A port number is a 16-bit unsigned integer, thus ranging from 0 to 65535. For
+% TCP, port number 0 is reserved and cannot be used, while for UDP, the source
+% port is optional and a value of zero means no port.
+
 -type tcp_port() :: net_port().
 -type udp_port() :: net_port().
+
+-type ephemeral_port() :: net_port().
+% The RFC 6056 says that the range for ephemeral ports should be 1024-65535.
 
 -type tcp_port_range() :: { tcp_port(), tcp_port() }.
 -type udp_port_range() :: { udp_port(), udp_port() }.
@@ -209,6 +220,12 @@
 			   lookup_tool/0, lookup_info/0, lookup_outcome/0 ]).
 
 
+-type listening_socket() :: socket:socket().
+% A (low-level, NIF-based) TCP/IP socket used to listen to incoming connections.
+
+-export_type([ listening_socket/0 ]).
+
+
 % For the default_epmd_port define:
 -include("net_utils.hrl").
 
@@ -235,9 +252,9 @@
 % Host-related functions.
 
 
-% @doc Pings specified hostname, and returns true iff it could be ping'd.
+% @doc Pings the specified hostname, and returns true iff it could be ping'd.
 %
-% Note: command-line based call, used that way as there is no ICMP stack.
+% Note: command-line based call, used that way as there is no Erlang ICMP stack.
 %
 % A port could be used also.
 %
@@ -246,7 +263,7 @@ ping( Hostname ) ->
 
 	HostnameStr = text_utils:ensure_string( Hostname ),
 
-	Command = "/bin/ping " ++ HostnameStr ++ " -q -c 1 ",
+	Command = "/bin/ping " ++ HostnameStr ++ " -q -c 1",
 
 	%trace_utils:debug_fmt( "Ping command: '~ts'.", [ Command ] ),
 
@@ -1612,8 +1629,8 @@ get_tcp_port_range_option( no_restriction ) ->
 	"";
 
 get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
-  when is_integer( MinTCPPort ) andalso is_integer( MaxTCPPort )
-	   andalso MinTCPPort < MaxTCPPort ->
+		when is_integer( MinTCPPort ) andalso is_integer( MaxTCPPort )
+			 andalso MinTCPPort < MaxTCPPort ->
 	%trace_utils:debug_fmt( "Enforcing following TCP range: [~B,~B].",
 	%                       [ MinTCPPort, MaxTCPPort ] ),
 	text_utils:format( " -kernel inet_dist_listen_min ~B "
@@ -2050,6 +2067,32 @@ is_routable( { 192, 168, _, _ } ) ->
 
 is_routable( _ ) ->
 	true.
+
+
+% Checkings.
+
+
+% @doc Checks that the specified port is a valid port (typically UDP or TCP),
+% and returns it.
+%
+-spec check_port( term() ) -> net_port().
+check_port( I ) when is_integer( I ) andalso I > 0 andalso I =< 65535 ->
+	I;
+
+check_port( Other ) ->
+	throw( { invalid_net_port, Other  } ).
+
+
+% @doc Checks that the specified port is a valid ephemeral port (typically UDP
+% or TCP), and returns it.
+%
+-spec check_ephemeral_port( term() ) -> ephemeral_port().
+check_ephemeral_port( I ) when is_integer( I )
+							   andalso I >= 1024 andalso I =< 65535 ->
+	I;
+
+check_ephemeral_port( Other ) ->
+	throw( { invalid_ephemeral_net_port, Other } ).
 
 
 

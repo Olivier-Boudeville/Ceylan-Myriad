@@ -105,11 +105,10 @@
 -type entry_count() :: basic_utils:count().
 
 
--opaque map_hashtable() :: map().
+-type map_hashtable() :: map().
 
-% Since 18.0, map/2 does not seem to exist anymore:
-%-opaque map_hashtable( K, V ) :: map( K, V ).
--opaque map_hashtable( _K, _V ) :: map().
+% Opaqueness difficult to preserve:
+-type map_hashtable( K, V ) :: type_utils:map( K, V ).
 
 
 -export_type([ key/0, value/0, entry/0, entries/0,
@@ -501,7 +500,7 @@ remove_existing_entries( Keys, MapHashtable ) ->
 						'key_not_found' | { 'value', value() }.
 % Not supported in 17.3:
 % lookup_entry( Key, #{ Key := Value } ) ->
-%   { value, Key };
+%   { value, Value };
 
 % lookup_entry( _Key, _MapHashtable ) ->
 %   key_not_found.
@@ -530,7 +529,7 @@ has_entry( Key, MapHashtable ) ->
 %   true;
 
 % has_entry( _Key, _MapHashtable ) ->
-%	false.
+%   false.
 
 
 
@@ -542,7 +541,7 @@ has_entry( Key, MapHashtable ) ->
 %
 -spec get_value( key(), map_hashtable() ) -> value().
 %get_value( Key, #{ Key := Value } ) ->
-%	Value.
+%   Value.
 get_value( Key, MapHashtable ) ->
 	try
 
@@ -587,8 +586,10 @@ get_values( Keys, Hashtable ) ->
 
 
 
-% @doc Looks for the specified entry in specified table and, if found, returns
-% the associated value; otherwise returns the specified default value.
+% @doc Looks for the specified entry in the specified table and, if found,
+% returns the associated value; otherwise returns the specified default value.
+%
+% Allows to perform in a single operation a look-up followed by a fetch.
 %
 -spec get_value_with_default( key(), value(), map_hashtable() ) -> value().
 get_value_with_default( Key, DefaultValue, MapHashtable ) ->

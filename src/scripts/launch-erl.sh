@@ -41,8 +41,12 @@ use_run_erl=1
 # Some defaults:
 
 # By default up to 1.2 million processes could be created on one node:
-# (reduced, as even without having spawned these processes, the memory footprint
-# can increase quite a lot; default value is 32768 processes)
+#
+# (it has been reduced, as even without having spawned these processes, the
+# memory footprint can increase quite a lot; the Erlang default value is given
+# by erlang:system_info(process_limit); it used to be 32768 processes, then 262
+# 144)
+#
 # max_process_count=120000
 max_process_count=400000
 #max_process_count=120000000
@@ -892,12 +896,14 @@ res=$?
 if [ ! ${res} -eq 0 ]; then
 
 	reset_keyboard
-	echo "(command failed, with error result ${res})" 1>&2
+	echo "(launch command failed, with error result ${res})" 1>&2
 	exit ${res}
 
 elif [ ${use_run_erl} -eq 1 ]; then
 
-	echo "(command success reported)"
+	# Dispensable:
+	#echo "(launch command success reported)"
+	:
 
 fi
 
@@ -905,7 +911,7 @@ fi
 
 # Commented out, as pid never set:
 #if [ $in_background -eq 0 ]; then
-#	echo "(PID of launched interpreter is $pid)"
+#   echo "(PID of launched interpreter is $pid)"
 #fi
 
 

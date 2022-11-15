@@ -48,6 +48,8 @@
 %
 % Note that apparently, according to our test, some images can be loaded fine
 % (ex: "erlang.png") whereas some others not (ex: ""myriad-title.png").
+%
+% Here also, the opaqueness of types is difficult to preserve.
 
 
 % Relies on the wxWidgets backend.
@@ -107,7 +109,7 @@
  % The requested quality for an image operation (ex: for a scaling).
 
 
--opaque bitmap() :: wxBitmap:wxBitmap().
+-type bitmap() :: wxBitmap:wxBitmap().
 % Platform-dependent bitmap, either monochrome or colour (with or without alpha
 % channel).
 %
@@ -157,7 +159,7 @@
 
 -export_type([ image/0, image_format/0, image_quality/0,
 			   bitmap/0, bitmap_display/0, icon/0, text_display/0,
-			   raw_bitmap/0 ]).
+			   raw_bitmap/0, text_display_option/0  ]).
 
 
 % For the wx defines:
@@ -602,7 +604,7 @@ to_wx_static_text_option( Opt ) ->
 % @doc Converts specified MyriadGUI text display style into a wx static text
 % one.
 %
--spec to_wx_static_text_style( text_display_style_opt() ) -> wx:enum().
+-spec to_wx_static_text_style( text_display_style_opt() ) -> wx:wx_enum().
 to_wx_static_text_style( _TextDisplayStyle=align_left ) ->
 	?wxALIGN_LEFT;
 

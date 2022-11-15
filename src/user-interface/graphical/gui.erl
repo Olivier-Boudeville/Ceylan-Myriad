@@ -122,6 +122,8 @@
 
 % The gui module uses its own environment server to record its defaults and also
 % elements about its current state.
+%
+% In general, the opaqueness of types is too difficult to preserve here.
 
 
 % Event loops.
@@ -255,8 +257,9 @@
 % Current backend is wx (based on WxWidgets).
 %
 % (useful to avoid including the header of wx in our own public ones)
--opaque backend_event() :: gui_event:wx_event().
-% An (opaque) backend GUI event.
+%
+-type backend_event() :: gui_event:wx_event().
+% A (supposedly opaque) backend GUI event.
 
 
 -opaque backend_environment() :: wx_environment().
@@ -271,19 +274,19 @@
 % explicitly managed (ex: wxMemoryDC:destroy/1 must be called when finished with
 % them), which is inconvenient and error-prone.
 %
--type device_context() :: wx:wxDC().
+-type device_context() :: wxDC:wxDC().
 % Designates an abstract device where rendering can take place, and which can be
 % the source or target of a blit. Akin to a surface in SDL (libsdl).
 
--type paint_device_context() :: wx:wxPaintDC().
+-type paint_device_context() :: wxPaintDC:wxPaintDC().
 % Designates a device context allowing to paint on the client area of a window
 % from within an onRepaintNeeded event handler.
 
--type memory_device_context() :: wx:wxMemoryDC().
+-type memory_device_context() :: wxMemoryDC:wxMemoryDC().
 % Provides a means of drawing graphics onto a bitmap.
 
 
--type window_device_context() :: wx:wxWindowDC().
+-type window_device_context() :: wxWindowDC:wxWindowDC().
 % Allows to paint on the whole area of a window (client and decorations). This
 % should normally be constructed as a temporary stack object, and shall never be
 % stored.
@@ -300,7 +303,7 @@
 % Any window-related device context.
 
 
--type graphic_context() :: wx:wxGraphicsContext().
+-type graphic_context() :: wxGraphicsContext:wxGraphicsContext().
 % Corresponds to a GUI object that is drawn upon. It is created by a renderer.
 
 
@@ -413,6 +416,8 @@
 %
 % Notable emitted events: command_event_type(), that is onToolbarEntered,
 % onItemSelected, onToolRightClicked.
+%
+% Note that wx name them 'wxToolBar', not 'wxToolbar'.
 %
 -export([ add_control/2, add_tool/5, add_tool/7, update_tools/1 ]).
 
@@ -658,7 +663,7 @@
 
 
 % Includes wx:null(), i.e. a #wx_ref{ref=0, type=wx}.
--opaque window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
+-type window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
 % Any kind of window, that is widget (ex: any canvas is a window).
 
 
@@ -675,19 +680,19 @@
 
 -type top_level_frame() :: frame().
 
--opaque panel() :: wxPanel:wxPanel().
+-type panel() :: wxPanel:wxPanel().
 
--opaque button() :: wxButton:wxButton().
+-type button() :: wxButton:wxButton().
 
 
--opaque sizer() :: wxSizer:wxSizer().
+-type sizer() :: wxSizer:wxSizer().
 % A vertical or horizontal container whose elements are dynamically resized.
 
--opaque sizer_child() :: window() | sizer().
+-type sizer_child() :: window() | sizer().
 % Elements that can be included in a sizer.
 
 
--opaque sizer_item() :: wxSizerItem:wxSizerItem().
+-type sizer_item() :: wxSizerItem:wxSizerItem().
 % An element of a sizer.
 
 
@@ -762,7 +767,7 @@
 % If positive, designates a fixed width, in pixels.
 % If negative, designates a width ratio among all variable-width fields.
 
--opaque bitmap() :: gui_image:bitmap().
+-type bitmap() :: gui_image:bitmap().
 % Platform-dependent bitmap, either monochrome or colour (with or without alpha
 % channel).
 %
@@ -782,10 +787,10 @@
 % A widget displaying a text.
 
 
--opaque brush() :: wxBrush:wxBrush().
+-type brush() :: wxBrush:wxBrush().
 % A brush, used to draw elements.
 
--opaque back_buffer() :: wxMemoryDC:wxMemoryDC().
+-type back_buffer() :: wxMemoryDC:wxMemoryDC().
 % A non-displayed buffer to which rendering shall be done, before being made
 % visible as a whole, to avoid flicker.
 
@@ -1197,10 +1202,11 @@
 			   gui_env_pid/0, gui_env_info/0, gui_env_designator/0,
 			   backend_identifier/0, backend_information/0,
 
-			   length/0, width/0, height/0,
+			   length/0, width/0, height/0, dimensions/0,
 			   any_length/0, any_width/0, any_height/0,
 			   coordinate/0, point/0, position/0, size/0,
-			   orientation/0, fps/0,
+			   orientation/0, fps/0, id/0,
+
 			   model_pid/0, view_pid/0, controller_pid/0,
 			   object_type/0, wx_object_type/0,
 			   myriad_object_type/0,
@@ -1711,15 +1717,14 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 
 	[ begin
 
-			WxEventType = gui_wx_backend:to_wx_event_type( ET,
-										EventTranslationTable ),
+		WxEventType = gui_wx_backend:to_wx_event_type( ET,
+									EventTranslationTable ),
 
-			%trace_utils:debug_fmt( "Callback-connecting object ~w "
-			%   "for event type ~w with options ~w.",
-			%   [ SourceGUIObject, WxEventType, WxOptions ] ),
+		%trace_utils:debug_fmt( "Callback-connecting object ~w "
+		%   "for event type ~w with options ~w.",
+		%   [ SourceGUIObject, WxEventType, WxOptions ] ),
 
-			wxEvtHandler:connect( SourceGUIObject, WxEventType,
-								  WxOptions )
+		wxEvtHandler:connect( SourceGUIObject, WxEventType, WxOptions )
 
 	  end || ET <- EventTypes ].
 
@@ -1728,7 +1733,7 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 % Internal function defined so that a wx callback can be converted to a
 % MyriadGUI one before calling the user-specified callback with it.
 %
--spec event_interception_callback( gui_event:wx_event(), wx:wxEvent(),
+-spec event_interception_callback( gui_event:wx_event(), wxEvent:wxEvent(),
 								   event_translation_table() ) -> void().
 event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
@@ -2912,9 +2917,10 @@ create_panel( Parent, Position, Size, Options ) ->
 					panel_options() ) -> panel().
 create_panel( Parent, X, Y, Width, Height, Options ) ->
 
-	ActualOptions = get_panel_options( Options ),
+	FullOptions = [ { pos, { X, Y } }, { size, { Width, Height } }
+						| get_panel_options( Options ) ],
 
-	wxPanel:new( Parent, X, Y, Width, Height, ActualOptions ).
+	wxPanel:new( Parent, FullOptions ).
 
 
 
@@ -3380,7 +3386,7 @@ create_bitmap_display( Parent, Bitmap, Options ) ->
 % @doc Destructs the specified bitmap display.
 -spec destruct_bitmap_display( bitmap_display() ) -> void().
 destruct_bitmap_display( BitmapDisplay ) ->
-	gui_image:bitmap( BitmapDisplay ).
+	gui_image:destruct_bitmap_display( BitmapDisplay ).
 
 
 
@@ -3583,8 +3589,7 @@ draw_bitmap( GraphicContext, Bitmap, X, Y, _Dims={ Width, Height } ) ->
 -spec draw_bitmap( graphic_context(), bitmap(), coordinate(), coordinate(),
 				   width(), height() ) -> void().
 draw_bitmap( GraphicContext, Bitmap, X, Y, Width, Height ) ->
-	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y,
-								  Width, Height ).
+	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y, Width, Height ).
 
 
 
@@ -3788,8 +3793,8 @@ add_separator( Menu={ wx_ref, _InstanceRef, _WxObjectType=wxMenu, _State } ) ->
 	wxMenu:appendSeparator( Menu );
 
 add_separator(
-		Toolbar={ wx_ref, _InstanceRef, _WxObjectType=wxToolbar, _State } ) ->
-	wxToolbar:appendSeparator( Toolbar ).
+		Toolbar={ wx_ref, _InstanceRef, _WxObjectType=wxToolBar, _State } ) ->
+	wxToolBar:addSeparator( Toolbar ).
 
 
 

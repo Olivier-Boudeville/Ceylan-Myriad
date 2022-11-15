@@ -221,8 +221,8 @@
 % Let U be a type corresponding to the union of a set of types T1, T2, Tk; a
 % value of type U is thus of at least one of the types of that union.
 %
-% U is written as "T1|T2|...|Tk" and defined as D(U) = { union,
-% [D(T1),D(T2),...,D(Tk)] }.
+% U is written as "T1|T2|...|Tk" and defined as D(U) = {union,
+% [D(T1),D(T2),...,D(Tk)]}.
 %
 % For example, if my_type is defined as "foo|'kazoo'|[integer]", then D(my_type)
 % = {union, [foo, {atom,'kazoo'}, {list,integer}]}.
@@ -343,7 +343,7 @@
 -type nesting_depth() :: { count(), count() }.
 % Description of a nesting depth reached when parsing a type description.
 %
-% It is in pratice a {P,B} pair, where P is the parenthesis depth (ie the
+% It is in pratice a {P,B} pair, where P is the parenthesis depth (that is the
 % number of the parentheses that have been opened and not closed yet) and B is
 % the bracket depth (ie the same principle, for "[]" instead of for "()").
 
@@ -462,6 +462,86 @@
 % floating-point values).
 
 
+% Definition of actual datatypes (useful for typing variables):
+
+
+% Unsigned integers:
+
+-type uint8() :: 0..255.
+% Non-negative 8-bit integer, ranging from 0 to 255 (both included).
+
+-type uint16() :: 0..65535.
+% Non-negative 16-bit integer, ranging from 0 to 65,535 (both included).
+
+-type uint32() :: 0..4294967295.
+% Non-negative 32-bit integer, ranging from 0 to 4,294,967,295 (both included).
+
+-type uint64() :: 0..18446744073709551615.
+% Non-negative 64-bit integer, ranging from 0 to 18,446,744,073,709,551,615
+% (both included).
+
+
+% Signed integers:
+
+-type sint8() :: -128..127.
+% Signed 8-bit integer, ranging from -128 to 127 (both included).
+
+-type sint16() :: -32768..32767.
+% Signed 16-bit integer, ranging from -32,768 to 32,767 (both included).
+
+-type sint32() :: -2147483648..2147483647.
+% Signed 32-bit integer, ranging from -2,147,483,648 to 2,147,483,647 (both
+% included).
+
+-type sint64() :: -9223372036854775808..9223372036854775807.
+% Signed 64-bit integer, ranging from -9,223,372,036,854,775,808 to
+% 9,223,372,036,854,775,807 (both included).
+
+
+% Maybe-signed, ambiguous integers:
+
+-type int8() :: uint8() | sint8().
+% 8-bit integer, potentially ranging from -128 to 255 (both included).
+
+-type int16() :: uint16() | sint16().
+% 16-bit integer, potentially ranging from -32,768 to 65,535 (both included).
+
+-type int32() :: uint32() | sint32().
+% 32-bit integer, potentially ranging from -2,147,483,648 to 4,294,967,295 (both
+% included).
+
+-type int64() :: uint64() | sint64().
+% 64-bit integer, potentially ranging from -9,223,372,036,854,775,808 to
+% 18,446,744,073,709,551,615 (both included).
+
+
+-type float32() :: float().
+% A single-precision, IEEE 754 32-bit base-2 floating-point value.
+%
+% Exact for all integers with up to 7 decimal digits, and for any 2^N for an
+% integer number N in [-149,127].
+%
+% See [https://en.wikipedia.org/wiki/Single-precision_floating-point_format] for
+% more information.
+%
+% Note that in Erlang this datatype does not exist as such, only floars are
+% float64() ones.
+
+
+-type float64() :: float().
+% A binary64/double-precision, IEEE 754 64-bit base-2 floating-point value.
+%
+% Exact notably for integers from -2^253 to 2^253 (-9,007,199,254,740,992 to
+% 9,007,199,254,740,992).
+%
+% See [https://en.wikipedia.org/wiki/Double-precision_floating-point_format] for
+% more information.
+
+
+-export_type([ ]).
+
+
+
 -type record() :: tuple().
 % Designates a record instance, to discriminate from a mere tuple.
 
@@ -491,19 +571,56 @@
 % elements are all of the specified type.
 
 
--type transient_term() :: pid() | port() | reference().
+% Not needed or useful as map() is a built-in type:
+%-type map() :: map( any(), any() ).
+
+-type map( _K, _V ) :: map().
+% As (maps:)map/2 does not even exist apparently, at least not since 18.0.
+
+
+
+-type permanent_term() :: integer() | float() | atom() | boolean() | binary()
+		| list( permanent_term() ) | tuple( permanent_term() )
+		| map( permanent_term(), permanent_term() ).
+% Designates values that are permanent, that is that are context-free, not
+% runtime-specific and can be reproduced (e.g. serialised).
+%
+% As for compound datatypes (lists, tuples and thus records, maps), they are
+% also permanent iff all the terms they aggregate are themselves permanent
+% terms.
+%
+% Permanent terms are the opposite of transient ones.
+
+
+-type transient_term() :: pid() | port() | reference() | fun().
 % Designates values that are transient, that is that are runtime-specific and
 % cannot be reproduced a priori.
 %
-% Anonymous functions may belong to this type.
+% PIDs belong to this type, ports, references, anonymous functions may also.
+%
+% As for compound datatypes (lists, tuples and thus records, maps), they are
+% also transient iff at least one of the terms they aggregate is itself a
+% transient term.
+%
+% Transient terms are the opposite of permanent ones.
+
+
 
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
-			   low_level_type/0, record/0,
+			   low_level_type/0,
+
+			   uint8/0, uint16/0, uint32/0, uint64/0,
+			   sint8/0, sint16/0, sint32/0, sint64/0,
+			   int8/0, int16/0, int32/0, int64/0,
+			   float32/0, float64/0,
+
+			   record/0,
 			   tuploid/0, tuploid/1,
 			   pair/0, triplet/0, tuple/1,
-			   transient_term/0 ]).
+			   map/2,
+			   permanent_term/0, transient_term/0 ]).
 
 
 % Note: currently, only a very basic, ad hoc type support ("hand-made look-up
@@ -539,19 +656,39 @@
 -export([ share/1, share/2, share/3 ]).
 
 
-% Checking (see also: list_utils:are_*/1):
+% Boolean predicates, that is checking that returns not the checked value but
+% whether it could be successfully be checked.
 %
-% We prefer 'positive' vs 'strictly positive', deemed cleared than 'non_neg' vs
-% 'positive', this latter one excluding zero.
+% Most of such boolean predicates can be directly implemented thanks to guard
+% expressions (e.g. 'is_pid(T)' or 'X >= 1'), and thus are not specifically
+% defined here.
+%
+% These predicate are more convenient to trigger application-specific feedback
+% that the next term-returning checkings of the next section.
+%
+-export([ are_numbers/1, are_maybe_numbers/1,
+		  are_integers/1, are_maybe_integers/1,
+		  are_floats/1, are_maybe_floats/1,
+		  are_positive_floats/1,
+		  are_binaries/1 ]).
+
+
+
+% Term-returning checkings: if the specified term could be successfully checked,
+% returns it (as opposed to a predicate returning a boolean value).
+%
+% We prefer the "'positive' vs 'strictly positive'" naming, deemed clearer than
+% the "'non_neg' vs 'positive'" one, this 'positive' excluding zero.
 %
 % So, at least here, 'positive' includes zero (shall be understood as 'positive
 % or null'), in constrast to 'strictly positive'.
 %
-% See also, in basic_utils: check_undefined/1, check_all_undefined/1,
-% are_all_defined/1, check_defined/1, check_not_undefined/1,
-% check_all_defined/1.
+% See also, in list_utils, are_*/1, and in basic_utils: check_undefined/1,
+% check_all_undefined/1, are_all_defined/1, check_defined/1,
+% check_not_undefined/1, check_all_defined/1.
 %
--export([ check_atom/1, check_boolean/1,
+-export([ check_atom/1, check_atoms/1,
+		  check_boolean/1, check_booleans/1,
 
 		  check_pid/1, check_maybe_pid/1,
 
@@ -564,12 +701,17 @@
 
 
 		  check_integer/1, check_maybe_integer/1,
-		  check_positive_integer/1, check_maybe_positive_integer/1,
+		  check_positive_integer/1, check_strictly_positive_integer/1,
+		  check_maybe_positive_integer/1,
 
 		  check_integers/1, check_maybe_integers/1,
 
 		  check_float/1, check_maybe_float/1,
 		  check_floats/1, check_maybe_floats/1,
+
+		  check_positive_float/1,
+		  check_maybe_positive_float/1,
+		  check_positive_floats/1,
 
 		  check_strictly_positive_float/1,
 		  check_maybe_strictly_positive_float/1,
@@ -752,6 +894,9 @@ type_to_string( Type ) ->
 % instead to determine whether the term can be considered as an instance of a
 % specific type (this is not strictly the same need, as a given term in general
 % may be seen of being of multiple types).
+%
+% The lowest-level/most precising typing can be obtained with the (undocumented)
+% erts_internal:term_type/1 function.
 %
 -spec get_type_of( term() ) -> primitive_type_description().
 get_type_of( Term ) when is_boolean( Term ) ->
@@ -1247,7 +1392,7 @@ ensure_float( N ) ->
 
 
 
-% @doc Ensures that the specified term is a postive (possibly null) float, and
+% @doc Ensures that the specified term is a positive (possibly null) float, and
 % returns it.
 %
 % If it is an integer, will return a floating-point version of it.
@@ -1434,6 +1579,116 @@ share( X, Y, Z ) ->
 
 
 
+% Boolean predicates:
+%
+% (empty lists are considered as legit)
+
+
+% @doc Returns whether the specified term is a list of numbers.
+-spec are_numbers( term() ) -> boolean().
+are_numbers( [] )  ->
+	true;
+
+are_numbers( [ N | T ] ) when is_number( N ) ->
+	are_numbers( T );
+
+are_numbers( _Other ) ->
+	false.
+
+
+% @doc Returns whether the specified term is a list of maybe-numbers.
+-spec are_maybe_numbers( term() ) -> boolean().
+are_maybe_numbers( [] )  ->
+	true;
+
+are_maybe_numbers( [ MN | T ] ) when is_number( MN ) orelse MN =:= undefined ->
+	are_maybe_numbers( T );
+
+are_maybe_numbers( _Other ) ->
+	false.
+
+
+
+% @doc Returns whether the specified term is a list of integers.
+-spec are_integers( term() ) -> boolean().
+are_integers( [] )  ->
+	true;
+
+are_integers( [ I | T ] ) when is_integer( I ) ->
+	are_integers( T );
+
+are_integers( _Other ) ->
+	false.
+
+
+% @doc Returns whether the specified term is a list of maybe-integers.
+-spec are_maybe_integers( term() ) -> boolean().
+are_maybe_integers( [] )  ->
+	true;
+
+are_maybe_integers( [ MI | T ] )
+						when is_integer( MI ) orelse MI =:= undefined ->
+	are_maybe_integers( T );
+
+are_maybe_integers( _Other ) ->
+	false.
+
+
+
+
+% @doc Returns whether the specified term is a list of floats.
+-spec are_floats( term() ) -> boolean().
+are_floats( [] )  ->
+	true;
+
+are_floats( [ F | T ] ) when is_float( F ) ->
+	are_floats( T );
+
+are_floats( _Other ) ->
+	false.
+
+
+% @doc Returns whether the specified term is a list of maybe-floats.
+-spec are_maybe_floats( term() ) -> boolean().
+are_maybe_floats( [] )  ->
+	true;
+
+are_maybe_floats( [ MF | T ] ) when is_float( MF ) orelse MF =:= undefined ->
+	are_maybe_floats( T );
+
+are_maybe_floats( _Other ) ->
+	false.
+
+
+
+% @doc Returns whether the specified term is a list of positive floats.
+-spec are_positive_floats( term() ) -> boolean().
+are_positive_floats( [] )  ->
+	true;
+
+are_positive_floats( [ PF | T ] ) when is_float( PF ) andalso PF >= 0.0 ->
+	are_positive_floats( T );
+
+are_positive_floats( _Other ) ->
+	false.
+
+
+
+% @doc Returns whether the specified term is a list of binaries.
+-spec are_binaries( term() ) -> boolean().
+are_binaries( [] )  ->
+	true;
+
+are_binaries( [ B | T ] ) when is_binary( B ) ->
+	are_binaries( T );
+
+are_binaries( _Other ) ->
+	false.
+
+
+
+% Term-returning checkings:
+
 
 % @doc Checks that the specified term is an atom indeed, and returns it.
 -spec check_atom( term() ) -> atom().
@@ -1443,6 +1698,12 @@ check_atom( Atom ) when is_atom( Atom ) ->
 check_atom( Other ) ->
 	throw( { not_atom, Other } ).
 
+
+% @doc Checks that the specified term is a list of atoms indeed, and returns it.
+-spec check_atoms( term() ) -> [ atom() ].
+check_atoms( Atoms ) ->
+	[ check_atom( T ) || T <- Atoms ],
+	Atoms.
 
 
 % @doc Checks that the specified term is a boolean indeed, and returns it.
@@ -1456,6 +1717,14 @@ check_boolean( false ) ->
 check_boolean( Other ) ->
 	throw( { not_boolean, Other } ).
 
+
+
+% @doc Checks that the specified term is a list of booleans indeed, and returns
+% it.
+-spec check_booleans( term() ) -> [ boolean() ].
+check_booleans( Booleans ) ->
+	[ check_boolean( T ) || T <- Booleans ],
+	Booleans.
 
 
 % @doc Checks that the specified term is a PID indeed, and returns it.
@@ -1511,10 +1780,10 @@ check_maybe_number( Other ) ->
 %
 -spec check_positive_number( term() ) -> number().
 check_positive_number( Num ) when is_number( Num ) andalso Num >= 0 ->
-	true;
+	Num;
 
-check_positive_number( _Num ) ->
-	false.
+check_positive_number( Other ) ->
+	throw( { not_positive_number, Other } ).
 
 
 
@@ -1523,10 +1792,11 @@ check_positive_number( _Num ) ->
 %
 -spec check_strictly_positive_number( term() ) -> number().
 check_strictly_positive_number( Num ) when is_number( Num ) andalso Num > 0 ->
-	true;
+	Num;
 
-check_strictly_positive_number( _Num ) ->
-	false.
+check_strictly_positive_number( Other ) ->
+	throw( { not_strictly_positive_number, Other } ).
+
 
 
 
@@ -1535,7 +1805,9 @@ check_strictly_positive_number( _Num ) ->
 %
 -spec check_numbers( term() ) -> [ number() ].
 check_numbers( Numbers ) ->
-	[ check_number( N ) || N <- Numbers ].
+	% Possibly a bit quicker that way:
+	[ check_number( N ) || N <- Numbers ],
+	Numbers.
 
 
 
@@ -1544,7 +1816,9 @@ check_numbers( Numbers ) ->
 %
 -spec check_maybe_numbers( term() ) -> [ maybe( number() ) ].
 check_maybe_numbers( MaybeNumbers ) ->
-	[ check_maybe_number( MN ) || MN <- MaybeNumbers ].
+	% Possibly a bit quicker that way:
+	[ check_maybe_number( MN ) || MN <- MaybeNumbers ],
+	MaybeNumbers.
 
 
 
@@ -1577,7 +1851,7 @@ check_maybe_integer( Other ) ->
 % it.
 %
 -spec check_positive_integer( term() ) -> pos_integer().
-check_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+check_positive_integer( Int ) when is_integer( Int ) andalso ( Int >= 0 ) ->
 	Int;
 
 check_positive_integer( Other ) ->
@@ -1585,11 +1859,23 @@ check_positive_integer( Other ) ->
 
 
 
+% @doc Checks that the specified term is a strictly positive integer, and
+% returns it.
+%
+-spec check_strictly_positive_integer( term() ) -> pos_integer().
+check_strictly_positive_integer( Int ) when is_integer( Int ) andalso Int > 0 ->
+	Int;
+
+check_strictly_positive_integer( Other ) ->
+	throw( { not_strictly_positive_integer, Other } ).
+
+
+
 % @doc Checks that the specified term is a positive or null integer or the
 % 'undefined' atom, and returns it.
 %
 -spec check_maybe_positive_integer( term() ) -> maybe( pos_integer() ).
-check_maybe_positive_integer( Int ) when is_integer( Int ) and Int >= 0 ->
+check_maybe_positive_integer( Int ) when is_integer( Int ) andalso Int >= 0 ->
 	Int;
 
 check_maybe_positive_integer( undefined ) ->
@@ -1605,7 +1891,9 @@ check_maybe_positive_integer( Other ) ->
 %
 -spec check_integers( term() ) -> [ integer() ].
 check_integers( Integers ) ->
-	[ check_integer( I ) || I <- Integers ].
+	% Possibly a bit quicker that way:
+	[ check_integer( I ) || I <- Integers ],
+	Integers.
 
 
 
@@ -1614,7 +1902,9 @@ check_integers( Integers ) ->
 %
 -spec check_maybe_integers( term() ) -> [ maybe( integer() ) ].
 check_maybe_integers( MaybeIntegers ) ->
-	[ check_maybe_integer( MI ) || MI <- MaybeIntegers ].
+	% Possibly a bit quicker that way:
+	[ check_maybe_integer( MI ) || MI <- MaybeIntegers ],
+	MaybeIntegers.
 
 
 
@@ -1646,7 +1936,9 @@ check_maybe_float( Other ) ->
 %
 -spec check_floats( term() ) -> [ float() ].
 check_floats( Floats ) ->
-	[ check_float( F ) || F <- Floats ].
+	% Possibly a bit quicker that way:
+	[ check_float( F ) || F <- Floats ],
+	Floats.
 
 
 
@@ -1655,8 +1947,50 @@ check_floats( Floats ) ->
 %
 -spec check_maybe_floats( term() ) -> [ maybe( float() ) ].
 check_maybe_floats( MaybeFloats ) ->
-	[ check_maybe_float( MF ) || MF <- MaybeFloats ].
+	% Possibly a bit quicker that way:
+	[ check_maybe_float( MF ) || MF <- MaybeFloats ],
+	MaybeFloats.
 
+
+
+% @doc Checks that the specified term is a positive (or null) float indeed, and
+% returns it.
+%
+-spec check_positive_float( term() ) -> float().
+check_positive_float( Float )
+			when is_float( Float ) andalso Float >= 0.0 ->
+	Float;
+
+check_positive_float( Other ) ->
+	throw( { not_positive_float, Other } ).
+
+
+
+% @doc Checks that the specified term is a maybe-(positive float) indeed, and
+% returns it.
+%
+-spec check_maybe_positive_float( term() ) -> maybe( float() ).
+check_maybe_positive_float( undefined ) ->
+	undefined;
+
+check_maybe_positive_float( Float )
+			when is_float( Float ) andalso Float >= 0.0 ->
+	Float;
+
+check_maybe_positive_float( Other ) ->
+	throw( { not_maybe_positive_float, Other } ).
+
+
+
+% @doc Checks that the specified term is a list of positive (or null) floats
+% indeed, and returns it.
+%
+-spec check_positive_floats( term() ) -> [ float() ].
+check_positive_floats( Floats ) ->
+	% Possibly a bit quicker that way:
+	[ ( is_float( F ) andalso F >= 0.0 ) orelse
+		throw( { not_positive_float, F } ) || F <- Floats ],
+	Floats.
 
 
 % @doc Checks that the specified term is a strictly positive float indeed, and
@@ -1712,8 +2046,9 @@ check_binary( Other ) ->
 %
 -spec check_binaries( term() ) -> [ binary() ].
 check_binaries( Binaries ) ->
-	[ check_binary( B ) || B <- Binaries ].
-
+	% Possibly a bit quicker that way:
+	[ check_binary( B ) || B <- Binaries ],
+	Binaries.
 
 
 % @doc Checks that the specified term is a map indeed, and returns it.
