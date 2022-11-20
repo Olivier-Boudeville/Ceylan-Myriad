@@ -157,11 +157,11 @@
 
 -type value_spec() ::
 
-			% Exact count requested:
-			value_count()
+	% Exact count requested:
+	value_count()
 
-			% A (possibly unlimited) range of counts accepted (bounds included):
-			| { actual_value_count(), value_count() }.
+	% A (possibly unlimited) range of counts accepted (bounds included):
+	| { actual_value_count(), value_count() }.
 % Describes the expected number of values associated to a given option.
 
 
@@ -198,6 +198,7 @@
 
 
 % Shorthands:
+
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
@@ -438,7 +439,7 @@ get_command_arguments_for_option( Option ) ->
 % @doc Returns the in-order list of the arguments that were directly (that is
 % not in the context of an option) specified on the command-line.
 %
-% Note: generally the extract_non_option_command_argument/{0,1} functions are
+% Note: generally the extract_optionless_command_arguments/{0,1} functions are
 % more relevant to use.
 %
 -spec get_optionless_command_arguments() -> command_line_values().
@@ -649,6 +650,7 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[], UniqArgTable, AccTable ) ->
 					ok;
 
 				{ MinCount, _MaxCount } when OptionLessCount < MinCount ->
+
 					trace_utils:error_fmt( "Not enough option-less arguments "
 						"specified: at least ~B were expected, "
 						"got ~B (i.e. ~p).",
@@ -657,12 +659,15 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[], UniqArgTable, AccTable ) ->
 					throw( { not_enough_optionless_arguments, { min, MinCount },
 						{ got, OptionLessCount, OptionLessValues } } );
 
+
 				% Just as an extra (normally useless) check:
 				{ _MinCount, MaxCount } when OptionLessCount > MaxCount ->
+
 					trace_utils:error_fmt( "Too many option-less arguments "
 						"specified: at most ~B were expected, "
 						"got ~B (i.e. ~p).",
 						[ MaxCount, OptionLessCount, OptionLessValues ] ),
+
 					throw( { too_many_optionless_arguments, { max, MaxCount },
 						{ got, OptionLessCount, OptionLessValues } } )
 
@@ -844,8 +849,8 @@ sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
 						"(i.e. ~p) were specified.",
 						[ Opt, ExactCount, OtherCount, ValueList ] ),
 					throw( { lacking_values_for_option, Opt,
-							 { expected, ExactCount },
-							 { got, OtherCount, ValueList } } )
+								{ expected, ExactCount },
+								{ got, OtherCount, ValueList } } )
 
 			end,
 
