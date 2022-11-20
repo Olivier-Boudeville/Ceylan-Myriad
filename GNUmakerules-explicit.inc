@@ -925,12 +925,12 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 
 # Synchronises the sources of the current layer to the specified server
 # location.
-
+#
 # A rebuild is triggered just before, as the BEAM files are transferred as well:
-# at arrival timestamps may not be respected and we want the right BEAMs to be
+# at arrival timestamps may not be respected, and we want the right BEAMs to be
 # executed.
 #
-# Note that only the source files are synchronised (ex: not the makefiles, not
+# Note that only the source files are synchronised (e.g. not the makefiles, not
 # the configuration files, etc.).
 #
 sync-to-server: all
