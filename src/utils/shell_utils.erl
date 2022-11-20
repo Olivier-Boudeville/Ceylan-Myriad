@@ -197,12 +197,22 @@
 		  argument_table_to_string/1 ]).
 
 
+% Factoring error reports:
+-export([ error/2, error_fmt/3 ]).
+
+-compile( { no_auto_import, [ error/2 ] } ).
+
+
 % Shorthands:
 
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 -type any_string() :: text_utils:any_string().
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
+
+-type return_code() :: system_utils:return_code().
 
 
 
@@ -915,3 +925,33 @@ option_pair_to_string( Option, _ArgumentLists=[ [] ] ) ->
 option_pair_to_string( Option, ArgumentLists ) ->
 	text_utils:format( "option '-~ts', with argument lists: ~p",
 					   [ Option, ArgumentLists ] ).
+
+
+
+
+% @doc Reports a fatal error, typically in an script/escript context, with the
+% specified error return code (expected to be non-null).
+%
+% Halts on error the current program.
+%
+-spec error( return_code(), ustring() ) -> no_return().
+error( ErrorCode, Message ) ->
+
+	% Probably useless, as halt expected to properly flush:
+	% (newline added by next call)
+	%
+	basic_utils:display_timed( Message, _TimeOut=30000 ),
+
+	erlang:halt( ErrorCode ).
+
+
+
+% @doc Reports a formatted, fatal error, typically in an script/escript context,
+% with the specified error return code (expected to be non-null).
+%
+% Halts on error the current program.
+%
+-spec error_fmt( return_code(), format_string(), format_values() ) ->
+											no_return().
+error_fmt( ErrorCode, Format, Values ) ->
+	error( ErrorCode, text_utils:format( Format, Values ) ).
