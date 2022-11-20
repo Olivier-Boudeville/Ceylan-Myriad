@@ -34,7 +34,7 @@
 main( ArgList ) ->
 
 	% First, enable all possible helper code (hence to be done first of all):
-	update_code_path_for_myriad(),
+	_MyriadRootDir = update_code_path_for_myriad(),
 
 	ArgTable = script_utils:get_arguments( ArgList ),
 
