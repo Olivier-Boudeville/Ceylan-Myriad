@@ -75,7 +75,7 @@ get_myriad_base_directory() ->
 	%
 	% Two main possibilities here: the current escript is located in src/scripts
 	% or in src/apps/SOME_APP; trying them in turn, using src/meta as an
-	% indicator, a candidate designating a posible Myriad root.
+	% indicator, a candidate designating a possible Myriad root.
 	%
 	% So, maybe script is in src/scripts:
 
