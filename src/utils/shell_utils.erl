@@ -932,15 +932,19 @@ option_pair_to_string( Option, ArgumentLists ) ->
 % @doc Reports a fatal error, typically in an script/escript context, with the
 % specified error return code (expected to be non-null).
 %
+% The message shall preferably not begin with an uppercase letter.
+%
 % Halts on error the current program.
 %
 -spec error( return_code(), ustring() ) -> no_return().
 error( ErrorCode, Message ) ->
 
+	FullMsg = text_utils:format( "Error: ~ts", [ Message ] ),
+
 	% Probably useless, as halt expected to properly flush:
 	% (newline added by next call)
 	%
-	basic_utils:display_timed( Message, _TimeOut=30000 ),
+	basic_utils:display_timed( FullMsg, _TimeOut=30000 ),
 
 	erlang:halt( ErrorCode ).
 
@@ -948,6 +952,8 @@ error( ErrorCode, Message ) ->
 
 % @doc Reports a formatted, fatal error, typically in an script/escript context,
 % with the specified error return code (expected to be non-null).
+%
+% The message shall preferably not begin with an uppercase letter.
 %
 % Halts on error the current program.
 %
