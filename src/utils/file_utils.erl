@@ -161,7 +161,7 @@
 		  write_etf_file/2, write_etf_file/4,
 		  write_terms/2, write_terms/4,
 		  write_direct_terms/2,
-		  is_file/1 ]).
+		  is_file_reference/1 ]).
 
 
 % Compression-related operations.
@@ -1323,18 +1323,21 @@ get_group_of( Path ) ->
 
 
 
-% @doc Returns whether the specified entry, supposedly existing, is a regular
-% file.
+% @doc Returns whether the specified path entry, supposedly existing, is a
+% regular file.
 %
 % If the specified entry happens not to exist, a {non_existing_entry, EntryName}
 % exception will be thrown.
+%
+% Not to be confused with is_file_reference/1, which deals with opened file IO
+% devices.
 %
 -spec is_file( any_path() ) -> boolean().
 is_file( Path ) ->
 	get_type_of( Path ) =:= regular.
 
 
-% @doc Returns whether the specified entry exists and is a regular file.
+% @doc Returns whether the specified path entry exists and is a regular file.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1344,8 +1347,8 @@ is_existing_file( Path ) ->
 
 
 
-% @doc Returns whether the specified entry, supposedly existing, is a symbolic
-% file.
+% @doc Returns whether the specified path entry, supposedly existing, is a
+% symbolic file.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1355,7 +1358,7 @@ is_link( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is a symbolic file.
+% @doc Returns whether the specified path entry exists and is a symbolic file.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1365,8 +1368,8 @@ is_existing_link( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is either a regular file
-% or a symbolic link.
+% @doc Returns whether the specified path entry exists and is either a regular
+% file or a symbolic link.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1388,7 +1391,7 @@ is_existing_file_or_link( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is readable for its
+% @doc Returns whether the specified path entry exists and is readable for its
 % current owner (can be either a regular file or a symbolic link) - not telling
 % anything about whether the current user can read it.
 %
@@ -1435,7 +1438,7 @@ is_owner_readable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is writable for its
+% @doc Returns whether the specified path entry exists and is writable for its
 % current owner (can be either a regular file or a symbolic link) - not telling
 % anything about whether the current user can write it.
 %
@@ -1482,7 +1485,7 @@ is_owner_writable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is executable for its
+% @doc Returns whether the specified path entry exists and is executable for its
 % current owner (can be either a regular file or a symbolic link) - not telling
 % anything about whether the current user can execute it.
 %
@@ -1529,7 +1532,7 @@ is_owner_executable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is readable for the
+% @doc Returns whether the specified path entry exists and is readable for the
 % current user (can be either a regular file or a symbolic link).
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1554,7 +1557,7 @@ is_user_readable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is writable for the
+% @doc Returns whether the specified path entry exists and is writable for the
 % current user (can be either a regular file or a symbolic link).
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1579,7 +1582,7 @@ is_user_writable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is executable for the
+% @doc Returns whether the specified path entry exists and is executable for the
 % current user (can be either a regular file or a symbolic link).
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1593,7 +1596,8 @@ is_user_executable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry, supposedly existing, is a directory.
+% @doc Returns whether the specified path entry, supposedly existing, is a
+% directory.
 %
 % If the specified entry happens not to exist, a {non_existing_entry, Path}
 % exception will be thrown.
@@ -1604,7 +1608,7 @@ is_directory( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is a directory.
+% @doc Returns whether the specified path entry exists and is a directory.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1614,7 +1618,7 @@ is_existing_directory( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is a directory or a
+% @doc Returns whether the specified path entry exists and is a directory or a
 % symbolic link.
 %
 % Returns true or false, and cannot trigger an exception.
@@ -4937,7 +4941,7 @@ write_ustring( File, Str ) ->
 
 	%trace_utils:debug_fmt( "Writing '~ts' to ~p.", [ Str, File ] ),
 
-	cond_utils:assert( myriad_check_files, is_file( File ) ),
+	cond_utils:assert( myriad_check_files, is_file_reference( File ) ),
 
 	Bin = text_utils:to_unicode_binary( Str ),
 	%trace_utils:debug_fmt( " - Bin: ~p.", [ Bin ] ),
@@ -5295,15 +5299,18 @@ write_direct_terms( File, Terms ) ->
 
 
 
-% @doc Tells whether the specified term is a file (pseudo-guard)
--spec is_file( term() ) -> boolean().
-is_file( { file_descriptor, _Mode, _BufferMap } ) ->
+% @doc Tells whether the specified term is a file reference (pseudo-guard).
+%
+% Not to be confused with is_file/1, which is about file paths.
+%
+-spec is_file_reference( term() ) -> boolean().
+is_file_reference( { file_descriptor, _Mode, _BufferMap } ) ->
 	true;
 
-is_file( FilePid ) when is_pid( FilePid ) ->
+is_file_reference( FilePid ) when is_pid( FilePid ) ->
 	true;
 
-is_file( _Other ) ->
+is_file_reference( _Other ) ->
 	false.
 
 
