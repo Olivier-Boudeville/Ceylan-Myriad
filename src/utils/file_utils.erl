@@ -160,7 +160,8 @@
 		  read_etf_file/1, read_terms/1,
 		  write_etf_file/2, write_etf_file/4,
 		  write_terms/2, write_terms/4,
-		  write_direct_terms/2 ]).
+		  write_direct_terms/2,
+		  is_file/1 ]).
 
 
 % Compression-related operations.
@@ -4936,6 +4937,8 @@ write_ustring( File, Str ) ->
 
 	%trace_utils:debug_fmt( "Writing '~ts' to ~p.", [ Str, File ] ),
 
+	cond_utils:assert( myriad_check_files, is_file( File ) ),
+
 	Bin = text_utils:to_unicode_binary( Str ),
 	%trace_utils:debug_fmt( " - Bin: ~p.", [ Bin ] ),
 
@@ -5289,6 +5292,19 @@ write_terms( Terms, Header, Footer, AnyFilePath ) ->
 write_direct_terms( File, Terms ) ->
 	%trace_utils:debug_fmt( "Writing direct terms ~p.", [ Terms ] ),
 	[ write_ustring( File, "~p.~n", [ T ] ) || T <- Terms ].
+
+
+
+% @doc Tells whether the specified term is a file (pseudo-guard)
+-spec is_file( term() ) -> boolean().
+is_file( { file_descriptor, _Mode, _BufferMap } ) ->
+	true;
+
+is_file( FilePid ) when is_pid( FilePid ) ->
+	true;
+
+is_file( _Other ) ->
+	false.
 
 
 
