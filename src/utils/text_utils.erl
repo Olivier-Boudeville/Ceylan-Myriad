@@ -777,7 +777,7 @@ hexastring_to_binary( _HexaStr=[ SingleHex ], BinAcc ) ->
 % @doc Returns a plain string corresponding to the specified integer once
 % translated to a series of bits, listed per groups of 4, not padded.
 %
-% Ex: "0b100-0000-0011" = integer_to_bits(1024+2+1).
+% Example: "0b100-0000-0011" = integer_to_bits(1024+2+1).
 %
 -spec integer_to_bits( integer() ) -> ustring().
 integer_to_bits( I ) ->
@@ -792,9 +792,9 @@ integer_to_bits( I ) ->
 
 % @doc Returns a plain string corresponding to the specified integer once
 % translated to a series of bits, listed per groups of 4, possibly padded with
-% zero on the left to reach the specified number of bits.
+% zeros on the left to reach the specified number of bits.
 %
-% Ex: "0b0000-0100-0000-0011" = integer_to_bits(1024+2+1, 16).
+% Example: "0b0000-0100-0000-0011" = integer_to_bits(1024+2+1, 16).
 %
 -spec integer_to_bits( integer(), width() ) -> ustring().
 integer_to_bits( I, PadWidth ) ->
