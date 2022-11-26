@@ -60,8 +60,10 @@
 		  remove_extension/1, remove_extension/2, replace_extension/3,
 
 		  exists/1, get_type_of/1, resolve_type_of/1,
+		  resolve_symlink_once/1, resolve_symlink_fully/1,
+
 		  get_owner_of/1, get_group_of/1,
-		  is_file/1,
+		  is_file/1, is_link/1,
 		  is_existing_file/1, is_existing_link/1,
 		  is_existing_file_or_link/1,
 		  is_owner_readable/1, is_owner_writable/1, is_owner_executable/1,
@@ -106,6 +108,8 @@
 		  remove_directory/1,
 
 		  copy_file/2, try_copy_file/2, copy_file_if_existing/2, copy_file_in/2,
+		  copy_as_regular_file_in/2,
+
 		  copy_tree/2,
 
 		  rename/2, move_file/2, create_link/2,
@@ -156,7 +160,8 @@
 		  read_etf_file/1, read_terms/1,
 		  write_etf_file/2, write_etf_file/4,
 		  write_terms/2, write_terms/4,
-		  write_direct_terms/2 ]).
+		  write_direct_terms/2,
+		  is_file_reference/1 ]).
 
 
 % Compression-related operations.
@@ -273,6 +278,9 @@
 
 -type link_name() :: ustring().
 % The name of a (symbolic) link.
+
+-type link_path() :: file_path().
+% The path of a (symbolic) link.
 
 
 -type executable_name() :: file_name().
@@ -442,6 +450,7 @@
 			   bin_file_name/0, bin_file_path/0,
 			   any_file_name/0, any_file_path/0,
 
+			   link_name/0, link_path/0,
 			   device_path/0,
 
 			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
@@ -1217,6 +1226,67 @@ resolve_type_of( Path ) ->
 
 
 
+% @doc Resolves the specified symbolic link once: returns the entry (potentially
+% another symbolic link) it points to.
+%
+-spec resolve_symlink_once( any_path() ) -> any_path().
+resolve_symlink_once( SymlinkPath ) ->
+
+	case file:read_link_all( SymlinkPath ) of
+
+		{ ok, TargetPath } ->
+			TargetPath;
+
+		{ error, Reason } ->
+			throw( { symlink_resolution_failed, Reason, SymlinkPath } )
+
+	end.
+
+
+
+% @doc Resolves fully the specified symbolic link: returns the entry it points
+% ultimately to (therefore this entry cannot be a symbolic link), or throws an
+% exception (including if exceeding a larger link depth, which happens most
+% probably because these links form a cycle; throwing arbitrarily an exception
+% is better than looping for ever).
+%
+-spec resolve_symlink_fully( any_path() ) -> any_path().
+resolve_symlink_fully( SymlinkPath ) ->
+	resolve_symlink_fully( SymlinkPath, SymlinkPath, _MaxDepth=50 ).
+
+
+% (helper)
+resolve_symlink_fully( _SymlinkPath, OrigSymlinkPath, _Depth=0 ) ->
+
+	trace_utils:error_fmt( "Maximum symlink depth reached for '~ts'; "
+		"most probably these links form a cycle.", [ OrigSymlinkPath ] ),
+
+	throw( { max_symlink_depth_reached_for, OrigSymlinkPath } );
+
+
+resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
+
+	case file:read_link_all( SymlinkPath ) of
+
+		{ ok, TargetPath } ->
+			case is_link( TargetPath ) of
+
+				true ->
+					resolve_symlink_fully( TargetPath, OrigSymlinkPath,
+										   Depth-1 );
+
+				false ->
+					TargetPath
+
+			end;
+
+		{ error, Reason } ->
+			throw( { symlink_resolution_failed, Reason, OrigSymlinkPath } )
+
+	end.
+
+
+
 % @doc Returns the user identifier (uid) of the owner of the specified file
 % entry.
 %
@@ -1253,19 +1323,21 @@ get_group_of( Path ) ->
 
 
 
-% @doc Returns whether the specified entry, supposedly existing, is a regular
-% file.
+% @doc Returns whether the specified path entry, supposedly existing, is a
+% regular file.
 %
 % If the specified entry happens not to exist, a {non_existing_entry, EntryName}
 % exception will be thrown.
+%
+% Not to be confused with is_file_reference/1, which deals with opened file IO
+% devices.
 %
 -spec is_file( any_path() ) -> boolean().
 is_file( Path ) ->
 	get_type_of( Path ) =:= regular.
 
 
-
-% @doc Returns whether the specified entry exists and is a regular file.
+% @doc Returns whether the specified path entry exists and is a regular file.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1275,7 +1347,18 @@ is_existing_file( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is a symbolic file.
+% @doc Returns whether the specified path entry, supposedly existing, is a
+% symbolic file.
+%
+% Returns true or false, and cannot trigger an exception.
+%
+-spec is_link( any_path() ) -> boolean().
+is_link( Path ) ->
+	get_type_of( Path ) =:= symlink.
+
+
+
+% @doc Returns whether the specified path entry exists and is a symbolic file.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1285,8 +1368,8 @@ is_existing_link( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is either a regular file
-% or a symbolic link.
+% @doc Returns whether the specified path entry exists and is either a regular
+% file or a symbolic link.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1308,7 +1391,7 @@ is_existing_file_or_link( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is readable for its
+% @doc Returns whether the specified path entry exists and is readable for its
 % current owner (can be either a regular file or a symbolic link) - not telling
 % anything about whether the current user can read it.
 %
@@ -1355,7 +1438,7 @@ is_owner_readable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is writable for its
+% @doc Returns whether the specified path entry exists and is writable for its
 % current owner (can be either a regular file or a symbolic link) - not telling
 % anything about whether the current user can write it.
 %
@@ -1402,7 +1485,7 @@ is_owner_writable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is executable for its
+% @doc Returns whether the specified path entry exists and is executable for its
 % current owner (can be either a regular file or a symbolic link) - not telling
 % anything about whether the current user can execute it.
 %
@@ -1449,7 +1532,7 @@ is_owner_executable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is readable for the
+% @doc Returns whether the specified path entry exists and is readable for the
 % current user (can be either a regular file or a symbolic link).
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1474,7 +1557,7 @@ is_user_readable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is writable for the
+% @doc Returns whether the specified path entry exists and is writable for the
 % current user (can be either a regular file or a symbolic link).
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1499,7 +1582,7 @@ is_user_writable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is executable for the
+% @doc Returns whether the specified path entry exists and is executable for the
 % current user (can be either a regular file or a symbolic link).
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1513,7 +1596,8 @@ is_user_executable( Path ) ->
 
 
 
-% @doc Returns whether the specified entry, supposedly existing, is a directory.
+% @doc Returns whether the specified path entry, supposedly existing, is a
+% directory.
 %
 % If the specified entry happens not to exist, a {non_existing_entry, Path}
 % exception will be thrown.
@@ -1524,7 +1608,7 @@ is_directory( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is a directory.
+% @doc Returns whether the specified path entry exists and is a directory.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1534,7 +1618,7 @@ is_existing_directory( Path ) ->
 
 
 
-% @doc Returns whether the specified entry exists and is a directory or a
+% @doc Returns whether the specified path entry exists and is a directory or a
 % symbolic link.
 %
 % Returns true or false, and cannot trigger an exception.
@@ -3372,11 +3456,11 @@ try_copy_file( SourceFilePath, DestinationFilePath ) ->
 
 
 
-% @doc Copies a specified file in a given destination directory, overwriting any
-% previous file, and returning the full path of the copied file.
+% @doc Copies a specified file in the specified destination directory,
+% overwriting any previous file, and returning the full path of the copied file.
 %
 % Note: content is copied and permissions are preserved (ex: the copy of an
-% executable file will be itself executable, likz for the other permissions -
+% executable file will be itself executable, like for the other permissions -
 % and unlike /bin/cp, which relies on umask).
 %
 -spec copy_file_in( any_file_path(), any_directory_name() ) -> any_file_path().
@@ -3389,6 +3473,33 @@ copy_file_in( SourcePath, DestinationDirectory ) ->
 	copy_file( SourcePath, TargetPath ),
 
 	TargetPath.
+
+
+
+% @doc Copies the actual regular file specified - either directly a regular
+% file, or a regular file ultimately pointed to by any specified symbolic link -
+% in the specified destination directory, overwriting any previous file, and
+% returning the full path of the copied file.
+%
+% Note: content is copied and permissions are preserved (ex: the copy of an
+% executable file will be itself executable, like for the other permissions -
+% and unlike /bin/cp, which relies on umask).
+%
+-spec copy_as_regular_file_in( any_file_path(), any_directory_name() ) ->
+		  any_file_path().
+copy_as_regular_file_in( SourcePath, DestinationDirectory ) ->
+
+	ActualSourcePath = case is_link( SourcePath ) of
+
+		true ->
+			resolve_symlink_fully( SourcePath );
+
+		false ->
+			SourcePath
+
+	end,
+
+	copy_file_in( ActualSourcePath, DestinationDirectory ).
 
 
 
@@ -4830,6 +4941,8 @@ write_ustring( File, Str ) ->
 
 	%trace_utils:debug_fmt( "Writing '~ts' to ~p.", [ Str, File ] ),
 
+	cond_utils:assert( myriad_check_files, is_file_reference( File ) ),
+
 	Bin = text_utils:to_unicode_binary( Str ),
 	%trace_utils:debug_fmt( " - Bin: ~p.", [ Bin ] ),
 
@@ -5183,6 +5296,22 @@ write_terms( Terms, Header, Footer, AnyFilePath ) ->
 write_direct_terms( File, Terms ) ->
 	%trace_utils:debug_fmt( "Writing direct terms ~p.", [ Terms ] ),
 	[ write_ustring( File, "~p.~n", [ T ] ) || T <- Terms ].
+
+
+
+% @doc Tells whether the specified term is a file reference (pseudo-guard).
+%
+% Not to be confused with is_file/1, which is about file paths.
+%
+-spec is_file_reference( term() ) -> boolean().
+is_file_reference( { file_descriptor, _Mode, _BufferMap } ) ->
+	true;
+
+is_file_reference( FilePid ) when is_pid( FilePid ) ->
+	true;
+
+is_file_reference( _Other ) ->
+	false.
 
 
 

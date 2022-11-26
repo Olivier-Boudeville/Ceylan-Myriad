@@ -654,10 +654,10 @@ uniquify_ordered( [ H | T ], Acc, KnownSet ) ->
 
 
 
-% @doc Ensures that specified element is included once in specified unordered
-% list (supposed to contain it already up to once).
+% @doc Ensures that the specified element is included once in the specified
+% unordered list (supposed to contain it already up to once).
 %
-% Note: refer to set_utils for a more proper implementation of set.
+% Note: refer to set_utils for a more proper implementation of sets.
 %
 -spec ensure_is_once_in( term(), list() ) -> list().
 ensure_is_once_in( Elem, List ) ->
@@ -706,7 +706,7 @@ count_occurrences( _List=[], Acc ) ->
 count_occurrences( _List=[ Term | T ], Acc ) ->
 
 	% trace_utils:debug_fmt( "Inquiring about term '~p' into ~p.",
-	% [ Term, T ] ),
+	%                        [ Term, T ] ),
 
 	case count_and_filter_term( Term, _InitialList=T, _FilteredList=[],
 								_InitialCount=0 ) of
@@ -749,7 +749,7 @@ get_duplicates( _List=[], Acc ) ->
 get_duplicates( _List=[ Term | T ], Acc ) ->
 
 	% trace_utils:debug_fmt( "Inquiring about term '~p' into ~p.",
-	% [ Term, T ] ),
+	%                        [ Term, T ] ),
 
 	case count_and_filter_term( Term, _InitialList=T, _FilteredList=[],
 								_InitialCount=0 ) of
@@ -843,7 +843,7 @@ cartesian_product( [ SingleList ] ) ->
 
 cartesian_product( [ List | OtherLists ] ) ->
 	[ [ E | SubList ]
-	  || E <- List, SubList <- cartesian_product( OtherLists ) ].
+		|| E <- List, SubList <- cartesian_product( OtherLists ) ].
 
 
 
@@ -1153,6 +1153,7 @@ are_atoms( [ H | T ] ) when is_atom( H ) ->
 
 are_atoms( _ ) ->
 	false.
+
 
 
 % @doc Checks that the terms in the specified list are in strict (no duplicates)

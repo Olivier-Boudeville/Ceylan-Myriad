@@ -549,9 +549,9 @@ create-myriad-checkout:
 # 'rebar3-application' and 'rebar3-release':
 
 
-# Apparently, a pre-existing rebar.lock file might cause version dependencies
-# not to be respected (ex: sticking to an older hex version of a dependency,
-# whereas a newer one was specified), so we remove it when appropriate.
+# A pre-existing rebar.lock file may cause version dependencies to be frozen
+# (e.g. sticking to an older hex version of a dependency, whereas a newer one
+# was specified), so we remove it when appropriate.
 #
 # (creating a ebin/*.app file is necessary at this point, otherwise no module
 # will be compiled, leading to an empty application; the same applies - silently
@@ -885,8 +885,7 @@ rebar3-info:
 # recompilation (hex does not take into account the .app.src file, hence does
 # not rely on explicitly-specified modules to build)
 #
-# - remove rebar.lock, otherwise a past myriad dep (ex: GIT-based) will be
-# reused
+# - remove rebar.lock, otherwise a past Myriad dep (ex: Git-based) may be reused
 #
 # - afterwards we restore the ebin/*.app and rebar.config files for standard
 # releases, in order to avoid having them considered as deleted by GIT
@@ -926,12 +925,12 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 
 # Synchronises the sources of the current layer to the specified server
 # location.
-
+#
 # A rebuild is triggered just before, as the BEAM files are transferred as well:
-# at arrival timestamps may not be respected and we want the right BEAMs to be
+# at arrival timestamps may not be respected, and we want the right BEAMs to be
 # executed.
 #
-# Note that only the source files are synchronised (ex: not the makefiles, not
+# Note that only the source files are synchronised (e.g. not the makefiles, not
 # the configuration files, etc.).
 #
 sync-to-server: all

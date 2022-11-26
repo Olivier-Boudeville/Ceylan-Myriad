@@ -1356,10 +1356,10 @@ display( Message ) ->
 
 
 
-% @doc Displays specified format string filled according to specified values on
-% the standard output of the console, ensuring as much as possible this message
-% is output synchronously, so that it can be output on the console even if the
-% virtual machine is to crash just after.
+% @doc Displays the specified format string filled according to the specified
+% values on the standard output of the console, ensuring as much as possible
+% that this message is output synchronously, so that it can be output on the
+% console even if the virtual machine is to crash just after.
 %
 -spec display( format_string(), format_values() ) -> void().
 display( Format, Values ) ->
@@ -1373,9 +1373,10 @@ display( Format, Values ) ->
 
 
 
-% @doc Displays specified string on the standard output of the console, ensuring
-% as much as possible this message is output synchronously, so that it can be
-% output on the console even if the virtual machine is to crash just after.
+% @doc Displays the specified string on the standard output of the console,
+% ensuring as much as possible that this message is output synchronously, so
+% that it can be output on the console even if the virtual machine is to crash
+% just after.
 %
 -spec display_timed( ustring(), time_out() ) -> void().
 display_timed( Message, TimeOut ) ->
