@@ -551,7 +551,14 @@ create-myriad-checkout:
 
 # A pre-existing rebar.lock file may cause version dependencies to be frozen
 # (e.g. sticking to an older hex version of a dependency, whereas a newer one
-# was specified), so we remove it when appropriate.
+# was specified), so we remove it when appropriate; to properly recreate it,
+# executing 'rebar3 deps' or 'rebar3 lock' may not be sufficient; one has to
+# update or remove at least any _build tree; possibly removing prior any
+# rebar.lock and .rebar3 directory might help.
+#
+# Prior to committing a new rebar.lock, check that the 'ref' values that it
+# mentions do match indeed the actual (probably latest) intended Git commit of
+# the corresponding dependencies.
 #
 # (creating a ebin/*.app file is necessary at this point, otherwise no module
 # will be compiled, leading to an empty application; the same applies - silently
