@@ -1118,9 +1118,9 @@ stop_application( AppName ) ->
 		{ error, { not_started, AppName } } ->
 
 			% This is not even a warning, as a given prerequisite application
-			% (ex: 'ssl') may be used by multiple applications that, when they
+			% (e.g. 'ssl') may be used by multiple applications that, when they
 			% will stop, cannot each succeed in stopping that single
-			% prerequisitea application.
+			% prerequisite application.
 
 			?info_fmt( "The OTP application '~ts' was already stopped.",
 					   [ AppName ] );
@@ -1154,7 +1154,7 @@ stop_applications( AppNames ) ->
 % list of prerequisite applications can be used both for starting and stopping).
 %
 % Not stopping the base Erlang applications allows to remain with a functional
-% VM (ex: able to finish a test, to perform console outputs, etc.).
+% VM (e.g. able to finish a test, to perform console outputs, etc.).
 %
 % Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
 % in the reverse order of the starting of these applications.
