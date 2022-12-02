@@ -41,7 +41,13 @@
 % Message-related functions.
 -export([ flush_pending_messages/0, flush_pending_messages/1,
 		  notify_pending_messages/0, check_no_pending_message/0,
-		  wait_for/2, wait_for/4, wait_for_acks/4, wait_for_acks/5,
+
+		  wait_for/2, wait_for/4,
+
+		  wait_for_acks_nothrow/3, wait_for_acks_nothrow/4,
+
+		  wait_for_acks/4, wait_for_acks/5,
+
 		  wait_for_summable_acks/5,
 		  wait_for_many_acks/4, wait_for_many_acks/5,
 		  send_to_pid_set/2 ]).
@@ -93,6 +99,13 @@
 %
 % erlang:element(2, erlang:element(2,
 %   erlang:process_info(self(), current_function)))).
+
+
+
+% The default period (elementary time-slice; in milliseconds) according to which
+% a duration (typically of a time-out) is divided.
+%
+-define( default_period_ms, 1000 ).
 
 
 
@@ -431,11 +444,15 @@
 -include("basic_utils.hrl").
 
 
+
+
+% Implementation notes:
+%
+% The 'cond_utils' facilities shall not be used in this module, as it is a
+% pioneer one (they are thus not bootstrapped yet).
+
+
 % Shorthands:
-
--type time_out() :: time_utils:time_out().
-
--type milliseconds() :: unit_utils:milliseconds().
 
 -type set( T ) :: set_utils:set( T ).
 
@@ -448,6 +465,13 @@
 -type atom_node_name() :: net_utils:atom_node_name().
 
 -type byte_size() :: system_utils:byte_size().
+
+-type time_out() :: time_utils:time_out().
+-type finite_second_time_out() :: time_utils:finite_second_time_out().
+-type ms_period() :: time_utils:ms_period().
+
+-type milliseconds() :: unit_utils:milliseconds().
+
 
 % Even if not exported:
 -type process_info_result_item() :: erlang:process_info_result_item().
@@ -606,7 +630,7 @@ ignore_unused( _Term ) ->
 	% Preferred silent:
 	ok.
 	%trace_utils:warning_fmt( "unused term (~p) ignored "
-	%               "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
+	%   "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
 
 
 
@@ -837,8 +861,11 @@ wait_for( _Message, _Count=0 ) ->
 
 wait_for( Message, Count ) ->
 
+	% Not available here: cond_utils:if_defined( myriad_debug_waited_operations,
+
 	%trace_utils:debug_fmt( "Waiting for ~B messages '~p'.",
-	%                       [ Count, Message ] ),
+	%                       [ Count, Message ] )
+
 	receive
 
 		Message ->
@@ -867,7 +894,9 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 	receive
 
 		Message ->
-			%io:format( "Received message '~p'.~n", [ Message ] ),
+			%trace_utils:debug_fmt( "Received message '~p'",
+			%                       [ Message ] ),
+
 			wait_for( Message, Count-1 )
 
 	after TimeOutDuration ->
@@ -883,6 +912,99 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 % Wait patterns, safer and better defined once for all.
 
 
+% @doc Waits until receiving from all the expected senders the specified
+% acknowledgement message, expected to be in the form of {AckReceiveAtom,
+% WaitedSenderPid}.
+%
+% Returns a (possibly empty) list of the PIDs of the senders that failed to
+% answer within the specified time-out.
+%
+% See wait_for_many_acks/{4,5} if having a large number of senders that are
+% waited for.
+%
+-spec wait_for_acks_nothrow( [ pid() ], finite_second_time_out(), atom() ) ->
+												[ pid() ].
+wait_for_acks_nothrow( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom ) ->
+	wait_for_acks_nothrow( WaitedSenders, MaxDurationInSeconds,
+						   ?default_period_ms, AckReceiveAtom ).
+
+
+
+% @doc Waits until receiving from all the expected senders the specified
+% acknowledgement message, expected to be in the form of {AckReceiveAtom,
+% WaitedSenderPid}, ensuring a check is performed at least at specified period..
+%
+% Returns a (possibly empty) list of the PIDs of the senders that failed to
+% answer within the specified time-out.
+%
+% See wait_for_many_acks/{4,5} if having a large number of senders that are
+% waited for.
+%
+-spec wait_for_acks_nothrow( [ pid() ], finite_second_time_out(), ms_period(),
+							 atom() ) -> [ pid() ].
+wait_for_acks_nothrow( WaitedSenders, MaxDurationInSeconds, Period,
+					   AckReceiveAtom ) ->
+
+	%trace_utils:debug_fmt( "Waiting (no-throw) for ~p (period: ~ts, "
+	%   "max duration: ~ts, ack atom: '~ts').",
+	%   [ WaitedSenders, time_utils:duration_to_string( Period ),
+	%     time_utils:duration_to_string( MaxDurationInSeconds ),
+	%     AckReceiveAtom ] ),
+
+	InitialTimestamp = time_utils:get_timestamp(),
+
+	wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
+		MaxDurationInSeconds, Period, AckReceiveAtom ).
+
+
+
+% (helper)
+wait_for_acks_nothrow_helper( _WaitedSenders=[], _InitialTimestamp,
+		_MaxDurationInSeconds, _Period, _AckReceiveAtom ) ->
+	[];
+
+wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
+		MaxDurationInSeconds, Period, AckReceiveAtom ) ->
+
+	receive
+
+		{ AckReceiveAtom, WaitedPid } ->
+
+			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
+
+			%trace_utils:debug_fmt( "(received ~p, still waiting for "
+			%   "instances ~p)", [ WaitedPid, NewWaited ] ),
+
+			wait_for_acks_nothrow_helper( NewWaited, InitialTimestamp,
+				MaxDurationInSeconds, Period, AckReceiveAtom )
+
+	after Period ->
+
+			NewDuration = time_utils:get_duration_since( InitialTimestamp ),
+
+			case ( MaxDurationInSeconds =/= infinity ) andalso
+						( NewDuration > MaxDurationInSeconds ) of
+
+				true ->
+					WaitedSenders;
+
+				false ->
+					% Still waiting then:
+
+					%trace_utils:debug_fmt(
+					%   "(still waiting for instances ~p)",
+					%   [ WaitedSenders ] ),
+
+					wait_for_acks_nothrow_helper( WaitedSenders,
+						InitialTimestamp, MaxDurationInSeconds, Period,
+						AckReceiveAtom )
+
+			end
+
+	end.
+
+
+
 % @doc Waits until receiving from all expected senders the specified
 % acknowledgement message, expected to be in the form of {AckReceiveAtom,
 % WaitedSenderPid}.
@@ -896,7 +1018,7 @@ wait_for( Message, Count, TimeOutDuration, TimeOutFormatString ) ->
 -spec wait_for_acks( [ pid() ], time_out(), atom(), atom() ) -> void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 			   ThrowAtom ) ->
-	wait_for_acks( WaitedSenders, MaxDurationInSeconds, _DefaultPeriodMs=1000,
+	wait_for_acks( WaitedSenders, MaxDurationInSeconds, ?default_period_ms,
 				   AckReceiveAtom, ThrowAtom ).
 
 
@@ -909,64 +1031,27 @@ wait_for_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 %
 % See wait_for_many_acks/{4,5} if having a large number of senders waited for.
 %
--spec wait_for_acks( [ pid() ], time_out(), milliseconds(), atom(), atom() ) ->
-			void().
+-spec wait_for_acks( [ pid() ], time_out(), ms_period(), atom(), atom() ) ->
+															void().
 wait_for_acks( WaitedSenders, MaxDurationInSeconds, Period,
 			   AckReceiveAtom, ThrowAtom ) ->
 
-	%trace_bridge:debug_fmt( "Waiting for ~p (period: ~ts, max duration: ~ts, "
-	%   "ack atom: '~ts', throw atom: '~ts').",
+	%trace_utils:debug_fmt( "Waiting for ~p (period: ~ts, "
+	%   "max duration: ~ts, ack atom: '~ts', throw atom: '~ts').",
 	%   [ WaitedSenders, time_utils:duration_to_string( Period ),
 	%     time_utils:duration_to_string( MaxDurationInSeconds ),
 	%     AckReceiveAtom, ThrowAtom ] ),
 
 	InitialTimestamp = time_utils:get_timestamp(),
 
-	wait_for_acks_helper( WaitedSenders, InitialTimestamp,
-		MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom ).
+	case wait_for_acks_nothrow_helper( WaitedSenders, InitialTimestamp,
+			MaxDurationInSeconds, Period, AckReceiveAtom ) of
 
+		[] ->
+			ok;
 
-
-% (helper)
-wait_for_acks_helper( _WaitedSenders=[], _InitialTimestamp,
-		_MaxDurationInSeconds, _Period, _AckReceiveAtom, _ThrowAtom ) ->
-	ok;
-
-wait_for_acks_helper( WaitedSenders, InitialTimestamp, MaxDurationInSeconds,
-					  Period, AckReceiveAtom, ThrowAtom ) ->
-
-	receive
-
-		{ AckReceiveAtom, WaitedPid } ->
-
-			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
-
-			%trace_bridge:debug_fmt( "(received ~p, still waiting for "
-			%   "instances ~p)", [ WaitedPid, NewWaited ] ),
-
-			wait_for_acks_helper( NewWaited, InitialTimestamp,
-				  MaxDurationInSeconds, Period, AckReceiveAtom, ThrowAtom )
-
-	after Period ->
-
-			NewDuration = time_utils:get_duration_since( InitialTimestamp ),
-
-			case ( MaxDurationInSeconds =/= infinity ) andalso
-					  ( NewDuration > MaxDurationInSeconds ) of
-
-				true ->
-					throw( { ThrowAtom, WaitedSenders } );
-
-				false ->
-					% Still waiting then:
-					%trace_bridge:debug_fmt( "(still waiting for instances ~p)",
-					%                        [ WaitedSenders ] ),
-
-					wait_for_acks_helper( WaitedSenders, InitialTimestamp,
-						MaxDurationInSeconds, Period, AckReceiveAtom,
-						ThrowAtom )
-
-			end
+		StillWaitedSenders ->
+			throw( { ThrowAtom, StillWaitedSenders } )
 
 	end.
 
@@ -988,7 +1073,7 @@ wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
 						AckReceiveAtom, ThrowAtom ) ->
 
 	wait_for_summable_acks( WaitedSenders, InitialValue, MaxDurationInSeconds,
-							_DefaultPeriod=1000, AckReceiveAtom, ThrowAtom ).
+							?default_period_ms, AckReceiveAtom, ThrowAtom ).
 
 
 
@@ -1028,19 +1113,19 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 
 			NewWaited = list_utils:delete_existing( WaitedPid, WaitedSenders ),
 
-			%io:format( "(received ~p, still waiting for instances ~p)~n",
-			%           [ WaitedPid, NewWaited ] ),
+			%trace_utils:debug_fmt( "(received ~p, still waiting for "
+			%   "instances ~p).", [ WaitedPid, NewWaited ] ),
 
 			wait_for_summable_acks_helper( NewWaited, CurrentValue + ToAdd,
-				  InitialTimestamp, MaxDurationInSeconds, Period,
-				  AckReceiveAtom, ThrowAtom )
+				InitialTimestamp, MaxDurationInSeconds, Period,
+				AckReceiveAtom, ThrowAtom )
 
 	after Period ->
 
 			NewDuration = time_utils:get_duration_since( InitialTimestamp ),
 
 			case ( MaxDurationInSeconds =/= infinity ) andalso
-					  ( NewDuration > MaxDurationInSeconds ) of
+						( NewDuration > MaxDurationInSeconds ) of
 
 				true ->
 					throw( { ThrowAtom, WaitedSenders } );
@@ -1048,7 +1133,8 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 				false ->
 					% Still waiting then:
 
-					%io:format( "(still waiting for instances ~p)~n",
+					%trace_utils:debug_fmt(
+					%   "(still waiting for instances ~p)",
 					%   [ WaitedSenders ] ),
 
 					wait_for_summable_acks_helper( WaitedSenders, CurrentValue,
@@ -1061,7 +1147,7 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 
 
 
-%  @doc Waits until receiving from all expected (numerous) senders the specified
+% @doc Waits until receiving from all expected (numerous) senders the specified
 % acknowledgement message.
 %
 % Throws specified exception on time-out.
@@ -1069,12 +1155,12 @@ wait_for_summable_acks_helper( WaitedSenders, CurrentValue, InitialTimestamp,
 % Note: each sender shall be unique (as they will be gathered in a set, that
 % does not keep duplicates)
 %
--spec wait_for_many_acks( set( pid() ), milliseconds(), atom(), atom() ) ->
-											void().
+-spec wait_for_many_acks( set( pid() ), finite_second_time_out(), atom(),
+						  atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 					ThrowAtom ) ->
 	wait_for_many_acks( WaitedSenders, MaxDurationInSeconds,
-						_DefaultPeriod=1000, AckReceiveAtom, ThrowAtom ).
+						?default_period_ms, AckReceiveAtom, ThrowAtom ).
 
 
 
@@ -1083,8 +1169,8 @@ wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, AckReceiveAtom,
 %
 % Throws specified exception on time-out, checking at the specified period.
 %
--spec wait_for_many_acks( set( pid() ), milliseconds(), milliseconds(), atom(),
-						  atom() ) -> void().
+-spec wait_for_many_acks( set( pid() ), finite_second_time_out(), ms_period(),
+						  atom(), atom() ) -> void().
 wait_for_many_acks( WaitedSenders, MaxDurationInSeconds, Period,
 					AckReceiveAtom, ThrowAtom ) ->
 
@@ -1115,8 +1201,8 @@ wait_for_many_acks_helper( WaitedSenders, InitialTimestamp,
 
 			after Period ->
 
-					NewDuration = time_utils:get_duration_since(
-									InitialTimestamp ),
+					NewDuration =
+						time_utils:get_duration_since( InitialTimestamp ),
 
 					case NewDuration > MaxDurationInSeconds of
 
@@ -1775,7 +1861,7 @@ is_alive( TargetPid, Node, Verbose ) when is_pid( TargetPid ) ->
 
 		_OtherNode ->
 			%trace_utils:debug_fmt( "Testing liveliness of process ~p "
-			%  "on node ~p.", [ TargetPid, Node ] ),
+			%   "on node ~p.", [ TargetPid, Node ] ),
 			case rpc:call( Node, _Mod=erlang, _Fun=is_process_alive,
 						   _Args=[ TargetPid ] ) of
 

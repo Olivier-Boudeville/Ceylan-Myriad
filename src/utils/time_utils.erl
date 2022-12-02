@@ -241,8 +241,24 @@
 % time_frame/0.
 
 
+-type finite_time_out() :: milliseconds().
+% An actual, finite time-out.
 
--type time_out() :: 'infinity' | milliseconds().
+
+-type time_out() :: 'infinity' | finite_time_out().
+% Any kind of time-out, finite or not.
+%
+% Cannot find the definition of the built-in timeout() type.
+
+
+
+-type finite_second_time_out() :: seconds().
+% An actual, finite time-out.
+
+
+-type second_time_out() :: 'infinity' | finite_second_time_out().
+% Any kind of time-out, finite or not.
+%
 % Cannot find the definition of the built-in timeout() type.
 
 
@@ -253,7 +269,11 @@
 
 -export_type([ timestamp/0, precise_timestamp/0,
 			   time_frame/0, user_time_frame/0,
-			   time_out/0, posix_seconds/0 ]).
+
+			   finite_time_out/0, time_out/0,
+			   finite_second_time_out/0, second_time_out/0,
+
+			   posix_seconds/0 ]).
 
 
 % Shorthands:
