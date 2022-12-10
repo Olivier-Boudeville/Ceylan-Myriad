@@ -1316,6 +1316,7 @@ info-options:
 	@echo "UI_TEST_OPT = $(UI_TEST_OPT)"
 	@echo "CMD_LINE_OPT = $(CMD_LINE_OPT)"
 	@echo "MAKEFLAGS = $(MAKEFLAGS)"
+	@echo "ALL_CMD_LINE_OPTIONS = $(ALL_CMD_LINE_OPTIONS)"
 
 
 info-parse-transform:
