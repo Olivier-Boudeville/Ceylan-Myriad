@@ -1900,11 +1900,14 @@ set_current_directory( DirPath ) ->
 
 
 
-% @doc Returns the first (if any) existing directory found in specified list, or
-% throws an exception if none is found.
+% @doc Returns the first (if any) existing directory found in the specified
+% list, or throws an exception if none is found.
+%
+% Each of the directory components involved may be an actual directory or a
+% symbolic link.
 %
 % Typically useful when having multiple possible paths depending on settings,
-% one of them being relevant.
+% only one of them being relevant.
 %
 -spec get_first_existing_directory_in( [ any_directory_path() ] ) ->
 												any_directory_path().
@@ -1919,7 +1922,7 @@ get_first_existing_dir( _DirPaths=[], Acc ) ->
 
 get_first_existing_dir( _DirPaths=[ Dir | T ], Acc ) ->
 
-	case is_existing_directory( Dir ) of
+	case is_existing_directory_or_link( Dir ) of
 
 		true ->
 			Dir;
