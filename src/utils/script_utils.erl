@@ -322,6 +322,14 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 -spec get_myriad_base_directory() -> file_utils:directory_path().
 get_myriad_base_directory() ->
 
+	is_legit_path( "/__w/Ceylan-Myriad" ),
+	is_legit_path( "/__w/Ceylan-Myriad/src" ),
+	is_legit_path( "/__w/Ceylan-Myriad/src/meta" ),
+	is_legit_path( "/__w/Ceylan-Myriad/src/.." ),
+	is_legit_path( "/__w/Ceylan-Myriad/src/meta/../.." ),
+	is_legit_path( "/__w/Ceylan-Myriad/src/meta/../../.." ),
+	is_legit_path( "/__w/Ceylan-Myriad/src/meta/../../../Ceylan-Myriad" ),
+
 	% We cannot use file_utils:normalise_path/1 here, as Myriad is not usable
 	% from that point yet.
 	%
