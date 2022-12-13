@@ -333,65 +333,46 @@ get_myriad_base_directory() ->
 
 	ScriptBaseDir = get_script_base_directory(),
 
-	% An indicator for testing a candidate base directory:
-	MetaFinalPath = [ "src", "meta" ],
-
 	FirstPrefixPath = [ ScriptBaseDir, "..", "..", ".." ],
 
 	FirstBaseCandidate =
 		filename:join( FirstPrefixPath ++ [ ?reference_myriad_dir ] ),
 
-	FirstMetaPath =
-		filename:join( [ FirstBaseCandidate | MetaFinalPath ] ),
+	case is_legit_path( FirstBaseCandidate ) of
 
-	case file:read_file_info( FirstMetaPath ) of
-
-		{ ok, #file_info{ type=directory } } ->
+		true ->
 			FirstBaseCandidate;
 
-		{ error, _FirstReason } ->
-
+		false ->
 			FirstAltBaseCandidate =
 				filename:join( FirstPrefixPath ++ [ ?shorthand_myriad_dir ] ),
 
-			FirstAltMetaPath =
-				filename:join( [ FirstAltBaseCandidate | MetaFinalPath ] ),
+			case is_legit_path( FirstAltBaseCandidate ) of
 
-			case file:read_file_info( FirstAltMetaPath ) of
-
-				{ ok, #file_info{ type=directory } } ->
+				true ->
 					FirstAltBaseCandidate;
 
-				{ error, _FirstAltReason } ->
-
+				false ->
 					SecondPrefixPath = FirstPrefixPath ++ [ ".." ],
 
-					% Defined specifically, for any error report:
 					SecondBaseCandidate = filename:join(
 						SecondPrefixPath ++ [ ?reference_myriad_dir ] ),
 
-					SecondMetaPath = filename:join(
-						[ SecondBaseCandidate | MetaFinalPath ] ),
+					case is_legit_path( SecondBaseCandidate ) of
 
-					case file:read_file_info( SecondMetaPath ) of
-
-						{ ok, #file_info{ type=directory } } ->
+						true ->
 							SecondBaseCandidate;
 
-						{ error, _SecondReason } ->
-
+						false ->
 							SecondAltBaseCandidate = filename:join(
 								SecondPrefixPath ++ [ ?shorthand_myriad_dir ] ),
 
-							SecondAltMetaPath = filename:join(
-								[ SecondAltBaseCandidate | MetaFinalPath ] ),
+							case is_legit_path( SecondAltBaseCandidate ) of
 
-							case file:read_file_info( SecondAltMetaPath ) of
-
-								{ ok, #file_info{ type=directory } } ->
+								true ->
 									SecondAltBaseCandidate;
 
-								{ error, _SecondAltReason } ->
+								false ->
 									throw( { myriad_base_directory_not_found,
 										FirstBaseCandidate,
 										FirstAltBaseCandidate,
@@ -403,6 +384,32 @@ get_myriad_base_directory() ->
 					end
 
 			end
+
+	end.
+
+
+
+% @doc Tests whether the specified path is a legit candidate one.
+%
+% (helper)
+%
+-spec is_legit_path( file_utils:path() ) -> boolean().
+is_legit_path( BaseCandidatePath ) ->
+
+	% An indicator for testing this candidate base directory:
+	MetaPath = filename:join( [ BaseCandidatePath | [ "src", "meta" ] ] ),
+
+	case file:read_file_info( MetaPath ) of
+
+		{ ok, #file_info{ type=directory } } ->
+			true;
+
+		{ ok, #file_info{ type=symlink } } ->
+			true;
+
+		% Error or other type:
+		_ ->
+			false
 
 	end.
 
