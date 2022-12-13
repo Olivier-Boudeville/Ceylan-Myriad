@@ -907,9 +907,9 @@ argument_table_to_string( ArgTable ) ->
 			ArgStrings = [ option_pair_to_string( Option, ArgumentLists )
 							|| { Option, ArgumentLists } <- ArgPairs ],
 
-			text_utils:format( "~B command-line element(s) specified "
+			text_utils:format( "~B type(s) of command-line element specified "
 				"(ordered alphabetically): ~ts", [ length( ArgPairs ),
-						text_utils:strings_to_sorted_string( ArgStrings ) ] )
+					text_utils:strings_to_sorted_string( ArgStrings ) ] )
 
 	end.
 
