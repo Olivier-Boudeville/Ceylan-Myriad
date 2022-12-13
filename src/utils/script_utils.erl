@@ -53,6 +53,11 @@
 -include_lib("kernel/include/file.hrl").
 
 
+-define( reference_myriad_dir, "Ceylan-Myriad" ).
+-define( shorthand_myriad_dir, "myriad" ).
+
+
+
 % Shorthands to be avoided here, as at least some functions are meant to be
 % copied verbatim in headers, such as myriad_script_include.hrl.
 
@@ -158,32 +163,31 @@ get_script_base_directory() ->
 
 
 
-
 % (helper)
 get_myriad_path_from( CodePath ) ->
 
 	% Two base directories are licit for Myriad, a reference one and a
 	% shorthand:
 	%
-	case get_myriad_path_from( CodePath, "Ceylan-Myriad" ) of
+	case get_myriad_path_from( CodePath, ?reference_myriad_dir ) of
 
 		undefined ->
 
-			case get_myriad_path_from( CodePath, "myriad" ) of
+			case get_myriad_path_from( CodePath, ?shorthand_myriad_dir ) of
 
 				undefined ->
 					throw( unable_to_determine_myriad_root );
 
 				Path ->
-					%trace_utils:debug_fmt( "Found from myriad: '~ts'.",
-					%					   [ Path ] ),
+					%trace_utils:debug_fmt( "Found from ~ts '~ts'.",
+					%                       [ ?shorthand_myriad_dir, Path ] ),
 					Path
 
 			end;
 
 		Path ->
-			%trace_utils:debug_fmt( "Found from Ceylan-Myriad: '~ts'.",
-			%					   [ Path ] ),
+			%trace_utils:debug_fmt( "Found from ~ts: '~ts'.",
+			%                       [ ?reference_myriad_dir, Path ] ),
 			Path
 
 	end.
@@ -288,7 +292,7 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 	ok = code:add_pathsa( MyriadBeamDirs ),
 
 	% One thing is that the relevant paths are declared, another one is that
-	% they have been built:
+	% they have been built; testing it:
 	%
 	try
 
@@ -329,10 +333,16 @@ get_myriad_base_directory() ->
 
 	ScriptBaseDir = get_script_base_directory(),
 
-	FirstBaseCandidate =
-		filename:join( [ ScriptBaseDir, "..", "..", "..", "myriad" ] ),
+	% An indicator for testing a candidate base directory:
+	MetaFinalPath = [ "src", "meta" ],
 
-	FirstMetaPath = filename:join( [ FirstBaseCandidate, "src", "meta" ] ),
+	FirstPrefixPath = [ ScriptBaseDir, "..", "..", ".." ],
+
+	FirstBaseCandidate =
+		filename:join( FirstPrefixPath ++ [ ?reference_myriad_dir ] ),
+
+	FirstMetaPath =
+		filename:join( [ FirstBaseCandidate | MetaFinalPath ] ),
 
 	case file:read_file_info( FirstMetaPath ) of
 
@@ -341,27 +351,60 @@ get_myriad_base_directory() ->
 
 		{ error, _FirstReason } ->
 
-			% Defined specifically, for any error report:
-			SecondBaseCandidate = filename:join(
-				[ ScriptBaseDir, "..", "..", "..", "..", "myriad" ] ),
+			FirstAltBaseCandidate =
+				filename:join( FirstPrefixPath ++ [ ?shorthand_myriad_dir ] ),
 
-			% Maybe in src/apps/SOME_APP then:
-			SecondMetaPath =
-				filename:join( [ SecondBaseCandidate, "src", "meta" ] ),
+			FirstAltMetaPath =
+				filename:join( [ FirstAltBaseCandidate | MetaFinalPath ] ),
 
-			case file:read_file_info( SecondMetaPath ) of
+			case file:read_file_info( FirstAltMetaPath ) of
 
 				{ ok, #file_info{ type=directory } } ->
-					SecondBaseCandidate;
+					FirstAltBaseCandidate;
 
-				{ error, _SecondReason } ->
-					throw( { myriad_base_directory_not_found,
-							 FirstBaseCandidate, SecondBaseCandidate } )
+				{ error, _FirstAltReason } ->
+
+					SecondPrefixPath = FirstPrefixPath ++ [ ".." ],
+
+					% Defined specifically, for any error report:
+					SecondBaseCandidate = filename:join(
+						SecondPrefixPath ++ [ ?reference_myriad_dir ] ),
+
+					SecondMetaPath = filename:join(
+						[ SecondBaseCandidate | MetaFinalPath ] ),
+
+					case file:read_file_info( SecondMetaPath ) of
+
+						{ ok, #file_info{ type=directory } } ->
+							SecondBaseCandidate;
+
+						{ error, _SecondReason } ->
+
+							SecondAltBaseCandidate = filename:join(
+								SecondPrefixPath ++ [ ?shorthand_myriad_dir ] ),
+
+							SecondAltMetaPath = filename:join(
+								[ SecondAltBaseCandidate | MetaFinalPath ] ),
+
+							case file:read_file_info( SecondAltMetaPath ) of
+
+								{ ok, #file_info{ type=directory } } ->
+									SecondAltBaseCandidate;
+
+								{ error, _SecondAltReason } ->
+									throw( { myriad_base_directory_not_found,
+										FirstBaseCandidate,
+										FirstAltBaseCandidate,
+										SecondBaseCandidate,
+										SecondAltBaseCandidate } )
+
+							end
+
+					end
 
 			end
 
 	end.
-
 
 
 
