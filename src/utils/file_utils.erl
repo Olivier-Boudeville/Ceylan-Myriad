@@ -1052,7 +1052,7 @@ get_extensions( Filename ) ->
 
 % @doc Returns the (last) extension of the specified file path.
 %
-% Ex: "json" = get_extension( "/home/joe/foobar.baz.json" )
+% Ex: "json" = get_extension("/home/joe/foobar.baz.json")
 %
 -spec get_extension( file_path() ) -> extension() | 'no_extension'.
 get_extension( Filename ) ->
