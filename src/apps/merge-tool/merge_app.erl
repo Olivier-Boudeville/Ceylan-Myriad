@@ -39,4 +39,7 @@ exec() ->
 
 	ArgTable = shell_utils:get_argument_table(),
 
+	%trace_utils:debug_fmt( "Run as application: ~ts",
+	%   [ shell_utils:argument_table_to_string( ArgTable ) ] ),
+
 	merge_utils:main( ArgTable ).
