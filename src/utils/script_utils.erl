@@ -322,14 +322,6 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 -spec get_myriad_base_directory() -> file_utils:directory_path().
 get_myriad_base_directory() ->
 
-	io:format( "A: ~p", [ file:read_file_info( "/__w/Ceylan-Myriad" ) ] ),
-	io:format( "B: ~p", [ file:read_file_info( "/__w/Ceylan-Myriad/src" ) ] ),
-	io:format( "C: ~p", [ file:read_file_info( "/__w/Ceylan-Myriad/src/meta" ) ] ),
-	io:format( "D: ~p", [ file:read_file_info( "/__w/Ceylan-Myriad/src/.." ) ] ),
-	io:format( "E: ~p", [ file:read_file_info( "/__w/Ceylan-Myriad/src/meta/../.." ) ] ),
-	io:format( "F: ~p", [ file:read_file_info( "/__w/Ceylan-Myriad/src/meta/../../.." ) ] ),
-	io:format( "G: ~p", [ file:read_file_info( "/__w/Ceylan-Myriad/src/meta/../../../Ceylan-Myriad" ) ] ),
-
 	% We cannot use file_utils:normalise_path/1 here, as Myriad is not usable
 	% from that point yet.
 	%
@@ -341,7 +333,7 @@ get_myriad_base_directory() ->
 
 	ScriptBaseDir = get_script_base_directory(),
 
-	FirstPrefixPath = [ ScriptBaseDir, "..", "..", ".." ],
+	FirstPrefixPath = [ ScriptBaseDir, "..", ".." ],
 
 	FirstBaseCandidate =
 		filename:join( FirstPrefixPath ++ [ ?reference_myriad_dir ] ),
