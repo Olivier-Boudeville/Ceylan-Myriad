@@ -408,7 +408,9 @@ is_legit_path( BaseCandidatePath ) ->
 			true;
 
 		% Error or other type:
-		_ ->
+		Other ->
+			io:format( "Candidate path '~p' not legit (~p).~n",
+					   [ MetaPath, Other ] ),
 			false
 
 	end.
