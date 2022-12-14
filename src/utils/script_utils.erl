@@ -335,10 +335,11 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 -spec get_myriad_base_directory() -> file_utils:directory_path().
 get_myriad_base_directory() ->
 
-	[ test_directory( D ) || D <- [ "/__w", "/__w/Ceylan-Myriad/", "/__w/Ceylan-Myriad/Ceylan-Myriad",  "/__w/Ceylan-Myriad/Ceylan-Myriad/src", "/__w/Ceylan-Myriad/Ceylan-Myriad/src/scripts", "/__w/Ceylan-Myriad/src/scripts/../../Ceylan-Myriad","/__w/Ceylan-Myriad/src/scripts/../../myriad","/__w/Ceylan-Myriad/src/scripts/../../../Ceylan-Myriad","/__w/Ceylan-Myriad/src/scripts/../../../myriad" ] ],
-
 	% We cannot use file_utils:normalise_path/1 here, as Myriad is not usable
-	% from that point yet.
+	% from that point yet. Yet at least in Github CI,
+	% "/__w/Ceylan-Myriad/Ceylan-Myriad" is found existing whereas
+	% "/__w/Ceylan-Myriad/src/scripts/../../Ceylan-Myriad" not (!), so we had to
+	% include verbatim file_utils:normalise_path/1 and its dependencies.
 	%
 	% Two main possibilities here: the current escript is located in src/scripts
 	% or in src/apps/SOME_APP; trying them in turn, using src/meta as an
@@ -350,8 +351,8 @@ get_myriad_base_directory() ->
 
 	FirstPrefixPath = [ ScriptBaseDir, "..", ".." ],
 
-	FirstBaseCandidate =
-		filename:join( FirstPrefixPath ++ [ ?reference_myriad_dir ] ),
+	FirstBaseCandidate = normalise_path(
+		filename:join( FirstPrefixPath ++ [ ?reference_myriad_dir ] ) ),
 
 	case is_legit_path( FirstBaseCandidate ) of
 
@@ -359,8 +360,8 @@ get_myriad_base_directory() ->
 			FirstBaseCandidate;
 
 		false ->
-			FirstAltBaseCandidate =
-				filename:join( FirstPrefixPath ++ [ ?shorthand_myriad_dir ] ),
+			FirstAltBaseCandidate = normalise_path(
+				filename:join( FirstPrefixPath ++ [ ?shorthand_myriad_dir ] ) ),
 
 			case is_legit_path( FirstAltBaseCandidate ) of
 
@@ -370,8 +371,8 @@ get_myriad_base_directory() ->
 				false ->
 					SecondPrefixPath = FirstPrefixPath ++ [ ".." ],
 
-					SecondBaseCandidate = filename:join(
-						SecondPrefixPath ++ [ ?reference_myriad_dir ] ),
+					SecondBaseCandidate = normalise_path( filename:join(
+						SecondPrefixPath ++ [ ?reference_myriad_dir ] ) ),
 
 					case is_legit_path( SecondBaseCandidate ) of
 
@@ -379,8 +380,9 @@ get_myriad_base_directory() ->
 							SecondBaseCandidate;
 
 						false ->
-							SecondAltBaseCandidate = filename:join(
-								SecondPrefixPath ++ [ ?shorthand_myriad_dir ] ),
+							SecondAltBaseCandidate = normalise_path(
+								filename:join( SecondPrefixPath
+											   ++ [ ?shorthand_myriad_dir ] ) ),
 
 							case is_legit_path( SecondAltBaseCandidate ) of
 
@@ -403,9 +405,69 @@ get_myriad_base_directory() ->
 	end.
 
 
--spec test_directory( file_utils:path() ) -> basic_utils:void().
-test_directory( D ) ->
-	io:format( "Testing ~ts: ~p~n", [ D, file:read_file_info( D ) ] ).
+%-spec test_directory( file_utils:path() ) -> basic_utils:void().
+%test_directory( D ) ->
+%   io:format( "Testing ~ts: ~p~n", [ D, file:read_file_info( D ) ] ).
+
+
+
+
+% Included from file_utils (shortened as no bin_string() support, using
+% filename:join/2 instead of the one of file_utils, and with type prefixes):
+
+
+% @doc Normalises specified path (canonicalises it), by translating it so that
+% no intermediate, superfluous '.' or '..' is present afterwards.
+%
+% For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
+% "/home/lisa/tube".
+%
+% Returns a path of the same string type as the specified parameter.
+%
+-spec normalise_path( file_utils:path() ) -> file_utils:path();
+					( file_utils:bin_path() ) -> file_utils:bin_path().
+normalise_path( _Path="." ) ->
+	".";
+	%get_current_directory();
+
+normalise_path( Path ) when is_list( Path ) ->
+
+	ElemList = filename:split( Path ),
+
+	%trace_utils:debug_fmt( "ElemList: ~p", [ ElemList ] ),
+
+	ResPath = filename:join( filter_elems_plain( ElemList, _Acc=[] ) ),
+
+	%trace_utils:debug_fmt( "Normalising path '~ts' as '~ts'.",
+	%                       [ Path, ResPath ] ),
+
+	ResPath.
+
+% (helper)
+filter_elems_plain( _ElemList=[], Acc ) ->
+	lists:reverse( Acc );
+
+filter_elems_plain( _ElemList=[ "." | T ], Acc ) ->
+	filter_elems_plain( T, Acc );
+
+% We can remove one level iff there is at least one accumulated *and* this one
+% is not already ".." (otherwise the ".." will cancel out):
+%
+filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ PrevElem | AccT ] )
+						when PrevElem =/= ".." ->
+	filter_elems_plain( T, AccT );
+
+
+% No level left, so this ".." should not be filtered out:
+%
+% (however this clause is a special case of the next, hence can be commented
+% out)
+%
+%filter_elems_plain( _ElemList=[ PathElement=".." | T ], Acc ) ->
+%	filter_elems_plain( T, [ PathElement | Acc ] );
+
+filter_elems_plain( _ElemList=[ E | T ], Acc ) ->
+	filter_elems_plain( T, [ E | Acc ] ).
 
 
 
