@@ -90,14 +90,14 @@ is_running_as_escript() ->
 		case escript:script_name() of
 
 			Name ->
-				%io:format( "Script name: '~ts'.~n", [ Name ] ),
+				io:format( "Script name: '~ts'.~n", [ Name ] ),
 				filename:extension( Name ) =:= ".escript"
 
 		end
 
 	% Typically {badmatch,[]} from escript.erl:
-	catch error:_Error ->
-
+	catch error:Error ->
+		io:format( "Script name error: '~p'.~n", [ Error ] ),
 		false
 
 	end.
@@ -120,7 +120,7 @@ get_script_base_directory() ->
 
 		true ->
 
-			%io:format( "Found running as escript.~n" ),
+			io:format( "Found running as escript.~n" ),
 
 			% filename:absname/1 could be used instead:
 			FullPath = case escript:script_name() of
@@ -140,14 +140,15 @@ get_script_base_directory() ->
 
 			BaseDir = filename:dirname( FullPath ),
 
-			%io:format( "Script base directory: '~ts'.~n", [ BaseDir ] ),
+			io:format( "Script base directory (as escript): '~ts'.~n",
+					   [ BaseDir ] ),
 
 			BaseDir;
 
 
 		false ->
 
-			%io:format( "Found not running as escript.~n" ),
+			io:format( "Found not running as escript.~n" ),
 
 			% Supposing Myriad is already available then?
 			CodePath = code_utils:get_code_path(),
@@ -157,7 +158,12 @@ get_script_base_directory() ->
 			% We cannot use file_utils:normalise_path/1 here: Myriad not usable
 			% from that point yet!
 			%
-			file_utils:join( [ MyriadPath, "src", "scripts" ] )
+			BaseDir = file_utils:join( [ MyriadPath, "src", "scripts" ] ),
+
+			io:format( "Script base directory (not as escript): '~ts'.~n",
+					   [ BaseDir ] ),
+
+			BaseDir
 
 	end.
 
