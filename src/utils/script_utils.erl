@@ -77,7 +77,8 @@ is_running_as_escript() ->
 	% succeed if at least an extra command-line line was specified.
 	%
 	% So escript:script_name() will fail if erl is launched with no option,
-	% whereas it will succeed if launched with 'erl -extra foobar' for example.
+	% whereas it will succeed if launched with 'erl -extra foobar' for example
+	% (and for some reason will return then "foobar").
 	%
 	% The best solution we see currently is to look whether the returned script
 	% name bears the '.escript' extension (better than just including a path
@@ -90,14 +91,14 @@ is_running_as_escript() ->
 		case escript:script_name() of
 
 			Name ->
-				io:format( "Script name: '~ts'.~n", [ Name ] ),
+				%io:format( "Script name: '~ts'.~n", [ Name ] ),
 				filename:extension( Name ) =:= ".escript"
 
 		end
 
 	% Typically {badmatch,[]} from escript.erl:
-	catch error:Error ->
-		io:format( "Script name error: '~p'.~n", [ Error ] ),
+	catch error:_Error ->
+		%io:format( "Script name error: '~p'.~n", [ Error ] ),
 		false
 
 	end.
@@ -120,7 +121,7 @@ get_script_base_directory() ->
 
 		true ->
 
-			io:format( "Found running as escript.~n" ),
+			%io:format( "Found running as escript.~n" ),
 
 			% filename:absname/1 could be used instead:
 			FullPath = case escript:script_name() of
@@ -129,6 +130,7 @@ get_script_base_directory() ->
 					% Is already absolute here:
 					ScriptPath;
 
+				% Possibly actually a dummy value (e.g. "--batch"):
 				RelativePath ->
 					% Let's make it absolute then:
 					{ ok, CurrentDir } = file:get_cwd(),
@@ -140,15 +142,15 @@ get_script_base_directory() ->
 
 			BaseDir = filename:dirname( FullPath ),
 
-			io:format( "Script base directory (as escript): '~ts'.~n",
-					   [ BaseDir ] ),
+			%io:format( "Script base directory (as escript): '~ts'.~n",
+			%           [ BaseDir ] ),
 
 			BaseDir;
 
 
 		false ->
 
-			io:format( "Found not running as escript.~n" ),
+			%io:format( "Found not running as escript.~n" ),
 
 			% Supposing Myriad is already available then?
 			CodePath = code_utils:get_code_path(),
@@ -160,8 +162,8 @@ get_script_base_directory() ->
 			%
 			BaseDir = file_utils:join( [ MyriadPath, "src", "scripts" ] ),
 
-			io:format( "Script base directory (not as escript): '~ts'.~n",
-					   [ BaseDir ] ),
+			%io:format( "Script base directory (not as escript): '~ts'.~n",
+			%           [ BaseDir ] ),
 
 			BaseDir
 
@@ -205,10 +207,15 @@ get_myriad_path_from( _Paths=[], _BaseDirName ) ->
 	undefined;
 
 get_myriad_path_from( [ Path | T ], BaseDirName ) ->
-	case string:split( Path, BaseDirName ) of
+	% Of course continuous integration had to use
+	% '/__w/Ceylan-Myriad/Ceylan-Myriad' as base directory...
+	%
+	case string:split( Path, BaseDirName, _Where=trailing ) of
 
 		[ Prefix, _Suffix ] ->
 			% Just the full path to the root wanted:
+			%io:format( "Split path '~ts' with base dir '~ts', "
+			%   "got prefix '~ts'.", [ Path, BaseDirName, Prefix ] ),
 			file_utils:join( Prefix, BaseDirName );
 
 		% Layer name not found:
@@ -414,9 +421,9 @@ is_legit_path( BaseCandidatePath ) ->
 			true;
 
 		% Error or other type:
-		Other ->
-			io:format( "Candidate path '~p' not legit (~p).~n",
-					   [ MetaPath, Other ] ),
+		_Other ->
+			%io:format( "Candidate path '~p' not legit (~p).~n",
+			%           [ MetaPath, Other ] ),
 			false
 
 	end.
