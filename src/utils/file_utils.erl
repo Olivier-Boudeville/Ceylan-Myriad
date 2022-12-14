@@ -4015,23 +4015,23 @@ filter_elems_plain( _ElemList=[ E | T ], Acc ) ->
 
 % The approach below would not work with, for example, "X/Y/Z/../../A":
 
-%	RevElemList = lists:reverse( filename:split( Path ) ),
+% RevElemList = lists:reverse( filename:split( Path ) ),
 
-%	% Returns in the right order:
-%	join( filter_elems_plain( RevElemList, _Acc=[] ) ).
+% % Returns in the right order:
+% join( filter_elems_plain( RevElemList, _Acc=[] ) ).
 
 
 % filter_elems_plain( _Elems=[], Acc ) ->
-%	Acc;
+%   Acc;
 
 % filter_elems_plain( _Elems=[ "." | T ], Acc ) ->
-%	filter_elems_plain( T, Acc );
+%   filter_elems_plain( T, Acc );
 
 % filter_elems_plain( _Elems=[ "..", _E | T ], Acc ) ->
-%	filter_elems_plain( T, Acc );
+%   filter_elems_plain( T, Acc );
 
 % filter_elems_plain( _Elems=[ E | T ], Acc ) ->
-%	filter_elems_plain( T, [ E | Acc ] ).
+%   filter_elems_plain( T, [ E | Acc ] ).
 
 
 
