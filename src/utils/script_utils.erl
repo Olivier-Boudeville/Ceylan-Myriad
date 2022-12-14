@@ -464,7 +464,7 @@ filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ PrevElem | AccT ] )
 % out)
 %
 %filter_elems_plain( _ElemList=[ PathElement=".." | T ], Acc ) ->
-%	filter_elems_plain( T, [ PathElement | Acc ] );
+%   filter_elems_plain( T, [ PathElement | Acc ] );
 
 filter_elems_plain( _ElemList=[ E | T ], Acc ) ->
 	filter_elems_plain( T, [ E | Acc ] ).
