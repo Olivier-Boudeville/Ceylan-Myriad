@@ -335,6 +335,8 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 -spec get_myriad_base_directory() -> file_utils:directory_path().
 get_myriad_base_directory() ->
 
+	[ test_directory( D ) || D <- [ "/__w", "/__w/Ceylan-Myriad/", "/__w/Ceylan-Myriad/Ceylan-Myriad",  "/__w/Ceylan-Myriad/Ceylan-Myriad/src", "/__w/Ceylan-Myriad/Ceylan-Myriad/src/scripts", "/__w/Ceylan-Myriad/src/scripts/../../Ceylan-Myriad","/__w/Ceylan-Myriad/src/scripts/../../myriad","/__w/Ceylan-Myriad/src/scripts/../../../Ceylan-Myriad","/__w/Ceylan-Myriad/src/scripts/../../../myriad" ] ],
+
 	% We cannot use file_utils:normalise_path/1 here, as Myriad is not usable
 	% from that point yet.
 	%
@@ -399,6 +401,11 @@ get_myriad_base_directory() ->
 			end
 
 	end.
+
+
+-spec test_directory( file_utils:path() ) -> basic_utils:void().
+test_directory( D ) ->
+	io:format( "Testing ~ts: ~p~n", [ D, file:read_file_info( D ) ] ).
 
 
 
