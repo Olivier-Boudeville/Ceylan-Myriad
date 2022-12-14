@@ -2093,7 +2093,7 @@ filter_by_included_suffixes( Paths, IncludedSuffixes ) ->
 	% Not a list comprehension to better detect any non-matching element:
 	Res = filter_by_included_suffixes( Paths, IncludedSuffixes, _Acc=[] ),
 	%trace_utils:debug_fmt( "Filtering by included suffixes ~p~n  * input: ~p"
-	%	"~n * output: ~p", [ IncludedSuffixes, Paths, Res ] ),
+	%   "~n * output: ~p", [ IncludedSuffixes, Paths, Res ] ),
 	Res.
 
 
@@ -2161,7 +2161,7 @@ has_matching_suffix( Path, [ Suffix | T ] ) ->
 
 	% Deadly bugs may happen if plain and binary strings are mixed:
 	%cond_utils:assert( myriad_check_strings,
-	%				   text_utils:are_of_same_string_type( Path, Suffix ) ),
+	%                   text_utils:are_of_same_string_type( Path, Suffix ) ),
 
 	% Path and Suffix must be of the same type of strings (either plain or
 	% binary). If not, as a conversion from binary to plain may fail (raw
@@ -4007,7 +4007,7 @@ filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ PrevElem | AccT ] )
 % out)
 %
 %filter_elems_plain( _ElemList=[ PathElement=".." | T ], Acc ) ->
-%	filter_elems_plain( T, [ PathElement | Acc ] );
+%   filter_elems_plain( T, [ PathElement | Acc ] );
 
 filter_elems_plain( _ElemList=[ E | T ], Acc ) ->
 	filter_elems_plain( T, [ E | Acc ] ).
@@ -4052,7 +4052,7 @@ filter_elems_bin( _ElemList=[ <<"..">> | T ], _Acc=[ _ | AccT ] ) ->
 % out)
 %
 %filter_elems_bin( _ElemList=[ PathElement=<<"..">> | T ], Acc ) ->
-%	filter_elems_bin( T, [ PathElement | Acc ] );
+%   filter_elems_bin( T, [ PathElement | Acc ] );
 
 filter_elems_bin( _ElemList=[ E | T ], Acc ) ->
 	filter_elems_bin( T, [ E | Acc ] ).
@@ -4125,7 +4125,7 @@ make_relative_plain( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
 make_relative_plain( PathElems, RefPathElems ) ->
 
 	%trace_utils:debug_fmt( "Paths split at: ~p vs ~p.",
-	%						[ PathElems, RefPathElems ] ),
+	%                       [ PathElems, RefPathElems ] ),
 
 	FromRef = [ ".." || _ <- lists:seq( 1, length( RefPathElems ) ) ],
 
@@ -4144,7 +4144,7 @@ make_relative_binary( [ E | TPathElems ], [ E | TRefPathElems ] ) ->
 make_relative_binary( PathElems, RefPathElems ) ->
 
 	%trace_utils:debug_fmt( "Paths split at: ~p vs ~p.",
-	%					   [ PathElems, RefPathElems ] ),
+	%                       [ PathElems, RefPathElems ] ),
 
 	FromRef = [ <<"..">> || _ <- lists:seq( 1, length( RefPathElems ) ) ],
 
@@ -4279,8 +4279,8 @@ try_behead_with( _Elem, _Others, _Acc ) ->
 % discriminate between the specified paths (expected to be of the same string
 % type).
 %
-% Ex: get_shortest_unique_ending_paths( "/aa/bb/foo/bar/hello.txt",
-%                                       "/tmp/buzz/frob/aa/foo/bar/hello.txt")
+% Ex: get_shortest_unique_ending_paths("/aa/bb/foo/bar/hello.txt",
+%                                      "/tmp/buzz/frob/aa/foo/bar/hello.txt")
 %      returns: {"bb/foo/bar/hello.txt", "aa/foo/bar/hello.txt"}
 %
 -spec get_shortest_unique_ending_paths( any_path(), any_path() ) ->
@@ -4340,7 +4340,7 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 		LeafName ->
 			Path;
 
-		_  ->
+		_ ->
 			is_leaf_among( LeafName, T )
 
 	end.
@@ -4353,8 +4353,8 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 % replaced with their associated value (i.e. the value in table corresponding to
 % that key).
 %
-% Ex: file_utils:update_with_keywords( "original.txt", "updated.txt", table:new(
-%  [{"hello", "goodbye"}, {"Blue", "Red"}]).
+% For example file_utils:update_with_keywords( "original.txt", "updated.txt",
+%           table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
 %
 % Note that the resulting file will be written with no additional encoding.
 %
@@ -4372,7 +4372,7 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 % the translation table) have been replaced with their associated value
 % (that is the value in table corresponding to that key).
 %
-% Ex: file_utils:update_with_keywords("original.txt", "updated.txt",
+% For example file_utils:update_with_keywords("original.txt", "updated.txt",
 %   table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
@@ -5673,9 +5673,9 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 	DummyFileName = "dummy",
 
 	%trace_utils:notice_fmt( "files_to_zipped_term operating, from '~ts', "
-	%						 "on following ~B file(s): ~ts",
-	%						 [ BaseDirectory, length( FilenameList ),
-	%						   text_utils:terms_to_string( FilenameList ) ] ),
+	%   "on following ~B file(s): ~ts",
+	%   [ BaseDirectory, length( FilenameList ),
+	%     text_utils:terms_to_string( FilenameList ) ] ),
 
 	 case zip:zip( DummyFileName, FilenameList,
 				   [ memory, { cwd, BaseDirectory } ] ) of
@@ -5690,11 +5690,11 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 
 			 %trace_utils:warning_fmt( "files_to_zipped_term/2 failed "
 			 %  "from '~ts':~n~n - directory '~p' exists? ~p",
-			 %		[ get_current_directory(), BaseDirectory,
-			 %		  is_existing_directory( BaseDirectory ) ] ),
+			 %      [ get_current_directory(), BaseDirectory,
+			 %        is_existing_directory( BaseDirectory ) ] ),
 
 			 % [ trace_utils:warning_fmt( "~n - file '~p' exists? ~p", [ F,
-			 %	   is_existing_file( F ) ] ) || F <- FilenameList ],
+			 %    is_existing_file( F ) ] ) || F <- FilenameList ],
 
 			 throw( { zip_failed, BaseDirectory, FilenameList } );
 
