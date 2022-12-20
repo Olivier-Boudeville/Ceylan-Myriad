@@ -74,7 +74,7 @@
 		color_by_decimal() | color_by_decimal_with_alpha().
 
 -type color() :: color_by_name() | color_by_decimal().
-% Any kind of RGB (integer) color.
+% Any kind of RGB color.
 
 
 -type color_coordinate() :: float().
