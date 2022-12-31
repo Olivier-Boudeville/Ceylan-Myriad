@@ -2093,9 +2093,9 @@ get_precise_duration_since( StartTimestamp ) ->
 % specified number of days (possibly a negative number).
 %
 -spec get_date_after( date(), days() ) -> date().
-get_date_after( BaseDate, Days ) ->
+get_date_after( BaseDate, DaysOffset ) ->
 
-	DayCount = calendar:date_to_gregorian_days( BaseDate ) + Days,
+	DayCount = calendar:date_to_gregorian_days( BaseDate ) + DaysOffset,
 
 	calendar:gregorian_days_to_date( DayCount ).
 
