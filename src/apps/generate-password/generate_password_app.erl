@@ -7,6 +7,7 @@
 %
 % Released as LGPL software.
 
+
 % @doc A Myriad application to <b>generate strong, safe passwords</b>.
 %
 % @hidden Not useful to list in API.
