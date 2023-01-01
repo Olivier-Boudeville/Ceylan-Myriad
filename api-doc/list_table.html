@@ -17,6 +17,10 @@
 <h2><a name="description">Description</a></h2><p>Implementation of an <b>associative table relying on a simple list of
  key/value pairs</b>.</p>
 
+ <p>Beware of multiple entries having the same key in such a list_table, as the 
+first one will eclipse all others; this may happen if not building explicitly, 
+with this API, one's list_table instance.</p>
+
  <p>See <code>list_table_test.erl</code> for the corresponding test.</p>
 
  <p>We provide different multiple types of tables, including:</p>
@@ -62,19 +66,19 @@ smaller table (and only them)</p>
 
 
 <h3 class="typedecl"><a name="type-list_table">list_table()</a></h3>
-<p><b>abstract datatype</b>: <tt>list_table(K, V)</tt></p>
+<p><tt>list_table(K, V) = [{K, V}]</tt></p>
 
 
 <h3 class="typedecl"><a name="type-list_table">list_table()</a></h3>
-<p><b>abstract datatype</b>: <tt>list_table()</tt></p>
+<p><tt>list_table() = [{<a href="#type-key">key()</a>, <a href="#type-value">value()</a>}]</tt></p>
 <p> Not exactly as proplist:proplist/0 (pairs only, and any() as key).</p>
 
 <h3 class="typedecl"><a name="type-table">table()</a></h3>
-<p><b>abstract datatype</b>: <tt>table(K, V)</tt></p>
+<p><tt>table(K, V) = <a href="#type-list_table">list_table</a>(K, V)</tt></p>
 
 
 <h3 class="typedecl"><a name="type-table">table()</a></h3>
-<p><b>abstract datatype</b>: <tt>table()</tt></p>
+<p><tt>table() = <a href="#type-list_table">list_table()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>

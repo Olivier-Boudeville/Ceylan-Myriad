@@ -179,8 +179,8 @@ preferences server if needed) or on the specified PID of an already-running
 preferences server.</td></tr>
 <tr><td valign="top"><a href="#get_default_preferences_path-0">get_default_preferences_path/0</a></td><td>Returns the full, absolute path to the default preferences filename.</td></tr>
 <tr><td valign="top"><a href="#get_default_preferences_registration_name-0">get_default_preferences_registration_name/0</a></td><td>Returns the default (local) registration name for the preferences.</td></tr>
-<tr><td valign="top"><a href="#is_preferences_default_file_available-0">is_preferences_default_file_available/0</a></td><td>Returns whether the default preferences file is available and its full
- path.</td></tr>
+<tr><td valign="top"><a href="#is_preferences_default_file_available-0">is_preferences_default_file_available/0</a></td><td>Returns whether the default preferences file is available, together with
+ its full path.</td></tr>
 <tr><td valign="top"><a href="#set-2">set/2</a></td><td>Associates, if the first argument is a key, in default preferences, the 
 specified value to the specified key (possibly overwriting any previous 
 value); otherwise the first argument is expected to be a list of key/value 
@@ -377,8 +377,8 @@ preferences:get([hello, my_number, some_maybe], my_foobar_preferences)</p>
 <div class="spec">
 <p><tt>is_preferences_default_file_available() -&gt; {boolean(), <a href="#type-file_path">file_path()</a>}</tt><br></p>
 <p> </p>
-</div><p>Returns whether the default preferences file is available and its full
- path.
+</div><p>Returns whether the default preferences file is available, together with
+ its full path.
 </p>
 
 <h3 class="function"><a name="set-2">set/2</a></h3>

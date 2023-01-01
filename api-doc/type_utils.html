@@ -38,12 +38,45 @@ ASTs.</p>
  constructs; it is thus autonomous, self-standing.</p>
 
 <h3 class="typedecl"><a name="type-float32">float32()</a></h3>
-<p><tt>float32() = fixme</tt></p>
+<p><tt>float32() = float()</tt></p>
+<p><p> A single-precision, IEEE 754 32-bit base-2 floating-point value.</p>
 
+ <p>Exact for all integers with up to 7 decimal digits, and for any 2^N for an 
+integer number N in [-149,127].</p>
+
+ <p>See <a href="https://en.wikipedia.org/wiki/Single-precision_floating-point_format" target="_top"><tt>https://en.wikipedia.org/wiki/Single-precision_floating-point_format</tt></a> for 
+more information.</p>
+
+ Note that in Erlang this datatype does not exist as such, only floars are
+ float64() ones.</p>
 
 <h3 class="typedecl"><a name="type-float64">float64()</a></h3>
-<p><tt>float64() = fixme</tt></p>
+<p><tt>float64() = float()</tt></p>
+<p><p> A binary64/double-precision, IEEE 754 64-bit base-2 floating-point value.</p>
 
+ <p>Exact notably for integers from -2^253 to 2^253 (-9,007,199,254,740,992 to 
+9,007,199,254,740,992).</p>
+
+ See <a href="https://en.wikipedia.org/wiki/Double-precision_floating-point_format" target="_top"><tt>https://en.wikipedia.org/wiki/Double-precision_floating-point_format</tt></a> for
+ more information.</p>
+
+<h3 class="typedecl"><a name="type-int16">int16()</a></h3>
+<p><tt>int16() = <a href="#type-uint16">uint16()</a> | <a href="#type-sint16">sint16()</a></tt></p>
+<p> 16-bit integer, potentially ranging from -32,768 to 65,535 (both included).</p>
+
+<h3 class="typedecl"><a name="type-int32">int32()</a></h3>
+<p><tt>int32() = <a href="#type-uint32">uint32()</a> | <a href="#type-sint32">sint32()</a></tt></p>
+<p> 32-bit integer, potentially ranging from -2,147,483,648 to 4,294,967,295 (both
+ included).</p>
+
+<h3 class="typedecl"><a name="type-int64">int64()</a></h3>
+<p><tt>int64() = <a href="#type-uint64">uint64()</a> | <a href="#type-sint64">sint64()</a></tt></p>
+<p> 64-bit integer, potentially ranging from -9,223,372,036,854,775,808 to
+ 18,446,744,073,709,551,615 (both included).</p>
+
+<h3 class="typedecl"><a name="type-int8">int8()</a></h3>
+<p><tt>int8() = <a href="#type-uint8">uint8()</a> | <a href="#type-sint8">sint8()</a></tt></p>
+<p> 8-bit integer, potentially ranging from -128 to 255 (both included).</p>
 
 <h3 class="typedecl"><a name="type-level">level()</a></h3>
 <p><tt>level() = <a href="basic_utils.html#type-level">basic_utils:level()</a></tt></p>
@@ -60,6 +93,10 @@ ASTs.</p>
  Datatypes are 'int' (for integer) and 'float' (for standard IEEE signed,
  floating-point values).</p>
 
+<h3 class="typedecl"><a name="type-map">map()</a></h3>
+<p><tt>map(_K, _V) = map()</tt></p>
+<p> As (maps:)map/2 does not even exist apparently, at least not since 18.0.</p>
+
 <h3 class="typedecl"><a name="type-maybe">maybe()</a></h3>
 <p><tt>maybe(T) = T | undefined</tt></p>
 
@@ -68,13 +105,24 @@ ASTs.</p>
 <p><tt>nesting_depth() = {<a href="#type-count">count()</a>, <a href="#type-count">count()</a>}</tt></p>
 <p><p> Description of a nesting depth reached when parsing a type description.</p>
 
- It is in pratice a {P,B} pair, where P is the parenthesis depth (ie the
+ It is in pratice a {P,B} pair, where P is the parenthesis depth (that is the
  number of the parentheses that have been opened and not closed yet) and B is
  the bracket depth (ie the same principle, for "[]" instead of for "()").</p>
 
 <h3 class="typedecl"><a name="type-pair">pair()</a></h3>
 <p><tt>pair() = <a href="pair.html#type-pair">pair:pair()</a></tt></p>
 
+
+<h3 class="typedecl"><a name="type-permanent_term">permanent_term()</a></h3>
+<p><tt>permanent_term() = integer() | float() | atom() | boolean() | binary() | [<a href="#type-permanent_term">permanent_term()</a>] | <a href="#type-tuple">tuple</a>(<a href="#type-permanent_term">permanent_term()</a>) | <a href="#type-map">map</a>(<a href="#type-permanent_term">permanent_term()</a>, <a href="#type-permanent_term">permanent_term()</a>)</tt></p>
+<p><p> Designates values that are permanent, that is that are context-free, not 
+runtime-specific and can be reproduced (e.g. serialised).</p>
+
+ <p>As for compound datatypes (lists, tuples and thus records, maps), they are 
+also permanent iff all the terms they aggregate are themselves permanent 
+terms.</p>
+
+ Permanent terms are the opposite of transient ones.</p>
 
 <h3 class="typedecl"><a name="type-primitive_type_description">primitive_type_description()</a></h3>
 <p><tt>primitive_type_description() = atom | binary | boolean | float | function | integer | list | map | pid | port | record | reference | tuple</tt></p>
@@ -85,27 +133,35 @@ ASTs.</p>
 <p> Designates a record instance, to discriminate from a mere tuple.</p>
 
 <h3 class="typedecl"><a name="type-sint16">sint16()</a></h3>
-<p><tt>sint16() = fixme</tt></p>
-
+<p><tt>sint16() = -32768..32767</tt></p>
+<p> Signed 16-bit integer, ranging from -32,768 to 32,767 (both included).</p>
 
 <h3 class="typedecl"><a name="type-sint32">sint32()</a></h3>
-<p><tt>sint32() = fixme</tt></p>
-
+<p><tt>sint32() = -2147483648..2147483647</tt></p>
+<p> Signed 32-bit integer, ranging from -2,147,483,648 to 2,147,483,647 (both
+ included).</p>
 
 <h3 class="typedecl"><a name="type-sint64">sint64()</a></h3>
-<p><tt>sint64() = fixme</tt></p>
-
+<p><tt>sint64() = -9223372036854775808..9223372036854775807</tt></p>
+<p> Signed 64-bit integer, ranging from -9,223,372,036,854,775,808 to
+ 9,223,372,036,854,775,807 (both included).</p>
 
 <h3 class="typedecl"><a name="type-sint8">sint8()</a></h3>
-<p><tt>sint8() = fixme</tt></p>
-
+<p><tt>sint8() = -128..127</tt></p>
+<p> Signed 8-bit integer, ranging from -128 to 127 (both included).</p>
 
 <h3 class="typedecl"><a name="type-transient_term">transient_term()</a></h3>
-<p><tt>transient_term() = pid() | port() | reference()</tt></p>
+<p><tt>transient_term() = pid() | port() | reference() | function()</tt></p>
 <p><p> Designates values that are transient, that is that are runtime-specific and 
 cannot be reproduced a priori.</p>
 
- Anonymous functions may belong to this type.</p>
+ <p>PIDs belong to this type, ports, references, anonymous functions may also.</p>
+
+ <p>As for compound datatypes (lists, tuples and thus records, maps), they are 
+also transient iff at least one of the terms they aggregate is itself a 
+transient term.</p>
+
+ Transient terms are the opposite of permanent ones.</p>
 
 <h3 class="typedecl"><a name="type-triplet">triplet()</a></h3>
 <p><tt>triplet() = {any(), any(), any()}</tt></p>
@@ -248,20 +304,21 @@ for polymorphic ones).</p>
  Ex: 'my_count'.</p>
 
 <h3 class="typedecl"><a name="type-uint16">uint16()</a></h3>
-<p><tt>uint16() = fixme</tt></p>
-
+<p><tt>uint16() = 0..65535</tt></p>
+<p> Non-negative 16-bit integer, ranging from 0 to 65,535 (both included).</p>
 
 <h3 class="typedecl"><a name="type-uint32">uint32()</a></h3>
-<p><tt>uint32() = fixme</tt></p>
-
+<p><tt>uint32() = 0..4294967295</tt></p>
+<p> Non-negative 32-bit integer, ranging from 0 to 4,294,967,295 (both included).</p>
 
 <h3 class="typedecl"><a name="type-uint64">uint64()</a></h3>
-<p><tt>uint64() = fixme</tt></p>
-
+<p><tt>uint64() = 0..18446744073709551615</tt></p>
+<p> Non-negative 64-bit integer, ranging from 0 to 18,446,744,073,709,551,615
+ (both included).</p>
 
 <h3 class="typedecl"><a name="type-uint8">uint8()</a></h3>
 <p><tt>uint8() = 0..255</tt></p>
-
+<p> Non-negative 8-bit integer, ranging from 0 to 255 (both included).</p>
 
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
 <p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
@@ -281,10 +338,13 @@ for polymorphic ones).</p>
 <tr><td valign="top"><a href="#augment_tuploid-2">augment_tuploid/2</a></td><td>Augments the specified tuploid with specified term, placed as new last 
 element.</td></tr>
 <tr><td valign="top"><a href="#check_atom-1">check_atom/1</a></td><td>Checks that the specified term is an atom indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_atoms-1">check_atoms/1</a></td><td>Checks that the specified term is a list of atoms indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_binaries-1">check_binaries/1</a></td><td>Checks that the specified term is a list of binaries indeed, and returns
  it.</td></tr>
 <tr><td valign="top"><a href="#check_binary-1">check_binary/1</a></td><td>Checks that the specified term is a binary indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_boolean-1">check_boolean/1</a></td><td>Checks that the specified term is a boolean indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_booleans-1">check_booleans/1</a></td><td>Checks that the specified term is a list of booleans indeed, and returns
+ it.</td></tr>
 <tr><td valign="top"><a href="#check_float-1">check_float/1</a></td><td>Checks that the specified term is a float indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_floats-1">check_floats/1</a></td><td>Checks that the specified term is a list of floats indeed, and returns
  it.</td></tr>
@@ -459,6 +519,12 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 <p> </p>
 </div><p>Checks that the specified term is an atom indeed, and returns it.</p>
 
+<h3 class="function"><a name="check_atoms-1">check_atoms/1</a></h3>
+<div class="spec">
+<p><tt>check_atoms(Atoms::term()) -&gt; [atom()]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of atoms indeed, and returns it.</p>
+
 <h3 class="function"><a name="check_binaries-1">check_binaries/1</a></h3>
 <div class="spec">
 <p><tt>check_binaries(Binaries::term()) -&gt; [binary()]</tt><br></p>
@@ -478,6 +544,13 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 <p><tt>check_boolean(Other::term()) -&gt; atom()</tt><br></p>
 <p> </p>
 </div><p>Checks that the specified term is a boolean indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_booleans-1">check_booleans/1</a></h3>
+<div class="spec">
+<p><tt>check_booleans(Booleans::term()) -&gt; [boolean()]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of booleans indeed, and returns
+ it.</p>
 
 <h3 class="function"><a name="check_float-1">check_float/1</a></h3>
 <div class="spec">

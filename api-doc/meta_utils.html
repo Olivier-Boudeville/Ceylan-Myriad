@@ -27,9 +27,13 @@ use them.</p>
  <p>So, to compile it, just go to the root of this layer and execute for example 
 'make all'.</p>
 
- To determine the other bootstrapped modules (i.e. the subset of our modules
- that this module can use), see the BOOTSTRAP_MODULES variable in
- GNUmakevars.inc.
+ <p>To determine the other bootstrapped modules (i.e. the subset of our modules 
+that this module can use), see the BOOTSTRAP_MODULES variable in 
+GNUmakevars.inc.</p>
+
+ See also: the type_utils module, about the management of datatypes themselves,
+ and the ast* modules for lower-level operations.
+
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-ast_transforms">ast_transforms()</a></h3>
@@ -128,6 +132,8 @@ specified module information.</td></tr>
  (Module,Function,Arguments) has a chance of succeeding.</td></tr>
 <tr><td valign="top"><a href="#get_arities_for-2">get_arities_for/2</a></td><td>Returns a list of the arities for which the specified function of the
  specified module is exported.</td></tr>
+<tr><td valign="top"><a href="#get_compile_base_opts-0">get_compile_base_opts/0</a></td><td>Returns the recommended base compilation options to be used for
+ code generation (that is the compilation of forms).</td></tr>
 <tr><td valign="top"><a href="#is_function_exported-3">is_function_exported/3</a></td><td>Tells whether the specified function (name with arity) is exported by the
  specified module.</td></tr>
 <tr><td valign="top"><a href="#list_exported_functions-1">list_exported_functions/1</a></td><td>Lists (in the order of their definition) all the functions ({Name,Arity})
@@ -190,6 +196,14 @@ specified module information.</p>
 <p> </p>
 </div><p>Returns a list of the arities for which the specified function of the
  specified module is exported.
+</p>
+
+<h3 class="function"><a name="get_compile_base_opts-0">get_compile_base_opts/0</a></h3>
+<div class="spec">
+<p><tt>get_compile_base_opts() -&gt; [<a href="http://www.erlang.org/edoc/doc/compiler/doc/compile.html#type-option">compile:option()</a>]</tt><br></p>
+<p> </p>
+</div><p>Returns the recommended base compilation options to be used for
+ code generation (that is the compilation of forms).
 </p>
 
 <h3 class="function"><a name="is_function_exported-3">is_function_exported/3</a></h3>

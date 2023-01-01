@@ -49,7 +49,7 @@ OpenGL), for classical applications and multimedia ones (ex: games).</p>
 <p> Any window-related device context.</p>
 
 <h3 class="typedecl"><a name="type-back_buffer">back_buffer()</a></h3>
-<p><b>abstract datatype</b>: <tt>back_buffer()</tt></p>
+<p><tt>back_buffer() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxMemoryDC.html#type-wxMemoryDC">wxMemoryDC:wxMemoryDC()</a></tt></p>
 <p> A non-displayed buffer to which rendering shall be done, before being made
  visible as a whole, to avoid flicker.</p>
 
@@ -58,8 +58,8 @@ OpenGL), for classical applications and multimedia ones (ex: games).</p>
 <p> An (opaque) environment used by a GUI backend.</p>
 
 <h3 class="typedecl"><a name="type-backend_event">backend_event()</a></h3>
-<p><b>abstract datatype</b>: <tt>backend_event()</tt></p>
-<p> An (opaque) backend GUI event.</p>
+<p><tt>backend_event() = <a href="gui_event.html#type-wx_event">gui_event:wx_event()</a></tt></p>
+<p> A (supposedly opaque) backend GUI event.</p>
 
 <h3 class="typedecl"><a name="type-backend_id">backend_id()</a></h3>
 <p><tt>backend_id() = <a href="gui_id.html#type-backend_id">gui_id:backend_id()</a></tt></p>
@@ -74,7 +74,7 @@ OpenGL), for classical applications and multimedia ones (ex: games).</p>
 <p> Information regarding a graphical backend.</p>
 
 <h3 class="typedecl"><a name="type-bitmap">bitmap()</a></h3>
-<p><b>abstract datatype</b>: <tt>bitmap()</tt></p>
+<p><tt>bitmap() = <a href="gui_image.html#type-bitmap">gui_image:bitmap()</a></tt></p>
 <p><p> Platform-dependent bitmap, either monochrome or colour (with or without alpha 
 channel).</p>
 
@@ -90,11 +90,11 @@ channel).</p>
 
 
 <h3 class="typedecl"><a name="type-brush">brush()</a></h3>
-<p><b>abstract datatype</b>: <tt>brush()</tt></p>
+<p><tt>brush() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxBrush.html#type-wxBrush">wxBrush:wxBrush()</a></tt></p>
 <p> A brush, used to draw elements.</p>
 
 <h3 class="typedecl"><a name="type-button">button()</a></h3>
-<p><b>abstract datatype</b>: <tt>button()</tt></p>
+<p><tt>button() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxButton.html#type-wxButton">wxButton:wxButton()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-button_style">button_style()</a></h3>
@@ -154,7 +154,7 @@ channel).</p>
  convert_debug_level/1.</p>
 
 <h3 class="typedecl"><a name="type-device_context">device_context()</a></h3>
-<p><tt>device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wxDC">wx:wxDC()</a></tt></p>
+<p><tt>device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxDC.html#type-wxDC">wxDC:wxDC()</a></tt></p>
 <p> Designates an abstract device where rendering can take place, and which can be
  the source or target of a blit. Akin to a surface in SDL (libsdl).</p>
 
@@ -276,7 +276,7 @@ noticeably jerky.</p>
 
 
 <h3 class="typedecl"><a name="type-graphic_context">graphic_context()</a></h3>
-<p><tt>graphic_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wxGraphicsContext">wx:wxGraphicsContext()</a></tt></p>
+<p><tt>graphic_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxGraphicsContext.html#type-wxGraphicsContext">wxGraphicsContext:wxGraphicsContext()</a></tt></p>
 <p> Corresponds to a GUI object that is drawn upon. It is created by a renderer.</p>
 
 <h3 class="typedecl"><a name="type-gui_env_designator">gui_env_designator()</a></h3>
@@ -350,7 +350,7 @@ bytes.</p>
 
 
 <h3 class="typedecl"><a name="type-memory_device_context">memory_device_context()</a></h3>
-<p><tt>memory_device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wxMemoryDC">wx:wxMemoryDC()</a></tt></p>
+<p><tt>memory_device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxMemoryDC.html#type-wxMemoryDC">wxMemoryDC:wxMemoryDC()</a></tt></p>
 <p> Provides a means of drawing graphics onto a bitmap.</p>
 
 <h3 class="typedecl"><a name="type-menu">menu()</a></h3>
@@ -447,12 +447,12 @@ not) meaning and graphical representation.</p>
 
 
 <h3 class="typedecl"><a name="type-paint_device_context">paint_device_context()</a></h3>
-<p><tt>paint_device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wxPaintDC">wx:wxPaintDC()</a></tt></p>
+<p><tt>paint_device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxPaintDC.html#type-wxPaintDC">wxPaintDC:wxPaintDC()</a></tt></p>
 <p> Designates a device context allowing to paint on the client area of a window
  from within an onRepaintNeeded event handler.</p>
 
 <h3 class="typedecl"><a name="type-panel">panel()</a></h3>
-<p><b>abstract datatype</b>: <tt>panel()</tt></p>
+<p><tt>panel() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxPanel.html#type-wxPanel">wxPanel:wxPanel()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-panel_option">panel_option()</a></h3>
@@ -500,11 +500,11 @@ it:
 <p> Size, typically of a widget.</p>
 
 <h3 class="typedecl"><a name="type-sizer">sizer()</a></h3>
-<p><b>abstract datatype</b>: <tt>sizer()</tt></p>
+<p><tt>sizer() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxSizer.html#type-wxSizer">wxSizer:wxSizer()</a></tt></p>
 <p> A vertical or horizontal container whose elements are dynamically resized.</p>
 
 <h3 class="typedecl"><a name="type-sizer_child">sizer_child()</a></h3>
-<p><b>abstract datatype</b>: <tt>sizer_child()</tt></p>
+<p><tt>sizer_child() = <a href="#type-window">window()</a> | <a href="#type-sizer">sizer()</a></tt></p>
 <p> Elements that can be included in a sizer.</p>
 
 <h3 class="typedecl"><a name="type-sizer_flag_opt">sizer_flag_opt()</a></h3>
@@ -512,7 +512,7 @@ it:
 <p> Options for sizers, see <a href="https://docs.wxwidgets.org/stable/classwx_sizer.html" target="_top"><tt>https://docs.wxwidgets.org/stable/classwx_sizer.html</tt></a></p>
 
 <h3 class="typedecl"><a name="type-sizer_item">sizer_item()</a></h3>
-<p><b>abstract datatype</b>: <tt>sizer_item()</tt></p>
+<p><tt>sizer_item() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxSizerItem.html#type-wxSizerItem">wxSizerItem:wxSizerItem()</a></tt></p>
 <p> An element of a sizer.</p>
 
 <h3 class="typedecl"><a name="type-sizer_option">sizer_option()</a></h3>
@@ -632,11 +632,11 @@ sizer) in a sizer.</p>
 <p> A width, as an integer number of pixels.</p>
 
 <h3 class="typedecl"><a name="type-window">window()</a></h3>
-<p><b>abstract datatype</b>: <tt>window()</tt></p>
+<p><tt>window() = <a href="#type-maybe">maybe</a>(<a href="http://www.erlang.org/edoc/doc/wx/doc/wxWindow.html#type-wxWindow">wxWindow:wxWindow()</a> | <a href="gui_canvas.html#type-canvas">gui_canvas:canvas()</a>)</tt></p>
 <p> Any kind of window, that is widget (ex: any canvas is a window).</p>
 
 <h3 class="typedecl"><a name="type-window_device_context">window_device_context()</a></h3>
-<p><tt>window_device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wxWindowDC">wx:wxWindowDC()</a></tt></p>
+<p><tt>window_device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxWindowDC.html#type-wxWindowDC">wxWindowDC:wxWindowDC()</a></tt></p>
 <p><p> Allows to paint on the whole area of a window (client and decorations). This 
 should normally be constructed as a temporary stack object, and shall never be 
 stored.</p>
@@ -1907,7 +1907,7 @@ client area can be painted.</p>
 
 <h3 class="function"><a name="event_interception_callback-3">event_interception_callback/3</a></h3>
 <div class="spec">
-<p><tt>event_interception_callback(WxEventRecord::<a href="gui_event.html#type-wx_event">gui_event:wx_event()</a>, WxEventObject::<a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wxEvent">wx:wxEvent()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>event_interception_callback(WxEventRecord::<a href="gui_event.html#type-wx_event">gui_event:wx_event()</a>, WxEventObject::<a href="http://www.erlang.org/edoc/doc/wx/doc/wxEvent.html#type-wxEvent">wxEvent:wxEvent()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div>
 

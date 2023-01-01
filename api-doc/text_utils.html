@@ -148,6 +148,10 @@ reference.</p>
 <p> The length of a string, typically in terms of number of characters / grapheme
  clusters.</p>
 
+<h3 class="typedecl"><a name="type-maybe">maybe()</a></h3>
+<p><tt>maybe(T) = <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(T)</tt></p>
+
+
 <h3 class="typedecl"><a name="type-parse_string">parse_string()</a></h3>
 <p><tt>parse_string() = [<a href="#type-uchar">uchar()</a> | <a href="#type-plain_string">plain_string()</a>]</tt></p>
 <p> The specific type of iolist resulting from a parsing.</p>
@@ -195,17 +199,17 @@ Expressions" conventions, or PCRE for short.</p>
 
 <h3 class="typedecl"><a name="type-unicode_string">unicode_string()</a></h3>
 <p><tt>unicode_string() = <a href="http://www.erlang.org/edoc/doc/stdlib/doc/unicode.html#type-chardata">unicode:chardata()</a></tt></p>
-<p><p> A Unicode string.</p>
+<p><p> A Unicode (plain) string.</p>
 
  <p>This is our new default.</p>
 
- We mean [char()] where char() must be 0..16#10ffff.</p>
+ We mean [char()] where char() must be in 0..16#10ffff.</p>
 
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
 <p><tt>ustring() = <a href="#type-unicode_string">unicode_string()</a></tt></p>
 <p><p> Now is our default type of (plain) string.</p>
 
- (unfortunately we cannot define a text_utils:string/0 type, as "type ustring()
+ (unfortunately we cannot define a text_utils:string/0 type, as "type string()
  is a builtin type; it cannot be redefined").</p>
 
 <h3 class="typedecl"><a name="type-width">width()</a></h3>
@@ -218,8 +222,8 @@ Expressions" conventions, or PCRE for short.</p>
  plain or both binary ones).</td></tr>
 <tr><td valign="top"><a href="#are_strings-1">are_strings/1</a></td><td>Returns true iff the specified parameter is a list whose all elements are 
 (all) plain strings.</td></tr>
-<tr><td valign="top"><a href="#atom_format-2">atom_format/2</a></td><td>Formats specified string as an atom; cannot fail (so that for example a 
-badly formatted log cannot crash anymore its emitter process).</td></tr>
+<tr><td valign="top"><a href="#atom_format-2">atom_format/2</a></td><td>Formats the specified string as an atom; cannot fail (so that for example 
+a badly formatted log cannot crash anymore its emitter process).</td></tr>
 <tr><td valign="top"><a href="#atom_to_binary-1">atom_to_binary/1</a></td><td>Returns a binary string corresponding to the specified atom.</td></tr>
 <tr><td valign="top"><a href="#atom_to_string-1">atom_to_string/1</a></td><td>Returns a plain string corresponding to the specified atom.</td></tr>
 <tr><td valign="top"><a href="#atoms_to_listed_string-1">atoms_to_listed_string/1</a></td><td>Returns a string that pretty-prints the specified list of atoms, listed 
@@ -232,7 +236,7 @@ directly, in a quoted form, in the returned text.</td></tr>
  bullets.</td></tr>
 <tr><td valign="top"><a href="#bin_concatenate-1">bin_concatenate/1</a></td><td>Concatenates the specified binary strings into the returned one.</td></tr>
 <tr><td valign="top"><a href="#bin_concatenate-2">bin_concatenate/2</a></td><td>Concatenates the two specified binary strings into the returned one.</td></tr>
-<tr><td valign="top"><a href="#bin_format-2">bin_format/2</a></td><td>Formats specified string as a (flattened) binary, as io_lib:format/2 
+<tr><td valign="top"><a href="#bin_format-2">bin_format/2</a></td><td>Formats the specified string as a (flattened) binary, as io_lib:format/2 
 would do, except it cannot fail (so that for example a badly formatted log 
 cannot crash anymore its emitter process).</td></tr>
 <tr><td valign="top"><a href="#bin_join-2">bin_join/2</a></td><td>Joins, with the specified separator, the specified strings (of any type), 
@@ -253,12 +257,16 @@ listed directly along the text (not one item per line).</td></tr>
 <tr><td valign="top"><a href="#binary_to_atom-1">binary_to_atom/1</a></td><td>Converts the specified binary string into a corresponding atom.</td></tr>
 <tr><td valign="top"><a href="#binary_to_float-1">binary_to_float/1</a></td><td>Converts the specified binary string into a corresponding float.</td></tr>
 <tr><td valign="top"><a href="#binary_to_hexastring-1">binary_to_hexastring/1</a></td><td>Returns a plain string corresponding to the specified binary, in 
-hexadecimal form, with a "0x" prefix.</td></tr>
+hexadecimal form (with no "0x" prefix).</td></tr>
 <tr><td valign="top"><a href="#binary_to_hexastring-2">binary_to_hexastring/2</a></td><td>Returns a plain string corresponding to the specified binary, in 
 hexadecimal form, with a "0x" prefix if requested.</td></tr>
 <tr><td valign="top"><a href="#binary_to_integer-1">binary_to_integer/1</a></td><td>Converts the specified binary string into a corresponding integer.</td></tr>
 <tr><td valign="top"><a href="#binary_to_string-1">binary_to_string/1</a></td><td>Converts a Unicode binary into a plain (list-based) string.</td></tr>
 <tr><td valign="top"><a href="#binary_to_string-2">binary_to_string/2</a></td><td>Converts a Unicode binary into a plain (list-based) string.</td></tr>
+<tr><td valign="top"><a href="#buffer_to_binstring-1">buffer_to_binstring/1</a></td><td>Returns a binary string corresponding to the specified (byte) buffer,
+ expected to contain a 8 bit ASCII null-terminated string.</td></tr>
+<tr><td valign="top"><a href="#buffer_to_string-1">buffer_to_string/1</a></td><td>Returns a (plain) string corresponding to the specified (byte) buffer,
+ expected to contain a 8 bit ASCII null-terminated string.</td></tr>
 <tr><td valign="top"><a href="#center_string-2">center_string/2</a></td><td>Returns the specified string once padded with spaces on its left and 
 right, in order that it is centered within specified width (expected of course 
 to be larger than the length of the specified string).</td></tr>
@@ -276,8 +284,8 @@ be first rounded to the nearest integer.</td></tr>
 <tr><td valign="top"><a href="#double_quote_string-1">double_quote_string/1</a></td><td>Double-quotes specified string, that is returns it once double-quoted.</td></tr>
 <tr><td valign="top"><a href="#double_quote_strings-1">double_quote_strings/1</a></td><td>Double-quotes each string in the specified list, that is returns them
  (in-order) once double-quoted.</td></tr>
-<tr><td valign="top"><a href="#duplicate-2">duplicate/2</a></td><td>Duplicates specified string as many times as specified; returns a plain 
-(flattened once) string, not an iolist.</td></tr>
+<tr><td valign="top"><a href="#duplicate-2">duplicate/2</a></td><td>Duplicates the specified string as many times as specified; returns a 
+plain (flattened-once) string, not an iolist.</td></tr>
 <tr><td valign="top"><a href="#ellipse-1">ellipse/1</a></td><td>Ellipses (shortens by removing the end of) the specified string, so that 
 its total length remains up to the default threshold.</td></tr>
 <tr><td valign="top"><a href="#ellipse-2">ellipse/2</a></td><td>Ellipses (shortens by removing the end of) the specified string, so that 
@@ -292,6 +300,8 @@ the specified list.</td></tr>
 (binary or plain string).</td></tr>
 <tr><td valign="top"><a href="#ensure_binary-2">ensure_binary/2</a></td><td>Returns a binary string version of the specified text-like parameter 
 (binary or plain string).</td></tr>
+<tr><td valign="top"><a href="#ensure_maybe_binary-1">ensure_maybe_binary/1</a></td><td>Returns a binary string version of the specified text-like parameter
+ (binary or plain string), if any.</td></tr>
 <tr><td valign="top"><a href="#ensure_string-1">ensure_string/1</a></td><td>Returns a (plain) string version of the specified text-like parameter.</td></tr>
 <tr><td valign="top"><a href="#ensure_string-2">ensure_string/2</a></td><td>Returns a (plain) string version of the specified text-like parameter.</td></tr>
 <tr><td valign="top"><a href="#ensure_strings-1">ensure_strings/1</a></td><td>Returns a list of (plain) string versions of the string-like elements of 
@@ -367,17 +377,24 @@ contains a series of hexadecimal values.</td></tr>
 <tr><td valign="top"><a href="#hexastring_to_binary-1">hexastring_to_binary/1</a></td><td>Returns the binary corresponding to the specified string that contains 
 a series of hexadecimal values.</td></tr>
 <tr><td valign="top"><a href="#hexastring_to_integer-1">hexastring_to_integer/1</a></td><td>Returns an integer corresponding to the specified string containing a 
-(single) hexadecimal number as a text, and expected to start with a "0x" 
-prefix.</td></tr>
+(single) hexadecimal number as a text (not expected to start with a "0x" 
+prefix).</td></tr>
 <tr><td valign="top"><a href="#hexastring_to_integer-2">hexastring_to_integer/2</a></td><td>Returns an integer corresponding to the specified string containing a 
 (single) hexadecimal number as a text, expected to start with a "0x" prefix if 
 specified.</td></tr>
 <tr><td valign="top"><a href="#integer_ids_to_listed_string-1">integer_ids_to_listed_string/1</a></td><td>Returns a string that pretty-prints the specified list of integer 
 identifiers, listed directly in the returned text.</td></tr>
 <tr><td valign="top"><a href="#integer_to_bits-1">integer_to_bits/1</a></td><td>Returns a plain string corresponding to the specified integer once 
-translated to a series of bits, listed per groups of 4.</td></tr>
+translated to a series of bits, listed per groups of 4, not padded.</td></tr>
+<tr><td valign="top"><a href="#integer_to_bits-2">integer_to_bits/2</a></td><td>Returns a plain string corresponding to the specified integer once 
+translated to a series of bits, listed per groups of 4, possibly padded with 
+zeros on the left to reach the specified number of bits.</td></tr>
+<tr><td valign="top"><a href="#integer_to_hexabinstring-2">integer_to_hexabinstring/2</a></td><td>Returns a binary string corresponding to the specified integer, in 
+hexadecimal form, with a "0x" prefix if requested.</td></tr>
+<tr><td valign="top"><a href="#integer_to_hexasbintring-1">integer_to_hexasbintring/1</a></td><td>Returns a binary string corresponding to the specified integer, in 
+hexadecimal form (with no "0x" prefix).</td></tr>
 <tr><td valign="top"><a href="#integer_to_hexastring-1">integer_to_hexastring/1</a></td><td>Returns a plain string corresponding to the specified integer, in 
-hexadecimal form, with a "0x" prefix.</td></tr>
+hexadecimal form (with no "0x" prefix).</td></tr>
 <tr><td valign="top"><a href="#integer_to_hexastring-2">integer_to_hexastring/2</a></td><td>Returns a plain string corresponding to the specified integer, in 
 hexadecimal form, with a "0x" prefix if requested.</td></tr>
 <tr><td valign="top"><a href="#integer_to_string-1">integer_to_string/1</a></td><td>Avoids to have to use lists:flatten/1 when converting an integer to a
@@ -407,16 +424,16 @@ emanating from a format string) to the types of specified, numbered values
 line).</td></tr>
 <tr><td valign="top"><a href="#number_to_string-1">number_to_string/1</a></td><td>Returns a textual description of the specified (dot-based, not
  comma-based) number.</td></tr>
-<tr><td valign="top"><a href="#pad_string-2">pad_string/2</a></td><td>Returns the specified string, padded with spaces to specified width, 
+<tr><td valign="top"><a href="#pad_string-2">pad_string/2</a></td><td>Returns the specified string, once padded with spaces to specified width, 
 left-justified (that is with spaces added to the right).</td></tr>
-<tr><td valign="top"><a href="#pad_string_left-2">pad_string_left/2</a></td><td>Returns the specified string, padded with spaces to specified width, 
+<tr><td valign="top"><a href="#pad_string_left-2">pad_string_left/2</a></td><td>Returns the specified string, once padded with spaces to specified width, 
 left-justified (that is with spaces added to the right).</td></tr>
-<tr><td valign="top"><a href="#pad_string_left-3">pad_string_left/3</a></td><td>Returns the specified string, padded with spaces to specified width, 
+<tr><td valign="top"><a href="#pad_string_left-3">pad_string_left/3</a></td><td>Returns the specified string, once padded with spaces to specified width, 
 left-justified (that is with spaces added to the right), with specified 
 padding character.</td></tr>
-<tr><td valign="top"><a href="#pad_string_right-2">pad_string_right/2</a></td><td>Returns the specified string, padded with spaces to specified width, 
+<tr><td valign="top"><a href="#pad_string_right-2">pad_string_right/2</a></td><td>Returns the specified string, once padded with spaces to specified width, 
 right-justified (that is with spaces added to the left).</td></tr>
-<tr><td valign="top"><a href="#pad_string_right-3">pad_string_right/3</a></td><td>Returns the specified string, padded with spaces to specified width, 
+<tr><td valign="top"><a href="#pad_string_right-3">pad_string_right/3</a></td><td>Returns the specified string, once padded with spaces to specified width, 
 right-justified (that is with spaces added to the left), with specified 
 padding character.</td></tr>
 <tr><td valign="top"><a href="#parse_quoted-1">parse_quoted/1</a></td><td>Parses the specified plain (non-iolist) string (that is a mere list of 
@@ -445,10 +462,11 @@ string or atom) / value pairs, with bullets, after having been sorted.</td></tr>
  been removed.</td></tr>
 <tr><td valign="top"><a href="#remove_ending_carriage_return-1">remove_ending_carriage_return/1</a></td><td>Removes any ending "\n" character(s) - zero or more thereof - from the
  specified string.</td></tr>
-<tr><td valign="top"><a href="#remove_last_characters-2">remove_last_characters/2</a></td><td>Removes the last Count characters from specified string, and returns the
- result.</td></tr>
+<tr><td valign="top"><a href="#remove_last_characters-2">remove_last_characters/2</a></td><td>Removes the last Count characters from the specified string, and returns
+ the result.</td></tr>
 <tr><td valign="top"><a href="#remove_newlines-1">remove_newlines/1</a></td><td>Removes all newlines from specified string.</td></tr>
-<tr><td valign="top"><a href="#remove_whitespaces-1">remove_whitespaces/1</a></td><td>Removes all whitespaces from specified string, and returns the result.</td></tr>
+<tr><td valign="top"><a href="#remove_whitespaces-1">remove_whitespaces/1</a></td><td>Removes all whitespaces from the specified string, and returns the
+ result.</td></tr>
 <tr><td valign="top"><a href="#report_not_a_binary_string-1">report_not_a_binary_string/1</a></td><td>Reports that the specified term is not a binary string.</td></tr>
 <tr><td valign="top"><a href="#report_not_a_list-1">report_not_a_list/1</a></td><td>Reports that the specified term is not a list.</td></tr>
 <tr><td valign="top"><a href="#report_not_a_number-1">report_not_a_number/1</a></td><td>Reports that the specified term is not a number.</td></tr>
@@ -564,12 +582,12 @@ Unicode string.</td></tr>
 separating characters provided in SeparatorsList, then turns these resulting 
 strings in the Capitalized Case (all lower-case except for the first letter) 
 and finally joins them to get a long CamelCased string.</td></tr>
-<tr><td valign="top"><a href="#trim_leading_whitespaces-1">trim_leading_whitespaces/1</a></td><td>Removes all leading whitespaces from specified string, and returns the
- result.</td></tr>
-<tr><td valign="top"><a href="#trim_trailing_whitespaces-1">trim_trailing_whitespaces/1</a></td><td>Removes all trailing whitespaces from specified string, and returns the
- result.</td></tr>
-<tr><td valign="top"><a href="#trim_whitespaces-1">trim_whitespaces/1</a></td><td>Removes all leading and trailing whitespaces from specified string, and
- returns the result.</td></tr>
+<tr><td valign="top"><a href="#trim_leading_whitespaces-1">trim_leading_whitespaces/1</a></td><td>Removes all leading whitespaces from the specified string, and returns
+ the result.</td></tr>
+<tr><td valign="top"><a href="#trim_trailing_whitespaces-1">trim_trailing_whitespaces/1</a></td><td>Removes all trailing whitespaces from the specified string, and returns
+ the result.</td></tr>
+<tr><td valign="top"><a href="#trim_whitespaces-1">trim_whitespaces/1</a></td><td>Removes all leading and trailing whitespaces from the specified string,
+ and returns the result.</td></tr>
 <tr><td valign="top"><a href="#try_convert_to_unicode_binary-1">try_convert_to_unicode_binary/1</a></td><td>Tries to convert specified Unicode-related datastructure into a Unicode 
 binary string.</td></tr>
 <tr><td valign="top"><a href="#try_convert_to_unicode_list-1">try_convert_to_unicode_list/1</a></td><td>Tries to convert specified Unicode-related datastructure into a flat, 
@@ -620,10 +638,10 @@ table).</td></tr>
 
 <h3 class="function"><a name="atom_format-2">atom_format/2</a></h3>
 <div class="spec">
-<p><tt>atom_format(FormatSt::<a href="#type-format_string">format_string()</a>, FormatValues::<a href="#type-format_values">format_values()</a>) -&gt; atom()</tt><br></p>
+<p><tt>atom_format(FormatStr::<a href="#type-format_string">format_string()</a>, FormatValues::<a href="#type-format_values">format_values()</a>) -&gt; atom()</tt><br></p>
 <p> </p>
-</div><p><p>Formats specified string as an atom; cannot fail (so that for example a 
-badly formatted log cannot crash anymore its emitter process).</p>
+</div><p><p>Formats the specified string as an atom; cannot fail (so that for example 
+a badly formatted log cannot crash anymore its emitter process).</p>
 
  Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
  Unicode inputs resulting on crashes afterwards.
@@ -694,7 +712,7 @@ directly, in a quoted form, in the returned text.</p>
 <div class="spec">
 <p><tt>bin_format(FormatString::<a href="#type-format_string">format_string()</a>, Values::<a href="#type-format_values">format_values()</a>) -&gt; <a href="#type-bin_string">bin_string()</a></tt><br></p>
 <p> </p>
-</div><p><p>Formats specified string as a (flattened) binary, as io_lib:format/2 
+</div><p><p>Formats the specified string as a (flattened) binary, as io_lib:format/2 
 would do, except it cannot fail (so that for example a badly formatted log 
 cannot crash anymore its emitter process).</p>
 
@@ -804,9 +822,9 @@ listed directly along the text (not one item per line).</p>
 <p><tt>binary_to_hexastring(Bin::binary()) -&gt; <a href="#type-hexastring">hexastring()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns a plain string corresponding to the specified binary, in 
-hexadecimal form, with a "0x" prefix.</p>
+hexadecimal form (with no "0x" prefix).</p>
 
- Ex: <code>binary_to_hexastring(&lt;&lt;"hello"&gt;&gt;) = "0x68656c6c6f"</code>.
+ Ex: <code>binary_to_hexastring(&lt;&lt;"hello"&gt;&gt;) = "68656c6c6f"</code>.
 </p>
 
 <h3 class="function"><a name="binary_to_hexastring-2">binary_to_hexastring/2</a></h3>
@@ -846,6 +864,22 @@ hexadecimal form, with a "0x" prefix if requested.</p>
 
  CanFailDueToTranscoding tells whether, should a transcoding fail, this
  function is allowed to fail in turn.
+</p>
+
+<h3 class="function"><a name="buffer_to_binstring-1">buffer_to_binstring/1</a></h3>
+<div class="spec">
+<p><tt>buffer_to_binstring(Bin::binary()) -&gt; <a href="#type-bin_string">bin_string()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a binary string corresponding to the specified (byte) buffer,
+ expected to contain a 8 bit ASCII null-terminated string.
+</p>
+
+<h3 class="function"><a name="buffer_to_string-1">buffer_to_string/1</a></h3>
+<div class="spec">
+<p><tt>buffer_to_string(Bin::binary()) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p>Returns a (plain) string corresponding to the specified (byte) buffer,
+ expected to contain a 8 bit ASCII null-terminated string.
 </p>
 
 <h3 class="function"><a name="center_string-2">center_string/2</a></h3>
@@ -927,8 +961,8 @@ millimeters, returns "1km and 1mm".</p>
 <div class="spec">
 <p><tt>duplicate(Count::<a href="#type-count">count()</a>, Str::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p><p>Duplicates specified string as many times as specified; returns a plain 
-(flattened once) string, not an iolist.</p>
+</div><p><p>Duplicates the specified string as many times as specified; returns a 
+plain (flattened-once) string, not an iolist.</p>
 
  <p>Ex: duplicate(3, "abc") = "abcabcabc".</p>
 
@@ -1027,6 +1061,14 @@ function is allowed to fail in turn.</p>
  awareness of the types of the variables that are handled. It is however
  convenient to define functions whose string parameters may be of any possible
  type (plain or binary).
+</p>
+
+<h3 class="function"><a name="ensure_maybe_binary-1">ensure_maybe_binary/1</a></h3>
+<div class="spec">
+<p><tt>ensure_maybe_binary(AnyString::<a href="#type-maybe">maybe</a>(<a href="#type-any_string">any_string()</a>)) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-bin_string">bin_string()</a>)</tt><br></p>
+<p> </p>
+</div><p>Returns a binary string version of the specified text-like parameter
+ (binary or plain string), if any.
 </p>
 
 <h3 class="function"><a name="ensure_string-1">ensure_string/1</a></h3>
@@ -1396,12 +1438,12 @@ a series of hexadecimal values.</p>
 <p><tt>hexastring_to_integer(HexaString::<a href="#type-hexastring">hexastring()</a>) -&gt; integer()</tt><br></p>
 <p> </p>
 </div><p><p>Returns an integer corresponding to the specified string containing a 
-(single) hexadecimal number as a text, and expected to start with a "0x" 
-prefix.</p>
+(single) hexadecimal number as a text (not expected to start with a "0x" 
+prefix).</p>
 
  <p>Note: both uppercase and lowercase letters are supported.</p>
 
- Ex: hexastring_to_integer("0xd68") = 3432.
+ Ex: hexastring_to_integer("d68") = 3432.
 </p>
 
 <h3 class="function"><a name="hexastring_to_integer-2">hexastring_to_integer/2</a></h3>
@@ -1432,9 +1474,46 @@ identifiers, listed directly in the returned text.</p>
 <p><tt>integer_to_bits(I::integer()) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns a plain string corresponding to the specified integer once 
-translated to a series of bits, listed per groups of 4.</p>
+translated to a series of bits, listed per groups of 4, not padded.</p>
 
- Ex: "0b100-0000-0011" = integer_to_bits(1024+2+1).
+ Example: "0b100-0000-0011" = integer_to_bits(1024+2+1).
+</p>
+
+<h3 class="function"><a name="integer_to_bits-2">integer_to_bits/2</a></h3>
+<div class="spec">
+<p><tt>integer_to_bits(I::integer(), PadWidth::<a href="#type-width">width()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a plain string corresponding to the specified integer once 
+translated to a series of bits, listed per groups of 4, possibly padded with 
+zeros on the left to reach the specified number of bits.</p>
+
+ Example: "0b0000-0100-0000-0011" = integer_to_bits(1024+2+1, 16).
+</p>
+
+<h3 class="function"><a name="integer_to_hexabinstring-2">integer_to_hexabinstring/2</a></h3>
+<div class="spec">
+<p><tt>integer_to_hexabinstring(IntegerValue::integer(), AddPrefix::boolean()) -&gt; <a href="#type-hexastring">hexastring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a binary string corresponding to the specified integer, in 
+hexadecimal form, with a "0x" prefix if requested.</p>
+
+ <p>Ex: integer_to_hexabinstring(3432, _AddPrefix=true) = <code>&lt;&lt;"0xd68"&gt;&gt;</code>.</p>
+
+ Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+ "0x" prefixing.
+</p>
+
+<h3 class="function"><a name="integer_to_hexasbintring-1">integer_to_hexasbintring/1</a></h3>
+<div class="spec">
+<p><tt>integer_to_hexasbintring(IntegerValue::integer()) -&gt; <a href="#type-hexastring">hexastring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns a binary string corresponding to the specified integer, in 
+hexadecimal form (with no "0x" prefix).</p>
+
+ <p>Ex: integer_to_hexabinstring(3432) = <code>&lt;&lt;"d68"&gt;&gt;</code>.</p>
+
+ Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+ "0x" prefixing.
 </p>
 
 <h3 class="function"><a name="integer_to_hexastring-1">integer_to_hexastring/1</a></h3>
@@ -1442,9 +1521,12 @@ translated to a series of bits, listed per groups of 4.</p>
 <p><tt>integer_to_hexastring(IntegerValue::integer()) -&gt; <a href="#type-hexastring">hexastring()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns a plain string corresponding to the specified integer, in 
-hexadecimal form, with a "0x" prefix.</p>
+hexadecimal form (with no "0x" prefix).</p>
 
- Ex: integer_to_hexastring(3432) = "0xd68".
+ <p>Ex: integer_to_hexastring(3432) = "d68".</p>
+
+ Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+ "0x" prefixing.
 </p>
 
 <h3 class="function"><a name="integer_to_hexastring-2">integer_to_hexastring/2</a></h3>
@@ -1454,7 +1536,10 @@ hexadecimal form, with a "0x" prefix.</p>
 </div><p><p>Returns a plain string corresponding to the specified integer, in 
 hexadecimal form, with a "0x" prefix if requested.</p>
 
- Ex: integer_to_hexastring(3432) = "0xd68".
+ <p>Ex: integer_to_hexastring(3432, _AddPrefix=true) = "0xd68".</p>
+
+ Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
+ "0x" prefixing.
 </p>
 
 <h3 class="function"><a name="integer_to_string-1">integer_to_string/1</a></h3>
@@ -1580,7 +1665,7 @@ emanating from a format string) to the types of specified, numbered values
 
 <h3 class="function"><a name="maybe_string_to_binary-1">maybe_string_to_binary/1</a></h3>
 <div class="spec">
-<p><tt>maybe_string_to_binary(MaybeString::<a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-ustring">ustring()</a>)) -&gt; <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-bin_string">bin_string()</a>)</tt><br></p>
+<p><tt>maybe_string_to_binary(MaybeString::<a href="#type-maybe">maybe</a>(<a href="#type-ustring">ustring()</a>)) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-bin_string">bin_string()</a>)</tt><br></p>
 <p> </p>
 </div><p><p>Converts a plain (list-based) maybe-string into a binary. Returns 
 undefined if the argument string is itself undefined.</p>
@@ -1591,7 +1676,7 @@ undefined if the argument string is itself undefined.</p>
 
 <h3 class="function"><a name="maybe_strings_to_listed_string-1">maybe_strings_to_listed_string/1</a></h3>
 <div class="spec">
-<p><tt>maybe_strings_to_listed_string(Strings::[<a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-ustring">ustring()</a>)]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>maybe_strings_to_listed_string(Strings::[<a href="#type-maybe">maybe</a>(<a href="#type-ustring">ustring()</a>)]) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p><p>Returns a string that pretty-prints the specified list of maybe-strings 
 (ignoring undefined ones), listed directly along the text (not one item per 
@@ -1611,54 +1696,64 @@ line).</p>
 
 <h3 class="function"><a name="pad_string-2">pad_string/2</a></h3>
 <div class="spec">
-<p><tt>pad_string(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>pad_string(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>) -&gt; <a href="#type-parse_string">parse_string()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the specified string, padded with spaces to specified width, 
+</div><p><p>Returns the specified string, once padded with spaces to specified width, 
 left-justified (that is with spaces added to the right).</p>
 
- Ex: pad_string("hello", 8) = ["hello",32,32,32]
+ <p>Ex: pad_string("hello", 8) = ["hello",32,32,32]</p>
+
+ Note that the returned string is not flattened.
 </p>
 
 <h3 class="function"><a name="pad_string_left-2">pad_string_left/2</a></h3>
 <div class="spec">
-<p><tt>pad_string_left(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>) -&gt; <a href="#type-any_string">any_string()</a></tt><br></p>
+<p><tt>pad_string_left(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>) -&gt; <a href="#type-parse_string">parse_string()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the specified string, padded with spaces to specified width, 
+</div><p><p>Returns the specified string, once padded with spaces to specified width, 
 left-justified (that is with spaces added to the right).</p>
 
- Ex: pad_string_left("hello", 8) = ["hello",32,32,32]
+ <p>Ex: pad_string_left("hello", 8) = ["hello",32,32,32]</p>
+
+ Note that the returned string is not flattened.
 </p>
 
 <h3 class="function"><a name="pad_string_left-3">pad_string_left/3</a></h3>
 <div class="spec">
-<p><tt>pad_string_left(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>, PadChar::<a href="#type-grapheme_cluster">grapheme_cluster()</a>) -&gt; <a href="#type-any_string">any_string()</a></tt><br></p>
+<p><tt>pad_string_left(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>, PadChar::<a href="#type-grapheme_cluster">grapheme_cluster()</a>) -&gt; <a href="#type-parse_string">parse_string()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the specified string, padded with spaces to specified width, 
+</div><p><p>Returns the specified string, once padded with spaces to specified width, 
 left-justified (that is with spaces added to the right), with specified 
 padding character.</p>
 
- Ex: pad_string_left("hello", 8, $*) = ["hello",42,42,42]
+ <p>Ex: pad_string_left("hello", 8, $*) = ["hello",42,42,42]</p>
+
+ Note that the returned string is not flattened.
 </p>
 
 <h3 class="function"><a name="pad_string_right-2">pad_string_right/2</a></h3>
 <div class="spec">
-<p><tt>pad_string_right(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>) -&gt; <a href="#type-any_string">any_string()</a></tt><br></p>
+<p><tt>pad_string_right(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>) -&gt; <a href="#type-parse_string">parse_string()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the specified string, padded with spaces to specified width, 
+</div><p><p>Returns the specified string, once padded with spaces to specified width, 
 right-justified (that is with spaces added to the left).</p>
 
- Ex: pad_string_right("hello", 8) = ["   ","hello"]
+ <p>Ex: pad_string_right("hello", 8) = ["   ", "hello"]</p>
+
+ Note that the returned string is not flattened.
 </p>
 
 <h3 class="function"><a name="pad_string_right-3">pad_string_right/3</a></h3>
 <div class="spec">
-<p><tt>pad_string_right(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>, PadChar::<a href="#type-grapheme_cluster">grapheme_cluster()</a>) -&gt; <a href="#type-any_string">any_string()</a></tt><br></p>
+<p><tt>pad_string_right(String::<a href="#type-ustring">ustring()</a>, Width::<a href="#type-width">width()</a>, PadChar::<a href="#type-grapheme_cluster">grapheme_cluster()</a>) -&gt; <a href="#type-parse_string">parse_string()</a></tt><br></p>
 <p> </p>
-</div><p><p>Returns the specified string, padded with spaces to specified width, 
+</div><p><p>Returns the specified string, once padded with spaces to specified width, 
 right-justified (that is with spaces added to the left), with specified 
 padding character.</p>
 
- Ex: pad_string_right("hello", 8, $*) = ["***","hello"]
+ <p>Ex: pad_string_right("hello", 8, $*) = ["***", "hello"]</p>
+
+ Note that the returned string is not flattened.
 </p>
 
 <h3 class="function"><a name="parse_quoted-1">parse_quoted/1</a></h3>
@@ -1811,8 +1906,8 @@ http://erlang.org/pipermail/erlang-questions/2006-September/023181.html</p>
 <div class="spec">
 <p><tt>remove_last_characters(String::<a href="#type-ustring">ustring()</a>, Count::<a href="#type-count">count()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Removes the last Count characters from specified string, and returns the
- result.
+</div><p>Removes the last Count characters from the specified string, and returns
+ the result.
 </p>
 
 <h3 class="function"><a name="remove_newlines-1">remove_newlines/1</a></h3>
@@ -1825,7 +1920,9 @@ http://erlang.org/pipermail/erlang-questions/2006-September/023181.html</p>
 <div class="spec">
 <p><tt>remove_whitespaces(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Removes all whitespaces from specified string, and returns the result.</p>
+</div><p>Removes all whitespaces from the specified string, and returns the
+ result.
+</p>
 
 <h3 class="function"><a name="report_not_a_binary_string-1">report_not_a_binary_string/1</a></h3>
 <div class="spec">
@@ -1853,7 +1950,7 @@ http://erlang.org/pipermail/erlang-questions/2006-September/023181.html</p>
 
 <h3 class="function"><a name="safe_length-1">safe_length/1</a></h3>
 <div class="spec">
-<p><tt>safe_length(PseudoStr::<a href="#type-unicode_data">unicode_data()</a>) -&gt; <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-length">length()</a>)</tt><br></p>
+<p><tt>safe_length(PseudoStr::<a href="#type-unicode_data">unicode_data()</a>) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-length">length()</a>)</tt><br></p>
 <p> </p>
 </div><p><p>Returns, if possible, the length of the specified string-like argument, 
 otherwise returns 'undefined'.</p>
@@ -1962,7 +2059,7 @@ considered as an acronym, hence as a single word), in their original order.</p>
 
  <p>The last string may have less than Count characters.</p>
 
- Ex: [ "AB", "CD", "E" } = split_every( "ABCDE", _Count=2 ).
+ Ex: ["AB", "CD", "E"] = split_every( "ABCDE", _Count=2 ).
 </p>
 
 <h3 class="function"><a name="split_parsed-2">split_parsed/2</a></h3>
@@ -2407,28 +2504,29 @@ and finally joins them to get a long CamelCased string.</p>
 <div class="spec">
 <p><tt>trim_leading_whitespaces(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Removes all leading whitespaces from specified string, and returns the
- result.</p>
+</div><p>Removes all leading whitespaces from the specified string, and returns
+ the result.
+</p>
 
 <h3 class="function"><a name="trim_trailing_whitespaces-1">trim_trailing_whitespaces/1</a></h3>
 <div class="spec">
 <p><tt>trim_trailing_whitespaces(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Removes all trailing whitespaces from specified string, and returns the
- result.
+</div><p>Removes all trailing whitespaces from the specified string, and returns
+ the result.
 </p>
 
 <h3 class="function"><a name="trim_whitespaces-1">trim_whitespaces/1</a></h3>
 <div class="spec">
 <p><tt>trim_whitespaces(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
-</div><p>Removes all leading and trailing whitespaces from specified string, and
- returns the result.
+</div><p>Removes all leading and trailing whitespaces from the specified string,
+ and returns the result.
 </p>
 
 <h3 class="function"><a name="try_convert_to_unicode_binary-1">try_convert_to_unicode_binary/1</a></h3>
 <div class="spec">
-<p><tt>try_convert_to_unicode_binary(Data::<a href="#type-unicode_data">unicode_data()</a>) -&gt; <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-bin_string">bin_string()</a>)</tt><br></p>
+<p><tt>try_convert_to_unicode_binary(Data::<a href="#type-unicode_data">unicode_data()</a>) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-bin_string">bin_string()</a>)</tt><br></p>
 <p> </p>
 </div><p><p>Tries to convert specified Unicode-related datastructure into a Unicode 
 binary string.</p>
@@ -2438,7 +2536,7 @@ binary string.</p>
 
 <h3 class="function"><a name="try_convert_to_unicode_list-1">try_convert_to_unicode_list/1</a></h3>
 <div class="spec">
-<p><tt>try_convert_to_unicode_list(Data::<a href="http://www.erlang.org/edoc/doc/stdlib/doc/unicode.html#type-unicode_data">unicode:unicode_data()</a>) -&gt; <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(<a href="#type-ustring">ustring()</a>)</tt><br></p>
+<p><tt>try_convert_to_unicode_list(Data::<a href="http://www.erlang.org/edoc/doc/stdlib/doc/unicode.html#type-unicode_data">unicode:unicode_data()</a>) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-ustring">ustring()</a>)</tt><br></p>
 <p> </p>
 </div><p><p>Tries to convert specified Unicode-related datastructure into a flat, 
 plain Unicode string.</p>
@@ -2448,7 +2546,7 @@ plain Unicode string.</p>
 
 <h3 class="function"><a name="try_string_to_float-1">try_string_to_float/1</a></h3>
 <div class="spec">
-<p><tt>try_string_to_float(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(float())</tt><br></p>
+<p><tt>try_string_to_float(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-maybe">maybe</a>(float())</tt><br></p>
 <p> </p>
 </div><p><p>Returns a float that corresponds to the specified text, not depending on 
 its being defined as an integer or as a float.</p>
@@ -2458,7 +2556,7 @@ its being defined as an integer or as a float.</p>
 
 <h3 class="function"><a name="try_string_to_integer-1">try_string_to_integer/1</a></h3>
 <div class="spec">
-<p><tt>try_string_to_integer(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(integer())</tt><br></p>
+<p><tt>try_string_to_integer(String::<a href="#type-ustring">ustring()</a>) -&gt; <a href="#type-maybe">maybe</a>(integer())</tt><br></p>
 <p> </p>
 </div><p><p>Returns an integer that corresponds to the specified text (expected to 
 rely on our usual base 10).</p>
@@ -2468,7 +2566,7 @@ rely on our usual base 10).</p>
 
 <h3 class="function"><a name="try_string_to_integer-2">try_string_to_integer/2</a></h3>
 <div class="spec">
-<p><tt>try_string_to_integer(String::<a href="#type-ustring">ustring()</a>, Base::2..36) -&gt; <a href="basic_utils.html#type-maybe">basic_utils:maybe</a>(integer())</tt><br></p>
+<p><tt>try_string_to_integer(String::<a href="#type-ustring">ustring()</a>, Base::2..36) -&gt; <a href="#type-maybe">maybe</a>(integer())</tt><br></p>
 <p> </p>
 </div><p><p>Returns an integer that corresponds to the specified text, expected to 
 rely on the specified base.</p>

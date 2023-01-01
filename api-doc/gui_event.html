@@ -42,6 +42,12 @@ corresponds to an already-registered GUI callback.</p>
  (that will typically be propagated upward in the widget hierarchy; see
  trap_event/1) to prevent this).</p>
 
+<h3 class="typedecl"><a name="type-event_context">event_context()</a></h3>
+<p><tt>event_context() = #event_context{id = <a href="gui_id.html#type-backend_id">gui_id:backend_id()</a>, user_data = <a href="gui.html#type-user_data">gui:user_data()</a>, backend_event = <a href="#type-maybe">maybe</a>(<a href="gui.html#type-backend_event">gui:backend_event()</a>)}</tt></p>
+<p><p> Context sent to corresponding subscribers together with an event.</p>
+
+ This context can be ignored in most cases.</p>
+
 <h3 class="typedecl"><a name="type-event_dispatch_table">event_dispatch_table()</a></h3>
 <p><tt>event_dispatch_table() = <a href="list_table.html#type-list_table">list_table:list_table</a>(<a href="#type-event_type">event_type()</a>, [<a href="#type-event_subscriber">event_subscriber()</a>])</tt></p>
 <p> Tells, for a given event type (e.g. in the context of a specific GUI object),
@@ -153,7 +159,7 @@ type of event.</p>
  purpose, to facilitate any integration with upper layers.</p>
 
 <h3 class="typedecl"><a name="type-gui_event_object">gui_event_object()</a></h3>
-<p><tt>gui_event_object() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wx.html#type-wxEvent">wx:wxEvent()</a></tt></p>
+<p><tt>gui_event_object() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxEvent.html#type-wxEvent">wxEvent:wxEvent()</a></tt></p>
 <p><p> A Myriad GUI object (therefore the reference to a full-blown backend process - 
 not a mere datastructure like an event record received as a message) holding 
 information about an event passed to a callback or member function.</p>
@@ -386,6 +392,7 @@ other fields.</p>
 can be processed by parent handlers knowing that, for some event types, by 
 default no event propagation is enabled.</td></tr>
 <tr><td valign="top"><a href="#reassign_table_to_string-1">reassign_table_to_string/1</a></td><td>Returns a textual representation of the specified reassign table.</td></tr>
+<tr><td valign="top"><a href="#set_canvas_instance_state-3">set_canvas_instance_state/3</a></td><td>Sets the internal state of the specified canvas instance.</td></tr>
 <tr><td valign="top"><a href="#set_instance_state-3">set_instance_state/3</a></td><td>Returns the internal state of the specified MyriadGUI instance.</td></tr>
 <tr><td valign="top"><a href="#start_main_event_loop-4">start_main_event_loop/4</a></td><td>Starts the internal, main event loop of MyriadGUI.</td></tr>
 <tr><td valign="top"><a href="#trap_event-1">trap_event/1</a></td><td>Traps the specified event: does not propagate it upward in the widget 
@@ -473,6 +480,12 @@ default no event propagation is enabled.</p>
 <p><tt>reassign_table_to_string(ReassignTable::<a href="#type-reassign_table">reassign_table()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a textual representation of the specified reassign table.</p>
+
+<h3 class="function"><a name="set_canvas_instance_state-3">set_canvas_instance_state/3</a></h3>
+<div class="spec">
+<p><tt>set_canvas_instance_state(CanvasId::<a href="#type-myriad_instance_id">myriad_instance_id()</a>, CanvasState::<a href="#type-myriad_object_state">myriad_object_state()</a>, TypeTable::<a href="#type-myriad_type_table">myriad_type_table()</a>) -&gt; <a href="#type-myriad_type_table">myriad_type_table()</a></tt><br></p>
+<p> </p>
+</div><p>Sets the internal state of the specified canvas instance.</p>
 
 <h3 class="function"><a name="set_instance_state-3">set_instance_state/3</a></h3>
 <div class="spec">

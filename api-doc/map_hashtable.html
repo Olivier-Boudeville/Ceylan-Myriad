@@ -69,11 +69,11 @@ only them)</p>
 
 
 <h3 class="typedecl"><a name="type-map_hashtable">map_hashtable()</a></h3>
-<p><b>abstract datatype</b>: <tt>map_hashtable(_K, _V)</tt></p>
+<p><tt>map_hashtable(K, V) = <a href="type_utils.html#type-map">type_utils:map</a>(K, V)</tt></p>
 
 
 <h3 class="typedecl"><a name="type-map_hashtable">map_hashtable()</a></h3>
-<p><b>abstract datatype</b>: <tt>map_hashtable()</tt></p>
+<p><tt>map_hashtable() = map()</tt></p>
 
 
 <h3 class="typedecl"><a name="type-maybe">maybe()</a></h3>
@@ -154,8 +154,8 @@ hashtable.</td></tr>
 specified table have been read, otherwise throwing an exception.</td></tr>
 <tr><td valign="top"><a href="#get_value-2">get_value/2</a></td><td>Retrieves the value corresponding to the specified (existing) key, and 
 returns it directly.</td></tr>
-<tr><td valign="top"><a href="#get_value_with_default-3">get_value_with_default/3</a></td><td>Looks for the specified entry in specified table and, if found, returns
- the associated value; otherwise returns the specified default value.</td></tr>
+<tr><td valign="top"><a href="#get_value_with_default-3">get_value_with_default/3</a></td><td>Looks for the specified entry in the specified table and, if found, 
+returns the associated value; otherwise returns the specified default value.</td></tr>
 <tr><td valign="top"><a href="#get_values-2">get_values/2</a></td><td>Returns the (ordered) list of values that correspond to the specified 
 (ordered) list of keys of this table.</td></tr>
 <tr><td valign="top"><a href="#has_entry-2">has_entry/2</a></td><td>Tells whether the specified key exists in the table: returns true or
@@ -524,8 +524,10 @@ returns it directly.</p>
 <div class="spec">
 <p><tt>get_value_with_default(Key::<a href="#type-key">key()</a>, DefaultValue::<a href="#type-value">value()</a>, MapHashtable::<a href="#type-map_hashtable">map_hashtable()</a>) -&gt; <a href="#type-value">value()</a></tt><br></p>
 <p> </p>
-</div><p>Looks for the specified entry in specified table and, if found, returns
- the associated value; otherwise returns the specified default value.
+</div><p><p>Looks for the specified entry in the specified table and, if found, 
+returns the associated value; otherwise returns the specified default value.</p>
+
+ Allows to perform in a single operation a look-up followed by a fetch.
 </p>
 
 <h3 class="function"><a name="get_values-2">get_values/2</a></h3>

@@ -17,9 +17,18 @@
 <h2><a name="description">Description</a></h2><p>Datastructure allowing to perform <b>bidirectional conversions between
  two sets</b>.</p>
 
- One can see it as a <code>[{first_type(), second_type()}]</code> associative table
- allowing to transform any element of a set into its (unique) corresponding
- element in the other one.
+ <p>One can see it as a <code>[{first_type(), second_type()}]</code> associative table 
+allowing to transform any element of a set into its (unique) corresponding 
+element in the other one.</p>
+
+ <p>See also const_bijective_table.erl for constant bijective tables that can be 
+requested from any number (potentially extremely large) of callers very 
+efficiently thanks to the generation (only in memory, or in file) of a 
+corresponding module.</p>
+
+ Refer to:
+ - bijective_table_test.erl for an usage example and testing thereof
+ - const_bijective_table.erl for a constant, compile-time bijective table
 
 <h2><a name="types">Data Types</a></h2>
 
@@ -33,7 +42,7 @@
 
 <h3 class="typedecl"><a name="type-entries">entries()</a></h3>
 <p><tt>entries() = [<a href="#type-entry">entry()</a>]</tt></p>
-
+<p> Entries that can be fed to a bijective table.</p>
 
 <h3 class="typedecl"><a name="type-entry">entry()</a></h3>
 <p><tt>entry() = {<a href="#type-first_type">first_type()</a>, <a href="#type-second_type">second_type()</a>}</tt></p>

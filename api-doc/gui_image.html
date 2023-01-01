@@ -38,7 +38,7 @@ platform-specific, readily-usable graphical content.</p>
 
 
 <h3 class="typedecl"><a name="type-bitmap">bitmap()</a></h3>
-<p><b>abstract datatype</b>: <tt>bitmap()</tt></p>
+<p><tt>bitmap() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxBitmap.html#type-wxBitmap">wxBitmap:wxBitmap()</a></tt></p>
 <p><p> Platform-dependent bitmap, either monochrome or colour (with or without alpha 
 channel).</p>
 
@@ -112,6 +112,10 @@ like PNG or JPEG, has metadata, etc.).</p>
 <p><tt>rgba_color_buffer() = <a href="gui_color.html#type-rgba_color_buffer">gui_color:rgba_color_buffer()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-size">size()</a></h3>
+<p><tt>size() = <a href="gui.html#type-size">gui:size()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-standard_bitmap_name_id">standard_bitmap_name_id()</a></h3>
 <p><tt>standard_bitmap_name_id() = <a href="gui.html#type-standard_bitmap_name_id">gui:standard_bitmap_name_id()</a></tt></p>
 
@@ -124,6 +128,14 @@ like PNG or JPEG, has metadata, etc.).</p>
 <p><b>abstract datatype</b>: <tt>text_display()</tt></p>
 <p> A widget displaying a text; a text display behaves like a panel dedicated
  to the rendering of a text.</p>
+
+<h3 class="typedecl"><a name="type-text_display_option">text_display_option()</a></h3>
+<p><tt>text_display_option() = {pos, <a href="#type-point">point()</a>} | {size, <a href="#type-size">size()</a>} | {style, [<a href="#type-text_display_style_opt">text_display_style_opt()</a>]}</tt></p>
+<p> Text display specific options.</p>
+
+<h3 class="typedecl"><a name="type-text_display_style_opt">text_display_style_opt()</a></h3>
+<p><tt>text_display_style_opt() = align_left | align_right | center | fixed_size | ellipsize_beginning | ellipsize_middle | ellipsize_end</tt></p>
+
 
 <h3 class="typedecl"><a name="type-width">width()</a></h3>
 <p><tt>width() = <a href="gui.html#type-width">gui:width()</a></tt></p>
