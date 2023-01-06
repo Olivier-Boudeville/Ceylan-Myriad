@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2022 Olivier Boudeville
+% Copyright (C) 2015-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -46,7 +46,8 @@
 
 % Day management support:
 -export([ is_bank_holiday/2, get_bank_holidays_for/2,
-		  find_common_bank_holidays/3 ]).
+		  find_common_bank_holidays/3,
+		  get_daylight_saving_time/1 ]).
 
 
 % Week management support:
@@ -55,7 +56,8 @@
 
 % Month management support:
 -export([ canonicalise_month/1, check_month_canonical/1, check_month_order/2,
-		  month_to_string/1 ]).
+		  month_to_string/1,
+		  get_month_duration/1, get_month_durations/0, get_day_rank/1 ]).
 
 
 % Date support:
@@ -74,8 +76,13 @@
 % Such numerical values are useful to operate based on ranges.
 
 
--type week_day() :: 'monday' | 'tuesday' | 'wednesday' | 'thursday'
-				  | 'friday' | 'saturday' | 'sunday'.
+-type week_day() :: 'monday'     % 1
+				  | 'tuesday'    % 2
+				  | 'wednesday'  % 3
+				  | 'thursday'   % 4
+				  | 'friday'     % 5
+				  | 'saturday'   % 6
+				  | 'sunday'.    % 7
 % User-friendly atom-based version of day_index/0.
 
 
@@ -290,6 +297,7 @@
 
 -type minutes() :: unit_utils:minutes().
 -type hours() :: unit_utils:hours().
+-type day() :: unit_utils:day().
 -type days() :: unit_utils:days().
 -type weeks() :: unit_utils:weeks().
 
@@ -453,6 +461,45 @@ month_to_string( MonthIndex ) ->
 
 
 
+% @doc Returns the duration of the specified month.
+%
+% Here February lasts always 28 days.
+%
+-spec get_month_duration( canonical_month() ) -> days().
+get_month_duration( MonthIndex ) ->
+	lists:nth( MonthIndex, get_month_durations() ).
+
+
+% @doc Returns the list of the usual duration of months.
+%
+% Here February lasts always 28 days.
+%
+-spec get_month_durations() -> days().
+get_month_durations() ->
+	[ 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ].
+
+
+
+% @doc Returns the rank in year of the specified day, in [1,365].
+%
+% For example, for the tenth of February:
+% get_day_rank({2, 10}) = 41.
+%
+-spec get_day_rank( date_in_year() ) -> day().
+get_day_rank( { Month, Day } ) ->
+	MonthDurs = get_month_durations(),
+	sum_over_months( Month, MonthDurs, _Acc=Day ).
+
+
+% (helper)
+sum_over_months( _Month=1, _MonthDurs, Acc ) ->
+	Acc;
+
+sum_over_months( Month, _MonthDurs=[ M | T ], Acc ) ->
+	sum_over_months( Month-1, T, Acc+M ).
+
+
+
 % @doc Tells whether, for specified country, the specified date is a bank
 % holiday.
 %
@@ -531,6 +578,103 @@ find_common_bank_holidays_helper( CurrentYear, StopYear, Country, AccSet ) ->
 
 	find_common_bank_holidays_helper( CurrentYear+1, StopYear, Country,
 									  NewAccSet ).
+
+
+
+% @doc Returns the (signed) number of hours to offset the UTC in order to obtain
+% the local time (typically the Central European Summer Time, UTC+1/UTC+2), for
+% the corresponding date.
+%
+% Since 1996, European Summer Time has been observed between 01:00 UTC (02:00
+% CET and 03:00 CEST) on the last Sunday of March, and 01:00 UTC on the last
+% Sunday of October.
+%
+% For most of the dates, this function is rather cheap. It is an approximation,
+% in the sense that the parameter should be a full timestamp (hence with a
+% time), not simply a date.
+%
+-spec get_daylight_saving_time( date() ) -> hours().
+get_daylight_saving_time( _Date={ _Y, M, _D } ) when M < 3 ->
+	1;
+
+get_daylight_saving_time( _Date={ _Y, M, _D } ) when M > 10 ->
+	1;
+
+get_daylight_saving_time( _Date={ _Y, M, _D } ) when M > 3 andalso M < 10 ->
+	2;
+
+% In March or October thus, both with 31 days; maybe in the safe beginning of
+% them:
+%
+% (at worst, 31 is a Saturday, 30 is Friday, 29 Thursday, 28 Wed, 27 Tues, 26
+% Mon, 25 Sun)
+%
+get_daylight_saving_time( _Date={ _Y, _M=3, D } ) when D < 25 ->
+	1;
+
+get_daylight_saving_time( _Date={ _Y, _M=10, D } ) when D < 25 ->
+	2;
+
+% Finest cases needed here, first for March:
+get_daylight_saving_time( _Date={ Y, _M=3, D } ) ->
+
+	% Determining the last weekday, in [Monday=1, ..., Sunday=7]:
+	LastSunday = case calendar:day_of_the_week( Y, 3, 31 ) of
+
+		_Sunday=7 ->
+			31;
+
+		% E.g. if the 31st of March is a Saturday (6), then 31-6=31-7+1 is a
+		% Sunday:
+		%
+		OtherWeekday ->
+			31 - OtherWeekday
+
+	end,
+
+	% Not having the hour here, yet as the DST limit is very early this Sunday,
+	% we consider that on average we must be already past it:
+	%
+	case D <  LastSunday of
+
+		true ->
+			1;
+
+		false ->
+			2
+
+	end;
+
+% Same for October:
+get_daylight_saving_time( _Date={ Y, _M=10, D } ) ->
+
+	% Determining the last weekday, in [Monday=1, ..., Sunday=7]:
+	LastSunday = case calendar:day_of_the_week( Y, 10, 31 ) of
+
+		_Sunday=7 ->
+			31;
+
+		% E.g. if the 31st of October is a Saturday (6), then 31-6=31-7+1 is a
+		% Sunday:
+		%
+		OtherWeekday ->
+			31 - OtherWeekday
+
+	end,
+
+	% Not having the hour here, yet as the DST limit is very early this Sunday,
+	% we consider that on average we must be already past it:
+	%
+	case D <  LastSunday of
+
+		true ->
+			2;
+
+		false ->
+			1
+
+	end.
+
 
 
 % @doc Returns the symbol (atom) corresponding to specified week day index.
@@ -1068,7 +1212,7 @@ is_timestamp( _Other ) ->
 %
 -spec is_date( term() ) -> boolean().
 %is_date( _Date={ Y, M, D } ) when is_integer( Y ) andalso is_integer( M )
-%								  andalso is_integer( D ) ->
+%                                  andalso is_integer( D ) ->
 %	true;
 %
 %is_date( _Other ) ->
@@ -1949,9 +2093,9 @@ get_precise_duration_since( StartTimestamp ) ->
 % specified number of days (possibly a negative number).
 %
 -spec get_date_after( date(), days() ) -> date().
-get_date_after( BaseDate, Days ) ->
+get_date_after( BaseDate, DaysOffset ) ->
 
-	DayCount = calendar:date_to_gregorian_days( BaseDate ) + Days,
+	DayCount = calendar:date_to_gregorian_days( BaseDate ) + DaysOffset,
 
 	calendar:gregorian_days_to_date( DayCount ).
 

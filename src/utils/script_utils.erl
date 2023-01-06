@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2022 Olivier Boudeville
+% Copyright (C) 2016-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -53,6 +53,11 @@
 -include_lib("kernel/include/file.hrl").
 
 
+-define( reference_myriad_dir, "Ceylan-Myriad" ).
+-define( shorthand_myriad_dir, "myriad" ).
+
+
+
 % Shorthands to be avoided here, as at least some functions are meant to be
 % copied verbatim in headers, such as myriad_script_include.hrl.
 
@@ -72,7 +77,8 @@ is_running_as_escript() ->
 	% succeed if at least an extra command-line line was specified.
 	%
 	% So escript:script_name() will fail if erl is launched with no option,
-	% whereas it will succeed if launched with 'erl -extra foobar' for example.
+	% whereas it will succeed if launched with 'erl -extra foobar' for example
+	% (and for some reason will return then "foobar").
 	%
 	% The best solution we see currently is to look whether the returned script
 	% name bears the '.escript' extension (better than just including a path
@@ -92,7 +98,7 @@ is_running_as_escript() ->
 
 	% Typically {badmatch,[]} from escript.erl:
 	catch error:_Error ->
-
+		%io:format( "Script name error: '~p'.~n", [ Error ] ),
 		false
 
 	end.
@@ -124,6 +130,7 @@ get_script_base_directory() ->
 					% Is already absolute here:
 					ScriptPath;
 
+				% Possibly actually a dummy value (e.g. "--batch"):
 				RelativePath ->
 					% Let's make it absolute then:
 					{ ok, CurrentDir } = file:get_cwd(),
@@ -135,7 +142,8 @@ get_script_base_directory() ->
 
 			BaseDir = filename:dirname( FullPath ),
 
-			%io:format( "Script base directory: '~ts'.~n", [ BaseDir ] ),
+			%io:format( "Script base directory (as escript): '~ts'.~n",
+			%           [ BaseDir ] ),
 
 			BaseDir;
 
@@ -152,10 +160,14 @@ get_script_base_directory() ->
 			% We cannot use file_utils:normalise_path/1 here: Myriad not usable
 			% from that point yet!
 			%
-			file_utils:join( [ MyriadPath, "src", "scripts" ] )
+			BaseDir = file_utils:join( [ MyriadPath, "src", "scripts" ] ),
+
+			%io:format( "Script base directory (not as escript): '~ts'.~n",
+			%           [ BaseDir ] ),
+
+			BaseDir
 
 	end.
-
 
 
 
@@ -165,25 +177,25 @@ get_myriad_path_from( CodePath ) ->
 	% Two base directories are licit for Myriad, a reference one and a
 	% shorthand:
 	%
-	case get_myriad_path_from( CodePath, "Ceylan-Myriad" ) of
+	case get_myriad_path_from( CodePath, ?reference_myriad_dir ) of
 
 		undefined ->
 
-			case get_myriad_path_from( CodePath, "myriad" ) of
+			case get_myriad_path_from( CodePath, ?shorthand_myriad_dir ) of
 
 				undefined ->
 					throw( unable_to_determine_myriad_root );
 
 				Path ->
-					%trace_utils:debug_fmt( "Found from myriad: '~ts'.",
-					%					   [ Path ] ),
+					%trace_utils:debug_fmt( "Found from ~ts '~ts'.",
+					%                       [ ?shorthand_myriad_dir, Path ] ),
 					Path
 
 			end;
 
 		Path ->
-			%trace_utils:debug_fmt( "Found from Ceylan-Myriad: '~ts'.",
-			%					   [ Path ] ),
+			%trace_utils:debug_fmt( "Found from ~ts: '~ts'.",
+			%                       [ ?reference_myriad_dir, Path ] ),
 			Path
 
 	end.
@@ -195,10 +207,15 @@ get_myriad_path_from( _Paths=[], _BaseDirName ) ->
 	undefined;
 
 get_myriad_path_from( [ Path | T ], BaseDirName ) ->
-	case string:split( Path, BaseDirName ) of
+	% Of course continuous integration had to use
+	% '/__w/Ceylan-Myriad/Ceylan-Myriad' as base directory...
+	%
+	case string:split( Path, BaseDirName, _Where=trailing ) of
 
 		[ Prefix, _Suffix ] ->
 			% Just the full path to the root wanted:
+			%io:format( "Split path '~ts' with base dir '~ts', "
+			%   "got prefix '~ts'.", [ Path, BaseDirName, Prefix ] ),
 			file_utils:join( Prefix, BaseDirName );
 
 		% Layer name not found:
@@ -288,7 +305,7 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 	ok = code:add_pathsa( MyriadBeamDirs ),
 
 	% One thing is that the relevant paths are declared, another one is that
-	% they have been built:
+	% they have been built; testing it:
 	%
 	try
 
@@ -319,7 +336,10 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 get_myriad_base_directory() ->
 
 	% We cannot use file_utils:normalise_path/1 here, as Myriad is not usable
-	% from that point yet.
+	% from that point yet. Yet at least in Github CI,
+	% "/__w/Ceylan-Myriad/Ceylan-Myriad" is found existing whereas
+	% "/__w/Ceylan-Myriad/src/scripts/../../Ceylan-Myriad" not (!), so we had to
+	% include verbatim file_utils:normalise_path/1 and its dependencies.
 	%
 	% Two main possibilities here: the current escript is located in src/scripts
 	% or in src/apps/SOME_APP; trying them in turn, using src/meta as an
@@ -329,39 +349,153 @@ get_myriad_base_directory() ->
 
 	ScriptBaseDir = get_script_base_directory(),
 
-	FirstBaseCandidate =
-		filename:join( [ ScriptBaseDir, "..", "..", "..", "myriad" ] ),
+	FirstPrefixPath = [ ScriptBaseDir, "..", ".." ],
 
-	FirstMetaPath = filename:join( [ FirstBaseCandidate, "src", "meta" ] ),
+	FirstBaseCandidate = normalise_path(
+		filename:join( FirstPrefixPath ++ [ ?reference_myriad_dir ] ) ),
 
-	case file:read_file_info( FirstMetaPath ) of
+	case is_legit_path( FirstBaseCandidate ) of
 
-		{ ok, #file_info{ type=directory } } ->
+		true ->
 			FirstBaseCandidate;
 
-		{ error, _FirstReason } ->
+		false ->
+			FirstAltBaseCandidate = normalise_path(
+				filename:join( FirstPrefixPath ++ [ ?shorthand_myriad_dir ] ) ),
 
-			% Defined specifically, for any error report:
-			SecondBaseCandidate = filename:join(
-				[ ScriptBaseDir, "..", "..", "..", "..", "myriad" ] ),
+			case is_legit_path( FirstAltBaseCandidate ) of
 
-			% Maybe in src/apps/SOME_APP then:
-			SecondMetaPath =
-				filename:join( [ SecondBaseCandidate, "src", "meta" ] ),
+				true ->
+					FirstAltBaseCandidate;
 
-			case file:read_file_info( SecondMetaPath ) of
+				false ->
+					SecondPrefixPath = FirstPrefixPath ++ [ ".." ],
 
-				{ ok, #file_info{ type=directory } } ->
-					SecondBaseCandidate;
+					SecondBaseCandidate = normalise_path( filename:join(
+						SecondPrefixPath ++ [ ?reference_myriad_dir ] ) ),
 
-				{ error, _SecondReason } ->
-					throw( { myriad_base_directory_not_found,
-							 FirstBaseCandidate, SecondBaseCandidate } )
+					case is_legit_path( SecondBaseCandidate ) of
+
+						true ->
+							SecondBaseCandidate;
+
+						false ->
+							SecondAltBaseCandidate = normalise_path(
+								filename:join( SecondPrefixPath
+											   ++ [ ?shorthand_myriad_dir ] ) ),
+
+							case is_legit_path( SecondAltBaseCandidate ) of
+
+								true ->
+									SecondAltBaseCandidate;
+
+								false ->
+									throw( { myriad_base_directory_not_found,
+										FirstBaseCandidate,
+										FirstAltBaseCandidate,
+										SecondBaseCandidate,
+										SecondAltBaseCandidate } )
+
+							end
+
+					end
 
 			end
 
 	end.
 
+
+%-spec test_directory( file_utils:path() ) -> basic_utils:void().
+%test_directory( D ) ->
+%   io:format( "Testing ~ts: ~p~n", [ D, file:read_file_info( D ) ] ).
+
+
+
+
+% Included from file_utils (shortened as no bin_string() support, using
+% filename:join/2 instead of the one of file_utils, and with type prefixes):
+
+
+% @doc Normalises specified path (canonicalises it), by translating it so that
+% no intermediate, superfluous '.' or '..' is present afterwards.
+%
+% For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
+% "/home/lisa/tube".
+%
+% Returns a path of the same string type as the specified parameter.
+%
+-spec normalise_path( file_utils:path() ) -> file_utils:path();
+					( file_utils:bin_path() ) -> file_utils:bin_path().
+normalise_path( _Path="." ) ->
+	".";
+	%get_current_directory();
+
+normalise_path( Path ) when is_list( Path ) ->
+
+	ElemList = filename:split( Path ),
+
+	%trace_utils:debug_fmt( "ElemList: ~p", [ ElemList ] ),
+
+	ResPath = filename:join( filter_elems_plain( ElemList, _Acc=[] ) ),
+
+	%trace_utils:debug_fmt( "Normalising path '~ts' as '~ts'.",
+	%                       [ Path, ResPath ] ),
+
+	ResPath.
+
+% (helper)
+filter_elems_plain( _ElemList=[], Acc ) ->
+	lists:reverse( Acc );
+
+filter_elems_plain( _ElemList=[ "." | T ], Acc ) ->
+	filter_elems_plain( T, Acc );
+
+% We can remove one level iff there is at least one accumulated *and* this one
+% is not already ".." (otherwise the ".." will cancel out):
+%
+filter_elems_plain( _ElemList=[ ".." | T ], _Acc=[ PrevElem | AccT ] )
+						when PrevElem =/= ".." ->
+	filter_elems_plain( T, AccT );
+
+
+% No level left, so this ".." should not be filtered out:
+%
+% (however this clause is a special case of the next, hence can be commented
+% out)
+%
+%filter_elems_plain( _ElemList=[ PathElement=".." | T ], Acc ) ->
+%   filter_elems_plain( T, [ PathElement | Acc ] );
+
+filter_elems_plain( _ElemList=[ E | T ], Acc ) ->
+	filter_elems_plain( T, [ E | Acc ] ).
+
+
+
+% @doc Tests whether the specified path is a legit candidate one.
+%
+% (helper)
+%
+-spec is_legit_path( file_utils:path() ) -> boolean().
+is_legit_path( BaseCandidatePath ) ->
+
+	% An indicator for testing this candidate base directory:
+	MetaPath = filename:join( [ BaseCandidatePath | [ "src", "meta" ] ] ),
+
+	case file:read_file_info( MetaPath ) of
+
+		{ ok, #file_info{ type=directory } } ->
+			true;
+
+		{ ok, #file_info{ type=symlink } } ->
+			true;
+
+		% Error or other type:
+		_Other ->
+			%io:format( "Candidate path '~p' not legit (~p).~n",
+			%           [ MetaPath, Other ] ),
+			false
+
+	end.
 
 
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2010-2022 Olivier Boudeville
+% Copyright (C) 2010-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -183,6 +183,9 @@
 
 -type byte_size() :: non_neg_integer().
 % Size, as a positive number of bytes.
+
+-type bytes_per_second() :: integer().
+% Number of bytes per second.
 
 
 -type byte_offset() :: integer().
@@ -370,7 +373,7 @@
 % identifier).
 
 
--export_type([ byte_size/0, byte_offset/0, bit_size/0,
+-export_type([ byte_size/0, bytes_per_second/0, byte_offset/0, bit_size/0,
 			   cpu_usage_info/0, cpu_usage_percentages/0,
 			   host_static_info/0, host_dynamic_info/0,
 

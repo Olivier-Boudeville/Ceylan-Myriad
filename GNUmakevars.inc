@@ -271,7 +271,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.28
+MYRIAD_VERSION := 1.0.30
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -1894,11 +1894,22 @@ ifndef SYNC_TOOL
 		SSH_OPT := -e "ssh -p $(SSH_PORT)"
 	endif
 
-	# Not -a, as it implies -o and -g (to preserve owner and groups), which is
-	# not desirable here; not -t either, as having not enough permissions to
-	# update time metadata:
+	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT)
+
+
+	# General-purpose, mostly to synchronise a remote webserver in terms of
+	# content, so:
+	#  - no "-a", as it implies -o and -g (to preserve owner and groups), which
+	# is not desirable here
+	#  - no "-t" either, as having not enough permissions to
+	# update the time metadata on the server
 	#
-	SYNC_OPT := -rlpD -vz $(SSH_OPT)
+	SYNC_OPT := $(SYNC_BASE_OPT)
+
+	# Mostly to synchronise code to a remote server (without having to introduce
+	# bogus Git commits):
+	#
+	SYNC_CODE_OPT := -at $(SYNC_BASE_OPT)
 
 endif
 
