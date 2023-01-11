@@ -1106,8 +1106,8 @@ get_hostname_from_node_name( NodeName ) ->
 % standard port, if needed.
 %
 % If an EPMD instance is already launched for that port, no extra instance will
-% be launched, the former one remaining the active one; there is up to one EPMD
-% instance per port.
+% be launched, the former one remaining the active one (possibly with different
+% other settings); there is up to one EPMD instance per port.
 %
 -spec launch_epmd() -> void().
 launch_epmd() ->
@@ -1119,8 +1119,11 @@ launch_epmd() ->
 % specified port, if needed.
 %
 % If an EPMD instance is already launched for that port, no extra instance will
-% be launched, the former one remaining the active one; there is up to one EPMD
-% instance per port.
+% be launched, the former one remaining the active one (possibly with different
+% other settings); there is up to one EPMD instance per port.
+%
+% The actual EPMD port configured for Myriad (refer to the EPMD_PORT make
+% variable) does not seem to be easily available from an Erlang program.
 %
 -spec launch_epmd( net_port() ) -> void().
 launch_epmd( Port ) when is_integer( Port ) ->
@@ -1133,9 +1136,13 @@ launch_epmd( Port ) when is_integer( Port ) ->
 		EPMDPath ->
 			% Better through command line than using the environment to specify
 			% the port:
+			%
 			EpmdCmd = text_utils:format( "~ts -port ~B", [ EPMDPath, Port ] ),
+
 			%trace_utils:debug_fmt( "Launching EPMD thanks to '~ts'.",
 			%                       [ EpmdCmd ] ),
+
+			% '-daemon' could/should be used instead:
 			system_utils:run_background_command( EpmdCmd )
 
 	end.
