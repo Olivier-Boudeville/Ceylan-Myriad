@@ -35,7 +35,7 @@
 			rebar3-local-update                                              \
 			test-hex-package                                                 \
 			generate-protobuf                                                \
-			sync-to-server                                                   \
+			sync-sources-to-server sync-all-to-server                         \
 			generate-api-doc generate-api-alt-doc copy-static-content        \
 			clean-api-doc clean-api-alt-doc                                  \
 			generate-list-of-erlang-types generate-list-of-local-types       \
@@ -280,6 +280,25 @@ doc-recurse:
 # Not used any more now that all beams are always built:
 build-tests: $(BEAM_FILES)
 	@for t in $(TEST_TARGETS); do $(MAKE) -s $$t CMD_LINE_OPT="${CMD_LINE_OPT}"; done
+
+
+
+# Used in order to have one's EPMD instances with proper port and options
+# (rather than to have it automatically launched):
+#
+# (settings will apply provided that a prior instance of EPMD does not exist at
+# that port)
+#
+launch-epmd:
+	@echo "Launching (relaxed) EPMD daemon on port $(EPMD_PORT)."
+	@export ERL_EPMD_RELAXED_COMMAND_CHECK=1; export ERL_EPMD_PORT=$(EPMD_PORT); $(EPMD) -relaxed_command_check -daemon
+
+
+list-epmd-names:
+	@echo "Listing the registrations known of any EPMD instance running on port $(EPMD_PORT):"
+	@export ERL_EPMD_PORT=$(EPMD_PORT); $(EPMD) -names
+
+
 
 
 launch: Emakefile
@@ -929,19 +948,35 @@ test-hex-package: rebar-test-clean
 generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 
 
-# Synchronises the sources of the current layer to the specified server
-# location.
+# To synchronise the selected source content of the current layer, from the
+# local tree to the specified server location, with no VCS commit involved.
+#
+# If the source tree is built and up to date, no need to (re)build on the server
+# (if homogeneous in terms of Erlang versions).
 #
 # A rebuild is triggered just before, as the BEAM files are transferred as well:
 # at arrival timestamps may not be respected, and we want the right BEAMs to be
 # executed.
 #
-# Note that only the source files are synchronised (e.g. not the makefiles, not
-# the configuration files, etc.).
+# Note that, here, only the content of the 'src' and 'include' tree is
+# synchronised (e.g. not the makefiles, not the configuration files, etc. that
+# are elsewhere); see the next 'sync-all-to-server' server.
 #
-sync-to-server: all
-	@echo " Synchronising the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
+sync-sources-to-server: all
+	@echo " Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
+
+
+# To synchronise the full content of the current layer to the specified server
+# location, with no VCS commit involved.
+#
+# A rebuild is triggered just before, as the BEAM files are transferred as well:
+# at arrival timestamps may not be respected, and we want the right BEAMs to be
+# executed.
+#
+sync-all-to-server: all
+	@echo " Synchronising the full content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
+	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) $(LAYER_TOP) $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
 
 
 
@@ -989,7 +1024,7 @@ clean-api-alt-doc:
 # Allows to generate a file listing all the types defined in the specified
 # Erlang source tree.
 #
-# Ex: 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
+# E.g. 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
 #
 generate-list-of-erlang-types:
 	@if [ -z "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified."; exit 15; fi; if [ ! -d "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist."; exit 16; fi; target_file="declared-types-in-Erlang.txt"; erl="$(ERLANG_INTERPRETER)"; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1"); echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
@@ -1231,6 +1266,9 @@ info-erlang:
 	@echo "ERLANG_COMPILER_OPT    = $(ERLANG_COMPILER_OPT)"
 	@echo "ERLANG_INTERPRETER     = $(ERLANG_INTERPRETER)"
 	@echo "ERLANG_INTERPRETER_OPT = $(ERLANG_INTERPRETER_OPT)"
+	@echo "EPMD                   = $(EPMD)"
+	@echo "EPMD_OPT               = $(EPMD_OPT)"
+	@echo "EPMD_PORT              = $(EPMD_PORT)"
 	@echo "ERLANG_ROOT            = $(ERLANG_ROOT)"
 	@echo "ERLANG_SRC             = $(ERLANG_SRC)"
 	@echo "VM_TEST_NAME           = $(VM_TEST_NAME)"
