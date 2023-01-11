@@ -590,8 +590,9 @@ ifeq ($(USE_JSON),true)
 		# Unfortunately, this build will not result in a proper
 		# ~/Software/jsx/jsx-current-install/ebin directory to be
 		# created. However this is not a problem, as Myriad is able to overcome
-		# this issue; yet for the sake of clarity/completeness one may create such a
-		# directory with:
+		# this issue; yet for the sake of clarity/completeness one may create
+		# such a directory with:
+		#
 		# $ cd ~/Software/jsx/jsx-current-install
 		#     && ln -s _build/default/lib/jsx/ebin/
 
@@ -607,7 +608,8 @@ ifeq ($(USE_JSON),true)
 		JSX_REBAR_INSTALL_BASE := $(JSX_REBAR_BASE)
 
 		# A convention of our own that one may want to respect:
-		JSX_SOFTWARE_BASE := $$HOME/Software/jsx/jsx-current-install
+		# (note: no $$HOME, no quotes either)
+		JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
 		JSX_SOFTWARE_INSTALL_BASE := $(JSX_SOFTWARE_BASE)/_build/default/lib/jsx
 
 		# No includes for JSX:
@@ -615,8 +617,16 @@ ifeq ($(USE_JSON),true)
 
 		# ($(JSX_*_INSTALL_BASE)/ebin/*.beam found at runtime)
 
-		BEAM_DIRS += $(JSX_REBAR_INSTALL_BASE)/ebin
-		ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_BASE)/ebin
+		# Two options in order to locate a proper jsx (embedded or userspace):
+		ifneq "$(wildcard $(JSX_REBAR_INSTALL_BASE))" ""
+			BEAM_DIRS += $(JSX_REBAR_INSTALL_BASE)/ebin
+		else
+			ifneq "$(wildcard $(JSX_SOFTWARE_INSTALL_BASE))" ""
+				ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_BASE)/ebin
+			else
+				FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_INSTALL_BASE)/ebin and $(JSX_SOFTWARE_INSTALL_BASE)/ebin, from $(PWD)))
+			endif
+		endif
 
 	endif
 
@@ -1474,27 +1484,41 @@ JAVA := $$(which java)
 
 
 
+# EPMD section.
+#
+# See also the 'launch-epmd' make target.
+
+EPMD := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which epmd 2>/dev/null)
+
+# EPMD_PORT used through 'export':
+EPMD_OPT := -relaxed_command_check
 
 # Erlang Default (only used in a node that is distributed):
 #EPMD_PORT := 4369
 
-# 'Myriad' default, to force correct port management:
-#
-# Note: if modifying this port definition, upper layers may have to modify that
-# accordingly.
-#
-# Notably, if a VM is ultimately started with the --nn option (i.e. not
-# distributed), enabling distribution at runtime (see
-# net_utils:enable_distribution/2) will lead this VM to expect an EPMD at the
-# port specified here (thus this information is taken into account in all cases,
-# even when starting non-distributed)
-#
-# Always test with a prior 'killall epmd' on all hosts involved, and use 'epmd
-# -d -port XXXX' to check whether there is an EPMD at that port (this is the
-# case iff 'there is already a epmd running at port XXXX' is output)
-#
-EPMD_PORT := 4506
-#EPMD_PORT := 4514
+ifndef EPMD_PORT
+
+	# 'Myriad' default, to force correct port management:
+
+	# Note: if modifying this port definition, upper layers may have to modify
+	# that accordingly.
+
+	# Notably, if a VM is ultimately started with the --nn option (i.e. not
+	# distributed), enabling distribution at runtime (see
+	# net_utils:enable_distribution/2) will lead this VM to expect an EPMD at
+	# the port specified here (thus this information is taken into account in
+	# all cases, even when starting non-distributed)
+
+	# Always test with a prior 'killall epmd' on all hosts involved, and use
+	# 'epmd -d -port XXXX' to check whether there is an EPMD at that port (this
+	# is the case iff 'there is already a epmd running at port XXXX' is output)
+
+	# (see also the 'launch-epmd' and 'list-epmd-names' targets)
+
+	EPMD_PORT := 4506
+	#EPMD_PORT := 4514
+
+endif
 
 
 # We can force the launched VM to use TCP/IP connections in a range of ports
@@ -1894,7 +1918,7 @@ ifndef SYNC_TOOL
 		SSH_OPT := -e "ssh -p $(SSH_PORT)"
 	endif
 
-	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT)
+	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT) --exclude '.git'
 
 
 	# General-purpose, mostly to synchronise a remote webserver in terms of
