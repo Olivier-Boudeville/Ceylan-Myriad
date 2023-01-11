@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2008-2022 Olivier Boudeville
+# Copyright (C) 2008-2023 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 #
@@ -14,12 +14,12 @@
 
 # Previously the specified code was run with 'erl -eval [...]'. This was simple,
 # however none of the execution facilities offered by the 'init' module ("-s",
-# "-eval" and "-run") allows to run a VM that would resist exceptions (ex: the
+# "-eval" and "-run") allows to run a VM that would resist exceptions (e.g. the
 # first remote node to crash would trigger a 'noconnection' exception that would
 # make the launched node crash).
 #
 # So we allowed to switch to using run_erl, which is more heavyweight but
-# restores the resistance to exceptions (ex: relying on pipes).
+# restores the resistance to exceptions (e.g. relying on pipes).
 
 # Using run_erl allows to have the VM be able to resist to the crash of others;
 # however then some tests may either actually fail whereas returning success, or
@@ -63,8 +63,8 @@ Usage: $(basename $0) [-v] [-c a_cookie] [--sn a_short_node_name | --ln a_long_n
 Detailed options:
 	-v: be verbose
 	-c a_cookie: specify a cookie, otherwise no cookie will be specifically set
-	--sn a_short_node_name: distributed node using specified short name (ex: 'my_short_name')
-	--ln a_long_node_name: distributed node using specified long name (ex: 'my_long_name')
+	--sn a_short_node_name: distributed node using specified short name (e.g. 'my_short_name')
+	--ln a_long_node_name: distributed node using specified long name (e.g. 'my_long_name')
 	--nn an_ignored_node_name: non-distributed node; the specified name is ignored (useful to just switch the node naming options at runtime)
 	--hostname a_hostname: specify the hostname to be used (typically a FQDN for long node names, and a short hostname for short node names)
 	--tcp-range min_port max_port: specify a TCP port range for inter-node communication (useful for firewalling issues)
@@ -73,9 +73,9 @@ Detailed options:
 	--max-process-count max_count: specify the maximum number of processes per VM (default: ${max_process_count})
 	--busy-limit size: specify the distribution buffer busy limit, in kB (default: 1024)
 	--async-thread-count thread_count: specify the number of asynchronous threads for driver calls (default: ${asynch_thread_count})
-	--background: run the launched interpreter in the background (ideal to run as a daemon, ex: on a server)
+	--background: run the launched interpreter in the background (ideal to run as a daemon, e.g. on a server)
 	--daemon: run the node as a daemon (relies on run_erl and implies --background)
-	--non-interactive: run the launched interpreter with no shell nor input reading (ideal to run through a job manager, ex: on a cluster)
+	--non-interactive: run the launched interpreter with no shell nor input reading (ideal to run through a job manager, e.g. on a cluster)
 	--eval 'an Erlang expression': start by evaluating this expression
 	--no-auto-start: disable the automatic execution at VM start-up
 	-h or --help: display this help
@@ -91,14 +91,14 @@ Example: $(basename $0) -v --ln ceylan --eval 'class_TimeManager_test:run()'"
 
 
 # Note that the BEAM dirs/paths are realpath'ed by this script, which may result
-# some checks (ex: for the JSON backend) to wrongly conclude that some BEAM
+# some checks (e.g. for the JSON backend) to wrongly conclude that some BEAM
 # files can be found in more than one location in the code path.
 #
 # Moreover the specified paths shall preferably match the one otp_utils would
 # elect, for a better homogeneity.
 
 
-# Should the Erlang VM crash, the terminal (console) may not recover well (ex:
+# Should the Erlang VM crash, the terminal (console) may not recover well (e.g.
 # no more echoing of the typed characters)
 #
 # (obtained thanks to a diff of 'stty --all' before and after the issue)
@@ -122,7 +122,7 @@ reset_keyboard()
 cmd_file="launch-erl-input-command.sh"
 
 # Typically this cmd_file shall be edited so that quotes are added back to the
-# -eval command (ex: '-eval foobar_test:run()'):
+# -eval command (e.g. '-eval foobar_test:run()'):
 #
 #echo "$0 $*" > ${cmd_file} && chmod +x ${cmd_file} && echo "(input launch command stored in ${cmd_file})"
 
@@ -514,10 +514,10 @@ log_opt="+W w"
 
 # First we ensure that the epmd program will be started with relaxed command
 # checking (refer to http://erlang.org/doc/man/epmd.html), otherwise we will not
-# be able to specifically unregister crashed nodes (ex: from node-cleaner.sh,
+# be able to specifically unregister crashed nodes (e.g. from node-cleaner.sh,
 # refer to its embedded comments for more details):
 #
-# ('export ERL_EPMD_RELAXED_COMMAND_CHECK' would not suffice, no available in
+# ('export ERL_EPMD_RELAXED_COMMAND_CHECK' would not suffice, not available in
 # 'env' and not seen from epmd either)
 #
 export ERL_EPMD_RELAXED_COMMAND_CHECK=1
@@ -576,7 +576,7 @@ else
 fi
 
 
-# Needed to adapt to the platform at hand (ex: at least on Windows with MSYS,
+# Needed to adapt to the platform at hand (e.g. at least on Windows with MSYS,
 # some command like hostname accept different options):
 #
 os_short_name="$(uname |cut -c 1-4)"
