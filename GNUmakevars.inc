@@ -605,12 +605,12 @@ ifeq ($(USE_JSON),true)
 		# sibling prerequisite of Myriad):
 		#
 		JSX_REBAR_BASE := $(MYRIAD_TOP)/../jsx
-		JSX_REBAR_INSTALL_BASE := $(JSX_REBAR_BASE)
+		JSX_REBAR_INSTALL_BASE := $(JSX_REBAR_BASE)/_build/default/lib/jsx/ebin
 
 		# A convention of our own that one may want to respect:
 		# (note: no $$HOME, no quotes either)
 		JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
-		JSX_SOFTWARE_INSTALL_BASE := $(JSX_SOFTWARE_BASE)/_build/default/lib/jsx
+		JSX_SOFTWARE_INSTALL_BASE := $(JSX_SOFTWARE_BASE)/ebin
 
 		# No includes for JSX:
 		#INC += -I$(JSX_REBAR_INSTALL_BASE)/include -I$(JSX_SOFTWARE_INSTALL_BASE)/include
@@ -619,12 +619,12 @@ ifeq ($(USE_JSON),true)
 
 		# Two options in order to locate a proper jsx (embedded or userspace):
 		ifneq "$(wildcard $(JSX_REBAR_INSTALL_BASE))" ""
-			BEAM_DIRS += $(JSX_REBAR_INSTALL_BASE)/ebin
+			BEAM_DIRS += $(JSX_REBAR_INSTALL_BASE)
 		else
 			ifneq "$(wildcard $(JSX_SOFTWARE_INSTALL_BASE))" ""
-				ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_BASE)/ebin
+				ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_BASE)
 			else
-				FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_INSTALL_BASE)/ebin and $(JSX_SOFTWARE_INSTALL_BASE)/ebin, from $(PWD)))
+				FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_INSTALL_BASE) and $(JSX_SOFTWARE_INSTALL_BASE), from $(PWD)))
 			endif
 		endif
 
