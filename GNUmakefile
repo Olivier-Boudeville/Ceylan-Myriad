@@ -150,9 +150,11 @@ info-settings: info-json info-sql info-protobuf
 
 
 info-json:
-	@echo "USE_JSON       = $(USE_JSON)"
-	@echo "USE_JSX        = $(USE_JSX)"
-	@echo "USE_JIFFY      = $(USE_JIFFY)"
+	@echo "USE_JSON                  = $(USE_JSON)"
+	@echo "USE_JSX                   = $(USE_JSX)"
+	@echo "USE_JIFFY                 = $(USE_JIFFY)"
+	@echo "JSX_REBAR_INSTALL_BASE    = $(JSX_REBAR_INSTALL_BASE)"
+	@echo "JSX_SOFTWARE_INSTALL_BASE = $(JSX_SOFTWARE_INSTALL_BASE)"
 
 
 info-sql:
