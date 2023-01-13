@@ -346,8 +346,11 @@
 
 % Basic authentication information:
 
--type user_name() :: ustring().
-% For example in UNIX terms.
+-type user_name() :: nonempty_string().
+% To store (UNIX-like) user names.
+
+-type atom_user_name() :: atom().
+% To store (UNIX-like) user names.
 
 
 -type password() :: ustring().
@@ -391,7 +394,10 @@
 
 			   encoding/0, encoding_option/0, encoding_options/0,
 
-			   user_name/0, password/0, basic_credential/0, group_name/0,
+			   user_name/0, atom_user_name/0,
+			   password/0, basic_credential/0,
+			   group_name/0,
+
 			   user_id/0, group_id/0, os_pid/0 ]).
 
 
@@ -462,7 +468,7 @@ get_user_name() ->
 %
 % Not expected to fail.
 %
--spec get_user_name_safe() -> ustring().
+-spec get_user_name_safe() -> user_name().
 get_user_name_safe() ->
 
 	try
@@ -484,7 +490,7 @@ get_user_name_safe() ->
 %
 % Cannot crash.
 %
--spec get_user_name_string() -> ustring().
+-spec get_user_name_string() -> user_name().
 get_user_name_string() ->
 
 	try
@@ -561,8 +567,10 @@ get_user_home_directory() ->
 
 
 
-% @doc Returns the home directory of the specified user, as a plain string.
--spec get_user_home_directory( basic_utils:user_name() ) -> directory_path().
+% @doc Returns the home directory of the specified user, as a plain string,
+% according to the most usual UNIX conventions.
+%
+-spec get_user_home_directory( user_name() ) -> directory_path().
 get_user_home_directory( Username ) ->
 	text_utils:format( "/home/~ts", [ Username ] ).
 
@@ -590,7 +598,7 @@ get_user_home_directory_string() ->
 
 
 % @doc Returns the name of the current group, as a plain string.
--spec get_group_name() -> ustring().
+-spec get_group_name() -> group_name().
 get_group_name() ->
 
 	case run_command( ?id "-gn" ) of
