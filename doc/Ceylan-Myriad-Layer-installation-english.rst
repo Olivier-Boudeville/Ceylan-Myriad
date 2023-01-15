@@ -113,7 +113,7 @@ As Myriad has no prerequisite (besides Erlang itself of course), just run (possi
 
 The testing shall complete successfully (if it is not the case, see our support_ section).
 
-.. Note:: Myriad is built and tested at each commit through `continuous integration <https://github.com/Olivier-Boudeville/Ceylan-Myriad/actions?query=workflow%3A%22Erlang+CI%22>`_. The same holds for the projects based on it, directly (ex: `WOOPER <https://wooper.esperide.org>`_, `Seaplus <https://seaplus.esperide.org>`_) or not (ex: `Traces <https://traces.esperide.org/>`_, `Mobile <https://mobile.esperide.org/>`_, `US-Web <https://us-web.esperide.org/>`_), so in terms of usability, confidence should be high.
+.. Note:: Myriad is built and tested at each commit through `continuous integration <https://github.com/Olivier-Boudeville/Ceylan-Myriad/actions?query=workflow%3A%22Erlang+CI%22>`_. The same holds for the projects based on it, directly (e.g. `WOOPER <https://wooper.esperide.org>`_, `Seaplus <https://seaplus.esperide.org>`_) or not (e.g. `Traces <https://traces.esperide.org/>`_, `Mobile <https://mobile.esperide.org/>`_, `US-Web <https://us-web.esperide.org/>`_), so in terms of usability, confidence should be high.
 
 
 
@@ -126,7 +126,7 @@ Type-checking Myriad
 
 As Myriad is (by default) to enable debug information with a key-based protection of the resulting BEAM files, one should first have such key defined.
 
-One way of doing so is, if wanted, to update the default key (see ``DEBUG_INFO_KEY`` in ``GNUmakevars.inc``) and to write in on disk (ex: ``make write-debug-key-file``), and to rebuild Myriad accordingly afterwards (ex: ``make rebuild``).
+One way of doing so is, if wanted, to update the default key (see ``DEBUG_INFO_KEY`` in ``GNUmakevars.inc``) and to write in on disk (e.g. ``make write-debug-key-file``), and to rebuild Myriad accordingly afterwards (e.g. ``make rebuild``).
 
 Then, still from the ``myriad`` root directory:
 
@@ -149,30 +149,41 @@ Finally, to trigger in one go a full rebuild, testing and type-checking, one may
 Maintaining Myriad and Deriving Projects with regard to rebar3
 ==============================================================
 
-For Myriad as for all developments built on top of it (ex: specialisation layers or applications), any dependency may be specified in their ``rebar.config`` [#]_ through a branch of a GIT repository corresponding to that dependency.
+For Myriad as for all developments built on top of it (e.g. specialisation layers or applications), any dependency may be specified in their ``rebar.config`` [#]_ through a branch of a Git repository corresponding to that dependency.
 
 .. [#] For example, with the conventions we rely on, ``rebar.config`` is generated from the ``conf/rebar.config.template`` file of the project of interest.
 
-For example, Myriad itself does not require any specific dependency, but projects making use of Myriad (ex: `WOOPER <https://wooper.esperide.org>`_) may specify in their ``rebar.config``:
+For example, Myriad itself does not require any specific dependency, but projects making use of Myriad (e.g. `WOOPER <https://wooper.esperide.org>`_) may specify in their ``rebar.config``:
 
 .. code:: erlang
 
   {deps, [{myriad, {git, "git://github.com/Olivier-Boudeville/Ceylan-Myriad",
 										{branch, "master"}}}]}.
 
-However, when having to build a dependency, rebar3 will not refer to the tip of the branch specified for it, but to any commit it may read from any pre-existing ``rebar.lock`` file at the root of the current project (the underlying goal being to allow for more reproducible builds).
+However, when having to build a dependency, rebar3 will not necessarily refer to the tip of the branch specified for it, but to any commit it may read from any pre-existing ``rebar.lock`` file at the root of the current project (the underlying goal being to allow for more reproducible builds).
 
 As the `rebar3 recommandation <https://www.rebar3.org/docs/workflow/#setting-up-dependencies>`_ is to store a version of that lock file in source version control, **it shall be regularly updated** otherwise the dependencies of a given project will stick, for the worst, to an older version of their branch, designated by an obsolete reference (this can be detected for example when continuous integration breaks after a nevertheless legit commit of the project).
 
 The solution is thus, for a project of interest, to regularly force an update of its dependencies referenced in its own lock file, and to commit the resulting version.
 
-For example, one would issue from the root of the project of interest:
+For example, to upgrade all listed dependencies, one may issue from the root of the project of interest:
 
 .. code:: bash
 
- $ rebar3 upgrade
+ $ rebar3 upgrade --all
 
-This may update the ``ref`` entry of its dependencies (including Myriad) in its ``rebar.lock`` file, which shall then be committed for posterity.
+This may update the ``ref`` entry of its dependencies (e.g. Myriad) in its ``rebar.lock`` file, which shall then be committed for posterity.
+
+Its content could then be for example:
+
+.. code:: erlang
+
+ [{<<"myriad">>,
+  {git,"https://github.com/Olivier-Boudeville/Ceylan-Myriad.git",
+	   {ref,"f942c6bef06ee65fc14eb578366a055144cc3873"}},
+  0}].
+
+where the specified reference is nothing more than the corresponding Git commit that will be used in order to build that dependency (Myriad here).
 
 
 :raw-html:`<a name="otp"></a>`
