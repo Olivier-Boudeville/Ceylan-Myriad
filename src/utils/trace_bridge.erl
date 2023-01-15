@@ -195,7 +195,7 @@ register( BridgeSpec ) ->
 		% Normal case:
 		undefined ->
 			process_dictionary:put( BridgeKey, BridgeInfo ),
-			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
+			debug_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
 
 		UnexpectedInfo ->
 
@@ -234,7 +234,7 @@ register_if_not_already( BridgeSpec ) ->
 			BridgeInfo = bridge_spec_to_info( BridgeSpec ),
 
 			process_dictionary:put( BridgeKey, BridgeInfo ),
-			info_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] )
+			debug_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] )
 
 		end.
 
