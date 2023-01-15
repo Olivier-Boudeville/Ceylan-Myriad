@@ -205,8 +205,8 @@
 -type resolvable_path() :: [ resolvable_path_element() ].
 % A path that is resolved at runtime, all its elements being joined accordingly.
 %
-% Ex: `[home, "Project", lang, <<"simulation">>', user] being translated to the
-% "/home/bond/Project/en_GB.utf8/simulation/bond" path.
+% For example `[home, "Project", lang, <<"simulation">>', user] being translated
+% to the "/home/bond/Project/en_GB.utf8/simulation/bond" path.
 %
 % See resolve_path/1.
 
@@ -218,28 +218,28 @@
 -type resolvable_token_path() ::
 
 	  'user_name' % Will be translated to the name of the current OS-level
-				  % user; ex: "bond".
+				  % user; e.g. "bond".
 
 	| 'user_id' % Will be translated to the OS-level (typically UNIX uid)
-				% identifier of the current user; ex: "61917".
+				% identifier of the current user; e.g. "61917".
 
 	| 'group_name' % Will be translated to the name of the current OS-level
-				   % group; ex: "wheel".
+				   % group; e.g. "wheel".
 
 	| 'group_id' % Will be translated to the OS-level (typically UNIX gid)
-				 % identifier of the current group; ex: "61000".
+				 % identifier of the current group; e.g. "61000".
 
 	| 'home' % Will be translated to the path to the home directory of the
-			 % current user; ex: "/home/bond".
+			 % current user; e.g. "/home/bond".
 
 	| 'locale_charset' % Will be translated to the current locale with the
-					   % associated character set; ex: "en_GB.utf8".
+					   % associated character set; e.g. "en_GB.utf8".
 
 	| 'fqdn' % Will be translated to the current FQDN of the local host;
-			 % ex: "hurricane.foobar.org".
+			 % e.g. "hurricane.foobar.org".
 
 	| 'short_hostname'. % Will be translated to the current short name of
-						% the local host; ex: "hurricane".
+						% the local host; e.g. "hurricane".
 % A token translated at runtime as a path element.
 
 
@@ -284,11 +284,11 @@
 
 
 -type executable_name() :: file_name().
-% Designates an executable, generally without a path (ex: "foobar").
+% Designates an executable, generally without a path (e.g. "foobar").
 
 
 -type executable_path() :: file_path().
-% Designates a path to an executable; ex: "../my_dir/other/run.exe").
+% Designates a path to an executable; e.g. "../my_dir/other/run.exe").
 
 
 -type bin_executable_path() :: bin_file_path().
@@ -296,7 +296,7 @@
 
 
 -type script_path() :: file_path().
-% Designates a path to an (executable) script; ex: "../my_dir/other/run.sh").
+% Designates a path to an (executable) script; e.g. "../my_dir/other/run.sh").
 
 
 -type bin_script_path() :: bin_file_path().
@@ -320,50 +320,53 @@
 
 -type filename_radix() :: ustring().
 % The part of a filename before the dot of the first extension.
-% Ex: the filename radix of "hello.tar.gz" is "hello".
+% For example the filename radix of "hello.tar.gz" is "hello".
 
 
 -type filepath_radix() :: ustring().
 % The part of a file path before the dot of the first extension.
 %
-% Ex: the filepath radix of "/home/bond/hello.tar.gz" is "/home/bond/hello".
+% For example the filepath radix of "/home/bond/hello.tar.gz" is
+% "/home/bond/hello".
 
 
 -type extension() :: ustring().
-% An extension in a filename, either unitary (ex: "baz", in "foobar.baz.json")
-% or composed (ex: "tar.gz" in "hello.tar.gz").
+% An extension in a filename, either unitary (e.g. "baz", in "foobar.baz.json")
+% or composed (e.g. "tar.gz" in "hello.tar.gz").
 %
-% An extension by itself does not include the leading dot (ex: "gz", not ".gz").
+% An extension by itself does not include the leading dot (e.g. "gz", not
+% ".gz").
 
 
 -type dotted_extension() :: ustring().
-% A dot followed by the extension of a filename, either unitary (ex: ".baz", in
-% "foobar.baz.json") or composed (ex: ".tar.gz" in "hello.tar.gz").
+% A dot followed by the extension of a filename, either unitary (e.g. ".baz", in
+% "foobar.baz.json") or composed (e.g. ".tar.gz" in "hello.tar.gz").
 
 
 -type any_suffix() :: any_string().
-% The suffix (final part) in a path element (ex: "share" in "/usr/local/share").
+% The suffix (final part) in a path element (e.g. "share" in
+% "/usr/local/share").
 
 
 -type path_element() :: ustring().
-% A (legit) part of a path (ex: "local" in "/usr/local/share"); preferably
+% A (legit) part of a path (e.g. "local" in "/usr/local/share"); preferably
 % without whitespaces.
 
 
 -type bin_path_element() :: bin_string().
-% A (legit) part of a path (ex: `<<"local">>' in "/usr/local/share"); preferably
-% without whitespaces.
+% A (legit) part of a path (e.g. `<<"local">>' in "/usr/local/share");
+% preferably without whitespaces.
 
 
 -type any_path_element() :: path_element() | bin_path_element().
-% Any (legit) type of a part of a path (ex: `<<"local">>' in
+% Any (legit) type of a part of a path (e.g. `<<"local">>' in
 % "/usr/local/share"); preferably without whitespaces.
 
 
 -type leaf_name() :: path_element().
 % A leaf name, i.e. the final element of a path (possibly a file or directory).
 %
-% Ex: in 'aaa/bbb/ccc', 'aaa' is the root, and 'ccc' is the leaf.
+% For example in 'aaa/bbb/ccc', 'aaa' is the root, and 'ccc' is the leaf.
 
 
 -type entry_type() :: 'device' | 'directory' | 'other' | 'regular' | 'symlink'.
@@ -511,7 +514,7 @@
 % typically thanks to our to_unicode_{list,binary}/{1,2}
 %
 % - it seems possible that in some cases specifying the 'raw' option result in
-% the requested encoding (ex: utf8) not being respected (ex: having ISO-8859
+% the requested encoding (e.g. utf8) not being respected (e.g. having ISO-8859
 % instead); with newer versions of Myriad and of Erlang, we believe this issue
 % does not exist anymore
 %
@@ -537,7 +540,7 @@
 % ({encoding,latin1}) - otherwise use the 'io' module.
 
 
-% Regarding filesystem identifiers (ex: user_id), they can be converted from
+% Regarding filesystem identifiers (e.g. user_id), they can be converted from
 % integers to actual names, yet apparently with nothing simpler than something
 % akin to:
 %
@@ -689,7 +692,7 @@ join( FirstPath, SecondPath ) when is_binary( SecondPath ) ->
 
 % Both are strings from this point:
 join( FirstPath, _SecondPath="" ) ->
-	% We do not want to add a trailing separator (ex: we want "/home/lisa", not
+	% We do not want to add a trailing separator (e.g. we want "/home/lisa", not
 	% "/home/lisa/"):
 	%
 	FirstPath;
@@ -839,7 +842,7 @@ get_last_element( _List=[ _H | T ] ) ->
 % @doc Returns the complete leading, "directory" part of specified path,
 % that is the one with all its element but the last one.
 %
-% Ex: "/aaa/bbb/ccc" =
+% For example "/aaa/bbb/ccc" =
 %          file_utils:get_base_path("/aaa/bbb/ccc/foobar.txt").
 %
 % Note that the return type is the same of the input path, i.e. plain string or
@@ -859,7 +862,7 @@ get_base_path( AnyPath ) ->
 % @doc Returns the final, "file" part of specified path, that is its last
 % element, as a one-element path, corresponding either to a file or a directory.
 %
-% Ex: `<<"foobar.txt">> =
+% For example `<<"foobar.txt">> =
 %          file_utils:get_last_path_element(<<"/aaa/bbb/ccc/foobar.txt">>).'
 %
 % Note that the return type is the same of the input path, i.e. plain string or
@@ -879,7 +882,7 @@ get_last_path_element( AnyPath ) ->
 % @doc Splits the specified path into a full base directory path and a final
 % entry (filename or directory name).
 %
-% Ex: {"/aaa/bbb/ccc", "foobar.txt"} =
+% For example {"/aaa/bbb/ccc", "foobar.txt"} =
 %       file_utils:split_path("/aaa/bbb/ccc/foobar.txt")
 %
 -spec split_path( any_path() ) -> { any_path(), any_path_element() }.
@@ -1027,7 +1030,7 @@ escape_path_helper( Path ) ->
 
 % @doc Returns the (ordered) extension(s) of the specified file path.
 %
-% Ex: ["baz", "json"] = get_extensions("/home/joe/foobar.baz.json")
+% For example ["baz", "json"] = get_extensions("/home/joe/foobar.baz.json")
 %
 -spec get_extensions( file_path() ) -> [ extension() ] | 'no_extension'.
 get_extensions( Filename ) ->
@@ -1052,7 +1055,7 @@ get_extensions( Filename ) ->
 
 % @doc Returns the (last) extension of the specified file path.
 %
-% Ex: "json" = get_extension("/home/joe/foobar.baz.json")
+% For example "json" = get_extension("/home/joe/foobar.baz.json")
 %
 -spec get_extension( file_path() ) -> extension() | 'no_extension'.
 get_extension( Filename ) ->
@@ -1072,7 +1075,8 @@ get_extension( Filename ) ->
 % @doc Removes the (last) extension (regardless of its actual value) of the
 % specified file path.
 %
-% Ex: "/home/jack/rosie.tmp" = remove_extension("/home/jack/rosie.tmp.ttf")
+% For example "/home/jack/rosie.tmp" =
+% remove_extension("/home/jack/rosie.tmp.ttf")
 %
 -spec remove_extension( file_path() ) -> file_path().
 remove_extension( FilePath ) ->
@@ -1097,7 +1101,8 @@ remove_extension( FilePath ) ->
 % @doc Checks that the (last) extension of the specified file path is the
 % specified one, and returns that path once this extension has been removed.
 %
-% Ex: "/home/jack/rosie" = remove_extension("/home/jack/rosie.tmp.ttf", "ttf")
+% For example "/home/jack/rosie" = remove_extension("/home/jack/rosie.tmp.ttf",
+% "ttf")
 %
 -spec remove_extension( file_path(), extension() ) -> file_path().
 remove_extension( FilePath, ExpectedExtension ) ->
@@ -1130,8 +1135,8 @@ remove_extension( FilePath, ExpectedExtension ) ->
 
 % @doc Returns a new file path whose extension has been updated.
 %
-% Ex: replace_extension("/home/jack/rosie.ttf", "ttf", "wav") should return
-% "/home/jack/rosie.wav".
+% For example replace_extension("/home/jack/rosie.ttf", "ttf", "wav") should
+% return "/home/jack/rosie.wav".
 %
 % Use remove_extension/2 to remove extension, as replacing an extension by an
 % empty one would leave the leading dot.
@@ -1426,7 +1431,6 @@ is_owner_readable( Path ) ->
 					end;
 
 				_ ->
-
 					false
 
 			end;
@@ -1473,7 +1477,6 @@ is_owner_writable( Path ) ->
 					end;
 
 				_ ->
-
 					false
 
 			end;
@@ -1520,7 +1523,6 @@ is_owner_executable( Path ) ->
 					end;
 
 				_ ->
-
 					false
 
 			end;
@@ -1691,7 +1693,7 @@ list_dir_elements( DirName, ImproperEncodingAction ) ->
 	% filename <<"XXX">> ignored"), yet the returned names were mangled, leading
 	% to enoent whenever trying to open them :
 
-	% Sometimes filenames are "wrongly encoded" (ex: 'foo'$'\200\246''bar'); if
+	% Sometimes filenames are "wrongly encoded" (e.g. 'foo'$'\200\246''bar'); if
 	% using file:list_dir/1 instead of file:list_dir_all/1, warnings are
 	% then issued (only on the console) like:
 	%
@@ -2034,7 +2036,7 @@ classify_dir_elements( DirName, _Elements=[ Bin | T ], Devices, Directories,
 
 
 % @doc Returns a list containing all elements of the Filenames list whose
-% extension is the specified one (ex: ".dat").
+% extension is the specified one (e.g. ".dat").
 %
 -spec filter_by_extension( [ file_path() ], extension() ) -> [ file_path() ].
 filter_by_extension( Filenames, Extension ) ->
@@ -2059,7 +2061,7 @@ filter_by_extension( _Filenames=[ H | T ], Extension, Acc ) ->
 
 
 % @doc Returns a list containing all elements of Filenames list whose extension
-% corresponds to one of the specified extensions (ex: [".dat", ".png"]).
+% corresponds to one of the specified extensions (e.g. [".dat", ".png"]).
 %
 -spec filter_by_extensions( [ file_path() ], [ extension() ] ) ->
 								  [ file_path() ].
@@ -2243,7 +2245,7 @@ has_matching_suffix( Path, [ Suffix | T ] ) ->
 % are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_from( any_directory_path() ) -> [ file_path() ].
 find_files_from( RootDir ) ->
@@ -2262,7 +2264,7 @@ find_files_from( RootDir ) ->
 % are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_regular_files_from( any_directory_path() ) -> [ file_path() ].
 find_regular_files_from( RootDir ) ->
@@ -2278,7 +2280,7 @@ find_regular_files_from( RootDir ) ->
 % are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_from( any_directory_path(), boolean() ) -> [ file_path() ].
 find_files_from( RootDir, IncludeSymlinks ) ->
@@ -2295,7 +2297,7 @@ find_files_from( RootDir, IncludeSymlinks ) ->
 % general [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_from( any_directory_path(), boolean(),
 					   improper_encoding_action() ) -> [ any_file_path() ].
@@ -2362,7 +2364,7 @@ list_files_in_subdirs( _Dirs=[ D | T ], RootDir, CurrentRelativeDir,
 % are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_links_from( any_directory_path() ) -> [ file_path() ].
 find_links_from( RootDir ) ->
@@ -2379,7 +2381,7 @@ find_links_from( RootDir ) ->
 % general [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_links_from( any_directory_path(), improper_encoding_action() ) ->
 								[ file_path() ].
@@ -2432,7 +2434,7 @@ list_links_in_subdirs( _Dirs=[ D | T ], RootDir, CurrentRelativeDir,
 % ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_extension_from( any_directory_path(), extension() ) ->
 											[ file_path() ].
@@ -2450,7 +2452,7 @@ find_files_with_extension_from( RootDir, Extension ) ->
 % [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_extension_from( any_directory_path(), extension(),
 							improper_encoding_action() ) -> [ file_path() ].
@@ -2470,7 +2472,7 @@ find_files_with_extension_from( RootDir, Extension, IfImproperEncoding ) ->
 % [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_extension_from( any_directory_path(), extension(),
 			boolean(), improper_encoding_action() ) -> [ file_path() ].
@@ -2532,9 +2534,9 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 % excluded.
 %
 % Note that an excluded directory can be specified as a full (relative) path
-% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% (e.g. "foo/bar/not-wanted"), or just as a final directory name (e.g.
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+% (e.g. "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
@@ -2545,7 +2547,7 @@ list_files_in_subdirs_with_extension( _Dirs=[ H | T ], Extension, RootDir,
 % encoded are notified thanks to a warning trace, and then are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs( any_directory_path(),
 									 [ directory_path() ] ) -> [ file_path() ].
@@ -2560,9 +2562,9 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirs ) ->
 % specified directories excluded.
 %
 % Note that an excluded directory can be specified as a full (relative) path
-% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% (e.g. "foo/bar/not-wanted"), or just as a final directory name (e.g.
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+% (e.g. "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
@@ -2573,7 +2575,7 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirs ) ->
 % encoded are notified thanks to a warning trace, and then are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs( any_directory_path(), [ directory_path() ],
 									 boolean() ) -> [ file_path() ].
@@ -2587,9 +2589,9 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirs, IncludeSymlinks ) ->
 % specified directories excluded.
 %
 % Note that an excluded directory can be specified as a full (relative) path
-% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% (e.g. "foo/bar/not-wanted"), or just as a final directory name (e.g.
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+% (e.g. "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
@@ -2602,7 +2604,7 @@ find_files_with_excluded_dirs( RootDir, ExcludedDirs, IncludeSymlinks ) ->
 % [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs( any_directory_path(), [ directory_path() ],
 			boolean(), improper_encoding_action() ) -> [ file_path() ].
@@ -2681,7 +2683,7 @@ list_files_in_subdirs_excluded_dirs( _Dirs=[ D | T ], RootDir,
 % notified thanks to a warning trace, and then are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_suffixes( any_directory_path(),
 										 [ any_suffix() ] ) -> [ file_path() ].
@@ -2700,7 +2702,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes ) ->
 % [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_suffixes( any_directory_path(),
 			[ any_suffix() ], improper_encoding_action() ) -> [ file_path() ].
@@ -2721,7 +2723,7 @@ find_files_with_excluded_suffixes( RootDir, ExcludedSuffixes,
 % [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_suffixes( any_directory_path(), [ any_suffix() ],
 					boolean(), improper_encoding_action() ) -> [ file_path() ].
@@ -2791,9 +2793,9 @@ list_files_in_subdirs_with_excluded_suffixes( _Dirs=[ D | T ], ExcludedSuffixes,
 % and suffixes excluded.
 %
 % Note that an excluded directory can be specified as a full (relative) path
-% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% (e.g. "foo/bar/not-wanted"), or just as a final directory name (e.g.
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+% (e.g. "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
@@ -2804,7 +2806,7 @@ list_files_in_subdirs_with_excluded_suffixes( _Dirs=[ D | T ], ExcludedSuffixes,
 % trace, and then are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
 		[ directory_path() ], [ any_suffix() ] ) -> [ file_path() ].
@@ -2820,9 +2822,9 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 % specified directories and suffixes excluded.
 %
 % Note that an excluded directory can be specified as a full (relative) path
-% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% (e.g. "foo/bar/not-wanted"), or just as a final directory name (e.g.
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+% (e.g. "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
@@ -2833,7 +2835,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 % trace, and then are ignored.
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
 		[ directory_path() ], [ any_suffix() ], boolean() ) -> [ file_path() ].
@@ -2848,9 +2850,9 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 % specified directories and suffixes excluded.
 %
 % Note that an excluded directory can be specified as a full (relative) path
-% (ex: "foo/bar/not-wanted"), or just as a final directory name (ex:
+% (e.g. "foo/bar/not-wanted"), or just as a final directory name (e.g.
 % "my-excluded-name"). In the latter case, all directories bearing that name
-% (ex: "foo/bar/any/my-excluded-name") will be excluded as well.
+% (e.g. "foo/bar/any/my-excluded-name") will be excluded as well.
 %
 % Thus when a directory D is specified in the excluded list, each traversed
 % directory T will be compared twice to D: T will be matched against D, and
@@ -2862,7 +2864,7 @@ find_files_with_excluded_dirs_and_suffixes( RootDir, ExcludedDirs,
 % function is the more general [any_file_path()], otherwise it is [file_path()].
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./a.txt", "./tmp/b.txt"].
+% For example ["./a.txt", "./tmp/b.txt"].
 %
 -spec find_files_with_excluded_dirs_and_suffixes( any_directory_path(),
 			[ directory_path() ], [ any_suffix() ], boolean(),
@@ -2969,7 +2971,7 @@ prefix_files_with( RootDir, [ BinStr | T ], Acc ) when is_binary( BinStr ) ->
 % subtree (that is recursively).
 %
 % All returned pathnames are relative to this root.
-% Ex: ["./my-dir", "./tmp/other-dir"].
+% For example ["./my-dir", "./tmp/other-dir"].
 %
 -spec find_directories_from( any_directory_name() ) -> [ directory_name() ].
 find_directories_from( RootDir ) ->
@@ -3242,7 +3244,7 @@ remove_empty_directory( DirectoryPath ) ->
 
 
 % @doc Removes all (supposedly) empty directories pertaining to the specified
-% local, relative directory path, that is this path (ex: a/b/c) and all its
+% local, relative directory path, that is this path (e.g. a/b/c) and all its
 % ancestors (hence a/b and a are - if empty - removed as well, and none of their
 % possible siblings of course); so behaves mostly like the 'rmdir --parents'
 % shell command.
@@ -3309,7 +3311,7 @@ remove_empty_tree( DirectoryPath ) ->
 % (so: behaves mostly like the 'rm -rf ' shell command; of course to use with
 % care).
 %
-% Note that if any unusual file entry is found in the tree (ex: device or file
+% Note that if any unusual file entry is found in the tree (e.g. device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
 % (whereas elements may already have been removed).
 %
@@ -3361,7 +3363,7 @@ remove_directory( DirectoryName ) ->
 % @doc Copies a specified file to a given destination filename (not a directory
 % name, see copy_file_in/2 for that), overwriting any previous file.
 %
-% Note: content is copied and permissions are preserved (ex: the copy of an
+% Note: content is copied and permissions are preserved (e.g. the copy of an
 % executable file will be itself executable, and other permissions as well,
 % unlike /bin/cp that relies on umask).
 %
@@ -3373,9 +3375,16 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
 		ok ->
 			ok;
 
+		{ error, Reason=eacces } ->
+			throw( { copy_file_failed,
+					 text_utils:ensure_string( SourceFilePath ),
+					 text_utils:ensure_string( DestinationFilePath ),
+					 Reason, system_utils:get_user_name_safe() } );
+
 		{ error, Reason } ->
-			throw( { copy_file_failed, SourceFilePath, DestinationFilePath,
-					 Reason } )
+			throw( { copy_file_failed,
+					 text_utils:ensure_string( SourceFilePath ),
+					 text_utils:ensure_string( DestinationFilePath ), Reason } )
 
 	end.
 
@@ -3387,7 +3396,7 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
 % Symlinks are copied as symlinks (whereas file:copy/2 would copy their target
 % as new files).
 %
-% Note: content is copied and permissions are preserved (ex: the copy of an
+% Note: content is copied and permissions are preserved (e.g. the copy of an
 % executable file will be itself executable, and other permissions as well,
 % unlike /bin/cp that relies on umask).
 %
@@ -3462,7 +3471,7 @@ try_copy_file( SourceFilePath, DestinationFilePath ) ->
 % @doc Copies a specified file in the specified destination directory,
 % overwriting any previous file, and returning the full path of the copied file.
 %
-% Note: content is copied and permissions are preserved (ex: the copy of an
+% Note: content is copied and permissions are preserved (e.g. the copy of an
 % executable file will be itself executable, like for the other permissions -
 % and unlike /bin/cp, which relies on umask).
 %
@@ -3484,7 +3493,7 @@ copy_file_in( SourcePath, DestinationDirectory ) ->
 % in the specified destination directory, overwriting any previous file, and
 % returning the full path of the copied file.
 %
-% Note: content is copied and permissions are preserved (ex: the copy of an
+% Note: content is copied and permissions are preserved (e.g. the copy of an
 % executable file will be itself executable, like for the other permissions -
 % and unlike /bin/cp, which relies on umask).
 %
@@ -3509,7 +3518,7 @@ copy_as_regular_file_in( SourcePath, DestinationDirectory ) ->
 % @doc Copies a specified file to a given destination iff this source file is
 % already existing.
 %
-% Note: content is copied and permissions are preserved (ex: the copy of an
+% Note: content is copied and permissions are preserved (e.g. the copy of an
 % executable file will be itself executable, likz for the other permissions -
 % and unlike /bin/cp, which relies on umask).
 %
@@ -3560,7 +3569,7 @@ rename( SourceFilePath, DestinationFilePath ) ->
 % specified path.
 %
 % Note:
-%  - no check that source is a file or symlink (ex: not a directory) is done
+%  - no check that source is a file or symlink (e.g. not a directory) is done
 %  - destination is a file path, not a directory path
 %
 % Returns, for convenience, the new path.
@@ -3574,7 +3583,7 @@ move_file( SourceFilePath, DestinationFilePath ) ->
 	%copy_file( SourceFilePath, DestinationFilePath ),
 	%remove_file( SourceFilePath ).
 
-	% Simpler, better, yet does not works across filesystems:
+	% Simpler, better than above, yet does not works across filesystems:
 	case file:rename( SourceFilePath, DestinationFilePath ) of
 
 		ok ->
@@ -3627,7 +3636,7 @@ create_link( TargetPath, LinkName ) ->
 -spec get_non_clashing_entry_name_from( any_path() ) -> any_path().
 get_non_clashing_entry_name_from( Path ) ->
 
-	% Ex:
+	% For example
 	% - if "aaa/bbb/foobar.txt" is specified, returns "aaa/bbb/foobar.txt-1"
 	% - if "aaa/bbb/foobar.txt-4" is specified, returns "aaa/bbb/foobar.txt-5"
 
@@ -3902,7 +3911,7 @@ ensure_path_is_absolute( Path ) ->
 % Returns a plain string iff both specified ones are plain, otherwise returns a
 % binary.
 %
-% Ex: ensure_path_is_absolute("tmp/foo", "/home/dalton") will return
+% For example ensure_path_is_absolute("tmp/foo", "/home/dalton") will return
 % "/home/dalton/tmp/foo".
 %
 -spec ensure_path_is_absolute( any_path(), any_path() ) -> any_path().
@@ -4162,7 +4171,7 @@ make_relative_binary( PathElems, RefPathElems ) ->
 %
 % Note: operates per-directory (as a whole), not per-character.
 %
-% Ex: get_longest_common_path(["/tmp/aa/bb/c1/foobar.txt",
+% For example get_longest_common_path(["/tmp/aa/bb/c1/foobar.txt",
 %                              "/tmp/aa/bb/c2/foobar.txt"])
 %      returns:
 % {"/tmp/aa/bb", ["c1","foobar.txt"], ["c2","foobar.txt"]]}
@@ -4279,7 +4288,7 @@ try_behead_with( _Elem, _Others, _Acc ) ->
 % discriminate between the specified paths (expected to be of the same string
 % type).
 %
-% Ex: get_shortest_unique_ending_paths("/aa/bb/foo/bar/hello.txt",
+% For example get_shortest_unique_ending_paths("/aa/bb/foo/bar/hello.txt",
 %                                      "/tmp/buzz/frob/aa/foo/bar/hello.txt")
 %      returns: {"bb/foo/bar/hello.txt", "aa/foo/bar/hello.txt"}
 %
@@ -4321,11 +4330,11 @@ get_shorted_ending_helper( _FirstElems=[ HF | _TF ], _SecondElems=[ HS | _TS ],
 
 
 
-% @doc Tells whether specified basename (ex: a pathless filename) is among the
+% @doc Tells whether specified basename (e.g. a pathless filename) is among the
 % specified list of full paths; returns either false or the first full path
 % found corresponding to that leaf element.
 %
-% Ex:
+% For example
 %  false = file_utils:is_leaf_among( "xx", [ "a/b/c/yy", "d/e/zz"] )
 %  "a/b/c/xx"  = file_utils:is_leaf_among( "xx", [ "a/b/c/xx", "d/e/zz"] )
 %
@@ -4399,7 +4408,7 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
 
 % @doc Converts specified path (full filename, like '/home/jack/test.txt' or
 % './media/test.txt') into a variable name licit in most programming languages
-% (ex: C/C++).
+% (e.g. C/C++).
 %
 % Rule here is:
 %  - variable name starts with a prefix, user-supplied or the default one
@@ -4415,7 +4424,7 @@ path_to_variable_name( Filename ) ->
 
 % @doc Converts specified path (full filename, like '/home/jack/test.txt' or
 % './media/test.txt') into a variable name licit in most programming languages
-% (ex: C/C++), based on specified prefix.
+% (e.g. C/C++), based on specified prefix.
 %
 %
 % Removes any leading './'.
@@ -4445,7 +4454,7 @@ convert( Filename, Prefix ) ->
 % @doc Removes all upper levels of a path (absolute or not), as well as the
 % extension of the resulting file name.
 %
-% Ex: "foobar" =
+% For example "foobar" =
 %           file_utils:remove_upper_levels_and_extension( "aa/bb/foobar.txt" ).
 %
 remove_upper_levels_and_extension( FilePath ) ->
@@ -4650,12 +4659,12 @@ latin1_file_to_unicode( AnyFilePath ) ->
 % {encoding,unicode} returns an error such as
 % {read_error,{no_translation,unicode,unicode}}, then this may be an
 % (unfortunate) side-effect of having run the VM with the -noinput option; in
-% this case, the best option is to execute once, preferably early (ex: as first
+% this case, the best option is to execute once, preferably early (e.g. as first
 % statement) system_utils:force_unicode_support/0.
 %
 % Note also that if the 'raw' flag is included among opening flags, any
-% specified encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC
-% 8859 being written).
+% specified encoding might be ignored (e.g. UTF8 being specified, whereas
+% ISO/IEC 8859 being written).
 %
 -spec open( any_file_path(), [ file_open_mode() ] ) -> file().
 open( AnyFilePath, Options ) ->
@@ -4679,7 +4688,7 @@ open( AnyFilePath, Options ) ->
 %
 % A risk of that approach is that all available file descriptors will be
 % taken, thus potentially preventing other processes (including the VM itself)
-% to perform any file operation, like loading a new BEAM, ex:
+% to perform any file operation, like loading a new BEAM, e.g.
 % """
 % File operation error: system_limit. Target:
 % lib/erlang/lib/kernel-x.y.z/ebin/timer.beam. Function: get_file.
@@ -4695,12 +4704,12 @@ open( AnyFilePath, Options ) ->
 % {encoding,unicode} returns an error such as
 % {read_error,{no_translation,unicode,unicode}}, then this may be an
 % (unfortunate) side-effect of having run the VM with the -noinput option; in
-% this case, the best option is to execute once, preferably early (ex: as first
+% this case, the best option is to execute once, preferably early (e.g. as first
 % statement) system_utils:force_unicode_support/0.
 %
 % Note also that if the 'raw' flag is included among opening flags, any
-% specified encoding might be ignored (ex: UTF8 being specified, whereas ISO/IEC
-% 8859 being written).
+% specified encoding might be ignored (e.g. UTF8 being specified, whereas
+% ISO/IEC 8859 being written).
 %
 -spec open( any_file_path(), [ file_open_mode() ],
 			'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().
@@ -4918,8 +4927,8 @@ write( File, Content ) ->
 		ok ->
 			ok;
 
-		% If Reason is badarg, possibly an encoding issue (ex: having used '~ts'
-		% instead of '~ts'):
+		% If Reason is badarg, possibly an encoding issue (e.g. having used
+		% '~ts' instead of '~ts'):
 		%
 		{ error, Reason } ->
 			throw( { write_failed, Reason, Content, File } )
@@ -5335,7 +5344,7 @@ get_extension_for( _CompressionFormat=xz ) ->
 	"xz".
 
 
-% @doc Returns the dotted file extension (ex: ".xz", not just "xz")
+% @doc Returns the dotted file extension (e.g. ".xz", not just "xz")
 % corresponding to filenames compressed with specified format.
 %
 -spec get_dotted_extension_for( compression_format() ) -> dotted_extension().
@@ -5354,7 +5363,7 @@ get_dotted_extension_for( CompressionFormat ) ->
 % The original file remain as is.
 %
 % Note: this function just takes care of compressing a single file, even if some
-% compressors (ex: zip) include features to create an archive of multiple files
+% compressors (e.g. zip) include features to create an archive of multiple files
 % first.
 %
 -spec compress( file_name() ) -> file_name().
@@ -5372,7 +5381,7 @@ compress( Filename ) ->
 % The original file remain as is.
 %
 % Note: this function just takes care of compressing a single file, even if some
-% compressors (ex: zip) include features to create an archive of multiple files
+% compressors (e.g. zip) include features to create an archive of multiple files
 % first.
 %
 -spec compress( file_name(), compression_format() ) -> file_name().
@@ -5485,7 +5494,7 @@ decompress( Filename ) ->
 % name foo.extension_of(MY_FORMAT) into an uncompressed version of it named
 % 'foo'.
 %
-% So, for example, decompress( "foo.xz", xz ) will generate a "foo" file.
+% So, for example, decompress("foo.xz", xz) will generate a "foo" file.
 %
 % If a file with that name already exists, it will be overwritten.
 %
@@ -5495,8 +5504,8 @@ decompress( Filename ) ->
 decompress( ZipFilename, _CompressionFormat=zip ) ->
 
 	% An annoying problem with zip is that the name of the (single) file in the
-	% archive might differ from the filename deduced from the archive name (ex:
-	% "foo.zi"p might contain "bar" instead of "foo"). We need to return "bar",
+	% archive might differ from the filename deduced from the archive name (e.g.
+	% "foo.zip" might contain "bar" instead of "foo"). We need to return "bar",
 	% not "foo".
 
 	% Rather than using a standalone zip tool, we use the Erlang support here:
