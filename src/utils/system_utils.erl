@@ -449,16 +449,16 @@ get_user_name() ->
 	% Another option:
 	% case os:getenv( "USER" ) of
 
-	%	false ->
+	%   false ->
 
-	%		trace_utils:error( "The name of the user could not be "
-	%						   "obtained from the shell environment "
-	%						   "(no USER variable defined)." ),
+	%       trace_utils:error( "The name of the user could not be "
+	%           "obtained from the shell environment "
+	%           "(no USER variable defined)." ),
 
-	%		throw( user_name_not_found_in_environment );
+	%       throw( user_name_not_found_in_environment );
 
-	%	UserName ->
-	%		UserName
+	%   UserName ->
+	%       UserName
 
 	%end.
 
