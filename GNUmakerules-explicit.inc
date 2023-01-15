@@ -951,6 +951,9 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 # To synchronise the selected source content of the current layer, from the
 # local tree to the specified server location, with no VCS commit involved.
 #
+# Note that files removed from the local sources will remain in the target
+# server.
+#
 # If the source tree is built and up to date, no need to (re)build on the server
 # (if homogeneous in terms of Erlang versions).
 #
