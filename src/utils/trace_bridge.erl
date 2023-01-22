@@ -195,7 +195,9 @@ register( BridgeSpec ) ->
 		% Normal case:
 		undefined ->
 			process_dictionary:put( BridgeKey, BridgeInfo ),
-			debug_fmt( "Trace bridge registered (spec: ~p).", [ BridgeSpec ] );
+			cond_utils:if_defined( myriad_debug_traces,
+				debug_fmt( "Trace bridge registered (spec: ~p).",
+						   [ BridgeSpec ] ) );
 
 		UnexpectedInfo ->
 
@@ -483,8 +485,9 @@ send_bridge( SeverityType, Message,
 			 _BridgeInfo={ TraceEmitterName, TraceEmitterCategorization,
 						   BinLocation, BridgePid, AppTimestamp } ) ->
 
-	%trace_utils:debug_fmt( "Sending '~ts', with ~ts severity, to ~w.",
-	%                       [ Message, SeverityType, BridgePid ] ),
+	cond_utils:if_defined( myriad_debug_traces,
+		trace_utils:debug_fmt( "Sending '~ts', with ~ts severity, to ~w.",
+							   [ Message, SeverityType, BridgePid ] ) ),
 
 	AppTimestampString = text_utils:term_to_binary( AppTimestamp ),
 
@@ -532,6 +535,7 @@ send_bridge( SeverityType, Message,
 %
 -spec wait_bridge_sync() -> void().
 wait_bridge_sync() ->
+
 	receive
 
 		% A little breach of opaqueness; any actual bridge aggregator shall
