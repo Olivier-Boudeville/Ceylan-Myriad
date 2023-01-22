@@ -923,6 +923,7 @@ if [ ${use_run_erl} -eq 0 ] && [ ${autostart} -eq 0 ]; then
 
 	# Number of seconds before time-out:
 	wait_max=60
+	#wait_max=8
 
 	wait_count=0
 
