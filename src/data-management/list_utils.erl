@@ -289,7 +289,8 @@ set_element_at( Element, _List=[ H | T ], Index, Acc ) ->
 
 
 
-% @doc Inserts specified element at specified position in the specified list.
+% @doc Inserts the specified element at the specified position in the specified
+% list.
 %
 % For example: insert_element_at(foo, [a, b, c, d], 3) will return
 % [a, b, foo, c, d].
@@ -318,7 +319,7 @@ insert_element_at( Element, _List=[ H | T ], Index, Acc ) ->
 
 
 
-% @doc Extracts element from the specified list, at the specified index.
+% @doc Extracts the element of the specified list at the specified index.
 %
 % Returns that element and the resulting, shrunk list.
 %
