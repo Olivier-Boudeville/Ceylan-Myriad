@@ -140,6 +140,7 @@ endif
 #  - environments: about the sharing/caching of application information
 #  - resources: about the management of resources
 #  - files: about the management of files
+#  - traces: for Myriad-level traces
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - repaint_logic: how MyriadGUI manages repaints
@@ -172,6 +173,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
