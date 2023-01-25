@@ -223,7 +223,7 @@ endif
 
 
 
-# Allows to add stacktraces to the most commonly exceptions raised (ex:
+# Allows to add stacktraces to the most commonly exceptions raised (e.g.
 # {not_a_string, Term}), independently of debug settings:
 #
 # (useful in contexts where stacktraces tend to vanish)
@@ -242,7 +242,7 @@ ERLANG_COMPILER_OPT_BASE += $(MYRIAD_DEBUG_FLAGS)             \
 
 
 
-# Useful to target for example the root of the current layer (ex: to locate the
+# Useful to target for example the root of the current layer (e.g. to locate the
 # relevant, layer-local '_build' directory):
 #
 ifndef LAYER_TOP
@@ -311,7 +311,7 @@ ARCHIVE_ROOT := $$HOME/Archives/$(PROJECT_NAME)
 # For full archives (including untracked files and VCS state):
 ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).tar.xz
 
-# For archives as considered by the VCS system (ex: non-staged files are not
+# For archives as considered by the VCS system (e.g. non-staged files are not
 # archived here):
 #
 VCS_ARCHIVE_FILE := $(ARCHIVE_ROOT)/$$(date +'%Y%m%d')-$(PROJECT_NAME).git-bundle
@@ -335,7 +335,7 @@ PROJECT_RELEASE_ARCHIVE_BZ2 := $(PROJECT_RELEASE_BASE).tar.bz2
 PROJECT_RELEASE_ARCHIVE_XZ  := $(PROJECT_RELEASE_BASE).tar.xz
 
 
-# Useful to define a Make variable without setting a value to it (ex: in order
+# Useful to define a Make variable without setting a value to it (e.g. in order
 # to be able to specifically define at a given layer a variable MY_VAR, to
 # prevent that, at the layer below, a 'ifndef MY_VAR' is triggered; see
 # BOOTSTRAP_MODULES in Ceylan-Traces for an example of it):
@@ -351,7 +351,7 @@ empty =
 # If wanting to install that package, following installation prefix is used.
 #
 # INSTALLATION_PREFIX should be defined on a per-project basis, or be overridden
-# on the command line (ex: 'make install INSTALLATION_PREFIX=/tmp'):
+# on the command line (e.g. 'make install INSTALLATION_PREFIX=/tmp'):
 
 ifndef INSTALLATION_PREFIX
 	INSTALLATION_PREFIX := $$HOME/Software
@@ -602,40 +602,69 @@ ifeq ($(USE_JSON),true)
 		# Actually not used, as decided at runtime rather than at compile time:
 		#JSON_OPT = -Duse_jsx_json_backend
 
-
-		# A rebar convention, if jsx is listed in rebar.config (and then is a
-		# sibling prerequisite of Myriad):
+		# A rebar convention, if jsx is listed in rebar.config and is among the
+		# _checkouts projects of the current layer:
 		#
-		JSX_REBAR_BASE := $(MYRIAD_TOP)/../jsx
-		JSX_REBAR_INSTALL_BASE := $(JSX_REBAR_BASE)/_build/default/lib/jsx/ebin
+		JSX_REBAR_CHECKOUTS_BASE = $(LAYER_TOP)/_checkouts/jsx
+		JSX_REBAR_CHECKOUTS_EBIN = $(JSX_REBAR_CHECKOUTS_BASE)/ebin
 
-		# A convention of our own that one may want to respect:
+		# If there is a jsx install at the same level as the Myriad one (rebar
+		# or not):
+		#
+		JSX_SIBLING_BASE := $(MYRIAD_TOP)/../jsx
+
+		# Another rebar-related path, when Myriad is itself a dependency, and
+		# jsx is another one (of at least Myriad):
+		#
+		JSX_REBAR_AS_DEP_BASE := $(JSX_SIBLING_BASE)
+		JSX_REBAR_AS_DEP_EBIN := $(JSX_REBAR_AS_DEP_BASE)/ebin
+
+		# Still rebar, if Myriad is the top-level package:
+		JSX_REBAR_DIRECT_INSTALL_BASE := $(JSX_SIBLING_BASE)/_build/default/lib/jsx
+		JSX_REBAR_DIRECT_INSTALL_EBIN := $(JSX_REBAR_DIRECT_INSTALL_BASE)/ebin
+
+		# A convention of our own (absolute path) that one may want to respect:
 		# (note: no $$HOME, no quotes either)
+		#
 		JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
-		JSX_SOFTWARE_INSTALL_BASE := $(JSX_SOFTWARE_BASE)/ebin
+		JSX_SOFTWARE_EBIN := $(JSX_SOFTWARE_BASE)/ebin
 
 		# No includes for JSX:
-		#INC += -I$(JSX_REBAR_INSTALL_BASE)/include -I$(JSX_SOFTWARE_INSTALL_BASE)/include
+		#INC += -I$(JSX_REBAR_CHECKOUTS_BASE)/include -I$(JSX_REBAR_AS_DEP_BASE)/include -I$(JSX_REBAR_DIRECT_INSTALL_BASE)/include -I$(JSX_SOFTWARE_BASE)/include
+		# ($(JSX_*_BASE)/ebin/*.beam found at runtime)
 
-		# ($(JSX_*_INSTALL_BASE)/ebin/*.beam found at runtime)
-
-		# Two options in order to locate a proper jsx (embedded or userspace):
-		ifneq "$(wildcard $(JSX_REBAR_INSTALL_BASE))" ""
-			BEAM_DIRS += $(JSX_REBAR_INSTALL_BASE)
+		# Options in order to locate a proper jsx (embedded or userspace):
+		# (most likely first)
+		#
+		ifneq "$(wildcard $(JSX_REBAR_CHECKOUTS_EBIN))" ""
+			JSX_TOP = $(JSX_REBAR_CHECKOUTS_BASE)
+			BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
 		else
-			ifneq "$(wildcard $(JSX_SOFTWARE_INSTALL_BASE))" ""
-				ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_BASE)
+			ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
+				JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
+				BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
 			else
-				FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_INSTALL_BASE) and $(JSX_SOFTWARE_INSTALL_BASE), from $(PWD)))
+				ifneq "$(wildcard $(JSX_REBAR_DIRECT_INSTALL_EBIN))" ""
+					JSX_TOP = $(JSX_REBAR_DIRECT_INSTALL_BASE)
+					BEAM_DIRS += $(JSX_REBAR_DIRECT_INSTALL_EBIN)
+				else
+					ifneq "$(wildcard $(JSX_SOFTWARE_INSTALL_EBIN))" ""
+						JSX_TOP = $(JSX_SOFTWARE_BASE)
+						ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_EBIN)
+					else
+						FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD).))
+					endif
+				endif
 			endif
 		endif
-
 	endif
 
 	ifeq ($(USE_JIFFY),true)
 
 		# The Jiffy JSON parser is available at
 		# https://github.com/davisp/jiffy.
+
+		# To be updated like jsx above
 
 		# Install obtained thanks to:
 		#
@@ -800,9 +829,8 @@ ifeq ($(USE_SQL),true)
 
 
 	# Deactivated by default, as requires specific prerequisites:
-	#
-	# - the SQLite 3 library, ex: sqlite3 and sqlite3-dev packages in Debian, sqlite
-	#    on Arch Linux
+	# - the SQLite 3 library, e.g. sqlite3 and sqlite3-dev packages in Debian,
+	#    sqlite on Arch Linux
 	# - the SQLite 3 Erlang binding we retained, erlang-sqlite3 (cf
 	#    https://github.com/alexeyr/erlang-sqlite3.git)
 	#
@@ -890,7 +918,7 @@ ifeq ($(USE_JAVA_BINDING),true)
 	# The path pointing to the target JInterface JAR (OtpErlang.jar), only
 	# needed at compilation-time:
 	#
-	# Ex: cd [...]/Erlang-current-install/lib/erlang &&
+	# For example: cd [...]/Erlang-current-install/lib/erlang &&
 	#     ln -s lib/jinterface-1.8.1 jinterface-current-install
 	#
 	JINTERFACE_ROOT = $(ERLANG_ROOT)/lib/erlang/jinterface
@@ -1101,7 +1129,7 @@ ERLANG_BIN_ROOT := $(shell dirname "$(ERLANG_COMPILER)")
 ERLANG_ROOT := $(shell dirname "$(ERLANG_BIN_ROOT)")
 
 
-# Note that at least some versions of dialyzer (ex: the one shipped with 17.1)
+# Note that at least some versions of dialyzer (e.g. the one shipped with 17.1)
 # will not deference anymore symlinks (if Erlang.plt pointing to Erlang-17.1.plt
 # for example, it will not be found; this is managed in our installation
 # script):
@@ -1285,7 +1313,7 @@ endif
 #
 # Note: such variables were meant to be overridden by each upper layer, yet
 # generally these layers require the *addition* (not replacement) of new rules
-# (ex: to manage classes) to the base ones (to be still able to compile standard
+# (e.g. to manage classes) to the base ones (to be still able to compile standard
 # modules).
 #
 ifndef PARSE_TRANSFORM_DIRS
@@ -1301,7 +1329,7 @@ DEBUG_INFO_KEY_OPT = +'{debug_info_key,$(DEBUG_INFO_KEY)}'
 # General (base, transverse) compilation options that should be used for all
 # modules (third-party included):
 #
-# -v/+verbose caused inlining to be too verbose, ex:
+# -v/+verbose caused inlining to be too verbose, e.g.
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
 #
 ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
@@ -1434,7 +1462,7 @@ ERLANG_COMPILER_OPT_FOR_BOOTSTRAPPED = $(ERLANG_COMPILER_OPT_FOR_PT) \
 									   $(BOOTSTRAP_INCLUDES)
 
 
-# Conditionally defined so that upper layers may update (ex: adding pz
+# Conditionally defined so that upper layers may update (e.g. adding pz
 # directories) or redefine these settings as a whole.
 #
 # As for ERLANG_COMPILER_EXTRA_OPTS, this variable is useful for mere additions,
@@ -1613,7 +1641,7 @@ ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(HOSTNAME_OPT) $(FIREWALL_OPT)  \
 # Previously the short names were preferred, as they seemed to resist to
 # non-existing or, more probably, improperly configured, DNS systems.
 #
-# However other issues may arise with them (ex: an inappropriate domain being
+# However other issues may arise with them (e.g. an inappropriate domain being
 # taken by Erlang from /etc/resolv.conf), so we went back to the (supposedly
 # more precise) long names.
 #
@@ -1674,8 +1702,8 @@ endif
 # Regarding the VM-specific command-line options, we used to rely on '-noshell'
 # rather than on '-noinput', as no shell was wanted by default for executions,
 # since executables are supposed to interact by themselves with the user.
-# However, at least for some uses (ex: term_ui, relying on /bin/dialog), we
-# *need* to have -noinput and not to have -noshell, while others (ex: text_ui,
+# However, at least for some uses (e.g. term_ui, relying on /bin/dialog), we
+# *need* to have -noinput and not to have -noshell, while others (e.g. text_ui,
 # relying on io:get_line/1) require the opposite.
 #
 # So we finally designed a work-around (see system_utils:get_line/1) to stick
@@ -1784,7 +1812,7 @@ API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
 # variable known to be set/used by rebar.
 #
 # Note: for clarity (typically for variables to be defined by upper layers),
-# some variables are instead suffixed by "_FOR_REBAR" (ex: VERSION_FOR_REBAR).
+# some variables are instead suffixed by "_FOR_REBAR" (e.g. VERSION_FOR_REBAR).
 
 # Toggle for additional logs (this is a rebar-specific variable):
 REBAR_DEBUG =
@@ -2183,7 +2211,7 @@ MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh
 
 # Defining the top directory of the predecessor layer allows to write generic
 # rules (not depending on its actual name) able to automatically descend the
-# layer stack (ex: to copy their respective BEAM files in their respective ebin)
+# layer stack (e.g. to copy their respective BEAM files in their respective ebin)
 # without defining specific make targets at each layer:
 
 #PREDECESSOR_LAYER_TOP :=

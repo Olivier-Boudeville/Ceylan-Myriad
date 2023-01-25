@@ -129,41 +129,13 @@ stats:
 	@$(MAKE_CODE_STATS) $(MYRIAD_TOP)
 
 
-# Typically useful to know the software context for continuous integration:
-info-context: info-platform info-versions info-source-layout
 
+# Note that all info-* targets that are not specific to Myriad shall be in
+# GNUmakerules-explicit.inc so that they can be inherited by deriving layers.
 
 info-versions:
 	@echo "MYRIAD_VERSION = $(MYRIAD_VERSION)"
 	@echo "ERLANG_TARGET_VERSION = $(ERLANG_TARGET_VERSION)"
-
-
-info-paths:
-	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
-	@echo "PREDECESSOR_LAYER_TOP = $(PREDECESSOR_LAYER_TOP)"
-
-
-
-info-settings: info-json info-sql info-protobuf
-	@echo "USE_HDF5       = $(USE_HDF5)"
-	@echo "USE_REST       = $(USE_REST)"
-
-
-info-json:
-	@echo "USE_JSON                  = $(USE_JSON)"
-	@echo "USE_JSX                   = $(USE_JSX)"
-	@echo "USE_JIFFY                 = $(USE_JIFFY)"
-	@echo "JSX_REBAR_INSTALL_BASE    = $(JSX_REBAR_INSTALL_BASE)"
-	@echo "JSX_SOFTWARE_INSTALL_BASE = $(JSX_SOFTWARE_INSTALL_BASE)"
-
-
-info-sql:
-	@echo "USE_SQL         = $(USE_SQL)"
-	@echo "USE_SQLITE      = $(USE_SQLITE)"
-	@echo "USE_POSTGRESQL  = $(USE_POSTGRESQL)"
-	@echo "SQLITE3_BASE    = $(SQLITE3_BASE)"
-	@echo "POSTGRESQL_BASE = $(POSTGRESQL_BASE)"
-	@echo "SQL_OPTS        = $(SQL_OPTS)"
 
 
 info-parse-transform: info-parse-transform-local

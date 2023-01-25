@@ -1223,6 +1223,20 @@ $$(lsb_release --all 2>/dev/null)"
 	@echo " - local Erlang version: $$(erl -eval '{ok, Version} = file:read_file(filename:join([code:root_dir(), "releases", erlang:system_info(otp_release), "OTP_VERSION"])), io:fwrite(Version), halt().' -noshell)"
 
 
+
+# Note that all info-* targets that are not specific to Myriad shall be listed
+# here, so that they can be inherited by deriving layers.
+
+
+# Typically useful to know the software context for continuous integration:
+info-context: info-platform info-versions info-source-layout
+
+
+info-settings: info-json info-sql info-protobuf
+	@echo "USE_HDF5       = $(USE_HDF5)"
+	@echo "USE_REST       = $(USE_REST)"
+
+
 # Returns the Erlang version that is to be installed by Myriad, i.e. its
 # currently supported one (this is the only place where an Erlang version shall
 # be defined):
@@ -1236,6 +1250,12 @@ info-source-layout:
 	@echo " - content of parent directory: $$(ls .. 2>/dev/null | tr '\n' ' ')"
 	@echo " - content of _checkouts directory: $$(ls _checkouts 2>/dev/null)"
 	@echo " - content of _build/default/lib directory: $$(ls _build/default/lib 2>/dev/null)"
+
+
+info-paths:
+	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
+	@echo "PREDECESSOR_LAYER_TOP = $(PREDECESSOR_LAYER_TOP)"
+
 
 
 info: info-files
@@ -1365,6 +1385,23 @@ info-parse-transform:
 	@echo "ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_FOR_PT)"
 	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"
 
+
+info-json:
+	@echo "USE_JSON                      = $(USE_JSON)"
+	@echo "USE_JSX                       = $(USE_JSX)"
+	@echo "USE_JIFFY                     = $(USE_JIFFY)"
+	@echo "JSX_REBAR_AS_DEP_EBIN         = $(JSX_REBAR_AS_DEP_EBIN)"
+	@echo "JSX_REBAR_DIRECT_INSTALL_EBIN = $(JSX_REBAR_DIRECT_INSTALL_EBIN)"
+	@echo "JSX_SOFTWARE_EBIN             = $(JSX_SOFTWARE_EBIN)"
+
+
+info-sql:
+	@echo "USE_SQL         = $(USE_SQL)"
+	@echo "USE_SQLITE      = $(USE_SQLITE)"
+	@echo "USE_POSTGRESQL  = $(USE_POSTGRESQL)"
+	@echo "SQLITE3_BASE    = $(SQLITE3_BASE)"
+	@echo "POSTGRESQL_BASE = $(POSTGRESQL_BASE)"
+	@echo "SQL_OPTS        = $(SQL_OPTS)"
 
 info-doc:
 	@echo "API_DOC_GENERATOR = $(API_DOC_GENERATOR)"
