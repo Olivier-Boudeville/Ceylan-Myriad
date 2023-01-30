@@ -690,8 +690,7 @@
 -export([ check_atom/1, check_atoms/1,
 		  check_boolean/1, check_booleans/1,
 
-		  check_pid/1, check_maybe_pid/1,
-
+		  check_pid/1, check_maybe_pid/1, check_pids/1,
 
 		  check_number/1, check_maybe_number/1,
 		  check_positive_number/1,
@@ -1749,6 +1748,14 @@ check_maybe_pid( undefined ) ->
 check_maybe_pid( Other ) ->
 	throw( { not_maybe_pid, Other } ).
 
+
+
+% @doc Checks that the specified term is a list of PIDs indeed, and returns it.
+-spec check_pids( term() ) -> [ pid() ].
+check_pids( Pids )  ->
+	% Possibly a bit quicker that way:
+	[ check_pid( P ) || P <- Pids ],
+	Pids.
 
 
 
