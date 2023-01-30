@@ -966,10 +966,11 @@ remove_first_occurrences( _ElementsToRemove=[ E | T ], List ) ->
 
 
 
-% @doc Deletes the first matching of specified element from specified list,
-% returning whether an element has been removed: either the 'not_found' atom (in
-% which case the list remained the same) or the corresponding new list (same
-% order and content, except first occurrence removed).
+% @doc Deletes the first matching of the specified element from the specified
+% list, returning whether an element has been removed, that is either the
+% 'not_found' atom (in which case the list remained the same) or the
+% corresponding new list (same order and content, except that the first
+% occurrence of the specified element was removed).
 %
 % Note: allows to perform only one traversal of the list (compared for example
 % to a lists:member/2 then a lists:delete/2).
