@@ -648,9 +648,9 @@ ifeq ($(USE_JSON),true)
 					JSX_TOP = $(JSX_REBAR_DIRECT_INSTALL_BASE)
 					BEAM_DIRS += $(JSX_REBAR_DIRECT_INSTALL_EBIN)
 				else
-					ifneq "$(wildcard $(JSX_SOFTWARE_INSTALL_EBIN))" ""
+					ifneq "$(wildcard $(JSX_SOFTWARE_EBIN))" ""
 						JSX_TOP = $(JSX_SOFTWARE_BASE)
-						ABS_BEAM_DIRS += $(JSX_SOFTWARE_INSTALL_EBIN)
+						ABS_BEAM_DIRS += $(JSX_SOFTWARE_EBIN)
 					else
 						FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD).))
 					endif
