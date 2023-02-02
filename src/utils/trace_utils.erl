@@ -112,9 +112,12 @@
 
 
 -type trace_timestamp() :: any().
-% An applicative timestamp for a trace; it can be anything (ex: integer() |
+% An applicative timestamp for a trace; it can be anything (e.g. integer() |
 % 'none'), no constraint applies on purpose, so that any kind of
 % application-specific timestamps can be elected.
+%
+% Textual timestamps shall better be binaries or atoms rather than plain
+% strings.
 
 
 -type trace_priority() :: 0..7.
@@ -190,9 +193,9 @@
 % Implementation notes:
 %
 % Compared to mere io:format/{1,2} calls, these trace primitives add
-% automatically the trace type (ex: "[debug] ") at the beginning of the message,
-% finish it with a carriage-return/line-feed, and for the most important trace
-% types, try to ensure that they are synchronous (blocking).
+% automatically the trace type (e.g. "[debug] ") at the beginning of the
+% message, finish it with a carriage-return/line-feed, and for the most
+% important trace types, try to ensure that they are synchronous (blocking).
 %
 % Traces of lesser importance are ellipsed, as the console output does not allow
 % to browse them conveniently.
@@ -544,7 +547,7 @@ void_categorized_timed( _Message, _MessageCategorization, _Timestamp ) ->
 %
 % Defined notably to perform integrated operations (a trace being sent through
 % both a basic system and a more advanced one), in order that the trace macros
-% of upper layers (ex: send_alert_fmt/3, in the Traces layer) do not need to
+% of upper layers (e.g. send_alert_fmt/3, in the Traces layer) do not need to
 % bind variables in their body (which may trigger bad matches as soon as more
 % than once trace is sent in the same scope).
 %
@@ -583,7 +586,7 @@ echo( _TraceMessage, _TraceSeverity=void ) ->
 %
 % Defined notably to perform integrated operations (a trace being sent through
 % both a basic system and a more advanced one), in order that the trace macros
-% of upper layers (ex: send_alert_fmt/3, in the Traces layer) do not need to
+% of upper layers (e.g. send_alert_fmt/3, in the Traces layer) do not need to
 % bind variables in their body (which may trigger bad matches as soon as more
 % than once trace is sent in the same scope).
 %
@@ -623,7 +626,7 @@ echo( _TraceMessage, _TraceSeverity=void, _MessageCategorization ) ->
 %
 % Defined notably to perform integrated operations (a trace being sent through
 % both a basic system and a more advanced one), in order that the trace macros
-% of upper layers (ex: send_alert_fmt/3, in the Traces layer) do not need to
+% of upper layers (e.g. send_alert_fmt/3, in the Traces layer) do not need to
 % bind variables in their body (which may trigger bad matches as soon as more
 % than once trace is sent in the same scope).
 %
