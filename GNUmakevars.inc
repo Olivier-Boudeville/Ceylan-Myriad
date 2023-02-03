@@ -2116,12 +2116,13 @@ endif
 #
 # To install it, we recommend the following procedure:
 # $ cd ~/Software
+# $ mkdir gradualizer && cd gradualizer
 # $ git clone https://github.com/josefs/Gradualizer.git
-# $ cd Gradualizer/
+# $ cd Gradualizer
 # $ make escript
 #
-# Then ensure that ~/Software/Gradualizer/bin is in your PATH so that
-# 'gradualizer' can be run directly.
+# Then ensure that ~/Software/gradualizer/Gradualizer/bin is in your PATH so
+# that 'gradualizer' can be run directly.
 #
 GRADUALIZER := $$(which gradualizer 2>/dev/null)
 
