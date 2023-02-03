@@ -206,7 +206,7 @@
 
 
 -type control_sequence() :: ustring().
-% In a format string (ex: "~n").
+% In a format string (e.g. "~n").
 
 
 -type format_values() :: [ term() ].
@@ -246,14 +246,14 @@
 % A string containing hexadecimal values (possibly with a "0x" prefix).
 % We prefer hexadecimal (letter) characters to be uppercases.
 %
-% Ex: "0x44e390a3" or "44e390a3".
+% For example: "0x44e390a3" or "44e390a3".
 
 
 -type hexabinstring() :: bin_string().
 % A binary string containing hexadecimal values (possibly with a "0x" prefix).
 % We prefer hexadecimal (letter) characters to be uppercases.
 %
-% Ex: `<<"0x44e390a3">>' or `<<"44e390a3">>'.
+% For example: `<<"0x44e390a3">>' or `<<"44e390a3">>'.
 
 
 -type unicode_string() :: unicode:chardata().
@@ -276,7 +276,7 @@
 
 
 -type gc_index() :: non_neg_integer().
-% Index in a Unicode string, in terms of grapheme clusters (ex: not codepoints,
+% Index in a Unicode string, in terms of grapheme clusters (e.g. not codepoints,
 % not bytes).
 
 
@@ -339,7 +339,7 @@
 
 
 -type translation_table() :: ?table:?table( any_string(), any_string() ).
-% To convert strings (ex: keywords) into others.
+% To convert strings (e.g. keywords) into others.
 
 
 -type length() :: pos_integer().
@@ -602,7 +602,7 @@ integer_to_string( IntegerValue ) ->
 % @doc Returns a plain string corresponding to the specified integer, in
 % hexadecimal form (with no "0x" prefix).
 %
-% Ex: integer_to_hexastring(3432) = "d68".
+% For example: integer_to_hexastring(3432) = "d68".
 %
 % Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
 % "0x" prefixing.
@@ -616,7 +616,7 @@ integer_to_hexastring( IntegerValue ) ->
 % @doc Returns a plain string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix if requested.
 %
-% Ex: integer_to_hexastring(3432, _AddPrefix=true) = "0xd68".
+% For example: integer_to_hexastring(3432, _AddPrefix=true) = "0xd68".
 %
 % Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
 % "0x" prefixing.
@@ -633,7 +633,7 @@ integer_to_hexastring( IntegerValue, _AddPrefix=false ) ->
 % @doc Returns a binary string corresponding to the specified integer, in
 % hexadecimal form (with no "0x" prefix).
 %
-% Ex: integer_to_hexabinstring(3432) = `<<"d68">>'.
+% For example: integer_to_hexabinstring(3432) = `<<"d68">>'.
 %
 % Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
 % "0x" prefixing.
@@ -646,7 +646,7 @@ integer_to_hexasbintring( IntegerValue ) ->
 % @doc Returns a binary string corresponding to the specified integer, in
 % hexadecimal form, with a "0x" prefix if requested.
 %
-% Ex: integer_to_hexabinstring(3432, _AddPrefix=true) = `<<"0xd68">>'.
+% For example: integer_to_hexabinstring(3432, _AddPrefix=true) = `<<"0xd68">>'.
 %
 % Refer to the 'Hexadecimal notes' section above, regarding zero-padding and
 % "0x" prefixing.
@@ -663,7 +663,7 @@ integer_to_hexabinstring( IntegerValue, AddPrefix ) ->
 %
 % Note: both uppercase and lowercase letters are supported.
 %
-% Ex: hexastring_to_integer("d68") = 3432.
+% For example: hexastring_to_integer("d68") = 3432.
 %
 -spec hexastring_to_integer( hexastring() ) -> integer().
 hexastring_to_integer( HexaString ) ->
@@ -676,7 +676,7 @@ hexastring_to_integer( HexaString ) ->
 %
 % Note: both uppercase and lowercase letters are supported.
 %
-% Ex: hexastring_to_integer("0xd68", _ExpectPrefix=true) = 3432.
+% For example: hexastring_to_integer("0xd68", _ExpectPrefix=true) = 3432.
 %
 -spec hexastring_to_integer( hexastring(), boolean() ) -> integer().
 hexastring_to_integer( ?hexa_prefix ++ HexaString, _ExpectPrefix=true ) ->
@@ -694,7 +694,7 @@ hexastring_to_integer( HexaString, _ExpectPrefix=false ) ->
 % @doc Returns a plain string corresponding to the specified binary, in
 % hexadecimal form (with no "0x" prefix).
 %
-% Ex: `binary_to_hexastring(<<"hello">>) = "68656c6c6f"'.
+% For example: `binary_to_hexastring(<<"hello">>) = "68656c6c6f"'.
 %
 -spec binary_to_hexastring( binary() ) -> hexastring().
 binary_to_hexastring( Bin ) ->
@@ -705,7 +705,8 @@ binary_to_hexastring( Bin ) ->
 % @doc Returns a plain string corresponding to the specified binary, in
 % hexadecimal form, with a "0x" prefix if requested.
 %
-% Ex: `binary_to_hexastring(<<"hello">>, _AddPrefix=true) = "0x68656c6c6f"'.
+% For example: `binary_to_hexastring(<<"hello">>, _AddPrefix=true) =
+%                   "0x68656c6c6f"'.
 %
 -spec binary_to_hexastring( binary(), boolean() ) -> hexastring().
 binary_to_hexastring( Bin, _AddPrefix=true ) ->
@@ -733,7 +734,7 @@ binary_to_hexastring( Bin, _AddPrefix=false ) ->
 %
 % No "0x" prefix is expected.
 %
-% Ex: `hexabinstring_to_binary(<<"ffac01">>) = <<255,172,1>>'.
+% For example: `hexabinstring_to_binary(<<"ffac01">>) = <<255,172,1>>'.
 %
 -spec hexabinstring_to_binary( hexabinstring() ) -> binary().
 hexabinstring_to_binary( HexaBinStr ) ->
@@ -746,7 +747,7 @@ hexabinstring_to_binary( HexaBinStr ) ->
 %
 % No "0x" prefix is expected.
 %
-% Ex: `hexastring_to_binary("ffac01") = <<255,172,1>>'.
+% For example: `hexastring_to_binary("ffac01") = <<255,172,1>>'.
 %
 -spec hexastring_to_binary( hexastring() ) -> binary().
 hexastring_to_binary( HexaStr ) ->
@@ -760,7 +761,7 @@ hexastring_to_binary( _HexaStr=[], BinAcc ) ->
 
 % Two hexadecimal characters account for one byte:
 hexastring_to_binary( _HexaStr=[ Hex1, Hex2 | T ], BinAcc ) ->
-	% Ex: "3c".
+	% For example: "3c".
 	TwoCharStr = [ Hex1, Hex2 ],
 	Int = list_to_integer( TwoCharStr, _Base=16 ),
 	NewBinAcc = <<BinAcc/binary,Int/integer>>,
@@ -834,8 +835,8 @@ pids_to_string( PidList ) ->
 %
 % For example, `<0.33.0>' returned as `"|33|"' (half size).
 %
-% Note though that the pipe character may be better avoided on some systems (ex:
-% trace ones).
+% Note though that the pipe character may be better avoided on some systems
+% (e.g. Ceylan-Trace ones, at least for the name of trace emitters).
 %
 -spec pid_to_short_string( pid() ) -> ustring().
 pid_to_short_string( Pid ) ->
@@ -882,7 +883,7 @@ pid_to_core_string( Pid ) ->
 
 	%trace_utils:debug_fmt( "PidCore = '~w'.", [ PidCore ] ),
 
-	% Ex: ["0","33","0"]:
+	% For example: ["0","33","0"]:
 	[ First, Second, Third ] = split( PidCore, [ _Sep=$. ] ),
 
 	% Automatic truncating if defaults:
@@ -906,7 +907,7 @@ pid_to_core_string( Pid ) ->
 
 	end,
 
-	% Ex: "33", "1.33", or "1.33.2":
+	% For example: "33", "1.33", or "1.33.2":
 	ActualFirst ++ Second ++ ActualThird.
 
 
@@ -1105,7 +1106,7 @@ strings_to_string( ErrorTerm ) ->
 
 
 % @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; ex: atoms) once reordered
+% any element that can be processed with ~ts will do; e.g. atoms) once reordered
 % (and with default bullets).
 %
 -spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
@@ -1118,7 +1119,7 @@ strings_to_sorted_string( ErrorTerm ) ->
 
 
 % @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; ex: atoms), with
+% any element that can be processed with ~ts will do; e.g. atoms), with
 % user-specified bullets or indentation level.
 %
 % This can be a solution to nest bullet lists, by specifying a bullet with an
@@ -1208,7 +1209,7 @@ strings_to_spaced_string( ErrorTerm ) ->
 
 
 % @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; ex: atoms), with
+% any element that can be processed with ~ts will do; e.g. atoms), with
 % user-specified bullets or indentation level, and a blank line before each
 % top-level entry in order to better space them, for an increased readability.
 %
@@ -1253,14 +1254,14 @@ strings_to_spaced_string( _Strings, IncorrectBullet ) ->
 	throw( { bullet_not_a_string, IncorrectBullet } ).
 
 
-% any element that can be processed with ~ts will do; ex: atoms) once reordered,
+% any element that can be processed with ~ts will do; e.g. atoms) once reordered,
 % with user-specified indentation level or bullet, and a blank line before each
 % top-level entry in order to better space them, for an increased readability.
 %
 
 
 % @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; ex: atoms) once reordered,
+% any element that can be processed with ~ts will do; e.g. atoms) once reordered,
 % with user-specified indentation level or bullet.
 %
 -spec strings_to_sorted_string( [ ustring() ],
@@ -1291,7 +1292,7 @@ binaries_to_string( Binaries ) ->
 % See strings_to_string/2 for a counterpart implementation.
 %
 % A conversion to strings followed by the use of strings_to_string/2 is not the
-% way to go as some binary strings (ex: "raw filenames") cannot be converted to
+% way to go as some binary strings (e.g. "raw filenames") cannot be converted to
 % plain strings, due to a mismatching encoding. strings_to_string/2 cannot be
 % used directly either, because of its guards (which should be kept, as it is
 % not supposed to support binaries). So we have to mimic it here.
@@ -1334,8 +1335,8 @@ binaries_to_sorted_string( Binaries ) ->
 % @doc Returns a string that pretty-prints the specified list of binary strings,
 % listed directly along the text (not one item per line).
 %
-% Ex: `binaries_to_listed_string([<<"red">>, <<"blue">>, <<"green">>])' returns
-% `"red, blue and green"'.
+% For example: `binaries_to_listed_string([<<"red">>, <<"blue">>, <<"green">>])'
+% returns `"red, blue and green"'.
 %
 -spec binaries_to_listed_string( [ bin_string() ] ) -> ustring().
 binaries_to_listed_string( Binaries ) ->
@@ -1462,7 +1463,8 @@ atoms_to_sorted_string( ListOfAtoms ) ->
 % @doc Returns a string that pretty-prints the specified list of atoms, listed
 % directly (in an unquoted form) in the returned text.
 %
-% Ex: atoms_to_listed_string([red, blue, green]) returns "red, blue and green".
+% For example: atoms_to_listed_string([red, blue, green]) returns "red, blue and
+% green".
 %
 -spec atoms_to_listed_string( [ atom() ] ) -> ustring().
 atoms_to_listed_string( ListOfAtoms ) ->
@@ -1474,8 +1476,8 @@ atoms_to_listed_string( ListOfAtoms ) ->
 % @doc Returns a string that pretty-prints the specified list of atoms, listed
 % directly, in a quoted form, in the returned text.
 %
-% Ex: atoms_to_quoted_listed_string([red, blue, green]) returns "'red', 'blue'
-% and 'green'".
+% For example: atoms_to_quoted_listed_string([red, blue, green]) returns "'red',
+% 'blue' and 'green'".
 %
 -spec atoms_to_quoted_listed_string( [ atom() ] ) -> ustring().
 atoms_to_quoted_listed_string( ListOfAtoms ) ->
@@ -1488,7 +1490,7 @@ atoms_to_quoted_listed_string( ListOfAtoms ) ->
 % @doc Returns a string that pretty-prints the specified list of integers,
 % listed directly in the returned text.
 %
-% Ex: integers_to_listed_string([1, 13, 8]) returns "1, 13 and 8".
+% For example: integers_to_listed_string([1, 13, 8]) returns "1, 13 and 8".
 %
 -spec integers_to_listed_string( [ integer() ] ) -> ustring().
 integers_to_listed_string( ListOfIntegers ) ->
@@ -1500,7 +1502,8 @@ integers_to_listed_string( ListOfIntegers ) ->
 % @doc Returns a string that pretty-prints the specified list of integer
 % identifiers, listed directly in the returned text.
 %
-% Ex: integer_ids_to_listed_string([1, 13, 8]) returns "#1, #13 and #8".
+% For example: integer_ids_to_listed_string([1, 13, 8]) returns "#1, #13 and
+% #8".
 %
 -spec integer_ids_to_listed_string( [ integer_id() ] ) -> ustring().
 integer_ids_to_listed_string( IntegerIds ) ->
@@ -1513,8 +1516,8 @@ integer_ids_to_listed_string( IntegerIds ) ->
 % @doc Returns a string that pretty-prints the specified list of strings, listed
 % directly along the text (not one item per line).
 %
-% Ex: strings_to_listed_string([ "red", "blue", "green"]) returns "red, blue and
-% green".
+% For example: strings_to_listed_string([ "red", "blue", "green"]) returns "red,
+% blue and green".
 %
 %strings_to_listed_string( _Strings=[] ) ->
 %   throw( empty_list_of_strings_to_list );
@@ -1529,8 +1532,8 @@ strings_to_listed_string( Strings ) ->
 % directly along the text (not one item per line), according to specified
 % (human) language.
 %
-% Ex: strings_to_listed_string(["red", "blue", "green"]) returns "red, blue and
-% green".
+% For example: strings_to_listed_string(["red", "blue", "green"]) returns "red,
+% blue and green".
 %
 %strings_to_listed_string( _Strings=[] ) ->
 %   throw( empty_list_of_strings_to_list );
@@ -1578,8 +1581,8 @@ strings_to_listed_string( Strings, Lang ) ->
 % (ignoring undefined ones), listed directly along the text (not one item per
 % line).
 %
-% Ex: maybe_strings_to_listed_string([ "red", "blue", undefined, "green",
-% undefined]) returns "red, blue and green".
+% For example: maybe_strings_to_listed_string(["red", "blue", undefined,
+% "green", undefined]) returns "red, blue and green".
 %
 
 -spec maybe_strings_to_listed_string( [ maybe( ustring() ) ] ) -> ustring().
@@ -1591,7 +1594,7 @@ maybe_strings_to_listed_string( Strings ) ->
 % @doc Returns a list whose elements are atoms corresponding to the plain
 % strings supposedly composing the specified list.
 %
-% Ex: strings_to_atoms(["abc","def"]) should return [abc, def].
+% For example: strings_to_atoms(["abc","def"]) should return [abc, def].
 %
 % Note that only a bounded number of atoms should be created that way, lest the
 % atom table gets saturated.
@@ -1605,9 +1608,8 @@ strings_to_atoms( StringList ) when is_list( StringList ) ->
 % @doc Returns a string that pretty-prints specified list of key (as binary,
 % string or atom) / value pairs, with bullets, after having been sorted.
 %
-% Ex: proplist_to_string([{ccc, 42}, {"beta", 1.0}]) returns a bullet list like:
-%  + beta: 1.0
-%  + ccc: 42
+% For example: proplist_to_string([{ccc, 42}, {"beta", 1.0}]) returns a bullet
+% list like: + beta: 1.0 + ccc: 42
 %
 -spec proplist_to_string( list_table:list_table() ) -> ustring().
 proplist_to_string( Proplist ) ->
@@ -1692,8 +1694,8 @@ number_to_string( Other ) ->
 % expected to be expressed as a floating-point number of millimeters, which will
 % be first rounded to the nearest integer.
 %
-% Ex: for a distance of 1001.5 millimeters, returns "1m and 2mm"; for 1 000 001
-% millimeters, returns "1km and 1mm".
+% For example: for a distance of 1001.5 millimeters, returns "1m and 2mm"; for 1
+% 000 001 millimeters, returns "1km and 1mm".
 %
 % See also unit_utils:meters_to_string/1.
 %
@@ -1704,7 +1706,8 @@ distance_to_string( Millimeters ) when is_float( Millimeters ) ->
 % Returns an exact textual description of the specified distance, expected to be
 % expressed as an integer number of millimeters.
 %
-% Ex: for an integer distance of 1000001 millimeters, returns "1km and 1mm".
+% For example: for an integer distance of 1000001 millimeters, returns "1km and
+% 1mm".
 %
 distance_to_string( Millimeters ) ->
 
@@ -1787,7 +1790,7 @@ distance_to_string( Millimeters ) ->
 % Only one unit, the most appropriate one, will be used, with up to 1 figure
 % after the comma.
 %
-% Ex: for a distance of 1000.5 millimeters, returns "1.0m".
+% For example: for a distance of 1000.5 millimeters, returns "1.0m".
 %
 -spec distance_to_short_string( any_millimeters() ) -> ustring().
 distance_to_short_string( Millimeters ) when is_float( Millimeters ) ->
@@ -1799,13 +1802,13 @@ distance_to_short_string( Millimeters ) when is_float( Millimeters ) ->
 % Only one unit, the most appropriate one, will be used, with up to 1 figure
 % after the comma.
 %
-% Ex: for a distance of 1000001 millimeters, returns "1.0km".
+% For example: for a distance of 1000001 millimeters, returns "1.0km".
 %
 distance_to_short_string( Millimeters ) ->
 
 	% Note: very specific limit distances could be better managed.
-	% Ex: 999999 millimeters is 999m, 99cm and 9mm, and "1000.0m" due to
-	% rounding, whereas we would have preferred "1km".
+	% For example: 999999 millimeters is 999m, 99cm and 9mm, and "1000.0m" due
+	% to rounding, whereas we would have preferred "1km".
 
 	Centimeters = 10,
 	Meters = 100 * Centimeters,
@@ -2052,7 +2055,7 @@ interpret_faulty_format( FormatString, Values ) ->
 
 
 
-% Removes any leading modifier from a format sequence (ex: remove 't' from "ts",
+% Removes any leading modifier from a format sequence (e.g. remove 't' from "ts",
 % as if having '~ts' specified, we want to retain only 's').
 %
 strip_modifiers( [ $t, Next | _T ] ) ->
@@ -2067,7 +2070,7 @@ strip_modifiers( [] ) ->
 
 
 % @doc Tells whether specified control sequence (without its ~ prefix) requires
-% a value (ex: ~B) or not (ex: ~n, ~i).
+% a value (e.g. ~B) or not (e.g. ~n, ~i).
 %
 requires_value( "n" ++ _ ) ->
 	% ~n does not use a value:
@@ -2091,7 +2094,7 @@ requires_value( _ ) ->
 % formatted log cannot crash anymore its emitter process).
 %
 % Typically useful as a failsafe solution, should a previous format string be
-% detected as faulty (ex: containing '~s' where '~ts' should have been used).
+% detected as faulty (e.g. containing '~s' where '~ts' should have been used).
 %
 -spec format_failsafe( format_values() ) -> ustring().
 format_failsafe( Values ) ->
@@ -2756,7 +2759,7 @@ are_all_starting_with( _C, _Strings, _Acc ) ->
 % @doc Returns a string, based on the specified one and guaranteed to be
 % different from all the other specified ones.
 %
-% Ex: useful to generate non-clashing names, like in:
+% For example: useful to generate non-clashing names, like in:
 %  "Hello" = text_utils:get_unique_string( "Hello", [] ),
 %  "Hello2" = text_utils:get_unique_string( "Hello", ["Hello","Goodbye"] )
 %
@@ -2873,9 +2876,10 @@ string_to_binary( String, CanFailDueToTranscoding ) when is_list( String ) ->
 	%
 	%catch Class:Exception ->
 	%
-	%	% Ex: might be triggered if String=[8364] ('euro' character), possibly
-	%	% if being fed with Unicode string.
+	%	% For example: might be triggered if String=[8364] ('euro' character),
+	%	% possibly % if being fed with Unicode string.
 	%	%
+
 	%	throw( { invalid_string, String, Class, Exception } )
 	%
 	%end;
@@ -3057,8 +3061,8 @@ try_string_to_float( String ) when is_list( String ) ->
 	% there is an exponent, it shall be 'e' (preferably that 'E' which is
 	% nevertheless tolerated), and the mantissa must be a floating-point number
 	% (hence with a point, such as 3.0e2, not 3e2) and at least one figure must
-	% exist after the point (ex: 1.0e2 is accepted, 1.e2 not). Moreover the
-	% decimal mark must be '.' (ex: not ',').
+	% exist after the point (e.g. 1.0e2 is accepted, 1.e2 not). Moreover the
+	% decimal mark must be '.' (e.g. not ',').
 
 	% We overcome all these limitations here, so that for example -1,2E-4, 40E2
 	% and 1,E3 are accepted and interpreted correctly.
@@ -3090,7 +3094,7 @@ try_string_to_float( String ) when is_list( String ) ->
 				none_found ->
 					Left ++ ".0";
 
-				% Here there is a dot, yet there is no number afterward (ex:
+				% Here there is a dot, yet there is no number afterward (e.g.
 				% 1.E2), we fix it (to have 1.0E2):
 				%
 				{ DotLeft, _DotRight="" } ->
@@ -3324,7 +3328,7 @@ bin_join( Separator, ListToJoin ) ->
 % To split a string according to the newlines (~n) that it contains, one may
 % use: text_utils:split(MyString, "\n").
 %
-% Note that a series of contiguous separators (ex: two spaces in a row) will
+% Note that a series of contiguous separators (e.g. two spaces in a row) will
 % result in inserting empty strings (i.e. []) in the returned list. Use
 % split_per_element/2 if wanting to handle series of delimeters as if there was
 % only one of them (i.e. if not wanting the returned list to include empty
@@ -3375,7 +3379,7 @@ split_helper( _Separators=[ D | T ], Acc ) ->
 % @doc Splits the specified string into a list of strings, based on the list of
 % specified characters to be interpreted as separators.
 %
-% Note that a series of contiguous separators (ex: two spaces in a row) will be
+% Note that a series of contiguous separators (e.g. two spaces in a row) will be
 % handled as if there was only one of them (i.e. if the returned list should not
 % include empty strings).
 %
@@ -3488,7 +3492,8 @@ split_at_whitespaces( String ) ->
 % all characters strictly before and strictly after the first occurrence of the
 % marker (which thus is not kept).
 %
-% Ex: split_at_first($x, "  aaaxbbbxccc") shall return {"  aaa", "bbbxccc"}.
+% For example: split_at_first($x, " aaaxbbbxccc") shall return {" aaa",
+% "bbbxccc"}.
 %
 -spec split_at_first( uchar(), ustring() ) ->
 							'none_found' | { ustring(), ustring() }.
@@ -3514,9 +3519,10 @@ split_at_first( Marker, _ToRead=[ Other | T ], Read ) ->
 % uppercases, knowing a series of uppercase letters, except the last one, is
 % considered as an acronym, hence as a single word), in their original order.
 %
-% Ex: split_camel_case("IndustrialWasteSource") shall return ["Industrial",
-% "Waste", "Source"], while split_camel_case("TheySaidNYCWasGreat") shall return
-% ["They", "Said", "NYC", "Was", "Great"].
+% For example: split_camel_case("IndustrialWasteSource") shall return
+% ["Industrial", "Waste", "Source"], while
+% split_camel_case("TheySaidNYCWasGreat") shall return ["They", "Said", "NYC",
+% "Was", "Great"].
 %
 -spec split_camel_case( ustring() ) -> [ ustring() ].
 split_camel_case( String ) ->
@@ -3570,9 +3576,9 @@ split_camel_case( _String=[ HeadChar | MoreChars ], Acc ) ->
 % strings in the Capitalized Case (all lower-case except for the first letter)
 % and finally joins them to get a long CamelCased string.
 %
-% Ex: tokenizable_to_camel_case("industrial_WASTE_sOuRCe", "_") shall return
-% "IndustrialWasteSource", while tokenizable_to_camel_case("ME HAZ READ J.R.R",
-% ". ") shall return "MeHazReadJRR".
+% For example: tokenizable_to_camel_case("industrial_WASTE_sOuRCe", "_") shall
+% return "IndustrialWasteSource", while tokenizable_to_camel_case("ME HAZ READ
+% J.R.R", ". ") shall return "MeHazReadJRR".
 %
 -spec tokenizable_to_camel_case( ustring(), ustring() ) -> ustring().
 tokenizable_to_camel_case( String, SeparatorsList ) ->
@@ -3596,7 +3602,7 @@ tokenizable_to_camel_case( String, SeparatorsList ) ->
 %
 % The last string may have less than Count characters.
 %
-% Ex: ["AB", "CD", "E"] = split_every( "ABCDE", _Count=2 ).
+% For example: ["AB", "CD", "E"] = split_every( "ABCDE", _Count=2 ).
 %
 -spec split_every( count(), ustring() ) -> [ ustring() ].
 split_every( Count, Str ) ->
@@ -3607,7 +3613,7 @@ split_every( Count, Str ) ->
 % @doc Duplicates the specified string as many times as specified; returns a
 % plain (flattened-once) string, not an iolist.
 %
-% Ex: duplicate(3, "abc") = "abcabcabc".
+% For example: duplicate(3, "abc") = "abcabcabc".
 %
 % Use directly lists:duplicate/2 if wanting for example ["abc", "abc", "abc"].
 %
@@ -3750,8 +3756,8 @@ filter( CharToRemove, _String=[ OtherChar | T ], Acc ) ->
 % @doc Splits the specified string after specified prefix and returns the
 % remaining part, otherwise returns that the prefix was not found.
 %
-% Ex: split_after_prefix("Foo", "Foobar is baz.") returns "bar is baz.";
-% split_after_prefix("ABC", "Foobar is baz.") returns 'no_prefix'.
+% For example: split_after_prefix("Foo", "Foobar is baz.") returns "bar is
+% baz."; split_after_prefix("ABC", "Foobar is baz.") returns 'no_prefix'.
 %
 -spec split_after_prefix( ustring(), ustring() ) -> ustring() | 'no_prefix'.
 split_after_prefix( _Prefix=[], String ) ->
@@ -3768,8 +3774,8 @@ split_after_prefix( _Prefix, _String ) ->
 % @doc Splits the specified string before specified suffix and returns the
 % leading part, otherwise returns that the suffix was not found.
 %
-% Ex: split_before_suffix("baz.", "Foobar is baz.") returns "Foobar is ";
-% split_before_suffix("ABC", "Foobar is baz.") returns 'no_suffix'.
+% For example: split_before_suffix("baz.", "Foobar is baz.") returns "Foobar is
+% "; split_before_suffix("ABC", "Foobar is baz.") returns 'no_suffix'.
 %
 -spec split_before_suffix( ustring(), ustring() ) -> ustring() | 'no_suffix'.
 split_before_suffix( Suffix, String ) ->
@@ -3791,8 +3797,8 @@ split_before_suffix( Suffix, String ) ->
 % have been replaced with their associated value (the corresponding value in
 % table).
 %
-% Ex: text_utils:update_with_keywords("Hello word!", table:new(
-%  [{"foo", "bar"}, {"ord", "orld"}])).
+% For example: text_utils:update_with_keywords("Hello word!", table:new(
+% [{"foo", "bar"}, {"ord", "orld"}])).
 %
 % See also: file_utils:update_with_keywords/3.
 %
@@ -3917,7 +3923,7 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 % @doc Escapes, in specified text, all characters in the specified list, with
 % specified escaping char.
 %
-% Ex: "baz\.foobar\.org" =
+% For example: "baz\.foobar\.org" =
 %   text_utils:escape_with("baz.foobar.org", [ $. ], $\\).
 %
 -spec escape_with( ustring(), [ char() ], char() ) -> ustring().
@@ -4096,8 +4102,8 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 
 				% The quoting char is escaped, keep it (and only it).
 				%
-				% Ex: found §\"§; then just retaining §"§ verbatim (we used to
-				% drop PrevC=§\§ but it should not):
+				% For example: found §\"§; then just retaining §"§ verbatim (we
+				% used to drop PrevC=§\§ but it should not):
 				%
 				true ->
 
@@ -4588,7 +4594,7 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 % @doc Returns the specified string, once padded with spaces to specified width,
 % left-justified (that is with spaces added to the right).
 %
-% Ex: pad_string("hello", 8) = ["hello",32,32,32]
+% For example: pad_string("hello", 8) = ["hello",32,32,32]
 %
 % Note that the returned string is not flattened.
 %
@@ -4600,7 +4606,7 @@ pad_string( String, Width ) ->
 % @doc Returns the specified string, once padded with spaces to specified width,
 % left-justified (that is with spaces added to the right).
 %
-% Ex: pad_string_left("hello", 8) = ["hello",32,32,32]
+% For example: pad_string_left("hello", 8) = ["hello",32,32,32]
 %
 % Note that the returned string is not flattened.
 %
@@ -4613,7 +4619,7 @@ pad_string_left( String, Width ) ->
 % left-justified (that is with spaces added to the right), with specified
 % padding character.
 %
-% Ex: pad_string_left("hello", 8, $*) = ["hello",42,42,42]
+% For example: pad_string_left("hello", 8, $*) = ["hello",42,42,42]
 %
 % Note that the returned string is not flattened.
 %
@@ -4648,7 +4654,7 @@ pad_string_left( String, Width, PadChar ) ->
 % @doc Returns the specified string, once padded with spaces to specified width,
 % right-justified (that is with spaces added to the left).
 %
-% Ex: pad_string_right("hello", 8) = ["   ", "hello"]
+% For example: pad_string_right("hello", 8) = ["   ", "hello"]
 %
 % Note that the returned string is not flattened.
 %
@@ -4661,7 +4667,7 @@ pad_string_right( String, Width ) ->
 % right-justified (that is with spaces added to the left), with specified
 % padding character.
 %
-% Ex: pad_string_right("hello", 8, $*) = ["***", "hello"]
+% For example: pad_string_right("hello", 8, $*) = ["***", "hello"]
 %
 % Note that the returned string is not flattened.
 %
@@ -4690,7 +4696,7 @@ pad_string_right( String, Width, PadChar ) ->
 % right, in order that it is centered within specified width (expected of course
 % to be larger than the length of the specified string).
 %
-% Ex: center_string("hello",8) = [" ","hello"," ",32]
+% For example: center_string("hello",8) = [" ","hello"," ",32]
 %
 -spec center_string( ustring(), width() ) -> any_string().
 center_string( String, Width ) ->
@@ -4701,7 +4707,7 @@ center_string( String, Width ) ->
 % left and right, in order that it is centered within specified width (expected
 % of course to be larger than the length of the specified string).
 %
-% Ex: center_string("hello",8, $*) = ["*","hello","*",42]
+% For example: center_string("hello",8, $*) = ["*","hello","*",42]
 %
 -spec center_string( ustring(), width(), grapheme_cluster() ) -> any_string().
 center_string( String, Width, PaddingChar ) ->
@@ -4868,7 +4874,7 @@ are_of_same_string_type( _S1, _S2 ) ->
 %
 % Parts of that word will use a separating dash.
 %
-% Ex: break_word("simulator", 5) returns ["simu-", "lator"].
+% For example: break_word("simulator", 5) returns ["simu-", "lator"].
 %
 break_word( Word, Width ) ->
 
@@ -5190,7 +5196,7 @@ get_title_rendering_for( 9 ) ->
 
 % @doc Returns a line made of Length characters "Character".
 %
-% Ex: get_line_of($+, 5) = "+++++".
+% For example: get_line_of($+, 5) = "+++++".
 %
 get_line_of( Character, Length ) ->
 	%lists:flatten( [ Character || _X <- lists:seq( 1, Length ) ] ).
@@ -5239,7 +5245,7 @@ fix_characters( _S=[ H | T ], Acc ) ->
 
 
 
-% As too often (ex: with gen_statem) no relevant origin location is specified:
+% As too often (e.g. with gen_statem) no relevant origin location is specified:
 
 % @doc Reports that the specified term is not a plain string.
 -spec report_not_a_string( any() ) -> no_return().
