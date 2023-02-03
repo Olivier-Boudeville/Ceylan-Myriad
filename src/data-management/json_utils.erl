@@ -41,11 +41,8 @@
 % We rely here on a JSON parser, namely by default JSX
 % (https://github.com/talentdeficit/jsx/), version 3.0.0 at the time of this
 % writing; we expect the BEAM files from JSX to be available on the code path
-% (out of a rebar3 context, we may expect to find them in
-% ~/Software/jsx/jsx-current-install/ebin; in a rebar3 context, we expect them
-% to be readily found, in _checkouts, or as a sibling dependency). See the
-% 'USE_JSON' and 'USE_JSX' sections in GNUmakevars.inc for all possible
-% locations.
+% (out of a rebar3 context, we typically expect to find them in
+% ~/Software/jsx/jsx-current-install/ebin).
 %
 % Refer to the 'JSX Installation' section in GNUmakevars.inc in order to perform
 % an installation thereof according to our standards - which is strongly
