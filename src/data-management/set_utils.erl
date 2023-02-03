@@ -254,7 +254,8 @@ is_set( Term ) ->
 
 
 % @doc Ensures that the specified term is a set and returns it; throws an
-% exception if t not.
+% exception if not.
+%
 -spec check_set( term() ) -> void().
 check_set( Term ) ->
 	is_set( Term ) orelse throw( { not_a_set, Term } ).
