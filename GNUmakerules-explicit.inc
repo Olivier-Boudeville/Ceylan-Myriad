@@ -80,7 +80,7 @@ all: all-pre-hook all-parse-transforms create-include-links
 # purpose.
 #
 # Also deactivated, as any dependency in _build would then be lost, whereas we
-# might use on our native build system while still relying on them (ex: for
+# might use on our native build system while still relying on them (e.g. for
 # LEEC): -@/bin/rm -rf $(MYRIAD_REBAR_BUILD_ROOT)
 #
 # (thus use the rebar3-real-clean target instead, if wanting to remove
@@ -255,7 +255,7 @@ test-recurse:
 
 # To run tests in interactive mode, possibly with a specific UI backend:
 #
-# (ex: 'make test-interactive UI_TEST_BACKEND=text_ui' or by modifying this
+# (e.g. 'make test-interactive UI_TEST_BACKEND=text_ui' or by modifying this
 # variable directly in GNUmakevars.inc)
 #
 test-interactive: #all test-interactive-recurse
@@ -574,13 +574,14 @@ create-myriad-checkout:
 # executing 'rebar3 deps' or 'rebar3 lock' is not sufficient by itself;
 # beforehand one has to update or remove at least any _build tree and any
 # rebar.lock.
+#
 # Prior to committing a new rebar.lock, check that the 'ref' values that it
 # mentions do match indeed the actual (probably latest) intended Git commit of
 # the corresponding dependencies.
 #
 # (creating a ebin/*.app file is necessary at this point, otherwise no module
 # will be compiled, leading to an empty application; the same applies - silently
-# - if the conf/*.app.src, hence the ebin/*.app file, are invalid - ex: cannot
+# - if the conf/*.app.src, hence the ebin/*.app file, are invalid - e.g. cannot
 # be parsed)
 #
 # ('remove-rebar-conf' target not kept, as rebar.config shall not be deleted in
@@ -705,7 +706,7 @@ rebar3-production-release: pre-release
 
 
 # Needed to update local package information according to (server-side) hex,
-# otherwise rebar could stick locally to obsolete package versions (ex: if
+# otherwise rebar could stick locally to obsolete package versions (e.g. if
 # having just published a new version of a dependency)
 #
 rebar3-update:
@@ -720,7 +721,7 @@ rebar3-update:
 
 
 # This (now obsolete) overall target used to be called (thanks to a pre-hook)
-# when running directly 'rebar3 compile' or indirectly (ex: 'rebar3 release')
+# when running directly 'rebar3 compile' or indirectly (e.g. 'rebar3 release')
 #
 # (note: we used to copy sources before compiling and copying BEAM files, so
 # that rebar3 would not try to recompile modules by itself)
@@ -798,7 +799,7 @@ rebar3-populate-build-tree:
 # (otherwise nothing is built), a release (otherwise dependency not reachable),
 # and probably an hex package as well.
 #
-# Apparently, at least in some cases (ex: generating a standalone release), an
+# Apparently, at least in some cases (e.g. generating a standalone release), an
 # (updated) *.app.src file is looked-up in src (not in ebin - try to create
 # syntax error in it to check), so we add a symbolic link there as well.
 #
@@ -841,7 +842,7 @@ rebar-test-clean:
 	-@/bin/rm -f $(MYRIAD_REBAR_TEST_DIR)/rebar.lock
 
 
-# Otherwise could reuse wrong cached versions (ex: 1.O.6.tar instead of
+# Otherwise could reuse wrong cached versions (e.g. 1.O.6.tar instead of
 # 1.0.7.tar), or a former version of a recently-submitted package:
 # (actually triggering the rebar3-update target should suffice)
 #
@@ -869,7 +870,7 @@ rebar3-info:
 # ones for applications or releases. Now that we defined an (optional) rebar
 # build, a specific rebar.config for the generation of hex packages is not
 # needed anymore, and some targets below were simplified / are not used anymore
-# (ex: no more hook needed).
+# (e.g. no more hook needed).
 
 
 # The simplest studying approach was to use the build of another hex package
@@ -910,7 +911,7 @@ rebar3-info:
 # recompilation (hex does not take into account the .app.src file, hence does
 # not rely on explicitly-specified modules to build)
 #
-# - remove rebar.lock, otherwise a past Myriad dep (ex: Git-based) may be reused
+# - remove rebar.lock, otherwise a past Myriad dep (e.g. Git-based) may be reused
 #
 # - afterwards we restore the ebin/*.app and rebar.config files for standard
 # releases, in order to avoid having them considered as deleted by GIT
@@ -1064,7 +1065,7 @@ add-prerequisite-plts:
 
 
 # If Dialyzer complains that it cannot get Core Erlang code for a set of BEAM
-# files (ex: with "Recompile with +debug_info or analyze starting from source
+# files (e.g. with "Recompile with +debug_info or analyze starting from source
 # code"), then the element lacking is most probably not the +debug_info switch
 # when compiling these BEAMs, but the debug_info key when running Dialyzer
 # itself.
