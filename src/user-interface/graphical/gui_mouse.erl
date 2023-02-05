@@ -43,7 +43,7 @@
 % The goal is to offer a stable interface, as independent as possible from any
 % backend.
 %
-% Currently the actual backend is wx; in the future it may be any other (ex:
+% Currently the actual backend is wx; in the future it may be any other (e.g.
 % esdl2).
 
 % Largely inspired from: Wings3D, SDL and esdl2.
@@ -63,36 +63,36 @@
 
 % To be kept updated with list_cursor_types/0:
 -type cursor_type() ::
-		'default'
-	  | 'none' % Unsupported type
-	  | 'blank' % An invisible cursor, when the mouse is grabbed
-	  | 'stop' % "no entry", typically to denote a disallowed operation
-	  | 'arrow' % Typically to designate an element
-	  | 'right_arrow'
-	  | 'question_arrow'
-	  | 'wait_arrow'
-	  | 'wait' % Hourglass, tTypically to denote an ongoing operation
-	  | 'watch'
-	  | 'hand' % "pointing hand"
-	  | 'closed_hand' % "bull's eye"
-	  | 'point_left'
-	  | 'point_right'
-	  | 'char'
-	  | 'cross'
-	  | 'ibeam'
-	  | 'left_button'
-	  | 'middle_button'
-	  | 'right_button'
-	  | 'magnifier' % Typically to zoom
-	  | 'paintbrush'
-	  | 'pencil'
-	  | 'spraycan'
-	  %| 'eyedropper' % Typically to pick a color
-	  | 'size_ne_sw'
-	  | 'size_ns'
-	  | 'size_nw_se'
-	  | 'size_we'
-	  | 'sizing'.
+	'default'
+  | 'none' % Unsupported type
+  | 'blank' % An invisible cursor, when the mouse is grabbed
+  | 'stop' % "no entry", typically to denote a disallowed operation
+  | 'arrow' % Typically to designate an element
+  | 'right_arrow'
+  | 'question_arrow'
+  | 'wait_arrow'
+  | 'wait' % Hourglass, tTypically to denote an ongoing operation
+  | 'watch'
+  | 'hand' % "pointing hand"
+  | 'closed_hand' % "bull's eye"
+  | 'point_left'
+  | 'point_right'
+  | 'char'
+  | 'cross'
+  | 'ibeam'
+  | 'left_button'
+  | 'middle_button'
+  | 'right_button'
+  | 'magnifier' % Typically to zoom
+  | 'paintbrush'
+  | 'pencil'
+  | 'spraycan'
+  %| 'eyedropper' % Typically to pick a color
+  | 'size_ne_sw'
+  | 'size_ns'
+  | 'size_nw_se'
+  | 'size_we'
+  | 'sizing'.
 % A cursor is a small bitmap usually used for denoting where the mouse pointer
 % is, with a picture that might indicate the interpretation of a mouse click.
 %
@@ -218,7 +218,8 @@ set_cursor_types( CursorTypes, GUIEnvPid ) ->
 
 		end } || CT <- CursorTypes ],
 	CursorTable = table:new( CursorEntries ),
-	environment:cache( { _K=cursor_table, _Value=CursorTable }, GUIEnvPid ).
+	environment:cache( _Entry={ _K=cursor_table, _Value=CursorTable },
+					   GUIEnvPid ).
 
 
 
@@ -446,16 +447,7 @@ is_grabbed() ->
 % @doc Tells whether the mouse cursor is grabbed.
 -spec is_grabbed( gui_env_pid() ) -> boolean().
 is_grabbed( GUIEnvPid ) ->
-
-	case environment:get( grab_stack, GUIEnvPid ) of
-
-		[] ->
-			false;
-
-		_ ->
-			true
-
-	end.
+	environment:get( grab_stack, GUIEnvPid ) =/= [].
 
 
 

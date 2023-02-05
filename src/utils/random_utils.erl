@@ -115,7 +115,7 @@
 
 
 -type seed_element() :: integer().
-% Not future-proof enough (ex: not compliant with other solutions like
+% Not future-proof enough (e.g. not compliant with other solutions like
 % SIMD-oriented Fast Mersenne Twister).
 
 -type seed() :: { seed_element(), seed_element(), seed_element() }.
@@ -258,7 +258,7 @@
 % The specification of a discrete probability distribution (a.k.a. frequency
 % distribution) whose samples are of the specified type.
 %
-% Ex: discrete_probability_distribution(integer()) or
+% For example discrete_probability_distribution(integer()) or
 % discrete_probability_distribution(vector3:vector3()).
 %
 % Samples of null probability are usually omitted, as such a probability is
@@ -356,7 +356,7 @@
 %
 % Of course, switching random engines will generate different random series.
 %
-% They may also have different behaviours (ex: with regards to processes not
+% They may also have different behaviours (e.g. with regards to processes not
 % being explicitly seeded, inheriting from a seed that is constant or not - the
 % shortest path to break reproducibility).
 %
@@ -735,7 +735,7 @@ reset_random_source( Seed ) ->
 	% New seeding (stored in the process dictionary), as opposed to the setting
 	% of a previously defined state:
 	%
-	rand:seed( ?rand_algorithm, Seed ).
+	start_random_source( Seed ).
 
 
 
@@ -782,7 +782,7 @@ get_uniform_value( N ) ->
 get_uniform_value( Nmin, Nmax ) when is_integer( Nmin )
 					andalso is_integer( Nmax ) andalso Nmin =< Nmax ->
 
-	% Ex: if Nmin = 3, Nmax = 5, we can draw value in [3, 4, 5], hence:
+	% For example if Nmin = 3, Nmax = 5, we can draw value in [3, 4, 5], hence:
 	%
 	% N = 5 - 3 + 1 = 3.
 	%
@@ -910,8 +910,8 @@ get_random_seed() ->
 
 % @doc Checks that the specified seed is valid.
 %
-% Ex: at least with some algorithms, {0, 0, 0} does not yield a correct random
-% series.
+% For example, at least with some algorithms, {0, 0, 0} does not yield a correct
+% random series.
 %
 -spec check_random_seed( seed() ) -> void().
 check_random_seed( { A, B, C } ) when is_integer( A ) andalso is_integer( B )
@@ -1240,7 +1240,7 @@ generate_positive_integer_gaussian_list( Mu, Sigma, Count, Acc ) ->
 % @doc Returns the state of a random generator in charge of producing samples
 % according to the specified discrete probability distribution.
 %
-% Ex: MyDistributionState = random_utils:generate_random_state_from(
+% For example MyDistributionState = random_utils:generate_random_state_from(
 %                              [{a,10}, {b,20}, {c,40}, {d,30}]).
 %
 % or MyDistributionState = random_utils:generate_random_state_from(
@@ -1378,7 +1378,7 @@ fill_entries( _UnderFulls, _OverFulls, IdxArray, ProbLikeArray ) ->
 % of samples declared in the corresponding distribution.
 %
 % Such a generation depends (and modifies) the state of the underlying uniform
-% random generator (ex: see start_random_source/0); precisely each non-uniform
+% random generator (e.g. see start_random_source/0); precisely each non-uniform
 % sampling results in two uniform samples to be drawn.
 %
 -spec get_sample_from( alias_state() ) -> sample().
@@ -1415,7 +1415,7 @@ get_sample_from( #alias_state{ entry_count=EntryCount,
 % the number of samples declared in the corresponding distribution.
 %
 % Such a generation depends (and modifies) the state of the underlying uniform
-% random generator (ex: see start_random_source/0); precisely each non-uniform
+% random generator (e.g. see start_random_source/0); precisely each non-uniform
 % sampling results in two uniform samples to be drawn.
 %
 -spec get_samples_from( count(), alias_state() ) -> [ sample() ].

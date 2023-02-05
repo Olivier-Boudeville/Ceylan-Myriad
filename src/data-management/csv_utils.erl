@@ -23,7 +23,6 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-%
 % Creation date: Thursday, February 22, 2018.
 
 
@@ -73,7 +72,7 @@
 
 
 -type mixed_content() :: [ row() | [ value() ] ].
-% A CSV content, as an (ordered) list of rows that match a row spec (ex:
+% A CSV content, as an (ordered) list of rows that match a row spec (e.g.
 % expected number of fields) or not (then represented as a mere list of values).
 
 
@@ -104,7 +103,7 @@
 
 % For some reason, if relying on the '-noinput' option, using the following
 % options used to result in {read_error,{no_translation,unicode,unicode},...},
-% whereas using io:setopts/1 (ex: possibly through
+% whereas using io:setopts/1 (e.g. possibly through
 % system_utils:force_unicode_support/0) afterwards did not fail and allowed
 % reads to return correctly-encoded lines:
 %
@@ -174,7 +173,7 @@
 % Future improvements:
 %
 % - performs an actual parsing, so that a field of type 'string' may contain the
-% separator (ex: if the separator is ',', a field could then be "hello, you!"),
+% separator (e.g. if the separator is ',', a field could then be "hello, you!"),
 % and be possibly defined over multiple lines
 %
 % - read from a compressed file
@@ -187,7 +186,7 @@
 		  %
 		  read_file/1, read_file/2,
 
-		  % For CSV files that shall be filtered before use (ex: with some rows
+		  % For CSV files that shall be filtered before use (e.g. with some rows
 		  % obeying different rules):
 
 		  % If the separator and number of fields to expect are known a priori:
@@ -203,7 +202,7 @@
 		  %
 		  interpret_file/1,
 
-		  % For CSV files that shall be filtered before use (ex: with some rows
+		  % For CSV files that shall be filtered before use (e.g. with some rows
 		  % obeying different rules):
 		  %
 		  write_file/2, write_file/3,
@@ -657,7 +656,7 @@ parse_row_no_separator( Line ) ->
 % @doc Parses the specified line into a proper row, based on the specified
 % separator.
 %
--spec parse_row( line(), separator() ) -> maybe( { row(), field_count() } ).
+-spec parse_row( line(), separator() ) -> 'dropped' | { row(), field_count() }.
 parse_row( Line, Separator ) ->
 
 	% Useful also to remove at least the ending newline:

@@ -81,7 +81,7 @@
 
 
 -type located_form() :: { ast_location(), form() }.
-% When processing an AST (ex: read from a BEAM file), the order of the forms
+% When processing an AST (e.g. read from a BEAM file), the order of the forms
 % matters (for example to report compile errors, which are relative to a context
 % defined by the last '-file' attribute previously encountered, i.e. like
 % {attribute,40,file,{"foo.erl",40}}). So even if we store forms in tables
@@ -148,7 +148,7 @@
 
 	  | 'end_marker'.       % End of the AST stream / source file
 % Known section markers (insertion points), listed in their expected order of
-% appearance in an AST stream (ex: a source file). All markers are expected to
+% appearance in an AST stream (e.g. a source file). All markers are expected to
 % be set (located) as soon as the scan of an AST into a module_info has been
 % done.
 %
@@ -161,19 +161,19 @@
 % There may or may not be actual forms at such locations in the corresponding
 % AST: to preserve their order, markers may point to locations that have been
 % generated, i.e. that have not been directly obtained that the initial scan
-% (ex: inserted between an actual one and the logical end of the AST).
+% (e.g. inserted between an actual one and the logical end of the AST).
 
 
 
 % Tables to be found in the module_info record:
 
 -type compile_option_name() :: atom().
-% Ex: inline, export_all, etc.
+% For example inline, export_all, etc.
 
 
 -type compile_option_value() :: term().
 % In some cases (at least when it is specified from the command-line), a
-% compilation option is a triplet (ex: -Dmy_other_test_token=51 is translated,
+% compilation option is a triplet (e.g. -Dmy_other_test_token=51 is translated,
 % in terms of a parse-transform option, as: {d,my_other_test_token,51}).
 %
 % The value associated to the option name ('d') is then:
@@ -189,16 +189,16 @@
 									maybe( [ compile_option_value() ] ) ).
 % For easy access to compilation information:
 %
-% Note that an option specified without a value (ex: -Dmy_token on the command
+% Note that an option specified without a value (e.g. -Dmy_token on the command
 % line) will be associated to the 'undefined' value.
 
 
 -type attribute_name() :: atom().
-% The name of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
+% The name of a (parse-level) attribute (e.g. '-my_attribute( my_value ).').
 
 
 -type attribute_value() :: term().
-% The value of a (parse-level) attribute (ex: '-my_attribute( my_value ).').
+% The value of a (parse-level) attribute (e.g. '-my_attribute( my_value ).').
 
 
 -type attribute() :: { attribute_name(), attribute_value() }.
@@ -536,11 +536,11 @@ extract_module_info_from_ast( AST ) ->
 	% useful here anyway.
 
 	% Finally we have not real freedom in terms of output, as we prefer to
-	% respect the native display format of the error messages so that tools (ex:
+	% respect the native display format of the error messages so that tools (e.g.
 	% emacs, possible erlide and all) are still able to manage them.
 
 	% Useless: would report pre-transform errors that would be solved after
-	% transformation (ex: void() not existing)
+	% transformation (e.g. void() not existing)
 	%pre_check_ast( AST ),
 
 	ModuleInfo = ast_scan:scan( AST ),
@@ -635,7 +635,7 @@ check_module_include( #module_info{ includes=Includes,
 
 	case length( IncludeDefs ) of
 
-		% Includes are filtered (ex: for duplicates):
+		% Includes are filtered (e.g. for duplicates):
 		L when L < Len ->
 			ast_utils:raise_usage_error( "mismatch regarding includes, "
 				"having ~B includes (~p) and ~B include definitions (~p).",
@@ -768,7 +768,7 @@ check_function( FunId, _FunInfo=#function_info{ name=SecondName,
 				ModuleName ) ->
 	ast_utils:raise_usage_error(
 		"function definition mismatch for ~ts/~B vs ~ts/~B",
-		pair:to_list( FunId ) ++ [ { SecondName, SecondArity } ],
+		pair:to_list( FunId ) ++ [ SecondName, SecondArity ],
 		ModuleName ).
 
 
@@ -2295,19 +2295,19 @@ interpret_options( OptionList,
 scan_options( _OptionList=[], OptionTable ) ->
 	OptionTable;
 
-% Ex: {d,myriad_debug_mode}
+% For example {d,myriad_debug_mode}
 scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
 	NewOptionTable = ?table:append_to_entry( _K=Name, Value, OptionTable ),
 	scan_options( T, NewOptionTable );
 
-% Ex: {d,my_second_test_token,200}
+% For example {d,my_second_test_token,200}
 scan_options( _OptionList=[ { Name, BaseValue, OtherValue } | T ],
 			  OptionTable ) ->
 	NewOptionTable = ?table:append_to_entry( _K=Name, { BaseValue, OtherValue },
 											 OptionTable ),
 	scan_options( T, NewOptionTable );
 
-% Ex: report_errors
+% For example report_errors
 scan_options( _OptionList=[ Name | T ], OptionTable ) when is_atom( Name ) ->
 
 	% No clash wanted, throws an exception is the same key appears more than

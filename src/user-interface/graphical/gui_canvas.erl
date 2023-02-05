@@ -79,13 +79,13 @@
 % - or (less efficient) not to specifically subscribe to its onResized event;
 % then onRepaintNeeded shall, prior to blitting, perform a new rendering; this
 % is bound to lead to potentially many useless renderings, as repainting happens
-% for more reasons that just resizing (ex: overlapping window, application
+% for more reasons that just resizing (e.g. overlapping window, application
 % tooltip being displayed, etc.)
 %
 % See gui_overall_test.erl for an example of use.
 
 
-% Strangely enough, when launching the same program twice (ex:
+% Strangely enough, when launching the same program twice (e.g.
 % gui_overall_test), the initial backbuffer will happen to be the final one of
 % the former instance (i.e. showing the exact same content, although these OS
 % processes should be totally unrelated). This can be detected with this test by
@@ -150,8 +150,8 @@
 -include("gui_canvas.hrl").
 
 
--type canvas() :: { gui_object_ref, 'canvas', myriad_instance_id() }.
-% A specific kind of gui_object_ref().
+-type canvas() :: { 'myriad_object_ref', 'myr_canvas', myriad_instance_id() }.
+% A specific kind of myriad_object_ref() for canvases, thus of gui_object().
 
 
 -export_type([ canvas_state/0, canvas/0 ]).
@@ -174,7 +174,7 @@
 
 -type line2() :: linear_2D:line2().
 
--type point2() :: point2:point2().
+-type point() :: point2:integer_point2().
 
 -type color() :: gui_color:color().
 -type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
@@ -217,16 +217,8 @@ create_instance( [ Parent ] ) ->
 	Bitmap = wxBitmap:new( W, H ),
 
 	% Creates an actual bitmap:
-	case wxBitmap:create( Bitmap, W, H,
-						  [ { depth, ?wxBITMAP_SCREEN_DEPTH } ] ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { bitmap_creation_failed, Bitmap } )
-
-	end,
+	wxBitmap:create( Bitmap, W, H, [ { depth, ?wxBITMAP_SCREEN_DEPTH } ] )
+		orelse throw( { bitmap_creation_failed, Bitmap } ),
 
 	BackBuffer = wxMemoryDC:new( Bitmap ),
 
@@ -289,7 +281,7 @@ adjust_size( CanvasState=#canvas_state{ panel=Panel, size=Size } ) ->
 
 
 
-% @doc Resizes specified canvas (which, in most cases, should be cleared and
+% @doc Resizes the specified canvas (which, in most cases, should be cleared and
 % repainted then).
 %
 -spec resize( canvas_state(), size() ) -> canvas_state().
@@ -460,7 +452,7 @@ set_background_color( #canvas_state{ back_buffer=BackBuffer }, Color ) ->
 
 
 % @doc Returns the RGB value of the pixel at the specified position.
--spec get_rgb( canvas_state(), point2() ) -> color_by_decimal_with_alpha().
+-spec get_rgb( canvas_state(), point() ) -> color_by_decimal_with_alpha().
 get_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 
 	case wxDC:getPixel( BackBuffer, Point ) of
@@ -475,8 +467,8 @@ get_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 
 
 
-% @doc Sets the pixel at specified position to the current RGB point value.
--spec set_rgb( canvas_state(), point2() ) -> void().
+% @doc Sets the pixel at the specified position to the current RGB point value.
+-spec set_rgb( canvas_state(), point() ) -> void().
 set_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 	% Uses the color of the current pen:
 	wxDC:drawPoint( BackBuffer, Point ).
@@ -489,15 +481,15 @@ set_rgb( #canvas_state{ back_buffer=BackBuffer }, Point ) ->
 % @doc Draws a line between the specified two points in the back-buffer of the
 % specified canvas, using current draw color.
 %
--spec draw_line( canvas_state(), point2(), point2() ) -> void().
+-spec draw_line( canvas_state(), point(), point() ) -> void().
 draw_line( #canvas_state{ back_buffer=BackBuffer }, P1, P2 ) ->
 	wxDC:drawLine( BackBuffer, P1, P2 ).
 
 
-% @doc Draws a line between the specified two points in specified canvas, with
-% specified color.
+% @doc Draws a line between the specified two points in the specified canvas,
+% with the specified color.
 %
--spec draw_line( canvas_state(), point2(), point2(), color() ) -> void().
+-spec draw_line( canvas_state(), point(), point(), color() ) -> void().
 draw_line( Canvas, P1, P2, Color ) ->
 
 	%trace_utils:debug_fmt( "draw_line from ~p to ~p with color ~p.",
@@ -508,18 +500,18 @@ draw_line( Canvas, P1, P2, Color ) ->
 
 
 
-% @doc Draws lines between the specified list of points, in specified canvas,
-% using current draw color.
+% @doc Draws lines between the specified list of points, in the specified
+% canvas, using the current draw color.
 %
--spec draw_lines( canvas_state(), [ point2() ] ) -> void().
+-spec draw_lines( canvas_state(), [ point() ] ) -> void().
 draw_lines( #canvas_state{ back_buffer=BackBuffer }, Points ) ->
 	wxDC:drawLines( BackBuffer, Points ).
 
 
-% @doc Draws lines between the specified list of points in specified canvas,
-% with specified color.
+% @doc Draws lines between the specified list of points in the specified canvas,
+% with the specified color.
 %
--spec draw_lines( canvas_state(), [ point2() ], color() ) -> void().
+-spec draw_lines( canvas_state(), [ point() ], color() ) -> void().
 draw_lines( Canvas, Points, Color ) ->
 	set_draw_color( Canvas, Color),
 	draw_lines( Canvas, Points ).
@@ -541,7 +533,7 @@ draw_segment( Canvas, L, Y1, Y2 ) ->
 
 
 % @doc Draws the specified polygon, closing the lines and filling them.
--spec draw_polygon( canvas_state(), [ point2() ] ) -> void().
+-spec draw_polygon( canvas_state(), [ point() ] ) -> void().
 draw_polygon( #canvas_state{ back_buffer=BackBuffer }, Points ) ->
 	wxDC:drawPolygon( BackBuffer, Points ).
 
@@ -550,10 +542,10 @@ draw_polygon( #canvas_state{ back_buffer=BackBuffer }, Points ) ->
 % Section for other elements.
 
 
-% @doc Draws the specified label (a plain string) at specified position, on
+% @doc Draws the specified label (a plain string) at the specified position, on
 % specified canvas, using the current draw color.
 %
--spec draw_label( canvas_state(), point2(), label() ) -> void().
+-spec draw_label( canvas_state(), point(), label() ) -> void().
 draw_label( #canvas_state{ back_buffer=BackBuffer }, Point, LabelText ) ->
 
 	% Not needed:
@@ -562,19 +554,19 @@ draw_label( #canvas_state{ back_buffer=BackBuffer }, Point, LabelText ) ->
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with default
+% @doc Draws an upright cross at the specified location (2D point), with default
 % edge length.
 %
--spec draw_cross( canvas_state(), point2() ) -> void().
+-spec draw_cross( canvas_state(), point() ) -> void().
 draw_cross( Canvas, Location ) ->
 	draw_cross( Canvas, Location, _DefaultEdgeLength=4 ).
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length.
+% @doc Draws an upright cross at the specified location (2D point), with
+% the specified edge length.
 %
--spec draw_cross( canvas_state(), point2(), integer_distance() ) -> void().
+-spec draw_cross( canvas_state(), point(), integer_distance() ) -> void().
 draw_cross( Canvas, _Location={X,Y}, EdgeLength ) ->
 	Offset = EdgeLength div 2,
 	% The last pixel of a line is not drawn, hence the +1:
@@ -583,11 +575,11 @@ draw_cross( Canvas, _Location={X,Y}, EdgeLength ) ->
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length and color.
+% @doc Draws an upright cross at the specified location (2D point), with the
+% specified edge length and color.
 %
--spec draw_cross( canvas_state(), point2(), integer_distance(), color() ) ->
-														void().
+-spec draw_cross( canvas_state(), point(), integer_distance(), color() ) ->
+											void().
 draw_cross( Canvas, _Location={X,Y}, EdgeLength, Color ) ->
 	Offset = EdgeLength div 2,
 	% The last pixel of a line is not drawn, hence the +1:
@@ -596,10 +588,10 @@ draw_cross( Canvas, _Location={X,Y}, EdgeLength, Color ) ->
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length and companion label.
+% @doc Draws an upright cross at the specified location (2D point), with
+% specified edge length and companion label.
 %
--spec draw_labelled_cross( canvas_state(), point2(), integer_distance(),
+-spec draw_labelled_cross( canvas_state(), point(), integer_distance(),
 						   label() ) -> void().
 draw_labelled_cross( Canvas, Location={X,Y}, EdgeLength, LabelText ) ->
 
@@ -610,10 +602,10 @@ draw_labelled_cross( Canvas, Location={X,Y}, EdgeLength, LabelText ) ->
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length and companion label, and with specified color.
+% @doc Draws an upright cross at the specified location (2D point), with
+% specified edge length and companion label, and with specified color.
 %
--spec draw_labelled_cross( canvas_state(), point2(), integer_distance(),
+-spec draw_labelled_cross( canvas_state(), point(), integer_distance(),
 						   color(), label() ) -> void().
 draw_labelled_cross( Canvas, Location, EdgeLength, Color, LabelText ) ->
 	set_draw_color( Canvas, Color ),
@@ -621,19 +613,19 @@ draw_labelled_cross( Canvas, Location, EdgeLength, Color, LabelText ) ->
 
 
 
-% @doc Renders specified circle (actually, depending on the fill color, it may
-% be a disc) in specified canvas.
+% @doc Renders the specified circle (actually, depending on the fill color, it
+% may be a disc) in the specified canvas.
 %
--spec draw_circle( canvas_state(), point2(), integer_distance() ) -> void().
+-spec draw_circle( canvas_state(), point(), integer_distance() ) -> void().
 draw_circle( #canvas_state{ back_buffer=BackBuffer }, Center, Radius ) ->
 	wxDC:drawCircle( BackBuffer, Center, Radius ).
 
 
 
-% @doc Renders specified circle (actually, depending on the specified fill
-% color, it may be a disc) in specified canvas.
+% @doc Renders the specified circle (actually, depending on the specified fill
+% color, it may be a disc) in the specified canvas.
 %
--spec draw_circle( canvas_state(), point2(), integer_distance(), color() ) ->
+-spec draw_circle( canvas_state(), point(), integer_distance(), color() ) ->
 				void().
 draw_circle( Canvas, Center, Radius, Color ) ->
 	set_draw_color( Canvas, Color ),
@@ -641,10 +633,10 @@ draw_circle( Canvas, Center, Radius, Color ) ->
 
 
 
-% @doc Draws specified list of points, each point being identified in turn with
-% one cross and a label (the n-th point will have for label "Pn").
+% @doc Draws the specified list of points, each point being identified in turn
+% with one cross and a label (the n-th point will have for label "Pn").
 %
--spec draw_numbered_points( canvas_state(), [ point2() ] ) -> void().
+-spec draw_numbered_points( canvas_state(), [ point() ] ) -> void().
 draw_numbered_points( Canvas, Points ) ->
 
 	LabelledPoints = label_points( Points, _Acc=[], _InitialCount=1 ),
@@ -656,8 +648,8 @@ draw_numbered_points( Canvas, Points ) ->
 
 
 
-% @doc Loads image from specified path into specified canvas, pasting it at its
-% upper left corner.
+% @doc Loads image from the specified path into specified canvas, pasting it at
+% its upper left corner.
 %
 -spec load_image( canvas_state(), file_path() ) -> void().
 load_image( Canvas, Filename ) ->
@@ -665,10 +657,10 @@ load_image( Canvas, Filename ) ->
 
 
 
-% @doc Loads image from specified path into the specified canvas, pasting it at
-% specified location.
+% @doc Loads image from the specified path into the specified canvas, pasting it
+% at the specified location.
 %
--spec load_image( canvas_state(), point2(), file_path() ) -> void().
+-spec load_image( canvas_state(), point(), file_path() ) -> void().
 load_image( #canvas_state{ back_buffer=BackBuffer }, Position, FilePath ) ->
 
 	case file_utils:is_existing_file( FilePath ) of

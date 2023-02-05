@@ -55,7 +55,7 @@
 %
 -record( myriad_object_ref, {
 
-	% The type of GUI object referred to (ex: 'myr_canvas'):
+	% The type of GUI object referred to (e.g. 'myr_canvas'):
 	object_type :: gui:myriad_object_type(),
 
 	% The identifier of this referenced instance:

@@ -34,7 +34,7 @@
 %
 % The purpose of MyriadGUI is to wrap, complement and improve what we consider
 % the best set of gui backends available (previously: gs alone; now: wx, with
-% OpenGL), for classical applications and multimedia ones (ex: games).
+% OpenGL), for classical applications and multimedia ones (e.g. games).
 %
 % See `gui_test.erl' for the corresponding test.
 %
@@ -58,7 +58,7 @@
 % Relying optionally:
 % - on OpenGL, for efficient 2D/3D rendering (see gui_opengl.erl)
 % - possibly, some day, on esdl (https://github.com/dgud/esdl), for adequate
-% lower-level primitives (ex: management of input devices)
+% lower-level primitives (e.g. management of input devices)
 
 
 
@@ -66,11 +66,11 @@
 %
 % From a user process (a test, an application, etc.) the GUI support is first
 % started (gui:start/0), then widgets (windows, frames, panels, buttons, etc.)
-% are created (ex: gui:create_frame/6) and the user process subscribes to the
+% are created (e.g. gui:create_frame/6) and the user process subscribes to the
 % events it is interested in (as a combination of an event type and a
 % widget-as-an-event-emitter; for example:
 % gui:subscribe_to_events({onWindowClosed, MainFrame})). It triggers also any
-% relevant operation (ex: clearing widgets, setting various parameters),
+% relevant operation (e.g. clearing widgets, setting various parameters),
 % generally shows at least a main frame and records the GUI state that it needs
 % (typically containing at least the MyriadGUI references of the widgets that it
 % created).
@@ -82,17 +82,18 @@
 %
 % Beware of asynchronous operations (i.e. the sending of oneways) to the GUI
 % main loop process, as they may introduce nasty race conditions. For example,
-% if the subscribing to events (ex: to the main frame being shown) was left
+% if the subscribing to events (e.g. to the main frame being shown) was left
 % asynchronous, then the operations coming next from the user code may be fast
-% enough so that a wx instance (ex: the main frame) processes these events (ex:
-% requesting the main frame to be shown) before even that the GUI main loop had
-% a chance to declare its connection to them. This would result in an expected
-% event (onShown here) never to be emitted and thus never to be received.
+% enough so that a wx instance (e.g. the main frame) processes these events
+% (e.g.  requesting the main frame to be shown) before even that the GUI main
+% loop had a chance to declare its connection to them. This would result in an
+% expected event (onShown here) never to be emitted and thus never to be
+% received.
 %
-% Another race condition can happen when destructing a resource (ex: when
+% Another race condition can happen when destructing a resource (e.g. when
 % issuing 'gui:destruct_window(MainFrame)' whereas some previous operations may
-% not have been processed yet (ex: gui_canvas:set_draw_color/2), resulting in
-% access errors (ex: {unknown_env,{wxPen,new,2}}) due to an
+% not have been processed yet (e.g. gui_canvas:set_draw_color/2), resulting in
+% access errors (e.g. {unknown_env,{wxPen,new,2}}) due to an
 % use-after-destroy. Short of making most operations synchronous, no real
 % solution seems to exist. The issue exists maybe even without MyriadGUI, but
 % having a middle process increases the likeliness of such a problem due to the
@@ -114,7 +115,7 @@
 % accordingly, to be future-proof.
 %
 % The general convention is still to put as first argument the object on which
-% the operation is to be applied (ex: the window).
+% the operation is to be applied (e.g. the window).
 %
 % See also:
 % - the gui_wx_backend module for our use of wx as a backend
@@ -136,7 +137,7 @@
 % start/n functions
 %
 % - a user-defined, application-specific one, fed by the former internal loop
-% (ex: with onWindowClosed messages), possibly using any client-side state of
+% (e.g. with onWindowClosed messages), possibly using any client-side state of
 % interest (whose definition is fully free)
 
 
@@ -250,7 +251,7 @@
 
 
 -type backend_information() ::
-		{ backend_identifier(), basic_utils:any_version() }.
+	{ backend_identifier(), basic_utils:any_version() }.
 % Information regarding a graphical backend.
 
 
@@ -270,9 +271,9 @@
 % An (opaque) wx process environment.
 
 
-% With wx, device contexts (ex: obtained from wxMemoryDC:new/1) must be
-% explicitly managed (ex: wxMemoryDC:destroy/1 must be called when finished with
-% them), which is inconvenient and error-prone.
+% With wx, device contexts (e.g. obtained from wxMemoryDC:new/1) must be
+% explicitly managed (e.g. wxMemoryDC:destroy/1 must be called when finished
+% with them), which is inconvenient and error-prone.
 %
 -type device_context() :: wxDC:wxDC().
 % Designates an abstract device where rendering can take place, and which can be
@@ -624,7 +625,7 @@
 % MyriadGUI-translated version of a native wx type, i.e. of the
 % wx_native_object_type().
 %
-% (ex: 'window', instead of 'wxWindow').
+% (e.g. 'window', instead of 'wxWindow').
 
 
 -type myriad_object_type() :: 'myr_canvas'.
@@ -644,7 +645,7 @@
 % Reference to a GUI object (often designated as "widget" here), somewhat akin
 % to a PID.
 %
-% (ex: {wx_ref,35,wxFrame,[]} or {myriad_object_ref,myr_canvas,12}).
+% (e.g. {wx_ref,35,wxFrame,[]} or {myriad_object_ref,myr_canvas,12}).
 
 
 -type wx_server() :: gui_object().
@@ -664,7 +665,7 @@
 
 % Includes wx:null(), i.e. a #wx_ref{ref=0, type=wx}.
 -type window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
-% Any kind of window, that is widget (ex: any canvas is a window).
+% Any kind of window, that is widget (e.g. any canvas is a window).
 
 
 
@@ -901,7 +902,7 @@
 									| 'exit_menu_item'.
 % The name identifiers of the standard menu items.
 %
-% Such standard items are specifically managed (ex: they have a corresponding
+% Such standard items are specifically managed (e.g. they have a corresponding
 % icon automatically associated).
 
 
@@ -919,9 +920,9 @@
 
 
 -type standard_icon_name_id() ::
-		'asterisk_icon' | 'stop_icon' | 'information_icon'
-	  | 'question_icon' | 'error_icon' | 'warning_icon' | 'hand_icon'
-	  | 'exclamation_icon'.
+	'asterisk_icon' | 'stop_icon' | 'information_icon'
+  | 'question_icon' | 'error_icon' | 'warning_icon' | 'hand_icon'
+  | 'exclamation_icon'.
 % The name identifiers of the standard icons.
 
 
@@ -929,25 +930,25 @@
 
 
 -type standard_bitmap_name_id() ::
-	  'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
-	| 'information_bitmap' | 'add_bookmark_bitmap'
-	| 'delete_bookmark_bitmap' | 'help_side_panel_bitmap'
-	| 'help_settings_bitmap' | 'help_book_bitmap' | 'help_folder_bitmap'
-	| 'help_page_bitmap' | 'go_back_bitmap' | 'go_forward_bitmap'
-	| 'go_up_bitmap' | 'go_down_bitmap' | 'go_to_parent_bitmap'
-	| 'go_home_bitmap' | 'goto_first_bitmap' | 'goto_last_bitmap'
-	| 'print_bitmap' | 'help_bitmap' | 'tip_bitmap' | 'report_view_bitmap'
-	| 'list_view_bitmap' | 'new_folder_bitmap' | 'folder_bitmap'
-	| 'open_folder_bitmap' | 'go_folder_up_bitmap' | 'executable_file_bitmap'
-	| 'normal_file_bitmap' | 'tick_mark_bitmap' | 'cross_mark_bitmap'
-	| 'missing_image_bitmap' | 'new_bitmap' | 'file_open_bitmap'
-	| 'file_save_bitmap' | 'file_save_as_bitmap' | 'file_delete_bitmap'
-	| 'copy_bitmap' | 'cut_bitmap' | 'paste_bitmap' | 'undo_bitmap'
-	| 'redo_bitmap' | 'plus_bitmap' | 'minus_bitmap' | 'close_bitmap'
-	| 'quit_bitmap' | 'find_bitmap' | 'find_and_replace_bitmap'
-	| 'full_screen_bitmap' | 'edit_bitmap' | 'hard_disk_bitmap'
-	| 'floppy_bitmap' | 'cdrom_bitmap' | 'removable_bitmap'
-	| 'backend_logo_bitmap'.
+	'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
+ | 'information_bitmap' | 'add_bookmark_bitmap'
+ | 'delete_bookmark_bitmap' | 'help_side_panel_bitmap'
+ | 'help_settings_bitmap' | 'help_book_bitmap' | 'help_folder_bitmap'
+ | 'help_page_bitmap' | 'go_back_bitmap' | 'go_forward_bitmap'
+ | 'go_up_bitmap' | 'go_down_bitmap' | 'go_to_parent_bitmap'
+ | 'go_home_bitmap' | 'goto_first_bitmap' | 'goto_last_bitmap'
+ | 'print_bitmap' | 'help_bitmap' | 'tip_bitmap' | 'report_view_bitmap'
+ | 'list_view_bitmap' | 'new_folder_bitmap' | 'folder_bitmap'
+ | 'open_folder_bitmap' | 'go_folder_up_bitmap' | 'executable_file_bitmap'
+ | 'normal_file_bitmap' | 'tick_mark_bitmap' | 'cross_mark_bitmap'
+ | 'missing_image_bitmap' | 'new_bitmap' | 'file_open_bitmap'
+ | 'file_save_bitmap' | 'file_save_as_bitmap' | 'file_delete_bitmap'
+ | 'copy_bitmap' | 'cut_bitmap' | 'paste_bitmap' | 'undo_bitmap'
+ | 'redo_bitmap' | 'plus_bitmap' | 'minus_bitmap' | 'close_bitmap'
+ | 'quit_bitmap' | 'find_bitmap' | 'find_and_replace_bitmap'
+ | 'full_screen_bitmap' | 'edit_bitmap' | 'hard_disk_bitmap'
+ | 'floppy_bitmap' | 'cdrom_bitmap' | 'removable_bitmap'
+| 'backend_logo_bitmap'.
 % The name identifiers of the standard bitmaps.
 
 
@@ -1013,45 +1014,45 @@
 % 'iconized' not kept (duplicate of 'minimize').
 -type frame_style_opt() ::
 
-		% Corresponds to the following options: minimize_icon, maximize_icon,
-		% resize_border, system_menu, caption, close_icon and clip_children.
-		%
-		'default'
+	% Corresponds to the following options: minimize_icon, maximize_icon,
+	% resize_border, system_menu, caption, close_icon and clip_children.
+	%
+	'default'
 
-		% Displays a caption on the title bar of this frame (needed for icons).
-	  | 'caption'
+	% Displays a caption on the title bar of this frame (needed for icons).
+  | 'caption'
 
-		% Displays a minimize icon on the title bar of this frame.
-	  | 'minimize_icon'
+	% Displays a minimize icon on the title bar of this frame.
+  | 'minimize_icon'
 
-		% Displays a maximize icon on the title bar of this frame.
-	  | 'maximize_icon'
+	% Displays a maximize icon on the title bar of this frame.
+  | 'maximize_icon'
 
-		% Displays a close icon on the title bar of this frame.
-	  | 'close_icon'
+	% Displays a close icon on the title bar of this frame.
+  | 'close_icon'
 
-		% Stays on top of all other windows.
-	  | 'stay_on_top'
+	% Stays on top of all other windows.
+  | 'stay_on_top'
 
-		% Displays a system menu containing the list of various windows commands
-		% in the window title bar.
-		%
-	  | 'system_menu'
+	% Displays a system menu containing the list of various windows commands
+	% in the window title bar.
+	%
+  | 'system_menu'
 
-		% Displays a resizable border around the window.
-	  | 'resize_border'
+	% Displays a resizable border around the window.
+  | 'resize_border'
 
-		% This frame will have a small title bar:
-	  | 'tool_window'
+	% This frame will have a small title bar:
+  | 'tool_window'
 
-		% Requests that this frame does not appear in the taskbar:
-	  | 'no_taskbar'
+	% Requests that this frame does not appear in the taskbar:
+  | 'no_taskbar'
 
-		 % Stays on top of (only) its parent:
-	  | 'float_on_parent'
+	% Stays on top of (only) its parent:
+  | 'float_on_parent'
 
-		 % Allows this frame to have its shape changed:
-	  | 'shaped'.
+	% Allows this frame to have its shape changed:
+  | 'shaped'.
 % Options for frames.
 %
 % Note that specifying an empty option list does not enable any option.
@@ -1175,7 +1176,7 @@
 %
 % Use the 'trap_event' option or the trap_event/1 function to prevent any
 % default event propagation to happen, so that the user code is the sole manager
-% of such events (ex: of the application termination).
+% of such events (e.g. of the application termination).
 %
 % Conversely, use the 'propagate_event' option or the propagate_event/1 function
 % to force event propagation despite an event type implying that by default
@@ -1386,7 +1387,7 @@ start( DebugLevel ) ->
 % information of the just created MyriadGUI environment.
 %
 % Some services must be specifically declared here, as they require
-% initialisation (ex: for the loading of mouse cursors).
+% initialisation (e.g. for the loading of mouse cursors).
 %
 %-spec create_gui_environment( [ service() ], id_allocator_pid() ) ->
 %													gui_env_info().
@@ -1412,7 +1413,7 @@ create_gui_environment( Services ) ->
 	WxEnv = wx:get_env(),
 
 	% Needed both directly in the main event loop and in the GUI environment
-	% (ex: for when creating a plain canvas with no specific context):
+	% (e.g. for when creating a plain canvas with no specific context):
 	%
 	TrapSet = gui_event:get_trapped_event_types( Services ),
 
@@ -1464,15 +1465,8 @@ create_gui_environment( Services ) ->
 
 	end,
 
-	case NonMouseServices of
-
-		[] ->
-			ok;
-
-		_ ->
-			throw( { unknown_services, NonMouseServices } )
-
-	end,
+	NonMouseServices =:= [] orelse
+		throw( { unknown_services, NonMouseServices } ),
 
 	{ GUIEnvRegName, GUIEnvPid }.
 
@@ -1517,7 +1511,7 @@ set_debug_level( DebugLevel ) ->
 % tuple whose:
 %
 % - first element corresponds to the type of event having happened, as an atom
-% (ex: 'onWindowClosed', 'onResized', 'onShown', etc.)
+% (e.g. 'onWindowClosed', 'onResized', 'onShown', etc.)
 %
 % - second is a list whose elements depend on the type of this event
 %
@@ -1573,7 +1567,7 @@ subscribe_to_events( SubscribedEvents, SubscriberDesignator )
 
 	% This is, in logical terms, a oneway (received in
 	% gui_event:process_event_message/2), yet it must be a request (i.e. it must
-	% be synchronous), otherwise a race condition exists (ex: the user
+	% be synchronous), otherwise a race condition exists (e.g. the user
 	% subscribes to 'onShown' for the main frame, and just after executes
 	% 'gui:show(MainFrame)'. If subscribing is non-blocking, then the main frame
 	% may be shown before being connected to the main loop, and thus it will not
@@ -1739,7 +1733,7 @@ event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
 							 WxEventObject, EventTranslationTable ) ->
 
-	% Ex: WxEventObject={ wx_ref, 92, wxPaintEvent, [] }:
+	% For example WxEventObject={ wx_ref, 92, wxPaintEvent, [] }:
 	%trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
 	%                       [ WxEventObject ] ),
 
@@ -1943,7 +1937,7 @@ create_window( Size ) ->
 create_window( Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
-				{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
+		{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
 	ActualId = declare_id( Id ),
 	ActualParent = to_wx_parent( Parent ),
@@ -2577,9 +2571,9 @@ fit( Window ) ->
 
 
 
-% @doc Maximises the specified widget (a specialised window; ex: a panel) in its
-% parent (adopting its maximum client size), and returns the new size of this
-% widget.
+% @doc Maximises the specified widget (a specialised window; e.g. a panel) in
+% its parent (adopting its maximum client size), and returns the new size of
+% this widget.
 %
 -spec maximise_in_parent( window() ) -> dimensions().
 maximise_in_parent( Widget ) ->
@@ -2593,8 +2587,8 @@ maximise_in_parent( Widget ) ->
 % @doc Synchronises the specified window with the MyriadGUI loop, to ensure that
 % no past operation is still pending at its level.
 %
-% Useful if there exists some means of interacting with it directly (ex: thanks
-% to an OpenGL NIF) that could create a race condition (ex: presumably
+% Useful if there exists some means of interacting with it directly (e.g. thanks
+% to an OpenGL NIF) that could create a race condition (e.g. presumably
 % message-based resizing immediately followed by a direct OpenGL rendering).
 %
 % See gui_opengl_minimal_test:on_main_frame_resize/1 for further details.
@@ -2611,7 +2605,7 @@ sync( Window ) ->
 
 
 
-% @doc Updates the specified window-like object (ex: a canvas) so that its
+% @doc Updates the specified window-like object (e.g. a canvas) so that its
 % client area can be painted.
 %
 % To be called from a repaint event handler.
@@ -2814,8 +2808,8 @@ create_toolbar( Frame ) ->
 % @doc Creates a toolbar in the specified frame, with the specified identifier
 % (if any) and style.
 %
-% Apparently up to one toolbar can be associated to a frame (ex: no top and left
-% toolbars allowed simultaneously).
+% Apparently up to one toolbar can be associated to a frame (e.g. no top and
+% left toolbars allowed simultaneously).
 %
 -spec create_toolbar( frame(), id(), maybe_list( toolbar_style() ) ) ->
 											toolbar().
@@ -4030,7 +4024,7 @@ object_to_string( #myriad_object_ref{ object_type=ObjectType,
 	text_utils:format( "~ts-~B", [ ObjectType, InstanceId ] );
 
 object_to_string( { wx_ref, InstanceRef, WxObjectType, _State=[] } ) ->
-	% Ex: {wx_ref,35,wxFrame,[]}
+	% For example {wx_ref,35,wxFrame,[]}
 	ObjectType = gui_wx_backend:from_wx_object_type( WxObjectType ),
 	text_utils:format( "~ts-~B", [ ObjectType, InstanceRef ] );
 

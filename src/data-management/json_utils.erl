@@ -61,7 +61,7 @@
 % The parser state (typically returned first by start_parser/0) may or may not
 % be used by the caller; its interest is to allow for a slightly more efficient
 % mode of operation at runtime. Not using such a state also implies that the
-% backend is stateless; we also consider that this state is const (ex: like a
+% backend is stateless; we also consider that this state is const (e.g. like a
 % PID or any reference), in the sense that a JSON operation is not supposed to
 % impact it (otherwise each would have to return a new state).
 %
@@ -72,8 +72,8 @@
 % Note that:
 %
 % - the actual JSON encoding of a given Erlang term depends on the parser
-% backend (ex: the order of JSON keys might differ - note that the JSON RFC (RFC
-% 4627) indicates that order of object members should not matter)
+% backend (e.g. the order of JSON keys might differ - note that the JSON RFC
+% (RFC 4627) indicates that order of object members should not matter)
 %
 % - for each parser, we expect that from_json . to_json = Id, i.e. for each
 % valid Erlang term T, from_json(to_json(T)) = T
@@ -173,9 +173,9 @@
 
 
 -type json_term() ::
-		map_hashtable:map_hashtable( decoded_json_key(), decoded_json_value() )
-	  | integer() | float() | binary() | atom() | term().
-% An (Erlang) term corresponding to a JSON document (ex: a decoded one, or one
+	map_hashtable:map_hashtable( decoded_json_key(), decoded_json_value() )
+  | integer() | float() | binary() | atom() | term().
+% An (Erlang) term corresponding to a JSON document (e.g. a decoded one, or one
 % not encoded yet), at least often a map whose keys are binary strings and whose
 % values are json_term() or basic types such as integers, floats, strings,
 % etc.).
@@ -221,7 +221,7 @@
 % throws an exception.
 %
 -spec get_parser_name_paths() ->
-		  { parser_backend_name(), resolvable_path(), directory_path() }.
+			{ parser_backend_name(), resolvable_path(), directory_path() }.
 get_parser_name_paths() ->
 	case get_paths_for( jsx ) of
 
@@ -517,7 +517,7 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 % @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON
 % counterpart element, using the looked-up default JSON backend for that.
 %
-% Ex: `json_utils:to_json( #{
+% For example `json_utils:to_json( #{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
 %   <<"signature">> => EncSigned} )'.
@@ -535,7 +535,7 @@ to_json( Term ) ->
 % @doc Converts (encodes) specified Erlang term into a JSON counterpart element,
 % using directly the JSON backend designated by the specified parser state.
 %
-% Ex: `json_utils:to_json(#{
+% For example `json_utils:to_json(#{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
 %   <<"signature">> => EncSigned }, _ParserName=jsx )'.
@@ -568,7 +568,7 @@ to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 % @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON file,
 % using the looked-up default JSON backend for that.
 %
-% Ex: `json_utils:to_json_file(#{
+% For example `json_utils:to_json_file(#{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
 %   <<"signature">> => EncSigned}, TargetJsonFilePath )'.
@@ -583,7 +583,7 @@ to_json_file( Term, TargetJsonFilePath ) ->
 % @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON file,
 % using the specified JSON backend for that.
 %
-% Ex: `json_utils:to_json_file(#{
+% For example `json_utils:to_json_file(#{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
 %   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState )'.
@@ -657,7 +657,7 @@ from_json( Json, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 	%trace_utils:debug_fmt( "Decoding '~p' with JSX.", [ BinJson ] ),
 
-	% Note that at least some errors in the JSON file (ex: missing comma) will
+	% Note that at least some errors in the JSON file (e.g. missing comma) will
 	% lead only to an exception such as:
 	%
 	% ** exception error: bad argument

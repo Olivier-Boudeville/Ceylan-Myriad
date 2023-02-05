@@ -63,7 +63,7 @@
 -type bounding_algorithm() :: 'rectangle' | 'lazy_circle' | 'mec'.
 % Allows to designate an algorithm in charge of computing a bounding surface.
 % For example several algorithms allow, with different trade-offs, to compute
-% (different) instances of bounding surfaces (of the same type, ex: circle, or
+% (different) instances of bounding surfaces (of the same type, e.g. circle, or
 % of different types).
 
 
@@ -72,7 +72,7 @@
 
 
 -type circle() :: #circle{}.
-% A bounding surface defined based on any circle (ex: lazy or MEC).
+% A bounding surface defined based on any circle (e.g. lazy or MEC).
 
 
 -type bounding_surface() :: rectangle() | circle().
@@ -90,6 +90,7 @@
 % - ordinates (often denoted as Y) increase from top to bottom
 %
 % See https://myriad.esperide.org/#conventions
+
 
 % Implementation notes:
 %
@@ -200,7 +201,7 @@ get_minimal_enclosing_circle( _Points=[ P1, P2 ] ) ->
 
 % This clause is necessary, as the next one may end with a MEC for 2 or 3
 % points; without the current clause, the next one may thus recurse indefinitely
-% (ex: MEC for [{387,106},{474,143},{363,305}]).
+% (e.g. MEC for [{387,106},{474,143},{363,305}]).
 %
 % Moreover this clause, i.e. the computing of the MEC for a triangle, used to be
 % incorrect, as it clearly returned sub-optimal circles, i.e. always the
@@ -266,7 +267,7 @@ get_minimal_enclosing_circle( _Points=[ P1, P2, P3 ] ) ->
 
 get_minimal_enclosing_circle( Points ) ->
 
-	% Here we have at least three points, let's work an the hull instead:
+	% Here we have at least three points, let's work on the hull instead:
 	% See http://www.cs.mcgill.ca/~cs507/projects/1998/jacob/solutions.html
 	% for the solution.
 
@@ -401,6 +402,7 @@ get_circle_for_aligned( P1, P2, P3 ) ->
 
 	Center = point2:get_center( A, B ),
 
+	% Necessarily floating-point:
 	#circle{ center=Center, square_radius=SquareRadius }.
 
 

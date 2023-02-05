@@ -41,7 +41,8 @@
 
 -type app_info() :: #app_info{}.
 
--type app_info_map() :: filename:basedir_opts().
+-type app_info_map() :: % Not exported yet: filename:basedir_opts().
+						any().
 % Needed by some standard functions in the filename module.
 
 -type any_app_info() :: app_info() | app_info_map().
@@ -246,7 +247,7 @@ finished() ->
 % @doc To be called whenever an application is to fail (crash on error)
 % immediately.
 %
-% Ex: `app_facilities:fail( "server on strike" )'
+% For example `app_facilities:fail( "server on strike" )'
 %
 -spec fail( ustring() ) -> no_return().
 fail( Reason ) ->
@@ -278,7 +279,7 @@ fail( Reason ) ->
 %
 % @param ValueList the corresponding list of field values.
 %
-% Ex: `app_facilities:fail("server ~ts on strike", ["foobar.org"])'.
+% For example `app_facilities:fail("server ~ts on strike", ["foobar.org"])'.
 %
 -spec fail( format_string(), format_values() ) -> no_return().
 fail( FormatString, ValueList ) ->

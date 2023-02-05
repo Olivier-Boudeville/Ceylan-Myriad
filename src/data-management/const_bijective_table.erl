@@ -59,12 +59,12 @@
 % (the 'maybe' one is not enabled unconditionally as it slows down very slightly
 % the strict functions, whereas it may be useless)
 %
-% No ETS table, replication (ex: per-user table copy) or message sending is
+% No ETS table, replication (e.g. per-user table copy) or message sending is
 % involved: thanks to metaprogramming (parse transform), a module is generated
 % on-the-fly, exporting two functions designed to access either of the elements
 % of the entries of interest.
 %
-% More precisely, a module name (ex: 'foobar') and a list of `{any(), any()}'
+% More precisely, a module name (e.g. 'foobar') and a list of `{any(), any()}'
 % entries must be provided to the `const_bijective_table:generate*/*' functions;
 % any element E of any pair in the resulting table (e.g. 42.0 in `{'baz',
 % 42.0}') can then be accessed thanks to foobar:get_{first|second}_for/1
@@ -146,8 +146,9 @@
 -type permanent_term() :: type_utils:permanent_term().
 
 -type form() :: ast_base:form().
-
 -type file_loc() :: ast_base:file_loc().
+
+-type clause_def() :: meta_utils:clause_def().
 
 -type element_lookup() :: const_bijective_topics:element_lookup().
 
@@ -158,7 +159,7 @@
 % functions ('strict' look-up) in order to access either element of the recorded
 % pairs.
 %
-% Note that no actual module file is generated (ex: no 'foobar.beam'), the
+% Note that no actual module file is generated (e.g. no 'foobar.beam'), the
 % operation remains fully in-memory.
 %
 -spec generate_in_memory( module_name(), entries() ) -> void().
@@ -179,7 +180,7 @@ generate_in_memory( ModuleName, Entries ) ->
 % 'maybe' element look-up is not recommended if either of the first and second
 % sets contains the 'undefined' atom, as it leads to ambiguity.
 %
-% Note that no actual module file is generated (ex: no 'foobar.beam'), the
+% Note that no actual module file is generated (e.g. no 'foobar.beam'), the
 % operation remains fully in-memory.
 %
 -spec generate_in_memory( module_name(), entries(), element_lookup() ) ->
@@ -547,7 +548,8 @@ generate_strict_calling_clauses( ErrorAtom, MaybeFunName, FileLoc ) ->
 % Thus results in { {nocatch, {first_not_found, MyUnexpectedValue} },
 % [{my_generated_module, get_second_for,1,[]}, ...
 %
--spec catch_all_clause( error_type(), element_lookup(), file_loc() ) -> form().
+-spec catch_all_clause( error_type(), element_lookup(), file_loc() ) ->
+								clause_def().
 catch_all_clause( ErrorAtom, _Lookup=strict, FileLoc ) ->
 
 	% Corresponds to a clause:

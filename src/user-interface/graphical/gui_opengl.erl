@@ -39,7 +39,7 @@
 -module(gui_opengl).
 
 
-% Ex: for WX_GL_CORE_PROFILE.
+% For example for WX_GL_CORE_PROFILE.
 -include_lib("wx/include/wx.hrl").
 
 %-include_lib("wx/include/gl.hrl").
@@ -71,12 +71,12 @@
 % One may also refer to the wx:demo/0 function (see
 % lib/wx/examples/demo/ex_gl.erl) and to lib/wx/test/wx_opengl_SUITE.erl.
 %
-% For some reason, they use wx defines (ex: ?WX_GL_DOUBLEBUFFER) rather than
-% pure OpenGL ones (ex: ?GL_DOUBLEBUFFER). Of course we prefer the latter ones.
+% For some reason, they use wx defines (e.g. ?WX_GL_DOUBLEBUFFER) rather than
+% pure OpenGL ones (e.g. ?GL_DOUBLEBUFFER). Of course we prefer the latter ones.
 %
 % Note that almost all OpenGL operations require that an OpenGL context already
 % exists, otherwise an no_gl_context error report is expected to be triggered
-% (ex: {'_egl_error_',5086,no_gl_context}).
+% (e.g. {'_egl_error_',5086,no_gl_context}).
 
 % Note: with OpenGL, angles are in degrees.
 
@@ -184,25 +184,25 @@
 	'rgba' | 'bgra'
 
 	% To enable double-buffering if present:
-	| 'double_buffer'
+  | 'double_buffer'
 
 	% Use red buffer with at least this number of bits:
-	| { 'min_red_size', bit_size() }
+  | { 'min_red_size', bit_size() }
 
 	% Use green buffer with at least this number of bits:
-	| { 'min_green_size', bit_size() }
+  | { 'min_green_size', bit_size() }
 
 	% Use blue buffer with at least this number of bits:
-	| { 'min_blue_size', bit_size() }
+  | { 'min_blue_size', bit_size() }
 
 	% The number of bits for Z-buffer (typically 0, 16 or 32):
-	| { 'depth_buffer_size', bit_size() }
+  | { 'depth_buffer_size', bit_size() }
 
 	% Request the use of an OpenGL core profile (as opposed to a mere
 	% compatibility one); note that is implies requesting at least OpenGL
 	% version 3.0.
 	%
-	| 'use_core_profile'.
+  | 'use_core_profile'.
 
 
 -type gl_canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
@@ -317,7 +317,7 @@
 
 
 -opaque glu_id() :: non_neg_integer().
-% An identifier (actually a pointer) returned by GLU (ex: when creating a
+% An identifier (actually a pointer) returned by GLU (e.g. when creating a
 % quadrics). A null value usually means that there was not enough memory to
 % allocate the object.
 
@@ -465,7 +465,7 @@
 get_vendor_name() ->
 	Res= gl:getString( ?GL_VENDOR ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-	Res.
+	text_utils:string_to_binary( Res ).
 
 
 
@@ -525,7 +525,7 @@ get_vendor() ->
 get_renderer_name() ->
 	Res = gl:getString( ?GL_RENDERER ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-	Res.
+	text_utils:string_to_binary( Res ).
 
 
 
@@ -596,7 +596,7 @@ get_version() ->
 			AssumedVersion = { 1, 1, 0 },
 			trace_utils:warning_fmt( "Unable to determine the OpenGL version, "
 				"assuming ~ts",
-				[ basic_utils:version_to_string( AssumedVersion ) ] ),
+				[ text_utils:version_to_string( AssumedVersion ) ] ),
 			AssumedVersion;
 
 		VersionStr ->
@@ -671,7 +671,7 @@ is_profile_supported( core ) ->
 		0 ->
 			false;
 
-		% Ex: 6
+		% For example 6:
 		_ ->
 			true
 
@@ -685,7 +685,7 @@ is_profile_supported( compatibility ) ->
 		0 ->
 			false;
 
-		% Ex: 6
+		% For example 6:
 		_ ->
 			true
 
@@ -741,7 +741,7 @@ get_shading_language_version() ->
 
 % @doc Returns a list of the supported extensions.
 %
-% Ex: 390 extensions like 'GL_AMD_multi_draw_indirect',
+% For example 390 extensions like 'GL_AMD_multi_draw_indirect',
 % 'GL_AMD_seamless_cubemap_per_texture', etc.
 %
 -spec get_supported_extensions() -> [ gl_extension() ].
@@ -804,7 +804,7 @@ get_support_description() ->
 
 	Exts = get_supported_extensions(),
 
-	% Way too long (ex: 390 extensions returned):
+	% Way too long (e.g. 390 extensions returned):
 	%ExtStr = text_utils:format( "~B extensions: ~ts", [ length( Exts ),
 	%   text_utils:atoms_to_listed_string( Exts ) ] ),
 
@@ -972,36 +972,33 @@ check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
 
 	Tid = gui_opengl:init_info_table(),
 
-	case is_version_compatible_with( MinOpenGLVersion, Tid ) of
+	is_version_compatible_with( MinOpenGLVersion, Tid ) orelse
+		begin
 
-		true ->
-			ok;
-
-		false ->
 			LocalVersion = gui_opengl:get_version( Tid ),
+
 			trace_utils:error_fmt( "The local OpenGL version, ~ts, is not "
 				"compatible with the necessary one, ~ts. Drivers may have "
 				"to be updated.",
 				[ text_utils:version_to_string( LocalVersion ),
 				  text_utils:version_to_string( MinOpenGLVersion ) ] ),
+
 			throw( { incompatible_opengl_version, LocalVersion,
 					 MinOpenGLVersion } )
 
-	end,
+		end,
 
 
-	case is_profile_supported( RequiredProfile ) of
+	is_profile_supported( RequiredProfile ) orelse
+		begin
 
-		true ->
-			ok;
-
-		false ->
 			trace_utils:error_fmt( "The local OpenGL driver does not support "
 				"the '~ts' profile. Drivers may have to be updated.",
 				[ RequiredProfile ] ),
+
 			throw( { unsupported_opengl_profile, RequiredProfile } )
 
-	end,
+		end,
 
 
 	case get_unsupported_extensions( RequiredExtensions, Tid ) of
@@ -1081,7 +1078,7 @@ get_size( Count, _GLType=?GL_DOUBLE ) ->
 -spec is_hardware_accelerated( glxinfo_report() ) -> boolean().
 is_hardware_accelerated( GlxinfoStrs ) ->
 
-	% Ex: "direct rendering: Yes"
+	% For example "direct rendering: Yes"
 	case list_utils:get_element_at( GlxinfoStrs, _Index=3 ) of
 
 		"direct rendering: " ++ Next ->
@@ -1276,15 +1273,8 @@ swap_buffers( Canvas ) ->
 	gl:flush(),
 	% More expensive, as blocks: gl:finish(),
 
-	case wxGLCanvas:swapBuffers( Canvas ) of
+	wxGLCanvas:swapBuffers( Canvas ) orelse throw( failed_to_swap_buffers ),
 
-		true ->
-			ok;
-
-		false ->
-			throw( failed_to_swap_buffers )
-
-	end,
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 
@@ -1499,7 +1489,7 @@ render_texture( #texture{ id=TextureId,
 	%OtherXp = Xp + Width,
 	%OtherY = Yp + Height,
 
-	% Associating a (2D) texture coordinate to each vertex:
+	% Associating a (2D) texture coordinate to each verte.g.
 	gl:texCoord2f( MinXt, MinYt ), gl:vertex2i( Xp, Yp ),
 	gl:texCoord2f( MaxXt, MinYt ), gl:vertex2i( OtherXp, Yp ),
 	gl:texCoord2f( MinXt, MaxYt ), gl:vertex2i( Xp, OtherYp ),
@@ -1560,7 +1550,7 @@ render_mesh( #mesh{ vertices=Vertices,
 					normals=Normals,
 					rendering_info={ color, per_vertex, Colors } } ) ->
 
-	% We could batch the commands sent to the GUI backend (ex: with wx:batch/1
+	% We could batch the commands sent to the GUI backend (e.g. with wx:batch/1
 	% or wx:foreach/2).
 
 	% We currently suppose we have quad-based faces:
@@ -1609,8 +1599,8 @@ enter_2d_mode( Window ) ->
 	%
 	% As for ordinates, with the Myriad 2D referential (refer to the 'Geometric
 	% Conventions' in Myriad's technical manual), like for the backend
-	% coordinates (ex: SDL, wxWidgets), they are to increase when going from top
-	% to bottom.
+	% coordinates (e.g. SDL, wxWidgets), they are to increase when going from
+	% top to bottom.
 	%
 	% It is the opposite by default with OpenGL (increasing from bottom to top;
 	% the elements would therefore be upside-down in the OpenGL world), so in
@@ -1734,17 +1724,10 @@ compile_vertex_shader( VertexShaderPath ) ->
 	case gl:getShaderiv( VertexShaderId, ?GL_COMPILE_STATUS ) of
 
 		?GL_TRUE ->
-			case MaybeLogStr of
-
-				undefined ->
-					ok;
-
-				LogStr ->
+			MaybeLogStr =:=	undefined orelse
 					trace_utils:warning_fmt( "Compilation of the vertex shader "
 						"defined in '~ts' succeeded, yet reported that '~ts'.",
-						[ VertexShaderPath, LogStr ] )
-
-			end;
+						[ VertexShaderPath, MaybeLogStr ] );
 
 		_ ->
 			MsgStr = case MaybeLogStr of
@@ -1812,18 +1795,11 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 	case gl:getShaderiv( TessCtrlShaderId, ?GL_COMPILE_STATUS ) of
 
 		?GL_TRUE ->
-			case MaybeLogStr of
-
-				undefined ->
-					ok;
-
-				LogStr ->
-					trace_utils:warning_fmt( "Compilation of the tessellation "
-						"control shader defined in '~ts' succeeded, "
-						"yet reported that '~ts'.",
-						[ TessCtrlShaderPath, LogStr ] )
-
-			end;
+			MaybeLogStr =:= undefined orelse
+				trace_utils:warning_fmt( "Compilation of the tessellation "
+					"control shader defined in '~ts' succeeded, "
+					"yet reported that '~ts'.",
+					[ TessCtrlShaderPath, MaybeLogStr ] );
 
 		_ ->
 			MsgStr = case MaybeLogStr of
@@ -1892,18 +1868,11 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 	case gl:getShaderiv( TessEvalShaderId, ?GL_COMPILE_STATUS ) of
 
 		?GL_TRUE ->
-			case MaybeLogStr of
-
-				undefined ->
-					ok;
-
-				LogStr ->
-					trace_utils:warning_fmt( "Compilation of the tessellation "
-						"evaluation shader defined in '~ts' succeeded, "
-						"yet reported that '~ts'.",
-						[ TessEvalShaderPath, LogStr ] )
-
-			end;
+			MaybeLogStr =:= undefined orelse
+				trace_utils:warning_fmt( "Compilation of the tessellation "
+					"evaluation shader defined in '~ts' succeeded, "
+					"yet reported that '~ts'.",
+					[ TessEvalShaderPath, MaybeLogStr ] );
 
 		_ ->
 			MsgStr = case MaybeLogStr of
@@ -1972,17 +1941,10 @@ compile_geometry_shader( GeometryShaderPath ) ->
 	case gl:getShaderiv( GeometryShaderId, ?GL_COMPILE_STATUS ) of
 
 		?GL_TRUE ->
-			case MaybeLogStr of
-
-				undefined ->
-					ok;
-
-				LogStr ->
-					trace_utils:warning_fmt( "Compilation of the geometry "
-						"shader defined in '~ts' succeeded, yet reported "
-						"that '~ts'.", [ GeometryShaderPath, LogStr ] )
-
-			end;
+			MaybeLogStr =:= undefined orelse
+				trace_utils:warning_fmt( "Compilation of the geometry "
+					"shader defined in '~ts' succeeded, yet reported "
+					"that '~ts'.", [ GeometryShaderPath, MaybeLogStr ] );
 
 		_ ->
 			MsgStr = case MaybeLogStr of
@@ -2049,17 +2011,10 @@ compile_fragment_shader( FragmentShaderPath ) ->
 	case gl:getShaderiv( FragmentShaderId, ?GL_COMPILE_STATUS ) of
 
 		?GL_TRUE ->
-			case MaybeLogStr of
-
-				undefined ->
-					ok;
-
-				LogStr ->
-					trace_utils:warning_fmt( "Compilation of the fragment "
-						"shader defined in '~ts' succeeded, yet reported "
-						"that '~ts'.", [ FragmentShaderPath, LogStr ] )
-
-			end;
+			MaybeLogStr =:= undefined orelse
+				trace_utils:warning_fmt( "Compilation of the fragment "
+					"shader defined in '~ts' succeeded, yet reported "
+					"that '~ts'.", [ FragmentShaderPath, MaybeLogStr ] );
 
 		_ ->
 			MsgStr = case MaybeLogStr of
@@ -2124,17 +2079,10 @@ compile_compute_shader( ComputeShaderPath ) ->
 	case gl:getShaderiv( ComputeShaderId, ?GL_COMPILE_STATUS ) of
 
 		?GL_TRUE ->
-			case MaybeLogStr of
-
-				undefined ->
-					ok;
-
-				LogStr ->
-					trace_utils:warning_fmt( "Compilation of the compute "
-						"shader defined in '~ts' succeeded, yet reported "
-						"that '~ts'.", [ ComputeShaderPath, LogStr ] )
-
-			end;
+			MaybeLogStr =:= undefined orelse
+				trace_utils:warning_fmt( "Compilation of the compute "
+					"shader defined in '~ts' succeeded, yet reported "
+					"that '~ts'.", [ ComputeShaderPath, MaybeLogStr ] );
 
 		_ ->
 			MsgStr = case MaybeLogStr of
@@ -2224,17 +2172,10 @@ generate_program( ShaderIds, UserAttributes ) ->
 	case gl:getProgramiv( ProgramId, ?GL_LINK_STATUS ) of
 
 		?GL_TRUE ->
-			case MaybeLogStr of
-
-				undefined ->
-					ok;
-
-				LogStr ->
-					trace_utils:warning_fmt( "Linking of the program from "
-						"specified shaders succeeded, yet reported that '~ts'.",
-						[ LogStr ] )
-
-			end;
+			MaybeLogStr =:= undefined orelse
+				trace_utils:warning_fmt( "Linking of the program from "
+					"specified shaders succeeded, yet reported that '~ts'.",
+					[ MaybeLogStr ] );
 
 		?GL_FALSE ->
 			MsgStr = case MaybeLogStr of

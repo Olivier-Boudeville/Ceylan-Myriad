@@ -35,12 +35,13 @@
 			rebar3-local-update                                              \
 			test-hex-package                                                 \
 			generate-protobuf                                                \
-			sync-sources-to-server sync-all-to-server                         \
+			sync-sources-to-server sync-all-to-server                        \
 			generate-api-doc generate-api-alt-doc copy-static-content        \
 			clean-api-doc clean-api-alt-doc                                  \
 			generate-list-of-erlang-types generate-list-of-local-types       \
 			generate-local-plt self-check-against-plt write-debug-key-file   \
-			check check-hook help-erl                                        \
+			check check-hook check-with-dialyzer check-with-gradualizer      \
+			help-erl                                                         \
 			clean clean-erlang clean-layer-ebin clean-python clean-protobuf  \
 			clean-database clean-recurse clean-outputs clean-ast-debug       \
 			real-clean track                                                 \
@@ -1091,7 +1092,15 @@ write-debug-key-file:
 # Far easier target name to remember:
 # (hook added to block this target if not relevant from the current location)
 #
-check: check-hook clean all test generate-local-plt self-check-against-plt
+check: check-hook clean all test
+
+
+check-with-dialyzer: all generate-local-plt self-check-against-plt
+
+
+check-with-gradualizer: #all
+	@echo "  Checking BEAMs in $$(basename $$(pwd)) with Gradualizer"
+	@$(GRADUALIZER) $(GRADUALIZER_OPTS) -- $(TARGETS_TO_CHECK)
 
 
 check-hook:
@@ -1336,7 +1345,7 @@ info-check:
 	@echo "DIALYZER_OPTS = $(DIALYZER_OPTS)"
 	@echo "GRADUALIZER = $(GRADUALIZER)"
 	@echo "GRADUALIZER_OPTS = $(GRADUALIZER_OPTS)"
-
+	@echo "TARGETS_TO_CHECK = $(TARGETS_TO_CHECK)"
 
 
 # Useful to extract information to be specified in a parallel rebar.config:

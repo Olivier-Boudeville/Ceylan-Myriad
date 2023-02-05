@@ -135,13 +135,13 @@
 
 
 -type day_duration() :: days().
-% A duration expressed as a number of full days (ex: one way to express an age).
+% A duration expressed as a number of full days (e.g. one way to express an age).
 
 
 -type iso8601_string() :: ustring().
 % A (plain) string representing a timestamp according to ISO 8601.
 %
-% Ex: "2022-07-04T14:23:18Z".
+% For example "2022-07-04T14:23:18Z".
 %
 % Refer to https://en.wikipedia.org/wiki/ISO_8601 for further information.
 
@@ -149,7 +149,7 @@
 -type iso8601_bin_string() :: bin_string().
 % A binary string representing a timestamp according to ISO 8601.
 %
-% Ex: "2022-07-04T14:23:18Z".
+% For example "2022-07-04T14:23:18Z".
 %
 % Refer to https://en.wikipedia.org/wiki/ISO_8601 for further information.
 
@@ -348,7 +348,7 @@ from_posix_timestamp( PosixTimestamp ) ->
 	{ _Date={ Post1970Year, Month, Day }, Time } =
 		calendar:gregorian_seconds_to_datetime( PosixTimestamp ),
 
-	% For services (ex: filesystem) typically returning their timestamp in local
+	% For services (e.g. filesystem) typically returning their timestamp in local
 	% time:
 	%
 	calendar:universal_time_to_local_time(
@@ -713,7 +713,7 @@ get_week_day( _DayIndex=7 ) ->
 
 
 
-% @doc Returns the common name of a week day (ex: "Tuesday") based on the
+% @doc Returns the common name of a week day (e.g. "Tuesday") based on the
 % specified date or on the specified index in the week.
 %
 -spec week_day_to_string( date() | day_index() ) -> ustring().
@@ -810,7 +810,7 @@ check_user_date( Date ) ->
 % @doc Compares the specified two dates: tells whether the first date is
 % strictly before, after or the same as the second one.
 %
-% Note: both dates are expected to be in canonical form (ex: not more 12 months
+% Note: both dates are expected to be in canonical form (e.g. not more 12 months
 % or 31 days in the specified date).
 %
 -spec compare_dates( date(), date() ) -> basic_utils:comparison_result().
@@ -860,7 +860,7 @@ compare_helper( _FirstDate, _SecondDate ) ->
 % @doc Ensures that the starting canonical date is strictly before the stopping
 % one.
 %
-% Note: both dates are expected to be in canonical form (ex: not more than 12
+% Note: both dates are expected to be in canonical form (e.g. not more than 12
 % months or 31 days in the specified date).
 %
 -spec check_date_order( date(), date() ) -> void().
@@ -903,7 +903,7 @@ canonical_to_user_date( { Y, M, D } ) ->
 
 
 
-% Time conversion section, based only on rather approximated values (ex: the
+% Time conversion section, based only on rather approximated values (e.g. the
 % number of days varies from a year to another, so any constant value cannot be
 % accurate).
 
@@ -949,7 +949,7 @@ hours_to_seconds( HourDuration ) ->
 
 % @doc Tells whether specified term is a DHMS duration.
 %
-% Note: does not check whether its components are in canonical form (ex: Hours
+% Note: does not check whether its components are in canonical form (e.g. Hours
 % in [0,23]).
 %
 -spec is_dhms_duration( term() ) -> boolean().
@@ -963,7 +963,7 @@ is_dhms_duration( _Other ) ->
 
 
 
-% @doc Converts specified string (ex: "113j0h10m3s" for a French version,
+% @doc Converts specified string (e.g. "113j0h10m3s" for a French version,
 % "1d12h0m0s" for an English one) to a DHMS duration.
 %
 -spec string_to_dhms( ustring() ) -> dhms_duration().
@@ -981,13 +981,13 @@ string_to_dhms( DurationString ) ->
 				none_found ->
 					{ 0, TrimmedDurStr };
 
-				% Ex: {"113", "0h10m3s"} (English version)
+				% For example {"113", "0h10m3s"} (English version)
 				{ EnDStr, EnNonDStr } ->
 					{ text_utils:string_to_integer( EnDStr ), EnNonDStr }
 
 			end;
 
-		% Ex: {"113", "0h10m3s"} (French version)
+		% For example {"113", "0h10m3s"} (French version)
 		{ FrDStr, FrNonDStr } ->
 			{ text_utils:string_to_integer( FrDStr ), FrNonDStr }
 
@@ -999,7 +999,7 @@ string_to_dhms( DurationString ) ->
 		none_found ->
 			{ 0, DRest };
 
-		% Ex: {"0", "10m3s"}
+		% For example {"0", "10m3s"}
 		{ HStr, NonHStr } ->
 			{ text_utils:string_to_integer( HStr ), NonHStr }
 
@@ -1011,7 +1011,7 @@ string_to_dhms( DurationString ) ->
 		none_found ->
 			{ 0, HRest };
 
-		% Ex: { "10", "3s" }
+		% For example { "10", "3s" }
 		{ MStr, NonMStr } ->
 			{ text_utils:string_to_integer( MStr ), NonMStr }
 
@@ -1023,7 +1023,7 @@ string_to_dhms( DurationString ) ->
 		none_found ->
 			0;
 
-		% Ex: {"3", ""}
+		% For example {"3", ""}
 		{ SStr, _NonSStr="" } ->
 			text_utils:string_to_integer( SStr )
 
@@ -1169,7 +1169,7 @@ get_system_time() ->
 % @doc Returns a timestamp tuple describing now, that is the current time, the
 % time zone and Daylight Saving Time correction depending on the underlying OS.
 %
-% Ex: {{Year, Month, Day}, {Hour, Minute, Second}} = get_timestamp()
+% For example {{Year, Month, Day}, {Hour, Minute, Second}} = get_timestamp()
 % may return {{2007,9,6}, {15,9,14}}.
 %
 -spec get_timestamp() -> timestamp().
@@ -1416,7 +1416,7 @@ get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
 
 
 % @doc Returns a string corresponding to the specified timestamp, with "dash"
-% conventions (ex: used by jsgantt), like: "2017-05-20 12:00:17".
+% conventions (e.g. used by jsgantt), like: "2017-05-20 12:00:17".
 %
 -spec get_textual_timestamp_with_dashes( timestamp() ) -> ustring().
 get_textual_timestamp_with_dashes( _Timestamp={ { Year, Month, Day },
@@ -1572,7 +1572,7 @@ timestamp_to_seconds() ->
 
 
 
-% @doc Returns the week day (ex: 'Tuesday') corresponding to specified
+% @doc Returns the week day (e.g. 'Tuesday') corresponding to specified
 % timestamp.
 %
 -spec timestamp_to_weekday( timestamp() ) -> week_day().
@@ -1581,7 +1581,7 @@ timestamp_to_weekday( _Timestamp={ Date, _Time } ) ->
 
 
 
-% @doc Returns the week day (ex: 'Tuesday') corresponding to specified date.
+% @doc Returns the week day (e.g. 'Tuesday') corresponding to specified date.
 -spec date_to_weekday( date() ) -> week_day().
 date_to_weekday( Date ) ->
 	DayNum = calendar:day_of_the_week( Date ),
@@ -1593,7 +1593,7 @@ date_to_weekday( Date ) ->
 % and Daylight Saving Time) into a timestamp expressed in universal time (UTC).
 %
 % Note: designed to never fail, and performs a conversion as reasonably as
-% possible (ex: due to DST, some timestamp in local time shall not exist, like
+% possible (e.g. due to DST, some timestamp in local time shall not exist, like
 % when leaping forward of, say, an hour at spring; on the other way round, at
 % fall, a given local timestamp may exist twice: before and after, when going
 % back of, say, one hour).
@@ -1672,7 +1672,7 @@ offset_timestamp( Timestamp, DHMS ) when is_tuple( DHMS ) ->
 
 offset_timestamp( Timestamp, Duration ) -> % when is_integer( Duration )
 
-	% We cannot exceed the usual bounds (ex: specifying Month=13), as next
+	% We cannot exceed the usual bounds (e.g. specifying Month=13), as next
 	% calendar function would throw a function_clause; so:
 
 	NewSecs = calendar:datetime_to_gregorian_seconds( Timestamp ) + Duration,
@@ -1684,7 +1684,7 @@ offset_timestamp( Timestamp, Duration ) -> % when is_integer( Duration )
 % (hence not translated of a fixed duration).
 %
 % Note that this may still lead to invalid date, if the specified month has more
-% days than the next (ex: January, 31 becoming then a nonsensical February, 31).
+% days than the next (e.g. January, 31 becoming then a nonsensical February, 31).
 %
 -spec next_month( timestamp() ) -> timestamp().
 next_month( _Timestamp={ { Y, _M=12, D }, Time } ) ->
@@ -1767,7 +1767,7 @@ get_french_textual_duration( FirstTimestamp, SecondTimestamp ) ->
 % (integer; otherwise, if being floating-point, it will be rounded), or as the
 % 'infinity' atom.
 %
-% Ex: for a duration of 150 012 ms, returns for English:
+% For example for a duration of 150 012 ms, returns for English:
 % "2 minutes, 30 seconds and 12 milliseconds".
 %
 % Can be fed directly with a time_out() value.
@@ -1790,7 +1790,7 @@ duration_to_string( Duration, _Lang ) ->
 % (integer; otherwise, if being floating-point, it will be rounded), or as the
 % 'infinity' atom.
 %
-% Ex: for a duration of 150 012 ms, returns:
+% For example for a duration of 150 012 ms, returns:
 % "2 minutes, 30 seconds and 12 milliseconds".
 %
 % See also: basic_utils:get_textual_duration/2.
@@ -1907,7 +1907,7 @@ duration_to_string( Other ) ->
 % otherwise, if being floating-point, it will be rounded), or as the 'infinity'
 % atom.
 %
-% Ex: for a duration of 150 012 ms, returns:
+% For example for a duration of 150 012 ms, returns:
 % "2 minutes, 30 secondes et 12 millisecondes".
 %
 % See also: basic_utils:get_textual_duration/2.
@@ -2040,7 +2040,7 @@ time_out_to_string( Duration, _Lang ) ->
 % (integer; otherwise, if being floating-point, it will be rounded), or as the
 % 'infinity' atom.
 %
-% Ex: for a time-out of 150 012 ms, returns:
+% For example for a time-out of 150 012 ms, returns:
 % "time-out of 2 minutes, 30 seconds and 12 milliseconds".
 %
 % See also: basic_utils:get_textual_duration/2.

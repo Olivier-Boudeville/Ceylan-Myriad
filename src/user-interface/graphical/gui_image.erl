@@ -47,7 +47,7 @@
 % - JPEG (*.jpeg) for images akin to camera snapshots
 %
 % Note that apparently, according to our test, some images can be loaded fine
-% (ex: "erlang.png") whereas some others not (ex: ""myriad-title.png").
+% (e.g. "erlang.png") whereas some others not (e.g. ""myriad-title.png").
 %
 % Here also, the opaqueness of types is difficult to preserve.
 
@@ -106,7 +106,7 @@
 
 
 -type image_quality() :: 'normal' | 'high'.
- % The requested quality for an image operation (ex: for a scaling).
+ % The requested quality for an image operation (e.g. for a scaling).
 
 
 -type bitmap() :: wxBitmap:wxBitmap().
@@ -146,13 +146,13 @@
 
 
 -type text_display_style_opt() ::
-		'align_left'   % Align the text to the left.
-	  | 'align_right'  % Align the text to the right.
-	  | 'center'       % Center the text (horizontally).
-	  | 'fixed_size'   % No auto-resize.
-	  | 'ellipsize_beginning' % Any shrinking done from the start of the text.
-	  | 'ellipsize_middle'    % Any shrinking done at the middle of the text.
-	  | 'ellipsize_end'.      % Any shrinking done at the middle of the text.
+	'align_left'   % Align the text to the left.
+  | 'align_right'  % Align the text to the right.
+  | 'center'       % Center the text (horizontally).
+  | 'fixed_size'   % No auto-resize.
+  | 'ellipsize_beginning' % Any shrinking done from the start of the text.
+  | 'ellipsize_middle'    % Any shrinking done at the middle of the text.
+  | 'ellipsize_end'.      % Any shrinking done at the middle of the text.
 % Options for text displays. See also
 % [http://docs.wxwidgets.org/stable/classwx_static_text.html]
 
@@ -268,15 +268,8 @@ scale( Image, Width, Height, Quality ) ->
 %
 -spec load( image(), any_file_path() ) -> void().
 load( Image, ImagePath ) ->
-	case wxImage:loadFile( Image, ImagePath ) of
-
-		true ->
-			ok;
-
-		false ->
-			throw( { image_loading_failed, ImagePath } )
-
-	end.
+	wxImage:loadFile( Image, ImagePath ) orelse
+		throw( { image_loading_failed, ImagePath } ).
 
 
 
@@ -285,17 +278,12 @@ load( Image, ImagePath ) ->
 %
 -spec load( image(), image_format(), any_file_path() ) -> void().
 load( Image, ImageFormat, ImagePath ) ->
+
 	WxImageFormat = to_wx_image_format( ImageFormat ),
-	case wxImage:loadFile( Image, ImagePath,
-						   _Opts=[ { type, WxImageFormat } ] ) of
 
-		true ->
-			ok;
-
-		false ->
-			throw( { image_loading_failed, ImagePath } )
-
-	end.
+	wxImage:loadFile( Image, ImagePath,
+					  _Opts=[ { type, WxImageFormat } ] ) orelse
+		throw( { image_loading_failed, ImagePath } ).
 
 
 

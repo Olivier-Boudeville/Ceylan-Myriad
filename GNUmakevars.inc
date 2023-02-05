@@ -2148,15 +2148,14 @@ GRADUALIZER_ESSENTIAL_OPTS := --infer --fmt_location verbose --fancy --color alw
 # --stop_on_first_error: useful to fix errors one by one, without being
 #  overwhelmed; yet may crash some versions of Gradualizer
 #
-#GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
-GRADUALIZER_CONTEXTUAL_OPTS :=
+GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
+#GRADUALIZER_CONTEXTUAL_OPTS :=
 
 
 # Refer to 'gradualizer --help' for further guidance.
-#
 GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
-					$(GRADUALIZER_CONTEXTUAL_OPTS)
-
+					$(GRADUALIZER_CONTEXTUAL_OPTS) \
+					$(OVERALL_PA_OPTS)
 
 
 # Designates the target(s), files and/or directories, that shall be checked,
@@ -2174,7 +2173,9 @@ GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 # can be overridden from the command-line, like in: 'make check-static-typing
 # TARGETS_TO_CHECK="foo.beam bar.beam"'.
 #
-TARGETS_TO_CHECK := $(wildcard *.beam)
+#TARGETS_TO_CHECK := $(wildcard *.beam)
+TARGETS_TO_CHECK := $$(find . -name '*.beam' 2>/dev/null)
+
 
 
 

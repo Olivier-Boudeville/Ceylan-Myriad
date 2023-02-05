@@ -256,7 +256,7 @@
 % For example: `<<"0x44e390a3">>' or `<<"44e390a3">>'.
 
 
--type unicode_string() :: unicode:chardata().
+-type unicode_string() :: chardata().
 % A Unicode (plain) string.
 %
 % This is our new default.
@@ -265,7 +265,7 @@
 
 
 -type unicode_data() :: unicode:latin1_chardata()
-					  | unicode:chardata() | unicode:external_chardata().
+					  | chardata() | unicode:external_chardata().
 
 
 -type uchar() :: integer().
@@ -401,6 +401,8 @@
 
 -type grapheme_cluster() :: string:grapheme_cluster().
 % A user-perceived character, consisting of one or more (Unicode) codepoints.
+
+-type chardata() :: unicode:chardata().
 
 -type count() :: basic_utils:count().
 
@@ -3487,10 +3489,11 @@ split_at_whitespaces( String ) ->
 
 
 
-% @doc Splits the specified string according to the first occurrence of
-% specified character: returns a pair of two strings, containing respectively
-% all characters strictly before and strictly after the first occurrence of the
-% marker (which thus is not kept).
+% @doc Splits the specified string according to the first occurrence (if any) of
+% the specified character, then returns a pair of two strings, containing
+% respectively all characters strictly before and strictly after the first
+% occurrence of the marker (which thus is not kept); otherwise returns
+% 'none_found'.
 %
 % For example: split_at_first($x, " aaaxbbbxccc") shall return {" aaa",
 % "bbbxccc"}.
@@ -3691,8 +3694,7 @@ substitute( SourceChar, TargetChar, _String=[ OtherChar | T ], Acc ) ->
 %
 % An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
 %
--spec find_substring_index( unicode:chardata(), unicode:chardata() ) ->
-									gc_index() | 'nomatch'.
+-spec find_substring_index( chardata(), chardata() ) -> gc_index() | 'nomatch'.
 find_substring_index( String, SearchPattern ) ->
 	find_substring_index( String, SearchPattern, _Direction=leading ).
 
@@ -3703,8 +3705,8 @@ find_substring_index( String, SearchPattern ) ->
 %
 % An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
 %
--spec find_substring_index( unicode:chardata(), unicode:chardata(),
-							direction() ) -> gc_index() | 'nomatch'.
+-spec find_substring_index( chardata(), chardata(), direction() ) ->
+									gc_index() | 'nomatch'.
 find_substring_index( String, SearchPattern, Direction ) ->
 	GCString = string:to_graphemes( String ),
 	GCSearchPattern = string:to_graphemes( SearchPattern ),
@@ -4938,13 +4940,12 @@ aggregate_word( [ H | T ], Count, Acc ) ->
 
 
 
-% @doc Tries to convert specified Unicode-related datastructure into a flat,
+% @doc Tries to convert the specified Unicode-related datastructure into a flat,
 % plain Unicode string.
 %
 % (exported helper, for re-use)
 %
--spec try_convert_to_unicode_list( unicode:unicode_data() ) ->
-											maybe( ustring() ).
+-spec try_convert_to_unicode_list( unicode_data() ) -> maybe( ustring() ).
 try_convert_to_unicode_list( Data ) ->
 
 	% A binary_to_list/1 would not be sufficient here.

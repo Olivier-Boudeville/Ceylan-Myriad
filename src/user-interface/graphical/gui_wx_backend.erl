@@ -127,7 +127,7 @@
 % Additional widgets
 %
 % Some types of widgets seem to be lacking to wxWidgets, such as canvases that
-% would be first-level citizens (ex: able to emit and receive events, when
+% would be first-level citizens (e.g. able to emit and receive events, when
 % needing repaint or being resized).
 %
 % To support them, we defined the myriad_object_ref record to complement the
@@ -212,7 +212,7 @@
 -type wx_id() :: maybe( integer() ).
 % The identifier (ID) of a wx element is an integer (positive or not).
 %
-% This identifier (ex: 63) is relative to a given type, like in:
+% This identifier (e.g. 63) is relative to a given type, like in:
 % {wx_ref,63,wxFrame,[]}.
 %
 % This type allows to specify a 'void' (null) ID of a GUI element.
@@ -240,7 +240,7 @@
 
 
 -type wx_native_object_type() :: atom().
-% Native wx object types (ex: 'wxFrame').
+% Native wx object types (e.g. 'wxFrame').
 %
 % No enumeration like 'wxWindow' | 'wxFrame' | ... found in wx.
 
@@ -255,7 +255,7 @@
 								 | {'callback', function() }
 								 | {'userData', term() }.
 % Refer to https://erlang.org/doc/man/wxEvtHandler.html
-% See the corresponding gui:connect_opt().
+% See the corresponding gui:event_subscription_option().
 
 
 -type wx_panel_option() :: wx_window_option() | wx_event_handler_option().
@@ -286,7 +286,7 @@
 			   wx_device_context_attribute/0, wx_enum/0 ]).
 
 -type wx_art_id() :: unicode:chardata().
-% Ex: "wxART_NEW".
+% For example "wxART_NEW".
 
 
 % Preferably no '-export_type' here to avoid leakage of backend conventions.
@@ -330,8 +330,7 @@
 -type position() :: gui:position().
 -type size() :: gui:size().
 -type orientation() :: gui:orientation().
--type connect_opt() :: gui:connect_opt().
--type connect_options() :: gui:connect_options().
+-type event_subscription_option() :: gui_event:event_subscription_option().
 
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
 
@@ -1619,7 +1618,8 @@ connect( EventSource, EventTypeOrTypes, TrapSet, EventTranslationTable ) ->
 % Refer to connect/3 for all details.
 %
 -spec connect( event_source(), maybe_list( event_type() ),
-		connect_options(), trap_set(), event_translation_table() ) -> void().
+		[ event_subscription_option() ], trap_set(),
+		event_translation_table() ) -> void().
 % Was not used apparently:
 %connect( #canvas_state{ panel=Panel }, EventTypeOrTypes, Options, TrapSet ) ->
 %   connect( Panel, EventTypeOrTypes, Options, TrapSet );
@@ -1656,17 +1656,17 @@ connect( SourceGUIObject, EventType, Options, TrapSet,
 % The corresponding event type must be specified in order to apply per-type
 % defaults.
 %
--spec to_wx_connect_options( [ connect_opt() ], event_type(), trap_set() ) ->
-								[ wx_event_handler_option() ].
+-spec to_wx_connect_options( [ event_subscription_option() ], event_type(),
+							 trap_set() ) -> [ wx_event_handler_option() ].
 to_wx_connect_options( Opts, EventType, TrapSet ) ->
 	to_wx_connect_options( Opts, EventType, TrapSet,
 						   _PropagationSetting=undefined, _Acc=[] ).
 
 
 % (helper)
--spec to_wx_connect_options( [ connect_opt() ], event_type(), trap_set(),
-							 maybe( 'propagate' | 'trap' ), event_type() ) ->
-										[ wx_event_handler_option() ].
+-spec to_wx_connect_options( [ event_subscription_option() ], event_type(),
+	trap_set(), maybe( 'propagate' | 'trap' ), event_type() ) ->
+		[ wx_event_handler_option() ].
 % End of recursion, propagation explicitly requested by the user:
 to_wx_connect_options( _Opts=[], _EventType, _TrapSet,
 					   _PropagationSetting=propagate, Acc ) ->

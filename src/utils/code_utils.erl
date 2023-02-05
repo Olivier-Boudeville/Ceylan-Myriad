@@ -79,11 +79,11 @@
 					| list_table:list_table( atom(), term() ).
 % The last element of a stack item.
 %
-% Ex: [{file,file_path()}, {line, meta_utils:line()}].
+% For example [{file,file_path()}, {line, meta_utils:line()}].
 
 
 -type stack_item() ::
-	{ module_name(), function_name(), arity(),stack_info() }.
+	{ module_name(), function_name(), arity(), stack_info() }.
 
 
 -type stack_trace() :: [ stack_item() ].
@@ -149,7 +149,7 @@
 
 -type time_out() :: time_utils:time_out().
 
--type md5_sum() :: executable_utils:md5_sum().
+-type md5_sum() :: hash_utils:md5_sum().
 
 
 
@@ -208,7 +208,8 @@ get_md5_for_loaded_module( ModuleName ) ->
 get_md5_for_stored_module( ModuleName ) ->
 	{ BinCode, _ModuleFilename } = get_code_for( ModuleName ),
 	{ ok, { ModuleName, MD5SumBin } } = beam_lib:md5( BinCode ),
-	binary_to_integer( MD5SumBin, _Base=16 ).
+	% Now using binaries: binary_to_integer( MD5SumBin, _Base=16 ).
+	MD5SumBin.
 
 
 
@@ -245,7 +246,7 @@ resolve_code_path( AnyCodePaths ) ->
 %
 % If an exception is thrown with 'badfile' being reported as the error, this may
 % be caused by a version mistmatch between the Erlang environments in the source
-% and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
+% and at least one of the remote target hosts (e.g. ERTS 5.5.2 vs 5.8.2).
 %
 -spec deploy_modules( [ module() ], [ atom_node_name() ] ) -> void().
 deploy_modules( Modules, Nodes ) ->
@@ -262,7 +263,7 @@ deploy_modules( Modules, Nodes ) ->
 %
 % If an exception is thrown with 'badfile' being reported as the error, this may
 % be caused by a version mistmatch between the Erlang environments in the source
-% and at least one of the remote target hosts (ex: ERTS 5.5.2 vs 5.8.2).
+% and at least one of the remote target hosts (e.g. ERTS 5.5.2 vs 5.8.2).
 %
 -spec deploy_modules( [ module() ], [ atom_node_name() ], time_out() ) ->
 							void().
@@ -270,9 +271,9 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 
 	% At least until the next version to come after R14B02, there was a possible
 	% race condition here, as, on an a just-launched (local) node, the rpc
-	% server could start to serve requests (ex: load_binary ones for file_utils)
-	% whereas the code server was not registered yet (as code_server), resulting
-	% in following type of error:
+	% server could start to serve requests (e.g. load_binary ones for
+	% file_utils) whereas the code server was not registered yet (as
+	% code_server), resulting in following type of error:
 	%
 	% {badrpc,{'EXIT',{badarg,[{code_server,call,2},
 	% {rpc,'-handle_call_call/6-fun-0-',5}]}}}
@@ -477,7 +478,7 @@ check_beam_dirs( _Dirs=[] ) ->
 
 check_beam_dirs( _Dirs=[ D | T ] ) ->
 
-	% We allow symlinks (ex: for ~/Software/X/X-current-install):
+	% We allow symlinks (e.g. for ~/Software/X/X-current-install):
 	case file_utils:is_existing_directory_or_link( D ) of
 
 		true ->
@@ -561,7 +562,7 @@ remove_beam_directory_if_set( NameOrDir ) ->
 % (regarding the get_beam_dirs_for* functions) from there as such (i.e. with no
 % specific extra prerequisite to take into account).
 %
-% Ex: get_beam_dirs_for( "CEYLAN_MYRIAD" ).
+% For example get_beam_dirs_for( "CEYLAN_MYRIAD" ).
 %
 -spec get_beam_dirs_for( env_variable_name() ) -> code_path().
 get_beam_dirs_for( VariableName ) ->
@@ -1060,7 +1061,7 @@ make_options_for( _Defines=[ DefineNameStr | T ], Acc ) ->
 
 % @doc Returns the root directory of Erlang/OTP, where it is installed.
 %
-% Ex: "/home/joe/Software/Erlang/Erlang-23.1/lib/erlang" or
+% For example "/home/joe/Software/Erlang/Erlang-23.1/lib/erlang" or
 % "/usr/local/otp/lib".
 %
 -spec get_erlang_root_path() -> directory_path().
@@ -1113,7 +1114,7 @@ interpret_stacktrace() ->
 
 
 
-% @doc Returns a "smart" textual representation of specified stacktrace.
+% @doc Returns a "smart" textual representation of the specified stacktrace.
 -spec interpret_stacktrace( stack_trace() ) -> ustring().
 interpret_stacktrace( Stacktrace ) ->
 	interpret_stacktrace( Stacktrace, _ErrorTerm=undefined ).
@@ -1179,7 +1180,7 @@ interpret_shortened_stacktrace( SkipLastElemCount ) ->
 interpret_stack_item( { Module, Function, Arity, StackInfo },
 					  FullPathsWanted ) when is_integer( Arity ) ->
 	text_utils:format( "~ts:~ts/~B~ts", [ Module, Function, Arity,
-				get_location_from( StackInfo, FullPathsWanted ) ] );
+		get_location_from( StackInfo, FullPathsWanted ) ] );
 
 % Here we have not a raw arity, but the list of actual arguments (thus a lot
 % more informative):
@@ -1272,7 +1273,6 @@ display_stacktrace() ->
 
 	% We do not want to include display_stacktrace/0 in the stack:
 	Stacktrace = get_stacktrace( _SkipLastElemCount=1 ),
-
 	trace_utils:info_fmt( "Current stacktrace is (latest calls first): ~ts~n",
 						  [ interpret_stacktrace( Stacktrace ) ] ).
 
@@ -1281,7 +1281,7 @@ display_stacktrace() ->
 % @doc Interprets specified error.
 -spec interpret_error( error_term(), stack_trace() ) -> ustring().
 interpret_error( ErrorTerm, Stacktrace=[
-		StackInfo={ _Module, _Function, _Arguments, InfoListTable } | _ ] ) ->
+		_StackInfo={ _Module, _Function, _Arguments, InfoListTable } | _ ] ) ->
 
 	%trace_utils:debug_fmt( "interpret_error: Reason=~p, Stacktrace=~n ~p",
 	%                       [ ErrorTerm, Stacktrace ] ),
@@ -1302,7 +1302,7 @@ interpret_error( ErrorTerm, Stacktrace=[
 
 				key_not_found ->
 					"(no module set for error_info) "
-						++ stack_info_to_string( StackInfo )
+						++ stack_info_to_string( InfoListTable )
 
 			end;
 
