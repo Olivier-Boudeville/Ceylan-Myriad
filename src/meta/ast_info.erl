@@ -387,6 +387,11 @@
 % Local shorthands:
 
 -type maybe( T ) :: basic_utils:maybe( T ).
+
+-type ustring() :: text_utils:ustring().
+
+-type bin_file_path() :: file_utils:bin_file_path().
+
 -type ast() :: ast_base:ast().
 -type file_loc() :: ast_base:file_loc().
 -type form() :: ast_base:form().
@@ -394,9 +399,8 @@
 -type type_id() :: type_utils:type_id().
 -type function_id() :: meta_utils:function_id().
 
--type ustring() :: text_utils:ustring().
--type indentation_level() :: text_utils:indentation_level().
 
+-type indentation_level() :: text_utils:indentation_level().
 
 
 
@@ -500,7 +504,7 @@ located_ast_to_string( AST ) ->
 	% Raw, not sorted on purpose:
 	Strings = [ text_utils:format( "at ~ts: ~p",
 					[ id_utils:sortable_id_to_string( ASTLoc ), Form ] )
-				|| { ASTLoc, Form } <- AST ],
+						|| { ASTLoc, Form } <- AST ],
 
 	text_utils:strings_to_string( Strings ).
 
@@ -1605,7 +1609,7 @@ remote_spec_definitions_to_string( RemoteSpecDefs, DoIncludeForms,
 % @doc Returns a textual representation of the specified includes, based on a
 % default indentation level.
 %
--spec includes_to_string( [ file_utils:bin_file_path() ], [ located_form() ],
+-spec includes_to_string( [ bin_file_path() ], [ located_form() ],
 						  boolean() ) -> ustring().
 includes_to_string( Includes, IncludeDefs, DoIncludeForms ) ->
 	includes_to_string( Includes, IncludeDefs, DoIncludeForms,
@@ -1615,8 +1619,8 @@ includes_to_string( Includes, IncludeDefs, DoIncludeForms ) ->
 % @doc Returns a textual representation of the specified includes, with
 % specified indentation level.
 %
--spec includes_to_string( [ file_utils:bin_file_path() ],
-		  [ located_form() ], boolean(), indentation_level() ) -> ustring().
+-spec includes_to_string( [ bin_file_path() ], [ located_form() ], boolean(),
+						  indentation_level() ) -> ustring().
 includes_to_string( _Includes=[], _IncludeDefs, _DoIncludeForms,
 					_IndentationLevel ) ->
 	"no file included";

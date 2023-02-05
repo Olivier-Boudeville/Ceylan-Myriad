@@ -1263,15 +1263,15 @@ ifndef BOOTSTRAP_MODULES
 	META_SRC_FILES = $(wildcard $(MYRIAD_TOP)/src/meta/*.erl)
 
 	# As they do not need to be specifically bootstrapped:
-	EXCLUDED_FROM_BOOTSTRAPPED_META =                                    \
-				$(MYRIAD_TOP)/src/meta/myriad_parse_transform.erl        \
-				$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl   \
-				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
-				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
-				$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl \
-				$(MYRIAD_TOP)/src/meta/ast_generation_test.erl           \
-				$(MYRIAD_TOP)/src/meta/meta_utils_test.erl               \
-				$(MYRIAD_TOP)/src/meta/cond_utils_test.erl               \
+	EXCLUDED_FROM_BOOTSTRAPPED_META =                                   \
+		$(MYRIAD_TOP)/src/meta/myriad_parse_transform.erl               \
+		$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl          \
+		$(MYRIAD_TOP)/src/meta/example_parse_transform.erl              \
+		$(MYRIAD_TOP)/src/meta/myriad_minimal_parse_transform_test.erl  \
+		$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl        \
+		$(MYRIAD_TOP)/src/meta/ast_generation_test.erl                  \
+		$(MYRIAD_TOP)/src/meta/meta_utils_test.erl                      \
+		$(MYRIAD_TOP)/src/meta/cond_utils_test.erl                      \
 
 
 
@@ -1313,8 +1313,8 @@ endif
 #
 # Note: such variables were meant to be overridden by each upper layer, yet
 # generally these layers require the *addition* (not replacement) of new rules
-# (e.g. to manage classes) to the base ones (to be still able to compile standard
-# modules).
+# (e.g. to manage classes) to the base ones (to be still able to compile
+# standard modules).
 #
 ifndef PARSE_TRANSFORM_DIRS
 	PARSE_TRANSFORM_DIRS = $(MYRIAD_TOP)/src/meta
@@ -1343,12 +1343,12 @@ ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
 # _build/default/lib/myriad/ebin directory, not anymore within the
 # _build/default/lib/myriad/src tree)
 #
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD =                \
-					-pz $(MYRIAD_TOP)/src/utils                 \
-					-pz $(MYRIAD_TOP)/src/meta                  \
-					-pz $(MYRIAD_TOP)/src/data-management       \
-					-pz $(MYRIAD_TOP)/ebin                      \
-					'+{parse_transform,myriad_parse_transform}'
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD = \
+	-pz $(MYRIAD_TOP)/src/utils                  \
+	-pz $(MYRIAD_TOP)/src/meta                   \
+	-pz $(MYRIAD_TOP)/src/data-management        \
+	-pz $(MYRIAD_TOP)/ebin                       \
+	'+{parse_transform,myriad_parse_transform}'
 
 
 # To apply a parse transform, not only it must be already compiled, but also,
@@ -1364,18 +1364,18 @@ ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD =                \
 #
 #ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 
-	   # We need src/{utils,meta,data-management} in the path, as the 'Myriad'
-	   # parse transform uses meta modules that use map_hashtable (which is thus
-	   # bootstrapped as well).
+	# We need src/{utils,meta,data-management} in the path, as the 'Myriad'
+	# parse transform uses meta modules that use map_hashtable (which is thus
+	# bootstrapped as well).
 
-	   # Note: if, when compiling a module, the following error message is
-	   # issued: "undefined parse transform 'myriad_parse_transform'", then it
-	   # is most probably that the code of the parse transform actually calls,
-	   # directly or not, a non-existing code (typically a function of a module
-	   # to be built later)
+	# Note: if, when compiling a module, the following error message is
+	# issued: "undefined parse transform 'myriad_parse_transform'", then it
+	# is most probably that the code of the parse transform actually calls,
+	# directly or not, a non-existing code (typically a function of a module
+	# to be built later)
 
-	   #ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
-	   #	$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
+	#ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
+	#	$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
 
 #endif
 
@@ -1589,7 +1589,8 @@ endif
 # (previously, after issuing the warning, an 'exit' was done, yet it resulted in
 # the full BEAM_PATH_OPT variable being nullified, and thus executions were
 # failing with various random undef errors; just displaying a warning now;
-# re-add temporarily an exit if wanting to spot faulty paths through a test suite)
+# re-add temporarily an exit if wanting to spot faulty paths through a test
+# suite)
 #
 BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2 ; fi; done)
 
@@ -2213,7 +2214,7 @@ MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh
 
 # Defining the top directory of the predecessor layer allows to write generic
 # rules (not depending on its actual name) able to automatically descend the
-# layer stack (e.g. to copy their respective BEAM files in their respective ebin)
-# without defining specific make targets at each layer:
+# layer stack (e.g. to copy their respective BEAM files in their respective
+# ebin) without defining specific make targets at each layer:
 
 #PREDECESSOR_LAYER_TOP :=

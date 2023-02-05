@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2023 Olivier Boudeville
+% Copyright (C) 2014-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -26,14 +26,13 @@
 % Creation date: Friday, December 19, 2014.
 
 
-
-% This module allows to test with as few dependencies as possible the
+% @doc This module allows to test with as few dependencies as possible the
 % 'myriad_parse_transform' parse transform as a standalone unit, hence with
 % proper error and warning messages.
 %
 % See the myriad_parse_transform.erl tested module.
 %
--module(minimal_parse_transform_test).
+-module(myriad_minimal_parse_transform_test).
 
 
 -export([ run/0, perform_direct_ast_operations/1 ]).

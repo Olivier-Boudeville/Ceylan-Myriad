@@ -111,7 +111,8 @@
 
 
 -export_type([ code_path/0, resolvable_code_path/0, code_path_position/0,
-			   stack_info/0, stack_item/0, stack_trace/0, error_map/0 ]).
+			   stack_info/0, stack_item/0, stack_trace/0, error_map/0,
+			   define_name/0, define_value/0, define/0 ]).
 
 
 % The dotted file extension of an Erlang source file:

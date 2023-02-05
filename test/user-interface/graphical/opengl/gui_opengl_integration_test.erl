@@ -419,7 +419,7 @@ get_test_textured_cube_faces() ->
 				5, 2, 8, 5, 8, 11, 17, 13, 0, 17, 0, 4 ],
 
 	% Hence 36/3=12 triangles, 2 on each of the 6 faces:
-	gltf_support:indices_to_triangles( Indices ).
+	gltf_support:indexes_to_triangles( Indices ).
 
 
 

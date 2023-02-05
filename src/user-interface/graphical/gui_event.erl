@@ -74,6 +74,9 @@
 		  wx_to_myriad_event/2, set_instance_state/3, match/2 ]).
 
 
+% Helpers:
+-export([ get_backend_event/1 ]).
+
 % Stringification:
 -export([ event_table_to_string/1 ]).
 
@@ -582,9 +585,11 @@
 -type myriad_object_type() :: gui:myriad_object_type().
 -type myriad_object_state() :: gui:myriad_object_state().
 -type construction_parameters() :: gui:construction_parameters().
+-type backend_event() :: gui:backend_event().
 -type wx_server() :: gui:wx_server().
 -type event_subscription_opt() :: gui:event_subscription_opt().
 -type service() :: gui:service().
+
 
 -type backend_id() :: gui_id:backend_id().
 -type wx_id() :: gui_id:wx_id().
@@ -1279,14 +1284,14 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 % @doc Processes specified wx event message.
 -spec process_wx_event( wx_id(), wx_object(), gui:user_data(),
-					wx_event_info(), wx_event(), loop_state() ) -> loop_state().
+		wx_event_info(), wx_event(), loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 				  LoopState=#loop_state{
-							event_table=EventTable,
-							reassign_table=ReassignTable,
-							type_table=TypeTable,
-							event_translation_table=EventTranslationTable,
-							id_name_alloc_table=NameTable } ) ->
+					event_table=EventTable,
+					reassign_table=ReassignTable,
+					type_table=TypeTable,
+					event_translation_table=EventTranslationTable,
+					id_name_alloc_table=NameTable } ) ->
 
 	%trace_utils:debug_fmt( "Processing wx event~n  ~p.", [ WxEvent ] ),
 
@@ -1314,7 +1319,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 			% the canvas back-buffer):
 			%
 			UpdatedTypeTable = update_instance_on_event( TargetGUIObject,
-													WxEventInfo, TypeTable ),
+				WxEventInfo, TypeTable ),
 
 			{ TargetGUIObject, UpdatedTypeTable }
 
@@ -1386,8 +1391,8 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 -spec update_instance_on_event( gui_object(), wx_event_info(),
 								myriad_type_table() ) -> myriad_type_table().
 update_instance_on_event(
-			_GuiObject={ myriad_object_ref, myr_canvas, CanvasId },
-			WxEventInfo, TypeTable ) ->
+		_GuiObject={ myriad_object_ref, myr_canvas, CanvasId },
+		WxEventInfo, TypeTable ) ->
 
 	case _WxEventType=element( 2, WxEventInfo ) of
 
@@ -1545,7 +1550,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 			NextInstanceId = InstanceCount + 1,
 
 			NextInstanceTable = table:add_entry( NextInstanceId,
-									ObjectInitialState, InstanceTable ),
+				ObjectInitialState, InstanceTable ),
 
 			NextInstanceReferential = InstanceReferential#instance_referential{
 				instance_count=NextInstanceId,
@@ -1730,7 +1735,7 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 
 	NewEventTypes =:= [] orelse
 		begin
-		
+
 			% As a canvas is registered in wx as a panel (as wx will send events
 			% about it) that will be reassigned as a canvas:
 
@@ -1858,9 +1863,9 @@ unregister_event_types_from( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 	LoopState#loop_state{ event_table=NewEventTable };
 
 unregister_event_types_from( GUIObject, EventTypes, Unsubscribers,
-						LoopState=#loop_state{
-							event_table=EventTable,
-							event_translation_table=EventTranslationTable } ) ->
+		LoopState=#loop_state{
+			event_table=EventTable,
+			event_translation_table=EventTranslationTable } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Unregistering subscribers ~w "
@@ -2038,6 +2043,12 @@ match( #myriad_object_ref{ object_type=ObjectType,
 match( _FirstGUIObject, _SecondGUIObject ) ->
 	false.
 
+
+
+% @doc Returns the backend event included in the specified event context.
+-spec get_backend_event( event_context() ) -> backend_event().
+get_backend_event( #event_context{ backend_event=BackendEvent } ) ->
+	BackendEvent.
 
 
 % @doc Adjusts the specified MyriadGUI instances.

@@ -3402,7 +3402,7 @@ create_text_display( Parent, Label, Options ) ->
 % @doc Destructs the specified text display.
 -spec destruct_text_display( text_display() ) -> void().
 destruct_text_display( TextDisplay ) ->
-	gui_image:text( TextDisplay ).
+	gui_image:destruct_text_display( TextDisplay ).
 
 
 
@@ -3417,7 +3417,7 @@ destruct_text_display( TextDisplay ) ->
 												paint_device_context().
 get_flickerfree_paint_device_context( Widget ) ->
 	get_flickerfree_paint_device_context( Widget,
-							system_utils:get_operating_system_family() ).
+		system_utils:get_operating_system_family() ).
 
 
 % @doc Returns a flicker-free device context corresponding to the specified
@@ -3502,8 +3502,8 @@ set_brush( GraphicContext, Brush ) ->
 % Note that the returned dimensions may be integer or floating-point numbers.
 %
 -spec get_text_extent( graphic_context(), ustring() ) ->
-				{ any_width(), any_height(),
-				  Descent :: any_length(), ExternalLeading :: any_length() }.
+		{ any_width(), any_height(),
+		  Descent :: any_length(), ExternalLeading :: any_length() }.
 get_text_extent( GraphicContext, Text ) ->
 	wxGraphicsContext:getTextExtent( GraphicContext, Text ).
 
