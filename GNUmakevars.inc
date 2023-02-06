@@ -2160,8 +2160,7 @@ GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 # eqWAlizer is provided by WhatsApp:
 EQWALIZER := $$(which elp 2>/dev/null)
 
-# For $(LAYER_TOP)/conf/$(PROJECT_SHORT_NAME).json:
-EQWALIZER_OPTS = --project $(LAYER_TOP)/conf
+EQWALIZER_OPTS = --project $(LAYER_TOP)/conf/$(PROJECT_SHORT_NAME)-for-eqwalizer.json
 
 
 # Designates the target(s), files and/or directories, that shall be checked,
