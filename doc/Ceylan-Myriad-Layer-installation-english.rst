@@ -35,7 +35,6 @@ People reported uses of Myriad on ``macOS``, yet no extensive testing has been d
 Software Prerequisites
 ----------------------
 
-
 The main tool prerequisite is of course having the `Erlang <http://erlang.org>`_ environment available, in its ``24.0`` version [#]_ or more recent.
 
 .. [#] Most probably that older versions of Erlang would be more than sufficient in order to build Myriad (possibly at the expense of minor changes in a few calls to standard modules having been deprecated since then). It is just that in general we prefer to stick to the latest stable versions of software such as Erlang, and advise you to do so.
@@ -124,6 +123,8 @@ The testing shall complete successfully (if it is not the case, see our support_
 Type-checking Myriad
 ====================
 
+The `Dialyzer <http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html>`_ static analysis tool is regularly run on the code base (see the ``generate-local-plt`` and ``self-check-against-plt`` generic Make targets for that).
+
 As Myriad is (by default) to enable debug information with a key-based protection of the resulting BEAM files, one should first have such key defined.
 
 One way of doing so is, if wanted, to update the default key (see ``DEBUG_INFO_KEY`` in ``GNUmakevars.inc``) and to write in on disk (e.g. ``make write-debug-key-file``), and to rebuild Myriad accordingly afterwards (e.g. ``make rebuild``).
@@ -134,7 +135,7 @@ Then, still from the ``myriad`` root directory:
 
  $ make generate-local-plt self-check-against-plt
 
-It will trigger a full type-checking of Myriad, done thanks to `Dialyzer <http://erlang.org/doc/man/dialyzer.html>`_.
+It will trigger a full Dialyzer-based type-checking of Myriad.
 
 This time-consuming phase will complete with a rather long list of notifications. Help us reducing it! These messages are numerous, but we do not think that most of them are so worrying.
 
@@ -142,7 +143,14 @@ Finally, to trigger in one go a full rebuild, testing and type-checking, one may
 
 .. code:: bash
 
- $ make check
+ $ make check-with-dialyzer
+
+
+Similarly, to use `Gradualizer <https://github.com/josefs/Gradualizer>`_ or `eqWAlizer <https://github.com/WhatsApp/eqwalizer>`_, run respectively ``make check-with-gradualizer`` and ``make check-with-eqwalizer``.
+
+For more general information about static typing, refer to `this section <https://howtos.esperide.org/Erlang.html#static-typing>`_ of the Ceylan-HOWTOs.
+
+
 
 
 

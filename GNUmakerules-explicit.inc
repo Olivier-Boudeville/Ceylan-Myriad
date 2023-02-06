@@ -1103,6 +1103,12 @@ check-with-gradualizer: #all
 	@$(GRADUALIZER) $(GRADUALIZER_OPTS) -- $(TARGETS_TO_CHECK)
 
 
+check-with-eqwalizer: all copy-beams-to-ebin
+	@echo "  Checking BEAMs in $$(basename $$(pwd)) with eqWAlizer"
+	@$(EQWALIZER) eqwalize-all $(EQWALIZER_OPTS)
+
+
+
 check-hook:
 
 
@@ -1345,6 +1351,8 @@ info-check:
 	@echo "DIALYZER_OPTS = $(DIALYZER_OPTS)"
 	@echo "GRADUALIZER = $(GRADUALIZER)"
 	@echo "GRADUALIZER_OPTS = $(GRADUALIZER_OPTS)"
+	@echo "EQWALIZER = $(EQWALIZER)"
+	@echo "EQWALIZER_OPTS = $(EQWALIZER_OPTS)"
 	@echo "TARGETS_TO_CHECK = $(TARGETS_TO_CHECK)"
 
 

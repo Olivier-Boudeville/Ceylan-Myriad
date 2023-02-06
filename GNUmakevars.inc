@@ -1994,7 +1994,7 @@ DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 # ~/.erlang.crypt; refer to the 'self-check-against-plt' target for further
 # details.
 #
-DIALYZER_OPTS := $(DIALYZER_ESSENTIAL_OPTS)  \
+DIALYZER_OPTS = $(DIALYZER_ESSENTIAL_OPTS)  \
 				 $(DIALYZER_CONTEXTUAL_OPTS)
 
 
@@ -2112,7 +2112,7 @@ endif
 
 
 
-# A third-party, open-source quite complementary to Dializer; see
+# Gradualizer is a third-party, open-source quite complementary to Dialyzer; see
 # https://github.com/josefs/Gradualizer
 #
 # To install it, we recommend the following procedure:
@@ -2126,7 +2126,6 @@ endif
 # that 'gradualizer' can be run directly.
 #
 GRADUALIZER := $$(which gradualizer 2>/dev/null)
-
 
 
 # These Gradualizer options are nearly always useful.
@@ -2147,7 +2146,7 @@ GRADUALIZER_ESSENTIAL_OPTS := --infer --fmt_location verbose --fancy --color alw
 # temporarily disabled).
 #
 # --stop_on_first_error: useful to fix errors one by one, without being
-#  overwhelmed; yet may crash some versions of Gradualizer
+# overwhelmed; yet may crash some versions of Gradualizer
 #
 GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
 #GRADUALIZER_CONTEXTUAL_OPTS :=
@@ -2156,11 +2155,17 @@ GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
 # Refer to 'gradualizer --help' for further guidance.
 GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 					$(GRADUALIZER_CONTEXTUAL_OPTS) \
-					$(OVERALL_PA_OPTS)
+
+
+# eqWAlizer is provided by WhatsApp:
+EQWALIZER := $$(which elp 2>/dev/null)
+
+# For $(LAYER_TOP)/conf/$(PROJECT_SHORT_NAME).json:
+EQWALIZER_OPTS = --project $(LAYER_TOP)/conf
 
 
 # Designates the target(s), files and/or directories, that shall be checked,
-# typically by Gradualizer.
+# typically by a static checking tool (e.g. Gradualizer).
 #
 # Note that:
 #
