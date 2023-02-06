@@ -423,21 +423,21 @@
 %                  % (regardless of their actual filesystem-level type)
 -type improper_encoding_action() ::
 
-		% Throw an exception as soon as a raw filename is found:
-		'throw'
+	% Throw an exception as soon as a raw filename is found:
+	'throw'
 
-		% Emit a warning trace if a raw filename is found, and do not consider
-		% the corresponding file element:
-		%
-		| 'warn'
+	% Emit a warning trace if a raw filename is found, and do not consider the
+	% corresponding file element:
+	%
+  | 'warn'
 
-		% Ignore as a whole such a file element (do not even emit a trace):
-		| 'ignore'
+	% Ignore as a whole such a file element (do not even emit a trace):
+  | 'ignore'
 
-		% Return such raw filenames (thus as binaries) among the other ones
-		% (which are plain strings):
-		%
-		| 'include'.
+	% Return such raw filenames (thus as binaries) among the other ones
+	% (which are plain strings):
+	%
+  | 'include'.
 % Action to be trigger whenever a file element has not a proper Unicode
 % filename.
 %
@@ -468,10 +468,9 @@
 			   extension/0, dotted_extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
 			   leaf_name/0,
-			   entry_type/0, parent_creation/0,
-			   permission/0, permission_mask/0, improper_encoding_action/0,
-			   compression_format/0,
-			   file/0, file_info/0 ]).
+			   entry_type/0, parent_creation/0, file_open_mode/0,
+			   compression_format/0, file/0, file_info/0,
+			   permission/0, permission_mask/0, improper_encoding_action/0 ]).
 
 
 % Shorthands:
