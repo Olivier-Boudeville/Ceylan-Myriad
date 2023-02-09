@@ -122,6 +122,7 @@
 % square root operator is not needed, like when comparing distances).
 
 
+
 -type area() :: float().
 % Area of a surface.
 
