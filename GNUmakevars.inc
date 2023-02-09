@@ -1995,7 +1995,7 @@ DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 # details.
 #
 DIALYZER_OPTS = $(DIALYZER_ESSENTIAL_OPTS)  \
-				 $(DIALYZER_CONTEXTUAL_OPTS)
+				# By default disabled: $(DIALYZER_CONTEXTUAL_OPTS)
 
 
 # These Dialyzer options are nearly always useful.
@@ -2005,7 +2005,7 @@ DIALYZER_OPTS = $(DIALYZER_ESSENTIAL_OPTS)  \
 #
 # -Wmissing_return: warns about functions whose specification explicitly
 #  includes types that the function cannot return; this may happen if a function
-#  obeys to a more general API
+#  obeys to a more general API, so this option may be commented-out
 #
 # -Wno_opaque: disables the warnings about breaking the opaqueness of a type
 #  defined in another module; these warnings are left enabled (hence this option
@@ -2020,12 +2020,17 @@ DIALYZER_OPTS = $(DIALYZER_ESSENTIAL_OPTS)  \
 #  actual culprit function (not A, but B or a function ultimately called by B);
 #  generally these warnings do not teach much
 #
-DIALYZER_ESSENTIAL_OPTS := -Wextra_return -Wmissing_return -Wno_return
+# -Wno_unused: disables the warnings about unused and unexported functions; if a
+#  function A is to call a function B, yet A always crashes before, B will
+#  unfortunately be considered unused; as the compiler is supposed to catch
+#  functions that are neither used locally nor exported, these warnings can be
+#  disabled, and thus this option can be retained
+#
+DIALYZER_ESSENTIAL_OPTS := -Wextra_return -Wno_return -Wno_unused
 
 
-
-# Such Dialyzer options may not be always useful (so they might be at least
-# temporarily disabled).
+# Such Dialyzer options may not be always useful (so now they are disabled by
+# default).
 #
 # -Werror_handling: warns about functions that only return by an exception; this
 #  may be normal (e.g. when a function is meant to be overridden one way or
@@ -2035,35 +2040,33 @@ DIALYZER_ESSENTIAL_OPTS := -Wextra_return -Wmissing_return -Wno_return
 #  be relevant, as improper lists have their use (they allow for an increased
 #  compactness, see http://howtos.esperide.org/Erlang.html#improper-lists)
 #
-# -Wno_unused: disables the warnings about unused and unexported functions; if a
-#  function A is to call a function B, yet A always crashes before, B will
-#  unfortunately be considered unused; as the compiler is supposed to catch
-#  functions that are neither used locally nor exported, these warnings can be
-#  disabled, and thus this option can be retained
-#
-# -Wunderspecs: enables warnings about functions whose specification allows
-#  arguments that the function actually cannot handle (hence arguments complying
-#  with its spec may make this function crash); either the spec shall be
-#  restricted or the function shall be generalised
-#
 # -Wunmatched_returns: enables warnings about function calls that ignore a
 #  structured return value or do not match against one of many possible return
 #  values (however, no warnings are included if the possible return values are a
 #  union of atoms or a union of numbers); may be useful to ensure that all cases
 #  are covered
 #
-DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wno_unused -Wunderspecs
+DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wunmatched_returns
 
 
 # Such options are not deemed useful in our context; ad hoc, function-level
 # suppressions are usually better.
 #
 # -Wno_missing_calls: disables warnings about calls to missing (not defined, or
-#  not exported functions; such warnings are quite useful, so this option is not
-#  even retained here
+#  not exported functions); such warnings are quite useful, so this option is
+#  not even retained here
 #
 # -Wno_fail_call: disables warnings about failing calls; such warnings are quite
 #  useful, so this option is not even retained here
+#
+# -Wunderspecs: may enable warnings about functions whose specification allows
+#  arguments that the function actually cannot handle (hence arguments complying
+#  with its spec may make this function crash); either the spec shall be
+#  restricted, or the function shall be generalised; this is a real error if it
+#  applies to the function parameters (as opposed to its result); in practice it
+#  may cause messages like "Type specification f(A) -> X is a supertype of the
+#  success typing: f(A) -> Y" where Y is included in X; this is true but
+#  generally uninteresting
 #
 # -Woverspecs: enables warnings about functions whose specification does not
 #  include arguments that the function actually could handle (hence, according
@@ -2071,7 +2074,7 @@ DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wno_unused -Wu
 #  acceptable for this function); so the spec could be generalised, or the
 #  function could be restricted, or, often, this warning may be ignored as a
 #  whole, considering that this restriction is legit (so the overspecs option
-#  matters a lot less than underspecs)
+#  matters a lot less than underspecs and is generally of little interest)
 #
 # -Wspecdiffs: enables warnings about functions whose specification is different
 #  from the success typing; union of underspecs, overspecs: detection of
@@ -2102,7 +2105,7 @@ DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wno_unused -Wu
 #  command-line Dialyzer; current this option is not retained; presumably
 #  optional dependencies would be a problem if used
 #
-DIALYZER_DISABLED_OPTS := -Woverspecs -Wno_contracts
+DIALYZER_DISABLED_OPTS := -Wunderspecs -Woverspecs -Wno_contracts
 
 
 # To use a generic rule to produce it (unless already defined):
