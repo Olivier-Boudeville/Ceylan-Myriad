@@ -383,7 +383,7 @@ generate_topic_forms( ModuleName, TopicSpecs ) ->
 	FileLoc = ast_utils:get_generated_code_location(),
 
 	Topics = type_utils:check_atoms(
-				[ element( _Index=1, TS ) || TS <- TopicSpecs ] ),
+		[ element( _Index=1, TS ) || TS <- TopicSpecs ] ),
 
 	case list_utils:get_duplicates( Topics ) of
 

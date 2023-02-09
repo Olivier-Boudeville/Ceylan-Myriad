@@ -1629,8 +1629,8 @@ includes_to_string( Includes, IncludeDefs, DoIncludeForms,
 					IndentationLevel ) ->
 
 	IncludeString = text_utils:strings_to_sorted_string(
-				[ text_utils:format( "~ts", [ Inc ] ) || Inc <- Includes ],
-				IndentationLevel ),
+		[ text_utils:format( "~ts", [ Inc ] ) || Inc <- Includes ],
+		IndentationLevel ),
 
 	% Possibly with duplicates:
 	text_utils:format( "~B file include(s): ~ts",
@@ -1743,7 +1743,7 @@ records_to_string( RecordTable, IndentationLevel ) ->
 					% generally:
 					%
 					FieldString = text_utils:strings_to_enumerated_string(
-									FieldStrings, IndentationLevel + 2 ),
+						FieldStrings, IndentationLevel + 2 ),
 
 					text_utils:format( "record '~ts' having ~B fields: ~ts",
 						[ RecordName, length( FieldStrings ), FieldString ] )
