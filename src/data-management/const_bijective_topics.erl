@@ -316,6 +316,9 @@ generate_in_file( ModuleName, TopicSpecs, TargetDir ) ->
 	CompileOpts =
 		[ { outdir, TargetDir } | meta_utils:get_compile_base_opts() ],
 
+	%trace_utils:debug_fmt( "Generation compile options for '~ts':~n ~p",
+	%                       [ ModuleName, CompileOpts ] ),
+
 	BinaryObjectCode = case compile:forms( Forms, CompileOpts ) of
 
 		% Matches the module name; apparently 'binary' is implicit and thus no
