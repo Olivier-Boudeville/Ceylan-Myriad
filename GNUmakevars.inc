@@ -1332,7 +1332,12 @@ DEBUG_INFO_KEY_OPT = +'{debug_info_key,$(DEBUG_INFO_KEY)}'
 # -v/+verbose caused inlining to be too verbose, e.g.
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
 #
-ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
+# myriad_debug_info_key is defined, so that the modules that we generate rely on
+# the same key as the ones normally built, in order that the Core Erlang of the
+# whole can be read by tools (e.g. Dialyzer):
+#
+ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT) \
+							   -Dmyriad_debug_info_key=\"$(DEBUG_INFO_KEY)\"
 
 
 # Variable defined to be re-usable by upper layers, so that compiling their own

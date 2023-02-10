@@ -257,7 +257,7 @@
 -export([ transform_term/4 ]).
 
 % Common settings:
--export([ get_compile_base_opts/0 ]).
+-export([ get_compile_base_opts/0, get_debug_info_settings/0 ]).
 
 
 
@@ -785,10 +785,31 @@ transform_transformed_term( TargetTerm, TypeDescription, TermTransformer,
 %
 -spec get_compile_base_opts() -> [ compile:option() ].
 get_compile_base_opts() ->
+
 	% We want here all generated functions to be exported:
 	%
-	% Could be added: compressed, debug_info (but then add also a relevant
-	% debug_info_key).
+	% (a priori not interesting: 'compressed')
 	%
-	[ verbose,report_errors,report_warnings, warnings_as_errors, export_all,
-	  no_line_info ].
+	[ verbose,report_errors,report_warnings, warnings_as_errors,
+	  export_all, no_line_info, debug_info ]
+		++ get_debug_info_settings().
+
+
+% @doc Returns suitable settings for the debug_info chunk in generated code.
+-spec get_debug_info_settings() -> [ tuple() ].
+
+% See DEBUG_INFO_KEY in GNUmakevars.inc:
+-ifdef(myriad_debug_info_key).
+
+get_debug_info_settings() ->
+	Key = ?myriad_debug_info_key,
+	%trace_utils:debug_fmt( "Using debug info key '~ts'.", [ Key ] ),
+	[ { debug_info, des3_cbc, [], Key } ].
+
+-else. % myriad_debug_info_key
+
+get_debug_info_settings() ->
+	%trace_utils:debug( "Not using any debug info key." ),
+	[].
+
+-endif. % myriad_debug_info_key
