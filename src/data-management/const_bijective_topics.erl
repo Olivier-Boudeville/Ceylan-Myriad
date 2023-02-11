@@ -192,7 +192,8 @@
 %  if an element is not found, and get_{first,second}_for_T/1 are defined from
 %  them, throwing an exception if an element is not found
 %
-% (therefore the 'maybe' element look-up implies the 'strict' one)
+% (therefore the 'maybe' element look-up implies the 'strict' one, and both
+% kinds of accessors are available in that case)
 
 
 % Shorthands:
@@ -443,7 +444,7 @@ generate_forms( TopicName, Entries, _ElementLookup=strict, FileLoc ) ->
 													   TopicName, FileLoc ),
 
 	SecondFunForm = generate_strict_fun_form_for_second( RevEntries,
-						SecondFunName, TopicName, FileLoc ),
+		SecondFunName, TopicName, FileLoc ),
 
 	[ FirstFunForm, SecondFunForm ];
 
@@ -645,7 +646,7 @@ catch_all_clause( ErrorAtom, TopicName, _Lookup=strict, FileLoc ) ->
 	% Not {remote, FileLoc, _Mod={atom,FileLoc,erlang}, _FunThrow...
 	ThrowCall = { call, FileLoc, _Fun={atom,FileLoc,throw},
 		_Args=[ { tuple, FileLoc, [ {atom,FileLoc,ErrorAtom},
-								{atom,FileLoc,TopicName}, NotMatchedVar ] } ] },
+			{atom,FileLoc,TopicName}, NotMatchedVar ] } ] },
 
 	{ clause, FileLoc, _PatternSeq=[ NotMatchedVar ], _GuardSeq=[],
 		_Body=[ ThrowCall ] };
