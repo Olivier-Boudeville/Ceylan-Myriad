@@ -266,7 +266,7 @@
 % HTTP-related operations:
 -export([ start/0, start/1,
 		  request/6, get/3, post/3, post/4, post/5,
-		  download_file/2,
+		  download_file/2, download_file/3,
 		  stop/0 ]).
 
 
