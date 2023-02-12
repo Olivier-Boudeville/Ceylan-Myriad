@@ -406,7 +406,7 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 				[ AppName, DepAppNames ] ),
 
 			{ CompleteDepApps, DepAppTable } = prepare_for_exec( DepAppNames,
-				BinAppBaseDir, BlacklistedApps,	_NestedAppDeps=[],
+				BinAppBaseDir, BlacklistedApps, _NestedAppDeps=[],
 				DirectAppTable ),
 
 			prepare_for_exec( T, AbsBaseDir, BlacklistedApps,
