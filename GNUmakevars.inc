@@ -614,7 +614,7 @@ ifeq ($(USE_JSON),true)
 		JSX_SIBLING_BASE := $(MYRIAD_TOP)/../jsx
 
 		# Another rebar-related path, when Myriad is itself a dependency, and
-		# jsx is another one (of at least Myriad):
+		# jsx is another one:
 		#
 		JSX_REBAR_AS_DEP_BASE := $(JSX_SIBLING_BASE)
 		JSX_REBAR_AS_DEP_EBIN := $(JSX_REBAR_AS_DEP_BASE)/ebin
@@ -640,7 +640,14 @@ ifeq ($(USE_JSON),true)
 			JSX_TOP = $(JSX_REBAR_CHECKOUTS_BASE)
 			BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
 		else
-			ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
+
+			# With rebar3, the build order is not known a priori, and the
+			# jsx/ebin is created only when jsx is built; so we cannot test it
+			# when building a dependency relying on jsx, and we test only the
+			# jsx root directory instead, expecting it to be build afterwards:
+			#
+			#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
+			ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE))" ""
 				JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
 				BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
 			else
@@ -951,9 +958,11 @@ ifndef BASE_MAKEFILE
 endif
 
 
-# Overriding BASE_PLT is useful to take into account third-party prerequisites:
-ifndef BASE_PLT
-	BASE_PLT = $(PREDECESSOR_PLT)
+# Overriding BASE_PLT_FILES is useful to take into account third-party
+# prerequisites:
+#
+ifndef BASE_PLT_FILES
+	BASE_PLT_FILES = $(PREDECESSOR_PLT_FILE)
 endif
 
 
@@ -2214,8 +2223,8 @@ BATCH_OPT := 'CMD_LINE_OPT="--batch"'
 # For 'Myriad', it is the PLT of Erlang/OTP (possibly enriched by
 # prerequisites):
 #
-ifndef PREDECESSOR_PLT
-	PREDECESSOR_PLT = $(ERLANG_PLT_FILE)
+ifndef PREDECESSOR_PLT_FILE
+	PREDECESSOR_PLT_FILE = $(ERLANG_PLT_FILE)
 endif
 
 

@@ -1029,7 +1029,8 @@ clean-api-alt-doc:
 # Allows to generate a file listing all the types defined in the specified
 # Erlang source tree.
 #
-# E.g. 'make generate-list-of-erlang-types ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
+# For example 'make generate-list-of-erlang-types
+# ERLANG_SOURCE_ROOT=~/otp_src_R15B/'
 #
 generate-list-of-erlang-types:
 	@if [ -z "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, no ERLANG_SOURCE_ROOT variable specified."; exit 15; fi; if [ ! -d "$$ERLANG_SOURCE_ROOT" ]; then echo "  Error, specified directory (ERLANG_SOURCE_ROOT=$$ERLANG_SOURCE_ROOT) does not exist."; exit 16; fi; target_file="declared-types-in-Erlang.txt"; erl="$(ERLANG_INTERPRETER)"; target_path=$$(echo $$erl|sed "s|/bin/erl$$|/$$target_file|1"); echo "  Generating the list of types declared in the Erlang runtime..." &&  $(MYRIAD_TOP)/src/scripts/list-available-types.sh "$$ERLANG_SOURCE_ROOT" > $$target_path && echo "  Types have been collected in '$$target_path'."
@@ -1056,8 +1057,8 @@ $(PLT_FILE): generate-local-plt
 # _checkouts)
 #
 generate-local-plt: add-prerequisite-plts
-	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT)"
-	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src $(PACKAGE_TOP)/test --plt $(BASE_PLT); if [ $$? -eq 1 ]; then exit 5; else exit 0; fi
+	@echo "    Generating PLT for $(PACKAGE_NAME) ($(PLT_FILE)), based on $(BASE_PLT_FILES)"
+	@$(DIALYZER) --add_to_plt --output_plt $(PLT_FILE) -r $(PACKAGE_TOP)/src $(PACKAGE_TOP)/test --plts $$(realpath $(BASE_PLT_FILES)); if [ $$? -eq 1 ]; then exit 5; else exit 0; fi
 
 
 # Made to be enriched (with child targets) on a per-layer basis:
@@ -1282,8 +1283,6 @@ info: info-files
 	@echo "PROJECT_NAME           = $(PROJECT_NAME)"
 	@echo "PROJECT_VERSION        = $(PROJECT_VERSION)"
 	@echo "PACKAGE_NAME           = $(PACKAGE_NAME)"
-	@echo "PLT_FILE               = $(PLT_FILE)"
-	@echo "PREDECESSOR_PLT        = $(PREDECESSOR_PLT)"
 
 
 info-files:
@@ -1293,6 +1292,7 @@ info-files:
 	@echo "TEST_TARGETS    = $(TEST_TARGETS)"
 	@echo "ERLANG_PLT_FILE = $(ERLANG_PLT_FILE)"
 	@echo "PLT_FILE        = $(PLT_FILE)"
+	@echo "PREDECESSOR_PLT_FILE   = $(PREDECESSOR_PLT_FILE)"
 
 
 info-meta:
@@ -1349,6 +1349,8 @@ info-sync:
 info-check:
 	@echo "DIALYZER = $(DIALYZER)"
 	@echo "DIALYZER_OPTS = $(DIALYZER_OPTS)"
+	@echo "PLT_FILE = $(PLT_FILE)"
+	@echo "BASE_PLT_FILES = $(BASE_PLT_FILES)"
 	@echo "GRADUALIZER = $(GRADUALIZER)"
 	@echo "GRADUALIZER_OPTS = $(GRADUALIZER_OPTS)"
 	@echo "EQWALIZER = $(EQWALIZER)"
