@@ -36,9 +36,9 @@
 % modules to be operated.
 %
 % It is useful to provide native, integrated, higher-level logging to basic
-% libraries (ex: Ceylan-LEEC, see [http://leec.esperide.org]), should their user
-% require it - while being able to remain lean and mean if wanted (e.g while
-% keeping the dependency to Ceylan-Traces optional).
+% libraries (e.g. Ceylan-LEEC, see [http://leec.esperide.org]), should their
+% user require it - while being able to remain lean and mean if wanted (e.g
+% while keeping the dependency to Ceylan-Traces optional).
 %
 % Switching to a more advanced trace system (typically Ceylan-Traces) is just a
 % matter of having the process of interest call the register/3 function below.
@@ -133,6 +133,9 @@
 						   BridgePid :: bridge_pid() }.
 % Typically the information transmitted by a trace emitter when creating a
 % lower-level process that may or may not use advanced logging.
+%
+% Note that this type is opaque; use get_bridge_spec/{2,3} to obtain an instance
+% thereof.
 
 
 -export_type([ user_bridge_info/0, bridge_spec/0 ]).
@@ -163,6 +166,8 @@ get_bridge_spec( TraceEmitterName,
 
 % @doc Returns the information to pass to a process so that it can register to
 % the corresponding trace bridge and use it automatically from then.
+%
+% Allows not to break the opaqueness of the bridge_spec() type.
 %
 -spec get_bridge_spec( any_string(), any_string(), bridge_pid() ) ->
 							bridge_spec().
@@ -502,7 +507,6 @@ send_bridge( SeverityType, Message,
 			BinTimestampText,
 			_Location=BinLocation,
 			MessageCategorization,
-			%_MessageCategorization=uncategorized,
 			_Priority=trace_utils:get_priority_for( SeverityType ),
 			_Message=text_utils:string_to_binary( Message ) ],
 
