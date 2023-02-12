@@ -1270,8 +1270,9 @@ info-source-layout:
 
 
 info-paths:
-	@echo "BEAM_PATH_OPT = $(BEAM_PATH_OPT)"
-	@echo "PREDECESSOR_LAYER_TOP = $(PREDECESSOR_LAYER_TOP)"
+	@echo "BEAM_PATH_OPT          = $(BEAM_PATH_OPT)"
+	@echo "LAYER_TOP              = $(LAYER_TOP)"
+	@echo "PREDECESSOR_LAYER_TOPS = $(PREDECESSOR_LAYER_TOPS)"
 
 
 
@@ -1410,6 +1411,8 @@ info-json:
 	@echo "USE_JSON                      = $(USE_JSON)"
 	@echo "USE_JSX                       = $(USE_JSX)"
 	@echo "USE_JIFFY                     = $(USE_JIFFY)"
+	@echo "JSX_TOP                       = $(JSX_TOP)"
+	@echo "JSX_REBAR_CHECKOUTS_EBIN      = $(JSX_REBAR_CHECKOUTS_EBIN)"
 	@echo "JSX_REBAR_AS_DEP_EBIN         = $(JSX_REBAR_AS_DEP_EBIN)"
 	@echo "JSX_REBAR_DIRECT_INSTALL_EBIN = $(JSX_REBAR_DIRECT_INSTALL_EBIN)"
 	@echo "JSX_SOFTWARE_EBIN             = $(JSX_SOFTWARE_EBIN)"
