@@ -339,22 +339,21 @@ get_parser_backend_name() ->
 	% We prioritize JSX over Jiffy:
 	case is_parser_backend_available( jsx ) of
 
-		 false->
-				case is_parser_backend_available( jiffy ) of
+		false ->
+			case is_parser_backend_available( jiffy ) of
 
-					false ->
-						undefined;
+				false ->
+					undefined;
 
-					[ _JiffyPath ] ->
-						%trace_utils:debug_fmt( "Selected JSON parser is "
-						%   "Jiffy, in '~ts'.", [ JiffyPath ] ),
-						jiffy ;
+				[ _JiffyPath ] ->
+					%trace_utils:debug_fmt( "Selected JSON parser is "
+					%   "Jiffy, in '~ts'.", [ JiffyPath ] ),
+					jiffy ;
 
-					JiffyPaths ->
-						throw( { multiple_jiffy_json_backends_found,
-								 JiffyPaths } )
+				JiffyPaths ->
+					throw( { multiple_jiffy_json_backends_found, JiffyPaths } )
 
-				end;
+			end;
 
 		[ _JsxPath ] ->
 			%trace_utils:debug_fmt( "Selected JSON parser is JSX, in '~ts'.",
@@ -362,6 +361,9 @@ get_parser_backend_name() ->
 			jsx ;
 
 		JsxPaths ->
+			trace_utils:error_fmt( "Multiple jsx backends found, while ~ts",
+								   [ code_utils:get_code_path_as_string() ] ),
+
 			throw( { multiple_jsx_json_backends_found, JsxPaths } )
 
 	end.
