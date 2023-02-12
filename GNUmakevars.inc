@@ -273,7 +273,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.30
+MYRIAD_VERSION := 1.0.31
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -602,64 +602,86 @@ ifeq ($(USE_JSON),true)
 		# Actually not used, as decided at runtime rather than at compile time:
 		#JSON_OPT = -Duse_jsx_json_backend
 
-		# A rebar convention, if jsx is listed in rebar.config and is among the
-		# _checkouts projects of the current layer:
+		# If the relevant USE_* variables are set to true, in the case of
+		# multiple dependencies involving Myriad, the same JSX lookup would be
+		# repeatedly done with different paths, possibly resulting in having the
+		# same install declared more than once in BEAM_DIRS, leading to a
+		# pseudo-clash of BEAM files (e.g. jsx.beam) being detected at runtime
+		# and thus resulting in a failure. So instead we ensure that
+		# dependencies are detected and added only once:
 		#
-		JSX_REBAR_CHECKOUTS_BASE = $(LAYER_TOP)/_checkouts/jsx
-		JSX_REBAR_CHECKOUTS_EBIN = $(JSX_REBAR_CHECKOUTS_BASE)/ebin
-
-		# If there is a jsx install at the same level as the Myriad one (rebar
-		# or not):
+		# Note that JSX_TOP should never be set without having checked that this
+		# directory exists indeed, except in one case: JSX_TOP may be set to a
+		# bogus/empty value if jsx is to be found at runtime as an OTP
+		# application or a dependency thereof (see otp_utils): as it will then
+		# be automatically found, the make system should not register extra
+		# paths, to avoid clashes.
 		#
-		JSX_SIBLING_BASE := $(MYRIAD_TOP)/../jsx
+		ifndef JSX_TOP
 
-		# Another rebar-related path, when Myriad is itself a dependency, and
-		# jsx is another one:
-		#
-		JSX_REBAR_AS_DEP_BASE := $(JSX_SIBLING_BASE)
-		JSX_REBAR_AS_DEP_EBIN := $(JSX_REBAR_AS_DEP_BASE)/ebin
-
-		# Still rebar, if Myriad is the top-level package:
-		JSX_REBAR_DIRECT_INSTALL_BASE := $(JSX_SIBLING_BASE)/_build/default/lib/jsx
-		JSX_REBAR_DIRECT_INSTALL_EBIN := $(JSX_REBAR_DIRECT_INSTALL_BASE)/ebin
-
-		# A convention of our own (absolute path) that one may want to respect:
-		# (note: no $$HOME, no quotes either)
-		#
-		JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
-		JSX_SOFTWARE_EBIN := $(JSX_SOFTWARE_BASE)/ebin
-
-		# No includes for JSX:
-		#INC += -I$(JSX_REBAR_CHECKOUTS_BASE)/include -I$(JSX_REBAR_AS_DEP_BASE)/include -I$(JSX_REBAR_DIRECT_INSTALL_BASE)/include -I$(JSX_SOFTWARE_BASE)/include
-		# ($(JSX_*_BASE)/ebin/*.beam found at runtime)
-
-		# Options in order to locate a proper jsx (embedded or userspace):
-		# (most likely first)
-		#
-		ifneq "$(wildcard $(JSX_REBAR_CHECKOUTS_EBIN))" ""
-			JSX_TOP = $(JSX_REBAR_CHECKOUTS_BASE)
-			BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
-		else
-
-			# With rebar3, the build order is not known a priori, and the
-			# jsx/ebin is created only when jsx is built; so we cannot test it
-			# when building a dependency relying on jsx, and we test only the
-			# jsx root directory instead, expecting it to be build afterwards:
+			# A rebar convention, if jsx is listed in rebar.config and is among
+			# the _checkouts projects of the current layer:
 			#
-			#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
-			ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE))" ""
-				JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
-				BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
+			JSX_REBAR_CHECKOUTS_BASE = $(LAYER_TOP)/_checkouts/jsx
+			JSX_REBAR_CHECKOUTS_EBIN = $(JSX_REBAR_CHECKOUTS_BASE)/ebin
+
+			# If there is a jsx install at the same level as the Myriad one
+			# (rebar or not):
+			#
+			JSX_SIBLING_BASE := $(MYRIAD_TOP)/../jsx
+
+			# Another rebar-related path, when Myriad is itself a dependency,
+			# and jsx is another one:
+			#
+			JSX_REBAR_AS_DEP_BASE := $(JSX_SIBLING_BASE)
+			JSX_REBAR_AS_DEP_EBIN := $(JSX_REBAR_AS_DEP_BASE)/ebin
+
+			# Still rebar, if Myriad is the top-level package:
+			JSX_REBAR_DIRECT_INSTALL_BASE := $(JSX_SIBLING_BASE)/_build/default/lib/jsx
+			JSX_REBAR_DIRECT_INSTALL_EBIN := $(JSX_REBAR_DIRECT_INSTALL_BASE)/ebin
+
+			# A convention of our own (absolute path) that one may want to
+			# respect: (note: no $$HOME, no quotes either)
+			#
+			JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
+			JSX_SOFTWARE_EBIN := $(JSX_SOFTWARE_BASE)/ebin
+
+			# No includes for JSX:
+			#INC += -I$(JSX_REBAR_CHECKOUTS_BASE)/include -I$(JSX_REBAR_AS_DEP_BASE)/include -I$(JSX_REBAR_DIRECT_INSTALL_BASE)/include -I$(JSX_SOFTWARE_BASE)/include
+			# ($(JSX_*_BASE)/ebin/*.beam found at runtime)
+
+			# Options in order to locate a proper jsx (embedded or userspace):
+			# (most likely first)
+			#
+			ifneq "$(wildcard $(JSX_REBAR_CHECKOUTS_EBIN))" ""
+				JSX_TOP = $(JSX_REBAR_CHECKOUTS_BASE)
+				BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
 			else
-				ifneq "$(wildcard $(JSX_REBAR_DIRECT_INSTALL_EBIN))" ""
-					JSX_TOP = $(JSX_REBAR_DIRECT_INSTALL_BASE)
-					BEAM_DIRS += $(JSX_REBAR_DIRECT_INSTALL_EBIN)
+
+				# With rebar3, the build order is not known a priori, and the
+				# jsx/ebin is created only when jsx is built; so we cannot test
+				# it when building a dependency relying on jsx, and we test only
+				# the jsx root directory instead, expecting it to be build
+				# afterwards:
+				#
+				#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
+				ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE))" ""
+					JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
+					BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
 				else
-					ifneq "$(wildcard $(JSX_SOFTWARE_EBIN))" ""
-						JSX_TOP = $(JSX_SOFTWARE_BASE)
-						ABS_BEAM_DIRS += $(JSX_SOFTWARE_EBIN)
+					ifneq "$(wildcard $(JSX_REBAR_DIRECT_INSTALL_EBIN))" ""
+						JSX_TOP = $(JSX_REBAR_DIRECT_INSTALL_BASE)
+						BEAM_DIRS += $(JSX_REBAR_DIRECT_INSTALL_EBIN)
 					else
-						FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD).))
+						ifneq "$(wildcard $(JSX_SOFTWARE_EBIN))" ""
+							JSX_TOP = $(JSX_SOFTWARE_BASE)
+							ABS_BEAM_DIRS += $(JSX_SOFTWARE_EBIN)
+						else
+							# No trailing dot shall be specified here
+							# (as it is automatically added):
+							#
+							FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD)))
+						endif
 					endif
 				endif
 			endif
@@ -671,7 +693,7 @@ ifeq ($(USE_JSON),true)
 		# The Jiffy JSON parser is available at
 		# https://github.com/davisp/jiffy.
 
-		# To be updated like jsx above
+		# To be updated like jsx above if used.
 
 		# Install obtained thanks to:
 		#
@@ -2237,5 +2259,7 @@ MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh
 # rules (not depending on its actual name) able to automatically descend the
 # layer stack (e.g. to copy their respective BEAM files in their respective
 # ebin) without defining specific make targets at each layer:
-
-#PREDECESSOR_LAYER_TOP :=
+#
+ifndef PREDECESSOR_LAYER_TOPS
+	PREDECESSOR_LAYER_TOPS =
+endif
