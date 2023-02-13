@@ -658,14 +658,17 @@ ifeq ($(USE_JSON),true)
 				BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
 			else
 
-				# With rebar3, the build order is not known a priori, and the
-				# jsx/ebin is created only when jsx is built; so we cannot test
-				# it when building a dependency relying on jsx, and we test only
-				# the jsx root directory instead, expecting it to be build
-				# afterwards:
+				# With rebar3, the build order is not known a priori, and any
+				# jsx/ebin directory is created only when jsx is built; so we
+				# cannot test it when building a dependency relying on jsx, and
+				# we test only the jsx root directory instead, expecting it to
+				# be built afterwards; yet then we cannot discriminate a future
+				# jsx/ebin from a jsx/_build/default/lib/jsx/ebin one; so the
+				# new convention is to use USE_JSON=false at build time or an
+				# already set JSX_TOP (possibly to just '$(space)')
 				#
-				#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
-				ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE))" ""
+				#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE))" ""
+				ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
 					JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
 					BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
 				else
