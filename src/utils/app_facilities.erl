@@ -220,11 +220,20 @@ finished() ->
 	% Probably not that useful:
 	system_utils:await_output_completion(),
 
+	% This is a really magic waiting: without it, with systemd, an otherwise
+	% perfectly working ExecStop script would hang and finish in a later
+	% time-out (Type=forking; e.g. US-Main), whereas, with this sleep, stop
+	% works as expected and switfly; maybe there is a race condition in systemd
+	% itself:
+	%
+	timer:sleep( 1000 ),
+
 	% Implies flushing as well:
 	basic_utils:stop_on_success(),
 
 	% Useless, but otherwise Dialyzer will complain that this function has no
 	% local return:
+	%
 	app_success.
 
 -else. % exit_after_app
