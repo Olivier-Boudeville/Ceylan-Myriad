@@ -93,7 +93,7 @@
 
 
 -type termination_reason() ::
-		'normal' | 'shutdown' | { 'shutdown', term() } | term().
+	'normal' | 'shutdown' | { 'shutdown', term() } | term().
 % Denotes the reason for stopping.
 
 
@@ -1090,7 +1090,8 @@ stop_application( _AppName=kernel ) ->
 stop_application( AppName ) ->
 
 	?info_fmt( "Stopping the '~ts' OTP application.", [ AppName ] ),
-	%trace_utils:debug_fmt( "Stopping the '~ts' application.", [ AppName ] ),
+	%trace_utils:debug_fmt( "Stopping the '~ts' OTP application.",
+	%   [ AppName ] ),
 
 	case application:stop( AppName ) of
 
