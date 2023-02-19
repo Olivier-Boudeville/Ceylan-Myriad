@@ -84,11 +84,12 @@
 % Number of fields in a row.
 
 
--type reading_outcome() :: { Rows :: content(), row_count(), field_count() }.
+-type reading_outcome() :: { Rows :: content(), RowCount :: row_count(),
+							 FieldCount :: field_count() }.
 % The result of the parsing of a CSV file, comprised of:
 % - the corresponding content, as an ordered list of rows
 % - the number of rows found
-% - the number of fields they all have
+% - the number of fields each row has
 
 
 -export_type([ separator/0, value/0, row/0, content/0, row_count/0,
@@ -778,7 +779,7 @@ select_most_likely_separator( SepPairs ) ->
 
 	% Returns the separator having the higher number of occurrences:
 	{ Sep, _Count } = list_utils:get_last_element(
-						lists:keysort( _CountIndex=2, SepPairs ) ),
+		lists:keysort( _CountIndex=2, SepPairs ) ),
 
 	Sep.
 
