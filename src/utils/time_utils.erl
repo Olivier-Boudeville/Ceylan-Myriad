@@ -47,7 +47,7 @@
 % Day management support:
 -export([ is_bank_holiday/2, get_bank_holidays_for/2,
 		  find_common_bank_holidays/3,
-		  get_daylight_saving_time/1 ]).
+		  get_daylight_saving_time/1, get_day_in_year/1, get_day_rank/1 ]).
 
 
 % Week management support:
@@ -57,7 +57,8 @@
 % Month management support:
 -export([ canonicalise_month/1, check_month_canonical/1, check_month_order/2,
 		  month_to_string/1,
-		  get_month_duration/1, get_month_durations/0, get_day_rank/1 ]).
+		  get_month_duration/1, get_month_duration/2,
+		  get_month_durations/0, get_month_durations/1 ]).
 
 
 % Date support:
@@ -121,11 +122,13 @@
 
 
 -type ms_duration() :: milliseconds().
-% A duration, in milliseconds.
+% A (signed) duration, in milliseconds.
 
 -type ms_period() :: ms_duration().
 % A period, in milliseconds.
 
+-type second_duration() :: seconds().
+% A (signed) duration, in (integer) seconds.
 
 -type dhms_duration() :: { D :: days(), H :: hours(), M :: minutes(),
 						   S :: seconds() }.
@@ -135,7 +138,8 @@
 
 
 -type day_duration() :: days().
-% A duration expressed as a number of full days (e.g. one way to express an age).
+% A duration expressed as a number of full days (e.g. one way to express an
+% age).
 
 
 -type iso8601_string() :: ustring().
@@ -157,13 +161,15 @@
 -export_type([ day_index/0, week_day/0, date/0, birth_date/0, user_date/0,
 			   date_in_year/0,
 			   time/0, ms_since_year_0/0, ms_since_epoch/0, ms_monotonic/0,
-			   ms_duration/0, ms_period/0, dhms_duration/0, day_duration/0,
+			   ms_duration/0, ms_period/0, second_duration/0,
+			   dhms_duration/0, day_duration/0,
 			   iso8601_string/0, iso8601_bin_string/0 ]).
 
 
 % Basics:
 -export([ get_textual_date/1, from_posix_timestamp/1,
-		  get_local_timestamp/0, get_local_date/0, get_local_time/0 ]).
+		  get_local_timestamp/0, get_local_date/0, get_local_time/0,
+		  is_leap_year/1 ]).
 
 
 % For rough, averaged conversions:
@@ -216,7 +222,7 @@
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  timestamp_to_weekday/1, date_to_weekday/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
-		  offset_timestamp/2, next_month/1,
+		  offset_timestamp/2, offset_time/2, next_month/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1,
 		  get_textual_duration/2, get_french_textual_duration/2,
@@ -243,7 +249,7 @@
 
 
 -type user_time_frame() :: { Begin :: timestamp() | date(),
-							 End :: timestamp() | date() }.
+							 End   :: timestamp() | date() }.
 % Typically a user-defined time frame, to be transformed into a legit
 % time_frame/0.
 
@@ -294,6 +300,15 @@
 			   posix_seconds/0 ]).
 
 
+% The lowest possible time (typically in a day):
+-define( first_time, { 0, 0, 0 } ).
+
+% The highest possible time (typically in a day):
+-define( last_time, { 23, 59, 59 } ).
+
+-define( seconds_per_day, 86400 ).
+
+
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
@@ -310,6 +325,7 @@
 -type hours() :: unit_utils:hours().
 -type day() :: unit_utils:day().
 -type days() :: unit_utils:days().
+-type day_in_the_year() :: unit_utils:day_in_the_year().
 -type weeks() :: unit_utils:weeks().
 
 -type month() :: unit_utils:month().
@@ -348,8 +364,8 @@ from_posix_timestamp( PosixTimestamp ) ->
 	{ _Date={ Post1970Year, Month, Day }, Time } =
 		calendar:gregorian_seconds_to_datetime( PosixTimestamp ),
 
-	% For services (e.g. filesystem) typically returning their timestamp in local
-	% time:
+	% For services (e.g. filesystem) typically returning their timestamp in
+	% local time:
 	%
 	calendar:universal_time_to_local_time(
 		{ { 1970 + Post1970Year, Month, Day }, Time } ).
@@ -376,6 +392,21 @@ get_local_date() ->
 get_local_time() ->
 	{ _Date, Time } = calendar:local_time(),
 	Time.
+
+
+% @doc Tells whether the specified year is a leap one.
+-spec is_leap_year( year() ) -> boolean().
+is_leap_year( Year ) ->
+	%case Y rem 4 of
+	%
+	%   0 ->
+	%       [...];
+	%
+	%   _ ->
+	%       false
+	%
+	%end.
+	calendar:is_leap_year( Year ).
 
 
 
@@ -471,19 +502,63 @@ month_to_string( MonthIndex ) ->
 	month_to_string( canonicalise_month( MonthIndex ) ).
 
 
-
 % @doc Returns the duration of the specified month.
 %
-% Here February lasts always 28 days.
+% Here February lasts always 28 days (as if the year was not a leap one).
 %
--spec get_month_duration( canonical_month() ) -> days().
+-spec get_month_duration( canonical_month(), year() ) -> days().
 get_month_duration( MonthIndex ) ->
 	lists:nth( MonthIndex, get_month_durations() ).
 
 
+
+% @doc Returns the duration of the specified month of the specified year.
+%
+% Takes into account leap years.
+%
+-spec get_month_duration( canonical_month(), year() ) -> days().
+% February is the exception in leap years:
+get_month_duration( MonthIndex=2, Year ) ->
+
+	% 28:
+	BaseDayCount = lists:nth( MonthIndex, get_month_durations() ),
+
+	case is_leap_year( Year ) of
+
+		true ->
+			BaseDayCount + 1;
+
+		false ->
+			BaseDayCount
+
+	end;
+
+get_month_duration( MonthIndex, _Year ) ->
+	lists:nth( MonthIndex, get_month_durations() ).
+
+
+
+% @doc Returns the list of the duration of months for the specified year.
+%
+% Handles correctly leap years.
+%
+-spec get_month_durations( year() ) -> days().
+get_month_durations( Year ) ->
+	[ 31, case is_leap_year( Year ) of
+
+			true ->
+				29;
+
+			_False ->
+				28
+
+		  end, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 ].
+
+
+
 % @doc Returns the list of the usual duration of months.
 %
-% Here February lasts always 28 days.
+% Here February lasts always 28 days (instead of 29 for leap years).
 %
 -spec get_month_durations() -> days().
 get_month_durations() ->
@@ -491,10 +566,27 @@ get_month_durations() ->
 
 
 
+% @doc Returns the day in the year (thus in [1,366]) corresponding to the
+% specified date.
+%
+% Handles correctly leap years.
+%
+% For example, for the tenth of February, in 2023:
+% get_day_in_year({2023, 2, 10}) = 41.
+%
+-spec get_day_in_year( date() ) -> day_in_the_year().
+get_day_in_year( _Date={ Year, Month, Day } ) ->
+	MonthDurs = get_month_durations( Year ),
+	sum_over_months( Month, MonthDurs, _Acc=Day ).
+
+
 % @doc Returns the rank in year of the specified day, in [1,365].
 %
 % For example, for the tenth of February:
 % get_day_rank({2, 10}) = 41.
+%
+% Cannot take into account leap years; prefer using get_day_in_year/1 whenever
+% possible.
 %
 -spec get_day_rank( date_in_year() ) -> day().
 get_day_rank( { Month, Day } ) ->
@@ -635,8 +727,8 @@ get_daylight_saving_time( _Date={ Y, _M=3, D } ) ->
 		_Sunday=7 ->
 			31;
 
-		% E.g. if the 31st of March is a Saturday (6), then 31-6=31-7+1 is a
-		% Sunday:
+		% For example if the 31st of March is a Saturday (6), then 31-6=31-7+1
+		% is a Sunday:
 		%
 		OtherWeekday ->
 			31 - OtherWeekday
@@ -646,7 +738,7 @@ get_daylight_saving_time( _Date={ Y, _M=3, D } ) ->
 	% Not having the hour here, yet as the DST limit is very early this Sunday,
 	% we consider that on average we must be already past it:
 	%
-	case D <  LastSunday of
+	case D < LastSunday of
 
 		true ->
 			1;
@@ -665,8 +757,8 @@ get_daylight_saving_time( _Date={ Y, _M=10, D } ) ->
 		_Sunday=7 ->
 			31;
 
-		% E.g. if the 31st of October is a Saturday (6), then 31-6=31-7+1 is a
-		% Sunday:
+		% For example if the 31st of October is a Saturday (6), then 31-6=31-7+1
+		% is a Sunday:
 		%
 		OtherWeekday ->
 			31 - OtherWeekday
@@ -865,17 +957,9 @@ compare_helper( _FirstDate, _SecondDate ) ->
 %
 -spec check_date_order( date(), date() ) -> void().
 check_date_order( StartDate, StopDate ) ->
-
-	case compare_dates( StartDate, StopDate ) of
-
-		lower ->
-			ok;
-
+	compare_dates( StartDate, StopDate ) =:= lower orelse
 		% Equal or higher:
-		_ ->
-			throw( { wrong_date_order, StartDate, StopDate } )
-
-	end.
+		throw( { wrong_date_order, StartDate, StopDate } ).
 
 
 
@@ -1412,7 +1496,7 @@ get_textual_timestamp_for_path() ->
 get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
 											 { Hour, Minute, Second } } ) ->
 	text_utils:format( "~p-~p-~p-at-~Bh-~2..0Bm-~2..0Bs",
-				   [ Year, Month, Day, Hour, Minute, Second ] ).
+					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 % @doc Returns a string corresponding to the specified timestamp, with "dash"
@@ -1422,7 +1506,7 @@ get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
 get_textual_timestamp_with_dashes( _Timestamp={ { Year, Month, Day },
 												{ Hour, Minute, Second } } ) ->
 	text_utils:format( "~B-~2..0B-~2..0B ~B:~2..0B:~2..0B",
-				   [ Year, Month, Day, Hour, Minute, Second ] ).
+					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 
@@ -1437,15 +1521,15 @@ timestamp_to_string( Timestamp ) ->
 timestamp_to_iso8601_string( _Timestamp={ { Year, Month, Day },
 										  { Hour, Minute, Second } } ) ->
 	% Note that the format specifier must be ~w, not ~B:
-	text_utils:bin_format( "~.4.0w-~.2.0w-~.2.0wT~.2.0w:~.2.0w:~.2.0wZ",
+	text_utils:format( "~.4.0w-~.2.0w-~.2.0wT~.2.0w:~.2.0w:~.2.0wZ",
 					   [ Year, Month, Day, Hour, Minute, Second ] ).
 
 
 
-% @doc Returns a textual ISO8601 description of the specified timestamp.
+% @doc Returns a textual ISO8601 binary description of the specified timestamp.
 -spec timestamp_to_iso8601_bin_string( timestamp() ) -> iso8601_bin_string().
 timestamp_to_iso8601_bin_string( _Timestamp={ { Year, Month, Day },
-										  { Hour, Minute, Second } } ) ->
+											  { Hour, Minute, Second } } ) ->
 	% Note that the format specifier must be ~w, not ~B:
 	text_utils:bin_format( "~.4.0w-~.2.0w-~.2.0wT~.2.0w:~.2.0w:~.2.0wZ",
 						   [ Year, Month, Day, Hour, Minute, Second ] ).
@@ -1572,7 +1656,7 @@ timestamp_to_seconds() ->
 
 
 
-% @doc Returns the week day (e.g. 'Tuesday') corresponding to specified
+% @doc Returns the week day (e.g. 'Tuesday') corresponding to the specified
 % timestamp.
 %
 -spec timestamp_to_weekday( timestamp() ) -> week_day().
@@ -1581,7 +1665,9 @@ timestamp_to_weekday( _Timestamp={ Date, _Time } ) ->
 
 
 
-% @doc Returns the week day (e.g. 'Tuesday') corresponding to specified date.
+% @doc Returns the week day (e.g. 'Tuesday') corresponding to the specified
+% date.
+%
 -spec date_to_weekday( date() ) -> week_day().
 date_to_weekday( Date ) ->
 	DayNum = calendar:day_of_the_week( Date ),
@@ -1589,8 +1675,9 @@ date_to_weekday( Date ) ->
 
 
 
-% @doc Converts specified timestamp expressed in local time (thus with time zone
-% and Daylight Saving Time) into a timestamp expressed in universal time (UTC).
+% @doc Converts the specified timestamp expressed in local time (thus with time
+% zone and Daylight Saving Time) into a timestamp expressed in universal time
+% (UTC).
 %
 % Note: designed to never fail, and performs a conversion as reasonably as
 % possible (e.g. due to DST, some timestamp in local time shall not exist, like
@@ -1640,8 +1727,8 @@ local_to_universal_time( LocalTimestamp ) ->
 
 
 
-% @doc Converts specified timestamp expressed in universal time (UTC) into a
-% timestamp expressedin local time (thus with time zone and Daylight Saving
+% @doc Converts the specified timestamp expressed in universal time (UTC) into a
+% timestamp expressed in local time (thus with time zone and Daylight Saving
 % Time).
 %
 -spec universal_to_local_time( timestamp() ) -> timestamp().
@@ -1650,7 +1737,7 @@ universal_to_local_time( UTCTimestamp ) ->
 
 
 
-% @doc Returns the number of seconds elapsed since year 0 and specified
+% @doc Returns the number of seconds elapsed since year 0 and the specified
 % timestamp.
 %
 % Useful for example to define an absolute reference in seconds and then only
@@ -1662,8 +1749,8 @@ timestamp_to_seconds( Timestamp ) ->
 
 
 
-% @doc Offsets specified timestamp of specified (signed) duration: returns a
-% timestamp translated accordingly.
+% @doc Offsets the specified timestamp of the specified (signed) duration:
+% returns a timestamp translated accordingly.
 %
 -spec offset_timestamp( timestamp(), dhms_duration() | seconds() ) ->
 								timestamp().
@@ -1679,12 +1766,41 @@ offset_timestamp( Timestamp, Duration ) -> % when is_integer( Duration )
 	calendar:gregorian_seconds_to_datetime( NewSecs ).
 
 
+% @doc Offsets the specified time of the specified (signed) duration: returns a
+% time translated accordingly.
+%
+% Returns ?first_time if the resulting time would be offset to the previous day,
+% and ?last_time if the resulting time would be offset to the next day.
+%
+-spec offset_time( time(), second_duration() ) -> time().
+offset_time( Time, SecDuration ) ->
+
+	% Presumably more efficient:
+	OffsetSeconds = case calendar:time_to_seconds( Time ) + SecDuration of
+
+		S when S < 0 ->
+			?first_time;
+
+		% Hence in [0,86400[:
+		S when S < ?seconds_per_day ->
+			S;
+
+		% Implicit: S >= 86400
+		_S ->
+			?last_time
+
+	end,
+
+	calendar:seconds_to_time( OffsetSeconds ).
+
+
 
 % @doc Returns the same timestamp as specified, except exactly one month later
 % (hence not translated of a fixed duration).
 %
 % Note that this may still lead to invalid date, if the specified month has more
-% days than the next (e.g. January, 31 becoming then a nonsensical February, 31).
+% days than the next (e.g. January, 31 becoming then a nonsensical February,
+% 31).
 %
 -spec next_month( timestamp() ) -> timestamp().
 next_month( _Timestamp={ { Y, _M=12, D }, Time } ) ->
@@ -1875,7 +1991,7 @@ duration_to_string( Milliseconds ) when is_integer( Milliseconds )->
 
 		_ ->
 			[ text_utils:format( "~B milliseconds", [ ActualMilliseconds ] )
-			  | ListWithSeconds ]
+				| ListWithSeconds ]
 
 	end,
 
@@ -1973,7 +2089,7 @@ duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
 
 		_ ->
 			[ text_utils:format( "~B secondes", [ Seconds ] )
-						| ListWithMinutes ]
+				| ListWithMinutes ]
 
 	end,
 
@@ -1989,7 +2105,7 @@ duration_to_french_string( Milliseconds ) when is_integer( Milliseconds )->
 
 		_ ->
 			[ text_utils:format( "~B millisecondes", [ ActualMilliseconds ] )
-			  | ListWithSeconds ]
+				| ListWithSeconds ]
 
 	end,
 
@@ -2018,7 +2134,7 @@ duration_to_french_string( infinity ) ->
 % (integer; otherwise, if being floating-point, it will be rounded), or as the
 % 'infinity' atom.
 %
-% E.g. for a time-out of 150 012 ms, returns for English:
+% For example for a time-out of 150 012 ms, returns for English:
 % "time-out of 2 minutes, 30 seconds and 12 milliseconds".
 %
 -spec time_out_to_string( time_out(),
