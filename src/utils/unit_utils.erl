@@ -93,6 +93,9 @@
 -type canonical_day() :: 1..31.
 % Day in the month; semantically equivalent to calendar:day().
 
+-type day_in_the_year() :: 1..366.
+% Day in the (possibly leap) year.
+
 
 -type hour()         :: integer().
 -type hours()        :: integer().
@@ -176,7 +179,7 @@
 			   year/0, years/0,
 			   month/0, months/0, canonical_month/0, absolute_month/0,
 			   week/0, weeks/0,
-			   day/0, days/0, canonical_day/0,
+			   day/0, days/0, canonical_day/0, day_in_the_year/0,
 			   hour/0, hours/0, canonical_hour/0,
 			   minute/0, minutes/0, canonical_minute/0,
 			   second/0, seconds/0, canonical_second/0,
@@ -350,8 +353,8 @@
 % A geographic coordinate that specifies the north-south position of a point on
 % the surface of the Earth or another celestial body.
 %
-% It is an angular measurement, usually expressed in degrees: latitude is given
-% as an angle that ranges from -90° at the south pole to 90° at the north pole,
+% It is an angular measurement, expressed here in degrees: latitude is given as
+% an angle that ranges from -90° at the south pole to 90° at the north pole,
 % with 0° at the Equator.
 
 
@@ -359,16 +362,21 @@
 % A geographic coordinate that specifies the east-west position of a point on
 % the surface of the Earth, or another celestial body.
 %
-% It is an angular measurement, usually expressed in degrees: longitude is given
-% as an angle that ranges from 0° at the Prime Meridian to +180° eastward and
-% -180° westward.
+% It is an angular measurement, expressed here in degrees: longitude is given as
+% an angle that ranges from 0° at the Prime Meridian to +180° eastward and -180°
+% westward.
 
 
 -type position() :: { latitude(), longitude() }.
 % A position on a round celestial body, typically the Earth.
+%
 % No altitude/elevation.
 
--export_type([ latitude/0, longitude/0, position/0 ]).
+
+-type declination() :: degrees().
+
+
+-export_type([ latitude/0, longitude/0, position/0, declination/0 ]).
 
 
 
