@@ -233,6 +233,10 @@
 		  canonicalise_time_frame/1 ]).
 
 
+% For defines:
+-include("time_utils.hrl").
+
+
 -type timestamp() :: { date(), time() }.
 % Used to be calendar:datetime(), now uses our types.
 %
@@ -299,14 +303,6 @@
 
 			   posix_seconds/0 ]).
 
-
-% The lowest possible time (typically in a day):
--define( first_time, { 0, 0, 0 } ).
-
-% The highest possible time (typically in a day):
--define( last_time, { 23, 59, 59 } ).
-
--define( seconds_per_day, 86400 ).
 
 
 % Shorthands:
