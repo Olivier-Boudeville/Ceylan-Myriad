@@ -172,7 +172,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
