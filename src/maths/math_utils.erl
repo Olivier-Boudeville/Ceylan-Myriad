@@ -61,9 +61,9 @@
 
 
 % Operations with angles:
--export([ radian_to_degree/1, canonify/1 ]).
+-export([ radian_to_degree/1, degree_to_radian/1, canonify/1 ]).
 
--compile({ inline, [ radian_to_degree/1, canonify/1 ] }).
+-compile({ inline, [ radian_to_degree/1, degree_to_radian/1, canonify/1 ] }).
 
 
 % Operations related to functions:
@@ -154,7 +154,7 @@
 % A non-negative number (an integer or floating-point) that can be translated to
 % a normalised probability by scaling it to [0.0,1.0].
 %
-% Ex: if considering two exclusive events whose
+% For example if considering two exclusive events whose
 % respective likeliness is quantified as 20 and 30, then these probability-like
 % elements can be translated to actual (normalised) probabilities of
 % 20/(20+30)=0.4 and 0.6.
@@ -251,10 +251,10 @@ ceiling( X ) ->
 
 
 
-% @doc Rounds the specified floating-point number at specified offset after the
-% decimal point.
+% @doc Rounds the specified floating-point number at the specified offset after
+% the decimal point.
 %
-% Ex: round_after(12.3456, _DigitCount3) = 12.346.
+% For example round_after(12.3456, _DigitCount3) = 12.346.
 %
 -spec round_after( float(), basic_utils:count() ) -> float().
 round_after( F, DigitCount ) ->
@@ -268,11 +268,12 @@ round_after( F, DigitCount ) ->
 
 
 
-% @doc Converts specified float to integer.
+% @doc Converts the specified float to integer.
 %
 % The float must exactly match the integer value.
 %
-% Ex: float_to_integer(5.0) = 5, while float_to_integer(5.0000001) will crash.
+% For example float_to_integer(5.0) = 5, while float_to_integer(5.0000001) will
+% crash.
 %
 -spec float_to_integer( float() ) -> integer().
 float_to_integer( F ) ->
@@ -280,7 +281,7 @@ float_to_integer( F ) ->
 
 
 
-% @doc Converts specified float to integer, using specified conversion
+% @doc Converts the specified float to integer, using specified conversion
 % tolerance.
 %
 -spec float_to_integer( float(), conversion_type() ) -> integer().
@@ -312,7 +313,7 @@ float_to_integer( F, _ConversionType={ absolute, Epsilon } ) ->
 
 		false ->
 			throw( { too_inexact_integer_conversion, { F, Int },
-				   { absolute, Epsilon } } )
+					 { absolute, Epsilon } } )
 
 	end;
 
@@ -329,7 +330,7 @@ float_to_integer( F, _ConversionType={ relative, Epsilon } ) ->
 
 		false ->
 			throw( { too_inexact_integer_conversion, { F, Int },
-				   { relative, Epsilon } } )
+					 { relative, Epsilon } } )
 
 	end.
 
@@ -359,8 +360,8 @@ modulo( 0, _Y ) ->
 
 
 
-% @doc Clamps specified value between specified bounds: the returned value V is
-% in [Min, Max].
+% @doc Clamps the specified value between specified bounds: the returned value V
+% is in [Min, Max].
 %
 % We expect that `Min <= Max'.
 %
@@ -413,7 +414,7 @@ squarify( L ) ->
 % @doc Returns the smallest power of two that is greater or equal to the
 % specified integer.
 %
-% Ex: math_utils:get_next_power_of_two( 5 ) = 8.
+% For example math_utils:get_next_power_of_two(5) = 8.
 %
 -spec get_next_power_of_two( non_neg_integer() ) -> pos_integer().
 get_next_power_of_two( I ) ->
@@ -494,7 +495,7 @@ are_relatively_close( X, Y ) ->
 % relative error), must be smaller than the specified epsilon threshold,
 % ie the maximum tolerance.
 %
-% Ex: to know whether X and Y are equal with a 5% tolerance, use:
+% For example to know whether X and Y are equal with a 5% tolerance, use:
 % math_utils:are_relatively_close(X, Y, _Tolerance=0.05).
 %
 -spec are_relatively_close( number(), number(), number() ) -> boolean().
@@ -543,11 +544,11 @@ get_relative_difference( X, Y ) ->
 	% Previously was:
 	%case -X of
 	%
-	%	Y ->
-	%		difference_not_computable;
+	%   Y ->
+	%       difference_not_computable;
 	%
-	%	_ ->
-	%		2 * erlang:abs( X - Y ) / ( X + Y )
+	%   _ ->
+	%       2 * erlang:abs( X - Y ) / ( X + Y )
 	%
 	%end.
 	% Yet this did not catch cases like: X= 0.0, Y= 0, so:
@@ -606,11 +607,11 @@ is_null_number( F ) ->
 % As we try to remain as much as possible with integer computations, for angle
 % we tend to prefer expressing them in degrees rather than in radians.
 
-% Angles in degrees are preferably kept in the [0;360[ interval, ie as
+% Angles in degrees are preferably kept in the [0;360[ interval, that is as
 % positive integers.
 
 
-% @doc Converts specified angle in radian into the same angle expressed in
+% @doc Converts the specified angle in radians into the same angle expressed in
 % degrees.
 %
 -spec radian_to_degree( radians() ) -> degrees().
@@ -618,8 +619,16 @@ radian_to_degree( AngleInRadians ) ->
 	AngleInRadians * 180 / math:pi().
 
 
-% @doc Canonifies specified angle in degrees, ie ensures the returned value that
-% corresponds to the specified angle is in the [0;360[ interval.
+% @doc Converts the specified angle in degrees into the same angle expressed in
+% radians.
+%
+-spec degree_to_radian( degrees() ) -> radians().
+degree_to_radian( AngleInDegrees ) ->
+	AngleInDegrees * math:pi() / 180.
+
+
+% @doc Canonifies the specified angle in degrees, ie ensures the returned value
+% that corresponds to the specified angle is in the [0;360[ interval.
 %
 -spec canonify( number() ) -> int_degrees().
 canonify( AngleInDegrees ) when is_integer( AngleInDegrees ) ->
@@ -679,7 +688,7 @@ sample_as_pairs( Fun, Current, Stop, Increment, Acc ) ->
 % specified index (expected to be numbers, whose sum is non-null), so that their
 % sum is equal to 1.0.
 %
-% Ex: normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
+% For example normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
 %                 = [{a,0.3}, {"hello",0.5}, {1,0.2}]
 %
 -spec normalise( [ tuple() ], positive_index() ) -> [ tuple() ].
