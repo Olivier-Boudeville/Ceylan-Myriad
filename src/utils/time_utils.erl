@@ -1612,7 +1612,7 @@ dhms_to_string( DHMS ) ->
 
 
 % @doc Returns a textual description of the specified time of day, like:
-% "09:14:57".
+% "9:14:57".
 %
 -spec time_to_string( time() ) -> ustring().
 time_to_string( _Time={ H, M, S } ) ->
