@@ -279,7 +279,7 @@ negate( _V=[X,Y,Z,W] ) ->
 
 
 % @doc Scales the specified 4D vector of the specified scalar factor.
--spec scale( vector4(), factor() ) -> vector4().
+-spec scale( any_vector4(), factor() ) -> vector4().
 scale( _V=[X,Y,Z,W], Factor ) ->
 	[ Factor*X, Factor*Y, Factor*Z, Factor*W ].
 

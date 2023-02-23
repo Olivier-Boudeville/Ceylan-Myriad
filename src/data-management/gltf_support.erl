@@ -1123,10 +1123,10 @@ get_basic_perspective_camera_type() ->
 -spec get_basic_camera_node() -> gltf_node().
 get_basic_camera_node() ->
 
-	CameraRotQuaternion = [ 0.483536034822464,
+	CameraRotQuaternion = { 0.483536034822464,
 							0.33687159419059753,
 							-0.20870360732078552,
-							0.7804827094078064 ],
+							0.7804827094078064 },
 
 	CameraPosition = [ 7.358891487121582,
 					   4.958309173583984,
@@ -1893,8 +1893,9 @@ decode_primitive( MeshIndex, PrimitiveIndex, #gltf_content{
 
 	{ Indexes, IndexesBufferTable } = case Prim#gltf_primitive.indexes of
 
+		% FIXME: most probably faulty
 		undefined ->
-			Tex0BufferTable;
+			{ _Indxs=[], Tex0BufferTable };
 
 		IndexesPositionAccessorIndex ->
 
@@ -2219,7 +2220,7 @@ integrate_vertices( Vertices, MaybeName, PrimBufferIndex, Buffer,
 
 	{ MinVec, MaxVec } = compute_gltf_extremas( YupVertices ),
 
-	PosElementType = point3,
+	PosElementType = vector3,
 	PosComponentType = float32,
 
 	PosCount = length( YupVertices ),
@@ -2437,6 +2438,7 @@ integrate_indexes( Indexes, MaybeName, PrimBufferIndex, Buffer,
 
 	NewBufferViews = list_utils:append_at_end( IdxBufferView, BufferViews ),
 
+	% FIXME: Indexes not expected, instead: [specialised_type()]
 	NewBuffer = append_to_buffer( IdxElementType, IdxComponentType, Indexes,
 								  Buffer ),
 

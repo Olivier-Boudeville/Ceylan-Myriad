@@ -650,7 +650,8 @@ start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 			% of this server:
 			%
 			?myriad_spawn( fun() ->
-							server_run( CallerPid, ServerRegName, BinFilePath )
+							server_run( CallerPid, ServerRegName, BinFilePath,
+										_MaybeDefaultEntries=[] )
 						   end ),
 
 			receive
@@ -694,7 +695,7 @@ start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
 			?myriad_spawn_link( fun() ->
 									server_run( CallerPid, ServerRegName,
-												BinFilePath )
+										BinFilePath, _MaybeDefaultEntries=[] )
 								end ),
 
 			receive

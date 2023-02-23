@@ -91,8 +91,10 @@
 -type iterator() :: ?set_impl:iter().
 % Internally, a kind of enumeration (list) of the elements in the set.
 
+-type next_iteration() :: { element(), iterator() } | 'none'.
 
--export_type([ set/0, set/1, element/0, iterator/0 ]).
+
+-export_type([ set/0, set/1, element/0, iterator/0, next_iteration/0 ]).
 
 
 % Shorthands:
@@ -332,7 +334,7 @@ iterator( Set ) ->
 %
 % Allows the iterators to be gone through.
 %
--spec next( iterator() ) -> { element(), iterator() } | 'none'.
+-spec next( iterator() ) -> next_iteration().
 next( Iterator ) ->
 	?set_impl:next( Iterator ).
 

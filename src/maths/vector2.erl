@@ -263,7 +263,7 @@ negate( _V=[X,Y] ) ->
 
 
 % @doc Scales the specified 2D vector of the specified scalar factor.
--spec scale( vector2(), factor() ) -> vector2().
+-spec scale( any_vector2(), factor() ) -> vector2().
 scale( _V=[X,Y], Factor ) ->
 	[ Factor*X, Factor*Y ].
 

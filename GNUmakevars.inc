@@ -983,7 +983,7 @@ ifndef BASE_MAKEFILE
 endif
 
 
-# Overriding BASE_PLT_FILES is useful to take into account third-party
+# Overriding BASE_PLT_FILES is useful to take into account extra third-party
 # prerequisites:
 #
 ifndef BASE_PLT_FILES

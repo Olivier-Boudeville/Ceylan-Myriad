@@ -305,6 +305,8 @@
 
 -type wx_object_type() :: gui:wx_object_type().
 -type myriad_object_type() :: gui:myriad_object_type().
+-type gui_object() :: gui:gui_object().
+
 -type window() :: gui:window().
 -type window_style() :: gui:window_style().
 -type window_option() :: gui:window_option().
@@ -1423,7 +1425,7 @@ to_wx_id( Other ) ->
 %
 % (helper)
 %
--spec to_wx_parent( maybe( myriad_instance_id() ) ) -> wx_id().
+-spec to_wx_parent( maybe( gui_object() ) ) -> gui_object().
 to_wx_parent( undefined ) ->
 	?no_parent;
 

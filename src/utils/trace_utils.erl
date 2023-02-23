@@ -62,6 +62,9 @@
 -type trace_message() :: ustring().
 % An actual trace message.
 
+-type trace_bin_message() :: bin_string().
+% An actual (binary)  trace message.
+
 
 -type trace_severity() ::
 
@@ -107,8 +110,25 @@
 % Values corresponding to format quantifiers.
 
 
--type trace_message_categorization() :: atom().
+-type trace_message_categorization() :: ustring() | atom().
 % Categorization of a trace message.
+%
+% A message may or may not (which is the default and general case - resulting in
+% the use of the 'uncategorized' atom) be categorized.
+%
+% Atoms are supported as well, as a limited number of message categorization
+% generally applies.
+
+
+-type trace_bin_message_categorization() :: bin_string() | atom().
+% A message may or may not (which is the default and general case - resulting in
+% the use of the 'uncategorized' atom) be categorized.
+%
+% Note that the 'bin_' prefix may be a bit misleading here, as an atom can still
+% be used.
+%
+% Atoms are supported as well, as a limited number of message categorization
+% generally applies.
 
 
 -type trace_timestamp() :: any().
@@ -124,8 +144,10 @@
 % Not including the 'void' severity here.
 
 
--export_type([ trace_message/0, trace_severity/0,
-			   trace_format/0, trace_values/0, trace_message_categorization/0,
+-export_type([ trace_message/0, trace_bin_message/0, trace_severity/0,
+			   trace_format/0, trace_values/0,
+			   trace_message_categorization/0,
+			   trace_bin_message_categorization/0,
 			   trace_timestamp/0, trace_priority/0 ]).
 
 
@@ -187,6 +209,7 @@
 % Shorthand:
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 
 
@@ -699,7 +722,7 @@ get_priority_for( emergency ) ->
 	0;
 
 get_priority_for( Other ) ->
-	throw( { unexpected_trace_priority, Other } ).
+	throw( { unexpected_trace_severity, Other } ).
 
 % 'void' not expected here.
 

@@ -127,7 +127,6 @@
 
 -type square_distance() :: linear:square_distance().
 
--type point2() :: point2:point2().
 -type any_point2() :: point2:any_point2().
 
 
@@ -180,7 +179,7 @@ get_lazy_bounding_circle( Points ) ->
 % recomputing everything from scratch. So we do not provide a
 % update_minimal_enclosing_circle_surface/2 function.
 %
--spec get_minimal_enclosing_circle( [ point2() ] ) -> circle().
+-spec get_minimal_enclosing_circle( [ any_point2() ] ) -> circle().
 get_minimal_enclosing_circle( _Points=[] ) ->
 	throw( no_point_to_enclose );
 
@@ -476,8 +475,8 @@ try_side( P1, P2, OtherPoints ) ->
 % @doc Returns {MinAngle, MinVertex}, the minimum angle (in canonical degrees)
 % subtended by the segment [P1, P2] among the specified list of points.
 %
--spec find_minimal_angle( point2(), point2(), [ point2() ] ) ->
-											{ int_degrees(), point2() }.
+-spec find_minimal_angle( any_point2(), any_point2(), [ any_point2() ] ) ->
+											{ int_degrees(), any_point2() }.
 find_minimal_angle( _P1, _P2, _Points=[] ) ->
 	throw( { find_minimal_angle, not_enough_points } );
 

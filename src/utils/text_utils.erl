@@ -1005,7 +1005,7 @@ strings_to_string_helper( _Strings=[ H | _T ], _Acc, _Bullet ) ->
 % @doc Returns a string that pretty-prints the specified list of strings, with
 % enumerated (that is 1, 2, 3) bullets, not specifically indented.
 %
--spec strings_to_enumerated_string( [ ustring() ] ) -> ustring().
+-spec strings_to_enumerated_string( [ string_like() ] ) -> ustring().
 strings_to_enumerated_string( Strings ) ->
 	strings_to_enumerated_string( Strings, _DefaultIndentationLevel=0 ).
 
@@ -1015,7 +1015,7 @@ strings_to_enumerated_string( Strings ) ->
 % enumerated (that is 1, 2, 3) bullets, for specified indentation and not
 % prefixed.
 %
--spec strings_to_enumerated_string( [ ustring() ], indentation_level() ) ->
+-spec strings_to_enumerated_string( [ string_like() ], indentation_level() ) ->
 											ustring().
 strings_to_enumerated_string( Strings, IndentationLevel ) ->
 	strings_to_enumerated_string( Strings, IndentationLevel, _Prefix="" ).
@@ -1025,7 +1025,7 @@ strings_to_enumerated_string( Strings, IndentationLevel ) ->
 % @doc Returns a string that pretty-prints the specified list of strings, with
 % enumerated (that is 1, 2, 3) bullets, indented after specified prefix.
 %
--spec strings_to_enumerated_string( [ ustring() ], indentation_level(),
+-spec strings_to_enumerated_string( [ string_like() ], indentation_level(),
 									ustring() ) -> ustring().
 strings_to_enumerated_string( _Strings=[ Str ], _IndentationLevel, _Prefix ) ->
 	Str;
@@ -1056,7 +1056,7 @@ strings_to_enumerated_string( Strings, IndentationLevel, Prefix ) ->
 % that pretty-prints the specified list of strings, with enumerated (that is 1,
 % 2, 3) bullets, not specifically indented.
 %
--spec strings_to_enumerated_comment( [ ustring() ] ) -> ustring().
+-spec strings_to_enumerated_comment( [ string_like() ] ) -> ustring().
 strings_to_enumerated_comment( Strings ) ->
 	strings_to_enumerated_comment( Strings, _IndentationLevel=0 ).
 
@@ -1066,7 +1066,7 @@ strings_to_enumerated_comment( Strings ) ->
 % that pretty-prints the specified list of strings, with enumerated (that is 1,
 % 2, 3) bullets, with specified indentation at each beginning of comment line.
 %
--spec strings_to_enumerated_comment( [ ustring() ], indentation_level() ) ->
+-spec strings_to_enumerated_comment( [ string_like() ], indentation_level() ) ->
 															ustring().
 strings_to_enumerated_comment( Strings, IndentationLevel ) ->
 	strings_to_enumerated_string( Strings, IndentationLevel, _Prefix="% " ).
@@ -1076,12 +1076,12 @@ strings_to_enumerated_comment( Strings, IndentationLevel ) ->
 % @doc Returns a plain string that pretty-prints specified list of strings
 % (actually the list may contain also binary strings), with default bullets.
 %
--spec strings_to_string( [ any_string() ] ) -> ustring().
+-spec strings_to_string( [ string_like() ] ) -> ustring().
 strings_to_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_string( Strings=[ SingleString ] )
-			when is_list( SingleString ) orelse is_binary( SingleString ) ->
+		when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
@@ -1111,7 +1111,7 @@ strings_to_string( ErrorTerm ) ->
 % any element that can be processed with ~ts will do; e.g. atoms) once reordered
 % (and with default bullets).
 %
--spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
+-spec strings_to_sorted_string( [ string_like() ] ) -> ustring().
 strings_to_sorted_string( Strings ) when is_list( Strings ) ->
 	strings_to_string( lists:sort( Strings ) );
 
@@ -1127,7 +1127,7 @@ strings_to_sorted_string( ErrorTerm ) ->
 % This can be a solution to nest bullet lists, by specifying a bullet with an
 % offset, such as " * ".
 %
--spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
+-spec strings_to_string( [ string_like() ], indentation_level_or_bullet() ) ->
 								ustring().
 strings_to_string( _Strings=[], _IndentationOrBullet ) ->
 	"(empty list)";
@@ -1256,17 +1256,12 @@ strings_to_spaced_string( _Strings, IncorrectBullet ) ->
 	throw( { bullet_not_a_string, IncorrectBullet } ).
 
 
-% any element that can be processed with ~ts will do; e.g. atoms) once reordered,
-% with user-specified indentation level or bullet, and a blank line before each
-% top-level entry in order to better space them, for an increased readability.
-%
-
 
 % @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; e.g. atoms) once reordered,
-% with user-specified indentation level or bullet.
+% any element that can be processed with ~ts will do; e.g. atoms) once
+% reordered, with user-specified indentation level or bullet.
 %
--spec strings_to_sorted_string( [ ustring() ],
+-spec strings_to_sorted_string( [ string_like() ],
 								indentation_level_or_bullet() ) -> ustring().
 strings_to_sorted_string( Strings, IndentationOrBullet )
 											when is_list( Strings ) ->
@@ -1377,7 +1372,7 @@ binaries_to_binary( Binaries, Bullet )
 					when is_list( Binaries ) andalso is_list( Bullet ) ->
 
 	%trace_utils:debug_fmt( "Binaries: ~p, Bullet: '~p'.",
-	%					   [ Binaries, Bullet ] ),
+	%                       [ Binaries, Bullet ] ),
 
 	% Operating first on a list of binaries:
 	BinNewline = <<"\n">>,
@@ -2366,7 +2361,7 @@ format_as_comment( FormatString, Values, CommentChar, LineWidth ) ->
 format_as_comment_helper( _Text=[], CommentChar, _LineWidth, AccLines, AccLine,
 						  _RemainWidth ) ->
 	join( _Separator=$\n, lists:reverse(
-			  [ get_formatted_line( CommentChar, AccLine ) | AccLines ] ) );
+			[ get_formatted_line( CommentChar, AccLine ) | AccLines ] ) );
 
 format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
 						  AccLine, RemainWidth ) ->

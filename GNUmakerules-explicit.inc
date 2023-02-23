@@ -1096,14 +1096,19 @@ write-debug-key-file:
 check: check-hook clean all test
 
 
-check-with-dialyzer: all generate-local-plt self-check-against-plt
+# We suppose here that the PLT of all layers below has already been generated:
+check-with-dialyzer: check-with-dialyzer-hook all generate-local-plt self-check-against-plt
+
+# For any special operation:
+check-with-dialyzer-hook:
 
 
-check-with-gradualizer: #all
+check-with-gradualizer: all
 	@echo "  Checking BEAMs in $$(basename $$(pwd)) with Gradualizer"
 	@$(GRADUALIZER) $(GRADUALIZER_OPTS) -- $(TARGETS_TO_CHECK)
 
 
+# Not functional yet:
 check-with-eqwalizer: all copy-beams-to-ebin
 	@echo "  Checking BEAMs in $$(basename $$(pwd)) with eqWAlizer"
 	@$(EQWALIZER) eqwalize-all $(EQWALIZER_OPTS)

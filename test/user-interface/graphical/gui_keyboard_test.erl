@@ -89,7 +89,7 @@ test_main_loop( TestFrame ) ->
 
 		{ onCharEntered, [ _TestPanel, _TestPanelId, Context ] } ->
 
-			WxKeyEvent = gui_event:get_backend_info( Context ),
+			WxKeyEvent = gui_event:get_backend_event( Context ),
 
 			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
 

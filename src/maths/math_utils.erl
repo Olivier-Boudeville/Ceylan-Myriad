@@ -538,7 +538,7 @@ are_relatively_close( X, Y, Epsilon ) ->
 % also null.
 %
 -spec get_relative_difference( number(), number() ) ->
-										float() | 'difference_not_computable'.
+								float(). % | 'difference_not_computable'.
 get_relative_difference( X, Y ) ->
 
 	% Previously was:

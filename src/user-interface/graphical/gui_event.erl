@@ -2108,7 +2108,7 @@ get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 
 
 % @doc Returns the internal state of the specified MyriadGUI instance.
--spec get_instance_state( myriad_object_ref(), myriad_type_table(),
+-spec get_instance_state( myriad_object_ref(), myriad_instance_id(),
 						  myriad_type_table() ) -> myriad_object_state().
 get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
@@ -2182,7 +2182,7 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 												   InstanceTable ),
 
 			NewReferential = Referential#instance_referential{
-								instance_table=NewInstanceTable },
+				instance_table=NewInstanceTable },
 
 			% An update actually:
 			table:add_entry( MyriadObjectType, NewReferential, TypeTable );
@@ -2331,8 +2331,9 @@ type_table_to_string( Table ) ->
 
 		Pairs ->
 			Strings = [ text_utils:format( "for type '~ts', ~ts", [ Type,
-					instance_referential_to_string( Referential ) ] )
-						|| { Type, Referential } <- Pairs ],
+				instance_referential_to_string( Referential ) ] )
+					|| { Type, Referential } <- Pairs ],
+
 			text_utils:format( "Type table with ~B object types registered: "
 				"~ts",
 				[ length( Strings ), text_utils:strings_to_string( Strings ) ] )

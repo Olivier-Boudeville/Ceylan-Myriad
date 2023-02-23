@@ -2165,6 +2165,7 @@ time_out_to_string( Duration ) ->
 	"time-out of " ++ duration_to_string( Duration ).
 
 
+
 % @doc Returns a timestamp that is as precise as possible, that is {MegaSecs,
 % Secs, MicroSecs}.
 %
@@ -2216,9 +2217,7 @@ get_precise_duration_since( StartTimestamp ) ->
 %
 -spec get_date_after( date(), days() ) -> date().
 get_date_after( BaseDate, DaysOffset ) ->
-
 	DayCount = calendar:date_to_gregorian_days( BaseDate ) + DaysOffset,
-
 	calendar:gregorian_days_to_date( DayCount ).
 
 

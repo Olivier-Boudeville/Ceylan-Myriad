@@ -69,7 +69,7 @@
 % On type names and signatures.
 
 % A type T (whether built-in or user-defined) is designated directly by its name
-% T, as an atom. Ex: written as "count", refered to as: count.
+% T, as an atom. For example written as "count", refered to as: count.
 
 % There are reserved type-related names (atoms), which correspond to:
 %  - built-in types: atom, integer, float, boolean, string, any, none
@@ -80,7 +80,8 @@
 % (if any) it depends upon.
 
 % For monomorphic types (ie types that are not parametrised by other types),
-% their signature is their sole name. Ex: "foo" ("foo()" is also accepted).
+% their signature is their sole name. For example "foo" ("foo()" is also
+% accepted).
 
 % The signature of polymorphic types (ie types that are parametrised by other
 % types) is made of their name immediately followed by a list of the names of
@@ -279,7 +280,7 @@
 % Describes the name of a type (without the names of the types it depends on,
 % for polymorphic ones).
 %
-% Ex: 'my_count'.
+% For example 'my_count'.
 
 
 -type type_arity() :: count().
@@ -422,7 +423,7 @@
 %
 % Experiment with ast_utils:string_to_form/1 and have fun!
 %
-% Ex: "-type a() :: [foobar()]." yields: '{attribute,1,type, {a,{type,1,
+% For example "-type a() :: [foobar()]." yields: '{attribute,1,type, {a,{type,1,
 %    list,[{user_type,1,foobar,[]}]},[]}}'.
 %
 % See also [http://erlang.org/doc/apps/erts/absform.html].
@@ -536,10 +537,6 @@
 %
 % See [https://en.wikipedia.org/wiki/Double-precision_floating-point_format] for
 % more information.
-
-
--export_type([ ]).
-
 
 
 -type record() :: tuple().
@@ -822,26 +819,31 @@ parse_nesting( _TypeDescription, _NestingDepth ) ->
 %
 -spec type_to_description( type() ) -> type_description().
 % First, simple types, in alphabetical order:
+type_to_description( _Type=any ) ->
+	"any";
+
 type_to_description( _Type=atom ) ->
 	"atom";
 
-type_to_description( _Type=integer ) ->
-	"integer";
-
-type_to_description( _Type=float ) ->
-	"float";
+type_to_description( _Type=binary ) ->
+	"binary";
 
 type_to_description( _Type=boolean ) ->
 	"boolean";
 
-type_to_description( _Type=string ) ->
-	"string";
+type_to_description( _Type=float ) ->
+	"float";
 
-type_to_description( _Type=any ) ->
-	"any";
+type_to_description( _Type=integer ) ->
+	"integer";
 
 type_to_description( _Type=none ) ->
 	"none";
+
+type_to_description( _Type=string ) ->
+	"string";
+
+
 
 
 % Then polymorphic constructs:
@@ -1039,7 +1041,7 @@ interpret_type_helper( Term, CurrentNestingLevel, MaxNestingLevel )
 				_ ->
 					Elems = [ interpret_type_helper( E,
 								CurrentNestingLevel+1, MaxNestingLevel )
-										|| E <- Term ],
+									|| E <- Term ],
 
 					text_utils:format( "list of ~B elements: ~ts",
 						[ length( Term ),
@@ -1269,7 +1271,6 @@ is_homogeneous_full_helper( _Elems=[], Type ) ->
 	{ true, Type };
 
 is_homogeneous_full_helper( _Elems=[ H | T ], Type ) ->
-
 	case get_type_of( H ) of
 
 		Type ->
@@ -2081,7 +2082,7 @@ check_tuple( Other ) ->
 % @doc Augments the specified tuploid with specified term, placed as new last
 % element.
 %
-% Ex: augment_tuploid(a, 2.0) = {a, 2.0}
+% For example augment_tuploid(a, 2.0) = {a, 2.0}
 %     augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}
 %
 % Useful typically to augment returned error tuploids (either a single error

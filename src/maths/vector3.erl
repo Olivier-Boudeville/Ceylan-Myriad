@@ -319,7 +319,7 @@ negate( _V=[X,Y,Z] ) ->
 
 
 % @doc Scales the specified 3D vector of the specified scalar factor.
--spec scale( vector3(), factor() ) -> vector3().
+-spec scale( any_vector3(), factor() ) -> vector3().
 scale( _V=[X,Y,Z], Factor ) ->
 	[ Factor*X, Factor*Y, Factor*Z ].
 

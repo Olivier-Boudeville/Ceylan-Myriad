@@ -717,7 +717,7 @@ check_module_functions( #module_info{ functions=Functions }, ModuleName ) ->
 	FunInfos = ?table:enumerate( Functions ),
 
 	[ check_function( FunId, FunInfo, ModuleName )
-			|| { FunId, FunInfo } <- FunInfos ].
+		|| { FunId, FunInfo } <- FunInfos ].
 
 
 
@@ -757,7 +757,7 @@ check_function( _FunId, _FunInfo=#function_info{ clauses=[], exported=[] },
 	%                             pair:to_list( FunId ), ModuleName );
 
 	%trace_utils:warning_fmt( "Function spec without a definition for ~ts/~B.",
-	%						  pair:to_list( FunId ) );
+	%                         pair:to_list( FunId ) );
 
 	ok;
 
@@ -777,51 +777,51 @@ check_function( FunId, _FunInfo=#function_info{ name=SecondName,
 
 
 
-% @doc Recomposes an AST from specified module information.
+% @doc Recomposes an AST from the specified module information.
 -spec recompose_ast_from_module_info( module_info() ) -> ast().
 recompose_ast_from_module_info( #module_info{
 
-			% Between parentheses: fields unused here, hence not bound.
+		% Between parentheses: fields unused here, hence not bound.
 
-			% Note: one should regularly check that all relevant fields of
-			% module_info() are indeed read here, so that they are reinjected
-			% as expected in the output AST.
+		% Note: one should regularly check that all relevant fields of
+		% module_info() are indeed read here, so that they are reinjected as
+		% expected in the output AST.
 
-			module={ _ModuleName, ModuleLocDef },
+		module={ _ModuleName, ModuleLocDef },
 
-			% (compilation_options)
-			compilation_option_defs=CompileOptLocDefs,
+		% (compilation_options)
+		compilation_option_defs=CompileOptLocDefs,
 
-			parse_attributes=ParseAttributeTable,
+		parse_attributes=ParseAttributeTable,
 
-			remote_spec_defs=RemoteSpecLocDefs,
+		remote_spec_defs=RemoteSpecLocDefs,
 
-			% (includes)
-			include_defs=IncludeLocDefs,
+		% (includes)
+		include_defs=IncludeLocDefs,
 
-			type_exports=TypeExportTable,
+		type_exports=TypeExportTable,
 
-			types=TypeTable,
+		types=TypeTable,
 
-			records=RecordTable,
+		records=RecordTable,
 
-			% (function_imports)
-			function_imports_defs=ImportLocDefs,
+		% (function_imports)
+		function_imports_defs=ImportLocDefs,
 
-			function_exports=FunctionExportTable,
+		function_exports=FunctionExportTable,
 
-			% The main part of the AST:
-			functions=FunctionTable,
+		% The main part of the AST:
+		functions=FunctionTable,
 
-			optional_callbacks_defs=OptCallbacksLocDefs,
+		optional_callbacks_defs=OptCallbacksLocDefs,
 
-			last_file_location=LastFileLocLocDef,
+		last_file_location=LastFileLocLocDef,
 
-			markers=MarkerTable,
+		markers=MarkerTable,
 
-			errors=[],
+		errors=[],
 
-			unhandled_forms=UnhandledLocForms } ) ->
+		unhandled_forms=UnhandledLocForms } ) ->
 
 	ParseAttributeLocDefs =
 		get_parse_attributes_located_definitions( ParseAttributeTable ),
@@ -832,8 +832,8 @@ recompose_ast_from_module_info( #module_info{
 	RecordLocDefs = ast_record:get_located_forms_for( RecordTable ),
 
 	% Auto-exports functions if relevant:
-	{ FunExportLocDefs, FunctionLocDefs } =
-	  ast_function:get_located_forms_for( FunctionExportTable, FunctionTable ),
+	{ FunExportLocDefs, FunctionLocDefs } = ast_function:get_located_forms_for(
+		FunctionExportTable, FunctionTable ),
 
 
 	% We used to start from a sensible order so that inserted forms do not end
@@ -1096,7 +1096,7 @@ split_at_location( ASTLoc, _LocForms=[ { ASTLoc, BaseForm } | T ], Acc ) ->
 
 % Skips base located forms until matching (ASTLoc not reached yet):
 split_at_location( ASTLoc, _LocForms=[ { OtherASTLoc, Form } | T ], Acc )
-  when OtherASTLoc < ASTLoc ->
+						when OtherASTLoc < ASTLoc ->
 	split_at_location( ASTLoc, T, [ Form | Acc ] );
 
 % Here, implicitly, OtherLoc just went past Loc, so:
@@ -1266,7 +1266,7 @@ get_parse_attributes_located_definitions( ParseAttributeTable ) ->
 	%    || { _Value, LocForm } <- ?table:values( ParseAttributeTable ) ],
 
 	ParseAttributeLocDefs = get_parse_attr_loc_defs(
-								?table:values( ParseAttributeTable ), _Acc=[] ),
+		?table:values( ParseAttributeTable ), _Acc=[] ),
 
 	%trace_utils:debug_fmt( "For ParseAttributeTable: ~ts, returning "
 	%   "ParseAttributeLocDefs = ~p",
@@ -1356,33 +1356,34 @@ module_info_to_string( #module_info{
 	ModuleString = module_entry_to_string( ModuleEntry, DoIncludeForms ),
 
 	Infos = [ compilation_options_to_string( CompileTable, CompileOptDefs,
-									DoIncludeForms, NextIndentationLevel ),
+				DoIncludeForms, NextIndentationLevel ),
 
 			  optional_callbacks_to_string( OptCallbacksDefs, DoIncludeForms,
-											NextIndentationLevel ),
+				NextIndentationLevel ),
 
 			  parse_attribute_table_to_string( ParseAttributeTable,
-								DoIncludeForms, NextIndentationLevel ),
+				DoIncludeForms, NextIndentationLevel ),
 
 			  remote_spec_definitions_to_string( RemoteSpecDefs, DoIncludeForms,
-												 NextIndentationLevel ),
+				NextIndentationLevel ),
 
 			  includes_to_string( Includes, IncludeDefs, DoIncludeForms,
-								  NextIndentationLevel ),
+				NextIndentationLevel ),
 
 			  % No form to manage:
-			  type_exports_to_string( TypeExportTable, NextIndentationLevel ),
+			  type_exports_to_string( TypeExportTable, DoIncludeForms,
+				NextIndentationLevel ),
 
 			  types_to_string( TypeTable, DoIncludeForms,
-							   NextIndentationLevel ),
+				NextIndentationLevel ),
 
 			  records_to_string( RecordTable, NextIndentationLevel ),
 
 			  function_imports_to_string( FunctionImportTable,
-				  FunctionImportDefs, DoIncludeForms, NextIndentationLevel ),
+				FunctionImportDefs, DoIncludeForms, NextIndentationLevel ),
 
 			  functions_to_string( FunctionTable, DoIncludeForms,
-								   NextIndentationLevel ),
+				NextIndentationLevel ),
 
 			  last_file_loc_to_string( LastFileLocLocDef ),
 
@@ -1391,7 +1392,7 @@ module_info_to_string( #module_info{
 			  errors_to_string( Errors, NextIndentationLevel ),
 
 			  unhandled_forms_to_string( UnhandledForms, DoIncludeForms,
-										 NextIndentationLevel ) ],
+				NextIndentationLevel ) ],
 
 	text_utils:format( "Information about module ~ts: ~ts", [ ModuleString,
 		text_utils:strings_to_string( Infos, IndentationLevel ) ] ).
@@ -1491,8 +1492,8 @@ compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
 							|| { OptName, OptValue } <- CompileOpts ],
 
 			OptString = text_utils:format( "~B compile option(s) defined: ~ts",
-							[ length( CompileOpts ),
-								text_utils:strings_to_string( CompStrings,
+				[ length( CompileOpts ),
+				  text_utils:strings_to_string( CompStrings,
 												IndentationLevel ) ] ),
 
 			OptString ++ forms_to_string( CompileOptDefs, DoIncludeForms,
@@ -1563,18 +1564,18 @@ parse_attribute_table_to_string( ParseAttributeTable, DoIncludeForms,
 				end || { AttrName, AttrEntries } <- ParseAttributes ] ),
 
 			BaseString = text_utils:format(
-							"~B parse attribute(s) defined: ~ts",
-							[ length( ParseAttributes ), ParseAttrString ] ),
+				"~B parse attribute(s) defined: ~ts",
+				[ length( ParseAttributes ), ParseAttrString ] ),
 
 			% To avoid collecting forms uselessly:
 			case DoIncludeForms of
 
 				true ->
-					Forms =
-						[ F || { _AName, { _AValue, F } } <- ParseAttributes ],
+					LocForms = [ LocF
+						|| { _AName, { _AValue, LocF } } <- ParseAttributes ],
 
-					BaseString ++ forms_to_string( Forms, _DoIncludeForms=true,
-												   IndentationLevel + 1 );
+					BaseString ++ forms_to_string( LocForms,
+						_DoIncludeForms=true, IndentationLevel+1 );
 
 				false ->
 					BaseString
@@ -1825,7 +1826,7 @@ functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
 					text_utils:format( "~B function(s) defined: ~ts",
 						[ length( FunctionStrings ),
 						  text_utils:strings_to_sorted_string( FunctionStrings,
-											IndentationLevel ) ] )
+							IndentationLevel ) ] )
 
 			 end
 
@@ -1874,7 +1875,7 @@ markers_to_string( MarkerTable, IndentationLevel ) ->
 				"increasing locations: ~ts",
 				[ length( MarkPairs ), text_utils:strings_to_string(
 			[ text_utils:format( "marker '~ts' pointing to ~ts",
-						 [ Marker, id_utils:sortable_id_to_string( Loc ) ] )
+				[ Marker, id_utils:sortable_id_to_string( Loc ) ] )
 			  || { Marker, Loc } <- SortedMarkPairs ],
 											IndentationLevel ) ] )
 
@@ -1927,8 +1928,8 @@ unhandled_forms_to_string( UnhandledForms, _DoIncludeForms=true,
 -spec fields_to_strings( field_table() ) -> [ ustring() ].
 fields_to_strings( FieldTable ) ->
 	[ field_to_string( FieldName, FieldType, DefaultValue )
-	  || { FieldName, { FieldType, DefaultValue, _FirstFileLoc,
-						_SecondFileLoc } } <- FieldTable ].
+		|| { FieldName, { FieldType, DefaultValue, _FirstFileLoc,
+						  _SecondFileLoc } } <- FieldTable ].
 
 
 

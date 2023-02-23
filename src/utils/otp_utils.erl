@@ -49,7 +49,7 @@
 % Name of an OTP application (e.g. 'myriad').
 
 
--type string_application_name() :: atom().
+-type string_application_name() :: ustring().
 % Name of an OTP application as a string (e.g. "myriad").
 
 
@@ -326,7 +326,7 @@ prepare_for_execution( AppName, BaseDir ) ->
 -spec prepare_for_execution( application_name() | [ application_name() ],
 		directory_path(), [ application_name() ] ) -> [ application_name() ].
 prepare_for_execution( AppName, BaseDir, BlacklistedApps )
-											when is_atom( AppName ) ->
+			when is_atom( AppName ) ->
 	prepare_for_execution( [ AppName ], BaseDir, BlacklistedApps );
 
 prepare_for_execution( AppNames, BaseDir, BlacklistedApps )
