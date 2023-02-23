@@ -116,7 +116,7 @@
 -type user_coordinate() :: linear:user_coordinate().
 
 -type distance() :: linear:distance().
--type square_distance() :: linear:square_distance().
+-type any_square_distance() :: linear:any_square_distance().
 
 -type any_point4() :: any_point4().
 
@@ -257,7 +257,7 @@ are_equal( _V1=[X1,Y1,Z1,W1], _V2=[X2,Y2,Z2,W2] ) ->
 
 
 % @doc Returns the square of the magnitude of the specified 4D vector.
--spec square_magnitude( vector4() ) -> square_distance().
+-spec square_magnitude( vector4() ) -> any_square_distance().
 square_magnitude( _V=[X,Y,Z,W] ) ->
 	X*X + Y*Y + Z*Z + W*W.
 
@@ -279,7 +279,7 @@ negate( _V=[X,Y,Z,W] ) ->
 
 
 % @doc Scales the specified 4D vector of the specified scalar factor.
--spec scale( vector4(), factor() ) -> vector4().
+-spec scale( any_vector4(), factor() ) -> vector4().
 scale( _V=[X,Y,Z,W], Factor ) ->
 	[ Factor*X, Factor*Y, Factor*Z, Factor*W ].
 

@@ -68,7 +68,7 @@
 
 %-type integer_point() :: tuple( integer_coordinate() ).
 -type integer_point() :: tuple().
-% A point of any dimension, with integer coordinates (ex: on-screen ones).
+% A point of any dimension, with integer coordinates (e.g. on-screen ones).
 
 
 -type any_point() :: point() | integer_point().
@@ -255,7 +255,7 @@ is_within_square( P1, P2, SquareD ) ->
 %
 -spec square_distance( point(), point() ) -> square_distance().
 square_distance( P1, P2 ) ->
-	square_distance( P1, P2, _Acc=0.0 ).
+	square_distance( tuple_to_list( P1 ), tuple_to_list( P2 ), _Acc=0.0 ).
 
 
 % (helper)
@@ -282,17 +282,17 @@ distance( P1, P2 ) ->
 % @doc Checks that the specified point is legit, and returns it.
 -spec check( any_point() ) -> any_point().
 check( P ) ->
-	CoordList = [ C | T ] = tuple_to_list( P ),
+	[ C | T ] = tuple_to_list( P ),
 	case is_integer( C ) of
 
 		true ->
-			vector:check_integers( T );
+			vector:check_integer( T );
 
 		false ->
 			vector:check( T )
 
 	end,
-	CoordList.
+	P.
 
 
 

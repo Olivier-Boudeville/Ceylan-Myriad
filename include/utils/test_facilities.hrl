@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-
+% Creation date: 2003.
 
 % All tests should export such a function:
 -export([ run/0 ]).

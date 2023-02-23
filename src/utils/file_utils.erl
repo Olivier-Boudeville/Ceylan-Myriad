@@ -88,7 +88,10 @@
 		  find_files_from/1, find_files_from/2, find_files_from/3,
 		  find_regular_files_from/1, find_links_from/1, find_links_from/2,
 		  find_files_with_extension_from/2, find_files_with_extension_from/3,
-		  find_files_with_excluded_dirs/2,
+
+		  find_files_with_excluded_dirs/2, find_files_with_excluded_dirs/3,
+		  find_files_with_excluded_dirs/4,
+
 		  find_files_with_excluded_suffixes/2,
 		  find_files_with_excluded_suffixes/3,
 		  find_files_with_excluded_dirs_and_suffixes/3,
@@ -420,21 +423,21 @@
 %                  % (regardless of their actual filesystem-level type)
 -type improper_encoding_action() ::
 
-		% Throw an exception as soon as a raw filename is found:
-		'throw'
+	% Throw an exception as soon as a raw filename is found:
+	'throw'
 
-		% Emit a warning trace if a raw filename is found, and do not consider
-		% the corresponding file element:
-		%
-		| 'warn'
+	% Emit a warning trace if a raw filename is found, and do not consider the
+	% corresponding file element:
+	%
+  | 'warn'
 
-		% Ignore as a whole such a file element (do not even emit a trace):
-		| 'ignore'
+	% Ignore as a whole such a file element (do not even emit a trace):
+  | 'ignore'
 
-		% Return such raw filenames (thus as binaries) among the other ones
-		% (which are plain strings):
-		%
-		| 'include'.
+	% Return such raw filenames (thus as binaries) among the other ones
+	% (which are plain strings):
+	%
+  | 'include'.
 % Action to be trigger whenever a file element has not a proper Unicode
 % filename.
 %
@@ -465,10 +468,9 @@
 			   extension/0, dotted_extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
 			   leaf_name/0,
-			   entry_type/0, parent_creation/0,
-			   permission/0, permission_mask/0, improper_encoding_action/0,
-			   compression_format/0,
-			   file/0, file_info/0 ]).
+			   entry_type/0, parent_creation/0, file_open_mode/0,
+			   compression_format/0, file/0, file_info/0,
+			   permission/0, permission_mask/0, improper_encoding_action/0 ]).
 
 
 % Shorthands:
@@ -1044,10 +1046,7 @@ get_extensions( Filename ) ->
 			no_extension;
 
 		[ _Basename | Extensions ] ->
-			Extensions;
-
-		_ ->
-			no_extension
+			Extensions
 
 	end.
 
@@ -4338,7 +4337,7 @@ get_shorted_ending_helper( _FirstElems=[ HF | _TF ], _SecondElems=[ HS | _TS ],
 %  false = file_utils:is_leaf_among( "xx", [ "a/b/c/yy", "d/e/zz"] )
 %  "a/b/c/xx"  = file_utils:is_leaf_among( "xx", [ "a/b/c/xx", "d/e/zz"] )
 %
--spec is_leaf_among( leaf_name(), [ path() ] ) -> { 'false' | path() }.
+-spec is_leaf_among( leaf_name(), [ path() ] ) -> 'false' | path().
 is_leaf_among( _LeafName, _PathList=[] ) ->
 	false;
 
@@ -4631,8 +4630,8 @@ latin1_file_to_unicode( AnyFilePath ) ->
 
 
 
-% @doc Opens the file corresponding to the specified path, with specified list
-% of options (as listed for file:open/2 in
+% @doc Opens the file corresponding to the specified path, with the specified
+% list of options (as listed for file:open/2 in
 % [http://erlang.org/doc/man/file.html#open-2], that is: read, write, append,
 % exclusive, raw, etc).
 %
@@ -4672,9 +4671,9 @@ open( AnyFilePath, Options ) ->
 
 
 
-% @doc Opens the file corresponding to specified path (first parameter) with
-% specified list of options (second parameter; refer to file:open/2 for detailed
-% documentation, see [http://erlang.org/doc/man/file.html#open-2]).
+% @doc Opens the file corresponding to the specified path (first parameter) with
+% the specified list of options (second parameter; refer to file:open/2 for
+% detailed documentation, see [http://erlang.org/doc/man/file.html#open-2]).
 %
 % Third parameter is the "attempt mode", either 'try_once', 'try_endlessly' or
 % 'try_endlessly_safer', depending respectively on whether we want to try to
@@ -4849,7 +4848,7 @@ get_access_denied_info( AnyFilePath ) ->
 
 
 
-% @doc Closes specified file reference.
+% @doc Closes the specified file reference.
 %
 % Throws an exception on failure.
 %
@@ -4859,7 +4858,7 @@ close( File ) ->
 
 
 
-% @doc Closes specified file reference.
+% @doc Closes the specified file reference.
 %
 % Throws an exception on failure or not, depending on specified failure mode.
 %
@@ -4881,7 +4880,7 @@ close( File, _FailureMode=overcome_failure ) ->
 
 
 
-% @doc Reads specified number of bytes/characters from the specified file.
+% @doc Reads the specified number of bytes/characters from the specified file.
 %
 % Returns either {ok, Data} if at least some data could be read, or eof if at
 % least one element was to read and end of file was reached before anything at
@@ -4908,7 +4907,7 @@ read( File, Count ) ->
 
 
 
-% @doc Writes specified byte-oriented content in the specified file.
+% @doc Writes the specified byte-oriented content in the specified file.
 %
 % Operates on files opened in raw mode (only way to do so), or not (works for
 % normal mode as well).
@@ -4937,7 +4936,7 @@ write( File, Content ) ->
 
 
 
-% @doc Writes specified Unicode string in the specified file.
+% @doc Writes the specified Unicode string in the specified file.
 %
 % Operates on files opened in raw mode (only way to do so), or not (works for
 % normal mode as well).
@@ -4977,7 +4976,7 @@ write_ustring( File, Str ) ->
 
 
 
-% @doc Writes specified formatted content in the specified file.
+% @doc Writes the specified formatted content in the specified file.
 %
 % Throws an exception on failure.
 %
@@ -5071,8 +5070,8 @@ read_lines( File, FilePath, Acc ) ->
 
 
 
-% @doc Writes the specified content in specified file, whose path is specified
-% as any kind of string, using a default encoding if a plain string is
+% @doc Writes the specified content in the specified file, whose path is
+% specified as any kind of string, using a default encoding if a plain string is
 % specified.
 %
 % Note that specifying a binary allows to avoid any potential unwanted encoding.
@@ -5188,8 +5187,8 @@ read_etf_file( AnyFilePath ) ->
 
 
 
-% @doc Reads specified file supposedly in ETF format (Erlang Term Format): tries
-% to parse a list of terms (one per line, terminating with a dot) from it
+% @doc Reads the specified file supposedly in ETF format (Erlang Term Format):
+% tries to parse a list of terms (one per line, terminating with a dot) from it
 % (as file:consult/1 does), and returns it. Lines starting with '%' are ignored
 % (just considered as comments).
 %
@@ -5236,8 +5235,8 @@ read_terms( AnyFilePath ) ->
 
 
 
-% @doc Writes specified terms into specified file, in the ETF format, with no
-% specific header or footer.
+% @doc Writes the specified terms in the specified file, in the ETF format, with
+% no specific header or footer.
 %
 % See http://myriad.esperide.org/#etf for more details.
 %
@@ -5249,8 +5248,8 @@ write_etf_file( Terms, AnyFilePath ) ->
 
 
 
-% @doc Writes specified terms into specified file, in the ETF format, with no
-% specific header or footer.
+% @doc Writes the specified terms in the specified file, in the ETF format, with
+% no specific header or footer.
 %
 % See http://myriad.esperide.org/#etf for more details.
 %
@@ -5262,8 +5261,8 @@ write_terms( Terms, AnyFilePath ) ->
 
 
 
-% @doc Writes specified terms into specified file, in the ETF format, with
-% specified header and footer.
+% @doc Writes the specified terms in the specified file, in the ETF format, with
+% the specified header and footer.
 %
 % See http://myriad.esperide.org/#etf for more details.
 %
@@ -5276,8 +5275,8 @@ write_etf_file( Terms, Header, Footer, Filename ) ->
 
 
 
-% @doc Writes specified terms into specified file, in the ETF format, with
-% specified header and footer.
+% @doc Writes the specified terms in the specified file, in the ETF format, with
+% the specified header and footer.
 %
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
@@ -5297,8 +5296,8 @@ write_terms( Terms, Header, Footer, AnyFilePath ) ->
 
 
 
-% @doc Writes directly specified terms into specified already opened file, in
-% the ETF format.
+% @doc Writes directly the specified terms int the specified already opened
+% file, in the ETF format.
 %
 % See http://myriad.esperide.org/#etf for more details.
 %
@@ -5353,8 +5352,8 @@ get_dotted_extension_for( CompressionFormat ) ->
 
 
 
-% @doc Compresses specified file: creates a compressed version thereof (using
-% the most efficient, compacity-wise, compression tool available), whose
+% @doc Compresses the specified file: creates a compressed version thereof
+% (using the most efficient, compacity-wise, compression tool available), whose
 % filename, established based on usual conventions, is returned. If a file with
 % that name already exists, it will be overwritten.
 %
@@ -5372,9 +5371,9 @@ compress( Filename ) ->
 
 
 
-% @doc Compresses specified file: creates a compressed version thereof, whose
-% filename, established based on usual conventions, is returned. If a file with
-% that name already exists, it will be overwritten.
+% @doc Compresses the specified file: creates a compressed version thereof,
+% whose filename, established based on usual conventions, is returned. If a file
+% with that name already exists, it will be overwritten.
 %
 % For example, compress("hello.png", zip) will generate a "hello.png.zip" file.
 %
@@ -5456,10 +5455,11 @@ compress( _Filename, CompressionFormat ) ->
 
 
 
-% @doc Decompresses specified compressed file, expected to bear the extension
-% corresponding to the implicit, most compact format: recreates the original,
-% decompressed version thereof, whose filename, established based on usual
-% conventions, is returned: the name of the input file without its extension.
+% @doc Decompresses the specified compressed file, expected to bear the
+% extension corresponding to the implicit, most compact format: recreates the
+% original, decompressed version thereof, whose filename, established based on
+% usual conventions, is returned: the name of the input file without its
+% extension.
 %
 % This function works in pair with compress/2, and as such expects that each
 % compressed file contains exactly one file, bear the same filename except the
@@ -5481,10 +5481,10 @@ decompress( Filename ) ->
 
 
 
-% @doc Decompresses specified compressed file, expected to bear the extension
-% corresponding to the specified format: recreates the original, decompressed
-% version thereof, whose filename, established based on usual conventions, is
-% returned: the name of the input file without its extension.
+% @doc Decompresses the specified compressed file, expected to bear the
+% extension corresponding to the specified format: recreates the original,
+% decompressed version thereof, whose filename, established based on usual
+% conventions, is returned: the name of the input file without its extension.
 %
 % This function works in pair with compress/2, and as such expects that each
 % compressed file contains exactly one file, bear the same filename except the
@@ -5611,8 +5611,8 @@ file_to_zipped_term( Filename ) ->
 
 
 
-% @doc Reads specified binary, extracts the zipped file in it and writes it on
-% disk, in current directory.
+% @doc Reads the specified binary, extracts the zipped file in it and writes it
+% on disk, in the current directory.
 %
 % Returns the filename of the unzipped file.
 %
@@ -5624,9 +5624,9 @@ zipped_term_to_unzipped_file( ZippedTerm ) ->
 
 
 
-% @doc Reads specified binary, extracts the zipped file in it and writes it on
-% disk, in current directory, under specified filename instead of under filename
-% stored in the zip archive.
+% @doc Reads the specified binary, extracts the zipped file in it and writes it
+% on disk, in the current directory, under the specified filename instead of
+% under the filename stored in the zip archive.
 %
 % Any pre-existing file will be overwritten.
 %
@@ -5648,11 +5648,8 @@ zipped_term_to_unzipped_file( ZippedTerm, TargetFilename ) ->
 % @doc Reads in memory the files specified from their filenames (as plain
 % strings), zips the corresponding term, and returns it.
 %
-% Note: useful for network transfers of small files.
-%
-% Larger ones should be transferred with TCP/IP and by chunks.
-%
-% Returns a binary.
+% Note: useful for network transfers of small files. Larger ones should be
+% transferred with TCP/IP / send_file and by chunks.
 %
 -spec files_to_zipped_term( [ file_name() ] ) -> binary().
 files_to_zipped_term( FilenameList ) ->
@@ -5670,11 +5667,8 @@ files_to_zipped_term( FilenameList ) ->
 % strings), assuming their path is relative to the specified base directory,
 % zips the corresponding term, and returns it.
 %
-% Note: useful for network transfers of small files.
-%
-% Larger ones should be transferred with TCP/IP and by chunks.
-%
-% Returns a binary.
+% Note: useful for network transfers of small files. Larger ones should be
+% transferred with TCP/IP / send_file and by chunks.
 %
 -spec files_to_zipped_term( [ file_name() ], any_directory_name() ) -> binary().
 files_to_zipped_term( FilenameList, BaseDirectory ) ->
@@ -5689,36 +5683,36 @@ files_to_zipped_term( FilenameList, BaseDirectory ) ->
 	 case zip:zip( DummyFileName, FilenameList,
 				   [ memory, { cwd, BaseDirectory } ] ) of
 
-		 { ok, { _DummyFileName, Bin } } ->
-			 Bin;
+		{ ok, { _DummyFileName, Bin } } ->
+			Bin;
 
 
-		 { error, enoent } ->
+		{ error, enoent } ->
 
-			 % Such a short error might be difficult to diagnose:
+			% Such a short error might be difficult to diagnose:
 
-			 %trace_utils:warning_fmt( "files_to_zipped_term/2 failed "
-			 %  "from '~ts':~n~n - directory '~p' exists? ~p",
-			 %      [ get_current_directory(), BaseDirectory,
-			 %        is_existing_directory( BaseDirectory ) ] ),
+			%trace_utils:warning_fmt( "files_to_zipped_term/2 failed "
+			%  "from '~ts':~n~n - directory '~p' exists? ~p",
+			%      [ get_current_directory(), BaseDirectory,
+			%        is_existing_directory( BaseDirectory ) ] ),
 
-			 % [ trace_utils:warning_fmt( "~n - file '~p' exists? ~p", [ F,
-			 %    is_existing_file( F ) ] ) || F <- FilenameList ],
+			% [ trace_utils:warning_fmt( "~n - file '~p' exists? ~p", [ F,
+			%    is_existing_file( F ) ] ) || F <- FilenameList ],
 
-			 throw( { zip_failed, BaseDirectory, FilenameList } );
+			throw( { zip_failed, BaseDirectory, FilenameList } );
 
-		 % einval might mean for example that at least some filenames are
-		 % binaries rather that plain strings:
-		 %
-		 { error, Other } ->
-			 throw( { zip_failed, Other, BaseDirectory, FilenameList } )
+		% einval might mean for example that at least some filenames are
+		% binaries rather that plain strings:
+		%
+		{ error, Other } ->
+			throw( { zip_failed, Other, BaseDirectory, FilenameList } )
 
 	 end.
 
 
 
-% @doc Reads specified binary, extracts the zipped files stored in it and writes
-% them on disk, in current directory.
+% @doc Reads the specified binary, extracts the zipped files stored in it and
+% writes them on disk, in the current directory.
 %
 % Returns the list of filenames corresponding to the unzipped files.
 %
@@ -5730,8 +5724,8 @@ zipped_term_to_unzipped_files( ZippedTerm ) ->
 
 
 
-% @doc Reads specified binary, extracts the zipped files in it and writes them
-% on disk, in specified directory.
+% @doc Reads the specified binary, extracts the zipped files in it and writes
+% them on disk, in the specified directory.
 %
 % Returns the list of filenames corresponding to the unzipped files.
 %

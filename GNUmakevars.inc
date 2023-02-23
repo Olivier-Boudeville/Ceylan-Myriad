@@ -172,7 +172,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
@@ -273,7 +273,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.30
+MYRIAD_VERSION := 1.0.31
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -602,57 +602,89 @@ ifeq ($(USE_JSON),true)
 		# Actually not used, as decided at runtime rather than at compile time:
 		#JSON_OPT = -Duse_jsx_json_backend
 
-		# A rebar convention, if jsx is listed in rebar.config and is among the
-		# _checkouts projects of the current layer:
+		# If the relevant USE_* variables are set to true, in the case of
+		# multiple dependencies involving Myriad, the same JSX lookup would be
+		# repeatedly done with different paths, possibly resulting in having the
+		# same install declared more than once in BEAM_DIRS, leading to a
+		# pseudo-clash of BEAM files (e.g. jsx.beam) being detected at runtime
+		# and thus resulting in a failure. So instead we ensure that
+		# dependencies are detected and added only once:
 		#
-		JSX_REBAR_CHECKOUTS_BASE = $(LAYER_TOP)/_checkouts/jsx
-		JSX_REBAR_CHECKOUTS_EBIN = $(JSX_REBAR_CHECKOUTS_BASE)/ebin
-
-		# If there is a jsx install at the same level as the Myriad one (rebar
-		# or not):
+		# Note that JSX_TOP should never be set without having checked that this
+		# directory exists indeed, except in one case: JSX_TOP may be set to a
+		# bogus/empty value if jsx is to be found at runtime as an OTP
+		# application or a dependency thereof (see otp_utils): as it will then
+		# be automatically found, the make system should not register extra
+		# paths, to avoid clashes.
 		#
-		JSX_SIBLING_BASE := $(MYRIAD_TOP)/../jsx
+		ifndef JSX_TOP
 
-		# Another rebar-related path, when Myriad is itself a dependency, and
-		# jsx is another one (of at least Myriad):
-		#
-		JSX_REBAR_AS_DEP_BASE := $(JSX_SIBLING_BASE)
-		JSX_REBAR_AS_DEP_EBIN := $(JSX_REBAR_AS_DEP_BASE)/ebin
+			# A rebar convention, if jsx is listed in rebar.config and is among
+			# the _checkouts projects of the current layer:
+			#
+			JSX_REBAR_CHECKOUTS_BASE = $(LAYER_TOP)/_checkouts/jsx
+			JSX_REBAR_CHECKOUTS_EBIN = $(JSX_REBAR_CHECKOUTS_BASE)/ebin
 
-		# Still rebar, if Myriad is the top-level package:
-		JSX_REBAR_DIRECT_INSTALL_BASE := $(JSX_SIBLING_BASE)/_build/default/lib/jsx
-		JSX_REBAR_DIRECT_INSTALL_EBIN := $(JSX_REBAR_DIRECT_INSTALL_BASE)/ebin
+			# If there is a jsx install at the same level as the Myriad one
+			# (rebar or not):
+			#
+			JSX_SIBLING_BASE := $(MYRIAD_TOP)/../jsx
 
-		# A convention of our own (absolute path) that one may want to respect:
-		# (note: no $$HOME, no quotes either)
-		#
-		JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
-		JSX_SOFTWARE_EBIN := $(JSX_SOFTWARE_BASE)/ebin
+			# Another rebar-related path, when Myriad is itself a dependency,
+			# and jsx is another one:
+			#
+			JSX_REBAR_AS_DEP_BASE := $(JSX_SIBLING_BASE)
+			JSX_REBAR_AS_DEP_EBIN := $(JSX_REBAR_AS_DEP_BASE)/ebin
 
-		# No includes for JSX:
-		#INC += -I$(JSX_REBAR_CHECKOUTS_BASE)/include -I$(JSX_REBAR_AS_DEP_BASE)/include -I$(JSX_REBAR_DIRECT_INSTALL_BASE)/include -I$(JSX_SOFTWARE_BASE)/include
-		# ($(JSX_*_BASE)/ebin/*.beam found at runtime)
+			# Still rebar, if Myriad is the top-level package:
+			JSX_REBAR_DIRECT_INSTALL_BASE := $(JSX_SIBLING_BASE)/_build/default/lib/jsx
+			JSX_REBAR_DIRECT_INSTALL_EBIN := $(JSX_REBAR_DIRECT_INSTALL_BASE)/ebin
 
-		# Options in order to locate a proper jsx (embedded or userspace):
-		# (most likely first)
-		#
-		ifneq "$(wildcard $(JSX_REBAR_CHECKOUTS_EBIN))" ""
-			JSX_TOP = $(JSX_REBAR_CHECKOUTS_BASE)
-			BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
-		else
-			ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
-				JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
-				BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
+			# A convention of our own (absolute path) that one may want to
+			# respect: (note: no $$HOME, no quotes either)
+			#
+			JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
+			JSX_SOFTWARE_EBIN := $(JSX_SOFTWARE_BASE)/ebin
+
+			# No includes for JSX:
+			#INC += -I$(JSX_REBAR_CHECKOUTS_BASE)/include -I$(JSX_REBAR_AS_DEP_BASE)/include -I$(JSX_REBAR_DIRECT_INSTALL_BASE)/include -I$(JSX_SOFTWARE_BASE)/include
+			# ($(JSX_*_BASE)/ebin/*.beam found at runtime)
+
+			# Options in order to locate a proper jsx (embedded or userspace):
+			# (most likely first)
+			#
+			ifneq "$(wildcard $(JSX_REBAR_CHECKOUTS_EBIN))" ""
+				JSX_TOP = $(JSX_REBAR_CHECKOUTS_BASE)
+				BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
 			else
-				ifneq "$(wildcard $(JSX_REBAR_DIRECT_INSTALL_EBIN))" ""
-					JSX_TOP = $(JSX_REBAR_DIRECT_INSTALL_BASE)
-					BEAM_DIRS += $(JSX_REBAR_DIRECT_INSTALL_EBIN)
+
+				# With rebar3, the build order is not known a priori, and any
+				# jsx/ebin directory is created only when jsx is built; so we
+				# cannot test it when building a dependency relying on jsx, and
+				# we test only the jsx root directory instead, expecting it to
+				# be built afterwards; yet then we cannot discriminate a future
+				# jsx/ebin from a jsx/_build/default/lib/jsx/ebin one; so the
+				# new convention is to use USE_JSON=false at build time or an
+				# already set JSX_TOP (possibly to just '$(space)')
+				#
+				#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE))" ""
+				ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
+					JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
+					BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
 				else
-					ifneq "$(wildcard $(JSX_SOFTWARE_EBIN))" ""
-						JSX_TOP = $(JSX_SOFTWARE_BASE)
-						ABS_BEAM_DIRS += $(JSX_SOFTWARE_EBIN)
+					ifneq "$(wildcard $(JSX_REBAR_DIRECT_INSTALL_EBIN))" ""
+						JSX_TOP = $(JSX_REBAR_DIRECT_INSTALL_BASE)
+						BEAM_DIRS += $(JSX_REBAR_DIRECT_INSTALL_EBIN)
 					else
-						FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD).))
+						ifneq "$(wildcard $(JSX_SOFTWARE_EBIN))" ""
+							JSX_TOP = $(JSX_SOFTWARE_BASE)
+							ABS_BEAM_DIRS += $(JSX_SOFTWARE_EBIN)
+						else
+							# No trailing dot shall be specified here
+							# (as it is automatically added):
+							#
+							FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD)))
+						endif
 					endif
 				endif
 			endif
@@ -664,7 +696,7 @@ ifeq ($(USE_JSON),true)
 		# The Jiffy JSON parser is available at
 		# https://github.com/davisp/jiffy.
 
-		# To be updated like jsx above
+		# To be updated like jsx above if used.
 
 		# Install obtained thanks to:
 		#
@@ -951,9 +983,11 @@ ifndef BASE_MAKEFILE
 endif
 
 
-# Overriding BASE_PLT is useful to take into account third-party prerequisites:
-ifndef BASE_PLT
-	BASE_PLT = $(PREDECESSOR_PLT)
+# Overriding BASE_PLT_FILES is useful to take into account extra third-party
+# prerequisites:
+#
+ifndef BASE_PLT_FILES
+	BASE_PLT_FILES = $(PREDECESSOR_PLT_FILE)
 endif
 
 
@@ -1129,7 +1163,7 @@ ERLANG_BIN_ROOT := $(shell dirname "$(ERLANG_COMPILER)")
 ERLANG_ROOT := $(shell dirname "$(ERLANG_BIN_ROOT)")
 
 
-# Note that at least some versions of dialyzer (e.g. the one shipped with 17.1)
+# Note that at least some versions of Dialyzer (e.g. the one shipped with 17.1)
 # will not deference anymore symlinks (if Erlang.plt pointing to Erlang-17.1.plt
 # for example, it will not be found; this is managed in our installation
 # script):
@@ -1263,15 +1297,15 @@ ifndef BOOTSTRAP_MODULES
 	META_SRC_FILES = $(wildcard $(MYRIAD_TOP)/src/meta/*.erl)
 
 	# As they do not need to be specifically bootstrapped:
-	EXCLUDED_FROM_BOOTSTRAPPED_META =                                    \
-				$(MYRIAD_TOP)/src/meta/myriad_parse_transform.erl        \
-				$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl   \
-				$(MYRIAD_TOP)/src/meta/example_parse_transform.erl       \
-				$(MYRIAD_TOP)/src/meta/minimal_parse_transform_test.erl  \
-				$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl \
-				$(MYRIAD_TOP)/src/meta/ast_generation_test.erl           \
-				$(MYRIAD_TOP)/src/meta/meta_utils_test.erl               \
-				$(MYRIAD_TOP)/src/meta/cond_utils_test.erl               \
+	EXCLUDED_FROM_BOOTSTRAPPED_META =                                   \
+		$(MYRIAD_TOP)/src/meta/myriad_parse_transform.erl               \
+		$(MYRIAD_TOP)/src/meta/myriad_parse_transform_test.erl          \
+		$(MYRIAD_TOP)/src/meta/example_parse_transform.erl              \
+		$(MYRIAD_TOP)/src/meta/myriad_minimal_parse_transform_test.erl  \
+		$(MYRIAD_TOP)/src/meta/simple_parse_transform_target.erl        \
+		$(MYRIAD_TOP)/src/meta/ast_generation_test.erl                  \
+		$(MYRIAD_TOP)/src/meta/meta_utils_test.erl                      \
+		$(MYRIAD_TOP)/src/meta/cond_utils_test.erl                      \
 
 
 
@@ -1313,8 +1347,8 @@ endif
 #
 # Note: such variables were meant to be overridden by each upper layer, yet
 # generally these layers require the *addition* (not replacement) of new rules
-# (e.g. to manage classes) to the base ones (to be still able to compile standard
-# modules).
+# (e.g. to manage classes) to the base ones (to be still able to compile
+# standard modules).
 #
 ifndef PARSE_TRANSFORM_DIRS
 	PARSE_TRANSFORM_DIRS = $(MYRIAD_TOP)/src/meta
@@ -1332,7 +1366,12 @@ DEBUG_INFO_KEY_OPT = +'{debug_info_key,$(DEBUG_INFO_KEY)}'
 # -v/+verbose caused inlining to be too verbose, e.g.
 # "Old inliner: threshold=0 functions=[{setAttribute,3},.."
 #
-ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
+# myriad_debug_info_key is defined, so that the modules that we generate rely on
+# the same key as the ones normally built, in order that the Core Erlang of the
+# whole can be read by tools (e.g. Dialyzer):
+#
+ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT) \
+							   -Dmyriad_debug_info_key=\"$(DEBUG_INFO_KEY)\"
 
 
 # Variable defined to be re-usable by upper layers, so that compiling their own
@@ -1343,12 +1382,12 @@ ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)
 # _build/default/lib/myriad/ebin directory, not anymore within the
 # _build/default/lib/myriad/src tree)
 #
-ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD =                \
-					-pz $(MYRIAD_TOP)/src/utils                 \
-					-pz $(MYRIAD_TOP)/src/meta                  \
-					-pz $(MYRIAD_TOP)/src/data-management       \
-					-pz $(MYRIAD_TOP)/ebin                      \
-					'+{parse_transform,myriad_parse_transform}'
+ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD = \
+	-pz $(MYRIAD_TOP)/src/utils                  \
+	-pz $(MYRIAD_TOP)/src/meta                   \
+	-pz $(MYRIAD_TOP)/src/data-management        \
+	-pz $(MYRIAD_TOP)/ebin                       \
+	'+{parse_transform,myriad_parse_transform}'
 
 
 # To apply a parse transform, not only it must be already compiled, but also,
@@ -1364,18 +1403,18 @@ ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD =                \
 #
 #ifndef ERLANG_COMPILER_PARSE_TRANSFORM_OPT
 
-	   # We need src/{utils,meta,data-management} in the path, as the 'Myriad'
-	   # parse transform uses meta modules that use map_hashtable (which is thus
-	   # bootstrapped as well).
+	# We need src/{utils,meta,data-management} in the path, as the 'Myriad'
+	# parse transform uses meta modules that use map_hashtable (which is thus
+	# bootstrapped as well).
 
-	   # Note: if, when compiling a module, the following error message is
-	   # issued: "undefined parse transform 'myriad_parse_transform'", then it
-	   # is most probably that the code of the parse transform actually calls,
-	   # directly or not, a non-existing code (typically a function of a module
-	   # to be built later)
+	# Note: if, when compiling a module, the following error message is
+	# issued: "undefined parse transform 'myriad_parse_transform'", then it
+	# is most probably that the code of the parse transform actually calls,
+	# directly or not, a non-existing code (typically a function of a module
+	# to be built later)
 
-	   #ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
-	   #	$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
+	#ERLANG_COMPILER_PARSE_TRANSFORM_OPT = \
+	#	$(ERLANG_COMPILER_PARSE_TRANSFORM_OPT_FOR_MYRIAD)
 
 #endif
 
@@ -1589,7 +1628,8 @@ endif
 # (previously, after issuing the warning, an 'exit' was done, yet it resulted in
 # the full BEAM_PATH_OPT variable being nullified, and thus executions were
 # failing with various random undef errors; just displaying a warning now;
-# re-add temporarily an exit if wanting to spot faulty paths through a test suite)
+# re-add temporarily an exit if wanting to spot faulty paths through a test
+# suite)
 #
 BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2 ; fi; done)
 
@@ -1993,8 +2033,8 @@ DIALYZER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which dialyzer 2>/dev/null)
 # ~/.erlang.crypt; refer to the 'self-check-against-plt' target for further
 # details.
 #
-DIALYZER_OPTS := $(DIALYZER_ESSENTIAL_OPTS)  \
-				 $(DIALYZER_CONTEXTUAL_OPTS)
+DIALYZER_OPTS = $(DIALYZER_ESSENTIAL_OPTS)  \
+				# By default disabled: $(DIALYZER_CONTEXTUAL_OPTS)
 
 
 # These Dialyzer options are nearly always useful.
@@ -2004,7 +2044,7 @@ DIALYZER_OPTS := $(DIALYZER_ESSENTIAL_OPTS)  \
 #
 # -Wmissing_return: warns about functions whose specification explicitly
 #  includes types that the function cannot return; this may happen if a function
-#  obeys to a more general API
+#  obeys to a more general API, so this option may be commented-out
 #
 # -Wno_opaque: disables the warnings about breaking the opaqueness of a type
 #  defined in another module; these warnings are left enabled (hence this option
@@ -2019,12 +2059,17 @@ DIALYZER_OPTS := $(DIALYZER_ESSENTIAL_OPTS)  \
 #  actual culprit function (not A, but B or a function ultimately called by B);
 #  generally these warnings do not teach much
 #
-DIALYZER_ESSENTIAL_OPTS := -Wextra_return -Wmissing_return -Wno_return
+# -Wno_unused: disables the warnings about unused and unexported functions; if a
+#  function A is to call a function B, yet A always crashes before, B will
+#  unfortunately be considered unused; as the compiler is supposed to catch
+#  functions that are neither used locally nor exported, these warnings can be
+#  disabled, and thus this option can be retained
+#
+DIALYZER_ESSENTIAL_OPTS := -Wextra_return -Wno_return -Wno_unused
 
 
-
-# Such Dialyzer options may not be always useful (so they might be at least
-# temporarily disabled).
+# Such Dialyzer options may not be always useful (so now they are disabled by
+# default).
 #
 # -Werror_handling: warns about functions that only return by an exception; this
 #  may be normal (e.g. when a function is meant to be overridden one way or
@@ -2034,35 +2079,33 @@ DIALYZER_ESSENTIAL_OPTS := -Wextra_return -Wmissing_return -Wno_return
 #  be relevant, as improper lists have their use (they allow for an increased
 #  compactness, see http://howtos.esperide.org/Erlang.html#improper-lists)
 #
-# -Wno_unused: disables the warnings about unused and unexported functions; if a
-#  function A is to call a function B, yet A always crashes before, B will
-#  unfortunately be considered unused; as the compiler is supposed to catch
-#  functions that are neither used locally nor exported, these warnings can be
-#  disabled, and thus this option can be retained
-#
-# -Wunderspecs: enables warnings about functions whose specification allows
-#  arguments that the function actually cannot handle (hence arguments complying
-#  with its spec may make this function crash); either the spec shall be
-#  restricted or the function shall be generalised
-#
 # -Wunmatched_returns: enables warnings about function calls that ignore a
 #  structured return value or do not match against one of many possible return
 #  values (however, no warnings are included if the possible return values are a
 #  union of atoms or a union of numbers); may be useful to ensure that all cases
 #  are covered
 #
-DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wno_unused -Wunderspecs
+DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wunmatched_returns
 
 
 # Such options are not deemed useful in our context; ad hoc, function-level
 # suppressions are usually better.
 #
 # -Wno_missing_calls: disables warnings about calls to missing (not defined, or
-#  not exported functions; such warnings are quite useful, so this option is not
-#  even retained here
+#  not exported functions); such warnings are quite useful, so this option is
+#  not even retained here
 #
 # -Wno_fail_call: disables warnings about failing calls; such warnings are quite
 #  useful, so this option is not even retained here
+#
+# -Wunderspecs: may enable warnings about functions whose specification allows
+#  arguments that the function actually cannot handle (hence arguments complying
+#  with its spec may make this function crash); either the spec shall be
+#  restricted, or the function shall be generalised; this is a real error if it
+#  applies to the function parameters (as opposed to its result); in practice it
+#  may cause messages like "Type specification f(A) -> X is a supertype of the
+#  success typing: f(A) -> Y" where Y is included in X; this is true but
+#  generally uninteresting
 #
 # -Woverspecs: enables warnings about functions whose specification does not
 #  include arguments that the function actually could handle (hence, according
@@ -2070,7 +2113,7 @@ DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wno_unused -Wu
 #  acceptable for this function); so the spec could be generalised, or the
 #  function could be restricted, or, often, this warning may be ignored as a
 #  whole, considering that this restriction is legit (so the overspecs option
-#  matters a lot less than underspecs)
+#  matters a lot less than underspecs and is generally of little interest)
 #
 # -Wspecdiffs: enables warnings about functions whose specification is different
 #  from the success typing; union of underspecs, overspecs: detection of
@@ -2101,7 +2144,7 @@ DIALYZER_CONTEXTUAL_OPTS := -Werror_handling -Wno_improper_lists -Wno_unused -Wu
 #  command-line Dialyzer; current this option is not retained; presumably
 #  optional dependencies would be a problem if used
 #
-DIALYZER_DISABLED_OPTS := -Woverspecs -Wno_contracts
+DIALYZER_DISABLED_OPTS := -Wunderspecs -Woverspecs -Wno_contracts
 
 
 # To use a generic rule to produce it (unless already defined):
@@ -2111,20 +2154,20 @@ endif
 
 
 
-# A third-party, open-source quite complementary to Dializer; see
+# Gradualizer is a third-party, open-source quite complementary to Dialyzer; see
 # https://github.com/josefs/Gradualizer
 #
 # To install it, we recommend the following procedure:
 # $ cd ~/Software
+# $ mkdir gradualizer && cd gradualizer
 # $ git clone https://github.com/josefs/Gradualizer.git
-# $ cd Gradualizer/
+# $ cd Gradualizer
 # $ make escript
 #
-# Then ensure that ~/Software/Gradualizer/bin is in your PATH so that
-# 'gradualizer' can be run directly.
+# Then ensure that ~/Software/gradualizer/Gradualizer/bin is in your PATH so
+# that 'gradualizer' can be run directly.
 #
 GRADUALIZER := $$(which gradualizer 2>/dev/null)
-
 
 
 # These Gradualizer options are nearly always useful.
@@ -2145,21 +2188,25 @@ GRADUALIZER_ESSENTIAL_OPTS := --infer --fmt_location verbose --fancy --color alw
 # temporarily disabled).
 #
 # --stop_on_first_error: useful to fix errors one by one, without being
-#  overwhelmed; yet may crash some versions of Gradualizer
+# overwhelmed; yet may crash some versions of Gradualizer
 #
-#GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
-GRADUALIZER_CONTEXTUAL_OPTS :=
+GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
+#GRADUALIZER_CONTEXTUAL_OPTS :=
 
 
 # Refer to 'gradualizer --help' for further guidance.
-#
 GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
-					$(GRADUALIZER_CONTEXTUAL_OPTS)
+					$(GRADUALIZER_CONTEXTUAL_OPTS) \
 
+
+# eqWAlizer is provided by WhatsApp:
+EQWALIZER := $$(which elp 2>/dev/null)
+
+EQWALIZER_OPTS = --project $(LAYER_TOP)/conf/$(PROJECT_SHORT_NAME)-for-eqwalizer.json
 
 
 # Designates the target(s), files and/or directories, that shall be checked,
-# typically by Gradualizer.
+# typically by a static checking tool (e.g. Gradualizer).
 #
 # Note that:
 #
@@ -2173,7 +2220,9 @@ GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 # can be overridden from the command-line, like in: 'make check-static-typing
 # TARGETS_TO_CHECK="foo.beam bar.beam"'.
 #
-TARGETS_TO_CHECK := $(wildcard *.beam)
+#TARGETS_TO_CHECK := $(wildcard *.beam)
+TARGETS_TO_CHECK := $$(find . -name '*.beam' 2>/dev/null)
+
 
 
 
@@ -2199,8 +2248,8 @@ BATCH_OPT := 'CMD_LINE_OPT="--batch"'
 # For 'Myriad', it is the PLT of Erlang/OTP (possibly enriched by
 # prerequisites):
 #
-ifndef PREDECESSOR_PLT
-	PREDECESSOR_PLT = $(ERLANG_PLT_FILE)
+ifndef PREDECESSOR_PLT_FILE
+	PREDECESSOR_PLT_FILE = $(ERLANG_PLT_FILE)
 endif
 
 
@@ -2211,7 +2260,9 @@ MAKE_CODE_STATS := $(MYRIAD_TOP)/src/scripts/make-code-stats.sh
 
 # Defining the top directory of the predecessor layer allows to write generic
 # rules (not depending on its actual name) able to automatically descend the
-# layer stack (e.g. to copy their respective BEAM files in their respective ebin)
-# without defining specific make targets at each layer:
-
-#PREDECESSOR_LAYER_TOP :=
+# layer stack (e.g. to copy their respective BEAM files in their respective
+# ebin) without defining specific make targets at each layer:
+#
+ifndef PREDECESSOR_LAYER_TOPS
+	PREDECESSOR_LAYER_TOPS =
+endif

@@ -132,7 +132,7 @@
 
 
 -type level() :: non_neg_integer().
-% Allows to count levels (ex: indentation ones, nesting ones).
+% Allows to count levels (e.g. indentation ones, nesting ones).
 
 
 -type bit_mask() :: integer().
@@ -180,7 +180,7 @@
 
 
 -type error_tuploid() :: error_tuploid( error_reason() ).
-% An error pseudo-tuple, i.e. an error tuple (ex: {invalid_name,1.0}) or a
+% An error pseudo-tuple, that is an error tuple (e.g. {invalid_name,1.0}) or a
 % single error term (instead of a tuple with a single element), preferably an
 % atom (like 'invalid_password'). Typically to be thrown.
 %
@@ -206,7 +206,7 @@
 % The most classical way of reporting an error.
 
 -type error_term() :: tagged_error() | error_reason().
-% A (possibly tagged) error term. Ex: 'badarg'.
+% A (possibly tagged) error term. For example 'badarg'.
 
 
 -type diagnosed_error_term() :: { 'error', diagnosed_error_reason() }.
@@ -235,8 +235,8 @@
 % cannot discriminate between a value that happens to be set to 'undefined'
 % versus a value not defined at all.
 %
-% Quite often, variables (ex: record fields) are set to 'undefined' before being
-% set later.
+% Quite often, variables (e.g. record fields) are set to 'undefined' before
+% being set later.
 
 
 -type safe_maybe( T ) :: { 'just', T } | 'nothing'.
@@ -333,8 +333,8 @@
 
 
 -type zero_index() :: non_neg_integer().
-% For the indices that may be null, typically starting at zero (ex: in some file
-% formats). Whenever possible, prefer positive_index/0.
+% For the indices that may be null, typically starting at zero (e.g. in some
+% file formats). Whenever possible, prefer positive_index/0.
 
 
 -type module_name() :: atom().
@@ -360,7 +360,7 @@
 
 
 -type layer_name() :: ustring().
-% The name of a layer (ex: "Myriad").
+% The name of a layer (e.g. "Myriad").
 
 
 -type record_name() :: atom().
@@ -467,7 +467,8 @@
 
 
 % Even if not exported:
--type process_info_result_item() :: erlang:process_info_result_item().
+%-type process_info_result_item() :: erlang:process_info_result_item().
+-type process_info_result_item() :: any().
 
 
 
@@ -543,7 +544,7 @@ stop_on_failure( StatusCode ) ->
 % @doc Identity function: returns its argument as it is.
 %
 % Useful to avoid having the compiler being too smart by notifying annoying,
-% spurious messages (ex: no clause will ever match) in some tests.
+% spurious messages (e.g. no clause will ever match) in some tests.
 %
 -spec identity( term() ) -> term().
 identity( Term ) ->
@@ -616,7 +617,7 @@ are_all_defined( _Elems=[ _E | T ] ) ->
 % Useful to define, for debugging purposes, terms that will be (temporarily)
 % unused without blocking the compilation.
 %
-% Ex: basic_utils:ignore_unused(A) or basic_utils:ignore_unused([A, B, C]).
+% For example basic_utils:ignore_unused(A) or basic_utils:ignore_unused([A, B, C]).
 %
 -spec ignore_unused( any() ) -> void().
 ignore_unused( _Term ) ->
@@ -1602,7 +1603,7 @@ debug( Format, Values ) ->
 
 % @doc Parses specified textual version.
 %
-% Ex: "4.2.1" should become {4,2,1}, and "2.3" should become {2,3}.
+% For example "4.2.1" should become {4,2,1}, and "2.3" should become {2,3}.
 %
 -spec parse_version( ustring() ) -> any_version().
 parse_version( VersionString ) ->
@@ -1646,7 +1647,7 @@ check_any_version( V ) ->
 
 
 % @doc Compares the two specified any-versions (expected to be of the same
-% size), which describe two version numbers (ex: {0,1,0} and {0,1,7}) and
+% size), which describe two version numbers (e.g. {0,1,0} and {0,1,7}) and
 % returns either first_bigger, second_bigger, or equal.
 %
 % The two compared versions must have the same number of digits.
@@ -1681,7 +1682,7 @@ compare_versions( A, B ) when tuple_size( A ) =:= tuple_size( B ) ->
 % Reasonably unique (add the PID of the Erlang process if concurrent creations
 % may happen), and suitable for file creation.
 %
-% Ex: "myriad-596330--576460741437" (negative monotonic time).
+% For example "myriad-596330--576460741437" (negative monotonic time).
 %
 -spec get_unix_process_specific_string() -> ustring().
 get_unix_process_specific_string() ->
@@ -1720,7 +1721,7 @@ get_process_specific_value( Pid ) ->
 	PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
 
 	%io:format( "PID: ~w.~n", [ self() ] ) ,
-	% Ex: ["<0","33","0>"]:
+	% For example ["<0","33","0>"]:
 	[ [ $< | First ], Second, Third ] = string:tokens( PidAsText, "." ),
 
 	% We add 1 to x and z as they might be null:
@@ -1754,7 +1755,7 @@ get_process_specific_value( Pid ) ->
 % [Min,Max[.
 %
 % Useful for example when a large number of similar processes try to access to
-% the same resource (ex: a set of file descriptors) at the same time: they can
+% the same resource (e.g. a set of file descriptors) at the same time: they can
 % rely on some random waiting based on that process-specific value in order to
 % smooth the accesses over time. Reproducibility does not matter here.
 %

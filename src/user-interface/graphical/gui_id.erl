@@ -51,7 +51,7 @@
 
 
 -type name_id() :: atom().
-% A higher-level, user-defined identifier of a widget (ex: 'my_file_menu_id'),
+% A higher-level, user-defined identifier of a widget (e.g. 'my_file_menu_id'),
 % as a name (an atom internally translated transparently to a relevant wx_id()).
 %
 % The 'undefined' atom is reserved.
@@ -153,7 +153,7 @@ get_initial_allocation_table() ->
 % At least currently, with wx, no service seems to be provided in order to
 % generate unique user-level wx_id(), so we provide ours.
 %
-% Otherwise the user would have to hardcode its own identifiers (ex: for menu
+% Otherwise the user would have to hardcode its own identifiers (e.g. for menu
 % items), which is fragile and error-prone.
 %
 % Note that the standard name/id associations (typically the standard menu

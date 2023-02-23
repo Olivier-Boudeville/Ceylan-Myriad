@@ -576,7 +576,8 @@ is_obtuse( AngleInDegrees ) ->
 
 
 
-% @doc Returns the angle, in radians, between the vector AB and AC.
+% @doc Returns the angle, in radians in the range [0, Pi], between the vector AB
+% and AC.
 %
 % Note: with this function we cannot tell whether one vector is ahead of the
 % other, ie if we should use the returned angle or its opposite to go from AB
@@ -591,28 +592,13 @@ abs_angle_rad( A, B, C ) ->
 
 	M1 = vector2:magnitude( AB ),
 
-	case math_utils:is_null( M1 ) of
-
-		true ->
-			throw( { degenerate_angle, { A, B } } );
-
-		_ ->
-			ok
-
-	end,
+	math_utils:is_null( M1 ) andalso throw( { degenerate_angle, { A, B } } ),
 
 	AC = point2:vectorize( A, C ),
 
 	M2 = vector2:magnitude( AC ),
 
-	case math_utils:is_null( M2 ) of
-
-		true ->
-			throw( { degenerate_angle,{ A, C } } );
-		_ ->
-			ok
-
-	end,
+	math_utils:is_null( M2 ) andalso throw( { degenerate_angle,{ A, C } } ),
 
 	%trace_utils:debug_fmt( "AB=~w, AC=~w, M1=~f, M2=~f.", [AB,AC,M1,M2] ),
 

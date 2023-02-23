@@ -128,7 +128,7 @@
 -type user_coordinate() :: linear:user_coordinate().
 
 -type distance() :: linear:distance().
--type square_distance() :: linear:square_distance().
+-type any_square_distance() :: linear:any_square_distance().
 
 -type any_point3() :: any_point3().
 
@@ -297,7 +297,7 @@ are_equal( _V1=[X1,Y1,Z1], _V2=[X2,Y2,Z2] ) ->
 
 
 % @doc Returns the square of the magnitude of the 3D specified vector.
--spec square_magnitude( vector3() ) -> square_distance().
+-spec square_magnitude( vector3() ) -> any_square_distance().
 square_magnitude( _V=[X,Y,Z] ) ->
 	X*X + Y*Y + Z*Z.
 
@@ -319,7 +319,7 @@ negate( _V=[X,Y,Z] ) ->
 
 
 % @doc Scales the specified 3D vector of the specified scalar factor.
--spec scale( vector3(), factor() ) -> vector3().
+-spec scale( any_vector3(), factor() ) -> vector3().
 scale( _V=[X,Y,Z], Factor ) ->
 	[ Factor*X, Factor*Y, Factor*Z ].
 

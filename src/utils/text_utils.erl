@@ -256,7 +256,7 @@
 % For example: `<<"0x44e390a3">>' or `<<"44e390a3">>'.
 
 
--type unicode_string() :: unicode:chardata().
+-type unicode_string() :: chardata().
 % A Unicode (plain) string.
 %
 % This is our new default.
@@ -265,7 +265,7 @@
 
 
 -type unicode_data() :: unicode:latin1_chardata()
-					  | unicode:chardata() | unicode:external_chardata().
+					  | chardata() | unicode:external_chardata().
 
 
 -type uchar() :: integer().
@@ -401,6 +401,8 @@
 
 -type grapheme_cluster() :: string:grapheme_cluster().
 % A user-perceived character, consisting of one or more (Unicode) codepoints.
+
+-type chardata() :: unicode:chardata().
 
 -type count() :: basic_utils:count().
 
@@ -1003,7 +1005,7 @@ strings_to_string_helper( _Strings=[ H | _T ], _Acc, _Bullet ) ->
 % @doc Returns a string that pretty-prints the specified list of strings, with
 % enumerated (that is 1, 2, 3) bullets, not specifically indented.
 %
--spec strings_to_enumerated_string( [ ustring() ] ) -> ustring().
+-spec strings_to_enumerated_string( [ string_like() ] ) -> ustring().
 strings_to_enumerated_string( Strings ) ->
 	strings_to_enumerated_string( Strings, _DefaultIndentationLevel=0 ).
 
@@ -1013,7 +1015,7 @@ strings_to_enumerated_string( Strings ) ->
 % enumerated (that is 1, 2, 3) bullets, for specified indentation and not
 % prefixed.
 %
--spec strings_to_enumerated_string( [ ustring() ], indentation_level() ) ->
+-spec strings_to_enumerated_string( [ string_like() ], indentation_level() ) ->
 											ustring().
 strings_to_enumerated_string( Strings, IndentationLevel ) ->
 	strings_to_enumerated_string( Strings, IndentationLevel, _Prefix="" ).
@@ -1023,7 +1025,7 @@ strings_to_enumerated_string( Strings, IndentationLevel ) ->
 % @doc Returns a string that pretty-prints the specified list of strings, with
 % enumerated (that is 1, 2, 3) bullets, indented after specified prefix.
 %
--spec strings_to_enumerated_string( [ ustring() ], indentation_level(),
+-spec strings_to_enumerated_string( [ string_like() ], indentation_level(),
 									ustring() ) -> ustring().
 strings_to_enumerated_string( _Strings=[ Str ], _IndentationLevel, _Prefix ) ->
 	Str;
@@ -1054,7 +1056,7 @@ strings_to_enumerated_string( Strings, IndentationLevel, Prefix ) ->
 % that pretty-prints the specified list of strings, with enumerated (that is 1,
 % 2, 3) bullets, not specifically indented.
 %
--spec strings_to_enumerated_comment( [ ustring() ] ) -> ustring().
+-spec strings_to_enumerated_comment( [ string_like() ] ) -> ustring().
 strings_to_enumerated_comment( Strings ) ->
 	strings_to_enumerated_comment( Strings, _IndentationLevel=0 ).
 
@@ -1064,7 +1066,7 @@ strings_to_enumerated_comment( Strings ) ->
 % that pretty-prints the specified list of strings, with enumerated (that is 1,
 % 2, 3) bullets, with specified indentation at each beginning of comment line.
 %
--spec strings_to_enumerated_comment( [ ustring() ], indentation_level() ) ->
+-spec strings_to_enumerated_comment( [ string_like() ], indentation_level() ) ->
 															ustring().
 strings_to_enumerated_comment( Strings, IndentationLevel ) ->
 	strings_to_enumerated_string( Strings, IndentationLevel, _Prefix="% " ).
@@ -1074,12 +1076,12 @@ strings_to_enumerated_comment( Strings, IndentationLevel ) ->
 % @doc Returns a plain string that pretty-prints specified list of strings
 % (actually the list may contain also binary strings), with default bullets.
 %
--spec strings_to_string( [ any_string() ] ) -> ustring().
+-spec strings_to_string( [ string_like() ] ) -> ustring().
 strings_to_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_string( Strings=[ SingleString ] )
-			when is_list( SingleString ) orelse is_binary( SingleString ) ->
+		when is_list( SingleString ) orelse is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
@@ -1109,7 +1111,7 @@ strings_to_string( ErrorTerm ) ->
 % any element that can be processed with ~ts will do; e.g. atoms) once reordered
 % (and with default bullets).
 %
--spec strings_to_sorted_string( [ ustring() ] ) -> ustring().
+-spec strings_to_sorted_string( [ string_like() ] ) -> ustring().
 strings_to_sorted_string( Strings ) when is_list( Strings ) ->
 	strings_to_string( lists:sort( Strings ) );
 
@@ -1125,7 +1127,7 @@ strings_to_sorted_string( ErrorTerm ) ->
 % This can be a solution to nest bullet lists, by specifying a bullet with an
 % offset, such as " * ".
 %
--spec strings_to_string( [ ustring() ], indentation_level_or_bullet() ) ->
+-spec strings_to_string( [ string_like() ], indentation_level_or_bullet() ) ->
 								ustring().
 strings_to_string( _Strings=[], _IndentationOrBullet ) ->
 	"(empty list)";
@@ -1254,17 +1256,12 @@ strings_to_spaced_string( _Strings, IncorrectBullet ) ->
 	throw( { bullet_not_a_string, IncorrectBullet } ).
 
 
-% any element that can be processed with ~ts will do; e.g. atoms) once reordered,
-% with user-specified indentation level or bullet, and a blank line before each
-% top-level entry in order to better space them, for an increased readability.
-%
-
 
 % @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; e.g. atoms) once reordered,
-% with user-specified indentation level or bullet.
+% any element that can be processed with ~ts will do; e.g. atoms) once
+% reordered, with user-specified indentation level or bullet.
 %
--spec strings_to_sorted_string( [ ustring() ],
+-spec strings_to_sorted_string( [ string_like() ],
 								indentation_level_or_bullet() ) -> ustring().
 strings_to_sorted_string( Strings, IndentationOrBullet )
 											when is_list( Strings ) ->
@@ -1375,7 +1372,7 @@ binaries_to_binary( Binaries, Bullet )
 					when is_list( Binaries ) andalso is_list( Bullet ) ->
 
 	%trace_utils:debug_fmt( "Binaries: ~p, Bullet: '~p'.",
-	%					   [ Binaries, Bullet ] ),
+	%                       [ Binaries, Bullet ] ),
 
 	% Operating first on a list of binaries:
 	BinNewline = <<"\n">>,
@@ -2364,7 +2361,7 @@ format_as_comment( FormatString, Values, CommentChar, LineWidth ) ->
 format_as_comment_helper( _Text=[], CommentChar, _LineWidth, AccLines, AccLine,
 						  _RemainWidth ) ->
 	join( _Separator=$\n, lists:reverse(
-			  [ get_formatted_line( CommentChar, AccLine ) | AccLines ] ) );
+			[ get_formatted_line( CommentChar, AccLine ) | AccLines ] ) );
 
 format_as_comment_helper( _Text=[ Word | T ], CommentChar, LineWidth, AccLines,
 						  AccLine, RemainWidth ) ->
@@ -3487,10 +3484,11 @@ split_at_whitespaces( String ) ->
 
 
 
-% @doc Splits the specified string according to the first occurrence of
-% specified character: returns a pair of two strings, containing respectively
-% all characters strictly before and strictly after the first occurrence of the
-% marker (which thus is not kept).
+% @doc Splits the specified string according to the first occurrence (if any) of
+% the specified character, then returns a pair of two strings, containing
+% respectively all characters strictly before and strictly after the first
+% occurrence of the marker (which thus is not kept); otherwise returns
+% 'none_found'.
 %
 % For example: split_at_first($x, " aaaxbbbxccc") shall return {" aaa",
 % "bbbxccc"}.
@@ -3691,8 +3689,7 @@ substitute( SourceChar, TargetChar, _String=[ OtherChar | T ], Acc ) ->
 %
 % An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
 %
--spec find_substring_index( unicode:chardata(), unicode:chardata() ) ->
-									gc_index() | 'nomatch'.
+-spec find_substring_index( chardata(), chardata() ) -> gc_index() | 'nomatch'.
 find_substring_index( String, SearchPattern ) ->
 	find_substring_index( String, SearchPattern, _Direction=leading ).
 
@@ -3703,8 +3700,8 @@ find_substring_index( String, SearchPattern ) ->
 %
 % An (attempt of) Unicode-aware replacement of string:str/2 and string:rstr/2.
 %
--spec find_substring_index( unicode:chardata(), unicode:chardata(),
-							direction() ) -> gc_index() | 'nomatch'.
+-spec find_substring_index( chardata(), chardata(), direction() ) ->
+									gc_index() | 'nomatch'.
 find_substring_index( String, SearchPattern, Direction ) ->
 	GCString = string:to_graphemes( String ),
 	GCSearchPattern = string:to_graphemes( SearchPattern ),
@@ -4938,13 +4935,12 @@ aggregate_word( [ H | T ], Count, Acc ) ->
 
 
 
-% @doc Tries to convert specified Unicode-related datastructure into a flat,
+% @doc Tries to convert the specified Unicode-related datastructure into a flat,
 % plain Unicode string.
 %
 % (exported helper, for re-use)
 %
--spec try_convert_to_unicode_list( unicode:unicode_data() ) ->
-											maybe( ustring() ).
+-spec try_convert_to_unicode_list( unicode_data() ) -> maybe( ustring() ).
 try_convert_to_unicode_list( Data ) ->
 
 	% A binary_to_list/1 would not be sufficient here.

@@ -48,7 +48,7 @@
 % decided by using trap_event/1.
 %
 % Event messages are internally converted, in order to hide the wx backend,
-% augment it with other primitives (ex: canvas widget) and make them compliant
+% augment it with other primitives (e.g. canvas widget) and make them compliant
 % with the MyriadGUI conventions, as seen by the user code (hint: these
 % conventions comply with the WOOPER ones, should the GUI be used in an OOP
 % context).
@@ -73,6 +73,9 @@
 		  get_event_translation_table/0,
 		  wx_to_myriad_event/2, set_instance_state/3, match/2 ]).
 
+
+% Helpers:
+-export([ get_backend_event/1 ]).
 
 % Stringification:
 -export([ event_table_to_string/1 ]).
@@ -110,14 +113,14 @@
 
 -type gui_event() :: { event_type(), Elements :: [ any() ] }.
 % A (MyriadGUI) event is a pair whose first element is the event type, as an
-% atom (ex: 'onWindowClosed'), and whose second element is a list, whose first
+% atom (e.g. 'onWindowClosed'), and whose second element is a list, whose first
 % element is the GUI object that generated that event (the closed window, here),
 % and whose last element is the event context (intermediary elements carrying
 % event-specific information):
 %
 % {event_type(), [gui_object(), ..., event_context()]}
 %
-% Ex: {onWindowClosed, [Window, CloseContext]}.
+% For example {onWindowClosed, [Window, CloseContext]}.
 %
 % So the event context can be fetched with:
 % EventContext = list_utils:get_last_element( Elements ),
@@ -172,16 +175,16 @@
 
 % | ...
 -type wx_event_type() ::
-					   % For windows:
-						 wx_repaint_event_type()
-					   | wx_click_event_type()
-					   | wx_resize_event_type()
-					   | wx_close_event_type()
-					   | wx_show_event_type()
+	% For windows:
+	wx_repaint_event_type()
+  | wx_click_event_type()
+  | wx_resize_event_type()
+  | wx_close_event_type()
+  | wx_show_event_type()
 
-					   % For I/O:
-					   | wx_mouse_event_type()
-					   | wx_keyboard_event_type().
+	% For I/O:
+  | wx_mouse_event_type()
+  | wx_keyboard_event_type().
 % Using the wx-event type, leaked by wx.hrl (enrich this union whenever needed).
 
 
@@ -216,7 +219,7 @@
 % propagate: subscribing to them does not preclude them from being sent also to
 % the parent event handlers in the widget hierarchy.
 %
-% For some other, less numerous event types (ex: onWindowClosed), they will be
+% For some other, less numerous event types (e.g. onWindowClosed), they will be
 % by default trapped (their events will not be propagated, so they will be
 % processed only by the user event handler).
 %
@@ -233,16 +236,16 @@
 
 
 -type window_event_type() ::
-		'onRepaintNeeded'
-	  | 'onButtonClicked'
-	  | 'onResized'
+	'onRepaintNeeded'
+  | 'onButtonClicked'
+  | 'onResized'
 
-		% Trapped by default, to avoid race condition in termination procedures
-		% between user handlers and backend ones:
-		%
-	  | 'onWindowClosed'
+	% Trapped by default, to avoid race condition in termination procedures
+	% between user handlers and backend ones:
+	%
+  | 'onWindowClosed'
 
-	  | 'onShown'.
+  | 'onShown'.
 % A type of event possibly emitted by a window.
 %
 % Note that resizing a widget (typically a canvas) implies receiving also a
@@ -252,17 +255,17 @@
 
 -type command_event_type() ::
 
-		% Typically when the mouse cursor enters a toolbar (hovering):
-		'onToolbarEntered'
+	% Typically when the mouse cursor enters a toolbar (hovering):
+	'onToolbarEntered'
 
-		% Typically when selecting (e.g. left-clicking) an item of a menu or a
-		% tool of a toolbar:
-		%
-	  | 'onItemSelected'
+	% Typically when selecting (e.g. left-clicking) an item of a menu or a tool
+	% of a toolbar:
+	%
+  | 'onItemSelected'
 
-		% Typically when right-clicking on a tool of a toolbar:
-	  | 'onToolRightClicked'.
-% Types of events emitted by commands, a variety of simple controls (ex: menus,
+	% Typically when right-clicking on a tool of a toolbar:
+  | 'onToolRightClicked'.
+% Types of events emitted by commands, a variety of simple controls (e.g. menus,
 % toolbars).
 %
 % Generally these command events are meant to be trapped (not propagated in the
@@ -274,10 +277,10 @@
 
 -type event_subscription_option() ::
 
-	 % Disables any automatic event propagation:
+	% Disables any automatic event propagation:
 	'trap_event'
 
-	 % Enables automatic event propagation:
+	% Enables automatic event propagation:
   | 'propagate_event'.
 % The options that can be specified whenever subscribing to a type of events.
 %
@@ -285,7 +288,7 @@
 % user-defined handler, it is propagated upward in the widget hierarchy, so that
 % further event handlers (including the built-in backend ones) can be triggered.
 % It is usually necessary so that the GUI backend can update the other widgets
-% accordingly (ex: for proper resizes). Specifying the 'trap_event' option
+% accordingly (e.g. for proper resizes). Specifying the 'trap_event' option
 % disable this automatic propagation; note that this may disable in turn key GUI
 % update behaviours (such as the automatic resizing of widgets).
 %
@@ -304,16 +307,16 @@
 
 -type event_subscription() ::
 
-		{ maybe_list( event_type() ), maybe_list( gui_object() ) }
-		% Default options and subscriber.
+	{ maybe_list( event_type() ), maybe_list( gui_object() ) }
+	% Default options and subscriber.
 
-	  | { maybe_list( event_type() ), maybe_list( gui_object() ),
-		  maybe_list( event_subscription_opt() ) }
-		% Default subscriber.
+  | { maybe_list( event_type() ), maybe_list( gui_object() ),
+	  maybe_list( event_subscription_opt() ) }
+	% Default subscriber.
 
-	  | { maybe_list( event_type() ), maybe_list( gui_object() ),
-		  maybe_list( event_subscription_opt() ),
-		  maybe_list( event_subscriber() ) }.
+  | { maybe_list( event_type() ), maybe_list( gui_object() ),
+	  maybe_list( event_subscription_opt() ),
+	  maybe_list( event_subscriber() ) }.
 % Describes, in the context of an event subscription, the type(s) of events
 % generated by specific GUI object(s) to be listened to, with any relevant
 % options, by which subscribers.
@@ -328,7 +331,7 @@
 
 
 -type event_unsubscription() ::
-		{ maybe_list( event_type() ), maybe_list( gui_object() ) }.
+	{ maybe_list( event_type() ), maybe_list( gui_object() ) }.
 % So that user process(es) can unsubscribe from GUI events.
 
 -type event_unsubscription_spec() :: maybe_list( event_unsubscription() ).
@@ -338,7 +341,7 @@
 
 
 -type event_callback() ::
-		fun( ( gui_event(), gui_event_object() ) -> void() ).
+	fun( ( gui_event(), gui_event_object() ) -> void() ).
 % A user-defined function to be called whenever an event occurred that
 % corresponds to an already-registered GUI callback.
 %
@@ -350,19 +353,19 @@
 
 
 -type gui_wx_object_key() ::
-		{ gui_wx_backend:wx_widget_type(), gui_wx_backend:wx_id() }.
+	{ gui_wx_backend:wx_native_object_type(), gui_wx_backend:wx_id() }.
 % A suitable stable key corresponding to a gui_object() (notably ignoring the
 % last, 'state' element of this quadruplet).
 %
-% Ex: the gui_object() {wx_ref,63,wxFrame,AnyState} results in the {wxFrame,63}
-% key.
+% For example the gui_object() {wx_ref,63,wxFrame,AnyState} results in the
+% {wxFrame,63} key.
 
 
 -type myriad_object_key() :: { myriad_object_type(), myriad_instance_id() }.
 % The MyriadGUI type corresponding to gui_wx_object_key/0.
 %
-% Ex: the myriad_object_ref() {myriad_object_ref,myr_canvas,12} results in the
-% {myr_canvas,12} key.
+% For example the myriad_object_ref() {myriad_object_ref,myr_canvas,12} results
+% in the {myr_canvas,12} key.
 
 
 -type gui_object_key() :: gui_wx_object_key() | myriad_object_key().
@@ -395,7 +398,7 @@
 
 
 
--type event_table() :: table:table( gui_object_key(), event_dispatch_table() ).
+-type event_table() :: table( gui_object_key(), event_dispatch_table() ).
 % An indirection table dispatching events according to subscription
 % specifications.
 %
@@ -403,9 +406,9 @@
 % table({gui_object(), event_type()}, set_utils:set(event_subscriber())):
 %
 % - the first key is the key corresponding to the GUI object (e.g. widget) from
-% which the event emanates (ex: a frame)
+% which the event emanates (e.g. a frame)
 %
-% - the second key is its corresponding (internal) event type (ex:
+% - the second key is its corresponding (internal) event type (e.g.
 % 'onWindowClosed')
 %
 % - the associated value is a list/set of the PID/name of the subscribers
@@ -422,13 +425,13 @@
 % to which event subscribers the corresponding GUI messages shall be sent.
 
 
--type reassign_table() :: table:table( gui_object(), gui_object() ).
-% To replace source events objects (ex: a panel) by others (ex: its associated
+-type reassign_table() :: table( gui_object(), gui_object() ).
+% To replace source events objects (e.g. a panel) by others (e.g. its associated
 % canvas, if any).
 
 
 -type myriad_type_table() ::
-		table:table( myriad_object_type(), instance_referential() ).
+		table( myriad_object_type(), instance_referential() ).
 % To store the MyriadGUI instances (sorted by types) and manage them like wx
 % native objects.
 %
@@ -445,8 +448,8 @@
 
 
 -type instance_referential() :: #instance_referential{}.
-% To store, for a given MyriadGUI type (ex: 'canvas'), all information about all
-% instances.
+% To store, for a given MyriadGUI type (e. g. 'canvas'), all information about
+% all instances.
 %
 % - a total count of the instances already created for that type
 %
@@ -483,7 +486,7 @@
 
 
 	% Stores, by types, the current widget instances that have been introduced
-	% by MyriadGUI to complement the backend (ex: canvas instances).
+	% by MyriadGUI to complement the backend (e.g. canvas instances).
 	%
 	type_table :: myriad_type_table(),
 
@@ -518,7 +521,7 @@
 
 
 -type wx_event() ::
-		{ 'wx', wx_id(), wx:wx_object(), gui:user_data(), wx_event_info() }.
+	{ 'wx', wx_id(), wx:wx_object(), gui:user_data(), wx_event_info() }.
 % A wx_event record comprises:
 %
 % - (the 'wx' record tag, if the record instance is seen as a tuple)
@@ -527,7 +530,7 @@
 % received the event (event source)
 %
 % - obj :: wx:wx_object() is the reference of the wx object that was specified
-% in the connect/n call, i.e. on which connect/n was called (ex:
+% in the connect/n call, i.e. on which connect/n was called (e.g.
 % {wx_ref,35,wxFrame,[]})
 %
 % - userData :: user_data() is the user-specified data that was specified in the
@@ -559,7 +562,7 @@
 
 
 -type event_translation_table() ::
-   bijective_table:bijective_table( wx_event_type(), event_type() ).
+	bijective_table:bijective_table( wx_event_type(), event_type() ).
 % A table to implement an effecient two-way translation between the event types
 % of wx and of MyriadGUI.
 
@@ -582,9 +585,11 @@
 -type myriad_object_type() :: gui:myriad_object_type().
 -type myriad_object_state() :: gui:myriad_object_state().
 -type construction_parameters() :: gui:construction_parameters().
+-type backend_event() :: gui:backend_event().
 -type wx_server() :: gui:wx_server().
 -type event_subscription_opt() :: gui:event_subscription_opt().
 -type service() :: gui:service().
+
 
 -type backend_id() :: gui_id:backend_id().
 -type wx_id() :: gui_id:wx_id().
@@ -834,7 +839,7 @@ process_event_messages( LoopState ) ->
 % Structure: {wx, EventSourceId, Obj, UserData, EventInfo }, with EventInfo:
 % {WxEventName, EventType, ...}
 %
-% Ex: {wx, -2006, {wx_ref,35,wxFrame,[]}, [], {wxClose,close_window}}.
+% For example {wx, -2006, {wx_ref,35,wxFrame,[]}, [], {wxClose,close_window}}.
 %
 -spec process_event_message( received_event(), loop_state() ) -> loop_state().
 process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
@@ -848,14 +853,14 @@ process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 					  WxEvent, LoopState );
 
 
-% Special case: when creating a widget instance (ex: a frame) while specifying
+% Special case: when creating a widget instance (e.g. a frame) while specifying
 % its name, the GUI loop must be notified so that it stores this name,
 % associates it to a new backend identifier (wx_id()) and returns it to the
 % sender for its upcoming, corresponding wx creation call.
 %
 process_event_message( { declareNameId, NameId, SenderPid },
-			LoopState=#loop_state{ id_next=NextId,
-								   id_name_alloc_table=NameTable } ) ->
+		LoopState=#loop_state{ id_next=NextId,
+							   id_name_alloc_table=NameTable } ) ->
 
 	SenderPid ! { notifyingAssignedId, NextId },
 
@@ -866,7 +871,7 @@ process_event_message( { declareNameId, NameId, SenderPid },
 
 
 process_event_message( { resolveNameId, NameId, SenderPid },
-			LoopState=#loop_state{ id_name_alloc_table=NameTable } ) ->
+		LoopState=#loop_state{ id_name_alloc_table=NameTable } ) ->
 
 	Id = bijective_table:get_second_for( NameId, NameTable ),
 
@@ -1095,7 +1100,7 @@ process_event_message( { getCanvasClientSize, CanvasId, CallerPid },
 	LoopState;
 
 
-% MyriadGUI user request (ex: emanating from gui:create_canvas/1):
+% MyriadGUI user request (e.g. emanating from gui:create_canvas/1):
 process_event_message( { createInstance, [ ObjectType, ConstructionParams ],
 						 CallerPid }, LoopState ) ->
 	process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
@@ -1279,14 +1284,14 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 % @doc Processes specified wx event message.
 -spec process_wx_event( wx_id(), wx_object(), gui:user_data(),
-					wx_event_info(), wx_event(), loop_state() ) -> loop_state().
+		wx_event_info(), wx_event(), loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 				  LoopState=#loop_state{
-							   event_table=EventTable,
-							   reassign_table=ReassignTable,
-							   type_table=TypeTable,
-							   event_translation_table=EventTranslationTable,
-							   id_name_alloc_table=NameTable } ) ->
+					event_table=EventTable,
+					reassign_table=ReassignTable,
+					type_table=TypeTable,
+					event_translation_table=EventTranslationTable,
+					id_name_alloc_table=NameTable } ) ->
 
 	%trace_utils:debug_fmt( "Processing wx event~n  ~p.", [ WxEvent ] ),
 
@@ -1309,12 +1314,12 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 					  WxEventInfo ] ) ),
 
 			% Before notifying the event subscribers below, some special actions
-			% may be needed to update that target reassigned object first (ex:
+			% may be needed to update that target reassigned object first (e.g.
 			% for a canvas, an onResized event shall trigger first an update of
 			% the canvas back-buffer):
 			%
 			UpdatedTypeTable = update_instance_on_event( TargetGUIObject,
-													WxEventInfo, TypeTable ),
+				WxEventInfo, TypeTable ),
 
 			{ TargetGUIObject, UpdatedTypeTable }
 
@@ -1381,13 +1386,13 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 
 % @doc Updates specified GUI object (probably a MyriadGUI one, like a canvas)
-% after specified event (ex: an onResized one) has been received.
+% after specified event (e.g. an onResized one) has been received.
 %
 -spec update_instance_on_event( gui_object(), wx_event_info(),
 								myriad_type_table() ) -> myriad_type_table().
 update_instance_on_event(
-			_GuiObject={ myriad_object_ref, myr_canvas, CanvasId },
-			WxEventInfo, TypeTable ) ->
+		_GuiObject={ myriad_object_ref, myr_canvas, CanvasId },
+		WxEventInfo, TypeTable ) ->
 
 	case _WxEventType=element( 2, WxEventInfo ) of
 
@@ -1532,24 +1537,24 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 				table:new( [ { FirstInstanceId, ObjectInitialState } ] ),
 
 			FirstInstanceReferential = #instance_referential{
-											instance_count=1,
-											instance_table=FirstInstanceTable },
+				instance_count=1,
+				instance_table=FirstInstanceTable },
 
 			{ FirstInstanceId, FirstInstanceReferential };
 
 
 		{ value, InstanceReferential=#instance_referential{
-					instance_count=InstanceCount,
-					instance_table=InstanceTable } } ->
+				instance_count=InstanceCount,
+				instance_table=InstanceTable } } ->
 
 			NextInstanceId = InstanceCount + 1,
 
 			NextInstanceTable = table:add_entry( NextInstanceId,
-									ObjectInitialState, InstanceTable ),
+				ObjectInitialState, InstanceTable ),
 
 			NextInstanceReferential = InstanceReferential#instance_referential{
-										instance_count=NextInstanceId,
-										instance_table=NextInstanceTable },
+				instance_count=NextInstanceId,
+				instance_table=NextInstanceTable },
 
 			{ NextInstanceId, NextInstanceReferential }
 
@@ -1717,7 +1722,7 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 	% gui_canvas:create_instance/1.
 	%
 	% We must thus avoid here to connect such panel again (thus more than once)
-	% for a given event type (ex: onRepaintNeeded), otherwise a logic (ex: the
+	% for a given event type (e.g. onRepaintNeeded), otherwise a logic (e.g. the
 	% repaint one) could be triggered multiple times (as multiple identical
 	% messages could then be received - however in practice this is not the
 	% case, exactly one message per event type is received).
@@ -1728,13 +1733,9 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 	NewEventTypes =
 		list_utils:remove_first_occurrences( BaseEventTypes, EventTypes ),
 
-	case NewEventTypes of
+	NewEventTypes =:= [] orelse
+		begin
 
-		% Shortcut:
-		[] ->
-			ok;
-
-		_ ->
 			% As a canvas is registered in wx as a panel (as wx will send events
 			% about it) that will be reassigned as a canvas:
 
@@ -1748,16 +1749,16 @@ register_event_types_for( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 			gui_wx_backend:connect( Panel, NewEventTypes, SubOpts, TrapSet,
 									EventTranslationTable )
 
-	end,
+		end,
 
 	LoopState#loop_state{ event_table=NewEventTable };
 
 
 register_event_types_for( GUIObject, EventTypes, SubOpts, Subscribers,
 						  LoopState=#loop_state{
-						   event_table=EventTable,
-						   trap_set=TrapSet,
-						   event_translation_table=EventTranslationTable } ) ->
+							event_table=EventTable,
+							trap_set=TrapSet,
+							event_translation_table=EventTranslationTable } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Registering subscribers ~w for event types ~p "
@@ -1841,13 +1842,9 @@ unregister_event_types_from( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 	NewEventTypes =
 		list_utils:remove_first_occurrences( BaseEventTypes, EventTypes ),
 
-	case NewEventTypes of
+	NewEventTypes =:= [] orelse
+		begin
 
-		% Shortcut:
-		[] ->
-			ok;
-
-		_ ->
 			% As a canvas is registered in wx as a panel (as wx will send events
 			% about it) that will be reassigned as a canvas:
 
@@ -1861,14 +1858,14 @@ unregister_event_types_from( Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 			gui_wx_backend:disconnect( Panel, NewEventTypes,
 									   EventTranslationTable )
 
-	end,
+		end,
 
 	LoopState#loop_state{ event_table=NewEventTable };
 
 unregister_event_types_from( GUIObject, EventTypes, Unsubscribers,
-						LoopState=#loop_state{
-							event_table=EventTable,
-							event_translation_table=EventTranslationTable } ) ->
+		LoopState=#loop_state{
+			event_table=EventTable,
+			event_translation_table=EventTranslationTable } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Unregistering subscribers ~w "
@@ -2048,6 +2045,12 @@ match( _FirstGUIObject, _SecondGUIObject ) ->
 
 
 
+% @doc Returns the backend event included in the specified event context.
+-spec get_backend_event( event_context() ) -> backend_event().
+get_backend_event( #event_context{ backend_event=BackendEvent } ) ->
+	BackendEvent.
+
+
 % @doc Adjusts the specified MyriadGUI instances.
 -spec adjust_objects( [ myriad_object_ref() ], event_table(),
 			myriad_type_table(), id_name_alloc_table() ) -> myriad_type_table().
@@ -2105,7 +2108,7 @@ get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 
 
 % @doc Returns the internal state of the specified MyriadGUI instance.
--spec get_instance_state( myriad_object_ref(), myriad_type_table(),
+-spec get_instance_state( myriad_object_ref(), myriad_instance_id(),
 						  myriad_type_table() ) -> myriad_object_state().
 get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
@@ -2179,7 +2182,7 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 												   InstanceTable ),
 
 			NewReferential = Referential#instance_referential{
-								instance_table=NewInstanceTable },
+				instance_table=NewInstanceTable },
 
 			% An update actually:
 			table:add_entry( MyriadObjectType, NewReferential, TypeTable );
@@ -2327,9 +2330,9 @@ type_table_to_string( Table ) ->
 			"empty type table";
 
 		Pairs ->
-			Strings = [ text__utils:format( "for type '~ts', ~ts", [ Type,
-					instance_referential_to_string( Referential ) ] )
-						|| { Type, Referential } <- Pairs ],
+			Strings = [ text_utils:format( "for type '~ts', ~ts", [ Type,
+				instance_referential_to_string( Referential ) ] )
+					|| { Type, Referential } <- Pairs ],
 			text_utils:format( "Type table with ~B object types registered: "
 				"~ts",
 				[ length( Strings ), text_utils:strings_to_string( Strings ) ] )

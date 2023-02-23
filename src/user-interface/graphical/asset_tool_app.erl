@@ -92,7 +92,7 @@ get_canvas_height() ->
 -spec init_app_gui() -> no_return().
 init_app_gui() ->
 
-	InitialGUIState = gui:start(),
+	gui:start(),
 
 	FrameSize = { get_main_window_width(), get_main_window_height() },
 
@@ -174,21 +174,25 @@ init_app_gui() ->
 	% Sets the GUI to visible:
 	gui:show( MainFrame ),
 
-	InitialGUIState = #app_state{ main_frame=MainFrame,
+	InitialAppState = #app_state{ main_frame=MainFrame,
 								  load_image_button=LoadImageButton,
 								  quit_button=QuitButton,
 								  info_sizer=InfoSizer,
 								  left_panel=LeftPanel,
 								  canvas=Canvas },
 
-	SubscribedEvents = [ { onWindowClosed, MainFrame } ],
+	EventsOfInterest = [ { onWindowClosed, MainFrame } ],
 
-	ReadyGUIState = gui:handle_events( InitialGUIState, SubscribedEvents ),
+	% To be done before rendering the GUI (with gui:show/1), as it may result in
+	% events to be emitted (e.g. onRepaintNeeded) that would not be received, if
+	% not already subscribed to:
+	%
+	gui:subscribe_to_events( EventsOfInterest ),
 
-	app_main_loop( MainFrame, ReadyGUIState ).
+	app_main_loop( InitialAppState  ).
 
 
-app_main_loop( _, _ ) ->
+app_main_loop( _AppState ) ->
 	fixme.
 
 

@@ -151,7 +151,7 @@
 				 | atom().
 % More precise categorization of an operating system.
 %
-% Generally using portable facilities (ex: file_utils) shall be preferred to
+% Generally using portable facilities (e.g. file_utils) shall be preferred to
 % matching any value of that type.
 %
 % Unix system are designated by the name returned by `uname -s', but in lower
@@ -165,7 +165,7 @@
 % Prerequisite-related section.
 
 -type package_name() :: ustring().
-% Name of a (third-party) prerequisite package (ex: "ErlPort", "jsx", etc.).
+% Name of a (third-party) prerequisite package (e.g. "ErlPort", "jsx", etc.).
 
 
 -export_type([ package_name/0, os_family/0, os_name/0, os_type/0 ]).
@@ -197,7 +197,7 @@
 
 
 -opaque cpu_usage_info() ::
-		{ integer(), integer(), integer(), integer(), integer() }.
+	{ integer(), integer(), integer(), integer(), integer() }.
 
 
 -type cpu_usage_percentages() ::
@@ -232,13 +232,13 @@
 
 -record( fs_info, {
 
-	% Device name (ex: /dev/sda5):
+	% Device name (e.g. /dev/sda5):
 	filesystem :: directory_path(),
 
-	% Mount point (ex: /boot):
+	% Mount point (e.g. /boot):
 	mount_point :: directory_path(),
 
-	% Filesystem type (ex: 'ext4'):
+	% Filesystem type (e.g. 'ext4'):
 	type :: filesystem_type(),
 
 	% Used size, in bytes:
@@ -664,14 +664,14 @@ force_unicode_support() ->
 % Lower-level services.
 
 
-% @doc Awaits the completion of an output operation (ex: io:format/2).
+% @doc Awaits the completion of an output operation (e.g. io:format/2).
 %
 % Especially useful when displaying an error message on the standard output and
 % then immediately halting the VM, in order to avoid a race condition between
 % the displaying and the halting.
 %
 % We use a relatively short waiting here, just out of safety. It may be in some
-% cases insufficient (ex: for error traces to be sent, received and stored
+% cases insufficient (e.g. for error traces to be sent, received and stored
 % *before* the VM is halted after a throw/1 that may be executed just after).
 %
 % In this case, await_output_completion/1 should be used, with a larger delay.
@@ -1102,7 +1102,7 @@ read_port( Port, Data ) ->
 			port_terminated
 
 
-		% Other messages should not be intercepted (ex: they could be in
+		% Other messages should not be intercepted (e.g. they could be in
 		% relation to other ongoing ports):
 		%
 		%Other ->
@@ -1139,7 +1139,7 @@ get_line( Prompt, GetLineScriptPath ) ->
 
 	io:format( Prompt ),
 
-	% We have to execute a real executable (ex: not a shell builtin):
+	% We have to execute a real executable (e.g. not a shell builtin):
 	Cmd = GetLineScriptPath ++ " 1>&4",
 
 	Env = get_standard_environment(),
@@ -1268,7 +1268,7 @@ monitor_port( Port, Data ) ->
 					port_close( Port ),
 
 					Output = text_utils:remove_ending_carriage_return(
-								lists:flatten( lists:reverse( Data ) ) ),
+						lists:flatten( lists:reverse( Data ) ) ),
 
 					{ ExitStatus, Output }
 
@@ -1287,7 +1287,7 @@ monitor_port( Port, Data ) ->
 
 
 
-% @doc Evaluates specified shell (ex: sh, bash, etc - not Erlang) expression,
+% @doc Evaluates specified shell (e.g. sh, bash, etc - not Erlang) expression,
 % in a standard environment.
 %
 % No return code is available with this approach, only the output of the
@@ -1299,7 +1299,7 @@ evaluate_shell_expression( Expression ) ->
 
 
 
-% @doc Evaluates specified shell (ex: sh, bash, etc - not Erlang) expression,
+% @doc Evaluates specified shell (e.g. sh, bash, etc - not Erlang) expression,
 % in specified environment.
 %
 % No return code is available with this approach, only the output of the
@@ -1669,7 +1669,7 @@ set_environment_variable( VarName, VarValue ) ->
 
 	% Hopefully a string or 'false':
 	%trace_utils:debug_fmt( "Setting environment variable '~ts' to '~ts'.",
-	%					   [ VarName, VarValue ] ),
+	%                       [ VarName, VarValue ] ),
 
 	os:putenv( VarName, VarValue ).
 
@@ -1860,8 +1860,8 @@ environment_to_string( Environment ) ->
 % @doc Returns the version information of the current Erlang interpreter
 % (actually the one of the whole environment, including the VM) being used.
 %
-% Returns a full version name (ex: "R13B04") or, if not available, a shorter one
-% (ex: "R11B").
+% Returns a full version name (e.g. "R13B04") or, if not available, a shorter
+% one (e.g. "R11B").
 %
 -spec get_interpreter_version() -> ustring().
 get_interpreter_version() ->
@@ -1874,16 +1874,16 @@ get_interpreter_version() ->
 			try list_to_integer( StringVersion ) of
 
 				V ->
-					% Ex: V=17 Newer release (ex: 17.0-rc1) do not comply to the
-					% traditional scheme, applying it for uniformity and maybe a
-					% bit of nostalgia:
+					% For example V=17 Newer release (e.g. 17.0-rc1) does not
+					% comply to the traditional scheme, applying it for
+					% uniformity and maybe a bit of nostalgia:
 					%
 					lists:flatten( io_lib:format( "R~BB", [ V ] ) )
 
 			catch
 
 				_:_ ->
-					% Ex: StringVersion="R13B04":
+					% For example StringVersion="R13B04":
 					StringVersion
 
 			end
@@ -1893,7 +1893,7 @@ get_interpreter_version() ->
 		_:_ ->
 			% Here we revert to another (older) solution:
 			{ _OTPInfos, StringVersion } = init:script_id(),
-			% Ex: StringVersion="R11B"
+			% For example StringVersion="R11B"
 			StringVersion
 
 	end.
@@ -1920,7 +1920,7 @@ get_operating_system_type() ->
 
 
 % @doc Returns the version information (as a 2 or 3-part tuple) corresponding to
-% the specified Erlang standard application (ex: for 'kernel', could return
+% the specified Erlang standard application (e.g. for 'kernel', could return
 % {3,0} or {2,16,3}).
 %
 % Throws an exception if the information could not be retrieved.
@@ -1930,7 +1930,7 @@ get_application_version( ApplicationName ) ->
 
 	case application:get_key( ApplicationName, vsn ) of
 
-		% Ex: "3.0" or "2.16.3":
+		% For example "3.0" or "2.16.3":
 		{ ok, VsnString } ->
 			basic_utils:parse_version( VsnString );
 
@@ -2125,14 +2125,14 @@ interpret_byte_size_with_unit( Size ) ->
 % Returns a { Unit, Value } pair, in which:
 %
 % - Unit is the largest size unit that can be selected so that the specified
-% size if worth at least 1 unit of it (ex: we do not want a value 0.9, at least
+% size if worth at least 1 unit of it (e.g. we do not want a value 0.9, at least
 % 1.0 is wanted); Unit can be 'gib', for GiB (Gibibytes), 'mib', for MiB
 % (Mebibytes), 'kib' for KiB (Kibibytes), or 'byte', for Byte
 %
 % - Value is the converted byte size, in the specified returned unit, expressed
 % either as an integer (for bytes) or as a float
 %
-% Ex: 1023 (bytes) translates to {byte, 1023}, 1025 translates to {kib,
+% For example 1023 (bytes) translates to {byte, 1023}, 1025 translates to {kib,
 % 1.0009765625}.
 %
 % Note that the returned value cannot be expected to be exact (rounded),
@@ -2323,8 +2323,8 @@ get_total_memory_used() ->
 	% We have: H = C + D + E + F, and G = A - H. D is never used (obsolete).
 	% We return here { G, A }, thus { G, G+H }.
 
-	% Avoid locale and greps 'buffers/cache:' (ex: on Debian) as well as
-	% 'buff/cache' (ex: on Arch)
+	% Avoid locale and greps 'buffers/cache:' (e.g. on Debian) as well as
+	% 'buff/cache' (e.g. on Arch)
 	%MemoryInfo = os:cmd( "LANG= free -b | grep '/cache' "
 	%                     "| awk '{print $3,$4}'" ),
 
@@ -2382,7 +2382,7 @@ get_total_memory_used() ->
 
 		{ _AvailExitCode, _AvailErrorOutput } ->
 
-			% In some cases (ex: Debian 6.0), no 'MemAvailable' is defined, we
+			% In some cases (e.g. Debian 6.0), no 'MemAvailable' is defined, we
 			% use 'MemFree' instead (we consider they are synonymous):
 
 			%io:format( "## using MemFree~n" ),
@@ -2428,7 +2428,6 @@ get_total_memory_used() ->
 		_ ->
 
 			[ Free, "kB" ] = string:tokens( FreeString, " " ),
-
 			text_utils:string_to_integer( Free ) * 1024
 
 	end,
@@ -2463,8 +2462,9 @@ get_ram_status_string() ->
 		end
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no RAM information could be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "no RAM information could be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -2759,7 +2759,7 @@ get_cpu_usage_counters() ->
 
 	end,
 
-	% Ex: cpu  1331302 11435 364777 150663306 82509 249 3645 0 0
+	% For example cpu  1331302 11435 364777 150663306 82509 249 3645 0 0
 
 	% Tells the time spent in user mode, user mode with low priority (nice),
 	% system mode, and the idle task.
@@ -2791,8 +2791,7 @@ get_disk_usage() ->
 			Output;
 
 		{ ExitCode, ErrorOutput } ->
-			throw( { disk_usage_inquiry_failed, ExitCode,
-					 ErrorOutput } )
+			throw( { disk_usage_inquiry_failed, ExitCode, ErrorOutput } )
 
 	end.
 
@@ -2810,8 +2809,9 @@ get_disk_usage_string() ->
 		io_lib:format( "current disk usage:~n~ts", [ get_disk_usage() ] )
 
 	catch _AnyClass:Exception ->
-			io_lib:format( "no disk usage information could be obtained (~p)",
-						   [ Exception ] )
+
+		io_lib:format( "no disk usage information could be obtained (~p)",
+					   [ Exception ] )
 
 	end.
 
@@ -2821,7 +2821,6 @@ get_disk_usage_string() ->
 % @doc Returns a list of the known types of pseudo-filesystems.
 -spec get_known_pseudo_filesystems() -> [ pseudo_filesystem_type() ].
 get_known_pseudo_filesystems() ->
-
 	% A list of all current filesystems can be obtained thanks to: 'df -T'.
 	[ tmpfs, devtmpfs ].
 
@@ -3030,8 +3029,8 @@ get_current_directory_string() ->
 
 	catch _AnyClass:Exception ->
 
-			io_lib:format( "no information about the current directory "
-						   "could be obtained (~p)", [ Exception ] )
+		io_lib:format( "no information about the current directory "
+					   "could be obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -3065,8 +3064,8 @@ get_resource_limits_string() ->
 
 	catch _AnyClass:Exception ->
 
-			io_lib:format( "no information about the current ulimit settings "
-						   "could be obtained (~p)", [ Exception ] )
+		io_lib:format( "no information about the current ulimit settings "
+					   "could be obtained (~p)", [ Exception ] )
 
 	end.
 
@@ -3175,17 +3174,11 @@ get_system_description() ->
 %
 -spec has_graphical_output() -> boolean().
 has_graphical_output() ->
-
 	% Currently relying on this X-related variable:
-	case get_environment_variable( "DISPLAY" ) of
-
-		false ->
-			false;
-
-		_ ->
-			true
-
-	end.
+	%
+	% (cannot be further simplified, 'true' never returned)
+	%
+	not( get_environment_variable( "DISPLAY" ) =:= false ).
 
 
 
@@ -3200,9 +3193,9 @@ has_graphical_output() ->
 % all (third-party) dependencies to be '~/Software/'.
 %
 % We expect to have then the name of each prerequisite specified in CamelCase;
-% ex: '~/Software/Foobar/'.
+% e.g. '~/Software/Foobar/'.
 %
-% Finally, each version thereof shall be installed in that directory (ex: a
+% Finally, each version thereof shall be installed in that directory (e.g. a
 % clone of the Foobar repository that could be named
 % '~/Software/Foobar/foobar-20170601'), and be designated by a symbolic link
 % named 'Foobar-current-install', still defined in '~/Software/Foobar'.
@@ -3247,7 +3240,7 @@ get_dependency_base_directory( PackageName="ErlPort" ) ->
 				[ get_software_base_directory(), PackageName, "erlport" ],
 
 			DefaultDir = file_utils:normalise_path(
-							file_utils:join( PathComponents ) ),
+				file_utils:join( PathComponents ) ),
 
 			case file_utils:is_existing_directory_or_link( DefaultDir ) of
 
@@ -3315,7 +3308,7 @@ get_dependency_base_directory( PackageName ) ->
 
 
 % @doc Returns the (expected, conventional) code installation directory of the
-% specified third-party, prerequisite, Erlang package (ex: "Foobar").
+% specified third-party, prerequisite, Erlang package (e.g. "Foobar").
 %
 -spec get_dependency_code_directory( package_name() ) -> directory_path().
 get_dependency_code_directory( PackageName ) ->

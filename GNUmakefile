@@ -88,8 +88,8 @@ add-prerequisite-plts: prepare-base-plt \
 
 # So that in all cases we start by the same PLT name:
 prepare-base-plt:
-	@echo "Copying predecessor PLT $(PREDECESSOR_PLT) as $(PLT_FILE)"
-	@/bin/cp -f "$(PREDECESSOR_PLT)" "$(PLT_FILE)"
+	@echo "Copying predecessor PLT $(PREDECESSOR_PLT_FILE) as $(PLT_FILE)"
+	@/bin/cp -f "$(PREDECESSOR_PLT_FILE)" "$(PLT_FILE)"
 
 
 # First prerequisite operates on predecessor (here, the Erlang PLT):

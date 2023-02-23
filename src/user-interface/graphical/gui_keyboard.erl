@@ -38,7 +38,7 @@
 % The goal is to offer a stable interface, as independent as possible from any
 % backend.
 %
-% Currently the actual backend is wx; in the future it may be any other (ex:
+% Currently the actual backend is wx; in the future it may be any other (e.g.
 % esdl2).
 
 % Largely inspired from: Wings3D, SDL and esdl2.
@@ -110,7 +110,7 @@
 %
 % These locations are designated according to the characters that would be
 % printed on a virtual, canonical US QWERTY keyboard, taken as a reference, or
-% to non-printable special keys (ex: the Home key, the Insert one).
+% to non-printable special keys (e.g. the Home key, the Insert one).
 %
 % A modifier generates a scancode just by itself.
 %
@@ -136,7 +136,7 @@
 						| 'key_up'.
 % Corresponds to a (punctual) state transition of a key.
 %
-% Note that key down/up transitions are not paired (ex: if a key is maintained
+% Note that key down/up transitions are not paired (e.g. if a key is maintained
 % in a pressed state, many key down events will be generated, but only one key
 % up will be reported at the end, when the key is released).
 
@@ -148,8 +148,8 @@
 
 -type keyboard_event_type() ::
 
-	% Event taking into account any modifier (ex: Control, Shift, Caps Lock) for
-	% the returned logical haracter (ex: returning 'A' instead of 'a'):
+	% Event taking into account any modifier (e.g. Control, Shift, Caps Lock)
+	% for the returned logical haracter (e.g. returning 'A' instead of 'a'):
 	%
 	'onCharEntered'
 

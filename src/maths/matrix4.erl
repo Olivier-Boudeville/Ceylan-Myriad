@@ -91,7 +91,8 @@
 % A matrix describing a 4D rotation.
 
 
--type tuple_matrix4() :: gl:m12() | gl:m16().
+-type tuple_matrix4() :: % Not exported yet: gl:m12() | gl:m16().
+						 tuple().
 % A tuple of 12 or 16 floats.
 
 
@@ -348,7 +349,7 @@ orthographic( Left, Right, Bottom, Top, ZNear, ZFar ) ->
 %  - ZFar specifies the distance from the viewer to the far clipping plane
 %  (always positive)
 %
-% Ex: Mp = matrix4:perspective( _FoVYAngle=60.0,
+% For example Mp = matrix4:perspective( _FoVYAngle=60.0,
 %   _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
 %
 % Note that the context is a right-handed referential with a clip space in
@@ -473,7 +474,7 @@ from_columns( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
 -spec compact_from_columns( vector3(), vector3(), vector3(), point3() ) ->
 														compact_matrix4().
 compact_from_columns( _Va=[Xa,Ya,Za], _Vb=[Xb,Yb,Zb],
-					  _Vc=[Xc,Yc,Zc], _P=[Xp,Yp,Zp] ) ->
+					  _Vc=[Xc,Yc,Zc], _P={Xp,Yp,Zp} ) ->
 	#compact_matrix4{ m11=Xa, m12=Xb, m13=Xc, tx=Xp,
 					  m21=Ya, m22=Yb, m23=Yc, ty=Yp,
 					  m31=Za, m32=Zb, m33=Zc, tz=Zp }.
@@ -1060,7 +1061,7 @@ mult( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
 
 % @doc Multiplies (in-order) the specified matrices.
 %
-% Ex: mult([Ma, Mb, Mc]) = mult(mult(Ma,Mb),Mc) = Ma.Mb.Mc
+% For example mult([Ma, Mb, Mc]) = mult(mult(Ma,Mb),Mc) = Ma.Mb.Mc
 %
 -spec mult( [ matrix4() ] ) -> matrix4().
 mult( [ Ma, Mb | T ] ) ->

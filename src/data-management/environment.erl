@@ -650,7 +650,8 @@ start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 			% of this server:
 			%
 			?myriad_spawn( fun() ->
-							server_run( CallerPid, ServerRegName, BinFilePath )
+							server_run( CallerPid, ServerRegName, BinFilePath,
+										_MaybeDefaultEntries=[] )
 						   end ),
 
 			receive
@@ -694,7 +695,7 @@ start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
 			?myriad_spawn_link( fun() ->
 									server_run( CallerPid, ServerRegName,
-												BinFilePath )
+										BinFilePath, _MaybeDefaultEntries=[] )
 								end ),
 
 			receive
@@ -1713,7 +1714,7 @@ uncache( EnvPid ) ->
 
 				% At least one environment remaining:
 				{ _EnvPair, ShrunkAllEnvTable } ->
-					process_directionary:put( EnvDictKey, ShrunkAllEnvTable )
+					process_dictionary:put( EnvDictKey, ShrunkAllEnvTable )
 
 			end
 
@@ -2101,18 +2102,10 @@ server_run( SpawnerPid, RegistrationName, BinFilePath, MaybeDefaultEntries ) ->
 
 
 % (helper)
--spec get_value_maybes( key(), entries() ) -> value();
-					  ( [ key() ], entries() ) -> [ value() ].
+-spec get_value_maybes( key(), table() ) -> value();
+					  ( [ key() ], table() ) -> [ value() ].
 get_value_maybes( Key, Table ) when is_atom( Key ) ->
-	case table:lookup_entry( Key, Table ) of
-
-		key_not_found ->
-			undefined;
-
-		{ value, V } ->
-			V
-
-	end;
+	table:get_value_with_default( Key, _Def=undefined, Table );
 
 get_value_maybes( Keys, Table ) ->
 	get_value_maybes( Keys, Table, _Acc=[] ).
@@ -2129,7 +2122,7 @@ get_value_maybes( _Keys=[ K | T ], Table, Acc ) ->
 
 
 % (helper)
--spec ensure_binaries( [ key() ], entries() ) -> entries().
+-spec ensure_binaries( [ key() ], table() ) -> table().
 ensure_binaries( Keys, Table ) ->
 	AnyStrs = table:get_values( Keys, Table ),
 	BinStrs = text_utils:ensure_binaries( AnyStrs ),
@@ -2219,11 +2212,14 @@ server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->
 
 
 		{ store, BinTargetFilePath } ->
+
 			cond_utils:if_defined( myriad_debug_environments,
 				trace_utils:debug_fmt( "Storing environment state "
 					"in specified file '~ts'.", [ BinTargetFilePath ] ) ),
+
 			file_utils:write_etf_file( table:enumerate( Table ),
 									   BinTargetFilePath ),
+
 			server_main_loop( Table, EnvRegName, BinTargetFilePath );
 
 
@@ -2252,7 +2248,7 @@ server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->
 							text_utils:format( " (associated to file '~ts')",
 											   [ BinfilePath ] )
 
-							 end;
+							end;
 
 				L ->
 

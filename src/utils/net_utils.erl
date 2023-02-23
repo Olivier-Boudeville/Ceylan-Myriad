@@ -151,13 +151,13 @@
 
 
 -type domain_name() :: nonempty_string().
-% A domain name (ex: "foo.baz.org").
+% A domain name (e.g. "foo.baz.org").
 
 -type bin_domain_name() :: bin_string().
 
 
 -type subdomain() :: nonempty_string().
-% An element of a domain name (ex: "foo" in "bar.foo.baz.org").
+% An element of a domain name (e.g. "foo" in "bar.foo.baz.org").
 
 -type bin_subdomain() :: bin_string().
 
@@ -406,11 +406,13 @@ localhost_for_node_name() ->
 
 
 % @doc Returns, from the specified FQDN, the corresponding actual host and its
-% full domain.
+% full domain if possible, otherwise jsut 'none_found'.
 %
-% Ex: {"garfield", "baz.foobar.org"} = split_fqdn("garfield.baz.foobar.org")
+% For example {"garfield", "baz.foobar.org"} =
+% split_fqdn("garfield.baz.foobar.org")
 %
--spec split_fqdn( string_fqdn() ) -> { host_name(), domain_name() }.
+-spec split_fqdn( string_fqdn() ) ->
+		'none_found' | { host_name(), domain_name() }.
 split_fqdn( FQDNStr ) ->
 	text_utils:split_at_first( _Marker=$., FQDNStr ).
 
@@ -420,7 +422,7 @@ split_fqdn( FQDNStr ) ->
 % hostname), the corresponding actual "atomic" hostname (that is with no domain
 % involved), as a plain string.
 %
-% Ex: "garfield" = get_hostname("garfield.baz.foobar.org")
+% For example "garfield" = get_hostname("garfield.baz.foobar.org")
 %                = get_hostname("garfield").
 %
 -spec get_hostname( any_host_name() ) -> string_host_name().
@@ -463,7 +465,7 @@ get_local_ip_addresses() ->
 
 	% Rules: put non-routable (network-local) interfaces last (including
 	% loopback, i.e. "lo", which must be the very last one), try to put routable
-	% "ethX"-like interfaces first, virtual interfaces (ex: "vmnetX")
+	% "ethX"-like interfaces first, virtual interfaces (e.g. "vmnetX")
 	% last. Keeps only the actual address (addr).
 
 	% More convenient than a queue:
@@ -488,7 +490,7 @@ filter_interfaces( _IfList=[ _If={ Name, Options } | T ], FirstIfs, LastIfs,
 
 	case proplists:get_value( _K=addr, Options ) of
 
-		% Ex: wlan0 might not have a configured address if down:
+		% For example wlan0 might not have a configured address if down:
 		undefined ->
 			filter_interfaces( T, FirstIfs, LastIfs, Loopback );
 
@@ -510,7 +512,7 @@ filter_interfaces( _IfList=[ _If={ Name, Options } | T ], FirstIfs, LastIfs,
 					filter_interfaces( T, [ Address | FirstIfs ], LastIfs,
 									   Loopback );
 
-				% Ex: vmnetX, etc.
+				% For example vmnetX, etc.
 				_ ->
 					filter_interfaces( T, FirstIfs, [ Address | LastIfs ],
 									   Loopback )
@@ -677,7 +679,7 @@ reverse_lookup( IPAddress, _LookupInfo={ drill, DrillExecPath } ) ->
 reverse_lookup( IPAddress, _LookupInfo={ host, HostExecPath } ) ->
 
 	Cmd = HostExecPath ++ " -W 1 " ++ ipv4_to_string( IPAddress )
-					++ " 2>/dev/null",
+		++ " 2>/dev/null",
 
 	case system_utils:run_command( Cmd ) of
 
@@ -763,14 +765,16 @@ set_unique_node_name() ->
 	% math:pow(10, 8) not an integer:
 	N = random_utils:get_uniform_value( 100000000 ),
 
-	AtomName = text_utils:string_to_atom(
-					text_utils:format( "myriad_node_~B", [ N ] ) ),
+	% Could be set to 'undefined' to request a dynamic node name from the first
+	% node it connects to:
+	%
+	AtomName = text_utils:atom_format( "myriad_node_~B", [ N ] ),
 
 	% Bound to fail with Reason=not_allowed:
 	case net_kernel:stop() of
 
 		ok ->
-			{ ok, _SomePid } = net_kernel:start( AtomName );
+			{ ok, _SomePid } = net_kernel:start( AtomName, _Opts=#{} );
 
 		{ error, Reason } ->
 			throw( { cannot_stop_node, Reason } )
@@ -866,7 +870,7 @@ check_node_availability( NodeName, _Timing=immediate ) ->
 
 
 check_node_availability( NodeName, _Timing=with_waiting )
-  when is_atom( NodeName ) ->
+										when is_atom( NodeName ) ->
 
 	%trace_utils:debug_fmt( "check_node_availability of node '~ts' with "
 	%                       "default waiting.", [ NodeName ] ),
@@ -904,8 +908,7 @@ check_node_availability( NodeName, Duration )  ->
 
 % Helper function for the actual waiting:
 check_node_availability( NodeName, CurrentDurationStep, ElapsedDuration,
-						 SpecifiedMaxDuration )
-					when ElapsedDuration < SpecifiedMaxDuration ->
+		SpecifiedMaxDuration ) when ElapsedDuration < SpecifiedMaxDuration ->
 
 	% Still on time here, apparently.
 
@@ -965,7 +968,7 @@ check_node_availability( _NodeName, _CurrentDurationStep, ElapsedDuration,
 get_node_naming_mode() ->
 
 	% We determine the mode based on the returned local node name:
-	% (ex: 'foo@bar' vs 'foo@bar.baz.org')
+	% (e.g. 'foo@bar' vs 'foo@bar.baz.org')
 	%
 	case node() of
 
@@ -1053,9 +1056,9 @@ generate_valid_node_name_from( Name ) when is_list( Name ) ->
 % to be used to target it from another node, with respect to the local hostname
 % and node naming conventions.
 %
-% Ex: for a node name "foo", the local hostname may be determined as "bar.org",
-% and with short names, we may specify "foo@bar" to target the corresponding
-% node with these conventions (neither with a mere "foo" nor with
+% For example for a node name "foo", the local hostname may be determined as
+% "bar.org", and with short names, we may specify "foo@bar" to target the
+% corresponding node with these conventions (neither with a mere "foo" nor with
 % "foo@bar.org").
 %
 -spec get_complete_node_name( string_node_name() ) -> atom_node_name().
@@ -1069,9 +1072,9 @@ get_complete_node_name( NodeName ) ->
 % to be used to target it from another node, with respect to the specified node
 % naming conventions.
 %
-% Ex: for a node name "foo", a hostname "bar.org", with short names, we may
-% specify "foo@bar" to target the corresponding node with these conventions (not
-% a mere "foo", neither "foo@bar.org").
+% For example for a node name "foo", a hostname "bar.org", with short names, we
+% may specify "foo@bar" to target the corresponding node with these conventions
+% (not a mere "foo", neither "foo@bar.org").
 %
 -spec get_complete_node_name( string_node_name(), string_host_name(),
 							  node_naming_mode() ) -> atom_node_name().
@@ -1094,7 +1097,7 @@ get_complete_node_name( NodeName, Hostname, NodeNamingMode ) ->
 -spec get_hostname_from_node_name( atom_node_name() ) -> string_host_name().
 get_hostname_from_node_name( NodeName ) ->
 
-	% Ex: returns "Data_Exchange_test-john@foobar":
+	% For example returns "Data_Exchange_test-john@foobar":
 	StringNodeName = text_utils:atom_to_string( NodeName ),
 
 	% Returns "foobar":
@@ -1584,7 +1587,7 @@ get_default_epmd_port() ->
 %
 % Note that if a non-default EPMD port is specified for a new node, this implies
 % that the current node usually has to itself respect the same non-standard
-% convention (ex: see the FIREWALL_OPT make option in myriad/GNUmakevars.inc),
+% convention (e.g. see the FIREWALL_OPT make option in myriad/GNUmakevars.inc),
 % otherwise available nodes will not be found.
 %
 -spec get_epmd_environment( maybe( tcp_port() ) ) -> environment().
