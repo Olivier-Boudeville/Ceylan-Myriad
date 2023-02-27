@@ -376,8 +376,8 @@ myr_keycode_to_wx( MyrKeycode ) ->
 % doc Returns the backend keyboard event included in the specified event
 % context.
 %
--spec get_backend_event( event_context() ) -> backend_keyboard_event().
-get_backend_event() ->
+%-spec get_backend_event( event_context() ) -> backend_keyboard_event().
+%get_backend_event() ->
 
 % @doc Returns a textual description of the specified key event, of type
 % gui_wx_event_info().
