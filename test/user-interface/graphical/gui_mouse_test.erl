@@ -103,7 +103,6 @@ test_main_loop( TestFrame ) ->
 			test_main_loop( TestFrame );
 
 		{ onWindowClosed, [ TestFrame, _TestFrameId, Context ] } ->
-
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),

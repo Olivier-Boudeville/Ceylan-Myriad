@@ -79,6 +79,7 @@ run_test_gui() ->
 	test_main_loop( TestFrame ).
 
 
+
 % @doc A very simple main loop, whose actual state is simply the GUI object
 % corresponding to the frame that shall be closed to stop the test.
 %
@@ -88,8 +89,8 @@ test_main_loop( TestFrame ) ->
 	receive
 
 		{ onCharEntered, [ _TestPanel, _TestPanelId, Context ] } ->
-
-			WxKeyEvent = gui_event:get_backend_event( Context ),
+			%WxKeyEvent = gui_event:get_backend_event( Context ),
+			WxKeyEvent = gui_keyboard:get_backend_event( Context ),
 
 			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
 
@@ -97,7 +98,6 @@ test_main_loop( TestFrame ) ->
 
 
 		{ onKeyPressed, [ _TestPanel, _TestPanelId, Context ] } ->
-
 			WxKeyEvent = gui_event:get_backend_event( Context ),
 
 			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
@@ -106,7 +106,6 @@ test_main_loop( TestFrame ) ->
 
 
 		{ onKeyReleased, [ _TestPanel, _TestPanelId, Context ] } ->
-
 			WxKeyEvent = gui_event:get_backend_event( Context ),
 
 			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
@@ -115,7 +114,6 @@ test_main_loop( TestFrame ) ->
 
 
 		{ onWindowClosed, [ TestFrame, _TestFrameId, Context ] } ->
-
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),

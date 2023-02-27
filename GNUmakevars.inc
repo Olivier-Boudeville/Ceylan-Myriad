@@ -2161,8 +2161,7 @@ endif
 # $ cd ~/Software
 # $ mkdir gradualizer && cd gradualizer
 # $ git clone https://github.com/josefs/Gradualizer.git
-# $ cd Gradualizer
-# $ make escript
+# $ cd Gradualizer && make escript
 #
 # Then ensure that ~/Software/gradualizer/Gradualizer/bin is in your PATH so
 # that 'gradualizer' can be run directly.

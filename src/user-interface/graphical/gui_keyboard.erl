@@ -165,10 +165,11 @@
 	| 'onKeyReleased'.
 
 
+-type backend_keyboard_event() :: wxKey().
 
 -export_type([ scancode/0, keycode/0, modifier/0,
 			   key_transition/0, key_status/0,
-			   keyboard_event_type/0 ]).
+			   keyboard_event_type/0, backend_keyboard_event/0 ]).
 
 
 -export([ is_modkey_pressed/1, is_key_pressed/1, to_lower/2,
@@ -372,6 +373,12 @@ myr_keycode_to_wx( MyrKeycode ) ->
 
 
 
+% doc Returns the backend keyboard event included in the specified event
+% context.
+%
+-spec get_backend_event( event_context() ) -> backend_keyboard_event().
+get_backend_event() ->
+
 % @doc Returns a textual description of the specified key event, of type
 % gui_wx_event_info().
 %
@@ -432,4 +439,8 @@ key_event_to_string( #wxKey{ type=WxKeyEventType, x=X, y=Y, keyCode=KeyCode,
 	text_utils:format( "~ts event at client-coordinate position {~B,~B}, "
 		"whose key code is '~w' with ~ts, Unicode char is '~w', "
 		"raw code being '~w' and raw flags being ~w",
-		[ KeyEventType, X, Y, KeyCode, ModStr, Unichar, RawCode, RawFlags ] ).
+		[ KeyEventType, X, Y, KeyCode, ModStr, Unichar, RawCode, RawFlags ] );
+
+
+key_event_to_string( Other, _EventTranslationTable ) ->
+	throw( { invalid_key_event, Other } ).

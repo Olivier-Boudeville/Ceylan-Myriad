@@ -839,67 +839,68 @@
 % See gui_menu_test.erl to inspect them; we listed here only a subset of the
 % standard menu items, which are quite numerous:
 %
--type standard_menu_item_name_id() :: 'new_menu_item'
-									| 'open_menu_item'
-									| 'close_menu_item'
-									| 'save_menu_item'
-									| 'save_as_menu_item'
-									| 'revert_to_saved_menu_item'
-									| 'undelete_menu_item'
-									| 'print_menu_item'
-									| 'preview_menu_item'
-									| 'revert_menu_item'
-									| 'edit_menu_item'
-									| 'file_menu_item'
-									| 'properties_menu_item'
-									| 'cut_menu_item'
-									| 'copy_menu_item'
-									| 'paste_menu_item'
-									| 'delete_menu_item'
-									| 'clear_menu_item'
-									| 'find_menu_item'
-									| 'select_all_menu_item'
-									| 'replace_menu_item'
-									| 'replace_all_menu_item'
-									| 'clear_menu_item'
-									| 'ok_menu_item'
-									| 'cancel_menu_item'
-									| 'apply_menu_item'
-									| 'yes_menu_item'
-									| 'no_menu_item'
-									| 'add_menu_item'
-									| 'remove_menu_item'
-									| 'convert_menu_item'
-									| 'execute_menu_item'
-									| 'home_menu_item'
-									| 'refresh_menu_item'
-									| 'stop_menu_item'
-									| 'index_menu_item'
-									| 'select_color_menu_item'
-									| 'select_font_menu_item'
-									| 'forward_menu_item'
-									| 'backward_menu_item'
-									| 'up_menu_item'
-									| 'down_menu_item'
-									| 'top_menu_item'
-									| 'bottom_menu_item'
-									| 'first_menu_item'
-									| 'last_menu_item'
-									| 'jump_to_menu_item'
-									| 'info_menu_item'
-									| 'zoom_factor_one'
-									| 'zoom_factor_fit'
-									| 'zoom_factor_in'
-									| 'zoom_factor_out'
-									| 'undo_menu_item'
-									| 'redo_menu_item'
-									| 'help_menu_item'
-									| 'preferences_menu_item'
-									| 'about_menu_item'
-									| 'floppy_menu_item'
-									| 'hard_disk_menu_item'
-									| 'network_menu_item'
-									| 'exit_menu_item'.
+-type standard_menu_item_name_id() ::
+	'new_menu_item'
+	| 'open_menu_item'
+	| 'close_menu_item'
+	| 'save_menu_item'
+	| 'save_as_menu_item'
+	| 'revert_to_saved_menu_item'
+	| 'undelete_menu_item'
+	| 'print_menu_item'
+	| 'preview_menu_item'
+	| 'revert_menu_item'
+	| 'edit_menu_item'
+	| 'file_menu_item'
+	| 'properties_menu_item'
+	| 'cut_menu_item'
+	| 'copy_menu_item'
+	| 'paste_menu_item'
+	| 'delete_menu_item'
+	| 'clear_menu_item'
+	| 'find_menu_item'
+	| 'select_all_menu_item'
+	| 'replace_menu_item'
+	| 'replace_all_menu_item'
+	| 'clear_menu_item'
+	| 'ok_menu_item'
+	| 'cancel_menu_item'
+	| 'apply_menu_item'
+	| 'yes_menu_item'
+	| 'no_menu_item'
+	| 'add_menu_item'
+	| 'remove_menu_item'
+	| 'convert_menu_item'
+	| 'execute_menu_item'
+	| 'home_menu_item'
+	| 'refresh_menu_item'
+	| 'stop_menu_item'
+	| 'index_menu_item'
+	| 'select_color_menu_item'
+	| 'select_font_menu_item'
+	| 'forward_menu_item'
+	| 'backward_menu_item'
+	| 'up_menu_item'
+	| 'down_menu_item'
+	| 'top_menu_item'
+	| 'bottom_menu_item'
+	| 'first_menu_item'
+	| 'last_menu_item'
+	| 'jump_to_menu_item'
+	| 'info_menu_item'
+	| 'zoom_factor_one'
+	| 'zoom_factor_fit'
+	| 'zoom_factor_in'
+	| 'zoom_factor_out'
+	| 'undo_menu_item'
+	| 'redo_menu_item'
+	| 'help_menu_item'
+	| 'preferences_menu_item'
+	| 'about_menu_item'
+	| 'floppy_menu_item'
+	| 'hard_disk_menu_item'
+	| 'network_menu_item'
+	| 'exit_menu_item'.
 % The name identifiers of the standard menu items.
 %
 % Such standard items are specifically managed (e.g. they have a corresponding
@@ -980,23 +981,24 @@
 % User data, as specified in an event subscription/callback.
 
 
--type window_style_opt() :: 'default_border'
-						  | 'simple_border'
-						  | 'sunken_border'
-						  | 'raised_border'
-						  | 'static_border'
-						  | 'theme_border'
-						  | 'no_border'
-						  | 'double_border'
+-type window_style_opt() ::
+	'default_border'
+	| 'simple_border'
+	| 'sunken_border'
+	| 'raised_border'
+	| 'static_border'
+	| 'theme_border'
+	| 'no_border'
+	| 'double_border'
 
-						  | 'transparent' % Windows-only
-						  | 'tab_traversable'
-						  | 'grab_all_keys'
-						  | 'with_vertical_scrollbar'
-						  | 'with_horizontal_scrollbar'
-						  | 'never_hide_scrollbars'
-						  | 'clip_children'
-						  | 'full_repaint_on_resize'.
+	| 'transparent' % Windows-only
+	| 'tab_traversable'
+	| 'grab_all_keys'
+	| 'with_vertical_scrollbar'
+	| 'with_horizontal_scrollbar'
+	| 'never_hide_scrollbars'
+	| 'clip_children'
+	| 'full_repaint_on_resize'.
 % Options for windows. See also
 % [http://docs.wxwidgets.org/stable/classwx_window.html]
 
@@ -1072,13 +1074,14 @@
 -type panel_options() :: maybe_list( panel_option() ).
 
 
--type button_style_opt() :: 'default'
-						  | 'left_justified'
-						  | 'right_justified'
-						  | 'top_justified'
-						  | 'bottom_justified'
-						  | 'exact_fit'
-						  | 'flat'.
+-type button_style_opt() ::
+	'default'
+  | 'left_justified'
+  | 'right_justified'
+  | 'top_justified'
+  | 'bottom_justified'
+  | 'exact_fit'
+  | 'flat'.
 % Options for button style, see
 % [http://docs.wxwidgets.org/stable/classwx_button.html].
 
@@ -1086,23 +1089,24 @@
 -type button_style() :: button_style_opt() | [ button_style_opt() ].
 
 
--type sizer_flag_opt() :: 'default'
-						| 'top_border'
-						| 'bottom_border'
-						| 'left_border'
-						| 'right_border'
-						| 'all_borders'
-						| 'expand_fully'
-						| 'expand_shaped'
-						| 'fixed_size'
-						| 'counted_even_if_hidden'
-						| 'align_center'
-						| 'align_left'
-						| 'align_right'
-						| 'align_top'
-						| 'align_bottom'
-						| 'align_center_vertical'
-						| 'align_center_horizontal'.
+-type sizer_flag_opt() ::
+	'default'
+  | 'top_border'
+  | 'bottom_border'
+  | 'left_border'
+  | 'right_border'
+  | 'all_borders'
+  | 'expand_fully'
+  | 'expand_shaped'
+  | 'fixed_size'
+  | 'counted_even_if_hidden'
+  | 'align_center'
+  | 'align_left'
+  | 'align_right'
+  | 'align_top'
+  | 'align_bottom'
+  | 'align_center_vertical'
+  | 'align_center_horizontal'.
 % Options for sizers, see [https://docs.wxwidgets.org/stable/classwx_sizer.html]
 
 
@@ -1608,7 +1612,7 @@ unsubscribe_from_events( UnsubscribedEvents ) ->
 -spec unsubscribe_from_events( event_unsubscription_spec(),
 							   event_subscriber() ) -> void().
 unsubscribe_from_events( UnsubscribedEvents, SubscribedDesignator )
-										when is_list( UnsubscribedEvents ) ->
+								when is_list( UnsubscribedEvents ) ->
 
 	LoopPid = get_main_loop_pid(),
 
@@ -2076,7 +2080,6 @@ set_fill_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 % @doc Returns the RGB value of the pixel at specified position.
 -spec get_rgb( canvas(), point() ) -> color_by_decimal_with_alpha().
 get_rgb( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point ) ->
-
 	get_main_loop_pid() ! { getCanvasRGB, [ CanvasId, Point ], self() },
 
 	receive
@@ -2212,7 +2215,7 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 					 Location, EdgeLength, Color, LabelText ) ->
 	get_main_loop_pid() ! { drawCanvasLabelledCross,
-						[ CanvasId, Location, EdgeLength, Color, LabelText  ] }.
+		[ CanvasId, Location, EdgeLength, Color, LabelText  ] }.
 
 
 
@@ -2894,7 +2897,7 @@ create_panel( Parent, Position, Size ) ->
 create_panel( Parent, Position, Size, Options ) ->
 
 	FullOptions = [ to_wx_position( Position ), to_wx_size( Size )
-						| get_panel_options( Options ) ],
+		| get_panel_options( Options ) ],
 
 	%trace_utils:debug_fmt( "Creating panel: parent: ~w, position: ~w, "
 	%    "size: ~w, options: ~w, full options: ~w.",
@@ -3129,7 +3132,7 @@ create_status_bar( Frame ) ->
 create_status_bar( Frame, StatusBarStyle ) ->
 	% No interesting option (winid):
 	wxFrame:createStatusBar( Frame, [ { style,
-			gui_wx_backend:to_wx_status_bar_style( StatusBarStyle ) } ] ).
+		gui_wx_backend:to_wx_status_bar_style( StatusBarStyle ) } ] ).
 
 
 % @doc Destructs the specified status bar.
@@ -3425,7 +3428,7 @@ get_flickerfree_paint_device_context( Widget ) ->
 % an onRepaintNeeded event handler).
 %
 -spec get_flickerfree_paint_device_context( window(), os_family() ) ->
-													paint_device_context().
+												paint_device_context().
 get_flickerfree_paint_device_context( Widget, _OSFamily=win32 ) ->
 	% Otherwise flickers on Windows:
 	wx:typeCast( wxBufferedPaintDC:new( Widget ), _NewType=wxPaintDC );
