@@ -20,7 +20,8 @@
 			install-src install-include install-examples install-test        \
 			install-doc info-install info-install-locations                  \
 			info-install-content create-myriad-checkout                      \
-			rebar3-application set-rebar-conf set-rebar-conf-for-hex         \
+			rebar3-application rebar3-upgrade-lock                           \
+			set-rebar-conf set-rebar-conf-for-hex                            \
 			rebar3-release rebar3-development-release                        \
 			rebar3-production-release rebar3-hide-unsupported-sources        \
 			rebar3-restore-unsupported-sources                               \
@@ -593,8 +594,13 @@ rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 					rebar3-create-app-file
 	@echo "  Triggering the overall creation by rebar3 of an OTP application corresponding to $(PROJECT_NAME)"
 	-@/bin/rm -f rebar.lock 2>/dev/null
-	@$(REBAR_DEBUG) rebar3 compile
+	@$(REBAR_DEBUG) $(MYRIAD_REBAR_EXEC) compile
 	@$(MAKE) -s rebar3-restore-unsupported-sources
+
+
+# Upgrades the rebar.lock file, regarding the dependencies of the current layer.
+rebar3-upgrade-lock:
+	@$(MYRIAD_REBAR_EXEC) upgrade --all
 
 
 # If making a rebar application or release, a symlink suffices, yet not if
