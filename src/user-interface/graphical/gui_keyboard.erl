@@ -101,6 +101,10 @@
 -include("ui_keyboard_keycodes.hrl").
 
 
+% For the event_context record:
+-include("gui.hrl").
+
+
 -type scancode() :: uint32().
 % Designates a button at a given location of the keyboard when it is considered
 % as a ~104-button joystick.
@@ -173,7 +177,9 @@
 
 
 -export([ is_modkey_pressed/1, is_key_pressed/1, to_lower/2,
+		  get_backend_event/1,
 		  key_event_to_string/1, key_event_to_string/2 ]).
+
 
 % Internals:
 
@@ -188,6 +194,8 @@
 -type wx_keycode() :: integer().
 
 -type event_translation_table() :: gui_event:event_translation_table().
+
+-type event_context() :: gui:event_context().
 
 
 % @doc Tells whether the specified key, designated as a scancode comprising a
@@ -373,11 +381,16 @@ myr_keycode_to_wx( MyrKeycode ) ->
 
 
 
-% doc Returns the backend keyboard event included in the specified event
-% context.
+% doc Returns the backend keyboard event included in the specified
+% (keyboard-related) event context.
 %
-%-spec get_backend_event( event_context() ) -> backend_keyboard_event().
-%get_backend_event() ->
+-spec get_backend_event( event_context() ) -> backend_keyboard_event().
+get_backend_event( #event_context{
+		backend_event={ 'wx', _WxSrcId, _WxConnectedObj, _UserData,
+						WxKeyEvent } } ) ->
+	WxKeyEvent.
+
+
 
 % @doc Returns a textual description of the specified key event, of type
 % gui_wx_event_info().
