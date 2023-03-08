@@ -58,7 +58,8 @@
 		  interpret_shortened_stacktrace/1,
 		  display_stacktrace/0,
 		  interpret_error/2, interpret_undef_exception/3,
-		  stack_info_to_string/1 ]).
+		  stack_info_to_string/1,
+		  study_function_availability/3 ]).
 
 
 
@@ -755,6 +756,9 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 %  a result, its first element corresponds to the path of the BEAM file that
 %  would be loaded for the specified module
 %
+% See also interpret_undef_exception/3 for a direct feedback about the
+% availability of a given MFA.
+%
 -spec is_beam_in_path( module_name() ) -> 'not_found' | [ file_path() ].
 is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
@@ -789,6 +793,8 @@ is_beam_in_path( ModuleName ) when is_atom( ModuleName ) ->
 
 is_beam_in_path( Other ) ->
 	throw( { non_atom_module_name, Other } ).
+
+
 
 
 
@@ -1374,8 +1380,8 @@ error_reason_to_string( Reason ) ->
 
 
 % @doc Interprets an undef exception, typically after it has been raised.
--spec interpret_undef_exception( module_name(),
-			basic_utils:function_name(), arity() ) -> ustring().
+-spec interpret_undef_exception( module_name(), function_name(), arity() ) ->
+										ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
 	case is_beam_in_path( ModuleName ) of
@@ -1401,7 +1407,7 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
 				Arities ->
 					interpret_arities( ModuleName, FunctionName, Arity,
-									   Arities )
+									   Arities, ModulePath )
 
 			end
 
@@ -1409,15 +1415,15 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
 
 % (helper)
-interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
+interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 
 	case lists:member( Arity, Arities ) of
 
 		true ->
 			% Should never happen?
-			text_utils:format( "module ~ts found in code path, and it exports "
-				"the ~ts/~B function indeed",
-				[ ModuleName, FunctionName, Arity ] );
+			text_utils:format( "module ~ts found in code path (as '~ts'), "
+				"and it exports the ~ts/~B function indeed",
+				[ ModuleName, ModulePath, FunctionName, Arity ] );
 
 		false ->
 			ArStr = case Arities of
@@ -1435,10 +1441,63 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities ) ->
 
 			end,
 
-			text_utils:format( "module ~ts found in code path, yet it does "
-				"export a ~ts/~B function; as it exports this function "
-				"for ~ts, maybe the call to that function was made with "
-				"a wrong number of parameters",
-				[ ModuleName, FunctionName, Arity, ArStr ] )
+			text_utils:format( "module ~ts found in code path (as '~ts'), "
+				"yet it does export a ~ts/~B function; as it exports "
+				"this function for ~ts, maybe the call to that function "
+				"was made with a wrong number of parameters",
+				[ ModuleName, ModulePath, FunctionName, Arity, ArStr ] )
+
+	end.
+
+
+
+% @doc Reports whether the specified function is available, and if not returns
+% details in order to facilitate any diagnosis.
+%
+-spec study_function_availability( module_name(), function_name(), arity() ) ->
+										ustring().
+study_function_availability( ModuleName, FunctionName, Arity ) ->
+
+	case is_beam_in_path( ModuleName ) of
+
+		not_found ->
+			text_utils:format( "no module ~ts found in code path "
+				"(its ~ts/~B function therefore cannot be called); ~ts",
+				[ ModuleName, FunctionName, Arity,
+				  get_code_path_as_string() ] );
+
+
+		ModulePath ->
+
+			case meta_utils:get_arities_for( ModuleName,
+											 FunctionName ) of
+
+				[] ->
+					case meta_utils:list_exported_functions( ModuleName ) of
+
+						[] ->
+							text_utils:format( "module ~ts found in code path "
+								"(as '~ts'), yet it does not export any "
+								"function", [ ModuleName, ModulePath ] );
+
+						FunPairs ->
+							FunDescStr = text_utils:strings_to_string( [
+								text_utils:format( "~ts/~B", [ FName, FArity ] )
+									|| { FName, FArity } <- FunPairs ] ),
+
+							text_utils:format( "module ~ts found in code path "
+								"(as '~ts'), yet it does not export a '~ts' "
+								"function (for any arity); it exports only "
+								"the following ~B functions: ~ts",
+								[ ModuleName, ModulePath, FunctionName,
+								  length( FunPairs ), FunDescStr ] )
+
+					end;
+
+				Arities ->
+					interpret_arities( ModuleName, FunctionName, Arity,
+									   Arities, ModulePath )
+
+			end
 
 	end.
