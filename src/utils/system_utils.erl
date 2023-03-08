@@ -1978,6 +1978,16 @@ get_size_of_vm_word_string() ->
 % The (flat) size of on-heap terms is incremented to account for the top term
 % word (which is kept in a register or on the stack).
 %
+% Note that the size/1 BIF is not optimized by the JIT, and its use can result
+% in worse types for Dialyzer. When one knows that the value being tested must
+% be a tuple, tuple_size/1 should always be preferred.
+%
+% When one knows that the value being tested must be a binary, byte_size/1
+% should be preferred, provided the value is not a bitstring (that are accepted
+% by byte_size/1, which rounds up size to a whole number of bytes) - so
+% is_binary/1 shall be used beforehand (note that the compiler removes redundant
+% calls to is_binary/1).
+%
 % See also [https://www.erlang.org/doc/efficiency_guide/advanced.html].
 %
 -spec get_size( term() ) -> byte_size().
