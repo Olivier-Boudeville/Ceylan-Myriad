@@ -103,6 +103,7 @@
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
+		  repetition_to_string/1,
 
 		  format/2, format_failsafe/1, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
@@ -1842,6 +1843,26 @@ distance_to_short_string( Millimeters ) ->
 			io_lib:format( "~.1fkm", [ Millimeters / Km ] )
 
 	end.
+
+
+% @doc Returns a textual description of the specified number of repetitions
+% (occurrences, number of times).
+%
+-spec repetition_to_string( count() ) -> ustring().
+repetition_to_string( _RepetitionCount=0 ) ->
+	"never";
+
+repetition_to_string( _RepetitionCount=1 ) ->
+	"once";
+
+repetition_to_string( _RepetitionCount=2 ) ->
+	"twice";
+
+repetition_to_string( _RepetitionCount=3 ) ->
+	"thrice";
+
+repetition_to_string( RepetitionCount ) ->
+	text_utils:format( "~B times", [ RepetitionCount ] ).
 
 
 
