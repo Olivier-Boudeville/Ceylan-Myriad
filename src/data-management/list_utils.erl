@@ -65,7 +65,9 @@
 		  get_index_of/2, get_maybe_index_of/2, split_at/2, group_by/2,
 		  uniquify/1, uniquify_ordered/1,
 		  ensure_is_once_in/2,
-		  duplicate/2, has_duplicates/1, count_occurrences/1, get_duplicates/1,
+		  duplicate/2,
+		  has_duplicates/1, count_occurrences/1, get_duplicates/1,
+		  duplicate_info_to_string/1,
 		  union/2, intersection/2,
 		  difference/2, differences/2,
 		  cartesian_product/1,
@@ -84,7 +86,7 @@
 -export([ dispatch_in/2, add_as_heads/2, insert_at_all_places/2 ]).
 
 
-% For list of tuples (ex: typically used by the HDF5 binding), extended flatten
+% For list of tuples (e.g. typically used by the HDF5 binding), extended flatten
 % and al:
 %
 -export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2 ]).
@@ -107,7 +109,12 @@
 % Note: different from maybe(list()).
 
 
--export_type([ maybe_list/1 ]).
+-type duplicate_info() :: [ { element(), count() } ].
+% A list of elements reported as duplicated, together with the number (at least
+% two) of times they were present in a given container.
+
+
+-export_type([ maybe_list/1, duplicate_info/0 ]).
 
 
 
@@ -120,6 +127,7 @@
 -type positive_index() :: basic_utils:positive_index().
 % These indexes start at 1.
 
+-type ustring() :: text_utils:ustring().
 
 
 % Section for the checking of lists.
@@ -724,10 +732,10 @@ count_occurrences( _List=[ Term | T ], Acc ) ->
 
 
 
-% @doc Returns the duplicates in the specified list: returns an (unordered) list
-% of {DuplicatedTerm,DuplicationCount} pairs, where each duplicated term (that
-% is a term present more than once) is specified, alongside the total number of
-% occurrences of that term in the specified list.
+% @doc Returns the duplicates found in the specified list: returns an
+% (unordered) list of {DuplicatedTerm,DuplicationCount} pairs, where each
+% duplicated term (that is a term present more than once) is specified,
+% alongside the total number of occurrences of that term in the specified list.
 %
 % Note: as a consequence, a term that is not in the specified list, or that is
 % present there only once, will not be referenced in the returned list; use
@@ -740,7 +748,7 @@ count_occurrences( _List=[ Term | T ], Acc ) ->
 % Use lists:keysort(2, list_utils:get_duplicates(L)) to sort duplicates by
 % increasing number of occurrences (e.g. [{d,2},{a,2},{b,3}] here).
 %
--spec get_duplicates( list() ) -> [ { element(), count() } ].
+-spec get_duplicates( list() ) -> duplicate_info().
 get_duplicates( List ) ->
 	get_duplicates( List, _Acc=[] ).
 
@@ -782,6 +790,18 @@ count_and_filter_term( Term, _List=[ OtherTerm | H ], FilteredList,
 					   CurrentCount ) ->
 	count_and_filter_term( Term, H, [ OtherTerm | FilteredList ],
 						   CurrentCount ).
+
+
+% @doc Returns a textual description of the specified duplicate information.
+-spec duplicate_info_to_string( duplicate_info() ) -> ustring().
+duplicate_info_to_string( _DupPairs=[] ) ->
+	"no duplication";
+
+duplicate_info_to_string( DupPairs ) ->
+	text_utils:strings_to_listed_string(
+		[ text_utils:format( "the element '~p' is present ~ts",
+				[ Elem, text_utils:repetition_to_string( Count ) ] )
+			|| { Elem, Count } <- DupPairs ] ).
 
 
 
@@ -1162,8 +1182,8 @@ are_atoms( _ ) ->
 % ascending (Erlang) term order.
 %
 % In many cases, the actual type of these elements shall be checked beforehand
-% (ex: see type_utils:check_{integers,floats}/1) to ensure that comparisons make
-% sense (ex: float versus atom).
+% (e.g. see type_utils:check_{integers,floats}/1) to ensure that comparisons
+% make sense (e.g. float versus atom).
 %
 -spec check_strictly_ascending( list() ) -> boolean().
 check_strictly_ascending( _List=[] ) ->
