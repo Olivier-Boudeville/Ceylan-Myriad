@@ -23,6 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2014.
 
 
 % @doc Unit test mostly for the <b>canvas facility</b>, based on the Lorenz
@@ -128,7 +129,8 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 			solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 							  ListenerPid, _TimeOut=10 );
 
-		stop ->
+		{ stop, CallerPid } ->
+			CallerPid ! stopped,
 			solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 							  ListenerPid, _TimeOut=infinity )
 
@@ -343,7 +345,7 @@ start() ->
 		ButtonSize, ButtonStyle, reset_button_id, ParentButton ),
 
 	QuitButton = gui:create_button( "Quit", Position, ButtonSize, ButtonStyle,
-									quit_button_id, ParentButton ),
+		quit_button_id, ParentButton ),
 
 	Buttons = [ StartButton, IncButton, DecButton, StopButton, ClearButton,
 				ResetButton, QuitButton ],
@@ -499,7 +501,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 	MaybeNewGUIState = receive
 
 		% Routine messages sent by solvers shall be listed last, otherwise they
-		% will eclipse other messages (ex: GUI ones):
+		% will eclipse other messages (e.g. GUI ones):
 
 		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
 			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
@@ -626,17 +628,17 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			SolverTable = GUIState#gui_state.solver_table,
 
 			{ Color, LastPoint } =
-						table:get_value( SendingSolverPid, SolverTable ),
+				table:get_value( SendingSolverPid, SolverTable ),
 
 			NewLastPoint =
-						draw_lines( Canvas, [ LastPoint | NewPoints ], Color ),
+				draw_lines( Canvas, [ LastPoint | NewPoints ], Color ),
 
 			gui:blit( Canvas ),
 
 			SolverTable = GUIState#gui_state.solver_table,
 
 			NewSolverTable = table:add_entry( _K=SendingSolverPid,
-								_V={ Color, NewLastPoint }, SolverTable ),
+				_V={ Color, NewLastPoint }, SolverTable ),
 
 			GUIState#gui_state{ solver_table=NewSolverTable };
 
@@ -649,7 +651,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			SolverTable = GUIState#gui_state.solver_table,
 
 			{ Color, LastPoint } =
-						table:get_value( SendingSolverPid, SolverTable ),
+				table:get_value( SendingSolverPid, SolverTable ),
 
 			SourceDrawPoint = project_2D( LastPoint, Screen ),
 
@@ -661,7 +663,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			gui:blit( Canvas ),
 
 			NewSolverTable = table:add_entry( _K=SendingSolverPid,
-									_V={ Color, NewPoint }, SolverTable ),
+				_V={ Color, NewPoint }, SolverTable ),
 
 			GUIState#gui_state{ solver_table=NewSolverTable };
 
@@ -676,7 +678,16 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 	case MaybeNewGUIState of
 
 		undefined ->
-			send_to_solvers( _StopMsg=stop, GUIState#gui_state.solver_table ),
+
+			ThisSolverTable = GUIState#gui_state.solver_table,
+
+			% Synchronous, for a reliable teardown (otherwise the window could
+			% be destructed whereas rendering requests may still target it):
+			%
+			send_to_solvers( _StopMsg={ stop, self() }, ThisSolverTable ),
+
+			basic_utils:wait_for( _AckMsg=stopped,
+								  _Count=table:size( ThisSolverTable ) ),
 
 			% Simply stop recursing:
 			gui:destruct_window( MainFrame ),
