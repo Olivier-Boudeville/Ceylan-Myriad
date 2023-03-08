@@ -91,7 +91,9 @@
 % - const_bijective_table_test.erl for an usage example and testing thereof
 % - bijective_table.erl for a runtime, mutable, term-based bijective table
 % - const_bijective_topics.erl, to generate modules able to share multiple
-% tables (not a single one like this one)
+% tables (not a single one like this one); no conversion direction is managed
+% here, as if a single direction is wanted, the const_table shall be used
+% instead
 % - const_table.erl, for a constant, "simple" (oneway) associative table
 %
 -module(const_bijective_table).
@@ -127,7 +129,7 @@
 % all numbers of entries - but as long as this is not tested this remains an
 % assumption.
 %
-% We also used to rely on const_bijective_topics:generate_forms/4 but this
+% We also used to rely on const_bijective_topics:generate_forms/5 but this
 % proved unappropriate, as it generates for example get_first_for_TOPIC/1
 % whereas we want here to generate get_first_for/1 (note the absence of a last
 % '_'); we cannot drop this '_' in const_bijective_topics, and specify '_TOPIC'
@@ -387,7 +389,7 @@ generate_table_forms( ModuleName, Entries, ElementLookup ) ->
 %
 generate_fun_forms( Entries, _ElementLookup=strict, FileLoc ) ->
 
-	% Like const_bijective_topics:generate_forms/4:
+	% Mostly like const_bijective_topics:generate_forms/5:
 
 	RevEntries = lists:reverse( Entries ),
 
@@ -403,7 +405,7 @@ generate_fun_forms( Entries, _ElementLookup=strict, FileLoc ) ->
 
 generate_fun_forms( Entries, _ElementLookup=maybe, FileLoc ) ->
 
-	% Like const_bijective_topics:generate_forms/4:
+	% Mostly like const_bijective_topics:generate_forms/5:
 
 	RevEntries = lists:reverse( Entries ),
 
