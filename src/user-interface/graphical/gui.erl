@@ -175,11 +175,6 @@
 	% The event types that are trapped by default:
 	{ 'trap_set', trap_set() },
 
-	% A bijective table to translate wx and MyriadGUI event types back and
-	% forth:
-	%
-	{ 'event_translation_table', event_translation_table() },
-
 	% Any backend-specific top-level server used for the GUI (here wx):
 	{ 'backend_server', wx_object() },
 
@@ -369,7 +364,8 @@
 		  get_size/1, get_client_size/1,
 		  get_best_size/1, set_client_size/2, fit/1,
 		  maximise_in_parent/1, sync/1, enable_repaint/1,
-		  lock_window/1, unlock_window/1, destruct_window/1 ]).
+		  lock_window/1, unlock_window/1,
+		  destruct_window/1, destruct_window/2 ]).
 
 
 % Frames:
@@ -496,7 +492,6 @@
 %-export([ getKey/0 ]).
 
 
-
 % Fonts:
 -export([ create_font/1, create_font/2, create_font/3, create_font/4,
 		  create_font/5, destruct_font/1 ]).
@@ -506,8 +501,12 @@
 % Internal, silencing exports:
 -export([ create_gui_environment/1,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
-		  event_interception_callback/3,
+		  event_interception_callback/2,
 		  resolve_id/1 ]).
+
+
+% API for module generation:
+-export([ generate_support_modules/0 ]).
 
 
 % For related, public defines:
@@ -715,11 +714,16 @@
 -opaque status_bar() :: wxStatusBar:wxStatusBar().
 % A thin space at the bottom of a frame where texts are typically displayed.
 
--type status_bar_style() :: 'normal'
-						  | 'flat'
-						  | 'raised'
-						  | 'sunken'.
+
+-type status_bar_style_opt() ::
+	'normal'
+  | 'flat'
+  | 'raised'
+  | 'sunken'.
 % A style of status bar.
+
+
+-type status_bar_style() :: [ status_bar_style_opt() ].
 
 
 -type toolbar() :: wxToolBar:wxToolBar().
@@ -729,17 +733,23 @@
 % A toolbar emits menu commands in the same way that a frame menubar does.
 
 
--type toolbar_style() :: 'top' | 'bottom' | 'left' | 'right'
-					   | 'flat'
-					   | 'dockable'
-					   | 'no_icons'
-					   | 'text'
-					   | 'no_divider'
-					   | 'no_align'
-					   | 'horizontal_layout'
-					   | 'no_tooltips'
-					   | 'default'.
+-type toolbar_style_opt() ::
+	'top'
+  | 'bottom'
+  | 'left'
+  | 'right'
+  | 'flat'
+  | 'dockable'
+  | 'no_icons'
+  | 'text'
+  | 'no_divider'
+  | 'no_align'
+  | 'horizontal_layout'
+  | 'no_tooltips'
+  | 'default'.
 % A style of toolbar.
+
+-type toolbar_style() :: [ toolbar_style_opt() ].
 
 
 -type tool() :: wx_object().
@@ -983,27 +993,27 @@
 
 -type window_style_opt() ::
 	'default_border'
-	| 'simple_border'
-	| 'sunken_border'
-	| 'raised_border'
-	| 'static_border'
-	| 'theme_border'
-	| 'no_border'
-	| 'double_border'
+  | 'simple_border'
+  | 'sunken_border'
+  | 'raised_border'
+  | 'static_border'
+  | 'theme_border'
+  | 'no_border'
+  | 'double_border'
 
-	| 'transparent' % Windows-only
-	| 'tab_traversable'
-	| 'grab_all_keys'
-	| 'with_vertical_scrollbar'
-	| 'with_horizontal_scrollbar'
-	| 'never_hide_scrollbars'
-	| 'clip_children'
-	| 'full_repaint_on_resize'.
-% Options for windows. See also
+  | 'transparent' % Windows-only
+  | 'tab_traversable'
+  | 'grab_all_keys'
+  | 'with_vertical_scrollbar'
+  | 'with_horizontal_scrollbar'
+  | 'never_hide_scrollbars'
+  | 'clip_children'
+  | 'full_repaint_on_resize'.
+% Styles for windows. See also
 % [http://docs.wxwidgets.org/stable/classwx_window.html]
 
 
--type window_style() :: window_style_opt() | [ window_style_opt() ].
+-type window_style() :: [ window_style_opt() ].
 
 -type window_option() :: { pos, point() }
 					   | { size, size() }
@@ -1062,8 +1072,7 @@
 % See also [http://docs.wxwidgets.org/stable/classwx_frame.html].
 
 
-
--type frame_style() :: frame_style_opt() | [ frame_style_opt() ].
+-type frame_style() :: [ frame_style_opt() ].
 
 
 -type panel_option() :: window_option().
@@ -1086,7 +1095,7 @@
 % [http://docs.wxwidgets.org/stable/classwx_button.html].
 
 
--type button_style() :: button_style_opt() | [ button_style_opt() ].
+-type button_style() :: [ button_style_opt() ].
 
 
 -type sizer_flag_opt() ::
@@ -1107,7 +1116,11 @@
   | 'align_bottom'
   | 'align_center_vertical'
   | 'align_center_horizontal'.
-% Options for sizers, see [https://docs.wxwidgets.org/stable/classwx_sizer.html]
+% Option flags for sizers, see
+% [https://docs.wxwidgets.org/stable/classwx_sizer.html].
+
+
+-type sizer_flags() :: [ sizer_flag_opt() ].
 
 
 -type weight_factor() :: non_neg_integer().
@@ -1258,7 +1271,7 @@
 			   frame_style_opt/0,
 			   panel_option/0, panel_options/0,
 			   button_style_opt/0,
-			   sizer_flag_opt/0, sizer_option/0, sizer_options/0,
+			   sizer_flag_opt/0, sizer_flags/0, sizer_option/0, sizer_options/0,
 			   image/0,
 			   event_subscription_opt/0,
 			   debug_level_opt/0, debug_level/0, error_message/0 ]).
@@ -1309,7 +1322,6 @@
 -type event_type() :: gui_event:event_type().
 -type gui_event_object() :: gui_event:gui_event_object().
 -type event_subscriber() :: gui_event:event_subscriber().
--type event_translation_table() :: gui_event:event_translation_table().
 
 -type text_display_option() :: gui_image:text_display_option().
 
@@ -1421,14 +1433,12 @@ create_gui_environment( Services ) ->
 	%
 	TrapSet = gui_event:get_trapped_event_types( Services ),
 
-	EventTranslationTable = gui_event:get_event_translation_table(),
-
 	% The event table must be initialised in the spawned process, so that
 	% connect/n can use the right actual, first-level subscriber PID/name, which
 	% is the internal main loop in charge of the message routing and conversion:
 
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
-		[ WxServer, WxEnv, TrapSet, EventTranslationTable ] ),
+								  [ WxServer, WxEnv, TrapSet ] ),
 
 	% Caches in the calling process and initialises some GUI-related entries
 	% (refer to the gui_env_entries define):
@@ -1444,7 +1454,6 @@ create_gui_environment( Services ) ->
 
 		{ loop_pid, LoopPid },
 		{ trap_set, TrapSet },
-		{ event_translation_table, EventTranslationTable },
 
 		{ backend_server, WxServer },
 		{ backend_env, WxEnv },
@@ -1674,10 +1683,6 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 	%   "types ~w will trigger ~w with user data ~w.",
 	%   [ SourceGUIObject, EventTypes, EventCallbackFun, MaybeUserData ] ),
 
-	LoopPid = get_main_loop_pid(),
-
-	LoopPid ! { getEventTranslationTable, [], self() },
-
 	WxUserData = case MaybeUserData of
 
 		undefined ->
@@ -1692,22 +1697,10 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 	% Recording for later used when a corresponding event is fired:
 	CallbackData = { EventCallbackFun, WxUserData },
 
-	% Interleaving:
-	EventTranslationTable = receive
-
-		{ notifyEventTranslationTable, EvTransTable } ->
-			EvTransTable
-
-	end,
-
 	% As we will have to convert back the received wx event into a MyriadGUI
 	% one:
 
-	% Closure needed to embed the translation table:
-	WxCallback = fun( WxEventRecord, WxEventObject ) ->
-		event_interception_callback( WxEventRecord, WxEventObject,
-									 EventTranslationTable )
-				 end,
+	WxCallback = fun event_interception_callback/2,
 
 	% No other option found interesting ('skip' would be ignored here):
 	WxOptions = [ { callback, WxCallback },
@@ -1715,8 +1708,7 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 
 	[ begin
 
-		WxEventType = gui_wx_backend:to_wx_event_type( ET,
-									EventTranslationTable ),
+		WxEventType = gui_wx_backend:to_wx_event_type( ET ),
 
 		%trace_utils:debug_fmt( "Callback-connecting object ~w "
 		%   "for event type ~w with options ~w.",
@@ -1731,18 +1723,18 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 % Internal function defined so that a wx callback can be converted to a
 % MyriadGUI one before calling the user-specified callback with it.
 %
--spec event_interception_callback( gui_event:wx_event(), wxEvent:wxEvent(),
-								   event_translation_table() ) -> void().
+-spec event_interception_callback( gui_event:wx_event(), wxEvent:wxEvent() ) ->
+						void().
 event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
-							 WxEventObject, EventTranslationTable ) ->
+							 WxEventObject ) ->
 
 	% For example WxEventObject={ wx_ref, 92, wxPaintEvent, [] }:
 	%trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
 	%                       [ WxEventObject ] ),
 
 	MyriadGUIEvent = gui_event:wx_to_myriad_event(
-		WxEventRecord#wx{ userData=ActualUserData }, EventTranslationTable ),
+		WxEventRecord#wx{ userData=ActualUserData } ),
 
 	EventCallbackFun( MyriadGUIEvent, WxEventObject ).
 
@@ -2626,7 +2618,7 @@ enable_repaint( Window ) ->
 % @doc Locks the specified window, so that direct access to its content can be
 % done, through the returned device context.
 %
-% Once the desired changes will have been made, this window must be unlocked.
+% Once the desired changes have been made, this window must be unlocked.
 %
 -spec lock_window( window() ) -> device_context().
 lock_window( Window ) ->
@@ -2646,6 +2638,35 @@ unlock_window( DC ) ->
 % @doc Destructs the specified window.
 -spec destruct_window( window() ) -> void().
 destruct_window( Window ) ->
+	destruct_window( Window, get_environment_server() ).
+
+
+% @doc Destructs the specified window, using the specified environment server.
+-spec destruct_window( window(), gui_env_pid() ) -> void().
+destruct_window( Window, GUIEnvPid ) ->
+
+	LoopPid = environment:get( loop_pid, GUIEnvPid ),
+
+	% Note that the resource destruction done by wxWindow:destroy/1 (which is
+	% possibly instantaneous) may happen whereas concurrent, message-based
+	% operations (typically drawings) may still be on the fly; in this case,
+	% when their processing will happen, they may find out that their backend
+	% resources do not exist (anymore), for example with
+	% {unknown_env,{wxPen,new,2}},[{wxe_util,rec,1,[...).
+	%
+	% A solution is to stop synchronously all GUI-using callers, then have the
+	% GUI loop be waited for to flush any pending operations, before triggering
+	% the requested destruction:
+
+	LoopPid ! { synchroniseWithCaller, [], self() },
+
+	receive
+
+		onSynchronisedWithCaller ->
+			ok
+
+	end,
+
 	wxWindow:destroy( Window ).
 
 
@@ -4067,3 +4088,30 @@ context_to_string( #event_context{ id=Id, user_data=UserData,
 
 	text_utils:format( "context for event ~ts: ~ts and ~ts",
 					   [ EventString, IdString, UserDataString ] ).
+
+
+
+
+
+% Section for the build-time generation of support modules.
+
+
+% @doc To be called by the 'gui_generated.beam' automatic make target in
+% order to generate, here, a (single) module to share the MyriadGUI constants.
+%
+-spec generate_support_modules() -> no_return().
+generate_support_modules() ->
+
+	TargetModName = gui_generated,
+
+	%trace_bridge:info_fmt( "Generating module '~ts'...", [ TargetModName ] ),
+
+	TopicSpecs =
+		[ gui_constants:F() || F <- gui_constants:list_topic_spec_functions() ],
+
+	_ModFilename =
+		const_bijective_topics:generate_in_file( TargetModName, TopicSpecs ),
+
+	%trace_bridge:info_fmt( "File '~ts' generated.", [ ModFilename ] ),
+
+	erlang:halt().
