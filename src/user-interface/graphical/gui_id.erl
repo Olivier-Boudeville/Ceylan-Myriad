@@ -141,7 +141,7 @@ get_first_allocatable_id() ->
 get_initial_allocation_table() ->
 
 	% Statically known name/id associations:
-	InitialEntries = [ { N, gui_wx_backend:to_wx_menu_item_maybe_id( N ) }
+	InitialEntries = [ { N, gui_wx_backend:to_wx_menu_item_id( N ) }
 								|| N <- gui:get_standard_item_names() ],
 
 	bijective_table:new( InitialEntries ).
