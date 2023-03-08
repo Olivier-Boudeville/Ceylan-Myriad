@@ -54,8 +54,7 @@
 
 
 % Miscellaneous functions.
--export([ size/1,
-		  get_process_info/1, get_process_info/2,
+-export([ get_process_info/1, get_process_info/2,
 		  display_process_info/1,
 		  checkpoint/1,
 		  display/1, display/2, display_timed/2, display_timed/3,
@@ -1250,12 +1249,14 @@ send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 % Miscellaneous functions.
 
 
-% @doc Returns the number of bytes used by specified term.
--spec size( term() ) -> byte_size().
-size( Term ) ->
-	system_utils:get_size( Term ).
-
-
+% @doc Returns the number of bytes used by the specified term.
+%
+% Note: kept for backward compatibility, better use system_utils:get_size/1
+% directly.
+%
+%-spec size( term() ) -> byte_size().
+%size( Term ) ->
+%   system_utils:get_size( Term ).
 
 
 
