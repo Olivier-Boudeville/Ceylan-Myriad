@@ -115,7 +115,9 @@
 
 		  copy_tree/2,
 
-		  rename/2, move_file/2, create_link/2,
+		  rename/2, rename_preserving/2, rename_preserving/3,
+		  move_file/2, create_link/2,
+		  hide/1, hide/2, hide_overwriting/1, hide_overwriting/2,
 
 		  get_non_clashing_entry_name_from/1,
 
@@ -155,7 +157,10 @@
 % I/O section.
 -export([ get_default_encoding/0, get_default_encoding_option/0,
 		  latin1_file_to_unicode/1,
-		  open/2, open/3, close/1, close/2,
+
+		  open/2, open/3, create_preserving/2, create_preserving/3,
+		  close/1, close/2,
+
 		  read/2, write/2, write_ustring/2, write_ustring/3,
 		  read_whole/1, write_whole/2, write_whole/3,
 		  write_whole_in_non_clashing/1,
@@ -487,6 +492,9 @@
 
 -define( default_read_ahead_size, 2000 ).
 
+
+% The suffix used by default to rename files to be hidden:
+-define( default_hiding_suffix, <<".previous">> ).
 
 
 % Regarding encodings and Unicode:
@@ -3132,7 +3140,7 @@ remove_file( FilePath ) ->
 
 
 
-% @doc Removes (deletes) specified files, specified as a list of any kind of
+% @doc Removes (deletes) the specified files, specified as a list of any kind of
 % strings.
 %
 % Throws an exception if any problem occurs (e.g. a file does not exist, or
@@ -3179,8 +3187,8 @@ remove_files_if_existing( FilePaths ) ->
 
 
 
-% @doc Removes (deletes) specified symbolic link, specified as any kind
-% of string.
+% @doc Removes (deletes) the specified symbolic link, specified as any kind of
+% string.
 %
 % Checks that the specified path designates indeed a symbolic link (dead or
 % not).
@@ -3218,8 +3226,8 @@ remove_symlink( SymlinkPath ) ->
 
 
 
-% @doc Removes specified directory, which must be empty (so: behaves mostly like
-% the 'rmdir' shell command).
+% @doc Removes the specified directory, which must be empty (so: behaves mostly
+% like the 'rmdir' shell command).
 %
 -spec remove_empty_directory( any_directory_path() ) -> void().
 remove_empty_directory( DirectoryPath ) ->
@@ -3278,7 +3286,7 @@ remove_empty_path_helper( DirectoryPath ) ->
 remove_empty_tree( DirectoryPath ) ->
 
 	%trace_utils:warning_fmt( "## Removing empty tree '~ts'.",
-	%						 [ DirectoryPath ] ),
+	%                         [ DirectoryPath ] ),
 
 	% For clarity:
 	is_existing_directory( DirectoryPath ) orelse
@@ -3306,9 +3314,9 @@ remove_empty_tree( DirectoryPath ) ->
 
 
 
-% @doc Removes specified (possibly non-empty) directory as a whole, recursively
-% (so: behaves mostly like the 'rm -rf ' shell command; of course to use with
-% care).
+% @doc Removes the specified (possibly non-empty) directory as a whole,
+% recursively (so: behaves mostly like the 'rm -rf ' shell command; of course to
+% use with care).
 %
 % Note that if any unusual file entry is found in the tree (e.g. device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
@@ -3359,8 +3367,8 @@ remove_directory( DirectoryName ) ->
 
 
 
-% @doc Copies a specified file to a given destination filename (not a directory
-% name, see copy_file_in/2 for that), overwriting any previous file.
+% @doc Copies the specified file to a given destination filename (not a
+% directory name, see copy_file_in/2 for that), overwriting any previous file.
 %
 % Note: content is copied and permissions are preserved (e.g. the copy of an
 % executable file will be itself executable, and other permissions as well,
@@ -3389,8 +3397,8 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
 
 
 
-% @doc Copies a specified file to a given destination filename (not a directory
-% name, see copy_file_in/2 for that), overwriting any previous file.
+% @doc Copies the specified file to a given destination filename (not a
+% directory name, see copy_file_in/2 for that), overwriting any previous file.
 %
 % Symlinks are copied as symlinks (whereas file:copy/2 would copy their target
 % as new files).
@@ -3467,7 +3475,7 @@ try_copy_file( SourceFilePath, DestinationFilePath ) ->
 
 
 
-% @doc Copies a specified file in the specified destination directory,
+% @doc Copies the specified file in the specified destination directory,
 % overwriting any previous file, and returning the full path of the copied file.
 %
 % Note: content is copied and permissions are preserved (e.g. the copy of an
@@ -3514,7 +3522,7 @@ copy_as_regular_file_in( SourcePath, DestinationDirectory ) ->
 
 
 
-% @doc Copies a specified file to a given destination iff this source file is
+% @doc Copies the specified file to a given destination iff this source file is
 % already existing.
 %
 % Note: content is copied and permissions are preserved (e.g. the copy of an
@@ -3528,7 +3536,7 @@ copy_file_if_existing( SourceFilePath, DestinationFilePath ) ->
 
 
 
-% @doc Copies specified source tree in specified target directory.
+% @doc Copies the specified source tree in specified target directory.
 -spec copy_tree( any_directory_path(), any_directory_path() ) -> void().
 copy_tree( SourceTreePath, TargetDirectory ) ->
 
@@ -3554,7 +3562,7 @@ copy_tree( SourceTreePath, TargetDirectory ) ->
 
 
 
-% @doc Renames specified file.
+% @doc Renames the specified file.
 %
 % Returns, for convenience, the new name.
 %
@@ -3563,13 +3571,109 @@ rename( SourceFilePath, DestinationFilePath ) ->
 	move_file( SourceFilePath, DestinationFilePath ).
 
 
+% @doc Renames the specified file; if the destination file already exists,
+% renames it first by suffixing '.previous' to its name (then overwriting any
+% identically-named file that would already exist), before performing the
+% renaming.
+%
+% Returns, for convenience, the new name.
+%
+-spec rename_preserving( any_file_path(), any_file_path() ) -> any_file_path().
+rename_preserving( SourceFilePath, DestinationFilePath ) ->
+	rename_preserving( SourceFilePath, DestinationFilePath,
+					   _HidingSuffix=?default_hiding_suffix ).
 
-% @doc Moves specified file or symbolic link so that it is now designated by
+
+% @doc Renames the specified file; if the destination file already exists,
+% renames it first by adding the specified suffix to its name (then overwriting
+% any identically-named file that would already exist), before performing the
+% renaming.
+%
+% Returns, for convenience, the new name.
+%
+-spec rename_preserving( any_file_path(), any_file_path(),
+						 any_string() ) -> any_file_path().
+rename_preserving( SourceFilePath, DestinationFilePath, HidingSuffix ) ->
+
+	is_existing_file_or_link( DestinationFilePath ) andalso
+		hide_overwriting( DestinationFilePath, HidingSuffix ),
+
+	rename( SourceFilePath, DestinationFilePath ).
+
+
+
+% @doc Hides the specified file: renames it to a conventionally-deriving name,
+% to have it out of the way; throws an exception if the resulting file already
+% exists.
+%
+% Returns its new name.
+%
+-spec hide( any_file_path(), any_string() ) -> any_file_path().
+hide( ToHidePath ) ->
+	hide( ToHidePath, _HidingSuffix=?default_hiding_suffix ).
+
+
+% @doc Hides the specified file: renames it based on the specified suffix, to
+% have it out of the way; throws an exception if the resulting file already
+% exists.
+%
+% Returns its new name.
+%
+-spec hide( any_file_path(), any_string() ) -> any_file_path().
+hide( ToHidePath, HidingSuffix ) ->
+
+	% To support string_like():
+	HiddenPathBin = text_utils:bin_concatenate(
+		[ text_utils:ensure_binary( ToHidePath ),
+		  text_utils:ensure_binary( HidingSuffix ) ] ),
+
+	is_existing_file_or_link( HiddenPathBin ) andalso
+		throw( { file_to_hide_already_exists,
+				text_utils:binary_to_string(  HiddenPathBin ) } ),
+
+	move_file( ToHidePath, HiddenPathBin ).
+
+
+
+% @doc Hides the specified file: renames it to a conventionally-deriving name,
+% to have it out of the way; if the resulting file already exists, it is
+% overwritten.
+%
+% Returns its new name.
+%
+-spec hide_overwriting( any_file_path(), any_string() ) -> any_file_path().
+hide_overwriting( ToHidePath ) ->
+	hide_overwriting( ToHidePath, _HidingSuffix=?default_hiding_suffix ).
+
+
+% @doc Hides the specified file: renames it to a conventionally-deriving name,
+% to have it out of the way; if the resulting file already exists, it is
+% overwritten.
+%
+% Returns its new name.
+%
+-spec hide_overwriting( any_file_path(), any_string() ) -> any_file_path().
+hide_overwriting( ToHidePath, HidingSuffix ) ->
+
+	% To support string_like():
+	HiddenPathBin = text_utils:bin_concatenate(
+		[ text_utils:ensure_binary( ToHidePath ),
+		  text_utils:ensure_binary( HidingSuffix ) ] ),
+
+	is_existing_file_or_link( HiddenPathBin ) andalso
+		remove_file( HiddenPathBin ),
+
+	move_file( ToHidePath, HiddenPathBin ).
+
+
+
+% @doc Moves the specified file or symbolic link so that it is now designated by
 % specified path.
 %
 % Note:
 %  - no check that source is a file or symlink (e.g. not a directory) is done
-%  - destination is a file path, not a directory path
+%  - destination is a file path, not a directory path, and it is expected not to
+%  exist already
 %
 % Returns, for convenience, the new path.
 %
@@ -4845,6 +4949,35 @@ get_access_denied_info( AnyFilePath ) ->
 			{ non_existing_directory, Dir }
 
 	end.
+
+
+
+% @doc Opens for a creation from scratch the specified file with the specified
+% options (the 'write' one being implied and automatically added here); if the
+% target file already exists, renames it first by suffixing '.previous' to its
+% name (then overwriting any identically-named file that would already exist),
+% before performing the creation.
+%
+-spec create_preserving( any_file_path(), [ file_open_mode() ] ) -> file().
+create_preserving( AnyFilePath, Options ) ->
+	create_preserving( AnyFilePath, _HidingSuffix=?default_hiding_suffix,
+					   Options ).
+
+
+% @doc Opens for a creation from scratch the specified file with the specified
+% options (the 'write' one being implied and automatically added here); if the
+% target file already exists, renames it first based on the specified suffix
+% (then overwriting any identically-named file that would already exist), before
+% performing the creation.
+%
+-spec create_preserving( any_file_path(), ustring(), [ file_open_mode() ] ) ->
+							file().
+create_preserving( AnyFilePath, HidingSuffix, Options ) ->
+
+	is_existing_file_or_link( AnyFilePath ) andalso
+		hide_overwriting( AnyFilePath, HidingSuffix ),
+
+	open( AnyFilePath, [ write | Options ] ).
 
 
 
