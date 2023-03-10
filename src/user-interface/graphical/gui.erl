@@ -2420,17 +2420,23 @@ show( Windows ) when is_list( Windows )->
 	%trace_utils:debug_fmt( "Showing windows ~p.", [ Windows ] ),
 	Res = show_helper( Windows, _Acc=false ),
 	%get_main_loop_pid() ! { onShown, [ Windows ] },
+
+	show_fix(),
+
 	Res;
 
 show( Window ) ->
 	%trace_utils:debug_fmt( "Showing window ~p.", [ Window ] ),
 	Res = wxWindow:show( Window ),
 	%get_main_loop_pid() ! { onShown, [ [ Window ] ] },
+	show_fix(),
+
 	Res.
 
 
 % (helper)
 show_helper( _Windows=[], Acc ) ->
+	show_fix(),
 	Acc;
 
 show_helper( _Windows=[ W | T ], Acc ) ->
@@ -2438,6 +2444,15 @@ show_helper( _Windows=[ W | T ], Acc ) ->
 	show_helper( T, NewAcc ).
 
 
+% This is certainly a strange fix. It was observed with gui_image_test.erl that
+% the image was initially displayed iff such a sleep was following
+% 'gui:show(MainFrame)' - although there was no next rendering operation (a
+% receive blocking until the user closes the window). Otherwise the panel
+% remained blank until the frame was redrawn for any reason (e.g. resize).
+%
+show_fix() ->
+	timer:sleep( 10 ).
+	%ok.
 
 % @doc Hides the specified window.
 %
