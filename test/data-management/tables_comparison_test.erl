@@ -624,7 +624,7 @@ run_performance_tests() ->
 
 	FedSizeStrings = [ text_utils:format( "for ~ts: ~ts", [ M,
 		system_utils:interpret_byte_size_with_unit(
-			system_utils:size( T ) ) ] )
+			system_utils:get_size( T ) ) ] )
 				|| { M, T, _Timing } <- FedTablesWithTimings ],
 
 	test_facilities:display( "~nSizes: ~ts",
@@ -651,8 +651,9 @@ run_performance_tests() ->
 
 
 	UpSizeStrings = [ text_utils:format( "for ~ts: ~ts", [ M,
-		system_utils:interpret_byte_size_with_unit( system_utils:size( T ) ) ] )
-			|| { M, T, _Timing } <- UpdatedTablesWithTimings ],
+		system_utils:interpret_byte_size_with_unit(
+			system_utils:get_size( T ) ) ] )
+				|| { M, T, _Timing } <- UpdatedTablesWithTimings ],
 
 	test_facilities:display( "~nSizes: ~ts",
 		[ text_utils:strings_to_string( UpSizeStrings ) ] ),

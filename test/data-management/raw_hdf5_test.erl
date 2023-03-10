@@ -73,7 +73,7 @@ get_data( one_dim_integer ) ->
 	% HDF, yet Erlang (on 64 bit) may see it as 8 bytes. Here we compare with
 	% the binding:
 	%
-	%ElemSize = system_utils:size( element( 1, hd( InitialData ) ) ),
+	%ElemSize = system_utils:get_size( element( 1, hd( InitialData ) ) ),
 	ElemSize = hdf5_support:get_size( native_integer ),
 
 	{ InitialData, FullUpdateData, PartialUpdateData, FinalExpectedData,
@@ -97,7 +97,7 @@ get_data( one_dim_long_float ) ->
 	% HDF, yet Erlang (on 64 bit) may see it as 8 bytes. Here we compare with
 	% the binding:
 	%
-	%ElemSize = system_utils:size( element( 1, hd( InitialData ) ) ),
+	%ElemSize = system_utils:get_size( element( 1, hd( InitialData ) ) ),
 	ElemSize = hdf5_support:get_size( native_long_float ),
 
 	{ InitialData, FullUpdateData, PartialUpdateData, FinalExpectedData,
@@ -127,7 +127,7 @@ get_data( two_dim_integer ) ->
 	% HDF, yet Erlang (on 64 bit) may see it as 8 bytes. Here we compare with
 	% the binding:
 	%
-	%ElemSize = system_utils:size( element( 1, hd( InitialData ) ) ),
+	%ElemSize = system_utils:get_size( element( 1, hd( InitialData ) ) ),
 	ElemSize = hdf5_support:get_size( native_integer ),
 
 	{ InitialData, FullUpdateData, PartialUpdateData, FinalExpectedData,
@@ -157,7 +157,7 @@ get_data( two_dim_long_float ) ->
 	% yet Erlang (on 64 bit) may see it as 24 bytes (!). Here we compare with
 	% the binding:
 	%
-	%ElemSize = system_utils:size( element( 1, hd( InitialData ) ) ),
+	%ElemSize = system_utils:get_size( element( 1, hd( InitialData ) ) ),
 	ElemSize = hdf5_support:get_size( native_long_float ),
 
 	{ InitialData, FullUpdateData, PartialUpdateData, FinalExpectedData,
