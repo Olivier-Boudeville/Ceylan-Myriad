@@ -114,9 +114,11 @@ test_main_loop( TestFrame ) ->
 
 			gui:stop();
 
+		% We can see button events, entered/left window ones, etc.:
 		Other ->
-			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~n ~p.", [ Other ] ),
+			trace_utils:notice_fmt( "Test main loop received "
+				"(and did not specifically managed) the following "
+				"message:~n  ~p.", [ Other ] ),
 			test_main_loop( TestFrame )
 
 	end.

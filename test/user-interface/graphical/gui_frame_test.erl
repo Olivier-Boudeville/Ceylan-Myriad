@@ -101,9 +101,8 @@ test_main_loop( CloseFrame ) ->
 	receive
 
 		{ onWindowClosed, [ CloseFrame, _FrameId, Context ] } ->
-
-			trace_utils:info_fmt( "Closing frame ~ts has been, well, closed "
-				"(~ts); test success.",
+			trace_utils:info_fmt( "The closing frame ~ts has been, well, "
+				"closed (~ts); test success.",
 				[ gui:object_to_string( CloseFrame ),
 				  gui:context_to_string( Context ) ] ),
 

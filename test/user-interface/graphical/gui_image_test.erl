@@ -117,7 +117,7 @@ run_image_test() ->
 	MainFrame = gui:create_frame( _Title="MyriadGUI Image Test",
 								  gui_overall_test:get_main_window_size() ),
 
-	% No need to add _Opts=[ { style, full_repaint_on_resize } ]:
+	% No need to add _Opts=[{style, full_repaint_on_resize}]:
 	Panel = gui:create_panel( MainFrame ),
 
 	% The backbuffer on which panel content will be drawn:
@@ -128,7 +128,6 @@ run_image_test() ->
 
 	% Initialisation:
 	render_scene( Panel, BackbufferBitmap, ImgBitmap ),
-
 	StatusBar = gui:create_status_bar( MainFrame ),
 
 	gui:push_status_text( "Displaying image.", StatusBar ),
@@ -158,7 +157,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 	receive
 
-		% Not subscribed to onRepaintNeeded so not never activated:
+		% Not subscribed to onRepaintNeeded, so never activated:
 		%{ onRepaintNeeded, [ Panel, _Context ] } ->
 		%   trace_utils:debug( "Repainting test panel." ),
 		%
@@ -229,7 +228,6 @@ render_scene( TargetPanel, BackbufferBitmap, ImageBitmap ) ->
 	gui:clear_device_context( BackbufferDC ),
 
 	gui:draw_bitmap( _Source=ImageBitmap, BackbufferDC, _PosInTarget={15,130} ),
-
 
 	% Then blits this updated backbuffer to the panel:
 	TopLeftPos = {0,0},

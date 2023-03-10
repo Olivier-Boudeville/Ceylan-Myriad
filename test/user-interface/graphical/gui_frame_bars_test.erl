@@ -54,7 +54,9 @@
 run_gui_test() ->
 
 	test_facilities:display(
-		"~nStarting the bar test: toolbar and status bar." ),
+		"~nStarting the bar test: toolbar and status bar. "
+		"Close the frame to stop." ),
+
 	gui:start(),
 
 	Frame = gui:create_frame( "This is the overall frame for bar testing" ),
@@ -102,29 +104,26 @@ run_gui_test() ->
 	% Some bitmaps may be unavailable (yielding a bitmap.IsOk() wxWidgets Assert
 	% failure):
 	%
+
 	OtherNames = [ help_side_panel_bitmap, help_settings_bitmap,
-				   help_book_bitmap, help_folder_bitmap,
-				   help_page_bitmap, go_back_bitmap, go_forward_bitmap,
-				   go_up_bitmap, go_down_bitmap, go_to_parent_bitmap,
-				   go_home_bitmap, goto_first_bitmap, goto_last_bitmap,
-				   print_bitmap, help_bitmap, tip_bitmap, report_view_bitmap,
-				   list_view_bitmap, new_folder_bitmap, folder_bitmap,
-				   open_folder_bitmap, go_folder_up_bitmap,
-				   executable_file_bitmap, normal_file_bitmap, tick_mark_bitmap,
-				   cross_mark_bitmap, missing_image_bitmap, new_bitmap,
-				   file_open_bitmap, file_save_bitmap, file_save_as_bitmap,
-				   file_delete_bitmap, copy_bitmap, cut_bitmap,
-				   paste_bitmap, undo_bitmap, redo_bitmap,
-				   plus_bitmap, minus_bitmap, close_bitmap,
-				   quit_bitmap, find_bitmap, find_and_replace_bitmap,
-				   full_screen_bitmap, edit_bitmap, hard_disk_bitmap,
-				   floppy_bitmap, cdrom_bitmap, removable_bitmap,
-				   backend_logo_bitmap ],
+		help_book_bitmap, help_folder_bitmap, help_page_bitmap, go_back_bitmap,
+		go_forward_bitmap, go_up_bitmap, go_down_bitmap, go_to_parent_bitmap,
+		go_home_bitmap, goto_first_bitmap, goto_last_bitmap, print_bitmap,
+		help_bitmap, tip_bitmap, report_view_bitmap, list_view_bitmap,
+		new_folder_bitmap, folder_bitmap, open_folder_bitmap,
+		go_folder_up_bitmap, executable_file_bitmap, normal_file_bitmap,
+		tick_mark_bitmap, cross_mark_bitmap, missing_image_bitmap, new_bitmap,
+		file_open_bitmap, file_save_bitmap, file_save_as_bitmap,
+		file_delete_bitmap, copy_bitmap, cut_bitmap, paste_bitmap, undo_bitmap,
+		redo_bitmap, plus_bitmap, minus_bitmap, close_bitmap, quit_bitmap,
+		find_bitmap, find_and_replace_bitmap, full_screen_bitmap, edit_bitmap,
+		hard_disk_bitmap, floppy_bitmap, cdrom_bitmap, removable_bitmap,
+		backend_logo_bitmap ],
 
 	[ gui:add_tool( Toolbar, _ToolId=N,
 		text_utils:atom_to_string( N ),
 		gui_image:get_standard_bitmap( N ), "Other short help" )
-													|| N <- OtherNames ],
+								|| N <- OtherNames ],
 
 	% May not be necessary in this case:
 	gui:update_tools( Toolbar ),

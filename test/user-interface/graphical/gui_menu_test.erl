@@ -139,7 +139,8 @@ run_gui_test() ->
 
 	test_facilities:display( "If you spot a menu item of interest in "
 		"the 'Numerical menu' dropdown that is not in 'Named menu', "
-		"feel free to add it to MyriadGUI." ),
+		"feel free to add it to MyriadGUI "
+		"(refer to the gui and the gui_constants modules)." ),
 
 	NameMenu = create_named_ids_dropdown( MenuBar ),
 
@@ -175,7 +176,7 @@ test_main_loop( State={ Frame, PopupMenu } ) ->
 
 		{ onMouseRightButtonReleased, [ Frame, _FrameId, _Context ] } ->
 			%trace_utils:debug_fmt( "onMouseRightButtonReleased for frame ~w.",
-			%						[ Frame ] ),
+			%                       [ Frame ] ),
 			gui:activate_popup_menu( Frame, PopupMenu ),
 			test_main_loop( State );
 
