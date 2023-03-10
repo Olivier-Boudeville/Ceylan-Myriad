@@ -178,7 +178,7 @@
 
 -export([ is_modkey_pressed/1, is_key_pressed/1, to_lower/2,
 		  get_backend_event/1,
-		  key_event_to_string/1, key_event_to_string/2 ]).
+		  key_event_to_string/1 ]).
 
 
 % Internals:
@@ -188,12 +188,10 @@
 
 % Shorthands:
 
--type ustring() :: text_utils:ustring().
--type uint32() :: type_utils:uint32().
-
 -type wx_keycode() :: integer().
 
--type event_translation_table() :: gui_event:event_translation_table().
+-type ustring() :: text_utils:ustring().
+-type uint32() :: type_utils:uint32().
 
 -type event_context() :: gui:event_context().
 
@@ -396,27 +394,12 @@ get_backend_event( #event_context{
 % gui_wx_event_info().
 %
 -spec key_event_to_string( wxKey() ) -> ustring().
-key_event_to_string( WxKeyEvent ) ->
-
-	GUIEnvPid = gui:get_environment_server(),
-
-	EventTranslationTable =
-		environment:get( event_translation_table, GUIEnvPid ),
-
-	key_event_to_string( WxKeyEvent, EventTranslationTable ).
-
-
-
-% @doc Returns a textual description of the specified key event.
--spec key_event_to_string( wxKey(), event_translation_table() ) -> ustring().
 key_event_to_string( #wxKey{ type=WxKeyEventType, x=X, y=Y, keyCode=KeyCode,
 		controlDown=CtrlDown, shiftDown=ShiftDown, altDown=AltDown,
 		metaDown=MetaDown,
-		uniChar=Unichar, rawCode=RawCode, rawFlags=RawFlags },
-					 EventTranslationTable ) ->
+		uniChar=Unichar, rawCode=RawCode, rawFlags=RawFlags } ) ->
 
-	KeyEventType = bijective_table:get_second_for( WxKeyEventType,
-												   EventTranslationTable ),
+	KeyEventType = gui_wx_backend:from_wx_event_type( WxKeyEventType ),
 
 	Mods = case CtrlDown of
 				true -> [ "control" ];
@@ -455,5 +438,5 @@ key_event_to_string( #wxKey{ type=WxKeyEventType, x=X, y=Y, keyCode=KeyCode,
 		[ KeyEventType, X, Y, KeyCode, ModStr, Unichar, RawCode, RawFlags ] );
 
 
-key_event_to_string( Other, _EventTranslationTable ) ->
+key_event_to_string( Other ) ->
 	throw( { invalid_key_event, Other } ).
