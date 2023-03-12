@@ -260,9 +260,13 @@
 -type unicode_string() :: chardata().
 % A Unicode (plain) string.
 %
-% This is our new default.
+% This is our new default, and corresponds to charlist() | unicode_binary().
 %
-% We mean [char()] where char() must be in 0..16#10ffff.
+% We mostly mean by that [char()], where char() is an integer corresponding to
+% an ASCII character or to a unicode codepoint, expected to be in
+% [0..16#10ffff].
+%
+% See also https://www.erlang.org/doc/man/unicode.html#type-charlist.
 
 
 -type unicode_data() :: unicode:latin1_chardata()
@@ -3670,7 +3674,7 @@ bin_concatenate( FirstBinStr, SecondBinStr ) ->
 % @doc Concatenates the specified binary strings into the returned one.
 -spec bin_concatenate( [ bin_string() ] ) -> bin_string().
 bin_concatenate( BinStrs ) ->
-	erlang:iolist_to_binary( BinStrs ).
+	bin_utils:concatenate( BinStrs ).
 
 
 
