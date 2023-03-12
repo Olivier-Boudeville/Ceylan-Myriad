@@ -230,7 +230,7 @@ yup_to_point3s( Points ) ->
 %
 % Typically suitable for OpenGL.
 %
--spec to_buffer( [ point3() ] ) -> binary().
+-spec to_buffer( [ any_point3() ] ) -> binary().
 to_buffer( Points ) ->
 	<< <<X:?F32, Y:?F32, Z:?F32>> || { X, Y, Z } <- Points >>.
 
