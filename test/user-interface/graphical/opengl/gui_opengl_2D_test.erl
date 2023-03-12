@@ -35,7 +35,7 @@
 % rendering, resizing and closing.
 %
 % This test relies on the OpenGL 1.x compatibility mode, as opposed to more
-% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+% modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
 %
 % See the gui_opengl.erl tested module.
 %
@@ -76,7 +76,7 @@
 	context :: gl_context(),
 
 	% Here just a boolean; in more complex cases, would be a maybe OpenGL state
-	% (ex: to store the loaded textures):
+	% (e.g. to store the loaded textures):
 	%
 	opengl_initialised = false :: boolean() } ).
 
@@ -111,7 +111,7 @@ run_opengl_test() ->
 
 		GlxInfoStr ->
 			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts",
+				"acceleration is available: ~ts.",
 				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
 			run_actual_test()
 
@@ -123,8 +123,11 @@ run_opengl_test() ->
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	test_facilities:display( "This test will display a white rectangle "
-		"on a black background, and will adjust to screen resizes." ),
+	test_facilities:display( "This test will display a white upright triangle "
+		"on a black background with a line-rendered 'FUN' label "
+		"(with red, green and blue characters), and will adjust to screen "
+		"resizes (the triangle will be scaled whereas the text will not "
+		"change size)." ),
 
 	gui:start(),
 
@@ -163,8 +166,9 @@ init_test_gui() ->
 	gui:subscribe_to_events( { [ onResized, onShown, onWindowClosed ],
 							   MainFrame } ),
 
-	% Needed, otherwise if that frame is moved out of the screen or if another
-	% windows overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
+	% Needed as well, otherwise if that frame is moved out of the screen or if
+	% another window overlaps, the OpenGL canvas gets garbled and thus must be
+	% redrawn:
 	%
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
@@ -209,14 +213,14 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( RepaintedGUIState );
 
 
-		% For a window, the first resizing event happens (just) before its
+		% For a window, the first resizing event happens immediately before its
 		% onShown one:
 		%
 		{ onResized, [ _ParentWindow, _ParentWindowId, _NewParentSize,
 					   _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Resizing of the parent window "
-			%   (main frame) "to ~w detected.", [ NewParentSize ] ),
+			%   "(main frame) to ~w detected.", [ NewParentSize ] ),
 
 			ResizedGUIState = case GUIState#my_gui_state.opengl_initialised of
 
@@ -259,7 +263,7 @@ gui_main_loop( GUIState ) ->
 
 			gui_main_loop( GUIState )
 
-	% No 'after': no spontaneous action taken, in the absence of events.
+	% No 'after': no spontaneous action taken here, in the absence of events.
 
 	end.
 
@@ -312,7 +316,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
 
-	% Lower-left corner and size of the viewport in the current window:
+	% Lower-left corner and size of the viewport in the current canvas:
 	gl:viewport( 0, 0, CanvasWidth, CanvasHeight ),
 
 	% Apparently, at least on a test setting, a race condition (discovered
@@ -322,9 +326,11 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	% (Erlang) asynchronous message to be sent from this user process and to be
 	% received and applied by the process of the target window, whereas a GL
 	% (NIF-based) operation is immediate; without a sufficient delay, the
-	% rendering will thus take place according to the former (ex: minimised)
+	% rendering will thus take place according to the former (e.g. minimised)
 	% canvas size, not according to the one that was expected to be already
 	% resized.
+	%
+	% (actually returns {CanvasWidth, CanvasHeight})
 	%
 	gui:sync( GLCanvas ),
 
