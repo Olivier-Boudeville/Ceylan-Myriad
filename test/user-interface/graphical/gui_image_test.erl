@@ -26,7 +26,7 @@
 % Creation date: Thursday, December 23, 2021.
 
 
-% @doc Testing the <b>support from images</b>.
+% @doc Testing the <b>support for the management of images</b>.
 %
 % Useful for example to check whether a given format is correctly supported.
 %
@@ -37,7 +37,7 @@
 
 % Implementation notes:
 %
-% We favor mostly PNG and JPEG images.
+% We favor mostly the PNG and JPEG formats.
 %
 % Here, rather than using our canvas, we directly paint of the panel defined
 % within the main frame.
@@ -95,7 +95,15 @@ get_test_image_directory() ->
 % @doc Returns the path to the main test image.
 -spec get_test_main_image_path() -> directory_path().
 get_test_main_image_path() ->
-	file_utils:join( get_test_image_directory(), "myriad-title.png" ).
+	ImageFilename = "myriad-title.png",
+	%ImageFilename = "myriad-minimal-enclosing-circle-test.png",
+
+	% If having there a local symlink pointing to
+	% Erlang-x.y/lib/erlang/lib/wx-z/examples/demo/image.jpg:
+	%
+	%ImageFilename = "image.jpg",
+
+	file_utils:join( get_test_image_directory(), ImageFilename ).
 
 
 
