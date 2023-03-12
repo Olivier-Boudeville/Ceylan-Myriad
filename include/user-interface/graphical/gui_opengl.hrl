@@ -77,7 +77,7 @@
 -define( gl_info_ets_name, myriad_opengl_info ).
 
 
-% For the base alpha coordinates (clearer):
+% For the base alpha coordinates (clearer; OpenGL conventions):
 
 -define( alpha_fully_opaque,      1.0 ).
 -define( alpha_fully_transparent, 0.0 ).
