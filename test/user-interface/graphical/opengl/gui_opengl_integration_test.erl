@@ -29,7 +29,7 @@
 % @doc Testing the <b>OpenGL support</b>, as an integration test.
 %
 % This test relies on the OpenGL 1.x compatibility mode, as opposed to more
-% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+% modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
 %
 % See the gui_opengl.erl tested module.
 %
@@ -80,10 +80,13 @@
 
 
 % Silencing:
--export([ get_logo_image_path/0, update_clock_texture/2, render/1 ]).
+-export([ get_test_image_directory/0, get_logo_image_path/0,
+		  update_clock_texture/2, render/1 ]).
 
 
 % The duration, in milliseconds, between two updates of the OpenGL rendering:
+% (hence presumably at 50 Hz)
+%
 -define( interframe_duration, 20 ).
 
 
@@ -446,14 +449,14 @@ get_test_textured_cube_normals() ->
 %
 -spec get_test_textured_cube_tex_coords( ) -> [ texture_coordinate2() ].
 get_test_textured_cube_tex_coords() ->
- [ {0.625,0.5},  {0.625,0.5},  {0.625,0.5},
-   {0.375,0.5},  {0.375,0.5},  {0.375,0.5},
-   {0.625,0.25}, {0.625,0.25}, {0.625,0.25},
-   {0.375,0.25}, {0.375,0.25}, {0.375,0.25},
-   {0.625,0.75}, {0.625,0.75}, {0.875,0.5},
-   {0.375,0.75}, {0.125,0.5},  {0.375,0.75},
-   {0.625,1.0},  {0.625,0.0},  {0.875,0.25},
-   {0.375,1.0},  {0.125,0.25}, {0.375,0.0} ].
+	[ {0.625,0.5},  {0.625,0.5},  {0.625,0.5},
+	  {0.375,0.5},  {0.375,0.5},  {0.375,0.5},
+	  {0.625,0.25}, {0.625,0.25}, {0.625,0.25},
+	  {0.375,0.25}, {0.375,0.25}, {0.375,0.25},
+	  {0.625,0.75}, {0.625,0.75}, {0.875,0.5},
+	  {0.375,0.75}, {0.125,0.5},  {0.375,0.75},
+	  {0.625,1.0},  {0.625,0.0},  {0.875,0.25},
+	  {0.375,1.0},  {0.125,0.25}, {0.375,0.0} ].
 
 
 
@@ -465,23 +468,25 @@ get_test_image_directory() ->
 
 
 
-% @doc Returns the path to a test image.
+% @doc Returns the path to a basic test image.
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
 	%file_utils:join( get_test_image_directory(),
 	%                 "myriad-space-time-referential.png" ).
 	%"image.jpg".
+	%"/home/wondersye/Projects/Travail/20190119-canard-enchaine-IRT.jpeg".
 	file_utils:join( get_test_image_directory(),
 					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
-% @doc Returns the path to a test image.
+% @doc Returns the path to a logo test image.
 -spec get_logo_image_path() -> file_path().
 get_logo_image_path() ->
-	file_utils:join( get_test_image_directory(),
-					 "myriad-title.png" ).
+	%"image.jpg".
 	%file_utils:join( get_test_image_directory(),
-	%                 "myriad-minimal-enclosing-circle-test.png" ).
+	%				 "myriad-title.png" ).
+	file_utils:join( get_test_image_directory(),
+					 "myriad-minimal-enclosing-circle-test.png" ).
 	%"erlang.png".
 
 
@@ -520,7 +525,7 @@ run_actual_test() ->
 
 	trace_utils:notice( "A resizable frame will be shown, "
 		"comprising moving, textured rectangle, cube and sphere, "
-		"displaying with the current time as well, until closed by the user." ),
+		"displaying the current time as well, until closed by the user." ),
 
 	gui:start(),
 
@@ -528,6 +533,7 @@ run_actual_test() ->
 
 	% Postpone the processing of first events to accelerate initial setup:
 	InitialGUIState = gui:batch( fun() -> init_test_gui() end ),
+	%InitialGUIState = init_test_gui(),
 
 	gui:show( InitialGUIState#my_gui_state.parent ),
 
@@ -600,7 +606,6 @@ gui_main_loop( GUIState ) ->
 
 	% Matching the least-often received messages last:
 	receive
-
 
 		% Not strictly necessary, as anyway a regular redraw is to happen soon
 		% afterwards:
@@ -688,7 +693,7 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( GUIState )
 
 
-	% As the GUI is to be updated even in the absence of user actions:
+	% As this GUI is to be updated even in the absence of user actions:
 	after ?interframe_duration ->
 
 		RenderGUIState = case GUIState#my_gui_state.opengl_state of
@@ -719,8 +724,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Initial size of canvas is typically 20x20 pixels:
 	Size = gui:get_client_size( GLCanvas ),
 
-	trace_utils:debug_fmt(
-	  "Initialising OpenGL (whereas canvas is of initial size ~w).", [ Size ] ),
+	trace_utils:debug_fmt( "Initialising OpenGL "
+		"(whereas canvas is of initial size ~w).", [ Size ] ),
 
 	% So done only once:
 	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
@@ -811,7 +816,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ panel=Panel,
 	% (Erlang) asynchronous message to be sent from this user process and to be
 	% received and applied by the process of the target window, whereas a GL
 	% (NIF-based) operation is immediate; without a sufficient delay, the
-	% rendering will thus take place according to the former (ex: minimised)
+	% rendering will thus take place according to the former (e.g. minimised)
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
