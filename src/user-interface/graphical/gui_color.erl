@@ -44,6 +44,10 @@
 		  get_color_for_gnuplot/1, get_random_colors/1 ]).
 
 
+% Other operations:
+-export([ get_pixel_size/1, pixel_format_to_string/1 ]).
+
+
 -include("gui_color.hrl").
 
 
@@ -57,7 +61,8 @@
 
 
 -type color_by_name() :: atom().
-% A color, as designated by an atom (ex: 'aliceblue'); possibly a logical color.
+% A color, as designated by an atom (e.g. 'aliceblue'); possibly a logical
+% color.
 
 -type logical_color() :: color_by_name().
 % A logicial color, like 'window_frame_color'.
@@ -88,7 +93,7 @@
 
 
 -type render_rgb_color() :: { Red :: color_coordinate(),
-			Green :: color_coordinate(), Blue :: color_coordinate() }.
+		Green :: color_coordinate(), Blue :: color_coordinate() }.
 % A floating-point RGB color (whose coordinates are typically in [0.0,1.0]).
 %
 % The three components shall be encoded with the sRGB transfer function.
@@ -97,8 +102,8 @@
 
 
 -type render_rgba_color() :: { Red ::color_coordinate(),
-			Green :: color_coordinate(), Blue ::color_coordinate(),
-			Alpha :: alpha_coordinate() }.
+		Green :: color_coordinate(), Blue ::color_coordinate(),
+		Alpha :: alpha_coordinate() }.
 % A floating-point RGBA color.
 %
 % The first three components (RGB) shall be encoded with the sRGB transfer
@@ -119,7 +124,7 @@
 
 -type color_buffer() :: rgb_color_buffer() | rgba_color_buffer().
 % A buffer of pixel colors coded as a sequence of RGB or RGBA binary elements
-% (ex: RGBRGBRGB..., or RGBARGBARGBA...), from the top-left pixel to
+% (e.g. RGBRGBRGB..., or RGBARGBARGBA...), from the top-left pixel to
 % bottom-right one, row per row.
 %
 % Useful for direct image manipulation.
@@ -146,6 +151,10 @@
 % Useful for direct image manipulation.
 
 
+-type pixel_format() :: 'rgb' | 'rgba'.
+% A specification of a pixel format.
+
+
 -export_type([ color_by_name/0, logical_color/0,
 
 			   color_by_decimal/0, color_by_decimal_with_alpha/0,
@@ -156,7 +165,7 @@
 			   render_rgb_color/0, render_rgba_color/0, render_color/0,
 
 			   color_buffer/0, rgb_color_buffer/0, rgba_color_buffer/0,
-			   alpha_buffer/0 ]).
+			   alpha_buffer/0, pixel_format/0 ]).
 
 
 % Shorthands:
@@ -164,6 +173,8 @@
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
+
+-type byte_size() :: system_utils:byte_size().
 
 
 
@@ -413,4 +424,26 @@ get_random_colors( ColorCount ) ->
 
 	% Only keep RBG values, not the atom-based name:
 	[ RGB || { _Name, RGB } <-
-				list_utils:draw_elements_from( AllColors, ColorCount ) ].
+					list_utils:draw_elements_from( AllColors, ColorCount ) ].
+
+
+
+% Pixel formats.
+
+
+% @doc Returns the number of bytes used by each pixel of the specified format.
+-spec get_pixel_size( pixel_format() ) -> byte_size().
+get_pixel_size(  _PixelFormat=rgb ) ->
+	3;
+
+get_pixel_size( _PixelFormat=rgba ) ->
+	4.
+
+
+% @doc Returns a textual description of the specified pixel format.
+-spec pixel_format_to_string( pixel_format() ) -> ustring().
+pixel_format_to_string( _PixelFormat=rgb ) ->
+	"RGB";
+
+pixel_format_to_string( _PixelFormat=rgba ) ->
+	"RGBA".
