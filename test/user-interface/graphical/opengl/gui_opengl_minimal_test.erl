@@ -35,7 +35,7 @@
 % rendering, resizing and closing.
 %
 % This test relies on the OpenGL 1.x compatibility mode, as opposed to more
-% modern versions of OpenGL (ex: 3.1) that rely on shaders and GLSL.
+% modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
 %
 % See the gui_opengl.erl tested module.
 %
@@ -76,7 +76,7 @@
 	context :: gl_context(),
 
 	% Here just a boolean; in more complex cases, would be a maybe OpenGL state
-	% (ex: to store the loaded textures):
+	% (e.g. to store the loaded textures):
 	%
 	opengl_initialised = false :: boolean() } ).
 
@@ -341,7 +341,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	% (Erlang) asynchronous message to be sent from this user process and to be
 	% received and applied by the process of the target window, whereas a GL
 	% (NIF-based) operation is immediate; without a sufficient delay, the
-	% rendering will thus take place according to the former (ex: minimised)
+	% rendering will thus take place according to the former (e.g. minimised)
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
