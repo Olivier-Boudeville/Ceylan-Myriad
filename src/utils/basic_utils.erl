@@ -1409,8 +1409,9 @@ checkpoint( Number ) ->
 
 
 % @doc Displays specified string on the standard output of the console, ensuring
-% as much as possible this message is output synchronously, so that it can be
-% output on the console even if the virtual machine is to crash just after.
+% as much as possible that this message is output synchronously, so that it can
+% be fully processed (typically displayed) by the console even if the virtual
+% machine is to crash just after.
 %
 -spec display( ustring() ) -> void().
 display( Message ) ->
