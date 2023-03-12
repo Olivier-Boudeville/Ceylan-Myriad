@@ -369,6 +369,8 @@
 -type any_path_element() :: path_element() | bin_path_element().
 % Any (legit) type of a part of a path (e.g. `<<"local">>' in
 % "/usr/local/share"); preferably without whitespaces.
+%
+% ".." / <<"..">> means the parent directory.
 
 
 -type leaf_name() :: path_element().
