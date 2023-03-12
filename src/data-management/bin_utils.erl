@@ -26,7 +26,6 @@
 % Creation date: Sunday, July 30, 2017.
 
 
-
 % @doc Gathering of various facilities regarding the management of <b>binary,
 % bit-level operations</b>, like cyclic redundancy check (CRC) calculations.
 %
@@ -35,7 +34,11 @@
 -module(bin_utils).
 
 
+-export([ concatenate/1, concatenate/2, concatenate/3,
+		  replicate/2 ]).
+
 -export([ get_crc8_table/0, compute_crc8_checksum/1 ]).
+
 
 -type crc8_checksum() :: byte().
 
@@ -46,6 +49,68 @@
 % - http://erlang.org/doc/programming_examples/bit_syntax.html
 % - http://erlang.org/doc/reference_manual/expressions.html#bit_syntax
 % - http://learnyousomeerlang.com/starting-out-for-real#bit-syntax
+
+
+% Shorthands:
+
+-type count() :: basic_utils:count().
+
+
+
+% @doc Concatenates the specified binaries into the returned one.
+%
+% Note: mostly added for documentation purpose; can/should be inlined by the
+% developer.
+%
+-spec concatenate( binary(), binary() ) -> binary().
+concatenate( Bin1, Bin2 ) ->
+	<<Bin1/binary, Bin2/binary>>.
+
+
+% @doc Concatenates the specified binaries into the returned one.
+-spec concatenate( [ binary() ] ) -> binary().
+concatenate( BinStrs ) ->
+
+	% Could have been instead:
+	%erlang:iolist_to_binary( BinStrs ).
+
+	lists:foldr( fun concatenate/2, _InitAcc= <<>>, _List=BinStrs ).
+
+
+
+% @doc Concatenates to the specified original binary (on its right) the
+% specified number of copies of the second specified binary.
+%
+-spec concatenate( binary(), count(), binary() ) -> binary().
+concatenate( OrigBin, ReplicationCount, ToReplicateBin ) ->
+	% Avoids too many transient copies:
+	concat_helper( ReplicationCount, ToReplicateBin, OrigBin ).
+
+
+concat_helper( _ReplicationCount=0, _ToReplicateBin, Bin ) ->
+	Bin;
+
+concat_helper( ReplicationCount, ToReplicateBin, Bin ) ->
+	NewBin = <<Bin/binary, ToReplicateBin/binary>>,
+	concat_helper( ReplicationCount-1, ToReplicateBin, NewBin ).
+
+
+
+% @doc Returns the binary obtained when concatenating the specified binary the
+% specified number of times.
+%
+-spec replicate( binary(), count() ) -> binary().
+replicate( Bin, Count ) ->
+	replicate( Bin, Count, _Acc= <<>> ).
+
+
+% (helper)
+replicate( _Bin, _Count=0, Acc ) ->
+	Acc;
+
+replicate( Bin, Count, Acc ) ->
+	replicate( Bin, Count-1, <<Bin/binary, Acc/binary>> ).
+
 
 
 % @doc Returns the table used to compute CRC8.
