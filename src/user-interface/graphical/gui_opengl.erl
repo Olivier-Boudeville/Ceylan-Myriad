@@ -81,11 +81,17 @@
 % Note: with OpenGL, angles are in degrees.
 
 % For most OpenGL operations to succeed, first the wx/gl NIF must be loaded
-% (hence after gui:start/0), and a GL context must be available (thus cannot
-% happen before the main frame is shown).
+% (hence after gui:start/0), and a GL context must be available (thus this
+% cannot happen before the main frame is shown).
 
 % Relying here only on the wx API version 3.0 (not supporting older ones such as
 % 2.8; see wx_opengl_SUITE.erl for an example of supporting both).
+
+% Note that wx operations are mostly message-based (each widget is a process)
+% and thus delayed (when the receiver processes a corresponding message),
+% whereas OpenGL ones are NIF-based (hence instantaneous). As such some
+% operations require to be synchronised (e.g. the creation of a wxGLCanvas must
+% be over before OpenGL calls apply to it).
 
 % Much inspiration was taken from the excellent Wings3D modeller (see
 % http://www.wings3d.com/).
@@ -138,11 +144,11 @@
 
 -type platform_identifier() :: { vendor_name(), renderer_name() }.
 % Uniquely identifies an (OpenGL driver) platform; does not change from release
-% to release and should be used by platform-recognition algorithms.
+% to release, and should be used by platform-recognition algorithms.
 
 
 -type gl_version() :: basic_utils:three_digit_version().
-% An OpenGL version (major/minor/path) typically as queried from a driver.
+% An OpenGL version (major/minor/path), typically as queried from a driver.
 
 
 -type gl_profile() :: 'core'           % Deprecated functions are disabled
@@ -152,17 +158,16 @@
 
 
 -type gl_extension() :: atom().
-% An OpenGL extension.
+% Designates an OpenGL extension.
 
 
 -type info_table_id() :: ets:tid().
 % The identifier of an ETS-based OpenGL information table, registering the
-% following static information for an easier/more efficient lookup:
+% following static information for an easier/more efficient (frequent) lookup:
 %  - {gl_version, gl_version()}
 %  - {gl_profiles, [gl_profile()]}
 %  - all extensions detected as supported by the current card (an atom entry
 %  each)
-
 
 
 
@@ -221,14 +226,24 @@
 
 -type length_factor() :: math_utils:factor().
 % A floating-point factor, typically in [0.0,1.0], typically to designate
-% widths, heights, etc.
+% widths, heights, etc. when they have been normalised.
+%
+% Typically, for textures, dimensions are powers of two, and a length factor is
+% the ratio between the real, original texture dimension and the actual one of
+% its buffer (a power of two).
+%
+% This is the coordinate type of UV coordinates.
+
+
+-type gl_pixel_format() :: enum().
+% An OpenGL pixel format (e.g. ?GL_RGBA).
 
 
 -type texture_id() :: non_neg_integer().
-% An OpenGL texture "name" (meant to be unique), an identifier.
+% An OpenGL texture "name" (meant to be unique), an identifier thereof.
 
 -type texture() :: #texture{}.
-% Information regarding to a (2D) texture.
+% Information regarding a (2D) texture.
 
 -type mipmap_level() :: non_neg_integer().
 % 0 is the base level.
@@ -238,14 +253,14 @@
 					  | ?GL_PROJECTION
 					  | ?GL_TEXTURE
 					  | ?GL_COLOR.
-% The various matrix stacks available, a.k.a. as the current matrix mode.
+% The various matrix stacks available, a.k.a. the current matrix mode.
 
 
 -type shader_id() :: non_neg_integer().
 % The identifier of (any kind of) a shader.
 
 
-% 6 types of shaders, in pipeline order:
+% There are 6 types of shaders; in pipeline order:
 
 -type vertex_shader_id() :: shader_id().
 % The identifier of a vertex shader, to run on a programmable vertex processor.
@@ -303,6 +318,29 @@
 -type program_id() :: non_neg_integer().
 % The identifier of GLSL, shader-based program.
 
+-type buffer_usage_hint()::
+		{ buffer_access_usage(), buffer_access_pattern() }.
+% Hint given to the GL implementation regarding how a buffer will be
+% accessed.
+%
+% This enables the GL implementation to possibly make more intelligent decisions
+% that may significantly impact buffer object performance.
+
+
+-type buffer_access_usage() ::
+	'draw'  % The buffer will be modified by the application, and used as
+			% the source for GL drawing and image specification commands.
+
+  | 'read'  % The buffer will be modified by reading data from OpenGL, and
+			% used to return that data when queried by the application.
+
+  | 'copy'. % The buffer is modified by reading data from OpenGL, and used
+			% to return that data when queried by the application.
+
+-type buffer_access_pattern() ::
+	'stream'   % The buffer will be modified once, and used at most a few times.
+  | 'static'   % The buffer will be modified once, and used many times.
+  | 'dynamic'. % The buffer will be modified repeatedly, and used many times.
 
 
 -opaque gl_error() :: enum().
@@ -313,7 +351,7 @@
 
 
 -opaque any_error() :: gl_error() | glu_error().
-% An error code reported by OpenGL or GLU.
+% An error code reported by the graphic subsystem, OpenGL or GLU.
 
 
 -opaque glu_id() :: non_neg_integer().
@@ -366,7 +404,7 @@
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
 
-		  get_size/2,
+		  get_size_of_elements/2, get_pixel_size/1,
 
 		  create_canvas/1, create_canvas/2,
 		  create_context/1, set_context_on_shown/2, set_context/2,
@@ -379,9 +417,12 @@
 
 		  render_texture/2, render_texture/3,
 
+		  get_color_buffer/1, get_color_buffer/3,
+
 		  delete_texture/1, delete_textures/1,
 
-		  get_texture_dimensions/1, generate_texture_id/0,
+		  get_texture_dimensions/1, get_texture_dimensions/2,
+		  generate_texture_id/0, texture_to_string/1,
 
 		  render_mesh/1,
 
@@ -395,7 +436,7 @@
 
 		  generate_program_from/2, generate_program/1, generate_program/2,
 
-		  bind_vertex_buffer_object/2,
+		  bind_vertex_buffer_object/2, buffer_usage_hint_to_gl/1,
 
 		  check_error/0, interpret_error/1 ]).
 
@@ -420,7 +461,6 @@
 -type byte_size() :: system_utils:byte_size().
 
 -type any_vertex3() :: point3:any_vertex3().
--type point3() :: point3:point3().
 
 -type unit_normal3() :: vector3:unit_normal3().
 
@@ -446,6 +486,7 @@
 -type rgb_color_buffer() :: gui_color:rgb_color_buffer().
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().
 -type alpha_buffer() :: gui_color:alpha_buffer().
+-type pixel_format() :: gui_color:pixel_format().
 
 -type image() :: gui_image:image().
 -type image_format() :: gui_image:image_format().
@@ -553,17 +594,18 @@ get_renderer_name() ->
 get_version_string() ->
 	MaybeRes = try gl:getString( ?GL_VERSION ) of
 
-			Str ->
-				Str
+		Str ->
+			Str
 
-		catch E ->
-			trace_utils:warning_fmt( "Unable to obtain the OpenGL version "
-									 "string: ~p.", [ E ] ),
-			undefined
+	catch E ->
+		trace_utils:warning_fmt( "Unable to obtain the OpenGL version "
+								 "string: ~p.", [ E ] ),
+		undefined
 
 	end,
 
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	MaybeRes.
 
 
@@ -584,7 +626,7 @@ get_version() ->
 	% Instead of single-element lists, extra (garbage?) elements are returned by
 	% gl:getIntegerv/1:
 	%
-	% (disabled as the third version number, 'release', is not available that
+	% (disabled, as the third version number, 'release', is not available that
 	% way)
 	%
 	%Major = hd( gl:getIntegerv( ?GL_MAJOR_VERSION ) ),
@@ -601,8 +643,8 @@ get_version() ->
 
 		VersionStr ->
 			% Parsing "4.6.0 FOOBAR 495.44" for example:
-			{ MajStr, MinStr, Release } =
-				case text_utils:split( VersionStr, _Delimiters=[ $., $ ] ) of
+			{ MajStr, MinStr, Release } = case text_utils:split( VersionStr,
+					_Delimiters=[ $., $ ] ) of
 
 				% Assuming a release version 0 if not having better information:
 				[ MajorStr, MinorStr ] ->
@@ -611,8 +653,8 @@ get_version() ->
 					{ MajorStr, MinorStr, _ReleaseI=0 };
 
 				[ MajorStr, MinorStr, ReleaseStr | _ ] ->
-					ReleaseI =
-						case text_utils:try_string_to_integer( ReleaseStr ) of
+					ReleaseI = case text_utils:try_string_to_integer(
+							ReleaseStr ) of
 
 						undefined ->
 							trace_utils:warning_fmt( "No release version for "
@@ -742,7 +784,8 @@ get_shading_language_version() ->
 % @doc Returns a list of the supported extensions.
 %
 % For example 390 extensions like 'GL_AMD_multi_draw_indirect',
-% 'GL_AMD_seamless_cubemap_per_texture', etc.
+% 'GL_AMD_seamless_cubemap_per_texture', etc. may be reported by modern
+% cards/drivers.
 %
 -spec get_supported_extensions() -> [ gl_extension() ].
 get_supported_extensions() ->
@@ -769,31 +812,13 @@ get_support_description() ->
 		"i.e. ~ts", [ get_version_string(),
 					  text_utils:version_to_string( get_version() ) ] ),
 
-	SupportedProfiles = case is_profile_supported( core ) of
-
-		true ->
-			[ core ];
-
-		false ->
-			[]
-
-	end ++ case is_profile_supported( compatibility ) of
-
-		true ->
-			[ compatibility ];
-
-		false ->
-			[]
-
-	end,
-
 	ProfStr = text_utils:format( "supported profiles: ~ts",
-		[ case SupportedProfiles of
+		[ case get_supported_profiles() of
 
 			[] ->
 				"none";
 
-			_ ->
+			SupportedProfiles ->
 				text_utils:atoms_to_listed_string( SupportedProfiles )
 
 		  end ] ),
@@ -945,14 +970,13 @@ get_unsupported_extensions( Extensions, Tid ) ->
 %
 -spec check_requirements( two_or_three_digit_version() ) -> void().
 check_requirements( MinOpenGLVersion ) ->
-	check_requirements( MinOpenGLVersion, _RequiredProfile=core,
-						_RequiredExtensions=[] ).
+	check_requirements( MinOpenGLVersion, _RequiredProfile=core ).
 
 
 
 % @doc Checks the OpenGL requirements of this program against the local support,
-% regarding the minimum OpenGL version, the required profile; displays an error
-% message and throws an exception if a requirement is not met.
+% regarding the minimum OpenGL version and the specified profile; displays an
+% error message and throws an exception if a requirement is not met.
 %
 -spec check_requirements( two_or_three_digit_version(), gl_profile() ) ->
 															void().
@@ -963,7 +987,7 @@ check_requirements( MinOpenGLVersion, RequiredProfile ) ->
 
 
 % @doc Checks the OpenGL requirements of this program against the local support,
-% regarding the minimum OpenGL version, the required profile and extensions;
+% regarding the minimum OpenGL version, the specified profile and extensions;
 % displays an error message and throws an exception if a requirement is not met.
 %
 -spec check_requirements( two_or_three_digit_version(), gl_profile(),
@@ -1022,6 +1046,56 @@ check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
 
 
 
+% @doc Returns the number of bytes used by the specified number of elements of
+% the specified GL type.
+%
+-spec get_size_of_elements( count(), gl_base_type() ) -> byte_size().
+get_size_of_elements( Count, _GLType=?GL_BYTE ) ->
+	Count;
+
+get_size_of_elements( Count, _GLType=?GL_UNSIGNED_BYTE ) ->
+	Count;
+
+get_size_of_elements( Count, _GLType=?GL_UNSIGNED_SHORT ) ->
+	2*Count;
+
+get_size_of_elements( Count, _GLType=?GL_SHORT ) ->
+	2*Count;
+
+get_size_of_elements( Count, _GLType=?GL_UNSIGNED_INT ) ->
+	4*Count;
+
+get_size_of_elements( Count, _GLType=?GL_INT ) ->
+	4*Count;
+
+get_size_of_elements( Count, _GLType=?GL_FLOAT ) ->
+	4*Count;
+
+get_size_of_elements( Count, _GLType=?GL_DOUBLE ) ->
+	8*Count.
+
+
+
+% @doc Returns the number of bytes used by each pixel of the specified GL
+% format.
+%
+-spec get_pixel_size( gl_pixel_format() ) -> byte_size().
+get_pixel_size( GLPixFormat ) ->
+	gui_color:get_pixel_size( gl_pixel_format_to_pixel_format( GLPixFormat ) ).
+
+
+
+% @doc Returns our "standard" pixel format corresponding to the specified GL
+% one.
+%
+-spec gl_pixel_format_to_pixel_format( gl_pixel_format() ) -> pixel_format().
+gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGB ) ->
+	rgb;
+
+gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGBA ) ->
+	rgba.
+
+
 % @doc Tells whether OpenGL hardware acceleration is available on this host,
 % based on the glxinfo executable.
 %
@@ -1039,36 +1113,6 @@ is_hardware_accelerated() ->
 			is_hardware_accelerated( GlxinfoStrs )
 
 	end.
-
-
-
-% @doc Returns the number of bytes used by the specified number of elements of
-% the specified GL type.
-%
--spec get_size( count(), gl_base_type() ) -> byte_size().
-get_size( Count, _GLType=?GL_BYTE ) ->
-	Count;
-
-get_size( Count, _GLType=?GL_UNSIGNED_BYTE ) ->
-	Count;
-
-get_size( Count, _GLType=?GL_UNSIGNED_SHORT ) ->
-	2*Count;
-
-get_size( Count, _GLType=?GL_SHORT ) ->
-	2*Count;
-
-get_size( Count, _GLType=?GL_UNSIGNED_INT ) ->
-	4*Count;
-
-get_size( Count, _GLType=?GL_INT ) ->
-	4*Count;
-
-get_size( Count, _GLType=?GL_FLOAT ) ->
-	4*Count;
-
-get_size( Count, _GLType=?GL_DOUBLE ) ->
-	8*Count.
 
 
 
@@ -1141,7 +1185,7 @@ get_glxinfo_strings() ->
 
 
 
-% @doc Creates and returns an OpenGL canvas with specified parent widget and
+% @doc Creates and returns an OpenGL canvas with the specified parent widget and
 % default settings: RGBA and double-buffering.
 %
 % Note: not to be mixed up with gui:create_canvas/1, which creates a basic
@@ -1154,11 +1198,11 @@ create_canvas( Parent ) ->
 
 
 
-% @doc Creates and returns an OpenGL canvas with specified parent widget and
+% @doc Creates and returns an OpenGL canvas with the specified parent widget and
 % options.
 %
-% If the device context attributes are not set, following default apply: RGBA
-% and double-buffering.
+% If the device context attributes are not set (i.e. no gl_attributes entry),
+% following default apply: RGBA and double-buffering.
 %
 % Note: not to be mixed up with gui:create_canvas/1, which creates a basic
 % (non-OpenGL) canvas.
@@ -1180,7 +1224,7 @@ create_canvas( Parent, Opts ) ->
 
 	%trace_utils:debug_fmt( "WxOpts = ~p", [ WxOpts ] ),
 
-	% Using newer wxGL API (of arity 2, not 3):
+	% Using newer wxGL API (of arity 2, not 3); no error case to handle:
 	Res = wxGLCanvas:new( Parent, WxOpts ),
 
 	% Commented-out, as not relevant (an OpenGL context probably does not
@@ -1286,16 +1330,18 @@ swap_buffers( Canvas ) ->
 -spec load_texture_from_image( image() ) -> texture().
 load_texture_from_image( Image ) ->
 
-	ImgWidth = wxImage:getWidth( Image ),
-	ImgHeight = wxImage:getHeight( Image ),
+	trace_utils:debug_fmt( "Loading texture from a ~ts.",
+						   [ gui_image:to_string( Image ) ] ),
 
-	{ Width, Height } = get_texture_dimensions( ImgWidth, ImgHeight ),
+	OrigDims = { ImgWidth, ImgHeight } = gui_image:get_size( Image ),
 
-	trace_utils:debug_fmt( "Image dimensions: {~B,~B}; texture dimensions: "
-		"{~B,~B}.", [ ImgWidth, ImgHeight, Width, Height ] ),
+	TargetDims = { TexWidth, TexHeight } = get_texture_dimensions( OrigDims ),
 
-	% wxImage is either RGB or RGBA:
-	ColorBuffer = get_color_buffer( Image ),
+	% The wxImage is either RGB or RGBA; we have to expand it in buffer if
+	% needed, so that it has the right (power-of-two) dimensions:
+	%
+	ColorBuffer = get_color_buffer( Image, OrigDims, TargetDims ),
+	%ColorBuffer = get_color_buffer( Image ),
 
 	% Let's create the OpenGL texture:
 
@@ -1322,17 +1368,24 @@ load_texture_from_image( Image ) ->
 	end,
 
 	% Specifies this two-dimensional texture image:
+	%
+	% (this is typically a call that may result in a SEGV)
+	%
 	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=Format,
-		Width, Height, _Border=0, _InputBufferFormat=Format,
+		TexWidth, TexHeight, _Border=0, _InputBufferFormat=Format,
 		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
 
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
-	%trace_utils:debug( "Texture loaded from image." ),
+	Zero = 0.0,
 
 	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
-			  min_x=0.0, min_y=0.0,
-			  max_x=ImgWidth / Width, max_y=ImgHeight / Height }.
+			  min_x=Zero, min_y=Zero,
+			  max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight }.
+
+	%#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
+	%		  max_x=Zero, max_y=Zero,
+	%		  min_x=ImgWidth / TexWidth, min_y=ImgHeight / TexHeight }.
 
 
 
@@ -1365,7 +1418,7 @@ load_texture_from_file( ImageFormat, ImagePath ) ->
 
 
 % @doc Creates a texture corresponding to the specified text, rendered with
-% specified font, brush and color.
+% the specified font, brush and color.
 %
 -spec create_texture_from_text( ustring(), font(), brush(),
 								color_by_decimal() ) -> texture().
@@ -1374,7 +1427,7 @@ create_texture_from_text( Text, Font, Brush, Color ) ->
 
 
 % @doc Creates a texture corresponding to the specified text, rendered with
-% specified font, brush and color, flipping it vertically if requested.
+% the specified font, brush and color, flipping it vertically if requested.
 %
 -spec create_texture_from_text( ustring(), font(), brush(), color_by_decimal(),
 								boolean() ) -> texture().
@@ -1434,6 +1487,7 @@ create_texture_from_text( Text, Font, Brush, Color, Flip ) ->
 
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
 
+	% GL_LINEAR better than GL_NEAREST:
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
 
 	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
@@ -1450,6 +1504,7 @@ create_texture_from_text( Text, Font, Brush, Color, Flip ) ->
 
 	%trace_utils:debug( "Texture loaded from text." ),
 
+	% Not supposed to be null dimensions:
 	#texture{ id=TextureId, width=StrW, height=StrH, min_x=0.0, min_y=0.0,
 			  max_x=StrW/Width, max_y=StrH/Height }.
 
@@ -1536,6 +1591,19 @@ get_texture_dimensions( Width, Height ) ->
 generate_texture_id() ->
 	[ TextureId ] = gl:genTextures( _Count=1 ),
 	TextureId.
+
+
+-spec texture_to_string( texture() ) -> ustring().
+texture_to_string( #texture{ id=TexId,
+							 width=Width,
+							 height=Height,
+							 min_x=MinX,
+							 min_y=MinY,
+							 max_x=MaxX,
+							 max_y=MaxY } ) ->
+	text_utils:format( "texture #~B, whose content size is ~Bx~B pixels, "
+					   "and in-buffer coordinates are {~f,~f} to {~f,~f}",
+		[ TexId, Width, Height, MinX, MinY, MaxX, MaxY ] ).
 
 
 
@@ -1724,10 +1792,10 @@ compile_vertex_shader( VertexShaderPath ) ->
 	case gl:getShaderiv( VertexShaderId, ?GL_COMPILE_STATUS ) of
 
 		?GL_TRUE ->
-			MaybeLogStr =:=	undefined orelse
-					trace_utils:warning_fmt( "Compilation of the vertex shader "
-						"defined in '~ts' succeeded, yet reported that '~ts'.",
-						[ VertexShaderPath, MaybeLogStr ] );
+			MaybeLogStr =:= undefined orelse
+				trace_utils:warning_fmt( "Compilation of the vertex shader "
+					"defined in '~ts' succeeded, yet reported that '~ts'.",
+					[ VertexShaderPath, MaybeLogStr ] );
 
 		_ ->
 			MsgStr = case MaybeLogStr of
@@ -1901,7 +1969,6 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 
 
 
-
 % @doc Loads and compiles a geometry shader from the specified source file
 % (whose extension is typically .geometry.glsl), and returns its identifier.
 %
@@ -1971,7 +2038,6 @@ compile_geometry_shader( GeometryShaderPath ) ->
 
 
 
-
 % @doc Loads and compiles a fragment shader from the specified source file
 % (whose extension is typically fragment.glsl), and returns its identifier.
 %
@@ -2038,6 +2104,7 @@ compile_fragment_shader( FragmentShaderPath ) ->
 	end,
 
 	FragmentShaderId.
+
 
 
 % @doc Loads and compiles a compute shader from the specified source file
@@ -2120,7 +2187,7 @@ generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 	VertexShaderId = compile_vertex_shader( VertexShaderPath ),
 	FragmentShaderId = compile_fragment_shader( FragmentShaderPath ),
 
-	generate_program( _ShaderIds= [ VertexShaderId, FragmentShaderId ] ).
+	generate_program( _ShaderIds=[ VertexShaderId, FragmentShaderId ] ).
 
 
 
@@ -2209,7 +2276,8 @@ generate_program( ShaderIds, UserAttributes ) ->
 % @doc Binds the specified vertices in a new vertex object buffer (VBO) whose
 % identifier is returned.
 %
--spec bind_vertex_buffer_object( [ point3() ], enum() ) -> vbo_id().
+-spec bind_vertex_buffer_object( [ any_vertex3() ], buffer_usage_hint() ) ->
+										vbo_id().
 bind_vertex_buffer_object( Vertices, UsageHint ) ->
 
 	% One (integer) identifier of array buffer wanted:
@@ -2219,11 +2287,52 @@ bind_vertex_buffer_object( Vertices, UsageHint ) ->
 
 	VBuffer = point3:to_buffer( Vertices ),
 
-	gl:bufferData( ?GL_ARRAY_BUFFER, byte_size( VBuffer ), VBuffer, UsageHint ),
+	gl:bufferData( ?GL_ARRAY_BUFFER, byte_size( VBuffer ), VBuffer,
+		buffer_usage_hint_to_gl( UsageHint ) ),
 
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	VertexBufferId.
+
+
+
+% Conversion helper.
+%
+% See https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml.
+%
+-spec buffer_usage_hint_to_gl( buffer_usage_hint()  ) -> enum().
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=draw, _Access=stream } ) ->
+	% In gl.hrl:
+	?GL_STREAM_DRAW;
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=read, _Access=stream } ) ->
+	?GL_STREAM_READ;
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=stream } ) ->
+	?GL_STREAM_COPY;
+
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=draw, _Access=static } ) ->
+	% In gl.hrl:
+	?GL_STATIC_DRAW;
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=read, _Access=static } ) ->
+	?GL_STATIC_READ;
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=static } ) ->
+	?GL_STATIC_COPY;
+
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=draw, _Access=dynamic } ) ->
+	% In gl.hrl:
+	?GL_DYNAMIC_DRAW;
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=read, _Access=dynamic } ) ->
+	?GL_DYNAMIC_READ;
+
+buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=dynamic } ) ->
+	?GL_DYNAMIC_COPY.
+
 
 
 
@@ -2232,7 +2341,6 @@ bind_vertex_buffer_object( Vertices, UsageHint ) ->
 					[ unit_normal3() ], [ render_rgb_color() ] ) -> void().
 render_faces( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
 	ok;
-
 
 % We have quad-based faces here:
 render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
@@ -2279,17 +2387,16 @@ render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
 	render_faces( T, FaceCount+1, Vertices, Normals, Colors ).
 
 
-
 % @doc Returns the RGB or RGBA color buffer corresponding to the specified
 % image.
 %
-% The returned buffer shall be "const", in the sense of being neither be
+% The returned buffer shall be "const", in the sense of being neither
 % deallocated nor assigned to any image.
 %
 -spec get_color_buffer( image() ) -> color_buffer().
 get_color_buffer( Image ) ->
 
-   RGBBuffer = wxImage:getData( Image ),
+	RGBBuffer = wxImage:getData( Image ),
 
 	case wxImage:hasAlpha( Image ) of
 
@@ -2306,8 +2413,7 @@ get_color_buffer( Image ) ->
 	end.
 
 
-
-% @doc Merges the specified RGB and alpha buffers into a RGBA one.
+% @doc Merges the specified RGB and alpha buffers into a single RGBA one.
 -spec merge_alpha( rgb_color_buffer(), alpha_buffer() ) -> rgba_color_buffer().
 merge_alpha( RGBBuffer, AlphaBuffer ) ->
 	% These are bitstring generators:
@@ -2317,6 +2423,182 @@ merge_alpha( RGBBuffer, AlphaBuffer ) ->
 					   end,
 					   [ {R,G,B} || <<R,G,B>> <= RGBBuffer ],
 					   [ A || <<A>> <= AlphaBuffer ] ) ).
+
+
+
+% @doc Returns the RGB or RGBA color buffer corresponding to the specified
+% image, once padded according to the specified current and target dimensions.
+%
+% The returned buffer shall be "const", in the sense of being neither
+% deallocated nor assigned to any image.
+%
+-spec get_color_buffer( image(), dimensions(), dimensions() ) -> color_buffer().
+get_color_buffer( Image, CurrentDimensions, TargetDimensions ) ->
+
+	RGBBuffer = wxImage:getData( Image ),
+
+	case wxImage:hasAlpha( Image ) of
+
+		true ->
+			% Obtain a pointer to the array storing the alpha coordinates for
+			% the pixels of this image:
+			%
+			AlphaBuffer = wxImage:getAlpha( Image ),
+			pad_buffer_with_alpha( RGBBuffer, AlphaBuffer, CurrentDimensions,
+								   TargetDimensions  );
+
+		false ->
+			pad_buffer( RGBBuffer, CurrentDimensions, TargetDimensions )
+
+	end.
+
+
+
+% @doc Returns the specified RGB buffer once padded to the specified dimensions,
+% expected to be at least as large as its own.
+%
+-spec pad_buffer( rgb_color_buffer(), dimensions(), dimensions() ) ->
+			rgb_color_buffer().
+pad_buffer( Buffer, CurrentDimensions={ CurrentW, CurrentH },
+			_TargetDimensions={ TargetW, TargetH } ) ->
+
+	cond_utils:if_defined( myriad_debug_opengl,
+		trace_utils:debug_fmt( "Padding a RGB buffer from {~B,~B} "
+			"to {~B,~B}.", [ CurrentW, CurrentH, TargetW, TargetH ] ) ),
+
+	cond_utils:if_defined( myriad_check_opengl,
+		begin
+			TargetW < CurrentW andalso
+				throw( { invalid_width_to_pad, TargetW, CurrentW } ),
+
+			TargetH < CurrentH andalso
+				throw( { invalid_height_to_pad, TargetH, CurrentH } ),
+
+			BufSize = byte_size( Buffer ),
+			ExpectedBufSize = 3 * CurrentW * CurrentH,
+			BufSize =:= ExpectedBufSize orelse
+				throw( { invalid_buffer_dimensions, CurrentDimensions,
+						 ExpectedBufSize, BufSize } )
+		end ),
+
+	% Padding in pure black:
+	PadPixel = <<0, 0, 0>>,
+
+	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
+
+	RowPaddedBuffer = pad_rows( Buffer, _OrigRowSize=3*CurrentW, BinPadRow ),
+
+	BinBlankRow = bin_utils:replicate( PadPixel, TargetW ),
+
+	bin_utils:concatenate( RowPaddedBuffer, _BlankRowCount=TargetH-CurrentH,
+						   BinBlankRow ).
+
+
+-spec pad_rows( rgb_color_buffer(), count(), binary() ) -> rgb_color_buffer().
+pad_rows( Buffer, OrigRowSize, BinPadRow ) ->
+	pad_rows( Buffer, OrigRowSize, BinPadRow, _BinAcc= <<>> ).
+
+
+% Pads each row with the specified padding binary.
+%
+% (helper)
+%
+pad_rows( _Buffer= <<>>, _OrigRowSize, _BinPadRow, BinAcc ) ->
+	BinAcc;
+%
+% Matching not supported:
+%pad_rows( _Buffer= <<BinRow:OrigRowSize/binary,T/binary>>, OrigRowSize,
+%          BinPadRow, BinAcc )->
+%   pad_rows( T, OrigRowSize, BinPadRow,
+%             <<BinAcc/binary, BinRow/binary, BinPadRow/binary>> ).
+
+pad_rows( Buffer, OrigRowSize, BinPadRow, BinAcc ) ->
+
+	%trace_utils:debug_fmt( "Padding row of original size ~B bytes.",
+	%                       [ OrigRowSize ] ),
+
+	%<<BinRow:OrigRowSize/binary,T/binary>> = Buffer,
+	case Buffer of
+
+		<<BinRow:OrigRowSize/binary, T/binary>> ->
+			pad_rows( T, OrigRowSize, BinPadRow,
+					  <<BinAcc/binary, BinRow/binary, BinPadRow/binary>> );
+
+		_Other ->
+			throw( { unmatching_buffer, byte_size( Buffer ), OrigRowSize } )
+
+	end.
+
+
+% @doc Returns the specified RGB buffer once padded to the specified dimensions,
+% expected to be at least as large as its own.
+%
+-spec pad_buffer_with_alpha( rgb_color_buffer(), alpha_buffer(), dimensions(),
+							 dimensions() ) -> rgb_color_buffer().
+pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
+		CurrentDimensions={ CurrentW, CurrentH },
+		_TargetDimensions={ TargetW, TargetH } ) ->
+
+	cond_utils:if_defined( myriad_debug_opengl,
+		trace_utils:debug_fmt( "Padding a RGBA buffer from {~B,~B} "
+			"to {~B,~B}.", [ CurrentW, CurrentH, TargetW, TargetH ] ) ),
+
+	cond_utils:if_defined( myriad_check_opengl,
+		begin
+			TargetW < CurrentW andalso
+				throw( { invalid_width_to_pad, TargetW, CurrentW } ),
+
+			TargetH < CurrentH andalso
+				throw( { invalid_height_to_pad, TargetH, CurrentH } ),
+
+			RGBBufSize = byte_size( RGBBuffer ),
+			ExpectedRGBBufSize = 3 * CurrentW * CurrentH,
+			RGBBufSize =:= ExpectedRGBBufSize orelse
+				throw( { invalid_rgb_buffer_dimensions, CurrentDimensions,
+						 ExpectedRGBBufSize, RGBBufSize } ),
+
+			AlphaBufSize = byte_size( AlphaBuffer ),
+			ExpectedAlphaBufSize = 1 * CurrentW * CurrentH,
+			AlphaBufSize =:= ExpectedAlphaBufSize orelse
+				throw( { invalid_alpha_buffer_dimensions, CurrentDimensions,
+						 ExpectedAlphaBufSize, AlphaBufSize } )
+
+		end ),
+
+	% Padding in pure transparent (0, in wxwidgets conventions; same for
+	% OpenGL), black:
+	%
+	PadPixel = <<0, 0, 0, 0 >>,
+
+	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
+
+	RowPaddedBuffer = pad_rows_with_alpha( RGBBuffer, AlphaBuffer, BinPadRow ),
+
+	BinBlankRow = bin_utils:replicate( PadPixel, TargetW ),
+
+	bin_utils:concatenate( RowPaddedBuffer, _BlankRowCount=TargetH-CurrentH,
+						   BinBlankRow ).
+
+
+
+% Pads each row, once the alpha coordinats have been interleaved, with the
+% specified padding binary.
+%
+-spec pad_rows_with_alpha( rgb_color_buffer(), alpha_buffer(), binary() ) ->
+								rgba_color_buffer().
+pad_rows_with_alpha( RGBBuffer, AlphaBuffer, BinPadRow ) ->
+	pad_rows_with_alpha( RGBBuffer, AlphaBuffer, BinPadRow, _BinAcc= <<>> ).
+
+
+% (helper)
+pad_rows_with_alpha( _RGBBuffer= <<>>, _AlphaBuffer= <<>>, _BinPadRow,
+					 BinAcc ) ->
+	BinAcc;
+
+pad_rows_with_alpha( _RGBBuffer= <<R, G, B, T/binary>>,
+					 _AlphaBuffer= <<A, Ta/binary>>, BinPadRow, BinAcc ) ->
+	NewBinAcc = <<BinAcc/binary, R, G, B, A, BinPadRow/binary>>,
+	pad_rows_with_alpha( T, Ta, BinPadRow, NewBinAcc ).
 
 
 
@@ -2356,7 +2638,7 @@ check_error() ->
 % Reference being
 % https://www.khronos.org/registry/OpenGL-Refpages/gl4/html/glGetError.xhtml:
 interpret_error( ?GL_INVALID_ENUM ) ->
-	"invald value specified for an enumerated argument (GL_INVALID_ENUM)";
+	"invalid value specified for an enumerated argument (GL_INVALID_ENUM)";
 
 interpret_error( ?GL_INVALID_VALUE ) ->
 	"out-of-range numeric argument (GL_INVALID_VALUE)";
