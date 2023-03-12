@@ -2598,10 +2598,11 @@ maximise_in_parent( Widget ) ->
 % no past operation is still pending at its level.
 %
 % Useful if there exists some means of interacting with it directly (e.g. thanks
-% to an OpenGL NIF) that could create a race condition (e.g. presumably
+% to an OpenGL NIF) that could create a race condition (e.g. presumably a
 % message-based resizing immediately followed by a direct OpenGL rendering).
 %
-% See gui_opengl_minimal_test:on_main_frame_resize/1 for further details.
+% See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details;
+% see also the synchroniseWithCaller message supported by the MyriadGUI loop.
 %
 -spec sync( window() ) -> dimensions().
 sync( Window ) ->
