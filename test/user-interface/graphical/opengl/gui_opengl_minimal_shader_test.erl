@@ -34,7 +34,7 @@
 % structure in order to properly initialise the GUI and OpenGL, handle
 % rendering, resizing and closing.
 %
-% This test relies on shaders and thus on modern versions of OpenGL (ex: 3.3),
+% This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
 % as opposed to the compatibility mode for OpenGL 1.x.
 %
 % See the gui_opengl.erl tested module.
@@ -132,7 +132,7 @@ run_opengl_test() ->
 
 		GlxInfoStr ->
 			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts",
+				"acceleration is available: ~ts.",
 				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
 			run_actual_test()
 
@@ -148,6 +148,7 @@ run_actual_test() ->
 							 "on a white background." ),
 
 	gui:start(),
+
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
 
@@ -230,8 +231,7 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( RepaintedGUIState );
 
 
-
-		% For a window, the first resizing event happens (just) before its
+		% For a window, the first resizing event happens immediately before its
 		% onShown one:
 		%
 		{ onResized, [ _ParentFrame, _ParentFrameId, _NewParentSize,
@@ -290,7 +290,7 @@ gui_main_loop( GUIState ) ->
 
 			gui_main_loop( GUIState )
 
-	% No 'after': no spontaneous action taken, in the absence of events.
+	% No 'after': no spontaneous action taken here, in the absence of events.
 
 	end.
 
@@ -359,8 +359,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 	% Targeting vertex attributes in a VBO:
-	VertexBufferId =
-		gui_opengl:bind_vertex_buffer_object( Vertices, _UsageHint=read_only ),
+	VertexBufferId = gui_opengl:bind_vertex_buffer_object( Vertices,
+		_UsageHint={ draw, static } ),
 
 	% Could be done once for all here:
 	%gl:bindBuffer( ?GL_ARRAY_BUFFER, VertexBufferId ),
@@ -423,7 +423,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% (Erlang) asynchronous message to be sent from this user process and to be
 	% received and applied by the process of the target window, whereas a GL
 	% (NIF-based) operation is immediate; without a sufficient delay, the
-	% rendering will thus take place according to the former (ex: minimised)
+	% rendering will thus take place according to the former (e.g. minimised)
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
@@ -505,10 +505,9 @@ run() ->
 
 	case executable_utils:is_batch() of
 
-
 		true ->
 			test_facilities:display(
-				"(not running the OpenGL test, being in batch mode)" );
+				"(not running this OpenGL test, being in batch mode)" );
 
 		false ->
 			run_opengl_test()
