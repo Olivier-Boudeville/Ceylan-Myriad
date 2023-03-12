@@ -45,20 +45,21 @@
 % We recommend using the following formats and extensions:
 % - PNG (*.png) for lossless, bitmap-like images
 % - JPEG (*.jpeg) for images akin to camera snapshots
-%
-% Note that apparently, according to our test, some images can be loaded fine
-% (e.g. "erlang.png") whereas some others not (e.g. ""myriad-title.png").
-%
-% Here also, the opaqueness of types is difficult to preserve.
-
 
 % Relies on the wxWidgets backend.
 
+% Here also, the opaqueness of types is difficult to preserve.
+
+% We test whether images exist before specifying them to wx, in order to have
+% more proper error reports (otherwise just '{bitmap_creation_failed,
+% IMG_PATH}').
+
+
 
 -export([ create_from_file/1, create_from_file/2,
-		  getSize/1,
+		  get_size/1, has_alpha/1,
 		  load/2, load/3, scale/3, scale/4,
-		  colorize/2,
+		  colorize/2, to_string/1,
 
 		  get_standard_icon/1,
 
@@ -94,15 +95,32 @@
 % It is thus generic, independent from platforms and image file formats.
 
 
--type image_format() :: 'png' | 'jpeg'.
-% Designates a file format able to store images.
+-type image_format() :: 'png'
+					  | 'jpeg'
+					  | 'bmp'
+					  | 'gif'
+					  | 'pcx'
+					  | 'tiff'
+					  | 'tga'
+					  | 'pnm'
+					  | 'iff'
+					  | 'xpm'
+					  | 'ico'
+					  | 'cur'
+					  | 'ani'.
+% Designates a supported file format able to store images.
 %
 % We prefer telling explicitly the type rather than trying to guess it from the
 % extension of a filename, as it is clearer and more reliable.
 %
 % Refer to
 % https://docs.wxwidgets.org/3.1/gdicmn_8h.html#a90a1eb6d85b5044a99b706fd979f27f5
-% for more image formats.
+% for more image formats and to
+% https://docs.wxwidgets.org/3.1/classwx_image.html for the available image
+% handlers (e.g. BMP, PNG, JPEG, GIF, PCX, TIFF, TGA).
+%
+% We recommend PNG for bitmap-like images (as lossless) and JPEG for
+% snapshot-like image (as is lossy but compact).
 
 
 -type image_quality() :: 'normal' | 'high'.
@@ -157,9 +175,20 @@
 % [http://docs.wxwidgets.org/stable/classwx_static_text.html]
 
 
+-type image_path() :: file_path().
+% A path to an image, as a plain string.
+
+-type bin_image_path() :: bin_file_path().
+% A path to an image, as a binary string.
+
+-type any_image_path() :: any_file_path().
+% Any kind of path to an image.
+
+
 -export_type([ image/0, image_format/0, image_quality/0,
 			   bitmap/0, bitmap_display/0, icon/0, text_display/0,
-			   raw_bitmap/0, text_display_option/0  ]).
+			   raw_bitmap/0, text_display_option/0,
+			   image_path/0, bin_image_path/0, any_image_path/0  ]).
 
 
 % For the wx defines:
@@ -169,7 +198,11 @@
 
 % Shorthands:
 
+-type file_path() :: file_utils:file_path().
+-type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:any_file_path().
+
+-type ustring() :: text_utils:ustring().
 
 -type media_type() :: web_utils:media_type().
 
@@ -196,11 +229,17 @@
 % @doc Creates an image instance whose content is read from the specified file,
 % trying to auto-detect the image format of that file.
 %
--spec create_from_file( any_file_path() ) -> image().
+-spec create_from_file( any_image_path() ) -> image().
 create_from_file( AnyImagePath ) ->
 
 	ImagePath = text_utils:ensure_string( AnyImagePath ),
+
+	check_image_path( ImagePath ),
+
 	Image = wxImage:new( ImagePath ),
+
+	%trace_utils:debug_fmt( "Image has alpha channel: ~ts.",
+	%                       [ has_alpha( Image ) ] ),
 
 	case wxImage:isOk( Image ) of
 
@@ -217,12 +256,14 @@ create_from_file( AnyImagePath ) ->
 % @doc Creates an image instance whose content is read from the specified file,
 % expecting the image format of the file to be specified one.
 %
--spec create_from_file( image_format(), any_file_path() ) -> image().
+-spec create_from_file( image_format(), any_image_path() ) -> image().
 % Currently format is ignored (unclear how to use format, perhaps to be
-% translted as a Mimetype):
+% translated as a Mimetype):
 create_from_file( ImageFormat, AnyImagePath ) ->
 
 	ImagePath = text_utils:ensure_string( AnyImagePath ),
+
+	check_image_path( ImagePath ),
 
 	Image = wxImage:new( ImagePath ),
 
@@ -232,17 +273,22 @@ create_from_file( ImageFormat, AnyImagePath ) ->
 			Image;
 
 		false ->
-			throw( { image_loading_failed, ImageFormat, ImagePath } )
+			throw( { image_loading_failed, ImagePath, ImageFormat } )
 
 	end.
 
 
 
 % @doc Returns the size of this image.
--spec getSize( image() ) -> dimensions().
-getSize( Image ) ->
+-spec get_size( image() ) -> dimensions().
+get_size( Image ) ->
 	{ wxImage:getWidth( Image ), wxImage:getHeight( Image ) }.
 
+
+% @doc Tells whether the specified image has an alpha channel.
+-spec has_alpha( image() ) -> boolean().
+has_alpha( Image ) ->
+	wxImage:hasAlpha( Image ).
 
 
 % @doc Scales the specified image to the specified dimensions, with a default
@@ -266,8 +312,11 @@ scale( Image, Width, Height, Quality ) ->
 % @doc Loads the image stored in the specified file in the specified image
 % instance, trying to auto-detect the image format of that file.
 %
--spec load( image(), any_file_path() ) -> void().
+-spec load( image(), any_image_path() ) -> void().
 load( Image, ImagePath ) ->
+
+	check_image_path( ImagePath ),
+
 	wxImage:loadFile( Image, ImagePath ) orelse
 		throw( { image_loading_failed, ImagePath } ).
 
@@ -276,18 +325,20 @@ load( Image, ImagePath ) ->
 % @doc Loads the image stored in the specified file into the specified image
 % instance, expecting the image format of the file to be the specified one.
 %
--spec load( image(), image_format(), any_file_path() ) -> void().
+-spec load( image(), image_format(), any_image_path() ) -> void().
 load( Image, ImageFormat, ImagePath ) ->
+
+	check_image_path( ImagePath ),
 
 	WxImageFormat = to_wx_image_format( ImageFormat ),
 
 	wxImage:loadFile( Image, ImagePath,
 					  _Opts=[ { type, WxImageFormat } ] ) orelse
-		throw( { image_loading_failed, ImagePath } ).
+		throw( { image_loading_failed, ImagePath, ImageFormat } ).
 
 
 
-% @doc Returns a colourized image, that is an image of the specified color,
+% @doc Returns a colorized image, that is an image of the specified color,
 % modulated by the specified alpha coordinates.
 %
 -spec colorize( color_by_decimal(), alpha_buffer() ) -> rgba_color_buffer().
@@ -295,7 +346,27 @@ colorize( AlphaBuffer, _Color={ R, G, B } ) ->
 	% Binary comprehension (and wxImage:setData/3 tells that alpha buffer size
 	% is width*height*3, hence dropping 2 out of 3 elements):
 	%
-	<< <<R:8,G:8,B:8,A:8>> || <<A:8,_:8,_:8>> <= AlphaBuffer >>.
+	<< <<R:8, G:8, B:8, A:8>> || <<A:8, _:8, _:8>> <= AlphaBuffer >>.
+
+
+
+% @doc Returns a textual representation of the specified image.
+-spec to_string( image() ) -> ustring().
+to_string( Image ) ->
+
+	AlphaStr = case wxImage:hasAlpha( Image ) of
+
+		true ->
+			"RGBA";
+
+		false ->
+			"RGB"
+
+	end,
+
+	text_utils:format( "~Bx~B ~ts image",
+		[ wxImage:getWidth( Image ), wxImage:getHeight( Image ), AlphaStr ] ).
+
 
 
 % @doc Returns the standard icon corresponding to the specified identifier.
@@ -320,9 +391,13 @@ get_standard_icon( StdIconId ) ->
 
 
 % @doc Returns a bitmap created from the specified image path.
--spec create_bitmap( any_file_path() ) -> bitmap().
+-spec create_bitmap( any_image_path() ) -> bitmap().
 create_bitmap( ImagePath ) ->
+
+	check_image_path( ImagePath ),
+
 	Image = wxImage:new( ImagePath ),
+
 	ImgBitmap = wxBitmap:new( Image ),
 	wxImage:destroy( Image ),
 	case wxBitmap:isOk( ImgBitmap ) of
@@ -331,7 +406,7 @@ create_bitmap( ImagePath ) ->
 			ImgBitmap;
 
 		false ->
-			throw( { bitmap_creation_failed, ImgBitmap } )
+			throw( { bitmap_creation_failed, ImagePath } )
 
 	end.
 
@@ -347,6 +422,7 @@ create_blank_bitmap( _Dimensions={ Width, Height } ) ->
 -spec create_blank_bitmap( width(), height() ) -> bitmap().
 create_blank_bitmap( Width, Height ) ->
 	ImgBitmap = wxBitmap:new( Width, Height ),
+
 	case wxBitmap:isOk( ImgBitmap ) of
 
 		true ->
@@ -541,7 +617,7 @@ blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ) ->
 
 
 
-% @doc Converts a MyriadGUI image format into a wx one.
+% @doc Converts the specified MyriadGUI image format into a wx one.
 -spec to_wx_image_format( image_format() ) -> media_type().
 to_wx_image_format( png ) ->
 	?wxBITMAP_TYPE_PNG;
@@ -549,12 +625,45 @@ to_wx_image_format( png ) ->
 to_wx_image_format( jpeg ) ->
 	?wxBITMAP_TYPE_JPEG;
 
+to_wx_image_format( bmp ) ->
+	?wxBITMAP_TYPE_BMP;
+
+to_wx_image_format( gif ) ->
+	?wxBITMAP_TYPE_GIF;
+
+to_wx_image_format( pcx ) ->
+	?wxBITMAP_TYPE_PCX;
+
+to_wx_image_format( tiff ) ->
+	?wxBITMAP_TYPE_TIFF;
+
+to_wx_image_format( tga ) ->
+	?wxBITMAP_TYPE_TGA;
+
+to_wx_image_format( pnm ) ->
+	?wxBITMAP_TYPE_PNM;
+
+to_wx_image_format( iff  ) ->
+	?wxBITMAP_TYPE_IFF;
+
+to_wx_image_format( xpm ) ->
+	?wxBITMAP_TYPE_XPM;
+
+to_wx_image_format( ico ) ->
+	?wxBITMAP_TYPE_ICO;
+
+to_wx_image_format( cur ) ->
+	?wxBITMAP_TYPE_CUR;
+
+to_wx_image_format( ani ) ->
+	?wxBITMAP_TYPE_ANI;
+
 to_wx_image_format( Other ) ->
 	throw( { unknown_image_format, Other } ).
 
 
 
-% @doc Converts a MyriadGUI image format into a wx one.
+% @doc Converts the specified MyriadGUI image format into a wx one.
 -spec to_wx_image_quality( image_quality() ) -> wx_enum().
 to_wx_image_quality( normal ) ->
 	?wxIMAGE_QUALITY_NORMAL;
@@ -567,7 +676,7 @@ to_wx_image_quality( Other ) ->
 
 
 
-% @doc Converts specified MyriadGUI text display options into wx static text
+% @doc Converts the specified MyriadGUI text display options into wx static text
 % ones.
 %
 -spec to_wx_static_text_options( [ text_display_option() ] ) -> list().
@@ -576,8 +685,8 @@ to_wx_static_text_options( Options ) ->
 
 
 
-% @doc Converts specified MyriadGUI text display option into a wx static text
-% one.
+% @doc Converts the specified MyriadGUI text display option into a wx static
+% text one.
 %
 -spec to_wx_static_text_option( text_display_option() ) -> pair:pair().
 to_wx_static_text_option( { style, TextDisplayStyle }  ) ->
@@ -589,7 +698,7 @@ to_wx_static_text_option( Opt ) ->
 
 
 
-% @doc Converts specified MyriadGUI text display style into a wx static text
+% @doc Converts the specified MyriadGUI text display style into a wx static text
 % one.
 %
 -spec to_wx_static_text_style( text_display_style_opt() ) -> wx:wx_enum().
@@ -617,9 +726,29 @@ to_wx_static_text_style( _TextDisplayStyle=ellipsize_end ) ->
 
 % @doc Declares that the specified instance can be destructed.
 %
-% Such it can be reference-counted, it may or may not result in an actual
+% As it can be reference-counted, this may or may not result in an actual
 % deallocation.
 %
 -spec destruct( image() ) -> void().
 destruct( Image ) ->
 	wxImage:destroy( Image ).
+
+
+% Helper section.
+
+-spec check_image_path(  any_image_path() ) -> void().
+check_image_path( ImagePath ) ->
+
+	file_utils:is_existing_file_or_link( ImagePath ) orelse
+		begin
+			% Useful for relative paths:
+			CurrentDir = file_utils:get_current_directory(),
+
+			trace_utils:error_fmt( "The image path '~ts' "
+				"does not exist as a file or a symbolic link "
+				"(while current directory is '~ts').",
+				[ ImagePath, CurrentDir ] ),
+
+			throw( { non_existing_image_path, ImagePath } )
+
+		end.
