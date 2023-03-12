@@ -1064,6 +1064,8 @@ process_event_message( { unsubscribeFromEvents,
 % destruction, to avoid any operation to try to access to resources that are not
 % available anymore):
 %
+% (see also gui:sync/1)
+%
 process_event_message( { synchroniseWithCaller, [ ], SenderPid }, LoopState ) ->
 	SenderPid ! onSynchronisedWithCaller,
 	LoopState;
