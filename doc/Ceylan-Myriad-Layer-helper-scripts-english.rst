@@ -51,6 +51,11 @@ Searching for Erlang elements
 
   | Usage: find-record-definition.sh [-h|--help] A_RECORD_NAME [A_DIR]: attempts to find the definition of the specified Erlang record from the specified directory (if any), otherwise from the current one.
 
+`kill-beam.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/scripts/kill-beam.sh>`_
+  To kill carefully-selected Erlang VM instance(s).
+
+  | Usage: kill-beam.sh [-h|--help]: interactively terminates otherwise kills the user-selected Erlang (BEAM) virtual machines that were launched thanks to '-eval'.
+
 
 
 Regarding Typing
