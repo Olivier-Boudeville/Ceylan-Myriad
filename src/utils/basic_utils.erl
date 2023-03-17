@@ -57,6 +57,10 @@
 -export([ get_process_info/1, get_process_info/2,
 		  display_process_info/1,
 		  checkpoint/1,
+
+		  assert/1, assert_true/1, assert_false/1,
+		  assert_equal/2, assert_different/2,
+
 		  display/1, display/2, display_timed/2, display_timed/3,
 		  display_error/1, display_error/2,
 		  throw_diagnosed/1, throw_diagnosed/2,
@@ -1408,10 +1412,93 @@ checkpoint( Number ) ->
 
 
 
-% @doc Displays specified string on the standard output of the console, ensuring
-% as much as possible that this message is output synchronously, so that it can
-% be fully processed (typically displayed) by the console even if the virtual
-% machine is to crash just after.
+% Assert subsection.
+%
+% For counterparts that can be conditionally defined at compilation time, see
+% cond_utils:/assert/*.
+
+
+% @doc Asserts that the specified (runtime) expression is true, otherwise throws
+% an exception.
+%
+-spec assert( term() ) -> void().
+assert( _Expr=true ) ->
+	ok;
+
+assert( Other ) ->
+	interpret_failed_assertion(),
+	throw( { assert_failed, Other } ).
+
+
+% Duplicated as a nested call would change the depth of the stacktrace:
+
+
+% @doc Asserts that the specified (runtime) expression is true, otherwise throws
+% an exception.
+%
+% Defined for consistency with assert_false/1.
+%
+-spec assert_true( term() ) -> void().
+assert_true( _Expr=true ) ->
+	ok;
+
+assert_true( Other ) ->
+	interpret_failed_assertion(),
+	throw( { assert_failed, Other } ).
+
+
+% @doc Asserts that the specified (runtime) expression is false, otherwise
+% throws an exception.
+%
+-spec assert_false( term() ) -> void().
+assert_false( _Expr=false ) ->
+	ok;
+
+assert_false( Other ) ->
+	interpret_failed_assertion(),
+	throw( { assert_false_failed, Other } ).
+
+
+% @doc Asserts that the specified (runtime) expressions compare equal, otherwise
+% throws an exception.
+%
+-spec assert_equal( term(), term() ) -> void().
+assert_equal( Expr, Expr ) ->
+	ok;
+
+assert_equal( Expr1, Expr2 ) ->
+	interpret_failed_assertion(),
+	throw( { assert_equal_failed, Expr1, Expr2 } ).
+
+
+% @doc Asserts that the specified (runtime) expressions compare different,
+% otherwise throws an exception.
+%
+-spec assert_different( term(), term() ) -> void().
+assert_different( Expr, Expr ) ->
+	interpret_failed_assertion(),
+	throw( { assert_different_failed, Expr } );
+
+assert_different( _Expr1, _Expr2 ) ->
+	ok.
+
+
+% (helper)
+interpret_failed_assertion() ->
+
+	{ Mod, Func, Arity, [ { file, SrcFile }, { line, Line } ] } =
+		hd( code_utils:get_stacktrace( _SkipLastElemCount=2 ) ),
+
+	trace_utils:error_fmt( "Assertion failed in ~ts:~ts/~B "
+		"(file ~ts, line ~B).", [ Mod, Func, Arity, SrcFile, Line ] ).
+
+
+
+
+% @doc Displays the specified string on the standard output of the console,
+% ensuring as much as possible that this message is output synchronously, so
+% that it can be fully processed (typically displayed) by the console even if
+% the virtual machine is to crash just after.
 %
 -spec display( ustring() ) -> void().
 display( Message ) ->
@@ -1476,10 +1563,10 @@ display_timed( Message, TimeOut ) ->
 
 
 
-% @doc Displays specified format string filled according to specified values on
-% the standard output of the console, ensuring as much as possible this message
-% is output synchronously, so that it can be output on the console even if the
-% virtual machine is to crash just after.
+% @doc Displays the specified format string filled according to specified values
+% on the standard output of the console, ensuring as much as possible this
+% message is output synchronously, so that it can be output on the console even
+% if the virtual machine is to crash just after.
 %
 -spec display_timed( format_string(), format_values(), time_out() ) -> void().
 display_timed( Format, Values, TimeOut ) ->
@@ -1494,10 +1581,10 @@ display_timed( Format, Values, TimeOut ) ->
 
 
 
-% @doc Displays specified string on the standard error output of the console,
-% ensuring as much as possible this message is output synchronously, so that it
-% can be output on the console even if the virtual machine is to crash just
-% after.
+% @doc Displays the specified string on the standard error output of the
+% console, ensuring as much as possible this message is output synchronously, so
+% that it can be output on the console even if the virtual machine is to crash
+% just after.
 %
 -spec display_error( ustring() ) -> void().
 display_error( Message ) ->
@@ -1516,8 +1603,8 @@ display_error( Message ) ->
 
 
 
-% @doc Triggers specified diagnosed error: reports first its embedded diagnosis,
-% then throws this error as an exception.
+% @doc Triggers the specified diagnosed error: reports first its embedded
+% diagnosis, then throws this error as an exception.
 %
 % Typical use:
 %
@@ -1541,9 +1628,9 @@ throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg } ) ->
 
 
 
-% @doc Triggers specified diagnosed error, augmented by specified term: reports
-% first its embedded diagnosis, then throws this error, as an augmented tuploid,
-% as an exception.
+% @doc Triggers the specified diagnosed error, augmented by specified term:
+% reports first its embedded diagnosis, then throws this error, as an augmented
+% tuploid, as an exception.
 %
 % Typical use:
 %
@@ -1568,8 +1655,8 @@ throw_diagnosed( _DiagnosedReason={ ErrorTuploid, ErrorMsg },
 
 
 
-% @doc Displays specified format string filled according to specified values on
-% the standard error output of the console, ensuring as much as possible this
+% @doc Displays the specified format string filled according to specified values
+% on the standard error output of the console, ensuring as much as possible this
 % message is output synchronously, so that it can be output on the console even
 % if the virtual machine is to crash just after.
 %
@@ -1580,9 +1667,9 @@ display_error( Format, Values ) ->
 
 
 
-% @doc Displays, for debugging purposes, specified string, ensuring as much as
-% possible this message is output synchronously, so that it can be output on the
-% console even if the virtual machine is to crash just after.
+% @doc Displays, for debugging purposes, the specified string, ensuring as much
+% as possible this message is output synchronously, so that it can be output on
+% the console even if the virtual machine is to crash just after.
 %
 -spec debug( ustring() ) -> void().
 debug( Message ) ->
@@ -1592,8 +1679,8 @@ debug( Message ) ->
 
 
 
-% @doc Displays, for debugging purposes, specified format string filled
-% according to specified values, ensuring as much as possible this message is
+% @doc Displays, for debugging purposes, the specified format string filled
+% according tothe specified values, ensuring as much as possible this message is
 % output synchronously, so that it can be output on the console even if the
 % virtual machine is to crash just after.
 %
@@ -1603,7 +1690,7 @@ debug( Format, Values ) ->
 
 
 
-% @doc Parses specified textual version.
+% @doc Parses the specified textual version.
 %
 % For example "4.2.1" should become {4,2,1}, and "2.3" should become {2,3}.
 %
@@ -1618,7 +1705,7 @@ parse_version( VersionString ) ->
 
 
 
-% @doc Checks that specified term is a three-digit version, and returns it.
+% @doc Checks that the specified term is a three-digit version, and returns it.
 -spec check_three_digit_version( term() ) -> three_digit_version().
 check_three_digit_version( T={ A, B, C } ) when is_integer( A )
 				andalso is_integer( B ) andalso is_integer( C ) ->
