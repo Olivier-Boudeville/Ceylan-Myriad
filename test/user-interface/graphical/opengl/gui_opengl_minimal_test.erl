@@ -128,6 +128,7 @@ run_actual_test() ->
 
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
+	%InitialGUIState = gui:batch( fun() -> init_test_gui() end ),
 
 	gui:show( InitialGUIState#my_gui_state.parent ),
 
@@ -213,7 +214,7 @@ gui_main_loop( GUIState ) ->
 		  [ _ParentWindow, _ParentWindowId, _NewParentSize, _EventContext ] } ->
 
 			%trace_utils:debug_fmt( "Resizing of the parent window "
-			%   (main frame) "to ~w detected.", [ NewParentSize ] ),
+			%  "(main frame) to ~w detected.", [ NewParentSize ] ),
 
 			ResizedGUIState = case GUIState#my_gui_state.opengl_initialised of
 

@@ -178,7 +178,7 @@
 -type gl_context() :: gui:opengl_context().
 
 -type glu_id() :: gui_opengl:glu_id().
--type texture() :: gui_opengl:texture().
+-type texture() :: gui_texture:texture().
 
 
 
@@ -676,7 +676,7 @@ gui_main_loop( GUIState ) ->
 				"and the one of the shading language is '~ts'.",
 				[ gui_opengl:get_vendor_name(), gui_opengl:get_renderer_name(),
 				  text_utils:version_to_string( gui_opengl:get_version() ),
-				  gui_opengl:get_shading_language_version() ] ),
+				  gui_shader:get_shading_language_version() ] ),
 
 			gui_main_loop( InitGUIState );
 
@@ -740,9 +740,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Solid white:
 	gl:clearColor( 1.0, 1.0, 1.0, 1.0 ),
 
-	MatTexture = gui_opengl:load_texture_from_image( Image ),
+	MatTexture = gui_texture:load_from_image( Image ),
 
-	AlphaTexture = gui_opengl:load_texture_from_file( get_logo_image_path() ),
+	AlphaTexture = gui_texture:load_from_file( get_logo_image_path() ),
 
 	Font = gui:create_font( _PointSize=32, _Family=default_font_family,
 							_Style=normal, _Weight=bold ),
@@ -752,7 +752,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Myriad dark blue:
 	TextColor = { 0, 39, 165 },
 
-	TextTexture = gui_opengl:create_texture_from_text(
+	TextTexture = gui_texture:create_from_text(
 		%"This is a MyriadGUI-textured text", Font, Brush, TextColor,
 		"MyriadGUI rocks!", Font, Brush, TextColor, _Flip=true ),
 
@@ -884,7 +884,7 @@ update_rendering( GUIState=#my_gui_state{ opengl_state=GLState,
 update_clock_texture( Time, GLState=#my_opengl_state{
 		clock_texture=ClockTexture, font=Font, brush=Brush } ) ->
 
-	gui_opengl:delete_texture( ClockTexture ),
+	gui_texture:delete( ClockTexture ),
 	NewClockTexture = get_clock_texture( Time, Font, Brush ),
 	GLState#my_opengl_state{ clock_texture=NewClockTexture }.
 
@@ -897,8 +897,8 @@ get_clock_texture( Time, Font, Brush ) ->
 	TimeStr = time_utils:time_to_string( Time ),
 
 	% Not flipped:
-	gui_opengl:create_texture_from_text( TimeStr, Font, Brush,
-										 _TextColor={ 255, 40, 40 } ).
+	gui_texture:create_from_text( TimeStr, Font, Brush,
+								  _TextColor={ 255, 40, 40 } ).
 
 
 
@@ -953,10 +953,10 @@ render( #my_opengl_state{ window=Window,
 
 	Move = abs( 90 - ( trunc( Angle ) rem 180 ) ),
 
-	gui_opengl:render_texture( ClockTexture, _Xc=(Width div 2) - 50,
+	gui_texture:render( ClockTexture, _Xc=(Width div 2) - 50,
 		_Yc=(Height div 2) - 130 + Move ),
 
-	gui_opengl:render_texture( AlphaTexture, _Xa=(Width div 2) - 80,
+	gui_texture:render( AlphaTexture, _Xa=(Width div 2) - 80,
 		_Ya=(Height div 2) - Move ),
 
 	gui_opengl:leave_2d_mode(),

@@ -111,9 +111,9 @@
 -type gl_canvas() :: gui:opengl_canvas().
 -type gl_context() :: gui:opengl_context().
 
--type vao_id() :: gui_opengl:vao_id().
--type vbo_id() :: gui_opengl:vbo_id().
--type program_id() :: gui_opengl:program_id().
+-type vao_id() :: gui_shader:vao_id().
+-type vbo_id() :: gui_shader:vbo_id().
+-type program_id() :: gui_shader:program_id().
 
 
 
@@ -175,9 +175,13 @@ init_test_gui() ->
 	MainFrame = gui:create_frame( "MyriadGUI OpenGL Minimal Shader Test",
 								  _Size={ 1024, 768 } ),
 
-	% Using default GL attributes:
+	% Using mostly default GL attributes:
+	GLCanvasAttrs =
+		[ use_core_profile | gui_opengl:get_default_canvas_attributes() ],
+
 	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame,
-		[ { gl_attributes, [ use_core_profile ] } ] ),
+										 [ { gl_attributes, GLCanvasAttrs } ] ),
+
 
 	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
@@ -321,7 +325,10 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%MinOpenGLVersion = { 4, 6 },
 	%MinOpenGLVersion = { 99, 0 },
 
-	TargetProfile = core,
+	% Not found available at least in some configurations:
+	%TargetProfile = core,
+
+	TargetProfile = compatibility,
 	%TargetProfile = non_existing_profile,
 
 	%RequiredExts = [ non_existing_extension ],
@@ -339,7 +346,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 	% Creates and compiles our GLSL program from the two specified shaders:
-	ProgramId = gui_opengl:generate_program_from(
+	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_minimal_shader.vertex.glsl",
 		"gui_opengl_minimal_shader.fragment.glsl" ),
 
@@ -359,7 +366,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 	% Targeting vertex attributes in a VBO:
-	VertexBufferId = gui_opengl:bind_vertex_buffer_object( Vertices,
+	VertexBufferId = gui_shader:bind_vertex_buffer_object( Vertices,
 		_UsageHint={ draw, static } ),
 
 	% Could be done once for all here:
