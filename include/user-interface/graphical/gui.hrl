@@ -65,7 +65,8 @@
 	% The full (verbatim), lower-level (backend) event (if any) resulting in our
 	% event.
 	%
-	% (useful for example when propagating it upward in the widget hierarchy)
+	% (useful for example when deciding to propagate it upward in the widget
+	% hierarchy)
 	%
 	backend_event = undefined :: maybe( gui:backend_event() ) } ).
 
