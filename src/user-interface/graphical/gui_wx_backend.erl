@@ -855,12 +855,7 @@ to_wx_device_context_attributes( _Attrs=[ { depth_buffer_size, S } | T ],
 	to_wx_device_context_attributes( T, [ S, ?WX_GL_DEPTH_SIZE | Acc ] );
 
 to_wx_device_context_attributes( _Attrs=[ use_core_profile | T ], Acc ) ->
-
-	% Currently ignored, as leading to a Segmentation fault (and working
-	% without):
-	%
-	%to_wx_device_context_attributes( T, [ ?WX_GL_CORE_PROFILE | Acc ] );
-	to_wx_device_context_attributes( T, Acc );
+	to_wx_device_context_attributes( T, [ ?WX_GL_CORE_PROFILE | Acc ] );
 
 to_wx_device_context_attributes( _Attrs=[ Other | _T ], _Acc ) ->
 	throw( { unsupported_device_context_attribute, Other } ).
