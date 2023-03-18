@@ -220,7 +220,7 @@
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().
--type alpha_buffer() :: gui_color:alpha_buffer().
+
 
 -type wx_enum() :: gui_wx_backend:wx_enum().
 
@@ -339,14 +339,15 @@ load( Image, ImageFormat, ImagePath ) ->
 
 
 % @doc Returns a colorized image, that is an image of the specified color,
-% modulated by the specified alpha coordinates.
+% modulated by the alpha coordinates found in the specified RGBA buffer.
 %
--spec colorize( color_by_decimal(), alpha_buffer() ) -> rgba_color_buffer().
-colorize( AlphaBuffer, _Color={ R, G, B } ) ->
+-spec colorize( rgba_color_buffer(), color_by_decimal() ) ->
+										rgba_color_buffer().
+colorize( SrcBuffer, _Color={ R, G, B } ) ->
 	% Binary comprehension (and wxImage:setData/3 tells that alpha buffer size
-	% is width*height*3, hence dropping 2 out of 3 elements):
+	% is width*height*3, hence dropping 2 out of the 3 elements):
 	%
-	<< <<R:8, G:8, B:8, A:8>> || <<A:8, _:8, _:8>> <= AlphaBuffer >>.
+	<< <<R:8, G:8, B:8, A:8>> || <<A:8, _:8, _:8>> <= SrcBuffer >>.
 
 
 
