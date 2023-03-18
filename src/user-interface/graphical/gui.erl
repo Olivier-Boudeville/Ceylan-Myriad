@@ -226,6 +226,16 @@
 %
 % At least a subset of these entries may be cached from the environment, for
 % easier/faster lookups and updates.
+%
+% One or multiple entries can be fetched in one go; for example:
+%
+% GUIEnvPid = gui:get_environment_server(),
+%
+% Canvas = environment:get(gl_canvas, GUIEnvPid), ...
+%
+% or
+%
+% [Canvas, Context] = environment:get([gl_canvas, gl_context], GUIEnvPid), ...
 
 
 -type service() :: 'mouse'.
@@ -2483,12 +2493,21 @@ set_title( TopLevelWindow, Title ) ->
 
 
 % @doc Returns the widget (if any) that has the current keyboard focus.
+%
+% Refer to the 'Keyboard-related events' section of the gui_keyboard module for
+% further information.
+%
 -spec get_focused() -> maybe( window() ).
 get_focused() ->
 	wxWindow:findFocus().
 
 
-% @doc Sets the specified widget to receive keyboard input.
+% @doc Sets the specified widget to receive keyboard input, provided notably
+% that this type of widget can have the focus (e.g. frame() cannot).
+%
+% Refer to the 'Keyboard-related events' section of the gui_keyboard module for
+% further information.
+%
 -spec set_focus( window() ) -> void().
 set_focus( Window ) ->
 	wxWindow:setFocus( Window ).
@@ -2519,8 +2538,8 @@ get_size( Window ) ->
 
 
 
-% @doc Returns the client size (as {Width,Height}) of the specified widget,
-% i.e. the actual size of the area that can be drawn upon (excluded menu, bars,
+% @doc Returns the client size (as {Width,Height}) of the specified widget, that
+% is the actual size of the area that can be drawn upon (excluded menu, bars,
 % etc.)
 %
 -spec get_client_size( window() ) -> dimensions().
@@ -2581,9 +2600,9 @@ fit( Window ) ->
 
 
 
-% @doc Maximises the specified widget (a specialised window; e.g. a panel) in
-% its parent (adopting its maximum client size), and returns the new size of
-% this widget.
+% @doc Maximises the specified widget (a specialised window, for example a
+% panel) in its parent (adopting its maximum client size), and returns the new
+% size of this widget.
 %
 -spec maximise_in_parent( window() ) -> dimensions().
 maximise_in_parent( Widget ) ->
@@ -2692,7 +2711,7 @@ destruct_window( Window, GUIEnvPid ) ->
 % A frame is a window whose size and position can (usually) be changed by the
 % user. It usually has thick borders and a title bar, and can optionally contain
 % a menu bar, toolbar and status bar. A frame can contain any window that is not
-% a frame or dialog.
+% a frame or a dialog.
 %
 % Source: http://docs.wxwidgets.org/stable/classwx_frame.html
 
@@ -2893,7 +2912,7 @@ create_panel( Parent ) ->
 
 
 
-% @doc Creates a panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to the specified parent and with specified
 % options.
 %
 -spec create_panel( window() | splitter(), panel_options() ) -> panel().
@@ -2908,7 +2927,7 @@ create_panel( Parent, Options ) ->
 
 
 
-% @doc Creates a panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to the specified parent and with specified
 % position and dimensions.
 %
 -spec create_panel( window(), coordinate(), coordinate(), length(),
@@ -2918,7 +2937,7 @@ create_panel( Parent, X, Y, Width, Height ) ->
 
 
 
-% @doc Creates a panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to the specified parent and with specified
 % position and dimensions.
 %
 -spec create_panel( window(), position(), size() ) -> panel().
@@ -2927,7 +2946,7 @@ create_panel( Parent, Position, Size ) ->
 								 { size, to_wx_size( Size ) } ] ).
 
 
-% @doc Creates a panel, associated to specified parent and with specified
+% @doc Creates a panel, associated to the specified parent and with specified
 % position and dimensions.
 %
 -spec create_panel( window(), position(), size(), panel_options() ) -> panel().
@@ -2944,7 +2963,7 @@ create_panel( Parent, Position, Size, Options ) ->
 
 
 
-% @doc Creates a panel, associated to specified parent, with specified
+% @doc Creates a panel, associated to the specified parent, with specified
 % position, dimensions and options.
 %
 -spec create_panel( window(), coordinate(), coordinate(), width(), height(),
