@@ -178,7 +178,7 @@ compile_vertex_shader( VertexShaderPath ) ->
 	%
 	VertexShaderId = gl:createShader( ?GL_VERTEX_SHADER ),
 
-	cond_utils:if_defined( myriad_check_shaders,
+	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Compiling vertex shader '~ts'.",
 							   [ VertexShaderPath ] ) ),
 
@@ -227,6 +227,8 @@ compile_vertex_shader( VertexShaderPath ) ->
 
 	end,
 
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
 	VertexShaderId.
 
 
@@ -249,7 +251,7 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 	%
 	TessCtrlShaderId = gl:createShader( ?GL_TESS_CONTROL_SHADER ),
 
-	cond_utils:if_defined( myriad_check_shaders,
+	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Compiling tessellation control shader '~ts'.",
 							   [ TessCtrlShaderPath ] ) ),
 
@@ -301,6 +303,8 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 
 	end,
 
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
 	TessCtrlShaderId.
 
 
@@ -323,7 +327,7 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 	%
 	TessEvalShaderId = gl:createShader( ?GL_TESS_EVALUATION_SHADER ),
 
-	cond_utils:if_defined( myriad_check_shaders,
+	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Compiling tessellation evaluation shader "
 							   "'~ts'.", [ TessEvalShaderPath ] ) ),
 
@@ -376,6 +380,8 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 
 	end,
 
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
 	TessEvalShaderId.
 
 
@@ -396,7 +402,7 @@ compile_geometry_shader( GeometryShaderPath ) ->
 	%
 	GeometryShaderId = gl:createShader( ?GL_GEOMETRY_SHADER ),
 
-	cond_utils:if_defined( myriad_check_shaders,
+	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Compiling geometry shader '~ts'.",
 							   [ GeometryShaderPath ] ) ),
 
@@ -446,6 +452,8 @@ compile_geometry_shader( GeometryShaderPath ) ->
 
 	end,
 
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
 	GeometryShaderId.
 
 
@@ -466,7 +474,7 @@ compile_fragment_shader( FragmentShaderPath ) ->
 	%
 	FragmentShaderId = gl:createShader( ?GL_FRAGMENT_SHADER ),
 
-	cond_utils:if_defined( myriad_check_shaders,
+	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Compiling fragment shader '~ts'.",
 							   [ FragmentShaderPath ] ) ),
 
@@ -516,6 +524,8 @@ compile_fragment_shader( FragmentShaderPath ) ->
 
 	end,
 
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
 	FragmentShaderId.
 
 
@@ -536,7 +546,7 @@ compile_compute_shader( ComputeShaderPath ) ->
 	%
 	ComputeShaderId = gl:createShader( ?GL_COMPUTE_SHADER ),
 
-	cond_utils:if_defined( myriad_check_shaders,
+	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Compiling compute shader '~ts'.",
 							   [ ComputeShaderPath ] ) ),
 
@@ -586,6 +596,8 @@ compile_compute_shader( ComputeShaderPath ) ->
 
 	end,
 
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
 	ComputeShaderId.
 
 
@@ -630,14 +642,18 @@ generate_program( ShaderIds, UserAttributes ) ->
 	% can be referenced:
 	%
 	ProgramId = gl:createProgram(),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	[ gl:attachShader( ProgramId, ShdId ) || ShdId <- ShaderIds ],
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	% Any attribute must be bound before linking:
 	[ gl:bindAttribLocation( ProgramId, Idx, AttrName )
 									|| { Idx, AttrName } <- UserAttributes ],
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	gl:linkProgram( ProgramId ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	MaybeLogStr = case gl:getProgramiv( ProgramId, ?GL_INFO_LOG_LENGTH ) of
 
@@ -677,11 +693,13 @@ generate_program( ShaderIds, UserAttributes ) ->
 			throw( { program_linking_failed, MsgStr } )
 
 	end,
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	[ begin
 		gl:detachShader( ProgramId, ShdId ),
 		gl:deleteShader( ShdId )
 	  end || ShdId <- ShaderIds ],
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	ProgramId.
 
@@ -704,6 +722,6 @@ bind_vertex_buffer_object( Vertices, UsageHint ) ->
 	gl:bufferData( ?GL_ARRAY_BUFFER, byte_size( VBuffer ), VBuffer,
 		gui_opengl:buffer_usage_hint_to_gl( UsageHint ) ),
 
-	cond_utils:if_defined( myriad_check_opengl, gui_opengl:check_error() ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	VertexBufferId.
