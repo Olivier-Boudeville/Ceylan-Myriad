@@ -89,6 +89,12 @@
 % Much inspiration was taken from the excellent Wings3D modeller (see
 % http://www.wings3d.com/).
 
+% What is the interest of wrapping a stable API like OpenGL? This allows us to
+% offer primitives that are a bit higher-level, to elect names (for functions,
+% types, variables, etc.) that we find clearer, to add conditionally-enabled
+% error checking, to emit traces (logs) wherever appropriate and possibly in
+% some future to better encapsulate other libraries providing similar features.
+
 
 
 % For the numerous GL defines notably:
@@ -170,6 +176,8 @@
 % An OpenGL-based, back-buffered canvas (not to be mixed with a basic
 % gui:canvas/0 one), to which an OpenGL context shall be set in order to execute
 % OpenGL commands.
+%
+% Any OpenGL canvas is not resized when its containers are resized.
 
 
 % See https://docs.wxwidgets.org/3.0/glcanvas_8h.html#wxGL_FLAGS for more
@@ -239,7 +247,11 @@
 % The various matrix stacks available, a.k.a. the current matrix mode.
 
 
-
+% Probably better than:
+%    'punctual'    % set once and used at most a few times
+%  | 'read_only'   % set once and used many times
+%  | 'read_write'. % modified repeatedl and used many times
+%
 -type buffer_usage_hint()::
 		{ buffer_access_usage(), buffer_access_pattern() }.
 % Hint given to the GL implementation regarding how a buffer will be
@@ -247,6 +259,7 @@
 %
 % This enables the GL implementation to possibly make more intelligent decisions
 % that may significantly impact buffer object performance.
+
 
 
 -type buffer_access_usage() ::
