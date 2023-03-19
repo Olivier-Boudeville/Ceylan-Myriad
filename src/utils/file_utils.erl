@@ -370,7 +370,7 @@
 % Any (legit) type of a part of a path (e.g. `<<"local">>' in
 % "/usr/local/share"); preferably without whitespaces.
 %
-% ".." / <<"..">> means the parent directory.
+% ".." / `<<"..">>' means the parent directory.
 
 
 -type leaf_name() :: path_element().
@@ -3610,7 +3610,7 @@ rename_preserving( SourceFilePath, DestinationFilePath, HidingSuffix ) ->
 %
 % Returns its new name.
 %
--spec hide( any_file_path(), any_string() ) -> any_file_path().
+-spec hide( any_file_path() ) -> any_file_path().
 hide( ToHidePath ) ->
 	hide( ToHidePath, _HidingSuffix=?default_hiding_suffix ).
 
@@ -3643,7 +3643,7 @@ hide( ToHidePath, HidingSuffix ) ->
 %
 % Returns its new name.
 %
--spec hide_overwriting( any_file_path(), any_string() ) -> any_file_path().
+-spec hide_overwriting( any_file_path() ) -> any_file_path().
 hide_overwriting( ToHidePath ) ->
 	hide_overwriting( ToHidePath, _HidingSuffix=?default_hiding_suffix ).
 

@@ -154,6 +154,8 @@ endif
 #  - mesh: for the management of (3D) meshes
 #  - bounding_spaces: for computations of bounding spaces (surfaces, volumes)
 #  - opengl: outcome of OpenGL-related operations
+#  - textures: regarding the (OpenGL) texture management
+#  - shaders: regarding the GLSL shaders and programs
 #  - gltf_support: for the support of the glTF 2.0 format
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
@@ -186,7 +188,9 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
@@ -199,7 +203,9 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_files

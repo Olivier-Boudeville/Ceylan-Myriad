@@ -39,19 +39,19 @@
 -module(gui_opengl).
 
 
-% For example for WX_GL_CORE_PROFILE.
+% For example for WX_GL_CORE_PROFILE:
 -include_lib("wx/include/wx.hrl").
 
-%-include_lib("wx/include/gl.hrl").
-%-include_lib("wx/include/glu.hrl").
+
+% "wx/include/gl.hrl" and "wx/include/glu.hrl" included in "gui_opengl.hrl".
 
 
-% Usage notes:
+% Tells whether the detection of an OpenGL shall throw an exception or only
+% output an error message in the console:
 %
-% To avoid compilation problems, shaders may be encoded in the ANSI/ASCII
-% format. Starting with OpenGL 4.2, shaders can be encoded as UTF-8
-% strings. According to the GLSL spec, non-ASCII characters are only allowed in
-% comments.
+-define( do_throw_on_opengl_error, true ).
+%-define( do_throw_on_opengl_error, false ).
+
 
 
 % Implementation notes:
@@ -95,6 +95,12 @@
 
 % Much inspiration was taken from the excellent Wings3D modeller (see
 % http://www.wings3d.com/).
+
+% What is the interest of wrapping a stable API like OpenGL? This allows us to
+% offer primitives that are a bit higher-level, to elect names (for functions,
+% types, variables, etc.) that we find clearer, to add conditionally-enabled
+% error checking, to emit traces (logs) wherever appropriate and possibly in
+% some future to better encapsulate other libraries providing similar features.
 
 
 
@@ -155,6 +161,8 @@
 					| 'compatibility'. % Deprecated functions are allowed
 % An OpenGL profile, typically as queried from a driver. Profiles are defined
 % relatively to a particular version of OpenGL.
+%
+% Apparently the 'compatibility' profile is the default one.
 
 
 -type gl_extension() :: atom().
@@ -165,7 +173,7 @@
 % The identifier of an ETS-based OpenGL information table, registering the
 % following static information for an easier/more efficient (frequent) lookup:
 %  - {gl_version, gl_version()}
-%  - {gl_profiles, [gl_profile()]}
+%  - {gl_profile, gl_profile()}
 %  - all extensions detected as supported by the current card (an atom entry
 %  each)
 
@@ -175,6 +183,8 @@
 % An OpenGL-based, back-buffered canvas (not to be mixed with a basic
 % gui:canvas/0 one), to which an OpenGL context shall be set in order to execute
 % OpenGL commands.
+%
+% Any OpenGL canvas is not resized when its containers are resized.
 
 
 % See https://docs.wxwidgets.org/3.0/glcanvas_8h.html#wxGL_FLAGS for more
@@ -235,18 +245,6 @@
 % This is the coordinate type of UV coordinates.
 
 
--type gl_pixel_format() :: enum().
-% An OpenGL pixel format (e.g. ?GL_RGBA).
-
-
--type texture_id() :: non_neg_integer().
-% An OpenGL texture "name" (meant to be unique), an identifier thereof.
-
--type texture() :: #texture{}.
-% Information regarding a (2D) texture.
-
--type mipmap_level() :: non_neg_integer().
-% 0 is the base level.
 
 
 -type matrix_stack() :: ?GL_MODELVIEW
@@ -256,68 +254,11 @@
 % The various matrix stacks available, a.k.a. the current matrix mode.
 
 
--type shader_id() :: non_neg_integer().
-% The identifier of (any kind of) a shader.
-
-
-% There are 6 types of shaders; in pipeline order:
-
--type vertex_shader_id() :: shader_id().
-% The identifier of a vertex shader, to run on a programmable vertex processor.
-
-
--type tessellation_control_shader_id() :: shader_id().
-% The identifier of a tessellation shader, to run on a programmable tessellation
-% processor in the control stage.
-
-
--type tessellation_evaluation_shader_id() :: shader_id().
-% The identifier of a tessellation shader, to run on a programmable tessellation
-% processor in the evaluation stage.
-
-
--type geometry_shader_id() :: shader_id().
-% The identifier of a geometry shader, to run on a programmable geometry
-% processor.
-
-
--type fragment_shader_id() :: shader_id().
-% The identifier of a fragment shader, to run on a programmable fragment
-% processor.
-
-
--type compute_shader_id() :: shader_id().
-% The identifier of a compute shader, to run on a programmable compute
-% processor.
-
-
-
--type vao_id() :: non_neg_integer().
-% The identifier of a Vertex Array Object (VAO).
-
-
--type buffer_id() :: non_neg_integer().
-% The identifier of a buffer, i.e. a "buffer object name".
-
--type vbo_id() :: buffer_id().
-% The identifier of a Vertex Buffer Object (VBO).
-
-
--type vertex_attribute_index() :: non_neg_integer().
-% The index of a vertex attribute, in a VBO.
-
--type attribute_name() :: ustring().
-% The name of a user-defined attribute, meant to be set through an associated
-% index.
-
--type user_attribute() :: { vertex_attribute_index(), attribute_name() }.
-% A user-defined attribute variable, meant to be associated to a generic vertex
-% attribute index in a GLSL program.
-
-
--type program_id() :: non_neg_integer().
-% The identifier of GLSL, shader-based program.
-
+% Probably better than:
+%    'punctual'    % set once and used at most a few times
+%  | 'read_only'   % set once and used many times
+%  | 'read_write'. % modified repeatedl and used many times
+%
 -type buffer_usage_hint()::
 		{ buffer_access_usage(), buffer_access_pattern() }.
 % Hint given to the GL implementation regarding how a buffer will be
@@ -325,6 +266,7 @@
 %
 % This enables the GL implementation to possibly make more intelligent decisions
 % that may significantly impact buffer object performance.
+
 
 
 -type buffer_access_usage() ::
@@ -366,32 +308,17 @@
 			   gl_canvas/0, gl_canvas_option/0,
 			   device_context_attribute/0, gl_context/0,
 			   factor/0, length_factor/0,
-			   texture_id/0, texture/0, mipmap_level/0,
 			   matrix_stack/0,
-
-			   shader_id/0, vertex_shader_id/0,
-			   tessellation_control_shader_id/0,
-			   tessellation_evaluation_shader_id/0, geometry_shader_id/0,
-			   fragment_shader_id/0, compute_shader_id/0,
-
-			   vao_id/0, buffer_id/0, vbo_id/0,
-
-			   vertex_attribute_index/0, attribute_name/0, user_attribute/0,
-
-			   program_id/0,
 
 			   gl_error/0, glu_error/0, any_error/0,
 			   glu_id/0 ]).
 
 
-
 -export([ get_vendor_name/0, get_vendor/0,
 		  get_renderer_name/0, get_platform_identifier/0,
 		  get_version_string/0, get_version/0, get_version/1,
-		  is_profile_supported/1,
-		  get_supported_profiles/0,
-		  get_shading_language_version/0, get_supported_extensions/0,
-		  get_support_description/0,
+		  get_supported_profile/0, get_supported_profile/1,
+		  get_supported_extensions/0, get_support_description/0,
 
 		  init_info_table/0, secure_info_table/0,
 		  is_version_compatible_with/1, is_version_compatible_with/2,
@@ -404,25 +331,12 @@
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
 
-		  get_size_of_elements/2, get_pixel_size/1,
+		  get_size_of_elements/2,
 
+		  get_default_canvas_attributes/0,
 		  create_canvas/1, create_canvas/2,
 		  create_context/1, set_context_on_shown/2, set_context/2,
 		  swap_buffers/1,
-
-		  load_texture_from_image/1,
-		  load_texture_from_file/1, load_texture_from_file/2,
-
-		  create_texture_from_text/4, create_texture_from_text/5,
-
-		  render_texture/2, render_texture/3,
-
-		  get_color_buffer/1, get_color_buffer/3,
-
-		  delete_texture/1, delete_textures/1,
-
-		  get_texture_dimensions/1, get_texture_dimensions/2,
-		  generate_texture_id/0, texture_to_string/1,
 
 		  render_mesh/1,
 
@@ -430,14 +344,7 @@
 
 		  set_matrix/1, get_matrix/1,
 
-		  compile_vertex_shader/1, compile_tessellation_control_shader/1,
-		  compile_tessellation_evaluation_shader/1, compile_geometry_shader/1,
-		  compile_fragment_shader/1, compile_compute_shader/1,
-
-		  generate_program_from/2, generate_program/1, generate_program/2,
-
-		  bind_vertex_buffer_object/2, buffer_usage_hint_to_gl/1,
-
+		  buffer_usage_hint_to_gl/1,
 		  check_error/0, interpret_error/1 ]).
 
 
@@ -455,8 +362,6 @@
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 
--type any_file_path() :: file_utils:any_file_path().
-
 -type bit_size() :: system_utils:bit_size().
 -type byte_size() :: system_utils:byte_size().
 
@@ -469,30 +374,11 @@
 
 -type mesh() :: mesh:mesh().
 -type indexed_face() :: mesh:indexed_face().
--type face_count() :: mesh:face_count().
+-type face_type() :: mesh:face_type().
 
--type dimensions() :: gui:dimensions().
--type width() :: gui:width().
--type height() :: gui:height().
 -type window() :: gui:window().
--type brush() :: gui:brush().
--type coordinate() :: gui:coordinate().
--type position() :: gui:position().
 
--type color_by_decimal() :: gui_color:color_by_decimal().
 -type render_rgb_color() :: gui_color:render_rgb_color().
-
--type color_buffer() :: gui_color:color_buffer().
--type rgb_color_buffer() :: gui_color:rgb_color_buffer().
--type rgba_color_buffer() :: gui_color:rgba_color_buffer().
--type alpha_buffer() :: gui_color:alpha_buffer().
--type pixel_format() :: gui_color:pixel_format().
-
--type image() :: gui_image:image().
--type image_format() :: gui_image:image_format().
-
--type font() :: gui_font:font().
-
 
 
 % @doc Returns the name of the OpenGL vendor of the current driver, that is the
@@ -506,6 +392,7 @@
 get_vendor_name() ->
 	Res= gl:getString( ?GL_VENDOR ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	text_utils:string_to_binary( Res ).
 
 
@@ -566,6 +453,7 @@ get_vendor() ->
 get_renderer_name() ->
 	Res = gl:getString( ?GL_RENDERER ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	text_utils:string_to_binary( Res ).
 
 
@@ -696,6 +584,16 @@ get_version( Tid ) ->
 	CurrentGLVersion.
 
 
+% @doc Returns whether the specified OpenGL profile is supported.
+%
+% Only supported on GL contexts with version 3.0 and above.
+%
+% Only available if a current OpenGL context is set.
+%
+-spec get_supported_profile() -> gl_profile().
+get_supported_profile() ->
+	get_supported_profile( _Tid=secure_info_table() ).
+
 
 % @doc Returns whether the specified OpenGL profile is supported.
 %
@@ -703,81 +601,63 @@ get_version( Tid ) ->
 %
 % Only available if a current OpenGL context is set.
 %
-% Note: the current implementation may not be relevant.
-%
--spec is_profile_supported( gl_profile() ) -> boolean().
-is_profile_supported( core ) ->
+-spec get_supported_profile( info_table_id()) -> gl_profile().
+get_supported_profile( Tid ) ->
 
-	case hd( gl:getIntegerv( ?WX_GL_CORE_PROFILE ) ) of
+	% Apparently one cannot know a priori whether a given profile is supported:
+	% an attempt of context creation shall be made, and if it succeeds then that
+	% profile was available, and is used.
 
-		0 ->
-			false;
+	% An option is to detect the GL_ARB_compatibility extension, which is found
+	% iff being in a compatibility profile, as it is exclusive with the core
+	% one. Indeed both profiles cannot be supported by the same context (since
+	% the core profile mandates functional restrictions not present in the
+	% compatibility profile); so:
 
-		% For example 6:
-		_ ->
-			true
-
-	end;
-
-is_profile_supported( compatibility ) ->
-
-	% Case of the define is inconsistent with previous clause yet correct:
-	case hd( gl:getIntegerv( ?wx_GL_COMPAT_PROFILE ) ) of
-
-		0 ->
-			false;
-
-		% For example 6:
-		_ ->
-			true
-
-	end;
-
-is_profile_supported( _Other ) ->
-	false.
-
-
-
-% No need to store profiles in ETS.
-
-
-
-% @doc Returns a list of the supported OpenGL profiles.
--spec get_supported_profiles() -> [ gl_profile() ].
-get_supported_profiles() ->
-
-	CompList = case is_profile_supported( compatibility ) of
+	ProfileFromExt = case is_extension_supported( 'GL_ARB_compatibility',
+												  Tid ) of
 
 		true ->
-			[ compatibility ];
+			compatibility;
 
 		false ->
-			[]
+			core
 
 	end,
 
-	case is_profile_supported( core ) of
+	% Another option is to rely on glGetIntegerv(GL_CONTEXT_PROFILE_MASK). It
+	% will return a bitmask that contains either GL_CONTEXT_CORE_PROFILE_BIT or
+	% GL_CONTEXT_COMPATIBILITY_PROFILE_BIT - but apparently these
+	% characteristics require at least OpenGL 3.2.
 
-		true ->
-			[ core | CompList ];
+	% Only a single (the first) element is of interest (others are garbage
+	% bytes):
+	%
+	[ ProfMask | _ ] = gl:getIntegerv( ?GL_CONTEXT_PROFILE_MASK ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
-		false ->
-			[ CompList ]
+	IsCoreFromMask = ProfMask band ?GL_CONTEXT_CORE_PROFILE_BIT =/= 0,
+
+	IsCompatibilityFromMask =
+		ProfMask band ?GL_CONTEXT_COMPATIBILITY_PROFILE_BIT =/= 0,
+
+	case { ProfileFromExt, IsCoreFromMask, IsCompatibilityFromMask } of
+
+		{ core, true, false } ->
+			core;
+
+		{ compatibility, false, true } ->
+			compatibility;
+
+		Other ->
+			throw( { inconsistent_opengl_profile_found, Other } )
 
 	end.
 
 
 
-% @doc Returns the version /release number of the currently used OpenGL
-% shading language.
-%
-% Example: "4.60 FOOBAR".
-%
--spec get_shading_language_version() -> ustring().
-get_shading_language_version() ->
-	Res = gl:getString( ?GL_SHADING_LANGUAGE_VERSION ),
-	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-	Res.
+% No need to store profiles in ETS.
+
 
 
 
@@ -791,9 +671,9 @@ get_shading_language_version() ->
 get_supported_extensions() ->
 	ExtStr = gl:getString( ?GL_EXTENSIONS ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	ExtStrs = text_utils:split( ExtStr, _Delimiters=[ $ ] ),
 	text_utils:strings_to_atoms( ExtStrs ).
-
 
 
 % @doc Returns a synthetic string describing the host-local OpenGL support, also
@@ -812,25 +692,16 @@ get_support_description() ->
 		"i.e. ~ts", [ get_version_string(),
 					  text_utils:version_to_string( get_version() ) ] ),
 
-	ProfStr = text_utils:format( "supported profiles: ~ts",
-		[ case get_supported_profiles() of
-
-			[] ->
-				"none";
-
-			SupportedProfiles ->
-				text_utils:atoms_to_listed_string( SupportedProfiles )
-
-		  end ] ),
-
+	ProfStr = text_utils:format( "supported profile: ~ts",
+		[ get_supported_profile() ] ),
 
 	ShadStr = text_utils:format( "shading language version: ~ts",
-								 [ get_shading_language_version() ] ),
+		[ gui_shader:get_shading_language_version() ] ),
 
 	Exts = get_supported_extensions(),
 
 	% Way too long (e.g. 390 extensions returned):
-	%ExtStr = text_utils:format( "~B extensions: ~ts", [ length( Exts ),
+	%ExtStr = text_utils:format( "~B OpenGL extensions: ~ts", [ length( Exts ),
 	%   text_utils:atoms_to_listed_string( Exts ) ] ),
 
 	ExtStr = text_utils:format( "~B OpenGL extensions supported",
@@ -852,10 +723,14 @@ init_info_table() ->
 
 	ExtsAsMonoTuples = [ { E } || E <- get_supported_extensions() ],
 
-	Elems = [ { gl_version, get_version() },
-			  { gl_profiles, get_supported_profiles() } | ExtsAsMonoTuples ],
+	Elems = [ { gl_version, get_version() } | ExtsAsMonoTuples ],
 
 	ets:insert( TableId, Elems ),
+
+	% Two passes needed as table used here:
+	GlProf = get_supported_profile( TableId ),
+
+	ets:insert( TableId, { gl_profile, GlProf } ),
 
 	% Actually is just ?gl_info_ets_name:
 	TableId.
@@ -994,12 +869,12 @@ check_requirements( MinOpenGLVersion, RequiredProfile ) ->
 						  [ gl_extension() ] ) -> void().
 check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
 
-	Tid = gui_opengl:init_info_table(),
+	Tid = secure_info_table(),
 
 	is_version_compatible_with( MinOpenGLVersion, Tid ) orelse
 		begin
 
-			LocalVersion = gui_opengl:get_version( Tid ),
+			LocalVersion = get_version( Tid ),
 
 			trace_utils:error_fmt( "The local OpenGL version, ~ts, is not "
 				"compatible with the necessary one, ~ts. Drivers may have "
@@ -1013,7 +888,7 @@ check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
 		end,
 
 
-	is_profile_supported( RequiredProfile ) orelse
+	get_supported_profile() =:= RequiredProfile orelse
 		begin
 
 			trace_utils:error_fmt( "The local OpenGL driver does not support "
@@ -1074,26 +949,6 @@ get_size_of_elements( Count, _GLType=?GL_FLOAT ) ->
 get_size_of_elements( Count, _GLType=?GL_DOUBLE ) ->
 	8*Count.
 
-
-
-% @doc Returns the number of bytes used by each pixel of the specified GL
-% format.
-%
--spec get_pixel_size( gl_pixel_format() ) -> byte_size().
-get_pixel_size( GLPixFormat ) ->
-	gui_color:get_pixel_size( gl_pixel_format_to_pixel_format( GLPixFormat ) ).
-
-
-
-% @doc Returns our "standard" pixel format corresponding to the specified GL
-% one.
-%
--spec gl_pixel_format_to_pixel_format( gl_pixel_format() ) -> pixel_format().
-gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGB ) ->
-	rgb;
-
-gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGBA ) ->
-	rgba.
 
 
 % @doc Tells whether OpenGL hardware acceleration is available on this host,
@@ -1185,6 +1040,18 @@ get_glxinfo_strings() ->
 
 
 
+% @doc Returns a list of the default attributes for the creation of OpenGL
+% canvases.
+%
+% To be used with create_canvas/*.
+%
+-spec get_default_canvas_attributes() -> [ device_context_attribute() ].
+get_default_canvas_attributes() ->
+	[ rgba, double_buffer, { min_red_size, 8 }, { min_green_size, 8 },
+	  { min_blue_size, 8 }, { depth_buffer_size, 24 } ].
+
+
+
 % @doc Creates and returns an OpenGL canvas with the specified parent widget and
 % default settings: RGBA and double-buffering.
 %
@@ -1193,28 +1060,36 @@ get_glxinfo_strings() ->
 %
 -spec create_canvas( window() ) -> gl_canvas().
 create_canvas( Parent ) ->
-	DefaultGLAttributes = [ rgba, double_buffer ],
-	create_canvas( Parent, _Opts=[ { gl_attributes, DefaultGLAttributes } ] ).
-
+	% Might be added: the {style, full_repaint_on_resize} option.
+	create_canvas( Parent,
+		_Opts=[ { gl_attributes, get_default_canvas_attributes() } ] ).
 
 
 % @doc Creates and returns an OpenGL canvas with the specified parent widget and
 % options.
 %
 % If the device context attributes are not set (i.e. no gl_attributes entry),
-% following default apply: RGBA and double-buffering.
+% following defaults apply: RGBA and double-buffering.
 %
 % Note: not to be mixed up with gui:create_canvas/1, which creates a basic
 % (non-OpenGL) canvas.
 %
+% Note also that using the use_core_profile attribute will result in also
+% requesting OpenGL at least version 3.0.
+%
 -spec create_canvas( window(), [ gl_canvas_option() ] ) -> gl_canvas().
 create_canvas( Parent, Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_opengl,
+		trace_utils:debug_fmt( "Creating a GL canvas from user options:~n ~p.",
+							   [ Opts ] ) ),
 
 	{ Attrs, OtherOpts } = list_table:extract_entry_with_default(
 		_K=gl_attributes, _Def=[ rgba, double_buffer ], Opts ),
 
-	%trace_utils:debug_fmt( "Creating a GL canvas with Attrs = ~p~n
-	%   "and OtherOpts = ~p", [ Attrs, OtherOpts ] ),
+	%trace_utils:debug_fmt( "Creating a GL canvas from options:~n ~p,~n "
+	%   "hence with Attrs = ~p~n and OtherOpts = ~p.",
+	%   [ Opts, Attrs, OtherOpts ] ),
 
 	WxAttrs = gui_wx_backend:to_wx_device_context_attributes( Attrs ),
 
@@ -1227,8 +1102,8 @@ create_canvas( Parent, Opts ) ->
 	% Using newer wxGL API (of arity 2, not 3); no error case to handle:
 	Res = wxGLCanvas:new( Parent, WxOpts ),
 
-	% Commented-out, as not relevant (an OpenGL context probably does not
-	% already exist at this point):
+	% Commented-out, as not relevant (an OpenGL context may not already exist at
+	% this point):
 	%
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
@@ -1250,7 +1125,7 @@ create_context( Canvas ) ->
 	% WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB and WGL_ARB_create_context:
 	%
 	% (nevertheless we still have OpenGL 4.6.0 when querying it, see
-	% gui_opengl:get_version/1)
+	% get_version/1)
 	%
 	Res = wxGLContext:new( Canvas ),
 
@@ -1288,8 +1163,8 @@ set_context_on_shown( Canvas, Context ) ->
 set_context( Canvas, Context ) ->
 
 	% Using wx API 3.0 (not supporting older ones such as 2.8):
-	wxGLCanvas:setCurrent( Canvas, Context )
-		orelse throw( failed_to_set_opengl_context ),
+	wxGLCanvas:setCurrent( Canvas, Context ) orelse
+		throw( failed_to_set_opengl_context ),
 
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
@@ -1322,297 +1197,13 @@ swap_buffers( Canvas ) ->
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 
-
-% @doc Creates a texture from the specified image instance.
-%
-% The image instance is safe to be deallocated afterwards.
-%
--spec load_texture_from_image( image() ) -> texture().
-load_texture_from_image( Image ) ->
-
-	trace_utils:debug_fmt( "Loading texture from a ~ts.",
-						   [ gui_image:to_string( Image ) ] ),
-
-	OrigDims = { ImgWidth, ImgHeight } = gui_image:get_size( Image ),
-
-	TargetDims = { TexWidth, TexHeight } = get_texture_dimensions( OrigDims ),
-
-	% The wxImage is either RGB or RGBA; we have to expand it in buffer if
-	% needed, so that it has the right (power-of-two) dimensions:
-	%
-	ColorBuffer = get_color_buffer( Image, OrigDims, TargetDims ),
-	%ColorBuffer = get_color_buffer( Image ),
-
-	% Let's create the OpenGL texture:
-
-	TextureId = generate_texture_id(),
-
-	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
-
-	% Sets parameters regarding the current texture:
-	gl:texParameteri( _Target=?GL_TEXTURE_2D, _TexParam=?GL_TEXTURE_MAG_FILTER,
-					  _ParamValue=?GL_NEAREST ),
-
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_NEAREST ),
-
-	Format = case wxImage:hasAlpha( Image ) of
-
-		true ->
-			%trace_utils:debug( "RGBA image detected." ),
-			?GL_RGBA;
-
-		false ->
-			%trace_utils:debug( "RGB image detected." ),
-			?GL_RGB
-
-	end,
-
-	% Specifies this two-dimensional texture image:
-	%
-	% (this is typically a call that may result in a SEGV)
-	%
-	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=Format,
-		TexWidth, TexHeight, _Border=0, _InputBufferFormat=Format,
-		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
-
-	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-
-	Zero = 0.0,
-
-	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
-			  min_x=Zero, min_y=Zero,
-			  max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight }.
-
-	%#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
-	%		  max_x=Zero, max_y=Zero,
-	%		  min_x=ImgWidth / TexWidth, min_y=ImgHeight / TexHeight }.
-
-
-
-% @doc Creates a texture from the specified image file.
-%
-% Prefer load_texture_from_file/2 if applicable.
-%
--spec load_texture_from_file( any_file_path() ) -> texture().
-load_texture_from_file( ImagePath ) ->
-
-	Image = gui_image:create_from_file( ImagePath ),
-
-	%trace_utils:debug_fmt( "Image loaded from '~ts' of size ~Bx~B.",
-	%   [ ImagePath, wxImage:getWidth( Image ), wxImage:getHeight( Image ) ] ),
-
-	Tex = load_texture_from_image( Image ),
-	gui_image:destruct( Image ),
-	Tex.
-
-
-
-% @doc Creates a texture from the specified image file of the specified type.
--spec load_texture_from_file( image_format(), any_file_path() ) -> texture().
-load_texture_from_file( ImageFormat, ImagePath ) ->
-	Image = gui_image:create_from_file( ImageFormat, ImagePath ),
-	Tex = load_texture_from_image( Image ),
-	gui_image:destruct( Image ),
-	Tex.
-
-
-
-% @doc Creates a texture corresponding to the specified text, rendered with
-% the specified font, brush and color.
-%
--spec create_texture_from_text( ustring(), font(), brush(),
-								color_by_decimal() ) -> texture().
-create_texture_from_text( Text, Font, Brush, Color ) ->
-	create_texture_from_text( Text, Font, Brush, Color, _Flip=false ).
-
-
-% @doc Creates a texture corresponding to the specified text, rendered with
-% the specified font, brush and color, flipping it vertically if requested.
-%
--spec create_texture_from_text( ustring(), font(), brush(), color_by_decimal(),
-								boolean() ) -> texture().
-create_texture_from_text( Text, Font, Brush, Color, Flip ) ->
-	% Directly deriving from lib/wx/examples/demo/ex_gl.erl:
-
-	StrDims = { StrW, StrH } = gui_font:get_text_extent( Text, Font ),
-
-	{ Width, Height } = get_texture_dimensions( StrDims ),
-
-	%trace_utils:debug_fmt( "Text dimensions: {~B,~B}; "
-	%   "texture dimensions: {~B,~B}.", [ StrW, StrH, Width, Height ] ),
-
-	Bmp = wxBitmap:new( Width, Height ),
-
-	cond_utils:if_defined( myriad_debug_gui_memory,
-						   true = wxBitmap:isOk( Bmp ) ),
-
-	DC = wxMemoryDC:new( Bmp ),
-
-	cond_utils:if_defined( myriad_debug_gui_memory, true = wxDC:isOk( DC ) ),
-
-	wxMemoryDC:setFont( DC, Font ),
-
-	wxMemoryDC:setBackground( DC, Brush ),
-
-	wxMemoryDC:clear( DC ),
-
-	wxMemoryDC:setTextForeground( DC, _WhiteRGB={ 255, 255, 255 } ),
-
-	wxMemoryDC:drawText( DC, Text, _Origin={ 0, 0 } ),
-
-	Img = wxBitmap:convertToImage( Bmp ),
-
-	BaseImg = case Flip of
-
-		true ->
-			FlippedImg = wxImage:mirror( Img, [ { horizontally, false } ] ),
-			wxImage:destroy( Img ),
-			FlippedImg;
-
-		false ->
-			Img
-
-	end,
-
-	AlphaValues = wxImage:getData( BaseImg ),
-	ColorizedData = gui_image:colorize( AlphaValues, Color ),
-
-	wxImage:destroy( BaseImg ),
-	wxBitmap:destroy( Bmp ),
-	wxMemoryDC:destroy( DC ),
-
-	TextureId = generate_texture_id(),
-
-	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
-
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
-
-	% GL_LINEAR better than GL_NEAREST:
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
-
-	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
-
-	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
-	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
-
-	% Specifies this two-dimensional texture image:
-	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=?GL_RGBA,
-		Width, Height, _Border=0, _DataFormat=?GL_RGBA, _Type=?GL_UNSIGNED_BYTE,
-		ColorizedData ),
-
-	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-
-	%trace_utils:debug( "Texture loaded from text." ),
-
-	% Not supposed to be null dimensions:
-	#texture{ id=TextureId, width=StrW, height=StrH, min_x=0.0, min_y=0.0,
-			  max_x=StrW/Width, max_y=StrH/Height }.
-
-
-
-% @doc Renders the specified texture, at the specified position.
--spec render_texture( texture(), position() ) -> void().
-render_texture( Texture, _Pos={X,Y} ) ->
-	render_texture( Texture, X, Y ).
-
-
-
-% @doc Renders the specified texture, at the specified position.
--spec render_texture( texture(), coordinate(), coordinate() ) -> void().
-render_texture( #texture{ id=TextureId,
-						  width=Width,
-						  height=Height,
-						  min_x=MinXt,
-						  min_y=MinYt,
-						  max_x=MaxXt,
-						  max_y=MaxYt }, Xp, Yp ) ->
-
-	%trace_utils:debug_fmt( "Rendering texture ~w (size: ~wx~w), from {~w,~w} "
-	%   "to {~w,~w}.", [ TextureId, Width, Height, MinX, MinY, MaxX, MaxY ] ),
-
-	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
-
-	% Covers the rectangular texture area thanks to two (right-angled) triangles
-	% sharing an edge:
-	%
-	% (a glRect*() might be relevant as well)
-	%
-	gl:'begin'( ?GL_TRIANGLE_STRIP ),
-
-	OtherXp = Xp + Width div 2,
-	OtherYp = Yp + Height div 2,
-	%OtherXp = Xp + Width,
-	%OtherY = Yp + Height,
-
-	% Associating a (2D) texture coordinate to each verte.g.
-	gl:texCoord2f( MinXt, MinYt ), gl:vertex2i( Xp, Yp ),
-	gl:texCoord2f( MaxXt, MinYt ), gl:vertex2i( OtherXp, Yp ),
-	gl:texCoord2f( MinXt, MaxYt ), gl:vertex2i( Xp, OtherYp ),
-	gl:texCoord2f( MaxXt, MaxYt ), gl:vertex2i( OtherXp, OtherYp ),
-
-	gl:'end'().
-
-
-
-% @doc Deletes the specified texture.
--spec delete_texture( texture() ) -> void().
-delete_texture( #texture{ id=Id } ) ->
-	gl:deleteTextures( [ Id ] ),
-	cond_utils:if_defined( myriad_check_opengl, check_error() ).
-
-
-% @doc Deletes the specified textures.
--spec delete_textures( [ texture() ] ) -> void().
-delete_textures( Textures ) ->
-	gl:deleteTextures( [ Id || #texture{ id=Id } <- Textures ] ),
-	cond_utils:if_defined( myriad_check_opengl, check_error() ).
-
-
-% @doc Returns texture dimensions that are suitable for a (2D) content of the
-% specified dimensions.
-%
--spec get_texture_dimensions( dimensions() ) -> dimensions().
-get_texture_dimensions( _Dims={ W, H } ) ->
-	get_texture_dimensions( W, H ).
-
-
-% @doc Returns texture dimensions that are suitable for a (2D) content of the
-% specified dimensions.
-%
--spec get_texture_dimensions( width(), height() ) -> dimensions().
-get_texture_dimensions( Width, Height ) ->
-	{ math_utils:get_next_power_of_two( Width ),
-	  math_utils:get_next_power_of_two( Height ) }.
-
-
-
-% @doc Returns a new, unique, texture identifier.
--spec generate_texture_id() -> texture_id().
-generate_texture_id() ->
-	[ TextureId ] = gl:genTextures( _Count=1 ),
-	TextureId.
-
-
--spec texture_to_string( texture() ) -> ustring().
-texture_to_string( #texture{ id=TexId,
-							 width=Width,
-							 height=Height,
-							 min_x=MinX,
-							 min_y=MinY,
-							 max_x=MaxX,
-							 max_y=MaxY } ) ->
-	text_utils:format( "texture #~B, whose content size is ~Bx~B pixels, "
-					   "and in-buffer coordinates are {~f,~f} to {~f,~f}",
-		[ TexId, Width, Height, MinX, MinY, MaxX, MaxY ] ).
-
-
-
 % @doc Renders the specified mesh in a supposedly appropriate OpenGL context.
 %
 % See gui_opengl_test.erl for an usage example.
 %
 -spec render_mesh( mesh() ) -> void().
 render_mesh( #mesh{ vertices=Vertices,
+					face_type=FaceType,
 					faces=IndexedFaces,
 					normal_type=per_face,
 					normals=Normals,
@@ -1621,12 +1212,11 @@ render_mesh( #mesh{ vertices=Vertices,
 	% We could batch the commands sent to the GUI backend (e.g. with wx:batch/1
 	% or wx:foreach/2).
 
-	% We currently suppose we have quad-based faces:
-	gl:'begin'( ?GL_QUADS ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
-	render_faces( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
+	render_faces( FaceType, IndexedFaces, Vertices, Normals, Colors ).
 
-	gl:'end'().
+
 
 
 
@@ -1647,10 +1237,13 @@ enter_2d_mode( Window ) ->
 	% elements may have to be updated:
 
 	gl:pushAttrib( ?GL_ENABLE_BIT ),
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	gl:disable( ?GL_DEPTH_TEST ),
 	gl:disable( ?GL_CULL_FACE ),
 	gl:enable( ?GL_TEXTURE_2D ),
+
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	% This allows the alpha blending of 2D textures with the scene:
 	gl:enable( ?GL_BLEND ),
@@ -1661,6 +1254,8 @@ enter_2d_mode( Window ) ->
 	gl:matrixMode( ?GL_PROJECTION ),
 	gl:pushMatrix(),
 	gl:loadIdentity(),
+
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	% In all MyriadGUI referentials mentioned, abscissas are to increase when
 	% going from left to right.
@@ -1688,7 +1283,6 @@ enter_2d_mode( Window ) ->
 	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
 			  _Top=0.0, _Near=-1.0, _Far=1.0 ),
 
-
 	% Then reseting the modelview matrix:
 	gl:matrixMode( ?GL_MODELVIEW ),
 	gl:pushMatrix(),
@@ -1698,7 +1292,9 @@ enter_2d_mode( Window ) ->
 
 
 
-% @doc Leaves the 2D mode, resets modelview and projection matrices.
+% @doc Leaves the 2D mode, resets the modelview and projection matricesn and the
+% GL attributes.
+%
 -spec leave_2d_mode() -> void().
 leave_2d_mode() ->
 	gl:matrixMode( ?GL_MODELVIEW ),
@@ -1707,7 +1303,10 @@ leave_2d_mode() ->
 	gl:matrixMode( ?GL_PROJECTION ),
 	gl:popMatrix(),
 
-	gl:popAttrib().
+	gl:popAttrib(),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
 
 
 
@@ -1744,555 +1343,6 @@ get_matrix( _Stack ) ->
 	% and gl:get/1 not available through NIF.
 	% gl:get( Stack ).
 	throw( not_implemented ).
-
-
-
-% GLSL section.
-
-
-% Note that, apparently, for some reason compiling the shaders twice solves
-% rendering issues on some Intel drivers.
-
-
-% @doc Loads and compiles a vertex shader from the specified source file (whose
-% extension is typically .vertex.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
--spec compile_vertex_shader( any_file_path() ) -> vertex_shader_id().
-compile_vertex_shader( VertexShaderPath ) ->
-
-	VertexShaderBin = file_utils:read_whole( VertexShaderPath ),
-
-	% Creates an empty shader object, and returns a non-zero value by which it
-	% can be referenced:
-	%
-	VertexShaderId = gl:createShader( ?GL_VERTEX_SHADER ),
-
-	trace_utils:debug_fmt( "Compiling vertex shader '~ts'.",
-						   [ VertexShaderPath ] ),
-
-	% Associates source to empty shader:
-	ok = gl:shaderSource( VertexShaderId, [ VertexShaderBin ] ),
-
-	ok = gl:compileShader( VertexShaderId ),
-
-	MaybeLogStr = case gl:getShaderiv( VertexShaderId, ?GL_INFO_LOG_LENGTH ) of
-
-		0 ->
-			undefined;
-
-		InfoLen ->
-			gl:getShaderInfoLog( VertexShaderId, InfoLen )
-
-	end,
-
-	% Now checks compilation outcome:
-	case gl:getShaderiv( VertexShaderId, ?GL_COMPILE_STATUS ) of
-
-		?GL_TRUE ->
-			MaybeLogStr =:= undefined orelse
-				trace_utils:warning_fmt( "Compilation of the vertex shader "
-					"defined in '~ts' succeeded, yet reported that '~ts'.",
-					[ VertexShaderPath, MaybeLogStr ] );
-
-		_ ->
-			MsgStr = case MaybeLogStr of
-
-				undefined ->
-					"(no report)";
-
-				LogStr ->
-					LogStr
-
-			end,
-
-			trace_utils:error_fmt( "Compilation of the vertex shader in "
-				"'~ts' failed: ~ts.", [ VertexShaderPath, MsgStr ] ),
-
-			gl:deleteShader( VertexShaderId ),
-
-			throw( { shader_compilation_failed, vertex_shader,
-					 VertexShaderPath, MsgStr } )
-
-	end,
-
-	VertexShaderId.
-
-
-
-% @doc Loads and compiles a tessellation control shader from the specified
-% source file (whose extension is typically .tess-ctrl.glsl), and returns its
-% identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
--spec compile_tessellation_control_shader( any_file_path() ) ->
-											tessellation_control_shader_id().
-compile_tessellation_control_shader( TessCtrlShaderPath ) ->
-
-	TessCtrlShaderBin = file_utils:read_whole( TessCtrlShaderPath ),
-
-	% Creates an empty shader object, and returns a non-zero value by which it
-	% can be referenced:
-	%
-	TessCtrlShaderId = gl:createShader( ?GL_TESS_CONTROL_SHADER ),
-
-	trace_utils:debug_fmt( "Compiling tessellation control shader '~ts'.",
-						   [ TessCtrlShaderPath ] ),
-
-	% Associates source to empty shader:
-	ok = gl:shaderSource( TessCtrlShaderId, [ TessCtrlShaderBin ] ),
-
-	ok = gl:compileShader( TessCtrlShaderId ),
-
-	MaybeLogStr = case gl:getShaderiv( TessCtrlShaderId,
-									   ?GL_INFO_LOG_LENGTH ) of
-
-		0 ->
-			undefined;
-
-		InfoLen ->
-			gl:getShaderInfoLog( TessCtrlShaderId, InfoLen )
-
-	end,
-
-	% Now checks compilation outcome:
-	case gl:getShaderiv( TessCtrlShaderId, ?GL_COMPILE_STATUS ) of
-
-		?GL_TRUE ->
-			MaybeLogStr =:= undefined orelse
-				trace_utils:warning_fmt( "Compilation of the tessellation "
-					"control shader defined in '~ts' succeeded, "
-					"yet reported that '~ts'.",
-					[ TessCtrlShaderPath, MaybeLogStr ] );
-
-		_ ->
-			MsgStr = case MaybeLogStr of
-
-				undefined ->
-					"(no report)";
-
-				LogStr ->
-					LogStr
-
-			end,
-
-			trace_utils:error_fmt( "Compilation of the tessellation control "
-				"shader in '~ts' failed: ~ts.",
-				[ TessCtrlShaderPath, MsgStr ] ),
-
-			gl:deleteShader( TessCtrlShaderId ),
-
-			throw( { shader_compilation_failed,
-					 tessellation_control_shader, TessCtrlShaderPath, MsgStr } )
-
-	end,
-
-	TessCtrlShaderId.
-
-
-
-% @doc Loads and compiles a tessellation evaluation shader from the specified
-% source file (whose extension is typically .tess-eval.glsl), and returns its
-% identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
--spec compile_tessellation_evaluation_shader( any_file_path() ) ->
-											tessellation_evaluation_shader_id().
-compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
-
-	TessEvalShaderBin = file_utils:read_whole( TessEvalShaderPath ),
-
-	% Creates an empty shader object, and returns a non-zero value by which it
-	% can be referenced:
-	%
-	TessEvalShaderId = gl:createShader( ?GL_TESS_EVALUATION_SHADER ),
-
-	trace_utils:debug_fmt( "Compiling tessellation evaluation shader '~ts'.",
-						   [ TessEvalShaderPath ] ),
-
-	% Associates source to empty shader:
-	ok = gl:shaderSource( TessEvalShaderId, [ TessEvalShaderBin ] ),
-
-	ok = gl:compileShader( TessEvalShaderId ),
-
-	MaybeLogStr = case gl:getShaderiv( TessEvalShaderId,
-									   ?GL_INFO_LOG_LENGTH ) of
-
-		0 ->
-			undefined;
-
-		InfoLen ->
-			gl:getShaderInfoLog( TessEvalShaderId, InfoLen )
-
-	end,
-
-	% Now checks compilation outcome:
-	case gl:getShaderiv( TessEvalShaderId, ?GL_COMPILE_STATUS ) of
-
-		?GL_TRUE ->
-			MaybeLogStr =:= undefined orelse
-				trace_utils:warning_fmt( "Compilation of the tessellation "
-					"evaluation shader defined in '~ts' succeeded, "
-					"yet reported that '~ts'.",
-					[ TessEvalShaderPath, MaybeLogStr ] );
-
-		_ ->
-			MsgStr = case MaybeLogStr of
-
-				undefined ->
-					"(no report)";
-
-				LogStr ->
-					LogStr
-
-			end,
-
-			trace_utils:error_fmt( "Compilation of the tessellation evaluation "
-				"shader in '~ts' failed: ~ts.",
-				[ TessEvalShaderPath, MsgStr ] ),
-
-			gl:deleteShader( TessEvalShaderId ),
-
-			throw( { shader_compilation_failed,
-					 tessellation_evaluation_shader, TessEvalShaderPath,
-					 MsgStr } )
-
-	end,
-
-	TessEvalShaderId.
-
-
-
-% @doc Loads and compiles a geometry shader from the specified source file
-% (whose extension is typically .geometry.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
--spec compile_geometry_shader( any_file_path() ) -> geometry_shader_id().
-compile_geometry_shader( GeometryShaderPath ) ->
-
-	GeometryShaderBin = file_utils:read_whole( GeometryShaderPath ),
-
-	% Creates an empty shader object, and returns a non-zero value by which it
-	% can be referenced:
-	%
-	GeometryShaderId = gl:createShader( ?GL_GEOMETRY_SHADER ),
-
-	trace_utils:debug_fmt( "Compiling geometry shader '~ts'.",
-						   [ GeometryShaderPath ] ),
-
-	% Associates source to empty shader:
-	ok = gl:shaderSource( GeometryShaderId, [ GeometryShaderBin ] ),
-
-	ok = gl:compileShader( GeometryShaderId ),
-
-	MaybeLogStr = case gl:getShaderiv( GeometryShaderId,
-									   ?GL_INFO_LOG_LENGTH ) of
-
-		0 ->
-			undefined;
-
-		InfoLen ->
-			gl:getShaderInfoLog( GeometryShaderId, InfoLen )
-
-	end,
-
-	% Now checks compilation outcome:
-	case gl:getShaderiv( GeometryShaderId, ?GL_COMPILE_STATUS ) of
-
-		?GL_TRUE ->
-			MaybeLogStr =:= undefined orelse
-				trace_utils:warning_fmt( "Compilation of the geometry "
-					"shader defined in '~ts' succeeded, yet reported "
-					"that '~ts'.", [ GeometryShaderPath, MaybeLogStr ] );
-
-		_ ->
-			MsgStr = case MaybeLogStr of
-
-				undefined ->
-					"(no report)";
-
-				LogStr ->
-					LogStr
-
-			end,
-
-			gl:deleteShader( GeometryShaderId ),
-
-			trace_utils:error_fmt( "Compilation of the geometry shader in "
-				"'~ts' failed: ~ts.", [ GeometryShaderPath, MsgStr ] ),
-
-			throw( { shader_compilation_failed, geometry_shader,
-					 GeometryShaderPath, MsgStr } )
-
-	end,
-
-	GeometryShaderId.
-
-
-
-% @doc Loads and compiles a fragment shader from the specified source file
-% (whose extension is typically fragment.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
--spec compile_fragment_shader( any_file_path() ) -> fragment_shader_id().
-compile_fragment_shader( FragmentShaderPath ) ->
-
-	FragmentShaderBin = file_utils:read_whole( FragmentShaderPath ),
-
-	% Creates an empty shader object, and returns a non-zero value by which it
-	% can be referenced:
-	%
-	FragmentShaderId = gl:createShader( ?GL_FRAGMENT_SHADER ),
-
-	trace_utils:debug_fmt( "Compiling fragment shader '~ts'.",
-						   [ FragmentShaderPath ] ),
-
-	% Associates source to empty shader:
-	ok = gl:shaderSource( FragmentShaderId, [ FragmentShaderBin ] ),
-
-	ok = gl:compileShader( FragmentShaderId ),
-
-	MaybeLogStr = case gl:getShaderiv( FragmentShaderId,
-									   ?GL_INFO_LOG_LENGTH ) of
-
-		0 ->
-			undefined;
-
-		InfoLen ->
-			gl:getShaderInfoLog( FragmentShaderId, InfoLen )
-
-	end,
-
-	% Now checks compilation outcome:
-	case gl:getShaderiv( FragmentShaderId, ?GL_COMPILE_STATUS ) of
-
-		?GL_TRUE ->
-			MaybeLogStr =:= undefined orelse
-				trace_utils:warning_fmt( "Compilation of the fragment "
-					"shader defined in '~ts' succeeded, yet reported "
-					"that '~ts'.", [ FragmentShaderPath, MaybeLogStr ] );
-
-		_ ->
-			MsgStr = case MaybeLogStr of
-
-				undefined ->
-					"(no report)";
-
-				LogStr ->
-					LogStr
-
-			end,
-
-			trace_utils:error_fmt( "Compilation of the fragment shader in "
-				"'~ts' failed: ~ts.", [ FragmentShaderPath, MsgStr ] ),
-
-			gl:deleteShader( FragmentShaderId ),
-
-			throw( { shader_compilation_failed, fragment_shader,
-					 FragmentShaderPath, MsgStr } )
-
-	end,
-
-	FragmentShaderId.
-
-
-
-% @doc Loads and compiles a compute shader from the specified source file
-% (whose extension is typically .compute.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
--spec compile_compute_shader( any_file_path() ) -> compute_shader_id().
-compile_compute_shader( ComputeShaderPath ) ->
-
-	ComputeShaderBin = file_utils:read_whole( ComputeShaderPath ),
-
-	% Creates an empty shader object, and returns a non-zero value by which it
-	% can be referenced:
-	%
-	ComputeShaderId = gl:createShader( ?GL_COMPUTE_SHADER ),
-
-	trace_utils:debug_fmt( "Compiling compute shader '~ts'.",
-						   [ ComputeShaderPath ] ),
-
-	% Associates source to empty shader:
-	ok = gl:shaderSource( ComputeShaderId, [ ComputeShaderBin ] ),
-
-	ok = gl:compileShader( ComputeShaderId ),
-
-	MaybeLogStr = case gl:getShaderiv( ComputeShaderId,
-									   ?GL_INFO_LOG_LENGTH ) of
-
-		0 ->
-			undefined;
-
-		InfoLen ->
-			gl:getShaderInfoLog( ComputeShaderId, InfoLen )
-
-	end,
-
-	% Now checks compilation outcome:
-	case gl:getShaderiv( ComputeShaderId, ?GL_COMPILE_STATUS ) of
-
-		?GL_TRUE ->
-			MaybeLogStr =:= undefined orelse
-				trace_utils:warning_fmt( "Compilation of the compute "
-					"shader defined in '~ts' succeeded, yet reported "
-					"that '~ts'.", [ ComputeShaderPath, MaybeLogStr ] );
-
-		_ ->
-			MsgStr = case MaybeLogStr of
-
-				undefined ->
-					"(no report)";
-
-				LogStr ->
-					LogStr
-
-			end,
-
-			trace_utils:error_fmt( "Compilation of the compute shader in "
-				"'~ts' failed: ~ts.", [ ComputeShaderPath, MsgStr ] ),
-
-			gl:deleteShader( ComputeShaderId ),
-
-			throw( { shader_compilation_failed, compute_shader,
-					 ComputeShaderPath, MsgStr } )
-
-	end,
-
-	ComputeShaderId.
-
-
-
-% @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles the specified vertex and fragment shaders (with
-% no user-specified attributes defined), links them in a corresponding program,
-% and returns its identifier.
-%
--spec generate_program_from( any_file_path(), any_file_path() ) -> program_id().
-generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
-
-	VertexShaderId = compile_vertex_shader( VertexShaderPath ),
-	FragmentShaderId = compile_fragment_shader( FragmentShaderPath ),
-
-	generate_program( _ShaderIds=[ VertexShaderId, FragmentShaderId ] ).
-
-
-
-% @doc Generates a GLSL program from the (already loaded and compiled) shaders
-% whose identifiers are specified, with no user-specified attributes defined:
-% links these shaders in a corresponding program, and returns its identifier.
-%
-% Deletes the specified shaders once the program is generated.
-%
--spec generate_program( [ shader_id() ] ) -> program_id().
-generate_program( ShaderIds ) ->
-	generate_program( ShaderIds, _UserAttributes=[] ).
-
-
-
-% @doc Generates a GLSL program from the (already loaded and compiled) shaders
-% whose identifiers are specified, with user-specified attributes: links these
-% shaders in a corresponding program, and returns its identifier.
-%
-% Deletes the specified shaders once the program is generated.
-%
--spec generate_program( [ shader_id() ], [ user_attribute() ] ) -> program_id().
-generate_program( ShaderIds, UserAttributes ) ->
-
-	% Creates an empty program object and returns a non-zero value by which it
-	% can be referenced:
-	%
-	ProgramId = gl:createProgram(),
-
-	[ gl:attachShader( ProgramId, ShdId ) || ShdId <- ShaderIds ],
-
-	% Any attribute must be bound before linking:
-	[ gl:bindAttribLocation( ProgramId, Idx, AttrName )
-									|| { Idx, AttrName } <- UserAttributes ],
-
-	gl:linkProgram( ProgramId ),
-
-	MaybeLogStr = case gl:getProgramiv( ProgramId, ?GL_INFO_LOG_LENGTH ) of
-
-		0 ->
-			undefined;
-
-		InfoLen ->
-			gl:getProgramInfoLog( ProgramId, InfoLen )
-
-	end,
-
-	% Now checks linking outcome:
-	case gl:getProgramiv( ProgramId, ?GL_LINK_STATUS ) of
-
-		?GL_TRUE ->
-			MaybeLogStr =:= undefined orelse
-				trace_utils:warning_fmt( "Linking of the program from "
-					"specified shaders succeeded, yet reported that '~ts'.",
-					[ MaybeLogStr ] );
-
-		?GL_FALSE ->
-			MsgStr = case MaybeLogStr of
-
-				undefined ->
-					"(no report)";
-
-				LogStr ->
-					LogStr
-
-			end,
-
-			trace_utils:error_fmt( "Linking of the program from the specified "
-				"shaders failed: ~ts.", [ MsgStr ] ),
-
-		   gl:deleteProgram( ProgramId ),
-
-			throw( { program_linking_failed, MsgStr } )
-
-	end,
-
-	[ begin
-		gl:detachShader( ProgramId, ShdId ),
-		gl:deleteShader( ShdId )
-	  end || ShdId <- ShaderIds ],
-
-	ProgramId.
-
-
-
-% @doc Binds the specified vertices in a new vertex object buffer (VBO) whose
-% identifier is returned.
-%
--spec bind_vertex_buffer_object( [ any_vertex3() ], buffer_usage_hint() ) ->
-										vbo_id().
-bind_vertex_buffer_object( Vertices, UsageHint ) ->
-
-	% One (integer) identifier of array buffer wanted:
-	[ VertexBufferId ] = gl:genBuffers( _Count=1 ),
-
-	gl:bindBuffer( ?GL_ARRAY_BUFFER, VertexBufferId ),
-
-	VBuffer = point3:to_buffer( Vertices ),
-
-	gl:bufferData( ?GL_ARRAY_BUFFER, byte_size( VBuffer ), VBuffer,
-		buffer_usage_hint_to_gl( UsageHint ) ),
-
-	cond_utils:if_defined( myriad_check_opengl, check_error() ),
-
-	VertexBufferId.
 
 
 
@@ -2337,13 +1387,54 @@ buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=dynamic } ) ->
 
 
 % @doc Renders the specified indexed faces.
--spec render_faces( [ indexed_face() ], face_count(), [ any_vertex3() ],
+-spec render_faces( face_type(), [ indexed_face() ], [ any_vertex3() ],
 					[ unit_normal3() ], [ render_rgb_color() ] ) -> void().
-render_faces( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
+render_faces( _FaceType=triangle, IndexedFaces, Vertices, Normals,
+			  Colors ) ->
+	gl:'begin'( ?GL_TRIANGLES ),
+	render_triangles( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
+	gl:'end'(),
+	cond_utils:if_defined( myriad_check_opengl, check_error() );
+
+render_faces( _FaceType=quad, IndexedFaces, Vertices, Normals, Colors ) ->
+	gl:'begin'( ?GL_QUADS ),
+	render_quads( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
+	gl:'end'(),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
+
+
+% (helper)
+render_triangles( _IndexedFaces=[], _FaceCount, _Vertices, _Normals,
+				  _Colors ) ->
 	ok;
 
-% We have quad-based faces here:
-render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
+render_triangles( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
+				  Vertices, Normals, Colors ) ->
+
+	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
+
+	gl:color3fv( lists:nth( V1Idx, Colors ) ),
+	gl:texCoord2f( 0.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V2Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V3Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 1.0 ),
+	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
+
+	render_triangles( T, FaceCount+1, Vertices, Normals, Colors ).
+
+
+
+% (helper)
+render_quads( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
+	ok;
+
+render_quads( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
 			  Vertices, Normals, Colors ) ->
 
 	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
@@ -2364,257 +1455,31 @@ render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
 	gl:texCoord2f( 0.0, 1.0 ),
 	gl:vertex3fv( lists:nth( V4Idx, Vertices ) ),
 
-	render_faces( T, FaceCount+1, Vertices, Normals, Colors );
+	render_quads( T, FaceCount+1, Vertices, Normals, Colors ).
 
-% We have triangles-based faces here:
-render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
-			  Vertices, Normals, Colors ) ->
 
-	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
-
-	gl:color3fv( lists:nth( V1Idx, Colors ) ),
-	gl:texCoord2f( 0.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
-
-	gl:color3fv( lists:nth( V2Idx, Colors ) ),
-	gl:texCoord2f( 1.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
-
-	gl:color3fv( lists:nth( V3Idx, Colors ) ),
-	gl:texCoord2f( 1.0, 1.0 ),
-	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
-
-	render_faces( T, FaceCount+1, Vertices, Normals, Colors ).
-
-
-% @doc Returns the RGB or RGBA color buffer corresponding to the specified
-% image.
-%
-% The returned buffer shall be "const", in the sense of being neither
-% deallocated nor assigned to any image.
-%
--spec get_color_buffer( image() ) -> color_buffer().
-get_color_buffer( Image ) ->
-
-	RGBBuffer = wxImage:getData( Image ),
-
-	case wxImage:hasAlpha( Image ) of
-
-		true ->
-			% Obtain a pointer to the array storing the alpha coordinates for
-			% the pixels of this image:
-			%
-			AlphaBuffer = wxImage:getAlpha( Image ),
-			merge_alpha( RGBBuffer, AlphaBuffer );
-
-		false ->
-			RGBBuffer
-
-	end.
-
-
-% @doc Merges the specified RGB and alpha buffers into a single RGBA one.
--spec merge_alpha( rgb_color_buffer(), alpha_buffer() ) -> rgba_color_buffer().
-merge_alpha( RGBBuffer, AlphaBuffer ) ->
-	% These are bitstring generators:
-	list_to_binary(
-		lists:zipwith( fun( {R,G,B}, A ) ->
-							<<R,G,B,A>>
-					   end,
-					   [ {R,G,B} || <<R,G,B>> <= RGBBuffer ],
-					   [ A || <<A>> <= AlphaBuffer ] ) ).
-
-
-
-% @doc Returns the RGB or RGBA color buffer corresponding to the specified
-% image, once padded according to the specified current and target dimensions.
-%
-% The returned buffer shall be "const", in the sense of being neither
-% deallocated nor assigned to any image.
-%
--spec get_color_buffer( image(), dimensions(), dimensions() ) -> color_buffer().
-get_color_buffer( Image, CurrentDimensions, TargetDimensions ) ->
-
-	RGBBuffer = wxImage:getData( Image ),
-
-	case wxImage:hasAlpha( Image ) of
-
-		true ->
-			% Obtain a pointer to the array storing the alpha coordinates for
-			% the pixels of this image:
-			%
-			AlphaBuffer = wxImage:getAlpha( Image ),
-			pad_buffer_with_alpha( RGBBuffer, AlphaBuffer, CurrentDimensions,
-								   TargetDimensions  );
-
-		false ->
-			pad_buffer( RGBBuffer, CurrentDimensions, TargetDimensions )
-
-	end.
-
-
-
-% @doc Returns the specified RGB buffer once padded to the specified dimensions,
-% expected to be at least as large as its own.
-%
--spec pad_buffer( rgb_color_buffer(), dimensions(), dimensions() ) ->
-			rgb_color_buffer().
-pad_buffer( Buffer, CurrentDimensions={ CurrentW, CurrentH },
-			_TargetDimensions={ TargetW, TargetH } ) ->
-
-	cond_utils:if_defined( myriad_debug_opengl,
-		trace_utils:debug_fmt( "Padding a RGB buffer from {~B,~B} "
-			"to {~B,~B}.", [ CurrentW, CurrentH, TargetW, TargetH ] ) ),
-
-	cond_utils:if_defined( myriad_check_opengl,
-		begin
-			TargetW < CurrentW andalso
-				throw( { invalid_width_to_pad, TargetW, CurrentW } ),
-
-			TargetH < CurrentH andalso
-				throw( { invalid_height_to_pad, TargetH, CurrentH } ),
-
-			BufSize = byte_size( Buffer ),
-			ExpectedBufSize = 3 * CurrentW * CurrentH,
-			BufSize =:= ExpectedBufSize orelse
-				throw( { invalid_buffer_dimensions, CurrentDimensions,
-						 ExpectedBufSize, BufSize } )
-		end,
-		basic_utils:ignore_unused( CurrentDimensions ) ),
-
-	% Padding in pure black:
-	PadPixel = <<0, 0, 0>>,
-
-	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
-
-	RowPaddedBuffer = pad_rows( Buffer, _OrigRowSize=3*CurrentW, BinPadRow ),
-
-	BinBlankRow = bin_utils:replicate( PadPixel, TargetW ),
-
-	bin_utils:concatenate( RowPaddedBuffer, _BlankRowCount=TargetH-CurrentH,
-						   BinBlankRow ).
-
-
--spec pad_rows( rgb_color_buffer(), count(), binary() ) -> rgb_color_buffer().
-pad_rows( Buffer, OrigRowSize, BinPadRow ) ->
-	pad_rows( Buffer, OrigRowSize, BinPadRow, _BinAcc= <<>> ).
-
-
-% Pads each row with the specified padding binary.
-%
-% (helper)
-%
-pad_rows( _Buffer= <<>>, _OrigRowSize, _BinPadRow, BinAcc ) ->
-	BinAcc;
-%
-% Matching not supported:
-%pad_rows( _Buffer= <<BinRow:OrigRowSize/binary,T/binary>>, OrigRowSize,
-%          BinPadRow, BinAcc )->
-%   pad_rows( T, OrigRowSize, BinPadRow,
-%             <<BinAcc/binary, BinRow/binary, BinPadRow/binary>> ).
-
-pad_rows( Buffer, OrigRowSize, BinPadRow, BinAcc ) ->
-
-	%trace_utils:debug_fmt( "Padding row of original size ~B bytes.",
-	%                       [ OrigRowSize ] ),
-
-	%<<BinRow:OrigRowSize/binary,T/binary>> = Buffer,
-	case Buffer of
-
-		<<BinRow:OrigRowSize/binary, T/binary>> ->
-			pad_rows( T, OrigRowSize, BinPadRow,
-					  <<BinAcc/binary, BinRow/binary, BinPadRow/binary>> );
-
-		_Other ->
-			throw( { unmatching_buffer, byte_size( Buffer ), OrigRowSize } )
-
-	end.
-
-
-% @doc Returns the specified RGB buffer once padded to the specified dimensions,
-% expected to be at least as large as its own.
-%
--spec pad_buffer_with_alpha( rgb_color_buffer(), alpha_buffer(), dimensions(),
-							 dimensions() ) -> rgb_color_buffer().
-pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
-		CurrentDimensions={ CurrentW, CurrentH },
-		_TargetDimensions={ TargetW, TargetH } ) ->
-
-	cond_utils:if_defined( myriad_debug_opengl,
-		trace_utils:debug_fmt( "Padding a RGBA buffer from {~B,~B} "
-			"to {~B,~B}.", [ CurrentW, CurrentH, TargetW, TargetH ] ) ),
-
-	cond_utils:if_defined( myriad_check_opengl,
-		begin
-			TargetW < CurrentW andalso
-				throw( { invalid_width_to_pad, TargetW, CurrentW } ),
-
-			TargetH < CurrentH andalso
-				throw( { invalid_height_to_pad, TargetH, CurrentH } ),
-
-			RGBBufSize = byte_size( RGBBuffer ),
-			ExpectedRGBBufSize = 3 * CurrentW * CurrentH,
-			RGBBufSize =:= ExpectedRGBBufSize orelse
-				throw( { invalid_rgb_buffer_dimensions, CurrentDimensions,
-						 ExpectedRGBBufSize, RGBBufSize } ),
-
-			AlphaBufSize = byte_size( AlphaBuffer ),
-			ExpectedAlphaBufSize = 1 * CurrentW * CurrentH,
-			AlphaBufSize =:= ExpectedAlphaBufSize orelse
-				throw( { invalid_alpha_buffer_dimensions, CurrentDimensions,
-						 ExpectedAlphaBufSize, AlphaBufSize } )
-
-		end,
-		basic_utils:ignore_unused( CurrentDimensions ) ),
-
-	% Padding in pure transparent (0, in wxwidgets conventions; same for
-	% OpenGL), black:
-	%
-	PadPixel = <<0, 0, 0, 0 >>,
-
-	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
-
-	RowPaddedBuffer = pad_rows_with_alpha( RGBBuffer, AlphaBuffer, BinPadRow ),
-
-	BinBlankRow = bin_utils:replicate( PadPixel, TargetW ),
-
-	bin_utils:concatenate( RowPaddedBuffer, _BlankRowCount=TargetH-CurrentH,
-						   BinBlankRow ).
-
-
-
-% Pads each row, once the alpha coordinats have been interleaved, with the
-% specified padding binary.
-%
--spec pad_rows_with_alpha( rgb_color_buffer(), alpha_buffer(), binary() ) ->
-								rgba_color_buffer().
-pad_rows_with_alpha( RGBBuffer, AlphaBuffer, BinPadRow ) ->
-	pad_rows_with_alpha( RGBBuffer, AlphaBuffer, BinPadRow, _BinAcc= <<>> ).
-
-
-% (helper)
-pad_rows_with_alpha( _RGBBuffer= <<>>, _AlphaBuffer= <<>>, _BinPadRow,
-					 BinAcc ) ->
-	BinAcc;
-
-pad_rows_with_alpha( _RGBBuffer= <<R, G, B, T/binary>>,
-					 _AlphaBuffer= <<A, Ta/binary>>, BinPadRow, BinAcc ) ->
-	NewBinAcc = <<BinAcc/binary, R, G, B, A, BinPadRow/binary>>,
-	pad_rows_with_alpha( T, Ta, BinPadRow, NewBinAcc ).
 
 
 
 % Error management section.
 
 
-% @doc Checks whether an OpenGL-related error occurred; if yes, displays
-% information regarding it, and throws an exception.
+% Useless: each call to gl:getError/0 resets it to ?GL_NO_ERROR.
+%% reset_error() ->
+%%   gl:getError().
+
+
+% @doc Checks whether an OpenGL-related error occurred previously (since last
+% check, otherwisesince OpenGL initialisation); if yes, displays information
+% regarding it, and throws an exception.
 %
-% Note that an OpenGL must already exist, otherwise a no_gl_context error will
-% be triggered.
+% Note that an OpenGL context must already exist and be set as current (see
+% set_context*/2), otherwise a no_gl_context error will be triggered.
 %
 -spec check_error() -> void().
 check_error() ->
+
+	% Reset the error status when returning:
 	case gl:getError() of
 
 		?GL_NO_ERROR ->
@@ -2622,13 +1487,32 @@ check_error() ->
 
 		GlError ->
 			Diagnosis = interpret_error( GlError ),
-			trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; aborting.",
-								   [ GlError, Diagnosis ] ),
+			% Stacktrace expected, as bound to be useful (even if the error
+			% might have happened some time before, any time between the
+			% previous check and this one):
 
-			% Stacktrace expected as may be useful (even if the error might have
-			% happened some time before, after the last check):
-			%
-			throw( { opengl_error, GlError, Diagnosis } )
+			case ?do_throw_on_opengl_error of
+
+				true ->
+
+					{ Mod, Func, Arity, [ { file, SrcFile },
+										  { line, Line } ] } =
+						hd( code_utils:get_stacktrace( _SkipLastElemCount=1 ) ),
+
+					trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; "
+						"this error was detected in ~ts:~ts/~B (file ~ts, "
+						"line ~B); aborting.",
+						[ GlError, Diagnosis, Mod, Func, Arity, SrcFile,
+						  Line ] ),
+
+					throw( { opengl_error, GlError, Diagnosis } );
+
+				false ->
+					trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; "
+						"stacktrace:~n  ~p.", [ GlError, Diagnosis,
+							code_utils:get_stacktrace( 1 ) ] )
+
+			end
 
 	end.
 

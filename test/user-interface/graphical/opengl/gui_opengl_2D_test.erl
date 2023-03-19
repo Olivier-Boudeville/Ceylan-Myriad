@@ -126,8 +126,8 @@ run_actual_test() ->
 	test_facilities:display( "This test will display a white upright triangle "
 		"on a black background with a line-rendered 'FUN' label "
 		"(with red, green and blue characters), and will adjust to screen "
-		"resizes (the triangle will be scaled whereas the text will not "
-		"change size)." ),
+		"resizes (the triangle will be scaled with the viewport, "
+		"whereas the text will remain fixed size)." ),
 
 	gui:start(),
 

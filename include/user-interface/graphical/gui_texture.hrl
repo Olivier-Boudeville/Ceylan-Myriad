@@ -1,4 +1,4 @@
-% Copyright (C) 2021-2023 Olivier Boudeville
+% Copyright (C) 2023-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,40 +23,38 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Saturday, November 13, 2021.
+% Creation date: Monday, March 13, 2023.
 
 
-% Describes a mesh, convex or not.
--record( mesh, {
+% For the base alpha coordinates (clearer; OpenGL conventions):
 
-	% The points defining that mesh:
-	vertices = [] :: [ point3:any_vertex3() ],
-
-
-	% The types of the faces from which this mesh is made:
-	face_type :: mesh:face_type(),
+-define( alpha_fully_opaque,      1.0 ).
+-define( alpha_fully_transparent, 0.0 ).
 
 
-	% The faces defining that mesh, based on the indices of vertices:
-	faces = [] :: [ mesh:indexed_face() ],
+% Corresponds to an OpenGL texture.
+-record( texture, {
+
+	% The identifier (OpenGL "name") of that texture.
+	id :: gui_texture:texture_id(),
 
 
-	% To which geometric element (ex: per vertex, per face) the next normals
-	% correspond:
-	%
-	normal_type :: mesh:normal_type(),
+	% The pixel width of this texture:
+	width :: gui:length(),
 
-	% The (unit) normals (if any) of that mesh, defined according to the
-	% previous normal type:
-	%
-	normals = [] :: [ vector3:unit_normal3() ],
+	% The pixel height of this texture:
+	height :: gui:length(),
 
 
-	% How this mesh shall be rendered:
-	rendering_info = none :: mesh:rendering_info(),
+	% The minimum abscissa of this texture relatively to its color buffer.
+	min_x :: gui_opengl:length_factor(),
+
+	% The minimum ordinate of this texture relatively to its color buffer.
+	min_y :: gui_opengl:length_factor(),
 
 
-	% Bounding volume information:
-	% (can be for example a right-cuboid or a sphere)
-	%
-	bounding_volume :: maybe( bounding_volume:bounding_volume() ) } ).
+	% The maximum abscissa of this texture relatively to its color buffer.
+	max_x :: gui_opengl:length_factor(),
+
+	% The maximum ordinate of this texture relatively to its color buffer.
+	max_y :: gui_opengl:length_factor() } ).

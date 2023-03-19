@@ -342,7 +342,14 @@ handle_pending_model_requests( ModelState ) ->
 								   [ self()] ),
 
 			% No specific termination for models:
-			SenderPid ! model_terminated
+			SenderPid ! model_terminated;
+
+		OtherEvent ->
+			trace_utils:warning_fmt( "[~w] Model ignored the following "
+				"event:~n ~w", [ self(), OtherEvent ] ),
+
+			handle_pending_model_requests( ModelState )
+
 
 	after 0 ->
 
@@ -355,6 +362,9 @@ handle_pending_model_requests( ModelState ) ->
 % View section.
 
 % @doc Runs the view; initialises it and runs its main loop.
+%
+% No OpenGL outside of the view!
+%
 -spec run_view( any_hertz(), model_pid(), controller_pid() ) -> no_return().
 run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 
@@ -381,7 +391,7 @@ run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 		[ self(), EvalFrequency, Period ] ),
 
 	% OpenGL will be initialised only when the corresponding frame will be ready
-	% (that is once reported as shown):
+	% (that is once it is reported as shown):
 	%
 	view_main_loop( InitialViewState ).
 
@@ -546,6 +556,7 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 
 			handle_pending_view_events( ViewState )
 
+
 	after 0 ->
 
 		ViewState
@@ -570,8 +581,8 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 
 	% These settings will not change afterwards (set once for all):
 
-	% Clears in black:
-	gl:clearColor( 0.0, 0.0, 0.0, 0.0 ),
+	% Clears in grey rather than black:
+	gl:clearColor( 0.5, 0.5, 0.5, 0.0 ),
 
 	% No smooth shading wanted here:
 	gl:shadeModel( ?GL_FLAT ),
@@ -591,16 +602,25 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 	%
 	% (here does not depend on viewport size, so can be done once now)
 	%
-	gl:ortho( -50.0, 50.0, -50.0, 50.0, -1.0, 1.0 ),
+	gl:ortho( _Left=-50.0, _Right=50.0, _Bottom=-50.0, _Top=50.0,
+			  _Near=-1.0, _Far=1.0 ),
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
 
 	gl:enable( ?GL_TEXTURE_2D ),
 
-	%Texture = gui_opengl:load_texture_from_file(
-	%   gui_opengl_test:get_logo_image_path() ),
-	Texture=fixme,
+	ImagePath = file_utils:join(
+		gui_opengl_integration_test:get_test_image_directory(),
+		"myriad-space-time-referential.png" ),
+
+	% Not directly 'Texture = gui_texture:load_from_file(ImgPath)' as we want to
+	% flip the image:
+
+	Image = gui_image:load_from_file( ImagePath ),
+	MirroredImage = gui_image:mirror( Image, _Orientation=horizontal ),
+	Texture = gui_texture:create_from_image( MirroredImage ),
+	gui_image:destruct( [ Image, MirroredImage ] ),
 
 	InitViewState = ViewState#view_state{ opengl_state=Texture },
 
@@ -663,19 +683,30 @@ render_view( #view_state{ opengl_state=undefined } ) ->
 	ok;
 
 render_view( #view_state{ canvas=GLCanvas,
-						  opengl_state=_Texture,
+						  opengl_state=#texture{ id=TextureId,
+												 width=Width,
+												 height=Height,
+												 min_x=MinXt,
+												 min_y=MinYt,
+												 max_x=MaxXt,
+												 max_y=MaxYt },
 						  model_pid=ModelPid } ) ->
 
 	%trace_utils:debug_fmt( "[~w] View rendering now.", [ self() ] ),
 
 	% Trying to interleave as much as possible:
+
+	% (here, by design, even when terminating, the view is stopped synchronously
+	% before the model is; otherwise the next call could never receive an
+	% answer)
+	%
 	ModelPid ! { getSpinAngle, _Args=[], self() },
 
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
 	gl:pushMatrix(),
 
-	MidEdgeLen = 25.0,
+	_MidEdgeLen = 25.0,
 
 	% In answer to getSpinAngle:
 	CurrentAngle = receive
@@ -694,10 +725,27 @@ render_view( #view_state{ canvas=GLCanvas,
 	%
 	gl:rotatef( CurrentAngle, 0.0, 0.0, 1.0 ),
 
-	%gl:bindTexture( ?GL_TEXTURE_2D, Texture#texture.id ),
-	%gui_opengl:render_texture( Texture, 0, 0 ),
+	gui_texture:set_as_current_from_id( TextureId ),
 
-	gl:rectf( -MidEdgeLen, -MidEdgeLen, MidEdgeLen, MidEdgeLen ),
+	%gl:rectf( -MidEdgeLen, -MidEdgeLen, MidEdgeLen, MidEdgeLen ),
+
+	% Not using 'gui_texture:render(Texture, {0,0}),' as we want smaller
+	% dimensions:
+
+	gl:'begin'( ?GL_TRIANGLE_STRIP ),
+
+	Xp = Yp = 0,
+
+	OtherXp = Xp + Width div 4,
+	OtherYp = Yp + Height div 4,
+
+	% Associating a (2D) texture coordinate to each vertex:
+	gl:texCoord2f( MinXt, MinYt ), gl:vertex2i( Xp,      Yp ),
+	gl:texCoord2f( MaxXt, MinYt ), gl:vertex2i( OtherXp, Yp ),
+	gl:texCoord2f( MinXt, MaxYt ), gl:vertex2i( Xp,      OtherYp ),
+	gl:texCoord2f( MaxXt, MaxYt ), gl:vertex2i( OtherXp, OtherYp ),
+
+	gl:'end'(),
 
 	gl:popMatrix(),
 
@@ -771,23 +819,29 @@ controller_main_loop( ControllerState ) ->
 			trace_utils:info_fmt( "[~w] Controller notified of the "
 				"closing of the main frame, test success.", [ self() ] ),
 
-			ControllerState#controller_state.model_pid
-				! { onModelTermination, self() },
-
-			receive
-
-				model_terminated ->
-					ok
-
-			end,
-
-			ControllerState#controller_state.view_pid
-				 ! { onViewTermination, self() },
-
+			% We stop (synchronously) the view *before* the model, as the view
+			% sends (blocking) requests to it (see the sending of a getSpinAngle
+			% message in render_view/1) and thus could end up waiting for an
+			% answer that would never be received:
+			%
+			ControllerState#controller_state.view_pid !
+				{ onViewTermination, self() },
 
 			receive
 
 				view_terminated ->
+					trace_utils:debug( "Ack received for view termination" ),
+					ok
+
+			end,
+
+			ControllerState#controller_state.model_pid !
+				{ onModelTermination, self() },
+
+			receive
+
+				model_terminated ->
+					trace_utils:debug( "Ack received for model termination" ),
 					ok
 
 			end,

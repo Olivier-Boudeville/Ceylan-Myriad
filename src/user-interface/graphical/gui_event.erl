@@ -70,7 +70,8 @@
 % Main event primitives:
 -export([ start_main_event_loop/3,
 		  get_trapped_event_types/1, trap_event/1, propagate_event/1,
-		  wx_to_myriad_event/1, set_instance_state/3, match/2 ]).
+		  wx_to_myriad_event/1, get_event_info/1,
+		  set_instance_state/3, match/2 ]).
 
 
 % Helpers:
@@ -535,14 +536,16 @@
 % Note: not to be mixed up with wx:wxEvent(), which is a full-blown wx_object().
 
 
--type wx_event_info() :: tuple().
+-type wx_event_info() :: wxClose() | wxCommand() | wxKey() | tuple().
 % A wx-defined record describing an actual event.
 %
 % A WxFoobar-like record whose first field is its 'type', and which may have
-% other fields.
+% other fields, whose number and types depend on the event.
 %
-% Examples of descriptions, as tuples: {wxClose,close_window}, or
-% {wxCommand,command_button_clicked,CmdString,CmdInt,...}
+% Examples of descriptions, as tuples:
+% - {wxClose, close_window}
+% - {wxCommand, command_button_clicked, CmdString, CmdInt, ...}
+% - {wxKey, char, 227, 139, 97,false, ...}
 
 
 -type received_event() :: wx_event() | gui_event().
@@ -2163,6 +2166,15 @@ wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo } ) ->
 
 	{ MyriadEventType, [ WxObject, EventContext ] }.
 
+
+
+% @doc Returns the low-level wx record describing its full actual event, a
+% record whose structure depends on that event.
+%
+-spec get_event_info( event_context() ) -> wx_event_info().
+get_event_info( #event_context{
+					backend_event=#wx{ event=WxEventInfo } } ) ->
+	WxEventInfo.
 
 
 % Helper section.

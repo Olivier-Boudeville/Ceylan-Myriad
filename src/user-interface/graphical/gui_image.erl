@@ -56,9 +56,9 @@
 
 
 
--export([ create_from_file/1, create_from_file/2,
+-export([ load_from_file/1, load_from_file/2,
 		  get_size/1, has_alpha/1,
-		  load/2, load/3, scale/3, scale/4,
+		  load/2, load/3, scale/3, scale/4, mirror/2,
 		  colorize/2, to_string/1,
 
 		  get_standard_icon/1,
@@ -198,6 +198,9 @@
 
 % Shorthands:
 
+
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:any_file_path().
@@ -209,6 +212,7 @@
 -type width() :: gui:width().
 -type height() :: gui:height().
 -type point() :: gui:point().
+-type orientation() :: gui:orientation().
 -type size() :: gui:size().
 -type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
@@ -220,7 +224,7 @@
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().
--type alpha_buffer() :: gui_color:alpha_buffer().
+
 
 -type wx_enum() :: gui_wx_backend:wx_enum().
 
@@ -229,8 +233,8 @@
 % @doc Creates an image instance whose content is read from the specified file,
 % trying to auto-detect the image format of that file.
 %
--spec create_from_file( any_image_path() ) -> image().
-create_from_file( AnyImagePath ) ->
+-spec load_from_file( any_image_path() ) -> image().
+load_from_file( AnyImagePath ) ->
 
 	ImagePath = text_utils:ensure_string( AnyImagePath ),
 
@@ -256,10 +260,10 @@ create_from_file( AnyImagePath ) ->
 % @doc Creates an image instance whose content is read from the specified file,
 % expecting the image format of the file to be specified one.
 %
--spec create_from_file( image_format(), any_image_path() ) -> image().
+-spec load_from_file( image_format(), any_image_path() ) -> image().
 % Currently format is ignored (unclear how to use format, perhaps to be
 % translated as a Mimetype):
-create_from_file( ImageFormat, AnyImagePath ) ->
+load_from_file( ImageFormat, AnyImagePath ) ->
 
 	ImagePath = text_utils:ensure_string( AnyImagePath ),
 
@@ -309,6 +313,18 @@ scale( Image, Width, Height, Quality ) ->
 
 
 
+% @doc Returns a new image, corresponding to the specified one once mirrored as
+% requested.
+%
+-spec mirror( image(), orientation() ) -> image().
+mirror( Image, _Orientation=horizontal ) ->
+	wxImage:mirror( Image, [ { horizontally, true } ] );
+
+mirror( Image, _Orientation=vertical ) ->
+	wxImage:mirror( Image, [ { horizontally, false } ] ).
+
+
+
 % @doc Loads the image stored in the specified file in the specified image
 % instance, trying to auto-detect the image format of that file.
 %
@@ -339,14 +355,15 @@ load( Image, ImageFormat, ImagePath ) ->
 
 
 % @doc Returns a colorized image, that is an image of the specified color,
-% modulated by the specified alpha coordinates.
+% modulated by the alpha coordinates found in the specified RGBA buffer.
 %
--spec colorize( color_by_decimal(), alpha_buffer() ) -> rgba_color_buffer().
-colorize( AlphaBuffer, _Color={ R, G, B } ) ->
+-spec colorize( rgba_color_buffer(), color_by_decimal() ) ->
+										rgba_color_buffer().
+colorize( SrcBuffer, _Color={ R, G, B } ) ->
 	% Binary comprehension (and wxImage:setData/3 tells that alpha buffer size
-	% is width*height*3, hence dropping 2 out of 3 elements):
+	% is width*height*3, hence dropping 2 out of the 3 elements):
 	%
-	<< <<R:8, G:8, B:8, A:8>> || <<A:8, _:8, _:8>> <= AlphaBuffer >>.
+	<< <<R:8, G:8, B:8, A:8>> || <<A:8, _:8, _:8>> <= SrcBuffer >>.
 
 
 
@@ -724,14 +741,19 @@ to_wx_static_text_style( _TextDisplayStyle=ellipsize_end ) ->
 	?wxST_ELLIPSIZE_END.
 
 
-% @doc Declares that the specified instance can be destructed.
+
+% @doc Declares that the specified instance(s) can be destructed.
 %
-% As it can be reference-counted, this may or may not result in an actual
-% deallocation.
+% As it can be reference-counted, this may or may not result in actual
+% deallocation(s).
 %
--spec destruct( image() ) -> void().
+-spec destruct( maybe_list( image() ) ) -> void().
+destruct( Images ) when is_list( Images ) ->
+	[ wxImage:destroy( Img ) || Img <- Images ];
+
 destruct( Image ) ->
 	wxImage:destroy( Image ).
+
 
 
 % Helper section.

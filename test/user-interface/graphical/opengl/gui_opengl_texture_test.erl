@@ -27,6 +27,11 @@
 
 
 % @doc Testing of the <b>texture support</b>; displays an image as a texture.
+%
+% This test relies on the old OpenGL (the one obtained with the "compatibility"
+% profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
+% shaders and GLSL.
+%
 -module(gui_opengl_texture_test).
 
 
@@ -64,8 +69,8 @@
 	% Must need an OpenGL context:
 	texture :: maybe( texture() ),
 
-	% Here just a boolean; in more complex cases, would be a maybe OpenGL state
-	% (e.g. to store the loaded textures):
+	% Here just a boolean; in more complex cases, would be a maybe-(OpenGL
+	% state), e.g. to store the loaded textures:
 	%
 	opengl_initialised = false :: boolean() } ).
 
@@ -73,15 +78,10 @@
 % Test-specific overall GUI state.
 
 
--define( test_texture, "image.jpg" ).
-
 
 % Shorthands:
 
 -type window() :: gui:window().
-
--type width() :: gui:width().
--type height() :: gui:height().
 
 -type image_path() :: gui_image:image_path().
 -type image() :: gui_image:image().
@@ -155,7 +155,7 @@ init_test_gui() ->
 	GLContext = gui_opengl:create_context( GLCanvas ),
 
 	gui:subscribe_to_events( { [ onResized, onShown, onWindowClosed ],
-							   MainFrame } ),
+							   _Src=MainFrame } ),
 
 	% Needed as well, otherwise if that frame is moved out of the screen or if
 	% another window overlaps, the OpenGL canvas gets garbled and thus must be
@@ -164,8 +164,8 @@ init_test_gui() ->
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
 	% Would be too early (no GL context yet):
-	%TestTexture = gui_opengl:load_texture_from_file( get_test_texture_path() ),
-	TestImage = gui_image:create_from_file( get_test_texture_path() ),
+	%TestTexture = gui_texture:load_from_file( get_test_texture_path() ),
+	TestImage = gui_image:load_from_file( get_test_texture_path() ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet):
 	#my_gui_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext,
@@ -175,9 +175,9 @@ init_test_gui() ->
 
 -spec get_test_texture_path() -> image_path().
 get_test_texture_path() ->
-	%"../../../../doc/myriad-title.png". % RGBA
+	"../../../../doc/myriad-title.png". % RGBA
 	%"../../../../doc/myriad-lorenz-test.png". % RGB
-	"../../../../doc/test_pdf_sampled_function.png". % Color-map
+	%"../../../../doc/test_pdf_sampled_function.png". % Color-map
 
 
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
@@ -200,10 +200,7 @@ gui_main_loop( GUIState ) ->
 
 				true ->
 					gui:enable_repaint( GLCanvas ),
-					% Simpler than storing these at each resize:
-					{ CanvasWidth, CanvasHeight } = gui:get_size( GLCanvas ),
-					render( CanvasWidth, CanvasHeight,
-							GUIState#my_gui_state.texture ),
+					render( GUIState#my_gui_state.texture ),
 					gui_opengl:swap_buffers( GLCanvas ),
 					GUIState;
 
@@ -295,27 +292,18 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% No impact: gl:frontFace( ?GL_CW ),
 
+	gui_texture:set_basic_settings(),
+
 	% Clears in grey rather than black:
 	%gl:clearColor( 0.0, 0.0, 0.0, 0.0 ),
 	gl:clearColor( 0.5, 0.5, 0.5, 0.0 ),
 
-	gl:disable( ?GL_BLEND ),
-	gl:disable( ?GL_LIGHTING ),
+	Texture = gui_texture:create_from_image( Image ),
 
-	% Otherwise the current color will be applied to the textured polygons as
-	% well (as the default texture environment mode is GL_MODULATE, which
-	% multiplies the texture color with the vertex color):
-	%
-	% (another option is to reset at rendering:
-	%  gl:color4f( 1.0, 1.0, 1.0, 1.0 ))
-	%
-	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
+	gui_texture:set_as_current( Texture ),
 
-
-	Texture = gui_opengl:load_texture_from_image( Image ),
-
-	trace_utils:debug_fmt( "Loaded ~ts.",
-						   [ gui_opengl:texture_to_string( Texture ) ] ),
+	trace_utils:debug_fmt( "Prepared ~ts.",
+						   [ gui_texture:to_string( Texture ) ] ),
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
@@ -379,13 +367,13 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Upside-down viewport; like glu:ortho2D/4:
 	gl:ortho( _Left=0.0, _Right=float( CanvasWidth ),
+			  % So not '_Bottom=0.0, _Top=float( CanvasHeight ),':
 			  _Bottom=float( CanvasHeight ), _Top=0.0,
-			  %_Bottom=0.0, _Top=float( CanvasHeight ),
 			  _Near=-1.0, _Far=1.0 ),
 
 	gl:matrixMode( ?GL_MODELVIEW ),
 
-	render( CanvasWidth, CanvasHeight, Texture ),
+	render( Texture ),
 
 	% Includes a gl:flush/0:
 	gui_opengl:swap_buffers( GLCanvas ),
@@ -396,15 +384,13 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 % @doc Performs a (pure OpenGL) rendering.
--spec render( width(), height(), texture() ) -> void().
-render( Width, Height, #texture{
-						id=TexId,
-						width=TexWidth,
-						height=TexHeight,
-						min_x=MinX,
-						min_y=MinY,
-						max_x=MaxX,
-						max_y=MaxY } ) ->
+-spec render( texture() ) -> void().
+render( #texture{ width=TexWidth,
+				  height=TexHeight,
+				  min_x=MinX,
+				  min_y=MinY,
+				  max_x=MaxX,
+				  max_y=MaxY } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -413,13 +399,7 @@ render( Width, Height, #texture{
 
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
-
-	gl:enable( ?GL_TEXTURE_2D ),
-
-	% Texture expected to be already bound here:
-	gl:bindTexture( ?GL_TEXTURE_2D, TexId ),
-
-	gui_opengl:check_error(),
+	% The texture of interest is expected to be the one already bound here.
 
 	_TopLeftRenderPoint = { RenderX=15, RenderY=150 },
 
@@ -429,99 +409,13 @@ render( Width, Height, #texture{
 	%trace_utils:debug_fmt( "Min={~f,~f} / Max={~f,~f};  W=~B / H=~B",
 	%                       [ MinX, MinY, MaxX, MaxY, W, H ] ),
 
+	% Map the texels to a square made of two upright triangles:
 	gl:'begin'( ?GL_TRIANGLE_STRIP ),
 		gl:texCoord2f( MinX, MinY ), gl:vertex2i( RenderX,   RenderY   ),
 		gl:texCoord2f( MaxX, MinY ), gl:vertex2i( RenderX+W, RenderY   ),
 		gl:texCoord2f( MinX, MaxY ), gl:vertex2i( RenderX,   RenderY+H ),
 		gl:texCoord2f( MaxX, MaxY ), gl:vertex2i( RenderX+W, RenderY+H ),
 	gl:'end'(),
-
-	gl:disable( ?GL_TEXTURE_2D ),
-
-	% A white right-angled rectangle in the Z=0 plane (in a black background),
-	% whose right angle is at the center of the viewport/frame, and which faces
-	% the top-right frame corner:
-	%
-	% (using MyriadGUI 2D referential)
-
-	% Draws in pinkish:
-	gl:color3f( 1.0, 0.0, 1.0 ),
-
-	MidWidth = Width div 2,
-	MidHeight = Height div 2,
-
-	% CCW order:
-	gl:'begin'( ?GL_TRIANGLES ),
-
-		gl:vertex2i( MidWidth, 0 ),
-
-		% Going towards the bottom of the screen:
-		gl:vertex2i( MidWidth, MidHeight ),
-
-		% Going right:
-		gl:vertex2i( Width, MidHeight ),
-
-	gl:'end'(),
-
-	% A fix-width blue "F" character:
-
-	% Draws in red now:
-	gl:color3f( 1.0, 0.0, 0.0 ),
-
-	XOffset = 10,
-	YOffset = 100,
-
-	CharWidth = 20,
-	CharHeight = 35,
-
-	% All "F" except its small intermediate horizontal bar, starting from its
-	% lowest part:
-	%
-	gl:'begin'( ?GL_LINE_STRIP ),
-		gl:vertex2i( XOffset, YOffset + CharHeight ),
-		gl:vertex2i( XOffset, YOffset ),
-		gl:vertex2i( XOffset + CharWidth, YOffset ),
-	gl:'end'(),
-
-	% Finally its small intermediate horizontal bar:
-	gl:'begin'( ?GL_LINES ),
-
-		% Mid-height:
-		YBar = YOffset + CharHeight div 2,
-
-		gl:vertex2i( XOffset, YBar ),
-
-		% A little shorter than the top part:
-		gl:vertex2i( XOffset + 15, YBar ),
-
-	gl:'end'(),
-
-
-	% Draws "U" in green now:
-	gl:color3f( 0.0, 1.0, 0.0 ),
-
-	XInterletterOffset = 30,
-
-	gl:'begin'( ?GL_LINE_STRIP ),
-		gl:vertex2i( XOffset+XInterletterOffset, YOffset ),
-		gl:vertex2i( XOffset+XInterletterOffset, YOffset + CharHeight ),
-		gl:vertex2i( XOffset+XInterletterOffset+CharWidth,
-					 YOffset+CharHeight ),
-		gl:vertex2i( XOffset+XInterletterOffset+CharWidth, YOffset ),
-	gl:'end'(),
-
-	% Draws "N" in green now:
-	gl:color3f( 0.0, 0.0, 1.0 ),
-
-	gl:'begin'( ?GL_LINE_STRIP ),
-		gl:vertex2i( XOffset+2*XInterletterOffset, YOffset + CharHeight ),
-		gl:vertex2i( XOffset+2*XInterletterOffset, YOffset ),
-		gl:vertex2i( XOffset+2*XInterletterOffset+CharWidth,
-					 YOffset + CharHeight  ),
-		gl:vertex2i( XOffset+2*XInterletterOffset+CharWidth,
-					 YOffset ),
-	gl:'end'(),
-
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.

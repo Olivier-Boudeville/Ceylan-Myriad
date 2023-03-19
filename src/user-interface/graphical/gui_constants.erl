@@ -170,11 +170,11 @@ get_window_style_topic_spec() ->
 		{ clip_children,             ?wxCLIP_CHILDREN          },
 
 		% Forces a complete redraw of the window whenever it is resized instead
-		% of redrawing just the part of the window affected by resizing: (see
-		% https://docs.wxwidgets.org/3.0/classwx_window.html)
+		% of redrawing just the part of the window affected by resizing
+		%
+		% (see https://docs.wxwidgets.org/3.0/classwx_window.html)
 		%
 		{ full_repaint_on_resize,    ?wxFULL_REPAINT_ON_RESIZE } ],
-
 	% Cannot be bijective, as a second_to_first function cannot be defined: some
 	% wx defines collide, at least on some configurations (e.g. platforms; for
 	% example ?wxBORDER_THEME may be equal to ?wxBORDER_DOUBLE):

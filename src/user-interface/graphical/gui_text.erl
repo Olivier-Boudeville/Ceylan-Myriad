@@ -42,9 +42,9 @@
 					  | 'no_autoresize'.
 
 
--type text_option() ::   { 'pos', point() }
-					   | { 'size', size() }
-					   | { 'style', [ style_option() ] }.
+-type text_option() :: { 'pos', point() }
+					 | { 'size', size() }
+					 | { 'style', [ style_option() ] }.
 
 
 -type text_options() :: [ text_option() ].

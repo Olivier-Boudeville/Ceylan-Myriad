@@ -502,7 +502,7 @@ month_to_string( MonthIndex ) ->
 %
 % Here February lasts always 28 days (as if the year was not a leap one).
 %
--spec get_month_duration( canonical_month(), year() ) -> days().
+-spec get_month_duration( canonical_month() ) -> days().
 get_month_duration( MonthIndex ) ->
 	lists:nth( MonthIndex, get_month_durations() ).
 

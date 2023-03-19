@@ -490,7 +490,7 @@
 
 %-type quaternion() :: quaternion:quaternion().
 
--type texture_coordinate2() :: mesh:texture_coordinate2().
+-type uv_point() :: gui_texture:uv_point().
 
 
 % Local types:
@@ -2324,9 +2324,8 @@ integrate_normals( Normals, MaybeName, PrimBufferIndex, Buffer,
 % @doc Integrates the specified texture coordinates (if any) in the specified
 % buffer and content, which are returned.
 %
--spec integrate_texture_coordinates( [ texture_coordinate2() ],
-			maybe( object_name() ), buffer_index(), raw_buffer(), byte_offset(),
-			gltf_content() ) ->
+-spec integrate_texture_coordinates( [ uv_point() ], maybe( object_name() ),
+			buffer_index(), raw_buffer(), byte_offset(), gltf_content() ) ->
 		{ maybe( accessor_index() ), raw_buffer(), byte_offset(),
 		  gltf_content() }.
 integrate_texture_coordinates( _TexCoords=[], _MaybeName, _PrimBufferIndex,
