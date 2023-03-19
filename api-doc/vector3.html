@@ -30,6 +30,10 @@
 <p><tt>any_point3() = <a href="#type-any_point3">any_point3()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-any_square_distance">any_square_distance()</a></h3>
+<p><tt>any_square_distance() = <a href="linear.html#type-any_square_distance">linear:any_square_distance()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-any_vector3">any_vector3()</a></h3>
 <p><tt>any_vector3() = <a href="#type-vector3">vector3()</a> | <a href="#type-integer_vector3">integer_vector3()</a></tt></p>
 <p> A 3D vector, with any types of numerical coordinates.
@@ -61,10 +65,6 @@
 <p><p> A 3D vector orthogonal to a plane.</p>
 
  Defined for documentation purpose.</p>
-
-<h3 class="typedecl"><a name="type-square_distance">square_distance()</a></h3>
-<p><tt>square_distance() = <a href="linear.html#type-square_distance">linear:square_distance()</a></tt></p>
-
 
 <h3 class="typedecl"><a name="type-texture_vector3">texture_vector3()</a></h3>
 <p><tt>texture_vector3() = <a href="#type-vector3">vector3()</a></tt></p>
@@ -309,13 +309,13 @@ vector; full float precision is shown.</td></tr>
 
 <h3 class="function"><a name="scale-2">scale/2</a></h3>
 <div class="spec">
-<p><tt>scale(V::<a href="#type-vector3">vector3()</a>, Factor::<a href="#type-factor">factor()</a>) -&gt; <a href="#type-vector3">vector3()</a></tt><br></p>
+<p><tt>scale(V::<a href="#type-any_vector3">any_vector3()</a>, Factor::<a href="#type-factor">factor()</a>) -&gt; <a href="#type-vector3">vector3()</a></tt><br></p>
 <p> </p>
 </div><p>Scales the specified 3D vector of the specified scalar factor.</p>
 
 <h3 class="function"><a name="square_magnitude-1">square_magnitude/1</a></h3>
 <div class="spec">
-<p><tt>square_magnitude(V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-square_distance">square_distance()</a></tt><br></p>
+<p><tt>square_magnitude(V::<a href="#type-vector3">vector3()</a>) -&gt; <a href="#type-any_square_distance">any_square_distance()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the square of the magnitude of the 3D specified vector.</p>
 

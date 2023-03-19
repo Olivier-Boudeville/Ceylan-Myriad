@@ -21,13 +21,23 @@
 
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-count">count()</a></h3>
+<p><tt>count() = <a href="basic_utils.html#type-count">basic_utils:count()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-crc8_checksum">crc8_checksum()</a></h3>
 <p><tt>crc8_checksum() = byte()</tt></p>
 
 
 <h2><a name="index">Function Index</a></h2>
 <table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#compute_crc8_checksum-1">compute_crc8_checksum/1</a></td><td>Returns the CRC8 checksum corresponding to specified binary.</td></tr>
+<tr><td valign="top"><a href="#concatenate-1">concatenate/1</a></td><td>Concatenates the specified binaries into the returned one.</td></tr>
+<tr><td valign="top"><a href="#concatenate-2">concatenate/2</a></td><td>Concatenates the specified binaries into the returned one.</td></tr>
+<tr><td valign="top"><a href="#concatenate-3">concatenate/3</a></td><td>Concatenates to the specified original binary (on its right) the
+ specified number of copies of the second specified binary.</td></tr>
 <tr><td valign="top"><a href="#get_crc8_table-0">get_crc8_table/0</a></td><td>Returns the table used to compute CRC8.</td></tr>
+<tr><td valign="top"><a href="#replicate-2">replicate/2</a></td><td>Returns the binary obtained when concatenating the specified binary the
+ specified number of times.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -38,11 +48,43 @@
 <p> </p>
 </div><p>Returns the CRC8 checksum corresponding to specified binary.</p>
 
+<h3 class="function"><a name="concatenate-1">concatenate/1</a></h3>
+<div class="spec">
+<p><tt>concatenate(BinStrs::[binary()]) -&gt; binary()</tt><br></p>
+<p> </p>
+</div><p>Concatenates the specified binaries into the returned one.</p>
+
+<h3 class="function"><a name="concatenate-2">concatenate/2</a></h3>
+<div class="spec">
+<p><tt>concatenate(Bin1::binary(), Bin2::binary()) -&gt; binary()</tt><br></p>
+<p> </p>
+</div><p><p>Concatenates the specified binaries into the returned one.</p>
+
+ Note: mostly added for documentation purpose; can/should be inlined by the
+ developer.
+</p>
+
+<h3 class="function"><a name="concatenate-3">concatenate/3</a></h3>
+<div class="spec">
+<p><tt>concatenate(OrigBin::binary(), ReplicationCount::<a href="#type-count">count()</a>, ToReplicateBin::binary()) -&gt; binary()</tt><br></p>
+<p> </p>
+</div><p>Concatenates to the specified original binary (on its right) the
+ specified number of copies of the second specified binary.
+</p>
+
 <h3 class="function"><a name="get_crc8_table-0">get_crc8_table/0</a></h3>
 <div class="spec">
 <p><tt>get_crc8_table() -&gt; tuple()</tt><br></p>
 <p> </p>
 </div><p>Returns the table used to compute CRC8.</p>
+
+<h3 class="function"><a name="replicate-2">replicate/2</a></h3>
+<div class="spec">
+<p><tt>replicate(Bin::binary(), Count::<a href="#type-count">count()</a>) -&gt; binary()</tt><br></p>
+<p> </p>
+</div><p>Returns the binary obtained when concatenating the specified binary the
+ specified number of times.
+</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

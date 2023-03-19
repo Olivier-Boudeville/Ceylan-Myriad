@@ -94,7 +94,7 @@
 
 
 <h3 class="typedecl"><a name="type-tuple_matrix4">tuple_matrix4()</a></h3>
-<p><tt>tuple_matrix4() = <a href="http://www.erlang.org/edoc/doc/wx/doc/gl.html#type-m12">gl:m12()</a> | <a href="http://www.erlang.org/edoc/doc/wx/doc/gl.html#type-m16">gl:m16()</a></tt></p>
+<p><tt>tuple_matrix4() = tuple()</tt></p>
 <p> A tuple of 12 or 16 floats.</p>
 
 <h3 class="typedecl"><a name="type-unit_vector3">unit_vector3()</a></h3>
@@ -398,7 +398,7 @@ clipping planes
 <p> </p>
 </div><p><p>Multiplies (in-order) the specified matrices.</p>
 
- Ex: mult([Ma, Mb, Mc]) = mult(mult(Ma,Mb),Mc) = Ma.Mb.Mc
+ For example mult([Ma, Mb, Mc]) = mult(mult(Ma,Mb),Mc) = Ma.Mb.Mc
 </p>
 
 <h3 class="function"><a name="mult-2">mult/2</a></h3>
@@ -466,7 +466,7 @@ AspectRatio = Width/Height
 - ZFar specifies the distance from the viewer to the far clipping plane  
 (always positive)</p>
 
- <p>Ex: Mp = matrix4:perspective( _FoVYAngle=60.0,   
+ <p>For example Mp = matrix4:perspective( _FoVYAngle=60.0,   
 _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )</p>
 
  Note that the context is a right-handed referential with a clip space in

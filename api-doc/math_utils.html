@@ -98,7 +98,7 @@
 <p><p> A non-negative number (an integer or floating-point) that can be translated to 
 a normalised probability by scaling it to [0.0,1.0].</p>
 
- Ex: if considering two exclusive events whose
+ For example if considering two exclusive events whose
  respective likeliness is quantified as 20 and 30, then these probability-like
  elements can be translated to actual (normalised) probabilities of
  20/(20+30)=0.4 and 0.6.</p>
@@ -136,17 +136,19 @@ close enough to be equal, based on specified epsilon threshold.</td></tr>
 close enough, relatively, to be equal.</td></tr>
 <tr><td valign="top"><a href="#are_relatively_close-3">are_relatively_close/3</a></td><td>Returns true iff the two specified (usually floating-point) numbers are 
 deemed close enough, relatively, to be equal.</td></tr>
-<tr><td valign="top"><a href="#canonify-1">canonify/1</a></td><td>Canonifies specified angle in degrees, ie ensures the returned value that
- corresponds to the specified angle is in the [0;360[ interval.</td></tr>
+<tr><td valign="top"><a href="#canonify-1">canonify/1</a></td><td>Canonifies the specified angle in degrees, ie ensures the returned value
+ that corresponds to the specified angle is in the [0;360[ interval.</td></tr>
 <tr><td valign="top"><a href="#ceiling-1">ceiling/1</a></td><td>Returns the smallest integer bigger than the specified floating-point 
 value.</td></tr>
 <tr><td valign="top"><a href="#check_percent_basic_range-1">check_percent_basic_range/1</a></td><td>Checks that the specified percentage is in the usual [0.0, 1.0] range.</td></tr>
 <tr><td valign="top"><a href="#clamp-2">clamp/2</a></td><td>Clamps the specified possibly-infinite number within the specified
  possibly-infinite range.</td></tr>
-<tr><td valign="top"><a href="#clamp-3">clamp/3</a></td><td>Clamps specified value between specified bounds: the returned value V is 
-in [Min, Max].</td></tr>
-<tr><td valign="top"><a href="#float_to_integer-1">float_to_integer/1</a></td><td>Converts specified float to integer.</td></tr>
-<tr><td valign="top"><a href="#float_to_integer-2">float_to_integer/2</a></td><td>Converts specified float to integer, using specified conversion
+<tr><td valign="top"><a href="#clamp-3">clamp/3</a></td><td>Clamps the specified value between specified bounds: the returned value V 
+is in [Min, Max].</td></tr>
+<tr><td valign="top"><a href="#degree_to_radian-1">degree_to_radian/1</a></td><td>Converts the specified angle in degrees into the same angle expressed in
+ radians.</td></tr>
+<tr><td valign="top"><a href="#float_to_integer-1">float_to_integer/1</a></td><td>Converts the specified float to integer.</td></tr>
+<tr><td valign="top"><a href="#float_to_integer-2">float_to_integer/2</a></td><td>Converts the specified float to integer, using specified conversion
  tolerance.</td></tr>
 <tr><td valign="top"><a href="#floor-1">floor/1</a></td><td>Returns the biggest integer smaller than the specified 
 floating-point value.</td></tr>
@@ -163,10 +165,10 @@ specified index (expected to be numbers, whose sum is non-null), so that their
 sum is equal to 1.0.</td></tr>
 <tr><td valign="top"><a href="#probability_like_to_string-1">probability_like_to_string/1</a></td><td>Returns a textual description of the specified probability.</td></tr>
 <tr><td valign="top"><a href="#probability_to_string-1">probability_to_string/1</a></td><td>Returns a textual description of the specified probability.</td></tr>
-<tr><td valign="top"><a href="#radian_to_degree-1">radian_to_degree/1</a></td><td>Converts specified angle in radian into the same angle expressed in
+<tr><td valign="top"><a href="#radian_to_degree-1">radian_to_degree/1</a></td><td>Converts the specified angle in radians into the same angle expressed in
  degrees.</td></tr>
-<tr><td valign="top"><a href="#round_after-2">round_after/2</a></td><td>Rounds the specified floating-point number at specified offset after the 
-decimal point.</td></tr>
+<tr><td valign="top"><a href="#round_after-2">round_after/2</a></td><td>Rounds the specified floating-point number at the specified offset after 
+the decimal point.</td></tr>
 <tr><td valign="top"><a href="#sample-4">sample/4</a></td><td>Samples the specified function taking a single numerical argument, by
  evaluating it on every point in turn from Start until up to Stop, with
  specified increment: returns the ordered list of the corresponding values that
@@ -243,7 +245,7 @@ deemed close enough, relatively, to be equal.</p>
 relative error), must be smaller than the specified epsilon threshold, 
 ie the maximum tolerance.</p>
 
- Ex: to know whether X and Y are equal with a 5% tolerance, use:
+ For example to know whether X and Y are equal with a 5% tolerance, use:
  math_utils:are_relatively_close(X, Y, _Tolerance=0.05).
 </p>
 
@@ -251,8 +253,8 @@ ie the maximum tolerance.</p>
 <div class="spec">
 <p><tt>canonify(AngleInDegrees::number()) -&gt; <a href="#type-int_degrees">int_degrees()</a></tt><br></p>
 <p> </p>
-</div><p>Canonifies specified angle in degrees, ie ensures the returned value that
- corresponds to the specified angle is in the [0;360[ interval.
+</div><p>Canonifies the specified angle in degrees, ie ensures the returned value
+ that corresponds to the specified angle is in the [0;360[ interval.
 </p>
 
 <h3 class="function"><a name="ceiling-1">ceiling/1</a></h3>
@@ -287,28 +289,37 @@ value.</p>
 <div class="spec">
 <p><tt>clamp(Min::number(), Max::number(), Value::number()) -&gt; number()</tt><br></p>
 <p> </p>
-</div><p><p>Clamps specified value between specified bounds: the returned value V is 
-in [Min, Max].</p>
+</div><p><p>Clamps the specified value between specified bounds: the returned value V 
+is in [Min, Max].</p>
 
  We expect that <code>Min &lt;= Max</code>.
+</p>
+
+<h3 class="function"><a name="degree_to_radian-1">degree_to_radian/1</a></h3>
+<div class="spec">
+<p><tt>degree_to_radian(AngleInDegrees::<a href="#type-degrees">degrees()</a>) -&gt; <a href="#type-radians">radians()</a></tt><br></p>
+<p> </p>
+</div><p>Converts the specified angle in degrees into the same angle expressed in
+ radians.
 </p>
 
 <h3 class="function"><a name="float_to_integer-1">float_to_integer/1</a></h3>
 <div class="spec">
 <p><tt>float_to_integer(F::float()) -&gt; integer()</tt><br></p>
 <p> </p>
-</div><p><p>Converts specified float to integer.</p>
+</div><p><p>Converts the specified float to integer.</p>
 
  <p>The float must exactly match the integer value.</p>
 
- Ex: float_to_integer(5.0) = 5, while float_to_integer(5.0000001) will crash.
+ For example float_to_integer(5.0) = 5, while float_to_integer(5.0000001) will
+ crash.
 </p>
 
 <h3 class="function"><a name="float_to_integer-2">float_to_integer/2</a></h3>
 <div class="spec">
 <p><tt>float_to_integer(F::float(), ConversionType::<a href="#type-conversion_type">conversion_type()</a>) -&gt; integer()</tt><br></p>
 <p> </p>
-</div><p>Converts specified float to integer, using specified conversion
+</div><p>Converts the specified float to integer, using specified conversion
  tolerance.
 </p>
 
@@ -330,12 +341,12 @@ floating-point value.</p>
 </div><p><p>Returns the smallest power of two that is greater or equal to the 
 specified integer.</p>
 
- Ex: math_utils:get_next_power_of_two( 5 ) = 8.
+ For example math_utils:get_next_power_of_two(5) = 8.
 </p>
 
 <h3 class="function"><a name="get_relative_difference-2">get_relative_difference/2</a></h3>
 <div class="spec">
-<p><tt>get_relative_difference(X::number(), Y::number()) -&gt; float() | difference_not_computable</tt><br></p>
+<p><tt>get_relative_difference(X::number(), Y::number()) -&gt; float()</tt><br></p>
 <p> </p>
 </div><p><p>Returns the relative difference between the two specified numbers.</p>
 
@@ -377,7 +388,7 @@ specified integer.</p>
 specified index (expected to be numbers, whose sum is non-null), so that their 
 sum is equal to 1.0.</p>
 
- Ex: normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
+ For example normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
                  = [{a,0.3}, {"hello",0.5}, {1,0.2}]
 </p>
 
@@ -397,7 +408,7 @@ sum is equal to 1.0.</p>
 <div class="spec">
 <p><tt>radian_to_degree(AngleInRadians::<a href="#type-radians">radians()</a>) -&gt; <a href="#type-degrees">degrees()</a></tt><br></p>
 <p> </p>
-</div><p>Converts specified angle in radian into the same angle expressed in
+</div><p>Converts the specified angle in radians into the same angle expressed in
  degrees.
 </p>
 
@@ -405,10 +416,10 @@ sum is equal to 1.0.</p>
 <div class="spec">
 <p><tt>round_after(F::float(), DigitCount::<a href="basic_utils.html#type-count">basic_utils:count()</a>) -&gt; float()</tt><br></p>
 <p> </p>
-</div><p><p>Rounds the specified floating-point number at specified offset after the 
-decimal point.</p>
+</div><p><p>Rounds the specified floating-point number at the specified offset after 
+the decimal point.</p>
 
- Ex: round_after(12.3456, _DigitCount3) = 12.346.
+ For example round_after(12.3456, _DigitCount3) = 12.346.
 </p>
 
 <h3 class="function"><a name="sample-4">sample/4</a></h3>

@@ -22,7 +22,7 @@ in 'gui').</p>
 
  <p>The purpose of MyriadGUI is to wrap, complement and improve what we consider 
 the best set of gui backends available (previously: gs alone; now: wx, with 
-OpenGL), for classical applications and multimedia ones (ex: games).</p>
+OpenGL), for classical applications and multimedia ones (e.g. games).</p>
 
  See <code>gui_test.erl</code> for the corresponding test.
 
@@ -98,7 +98,7 @@ channel).</p>
 
 
 <h3 class="typedecl"><a name="type-button_style">button_style()</a></h3>
-<p><tt>button_style() = <a href="#type-button_style_opt">button_style_opt()</a> | [<a href="#type-button_style_opt">button_style_opt()</a>]</tt></p>
+<p><tt>button_style() = [<a href="#type-button_style_opt">button_style_opt()</a>]</tt></p>
 
 
 <h3 class="typedecl"><a name="type-button_style_opt">button_style_opt()</a></h3>
@@ -190,10 +190,6 @@ channel).</p>
 <p><tt>event_subscription_spec() = <a href="gui_event.html#type-event_subscription_spec">gui_event:event_subscription_spec()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-event_translation_table">event_translation_table()</a></h3>
-<p><tt>event_translation_table() = <a href="gui_event.html#type-event_translation_table">gui_event:event_translation_table()</a></tt></p>
-
-
 <h3 class="typedecl"><a name="type-event_type">event_type()</a></h3>
 <p><tt>event_type() = <a href="gui_event.html#type-event_type">gui_event:event_type()</a></tt></p>
 
@@ -268,7 +264,7 @@ noticeably jerky.</p>
 
 
 <h3 class="typedecl"><a name="type-frame_style">frame_style()</a></h3>
-<p><tt>frame_style() = <a href="#type-frame_style_opt">frame_style_opt()</a> | [<a href="#type-frame_style_opt">frame_style_opt()</a>]</tt></p>
+<p><tt>frame_style() = [<a href="#type-frame_style_opt">frame_style_opt()</a>]</tt></p>
 
 
 <h3 class="typedecl"><a name="type-frame_style_opt">frame_style_opt()</a></h3>
@@ -300,7 +296,7 @@ noticeably jerky.</p>
 <p><p> Reference to a GUI object (often designated as "widget" here), somewhat akin 
 to a PID.</p>
 
- (ex: {wx_ref,35,wxFrame,[]} or {myriad_object_ref,myr_canvas,12}).</p>
+ (e.g. {wx_ref,35,wxFrame,[]} or {myriad_object_ref,myr_canvas,12}).</p>
 
 <h3 class="typedecl"><a name="type-gui_object_key">gui_object_key()</a></h3>
 <p><tt>gui_object_key() = <a href="gui_event.html#type-gui_object_key">gui_event:gui_object_key()</a></tt></p>
@@ -509,7 +505,12 @@ it:
 
 <h3 class="typedecl"><a name="type-sizer_flag_opt">sizer_flag_opt()</a></h3>
 <p><tt>sizer_flag_opt() = default | top_border | bottom_border | left_border | right_border | all_borders | expand_fully | expand_shaped | fixed_size | counted_even_if_hidden | align_center | align_left | align_right | align_top | align_bottom | align_center_vertical | align_center_horizontal</tt></p>
-<p> Options for sizers, see <a href="https://docs.wxwidgets.org/stable/classwx_sizer.html" target="_top"><tt>https://docs.wxwidgets.org/stable/classwx_sizer.html</tt></a></p>
+<p> Option flags for sizers, see
+ <a href="https://docs.wxwidgets.org/stable/classwx_sizer.html" target="_top"><tt>https://docs.wxwidgets.org/stable/classwx_sizer.html</tt></a>.</p>
+
+<h3 class="typedecl"><a name="type-sizer_flags">sizer_flags()</a></h3>
+<p><tt>sizer_flags() = [<a href="#type-sizer_flag_opt">sizer_flag_opt()</a>]</tt></p>
+
 
 <h3 class="typedecl"><a name="type-sizer_item">sizer_item()</a></h3>
 <p><tt>sizer_item() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxSizerItem.html#type-wxSizerItem">wxSizerItem:wxSizerItem()</a></tt></p>
@@ -544,7 +545,7 @@ it:
 <p><tt>standard_menu_item_name_id() = new_menu_item | open_menu_item | close_menu_item | save_menu_item | save_as_menu_item | revert_to_saved_menu_item | undelete_menu_item | print_menu_item | preview_menu_item | revert_menu_item | edit_menu_item | file_menu_item | properties_menu_item | cut_menu_item | copy_menu_item | paste_menu_item | delete_menu_item | clear_menu_item | find_menu_item | select_all_menu_item | replace_menu_item | replace_all_menu_item | clear_menu_item | ok_menu_item | cancel_menu_item | apply_menu_item | yes_menu_item | no_menu_item | add_menu_item | remove_menu_item | convert_menu_item | execute_menu_item | home_menu_item | refresh_menu_item | stop_menu_item | index_menu_item | select_color_menu_item | select_font_menu_item | forward_menu_item | backward_menu_item | up_menu_item | down_menu_item | top_menu_item | bottom_menu_item | first_menu_item | last_menu_item | jump_to_menu_item | info_menu_item | zoom_factor_one | zoom_factor_fit | zoom_factor_in | zoom_factor_out | undo_menu_item | redo_menu_item | help_menu_item | preferences_menu_item | about_menu_item | floppy_menu_item | hard_disk_menu_item | network_menu_item | exit_menu_item</tt></p>
 <p><p> The name identifiers of the standard menu items.</p>
 
- Such standard items are specifically managed (ex: they have a corresponding
+ Such standard items are specifically managed (e.g. they have a corresponding
  icon automatically associated).</p>
 
 <h3 class="typedecl"><a name="type-status_bar">status_bar()</a></h3>
@@ -552,7 +553,11 @@ it:
 <p> A thin space at the bottom of a frame where texts are typically displayed.</p>
 
 <h3 class="typedecl"><a name="type-status_bar_style">status_bar_style()</a></h3>
-<p><tt>status_bar_style() = normal | flat | raised | sunken</tt></p>
+<p><tt>status_bar_style() = [<a href="#type-status_bar_style_opt">status_bar_style_opt()</a>]</tt></p>
+
+
+<h3 class="typedecl"><a name="type-status_bar_style_opt">status_bar_style_opt()</a></h3>
+<p><tt>status_bar_style_opt() = normal | flat | raised | sunken</tt></p>
 <p> A style of status bar.</p>
 
 <h3 class="typedecl"><a name="type-text">text()</a></h3>
@@ -587,7 +592,11 @@ frame.</p>
  A toolbar emits menu commands in the same way that a frame menubar does.</p>
 
 <h3 class="typedecl"><a name="type-toolbar_style">toolbar_style()</a></h3>
-<p><tt>toolbar_style() = top | bottom | left | right | flat | dockable | no_icons | text | no_divider | no_align | horizontal_layout | no_tooltips | default</tt></p>
+<p><tt>toolbar_style() = [<a href="#type-toolbar_style_opt">toolbar_style_opt()</a>]</tt></p>
+
+
+<h3 class="typedecl"><a name="type-toolbar_style_opt">toolbar_style_opt()</a></h3>
+<p><tt>toolbar_style_opt() = top | bottom | left | right | flat | dockable | no_icons | text | no_divider | no_align | horizontal_layout | no_tooltips | default</tt></p>
 <p> A style of toolbar.</p>
 
 <h3 class="typedecl"><a name="type-top_level_frame">top_level_frame()</a></h3>
@@ -633,7 +642,7 @@ sizer) in a sizer.</p>
 
 <h3 class="typedecl"><a name="type-window">window()</a></h3>
 <p><tt>window() = <a href="#type-maybe">maybe</a>(<a href="http://www.erlang.org/edoc/doc/wx/doc/wxWindow.html#type-wxWindow">wxWindow:wxWindow()</a> | <a href="gui_canvas.html#type-canvas">gui_canvas:canvas()</a>)</tt></p>
-<p> Any kind of window, that is widget (ex: any canvas is a window).</p>
+<p> Any kind of window, that is widget (e.g. any canvas is a window).</p>
 
 <h3 class="typedecl"><a name="type-window_device_context">window_device_context()</a></h3>
 <p><tt>window_device_context() = <a href="http://www.erlang.org/edoc/doc/wx/doc/wxWindowDC.html#type-wxWindowDC">wxWindowDC:wxWindowDC()</a></tt></p>
@@ -649,7 +658,7 @@ stored.</p>
 <p> Window-specific options (quite common).</p>
 
 <h3 class="typedecl"><a name="type-window_style">window_style()</a></h3>
-<p><tt>window_style() = <a href="#type-window_style_opt">window_style_opt()</a> | [<a href="#type-window_style_opt">window_style_opt()</a>]</tt></p>
+<p><tt>window_style() = [<a href="#type-window_style_opt">window_style_opt()</a>]</tt></p>
 
 
 <h3 class="typedecl"><a name="type-window_style_opt">window_style_opt()</a></h3>
@@ -665,7 +674,7 @@ stored.</p>
 <p><p> MyriadGUI-translated version of a native wx type, i.e. of the 
 wx_native_object_type().</p>
 
- (ex: 'window', instead of 'wxWindow').</p>
+ (e.g. 'window', instead of 'wxWindow').</p>
 
 <h3 class="typedecl"><a name="type-wx_server">wx_server()</a></h3>
 <p><tt>wx_server() = <a href="#type-gui_object">gui_object()</a></tt></p>
@@ -770,13 +779,13 @@ information of the just created MyriadGUI environment.</td></tr>
 <tr><td valign="top"><a href="#create_menu_bar-0">create_menu_bar/0</a></td><td>Creates an empty menu bar, at the top of the specified parent window.</td></tr>
 <tr><td valign="top"><a href="#create_panel-0">create_panel/0</a></td><td>Creates a panel.</td></tr>
 <tr><td valign="top"><a href="#create_panel-1">create_panel/1</a></td><td>Creates a panel, associated to the specified parent.</td></tr>
-<tr><td valign="top"><a href="#create_panel-2">create_panel/2</a></td><td>Creates a panel, associated to specified parent and with specified
+<tr><td valign="top"><a href="#create_panel-2">create_panel/2</a></td><td>Creates a panel, associated to the specified parent and with specified
  options.</td></tr>
-<tr><td valign="top"><a href="#create_panel-4">create_panel/4</a></td><td>Creates a panel, associated to specified parent and with specified
+<tr><td valign="top"><a href="#create_panel-4">create_panel/4</a></td><td>Creates a panel, associated to the specified parent and with specified
  position and dimensions.</td></tr>
-<tr><td valign="top"><a href="#create_panel-5">create_panel/5</a></td><td>Creates a panel, associated to specified parent and with specified
+<tr><td valign="top"><a href="#create_panel-5">create_panel/5</a></td><td>Creates a panel, associated to the specified parent and with specified
  position and dimensions.</td></tr>
-<tr><td valign="top"><a href="#create_panel-6">create_panel/6</a></td><td>Creates a panel, associated to specified parent, with specified
+<tr><td valign="top"><a href="#create_panel-6">create_panel/6</a></td><td>Creates a panel, associated to the specified parent, with specified
  position, dimensions and options.</td></tr>
 <tr><td valign="top"><a href="#create_sizer-1">create_sizer/1</a></td><td>Creates a sizer operating on specified orientation.</td></tr>
 <tr><td valign="top"><a href="#create_sizer_with_box-2">create_sizer_with_box/2</a></td><td>Creates a sizer operating on specified orientation, within specified
@@ -821,6 +830,7 @@ information of the just created MyriadGUI environment.</td></tr>
 <tr><td valign="top"><a href="#destruct_status_bar-1">destruct_status_bar/1</a></td><td>Destructs the specified status bar.</td></tr>
 <tr><td valign="top"><a href="#destruct_text_display-1">destruct_text_display/1</a></td><td>Destructs the specified text display.</td></tr>
 <tr><td valign="top"><a href="#destruct_window-1">destruct_window/1</a></td><td>Destructs the specified window.</td></tr>
+<tr><td valign="top"><a href="#destruct_window-2">destruct_window/2</a></td><td>Destructs the specified window, using the specified environment server.</td></tr>
 <tr><td valign="top"><a href="#draw_bitmap-3">draw_bitmap/3</a></td><td>Draws the specified bitmap in the specified device context, at the
  specified position.</td></tr>
 <tr><td valign="top"><a href="#draw_bitmap-4">draw_bitmap/4</a></td><td>Draws the specified bitmap onto the specified graphic context, at the
@@ -860,20 +870,22 @@ information of the just created MyriadGUI environment.</td></tr>
 <tr><td valign="top"><a href="#draw_segment-4">draw_segment/4</a></td><td>Draws a segment of the line L between the two specified ordinates.</td></tr>
 <tr><td valign="top"><a href="#draw_text-4">draw_text/4</a></td><td>Renders the specified text on the specified graphic context at the
  specified position.</td></tr>
-<tr><td valign="top"><a href="#enable_repaint-1">enable_repaint/1</a></td><td>Updates the specified window-like object (ex: a canvas) so that its 
-client area can be painted.</td></tr>
-<tr><td valign="top"><a href="#event_interception_callback-3">event_interception_callback/3</a></td><td></td></tr>
+<tr><td valign="top"><a href="#enable_repaint-1">enable_repaint/1</a></td><td>Updates the specified window-like object (e.g.</td></tr>
+<tr><td valign="top"><a href="#event_interception_callback-2">event_interception_callback/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#fit-1">fit/1</a></td><td>Fits the specified widget to its best size.</td></tr>
 <tr><td valign="top"><a href="#fit_to_sizer-2">fit_to_sizer/2</a></td><td>Resizes the specified window so that its client area matches the minimal
  size of the specified sizer.</td></tr>
+<tr><td valign="top"><a href="#generate_support_modules-0">generate_support_modules/0</a></td><td>To be called by the 'gui_generated.beam' automatic make target in
+ order to generate, here, a (single) module to share the MyriadGUI constants.</td></tr>
 <tr><td valign="top"><a href="#get_backend_environment-0">get_backend_environment/0</a></td><td>Gets the backend environment currently used by the calling process,
  typically to transmit it to any other process in order to enable it to use
  that backend.</td></tr>
 <tr><td valign="top"><a href="#get_backend_information-0">get_backend_information/0</a></td><td>Returns information regarding the graphical backend in use.</td></tr>
 <tr><td valign="top"><a href="#get_best_size-1">get_best_size/1</a></td><td>Returns the best size (as {Width,Height}) of the specified widget, that
  is its best acceptable minimal size.</td></tr>
-<tr><td valign="top"><a href="#get_client_size-1">get_client_size/1</a></td><td>Returns the client size (as {Width,Height}) of the specified widget,
- i.e.</td></tr>
+<tr><td valign="top"><a href="#get_client_size-1">get_client_size/1</a></td><td>Returns the client size (as {Width,Height}) of the specified widget, that
+ is the actual size of the area that can be drawn upon (excluded menu, bars,
+ etc.).</td></tr>
 <tr><td valign="top"><a href="#get_environment_server-0">get_environment_server/0</a></td><td>Returns the PID of the supposedly already-running MyriadGUI environment
  server.</td></tr>
 <tr><td valign="top"><a href="#get_flickerfree_paint_device_context-1">get_flickerfree_paint_device_context/1</a></td><td>Returns a flicker-free paint device context corresponding to the
@@ -907,9 +919,9 @@ string, using the currently selected font.</td></tr>
 done, through the returned device context.</td></tr>
 <tr><td valign="top"><a href="#lock_window-1">lock_window/1</a></td><td>Locks the specified window, so that direct access to its content can be 
 done, through the returned device context.</td></tr>
-<tr><td valign="top"><a href="#maximise_in_parent-1">maximise_in_parent/1</a></td><td>Maximises the specified widget (a specialised window; ex: a panel) in its
- parent (adopting its maximum client size), and returns the new size of this
- widget.</td></tr>
+<tr><td valign="top"><a href="#maximise_in_parent-1">maximise_in_parent/1</a></td><td>Maximises the specified widget (a specialised window, for example a
+ panel) in its parent (adopting its maximum client size), and returns the new
+ size of this widget.</td></tr>
 <tr><td valign="top"><a href="#maximize-1">maximize/1</a></td><td>Maximises the specified top-level window.</td></tr>
 <tr><td valign="top"><a href="#object_key_to_string-1">object_key_to_string/1</a></td><td>Returns a textual representation of the specified GUI object key.</td></tr>
 <tr><td valign="top"><a href="#object_to_string-1">object_to_string/1</a></td><td>Returns a textual representation of the specified GUI object.</td></tr>
@@ -952,7 +964,8 @@ default no event propagation is enabled.</td></tr>
 <tr><td valign="top"><a href="#set_field_widths-2">set_field_widths/2</a></td><td>Sets the width of the fields of the specified status bar (and thus
  determines their number as well).</td></tr>
 <tr><td valign="top"><a href="#set_fill_color-2">set_fill_color/2</a></td><td>Sets the color to be using for filling surfaces.</td></tr>
-<tr><td valign="top"><a href="#set_focus-1">set_focus/1</a></td><td>Sets the specified widget to receive keyboard input.</td></tr>
+<tr><td valign="top"><a href="#set_focus-1">set_focus/1</a></td><td>Sets the specified widget to receive keyboard input, provided notably 
+that this type of widget can have the focus (e.g.</td></tr>
 <tr><td valign="top"><a href="#set_font-2">set_font/2</a></td><td>Sets the font to be used by the specified window and its children.</td></tr>
 <tr><td valign="top"><a href="#set_font-3">set_font/3</a></td><td>Sets the font to be used by the specified:
  - window and its children, then, if requested, destructs that font
@@ -1441,7 +1454,7 @@ a default parent.</p>
 information of the just created MyriadGUI environment.</p>
 
  <p>Some services must be specifically declared here, as they require 
-initialisation (ex: for the loading of mouse cursors).</p>
+initialisation (e.g. for the loading of mouse cursors).</p>
 
 -spec create_gui_environment( [ service() ], id_allocator_pid() ) -&gt;
 													gui_env_info().</p>
@@ -1492,7 +1505,7 @@ initialisation (ex: for the loading of mouse cursors).</p>
 <div class="spec">
 <p><tt>create_panel(Parent::<a href="#type-window">window()</a> | <a href="#type-splitter">splitter()</a>, Options::<a href="#type-panel_options">panel_options()</a>) -&gt; <a href="#type-panel">panel()</a></tt><br></p>
 <p> </p>
-</div><p>Creates a panel, associated to specified parent and with specified
+</div><p>Creates a panel, associated to the specified parent and with specified
  options.
 </p>
 
@@ -1500,7 +1513,7 @@ initialisation (ex: for the loading of mouse cursors).</p>
 <div class="spec">
 <p><tt>create_panel(Parent::<a href="#type-window">window()</a>, Position::<a href="#type-position">position()</a>, Size::<a href="#type-size">size()</a>, Options::<a href="#type-panel_options">panel_options()</a>) -&gt; <a href="#type-panel">panel()</a></tt><br></p>
 <p> </p>
-</div><p>Creates a panel, associated to specified parent and with specified
+</div><p>Creates a panel, associated to the specified parent and with specified
  position and dimensions.
 </p>
 
@@ -1508,7 +1521,7 @@ initialisation (ex: for the loading of mouse cursors).</p>
 <div class="spec">
 <p><tt>create_panel(Parent::<a href="#type-window">window()</a>, X::<a href="#type-coordinate">coordinate()</a>, Y::<a href="#type-coordinate">coordinate()</a>, Width::<a href="#type-length">length()</a>, Height::<a href="#type-length">length()</a>) -&gt; <a href="#type-panel">panel()</a></tt><br></p>
 <p> </p>
-</div><p>Creates a panel, associated to specified parent and with specified
+</div><p>Creates a panel, associated to the specified parent and with specified
  position and dimensions.
 </p>
 
@@ -1516,7 +1529,7 @@ initialisation (ex: for the loading of mouse cursors).</p>
 <div class="spec">
 <p><tt>create_panel(Parent::<a href="#type-window">window()</a>, X::<a href="#type-coordinate">coordinate()</a>, Y::<a href="#type-coordinate">coordinate()</a>, Width::<a href="#type-width">width()</a>, Height::<a href="#type-height">height()</a>, Options::<a href="#type-panel_options">panel_options()</a>) -&gt; <a href="#type-panel">panel()</a></tt><br></p>
 <p> </p>
-</div><p>Creates a panel, associated to specified parent, with specified
+</div><p>Creates a panel, associated to the specified parent, with specified
  position, dimensions and options.
 </p>
 
@@ -1610,8 +1623,8 @@ initialisation (ex: for the loading of mouse cursors).</p>
 </div><p><p>Creates a toolbar in the specified frame, with the specified identifier 
 (if any) and style.</p>
 
- Apparently up to one toolbar can be associated to a frame (ex: no top and left
- toolbars allowed simultaneously).
+ Apparently up to one toolbar can be associated to a frame (e.g. no top and
+ left toolbars allowed simultaneously).
 </p>
 
 <h3 class="function"><a name="create_top_level_frame-1">create_top_level_frame/1</a></h3>
@@ -1729,6 +1742,12 @@ initialisation (ex: for the loading of mouse cursors).</p>
 <p><tt>destruct_window(Window::<a href="#type-window">window()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div><p>Destructs the specified window.</p>
+
+<h3 class="function"><a name="destruct_window-2">destruct_window/2</a></h3>
+<div class="spec">
+<p><tt>destruct_window(Window::<a href="#type-window">window()</a>, GUIEnvPid::<a href="#type-gui_env_pid">gui_env_pid()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p> </p>
+</div><p>Destructs the specified window, using the specified environment server.</p>
 
 <h3 class="function"><a name="draw_bitmap-3">draw_bitmap/3</a></h3>
 <div class="spec">
@@ -1895,7 +1914,7 @@ initialisation (ex: for the loading of mouse cursors).</p>
 <div class="spec">
 <p><tt>enable_repaint(Window::<a href="#type-window">window()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p><p>Updates the specified window-like object (ex: a canvas) so that its 
+</div><p><p>Updates the specified window-like object (e.g. a canvas) so that its 
 client area can be painted.</p>
 
  <p>To be called from a repaint event handler.</p>
@@ -1905,9 +1924,9 @@ client area can be painted.</p>
  Based on our tests, does not seem strictly necessary.
 </p>
 
-<h3 class="function"><a name="event_interception_callback-3">event_interception_callback/3</a></h3>
+<h3 class="function"><a name="event_interception_callback-2">event_interception_callback/2</a></h3>
 <div class="spec">
-<p><tt>event_interception_callback(WxEventRecord::<a href="gui_event.html#type-wx_event">gui_event:wx_event()</a>, WxEventObject::<a href="http://www.erlang.org/edoc/doc/wx/doc/wxEvent.html#type-wxEvent">wxEvent:wxEvent()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>event_interception_callback(WxEventRecord::<a href="gui_event.html#type-wx_event">gui_event:wx_event()</a>, WxEventObject::<a href="http://www.erlang.org/edoc/doc/wx/doc/wxEvent.html#type-wxEvent">wxEvent:wxEvent()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div>
 
@@ -1926,6 +1945,14 @@ client area can be painted.</p>
 <p> </p>
 </div><p>Resizes the specified window so that its client area matches the minimal
  size of the specified sizer.
+</p>
+
+<h3 class="function"><a name="generate_support_modules-0">generate_support_modules/0</a></h3>
+<div class="spec">
+<p><tt>generate_support_modules() -&gt; no_return()</tt><br></p>
+<p> </p>
+</div><p>To be called by the 'gui_generated.beam' automatic make target in
+ order to generate, here, a (single) module to share the MyriadGUI constants.
 </p>
 
 <h3 class="function"><a name="get_backend_environment-0">get_backend_environment/0</a></h3>
@@ -1955,8 +1982,8 @@ client area can be painted.</p>
 <div class="spec">
 <p><tt>get_client_size(Canvas::<a href="#type-window">window()</a>) -&gt; <a href="#type-dimensions">dimensions()</a></tt><br></p>
 <p> </p>
-</div><p>Returns the client size (as {Width,Height}) of the specified widget,
- i.e. the actual size of the area that can be drawn upon (excluded menu, bars,
+</div><p>Returns the client size (as {Width,Height}) of the specified widget, that
+ is the actual size of the area that can be drawn upon (excluded menu, bars,
  etc.)
 </p>
 
@@ -1990,7 +2017,11 @@ client area can be painted.</p>
 <div class="spec">
 <p><tt>get_focused() -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-window">window()</a>)</tt><br></p>
 <p> </p>
-</div><p>Returns the widget (if any) that has the current keyboard focus.</p>
+</div><p><p>Returns the widget (if any) that has the current keyboard focus.</p>
+
+ Refer to the 'Keyboard-related events' section of the gui_keyboard module for
+ further information.
+</p>
 
 <h3 class="function"><a name="get_rgb-2">get_rgb/2</a></h3>
 <div class="spec">
@@ -2106,16 +2137,16 @@ done, through the returned device context.</p>
 </div><p><p>Locks the specified window, so that direct access to its content can be 
 done, through the returned device context.</p>
 
- Once the desired changes will have been made, this window must be unlocked.
+ Once the desired changes have been made, this window must be unlocked.
 </p>
 
 <h3 class="function"><a name="maximise_in_parent-1">maximise_in_parent/1</a></h3>
 <div class="spec">
 <p><tt>maximise_in_parent(Widget::<a href="#type-window">window()</a>) -&gt; <a href="#type-dimensions">dimensions()</a></tt><br></p>
 <p> </p>
-</div><p>Maximises the specified widget (a specialised window; ex: a panel) in its
- parent (adopting its maximum client size), and returns the new size of this
- widget.
+</div><p>Maximises the specified widget (a specialised window, for example a
+ panel) in its parent (adopting its maximum client size), and returns the new
+ size of this widget.
 </p>
 
 <h3 class="function"><a name="maximize-1">maximize/1</a></h3>
@@ -2324,7 +2355,12 @@ propagating it in the backend thanks to this function.</p>
 <div class="spec">
 <p><tt>set_focus(Window::<a href="#type-window">window()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Sets the specified widget to receive keyboard input.</p>
+</div><p><p>Sets the specified widget to receive keyboard input, provided notably 
+that this type of widget can have the focus (e.g. frame() cannot).</p>
+
+ Refer to the 'Keyboard-related events' section of the gui_keyboard module for
+ further information.
+</p>
 
 <h3 class="function"><a name="set_font-2">set_font/2</a></h3>
 <div class="spec">
@@ -2468,7 +2504,7 @@ such events occur, typically like:
 tuple whose:</p>
 
  <p>- first element corresponds to the type of event having happened, as an atom 
-(ex: 'onWindowClosed', 'onResized', 'onShown', etc.)</p>
+(e.g. 'onWindowClosed', 'onResized', 'onShown', etc.)</p>
 
  <p>- second is a list whose elements depend on the type of this event</p>
 
@@ -2522,11 +2558,12 @@ such events occur, like:
 </div><p><p>Synchronises the specified window with the MyriadGUI loop, to ensure that 
 no past operation is still pending at its level.</p>
 
- <p>Useful if there exists some means of interacting with it directly (ex: thanks 
-to an OpenGL NIF) that could create a race condition (ex: presumably 
+ <p>Useful if there exists some means of interacting with it directly (e.g. thanks 
+to an OpenGL NIF) that could create a race condition (e.g. presumably a 
 message-based resizing immediately followed by a direct OpenGL rendering).</p>
 
- See gui_opengl_minimal_test:on_main_frame_resize/1 for further details.
+ See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details;
+ see also the synchroniseWithCaller message supported by the MyriadGUI loop.
 </p>
 
 <h3 class="function"><a name="trap_event-1">trap_event/1</a></h3>

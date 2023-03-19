@@ -33,10 +33,10 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Sunday, January 1, 2023</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Sunday, March 19, 2023</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.30</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.31</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
@@ -195,7 +195,7 @@ The next level of information is either to browse the <a class="reference extern
 </tbody>
 </table>
 <p>These services tend to stay away from introducing any new <strong>dependency</strong>; however many supports (of OpenGL, JSON, Protobuf, SQL, HDF5, etc.; also in terms of GUI or integration with other languages) may be useful, and are to rely on well-chosen and well-integrated backends.</p>
-<p>So, should a key, generic service need a third-party prerequisite (ex: library to manage a complex data format, or to process specific data), that dependency should be made <strong>fully optional</strong> (see the <a class="reference internal" href="#third-party-dependencies">Third-Party Dependencies</a> section for more details), in a logic of containment: if, for any reason, a dependency has to be replaced, the goal is that the user code can remain, as much as realistically possible, happily unaware of it - only the Myriad integration layer being impacted.</p>
+<p>So, should a key, generic service need a third-party prerequisite (e.g. library to manage a complex data format, or to process specific data), that dependency should be made <strong>fully optional</strong> (see the <a class="reference internal" href="#third-party-dependencies">Third-Party Dependencies</a> section for more details), in a logic of containment: if, for any reason, a dependency has to be replaced, the goal is that the user code can remain, as much as realistically possible, happily unaware of it - only the Myriad integration layer being impacted.</p>
 <p>The purpose of Myriad is not to fully integrate the many backends it <em>may</em> rely on (it would be an unachievable task) but, once a proper integration base has been defined for a given backend, to pragmatically increase its coverage based on the actual needs.</p>
 <p>As a consequence, for the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan">Ceylan</a> project, the first level of the Erlang-based software stack that we use relies on this <tt class="docutils literal">Myriad</tt> layer - whose official, more specific name is the <tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt> layer.</p>
 <p>The project repository is located <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad">here</a>. We gathered also some more general Erlang-information in <a class="reference external" href="http://howtos.esperide.org/Erlang.html">our corresponding HOWTO</a>.</p>
@@ -218,7 +218,7 @@ The next level of information is either to browse the <a class="reference extern
 <h2><a class="toc-backref" href="#toc-entry-4">About Layers</a></h2>
 <p>The <tt class="docutils literal">Myriad</tt> services are to be used by this layer itself (for its inner workings), and, more importantly, are to be re-used, specialised and enriched by layers built on top of it.</p>
 <p>The general rule is that a layer may depend on (i.e. make use of) all layers <em>below</em> it (not only the one just preceding it), but cannot refer to any layer <em>above</em> it (it should be literally unaware of their existence).</p>
-<p>So, in a bottom-up view, generally a software stack mentioned here begins with the operating system (typically GNU/Linux), then <a class="reference external" href="http://erlang.org">Erlang/OTP</a>, then <tt class="docutils literal">Myriad</tt>, then any layer(s) built on top of them (ex: <a class="reference external" href="http://wooper.esperide.org">WOOPER</a>).</p>
+<p>So, in a bottom-up view, generally a software stack mentioned here begins with the operating system (typically GNU/Linux), then <a class="reference external" href="http://erlang.org">Erlang/OTP</a>, then <tt class="docutils literal">Myriad</tt>, then any layer(s) built on top of them (e.g. <a class="reference external" href="http://wooper.esperide.org">WOOPER</a>).</p>
 <p>Of course a given layer does not mask the layers below; for example programs using the <tt class="docutils literal">Myriad</tt> layer typically use also a lot the services brought by the <a class="reference external" href="http://erlang.org/erldoc">Erlang base libraries</a>.</p>
 </div>
 <div class="section" id="recommended-usage-contribution">
@@ -228,10 +228,10 @@ The next level of information is either to browse the <a class="reference extern
 <p>Of course, contributions of all sorts are welcome.</p>
 <p>We do our best to test, at least lightly, each element provided. All services offered in a <tt class="docutils literal">foo.erl</tt> file are thus expected to be tested in the companion <tt class="docutils literal">foo_test.erl</tt> file, in the <tt class="docutils literal">test</tt> tree (whose structure tends to mirror the one of the <tt class="docutils literal">src</tt> tree). Once there, running this test is as simple as executing:</p>
 <pre class="code bash literal-block">
-$ make foo_run
+$<span class="w"> </span>make<span class="w"> </span>foo_run
 </pre>
-<p>Note that however we have not reached the discipline level of an exhaustive <tt class="docutils literal">eunit</tt> test suite for each service (most of them being almost trivial).</p>
-<p>The <a class="reference external" href="http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html">Dialyzer</a> static analysis tool is regularly run on the code base (see the <tt class="docutils literal"><span class="pre">generate-local-plt</span></tt> and <tt class="docutils literal"><span class="pre">self-check-against-plt</span></tt> generic Make targets for that).</p>
+<p>Note that however we have not reached the discipline level of an exhaustive <tt class="docutils literal">eunit</tt> test suite for each service (most of them being mostly trivial).</p>
+<p>See also the <a class="reference internal" href="#type-checking">type-checking</a> section.</p>
 </div>
 </div>
 <div class="section" id="getting-myriad">
@@ -270,7 +270,7 @@ $ make foo_run
 </table>
 <p>A simple use of it is:</p>
 <pre class="code bash literal-block">
-$ ./install-erlang.sh --doc-install --generate-plt
+$<span class="w"> </span>./install-erlang.sh<span class="w"> </span>--doc-install<span class="w"> </span>--generate-plt
 </pre>
 <p>As using a Just-In-Time compiler increases the performances significantly, we chose to force its use. As a result, a C++ 17 compiler, like a recent enough <tt class="docutils literal">g++</tt> one,  is required by our script.</p>
 <p>One may execute <tt class="docutils literal"><span class="pre">./install-erlang.sh</span> <span class="pre">--help</span></tt> for more guidance about how to configure it, notably in order to enable all modules of interest (<tt class="docutils literal">crypto</tt>, <tt class="docutils literal">wx</tt>, etc.). See also the <a class="reference internal" href="#base-gui-backend">Base GUI Backend</a> section to secure any related prerequisite.</p>
@@ -280,7 +280,7 @@ $ ./install-erlang.sh --doc-install --generate-plt
 <h2><a class="toc-backref" href="#toc-entry-10">Getting Myriad's Sources</a></h2>
 <p>This is pretty straightforward, based on the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad">project repository</a> hosted by Github:</p>
 <pre class="code bash literal-block">
-$ git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git myriad
+$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/Olivier-Boudeville/Ceylan-Myriad.git<span class="w"> </span>myriad
 </pre>
 <p>This should download in your current directory the full Myriad repository. For OTP compliance, using for such a clone its short name (<tt class="docutils literal">myriad</tt>) rather than its long one (<tt class="docutils literal"><span class="pre">Ceylan-Myriad</span></tt>) is recommended.</p>
 <p>The Myriad <tt class="docutils literal">master</tt> branch is meant to stick to the latest stable version: we try to ensure that this main line always stays functional (sorry for the pun). Evolutions are to take place in feature branches and to be merged only when ready.</p>
@@ -289,8 +289,8 @@ $ git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git myriad
 <span id="build"></span><h2><a class="toc-backref" href="#toc-entry-11">Building Myriad</a></h2>
 <p>If a relevant Erlang installation is available, this is as simple as:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> myriad
-$ make all
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>myriad<span class="w">
+</span>$<span class="w"> </span>make<span class="w"> </span>all
 </pre>
 <p>The parallel build of the whole layer (services and tests alike) shall complete successfully (if it is not the case, see our <a class="reference internal" href="#support">support</a> section).</p>
 <p>One may just run <tt class="docutils literal">make</tt> by itself in order to list the main available options.</p>
@@ -302,51 +302,62 @@ $ make all
 <span id="testing"></span><h2><a class="toc-backref" href="#toc-entry-12">Testing Myriad</a></h2>
 <p>As Myriad has no prerequisite (besides Erlang itself of course), just run (possibly simply thanks to <tt class="docutils literal">rebar3 compile</tt> after a <tt class="docutils literal">git clone <span class="pre">https://github.com/Olivier-Boudeville/Ceylan-Myriad.git</span></tt>), still from the root directory of Myriad:</p>
 <pre class="code bash literal-block">
-$ make <span class="nb">test</span>
+$<span class="w"> </span>make<span class="w"> </span><span class="nb">test</span>
 </pre>
 <p>The testing shall complete successfully (if it is not the case, see our <a class="reference internal" href="#support">support</a> section).</p>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
-<p class="last">Myriad is built and tested at each commit through <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/actions?query=workflow%3A%22Erlang+CI%22">continuous integration</a>. The same holds for the projects based on it, directly (ex: <a class="reference external" href="https://wooper.esperide.org">WOOPER</a>, <a class="reference external" href="https://seaplus.esperide.org">Seaplus</a>) or not (ex: <a class="reference external" href="https://traces.esperide.org/">Traces</a>, <a class="reference external" href="https://mobile.esperide.org/">Mobile</a>, <a class="reference external" href="https://us-web.esperide.org/">US-Web</a>), so in terms of usability, confidence should be high.</p>
+<p class="last">Myriad is built and tested at each commit through <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/actions?query=workflow%3A%22Erlang+CI%22">continuous integration</a>. The same holds for the projects based on it, directly (e.g. <a class="reference external" href="https://wooper.esperide.org">WOOPER</a>, <a class="reference external" href="https://seaplus.esperide.org">Seaplus</a>) or not (e.g. <a class="reference external" href="https://traces.esperide.org/">Traces</a>, <a class="reference external" href="https://mobile.esperide.org/">Mobile</a>, <a class="reference external" href="https://us-web.esperide.org/">US-Web</a>), so in terms of usability, confidence should be high.</p>
 </div>
 </div>
 <div class="section" id="type-checking-myriad">
 <span id="type-checking"></span><h2><a class="toc-backref" href="#toc-entry-13">Type-checking Myriad</a></h2>
+<p>The <a class="reference external" href="http://erlang.org/doc/apps/dialyzer/dialyzer_chapter.html">Dialyzer</a> static analysis tool is regularly run on the code base (see the <tt class="docutils literal"><span class="pre">generate-local-plt</span></tt> and <tt class="docutils literal"><span class="pre">self-check-against-plt</span></tt> generic Make targets for that).</p>
 <p>As Myriad is (by default) to enable debug information with a key-based protection of the resulting BEAM files, one should first have such key defined.</p>
-<p>One way of doing so is, if wanted, to update the default key (see <tt class="docutils literal">DEBUG_INFO_KEY</tt> in <tt class="docutils literal">GNUmakevars.inc</tt>) and to write in on disk (ex: <tt class="docutils literal">make <span class="pre">write-debug-key-file</span></tt>), and to rebuild Myriad accordingly afterwards (ex: <tt class="docutils literal">make rebuild</tt>).</p>
+<p>One way of doing so is, if wanted, to update the default key (see <tt class="docutils literal">DEBUG_INFO_KEY</tt> in <tt class="docutils literal">GNUmakevars.inc</tt>) and to write in on disk (e.g. <tt class="docutils literal">make <span class="pre">write-debug-key-file</span></tt>), and to rebuild Myriad accordingly afterwards (e.g. <tt class="docutils literal">make rebuild</tt>).</p>
 <p>Then, still from the <tt class="docutils literal">myriad</tt> root directory:</p>
 <pre class="code bash literal-block">
-$ make generate-local-plt self-check-against-plt
+$<span class="w"> </span>make<span class="w"> </span>generate-local-plt<span class="w"> </span>self-check-against-plt
 </pre>
-<p>It will trigger a full type-checking of Myriad, done thanks to <a class="reference external" href="http://erlang.org/doc/man/dialyzer.html">Dialyzer</a>.</p>
+<p>It will trigger a full Dialyzer-based type-checking of Myriad.</p>
 <p>This time-consuming phase will complete with a rather long list of notifications. Help us reducing it! These messages are numerous, but we do not think that most of them are so worrying.</p>
 <p>Finally, to trigger in one go a full rebuild, testing and type-checking, one may run:</p>
 <pre class="code bash literal-block">
-$ make check
+$<span class="w"> </span>make<span class="w"> </span>check-with-dialyzer
 </pre>
+<p>Similarly, to use <a class="reference external" href="https://github.com/josefs/Gradualizer">Gradualizer</a> or <a class="reference external" href="https://github.com/WhatsApp/eqwalizer">eqWAlizer</a>, run respectively <tt class="docutils literal">make <span class="pre">check-with-gradualizer</span></tt> and <tt class="docutils literal">make <span class="pre">check-with-eqwalizer</span></tt>.</p>
+<p>For more general information about static typing, refer to <a class="reference external" href="https://howtos.esperide.org/Erlang.html#static-typing">this section</a> of the Ceylan-HOWTOs.</p>
 </div>
 <div class="section" id="maintaining-myriad-and-deriving-projects-with-regard-to-rebar3">
 <h2><a class="toc-backref" href="#toc-entry-14">Maintaining Myriad and Deriving Projects with regard to rebar3</a></h2>
-<p>For Myriad as for all developments built on top of it (ex: specialisation layers or applications), any dependency may be specified in their <tt class="docutils literal">rebar.config</tt> <a class="footnote-reference" href="#footnote-5" id="footnote-reference-5">[7]</a> through a branch of a GIT repository corresponding to that dependency.</p>
+<p>For Myriad as for all developments built on top of it (e.g. specialisation layers or applications), any dependency may be specified in their <tt class="docutils literal">rebar.config</tt> <a class="footnote-reference" href="#footnote-5" id="footnote-reference-5">[7]</a> through a branch of a Git repository corresponding to that dependency.</p>
 <table class="docutils footnote" frame="void" id="footnote-5" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#footnote-reference-5">[7]</a></td><td>For example, with the conventions we rely on, <tt class="docutils literal">rebar.config</tt> is generated from the <tt class="docutils literal">conf/rebar.config.template</tt> file of the project of interest.</td></tr>
 </tbody>
 </table>
-<p>For example, Myriad itself does not require any specific dependency, but projects making use of Myriad (ex: <a class="reference external" href="https://wooper.esperide.org">WOOPER</a>) may specify in their <tt class="docutils literal">rebar.config</tt>:</p>
+<p>For example, Myriad itself does not require any specific dependency, but projects making use of Myriad (e.g. <a class="reference external" href="https://wooper.esperide.org">WOOPER</a>) may specify in their <tt class="docutils literal">rebar.config</tt>:</p>
 <pre class="code erlang literal-block">
 <span class="p">{</span><span class="n">deps</span><span class="p">,</span><span class="w"> </span><span class="p">[{</span><span class="n">myriad</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="n">git</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;git://github.com/Olivier-Boudeville/Ceylan-Myriad&quot;</span><span class="p">,</span><span class="w">
                                       </span><span class="p">{</span><span class="n">branch</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;master&quot;</span><span class="p">}}}]}.</span>
 </pre>
-<p>However, when having to build a dependency, rebar3 will not refer to the tip of the branch specified for it, but to any commit it may read from any pre-existing <tt class="docutils literal">rebar.lock</tt> file at the root of the current project (the underlying goal being to allow for more reproducible builds).</p>
+<p>However, when having to build a dependency, rebar3 will not necessarily refer to the tip of the branch specified for it, but to any commit it may read from any pre-existing <tt class="docutils literal">rebar.lock</tt> file at the root of the current project (the underlying goal being to allow for more reproducible builds).</p>
 <p>As the <a class="reference external" href="https://www.rebar3.org/docs/workflow/#setting-up-dependencies">rebar3 recommandation</a> is to store a version of that lock file in source version control, <strong>it shall be regularly updated</strong> otherwise the dependencies of a given project will stick, for the worst, to an older version of their branch, designated by an obsolete reference (this can be detected for example when continuous integration breaks after a nevertheless legit commit of the project).</p>
 <p>The solution is thus, for a project of interest, to regularly force an update of its dependencies referenced in its own lock file, and to commit the resulting version.</p>
-<p>For example, one would issue from the root of the project of interest:</p>
+<p>For example, to upgrade all listed dependencies, one may issue from the root of the project of interest:</p>
 <pre class="code bash literal-block">
-$ rebar3 upgrade
+$<span class="w"> </span>rebar3<span class="w"> </span>upgrade<span class="w"> </span>--all
 </pre>
-<p>This may update the <tt class="docutils literal">ref</tt> entry of its dependencies (including Myriad) in its <tt class="docutils literal">rebar.lock</tt> file, which shall then be committed for posterity.</p>
+<p>This may update the <tt class="docutils literal">ref</tt> entry of its dependencies (e.g. Myriad) in its <tt class="docutils literal">rebar.lock</tt> file, which shall then be committed for posterity.</p>
+<p>Its content could then be for example:</p>
+<pre class="code erlang literal-block">
+<span class="p">[{</span><span class="o">&lt;&lt;</span><span class="s">&quot;myriad&quot;</span><span class="o">&gt;&gt;</span><span class="p">,</span><span class="w">
+ </span><span class="p">{</span><span class="n">git</span><span class="p">,</span><span class="s">&quot;https://github.com/Olivier-Boudeville/Ceylan-Myriad.git&quot;</span><span class="p">,</span><span class="w">
+      </span><span class="p">{</span><span class="n">ref</span><span class="p">,</span><span class="s">&quot;f942c6bef06ee65fc14eb578366a055144cc3873&quot;</span><span class="p">}},</span><span class="w">
+ </span><span class="mi">0</span><span class="p">}].</span>
+</pre>
+<p>where the specified reference is nothing more than the corresponding Git commit that will be used in order to build that dependency (Myriad here).</p>
 <p><span class="raw-html"><a name="otp"></a></span></p>
 </div>
 <div class="section" id="otp-build-1">
@@ -379,12 +390,12 @@ $ rebar3 upgrade
 <span id="getting-rebar3"></span><h4>Getting rebar3</h4>
 <p>There are <a class="reference external" href="https://www.rebar3.org/docs/getting-started">various ways</a>  for obtaining <tt class="docutils literal">rebar3</tt>; we prefer:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> ~/Software <span class="o">&amp;&amp;</span> git clone https://github.com/erlang/rebar3.git
-   <span class="o">&amp;&amp;</span> <span class="nb">cd</span> rebar3 <span class="o">&amp;&amp;</span> ./bootstrap
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Software<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/erlang/rebar3.git<span class="w">
+   </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>rebar3<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./bootstrap
 </pre>
 <p>Alternatively, should you just want to update a (pre-existing) rebar3 install, first get the current version (<tt class="docutils literal">rebar3 <span class="pre">-v</span></tt>) to check it afterwards, then issue <tt class="docutils literal">rebar3 local upgrade</tt>; however this would involve running rebar from <tt class="docutils literal">.cache/rebar3/bin</tt>, so instead we prefer using (typically from <tt class="docutils literal">~/Software/rebar3</tt>):</p>
 <pre class="code bash literal-block">
-$ git pull <span class="o">&amp;&amp;</span> ./bootstrap
+$<span class="w"> </span>git<span class="w"> </span>pull<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./bootstrap
 </pre>
 <p>Another option is to download a prebuilt version of rebar3.</p>
 <p>Finally, one may prefer using the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh">install-rebar3.sh</a> script that we devised, which automates and enforces our conventions while letting the choice between an installation from sources or from a prebuilt version thereof (just un <tt class="docutils literal"><span class="pre">install-rebar3.sh</span> <span class="pre">--help</span></tt> for guidance).</p>
@@ -408,42 +419,42 @@ $ make rebar3-application
 <h4>Testing Ceylan-Myriad</h4>
 <p>As a result, the OTP application support can be tested from the root of an (already-built, with <tt class="docutils literal">make <span class="pre">rebar3-application</span></tt>) Myriad source tree:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> src/utils
-$ make myriad_otp_application_run
-       Running unitary <span class="nb">test</span> myriad_otp_application_run <span class="o">(</span>third form<span class="o">)</span> from
-          myriad_otp_application_test
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>src/utils<span class="w">
+</span>$<span class="w"> </span>make<span class="w"> </span>myriad_otp_application_run<span class="w">
+       </span>Running<span class="w"> </span>unitary<span class="w"> </span><span class="nb">test</span><span class="w"> </span>myriad_otp_application_run<span class="w"> </span><span class="o">(</span>third<span class="w"> </span>form<span class="o">)</span><span class="w"> </span>from<span class="w">
+          </span>myriad_otp_application_test<span class="w">
 
---&gt; Testing module myriad_otp_application_test.
+</span>--&gt;<span class="w"> </span>Testing<span class="w"> </span>module<span class="w"> </span>myriad_otp_application_test.<span class="w">
 
-Starting the Myriad application.
-Myriad version: <span class="o">{</span><span class="m">1</span>,0,11<span class="o">}</span>.
-Current user name: <span class="s1">'stallone'</span>.
-Stopping the Myriad application.
-Successful end of <span class="nb">test</span> of the Myriad application.
-<span class="o">=</span>INFO <span class="nv">REPORT</span><span class="o">====</span> <span class="m">18</span>-Jul-2019::22:37:24.779037 <span class="o">===</span>
-   application: myriad
-   exited: stopped
-   type: temporary
+</span>Starting<span class="w"> </span>the<span class="w"> </span>Myriad<span class="w"> </span>application.<span class="w">
+</span>Myriad<span class="w"> </span>version:<span class="w"> </span><span class="o">{</span><span class="m">1</span>,0,11<span class="o">}</span>.<span class="w">
+</span>Current<span class="w"> </span>user<span class="w"> </span>name:<span class="w"> </span><span class="s1">'stallone'</span>.<span class="w">
+</span>Stopping<span class="w"> </span>the<span class="w"> </span>Myriad<span class="w"> </span>application.<span class="w">
+</span>Successful<span class="w"> </span>end<span class="w"> </span>of<span class="w"> </span><span class="nb">test</span><span class="w"> </span>of<span class="w"> </span>the<span class="w"> </span>Myriad<span class="w"> </span>application.<span class="w">
+</span><span class="o">=</span>INFO<span class="w"> </span><span class="nv">REPORT</span><span class="o">====</span><span class="w"> </span><span class="m">18</span>-Jul-2019::22:37:24.779037<span class="w"> </span><span class="o">===</span><span class="w">
+   </span>application:<span class="w"> </span>myriad<span class="w">
+   </span>exited:<span class="w"> </span>stopped<span class="w">
+   </span>type:<span class="w"> </span>temporary<span class="w">
 
---&gt; Successful end of test.
+</span>--&gt;<span class="w"> </span>Successful<span class="w"> </span>end<span class="w"> </span>of<span class="w"> </span>test.<span class="w">
 
-<span class="o">(</span><span class="nb">test</span> finished, interpreter halted<span class="o">)</span>
+</span><span class="o">(</span><span class="nb">test</span><span class="w"> </span>finished,<span class="w"> </span>interpreter<span class="w"> </span>halted<span class="o">)</span>
 </pre>
 <p>This support can be also tested manually, directly through the build tree used by rebar3; from the root of Myriad, after having run <tt class="docutils literal">make <span class="pre">rebar3-application</span></tt>:</p>
 <pre class="code bash literal-block">
-$ erl -pz _build/default/lib/myriad/ebin/
-Erlang/OTP <span class="m">22</span> <span class="o">[</span>erts-10.4<span class="o">]</span> <span class="o">[</span>source<span class="o">]</span> <span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span> <span class="o">[</span>smp:8:8<span class="o">]</span> <span class="o">[</span>...<span class="o">]</span>
+$<span class="w"> </span>erl<span class="w"> </span>-pz<span class="w"> </span>_build/default/lib/myriad/ebin/<span class="w">
+</span>Erlang/OTP<span class="w"> </span><span class="m">22</span><span class="w"> </span><span class="o">[</span>erts-10.4<span class="o">]</span><span class="w"> </span><span class="o">[</span>source<span class="o">]</span><span class="w"> </span><span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span><span class="w"> </span><span class="o">[</span>smp:8:8<span class="o">]</span><span class="w"> </span><span class="o">[</span>...<span class="o">]</span><span class="w">
 
-Eshell V10.4  <span class="o">(</span>abort with ^G<span class="o">)</span>
-<span class="m">1</span>&gt; application:start<span class="o">(</span>myriad<span class="o">)</span>.
-ok
-<span class="m">2</span>&gt; text_utils:format<span class="o">(</span> <span class="s2">&quot;Hello ~s&quot;</span>, <span class="o">[</span> world <span class="o">]</span> <span class="o">)</span>.
-<span class="s2">&quot;Hello world&quot;</span>
-<span class="m">3</span>&gt; application:stop<span class="o">(</span>myriad<span class="o">)</span>.
-<span class="o">=</span>INFO <span class="nv">REPORT</span><span class="o">====</span> <span class="m">18</span>-Jul-2019::22:47:36.429804 <span class="o">===</span>
-   application: myriad
-   exited: stopped
-   type: temporary
+</span>Eshell<span class="w"> </span>V10.4<span class="w">  </span><span class="o">(</span>abort<span class="w"> </span>with<span class="w"> </span>^G<span class="o">)</span><span class="w">
+</span><span class="m">1</span>&gt;<span class="w"> </span>application:start<span class="o">(</span>myriad<span class="o">)</span>.<span class="w">
+</span>ok<span class="w">
+</span><span class="m">2</span>&gt;<span class="w"> </span>text_utils:format<span class="o">(</span><span class="w"> </span><span class="s2">&quot;Hello ~s&quot;</span>,<span class="w"> </span><span class="o">[</span><span class="w"> </span>world<span class="w"> </span><span class="o">]</span><span class="w"> </span><span class="o">)</span>.<span class="w">
+</span><span class="s2">&quot;Hello world&quot;</span><span class="w">
+</span><span class="m">3</span>&gt;<span class="w"> </span>application:stop<span class="o">(</span>myriad<span class="o">)</span>.<span class="w">
+</span><span class="o">=</span>INFO<span class="w"> </span><span class="nv">REPORT</span><span class="o">====</span><span class="w"> </span><span class="m">18</span>-Jul-2019::22:47:36.429804<span class="w"> </span><span class="o">===</span><span class="w">
+   </span>application:<span class="w"> </span>myriad<span class="w">
+   </span>exited:<span class="w"> </span>stopped<span class="w">
+   </span>type:<span class="w"> </span>temporary
 </pre>
 <p>When needing to include a Myriad header file (taking <tt class="docutils literal">spawn_utils.hrl</tt> as an example) in one's code, OTP conventions mandate using:</p>
 <pre class="literal-block">
@@ -529,7 +540,7 @@ $ make rebar3-local-update
 <ul class="simple">
 <li>HDF5 support</li>
 <li>REST support</li>
-<li>third-party language bindings (ex: Python, Java, maybe in the future Haskell; C/C++ is to be tackled by our <a class="reference external" href="http://seaplus.esperide.org">Seaplus</a> project)</li>
+<li>third-party language bindings (e.g. Python, Java, maybe in the future Haskell; C/C++ is to be tackled by our <a class="reference external" href="http://seaplus.esperide.org">Seaplus</a> project)</li>
 <li>RDF support</li>
 </ul>
 <p>Even if this document does not constitute an exhaustive walk-through, each of them is detailed in turn below.</p>
@@ -540,9 +551,9 @@ $ make rebar3-local-update
 <p>Various elements are defined at the <tt class="docutils literal">myriad</tt> level to set-up an appropriate build system, based on <a class="reference external" href="http://www.gnu.org/software/make/manual/make.html">GNU Make</a>.</p>
 <p>This includes:</p>
 <ul class="simple">
-<li>a set of pre-defined Make <strong>variables</strong>, describing various settings that will be reused by generic rules (ex: to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in <tt class="docutils literal">myriad/GNUmakevars.inc</tt></li>
+<li>a set of pre-defined Make <strong>variables</strong>, describing various settings that will be reused by generic rules (e.g. to compile modules with relevant flags, to create source archives, to install an application, to manage the various paths, to perform test checking, to generate archives, installs and releases, etc.); these variables are defined in <tt class="docutils literal">myriad/GNUmakevars.inc</tt></li>
 <li>a set of generic <strong>rules</strong>, to compile and run various modules and tests, to generate various elements of documentation, etc.; these rules are defined (still from the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad">myriad</a> root directory), in:<ul>
-<li><tt class="docutils literal"><span class="pre">GNUmakerules-automatic.inc</span></tt>, for all rules that apply generically to some kinds of targets (ex: all source files)</li>
+<li><tt class="docutils literal"><span class="pre">GNUmakerules-automatic.inc</span></tt>, for all rules that apply generically to some kinds of targets (e.g. all source files)</li>
 <li><tt class="docutils literal"><span class="pre">GNUmakerules-explicit.inc</span></tt>, for all &quot;direct&quot; (explicitly designated) rules, that are not pattern-based</li>
 <li><tt class="docutils literal"><span class="pre">doc/GNUmakerules-docutils.inc</span></tt>, for all documentation-related rules</li>
 </ul>
@@ -570,9 +581,9 @@ $ make rebar3-local-update
 <p>Some simple maths-related operations are defined in the <tt class="docutils literal">myriad/src/maths</tt> directory:</p>
 <ul class="simple">
 <li>the most basic services are centralised in <tt class="docutils literal">math_utils.erl</tt> and provide:<ul>
-<li><strong>general operations</strong> apparently lacking to Erlang (for example for conversions or rounding (<tt class="docutils literal">floor/1</tt>, <tt class="docutils literal">ceiling/1</tt>), or not exactly implemented as we would have liked (ex: <tt class="docutils literal">modulo/2</tt>)</li>
-<li>operations tailored to operate on <strong>floating-point values</strong> (ex: <tt class="docutils literal"><span class="pre">are_close/{2,3}</span></tt>, <tt class="docutils literal"><span class="pre">are_relatively_close/{2,3}</span></tt>, <tt class="docutils literal">get_relative_difference/2</tt>, <tt class="docutils literal">is_null/1</tt>)</li>
-<li>operations on <strong>angles</strong> (ex: <tt class="docutils literal">radian_to_degree/1</tt>, <tt class="docutils literal">canonify/1</tt>)</li>
+<li><strong>general operations</strong> apparently lacking to Erlang (for example for conversions or rounding (<tt class="docutils literal">floor/1</tt>, <tt class="docutils literal">ceiling/1</tt>), or not exactly implemented as we would have liked (e.g. <tt class="docutils literal">modulo/2</tt>)</li>
+<li>operations tailored to operate on <strong>floating-point values</strong> (e.g. <tt class="docutils literal"><span class="pre">are_close/{2,3}</span></tt>, <tt class="docutils literal"><span class="pre">are_relatively_close/{2,3}</span></tt>, <tt class="docutils literal">get_relative_difference/2</tt>, <tt class="docutils literal">is_null/1</tt>)</li>
+<li>operations on <strong>angles</strong> (e.g. <tt class="docutils literal">radian_to_degree/1</tt>, <tt class="docutils literal">canonify/1</tt>)</li>
 <li>the associated <strong>typing</strong> information</li>
 </ul>
 </li>
@@ -617,8 +628,8 @@ $ make rebar3-local-update
 <p id="bijective-table">Another type of table is the <tt class="docutils literal">bijective_table</tt>, which allows efficient (runtime) bidirectional conversions between two sets, each having unique elements (no duplicates).</p>
 <p>As a mere convention, when one set is dealing with internal identifiers and the other on third-party ones, we recommend that the internal identifiers are selected as the first elements, and the third party as second elements.</p>
 <p id="const-table">Finally, a way of <strong>generating read-only associative tables</strong> whose key/value pairs can be read very efficiently from any number (potentially extremely large) of readers (processes) is provided with <tt class="docutils literal">const_table.erl</tt> (refer to <tt class="docutils literal">const_table_test.erl</tt> for a test thereof).</p>
-<p>No ETS table, replication (ex: per-process table copy) or message sending is involved: thanks to meta-programming, a module is generated on-the-fly, exporting as many functions as there are different keys in the table of interest. Calling a function corresponding to a key returns its associated value.</p>
-<p>More precisely, a module name (ex: <tt class="docutils literal">foobar</tt>) and a list of <tt class="docutils literal"><span class="pre">{atom(),</span> <span class="pre">type_utils:permanent_term()}</span></tt> <a class="footnote-reference" href="#footnote-8" id="footnote-reference-8">[10]</a> entries shall be provided to <tt class="docutils literal"><span class="pre">const_table:generate_in_{memory,file}/2</span></tt>; then, for each key/value pair in the specified table (ex: <tt class="docutils literal">{baz, 42.0}</tt>), a 0-arity function is generated and exported in that module, as if we had:</p>
+<p>No ETS table, replication (e.g. per-process table copy) or message sending is involved: thanks to meta-programming, a module is generated on-the-fly, exporting as many functions as there are different keys in the table of interest. Calling a function corresponding to a key returns its associated value.</p>
+<p>More precisely, a module name (e.g. <tt class="docutils literal">foobar</tt>) and a list of <tt class="docutils literal"><span class="pre">{atom(),</span> <span class="pre">type_utils:permanent_term()}</span></tt> <a class="footnote-reference" href="#footnote-8" id="footnote-reference-8">[10]</a> entries shall be provided to <tt class="docutils literal"><span class="pre">const_table:generate_in_{memory,file}/2</span></tt>; then, for each key/value pair in the specified table (e.g. <tt class="docutils literal">{baz, 42.0}</tt>), a 0-arity function is generated and exported in that module, as if we had:</p>
 <pre class="code erlang literal-block">
 <span class="p">-</span><span class="ni">module</span><span class="p">(</span><span class="n">foobar</span><span class="p">).</span><span class="w">
 
@@ -637,13 +648,13 @@ $ make rebar3-local-update
 </tbody>
 </table>
 <p>Then third-party code can call for example <tt class="docutils literal">foobar:foo()</tt> and have <tt class="docutils literal">42.0</tt> returned. This is presumably the most efficient way of sharing constants in Erlang between many processes (supposedly at least on par with <a class="reference external" href="https://www.erlang.org/doc/man/persistent_term.html">persistent_term</a>).</p>
-<p>Note that with <tt class="docutils literal">generate_in_memory/2</tt> no actual module file is created (ex: no <tt class="docutils literal">foobar.beam</tt> file is ever written in the filesystem): the operation remains fully in-memory (RAM). With <tt class="docutils literal"><span class="pre">generate_in_file/{2,3}</span></tt> a suitable module file is written on disk, so that the corresponding module can be loaded in the future like any other module.</p>
+<p>Note that with <tt class="docutils literal">generate_in_memory/2</tt> no actual module file is created (e.g. no <tt class="docutils literal">foobar.beam</tt> file is ever written in the filesystem): the operation remains fully in-memory (RAM). With <tt class="docutils literal"><span class="pre">generate_in_file/{2,3}</span></tt> a suitable module file is written on disk, so that the corresponding module can be loaded in the future like any other module.</p>
 <p>Keys must be atoms, and the table of interest shall be immutable (const), even if, thanks to hot code upgrade, one may imagine updating the table at will, having any number of successive versions of it.</p>
 <p>Generating a table of the same name more than once should be done with care, as if a given table is generated thrice (hence updated twice), the initial table would first switch from &quot;current&quot; to &quot;old&quot;, and then would be removed. Any process that would linger in a function of this module would then be terminated (see <a class="reference external" href="http://www.erlang.org/doc/reference_manual/code_loading.html">code replacement</a>). However, due to the nature of these tables (just one-shot fully-qualified calls, no recursion or message-waiting construct), this is not expected to happen.</p>
 <p>Finally, two extra table types exist:</p>
 <ul class="simple">
 <li><tt class="docutils literal">const_bijective_table</tt>, like a crossbreeding of <tt class="docutils literal">const_table</tt> and <tt class="docutils literal">bijective_table</tt>, to rely on module-supported const, bijective tables: a list of <tt class="docutils literal"><span class="pre">{type_utils:permanent_term(),</span> <span class="pre">type_utils:permanent_term()}</span></tt> entries can then provided so that a corresponding module (e.g. <tt class="docutils literal">foobar</tt>) is generated (either in-memory or as a file) that allows to resolve any element of a pair into the other one, thanks to two functions, <tt class="docutils literal">foobar:get_first_for/1</tt> and <tt class="docutils literal">foobar:get_second_for/1</tt>, automatically defined in that module; this is especially useful as soon as having non-small, const, bijective tables (since typing all information twice, one in a first direction and one in the other, is time-consuming and error-prone); refer to <tt class="docutils literal">const_bijective_table_test.erl</tt> for an example and a test thereof</li>
-<li><tt class="docutils literal">const_bijective_topics</tt> is the same as the previous type, except that it allows <em>multiple</em> of such (const, bijective) tables (named &quot;topics&quot; here) to be defined in the same module (e.g. <tt class="docutils literal">foobar</tt>); for that, each of such tables is designated by a topic (an atom, like: <tt class="docutils literal">colour</tt>, <tt class="docutils literal">bar_identifier</tt> or <tt class="docutils literal">font_style</tt>) that is associated to a declared list of corresponding entries (here also each with no duplicate); then, for each of these topics (e.g. <tt class="docutils literal">colour</tt>), two functions are automatically defined: <tt class="docutils literal">foobar:get_first_for_colour/1</tt> and <tt class="docutils literal">foobar:get_second_for_colour/1</tt>, returning respective elements of the specified pair, for the specified topic; refer to <tt class="docutils literal">const_bijective_topics_test.erl</tt> for an example and a test thereof; the ability of defining multiple const, bijective tables in a single generated module can be useful typically when developping a binding (e.g. for a GUI) or when translating protocols (e.g. between a third-party library and internal conventions); refer to <a class="reference external" href="http://oceanic.esperide.org">Ceylan-Oceanic</a> for an example thereof, including about its build integration (based on the <tt class="docutils literal">EXTRA_BEAM_FILES</tt> make variable)</li>
+<li><tt class="docutils literal">const_bijective_topics</tt> is the same as the previous type, except that it allows <em>multiple</em> of such (const, bijective) tables (named &quot;topics&quot; here) to be defined in the same module (e.g. <tt class="docutils literal">foobar</tt>); for that, each of such tables is designated by a topic (an atom, like: <tt class="docutils literal">colour</tt>, <tt class="docutils literal">bar_identifier</tt> or <tt class="docutils literal">font_style</tt>) that is associated to a declared list of corresponding entries (here also each with no duplicate); then, for each of these topics (e.g. <tt class="docutils literal">colour</tt>), two functions are automatically defined: <tt class="docutils literal">foobar:get_first_for_colour/1</tt> and <tt class="docutils literal">foobar:get_second_for_colour/1</tt>, returning respective elements of the specified pair, for the specified topic; extra options can be set, in order to generate strict conversions or ones returning a maybe-type (typically so that they cannot be crashed), or to generate only one-way conversions (should either collection of elements have duplicates); refer to <tt class="docutils literal">const_bijective_topics_test.erl</tt> for an example and a test thereof; the ability of defining multiple const, bijective tables in a single generated module can be useful typically when developping a binding (e.g. for a GUI, see <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/user-interface/graphical/gui_constants.erl">gui_constants.erl</a>) or when translating protocols (e.g. between a third-party library and internal conventions); refer to <a class="reference external" href="http://oceanic.esperide.org">Ceylan-Oceanic</a> for an example thereof, including about its build integration (based on the <tt class="docutils literal">EXTRA_BEAM_FILES</tt> make variable)</li>
 </ul>
 </div>
 <div class="section" id="other-datatypes">
@@ -756,10 +767,10 @@ $ make rebar3-local-update
 </pre>
 <p>and:</p>
 <pre class="code xml literal-block">
-<span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;</span>
-<span class="nt">&lt;myFirstTag/&gt;</span>
-<span class="nt">&lt;mySecondTag&gt;&lt;myNestedTag/&gt;&lt;/mySecondTag&gt;</span>
-<span class="nt">&lt;myThirdTag</span> <span class="na">color=</span><span class="s">&quot;red&quot;</span> <span class="na">age=</span><span class="s">&quot;71&quot;</span><span class="nt">&gt;</span>This is a text!<span class="nt">&lt;/myThirdTag&gt;</span>
+<span class="cp">&lt;?xml version=&quot;1.0&quot; encoding=&quot;utf-8&quot; ?&gt;</span><span class="w">
+</span><span class="nt">&lt;myFirstTag/&gt;</span><span class="w">
+</span><span class="nt">&lt;mySecondTag&gt;&lt;myNestedTag/&gt;&lt;/mySecondTag&gt;</span><span class="w">
+</span><span class="nt">&lt;myThirdTag</span><span class="w"> </span><span class="na">color=</span><span class="s">&quot;red&quot;</span><span class="w"> </span><span class="na">age=</span><span class="s">&quot;71&quot;</span><span class="nt">&gt;</span>This<span class="w"> </span>is<span class="w"> </span>a<span class="w"> </span>text!<span class="nt">&lt;/myThirdTag&gt;</span>
 </pre>
 <p>Refer to the <tt class="docutils literal">xml_utils</tt> module for further details.</p>
 <p id="json-use">Some useful information for <strong>JSON use</strong>:</p>
@@ -795,7 +806,7 @@ $ make rebar3-local-update
 </div>
 <div class="section" id="for-pure-erlang-uses-the-etf-file-format">
 <span id="etf"></span><h4>For Pure Erlang uses: the ETF File Format</h4>
-<p>For many needs in terms of Erlang internal data storage (ex: regarding configuration settings), we recommend the use of the file format that <a class="reference external" href="https://erlang.org/doc/man/file.html#consult-1">file:consult/1</a>  can directly read, that we named, for reference purpose, <tt class="docutils literal">ETF</tt> (for <em>Erlang Term Format</em> <a class="footnote-reference" href="#footnote-9" id="footnote-reference-9">[11]</a>). We recommend that ETF files have for extension <tt class="docutils literal">.etf</tt>, like in: <tt class="docutils literal"><span class="pre">~/.ceylan-settings.etf</span></tt> (see also our support for <a class="reference internal" href="#user-preferences">user preferences</a>).</p>
+<p>For many needs in terms of Erlang internal data storage (e.g. regarding configuration settings), we recommend the use of the file format that <a class="reference external" href="https://erlang.org/doc/man/file.html#consult-1">file:consult/1</a>  can directly read, that we named, for reference purpose, <tt class="docutils literal">ETF</tt> (for <em>Erlang Term Format</em> <a class="footnote-reference" href="#footnote-9" id="footnote-reference-9">[11]</a>). We recommend that ETF files have for extension <tt class="docutils literal">.etf</tt>, like in: <tt class="docutils literal"><span class="pre">~/.ceylan-settings.etf</span></tt> (see also our support for <a class="reference internal" href="#user-preferences">user preferences</a>).</p>
 <table class="docutils footnote" frame="void" id="footnote-9" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
@@ -805,7 +816,7 @@ $ make rebar3-local-update
 <p>ETF is just a text format for which:</p>
 <ul class="simple">
 <li>a line starting with a <tt class="docutils literal">%</tt> character is considered to be a comment, and is thus ignored</li>
-<li>other lines are terminated by a dot, and correspond each to an Erlang term (ex: <tt class="docutils literal">{base_log_dir, <span class="pre">&quot;/var/log&quot;}.</span></tt>)</li>
+<li>other lines are terminated by a dot, and correspond each to an Erlang term (e.g. <tt class="docutils literal">{base_log_dir, <span class="pre">&quot;/var/log&quot;}.</span></tt>)</li>
 </ul>
 <p>Note that no mute variable can be used there (e.g. <tt class="docutils literal"><span class="pre">_Name=&quot;James</span> Bond&quot;</tt> cannot be specified in such a file; only terms like <tt class="docutils literal">&quot;James Bond&quot;</tt> can be parsed); so, in order to add any information of interest, one shall use comment lines instead.</p>
 <p>Records are not known either; however they can be specified as tagged tuples (e.g. instead of specifying <tt class="docutils literal">#foo{ bar=7, <span class="pre">...}</span></tt>, use <tt class="docutils literal">{foo, 7, <span class="pre">...}</span></tt>).</p>
@@ -822,7 +833,7 @@ $ make rebar3-local-update
 <li>before each entry, a comment describing it in general terms shall be available, with typing information</li>
 <li>entries are pairs:<ul>
 <li>whose first element is an atom</li>
-<li>their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (ex: <tt class="docutils literal">&quot;James Bond&quot;</tt>) rather than a binary one (ex: <tt class="docutils literal"><span class="pre">&lt;&lt;&quot;James</span> <span class="pre">Bond&quot;&gt;&gt;</span></tt>); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include <em>binary</em> strings (not plain ones, even though plain ones are used in the configuration files)</li>
+<li>their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (e.g. <tt class="docutils literal">&quot;James Bond&quot;</tt>) rather than a binary one (e.g. <tt class="docutils literal"><span class="pre">&lt;&lt;&quot;James</span> <span class="pre">Bond&quot;&gt;&gt;</span></tt>); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include <em>binary</em> strings (not plain ones, even though plain ones are used in the configuration files)</li>
 </ul>
 </li>
 </ul>
@@ -859,7 +870,7 @@ $ make rebar3-local-update
 <li>JER (<em>JSON Encoding Rules</em>), hence based on <a class="reference external" href="https://en.wikipedia.org/wiki/JSON">JSON</a></li>
 </ul>
 <p>Our preference goes towards first UPER, then PER. A strength of ASN.1 is the expected ability to switch encodings easily; so, should the OER encoding (<em>Octet Encoding Rules</em>; faster to decode/encode than BER and PER, and almost as compact as PER) be supported in the future, it could be adopted &quot;transparently&quot;.</p>
-<p>An issue of this approach is that, beyond Erlang, the (U)PER encoding does not seem so widely available as free software: besides commercial offers (like <a class="reference external" href="https://www.obj-sys.com/products/asn1c/index.php">this one</a>), some languages could be covered to some extent (ex: <a class="reference external" href="https://github.com/eerimoq/asn1tools">Python</a>, Java with <a class="reference external" href="https://github.com/alexvoronov/gcdc-asn1/tree/master/asn1-uper">[1]</a> or <a class="reference external" href="https://github.com/ericsson-mts/mts-asn1">[2]</a>), but for example no such solution could be found for the .NET language family (ex: for C#); also the complexity of the encoding may lead to solutions supporting only a subset of the standard.</p>
+<p>An issue of this approach is that, beyond Erlang, the (U)PER encoding does not seem so widely available as free software: besides commercial offers (like <a class="reference external" href="https://www.obj-sys.com/products/asn1c/index.php">this one</a>), some languages could be covered to some extent (e.g. <a class="reference external" href="https://github.com/eerimoq/asn1tools">Python</a>, Java with <a class="reference external" href="https://github.com/alexvoronov/gcdc-asn1/tree/master/asn1-uper">[1]</a> or <a class="reference external" href="https://github.com/ericsson-mts/mts-asn1">[2]</a>), but for example no such solution could be found for the .NET language family (e.g. for C#); also the complexity of the encoding may lead to solutions supporting only a subset of the standard.</p>
 <p>So, at least for the moment, we chose Protobuf.</p>
 </div>
 <div class="section" id="about-protobuf">
@@ -870,21 +881,21 @@ $ make rebar3-local-update
 <p><a class="reference external" href="https://github.com/tomas-abrahamsson/gpb">gpb</a> seems to be the recommended option, this is therefore the backend that we retained. For increased performance, <a class="reference external" href="https://github.com/jg513/enif_protobuf">enif_protobuf</a> could be considered as a possible drop-in replacement.</p>
 <p>Our procedure to install <tt class="docutils literal">gpb</tt>:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> ~/Software/gpb
-$ git clone git&#64;github.com:tomas-abrahamsson/gpb.git
-$ ln -s gpb gpb-current-install
-$ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Software/gpb<span class="w">
+</span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>git&#64;github.com:tomas-abrahamsson/gpb.git<span class="w">
+</span>$<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>gpb<span class="w"> </span>gpb-current-install<span class="w">
+</span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>gpb<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>all
 </pre>
 <p>Then, so that <tt class="docutils literal"><span class="pre">protoc-erl</span></tt> is available on the shell, one may add in one's <tt class="docutils literal"><span class="pre">~/.bashrc</span></tt>:</p>
 <pre class="code bash literal-block">
 <span class="c1"># Erlang protobuf gpb support:
-</span><span class="nb">export</span> <span class="nv">GPB_ROOT</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/Software/gpb/gpb-current-install&quot;</span>
-<span class="nb">export</span> <span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GPB_ROOT</span><span class="si">}</span><span class="s2">/bin:</span><span class="si">${</span><span class="nv">PATH</span><span class="si">}</span><span class="s2">&quot;</span>
+</span><span class="nb">export</span><span class="w"> </span><span class="nv">GPB_ROOT</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">HOME</span><span class="si">}</span><span class="s2">/Software/gpb/gpb-current-install&quot;</span><span class="w">
+</span><span class="nb">export</span><span class="w"> </span><span class="nv">PATH</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">${</span><span class="nv">GPB_ROOT</span><span class="si">}</span><span class="s2">/bin:</span><span class="si">${</span><span class="nv">PATH</span><span class="si">}</span><span class="s2">&quot;</span>
 </pre>
 <p>Our preferred settings (configurable, yet by default enforced natively by Myriad's build system) are: (between parentheses, the gbp API counterpart to the <tt class="docutils literal"><span class="pre">protoc-erl</span></tt> command-line options)</p>
 <ul class="simple">
 <li><tt class="docutils literal">proto3</tt> version rather than <tt class="docutils literal">proto2</tt> (so <tt class="docutils literal">{proto_defs_version,3}</tt>)</li>
-<li>messages shall be decoded as tuples/records rather than maps (so not specifying the <tt class="docutils literal"><span class="pre">-maps</span></tt> / <tt class="docutils literal">maps</tt> option, not even <tt class="docutils literal"><span class="pre">-mapfields-as-maps</span></tt>) for a better compactness and a clearer, more statically-defined structure - even if it implies including the generated <tt class="docutils literal">*.hrl</tt> files in the user code and complexifying the build (ex: tests having to compile with or without a Protobuff backend available, with or without generated headers; refer to <tt class="docutils literal">protobuf_support_test.erl</tt> for a full, integrated example)</li>
+<li>messages shall be decoded as tuples/records rather than maps (so not specifying the <tt class="docutils literal"><span class="pre">-maps</span></tt> / <tt class="docutils literal">maps</tt> option, not even <tt class="docutils literal"><span class="pre">-mapfields-as-maps</span></tt>) for a better compactness and a clearer, more statically-defined structure - even if it implies including the generated <tt class="docutils literal">*.hrl</tt> files in the user code and complexifying the build (e.g. tests having to compile with or without a Protobuff backend available, with or without generated headers; refer to <tt class="docutils literal">protobuf_support_test.erl</tt> for a full, integrated example)</li>
 <li>decoded strings should be returned as binaries rather than plain ones (so specifying the <tt class="docutils literal"><span class="pre">-strbin</span></tt> / <tt class="docutils literal">strings_as_binaries</tt> option)</li>
 <li><tt class="docutils literal"><span class="pre">-pkgs</span></tt> /  <tt class="docutils literal">use_packages</tt> (and <tt class="docutils literal">{pkg_name, {prefix, &quot;MyPackage&quot;}</tt>) to prefix a message name by its package (regardless of the <tt class="docutils literal">.proto</tt> filename in which it is defined)</li>
 <li><tt class="docutils literal"><span class="pre">-rename</span> msg_fqname:snake_case</tt> then <tt class="docutils literal"><span class="pre">-rename</span> msg_fqname:dots_to_underscores</tt> (in that order), so that a message type named <tt class="docutils literal">Person</tt> defined in package <tt class="docutils literal">myriad.protobuf.test</tt> results in the definition of a <tt class="docutils literal">myriad_protobuf_test_person()</tt> type and in a <tt class="docutils literal">#myriad_protobuf_test_person{}</tt> record</li>
@@ -923,7 +934,7 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 </div>
 <div class="section" id="for-basic-old-school-ciphering">
 <h4>For Basic, Old-School Ciphering</h4>
-<p>The spirit here is to go another route than modern public-key cryptography: the classic, basic, chained, symmetric cryptography techniques used in this section apply to contexts where a preliminary, safe exchange <em>can</em> happen between peers (ex: based on a real-life communication).</p>
+<p>The spirit here is to go another route than modern public-key cryptography: the classic, basic, chained, symmetric cryptography techniques used in this section apply to contexts where a preliminary, safe exchange <em>can</em> happen between peers (e.g. based on a real-life communication).</p>
 <p>Then any number of passes of low-key, unfashioned algorithms (including one based on a Mealy machine) are applied to the data that is to cypher or decypher.</p>
 <p>We believe that, should the corresponding shared &quot;key&quot; (the combination of parameterised transformations to apply on the data) remain uncompromised, the encrypted data is at least as safe as if cyphered with the current, modern algorithms (which may be, intentionally or not, flawed, or may be specifically threatened by potential progresses for example in terms of quantum computing).</p>
 <p>So this is surely an instance of &quot;security by obscurity&quot;, a pragmatic strategy (which may be used in conjunction with the &quot;security by design&quot; and &quot;open security&quot; ones) discouraged by standards bodies, yet in our opinion likely - for data of lesser importance - to resist well (as we do not expect then attackers to specifically target our very own set of measures, since the specific efforts incurred would not be outweighed by the expected gains).</p>
@@ -947,10 +958,10 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 <div class="section" id="defining-a-token">
 <h3><a class="toc-backref" href="#toc-entry-31">Defining a token</a></h3>
 <p>A <em>token</em> (a compilation-time symbol) may or may not defined.</p>
-<p>To define <tt class="docutils literal">my_token</tt>, simply ensure that a <tt class="docutils literal"><span class="pre">-Dmy_token</span></tt> command-line option is specified to the compiler (ex: refer to <tt class="docutils literal">ERLANG_COMPILER_TOKEN_OPT</tt>, in <tt class="docutils literal">GNUmakevars.inc</tt>, for an example of definition for these flags).</p>
-<p>To define <tt class="docutils literal">my_token</tt> <em>and</em> set it to the integer value <tt class="docutils literal">127</tt>, use the <tt class="docutils literal"><span class="pre">-Dmy_token=127</span></tt> command-line option. Values can also be floats (ex: <tt class="docutils literal"><span class="pre">-Dmy_token=3.14</span></tt>) or atoms (ex: <tt class="docutils literal"><span class="pre">-Dmy_token=some_atom</span></tt>).</p>
+<p>To define <tt class="docutils literal">my_token</tt>, simply ensure that a <tt class="docutils literal"><span class="pre">-Dmy_token</span></tt> command-line option is specified to the compiler (e.g. refer to <tt class="docutils literal">ERLANG_COMPILER_TOKEN_OPT</tt>, in <tt class="docutils literal">GNUmakevars.inc</tt>, for an example of definition for these flags).</p>
+<p>To define <tt class="docutils literal">my_token</tt> <em>and</em> set it to the integer value <tt class="docutils literal">127</tt>, use the <tt class="docutils literal"><span class="pre">-Dmy_token=127</span></tt> command-line option. Values can also be floats (e.g. <tt class="docutils literal"><span class="pre">-Dmy_token=3.14</span></tt>) or atoms (e.g. <tt class="docutils literal"><span class="pre">-Dmy_token=some_atom</span></tt>).</p>
 <p>A special token is <tt class="docutils literal">myriad_debug_mode</tt>; if it is defined at all (and possibly associated to any value), the debug mode of Myriad is enabled.</p>
-<p>We recommend that layers built on top of Myriad define their own token for debug mode (ex: <tt class="docutils literal">foobar_debug_mode</tt>), to be able to finely select appropriate debug modes (of course all kinds of modes and configuration settings can be considered as well).</p>
+<p>We recommend that layers built on top of Myriad define their own token for debug mode (e.g. <tt class="docutils literal">foobar_debug_mode</tt>), to be able to finely select appropriate debug modes (of course all kinds of modes and configuration settings can be considered as well).</p>
 </div>
 <div class="section" id="defining-the-code-to-inject">
 <h3><a class="toc-backref" href="#toc-entry-32">Defining the code to inject</a></h3>
@@ -960,7 +971,7 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
 <tr><td class="label"><a class="fn-backref" href="#footnote-reference-10">[12]</a></td><td><p class="first">A previous implementation of <tt class="docutils literal">cond_utils</tt> allowed to specify the code to inject either as an expression or as a <em>list</em> of expressions.</p>
-<p>It was actually a mistake, as a single expression to return can be itself a list (ex: <tt class="docutils literal">[&quot;red&quot;, &quot;blue&quot;]</tt>), which bears a different semantics and should not be interpreted as a list of expressions to evaluate. For example, the result from the code to inject may be bound to a variable, in which case we expect <tt class="docutils literal"><span class="pre">A=[&quot;red&quot;,</span> &quot;blue&quot;]</tt> rather than <tt class="docutils literal"><span class="pre">A=&quot;red&quot;,</span> &quot;blue&quot;</tt> (this latter term being constructed but not used).</p>
+<p>It was actually a mistake, as a single expression to return can be itself a list (e.g. <tt class="docutils literal">[&quot;red&quot;, &quot;blue&quot;]</tt>), which bears a different semantics and should not be interpreted as a list of expressions to evaluate. For example, the result from the code to inject may be bound to a variable, in which case we expect <tt class="docutils literal"><span class="pre">A=[&quot;red&quot;,</span> &quot;blue&quot;]</tt> rather than <tt class="docutils literal"><span class="pre">A=&quot;red&quot;,</span> &quot;blue&quot;</tt> (this latter term being constructed but not used).</p>
 <p>So the following code injection <em>is</em> faulty (a <tt class="docutils literal">begin/end</tt> block was meant, not a list):</p>
 <pre class="code erlang literal-block">
 <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">if_defined</span><span class="p">(</span><span class="n">my_token</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="w">
@@ -1088,7 +1099,7 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 </div>
 <div class="section" id="controlling-assertions">
 <h3><a class="toc-backref" href="#toc-entry-34">Controlling assertions</a></h3>
-<p>It may be convenient that, depending on a compile-time token (ex: in debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Dmyriad_debug_mode</span></tt> compilation flag), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
+<p>It may be convenient that, depending on a compile-time token (e.g. in debug mode, typically triggered thanks to the <tt class="docutils literal"><span class="pre">-Dmyriad_debug_mode</span></tt> compilation flag), <em>assertions</em> (expressions expected to evaluate to the atom <tt class="docutils literal">true</tt>) are enabled, whereas they shall be dismissed as a whole should that token not be defined.</p>
 <p>To define an assertion enabled in debug mode, use <tt class="docutils literal">assert/1</tt>, like in:</p>
 <pre class="code erlang literal-block">
 <span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">foo</span><span class="p">(</span><span class="nv">A</span><span class="p">,</span><span class="nv">B</span><span class="p">)</span><span class="o">=:=</span><span class="mi">10</span><span class="p">)</span>
@@ -1108,13 +1119,13 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 </span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="n">more_involved_testing</span><span class="p">()),</span><span class="w">
 </span><span class="nn">cond_utils</span><span class="p">:</span><span class="nf">assert</span><span class="p">(</span><span class="n">debug_gui</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="n">paranoid_testing</span><span class="p">()),</span>
 </pre>
-<p>Note that, in this case, a given level of checking should include the one just below it (ex: <tt class="docutils literal">more_involved_testing()</tt> should call <tt class="docutils literal">basic_testing()</tt>).</p>
-<p>Finally, if assertions are too limited (ex: because they lead to unused variables depending on a token being defined or not), using one of the <tt class="docutils literal">cond_utils:if*</tt> primitives relying on two branches (one expression if a condition is true, another if not) should sufficient to overcome such issue.</p>
+<p>Note that, in this case, a given level of checking should include the one just below it (e.g. <tt class="docutils literal">more_involved_testing()</tt> should call <tt class="docutils literal">basic_testing()</tt>).</p>
+<p>Finally, if assertions are too limited (e.g. because they lead to unused variables depending on a token being defined or not), using one of the <tt class="docutils literal">cond_utils:if*</tt> primitives relying on two branches (one expression if a condition is true, another if not) should sufficient to overcome such issue.</p>
 </div>
 <div class="section" id="usage-hints">
 <h3><a class="toc-backref" href="#toc-entry-35">Usage Hints</a></h3>
 <p>For tokens, at least currently they must be defined as immediate values (atoms); even using a mute variable, like for the <tt class="docutils literal">_Default=my_token</tt> expression, or a variable, is not supported (at least yet).</p>
-<p>Note that, for primitives that may not inject code at all (ex: <tt class="docutils literal">if_debug/1</tt>), if their conditions are not fulfilled, the specified conditional code is dismissed as a whole, it is not even replaced for example by an <tt class="docutils literal">ok</tt> atom; this may matter if this conditional is the only expression in a case clause for example, in which case a compilation failure like &quot;<em>internal error in core; crash reason: function_clause in function v3_core:cexprs/3 called as v3_core:cexprs[...]</em>&quot; will be reported (the compiler sees unexpectedly a clause not having even a single expression).</p>
+<p>Note that, for primitives that may not inject code at all (e.g. <tt class="docutils literal">if_debug/1</tt>), if their conditions are not fulfilled, the specified conditional code is dismissed as a whole, it is not even replaced for example by an <tt class="docutils literal">ok</tt> atom; this may matter if this conditional is the only expression in a case clause for example, in which case a compilation failure like &quot;<em>internal error in core; crash reason: function_clause in function v3_core:cexprs/3 called as v3_core:cexprs[...]</em>&quot; will be reported (the compiler sees unexpectedly a clause not having even a single expression).</p>
 <p>A related issue may happen when switching conditional flags: it will select/deselect in-code expressions at compile time, and may lead functions and/or variables to become unused, and thus may trigger at least warnings <a class="footnote-reference" href="#footnote-13" id="footnote-reference-13">[15]</a>.</p>
 <table class="docutils footnote" frame="void" id="footnote-13" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
@@ -1150,7 +1161,7 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 <div class="section" id="myriadgui-helpers-for-user-interface-programming">
 <span id="myriadgui"></span><span id="graphical-user-interface"></span><span id="user-interface"></span><h2><a class="toc-backref" href="#toc-entry-37">MyriadGUI: Helpers For User Interface Programming</a></h2>
 <p>Some services have been defined, in <tt class="docutils literal"><span class="pre">myriad/src/user-interface</span></tt>, in order to handle more easily interactions with the user, i.e. to provide a user interface.</p>
-<p>The spirit of <strong>MyriadGUI</strong> is to offer, as much as possible, a high-level API (refer to the <tt class="docutils literal">ui</tt> module) that can be seamlessly instrumented at runtime by different backends, depending on availability (ex: is this dependency installed?) and context (ex: is the program running in a terminal, or are graphical outputs possible?).</p>
+<p>The spirit of <strong>MyriadGUI</strong> is to offer, as much as possible, a high-level API (refer to the <tt class="docutils literal">ui</tt> module) that can be seamlessly instrumented at runtime by different backends, depending on availability (e.g. is this dependency installed?) and context (e.g. is the program running in a terminal, or are graphical outputs possible?).</p>
 <p>Unless the user forces the use of a given backend, the most advanced one that is locally available will be automatically selected.</p>
 <p>An objective is to shelter user code from:</p>
 <ul class="simple">
@@ -1180,17 +1191,17 @@ $ <span class="nb">cd</span> gpb <span class="o">&amp;&amp;</span> make all
 <li>or <tt class="docutils literal">implicit</tt>, using - for that very specific need only - the process dictionary (even if we try to stay away of it as much as possible)</li>
 </ul>
 <p>We tested the two approaches and preferred the latter (implicit) one, which was found considerably more flexible and thus finally fully superseded the (former) explicit one.</p>
-<p>We made our best so that a lower-level API interface (relying on a more basic backend) is <strong>strictly included</strong> in the higher-level ones (ex: <tt class="docutils literal">term_ui</tt> adds concepts - like the one of window or box - to the line-based <tt class="docutils literal">text_ui</tt>; similarly <tt class="docutils literal">gui</tt> is richer than <tt class="docutils literal">term_ui</tt>), in order that any program using a given user interface may use any of the next, upper ones as well (provided implicit states are used), in the following order: the <tt class="docutils literal">text_ui</tt> API is included in the one of <tt class="docutils literal">term_ui</tt>, which is itself included in the one of <tt class="docutils literal">gui</tt>.</p>
+<p>We made our best so that a lower-level API interface (relying on a more basic backend) is <strong>strictly included</strong> in the higher-level ones (e.g. <tt class="docutils literal">term_ui</tt> adds concepts - like the one of window or box - to the line-based <tt class="docutils literal">text_ui</tt>; similarly <tt class="docutils literal">gui</tt> is richer than <tt class="docutils literal">term_ui</tt>), in order that any program using a given user interface may use any of the next, upper ones as well (provided implicit states are used), in the following order: the <tt class="docutils literal">text_ui</tt> API is included in the one of <tt class="docutils literal">term_ui</tt>, which is itself included in the one of <tt class="docutils literal">gui</tt>.</p>
 <p>We also defined the <strong>settings table</strong>, which is a table gathering all the settings specified by the developer, which the current user interface does its best to accommodate.</p>
 <p>Thanks to these &quot;Matryoshka&quot; APIs and the settings table, the definition of a more generic <tt class="docutils literal">ui</tt> interface has been possible. It selects automatically, based on available local software dependencies, <strong>the most advanced available backend</strong>, with the most relevant settings.</p>
 <p>For example a relevant backend will be automatically selected by:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> test/user-interface
-$ make ui_run
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>test/user-interface<span class="w">
+</span>$<span class="w"> </span>make<span class="w"> </span>ui_run
 </pre>
 <p>On the other hand, if wanting to select a specified backend:</p>
 <pre class="code bash literal-block">
-$ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span class="s2">&quot;--use-ui-backend term_ui&quot;</span>
+$<span class="w"> </span>make<span class="w"> </span>ui_run<span class="w"> </span><span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span class="s2">&quot;--use-ui-backend term_ui&quot;</span>
 </pre>
 <p>(see the corresponding <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/test/user-interface/GNUmakefile">GNUmakefile</a> for more information)</p>
 </div>
@@ -1205,10 +1216,10 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <p>For example, to secure these prerequisites:</p>
 <pre class="code bash literal-block">
 <span class="c1"># On Arch Linux:
-</span>$ pacman -S dialog
+</span>$<span class="w"> </span>pacman<span class="w"> </span>-S<span class="w"> </span>dialog<span class="w">
 
-<span class="c1"># On Debian-like distros:
-</span>$ apt-get install dialog
+</span><span class="c1"># On Debian-like distros:
+</span>$<span class="w"> </span>apt-get<span class="w"> </span>install<span class="w"> </span>dialog
 </pre>
 <p>It is located in <tt class="docutils literal"><span class="pre">{src,test}/user-interface/textual</span></tt>; see <tt class="docutils literal">term_ui.erl</tt> for its implementation, and <tt class="docutils literal">term_ui_test.erl</tt> for an example of its use.</p>
 </div>
@@ -1223,7 +1234,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <table class="docutils footnote" frame="void" id="footnote-15" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#footnote-reference-15">[17]</a></td><td>What are the main differences between MyriadGUI and wx? The MyriadGUI API is backend-agnostic (no trace of wx when using it), a bit higher-level (ex: user-defined widget identifiers being atoms rather than integer constants; relying on more flexible options; integrating a few workarounds), and based on fewer modules. However, as a strict subset of wx, it is by design less complete - yet it is quite easy to extend on a per-need basis.</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-15">[17]</a></td><td>What are the main differences between MyriadGUI and wx? The MyriadGUI API is backend-agnostic (no trace of wx when using it), a bit higher-level (e.g. user-defined widget identifiers being atoms rather than integer constants; relying on more flexible options; integrating a few workarounds), and based on fewer modules. However, as a strict subset of wx, it is by design less complete - yet it is quite easy to extend on a per-need basis.</td></tr>
 </tbody>
 </table>
 <table class="docutils footnote" frame="void" id="footnote-16" rules="none">
@@ -1243,20 +1254,20 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 </div>
 <div class="section" id="purpose-of-gui">
 <h5>Purpose of <tt class="docutils literal">gui</tt></h5>
-<p>The goal is to provide a small, lightweight API (including message types) that are higher-level than <tt class="docutils literal">wx</tt>, and do not depend on any particular GUI backend (such as <tt class="docutils literal">wx</tt>, <tt class="docutils literal">gs</tt>, etc.; so none of their includes, records, types or functions leak in the user realm), to avoid that user programs become obsolete too quickly because of the UI backend they rely on.</p>
+<p>The goal is to provide a small, lightweight API (including message types) that are higher-level than <tt class="docutils literal">wx</tt> and OpenGL (more integrated, more typed, possibly clearer, having more runtime checks - that can be toggled at build time), and do not depend on any particular GUI backend (such as <tt class="docutils literal">wx</tt>, <tt class="docutils literal">gs</tt>, etc.; so none of their includes, records, types or functions leak in the user realm), to avoid that user programs become obsolete too quickly because of the UI backend they rely on.</p>
 <p>So for example the messages received by the user programs do not mention <tt class="docutils literal">wx</tt>, and respect only MyriadGUI conventions. These conventions are in line with the <a class="reference external" href="https://wooper.esperide.org/#method-invocation">WOOPER ones</a>, enabling (in a fully optional manner) the user code to rely on WOOPER if wanted.</p>
 <p>The usual mode of operation is the following:</p>
 <p><span class="raw-html"><center><img src="myriad-gui-mode-of-operation.png" id="responsive-image-medium"></img></center></span>
 </p>
 <ol class="arabic simple">
 <li>From a user process (a test, an application, etc.), the GUI support is first started, with <tt class="docutils literal"><span class="pre">gui:start/{0,1}</span></tt></li>
-<li>Then the various widgets (windows, frames, panels, buttons, etc.) are created (ex: thanks to <tt class="docutils literal">MainFrame = <span class="pre">gui:create_frame(...</span></tt>) and the user process subscribes to the events it is interested in (as a combination of an event type and a widget-as-an-event-emitter; for example:</li>
+<li>Then the various widgets (windows, frames, panels, buttons, etc.) are created (e.g. thanks to <tt class="docutils literal">MainFrame = <span class="pre">gui:create_frame(...</span></tt>) and the user process subscribes to the events it is interested in (as a combination of an event type and a widget-as-an-event-emitter; for example:</li>
 </ol>
 <pre class="code erlang literal-block">
 <span class="nn">gui</span><span class="p">:</span><span class="nf">subscribe_to_events</span><span class="p">({</span><span class="n">onWindowClosed</span><span class="p">,</span><span class="w"> </span><span class="nv">MainFrame</span><span class="p">})</span>
 </pre>
 <ol class="arabic simple" start="3">
-<li>The user process also triggers any relevant operation (ex: clearing widgets, setting various parameters), generally shows at least a main frame and records the GUI state that it needs for future use (typically containing at least the MyriadGUI references of the widgets that it created)</li>
+<li>The user process also triggers any relevant operation (e.g. clearing widgets, setting various parameters), generally shows at least a main frame and records the GUI state that it needs for future use (typically containing at least the MyriadGUI references of the widgets that it created)</li>
 <li>Then the user process enters its own (GUI-specific) main loop, from which it will receive the events that it subscribed to, and to which it will react by performing application-specific operations and/or GUI-related operations (creating, modifying, deleting widgets). Generally at least one condition is defined in order to leave that main loop and stop the GUI (<tt class="docutils literal">gui:stop/0</tt>)</li>
 </ol>
 <p>Such a scheme based on a &quot;man-in-the-middle&quot; (the MyriadGUI process) is necessary to abstract out for example the types of messages induced by a given GUI backend. If performances should not be an issue for user interaction, the integration must be carefully designed, notably because a 3-actor cooperation (user code, MyriadGUI one, backend one) opens the possibility of race conditions to occur (notably some operations, like event subscribing, must then be made synchronous, as the user process may trigger direct interactions with the backend; see implementation notes for more details).</p>
@@ -1283,6 +1294,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <h5>Purpose</h5>
 <p>In order to render 3D content, Myriad relies on <a class="reference external" href="https://en.wikipedia.org/wiki/OpenGL">OpenGL</a>, a standard, cross-platform, uniform and well-designed programming interface that enables the use of video cards in order to deport most of the (2D or 3D) heavy-lifting there.</p>
 <p>Sophisticated 3D rendering is not necessarily an area where Erlang shines (perhaps, on the context of a client/server multimedia application, the client could rely on an engine like <a class="reference external" href="https://en.wikipedia.org/wiki/Godot_(game_engine)">Godot</a> instead), yet at least some level of rendering capabilities is convenient whenever performing 3D computations, implementing a server-side 3D logic, processing meshes, etc.</p>
+<p>MyriadGUI offers a basic support of old-style OpenGL (from its version 1.1 until version 3.0, when this API was still relying on <tt class="docutils literal">glBegin</tt>, <tt class="docutils literal">glMatrix</tt>, etc.; now available through the compatibility profile) and of modern OpenGL (the one based on shaders, GLSL, etc., with the core profile).</p>
 <p>One may refer to our <a class="reference external" href="https://howtos.esperide.org/ThreeDimensional.html">3D mini-HOWTO</a> for general information regarding these topics.</p>
 </div>
 <div class="section" id="prerequisites-2">
@@ -1298,7 +1310,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <p>The Myriad OpenGL utilities are defined in the <tt class="docutils literal">gui_opengl</tt> module.</p>
 <p>Shaders can be defined, in GLSL (see <a class="reference external" href="https://www.khronos.org/opengl/wiki/Core_Language_(GLSL)">this page</a> for more information).</p>
 <p>Myriad recommends using the <tt class="docutils literal">vertex.glsl</tt> extension for vertex shaders, the <tt class="docutils literal"><span class="pre">.tess-ctrl.glsl</span></tt> one for tessellation control shaders and <tt class="docutils literal"><span class="pre">.tess-eval.glsl</span></tt> for tessellation evaluation ones, <tt class="docutils literal">.geometry.glsl</tt> for geometry shaders, <tt class="docutils literal">fragment.glsl</tt> for fragment shaders and finally <tt class="docutils literal">.compute.glsl</tt> for compute shaders.</p>
-<p>The many OpenGL defines are available when having included <tt class="docutils literal">gui_opengl.hrl</tt> (ex: as <tt class="docutils literal"><span class="pre">?GL_QUAD_STRIP</span></tt>).</p>
+<p>The many OpenGL defines are available when having included <tt class="docutils literal">gui_opengl.hrl</tt> (e.g. as <tt class="docutils literal"><span class="pre">?GL_QUAD_STRIP</span></tt>).</p>
 <p>These utilities directly relate to Myriad's <a class="reference internal" href="#spatial-services-and-conventions">spatial services and conventions</a> and to its support of the <a class="reference internal" href="#gltf-file-format">glTF file format</a>.</p>
 <p id="octrees">To manage larger 3D scenes, a basic support of <a class="reference external" href="https://en.wikipedia.org/wiki/Octree">octrees</a> is also available (see  <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/sr/data-management/octree.erl">octree.erl</a>); following conventions apply:</p>
 <p><span class="raw-html"><center><img src="myriad-octrees.png" id="responsive-image-reduced"></img></center></span>
@@ -1314,14 +1326,14 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <table class="docutils footnote" frame="void" id="footnote-18" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#footnote-reference-18">[20]</a></td><td>Not compatible with all GPUs; notably Intel ones may only support older versions (ex: 2.1).</td></tr>
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-18">[20]</a></td><td>Not compatible with all GPUs; notably Intel ones may only support older versions (e.g. 2.1).</td></tr>
 </tbody>
 </table>
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p>Almost all OpenGL operations require that an OpenGL context already exists. When it is done, all GL/GLU operations can be done as usual.</p>
-<p>So the point of MyriadGUI here is mostly to create a suitable OpenGL context, to offer a few additional, higher-level, stricter constructs to ease the integration and use (ex: for the compilation of the various types of shaders and the linking of GLSL programs), and to connect this rendering capability to the rest of the GUI (ex: regarding event management).</p>
-<p>Modern OpenGL is supported (ex: version 4.6), even though the compatibility context allows to use the API of OpenGL version 1.1.</p>
+<p>So the point of MyriadGUI here is mostly to create a suitable OpenGL context, to offer a few additional, higher-level, stricter constructs to ease the integration and use (e.g. for the compilation of the various types of shaders and the linking of GLSL programs), and to connect this rendering capability to the rest of the GUI (e.g. regarding event management).</p>
+<p>Modern OpenGL is supported (e.g. version 4.6), even though the compatibility context allows to use the API of OpenGL version 1.1.</p>
 <p class="last">See the <a class="reference external" href="https://howtos.esperide.org/ThreeDimensional.html#opengl-corner">HOWTO section about OpenGL</a> for more explanations.</p>
 </div>
 </div>
@@ -1334,8 +1346,8 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <h6>Internal Implementation</h6>
 <p>MyriadGUI is a wrapper on top of wx. What are the main differences between MyriadGUI and wx?</p>
 <ul class="simple">
-<li>preferred namings introduced (ex: <tt class="docutils literal">onWindowClosed</tt> events found clearer than <tt class="docutils literal">close_window</tt> ones)</li>
-<li>widget identifiers are user-defined atoms in MyriadGUI (ex: <tt class="docutils literal">my_widget_id</tt>) rather than numerical constants (ex: <tt class="docutils literal"><span class="pre">-define(MY_WIDGET_ID,</span> 2051)</tt>) that have, with wx, to be defined, shared, uniquified accross user modules</li>
+<li>preferred namings introduced (e.g. <tt class="docutils literal">onWindowClosed</tt> events found clearer than <tt class="docutils literal">close_window</tt> ones)</li>
+<li>widget identifiers are user-defined atoms in MyriadGUI (e.g. <tt class="docutils literal">my_widget_id</tt>) rather than numerical constants (e.g. <tt class="docutils literal"><span class="pre">-define(MY_WIDGET_ID,</span> 2051)</tt>) that have, with wx, to be defined, shared, uniquified accross user modules</li>
 <li>by default, events will propagate or be trapped by user-defined handlers depending on the type of these events (most of them being propagated by default; of course the user is able to override these defaults, either at subscription-time - using the <tt class="docutils literal">propagate_event</tt> or <tt class="docutils literal">trap_event</tt> option, or in one's handler - using the <tt class="docutils literal">gui:propagate_event/1</tt> or <tt class="docutils literal">gui:trap_event/1</tt> function); this contrasts with wx, in which by default all subscribed events are trapped, regardless of their type (then forgetting to propagate them explicitly may result in built-in mechanisms of wx to be disabled, like when resizing)</li>
 <li>code using MyriadGUI will not depend on wx, opening the possibility that, should the main Erlang GUI backend change, user code is nevertheless preserved</li>
 </ul>
@@ -1344,8 +1356,8 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <p>As for the <tt class="docutils literal">wx</tt> module (see the <a class="reference internal" href="#wx-availability">wx availability</a> section), it provides a convenient solution in order to create a suitable OpenGL context.</p>
 <p id="sdl-based-solution"><a class="reference external" href="https://github.com/dgud/esdl">esdl</a> used to be another solution to obtain an OpenGL context; it may be revived some day, as <a class="reference external" href="https://www.libsdl.org/">SDL</a> - i.e. <em>Simple DirectMedia Layer</em> - is still striving, and offers a full (yet low-level) access to multimedia and input devices; not all applications may have use of the rest of <tt class="docutils literal">wx</tt>.</p>
 <p>These Erlang-native services can be easily tested by running <tt class="docutils literal">wx:demo()</tt> from any Erlang shell and selecting then <tt class="docutils literal">gl</tt> in the left example menu.</p>
-<p>These platform-specific / backend-specific (ex: wx or not, and which version thereof, ex: wxWidget 2.8 vs 3.0 API) services shall remain fully invisible from MyriadGUI user code, so that it remains sheltered for good from any change at their level.</p>
-<p>The goal is to wrap only the dependencies that may change in the future (ex: wx); doing so for the ones considered (for good reasons) stable (such as gl or glu) would have no specific interest.</p>
+<p>These platform-specific / backend-specific (e.g. wx or not, and which version thereof, e.g. wxWidget 2.8 vs 3.0 API) services shall remain fully invisible from MyriadGUI user code, so that it remains sheltered for good from any change at their level.</p>
+<p>The goal is to wrap only the dependencies that may change in the future (e.g. wx); doing so for the ones considered (for good reasons) stable (such as gl or glu) would have no specific interest.</p>
 </div>
 </div>
 </div>
@@ -1365,8 +1377,8 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 </div>
 <div class="section" id="audio-user-interface">
 <span id="audio"></span><h3><a class="toc-backref" href="#toc-entry-42">Audio User Interface</a></h3>
-<p>If the 2D/3D rendering can be done through <tt class="docutils literal">wx</tt>, apparently the <strong>audio capabilities</strong> (ex: <a class="reference external" href="https://docs.wxwidgets.org/3.0/group__group__class__media.html">[1]</a>, <a class="reference external" href="https://docs.wxwidgets.org/3.0/classwx_sound.html">[2]</a>) of wxWidgets have not been made available to Erlang.</p>
-<p>So an Erlang program needing audio output (ex: sound special effects, musics) and/or input (ex: microphone) will have to rely on another option, possibly in link, for audio rendering, to 3D-ready <a class="reference external" href="https://github.com/edescourtis/eopenal">eopenal</a> - an (Erlang) binding of <a class="reference external" href="https://en.wikipedia.org/wiki/OpenAL">OpenAL</a>, or to a lower-level <a class="reference internal" href="#sdl-based-solution">SDL-based solution</a>. Contributions welcome!</p>
+<p>If the 2D/3D rendering can be done through <tt class="docutils literal">wx</tt>, apparently the <strong>audio capabilities</strong> (e.g. <a class="reference external" href="https://docs.wxwidgets.org/3.0/group__group__class__media.html">[1]</a>, <a class="reference external" href="https://docs.wxwidgets.org/3.0/classwx_sound.html">[2]</a>) of wxWidgets have not been made available to Erlang.</p>
+<p>So an Erlang program needing audio output (e.g. sound special effects, musics) and/or input (e.g. microphone) will have to rely on another option, possibly in link, for audio rendering, to 3D-ready <a class="reference external" href="https://github.com/edescourtis/eopenal">eopenal</a> - an (Erlang) binding of <a class="reference external" href="https://en.wikipedia.org/wiki/OpenAL">OpenAL</a>, or to a lower-level <a class="reference internal" href="#sdl-based-solution">SDL-based solution</a>. Contributions welcome!</p>
 <p>Currently only very basic support for audio output is available, as <tt class="docutils literal"><span class="pre">audio_utils:playback_file/{2,3}</span></tt>.</p>
 <p>See also our support for <a class="reference internal" href="#speech-synthesis">speech synthesis</a>.</p>
 <p></p>
@@ -1418,6 +1430,12 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <dd><p class="first">To search for the definition of a record of interest.</p>
 <div class="last line-block">
 <div class="line">Usage: find-record-definition.sh [-h|--help] A_RECORD_NAME [A_DIR]: attempts to find the definition of the specified Erlang record from the specified directory (if any), otherwise from the current one.</div>
+</div>
+</dd>
+<dt><a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/scripts/kill-beam.sh">kill-beam.sh</a></dt>
+<dd><p class="first">To kill carefully-selected Erlang VM instance(s).</p>
+<div class="last line-block">
+<div class="line">Usage: kill-beam.sh [-h|--help]: interactively terminates otherwise kills the user-selected Erlang (BEAM) virtual machines that were launched thanks to '-eval'.</div>
 </div>
 </dd>
 </dl>
@@ -1485,8 +1503,8 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <div class="line-block">
 <div class="line">-v: be verbose</div>
 <div class="line">-c a_cookie: specify a cookie, otherwise no cookie will be specifically set</div>
-<div class="line">--sn a_short_node_name: distributed node using specified short name (ex: 'my_short_name')</div>
-<div class="line">--ln a_long_node_name: distributed node using specified long name (ex: 'my_long_name')</div>
+<div class="line">--sn a_short_node_name: distributed node using specified short name (e.g. 'my_short_name')</div>
+<div class="line">--ln a_long_node_name: distributed node using specified long name (e.g. 'my_long_name')</div>
 <div class="line">--nn an_ignored_node_name: non-distributed node, specified name ignored (useful to just switch the naming options)</div>
 <div class="line">--tcp-range min_port max_port: specify a TCP port range for inter-node communication (useful for firewalling issues)</div>
 <div class="line">--epmd-port new_port: specify a specific EPMD port (default: 4369); only relevant if the VM is to be distributed (using short or long names), initially or at runtime</div>
@@ -1494,9 +1512,9 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <div class="line">--max-process-count max_count: specify the maximum number of processes per VM (default: 400000)</div>
 <div class="line">--busy-limit size: specify the distribution buffer busy limit, in kB (default: 1024)</div>
 <div class="line">--async-thread-count thread_count: specify the number of asynchronous threads for driver calls (default: 128)</div>
-<div class="line">--background: run the launched interpreter in the background (ideal to run as a daemon, ex: on a server)</div>
+<div class="line">--background: run the launched interpreter in the background (ideal to run as a daemon, e.g. on a server)</div>
 <div class="line">--daemon: run the node as a daemon (relies on run_erl and implies --background)</div>
-<div class="line">--non-interactive: run the launched interpreter with no shell nor input reading (ideal to run through a job manager, ex: on a cluster)</div>
+<div class="line">--non-interactive: run the launched interpreter with no shell nor input reading (ideal to run through a job manager, e.g. on a cluster)</div>
 <div class="line">--eval 'an Erlang expression': start by evaluating this expression</div>
 <div class="line">--no-auto-start: disable the automatic execution at VM start-up</div>
 <div class="line">-h or --help: display this help</div>
@@ -1534,7 +1552,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <dt><a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/scripts/generate-docutils.sh">generate-docutils.sh</a></dt>
 <dd><p class="first">Generates a proper PDF and/or HTML file from specified RST (<a class="reference external" href="https://en.wikipedia.org/wiki/ReStructuredText">reStructuredText</a>) one (main, standalone script).</p>
 <div class="line-block">
-<div class="line">Usage: generate-docutils.sh &lt;target rst file&gt; [--pdf|--all|&lt;comma-separated path(s) to CSS file to be used, ex: common/css/XXX.css,other.css&gt;] [--icon-file ICON_FILENAME]</div>
+<div class="line">Usage: generate-docutils.sh &lt;target rst file&gt; [--pdf|--all|&lt;comma-separated path(s) to CSS file to be used, e.g. common/css/XXX.css,other.css&gt;] [--icon-file ICON_FILENAME]</div>
 </div>
 <div class="line-block">
 <div class="line">Generates a final document from  specified docutils source file (*.rst).</div>
@@ -1549,7 +1567,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <div class="line">Usage: generate-pdf-from-rst.sh RST_FILE: generates a PDF file from the specified RST file, overwriting any past file with that name.</div>
 </div>
 <div class="last line-block">
-<div class="line">Ex: 'generate-pdf-from-rst.sh my_file.rst' will attempt to generate a new 'my_file.pdf' file.</div>
+<div class="line">For instance 'generate-pdf-from-rst.sh my_file.rst' will attempt to generate a new 'my_file.pdf' file.</div>
 </div>
 </dd>
 </dl>
@@ -1669,7 +1687,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <li>functions to manage Erlang <strong>compiled BEAM code</strong> (<tt class="docutils literal">code_utils.erl</tt>)</li>
 <li>services to manage the <strong>execution of other programs</strong> (<tt class="docutils literal">executable_utils.erl</tt>), to:<ul>
 <li>locate said executables</li>
-<li>to execute functional services (ex: display a PDF) regardless of the actual executable involved</li>
+<li>to execute functional services (e.g. display a PDF) regardless of the actual executable involved</li>
 </ul>
 </li>
 <li>a few <strong>test-related facilities</strong>, in <tt class="docutils literal">test_facilities.erl</tt></li>
@@ -1718,7 +1736,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <ul class="simple">
 <li><tt class="docutils literal"><span class="pre">meta_utils.{e,h}rl</span></tt>: basic primitives to <strong>transform ASTs</strong>, with a bit of testing (<tt class="docutils literal">meta_utils_test</tt>)</li>
 <li><tt class="docutils literal">type_utils</tt>: a still rather basic toolbox to <strong>manage data types</strong> - whether built-in, compound or parametrised (expressed as strings, as terms, etc.)</li>
-<li><tt class="docutils literal">ast_*</tt> modules to handle the various <strong>elements that can be found in an AST</strong> (ex: <tt class="docutils literal">ast_expression</tt>, <tt class="docutils literal">ast_type</tt>, <tt class="docutils literal">ast_pattern</tt>, etc.)</li>
+<li><tt class="docutils literal">ast_*</tt> modules to handle the various <strong>elements that can be found in an AST</strong> (e.g. <tt class="docutils literal">ast_expression</tt>, <tt class="docutils literal">ast_type</tt>, <tt class="docutils literal">ast_pattern</tt>, etc.)</li>
 </ul>
 <p>Finally, a few usage examples of these facilities are:</p>
 <ul class="simple">
@@ -1740,7 +1758,7 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <li>the <tt class="docutils literal">const_table</tt> module allows to generate sharable, read-only associative tables probably in the most efficient way in Erlang (refer to the <a class="reference internal" href="#const-table">const table</a> section for further information)</li>
 <li>the <tt class="docutils literal">cond_utils</tt> services drive conditional code injection: based on the build-time tokens defined, their values can be used to perform compilation-time operations such as <strong>if</strong> (see in this module <tt class="docutils literal">if_debug/1</tt>, <tt class="docutils literal"><span class="pre">if_defined/{2,3}</span></tt>, <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>), <strong>switch</strong> (see <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt>, possibly with a default clause) or <strong>assert</strong> (<tt class="docutils literal"><span class="pre">assert/{1,2,3}</span></tt>); if useful, it should be fairly easy (infrastructure mostly ready) to transform the (currently constant) user-defined build tokens into mutable variables and to add for example compile-time assignments (<tt class="docutils literal">cond_utils:create_token(TOKEN, MAYBE_INITIAL_VALUE)</tt>, <tt class="docutils literal">cond_utils:set_token_value(TOKEN, VALUE)</tt> and <tt class="docutils literal">cond_utils:remove_token(TOKEN, MAYBE_INITIAL_VALUE)</tt>) of these variables and loops (<strong>for</strong>, <strong>while</strong>, etc.) if not going for a Turing-complete language, if ever that made sense for some uses; see the <a class="reference internal" href="#support-for-code-injection">Support for Code Injection</a> for additional usage details regarding the supported primitives</li>
 </ul>
-<p>More generally, Myriad offers the support to traverse <em>any</em> AST (the whole Erlang grammar is supported, in its abstract form) and to <strong>transform</strong> it (ex: an expression being removed, transformed or replaced by other expressions), with the ability for the user to define his own type/call replacement mappings, or more general transformation functions to be triggered when specified elements are found in the AST (ex: remote calls with relevant MFA).</p>
+<p>More generally, Myriad offers the support to traverse <em>any</em> AST (the whole Erlang grammar is supported, in its abstract form) and to <strong>transform</strong> it (e.g. an expression being removed, transformed or replaced by other expressions), with the ability for the user to define his own type/call replacement mappings, or more general transformation functions to be triggered when specified elements are found in the AST (e.g. remote calls with relevant MFA).</p>
 <p>The traversal may be done in a stateful manner, i.e. any user-defined transformation will be able to access (read/write) any state of its own in the course of the traversal.</p>
 <p>As a result, a single pass through the input AST may be done, in which any kind of transformations may be applied, resulting in another (Erlang-compliant) AST being output and afterwards compiled.</p>
 <p></p>
@@ -1765,15 +1783,15 @@ $ make ui_run <span class="nv">CMD_LINE_OPT</span><span class="o">=</span><span 
 <div class="section" id="linear-conventions">
 <h4>Linear Conventions</h4>
 <p>Dimensions are non-null (a zero dimension has little interest). Dimension 1 corresponds to scalar and is not special-cased (hence one shall preferably use directly scalars if able to determine that being in a single dimension context).</p>
-<p>A linear-related <strong>index</strong> (ex: of a coordinate of a point, a vector or a matrix) starts at <tt class="docutils literal">1</tt> (not 0), as by default all <a class="reference internal" href="#indices">indices</a> in Myriad.</p>
+<p>A linear-related <strong>index</strong> (e.g. of a coordinate of a point, a vector or a matrix) starts at <tt class="docutils literal">1</tt> (not 0), as by default all <a class="reference internal" href="#indices">indices</a> in Myriad.</p>
 <p><strong>Points</strong> are to be specified by the user as <em>tuples</em> (preferably to lists) whose coordinates are either integer ones (for example <span class="math">\(P = \begin{pmatrix} 10 \\ 45\end{pmatrix}\)</span> translating to <tt class="docutils literal"><span class="pre">P={10,45}</span></tt>, typically for GUI-related processing of on-screen coordinates) or floating-point ones (<tt class="docutils literal">{0.0, <span class="pre">-1.0,</span> 0.0}</tt> for a point in 3D space). This is the most natural term mapping, and their internal representation is an homogeneous tuple (i.e. whose elements are all of the corresponding type): either <tt class="docutils literal">integer_point/0</tt> or <tt class="docutils literal">point/0</tt>.</p>
 <p>The vast majority of the linear operations can be carried by modules operating either on:</p>
 <ul class="simple">
 <li><strong>arbitrary</strong> dimensions (as high as needed, and freely chosen by the user, at compile-time or runtime)</li>
-<li><strong>specialised</strong> dimensions, namely 2D, 3D or 4D; their interest lies in efficiency (these specialised constructs are designed to induce less computing and smaller memory footprints) and in the definition of dimension-specific operators (ex: the cross-products in 3D)</li>
+<li><strong>specialised</strong> dimensions, namely 2D, 3D or 4D; their interest lies in efficiency (these specialised constructs are designed to induce less computing and smaller memory footprints) and in the definition of dimension-specific operators (e.g. the cross-products in 3D)</li>
 </ul>
 <p>Points can therefore be of arbitrary dimension (then they are taken in charge by the <tt class="docutils literal">point</tt> module), or can be specialised for 2D, 3D or 4D (then they are taken in charge by the <tt class="docutils literal">point{2,3,4}</tt> modules).</p>
-<p>As for <strong>vectors</strong>, they are to be specified by the user as <em>lists</em> of floating-point coordinates (ex: <span class="math">\(\vec{V} = \begin{bmatrix} 0.0 \\ -7.3 \\ 3.22\end{bmatrix}\)</span> translating to <tt class="docutils literal"><span class="pre">V=[0.0,</span> <span class="pre">-7.3,</span> 3.22]</tt>); this directly corresponds to their internal representation, in order to better accommodate linear operations (being a special case of matrices).</p>
+<p>As for <strong>vectors</strong>, they are to be specified by the user as <em>lists</em> of floating-point coordinates (e.g. <span class="math">\(\vec{V} = \begin{bmatrix} 0.0 \\ -7.3 \\ 3.22\end{bmatrix}\)</span> translating to <tt class="docutils literal"><span class="pre">V=[0.0,</span> <span class="pre">-7.3,</span> 3.22]</tt>); this directly corresponds to their internal representation, in order to better accommodate linear operations (being a special case of matrices).</p>
 <p>So vectors also can be of arbitrary dimension (then they are taken in charge by the <tt class="docutils literal">vector</tt> module), or can be specialised for 2D, 3D or 4D (then they are taken in charge by the <tt class="docutils literal">vector{2,3,4}</tt> modules).</p>
 <p>Points and vectors (of arbitrary dimension, or specialised) can be converted both ways, see <tt class="docutils literal"><span class="pre">point*:{to,from}_vector/1</span></tt> and <tt class="docutils literal"><span class="pre">vector*:{to,from}_point/1</span></tt>. As their types differ (tuple versus list), they can be unambiguously discriminated, which is useful for some operations <a class="footnote-reference" href="#footnote-20" id="footnote-reference-20">[22]</a>.</p>
 <table class="docutils footnote" frame="void" id="footnote-20" rules="none">
@@ -1799,7 +1817,7 @@ M = \begin{bmatrix}
 <li>as one of arbitrary dimension (designated from now on as an &quot;<em>arbitrary matrix</em>&quot;), corresponding to the <tt class="docutils literal">matrix:matrix/0</tt> type; internally such matrices are nested lists: a list of <tt class="docutils literal">m</tt> rows, each being a list of <tt class="docutils literal">n</tt> elements, hence defined in <a class="reference external" href="https://en.wikipedia.org/wiki/Row-_and_column-major_order">row-major order</a> (not column-major one)</li>
 <li>if being square and of a well-known dimension among 2, 3 or 4 (special cases defined for convenience and performance), as a value belonging to the <tt class="docutils literal"><span class="pre">matrix{2,3,4}/0</span></tt> types (which are records like <tt class="docutils literal">#matrix4{}</tt>, whose fields are named according to the matrix elements, such as <tt class="docutils literal">m41</tt>); they are designated hereafter as &quot;<em>specialised matrices</em>&quot;</li>
 <li>in a symbolic way, such as <tt class="docutils literal">identity_4</tt> (meaning the identity 4x4 matrix)</li>
-<li>for some dimensions (ex: 3D or 4D), extra representations exist (compact 4x4 matrices, made of a 3x3 matrix and a vector3, in the context of homogeneous operations)</li>
+<li>for some dimensions (e.g. 3D or 4D), extra representations exist (compact 4x4 matrices, made of a 3x3 matrix and a vector3, in the context of homogeneous operations)</li>
 </ul>
 <p>Taking as an example a 2x2 matrix like:</p>
 <div class="math">
@@ -1859,9 +1877,9 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <p>Note that:</p>
 <ul class="simple">
 <li>we call a container <em>type-homogeneous</em> iff all the coordinates that it gathers are all either integer or floating-point ones</li>
-<li>new instances (ex: of points, matrices, vectors, quaternions) may be:<ul>
+<li>new instances (e.g. of points, matrices, vectors, quaternions) may be:<ul>
 <li>either literally specified, with a term directly corresponding to their internal form</li>
-<li>or based on a <tt class="docutils literal">new</tt> operator (ex: <tt class="docutils literal">matrix:new/1</tt>), in which case with a higher-level user-term (ex: a matrix with integer coordinates, in which case they will be automatically converted to floats)</li>
+<li>or based on a <tt class="docutils literal">new</tt> operator (e.g. <tt class="docutils literal">matrix:new/1</tt>), in which case with a higher-level user-term (e.g. a matrix with integer coordinates, in which case they will be automatically converted to floats)</li>
 </ul>
 </li>
 <li>for clarity and in order to provide them with specified operations (like dot product), we preferred defining vectors as a separate type from the matrix one (even if a vector can be seen as a 1-column matrix)</li>
@@ -1875,7 +1893,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 </li>
 <li>the most common operations are defined for each datatype: creating, modifying, comparing, displaying and, whenever appropriate: adding, subtracting, scaling, multiplying, rotating, measuring, transposing, reversing, etc.</li>
 <li>operations are not implemented defensively, in the sense that a base runtime error will be triggered if a type or a size does not match, rather than being tested explicitly (anyway generally no useful extra context could then be specifically reported)</li>
-<li>additional runtime checks (ex: to check whether parameters expected to be unit vectors are normalised indeed) can nevertheless be enabled by setting the <tt class="docutils literal">myriad_check_linear</tt> flag (refer to <tt class="docutils literal">GNUmakevars.inc</tt>)</li>
+<li>additional runtime checks (e.g. to check whether parameters expected to be unit vectors are normalised indeed) can nevertheless be enabled by setting the <tt class="docutils literal">myriad_check_linear</tt> flag (refer to <tt class="docutils literal">GNUmakevars.inc</tt>)</li>
 <li>for <a class="reference external" href="https://en.wikipedia.org/wiki/Homogeneous_coordinates#Use_in_computer_graphics_and_computer_vision">homogeneous coordinates</a>: any implicit homogeneous <cite>w</cite> coordinate is <tt class="docutils literal">1.0</tt></li>
 <li>most operations here involve floating-point coordinates, rather than integer ones; as an Erlang's <tt class="docutils literal">float()</tt> is a double-precision one, it requires more resources (CPU and memory footprint) than a basic, single-precision one; for applications not requiring extra precision, maybe the Erlang VM could be compiled in order to rely on single-precision floats instead</li>
 </ul>
@@ -1897,7 +1915,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <tr><td class="label"><a class="fn-backref" href="#footnote-reference-21">[23]</a></td><td>Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.</td></tr>
 </tbody>
 </table>
-<p id="d-referential-2">In 2D, typically for on-screen coordinates (ex: when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero <a class="footnote-reference" href="#footnote-22" id="footnote-reference-22">[24]</a>:</p>
+<p id="d-referential-2">In 2D, typically for on-screen coordinates (e.g. when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero <a class="footnote-reference" href="#footnote-22" id="footnote-reference-22">[24]</a>:</p>
 <p><span class="raw-html"><center><img src="myriad-2D-referential.png" id="responsive-image-xsmall"></img></center></span>
 </p>
 <table class="docutils footnote" frame="void" id="footnote-22" rules="none">
@@ -1944,7 +1962,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 </div>
 <div class="section" id="possible-enhancements">
 <h4>Possible Enhancements</h4>
-<p>In the future, the most usual spatial types such as <tt class="docutils literal">matrix</tt> and <tt class="docutils literal">vector</tt> may be shortened in Myriad-based code as respectively <tt class="docutils literal">m</tt> and <tt class="docutils literal">v</tt>, the Myriad parse transform being then in charge of expanding accordingly (ex: a in-code shorthand <tt class="docutils literal">m3:new/0</tt> becoming <tt class="docutils literal">matrix3:new/0</tt> to the eyes of the compiler).</p>
+<p>In the future, the most usual spatial types such as <tt class="docutils literal">matrix</tt> and <tt class="docutils literal">vector</tt> may be shortened in Myriad-based code as respectively <tt class="docutils literal">m</tt> and <tt class="docutils literal">v</tt>, the Myriad parse transform being then in charge of expanding accordingly (e.g. a in-code shorthand <tt class="docutils literal">m3:new/0</tt> becoming <tt class="docutils literal">matrix3:new/0</tt> to the eyes of the compiler).</p>
 <p></p>
 </div>
 </div>
@@ -1953,7 +1971,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <span id="units"></span><h2><a class="toc-backref" href="#toc-entry-52">Management of Units</a></h2>
 <div class="section" id="motivation-1">
 <h3><a class="toc-backref" href="#toc-entry-53">Motivation</a></h3>
-<p>A value of a given type (ex: a float) can actually correspond to quantities as different as meters and kilowatts per hour.</p>
+<p>A value of a given type (e.g. a float) can actually correspond to quantities as different as meters and kilowatts per hour.</p>
 <p>Therefore <strong>units shall preferably be specified alongside with values being processed</strong>, and a language to express, check and convert these units must be retained. Of course units are of interest as other metadata are - such as accuracy, semantics, etc.</p>
 </div>
 <div class="section" id="available-support">
@@ -2016,12 +2034,12 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 </ul>
 </li>
 <li>the <strong>special</strong> units (they generally cannot map directly to any SI unit, yet can be handled separately), designating:<ul>
-<li>month [<tt class="docutils literal">month</tt>] (correspondence to base time units unspecified, as this duration is not constant; ex: a month can be 29, 30 or 31 days)</li>
-<li>year [<tt class="docutils literal">year</tt>] (correspondence to base time units unspecified, as this duration is not constant; ex: a year can be 365, 366 or 365.25 days, etc.)</li>
+<li>month [<tt class="docutils literal">month</tt>] (correspondence to base time units unspecified, as this duration is not constant; e.g. a month can be 29, 30 or 31 days)</li>
+<li>year [<tt class="docutils literal">year</tt>] (correspondence to base time units unspecified, as this duration is not constant; e.g. a year can be 365, 366 or 365.25 days, etc.)</li>
 <li>degree Celsius, for temperature relative to 273.15 K [<tt class="docutils literal">°C</tt>] (see note below)</li>
-<li>dimension-less quantities (ex: an index) [<tt class="docutils literal">dimensionless</tt>] (most probably clearer than <tt class="docutils literal">m/m</tt>)</li>
-<li>a count, i.e. a dimensionless number, generally a positive integer [<tt class="docutils literal">count</tt>] (ex: <tt class="docutils literal">14</tt>), considered as an alias of <tt class="docutils literal">dimensionless</tt></li>
-<li>a ratio, i.e. a dimensionless floating-point value, generally displayed as a percentage [<tt class="docutils literal">ratio</tt>] (ex: <tt class="docutils literal"><span class="pre">-12.9%</span></tt>); another alias of <tt class="docutils literal">dimensionless</tt></li>
+<li>dimension-less quantities (e.g. an index) [<tt class="docutils literal">dimensionless</tt>] (most probably clearer than <tt class="docutils literal">m/m</tt>)</li>
+<li>a count, i.e. a dimensionless number, generally a positive integer [<tt class="docutils literal">count</tt>] (e.g. <tt class="docutils literal">14</tt>), considered as an alias of <tt class="docutils literal">dimensionless</tt></li>
+<li>a ratio, i.e. a dimensionless floating-point value, generally displayed as a percentage [<tt class="docutils literal">ratio</tt>] (e.g. <tt class="docutils literal"><span class="pre">-12.9%</span></tt>); another alias of <tt class="docutils literal">dimensionless</tt></li>
 <li>currencies, either [<tt class="docutils literal">$</tt>] (US Dollar) or [<tt class="docutils literal">euros</tt>] (Euro), whose exchange rates of course vary</li>
 <li>values whose unit has not been specified [<tt class="docutils literal">unspecified_unit</tt>]</li>
 </ul>
@@ -2065,7 +2083,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <div class="admonition note">
 <p class="first admonition-title">Note</p>
 <p>There is a problem with temperatures, as they can be expressed at least in kelvins or degrees Celsius, whereas the two corresponding scales do not match, since there is an offset: <tt class="docutils literal">[K] = [°C] + 273.15</tt>.</p>
-<p>As a result, unit conversions would require updating as well the corresponding value, and, more generally, they should be treated as fully distinct units (ex: <tt class="docutils literal"><span class="pre">kW/°C</span></tt> cannot be automatically converted in terms of SI base units, i.e. using <tt class="docutils literal">K</tt>).</p>
+<p>As a result, unit conversions would require updating as well the corresponding value, and, more generally, they should be treated as fully distinct units (e.g. <tt class="docutils literal"><span class="pre">kW/°C</span></tt> cannot be automatically converted in terms of SI base units, i.e. using <tt class="docutils literal">K</tt>).</p>
 <p>This is why we &quot;degraded&quot; Celsius degrees, from a derived unit to a special one.</p>
 <p class="last">The same applies to the Fahrenheit unit (a likely addition), as: <tt class="docutils literal">[°C] = <span class="pre">5/9.([°F]-32)</span></tt>.</p>
 </div>
@@ -2085,11 +2103,11 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <p>As a result, <tt class="docutils literal">&quot;kWh&quot;</tt> is not a valid unit: it should be denoted as <tt class="docutils literal">&quot;kW.h&quot;</tt>.</p>
 <p class="last">Similarly, <tt class="docutils literal"><span class="pre">&quot;W/(m.k)&quot;</span></tt> is not valid, since parentheses are currently not supported: <tt class="docutils literal">&quot;W/m/k&quot;</tt> may be used instead.</p>
 </div>
-<p>Finally, exponents can be used as a shorthand for both operators (ex: <tt class="docutils literal"><span class="pre">kg.m^2.s^-1</span></tt>, instead of <tt class="docutils literal">kg.m.m/s</tt>). They should be specified explicitly, thanks to the caret character (<tt class="docutils literal">&quot;^&quot;</tt>); for example <tt class="docutils literal">&quot;m^2/s&quot;</tt>, not <tt class="docutils literal">&quot;m²/s&quot;</tt>.</p>
+<p>Finally, exponents can be used as a shorthand for both operators (e.g. <tt class="docutils literal"><span class="pre">kg.m^2.s^-1</span></tt>, instead of <tt class="docutils literal">kg.m.m/s</tt>). They should be specified explicitly, thanks to the caret character (<tt class="docutils literal">&quot;^&quot;</tt>); for example <tt class="docutils literal">&quot;m^2/s&quot;</tt>, not <tt class="docutils literal">&quot;m²/s&quot;</tt>.</p>
 <p>If deemed both safe and useful, we may consider in the future performing:</p>
 <ul class="simple">
 <li>symbolic unit checking (i.e. determining that a derived unit such as <tt class="docutils literal">N.s</tt> (newton.second) is actually, in canonical SI units, <tt class="docutils literal"><span class="pre">m^2.kg.s^-1</span></tt>), and thus that values of these two types can safely be used indifferently in computations</li>
-<li>automatic value conversions (ex: converting <tt class="docutils literal">km/hour</tt> into <tt class="docutils literal">m/s</tt>), provided that the overall computational precision is not significantly deteriorated</li>
+<li>automatic value conversions (e.g. converting <tt class="docutils literal">km/hour</tt> into <tt class="docutils literal">m/s</tt>), provided that the overall computational precision is not significantly deteriorated</li>
 </ul>
 <p>The corresponding mechanisms (type information, conversion functions, unit checking and transformation, etc.) are defined in <tt class="docutils literal">unit_utils.erl</tt> and tested in <tt class="docutils literal">unit_utils_test.erl</tt>,  in the <tt class="docutils literal">myriad/src/utils</tt> directory.</p>
 </div>
@@ -2111,7 +2129,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 </div>
 <div class="section" id="possible-improvements-regarding-dimensional-analysis">
 <h3><a class="toc-backref" href="#toc-entry-56">Possible Improvements Regarding Dimensional Analysis</a></h3>
-<p>Some programming languages provide systems to manage dimensional information (ex: for physical quantities), generally through add-ons or libraries (rarely as a built-in feature).</p>
+<p>Some programming languages provide systems to manage dimensional information (e.g. for physical quantities), generally through add-ons or libraries (rarely as a built-in feature).</p>
 <p>A first level of support is to provide, like here, an API to manage units. Other levels can be:</p>
 <ol class="arabic simple">
 <li>to integrate unit management directly, seamlessly in language expressions, as if it was built-in (as opposed to having to use explicitly a third-party API for that); for example at least half a dozen different libraries provide that in Python</li>
@@ -2144,7 +2162,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <p>On Arch Linux, one can thus use: <tt class="docutils literal">pacman <span class="pre">-Sy</span> sqlite sqlitebrowser sqliteman</tt>.</p>
 <p>Testing the backend as it is:</p>
 <pre class="code bash literal-block">
-$ sqlite3 my_test
+$<span class="w"> </span>sqlite3<span class="w"> </span>my_test
 </pre>
 <pre class="code sql literal-block">
 <span class="n">SQLite</span><span class="w"> </span><span class="k">version</span><span class="w"> </span><span class="mi">3</span><span class="p">.</span><span class="mi">13</span><span class="p">.</span><span class="mi">0</span><span class="w"> </span><span class="mi">2016</span><span class="o">-</span><span class="mi">05</span><span class="o">-</span><span class="mi">18</span><span class="w"> </span><span class="mi">10</span><span class="p">:</span><span class="mi">57</span><span class="p">:</span><span class="mi">30</span><span class="w">
@@ -2172,50 +2190,50 @@ $ sqlite3 my_test
 <p>By default we consider that this backend has been installed in <tt class="docutils literal"><span class="pre">~/Software/erlang-sqlite3</span></tt>. The <tt class="docutils literal">SQLITE3_BASE</tt> variable in <tt class="docutils literal">myriad/GNUmakevars.inc</tt> can be set to match any other install path.</p>
 <p>Recommended installation process:</p>
 <pre class="code bash literal-block">
-$ mkdir ~/Software
-$ <span class="nb">cd</span> ~/Software
-$ git clone https://github.com/alexeyr/erlang-sqlite3.git
-Cloning into <span class="s1">'erlang-sqlite3'</span>...
-remote: Counting objects: <span class="m">1786</span>, <span class="k">done</span>.
-remote: Total <span class="m">1786</span> <span class="o">(</span>delta <span class="m">0</span><span class="o">)</span>, reused <span class="m">0</span> <span class="o">(</span>delta <span class="m">0</span><span class="o">)</span>, pack-reused <span class="m">1786</span>
-Receiving objects: <span class="m">100</span>% <span class="o">(</span><span class="m">1786</span>/1786<span class="o">)</span>, <span class="m">3</span>.24 MiB <span class="p">|</span> <span class="m">570</span>.00 KiB/s, <span class="k">done</span>.
-Resolving deltas: <span class="m">100</span>% <span class="o">(</span><span class="m">865</span>/865<span class="o">)</span>, <span class="k">done</span>.
-Checking connectivity... <span class="k">done</span>.
-$ <span class="nb">cd</span> erlang-sqlite3/
-$ make
-rm -rf deps ebin priv/*.so doc/* .eunit/* c_src/*.o config.tmp
-rm -f config.tmp
-<span class="nb">echo</span> <span class="s2">&quot;normal&quot;</span> &gt; config.tmp
-./rebar get-deps <span class="nv">compile</span>
-<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>get-deps<span class="o">)</span>
-<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>compile<span class="o">)</span>
-Compiled src/sqlite3_lib.erl
-Compiled src/sqlite3.erl
-Compiling c_src/sqlite3_drv.c
-<span class="o">[</span>...<span class="o">]</span>
+$<span class="w"> </span>mkdir<span class="w"> </span>~/Software<span class="w">
+</span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Software<span class="w">
+</span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/alexeyr/erlang-sqlite3.git<span class="w">
+</span>Cloning<span class="w"> </span>into<span class="w"> </span><span class="s1">'erlang-sqlite3'</span>...<span class="w">
+</span>remote:<span class="w"> </span>Counting<span class="w"> </span>objects:<span class="w"> </span><span class="m">1786</span>,<span class="w"> </span><span class="k">done</span>.<span class="w">
+</span>remote:<span class="w"> </span>Total<span class="w"> </span><span class="m">1786</span><span class="w"> </span><span class="o">(</span>delta<span class="w"> </span><span class="m">0</span><span class="o">)</span>,<span class="w"> </span>reused<span class="w"> </span><span class="m">0</span><span class="w"> </span><span class="o">(</span>delta<span class="w"> </span><span class="m">0</span><span class="o">)</span>,<span class="w"> </span>pack-reused<span class="w"> </span><span class="m">1786</span><span class="w">
+</span>Receiving<span class="w"> </span>objects:<span class="w"> </span><span class="m">100</span>%<span class="w"> </span><span class="o">(</span><span class="m">1786</span>/1786<span class="o">)</span>,<span class="w"> </span><span class="m">3</span>.24<span class="w"> </span>MiB<span class="w"> </span><span class="p">|</span><span class="w"> </span><span class="m">570</span>.00<span class="w"> </span>KiB/s,<span class="w"> </span><span class="k">done</span>.<span class="w">
+</span>Resolving<span class="w"> </span>deltas:<span class="w"> </span><span class="m">100</span>%<span class="w"> </span><span class="o">(</span><span class="m">865</span>/865<span class="o">)</span>,<span class="w"> </span><span class="k">done</span>.<span class="w">
+</span>Checking<span class="w"> </span>connectivity...<span class="w"> </span><span class="k">done</span>.<span class="w">
+</span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>erlang-sqlite3/<span class="w">
+</span>$<span class="w"> </span>make<span class="w">
+</span>rm<span class="w"> </span>-rf<span class="w"> </span>deps<span class="w"> </span>ebin<span class="w"> </span>priv/*.so<span class="w"> </span>doc/*<span class="w"> </span>.eunit/*<span class="w"> </span>c_src/*.o<span class="w"> </span>config.tmp<span class="w">
+</span>rm<span class="w"> </span>-f<span class="w"> </span>config.tmp<span class="w">
+</span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;normal&quot;</span><span class="w"> </span>&gt;<span class="w"> </span>config.tmp<span class="w">
+</span>./rebar<span class="w"> </span>get-deps<span class="w"> </span><span class="nv">compile</span><span class="w">
+</span><span class="o">==</span>&gt;<span class="w"> </span>erlang-sqlite3<span class="w"> </span><span class="o">(</span>get-deps<span class="o">)</span><span class="w">
+</span><span class="o">==</span>&gt;<span class="w"> </span>erlang-sqlite3<span class="w"> </span><span class="o">(</span>compile<span class="o">)</span><span class="w">
+</span>Compiled<span class="w"> </span>src/sqlite3_lib.erl<span class="w">
+</span>Compiled<span class="w"> </span>src/sqlite3.erl<span class="w">
+</span>Compiling<span class="w"> </span>c_src/sqlite3_drv.c<span class="w">
+</span><span class="o">[</span>...<span class="o">]</span>
 </pre>
 <p>Testing the binding:</p>
 <pre class="code bash literal-block">
-make <span class="nb">test</span>
-./rebar get-deps compile <span class="nv">eunit</span>
-<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>get-deps<span class="o">)</span>
-<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>compile<span class="o">)</span>
-<span class="o">==</span>&gt; erlang-sqlite3 <span class="o">(</span>eunit<span class="o">)</span>
-Compiled src/sqlite3.erl
-Compiled src/sqlite3_lib.erl
-Compiled test/sqlite3_test.erl
-<span class="o">========================</span> <span class="nv">EUnit</span> <span class="o">========================</span>
-module <span class="s1">'sqlite3_test'</span>
-  sqlite3_test: all_test_ <span class="o">(</span>basic_functionality<span class="o">)</span>...<span class="o">[</span><span class="m">0</span>.002 s<span class="o">]</span> ok
-  sqlite3_test: all_test_ <span class="o">(</span>table_info<span class="o">)</span>...ok
-  <span class="o">[</span>...<span class="o">]</span>
-  sqlite3_lib: delete_sql_test...ok
-  sqlite3_lib: drop_table_sql_test...ok
-  <span class="o">[</span><span class="k">done</span> <span class="k">in</span> <span class="m">0</span>.024 s<span class="o">]</span>
-  module <span class="s1">'sqlite3'</span>
-<span class="o">=======================================================</span>
-All <span class="m">30</span> tests passed.
-Cover analysis: ~/Software/erlang-sqlite3/.eunit/index.html
+make<span class="w"> </span><span class="nb">test</span><span class="w">
+</span>./rebar<span class="w"> </span>get-deps<span class="w"> </span>compile<span class="w"> </span><span class="nv">eunit</span><span class="w">
+</span><span class="o">==</span>&gt;<span class="w"> </span>erlang-sqlite3<span class="w"> </span><span class="o">(</span>get-deps<span class="o">)</span><span class="w">
+</span><span class="o">==</span>&gt;<span class="w"> </span>erlang-sqlite3<span class="w"> </span><span class="o">(</span>compile<span class="o">)</span><span class="w">
+</span><span class="o">==</span>&gt;<span class="w"> </span>erlang-sqlite3<span class="w"> </span><span class="o">(</span>eunit<span class="o">)</span><span class="w">
+</span>Compiled<span class="w"> </span>src/sqlite3.erl<span class="w">
+</span>Compiled<span class="w"> </span>src/sqlite3_lib.erl<span class="w">
+</span>Compiled<span class="w"> </span>test/sqlite3_test.erl<span class="w">
+</span><span class="o">========================</span><span class="w"> </span><span class="nv">EUnit</span><span class="w"> </span><span class="o">========================</span><span class="w">
+</span>module<span class="w"> </span><span class="s1">'sqlite3_test'</span><span class="w">
+  </span>sqlite3_test:<span class="w"> </span>all_test_<span class="w"> </span><span class="o">(</span>basic_functionality<span class="o">)</span>...<span class="o">[</span><span class="m">0</span>.002<span class="w"> </span>s<span class="o">]</span><span class="w"> </span>ok<span class="w">
+  </span>sqlite3_test:<span class="w"> </span>all_test_<span class="w"> </span><span class="o">(</span>table_info<span class="o">)</span>...ok<span class="w">
+  </span><span class="o">[</span>...<span class="o">]</span><span class="w">
+  </span>sqlite3_lib:<span class="w"> </span>delete_sql_test...ok<span class="w">
+  </span>sqlite3_lib:<span class="w"> </span>drop_table_sql_test...ok<span class="w">
+  </span><span class="o">[</span><span class="k">done</span><span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">0</span>.024<span class="w"> </span>s<span class="o">]</span><span class="w">
+  </span>module<span class="w"> </span><span class="s1">'sqlite3'</span><span class="w">
+</span><span class="o">=======================================================</span><span class="w">
+</span>All<span class="w"> </span><span class="m">30</span><span class="w"> </span>tests<span class="w"> </span>passed.<span class="w">
+</span>Cover<span class="w"> </span>analysis:<span class="w"> </span>~/Software/erlang-sqlite3/.eunit/index.html
 </pre>
 <p>Pretty reassuring.</p>
 </div>
@@ -2234,9 +2252,9 @@ Cover analysis: ~/Software/erlang-sqlite3/.eunit/index.html
 <p>By default we consider that this binding has been installed in <tt class="docutils literal">~/Software/epgsql</tt>. The <tt class="docutils literal">POSTGRESQL_BASE</tt> variable in <tt class="docutils literal">myriad/GNUmakevars.inc</tt> can be set to match any other install path.</p>
 <p>Recommended installation process:</p>
 <pre class="code bash literal-block">
-$ mkdir -p ~/Software <span class="o">&amp;&amp;</span> <span class="nb">cd</span> <span class="nv">$_</span>
-$ git clone https://github.com/epgsql/epgsql.git
-$ <span class="nb">cd</span> epgsql <span class="o">&amp;&amp;</span> make all <span class="o">&amp;&amp;</span> ln -s ./_build/default/lib/epgsql/ebin
+$<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/Software<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span><span class="nv">$_</span><span class="w">
+</span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/epgsql/epgsql.git<span class="w">
+</span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>epgsql<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>make<span class="w"> </span>all<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>./_build/default/lib/epgsql/ebin
 </pre>
 </div>
 </div>
@@ -2247,19 +2265,19 @@ $ <span class="nb">cd</span> epgsql <span class="o">&amp;&amp;</span> make all <
 <p>Then the corresponding implementation (<tt class="docutils literal">sql_support.erl</tt>) and test (<tt class="docutils literal">sql_support_test.erl</tt>), both in <tt class="docutils literal"><span class="pre">myriad/src/data-management</span></tt>, will be built (use <tt class="docutils literal">make clean all</tt> from the root of <tt class="docutils literal">Myriad</tt>) and able to be run (execute <tt class="docutils literal">make sql_support_run</tt> for that).</p>
 <p>Testing it:</p>
 <pre class="code bash literal-block">
-$ <span class="nb">cd</span> myriad/src/data-management
-$ make sql_support_run
-       Compiling module sql_support.erl
-       Compiling module sql_support_test.erl
-       Running unitary <span class="nb">test</span> sql_support_run
- <span class="o">[</span>...<span class="o">]</span>
- --&gt; Testing module sql_support_test.
- Starting SQL support <span class="o">(</span>based on SQLite3<span class="o">)</span>.
- <span class="o">[</span>...<span class="o">]</span>
- Closing database.
- Stopping SQL support.
- --&gt; Successful end of test.
- <span class="o">(</span><span class="nb">test</span> finished, interpreter halted<span class="o">)</span>
+$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>myriad/src/data-management<span class="w">
+</span>$<span class="w"> </span>make<span class="w"> </span>sql_support_run<span class="w">
+       </span>Compiling<span class="w"> </span>module<span class="w"> </span>sql_support.erl<span class="w">
+       </span>Compiling<span class="w"> </span>module<span class="w"> </span>sql_support_test.erl<span class="w">
+       </span>Running<span class="w"> </span>unitary<span class="w"> </span><span class="nb">test</span><span class="w"> </span>sql_support_run<span class="w">
+ </span><span class="o">[</span>...<span class="o">]</span><span class="w">
+ </span>--&gt;<span class="w"> </span>Testing<span class="w"> </span>module<span class="w"> </span>sql_support_test.<span class="w">
+ </span>Starting<span class="w"> </span>SQL<span class="w"> </span>support<span class="w"> </span><span class="o">(</span>based<span class="w"> </span>on<span class="w"> </span>SQLite3<span class="o">)</span>.<span class="w">
+ </span><span class="o">[</span>...<span class="o">]</span><span class="w">
+ </span>Closing<span class="w"> </span>database.<span class="w">
+ </span>Stopping<span class="w"> </span>SQL<span class="w"> </span>support.<span class="w">
+ </span>--&gt;<span class="w"> </span>Successful<span class="w"> </span>end<span class="w"> </span>of<span class="w"> </span>test.<span class="w">
+ </span><span class="o">(</span><span class="nb">test</span><span class="w"> </span>finished,<span class="w"> </span>interpreter<span class="w"> </span>halted<span class="o">)</span>
 </pre>
 <p>Looks good.</p>
 </div>
@@ -2269,7 +2287,7 @@ $ make sql_support_run
 <h4>Compiling module sql_support.erl : can't find include file &quot;sqlite3.hrl&quot;</h4>
 <ul class="simple">
 <li><tt class="docutils literal">USE_SQLITE</tt> not set to <tt class="docutils literal">true</tt> in <tt class="docutils literal">myriad/GNUmakevars.inc</tt></li>
-<li><tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt> backend not correctly installed (ex: <tt class="docutils literal">SQLITE3_BASE</tt> not pointing to a right path in <tt class="docutils literal">myriad/GNUmakevars.inc</tt>)</li>
+<li><tt class="docutils literal"><span class="pre">erlang-sqlite3</span></tt> backend not correctly installed (e.g. <tt class="docutils literal">SQLITE3_BASE</tt> not pointing to a right path in <tt class="docutils literal">myriad/GNUmakevars.inc</tt>)</li>
 </ul>
 <p></p>
 </div>
@@ -2293,7 +2311,7 @@ $ make sql_support_run
 </ul>
 <p>The main editors integrate the <em>Language Server Protocol</em> (also known as LSP), refer to the <a class="reference internal" href="#lsp">LSP</a> section for more details (<a class="reference external" href="https://www.flycheck.org">Flycheck</a> can be another option).</p>
 <p>Source files should be formatted for a 80-character width: no character should be present after the 79th column of a line.</p>
-<p>Except in very specific cases, only ASCII code should be used (ex: no accentuated characters).</p>
+<p>Except in very specific cases, only ASCII code should be used (e.g. no accentuated characters).</p>
 <p>Tabulations should be preferred to series of spaces, and the text should be formatted according to 4-character tabulations.</p>
 <p>All redundant whitespaces should be removed, preferably automatically (see the Emacs <tt class="docutils literal"><span class="pre">whitespace-cleanup</span></tt> command). This is why, with the <a class="reference internal" href="#emacs-settings">emacs settings</a> that we recommend, pressing the F8 key removes for example the yellow areas in the current buffer by replacing any series of four spaces by a corresponding tabulation.</p>
 <p>We would prefer that all files (especially source ones; including the contributed ones) are &quot;whitespace-clean&quot; before being committed. As mentioned, such a transformation can be done directly from Emacs. If using another editor, please ensure that the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/fix-whitespaces.sh">fix-whitespaces.sh</a> script has been run on the target sources (possibly automatically thanks to a VCS hook) <em>before</em> committing them; the <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/fix-whitespaces-in-tree.sh">fix-whitespaces-in-tree.sh</a> script may be also used, in order to perform a bulk transformation.</p>
@@ -2315,19 +2333,19 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 </pre>
 <p>The most obvious conventions are:</p>
 <ul class="simple">
-<li>the <strong>settings of the build chain</strong> should be used (ex: with regard to compiler flags) and adapted/completed if needed; the (possibly-specialised) <tt class="docutils literal">GNUmakesettings.inc</tt>,  <tt class="docutils literal">GNUmakerules.inc</tt> and <tt class="docutils literal">GNUmakevars.inc</tt> files should be relied upon</li>
+<li>the <strong>settings of the build chain</strong> should be used (e.g. with regard to compiler flags) and adapted/completed if needed; the (possibly-specialised) <tt class="docutils literal">GNUmakesettings.inc</tt>,  <tt class="docutils literal">GNUmakerules.inc</tt> and <tt class="docutils literal">GNUmakevars.inc</tt> files should be relied upon</li>
 <li><strong>no warning should be tolerated</strong>; anyway our build chain treats warnings as (blocking) errors</li>
-<li><strong>test cases</strong> should be developed alongside most if not all modules; ex: if developing <tt class="docutils literal">src/foobar.erl</tt>, then probably the <tt class="docutils literal">test/foobar_test.erl</tt> testing code should be developed, after or, even preferably, before the implementation of the tested code; test success should be evaluated automatically, by the code (ex: thanks to pattern matching), not by the person running the test (ex: who would have to compare visually the actual results with the expected ones); in some cases, only <strong>integrated tests</strong> can be devised in practice; tests should be gathered in <strong>test suites</strong>, that should be runnable automatically (<tt class="docutils literal">make test</tt>, recursively through child directories) and fail loudly (and in a blocking manner) at the first error met</li>
+<li><strong>test cases</strong> should be developed alongside most if not all modules; e.g. if developing <tt class="docutils literal">src/foobar.erl</tt>, then probably the <tt class="docutils literal">test/foobar_test.erl</tt> testing code should be developed, after or, even preferably, before the implementation of the tested code; test success should be evaluated automatically, by the code (e.g. thanks to pattern matching), not by the person running the test (e.g. who would have to compare visually the actual results with the expected ones); in some cases, only <strong>integrated tests</strong> can be devised in practice; tests should be gathered in <strong>test suites</strong>, that should be runnable automatically (<tt class="docutils literal">make test</tt>, recursively through child directories) and fail loudly (and in a blocking manner) at the first error met</li>
 <li><strong>multiple levels of quality documentation</strong> should be made available to the code user, and probably be written in parallel to the code; there are at least three documentation levels:<ul>
-<li>lower-level documentation: code should always be <strong>densely commented</strong>, with documentation headers added to all functions, inlined comments (not paraphrasing the code) and self-describing symbols: function names, variable names (ex: <tt class="docutils literal">RegisteredState = ...</tt> to be preferred to <tt class="docutils literal">NewState = ...</tt>), etc.; more generally all names shall be long enough to be descriptive (clarity preferred over compactness); type specifications also pertain to this low-level documentation effort</li>
+<li>lower-level documentation: code should always be <strong>densely commented</strong>, with documentation headers added to all functions, inlined comments (not paraphrasing the code) and self-describing symbols: function names, variable names (e.g. <tt class="docutils literal">RegisteredState = ...</tt> to be preferred to <tt class="docutils literal">NewState = ...</tt>), etc.; more generally all names shall be long enough to be descriptive (clarity preferred over compactness); type specifications also pertain to this low-level documentation effort</li>
 <li>higher-level <strong>design and/or implementation notes</strong>: they should be available as a set of paragraphs in each source file, before the function definitions, to describe the context and constraints, and help understanding how the features are implemented, and why</li>
 <li>high-level <strong>developer and user documentation</strong> should be made available, targeting at least HTML and PDF outputs, possibly offering a wiki access as well</li>
 </ul>
 </li>
 <li>more generally, <strong>comments</strong> should be clear and precise, numerous, rich and complete (overall, in terms of line counts, we target roughly 1/3 of code, 1/3 of blank lines and 1/3 of comments); all comments shall be written in UK English, start with a single <tt class="docutils literal">%</tt> and be properly word-wrapped (use <tt class="docutils literal"><span class="pre">meta-q</span></tt> with our Emacs settings to take care of that automatically)</li>
 <li><strong>indentation</strong> should respect, as already explained, the 80-character width and 4-space tabulation; however the default built-in Erlang indentation mode of <tt class="docutils literal">emacs</tt> can hardly be used for that, as it leads to huge width offsets (we may in the future provide a variation of the <tt class="docutils literal">elisp</tt> code for the emacs indentation rules)</li>
-<li><strong>spacing homogeneity</strong> across source files should be enforced; for example three blank lines should exist between two function definitions, one between the clauses of any given function (possibly two in case of longer clauses); for the sake of &quot;visual parsing&quot;, arguments should be separated by spaces (ex: <tt class="docutils literal">f( X ) <span class="pre">-&gt;</span> ...</tt>, not <tt class="docutils literal">f(X) <span class="pre">-&gt;</span> ...</tt>), especially if they are a bit complex (<tt class="docutils literal">f( <span class="pre">A={U,V},</span> B, _C ) <span class="pre">-&gt;</span> ...</tt>, not <tt class="docutils literal"><span class="pre">f(A={U,V},B,_C)</span> <span class="pre">-&gt;</span> ...</tt> or the usual <tt class="docutils literal"><span class="pre">f(A={U,V},</span> B, _C) <span class="pre">-&gt;</span> ...</tt>)</li>
-<li>for <strong>type-related conventions</strong>, at least all exported functions shall have a <tt class="docutils literal"><span class="pre">-spec</span></tt> declaration; if an actual type is referenced more than once (notably in a given module), a specific user-defined type shall be defined; types shall be defined in &quot;semantic&quot; terms rather than on technical ones (ex: <tt class="docutils literal"><span class="pre">-type</span> temperature() :: ...</tt> than <tt class="docutils literal">float()</tt>; developers may refer to, or enrich, <tt class="docutils literal">myriad/src/utils/unit_utils.erl</tt> for that)</li>
+<li><strong>spacing homogeneity</strong> across source files should be enforced; for example three blank lines should exist between two function definitions, one between the clauses of any given function (possibly two in case of longer clauses); for the sake of &quot;visual parsing&quot;, arguments should be separated by spaces (e.g. <tt class="docutils literal">f( X ) <span class="pre">-&gt;</span> ...</tt>, not <tt class="docutils literal">f(X) <span class="pre">-&gt;</span> ...</tt>), especially if they are a bit complex (<tt class="docutils literal">f( <span class="pre">A={U,V},</span> B, _C ) <span class="pre">-&gt;</span> ...</tt>, not <tt class="docutils literal"><span class="pre">f(A={U,V},B,_C)</span> <span class="pre">-&gt;</span> ...</tt> or the usual <tt class="docutils literal"><span class="pre">f(A={U,V},</span> B, _C) <span class="pre">-&gt;</span> ...</tt>)</li>
+<li>for <strong>type-related conventions</strong>, at least all exported functions shall have a <tt class="docutils literal"><span class="pre">-spec</span></tt> declaration; if an actual type is referenced more than once (notably in a given module), a specific user-defined type shall be defined; types shall be defined in &quot;semantic&quot; terms rather than on technical ones (e.g. <tt class="docutils literal"><span class="pre">-type</span> temperature() :: ...</tt> than <tt class="docutils literal">float()</tt>; developers may refer to, or enrich, <tt class="docutils literal">myriad/src/utils/unit_utils.erl</tt> for that)</li>
 <li>the <strong>latest stable version of Erlang</strong> should be used, preferably built thanks to our <tt class="docutils literal"><span class="pre">myriad/conf/install-erlang.sh</span></tt> script</li>
 <li>the official <em>Programming Rules and Conventions</em> should be enforced, as defined <a class="reference external" href="http://www.erlang.se/doc/programming_rules.shtml">here</a> (possibly a dead link now; one may try <a class="reference external" href="https://docs.jj1bdx.tokyo/Erlang_Programming_Rules.html">this mirror</a> instead)</li>
 <li>the function definitions shall follow <strong>the same order</strong> as the one of their exports</li>
@@ -2335,19 +2353,19 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <li>if an helper function is specific to an exported function, it shall be defined just after this function; otherwise it should be defined in the <strong>helper section</strong>, placed just after the definition of the exported functions</li>
 <li>defining distinct (non-overlapping), explicit (with a clear-enough name), numerous (statically-defined) <strong>atoms</strong> is cheap; each atom found in the sources is generally to be involved in at least one type definition</li>
 <li>the use of <tt class="docutils literal">case ... of ... end</tt> should be preferred to the use of <tt class="docutils literal">if</tt> (never used in our code base)</li>
-<li>we also prefer that the various patterns of a case are indented with exactly one tabulation, and that the closing <tt class="docutils literal">end</tt> lies as much as possible on the left (ex: if having specified <tt class="docutils literal">MyVar = case ... end</tt>, then <tt class="docutils literal">end</tt> should begin at the same column as <tt class="docutils literal">MyVar</tt>); the same applies to <tt class="docutils literal">try ... catch ... end</tt> clauses</li>
-<li>when a term is ignored, instead of using simply <tt class="docutils literal">_</tt>, one should define a <strong>named mute variable</strong> in order to provide more information about this term (ex: <tt class="docutils literal">_TimeManagerPid</tt>); one should then to accidental matching of such names (now a warning is emitted)</li>
+<li>we also prefer that the various patterns of a case are indented with exactly one tabulation, and that the closing <tt class="docutils literal">end</tt> lies as much as possible on the left (e.g. if having specified <tt class="docutils literal">MyVar = case ... end</tt>, then <tt class="docutils literal">end</tt> should begin at the same column as <tt class="docutils literal">MyVar</tt>); the same applies to <tt class="docutils literal">try ... catch ... end</tt> clauses</li>
+<li>when a term is ignored, instead of using simply <tt class="docutils literal">_</tt>, one should define a <strong>named mute variable</strong> in order to provide more information about this term (e.g. <tt class="docutils literal">_TimeManagerPid</tt>); one should then to accidental matching of such names (now a warning is emitted)</li>
 <li>some conventional variable names are, and may be, extensively used: <tt class="docutils literal">Res</tt> for result, <tt class="docutils literal">H</tt> and <tt class="docutils literal">T</tt> for respectively the head and tail of a list on which we recursively iterate</li>
 </ul>
 <ul class="simple" id="indices">
 <li>indices shall, as much as possible, start at index <tt class="docutils literal">1</tt> (rather than 0); this is a general Erlang convention (<a class="reference external" href="https://erlang.org/doc/man/lists.html#description">for lists</a>, like with <tt class="docutils literal">lists:nth/2</tt>, for tuples, etc. - unlike <a class="reference external" href="https://erlang.org/doc/man/array.html#description">arrays</a>, though); see <tt class="docutils literal">basic_utils:positive_index/0</tt></li>
-<li>when needing an <strong>associative table</strong>, use the <tt class="docutils literal">table</tt> pseudo-module; a key/value pair shall be designated as a table <em>entry</em> (ex: variable named as <tt class="docutils literal">RoadEntry</tt>)</li>
+<li>when needing an <strong>associative table</strong>, use the <tt class="docutils literal">table</tt> pseudo-module; a key/value pair shall be designated as a table <em>entry</em> (e.g. variable named as <tt class="docutils literal">RoadEntry</tt>)</li>
 <li>regarding the in-code management of <strong>text</strong>:<ul>
 <li>if a text is to be rather static (constant) and/or if it is to be exchanged between processes, then it should be a UTF8 <tt class="docutils literal">binary</tt>, and its type shall be declared as <tt class="docutils literal">text_utils:bin_string()</tt></li>
 <li>other, a plain string (<tt class="docutils literal">text_utils:ustring()</tt>) shall be used</li>
 </ul>
 </li>
-<li>when defining a non-trivial datastructure, a <strong>record</strong> shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding <strong>type</strong> should be then defined (ex: a <tt class="docutils literal">foobar</tt> record leading to a <tt class="docutils literal">foobar()</tt> type), and a <strong>function to describe it</strong> as text shall be provided (ex: <tt class="docutils literal"><span class="pre">-spec</span> <span class="pre">foobar_to_string(foobar())</span> <span class="pre">-&gt;</span> text_utils:string()</tt>)<ul>
+<li>when defining a non-trivial datastructure, a <strong>record</strong> shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding <strong>type</strong> should be then defined (e.g. a <tt class="docutils literal">foobar</tt> record leading to a <tt class="docutils literal">foobar()</tt> type), and a <strong>function to describe it</strong> as text shall be provided (e.g. <tt class="docutils literal"><span class="pre">-spec</span> <span class="pre">foobar_to_string(foobar())</span> <span class="pre">-&gt;</span> text_utils:string()</tt>)<ul>
 <li><strong>mute variables</strong> should be used as well to document actual parameters; for example <tt class="docutils literal">f(3,7,10)</tt> could preferably be written as a clearer <tt class="docutils literal">f(_Min=3,_Max=7,_Deviation=10)</tt></li>
 </ul>
 </li>
@@ -2360,13 +2378,13 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <li>as opposed to records, types shall never defined in header files (<tt class="docutils literal">*.hrl</tt>): a given type shall be defined once, as a reference, and exported by its module; other modules may then just refer to it</li>
 <li>type shorthands may be defined; for example, if using repeatedly within a module <tt class="docutils literal">text_utils:ustring()</tt>, a local, non-exported type shorthand (<tt class="docutils literal"><span class="pre">-type</span> ustring() :: text_utils:ustring()</tt>) may be defined so that all other uses of this type become simply <tt class="docutils literal">ustring()</tt> in this module</li>
 </ul>
-<p>As not all typos may be detected at compilation-time (ex: wrong spelling for a module), we recommend, for source code, the use of additional static checkers, as discussed in the <a class="reference internal" href="#type-checking">type-checking</a> section.</p>
+<p>As not all typos may be detected at compilation-time (e.g. wrong spelling for a module), we recommend, for source code, the use of additional static checkers, as discussed in the <a class="reference internal" href="#type-checking">type-checking</a> section.</p>
 </div>
 <div class="section" id="execution-targets">
 <span id="execution-target"></span><h2><a class="toc-backref" href="#toc-entry-65">Execution Targets</a></h2>
 <p>Two execution target modes have been defined:</p>
 <ul class="simple">
-<li><tt class="docutils literal">development</tt> (the default): meant to simplify the task of developers and maintainers by reporting as much information and context as possible, even at the expense of some performances and reliability (ex: no retry in case of failure, shorter time-outs not to wait too long in case of errors, more checks, etc.)</li>
+<li><tt class="docutils literal">development</tt> (the default): meant to simplify the task of developers and maintainers by reporting as much information and context as possible, even at the expense of some performances and reliability (e.g. no retry in case of failure, shorter time-outs not to wait too long in case of errors, more checks, etc.)</li>
 <li><tt class="docutils literal">production</tt>: mostly the reciprocal of the <tt class="docutils literal">development</tt> mode, whose purpose is to favor efficient, bullet-proof operations</li>
 </ul>
 <p>These execution targets are <em>compile-time</em> modes, i.e. they are set once for all when building the layer at hand (probably based, if using OTP, on the rebar corresponding modes - respectively <tt class="docutils literal">dev</tt> and <tt class="docutils literal">prod</tt>).</p>
@@ -2385,17 +2403,17 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Language_Server_Protocol">Language Server Protocol</a> (also known as LSP) may be used by one's editor of choice in order to provide various services facilitating the developments in various languages, including Erlang.</p>
 <p>For that <a class="reference external" href="https://erlang-ls.github.io/">Erlang LS</a> should be used. We then recommend to rely on our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/erlang_ls.config">erlang_ls.config</a> configuration file, which may be installed that way:</p>
 <pre class="code bash literal-block">
-$ mkdir -p ~/.config/erlang_ls <span class="o">&amp;&amp;</span> <span class="nb">cd</span> ~/.config/erlang_ls/
-$ ln -sf <span class="si">${</span><span class="nv">CEYLAN_MYRIAD</span><span class="si">}</span>/conf/erlang_ls.config
+$<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/.config/erlang_ls<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/.config/erlang_ls/<span class="w">
+</span>$<span class="w"> </span>ln<span class="w"> </span>-sf<span class="w"> </span><span class="si">${</span><span class="nv">CEYLAN_MYRIAD</span><span class="si">}</span>/conf/erlang_ls.config
 </pre>
 <p>As for the installation of <a class="reference external" href="https://erlang-ls.github.io/">Erlang LS</a> itself, we rely on:</p>
 <pre class="code bash literal-block">
-$ mkdir -p ~/Software <span class="o">&amp;&amp;</span> <span class="nb">cd</span> ~/Software
-$ git clone https://github.com/erlang-ls/erlang_ls
-$ <span class="nb">cd</span> erlang_ls/
-$ make
-$ mkdir bin <span class="o">&amp;&amp;</span> <span class="nb">cd</span> bin
-$ ln -s ../_build/default/bin/erlang_ls
+$<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/Software<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Software<span class="w">
+</span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/erlang-ls/erlang_ls<span class="w">
+</span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>erlang_ls/<span class="w">
+</span>$<span class="w"> </span>make<span class="w">
+</span>$<span class="w"> </span>mkdir<span class="w"> </span>bin<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>bin<span class="w">
+</span>$<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>../_build/default/bin/erlang_ls
 </pre>
 <p>Then one would just have to ensure that <tt class="docutils literal">~/Software/erlang_ls/bin</tt> is indeed in one's PATH.</p>
 <p>Note that not all bells and whistles of LSP may be retained, knowing that at least some of them are confused by various elements, especially when applied to code that is parse-transformed; as a result we did find LS features much useful.</p>
@@ -2432,11 +2450,11 @@ $ ln -s ../_build/default/bin/erlang_ls
 <p><tt class="docutils literal">Foo</tt> may define additional dependencies, which may be:</p>
 <ul class="simple">
 <li>either mandatory or optional</li>
-<li>needed starting from build-time (ex: if relying on their headers and/or modules - including parse-transforms), or only at runtime</li>
+<li>needed starting from build-time (e.g. if relying on their headers and/or modules - including parse-transforms), or only at runtime</li>
 </ul>
-<p>For a given <strong>optional</strong> dependency (ex: regarding JSON), a USE make variable is to be defined in the layer that introduced this dependency (ex: <tt class="docutils literal">USE_JSON</tt>, introduced by Myriad, therefore to be listed in its <tt class="docutils literal">GNUmakevars.inc</tt>). This variable allows to have our native build system register the associated additional include and ebin directories.</p>
-<p>The first step to enable such a dependency (ex: the JSON support) is to set its USE variable to <tt class="docutils literal">true</tt> (ex: <tt class="docutils literal">USE_JSON = true</tt>), as it is expected to be disabled by default. Depending on the service at hand, a specific backend may have also to be selected (ex: either <tt class="docutils literal">USE_JSX = true</tt> or <tt class="docutils literal">USE_JIFFY = true</tt> to select a suitable JSON parser).</p>
-<p>Finally, some supports may depend on others (ex: enabling <tt class="docutils literal">USE_REST</tt> will enable <tt class="docutils literal">USE_JSON</tt> in turn).</p>
+<p>For a given <strong>optional</strong> dependency (e.g. regarding JSON), a USE make variable is to be defined in the layer that introduced this dependency (e.g. <tt class="docutils literal">USE_JSON</tt>, introduced by Myriad, therefore to be listed in its <tt class="docutils literal">GNUmakevars.inc</tt>). This variable allows to have our native build system register the associated additional include and ebin directories.</p>
+<p>The first step to enable such a dependency (e.g. the JSON support) is to set its USE variable to <tt class="docutils literal">true</tt> (e.g. <tt class="docutils literal">USE_JSON = true</tt>), as it is expected to be disabled by default. Depending on the service at hand, a specific backend may have also to be selected (e.g. either <tt class="docutils literal">USE_JSX = true</tt> or <tt class="docutils literal">USE_JIFFY = true</tt> to select a suitable JSON parser).</p>
+<p>Finally, some supports may depend on others (e.g. enabling <tt class="docutils literal">USE_REST</tt> will enable <tt class="docutils literal">USE_JSON</tt> in turn).</p>
 <div class="section" id="runtime-only-third-party-dependencies">
 <h3><a class="toc-backref" href="#toc-entry-73">Runtime-only Third-Party Dependencies</a></h3>
 <p>The dependencies discussed here have to be found only when <em>executing</em> one's application; they can be installed:</p>
@@ -2448,8 +2466,8 @@ $ ln -s ../_build/default/bin/erlang_ls
 <div class="section" id="build-time-third-party-dependencies">
 <h3><a class="toc-backref" href="#toc-entry-74">Build-time Third-Party Dependencies</a></h3>
 <p>Myriad does not have such dependencies, but layers above in the software stack (like a layer that would be named <tt class="docutils literal">Foo</tt>) may.</p>
-<p>To have such dependencies (ex: let's suppose that the <tt class="docutils literal">jsx</tt> JSON parser defined header files that one wants to include) <em>installed</em> as well when building one's project (ex: <tt class="docutils literal">Foo</tt>), one may rely on rebar, and list them in the project's <tt class="docutils literal">foo/conf/rebar.config.template</tt> file (ex: <tt class="docutils literal">{deps, [bar, <span class="pre">jsx]}.</span></tt>) from which the actual <tt class="docutils literal">rebar.config</tt> is to be generated (use the <tt class="docutils literal">make <span class="pre">set-rebar-conf</span></tt> target for that).</p>
-<p>The actual compilation will be done by our native build system in all cases, either directly (when running <tt class="docutils literal">make all</tt>) or when using <tt class="docutils literal">rebar compile</tt> (rebar hooks will then ensure that in practice the application is compiled with our native rules anyway). Therefore appropriate make variables (ex: <tt class="docutils literal">JSX_REBAR_BASE</tt>, in <tt class="docutils literal">myriad/GNUmakevars.inc</tt>) shall be defined so that the corresponding BEAM files installed through rebar can be found in this native context as well (through the <tt class="docutils literal">BEAM_DIRS</tt> make variable).</p>
+<p>To have such dependencies (e.g. let's suppose that the <tt class="docutils literal">jsx</tt> JSON parser defined header files that one wants to include) <em>installed</em> as well when building one's project (e.g. <tt class="docutils literal">Foo</tt>), one may rely on rebar, and list them in the project's <tt class="docutils literal">foo/conf/rebar.config.template</tt> file (e.g. <tt class="docutils literal">{deps, [bar, <span class="pre">jsx]}.</span></tt>) from which the actual <tt class="docutils literal">rebar.config</tt> is to be generated (use the <tt class="docutils literal">make <span class="pre">set-rebar-conf</span></tt> target for that).</p>
+<p>The actual compilation will be done by our native build system in all cases, either directly (when running <tt class="docutils literal">make all</tt>) or when using <tt class="docutils literal">rebar compile</tt> (rebar hooks will then ensure that in practice the application is compiled with our native rules anyway). Therefore appropriate make variables (e.g. <tt class="docutils literal">JSX_REBAR_BASE</tt>, in <tt class="docutils literal">myriad/GNUmakevars.inc</tt>) shall be defined so that the corresponding BEAM files installed through rebar can be found in this native context as well (through the <tt class="docutils literal">BEAM_DIRS</tt> make variable).</p>
 <p>Finally, such dependencies may or may not be listed in the <tt class="docutils literal">deps</tt> entry of the  <tt class="docutils literal">conf/foo.app.src</tt> file <a class="footnote-reference" href="#footnote-27" id="footnote-reference-27">[29]</a>, depending on whether they are optional or not.</p>
 <table class="docutils footnote" frame="void" id="footnote-27" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
@@ -2470,12 +2488,12 @@ $ ln -s ../_build/default/bin/erlang_ls
 <p id="jsx-install">As an example, let's suppose that we need a JSON support and that we want to rely on the <tt class="docutils literal">jsx</tt> parser (our default choice) for that.</p>
 <p>If applying our conventions, supposing that Erlang and Rebar3 are already installed (otherwise refer to the <a class="reference internal" href="#getting-erlang-1">getting Erlang</a> and <a class="reference internal" href="#getting-rebar3-1">getting Rebar3</a> sections), <tt class="docutils literal">jsx</tt> may be installed with:</p>
 <pre class="code bash literal-block">
-$ mkdir -p ~/Software/jsx
-$ <span class="nb">cd</span> ~/Software/jsx
-$ git clone https://github.com/talentdeficit/jsx.git
-$ ln -s jsx jsx-current-install
-$ <span class="nb">cd</span> jsx/
-$ rebar3 compile <span class="o">&amp;&amp;</span> rebar3 eunit
+$<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>~/Software/jsx<span class="w">
+</span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Software/jsx<span class="w">
+</span>$<span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/talentdeficit/jsx.git<span class="w">
+</span>$<span class="w"> </span>ln<span class="w"> </span>-s<span class="w"> </span>jsx<span class="w"> </span>jsx-current-install<span class="w">
+</span>$<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>jsx/<span class="w">
+</span>$<span class="w"> </span>rebar3<span class="w"> </span>compile<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>rebar3<span class="w"> </span>eunit
 </pre>
 </div>
 </div>
@@ -2515,34 +2533,34 @@ $ rebar3 compile <span class="o">&amp;&amp;</span> rebar3 eunit
 <p>In the first:</p>
 <pre class="code bash literal-block">
 <span class="c1"># Check (with root permissions) that the firewall rules are safe; for example:
-</span>$ iptables -nL
-Chain INPUT <span class="o">(</span>policy ACCEPT<span class="o">)</span>
-target     prot opt <span class="nb">source</span>               destination
+</span>$<span class="w"> </span>iptables<span class="w"> </span>-nL<span class="w">
+</span>Chain<span class="w"> </span>INPUT<span class="w"> </span><span class="o">(</span>policy<span class="w"> </span>ACCEPT<span class="o">)</span><span class="w">
+</span>target<span class="w">     </span>prot<span class="w"> </span>opt<span class="w"> </span><span class="nb">source</span><span class="w">               </span>destination<span class="w">
 
-Chain FORWARD <span class="o">(</span>policy ACCEPT<span class="o">)</span>
-target     prot opt <span class="nb">source</span>               destination
+</span>Chain<span class="w"> </span>FORWARD<span class="w"> </span><span class="o">(</span>policy<span class="w"> </span>ACCEPT<span class="o">)</span><span class="w">
+</span>target<span class="w">     </span>prot<span class="w"> </span>opt<span class="w"> </span><span class="nb">source</span><span class="w">               </span>destination<span class="w">
 
-Chain OUTPUT <span class="o">(</span>policy ACCEPT<span class="o">)</span>
-target     prot opt <span class="nb">source</span>               destination
+</span>Chain<span class="w"> </span>OUTPUT<span class="w"> </span><span class="o">(</span>policy<span class="w"> </span>ACCEPT<span class="o">)</span><span class="w">
+</span>target<span class="w">     </span>prot<span class="w"> </span>opt<span class="w"> </span><span class="nb">source</span><span class="w">               </span>destination<span class="w">
 
-<span class="c1"># Just to be on the safer side for this test:
-</span>$ killall beam.smp epmd
+</span><span class="c1"># Just to be on the safer side for this test:
+</span>$<span class="w"> </span>killall<span class="w"> </span>beam.smp<span class="w"> </span>epmd<span class="w">
 
-<span class="c1"># Then launch the target first node:
-</span>$ <span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span> erl -name n1 -setcookie aa
-Erlang/OTP <span class="m">23</span> <span class="o">[</span>erts-11.1.4<span class="o">]</span> <span class="o">[</span>source<span class="o">]</span> <span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span> <span class="o">[</span>smp:4:4<span class="o">]</span> <span class="o">[</span>ds:4:4:10<span class="o">]</span> <span class="o">[</span>async-threads:1<span class="o">]</span> <span class="o">[</span>hipe<span class="o">]</span>
+</span><span class="c1"># Then launch the target first node:
+</span>$<span class="w"> </span><span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span><span class="w"> </span>erl<span class="w"> </span>-name<span class="w"> </span>n1<span class="w"> </span>-setcookie<span class="w"> </span>aa<span class="w">
+</span>Erlang/OTP<span class="w"> </span><span class="m">23</span><span class="w"> </span><span class="o">[</span>erts-11.1.4<span class="o">]</span><span class="w"> </span><span class="o">[</span>source<span class="o">]</span><span class="w"> </span><span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span><span class="w"> </span><span class="o">[</span>smp:4:4<span class="o">]</span><span class="w"> </span><span class="o">[</span>ds:4:4:10<span class="o">]</span><span class="w"> </span><span class="o">[</span>async-threads:1<span class="o">]</span><span class="w"> </span><span class="o">[</span>hipe<span class="o">]</span><span class="w">
 
-Eshell V11.1.4  <span class="o">(</span>abort with ^G<span class="o">)</span>
-<span class="o">(</span>n1&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt;
+</span>Eshell<span class="w"> </span>V11.1.4<span class="w">  </span><span class="o">(</span>abort<span class="w"> </span>with<span class="w"> </span>^G<span class="o">)</span><span class="w">
+</span><span class="o">(</span>n1&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt;
 </pre>
 <p>In the second terminal, try to find the previous node:</p>
 <pre class="code bash literal-block">
-$ <span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span> erl -name n2 -setcookie aa
-Erlang/OTP <span class="m">23</span> <span class="o">[</span>erts-11.1.4<span class="o">]</span> <span class="o">[</span>source<span class="o">]</span> <span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span> <span class="o">[</span>smp:4:4<span class="o">]</span> <span class="o">[</span>ds:4:4:10<span class="o">]</span> <span class="o">[</span>async-threads:1<span class="o">]</span> <span class="o">[</span>hipe<span class="o">]</span>
+$<span class="w"> </span><span class="nv">ERL_EPMD_PORT</span><span class="o">=</span><span class="m">4032</span><span class="w"> </span>erl<span class="w"> </span>-name<span class="w"> </span>n2<span class="w"> </span>-setcookie<span class="w"> </span>aa<span class="w">
+</span>Erlang/OTP<span class="w"> </span><span class="m">23</span><span class="w"> </span><span class="o">[</span>erts-11.1.4<span class="o">]</span><span class="w"> </span><span class="o">[</span>source<span class="o">]</span><span class="w"> </span><span class="o">[</span><span class="m">64</span>-bit<span class="o">]</span><span class="w"> </span><span class="o">[</span>smp:4:4<span class="o">]</span><span class="w"> </span><span class="o">[</span>ds:4:4:10<span class="o">]</span><span class="w"> </span><span class="o">[</span>async-threads:1<span class="o">]</span><span class="w"> </span><span class="o">[</span>hipe<span class="o">]</span><span class="w">
 
-Eshell V11.1.4  <span class="o">(</span>abort with ^G<span class="o">)</span>
-<span class="o">(</span>n2&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt; net_adm:ping<span class="o">(</span><span class="s1">'n1&#64;hurricane.foobar.org'</span><span class="o">)</span>.
-pong
+</span>Eshell<span class="w"> </span>V11.1.4<span class="w">  </span><span class="o">(</span>abort<span class="w"> </span>with<span class="w"> </span>^G<span class="o">)</span><span class="w">
+</span><span class="o">(</span>n2&#64;hurricane.foobar.org<span class="o">)</span><span class="m">1</span>&gt;<span class="w"> </span>net_adm:ping<span class="o">(</span><span class="s1">'n1&#64;hurricane.foobar.org'</span><span class="o">)</span>.<span class="w">
+</span>pong
 </pre>
 <p>If you see <tt class="docutils literal">pang</tt> here, run to the nearest altar and make a sacrifice to any Distribution God you may believe in (Norse ones being presumably the most effective here), and apply the hints listed in the <a class="reference internal" href="#enabling-the-interconnection-of-erlang-nodes">Enabling the Interconnection of Erlang nodes</a> section.</p>
 <p>To better troubleshoot, one may also spawn two test nodes and see whether they are able to ping each other.</p>

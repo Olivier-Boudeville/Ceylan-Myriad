@@ -26,8 +26,8 @@ handled exclusively in our gui_opengl module).</p>
 <h2><a name="types">Data Types</a></h2>
 
 <h3 class="typedecl"><a name="type-canvas">canvas()</a></h3>
-<p><tt>canvas() = {gui_object_ref, canvas, <a href="#type-myriad_instance_id">myriad_instance_id()</a>}</tt></p>
-<p> A specific kind of gui_object_ref().</p>
+<p><tt>canvas() = {myriad_object_ref, myr_canvas, <a href="#type-myriad_instance_id">myriad_instance_id()</a>}</tt></p>
+<p> A specific kind of myriad_object_ref() for canvases, thus of gui_object().</p>
 
 <h3 class="typedecl"><a name="type-canvas_state">canvas_state()</a></h3>
 <p><tt>canvas_state() = #canvas_state{panel = <a href="gui.html#type-panel">gui:panel()</a>, bitmap = <a href="gui.html#type-bitmap">gui:bitmap()</a>, back_buffer = <a href="gui.html#type-back_buffer">gui:back_buffer()</a>, size = <a href="gui.html#type-size">gui:size()</a>}</tt></p>
@@ -77,8 +77,8 @@ handled exclusively in our gui_opengl module).</p>
 <p><tt>panel() = <a href="gui.html#type-panel">gui:panel()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-point2">point2()</a></h3>
-<p><tt>point2() = <a href="point2.html#type-point2">point2:point2()</a></tt></p>
+<h3 class="typedecl"><a name="type-point">point()</a></h3>
+<p><tt>point() = <a href="point2.html#type-integer_point2">point2:integer_point2()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-size">size()</a></h3>
@@ -96,32 +96,32 @@ of its panel, and tells whether that canvas shall be repainted.</td></tr>
 <tr><td valign="top"><a href="#clear-1">clear/1</a></td><td>Clears the back-buffer of the specified canvas.</td></tr>
 <tr><td valign="top"><a href="#create_instance-1">create_instance/1</a></td><td>Creates a canvas, whose parent is the specified window.</td></tr>
 <tr><td valign="top"><a href="#destruct-1">destruct/1</a></td><td>Destructs the specified canvas.</td></tr>
-<tr><td valign="top"><a href="#draw_circle-3">draw_circle/3</a></td><td>Renders specified circle (actually, depending on the fill color, it may
- be a disc) in specified canvas.</td></tr>
-<tr><td valign="top"><a href="#draw_circle-4">draw_circle/4</a></td><td>Renders specified circle (actually, depending on the specified fill
- color, it may be a disc) in specified canvas.</td></tr>
-<tr><td valign="top"><a href="#draw_cross-2">draw_cross/2</a></td><td>Draws an upright cross at specified location (2D point), with default
+<tr><td valign="top"><a href="#draw_circle-3">draw_circle/3</a></td><td>Renders the specified circle (actually, depending on the fill color, it
+ may be a disc) in the specified canvas.</td></tr>
+<tr><td valign="top"><a href="#draw_circle-4">draw_circle/4</a></td><td>Renders the specified circle (actually, depending on the specified fill
+ color, it may be a disc) in the specified canvas.</td></tr>
+<tr><td valign="top"><a href="#draw_cross-2">draw_cross/2</a></td><td>Draws an upright cross at the specified location (2D point), with default
  edge length.</td></tr>
-<tr><td valign="top"><a href="#draw_cross-3">draw_cross/3</a></td><td>Draws an upright cross at specified location (2D point), with specified
- edge length.</td></tr>
-<tr><td valign="top"><a href="#draw_cross-4">draw_cross/4</a></td><td>Draws an upright cross at specified location (2D point), with specified
- edge length and color.</td></tr>
-<tr><td valign="top"><a href="#draw_label-3">draw_label/3</a></td><td>Draws the specified label (a plain string) at specified position, on
+<tr><td valign="top"><a href="#draw_cross-3">draw_cross/3</a></td><td>Draws an upright cross at the specified location (2D point), with
+ the specified edge length.</td></tr>
+<tr><td valign="top"><a href="#draw_cross-4">draw_cross/4</a></td><td>Draws an upright cross at the specified location (2D point), with the
+ specified edge length and color.</td></tr>
+<tr><td valign="top"><a href="#draw_label-3">draw_label/3</a></td><td>Draws the specified label (a plain string) at the specified position, on
  specified canvas, using the current draw color.</td></tr>
-<tr><td valign="top"><a href="#draw_labelled_cross-4">draw_labelled_cross/4</a></td><td>Draws an upright cross at specified location (2D point), with specified
- edge length and companion label.</td></tr>
-<tr><td valign="top"><a href="#draw_labelled_cross-5">draw_labelled_cross/5</a></td><td>Draws an upright cross at specified location (2D point), with specified
- edge length and companion label, and with specified color.</td></tr>
+<tr><td valign="top"><a href="#draw_labelled_cross-4">draw_labelled_cross/4</a></td><td>Draws an upright cross at the specified location (2D point), with
+ specified edge length and companion label.</td></tr>
+<tr><td valign="top"><a href="#draw_labelled_cross-5">draw_labelled_cross/5</a></td><td>Draws an upright cross at the specified location (2D point), with
+ specified edge length and companion label, and with specified color.</td></tr>
 <tr><td valign="top"><a href="#draw_line-3">draw_line/3</a></td><td>Draws a line between the specified two points in the back-buffer of the
  specified canvas, using current draw color.</td></tr>
-<tr><td valign="top"><a href="#draw_line-4">draw_line/4</a></td><td>Draws a line between the specified two points in specified canvas, with
- specified color.</td></tr>
-<tr><td valign="top"><a href="#draw_lines-2">draw_lines/2</a></td><td>Draws lines between the specified list of points, in specified canvas,
- using current draw color.</td></tr>
-<tr><td valign="top"><a href="#draw_lines-3">draw_lines/3</a></td><td>Draws lines between the specified list of points in specified canvas,
- with specified color.</td></tr>
-<tr><td valign="top"><a href="#draw_numbered_points-2">draw_numbered_points/2</a></td><td>Draws specified list of points, each point being identified in turn with
- one cross and a label (the n-th point will have for label "Pn").</td></tr>
+<tr><td valign="top"><a href="#draw_line-4">draw_line/4</a></td><td>Draws a line between the specified two points in the specified canvas,
+ with the specified color.</td></tr>
+<tr><td valign="top"><a href="#draw_lines-2">draw_lines/2</a></td><td>Draws lines between the specified list of points, in the specified
+ canvas, using the current draw color.</td></tr>
+<tr><td valign="top"><a href="#draw_lines-3">draw_lines/3</a></td><td>Draws lines between the specified list of points in the specified canvas,
+ with the specified color.</td></tr>
+<tr><td valign="top"><a href="#draw_numbered_points-2">draw_numbered_points/2</a></td><td>Draws the specified list of points, each point being identified in turn
+ with one cross and a label (the n-th point will have for label "Pn").</td></tr>
 <tr><td valign="top"><a href="#draw_polygon-2">draw_polygon/2</a></td><td>Draws the specified polygon, closing the lines and filling them.</td></tr>
 <tr><td valign="top"><a href="#draw_segment-4">draw_segment/4</a></td><td>Draws a segment of the line L between the two specified ordinates.</td></tr>
 <tr><td valign="top"><a href="#get_base_panel_events_of_interest-0">get_base_panel_events_of_interest/0</a></td><td>Returns the types of events regarding its panel that a canvas will
@@ -129,16 +129,16 @@ of its panel, and tells whether that canvas shall be repainted.</td></tr>
 <tr><td valign="top"><a href="#get_client_size-1">get_client_size/1</a></td><td>Returns the client size of this canvas, as {IntegerWidth, IntegerHeight}.</td></tr>
 <tr><td valign="top"><a href="#get_rgb-2">get_rgb/2</a></td><td>Returns the RGB value of the pixel at the specified position.</td></tr>
 <tr><td valign="top"><a href="#get_size-1">get_size/1</a></td><td>Returns the size of this canvas, as {IntegerWidth, IntegerHeight}.</td></tr>
-<tr><td valign="top"><a href="#load_image-2">load_image/2</a></td><td>Loads image from specified path into specified canvas, pasting it at its
- upper left corner.</td></tr>
-<tr><td valign="top"><a href="#load_image-3">load_image/3</a></td><td>Loads image from specified path into the specified canvas, pasting it at
- specified location.</td></tr>
-<tr><td valign="top"><a href="#resize-2">resize/2</a></td><td>Resizes specified canvas (which, in most cases, should be cleared and
+<tr><td valign="top"><a href="#load_image-2">load_image/2</a></td><td>Loads image from the specified path into specified canvas, pasting it at
+ its upper left corner.</td></tr>
+<tr><td valign="top"><a href="#load_image-3">load_image/3</a></td><td>Loads image from the specified path into the specified canvas, pasting it
+ at the specified location.</td></tr>
+<tr><td valign="top"><a href="#resize-2">resize/2</a></td><td>Resizes the specified canvas (which, in most cases, should be cleared and
  repainted then).</td></tr>
 <tr><td valign="top"><a href="#set_background_color-2">set_background_color/2</a></td><td>Sets the background color of the specified canvas.</td></tr>
 <tr><td valign="top"><a href="#set_draw_color-2">set_draw_color/2</a></td><td>Sets the color to be used for the drawing of the outline of shapes.</td></tr>
 <tr><td valign="top"><a href="#set_fill_color-2">set_fill_color/2</a></td><td>Sets the color to be using for filling surfaces.</td></tr>
-<tr><td valign="top"><a href="#set_rgb-2">set_rgb/2</a></td><td>Sets the pixel at specified position to the current RGB point value.</td></tr>
+<tr><td valign="top"><a href="#set_rgb-2">set_rgb/2</a></td><td>Sets the pixel at the specified position to the current RGB point value.</td></tr>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
@@ -188,71 +188,71 @@ of its panel, and tells whether that canvas shall be repainted.</p>
 
 <h3 class="function"><a name="draw_circle-3">draw_circle/3</a></h3>
 <div class="spec">
-<p><tt>draw_circle(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Center::<a href="#type-point2">point2()</a>, Radius::<a href="#type-integer_distance">integer_distance()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_circle(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Center::<a href="#type-point">point()</a>, Radius::<a href="#type-integer_distance">integer_distance()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Renders specified circle (actually, depending on the fill color, it may
- be a disc) in specified canvas.
+</div><p>Renders the specified circle (actually, depending on the fill color, it
+ may be a disc) in the specified canvas.
 </p>
 
 <h3 class="function"><a name="draw_circle-4">draw_circle/4</a></h3>
 <div class="spec">
-<p><tt>draw_circle(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Center::<a href="#type-point2">point2()</a>, Radius::<a href="#type-integer_distance">integer_distance()</a>, Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_circle(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Center::<a href="#type-point">point()</a>, Radius::<a href="#type-integer_distance">integer_distance()</a>, Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Renders specified circle (actually, depending on the specified fill
- color, it may be a disc) in specified canvas.
+</div><p>Renders the specified circle (actually, depending on the specified fill
+ color, it may be a disc) in the specified canvas.
 </p>
 
 <h3 class="function"><a name="draw_cross-2">draw_cross/2</a></h3>
 <div class="spec">
-<p><tt>draw_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point2">point2()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point">point()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws an upright cross at specified location (2D point), with default
+</div><p>Draws an upright cross at the specified location (2D point), with default
  edge length.
 </p>
 
 <h3 class="function"><a name="draw_cross-3">draw_cross/3</a></h3>
 <div class="spec">
-<p><tt>draw_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point2">point2()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point">point()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws an upright cross at specified location (2D point), with specified
- edge length.
+</div><p>Draws an upright cross at the specified location (2D point), with
+ the specified edge length.
 </p>
 
 <h3 class="function"><a name="draw_cross-4">draw_cross/4</a></h3>
 <div class="spec">
-<p><tt>draw_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point2">point2()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>, Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point">point()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>, Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws an upright cross at specified location (2D point), with specified
- edge length and color.
+</div><p>Draws an upright cross at the specified location (2D point), with the
+ specified edge length and color.
 </p>
 
 <h3 class="function"><a name="draw_label-3">draw_label/3</a></h3>
 <div class="spec">
-<p><tt>draw_label(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Point::<a href="#type-point2">point2()</a>, LabelText::<a href="#type-label">label()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_label(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Point::<a href="#type-point">point()</a>, LabelText::<a href="#type-label">label()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws the specified label (a plain string) at specified position, on
+</div><p>Draws the specified label (a plain string) at the specified position, on
  specified canvas, using the current draw color.
 </p>
 
 <h3 class="function"><a name="draw_labelled_cross-4">draw_labelled_cross/4</a></h3>
 <div class="spec">
-<p><tt>draw_labelled_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point2">point2()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>, LabelText::<a href="#type-label">label()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_labelled_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point">point()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>, LabelText::<a href="#type-label">label()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws an upright cross at specified location (2D point), with specified
- edge length and companion label.
+</div><p>Draws an upright cross at the specified location (2D point), with
+ specified edge length and companion label.
 </p>
 
 <h3 class="function"><a name="draw_labelled_cross-5">draw_labelled_cross/5</a></h3>
 <div class="spec">
-<p><tt>draw_labelled_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point2">point2()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>, Color::<a href="#type-color">color()</a>, LabelText::<a href="#type-label">label()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_labelled_cross(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Location::<a href="#type-point">point()</a>, EdgeLength::<a href="#type-integer_distance">integer_distance()</a>, Color::<a href="#type-color">color()</a>, LabelText::<a href="#type-label">label()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws an upright cross at specified location (2D point), with specified
- edge length and companion label, and with specified color.
+</div><p>Draws an upright cross at the specified location (2D point), with
+ specified edge length and companion label, and with specified color.
 </p>
 
 <h3 class="function"><a name="draw_line-3">draw_line/3</a></h3>
 <div class="spec">
-<p><tt>draw_line(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, P1::<a href="#type-point2">point2()</a>, P2::<a href="#type-point2">point2()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_line(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, P1::<a href="#type-point">point()</a>, P2::<a href="#type-point">point()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div><p>Draws a line between the specified two points in the back-buffer of the
  specified canvas, using current draw color.
@@ -260,39 +260,39 @@ of its panel, and tells whether that canvas shall be repainted.</p>
 
 <h3 class="function"><a name="draw_line-4">draw_line/4</a></h3>
 <div class="spec">
-<p><tt>draw_line(Canvas::<a href="#type-canvas_state">canvas_state()</a>, P1::<a href="#type-point2">point2()</a>, P2::<a href="#type-point2">point2()</a>, Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_line(Canvas::<a href="#type-canvas_state">canvas_state()</a>, P1::<a href="#type-point">point()</a>, P2::<a href="#type-point">point()</a>, Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws a line between the specified two points in specified canvas, with
- specified color.
+</div><p>Draws a line between the specified two points in the specified canvas,
+ with the specified color.
 </p>
 
 <h3 class="function"><a name="draw_lines-2">draw_lines/2</a></h3>
 <div class="spec">
-<p><tt>draw_lines(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point2">point2()</a>]) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_lines(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point">point()</a>]) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws lines between the specified list of points, in specified canvas,
- using current draw color.
+</div><p>Draws lines between the specified list of points, in the specified
+ canvas, using the current draw color.
 </p>
 
 <h3 class="function"><a name="draw_lines-3">draw_lines/3</a></h3>
 <div class="spec">
-<p><tt>draw_lines(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point2">point2()</a>], Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_lines(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point">point()</a>], Color::<a href="#type-color">color()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws lines between the specified list of points in specified canvas,
- with specified color.
+</div><p>Draws lines between the specified list of points in the specified canvas,
+ with the specified color.
 </p>
 
 <h3 class="function"><a name="draw_numbered_points-2">draw_numbered_points/2</a></h3>
 <div class="spec">
-<p><tt>draw_numbered_points(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point2">point2()</a>]) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_numbered_points(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point">point()</a>]) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Draws specified list of points, each point being identified in turn with
- one cross and a label (the n-th point will have for label "Pn").
+</div><p>Draws the specified list of points, each point being identified in turn
+ with one cross and a label (the n-th point will have for label "Pn").
 </p>
 
 <h3 class="function"><a name="draw_polygon-2">draw_polygon/2</a></h3>
 <div class="spec">
-<p><tt>draw_polygon(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point2">point2()</a>]) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>draw_polygon(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Points::[<a href="#type-point">point()</a>]) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div><p>Draws the specified polygon, closing the lines and filling them.</p>
 
@@ -322,7 +322,7 @@ of its panel, and tells whether that canvas shall be repainted.</p>
 
 <h3 class="function"><a name="get_rgb-2">get_rgb/2</a></h3>
 <div class="spec">
-<p><tt>get_rgb(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Point::<a href="#type-point2">point2()</a>) -&gt; <a href="#type-color_by_decimal_with_alpha">color_by_decimal_with_alpha()</a></tt><br></p>
+<p><tt>get_rgb(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Point::<a href="#type-point">point()</a>) -&gt; <a href="#type-color_by_decimal_with_alpha">color_by_decimal_with_alpha()</a></tt><br></p>
 <p> </p>
 </div><p>Returns the RGB value of the pixel at the specified position.</p>
 
@@ -336,23 +336,23 @@ of its panel, and tells whether that canvas shall be repainted.</p>
 <div class="spec">
 <p><tt>load_image(Canvas::<a href="#type-canvas_state">canvas_state()</a>, Filename::<a href="#type-file_path">file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Loads image from specified path into specified canvas, pasting it at its
- upper left corner.
+</div><p>Loads image from the specified path into specified canvas, pasting it at
+ its upper left corner.
 </p>
 
 <h3 class="function"><a name="load_image-3">load_image/3</a></h3>
 <div class="spec">
-<p><tt>load_image(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Position::<a href="#type-point2">point2()</a>, FilePath::<a href="#type-file_path">file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>load_image(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Position::<a href="#type-point">point()</a>, FilePath::<a href="#type-file_path">file_path()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Loads image from specified path into the specified canvas, pasting it at
- specified location.
+</div><p>Loads image from the specified path into the specified canvas, pasting it
+ at the specified location.
 </p>
 
 <h3 class="function"><a name="resize-2">resize/2</a></h3>
 <div class="spec">
 <p><tt>resize(CanvasState::<a href="#type-canvas_state">canvas_state()</a>, NewSize::<a href="#type-size">size()</a>) -&gt; <a href="#type-canvas_state">canvas_state()</a></tt><br></p>
 <p> </p>
-</div><p>Resizes specified canvas (which, in most cases, should be cleared and
+</div><p>Resizes the specified canvas (which, in most cases, should be cleared and
  repainted then).
 </p>
 
@@ -379,9 +379,9 @@ of its panel, and tells whether that canvas shall be repainted.</p>
 
 <h3 class="function"><a name="set_rgb-2">set_rgb/2</a></h3>
 <div class="spec">
-<p><tt>set_rgb(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Point::<a href="#type-point2">point2()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>set_rgb(Canvas_state::<a href="#type-canvas_state">canvas_state()</a>, Point::<a href="#type-point">point()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
-</div><p>Sets the pixel at specified position to the current RGB point value.</p>
+</div><p>Sets the pixel at the specified position to the current RGB point value.</p>
 <hr>
 
 <div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>

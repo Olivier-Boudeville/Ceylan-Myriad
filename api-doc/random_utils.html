@@ -42,7 +42,7 @@ or user-defined, arbitrary ones.</p>
 <p><p> The specification of a discrete probability distribution (a.k.a. frequency 
 distribution) whose samples are of the specified type.</p>
 
- <p>Ex: discrete_probability_distribution(integer()) or 
+ <p>For example discrete_probability_distribution(integer()) or 
 discrete_probability_distribution(vector3:vector3()).</p>
 
  <p>Samples of null probability are usually omitted, as such a probability is 
@@ -157,7 +157,7 @@ samples.</p>
 
 <h3 class="typedecl"><a name="type-seed_element">seed_element()</a></h3>
 <p><tt>seed_element() = integer()</tt></p>
-<p> Not future-proof enough (ex: not compliant with other solutions like
+<p> Not future-proof enough (e.g. not compliant with other solutions like
  SIMD-oriented Fast Mersenne Twister).</p>
 
 <h3 class="typedecl"><a name="type-standard_deviation">standard_deviation()</a></h3>
@@ -245,8 +245,8 @@ process serialisations).</td></tr>
 <p> </p>
 </div><p><p>Checks that the specified seed is valid.</p>
 
- Ex: at least with some algorithms, {0, 0, 0} does not yield a correct random
- series.
+ For example, at least with some algorithms, {0, 0, 0} does not yield a correct
+ random series.
 </p>
 
 <h3 class="function"><a name="generate_random_state_from-1">generate_random_state_from/1</a></h3>
@@ -256,7 +256,7 @@ process serialisations).</td></tr>
 </div><p><p>Returns the state of a random generator in charge of producing samples 
 according to the specified discrete probability distribution.</p>
 
- <p>Ex: MyDistributionState = random_utils:generate_random_state_from(                              
+ <p>For example MyDistributionState = random_utils:generate_random_state_from(                              
 [{a,10}, {b,20}, {c,40}, {d,30}]).</p>
 
  <p>or MyDistributionState = random_utils:generate_random_state_from(                              
@@ -429,7 +429,7 @@ generate_random_state_from/1.</p>
 of samples declared in the corresponding distribution.</p>
 
  Such a generation depends (and modifies) the state of the underlying uniform
- random generator (ex: see start_random_source/0); precisely each non-uniform
+ random generator (e.g. see start_random_source/0); precisely each non-uniform
  sampling results in two uniform samples to be drawn.
 </p>
 
@@ -445,7 +445,7 @@ not returned), as obtained from generate_random_state_from/1.</p>
 the number of samples declared in the corresponding distribution.</p>
 
  Such a generation depends (and modifies) the state of the underlying uniform
- random generator (ex: see start_random_source/0); precisely each non-uniform
+ random generator (e.g. see start_random_source/0); precisely each non-uniform
  sampling results in two uniform samples to be drawn.
 </p>
 

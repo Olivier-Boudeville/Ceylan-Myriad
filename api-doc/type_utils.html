@@ -259,7 +259,7 @@ instance of a specified type</p>
 
  <p>Experiment with ast_utils:string_to_form/1 and have fun!</p>
 
- <p>Ex: "-type a() :: [foobar()]." yields: '{attribute,1,type, {a,{type,1,    
+ <p>For example "-type a() :: [foobar()]." yields: '{attribute,1,type, {a,{type,1,    
 list,[{user_type,1,foobar,[]}]},[]}}'.</p>
 
  <p>See also <a href="http://erlang.org/doc/apps/erts/absform.html" target="_top"><tt>http://erlang.org/doc/apps/erts/absform.html</tt></a>.</p>
@@ -301,7 +301,7 @@ quotes (ex: "'an_atom'|'another_one'").</p>
 <p><p> Describes the name of a type (without the names of the types it depends on, 
 for polymorphic ones).</p>
 
- Ex: 'my_count'.</p>
+ For example 'my_count'.</p>
 
 <h3 class="typedecl"><a name="type-uint16">uint16()</a></h3>
 <p><tt>uint16() = 0..65535</tt></p>
@@ -374,6 +374,7 @@ element.</td></tr>
 <tr><td valign="top"><a href="#check_numbers-1">check_numbers/1</a></td><td>Checks that the specified term is a list of numbers indeed, and returns
  it.</td></tr>
 <tr><td valign="top"><a href="#check_pid-1">check_pid/1</a></td><td>Checks that the specified term is a PID indeed, and returns it.</td></tr>
+<tr><td valign="top"><a href="#check_pids-1">check_pids/1</a></td><td>Checks that the specified term is a list of PIDs indeed, and returns it.</td></tr>
 <tr><td valign="top"><a href="#check_positive_float-1">check_positive_float/1</a></td><td>Checks that the specified term is a positive (or null) float indeed, and
  returns it.</td></tr>
 <tr><td valign="top"><a href="#check_positive_floats-1">check_positive_floats/1</a></td><td>Checks that the specified term is a list of positive (or null) floats
@@ -504,7 +505,7 @@ whitespaces) corresponding to specified type.</td></tr>
 </div><p><p>Augments the specified tuploid with specified term, placed as new last 
 element.</p>
 
- <p>Ex: augment_tuploid(a, 2.0) = {a, 2.0}     
+ <p>For example augment_tuploid(a, 2.0) = {a, 2.0}     
 augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 
  Useful typically to augment returned error tuploids (either a single error
@@ -685,6 +686,12 @@ augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}</p>
 <p><tt>check_pid(Pid::term()) -&gt; pid()</tt><br></p>
 <p> </p>
 </div><p>Checks that the specified term is a PID indeed, and returns it.</p>
+
+<h3 class="function"><a name="check_pids-1">check_pids/1</a></h3>
+<div class="spec">
+<p><tt>check_pids(Pids::term()) -&gt; [pid()]</tt><br></p>
+<p> </p>
+</div><p>Checks that the specified term is a list of PIDs indeed, and returns it.</p>
 
 <h3 class="function"><a name="check_positive_float-1">check_positive_float/1</a></h3>
 <div class="spec">

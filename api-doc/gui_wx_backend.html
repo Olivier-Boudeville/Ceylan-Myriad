@@ -10,12 +10,17 @@
 <hr>
 
 <h1>Module gui_wx_backend</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathers all elements relative to the (Erlang) <b>wx backend</b> version
- 2.1 (itself based on [wxWidgets](https://www.wxwidgets.org/)).
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathers all elements relative to the (Erlang) <b>wx backend</b> version 
+2.1 (itself based on [wxWidgets](https://www.wxwidgets.org/)).
 
 
-<h2><a name="description">Description</a></h2>Gathers all elements relative to the (Erlang) <b>wx backend</b> version
- 2.1 (itself based on [wxWidgets](https://www.wxwidgets.org/)).
+<h2><a name="description">Description</a></h2><p>Gathers all elements relative to the (Erlang) <b>wx backend</b> version 
+2.1 (itself based on [wxWidgets](https://www.wxwidgets.org/)).</p>
+
+ Now uses the gui_generated module, which is generated based on the
+ gui_constants one (see gui:generate_support_modules/0) in order to be able to
+ convert the identifiers / defines / constants between MyriadGUI and their
+ backend (wx) counterparts.
 
 <h2><a name="types">Data Types</a></h2>
 
@@ -35,12 +40,8 @@
 <p><tt>button_style() = <a href="gui.html#type-button_style">gui:button_style()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-connect_opt">connect_opt()</a></h3>
-<p><tt>connect_opt() = <a href="gui.html#type-connect_opt">gui:connect_opt()</a></tt></p>
-
-
-<h3 class="typedecl"><a name="type-connect_options">connect_options()</a></h3>
-<p><tt>connect_options() = <a href="gui.html#type-connect_options">gui:connect_options()</a></tt></p>
+<h3 class="typedecl"><a name="type-button_style_opt">button_style_opt()</a></h3>
+<p><tt>button_style_opt() = <a href="gui.html#type-button_style_opt">gui:button_style_opt()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-device_context_attribute">device_context_attribute()</a></h3>
@@ -51,8 +52,8 @@
 <p><tt>event_source() = <a href="gui_event.html#type-event_source">gui_event:event_source()</a></tt></p>
 
 
-<h3 class="typedecl"><a name="type-event_translation_table">event_translation_table()</a></h3>
-<p><tt>event_translation_table() = <a href="gui_event.html#type-event_translation_table">gui_event:event_translation_table()</a></tt></p>
+<h3 class="typedecl"><a name="type-event_subscription_option">event_subscription_option()</a></h3>
+<p><tt>event_subscription_option() = <a href="gui_event.html#type-event_subscription_option">gui_event:event_subscription_option()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-event_type">event_type()</a></h3>
@@ -61,6 +62,14 @@
 
 <h3 class="typedecl"><a name="type-frame_style">frame_style()</a></h3>
 <p><tt>frame_style() = <a href="gui.html#type-frame_style">gui:frame_style()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-frame_style_opt">frame_style_opt()</a></h3>
+<p><tt>frame_style_opt() = <a href="gui.html#type-frame_style_opt">gui:frame_style_opt()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-gui_object">gui_object()</a></h3>
+<p><tt>gui_object() = <a href="gui.html#type-gui_object">gui:gui_object()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-icon_name_id">icon_name_id()</a></h3>
@@ -73,10 +82,6 @@
 
 <h3 class="typedecl"><a name="type-menu_item_id">menu_item_id()</a></h3>
 <p><tt>menu_item_id() = <a href="gui.html#type-menu_item_id">gui:menu_item_id()</a></tt></p>
-
-
-<h3 class="typedecl"><a name="type-menu_item_kind">menu_item_kind()</a></h3>
-<p><tt>menu_item_kind() = <a href="gui.html#type-menu_item_kind">gui:menu_item_kind()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-menu_option">menu_option()</a></h3>
@@ -115,6 +120,10 @@
 <p><tt>sizer_flag_opt() = <a href="gui.html#type-sizer_flag_opt">gui:sizer_flag_opt()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-sizer_flags">sizer_flags()</a></h3>
+<p><tt>sizer_flags() = <a href="gui.html#type-sizer_flags">gui:sizer_flags()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-sizer_options">sizer_options()</a></h3>
 <p><tt>sizer_options() = <a href="gui.html#type-sizer_options">gui:sizer_options()</a></tt></p>
 
@@ -123,12 +132,20 @@
 <p><tt>status_bar_style() = <a href="gui.html#type-status_bar_style">gui:status_bar_style()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-status_bar_style_opt">status_bar_style_opt()</a></h3>
+<p><tt>status_bar_style_opt() = <a href="gui.html#type-status_bar_style_opt">gui:status_bar_style_opt()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-tool_kind">tool_kind()</a></h3>
 <p><tt>tool_kind() = <a href="gui.html#type-tool_kind">gui:tool_kind()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-toolbar_style">toolbar_style()</a></h3>
 <p><tt>toolbar_style() = <a href="gui.html#type-toolbar_style">gui:toolbar_style()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-toolbar_style_opt">toolbar_style_opt()</a></h3>
+<p><tt>toolbar_style_opt() = <a href="gui.html#type-toolbar_style_opt">gui:toolbar_style_opt()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-trap_set">trap_set()</a></h3>
@@ -151,9 +168,13 @@
 <p><tt>window_style() = <a href="gui.html#type-window_style">gui:window_style()</a></tt></p>
 
 
+<h3 class="typedecl"><a name="type-window_style_opt">window_style_opt()</a></h3>
+<p><tt>window_style_opt() = <a href="gui.html#type-window_style_opt">gui:window_style_opt()</a></tt></p>
+
+
 <h3 class="typedecl"><a name="type-wx_art_id">wx_art_id()</a></h3>
 <p><tt>wx_art_id() = <a href="http://www.erlang.org/edoc/doc/stdlib/doc/unicode.html#type-chardata">unicode:chardata()</a></tt></p>
-<p> Ex: "wxART_NEW".</p>
+<p> For example "wxART_NEW".</p>
 
 <h3 class="typedecl"><a name="type-wx_device_context_attribute">wx_device_context_attribute()</a></h3>
 <p><tt>wx_device_context_attribute() = {attribList, integer()} | <a href="#type-other_wx_device_context_attribute">other_wx_device_context_attribute()</a></tt></p>
@@ -166,7 +187,7 @@
 <h3 class="typedecl"><a name="type-wx_event_handler_option">wx_event_handler_option()</a></h3>
 <p><tt>wx_event_handler_option() = {id, integer()} | {lastId, integer()} | {skip, boolean()} | callback | {callback, function()} | {userData, term()}</tt></p>
 <p> Refer to https://erlang.org/doc/man/wxEvtHandler.html
- See the corresponding gui:connect_opt().</p>
+ See the corresponding gui:event_subscription_option().</p>
 
 <h3 class="typedecl"><a name="type-wx_event_type">wx_event_type()</a></h3>
 <p><tt>wx_event_type() = <a href="gui_event.html#type-wx_event_type">gui_event:wx_event_type()</a></tt></p>
@@ -176,7 +197,7 @@
 <p><tt>wx_id() = <a href="#type-maybe">maybe</a>(integer())</tt></p>
 <p><p> The identifier (ID) of a wx element is an integer (positive or not).</p>
 
- <p>This identifier (ex: 63) is relative to a given type, like in: 
+ <p>This identifier (e.g. 63) is relative to a given type, like in: 
 {wx_ref,63,wxFrame,[]}.</p>
 
  <p>This type allows to specify a 'void' (null) ID of a GUI element.</p>
@@ -200,7 +221,7 @@ internally.</p>
 
 <h3 class="typedecl"><a name="type-wx_native_object_type">wx_native_object_type()</a></h3>
 <p><tt>wx_native_object_type() = atom()</tt></p>
-<p><p> Native wx object types (ex: 'wxFrame').</p>
+<p><p> Native wx object types (e.g. 'wxFrame').</p>
 
  No enumeration like 'wxWindow' | 'wxFrame' | ... found in wx.</p>
 
@@ -233,29 +254,29 @@ internally.</p>
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#button_style_to_bitmask-1">button_style_to_bitmask/1</a></td><td>Converts specified MyriadGUI button style into the appropriate 
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#button_style_to_bitmask-1">button_style_to_bitmask/1</a></td><td>Converts the specified MyriadGUI button style into the appropriate 
 wx-specific bit mask.</td></tr>
 <tr><td valign="top"><a href="#connect-2">connect/2</a></td><td>Subscribes the current process to the specified type(s) of events 
 regarding the specified object (receiving for that a message).</td></tr>
-<tr><td valign="top"><a href="#connect-4">connect/4</a></td><td>Subscribes the current process to the specified type(s) of events 
+<tr><td valign="top"><a href="#connect-3">connect/3</a></td><td>Subscribes the current process to the specified type(s) of events 
 regarding the specified object (receiving for that a message).</td></tr>
-<tr><td valign="top"><a href="#connect-5">connect/5</a></td><td>Subscribes the current process to the specified type(s) of events 
+<tr><td valign="top"><a href="#connect-4">connect/4</a></td><td>Subscribes the current process to the specified type(s) of events 
 regarding the specified object, with the specified options; this process will 
 thus receive a gui_event() message whenever a corresponding event occurs.</td></tr>
 <tr><td valign="top"><a href="#disconnect-1">disconnect/1</a></td><td>Unsubscribes the current process from the specified object, for all event 
 types.</td></tr>
-<tr><td valign="top"><a href="#disconnect-3">disconnect/3</a></td><td>Unsubscribes the current process from the specified object, for the 
+<tr><td valign="top"><a href="#disconnect-2">disconnect/2</a></td><td>Unsubscribes the current process from the specified object, for the 
 specified event type(s).</td></tr>
-<tr><td valign="top"><a href="#frame_style_to_bitmask-1">frame_style_to_bitmask/1</a></td><td>Converts specified MyriadGUI frame style into the appropriate wx-specific 
-bit mask.</td></tr>
-<tr><td valign="top"><a href="#from_wx_event_type-2">from_wx_event_type/2</a></td><td>Converts a wx type of event into a MyriadGUI one.</td></tr>
+<tr><td valign="top"><a href="#frame_style_to_bitmask-1">frame_style_to_bitmask/1</a></td><td>Converts the specified MyriadGUI frame style into the appropriate 
+wx-specific bit mask.</td></tr>
+<tr><td valign="top"><a href="#from_wx_event_type-1">from_wx_event_type/1</a></td><td>Converts a wx type of event into a MyriadGUI one.</td></tr>
 <tr><td valign="top"><a href="#from_wx_object_type-1">from_wx_object_type/1</a></td><td>Converts a wx type of object into a MyriadGUI one.</td></tr>
 <tr><td valign="top"><a href="#get_panel_options-1">get_panel_options/1</a></td><td>Converts specified MyriadGUI panel option(s) into the appropriate 
 wx-specific options.</td></tr>
 <tr><td valign="top"><a href="#get_window_options-1">get_window_options/1</a></td><td>Converts the specified MyriadGUI window option(s) into the appropriate 
 wx-specific options.</td></tr>
 <tr><td valign="top"><a href="#get_wx_version-0">get_wx_version/0</a></td><td>Returns the build-time version of wx (wxWidgets).</td></tr>
-<tr><td valign="top"><a href="#sizer_flag_to_bitmask-1">sizer_flag_to_bitmask/1</a></td><td>Converts specified MyriadGUI sizer flag option(s) into the appropriate 
+<tr><td valign="top"><a href="#sizer_flags_to_bitmask-1">sizer_flags_to_bitmask/1</a></td><td>Converts the specified MyriadGUI sizer flag options into the appropriate 
 wx-specific bit mask.</td></tr>
 <tr><td valign="top"><a href="#to_new_wx_menu_item_id-1">to_new_wx_menu_item_id/1</a></td><td>Converts the specified menu identifier for a new menu item into a
  wx-specific one.</td></tr>
@@ -265,14 +286,12 @@ wx-specific bit mask.</td></tr>
 <tr><td valign="top"><a href="#to_wx_debug_level-1">to_wx_debug_level/1</a></td><td>Converts the debug level from MyriadGUI to the one of wx.</td></tr>
 <tr><td valign="top"><a href="#to_wx_device_context_attributes-1">to_wx_device_context_attributes/1</a></td><td>Converts the specified MyriadGUI device context attributes to wx
  conventions.</td></tr>
-<tr><td valign="top"><a href="#to_wx_event_type-2">to_wx_event_type/2</a></td><td>Converts a MyriadGUI type of event into a wx one.</td></tr>
+<tr><td valign="top"><a href="#to_wx_event_type-1">to_wx_event_type/1</a></td><td>Converts a MyriadGUI type of event into a wx one.</td></tr>
 <tr><td valign="top"><a href="#to_wx_icon_id-1">to_wx_icon_id/1</a></td><td>Converts the specified icon identifier into a wx-specific one.</td></tr>
 <tr><td valign="top"><a href="#to_wx_id-1">to_wx_id/1</a></td><td>Converts specified MyriadGUI identifier in a wx-specific widget 
 identifier.</td></tr>
 <tr><td valign="top"><a href="#to_wx_menu_item_id-1">to_wx_menu_item_id/1</a></td><td>Converts the specified menu item identifier (for an already-existing menu
  item) into a wx-specific one.</td></tr>
-<tr><td valign="top"><a href="#to_wx_menu_item_kind-1">to_wx_menu_item_kind/1</a></td><td>Converts the specified kind of menu identifier into a wx-specific one.</td></tr>
-<tr><td valign="top"><a href="#to_wx_menu_item_maybe_id-1">to_wx_menu_item_maybe_id/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#to_wx_menu_options-1">to_wx_menu_options/1</a></td><td>Converts specified menu option(s) into wx-specific ones.</td></tr>
 <tr><td valign="top"><a href="#to_wx_object_type-1">to_wx_object_type/1</a></td><td>Converts a MyriadGUI type of object into a wx one.</td></tr>
 <tr><td valign="top"><a href="#to_wx_orientation-1">to_wx_orientation/1</a></td><td>Converts to back-end orientation.</td></tr>
@@ -281,11 +300,11 @@ widget identifier.</td></tr>
 <tr><td valign="top"><a href="#to_wx_position-1">to_wx_position/1</a></td><td>Converts specified MyriadGUI position in a wx-specific position (with 
 defaults).</td></tr>
 <tr><td valign="top"><a href="#to_wx_size-1">to_wx_size/1</a></td><td>Converts specified MyriadGUI size in a wx-specific size (with defaults).</td></tr>
-<tr><td valign="top"><a href="#to_wx_sizer_options-1">to_wx_sizer_options/1</a></td><td>Converts specified sizer options into wx-specific ones.</td></tr>
+<tr><td valign="top"><a href="#to_wx_sizer_options-1">to_wx_sizer_options/1</a></td><td>Converts the specified sizer options into wx-specific ones.</td></tr>
 <tr><td valign="top"><a href="#to_wx_status_bar_style-1">to_wx_status_bar_style/1</a></td><td>Converts the specified style of status bar into a wx-specific one.</td></tr>
 <tr><td valign="top"><a href="#to_wx_tool_kind-1">to_wx_tool_kind/1</a></td><td>Converts the specified kind of tool into a wx-specific one.</td></tr>
 <tr><td valign="top"><a href="#to_wx_toolbar_style-1">to_wx_toolbar_style/1</a></td><td>Converts the specified style of toolbar into a wx-specific one.</td></tr>
-<tr><td valign="top"><a href="#window_style_to_bitmask-1">window_style_to_bitmask/1</a></td><td>Converts specified MyriadGUI window style into the appropriate 
+<tr><td valign="top"><a href="#window_style_to_bitmask-1">window_style_to_bitmask/1</a></td><td>Converts the specified MyriadGUI window style into the appropriate 
 wx-specific bit mask.</td></tr>
 <tr><td valign="top"><a href="#wx_id_to_string-1">wx_id_to_string/1</a></td><td>Returns a textual representation of the specified GUI object wx
  identifier.</td></tr>
@@ -296,9 +315,9 @@ wx-specific bit mask.</td></tr>
 
 <h3 class="function"><a name="button_style_to_bitmask-1">button_style_to_bitmask/1</a></h3>
 <div class="spec">
-<p><tt>button_style_to_bitmask(StyleList::<a href="#type-button_style">button_style()</a>) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
+<p><tt>button_style_to_bitmask(StyleOpts::<a href="#type-button_style">button_style()</a> | <a href="#type-button_style_opt">button_style_opt()</a>) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
 <p> </p>
-</div><p><p>Converts specified MyriadGUI button style into the appropriate 
+</div><p><p>Converts the specified MyriadGUI button style into the appropriate 
 wx-specific bit mask.</p>
 
  (helper)
@@ -315,9 +334,9 @@ regarding the specified object (receiving for that a message).</p>
  "trap set" parameter shall be preferred, as they are more efficient.
 </p>
 
-<h3 class="function"><a name="connect-4">connect/4</a></h3>
+<h3 class="function"><a name="connect-3">connect/3</a></h3>
 <div class="spec">
-<p><tt>connect(EventSource::<a href="#type-event_source">event_source()</a>, EventTypeOrTypes::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-event_type">event_type()</a>), TrapSet::<a href="#type-trap_set">trap_set()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>connect(EventSource::<a href="#type-event_source">event_source()</a>, EventTypeOrTypes::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-event_type">event_type()</a>), TrapSet::<a href="#type-trap_set">trap_set()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div><p><p>Subscribes the current process to the specified type(s) of events 
 regarding the specified object (receiving for that a message).</p>
@@ -334,9 +353,9 @@ option allows not to propagate this event).</p>
   - only useful internally or when bypassing the default main loop
 </p>
 
-<h3 class="function"><a name="connect-5">connect/5</a></h3>
+<h3 class="function"><a name="connect-4">connect/4</a></h3>
 <div class="spec">
-<p><tt>connect(SourceGUIObject::<a href="#type-event_source">event_source()</a>, EventTypes::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-event_type">event_type()</a>), Options::<a href="#type-connect_options">connect_options()</a>, TrapSet::<a href="#type-trap_set">trap_set()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
+<p><tt>connect(SourceGUIObject::<a href="#type-event_source">event_source()</a>, EventTypes::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-event_type">event_type()</a>), Options::[<a href="#type-event_subscription_option">event_subscription_option()</a>], TrapSet::<a href="#type-trap_set">trap_set()</a>) -&gt; <a href="#type-void">void()</a></tt><br></p>
 <p> </p>
 </div><p><p>Subscribes the current process to the specified type(s) of events 
 regarding the specified object, with the specified options; this process will 
@@ -359,9 +378,9 @@ types.</p>
  operation went well.
 </p>
 
-<h3 class="function"><a name="disconnect-3">disconnect/3</a></h3>
+<h3 class="function"><a name="disconnect-2">disconnect/2</a></h3>
 <div class="spec">
-<p><tt>disconnect(SourceObject::<a href="#type-event_source">event_source()</a>, EventTypes::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-event_type">event_type()</a>), EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; boolean()</tt><br></p>
+<p><tt>disconnect(SourceObject::<a href="#type-event_source">event_source()</a>, EventTypes::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-event_type">event_type()</a>)) -&gt; boolean()</tt><br></p>
 <p> </p>
 </div><p><p>Unsubscribes the current process from the specified object, for the 
 specified event type(s).</p>
@@ -372,23 +391,23 @@ specified event type(s).</p>
 
 <h3 class="function"><a name="frame_style_to_bitmask-1">frame_style_to_bitmask/1</a></h3>
 <div class="spec">
-<p><tt>frame_style_to_bitmask(StyleList::<a href="#type-frame_style">frame_style()</a>) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
+<p><tt>frame_style_to_bitmask(StyleOpts::<a href="#type-frame_style">frame_style()</a> | <a href="#type-frame_style_opt">frame_style_opt()</a>) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
 <p> </p>
-</div><p><p>Converts specified MyriadGUI frame style into the appropriate wx-specific 
-bit mask.</p>
+</div><p><p>Converts the specified MyriadGUI frame style into the appropriate 
+wx-specific bit mask.</p>
 
  (helper)
 </p>
 
-<h3 class="function"><a name="from_wx_event_type-2">from_wx_event_type/2</a></h3>
+<h3 class="function"><a name="from_wx_event_type-1">from_wx_event_type/1</a></h3>
 <div class="spec">
-<p><tt>from_wx_event_type(WxEventType::<a href="#type-wx_event_type">wx_event_type()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-event_type">event_type()</a></tt><br></p>
+<p><tt>from_wx_event_type(WxEventType::<a href="#type-wx_event_type">wx_event_type()</a>) -&gt; <a href="#type-event_type">event_type()</a></tt><br></p>
 <p> </p>
 </div><p>Converts a wx type of event into a MyriadGUI one.</p>
 
 <h3 class="function"><a name="from_wx_object_type-1">from_wx_object_type/1</a></h3>
 <div class="spec">
-<p><tt>from_wx_object_type(Other::<a href="#type-wx_object_type">wx_object_type()</a>) -&gt; <a href="#type-myriad_object_type">myriad_object_type()</a></tt><br></p>
+<p><tt>from_wx_object_type(WxObjectType::<a href="#type-wx_object_type">wx_object_type()</a>) -&gt; <a href="#type-myriad_object_type">myriad_object_type()</a></tt><br></p>
 <p> </p>
 </div><p>Converts a wx type of object into a MyriadGUI one.</p>
 
@@ -418,11 +437,11 @@ wx-specific options.</p>
 <p> </p>
 </div><p>Returns the build-time version of wx (wxWidgets).</p>
 
-<h3 class="function"><a name="sizer_flag_to_bitmask-1">sizer_flag_to_bitmask/1</a></h3>
+<h3 class="function"><a name="sizer_flags_to_bitmask-1">sizer_flags_to_bitmask/1</a></h3>
 <div class="spec">
-<p><tt>sizer_flag_to_bitmask(FlagList::<a href="#type-sizer_flag_opt">sizer_flag_opt()</a> | [<a href="#type-sizer_flag_opt">sizer_flag_opt()</a>]) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
+<p><tt>sizer_flags_to_bitmask(FlagOpts::<a href="#type-sizer_flags">sizer_flags()</a> | <a href="#type-sizer_flag_opt">sizer_flag_opt()</a>) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
 <p> </p>
-</div><p><p>Converts specified MyriadGUI sizer flag option(s) into the appropriate 
+</div><p><p>Converts the specified MyriadGUI sizer flag options into the appropriate 
 wx-specific bit mask.</p>
 
  (helper)
@@ -430,7 +449,7 @@ wx-specific bit mask.</p>
 
 <h3 class="function"><a name="to_new_wx_menu_item_id-1">to_new_wx_menu_item_id/1</a></h3>
 <div class="spec">
-<p><tt>to_new_wx_menu_item_id(MenuId::<a href="#type-menu_item_id">menu_item_id()</a>) -&gt; <a href="#type-wx_id">wx_id()</a></tt><br></p>
+<p><tt>to_new_wx_menu_item_id(MenuItemId::<a href="#type-menu_item_id">menu_item_id()</a>) -&gt; <a href="#type-wx_id">wx_id()</a></tt><br></p>
 <p> </p>
 </div><p>Converts the specified menu identifier for a new menu item into a
  wx-specific one.
@@ -446,7 +465,7 @@ wx-specific bit mask.</p>
 
 <h3 class="function"><a name="to_wx_connect_options-3">to_wx_connect_options/3</a></h3>
 <div class="spec">
-<p><tt>to_wx_connect_options(Opts::[<a href="#type-connect_opt">connect_opt()</a>], EventType::<a href="#type-event_type">event_type()</a>, TrapSet::<a href="#type-trap_set">trap_set()</a>) -&gt; [<a href="#type-wx_event_handler_option">wx_event_handler_option()</a>]</tt><br></p>
+<p><tt>to_wx_connect_options(Opts::[<a href="#type-event_subscription_option">event_subscription_option()</a>], EventType::<a href="#type-event_type">event_type()</a>, TrapSet::<a href="#type-trap_set">trap_set()</a>) -&gt; [<a href="#type-wx_event_handler_option">wx_event_handler_option()</a>]</tt><br></p>
 <p> </p>
 </div><p><p>Converts MyriadGUI connect options into wx ones.</p>
 
@@ -471,9 +490,9 @@ wx-specific bit mask.</p>
  conventions.
 </p>
 
-<h3 class="function"><a name="to_wx_event_type-2">to_wx_event_type/2</a></h3>
+<h3 class="function"><a name="to_wx_event_type-1">to_wx_event_type/1</a></h3>
 <div class="spec">
-<p><tt>to_wx_event_type(EventType::<a href="#type-event_type">event_type()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-wx_event_type">wx_event_type()</a></tt><br></p>
+<p><tt>to_wx_event_type(EventType::<a href="#type-event_type">event_type()</a>) -&gt; <a href="#type-wx_event_type">wx_event_type()</a></tt><br></p>
 <p> </p>
 </div><p>Converts a MyriadGUI type of event into a wx one.</p>
 
@@ -495,23 +514,11 @@ identifier.</p>
 
 <h3 class="function"><a name="to_wx_menu_item_id-1">to_wx_menu_item_id/1</a></h3>
 <div class="spec">
-<p><tt>to_wx_menu_item_id(MenuId::<a href="#type-menu_item_id">menu_item_id()</a>) -&gt; <a href="#type-wx_id">wx_id()</a></tt><br></p>
+<p><tt>to_wx_menu_item_id(MenuItemId::<a href="#type-menu_item_id">menu_item_id()</a>) -&gt; <a href="#type-wx_id">wx_id()</a></tt><br></p>
 <p> </p>
 </div><p>Converts the specified menu item identifier (for an already-existing menu
  item) into a wx-specific one.
 </p>
-
-<h3 class="function"><a name="to_wx_menu_item_kind-1">to_wx_menu_item_kind/1</a></h3>
-<div class="spec">
-<p><tt>to_wx_menu_item_kind(Kind::<a href="#type-menu_item_kind">menu_item_kind()</a>) -&gt; <a href="#type-wx_enum">wx_enum()</a></tt><br></p>
-<p> </p>
-</div><p>Converts the specified kind of menu identifier into a wx-specific one.</p>
-
-<h3 class="function"><a name="to_wx_menu_item_maybe_id-1">to_wx_menu_item_maybe_id/1</a></h3>
-<div class="spec">
-<p><tt>to_wx_menu_item_maybe_id(MenuId::<a href="#type-menu_item_id">menu_item_id()</a>) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-wx_id">wx_id()</a>)</tt><br></p>
-<p> </p>
-</div>
 
 <h3 class="function"><a name="to_wx_menu_options-1">to_wx_menu_options/1</a></h3>
 <div class="spec">
@@ -521,7 +528,7 @@ identifier.</p>
 
 <h3 class="function"><a name="to_wx_object_type-1">to_wx_object_type/1</a></h3>
 <div class="spec">
-<p><tt>to_wx_object_type(Other::<a href="#type-myriad_object_type">myriad_object_type()</a>) -&gt; <a href="#type-wx_object_type">wx_object_type()</a></tt><br></p>
+<p><tt>to_wx_object_type(MyrObjType::<a href="#type-myriad_object_type">myriad_object_type()</a>) -&gt; <a href="#type-wx_object_type">wx_object_type()</a></tt><br></p>
 <p> </p>
 </div><p>Converts a MyriadGUI type of object into a wx one.</p>
 
@@ -536,7 +543,7 @@ identifier.</p>
 
 <h3 class="function"><a name="to_wx_parent-1">to_wx_parent/1</a></h3>
 <div class="spec">
-<p><tt>to_wx_parent(Other::<a href="#type-maybe">maybe</a>(<a href="#type-myriad_instance_id">myriad_instance_id()</a>)) -&gt; <a href="#type-wx_id">wx_id()</a></tt><br></p>
+<p><tt>to_wx_parent(Other::<a href="#type-maybe">maybe</a>(<a href="#type-gui_object">gui_object()</a>)) -&gt; <a href="#type-gui_object">gui_object()</a></tt><br></p>
 <p> </p>
 </div><p><p>Converts the specified MyriadGUI identifier into a wx-specific parent 
 widget identifier.</p>
@@ -567,14 +574,14 @@ defaults).</p>
 <div class="spec">
 <p><tt>to_wx_sizer_options(Options::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-sizer_options">sizer_options()</a>)) -&gt; <a href="#type-wx_sizer_options">wx_sizer_options()</a></tt><br></p>
 <p> </p>
-</div><p><p>Converts specified sizer options into wx-specific ones.</p>
+</div><p><p>Converts the specified sizer options into wx-specific ones.</p>
 
  (helper)
 </p>
 
 <h3 class="function"><a name="to_wx_status_bar_style-1">to_wx_status_bar_style/1</a></h3>
 <div class="spec">
-<p><tt>to_wx_status_bar_style(StatusBarStyle::<a href="#type-status_bar_style">status_bar_style()</a>) -&gt; <a href="#type-wx_enum">wx_enum()</a></tt><br></p>
+<p><tt>to_wx_status_bar_style(StyleOpts::<a href="#type-status_bar_style">status_bar_style()</a> | <a href="#type-status_bar_style_opt">status_bar_style_opt()</a>) -&gt; <a href="#type-wx_enum">wx_enum()</a></tt><br></p>
 <p> </p>
 </div><p>Converts the specified style of status bar into a wx-specific one.</p>
 
@@ -586,15 +593,15 @@ defaults).</p>
 
 <h3 class="function"><a name="to_wx_toolbar_style-1">to_wx_toolbar_style/1</a></h3>
 <div class="spec">
-<p><tt>to_wx_toolbar_style(ToolbarStyles::<a href="#type-maybe_list">maybe_list</a>(<a href="#type-toolbar_style">toolbar_style()</a>)) -&gt; <a href="#type-wx_enum">wx_enum()</a></tt><br></p>
+<p><tt>to_wx_toolbar_style(StyleOpts::<a href="#type-toolbar_style">toolbar_style()</a> | <a href="#type-toolbar_style_opt">toolbar_style_opt()</a>) -&gt; <a href="#type-wx_enum">wx_enum()</a></tt><br></p>
 <p> </p>
 </div><p>Converts the specified style of toolbar into a wx-specific one.</p>
 
 <h3 class="function"><a name="window_style_to_bitmask-1">window_style_to_bitmask/1</a></h3>
 <div class="spec">
-<p><tt>window_style_to_bitmask(StyleList::<a href="#type-window_style">window_style()</a>) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
+<p><tt>window_style_to_bitmask(StyleOpts::<a href="#type-window_style">window_style()</a> | <a href="#type-window_style_opt">window_style_opt()</a>) -&gt; <a href="#type-bit_mask">bit_mask()</a></tt><br></p>
 <p> </p>
-</div><p><p>Converts specified MyriadGUI window style into the appropriate 
+</div><p><p>Converts the specified MyriadGUI window style into the appropriate 
 wx-specific bit mask.</p>
 
  (helper)

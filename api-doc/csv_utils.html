@@ -43,15 +43,15 @@ being required, etc.).</p>
 
 <h3 class="typedecl"><a name="type-mixed_content">mixed_content()</a></h3>
 <p><tt>mixed_content() = [<a href="#type-row">row()</a> | [<a href="#type-value">value()</a>]]</tt></p>
-<p> A CSV content, as an (ordered) list of rows that match a row spec (ex:
+<p> A CSV content, as an (ordered) list of rows that match a row spec (e.g.
  expected number of fields) or not (then represented as a mere list of values).</p>
 
 <h3 class="typedecl"><a name="type-reading_outcome">reading_outcome()</a></h3>
-<p><tt>reading_outcome() = {Rows::<a href="#type-content">content()</a>, <a href="#type-row_count">row_count()</a>, <a href="#type-field_count">field_count()</a>}</tt></p>
+<p><tt>reading_outcome() = {Rows::<a href="#type-content">content()</a>, RowCount::<a href="#type-row_count">row_count()</a>, FieldCount::<a href="#type-field_count">field_count()</a>}</tt></p>
 <p> The result of the parsing of a CSV file, comprised of:
  - the corresponding content, as an ordered list of rows
  - the number of rows found
- - the number of fields they all have</p>
+ - the number of fields each row has</p>
 
 <h3 class="typedecl"><a name="type-row">row()</a></h3>
 <p><tt>row() = tuple()</tt></p>

@@ -1,0 +1,258 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module gui_shader</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module gui_shader</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Gathering of various facilities for the <b>support of (OpenGL)
+ shaders and programs</b>.
+
+
+<h2><a name="description">Description</a></h2><p>Gathering of various facilities for the <b>support of (OpenGL)
+ shaders and programs</b>.</p>
+
+ Based on GLSL.
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-any_file_path">any_file_path()</a></h3>
+<p><tt>any_file_path() = <a href="file_utils.html#type-any_file_path">file_utils:any_file_path()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-any_vertex3">any_vertex3()</a></h3>
+<p><tt>any_vertex3() = <a href="point3.html#type-any_vertex3">point3:any_vertex3()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-attribute_name">attribute_name()</a></h3>
+<p><tt>attribute_name() = <a href="#type-ustring">ustring()</a></tt></p>
+<p> The name of a user-defined attribute, meant to be set through an associated
+ index.</p>
+
+<h3 class="typedecl"><a name="type-buffer_id">buffer_id()</a></h3>
+<p><tt>buffer_id() = non_neg_integer()</tt></p>
+<p> The identifier of a buffer, i.e. a "buffer object name".</p>
+
+<h3 class="typedecl"><a name="type-buffer_usage_hint">buffer_usage_hint()</a></h3>
+<p><tt>buffer_usage_hint() = <a href="gui_opengl.html#type-buffer_usage_hint">gui_opengl:buffer_usage_hint()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-compute_shader_id">compute_shader_id()</a></h3>
+<p><tt>compute_shader_id() = <a href="#type-shader_id">shader_id()</a></tt></p>
+<p> The identifier of a compute shader, to run on a programmable compute
+ processor.</p>
+
+<h3 class="typedecl"><a name="type-fragment_shader_id">fragment_shader_id()</a></h3>
+<p><tt>fragment_shader_id() = <a href="#type-shader_id">shader_id()</a></tt></p>
+<p> The identifier of a fragment shader, to run on a programmable fragment
+ processor.</p>
+
+<h3 class="typedecl"><a name="type-geometry_shader_id">geometry_shader_id()</a></h3>
+<p><tt>geometry_shader_id() = <a href="#type-shader_id">shader_id()</a></tt></p>
+<p> The identifier of a geometry shader, to run on a programmable geometry
+ processor.</p>
+
+<h3 class="typedecl"><a name="type-program_id">program_id()</a></h3>
+<p><tt>program_id() = non_neg_integer()</tt></p>
+<p> The identifier of GLSL, shader-based program.</p>
+
+<h3 class="typedecl"><a name="type-shader_id">shader_id()</a></h3>
+<p><tt>shader_id() = non_neg_integer()</tt></p>
+<p> The identifier of (any kind of) a shader.</p>
+
+<h3 class="typedecl"><a name="type-tessellation_control_shader_id">tessellation_control_shader_id()</a></h3>
+<p><tt>tessellation_control_shader_id() = <a href="#type-shader_id">shader_id()</a></tt></p>
+<p> The identifier of a tessellation shader, to run on a programmable tessellation
+ processor in the control stage.</p>
+
+<h3 class="typedecl"><a name="type-tessellation_evaluation_shader_id">tessellation_evaluation_shader_id()</a></h3>
+<p><tt>tessellation_evaluation_shader_id() = <a href="#type-shader_id">shader_id()</a></tt></p>
+<p> The identifier of a tessellation shader, to run on a programmable tessellation
+ processor in the evaluation stage.</p>
+
+<h3 class="typedecl"><a name="type-user_attribute">user_attribute()</a></h3>
+<p><tt>user_attribute() = {<a href="#type-vertex_attribute_index">vertex_attribute_index()</a>, <a href="#type-attribute_name">attribute_name()</a>}</tt></p>
+<p> A user-defined attribute variable, meant to be associated to a generic vertex
+ attribute index in a GLSL program.</p>
+
+<h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
+<p><tt>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-vao_id">vao_id()</a></h3>
+<p><tt>vao_id() = non_neg_integer()</tt></p>
+<p> The identifier of a Vertex Array Object (VAO).</p>
+
+<h3 class="typedecl"><a name="type-vbo_id">vbo_id()</a></h3>
+<p><tt>vbo_id() = <a href="#type-buffer_id">buffer_id()</a></tt></p>
+<p> The identifier of a Vertex Buffer Object (VBO).</p>
+
+<h3 class="typedecl"><a name="type-vertex_attribute_index">vertex_attribute_index()</a></h3>
+<p><tt>vertex_attribute_index() = non_neg_integer()</tt></p>
+<p> The index of a vertex attribute, in a VBO.</p>
+
+<h3 class="typedecl"><a name="type-vertex_shader_id">vertex_shader_id()</a></h3>
+<p><tt>vertex_shader_id() = <a href="#type-shader_id">shader_id()</a></tt></p>
+<p> The identifier of a vertex shader, to run on a programmable vertex processor.</p>
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#bind_vertex_buffer_object-2">bind_vertex_buffer_object/2</a></td><td>Binds the specified vertices in a new vertex object buffer (VBO) whose
+ identifier is returned.</td></tr>
+<tr><td valign="top"><a href="#compile_compute_shader-1">compile_compute_shader/1</a></td><td>Loads and compiles a compute shader from the specified source file 
+(whose extension is typically .compute.glsl), and returns its identifier.</td></tr>
+<tr><td valign="top"><a href="#compile_fragment_shader-1">compile_fragment_shader/1</a></td><td>Loads and compiles a fragment shader from the specified source file 
+(whose extension is typically fragment.glsl), and returns its identifier.</td></tr>
+<tr><td valign="top"><a href="#compile_geometry_shader-1">compile_geometry_shader/1</a></td><td>Loads and compiles a geometry shader from the specified source file 
+(whose extension is typically .geometry.glsl), and returns its identifier.</td></tr>
+<tr><td valign="top"><a href="#compile_tessellation_control_shader-1">compile_tessellation_control_shader/1</a></td><td>Loads and compiles a tessellation control shader from the specified 
+source file (whose extension is typically .tess-ctrl.glsl), and returns its 
+identifier.</td></tr>
+<tr><td valign="top"><a href="#compile_tessellation_evaluation_shader-1">compile_tessellation_evaluation_shader/1</a></td><td>Loads and compiles a tessellation evaluation shader from the specified 
+source file (whose extension is typically .tess-eval.glsl), and returns its 
+identifier.</td></tr>
+<tr><td valign="top"><a href="#compile_vertex_shader-1">compile_vertex_shader/1</a></td><td>Loads and compiles a vertex shader from the specified source file (whose 
+extension is typically .vertex.glsl), and returns its identifier.</td></tr>
+<tr><td valign="top"><a href="#generate_program-1">generate_program/1</a></td><td>Generates a GLSL program from the (already loaded and compiled) shaders 
+whose identifiers are specified, with no user-specified attributes defined: 
+links these shaders in a corresponding program, and returns its identifier.</td></tr>
+<tr><td valign="top"><a href="#generate_program-2">generate_program/2</a></td><td>Generates a GLSL program from the (already loaded and compiled) shaders 
+whose identifiers are specified, with user-specified attributes: links these 
+shaders in a corresponding program, and returns its identifier.</td></tr>
+<tr><td valign="top"><a href="#generate_program_from-2">generate_program_from/2</a></td><td>Generates a GLSL program from the shaders whose source files are
+ specified: loads and compiles the specified vertex and fragment shaders (with
+ no user-specified attributes defined), links them in a corresponding program,
+ and returns its identifier.</td></tr>
+<tr><td valign="top"><a href="#get_shading_language_version-0">get_shading_language_version/0</a></td><td>Returns the version /release number of the currently used OpenGL 
+shading language.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="bind_vertex_buffer_object-2">bind_vertex_buffer_object/2</a></h3>
+<div class="spec">
+<p><tt>bind_vertex_buffer_object(Vertices::[<a href="#type-any_vertex3">any_vertex3()</a>], UsageHint::<a href="#type-buffer_usage_hint">buffer_usage_hint()</a>) -&gt; <a href="#type-vbo_id">vbo_id()</a></tt><br></p>
+<p> </p>
+</div><p>Binds the specified vertices in a new vertex object buffer (VBO) whose
+ identifier is returned.
+</p>
+
+<h3 class="function"><a name="compile_compute_shader-1">compile_compute_shader/1</a></h3>
+<div class="spec">
+<p><tt>compile_compute_shader(ComputeShaderPath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-compute_shader_id">compute_shader_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Loads and compiles a compute shader from the specified source file 
+(whose extension is typically .compute.glsl), and returns its identifier.</p>
+
+ Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+ anymore.
+</p>
+
+<h3 class="function"><a name="compile_fragment_shader-1">compile_fragment_shader/1</a></h3>
+<div class="spec">
+<p><tt>compile_fragment_shader(FragmentShaderPath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-fragment_shader_id">fragment_shader_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Loads and compiles a fragment shader from the specified source file 
+(whose extension is typically fragment.glsl), and returns its identifier.</p>
+
+ Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+ anymore.
+</p>
+
+<h3 class="function"><a name="compile_geometry_shader-1">compile_geometry_shader/1</a></h3>
+<div class="spec">
+<p><tt>compile_geometry_shader(GeometryShaderPath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-geometry_shader_id">geometry_shader_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Loads and compiles a geometry shader from the specified source file 
+(whose extension is typically .geometry.glsl), and returns its identifier.</p>
+
+ Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+ anymore.
+</p>
+
+<h3 class="function"><a name="compile_tessellation_control_shader-1">compile_tessellation_control_shader/1</a></h3>
+<div class="spec">
+<p><tt>compile_tessellation_control_shader(TessCtrlShaderPath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-tessellation_control_shader_id">tessellation_control_shader_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Loads and compiles a tessellation control shader from the specified 
+source file (whose extension is typically .tess-ctrl.glsl), and returns its 
+identifier.</p>
+
+ Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+ anymore.
+</p>
+
+<h3 class="function"><a name="compile_tessellation_evaluation_shader-1">compile_tessellation_evaluation_shader/1</a></h3>
+<div class="spec">
+<p><tt>compile_tessellation_evaluation_shader(TessEvalShaderPath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-tessellation_evaluation_shader_id">tessellation_evaluation_shader_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Loads and compiles a tessellation evaluation shader from the specified 
+source file (whose extension is typically .tess-eval.glsl), and returns its 
+identifier.</p>
+
+ Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+ anymore.
+</p>
+
+<h3 class="function"><a name="compile_vertex_shader-1">compile_vertex_shader/1</a></h3>
+<div class="spec">
+<p><tt>compile_vertex_shader(VertexShaderPath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-vertex_shader_id">vertex_shader_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Loads and compiles a vertex shader from the specified source file (whose 
+extension is typically .vertex.glsl), and returns its identifier.</p>
+
+ Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+ anymore.
+</p>
+
+<h3 class="function"><a name="generate_program-1">generate_program/1</a></h3>
+<div class="spec">
+<p><tt>generate_program(ShaderIds::[<a href="#type-shader_id">shader_id()</a>]) -&gt; <a href="#type-program_id">program_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Generates a GLSL program from the (already loaded and compiled) shaders 
+whose identifiers are specified, with no user-specified attributes defined: 
+links these shaders in a corresponding program, and returns its identifier.</p>
+
+ Deletes the specified shaders once the program is generated.
+</p>
+
+<h3 class="function"><a name="generate_program-2">generate_program/2</a></h3>
+<div class="spec">
+<p><tt>generate_program(ShaderIds::[<a href="#type-shader_id">shader_id()</a>], UserAttributes::[<a href="#type-user_attribute">user_attribute()</a>]) -&gt; <a href="#type-program_id">program_id()</a></tt><br></p>
+<p> </p>
+</div><p><p>Generates a GLSL program from the (already loaded and compiled) shaders 
+whose identifiers are specified, with user-specified attributes: links these 
+shaders in a corresponding program, and returns its identifier.</p>
+
+ Deletes the specified shaders once the program is generated.
+</p>
+
+<h3 class="function"><a name="generate_program_from-2">generate_program_from/2</a></h3>
+<div class="spec">
+<p><tt>generate_program_from(VertexShaderPath::<a href="#type-any_file_path">any_file_path()</a>, FragmentShaderPath::<a href="#type-any_file_path">any_file_path()</a>) -&gt; <a href="#type-program_id">program_id()</a></tt><br></p>
+<p> </p>
+</div><p>Generates a GLSL program from the shaders whose source files are
+ specified: loads and compiles the specified vertex and fragment shaders (with
+ no user-specified attributes defined), links them in a corresponding program,
+ and returns its identifier.
+</p>
+
+<h3 class="function"><a name="get_shading_language_version-0">get_shading_language_version/0</a></h3>
+<div class="spec">
+<p><tt>get_shading_language_version() -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p> </p>
+</div><p><p>Returns the version /release number of the currently used OpenGL 
+shading language.</p>
+
+ Example: "4.60 FOOBAR".
+</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>

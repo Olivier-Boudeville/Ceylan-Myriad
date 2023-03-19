@@ -19,8 +19,12 @@
 
 <h2><a name="types">Data Types</a></h2>
 
-<h3 class="typedecl"><a name="type-event_translation_table">event_translation_table()</a></h3>
-<p><tt>event_translation_table() = <a href="gui_event.html#type-event_translation_table">gui_event:event_translation_table()</a></tt></p>
+<h3 class="typedecl"><a name="type-backend_keyboard_event">backend_keyboard_event()</a></h3>
+<p><tt>backend_keyboard_event() = <a href="#type-wxKey">wxKey()</a></tt></p>
+
+
+<h3 class="typedecl"><a name="type-event_context">event_context()</a></h3>
+<p><tt>event_context() = <a href="gui.html#type-event_context">gui:event_context()</a></tt></p>
 
 
 <h3 class="typedecl"><a name="type-key_status">key_status()</a></h3>
@@ -31,7 +35,7 @@
 <p><tt>key_transition() = key_down | key_up</tt></p>
 <p><p> Corresponds to a (punctual) state transition of a key.</p>
 
- Note that key down/up transitions are not paired (ex: if a key is maintained
+ Note that key down/up transitions are not paired (e.g. if a key is maintained
  in a pressed state, many key down events will be generated, but only one key
  up will be reported at the end, when the key is released).</p>
 
@@ -63,7 +67,7 @@ keyboard, regardless of the character labelled on the user's actual keyboard.</p
 
  <p>These locations are designated according to the characters that would be 
 printed on a virtual, canonical US QWERTY keyboard, taken as a reference, or 
-to non-printable special keys (ex: the Home key, the Insert one).</p>
+to non-printable special keys (e.g. the Home key, the Insert one).</p>
 
  <p>A modifier generates a scancode just by itself.</p>
 
@@ -86,12 +90,12 @@ to non-printable special keys (ex: the Home key, the Insert one).</p>
 
 
 <h2><a name="index">Function Index</a></h2>
-<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#is_key_pressed-1">is_key_pressed/1</a></td><td>Tells whether the specified key, designated as a scancode, is pressed.</td></tr>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_backend_event-1">get_backend_event/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_key_pressed-1">is_key_pressed/1</a></td><td>Tells whether the specified key, designated as a scancode, is pressed.</td></tr>
 <tr><td valign="top"><a href="#is_modkey_pressed-1">is_modkey_pressed/1</a></td><td>Tells whether the specified key, designated as a scancode comprising a
  modifier, is pressed.</td></tr>
 <tr><td valign="top"><a href="#key_event_to_string-1">key_event_to_string/1</a></td><td>Returns a textual description of the specified key event, of type
  gui_wx_event_info().</td></tr>
-<tr><td valign="top"><a href="#key_event_to_string-2">key_event_to_string/2</a></td><td>Returns a textual description of the specified key event.</td></tr>
 <tr><td valign="top"><a href="#myr_keycode_to_wx-1">myr_keycode_to_wx/1</a></td><td>Returns the wx keycode corresponding to the specified MyriadGUI one.</td></tr>
 <tr><td valign="top"><a href="#to_lower-2">to_lower/2</a></td><td>Returns the specified key, once the specified pressed modifier has been
  taken into account.</td></tr>
@@ -99,6 +103,12 @@ to non-printable special keys (ex: the Home key, the Insert one).</p>
 </table>
 
 <h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="get_backend_event-1">get_backend_event/1</a></h3>
+<div class="spec">
+<p><tt>get_backend_event(Event_context::<a href="#type-event_context">event_context()</a>) -&gt; <a href="#type-backend_keyboard_event">backend_keyboard_event()</a></tt><br></p>
+<p> </p>
+</div>
 
 <h3 class="function"><a name="is_key_pressed-1">is_key_pressed/1</a></h3>
 <div class="spec">
@@ -116,17 +126,11 @@ to non-printable special keys (ex: the Home key, the Insert one).</p>
 
 <h3 class="function"><a name="key_event_to_string-1">key_event_to_string/1</a></h3>
 <div class="spec">
-<p><tt>key_event_to_string(WxKeyEvent::<a href="#type-wxKey">wxKey()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
+<p><tt>key_event_to_string(WxKey::<a href="#type-wxKey">wxKey()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
 <p> </p>
 </div><p>Returns a textual description of the specified key event, of type
  gui_wx_event_info().
 </p>
-
-<h3 class="function"><a name="key_event_to_string-2">key_event_to_string/2</a></h3>
-<div class="spec">
-<p><tt>key_event_to_string(WxKey::<a href="#type-wxKey">wxKey()</a>, EventTranslationTable::<a href="#type-event_translation_table">event_translation_table()</a>) -&gt; <a href="#type-ustring">ustring()</a></tt><br></p>
-<p> </p>
-</div><p>Returns a textual description of the specified key event.</p>
 
 <h3 class="function"><a name="myr_keycode_to_wx-1">myr_keycode_to_wx/1</a></h3>
 <div class="spec">
