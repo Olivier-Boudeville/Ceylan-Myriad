@@ -161,13 +161,7 @@
 -type vertex3() :: point3:vertex3().
 -type unit_normal3() :: vector3:unit_normal3().
 
--type mesh() :: mesh:mesh().
--type indexed_face() :: mesh:indexed_face().
--type indexed_triangle() :: mesh:indexed_triangle().
--type texture_coordinate2() :: mesh:texture_coordinate2().
-
 -type render_rgb_color() :: gui_color:render_rgb_color().
-
 
 -type window() :: gui:window().
 -type panel() :: gui:panel().
@@ -176,10 +170,18 @@
 -type brush() :: gui:brush().
 
 -type gl_canvas() :: gui:opengl_canvas().
+
 -type gl_context() :: gui:opengl_context().
 
 -type glu_id() :: gui_opengl:glu_id().
+
+-type uv_point() :: gui_texture:uv_point().
 -type texture() :: gui_texture:texture().
+
+-type mesh() :: mesh:mesh().
+-type indexed_face() :: mesh:indexed_face().
+-type indexed_triangle() :: mesh:indexed_triangle().
+
 
 
 
@@ -205,9 +207,9 @@ get_test_tetra_mesh() ->
 
 	RenderingInfo = { color, per_vertex, get_test_tetra_colors() },
 
-	% Needing faces, not triangles:
-	mesh:create_mesh( get_test_tetra_vertices(), get_test_tetra_faces(),
-		_NormalType=per_face, get_test_tetra_normals(), RenderingInfo ).
+	mesh:create_mesh( get_test_tetra_vertices(), _FaceType=triangle,
+		get_test_tetra_faces(), _NormalType=per_face, get_test_tetra_normals(),
+		RenderingInfo ).
 
 
 
@@ -222,7 +224,7 @@ get_test_tetra_vertices() ->
 
 
 
-% @doc Returns the (4) indexed faces of the test tetrahedron.
+% @doc Returns the (4; as triangles) indexed faces of the test tetrahedron.
 %
 % Vertex order matters (CCW order when seen from outside)
 %
@@ -295,8 +297,8 @@ get_test_colored_cube_mesh() ->
 	% per_vertex for gradients:
 	%RenderingInfo = { color, per_face, Colors },
 	RenderingInfo = { color, per_vertex, Colors },
-	mesh:create_mesh( Vertices, Faces, _NormalType=per_face, Normals,
-					  RenderingInfo ).
+	mesh:create_mesh( Vertices, _FaceType=quad, Faces,
+					  _NormalType=per_face, Normals, RenderingInfo ).
 
 
 
@@ -317,7 +319,9 @@ get_test_colored_cube_vertices() ->
 
 
 
-% @doc Returns the (6) faces of the test colored cube (vertex order matters).
+% @doc Returns the (6; as quads) faces of the test colored cube (vertex order
+% matters).
+%
 -spec get_test_colored_cube_faces() -> [ indexed_face() ].
 get_test_colored_cube_faces() ->
 	% Our indices start at 1:
@@ -371,8 +375,7 @@ get_test_colored_cube_colors() ->
 % cube.
 %
 -spec get_test_textured_cube_info() ->
-					{ [ vertex3() ], [ indexed_face() ], [ unit_normal3() ],
-					  [ texture_coordinate2() ] }.
+	{ [ vertex3() ], [ indexed_face() ], [ unit_normal3() ], [ uv_point() ] }.
 get_test_textured_cube_info() ->
 	% No texture coordinates used:
 	{ get_test_textured_cube_vertices(), get_test_textured_cube_faces(),
@@ -448,7 +451,7 @@ get_test_textured_cube_normals() ->
 % @doc Returns the 24 texture (2D) coordinates (each repeated thrice) of the
 % test textured cube.
 %
--spec get_test_textured_cube_tex_coords( ) -> [ texture_coordinate2() ].
+-spec get_test_textured_cube_tex_coords( ) -> [ uv_point() ].
 get_test_textured_cube_tex_coords() ->
 	[ { 0.625,0.5  }, { 0.625,0.5  }, { 0.625,0.5  },
 	  { 0.375,0.5  }, { 0.375,0.5  }, { 0.375,0.5  },
@@ -474,9 +477,8 @@ get_test_image_directory() ->
 %
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
-	%file_utils:join( get_test_image_directory(),
-	%                 "myriad-space-time-referential.png" ).
 	file_utils:join( get_test_image_directory(),
+	%                 "myriad-space-time-referential.png" ).
 					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
@@ -486,11 +488,9 @@ get_test_image_path() ->
 -spec get_logo_image_path() -> file_path().
 get_logo_image_path() ->
 	file_utils:join( get_test_image_directory(),
-					 "myriad-space-time-referential.png" ).
-	%file_utils:join( get_test_image_directory(),
 	%				 "myriad-title.png" ).
-	%file_utils:join( get_test_image_directory(),
 	%				 "myriad-minimal-enclosing-circle-test.png" ).
+					 "myriad-space-time-referential.png" ).
 
 
 
@@ -940,6 +940,8 @@ render( #my_opengl_state{ window=Window,
 	gui_texture:set_as_current( MatTexture ),
 	gl:disable( ?GL_BLEND ),
 
+	cond_utils:if_defined( myriad_check_opengl, gui_opengl:check_error() ),
+
 	% Specifies a texture environment:
 	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE ),
 
@@ -949,8 +951,11 @@ render( #my_opengl_state{ window=Window,
 
 	gl:popMatrix(),
 
+
 	% Modified texture environment:
 	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
+
+	cond_utils:if_defined( myriad_check_opengl, gui_opengl:check_error() ),
 
 	gui_opengl:enter_2d_mode( Window ),
 
@@ -983,6 +988,8 @@ render( #my_opengl_state{ window=Window,
 	gl:rotatef( -Angle, 0.0, 0.0, 1.0 ),
 	glu:sphere( SphereId, 0.8, 50,40 ),
 	gl:popMatrix(),
+
+	cond_utils:if_defined( myriad_check_opengl, gui_opengl:check_error() ),
 
 	% Can be done here, as window-related (actually: GLCanvas) information were
 	% already necessary anyway; includes a gl:flush/0:
