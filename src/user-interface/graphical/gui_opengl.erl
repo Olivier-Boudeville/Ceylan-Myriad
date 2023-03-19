@@ -46,6 +46,13 @@
 % "wx/include/gl.hrl" and "wx/include/glu.hrl" included in "gui_opengl.hrl".
 
 
+% Tells whether the detection of an OpenGL shall throw an exception or only
+% output an error message in the console:
+%
+-define( do_throw_on_opengl_error, true ).
+%-define( do_throw_on_opengl_error, false ).
+
+
 
 % Implementation notes:
 %
@@ -307,7 +314,6 @@
 			   glu_id/0 ]).
 
 
-
 -export([ get_vendor_name/0, get_vendor/0,
 		  get_renderer_name/0, get_platform_identifier/0,
 		  get_version_string/0, get_version/0, get_version/1,
@@ -368,7 +374,7 @@
 
 -type mesh() :: mesh:mesh().
 -type indexed_face() :: mesh:indexed_face().
--type face_count() :: mesh:face_count().
+-type face_type() :: mesh:face_type().
 
 -type window() :: gui:window().
 
@@ -386,6 +392,7 @@
 get_vendor_name() ->
 	Res= gl:getString( ?GL_VENDOR ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	text_utils:string_to_binary( Res ).
 
 
@@ -446,6 +453,7 @@ get_vendor() ->
 get_renderer_name() ->
 	Res = gl:getString( ?GL_RENDERER ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	text_utils:string_to_binary( Res ).
 
 
@@ -626,6 +634,7 @@ get_supported_profile( Tid ) ->
 	% bytes):
 	%
 	[ ProfMask | _ ] = gl:getIntegerv( ?GL_CONTEXT_PROFILE_MASK ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	IsCoreFromMask = ProfMask band ?GL_CONTEXT_CORE_PROFILE_BIT =/= 0,
 
@@ -662,6 +671,7 @@ get_supported_profile( Tid ) ->
 get_supported_extensions() ->
 	ExtStr = gl:getString( ?GL_EXTENSIONS ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
 	ExtStrs = text_utils:split( ExtStr, _Delimiters=[ $ ] ),
 	text_utils:strings_to_atoms( ExtStrs ).
 
@@ -1187,13 +1197,13 @@ swap_buffers( Canvas ) ->
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 
-
 % @doc Renders the specified mesh in a supposedly appropriate OpenGL context.
 %
 % See gui_opengl_test.erl for an usage example.
 %
 -spec render_mesh( mesh() ) -> void().
 render_mesh( #mesh{ vertices=Vertices,
+					face_type=FaceType,
 					faces=IndexedFaces,
 					normal_type=per_face,
 					normals=Normals,
@@ -1202,12 +1212,11 @@ render_mesh( #mesh{ vertices=Vertices,
 	% We could batch the commands sent to the GUI backend (e.g. with wx:batch/1
 	% or wx:foreach/2).
 
-	% We currently suppose we have quad-based faces:
-	gl:'begin'( ?GL_QUADS ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
-	render_faces( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
+	render_faces( FaceType, IndexedFaces, Vertices, Normals, Colors ).
 
-	gl:'end'().
+
 
 
 
@@ -1228,10 +1237,13 @@ enter_2d_mode( Window ) ->
 	% elements may have to be updated:
 
 	gl:pushAttrib( ?GL_ENABLE_BIT ),
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	gl:disable( ?GL_DEPTH_TEST ),
 	gl:disable( ?GL_CULL_FACE ),
 	gl:enable( ?GL_TEXTURE_2D ),
+
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	% This allows the alpha blending of 2D textures with the scene:
 	gl:enable( ?GL_BLEND ),
@@ -1242,6 +1254,8 @@ enter_2d_mode( Window ) ->
 	gl:matrixMode( ?GL_PROJECTION ),
 	gl:pushMatrix(),
 	gl:loadIdentity(),
+
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	% In all MyriadGUI referentials mentioned, abscissas are to increase when
 	% going from left to right.
@@ -1269,7 +1283,6 @@ enter_2d_mode( Window ) ->
 	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
 			  _Top=0.0, _Near=-1.0, _Far=1.0 ),
 
-
 	% Then reseting the modelview matrix:
 	gl:matrixMode( ?GL_MODELVIEW ),
 	gl:pushMatrix(),
@@ -1279,7 +1292,9 @@ enter_2d_mode( Window ) ->
 
 
 
-% @doc Leaves the 2D mode, resets modelview and projection matrices.
+% @doc Leaves the 2D mode, resets the modelview and projection matricesn and the
+% GL attributes.
+%
 -spec leave_2d_mode() -> void().
 leave_2d_mode() ->
 	gl:matrixMode( ?GL_MODELVIEW ),
@@ -1288,7 +1303,10 @@ leave_2d_mode() ->
 	gl:matrixMode( ?GL_PROJECTION ),
 	gl:popMatrix(),
 
-	gl:popAttrib().
+	gl:popAttrib(),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
 
 
 
@@ -1369,13 +1387,54 @@ buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=dynamic } ) ->
 
 
 % @doc Renders the specified indexed faces.
--spec render_faces( [ indexed_face() ], face_count(), [ any_vertex3() ],
+-spec render_faces( face_type(), [ indexed_face() ], [ any_vertex3() ],
 					[ unit_normal3() ], [ render_rgb_color() ] ) -> void().
-render_faces( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
+render_faces( _FaceType=triangle, IndexedFaces, Vertices, Normals,
+			  Colors ) ->
+	gl:'begin'( ?GL_TRIANGLES ),
+	render_triangles( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
+	gl:'end'(),
+	cond_utils:if_defined( myriad_check_opengl, check_error() );
+
+render_faces( _FaceType=quad, IndexedFaces, Vertices, Normals, Colors ) ->
+	gl:'begin'( ?GL_QUADS ),
+	render_quads( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
+	gl:'end'(),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
+
+
+% (helper)
+render_triangles( _IndexedFaces=[], _FaceCount, _Vertices, _Normals,
+				  _Colors ) ->
 	ok;
 
-% We have quad-based faces here:
-render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
+render_triangles( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
+				  Vertices, Normals, Colors ) ->
+
+	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
+
+	gl:color3fv( lists:nth( V1Idx, Colors ) ),
+	gl:texCoord2f( 0.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V2Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 0.0 ),
+	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
+
+	gl:color3fv( lists:nth( V3Idx, Colors ) ),
+	gl:texCoord2f( 1.0, 1.0 ),
+	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
+
+	render_triangles( T, FaceCount+1, Vertices, Normals, Colors ).
+
+
+
+% (helper)
+render_quads( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
+	ok;
+
+render_quads( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
 			  Vertices, Normals, Colors ) ->
 
 	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
@@ -1396,40 +1455,25 @@ render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
 	gl:texCoord2f( 0.0, 1.0 ),
 	gl:vertex3fv( lists:nth( V4Idx, Vertices ) ),
 
-	render_faces( T, FaceCount+1, Vertices, Normals, Colors );
+	render_quads( T, FaceCount+1, Vertices, Normals, Colors ).
 
-% We have triangles-based faces here:
-render_faces( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
-			  Vertices, Normals, Colors ) ->
 
-	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
-
-	gl:color3fv( lists:nth( V1Idx, Colors ) ),
-	gl:texCoord2f( 0.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
-
-	gl:color3fv( lists:nth( V2Idx, Colors ) ),
-	gl:texCoord2f( 1.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
-
-	gl:color3fv( lists:nth( V3Idx, Colors ) ),
-	gl:texCoord2f( 1.0, 1.0 ),
-	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
-
-	render_faces( T, FaceCount+1, Vertices, Normals, Colors ).
 
 
 
 % Error management section.
 
 
+% Useless: each call to gl:getError/0 resets it to ?GL_NO_ERROR.
 %% reset_error() ->
-%%	gl:getError().
+%%   gl:getError().
 
-% @doc Checks whether an OpenGL-related error occurred; if yes, displays
-% information regarding it, and throws an exception.
+
+% @doc Checks whether an OpenGL-related error occurred previously (since last
+% check, otherwisesince OpenGL initialisation); if yes, displays information
+% regarding it, and throws an exception.
 %
-% Note that an OpenGL must already exist and be set as current (see
+% Note that an OpenGL context must already exist and be set as current (see
 % set_context*/2), otherwise a no_gl_context error will be triggered.
 %
 -spec check_error() -> void().
@@ -1447,14 +1491,19 @@ check_error() ->
 			% might have happened some time before, any time between the
 			% previous check and this one):
 
-			%DoThrow = true,
-			DoThrow = false,
-
-			case DoThrow of
+			case ?do_throw_on_opengl_error of
 
 				true ->
+
+					{ Mod, Func, Arity, [ { file, SrcFile },
+										  { line, Line } ] } =
+						hd( code_utils:get_stacktrace( _SkipLastElemCount=1 ) ),
+
 					trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; "
-						"aborting.", [ GlError, Diagnosis ] ),
+						"this error was detected in ~ts:~ts/~B (file ~ts, "
+						"line ~B); aborting.",
+						[ GlError, Diagnosis, Mod, Func, Arity, SrcFile,
+						  Line ] ),
 
 					throw( { opengl_error, GlError, Diagnosis } );
 
