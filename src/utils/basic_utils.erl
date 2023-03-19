@@ -1253,17 +1253,6 @@ send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 % Miscellaneous functions.
 
 
-% @doc Returns the number of bytes used by the specified term.
-%
-% Note: kept for backward compatibility, better use system_utils:get_size/1
-% directly.
-%
-%-spec size( term() ) -> byte_size().
-%size( Term ) ->
-%   system_utils:get_size( Term ).
-
-
-
 % @doc Returns all general information regarding specified process (which is
 % local or not), provided it is still alive (otherwise returns undefined).
 %
