@@ -188,9 +188,9 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
@@ -203,9 +203,9 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
