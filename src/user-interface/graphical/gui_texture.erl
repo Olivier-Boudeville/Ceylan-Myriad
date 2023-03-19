@@ -690,7 +690,8 @@ pad_buffer( Buffer, CurrentDimensions={ CurrentW, CurrentH },
 			BufSize =:= ExpectedBufSize orelse
 				throw( { invalid_buffer_dimensions, CurrentDimensions,
 						 ExpectedBufSize, BufSize } )
-		end ),
+		end,
+		basic_utils:ignore_unused( CurrentDimensions ) ),
 
 	% Padding in pure black:
 	PadPixel = <<0, 0, 0>>,
@@ -773,7 +774,9 @@ pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
 			AlphaBufSize =:= ExpectedAlphaBufSize orelse
 				throw( { invalid_alpha_buffer_dimensions, CurrentDimensions,
 						 ExpectedAlphaBufSize, AlphaBufSize } )
-		end ),
+		end,
+		basic_utils:ignore_unused( CurrentDimensions ) ),
+
 
 	% Padding in pure transparent (0, in wxwidgets conventions; same for
 	% OpenGL), black:
