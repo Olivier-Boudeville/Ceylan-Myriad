@@ -27,8 +27,8 @@
 
 
 % @doc Gathering of various facilities for the <b>support of (OpenGL)
-% textures</b>, either old-style (compatibility one) or according to current,
-% modern OpenGL.
+% textures</b>, mostly 2D ones, either old-style (compatibility one) or
+% according to current, modern OpenGL.
 %
 -module(gui_texture).
 
@@ -40,11 +40,15 @@
 -type texture_id() :: non_neg_integer().
 % An OpenGL texture "name" (meant to be unique), an identifier thereof.
 
+
+-type texture_dimension() :: ?GL_TEXTURE_1D | ?GL_TEXTURE_2D | ?GL_TEXTURE_3D.
+% The dimensionality of a texture.
+%
+% Most textures are 2D ones.
+
+
 -type texture() :: #texture{}.
 % Information regarding a (2D) texture.
-
--type mipmap_level() :: non_neg_integer().
-% 0 is the base level.
 
 
 -type gl_color_format() :: 1 | 2 | 3 | 4
@@ -66,8 +70,97 @@
 % A format of a pixel data.
 
 
--export_type([ texture_id/0, texture/0, mipmap_level/0,
-			   gl_color_format/0, gl_pixel_format/0 ]).
+% A texel is a texture pixel.
+
+
+-type uv_coordinate() :: float().
+% A texture UV (or {S,T}) coordinate. They do not depend on resolution, and
+% generally are in [0.0, 1.0].
+
+
+-type uv_point() :: { uv_coordinate(), uv_coordinate() }.
+% Designates a point in a (2D) texture; not a vector per se.
+%
+% Texture coordinates start at {0.0, 0.0} for the lower left corner of a
+% texture image to {1.0, 1.0} for its upper right corner.
+%
+% The fragment shader interpolates the texture coordinates for each fragment.
+
+
+
+-type gl_texture_wrapping_mode() ::
+
+	?GL_REPEAT % The default behavior for textures. Repeats the texture image.
+
+  | ?GL_MIRRORED_REPEAT % Same as GL_REPEAT, but mirrors the image with each
+						% repeat.
+
+  | ?GL_CLAMP_TO_EDGE % Clamps the coordinates between 0 and 1. The result
+					  % is that higher coordinates become clamped to the edge,
+					  % resulting in a stretched edge pattern.
+
+  | ?GL_CLAMP_TO_BORDER. % Coordinates outside the range are now given a
+						 % user-specified border color.
+
+
+
+-type gl_texture_filtering_mode() ::
+
+	?GL_NEAREST % Also known as nearest neighbor or point filtering); this is
+				% the default texture filtering method of OpenGL, where the
+				% texel whose center is closest to the texture coordinate is
+				% selected.
+
+  | ?GL_LINEAR  % Also known as (bi)linear filtering; takes an interpolated
+				% value from the texture coordinate's neighboring texels,
+				% approximating a color between the texels.
+
+  | enum().
+% Designates a method to select a texel based on UV coordinates.
+%
+% Texture filtering can be set for magnifying and minifying operations.
+%
+% Other modes exist.
+
+
+-type mipmap_level() :: non_neg_integer().
+% Uses to designate a level of scale regarding a given texture.
+%
+% A mipmap is a collection of texture images in which each subsequent texture is
+% twice as small compared to the previous one. Use gl:generateMipmap/1 to
+% generate scaled down version of a given texture.
+%
+% 0 is the base level (full, original size).
+
+
+-type gl_mipmap_filtering_mode() ::
+
+	?GL_NEAREST_MIPMAP_NEAREST % Takes the nearest mipmap to match the pixel
+							   % size and uses nearest neighbor interpolation
+							   % for texture sampling.
+
+  | ?GL_LINEAR_MIPMAP_NEAREST  % Takes the nearest mipmap level and samples
+							   % that level using linear interpolation.
+
+  | ?GL_NEAREST_MIPMAP_LINEAR  % Linearly interpolates between the two mipmaps
+							   % that most closely match the size of a pixel,
+							   % and samples the interpolated level via nearest
+							   % neighbor interpolation.
+
+  | ?GL_LINEAR_MIPMAP_LINEAR.  % Linearly interpolates between the two closest
+							   % mipmaps and samples the interpolated level via
+							   % linear interpolation.
+% To specify the filtering method between mipmap levels, for a more seamless
+% switching between them.
+
+
+-export_type([ texture_id/0, texture_dimension/0, texture/0,
+			   gl_color_format/0, gl_pixel_format/0,
+			   uv_coordinate/0, uv_point/0,
+
+			   gl_texture_wrapping_mode/0, gl_texture_filtering_mode/0,
+
+			   mipmap_level/0, gl_mipmap_filtering_mode/0 ]).
 
 
 -export([ set_basic_settings/0,
@@ -75,6 +168,8 @@
 		  create_from_image/1, load_from_file/1, load_from_file/2,
 
 		  create_from_text/4, create_from_text/5,
+
+		  generate_mipmaps/0, generate_mipmaps/1, generate_mipmaps_for_id/1,
 
 		  set_as_current/1, set_new_as_current/0, set_as_current_from_id/1,
 		  assign_current/4,
@@ -90,6 +185,11 @@
 
 		  get_pixel_size/1, gl_pixel_format_to_pixel_format/1 ]).
 
+
+% Implementation notes:
+%
+% Refer to https://learnopengl.com/Getting-started/Textures for further
+% information.
 
 
 % Shorthands:
@@ -125,7 +225,7 @@
 
 -type font() :: gui_font:font().
 
-%-type enum() :: gui_opengl:enum().
+-type enum() :: gui_opengl:enum().
 
 
 
@@ -134,11 +234,14 @@
 set_basic_settings() ->
 
 	gl:enable( ?GL_TEXTURE_2D ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	% GL_LINEAR better than GL_NEAREST:
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	% Otherwise the current color will be applied to the textured polygons as
 	% well (as the default texture environment mode is GL_MODULATE, which
@@ -149,6 +252,7 @@ set_basic_settings() ->
 	%
 	%gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE ),
 	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
 	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
@@ -199,7 +303,6 @@ create_from_image( Image ) ->
 	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=PixFormat,
 		TexWidth, TexHeight, _Border=0, _InputBufferFormat=PixFormat,
 		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
-
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	Zero = 0.0,
@@ -317,6 +420,26 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 
 
+% @doc Generates mipmaps for the currently bound (2D) texture.
+-spec generate_mipmaps() -> void().
+generate_mipmaps() ->
+	generate_mipmaps( _Dim=?GL_TEXTURE_2D ).
+
+
+% @doc Generates mipmaps for the currently bound texture.
+-spec generate_mipmaps( texture_dimension() ) -> void().
+generate_mipmaps( TexDim ) ->
+	gl:generateMipmap( TexDim ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
+
+
+% @doc Generates mipmaps for the texture whose identifier is specified.
+-spec generate_mipmaps_for_id( texture_id() ) -> void().
+generate_mipmaps_for_id( TextureId ) ->
+	gl:generateTextureMipmap( TextureId ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
+
+
 % @doc Sets the specified (2D) texture as the current one.
 %
 % Returns, if useful, its identifier.
@@ -352,7 +475,10 @@ set_as_current_from_id( TextureId ) ->
 	% https://learnopengl.com/Getting-started/Textures)
 	%
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	TextureId.
 
@@ -414,7 +540,9 @@ render( #texture{ id=TextureId,
 	gl:texCoord2f( MinXt, MaxYt ), gl:vertex2i( Xp,      OtherYp ),
 	gl:texCoord2f( MaxXt, MaxYt ), gl:vertex2i( OtherXp, OtherYp ),
 
-	gl:'end'().
+	gl:'end'(),
+
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
 
@@ -452,6 +580,7 @@ get_dimensions( Width, Height ) ->
 -spec generate_id() -> texture_id().
 generate_id() ->
 	[ TextureId ] = gl:genTextures( _Count=1 ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 	TextureId.
 
 
