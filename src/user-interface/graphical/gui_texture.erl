@@ -27,7 +27,8 @@
 
 
 % @doc Gathering of various facilities for the <b>support of (OpenGL)
-% textures</b>.
+% textures</b>, either old-style (compatibility one) or according to current,
+% modern OpenGL.
 %
 -module(gui_texture).
 
@@ -46,17 +47,37 @@
 % 0 is the base level.
 
 
--type gl_pixel_format() :: enum().
-% An OpenGL pixel format (e.g. ?GL_RGBA).
+-type gl_color_format() :: 1 | 2 | 3 | 4
+	| ?GL_ALPHA | ?GL_ALPHA4 | ?GL_ALPHA8 | ?GL_ALPHA12 | ?GL_ALPHA16
+	| ?GL_LUMINANCE | ?GL_LUMINANCE4 | ?GL_LUMINANCE8 | ?GL_LUMINANCE12
+	| ?GL_LUMINANCE16 | ?GL_LUMINANCE_ALPHA | ?GL_LUMINANCE4_ALPHA4
+	| ?GL_LUMINANCE6_ALPHA2 | ?GL_LUMINANCE8_ALPHA8 | ?GL_LUMINANCE12_ALPHA4
+	| ?GL_LUMINANCE12_ALPHA12 | ?GL_LUMINANCE16_ALPHA16 | ?GL_INTENSITY
+	| ?GL_INTENSITY4 | ?GL_INTENSITY8 | ?GL_INTENSITY12 | ?GL_INTENSITY16
+	| ?GL_R3_G3_B2 | ?GL_RGB | ?GL_RGB4 | ?GL_RGB5 | ?GL_RGB8 | ?GL_RGB10
+	| ?GL_RGB12 | ?GL_RGB16 | ?GL_RGBA | ?GL_RGBA2 | ?GL_RGBA4
+	| ?GL_RGB5_A1 | ?GL_RGBA8 | ?GL_RGB10_A2 | ?GL_RGBA12 | ?GL_RGBA16.
+% An OpenGL color format (e.g. ?GL_RGBA), which specifies the number of color
+% components in a texture.
+
+
+-type gl_pixel_format() :: ?GL_COLOR_INDEX | ?GL_RED | ?GL_GREEN | ?GL_BLUE
+	| ?GL_ALPHA | ?GL_RGB | ?GL_RGBA | ?GL_LUMINANCE | ?GL_LUMINANCE_ALPHA.
+% A format of a pixel data.
 
 
 -export_type([ texture_id/0, texture/0, mipmap_level/0,
-			   gl_pixel_format/0 ]).
+			   gl_color_format/0, gl_pixel_format/0 ]).
 
 
--export([ load_from_image/1, load_from_file/1, load_from_file/2,
+-export([ set_basic_settings/0,
+
+		  create_from_image/1, load_from_file/1, load_from_file/2,
 
 		  create_from_text/4, create_from_text/5,
+
+		  set_as_current/1, set_new_as_current/0, set_as_current_from_id/1,
+		  assign_current/4,
 
 		  render/2, render/3,
 
@@ -104,7 +125,35 @@
 
 -type font() :: gui_font:font().
 
--type enum() :: gui_opengl:enum().
+%-type enum() :: gui_opengl:enum().
+
+
+
+% @doc Sets basic, general parameters regarding textures.
+-spec set_basic_settings() -> void().
+set_basic_settings() ->
+
+	gl:enable( ?GL_TEXTURE_2D ),
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
+
+	% GL_LINEAR better than GL_NEAREST:
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
+
+	% Otherwise the current color will be applied to the textured polygons as
+	% well (as the default texture environment mode is GL_MODULATE, which
+	% multiplies the texture color with the vertex color):
+	%
+	% (another option is to reset the modulation at rendering with:
+	%  gl:color4f( 1.0, 1.0, 1.0, 1.0 ))
+	%
+	%gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE ),
+	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
+
+	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
+	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
+
+	ok.
 
 
 
@@ -112,8 +161,8 @@
 %
 % The image instance is safe to be deallocated afterwards.
 %
--spec load_from_image( image() ) -> texture().
-load_from_image( Image ) ->
+-spec create_from_image( image() ) -> texture().
+create_from_image( Image ) ->
 
 	trace_utils:debug_fmt( "Loading texture from a ~ts.",
 						   [ gui_image:to_string( Image ) ] ),
@@ -129,24 +178,16 @@ load_from_image( Image ) ->
 
 	% Let's create the OpenGL texture:
 
-	TextureId = generate_id(),
+	TextureId = set_new_as_current(),
 
-	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
-
-	% Sets parameters regarding the current texture:
-	gl:texParameteri( _Target=?GL_TEXTURE_2D, _TexParam=?GL_TEXTURE_MAG_FILTER,
-					  _ParamValue=?GL_NEAREST ),
-
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_NEAREST ),
-
-	Format = case wxImage:hasAlpha( Image ) of
+	PixFormat = case gui_image:has_alpha( Image ) of
 
 		true ->
-			trace_utils:debug( "RGBA image detected." ),
+			%trace_utils:debug( "RGBA image detected." ),
 			?GL_RGBA;
 
 		false ->
-			trace_utils:debug( "RGB image detected." ),
+			%trace_utils:debug( "RGB image detected." ),
 			?GL_RGB
 
 	end,
@@ -155,8 +196,8 @@ load_from_image( Image ) ->
 	%
 	% (this is typically a call that may result in a SEGV)
 	%
-	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=Format,
-		TexWidth, TexHeight, _Border=0, _InputBufferFormat=Format,
+	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=PixFormat,
+		TexWidth, TexHeight, _Border=0, _InputBufferFormat=PixFormat,
 		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
 
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
@@ -168,7 +209,6 @@ load_from_image( Image ) ->
 			  max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight }.
 
 
-
 % @doc Creates a texture from the specified image file.
 %
 % Prefer load_from_file/2 if applicable.
@@ -176,12 +216,12 @@ load_from_image( Image ) ->
 -spec load_from_file( any_file_path() ) -> texture().
 load_from_file( ImagePath ) ->
 
-	Image = gui_image:create_from_file( ImagePath ),
+	Image = gui_image:load_from_file( ImagePath ),
 
 	%trace_utils:debug_fmt( "Image loaded from '~ts' of size ~Bx~B.",
 	%   [ ImagePath, wxImage:getWidth( Image ), wxImage:getHeight( Image ) ] ),
 
-	Tex = load_from_image( Image ),
+	Tex = create_from_image( Image ),
 	gui_image:destruct( Image ),
 	Tex.
 
@@ -190,8 +230,8 @@ load_from_file( ImagePath ) ->
 % @doc Creates a texture from the specified image file of the specified type.
 -spec load_from_file( image_format(), any_file_path() ) -> texture().
 load_from_file( ImageFormat, ImagePath ) ->
-	Image = gui_image:create_from_file( ImageFormat, ImagePath ),
-	Tex = load_from_image( Image ),
+	Image = gui_image:load_from_file( ImageFormat, ImagePath ),
+	Tex = create_from_image( Image ),
 	gui_image:destruct( Image ),
 	Tex.
 
@@ -206,12 +246,13 @@ create_from_text( Text, Font, Brush, Color ) ->
 	create_from_text( Text, Font, Brush, Color, _Flip=false ).
 
 
-% @doc Creates a texture corresponding to the specified text, rendered with
-% the specified font, brush and color, flipping it vertically if requested.
+% @doc Creates a texture corresponding to the specified text, rendered with the
+% specified font, brush and color, flipping it vertically (upside down) if
+% requested.
 %
 -spec create_from_text( ustring(), font(), brush(), color_by_decimal(),
 								boolean() ) -> texture().
-create_from_text( Text, Font, Brush, Color, Flip ) ->
+create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 	% Directly deriving from lib/wx/examples/demo/ex_gl.erl:
 
 	StrDims = { StrW, StrH } = gui_font:get_text_extent( Text, Font ),
@@ -221,14 +262,14 @@ create_from_text( Text, Font, Brush, Color, Flip ) ->
 	%trace_utils:debug_fmt( "Text dimensions: {~B,~B}; "
 	%   "texture dimensions: {~B,~B}.", [ StrW, StrH, Width, Height ] ),
 
+	% Supposing no alpha information here:
 	Bmp = wxBitmap:new( Width, Height ),
 
-	cond_utils:if_defined( myriad_debug_gui_memory,
-						   true = wxBitmap:isOk( Bmp ) ),
+	cond_utils:assert( myriad_debug_gui_memory, wxBitmap:isOk( Bmp ) ),
 
 	DC = wxMemoryDC:new( Bmp ),
 
-	cond_utils:if_defined( myriad_debug_gui_memory, true = wxDC:isOk( DC ) ),
+	cond_utils:assert( myriad_debug_gui_memory, wxDC:isOk( DC ) ),
 
 	wxMemoryDC:setFont( DC, Font ),
 
@@ -240,53 +281,98 @@ create_from_text( Text, Font, Brush, Color, Flip ) ->
 
 	wxMemoryDC:drawText( DC, Text, _Origin={ 0, 0 } ),
 
-	Img = wxBitmap:convertToImage( Bmp ),
+	TextImg = wxBitmap:convertToImage( Bmp ),
 
 	BaseImg = case Flip of
 
 		true ->
-			FlippedImg = wxImage:mirror( Img, [ { horizontally, false } ] ),
-			wxImage:destroy( Img ),
+			FlippedImg = wxImage:mirror( TextImg, [ { horizontally, false } ] ),
+			wxImage:destroy( TextImg ),
 			FlippedImg;
 
 		false ->
-			Img
+			TextImg
 
 	end,
 
-	AlphaValues = wxImage:getData( BaseImg ),
-	ColorizedData = gui_image:colorize( AlphaValues, Color ),
+	% Expected to be RGBA:
+	BaseBuffer = wxImage:getData( BaseImg ),
+
+	ReadyBuffer = gui_image:colorize( BaseBuffer, TextColor ),
 
 	wxImage:destroy( BaseImg ),
 	wxBitmap:destroy( Bmp ),
 	wxMemoryDC:destroy( DC ),
 
-	TextureId = generate_id(),
+	% To assign its buffer afterwards:
+	TextureId = set_new_as_current(),
 
-	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
-
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
-
-	% GL_LINEAR better than GL_NEAREST:
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
-
-	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
-
-	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
-	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
-
-	% Specifies this two-dimensional texture image:
-	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=?GL_RGBA,
-		Width, Height, _Border=0, _DataFormat=?GL_RGBA, _Type=?GL_UNSIGNED_BYTE,
-		ColorizedData ),
-
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+	assign_current( Width, Height, _TexFormat=?GL_RGBA, ReadyBuffer ),
 
 	%trace_utils:debug( "Texture loaded from text." ),
 
 	% Not supposed to be null dimensions:
 	#texture{ id=TextureId, width=StrW, height=StrH, min_x=0.0, min_y=0.0,
 			  max_x=StrW/Width, max_y=StrH/Height }.
+
+
+
+% @doc Sets the specified (2D) texture as the current one.
+%
+% Returns, if useful, its identifier.
+%
+-spec set_as_current( texture() ) -> texture_id().
+set_as_current( #texture{ id=TextureId } ) ->
+	set_as_current_from_id( TextureId ).
+
+
+% @doc Creates a new texture identifier, sets it as the current (2D) one, and
+% returns it.
+-spec set_new_as_current() -> texture_id().
+set_new_as_current() ->
+	set_as_current_from_id( generate_id() ).
+
+
+% @doc Sets the specified (2D) texture identifier as the current one.
+%
+% Lower-level, defined to centralise calls.
+%
+% Returns, if useful, the specified identifier.
+%
+-spec set_as_current_from_id( texture_id() ) -> texture_id().
+set_as_current_from_id( TextureId ) ->
+	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+
+	% These settings are not general, they will be assigned to the current
+	% texture (just bound), see
+	% https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexParameter.xhtml
+	%
+	% (GL_LINEAR generally better than GL_NEAREST, see
+	% https://learnopengl.com/Getting-started/Textures)
+	%
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
+
+	TextureId.
+
+
+
+% @doc Assigns the specified settings and buffer to the current (2D) texture.
+-spec assign_current( width(), height(), gl_pixel_format(), color_buffer() ) ->
+								void().
+assign_current( Width, Height, PixelFormat, ColorBuffer ) ->
+
+	% Specifies this two-dimensional texture image:
+	%
+	% (note that the first format is a color one, the second one is the
+	% specified pixel one (in the general case they may not match)
+	%
+	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=PixelFormat,
+		Width, Height, _Border=0, _DataFormat=PixelFormat,
+		_Type=?GL_UNSIGNED_BYTE, ColorBuffer ),
+
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
 
@@ -310,7 +396,7 @@ render( #texture{ id=TextureId,
 	%trace_utils:debug_fmt( "Rendering texture ~w (size: ~wx~w), from {~w,~w} "
 	%   "to {~w,~w}.", [ TextureId, Width, Height, MinX, MinY, MaxX, MaxY ] ),
 
-	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
+	set_as_current_from_id( TextureId ),
 
 	% Covers the rectangular texture area thanks to two (right-angled) triangles
 	% sharing an edge:
@@ -319,15 +405,13 @@ render( #texture{ id=TextureId,
 	%
 	gl:'begin'( ?GL_TRIANGLE_STRIP ),
 
-	OtherXp = Xp + Width div 2,
-	OtherYp = Yp + Height div 2,
-	%OtherXp = Xp + Width,
-	%OtherY = Yp + Height,
+	OtherXp = Xp + Width,
+	OtherYp = Yp + Height,
 
-	% Associating a (2D) texture coordinate to each verte.g.
-	gl:texCoord2f( MinXt, MinYt ), gl:vertex2i( Xp, Yp ),
+	% Associating a (2D) texture coordinate to each vertex:
+	gl:texCoord2f( MinXt, MinYt ), gl:vertex2i( Xp,      Yp ),
 	gl:texCoord2f( MaxXt, MinYt ), gl:vertex2i( OtherXp, Yp ),
-	gl:texCoord2f( MinXt, MaxYt ), gl:vertex2i( Xp, OtherYp ),
+	gl:texCoord2f( MinXt, MaxYt ), gl:vertex2i( Xp,      OtherYp ),
 	gl:texCoord2f( MaxXt, MaxYt ), gl:vertex2i( OtherXp, OtherYp ),
 
 	gl:'end'().
@@ -396,7 +480,7 @@ get_color_buffer( Image ) ->
 
 	RGBBuffer = wxImage:getData( Image ),
 
-	case wxImage:hasAlpha( Image ) of
+	case gui_image:has_alpha( Image ) of
 
 		true ->
 			% Obtain a pointer to the array storing the alpha coordinates for
@@ -435,7 +519,7 @@ get_color_buffer( Image, CurrentDimensions, TargetDimensions ) ->
 
 	RGBBuffer = wxImage:getData( Image ),
 
-	case wxImage:hasAlpha( Image ) of
+	case gui_image:has_alpha( Image ) of
 
 		true ->
 			% Obtain a pointer to the array storing the alpha coordinates for
