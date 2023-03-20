@@ -292,7 +292,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% No impact: gl:frontFace( ?GL_CW ),
 
-	gui_texture:set_basic_settings(),
+	gui_texture:set_basic_general_settings(),
 
 	% Clears in grey rather than black:
 	%gl:clearColor( 0.0, 0.0, 0.0, 0.0 ),

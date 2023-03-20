@@ -740,7 +740,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% These settings will not change afterwards (set once for all):
 
-	gui_texture:set_basic_settings(),
+	gui_texture:set_basic_general_settings(),
 
 	gl:enable( ?GL_DEPTH_TEST ),
 	gl:depthFunc( ?GL_LESS ),
