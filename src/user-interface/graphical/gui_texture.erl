@@ -163,11 +163,14 @@
 			   mipmap_level/0, gl_mipmap_filtering_mode/0 ]).
 
 
--export([ set_basic_settings/0,
+-export([ set_basic_general_settings/0,
 
-		  create_from_image/1, load_from_file/1, load_from_file/2,
+		  create_from_image/1, create_from_image/2,
+		  load_from_file/1, load_from_file/2,
 
 		  create_from_text/4, create_from_text/5,
+
+		  apply_basic_settings_on_current/0,
 
 		  generate_mipmaps/0, generate_mipmaps/1, generate_mipmaps_for_id/1,
 
@@ -229,44 +232,35 @@
 
 
 
-% @doc Sets basic, general parameters regarding textures.
--spec set_basic_settings() -> void().
-set_basic_settings() ->
-
+% @doc Sets basic, general parameters regarding (2D) textures.
+-spec set_basic_general_settings() -> void().
+set_basic_general_settings() ->
 	gl:enable( ?GL_TEXTURE_2D ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
-
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
-
-	% GL_LINEAR better than GL_NEAREST:
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
-
-	% Otherwise the current color will be applied to the textured polygons as
-	% well (as the default texture environment mode is GL_MODULATE, which
-	% multiplies the texture color with the vertex color):
-	%
-	% (another option is to reset the modulation at rendering with:
-	%  gl:color4f( 1.0, 1.0, 1.0, 1.0 ))
-	%
-	%gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE ),
-	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
-
-	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
-	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
-
-	ok.
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
 
-% @doc Creates a texture from the specified image instance.
+% @doc Creates a texture from the specified image instance, applies the default
+% texture settings on it, and makes it the currently bound texture.
 %
 % The image instance is safe to be deallocated afterwards.
 %
+% Mipmaps are automatically generated.
+%
 -spec create_from_image( image() ) -> texture().
 create_from_image( Image ) ->
+	create_from_image( Image, _GenMipmaps=true ).
+
+
+
+% @doc Creates a texture from the specified image instance, generating mipmaps
+% if requested, applies the default texture settings on it, and makes it the
+% currently bound texture.
+%
+% The image instance is safe to be deallocated afterwards.
+%
+-spec create_from_image( image(), boolean() ) -> texture().
+create_from_image( Image, GenMipmaps ) ->
 
 	trace_utils:debug_fmt( "Loading texture from a ~ts.",
 						   [ gui_image:to_string( Image ) ] ),
@@ -296,14 +290,14 @@ create_from_image( Image ) ->
 
 	end,
 
-	% Specifies this two-dimensional texture image:
-	%
-	% (this is typically a call that may result in a SEGV)
-	%
-	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=PixFormat,
-		TexWidth, TexHeight, _Border=0, _InputBufferFormat=PixFormat,
-		_PixelDataType=?GL_UNSIGNED_BYTE, ColorBuffer ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+	assign_current( TexWidth, TexHeight, PixFormat, ColorBuffer ),
+
+	GenMipmaps andalso
+		begin
+			gl:generateMipmap( ?GL_TEXTURE_2D ),
+			cond_utils:if_defined( myriad_check_textures,
+								   gui_opengl:check_error() )
+		end,
 
 	Zero = 0.0,
 
@@ -312,7 +306,9 @@ create_from_image( Image ) ->
 			  max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight }.
 
 
-% @doc Creates a texture from the specified image file.
+
+% @doc Creates a texture from the specified image file, applies the default
+% texture settings on it, and makes it the currently bound texture.
 %
 % Prefer load_from_file/2 if applicable.
 %
@@ -330,7 +326,10 @@ load_from_file( ImagePath ) ->
 
 
 
-% @doc Creates a texture from the specified image file of the specified type.
+% @doc Creates a texture from the specified image file of the specified type,
+% applies the default texture settings on it, and makes it the currently bound
+% texture.
+%
 -spec load_from_file( image_format(), any_file_path() ) -> texture().
 load_from_file( ImageFormat, ImagePath ) ->
 	Image = gui_image:load_from_file( ImageFormat, ImagePath ),
@@ -340,8 +339,9 @@ load_from_file( ImageFormat, ImagePath ) ->
 
 
 
-% @doc Creates a texture corresponding to the specified text, rendered with
-% the specified font, brush and color.
+% @doc Creates a texture corresponding to the specified text, rendered with the
+% specified font, brush and color, applies the default texture settings on it,
+% and makes it the currently bound texture.
 %
 -spec create_from_text( ustring(), font(), brush(),
 								color_by_decimal() ) -> texture().
@@ -349,9 +349,11 @@ create_from_text( Text, Font, Brush, Color ) ->
 	create_from_text( Text, Font, Brush, Color, _Flip=false ).
 
 
+
 % @doc Creates a texture corresponding to the specified text, rendered with the
 % specified font, brush and color, flipping it vertically (upside down) if
-% requested.
+% requested, applies the default texture settings on it, and makes it the
+% currently bound texture.
 %
 -spec create_from_text( ustring(), font(), brush(), color_by_decimal(),
 								boolean() ) -> texture().
@@ -420,6 +422,8 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 
 
+
+
 % @doc Generates mipmaps for the currently bound (2D) texture.
 -spec generate_mipmaps() -> void().
 generate_mipmaps() ->
@@ -464,40 +468,84 @@ set_new_as_current() ->
 %
 -spec set_as_current_from_id( texture_id() ) -> texture_id().
 set_as_current_from_id( TextureId ) ->
+
+	% To attach the texture specified from its ID to the currently bound (2D)
+	% texture object in the GL context:
+	%
 	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
-	% These settings are not general, they will be assigned to the current
-	% texture (just bound), see
+	% These settings are not general, they will be assigned specifically to the
+	% current (just bound) texture, see
 	% https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexParameter.xhtml
 	%
 	% (GL_LINEAR generally better than GL_NEAREST, see
 	% https://learnopengl.com/Getting-started/Textures)
 	%
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+	%test at loading:
 
 	TextureId.
 
 
 
-% @doc Assigns the specified settings and buffer to the current (2D) texture.
+% @doc Assigns the specified settings and buffer to the current (2D) texture,
+% and applies basic settings on it.
+%
 -spec assign_current( width(), height(), gl_pixel_format(), color_buffer() ) ->
 								void().
-assign_current( Width, Height, PixelFormat, ColorBuffer ) ->
+assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 
 	% Specifies this two-dimensional texture image:
 	%
 	% (note that the first format is a color one, the second one is the
-	% specified pixel one (in the general case they may not match)
+	% specified pixel one; in the general case they may not match))
 	%
-	gl:texImage2D( _Tgt=?GL_TEXTURE_2D, _LOD=0, _InternalTexFormat=PixelFormat,
-		Width, Height, _Border=0, _DataFormat=PixelFormat,
-		_Type=?GL_UNSIGNED_BYTE, ColorBuffer ),
+	% (this is typically a call that may result in a SEGV)
+	%
+	gl:texImage2D( _BindTarget=?GL_TEXTURE_2D, _MipmapLvl=0,
+		_InternalTexFormat=PixelFormat, TexWidth, TexHeight, _LegacyBorder=0,
+		_SrcBufferFormat=PixelFormat, _SrcPixelDataType=?GL_UNSIGNED_BYTE,
+		ColorBuffer ),
 
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+
+	apply_basic_settings_on_current().
+
+
+
+% @doc Sets basic parameters on the currently bound texture.
+-spec apply_basic_settings_on_current() -> void().
+apply_basic_settings_on_current() ->
+
+	% To be done once for all for each texture:
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+
+	% GL_LINEAR better than GL_NEAREST:
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+
+	% Otherwise the current color will be applied to the textured polygons as
+	% well (as the default texture environment mode is GL_MODULATE, which
+	% multiplies the texture color with the vertex color):
+	%
+	% (another option is to reset the modulation at rendering with:
+	%  gl:color4f( 1.0, 1.0, 1.0, 1.0 ))
+	%
+	%gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE ),
+	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_REPLACE ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+
+	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
+	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
+
+	% Possibly not that useful, UV coordinates remaining in [0.0, 1.0]:
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
