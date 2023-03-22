@@ -194,7 +194,10 @@ init_test_gui() ->
 	%
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
-	% No OpenGL state yet (GL context cannot be set as current yet):
+	% No OpenGL state yet (GL context cannot be set as current yet), actual
+	% OpenGL initialisation to happen when available, i.e. when the main frame
+	% is shown:
+	%
 	#my_gui_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext }.
 
 
@@ -284,6 +287,9 @@ gui_main_loop( GUIState ) ->
 			cleanup_opengl( GUIState ),
 			trace_utils:info( "Main frame closed, test success." ),
 
+			% Very final check, while there is still an OpenGL context:
+			gui_opengl:check_error(),
+
 			% No more recursing:
 			gui:destruct_frame( ParentFrame );
 
@@ -345,35 +351,34 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	gl:clearColor( _R=1.0, _G=1.0, _B=1.0, ?alpha_fully_opaque ),
 
 
-	% Creates and compiles our GLSL program from the two specified shaders:
+	% Creates, compiles and links our GLSL program from the two specified
+	% shaders, that are, in the same movement, automatically attached and
+	% linked, then detached and deleted:
+	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_minimal_shader.vertex.glsl",
 		"gui_opengl_minimal_shader.fragment.glsl" ),
 
-	% One (integer) identifier of vertex array wanted:
+	VAOId = gui_shader:set_new_vao(),
+
+	% Rely on our shaders:
+	gui_shader:install_program( ProgramId ),
+
+	% Triangle defined as [vertex3()], directly in normalized device coordinates
+	% here:
 	%
-	% (see http://howtos.esperide.org/ThreeDimensional.html#gl-bindings)
+	TriangleVertices =
+		[ { -1.0, -1.0, 0.0 }, { 1.0, -1.0, 0.0 }, { 0.0, 1.0, 0.0 } ],
+
+
+	% Targeting vertex attributes in a VBO, created and made active once for all
+	% here:
 	%
-	[ VertexArrayId ] = gl:genVertexArrays( _Count=1 ),
-
-	gl:bindVertexArray( VertexArrayId ),
-
-	% Rely on our shader:
-	gl:useProgram( ProgramId ),
-
-	% Triangle defined as [vertex3()]:
-	Vertices = [ { -1.0, -1.0, 0.0 }, { 1.0, -1.0, 0.0 }, { 0.0, 1.0, 0.0 } ],
-
-
-	% Targeting vertex attributes in a VBO:
-	VertexBufferId = gui_shader:bind_vertex_buffer_object( Vertices,
-		_UsageHint={ draw, static } ),
-
-	% Could be done once for all here:
-	%gl:bindBuffer( ?GL_ARRAY_BUFFER, VertexBufferId ),
+	VBOId = gui_shader:assign_vertices_to_new_vbo( TriangleVertices ),
 
 	InitOpenGLState = #my_opengl_state{ program_id=ProgramId,
-										vbo_id=VertexBufferId },
+										vao_id=VAOId,
+										vbo_id=VBOId },
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
@@ -394,15 +399,15 @@ cleanup_opengl( #my_gui_state{ opengl_state=undefined } ) ->
 
 cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 									program_id=ProgramId,
-									vao_id=VaoId,
-									vbo_id=VboId } } ) ->
+									vao_id=VAOId,
+									vbo_id=VBOId } } ) ->
 
 	trace_utils:debug( "Cleaning up OpenGL." ),
 
-	% Cleans up VBO:
-	gl:deleteBuffers( [ VboId ] ),
-	gl:deleteVertexArrays( [ VaoId ] ),
-	gl:deleteProgram( ProgramId ).
+	gui_shader:delete_vbo( VBOId ),
+	gui_shader:delete_vao( VAOId ),
+
+	gui_shader:delete_program( ProgramId ).
 
 
 
@@ -456,7 +461,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_opengl_state()  ) -> void().
-render( _Width, _Height, #my_opengl_state{ vbo_id=VBufferId } ) ->
+render( _Width, _Height, #my_opengl_state{ vbo_id=_VBufferId } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -465,35 +470,33 @@ render( _Width, _Height, #my_opengl_state{ vbo_id=VBufferId } ) ->
 
 	% We already rely on our shader program.
 
-	% In this specific simple case, could have been done only once, in OpenGL
-	% initialisation:
-	%
-	gl:bindBuffer( ?GL_ARRAY_BUFFER, VBufferId ),
+	% In this specific simple case, the vertex buffer could be bound only once,
+	% during OpenGL initialisation.
 
 	% From now, all operations apparently must be performed at each rendering:
 
-	% First and only attribute in buffer: the vertices.
-	VertIndex = 0,
-
-	% Uses the currently bound vertex array object:
-	gl:enableVertexAttribArray( VertIndex ),
+	% First and only attribute in buffer: the vertices; attribute 0 was chosen,
+	% yet no particular reason for this index, it just must match the layout
+	% (cf. 'location = 0') in the shader.
+	%
+	VertexAttrIndex = 0,
 
 	% Attribute 0; no particular reason for this index, but must match the
-	% layout in the shader:
+	% layout (cf. 'location = 0') in the shader; the number of components per
+	% attribute is 3 coordinates per vertex.
 	%
-	AttrIndex = 0,
+	% Must be executed at each rendering; uses the currently bound VBO.
+	%
+	gui_shader:specify_vertex_attribute( VertexAttrIndex ),
 
-	% Number of components per attribute (3 coordinates per vertex):
-	Size = 3,
+	% Draws our splendid triangle (from 3 indices, starting at 0), using the
+	% currently active shaders, vertex attribute configuration and with the
+	% VBO's vertex data (indirectly bound via the VAO):
+	%
+	gui_shader:render_from_enabled_vbos( _PrimType=?GL_TRIANGLES, _StartIndex=0,
+										 _Count=3 ),
 
-	% Tells how the currently bound vertex array object shall be interpreted:
-	gl:vertexAttribPointer( AttrIndex, Size, _Type=?GL_FLOAT,
-		_Normalized=?GL_FALSE, _Stride=0, _ArrayBufferOffset=0 ),
-
-	% Draws our splendid triangle (from 3 indices, starting at 0):
-	gl:drawArrays( _Mode=?GL_TRIANGLES, _First=0, _Count=3 ),
-
-	gl:disableVertexAttribArray( VertIndex ),
+	gui_shader:disable_vertex_attribute( VertexAttrIndex ),
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.

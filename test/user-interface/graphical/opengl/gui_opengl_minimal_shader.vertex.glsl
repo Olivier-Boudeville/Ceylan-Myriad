@@ -26,6 +26,8 @@
  * index 0 corresponds to the vector that will be assigned to the
  * user-defined shader input 'my_input_vertex'.
  *
+ * Output is the gl_Position vec4.
+ *
  */
 layout(location = 0) in vec3 my_input_vertex;
 
@@ -36,8 +38,15 @@ void main(){
 	 *
 	 */
 
-	// This is an identity transformation, basically:
+	/* This is an identity transformation, basically (so my_input_vertex is
+	 * expected to be already in normalized device coordinates:
+	 */
 	gl_Position.xyz = my_input_vertex;
 	gl_Position.w = 1.0;
+
+	// Could have been as well:
+	/* gl_Position = vec4(my_input_vertex.x, my_input_vertex.y,
+	 *                    my_input_vertex.z, 1.0);
+	 */
 
 }

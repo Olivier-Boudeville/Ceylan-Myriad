@@ -23,14 +23,18 @@
 
 
 
-// User-defined output data (no layout specified here):
+/* User-defined output data, as three floating-point coordinates in [0.0, 1.0]
+ * (see gui_color:render_rgb_color(); alpha of 1.0 implied) for the fragment of
+ * interest; no layout specified here:
+ *
+ */
 out vec3 my_color;
 
 
 void main()
 {
 
-	// For all fragments, the output color will be the "Myriad blue":
+	// For all fragments, the output color will be the RGB "Myriad blue":
 	my_color = vec3(0.05, 0.2, 0.67);
 
 }
