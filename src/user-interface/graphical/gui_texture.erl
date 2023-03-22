@@ -241,7 +241,7 @@ set_basic_general_settings() ->
 
 
 % @doc Creates a texture from the specified image instance, applies the default
-% texture settings on it, and makes it the currently bound texture.
+% texture settings on it, and makes it the currently active texture.
 %
 % The image instance is safe to be deallocated afterwards.
 %
@@ -255,7 +255,7 @@ create_from_image( Image ) ->
 
 % @doc Creates a texture from the specified image instance, generating mipmaps
 % if requested, applies the default texture settings on it, and makes it the
-% currently bound texture.
+% currently active texture.
 %
 % The image instance is safe to be deallocated afterwards.
 %
@@ -308,7 +308,7 @@ create_from_image( Image, GenMipmaps ) ->
 
 
 % @doc Creates a texture from the specified image file, applies the default
-% texture settings on it, and makes it the currently bound texture.
+% texture settings on it, and makes it the currently active texture.
 %
 % Prefer load_from_file/2 if applicable.
 %
@@ -327,7 +327,7 @@ load_from_file( ImagePath ) ->
 
 
 % @doc Creates a texture from the specified image file of the specified type,
-% applies the default texture settings on it, and makes it the currently bound
+% applies the default texture settings on it, and makes it the currently active
 % texture.
 %
 -spec load_from_file( image_format(), any_file_path() ) -> texture().
@@ -341,7 +341,7 @@ load_from_file( ImageFormat, ImagePath ) ->
 
 % @doc Creates a texture corresponding to the specified text, rendered with the
 % specified font, brush and color, applies the default texture settings on it,
-% and makes it the currently bound texture.
+% and makes it the currently active texture.
 %
 -spec create_from_text( ustring(), font(), brush(),
 								color_by_decimal() ) -> texture().
@@ -353,7 +353,7 @@ create_from_text( Text, Font, Brush, Color ) ->
 % @doc Creates a texture corresponding to the specified text, rendered with the
 % specified font, brush and color, flipping it vertically (upside down) if
 % requested, applies the default texture settings on it, and makes it the
-% currently bound texture.
+% currently active texture.
 %
 -spec create_from_text( ustring(), font(), brush(), color_by_decimal(),
 								boolean() ) -> texture().
@@ -424,13 +424,13 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 
 
-% @doc Generates mipmaps for the currently bound (2D) texture.
+% @doc Generates mipmaps for the currently active (2D) texture.
 -spec generate_mipmaps() -> void().
 generate_mipmaps() ->
 	generate_mipmaps( _Dim=?GL_TEXTURE_2D ).
 
 
-% @doc Generates mipmaps for the currently bound texture.
+% @doc Generates mipmaps for the currently active texture.
 -spec generate_mipmaps( texture_dimension() ) -> void().
 generate_mipmaps( TexDim ) ->
 	gl:generateMipmap( TexDim ),
@@ -444,7 +444,7 @@ generate_mipmaps_for_id( TextureId ) ->
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified (2D) texture as the current one.
+% @doc Sets the specified (2D) texture as the currently active one.
 %
 % Returns, if useful, its identifier.
 %
@@ -453,14 +453,20 @@ set_as_current( #texture{ id=TextureId } ) ->
 	set_as_current_from_id( TextureId ).
 
 
-% @doc Creates a new texture identifier, sets it as the current (2D) one, and
-% returns it.
+% @doc Creates a texture identifier, sets it as the currently active (2D) one,
+% and returns it.
+%
 -spec set_new_as_current() -> texture_id().
 set_new_as_current() ->
 	set_as_current_from_id( generate_id() ).
 
 
-% @doc Sets the specified (2D) texture identifier as the current one.
+
+% @doc Sets the specified (2D) texture identifier as the currently active
+% one.
+%
+% From now on, all operations done regarding (2D) textures (that is the
+% ?GL_TEXTURE_2D target) will be applied to this texture.
 %
 % Lower-level, defined to centralise calls.
 %
@@ -469,28 +475,20 @@ set_new_as_current() ->
 -spec set_as_current_from_id( texture_id() ) -> texture_id().
 set_as_current_from_id( TextureId ) ->
 
-	% To attach the texture specified from its ID to the currently bound (2D)
+	% To attach the texture specified from its ID to the currently active (2D)
 	% texture object in the GL context:
+	%
+	% (thus binding is a synonym of making currently active)
 	%
 	gl:bindTexture( ?GL_TEXTURE_2D, TextureId ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
-
-	% These settings are not general, they will be assigned specifically to the
-	% current (just bound) texture, see
-	% https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexParameter.xhtml
-	%
-	% (GL_LINEAR generally better than GL_NEAREST, see
-	% https://learnopengl.com/Getting-started/Textures)
-	%
-
-	%test at loading:
 
 	TextureId.
 
 
 
-% @doc Assigns the specified settings and buffer to the current (2D) texture,
-% and applies basic settings on it.
+% @doc Assigns the specified settings and buffer to the currently active (2D)
+% texture, and applies basic settings on it.
 %
 -spec assign_current( width(), height(), gl_pixel_format(), color_buffer() ) ->
 								void().
@@ -514,11 +512,17 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 
 
 
-% @doc Sets basic parameters on the currently bound texture.
+% @doc Sets basic parameters on the currently active (2D) texture.
 -spec apply_basic_settings_on_current() -> void().
 apply_basic_settings_on_current() ->
 
-	% To be done once for all for each texture:
+	% These settings are not general, they will be assigned specifically to the
+	% currently active texture, see
+	% https://registry.khronos.org/OpenGL-Refpages/gl4/html/glTexParameter.xhtml
+	%
+	% (GL_LINEAR generally better than GL_NEAREST, see
+	% https://learnopengl.com/Getting-started/Textures)
+	%
 
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
