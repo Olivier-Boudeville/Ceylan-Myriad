@@ -543,9 +543,15 @@ handle_pending_view_events( ViewState=#view_state{ parent=ParentWindow } ) ->
 
 		% Sent by the controller:
 		{ onViewTermination, SenderPid } ->
+
 			trace_utils:info_fmt( "[~w] View notified of termination.",
 								  [ self() ] ),
+
+			% Very final check, while there is still an OpenGL context:
+			gui_opengl:check_error(),
+
 			gui:destruct_window( ViewState#view_state.parent ),
+
 			gui:stop(),
 			SenderPid ! view_terminated;
 

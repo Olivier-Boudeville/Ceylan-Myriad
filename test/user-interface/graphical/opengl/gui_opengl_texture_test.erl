@@ -255,6 +255,10 @@ gui_main_loop( GUIState ) ->
 		{ onWindowClosed, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
 			% No more recursing:
+
+			% Very final check, while there is still an OpenGL context:
+			gui_opengl:check_error(),
+
 			gui:destruct_window( ParentWindow );
 
 

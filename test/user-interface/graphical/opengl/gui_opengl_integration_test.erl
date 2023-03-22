@@ -555,6 +555,7 @@ run_actual_test() ->
 
 
 
+
 % @doc Creates the initial test GUI: a main frame containing a panel to which an
 % OpenGL canvas is associated, in which an OpenGL context is created.
 %
@@ -689,9 +690,13 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( InitGUIState );
 
 
-		{ onWindowClosed, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
+		{ onWindowClosed, [ ParentFrame, _ParentWindowId, _EventContext ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
-			gui:destruct_window( ParentWindow );
+
+			% Very final check, while there is still an OpenGL context:
+			gui_opengl:check_error(),
+
+			gui:destruct_window( ParentFrame );
 
 
 		OtherEvent ->
