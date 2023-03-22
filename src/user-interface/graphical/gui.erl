@@ -301,6 +301,9 @@
 % paint_device_context() instance instead.
 
 
+-type buffer() :: binary().
+% Any type of GUI-related buffer.
+
 
 -type any_window_device_context() :: window_device_context()
 								   | window()
@@ -1267,7 +1270,7 @@
 
 			   device_context/0, paint_device_context/0,
 			   memory_device_context/0, window_device_context/0,
-			   any_window_device_context/0,
+			   any_window_device_context/0, buffer/0,
 
 			   graphic_context/0,
 
