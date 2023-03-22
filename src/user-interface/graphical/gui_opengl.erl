@@ -215,7 +215,8 @@
 
 	% Request the use of an OpenGL core profile (as opposed to a mere
 	% compatibility one); note that is implies requesting at least OpenGL
-	% version 3.0.
+	% version 3.0; at least in some settings, this attribute seems to be ignored
+	% (compatibility profile being returned).
 	%
   | 'use_core_profile'.
 
@@ -245,6 +246,7 @@
 % This is the coordinate type of UV coordinates.
 
 
+-type gl_boolean() :: ?GL_TRUE | ?GL_FALSE.
 
 
 -type matrix_stack() :: ?GL_MODELVIEW
@@ -254,12 +256,19 @@
 % The various matrix stacks available, a.k.a. the current matrix mode.
 
 
+-type gl_buffer() :: buffer().
+% Any type of OpenGL buffer.
+
+-type gl_buffer_id() :: non_neg_integer().
+% The identifier of an (OpenGL) buffer, i.e. a "buffer object name".
+
+
 % Probably better than:
 %    'punctual'    % set once and used at most a few times
 %  | 'read_only'   % set once and used many times
 %  | 'read_write'. % modified repeatedl and used many times
 %
--type buffer_usage_hint()::
+-type buffer_usage_hint() ::
 		{ buffer_access_usage(), buffer_access_pattern() }.
 % Hint given to the GL implementation regarding how a buffer will be
 % accessed.
@@ -278,6 +287,7 @@
 
   | 'copy'. % The buffer is modified by reading data from OpenGL, and used
 			% to return that data when queried by the application.
+
 
 -type buffer_access_pattern() ::
 	'stream'   % The buffer will be modified once, and used at most a few times.
@@ -308,7 +318,8 @@
 			   gl_canvas/0, gl_canvas_option/0,
 			   device_context_attribute/0, gl_context/0,
 			   factor/0, length_factor/0,
-			   matrix_stack/0,
+			   gl_boolean/0,
+			   matrix_stack/0, gl_buffer/0, gl_buffer_id/0,
 
 			   gl_error/0, glu_error/0, any_error/0,
 			   glu_id/0 ]).
@@ -344,7 +355,7 @@
 
 		  set_matrix/1, get_matrix/1,
 
-		  buffer_usage_hint_to_gl/1,
+		  boolean_to_gl/1, buffer_usage_hint_to_gl/1,
 		  check_error/0, interpret_error/1 ]).
 
 
@@ -377,6 +388,7 @@
 -type face_type() :: mesh:face_type().
 
 -type window() :: gui:window().
+-type buffer() :: gui:buffer().
 
 -type render_rgb_color() :: gui_color:render_rgb_color().
 
@@ -1346,10 +1358,22 @@ get_matrix( _Stack ) ->
 
 
 
-% Conversion helper.
+% Conversion helpers, from MyriadGUI to OpenGL.
+
+
+% @doc Converts a MyriadGUI hint about buffer usage to OpenGL conventions.
+-spec boolean_to_gl( boolean() ) -> gl_boolean().
+boolean_to_gl( true ) ->
+	?GL_TRUE;
+
+boolean_to_gl( false ) ->
+	?GL_FALSE.
+
+
+
+% @doc Converts a MyriadGUI hint about buffer usage to OpenGL conventions.
 %
 % See https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml.
-%
 -spec buffer_usage_hint_to_gl( buffer_usage_hint()  ) -> enum().
 buffer_usage_hint_to_gl( _UsageHint={ _Usage=draw, _Access=stream } ) ->
 	% In gl.hrl:
