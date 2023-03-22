@@ -83,8 +83,9 @@
 
 
 -type color_coordinate() :: float().
-% Color coordinate, in [0.0,1.0].
-% For example used and clamped by OpenGL.
+% Color coordinate, in [0.0, 1.0].
+%
+% For example as used and clamped by OpenGL.
 
 
 -type alpha_coordinate() :: color_coordinate().
@@ -130,21 +131,21 @@
 % Useful for direct image manipulation.
 
 
--type rgb_color_buffer() :: binary().
+-type rgb_color_buffer() :: buffer().
 % A buffer of pixel colors coded as a sequence of RGB binary elements
 % (RGBRGBRGB), from the top-left pixel to bottom-right one, row per row.
 %
 % Useful for direct image manipulation.
 
 
--type rgba_color_buffer() :: binary().
+-type rgba_color_buffer() :: buffer().
 % A buffer of pixel colors coded as a sequence of RGBA binary elements
 % (RGBARGBARGBA), from the top-left pixel to bottom-right one, row per row.
 %
 % Useful for direct image manipulation.
 
 
--type alpha_buffer() :: binary().
+-type alpha_buffer() :: buffer().
 % A buffer of pixel alpha coordinates, from the top-left pixel to bottom-right
 % one, row per row.
 %
@@ -175,6 +176,8 @@
 -type ustring() :: text_utils:ustring().
 
 -type byte_size() :: system_utils:byte_size().
+
+-type buffer() :: gui:buffer().
 
 
 
