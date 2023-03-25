@@ -312,6 +312,26 @@
 % allocate the object.
 
 
+-type polygon_facing_mode() ::
+	?GL_FRONT           % for front-facing polygons
+  | ?GL_BACK            % for back-facing polygons
+  | ?GL_FRONT_AND_BACK. % for front- and back-facing polygons
+% A selection of polygons, based on how they face the viewpoint (winding).
+%
+% For example:
+% gl:enable( ?GL_CULL_FACE ), % Enables the culling of faces
+% gl:cullFace( ?GL_BACK),     % Culls the back faces
+% gl:frontFace( ?GL_CW ),     % Front faces are here the ones whose vertices
+%                             % are listed clock-wise
+
+
+-type rasterization_mode() ::
+	?GL_POINT
+  | ?GL_LINE
+  | ?GL_FILL. % The default, for both front- and back-facing polygons
+
+
+
 -export_type([ gl_base_type/0, enum/0, glxinfo_report/0,
 			   vendor_name/0, renderer_name/0, platform_identifier/0,
 			   gl_version/0, gl_profile/0, gl_extension/0, info_table_id/0,
@@ -322,7 +342,9 @@
 			   matrix_stack/0, gl_buffer/0, gl_buffer_id/0,
 
 			   gl_error/0, glu_error/0, any_error/0,
-			   glu_id/0 ]).
+			   glu_id/0,
+
+			   polygon_facing_mode/0, rasterization_mode/0 ]).
 
 
 -export([ get_vendor_name/0, get_vendor/0,
@@ -348,6 +370,8 @@
 		  create_canvas/1, create_canvas/2,
 		  create_context/1, set_context_on_shown/2, set_context/2,
 		  swap_buffers/1,
+
+		  set_polygon_raster_mode/2,
 
 		  render_mesh/1,
 
@@ -1207,6 +1231,16 @@ swap_buffers( Canvas ) ->
 	wxGLCanvas:swapBuffers( Canvas ) orelse throw( failed_to_swap_buffers ),
 
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
+
+
+% @doc Set the polygon rasterization mode.
+-spec set_polygon_raster_mode( polygon_facing_mode(),
+							   rasterization_mode() ) -> void().
+set_polygon_raster_mode( FacingMode, RasterMode ) ->
+	gl:polygonMode( FacingMode, RasterMode ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
 
 
 % @doc Renders the specified mesh in a supposedly appropriate OpenGL context.
