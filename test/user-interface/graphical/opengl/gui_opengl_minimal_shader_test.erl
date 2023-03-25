@@ -128,6 +128,13 @@
 -type ebo_id() :: gui_shader:ebo_id().
 
 
+% First and only attribute in the vertex stream that will be passed to the our
+% shader: the vertices; attribute 0 was chosen, yet no particular reason for
+% this index, it just must match the layout (cf. 'location = 0') in the shader.
+%
+-define( my_vertex_attribute_index, 0 ).
+
+
 
 % @doc Runs the OpenGL test if possible.
 -spec run_opengl_test() -> void().
@@ -379,7 +386,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	TriangleVAOId = gui_shader:set_new_vao(),
 
-
 	Z = 0.0,
 
 	% Triangle defined as [vertex3()], directly in normalized device coordinates
@@ -400,11 +406,13 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	TriangleVBOId = gui_shader:assign_vertices_to_new_vbo( TriangleVertices ),
 
+	% Specified while the triangle VAO is still active:
+	gui_shader:specify_vertex_attribute( ?my_vertex_attribute_index ),
 
-	% Second, a square, whose vertices are specified through indices:
+
+	% Second, a square, whose vertices are specified this time through indices:
 
 	SquareVAOId = gui_shader:set_new_vao(),
-
 
 	% Half edge length:
 	H = 0.5,
@@ -433,6 +441,14 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	SquareEBOId = gui_shader:assign_indices_to_new_ebo( SquareIndices ),
 
+	% Specified while the square VAO is still active:
+	gui_shader:specify_vertex_attribute( ?my_vertex_attribute_index ),
+
+	% As the EBO is still bound, it is tracked by this VAO (as it is currently
+	% active), which will rebind it automatically the next time it will be
+	% itself bound:
+	%
+	gui_shader:unset_current_vao(),
 
 	InitOpenGLState = #my_opengl_state{ program_id=ProgramId,
 										triangle_vao_id=TriangleVAOId,
@@ -530,11 +546,10 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_opengl_state()  ) -> void().
 render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
-										   triangle_vbo_id=TriangleVBOId,
+										   triangle_vbo_id=_TriangleVBOId,
 										   square_vao_id=SquareVAOId,
-										   square_vbo_id=SquareVBOId,
-										   square_ebo_id=_SquareEBOId
-										 } ) ->
+										   square_vbo_id=_SquareVBOId,
+										   square_ebo_id=_SquareEBOId } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -543,29 +558,17 @@ render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
 
 	% We already rely on our shader program.
 
-	% In this specific simple case, the vertex buffer could be bound only once,
-	% during OpenGL initialisation.
-
-	% From now, all operations apparently must be performed at each rendering:
-
-	% First and only attribute in buffer: the vertices; attribute 0 was chosen,
-	% yet no particular reason for this index, it just must match the layout
-	% (cf. 'location = 0') in the shader.
-	%
-	VertexAttrIndex = 0,
-
 	PrimType = ?GL_TRIANGLES,
 
-	% Attribute 0; no particular reason for this index, but must match the
-	% layout (cf. 'location = 0') in the shader; the number of components per
-	% attribute is 3 coordinates per vertex.
-	%
-	% Must be executed at each rendering; uses the currently bound VBO.
-	%
-	gui_shader:specify_vertex_attribute( VertexAttrIndex ),
+	% From now, all operations must be performed at each rendering; first
+	% starting with the triangle:
 
+	% Sets the VBO and the vertex attribute:
 	gui_shader:set_current_vao_from_id( TriangleVAOId ),
-	gui_shader:set_current_vbo_from_id( TriangleVBOId ),
+
+	% So these two calls are useless:
+	%gui_shader:set_current_vbo_from_id( TriangleVBOId ),
+	%gui_shader:enable_vertex_attribute( ?my_vertex_attribute_index ),
 
 	% Draws our splendid triangle (from 3 slots, starting at 0), using the
 	% currently active shaders, vertex attribute configuration and with the
@@ -573,18 +576,26 @@ render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
 	%
 	gui_shader:render_from_enabled_vbos( PrimType, _StartIndex=0, _VCount=3 ),
 
-	gui_shader:specify_vertex_attribute( VertexAttrIndex ),
 
+	% Second, rendering the square:
+
+	% Sets the vertex attribute; binds at well the square EBO, as it was still
+	% tracked by the VAO when this VAO was unset:
+	%
 	gui_shader:set_current_vao_from_id( SquareVAOId ),
-	gui_shader:set_current_vbo_from_id( SquareVBOId ),
 
-	% Useless here as there is only one EBO:
+	% Useless as well, as the VAO take care of them:
+	%gui_shader:set_current_vbo_from_id( SquareVBOId ),
+	%gui_shader:enable_vertex_attribute( ?my_vertex_attribute_index ),
 	%gui_shader:set_current_ebo_from_id( SquareEBOId ),
 
-	% Corresponds to lenght(SquareIndices):
+	% This count corresponds to length(SquareIndices):
 	gui_shader:render_from_enabled_ebos( PrimType, _VertexCount=6 ),
 
-	gui_shader:disable_vertex_attribute( VertexAttrIndex ),
+	gui_shader:unset_current_vao(),
+
+	% Useless, as reset at each rendering through VAOs:
+	%gui_shader:disable_vertex_attribute( ?my_vertex_attribute_index ),
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.
