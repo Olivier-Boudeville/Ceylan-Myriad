@@ -89,11 +89,22 @@
 	% The identifier of our GLSL program:
 	program_id :: program_id(),
 
-	% The identifier of the VAO (Vertex Array Object) used in this test:
-	vao_id :: vao_id(),
+	% For the triangle, which has direct coordinates:
+
+	% The identifier of the VAO (Vertex Array Object) used in this test for the
+	% triangle:
+	%
+	triangle_vao_id :: vao_id(),
 
 	% The identifier of the VBO (Vertex Buffer Object) for the triangle:
-	vbo_id :: vbo_id() } ).
+	triangle_vbo_id :: vbo_id(),
+
+
+	% For the square, which has indexed coordinates:
+
+	square_vao_id :: vao_id(),
+	square_vbo_id :: vbo_id(),
+	square_ebo_id :: ebo_id() } ).
 
 -type my_opengl_state() :: #my_opengl_state{}.
 % Test-specific overall OpenGL state.
@@ -111,9 +122,10 @@
 -type gl_canvas() :: gui:opengl_canvas().
 -type gl_context() :: gui:opengl_context().
 
+-type program_id() :: gui_shader:program_id().
 -type vao_id() :: gui_shader:vao_id().
 -type vbo_id() :: gui_shader:vbo_id().
--type program_id() :: gui_shader:program_id().
+-type ebo_id() :: gui_shader:ebo_id().
 
 
 
@@ -347,7 +359,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% These settings will not change afterwards here (hence set once for all):
 
-	% Clears in white (necessary, otherwise black background):
+	% Clears in white (otherwise black background):
 	gl:clearColor( _R=1.0, _G=1.0, _B=1.0, ?alpha_fully_opaque ),
 
 
@@ -359,26 +371,75 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		"gui_opengl_minimal_shader.vertex.glsl",
 		"gui_opengl_minimal_shader.fragment.glsl" ),
 
-	VAOId = gui_shader:set_new_vao(),
-
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
+
+	% First, a triangle, whose vertices are specified directly:
+
+	TriangleVAOId = gui_shader:set_new_vao(),
+
+
+	Z = 0.0,
+
 	% Triangle defined as [vertex3()], directly in normalized device coordinates
-	% here:
+	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
+	% texture referential has its Y ordinate axis up, see
+	% https://learnopengl.com/Getting-started/Hello-Triangle):
+	%
+	%               T2
+	%              /  \
+	%             T0--T1
 	%
 	TriangleVertices =
-		[ { -1.0, -1.0, 0.0 }, { 1.0, -1.0, 0.0 }, { 0.0, 1.0, 0.0 } ],
+		[ _T0={ -1.0, -1.0, Z }, _T1={ 1.0, -1.0, Z }, _T2={ 0.0, 1.0, Z } ],
 
 
 	% Targeting vertex attributes in a VBO, created and made active once for all
 	% here:
 	%
-	VBOId = gui_shader:assign_vertices_to_new_vbo( TriangleVertices ),
+	TriangleVBOId = gui_shader:assign_vertices_to_new_vbo( TriangleVertices ),
+
+
+	% Second, a square, whose vertices are specified through indices:
+
+	SquareVAOId = gui_shader:set_new_vao(),
+
+
+	% Half edge length:
+	H = 0.5,
+
+	% Square defined as [vertex3()], directly in normalized device coordinates
+	% here; CCW order (bottom left, bottom right, top right, top left)::
+	%
+	%         S3--S2
+	%         |    |
+	%         S0--S1
+	%
+	SquareVertices = [ _S0={ -H, -H, Z }, _S1={  H, -H, Z },
+					   _S2={  H,  H, Z }, _S3={ -H,  H, Z } ],
+
+	% Targeting vertex attributes in a VBO, created and made active once for all
+	% here:
+	%
+	SquareVBOId = gui_shader:assign_vertices_to_new_vbo( SquareVertices ),
+
+	% We describe our square as two triangles in CCW order; the first, S0-S1-S3
+	% on the bottom left, the second, S1-S2-S3 on the top right; we have just a
+	% list of indices (not for example a list of triplets of indices):
+	%
+	SquareIndices = [ 0, 1, 3,   % As the first triangle is S0-S1-S3
+					  1, 2, 3 ], % As the second triangle is S1-S2-S3
+
+	SquareEBOId = gui_shader:assign_indices_to_new_ebo( SquareIndices ),
+
 
 	InitOpenGLState = #my_opengl_state{ program_id=ProgramId,
-										vao_id=VAOId,
-										vbo_id=VBOId },
+										triangle_vao_id=TriangleVAOId,
+										triangle_vbo_id=TriangleVBOId,
+										square_vao_id=SquareVAOId,
+										square_vbo_id=SquareVBOId,
+										square_ebo_id=SquareEBOId },
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
@@ -399,13 +460,20 @@ cleanup_opengl( #my_gui_state{ opengl_state=undefined } ) ->
 
 cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 									program_id=ProgramId,
-									vao_id=VAOId,
-									vbo_id=VBOId } } ) ->
+									triangle_vao_id=TriangleVAOId,
+									triangle_vbo_id=TriangleVBOId,
+									square_vao_id=SquareVAOId,
+									square_vbo_id=SquareVBOId,
+									square_ebo_id=SquareEBOId } } ) ->
 
 	trace_utils:debug( "Cleaning up OpenGL." ),
 
-	gui_shader:delete_vbo( VBOId ),
-	gui_shader:delete_vao( VAOId ),
+	gui_shader:delete_vbo( TriangleVBOId ),
+	gui_shader:delete_vao( TriangleVAOId ),
+
+	gui_shader:delete_ebo( SquareEBOId ),
+	gui_shader:delete_vbo( SquareVBOId ),
+	gui_shader:delete_vao( SquareVAOId ),
 
 	gui_shader:delete_program( ProgramId ).
 
@@ -461,7 +529,12 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_opengl_state()  ) -> void().
-render( _Width, _Height, #my_opengl_state{ vbo_id=_VBufferId } ) ->
+render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
+										   triangle_vbo_id=TriangleVBOId,
+										   square_vao_id=SquareVAOId,
+										   square_vbo_id=SquareVBOId,
+										   square_ebo_id=_SquareEBOId
+										 } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -481,6 +554,8 @@ render( _Width, _Height, #my_opengl_state{ vbo_id=_VBufferId } ) ->
 	%
 	VertexAttrIndex = 0,
 
+	PrimType = ?GL_TRIANGLES,
+
 	% Attribute 0; no particular reason for this index, but must match the
 	% layout (cf. 'location = 0') in the shader; the number of components per
 	% attribute is 3 coordinates per vertex.
@@ -489,12 +564,25 @@ render( _Width, _Height, #my_opengl_state{ vbo_id=_VBufferId } ) ->
 	%
 	gui_shader:specify_vertex_attribute( VertexAttrIndex ),
 
-	% Draws our splendid triangle (from 3 indices, starting at 0), using the
+	gui_shader:set_current_vao_from_id( TriangleVAOId ),
+	gui_shader:set_current_vbo_from_id( TriangleVBOId ),
+
+	% Draws our splendid triangle (from 3 slots, starting at 0), using the
 	% currently active shaders, vertex attribute configuration and with the
 	% VBO's vertex data (indirectly bound via the VAO):
 	%
-	gui_shader:render_from_enabled_vbos( _PrimType=?GL_TRIANGLES, _StartIndex=0,
-										 _Count=3 ),
+	gui_shader:render_from_enabled_vbos( PrimType, _StartIndex=0, _VCount=3 ),
+
+	gui_shader:specify_vertex_attribute( VertexAttrIndex ),
+
+	gui_shader:set_current_vao_from_id( SquareVAOId ),
+	gui_shader:set_current_vbo_from_id( SquareVBOId ),
+
+	% Useless here as there is only one EBO:
+	%gui_shader:set_current_ebo_from_id( SquareEBOId ),
+
+	% Corresponds to lenght(SquareIndices):
+	gui_shader:render_from_enabled_ebos( PrimType, _VertexCount=6 ),
 
 	gui_shader:disable_vertex_attribute( VertexAttrIndex ),
 
