@@ -83,33 +83,48 @@
 
 
 
--type vertex_attribute_index() :: non_neg_integer().
-% The index of a vertex attribute, in a VBO.
-%
-% Corresponds to a location for a shader (like in `layout (location = 0)').
-
-
--type attribute_name() :: ustring().
+-type vertex_attribute_name() :: ustring().
 % The name of a user-defined attribute, meant to be set through an associated
 % index.
+%
+% By default a vertex attribute is disabled.
 
 
--type user_attribute() :: { vertex_attribute_index(), attribute_name() }.
-% A user-defined attribute variable, meant to be associated to a generic vertex
-% attribute index in a GLSL program.
+-type vertex_attribute_index() :: non_neg_integer().
+% The index of a vertex attribute, in each data conveyed through the vertex
+% stream.
+%
+% Such an index corresponds to a location for a shader (like in `layout
+% (location = 0)').
+%
+% When specifying such an attribute, it is done relatively to the currently
+% active VBO.
+
+
+-type user_vertex_attribute() ::
+		{ vertex_attribute_name(), vertex_attribute_index() }.
+% A user-defined vertex attribute variable, meant to be associated to a generic
+% vertex attribute index in a GLSL program.
 
 
 
 
 -type vao_id() :: non_neg_integer().
-% The identifier of a Vertex Array Object (VAO).
+% The identifier of a "Vertex Array Object" (VAO).
 %
-% A VAO is able to store multiple VBOs (up to one for vertices, the others for
-% per-vertex attributes); a VAO corresponds to an homogeneous chunk of data,
-% sent from the CPU-space in order to be stored in the GPU-space.
+% A VAO is able to reference "vertex information":
+% - the specification of multiple (enabled) vertex attributes
+% - multiple VBOs (up to one for vertices, the others for per-vertex attributes)
+% - up to one EOB
 %
-% The core profile requires a VAO to be used. A default VAO exists.
-
+% The core profile requires a VAO to be explicitly used; a default VAO (number
+% 0) exists only with the compatibility profile, so we recommend not using it.
+%
+% Once made active (bound) and until being unbound, a VAO keeps track of the
+% EBOs that are bound. So if an EBO is still bound when a VAO is unbound, the
+% EBO will be tracked by this VAO and be automatically bound when this VAO will
+% be bound next. The same applies to EBO and to the specifications of vertex
+% attributes.
 
 
 -type array_buffer() :: gl_buffer().
@@ -139,9 +154,24 @@
 
 
 -type vbo() :: array_buffer().
-% A Vertex Buffer Object, a (GLSL) buffer storing a piece of information (vertex
-% coordinates, or normal, or colors, or texture coordinates, etc.) for each
-% element of a series of vertices.
+% A "Vertex Buffer Object", that is a (GLSL) buffer storing a specific piece of
+% information (vertex coordinates, or normals, or colors, or texture
+% coordinates, etc.) for each element of a series of vertices (a.k.a. vertex
+% stream).
+%
+% A VBO corresponds to an homogeneous chunk (an array) of data, sent from the
+% CPU-space, in order to be stored (possibly durably) in the GPU-space.
+%
+% So a 3D object may have a VBO for its vertices, one for its normals, etc.
+%
+% The key point is that the data is retrieved once per vertex and passed to a
+% given shader instance. If a buffer contains 3 elements, each will be sent to a
+% different shader instance, all of them processing their data in
+% parallel.
+%
+% Furthermore interpolation may be done, for example from the outputs of the
+% vertex shader (one such output per vertex) to the many fragments placed as
+% input to the fragment shaders (one per pixel).
 
 
 -type vbo_id() :: gl_buffer_id().
@@ -195,12 +225,34 @@
 
 
 
+% Usage notes:
+%
+% How the variables of interest of a shader instance correspond to an element in
+% a VBO can be determined through either of the following 3 approaches:
+%
+% - by specifying the association directly when generating the GLSL program,
+% thanks to a list of user_attribute(); see generate_program_from/3 and
+% generate_program/2; this is our preferred method
+%
+% - by specifying on both sides the same (numerical) index; typically the
+% application would use 'gui_shader:specify_vertex_attribute(INDEX)' while the
+% shader would specify 'layout(location = INDEX) in vec3 my_input_vertex;'; this
+% approach will work starting from OpenGL 3.3 (e.g. some Mac would not support
+% it)
+%
+% - by letting the linker decide which location to give each input variable, and
+% using the result of gl:getAttribLocation/2 for the first parameter of calls to
+% gl:vertexAttribPointer/6 (not specifically supported by MyriadGUI)
+
+
+
 -export_type([ shader_id/0, vertex_shader_id/0,
 			   tessellation_control_shader_id/0,
 			   tessellation_evaluation_shader_id/0, geometry_shader_id/0,
 			   fragment_shader_id/0, compute_shader_id/0,
 
-			   vertex_attribute_index/0, attribute_name/0, user_attribute/0,
+			   user_vertex_attribute/0,
+			   vertex_attribute_index/0, vertex_attribute_name/0,
 
 			   program_id/0,
 			   vao_id/0,
@@ -218,7 +270,9 @@
 		  compile_tessellation_evaluation_shader/1, compile_geometry_shader/1,
 		  compile_fragment_shader/1, compile_compute_shader/1,
 
-		  generate_program_from/2, generate_program/1, generate_program/2,
+		  generate_program_from/2, generate_program_from/3,
+		  generate_program/1, generate_program/2,
+
 		  install_program/1, delete_program/1 ]).
 
 
@@ -285,6 +339,9 @@
 % On modern OpenGL, there are no default vertex/fragment shaders on the GPU, so
 % each application must define at least a vertex and fragment shader of its own.
 
+% Information sources:
+% - https://learnopengl.com/
+% - https://antongerdelan.net/opengl/vertexbuffers.html
 
 % Default usage profile for VBOs:
 -define( default_vbo_usage_hint, { draw, static } ).
@@ -778,6 +835,7 @@ compile_compute_shader( ComputeShaderPath ) ->
 
 
 
+
 % @doc Generates a GLSL program from the shaders whose source files are
 % specified: loads and compiles the specified vertex and fragment shaders (with
 % no user-specified attributes defined), links them in a corresponding program,
@@ -790,6 +848,23 @@ generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 	FragmentShaderId = compile_fragment_shader( FragmentShaderPath ),
 
 	generate_program( _ShaderIds=[ VertexShaderId, FragmentShaderId ] ).
+
+
+
+% @doc Generates a GLSL program from the shaders whose source files are
+% specified: loads and compiles the specified vertex and fragment shaders, with
+% user-specified attributes, links them in a corresponding program, and returns
+% its identifier.
+%
+-spec generate_program_from( any_file_path(), any_file_path(),
+							 [ user_vertex_attribute() ] ) -> program_id().
+generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes ) ->
+
+	VertexShaderId = compile_vertex_shader( VertexShaderPath ),
+	FragmentShaderId = compile_fragment_shader( FragmentShaderPath ),
+
+	generate_program( _ShaderIds=[ VertexShaderId, FragmentShaderId ],
+					  UserAttributes ).
 
 
 
@@ -811,7 +886,8 @@ generate_program( ShaderIds ) ->
 %
 % Deletes the specified shaders once the program is generated.
 %
--spec generate_program( [ shader_id() ], [ user_attribute() ] ) -> program_id().
+-spec generate_program( [ shader_id() ], [ user_vertex_attribute() ] ) ->
+								program_id().
 generate_program( ShaderIds, UserAttributes ) ->
 
 	% Creates an empty program object and returns a non-zero value by which it
@@ -824,8 +900,12 @@ generate_program( ShaderIds, UserAttributes ) ->
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	% Any attribute must be bound before linking:
+
+	trace_utils:debug_fmt( "Binding user vertex attribute locations ~p.",
+						   [ UserAttributes ] ),
+
 	[ gl:bindAttribLocation( ProgramId, Idx, AttrName )
-									|| { Idx, AttrName } <- UserAttributes ],
+									|| { AttrName, Idx } <- UserAttributes ],
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	gl:linkProgram( ProgramId ),
@@ -878,6 +958,7 @@ generate_program( ShaderIds, UserAttributes ) ->
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	ProgramId.
+
 
 
 % @doc Installs the specified GLSL program as part of current rendering state.
@@ -977,7 +1058,14 @@ specify_vertex_attribute( TargetVAttrIndex ) ->
 % @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
 % the currently active VBO, and enables this attribute if requested.
 %
+% The various components corresponding to a single vertex shall be described in
+% terms of component count (e.g. 3 coordinates for a 3D position, a normal or a
+% RGB value) and component type (e.g. floats for coordinates, integers for color
+% element, etc.).
+%
 % Normalisation applies only to integer components.
+%
+% Will be stored in any already-bound VAO.
 %
 -spec specify_vertex_attribute( vertex_attribute_index(), component_count(),
 	gl_base_type(), boolean(), stride(), offset(), boolean() ) -> void().
@@ -1063,6 +1151,11 @@ set_current_vao_from_id( VAOId ) ->
 
 
 % @doc Unsets the current VAO from the context.
+%
+% This is the moment when this VAO records the vertex information that has been
+% set since it was bound, in order to be able to set again that information at
+% its next binding.
+%
 -spec unset_current_vao() -> void().
 unset_current_vao() ->
 	gl:bindVertexArray( _Unbind=0 ),

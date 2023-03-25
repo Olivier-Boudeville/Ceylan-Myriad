@@ -369,6 +369,11 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Clears in white (otherwise black background):
 	gl:clearColor( _R=1.0, _G=1.0, _B=1.0, ?alpha_fully_opaque ),
 
+	% Specifies the location of the vertex attributes, so that the shader will
+	% be able to match its input variables with the vertex attributes of the
+	% application:
+	%
+	UserVertexAttrs = [ { "my_input_vertex", ?my_vertex_attribute_index } ],
 
 	% Creates, compiles and links our GLSL program from the two specified
 	% shaders, that are, in the same movement, automatically attached and
@@ -376,10 +381,17 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_minimal_shader.vertex.glsl",
-		"gui_opengl_minimal_shader.fragment.glsl" ),
+		"gui_opengl_minimal_shader.fragment.glsl", UserVertexAttrs ),
 
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
+
+	% Uncomment to switch to wireframe and see how the square decomposes in two
+	% triangles:
+	%
+	% (?GL_FRONT_AND_BACK not needed as our vertices are in CCW order)
+	%
+	%gui_opengl:set_polygon_raster_mode( ?GL_FRONT, ?GL_LINE ),
 
 
 	% First, a triangle, whose vertices are specified directly:
@@ -406,7 +418,10 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	TriangleVBOId = gui_shader:assign_vertices_to_new_vbo( TriangleVertices ),
 
-	% Specified while the triangle VAO is still active:
+	% Specified while the triangle VBO and VAO are still active (VBO as it
+	% specifies its structure, VAO so that it can record that attribute
+	% specification):
+	%
 	gui_shader:specify_vertex_attribute( ?my_vertex_attribute_index ),
 
 
@@ -432,6 +447,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	SquareVBOId = gui_shader:assign_vertices_to_new_vbo( SquareVertices ),
 
+	% Specified while the square VBO and VAO are still active:
+	gui_shader:specify_vertex_attribute( ?my_vertex_attribute_index ),
+
 	% We describe our square as two triangles in CCW order; the first, S0-S1-S3
 	% on the bottom left, the second, S1-S2-S3 on the top right; we have just a
 	% list of indices (not for example a list of triplets of indices):
@@ -441,8 +459,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	SquareEBOId = gui_shader:assign_indices_to_new_ebo( SquareIndices ),
 
-	% Specified while the square VAO is still active:
-	gui_shader:specify_vertex_attribute( ?my_vertex_attribute_index ),
 
 	% As the EBO is still bound, it is tracked by this VAO (as it is currently
 	% active), which will rebind it automatically the next time it will be

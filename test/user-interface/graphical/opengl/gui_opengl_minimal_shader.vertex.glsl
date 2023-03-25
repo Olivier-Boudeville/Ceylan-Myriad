@@ -29,7 +29,12 @@
  * Output is the gl_Position vec4.
  *
  */
-layout(location = 0) in vec3 my_input_vertex;
+// Uncomment if not using user vertex attributes:
+// layout(location = 0) in vec3 my_input_vertex;
+
+// Comment if using user vertex attributes:
+in vec3 my_input_vertex;
+
 
 void main(){
 
