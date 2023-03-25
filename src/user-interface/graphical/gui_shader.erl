@@ -39,6 +39,10 @@
 -include("gui_opengl.hrl").
 
 
+% For the UI32 define:
+-include("type_utils.hrl").
+
+
 -type shader_id() :: non_neg_integer().
 % The identifier of (any kind of) a shader.
 
@@ -78,31 +82,6 @@
 % The identifier of GLSL, shader-based program.
 
 
--type vao_id() :: non_neg_integer().
-% The identifier of a Vertex Array Object (VAO).
-%
-% A VAO is able to store multiple VBOs (up to one for vertices, the others for
-% per-vertex attributes); a VAO corresponds to an homogeneous chunk of data,
-% sent from the CPU-space in order to be stored in the GPU-space.
-%
-% The core profile requires a VAO to be used. A default VAO exists.
-
-
-
--type array_buffer() :: gl_buffer().
-% An OpenGL/GLSL array buffer; for example a VBO or an EBO.
-
-
--type vbo() :: array_buffer().
-% A Vertex Buffer Object, a (GLSL) buffer storing a piece of information (vertex
-% coordinates, or normal, or colors, or texture coordinates, etc.) for each
-% element of a series of vertices.
-
-
--type vbo_id() :: gl_buffer_id().
-% The identifier of a Vertex Buffer Object (VBO).
-
-
 
 -type vertex_attribute_index() :: non_neg_integer().
 % The index of a vertex attribute, in a VBO.
@@ -118,6 +97,56 @@
 -type user_attribute() :: { vertex_attribute_index(), attribute_name() }.
 % A user-defined attribute variable, meant to be associated to a generic vertex
 % attribute index in a GLSL program.
+
+
+
+
+-type vao_id() :: non_neg_integer().
+% The identifier of a Vertex Array Object (VAO).
+%
+% A VAO is able to store multiple VBOs (up to one for vertices, the others for
+% per-vertex attributes); a VAO corresponds to an homogeneous chunk of data,
+% sent from the CPU-space in order to be stored in the GPU-space.
+%
+% The core profile requires a VAO to be used. A default VAO exists.
+
+
+
+-type array_buffer() :: gl_buffer().
+% An OpenGL/GLSL array buffer; for example a VBO or an EBO.
+
+-type array_buffer_id() :: gl_buffer_id().
+% The identifier of an (OpenGL/GLSL) array buffer, i.e. a "array buffer object
+% name".
+
+
+-type array_bind_target() ::
+	?GL_ARRAY_BUFFER              % Vertex attributes
+  | ?GL_ATOMIC_COUNTER_BUFFER     % Atomic counter storage
+  | ?GL_COPY_READ_BUFFER          % Buffer copy source
+  | ?GL_COPY_WRITE_BUFFER         % Buffer copy destination
+  | ?GL_DISPATCH_INDIRECT_BUFFER  % Indirect compute dispatch commands
+  | ?GL_DRAW_INDIRECT_BUFFER      % Indirect command arguments
+  | ?GL_ELEMENT_ARRAY_BUFFER      % Vertex array indices
+  | ?GL_PIXEL_PACK_BUFFER         % Pixel read target
+  | ?GL_PIXEL_UNPACK_BUFFER       % Texture data source
+  | ?GL_QUERY_BUFFER              % Query result buffer
+  | ?GL_SHADER_STORAGE_BUFFER     % Read-write storage for shaders
+  | ?GL_TEXTURE_BUFFER            % Texture data buffer
+  | ?GL_TRANSFORM_FEEDBACK_BUFFER % Transform feedback buffer
+  | ?GL_UNIFORM_BUFFER.           % Uniform block storage
+% Designates a type of buffer object, typically used as a binding target.
+
+
+-type vbo() :: array_buffer().
+% A Vertex Buffer Object, a (GLSL) buffer storing a piece of information (vertex
+% coordinates, or normal, or colors, or texture coordinates, etc.) for each
+% element of a series of vertices.
+
+
+-type vbo_id() :: gl_buffer_id().
+% The identifier of a Vertex Buffer Object (VBO).
+
 
 
 -type component_count() :: count().
@@ -147,7 +176,8 @@
 
 
 -type index() :: count().
-% An index in an array, typically a VBO (then, a vertex index).
+% An index in an array, typically of an element in a VBO (then, a vertex index)
+% or directly contained in an EBO.
 %
 % Starts at zero.
 
@@ -160,6 +190,8 @@
 % The identifier of an Element Buffer Object (EBO).
 %
 % It is an array of indices to vertex data.
+%
+% Indices start at zero, and by default are of the ?GL_UNSIGNED_INT type.
 
 
 
@@ -168,15 +200,18 @@
 			   tessellation_evaluation_shader_id/0, geometry_shader_id/0,
 			   fragment_shader_id/0, compute_shader_id/0,
 
-			   program_id/0,
-			   vao_id/0, vbo_id/0, vbo/0,
 			   vertex_attribute_index/0, attribute_name/0, user_attribute/0,
+
+			   program_id/0,
+			   vao_id/0,
+			   vbo/0, vbo_id/0,
+			   ebo/0, ebo_id/0,
+
 			   component_count/0, stride/0, offset/0,
-			   gl_primitive_type/0, index/0,
-
-			   ebo/0, ebo_id/0 ]).
+			   gl_primitive_type/0, index/0 ]).
 
 
+% For the build of shader-based programs:
 -export([ get_shading_language_version/0,
 
 		  compile_vertex_shader/1, compile_tessellation_control_shader/1,
@@ -184,25 +219,49 @@
 		  compile_fragment_shader/1, compile_compute_shader/1,
 
 		  generate_program_from/2, generate_program/1, generate_program/2,
-		  install_program/1, delete_program/1,
+		  install_program/1, delete_program/1 ]).
 
-		  generate_buffer_id/0, generate_buffer_ids/1,
 
-		  generate_vao_id/0, generate_vao_ids/1, set_new_vao/0,
+
+% For buffers:
+-export([ generate_buffer_id/0, generate_buffer_ids/1,
+		  assign_array/3,
+		  delete_buffer/1, delete_buffers/1 ]).
+
+
+% For vertex attributes:
+-export([ specify_vertex_attribute/1, specify_vertex_attribute/7,
+		  enable_vertex_attribute/1, disable_vertex_attribute/1 ]).
+
+
+% For VAO:
+-export([ generate_vao_id/0, generate_vao_ids/1, set_new_vao/0,
 		  set_current_vao_from_id/1, unset_current_vao/0,
-		  delete_vao/1, delete_vaos/1,
+		  delete_vao/1, delete_vaos/1 ]).
 
-		  generate_vbo_id/0, set_new_vbo/0, set_current_vbo_from_id/1,
+
+% For VBO:
+-export([ generate_vbo_id/0, generate_vbo_ids/1,
+		  set_new_vbo/0, set_current_vbo_from_id/1,
 		  assign_current_vbo/1, assign_current_vbo/2,
 
 		  assign_vertices_to_new_vbo/1, assign_vertices_to_new_vbo/2,
 
-		  specify_vertex_attribute/1, specify_vertex_attribute/7,
-		  enable_vertex_attribute/1, disable_vertex_attribute/1,
-
 		  render_from_enabled_vbos/3,
 
 		  delete_vbo/1, delete_vbos/1 ]).
+
+
+% For EBO:
+-export([ generate_ebo_id/0, generate_ebo_ids/1,
+		  set_new_ebo/0, set_current_ebo_from_id/1,
+		  assign_current_ebo/1, assign_current_ebo/2,
+
+		  assign_indices_to_new_ebo/1, assign_indices_to_new_ebo/2,
+
+		  render_from_enabled_ebos/2,
+
+		  delete_ebo/1, delete_ebos/1 ]).
 
 
 
@@ -230,6 +289,8 @@
 % Default usage profile for VBOs:
 -define( default_vbo_usage_hint, { draw, static } ).
 
+% Default usage profile for EBOs:
+-define( default_ebo_usage_hint, { draw, static } ).
 
 
 % Shorthands:
@@ -860,6 +921,101 @@ generate_buffer_ids( Count ) ->
 	BufferIds.
 
 
+% @doc Assigns the specified buffer to the specified array in the OpenGL
+% context, based on the specified usage hint.
+%
+-spec assign_array( array_buffer(), array_bind_target(),
+					buffer_usage_hint() ) -> void().
+assign_array( ArrayBuffer, BindTarget, BufferUsageHint ) ->
+
+	% (this is typically a call that may result in a SEGV)
+	gl:bufferData( BindTarget, byte_size( ArrayBuffer ), ArrayBuffer,
+		gui_opengl:buffer_usage_hint_to_gl( BufferUsageHint ) ),
+
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Returns a binary buffer of unsigned integers, corresponding to the
+% specified indices.
+%
+% Typically suitable for EBOs.
+%
+-spec to_buffer( [ index() ] ) -> array_buffer().
+to_buffer( Indices ) ->
+	<< <<I:?UI32>> || I <- Indices >>.
+
+
+% @doc Deletes the specified buffer.
+-spec delete_buffer( array_buffer_id() ) -> void().
+delete_buffer( BufferId ) ->
+	delete_buffers( [ BufferId ] ).
+
+
+% @doc Deletes the specified buffers.
+-spec delete_buffers( [ array_buffer_id() ] ) -> void().
+delete_buffers( BufferIds ) ->
+	gl:deleteBuffers( BufferIds ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+
+% Vertex attribute subsection.
+
+
+% @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
+% the currently active VBO, supposing 3 floats per vertex attribute directly in
+% a tightly-packed buffer, and enables this attribute.
+%
+-spec specify_vertex_attribute( vertex_attribute_index() ) -> void().
+specify_vertex_attribute( TargetVAttrIndex ) ->
+	specify_vertex_attribute( TargetVAttrIndex, _ComponentCount=3,
+		_ComponentType=?GL_FLOAT, _DoNormalise=false, _AttrStride=0,
+		_Offset=0, _DoEnable=true ).
+
+
+% @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
+% the currently active VBO, and enables this attribute if requested.
+%
+% Normalisation applies only to integer components.
+%
+-spec specify_vertex_attribute( vertex_attribute_index(), component_count(),
+	gl_base_type(), boolean(), stride(), offset(), boolean() ) -> void().
+specify_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
+						  DoNormalise, AttrStride, Offset, DoEnable ) ->
+
+	gl:vertexAttribPointer( TargetVAttrIndex, ComponentCount, ComponentType,
+		gui_opengl:boolean_to_gl( DoNormalise ), AttrStride, Offset ),
+
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
+	DoEnable andalso enable_vertex_attribute( TargetVAttrIndex ).
+
+
+
+% @doc Enables the specified vertex attribute.
+%
+% If enabled, the values in the generic vertex attribute array will be accessed
+% and used for rendering when calls are made to vertex array commands.
+%
+-spec enable_vertex_attribute( vertex_attribute_index() ) -> void().
+enable_vertex_attribute( TargetVAttrIndex ) ->
+
+	gl:enableVertexAttribArray( TargetVAttrIndex ),
+
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Disables the specified vertex attribute.
+-spec disable_vertex_attribute( vertex_attribute_index() ) -> void().
+disable_vertex_attribute( TargetVAttrIndex ) ->
+
+	gl:disableVertexAttribArray( TargetVAttrIndex ),
+
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
 
 % VAO subsection.
 
@@ -935,6 +1091,7 @@ delete_vaos( VAOIds ) ->
 
 
 
+
 % VBO subsection.
 
 
@@ -942,6 +1099,12 @@ delete_vaos( VAOIds ) ->
 -spec generate_vbo_id() -> vbo_id().
 generate_vbo_id() ->
 	generate_buffer_id().
+
+
+% @doc Returns the specified number of new, unique, VBO identifiers.
+-spec generate_vbo_ids( count() ) -> [ vbo_id() ].
+generate_vbo_ids( Count ) ->
+	generate_buffer_ids( Count ).
 
 
 
@@ -995,16 +1158,11 @@ assign_current_vbo( ArrayBuffer ) ->
 %
 -spec assign_current_vbo( array_buffer(), buffer_usage_hint() ) -> void().
 assign_current_vbo( ArrayBuffer, BufferUsageHint ) ->
-
-	% (this is typically a call that may result in a SEGV)
-	gl:bufferData( _BindTarget=?GL_ARRAY_BUFFER, byte_size( ArrayBuffer ),
-		ArrayBuffer, gui_opengl:buffer_usage_hint_to_gl( BufferUsageHint ) ),
-
-	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+	assign_array( ArrayBuffer, _BindTarget=?GL_ARRAY_BUFFER, BufferUsageHint ).
 
 
 
-% @doc Assigns the specified vertices in a new VBO (associated to a default
+% @doc Assigns the specified vertices to a new VBO (associated to a default
 % usage profile), whose identifier is returned.
 %
 -spec assign_vertices_to_new_vbo( [ any_vertex3() ] ) -> vbo_id().
@@ -1012,7 +1170,7 @@ assign_vertices_to_new_vbo( Vertices ) ->
 	assign_vertices_to_new_vbo( Vertices, ?default_vbo_usage_hint ).
 
 
-% @doc Assigns the specified vertices in a new VBO, associates the specified
+% @doc Assigns the specified vertices to a new VBO, associates the specified
 % usage profile, and returns the identifier of this VBO.
 %
 -spec assign_vertices_to_new_vbo( [ any_vertex3() ], buffer_usage_hint()  ) ->
@@ -1029,72 +1187,7 @@ assign_vertices_to_new_vbo( Vertices, BufferUsageHint ) ->
 
 
 
-% @doc Deletes the specified VBO.
-delete_vbo( VBOId ) ->
-	delete_vbos( [ VBOId ] ).
-
-
-% @doc Deletes the specified VBOs.
--spec delete_vbos( [ vbo_id() ] ) -> void().
-delete_vbos( VBOIds ) ->
-	gl:deleteBuffers( VBOIds ),
-	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
-
-
-
-% @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
-% the currently active VBO, supposing 3 floats per vertex attribute directly in
-% a tightly-packed buffer, and enables this attribute.
-%
--spec specify_vertex_attribute( vertex_attribute_index() ) -> void().
-specify_vertex_attribute( TargetVAttrIndex ) ->
-	specify_vertex_attribute( TargetVAttrIndex, _ComponentCount=3,
-		_ComponentType=?GL_FLOAT, _DoNormalise=false, _AttrStride=0,
-		_Offset=0, _DoEnable=true ).
-
-
-% @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
-% the currently active VBO, and enables this attribute if requested.
-%
-% Normalisation applies only to integer components.
-%
--spec specify_vertex_attribute( vertex_attribute_index(), component_count(),
-	gl_base_type(), boolean(), stride(), offset(), boolean() ) -> void().
-specify_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
-						  DoNormalise, AttrStride, Offset, DoEnable ) ->
-
-	gl:vertexAttribPointer( TargetVAttrIndex, ComponentCount, ComponentType,
-		gui_opengl:boolean_to_gl( DoNormalise ), AttrStride, Offset ),
-
-	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
-
-	DoEnable andalso enable_vertex_attribute( TargetVAttrIndex ).
-
-
-
-% @doc Enables the specified vertex attribute.
-%
-% If enabled, the values in the generic vertex attribute array will be accessed
-% and used for rendering when calls are made to vertex array commands.
-%
--spec enable_vertex_attribute( vertex_attribute_index() ) -> void().
-enable_vertex_attribute( TargetVAttrIndex ) ->
-
-	gl:enableVertexAttribArray( TargetVAttrIndex ),
-
-	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
-
-
-% @doc Disables the specified vertex attribute.
--spec disable_vertex_attribute( vertex_attribute_index() ) -> void().
-disable_vertex_attribute( TargetVAttrIndex ) ->
-
-	gl:disableVertexAttribArray( TargetVAttrIndex ),
-
-	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
-
-
-% @doc Renders the specified primitives based on the enabled arrays (VBOs).
+% @doc Renders the specified primitives based on the enabled VBOs.
 -spec render_from_enabled_vbos( gl_primitive_type(), index(), count() ) ->
 												void().
 render_from_enabled_vbos( PrimType, StartIndex, VertexCount ) ->
@@ -1102,3 +1195,134 @@ render_from_enabled_vbos( PrimType, StartIndex, VertexCount ) ->
 	gl:drawArrays( PrimType, StartIndex, VertexCount ),
 
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% @doc Deletes the specified VBO.
+delete_vbo( VBOId ) ->
+	delete_buffer( VBOId ).
+
+
+% @doc Deletes the specified VBOs.
+-spec delete_vbos( [ vbo_id() ] ) -> void().
+delete_vbos( VBOIds ) ->
+	delete_buffers( VBOIds ).
+
+
+
+% EBO subsection.
+
+
+% @doc Returns a new, unique, EBO identifier.
+-spec generate_ebo_id() -> ebo_id().
+generate_ebo_id() ->
+	generate_buffer_id().
+
+
+% @doc Returns the specified number of new, unique, EBO identifiers.
+-spec generate_ebo_ids( count() ) -> [ ebo_id() ].
+generate_ebo_ids( Count ) ->
+	generate_buffer_ids( Count ).
+
+
+
+% @doc Creates a EBO identifier, sets it as the currently active one, and
+% returns it.
+%
+% From now on, all operations done regarding the ?GL_ELEMENT_ARRAY_BUFFER target
+% will be applied to this EBO.
+%
+-spec set_new_ebo() -> ebo_id().
+set_new_ebo() ->
+	set_current_ebo_from_id( generate_ebo_id() ).
+
+
+% @doc Sets the specified EBO as the currently active one.
+%
+% From now on, all operations done regarding the ?GL_ELEMENT_ARRAY_BUFFER target
+% will be applied to this buffer.
+%
+% Lower-level, defined to centralise calls.
+%
+% Returns, if useful, the specified identifier, for chaining.
+%
+-spec set_current_ebo_from_id( ebo_id() ) -> ebo_id().
+set_current_ebo_from_id( EBOId ) ->
+
+	% To attach the buffer specified from its ID to the currently active
+	% (i.e. bound) element buffer object (EBO) in the GL context:
+	%
+	gl:bindBuffer( ?GL_ELEMENT_ARRAY_BUFFER, EBOId ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
+	EBOId.
+
+
+
+% @doc Assigns the specified buffer to the currently active EBO, and associates
+% it a default usage profile.
+%
+% The specified data will thus typically be transferred to the graphic card.
+%
+-spec assign_current_ebo( array_buffer() ) -> void().
+assign_current_ebo( ArrayBuffer ) ->
+	assign_current_ebo( ArrayBuffer, ?default_ebo_usage_hint ).
+
+
+% @doc Assigns the specified buffer and associated usage settings to the
+% currently active EBO.
+%
+% The specified data will thus typically be transferred to the graphic card.
+%
+-spec assign_current_ebo( array_buffer(), buffer_usage_hint() ) -> void().
+assign_current_ebo( ArrayBuffer, BufferUsageHint ) ->
+	assign_array( ArrayBuffer, _BindTarget=?GL_ELEMENT_ARRAY_BUFFER,
+				  BufferUsageHint ).
+
+
+
+% @doc Assigns the specified vertices to a new EBO (associated to a default
+% usage profile), whose identifier is returned.
+%
+-spec assign_indices_to_new_ebo( [ index() ] ) -> ebo_id().
+assign_indices_to_new_ebo( Indices ) ->
+	assign_indices_to_new_ebo( Indices, ?default_ebo_usage_hint ).
+
+
+% @doc Assigns the specified vertices to a new EBO, associates the specified
+% usage profile, and returns the identifier of this EBO.
+%
+-spec assign_indices_to_new_ebo( [ index() ], buffer_usage_hint()  ) ->
+											ebo_id().
+assign_indices_to_new_ebo( Indices, BufferUsageHint ) ->
+
+	EBOId = set_new_ebo(),
+
+	EBOBuffer = to_buffer( Indices ),
+
+	assign_current_ebo( EBOBuffer, BufferUsageHint ),
+
+	EBOId.
+
+
+
+% @doc Renders the specified primitives based on the enabled EBOs.
+-spec render_from_enabled_ebos( gl_primitive_type(), count() ) -> void().
+render_from_enabled_ebos( PrimType, VertexCount ) ->
+
+	gl:drawElements( PrimType, VertexCount, _IndexType=?GL_UNSIGNED_INT,
+					 _OffsetOrIdArray=0 ),
+
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% @doc Deletes the specified EBO.
+delete_ebo( EBOId ) ->
+	delete_buffer( EBOId ).
+
+
+% @doc Deletes the specified EBOs.
+-spec delete_ebos( [ ebo_id() ] ) -> void().
+delete_ebos( EBOIds ) ->
+	delete_buffers( EBOIds ).
