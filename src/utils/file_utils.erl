@@ -268,8 +268,19 @@
 % e.g. "../my_dir/other/foobar.txt".
 
 
+
 -type device_path() :: path().
 % Designates a path to a device (including its device name), e.g.
+% "/dev/ttyUSB0".
+
+
+-type bin_device_path() :: bin_path().
+% Designates a (binary) path to a device (including its device name), e.g.
+% `"/dev/ttyUSB0"'.
+
+
+-type any_device_path() :: device_path() | bin_device_path().
+% Designates any type of path to a device (including its device name), e.g.
 % "/dev/ttyUSB0".
 
 
@@ -290,6 +301,13 @@
 -type link_path() :: file_path().
 % The path of a (symbolic) link.
 
+-type bin_link_path() :: bin_file_path().
+% The (binary) path of a (symbolic) link.
+
+-type any_link_path() :: link_path() | bin_file_path().
+% Any type of path for a (symbolic) link.
+
+
 
 -type executable_name() :: file_name().
 % Designates an executable, generally without a path (e.g. "foobar").
@@ -301,6 +319,9 @@
 
 -type bin_executable_path() :: bin_file_path().
 % Designates a path to an executable, as a binary.
+
+-type any_executable_path() :: executable_path() | bin_executable_path().
+% Any type of path to an executable.
 
 
 -type script_path() :: file_path().
@@ -463,14 +484,20 @@
 			   bin_file_name/0, bin_file_path/0,
 			   any_file_name/0, any_file_path/0,
 
-			   link_name/0, link_path/0,
-			   device_path/0,
+			   link_name/0, link_path/0, bin_link_path/0, any_link_path/0,
+
+			   device_path/0, bin_device_path/0, any_device_path/0,
 
 			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
+
 			   executable_name/0, executable_path/0, bin_executable_path/0,
+			   any_executable_path/0,
+
 			   script_path/0, bin_script_path/0,
+
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
+
 			   filename_radix/0, filepath_radix/0,
 			   extension/0, dotted_extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
