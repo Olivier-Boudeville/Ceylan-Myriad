@@ -39,6 +39,10 @@
 % For printout_*, inline_size, etc.:
 -include("linear.hrl").
 
+% For the F32 define:
+-include("type_utils.hrl").
+
+
 -compile( inline ).
 -compile( { inline_size, ?inline_size } ).
 
