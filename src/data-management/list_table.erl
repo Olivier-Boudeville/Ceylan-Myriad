@@ -52,8 +52,9 @@
 %
 % They are to provide the same API (signatures and contracts).
 %
-% See also: `list_utils.erl' and our quite similar yet less useful
-% `option_list.erl'.
+% See also: `list_utils.erl' if having to deal with tagged lists, that is: lists
+% possibly containing pairs and also single atoms (e.g. see
+% list_utils:extract_{atom,pair}_*/*).
 %
 -module(list_table).
 
