@@ -28,6 +28,9 @@
 
 % @doc Gathering of various facilities about <b>lists</b>.
 %
+% This includes the addition of general-purpose functions operating on lists,
+% and the support of tagged lists (a special case of proplist).
+
 % See list_utils_test.erl for the corresponding test.
 %
 % See also: set_utils.erl and list_table.erl.
@@ -59,6 +62,7 @@
 % Basic list operations:
 -export([ get_element_at/2, set_element_at/3, insert_element_at/3,
 		  extract_element_at/2, extract_element_if_existing/2,
+
 		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
 		  heads/2,
 		  get_last_element/1, extract_last_element/1,
@@ -92,11 +96,15 @@
 -export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2 ]).
 
 
-
 % Random operations on lists:
 -export([ random_permute/1, random_permute_reciprocal/1,
 		  draw_element/1, draw_element/2, draw_element_weighted/1,
 		  draw_elements_from/2, extract_elements_from/2 ]).
+
+
+% For tagged lists:
+-export([ extract_atom_if_existing/2, extract_atom_with_default/3,
+		  extract_pair_if_existing/2, extract_pair_with_default/3 ]).
 
 
 -type element() :: term().
@@ -114,13 +122,26 @@
 % two) of times they were present in a given container.
 
 
--export_type([ maybe_list/1, duplicate_info/0 ]).
+-type tagged_list() :: tagged_list( element() ).
+
+-type tagged_list( T ) :: [ atom() | { Key :: atom(), T } ].
+% A tagged list is a specific case of proplist, whose tuples are only pairs.
+%
+% This allows for example supporting the extraction of elements.
+
+
+-export_type([ maybe_list/1, duplicate_info/0, proplist/0,
+			   tagged_list/0, tagged_list/1 ]).
 
 
 
 % Shorthands:
 
+
 -type proplist() :: proplists:proplist().
+% A list whose elements can be atoms or tuples (not only pairs) whose first
+% element is an atom.
+
 
 -type count() :: basic_utils:count().
 
@@ -374,6 +395,8 @@ extract_element_if_existing( Elem, _List=[ Elem | T ], Acc ) ->
 
 extract_element_if_existing( Elem, _List=[ H | T ], Acc ) ->
 	extract_element_if_existing( Elem, T, [ H | Acc ] ).
+
+
 
 
 
@@ -1597,3 +1620,132 @@ extract_elements_from( RemainingElems, Count, AccExtract ) ->
 
 	extract_elements_from( ShrunkRemainingElems, Count-1,
 						   [ DrawnElem | AccExtract ] ).
+
+
+
+
+
+% Section for tagged lists.
+%
+% Complementary to list_table, which only considers lists containing only pairs
+% (not single atoms - and thus would choke if it found a non-pair element).
+
+
+
+% @doc Extracts, from the specified tagged list, the (first occurrence of the)
+% of the specified atom: either returns 'not_found' if such an atom was not
+% found, or the tagged list obtained when the first occurrence of that atom has
+% been removed.
+%
+-spec extract_atom_if_existing( atom(), tagged_list() ) ->
+			'not_found' | tagged_list().
+extract_atom_if_existing( Atom, TaggedList ) ->
+	extract_atom_if_existing_helper( Atom, TaggedList, _Acc=[] ).
+
+
+% Not found at all:
+extract_atom_if_existing_helper( _Atom, _TaggedList=[], _Acc ) ->
+	not_found;
+
+% First atom found:
+extract_atom_if_existing_helper( Atom, _TaggedList=[ Atom | T ], Acc ) ->
+	lists:reverse( Acc ) ++ T;
+
+% Other is another atom or a pair:
+extract_atom_if_existing_helper( Atom, _TaggedList=[ Other | T ], Acc ) ->
+	extract_atom_if_existing_helper( Atom, T, [ Other | Acc ] ).
+
+
+
+% @doc Extracts, from the specified tagged list, the (first occurrence of the)
+% specified atom if found, otherwise returns the specified default; in all cases
+% returns an element (extracted or default) and a corresponding tagged list.
+%
+% So either returns the specified atom if found, or the specified default,
+% together with the resulting tagged list (which is either the original tagged
+% list if the default is returned, or a shrunk tagged list if an actual
+% extraction could be done).
+%
+-spec extract_atom_with_default( atom(), element(), tagged_list() ) ->
+										{ element(), tagged_list() }.
+extract_atom_with_default( Atom, DefaultValue, TaggedList ) ->
+	extract_atom_with_default_helper( Atom, DefaultValue, TaggedList,
+									  _Acc=[] ).
+
+
+% Not found at all:
+extract_atom_with_default_helper( _Atom, DefaultValue, _TaggedList=[], Acc ) ->
+	{ DefaultValue, lists:reverse( Acc ) };
+
+% First atom found (no is_atom/1 guard needed):
+extract_atom_with_default_helper( Atom, _DefaultValue,
+								  _TaggedList=[ Atom | T ], Acc ) ->
+	{ Atom, lists:reverse( Acc ) ++ T };
+
+% Other is another atom or a pair:
+extract_atom_with_default_helper( Atom, DefaultValue,
+								  _TaggedList=[ Other | T ], Acc ) ->
+	extract_atom_with_default_helper( Atom, DefaultValue, T, [ Other | Acc ] ).
+
+
+
+% @doc Extracts, from the specified tagged list, the (first occurrence of the)
+% key/value pair specified based on its first atom element (its key): either
+% returns false if no such pair was found, or returns the value associated to
+% the specified atom (thus in second position of the corresponding pair),
+% together with the rest of the specified tagged list.
+%
+-spec extract_pair_if_existing( atom(), tagged_list() ) ->
+			'false' | { element(), tagged_list() }.
+extract_pair_if_existing( KeyAtom, TaggedList ) ->
+	extract_pair_if_existing_helper( KeyAtom, TaggedList, _Acc=[] ).
+
+
+% Not found at all:
+extract_pair_if_existing_helper( _KeyAtom, _TaggedList=[], _Acc ) ->
+	false;
+
+% First pair found:
+extract_pair_if_existing_helper( KeyAtom, _TaggedList=[ { KeyAtom, V } | T ],
+								 Acc ) ->
+	{ V, lists:reverse( Acc ) ++ T };
+
+% Other is atom or pair:
+extract_pair_if_existing_helper( KeyAtom, _TaggedList=[ Other | T ], Acc ) ->
+	extract_pair_if_existing_helper( KeyAtom, T, [ Other | Acc ] ).
+
+
+
+% @doc Extracts, from the specified tagged list, the (first occurrence of the)
+% key/value pair specified based on its first atom element (its key) if found,
+% otherwise returns for this element the specified default; in all cases returns
+% an element (extracted or default) and a corresponding tagged list.
+%
+% So either returns that default if no such pair was found, or returns the value
+% associated to the specified key atom (thus in second position of the
+% corresponding pair), together with the resulting tagged list (which is either
+% the original tagged list if the default is returned, or a shrunk tagged list
+% if an actual extraction could be done).
+%
+-spec extract_pair_with_default( atom(), element(), tagged_list() ) ->
+										{ element(), tagged_list() }.
+extract_pair_with_default( KeyAtom, DefaultValue, TaggedList ) ->
+	extract_pair_with_default_helper( KeyAtom, DefaultValue, TaggedList,
+									  _Acc=[] ).
+
+
+% Not found at all:
+extract_pair_with_default_helper( _KeyAtom, DefaultValue,
+								  _TaggedList=[], Acc ) ->
+	{ DefaultValue, lists:reverse( Acc ) };
+
+% First pair found:
+extract_pair_with_default_helper( KeyAtom, _DefaultValue,
+								  _TaggedList=[ { KeyAtom, V } | T ], Acc ) ->
+	{ V, lists:reverse( Acc ) ++ T };
+
+% Other is atom or pair:
+extract_pair_with_default_helper( KeyAtom, DefaultValue,
+								  _TaggedList=[ Other | T ], Acc ) ->
+	extract_pair_with_default_helper( KeyAtom, DefaultValue, T,
+									  [ Other | Acc ] ).
