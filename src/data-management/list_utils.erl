@@ -56,7 +56,8 @@
 -export([ ensure_list/1, ensure_atoms/1, ensure_tuples/1, ensure_pids/1,
 		  ensure_proplist/1,
 		  are_integers/1, check_integers/1, are_pids/1, are_atoms/1,
-		  check_strictly_ascending/1 ]).
+		  check_strictly_ascending/1,
+		  are_equal/1, check_equal/1 ]).
 
 
 % Basic list operations:
@@ -1225,6 +1226,46 @@ check_strictly_ascending( _List=[ H | T ], LastSeen ) when H > LastSeen ->
 
 check_strictly_ascending( _List, _LastSeen ) ->
 	false.
+
+
+
+% @doc Returns whether all the elements of the specified list are equal.
+-spec are_equal( list() ) -> boolean().
+are_equal( [] ) ->
+	true;
+
+are_equal( [ H | T ] ) ->
+	are_equal( _Ref=H, T ).
+
+
+% (helper)
+are_equal( _Ref, [] ) ->
+	true;
+
+are_equal( Ref, [ Ref | T ] ) ->
+	are_equal( Ref, T );
+
+% Not matched:
+are_equal( _Ref, _ ) ->
+	false.
+
+
+
+% @doc Checks that all the elements of the specified list are equal.
+%
+% Returns this list if true, otherwise throws an exception.
+%
+-spec check_equal( list() ) -> list().
+check_equal( L ) ->
+	case are_equal( L ) of
+
+		true ->
+			L;
+
+		false ->
+			throw( { not_all_equal, L } )
+
+	end.
 
 
 
