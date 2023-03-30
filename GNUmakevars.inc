@@ -133,6 +133,7 @@ endif
 #    handled
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
+#  - binaries: how binaries are created, used, matched
 #  - registration: regarding naming registering
 #  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
@@ -168,6 +169,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_otp_integration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_binaries
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
@@ -201,6 +203,7 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
