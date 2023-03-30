@@ -153,8 +153,12 @@ init_test_gui() ->
 	MainFrame = gui:create_frame( "MyriadGUI Minimal OpenGL Test",
 								  _Size={ 500, 250 } ),
 
-	% Using default GL attributes:
-	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame ),
+	% This test may request additionally an OpenGL debug context:
+	%GLAttrs = gui_opengl:get_default_canvas_attributes(),
+	GLAttrs = [ debug_context | gui_opengl:get_default_canvas_attributes() ],
+
+	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame,
+		_CanvasAttrs=[ { gl_attributes, GLAttrs } ] ),
 
 	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
@@ -287,6 +291,12 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% So done only once:
 	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
 
+	test_opengl_debug_context(),
+
+	%Exts = gui_opengl:get_supported_extensions(),
+	%trace_utils:info_fmt( "~B OpenGL extensions supported: ~ts",
+	%   [ length( Exts ), text_utils:atoms_to_listed_string( Exts ) ] ),
+
 	% These settings will not change afterwards here (set once for all):
 
 	% Clears in black:
@@ -392,6 +402,50 @@ render() ->
 	% function is meant to remain pure OpenGL.
 	%
 	% gl:flush/0 done when swapping buffers.
+
+	ok.
+
+
+
+% Tests the OpenGL debug context.
+-spec test_opengl_debug_context() -> void().
+test_opengl_debug_context() ->
+
+	% Actually already enabled:
+	%false = gui_opengl:is_debug_context_enabled(),
+
+	gui_opengl:enable_all_debug_context_reporting(),
+	true = gui_opengl:is_debug_context_enabled(),
+
+	[] = gui_opengl:get_debug_context_messages(),
+
+	gui_opengl:insert_debug_context_message( _MsgId=5,
+		_Msg="Testing debug context.", _MsgSeverity=high,
+		_MsgSource=third_party, _MsgType=other ),
+
+	[ Msg1 ] = gui_opengl:get_debug_context_messages(),
+
+	trace_utils:debug_fmt( "First debug context message: ~ts",
+		[ gui_opengl:debug_context_message_to_string( Msg1 ) ] ),
+
+	gui_opengl:insert_debug_context_message( 6, "Second message.", medium,
+		third_party, deprecated_behaviour ),
+
+	gui_opengl:insert_debug_context_message( 8, "Third message.", low,
+		application, type_error ),
+
+	Msgs = [ _Msg2, _Msg3 ] = gui_opengl:get_debug_context_messages(),
+
+	trace_utils:debug_fmt( "Next two debug context messages: ~ts",
+		[ gui_opengl:debug_context_messages_to_string( Msgs ) ] ),
+
+	[] = gui_opengl:get_debug_context_messages(),
+
+	true = gui_opengl:is_debug_context_enabled(),
+	gui_opengl:disable_all_debug_context_reporting(),
+
+	% Still enabled:
+	%false = gui_opengl:is_debug_context_enabled(),
 
 	ok.
 
