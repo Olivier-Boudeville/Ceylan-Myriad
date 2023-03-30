@@ -237,8 +237,8 @@
 % - by specifying on both sides the same (numerical) index; typically the
 % application would use 'gui_shader:specify_vertex_attribute(INDEX)' while the
 % shader would specify 'layout(location = INDEX) in vec3 my_input_vertex;'; this
-% approach will work starting from OpenGL 3.3 (e.g. some Mac would not support
-% it)
+% approach will work starting from OpenGL 3.3 (e.g. some Mac OS X would not
+% support it)
 %
 % - by letting the linker decide which location to give each input variable, and
 % using the result of gl:getAttribLocation/2 for the first parameter of calls to
