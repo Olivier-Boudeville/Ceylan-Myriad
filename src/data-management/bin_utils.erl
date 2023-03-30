@@ -34,26 +34,56 @@
 -module(bin_utils).
 
 
--export([ concatenate/1, concatenate/2, concatenate/3,
+-export([ create_buffer/1, concatenate/1, concatenate/2, concatenate/3,
 		  replicate/2 ]).
 
 -export([ get_crc8_table/0, compute_crc8_checksum/1 ]).
 
 
+
+-type buffer() :: binary().
+% A (binary) buffer, a series of bytes.
+
 -type crc8_checksum() :: byte().
 
--export_type([ crc8_checksum/0 ]).
+
+-export_type([ buffer/0, crc8_checksum/0 ]).
 
 
 % Erlang pointers about bit-related operations:
 % - http://erlang.org/doc/programming_examples/bit_syntax.html
 % - http://erlang.org/doc/reference_manual/expressions.html#bit_syntax
 % - http://learnyousomeerlang.com/starting-out-for-real#bit-syntax
+% - https://cheatography.com/fylke/cheat-sheets/erlang-binaries/
 
 
 % Shorthands:
 
 -type count() :: basic_utils:count().
+
+-type byte_size() :: system_utils:byte_size().
+
+
+
+% @doc Creates a (binary) buffer of the specified size, containing only zeroes.
+%
+% Useful to provide a buffer to non-allocating functions (like
+% gl:getDebugMessageLog/2).
+%
+-spec create_buffer( byte_size() ) -> buffer().
+create_buffer( ByteCount ) ->
+
+	% Maybe a better solution exists:
+	Buffer = <<0:(8*ByteCount)/integer>>,
+
+	cond_utils:if_defined( myriad_check_binaries,
+		basic_utils:assert_equal( ByteCount, byte_size( Buffer ) ) ),
+
+	cond_utils:if_defined( myriad_debug_binaries,
+		trace_utils:debug_fmt( "Created a buffer of ~B bytes:~n  ~p",
+							   [ ByteCount, Buffer ] ) ),
+
+	Buffer.
 
 
 
