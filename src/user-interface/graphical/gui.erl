@@ -301,7 +301,7 @@
 % paint_device_context() instance instead.
 
 
--type buffer() :: binary().
+-type buffer() :: bin_utils:buffer().
 % Any type of GUI-related buffer.
 
 
