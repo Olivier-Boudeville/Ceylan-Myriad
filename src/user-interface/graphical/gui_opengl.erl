@@ -53,6 +53,21 @@
 %-define( do_throw_on_opengl_error, false ).
 
 
+% Usage notes:
+%
+% While error checking (see check_error/0) and the use of a debug context (see
+% the 'debug_context' attribute) are invaluable to troubleshoot an application
+% using OpenGL, they use resources and are bound to slow down that
+% application. As a consequence, release builds will probably disable their use.
+
+% For error management, the 'debug output' extension (which became part of core
+% OpenGL since version 4.3; can be queried as the ARB_debug_output (that we
+% found as 'GL_ARB_debug_output') or 'AMD_debug_output' extension; apparently
+% not available in Mac OS X).
+%
+% Refer to https://learnopengl.com/In-Practice/Debugging for more information.
+
+
 
 % Implementation notes:
 %
@@ -97,10 +112,15 @@
 % http://www.wings3d.com/).
 
 % What is the interest of wrapping a stable API like OpenGL? This allows us to
-% offer primitives that are a bit higher-level, to elect names (for functions,
-% types, variables, etc.) that we find clearer, to add conditionally-enabled
-% error checking, to emit traces (logs) wherever appropriate and possibly in
-% some future to better encapsulate other libraries providing similar features.
+% offer primitives that are a bit integrated/higher-level and more typed, to
+% elect names (for functions, types, variables, etc.) that we find clearer, to
+% provide a more Erlangish API (e.g. by replacing ?GL* defines with atoms), to
+% add documentation and conditionally-enabled error checking, to emit traces
+% (logs) wherever appropriate and possibly in some future to better encapsulate
+% other libraries providing similar features.
+
+% With OpenGL, parameters are set and rarely read. As such, little interest in
+% defining constant bijective tables was found.
 
 
 
@@ -167,6 +187,8 @@
 
 -type gl_extension() :: atom().
 % Designates an OpenGL extension.
+%
+% For example: 'GL_ARB_shader_atomic_counters'.
 
 
 -type info_table_id() :: ets:tid().
@@ -188,7 +210,11 @@
 
 
 % See https://docs.wxwidgets.org/3.0/glcanvas_8h.html#wxGL_FLAGS for more
-% backend details:
+% backend details.
+%
+% Note though that not all attributes are listed there, a more complete list is
+% in https://github.com/wxWidgets/wxWidgets/blob/master/include/wx/glcanvas.h;
+% for example the WX_GL_DEBUG define does exist and is indeed managed.
 %
 -type device_context_attribute() ::
 
@@ -218,7 +244,10 @@
 	% version 3.0; at least in some settings, this attribute seems to be ignored
 	% (compatibility profile being returned).
 	%
-  | 'use_core_profile'.
+  | 'use_core_profile'
+
+	% Use an OpenGL debug context:
+  | 'debug_context'.
 
 
 -type gl_canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
@@ -332,11 +361,97 @@
 
 
 
+-type actual_debug_source() :: 'api'
+							 | 'window_system'
+							 | 'shader_compiler'
+							 | 'third_party'
+							 | 'application'
+							 | 'other'.
+
+
+-type debug_source() :: actual_debug_source()
+					  | 'all'.
+
+
+% The source of debug messages to enable or disable.
+-type gl_debug_source() :: ?GL_DEBUG_SOURCE_API
+						 | ?GL_DEBUG_SOURCE_WINDOW_SYSTEM
+						 | ?GL_DEBUG_SOURCE_SHADER_COMPILER
+						 | ?GL_DEBUG_SOURCE_THIRD_PARTY
+						 | ?GL_DEBUG_SOURCE_APPLICATION
+						 | ?GL_DEBUG_SOURCE_OTHER
+						 | ?GL_DONT_CARE. % all of them
+% The (low-level) source of debug messages to enable or disable.
+
+
+
+-type actual_debug_type() :: 'type_error'
+						   | 'deprecated_behaviour'
+						   | 'undefined_behaviour'
+						   | 'portability'
+						   | 'performance'
+						   | 'marker'
+						   | 'push_group'
+						   | 'pop_group'
+						   | 'other'.
+
+
+-type debug_type() :: actual_debug_type()
+					| 'all'.
+
+
+% The type of debug messages to enable or disable.
+
+-type gl_debug_type() :: ?GL_DEBUG_TYPE_ERROR
+					   | ?GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR
+					   | ?GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR
+					   | ?GL_DEBUG_TYPE_PORTABILITY
+					   | ?GL_DEBUG_TYPE_PERFORMANCE
+					   | ?GL_DEBUG_TYPE_MARKER
+					   | ?GL_DEBUG_TYPE_PUSH_GROUP
+					   | ?GL_DEBUG_TYPE_POP_GROUP
+					   | ?GL_DEBUG_TYPE_OTHER
+					   | ?GL_DONT_CARE. % all of them
+% The (low-level) type of debug messages to enable or disable.
+
+
+-type actual_debug_severity() :: 'low'
+							   | 'medium'
+							   | 'high'.
+% The severity of debug messages to enable or disable.
+
+
+-type debug_severity() :: actual_debug_severity()
+						| 'all'.
+% The severity of debug messages to enable or disable.
+
+-type gl_debug_severity() :: ?GL_DEBUG_SEVERITY_LOW
+						   | ?GL_DEBUG_SEVERITY_MEDIUM
+						   | ?GL_DEBUG_SEVERITY_HIGH
+						   | ?GL_DONT_CARE. % all of them
+% The (low-level) severity of debug messages to enable or disable.
+
+
+
+-type debug_selector() :: 'enable' | 'disable'.
+% To filter debug messages.
+
+
+-type debug_message_id() :: integer().
+% Any application-level identifier assigned to a debug message.
+
+
+-type debug_context_message() :: { debug_message_id(), Message :: bin_string(),
+	actual_debug_severity(), actual_debug_source(), actual_debug_type() }.
+% A message in the debug context, with its metadata.
+
+
 -export_type([ gl_base_type/0, enum/0, glxinfo_report/0,
 			   vendor_name/0, renderer_name/0, platform_identifier/0,
 			   gl_version/0, gl_profile/0, gl_extension/0, info_table_id/0,
 			   gl_canvas/0, gl_canvas_option/0,
 			   device_context_attribute/0, gl_context/0,
+
 			   factor/0, length_factor/0,
 			   gl_boolean/0,
 			   matrix_stack/0, gl_buffer/0, gl_buffer_id/0,
@@ -347,6 +462,14 @@
 			   polygon_facing_mode/0, rasterization_mode/0 ]).
 
 
+% For the debug context:
+-export_type([ actual_debug_source/0, debug_source/0, gl_debug_source/0,
+			   actual_debug_type/0, debug_type/0, gl_debug_type/0,
+			   actual_debug_severity/0, debug_severity/0, gl_debug_severity/0,
+			   debug_selector/0, debug_message_id/0, debug_context_message/0 ]).
+
+
+% General OpenGL information:
 -export([ get_vendor_name/0, get_vendor/0,
 		  get_renderer_name/0, get_platform_identifier/0,
 		  get_version_string/0, get_version/0, get_version/1,
@@ -364,9 +487,27 @@
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
 
-		  get_size_of_elements/2,
+		  get_size_of_elements/2 ]).
 
-		  get_default_canvas_attributes/0,
+
+% Support of the OpenGL debug context:
+-export([ is_debug_context_supported/0, is_debug_context_enabled/0,
+
+		  enable_all_debug_context_reporting/0,
+		  disable_all_debug_context_reporting/0,
+
+		  enable_debug_context_reporting/3, disable_debug_context_reporting/3,
+
+		  set_debug_context_reporting/4, insert_debug_context_message/5,
+		  get_debug_context_messages/0, get_debug_context_messages/3,
+
+		  debug_context_message_to_string/1, debug_context_messages_to_string/1
+
+		]).
+
+
+% Rendering-related operations:
+-export([ get_default_canvas_attributes/0,
 		  create_canvas/1, create_canvas/2,
 		  create_context/1, set_context_on_shown/2, set_context/2,
 		  swap_buffers/1,
@@ -382,6 +523,9 @@
 		  boolean_to_gl/1, buffer_usage_hint_to_gl/1,
 		  check_error/0, interpret_error/1 ]).
 
+
+% API for module generation:
+-export([ generate_support_modules/0 ]).
 
 
 % Shorthands:
@@ -708,7 +852,21 @@ get_supported_extensions() ->
 	ExtStr = gl:getString( ?GL_EXTENSIONS ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
-	ExtStrs = text_utils:split( ExtStr, _Delimiters=[ $ ] ),
+	%trace_utils:debug_fmt( "Extension string: ~ts", [ ExtStr ] ),
+
+	% Wanting to avoid a final space that would result in the '' atom:
+	% (a trim would be at least as relevant)
+	FilteredExtStr = case list_utils:extract_last_element( ExtStr ) of
+
+		{ $ , PrefixStr } ->
+			PrefixStr;
+
+		_ ->
+			ExtStr
+
+	end,
+
+	ExtStrs = text_utils:split( FilteredExtStr, _Delimiters=[ $ ] ),
 	text_utils:strings_to_atoms( ExtStrs ).
 
 
@@ -717,6 +875,12 @@ get_supported_extensions() ->
 %
 -spec get_support_description() -> ustring().
 get_support_description() ->
+
+	% So that it is requested only once:
+	Exts = get_supported_extensions(),
+
+	% get_supported_profile/0 will use it:
+	init_info_table( Exts ),
 
 	VendStr = text_utils:format( "driver vendor: ~ts", [ get_vendor_name() ] ),
 
@@ -731,10 +895,26 @@ get_support_description() ->
 	ProfStr = text_utils:format( "supported profile: ~ts",
 		[ get_supported_profile() ] ),
 
+	DebugStr = "debug context: " ++ case is_debug_context_supported() of
+
+		true ->
+			"supported " ++ case is_debug_context_enabled() of
+
+				true ->
+					"and enabled";
+
+				false ->
+					"but not enabled"
+
+							end;
+
+		false ->
+			"not supported"
+
+	end,
+
 	ShadStr = text_utils:format( "shading language version: ~ts",
 		[ gui_shader:get_shading_language_version() ] ),
-
-	Exts = get_supported_extensions(),
 
 	% Way too long (e.g. 390 extensions returned):
 	%ExtStr = text_utils:format( "~B OpenGL extensions: ~ts", [ length( Exts ),
@@ -744,7 +924,7 @@ get_support_description() ->
 								[ length( Exts ) ] ),
 
 	text_utils:strings_to_string(
-		[ VendStr, RendStr, ImplStr, ProfStr, ShadStr, ExtStr ] ).
+		[ VendStr, RendStr, ImplStr, ProfStr, DebugStr, ShadStr, ExtStr ] ).
 
 
 
@@ -753,11 +933,19 @@ get_support_description() ->
 %
 -spec init_info_table() -> info_table_id().
 init_info_table() ->
+	init_info_table( _SupportedExts=get_supported_extensions() ).
+
+
+% @doc Initialises the OpenGL information ETS table storing (caching) related
+% static versions, profiles and extensions.
+%
+-spec init_info_table( [ gl_extension() ] ) -> info_table_id().
+init_info_table( SupportedExts ) ->
 
 	TableId = ets:new( ?gl_info_ets_name,
 					   [ named_table, public, ordered_set ] ),
 
-	ExtsAsMonoTuples = [ { E } || E <- get_supported_extensions() ],
+	ExtsAsMonoTuples = [ { E } || E <- SupportedExts ],
 
 	Elems = [ { gl_version, get_version() } | ExtsAsMonoTuples ],
 
@@ -872,6 +1060,270 @@ get_unsupported_extensions( Extensions ) ->
 												[ gl_extension() ].
 get_unsupported_extensions( Extensions, Tid ) ->
 	[ E || E <- Extensions, not is_extension_supported( E, Tid ) ].
+
+
+% Subsection for the management of debug contexts.
+
+% @doc Tells whether the OpenGL debug context is supported on this host.
+%
+% Always true with OpenGL version 4.3 or higher.
+%
+-spec is_debug_context_supported() -> boolean().
+is_debug_context_supported() ->
+	is_extension_supported( 'GL_ARB_debug_output' ) orelse
+		is_extension_supported( 'AMD_debug_output' ).
+
+
+% @doc Tells whether the OpenGL debug context is enabled on this host.
+-spec is_debug_context_enabled() -> boolean().
+is_debug_context_enabled() ->
+	Flags = hd( gl:getIntegerv( ?GL_CONTEXT_FLAGS ) ),
+	Flags band ?GL_CONTEXT_FLAG_DEBUG_BIT =/= 0.
+
+
+
+% @doc Enables all reporting regarding the OpenGL debug context.
+-spec enable_all_debug_context_reporting() -> void().
+enable_all_debug_context_reporting() ->
+	enable_debug_context_reporting( _DebugSrc=all, _DebugType=all,
+									_DebugSeverity=all ).
+
+
+% @doc Disables all reporting regarding the OpenGL debug context.
+-spec disable_all_debug_context_reporting() -> void().
+disable_all_debug_context_reporting() ->
+	disable_debug_context_reporting( _DebugSrc=all, _DebugType=all,
+									 _DebugSeverity=all ).
+
+
+
+% @doc Specifies how the reporting of debug messages in a debug context shall be
+% done, by enabling the specified message source, type and severity.
+%
+% Although debug messages may be enabled in a non-debug context, the quantity
+% and detail of such messages may be substantially inferior to those in a debug
+% context. In particular, a valid implementation of the debug message queue in a
+% non-debug context may produce no messages at all.
+%
+-spec enable_debug_context_reporting( debug_source(), debug_type(),
+									  debug_severity() ) -> void().
+enable_debug_context_reporting( TargetSource, MessageType, MessageSeverity ) ->
+
+	gl:enable( ?GL_DEBUG_OUTPUT ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
+	gl:enable( ?GL_DEBUG_OUTPUT_SYNCHRONOUS ),
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
+	set_debug_context_reporting( TargetSource, MessageType, MessageSeverity,
+								 _DebugSelector=enable ).
+
+
+% @doc Specifies how the reporting of debug messages in a debug context shall be
+% done, by disabling the specified message source, type and severity.
+%
+% Although debug messages may be enabled in a non-debug context, the quantity
+% and detail of such messages may be substantially inferior to those in a debug
+% context. In particular, a valid implementation of the debug message queue in a
+% non-debug context may produce no messages at all.
+%
+-spec disable_debug_context_reporting( debug_source(), debug_type(),
+								   debug_severity() ) -> void().
+disable_debug_context_reporting( TargetSource, MessageType, MessageSeverity ) ->
+	set_debug_context_reporting( TargetSource, MessageType, MessageSeverity,
+								 _DebugSelector=disable ).
+
+
+% @doc Specifies how the reporting of debug messages shall be done in a debug
+% context, by adding a filter based on the specified message source, type and
+% severity.
+%
+% Although debug messages may be enabled in a non-debug context, the quantity
+% and detail of such messages may be substantially inferior to those in a debug
+% context. In particular, a valid implementation of the debug message queue in a
+% non-debug context may produce no messages at all.
+%
+-spec set_debug_context_reporting( debug_source(), debug_type(),
+			debug_severity(), debug_selector() ) -> void().
+set_debug_context_reporting( TargetSource, MessageType, MessageSeverity,
+							 DebugSelector ) ->
+
+	GLTargetSource =
+		gui_opengl_generated:get_second_for_debug_source( TargetSource ),
+
+	GLMessageType =
+		gui_opengl_generated:get_second_for_debug_type( MessageType ),
+
+	GLMessageSeverity =
+		gui_opengl_generated:get_second_for_debug_severity( MessageSeverity ),
+
+	IsEnabled = case DebugSelector of
+
+		enable ->
+			?GL_TRUE;
+
+		disable ->
+			?GL_FALSE
+
+	end,
+
+	% Supposedly meaning all message identifiers (like NULL):
+	CtrlIds = [],
+
+	gl:debugMessageControl( GLTargetSource, GLMessageType, GLMessageSeverity,
+		CtrlIds, IsEnabled ),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
+
+
+% @doc Inserts the specified message in the OpenGL debug context.
+%
+% User-specified messages shall be, in terms of source, either 'application' or
+% 'third_party'.
+%
+-spec insert_debug_context_message( debug_message_id(), ustring(),
+	actual_debug_severity(), actual_debug_source(), actual_debug_type() ) ->
+			void().
+insert_debug_context_message( MsgId, Msg, MsgSeverity, MsgSource, MsgType ) ->
+
+	GLMsgSeverity =
+		gui_opengl_generated:get_second_for_debug_severity( MsgSeverity ),
+
+	GLMsgSource = gui_opengl_generated:get_second_for_debug_source( MsgSource ),
+
+	GLMsgType = gui_opengl_generated:get_second_for_debug_type( MsgType ),
+
+	gl:debugMessageInsert( GLMsgSource, GLMsgType, MsgId, GLMsgSeverity,
+						   length( Msg ), Msg ),
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+
+
+
+% @doc Fetches and removes from the OpenGL debug context all messages found, of
+% any source, type and severity.
+%
+-spec get_debug_context_messages() -> [ debug_context_message() ].
+get_debug_context_messages() ->
+	get_debug_context_messages( _MsgSource=all, _MsgType=all,
+								_MsgSeverity=all ).
+
+
+
+% @doc Fetches and removes from the OpenGL debug context all messages found of
+% the specified source, type and severity.
+%
+% To sort the returned messages by application identifiers, just use
+% `lists:sort(_Index=1, DbcContextMsgs)'.
+%
+-spec get_debug_context_messages( debug_source(), debug_type(),
+		debug_severity() ) -> [ debug_context_message() ].
+get_debug_context_messages( MsgSource, MsgType, MsgSeverity ) ->
+
+	GLMsgSource =
+		gui_opengl_generated:get_second_for_debug_source( MsgSource ),
+
+	GLMsgType = gui_opengl_generated:get_second_for_debug_type( MsgType ),
+
+	GLMsgSeverity =
+		gui_opengl_generated:get_second_for_debug_severity( MsgSeverity ),
+
+
+	BufferByteCount = 5000,
+
+	% Not created by the caller:
+	%Buffer = bin_utils:create_buffer( ByteCount ),
+
+	MaxMsgCount = 10,
+
+	fetch_debug_context_messages( BufferByteCount, MaxMsgCount,
+		GLMsgSource, GLMsgType, GLMsgSeverity, _Acc=[] ).
+
+
+% (helper)
+fetch_debug_context_messages( BufferByteCount, MaxMsgCount, GLMsgSource,
+							  GLMsgType, GLMsgSeverity, Acc ) ->
+
+	%{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLogs } =
+
+	% Temporary fix:
+	{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLog } =
+		gl:getDebugMessageLog( MaxMsgCount, BufferByteCount ),
+	MessageLogs = case FetchCount of
+
+		0 ->
+			[];
+
+		1 ->
+			[ MessageLog ];
+
+		_ ->
+			[ MessageLog | list_utils:duplicate( "(MyriadGUI fix)",
+												 _Count=FetchCount-1 ) ]
+
+	end,
+
+	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
+	% Testing the 'gl' implementation actually:
+	cond_utils:if_defined( myriad_check_opengl,
+		list_utils:check_equal( [ FetchCount, length( GLSources ),
+			length( GLTypes ), length( Ids ), length( Severities ),
+			length( MessageLogs ) ] ),
+		basic_utils:ignore_unused( FetchCount ) ),
+
+	case debug_context_messages( GLSources, GLTypes, Ids, Severities,
+								 MessageLogs, _AccMsg=[] ) of
+
+		[] ->
+			Acc;
+
+		CtxtMsgs ->
+			fetch_debug_context_messages( BufferByteCount, MaxMsgCount,
+				GLMsgSource, GLMsgType, GLMsgSeverity, CtxtMsgs ++ Acc )
+
+	end.
+
+
+
+% (helper)
+debug_context_messages( _GLSources=[], _GLTypes=[], _Ids=[], _Severities=[],
+						_MessageLogs=[], AccMsg ) ->
+	% Preferring chronological insertion order:
+	lists:reverse( AccMsg );
+
+debug_context_messages( _GLSources=[ HSrc | TSrc ], _GLTypes=[ HTyp | TTyp ],
+		_Ids=[ HId | TId ], _Severities=[ HSev | TSev ],
+		_MessageLogs=[ Msg | T ], AccMsg ) ->
+
+	BinMsg = text_utils:string_to_binary( Msg ),
+
+	% First is MyriadGUI version, second is GL one:
+	Src = gui_opengl_generated:get_first_for_debug_source( HSrc ),
+	Type = gui_opengl_generated:get_first_for_debug_type( HTyp ),
+	Sev = gui_opengl_generated:get_first_for_debug_severity( HSev ),
+
+	FullMsg = { HId, BinMsg, Sev, Src, Type },
+
+	debug_context_messages( TSrc, TTyp, TId, TSev, T, [ FullMsg | AccMsg ] ).
+
+
+
+% @doc Returns a textual description of the specified debug context message.
+-spec debug_context_message_to_string( debug_context_message() ) -> ustring().
+debug_context_message_to_string(
+		{ MsgId, Msg, MsgSeverity, MsgSource, MsgType } ) ->
+	text_utils:format( "[~ts][~ts][~ts][~B] ~ts",
+					   [ MsgSource, MsgType, MsgSeverity, MsgId, Msg ] ).
+
+
+% @doc Returns a textual description of the specified debug context messages.
+-spec debug_context_messages_to_string( [ debug_context_message() ] ) ->
+												ustring().
+debug_context_messages_to_string( Msgs ) ->
+	text_utils:strings_to_string(
+		[ debug_context_message_to_string( M ) || M <- Msgs ] ).
 
 
 
@@ -1120,7 +1572,10 @@ create_canvas( Parent, Opts ) ->
 		trace_utils:debug_fmt( "Creating a GL canvas from user options:~n ~p.",
 							   [ Opts ] ) ),
 
-	{ Attrs, OtherOpts } = list_table:extract_entry_with_default(
+	% Not using list_table:extract_entry_with_default/3, as Opts may contain
+	% single atoms:
+	%
+	{ Attrs, OtherOpts } = list_utils:extract_pair_with_default(
 		_K=gl_attributes, _Def=[ rgba, double_buffer ], Opts ),
 
 	%trace_utils:debug_fmt( "Creating a GL canvas from options:~n ~p,~n "
@@ -1568,11 +2023,19 @@ check_error() ->
 				false ->
 					trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; "
 						"stacktrace:~n  ~p.", [ GlError, Diagnosis,
-							code_utils:get_stacktrace( 1 ) ] )
+							code_utils:get_stacktrace( 1 ) ] ),
+
+					% Recursing until having ?GL_NO_ERROR, knowing that, when
+					% OpenGL is run in distributed mode (like frequently found
+					% on X11 systems), calling gl:getError/0 only resets one of
+					% the error code flags (instead of all of them):
+					%
+					check_error()
 
 			end
 
 	end.
+
 
 
 % @doc Returns a (textual) diagnosis regarding the specified OpenGL-related
@@ -1611,3 +2074,29 @@ interpret_error( ?GL_NO_ERROR ) ->
 interpret_error( OtherCode ) ->
 	text_utils:format( "OpenGL-related error of code ~B, interpreted as '~ts'.",
 		[ OtherCode, glu:errorString( OtherCode ) ] ).
+
+
+
+% Section for the build-time generation of support modules.
+
+
+% @doc To be called by the 'gui_opengl_generated.beam' automatic make target in
+% order to generate, here, a (single) module to share the MyriadGUI OpenGL
+% constants.
+%
+-spec generate_support_modules() -> no_return().
+generate_support_modules() ->
+
+	TargetModName = gui_opengl_generated,
+
+	%trace_bridge:info_fmt( "Generating module '~ts'...", [ TargetModName ] ),
+
+	TopicSpecs = [ gui_opengl_constants:F()
+					|| F <- gui_opengl_constants:list_topic_spec_functions() ],
+
+	_ModFilename =
+		const_bijective_topics:generate_in_file( TargetModName, TopicSpecs ),
+
+	%trace_bridge:info_fmt( "File '~ts' generated.", [ ModFilename ] ),
+
+	erlang:halt().
