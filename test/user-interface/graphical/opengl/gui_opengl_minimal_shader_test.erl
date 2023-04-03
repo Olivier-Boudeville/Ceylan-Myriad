@@ -383,8 +383,39 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		"gui_opengl_minimal_shader.vertex.glsl",
 		"gui_opengl_minimal_shader.fragment.glsl", UserVertexAttrs ),
 
+	SomeVectorUnifName = "some_vector",
+
+	% Usable as soon as the program is linked; will be found iff declared but
+	% also explicitly used in at least a shader:
+	%
+	case gui_shader:get_maybe_uniform_id( SomeVectorUnifName, ProgramId ) of
+
+		% The actual case, as not used in these shaders, at least currently:
+		undefined ->
+			trace_utils:info_fmt( "As expected, no identifier is associated "
+				"to the uniform variable named '~ts' within program of "
+				"identifier ~B (as this variable is declared yet not used).",
+				[ SomeVectorUnifName, ProgramId ] );
+
+		SomeVectorUnifId ->
+			trace_utils:warning_fmt( "The identifier associated to the uniform "
+				"variable named '~ts' within program of identifier ~B has "
+				"been found (which is unexpected) and is ~B.",
+				[ SomeVectorUnifName, ProgramId, SomeVectorUnifId ] )
+
+	end,
+
+	SomeColorUnifName = "some_color",
+
+	SomeColorUnifId = gui_shader:get_uniform_id( SomeColorUnifName, ProgramId ),
+
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
+
+	MyriadBlueColor = [ 0.05, 0.2, 0.67 ],
+
+	gui_shader:set_uniform_3f( SomeColorUnifId, MyriadBlueColor ),
+
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two
 	% triangles:
