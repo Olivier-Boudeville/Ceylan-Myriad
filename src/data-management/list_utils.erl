@@ -91,10 +91,11 @@
 -export([ dispatch_in/2, add_as_heads/2, insert_at_all_places/2 ]).
 
 
-% For list of tuples (e.g. typically used by the HDF5 binding), extended flatten
-% and al:
+% For lists of tuples (e.g. typically used by the HDF5 binding), extended
+% flatten and al:
 %
--export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2 ]).
+-export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2,
+		  zipn/1 ]).
 
 
 % Random operations on lists:
@@ -1413,6 +1414,7 @@ flatten_tuples( List ) ->
 	flatten_tuples( List, _Acc=[] ).
 
 
+% (helper)
 flatten_tuples( _List=[], Acc ) ->
 	lists:reverse( Acc );
 
@@ -1443,6 +1445,58 @@ reconstruct_tuples( _List=[], _TupleSize, Acc ) ->
 reconstruct_tuples( List, TupleSize, Acc ) ->
 	{ TupleAsList, T } = lists:split( _Count=TupleSize, List ),
 	reconstruct_tuples( T, TupleSize, [ list_to_tuple( TupleAsList ) | Acc ] ).
+
+
+
+% @doc Performs a generalization of zip2, zip3: takes one element at a time of
+% each of the input lists, and add it to a corresponding tuple.
+%
+% For example, list_utils:zipn([_L1=[a,b,c], _L2=[1,2,3],
+% _L3=[true,false,undefined]]) will return a list containing triplets (as there
+% are 3 lists), whose elements are taken from each of the inputs list, in order:
+% [[a,1,true],[b,2,false],[c,3,undefined]].
+%
+-spec zipn( [ list() ] ) -> list( tuple() ).
+zipn( ListOfLists ) ->
+
+	cond_utils:if_defined( myriad_check_lists,
+		begin
+			Lens = [ length( L ) || L <- ListOfLists ],
+			are_equal( Lens ) orelse
+				throw( { lists_of_different_lengths, Lens, ListOfLists } )
+		end ),
+
+	zipn_helper( ListOfLists, _Acc=[] ).
+
+
+zipn_helper( ListOfLists, Acc ) ->
+	case extract_first_elements( ListOfLists ) of
+
+		{ FirstElems, RemLists } ->
+			zipn_helper( RemLists, [ FirstElems | Acc ] );
+
+		all_exhausted ->
+			lists:reverse( Acc )
+
+	end.
+
+
+% (helper)
+% If the first list is found exhausted, we suppose that all of them are:
+extract_first_elements( _ListOfLists=[ _First=[] | _T ] ) ->
+	all_exhausted;
+
+extract_first_elements( ListOfLists ) ->
+	extract_elems( ListOfLists, _AccFirstElems=[], _AccRemLists=[] ).
+
+
+% (helper)
+extract_elems( _ListOfLists=[], AccFirstElems, AccRemLists ) ->
+	{ lists:reverse( AccFirstElems ), lists:reverse( AccRemLists ) };
+
+extract_elems( _ListOfLists=[ _L=[F|TL] | T ], AccFirstElems, AccRemLists ) ->
+	extract_elems( T, [ F | AccFirstElems ], [ TL | AccRemLists ] ).
+
 
 
 
