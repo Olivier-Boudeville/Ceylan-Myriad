@@ -7,7 +7,7 @@ MYRIAD_TOP = .
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
 		info-context info-versions info-paths                                 \
 		info-settings info-json info-sql                                      \
-		info-parse-transform-local info-conditionals
+		info-parse-transform-local info-conditionals info-glsl
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -146,3 +146,8 @@ info-parse-transform-local:
 info-conditionals:
 	@echo "MYRIAD_DEBUG_FLAGS = $(MYRIAD_DEBUG_FLAGS)"
 	@echo "MYRIAD_CHECK_FLAGS = $(MYRIAD_CHECK_FLAGS)"
+
+
+info-glsl:
+	@echo "GLSL_REF_COMPILER = $(GLSL_REF_COMPILER)"
+	@echo "GLSL_REF_COMPILER_OPT = $(GLSL_REF_COMPILER_OPT)"
