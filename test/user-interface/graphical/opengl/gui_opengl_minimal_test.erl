@@ -87,7 +87,6 @@
 
 % Shorthands:
 
-%-type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
 
 -type gl_canvas() :: gui:opengl_canvas().
