@@ -107,8 +107,6 @@
 % vertex attribute index in a GLSL program.
 
 
-
-
 -type vao_id() :: non_neg_integer().
 % The identifier of a "Vertex Array Object" (VAO).
 %
@@ -180,13 +178,48 @@
 
 
 -type component_count() :: count().
-% The number of components (separate values of the same type) in a given vertex
-% attribute.
+% The number of component values (separate values of the same type) in a given
+% vertex attribute.
+%
+% Must be in [1, 2, 3, 4].
 
+
+-type component_value() :: integer() | float().
+% A value of a component of an actual vertex attribute.
+%
+% For example one of the coordinates of a vertex position, normal, or texel.
+
+
+-type vertex_attribute_value() :: type_utils:tuple( component_value() ).
+% A value of a vertex attribute.
+%
+% For example a float triplet corresponding to a 3D vertex or a RGB color.
+
+
+-type vertex_attribute_float_value() :: type_utils:tuple( float() ).
+% A value of a float-based vertex attribute.
+%
+% For example a triplet of floats corresponding to a 3D vertex or a RGB color.
+
+
+-type vertex_attribute_series() :: [ vertex_attribute_value() ].
+% A (usually homogeneous) list of vertex attribute values, like a list of
+% vertices, normals, texture coordinates, colors, etc.
+%
+% Series is a way of not mentioning "list" again.
+
+
+-type vertex_attribute_float_series() :: [ vertex_attribute_float_value() ].
+% A (usually homogeneous) list of float-based vertex attribute values, like a
+% list of vertices, normals, texture coordinates, colors, etc.
+
+
+% The position of a vertex attribute is determined based on the array stride and
+% offset:
 
 -type stride() :: byte_size().
 % The number of bytes between two vertex attributes of a given type (comprising
-% its size).
+% its own size).
 %
 % A null stride means that the buffer is tightly packed and that OpenGL will
 % determine by itself the actual stride, equal here to the size of such a vertex
@@ -196,6 +229,9 @@
 -type offset() :: byte_size().
 % Offset (possibly null) at which the first vertex attribute begins in the
 % buffer.
+%
+% This generally corresponds to the sum of the sizes of all previous attributes
+% defined for a given vertex.
 
 
 -type gl_primitive_type() :: ?GL_POINTS | ?GL_LINE_STRIP | ?GL_LINE_LOOP
@@ -225,7 +261,49 @@
 
 
 
+% Uniform variables.
+
+-type uniform_id() :: integer().
+% The identifier of a uniform variable; it represents the location of a specific
+% uniform variable within a program object.
+
+
+-type uniform_name() :: ustring().
+% The name of a uniform variable.
+%
+% It must not be a structure, an array of structures, or a subcomponent of a
+% vector or a matrix.
+%
+% No user-defined uniform name shall start with the reserved prefix "gl_".
+
+
+-type uniform_value() :: any().
+% A value that can be assigned or read from a uniform variable.
+
+
+
+% Knowing that Myriad vectors are lists (contrary to points, which are tuples):
+
+-type gl_vec2() :: { float(), float() }.
+% A 2D vector directly suitable for use with the gl module.
+
+-type gl_vec3() :: { float(), float(), float() }.
+% A 3D vector directly suitable for use with the gl module.
+
+-type gl_vec4() :: { float(), float(), float(), float() }.
+% A 4D vector directly suitable for use with the gl module.
+
+-type gl_vector() :: type_utils:tuple( float() ).
+% A vector of any dimension directly suitable for use with the gl module.
+
+
+
 % Usage notes:
+%
+% To avoid compilation problems, shaders may be encoded in the ANSI/ASCII
+% format. Starting with OpenGL 4.2, shaders can be encoded as UTF-8
+% strings. According to the GLSL spec, non-ASCII characters are only allowed in
+% comments.
 %
 % How the variables of interest of a shader instance correspond to an element in
 % a VBO can be determined through either of the following 3 approaches:
@@ -235,7 +313,7 @@
 % generate_program/2; this is our preferred method
 %
 % - by specifying on both sides the same (numerical) index; typically the
-% application would use 'gui_shader:specify_vertex_attribute(INDEX)' while the
+% application would use 'gui_shader:declare_vertex_attribute(INDEX)' while the
 % shader would specify 'layout(location = INDEX) in vec3 my_input_vertex;'; this
 % approach will work starting from OpenGL 3.3 (e.g. some Mac OS X would not
 % support it)
@@ -243,7 +321,6 @@
 % - by letting the linker decide which location to give each input variable, and
 % using the result of gl:getAttribLocation/2 for the first parameter of calls to
 % gl:vertexAttribPointer/6 (not specifically supported by MyriadGUI)
-
 
 
 -export_type([ shader_id/0, vertex_shader_id/0,
@@ -259,8 +336,19 @@
 			   vbo/0, vbo_id/0,
 			   ebo/0, ebo_id/0,
 
-			   component_count/0, stride/0, offset/0,
-			   gl_primitive_type/0, index/0 ]).
+			   component_count/0, component_value/0,
+			   vertex_attribute_value/0, vertex_attribute_float_value/0,
+			   vertex_attribute_series/0, vertex_attribute_float_series/0,
+
+			   stride/0, offset/0,
+			   gl_primitive_type/0, index/0,
+
+			   uniform_id/0, uniform_name/0, uniform_value/0,
+
+			   gl_vec2/0, gl_vec3/0, gl_vec4/0, gl_vector/0 ]).
+
+
+
 
 
 % For the build of shader-based programs:
@@ -284,7 +372,7 @@
 
 
 % For vertex attributes:
--export([ specify_vertex_attribute/1, specify_vertex_attribute/7,
+-export([ declare_vertex_attribute/1, declare_vertex_attribute/7,
 		  enable_vertex_attribute/1, disable_vertex_attribute/1 ]).
 
 
@@ -298,6 +386,10 @@
 -export([ generate_vbo_id/0, generate_vbo_ids/1,
 		  set_new_vbo/0, set_current_vbo_from_id/1,
 		  assign_current_vbo/1, assign_current_vbo/2,
+		  assign_new_vbo/1, assign_new_vbo/2,
+
+		  assign_new_vbo_from_attribute_float_series/1,
+		  assign_new_vbo_from_attribute_float_series/2,
 
 		  assign_vertices_to_new_vbo/1, assign_vertices_to_new_vbo/2,
 
@@ -318,19 +410,30 @@
 		  delete_ebo/1, delete_ebos/1 ]).
 
 
+% For uniform variables:
+-export([ get_uniform_id/2, get_maybe_uniform_id/2,
+		  set_uniform_3f/2, set_uniform_3fv/2,
+		  set_uniform_4f/2 ]).
 
-% Usage notes:
-%
-% To avoid compilation problems, shaders may be encoded in the ANSI/ASCII
-% format. Starting with OpenGL 4.2, shaders can be encoded as UTF-8
-% strings. According to the GLSL spec, non-ASCII characters are only allowed in
-% comments.
 
+% Conversion helpers:
+-export([ to_gl_vectors/1 ]).
 
 % Design notes:
 %
-% Buffer arrays and VBO (Vertex Buffer Object) are the same notions here; so we
-% use exclusively the latter, for more clarity.
+% The file extensions of shaders could be the ones retained by the OpenGL's GLSL
+% reference compiler:
+%    .vert: vertex shader
+%    .frag: fragment shader
+%    .geom: geometry shader
+%    .tesc: tessellation control shader
+%    .tese: tessellation evaluation shader
+%    .comp: compute shader
+%
+% See also our automatic rules to check GLSL files.
+%
+% For example: to check foo.vertex.glsl, run 'make check-foo.vertex.glsl' (the
+% GLSL reference compiler does not return output if it detects no error).
 
 
 
@@ -360,8 +463,14 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type vector2() :: vector4:vector2().
+
+-type vector3() :: vector3:vector3().
 -type any_vertex3() :: point3:any_vertex3().
 
+-type vector4() :: vector4:vector4().
+
+-type vector() :: vector:vector().
 
 -type gl_buffer() :: gui_opengl:gl_buffer().
 -type gl_buffer_id() :: gui_opengl:gl_buffer_id().
@@ -386,6 +495,7 @@ get_shading_language_version() ->
 	Res = gl:getString( ?GL_SHADING_LANGUAGE_VERSION ),
 	cond_utils:if_defined( myriad_check_opengl, gui_opengl:check_error() ),
 	Res.
+
 
 
 % GLSL section.
@@ -716,8 +826,8 @@ compile_fragment_shader( FragmentShaderPath ) ->
 
 	ok = gl:compileShader( FragmentShaderId ),
 
-	MaybeLogStr = case gl:getShaderiv( FragmentShaderId,
-									   ?GL_INFO_LOG_LENGTH ) of
+	MaybeLogStr =
+			case gl:getShaderiv( FragmentShaderId, ?GL_INFO_LOG_LENGTH ) of
 
 		0 ->
 			undefined;
@@ -1016,15 +1126,6 @@ assign_array( ArrayBuffer, BindTarget, BufferUsageHint ) ->
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Returns a binary buffer of unsigned integers, corresponding to the
-% specified indices.
-%
-% Typically suitable for EBOs.
-%
--spec to_buffer( [ index() ] ) -> array_buffer().
-to_buffer( Indices ) ->
-	<< <<I:?UI32>> || I <- Indices >>.
-
 
 % @doc Deletes the specified buffer.
 -spec delete_buffer( array_buffer_id() ) -> void().
@@ -1048,9 +1149,9 @@ delete_buffers( BufferIds ) ->
 % the currently active VBO, supposing 3 floats per vertex attribute directly in
 % a tightly-packed buffer, and enables this attribute.
 %
--spec specify_vertex_attribute( vertex_attribute_index() ) -> void().
-specify_vertex_attribute( TargetVAttrIndex ) ->
-	specify_vertex_attribute( TargetVAttrIndex, _ComponentCount=3,
+-spec declare_vertex_attribute( vertex_attribute_index() ) -> void().
+declare_vertex_attribute( TargetVAttrIndex ) ->
+	declare_vertex_attribute( TargetVAttrIndex, _ComponentCount=3,
 		_ComponentType=?GL_FLOAT, _DoNormalise=false, _AttrStride=0,
 		_Offset=0, _DoEnable=true ).
 
@@ -1063,13 +1164,13 @@ specify_vertex_attribute( TargetVAttrIndex ) ->
 % RGB value) and component type (e.g. floats for coordinates, integers for color
 % element, etc.).
 %
-% Normalisation applies only to integer components.
+% Normalisation applies only to (fixed-point) integer components.
 %
 % Will be stored in any already-bound VAO.
 %
--spec specify_vertex_attribute( vertex_attribute_index(), component_count(),
+-spec declare_vertex_attribute( vertex_attribute_index(), component_count(),
 	gl_base_type(), boolean(), stride(), offset(), boolean() ) -> void().
-specify_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
+declare_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
 						  DoNormalise, AttrStride, Offset, DoEnable ) ->
 
 	gl:vertexAttribPointer( TargetVAttrIndex, ComponentCount, ComponentType,
@@ -1078,6 +1179,7 @@ specify_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
 
 	DoEnable andalso enable_vertex_attribute( TargetVAttrIndex ).
+
 
 
 
@@ -1255,16 +1357,41 @@ assign_current_vbo( ArrayBuffer, BufferUsageHint ) ->
 
 
 
+% @doc Assigns the specified buffer to a new VBO that is made the currently
+% active one, and associates it a default usage profile.
+%
+% The specified data will thus typically be transferred to the graphic card.
+%
+-spec assign_new_vbo( array_buffer() ) -> vbo_id().
+assign_new_vbo( ArrayBuffer ) ->
+	assign_new_vbo( ArrayBuffer, ?default_vbo_usage_hint ).
+
+
+% @doc Assigns the specified buffer and associated usage settings to a new VBO
+% that is made the currently active one.
+%
+% The specified data will thus typically be transferred to the graphic card.
+%
+-spec assign_new_vbo( array_buffer(), buffer_usage_hint() ) -> vbo_id().
+assign_new_vbo( ArrayBuffer, BufferUsageHint ) ->
+	NewVBOId = set_new_vbo(),
+	assign_current_vbo( ArrayBuffer, BufferUsageHint ),
+	NewVBOId.
+
+
+
 % @doc Assigns the specified vertices to a new VBO (associated to a default
-% usage profile), whose identifier is returned.
+% usage profile) that is made the currently active one, and whose identifier is
+% returned.
 %
 -spec assign_vertices_to_new_vbo( [ any_vertex3() ] ) -> vbo_id().
 assign_vertices_to_new_vbo( Vertices ) ->
 	assign_vertices_to_new_vbo( Vertices, ?default_vbo_usage_hint ).
 
 
-% @doc Assigns the specified vertices to a new VBO, associates the specified
-% usage profile, and returns the identifier of this VBO.
+% @doc Assigns the specified vertices to a new VBO that is made the currently
+% active one, associates the specified usage profile, and returns the identifier
+% of this VBO.
 %
 -spec assign_vertices_to_new_vbo( [ any_vertex3() ], buffer_usage_hint()  ) ->
 											vbo_id().
@@ -1277,6 +1404,120 @@ assign_vertices_to_new_vbo( Vertices, BufferUsageHint ) ->
 	assign_current_vbo( VBOBuffer, BufferUsageHint ),
 
 	VBOId.
+
+
+
+% @doc Assigns a new VBO that is made the currently active one and which is
+% created from the specified vertex attribute series, provided that the
+% components of all vertex attributes are floats, and declare the corresponding
+% vertex attributes, start with vertex attribute index #0.
+%
+% The parameters of the vertex attributes are automatically determined and
+% declared.
+%
+-spec assign_new_vbo_from_attribute_float_series(
+		vertex_attribute_float_series() ) -> vbo_id().
+assign_new_vbo_from_attribute_float_series( VertAttrFloatSeries ) ->
+	assign_new_vbo_from_attribute_float_series( VertAttrFloatSeries,
+												_StartVAttrIndex=0 ).
+
+
+% @doc Assigns a new VBO that is made the currently active one and which is
+% created from the specified vertex attribute series, provided that the
+% components of all vertex attributes are floats, and declare the corresponding
+% vertex attributes.
+%
+% The parameters of the vertex attributes are automatically determined and
+% declared.
+%
+-spec assign_new_vbo_from_attribute_float_series(
+		vertex_attribute_float_series(),
+		StartVAttrStartIndex :: vertex_attribute_index() ) -> vbo_id().
+assign_new_vbo_from_attribute_float_series( VertAttrFloatSeries,
+											StartVAttrIndex ) ->
+	% Tightly-packed buffer:
+	Buffer = merge_float_attribute_series( VertAttrFloatSeries ),
+	VBOId = assign_new_vbo( Buffer ),
+	declare_vertex_attributes_from( VertAttrFloatSeries, StartVAttrIndex ),
+	VBOId.
+
+
+% @doc Declares the vertex attributes corresponding to the specified vertex
+% attribute series in the currently active VBO, starting from the specified
+% vertex attribute index, supposing a tightly-packed buffer, and enables these
+% attributes.
+%
+-spec declare_vertex_attributes_from( vertex_attribute_series(),
+		StartVAttrStartIndex :: vertex_attribute_index() ) -> void().
+declare_vertex_attributes_from( VertAttrSeries, VAttrIndex ) ->
+	declare_vertex_attributes_from( VertAttrSeries, VAttrIndex,
+									_DoEnable=true ).
+
+
+% @doc Declares the vertex attributes corresponding to the specified vertex
+% attribute series in the currently active VBO, supposing a tightly-packed
+% buffer respecting our default type conventions, and enables these attributes
+% if requested.
+%
+-spec declare_vertex_attributes_from( vertex_attribute_series(),
+			VAttrStartIndex :: vertex_attribute_index(), boolean() ) -> void().
+declare_vertex_attributes_from( _VertAttrSeries=[], _VAttrIndex, _DoEnable ) ->
+	ok;
+
+declare_vertex_attributes_from( _VertAttrSeries=[ _S=[ FirstTuple | _ ] | T ],
+								VAttrIndex, DoEnable ) ->
+	% All tuples of these series supposed to be of the same type:
+	ComponentCount = size( FirstTuple ),
+	ComponentType = infer_gl_component_type( element( _Index=1, FirstTuple ) ),
+
+	% At least currently, never normalising (fixed-point) integer components;
+	% null stride and offset as array supposed to be tightly-packed:
+	%
+	declare_vertex_attribute( VAttrIndex, ComponentCount, ComponentType,
+		_DoNormalise=false, _AttrStride=0, _Offset=0, DoEnable ),
+
+	declare_vertex_attributes_from( T, VAttrIndex+1, DoEnable ).
+
+
+
+% @doc Generates a raw buffer, typically suitable to be assigned to a VBO, from
+% the specified list of (generally homogeneous) series of floating-point vertex
+% attributes.
+%
+% Each series usually contains a single, specific kind of data, like vertices,
+% or normals, or colors.
+%
+% Each element of such series is a tuple of floats, of arbitrary size.
+%
+% For example: Bin = merge_attribute_lists([Vertices, TexCoords, Normals]) where
+% Vertices and Normals could be lists of (float) triplets whereas TexCoords
+% would be a list of (float) pairs.
+%
+% Interleaves all lists in a correctly-encoded binary, as 32-bit native floats;
+% all lists of values shall have the same length (equal to the number of vertex
+% attributes to consider) and contain only floats.
+%
+-spec merge_float_attribute_series( [ vertex_attribute_series() ] ) ->
+											array_buffer().
+merge_float_attribute_series( VertAttrFloatSeries ) ->
+	% First we merge element per element all specified series:
+	InterleavedFloatTuples = list_utils:zipn( VertAttrFloatSeries ),
+	bin_utils:tuples_to_float32s_binary( InterleavedFloatTuples ).
+
+
+
+% @doc Deduces, according to MyriadGUI's conventions, the OpenGL data type
+% corresponding to the specified component in an array (like a VBO).
+%
+-spec infer_gl_component_type( term() ) -> gl_base_type().
+% So never returns ?GL_BYTE, ?GL_UNSIGNED_SHORT, ?GL_SHORT, ?GL_INT or
+% ?GL_DOUBLE:
+infer_gl_component_type( F ) when is_float( F ) ->
+	?GL_FLOAT;
+
+infer_gl_component_type( I ) when is_integer( I ) ->
+	% Preferred to ?GL_INT and others:
+	?GL_UNSIGNED_INT.
 
 
 
@@ -1391,7 +1632,7 @@ assign_indices_to_new_ebo( Indices, BufferUsageHint ) ->
 
 	EBOId = set_new_ebo(),
 
-	EBOBuffer = to_buffer( Indices ),
+	EBOBuffer = bin_utils:concatenate_as_uint32s( Indices ),
 
 	assign_current_ebo( EBOBuffer, BufferUsageHint ),
 
@@ -1419,3 +1660,100 @@ delete_ebo( EBOId ) ->
 -spec delete_ebos( [ ebo_id() ] ) -> void().
 delete_ebos( EBOIds ) ->
 	delete_buffers( EBOIds ).
+
+
+
+% Uniform variable subsection.
+
+
+% @doc Returns the identifier of the active uniform variable (if any) specified
+% by its name in the specified program.
+%
+% Refer to get_uniform_id/2 for further details.
+%
+-spec get_maybe_uniform_id( uniform_name(), program_id() ) ->
+											maybe( uniform_id() ).
+get_maybe_uniform_id( UniformName, ProgId ) ->
+
+	MaybeUniformId = case gl:getUniformLocation( ProgId, UniformName ) of
+
+		-1 ->
+			undefined;
+
+		Id ->
+			Id
+
+	end,
+
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ),
+
+	MaybeUniformId.
+
+
+
+% @doc Returns the identifier of the active uniform variable specified by its
+% name in the specified program. Throws an exception if such a variable does not
+% exist.
+%
+% The actual locations assigned to uniform variables are not known until the
+% program object is linked successfully.
+%
+% An uniform variable that is declared in shader(s) yet not used will be removed
+% during the linking step, and thus not be found.
+%
+-spec get_uniform_id( uniform_name(), program_id() ) -> uniform_id().
+get_uniform_id( UniformName, ProgId ) ->
+	case get_maybe_uniform_id( UniformName, ProgId ) of
+
+		undefined ->
+			throw( { unknown_uniform_variable, UniformName, ProgId } );
+
+		Id ->
+			Id
+
+	end.
+
+
+
+% @doc Sets the specified uniform variable to the specified GLSL vector of 3
+% floats, in the context of the currently installed shader program.
+%
+-spec set_uniform_3f( uniform_id(), vector3() ) -> void().
+set_uniform_3f( UniformId, _Vec3=[ X, Y, Z ] ) ->
+	gl:uniform3f( UniformId, X, Y, Z ),
+%set_uniform_3f( UniformId, Vec3 ) ->
+%	gl:uniform3fv( UniformId, [ list_to_tuple( Vec3 ) ] ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform array variable to the specified list of GLSL
+% vectors of 3 floats, in the context of the currently installed shader program.
+%
+-spec set_uniform_3fv( uniform_id(), [ vector3() ] ) -> void().
+set_uniform_3fv( UniformId, Vec3s ) ->
+	gl:uniform3fv( UniformId, to_gl_vectors( Vec3s ) ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified GLSL vector of 4
+% floats, in the context of the currently installed shaderprogram.
+%
+-spec set_uniform_4f( uniform_id(), vector4() ) -> void().
+set_uniform_4f( UniformId, _Vec4=[ X, Y, Z, W ] ) ->
+	gl:uniform4f( UniformId, X, Y, Z, W ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% @doc Converts the specified list of (Myriad) vectors (hence lists) of any
+% dimension into a list of vectors suitable for the gl API (hence tuples).
+%
+-spec to_gl_vectors( [ vector2() ] ) -> [ gl_vec2()   ];
+				   ( [ vector3() ] ) -> [ gl_vec3()   ];
+				   ( [ vector4() ] ) -> [ gl_vec4()   ];
+				   ( [ vector()  ] ) -> [ gl_vector() ].
+to_gl_vectors( Vecs ) ->
+	[ list_to_tuple( V ) || V <- Vecs ].
+
+
+% Inlined versions (e.g. to_gl_vec2/1 could make sense).
