@@ -397,11 +397,11 @@ update_existing_entries( Entries, MapHashtable ) ->
 
 	% Should be optimised:
 	lists:foldl( fun( { K, V }, Map ) when is_map_key( K, Map ) ->
-						 Map#{ K => V };
+						Map#{ K => V };
 
 					% K not present, thus ignore entry:
 					( _E, Map ) ->
-						 Map
+						Map
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=Entries ).
@@ -471,7 +471,7 @@ remove_existing_entry( Key, MapHashtable ) ->
 -spec remove_entries( [ key() ], map_hashtable() ) -> map_hashtable().
 remove_entries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-					 maps:remove( K, AccTable )
+					maps:remove( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
@@ -488,7 +488,7 @@ remove_entries( Keys, MapHashtable ) ->
 -spec remove_existing_entries( [ key() ], map_hashtable() ) -> map_hashtable().
 remove_existing_entries( Keys, MapHashtable ) ->
 	lists:foldl( fun( K, AccTable ) ->
-					 remove_existing_entry( K, AccTable )
+					remove_existing_entry( K, AccTable )
 				 end,
 				 _InitAcc=MapHashtable,
 				 _List=Keys ).
