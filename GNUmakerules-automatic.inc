@@ -314,3 +314,38 @@ endif
 %.plt: %.beam
 	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"
 	@"$(DIALYZER)" $(DIALYZER_OPTS) --plt $(PLT_FILE) $<
+
+
+
+# GLSL shader section.
+
+# The GLSL reference compiler does not return output if it detects no error.
+
+check-%.vertex.glsl: %.vertex.glsl
+	@echo "    Checking vertex shader $<"
+	@$(GLSL_REF_COMPILER) $(GLSL_REF_COMPILER_OPT) -S vert $<
+
+
+check-%.tess-ctrl.glsl: %.tess-ctrl.glsl
+	@echo "    Checking tessellation control shader $<"
+	@$(GLSL_REF_COMPILER) $(GLSL_REF_COMPILER_OPT) -S tesc $<
+
+
+check-%.tess-eval.glsl: %.tess-eval.glsl
+	@echo "    Checking tessellation evaluation shader $<"
+	@$(GLSL_REF_COMPILER) $(GLSL_REF_COMPILER_OPT) -S tese $<
+
+
+check-%.geometry.glsl: %.geometry.glsl
+	@echo "    Checking geometry shader $<"
+	@$(GLSL_REF_COMPILER) $(GLSL_REF_COMPILER_OPT) -S geom $<
+
+
+check-%.fragment.glsl: %.fragment.glsl
+	@echo "    Checking fragment shader $<"
+	@$(GLSL_REF_COMPILER) $(GLSL_REF_COMPILER_OPT) -S frag $<
+
+
+check-%.compute.glsl: %.compute.glsl
+	@echo "    Checking compute shader $<"
+	@$(GLSL_REF_COMPILER) $(GLSL_REF_COMPILER_OPT) -S comp $<
