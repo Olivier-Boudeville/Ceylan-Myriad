@@ -75,7 +75,13 @@
 
 -type uv_coordinate() :: float().
 % A texture UV (or {S,T}) coordinate. They do not depend on resolution, and
-% generally are in [0.0, 1.0].
+% generally are in [0.0, 1.0]. They are used to sample the source image (texels)
+% in order to fill a given polygon to texture with corresponding pixels /
+% fragments.
+%
+% OpenGL expects the 0.0 coordinate on the Y axis to be on the bottom side of
+% the image, yet images usually have 0.0 at the top of this axis, so images may
+% have to be flipped upside-down first, when loaded.
 
 
 -type uv_point() :: { uv_coordinate(), uv_coordinate() }.
@@ -233,6 +239,10 @@
 
 
 % @doc Sets basic, general parameters regarding (2D) textures.
+%
+% Refer to apply_basic_settings_on_current/0 to define basic settings to a given
+% texture instance.
+%
 -spec set_basic_general_settings() -> void().
 set_basic_general_settings() ->
 	gl:enable( ?GL_TEXTURE_2D ),
@@ -356,7 +366,7 @@ create_from_text( Text, Font, Brush, Color ) ->
 % currently active texture.
 %
 -spec create_from_text( ustring(), font(), brush(), color_by_decimal(),
-								boolean() ) -> texture().
+						boolean() ) -> texture().
 create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 	% Directly deriving from lib/wx/examples/demo/ex_gl.erl:
 
@@ -513,6 +523,10 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 
 
 % @doc Sets basic parameters on the currently active (2D) texture.
+%
+% Refer to set_basic_general_settings/0 for overall settings (transverse to all
+% texture instances).
+%
 -spec apply_basic_settings_on_current() -> void().
 apply_basic_settings_on_current() ->
 
@@ -524,11 +538,14 @@ apply_basic_settings_on_current() ->
 	% https://learnopengl.com/Getting-started/Textures)
 	%
 
+	% No ?GL_LINEAR_MIPMAP* suitable yet, as they relate to down (not up)
+	% scaling:
+	%
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
-	% GL_LINEAR better than GL_NEAREST:
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER, ?GL_LINEAR ),
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
+					  ?GL_LINEAR_MIPMAP_LINEAR ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	% Otherwise the current color will be applied to the textured polygons as
@@ -545,7 +562,9 @@ apply_basic_settings_on_current() ->
 	%gl:pixelStorei( ?GL_UNPACK_ROW_LENGTH, 0 ),
 	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
 
-	% Possibly not that useful, UV coordinates remaining in [0.0, 1.0]:
+	% Possibly not that useful, UV coordinates remaining generally in [0.0,
+	% 1.0]:
+	%
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
