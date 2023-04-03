@@ -26,14 +26,14 @@
 % Creation date: Saturday, March 25, 2023.
 
 
-% For the low-level encoding of basic types:
+% For the low-level encoding of basic types (see also the bin_utils module):
 
 
 % Shorthand, typically useful for OpenGL-related encoding of coordinates:
 -define( F32, 32/float-native ).
 
 % Shorthand, typically useful for OpenGL-related encoding:
--define( I32, 32/signed-native ).
+-define( I32, 32/integer-signed-native ).
 
 % Shorthand, typically useful for OpenGL-related encoding:
--define( UI32, 32/native ).
+-define( UI32, 32/integer-unsigned-native ).
