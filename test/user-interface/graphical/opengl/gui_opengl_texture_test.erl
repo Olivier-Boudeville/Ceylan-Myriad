@@ -30,7 +30,8 @@
 %
 % This test relies on the old OpenGL (the one obtained with the "compatibility"
 % profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
-% shaders and GLSL.
+% shaders and GLSL. See gui_opengl_texture_shader_test for its more modern
+% counterpart.
 %
 -module(gui_opengl_texture_test).
 
