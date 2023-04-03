@@ -2648,8 +2648,7 @@ append_to_buffer( _ElementType=vector3, _ComponentType=float32, Elements,
 	append_all_float32_little( ComponentFloats, Bin );
 
 append_to_buffer( ElementType, _ComponentType=float32, Elements, Bin )
-		when ElementType =:= vector2
-	  orelse ElementType =:= vector4 ->
+		when ElementType =:= vector2 orelse ElementType =:= vector4 ->
 	ComponentFloats = list_utils:flatten_once( Elements ),
 	%trace_utils:debug_fmt( "Appending following floats for vectors:~n~p",
 	%                       [ ComponentFloats ] ),
