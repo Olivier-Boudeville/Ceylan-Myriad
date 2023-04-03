@@ -134,6 +134,7 @@ endif
 #  - web_exchanges: http/https exchanges
 #  - strings: notably for mismatches between plain and binary ones
 #  - binaries: how binaries are created, used, matched
+#  - lists: how lists are processed
 #  - registration: regarding naming registering
 #  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
@@ -170,6 +171,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_web_exchanges
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_binaries
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_lists
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
@@ -204,6 +206,7 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
@@ -1808,10 +1811,17 @@ ALL_CMD_LINE_OPTIONS := $(EXEC_INTERNAL_OPTIONS) -extra $(EXEC_EXTERNAL_OPTIONS)
 ALL_CMD_LINE_OPTIONS_FOR_SHELL := $(INTERNAL_OPTIONS) -start-verbatim-options -extra $(EXEC_EXTERNAL_OPTIONS) $(CMD_LINE_OPT) --provide-shell
 
 
+# GLSL reference compiler for shaders:
+GLSL_REF_COMPILER := $$(which glslangValidator 2>/dev/null)
+
+#GLSL_REF_COMPILER_OPT := -m
+GLSL_REF_COMPILER_OPT :=
+
+
 ## Documentation section.
 
 # Available in Ceylan-Hull:
-DOC_TRACKER := $$(which track-make-automatic-source.sh)
+DOC_TRACKER := $$(which track-make-automatic-source.sh 2>/dev/null)
 
 
 # PROJECT_ICON is a path to an icon file that will be copied on HTML generation:
