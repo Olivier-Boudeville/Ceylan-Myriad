@@ -46,13 +46,6 @@
 % "wx/include/gl.hrl" and "wx/include/glu.hrl" included in "gui_opengl.hrl".
 
 
-% Tells whether the detection of an OpenGL shall throw an exception or only
-% output an error message in the console:
-%
--define( do_throw_on_opengl_error, true ).
-%-define( do_throw_on_opengl_error, false ).
-
-
 % Usage notes:
 %
 % While error checking (see check_error/0) and the use of a debug context (see
@@ -490,6 +483,13 @@
 		  get_size_of_elements/2 ]).
 
 
+% Error-related operations:
+-export([ check_error/0, check_error/1,
+		  check_gl_error/0, check_gl_error/1,
+		  check_gl_debug_context_error/0, check_gl_debug_context_error/1,
+		  interpret_error/1 ]).
+
+
 % Support of the OpenGL debug context:
 -export([ is_debug_context_supported/0, is_debug_context_enabled/0,
 
@@ -520,8 +520,7 @@
 
 		  set_matrix/1, get_matrix/1,
 
-		  boolean_to_gl/1, buffer_usage_hint_to_gl/1,
-		  check_error/0, interpret_error/1 ]).
+		  boolean_to_gl/1, buffer_usage_hint_to_gl/1 ]).
 
 
 % API for module generation:
@@ -1062,7 +1061,9 @@ get_unsupported_extensions( Extensions, Tid ) ->
 	[ E || E <- Extensions, not is_extension_supported( E, Tid ) ].
 
 
+
 % Subsection for the management of debug contexts.
+
 
 % @doc Tells whether the OpenGL debug context is supported on this host.
 %
@@ -1197,7 +1198,11 @@ insert_debug_context_message( MsgId, Msg, MsgSeverity, MsgSource, MsgType ) ->
 	gl:debugMessageInsert( GLMsgSource, GLMsgType, MsgId, GLMsgSeverity,
 						   length( Msg ), Msg ),
 
-	cond_utils:if_defined( myriad_check_opengl, check_error() ).
+	% Only pure GL checked, not its debug context as of course it has a message
+	% now:
+	%
+	cond_utils:if_defined( myriad_check_opengl,
+						   check_gl_error() ).
 
 
 
@@ -1232,8 +1237,8 @@ get_debug_context_messages( MsgSource, MsgType, MsgSeverity ) ->
 
 	BufferByteCount = 5000,
 
-	% Not created by the caller:
-	%Buffer = bin_utils:create_buffer( ByteCount ),
+	% Actually not created by the caller:
+	%Buffer = bin_utils:create_binary( ByteCount ),
 
 	MaxMsgCount = 10,
 
@@ -1264,7 +1269,9 @@ fetch_debug_context_messages( BufferByteCount, MaxMsgCount, GLMsgSource,
 
 	end,
 
-	cond_utils:if_defined( myriad_check_opengl, check_error() ),
+	% Not done, otherwise infinite recursion:
+	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
+	cond_utils:if_defined( myriad_check_opengl, check_gl_error() ),
 
 	% Testing the 'gl' implementation actually:
 	cond_utils:if_defined( myriad_check_opengl,
@@ -1983,7 +1990,7 @@ render_quads( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
 
 
 % @doc Checks whether an OpenGL-related error occurred previously (since last
-% check, otherwisesince OpenGL initialisation); if yes, displays information
+% check, otherwise since OpenGL initialisation); if yes, displays information
 % regarding it, and throws an exception.
 %
 % Note that an OpenGL context must already exist and be set as current (see
@@ -1991,6 +1998,32 @@ render_quads( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
 %
 -spec check_error() -> void().
 check_error() ->
+	check_error( _DoThrowOnError=true ).
+
+
+% @doc Checks whether an OpenGL-related error occurred previously (since last
+% check, otherwise since OpenGL initialisation); if yes, displays information
+% regarding it, and throws an exception if requested: DoThrowOnError tells
+% whether the detection of an OpenGL shall throw an exception or only output an
+% error message in the console.
+%
+% Note that an OpenGL context must already exist and be set as current (see
+% set_context*/2), otherwise a no_gl_context error will be triggered.
+%
+-spec check_error( boolean() ) -> void().
+check_error( DoThrowOnError ) ->
+	check_gl_error( DoThrowOnError ),
+	check_gl_debug_context_error( DoThrowOnError ).
+
+
+% (helper)
+-spec check_gl_error() -> void().
+check_gl_error() ->
+	check_gl_error( _DoThrowOnError=true ).
+
+
+-spec check_gl_error( boolean() ) -> void().
+check_gl_error( DoThrowOnError ) ->
 
 	% Reset the error status when returning:
 	case gl:getError() of
@@ -2003,16 +2036,17 @@ check_error() ->
 			% Stacktrace expected, as bound to be useful (even if the error
 			% might have happened some time before, any time between the
 			% previous check and this one):
+			%
+			SkipLastElemCount = 2,
 
-			case ?do_throw_on_opengl_error of
+			case DoThrowOnError of
 
 				true ->
-
 					{ Mod, Func, Arity, [ { file, SrcFile },
 										  { line, Line } ] } =
-						hd( code_utils:get_stacktrace( _SkipLastElemCount=1 ) ),
+						hd( code_utils:get_stacktrace( SkipLastElemCount ) ),
 
-					trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; "
+					trace_utils:error_fmt( "OpenGL error reported (~B): ~ts; "
 						"this error was detected in ~ts:~ts/~B (file ~ts, "
 						"line ~B); aborting.",
 						[ GlError, Diagnosis, Mod, Func, Arity, SrcFile,
@@ -2023,14 +2057,65 @@ check_error() ->
 				false ->
 					trace_utils:error_fmt( "OpenGL error detected (~B): ~ts; "
 						"stacktrace:~n  ~p.", [ GlError, Diagnosis,
-							code_utils:get_stacktrace( 1 ) ] ),
+							code_utils:get_stacktrace( SkipLastElemCount ) ] ),
 
 					% Recursing until having ?GL_NO_ERROR, knowing that, when
 					% OpenGL is run in distributed mode (like frequently found
 					% on X11 systems), calling gl:getError/0 only resets one of
 					% the error code flags (instead of all of them):
 					%
-					check_error()
+					check_gl_error( DoThrowOnError )
+
+			end
+
+	end.
+
+
+% (helper)
+-spec check_gl_debug_context_error() -> void().
+check_gl_debug_context_error() ->
+	check_gl_debug_context_error( _DoThrowOnError=true ).
+
+
+% (helper)
+-spec check_gl_debug_context_error( boolean() ) -> void().
+check_gl_debug_context_error( DoThrowOnError ) ->
+
+	% There might still be messages even if the debug context is not
+	% specifically enabled:
+	%
+	case get_debug_context_messages() of
+
+		[] ->
+			ok;
+
+		Msgs ->
+			% Similar as for gl:getError/0:
+			SkipLastElemCount = 2,
+
+			case DoThrowOnError of
+
+				true ->
+					{ Mod, Func, Arity, [ { file, SrcFile },
+										  { line, Line } ] } =
+						hd( code_utils:get_stacktrace( SkipLastElemCount ) ),
+
+					trace_utils:error_fmt( "~B OpenGL error(s) reported "
+						"through its debug context: ~ts~n"
+						"Detected in ~ts:~ts/~B (file ~ts, "
+						"line ~B); aborting.",
+						[ length( Msgs ),
+						  debug_context_messages_to_string( Msgs ),
+						  Mod, Func, Arity, SrcFile, Line ] ),
+
+					throw( { opengl_error_from_debug_context, Msgs } );
+
+				false ->
+					trace_utils:error_fmt( "~B OpenGL error(s) detected "
+						"through its debug context: ~ts~nStacktrace:~n  ~p.",
+						[ length( Msgs ),
+						  debug_context_messages_to_string( Msgs ),
+						  code_utils:get_stacktrace( SkipLastElemCount ) ] )
 
 			end
 
