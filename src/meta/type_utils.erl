@@ -642,37 +642,15 @@
 
 
 
-% Conversion:
--export([ ensure_integer/1, ensure_rounded_integer/1,
-		  ensure_float/1, ensure_positive_float/1,
-		  ensure_number/1, ensure_boolean/1,
-		  ensure_string/1, ensure_binary/1 ]).
+% We distinguish here check_* functions, that check that their argument is of a
+% given type (and return that argument, unchanged) and ensure_* functions, which
+% perform a check and, if necessary, a (legit) cast, hence may return a value
+% whose type is different from the one of their argument.
 
 
-% Sharing:
--export([ share/1, share/2, share/3 ]).
-
-
-% Boolean predicates, that is checking that returns not the checked value but
-% whether it could be successfully be checked.
-%
-% Most of such boolean predicates can be directly implemented thanks to guard
-% expressions (e.g. 'is_pid(T)' or 'X >= 1'), and thus are not specifically
-% defined here.
-%
-% These predicate are more convenient to trigger application-specific feedback
-% that the next term-returning checkings of the next section.
-%
--export([ are_numbers/1, are_maybe_numbers/1,
-		  are_integers/1, are_maybe_integers/1,
-		  are_floats/1, are_maybe_floats/1,
-		  are_positive_floats/1,
-		  are_binaries/1 ]).
-
-
-
-% Term-returning checkings: if the specified term could be successfully checked,
-% returns it (as opposed to a predicate returning a boolean value).
+% Term-returning pure checkings: if the specified term could be successfully
+% checked, returns it (as opposed to a predicate returning a boolean value), so
+% that it can be chained, i.e. passed as an argument to a function.
 %
 % We prefer the "'positive' vs 'strictly positive'" naming, deemed clearer than
 % the "'non_neg' vs 'positive'" one, this 'positive' excluding zero.
@@ -715,6 +693,34 @@
 		  check_list/1,
 		  check_binary/1, check_binaries/1,
 		  check_map/1, check_tuple/1 ]).
+
+
+% Checks with potential conversions:
+-export([ ensure_integer/1, ensure_rounded_integer/1,
+		  ensure_float/1, ensure_positive_float/1,
+		  ensure_string/1, ensure_binary/1 ]).
+
+
+% Sharing:
+-export([ share/1, share/2, share/3 ]).
+
+
+% Boolean predicates, that is checking that returns not the checked value but
+% whether it could be successfully be checked.
+%
+% Most of such boolean predicates can be directly implemented thanks to guard
+% expressions (e.g. 'is_pid(T)' or 'X >= 1'), and thus are not specifically
+% defined here.
+%
+% These predicate are more convenient to trigger application-specific feedback
+% that the next term-returning checkings of the next section.
+%
+-export([ are_numbers/1, are_maybe_numbers/1,
+		  are_integers/1, are_maybe_integers/1,
+		  are_floats/1, are_maybe_floats/1,
+		  are_positive_floats/1,
+		  are_binaries/1 ]).
+
 
 
 % Specials for datatypes:
@@ -979,7 +985,7 @@ interpret_type_of( Term, MaxNestingLevel ) when MaxNestingLevel >= 0 ->
 
 
 
-% @doc Returns a string describing, in a user-friendly manner, the type of the
+% Returns a string describing, in a user-friendly manner, the type of the
 % specified term, describing any nested subterms up to the specified level.
 %
 -spec interpret_type_helper( term(), level(), level() ) -> ustring().
@@ -1406,26 +1412,6 @@ ensure_positive_float( I ) when is_integer( I ) andalso I >= 0 ->
 
 ensure_positive_float( Other ) ->
 	throw( { cannot_coerce_to_positive_float, Other } ).
-
-
-
-% @doc Ensures that the specified term is a number, and returns it.
--spec ensure_number( number() ) -> number().
-ensure_number( N ) when is_number( N ) ->
-	N;
-
-ensure_number( N ) ->
-	throw( { not_a_number, N } ).
-
-
-
-% @doc Ensures that the specified term is a boolean, and returns it.
--spec ensure_boolean( term() ) -> boolean().
-ensure_boolean( B ) when is_boolean( B ) ->
-	B;
-
-ensure_boolean( B ) ->
-	throw( { not_a_boolean, B } ).
 
 
 

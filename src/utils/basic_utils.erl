@@ -620,7 +620,8 @@ are_all_defined( _Elems=[ _E | T ] ) ->
 % Useful to define, for debugging purposes, terms that will be (temporarily)
 % unused without blocking the compilation.
 %
-% For example basic_utils:ignore_unused(A) or basic_utils:ignore_unused([A, B, C]).
+% For example basic_utils:ignore_unused(A) or basic_utils:ignore_unused([A, B,
+% C]).
 %
 -spec ignore_unused( any() ) -> void().
 ignore_unused( _Term ) ->
@@ -1415,11 +1416,13 @@ assert( _Expr=true ) ->
 	ok;
 
 assert( Other ) ->
-	interpret_failed_assertion(),
+	interpret_failed_assertion( "'~p' is not true", [ Other ] ),
 	throw( { assert_failed, Other } ).
 
 
-% Duplicated as a nested call would change the depth of the stacktrace:
+
+% Code of assert/1 duplicated rather than being called, as a nested call would
+% change the depth of the stacktrace:
 
 
 % @doc Asserts that the specified (runtime) expression is true, otherwise throws
@@ -1432,7 +1435,7 @@ assert_true( _Expr=true ) ->
 	ok;
 
 assert_true( Other ) ->
-	interpret_failed_assertion(),
+	interpret_failed_assertion( "'~p' is not true", [ Other ] ),
 	throw( { assert_failed, Other } ).
 
 
@@ -1444,7 +1447,7 @@ assert_false( _Expr=false ) ->
 	ok;
 
 assert_false( Other ) ->
-	interpret_failed_assertion(),
+	interpret_failed_assertion( "'~p' is not false", [ Other ] ),
 	throw( { assert_false_failed, Other } ).
 
 
@@ -1456,7 +1459,7 @@ assert_equal( Expr, Expr ) ->
 	ok;
 
 assert_equal( Expr1, Expr2 ) ->
-	interpret_failed_assertion(),
+	interpret_failed_assertion( "'~p' is not equal to '~p'", [ Expr1, Expr2 ] ),
 	throw( { assert_equal_failed, Expr1, Expr2 } ).
 
 
@@ -1465,7 +1468,7 @@ assert_equal( Expr1, Expr2 ) ->
 %
 -spec assert_different( term(), term() ) -> void().
 assert_different( Expr, Expr ) ->
-	interpret_failed_assertion(),
+	interpret_failed_assertion( "both elements are equal to '~p'", [ Expr ] ),
 	throw( { assert_different_failed, Expr } );
 
 assert_different( _Expr1, _Expr2 ) ->
@@ -1473,13 +1476,19 @@ assert_different( _Expr1, _Expr2 ) ->
 
 
 % (helper)
-interpret_failed_assertion() ->
+interpret_failed_assertion( FormatStr, FormatValues ) ->
+	Msg = text_utils:format( FormatStr, FormatValues ),
+	interpret_failed_assertion( Msg ).
+
+
+% (helper)
+interpret_failed_assertion( Msg ) ->
 
 	{ Mod, Func, Arity, [ { file, SrcFile }, { line, Line } ] } =
 		hd( code_utils:get_stacktrace( _SkipLastElemCount=2 ) ),
 
 	trace_utils:error_fmt( "Assertion failed in ~ts:~ts/~B "
-		"(file ~ts, line ~B).", [ Mod, Func, Arity, SrcFile, Line ] ).
+		"(file ~ts, line ~B): ~ts.", [ Mod, Func, Arity, SrcFile, Line, Msg ] ).
 
 
 

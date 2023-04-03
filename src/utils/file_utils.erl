@@ -268,6 +268,17 @@
 % e.g. "../my_dir/other/foobar.txt".
 
 
+-type bin_file_name() :: bin_string().
+-type bin_file_path() :: bin_string().
+
+
+-type any_file_name() :: file_name() | bin_file_name().
+% Could also be the more general file:name_all().
+
+
+-type any_file_path() :: file_path() | bin_file_path().
+
+
 
 -type device_path() :: path().
 % Designates a path to a device (including its device name), e.g.
@@ -284,22 +295,12 @@
 % "/dev/ttyUSB0".
 
 
--type bin_file_name() :: bin_string().
--type bin_file_path() :: bin_string().
-
-
--type any_file_name() :: file_name() | bin_file_name().
-% Could also be the more general file:name_all().
-
-
--type any_file_path() :: file_path() | bin_file_path().
-
-
 -type link_name() :: ustring().
 % The name of a (symbolic) link.
 
 -type link_path() :: file_path().
 % The path of a (symbolic) link.
+
 
 -type bin_link_path() :: bin_file_path().
 % The (binary) path of a (symbolic) link.
@@ -322,6 +323,7 @@
 
 -type any_executable_path() :: executable_path() | bin_executable_path().
 % Any type of path to an executable.
+
 
 
 -type script_path() :: file_path().
@@ -489,15 +491,11 @@
 			   device_path/0, bin_device_path/0, any_device_path/0,
 
 			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
-
 			   executable_name/0, executable_path/0, bin_executable_path/0,
 			   any_executable_path/0,
-
 			   script_path/0, bin_script_path/0,
-
 			   directory_name/0, bin_directory_name/0,
 			   directory_path/0, bin_directory_path/0,
-
 			   filename_radix/0, filepath_radix/0,
 			   extension/0, dotted_extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
@@ -530,7 +528,7 @@
 %
 % - their support may be specified when opening a file, notably for writing
 % (then a transparent encoding will be done), yet we found it safer and offering
-% more control not to request such an automatic encoding, and to secure it by
+% more control not to request such an automatic encoding, and to perform it by
 % ourselves, either by relying on write_ustring/{2,3} or by calling write/2 with
 % a binary content that is already properly encoded (see
 % text_utils:to_unicode_{list,binary}/{1,2}); otherwise for example a double
@@ -548,14 +546,22 @@
 % that convenient
 %
 % - so the content itself may have to be encoded before writing; for example,
-% writing "éèôù" (interpreted to be latin1 or alike) in a file opened as utf8
+% writing "éèôù" (interpreted to be Latin1 or alike) in a file opened as utf8
 % will result in a garbled content, unless it has been converted beforehand,
 % typically thanks to our to_unicode_{list,binary}/{1,2}
 %
-% - it seems possible that in some cases specifying the 'raw' option result in
-% the requested encoding (e.g. utf8) not being respected (e.g. having ISO-8859
-% instead); with newer versions of Myriad and of Erlang, we believe this issue
-% does not exist anymore
+% - it seemed possible that in some cases specifying the 'raw' option results in
+% the requested encoding (e.g. utf8) not being respected (e.g. having ISO/IEC
+% 8859 instead); with newer versions of Myriad and of Erlang, we believe this
+% issue does not exist anymore
+%
+% - if an opened file fails to be correctly read encoding-wise (characters like
+% 'à' being not only displayed but also read garbled, and if setting
+% {encoding,unicode} returns an error such as {read_error, {no_translation,
+% unicode,unicode}}, then this may be an (unfortunate) side-effect of having run
+% the VM with the -noinput option; in this case, the best option is to execute
+% once, preferably early (e.g. as first statement)
+% system_utils:force_unicode_support/0.
 %
 % - some file elements may be improperly named regarding Unicode encoding ("raw
 % filenames"); use list_dir_elements/2 to decide how they should be handled
@@ -574,6 +580,7 @@
 %
 % See also:
 % [https://erlang.org/doc/apps/stdlib/unicode_usage.html#unicode-data-in-files]
+% and the read_options define in csv_utils.erl for further details.
 %
 % Summary: use the 'file' module only for files opened for bytewise access
 % ({encoding,latin1}) - otherwise use the 'io' module.
@@ -4780,23 +4787,9 @@ latin1_file_to_unicode( AnyFilePath ) ->
 % As soon as a file is opened for writing, a corresponding empty file appears in
 % the filesystem.
 %
-% Note:
-%
-% - we used to think that 'raw' may cause problems with encodings; consider
-% specifying system_utils:get_default_encoding_option/0; refer to the 'Regarding
-% encodings and Unicode' section at the top of this file for further information
-%
-% - if an opened file fails to be correctly read encoding-wise (characters like
-% 'à' being not only displayed but also read garbled, and if setting
-% {encoding,unicode} returns an error such as
-% {read_error,{no_translation,unicode,unicode}}, then this may be an
-% (unfortunate) side-effect of having run the VM with the -noinput option; in
-% this case, the best option is to execute once, preferably early (e.g. as first
-% statement) system_utils:force_unicode_support/0.
-%
-% Note also that if the 'raw' flag is included among opening flags, any
-% specified encoding might be ignored (e.g. UTF8 being specified, whereas
-% ISO/IEC 8859 being written).
+% For all questions in link with the Unicode support or the use of the 'raw'
+% option, read the 'Regarding encodings and Unicode' section at the top of this
+% file.
 %
 -spec open( any_file_path(), [ file_open_mode() ] ) -> file().
 open( AnyFilePath, Options ) ->
@@ -4831,17 +4824,9 @@ open( AnyFilePath, Options ) ->
 % processes than available file descriptors try to access to files. An effort is
 % made to desynchronize these processes to smooth the use of descriptors.
 %
-% Note: if an opened file fails to be correctly read encoding-wise (characters
-% like 'à' being not only displayed but also read garbled, and if setting
-% {encoding,unicode} returns an error such as
-% {read_error,{no_translation,unicode,unicode}}, then this may be an
-% (unfortunate) side-effect of having run the VM with the -noinput option; in
-% this case, the best option is to execute once, preferably early (e.g. as first
-% statement) system_utils:force_unicode_support/0.
-%
-% Note also that if the 'raw' flag is included among opening flags, any
-% specified encoding might be ignored (e.g. UTF8 being specified, whereas
-% ISO/IEC 8859 being written).
+% For all questions in link with the Unicode support or the use of the 'raw'
+% option, read the 'Regarding encodings and Unicode' section at the top of this
+% file.
 %
 -spec open( any_file_path(), [ file_open_mode() ],
 			'try_once' | 'try_endlessly' | 'try_endlessly_safer' ) -> file().

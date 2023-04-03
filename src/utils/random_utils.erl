@@ -245,13 +245,14 @@
 
 
 
--type random_law() :: uniform_law()
+-type random_law() ::
+	uniform_law()
 
-					| exponential_law()
-					| positive_integer_exponential_law()
+  | exponential_law()
+  | positive_integer_exponential_law()
 
-					| gaussian_law()
-					| positive_integer_gaussian_law().
+  | gaussian_law()
+  | positive_integer_gaussian_law().
 
 
 -type discrete_probability_distribution( T ) :: [ sample_entry( T ) ].
@@ -1203,7 +1204,7 @@ get_positive_integer_gaussian_values( Mu, Sigma, Count ) ->
 
 % @doc Generates a list of Count positive integer Gaussian random values.
 -spec generate_positive_integer_gaussian_list( mean(), standard_deviation(),
-									count() ) -> [ non_neg_integer() ].
+		count() ) -> [ non_neg_integer() ].
 generate_positive_integer_gaussian_list( Mu, Sigma, Count ) ->
 	generate_positive_integer_gaussian_list( Mu, Sigma, Count, [] ).
 
@@ -1241,10 +1242,10 @@ generate_positive_integer_gaussian_list( Mu, Sigma, Count, Acc ) ->
 % according to the specified discrete probability distribution.
 %
 % For example MyDistributionState = random_utils:generate_random_state_from(
-%                              [{a,10}, {b,20}, {c,40}, {d,30}]).
+%   [{a,10}, {b,20}, {c,40}, {d,30}]).
 %
 % or MyDistributionState = random_utils:generate_random_state_from(
-%                              [{"hello",0.6}, {"goodbye",0.4}]).
+%   [{"hello",0.6}, {"goodbye",0.4}]).
 %
 % From this (const) state, computed once for all and whose construction does not
 % depend on any other random state (it is deterministic), any number of samples

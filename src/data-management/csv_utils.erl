@@ -71,13 +71,20 @@
 % A CSV content, as an (ordered) list of rows.
 
 
--type mixed_content() :: [ row() | [ value() ] ].
-% A CSV content, as an (ordered) list of rows that match a row spec (e.g.
-% expected number of fields) or not (then represented as a mere list of values).
-
-
 -type row_count() :: count().
-% Number of rows.
+% A count of rows.
+
+
+-type row_number() :: count().
+% The number of a row in a row stream (akin to a line number in a file).
+% Starts at #1.
+
+
+
+-type mixed_content() :: [ row() | { 'non_matching', row_number(), row() } ].
+% A CSV content, as an (ordered) list of rows that match a row spec (e.g.
+% expected number of fields) or not (then represented as a "non-matching"
+% triplet.
 
 
 -type field_count() :: count().
@@ -92,7 +99,8 @@
 % - the number of fields each row has
 
 
--export_type([ separator/0, value/0, row/0, content/0, row_count/0,
+-export_type([ separator/0, value/0, row/0, content/0,
+			   row_count/0, row_number/0,
 			   field_count/0,
 			   reading_outcome/0 ]).
 
@@ -109,13 +117,28 @@
 % reads to return correctly-encoded lines:
 %
 % (additionally, even when forcing UTF8 encoding when exporting as CSV an Excel
-% spreadsheet, the same ISO-8859 content will be obtained)
+% spreadsheet, the same ISO-8859 content will be obtained; )
 %
 %-define( read_options,
 %   [ read, { read_ahead, ?ahead_size }, { encoding, utf8 } ] ).
 %
+% However, when not specifying { encoding, utf8 }, the fields read from a CSV
+% file determined to be 'UTF-8 Unicode text' would be able to be matched with
+% corresponding strings, despite the corresponding source file being itself
+% 'UTF-8 Unicode text'.
+%
+% Starting a source file with '%% coding: utf-8' should not change anything, yet
+% it does (strings are displayed differently).
+%
+% We also believe that, at least with older versions of LibreOffice (5.2.7.2),
+% saving a spreadsheet as a CSV file with the UTF-8 character set may lead to
+% garbled encodings (one may just try to do the same with Excel).
+%
 % This work-around is still necessary (still true with Erlang 23.0):
--define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
+%-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
+-define( read_options,
+   [ read, { read_ahead, ?ahead_size }, { encoding, utf8 } ] ).
+
 
 
 % Defines what are the characters that denote a start/end of quoting in CVS
@@ -182,37 +205,42 @@
 % - support character encoding
 
 
--export([ % For regular, homogeneous CSV files, supposing the separator known a
-		  % priori, but not the number of fields to expect :
-		  %
-		  read_file/1, read_file/2,
+-export([
 
-		  % For CSV files that shall be filtered before use (e.g. with some rows
-		  % obeying different rules):
+	% For regular, homogeneous CSV files, supposing the separator known a
+	% priori, but not the number of fields to expect :
+	%
+	read_file/1, read_file/2,
 
-		  % If the separator and number of fields to expect are known a priori:
-		  interpret_file/3,
+	% For CSV files that shall be filtered before use (e.g. with some rows
+	% obeying different rules):
 
-		  % If the separator is known a priori, but not the number of fields to
-		  % expect:
-		  %
-		  interpret_file/2,
+	% If the separator and number of fields to expect are known a priori:
+	interpret_file/3,
 
-		  % If neither the separator nor the number of fields to expect is known
-		  % a priori:
-		  %
-		  interpret_file/1,
+	% If the separator is known a priori, but not the number of fields to
+	% expect:
+	%
+	interpret_file/2,
 
-		  % For CSV files that shall be filtered before use (e.g. with some rows
-		  % obeying different rules):
-		  %
-		  write_file/2, write_file/3,
+	% If neither the separator nor the number of fields to expect is known a
+	% priori:
+	%
+	interpret_file/1,
 
-		  get_usual_separators/0,
 
-		  check_all_empty/1, are_all_empty/1,
+	describe_non_matching_rows_in/1,
 
-		  content_to_string/1 ]).
+	% For CSV files that shall be filtered before use (e.g. with some rows
+	% obeying different rules):
+	%
+	write_file/2, write_file/3,
+
+	get_usual_separators/0,
+
+	check_all_empty/1, are_all_empty/1,
+
+	content_to_string/1 ]).
 
 
 
@@ -268,11 +296,12 @@ read_file( FilePath, Separator ) when is_integer( Separator ) ->
 %
 % Returns {MixedContent, MatchingCount, UnmatchCount, DropCount}, where:
 %
-% - MixedContent is a list (respecting the in-file order) whose elements are
-% either a list of the specified number of fields, or a pair whose first element
-% is the 'non_matching' atom, and whose second element is a list whose elements
-% were obtained based on the same separator - yet in a different number than the
-% expected one
+% - MixedContent is a list (respecting the in-file order), each element of which
+% being either a row (that is a tuple of the legit number of values), or a
+% triplet whose first element is the 'non_matching' atom, whose second element
+% is the in-file number of the corresponding row and whose third element is the
+% corresponding row (hence a tuple whose elements were obtained based on the
+% same separator - yet in a different number than the expected one)
 %
 % - MatchingCount is the number of rows that match the row spec (i.e. the
 % specified number of fields), based on the specified separator
@@ -313,11 +342,7 @@ interpret_file( FilePath, Separator, ExpectedFieldCount )
 % - FieldCount is the number of fields in each row, as determined thanks to the
 % first non-dropped row
 %
-% - MixedContent is a list (respecting the in-file order) whose elements are
-% either a list of the specified number of fields, or a pair whose first element
-% is the 'non_matching' atom, and whose second element is a list whose elements
-% were obtained based on the same separator - yet in a different number than the
-% expected one
+% - MixedContent: refer to interpret_file/3 for a detailed description
 %
 % - MatchingCount is the number of rows that match the row spec (i.e. the
 % specified number of fields), based on the specified separator
@@ -341,7 +366,8 @@ interpret_file( FilePath, Separator ) when is_integer( Separator ) ->
 	% Branch to the helper with a correct initial state:
 	{ MixedContent, MatchCount, UnmatchCount, DropCount } =
 		interpret_rows( _Device=File, Separator, FieldCount,
-			_MatchCount=1, _UnmatchCount=0, GuessDropCount, _Acc=[ FirstRow ] ),
+			_MatchCount=1, _UnmatchCount=0, GuessDropCount, _RowCount=1,
+			_Acc=[ FirstRow ] ),
 
 	%trace_utils:debug_fmt( "Read mixed content with detected field count ~B "
 	%   "(matching count: ~B, unmatching count: ~B, drop count: ~B):~n ~p",
@@ -365,11 +391,7 @@ interpret_file( FilePath, Separator ) when is_integer( Separator ) ->
 % - FieldCount is the number of fields in each row, as determined thanks to the
 % first non-dropped row
 %
-% - MixedContent is a list (respecting the in-file order) whose elements are
-% either a list of the specified number of fields, or a pair whose first element
-% is the 'non_matching' atom, and whose second element is a list whose elements
-% were obtained based on the same separator - yet in a different number than the
-% expected one
+% - MixedContent: refer to interpret_file/3 for a detailed description
 %
 % - MatchingCount is the number of rows that match the row spec (i.e. the
 % specified number of fields), based on the detected separator
@@ -397,7 +419,8 @@ interpret_file( FilePath ) ->
 	% Branch to the helper with a correct initial state:
 	{ MixedContent, MatchCount, UnmatchCount, DropCount } =
 		interpret_rows( _Device=File, Separator, FieldCount,
-			_MatchCount=1, _UnmatchCount=0, FirstDropCount, _Acc=[ FirstRow ] ),
+			_MatchCount=1, _UnmatchCount=0, FirstDropCount, _RowCount=1,
+			_Acc=[ FirstRow ] ),
 
 	% Full version with content:
 	%cond_utils:if_defined( myriad_debug_csv_support,
@@ -542,6 +565,7 @@ guess_separator_and_field_count( Device, DropCount ) ->
 			throw( { read_error, Error } );
 
 		Line ->
+			%trace_utils:debug_fmt( "Read line '~ts'.", [ Line ] ),
 			case parse_row_no_separator( Line ) of
 
 				dropped ->
@@ -561,13 +585,13 @@ guess_separator_and_field_count( Device, DropCount ) ->
 				{ mixed_content(), row_count(), row_count(), row_count() }.
 interpret_rows( File, Separator, ExpectedFieldCount ) ->
 	interpret_rows( _Device=File, Separator, ExpectedFieldCount, _MatchCount=0,
-					_UnmatchCount=0, _DropCount=0, _Acc=[] ).
+					_UnmatchCount=0, _DropCount=0, _RowNumber=1, _Acc=[] ).
 
 
 
 % (helper)
 interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
-				DropCount, Acc ) ->
+				DropCount, RowNumber, Acc ) ->
 
 	case io:get_line( Device, _Prompt="" ) of
 
@@ -581,7 +605,7 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 
 		Line ->
 
-			%io:format( "Read line '~ts'.", [ Line ] ),
+			%io:format( "Read line #~B: '~ts'.", [ RowCount, Line ] ),
 
 			case parse_row( Line, Separator ) of
 
@@ -592,24 +616,26 @@ interpret_rows( Device, Separator, ExpectedFieldCount, MatchCount, UnmatchCount,
 					%                       [ Values ] ),
 
 					interpret_rows( Device, Separator, ExpectedFieldCount,
-						MatchCount+1, UnmatchCount, DropCount,
+						MatchCount+1, UnmatchCount, DropCount, RowNumber+1,
 						[ Values | Acc ] );
 
 
 				% Not matching:
-				{ Values, _OtherFieldCount } ->
+				{ Values, OtherFieldCount } ->
 
-					%trace_utils:debug_fmt( "Read non-matching row:~n~ts",
-					%                       [ Line ] ),
+					trace_utils:debug_fmt( "Read non-matching row #~B:~n~ts~n"
+						"(i.e. '~p', which has ~B fields)",
+						[ RowNumber, Line, Line, OtherFieldCount ] ),
 
 					interpret_rows( Device, Separator, ExpectedFieldCount,
-						MatchCount, UnmatchCount+1, DropCount,
-						[ { non_matching, Values } | Acc ] );
+						MatchCount, UnmatchCount+1, DropCount, RowNumber+1,
+						[ { non_matching, RowNumber, Values } | Acc ] );
 
 
 				dropped ->
 					interpret_rows( Device, Separator, ExpectedFieldCount,
-									MatchCount, UnmatchCount, DropCount+1, Acc )
+						MatchCount, UnmatchCount, DropCount+1, RowNumber+1,
+						Acc )
 
 			end
 
@@ -868,9 +894,11 @@ get_file_for_reading( FilePath ) ->
 	File = file_utils:open( FilePath, ?read_options ),
 
 	% Refer to the note in file_utils:open/2 for explanation:
-	% (still needed)
 	%
-	system_utils:force_unicode_support(),
+	% (possibly still needed, yet a test case with 25.3 could work without it,
+	% if having {encoding, utf8} is the read options)
+	%
+	%system_utils:force_unicode_support(),
 
 	File.
 
@@ -881,3 +909,34 @@ get_file_for_reading( FilePath ) ->
 content_to_string( Content ) ->
 	text_utils:format( "content of ~B rows: ~ts", [ length( Content ),
 					   text_utils:terms_to_enumerated_string( Content ) ] ).
+
+
+% @doc Describes the non-matching triplets listed in the specified mixed
+% content: returns the number of non-matching rows, an overall description
+% thereof, and an ordered list of these rows.
+%
+-spec describe_non_matching_rows_in( mixed_content() ) ->
+								{ row_count(), ustring(), [ row() ] }.
+describe_non_matching_rows_in( MixedContent ) ->
+	% Preferring a single pass:
+	describe_non_matching_rows_in( MixedContent, _AccDesc=[], _AccRows=[] ).
+
+
+% (helper)
+describe_non_matching_rows_in( _MixedContent=[], AccDesc, AccRows ) ->
+	Count = length( AccRows ),
+	Desc = text_utils:strings_to_string( lists:reverse( AccDesc ) ),
+	Rows = lists:reverse( AccRows ),
+	{ Count, Desc, Rows };
+
+describe_non_matching_rows_in( _MixedContent=[
+		{ non_matching, RowNumber, Row } | T ], AccDesc, AccRows ) ->
+
+	NewAccDesc = [ text_utils:format( "row #~B had ~B field(s): ~p",
+		[ RowNumber, size( Row ), Row ] ) | AccDesc ],
+
+	describe_non_matching_rows_in( T, NewAccDesc, [ Row | AccRows ] );
+
+describe_non_matching_rows_in( _MixedContent=[ _NormalRow | T ], AccDesc,
+							   AccRows ) ->
+	describe_non_matching_rows_in( T, AccDesc, AccRows ).
