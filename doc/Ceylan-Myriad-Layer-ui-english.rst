@@ -105,7 +105,7 @@ It is located in ``{src,test}/user-interface/textual``; see ``term_ui.erl`` for 
 Graphical User Interface: ``gui``
 ---------------------------------
 
-The ``gui`` modules provide features like 2D/3D rendering, event handling, input management (keyboard/mouse), canvas services (basic or OpenGL), and the various related staples (management of images, texts and fonts, colors, window manager, etc.); refer to `the gui sources <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/src/user-interface/graphical>`_ for more complete information.
+The ``gui`` modules provide features like 2D/3D rendering, event handling, input management (keyboard/mouse), canvas services (basic or OpenGL - with textures, shaders, etc.), and the various related staples (management of images, texts and fonts, colors, window manager, etc.); refer to `the gui sources <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/src/user-interface/graphical>`_ for more complete information.
 
 
 
@@ -273,6 +273,16 @@ In terms of error management, extensive verifications will apply iff the ``myria
 
 Setting the ``myriad_debug_opengl_support`` flag will result in more runtime information to be reported.
 
+
+
+Checking GLSL Shaders
+_____________________
+
+One's shader can be checked thanks to ``glslangValidator``, the *OpenGL / OpenGL ES Reference Compiler*.
+
+For example, in order to check a vertex shader named ``foo.vertex.glsl``, just run ``make check-foo.vertex.glsl``; the GLSL reference compiler does not return output if it detects no error.
+
+Refer to `our HOWTO section <https://howtos.esperide.org/ThreeDimensional.html#reference-glsl-compiler>`_ for more information.
 
 
 
