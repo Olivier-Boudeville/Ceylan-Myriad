@@ -36,6 +36,13 @@
 in vec3 my_input_vertex;
 
 
+/* Just defined to test the uniform support (will not be found if not explicitly
+ * used afterwards):
+ *
+ */
+uniform vec4 some_vector;
+
+
 void main(){
 
 	/* gl_Position is a predefined vec4 output corresponding to the clip-space
@@ -48,6 +55,7 @@ void main(){
 	 */
 	gl_Position.xyz = my_input_vertex;
 	gl_Position.w = 1.0;
+	//gl_Position = some_vector;
 
 	// Could have been as well:
 	/* gl_Position = vec4(my_input_vertex.x, my_input_vertex.y,
