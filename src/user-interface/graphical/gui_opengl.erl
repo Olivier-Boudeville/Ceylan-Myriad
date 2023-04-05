@@ -299,7 +299,6 @@
 % that may significantly impact buffer object performance.
 
 
-
 -type buffer_access_usage() ::
 	'draw'  % The buffer will be modified by the application, and used as
 			% the source for GL drawing and image specification commands.
@@ -2024,6 +2023,21 @@ check_gl_error() ->
 
 -spec check_gl_error( boolean() ) -> void().
 check_gl_error( DoThrowOnError ) ->
+
+	%DoTrace = true,
+	DoTrace = false,
+
+	DoTrace andalso
+		begin
+
+			{ TMod, TFunc, TArity, [ { file, TSrcFile },
+									 { line, TLine } ] } =
+				hd( code_utils:get_stacktrace( _SkipLastElemCount=3 ) ),
+
+			trace_utils:debug_fmt( "Check in ~ts:~ts/~B (file ~ts, "
+				"line ~B)", [ TMod, TFunc, TArity, TSrcFile, TLine ] )
+
+		end,
 
 	% Reset the error status when returning:
 	case gl:getError() of
