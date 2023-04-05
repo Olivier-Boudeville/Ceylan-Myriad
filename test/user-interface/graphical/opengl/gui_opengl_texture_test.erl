@@ -51,6 +51,9 @@
 -include("test_facilities.hrl").
 
 
+% For reuse by other tests:
+-export([ get_test_texture_path/0 ]).
+
 
 % Test-specific overall GUI state:
 -record( my_gui_state, {
@@ -67,7 +70,7 @@
 	% The image as loaded from file, to be transformed in a texture:
 	image :: image(),
 
-	% Must need an OpenGL context:
+	% Needs an OpenGL context:
 	texture :: maybe( texture() ),
 
 	% Here just a boolean; in more complex cases, would be a maybe-(OpenGL
@@ -89,7 +92,8 @@
 
 -type gl_canvas() :: gui:opengl_canvas().
 -type gl_context() :: gui:opengl_context().
--type texture() :: gui:opengl_context().
+
+-type texture() :: gui_texture:texture().
 
 
 
