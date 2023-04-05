@@ -885,7 +885,34 @@ else
 
 	#${command}
 	#echo "${erl}" ${to_eval} ${command}
-	"${erl}" ${to_eval} ${command}
+	if ! "${erl}" ${to_eval} ${command}; then
+
+		echo "The execution of the Erlang program failed. Shall we run a post-mortem investigation? [y/n] (y) " 1>&2
+		read answer
+		if [ ! "${answer}" = "n" ]; then
+
+			core_exec="$(which coredumpctl 2>/dev/null)"
+
+			if [ ! -x "${core_exec}" ]; then
+
+				echo "  Error, no 'coredumpctl' found, no post-mortem investigation performed." 1>&2
+
+				exit 105
+
+			fi
+
+			echo "Analysing coredump (use the 'bt' command to print the backtrace; 'q' to quit):"
+			"${core_exec}" debug
+
+			exit 110
+
+		else
+
+			exit 100
+
+		fi
+
+	fi
 
 fi
 
