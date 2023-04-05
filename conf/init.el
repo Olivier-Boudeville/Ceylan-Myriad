@@ -987,12 +987,12 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; Back-up and autosave section.
 ;; Taken from http://snarfed.org/space/gnu%20emacs%20backup%20files:
 
-;; Put autosave files (ie #foo#) in one (yet per-user, with no common root, to
-;; prevent user-related permission issues) place, *not* scattered all over the
-;; filesystem!
+;; Put *autosave* files (i.e. #foo#) in one (yet per-user, with no common root,
+;; to prevent user-related permission issues) place, *not* scattered all over
+;; the filesystem!
 ;;
 (defvar autosave-dir
-  (concat "/tmp/emacs-myriad-autosaves-" (user-login-name) "/"))
+  (concat "/tmp/emacs-myriad-autosaves/" (user-login-name) "/"))
 
 (make-directory autosave-dir t)
 
@@ -1006,15 +1006,16 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 			(expand-file-name
 			 (concat "#%" (buffer-name) "#")))))
 
-;; Put backup files (i.e. foo~) in one place too.
+
+;; Put *backup* files (i.e. foo~ or foo.~1~) in one place too.
 
 ;; (The backup-directory-alist list contains regexp=>directory mappings;
 ;; filenames matching a regexp are backed up in the corresponding
 ;; directory. Emacs will mkdir it if necessary.)
 
-(defvar backup-dir (concat "/tmp/emacs_backups/" (user-login-name) "/"))
+(defvar backup-dir (concat "/tmp/emacs-myriad-backups/" (user-login-name) "/"))
 
-(setq backup-directory-alist (list (cons "." backup-dir)))
+;;(setq backup-directory-alist (list (cons "." backup-dir)))
 
 (setq make-backup-files t               ; backup of a file the first time it is saved.
 	  backup-by-copying t               ; don't clobber symlinks
@@ -1028,7 +1029,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 	  auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
 	  )
 
-(message "<<<<<<######### init.el version 1.2 #########>>>>>>")
+(message "<<<<<<######### init.el version 1.3 #########>>>>>>")
 
 
 (delete-other-windows)
