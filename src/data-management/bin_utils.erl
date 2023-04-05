@@ -40,13 +40,13 @@
 
 
 % Serialisation:
--export([ tuples_to_float32s_binary/1,
+-export([ tuples_to_float32s_binary/1, tuples_to_float32s_binary/2,
 		  concatenate_as_float32s/1, concatenate_as_float32s/2,
 
-		  tuples_to_int32s_binary/1,
+		  tuples_to_int32s_binary/1, tuples_to_int32s_binary/2,
 		  concatenate_as_int32s/1, concatenate_as_int32s/2,
 
-		  tuples_to_uint32s_binary/1,
+		  tuples_to_uint32s_binary/1, tuples_to_uint32s_binary/2,
 		  concatenate_as_uint32s/1, concatenate_as_uint32s/2 ]).
 
 
@@ -82,7 +82,7 @@
 
 % @doc Creates a (binary) buffer of the specified size, containing only zeroes.
 %
-% Useful to provide a buffer to non-allocating functions (like
+% Possibly useful in order to provide a buffer to non-allocating functions (like
 % gl:getDebugMessageLog/2 was wrongly believed to be).
 %
 -spec create_binary( byte_size() ) -> buffer().
@@ -163,33 +163,46 @@ replicate( Bin, Count, Acc ) ->
 
 % Binary comprehensions could be used as well, like in:
 %to_buffer( Points ) ->
-%	<< <<X:?F32, Y:?F32, Z:?F32>> || { X, Y, Z } <- Points >>.
+%   << <<X:?F32, Y:?F32, Z:?F32>> || { X, Y, Z } <- Points >>.
 
 
 
 % Float serialisation subsection.
+
 
 % @doc Returns the binary obtained by serialising in-order all floats specified
 % as tuples of arbitrary size, as 32-bit floats, based on the native endianess.
 %
 % Example: Bin = tuples_to_float32s_binary([{0.0, 1.0}, {0.5, 0.5, 0.5}])
 %
-% Typically useful to create suitable OpenGL arrays from vertices, normals,
-% colors, etc.
+% Typically useful to create suitable OpenGL arrays from heterogenous tuples
+% aggregating vertices, normals, colors, etc. on a per vertex attribute basis.
 %
 -spec tuples_to_float32s_binary( [ tuple( float() ) ] ) -> binary().
 tuples_to_float32s_binary( Tuples ) ->
-	tuples_to_float32s_binary_helper( Tuples, _AccBin= <<>> ).
+	tuples_to_float32s_binary( Tuples, _AccBin= <<>> ).
 
+
+
+% @doc Returns the binary obtained by appending (on the right) to the specified
+% one the in-order serialisation of all floats specified as tuples of arbitrary
+% size, as 32-bit floats, based on the native endianess.
+%
+% Example: FullBin = tuples_to_float32s_binary([{0.0, 1.0}, {0.5, 0.5, 0.5}],
+%                                              Bin)
+%
+% Typically useful to create suitable OpenGL arrays from heterogenous tuples
+% aggregating vertices, normals, colors, etc. on a per vertex attribute basis.
+%
+-spec tuples_to_float32s_binary( [ tuple( float() ) ], binary() ) -> binary().
+tuples_to_float32s_binary( _Tuples=[], Bin ) ->
+	Bin;
 
 % Hopefully as fast as reasonably possible:
-tuples_to_float32s_binary_helper( _Tuples=[], AccBin ) ->
-	AccBin;
-
-tuples_to_float32s_binary_helper( _Tuples=[ Tuple | T ], AccBin ) ->
+tuples_to_float32s_binary( _Tuples=[ Tuple | T ], Bin ) ->
 	Floats = tuple_to_list( Tuple ),
-	NewAccBin = concatenate_as_float32s( Floats, AccBin ),
-	tuples_to_float32s_binary_helper( T, NewAccBin ).
+	NewBin = concatenate_as_float32s( Floats, Bin ),
+	tuples_to_float32s_binary( T, NewBin ).
 
 
 
@@ -227,21 +240,28 @@ concatenate_as_float32s( _Floats=[ F | T ], Bin ) ->
 % specified as tuples of arbitrary size, as 32-bit signed integers, based on the
 % native endianess.
 %
-% Example: Bin = tuples_to_int32s_binary([{40,50}, {5, 10, -15}])
+% Example: Bin = tuples_to_int32s_binary([{40,50}, {5, 10, -15}]).
 %
 -spec tuples_to_int32s_binary( [ tuple( integer() ) ] ) -> binary().
 tuples_to_int32s_binary( Tuples ) ->
-	tuples_to_int32s_binary_helper( Tuples, _AccBin= <<>> ).
+	tuples_to_int32s_binary( Tuples, _AccBin= <<>> ).
 
+
+% @doc Returns the binary obtained by appending (on the right) to the specified
+% one the in-order serialisation of all integers specified as tuples of
+% arbitrary size, as 32-bit signed integers, based on the native endianess.
+%
+% Example: FullBin = tuples_to_int32s_binary([{40,50}, {5, 10, -15}], Bin).
+%
+-spec tuples_to_int32s_binary( [ tuple( integer() ) ], binary() ) -> binary().
+tuples_to_int32s_binary( _Tuples=[], Bin ) ->
+	Bin;
 
 % Hopefully as fast as reasonably possible:
-tuples_to_int32s_binary_helper( _Tuples=[], AccBin ) ->
-	AccBin;
-
-tuples_to_int32s_binary_helper( _Tuples=[ Tuple | T ], AccBin ) ->
+tuples_to_int32s_binary( _Tuples=[ Tuple | T ], Bin ) ->
 	Ints = tuple_to_list( Tuple ),
-	NewAccBin = concatenate_as_int32s( Ints, AccBin ),
-	tuples_to_int32s_binary_helper( T, NewAccBin ).
+	NewBin = concatenate_as_int32s( Ints, Bin ),
+	tuples_to_int32s_binary( T, NewBin ).
 
 
 
@@ -283,17 +303,25 @@ concatenate_as_int32s( _Ints=[ I | T ], Bin ) ->
 %
 -spec tuples_to_uint32s_binary( [ tuple( non_neg_integer() ) ] ) -> binary().
 tuples_to_uint32s_binary( Tuples ) ->
-	tuples_to_uint32s_binary_helper( Tuples, _AccBin= <<>> ).
+	tuples_to_uint32s_binary( Tuples, _AccBin= <<>> ).
 
 
-% Hopefully as fast as reasonably possible:
-tuples_to_uint32s_binary_helper( _Tuples=[], AccBin ) ->
+% @doc Returns the binary obtained by appending (on the right) to the specified
+% one the in-order serialisation of all integers specified as tuples of
+% arbitrary size, as 32-bit unsigned integers, based on the native endianess.
+%
+% Example: FullBin = tuples_to_uint32s_binary([{40,50}, {5, 10, 15}], Bin).
+%
+% Typically useful to create suitable OpenGL arrays from indices.
+%
+tuples_to_uint32s_binary( _Tuples=[], AccBin ) ->
 	AccBin;
 
-tuples_to_uint32s_binary_helper( _Tuples=[ Tuple | T ], AccBin ) ->
+% Hopefully as fast as reasonably possible:
+tuples_to_uint32s_binary( _Tuples=[ Tuple | T ], AccBin ) ->
 	Ints = tuple_to_list( Tuple ),
 	NewAccBin = concatenate_as_uint32s( Ints, AccBin ),
-	tuples_to_uint32s_binary_helper( T, NewAccBin ).
+	tuples_to_uint32s_binary( T, NewAccBin ).
 
 
 
