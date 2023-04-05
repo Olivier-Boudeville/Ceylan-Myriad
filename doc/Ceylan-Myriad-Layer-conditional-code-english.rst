@@ -269,7 +269,7 @@ This may be useful for example to control, on a per-theme basis, the level of ch
 
 Note that, in this case, a given level of checking should include the one just below it (e.g. ``more_involved_testing()`` should call ``basic_testing()``).
 
-Finally, if assertions are too limited (e.g. because they lead to unused variables depending on a token being defined or not), using one of the ``cond_utils:if*`` primitives relying on two branches (one expression if a condition is true, another if not) should sufficient to overcome such issue.
+Finally, if assertions are too limited (e.g. because they lead to unused variables depending on a token being defined or not), using one of the ``cond_utils:if*`` primitives relying on two branches (one expression if a condition is true, another if not) should be sufficient to overcome such issue.
 
 
 Usage Hints
