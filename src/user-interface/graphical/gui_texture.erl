@@ -51,6 +51,24 @@
 % Information regarding a (2D) texture.
 
 
+-type texture_unit() :: enum(). % Actually ?GL_TEXTUREn, where n is an integer
+								% in [0, ?GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS-1]
+								% (the initial value is GL_TEXTURE0)
+% A texture unit corresponds to the location of a texture for a shader.
+%
+% This allows shaders notably to access, through samplers, to more than one
+% texture; a texture unit can thus be seen as a bridge between a texture and a
+% sampler.
+%
+% The default texture unit for a texture is ?GL_TEXTURE0 (it is the initial
+% active texture unit).
+%
+% A texture unit n is to be activated thanks to ?GL_TEXTUREn (whose actual value
+% is not n; for example ?GL_TEXTURE0 may be equal to 33984), but, like in/out
+% shader parameters, its location is to be specified directly as n - not as
+% ?GL_TEXTUREn (and as a signed integer, not an unsigned one).
+
+
 -type gl_color_format() :: 1 | 2 | 3 | 4
 	| ?GL_ALPHA | ?GL_ALPHA4 | ?GL_ALPHA8 | ?GL_ALPHA12 | ?GL_ALPHA16
 	| ?GL_LUMINANCE | ?GL_LUMINANCE4 | ?GL_LUMINANCE8 | ?GL_LUMINANCE12
@@ -91,7 +109,6 @@
 % texture image to {1.0, 1.0} for its upper right corner.
 %
 % The fragment shader interpolates the texture coordinates for each fragment.
-
 
 
 -type gl_texture_wrapping_mode() ::
@@ -160,7 +177,7 @@
 % switching between them.
 
 
--export_type([ texture_id/0, texture_dimension/0, texture/0,
+-export_type([ texture_id/0, texture_dimension/0, texture/0, texture_unit/0,
 			   gl_color_format/0, gl_pixel_format/0,
 			   uv_coordinate/0, uv_point/0,
 
@@ -182,6 +199,8 @@
 
 		  set_as_current/1, set_new_as_current/0, set_as_current_from_id/1,
 		  assign_current/4,
+
+		  set_current_texture_unit/1,
 
 		  recalibrate_coordinates_for/2,
 
@@ -304,32 +323,38 @@ create_from_image( Image ) ->
 
 
 
-% @doc Creates a texture from the specified image instance, generating mipmaps
-% if requested, applies the default texture settings on it, and makes it the
-% currently active texture.
+% @doc Creates a texture from the specified image instance, flipping its Y-axis
+% according to OpenGL conventions, generating mipmaps if requested, applies the
+% default texture settings on it, and makes it the currently active texture.
 %
 % The image instance is safe to be deallocated afterwards.
 %
 -spec create_from_image( image(), boolean() ) -> texture().
 create_from_image( Image, GenMipmaps ) ->
 
-	trace_utils:debug_fmt( "Loading texture from a ~ts.",
-						   [ gui_image:to_string( Image ) ] ),
+	cond_utils:if_defined( myriad_debug_textures,
+		trace_utils:debug_fmt( "Loading texture from a ~ts.",
+							   [ gui_image:to_string( Image ) ] ) ),
 
-	OrigDims = { ImgWidth, ImgHeight } = gui_image:get_size( Image ),
+	% As OpenGL expects the 0.0 coordinate on the Y-axis to be on the bottom
+	% side of the image:
+	%
+	FlippedImage = gui_image:mirror( Image, _Orientation=vertical ),
+
+	OrigDims = { ImgWidth, ImgHeight } = gui_image:get_size( FlippedImage ),
 
 	TargetDims = { TexWidth, TexHeight } = get_dimensions( OrigDims ),
 
 	% The wxImage is either RGB or RGBA; we have to expand it in buffer if
 	% needed, so that it has the right (power-of-two) dimensions:
 	%
-	ColorBuffer = get_color_buffer( Image, OrigDims, TargetDims ),
+	ColorBuffer = get_color_buffer( FlippedImage, OrigDims, TargetDims ),
 
 	% Let's create the OpenGL texture:
 
 	TextureId = set_new_as_current(),
 
-	PixFormat = case gui_image:has_alpha( Image ) of
+	PixFormat = case gui_image:has_alpha( FlippedImage ) of
 
 		true ->
 			%trace_utils:debug( "RGBA image detected." ),
@@ -340,6 +365,8 @@ create_from_image( Image, GenMipmaps ) ->
 			?GL_RGB
 
 	end,
+
+	gui_image:destruct( FlippedImage ),
 
 	assign_current( TexWidth, TexHeight, PixFormat, ColorBuffer ),
 
@@ -354,6 +381,8 @@ create_from_image( Image, GenMipmaps ) ->
 
 	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
 			  min_x=Zero, min_y=Zero,
+			  % This would be a clumsy attempt of removing padding borders:
+			  %max_x=ImgWidth / (TexWidth+1), max_y=ImgHeight / (TexHeight+1) }.
 			  max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight }.
 
 
@@ -517,7 +546,8 @@ set_new_as_current() ->
 % one.
 %
 % From now on, all operations done regarding (2D) textures (that is the
-% ?GL_TEXTURE_2D target) will be applied to this texture.
+% ?GL_TEXTURE_2D target) will be applied to this texture, that moreover will be
+% registered in the currently active texture unit.
 %
 % Lower-level, defined to centralise calls.
 %
@@ -560,6 +590,20 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	apply_basic_settings_on_current().
+
+
+
+% @doc Sets the current texture unit.
+%
+% The next texture that will be set current will be associated to this texture
+% unit.
+%
+% The initial (default) value is ?GL_TEXTURE0.
+%
+-spec set_current_texture_unit( texture_unit() ) -> void().
+set_current_texture_unit( TexUnit ) ->
+	gl:activeTexture( TexUnit ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
 
