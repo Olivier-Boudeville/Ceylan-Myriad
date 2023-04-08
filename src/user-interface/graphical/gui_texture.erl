@@ -183,6 +183,8 @@
 		  set_as_current/1, set_new_as_current/0, set_as_current_from_id/1,
 		  assign_current/4,
 
+		  recalibrate_coordinates_for/2,
+
 		  render/2, render/3,
 
 		  get_color_buffer/1, get_color_buffer/3,
@@ -222,8 +224,22 @@
 
 % Implementation notes:
 %
+% When using padded RGB (not RGBA, as a null alpha should solve this issue)
+% textures, despite properly computed Min/Max coordinates, a thin border of the
+% padding color can be noticed on all edges (see when using pure green for
+% padding), especially on the padded edges - right and bottom (but also on the
+% non-padded ones, presumably due to the periodicity being reproduced).
+%
+% No specific solution has been identified (adjusting Min/Max UV coordinates
+% would not be a good idea; any preprocessing does not offer much leeway, as not
+% all textures can be of power-of-two dimensions); the best approach (unless
+% relying on any OpenGL extension removing the power-of-two restriction) is
+% probably to use RGBA, padding with a transparent color and possibly a blending
+% mode in the spirit of gl:blendFunc(?GL_ONE, ?GL_ONE_MINUS_SRC_ALPHA) and/or
+% possibly using a modified fragment shader.
+
 % Refer to https://learnopengl.com/Getting-started/Textures for further
-% information.
+% information about textures in general.
 
 
 % Shorthands:
@@ -544,6 +560,37 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	apply_basic_settings_on_current().
+
+
+
+% @doc Recalibrates the specified texture coordinates, supposed to correspond to
+% an original texture, to the specified one, which is typically padded, hence of
+% different dimensions.
+%
+-spec recalibrate_coordinates_for( [ uv_point() ], texture() ) ->
+										[ uv_point() ].
+recalibrate_coordinates_for( TexCoords, #texture{ min_x=MinX, min_y=MinY,
+												  max_x=MaxX, max_y=MaxY } ) ->
+	% We remap [0,1] to [Min,Max] in each dimension; generally MinX=MinY=0.0.
+
+	XDiff = MaxX - MinX,
+	YDiff = MaxY - MinY,
+
+	recalibrate_coordinates_for( TexCoords, MinX, MinY, XDiff, YDiff, _Acc=[] ).
+
+
+% (helper)
+recalibrate_coordinates_for( _TexCoords=[], _MinX, _MinY, _XDiff, _YDiff,
+							 Acc ) ->
+	lists:reverse( Acc );
+
+recalibrate_coordinates_for( _TexCoords=[ { X, Y } | T ], MinX, MinY,
+							 XDiff, YDiff, Acc ) ->
+	XPadded = MinX + XDiff*X,
+	YPadded = MinY + YDiff*Y,
+
+	recalibrate_coordinates_for( T, MinX, MinY, XDiff, YDiff,
+								 [ { XPadded, YPadded } | Acc ] ).
 
 
 
