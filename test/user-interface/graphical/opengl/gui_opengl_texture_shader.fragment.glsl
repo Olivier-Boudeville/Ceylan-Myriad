@@ -34,6 +34,14 @@ in vec2 my_tex_coord;
  */
 out vec4 my_output_color;
 
+
+/* Instead of relying on the default texture unit (GL_TEXTURE0), the
+ * application may, prior to binding any texture of interest, activate
+ * a given texture unit (e.g. GL_TEXTURE5); then it may associate, based
+ * on the uniform support, this sampler to the corresponding texture
+ * location (i.e. 5).
+ *
+ */
 uniform sampler2D my_texture_sampler;
 
 
