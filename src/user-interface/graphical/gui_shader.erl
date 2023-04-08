@@ -184,6 +184,9 @@
 % Must be in [1, 2, 3, 4].
 
 
+-type component_type() :: gl_base_type().
+% The (OpenGL) type of a component of an actual vertex attribute.
+
 -type component_value() :: integer() | float().
 % A value of a component of an actual vertex attribute.
 %
@@ -194,6 +197,8 @@
 % A value of a vertex attribute.
 %
 % For example a float triplet corresponding to a 3D vertex or a RGB color.
+%
+% A vertex attribute is typically abbreviated as VAttr.
 
 
 -type vertex_attribute_float_value() :: type_utils:tuple( float() ).
@@ -340,7 +345,7 @@
 			   vbo/0, vbo_id/0,
 			   ebo/0, ebo_id/0,
 
-			   component_count/0, component_value/0,
+			   component_count/0, component_type/0, component_value/0,
 			   vertex_attribute_value/0, vertex_attribute_float_value/0,
 			   vertex_attribute_series/0, vertex_attribute_float_series/0,
 
@@ -381,7 +386,8 @@
 		  enable_vertex_attribute/1, disable_vertex_attribute/1 ]).
 
 % For series of vertex attributes:
--export([ declare_vertex_attributes_from/2, declare_vertex_attributes_from/3 ]).
+-export([ declare_vertex_attribute_for/2, declare_vertex_attribute_for/3,
+		  declare_vertex_attributes_from/4, declare_vertex_attributes_from/5 ]).
 
 
 % For VAO:
@@ -396,10 +402,12 @@
 		  assign_current_vbo/1, assign_current_vbo/2,
 		  assign_new_vbo/1, assign_new_vbo/2,
 
-		  assign_new_vbo_from_attribute_float_series/1,
-		  assign_new_vbo_from_attribute_float_series/2,
+		  assign_new_vbo_from_attribute_series/1,
+		  assign_new_vbo_from_attribute_series/2,
 
 		  assign_vertices_to_new_vbo/1, assign_vertices_to_new_vbo/2,
+		  assign_vertex_attribute_as/2, assign_vertex_attribute_as/3,
+
 		  assign_texcoords_to_new_vbo/1, assign_texcoords_to_new_vbo/2,
 
 		  render_from_enabled_vbos/2, render_from_enabled_vbos/3,
@@ -466,6 +474,10 @@
 % Default usage profile for EBOs:
 -define( default_ebo_usage_hint, { draw, static } ).
 
+
+% Local types:
+
+-type comp_pairs() :: [ { component_type(), component_count() } ].
 
 % Shorthands:
 
@@ -1229,6 +1241,46 @@ declare_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
 
 
 
+% @doc Declares and enables, for the specified index of the currently active
+% VBO, a vertex attribute that is automatically parametrised based on the
+% specified data to which it is to correspond (typically an homogeneous,
+% tightly-packed VBO).
+%
+% Will be stored in any already-bound VAO.
+%
+-spec declare_vertex_attribute_for( vertex_attribute_index(),
+									vertex_attribute_series() ) -> void().
+declare_vertex_attribute_for( TargetVAttrIndex, VAttrSeries ) ->
+	declare_vertex_attribute_for( TargetVAttrIndex, VAttrSeries,
+								  _DoEnable=true ).
+
+
+% @doc Declares - and, if requested, enables - for the specified index of the
+% currently active VBO, a vertex attribute that is automatically parametrised
+% based on the specified data to which it is to correspond (typically an
+% homogeneous, tightly-packed VBO).
+%
+% Will be stored in any already-bound VAO.
+%
+-spec declare_vertex_attribute_for( vertex_attribute_index(),
+		vertex_attribute_series(), boolean() ) -> void().
+declare_vertex_attribute_for( VAttrIndex,
+							  _VAttrSeries=[ FirstTuple | _T ], DoEnable ) ->
+
+	% All tuples of this series supposed to be of the same type:
+
+	ComponentCount = size( FirstTuple ),
+
+	% From the first element of the first tuple of the first series:
+	ComponentType = infer_gl_component_type( element( _Index=1, FirstTuple ) ),
+
+	% At least currently, never normalising (fixed-point) integer components;
+	% null stride and offset as array supposed to be tightly-packed:
+	%
+	declare_vertex_attribute( VAttrIndex, ComponentCount, ComponentType,
+		_DoNormalise=false, _AttrStride=0, _Offset=0, DoEnable ).
+
+
 
 % @doc Enables the specified vertex attribute.
 %
@@ -1236,18 +1288,18 @@ declare_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
 % and used for rendering when calls are made to vertex array commands.
 %
 -spec enable_vertex_attribute( vertex_attribute_index() ) -> void().
-enable_vertex_attribute( TargetVAttrIndex ) ->
+enable_vertex_attribute( VAttrIndex ) ->
 
-	gl:enableVertexAttribArray( TargetVAttrIndex ),
+	gl:enableVertexAttribArray( VAttrIndex ),
 
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
 % @doc Disables the specified vertex attribute.
 -spec disable_vertex_attribute( vertex_attribute_index() ) -> void().
-disable_vertex_attribute( TargetVAttrIndex ) ->
+disable_vertex_attribute( VAttrIndex ) ->
 
-	gl:disableVertexAttribArray( TargetVAttrIndex ),
+	gl:disableVertexAttribArray( VAttrIndex ),
 
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
@@ -1480,82 +1532,196 @@ assign_texcoords_to_new_vbo( TexCoords, BufferUsageHint ) ->
 
 
 
+% @doc Assigns the specified series of homogeneous vertex attribute values to a
+% new VBO with a default usage profile - a VBO that is made the currently active
+% one, and declares and enables a corresponding vertex attribute for the
+% specified index.
+%
+% The specified data will thus typically be transferred to the graphic card.
+%
+-spec assign_vertex_attribute_as( vertex_attribute_index(),
+								  vertex_attribute_series() ) -> vbo_id().
+assign_vertex_attribute_as( VAttrIndex, VAttrSeries ) ->
+	assign_vertex_attribute_as( VAttrIndex, VAttrSeries,
+								?default_vbo_usage_hint ).
+
+
+% @doc Assigns the specified series of homogeneous vertex attribute values to a
+% new VBO with the specified usage profile - a VBO that is made the currently
+% active one, and declares and enables a corresponding vertex attribute for the
+% specified index.
+%
+% The specified data will thus typically be transferred to the graphic card.
+%
+-spec assign_vertex_attribute_as( vertex_attribute_index(),
+		vertex_attribute_series(), buffer_usage_hint() ) -> vbo_id().
+assign_vertex_attribute_as( VAttrIndex, VAttrSeries, BufferUsageHint ) ->
+
+	{ ComponentType, ComponentCount } = characterise_series( VAttrSeries ),
+
+	VBOBuffer = to_buffer( VAttrSeries, ComponentType ),
+
+	VBOId = assign_new_vbo( VBOBuffer, BufferUsageHint ),
+
+	% At least currently, never normalising (fixed-point) integer components;
+	% null stride and offset as the array is tightly-packed by design:
+	%
+	declare_vertex_attribute( VAttrIndex, ComponentCount, ComponentType,
+		_DoNormalise=false, _AttrStride=0, _Offset=0, _DoEnable=true ),
+
+	VBOId.
+
+
+
 % @doc Assigns a new VBO that is made the currently active one, and which is
-% created from the specified vertex attribute series - provided that the
-% components of all vertex attributes are floats, and declares the corresponding
-% vertex attributes, starting with vertex attribute of index #0.
+% created from the specified list of vertex attribute series once merged, and
+% declares the corresponding vertex attributes, starting with vertex attribute
+% of index #0.
 %
 % The parameters of the vertex attributes are automatically determined, declared
 % and enabled.
 %
--spec assign_new_vbo_from_attribute_float_series(
-		vertex_attribute_float_series() ) -> vbo_id().
-assign_new_vbo_from_attribute_float_series( VertAttrFloatSeries ) ->
-	assign_new_vbo_from_attribute_float_series( VertAttrFloatSeries,
-												_StartVAttrIndex=0 ).
+-spec assign_new_vbo_from_attribute_series( [ vertex_attribute_series() ] ) ->
+						vbo_id().
+assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
+	assign_new_vbo_from_attribute_series( ListOfVAttrSeries,
+										  _StartVAttrIndex=0 ).
 
 
 % @doc Assigns a new VBO that is made the currently active one, and which is
-% created from the specified vertex attribute series - provided that the
-% components of all vertex attributes are floats, and declares the corresponding
-% vertex attributes, starting from the specified vertex attribute index.
+% created from the specified list of vertex attribute series once merged, and
+% declares the corresponding vertex attributes, starting from the specified
+% vertex attribute index.
 %
 % The parameters of the vertex attributes are automatically determined, declared
 % and enabled.
 %
--spec assign_new_vbo_from_attribute_float_series(
-		vertex_attribute_float_series(),
+-spec assign_new_vbo_from_attribute_series( [ vertex_attribute_series() ],
 		StartVAttrStartIndex :: vertex_attribute_index() ) -> vbo_id().
-assign_new_vbo_from_attribute_float_series( VertAttrFloatSeries,
-											StartVAttrIndex ) ->
+assign_new_vbo_from_attribute_series( ListOfVAttrSeries, StartVAttrIndex ) ->
+	% A list of {ComponentType, ComponentCount} pairs:
+	CompPairs = [ characterise_series( VAS ) || VAS <- ListOfVAttrSeries ],
+	{ Stride, Offsets } = get_stride_and_offsets( CompPairs ),
+
+	%trace_utils:debug_fmt( "Stride is ~B and offsets are ~p for:~n ~p",
+	%                       [ Stride, Offsets, ListOfVAttrSeries ] ),
+
 	% Tightly-packed buffer:
-	Buffer = merge_float_attribute_series( VertAttrFloatSeries ),
+	Buffer = merge_attribute_series( ListOfVAttrSeries, CompPairs ),
 	VBOId = assign_new_vbo( Buffer ),
-	declare_vertex_attributes_from( VertAttrFloatSeries, StartVAttrIndex,
+	declare_vertex_attributes_from( CompPairs, Stride, Offsets, StartVAttrIndex,
 									_DoEnable=true ),
 	VBOId.
 
 
 
 % @doc Generates a raw buffer, typically suitable to be assigned to a VBO, from
-% the specified list of series of floating-point vertex attribute values.
+% the specified list of series of vertex attribute values, whose component types
+% and counts are specified.
 %
 % Each series is usually homogeneous, that is it contains a single, specific
 % kind of data, like vertices, or normals, or colors, and semantically different
 % from the other series (e.g. one lists vertices, another one normals, etc.).
 %
-% Each element of such series is a tuple of floats, of a series-dependent size
-% (e.g. triplets for normal vectors).
+% Each element of such series is a tuple of homogeneous components (of the same
+% type), of a series-dependent count (e.g. triplets for normal vectors).
 %
-% For example: Bin = merge_float_attribute_series([Vertices, TexCoords,
+% For example: Bin = merge_attribute_series([Vertices, TexCoords,
 % Normals]) where Vertices and Normals could be lists of (float) triplets
 % whereas TexCoords would be a list of (float) pairs.
 %
-% Interleaves all lists in a correctly tighly-encoded binary, as 32-bit native
-% floats; all series shall have the same length (equal to the number of vertex
-% attributes to consider) and contain only tuples of floats.
+% Interleaves all lists in a correctly tighly-encoded binary; all series shall
+% have the same length (equal to the number of vertex attributes to consider)
+% and contain only tuples of components.
 %
--spec merge_float_attribute_series( [ vertex_attribute_series() ] ) ->
+-spec merge_attribute_series( [ vertex_attribute_series() ], comp_pairs() ) ->
 											array_buffer().
-merge_float_attribute_series( VertAttrFloatSeries ) ->
-	% First we merge element per element all specified series:
-	InterleavedFloatTuples = list_utils:zipn( VertAttrFloatSeries ),
+merge_attribute_series( VAttrSeries, CompPairs ) ->
+	% First we merge element per element all specified series; we obtain thus a
+	% list of sublists, each sublist comprising one element (e.g. a float
+	% triplet) taken from each of the input series:
+	%
+	MergedElems = list_utils:zipn( VAttrSeries ),
 
-	%trace_utils:debug_fmt( "InterleavedFloatTuples =~n  ~p",
-	%                       [ InterleavedFloatTuples ] ),
-
-	% So we have here a list of (merged) lists of (float) tuples, thus:
-	lists:foldl(
-		fun bin_utils:tuples_to_float32s_binary/2,
-		_Acc0= <<>>,
-		_List=InterleavedFloatTuples ).
-
-	% Probably learer:
-	%   fun( TupleList, AccBin ) ->
-	%       bin_utils:tuples_to_float32s_binary( TupleList, AccBin )
+	serialise_attrs( MergedElems, CompPairs, _AccBin= <<>> ).
 
 
-	% Then we serialised the resulting merge tuples:
+
+% (helper)
+serialise_attrs( _MergedElems=[], _CompPairs, AccBin ) ->
+	AccBin;
+
+serialise_attrs( _MergedElems=[ Elems | T ], CompPairs, AccBin ) ->
+	NewAccBin = serialise_elements( Elems, CompPairs, AccBin ),
+	serialise_attrs( T, CompPairs, NewAccBin ).
+
+
+% (helper)
+serialise_elements( _Elems=[], _CompPairs=[], AccBin ) ->
+	AccBin;
+
+% From most frequent to least; force selection on component count:
+% For floats:
+serialise_elements( _Elems=[ FloatTriplet | Te ],
+					_CompPairs=[ { ?GL_FLOAT, _Count=3 } | Tp ], AccBin ) ->
+	{ F1, F2, F3 } = FloatTriplet,
+	NewAccBin = <<AccBin/binary, F1:32/float-native, F2:32/float-native,
+				  F3:32/float-native >>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+serialise_elements( _Elems=[ FloatPair | Te ],
+					_CompPairs=[ { ?GL_FLOAT, _Count=2 } | Tp ], AccBin ) ->
+	{ F1, F2 } = FloatPair,
+	NewAccBin = <<AccBin/binary, F1:32/float-native, F2:32/float-native >>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+serialise_elements( _Elems=[ F1 | Te ],
+					_CompPairs=[ { ?GL_FLOAT, _Count=1 } | Tp ], AccBin ) ->
+	NewAccBin = <<AccBin/binary, F1:32/float-native>>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+
+% For unsigned integers:
+serialise_elements( _Elems=[ UIntTriplet | Te ],
+		_CompPairs=[ { ?GL_UNSIGNED_INT, _Count=3 } | Tp ], AccBin ) ->
+	{ UI1, UI2, UI3 } = UIntTriplet,
+	NewAccBin = <<AccBin/binary, UI1:32/integer-unsigned-native,
+		UI2:32/integer-unsigned-native, UI3:32/integer-unsigned-native >>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+serialise_elements( _Elems=[ UIntPair | Te ],
+		_CompPairs=[ { ?GL_UNSIGNED_INT, _Count=2 } | Tp ], AccBin ) ->
+	{ UI1, UI2 } = UIntPair,
+	NewAccBin = <<AccBin/binary, UI1:32/integer-unsigned-native,
+				  UI2:32/integer-unsigned-native >>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+serialise_elements( _Elems=[ UI | Te ],
+		_CompPairs=[ { ?GL_UNSIGNED_INT, _Count=1 } | Tp ], AccBin ) ->
+	NewAccBin = <<AccBin/binary, UI:32/integer-unsigned-native>>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+
+% For (signed) integers:
+serialise_elements( _Elems=[ IntTriplet | Te ],
+		_CompPairs=[ { ?GL_INT, _Count=3 } | Tp ], AccBin ) ->
+	{ I1, I2, I3 } = IntTriplet,
+	NewAccBin = <<AccBin/binary, I1:32/integer-unsigned-native,
+		I2:32/integer-unsigned-native, I3:32/integer-unsigned-native >>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+serialise_elements( _Elems=[ IntPair | Te ],
+		_CompPairs=[ { ?GL_INT, _Count=2 } | Tp ], AccBin ) ->
+	{ I1, I2 } = IntPair,
+	NewAccBin = <<AccBin/binary, I1:32/integer-unsigned-native,
+				  I2:32/integer-unsigned-native >>,
+	serialise_elements( Te, Tp, NewAccBin );
+
+serialise_elements( _Elems=[ I | Te ],
+		_CompPairs=[ { ?GL_INT, _Count=1 } | Tp ], AccBin ) ->
+	NewAccBin = <<AccBin/binary, I:32/integer-unsigned-native>>,
+	serialise_elements( Te, Tp, NewAccBin ).
+
 
 
 
@@ -1574,42 +1740,37 @@ infer_gl_component_type( I ) when is_integer( I ) ->
 
 
 
-% @doc Declares the vertex attributes corresponding to the specified vertex
-% attribute series in the currently active VBO, starting from the specified
-% vertex attribute index, supposing a tightly-packed buffer, and enables these
-% attributes.
+% @doc Declares the vertex attributes corresponding to the specified information
+% about vertex attribute series in the currently active VBO, starting from the
+% specified vertex attribute index, supposing a tightly-packed buffer, and
+% enables these attributes.
 %
--spec declare_vertex_attributes_from( vertex_attribute_series(),
+-spec declare_vertex_attributes_from( comp_pairs(), stride(), [ offset() ],
 		StartVAttrStartIndex :: vertex_attribute_index() ) -> void().
-declare_vertex_attributes_from( VertAttrSeries, VAttrIndex ) ->
-	declare_vertex_attributes_from( VertAttrSeries, VAttrIndex,
+declare_vertex_attributes_from( CompPairs, Stride, Offsets, StartVAttrIndex ) ->
+	declare_vertex_attributes_from( CompPairs, Stride, Offsets, StartVAttrIndex,
 									_DoEnable=true ).
 
 
-% @doc Declares the vertex attributes corresponding to the specified vertex
-% attribute series in the currently active VBO, supposing a tightly-packed
-% buffer respecting our default type conventions, and enables these attributes
-% if requested.
+% @doc Declares the vertex attributes corresponding to the specified information
+% about vertex attribute series in the currently active VBO, starting from the
+% specified vertex attribute index, supposing a tightly-packed buffer, and
+% enabling these attributes if requested.
 %
--spec declare_vertex_attributes_from( vertex_attribute_series(),
-			VAttrStartIndex :: vertex_attribute_index(), boolean() ) -> void().
-declare_vertex_attributes_from( _VertAttrSeries=[], _VAttrIndex, _DoEnable ) ->
+-spec declare_vertex_attributes_from( comp_pairs(), stride(), [ offset() ],
+		StartVAttrStartIndex :: vertex_attribute_index(), boolean() ) -> void().
+declare_vertex_attributes_from( _CompPairs=[], _Stride, _Offsets=[],
+								_VAttrIndex, _DoEnable ) ->
 	ok;
 
-declare_vertex_attributes_from( _VertAttrSeries=[ _S=[ FirstTuple | _ ] | T ],
-								VAttrIndex, DoEnable ) ->
-	% All tuples of these series supposed to be of the same type:
-	ComponentCount = size( FirstTuple ),
-	% From the first element of the first tuple of the first series:
-	ComponentType = infer_gl_component_type( element( _Index=1, FirstTuple ) ),
+declare_vertex_attributes_from( _CompPairs=[ { CT, CC } | Tc ], Stride,
+		_Offsets=[ Offset | To ], VAttrIndex, DoEnable ) ->
 
-	% At least currently, never normalising (fixed-point) integer components;
-	% null stride and offset as array supposed to be tightly-packed:
-	%
-	declare_vertex_attribute( VAttrIndex, ComponentCount, ComponentType,
-		_DoNormalise=false, _AttrStride=0, _Offset=0, DoEnable ),
+	% At least currently, never normalising (fixed-point) integer components:
+	declare_vertex_attribute( VAttrIndex, CC, CT, _DoNormalise=false,
+		Stride, Offset, DoEnable ),
 
-	declare_vertex_attributes_from( T, VAttrIndex+1, DoEnable ).
+	declare_vertex_attributes_from( Tc, Stride, To, VAttrIndex+1, DoEnable ).
 
 
 
@@ -1761,6 +1922,12 @@ assign_indices_to_new_ebo( Indices, BufferUsageHint ) ->
 -spec render_from_enabled_ebo( gl_primitive_type(), count() ) -> void().
 render_from_enabled_ebo( PrimType, VertexCount ) ->
 
+	% Another place where SEGV may happen, for example because of a malformed
+	% buffer.
+
+	%trace_utils:debug_fmt( "Rendering from enabled EBO: primitive type is ~B, "
+	%   "vertex count is ~B.", [ PrimType, VertexCount ] ),
+
 	gl:drawElements( PrimType, VertexCount, _IndexType=?GL_UNSIGNED_INT,
 					 _OffsetOrIdArray=0 ),
 
@@ -1879,3 +2046,61 @@ to_gl_vectors( Vecs ) ->
 
 
 % Inlined versions (e.g. to_gl_vec2/1 could make sense).
+
+
+
+% @doc Characterises the specified vertex attribute series, according to
+% MyriadGUI's conventions regarding types.
+%
+-spec characterise_series( vertex_attribute_series() ) ->
+					{ component_type(), component_count() }.
+characterise_series( _VAttrSeries=[ FirstTuple | _T ] ) ->
+	% All tuples of this series supposed to be of the same type, so examining
+	% the first tuple is sufficient:
+
+	% Based on the first element of this first tuple:
+	ComponentType = infer_gl_component_type( element( _Index=1, FirstTuple ) ),
+
+	ComponentCount = size( FirstTuple ),
+
+	{ ComponentType, ComponentCount }.
+
+
+
+% @doc Returns the stride and the offsets corresponding to the pairs describing
+% vertex attribute series.
+%
+-spec get_stride_and_offsets( comp_pairs() ) -> { stride(), [ offset() ] }.
+get_stride_and_offsets( CompPairs ) ->
+	get_stride_and_offsets( CompPairs, _Stride=0, _CurrentOffset=0,
+							_AccOffsets=[] ).
+
+
+% (helper)
+get_stride_and_offsets( _CompPairs=[], Stride, _CurrentOffset, AccOffsets ) ->
+	{ Stride, lists:reverse( AccOffsets ) };
+
+get_stride_and_offsets( _CompPairs=[ { CType, CCount } | T ], Stride,
+						CurrentOffset, AccOffsets ) ->
+	ElemSize = CCount * gui_opengl:get_component_size( CType ),
+	NewStride = Stride + ElemSize,
+	NewAccOffsets = [ CurrentOffset | AccOffsets ],
+	get_stride_and_offsets( T, NewStride, CurrentOffset+ElemSize,
+							NewAccOffsets ).
+
+
+% @doc Serialises in a binary the specified series of vertex attribute values.
+-spec to_buffer( vertex_attribute_series(), component_type() ) ->
+													array_buffer().
+% From most frequent type to least:
+to_buffer( VAttrSeries, _ComponentType=?GL_FLOAT ) ->
+	bin_utils:tuples_to_float32s_binary( VAttrSeries );
+
+to_buffer( VAttrSeries, _ComponentType=?GL_UNSIGNED_INT ) ->
+	bin_utils:tuples_to_uint32s_binary( VAttrSeries );
+
+to_buffer( VAttrSeries, _ComponentType=?GL_INT ) ->
+	bin_utils:tuples_to_int32s_binary( VAttrSeries ).
+
+
+% Other GL types to be considered in the future.
