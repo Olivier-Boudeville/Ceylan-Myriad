@@ -430,6 +430,8 @@
 
 % For uniform variables:
 -export([ get_uniform_id/2, get_maybe_uniform_id/2,
+
+		  set_uniform_ui/2, set_uniform_i/2,
 		  set_uniform_3f/2, set_uniform_3fv/2,
 		  set_uniform_4f/2 ]).
 
@@ -1999,6 +2001,25 @@ get_uniform_id( UniformName, ProgId ) ->
 
 
 
+% @doc Sets the specified uniform variable to the specified GLSL unsigned
+% integer, in the context of the currently installed shader program.
+%
+-spec set_uniform_ui( uniform_id(), non_neg_integer() ) -> void().
+set_uniform_ui( UniformId, UInt ) ->
+	gl:uniform1ui( UniformId, UInt ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified GLSL (signed)
+% integer, in the context of the currently installed shader program.
+%
+-spec set_uniform_i( uniform_id(), integer() ) -> void().
+set_uniform_i( UniformId, Int ) ->
+	gl:uniform1i( UniformId, Int ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
 % @doc Sets the specified uniform variable to the specified GLSL vector of 3
 % floats, in the context of the currently installed shader program.
 %
@@ -2023,7 +2044,7 @@ set_uniform_3fv( UniformId, Vec3s ) ->
 
 
 % @doc Sets the specified uniform variable to the specified GLSL vector of 4
-% floats, in the context of the currently installed shaderprogram.
+% floats, in the context of the currently installed shader program.
 %
 -spec set_uniform_4f( uniform_id(), vector4() ) -> void().
 set_uniform_4f( UniformId, _Vec4=[ X, Y, Z, W ] ) ->
