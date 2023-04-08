@@ -887,9 +887,10 @@ else
 	#echo "${erl}" ${to_eval} ${command}
 	if ! "${erl}" ${to_eval} ${command}; then
 
-		echo "The execution of the Erlang program failed. Shall we run a post-mortem investigation? [y/n] (y) " 1>&2
+		# Especially useful whenever crashing one's OpenGL driver:
+		echo "The execution of the Erlang program failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
 		read answer
-		if [ ! "${answer}" = "n" ]; then
+		if [ "${answer}" = "y" ]; then
 
 			core_exec="$(which coredumpctl 2>/dev/null)"
 
