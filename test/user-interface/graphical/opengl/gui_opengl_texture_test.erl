@@ -186,6 +186,8 @@ get_test_texture_path() ->
 	% From https://learnopengl.com/img/textures/container.jpg:
 	%"container.jpg".
 
+
+
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
 % messages.
 %
@@ -375,10 +377,14 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	gl:matrixMode( ?GL_PROJECTION ),
 	gl:loadIdentity(),
 
-	% Upside-down viewport; like glu:ortho2D/4:
+	% An upside-down viewport was used to compensate for the flipped Y-axis with
+	% OpenGL; yet now MyriadGUI automatically flips vertically textures when
+	% loaded from images:
+	%
+	% (like glu:ortho2D/4)
 	gl:ortho( _Left=0.0, _Right=float( CanvasWidth ),
-			  % So not '_Bottom=0.0, _Top=float( CanvasHeight ),':
-			  _Bottom=float( CanvasHeight ), _Top=0.0,
+			  % So not '_Bottom=float( CanvasHeight ), _Top=0.0,' anymore:
+			  _Bottom=0.0, _Top=float( CanvasHeight ),
 			  _Near=-1.0, _Far=1.0 ),
 
 	gl:matrixMode( ?GL_MODELVIEW ),
