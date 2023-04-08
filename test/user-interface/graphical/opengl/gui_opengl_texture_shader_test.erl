@@ -171,6 +171,8 @@
 -define( my_texture_coords_attribute_index, 1 ).
 
 
+% Silencing:
+-export([ prepare_triangle/0, prepare_square/0 ]).
 
 % @doc Prepares all information needed to render the triangle, and returns them.
 %
@@ -182,43 +184,36 @@ prepare_triangle() ->
 	TriangleVAOId = gui_shader:set_new_vao(),
 
 	Z = 0.0,
+	O = 1.0,
 
 	% Triangle defined as [vertex3()], directly in normalized device coordinates
 	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
 	% texture referential has its Y ordinate axis up, see
-	% https://learnopengl.com/Getting-started/Hello-Triangle):
+	% https://learnopengl.com/Getting-started/Hello-Triangle); we define here an
+	% upright triangle so that the texture is not deformed:
 	%
-	%               T2
-	%              /  \
+	%                 T2
+	%               /  |
 	%             T0--T1
 	%
 	TriangleVertices =
-		[ _T0={ -1.0, -1.0, Z }, _T1={ 1.0, -1.0, Z }, _T2={ 0.0, 1.0, Z } ],
+		[ _T0={ -O, -O, Z }, _T1={ O, -O, Z }, _T2={ O, O, Z } ],
 
 
 	% Targeting vertex attributes in a VBO, created and made active once for all
-	% here:
+	% here, and declared properly to the specified vertex attribute, which is
+	% also enabled (specified while the VAO is still active so that it can
+	% record that attribute specification):
 	%
-	TriangleVertexVBOId =
-		gui_shader:assign_vertices_to_new_vbo( TriangleVertices ),
-
-	% Specified while the triangle VBO and VAO are still active (VBO as it
-	% specifies its structure, VAO so that it can record that attribute
-	% specification):
-	%
-	gui_shader:declare_vertex_attribute( ?my_vertex_attribute_index ),
+	TriangleVertexVBOId = gui_shader:assign_vertex_attribute_as(
+		?my_vertex_attribute_index, TriangleVertices ),
 
 
-	TriangleTexCoords = [ _TC0={ Z, Z }, _TC1={ 1.0, Z }, _TC2={ 0.5, 1.0 } ],
+	TriangleTexCoords = [ _TC0={ Z, Z }, _TC1={ O, Z }, _TC2={ O, O } ],
 
-	TriangleTexCoordVBOId =
-		gui_shader:assign_texcoords_to_new_vbo( TriangleTexCoords ),
+	TriangleTexCoordVBOId = gui_shader:assign_vertex_attribute_as(
+		?my_texture_coords_attribute_index, TriangleTexCoords ),
 
-	% Declared for the currently active VBO, i.e. the second one (and the VAO
-	% will remember this association):
-	%
-	gui_shader:declare_vertex_attribute( ?my_texture_coords_attribute_index,
-										 _TCComponentCount=2 ),
 
 	% As the two VBOs were created whereas this VAO was active, they are tracked
 	% by it; it will rebind them automatically the next time it will be itself
@@ -252,18 +247,20 @@ prepare_square() ->
 	%         |    |
 	%         S0--S1
 	%
-	SquareVertices = [ _SV0={ -H, -H, Z }, _SV1={  H, -H, Z },
-					   _SV2={  H,  H, Z }, _SV3={ -H,  H, Z } ],
+	SquareVertices = [ _SV2={  H,  H, Z }, _SV1={  H, -H, Z },
+					   _SV0={ -H, -H, Z }, _SV3={ -H,  H, Z } ],
 
 	O = 1.0,
 
-	SquareTextureCoords = [ _STC0={ Z, O }, _STC1={ Z, Z },
-							_STC2={ O, Z }, _STC3={ O, O } ],
+	SquareTextureCoords = [ _STC2={ O, O }, _STC1={ O, Z },
+							_STC0={ Z, Z }, _STC3={ Z, O } ],
 
 	SquareAttrSeries= [ SquareVertices, SquareTextureCoords ],
 
-	% We start at vertex attribute index #0 in this VAO also:
-	SquareMergedVBOId = gui_shader:assign_new_vbo_from_attribute_float_series(
+	% We start at vertex attribute index #0 in this VAO; as there are two
+	% series, the vertex attribute indices will be 0 and 1:
+	%
+	SquareMergedVBOId = gui_shader:assign_new_vbo_from_attribute_series(
 		SquareAttrSeries ),
 
 	% We describe now our square as two triangles in CCW order; the first,
@@ -271,7 +268,7 @@ prepare_square() ->
 	% have just a list of indices (not for example a list of triplets of
 	% indices):
 	%
-	SquareIndices = [ 0, 1, 3,   % As the first triangle is S0-S1-S3
+	SquareIndices = [ 0, 1, 3,   % As the first  triangle is S0-S1-S3
 					  1, 2, 3 ], % As the second triangle is S1-S2-S3
 
 	SquareEBOId = gui_shader:assign_indices_to_new_ebo( SquareIndices ),
@@ -543,27 +540,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		"gui_opengl_texture_shader.vertex.glsl",
 		"gui_opengl_texture_shader.fragment.glsl", UserVertexAttrs ),
 
-	SomeVectorUnifName = "some_vector",
-
-	% Usable as soon as the program is linked; will be found iff declared but
-	% also explicitly used in at least one shader:
-	%
-	case gui_shader:get_maybe_uniform_id( SomeVectorUnifName, ProgramId ) of
-
-		% The actual case, as not used in these shaders, at least currently:
-		undefined ->
-			trace_utils:info_fmt( "As expected, no identifier is associated "
-				"to the uniform variable named '~ts' within program of "
-				"identifier ~B (as this variable is declared yet not used).",
-				[ SomeVectorUnifName, ProgramId ] );
-
-		SomeVectorUnifId ->
-			trace_utils:warning_fmt( "The identifier associated to the uniform "
-				"variable named '~ts' within program of identifier ~B has "
-				"been found (which is unexpected) and is ~B.",
-				[ SomeVectorUnifName, ProgramId, SomeVectorUnifId ] )
-
-	end,
 
 	Texture = gui_texture:create_from_image( Image ),
 
@@ -572,15 +548,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	trace_utils:debug_fmt( "Prepared ~ts.",
 						   [ gui_texture:to_string( Texture ) ] ),
 
-	%SomeColorUnifName = "some_color",
-
-	%SomeColorUnifId = gui_shader:get_uniform_id( SomeColorUnifName, ProgramId ),
-
 	% Rely on our shaders; can be used from now:
 	gui_shader:install_program( ProgramId ),
-
-	%gui_shader:set_uniform_3f( SomeColorUnifId,
-	%						   gui_opengl_minimal_test:get_myriad_blue() ),
 
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two
@@ -605,8 +574,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	{ SquareVAOId, SquareMergedVBOId, SquareEBOId } = prepare_square(),
 
-
-
 	InitOpenGLState = #my_opengl_state{
 		program_id=ProgramId,
 
@@ -620,7 +587,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		% Two basic triangles referenced in the associated VBO:
 		square_vertex_count=6,
 		square_merged_vbo_id=SquareMergedVBOId,
-		square_ebo_id=SquareEBOId },
+		square_ebo_id=SquareEBOId
+						},
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
@@ -744,7 +712,7 @@ render( _Width, _Height, #my_opengl_state{
 
 	% Draws our splendid triangle (from 3 slots, starting at index 0), using the
 	% currently active shaders, vertex attribute configuration and with the
-	% VBO's vertex data (indirectly bound via the VAO):
+	% VBOs' vertex data and texture coordinates (indirectly bound via the VAO):
 	%
 	gui_shader:render_from_enabled_vbos( PrimType, TriangleVCount ),
 
@@ -756,7 +724,7 @@ render( _Width, _Height, #my_opengl_state{
 	%
 	gui_shader:set_current_vao_from_id( SquareVAOId ),
 
-	% Useless as well, as the VAO take care of them:
+	% Useless as well, as the VAO takes care of them:
 	%gui_shader:set_current_vbo_from_id( SquareVBOId ),
 	%gui_shader:enable_vertex_attribute( ?my_vertex_attribute_index ),
 	%gui_shader:set_current_ebo_from_id( SquareEBOId ),
