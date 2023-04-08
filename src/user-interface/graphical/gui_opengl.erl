@@ -479,7 +479,7 @@
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
 
-		  get_size_of_elements/2 ]).
+		  get_component_size/1 ]).
 
 
 % Error-related operations:
@@ -528,8 +528,6 @@
 
 % Shorthands:
 
-
--type count() :: basic_utils:count().
 -type two_digit_version() :: basic_utils:two_digit_version().
 -type three_digit_version() :: basic_utils:three_digit_version().
 
@@ -1415,33 +1413,33 @@ check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
 
 
 
-% @doc Returns the number of bytes used by the specified number of elements of
-% the specified GL type.
+% @doc Returns the size of a component the specified GL type, once it is
+% serialised (typically in a buffer - and regardless of the Erlang datatypes).
 %
--spec get_size_of_elements( count(), gl_base_type() ) -> byte_size().
-get_size_of_elements( Count, _GLType=?GL_BYTE ) ->
-	Count;
+-spec get_component_size( gl_base_type() ) -> byte_size().
+get_component_size( _GLType=?GL_BYTE ) ->
+	1;
 
-get_size_of_elements( Count, _GLType=?GL_UNSIGNED_BYTE ) ->
-	Count;
+get_component_size( _GLType=?GL_UNSIGNED_BYTE ) ->
+	1;
 
-get_size_of_elements( Count, _GLType=?GL_UNSIGNED_SHORT ) ->
-	2*Count;
+get_component_size( _GLType=?GL_UNSIGNED_SHORT ) ->
+	2;
 
-get_size_of_elements( Count, _GLType=?GL_SHORT ) ->
-	2*Count;
+get_component_size( _GLType=?GL_SHORT ) ->
+	2;
 
-get_size_of_elements( Count, _GLType=?GL_UNSIGNED_INT ) ->
-	4*Count;
+get_component_size( _GLType=?GL_UNSIGNED_INT ) ->
+	4;
 
-get_size_of_elements( Count, _GLType=?GL_INT ) ->
-	4*Count;
+get_component_size( _GLType=?GL_INT ) ->
+	4;
 
-get_size_of_elements( Count, _GLType=?GL_FLOAT ) ->
-	4*Count;
+get_component_size( _GLType=?GL_FLOAT ) ->
+	4;
 
-get_size_of_elements( Count, _GLType=?GL_DOUBLE ) ->
-	8*Count.
+get_component_size( _GLType=?GL_DOUBLE ) ->
+	8.
 
 
 
