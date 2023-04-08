@@ -183,7 +183,8 @@ get_test_texture_path() ->
 	"../../../../doc/myriad-title.png". % RGBA
 	%"../../../../doc/myriad-lorenz-test.png". % RGB
 	%"../../../../doc/test_pdf_sampled_function.png". % Color-map
-
+	% From https://learnopengl.com/img/textures/container.jpg:
+	%"container.jpg".
 
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
 % messages.
