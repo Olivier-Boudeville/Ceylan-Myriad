@@ -552,9 +552,18 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		"gui_opengl_texture_shader.vertex.glsl",
 		"gui_opengl_texture_shader.fragment.glsl", UserVertexAttrs ),
 
+	% Usable as soon as the program is linked; refer to the fragment shader:
+	SamplerUnifId = gui_shader:get_uniform_id(
+		_SamplerUnifName="my_texture_sampler", ProgramId ),
 
 	Texture = gui_texture:create_from_image( Image ),
 
+	% To showcase that we can use other texture units (locations) than the
+	% default ?GL_TEXTURE0 one:
+	%
+	gui_texture:set_current_texture_unit( ?GL_TEXTURE5 ),
+
+	% Thus associated to the previous texture unit:
 	gui_texture:set_as_current( Texture ),
 
 	trace_utils:debug_fmt( "Prepared ~ts.",
@@ -563,6 +572,19 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Rely on our shaders; can be used from now:
 	gui_shader:install_program( ProgramId ),
 
+	% Set the texture location of the sampler uniform:
+	%
+	% (as expected, specifying other texture units would result in no texture
+	% being applied; yet, for some reason, using specifically TextureUnit=0
+	% still results in the expected texture to be applied)
+	%
+	% No texture: gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=1 ),
+	% Right:
+	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=5 ),
+
+	% Texture shown as well for:
+	% gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=0 ),
+
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two
 	% triangles:
@@ -570,7 +592,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% (?GL_FRONT_AND_BACK not needed as our vertices are in CCW order)
 	%
 	%gui_opengl:set_polygon_raster_mode( ?GL_FRONT, ?GL_LINE ),
-
 
 	% First, a triangle, whose vertices and texture coordinates are specified
 	% separately:
