@@ -195,6 +195,31 @@
 		  get_pixel_size/1, gl_pixel_format_to_pixel_format/1 ]).
 
 
+
+% Either we try to underline any error (typically in terms of texture
+% coordinates) for troubleshooting, or to hide it:
+
+-ifdef(myriad_debug_opengl).
+
+% Pure green:
+-define( padding_rgb_bin, <<0, 255, 0>> ).
+
+% Fully opaque pure green:
+-define( padding_rgba_bin, <<0, 255, 0, 255>> ).
+
+-else.
+
+% Pure black:
+-define( padding_rgb_bin, <<0, 0, 0>> ).
+
+% Fully transparent pure black:
+-define( padding_rgba_bin, <<0, 0, 0, 0>> ).
+
+-endif.
+
+
+
+
 % Implementation notes:
 %
 % Refer to https://learnopengl.com/Getting-started/Textures for further
@@ -764,8 +789,7 @@ pad_buffer( Buffer, CurrentDimensions={ CurrentW, CurrentH },
 		end,
 		basic_utils:ignore_unused( CurrentDimensions ) ),
 
-	% Padding in pure black:
-	PadPixel = <<0, 0, 0>>,
+	PadPixel = ?padding_rgb_bin,
 
 	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
 
@@ -849,11 +873,7 @@ pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
 		basic_utils:ignore_unused( CurrentDimensions ) ),
 
 
-	% Padding in pure transparent (0, in wxwidgets conventions; same for
-	% OpenGL), black:
-	%
-	%PadPixel = <<0, 0, 0, 0 >>,
-	PadPixel = <<0, 200, 0, 0 >>,
+	PadPixel = ?padding_rgba_bin,
 
 	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
 
