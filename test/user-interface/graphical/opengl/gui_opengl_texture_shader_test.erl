@@ -171,22 +171,23 @@
 -define( my_texture_coords_attribute_index, 1 ).
 
 
-% Silencing:
--export([ prepare_triangle/0, prepare_square/0 ]).
 
 % @doc Prepares all information needed to render the triangle, and returns them.
 %
 % Here separate VBOs are used for the vertices and for the texture coordinates.
 %
--spec prepare_triangle() -> { vao_id(), vbo_id(), vbo_id() }.
-prepare_triangle() ->
+% The texture of interest is specified, as we need to use its inner (original)
+% dimensions, not the ones that were obtained after padding to powers of two.
+%
+-spec prepare_triangle( texture() ) -> { vao_id(), vbo_id(), vbo_id() }.
+prepare_triangle( Texture ) ->
 
 	TriangleVAOId = gui_shader:set_new_vao(),
 
 	Z = 0.0,
 	O = 1.0,
 
-	% Triangle defined as [vertex3()], directly in normalized device coordinates
+	% Triangle defined as [vertex3()], directly in normalised device coordinates
 	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
 	% texture referential has its Y ordinate axis up, see
 	% https://learnopengl.com/Getting-started/Hello-Triangle); we define here an
@@ -208,11 +209,19 @@ prepare_triangle() ->
 	TriangleVertexVBOId = gui_shader:assign_vertex_attribute_as(
 		?my_vertex_attribute_index, TriangleVertices ),
 
+	% We have to take into account that, due to the padding, the actual texture
+	% is smaller than the technical one:
+	%
+	OriginalTriangleTexCoords = [ _TC0={ Z, Z }, _TC1={ O, Z }, _TC2={ O, O } ],
 
-	TriangleTexCoords = [ _TC0={ Z, Z }, _TC1={ O, Z }, _TC2={ O, O } ],
+	%ActualTriangleTexCoords = [ _TC0={ MinX, MinY }, _TC1={ MaxX, MinY },
+	%                            _TC2={ MaxX, MaxY } ],
+
+	ActualTriangleTexCoords = gui_texture:recalibrate_coordinates_for(
+		OriginalTriangleTexCoords, Texture ),
 
 	TriangleTexCoordVBOId = gui_shader:assign_vertex_attribute_as(
-		?my_texture_coords_attribute_index, TriangleTexCoords ),
+		?my_texture_coords_attribute_index, ActualTriangleTexCoords ),
 
 
 	% As the two VBOs were created whereas this VAO was active, they are tracked
@@ -230,8 +239,8 @@ prepare_triangle() ->
 % Here a single VBO is used, merging the vertices and the texture coordinates;
 % additionally an EBO is used.
 %
--spec prepare_square() -> { vao_id(), vbo_id(), ebo_id() }.
-prepare_square() ->
+-spec prepare_square( texture() ) -> { vao_id(), vbo_id(), ebo_id() }.
+prepare_square( Texture ) ->
 
 	SquareVAOId = gui_shader:set_new_vao(),
 
@@ -252,10 +261,13 @@ prepare_square() ->
 
 	O = 1.0,
 
-	SquareTextureCoords = [ _STC2={ O, O }, _STC1={ O, Z },
+	OrigSquareTexCoords = [ _STC2={ O, O }, _STC1={ O, Z },
 							_STC0={ Z, Z }, _STC3={ Z, O } ],
 
-	SquareAttrSeries= [ SquareVertices, SquareTextureCoords ],
+	ActualSquareTexCoords = gui_texture:recalibrate_coordinates_for(
+		OrigSquareTexCoords, Texture ),
+
+	SquareAttrSeries= [ SquareVertices, ActualSquareTexCoords ],
 
 	% We start at vertex attribute index #0 in this VAO; as there are two
 	% series, the vertex attribute indices will be 0 and 1:
@@ -564,7 +576,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% separately:
 	%
 	{ TriangleVAOId, TriangleVertexVBOId, TriangleTexCoordVBOId } =
-		prepare_triangle(),
+		prepare_triangle( Texture ),
 
 	% Second, a square, whose vertices are specified this time through
 	% indices.
@@ -572,7 +584,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% We also have here to manage texture coordinates in addition to vertices,
 	% so we merge them in a single VBO (that will be accessed thanks to an EBO):
 	%
-	{ SquareVAOId, SquareMergedVBOId, SquareEBOId } = prepare_square(),
+	{ SquareVAOId, SquareMergedVBOId, SquareEBOId } = prepare_square( Texture ),
 
 	InitOpenGLState = #my_opengl_state{
 		program_id=ProgramId,
