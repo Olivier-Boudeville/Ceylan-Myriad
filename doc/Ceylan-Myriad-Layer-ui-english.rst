@@ -236,6 +236,8 @@ Myriad recommends using the ``vertex.glsl`` extension for vertex shaders, the ``
 
 The many OpenGL defines are available when having included ``gui_opengl.hrl`` (e.g. as ``?GL_QUAD_STRIP``).
 
+Quite many higher-level primitives are provided, like ``gui_shader:assign_new_vbo_from_attribute_series/2``, which in one operation merges automatically an arbitrary number of vertex attribute series (vertices, normals, texture coordinates, etc.) of arbitrary component types and counts in a suitable VBO, and declares appropriately and enables the corresponding vertex attributes.
+
 These utilities directly relate to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
 
 .. _octrees:
@@ -283,6 +285,14 @@ One's shader can be checked thanks to ``glslangValidator``, the *OpenGL / OpenGL
 For example, in order to check a vertex shader named ``foo.vertex.glsl``, just run ``make check-foo.vertex.glsl``; the GLSL reference compiler does not return output if it detects no error.
 
 Refer to `our HOWTO section <https://howtos.esperide.org/ThreeDimensional.html#reference-glsl-compiler>`_ for more information.
+
+
+
+Troubleshooting
+_______________
+
+Your textures include strange pure green areas? Most probably that your texture coordinates are wrong, as pure green is the default padding color that MyriadGUI uses (see the ``padding_color`` define in the ``gui_texture`` module) so that the dimensions of textures are powers of two.
+
 
 
 
