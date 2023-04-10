@@ -56,6 +56,11 @@
 % An (internal) 4D vector, with (exactly) 4 floating-point coordinates.  They
 % are typically referenced as [X, Y, Z, W]. This last axis can also be
 % designated as the T axis.
+%
+% Such a vector can also be considered as an homogeneous vector, whose last
+% coordinate, W, is then an homogeneous coordinate. If W is zero, the vector is
+% just a direction vector. Otherwise, it is used to divide all other coordinates
+% (unless it is already kept equal to 1.0).
 
 
 -type integer_vector4() :: [ integer_coordinate() ].
@@ -125,7 +130,7 @@
 % @doc Returns a 4D vector corresponding to the user-specified one.
 -spec new( user_vector4() ) -> vector4().
 %new( UserVector ) when is_tuple( UserVector ) ->
-%	new( tuple_to_list( UserVector ) );
+%   new( tuple_to_list( UserVector ) );
 % Throws bad_generator anyway if a tuple:
 new( UserVector ) -> %when is_list( UserVector ) ->
 	[ type_utils:ensure_float( UC ) || UC <- UserVector ].
