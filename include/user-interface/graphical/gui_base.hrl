@@ -26,8 +26,8 @@
 % Creation date: Tuesday, January 29, 2013.
 
 
-% Header to export <b>MyriadGUI-related defines</b>, both for user code and for
-% internal one.
+% Header to export <b>MyriadGUI-related base defines</b>, both for user code and
+% for internal one.
 %
 % See gui.erl for the corresponding implementation.
 

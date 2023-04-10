@@ -58,7 +58,7 @@
 
 
 % For gui_env_reg_name:
--include("gui.hrl").
+-include("gui_base.hrl").
 
 
 % To be kept updated with list_cursor_types/0:

@@ -42,9 +42,8 @@
 % http://www.opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/
 
 
-% For GL/GLU defines:
--include("gui_opengl.hrl").
-% For user code: -include_lib("myriad/include/gui_opengl.hrl").
+% For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % For run/0 export and al:
@@ -185,6 +184,7 @@ get_test_texture_path() ->
 	%"../../../../doc/test_pdf_sampled_function.png". % Color-map
 	% From https://learnopengl.com/img/textures/container.jpg:
 	%"container.jpg".
+	%"wall.jpg".
 
 
 

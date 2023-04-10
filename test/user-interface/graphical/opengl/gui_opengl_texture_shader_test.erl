@@ -47,10 +47,8 @@
 % Directly inspired from https://learnopengl.com/Getting-started/Textures.
 
 
-
-% For GL/GLU defines:
--include("gui_opengl.hrl").
-% For user code: -include_lib("myriad/include/gui_opengl.hrl").
+% For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % For run/0 export and al:
@@ -324,7 +322,8 @@ run_opengl_test() ->
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	test_facilities:display( "This test will display a textured polygon." ),
+	test_facilities:display( "This test will display two textured polygons: "
+							 "an upright triangle and a rectangle." ),
 
 	gui:start(),
 
@@ -561,7 +560,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% To showcase that we can use other texture units (locations) than the
 	% default ?GL_TEXTURE0 one:
 	%
-	gui_texture:set_current_texture_unit( ?GL_TEXTURE5 ),
+	gui_texture:set_current_texture_unit( ?GL_TEXTURE4 ),
 
 	% Thus associated to the previous texture unit:
 	gui_texture:set_as_current( Texture ),
@@ -580,7 +579,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	% No texture: gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=1 ),
 	% Right:
-	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=5 ),
+	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=4 ),
 
 	% Texture shown as well for:
 	% gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=0 ),
@@ -752,7 +751,7 @@ render( _Width, _Height, #my_opengl_state{
 
 	% Second, rendering the square:
 
-	% Sets the vertex attribute; binds at well the square EBO, as it was still
+	% Sets the vertex attribute; binds as well the square EBO, as it was still
 	% tracked by the VAO when this VAO was unset:
 	%
 	gui_shader:set_current_vao_from_id( SquareVAOId ),

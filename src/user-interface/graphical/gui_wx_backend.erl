@@ -244,7 +244,7 @@
 % Note: this type is defined and exported, yet reported unknown by Dialyzer.
 
 
-% See any_id, no_parent, etc. as defined in gui.hrl.
+% See any_id, no_parent, etc. as defined in gui_base.hrl.
 
 
 

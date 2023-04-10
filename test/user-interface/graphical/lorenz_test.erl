@@ -37,10 +37,8 @@
 -include("test_facilities.hrl").
 
 
-% For gui-related defines:
--include("gui.hrl").
-
-
+% The sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % Rendering section.

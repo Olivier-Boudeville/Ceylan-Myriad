@@ -167,7 +167,7 @@
 
 
 % For the event_context record:
--include("gui.hrl").
+-include("gui_base.hrl").
 
 
 -type scancode() :: uint32().

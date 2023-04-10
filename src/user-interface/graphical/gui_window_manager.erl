@@ -47,7 +47,7 @@
 -compile( { inline, [ get_env/1 ] } ).
 
 % For gui_env_reg_name:
--include("gui.hrl").
+-include("gui_base.hrl").
 
 
 % Shorthands:

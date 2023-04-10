@@ -104,13 +104,13 @@
 
 -record( text_ui_state, {
 
-		   % Path to our work-around script:
-		   get_line_script = file_utils:executable_path(),
+	% Path to our work-around script:
+	get_line_script = file_utils:executable_path(),
 
-		   log_console = false :: boolean(),
-		   log_file = undefined :: maybe( file_utils:file() ),
+	log_console = false :: boolean(),
+	log_file = undefined :: maybe( file_utils:file() ),
 
-		   settings :: setting_table() } ).
+	settings :: setting_table() } ).
 
 
 -type ui_state() :: #text_ui_state{}.
@@ -118,7 +118,7 @@
 
 
 % For common, transverse defines:
--include("ui.hrl").
+-include("ui_base.hrl").
 
 
 -export_type([ ui_state/0 ]).
@@ -638,7 +638,7 @@ choose_numbered_item( Label, Choices, UIState ) ->
 		_List=Choices ),
 
 	Text = text_utils:strings_to_string(
-				lists:reverse( NumberedText ), _Bullet=" " ),
+		lists:reverse( NumberedText ), _Bullet=" " ),
 
 	FullLabel = text_utils:format( "~ts~ts~nChoice> ", [ Label, Text ] ),
 
@@ -697,7 +697,7 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 										 maybe( choice_index() ) ) ->
 												choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState )
-  when is_record( UIState, text_ui_state ) ->
+								when is_record( UIState, text_ui_state ) ->
 
 	Label = text_utils:format( "Select among these ~B choices:",
 							   [ length( Choices ) ] ),
@@ -738,7 +738,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 		_List=Choices ),
 
 	Text = text_utils:strings_to_string(
-			 lists:reverse( NumberedText ), _Bullet=" " ),
+		lists:reverse( NumberedText ), _Bullet=" " ),
 
 	FullLabel = text_utils:format( "~ts~ts~nChoice [default: ~B]> ",
 								   [ Label, Text, DefaultChoiceIndex ] ),

@@ -94,7 +94,7 @@
 
 
 % For related, public defines like gui_id_alloc_reg_name:
--include("gui.hrl").
+-include("gui_base.hrl").
 
 % For related, internal, wx-related defines, like wxID_HIGHEST:
 -include("gui_internal_defines.hrl").

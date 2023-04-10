@@ -158,7 +158,7 @@
 
 
 % For all basic declarations (including distance() and al):
--include("gui.hrl").
+-include("gui_base.hrl").
 
 % For related, internal, wx-related defines:
 -include("gui_internal_defines.hrl").
