@@ -166,7 +166,7 @@ create_mesh( Vertices, FaceType, Faces, NormalType, Normals, RenderingInfo ) ->
 	cond_utils:if_defined( myriad_check_mesh,
 		begin
 			ExpectedVertexCount = get_vertex_count_for_face_type( FaceType ),
-			[ ExpectedVertexCount =:= length( F ) || F <- Faces ],
+			[ ExpectedVertexCount = length( F ) || F <- Faces ],
 			vector3:check_unit_vectors( Normals )
 		end ),
 
@@ -239,14 +239,14 @@ to_string( #mesh{ vertices=Vertices,
 	end,
 
 	text_utils:format( "mesh defined by:~n"
-	  " - ~B vertices: ~w~n"
-	  " - ~B faces: ~w~n"
-	  " - ~B ~ts normals: ~w~n"
-	  " - ~ts"
-	  " - bounding volume: ~ts~n",
-	  [ length( Vertices ), Vertices, length( Faces ), Faces,
-		length( Normals ), normal_type_to_string( NormalType ), Normals,
-		rendering_info_to_string( RenderingInfo ), BVStr ] ).
+	    " - ~B vertices: ~w~n"
+	    " - ~B faces: ~w~n"
+	    " - ~B ~ts normals: ~w~n"
+	    " - ~ts"
+	    " - bounding volume: ~ts~n",
+	    [ length( Vertices ), Vertices, length( Faces ), Faces,
+		  length( Normals ), normal_type_to_string( NormalType ), Normals,
+		  rendering_info_to_string( RenderingInfo ), BVStr ] ).
 
 
 
