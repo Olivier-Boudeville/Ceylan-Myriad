@@ -991,31 +991,40 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; prevent user-related permission issues) place, *not* scattered all over the
 ;; filesystem!
 ;;
-(defvar autosave-dir
-  (concat "/tmp/emacs-myriad-autosaves-" (user-login-name) "/"))
+;;(defvar autosave-directory
+;;  (concat "/tmp/emacs-myriad-autosaves-" (user-login-name) "/"))
 
-(make-directory autosave-dir t)
+;;(make-directory autosave-directory t)
 
-(defun auto-save-file-name-p (filename)
-  (string-match "^#.*#$" (file-name-nondirectory filename)))
+;;(defun auto-save-file-name-p (filename)
+;;  (string-match "^#.*#$" (file-name-nondirectory filename)))
 
-(defun make-auto-save-file-name ()
-  (concat autosave-dir
-		  (if buffer-file-name
-			  (concat "#" (file-name-nondirectory buffer-file-name) "#")
-			(expand-file-name
-			 (concat "#%" (buffer-name) "#")))))
+;;(defun make-auto-save-file-name ()
+;;  (concat autosave-directory
+;;		  (if buffer-file-name
+;;			  (concat "#" (file-name-nondirectory buffer-file-name) "#")
+;;			(expand-file-name
+;;			 (concat "#%" (buffer-name) "#")))))
 
-;; Put backup files (i.e. foo~) in one place too.
+(setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
+
+
+;; Similarly, put backup files (i.e. foo~ or foo.~1~) in one place too.
 
 ;; (The backup-directory-alist list contains regexp=>directory mappings;
 ;; filenames matching a regexp are backed up in the corresponding
 ;; directory. Emacs will mkdir it if necessary.)
 
-(defvar backup-dir (concat "/tmp/emacs_backups/" (user-login-name) "/"))
+;;(defvar backup-directory (concat "/tmp/emacs_backups/" (user-login-name) "/"))
+;;(defvar backup-directory (concat user-emacs-directory "backups"))
 
-(setq backup-directory-alist (list (cons "." backup-dir)))
+;;(setq backup-directory-alist (list (cons "." backup-directory)))
+;;(setq backup-directory-alist `(("." . "~/.saves")))
+(setq backup-directory-alist `((".*" . ,temporary-file-directory)))
 
+(setq vc-make-backup-files t)
+
+;; More expensive yet safer settings:
 (setq make-backup-files t               ; backup of a file the first time it is saved.
 	  backup-by-copying t               ; don't clobber symlinks
 	  version-control t                 ; version numbers for backup files
