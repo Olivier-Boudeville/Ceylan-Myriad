@@ -432,8 +432,19 @@
 -export([ get_uniform_id/2, get_maybe_uniform_id/2,
 
 		  set_uniform_ui/2, set_uniform_i/2,
-		  set_uniform_3f/2, set_uniform_3fv/2,
-		  set_uniform_4f/2 ]).
+		  set_uniform_f/2, set_uniform_2f/3, set_uniform_3f/4, set_uniform_4f/5,
+		  set_uniform_fs/2,
+
+		  set_uniform_point2/2, set_uniform_point3/2, set_uniform_point4/2,
+		  set_uniform_point2s/2, set_uniform_point3s/2, set_uniform_point4s/2,
+
+		  set_uniform_vector2/2, set_uniform_vector3/2, set_uniform_vector4/2,
+		  set_uniform_vector2s/2, set_uniform_vector3s/2,
+		  set_uniform_vector4s/2,
+
+		  set_uniform_matrix2/2, set_uniform_matrix2/3,
+		  set_uniform_matrix3/2, set_uniform_matrix3/3,
+		  set_uniform_matrix4/2, set_uniform_matrix4/3 ]).
 
 
 % General-purpose:
@@ -491,14 +502,20 @@
 
 -type ustring() :: text_utils:ustring().
 
--type vector2() :: vector4:vector2().
+-type point2() :: point2:point2().
+-type point3() :: point3:point3().
+-type point4() :: point4:point4().
 
+-type vector2() :: vector2:vector2().
 -type vector3() :: vector3:vector3().
 -type any_vertex3() :: point3:any_vertex3().
-
 -type vector4() :: vector4:vector4().
-
 -type vector() :: vector:vector().
+
+-type matrix2() :: matrix2:matrix2().
+-type matrix3() :: matrix3:matrix3().
+-type matrix4() :: matrix4:matrix4().
+
 
 -type gl_buffer() :: gui_opengl:gl_buffer().
 -type gl_buffer_id() :: gui_opengl:gl_buffer_id().
@@ -2000,18 +2017,25 @@ get_uniform_id( UniformName, ProgId ) ->
 	end.
 
 
+% Section for the setting of uniform variables.
+%
+% We apply here MyriadGUI conventions; for example an Erlang float is mapped to
+% a C float rather than a double.
 
-% @doc Sets the specified uniform variable to the specified GLSL unsigned
-% integer, in the context of the currently installed shader program.
+
+% First, the direct setting of lower-level types:
+
+% @doc Sets the specified uniform variable to the specified integer, as a GLSL
+% unsigned integer, in the context of the currently installed shader program.
 %
 -spec set_uniform_ui( uniform_id(), non_neg_integer() ) -> void().
-set_uniform_ui( UniformId, UInt ) ->
-	gl:uniform1ui( UniformId, UInt ),
+set_uniform_ui( UniformId, NonNegInt ) ->
+	gl:uniform1ui( UniformId, NonNegInt ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified GLSL (signed)
-% integer, in the context of the currently installed shader program.
+% @doc Sets the specified uniform variable to the specified integer, as a signed
+% GLSL integer, in the context of the currently installed shader program.
 %
 -spec set_uniform_i( uniform_id(), integer() ) -> void().
 set_uniform_i( UniformId, Int ) ->
@@ -2019,42 +2043,268 @@ set_uniform_i( UniformId, Int ) ->
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
+% @doc Sets the specified uniform variable to the specified float, as a GLSL
+% float, in the context of the currently installed shader program.
+%
+-spec set_uniform_f( uniform_id(), float() ) -> void().
+set_uniform_f( UniformId, Float ) ->
+	gl:uniform1f( UniformId, Float ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
-% @doc Sets the specified uniform variable to the specified GLSL vector of 3
+
+% @doc Sets the specified uniform variable to the two specified floats, as GLSL
 % floats, in the context of the currently installed shader program.
 %
--spec set_uniform_3f( uniform_id(), vector3() ) -> void().
-set_uniform_3f( UniformId, _Vec3=[ X, Y, Z ] ) ->
+-spec set_uniform_2f( uniform_id(), float(), float() ) -> void().
+set_uniform_2f( UniformId, F1, F2 ) ->
+	gl:uniform2f( UniformId, F1, F2 ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the three specified floats, as
+% GLSL floats, in the context of the currently installed shader program.
+%
+-spec set_uniform_3f( uniform_id(), float(), float(), float() ) -> void().
+set_uniform_3f( UniformId, F1, F2, F3 ) ->
+	gl:uniform3f( UniformId, F1, F2, F3 ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the four specified floats, as GLSL
+% floats, in the context of the currently installed shader program.
+%
+-spec set_uniform_4f( uniform_id(), float(), float(), float(), float() ) ->
+												void().
+set_uniform_4f( UniformId, F1, F2, F3, F4 ) ->
+	gl:uniform4f( UniformId, F1, F2, F3, F4 ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified list of floats, as
+% GLSL floats, in the context of the currently installed shader program.
+%
+-spec set_uniform_fs( uniform_id(), [ float() ] ) -> void().
+set_uniform_fs( UniformId, Floats ) ->
+	gl:uniform1fv( UniformId, Floats ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% Second, the setting of the main Myriad linear types:
+
+
+% For points:
+
+% @doc Sets the specified uniform variable to the specified point2, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_point2( uniform_id(), point2() ) -> void().
+set_uniform_point2( UniformId, _P2={ X, Y } ) ->
+	gl:uniform2f( UniformId, X, Y ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified point3, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_point3( uniform_id(), point3() ) -> void().
+set_uniform_point3( UniformId, _P3={ X, Y, Z } ) ->
 	gl:uniform3f( UniformId, X, Y, Z ),
-
-% Less relevant:
-%set_uniform_3f( UniformId, Vec3 ) ->
-%  gl:uniform3fv( UniformId, [ list_to_tuple( Vec3 ) ] ),
-
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform array variable to the specified list of GLSL
-% vectors of 3 floats, in the context of the currently installed shader program.
+% @doc Sets the specified uniform variable to the specified point4, in the
+% context of the currently installed shader program.
 %
--spec set_uniform_3fv( uniform_id(), [ vector3() ] ) -> void().
-set_uniform_3fv( UniformId, Vec3s ) ->
-	gl:uniform3fv( UniformId, to_gl_vectors( Vec3s ) ),
-	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
-
-
-% @doc Sets the specified uniform variable to the specified GLSL vector of 4
-% floats, in the context of the currently installed shader program.
-%
--spec set_uniform_4f( uniform_id(), vector4() ) -> void().
-set_uniform_4f( UniformId, _Vec4=[ X, Y, Z, W ] ) ->
+-spec set_uniform_point4( uniform_id(), point4() ) -> void().
+set_uniform_point4( UniformId, _P4={ X, Y, Z, W } ) ->
 	gl:uniform4f( UniformId, X, Y, Z, W ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
 
-% @doc Converts the specified list of (Myriad) vectors (hence lists) of any
-% dimension into a list of vectors suitable for the gl API (hence tuples).
+% @doc Sets the specified uniform array variable to the specified list of
+% point2, in the context of the currently installed shader program.
+%
+-spec set_uniform_point2s( uniform_id(), [ point2() ] ) -> void().
+set_uniform_point2s( UniformId, Point2s ) ->
+	gl:uniform2fv( UniformId, Point2s ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform array variable to the specified list of
+% point3, in the context of the currently installed shader program.
+%
+-spec set_uniform_point3s( uniform_id(), [ point3() ] ) -> void().
+set_uniform_point3s( UniformId, Point3s ) ->
+	gl:uniform3fv( UniformId, Point3s ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform array variable to the specified list of
+% point4, in the context of the currently installed shader program.
+%
+-spec set_uniform_point4s( uniform_id(), [ point4() ] ) -> void().
+set_uniform_point4s( UniformId, Point4s ) ->
+	gl:uniform4fv( UniformId, Point4s ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% For vectors:
+
+% @doc Sets the specified uniform variable to the specified vector2, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_vector2( uniform_id(), vector2() ) -> void().
+set_uniform_vector2( UniformId, _Vec2=[ X, Y ] ) ->
+	gl:uniform2f( UniformId, X, Y ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified vector3, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_vector3( uniform_id(), vector3() ) -> void().
+set_uniform_vector3( UniformId, _Vec3=[ X, Y, Z ] ) ->
+	gl:uniform3f( UniformId, X, Y, Z ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified vector4, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_vector4( uniform_id(), vector4() ) -> void().
+set_uniform_vector4( UniformId, _Vec4=[ X, Y, Z, W ] ) ->
+	gl:uniform4f( UniformId, X, Y, Z, W ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified list of vector2, in
+% the context of the currently installed shader program.
+%
+-spec set_uniform_vector2s( uniform_id(), [ vector2() ] ) -> void().
+set_uniform_vector2s( UniformId, Vec2s ) ->
+	set_uniform_point2s( UniformId, to_gl_vectors( Vec2s ) ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified list of vector3, in
+% the context of the currently installed shader program.
+%
+-spec set_uniform_vector3s( uniform_id(), [ vector3() ] ) -> void().
+set_uniform_vector3s( UniformId, Vec3s ) ->
+	set_uniform_point3s( UniformId, to_gl_vectors( Vec3s ) ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+% @doc Sets the specified uniform variable to the specified list of vector4, in
+% the context of the currently installed shader program.
+%
+-spec set_uniform_vector4s( uniform_id(), [ vector4() ] ) -> void().
+set_uniform_vector4s( UniformId, Vec4s ) ->
+	set_uniform_point4s( UniformId, to_gl_vectors( Vec4s ) ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% For matrices:
+%
+% For gl, they are just homogeneous tuples.
+
+% Refer to https://howtos.esperide.org/ThreeDimensional.html#maybe-transposition
+% to understand why OpenGL expects transposed versions of our matrices of
+% interest (in short, their in-memory representation is said to be column-major
+% order to better integrate with how linear algebra is practised nowadays).
+%
+% MyriadGUI made the choice to perform all linear operations the now "normal",
+% least-surprising way (row-major). This implies that the resulting matrices
+% shall be passed from the CPU to the GPU in a transposed form. As a result, our
+% primitive to do so (set_uniform_matrix*) do transpose by default.
+
+
+% @doc Sets the specified uniform variable to the specified matrix2, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_matrix2( uniform_id(), matrix2() ) -> void().
+set_uniform_matrix2( UniformId, M2 ) ->
+	set_uniform_matrix2( UniformId, M2, _DoTranspose=true ).
+
+
+% @doc Sets the specified uniform variable to the specified matrix2, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_matrix2( uniform_id(), matrix2(), boolean() ) -> void().
+set_uniform_matrix2( UniformId, M2, DoTranspose ) ->
+
+	% Necessarily a matrix2 record, so the corresponding tag can be chopped
+	% with:
+	%
+	CoordTuple = erlang:delete_element( _TagIndex=1, M2 ),
+
+	gl:uniformMatrix2fv( UniformId, gui_opengl:boolean_to_gl( DoTranspose ),
+						 _SingleMatrix=[ CoordTuple ] ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% @doc Sets the specified uniform variable to the specified matrix3, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_matrix3( uniform_id(), matrix3() ) -> void().
+set_uniform_matrix3( UniformId, M3 ) ->
+	set_uniform_matrix3( UniformId, M3, _DoTranspose=true ).
+
+
+% @doc Sets the specified uniform variable to the specified matrix3 - once
+% transposed if requested, in the context of the currently installed shader
+% program.
+%
+-spec set_uniform_matrix3( uniform_id(), matrix3(), boolean() ) -> void().
+set_uniform_matrix3( UniformId, M3, DoTranspose ) ->
+
+	% A to_tuple/1 function could merge the next two operations more
+	% efficiently:
+	%
+	CanonM3 = matrix3:to_canonical( M3 ),
+	CoordTuple = erlang:delete_element( _TagIndex=1, CanonM3 ),
+
+	gl:uniformMatrix3fv( UniformId, gui_opengl:boolean_to_gl( DoTranspose ),
+						 _SingleMatrix=[ CoordTuple ] ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% @doc Sets the specified uniform variable to the specified matrix4, in the
+% context of the currently installed shader program.
+%
+-spec set_uniform_matrix4( uniform_id(), matrix4() ) -> void().
+set_uniform_matrix4( UniformId, M4 ) ->
+	set_uniform_matrix4( UniformId, M4, _DoTranspose=true ).
+
+
+% @doc Sets the specified uniform variable to the specified matrix4 - once
+% transposed if requested, in the context of the currently installed shader
+% program.
+%
+-spec set_uniform_matrix4( uniform_id(), matrix4(), boolean() ) -> void().
+set_uniform_matrix4( UniformId, M4, DoTranspose ) ->
+
+	% A to_tuple/1 function could merge the next two operations more
+	% efficiently:
+	%
+	CanonM4 = matrix4:to_canonical( M4 ),
+	CoordTuple = erlang:delete_element( _TagIndex=1, CanonM4 ),
+
+	gl:uniformMatrix4fv( UniformId, gui_opengl:boolean_to_gl( DoTranspose ),
+						 _SingleMatrix=[ CoordTuple ] ),
+	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+
+
+% @doc Converts the specified list of (Myriad) vectors (hence lists of
+% coordinate lists) of any dimension into a list of vectors suitable for the gl
+% API (hence tuples).
 %
 % Note: points (vertices), hence tuples, shall be preferred wherever relevant.
 %
