@@ -67,16 +67,16 @@ void main(){
 	/* This is an identity transformation, basically (so my_input_vertex is
 	 * expected to be already in normalized device coordinates):
 	 */
-	gl_Position = vec4( my_input_vertex, 1.0);
+	gl_Position = vec4( my_input_vertex, 1.0 );
 
 	// Could have been as well:
-	/* gl_Position = vec4(my_input_vertex.x, my_input_vertex.y,
-	 *                    my_input_vertex.z, 1.0);
+	/* gl_Position = vec4( my_input_vertex.x, my_input_vertex.y,
+	 *                     my_input_vertex.z, 1.0 );
 	 */
 
 	//gl_Position = some_vector;
 
-	// Read by the vertex shader to forward it to the fragment one:
+	// Read by the vertex shader in order to forward it to the fragment shader:
 	my_tex_coord = my_input_tex_coord;
 
 }
