@@ -433,6 +433,60 @@
 % Any application-level identifier assigned to a debug message.
 
 
+
+% Linear types handled by the 'gl' module.
+
+% These are then transformed into C data types that the actual OpenGL library
+% can handle.
+%
+% With 'gl', no distinction is made between vectors and points: tuples (most
+% often of float()) are used.
+%
+% With Myriad, vectors are lists and points are tuples.
+%
+% In practice no transformation is needed for vertices (for Myriad, these are
+% points, thus already the tuples that gl expects).
+%
+% Yet normals are vectors, and thus should be lists in Myriad. Using
+% tuple_vector/* is then permitted to spare useless conversions between lists
+% and tuples.
+
+
+-type gl_vector2() :: { f(), f() }. % A.k.a. point2:point2().
+% A 2D (float) vector, according to the conventions of the gl module.
+
+-type gl_vector3() :: { f(), f(), f() }. % A.k.a. point3:point3().
+ % A 3D (float) vector, according to the conventions of the gl module.
+
+-type gl_vector4() :: { f(), f(), f(), f() }. % A.k.a. point4:point4().
+ % A (float) 4D vector, according to the conventions of the gl module.
+
+
+% For matrices, gl uses tuples of floats in their OpenGL standard "column major"
+% order.
+%
+% This corresponds to Myriad canonical matrices once their first element (e.g
+% 'matrix2'), which corresponds to the record tag, has been chopped.
+
+
+-type gl_matrix2() :: { f(), f(), f(), f() }.
+% A 2x2 (float) matrix (hence with 4 elements), according to the conventions of
+% the gl module.
+
+
+-type gl_matrix3() :: { f(), f(), f(), f(), f(), f(), f(), f(), f() }.
+% A 3x3 (float) matrix (hence with 9 elements), according to the conventions of
+% the gl module.
+
+
+-type gl_matrix4() :: { f(), f(), f(), f(), f(), f(), f(), f(), f(),
+						f(), f(), f(), f(), f(), f(), f() }.
+% A 4x4 (float) matrix (hence with 16 elements), according to the conventions of
+% the gl module.
+
+
+
+
 -type debug_context_message() :: { debug_message_id(), Message :: bin_string(),
 	actual_debug_severity(), actual_debug_source(), actual_debug_type() }.
 % A message in the debug context, with its metadata.
@@ -452,6 +506,11 @@
 			   glu_id/0,
 
 			   polygon_facing_mode/0, rasterization_mode/0 ]).
+
+
+% For gl linear types:
+-export_type([ gl_vector2/0, gl_vector3/0, gl_vector4/0,
+			   gl_matrix2/0, gl_matrix3/0, gl_matrix4/0 ]).
 
 
 % For the debug context:
@@ -528,6 +587,8 @@
 
 % Shorthands:
 
+-type f() :: float().
+
 -type two_digit_version() :: basic_utils:two_digit_version().
 -type three_digit_version() :: basic_utils:three_digit_version().
 
@@ -539,6 +600,7 @@
 
 -type bit_size() :: system_utils:bit_size().
 -type byte_size() :: system_utils:byte_size().
+
 
 -type any_vertex3() :: point3:any_vertex3().
 
