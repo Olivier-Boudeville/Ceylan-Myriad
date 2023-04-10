@@ -347,7 +347,7 @@ while [ $# -gt 0 ] && [ ${do_stop} -eq 1 ]; do
 			# No parent created:
 			if ! mkdir "${log_dir}"; then
 
-				echo " Error, creating of specified log directory '${log_dir}' failed." 1>&2
+				echo " Error, the creation of the specified log directory '${log_dir}' failed." 1>&2
 				exit 15
 
 			fi
@@ -888,7 +888,7 @@ else
 	if ! "${erl}" ${to_eval} ${command}; then
 
 		# Especially useful whenever crashing one's OpenGL driver:
-		echo "The execution of the Erlang program failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
+		echo "This execution of the Erlang VM failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
 		read answer
 		if [ "${answer}" = "y" ]; then
 
