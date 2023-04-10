@@ -115,6 +115,7 @@
 		  scale/2,
 		  add/2, sub/2, mult/2, mult/1, apply/2,
 		  are_equal/2,
+		  translate/2,
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
 		  from_tuple/1, to_tuple/1,
@@ -1275,6 +1276,30 @@ are_equal( Ma, Mb=identity_4 ) ->
 
 are_equal( Ma=identity_4, Mb ) ->
 	are_equal( Mb, Ma ).
+
+
+
+% @doc Updates the translation part of the specified matrix, considered to be an
+% homogeneous transformation one, by adding it the specified vector.
+%
+-spec translate( matrix4(), vector3() ) -> matrix4().
+translate( M=#matrix4{ m14=M14,
+					   m24=M24,
+					   m34=M34 }, _VT=[ Tx, Ty, Tz ] ) ->
+	% Homogeneous W element m44 not modified.
+	M#matrix4{ m14=M14+Tx,
+			   m24=M24+Ty,
+			   m34=M34+Tz };
+
+translate( M=#compact_matrix4{ tx=M14,
+							   ty=M24,
+							   tz=M34 }, _VT=[ Tx, Ty, Tz ] ) ->
+	M#compact_matrix4{ tx=M14+Tx,
+					   ty=M24+Ty,
+					   tz=M34+Tz };
+
+translate( _M=identity_4, VT ) ->
+	translation( VT ).
 
 
 
