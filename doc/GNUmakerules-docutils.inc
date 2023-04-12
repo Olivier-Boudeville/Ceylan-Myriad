@@ -19,7 +19,7 @@
 # /bin/ls is used so that any lacking element in a layer (ex: no api-doc
 # generated, no MathJax available) does not trigger an error.
 #
-WEB_CONTENT = $$(/bin/ls -d *.html *.css *.png *.pdf api-doc mathjax 2>/dev/null)
+WEB_CONTENT = $$(/bin/ls -d *.html *.css *.png *.jpeg *.webp *.pdf api-doc mathjax 2>/dev/null)
 
 
 # Generic rules.
