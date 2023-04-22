@@ -984,48 +984,20 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 
 
-;; Back-up and autosave section.
-;; Taken from http://snarfed.org/space/gnu%20emacs%20backup%20files:
 
-;; Put autosave files (ie #foo#) in one (yet per-user, with no common root, to
-;; prevent user-related permission issues) place, *not* scattered all over the
-;; filesystem!
+;; Back-up files, interlock symlinks and autosave files section.
 ;;
-;;(defvar autosave-directory
-;;  (concat "/tmp/emacs-myriad-autosaves-" (user-login-name) "/"))
+;; These are all different elements, here each stored in a separate
+;; ~/.emacs.d/myriad-{backups,interlocks,autosaves} directory.
+;;
+;; For example, for a '/home/john/tmp/foobar.txt' file, respectively as:
+;;    '!home!john!tmp!foobar.txt.~1~' (as a plain file)
+;;    '.#!home!john!tmp!foobar.txt' (so as an "hidden symlink")
+;;    '#!home!john!tmp!foobar!txt#' (as a plain file)
 
-;;(make-directory autosave-directory t)
-
-;;(defun auto-save-file-name-p (filename)
-;;  (string-match "^#.*#$" (file-name-nondirectory filename)))
-
-;;(defun make-auto-save-file-name ()
-;;  (concat autosave-directory
-;;		  (if buffer-file-name
-;;			  (concat "#" (file-name-nondirectory buffer-file-name) "#")
-;;			(expand-file-name
-;;			 (concat "#%" (buffer-name) "#")))))
-
-(setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
-
-
-;; Similarly, put backup files (i.e. foo~ or foo.~1~) in one place too.
-
-;; (The backup-directory-alist list contains regexp=>directory mappings;
-;; filenames matching a regexp are backed up in the corresponding
-;; directory. Emacs will mkdir it if necessary.)
-
-;;(defvar backup-directory (concat "/tmp/emacs_backups/" (user-login-name) "/"))
-;;(defvar backup-directory (concat user-emacs-directory "backups"))
-
-;;(setq backup-directory-alist (list (cons "." backup-directory)))
-;;(setq backup-directory-alist `(("." . "~/.saves")))
-(setq backup-directory-alist `((".*" . ,temporary-file-directory)))
-
-(setq vc-make-backup-files t)
 
 ;; More expensive yet safer settings:
-(setq make-backup-files t               ; backup of a file the first time it is saved.
+(setq make-backup-files t                   ; backup of a file the first time it is saved.
 	  backup-by-copying t               ; don't clobber symlinks
 	  version-control t                 ; version numbers for backup files
 	  delete-old-versions t             ; delete excess backup files silently
@@ -1037,7 +1009,64 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 	  auto-save-interval 200            ; number of keystrokes between auto-saves (default: 300)
 	  )
 
-(message "<<<<<<######### init.el version 1.2 #########>>>>>>")
+
+;; Taken from http://snarfed.org/space/gnu%20emacs%20backup%20files:
+
+;; Put autosave files (i.e. #foo#) in one (yet per-user, with no common root, to
+;; prevent user-related permission issues) place, *not* scattered all over the
+;; filesystem!
+
+;; /tmp is not a good place, as in case of crash/reboot, its content is bound
+;; to be lost.
+;;
+;; (defvar autosave-directory (concat "/tmp/emacs-myriad-autosaves/" (user-login-name) "/"))
+
+;; user-emacs-directory resolves to ~/.emacs.d/:
+(defvar autosave-directory (concat user-emacs-directory "myriad-autosaves/"))
+
+(make-directory autosave-directory t)
+
+
+;;(defun auto-save-file-name-p (filename)
+;;  (string-match "^#.*#$" (file-name-nondirectory filename)))
+
+;;(defun make-auto-save-file-name ()
+;;  (concat autosave-directory
+;;		  (if buffer-file-name
+;;			  (concat "#" (file-name-nondirectory buffer-file-name) "#")
+;;			(expand-file-name
+;;			 (concat "#%" (buffer-name) "#")))))
+
+;;(setq auto-save-file-name-transforms `((".*" ,temporary-file-directory t)))
+
+;; Actually works:
+(setq auto-save-file-name-transforms `((".*" ,autosave-directory t)))
+
+;; And now for interlock symlinks:
+(defvar interlock-directory (concat user-emacs-directory "myriad-interlocks/"))
+(make-directory interlock-directory t)
+(setq lock-file-name-transforms `((".*" ,interlock-directory t)))
+
+;; Similarly, put backup files (i.e. foo~ or foo.~1~) in one place too.
+
+;; (The backup-directory-alist list contains regexp=>directory mappings;
+;; filenames matching a regexp are backed up in the corresponding
+;; directory. Emacs will mkdir it if necessary.)
+
+;; /tmp is not a good place, as in case of crash/reboot, content bound to be lost:
+;;(defvar backup-directory (concat "/tmp/emacs-myriad-backups/" (user-login-name) "/"))
+(defvar backup-directory (concat user-emacs-directory "myriad-backups"))
+
+(make-directory backup-directory t)
+
+;;(setq backup-directory-alist (list (cons "." backup-directory)))
+;;(setq backup-directory-alist `(("." . "~/.saves")))
+;;(setq backup-directory-alist `((".*" . ,temporary-file-directory)))
+(setq backup-directory-alist `((".*" . ,backup-directory)))
+
+(setq vc-make-backup-files t)
+
+(message "<<<<<<######### init.el version 1.3 #########>>>>>>")
 
 
 (delete-other-windows)
