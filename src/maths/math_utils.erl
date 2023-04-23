@@ -61,9 +61,12 @@
 
 
 % Operations with angles:
--export([ radian_to_degree/1, degree_to_radian/1, canonify/1 ]).
+-export([ radians_to_degrees/1, degrees_to_radians/1,
+		  % Obsolete forms: radian_to_degree/1, degree_to_radian/1,
+		  canonify/1 ]).
 
--compile({ inline, [ radian_to_degree/1, degree_to_radian/1, canonify/1 ] }).
+-compile({ inline, [ radians_to_degrees/1, degrees_to_radians/1,
+					 canonify/1 ] }).
 
 
 % Operations related to functions:
@@ -614,17 +617,39 @@ is_null_number( F ) ->
 % @doc Converts the specified angle in radians into the same angle expressed in
 % degrees.
 %
--spec radian_to_degree( radians() ) -> degrees().
-radian_to_degree( AngleInRadians ) ->
+-spec radians_to_degrees( radians() ) -> degrees().
+radians_to_degrees( AngleInRadians ) ->
 	AngleInRadians * 180 / math:pi().
+
+
+% @doc Converts the specified angle in radians into the same angle expressed in
+% degrees.
+%
+% The plural form radians_to_degrees/1 is now to be preferred.
+%
+%-spec radian_to_degree( radians() ) -> degrees().
+%radian_to_degree( AngleInRadians ) ->
+%	radians_to_degrees( AngleInRadians ).
+
 
 
 % @doc Converts the specified angle in degrees into the same angle expressed in
 % radians.
 %
--spec degree_to_radian( degrees() ) -> radians().
-degree_to_radian( AngleInDegrees ) ->
+-spec degrees_to_radians( degrees() ) -> radians().
+degrees_to_radians( AngleInDegrees ) ->
 	AngleInDegrees * math:pi() / 180.
+
+
+% @doc Converts the specified angle in degrees into the same angle expressed in
+% radians.
+%
+% The plural form degrees_to_radians/1 is now to be preferred.
+%
+%-spec degree_to_radian( degrees() ) -> radians().
+%degree_to_radian( AngleInDegrees ) ->
+%	degrees_to_radians( AngleInDegrees ).
+
 
 
 % @doc Canonifies the specified angle in degrees, ie ensures the returned value
