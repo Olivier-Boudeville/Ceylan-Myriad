@@ -449,11 +449,9 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 	% Supposing no alpha information here:
 	Bmp = wxBitmap:new( Width, Height ),
-
 	cond_utils:assert( myriad_debug_gui_memory, wxBitmap:isOk( Bmp ) ),
 
 	DC = wxMemoryDC:new( Bmp ),
-
 	cond_utils:assert( myriad_debug_gui_memory, wxDC:isOk( DC ) ),
 
 	wxMemoryDC:setFont( DC, Font ),
@@ -479,6 +477,11 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 			TextImg
 
 	end,
+
+	% If wanting to check:
+	%TestFilename = text_utils:format( "test-texture-~B.png",
+	%                                  [ length( Text) ] ),
+	%gui_image:save( BaseImg, TestFilename ),
 
 	% Expected to be RGBA:
 	BaseBuffer = wxImage:getData( BaseImg ),
