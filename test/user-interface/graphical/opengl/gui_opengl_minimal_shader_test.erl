@@ -412,8 +412,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
-	gui_shader:set_uniform_3f( SomeColorUnifId,
-							   gui_opengl_minimal_test:get_myriad_blue() ),
+	gui_shader:set_uniform_vector3( SomeColorUnifId,
+									gui_opengl_minimal_test:get_myriad_blue() ),
 
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two
