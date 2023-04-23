@@ -2210,7 +2210,7 @@ set_uniform_vector4s( UniformId, Vec4s ) ->
 
 % For matrices:
 %
-% For gl, they are just homogeneous tuples.
+% For gl, they are just homogeneous tuples of a base numerical type.
 
 % Refer to https://howtos.esperide.org/ThreeDimensional.html#maybe-transposition
 % to understand why OpenGL expects transposed versions of our matrices of
