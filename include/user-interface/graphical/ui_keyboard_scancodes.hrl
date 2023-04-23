@@ -119,7 +119,9 @@
 -define(MYR_SCANCODE_9, 18 ).  % 38).
 -define(MYR_SCANCODE_0, 19 ).  % 39).
 
+% A.k.a. Enter:
 -define(MYR_SCANCODE_RETURN,       36 ).  % 40).
+
 -define(MYR_SCANCODE_ESCAPE,        9 ).  % 41).
 -define(MYR_SCANCODE_BACKSPACE,    22 ).  % 42).
 -define(MYR_SCANCODE_TAB,          23 ).  % 43).
@@ -177,6 +179,8 @@
 -define(MYR_SCANCODE_END,      115 ).  % 77).
 -define(MYR_SCANCODE_PAGEDOWN, 117 ).  % 78).
 
+
+% The arrows, especially useful if not having a keypad:
 -define(MYR_SCANCODE_RIGHT, 114 ).  % 79).
 -define(MYR_SCANCODE_LEFT,  113 ).  % 80).
 -define(MYR_SCANCODE_DOWN,  116 ).  % 81).
