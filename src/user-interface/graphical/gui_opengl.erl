@@ -712,7 +712,8 @@ get_renderer_name() ->
 % @doc Returns the full version of the currently used OpenGL implementation, as
 % a string (if any) returned by the driver.
 %
-% Example: `"4.6.0 FOOBAR 495.44"'.
+% Example: `"4.6.0 FOOBAR 495.44"', or `"4.6 (Compatibility Profile) Mesa
+% 23.0.2"'.
 %
 % Only available if a current OpenGL context is set.
 %
@@ -768,6 +769,10 @@ get_version() ->
 			AssumedVersion;
 
 		VersionStr ->
+
+			%trace_utils:debug_fmt( "OpenGL version string: '~ts'.",
+			%                       [ VersionStr ] ),
+
 			% Parsing "4.6.0 FOOBAR 495.44" for example:
 			{ MajStr, MinStr, Release } = case text_utils:split( VersionStr,
 					_Delimiters=[ $., $ ] ) of
@@ -777,6 +782,10 @@ get_version() ->
 					trace_utils:warning( "No release version for OpenGL "
 										 "returned, assuming 0."),
 					{ MajorStr, MinorStr, _ReleaseI=0 };
+
+				% Typically Mesa:
+				[ MajorStr, MinorStr, "(Compatibility" | _ ] ->
+					{ MajorStr, MinorStr, 0 };
 
 				[ MajorStr, MinorStr, ReleaseStr | _ ] ->
 					ReleaseI = case text_utils:try_string_to_integer(
@@ -938,7 +947,7 @@ get_support_description() ->
 	Exts = get_supported_extensions(),
 
 	% get_supported_profile/0 will use it:
-	init_info_table( Exts ),
+	TId = init_info_table( Exts ),
 
 	VendStr = text_utils:format( "driver vendor: ~ts", [ get_vendor_name() ] ),
 
@@ -948,7 +957,7 @@ get_support_description() ->
 	% Checks that a proper version could be obtained indeed:
 	ImplStr = text_utils:format( "implementation version: described as '~ts', "
 		"i.e. ~ts", [ get_version_string(),
-					  text_utils:version_to_string( get_version() ) ] ),
+					  text_utils:version_to_string( get_version( TId ) ) ] ),
 
 	ProfStr = text_utils:format( "supported profile: ~ts",
 		[ get_supported_profile() ] ),
@@ -1834,11 +1843,14 @@ enter_2d_mode( Window ) ->
 	%
 	% It is the opposite by default with OpenGL (increasing from bottom to top;
 	% the elements would therefore be upside-down in the OpenGL world), so in
-	% the next orthogonal projection bottom and top coordinates are mirrored;
-	% then OpenGL complies with the previous convention.
+	% the next orthogonal projection bottom and top coordinates used to be
+	% mirrored; then OpenGL complied with the previous convention.
 	%
-	% Doing so is more relevant than flipping the textures/images themselves, as
-	% the projection also applies to mouse coordinates.
+	% Doing so may be more relevant than flipping the textures/images
+	% themselves, as the projection also applies to mouse coordinates.
+	%
+	% Yet now we prefer directly flipping vertically (upside-down) the textures
+	% at creation.
 
 	% Multiplies the projection matrix with this orthographic one, assuming that
 	% the eye is located at (0, 0, 0); implements the MyriadGUI 2D conventions,
@@ -1847,8 +1859,10 @@ enter_2d_mode( Window ) ->
 	%
 	% (corresponds to glu:ortho2D/4)
 	%
-	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
-			  _Top=0.0, _Near=-1.0, _Far=1.0 ),
+	%gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
+	%          _Top=0.0, _Near=-1.0, _Far=1.0 ),
+	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=0.0,
+			  _Top=float( Height ), _Near=-1.0, _Far=1.0 ),
 
 	% Then reseting the modelview matrix:
 	gl:matrixMode( ?GL_MODELVIEW ),
