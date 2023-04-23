@@ -58,7 +58,8 @@
 
 -export([ load_from_file/1, load_from_file/2,
 		  get_size/1, has_alpha/1,
-		  load/2, load/3, scale/3, scale/4, mirror/2,
+		  load/2, load/3, save/2, save/3,
+		  scale/3, scale/4, mirror/2,
 		  colorize/2, to_string/1,
 
 		  get_standard_icon/1,
@@ -351,6 +352,34 @@ load( Image, ImageFormat, ImagePath ) ->
 	wxImage:loadFile( Image, ImagePath,
 					  _Opts=[ { type, WxImageFormat } ] ) orelse
 		throw( { image_loading_failed, ImagePath, ImageFormat } ).
+
+
+
+% @doc Saves the image stored in the specified image instance in the specified
+% file, trying to auto-detect the image format for that file, based on its
+% extension.
+%
+-spec save( image(), any_image_path() ) -> void().
+save( Image, ImagePath ) ->
+
+	wxImage:saveFile( Image, ImagePath ) orelse
+		throw( { image_saving_failed, ImagePath } ).
+
+	% Could be added: check_image_path( ImagePath ).
+
+
+% @doc Saves the image stored in the specified image instance in the specified
+% file, according to the specified image format.
+%
+-spec save( image(), image_format(), any_image_path() ) -> void().
+save( Image, ImageFormat, ImagePath ) ->
+
+	WxImageFormat = to_wx_image_format( ImageFormat ),
+
+	wxImage:saveFile( Image, ImagePath, WxImageFormat ) orelse
+		throw( { image_saving_failed, ImagePath, ImageFormat } ).
+
+	% Could be added: check_image_path( ImagePath ).
 
 
 
