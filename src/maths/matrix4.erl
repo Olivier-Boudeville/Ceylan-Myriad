@@ -129,7 +129,11 @@
 		  scale/2,
 		  add/2, sub/2, mult/2, mult/1, apply/2,
 		  are_equal/2,
-		  translate_homogeneous/2, rotate_homogeneous/3, scale_homogeneous/2,
+		  translate_homogeneous/2, rotate_homogeneous/3,
+
+		  scale_homogeneous/2,
+		  scale_homogeneous_x/2, scale_homogeneous_y/2, scale_homogeneous_z/2,
+
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
 		  from_tuple/1, to_tuple/1,
@@ -1359,6 +1363,55 @@ scale_homogeneous( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13,   %tx=Tx,
 	HM#compact_matrix4{ m11=Factor*M11, m12=Factor*M12, m13=Factor*M13,
 						m21=Factor*M21, m22=Factor*M22, m23=Factor*M23,
 						m31=Factor*M31, m32=Factor*M32, m33=Factor*M33 }.
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying the specified (uniform) shearing factor to the
+% leftmost column (X) of the top-left 3x3 matrix (rightmost column of the 4x4
+% matrix not modified).
+%
+-spec scale_homogeneous_x( HM :: homogeneous_matrix4(), factor() ) ->
+											homogeneous_matrix4().
+scale_homogeneous_x( HM=#compact_matrix4{ m11=M11,   %m12=M12, m13=M13, tx=Tx,
+										  m21=M21,   %m22=M22, m23=M23, ty=Ty,
+										  m31=M31 }, %m32=M32, m33=M33  tz=Tz },
+					 Factor ) ->
+	HM#compact_matrix4{ m11=Factor*M11,
+						m21=Factor*M21,
+						m31=Factor*M31 }.
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying the specified (uniform) shearing factor to the
+% middle column (Y) of the top-left 3x3 matrix (rightmost column of the 4x4
+% matrix not modified).
+%
+-spec scale_homogeneous_y( HM :: homogeneous_matrix4(), factor() ) ->
+											homogeneous_matrix4().
+scale_homogeneous_y( HM=#compact_matrix4{ m12=M12,
+										  m22=M22,
+										  m32=M32 },
+					 Factor ) ->
+	HM#compact_matrix4{ m12=Factor*M12,
+						m22=Factor*M22,
+						m32=Factor*M32 }.
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying the specified (uniform) shearing factor to the
+% righttmost column (Z) of the top-left 3x3 matrix (rightmost column of the 4x4
+% matrix not modified).
+%
+-spec scale_homogeneous_z( HM :: homogeneous_matrix4(), factor() ) ->
+											homogeneous_matrix4().
+scale_homogeneous_z( HM=#compact_matrix4{ m12=M13,
+										  m22=M23,
+										  m32=M33 },
+					 Factor ) ->
+	HM#compact_matrix4{ m13=Factor*M13,
+						m23=Factor*M23,
+						m33=Factor*M33 }.
+
 
 
 
