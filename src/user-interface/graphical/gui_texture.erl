@@ -175,6 +175,9 @@
 							   % linear interpolation.
 % To specify the filtering method between mipmap levels, for a more seamless
 % switching between them.
+%
+% Note: ensure that any texture to which such filtering mode is applied has
+% mipmaps generated indeed, otherwise no texturing may be done.
 
 
 -export_type([ texture_id/0, texture_dimension/0, texture/0, texture_unit/0,
@@ -423,8 +426,8 @@ load_from_file( ImageFormat, ImagePath ) ->
 % specified font, brush and color, applies the default texture settings on it,
 % and makes it the currently active texture.
 %
--spec create_from_text( ustring(), font(), brush(),
-								color_by_decimal() ) -> texture().
+-spec create_from_text( ustring(), font(), brush(), color_by_decimal() ) ->
+											texture().
 create_from_text( Text, Font, Brush, Color ) ->
 	create_from_text( Text, Font, Brush, Color, _Flip=false ).
 
@@ -497,6 +500,13 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 	assign_current( Width, Height, _TexFormat=?GL_RGBA, ReadyBuffer ),
 
+	apply_basic_settings_on_current(),
+
+	% Could be done if using a mipmap filtering such as GL_LINEAR_MIPMAP_LINEAR
+	% afterwards:
+	%
+	%generate_mipmaps(),
+
 	%trace_utils:debug( "Texture loaded from text." ),
 
 	% Not supposed to be null dimensions:
@@ -505,6 +515,12 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 
 
+% Mipmap generation.
+%
+% Once mipmaps are generated for the active texture, a better filtering mode can
+% be set, typically with:
+%   gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
+%                     ?GL_LINEAR_MIPMAP_LINEAR )
 
 
 % @doc Generates mipmaps for the currently active (2D) texture.
@@ -663,8 +679,12 @@ apply_basic_settings_on_current() ->
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
+	% GL_LINEAR_MIPMAP_LINEAR has been disabled, as no actual texturing will be
+	% done if the current texture has no mipmap generated:
+	%
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
-					  ?GL_LINEAR_MIPMAP_LINEAR ),
+					  %?GL_LINEAR_MIPMAP_LINEAR ),
+					  ?GL_LINEAR ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	% Otherwise the current color will be applied to the textured polygons as
