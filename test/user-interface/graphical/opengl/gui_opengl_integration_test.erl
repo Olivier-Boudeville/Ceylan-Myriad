@@ -907,9 +907,8 @@ get_clock_texture( Time, Font, Brush ) ->
 
 	TimeStr = time_utils:time_to_string( Time ),
 
-	% Not flipped:
 	gui_texture:create_from_text( TimeStr, Font, Brush,
-								  _OrangeTextColor={ 255, 40, 40 } ).
+		_OrangeTextColor={ 255, 40, 40 }, _Flip=true ).
 
 
 
