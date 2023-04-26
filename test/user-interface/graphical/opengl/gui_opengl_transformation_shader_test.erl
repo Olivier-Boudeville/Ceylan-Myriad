@@ -154,8 +154,8 @@
 
 % Key bindings (Z-up conventions), first supposing a keypad is available:
 
-%-define( has_keypad, true ).
--define( has_keypad, false ).
+-define( has_keypad, true ).
+%-define( has_keypad, false ).
 
 
 -if( ?has_keypad =:= true ).
@@ -379,6 +379,7 @@ run_opengl_test() ->
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
+	% Only true if keypad is enabled:
 	test_facilities:display( "This test will display a textured square "
 		"that can be moved by pressing keys on the numerical keypad:~n"
 		"  - to translate it of ~f units along (if in translation mode):~n"
@@ -1121,15 +1122,12 @@ update_scene( _Scancode=?increase_x_scan_code,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
-	Inc = ?delta_coord,
+	Inc = 1.0 + ?delta_coord,
 
-	% Shearing on the X axis:
-	VT = [ Inc, 0.0, 0.0 ],
+	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
-	NewModelViewMat4 = matrix4:scale_homogeneous( ModelViewMat4, VT ),
-
-	trace_utils:debug_fmt( "Increasing X of ~f, resulting in:~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
+		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1142,13 +1140,12 @@ update_scene( _Scancode=?decrease_x_scan_code,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
-	Inc = ?delta_coord,
-	% Shearing on the X axis:
-	VT = [ -Inc, 0.0, 0.0 ],
-	NewModelViewMat4 = matrix4:scale_homogeneous( ModelViewMat4, VT ),
+	Inc = 1.0 - ?delta_coord,
 
-	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in:~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
+
+	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
+		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1165,13 +1162,12 @@ update_scene( _Scancode=?increase_y_scan_code,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
-	Inc = ?delta_coord,
-	% Shearing on the Y axis:
-	VT = [ 0.0, Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:scale_homogeneous( ModelViewMat4, VT ),
+	Inc = 1.0 + ?delta_coord,
 
-	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in:~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
+
+	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
+		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1184,13 +1180,12 @@ update_scene( _Scancode=?decrease_y_scan_code,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
-	Inc = ?delta_coord,
-	% Shearing on the Y axis:
-	VT = [ 0.0, -Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:scale_homogeneous( ModelViewMat4, VT ),
+	Inc = 1.0 - ?delta_coord,
 
-	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in:~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
+
+	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
+		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1204,13 +1199,12 @@ update_scene( _Scancode=?increase_z_scan_code,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
-	Inc = ?delta_coord,
-	% Shearing on the Z axis:
-	VT = [ 0.0, 0.0, Inc ],
-	NewModelViewMat4 = matrix4:scale_homogeneous( ModelViewMat4, VT ),
+	Inc = 1.0 + ?delta_coord,
 
-	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in:~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
+
+	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
+		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1224,13 +1218,12 @@ update_scene( _Scancode=?decrease_z_scan_code,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
-	Inc = ?delta_coord,
-	% Shearing on the Z axis:
-	VT = [ 0.0, 0.0, -Inc ],
-	NewModelViewMat4 = matrix4:scale_homogeneous( ModelViewMat4, VT ),
+	Inc = 1.0 - ?delta_coord,
 
-	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in:~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
+
+	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
+		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
