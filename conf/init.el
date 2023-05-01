@@ -180,7 +180,8 @@
  '(package-selected-packages '(flycheck which-key erlang))
  '(show-paren-mode t)
  ;; Not wanting this mostly useless graphical toolbar at the top:
- '(tool-bar-mode nil))
+ '(tool-bar-mode nil)
+ '(warning-suppress-types '((server))))
 
 ;; :height 95 for some resolutions:
 (custom-set-faces
