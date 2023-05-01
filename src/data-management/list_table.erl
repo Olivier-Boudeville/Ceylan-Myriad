@@ -68,6 +68,7 @@
 		  extract_entry/2, extract_entry_with_default/3,
 		  extract_entry_if_existing/2,
 		  extract_entries/2, extract_entries_if_existing/2,
+		  extract_entries_with_defaults/2,
 		  get_value/2, get_value_with_default/3,
 		  get_values/2, get_all_values/2,
 		  add_to_entry/3, subtract_from_entry/3, toggle_entry/2,
@@ -86,6 +87,8 @@
 -type key() :: hashtable:key().
 
 -type value() :: hashtable:value().
+
+-type default_value() :: hashtable:default_value().
 
 -type entry() :: hashtable:entry().
 
@@ -430,6 +433,31 @@ extract_entries_if_existing( Keys, ListTable ) ->
 		_List=Keys ),
 
 	{ lists:reverse( RevEntries ), FinalTable }.
+
+
+
+% @doc Extracts the specified entries from the specified table, that is returns
+% their associated values (in-order) if found, otherwise their specified default
+% value, and removes these entries from the returned table.
+%
+% For example: {[RedMaybeDefValue, GreenMaybeDefValue, BlueMaybeDefValue],
+% ShrunkTable} = list_table:extract_entries([{red,RedDefault},
+% {green,GreenDefault}, {blue,BlueDefault}], MyTable)
+%
+-spec extract_entries_with_defaults( [ { key(), default_value()} ],
+				list_table() ) -> { [ value() ], list_table() }.
+extract_entries_with_defaults( KeyDefPairs, ListTable ) ->
+
+	{ RevValues, FinalTable } = lists:foldl(
+		fun( { K, DefK }, { AccValues, AccTable } ) ->
+			{ V, ShrunkTable } =
+				extract_entry_with_default( K, DefK, AccTable ),
+			{ [ V | AccValues ], ShrunkTable }
+		end,
+		_Acc0={ [], ListTable },
+		_List=KeyDefPairs ),
+
+	{ lists:reverse( RevValues ), FinalTable }.
 
 
 
