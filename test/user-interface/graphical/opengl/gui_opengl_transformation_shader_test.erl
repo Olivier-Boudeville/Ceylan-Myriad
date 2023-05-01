@@ -60,6 +60,8 @@
 
 -type transformation_mode() :: 'translation' | 'rotation' | 'shearing'.
 
+-type projection_mode() :: 'orthographic' | 'perspective'.
+
 
 % Test-specific overall GUI state:
 %
@@ -105,11 +107,17 @@
 	%z_angle :: radians(),
 
 
+
 	% The model-view matrix for the square of interest:
 	model_view :: matrix4(),
 
-	% The currently active transformation mode:
+	% The currently active transformation mode (translation, rotation,
+	% or shearing):
+	%
 	transformation_mode :: transformation_mode(),
+
+	% The currently active projection mode (orthographic or perspective):
+	projection_mode :: projection_mode(),
 
 	% In more complex cases, would store the loaded textures, etc.:
 	opengl_state :: maybe( my_opengl_state() ) } ).
@@ -234,6 +242,9 @@
 
 -endif. % has_keypad
 
+
+
+-define( projection_mode_scan_code, ?MYR_SCANCODE_P ).
 
 % End test:
 -define( quit_scan_code, ?MYR_SCANCODE_ESCAPE ).
@@ -384,7 +395,10 @@ run_actual_test() ->
 		"that can be moved by pressing keys on the numerical keypad:~n"
 		"  - to translate it of ~f units along (if in translation mode):~n"
 		"    * the X axis: hit '4' to move it on the left, '6' on the right~n"
-		"    * the Y axis: hit '3' to move it nearer, '9' farther~n"
+		"    * the Y axis: hit '3' to move it nearer, '9' farther "
+		"(note that in orthographic mode the square will not appear to move "
+		"along this axis - until reaching either the near or far clipping "
+		"plane)~n"
 		"    * the Z axis: hit '2' to move it down, '8' up~n"
 		"  - to rotate of ~f degrees around (if in rotation mode):~n"
 		"    * the X axis: hit '4' to turn it counter-clockwise (CCW), "
@@ -396,7 +410,8 @@ run_actual_test() ->
 		"    * the Y axis: hit '3' to scale it down, '9' up~n"
 		"    * the Z axis: hit '2' to scale it down, '8' up~n~n"
 		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
-		"to switch to the next mode, 'Escape' to quit.~n",
+		"to switch to the next transformation mode, 'P' to toggle the "
+		"projection mode, 'Escape' to quit.~n",
 		[ ?delta_coord, ?delta_angle, ?delta_scale ] ),
 
 	gui:start(),
@@ -468,7 +483,8 @@ init_test_gui() ->
 				   %y_angle=Zero,
 				   %z_angle=Zero,
 				   model_view=matrix4:identity(),
-				   transformation_mode=translation }.
+				   transformation_mode=translation,
+				   projection_mode=orthographic }.
 
 
 
@@ -1263,6 +1279,26 @@ update_scene( _Scancode=?mode_switch_scan_code,
 						   [ TransfoMode, NewTransfoMode ] ),
 
 	{ GUIState#my_gui_state{ transformation_mode=NewTransfoMode },
+	  _DoQuit=false };
+
+
+update_scene( _Scancode=?projection_mode_scan_code,
+			  GUIState=#my_gui_state{ projection_mode=ProjectionMode } ) ->
+
+	NewProjMode = case ProjectionMode of
+
+		orthographic ->
+			perspective;
+
+		perspective ->
+			orthographic
+
+	end,
+
+	trace_utils:debug_fmt( "Switching projection mode from ~ts to ~ts.",
+						   [ ProjectionMode, NewProjMode ] ),
+
+	{ GUIState#my_gui_state{ projection_mode=NewProjMode },
 	  _DoQuit=false };
 
 
