@@ -225,29 +225,29 @@
 
 -type resolvable_token_path() ::
 
-	  'user_name' % Will be translated to the name of the current OS-level
-				  % user; e.g. "bond".
+	'user_name' % Will be translated to the name of the current OS-level user;
+				% e.g. "bond".
 
-	| 'user_id' % Will be translated to the OS-level (typically UNIX uid)
-				% identifier of the current user; e.g. "61917".
+  | 'user_id' % Will be translated to the OS-level (typically UNIX uid);
+			  % e.g. "61917".
 
-	| 'group_name' % Will be translated to the name of the current OS-level
-				   % group; e.g. "wheel".
+  | 'group_name' % Will be translated to the name of the current OS-level group;
+				 % e.g. "wheel".
 
-	| 'group_id' % Will be translated to the OS-level (typically UNIX gid)
-				 % identifier of the current group; e.g. "61000".
+  | 'group_id' % Will be translated to the OS-level (typically UNIX gid)
+			   % identifier of the current group; e.g. "61000".
 
-	| 'home' % Will be translated to the path to the home directory of the
-			 % current user; e.g. "/home/bond".
+  | 'home' % Will be translated to the path to the home directory of the
+		   % current user; e.g. "/home/bond".
 
-	| 'locale_charset' % Will be translated to the current locale with the
-					   % associated character set; e.g. "en_GB.utf8".
+  | 'locale_charset' % Will be translated to the current locale with the
+					 % associated character set; e.g. "en_GB.utf8".
 
-	| 'fqdn' % Will be translated to the current FQDN of the local host;
-			 % e.g. "hurricane.foobar.org".
+  | 'fqdn' % Will be translated to the current FQDN of the local host;
+		   % e.g. "hurricane.foobar.org".
 
-	| 'short_hostname'. % Will be translated to the current short name of
-						% the local host; e.g. "hurricane".
+  | 'short_hostname'. % Will be translated to the current short name of
+					  % the local host; e.g. "hurricane".
 % A token translated at runtime as a path element.
 
 
