@@ -105,7 +105,10 @@
 		  remove_file/1, remove_file_if_existing/1,
 		  remove_files/1, remove_files_if_existing/1,
 
-		  remove_symlink/1,
+		  remove_symlink/1, remove_symlink_if_existing/1,
+
+		  % Note: no need for remove_file_or_link/1, remove_file does that.
+		  remove_file_or_link_if_existing/1,
 
 		  remove_empty_directory/1, remove_empty_path/1, remove_empty_tree/1,
 		  remove_directory/1, remove_directory_if_existing/1,
@@ -3157,8 +3160,8 @@ create_temporary_directory() ->
 
 
 
-% @doc Removes (deletes) the specified file (regular, or symbolic link),
-% specified as any kind of string.
+% @doc Removes (deletes) the specified file (be them regular files or symbolic
+% links), specified as any kind of string.
 %
 % Throws an exception if any problem occurs (e.g. the file does not exist, or
 % could not be removed for any reason).
@@ -3181,8 +3184,8 @@ remove_file( FilePath ) ->
 
 
 
-% @doc Removes (deletes) the specified files, specified as a list of any kind of
-% strings.
+% @doc Removes (deletes) the specified files (be them regular files or symbolic
+% links), specified as a list of any kind of strings.
 %
 % Throws an exception if any problem occurs (e.g. a file does not exist, or
 % could not be removed for any reason).
@@ -3190,15 +3193,15 @@ remove_file( FilePath ) ->
 -spec remove_files( [ any_file_path() ] ) -> void().
 remove_files( FilePaths ) ->
 
-	%trace_utils:warning_fmt( "Removing following files: ~ts",
-	%                         [ text_utils:strings_to_string( FilePaths ) ] ),
+	%trace_utils:debug_fmt( "Removing following files: ~ts",
+	%                       [ text_utils:strings_to_string( FilePaths ) ] ),
 
 	[ remove_file( FP ) || FP <- FilePaths ].
 
 
 
-% @doc Removes specified file, specified as any kind of string, iff it is
-% already existing, otherwise does nothing.
+% @doc Removes the specified regular file, specified as any kind of string, iff
+% it is already existing, otherwise does nothing.
 %
 -spec remove_file_if_existing( any_file_path() ) -> void().
 remove_file_if_existing( FilePath ) ->
@@ -3206,21 +3209,21 @@ remove_file_if_existing( FilePath ) ->
 	case is_existing_file( FilePath ) of
 
 		true ->
-			%trace_bridge:debug_fmt( "Removing existing file '~ts'.",
-			%                        [ FilePath ] ),
+			%trace_utils:debug_fmt( "Removing existing file '~ts'.",
+			%                       [ FilePath ] ),
 			remove_file( FilePath );
 
 		false ->
-			%trace_bridge:debug_fmt( "No existing file '~ts' to remove.",
-			%                        [ FilePath ] ),
+			%trace_utils:debug_fmt( "No existing file '~ts' to remove.",
+			%                       [ FilePath ] ),
 			ok
 
 	end.
 
 
 
-% @doc Removes each specified file, in specified list of any kind of strings,
-% iff it is already existing.
+% @doc Removes each of the specified regular files, in the specified list of any
+% kind of strings, iff it is already existing.
 %
 -spec remove_files_if_existing( [ any_file_path() ] ) -> void().
 remove_files_if_existing( FilePaths ) ->
@@ -3262,6 +3265,60 @@ remove_symlink( SymlinkPath ) ->
 
 		Error ->
 			throw( { remove_symlink_failed, SymlinkPath, Error } )
+
+	end.
+
+
+
+% @doc Removes (deletes) the specified symbolic link, specified as any kind of
+% string, iff it is already existing, otherwise does nothing.
+%
+% Checks that the specified path designates indeed a symbolic link (dead or
+% not).
+%
+% Throws an exception if any problem occurs.
+%
+-spec remove_symlink_if_existing( any_file_path() ) -> void().
+remove_symlink_if_existing( SymlinkPath ) ->
+
+	case is_existing_link( SymlinkPath ) of
+
+		true ->
+			%trace_utils:debug_fmt( "Removing existing symlink '~ts'.",
+			%                       [ SymlinkPath ] ),
+			remove_symlink( SymlinkPath );
+
+		false ->
+			%trace_utils:debug_fmt( "No existing symlink '~ts' to remove.",
+			%                       [ SymlinkPath ] ),
+			ok
+
+	end.
+
+
+
+% @doc Removes (deletes) the specified file (regular or symbolic link),
+% specified as any kind of string, iff it is already existing, otherwise does
+% nothing.
+%
+% Throws an exception if any problem occurs.
+%
+-spec remove_file_or_link_if_existing( any_file_path() ) -> void().
+remove_file_or_link_if_existing( FileOrLinkPath ) ->
+
+	case is_existing_file_or_link( FileOrLinkPath ) of
+
+		true ->
+			%trace_utils:debug_fmt( "Removing existing file or link '~ts'.",
+			%                       [ FileOrLinkPath ] ),
+
+			% Works for regular files and symbolic links:
+			remove_file( FileOrLinkPath );
+
+		false ->
+			%trace_utils:debug_fmt( "No existing file or link '~ts' to remove.",
+			%                       [ FileOrLinkPath ] ),
+			ok
 
 	end.
 
@@ -3790,23 +3847,29 @@ move_file( SourceFilePath, DestinationFilePath ) ->
 
 
 
-% @doc Creates a symbolic link pointing to specified target path, bearing
-% specified (link) name.
+% @doc Creates a symbolic link pointing to the specified target path, at the
+% specified new (link) path.
 %
--spec create_link( any_path(), link_name() ) -> void().
-create_link( TargetPath, LinkName ) ->
+% For example create_link("Projects/SomeProject", "/home/joe/my-link") will
+% create a "/home/joe/my-link" symlink pointing to "Projects/SomeProject" (thus
+% relatively to "/home/joe/"), whether or not this
+% "/home/joe/Projects/SomeProject" target exists (so the current directory does
+% not matter here).
+%
+-spec create_link( any_path(), link_path() ) -> void().
+create_link( TargetPath, NewLinkPath ) ->
 
-	%trace_utils:debug_fmt( "Creating a link '~ts' to '~ts', while in '~ts'.",
-	%                       [ LinkName, TargetPath, get_current_directory() ] ),
+	%trace_utils:debug_fmt( "Creating a link '~ts' to '~ts'.",
+	%                       [ NewLinkPath, TargetPath ] ),
 
-	case file:make_symlink( TargetPath, LinkName ) of
+	case file:make_symlink( TargetPath, NewLinkPath ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
 			throw( { link_creation_failed, { target, TargetPath },
-					 { link, LinkName }, Reason } )
+					 { link, NewLinkPath }, Reason } )
 
 	end.
 
