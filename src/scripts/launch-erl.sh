@@ -316,7 +316,7 @@ while [ $# -gt 0 ] && [ ${do_stop} -eq 1 ]; do
 	if [ "$1" = "--daemon" ]; then
 		#echo "(running in daemon mode)"
 		use_run_erl=0
-		#in_background=0
+		in_background=0
 		token_eaten=0
 	fi
 
@@ -887,29 +887,38 @@ else
 	#echo "${erl}" ${to_eval} ${command}
 	if ! "${erl}" ${to_eval} ${command}; then
 
-		# Especially useful whenever crashing one's OpenGL driver:
-		echo "This execution of the Erlang VM failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
-		read answer
-		if [ "${answer}" = "y" ]; then
+		# Not wanting interactive behaviour if in background:
+		if [ $in_background -eq 1 ]; then
 
-			core_exec="$(which coredumpctl 2>/dev/null)"
+			# Especially useful whenever crashing one's OpenGL driver:
+			echo "This execution of the Erlang VM failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
+			read answer
+			if [ "${answer}" = "y" ]; then
 
-			if [ ! -x "${core_exec}" ]; then
+				core_exec="$(which coredumpctl 2>/dev/null)"
 
-				echo "  Error, no 'coredumpctl' found, no post-mortem investigation performed." 1>&2
+				if [ ! -x "${core_exec}" ]; then
 
-				exit 105
+					echo "  Error, no 'coredumpctl' found, no post-mortem investigation performed." 1>&2
+
+					exit 105
+
+				fi
+
+				echo "Analysing coredump (use the 'bt' command to print the backtrace; 'q' to quit):"
+				"${core_exec}" debug
+
+				exit 110
+
+			else
+
+				exit 100
 
 			fi
 
-			echo "Analysing coredump (use the 'bt' command to print the backtrace; 'q' to quit):"
-			"${core_exec}" debug
-
-			exit 110
-
 		else
 
-			exit 100
+			echo "This (background) execution of the Erlang VM failed." 1>&2
 
 		fi
 
