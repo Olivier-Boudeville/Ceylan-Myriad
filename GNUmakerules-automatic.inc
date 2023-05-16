@@ -115,7 +115,7 @@
 ifeq ($(USE_PROTOBUF),true)
 
 # Single execution, two targets generated:
-# Not compatible with older make (ex: 4.1): %.erl %.hrl &: %.proto
+# Not compatible with older make (e.g. 4.1): %.erl %.hrl &: %.proto
 %.erl %.hrl: %.proto
 	@echo "		Generating $@ from Protobuf spec $<"
 	@"$(PB_COMPILER)" $(PB_OPT) $< $(GPB_SUFFIX_OPT)
@@ -169,7 +169,7 @@ endif
 #
 # Exactly like when running as %_exec_background, except services are shared
 # hence their node name must no depend on any user name; they are directly named
-# as their core target (ex: 'make X_exec_service' results in a node named
+# as their core target (e.g. 'make X_exec_service' results in a node named
 # 'X@LOCALHOSTNAME').
 #
 # (these rules uses run_erl, that runs in the background)

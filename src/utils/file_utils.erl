@@ -3412,9 +3412,9 @@ remove_empty_tree( DirectoryPath ) ->
 
 
 
-% @doc Removes the specified (possibly non-empty) directory as a whole,
-% recursively (so: behaves mostly like the 'rm -rf ' shell command; of course to
-% use with care).
+% @doc Removes the specified (possibly non-empty) directory as a whole
+% (i.e. including its full content), recursively (so: behaves mostly like the
+% 'rm -rf ' shell command; of course to use with care).
 %
 % Note that if any unusual file entry is found in the tree (e.g. device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
@@ -3465,9 +3465,9 @@ remove_directory( DirectoryPath ) ->
 
 
 
-% @doc Removes the specified (possibly non-empty) directories as a whole,
-% recursively (so: behaves mostly like the 'rm -rf ' shell command; of course to
-% use with care).
+% @doc Removes the specified (possibly non-empty) directories as a whole
+% (i.e. including its full content), recursively (so: behaves mostly like the
+% 'rm -rf ' shell command; of course to use with care).
 %
 % Note that if any unusual file entry is found in the tree (e.g. device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
@@ -3480,8 +3480,8 @@ remove_directories( DirectoryPaths ) ->
 
 
 % @doc Removes, if it exists, the specified (possibly non-empty) directory as a
-% whole, recursively (so: behaves mostly like the 'rm -rf ' shell command; of
-% course to use with care).
+% whole (i.e. including its full content), recursively (so: behaves mostly like
+% the 'rm -rf ' shell command; of course to use with care).
 %
 % Note that if any unusual file entry is found in the tree (e.g. device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
@@ -3495,8 +3495,8 @@ remove_directory_if_existing( DirectoryPath ) ->
 
 
 % @doc Removes, if they exist, the specified (possibly non-empty) directories as
-% a whole, recursively (so: behaves mostly like the 'rm -rf ' shell command; of
-% course to use with care).
+% a whole (i.e. including its full content), recursively (so: behaves mostly
+% like the 'rm -rf ' shell command; of course to use with care).
 %
 % Note that if any unusual file entry is found in the tree (e.g. device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
