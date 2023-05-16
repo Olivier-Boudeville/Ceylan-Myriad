@@ -58,6 +58,7 @@ fi
 # source archive, and to be able to switch back and forth more easily:
 
 # To be obtained with: 'sha512sum otp_src_x.y.tar.gz':
+erlang_sha512_for_26_0="f9e373724d84f249d2b59dddf8624563936a109b81b0e7af4ab761c52c1cca544ad1c7734aa60c1612b286b0bba372fb6714916d7a6226f70afc692a66fd766e"
 erlang_sha512_for_25_3="871e767361ff81ceade361bd45ace807ee411cc24b237680ce2d1d516c115f326dfc969b95ad6e6391f24cb465bb6cbcffe5740374abeb67dc5ee0c2bf8f864b"
 erlang_sha512_for_25_2="2bfa14a75f91caa6e8e11a2de871539ead8b0c44c07412a000df04f6b2ed2fc3f75ca0f345bf2c01c322afa9122dc96e5241ba1d39abb400bdadcd93446ad478"
 erlang_sha512_for_25_1="26f597d3637445fa3f602e75b7854d6386f4a6e5702715f4339c5107b02a571b9ff15e6f48a81ff82d994a10d396e6154609d0d8d74076afa305c9fe87efbefa"
@@ -84,15 +85,15 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable (an update of the next two lines is needed):
-erlang_version="25.3"
-erlang_sum="${erlang_sha512_for_25_3}"
+erlang_version="26.0"
+erlang_sum="${erlang_sha512_for_26_0}"
 
 
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="25.1"
-erlang_sum_candidate="${erlang_sha512_for_25_1}"
+erlang_version_candidate="25.3"
+erlang_sum_candidate="${erlang_sha512_for_25_3}"
 
 base_install_dir="${HOME}/Software/Erlang"
 
