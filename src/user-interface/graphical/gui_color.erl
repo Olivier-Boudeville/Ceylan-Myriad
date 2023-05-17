@@ -52,7 +52,7 @@
 
 
 % For related defines:
--include("gui.hrl").
+-include("gui_base.hrl").
 
 
 % For wx color defines:

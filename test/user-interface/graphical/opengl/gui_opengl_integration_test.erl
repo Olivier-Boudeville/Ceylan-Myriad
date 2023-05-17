@@ -49,9 +49,8 @@
 % listen to the resizing of the parent window and adapt accordingly.
 
 
-% For GL/GLU defines:
--include("gui_opengl.hrl").
-% For user code: -include_lib("myriad/include/gui_opengl.hrl").
+% For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % For run/0 export and al:
@@ -75,7 +74,6 @@
 
 		  get_test_textured_cube_vertices/0, get_test_textured_cube_faces/0,
 		  get_test_textured_cube_normals/0, get_test_textured_cube_tex_coords/0,
-
 
 		  get_test_image_path/0 ]).
 
@@ -478,7 +476,7 @@ get_test_image_directory() ->
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
 	file_utils:join( get_test_image_directory(),
-	%                 "myriad-space-time-referential.png" ).
+	%                "myriad-space-time-referential.png" ).
 					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
@@ -488,9 +486,9 @@ get_test_image_path() ->
 -spec get_logo_image_path() -> file_path().
 get_logo_image_path() ->
 	file_utils:join( get_test_image_directory(),
-	%				 "myriad-title.png" ).
-	%				 "myriad-minimal-enclosing-circle-test.png" ).
-					 "myriad-space-time-referential.png" ).
+	%   "myriad-title.png" ).
+	%   "myriad-minimal-enclosing-circle-test.png" ).
+		"myriad-space-time-referential.png" ).
 
 
 
@@ -597,7 +595,10 @@ init_test_gui() ->
 
 	Image = gui_image:load_from_file( get_test_image_path() ),
 
-	gui_image:scale( Image, _NewWidth=128, _NewHeight=128 ),
+	% Not necessary to scale to dimensions that are powers of two; moreover even
+	% downscaling results in an image quite far from the original:
+	%
+	%gui_image:scale( Image, _NewWidth=128, _NewHeight=128 ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet):
 	#my_gui_state{ parent=MainFrame, panel=Panel, canvas=GLCanvas,
@@ -906,9 +907,8 @@ get_clock_texture( Time, Font, Brush ) ->
 
 	TimeStr = time_utils:time_to_string( Time ),
 
-	% Not flipped:
 	gui_texture:create_from_text( TimeStr, Font, Brush,
-								  _OrangeTextColor={ 255, 40, 40 } ).
+		_OrangeTextColor={ 255, 40, 40 }, _Flip=true ).
 
 
 
@@ -991,7 +991,7 @@ render( #my_opengl_state{ window=Window,
 	gl:scalef( 1.5, 0.6, 1.0 ),
 	gl:rotatef( -90.0, 1.0, 0.0, 0.0 ),
 	gl:rotatef( -Angle, 0.0, 0.0, 1.0 ),
-	glu:sphere( SphereId, 0.8, 50,40 ),
+	glu:sphere( SphereId, 0.8, 50, 40 ),
 	gl:popMatrix(),
 
 	cond_utils:if_defined( myriad_check_opengl, gui_opengl:check_error() ),

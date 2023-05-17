@@ -115,7 +115,7 @@
 ifeq ($(USE_PROTOBUF),true)
 
 # Single execution, two targets generated:
-# Not compatible with older make (ex: 4.1): %.erl %.hrl &: %.proto
+# Not compatible with older make (e.g. 4.1): %.erl %.hrl &: %.proto
 %.erl %.hrl: %.proto
 	@echo "		Generating $@ from Protobuf spec $<"
 	@"$(PB_COMPILER)" $(PB_OPT) $< $(GPB_SUFFIX_OPT)
@@ -141,6 +141,23 @@ endif
 	@echo "		Executing application $^ (second form)"
 	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
+
+
+# 'X_non_interactive_exec' becomes 'X_app:exec()' and is launched as a
+# non-interactive application (typically to remain synchronous yet not to block
+# systemctl because of a prompt offering a post-mortem study after a crash):
+#
+%_non_interactive_exec: %_app.beam %.beam
+	@echo "		Executing application $^ (first form, in a non-interactive variant)"
+	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') --non-interactive $(ALL_CMD_LINE_OPTIONS)
+
+
+%_non_interactive_exec: %_app.beam
+	@echo "		Executing application $^ (second form, in a non-interactive variant)"
+	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') --non-interactive $(ALL_CMD_LINE_OPTIONS)
+
 
 
 # To run in the background (somewhat like a daemon):
@@ -169,7 +186,7 @@ endif
 #
 # Exactly like when running as %_exec_background, except services are shared
 # hence their node name must no depend on any user name; they are directly named
-# as their core target (ex: 'make X_exec_service' results in a node named
+# as their core target (e.g. 'make X_exec_service' results in a node named
 # 'X@LOCALHOSTNAME').
 #
 # (these rules uses run_erl, that runs in the background)

@@ -36,8 +36,10 @@
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
-% For the circle record:
--include("bounding_surface.hrl").
+% For the circle record; the sole include that MyriadGUI user code shall
+% reference:
+%
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % For reuse by other tests:

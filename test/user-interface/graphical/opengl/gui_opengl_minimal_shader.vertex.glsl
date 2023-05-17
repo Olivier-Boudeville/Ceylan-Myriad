@@ -30,7 +30,7 @@
  *
  */
 // Uncomment if not using user vertex attributes:
-// layout(location = 0) in vec3 my_input_vertex;
+// layout (location = 0) in vec3 my_input_vertex;
 
 // Comment if using user vertex attributes:
 in vec3 my_input_vertex;
@@ -51,7 +51,7 @@ void main(){
 	 */
 
 	/* This is an identity transformation, basically (so my_input_vertex is
-	 * expected to be already in normalized device coordinates:
+	 * expected to be already in normalized device coordinates):
 	 */
 	gl_Position.xyz = my_input_vertex;
 	gl_Position.w = 1.0;

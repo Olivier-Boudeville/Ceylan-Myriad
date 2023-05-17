@@ -50,6 +50,11 @@
 -ifndef(__MYRIAD_UI_KEYBOARD_KEYCODES_HRL__).
 -define(__MYRIAD_UI_KEYBOARD_KEYCODES_HRL__, 1).
 
+
+% Warning: we are not sure at all that with wx some keycodes can be deduced from
+% scancodes.
+
+
 % Mask of 0b100-0000-0000-0000-0000-0000-0000-0000:
 -define(MYR_K_SCANCODE_MASK, (1 bsl 30)).
 
@@ -103,7 +108,7 @@
 -define(MYR_K_CARET, $^).
 -define(MYR_K_UNDERSCORE, $_).
 -define(MYR_K_BACKQUOTE, $`).
--define(MYR_K_a, $a).
+-define(MYR_K_a, $a). % Equal to 97.
 -define(MYR_K_b, $b).
 -define(MYR_K_c, $c).
 -define(MYR_K_d, $d).

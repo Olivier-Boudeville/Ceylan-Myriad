@@ -89,7 +89,7 @@
 
 
 % For the event_context record:
--include("gui.hrl").
+-include("gui_base.hrl").
 
 % For canvas_state():
 -include("gui_canvas.hrl").

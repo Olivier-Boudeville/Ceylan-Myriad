@@ -41,7 +41,7 @@
 	faces = [] :: [ mesh:indexed_face() ],
 
 
-	% To which geometric element (ex: per vertex, per face) the next normals
+	% To which geometric element (e.g. per vertex, per face) the next normals
 	% correspond:
 	%
 	normal_type :: mesh:normal_type(),
@@ -57,6 +57,7 @@
 
 
 	% Bounding volume information:
+	%
 	% (can be for example a right-cuboid or a sphere)
 	%
 	bounding_volume :: maybe( bounding_volume:bounding_volume() ) } ).

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2023 Olivier Boudeville
+% Copyright (C) 2023-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,7 +23,15 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2003.
+% Creation date: Monday, April 10, 2023.
 
-% All tests should export such a function:
--export([ run/0 ]).
+
+% A single MyriadUI Header to rule them all: <b>the MyriadUI include that user
+% code shall reference</b>.
+%
+% Common to all kinds of user interfaces (GUI or not).
+
+-include("ui_base.hrl").
+
+-include("ui_keyboard_scancodes.hrl").
+-include("ui_keyboard_keycodes.hrl").

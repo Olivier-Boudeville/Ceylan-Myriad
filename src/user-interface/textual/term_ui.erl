@@ -309,7 +309,7 @@
 
 
 % For common, transverse defines:
--include("ui.hrl").
+-include("ui_base.hrl").
 
 
 % For control codes:
@@ -1023,7 +1023,7 @@ ask_yes_no( Prompt, BinaryDefault, #term_ui_state{ dialog_tool_path=ToolPath,
 		get_dialog_settings_for_return_code( SettingTable ),
 
 	DialogString = text_utils:format( "~ts --yesno \"~ts\" ~ts",
-						[ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
+		[ DefaultChoiceOpt, EscapedPrompt, SuffixString ] ),
 
 	CmdStrings = [ ToolPath, SettingString, DialogString ],
 
@@ -1251,7 +1251,7 @@ choose_designated_item_with_default( Prompt, Choices, DefaultChoiceDesignator,
 		throw( { disallowed_choice_designator, ui_cancel } ),
 
 	DefaultChoiceIndex = case list_utils:get_maybe_index_of(
-								DefaultChoiceDesignator, Designators ) of
+			DefaultChoiceDesignator, Designators ) of
 
 		undefined ->
 			throw( { default_designator_not_among_choices,
@@ -1668,7 +1668,7 @@ get_dialog_settings_for_return_code( SettingTable ) ->
 	{ SettingsString, SuffixString } = get_dialog_base_settings( SettingTable ),
 
 	{ SettingsString, text_utils:format( "~ts ~ts",
-						[ SuffixString, get_redirect_string_for_code() ] ) }.
+		[ SuffixString, get_redirect_string_for_code() ] ) }.
 
 
 
@@ -1691,7 +1691,7 @@ get_dialog_settings_for_file_return( SettingTable ) ->
 get_dialog_base_settings( SettingTable ) ->
 
 	TitleOpt = case ?ui_table:get_value_with_default( 'title',
-								_Default=undefined, SettingTable ) of
+			_Default=undefined, SettingTable ) of
 
 		undefined ->
 			"";
@@ -1703,7 +1703,7 @@ get_dialog_base_settings( SettingTable ) ->
 	end,
 
 	BacktitleOpt = case ?ui_table:get_value_with_default( 'backtitle',
-									_BackDefault=undefined, SettingTable ) of
+			_BackDefault=undefined, SettingTable ) of
 
 		undefined ->
 			"";
@@ -1807,9 +1807,7 @@ set_settings( SettingEntries ) ->
 -spec set_settings( [ ui_setting_entry() ], ui_state() ) -> ui_state().
 set_settings( SettingEntries,
 			  UIState=#term_ui_state{ settings=SettingTable } ) ->
-
 	NewSettingTable = ?ui_table:add_entries( SettingEntries, SettingTable ),
-
 	UIState#term_ui_state{ settings=NewSettingTable }.
 
 

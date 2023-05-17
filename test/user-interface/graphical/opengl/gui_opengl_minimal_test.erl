@@ -50,9 +50,8 @@
 % Directly inspired from https://www.glprogramming.com/red/chapter01.html
 
 
-% For GL/GLU defines:
--include("gui_opengl.hrl").
-% For user code: -include_lib("myriad/include/gui_opengl.hrl").
+% For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % For run/0 export and al:
@@ -84,14 +83,24 @@
 % Test-specific overall GUI state.
 
 
+-export([ get_myriad_blue/0 ]).
+
 
 % Shorthands:
 
 -type window() :: gui:window().
 
+-type render_rgb_color() :: gui_color:render_rgb_color().
+
 -type gl_canvas() :: gui:opengl_canvas().
 -type gl_context() :: gui:opengl_context().
 
+
+
+% Defined for convenience and sharing with other tests.
+-spec get_myriad_blue() -> render_rgb_color().
+get_myriad_blue() ->
+	[ 0.05, 0.2, 0.67 ].
 
 
 % @doc Runs the OpenGL test if possible.
