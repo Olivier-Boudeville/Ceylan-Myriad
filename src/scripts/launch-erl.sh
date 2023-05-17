@@ -149,6 +149,11 @@ be_verbose=1
 use_tcp_range=1
 autostart=0
 in_background=1
+
+# Tells whether requesting user input is allowed, both for the launched program
+# and also for this script (typically to offer a post-mortem analysis, after a
+# crash vs a synchronous yet never-blocking behaviour):
+#
 non_interactive=1
 
 # Erlang defaults (see http://erlang.org/doc/man/erl.html#+zdbbl):
@@ -316,7 +321,10 @@ while [ $# -gt 0 ] && [ ${do_stop} -eq 1 ]; do
 	if [ "$1" = "--daemon" ]; then
 		#echo "(running in daemon mode)"
 		use_run_erl=0
-		in_background=0
+
+		# Should not be implied anymore, as would lead to unwanted consequences:
+		# in_background=0
+
 		token_eaten=0
 	fi
 
@@ -887,8 +895,7 @@ else
 	#echo "${erl}" ${to_eval} ${command}
 	if ! "${erl}" ${to_eval} ${command}; then
 
-		# Not wanting interactive behaviour if in background:
-		if [ $in_background -eq 1 ]; then
+		if [ $non_interactive -eq 1 ]; then
 
 			# Especially useful whenever crashing one's OpenGL driver:
 			echo "This execution of the Erlang VM failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
@@ -918,7 +925,7 @@ else
 
 		else
 
-			echo "This (background) execution of the Erlang VM failed." 1>&2
+			echo "This (non-interactive) execution of the Erlang VM failed." 1>&2
 
 		fi
 

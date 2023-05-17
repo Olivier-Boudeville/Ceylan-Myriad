@@ -143,6 +143,23 @@ endif
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
+# 'X_non_interactive_exec' becomes 'X_app:exec()' and is launched as a
+# non-interactive application (typically to remain synchronous yet not to block
+# systemctl because of a prompt offering a post-mortem study after a crash):
+#
+%_non_interactive_exec: %_app.beam %.beam
+	@echo "		Executing application $^ (first form, in a non-interactive variant)"
+	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') --non-interactive $(ALL_CMD_LINE_OPTIONS)
+
+
+%_non_interactive_exec: %_app.beam
+	@echo "		Executing application $^ (second form, in a non-interactive variant)"
+	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
+	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') --non-interactive $(ALL_CMD_LINE_OPTIONS)
+
+
+
 # To run in the background (somewhat like a daemon):
 #
 # Note: the specified long name (with $(NODE_NAMING)) has its '_background'
