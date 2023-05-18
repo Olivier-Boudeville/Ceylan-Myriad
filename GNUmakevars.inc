@@ -145,12 +145,14 @@ endif
 #  - traces: for Myriad-level traces
 #
 #  - user_interface: all support regarding user interfaces of all sorts
-#  - repaint_logic: how MyriadGUI manages repaints
-#  - events: how MyriadGUI manages interface-related events
-#  - canvas: how MyriadGUI manages canvases
-#  - instances: how MyriadGUI manages widget instances
-#  - memory: how MyriadGUI manages memory allocated and related lower-level
+#  - gui_repaint_logic: how MyriadGUI manages repaints
+#  - gui_events: how MyriadGUI manages interface-related events
+#  - gui_canvas: how MyriadGUI manages canvases
+#  - gui_font: about font support
+#  - gui_instances: how MyriadGUI manages widget instances
+#  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
+#  - gui_performance: about the runtime performance monitoring of MyriadGUI
 #
 #  - linear: for operations on vectors, matrices, etc.
 #  - mesh: for the management of (3D) meshes
@@ -188,6 +190,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
@@ -286,7 +289,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.31
+MYRIAD_VERSION := 1.0.32
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
