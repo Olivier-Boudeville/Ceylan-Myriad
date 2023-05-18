@@ -363,7 +363,7 @@ modulo( 0, _Y ) ->
 
 
 
-% @doc Clamps the specified value between specified bounds: the returned value V
+% @doc Clamps the specified value between specified bounds: the returned value
 % is in [Min, Max].
 %
 % We expect that `Min <= Max'.
