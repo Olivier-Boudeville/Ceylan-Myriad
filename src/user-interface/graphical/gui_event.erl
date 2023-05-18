@@ -628,6 +628,17 @@ start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
 		id_next=gui_id:get_first_allocatable_id(),
 		id_name_alloc_table=gui_id:get_initial_allocation_table() },
 
+	% Increases the chances that this MyriadGUI main loop is not overwhelmed by
+	% client calls:
+	%
+	erlang:process_flag( priority, _Level=high ),
+
+	% To monitor overloading (will never be terminated):
+	cond_utils:if_defined( myriad_debug_gui_performance,
+		process_utils:spawn_message_queue_monitor( _MonitoredPid=self(),
+			_MonitoredProcessDesc="MyriadGUI main loop" ) ),
+
+
 	%trace_utils:debug_fmt( "[event] Starting main MyriadGUI loop." ] ),
 
 	% Enter the infinite event loop:
