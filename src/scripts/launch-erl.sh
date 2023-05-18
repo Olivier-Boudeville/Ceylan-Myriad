@@ -912,8 +912,18 @@ else
 
 				fi
 
-				echo "Analysing coredump (use the 'bt' command to print the backtrace; 'q' to quit):"
-				"${core_exec}" debug
+				# ('coredumpctl list' would list all known core dumps from
+				# oldest to most recent; see
+				# https://howtos.esperide.org/GNULinux.html#process-related-post-mortem-investigations
+				# for more information)
+
+
+				echo "Analysing latest-found Erlang coredump (hopefully use the 'bt' command to print the backtrace; 'q' to quit):"
+
+				# A crash does not always creates a core (e.g. if using xkill;
+				# even if ulimit is "unlimited"):
+				#
+				"${core_exec}" debug "${erl}"
 
 				exit 110
 
