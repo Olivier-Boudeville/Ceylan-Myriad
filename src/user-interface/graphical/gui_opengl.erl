@@ -1263,14 +1263,12 @@ insert_debug_context_message( MsgId, Msg, MsgSeverity, MsgSource, MsgType ) ->
 
 	GLMsgType = gui_opengl_generated:get_second_for_debug_type( MsgType ),
 
-	gl:debugMessageInsert( GLMsgSource, GLMsgType, MsgId, GLMsgSeverity,
-						   length( Msg ), Msg ),
+	gl:debugMessageInsert( GLMsgSource, GLMsgType, MsgId, GLMsgSeverity, Msg ),
 
 	% Only pure GL checked, not its debug context as of course it has a message
 	% now:
 	%
-	cond_utils:if_defined( myriad_check_opengl,
-						   check_gl_error() ).
+	cond_utils:if_defined( myriad_check_opengl, check_gl_error() ).
 
 
 
@@ -1318,24 +1316,8 @@ get_debug_context_messages( MsgSource, MsgType, MsgSeverity ) ->
 fetch_debug_context_messages( BufferByteCount, MaxMsgCount, GLMsgSource,
 							  GLMsgType, GLMsgSeverity, Acc ) ->
 
-	%{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLogs } =
-
-	% Temporary fix:
-	{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLog } =
+	{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLogs } =
 		gl:getDebugMessageLog( MaxMsgCount, BufferByteCount ),
-	MessageLogs = case FetchCount of
-
-		0 ->
-			[];
-
-		1 ->
-			[ MessageLog ];
-
-		_ ->
-			[ MessageLog | list_utils:duplicate( "(MyriadGUI fix)",
-												 _Count=FetchCount-1 ) ]
-
-	end,
 
 	% Not done, otherwise infinite recursion:
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
