@@ -99,7 +99,7 @@
 
 
 -type homogeneous_matrix4() :: 'identity_4' | compact_matrix4().
-% A matrix4 that corresponds to an homogenous one.
+% A matrix4 that corresponds to an homogeneous one.
 %
 % So we do not expect canonical matrices here.
 
@@ -1355,14 +1355,20 @@ rotate_homogeneous( HM, UnitAxis, RadAngle ) ->
 % top-left 3x3 matrix (rightmost column not modified).
 %
 -spec scale_homogeneous( HM :: homogeneous_matrix4(), factor() ) ->
-											homogeneous_matrix4().
+											compact_matrix4().
 scale_homogeneous( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13,   %tx=Tx,
 										m21=M21, m22=M22, m23=M23,   %ty=Ty,
 										m31=M31, m32=M32, m33=M33 }, %tz=Tz },
 				   Factor ) ->
 	HM#compact_matrix4{ m11=Factor*M11, m12=Factor*M12, m13=Factor*M13,
 						m21=Factor*M21, m22=Factor*M22, m23=Factor*M23,
-						m31=Factor*M31, m32=Factor*M32, m33=Factor*M33 }.
+						m31=Factor*M31, m32=Factor*M32, m33=Factor*M33 };
+
+scale_homogeneous( identity_4, Factor ) ->
+	Zero = 0.0,
+	#compact_matrix4{ m11=Factor, m12=Zero,   m13=Zero,   tx=Zero,
+					  m21=Zero,   m22=Factor, m23=Zero,   ty=Zero,
+					  m31=Zero,   m32=Zero,   m33=Factor, tz=Zero }.
 
 
 % @doc Updates the specified matrix, considered to be an homogeneous
@@ -1371,14 +1377,22 @@ scale_homogeneous( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13,   %tx=Tx,
 % matrix not modified).
 %
 -spec scale_homogeneous_x( HM :: homogeneous_matrix4(), factor() ) ->
-											homogeneous_matrix4().
+											compact_matrix4().
 scale_homogeneous_x( HM=#compact_matrix4{ m11=M11,   %m12=M12, m13=M13, tx=Tx,
 										  m21=M21,   %m22=M22, m23=M23, ty=Ty,
 										  m31=M31 }, %m32=M32, m33=M33  tz=Tz },
 					 Factor ) ->
 	HM#compact_matrix4{ m11=Factor*M11,
 						m21=Factor*M21,
-						m31=Factor*M31 }.
+						m31=Factor*M31 };
+
+scale_homogeneous_x( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=Factor, m12=Zero,   m13=Zero, tx=Zero,
+					  m21=Zero,   m22=One,    m23=Zero, ty=Zero,
+					  m31=Zero,   m32=Zero,   m33=One,  tz=Zero }.
+
 
 
 % @doc Updates the specified matrix, considered to be an homogeneous
@@ -1387,14 +1401,21 @@ scale_homogeneous_x( HM=#compact_matrix4{ m11=M11,   %m12=M12, m13=M13, tx=Tx,
 % matrix not modified).
 %
 -spec scale_homogeneous_y( HM :: homogeneous_matrix4(), factor() ) ->
-											homogeneous_matrix4().
+											compact_matrix4().
 scale_homogeneous_y( HM=#compact_matrix4{ m12=M12,
 										  m22=M22,
 										  m32=M32 },
 					 Factor ) ->
 	HM#compact_matrix4{ m12=Factor*M12,
 						m22=Factor*M22,
-						m32=Factor*M32 }.
+						m32=Factor*M32 };
+
+scale_homogeneous_y( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=One,  m12=Zero,   m13=Zero, tx=Zero,
+					  m21=Zero, m22=Factor, m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero,   m33=One,  tz=Zero }.
 
 
 % @doc Updates the specified matrix, considered to be an homogeneous
@@ -1403,14 +1424,21 @@ scale_homogeneous_y( HM=#compact_matrix4{ m12=M12,
 % matrix not modified).
 %
 -spec scale_homogeneous_z( HM :: homogeneous_matrix4(), factor() ) ->
-											homogeneous_matrix4().
+											compact_matrix4().
 scale_homogeneous_z( HM=#compact_matrix4{ m12=M13,
 										  m22=M23,
 										  m32=M33 },
 					 Factor ) ->
 	HM#compact_matrix4{ m13=Factor*M13,
 						m23=Factor*M23,
-						m33=Factor*M33 }.
+						m33=Factor*M33 };
+
+scale_homogeneous_z( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=One,  m12=Zero, m13=Zero,   tx=Zero,
+					  m21=Zero, m22=One,  m23=Zero,   ty=Zero,
+					  m31=Zero, m32=Zero, m33=Factor, tz=Zero }.
 
 
 
