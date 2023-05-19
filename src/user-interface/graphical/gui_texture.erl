@@ -221,7 +221,7 @@
 
 
 % Either we try to underline any error (typically in terms of texture
-% coordinates) for troubleshooting, or to hide it:
+% coordinates) for troubleshooting, or to hide it as much as possible:
 
 -ifdef(myriad_debug_opengl).
 
@@ -346,12 +346,14 @@ create_from_image( Image, GenMipmaps ) ->
 
 	OrigDims = { ImgWidth, ImgHeight } = gui_image:get_size( FlippedImage ),
 
+	% Going for power-of-two (larger) dimensions:
 	TargetDims = { TexWidth, TexHeight } = get_dimensions( OrigDims ),
 
 	% The wxImage is either RGB or RGBA; we have to expand it in buffer if
 	% needed, so that it has the right (power-of-two) dimensions:
 	%
 	ColorBuffer = get_color_buffer( FlippedImage, OrigDims, TargetDims ),
+	%trace_utils:debug_fmt( "ColorBuffer : ~p", [ ColorBuffer ] ),
 
 	% Let's create the OpenGL texture:
 
@@ -373,6 +375,7 @@ create_from_image( Image, GenMipmaps ) ->
 
 	assign_current( TexWidth, TexHeight, PixFormat, ColorBuffer ),
 
+	% Add mipmaps if requested:
 	GenMipmaps andalso
 		begin
 			gl:generateMipmap( ?GL_TEXTURE_2D ),
@@ -382,11 +385,38 @@ create_from_image( Image, GenMipmaps ) ->
 
 	Zero = 0.0,
 
-	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
-			  min_x=Zero, min_y=Zero,
-			  % This would be a clumsy attempt of removing padding borders:
-			  %max_x=ImgWidth / (TexWidth+1), max_y=ImgHeight / (TexHeight+1) }.
-			  max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight }.
+	% This was quite strange but there seemed to be an off-by-one error
+	% regarding the Y coordinates: if selecting bright-green padding, we could
+	% see that the first row of the texture (hence the bottom one) was full
+	% green, whereas the color buffer was apparently correct (not starting at
+	% all with green but with the correct image pixels - see the ColorBuffer
+	% trace above; just ending with the proper, expected padding).
+	%
+	% So, instead of using a zero min_y, we used to offset it by one (scaled)
+	% source pixel (hence 1/TexWidth), however hackish it was. The culprit has
+	% been found since then: all our buffers and coordinates were right, it was
+	% just an artifact of the GL_REPEAT wrap parameter. Now relying on
+	% GL_CLAMP_TO_EDGE and there is no need to tweek coordinates anymore.
+	%
+	T = #texture{
+			id=TextureId, width=ImgWidth, height=ImgHeight,
+			min_x=Zero,
+			%min_x=1/TexWidth,
+			min_y=Zero,
+			%min_y=1/TexHeight,
+
+			% These were other clumsy attempts of removing padding borders:
+			% (note that textures are filled upside-down, so padding occurs at
+			% the top; and on the right)
+			%
+			%max_x=ImgWidth / (TexWidth+1), max_y=ImgHeight / (TexHeight+1) }.
+			%max_x=(ImgWidth-1) / TexWidth, max_y=(ImgHeight-1) / TexHeight }.
+			max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight },
+
+	%trace_utils:debug_fmt( "~Bx~B texture created from image: ~ts",
+	%   [ TexWidth, TexHeight, to_string( T ) ] ),
+
+	T.
 
 
 
@@ -639,7 +669,13 @@ recalibrate_coordinates_for( TexCoords, #texture{ min_x=MinX, min_y=MinY,
 	XDiff = MaxX - MinX,
 	YDiff = MaxY - MinY,
 
-	recalibrate_coordinates_for( TexCoords, MinX, MinY, XDiff, YDiff, _Acc=[] ).
+	R = recalibrate_coordinates_for( TexCoords, MinX, MinY, XDiff, YDiff,
+									 _Acc=[] ),
+
+	trace_utils:debug_fmt( "Coordinates ~p once recalibrated:~n ~p.",
+						   [ TexCoords, R ] ),
+
+	R.
 
 
 % (helper)
@@ -702,12 +738,18 @@ apply_basic_settings_on_current() ->
 	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
 
 	% Possibly not that useful, UV coordinates remaining generally in [0.0,
-	% 1.0]:
+	% 1.0]; moreover enabling padding with a bright green shows that because of
+	% tiling the first texture row (hence its bottom one) becomes a padding one:
 	%
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT ),
+	%WrapParameter = ?GL_REPEAT
+
+	% Not unwanting tiling:
+	WrapParameter = ?GL_CLAMP_TO_EDGE,
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, WrapParameter ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT ),
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, WrapParameter ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
@@ -730,7 +772,8 @@ render( #texture{ id=TextureId,
 				  max_y=MaxYt }, Xp, Yp ) ->
 
 	%trace_utils:debug_fmt( "Rendering texture ~w (size: ~wx~w), from {~w,~w} "
-	%   "to {~w,~w}.", [ TextureId, Width, Height, MinX, MinY, MaxX, MaxY ] ),
+	%   "to {~w,~w}.",
+	%   [ TextureId, Width, Height, MinXt, MinYt, MaxXt, MaxYt ] ),
 
 	set_as_current_from_id( TextureId ),
 
@@ -989,17 +1032,22 @@ pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
 
 	PadPixel = ?padding_rgba_bin,
 
+	% The binary used to pad each row on its right:
 	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
 
 	%basic_utils:assert_equal( byte_size( BinPadRow ),
 	%                          4*(TargetW - CurrentW) ),
 
+	% Right-extended buffer:
 	RowPaddedBuffer =
 		pad_rows_with_alpha( RGBBuffer, AlphaBuffer, CurrentW, BinPadRow ),
 
 	%basic_utils:assert_equal( byte_size( RowPaddedBuffer ),
 	%                          4*CurrentH*TargetW ),
 
+	% The binary used to add full padding rows at the end (hence at the top) of
+	% the target texture:
+	%
 	BinBlankRow = bin_utils:replicate( PadPixel, TargetW ),
 
 	basic_utils:assert_equal( byte_size( BinBlankRow ),
