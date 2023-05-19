@@ -912,23 +912,64 @@ else
 
 				fi
 
+				# We want to select a proper coredump (if any).
+				#
 				# ('coredumpctl list' would list all known core dumps from
 				# oldest to most recent; see
 				# https://howtos.esperide.org/GNULinux.html#process-related-post-mortem-investigations
 				# for more information)
 
 
-				echo "Analysing latest-found Erlang coredump (hopefully use the 'bt' command to print the backtrace; 'q' to quit):"
+				echo "Analysing latest-found Erlang VM coredump (use the 'bt' command to print the backtrace; 'q' to quit):"
 
-				# A crash does not always creates a core (e.g. if using xkill;
-				# even if ulimit is "unlimited"):
+				#echo "erl = ${erl}"
+
+				# As we need [...]/lib/erlang/erts-xx.y/bin/beam.smp rather than
+				# [...]/bin/erl:
 				#
-				"${core_exec}" debug "${erl}"
+				base_erl_install="$(dirname $(dirname ${erl}))"
 
-				exit 110
+				# Expecting exactly one erts-* directory to be found:
+				beam_exec="$(/bin/ls -1 ${base_erl_install}/lib/erlang/erts-*/bin/beam.smp 2>/dev/null)"
+
+				if [ -z "${beam_exec}" ]; then
+
+					echo "(the actual beam.smp executable could not be located in '${base_erl_install}')" 1>&2
+					exit 112
+
+				fi
+
+				beam_exec_count="$(echo ${beam_exec}| wc -l)"
+				if [ ! "${beam_exec_count}" = "1" ]; then
+
+					echo "(could not locate the actual single beam.smp executable in '${base_erl_install}', got '${beam_exec_count}')" 1>&2
+					exit 114
+
+				fi
+
+				# As the paths must match exactly (despite symlinks such as
+				# Erlang-current-install masking Erlang-x.y directories):
+				#
+				real_beam_exec="$(realpath ${beam_exec})"
+
+				if [ ! -x "${real_beam_exec}" ]; then
+
+					echo "(could not locate the actual real beam.smp executable, got '${real_beam_exec}')" 1>&2
+					exit 116
+
+				fi
+
+				# Yet a crash does not always creates a core (e.g. if using
+				# xkill; even if ulimit is "unlimited"):
+				#
+				#echo "${core_exec}" debug "${real_beam_exec}"
+				"${core_exec}" debug "${real_beam_exec}"
+
+				exit $?
 
 			else
 
+				echo "(no coredump analysis wanted)"
 				exit 100
 
 			fi
