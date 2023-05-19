@@ -62,8 +62,8 @@
 % warning message if, during a periodic sampling each two seconds, this length
 % is above 1000.
 %
-% The 'delete' atom shall be sent to the returned PID in order to terminate the
-% corresponding monitoring process.
+% The 'terminate' atom shall be sent to the returned PID in order to terminate
+% the corresponding monitoring process.
 %
 -spec spawn_message_queue_monitor( pid() ) -> monitor_pid().
 spawn_message_queue_monitor( MonitoredPid ) ->
@@ -76,8 +76,8 @@ spawn_message_queue_monitor( MonitoredPid ) ->
 % warning message (with any description thereof supplied) if, during a periodic
 % sampling each two seconds, this length is above 1000.
 %
-% The 'delete' atom shall be sent to the returned PID in order to terminate the
-% corresponding monitoring process.
+% The 'terminate' atom shall be sent to the returned PID in order to terminate
+% the corresponding monitoring process.
 %
 -spec spawn_message_queue_monitor( pid(), maybe( any_string() ) ) ->
 											monitor_pid().
@@ -91,8 +91,8 @@ spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc ) ->
 % warning message (with any description thereof supplied) if, during a periodic
 % sampling, this length is above the specified threshold.
 %
-% The 'delete' atom shall be sent to the returned PID in order to terminate the
-% corresponding monitoring process.
+% The 'terminate' atom shall be sent to the returned PID in order to terminate
+% the corresponding monitoring process.
 %
 -spec spawn_message_queue_monitor( pid(), maybe( any_string() ),
 			count(), milliseconds() ) -> monitor_pid().
@@ -126,17 +126,25 @@ spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc,
 
 
 -spec message_queue_monitor_main_loop ( pid(), bin_string(), count(),
-										milliseconds() ) ->
-												no_return().
+										milliseconds() ) -> no_return().
 message_queue_monitor_main_loop( MonitoredPid, BinProcDesc, MsgThreshold,
 								 SamplingPeriod ) ->
 
 	receive
 
-		delete ->
+		terminate ->
 			trace_utils:debug_fmt( "(message-queue monitor for ~ts (~w) "
-								   "deleted)", [ BinProcDesc, MonitoredPid ] ),
-			deleted
+				"terminated)", [ BinProcDesc, MonitoredPid ] ),
+
+			terminated;
+
+
+		UnexpectedMsg ->
+			trace_utils:warning_fmt( "Unexpected message received by message "
+				"queue monitor, thus ignored: ~p", [ UnexpectedMsg ] ),
+
+			message_queue_monitor_main_loop( MonitoredPid, BinProcDesc,
+											 MsgThreshold, SamplingPeriod )
 
 	after SamplingPeriod ->
 
