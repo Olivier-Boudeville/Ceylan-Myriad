@@ -191,6 +191,7 @@
 -type dimensionless() :: unit_utils:dimensionless().
 -type degrees() :: unit_utils:degrees().
 -type int_degrees() :: unit_utils:int_degrees().
+-type any_degrees() :: unit_utils:any_degrees().
 -type radians() :: unit_utils:radians().
 
 
@@ -636,7 +637,7 @@ radians_to_degrees( AngleInRadians ) ->
 % @doc Converts the specified angle in degrees into the same angle expressed in
 % radians.
 %
--spec degrees_to_radians( degrees() ) -> radians().
+-spec degrees_to_radians( any_degrees() ) -> radians().
 degrees_to_radians( AngleInDegrees ) ->
 	AngleInDegrees * math:pi() / 180.
 
