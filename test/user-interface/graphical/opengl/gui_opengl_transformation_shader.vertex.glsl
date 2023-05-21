@@ -55,6 +55,10 @@ out vec2 my_tex_coord;
 uniform mat4 my_model_view_matrix;
 
 
+// The projection matrix cooked by the Erlang side as well:
+uniform mat4 my_projection_matrix;
+
+
 void main(){
 
 	/* gl_Position is a predefined vec4 output corresponding to the clip-space
@@ -65,7 +69,7 @@ void main(){
 	/* This is an identity transformation, basically (so my_input_vertex is
 	 * expected to be already in normalized device coordinates):
 	 */
-	gl_Position = my_model_view_matrix * vec4( my_input_vertex, 1.0 );
+	gl_Position = my_projection_matrix * my_model_view_matrix * vec4( my_input_vertex, 1.0 );
 
 
 	// Read by the vertex shader in order to forward it to the fragment shader:
