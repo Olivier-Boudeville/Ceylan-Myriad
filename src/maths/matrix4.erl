@@ -79,6 +79,7 @@
 -include("matrix4.hrl").
 
 
+
 -type user_matrix4() :: user_matrix().
 % A matrix4 can be specified as a list of same-size rows (akin to a user
 % arbitrary matrix) containing any kind of numerical coordinates.
@@ -116,7 +117,6 @@
 
 -export([ new/1, new/3, null/0, identity/0, translation/1, scaling/1,
 		  rotation/2,
-		  orthographic/6, perspective/4, frustum/6,
 		  from_columns/4, from_rows/4,
 		  compact_from_columns/4,
 		  from_coordinates/16, from_compact_coordinates/12,
@@ -154,16 +154,12 @@
 -type ustring() :: text_utils:ustring().
 
 -type factor() :: math_utils:factor().
--type ratio() :: math_utils:ratio().
 
 -type radians() :: unit_utils:radians().
--type any_degrees() :: unit_utils:any_degrees().
 
 -type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
 -type scalar() :: linear:scalar().
--type distance() :: linear:distance().
--type signed_distance() :: linear:signed_distance().
 
 -type point3() :: point3:point3().
 -type unit_vector3() :: vector3:unit_vector3().
@@ -309,151 +305,6 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 	#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Zero,
 					  m21=M21, m22=M22, m23=M23, ty=Zero,
 					  m31=M31, m32=M32, m33=M33, tz=Zero }.
-
-
-
-% @doc Returns a matrix for orthographic projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - Left and Right are the coordinates for the left and right vertical clipping
-% planes
-%  - Bottom and Top are the coordinates for the bottom and top horizontal
-% clipping planes
-%  - ZNear and ZFar are the signed distances to the nearer and farther depth
-%  clipping planes; these values are negative if the plane is to be behind the
-%  viewer
-%
-% Note that the context is a right-handed referential with a clip space in
-% [-1.0, 1.0].
-%
--spec orthographic( coordinate(), coordinate(), coordinate(), coordinate(),
-					signed_distance(), signed_distance() ) -> compact_matrix4().
-orthographic( Left, Right, Bottom, Top, ZNear, ZFar ) ->
-
-	% References:
-	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glOrtho.xml
-	% and glm:orthoRH_NO.
-
-	Zero = 0.0,
-
-	VFactorInv =      1.0 / (Right - Left),
-	HFactorInv =      1.0 / (Top - Bottom),
-	MinusZFactorInv = 1.0 / (ZNear - ZFar),
-
-	M11 = 2 * VFactorInv,
-	M22 = 2 * HFactorInv,
-	M33 = 2 * MinusZFactorInv,
-
-	Tx = - (Right + Left) * VFactorInv,
-	Ty = - (Top + Bottom) * HFactorInv,
-	Tz =   (ZNear + ZFar) * MinusZFactorInv,
-
-	#compact_matrix4{ m11=M11,  m12=Zero, m13=Zero, tx=Tx,
-					  m21=Zero, m22=M22,  m23=Zero, ty=Ty,
-					  m31=Zero, m32=Zero, m33=M33,  tz=Tz }.
-
-
-
-% @doc Returns a matrix for perspective projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - FoVYAngle is the field of view angle, in degrees, in the Y (vertical)
-%  direction
-%  - AspectRatio determines the field of view in the X (horizontal) direction:
-%  AspectRatio = Width/Height
-%  - ZNear specifies the distance from the viewer to the near clipping plane
-%  (always strictly positive)
-%  - ZFar specifies the distance from the viewer to the far clipping plane
-%  (always positive)
-%
-% For example Mp = matrix4:perspective( _FoVYAngle=60.0,
-%   _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
-%
-% Note that the context is a right-handed referential with a clip space in
-% [-1.0, 1.0].
-%
--spec perspective( any_degrees(), ratio(), distance(), distance() ) ->
-										matrix4().
-perspective( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
-
-	% References:
-	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
-	% and glm:perspectiveRH_NO.
-
-	cond_utils:assert( myriad_check_linear,
-					   not math_utils:is_null( AspectRatio ) ),
-
-	% cotan(A) = 1/tan(A)
-
-	Zero = 0.0,
-
-	ZFactor = 1.0 / (ZNear - ZFar),
-
-	TanHalfFovyInv = 1 / math:tan( FoVYAngle / 2.0 ),
-
-	M11 = TanHalfFovyInv / AspectRatio,
-
-	M22 = TanHalfFovyInv,
-
-	M33 = ( ZNear + ZFar ) * ZFactor,
-
-	M34 = 2 * ZFar * ZNear * ZFactor,
-
-	% No possible compact form:
-	#matrix4{ m11=M11,  m12=Zero, m13=Zero, m14=Zero,
-			  m21=Zero, m22=M22,  m23=Zero, m24=Zero,
-			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
-			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
-
-
-
-% @doc Returns a matrix for perspective projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - Left and Right are the coordinates for the left and right vertical clipping
-% planes
-%  - Bottom and Top are the coordinates for the bottom and top horizontal
-% clipping planes
-%  - ZNear specifies the distance from the viewer to the near clipping plane
-%  (always strictly positive)
-%  - ZFar specifies the distance from the viewer to the far clipping plane
-%  (always positive)
-%
-% Note that the context is a right-handed referential with a clip space in
-% [-1.0, 1.0].
-%
--spec frustum( coordinate(), coordinate(), coordinate(), coordinate(),
-			   distance(), distance() ) -> matrix4().
-frustum( Left, Right, Bottom, Top, ZNear, ZFar ) ->
-
-	% References:
-	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glFrustum.xml
-	% and glm:frustumRH_NO.
-
-	Zero = 0.0,
-
-	VFactorInv = 1.0 / (Right - Left),
-	HFactorInv = 1.0 / (Top - Bottom),
-	MinusZFactorInv = 1.0 / (ZNear - ZFar),
-	TwoNear = 2.0 * ZNear,
-
-	M11 = TwoNear * VFactorInv,
-	M13 = (Right + Left) * VFactorInv,
-
-	M22 = TwoNear * HFactorInv,
-	M23 = (Top + Bottom) * HFactorInv,
-	M33 = (ZFar + ZNear) * MinusZFactorInv,
-
-	M34 = TwoNear * ZFar * MinusZFactorInv,
-
-	% No possible compact form:
-	#matrix4{ m11=M11,  m12=Zero, m13=M13,  m14=Zero,
-			  m21=Zero, m22=M22,  m23=M23,  m24=Zero,
-			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
-			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
 
 
 
@@ -1788,3 +1639,4 @@ to_string( CptMatrix=#compact_matrix4{} ) ->
 	FormatStr = "~n" ++ text_utils:duplicate( ?dim, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs ).
+
