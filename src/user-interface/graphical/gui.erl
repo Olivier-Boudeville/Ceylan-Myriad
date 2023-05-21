@@ -546,6 +546,10 @@
 % An height, as an integer number of pixels.
 
 
+-type aspect_ratio() :: math_utils:ratio().
+% An aspect ratio, typically of a screen, equal to Width/Height.
+
+
 -type any_length() :: linear:any_distance().
 % A length, as a number (integer or floating-point) of pixels.
 
@@ -1233,7 +1237,7 @@
 			   gui_env_pid/0, gui_env_info/0, gui_env_designator/0,
 			   backend_identifier/0, backend_information/0,
 
-			   length/0, width/0, height/0, dimensions/0,
+			   length/0, width/0, height/0, aspect_ratio/0, dimensions/0,
 			   any_length/0, any_width/0, any_height/0,
 			   coordinate/0, point/0, position/0, size/0,
 			   orientation/0, fps/0, id/0,
