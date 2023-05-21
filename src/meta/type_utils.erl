@@ -100,7 +100,7 @@
 % On built-in types.
 
 
-% The type 'atom' designates the set of (possibly user-defined) symbols (ex:
+% The type 'atom' designates the set of (possibly user-defined) symbols (e.g.
 % 'true' or 'foo'). In a type definition, such a symbol consists on the atom
 % itself, and is always written enclosed in single quotes ("'foo'"), in order to
 % distinguish it from the user-defined types (as one may define a type named
@@ -306,7 +306,7 @@
 									| 'reference'
 									| 'tuple'.
 % The "most precise" description of a primitive, in which:
-% - simple types (ex: 'boolean' and 'atom') coexist (despite overlapping)
+% - simple types (e.g. 'boolean' and 'atom') coexist (despite overlapping)
 % - 'number' and 'bitstring' are not used (as they derive respectively from
 % float()|integer() and binary())
 %
@@ -318,8 +318,8 @@
 % is an union able to contain a ieee754_8 datatype, aliased to the 'double' C
 % datatype.
 %
-% Polymorphic types (ex: lists) are described with no mention of the types they
-% may depend on (ex: 'list' can be specified, not 'list(float())' or anything
+% Polymorphic types (e.g. lists) are described with no mention of the types they
+% may depend on (e.g. 'list' can be specified, not 'list(float())' or anything
 % like that).
 
 
@@ -334,8 +334,8 @@
 % Textual type description: type-as-a-string, inspired from the syntax used for
 % type specifications ([http://erlang.org/doc/reference_manual/typespec.html]),
 % yet different. Notably, monomorphic types do not end with empty parentheses
-% (ex: "integer", not "integer()") and atoms are always surrounded by simple
-% quotes (ex: "'an_atom'|'another_one'").
+% (e.g. "integer", not "integer()") and atoms are always surrounded by simple
+% quotes (e.g. "'an_atom'|'another_one'").
 %
 % For example: "[{float, boolean}]".
 
@@ -366,12 +366,12 @@
 % merely used), then (non-empty) parentheses could be introduced
 %
 % - be able to nevertheless *use* polymorphic types, as they are certainly
-% useful (ex: maps/associative tables, lists, etc.); a problem is that, in terms
-% (as opposed to in the textual counterpart), parentheses cannot be used to
-% express these polymorphic types (not only they denote function calls, but also
-% are not legit components of a term); therefore the convention chosen here is
-% to specify types as pairs, the first element being the name of the type, the
-% second one being the (ordered) list of the types it depends on; then the
+% useful (e.g. maps/associative tables, lists, etc.); a problem is that, in
+% terms (as opposed to in the textual counterpart), parentheses cannot be used
+% to express these polymorphic types (not only they denote function calls, but
+% also are not legit components of a term); therefore the convention chosen here
+% is to specify types as pairs, the first element being the name of the type,
+% the second one being the (ordered) list of the types it depends on; then the
 % textual type "a( T1, T2 )" is translated to the {a,[T1,T2]} type term; most
 % types being "monomorphic", they are represented as {my_simple_type,[]} (which
 % cannot be abbreviated by only the 'my_simple_type' atom, as it would lead to
@@ -543,6 +543,13 @@
 % Designates a record instance, to discriminate from a mere tuple.
 
 
+-type record_tag() :: atom().
+% The first (atom) element of the tuple corresponding to a record instance.  For
+% example #my_point{ x=1, y=2 } is actually {my_point, 1, 2} and thus my_point
+% is the corresponding record tag.
+
+
+
 % Tuploids. See also augment_tuploid/2.
 
 
@@ -623,7 +630,7 @@
 % Note: currently, only a very basic, ad hoc type support ("hand-made look-up
 % tables") is provided.
 %
-% Later we would like to really parse any type description (ex:
+% Later we would like to really parse any type description (e.g.
 % "[{float,[boolean]}]") and be able to manage it as type() (including the
 % checking of terms against types).
 
@@ -724,7 +731,7 @@
 
 
 % Specials for datatypes:
--export([ augment_tuploid/2 ]).
+-export([ get_record_tag/1, augment_tuploid/2 ]).
 
 
 % Work in progress:
@@ -874,7 +881,7 @@ type_to_description( _Type={ union, TypeList } ) when is_list( TypeList ) ->
 
 type_to_description( Type ) ->
 
-	% Could be misleading (ex: any() not matching any()):
+	% Could be misleading (e.g. any() not matching any()):
 	%"any".
 
 	%text_utils:format( "~p", [ Type ] ).
@@ -1437,13 +1444,13 @@ ensure_binary( S ) ->
 % possibly smaller in memory).
 %
 % Presumably useful on platforms where the size of a pointer is lower than the
-% one of the subterms (ex: an Erlang float, i.e. a double), when some subterms
+% one of the subterms (e.g. an Erlang float, i.e. a double), when some subterms
 % may be equal (by value), yet are duplicated (not defined once and pointed to
 % multiple times).
 %
-% Such a deduplication may happen typically on homogeneous tuples (ex: vectors),
-% when received as messages for example, or when read from any external source
-% (ex: from file).
+% Such a deduplication may happen typically on homogeneous tuples
+% (e.g. vectors), when received as messages for example, or when read from any
+% external source (e.g. from file).
 %
 % Directly inspired from wings_utils:share/*.
 %
@@ -1522,7 +1529,7 @@ share( Other ) ->
 % of its elements, if they are equal.
 %
 % Presumably useful on platforms where the size of a pointer is lower than the
-% one of the subterms (ex: an Erlang float, i.e. a double), when some subterms
+% one of the subterms (e.g. an Erlang float, i.e. a double), when some subterms
 % may be equal (by value), yet are duplicated (not defined once and pointed to
 % multiple times).
 %
@@ -1541,7 +1548,7 @@ share( X, Y ) ->
 % sharing of its elements, if they are equal.
 %
 % Presumably useful on platforms where the size of a pointer is lower than the
-% one of the subterms (ex: an Erlang float, i.e. a double), when some subterms
+% one of the subterms (e.g. an Erlang float, i.e. a double), when some subterms
 % may be equal (by value), yet are duplicated (not defined once and pointed to
 % multiple times).
 %
@@ -2065,14 +2072,20 @@ check_tuple( Other ) ->
 
 
 
-% @doc Augments the specified tuploid with specified term, placed as new last
-% element.
+% @doc Returs the tag of the specified record instance.
+-spec get_record_tag( record() ) -> record_tag().
+get_record_tag( RecordTuple ) ->
+	element( _Index=1, RecordTuple ).
+
+
+% @doc Augments the specified tuploid with the specified term, placed as new
+% last element.
 %
 % For example augment_tuploid(a, 2.0) = {a, 2.0}
 %     augment_tuploid({foo, 42}, 2.0) = {foo, 42, 2.0}
 %
 % Useful typically to augment returned error tuploids (either a single error
-% term such as 'invalid_name', or a tuple like '{invalid_name,"Arnold"}' with
+% term such as 'invalid_name', or a tuple like '{invalid_name,"Arnold"}') with
 % caller-local information, to obtain in all cases a tuploid (a tuple here) with
 % this extra information.
 %
