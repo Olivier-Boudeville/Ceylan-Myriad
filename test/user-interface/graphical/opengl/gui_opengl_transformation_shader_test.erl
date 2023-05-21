@@ -52,6 +52,8 @@
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
 -include_lib("myriad/include/myriad_gui.hrl").
 
+-include_lib("myriad/include/matrix4.hrl").
+-include_lib("myriad/include/projection.hrl").
 
 
 % For run/0 export and al:
@@ -59,8 +61,6 @@
 
 
 -type transformation_mode() :: 'translation' | 'rotation' | 'shearing'.
-
--type projection_mode() :: 'orthographic' | 'perspective'.
 
 
 % Test-specific overall GUI state:
@@ -74,6 +74,9 @@
 
 	% The OpenGL canvas on which rendering will be done:
 	canvas :: gl_canvas(),
+
+	% The aspect ratio of that canvas:
+	aspect_ratio :: aspect_ratio(),
 
 	% The OpenGL context being used:
 	context :: gl_context(),
@@ -107,17 +110,19 @@
 	%z_angle :: radians(),
 
 
-
 	% The model-view matrix for the square of interest:
 	model_view :: matrix4(),
+
+	% The currect projection settings that apply:
+	projection_settings :: projection_settings(),
+
+	% The projection matrix of interest:
+	projection :: matrix4(),
 
 	% The currently active transformation mode (translation, rotation,
 	% or shearing):
 	%
 	transformation_mode :: transformation_mode(),
-
-	% The currently active projection mode (orthographic or perspective):
-	projection_mode :: projection_mode(),
 
 	% In more complex cases, would store the loaded textures, etc.:
 	opengl_state :: maybe( my_opengl_state() ) } ).
@@ -135,8 +140,11 @@
 	% Needs an OpenGL context:
 	texture :: maybe( texture() ),
 
-	% The identifier of the uniform matrix:
+	% The identifier of the Model-View uniform matrix:
 	model_view_id :: uniform_id(),
+
+	% The identifier of the Projection uniform matrix:
+	projection_id :: uniform_id(),
 
 	% For the square, which has indexed coordinates:
 
@@ -265,8 +273,16 @@
 % Shorthands:
 
 -type matrix4() :: matrix4:matrix4().
+-type projection_settings() :: projection:projection_settings().
+
+-type orthographic_settings() ::
+	projection:orthographic_settings().
+
+-type perspective_settings() ::
+	projection:perspective_settings().
 
 -type frame() :: gui:frame().
+-type aspect_ratio() :: gui:aspect_ratio().
 
 -type image() :: gui_image:image().
 
@@ -284,7 +300,6 @@
 -type uniform_id() :: gui_shader:uniform_id().
 
 -type vertex_count() :: mesh:vertex_count().
-
 
 
 
@@ -468,6 +483,8 @@ init_test_gui() ->
 	TestImage = gui_image:load_from_file(
 		gui_opengl_texture_test:get_test_texture_path() ),
 
+	ProjSettings = get_base_orthographic_settings(),
+
 	_Zero = 0.0,
 
 	% No OpenGL state yet (GL context cannot be set as current yet), actual
@@ -483,8 +500,9 @@ init_test_gui() ->
 				   %y_angle=Zero,
 				   %z_angle=Zero,
 				   model_view=matrix4:identity(),
-				   transformation_mode=translation,
-				   projection_mode=orthographic }.
+				   projection_settings=ProjSettings,
+				   projection=projection:projection( ProjSettings ),
+				   transformation_mode=translation }.
 
 
 
@@ -616,6 +634,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 										   context=GLContext,
 										   image=Image,
 										   model_view=ModelViewMat4,
+										   projection=ProjMat4,
 										   % Check:
 										   opengl_state=undefined } ) ->
 
@@ -670,6 +689,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	ModelViewMatUnifId = gui_shader:get_uniform_id(
 		_MVUnifName="my_model_view_matrix", ProgramId ),
 
+	ProjMatUnifId = gui_shader:get_uniform_id(
+		_ProjUnifName="my_projection_matrix", ProgramId ),
+
 	% Refer to the fragment shader:
 	SamplerUnifId = gui_shader:get_uniform_id(
 		_SamplerUnifName="my_texture_sampler", ProgramId ),
@@ -695,6 +717,10 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Initial setting of the model-view matrix:
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, ModelViewMat4 ),
 
+	% Same for the projection one:
+	gui_shader:set_uniform_matrix4( ProjMatUnifId, ProjMat4 ),
+
+
 	% Set the texture location of the sampler uniform:
 	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=2 ),
 
@@ -711,6 +737,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 		texture=Texture,
 		model_view_id=ModelViewMatUnifId,
+		projection_id=ProjMatUnifId,
 
 		square_vao_id=SquareVAOId,
 		% Two basic triangles referenced in the associated VBO:
@@ -800,8 +827,8 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Includes a gl:flush/0:
 	gui_opengl:swap_buffers( GLCanvas ),
 
-	% Const here:
-	GUIState.
+	% No null height expected:
+	GUIState#my_gui_state{ aspect_ratio=CanvasWidth/CanvasHeight }.
 
 
 
@@ -876,7 +903,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing X of ~f, resulting in:~ts",
+	trace_utils:debug_fmt( "Increasing X of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -895,7 +922,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	VT = [ -Inc, 0.0, 0.0 ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in:~ts",
+	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -918,7 +945,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 	VT = [ 0.0, Inc, 0.0 ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in:~ts",
+	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -937,7 +964,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	VT = [ 0.0, -Inc, 0.0 ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in:~ts",
+	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -957,7 +984,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	VT = [ 0.0, 0.0, Inc ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in:~ts",
+	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -977,7 +1004,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	VT = [ 0.0, 0.0, -Inc ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in:~ts",
+	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -1003,7 +1030,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in:~ts",
+		"radians, resulting in: MV = ~ts",
 		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -1026,7 +1053,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in:~ts",
+		"radians, resulting in: MV = ~ts",
 		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -1050,7 +1077,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in:~ts",
+		"radians, resulting in: MV = ~ts",
 		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -1074,7 +1101,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in:~ts",
+		"radians, resulting in: MV = ~ts",
 		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -1098,7 +1125,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in:~ts",
+		"radians, resulting in: MV = ~ts",
 		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -1122,7 +1149,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in:~ts",
+		"radians, resulting in: MV = ~ts",
 		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
@@ -1143,7 +1170,8 @@ update_scene( _Scancode=?increase_x_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
-		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1161,7 +1189,8 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
-		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1183,7 +1212,8 @@ update_scene( _Scancode=?increase_y_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
-		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1201,7 +1231,8 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
-		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1220,7 +1251,8 @@ update_scene( _Scancode=?increase_z_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
-		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1239,7 +1271,8 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
-		"resulting in:~ts", [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1283,22 +1316,34 @@ update_scene( _Scancode=?mode_switch_scan_code,
 
 
 update_scene( _Scancode=?projection_mode_scan_code,
-			  GUIState=#my_gui_state{ projection_mode=ProjectionMode } ) ->
+			  GUIState=#my_gui_state{ aspect_ratio=AspectRatio,
+									  projection_settings=ProjSettings,
+									  opengl_state=#my_opengl_state{
+										projection_id=ProjMatUnifId } } ) ->
+	% Swapping the projection type:
+	{ NewProjSettings, NewProjMat4 } =
+			case type_utils:get_record_tag( ProjSettings ) of
 
-	NewProjMode = case ProjectionMode of
+		orthographic_settings ->
+			PerspSettings =
+				get_base_perspective_settings( AspectRatio ),
+			{ PerspSettings, projection:perspective( PerspSettings ) };
 
-		orthographic ->
-			perspective;
-
-		perspective ->
-			orthographic
+		perspective_settings ->
+			OrthoSettings = get_base_orthographic_settings(),
+			{ OrthoSettings, projection:orthographic( OrthoSettings ) }
 
 	end,
 
-	trace_utils:debug_fmt( "Switching projection mode from ~ts to ~ts.",
-						   [ ProjectionMode, NewProjMode ] ),
+	trace_utils:debug_fmt( "Switching to ~ts, the corresponding matrix "
+		"being: ~ts.",
+		[ projection:settings_to_string( NewProjSettings ),
+		  matrix4:to_string( NewProjMat4 ) ] ),
 
-	{ GUIState#my_gui_state{ projection_mode=NewProjMode },
+	gui_shader:set_uniform_matrix4( ProjMatUnifId, NewProjMat4 ),
+
+	{ GUIState#my_gui_state{ projection_settings=NewProjSettings,
+							 projection=NewProjMat4 },
 	  _DoQuit=false };
 
 
@@ -1310,6 +1355,39 @@ update_scene( _Scancode, GUIState ) ->
 	%trace_utils:debug_fmt( "(scancode ~B ignored)", [ Scancode ] ),
 	{ GUIState, _DoQuit=false }.
 
+
+
+-spec get_base_orthographic_settings() ->
+						orthographic_settings().
+get_base_orthographic_settings() ->
+	%#orthographic_settings{
+	%	left=0.0,
+	%	right=800.0,
+	%	bottom=0.0,
+	%	top=600.0,
+	%	z_near=0.1,
+	%	z_far=100.0 }.
+
+	% Corresponds to a default identity matrix:
+	#orthographic_settings{
+		left=-1.0,
+		right=1.0,
+		bottom=-1.0,
+		top=1.0,
+		z_near=1.0,
+		z_far=-1.0 }.
+
+
+-spec get_base_perspective_settings( aspect_ratio() ) ->
+						perspective_settings().
+get_base_perspective_settings( AspectRatio ) ->
+	#perspective_settings{
+		fov_y_angle=math_utils:degrees_to_radians( 45 ),
+		aspect_ratio=AspectRatio,
+		%z_near=0.1,
+		%z_far=100.0 }.
+		z_near=-1.0,
+		z_far=1.0 }.
 
 
 % @doc Runs the test.
