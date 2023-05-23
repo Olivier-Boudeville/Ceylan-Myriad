@@ -376,11 +376,7 @@ endif
 # See myriad/src/scripts/generate-docutils.sh for more details.
 #
 create-mathjax-symlink:
-	@if [ -e "$(MATHJAX_ROOT)" ]; then actual_mathjax_root="$(MATHJAX_ROOT)"; elif [ -e "$(MATHJAX_ALT_ROOT)" ]; then actual_mathjax_root="$(MATHJAX_ALT_ROOT)"; else echo "  Error, no pre-existing MathJax install found (neither '$(MATHJAX_ROOT)' nor '$(MATHJAX_ALT_ROOT)' found); consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 7; fi; echo "Selecting MathJax installation in '$${actual_mathjax_root}'." ; ln -sf "$${actual_mathjax_root=}" mathjax;
-
-
-
-#	@if [ -e "${MATHJAX_ROOT}" ]; then ln -sf "${MATHJAX_ROOT}" mathjax; else echo "  Error, no pre-existing MathJax install found (no '${MATHJAX_ROOT}'; consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 75; fi
+	@if [ -e "$(MATHJAX_ROOT)" ]; then actual_mathjax_root="$(MATHJAX_ROOT)"; elif [ -e "$(MATHJAX_ALT_ROOT)" ]; then actual_mathjax_root="$(MATHJAX_ALT_ROOT)"; else echo "  Error, no pre-existing MathJax install found (neither '$(MATHJAX_ROOT)' nor '$(MATHJAX_ALT_ROOT)' found); consider installation with 'pacman -Sy mathjax' or alike)." 1>&2; exit 7; fi; echo "Selecting MathJax installation in '$${actual_mathjax_root}'." ; ln -sf "$${actual_mathjax_root}" mathjax;
 
 
 check-mathjax:

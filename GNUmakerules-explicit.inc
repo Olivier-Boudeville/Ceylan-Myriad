@@ -42,7 +42,7 @@
 			generate-list-of-erlang-types generate-list-of-local-types       \
 			generate-local-plt self-check-against-plt write-debug-key-file   \
 			check check-hook check-with-dialyzer check-with-gradualizer      \
-			help-erl                                                         \
+			help-intro help-erl                                              \
 			clean clean-erlang clean-layer-ebin clean-python clean-protobuf  \
 			clean-database clean-recurse clean-outputs clean-ast-debug       \
 			real-clean track                                                 \
@@ -1122,6 +1122,10 @@ check-with-eqwalizer: all copy-beams-to-ebin
 
 
 check-hook:
+
+# For use by all layers:
+help-intro:
+	@echo " Following main make targets are available for package $(PACKAGE_NAME):"
 
 
 help-erl:

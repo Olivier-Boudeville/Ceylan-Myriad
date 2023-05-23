@@ -143,6 +143,7 @@ endif
 #  - resources: about the management of resources
 #  - files: about the management of files
 #  - traces: for Myriad-level traces
+#  - random: about stochastic sample draws and probability density functions
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - gui_repaint_logic: how MyriadGUI manages repaints
@@ -182,6 +183,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic

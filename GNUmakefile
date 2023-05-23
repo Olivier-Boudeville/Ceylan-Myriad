@@ -1,7 +1,7 @@
 MYRIAD_TOP = .
 
 
-.PHONY: help help-intro help-myriad help-hints help-batch                     \
+.PHONY: help help-myriad help-hints help-batch                                \
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
@@ -31,10 +31,6 @@ include $(MYRIAD_TOP)/GNUmakesettings.inc
 #
 BASE_PLT := "$(PLT_FILE)"
 
-
-
-help-intro:
-	@echo " Following main make targets are available for package $(PACKAGE_NAME):"
 
 
 help-myriad:

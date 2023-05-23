@@ -102,16 +102,16 @@
 
 
 -type factor() :: dimensionless().
-% A floating-point factor, typically in [0.0,1.0], that is a multiplier involved
-% in an equation.
+% A floating-point factor, typically in [0.0, 1.0], that is a multiplier
+% involved in an equation.
 
 
 -type integer_factor() :: integer().
-% An integer factor, typically in [0.0,1.0], that is a multiplier involved in an
-% equation.
+% An integer factor, typically in [0.0, 1.0], that is a multiplier involved in
+% an equation.
 
 -type any_factor() :: number().
-% A factor, typically in [0.0,1.0], that is a multiplier involved in an
+% A factor, typically in [0.0, 1.0], that is a multiplier involved in an
 % equation.
 
 
@@ -150,12 +150,12 @@
 % See also the random_utils module for:
 
 -type probability() :: float().
-% For probabilities, typically ranging in [0.0,1.0].
+% For probabilities, typically ranging in [0.0, 1.0].
 
 
 -type probability_like() :: number().
 % A non-negative number (an integer or floating-point) that can be translated to
-% a normalised probability by scaling it to [0.0,1.0].
+% a normalised probability by scaling it to [0.0, 1.0].
 %
 % For example if considering two exclusive events whose
 % respective likeliness is quantified as 20 and 30, then these probability-like
@@ -673,17 +673,19 @@ canonify( AngleInDegrees ) ->
 % it took.
 %
 -spec sample( fun( ( number() ) -> T ), number(), number(), number() ) -> [ T ].
-sample( Fun, Start, Stop, Increment ) ->
-	sample( Fun, _Current=Start, Stop, Increment, _Acc=[] ).
+sample( Fun, StartPoint, StopPoint, Increment ) ->
+	sample( Fun, _Current=StartPoint, StopPoint, Increment, _Acc=[] ).
 
 
 % (helper)
-sample( _Fun, Current, Stop, _Increment, Acc ) when Current > Stop ->
+sample( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
+											when CurrentPoint > StopPoint ->
 	lists:reverse( Acc );
 
-sample( Fun, Current, Stop, Increment, Acc ) ->
-	NewValue = Fun( Current ),
-	sample( Fun, Current+Increment, Stop, Increment, [ NewValue | Acc ] ).
+sample( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
+	NewValue = Fun( CurrentPoint ),
+	sample( Fun, CurrentPoint + Increment, StopPoint, Increment,
+			[ NewValue | Acc ] ).
 
 
 
@@ -694,25 +696,28 @@ sample( Fun, Current, Stop, Increment, Acc ) ->
 %
 -spec sample_as_pairs( fun( ( number() ) -> T ), number(), number(),
 					   number() ) -> [ { number(), T } ].
-sample_as_pairs( Fun, Start, Stop, Increment ) ->
-	sample_as_pairs( Fun, _Current=Start, Stop, Increment, _Acc=[] ).
+sample_as_pairs( Fun, StartPoint, StopPoint, Increment ) ->
+	sample_as_pairs( Fun, _CurrentPoint=StartPoint, StopPoint, Increment,
+					 _Acc=[] ).
 
 
 % (helper)
-sample_as_pairs( _Fun, Current, Stop, _Increment, Acc ) when Current > Stop ->
+sample_as_pairs( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
+								when CurrentPoint > StopPoint ->
 	lists:reverse( Acc );
 
-sample_as_pairs( Fun, Current, Stop, Increment, Acc ) ->
-	NewValue = Fun( Current ),
-	sample_as_pairs( Fun, Current+Increment, Stop, Increment,
-					 [ { Current, NewValue }| Acc ] ).
+sample_as_pairs( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
+   NewValue = Fun( CurrentPoint ),
+   sample_as_pairs( Fun, CurrentPoint+Increment, StopPoint, Increment,
+					[ { CurrentPoint, NewValue }| Acc ] ).
 
 
 
-
-% @doc Normalises, in the specified list of tuples, the elements at the
-% specified index (expected to be numbers, whose sum is non-null), so that their
-% sum is equal to 1.0.
+% @doc Normalises, in the specified list of tuples (possibly just pairs), the
+% elements at the specified index (expected to be numbers, whose sum is
+% non-null), so that their sum becomes equal to 1.0.
+%
+% Typically useful for probabilities.
 %
 % For example normalise([{a,3}, {"hello",5}, {1,2}], _Index=2)
 %                 = [{a,0.3}, {"hello",0.5}, {1,0.2}]

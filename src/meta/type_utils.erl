@@ -539,6 +539,13 @@
 % more information.
 
 
+-type positive_float() :: float().
+% A float that is strictly positive.
+
+-type non_negative_float() :: float().
+% A float that is positive or null.
+
+
 -type record() :: tuple().
 % Designates a record instance, to discriminate from a mere tuple.
 
@@ -619,6 +626,8 @@
 			   sint8/0, sint16/0, sint32/0, sint64/0,
 			   int8/0, int16/0, int32/0, int64/0,
 			   float32/0, float64/0,
+
+			   positive_float/0, non_negative_float/0,
 
 			   record/0,
 			   tuploid/0, tuploid/1,
@@ -1393,6 +1402,8 @@ ensure_rounded_integer( N ) ->
 %
 % If it is an integer, will return a floating-point version of it.
 %
+% float/1 would have mostly sufficed (can operate on floats).
+%
 -spec ensure_float( number() ) -> float().
 ensure_float( N ) when is_float( N ) ->
 	N;
@@ -2072,7 +2083,7 @@ check_tuple( Other ) ->
 
 
 
-% @doc Returs the tag of the specified record instance.
+% @doc Returns the tag of the specified record instance.
 -spec get_record_tag( record() ) -> record_tag().
 get_record_tag( RecordTuple ) ->
 	element( _Index=1, RecordTuple ).

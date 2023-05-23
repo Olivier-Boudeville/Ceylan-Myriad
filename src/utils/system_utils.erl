@@ -114,8 +114,9 @@
 		  compute_detailed_cpu_usage/2, get_cpu_usage_counters/0,
 
 		  get_disk_usage/0, get_disk_usage_string/0,
-		  get_mount_points/0,
-		  get_known_pseudo_filesystems/0, get_filesystem_info/1,
+		  get_mount_points/0, get_mount_points/1,
+		  get_known_pseudo_filesystems/0,
+		  get_filesystem_info/1, get_filesystem_info/2,
 		  filesystem_info_to_string/1,
 
 		  get_default_temporary_directory/0, get_current_directory_string/0,
@@ -134,11 +135,34 @@
 -define( library_search_path_variable, "LD_LIBRARY_PATH" ).
 
 
+% Finally not generalised as would impact too many functions as a whole:
+
+-define( trace_debug, io:format ).
+-define( trace_debug_fmt, io:format ).
+
+%-define( trace_debug, trace_utils:debug ).
+%-define( trace_debug_fmt, trace_utils:debug_fmt ).
+
+
+-define( trace_error, io:format ).
+-define( trace_error_fmt, io:format ).
+
+%-define( trace_error, trace_utils:error ).
+%-define( trace_error_fmt, trace_utils:error_fmt ).
+
+
+
+
 % Implementation notes:
 %
 % The use of text_utils (instead of io_lib) has not been generalised, as this
 % module may be a pioneer one, and thus as such should be as autonomous as
 % possible.
+
+% Piping commands (for example with '?cat "/proc/meminfo |" ?grep [...]') is a
+% problem, as it may silently ignore the failure of the first command run thanks
+% to the pipe. No real solution has been found, knowing that 'pipefail' is
+% apparently Bash-specific.
 
 
 -type os_family() :: 'unix' | 'win32'.
@@ -2262,7 +2286,7 @@ get_total_physical_memory_string() ->
 	try
 
 		io_lib:format( "total physical memory: ~ts",
-					  [ interpret_byte_size( get_total_physical_memory() ) ] )
+					   [ interpret_byte_size( get_total_physical_memory() ) ] )
 
 	catch _AnyClass:Exception ->
 
@@ -2286,10 +2310,12 @@ get_total_physical_memory_on( Node ) ->
 	% First check the expected unit is returned, by pattern-matching:
 	UnitCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
 		?awk "'{print $3}'",
+
 	"kB\n" = rpc:call( Node, os, cmd, [ UnitCommand ] ),
 
 	ValueCommand = ?cat "/proc/meminfo |" ?grep "'MemTotal:' |"
 		?awk "'{print $2}'",
+
 	ValueCommandOutput = rpc:call( Node, os, cmd, [ ValueCommand ] ),
 
 	% The returned value of following command is like "12345\n", in bytes:
@@ -2364,7 +2390,7 @@ get_total_memory_used() ->
 	% So finally we preferred /proc/meminfo, used first to get MemTotal:
 	%
 	TotalString = case run_command( ?cat "/proc/meminfo |"
-						?grep "'^MemTotal:' |" ?awk "'{print $2,$3}'" ) of
+			?grep "'^MemTotal:' |" ?awk "'{print $2,$3}'" ) of
 
 		{ _TotalExitCode=0, TotalOutput } ->
 			%io:format( "TotalOutput: '~p'~n", [ TotalOutput ] ),
@@ -2384,7 +2410,7 @@ get_total_memory_used() ->
 	%
 	FreeString = case run_command(
 			?cat "/proc/meminfo |" ?grep "'^MemAvailable:' |"
-						?awk "'{print $2,$3}'" )  of
+			?awk "'{print $2,$3}'" )  of
 
 		{ _AvailExitCode=0, MemAvailOutput } ->
 			%io:format( "## using MemAvailable~n" ),
@@ -2508,8 +2534,8 @@ get_swap_status() ->
 
 
 	SwapFreeString = case run_command(
-							?cat "/proc/meminfo |" ?grep "'^SwapFree:' |"
-							?awk "'{print $2,$3}'" ) of
+			?cat "/proc/meminfo |" ?grep "'^SwapFree:' |"
+			?awk "'{print $2,$3}'" ) of
 
 		{ _FreeExitCode=0, FreeOutput } ->
 			FreeOutput;
@@ -2569,7 +2595,7 @@ get_swap_status_string() ->
 get_core_count() ->
 
 	CoreString = case run_command(
-						?cat "/proc/cpuinfo |" ?grep "-c processor" ) of
+			?cat "/proc/cpuinfo |" ?grep "-c processor" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -2759,7 +2785,7 @@ get_cpu_usage_counters() ->
 
 	% grep more versatile than: '| head -n 1':
 	StatString = case run_command(
-						?cat "/proc/stat |" ?grep "'cpu '" ) of
+			?cat "/proc/stat |" ?grep "'cpu '" ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -2820,8 +2846,8 @@ get_disk_usage_string() ->
 
 	catch _AnyClass:Exception ->
 
-		io_lib:format( "no disk usage information could be obtained (~p)",
-					   [ Exception ] )
+		io_lib:format( "no disk usage information could be obtained "
+			"(cause: ~p)", [ Exception ] )
 
 	end.
 
@@ -2839,16 +2865,29 @@ get_known_pseudo_filesystems() ->
 % @doc Returns a list of the current, local mount points (excluding the
 % pseudo-filesystems).
 %
+% This function may throw an exception.
+%
 -spec get_mount_points() -> [ directory_path() ].
 get_mount_points() ->
+	get_mount_points( _CanFail=true ).
+
+
+% @doc Returns a list of the current, local mount points (excluding the
+% pseudo-filesystems), throwing an exception on error if requested, otherwise
+% displaying an error trace and returning 'undefined'.
+%
+-spec get_mount_points( boolean() ) -> maybe( [ directory_path() ] ).
+get_mount_points( CanFail ) ->
 
 	FirstCmd = ?df "-h --local --output=target"
-		++ get_exclude_pseudo_fs_opt() ++ " |" ?grep "-v 'Mounted on'",
+		++ get_exclude_pseudo_fs_opt() ++ " 2>/dev/null |" ?grep
+		"-v 'Mounted on'",
 
 	case run_command( FirstCmd ) of
 
 		{ _FirstExitCode=0, ResAsOneString } ->
-			%io:format( "## using direct df~n" ),
+			%trace_utils:debug_fmt( "(using direct df, with '~ts')",
+			%                       [ FirstCmd ] ),
 			text_utils:split_per_element( ResAsOneString, "\n" );
 
 		{ _FirstExitCode, _FirstErrorOutput } ->
@@ -2861,12 +2900,23 @@ get_mount_points() ->
 			case run_command( SecondCmd ) of
 
 				{ _SecondExitCode=0, ResAsOneString } ->
-					%io:format( "## using legacy df~n" ),
+					%trace_utils:debug_fmt( "(using legacy df, with '~ts')",
+					%                       [ SecondCmd ] ),
 					text_utils:split_per_element( ResAsOneString, "\n" );
 
 				{ SecondExitCode, SecondErrorOutput } ->
-					throw( { mount_point_inquiry_failed, SecondExitCode,
-							 SecondErrorOutput } )
+					case CanFail of
+
+						true ->
+							throw( { mount_point_inquiry_failed, SecondExitCode,
+									 SecondErrorOutput } );
+
+						false ->
+							?trace_error_fmt( "Unable to list mount "
+								"points:~n~ts", [ SecondErrorOutput ] ),
+							undefined
+
+					end
 
 			end
 
@@ -2882,12 +2932,27 @@ get_exclude_pseudo_fs_opt() ->
 	text_utils:join( _Sep=" ", Excludes ).
 
 
-% @doc Returns information about the specified filesystem.
--spec get_filesystem_info( any_directory_path() ) -> fs_info().
-get_filesystem_info( BinFilesystemPath ) when is_binary( BinFilesystemPath ) ->
-	get_filesystem_info( text_utils:binary_to_string( BinFilesystemPath ) );
 
-get_filesystem_info( FilesystemPath ) ->
+% @doc Returns information about the specified filesystem.
+%
+% May throw an exception.
+%
+-spec get_filesystem_info( any_directory_path() ) -> fs_info().
+get_filesystem_info( AnyFilesystemPath ) ->
+	get_filesystem_info( AnyFilesystemPath, _CanFail=true ).
+
+
+% @doc Returns information about the specified filesystem, throwing an exception
+% on error if requested, otherwise displaying an error trace and returning
+% 'undefined'.
+%
+-spec get_filesystem_info( any_directory_path() ) -> maybe( fs_info() ).
+get_filesystem_info( BinFilesystemPath, CanFail )
+								when is_binary( BinFilesystemPath ) ->
+	get_filesystem_info( text_utils:binary_to_string( BinFilesystemPath ),
+						 CanFail );
+
+get_filesystem_info( FilesystemPath, CanFail ) ->
 
 	Cmd = ?df "--block-size=1K --local " ++ get_exclude_pseudo_fs_opt()
 		++ " --output=source,target,fstype,used,avail,iused,iavail '"
@@ -2903,7 +2968,7 @@ get_filesystem_info( FilesystemPath ) ->
 
 				[ Fs, Mount, Type, USize, ASize, Uinodes, Ainodes ] ->
 
-					%io:format( "## using direct df~n" ),
+					%trace_utils:debug( "(using direct df)" ),
 
 					% df outputs kiB, not kB:
 					#fs_info{
@@ -2919,24 +2984,24 @@ get_filesystem_info( FilesystemPath ) ->
 							text_utils:string_to_integer( Ainodes ) };
 
 				_ ->
-					get_filesystem_info_alternate( FilesystemPath )
+					get_filesystem_info_alternate( FilesystemPath, CanFail )
 
 			end;
 
 		{ _ExitCode, _ErrorOutput } ->
-			get_filesystem_info_alternate( FilesystemPath )
+			get_filesystem_info_alternate( FilesystemPath, CanFail )
 
 	end.
 
 
 
 % Alternate version, if the base version failed.
-get_filesystem_info_alternate( FilesystemPath ) ->
+get_filesystem_info_alternate( FilesystemPath, CanFail ) ->
 
 	% df must have failed, probably outdated and not understanding --output,
 	% defaulting to a less precise syntax:
 
-	%trace_utils:debug_fmt( "## using alternate df~n" ),
+	%trace_utils:debug( "(using alternate df)" ),
 
 	Cmd = ?df "--block-size=1K --local "
 		++ get_exclude_pseudo_fs_opt() ++ " "
@@ -2969,8 +3034,19 @@ get_filesystem_info_alternate( FilesystemPath ) ->
 			end;
 
 		{ _ExitCode, ErrorOutput } ->
-			throw( { filesystem_inquiry_failed, FilesystemPath,
-					 ErrorOutput } )
+			case CanFail of
+
+				true ->
+					throw( { filesystem_inquiry_failed, FilesystemPath,
+							 ErrorOutput } );
+
+				false ->
+					?trace_error_fmt( "Unable to obtain successfully "
+						"information about filesystem '~ts':~n~ts",
+						[ FilesystemPath, ErrorOutput ] ),
+					undefined
+
+			end
 
 	end.
 
@@ -3090,7 +3166,6 @@ get_operating_system_description() ->
 	case file_utils:is_existing_file_or_link( OSfile ) of
 
 		true ->
-
 			case run_command( ?cat ++ OSfile ++ " |" ?grep "PRETTY_NAME |"
 					?sed "'s|^PRETTY_NAME=\"||1' |"
 					?sed "'s|\"$||1' 2>/dev/null" ) of
