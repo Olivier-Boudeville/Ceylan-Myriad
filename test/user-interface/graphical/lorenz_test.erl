@@ -37,10 +37,8 @@
 -include("test_facilities.hrl").
 
 
-% For gui-related defines:
--include("gui.hrl").
-
-
+% The sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % Rendering section.
@@ -107,7 +105,6 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 				  ListenerPid, TimeOut ) ->
 
-
 	receive
 
 		{ set_time_step, NewTimestep } ->
@@ -163,6 +160,14 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 		%                       [ NewProjectedPoints ] ),
 
 		ListenerPid ! { draw_points, NewProjectedPoints, self() },
+
+		% Slowed down, as otherwise results may ultimately result in overloading
+		% the MyriadGUI main loop:
+		%
+		% (a better approach would be to trigger a synchronous operation with
+		% it, see its synchroniseWithCaller event message)
+		%
+		timer:sleep( _Ms=100 ),
 
 		solver_main_loop( F, LastPoint, NewTime, Timestep, Screen, ListenerPid,
 						  TimeOut )
@@ -270,7 +275,14 @@ start() ->
 
 	gui:start(),
 
+	% May be useful:
 	%observer:start(),
+
+	% Not expected to trigger, as the first impacted will be the MyriadGUI main
+	% loop:
+	%
+	%process_utils:spawn_message_queue_monitor( _MonitoredPid=self(),
+	%   _MonitoredProcessDesc="MyriadGUI test main loop" ),
 
 	trace_utils:notice( "This test will evaluate and display the Lorenz "
 		"equations as soon as the 'Start resolution' button is clicked, "
@@ -286,8 +298,11 @@ start() ->
 
 	StatusBar = gui:create_status_bar( MainFrame ),
 
-	% Not wanting to overwhelm the test GUI main loop:
-	SolverCount = max( 1, system_utils:get_core_count() div 2 ),
+	% Not wanting to overwhelm the MyriadGUI main loop (not this test main
+	% loop), which may happen quite easily if having many cores:
+	%
+	SolverCount = math_utils:clamp( _Min=1, _Max=4,
+									system_utils:get_core_count() div 2 ),
 	%SolverCount = 2,
 	%SolverCount = 0,
 
@@ -588,9 +603,10 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 								  GUIState#gui_state.status_bar ),
 			GUIState;
 
+
 		% To showcase the use of name identifiers:
 		{ onButtonClicked, [ _QuitButton, quit_button_id, _Context ] } ->
-			%test_facilities:display( "Quit button clicked." ),
+			test_facilities:display( "Quit button clicked." ),
 			undefined;
 
 

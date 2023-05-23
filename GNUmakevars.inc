@@ -145,12 +145,14 @@ endif
 #  - traces: for Myriad-level traces
 #
 #  - user_interface: all support regarding user interfaces of all sorts
-#  - repaint_logic: how MyriadGUI manages repaints
-#  - events: how MyriadGUI manages interface-related events
-#  - canvas: how MyriadGUI manages canvases
-#  - instances: how MyriadGUI manages widget instances
-#  - memory: how MyriadGUI manages memory allocated and related lower-level
+#  - gui_repaint_logic: how MyriadGUI manages repaints
+#  - gui_events: how MyriadGUI manages interface-related events
+#  - gui_canvas: how MyriadGUI manages canvases
+#  - gui_font: about font support
+#  - gui_instances: how MyriadGUI manages widget instances
+#  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
+#  - gui_performance: about the runtime performance monitoring of MyriadGUI
 #
 #  - linear: for operations on vectors, matrices, etc.
 #  - mesh: for the management of (3D) meshes
@@ -188,14 +190,15 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
 
@@ -208,13 +211,14 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
+
 
 endif
 
@@ -285,7 +289,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.31
+MYRIAD_VERSION := 1.0.32
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -669,18 +673,22 @@ ifeq ($(USE_JSON),true)
 				JSX_TOP = $(JSX_REBAR_CHECKOUTS_BASE)
 				BEAM_DIRS += $(JSX_REBAR_CHECKOUTS_EBIN)
 			else
-
 				# With rebar3, the build order is not known a priori, and any
 				# jsx/ebin directory is created only when jsx is built; so we
 				# cannot test it when building a dependency relying on jsx, and
 				# we test only the jsx root directory instead, expecting it to
 				# be built afterwards; yet then we cannot discriminate a future
 				# jsx/ebin from a jsx/_build/default/lib/jsx/ebin one; so the
-				# new convention is to use USE_JSON=false at build time or an
-				# already set JSX_TOP (possibly to just '$(space)')
+				# new convention was to use USE_JSON=false at build time or an
+				# already set JSX_TOP (possibly to just '$(space)'), yet
+				# proceeding like that was not satisfactory.
 				#
-				#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE))" ""
-				ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
+				# So now we investigate a bit further by checking a file
+				# (e.g. 'LICENSE') known to be at the root of a proper jsx
+				# root.
+				#
+				ifneq "$(wildcard $(JSX_REBAR_AS_DEP_BASE)/LICENSE)" ""
+				#ifneq "$(wildcard $(JSX_REBAR_AS_DEP_EBIN))" ""
 					JSX_TOP = $(JSX_REBAR_AS_DEP_BASE)
 					BEAM_DIRS += $(JSX_REBAR_AS_DEP_EBIN)
 				else

@@ -93,7 +93,7 @@
 % settings, like set/{1,2} and set_setting/{2,3}. They all have a purpose, some
 % variations relying on an explicit state, others not.
 
--include("ui.hrl").
+-include("myriad_ui.hrl").
 
 
 % Describes the interactivity mode of a user interface:

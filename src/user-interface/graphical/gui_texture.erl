@@ -51,6 +51,24 @@
 % Information regarding a (2D) texture.
 
 
+-type texture_unit() :: enum(). % Actually ?GL_TEXTUREn, where n is an integer
+								% in [0, ?GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS-1]
+								% (the initial value is GL_TEXTURE0)
+% A texture unit corresponds to the location of a texture for a shader.
+%
+% This allows shaders notably to access, through samplers, to more than one
+% texture; a texture unit can thus be seen as a bridge between a texture and a
+% sampler.
+%
+% The default texture unit for a texture is ?GL_TEXTURE0 (it is the initial
+% active texture unit).
+%
+% A texture unit n is to be activated thanks to ?GL_TEXTUREn (whose actual value
+% is not n; for example ?GL_TEXTURE0 may be equal to 33984), but, like in/out
+% shader parameters, its location is to be specified directly as n - not as
+% ?GL_TEXTUREn (and as a signed integer, not an unsigned one).
+
+
 -type gl_color_format() :: 1 | 2 | 3 | 4
 	| ?GL_ALPHA | ?GL_ALPHA4 | ?GL_ALPHA8 | ?GL_ALPHA12 | ?GL_ALPHA16
 	| ?GL_LUMINANCE | ?GL_LUMINANCE4 | ?GL_LUMINANCE8 | ?GL_LUMINANCE12
@@ -91,7 +109,6 @@
 % texture image to {1.0, 1.0} for its upper right corner.
 %
 % The fragment shader interpolates the texture coordinates for each fragment.
-
 
 
 -type gl_texture_wrapping_mode() ::
@@ -158,9 +175,12 @@
 							   % linear interpolation.
 % To specify the filtering method between mipmap levels, for a more seamless
 % switching between them.
+%
+% Note: ensure that any texture to which such filtering mode is applied has
+% mipmaps generated indeed, otherwise no texturing may be done.
 
 
--export_type([ texture_id/0, texture_dimension/0, texture/0,
+-export_type([ texture_id/0, texture_dimension/0, texture/0, texture_unit/0,
 			   gl_color_format/0, gl_pixel_format/0,
 			   uv_coordinate/0, uv_point/0,
 
@@ -183,6 +203,10 @@
 		  set_as_current/1, set_new_as_current/0, set_as_current_from_id/1,
 		  assign_current/4,
 
+		  set_current_texture_unit/1,
+
+		  recalibrate_coordinates_for/2,
+
 		  render/2, render/3,
 
 		  get_color_buffer/1, get_color_buffer/3,
@@ -195,10 +219,49 @@
 		  get_pixel_size/1, gl_pixel_format_to_pixel_format/1 ]).
 
 
+
+% Either we try to underline any error (typically in terms of texture
+% coordinates) for troubleshooting, or to hide it as much as possible:
+
+-ifdef(myriad_debug_opengl).
+
+% Pure green:
+-define( padding_rgb_bin, <<0, 255, 0>> ).
+
+% Fully opaque pure green:
+-define( padding_rgba_bin, <<0, 255, 0, 255>> ).
+
+-else.
+
+% Pure black:
+-define( padding_rgb_bin, <<0, 0, 0>> ).
+
+% Fully transparent pure black:
+-define( padding_rgba_bin, <<0, 0, 0, 0>> ).
+
+-endif.
+
+
+
+
 % Implementation notes:
 %
+% When using padded RGB (not RGBA, as a null alpha should solve this issue)
+% textures, despite properly computed Min/Max coordinates, a thin border of the
+% padding color can be noticed on all edges (see when using pure green for
+% padding), especially on the padded edges - right and bottom (but also on the
+% non-padded ones, presumably due to the periodicity being reproduced).
+%
+% No specific solution has been identified (adjusting Min/Max UV coordinates
+% would not be a good idea; any preprocessing does not offer much leeway, as not
+% all textures can be of power-of-two dimensions); the best approach (unless
+% relying on any OpenGL extension removing the power-of-two restriction) is
+% probably to use RGBA, padding with a transparent color and possibly a blending
+% mode in the spirit of gl:blendFunc(?GL_ONE, ?GL_ONE_MINUS_SRC_ALPHA) and/or
+% possibly using a modified fragment shader.
+
 % Refer to https://learnopengl.com/Getting-started/Textures for further
-% information.
+% information about textures in general.
 
 
 % Shorthands:
@@ -263,32 +326,40 @@ create_from_image( Image ) ->
 
 
 
-% @doc Creates a texture from the specified image instance, generating mipmaps
-% if requested, applies the default texture settings on it, and makes it the
-% currently active texture.
+% @doc Creates a texture from the specified image instance, flipping its Y-axis
+% according to OpenGL conventions, generating mipmaps if requested, applies the
+% default texture settings on it, and makes it the currently active texture.
 %
 % The image instance is safe to be deallocated afterwards.
 %
 -spec create_from_image( image(), boolean() ) -> texture().
 create_from_image( Image, GenMipmaps ) ->
 
-	trace_utils:debug_fmt( "Loading texture from a ~ts.",
-						   [ gui_image:to_string( Image ) ] ),
+	cond_utils:if_defined( myriad_debug_textures,
+		trace_utils:debug_fmt( "Loading texture from a ~ts.",
+							   [ gui_image:to_string( Image ) ] ) ),
 
-	OrigDims = { ImgWidth, ImgHeight } = gui_image:get_size( Image ),
+	% As OpenGL expects the 0.0 coordinate on the Y-axis to be on the bottom
+	% side of the image:
+	%
+	FlippedImage = gui_image:mirror( Image, _Orientation=vertical ),
 
+	OrigDims = { ImgWidth, ImgHeight } = gui_image:get_size( FlippedImage ),
+
+	% Going for power-of-two (larger) dimensions:
 	TargetDims = { TexWidth, TexHeight } = get_dimensions( OrigDims ),
 
 	% The wxImage is either RGB or RGBA; we have to expand it in buffer if
 	% needed, so that it has the right (power-of-two) dimensions:
 	%
-	ColorBuffer = get_color_buffer( Image, OrigDims, TargetDims ),
+	ColorBuffer = get_color_buffer( FlippedImage, OrigDims, TargetDims ),
+	%trace_utils:debug_fmt( "ColorBuffer : ~p", [ ColorBuffer ] ),
 
 	% Let's create the OpenGL texture:
 
 	TextureId = set_new_as_current(),
 
-	PixFormat = case gui_image:has_alpha( Image ) of
+	PixFormat = case gui_image:has_alpha( FlippedImage ) of
 
 		true ->
 			%trace_utils:debug( "RGBA image detected." ),
@@ -300,8 +371,11 @@ create_from_image( Image, GenMipmaps ) ->
 
 	end,
 
+	gui_image:destruct( FlippedImage ),
+
 	assign_current( TexWidth, TexHeight, PixFormat, ColorBuffer ),
 
+	% Add mipmaps if requested:
 	GenMipmaps andalso
 		begin
 			gl:generateMipmap( ?GL_TEXTURE_2D ),
@@ -311,9 +385,38 @@ create_from_image( Image, GenMipmaps ) ->
 
 	Zero = 0.0,
 
-	#texture{ id=TextureId, width=ImgWidth, height=ImgHeight,
-			  min_x=Zero, min_y=Zero,
-			  max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight }.
+	% This was quite strange but there seemed to be an off-by-one error
+	% regarding the Y coordinates: if selecting bright-green padding, we could
+	% see that the first row of the texture (hence the bottom one) was full
+	% green, whereas the color buffer was apparently correct (not starting at
+	% all with green but with the correct image pixels - see the ColorBuffer
+	% trace above; just ending with the proper, expected padding).
+	%
+	% So, instead of using a zero min_y, we used to offset it by one (scaled)
+	% source pixel (hence 1/TexWidth), however hackish it was. The culprit has
+	% been found since then: all our buffers and coordinates were right, it was
+	% just an artifact of the GL_REPEAT wrap parameter. Now relying on
+	% GL_CLAMP_TO_EDGE and there is no need to tweek coordinates anymore.
+	%
+	T = #texture{
+			id=TextureId, width=ImgWidth, height=ImgHeight,
+			min_x=Zero,
+			%min_x=1/TexWidth,
+			min_y=Zero,
+			%min_y=1/TexHeight,
+
+			% These were other clumsy attempts of removing padding borders:
+			% (note that textures are filled upside-down, so padding occurs at
+			% the top; and on the right)
+			%
+			%max_x=ImgWidth / (TexWidth+1), max_y=ImgHeight / (TexHeight+1) }.
+			%max_x=(ImgWidth-1) / TexWidth, max_y=(ImgHeight-1) / TexHeight }.
+			max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight },
+
+	%trace_utils:debug_fmt( "~Bx~B texture created from image: ~ts",
+	%   [ TexWidth, TexHeight, to_string( T ) ] ),
+
+	T.
 
 
 
@@ -353,8 +456,8 @@ load_from_file( ImageFormat, ImagePath ) ->
 % specified font, brush and color, applies the default texture settings on it,
 % and makes it the currently active texture.
 %
--spec create_from_text( ustring(), font(), brush(),
-								color_by_decimal() ) -> texture().
+-spec create_from_text( ustring(), font(), brush(), color_by_decimal() ) ->
+											texture().
 create_from_text( Text, Font, Brush, Color ) ->
 	create_from_text( Text, Font, Brush, Color, _Flip=false ).
 
@@ -379,11 +482,9 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 	% Supposing no alpha information here:
 	Bmp = wxBitmap:new( Width, Height ),
-
 	cond_utils:assert( myriad_debug_gui_memory, wxBitmap:isOk( Bmp ) ),
 
 	DC = wxMemoryDC:new( Bmp ),
-
 	cond_utils:assert( myriad_debug_gui_memory, wxDC:isOk( DC ) ),
 
 	wxMemoryDC:setFont( DC, Font ),
@@ -410,6 +511,11 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 	end,
 
+	% If wanting to check:
+	%TestFilename = text_utils:format( "test-texture-~B.png",
+	%                                  [ length( Text) ] ),
+	%gui_image:save( BaseImg, TestFilename ),
+
 	% Expected to be RGBA:
 	BaseBuffer = wxImage:getData( BaseImg ),
 
@@ -424,6 +530,13 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 	assign_current( Width, Height, _TexFormat=?GL_RGBA, ReadyBuffer ),
 
+	apply_basic_settings_on_current(),
+
+	% Could be done if using a mipmap filtering such as GL_LINEAR_MIPMAP_LINEAR
+	% afterwards:
+	%
+	%generate_mipmaps(),
+
 	%trace_utils:debug( "Texture loaded from text." ),
 
 	% Not supposed to be null dimensions:
@@ -432,6 +545,12 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 
 
+% Mipmap generation.
+%
+% Once mipmaps are generated for the active texture, a better filtering mode can
+% be set, typically with:
+%   gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
+%                     ?GL_LINEAR_MIPMAP_LINEAR )
 
 
 % @doc Generates mipmaps for the currently active (2D) texture.
@@ -476,7 +595,8 @@ set_new_as_current() ->
 % one.
 %
 % From now on, all operations done regarding (2D) textures (that is the
-% ?GL_TEXTURE_2D target) will be applied to this texture.
+% ?GL_TEXTURE_2D target) will be applied to this texture, that moreover will be
+% registered in the currently active texture unit.
 %
 % Lower-level, defined to centralise calls.
 %
@@ -522,6 +642,57 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 
 
 
+% @doc Sets the current texture unit.
+%
+% The next texture that will be set current will be associated to this texture
+% unit.
+%
+% The initial (default) value is ?GL_TEXTURE0.
+%
+-spec set_current_texture_unit( texture_unit() ) -> void().
+set_current_texture_unit( TexUnit ) ->
+	gl:activeTexture( TexUnit ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
+
+
+
+% @doc Recalibrates the specified texture coordinates, supposed to correspond to
+% an original texture, to the specified one, which is typically padded, hence of
+% different dimensions.
+%
+-spec recalibrate_coordinates_for( [ uv_point() ], texture() ) ->
+										[ uv_point() ].
+recalibrate_coordinates_for( TexCoords, #texture{ min_x=MinX, min_y=MinY,
+												  max_x=MaxX, max_y=MaxY } ) ->
+	% We remap [0,1] to [Min,Max] in each dimension; generally MinX=MinY=0.0.
+
+	XDiff = MaxX - MinX,
+	YDiff = MaxY - MinY,
+
+	R = recalibrate_coordinates_for( TexCoords, MinX, MinY, XDiff, YDiff,
+									 _Acc=[] ),
+
+	trace_utils:debug_fmt( "Coordinates ~p once recalibrated:~n ~p.",
+						   [ TexCoords, R ] ),
+
+	R.
+
+
+% (helper)
+recalibrate_coordinates_for( _TexCoords=[], _MinX, _MinY, _XDiff, _YDiff,
+							 Acc ) ->
+	lists:reverse( Acc );
+
+recalibrate_coordinates_for( _TexCoords=[ { X, Y } | T ], MinX, MinY,
+							 XDiff, YDiff, Acc ) ->
+	XPadded = MinX + XDiff*X,
+	YPadded = MinY + YDiff*Y,
+
+	recalibrate_coordinates_for( T, MinX, MinY, XDiff, YDiff,
+								 [ { XPadded, YPadded } | Acc ] ).
+
+
+
 % @doc Sets basic parameters on the currently active (2D) texture.
 %
 % Refer to set_basic_general_settings/0 for overall settings (transverse to all
@@ -544,8 +715,12 @@ apply_basic_settings_on_current() ->
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MAG_FILTER, ?GL_LINEAR ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
+	% GL_LINEAR_MIPMAP_LINEAR has been disabled, as no actual texturing will be
+	% done if the current texture has no mipmap generated:
+	%
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
-					  ?GL_LINEAR_MIPMAP_LINEAR ),
+					  %?GL_LINEAR_MIPMAP_LINEAR ),
+					  ?GL_LINEAR ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
 	% Otherwise the current color will be applied to the textured polygons as
@@ -563,12 +738,18 @@ apply_basic_settings_on_current() ->
 	%gl:pixelStorei( ?GL_UNPACK_ALIGNMENT, 2 ),
 
 	% Possibly not that useful, UV coordinates remaining generally in [0.0,
-	% 1.0]:
+	% 1.0]; moreover enabling padding with a bright green shows that because of
+	% tiling the first texture row (hence its bottom one) becomes a padding one:
 	%
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, ?GL_REPEAT ),
+	%WrapParameter = ?GL_REPEAT
+
+	% Not unwanting tiling:
+	WrapParameter = ?GL_CLAMP_TO_EDGE,
+
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, WrapParameter ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 
-	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, ?GL_REPEAT ),
+	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_T, WrapParameter ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
@@ -591,7 +772,8 @@ render( #texture{ id=TextureId,
 				  max_y=MaxYt }, Xp, Yp ) ->
 
 	%trace_utils:debug_fmt( "Rendering texture ~w (size: ~wx~w), from {~w,~w} "
-	%   "to {~w,~w}.", [ TextureId, Width, Height, MinX, MinY, MaxX, MaxY ] ),
+	%   "to {~w,~w}.",
+	%   [ TextureId, Width, Height, MinXt, MinYt, MaxXt, MaxYt ] ),
 
 	set_as_current_from_id( TextureId ),
 
@@ -764,8 +946,7 @@ pad_buffer( Buffer, CurrentDimensions={ CurrentW, CurrentH },
 		end,
 		basic_utils:ignore_unused( CurrentDimensions ) ),
 
-	% Padding in pure black:
-	PadPixel = <<0, 0, 0>>,
+	PadPixel = ?padding_rgb_bin,
 
 	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
 
@@ -849,23 +1030,24 @@ pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
 		basic_utils:ignore_unused( CurrentDimensions ) ),
 
 
-	% Padding in pure transparent (0, in wxwidgets conventions; same for
-	% OpenGL), black:
-	%
-	%PadPixel = <<0, 0, 0, 0 >>,
-	PadPixel = <<0, 200, 0, 0 >>,
+	PadPixel = ?padding_rgba_bin,
 
+	% The binary used to pad each row on its right:
 	BinPadRow = bin_utils:replicate( PadPixel, _Count=TargetW - CurrentW ),
 
 	%basic_utils:assert_equal( byte_size( BinPadRow ),
 	%                          4*(TargetW - CurrentW) ),
 
+	% Right-extended buffer:
 	RowPaddedBuffer =
 		pad_rows_with_alpha( RGBBuffer, AlphaBuffer, CurrentW, BinPadRow ),
 
 	%basic_utils:assert_equal( byte_size( RowPaddedBuffer ),
 	%                          4*CurrentH*TargetW ),
 
+	% The binary used to add full padding rows at the end (hence at the top) of
+	% the target texture:
+	%
 	BinBlankRow = bin_utils:replicate( PadPixel, TargetW ),
 
 	basic_utils:assert_equal( byte_size( BinBlankRow ),

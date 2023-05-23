@@ -147,7 +147,7 @@
 						   Location :: bin_string(),
 						   BridgePid :: bridge_pid(),
 						   ApplicationTimestamp :: maybe( trace_timestamp() ) }.
-% The bridging information stored in the target process dictionary.
+% A bridging information stored in a target process dictionary.
 
 
 % To silence warning:

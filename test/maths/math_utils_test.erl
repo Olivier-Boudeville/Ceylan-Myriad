@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2022 Olivier Boudeville
+% Copyright (C) 2010-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,6 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2010.
 
 
 % @doc Unit tests for the <b>math-related basic toolbox</b> facilities.
@@ -45,18 +46,19 @@ run() ->
 	Roundings = [ -1.1, -1.0, -0.9, 0.0, 0.9, 1.0, 1.1 ],
 
 	% Not used anymore, as erlang:floor/1 has been introduced since then:
-	%[ test_facilities:display( "Floor for ~p is ~p.", [ V,
-	%    math_utils:floor(V) ] ) || V <- Roundings ],
+	%[ test_facilities:display( "Floor for ~p is ~p.",
+	%  [ V, math_utils:floor(V) ] ) || V <- Roundings ],
 
-	[ test_facilities:display( "Ceiling for ~p is ~p.", [ V,
-			math_utils:ceiling(V) ] ) || V <- Roundings ],
+	[ test_facilities:display( "Ceiling for ~p is ~p.",
+		[ V, math_utils:ceiling(V) ] ) || V <- Roundings ],
 
 	TruncateTargets = [ -12345.6789, -1.23456789, 0.0, 12.3456789, 123.4568 ],
 
 	[
-	 [ test_facilities:display( "Rounding ~p after ~B digit(s) is ~p.", [ V, D,
-		math_utils:round_after( V, D ) ] ) || V <- TruncateTargets ]
-				|| D <- [ 0, 1, 2, 3 ] ],
+	 [ test_facilities:display( "Rounding ~p after ~B digit(s) is ~p.",
+		[ V, D,
+		  math_utils:round_after( V, D ) ] ) || V <- TruncateTargets ]
+					|| D <- [ 0, 1, 2, 3 ] ],
 
 
 	Modulo = 3,
@@ -105,7 +107,7 @@ run() ->
 	true  = math_utils:are_relatively_close( X2, Y ),
 
 	[ test_facilities:display( "Angle ~p rad is ~f°.", [ Angle,
-			math_utils:radian_to_degree( Angle ) ] )
+			math_utils:radians_to_degrees( Angle ) ] )
 		|| Angle <- [ 0, math:pi()/2, 1.0, math:pi(), 2*math:pi() ] ],
 
 	AffinFun = fun( X ) -> 2*X + 5 end,

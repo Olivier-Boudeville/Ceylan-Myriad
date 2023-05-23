@@ -5,23 +5,23 @@
 .. _`MyriadGUI`:
 
 
-MyriadGUI: Helpers For User Interface Programming
-=================================================
+MyriadUI: Helpers For User Interface Programming
+================================================
 
 Some services have been defined, in ``myriad/src/user-interface``, in order to handle more easily interactions with the user, i.e. to provide a user interface.
 
 .. Note The user-interface services, as a whole, are currently *not* functional. A rewriting thereof as been started yet has not completed yet.
 
-The spirit of **MyriadGUI** is to offer, as much as possible, a high-level API (refer to the ``ui`` module) that can be seamlessly instrumented at runtime by different backends, depending on availability (e.g. is this dependency installed?) and context (e.g. is the program running in a terminal, or are graphical outputs possible?).
+The spirit of **MyriadUI** is to offer, as much as possible, a high-level API (refer to the ``ui`` module) that can be seamlessly instrumented at runtime by different backends, depending on availability (e.g. is this dependency installed?) and context (e.g. is the program running in a terminal, or are graphical outputs possible?).
 
 Unless the user forces the use of a given backend, the most advanced one that is locally available will be automatically selected.
 
 An objective is to shelter user code from:
 
 - the actual UI backend that will be selected ultimately on a given host
-- the rise and fall of the various backends (thinking for example to ``gs`` having been quickly deprecated in favour of ``wx``); the idea is then that any new backend could be integrated, with *little to no change* in already-written code relying on MyriadGUI
+- the rise and fall of the various backends (thinking for example to ``gs`` having been quickly deprecated in favour of ``wx``); the idea is then that any new backend could be integrated, with *little to no change* in already-written code relying on MyriadUI
 
-Of course not all features of all backends can be integrated (they have not the same expressivity, a common base must be enforced [#]_) and creating a uniform interface over all sorts of vastly different ways of displaying and interacting with the user would require a lot of efforts. So MyriadGUI follows a pragmatic route: defining first basic, relevant, user-centric conventions and services able to cover most needs and to federate (hopefully) most backends, and to incrementally augment its implementation coverage on a per-need basis. As a consequence, efforts have been made so that adding any lacking element can be done at low cost.
+Of course not all features of all backends can be integrated (they have not the same expressivity, a common base must be enforced [#]_) and creating a uniform interface over all sorts of vastly different ways of displaying and interacting with the user would require a lot of efforts. So MyriadUI follows a pragmatic route: defining first basic, relevant, user-centric conventions and services able to cover most needs and to federate (hopefully) most backends, and to incrementally augment its implementation coverage on a per-need basis. As a consequence, efforts have been made so that adding any lacking element can be done at low cost.
 
 .. [#] Yet optional, additional features may be defined, and each backend may choose to provide them or ignore them.
 
@@ -105,7 +105,7 @@ It is located in ``{src,test}/user-interface/textual``; see ``term_ui.erl`` for 
 Graphical User Interface: ``gui``
 ---------------------------------
 
-The ``gui`` modules provide features like 2D/3D rendering, event handling, input management (keyboard/mouse), canvas services (basic or OpenGL - with textures, shaders, etc.), and the various related staples (management of images, texts and fonts, colors, window manager, etc.); refer to `the gui sources <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/src/user-interface/graphical>`_ for more complete information.
+The MyriadGUI modules (``gui*``) provide features like 2D/3D rendering, event handling, input management (keyboard/mouse), canvas services (basic or OpenGL - with textures, shaders, etc.), and the various related staples (management of images, texts and fonts, colors, window manager, etc.); refer to `the MyriadGUI sources <https://github.com/Olivier-Boudeville/Ceylan-Myriad/tree/master/src/user-interface/graphical>`_ for more complete information.
 
 
 
@@ -236,6 +236,8 @@ Myriad recommends using the ``vertex.glsl`` extension for vertex shaders, the ``
 
 The many OpenGL defines are available when having included ``gui_opengl.hrl`` (e.g. as ``?GL_QUAD_STRIP``).
 
+Quite many higher-level primitives are provided, like ``gui_shader:assign_new_vbo_from_attribute_series/2``, which in one operation merges automatically an arbitrary number of vertex attribute series (vertices, normals, texture coordinates, etc.) of arbitrary component types and counts in a suitable VBO, and declares appropriately and enables the corresponding vertex attributes.
+
 These utilities directly relate to Myriad's `spatial services and conventions`_ and to its support of the `glTF file format`_.
 
 .. _octrees:
@@ -266,6 +268,20 @@ Various tests offer usage examples of the MyriadGUI API for 3D rendering:
 
 
 
+Actual Use
+__________
+
+The MyriadGUI modules can be readily used.
+
+The recommended way of, if needed, using the MyriadGUI includes is:
+
+.. code:: erlang
+
+ % The sole include that MyriadGUI user code shall reference:
+ -include_lib("myriad/include/myriad_gui.hrl").
+
+
+
 Configuration
 _____________
 
@@ -283,6 +299,14 @@ One's shader can be checked thanks to ``glslangValidator``, the *OpenGL / OpenGL
 For example, in order to check a vertex shader named ``foo.vertex.glsl``, just run ``make check-foo.vertex.glsl``; the GLSL reference compiler does not return output if it detects no error.
 
 Refer to `our HOWTO section <https://howtos.esperide.org/ThreeDimensional.html#reference-glsl-compiler>`_ for more information.
+
+
+
+Troubleshooting
+_______________
+
+Your textures include strange pure green areas? Most probably that your texture coordinates are wrong, as pure green is the default padding color that MyriadGUI uses (see the ``padding_color`` define in the ``gui_texture`` module) so that the dimensions of textures are powers of two.
+
 
 
 

@@ -174,6 +174,8 @@
 
 		  void/1, void_fmt/2, void_categorized/2, void_categorized_timed/3,
 
+		  safer_display/1, safer_display/2,
+
 		  echo/2, echo/3, echo/4,
 
 		  get_priority_for/1, get_severity_for/1, is_error_like/1 ]).
@@ -981,3 +983,29 @@ actual_display( Format, Values ) ->
 
 	% Safest of all, recommended:
 	actual_display( text_utils:format( Format, Values ) ).
+
+
+
+% @doc Displays the specified message.
+%
+% Note: adds a carriage-return/line-feed at the end of the message.
+%
+-spec safer_display( trace_message() ) -> void().
+safer_display( Message ) ->
+
+	% This default timeout (30 seconds, in milliseconds) may not be sufficient
+	% in all cases:
+	%
+	basic_utils:display_timed( Message, _MsTimeOut=30000 ).
+
+
+
+% @doc Displays the specified format-based message, in a safer way.
+%
+% Useful when debugging.
+%
+% Note: adds a carriage-return/line-feed at the end of the message.
+%
+-spec safer_display( trace_format(), trace_values() ) -> void().
+safer_display( Format, Values ) ->
+	safer_display( text_utils:format( Format, Values ) ).

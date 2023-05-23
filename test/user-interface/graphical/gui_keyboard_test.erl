@@ -37,9 +37,14 @@
 -include("test_facilities.hrl").
 
 
--type my_test_state() :: gui:frame().
+-type my_test_state() :: { gui:frame(), CheckScanCode :: boolean() }.
 % Here the main loop just has to remember the frame whose closing is awaited
-% for.
+% for and whether we are checking scan codes.
+
+
+% Shorthands:
+
+-type event_context() :: gui:event_context().
 
 
 % @doc Actual execution of the test.
@@ -65,7 +70,20 @@ run_test_gui() ->
 	% A frame cannot handle key events, so we create a panel within it:
 	TestPanel = gui:create_panel( _Parent=TestFrame ),
 
-	EventTypes = [ onWindowClosed, onKeyPressed, onKeyReleased, onCharEntered ],
+	% Set to true to focus on the scan codes:
+	CheckScanCode = false,
+	%CheckScanCode = true,
+
+	EventTypes = [ onWindowClosed |
+		case CheckScanCode of
+
+			true ->
+				[ onKeyPressed ];
+
+			false ->
+				[ onKeyPressed, onKeyReleased, onCharEntered ]
+
+		end ],
 
 	gui:subscribe_to_events( { EventTypes, TestPanel } ),
 
@@ -76,7 +94,7 @@ run_test_gui() ->
 
 	gui:show( TestFrame ),
 
-	test_main_loop( TestFrame ).
+	test_main_loop( { TestFrame, CheckScanCode } ).
 
 
 
@@ -84,35 +102,26 @@ run_test_gui() ->
 % corresponding to the frame that shall be closed to stop the test.
 %
 -spec test_main_loop( my_test_state() ) -> no_return().
-test_main_loop( TestFrame ) ->
+test_main_loop( TestState={ TestFrame, CheckScanCode } ) ->
 
 	receive
 
-		{ onCharEntered, [ _TestPanel, _TestPanelId, Context ] } ->
-			WxKeyEvent = gui_keyboard:get_backend_event( Context ),
-
-			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
-
-			test_main_loop( TestFrame );
+		{ onCharEntered, [ _TestFrame, _TestFrameId, Context ] } ->
+			interpret_event_context( Context, CheckScanCode ),
+			test_main_loop( TestState );
 
 
-		{ onKeyPressed, [ _TestPanel, _TestPanelId, Context ] } ->
-			WxKeyEvent = gui_keyboard:get_backend_event( Context ),
-
-			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
-
-			test_main_loop( TestFrame );
+		{ onKeyPressed, [ _TestFrame, _TestFrameId, Context ] } ->
+			interpret_event_context( Context, CheckScanCode ),
+			test_main_loop( TestState );
 
 
-		{ onKeyReleased, [ _TestPanel, _TestPanelId, Context ] } ->
-			WxKeyEvent = gui_keyboard:get_backend_event( Context ),
-
-			trace_utils:info( gui_keyboard:key_event_to_string( WxKeyEvent ) ),
-
-			test_main_loop( TestFrame );
+		{ onKeyReleased, [ _TestFrame, _TestFrameId, Context ] } ->
+			interpret_event_context( Context, CheckScanCode ),
+			test_main_loop( TestState );
 
 
-		{ onWindowClosed, [ TestFrame, _TestFrameId, Context ] } ->
+		{ onWindowClosed, [ _TestFrame, _TestFrameId, Context ] } ->
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
 				  gui:context_to_string( Context ) ] ),
@@ -128,9 +137,43 @@ test_main_loop( TestFrame ) ->
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "
 									 "message: ~p.", [ Other ] ),
-			test_main_loop( TestFrame )
+			test_main_loop( TestState )
 
 	end.
+
+
+
+% (helper)
+-spec interpret_event_context( event_context(), boolean() ) -> void().
+interpret_event_context( Context, _CheckScanCode=true ) ->
+
+	WxKeyEvent = gui_keyboard:get_backend_event( Context ),
+
+	MaybeUChar = gui_keyboard:get_maybe_uchar( WxKeyEvent ),
+	Keycode = gui_keyboard:get_keycode( WxKeyEvent ),
+	Scancode = gui_keyboard:get_scancode( WxKeyEvent ),
+
+	%trace_utils:debug_fmt( "Maybe unicode char=~w, Keycode=~w, Scancode=~w.",
+	%                       [ MaybeUChar, Keycode, Scancode ] ),
+
+	case MaybeUChar of
+
+		undefined ->
+			trace_utils:info_fmt( "keycode ~B, scancode ~B",
+								  [ Keycode, Scancode ] );
+
+		UChar ->
+			trace_utils:info_fmt(
+				"Unicode character '~ts' of scancode ~B (keycode ~B).",
+				[ [ UChar ], Scancode, Keycode ] )
+
+	end;
+
+
+interpret_event_context( Context, _CheckScanCode=false ) ->
+	WxKeyEvent = gui_keyboard:get_backend_event( Context ),
+	trace_utils:info_fmt( "Received ~ts.~n",
+						  [ gui_keyboard:key_event_to_string( WxKeyEvent ) ] ).
 
 
 

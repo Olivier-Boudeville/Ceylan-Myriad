@@ -105,10 +105,14 @@
 		  remove_file/1, remove_file_if_existing/1,
 		  remove_files/1, remove_files_if_existing/1,
 
-		  remove_symlink/1,
+		  remove_symlink/1, remove_symlink_if_existing/1,
+
+		  % Note: no need for remove_file_or_link/1, remove_file does that.
+		  remove_file_or_link_if_existing/1,
 
 		  remove_empty_directory/1, remove_empty_path/1, remove_empty_tree/1,
-		  remove_directory/1,
+		  remove_directory/1, remove_directory_if_existing/1,
+		  remove_directories/1, remove_directories_if_existing/1,
 
 		  copy_file/2, try_copy_file/2, copy_file_if_existing/2, copy_file_in/2,
 		  copy_as_regular_file_in/2,
@@ -225,29 +229,29 @@
 
 -type resolvable_token_path() ::
 
-	  'user_name' % Will be translated to the name of the current OS-level
-				  % user; e.g. "bond".
+	'user_name' % Will be translated to the name of the current OS-level user;
+				% e.g. "bond".
 
-	| 'user_id' % Will be translated to the OS-level (typically UNIX uid)
-				% identifier of the current user; e.g. "61917".
+  | 'user_id' % Will be translated to the OS-level (typically UNIX uid);
+			  % e.g. "61917".
 
-	| 'group_name' % Will be translated to the name of the current OS-level
-				   % group; e.g. "wheel".
+  | 'group_name' % Will be translated to the name of the current OS-level group;
+				 % e.g. "wheel".
 
-	| 'group_id' % Will be translated to the OS-level (typically UNIX gid)
-				 % identifier of the current group; e.g. "61000".
+  | 'group_id' % Will be translated to the OS-level (typically UNIX gid)
+			   % identifier of the current group; e.g. "61000".
 
-	| 'home' % Will be translated to the path to the home directory of the
-			 % current user; e.g. "/home/bond".
+  | 'home' % Will be translated to the path to the home directory of the
+		   % current user; e.g. "/home/bond".
 
-	| 'locale_charset' % Will be translated to the current locale with the
-					   % associated character set; e.g. "en_GB.utf8".
+  | 'locale_charset' % Will be translated to the current locale with the
+					 % associated character set; e.g. "en_GB.utf8".
 
-	| 'fqdn' % Will be translated to the current FQDN of the local host;
-			 % e.g. "hurricane.foobar.org".
+  | 'fqdn' % Will be translated to the current FQDN of the local host;
+		   % e.g. "hurricane.foobar.org".
 
-	| 'short_hostname'. % Will be translated to the current short name of
-						% the local host; e.g. "hurricane".
+  | 'short_hostname'. % Will be translated to the current short name of
+					  % the local host; e.g. "hurricane".
 % A token translated at runtime as a path element.
 
 
@@ -929,7 +933,7 @@ get_last_path_element( AnyPath ) ->
 % entry (filename or directory name).
 %
 % For example {"/aaa/bbb/ccc", "foobar.txt"} =
-%       file_utils:split_path("/aaa/bbb/ccc/foobar.txt")
+%   file_utils:split_path("/aaa/bbb/ccc/foobar.txt")
 %
 -spec split_path( any_path() ) -> { any_path(), any_path_element() }.
 split_path( AnyPath ) ->
@@ -1439,8 +1443,8 @@ is_existing_file_or_link( Path ) ->
 
 
 
-% @doc Returns whether the specified path entry exists and is readable for its
-% current owner (can be either a regular file or a symbolic link) - not telling
+% @doc Returns whether the specified path entry (can be either a regular file or
+% a symbolic link) exists and is readable for its current owner - not telling
 % anything about whether the current user can read it.
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1485,8 +1489,8 @@ is_owner_readable( Path ) ->
 
 
 
-% @doc Returns whether the specified path entry exists and is writable for its
-% current owner (can be either a regular file or a symbolic link) - not telling
+% @doc Returns whether the specified path entry (can be either a regular file or
+% a symbolic link) exists and is writable for its current owner) - not telling
 % anything about whether the current user can write it.
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1531,8 +1535,8 @@ is_owner_writable( Path ) ->
 
 
 
-% @doc Returns whether the specified path entry exists and is executable for its
-% current owner (can be either a regular file or a symbolic link) - not telling
+% @doc Returns whether the specified path entry (can be either a regular file or
+% a symbolic link) exists and is executable for its current owner - not telling
 % anything about whether the current user can execute it.
 %
 % Returns true or false, and cannot trigger an exception.
@@ -1577,8 +1581,8 @@ is_owner_executable( Path ) ->
 
 
 
-% @doc Returns whether the specified path entry exists and is readable for the
-% current user (can be either a regular file or a symbolic link).
+% @doc Returns whether the specified path entry (can be either a regular file or
+% a symbolic link) exists and is readable for the current user .
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1587,7 +1591,7 @@ is_user_readable( Path ) ->
 
 	% Rather than using file:read_file_info/1 and having to try to fetch and
 	% filter user/group information, it is easier, maybe more efficient and
-	% reliable to try to open it for reading:
+	% most probably more reliable to try to open it for reading:
 
 	case file:open( _File=Path, _Mode=[ read ] ) of
 
@@ -1602,8 +1606,8 @@ is_user_readable( Path ) ->
 
 
 
-% @doc Returns whether the specified path entry exists and is writable for the
-% current user (can be either a regular file or a symbolic link).
+% @doc Returns whether the specified path entry (can be either a regular file or
+% a symbolic link) exists and is writable for the current user.
 %
 % Returns true or false, and cannot trigger an exception.
 %
@@ -1848,21 +1852,24 @@ touch( Path ) ->
 % applicative trace can be relied upon, we can at least leave side-effects on
 % the filesystem).
 %
-% Note: of course a simple 'os:cmd( "/bin/touch ~/my-message.debug" ).' may be
+% Note: of course a simple 'os:cmd("/bin/touch ~/my-message.debug").' may be
 % of use as well.
 %
 % See also: touch/1.
 %
--spec create_empty_file( file_path() ) -> void().
-create_empty_file( FilePath ) ->
+-spec create_empty_file( any_file_path() ) -> void().
+create_empty_file( AnyFilePath ) ->
 
-	case system_utils:run_command( "/bin/touch '" ++ FilePath ++ "'" ) of
+	FilePathStr = text_utils:ensure_string( AnyFilePath ),
+
+	case system_utils:run_command( "/bin/touch '" ++ FilePathStr ++ "'" ) of
 
 		{ 0, _Output } ->
 			ok;
 
 		{ ErrorCode, Output } ->
-			throw( { empty_file_creation_failed, Output, ErrorCode, FilePath } )
+			throw( { empty_file_creation_failed, Output, ErrorCode,
+					 FilePathStr } )
 
 	end.
 
@@ -3051,7 +3058,8 @@ list_directories_in_subdirs( _Dirs=[ H | T ], RootDir, CurrentRelativeDir,
 % @doc Creates the specified directory ("mkdir"), without creating any
 % intermediate (parent) directory that would not exist.
 %
-% Throws an exception if the operation failed.
+% Throws an exception if the operation failed, for example if the directory is
+% already existing ({create_directory_failed, "foobar", eexist}).
 %
 -spec create_directory( any_directory_path() ) -> void().
 create_directory( AnyDirPath ) ->
@@ -3152,8 +3160,8 @@ create_temporary_directory() ->
 
 
 
-% @doc Removes (deletes) the specified file (regular, or symbolic link),
-% specified as any kind of string.
+% @doc Removes (deletes) the specified file (be them regular files or symbolic
+% links), specified as any kind of string.
 %
 % Throws an exception if any problem occurs (e.g. the file does not exist, or
 % could not be removed for any reason).
@@ -3176,8 +3184,8 @@ remove_file( FilePath ) ->
 
 
 
-% @doc Removes (deletes) the specified files, specified as a list of any kind of
-% strings.
+% @doc Removes (deletes) the specified files (be them regular files or symbolic
+% links), specified as a list of any kind of strings.
 %
 % Throws an exception if any problem occurs (e.g. a file does not exist, or
 % could not be removed for any reason).
@@ -3185,15 +3193,15 @@ remove_file( FilePath ) ->
 -spec remove_files( [ any_file_path() ] ) -> void().
 remove_files( FilePaths ) ->
 
-	%trace_utils:warning_fmt( "Removing following files: ~ts",
-	%                         [ text_utils:strings_to_string( FilePaths ) ] ),
+	%trace_utils:debug_fmt( "Removing following files: ~ts",
+	%                       [ text_utils:strings_to_string( FilePaths ) ] ),
 
 	[ remove_file( FP ) || FP <- FilePaths ].
 
 
 
-% @doc Removes specified file, specified as any kind of string, iff it is
-% already existing, otherwise does nothing.
+% @doc Removes the specified regular file, specified as any kind of string, iff
+% it is already existing, otherwise does nothing.
 %
 -spec remove_file_if_existing( any_file_path() ) -> void().
 remove_file_if_existing( FilePath ) ->
@@ -3201,21 +3209,21 @@ remove_file_if_existing( FilePath ) ->
 	case is_existing_file( FilePath ) of
 
 		true ->
-			%trace_bridge:debug_fmt( "Removing existing file '~ts'.",
-			%                        [ FilePath ] ),
+			%trace_utils:debug_fmt( "Removing existing file '~ts'.",
+			%                       [ FilePath ] ),
 			remove_file( FilePath );
 
 		false ->
-			%trace_bridge:debug_fmt( "No existing file '~ts' to remove.",
-			%                        [ FilePath ] ),
+			%trace_utils:debug_fmt( "No existing file '~ts' to remove.",
+			%                       [ FilePath ] ),
 			ok
 
 	end.
 
 
 
-% @doc Removes each specified file, in specified list of any kind of strings,
-% iff it is already existing.
+% @doc Removes each of the specified regular files, in the specified list of any
+% kind of strings, iff it is already existing.
 %
 -spec remove_files_if_existing( [ any_file_path() ] ) -> void().
 remove_files_if_existing( FilePaths ) ->
@@ -3257,6 +3265,60 @@ remove_symlink( SymlinkPath ) ->
 
 		Error ->
 			throw( { remove_symlink_failed, SymlinkPath, Error } )
+
+	end.
+
+
+
+% @doc Removes (deletes) the specified symbolic link, specified as any kind of
+% string, iff it is already existing, otherwise does nothing.
+%
+% Checks that the specified path designates indeed a symbolic link (dead or
+% not).
+%
+% Throws an exception if any problem occurs.
+%
+-spec remove_symlink_if_existing( any_file_path() ) -> void().
+remove_symlink_if_existing( SymlinkPath ) ->
+
+	case is_existing_link( SymlinkPath ) of
+
+		true ->
+			%trace_utils:debug_fmt( "Removing existing symlink '~ts'.",
+			%                       [ SymlinkPath ] ),
+			remove_symlink( SymlinkPath );
+
+		false ->
+			%trace_utils:debug_fmt( "No existing symlink '~ts' to remove.",
+			%                       [ SymlinkPath ] ),
+			ok
+
+	end.
+
+
+
+% @doc Removes (deletes) the specified file (regular or symbolic link),
+% specified as any kind of string, iff it is already existing, otherwise does
+% nothing.
+%
+% Throws an exception if any problem occurs.
+%
+-spec remove_file_or_link_if_existing( any_file_path() ) -> void().
+remove_file_or_link_if_existing( FileOrLinkPath ) ->
+
+	case is_existing_file_or_link( FileOrLinkPath ) of
+
+		true ->
+			%trace_utils:debug_fmt( "Removing existing file or link '~ts'.",
+			%                       [ FileOrLinkPath ] ),
+
+			% Works for regular files and symbolic links:
+			remove_file( FileOrLinkPath );
+
+		false ->
+			%trace_utils:debug_fmt( "No existing file or link '~ts' to remove.",
+			%                       [ FileOrLinkPath ] ),
+			ok
 
 	end.
 
@@ -3350,26 +3412,26 @@ remove_empty_tree( DirectoryPath ) ->
 
 
 
-% @doc Removes the specified (possibly non-empty) directory as a whole,
-% recursively (so: behaves mostly like the 'rm -rf ' shell command; of course to
-% use with care).
+% @doc Removes the specified (possibly non-empty) directory as a whole
+% (i.e. including its full content), recursively (so: behaves mostly like the
+% 'rm -rf ' shell command; of course to use with care).
 %
 % Note that if any unusual file entry is found in the tree (e.g. device or file
 % that is neither regular nor a symbolic link), the operation will stop on error
 % (whereas elements may already have been removed).
 %
--spec remove_directory( any_directory_name() ) -> void().
-remove_directory( DirectoryName ) ->
+-spec remove_directory( any_directory_path() ) -> void().
+remove_directory( DirectoryPath ) ->
 
 	%trace_utils:warning_fmt( "## Removing recursively directory '~ts'.",
-	%                         [ DirectoryName ] ),
+	%                         [ DirectoryPath ] ),
 
 	% We do it programmatically, rather than running a command like '/bin/rm -rf
 	% ...':
 
 	% All local elements:
 	{ RegularFiles, Symlinks, Directories, OtherFiles, Devices } =
-		list_dir_elements( DirectoryName, _ImproperEncodingAction=include ),
+		list_dir_elements( DirectoryPath, _ImproperEncodingAction=include ),
 
 	Devices =:= [] orelse
 		begin
@@ -3391,15 +3453,58 @@ remove_directory( DirectoryName ) ->
 	end,
 
 	% Depth-first of course:
-	[ remove_directory( any_join( DirectoryName, SubDir ) )
+	[ remove_directory( any_join( DirectoryPath, SubDir ) )
 						|| SubDir <- Directories ],
 
 	% Then removing all local regular files and symlinks:
-	[ remove_file( any_join( DirectoryName, F ) )
+	[ remove_file( any_join( DirectoryPath, F ) )
 						|| F <- Symlinks ++ RegularFiles ],
 
 	% Finally removing this (now empty) directory as well:
-	remove_empty_directory( DirectoryName ).
+	remove_empty_directory( DirectoryPath ).
+
+
+
+% @doc Removes the specified (possibly non-empty) directories as a whole
+% (i.e. including its full content), recursively (so: behaves mostly like the
+% 'rm -rf ' shell command; of course to use with care).
+%
+% Note that if any unusual file entry is found in the tree (e.g. device or file
+% that is neither regular nor a symbolic link), the operation will stop on error
+% (whereas elements may already have been removed).
+%
+-spec remove_directories( [ any_directory_path() ] ) -> void().
+remove_directories( DirectoryPaths ) ->
+	[ remove_directory( DP ) || DP <- DirectoryPaths ].
+
+
+
+% @doc Removes, if it exists, the specified (possibly non-empty) directory as a
+% whole (i.e. including its full content), recursively (so: behaves mostly like
+% the 'rm -rf ' shell command; of course to use with care).
+%
+% Note that if any unusual file entry is found in the tree (e.g. device or file
+% that is neither regular nor a symbolic link), the operation will stop on error
+% (whereas elements may already have been removed).
+%
+-spec remove_directory_if_existing( any_directory_path() ) -> void().
+remove_directory_if_existing( DirectoryPath ) ->
+	is_existing_directory( DirectoryPath ) andalso
+		remove_directory( DirectoryPath ).
+
+
+
+% @doc Removes, if they exist, the specified (possibly non-empty) directories as
+% a whole (i.e. including its full content), recursively (so: behaves mostly
+% like the 'rm -rf ' shell command; of course to use with care).
+%
+% Note that if any unusual file entry is found in the tree (e.g. device or file
+% that is neither regular nor a symbolic link), the operation will stop on error
+% (whereas elements may already have been removed).
+%
+-spec remove_directories_if_existing( [ any_directory_path() ] ) -> void().
+remove_directories_if_existing( DirectoryPaths ) ->
+	[ remove_directory_if_existing( DP ) || DP <- DirectoryPaths ].
 
 
 
@@ -3742,23 +3847,29 @@ move_file( SourceFilePath, DestinationFilePath ) ->
 
 
 
-% @doc Creates a symbolic link pointing to specified target path, bearing
-% specified (link) name.
+% @doc Creates a symbolic link pointing to the specified target path, at the
+% specified new (link) path.
 %
--spec create_link( any_path(), link_name() ) -> void().
-create_link( TargetPath, LinkName ) ->
+% For example create_link("Projects/SomeProject", "/home/joe/my-link") will
+% create a "/home/joe/my-link" symlink pointing to "Projects/SomeProject" (thus
+% relatively to "/home/joe/"), whether or not this
+% "/home/joe/Projects/SomeProject" target exists (so the current directory does
+% not matter here).
+%
+-spec create_link( any_path(), link_path() ) -> void().
+create_link( TargetPath, NewLinkPath ) ->
 
-	%trace_utils:debug_fmt( "Creating a link '~ts' to '~ts', while in '~ts'.",
-	%                       [ LinkName, TargetPath, get_current_directory() ] ),
+	%trace_utils:debug_fmt( "Creating a link '~ts' to '~ts'.",
+	%                       [ NewLinkPath, TargetPath ] ),
 
-	case file:make_symlink( TargetPath, LinkName ) of
+	case file:make_symlink( TargetPath, NewLinkPath ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
 			throw( { link_creation_failed, { target, TargetPath },
-					 { link, LinkName }, Reason } )
+					 { link, NewLinkPath }, Reason } )
 
 	end.
 
@@ -3926,7 +4037,7 @@ from_permission_mask( _PermPairs=[], _Mask, AccPerms ) ->
 from_permission_mask( _PermPairs=[ { Perm, PermMask } | T ], Mask, AccPerms ) ->
 
 	%trace_utils:debug_fmt( "From permission mask '~p': testing ~p (i.e. ~p).",
-	%					   [ Mask, Perm, PermMask ] ),
+	%                       [ Mask, Perm, PermMask ] ),
 
 	NewAccPerms = case Mask band PermMask of
 
@@ -3942,7 +4053,9 @@ from_permission_mask( _PermPairs=[ { Perm, PermMask } | T ], Mask, AccPerms ) ->
 
 
 
-% @doc Returns the (UNIX) permissions associated to specified filesystem entry.
+% @doc Returns the (UNIX) permissions associated to the specified filesystem
+% entry.
+%
 -spec get_permissions_of( any_path() ) -> [ permission() ].
 get_permissions_of( EntryPath ) ->
 
@@ -3990,14 +4103,14 @@ change_permissions( Path, NewPermissions ) ->
 %
 -spec is_absolute_path( any_path() ) -> boolean().
 %is_absolute_path( _Path=[ $/ | _Rest ] ) ->
-%	true;
+%   true;
 
 % Not wanting to let for example atoms slip through:
 %is_absolute_path( Path ) when is_list( Path )->
-%	false;
+%   false;
 
 %is_absolute_path( Other ) ->
-%	throw( { not_a_string_path, Other } ).
+%   throw( { not_a_string_path, Other } ).
 is_absolute_path( AnyPath ) ->
 	% To support also binary (and even atom) paths:
 	case filename:pathtype( AnyPath ) of

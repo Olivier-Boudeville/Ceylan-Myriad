@@ -292,7 +292,7 @@ find_pivot( [ Point={_X,Y} | Others ], PreviousPivot={ _Xp, Yp }, PList )
 
 % Same level as the pivot, but at its right, thus not wanted:
 find_pivot( [ Point={X,_Yp} | Others ], Pivot={ Xp, _UselessMatchYp }, PList )
-  when X > Xp ->
+        when X > Xp ->
 	find_pivot( Others, Pivot, [ Point | PList ] );
 
 % Same level as the pivot, but at its left, thus wanted:
@@ -333,12 +333,12 @@ sort_by_angle( Pivot, Points ) ->
 sort_by_angle( _Pivot, _Points=[], LeftPairs, _MaybeP=undefined, RightPairs ) ->
 
 	cond_utils:if_defined( bounding_spaces, trace_utils:debug(
-								"sort_by_angle: no middle point found." ) ),
+		"sort_by_angle: no middle point found." ) ),
 
 	% Not having a middle point to integrate here:
 	Index = 1,
 	SortedPairs = lists:keysort( Index, LeftPairs )
-										++ lists:keysort( Index, RightPairs ),
+		++ lists:keysort( Index, RightPairs ),
 
 	cond_utils:if_defined( bounding_spaces,
 		trace_utils:debug_fmt( "Full sorted list: ~w.", [ L ] ) ),
@@ -603,7 +603,7 @@ abs_angle_rad( A, B, C ) ->
 	%trace_utils:debug_fmt( "AB=~w, AC=~w, M1=~f, M2=~f.", [AB,AC,M1,M2] ),
 
 	math:acos( vector2:dot_product( AB, AC )
-					/ ( vector2:magnitude( AB ) * vector2:magnitude( AC ) ) ).
+		/ ( vector2:magnitude( AB ) * vector2:magnitude( AC ) ) ).
 
 
 
@@ -637,7 +637,7 @@ angle_rad( A, B, C ) ->
 										int_degrees().
 abs_angle_deg( A, B, C ) ->
 	math_utils:canonify(
-		math_utils:radian_to_degree( abs_angle_rad( A, B, C ) ) ).
+		math_utils:radians_to_degrees( abs_angle_rad( A, B, C ) ) ).
 
 
 
@@ -650,7 +650,7 @@ abs_angle_deg( A, B, C ) ->
 -spec angle_deg( any_point2(), any_point2(), any_point2() ) -> int_degrees().
 angle_deg( A, B, C ) ->
 	math_utils:canonify(
-		math_utils:radian_to_degree( angle_rad( A, B, C ) ) ).
+		math_utils:radians_to_degrees( angle_rad( A, B, C ) ) ).
 
 
 

@@ -42,14 +42,16 @@
 % http://www.opengl-tutorial.org/beginners-tutorials/tutorial-5-a-textured-cube/
 
 
-% For GL/GLU defines:
--include("gui_opengl.hrl").
-% For user code: -include_lib("myriad/include/gui_opengl.hrl").
+% For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
+
+% For reuse by other tests:
+-export([ get_test_texture_path/0 ]).
 
 
 % Test-specific overall GUI state:
@@ -67,7 +69,7 @@
 	% The image as loaded from file, to be transformed in a texture:
 	image :: image(),
 
-	% Must need an OpenGL context:
+	% Needs an OpenGL context:
 	texture :: maybe( texture() ),
 
 	% Here just a boolean; in more complex cases, would be a maybe-(OpenGL
@@ -89,7 +91,8 @@
 
 -type gl_canvas() :: gui:opengl_canvas().
 -type gl_context() :: gui:opengl_context().
--type texture() :: gui:opengl_context().
+
+-type texture() :: gui_texture:texture().
 
 
 
@@ -179,6 +182,10 @@ get_test_texture_path() ->
 	"../../../../doc/myriad-title.png". % RGBA
 	%"../../../../doc/myriad-lorenz-test.png". % RGB
 	%"../../../../doc/test_pdf_sampled_function.png". % Color-map
+	% From https://learnopengl.com/img/textures/container.jpg:
+	%"container.jpg".
+	%"wall.jpg".
+
 
 
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
@@ -370,10 +377,14 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	gl:matrixMode( ?GL_PROJECTION ),
 	gl:loadIdentity(),
 
-	% Upside-down viewport; like glu:ortho2D/4:
+	% An upside-down viewport was used to compensate for the flipped Y-axis with
+	% OpenGL; yet now MyriadGUI automatically flips vertically textures when
+	% loaded from images:
+	%
+	% (like glu:ortho2D/4)
 	gl:ortho( _Left=0.0, _Right=float( CanvasWidth ),
-			  % So not '_Bottom=0.0, _Top=float( CanvasHeight ),':
-			  _Bottom=float( CanvasHeight ), _Top=0.0,
+			  % So not '_Bottom=float( CanvasHeight ), _Top=0.0,' anymore:
+			  _Bottom=0.0, _Top=float( CanvasHeight ),
 			  _Near=-1.0, _Far=1.0 ),
 
 	gl:matrixMode( ?GL_MODELVIEW ),

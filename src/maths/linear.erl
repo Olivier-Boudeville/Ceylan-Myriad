@@ -37,6 +37,9 @@
 -compile( { inline_size, ?inline_size } ).
 
 
+% General notes: linear operations (matrices, vectors, etc.) could be done based
+% on Blas (see https://github.com/erlef/blas).
+
 
 % These type names are too general to be defined in the hrl file (i.e. in the
 % root namespace).

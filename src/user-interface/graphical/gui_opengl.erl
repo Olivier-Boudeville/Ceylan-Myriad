@@ -299,7 +299,6 @@
 % that may significantly impact buffer object performance.
 
 
-
 -type buffer_access_usage() ::
 	'draw'  % The buffer will be modified by the application, and used as
 			% the source for GL drawing and image specification commands.
@@ -434,6 +433,60 @@
 % Any application-level identifier assigned to a debug message.
 
 
+
+% Linear types handled by the 'gl' module.
+
+% These are then transformed into C data types that the actual OpenGL library
+% can handle.
+%
+% With 'gl', no distinction is made between vectors and points: tuples (most
+% often of float()) are used.
+%
+% With Myriad, vectors are lists and points are tuples.
+%
+% In practice no transformation is needed for vertices (for Myriad, these are
+% points, thus already the tuples that gl expects).
+%
+% Yet normals are vectors, and thus should be lists in Myriad. Using
+% tuple_vector/* is then permitted to spare useless conversions between lists
+% and tuples.
+
+
+-type gl_vector2() :: { f(), f() }. % A.k.a. point2:point2().
+% A 2D (float) vector, according to the conventions of the gl module.
+
+-type gl_vector3() :: { f(), f(), f() }. % A.k.a. point3:point3().
+ % A 3D (float) vector, according to the conventions of the gl module.
+
+-type gl_vector4() :: { f(), f(), f(), f() }. % A.k.a. point4:point4().
+ % A (float) 4D vector, according to the conventions of the gl module.
+
+
+% For matrices, gl uses tuples of floats in their OpenGL standard "column major"
+% order.
+%
+% This corresponds to Myriad canonical matrices once their first element (e.g
+% 'matrix2'), which corresponds to the record tag, has been chopped.
+
+
+-type gl_matrix2() :: { f(), f(), f(), f() }.
+% A 2x2 (float) matrix (hence with 4 elements), according to the conventions of
+% the gl module.
+
+
+-type gl_matrix3() :: { f(), f(), f(), f(), f(), f(), f(), f(), f() }.
+% A 3x3 (float) matrix (hence with 9 elements), according to the conventions of
+% the gl module.
+
+
+-type gl_matrix4() :: { f(), f(), f(), f(), f(), f(), f(), f(), f(),
+						f(), f(), f(), f(), f(), f(), f() }.
+% A 4x4 (float) matrix (hence with 16 elements), according to the conventions of
+% the gl module.
+
+
+
+
 -type debug_context_message() :: { debug_message_id(), Message :: bin_string(),
 	actual_debug_severity(), actual_debug_source(), actual_debug_type() }.
 % A message in the debug context, with its metadata.
@@ -453,6 +506,11 @@
 			   glu_id/0,
 
 			   polygon_facing_mode/0, rasterization_mode/0 ]).
+
+
+% For gl linear types:
+-export_type([ gl_vector2/0, gl_vector3/0, gl_vector4/0,
+			   gl_matrix2/0, gl_matrix3/0, gl_matrix4/0 ]).
 
 
 % For the debug context:
@@ -480,7 +538,7 @@
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
 
-		  get_size_of_elements/2 ]).
+		  get_component_size/1 ]).
 
 
 % Error-related operations:
@@ -529,8 +587,8 @@
 
 % Shorthands:
 
+-type f() :: float().
 
--type count() :: basic_utils:count().
 -type two_digit_version() :: basic_utils:two_digit_version().
 -type three_digit_version() :: basic_utils:three_digit_version().
 
@@ -542,6 +600,7 @@
 
 -type bit_size() :: system_utils:bit_size().
 -type byte_size() :: system_utils:byte_size().
+
 
 -type any_vertex3() :: point3:any_vertex3().
 
@@ -653,7 +712,8 @@ get_renderer_name() ->
 % @doc Returns the full version of the currently used OpenGL implementation, as
 % a string (if any) returned by the driver.
 %
-% Example: `"4.6.0 FOOBAR 495.44"'.
+% Example: `"4.6.0 FOOBAR 495.44"', or `"4.6 (Compatibility Profile) Mesa
+% 23.0.2"'.
 %
 % Only available if a current OpenGL context is set.
 %
@@ -709,6 +769,10 @@ get_version() ->
 			AssumedVersion;
 
 		VersionStr ->
+
+			%trace_utils:debug_fmt( "OpenGL version string: '~ts'.",
+			%                       [ VersionStr ] ),
+
 			% Parsing "4.6.0 FOOBAR 495.44" for example:
 			{ MajStr, MinStr, Release } = case text_utils:split( VersionStr,
 					_Delimiters=[ $., $ ] ) of
@@ -718,6 +782,10 @@ get_version() ->
 					trace_utils:warning( "No release version for OpenGL "
 										 "returned, assuming 0."),
 					{ MajorStr, MinorStr, _ReleaseI=0 };
+
+				% Typically Mesa:
+				[ MajorStr, MinorStr, "(Compatibility" | _ ] ->
+					{ MajorStr, MinorStr, 0 };
 
 				[ MajorStr, MinorStr, ReleaseStr | _ ] ->
 					ReleaseI = case text_utils:try_string_to_integer(
@@ -879,7 +947,7 @@ get_support_description() ->
 	Exts = get_supported_extensions(),
 
 	% get_supported_profile/0 will use it:
-	init_info_table( Exts ),
+	TId = init_info_table( Exts ),
 
 	VendStr = text_utils:format( "driver vendor: ~ts", [ get_vendor_name() ] ),
 
@@ -889,7 +957,7 @@ get_support_description() ->
 	% Checks that a proper version could be obtained indeed:
 	ImplStr = text_utils:format( "implementation version: described as '~ts', "
 		"i.e. ~ts", [ get_version_string(),
-					  text_utils:version_to_string( get_version() ) ] ),
+					  text_utils:version_to_string( get_version( TId ) ) ] ),
 
 	ProfStr = text_utils:format( "supported profile: ~ts",
 		[ get_supported_profile() ] ),
@@ -1195,14 +1263,12 @@ insert_debug_context_message( MsgId, Msg, MsgSeverity, MsgSource, MsgType ) ->
 
 	GLMsgType = gui_opengl_generated:get_second_for_debug_type( MsgType ),
 
-	gl:debugMessageInsert( GLMsgSource, GLMsgType, MsgId, GLMsgSeverity,
-						   length( Msg ), Msg ),
+	gl:debugMessageInsert( GLMsgSource, GLMsgType, MsgId, GLMsgSeverity, Msg ),
 
 	% Only pure GL checked, not its debug context as of course it has a message
 	% now:
 	%
-	cond_utils:if_defined( myriad_check_opengl,
-						   check_gl_error() ).
+	cond_utils:if_defined( myriad_check_opengl, check_gl_error() ).
 
 
 
@@ -1250,24 +1316,8 @@ get_debug_context_messages( MsgSource, MsgType, MsgSeverity ) ->
 fetch_debug_context_messages( BufferByteCount, MaxMsgCount, GLMsgSource,
 							  GLMsgType, GLMsgSeverity, Acc ) ->
 
-	%{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLogs } =
-
-	% Temporary fix:
-	{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLog } =
+	{ FetchCount, GLSources, GLTypes, Ids, Severities, MessageLogs } =
 		gl:getDebugMessageLog( MaxMsgCount, BufferByteCount ),
-	MessageLogs = case FetchCount of
-
-		0 ->
-			[];
-
-		1 ->
-			[ MessageLog ];
-
-		_ ->
-			[ MessageLog | list_utils:duplicate( "(MyriadGUI fix)",
-												 _Count=FetchCount-1 ) ]
-
-	end,
 
 	% Not done, otherwise infinite recursion:
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
@@ -1416,33 +1466,33 @@ check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
 
 
 
-% @doc Returns the number of bytes used by the specified number of elements of
-% the specified GL type.
+% @doc Returns the size of a component the specified GL type, once it is
+% serialised (typically in a buffer - and regardless of the Erlang datatypes).
 %
--spec get_size_of_elements( count(), gl_base_type() ) -> byte_size().
-get_size_of_elements( Count, _GLType=?GL_BYTE ) ->
-	Count;
+-spec get_component_size( gl_base_type() ) -> byte_size().
+get_component_size( _GLType=?GL_BYTE ) ->
+	1;
 
-get_size_of_elements( Count, _GLType=?GL_UNSIGNED_BYTE ) ->
-	Count;
+get_component_size( _GLType=?GL_UNSIGNED_BYTE ) ->
+	1;
 
-get_size_of_elements( Count, _GLType=?GL_UNSIGNED_SHORT ) ->
-	2*Count;
+get_component_size( _GLType=?GL_UNSIGNED_SHORT ) ->
+	2;
 
-get_size_of_elements( Count, _GLType=?GL_SHORT ) ->
-	2*Count;
+get_component_size( _GLType=?GL_SHORT ) ->
+	2;
 
-get_size_of_elements( Count, _GLType=?GL_UNSIGNED_INT ) ->
-	4*Count;
+get_component_size( _GLType=?GL_UNSIGNED_INT ) ->
+	4;
 
-get_size_of_elements( Count, _GLType=?GL_INT ) ->
-	4*Count;
+get_component_size( _GLType=?GL_INT ) ->
+	4;
 
-get_size_of_elements( Count, _GLType=?GL_FLOAT ) ->
-	4*Count;
+get_component_size( _GLType=?GL_FLOAT ) ->
+	4;
 
-get_size_of_elements( Count, _GLType=?GL_DOUBLE ) ->
-	8*Count.
+get_component_size( _GLType=?GL_DOUBLE ) ->
+	8.
 
 
 
@@ -1775,11 +1825,14 @@ enter_2d_mode( Window ) ->
 	%
 	% It is the opposite by default with OpenGL (increasing from bottom to top;
 	% the elements would therefore be upside-down in the OpenGL world), so in
-	% the next orthogonal projection bottom and top coordinates are mirrored;
-	% then OpenGL complies with the previous convention.
+	% the next orthogonal projection bottom and top coordinates used to be
+	% mirrored; then OpenGL complied with the previous convention.
 	%
-	% Doing so is more relevant than flipping the textures/images themselves, as
-	% the projection also applies to mouse coordinates.
+	% Doing so may be more relevant than flipping the textures/images
+	% themselves, as the projection also applies to mouse coordinates.
+	%
+	% Yet now we prefer directly flipping vertically (upside-down) the textures
+	% at creation.
 
 	% Multiplies the projection matrix with this orthographic one, assuming that
 	% the eye is located at (0, 0, 0); implements the MyriadGUI 2D conventions,
@@ -1788,8 +1841,10 @@ enter_2d_mode( Window ) ->
 	%
 	% (corresponds to glu:ortho2D/4)
 	%
-	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
-			  _Top=0.0, _Near=-1.0, _Far=1.0 ),
+	%gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=float( Height ),
+	%          _Top=0.0, _Near=-1.0, _Far=1.0 ),
+	gl:ortho( _Left=0.0, _Right=float( Width ), _Bottom=0.0,
+			  _Top=float( Height ), _Near=-1.0, _Far=1.0 ),
 
 	% Then reseting the modelview matrix:
 	gl:matrixMode( ?GL_MODELVIEW ),
@@ -2024,6 +2079,21 @@ check_gl_error() ->
 
 -spec check_gl_error( boolean() ) -> void().
 check_gl_error( DoThrowOnError ) ->
+
+	%DoTrace = true,
+	DoTrace = false,
+
+	DoTrace andalso
+		begin
+
+			{ TMod, TFunc, TArity, [ { file, TSrcFile },
+									 { line, TLine } ] } =
+				hd( code_utils:get_stacktrace( _SkipLastElemCount=3 ) ),
+
+			trace_utils:debug_fmt( "Check in ~ts:~ts/~B (file ~ts, "
+				"line ~B)", [ TMod, TFunc, TArity, TSrcFile, TLine ] )
+
+		end,
 
 	% Reset the error status when returning:
 	case gl:getError() of

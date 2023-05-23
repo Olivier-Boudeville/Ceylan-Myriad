@@ -40,21 +40,23 @@
 in vec3 my_input_vertex;
 in vec2 my_input_tex_coord;
 
+
 // Uncomment if not using user vertex attributes:
 /*
 layout (location = 0) in vec3 my_input_vertex;
 layout (location = 1) in vec2 my_input_tex_coord;
+layout (location = 2) in mat4 my_model_view_matrix;
 */
 
 
-/* Just defined to test the uniform support (will not be found if not explicitly
- * used afterwards):
- *
- */
-uniform vec4 some_vector;
-
-//out vec3 my_color;
 out vec2 my_tex_coord;
+
+// The model-view matrix established by the Erlang side of this test:
+uniform mat4 my_model_view_matrix;
+
+
+// The projection matrix cooked by the Erlang side as well:
+uniform mat4 my_projection_matrix;
 
 
 void main(){
@@ -67,14 +69,8 @@ void main(){
 	/* This is an identity transformation, basically (so my_input_vertex is
 	 * expected to be already in normalized device coordinates):
 	 */
-	gl_Position = vec4( my_input_vertex, 1.0 );
+	gl_Position = my_projection_matrix * my_model_view_matrix * vec4( my_input_vertex, 1.0 );
 
-	// Could have been as well:
-	/* gl_Position = vec4( my_input_vertex.x, my_input_vertex.y,
-	 *                     my_input_vertex.z, 1.0 );
-	 */
-
-	//gl_Position = some_vector;
 
 	// Read by the vertex shader in order to forward it to the fragment shader:
 	my_tex_coord = my_input_tex_coord;

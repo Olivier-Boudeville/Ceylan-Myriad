@@ -50,11 +50,19 @@
 % Supposing a right-handed referential, row-major order and matrix
 % multiplication on the right (post-multiplication).
 %
-% As a result, matrices here are the transpose of GLM or e3d ones.
+% As a result, matrices here are the transposed versions of GLM or e3d ones.
 
 % Potential sources of inspiration:
 % - glm: glm/ext/matrix_clip_space.inl
 % - Wings3D: e3d/e3d_transform.erl for project, unproject, lookat, pick
+
+
+% We define translate_homogeneous/2, rotate_homogeneous/3, scale_homogeneous/2
+% that operate on an homogeneous matrix and return an updated version
+% thereof. Note though that updating repeatedly a matrix (e.g. by applying it a
+% new rotation each frame) is prone to the accumulation of rounding errors. A
+% better practice is to each time recompute the matrix from scratch from
+% higher-level parameters, which can then be safely updated.
 
 
 % For printout_*, inline_size, etc.:
@@ -71,6 +79,7 @@
 -include("matrix4.hrl").
 
 
+
 -type user_matrix4() :: user_matrix().
 % A matrix4 can be specified as a list of same-size rows (akin to a user
 % arbitrary matrix) containing any kind of numerical coordinates.
@@ -84,11 +93,16 @@
 
 
 -type compact_matrix4() :: #compact_matrix4{}.
-% Aliases for 4x4 compact matrices.
-
+% Alias for 4x4 compact matrices.
 
 -type rot_matrix4() :: canonical_matrix4().
 % A matrix describing a 4D rotation.
+
+
+-type homogeneous_matrix4() :: 'identity_4' | compact_matrix4().
+% A matrix4 that corresponds to an homogeneous one.
+%
+% So we do not expect canonical matrices here.
 
 
 -type tuple_matrix4() :: % Not exported yet: gl:m12() | gl:m16().
@@ -97,12 +111,12 @@
 
 
 -export_type([ user_matrix4/0, matrix4/0, canonical_matrix4/0,
-			   compact_matrix4/0, rot_matrix4/0, tuple_matrix4/0 ]).
+			   compact_matrix4/0, rot_matrix4/0, homogeneous_matrix4/0,
+			   tuple_matrix4/0 ]).
 
 
 -export([ new/1, new/3, null/0, identity/0, translation/1, scaling/1,
 		  rotation/2,
-		  orthographic/6, perspective/4, frustum/6,
 		  from_columns/4, from_rows/4,
 		  compact_from_columns/4,
 		  from_coordinates/16, from_compact_coordinates/12,
@@ -115,6 +129,11 @@
 		  scale/2,
 		  add/2, sub/2, mult/2, mult/1, apply/2,
 		  are_equal/2,
+		  translate_homogeneous/2, rotate_homogeneous/3,
+
+		  scale_homogeneous/2,
+		  scale_homogeneous_x/2, scale_homogeneous_y/2, scale_homogeneous_z/2,
+
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
 		  from_tuple/1, to_tuple/1,
@@ -135,16 +154,12 @@
 -type ustring() :: text_utils:ustring().
 
 -type factor() :: math_utils:factor().
--type ratio() :: math_utils:ratio().
 
 -type radians() :: unit_utils:radians().
--type any_degrees() :: unit_utils:any_degrees().
 
 -type coordinate() :: linear:coordinate().
 -type dimension() :: linear:dimension().
 -type scalar() :: linear:scalar().
--type distance() :: linear:distance().
--type signed_distance() :: linear:signed_distance().
 
 -type point3() :: point3:point3().
 -type unit_vector3() :: vector3:unit_vector3().
@@ -290,151 +305,6 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 	#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Zero,
 					  m21=M21, m22=M22, m23=M23, ty=Zero,
 					  m31=M31, m32=M32, m33=M33, tz=Zero }.
-
-
-
-% @doc Returns a matrix for orthographic projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - Left and Right are the coordinates for the left and right vertical clipping
-% planes
-%  - Bottom and Top are the coordinates for the bottom and top horizontal
-% clipping planes
-%  - ZNear and ZFar are the signed distances to the nearer and farther depth
-%  clipping planes; these values are negative if the plane is to be behind the
-%  viewer
-%
-% Note that the context is a right-handed referential with a clip space in
-% [-1.0, 1.0].
-%
--spec orthographic( coordinate(), coordinate(), coordinate(), coordinate(),
-					signed_distance(), signed_distance() ) -> compact_matrix4().
-orthographic( Left, Right, Bottom, Top, ZNear, ZFar ) ->
-
-	% References:
-	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glOrtho.xml
-	% and glm:orthoRH_NO.
-
-	Zero = 0.0,
-
-	VFactorInv = 1.0 / (Right - Left),
-	HFactorInv = 1.0 / (Top - Bottom),
-	MinusZFactorInv = 1.0 / (ZNear - ZFar),
-
-	M11 = 2 * VFactorInv,
-	M22 = 2 * HFactorInv,
-	M33 = 2 * MinusZFactorInv,
-
-	Tx = - (Right + Left) * VFactorInv,
-	Ty = - (Top + Bottom) * HFactorInv,
-	Tz = (ZNear + ZFar) * MinusZFactorInv,
-
-	#compact_matrix4{ m11=M11,  m12=Zero, m13=Zero, tx=Tx,
-					  m21=Zero, m22=M22,  m23=Zero, ty=Ty,
-					  m31=Zero, m32=Zero, m33=M33,  tz=Tz }.
-
-
-
-% @doc Returns a matrix for perspective projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - FoVYAngle is the field of view angle, in degrees, in the Y (vertical)
-%  direction
-%  - AspectRatio determines the field of view in the X (horizontal) direction:
-%  AspectRatio = Width/Height
-%  - ZNear specifies the distance from the viewer to the near clipping plane
-%  (always strictly positive)
-%  - ZFar specifies the distance from the viewer to the far clipping plane
-%  (always positive)
-%
-% For example Mp = matrix4:perspective( _FoVYAngle=60.0,
-%   _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
-%
-% Note that the context is a right-handed referential with a clip space in
-% [-1.0, 1.0].
-%
--spec perspective( any_degrees(), ratio(), distance(), distance() ) ->
-										matrix4().
-perspective( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
-
-	% References:
-	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
-	% and glm:perspectiveRH_NO.
-
-	cond_utils:assert( myriad_check_linear,
-					   not math_utils:is_null( AspectRatio ) ),
-
-	% cotan(A) = 1/tan(A)
-
-	Zero = 0.0,
-
-	ZFactor = 1.0 / (ZNear - ZFar),
-
-	TanHalfFovyInv = 1 / math:tan( FoVYAngle / 2.0 ),
-
-	M11 = TanHalfFovyInv / AspectRatio,
-
-	M22 = TanHalfFovyInv,
-
-	M33 = ( ZNear + ZFar ) * ZFactor,
-
-	M34 = 2 * ZFar * ZNear * ZFactor,
-
-	% No possible compact form:
-	#matrix4{ m11=M11,  m12=Zero, m13=Zero, m14=Zero,
-			  m21=Zero, m22=M22,  m23=Zero, m24=Zero,
-			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
-			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
-
-
-
-% @doc Returns a matrix for perspective projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - Left and Right are the coordinates for the left and right vertical clipping
-% planes
-%  - Bottom and Top are the coordinates for the bottom and top horizontal
-% clipping planes
-%  - ZNear specifies the distance from the viewer to the near clipping plane
-%  (always strictly positive)
-%  - ZFar specifies the distance from the viewer to the far clipping plane
-%  (always positive)
-%
-% Note that the context is a right-handed referential with a clip space in
-% [-1.0, 1.0].
-%
--spec frustum( coordinate(), coordinate(), coordinate(), coordinate(),
-			   distance(), distance() ) -> matrix4().
-frustum( Left, Right, Bottom, Top, ZNear, ZFar ) ->
-
-	% References:
-	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/glFrustum.xml
-	% and glm:frustumRH_NO.
-
-	Zero = 0.0,
-
-	VFactorInv = 1.0 / (Right - Left),
-	HFactorInv = 1.0 / (Top - Bottom),
-	MinusZFactorInv = 1.0 / (ZNear - ZFar),
-	TwoNear = 2.0 * ZNear,
-
-	M11 = TwoNear * VFactorInv,
-	M13 = (Right + Left) * VFactorInv,
-
-	M22 = TwoNear * HFactorInv,
-	M23 = (Top + Bottom) * HFactorInv,
-	M33 = (ZFar + ZNear) * MinusZFactorInv,
-
-	M34 = TwoNear * ZFar * MinusZFactorInv,
-
-	% No possible compact form:
-	#matrix4{ m11=M11,  m12=Zero, m13=M13,  m14=Zero,
-			  m21=Zero, m22=M22,  m23=M23,  m24=Zero,
-			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
-			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
 
 
 
@@ -774,7 +644,7 @@ transpose( CompactMatrix ) ->
 
 
 
-% @doc Scales specified (4D) matrix of the specified factor.
+% @doc Scales the specified (4D) matrix of the specified factor.
 -spec scale( matrix4(), factor() ) -> matrix4().
 scale( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 						 m21=M21, m22=M22, m23=M23, ty=Ty,
@@ -798,6 +668,13 @@ scale( #matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
 			  m41=Factor*M41, m42=Factor*M42, m43=Factor*M43, m44=Factor*M44 };
 
 scale( M=identity_4, Factor ) ->
+
+	% Not necessarily an homogeneous matrix:
+	%Zero = 0.0,
+	%#compact_matrix4{ m11=Factor, m12=Zero,   m13=Zero,   tx=Zero,
+	%                  m21=Zero,   m22=Factor, m23=Zero,   ty=Zero,
+	%                  m31=Zero,   m32=Zero,   m33=Factor, tz=Zero }.
+
 	scale( to_canonical( M ), Factor ).
 
 
@@ -1278,6 +1155,145 @@ are_equal( Ma=identity_4, Mb ) ->
 
 
 
+% @doc Updates the translation part of the specified matrix, considered to be an
+% homogeneous transformation one, by adding it the specified vector.
+%
+% A lot more efficient than creating a dedicated translation matrix Mt and
+% returning HM.Mt.
+%
+-spec translate_homogeneous( HM :: homogeneous_matrix4(), vector3() ) ->
+											homogeneous_matrix4().
+% Not activated, as not expected to be a canonical one:
+%
+% (we also may have messed with the m44 homogeneous element, but we tend to
+% prefer keeping it at 1.0)
+%
+%translate_homogeneous( M=#matrix4{ m14=M14,
+%                                   m24=M24,
+%                                   m34=M34 }, _VT=[ Tx, Ty, Tz ] ) ->
+% Homogeneous W element m44 not modified.
+%   M#matrix4{ m14=M14+Tx,
+%              m24=M24+Ty,
+%              m34=M34+Tz };
+
+translate_homogeneous( M=#compact_matrix4{ tx=M14,
+										   ty=M24,
+										   tz=M34 }, _VT=[ Tx, Ty, Tz ] ) ->
+	M#compact_matrix4{ tx=M14+Tx,
+					   ty=M24+Ty,
+					   tz=M34+Tz };
+
+translate_homogeneous( _M=identity_4, VT ) ->
+	translation( VT ).
+
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying on its right the specified rotation.
+%
+% Returns therefore HM.RotM.
+%
+-spec rotate_homogeneous( HM :: homogeneous_matrix4(), unit_vector3(),
+						  radians() ) -> homogeneous_matrix4().
+rotate_homogeneous( HM, UnitAxis, RadAngle ) ->
+	RotM = rotation( UnitAxis, RadAngle ),
+	mult( HM, RotM ).
+
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying the specified (uniform) shearing factor to the
+% top-left 3x3 matrix (rightmost column not modified).
+%
+-spec scale_homogeneous( HM :: homogeneous_matrix4(), factor() ) ->
+											compact_matrix4().
+scale_homogeneous( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13,   %tx=Tx,
+										m21=M21, m22=M22, m23=M23,   %ty=Ty,
+										m31=M31, m32=M32, m33=M33 }, %tz=Tz },
+				   Factor ) ->
+	HM#compact_matrix4{ m11=Factor*M11, m12=Factor*M12, m13=Factor*M13,
+						m21=Factor*M21, m22=Factor*M22, m23=Factor*M23,
+						m31=Factor*M31, m32=Factor*M32, m33=Factor*M33 };
+
+scale_homogeneous( identity_4, Factor ) ->
+	Zero = 0.0,
+	#compact_matrix4{ m11=Factor, m12=Zero,   m13=Zero,   tx=Zero,
+					  m21=Zero,   m22=Factor, m23=Zero,   ty=Zero,
+					  m31=Zero,   m32=Zero,   m33=Factor, tz=Zero }.
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying the specified (uniform) shearing factor to the
+% leftmost column (X) of the top-left 3x3 matrix (rightmost column of the 4x4
+% matrix not modified).
+%
+-spec scale_homogeneous_x( HM :: homogeneous_matrix4(), factor() ) ->
+											compact_matrix4().
+scale_homogeneous_x( HM=#compact_matrix4{ m11=M11,   %m12=M12, m13=M13, tx=Tx,
+										  m21=M21,   %m22=M22, m23=M23, ty=Ty,
+										  m31=M31 }, %m32=M32, m33=M33  tz=Tz },
+					 Factor ) ->
+	HM#compact_matrix4{ m11=Factor*M11,
+						m21=Factor*M21,
+						m31=Factor*M31 };
+
+scale_homogeneous_x( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=Factor, m12=Zero,   m13=Zero, tx=Zero,
+					  m21=Zero,   m22=One,    m23=Zero, ty=Zero,
+					  m31=Zero,   m32=Zero,   m33=One,  tz=Zero }.
+
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying the specified (uniform) shearing factor to the
+% middle column (Y) of the top-left 3x3 matrix (rightmost column of the 4x4
+% matrix not modified).
+%
+-spec scale_homogeneous_y( HM :: homogeneous_matrix4(), factor() ) ->
+											compact_matrix4().
+scale_homogeneous_y( HM=#compact_matrix4{ m12=M12,
+										  m22=M22,
+										  m32=M32 },
+					 Factor ) ->
+	HM#compact_matrix4{ m12=Factor*M12,
+						m22=Factor*M22,
+						m32=Factor*M32 };
+
+scale_homogeneous_y( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=One,  m12=Zero,   m13=Zero, tx=Zero,
+					  m21=Zero, m22=Factor, m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero,   m33=One,  tz=Zero }.
+
+
+% @doc Updates the specified matrix, considered to be an homogeneous
+% transformation one, by applying the specified (uniform) shearing factor to the
+% righttmost column (Z) of the top-left 3x3 matrix (rightmost column of the 4x4
+% matrix not modified).
+%
+-spec scale_homogeneous_z( HM :: homogeneous_matrix4(), factor() ) ->
+											compact_matrix4().
+scale_homogeneous_z( HM=#compact_matrix4{ m12=M13,
+										  m22=M23,
+										  m32=M33 },
+					 Factor ) ->
+	HM#compact_matrix4{ m13=Factor*M13,
+						m23=Factor*M23,
+						m33=Factor*M33 };
+
+scale_homogeneous_z( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=One,  m12=Zero, m13=Zero,   tx=Zero,
+					  m21=Zero, m22=One,  m23=Zero,   ty=Zero,
+					  m31=Zero, m32=Zero, m33=Factor, tz=Zero }.
+
+
+
+
 % @doc Returns the determinant of the specified matrix.
 -spec determinant( matrix4() ) -> scalar().
 determinant( _M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
@@ -1623,3 +1639,4 @@ to_string( CptMatrix=#compact_matrix4{} ) ->
 	FormatStr = "~n" ++ text_utils:duplicate( ?dim, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs ).
+

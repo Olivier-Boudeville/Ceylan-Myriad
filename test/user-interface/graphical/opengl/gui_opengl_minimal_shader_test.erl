@@ -27,7 +27,8 @@
 
 
 % @doc Minimal testing of the <b>OpenGL GLSL support</b>: displays, based on
-% shaders, a Myriad-blue triangle on a white background.
+% shaders, a Myriad-blue polygon (actually a triangle and a rectangle that
+% intersect each other) on a white background.
 %
 % It is therefore a non-interactive, passive test (no spontaneous/scheduled
 % behaviour) whose main interest is to show a simple yet generic, appropriate
@@ -37,7 +38,7 @@
 % This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
 % as opposed to the compatibility mode for OpenGL 1.x.
 %
-% See the gui_opengl.erl tested module.
+% See the gui_opengl tested module.
 %
 -module(gui_opengl_minimal_shader_test).
 
@@ -51,9 +52,8 @@
 % well.
 
 
-% For GL/GLU defines:
--include("gui_opengl.hrl").
-% For user code: -include_lib("myriad/include/gui_opengl.hrl").
+% For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
+-include_lib("myriad/include/myriad_gui.hrl").
 
 
 % For run/0 export and al:
@@ -163,7 +163,7 @@ run_opengl_test() ->
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	test_facilities:display( "This test will display a Myriad-blue triangle "
+	test_facilities:display( "This test will display a Myriad-blue polygon "
 							 "on a white background." ),
 
 	gui:start(),
@@ -386,7 +386,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	SomeVectorUnifName = "some_vector",
 
 	% Usable as soon as the program is linked; will be found iff declared but
-	% also explicitly used in at least a shader:
+	% also explicitly used in at least one shader:
 	%
 	case gui_shader:get_maybe_uniform_id( SomeVectorUnifName, ProgramId ) of
 
@@ -412,9 +412,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
-	MyriadBlueColor = [ 0.05, 0.2, 0.67 ],
-
-	gui_shader:set_uniform_3f( SomeColorUnifId, MyriadBlueColor ),
+	gui_shader:set_uniform_vector3( SomeColorUnifId,
+									gui_opengl_minimal_test:get_myriad_blue() ),
 
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two
@@ -453,7 +452,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% specifies its structure, VAO so that it can record that attribute
 	% specification):
 	%
-	gui_shader:specify_vertex_attribute( ?my_vertex_attribute_index ),
+	gui_shader:declare_vertex_attribute( ?my_vertex_attribute_index ),
 
 
 	% Second, a square, whose vertices are specified this time through indices:
@@ -479,7 +478,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	SquareVBOId = gui_shader:assign_vertices_to_new_vbo( SquareVertices ),
 
 	% Specified while the square VBO and VAO are still active:
-	gui_shader:specify_vertex_attribute( ?my_vertex_attribute_index ),
+	gui_shader:declare_vertex_attribute( ?my_vertex_attribute_index ),
 
 	% We describe our square as two triangles in CCW order; the first, S0-S1-S3
 	% on the bottom left, the second, S1-S2-S3 on the top right; we have just a
@@ -617,11 +616,11 @@ render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
 	%gui_shader:set_current_vbo_from_id( TriangleVBOId ),
 	%gui_shader:enable_vertex_attribute( ?my_vertex_attribute_index ),
 
-	% Draws our splendid triangle (from 3 slots, starting at 0), using the
+	% Draws our splendid triangle (from 3 slots, starting at index 0), using the
 	% currently active shaders, vertex attribute configuration and with the
 	% VBO's vertex data (indirectly bound via the VAO):
 	%
-	gui_shader:render_from_enabled_vbos( PrimType, _StartIndex=0, _VCount=3 ),
+	gui_shader:render_from_enabled_vbos( PrimType, _VCount=3 ),
 
 
 	% Second, rendering the square:
@@ -637,7 +636,7 @@ render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
 	%gui_shader:set_current_ebo_from_id( SquareEBOId ),
 
 	% This count corresponds to length(SquareIndices):
-	gui_shader:render_from_enabled_ebos( PrimType, _VertexCount=6 ),
+	gui_shader:render_from_enabled_ebo( PrimType, _VertexCount=6 ),
 
 	gui_shader:unset_current_vao(),
 

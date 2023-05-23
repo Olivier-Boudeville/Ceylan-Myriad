@@ -1449,11 +1449,11 @@ reconstruct_tuples( List, TupleSize, Acc ) ->
 
 
 % @doc Performs a generalization of zip2, zip3: takes one element at a time of
-% each of the input lists, and add it to a corresponding tuple.
+% each of the input lists, and adds it to a corresponding tuple.
 %
 % For example, list_utils:zipn([_L1=[a,b,c], _L2=[1,2,3],
 % _L3=[true,false,undefined]]) will return a list containing triplets (as there
-% are 3 lists), whose elements are taken from each of the inputs list, in order:
+% are 3 lists), whose elements are taken from each of the input lists, in order:
 % [[a,1,true],[b,2,false],[c,3,undefined]].
 %
 -spec zipn( [ list() ] ) -> list( tuple() ).

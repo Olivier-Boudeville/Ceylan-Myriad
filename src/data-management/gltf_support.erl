@@ -22,8 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Monday, October 4, 2021.
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Monday, October 4, 2021.
 
 
 % @doc Gathering of various facilities about the <b>glTF 2.0</b> file format (GL
@@ -1659,7 +1659,7 @@ json_to_gltf_buffer( JsonTerm ) ->
 % https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#accessor-data-types
 %
 -spec get_element_type_associations() ->
-					 bijective_table( element_type(), gltf_element_type() ).
+					bijective_table( element_type(), gltf_element_type() ).
 get_element_type_associations() ->
 	% glTF has no notion of points/vertices (just vectors):
 	bijective_table:new( [ { scalar, <<"SCALAR">> },
@@ -2853,7 +2853,7 @@ extract_all_uint16_little( Bin ) ->
 extract_all_uint16_little( _Bin= <<>>, Acc ) ->
 	lists:reverse( Acc );
 
-extract_all_uint16_little( _Bin= <<UI:16/little-unsigned-integer,Rest/binary>>,
+extract_all_uint16_little( _Bin= <<UI:16/little-unsigned-integer, Rest/binary>>,
 						   Acc ) ->
 	extract_all_uint16_little( Rest, [ UI | Acc ] ).
 
@@ -2871,7 +2871,7 @@ extract_all_float32_little( Bin ) ->
 extract_all_float32_little( _Bin= <<>>, Acc ) ->
 	lists:reverse( Acc );
 
-extract_all_float32_little( _Bin= <<F:32/float-little,Rest/binary>>, Acc ) ->
+extract_all_float32_little( _Bin= <<F:32/float-little, Rest/binary>>, Acc ) ->
 	extract_all_float32_little( Rest, [ F | Acc ] ).
 
 

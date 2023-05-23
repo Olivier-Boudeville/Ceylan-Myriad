@@ -31,7 +31,7 @@
 			rebar3-update rebar3-compile rebar3-create-tree                  \
 			rebar3-populate-build-tree rebar3-create-app-file                \
 			rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
-			rebar-test-clean                                                 \
+			rebar3-test-clean                                                \
 			rebar3-cache-clean rebar3-info rebar3-hex-publish                \
 			rebar3-local-update                                              \
 			test-hex-package                                                 \
@@ -838,12 +838,12 @@ rebar3-clean: clean-include-links rebar3-restore-unsupported-sources
 
 
 # Adding _build for increased safety:
-rebar3-real-clean: rebar3-clean rebar-test-clean rebar3-cache-clean
+rebar3-real-clean: rebar3-clean rebar3-test-clean rebar3-cache-clean
 	@echo "  Removing any prior rebar3 build root ($(MYRIAD_REBAR_BUILD_ROOT)), hence for all profiles"
 	-@/bin/rm -rf $(MYRIAD_REBAR_BUILD_ROOT) _build
 
 
-rebar-test-clean:
+rebar3-test-clean:
 	@echo  "  Cleaning rebar3+hex test directory $(MYRIAD_REBAR_TEST_DIR)"
 	-@/bin/rm -rf $(MYRIAD_REBAR_TEST_DIR)/_build
 	-@/bin/rm -f $(MYRIAD_REBAR_TEST_DIR)/rebar.lock
@@ -943,7 +943,7 @@ rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-
 rebar3-local-update:
 
 
-test-hex-package: rebar-test-clean
+test-hex-package: rebar3-test-clean
 	@echo "  Testing $(PROJECT_NAME) hex package ('$(PROJECT_NAME_FOR_REBAR)' package, version $(VERSION_FOR_REBAR)) in $(MYRIAD_REBAR_TEST_DIR) using $(MYRIAD_REBAR_EXEC)"
 	@cd conf && $(MAKE) -s rebar-for-testing.config && /bin/cp -f rebar-for-testing.config $(MYRIAD_REBAR_TEST_DIR)/rebar.config
 	@cd $(MYRIAD_REBAR_TEST_DIR) && $(MYRIAD_REBAR_EXEC) update && $(MYRIAD_REBAR_EXEC) compile
