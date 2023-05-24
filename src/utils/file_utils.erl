@@ -3086,6 +3086,11 @@ create_directory( AnyDirPath, create_no_parent ) ->
 		ok ->
 			ok;
 
+		{ error, eacces } ->
+			throw( { create_directory_failed,
+					 text_utils:ensure_string( AnyDirPath ), access_denied,
+					 get_directory_access_denied_info( AnyDirPath ) } );
+
 		{ error, Reason } ->
 			throw( { create_directory_failed, AnyDirPath, Reason } )
 
@@ -3328,21 +3333,27 @@ remove_file_or_link_if_existing( FileOrLinkPath ) ->
 % like the 'rmdir' shell command).
 %
 -spec remove_empty_directory( any_directory_path() ) -> void().
-remove_empty_directory( DirectoryPath ) ->
+remove_empty_directory( AnyDirPath ) ->
 
 	%trace_utils:warning_fmt( "## Removing empty directory '~ts'.",
-	%                         [ DirectoryPath ] ),
+	%                         [ AnyDirPath ] ),
 
-	case file:del_dir( DirectoryPath ) of
+	case file:del_dir( AnyDirPath ) of
 
 		ok ->
 			ok;
 
+		{ error, eacces } ->
+			throw( { remove_empty_directory_failed,
+					 text_utils:ensure_string( AnyDirPath ), access_denied,
+					 get_directory_access_denied_info( AnyDirPath ) } );
+
 		{ error, Reason } ->
 			trace_utils:error_fmt( "Removal of directory '~ts' failed: ~p.",
-								   [ DirectoryPath, Reason ] ),
+								   [ AnyDirPath, Reason ] ),
 			% Probably not so empty:
-			throw( { remove_empty_directory_failed, Reason, DirectoryPath } )
+			throw( { remove_empty_directory_failed,
+					 text_utils:ensure_string( AnyDirPath ), Reason } )
 
 	end.
 
@@ -3523,11 +3534,13 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
 		ok ->
 			ok;
 
-		{ error, Reason=eacces } ->
+		{ error, eacces } ->
 			throw( { copy_file_failed,
 					 text_utils:ensure_string( SourceFilePath ),
 					 text_utils:ensure_string( DestinationFilePath ),
-					 Reason, system_utils:get_user_name_safe() } );
+					 access_denied,
+					 get_file_access_denied_info( SourceFilePath ),
+					 get_file_access_denied_info( DestinationFilePath ) } );
 
 		{ error, Reason } ->
 			throw( { copy_file_failed,
@@ -4996,7 +5009,8 @@ open( AnyFilePath, Options, _AttemptMode=try_endlessly ) ->
 		{ error, eacces } ->
 			throw( { open_failed,
 					 { text_utils:ensure_string( AnyFilePath ), Options },
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, OtherFileError } ->
 			throw( { open_failed,
@@ -5020,7 +5034,8 @@ open( AnyFilePath, Options, _AttemptMode=try_once ) ->
 		{ error, eacces } ->
 			throw( { open_failed,
 					 { text_utils:ensure_string( AnyFilePath ), Options },
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, emfile } ->
 			throw( { too_many_open_files,
@@ -5041,15 +5056,17 @@ open( AnyFilePath, Options, _AttemptMode=try_once ) ->
 
 
 % (helper)
-get_access_denied_info( AnyFilePath ) ->
+get_file_access_denied_info( AnyFilePath ) ->
 
 	Dir = filename:dirname( AnyFilePath ),
 
 	case is_existing_directory( Dir ) of
 
 		true ->
-			UserInfo = { actual_user, system_utils:get_user_name_safe(),
-						 { user_id, system_utils:get_user_id() } },
+			UserInfo = [ { actual_user, system_utils:get_user_name_safe(),
+						   { user_id, system_utils:get_user_id() } },
+						 { actual_group, system_utils:get_group_name_safe(),
+						   { group_id, system_utils:get_group_id() } } ],
 
 			FileInfo = case is_existing_file_or_link( AnyFilePath ) of
 
@@ -5074,6 +5091,47 @@ get_access_denied_info( AnyFilePath ) ->
 
 		false ->
 			{ non_existing_directory, Dir }
+
+	end.
+
+
+% (helper)
+get_directory_access_denied_info( AnyDirPath ) ->
+
+	ParentDir = filename:dirname( AnyDirPath ),
+
+	case is_existing_directory( ParentDir ) of
+
+		true ->
+			UserInfo = [ { actual_user, system_utils:get_user_name_safe(),
+						   { user_id, system_utils:get_user_id() } },
+						 { actual_group, system_utils:get_group_name_safe(),
+						   { group_id, system_utils:get_group_id() } } ],
+
+			DirInfo = case is_existing_directory_or_link( AnyDirPath ) of
+
+				true ->
+					{ existing_directory,
+					  { owner_id, get_owner_of( AnyDirPath ) },
+					  { group_id, get_group_of( AnyDirPath ) },
+					  { permissions, get_permissions_of( AnyDirPath ) } };
+
+				false ->
+					non_existing_directory
+
+			end,
+
+			ParenDirOwnerInfo = { owner_id, get_owner_of( ParentDir ) },
+			ParenDirGroupInfo = { group_id, get_group_of( ParentDir ) },
+			ParenDirPerms = { permissions, get_permissions_of( ParentDir ) },
+
+			ParentDirInfo = { existing_directory, ParentDir, ParenDirOwnerInfo,
+							  ParenDirGroupInfo, ParenDirPerms },
+
+			{ UserInfo, DirInfo, ParentDirInfo };
+
+		false ->
+			{ non_existing_parent_directory, ParentDir }
 
 	end.
 
@@ -5264,8 +5322,9 @@ read_whole( FilePath ) ->
 			Binary;
 
 		{ error, eacces } ->
-			throw( { read_whole_failed, FilePath, access_denied,
-					 get_access_denied_info( FilePath ) } );
+			throw( { read_whole_failed,
+					 text_utils:ensure_string( FilePath ), access_denied,
+					 get_file_access_denied_info( FilePath ) } );
 
 		{ error, Error } ->
 			throw( { read_whole_failed, FilePath, Error } )
@@ -5297,8 +5356,9 @@ read_lines( FilePath ) ->
 			F;
 
 		{ error, eacces } ->
-			throw( { read_lines_failed, FilePath, access_denied,
-					 get_access_denied_info( FilePath ) } );
+			throw( { read_lines_failed, text_utils:ensure_string( FilePath ),
+					 access_denied,
+					 get_file_access_denied_info( FilePath ) } );
 
 		{ error, Error } ->
 			throw( { read_lines_failed, FilePath, opening, Error } )
@@ -5400,7 +5460,8 @@ write_whole( AnyFilePath, BinaryContent, Modes ) ->
 		{ error, eacces } ->
 			throw( { write_whole_failed,
 					 { text_utils:ensure_string( AnyFilePath ), Modes },
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, Error } ->
 			throw( { write_whole_failed,
@@ -5474,7 +5535,8 @@ read_terms( AnyFilePath ) ->
 
 		{ error, eacces }  ->
 			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, { _, file_io_server, invalid_unicode } } ->
 			% See also latin1_file_to_unicode/1:
