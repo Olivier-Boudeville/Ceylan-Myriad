@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (C) 2010-2022 Olivier Boudeville
+# Copyright (C) 2010-2023 Olivier Boudeville
 #
 # Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 
@@ -17,7 +17,7 @@ if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
 
 fi
 
-bc=$(which bc 2>/dev/null)
+bc="$(which bc 2>/dev/null)"
 
 if [ ! -x "${bc}" ]; then
 
@@ -58,7 +58,7 @@ fi
 
 if [ -n "$2" ]; then
 
-	echo "  Error, only one parameter needed.
+	echo "  Error, only one argument expected.
 ${usage}" 1>&2
 	exit 20
 
@@ -68,18 +68,20 @@ fi
 cd "${root_dir}"
 
 # Sometimes in /bin, sometimes in /usr/bin, etc.:
-find=$(which find 2>/dev/null)
-wc=$(which wc 2>/dev/null)
-expr=$(which expr 2>/dev/null)
+find="$(which find 2>/dev/null)"
+wc="$(which wc 2>/dev/null)"
+expr="$(which expr 2>/dev/null)"
 
-cat=/bin/cat
-grep=/bin/grep
+cat="/bin/cat"
+grep="/bin/grep"
 
 
-# We used to use -L to follow symlinks (not desirable here)
+# We used to use -L to follow symlinks (not desirable here, not wanting to evade
+# from the target source tree)
 #
 # Only regular files are selected, as includes in a tree may be symlinked in a
-# top-level 'include' directory.
+# top-level 'include' directory, and we do not want them to be counted more than
+# once.
 #
 # Rebar-related extra roots ('./_*', like _build, _checkouts, etc.) are
 # excluded.
@@ -90,8 +92,8 @@ erl_files=$(${find} . \( -type f -o -path './_*' -prune \) -a -name '*.erl' -pri
 #echo "hrl_files = ${hrl_files}"
 #echo "erl_files = ${erl_files}"
 
-hrl_count=$(echo ${hrl_files} | ${wc} -w)
-erl_count=$(echo ${erl_files} | ${wc} -w)
+hrl_count="$(echo ${hrl_files} | ${wc} -w)"
+erl_count="$(echo ${erl_files} | ${wc} -w)"
 
 tmp_file=".tmp-code-stats.txt"
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2023 Olivier Boudeville
+% Copyright (C) 2007-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2003.
+% Creation date: 2007.
 
 
 % @doc Unit tests for the <b>random-related</b> toolbox.
@@ -45,6 +45,7 @@ run() ->
 
 	test_facilities:display( "Testing first uniform random sampling." ),
 
+	% Reproducible (deterministic seeding):
 	random_utils:start_random_source( default_seed ),
 
 	{ MinBound, MaxBound } = { 1, 15 },
@@ -106,6 +107,7 @@ run() ->
 
 	test_facilities:display( "Testing now non-uniform random sampling." ),
 
+	% Front/bacl sides of coins:
 	BiasedCoinState = random_utils:generate_random_state_from(
 		[ { obverse, 30 }, { reverse, 50 } ] ),
 
@@ -123,6 +125,8 @@ run() ->
 	Mean = 50.0,
 	Variance = 120.0,
 
+	% We define an example PDF here.
+	%
 	% Refer to https://en.wikipedia.org/wiki/Normal_distribution for more
 	% details:
 	%
@@ -135,7 +139,8 @@ run() ->
 
 			end,
 
-	PDFPairs = math_utils:sample_as_pairs( MyPDF, 0, 100, 1 ),
+	PDFPairs = math_utils:sample_as_pairs( _Fun=MyPDF, _StartPoint=0,
+		_StopPoint=100, _Increment=1 ),
 
 	NormalisedPDFPairs = math_utils:normalise( PDFPairs, _ProbIndex=2 ),
 
@@ -150,10 +155,8 @@ run() ->
 
 	MaybeGnuplotPath = executable_utils:lookup_executable( "gnuplot" ),
 
-	case CheckWithDataFile andalso MaybeGnuplotPath =/= false of
-
-		true ->
-
+	( CheckWithDataFile andalso MaybeGnuplotPath =/= false ) andalso
+		begin
 			PDFSampleCount = 1000000,
 
 			test_facilities:display( "Comparing the test PDF with the "
@@ -168,7 +171,7 @@ run() ->
 			AliasState = random_utils:generate_random_state_from( PDFPairs ),
 
 			Samples = random_utils:get_samples_from( PDFSampleCount,
-													  AliasState ),
+													 AliasState ),
 
 			%trace_utils:debug_fmt( "Sample values: ~p", [ Samples ] ),
 
@@ -202,10 +205,7 @@ run() ->
 
 					throw( plot_generation_failed )
 
-			end;
-
-		false ->
-			ok
+			end
 
 	end,
 
