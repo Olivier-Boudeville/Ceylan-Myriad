@@ -331,7 +331,8 @@ prepare_square( Texture ) ->
 	Z = 0.0,
 
 	% Square defined as [vertex3()], directly in normalized device coordinates
-	% here; CCW order (bottom left, bottom right, top right, top left)::
+	% here, in the XY plane (Z=0); CCW order (bottom left, bottom right, top
+	% right, top left):
 	%
 	%         S3--S2
 	%         |    |
@@ -426,7 +427,10 @@ run_actual_test() ->
 		"    * the Z axis: hit '2' to scale it down, '8' up~n~n"
 		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
 		"to switch to the next transformation mode, 'P' to toggle the "
-		"projection mode, 'Escape' to quit.~n",
+		"projection mode, 'Escape' to quit.~n~n"
+		"Hints:~n"
+		" - with the orthographic (default) projection, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range, will fully disappear~n"
+		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis~n",
 		[ ?delta_coord, ?delta_angle, ?delta_scale ] ),
 
 	gui:start(),
@@ -1384,10 +1388,8 @@ get_base_perspective_settings( AspectRatio ) ->
 	#perspective_settings{
 		fov_y_angle=math_utils:degrees_to_radians( 45 ),
 		aspect_ratio=AspectRatio,
-		%z_near=0.1,
-		%z_far=100.0 }.
-		z_near=-1.0,
-		z_far=1.0 }.
+		z_near=0.1,
+		z_far=100.0 }.
 
 
 % @doc Runs the test.

@@ -154,17 +154,19 @@ perspective( #perspective_settings{
 % specified settings.
 %
 % Parameters are:
+
 %  - FoVYAngle is the field of view angle, in radians, in the Y (vertical)
-%  direction
+%  direction (the angle from the top of the screen to the bottom); often set to
+%  45 degrees (then converted in radians)
 %  - AspectRatio determines the field of view in the X (horizontal) direction:
 %  AspectRatio = Width/Height
-%  - ZNear specifies the distance from the viewer to the near clipping plane
-%  (always strictly positive)
-%  - ZFar specifies the distance from the viewer to the far clipping plane
-%  (always positive)
+%  - ZNear specifies the distance from the viewer to the near clipping plane,
+%  along the -Z axis (always strictly positive)
+%  - ZFar specifies the distance from the viewer to the far clipping plane along
+%  the -Z axis (always positive)
 %
-% For example Mp = matrix4:perspective( _FoVYAngle=60.0,
-%   _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
+% For example Mp = perspective( _FoVYAngle=60.0,
+% _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
 %
 % Note that the context is a right-handed referential with a clip space in
 % [-1.0, 1.0].
@@ -174,7 +176,7 @@ perspective( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
 
 	% References:
 	% https://www.khronos.org/registry/OpenGL-Refpages/gl2.1/xhtml/gluPerspective.xml
-	% and glm:perspectiveRH_NO.
+	% and glm:perspectiveRH_NO (see glm/ext/matrix_clip_space.inl) and https://www.khronos.org/opengl/wiki/GluPerspective_code
 
 	cond_utils:assert( myriad_check_linear,
 					   not math_utils:is_null( AspectRatio ) ),
@@ -201,6 +203,12 @@ perspective( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
 			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
 			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
 
+
+% From https://www.khronos.org/opengl/wiki/GluPerspective_code:
+%perspective2( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
+%	Ymax = ZNear * math:tan( FoVYAngle ),
+%	Xmax = Ymax * AspectRatio,
+%	frustum( -Xmax, Xmax, -Ymax, Ymax, ZNear, ZFar ).
 
 
 % @doc Returns a matrix for projection corresponding to the specified settings.

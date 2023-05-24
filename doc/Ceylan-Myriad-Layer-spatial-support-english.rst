@@ -219,6 +219,14 @@ For each of the spatial dimensions of interest, generally ``1.0`` corresponds to
 
 For **all angles**, the default unit is the `radian <https://en.wikipedia.org/wiki/Radian>`_ (:math:`2π` radians is equal to 360 degrees), and the positive rotation is counterclockwise.
 
+By default (see ``gui_opengl_transformation_shader_test.erl`` for an example thereof):
+
+- the **viewpoint** ("camera") is pointing down the Z axis, its vertical ("up" on its screen) vector being +Y; so an horizontal line on the screen drawn from left to right goes along the +X axis, whereas a vertical, bottom to top (vertical) line goes along the +Y axis
+- in terms of **projections**:
+
+  - with an **orthographic** one: the viewing volume is a cube within ``[-1.0, 1.0]`` in all dimensions; so for example a square whose edge length is 1.0, centered at the origin and pertaining to the X-Y plane will disappear as soon as its ``Z > 1.0`` or ``Z < -1.0``
+  - with a **perspective** one: the same square will appear as soon as it is sufficiently far from the camera; more precisely, in the aforementioned test, the square starts at ``Z=0.0``, whereas for the camera the minimum viewable distance along the -Z axis is ``ZNear=0.1``; so the square shall move further down the Z axis so that the camera starts to see it (first at full size when its ``Z=ZNear``), until, as its Z still decreases, the square shrinks progressively in the distance
+
 
 For **face culling**, front-facing is determined by relying on a counter-clockwise order winding order of triangles (like default OpenGL's `GL_CCW <https://www.khronos.org/opengl/wiki/Face_Culling>`_):
 
