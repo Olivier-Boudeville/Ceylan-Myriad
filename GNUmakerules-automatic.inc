@@ -179,7 +179,7 @@ endif
 
 
 # The two sets of rules below are functional, yet they use very different
-# solutions (run_erl/eval) that can tested independently.
+# solutions (run_erl/eval) that can be tested independently.
 
 
 # To run an application as a service.
