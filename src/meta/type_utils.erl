@@ -582,6 +582,10 @@
 % elements are all of the specified type.
 
 
+-type counters() :: tuple( count() ).
+% A tuple containing counters.
+
+
 % Not needed or useful as map() is a built-in type:
 %-type map() :: map( any(), any() ).
 
@@ -739,8 +743,14 @@
 
 
 
+% Counter section:
+-export([ initialise_counters/1, initialise_counters/2,
+		  increment_counter/2, add_to_counter/3 ]).
+
+
 % Specials for datatypes:
 -export([ get_record_tag/1, get_last_tuple_element/1, augment_tuploid/2 ]).
+
 
 
 % Work in progress:
@@ -751,6 +761,7 @@
 
 -type count() :: basic_utils:count().
 -type level() :: basic_utils:level().
+-type positive_index() :: basic_utils:positive_index().
 
 -type ustring() :: text_utils:ustring().
 
@@ -2087,6 +2098,44 @@ check_tuple( Other ) ->
 -spec get_record_tag( record() ) -> record_tag().
 get_record_tag( RecordTuple ) ->
 	element( _Index=1, RecordTuple ).
+
+
+
+
+% Counters subsection.
+%
+% Maybe a counter_utils module will exist some day.
+%
+% See also the 'counters' standard module (see
+% https://www.erlang.org/doc/man/counters.html) for shared (cross-process)
+% atomic counters.
+
+
+% @doc Initialises the specified number of counters to zero.
+-spec initialise_counters( count() ) -> counters().
+initialise_counters( Count ) ->
+	initialise_counters( Count, _InitValue=0 ).
+
+
+% @doc Initialises the specified number of counters to the specified (initial)
+% value.
+%
+-spec initialise_counters( count(), integer() ) -> counters().
+initialise_counters( Count, InitValue ) ->
+	list_to_tuple( list_utils:duplicate( InitValue, Count ) ).
+
+
+% @doc Increments the specified counter.
+-spec increment_counter( positive_index(), counters() ) -> counters().
+increment_counter( CounterIndex, Counters ) ->
+	add_to_counter( _ToAdd=1, CounterIndex, Counters ).
+
+
+% @doc Adds the specified value to the specified counter.
+-spec add_to_counter( number(), positive_index(), counters() ) -> counters().
+add_to_counter( ToAdd, CounterIndex, Counters ) ->
+	NewElem = element( CounterIndex, Counters ) + ToAdd,
+	setelement( CounterIndex, Counters, NewElem ).
 
 
 
