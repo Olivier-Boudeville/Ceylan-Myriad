@@ -3815,10 +3815,10 @@ split_before_suffix( Suffix, String ) ->
 
 
 
-% @doc Updates specified text with specified keywords, returning a version of
-% which where all the specified keywords (the keys of the translation table)
-% have been replaced with their associated value (the corresponding value in
-% table).
+% @doc Updates the specified text with the specified keywords, returning a
+% version of which where all the specified keywords (the keys of the translation
+% table) have been replaced by their associated value (that is the value in
+% table corresponding to that key).
 %
 % For example: text_utils:update_with_keywords("Hello word!", table:new(
 % [{"foo", "bar"}, {"ord", "orld"}])).
@@ -3834,6 +3834,8 @@ update_with_keywords( Content, TranslationTable ) ->
 	% As many passes as keyword pairs:
 	lists:foldl(
 		fun( { SearchP, Replacement }, ContentAcc ) ->
+			%trace_utils:debug_fmt( "Replacing '~ts' with '~ts' in:~n  ~p",
+			%                       [ SearchP, Replacement, ContentAcc ] ),
 			string:replace( ContentAcc, SearchP, Replacement, _Where=all )
 		end,
 		_Acc0=Content,
