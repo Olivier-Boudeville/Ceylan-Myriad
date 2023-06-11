@@ -37,11 +37,48 @@
 -include("test_facilities.hrl").
 
 
+% For epsilon:
+-include_lib("myriad/include/math_utils.hrl").
 
--spec run() -> no_return().
-run() ->
 
-	test_facilities:start( ?MODULE ),
+% For testing:
+-export([ gather_samples_in_buckets/2 ]).
+
+
+% Silencing:
+-export([ test_basic_random/0, test_biased_coin/0,
+		  test_uniform/0, test_exponential/0,
+		  test_weibull/0,
+		  test_custom_pdf/0 ]).
+
+
+% Refer to the design notes in random_utils to understand why a gathering of
+% samples in a limited number of buckets is required, especially for
+% distributions that can be directly sampled.
+%
+% Note also that the two sampling rates (discretisation of the PDF / gathering
+% in buckets) must be the same, otherwise the sampling count will differ and a
+% scaling will exist between the two curves.
+%
+% Finally, as the default sampling count for uniform distributions is fixed
+% (see, in random_utils, the default_pdf_sample_count define), to avoid again an
+% undesirable scaling, they shall match as well, so:
+%
+-define( test_sample_count, 512 ).
+
+
+% Shorthands:
+
+-type count() :: basic_utils:count().
+
+-type random_law_spec() :: random_utils:random_law_spec().
+-type random_law_data() :: random_utils:random_law_data().
+
+-type sample() :: random_utils:sample().
+
+
+
+test_basic_random() ->
 
 	test_facilities:display( "Testing first uniform random sampling." ),
 
@@ -101,23 +138,55 @@ run() ->
 	test_facilities:display( "Random, uniform, non-reproducible list "
 		"between 1 and ~B (both included): ~w", [ MaxBound, ThirdList ] ),
 
-	random_utils:stop_random_source(),
+	random_utils:stop_random_source().
 
 
 
-	test_facilities:display( "Testing now non-uniform random sampling." ),
+% This is a simple yet interesting test of an intrinsically discrete
+% distribution:
+%
+test_biased_coin() ->
 
-	% Front/bacl sides of coins:
-	BiasedCoinState = random_utils:generate_random_state_from(
-		[ { obverse, 30 }, { reverse, 50 } ] ),
+	% Front/back sides of coins:
+	BiasedCoinLawSpec = { arbitrary, "My law based on an unfair coin",
+		% Wanting to graph it easily, so xtics shall better be numerical:
+		%
+		% (otherwise: 'set xtics ("obverse" 1, "inverse" 2)', and 1 and 2 shall
+		% be used in datafiles)
+		%
+		%[ { obverse, 30 }, { reverse, 50 } ] },
+		[ { _Obverse=1, 30 }, { _Reverse=2, 50 } ] },
 
-	SampleCount = 20,
+	test_law( BiasedCoinLawSpec ).
 
-	 test_facilities:display( "Generated ~B samples by flipping "
-		"a biased coin: ~p",
-		[ SampleCount,
-		  random_utils:get_samples_from( SampleCount, BiasedCoinState ) ] ),
 
+
+test_uniform() ->
+
+	UniformSpec = { uniform, _Minf=3, _Maxf=9.0 },
+
+	test_law( UniformSpec ).
+
+
+
+test_exponential() ->
+
+	ExpLawSpec = { exponential, _Lambda=1.5 },
+
+	test_law( ExpLawSpec ).
+
+
+
+test_weibull() ->
+
+	% Default sample count and support:
+	WbLawSpec = { weibull, _K=1.5, _Lambda=1 },
+
+	test_law( WbLawSpec ).
+
+
+
+test_custom_pdf() ->
 
 	test_facilities:display( "Creating a half-Gaussian half-affin "
 		"probability density function and sampling from it." ),
@@ -135,58 +204,155 @@ run() ->
 			/ ( math:sqrt( 2*math:pi() * Variance ) );
 
 			   ( X ) ->
-					erlang:max( 2.5 - 0.01*X, 1 )
+					erlang:max( 2.5 - 0.01*X, 0.0 )
 
 			end,
 
-	PDFPairs = math_utils:sample_as_pairs( _Fun=MyPDF, _StartPoint=0,
-		_StopPoint=100, _Increment=1 ),
+	% We could specify in the law spec no bounds and let the corresponding
+	% support be automatically determined (this would be [-9.769263,
+	% 249.999901]), however in some cases it may be convenient to force some
+	% bounds (e.g. if a PDF represents durations, we may not want to be able to
+	% draw negative ones):
 
-	NormalisedPDFPairs = math_utils:normalise( PDFPairs, _ProbIndex=2 ),
+	% Non-negative:
+	OurMinBound = 0.0,
 
-	%trace_utils:debug_fmt( "Normalised PDF pairs: ~p",
-	%                       [ NormalisedPDFPairs ] ),
+	% Hence support is truncated:
+	OurMaxBound = 240.0,
 
-	PDFDataFilename = "test_pdf_sampled_function.dat",
-	SampleDataFilename = "test_pdf_actual_samples.dat",
-	ComparisonOutputFilename = "test_pdf_sampled_function.png",
+	OurPDFBounds = { OurMinBound, OurMaxBound },
 
-	CheckWithDataFile = not executable_utils:is_batch(),
+	% We can set explicitly here the number of samples to be done to a low
+	% value, for testing:
+	%
+	%SampleCount = 128,
+	SampleCount = ?test_sample_count,
+
+	MyPDFInfo = { MyPDF, SampleCount, OurPDFBounds },
+
+	MyLawSpec = { arbitrary, "My PDF-based law spec", MyPDFInfo },
+
+	test_law( MyLawSpec ).
+
+
+
+% @doc Tests the specified random law, based on its specification.
+-spec test_law( random_law_spec() ) -> void().
+test_law( LawSpec ) ->
+
+	test_facilities:display( "Testing a(n) ~ts.",
+		[ random_utils:law_spec_to_string( LawSpec ) ] ),
+
+	LawData = random_utils:initialise_law( LawSpec ),
+
+	SampleCount = 20,
+
+	test_facilities:display( "Initialised as ~ts, generating ~B samples "
+		"from it:~n  ~p",
+		[ random_utils:law_data_to_string( LawData ), SampleCount,
+		  random_utils:get_samples_from( SampleCount, LawData ) ] ),
+
+	executable_utils:is_batch() orelse graph_law( LawSpec, LawData ).
+
+
+
+% @doc Graphs the specified random law.
+-spec graph_law( random_law_spec(), random_law_data() ) -> void().
+graph_law( LawSpec, LawData ) ->
+
+	test_facilities:display( "Creating a graph for ~ts.",
+							 [ random_utils:law_data_to_string( LawData ) ] ),
+
+	% With Octave, refer to LAW_NAME.m as an example, to be run thanks to:
+	% 'octave LAW_NAME.m'.
+
+	LawDesc = random_utils:law_data_to_string( LawData ),
+
+	LawSuffixStr = file_utils:convert_to_filename( LawDesc ),
+
+	PDFDataFilename = text_utils:format( "test_~ts_pdf_sampled_function.dat",
+										 [ LawSuffixStr ] ),
+
+	SampleDataFilename = text_utils:format( "test_~ts_pdf_actual_samples.dat",
+											[ LawSuffixStr ] ),
+
+	PNGOutputFilename = text_utils:format(
+		"test_~ts_pdf_sampled_function_comparison.png", [ LawSuffixStr ] ),
+
+	CmdFilename = text_utils:format(
+		"compare_test_pdf_sampling_for_~ts.p", [ LawSuffixStr ] ),
 
 	MaybeGnuplotPath = executable_utils:lookup_executable( "gnuplot" ),
 
-	( CheckWithDataFile andalso MaybeGnuplotPath =/= false ) andalso
+	MaybeGnuplotPath =/= false andalso
 		begin
-			PDFSampleCount = 1000000,
-
-			test_facilities:display( "Comparing the test PDF with the "
-				"frequencies of ~B samplings.", [ PDFSampleCount ] ),
 
 			file_utils:remove_files_if_existing( [ PDFDataFilename,
-				SampleDataFilename, ComparisonOutputFilename ] ),
+				SampleDataFilename, PNGOutputFilename, CmdFilename ] ),
+
+			% First, just capture the ideal law as it is:
+			PDFPairs = random_utils:get_all_sample_pairs( LawSpec ),
+
+			% Very theoretical, as depend on the discretisation step:
+			NormalisedPDFPairs = math_utils:normalise( PDFPairs, _Index=2 ),
 
 			csv_utils:write_file( NormalisedPDFPairs, PDFDataFilename ),
 
+
+			% Now seeing whether drawings converge to it:
+			%PDFSamplingCount = 1000000,
+			PDFSamplingCount = 5000000,
+
+			test_facilities:display( "Comparing the test PDF with the "
+				"frequencies of ~B samplings.", [ PDFSamplingCount ] ),
+
+			GnuplotCmdFileTemplate = "compare_test_pdf_sampling.p.template",
+
+			TranslationTable = table:new( [
+				{ "LAW_DESC", LawDesc },
+				{ "PDF_DATA_FILENAME", PDFDataFilename },
+				{ "SAMPLED_DATA_FILENAME", SampleDataFilename },
+				{ "GENERATED_PNG", PNGOutputFilename } ] ),
+
+			% A copy and a transformation:
+			file_utils:update_with_keywords(
+				_OriginalFilePath=GnuplotCmdFileTemplate,
+				_TargetFilePath=CmdFilename, TranslationTable ),
+
+			RawSamples = random_utils:get_samples_from( PDFSamplingCount,
+														LawData ),
+
+			% We force aggregation in a sufficiently low number of buckets,
+			% otherwise direct (non-discretised) distributions yielding
+			% floating-point values would be seen as uniform (as any
+			% floating-point value would never be drawn more than once):
+			%
+			AggSamples = gather_samples_in_buckets( RawSamples,
+													?test_sample_count ),
+
 			% Already as a list of {X,Fun(X)}, i.e. {SampleValue,ProbOfValue}:
-			AliasState = random_utils:generate_random_state_from( PDFPairs ),
+			%trace_utils:debug_fmt( "Aggregated Sample values: ~p",
+			%                       [ AggSamples ] ),
 
-			Samples = random_utils:get_samples_from( PDFSampleCount,
-													 AliasState ),
-
-			%trace_utils:debug_fmt( "Sample values: ~p", [ Samples ] ),
-
-			ValueCountPairs = list_utils:get_duplicates( Samples ),
+			% Previously no discretised gathering was done (zero-width buckets),
+			% leading to all distributions being rendered as uniform:
+			% ValueCountPairs = list_utils:count_occurrences( RawSamples ),
+			ValueCountPairs = AggSamples,
 
 			%trace_utils:debug_fmt( "Value-count pairs: ~p",
 			%                       [ ValueCountPairs ] ),
 
+
+			% Normalising is useful so that the two curves are of the same
+			% scale:
+			%
 			NormalisedValueCountPairs = lists:sort(
-				math_utils:normalise( ValueCountPairs, _FreqIndex=2 ) ),
+			   math_utils:normalise( ValueCountPairs, _FreqIndex=2 ) ),
 
 			csv_utils:write_file( NormalisedValueCountPairs,
 								  SampleDataFilename ),
 
-			Args = [ "compare_test_pdf_sampling.p" ],
+			Args = [ CmdFilename ],
 
 			case system_utils:run_executable( MaybeGnuplotPath, Args ) of
 
@@ -195,9 +361,10 @@ run() ->
 						trace_utils:warning_fmt( "Following output was "
 							"returned by gnuplot: ~ts", [ Output ] ),
 
-					executable_utils:display_png_file(
-						"test_pdf_sampled_function.png" );
+					executable_utils:display_png_file( PNGOutputFilename ),
 
+					trace_utils:debug_fmt( "(displaying '~ts')",
+										   [ PNGOutputFilename ] );
 
 				{ ErrorCode, Output } ->
 					trace_utils:error_fmt( "Error ~B reported by gnuplot: ~ts",
@@ -207,6 +374,89 @@ run() ->
 
 			end
 
-	end,
+	end.
+
+
+
+% @doc Gathers the specified samples in evenly-spaced buckets: aggregates them
+% in coarser "counter" slots.
+%
+% Otherwise each individual sample would be produced once, resulting in a
+% falsely-uniform probability density function.
+%
+-spec gather_samples_in_buckets( [ sample() ], count() ) ->
+			[ { sample(), count() } ].
+gather_samples_in_buckets( Samples, BucketCount ) ->
+
+	% Probably not really efficient:
+
+	% Both bounds included, hence Max-Min buckets:
+	{ Min, Max } = list_utils:get_min_max( Samples ),
+
+
+	% There will be at least one sample exactly equal to Max, which must thus be
+	% assigned to the last slot, so we must have: Min+ BucketWidth*BucketCount >
+	% Max; so BucketWidth must be greater than (Max-Min)/BucketCount, and we
+	% take:
+	%
+	BucketWidth = (Max-Min) / BucketCount + ?epsilon,
+
+	Counters = type_utils:initialise_counters( BucketCount ),
+
+	Buckets = count_in_buckets( Samples, Counters, Min, BucketWidth ),
+
+	add_mid_points( Min, BucketWidth, BucketCount, Buckets ).
+
+
+% Registers each sample in its corresponding bucket:
+count_in_buckets( _Samples=[], Counters, _Min, _BucketWidth ) ->
+	%trace_utils:debug_fmt( "Final buckets: ~p.", [ Counters ] ),
+	tuple_to_list( Counters );
+
+count_in_buckets( _Samples=[ S | T ], Counters, Min, BucketWidth ) ->
+	% Index starts at 1; no rounding up, not to go past last bucket:
+	BucketIndex = floor( ( S - Min ) / BucketWidth ) + 1,
+	NewCounters = type_utils:increment_counter( BucketIndex, Counters ),
+	count_in_buckets( T, NewCounters, Min, BucketWidth ).
+
+
+% Associates to the count in each bucket the middle of the bucket range; returns
+% a list of {MidPointValue,Count}.
+%
+add_mid_points( Min, BucketWidth, BucketCount, Buckets ) ->
+	% Pre-offset all values of half bucket width:
+	%Midpoints = get_midpoints( Min + BucketWidth / 2, BucketCount,
+	Midpoints = get_midpoints( Min, BucketCount,
+							   BucketWidth, _Acc=[] ),
+	lists:zip( Midpoints, Buckets ).
+
+
+get_midpoints( _Current, _BucketCount=0, _BucketWidth, Acc ) ->
+	lists:reverse( Acc );
+
+get_midpoints( Current, BucketCount, BucketWidth, Acc ) ->
+	NewAcc = [ Current | Acc ],
+	get_midpoints( Current+BucketWidth, BucketCount-1, BucketWidth, NewAcc ).
+
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	test_basic_random(),
+
+	test_facilities:display( "Testing now non-uniform random sampling." ),
+
+	% Defined as discrete options:
+	test_biased_coin(),
+
+	test_uniform(),
+	%test_exponential(),
+	test_weibull(),
+
+	test_custom_pdf(),
 
 	test_facilities:stop().
