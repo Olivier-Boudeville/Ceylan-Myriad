@@ -657,12 +657,12 @@
 % ('"') quotes, forward ('/') and backward ('\') slashes, ampersand ('&'), tilde
 % ('~'), sharp ('#'), at sign ('@'), all other kinds of brackets ('{', '}', '[',
 % ']'), pipe ('|'), dollar ('$'), star ('*'), marks ('?' and '!'), plus ('+'),
-% other punctation signs (';' and ':') by exactly one underscore:
+% equal ('='), other punctuation signs (';' and ':') by exactly one underscore:
 %
 % (see also: net_utils:generate_valid_node_name_from/1)
 %
 -define( patterns_to_replace_for_paths, "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
-		 "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+" ).
+		 "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|\\=|;|:)+" ).
 
 -define( replacement_for_paths, "_" ).
 
@@ -4621,16 +4621,18 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 
 
 
-% @doc Updates specified file with specified keywords, that is copies the
-% original file into a target, updated one (supposedly non-already existing), in
-% which all the specified keywords (the keys of the translation table) have been
-% replaced with their associated value (i.e. the value in table corresponding to
-% that key).
+% @doc Updates the specified file with the specified keywords, that is copies
+% the original file into a target, updated one (supposedly non-already
+% existing), in which all the specified keywords (the keys of the translation
+% table) have been replaced by their associated value (that is the value in
+% table corresponding to that key).
 %
-% For example file_utils:update_with_keywords( "original.txt", "updated.txt",
-%           table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
+% For example: file_utils:update_with_keywords("original.txt", "updated.txt",
+%    table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
 %
-% Note that the resulting file will be written with no additional encoding.
+% The resulting file will be written with no additional encoding options.
+%
+% In-place update can be done (by specifying the same file).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
 							text_utils:translation_table() ) -> void().
@@ -4639,15 +4641,14 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 						  _EncodingOpts=[] ).
 
 
-
-% @doc Updates specified file with specified keywords, that is copies the
-% original file into a target, updated one (supposedly non-already existing; and
-% with the specified encoding), in which all the specified keywords (the keys of
-% the translation table) have been replaced with their associated value
-% (that is the value in table corresponding to that key).
+% @doc Updates the specified file with the specified keywords, that is copies
+% the original file into a target, updated one (supposedly non-already
+% existing), in which all the specified keywords (the keys of the translation
+% table) have been replaced by their associated value (that is the value in
+% table corresponding to that key).
 %
-% For example file_utils:update_with_keywords("original.txt", "updated.txt",
-%   table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
+% For example: file_utils:update_with_keywords("original.txt", "updated.txt",
+%    table:new([{"hello", "goodbye"}, {"Blue", "Red"}]), []).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
 		text_utils:translation_table(), system_utils:encoding_options() ) ->
@@ -4656,7 +4657,7 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
 					  EncodingOpts ) ->
 
 	exists( TargetFilePath )
-		andalso throw( { already_existing, TargetFilePath } ),
+		andalso throw( { already_existing_target_file, TargetFilePath } ),
 
 	BinOrigContent = read_whole( OriginalFilePath ),
 
