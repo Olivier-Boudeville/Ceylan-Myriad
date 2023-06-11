@@ -67,6 +67,7 @@
 		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
 		  heads/2,
 		  get_last_element/1, extract_last_element/1,
+		  get_min_max/1,
 		  get_index_of/2, get_maybe_index_of/2, split_at/2, group_by/2,
 		  uniquify/1, uniquify_ordered/1,
 		  ensure_is_once_in/2,
@@ -542,6 +543,67 @@ extract_last_element( List ) ->
 
 
 
+% @doc Returns the minimum and maximum values found in the specified list, based
+% on the native term order.
+%
+-spec get_min_max( list() ) -> { element(), element() }.
+get_min_max( _L=[] ) ->
+	throw( empty_list );
+
+% At least an element, hence there will be extremas:
+get_min_max( L ) ->
+	get_min_max( L, _MaybeMin=undefined, _MaybeMax=undefined ).
+
+
+% (helper)
+get_min_max( _L=[], Min, Max ) ->
+	{ Min, Max };
+
+get_min_max( _L=[ E | T ], _MaybeMin=undefined, _MaybeMax=undefined ) ->
+	get_min_max( T, E, E );
+
+% Here MaybeMax is not undefined:
+get_min_max( _L=[ E | T ], _MaybeMin=undefined, Max ) when E > Max ->
+	get_min_max( T, E, E );
+
+% Here E =< Max:
+get_min_max( _L=[ E | T ], _MaybeMin=undefined, Max )  ->
+	get_min_max( T, E, Max );
+
+% Here MaybeMin is not undefined:
+get_min_max( _L=[ E | T ], Min, _MaybeMax=undefined ) when E < Min ->
+	get_min_max( T, E, E );
+
+% Here E >= Min:
+get_min_max( _L=[ E | T ], Min, _MaybeMax=undefined )  ->
+	get_min_max( T, Min, E );
+
+% Here Min and Max are defined:
+get_min_max( _L=[ E | T ], Min, Max ) ->
+	NewMin = case E < Min of
+
+		true ->
+			E;
+
+		false ->
+			Min
+
+	end,
+
+	NewMax = case E > Max of
+
+		true ->
+			E;
+
+		false ->
+			Max
+
+	end,
+
+	get_min_max( T, NewMin, NewMax ).
+
+
+
 % @doc Returns the index, in `[1..length(List)]', of the (first occurrence of
 % the) specified element in the specified list.
 %
@@ -732,15 +794,21 @@ has_duplicates( List ) ->
 %
 -spec count_occurrences( list() ) -> [ { element(), count() } ].
 count_occurrences( List ) ->
-	count_occurrences( List, _Acc=[] ).
+	%trace_utils:debug_fmt( "Counting occurrences in a list of size ~B.",
+	%                       [ length( List ) ] ),
+	R = count_occurrences( List, _Acc=[] ),
+	%trace_utils:debug_fmt( "~B different values listed.", [ length( R ) ] ),
+	R.
+
+
 
 count_occurrences( _List=[], Acc ) ->
 	Acc;
 
 count_occurrences( _List=[ Term | T ], Acc ) ->
 
-	% trace_utils:debug_fmt( "Inquiring about term '~p' into ~p.",
-	%                        [ Term, T ] ),
+	%trace_utils:debug_fmt( "Inquiring about term '~p' into ~p.",
+	%                       [ Term, T ] ),
 
 	case count_and_filter_term( Term, _InitialList=T, _FilteredList=[],
 								_InitialCount=0 ) of
@@ -815,6 +883,7 @@ count_and_filter_term( Term, _List=[ OtherTerm | H ], FilteredList,
 					   CurrentCount ) ->
 	count_and_filter_term( Term, H, [ OtherTerm | FilteredList ],
 						   CurrentCount ).
+
 
 
 % @doc Returns a textual description of the specified duplicate information.
