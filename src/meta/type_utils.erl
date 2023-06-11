@@ -740,7 +740,7 @@
 
 
 % Specials for datatypes:
--export([ get_record_tag/1, augment_tuploid/2 ]).
+-export([ get_record_tag/1, get_last_tuple_element/1, augment_tuploid/2 ]).
 
 
 % Work in progress:
@@ -1402,7 +1402,7 @@ ensure_rounded_integer( N ) ->
 %
 % If it is an integer, will return a floating-point version of it.
 %
-% float/1 would have mostly sufficed (can operate on floats).
+% Yet float/1 mostly suffices (as it can can operate on floats).
 %
 -spec ensure_float( number() ) -> float().
 ensure_float( N ) when is_float( N ) ->
@@ -2087,6 +2087,13 @@ check_tuple( Other ) ->
 -spec get_record_tag( record() ) -> record_tag().
 get_record_tag( RecordTuple ) ->
 	element( _Index=1, RecordTuple ).
+
+
+
+% @doc Returns the last element of the specified tuple.
+-spec get_last_tuple_element( tuple() ) -> term().
+get_last_tuple_element( Tuple ) ->
+	element( size( Tuple ), Tuple ).
 
 
 % @doc Augments the specified tuploid with the specified term, placed as new
