@@ -833,18 +833,18 @@ fi
 
 
 
-# Uncomment to see the actual runtime settings:
-
-# Log to text file:
-#echo "$0 running final command: ${final_command}, with use_run_erl = $use_run_erl" > launch-erl-command.txt
-
-# Log to console:
-#echo; echo "##### $0 running final command: '${final_command}', with use_run_erl = $use_run_erl"csc
-
 
 if [ $use_run_erl -eq 0 ]; then
 
 	#echo "run_erl command: ${final_command}"
+
+	# Uncomment to see the actual runtime settings:
+
+	# Log to text file:
+	#echo "$0 running final command with run_erl: ${final_command}, with use_run_erl = ${use_run_erl}" > launch-erl-command.txt
+
+	# Log to console:
+	#echo; echo "##### $0 running final command with run_erl: '${final_command}', with use_run_erl = ${use_run_erl}"
 
 	if [ ${be_verbose} -eq 0 ]; then
 
@@ -877,6 +877,12 @@ else
 
 	# Not using run_erl here, direct launch (the current default):
 
+	# Log to text file:
+	#echo "$0 running final command (directly with eval): ${command}" > launch-erl-command.txt
+
+	# Log to console:
+	#echo; echo "##### $0 running final command (directly with eval): '${command}'"
+
 	# We used to define above a final_command variable that comprised ${erl},
 	# yet on Windows, no matter the quoting that we tried, we did not succeed in
 	# having the shell see '/c/Program Files/erl-XXX/bin/erl' as a single path
@@ -887,33 +893,32 @@ else
 
 	if [ ${be_verbose} -eq 0 ]; then
 
-		echo "Launching (directly): ${final_command}"
+		echo "Executing: ${erl} ${to_eval} ${command}"
 
 	fi
 
-	#${command}
-	#echo "${erl}" ${to_eval} ${command}
 	if ! "${erl}" ${to_eval} ${command}; then
 
 		if [ $non_interactive -eq 1 ]; then
+
+			core_exec="$(which coredumpctl 2>/dev/null)"
+
+			if [ ! -x "${core_exec}" ]; then
+
+				echo "(no 'coredumpctl' tool available, no post-mortem investigation performed)" 1>&2
+
+				exit 105
+
+			fi
 
 			# Especially useful whenever crashing one's OpenGL driver:
 			echo "This execution of the Erlang VM failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
 			read answer
 			if [ "${answer}" = "y" ]; then
 
-				core_exec="$(which coredumpctl 2>/dev/null)"
-
-				if [ ! -x "${core_exec}" ]; then
-
-					echo "  Error, no 'coredumpctl' found, no post-mortem investigation performed." 1>&2
-
-					exit 105
-
-				fi
-
 				# We want to select a proper coredump (if any).
 				#
+
 				# ('coredumpctl list' would list all known core dumps from
 				# oldest to most recent; see
 				# https://howtos.esperide.org/GNULinux.html#process-related-post-mortem-investigations
