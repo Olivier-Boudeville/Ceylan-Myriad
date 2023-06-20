@@ -657,12 +657,12 @@
 % ('"') quotes, forward ('/') and backward ('\') slashes, ampersand ('&'), tilde
 % ('~'), sharp ('#'), at sign ('@'), all other kinds of brackets ('{', '}', '[',
 % ']'), pipe ('|'), dollar ('$'), star ('*'), marks ('?' and '!'), plus ('+'),
-% other punctation signs (';' and ':') by exactly one underscore:
+% equal ('='), other punctuation signs (';' and ':') by exactly one underscore:
 %
 % (see also: net_utils:generate_valid_node_name_from/1)
 %
 -define( patterns_to_replace_for_paths, "( |<|>|,|\\(|\\)|'|\"|/|\\\\|\&|~|"
-		 "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|;|:)+" ).
+		 "#|@|{|}|\\[|\\]|\\||\\$|\\*|\\?|!|\\+|\\=|;|:)+" ).
 
 -define( replacement_for_paths, "_" ).
 
@@ -3086,6 +3086,11 @@ create_directory( AnyDirPath, create_no_parent ) ->
 		ok ->
 			ok;
 
+		{ error, eacces } ->
+			throw( { create_directory_failed,
+					 text_utils:ensure_string( AnyDirPath ), access_denied,
+					 get_directory_access_denied_info( AnyDirPath ) } );
+
 		{ error, Reason } ->
 			throw( { create_directory_failed, AnyDirPath, Reason } )
 
@@ -3328,21 +3333,27 @@ remove_file_or_link_if_existing( FileOrLinkPath ) ->
 % like the 'rmdir' shell command).
 %
 -spec remove_empty_directory( any_directory_path() ) -> void().
-remove_empty_directory( DirectoryPath ) ->
+remove_empty_directory( AnyDirPath ) ->
 
 	%trace_utils:warning_fmt( "## Removing empty directory '~ts'.",
-	%                         [ DirectoryPath ] ),
+	%                         [ AnyDirPath ] ),
 
-	case file:del_dir( DirectoryPath ) of
+	case file:del_dir( AnyDirPath ) of
 
 		ok ->
 			ok;
 
+		{ error, eacces } ->
+			throw( { remove_empty_directory_failed,
+					 text_utils:ensure_string( AnyDirPath ), access_denied,
+					 get_directory_access_denied_info( AnyDirPath ) } );
+
 		{ error, Reason } ->
 			trace_utils:error_fmt( "Removal of directory '~ts' failed: ~p.",
-								   [ DirectoryPath, Reason ] ),
+								   [ AnyDirPath, Reason ] ),
 			% Probably not so empty:
-			throw( { remove_empty_directory_failed, Reason, DirectoryPath } )
+			throw( { remove_empty_directory_failed,
+					 text_utils:ensure_string( AnyDirPath ), Reason } )
 
 	end.
 
@@ -3523,11 +3534,13 @@ copy_file( SourceFilePath, DestinationFilePath ) ->
 		ok ->
 			ok;
 
-		{ error, Reason=eacces } ->
+		{ error, eacces } ->
 			throw( { copy_file_failed,
 					 text_utils:ensure_string( SourceFilePath ),
 					 text_utils:ensure_string( DestinationFilePath ),
-					 Reason, system_utils:get_user_name_safe() } );
+					 access_denied,
+					 get_file_access_denied_info( SourceFilePath ),
+					 get_file_access_denied_info( DestinationFilePath ) } );
 
 		{ error, Reason } ->
 			throw( { copy_file_failed,
@@ -4608,16 +4621,18 @@ is_leaf_among( LeafName, _PathList=[ Path | T ] ) ->
 
 
 
-% @doc Updates specified file with specified keywords, that is copies the
-% original file into a target, updated one (supposedly non-already existing), in
-% which all the specified keywords (the keys of the translation table) have been
-% replaced with their associated value (i.e. the value in table corresponding to
-% that key).
+% @doc Updates the specified file with the specified keywords, that is copies
+% the original file into a target, updated one (supposedly non-already
+% existing), in which all the specified keywords (the keys of the translation
+% table) have been replaced by their associated value (that is the value in
+% table corresponding to that key).
 %
-% For example file_utils:update_with_keywords( "original.txt", "updated.txt",
-%           table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
+% For example: file_utils:update_with_keywords("original.txt", "updated.txt",
+%    table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
 %
-% Note that the resulting file will be written with no additional encoding.
+% The resulting file will be written with no additional encoding options.
+%
+% In-place update can be done (by specifying the same file).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
 							text_utils:translation_table() ) -> void().
@@ -4626,15 +4641,14 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable ) ->
 						  _EncodingOpts=[] ).
 
 
-
-% @doc Updates specified file with specified keywords, that is copies the
-% original file into a target, updated one (supposedly non-already existing; and
-% with the specified encoding), in which all the specified keywords (the keys of
-% the translation table) have been replaced with their associated value
-% (that is the value in table corresponding to that key).
+% @doc Updates the specified file with the specified keywords, that is copies
+% the original file into a target, updated one (supposedly non-already
+% existing), in which all the specified keywords (the keys of the translation
+% table) have been replaced by their associated value (that is the value in
+% table corresponding to that key).
 %
-% For example file_utils:update_with_keywords("original.txt", "updated.txt",
-%   table:new([{"hello", "goodbye"}, {"Blue", "Red"}])).
+% For example: file_utils:update_with_keywords("original.txt", "updated.txt",
+%    table:new([{"hello", "goodbye"}, {"Blue", "Red"}]), []).
 %
 -spec update_with_keywords( any_file_path(), any_file_path(),
 		text_utils:translation_table(), system_utils:encoding_options() ) ->
@@ -4643,7 +4657,7 @@ update_with_keywords( OriginalFilePath, TargetFilePath, TranslationTable,
 					  EncodingOpts ) ->
 
 	exists( TargetFilePath )
-		andalso throw( { already_existing, TargetFilePath } ),
+		andalso throw( { already_existing_target_file, TargetFilePath } ),
 
 	BinOrigContent = read_whole( OriginalFilePath ),
 
@@ -4996,7 +5010,8 @@ open( AnyFilePath, Options, _AttemptMode=try_endlessly ) ->
 		{ error, eacces } ->
 			throw( { open_failed,
 					 { text_utils:ensure_string( AnyFilePath ), Options },
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, OtherFileError } ->
 			throw( { open_failed,
@@ -5020,7 +5035,8 @@ open( AnyFilePath, Options, _AttemptMode=try_once ) ->
 		{ error, eacces } ->
 			throw( { open_failed,
 					 { text_utils:ensure_string( AnyFilePath ), Options },
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, emfile } ->
 			throw( { too_many_open_files,
@@ -5041,15 +5057,17 @@ open( AnyFilePath, Options, _AttemptMode=try_once ) ->
 
 
 % (helper)
-get_access_denied_info( AnyFilePath ) ->
+get_file_access_denied_info( AnyFilePath ) ->
 
 	Dir = filename:dirname( AnyFilePath ),
 
 	case is_existing_directory( Dir ) of
 
 		true ->
-			UserInfo = { actual_user, system_utils:get_user_name_safe(),
-						 { user_id, system_utils:get_user_id() } },
+			UserInfo = [ { actual_user, system_utils:get_user_name_safe(),
+						   { user_id, system_utils:get_user_id() } },
+						 { actual_group, system_utils:get_group_name_safe(),
+						   { group_id, system_utils:get_group_id() } } ],
 
 			FileInfo = case is_existing_file_or_link( AnyFilePath ) of
 
@@ -5074,6 +5092,47 @@ get_access_denied_info( AnyFilePath ) ->
 
 		false ->
 			{ non_existing_directory, Dir }
+
+	end.
+
+
+% (helper)
+get_directory_access_denied_info( AnyDirPath ) ->
+
+	ParentDir = filename:dirname( AnyDirPath ),
+
+	case is_existing_directory( ParentDir ) of
+
+		true ->
+			UserInfo = [ { actual_user, system_utils:get_user_name_safe(),
+						   { user_id, system_utils:get_user_id() } },
+						 { actual_group, system_utils:get_group_name_safe(),
+						   { group_id, system_utils:get_group_id() } } ],
+
+			DirInfo = case is_existing_directory_or_link( AnyDirPath ) of
+
+				true ->
+					{ existing_directory,
+					  { owner_id, get_owner_of( AnyDirPath ) },
+					  { group_id, get_group_of( AnyDirPath ) },
+					  { permissions, get_permissions_of( AnyDirPath ) } };
+
+				false ->
+					non_existing_directory
+
+			end,
+
+			ParenDirOwnerInfo = { owner_id, get_owner_of( ParentDir ) },
+			ParenDirGroupInfo = { group_id, get_group_of( ParentDir ) },
+			ParenDirPerms = { permissions, get_permissions_of( ParentDir ) },
+
+			ParentDirInfo = { existing_directory, ParentDir, ParenDirOwnerInfo,
+							  ParenDirGroupInfo, ParenDirPerms },
+
+			{ UserInfo, DirInfo, ParentDirInfo };
+
+		false ->
+			{ non_existing_parent_directory, ParentDir }
 
 	end.
 
@@ -5264,8 +5323,9 @@ read_whole( FilePath ) ->
 			Binary;
 
 		{ error, eacces } ->
-			throw( { read_whole_failed, FilePath, access_denied,
-					 get_access_denied_info( FilePath ) } );
+			throw( { read_whole_failed,
+					 text_utils:ensure_string( FilePath ), access_denied,
+					 get_file_access_denied_info( FilePath ) } );
 
 		{ error, Error } ->
 			throw( { read_whole_failed, FilePath, Error } )
@@ -5297,8 +5357,9 @@ read_lines( FilePath ) ->
 			F;
 
 		{ error, eacces } ->
-			throw( { read_lines_failed, FilePath, access_denied,
-					 get_access_denied_info( FilePath ) } );
+			throw( { read_lines_failed, text_utils:ensure_string( FilePath ),
+					 access_denied,
+					 get_file_access_denied_info( FilePath ) } );
 
 		{ error, Error } ->
 			throw( { read_lines_failed, FilePath, opening, Error } )
@@ -5400,7 +5461,8 @@ write_whole( AnyFilePath, BinaryContent, Modes ) ->
 		{ error, eacces } ->
 			throw( { write_whole_failed,
 					 { text_utils:ensure_string( AnyFilePath ), Modes },
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, Error } ->
 			throw( { write_whole_failed,
@@ -5474,7 +5536,8 @@ read_terms( AnyFilePath ) ->
 
 		{ error, eacces }  ->
 			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
-					 access_denied, get_access_denied_info( AnyFilePath ) } );
+					 access_denied,
+					 get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, { _, file_io_server, invalid_unicode } } ->
 			% See also latin1_file_to_unicode/1:

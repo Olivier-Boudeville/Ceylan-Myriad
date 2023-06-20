@@ -101,6 +101,9 @@ run() ->
 
 	end,
 
+
+	{ 1, 10 } = list_utils:get_min_max( [ 3, 10, 3, 10, 1, 2, 6, 5 ] ),
+
 	%OutOfBoundsIndex = 0,
 	%OutOfBoundsIndex = 100,
 	%test_facilities:display( "   List obtained after having removed item #~B

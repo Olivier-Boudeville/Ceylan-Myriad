@@ -26,7 +26,7 @@
 % Creation date: Sunday, October 3, 2021.
 
 
-% @doc Module implementing the support for points of <b>arbitrary dimension</b>.
+% @doc Module implementing the support for points in <b>arbitrary dimension</b>.
 %
 % See also:
 % - the corresponding arbitrary-dimensioned vectors (in vector.erl) and matrices
@@ -51,8 +51,8 @@
 %
 % No dependent types, not able to declare a point(D) type.
 %
-% We call a container type-homogenous if all the coordinates that it gathers are
-% all either integer or floating-point ones.
+% We call a container type-homogeneous if all the coordinates that it gathers
+% are all either integer or floating-point ones.
 
 
 

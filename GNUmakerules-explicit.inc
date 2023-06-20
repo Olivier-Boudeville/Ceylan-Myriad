@@ -976,6 +976,7 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 sync-sources-to-server: all
 	@echo " Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
+	@echo "(source synchronisation to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT) done)"
 
 
 # To synchronise the full content of the current layer to the specified server
@@ -988,6 +989,7 @@ sync-sources-to-server: all
 sync-all-to-server: all
 	@echo " Synchronising the full content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) $(LAYER_TOP) $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
+	@echo "(full synchronisation to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT) done)"
 
 
 
