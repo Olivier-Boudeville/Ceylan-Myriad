@@ -158,7 +158,7 @@
 		  tail/1, tail/2,
 
 		  get_default_bullet/0, get_bullet_for_level/1,
-		  format_text_for_width/2,
+		  format_text_for_width/2, format_text_for_width/3,
 
 		  pad_string/2,
 		  pad_string_left/2, pad_string_left/3,
@@ -4499,69 +4499,107 @@ tail( String, MaxLen ) ->
 
 
 
-% @doc Formats (word-wraps) specified text according to specified line width,
-% expressed in characters.
+% @doc Formats (word-wraps) the specified text according to the specified line
+% width, expressed in characters, by maximising the number of words in each line
+% and afterwards padding it with spaces.
 %
-% Returns a list of strings, each of which having Width characters.
+% Returns a list of strings, each of which having exactly Width characters.
 %
 -spec format_text_for_width( ustring(), width() ) -> [ ustring() ].
 format_text_for_width( Text, Width ) ->
+	format_text_for_width( Text, Width, _DoPad=true ).
+
+
+
+% @doc Formats (word-wraps) the specified text according to the specified line
+% width, expressed in characters, by maximising the number of words in each line
+% and afterwards padding it with spaces.
+%
+% Returns a list of strings, each of which having exactly Width characters.
+%
+-spec format_text_for_width( ustring(), width(), boolean() ) -> [ ustring() ].
+format_text_for_width( Text, Width, DoPad ) ->
 
 	% Whitespaces converted to spaces:
 	CleanedTest = re:replace( lists:flatten( Text ), "\\s+", " ",
 							  [ global, { return, list } ] ),
 
-	WordList = string:tokens( CleanedTest, " " ),
+	Words = string:tokens( CleanedTest, _Sep=" " ),
 
-	%io:format( "Formatting ~p.~n", [ WordList ] ),
-	join_words( WordList, Width ).
+	%io:format( "Formatting ~p.~n", [ Words ] ),
+	R = join_words( Words, Width, DoPad ),
+
+	%io:format( "Result: '~ts'.~n", [ R ] ),
+
+	R.
 
 
 
 % @doc Joins words from the specified list, line by line.
-join_words( WordList, Width ) ->
-	join_words( WordList, Width, _Lines=[], _CurrentLine="",
+join_words( Words, Width, DoPad ) ->
+	join_words( Words, Width, DoPad, _AccLines=[], _CurrentLine="",
 				_CurrentLineLen=0 ).
 
 
-join_words( [], _Width, AccLines, _CurrentLine, _CurrentLineLen=0 ) ->
-	% Ended with a full line:
-	lists:reverse( AccLines );
+join_words( _Words=[], _Width, _DoPad, AccLines,
+			_CurrentLine, _CurrentLineLen=0 ) ->
+	% Just ended with a full line:
+	R = lists:reverse( AccLines ),
+	%io:format( "Returning R1='~w'.~n", [ R ] ),
+	R;
 
-join_words( [], Width, AccLines, CurrentLine, _CurrentLineLen ) ->
-	% Ended with a partial line:
-	lists:reverse( [ pad_string( CurrentLine, Width ) | AccLines ] );
+join_words( _Words=[], _Width, _DoPad=false, AccLines,
+			CurrentLine, _CurrentLineLen ) ->
+	lists:reverse( [ CurrentLine | AccLines ] );
 
-join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
+join_words( _Words=[], Width, _DoPad=true, AccLines,
+			CurrentLine, _CurrentLineLen ) ->
+
+	PadChar = $ ,
+	%PadChar = $X,
+
+	% Ended with a partial line (most likely):
+	R = lists:reverse( [ pad_string_left( CurrentLine, Width, PadChar )
+					   | AccLines ] ),
+	%io:format( "Returning R2='~w'.~n", [ R ] ),
+	R;
+
+join_words( [ Word | RemainingWords ], Width, DoPad, AccLines, CurrentLine,
 			CurrentLineLen ) ->
 
 	%io:format( "Managing word '~ts' (len=~B), current line is '~ts' (len=~B), "
 	%   "width = ~B.~n", [ Word, erlang:length( Word ), CurrentLine,
 	%   CurrentLineLen, Width ] ),
 
-	% Length should be incremented, as a space must be inserted before that
-	% word, however we want to accept words whose width would be exactly equal
-	% to the line width:
-	%
-	ActualLength = case CurrentLine of
+	PadChar = $ ,
+	%PadChar = $X,
 
-		"" ->
-			erlang:length( Word );
+	% The length of the new word should be incremented, as a space must be
+	% inserted before that word, however we want to accept also words whose
+	% width would be exactly equal to the line width:
 
-		_NonEmpty ->
-			% Already at least a letter, we therefore must add a space before
-			% the new word:
-			erlang:length( Word ) + 1
+	WLen = erlang:length( Word ),
 
-	end,
-
-	case ActualLength of
+	case WLen of
 
 		CompatibleWidth when CompatibleWidth =< Width ->
-			% Word width is manageable.
+			% The length of this word is manageable.
 			% Will this word fit on the current line?
-			%
-			case CurrentLineLen + CompatibleWidth of
+
+			ActualWLen = case CurrentLineLen of
+
+				0 ->
+					WLen;
+
+				_NonNullLen ->
+					% Already at least a letter, we therefore must add a space
+					% before this new word:
+					%
+					WLen + 1
+
+			end,
+
+			case CurrentLineLen + ActualWLen of
 
 				FittingLen when FittingLen =< Width ->
 					% Yes, this word fits on the current line.
@@ -4578,22 +4616,30 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 
 					end,
 
-					%trace_utils::format( "Current line is now '~ts'.",
-					%                     [ NewCurrentLine ] ),
-					join_words( RemainingWords, Width, AccLines, NewCurrentLine,
-								NewLineLen );
+					%io:format( "Current line is now '~ts'.~n",
+					%           [ NewCurrentLine ] ),
+					join_words( RemainingWords, Width, DoPad, AccLines,
+								NewCurrentLine, NewLineLen );
 
 				_ExceedingLen ->
 
 					% No, with this word the current line would be too wide,
 					% inserting it on new line instead:
 					%
-					PaddedCurrentLine = pad_string( CurrentLine, Width ),
+					PaddedCurrentLine = case DoPad of
+
+						true ->
+							pad_string_left( CurrentLine, Width, PadChar );
+
+						false ->
+							CurrentLine
+
+					end,
 
 					%io:format( "Inserting line '~ts'.~n",
 					%           [ PaddedCurrentLine ] ),
 
-					join_words( RemainingWords, Width,
+					join_words( RemainingWords, Width, DoPad,
 						[ PaddedCurrentLine | AccLines ], Word,
 						CompatibleWidth )
 
@@ -4605,11 +4651,20 @@ join_words( [ Word | RemainingWords ], Width, AccLines, CurrentLine,
 			% Will break words as many times as needed:
 			%io:format( "Word '~ts' is too large (len=~B), breaking it.~n",
 			%           [ Word, erlang:length( Word ) ] ),
+
 			Subwords = break_word( Word, Width ),
 
-			PaddedCurrentLine = pad_string( CurrentLine, Width ),
+			PaddedCurrentLine = case DoPad of
 
-			join_words( Subwords ++ RemainingWords, Width,
+				true ->
+					pad_string_left( CurrentLine, Width, PadChar );
+
+				false ->
+					CurrentLine
+
+			end,
+
+			join_words( Subwords ++ RemainingWords, Width, DoPad,
 						[ PaddedCurrentLine | AccLines ], "", 0 )
 
 	end.

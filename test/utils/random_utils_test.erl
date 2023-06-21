@@ -47,7 +47,7 @@
 
 % Silencing:
 -export([ test_basic_random/0, test_biased_coin/0,
-		  test_uniform/0, test_exponential/0,
+		  test_uniform/0, test_exponential/0, test_gaussian/0,
 		  test_weibull/0,
 		  test_custom_pdf/0 ]).
 
@@ -164,25 +164,41 @@ test_biased_coin() ->
 test_uniform() ->
 
 	UniformSpec = { uniform, _Minf=3, _Maxf=9.0 },
+	test_law( UniformSpec ),
 
-	test_law( UniformSpec ).
+	IntegerUniformSpec = { integer_uniform, _Min=-10, _Max=5 },
+	test_law( IntegerUniformSpec ).
 
 
 
 test_exponential() ->
 
-	ExpLawSpec = { exponential, _Lambda=1.5 },
+	ExpLawSpec = { exponential, _Lambda=0.2 },
+	test_law( ExpLawSpec ),
 
-	test_law( ExpLawSpec ).
+	IntegerExpLawSpec = { positive_integer_exponential, _IntLambda=0.1 },
+	test_law( IntegerExpLawSpec ).
+
+
+
+test_gaussian() ->
+
+	%GausLawSpec = { gaussian, _Muf=2.0, _Sigmaf=0.4 },
+	%test_law( GausLawSpec ),
+
+	IntegerGausLawSpec = { positive_integer_gaussian, _Mu=70, _Sigma=8.0 },
+	test_law( IntegerGausLawSpec ).
 
 
 
 test_weibull() ->
 
 	% Default sample count and support:
-	WbLawSpec = { weibull, _K=1.5, _Lambda=1 },
+	%WbLaw2pSpec = { weibull_2p, _K1=1.5, _Lambda1=1 },
+	%test_law( WbLaw2pSpec ),
 
-	test_law( WbLawSpec ).
+	WbLaw3pSpec = { weibull_3p, _K2=2.1, _Lambda2=2, _Gamma2=10 },
+	test_law( WbLaw3pSpec ).
 
 
 
@@ -200,6 +216,7 @@ test_custom_pdf() ->
 	% details:
 	%
 	MyPDF = fun( X ) when X =< Mean ->
+
 		80 *math:exp( - 1/2*math:pow( ( X - Mean ), 2 ) / Variance )
 			/ ( math:sqrt( 2*math:pi() * Variance ) );
 
@@ -225,7 +242,6 @@ test_custom_pdf() ->
 	% We can set explicitly here the number of samples to be done to a low
 	% value, for testing:
 	%
-	%SampleCount = 128,
 	SampleCount = ?test_sample_count,
 
 	MyPDFInfo = { MyPDF, SampleCount, OurPDFBounds },
@@ -248,7 +264,7 @@ test_law( LawSpec ) ->
 	SampleCount = 20,
 
 	test_facilities:display( "Initialised as ~ts, generating ~B samples "
-		"from it:~n  ~p",
+		"from it:~n  ~w",
 		[ random_utils:law_data_to_string( LawData ), SampleCount,
 		  random_utils:get_samples_from( SampleCount, LawData ) ] ),
 
@@ -301,15 +317,19 @@ graph_law( LawSpec, LawData ) ->
 
 			% Now seeing whether drawings converge to it:
 			%PDFSamplingCount = 1000000,
-			PDFSamplingCount = 5000000,
+			PDFSamplingCount = 500000,
 
 			test_facilities:display( "Comparing the test PDF with the "
 				"frequencies of ~B samplings.", [ PDFSamplingCount ] ),
 
 			GnuplotCmdFileTemplate = "compare_test_pdf_sampling.p.template",
 
+			WordWrappedLawDesc = text_utils:join( _Sep="\\n",
+				text_utils:format_text_for_width( LawDesc, _Width=80,
+												  _DoPad=false ) ),
+
 			TranslationTable = table:new( [
-				{ "LAW_DESC", LawDesc },
+				{ "LAW_DESC", WordWrappedLawDesc },
 				{ "PDF_DATA_FILENAME", PDFDataFilename },
 				{ "SAMPLED_DATA_FILENAME", SampleDataFilename },
 				{ "GENERATED_PNG", PNGOutputFilename } ] ),
@@ -322,6 +342,17 @@ graph_law( LawSpec, LawData ) ->
 			RawSamples = random_utils:get_samples_from( PDFSamplingCount,
 														LawData ),
 
+			% To check that any artifact in the drawn data (brief returns to
+			% zero) are due to the bucket aggregation, not to the sample
+			% generation per se:
+			%
+			%TestRawFilename = "test-raw.dat",
+
+			%file_utils:remove_file_if_existing( TestRawFilename ),
+
+			%csv_utils:write_file( lists:sort(
+			%   list_utils:count_occurrences( RawSamples ) ), TestRawFilename ),
+
 			% We force aggregation in a sufficiently low number of buckets,
 			% otherwise direct (non-discretised) distributions yielding
 			% floating-point values would be seen as uniform (as any
@@ -330,24 +361,28 @@ graph_law( LawSpec, LawData ) ->
 			AggSamples = gather_samples_in_buckets( RawSamples,
 													?test_sample_count ),
 
+
 			% Already as a list of {X,Fun(X)}, i.e. {SampleValue,ProbOfValue}:
 			%trace_utils:debug_fmt( "Aggregated Sample values: ~p",
 			%                       [ AggSamples ] ),
 
 			% Previously no discretised gathering was done (zero-width buckets),
 			% leading to all distributions being rendered as uniform:
-			% ValueCountPairs = list_utils:count_occurrences( RawSamples ),
+			% (hence to be used if not gathering samples)
+			%ValueCountPairs = list_utils:count_occurrences( RawSamples ),
+
 			ValueCountPairs = AggSamples,
 
 			%trace_utils:debug_fmt( "Value-count pairs: ~p",
 			%                       [ ValueCountPairs ] ),
 
-
 			% Normalising is useful so that the two curves are of the same
 			% scale:
 			%
 			NormalisedValueCountPairs = lists:sort(
-			   math_utils:normalise( ValueCountPairs, _FreqIndex=2 ) ),
+				math_utils:normalise( ValueCountPairs, _FreqIndex=2 ) ),
+
+			%NormalisedValueCountPairs = lists:sort( ValueCountPairs ),
 
 			csv_utils:write_file( NormalisedValueCountPairs,
 								  SampleDataFilename ),
@@ -393,13 +428,15 @@ gather_samples_in_buckets( Samples, BucketCount ) ->
 	% Both bounds included, hence Max-Min buckets:
 	{ Min, Max } = list_utils:get_min_max( Samples ),
 
-
 	% There will be at least one sample exactly equal to Max, which must thus be
 	% assigned to the last slot, so we must have: Min+ BucketWidth*BucketCount >
 	% Max; so BucketWidth must be greater than (Max-Min)/BucketCount, and we
 	% take:
 	%
-	BucketWidth = (Max-Min) / BucketCount + ?epsilon,
+	Offset = ?epsilon,
+	%Offset = 0.0,
+
+	BucketWidth = (Max-Min) / BucketCount + Offset,
 
 	Counters = type_utils:initialise_counters( BucketCount ),
 
@@ -446,17 +483,19 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	test_basic_random(),
+	%test_basic_random(),
 
-	test_facilities:display( "Testing now non-uniform random sampling." ),
+	%test_facilities:display( "Testing now non-uniform random sampling." ),
 
 	% Defined as discrete options:
-	test_biased_coin(),
+	%test_biased_coin(),
 
-	test_uniform(),
+	%test_uniform(),
 	%test_exponential(),
-	test_weibull(),
+	test_gaussian(),
 
-	test_custom_pdf(),
+	%test_weibull(),
+
+	%test_custom_pdf(),
 
 	test_facilities:stop().

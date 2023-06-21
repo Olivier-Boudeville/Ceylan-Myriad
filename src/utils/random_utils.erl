@@ -42,13 +42,18 @@
 % actual random law can be initialised (built, "compiled") so that any number of
 % samples can then be obtained from it.
 
+% Most laws come in their normal, canonical version (e.g. 'exponential'),
+% typically yielding floating-point values, and also in one yielding only
+% integer values, possibly even only positive ones
+% (e.g. 'positive_integer_exponential').
 
 % There were initially three basic classes of built-in random distributions:
 % - uniform (a.k.a. white noise)
 % - exponential
 % - Gaussian (a.k.a. normal)
 %
-% Then various reliability-related distributions have been added.
+% Then various reliability-related distributions have been added (e.g. the
+% Weibull family).
 %
 % Often distributions are generalised with parameters that allow specialising
 % them into well-known distributions (which are thus special cases thereof).
@@ -102,6 +107,10 @@
 % Unless performing a colossal number of drawings, distributions that would be
 % directly sampled cannot be represented in terms of frequency - unless they get
 % discretised as well.
+%
+% Distributions able to be directly sampled do not require bounds to be
+% specified or determined, as opposed to the ones whose PDF has to be
+% discretised.
 
 
 
@@ -145,7 +154,13 @@
 
 
 % Functions relative to other distributions:
--export([ weibull_pdf/3 ]).
+-export([ exponential_pdf/2, gaussian_pdf/3,
+		  weibull_2p_pdf/3, weibull_3p_pdf/4 ]).
+
+
+% Silencing:
+-export([ get_exponential_pdf/2 ]).
+
 
 % Functions related to arbitrary, non-uniform sampling:
 -export([ generate_alias_table_from/1,
@@ -269,7 +284,7 @@
 -type law_name() :: atom().
 % The name, as an atom, of a type of (unparametrised) law.
 %
-% For example, 'uniform' or 'weibull'.
+% For example, 'uniform' or 'weibull_3p'.
 %
 % Acts as an identifier of this type of laws.
 
@@ -288,7 +303,8 @@
   | gaussian_law_spec()
   | positive_integer_gaussian_law_spec()
 
-  | weibull_law_spec()
+  | weibull_2p_law_spec()
+  | weibull_3p_law_spec()
 
   | arbitrary_law_spec().
 % A user-level specification of a (parametrised) randow law, either natively
@@ -298,20 +314,23 @@
 
 
 
--type uniform_law_spec() :: { 'uniform', Min :: number(), Max :: number() }.
+-type uniform_law_spec() :: { 'uniform', Min :: number(), Max :: number() }
+						  | { 'uniform', Max :: number() }.
 % A probability distribution with which all declared samples have the same
 % probability of being drawn: will return random floats uniformly distributed
-% in [Min,Max].
+% in [Min,Max] if both bounds are specified, otherwise in [0,Max].
+
 
 -type full_uniform_law_spec() :: { 'uniform', Min :: float(), Max :: float() }.
 % Canonical, most complete uniform law specification.
 
 
 -type integer_uniform_law_spec() ::
-		{ 'integer_uniform', Nmin :: integer(), Nmax :: integer() }.
+		{ 'integer_uniform', Nmin :: integer(), Nmax :: integer() }
+	  |	{ 'integer_uniform', Nmax :: integer() }.
 % A probability distribution with which all declared samples have the same
 % probability of being drawn: will return random integers uniformly distributed
-% in [Nmin,Nmax].
+% in [Nmin,Nmax] if both bounds are specified, otherwise in [0,Nmax].
 
 
 -type exponential_law_spec() :: { 'exponential', Lambda :: rate() }.
@@ -364,27 +383,59 @@
 
 
 -type full_weibull_law_spec() ::
-	{ 'weibull', K :: positive_float(), Lambda :: positive_float(),
-	  sample_count(), bounds() }.
-% Canonical, most complete Weibull law specification.
-% Refer to weibull_law_spec/0 for further details.
+		full_weibull_2p_law_spec() | full_weibull_3p_law_spec().
 
--type weibull_law_spec() ::
-	{ 'weibull', K :: positive_float(), Lambda :: positive_float() }
-  | { 'weibull', K :: positive_float(), Lambda :: positive_float(),
+
+-type weibull_2p_law_spec() ::
+	{ 'weibull_2p', K :: positive_float(), Lambda :: positive_float() }
+  | { 'weibull_2p', K :: positive_float(), Lambda :: positive_float(),
 	  sample_count() }
-  | full_weibull_law_spec().
-% The Weibull law, whose K > 0 is the shape parameter (sometimes named beta) and
-% Lambda > 0 is the scale parameter (sometimes named alpha).
+  | full_weibull_2p_law_spec().
+% The Weibull law with two parameters, whose K > 0 is the shape parameter
+% (sometimes named beta, or slope) and Lambda > 0 is the scale parameter
+% (sometimes named alpha, or eta, or characteristic life).
 %
 % A sample count and specific bounds can be specified.
 %
-% See also https://en.wikipedia.org/wiki/Weibull_distribution.
+% See also https://en.wikipedia.org/wiki/Weibull_distribution and
+% https://reliawiki.org/index.php/The_Weibull_Distribution.
 
 
--type full_pdf_info() :: { pdf(), sample_count(), SampleBounds :: bounds() }.
-% Most complete information regarding a PDF to be used in order to define an
-% arbitrary law.
+-type full_weibull_2p_law_spec() ::
+	{ 'weibull_2p', K :: positive_float(), Lambda :: positive_float(),
+	  sample_count(), bounds() }.
+% Canonical, most complete Weibull law specification with two parameters.
+% Refer to weibull_2p_law_spec/0 for further details.
+
+
+
+-type weibull_3p_law_spec() ::
+	{ 'weibull_3p', K :: positive_float(), Lambda :: positive_float(),
+	  Gamma :: float() }
+  | { 'weibull_3p', K :: positive_float(), Lambda :: positive_float(),
+	  Gamma :: float(), sample_count() }
+  | full_weibull_3p_law_spec().
+% The Weibull law with three parameters, whose:
+%
+% - K > 0 is the shape parameter (sometimes named beta, or slope)
+%
+% - Lambda > 0 is the scale parameter (sometimes named alpha, or eta, or
+% characteristic life)
+%
+% - Gamma (in R) is the location parameter (or failure free life)
+%
+% A sample count and specific bounds can be specified.
+%
+% See also https://en.wikipedia.org/wiki/Weibull_distribution and
+% https://reliawiki.org/index.php/The_Weibull_Distribution.
+
+
+-type full_weibull_3p_law_spec() ::
+	{ 'weibull_3p', K :: positive_float(), Lambda :: positive_float(),
+	  Gamma :: float(), sample_count(), bounds() }.
+% Canonical, most complete Weibull law specification with three parameters.
+% Refer to weibull_3p_law_spec/0 for further details.
+
 
 
 -type pdf_info() ::
@@ -392,6 +443,12 @@
 | { pdf(), sample_count() }
 | full_pdf_info().
 % Information regarding a PDF to be used in order to define an arbitrary law.
+
+
+-type full_pdf_info() :: { pdf(), sample_count(), SampleBounds :: bounds() }.
+% Most complete information regarding a PDF to be used in order to define an
+% arbitrary law.
+
 
 
 -type arbitrary_law_spec() ::
@@ -531,8 +588,24 @@
 -type pdf() :: pdf( any() ).
 % A Probability Density Function for samples of unspecified type.
 
--type weibull_pdf() :: pdf().
-% A PDF of the Weibull distribution.
+
+-type exponential_pdf() :: pdf().
+% A PDF of the exponential distribution.
+
+-type gaussian_pdf() :: pdf().
+% A PDF of the exponential distribution.
+
+
+
+-type weibull_pdf() :: weibull_2p_pdf() | weibull_3p_pdf().
+
+
+-type weibull_2p_pdf() :: pdf().
+% A PDF of the two-parameter Weibull distribution.
+
+-type weibull_3p_pdf() :: pdf().
+% A PDF of the three-parameter Weibull distribution.
+
 
 
 -export_type([ seed_element/0, seed/0, random_state/0, alias_table/0,
@@ -549,7 +622,9 @@
 
 -export_type([ discrete_probability_distribution/0,
 			   discrete_probability_distribution/1,
-			   pdf/0, pdf/1, weibull_pdf/0 ]).
+			   pdf/0, pdf/1,
+			   exponential_pdf/0, gaussian_pdf/0,
+			   weibull_2p_pdf/0, weibull_3p_pdf/0 ]).
 
 
 % Law specs:
@@ -557,7 +632,7 @@
 			   uniform_law_spec/0, integer_uniform_law_spec/0,
 			   exponential_law_spec/0, positive_integer_exponential_law_spec/0,
 			   gaussian_law_spec/0, positive_integer_gaussian_law_spec/0,
-			   weibull_law_spec/0,
+			   weibull_2p_law_spec/0, weibull_3p_law_spec/0,
 			   arbitrary_law_spec/0 ]).
 
 
@@ -1217,9 +1292,41 @@ check_random_seed( S ) ->
 % First type of direct arbitrary spec: already with a probability distribution
 % (as opposed to a PDF); easy cases:
 %
+initialise_law( _LS={ uniform, Max } ) ->
+	CanonSpec = canonicalise_pdf_based_spec( { uniform, _Min=0, Max } ),
+	{ CanonSpec, undefined };
+
 initialise_law( LS={ uniform, _Min, _Max } ) ->
 	CanonSpec = canonicalise_pdf_based_spec( LS ),
 	{ CanonSpec, undefined };
+
+
+initialise_law( _LS={ integer_uniform, Max } ) ->
+	CanonSpec = canonicalise_pdf_based_spec( { integer_uniform, _Min=0, Max } ),
+	{ CanonSpec, undefined };
+
+initialise_law( LS={ integer_uniform, _Min, _Max } ) ->
+	CanonSpec = canonicalise_pdf_based_spec( LS ),
+	{ CanonSpec, undefined };
+
+
+initialise_law( LS={ exponential, _Lambda } ) ->
+	CanonSpec = canonicalise_pdf_based_spec( LS ),
+	{ CanonSpec, undefined };
+
+initialise_law( LS={ positive_integer_exponential, _Lambda } ) ->
+	CanonSpec = canonicalise_pdf_based_spec( LS ),
+	{ CanonSpec, undefined };
+
+
+initialise_law( LS={ gaussian, _Mu, _Sigma } ) ->
+	CanonSpec = canonicalise_pdf_based_spec( LS ),
+	{ CanonSpec, undefined };
+
+initialise_law( LS={ positive_integer_gaussian, _Mu, _Sigma } ) ->
+	CanonSpec = canonicalise_pdf_based_spec( LS ),
+	{ CanonSpec, undefined };
+
 
 initialise_law( _LS={ arbitrary, AnyName, DistProbLikes } )
 									when is_list( DistProbLikes ) ->
@@ -1248,21 +1355,45 @@ initialise_law( LS ) ->
 
 	case canonicalise_pdf_based_spec( LS ) of
 
-		{ _CanSpec={ weibull, K, Lambda, SampleCount, WbBounds={ Min, Max } },
-		  Inc, WbPDFFun } ->
+		{ _CanSpec={ weibull_2p, K, Lambda, SampleCount,
+					 WbBounds={ Min, Max } }, Inc, WbPDFFun } ->
+
 			cond_utils:if_defined( myriad_debug_random,
-				trace_utils:debug_fmt( "Initialising a Weibull law of K=~f "
+				trace_utils:debug_fmt( "Initialising a Weibull-2P law of K=~f "
 					"and Lambda=~f, discretised on interval ~ts "
 					"with ~B points (increment: ~f).",
 					[ K, Lambda, math_utils:bounds_to_string( WbBounds ),
 					  SampleCount, Inc ] ),
 				basic_utils:ignore_unused( WbBounds ) ),
+
 			SampledPDFPairs = math_utils:sample_as_pairs( WbPDFFun, Min, Max,
 														  Inc ),
+
 			AliasTable = generate_alias_table_from( SampledPDFPairs ),
 			SamplingInfo = { Min, Max, SampleCount },
-			WbLawSettings = { weibull, K, Lambda, SamplingInfo },
+			WbLawSettings = { weibull_2p, K, Lambda, SamplingInfo },
 			_ArbitraryLawData={ WbLawSettings, AliasTable };
+
+
+		{ _CanSpec={ weibull_3p, K, Lambda, Gamma, SampleCount,
+					 WbBounds={ Min, Max } }, Inc, WbPDFFun } ->
+
+			cond_utils:if_defined( myriad_debug_random,
+				trace_utils:debug_fmt( "Initialising a Weibull-3P law of K=~f, "
+					"Lambda=~f and Gamma=~f, discretised on interval ~ts "
+					"with ~B points (increment: ~f).",
+					[ K, Lambda, Gamma, math_utils:bounds_to_string( WbBounds ),
+					  SampleCount, Inc ] ),
+				basic_utils:ignore_unused( WbBounds ) ),
+
+			SampledPDFPairs = math_utils:sample_as_pairs( WbPDFFun, Min, Max,
+														  Inc ),
+
+			AliasTable = generate_alias_table_from( SampledPDFPairs ),
+			SamplingInfo = { Min, Max, SampleCount },
+			WbLawSettings = { weibull_3p, K, Lambda, Gamma, SamplingInfo },
+			_ArbitraryLawData={ WbLawSettings, AliasTable };
+
 
 		{ _CanSpec={ arbitrary, BinName,
 			_CanonPDFInfo={ LFun, SampleCount, CanBounds={ Min, Max } } },
@@ -1769,6 +1900,98 @@ get_all_sample_pairs( _LS={ uniform, Min, Max } ) ->
 	% Returns SampledPDFPairs (uniform sampling; not normalised):
 	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
 
+get_all_sample_pairs( _LS={ integer_uniform, Min, Max } ) ->
+	% Constant (non-normalised) probability:
+	LawFun =
+		fun( S ) ->
+
+			case math_utils:are_relatively_close( S, round( S ) ) of
+
+				true ->
+					1.0;
+
+				false ->
+					0.0
+
+			end
+
+		end,
+
+	% Returns SampledPDFPairs (uniform sampling; not normalised):
+	math_utils:sample_as_pairs( LawFun, Min, Max, _Inc=1.0 );
+
+
+get_all_sample_pairs( _LS={ exponential, Lambda } ) ->
+
+	LawFun = fun( S ) -> exponential_pdf( S, Lambda ) end,
+
+	{ Min, Max } = math_utils:compute_support( LawFun ),
+
+	Inc = ( Max - Min ) / ?default_pdf_sample_count,
+
+	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
+
+
+get_all_sample_pairs( _LS={ positive_integer_exponential, Lambda } ) ->
+
+	LawFun = fun( S ) ->
+
+			case math_utils:are_relatively_close( S, round( S ) ) of
+
+				true ->
+					exponential_pdf( S, Lambda );
+
+				false ->
+					0.0
+
+			end
+
+		end,
+
+	%Max = 100.0 * Lambda,
+	{ Min, Max } = math_utils:compute_integer_support( LawFun ),
+
+	Inc = ( Max - Min ) / ?default_pdf_sample_count,
+
+	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
+
+
+
+get_all_sample_pairs( _LS={ gaussian, Mu, Sigma } ) ->
+
+	LawFun = fun( S ) -> gaussian_pdf( S, Mu, Sigma ) end,
+
+	{ Min, Max } = math_utils:compute_support( LawFun ),
+
+	Inc = ( Max - Min ) / ?default_pdf_sample_count,
+
+	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
+
+
+get_all_sample_pairs( _LS={ positive_integer_gaussian, Mu, Sigma  } ) ->
+
+	LawFun = fun( S ) ->
+
+			case math_utils:are_relatively_close( S, round( S ) ) of
+
+				true ->
+					gaussian_pdf( S, Mu, Sigma );
+
+				false ->
+					0.0
+
+			end
+
+		end,
+
+	{ Min, Max } = math_utils:compute_integer_support( LawFun, _Origin=Mu,
+		_MaybeMin=undefined, _MaybeMax=undefined ),
+
+	Inc = ( Max - Min ) / ?default_pdf_sample_count,
+
+	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
+
+
 
 % First type of arbitrary spec: already with a probability distribution (as
 % opposed to a PDF).
@@ -1786,8 +2009,12 @@ get_all_sample_pairs( LS ) ->
 	{ LawFun, CanonBounds, Increment } =
 			case canonicalise_pdf_based_spec( LS ) of
 
-		{ _CanonSpec={ weibull, _K, _Lambda, _SampleCount, WbBounds }, Inc,
+		{ _CanonSpec={ weibull_2p, _K, _Lambda, _SampleCount, WbBounds }, Inc,
 		  WbPDFFun } ->
+			{ WbPDFFun, WbBounds, Inc };
+
+		{ _CanonSpec={ weibull_3p, _K, _Lambda, _Gamma, _SampleCount,
+					   WbBounds }, Inc, WbPDFFun } ->
 			{ WbPDFFun, WbBounds, Inc };
 
 		{ _CanonSpec={ arbitrary, _BinName,
@@ -1809,14 +2036,115 @@ get_all_sample_pairs( LS ) ->
 % get_all_sample_pairs/1, so that they use exactly the same results.
 %
 -spec canonicalise_pdf_based_spec( random_law_spec() ) ->
-		  full_uniform_law_spec()
-	  | { full_weibull_law_spec(), increment(), weibull_pdf() }
-	  | { arbitrary_law_spec(), pdf(),
-		  { sample_count(), bounds(), increment() } }.
+	full_uniform_law_spec() | integer_uniform_law_spec()
+  | { full_weibull_law_spec(), increment(), weibull_pdf() }
+  | { arbitrary_law_spec(), pdf(),
+	  { sample_count(), bounds(), increment() } }.
 % First, uniform laws:
 canonicalise_pdf_based_spec( _LS={ uniform, Min, Max } ) ->
 	{ Minf, Maxf } = math_utils:canonicalise_bounds( { Min, Max } ),
 	_UnifLawSpec={ uniform, Minf, Maxf };
+
+canonicalise_pdf_based_spec( _LS={ integer_uniform, Min, Max } ) ->
+	{ Mini, Maxi } = math_utils:canonicalise_integer_bounds( { Min, Max } ),
+	_UnifLawSpec={ integer_uniform, Mini, Maxi };
+
+
+% Then exponential laws:
+canonicalise_pdf_based_spec( _LS={ exponential, Lambda } ) ->
+	Lambdaf = check_exponential_lambda( Lambda ),
+	_ExpLawSpec={ exponential, Lambdaf };
+
+canonicalise_pdf_based_spec( _LS={ positive_integer_exponential, Lambda } ) ->
+	Lambdaf = check_exponential_lambda( Lambda ),
+	_ExpLawSpec={ positive_integer_exponential, Lambdaf };
+
+
+% Then gaussian laws:
+canonicalise_pdf_based_spec( _LS={ gaussian, Mu, Sigma } ) ->
+	Muf = check_gaussian_mu( Mu ),
+	Sigmaf = check_gaussian_sigma( Sigma ),
+	_GausLawSpec={ gaussian, Muf, Sigmaf };
+
+canonicalise_pdf_based_spec( _LS={ positive_integer_gaussian, Mu, Sigma } ) ->
+	Muf = check_gaussian_mu( Mu ),
+	Sigmaf = check_gaussian_sigma( Sigma ),
+	_GausLawSpec={ positive_integer_gaussian, Muf, Sigmaf };
+
+
+% Now, the Weibull section:
+%
+% Weibull-2P with no sample count:
+canonicalise_pdf_based_spec( _LS={ weibull_2p, K, Lambda } ) ->
+	canonicalise_pdf_based_spec(
+		{ weibull_2p, K, Lambda, ?default_pdf_sample_count } );
+
+% No support specified:
+canonicalise_pdf_based_spec( LS={ weibull_2p, K, Lambda, SampleCount } ) ->
+	% Needed to compute support (no a priori bounds):
+	{ WbPDFFun, Kf, Lambdaf } = get_weibull_2p_pdf( K, Lambda, LS ),
+	SampleBounds = math_utils:compute_support( WbPDFFun ),
+
+	% To be shared with next clause:
+	canonicalise_weibull_spec_with( WbPDFFun,
+		{ weibull_2p, Kf, Lambdaf, SampleCount, SampleBounds } );
+
+% Full information available for 2P:
+canonicalise_pdf_based_spec(
+		LS={ weibull_2p, K, Lambda, SampleCount, SampleBounds } ) ->
+
+	CanonBounds = math_utils:canonicalise_bounds( SampleBounds ),
+
+	% Checks K and Lambda:
+	{ WbPDFFun, Kf, Lambdaf } = get_weibull_2p_pdf( K, Lambda, LS ),
+
+	canonicalise_weibull_spec_with( WbPDFFun,
+		{ weibull_2p, Kf, Lambdaf, SampleCount, CanonBounds } );
+
+
+% Weibull-3P with no sample count:
+canonicalise_pdf_based_spec( _LS={ weibull_3p, K, Lambda, Gamma } ) ->
+	canonicalise_pdf_based_spec(
+		{ weibull_3p, K, Lambda, Gamma, ?default_pdf_sample_count } );
+
+% No support specified:
+canonicalise_pdf_based_spec(
+		LS={ weibull_3p, K, Lambda, Gamma, SampleCount } ) ->
+
+	% Needed to compute support:
+	{ WbPDFFun, Kf, Lambdaf, Gammaf } =
+		get_weibull_3p_pdf( K, Lambda, Gamma, LS ),
+
+	% As not defined (negative number exponentiated) below Gammaf:
+	_SampleBounds={ SMin, SMax } = math_utils:compute_support( WbPDFFun,
+		_MinBound=Gammaf, _MaxBound=undefined ),
+
+	% Apparently samples shall be greater than Gamma (see
+	% https://reliawiki.org/index.php/The_Weibull_Distribution).
+	%
+	Min = max( SMin, Gammaf ),
+
+	BestBounds = { Min, SMax },
+
+	% To be shared with next clause:
+	canonicalise_weibull_spec_with( WbPDFFun,
+		{ weibull_3p, Kf, Lambdaf, Gammaf, SampleCount, BestBounds } );
+
+% Full information available for 3P:
+canonicalise_pdf_based_spec(
+		LS={ weibull_3p, K, Lambda, Gamma, SampleCount, SampleBounds } ) ->
+
+	CanonBounds = { SMin, _SMax } =
+		math_utils:canonicalise_bounds( SampleBounds ),
+
+	SMin >= Gamma orelse throw( { too_small_lower_bound, SMin, Gamma } ),
+
+	{ WbPDFFun, Kf, Lambdaf, Gammaf } =
+		get_weibull_3p_pdf( K, Lambda, Gamma, LS ),
+
+	canonicalise_weibull_spec_with( WbPDFFun,
+		{ weibull_3p, Kf, Lambdaf, Gammaf, SampleCount, CanonBounds } );
+
 
 % Arbitrary laws:
 %
@@ -1855,45 +2183,67 @@ canonicalise_pdf_based_spec( _LS={ arbitrary, AnyName,
 	% Increment returned for direct reuse:
 	{ CanonSpec, Increment };
 
-% Now, the Weibull section:
-%
-% Weibull with no sample count:
-canonicalise_pdf_based_spec( _LS={ weibull, K, Lambda } ) ->
-	canonicalise_pdf_based_spec(
-		{ weibull, K, Lambda, ?default_pdf_sample_count } );
-
-% No support specified:
-canonicalise_pdf_based_spec( LS={ weibull, K, Lambda, SampleCount } ) ->
-	% Needed to compute support:
-	{ WbPDFFun, Kf, Lambdaf } = get_weibull_pdf( K, Lambda, LS ),
-	SampleBounds = math_utils:compute_support( WbPDFFun ),
-
-	% To be shared with next clause:
-	canonicalise_pdf_based_spec_with( WbPDFFun,
-		{ weibull, Kf, Lambdaf, SampleCount, SampleBounds } );
-
-% Full information available:
-canonicalise_pdf_based_spec(
-		LS={ weibull, K, Lambda, SampleCount, SampleBounds } ) ->
-
-	CanonBounds = math_utils:canonicalise_bounds( SampleBounds ),
-
-	{ WbPDFFun, Kf, Lambdaf } = get_weibull_pdf( K, Lambda, LS ),
-
-	canonicalise_pdf_based_spec_with( WbPDFFun,
-		{ weibull, Kf, Lambdaf, SampleCount, CanonBounds } );
-
-canonicalise_pdf_based_spec(Other ) ->
+canonicalise_pdf_based_spec( Other ) ->
 	throw( { unsupported_random_law_spec, Other } ).
 
 
 
-% @doc Returns the corresponding Weibull PDF, after having checked user-supplied
-% parameters.
+% @doc Checks that the specified term is a suitable lambda for an exponential
+% law and returns it.
 %
--spec get_weibull_pdf( term(), term(), term() ) ->
-		  { pdf(), positive_float(), positive_float() }.
-get_weibull_pdf( K, Lambda, LS ) ->
+-spec check_exponential_lambda( term() ) -> rate().
+check_exponential_lambda( Lambda ) when Lambda > 0 ->
+	float( Lambda );
+
+check_exponential_lambda( Other ) ->
+	throw( { invalid_exponential_lambda, Other } ).
+
+
+
+% @doc Checks that the specified term is a suitable mu (hence mean) for a
+% gaussian law and returns it.
+%
+-spec check_gaussian_mu( term() ) -> mean().
+check_gaussian_mu( Mu ) when is_number( Mu ) ->
+	float( Mu );
+
+check_gaussian_mu( Other ) ->
+	throw( { invalid_mu_gaussian, Other } ).
+
+
+
+% @doc Checks that the specified term is a suitable sigma (hence standard
+% deviation) for a gaussian law and returns it.
+%
+-spec check_gaussian_sigma( term() ) -> standard_deviation().
+check_gaussian_sigma( Sigma ) when Sigma >= 0 ->
+	float( Sigma );
+
+check_gaussian_sigma( Other ) ->
+	throw( { invalid_sigma_gaussian, Other } ).
+
+
+
+% @doc Returns the corresponding Exponential PDF, after having checked
+% user-supplied parameters.
+%
+-spec get_exponential_pdf( term(), term() ) -> { exponential_pdf(), rate() }.
+get_exponential_pdf( Lambda, _LS ) ->
+
+	Lambdaf = check_exponential_lambda( Lambda ),
+
+	ExpPDFFun = fun( S ) -> exponential_pdf( S, Lambdaf ) end,
+
+	{ ExpPDFFun, Lambdaf }.
+
+
+
+% @doc Returns the corresponding Weibull-2P PDF, after having checked
+% user-supplied parameters.
+%
+-spec get_weibull_2p_pdf( term(), term(), term() ) ->
+		{ weibull_2p_pdf(), positive_float(), positive_float() }.
+get_weibull_2p_pdf( K, Lambda, LS ) ->
 
 	K > 0.0 orelse throw( { invalid_k, K, LS } ),
 	Lambda > 0.0 orelse throw( { invalid_lambda, Lambda, LS } ),
@@ -1901,9 +2251,29 @@ get_weibull_pdf( K, Lambda, LS ) ->
 	Kf = float( K ),
 	Lambdaf = float( Lambda ),
 
-	WbPDFFun = fun( S ) -> weibull_pdf( S, Kf, Lambdaf ) end,
+	WbPDFFun = fun( S ) -> weibull_2p_pdf( S, Kf, Lambdaf ) end,
 
 	{ WbPDFFun, Kf, Lambdaf }.
+
+
+
+% @doc Returns the corresponding Weibull-3P PDF, after having checked
+% user-supplied parameters.
+%
+-spec get_weibull_3p_pdf( term(), term(), term(), term() ) ->
+		{ weibull_3p_pdf(), positive_float(), positive_float(), float() }.
+get_weibull_3p_pdf( K, Lambda, Gamma, LS ) ->
+
+	K > 0.0 orelse throw( { invalid_k, K, LS } ),
+	Lambda > 0.0 orelse throw( { invalid_lambda, Lambda, LS } ),
+
+	Kf = float( K ),
+	Lambdaf = float( Lambda ),
+	Gammaf = float( Gamma ),
+
+	WbPDFFun = fun( S ) -> weibull_3p_pdf( S, Kf, Lambdaf, Gammaf ) end,
+
+	{ WbPDFFun, Kf, Lambdaf, Gammaf }.
 
 
 
@@ -1911,10 +2281,10 @@ get_weibull_pdf( K, Lambda, LS ) ->
 %
 % Bounds supposed to be already canonic.
 %
--spec canonicalise_pdf_based_spec_with( weibull_pdf(), tuple() ) ->
+-spec canonicalise_weibull_spec_with( weibull_pdf(), tuple() ) ->
 			{ full_weibull_law_spec(), increment(), weibull_pdf() }.
-canonicalise_pdf_based_spec_with( WbPDFFun,
-		{ weibull, Kf, Lambdaf, SampleCount, WbBounds={ WbMin, WbMax } } ) ->
+canonicalise_weibull_spec_with( WbPDFFun,
+		{ weibull_2p, Kf, Lambdaf, SampleCount, WbBounds={ WbMin, WbMax } } ) ->
 
 	check_sample_count( SampleCount ),
 
@@ -1923,13 +2293,34 @@ canonicalise_pdf_based_spec_with( WbPDFFun,
 	% No need felt for normalisation.
 
 	cond_utils:if_defined( myriad_debug_random,
-		trace_utils:debug_fmt( "Canonicalising a Weibull law of K=~f "
+		trace_utils:debug_fmt( "Canonicalising a Weibull-2P law of K=~f "
 			"and Lambda=~f, discretised on interval ~ts "
 			"with ~B points (increment: ~f).",
 			[ Kf, Lambdaf, math_utils:bounds_to_string( WbBounds ),
 			  SampleCount, Inc ] ) ),
 
-	CanonSpec = { weibull, Kf, Lambdaf, SampleCount, WbBounds },
+	CanonSpec = { weibull_2p, Kf, Lambdaf, SampleCount, WbBounds },
+
+	{ CanonSpec, Inc, WbPDFFun };
+
+canonicalise_weibull_spec_with( WbPDFFun,
+		{ weibull_3p, Kf, Lambdaf, Gammaf, SampleCount,
+		  WbBounds={ WbMin, WbMax } } ) ->
+
+	check_sample_count( SampleCount ),
+
+	Inc = ( WbMax - WbMin ) / SampleCount,
+
+	% No need felt for normalisation.
+
+	cond_utils:if_defined( myriad_debug_random,
+		trace_utils:debug_fmt( "Canonicalising a Weibull-3P law of K=~f, "
+			"Lambda=~f and Gamma=~f, discretised on interval ~ts "
+			"with ~B points (increment: ~f).",
+			[ Kf, Lambdaf, Gammaf, math_utils:bounds_to_string( WbBounds ),
+			  SampleCount, Inc ] ) ),
+
+	CanonSpec = { weibull_3p, Kf, Lambdaf, Gammaf, SampleCount, WbBounds },
 
 	{ CanonSpec, Inc, WbPDFFun }.
 
@@ -1981,7 +2372,7 @@ get_sample_from( { _AnyRandomLawData, AliasTable } ) ->
 -spec get_samples_from( sample_count(), random_law_data() ) -> [ sample() ].
 get_samples_from( Count, LawData ) ->
 
-	trace_utils:debug_fmt( "Drawing ~B samples from ~p.",
+	trace_utils:debug_fmt( "Drawing ~B samples from ~ts.",
 						   [ Count, law_data_to_string( LawData ) ] ),
 
 	% Laws are static:
@@ -2039,8 +2430,38 @@ get_sample_from_table( #alias_table{ entry_count=EntryCount,
 
 
 
+% Exponential distribution:
+%
+% See https://en.wikipedia.org/wiki/Exponential_distribution.
+%
+% Lambda > 0 is the parameter of the distribution, often called the rate
+% parameter.
+%
+-spec exponential_pdf( positive_float_sample(), rate() ) -> probability().
+exponential_pdf( S, Lambda ) when S >= 0.0 ->
+	Lambda * exp( - S * Lambda );
 
-% Weibull distribution:
+exponential_pdf( _S, _Lambda ) -> % when S < 0.0 ->
+	0.0.
+
+
+
+% Gaussian (normal) distribution:
+%
+% See https://en.wikipedia.org/wiki/Normal_distribution.
+%
+% Mu is the mean or expectation of the distribution (and also its median and
+% mode), while Sigma is its standard deviation.
+%
+-spec gaussian_pdf( positive_float_sample(), mean(), standard_deviation() ) ->
+								probability().
+gaussian_pdf( S, Mu, Sigma ) ->
+	1.0 / ( Sigma * math:sqrt( 2*math:pi() ) )
+		* math:exp( - math:pow( ( S - Mu ) / Sigma, 2 ) / 2 ).
+
+
+
+% Weibull-2P distribution:
 %
 % See https://en.wikipedia.org/wiki/Weibull_distribution.
 %
@@ -2054,14 +2475,39 @@ get_sample_from_table( #alias_table{ entry_count=EntryCount,
 % including the exponential law (K=1) and the Rayleigh law (K=2 and
 % Lambda=sqrt(2).Sigma).
 %
--spec weibull_pdf( positive_float_sample(), positive_float(),
+-spec weibull_2p_pdf( positive_float_sample(), positive_float(),
 				   positive_float() ) -> probability().
-weibull_pdf( S, K, Lambda ) when S >= 0.0 ->
+weibull_2p_pdf( S, K, Lambda ) when S >= 0.0 ->
 	A = S / Lambda,
 	K/Lambda * pow( A, K-1 ) * exp( -pow( A, K ) );
 
-weibull_pdf( _S, _K, _Lambda ) -> % when S < 0.0 ->
+weibull_2p_pdf( _S, _K, _Lambda ) -> % when S < 0.0 ->
 	0.0.
+
+
+% Weibull-3P distribution:
+%
+% See https://en.wikipedia.org/wiki/Weibull_distribution.
+%
+% Its support is for a sample S>=Gamma.
+%
+% Determined by 2 parameters:
+% - K > 0 is the shape parameter (sometimes named beta)
+% - Lambda > 0 is the scale parameter (sometimes named alpha)
+% - Gamma (in R) is the location parameter (or failure free life)
+%
+% Being quite flexible, its proper parametrisation can cover many laws,
+% including the Weibull-2P ones (with Gamma=0).
+%
+-spec weibull_3p_pdf( positive_float_sample(), positive_float(),
+					  positive_float(), float() ) -> probability().
+weibull_3p_pdf( S, K, Lambda, Gamma ) when S >= 0.0 ->
+	A = ( S - Gamma ) / Lambda,
+	K/Lambda * pow( A, K-1 ) * exp( -pow( A, K ) );
+
+weibull_3p_pdf( _S, _K, _Lambda, _Gamma ) -> % when S < 0.0 ->
+	0.0.
+
 
 
 
@@ -2079,36 +2525,60 @@ check_sample_count( C ) ->
 % specification.
 %
 -spec law_spec_to_string( random_law_spec() ) -> ustring().
+% In specs, non-canonical types (e.g. integers instead of floats) may be
+% encountered, so ~w/~p are more appropriate:
+%
+law_spec_to_string( { uniform, Max } ) ->
+	law_spec_to_string( { uniform, _Min=0.0, Max } );
+
 law_spec_to_string( { uniform, Min, Max } ) ->
 	% They may be numbers:
 	text_utils:format( "uniform law in [~w,~w]", [ Min, Max ] );
 
+law_spec_to_string( { integer_uniform, Nmax } ) ->
+	law_spec_to_string( { integer_uniform, _Nmin=0, Nmax } );
+
 law_spec_to_string( { integer_uniform, Nmin, Nmax } ) ->
-	text_utils:format( "integer uniform law in [~B,~B]", [ Nmin, Nmax ] );
+	text_utils:format( "integer uniform law in [~w,~w]", [ Nmin, Nmax ] );
+
 
 law_spec_to_string( { exponential, Lambda } ) ->
-	text_utils:format( "exponential law of rate lamba=~f", [ Lambda ] );
+	text_utils:format( "exponential law of rate lamba=~w", [ Lambda ] );
 
 law_spec_to_string( { positive_integer_exponential, Lambda } ) ->
-	text_utils:format( "positive integer exponential law of rate lamba=~f",
+	text_utils:format( "integer exponential law of rate lamba=~w",
 					   [ Lambda ] );
 
+
 law_spec_to_string( { gaussian, Mu, Sigma } ) ->
-	text_utils:format( "gaussian law of mean mu=~f and standard deviation "
-					   "sigma=~f", [ Mu, Sigma ] );
+	text_utils:format( "gaussian law of mean mu=~w and standard deviation "
+					   "sigma=~w", [ Mu, Sigma ] );
 
 law_spec_to_string( { positive_integer_gaussian, Mu, Sigma } ) ->
-	text_utils:format( "positive integer gaussian law of mean mu=~f and "
-					   "standard deviation sigma=~f", [ Mu, Sigma ] );
+	text_utils:format( "positive integer gaussian law of mean mu=~w and "
+					   "standard deviation sigma=~w", [ Mu, Sigma ] );
 
-law_spec_to_string( { weibull, K, Lambda } ) ->
-	text_utils:format( "Weibull law of shape parameter k=~w and "
-		"of scale parameter lambda=~w", [ K, Lambda ] );
 
-law_spec_to_string( { weibull, K, Lambda, SampleCount } ) ->
-	text_utils:format( "Weibull law of shape parameter k=~w and "
-		"of scale parameter lambda=~w (sample count: ~B)",
+law_spec_to_string( { weibull_2p, K, Lambda } ) ->
+	text_utils:format( "Weibull-2P law of shape parameter k=~w and "
+		"scale parameter lambda=~w", [ K, Lambda ] );
+
+law_spec_to_string( { weibull_2p, K, Lambda, SampleCount } ) ->
+	text_utils:format( "Weibull-2P law of shape parameter k=~w and "
+		"scale parameter lambda=~w (sample count: ~B)",
 		[ K, Lambda, SampleCount ] );
+
+
+law_spec_to_string( { weibull_3p, K, Lambda, Gamma } ) ->
+	text_utils:format( "Weibull-3P law of shape parameter k=~w, "
+		"scale parameter lambda=~w and location parameter gamma=~w",
+		[ K, Lambda, Gamma ] );
+
+law_spec_to_string( { weibull_3p, K, Lambda, Gamma, SampleCount } ) ->
+	text_utils:format( "Weibull-3P law of shape parameter k=~w, "
+		"scale parameter lambda=~w and location parameter gamma=~w"
+		"(sample count: ~B)", [ K, Lambda, Gamma, SampleCount ] );
+
 
 law_spec_to_string( { arbitrary, Name, PDFInfo } ) when is_tuple( PDFInfo ) ->
 	text_utils:format( "arbitrary law named '~ts', an ~ts",
@@ -2126,10 +2596,40 @@ law_data_to_string( { _LawSettings={ uniform, Min, Max },
 					  _MaybeAliasTable=undefined } ) ->
 	text_utils:format( "uniform law in [~f, ~f]", [ Min, Max ] );
 
-law_data_to_string( { _LawSettings={ weibull, K, Lambda, SamplingInfo },
+law_data_to_string( { _LawSettings={ integer_uniform, NMin, NMax },
+					  _MaybeAliasTable=undefined } ) ->
+	text_utils:format( "integer uniform law in [~B, ~B]", [ NMin, NMax ] );
+
+
+law_data_to_string( { _LawSettings={ exponential, Lambda },
+					  _MaybeAliasTable=undefined } ) ->
+	text_utils:format( "exponential law of Lambda=~f", [ Lambda ] );
+
+law_data_to_string( { _LawSettings={ positive_integer_exponential, Lambda },
+					  _MaybeAliasTable=undefined } ) ->
+	text_utils:format( "integer exponential law of Lambda=~f", [ Lambda ] );
+
+
+law_data_to_string( { _LawSettings={ gaussian, Mu, Sigma },
+					  _MaybeAliasTable=undefined } ) ->
+	text_utils:format( "gaussian law of Mu=~f and Sigma=~f",
+					   [ Mu, Sigma ] );
+
+law_data_to_string( { _LawSettings={ positive_integer_gaussian, Mu, Sigma },
+					  _MaybeAliasTable=undefined } ) ->
+	text_utils:format( "integer gaussian law of Mu=~f and Sigma=~f",
+					   [ Mu, Sigma ] );
+
+
+law_data_to_string( { _LawSettings={ weibull_2p, K, Lambda, SamplingInfo },
 					  _MaybeAliasTable } ) ->
-	text_utils:format( "Weibull law of K=~f and Lambda=~f, ~ts",
-					   [ K, Lambda, sampling_info_to_string( SamplingInfo ) ] );
+	text_utils:format( "Weibull-2P law of K=~f and Lambda=~f, ~ts",
+		[ K, Lambda, sampling_info_to_string( SamplingInfo ) ] );
+
+law_data_to_string( { _LawSettings={ weibull_3p, K, Lambda, Gamma,
+									 SamplingInfo }, _MaybeAliasTable } ) ->
+	text_utils:format( "Weibull-3P law of K=~f, Lambda=~f and Gamma=~f, ~ts",
+		[ K, Lambda, Gamma, sampling_info_to_string( SamplingInfo ) ] );
 
 
 % For basic laws:
