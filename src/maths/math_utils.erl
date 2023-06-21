@@ -39,7 +39,7 @@
 -export([ floor/1, ceiling/1, round_after/2,
 		  float_to_integer/1, float_to_integer/2,
 		  modulo/2, clamp/2, clamp/3, squarify/1,
-		  get_next_power_of_two/1 ]).
+		  sign/1, get_next_power_of_two/1 ]).
 
 -compile({ inline, [ floor/1, ceiling/1, round_after/2,
 					 float_to_integer/1, float_to_integer/2,
@@ -49,7 +49,7 @@
 % Operations on floating-point values (in Erlang, a float is a C double):
 -export([ are_close/2, are_close/3, are_equal/2, are_equal/3,
 		  are_relatively_close/2, are_relatively_close/3,
-		  get_relative_difference/2, is_null/1 ]).
+		  get_relative_difference/2, is_null/1, is_null/2 ]).
 
 -compile({ inline, [ are_close/2, are_close/3,
 					 are_relatively_close/2, are_relatively_close/3,
@@ -65,12 +65,21 @@
 		  % Obsolete forms: radian_to_degree/1, degree_to_radian/1,
 		  canonify/1 ]).
 
--compile({ inline, [ radians_to_degrees/1, degrees_to_radians/1,
-					 canonify/1 ] }).
+-compile({ inline,
+		   [ radians_to_degrees/1, degrees_to_radians/1, canonify/1 ] }).
 
 
 % Operations related to functions:
--export([ sample/4, sample_as_pairs/4, normalise/2 ]).
+-export([ sample/4, sample_as_pairs/4, normalise/2,
+
+		  compute_support/1, compute_support/3, compute_support/4,
+
+		  compute_integer_support/1, compute_integer_support/3,
+		  compute_integer_support/4,
+
+		  canonicalise_bounds/1, canonicalise_integer_bounds/1,
+		  is_within_bounds/2, are_within_bounds/2,
+		  bounds_to_string/1, integer_bounds_to_string/1 ]).
 
 
 % Operations related to probabilities:
@@ -84,6 +93,12 @@
 % For epsilon define:
 -include("math_utils.hrl").
 
+
+% Must be fine enough to minimise the risk of missing zeros:
+-define( base_increment, 0.01 ).
+
+% For quick lookups:
+-define( coarse_increment, 0.1 ).
 
 
 % Type declarations:
@@ -172,6 +187,46 @@
 
 
 
+-type bound() :: float().
+-type integer_bound() :: integer().
+
+-type bounds() :: { MinBound :: bound(), MaxBound :: bound() }.
+% An interval, based on upper and lower (floating-point) bounds, typically of a
+% compact support.
+
+
+-type integer_bounds() ::
+		{ MinBound :: integer_bound(), MaxBound :: integer_bound() }.
+% An interval, based on upper and lower integer bounds, typically of a compact
+% support.
+
+
+-type abscissa() :: float().
+
+-type integer_abscissa() :: integer().
+
+
+-type integer_to_integer_fun() :: fun( ( integer() ) -> integer() ).
+% A function returning an integer from an integer.
+
+-type float_to_integer_fun() :: fun( ( float() ) -> integer() ).
+% A function returning an integer from a float.
+
+
+-type number_to_integer_fun() :: fun( ( number() ) -> integer() ).
+% A function returning an integer from a number (typically a float).
+
+-type number_to_float_fun() :: fun( ( number() ) -> float() ).
+% A function returning a float from a number (typically a float).
+
+
+-type integer_to_float_fun() :: fun( ( integer() ) -> float() ).
+% A function returning a float from an integer.
+
+-type float_to_float_fun() :: fun( ( float() ) -> float() ).
+% A function returning a float from an integer.
+
+
 
 -export_type([ factor/0, integer_factor/0, any_factor/0,
 			   positive_factor/0, non_negative_factor/0,
@@ -179,12 +234,28 @@
 			   infinite_number/0, infinite_range/0,
 			   standard_deviation/0, variance/0,
 			   ratio/0, percent/0, integer_percent/0,
-			   probability/0, probability_like/0 ]).
+			   probability/0, probability_like/0,
+			   bound/0, integer_bound/0,
+			   bounds/0, integer_bounds/0,
+			   abscissa/0, integer_abscissa/0,
+			   integer_to_integer_fun/0, float_to_integer_fun/0,
+			   number_to_integer_fun/0, number_to_float_fun/0,
+			   integer_to_float_fun/0, float_to_float_fun/0 ]).
+
+
+% Local types:
+
+-type increment() :: float().
+-type integer_increment() :: integer().
+
+-type epsilon() :: float().
+
 
 
 % Shorthands:
 
 -type positive_index() :: basic_utils:positive_index().
+-type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 
@@ -434,6 +505,16 @@ get_next_power_of_two( I, Candidate ) ->
 
 
 
+% @doc Returns the sign of the specified value, either as 1 or -1.
+-spec sign( number() ) -> 1 | -1.
+sign( N ) when N >= 0 ->
+	1;
+
+sign( _N ) ->
+	-1.
+
+
+
 % Floating-point section.
 
 
@@ -528,6 +609,11 @@ are_relatively_close( X, Y, Epsilon ) ->
 			%
 			are_close( X, Y, Epsilon );
 
+
+		0 ->
+			% Implies X and Y are integer zeros, so:
+			true;
+
 		_ ->
 			%trace_utils:debug_fmt( "X= ~p, Y= ~p~n", [ X, Y ] ),
 			2 * erlang:abs( ( X - Y ) / ( X + Y ) ) < Epsilon
@@ -587,6 +673,14 @@ get_relative_difference( X, Y ) ->
 -spec is_null( number() ) -> boolean().
 is_null( X ) ->
 	erlang:abs( X ) < ?epsilon.
+
+
+% @doc Returns true iff the specified number (floating-point or even integer) is
+% deemed close enough (based on specified epsilon) to zero to be null.
+%
+-spec is_null( number(), float() ) -> boolean().
+is_null( X, Epsilon ) ->
+	erlang:abs( X ) < Epsilon.
 
 
 
@@ -649,7 +743,7 @@ degrees_to_radians( AngleInDegrees ) ->
 %
 %-spec degree_to_radian( degrees() ) -> radians().
 %degree_to_radian( AngleInDegrees ) ->
-%	degrees_to_radians( AngleInDegrees ).
+%   degrees_to_radians( AngleInDegrees ).
 
 
 
@@ -689,10 +783,10 @@ sample( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
 
 
 
-% @doc Samples the specified function taking a single numerical argument, by
-% evaluating it on every point in turn from Start until up to Stop, with
-% specified increment: returns the ordered list of the corresponding {X,f(X)}
-% pairs that it took.
+% @doc Samples uniformly the specified function taking a single numerical
+% argument, by evaluating it on every point in turn from Start until up to Stop,
+% with specified increment: returns the ordered list of the corresponding
+% {X,f(X)} pairs that it took.
 %
 -spec sample_as_pairs( fun( ( number() ) -> T ), number(), number(),
 					   number() ) -> [ { number(), T } ].
@@ -709,7 +803,7 @@ sample_as_pairs( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
 sample_as_pairs( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
    NewValue = Fun( CurrentPoint ),
    sample_as_pairs( Fun, CurrentPoint+Increment, StopPoint, Increment,
-					[ { CurrentPoint, NewValue }| Acc ] ).
+					[ { CurrentPoint, NewValue } | Acc ] ).
 
 
 
@@ -728,7 +822,15 @@ normalise( _DataTuples=[], _Index ) ->
 
 normalise( DataTuples, Index ) ->
 	Sum = get_sum( DataTuples, Index, _Sum=0 ),
-	[ scale( Tuple, Index, Sum ) || Tuple <- DataTuples ].
+	case is_null( Sum ) of
+
+		true ->
+			throw( { null_sum, Sum, DataTuples, Index } );
+
+		false ->
+			[ scale( Tuple, Index, Sum ) || Tuple <- DataTuples ]
+
+	end.
 
 
 % (helper)
@@ -747,10 +849,983 @@ scale( Tuple, Index, Sum ) ->
 
 
 
+% @doc Returns an evaluation of the (supposedly finite, compact, to some extent
+% centered around zero) support of the specified function, taking one
+% floating-point value and returning one, as an interval with no bound
+% restriction.
+%
+% This simple heuristics assumes that this function vanishes at infinity; starts
+% looking around zero, based on a default epsilon.
+%
+% Typically useful to properly discretise probability density functions (with
+% floating-point samples).
+%
+-spec compute_support( float_to_float_fun() ) -> bounds().
+compute_support( Fun ) ->
+	compute_support( Fun, _MaybeMin=undefined, _MaybeMax=undefined ).
+
+
+
+% @doc Returns an evaluation of the (supposedly finite, compact, to some extent
+% centered around zero) support of the specified function, taking one
+% floating-point value and returning one, as an interval complying to the
+% specified bound restriction (to limit it in a given interval, possibly because
+% this function is not defined out of it).
+%
+% This simple heuristics assumes that this function vanishes at infinity; starts
+% looking around zero, based on a default epsilon.
+%
+% Typically useful to properly discretise probability density functions (with
+% floating-point samples).
+%
+-spec compute_support( float_to_float_fun(),
+					   maybe( bound() ), maybe( bound() ) ) -> bounds().
+compute_support( Fun, MaybeMin=undefined, MaybeMax=undefined ) ->
+	compute_support( Fun, _Origin=0.0, MaybeMin, MaybeMax );
+
+compute_support( Fun, MaybeMin=undefined, Max ) ->
+	Origin = Max - abs( Max / 2 ),
+	compute_support( Fun, Origin, MaybeMin, Max );
+
+compute_support( Fun, Min, MaybeMax=undefined ) ->
+	Origin = Min + abs( Min / 2 ),
+	compute_support( Fun, Origin, Min, MaybeMax );
+
+compute_support( Fun, Min, Max ) ->
+	Origin = ( Min + Max ) / 2,
+	compute_support( Fun, Origin, Min, Max ).
+
+
+
+% @doc Returns an evaluation of the (supposedly finite, compact, to some extent
+% centered around the specified origin) support of the specified function,
+% taking one floating-point value and returning one, as an interval complying to
+% the specified bound restriction (to limit it in a given interval, possibly
+% because this function is not defined out of it).
+%
+% This simple heuristics assumes that this function vanishes at infinity; starts
+% looking around zero, based on a default epsilon.
+%
+% Typically useful to properly discretise probability density functions (with
+% floating-point samples).
+%
+-spec compute_support( float_to_float_fun(), abscissa(),
+					   maybe( bound() ), maybe( bound() ) ) -> bounds().
+compute_support( Fun, Origin, MaybeMin, MaybeMax ) ->
+	% Tests are limited, should for example x -> sin(x) be specified:
+	compute_support( Fun, Origin, MaybeMin, MaybeMax, ?base_increment,
+					 _RemainingTests=128, _Epsilon=?epsilon ).
+
+
+
+% Searches the function support from the specified origin.
+%
+% (helper)
+%
+-spec compute_support( float_to_float_fun(), abscissa(), maybe( bound() ),
+			maybe( bound() ), increment(), count(), epsilon() ) -> bounds().
+compute_support( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
+				 Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Computing the support of ~p from origin ~f, "
+			"with following restrictions: min=~w, max=~w.",
+			[ Fun, Origin, MaybeMin, MaybeMax ] ) ),
+
+	% Searches first a non-null point, the "pivot", which is the first non-null
+	% point found around the origin, looking alternatively on each side based on
+	% exponentially-increasing distance:
+	%
+	Pivot = case search_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc,
+								  RemainingTests, Epsilon ) of
+
+		undefined ->
+			throw( { no_non_null_point_found, Fun } );
+
+		P ->
+			P
+
+	end,
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Pivot found at abscissa ~w.", [ Pivot ] ) ),
+
+	% Now tries to find from the pivot the right end of the support, first by
+	% quickly converging to any remote zero:
+	%
+	FirstRightZero = search_first_null( Fun, Pivot, MaybeMax, ?coarse_increment,
+										RemainingTests, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "First right zero found at abscissa ~w.",
+							  [ FirstRightZero ] ) ),
+
+	% Tries to find a closer zero than this first one:
+	MinRightZero = minimise_zero( Fun, Pivot, FirstRightZero,
+								  MaybeMin, MaybeMax, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Right zero minimised at abscissa ~w, "
+			"now looking for left zeros.", [ MinRightZero ] ) ),
+
+	% To find the left end of the support (hence opposite direction):
+	FirstLeftZero = search_first_null( Fun, Pivot, MaybeMin, -?coarse_increment,
+									   RemainingTests, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "First left zero found at abscissa ~w.",
+							  [ FirstLeftZero ] ) ),
+
+	% Minimised in terms of absolute value (hence closer to the origin):
+	MaxLeftZero = minimise_zero( Fun, Pivot, FirstLeftZero,
+								 MaybeMin, MaybeMax, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Left zero maximised at abscissa ~w.",
+							  [ MaxLeftZero ] ) ),
+
+	B = { MaxLeftZero, MinRightZero },
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Returning following support: ~ts.",
+							  [ math_utils:bounds_to_string( B ) ] ) ),
+
+	B.
+
+
+
+% Explores exponentially both sides alternatively of the specified origin,
+% looking for any non-null value.
+%
+% (helper)
+-spec search_non_null( float_to_float_fun(), abscissa(), maybe( bound() ),
+					   maybe( bound() ), increment(), count(), epsilon() ) ->
+							maybe( abscissa() ).
+% Search failed:
+search_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc,
+				 _RemainingTests=0, _Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "The search for a non-zero of ~p on both sides "
+			"of ~f failed, whereas last increment was ~f (min: ~w, max: ~w).",
+			[ Fun, Origin, Inc, MaybeMin, MaybeMax ] ),
+		basic_utils:ignore_unused( [ Fun, Origin, Inc, MaybeMin, MaybeMax ] ) ),
+
+	undefined;
+
+
+search_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
+				 Epsilon ) ->
+
+	TestedPoint = Origin + Inc,
+
+	% Hence growing exponentially, on either side alternatively:
+	%Factor = -2.0,
+	Factor = -1.1,
+
+	case is_within( TestedPoint, MaybeMin, MaybeMax ) of
+
+		true ->
+			trace_utils:debug_fmt( "Searching for a non-null point at "
+								   "abscissa ~w.", [ TestedPoint ] ),
+
+			Value = Fun( TestedPoint ),
+			case is_null( Value, Epsilon ) of
+
+				true ->
+					search_non_null( Fun, Origin, MaybeMin, MaybeMax,
+									 Factor * Inc, RemainingTests-1, Epsilon );
+
+				false ->
+					TestedPoint
+
+			end;
+
+
+		false ->
+			% No test spent here, on this side:
+			search_non_null( Fun, Origin, MaybeMin, MaybeMax, Factor * Inc,
+							 RemainingTests, Epsilon )
+
+	end.
+
+
+
+
+% Searches by dichotomy in one direction (defined by the sign of the increment)
+% the first null point, for which the next ones being are supposed to be all
+% null, found from the specified origin (whose value is expected to be
+% non-null).
+%
+-spec search_first_null( float_to_float_fun(), abscissa(), maybe( bound() ),
+						 increment(), count(), epsilon() ) -> abscissa().
+search_first_null( Fun, Pivot, MaybeMax, Inc, _RemainingTests=0, _Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "The search for a first zero of ~p "
+			"from pivot ~f failed, whereas last increment was ~f (max: ~w).",
+			[ Fun, Pivot, Inc, MaybeMax ] ),
+		basic_utils:ignore_unused( [ Fun, Pivot, Inc, MaybeMax ] ) ),
+
+	throw( { no_null_point_found, Fun, Pivot, MaybeMax } );
+
+search_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests, Epsilon ) ->
+
+	TestedPoint = Pivot + Inc,
+
+	case is_before( TestedPoint, MaybeMax, Inc ) of
+
+		true ->
+			trace_utils:debug_fmt( "Testing point ~f as potential zero.",
+								   [ TestedPoint ] ),
+
+			Value = Fun( TestedPoint ),
+			case is_null( Value, Epsilon ) of
+
+				true ->
+					trace_utils:debug_fmt( "Point ~f is a zero.",
+										   [ TestedPoint ] ),
+
+					TestInc = ?coarse_increment * sign( Inc ),
+
+					% As we do not want to be fooled by an only-local zero:
+					case search_non_null_one_direction( Fun, TestedPoint,
+							_MaybeMin=undefined, MaybeMax, TestInc,
+							_RemTests=48, Epsilon ) of
+
+						undefined ->
+							% OK, confirmed (a relevant trace already emitted):
+							%trace_utils:debug_fmt(
+							%   "Point ~f is considered as a zero onward.",
+							%   [ TestedPoint ] ),
+							TestedPoint;
+
+						FartherNonZero ->
+							trace_utils:warning_fmt( "A non-zero farther "
+								"than the current zero candidate ~f has been "
+								"detected: ~f; recalibrating.",
+								[ TestedPoint, FartherNonZero ] ),
+							search_first_null( Fun, FartherNonZero, MaybeMax,
+											   Inc, _NewTest=48, Epsilon )
+
+					end;
+
+				false ->
+					% Same sign for increment, hence same direction, again
+					% exponential:
+					%
+					search_first_null( Fun, Pivot, MaybeMax, 2.0 * Inc,
+									   RemainingTests-1, Epsilon )
+
+			end;
+
+		false ->
+			% We consider it as a zero (beginning of the open interval on which
+			% the function is not defined):
+			%
+			% (it is necessarily not 'undefined')
+			%
+			MaybeMax
+
+	end.
+
+
+
+% @doc Tells whether the specified value lies within the specified maybe-bounds
+% (included).
+%
+-spec is_within( float(), maybe( bound() ), maybe( bound() ) ) -> boolean().
+is_within( _V, _MaybeMin=undefined, _MaybeMax=undefined ) ->
+	true;
+
+is_within( V, _MaybeMin=undefined, Max ) when V =< Max ->
+	true;
+
+is_within( V, Min, _MaybeMax=undefined ) when V >= Min ->
+	true;
+
+is_within( V, Min, Max ) when V >= Min andalso V =< Max ->
+	true;
+
+is_within( _V, _Min, _Max ) ->
+	false.
+
+
+
+% @doc Tells whether the specified value lies "before" (closer to the opposite
+% end, based on the sign of the increment) the specified maybe-maximum.
+%
+-spec is_before( float(), maybe( bound() ), increment() ) -> boolean().
+is_before( _V, _MaybeMax=undefined, _Inc ) ->
+	true;
+
+is_before( V, Max, Inc ) when Inc >= 0 andalso V =< Max ->
+	true;
+
+is_before( V, Max, Inc ) when Inc < 0 andalso V >= Max ->
+	true;
+
+is_before( _V, _Max, _Inc ) ->
+	false.
+
+
+
+
+
+% Tries to find, starting from the (non-zero) pivot, a zero closer (to the
+% pivot) than the specified one.
+%
+% Proceeds by dichotomy: starting from the pivot and a farther zero, tests the
+% midpoint: if it seems to be a "permanent zero", then recurses with it as new
+% farther zero; otherwise, use it as a new pivot. Each iteration will halve the
+% search range, until it gets negligible.
+%
+% Note that FartherZero is not necessarily on the right of the pivot.
+%
+% No bounds checked, as expected to remain within an already validated interval.
+%
+-spec minimise_zero( float_to_float_fun(), abscissa(), abscissa(),
+			maybe( bound() ), maybe( bound() ), epsilon() ) -> abscissa().
+minimise_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax, Epsilon ) ->
+	case are_close( Pivot, FartherZero, Epsilon ) of
+
+		% This is the ending criterion:
+		true ->
+			% Before returning our elected zero, we check it a bit more:
+			Inc = ?base_increment * sign( FartherZero - Pivot ),
+
+			case search_non_null_one_direction( Fun, FartherZero, MaybeMin,
+					MaybeMax, Inc, _RemainingTests=64, Epsilon ) of
+
+				% Validated:
+				undefined ->
+					FartherZero;
+
+				UnexpectedZero ->
+					trace_utils:warning_fmt(
+						"Outlier zero found at ~f, reconverging.",
+						[ UnexpectedZero ] ),
+					minimise_zero( Fun, Pivot, UnexpectedZero,
+								   MaybeMin, MaybeMax, Epsilon )
+
+			end;
+
+
+		% Still having to narrow down:
+		false ->
+			Midpoint = ( Pivot + FartherZero ) / 2.0,
+			trace_utils:debug_fmt( "Testing midpoint ~f.", [ Midpoint ] ),
+			MidValue = Fun( Midpoint ),
+			case is_null( MidValue, Epsilon ) of
+
+				true ->
+					% A check, should we have found only a local zero, with
+					% non-null values present farther away:
+
+					Inc = ?coarse_increment * sign( FartherZero - Pivot ),
+
+					trace_utils:debug_fmt( "Midpoint ~f seems to be a good "
+						"candidate for closest zero.", [ Midpoint ] ),
+
+					% Just a light, raw, security operating on an intermediary
+					% candidate:
+					%
+					case search_non_null_one_direction( Fun, Midpoint,
+							MaybeMin, MaybeMax, Inc, _RemainingTests=24,
+							Epsilon ) of
+
+						% Midpoint looks like a good zero then, let's use it
+						% from now:
+						%
+						undefined ->
+							minimise_zero( Fun, Pivot, Midpoint,
+										   MaybeMin, MaybeMax, Epsilon );
+
+						% It was not a "permanent" zero, let's offset the pivot
+						% to this farther position:
+						%
+						NewPivot ->
+							minimise_zero( Fun, NewPivot, FartherZero,
+										   MaybeMin, MaybeMax, Epsilon )
+
+					end;
+
+				false ->
+					% Not a zero at all, so it becomes the new pivot:
+					minimise_zero( Fun, Midpoint, FartherZero,
+								   MaybeMin, MaybeMax, Epsilon )
+
+			end
+
+	end.
+
+
+
+% @doc Searches a non-zero function value in a single direction (as opposed to
+% search_non_null/5), determined by the sign of the increment.
+%
+-spec search_non_null_one_direction( float_to_float_fun(), abscissa(),
+		maybe( bound() ), maybe( bound() ), increment(), count(), epsilon() ) ->
+								maybe( abscissa() ).
+search_non_null_one_direction( _Fun, Origin, MaybeMin, MaybeMax, Inc,
+							   _RemainingTests=0, _Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "Only zeros found from one side of ~f, "
+			"last increment being ~f (min: ~w, max: ~w).",
+			[ Origin, Inc, MaybeMin, MaybeMax ] ),
+		basic_utils:ignore_unused( [ Origin, Inc, MaybeMin, MaybeMax ] ) ),
+
+	undefined;
+
+search_non_null_one_direction( Fun, Origin, MaybeMin, MaybeMax, Inc,
+							   RemainingTests, Epsilon ) ->
+
+	TestedPoint = Origin + Inc,
+
+	case is_within( TestedPoint, MaybeMin, MaybeMax ) of
+
+		true ->
+
+			%trace_utils:debug_fmt( "Searching for a non-null point "
+			%   "at abscissa ~w.", [ TestedPoint ] ),
+
+			Value = Fun( TestedPoint ),
+			case is_null( Value, Epsilon ) of
+
+				true ->
+					% Hence growing exponentially:
+					Factor = 1.2,
+					search_non_null_one_direction( Fun, Origin, MaybeMin,
+						MaybeMax, Factor * Inc, RemainingTests-1, Epsilon );
+
+				false ->
+					TestedPoint
+
+			end;
+
+		false ->
+			% Stopping here, as already outside of allowed bounds:
+			undefined
+
+	end.
+
+
+
+
+
+% @doc Returns an evaluation of the (supposedly finite, compact, to some extent
+% centered around zero) support of the specified function, taking one integer
+% and returning a floating-point value, as an interval with no bound
+% restriction.
+%
+% This simple heuristics assumes that this function vanishes at infinity, and
+% starts looking around zero.
+%
+% Typically useful to properly discretise probability density functions.
+%
+-spec compute_integer_support( integer_to_float_fun() ) -> integer_bounds().
+compute_integer_support( Fun ) ->
+	compute_integer_support( Fun, _MaybeMin=undefined, _MaybeMax=undefined ).
+
+
+% @doc Returns an evaluation of the (supposedly finite, compact, to some extent
+% centered around zero) support of the specified integer-returning function, as
+% an interval complying to the specified bound restriction (to limit it in a
+% given interval, possibly because this function is not defined out of it).
+%
+% This simple heuristics assumes that this function vanishes at infinity, and
+% starts looking around zero.
+%%
+% Typically useful to properly discretise probability density functions.
+%
+-spec compute_integer_support( integer_to_float_fun(), maybe( integer_bound() ),
+								maybe( integer_bound() ) ) -> integer_bounds().
+compute_integer_support( Fun, MaybeMin=undefined, MaybeMax=undefined ) ->
+	compute_integer_support( Fun, _Origin=0, MaybeMin, MaybeMax );
+
+compute_integer_support( Fun, MaybeMin=undefined, Max ) ->
+	Origin = Max - abs( Max div 2 ),
+	compute_integer_support( Fun, Origin, MaybeMin, Max );
+
+compute_integer_support( Fun, Min, MaybeMax=undefined ) ->
+	Origin = Min + abs( Min div 2 ),
+	compute_integer_support( Fun, Origin, Min, MaybeMax );
+
+compute_integer_support( Fun, Min, Max ) ->
+	Origin = ( Min + Max ) div 2,
+	compute_integer_support( Fun, Origin, Min, Max ).
+
+
+
+% @doc Returns an evaluation of the (supposedly finite, compact, to some extent
+% centered around the specified origin) support of the specified
+% integer-returning function, as an interval complying to the specified bound
+% restriction (to limit it in a given interval, possibly because this function
+% is not defined out of it).
+%
+% This simple heuristics assumes that this function vanishes at infinity, and
+% starts looking around zero.
+%%
+% Typically useful to properly discretise probability density functions.
+%
+-spec compute_integer_support( integer_to_float_fun(), integer_abscissa(),
+			maybe( integer_bound() ), maybe( integer_bound() ) ) ->
+				integer_bounds().
+compute_integer_support( Fun, Origin, MaybeMin, MaybeMax ) ->
+
+	% Tests are limited, should for example x -> sin(x) be specified:
+	%
+	% (lower test counts, yet multiple ones attempted)
+	%
+	compute_integer_support( Fun, Origin, MaybeMin, MaybeMax, _Increment=1,
+							 _RemainingTests=64, _Epsilon=?epsilon ).
+
+
+% Searches the function support from the specified origin.
+%
+% (helper)
+%
+-spec compute_integer_support( integer_to_float_fun(), integer_abscissa(),
+		maybe( integer_bound() ), maybe( integer_bound() ), integer_increment(),
+		count(), epsilon() ) -> bounds().
+compute_integer_support( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
+						 Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Computing the integer support of ~p "
+			"from origin ~B, with following restrictions: min=~w, max=~w.",
+			[ Fun, Origin, MaybeMin, MaybeMax ] ) ),
+
+	% Searches first a non-null point, the "pivot", which is the first non-null
+	% point found around the origin, looking alternatively on each side based on
+	% exponentially-increasing distance:
+	%
+	Pivot = case search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc,
+										  RemainingTests, Epsilon ) of
+
+		undefined ->
+			%case search_integer_additive_non_null(
+			throw( { no_non_null_point_found, Fun } );
+
+		P ->
+			P
+
+	end,
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Pivot found at abscissa ~B.", [ Pivot ] ) ),
+
+	% Now tries to find from the pivot the right end of the support, first by
+	% quickly converging to any remote zero:
+	%
+	FirstRightZero = search_integer_first_null( Fun, Pivot, MaybeMax,
+		_RightwiseInc=1, RemainingTests, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "First right zero found at abscissa ~B.",
+							  [ FirstRightZero ] ) ),
+
+	MinRightZero = minimise_integer_zero( Fun, Pivot, FirstRightZero,
+										  MaybeMin, MaybeMax, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Right zero minimised at abscissa ~B, "
+			"now looking for left zeros.", [ MinRightZero ] ) ),
+
+	% To find the left end of the support (hence opposite direction):
+	FirstLeftZero = search_integer_first_null( Fun, Pivot, MaybeMin,
+		_LeftwiseInc=-1, RemainingTests, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "First left zero found at abscissa ~B.",
+							  [ FirstLeftZero ] ) ),
+
+	% Minimised in terms of absolute value (hence closer to the origin):
+	MaxLeftZero = minimise_integer_zero( Fun, Pivot, FirstLeftZero,
+										 MaybeMin, MaybeMax, Epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Left zero maximised at abscissa ~B.",
+							  [ MaxLeftZero ] ) ),
+
+	B = { MaxLeftZero, MinRightZero },
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:info_fmt( "Returning following support: ~ts.",
+							  [ math_utils:integer_bounds_to_string( B ) ] ) ),
+
+	B.
+
+
+
+% Explores exponentially both sides alternatively of the specified origin,
+% looking for any non-null value.
+%
+% (helper)
+-spec search_integer_non_null( integer_to_float_fun(), integer_abscissa(),
+		maybe( bound() ), maybe( bound() ), integer_increment(), count(),
+		epsilon() ) -> maybe( integer_abscissa() ).
+% Search failed:
+search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc,
+						 _RemainingTests=0, _Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "The search for a non-zero of ~p on both sides "
+			"of ~B failed, whereas last increment was ~B (min: ~w, max: ~w).",
+			[ Fun, Origin, Inc, MaybeMin, MaybeMax ] ),
+		basic_utils:ignore_unused( [ Fun, Origin, Inc, MaybeMin, MaybeMax ] ) ),
+
+	undefined;
+
+
+search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
+						 Epsilon ) ->
+
+	TestedPoint = Origin + Inc,
+
+	% Hence growing exponentially, on either side alternatively:
+	Factor = case Inc >= 0 of
+
+		true ->
+			-1;
+
+		false ->
+			-2
+
+	end,
+
+	case is_within( TestedPoint, MaybeMin, MaybeMax ) of
+
+		true ->
+			Value = Fun( TestedPoint ),
+			trace_utils:debug_fmt( "Searching for a non-null point at "
+				"abscissa ~B, got ~w.", [ TestedPoint, Value ] ),
+
+			case is_null( Value, Epsilon ) of
+
+				true ->
+					search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax,
+						Factor * Inc, RemainingTests-1, Epsilon );
+
+				false ->
+					TestedPoint
+
+			end;
+
+
+		false ->
+			% No test spent here, on this side:
+			search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax,
+									 Factor * Inc, RemainingTests, Epsilon )
+
+	end.
+
+
+
+% Searches by dichotomy in one direction (defined by the sign of the increment)
+% the first null point, for which the next ones being are supposed to be all
+% null, found from the specified origin (whose value is expected to be
+% non-null).
+%
+-spec search_integer_first_null( integer_to_float_fun(), integer_abscissa(),
+			maybe( bound() ), integer_increment(), count(), epsilon() ) ->
+				integer_abscissa().
+search_integer_first_null( Fun, Pivot, MaybeMax, Inc, _RemainingTests=0,
+						   _Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "The search for a first zero of ~p "
+			"from pivot ~B failed, whereas last increment was ~B (max: ~w).",
+			[ Fun, Pivot, Inc, MaybeMax ] ),
+		basic_utils:ignore_unused( [ Fun, Pivot, Inc, MaybeMax ] ) ),
+
+	throw( { no_null_point_found, Fun, Pivot, MaybeMax } );
+
+search_integer_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests,
+						   Epsilon ) ->
+
+	TestedPoint = Pivot + Inc,
+
+	case is_before( TestedPoint, MaybeMax, Inc ) of
+
+		true ->
+			trace_utils:debug_fmt( "Testing point ~B as potential zero.",
+								   [ TestedPoint ] ),
+
+			Value = Fun( TestedPoint ),
+			case is_null( Value, Epsilon ) of
+
+				true ->
+					trace_utils:debug_fmt( "Point ~B is a zero (got ~w).",
+						[ TestedPoint, Value ] ),
+
+					TestInc = sign( Inc ),
+
+					% As we do not want to be fooled by an only-local zero:
+					case search_integer_non_null_one_direction( Fun,
+							TestedPoint, _MaybeMin=undefined, MaybeMax, TestInc,
+							_RemTests=48, Epsilon ) of
+
+						undefined ->
+							% OK, confirmed (a relevant trace already emitted):
+							%trace_utils:debug_fmt(
+							%   "Point ~B is considered as a zero onward.",
+							%   [ TestedPoint ] ),
+							TestedPoint;
+
+						FartherNonZero ->
+							trace_utils:warning_fmt( "A non-zero farther "
+								"than the current zero candidate ~B has been "
+								"detected: ~B; recalibrating.",
+								[ TestedPoint, FartherNonZero ] ),
+							search_integer_first_null( Fun, FartherNonZero,
+								MaybeMax, Inc, _NewTest=48, Epsilon )
+
+					end;
+
+				false ->
+					% Same sign for increment, hence same direction, again
+					% exponential:
+					%
+					search_integer_first_null( Fun, Pivot, MaybeMax, 2*Inc,
+											   RemainingTests-1, Epsilon )
+
+			end;
+
+		false ->
+			% We consider it as a zero (beginning of the open interval on which
+			% the function is not defined):
+			%
+			% (it is necessarily not 'undefined')
+			%
+			MaybeMax
+
+	end.
+
+
+
+% @doc Searches a non-zero function value in a single direction (as opposed to
+% search_non_null/5), determined by the sign of the increment.
+%
+-spec search_integer_non_null_one_direction( integer_to_float_fun(),
+		integer_abscissa(), maybe( bound() ), maybe( bound() ),
+		integer_increment(), count(), epsilon() ) ->
+			maybe( integer_abscissa() ).
+search_integer_non_null_one_direction( _Fun, Origin, MaybeMin, MaybeMax, Inc,
+									   _RemainingTests=0, _Epsilon ) ->
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "Only zeros found from one side of ~B, "
+			"last increment being ~B (min: ~w, max: ~w).",
+			[ Origin, Inc, MaybeMin, MaybeMax ] ),
+		basic_utils:ignore_unused( [ Origin, Inc, MaybeMin, MaybeMax ] ) ),
+
+	undefined;
+
+search_integer_non_null_one_direction( Fun, Origin, MaybeMin, MaybeMax, Inc,
+									   RemainingTests, Epsilon ) ->
+
+	TestedPoint = Origin + Inc,
+
+	case is_within( TestedPoint, MaybeMin, MaybeMax ) of
+
+		true ->
+
+			%trace_utils:debug_fmt( "Searching for a non-null point "
+			%   "at abscissa ~B.", [ TestedPoint ] ),
+
+			Value = Fun( TestedPoint ),
+			case is_null( Value, Epsilon ) of
+
+				true ->
+					% Hence growing exponentially:
+					search_integer_non_null_one_direction( Fun, Origin,
+						MaybeMin, MaybeMax, 2*Inc, RemainingTests-1, Epsilon );
+
+				false ->
+					TestedPoint
+
+			end;
+
+		false ->
+			% Stopping here, as already outside of allowed bounds:
+			undefined
+
+	end.
+
+
+
+% Tries to find, starting from the (non-zero) pivot, a zero closer (to the
+% pivot) than the specified one.
+%
+% Proceeds by dichotomy: starting from the pivot and a farther zero, tests the
+% midpoint: if it seems to be a "permanent zero", then recurses with it as new
+% farther zero; otherwise, use it as a new pivot. Each iteration will halve the
+% search range, until it gets negligible.
+%
+% Note that FartherZero is not necessarily on the right of the pivot.
+%
+% No bounds checked, as expected to remain within an already validated interval.
+%
+-spec minimise_integer_zero( integer_to_float_fun(), integer_abscissa(),
+		integer_abscissa(), maybe( bound() ), maybe( bound() ), epsilon() ) ->
+			integer_abscissa().
+% Finished, this is the ending criterion, the search range is now mostly empty:
+minimise_integer_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax,
+					   Epsilon ) when abs( Pivot - FartherZero ) =< 1 ->
+
+	trace_utils:debug_fmt( "Integer zero minimised: pivot is ~B, "
+						   "farther zero is ~B.", [ Pivot, FartherZero ] ),
+
+	% Before returning our elected zero, we check it a bit more:
+	case search_integer_non_null_one_direction( Fun, FartherZero, MaybeMin,
+			MaybeMax, _Inc=1, _RemainingTests=64, Epsilon ) of
+
+		% Validated:
+		undefined ->
+			Pivot;
+
+		UnexpectedZero ->
+			trace_utils:warning_fmt( "Outlier zero found at ~B (from pivot ~B),"
+				" reconverging.", [ UnexpectedZero, Pivot ] ),
+			minimise_integer_zero( Fun, Pivot, UnexpectedZero,
+								   MaybeMin, MaybeMax, Epsilon )
+
+	end;
+
+
+% Still having to narrow down:
+minimise_integer_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax, Epsilon ) ->
+
+	Midpoint = ( Pivot + FartherZero ) div 2,
+
+	trace_utils:debug_fmt( "Testing midpoint ~B (pivot: ~B, zero: ~B).",
+						   [ Midpoint, Pivot, FartherZero ] ),
+
+	MidValue = Fun( Midpoint ),
+
+	case is_null( MidValue, Epsilon ) of
+
+		true ->
+			% A check, should we have found only a local zero, with non-null
+			% values present farther away:
+
+			Inc = sign( FartherZero - Pivot ),
+
+			trace_utils:debug_fmt( "Midpoint ~B seems to be a good "
+				"candidate for closest zero.", [ Midpoint ] ),
+
+			% Just a light, raw, security operating on an intermediary
+			% candidate:
+			%
+			case search_integer_non_null_one_direction( Fun, Midpoint,
+					MaybeMin, MaybeMax, Inc, _RemainingTests=24, Epsilon ) of
+
+				% Midpoint looks like a good zero then, let's use it from now:
+				undefined ->
+					minimise_integer_zero( Fun, Pivot, Midpoint, MaybeMin,
+										   MaybeMax, Epsilon );
+
+				% It was not a "permanent" zero, let's offset the pivot to this
+				% farther position:
+				%
+				NewPivot ->
+					minimise_integer_zero( Fun, NewPivot, FartherZero,
+										   MaybeMin, MaybeMax, Epsilon )
+
+			end;
+
+		false ->
+			% Not a zero at all, so it becomes the new pivot:
+			minimise_integer_zero( Fun, Midpoint, FartherZero,
+								   MaybeMin, MaybeMax, Epsilon )
+
+	end.
+
+
+
+
+% @doc Checks that the specified term corresponds to correct (floating-point)
+% bounds, and returns it once canonicalised.
+%
+-spec canonicalise_bounds( term() ) -> bounds().
+canonicalise_bounds( B={ MinBound, MaxBound } ) ->
+	MinBoundf = float( MinBound ),
+	MaxBoundf = float( MaxBound ),
+	case MinBoundf =< MaxBoundf of
+
+		true ->
+			{ MinBoundf, MaxBoundf };
+
+		false ->
+			throw( { bound_mismatch, B } )
+
+	end.
+
+
+
+% @doc Checks that the specified term corresponds to correct bounds, and returns
+% it once canonicalised.
+%
+-spec canonicalise_integer_bounds( term() ) -> integer_bounds().
+canonicalise_integer_bounds( B={ MinBound, MaxBound } )
+		when is_integer( MinBound ) andalso is_integer( MaxBound )
+			 andalso MinBound =< MaxBound ->
+	B;
+
+canonicalise_integer_bounds( B ) ->
+	throw( { invalid_integer_bounds, B } ).
+
+
+
+% @doc Tells whether the specified number is within (is included in;
+% non-strictlyy, that is this number being allowed to be equal to one bound) the
+% specified bounds.
+%
+-spec is_within_bounds( number(), bounds() ) -> boolean().
+is_within_bounds( Number, _Bounds={ Min, Max } )
+		when Number >= Min andalso Number =< Max ->
+	true;
+
+is_within_bounds( _Number, _Bounds ) ->
+	false.
+
+
+% @doc Tells whether the specified candidate bounds are within (are included in;
+% non-strictly, that is bounds being allowed to be equal) the full ones.
+%
+% Note: one should ensure that well-typed bounds are indeed specified.
+%
+-spec are_within_bounds( bounds(), bounds() ) -> boolean().
+are_within_bounds( _CandidateBounds={ CMin, CMax },
+				   _FullBounds={ FMin, FMax } ) when CMin >= FMin andalso
+													 CMax =< FMax ->
+	true;
+
+are_within_bounds( _CandidateBounds, _FullBounds ) ->
+	false.
+
+
+
+% @doc Returns a textual description of the specified bounds.
+-spec bounds_to_string( bounds() ) -> ustring().
+bounds_to_string( _Bounds={ Min, Max } ) ->
+	text_utils:format( "[~f, ~f]", [ Min, Max ] ).
+
+
+% @doc Returns a textual description of the specified integer bounds.
+-spec integer_bounds_to_string( bounds() ) -> ustring().
+integer_bounds_to_string( _Bounds={ Min, Max } ) ->
+	text_utils:format( "[~B, ~B]", [ Min, Max ] ).
+
+
+
+
 % @doc Returns a textual description of the specified probability.
 -spec probability_to_string( probability() ) -> ustring().
 probability_to_string( Probability ) ->
-	% Only oe significant number after the comma for readibility:
+	% Only one significant number after the comma for readibility:
 	text_utils:format( "probability of about ~.1f%", [ 100 * Probability ] ).
 
 

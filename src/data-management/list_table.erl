@@ -145,10 +145,12 @@ new() ->
 
 
 % @doc Returns an empty table dimensioned for the specified expected number of
-% entries / a table containing the specified (initial) entries.
+% entries / a table containing the specified (initial) entries, whose keys are
+% checked for uniqueness.
 %
 -spec new( entry_count() | entries() ) -> list_table().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
+	% ExpectedNumberOfEntries not relevant for this implementation:
 	[];
 
 new( InitialEntries ) when is_list( InitialEntries ) ->
@@ -157,11 +159,11 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 	% only contains pairs and, more importantly, that there is no key
 	% duplication in our (then) inner list:
 	%
-	add_entries( InitialEntries, [] ).
+	add_new_entries( InitialEntries, _InitTable=[] ).
 
 
 
-% @doc Adds specified key/value pair into the specified table.
+% @doc Adds the specified key/value pair in the specified table.
 %
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
@@ -172,7 +174,7 @@ add_entry( Key, Value, Table ) ->
 
 
 
-% @doc Adds specified list of key/value pairs into the specified table.
+% @doc Adds the specified list of key/value pairs in the specified table.
 %
 % If there is already a pair with this key, then its previous value will be
 % replaced by the specified one.
@@ -189,7 +191,7 @@ add_entries( [ Other | _Rest ], _Table ) ->
 
 
 
-% @doc Adds specified key/value pair into the specified table, expecting this
+% @doc Adds the specified key/value pair in the specified table, expecting this
 % key not to be already defined in this table.
 %
 -spec add_new_entry( key(), value(), list_table() ) -> list_table().
@@ -210,7 +212,7 @@ add_new_entry( Key, Value, Table ) ->
 
 
 
-% @doc Adds specified list of key/value pairs into the specified table,
+% @doc Adds the specified list of key/value pairs in the specified table,
 % expecting that none of these keys is already defined in this table (otherwise
 % an exception is thrown).
 %
@@ -255,7 +257,8 @@ remove_entries( Keys, Table ) ->
 
 
 
-% @doc Looks-up specified entry (designated by its key) in specified table.
+% @doc Looks-up the specified entry (designated by its key) in the specified
+% table.
 %
 % Returns either 'key_not_found' if no such key is registered in the table, or
 % {value, Value}, with Value being the value associated to the specified key.
@@ -275,8 +278,8 @@ lookup_entry( Key, Table ) ->
 	end.
 
 
-% @doc Tells whether the specified key exists in the table: returns true or
-% false.
+% @doc Tells whether the specified key exists in the specified table: returns
+% true or false.
 %
 -spec has_entry( key(), list_table() ) -> boolean().
 has_entry( Key, Table ) ->
@@ -684,7 +687,7 @@ merge( TableBase, TableAdd ) ->
 % ReferenceKey instead (in addition to any value that would already be
 % associated to it).
 %
-% Useful for example to gather into a single entry the values associated to
+% Useful for example to gather in a single entry the values associated to
 % aliases in terms of command-line options, like the values associated to a
 % '--length' command-line option (hence associated to the '-length' key) and
 % also to the '-l' and '--len' alias command-line options (hence associated to
@@ -728,12 +731,12 @@ merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
 
 
 
-% @doc Appends specified element to the value, supposed to be a list, associated
-% to specified key.
+% @doc Appends the specified element to the value, supposed to be a list,
+% associated to the specified key.
 %
 % An exception is thrown if the key does not exist.
 %
-% Note: no check is performed to ensure the value is a list indeed, and the
+% Note: no check is performed to ensure that the value is a list indeed, and the
 % '[|]' operation will not complain if not.
 %
 -spec append_to_existing_entry( key(), term(), list_table() ) -> list_table().
@@ -751,8 +754,8 @@ append_to_existing_entry( Key, Element, Table ) ->
 
 
 
-% @doc Appends specified elements to the value, supposed to be a list,
-% associated to specified key.
+% @doc Appends the specified elements to the value, supposed to be a list,
+% associated to the specified key.
 %
 % An exception is thrown if the key does not exist.
 %
@@ -772,8 +775,8 @@ append_list_to_existing_entry( Key, Elements, Table ) ->
 
 
 
-% @doc Appends specified element to the value, supposed to be a list, associated
-% to specified key.
+% @doc Appends the specified element to the value, supposed to be a list,
+% associated to the specified key.
 %
 % If that key does not already exist, it will be created and associated to a
 % list containing only the specified element.
@@ -796,8 +799,8 @@ append_to_entry( Key, Element, Table ) ->
 
 
 
-% @doc Appends specified elements to the value, supposed to be a list,
-% associated to specified key.
+% @doc Appends the specified elements to the value, supposed to be a list,
+% associated to the specified key.
 %
 % If that key does not already exist, it will be created and associated to a
 % list containing only the specified elements.
@@ -839,7 +842,7 @@ delete_from_entry( Key, Element, Table ) ->
 
 
 
-% @doc Pops the head of the value (supposed to be a list) associated to
+% @doc Pops the head of the value (supposed to be a list) associated to the
 % specified key, and returns a pair made of the popped head and of the new
 % table.
 %

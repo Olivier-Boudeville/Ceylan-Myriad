@@ -23,19 +23,20 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, April 10, 2023.
+% Creation date: Sunday, June 18, 2023.
 
 
-% A single MyriadGUI Header to rule them all: <b>the MyriadGUI include that user
-% code shall reference</b>.
+ % A table translating basic user events into higher-level application events:
+-record( user_event_table, {
 
--include("gui_base.hrl").
+	% For all sort of basic, atom-based events (like 'window_closed'):
+	basic_user_event_table :: gui_event:basic_user_event_table(),
 
--include("gui_event.hrl").
+	% For buttons being clicked:
+	button_table :: gui_event:button_table(),
 
--include("gui_opengl.hrl").
+	% For keys-as-scancode being pressed:
+	scancode_table :: gui_event:scancode_table(),
 
--include("bounding_surface.hrl").
-
-% As MyriadGUI is a specialisation thereof:
--include("myriad_ui.hrl").
+	% For keys-as-keycode being pressed:
+	keycode_table :: gui_event:keycode_table() } ).

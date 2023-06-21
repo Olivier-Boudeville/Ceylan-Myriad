@@ -37,11 +37,14 @@
 -include("test_facilities.hrl").
 
 
+% Silencing:
+-export([ test_basics/0, test_sampling/0, test_function_support/0,
+		  test_rectangular_level_function_support/0,
+		  test_amortised_sinus_function_support/0 ]).
 
--spec run() -> no_return().
-run() ->
 
-	test_facilities:start( ?MODULE ),
+
+test_basics() ->
 
 	Roundings = [ -1.1, -1.0, -0.9, 0.0, 0.9, 1.0, 1.1 ],
 
@@ -108,7 +111,11 @@ run() ->
 
 	[ test_facilities:display( "Angle ~p rad is ~f°.", [ Angle,
 			math_utils:radians_to_degrees( Angle ) ] )
-		|| Angle <- [ 0, math:pi()/2, 1.0, math:pi(), 2*math:pi() ] ],
+		|| Angle <- [ 0, math:pi()/2, 1.0, math:pi(), 2*math:pi() ] ].
+
+
+
+test_sampling() ->
 
 	AffinFun = fun( X ) -> 2*X + 5 end,
 
@@ -131,6 +138,66 @@ run() ->
 	Samples = math_utils:sample( AffinFun, _From=1.0, _To=20.0, _Incr=2.0 ),
 
 	test_facilities:display( "Samples for affin test function: ~p",
-							 [ Samples ] ),
+							 [ Samples ] ).
+
+
+
+test_function_support() ->
+	%test_rectangular_level_function_support(),
+	test_amortised_sinus_function_support().
+
+
+% A rather easy case:
+test_rectangular_level_function_support() ->
+
+	test_facilities:display( "Testing a rectangular level function." ),
+
+	LevelFun = fun( X ) when X >= 0.0 andalso X < 1.0 -> 1.0;
+				  ( _X ) -> 0.0
+			   end,
+
+	LevelBounds = math_utils:compute_support( LevelFun ),
+
+	test_facilities:display( "Support of level function: ~ts",
+							 [ math_utils:bounds_to_string( LevelBounds ) ] ).
+
+
+
+% A somewhat worst-case scenario case:
+test_amortised_sinus_function_support() ->
+
+	test_facilities:display( "Testing an amortised sinus function." ),
+
+	% With Octave:
+
+	% function retval = amort_sin(x)
+	%   retval = sin(x) .* exp(-abs(x/50))
+	% endfunction
+	% xs = -500:500
+	% ys = amort_sin(xs)
+	% plot(xs,ys)
+
+	AmortisedSinFun = fun( X ) ->
+						math:sin( X ) * math:exp( -abs( X/50.0 ) )
+					  end,
+
+	ASinBounds = math_utils:compute_support( AmortisedSinFun ),
+
+	test_facilities:display( "Support of amortised sinus function: ~ts",
+							 [ math_utils:bounds_to_string( ASinBounds ) ] ).
+
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	test_basics(),
+
+	test_sampling(),
+
+	test_function_support(),
 
 	test_facilities:stop().
