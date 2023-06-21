@@ -95,6 +95,7 @@
 -type compact_matrix4() :: #compact_matrix4{}.
 % Alias for 4x4 compact matrices.
 
+
 -type rot_matrix4() :: canonical_matrix4().
 % A matrix describing a 4D rotation.
 
@@ -105,6 +106,15 @@
 % So we do not expect canonical matrices here.
 
 
+-type transition_matrix4() :: homogeneous_matrix4().
+% An homogeneous matrix4 that corresponds to a transition from a 3D referential
+% to another.
+%
+% It can be represented as an orthogonal compact matrix, made of the following
+% four (3D) rows, in that order: I, J, K and O, for the three unit axes and the
+% origin.
+
+
 -type tuple_matrix4() :: % Not exported yet: gl:m12() | gl:m16().
 						 tuple().
 % A tuple of 12 or 16 floats.
@@ -112,11 +122,11 @@
 
 -export_type([ user_matrix4/0, matrix4/0, canonical_matrix4/0,
 			   compact_matrix4/0, rot_matrix4/0, homogeneous_matrix4/0,
-			   tuple_matrix4/0 ]).
+			   transition_matrix4/0, tuple_matrix4/0 ]).
 
 
 -export([ new/1, new/3, null/0, identity/0, translation/1, scaling/1,
-		  rotation/2,
+		  rotation/2, transition/4,
 		  from_columns/4, from_rows/4,
 		  compact_from_columns/4,
 		  from_coordinates/16, from_compact_coordinates/12,
@@ -124,6 +134,11 @@
 		  from_arbitrary/1, to_arbitrary/1,
 		  dimension/0, dimensions/0,
 		  row/2, column/2,
+		  compact_column/2,
+
+		  get_column_i/1, get_column_j/1, get_column_k/1, get_column_o/1,
+		  set_column_i/2, set_column_j/2, set_column_k/2, set_column_o/2,
+
 		  get_element/3, set_element/4,
 		  transpose/1,
 		  scale/2,
@@ -308,6 +323,30 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
 
 
+% @doc Returns the 4x4 matrix from the current referential to one in which the
+% origin and axes of the current referential are expressed.
+%
+% Refer to
+% http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices
+% for further details.
+%
+-spec transition( point3(), unit_vector3(), unit_vector3(), unit_vector3() ) ->
+								transition_matrix4().
+transition( Origin, X, Y, Z ) ->
+
+	cond_utils:if_defined( osdl_space_debug_referentials,
+		begin
+			point3:check( Origin ),
+			vector3:check_unit_vectors( [ X, Y, Z ] ),
+			vector3:check_orthogonal( X, Y ),
+			vector3:check_orthogonal( X, Z ),
+			vector3:check_orthogonal( Y, Z )
+		end ),
+
+	compact_from_columns( X, Y, Z, Origin ).
+
+
+
 % @doc Returns the 4x4 matrix whose columns correspond to the specified 4 4D
 % vectors.
 %
@@ -428,7 +467,7 @@ to_arbitrary( Matrix4 ) ->
 
 
 
-% @doc Returns the 4x4 compact matrix obtained from specified 3x3 matrix and
+% @doc Returns the 4x4 compact matrix obtained from the specified 3x3 matrix and
 % 3D (translation) vector.
 %
 -spec from_3D( matrix3(), vector3() ) -> compact_matrix4().
@@ -501,6 +540,137 @@ column( _ColumnCount=4, #matrix4{ m14=M14, m24=M24, m34=M34, m44=M44 } ) ->
 
 column( ColCount, OtherMatrix ) ->
 	column( ColCount, to_canonical( OtherMatrix ) ).
+
+
+
+% @doc Returns the specified column of the specified compactmatrix.
+-spec compact_column( dimension(), compact_matrix4() ) -> vector3().
+compact_column( _ColumnCount=1,
+				#compact_matrix4{ m11=M11, m21=M21, m31=M31 } ) ->
+	[ M11, M21, M31 ];
+
+compact_column( _ColumnCount=2,
+				#compact_matrix4{ m12=M12, m22=M22, m32=M32 } ) ->
+	[ M12, M22, M32 ];
+
+compact_column( _ColumnCount=3,
+				#compact_matrix4{ m13=M13, m23=M23, m33=M33} ) ->
+	[ M13, M23, M33 ];
+
+compact_column( _ColumnCount=4,
+				#compact_matrix4{ tx=Tx, ty=Ty, tz=Tz } ) ->
+	[ Tx, Ty, Tz ].
+
+
+
+% @doc Returns the first (3D) column of the specified transition matrix.
+-spec get_column_i( transition_matrix4() ) -> unit_vector3().
+get_column_i( identity_4 ) ->
+	vector3:x_axis();
+
+get_column_i( CptMatrix ) ->
+	compact_column( _ColumnCount=1, CptMatrix ).
+
+
+% @doc Returns the specified transition matrix once its first (3D) column has
+% been updated with the specified one.
+%
+-spec set_column_i( transition_matrix4(), unit_vector3() ) -> unit_vector3().
+set_column_i( identity_4, _Column=[ X, Y, Z ] ) ->
+	Zero = 0.0,
+	One = 1.0,
+	#compact_matrix4{ m11=X, m12=Zero, m13=Zero, tx=Zero,
+					  m21=Y, m22=One,  m23=Zero, ty=Zero,
+					  m31=Z, m32=Zero, m33=One,  tz=Zero };
+
+set_column_i( CptMatrix, _Column=[ X, Y, Z ] ) ->
+	CptMatrix#compact_matrix4{ m11=X,
+							   m21=Y,
+							   m31=Z }.
+
+
+
+% @doc Returns the second (3D) column of the specified transition matrix.
+-spec get_column_j( transition_matrix4() ) -> unit_vector3().
+get_column_j( identity_4 ) ->
+	vector3:y_axis();
+
+get_column_j( CptMatrix ) ->
+	compact_column( _ColumnCount=2, CptMatrix ).
+
+
+% @doc Returns the specified transition matrix once its second (3D) column has
+% been updated with the specified one.
+%
+-spec set_column_j( transition_matrix4(), unit_vector3() ) -> unit_vector3().
+set_column_j( identity_4, _Column=[ X, Y, Z ] ) ->
+	Zero = 0.0,
+	One = 1.0,
+	#compact_matrix4{ m11=One,  m12=X, m13=Zero, tx=Zero,
+					  m21=Zero, m22=Y, m23=Zero, ty=Zero,
+					  m31=Zero, m32=Z, m33=One,  tz=Zero };
+
+set_column_j( CptMatrix, _Column=[ X, Y, Z ] ) ->
+	CptMatrix#compact_matrix4{ m12=X,
+							   m22=Y,
+							   m32=Z }.
+
+
+
+% @doc Returns the third (3D) column of the specified transition matrix.
+-spec get_column_k( transition_matrix4() ) -> unit_vector3().
+get_column_k( identity_4 ) ->
+	vector3:z_axis();
+
+get_column_k( CptMatrix ) ->
+	compact_column( _ColumnCount=3, CptMatrix ).
+
+
+% @doc Returns the specified transition matrix once its third (3D) column has
+% been updated with the specified one.
+%
+-spec set_column_k( transition_matrix4(), unit_vector3() ) -> unit_vector3().
+set_column_k( identity_4, _Column=[ X, Y, Z ] ) ->
+	Zero = 0.0,
+	One = 1.0,
+	#compact_matrix4{ m11=One,  m12=Zero, m13=X, tx=Zero,
+					  m21=Zero, m22=One,  m23=Y, ty=Zero,
+					  m31=Zero, m32=Zero, m33=Z, tz=Zero };
+
+set_column_k( CptMatrix, _Column=[ X, Y, Z ] ) ->
+	CptMatrix#compact_matrix4{ m13=X,
+							   m23=Y,
+							   m33=Z }.
+
+
+
+% @doc Returns the fourth (3D) column of the specified transition matrix.
+%
+% This one is generally not a unit vector.
+%
+-spec get_column_o( transition_matrix4() ) -> vector3().
+get_column_o( identity_4 ) ->
+	vector3:null();
+
+get_column_o( CptMatrix ) ->
+	compact_column( _ColumnCount=4, CptMatrix ).
+
+
+% @doc Returns the specified transition matrix once its fourth (3D) column has
+% been updated with the specified one.
+%
+-spec set_column_o( transition_matrix4(), unit_vector3() ) -> unit_vector3().
+set_column_o( identity_4, _Column=[ X, Y, Z ] ) ->
+	Zero = 0.0,
+	One = 1.0,
+	#compact_matrix4{ m11=One,  m12=Zero, m13=Zero, tx=X,
+					  m21=Zero, m22=One,  m23=Zero, ty=Y,
+					  m31=Zero, m32=Zero, m33=One,  tz=Z };
+
+set_column_o( CptMatrix, _Column=[ X, Y, Z ] ) ->
+	CptMatrix#compact_matrix4{ tx=X,
+							   ty=Y,
+							   tz=Z }.
 
 
 
@@ -1639,4 +1809,3 @@ to_string( CptMatrix=#compact_matrix4{} ) ->
 	FormatStr = "~n" ++ text_utils:duplicate( ?dim, RowFormatStr ),
 
 	text_utils:format( FormatStr, Strs ).
-
