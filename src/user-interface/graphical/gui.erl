@@ -2311,7 +2311,11 @@ clear( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
 
 
-% @doc Associates specified sizer to the specified window.
+% @doc Associates the specified sizer to the specified widget.
+%
+% A sizer will not be taken into account as long as it is not associated to a
+% widget (typically prior to showing that widget).
+%
 -spec set_sizer( window(), sizer() ) -> void().
 set_sizer( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Sizer ) ->
 	get_main_loop_pid() ! { getCanvasPanel, [ CanvasId ], self() },
@@ -2737,7 +2741,7 @@ create_top_level_frame( Title ) ->
 
 
 
-% @doc Creates a top-level frame, with specified size, and default ID.
+% @doc Creates a top-level frame, with the specified size, and a default ID.
 -spec create_top_level_frame( title(), size() ) -> frame().
 create_top_level_frame( Title, Size ) ->
 	Frame = create_frame( Title, Size ),
@@ -2746,7 +2750,7 @@ create_top_level_frame( Title, Size ) ->
 
 
 
-% @doc Creates a top-level frame, with specified title, position, size and
+% @doc Creates a top-level frame, with the specified title, position, size and
 % style.
 %
 -spec create_top_level_frame( title(), position(), size(), frame_style() ) ->
@@ -2785,7 +2789,7 @@ create_frame( Title ) ->
 
 
 
-% @doc Creates a frame, with specified title and size, and default ID and
+% @doc Creates a frame, with the specified title and size, and default ID and
 % parent.
 %
 -spec create_frame( title(), size() ) -> frame().
@@ -2809,8 +2813,9 @@ create_frame( Title, Id, Parent ) ->
 	wxFrame:new( to_wx_parent( Parent ), declare_id( Id ), Title ).
 
 
-% @doc Creates a frame, with specified title, position, size and style, and with
-% a default parent.
+
+% @doc Creates a frame, with the specified title, position, size and style, and
+% with a default parent.
 %
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
@@ -2825,8 +2830,8 @@ create_frame( Title, Position, Size, Style ) ->
 
 
 
-% @doc Creates a frame, with specified title, position, size and style, and with
-% a default parent.
+% @doc Creates a frame, with the specified title, position, size and style, and
+% with a default parent.
 %
 % (internal use only: wx exposed)
 %
@@ -2992,10 +2997,11 @@ destruct_panel( Panel ) ->
 
 
 % Button section.
+%
+% Note that the parent of a button must be a widget, not a sizer for example.
 
 
-
-% @doc Creates a (labelled) button, with parent specified.
+% @doc Creates a (labelled) button, with the specified parent.
 -spec create_button( label(), window() ) -> button().
 create_button( Label, Parent ) ->
 
@@ -3049,6 +3055,8 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 % Sizer section.
 %
 % Sizers correspond actually to wxBoxSizer (wxSizer is an abstract class).
+%
+% Their elements will be rendered in their addition order.
 
 
 % @doc Creates a sizer operating on specified orientation.
@@ -3071,8 +3079,8 @@ create_sizer_with_box( Orientation, Parent ) ->
 
 
 
-% @doc Creates a sizer operating on specified orientation, within specified
-% parent, with a box drawn around bearing specified label.
+% @doc Creates a sizer operating on the specified orientation, within the
+% specified parent, with a box drawn around bearing the specified label.
 %
 -spec create_sizer_with_labelled_box( orientation(), window(), label() ) ->
 											sizer().
@@ -3083,8 +3091,8 @@ create_sizer_with_labelled_box( Orientation, Parent, Label ) ->
 	wxStaticBoxSizer:new( ActualOrientation, Parent, [ { label, Label } ] ).
 
 
-% @doc Creates a sizer operating on specified orientation, within specified
-% parent, with a box drawn around bearing specified label.
+% @doc Creates a sizer operating on the specified orientation, within the
+% specified parent, with a box drawn around bearing the specified label.
 %
 -spec create_sizer_with_labelled_box( orientation(), window(),
 			format_string(), format_values() ) -> sizer().
@@ -3094,7 +3102,9 @@ create_sizer_with_labelled_box( Orientation, Parent, FormatString,
 	create_sizer_with_labelled_box( Orientation, Parent, Label ).
 
 
-% @doc Adds specified element, or elements with options, to the specified sizer.
+% @doc Adds the specified element, or elements with options, to the specified
+% sizer.
+%
 -spec add_to_sizer( sizer(), sizer_child() ) -> sizer_item();
 				  ( sizer(), [ { sizer_child(), sizer_options() } ] ) -> void().
 add_to_sizer( Sizer, _Element={ myriad_object_ref, myr_canvas, CanvasId } ) ->
@@ -3120,7 +3130,7 @@ add_to_sizer( Sizer, Element ) ->
 
 
 
-% @doc Adds specified element (or elements), with (common) options, to the
+% @doc Adds the specified element (or elements), with (common) options, to the
 % specified sizer.
 %
 -spec add_to_sizer( sizer(), sizer_child(), maybe_list( sizer_options() ) ) ->
@@ -3159,14 +3169,14 @@ add_spacer_to_sizer( Sizer, Width, Height, Options ) ->
 
 
 
-% @doc Clears specified sizer, detaching and deleting all its child windows.
+% @doc Clears the specified sizer, detaching and deleting all its child windows.
 -spec clear_sizer( sizer() ) -> void().
 clear_sizer( Sizer ) ->
 	clear_sizer( Sizer, _DeleteWindows=true ).
 
 
 
-% @doc Clears specified sizer, detaching all its child windows, and deleting
+% @doc Clears the specified sizer, detaching all its child windows, and deleting
 % them iff requested.
 %
 -spec clear_sizer( sizer(), boolean() ) -> void().
@@ -4039,10 +4049,13 @@ get_main_loop_pid() ->
 declare_id( undefined ) ->
 	?wxID_ANY;
 
+% Integers are set by the (wx) backend (wx_id()):
 declare_id( Id ) when is_integer( Id ) ->
 	Id;
 
-declare_id( NameId ) ->
+
+% Atoms are higher-level identifiers set at the MyriadGUI level:
+declare_id( NameId ) -> % when is_atom( NameId ) ->
 	get_main_loop_pid() ! { declareNameId, NameId, self() },
 	receive
 
