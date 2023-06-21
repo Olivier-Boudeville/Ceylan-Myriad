@@ -31,6 +31,8 @@
 
 -include("gui_base.hrl").
 
+-include("gui_event.hrl").
+
 -include("gui_opengl.hrl").
 
 -include("bounding_surface.hrl").
