@@ -239,6 +239,13 @@
 	| 'onKeyReleased'.  % See onKeyPressed regarding modifiers and case.
 
 
+
+% May integrate modifiers in the future:
+%-type key_match() :: 'scancode' | 'keycode'.
+% Describes how a key shall be matched.
+
+
+
 -type backend_keyboard_event() :: wxKey().
 
 
