@@ -62,7 +62,7 @@
 
 
 -type id() :: maybe( backend_id() ) | name_id().
-% Backend-specific object identifier.
+% Object identifier, backend-specific or not.
 %
 % Defined here so that no user-level datastructure (like the event_context
 % public record) bears any trace of any GUI actual backend.
@@ -72,6 +72,10 @@
 %
 % May not be defined if the actual event comes from MyriadGUI itself (and thus
 % not wx).
+
+
+-type button_id() :: id().
+% An identifier of a button.
 
 
 -type id_allocator_pid() :: pid().
@@ -88,7 +92,8 @@
 % integer in wx object references, like {wx_ref,35,wxFrame,[]}).
 
 
--export_type([ name_id/0, id/0, id_allocator_pid/0, myriad_instance_id/0,
+-export_type([ name_id/0, id/0, button_id/0,
+			   id_allocator_pid/0, myriad_instance_id/0,
 			   backend_id/0, wx_id/0, id_name_alloc_table/0 ]).
 
 
