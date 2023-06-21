@@ -92,7 +92,7 @@
 %
 % Main loop of a solver instance.
 %
-% In we are in 3D here:
+% We are in 3D here:
 -spec solver_main_loop( f3p(), point3(), time(), time_step(), screen(),
 						pid() ) -> no_return().
 solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
@@ -101,6 +101,7 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 	solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 					  ListenerPid, _TimeOut=infinity ).
 
+
 % (helper)
 solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 				  ListenerPid, TimeOut ) ->
@@ -108,11 +109,9 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 	receive
 
 		{ set_time_step, NewTimestep } ->
-
 			% Whatever the units may be:
 			%trace_utils:debug_fmt( "Changing time step from ~p to ~p.",
 			%                       [ Timestep, NewTimestep ] ),
-
 			solver_main_loop( F, CurrentPoint, CurrentTime, NewTimestep, Screen,
 							  ListenerPid, TimeOut );
 
@@ -127,9 +126,16 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 							  ListenerPid, _TimeOut=10 );
 
 		{ stop, CallerPid } ->
+			%trace_utils:debug_fmt( "Stopping solver ~w.", [ self() ] ),
 			CallerPid ! stopped,
 			solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
-							  ListenerPid, _TimeOut=infinity )
+							  ListenerPid, _TimeOut=infinity );
+
+		Other ->
+			trace_utils:warning_fmt( "Solver ~w ignored message ~w.",
+									 [ self(), Other ] ),
+			solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
+							  ListenerPid, TimeOut )
 
 
 	after TimeOut ->
@@ -245,8 +251,8 @@ lorenz_function( _Time, _P={ X0, Y0, Z0 } ) ->
 
 
 
-% The left part of the windows gathers the buttons, while the right one shows
-% the canvas.
+% The left part of the frame gathers the buttons, while the right one shows the
+% canvas.
 
 
 -spec get_main_window_width() -> coordinate().
@@ -588,7 +594,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 				[ table:size( SolverTable ), GUIState#gui_state.timestep ],
 				GUIState#gui_state.status_bar ),
 
-			send_to_solvers( _Msg=stop, SolverTable ),
+			send_to_solvers( _Msg={ stop, self() }, SolverTable ),
 
 			GUIState;
 
@@ -682,6 +688,11 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 				_V={ Color, NewPoint }, SolverTable ),
 
 			GUIState#gui_state{ solver_table=NewSolverTable };
+
+
+		% Currently not specifically managing these synchronous calls:
+		stopped ->
+			GUIState;
 
 
 		Any ->
