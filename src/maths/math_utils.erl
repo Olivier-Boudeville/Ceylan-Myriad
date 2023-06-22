@@ -205,6 +205,8 @@
 
 -type integer_abscissa() :: integer().
 
+-type any_abscissa() :: abscissa() | integer_abscissa().
+
 
 -type integer_to_integer_fun() :: fun( ( integer() ) -> integer() ).
 % A function returning an integer from an integer.
@@ -237,7 +239,7 @@
 			   probability/0, probability_like/0,
 			   bound/0, integer_bound/0,
 			   bounds/0, integer_bounds/0,
-			   abscissa/0, integer_abscissa/0,
+			   abscissa/0, integer_abscissa/0, any_abscissa/0,
 			   integer_to_integer_fun/0, float_to_integer_fun/0,
 			   number_to_integer_fun/0, number_to_float_fun/0,
 			   integer_to_float_fun/0, float_to_float_fun/0 ]).
@@ -912,9 +914,16 @@ compute_support( Fun, Min, Max ) ->
 -spec compute_support( float_to_float_fun(), abscissa(),
 					   maybe( bound() ), maybe( bound() ) ) -> bounds().
 compute_support( Fun, Origin, MaybeMin, MaybeMax ) ->
+
 	% Tests are limited, should for example x -> sin(x) be specified:
-	compute_support( Fun, Origin, MaybeMin, MaybeMax, ?base_increment,
-					 _RemainingTests=128, _Epsilon=?epsilon ).
+	Bounds = compute_support( Fun, Origin, MaybeMin, MaybeMax, ?base_increment,
+							  _RemainingTests=128, _Epsilon=?epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "Returning support ~ts.",
+			[ bounds_to_string( Bounds ) ] ) ),
+
+	Bounds.
 
 
 
@@ -1194,6 +1203,7 @@ minimise_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax, Epsilon ) ->
 			% Before returning our elected zero, we check it a bit more:
 			Inc = ?base_increment * sign( FartherZero - Pivot ),
 
+			% Searches a non-zero away (to the right infinite) from our zero:
 			case search_non_null_one_direction( Fun, FartherZero, MaybeMin,
 					MaybeMax, Inc, _RemainingTests=64, Epsilon ) of
 
@@ -1353,7 +1363,7 @@ compute_integer_support( Fun, Min, MaybeMax=undefined ) ->
 	compute_integer_support( Fun, Origin, Min, MaybeMax );
 
 compute_integer_support( Fun, Min, Max ) ->
-	Origin = ( Min + Max ) div 2,
+	Origin = ( Min + Max ) / 2,
 	compute_integer_support( Fun, Origin, Min, Max ).
 
 
@@ -1369,17 +1379,24 @@ compute_integer_support( Fun, Min, Max ) ->
 %%
 % Typically useful to properly discretise probability density functions.
 %
--spec compute_integer_support( integer_to_float_fun(), integer_abscissa(),
+-spec compute_integer_support( integer_to_float_fun(), any_abscissa(),
 			maybe( integer_bound() ), maybe( integer_bound() ) ) ->
 				integer_bounds().
-compute_integer_support( Fun, Origin, MaybeMin, MaybeMax ) ->
+compute_integer_support( Fun, round( Origin ), MaybeMin, MaybeMax ) ->
 
 	% Tests are limited, should for example x -> sin(x) be specified:
 	%
 	% (lower test counts, yet multiple ones attempted)
 	%
-	compute_integer_support( Fun, Origin, MaybeMin, MaybeMax, _Increment=1,
-							 _RemainingTests=64, _Epsilon=?epsilon ).
+	Bounds = compute_integer_support( Fun, Origin, MaybeMin, MaybeMax,
+		_Increment=1, _RemainingTests=64, _Epsilon=?epsilon ),
+
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "Returning integer support ~ts.",
+			[ integer_bounds_to_string( Bounds ) ] ) ),
+
+	Bounds.
+
 
 
 % Searches the function support from the specified origin.
@@ -1679,16 +1696,19 @@ minimise_integer_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax,
 						   "farther zero is ~B.", [ Pivot, FartherZero ] ),
 
 	% Before returning our elected zero, we check it a bit more:
+	Inc = sign( FartherZero - Pivot ),
+
+	% Searches a non-zero away (to the right infinite) from our zero:
 	case search_integer_non_null_one_direction( Fun, FartherZero, MaybeMin,
-			MaybeMax, _Inc=1, _RemainingTests=64, Epsilon ) of
+			MaybeMax, Inc, _RemainingTests=64, Epsilon ) of
 
 		% Validated:
 		undefined ->
 			Pivot;
 
 		UnexpectedZero ->
-			trace_utils:warning_fmt( "Outlier zero found at ~B (from pivot ~B),"
-				" reconverging.", [ UnexpectedZero, Pivot ] ),
+			trace_utils:warning_fmt( "Outlier zero found at ~B "
+				"(from pivot ~B), reconverging.", [ UnexpectedZero, Pivot ] ),
 			minimise_integer_zero( Fun, Pivot, UnexpectedZero,
 								   MaybeMin, MaybeMax, Epsilon )
 

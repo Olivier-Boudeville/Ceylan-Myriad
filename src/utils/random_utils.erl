@@ -1918,7 +1918,7 @@ get_all_sample_pairs( _LS={ integer_uniform, Min, Max } ) ->
 		end,
 
 	% Returns SampledPDFPairs (uniform sampling; not normalised):
-	math_utils:sample_as_pairs( LawFun, Min, Max, _Inc=1.0 );
+	math_utils:sample_as_pairs( LawFun, Min, Max, _Inc=1 );
 
 
 get_all_sample_pairs( _LS={ exponential, Lambda } ) ->
@@ -1948,10 +1948,10 @@ get_all_sample_pairs( _LS={ positive_integer_exponential, Lambda } ) ->
 
 		end,
 
-	%Max = 100.0 * Lambda,
 	{ Min, Max } = math_utils:compute_integer_support( LawFun ),
 
-	Inc = ( Max - Min ) / ?default_pdf_sample_count,
+	% Integer distribution:
+	Inc = 1,
 
 	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
 
@@ -1987,7 +1987,8 @@ get_all_sample_pairs( _LS={ positive_integer_gaussian, Mu, Sigma  } ) ->
 	{ Min, Max } = math_utils:compute_integer_support( LawFun, _Origin=Mu,
 		_MaybeMin=undefined, _MaybeMax=undefined ),
 
-	Inc = ( Max - Min ) / ?default_pdf_sample_count,
+	% Integer distribution:
+	Inc = 1,
 
 	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
 
