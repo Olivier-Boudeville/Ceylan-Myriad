@@ -154,8 +154,8 @@
 
 
 % Functions relative to other distributions:
--export([ exponential_pdf/2, gaussian_pdf/3,
-		  weibull_2p_pdf/3, weibull_3p_pdf/4 ]).
+-export([ exponential_pdf/2, gaussian_pdf/3, weibull_2p_pdf/3, weibull_3p_pdf/4,
+		  beta_2p_pdf/3 ]).
 
 
 % Silencing:
@@ -294,7 +294,7 @@
 % Subsection for law specifications.
 
 -type random_law_spec() ::
-	uniform_law_spec()
+	uniform_law_spec() | full_uniform_law_spec()
   | integer_uniform_law_spec()
 
   | exponential_law_spec()
@@ -303,8 +303,10 @@
   | gaussian_law_spec()
   | positive_integer_gaussian_law_spec()
 
-  | weibull_2p_law_spec()
-  | weibull_3p_law_spec()
+  | weibull_2p_law_spec() | full_weibull_2p_law_spec()
+  | weibull_3p_law_spec() | full_weibull_3p_law_spec()
+
+  | beta_2p_law_spec() | full_beta_2p_law_spec()
 
   | arbitrary_law_spec().
 % A user-level specification of a (parametrised) randow law, either natively
@@ -312,6 +314,10 @@
 %
 % It is a tuple whose first element is a law identifier.
 
+
+
+
+% Uniform distributions.
 
 
 -type uniform_law_spec() :: { 'uniform', Min :: number(), Max :: number() }
@@ -331,6 +337,10 @@
 % A probability distribution with which all declared samples have the same
 % probability of being drawn: will return random integers uniformly distributed
 % in [Nmin,Nmax] if both bounds are specified, otherwise in [0,Nmax].
+
+
+
+% Exponential distributions.
 
 
 -type exponential_law_spec() :: { 'exponential', Lambda :: rate() }.
@@ -354,6 +364,8 @@
 % Refer to exponential_law_spec/0 for further details.
 
 
+
+% Gaussian distributions.
 
 -type gaussian_law_spec() ::
 		{ 'gaussian', Mu :: mean(), Sigma :: standard_deviation() }.
@@ -380,6 +392,10 @@
 % May be useful for example if wanting to draw duration values.
 %
 % Refer to gaussian_law/0 for further details.
+
+
+
+% Weibull distributions.
 
 
 -type full_weibull_law_spec() ::
@@ -436,6 +452,33 @@
 % Canonical, most complete Weibull law specification with three parameters.
 % Refer to weibull_3p_law_spec/0 for further details.
 
+
+
+% Beta distributions.
+
+
+-type beta_2p_law_spec() ::
+	{ 'beta_2p', Alpha :: positive_float(), Beta :: positive_float() }
+  | { 'beta_2p', Alpha :: positive_float(), Beta :: positive_float(),
+	  sample_count() }
+  | full_beta_2p_law_spec().
+% The Beta law (of the first kind) with two shape parameters, Alpha > 0 and Beta
+% > 0.
+%
+% A sample count and specific bounds can be specified, generally on the [0,1]
+% interval.
+%
+% See also https://en.wikipedia.org/wiki/Beta_distribution and
+% https://reliability.readthedocs.io/en/latest/Equations%20of%20supported%20distributions.html#beta-distribution
+
+
+-type full_beta_law_spec() :: full_beta_2p_law_spec().
+
+-type full_beta_2p_law_spec() ::
+	{ 'beta_2p', Alpha :: positive_float(), Beta :: positive_float(),
+	  sample_count(), bounds() }.
+% Canonical, most complete Beta law specification with two parameters.
+% Refer to beta_2p_law_spec/0 for further details.
 
 
 -type pdf_info() ::
@@ -496,6 +539,8 @@
 
   | weibull_law_data()
 
+  | beta_law_data()
+
   | arbitrary_law_data().
 % Static, runtime data associated to an actual random law, so that samples can
 % be obtained from it.
@@ -524,13 +569,37 @@
 		{ positive_integer_gaussian_law_spec(), 'undefined' }.
 
 
--type weibull_law_settings() :: { 'weibull', K :: positive_float(),
-								  Lambda :: positive_float(), sampling_info() }.
-% Internal settings of the Weibull law.
+-type weibull_law_settings() :: weibull_2p_law_settings()
+							  | weibull_3p_law_settings().
+% Internal settings of the Weibull laws.
+
+-type weibull_2p_law_settings() :: { 'weibull_2p', K :: positive_float(),
+		Lambda :: positive_float(), sampling_info() }.
+% Internal settings of the Weibull-2p laws.
+
+
+-type weibull_3p_law_settings() :: { 'weibull_3p', K :: positive_float(),
+		Lambda :: positive_float(), sampling_info() }.
+% Internal settings of the Weibull-3p laws.
+
 
 -type weibull_law_data() :: { weibull_law_settings(), alias_table() }.
-% A bit like weibull_law_data/0, except that its precomputed alias table is
+% A bit like weibull_law_spec/0, except that its precomputed alias table is
 % stored as well.
+
+
+-type beta_2p_law_settings() :: { 'beta_2p', Alpha :: positive_float(),
+								  Beta :: positive_float(), sampling_info() }.
+% Internal settings of the Beta law.
+
+
+-type beta_law_data() :: beta_2p_law_data().
+
+-type beta_2p_law_data() :: { beta_2p_law_settings(), alias_table() }.
+% A bit like beta_2p_law_spec/0, except that its precomputed alias table is
+% stored as well.
+
+
 
 
 -type arbitrary_law_pseudo_spec() ::
@@ -607,6 +676,11 @@
 % A PDF of the three-parameter Weibull distribution.
 
 
+-type beta_pdf() :: beta_2p_pdf().
+
+-type beta_2p_pdf() :: pdf().
+% A PDF of the two-parameter Beta distribution.
+
 
 -export_type([ seed_element/0, seed/0, random_state/0, alias_table/0,
 			   sample/0, sample/1, float_sample/0, positive_float_sample/0,
@@ -624,7 +698,8 @@
 			   discrete_probability_distribution/1,
 			   pdf/0, pdf/1,
 			   exponential_pdf/0, gaussian_pdf/0,
-			   weibull_2p_pdf/0, weibull_3p_pdf/0 ]).
+			   weibull_pdf/0, weibull_2p_pdf/0, weibull_3p_pdf/0,
+			   beta_pdf/0, beta_2p_pdf/0 ]).
 
 
 % Law specs:
@@ -641,7 +716,9 @@
 			   uniform_law_data/0, integer_uniform_law_data/0,
 			   exponential_law_data/0, positive_integer_exponential_law_data/0,
 			   gaussian_law_data/0, positive_integer_gaussian_law_data/0,
-			   weibull_law_data/0,
+			   %weibull_2p_law_data/0, 
+			   %weibull_3p_law_data/0,  
+			   beta_2p_law_data/0,
 			   arbitrary_law_data/0 ]).
 
 
@@ -719,7 +796,7 @@
 
 -type probability() :: math_utils:probability().
 
-
+% A float that is strictly positive:
 -type positive_float() :: type_utils:positive_float().
 %-type non_negative_float() :: type_utils:non_negative_float().
 
@@ -1386,13 +1463,33 @@ initialise_law( LS ) ->
 					  SampleCount, Inc ] ),
 				basic_utils:ignore_unused( WbBounds ) ),
 
-			SampledPDFPairs = math_utils:sample_as_pairs( WbPDFFun, Min, Max,
-														  Inc ),
+			SampledPDFPairs = 
+				math_utils:sample_as_pairs( WbPDFFun, Min, Max, Inc ),
 
 			AliasTable = generate_alias_table_from( SampledPDFPairs ),
 			SamplingInfo = { Min, Max, SampleCount },
 			WbLawSettings = { weibull_3p, K, Lambda, Gamma, SamplingInfo },
 			_ArbitraryLawData={ WbLawSettings, AliasTable };
+
+
+		{ _CanSpec={ beta_2p, Alpha, Beta, SampleCount,
+					 BetaBounds={ Min, Max } }, Inc, BetaPDFFun } ->
+
+			cond_utils:if_defined( myriad_debug_random,
+				trace_utils:debug_fmt( "Initialising a Beta-2P law of Alpha=~f "
+					"and Beta=~f, discretised on interval ~ts "
+					"with ~B points (increment: ~f).",
+					[ Alpha, Beta, math_utils:bounds_to_string( BetaBounds ),
+					  SampleCount, Inc ] ),
+				basic_utils:ignore_unused( BetaBounds ) ),
+
+			SampledPDFPairs = math_utils:sample_as_pairs( BetaPDFFun, Min, Max,
+														  Inc ),
+
+			AliasTable = generate_alias_table_from( SampledPDFPairs ),
+			SamplingInfo = { Min, Max, SampleCount },
+			BetaLawSettings = { beta_2p, Alpha, Beta, SamplingInfo },
+			_ArbitraryLawData={ BetaLawSettings, AliasTable };
 
 
 		{ _CanSpec={ arbitrary, BinName,
@@ -1891,11 +1988,11 @@ fill_entries( _UnderFulls, _OverFulls, IdxArray, ProbLikeArray ) ->
 									discrete_probability_distribution().
 % Starting with the non-PDF law specs:
 get_all_sample_pairs( _LS={ uniform, Min, Max } ) ->
-	% Any increment would do:
-	Inc = ( Max - Min ) / ?default_pdf_sample_count,
-
 	% Constant (non-normalised) probability:
 	LawFun = fun( _S ) -> 1.0 / ?default_pdf_sample_count end,
+
+	% Any increment would do:
+	Inc = ( Max - Min ) / ?default_pdf_sample_count,
 
 	% Returns SampledPDFPairs (uniform sampling; not normalised):
 	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
@@ -1917,8 +2014,8 @@ get_all_sample_pairs( _LS={ integer_uniform, Min, Max } ) ->
 
 		end,
 
-	% Returns SampledPDFPairs (uniform sampling; not normalised):
-	math_utils:sample_as_pairs( LawFun, Min, Max, _Inc=1.0 );
+	% Returns SampledPDFPairs (uniform integer sampling; not normalised):
+	math_utils:sample_as_pairs( LawFun, Min, Max, _Inc=1 );
 
 
 get_all_sample_pairs( _LS={ exponential, Lambda } ) ->
@@ -1948,12 +2045,10 @@ get_all_sample_pairs( _LS={ positive_integer_exponential, Lambda } ) ->
 
 		end,
 
-	%Max = 100.0 * Lambda,
 	{ Min, Max } = math_utils:compute_integer_support( LawFun ),
 
-	Inc = ( Max - Min ) / ?default_pdf_sample_count,
-
-	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
+	% Integer distribution:
+	math_utils:sample_as_pairs( LawFun, Min, Max, _Inc=1 );
 
 
 
@@ -1987,9 +2082,8 @@ get_all_sample_pairs( _LS={ positive_integer_gaussian, Mu, Sigma  } ) ->
 	{ Min, Max } = math_utils:compute_integer_support( LawFun, _Origin=Mu,
 		_MaybeMin=undefined, _MaybeMax=undefined ),
 
-	Inc = ( Max - Min ) / ?default_pdf_sample_count,
-
-	math_utils:sample_as_pairs( LawFun, Min, Max, Inc );
+	% Integer distribution:
+	math_utils:sample_as_pairs( LawFun, Min, Max, _Inc=1 );
 
 
 
@@ -2017,6 +2111,10 @@ get_all_sample_pairs( LS ) ->
 					   WbBounds }, Inc, WbPDFFun } ->
 			{ WbPDFFun, WbBounds, Inc };
 
+		{ _CanonSpec={ beta_2p, _Alpha, _Beta, _SampleCount, BetaBounds }, Inc,
+		  BetaPDFFun } ->
+			{ BetaPDFFun, BetaBounds, Inc };
+
 		{ _CanonSpec={ arbitrary, _BinName,
 				_CanonPDFInfo={ LFun, _SampleCount, CanBounds } }, Inc } ->
 			{ LFun, CanBounds, Inc }
@@ -2038,6 +2136,7 @@ get_all_sample_pairs( LS ) ->
 -spec canonicalise_pdf_based_spec( random_law_spec() ) ->
 	full_uniform_law_spec() | integer_uniform_law_spec()
   | { full_weibull_law_spec(), increment(), weibull_pdf() }
+  | { full_beta_law_spec(), increment(), beta_pdf() }
   | { arbitrary_law_spec(), pdf(),
 	  { sample_count(), bounds(), increment() } }.
 % First, uniform laws:
@@ -2126,7 +2225,7 @@ canonicalise_pdf_based_spec(
 
 	BestBounds = { Min, SMax },
 
-	% To be shared with next clause:
+	% To be shared with next clause, fun created once:
 	canonicalise_weibull_spec_with( WbPDFFun,
 		{ weibull_3p, Kf, Lambdaf, Gammaf, SampleCount, BestBounds } );
 
@@ -2144,6 +2243,37 @@ canonicalise_pdf_based_spec(
 
 	canonicalise_weibull_spec_with( WbPDFFun,
 		{ weibull_3p, Kf, Lambdaf, Gammaf, SampleCount, CanonBounds } );
+
+
+% Then the beta section:
+%
+% Beta-2P with no sample count:
+canonicalise_pdf_based_spec( _LS={ beta_2p, Alpha, Beta } ) ->
+	canonicalise_pdf_based_spec(
+		{ beta_2p, Alpha, Beta, ?default_pdf_sample_count } );
+
+% No support specified:
+canonicalise_pdf_based_spec( LS={ beta_2p, Alpha, Beta, SampleCount } ) ->
+	% Needed to compute support (no a priori bounds):
+	{ BetaPDFFun, Alphaf, Betaf } = get_beta_2p_pdf( Alpha, Beta, LS ),
+	SampleBounds = math_utils:compute_support( BetaPDFFun ),
+
+	% To be shared with next clause:
+	canonicalise_beta_spec_with( BetaPDFFun,
+		{ beta_2p, Alphaf, Betaf, SampleCount, SampleBounds } );
+
+% Full information available for 2P:
+canonicalise_pdf_based_spec(
+		LS={ beta_2p, Alpha, Beta, SampleCount, SampleBounds } ) ->
+
+	CanonBounds = math_utils:canonicalise_bounds( SampleBounds ),
+
+	% Checks Alphaf and Betaf:
+	{ BetaPDFFun, Alphaf, Betaf } = get_beta_2p_pdf( Alpha, Beta, LS ),
+
+	canonicalise_beta_spec_with( BetaPDFFun,
+		{ beta_2p, Alphaf, Betaf, SampleCount, CanonBounds } );
+
 
 
 % Arbitrary laws:
@@ -2277,6 +2407,27 @@ get_weibull_3p_pdf( K, Lambda, Gamma, LS ) ->
 
 
 
+% @doc Returns the corresponding Beta-2P PDF, after having checked user-supplied
+% parameters.
+%
+-spec get_beta_2p_pdf( term(), term(), term() ) ->
+		{ beta_2p_pdf(), positive_float(), positive_float() }.
+get_beta_2p_pdf( Alpha, Beta, LS ) ->
+
+	Alpha > 0.0 orelse throw( { invalid_alpha, Alpha, LS } ),
+	Beta > 0.0 orelse throw( { invalid_beta, Beta, LS } ),
+
+	Alphaf = float( Alpha ),
+	Betaf = float( Beta ),
+
+	BetaPDFFun = fun( S ) -> beta_2p_pdf( S, Alphaf, Betaf ) end,
+
+	{ BetaPDFFun, Alphaf, Betaf }.
+
+
+
+
+
 % Common for all Weibull functions.
 %
 % Bounds supposed to be already canonic.
@@ -2323,6 +2474,35 @@ canonicalise_weibull_spec_with( WbPDFFun,
 	CanonSpec = { weibull_3p, Kf, Lambdaf, Gammaf, SampleCount, WbBounds },
 
 	{ CanonSpec, Inc, WbPDFFun }.
+
+
+
+% Common for all Beta functions.
+%
+% Bounds supposed to be already canonic.
+%
+-spec canonicalise_beta_spec_with( beta_pdf(), tuple() ) ->
+			{ full_beta_law_spec(), increment(), beta_pdf() }.
+canonicalise_beta_spec_with( BetaPDFFun,
+		{ beta_2p, Alphaf, Betaf, SampleCount, 
+		  BetaBounds={ BetaMin, BetaMax } } ) ->
+
+	check_sample_count( SampleCount ),
+
+	Inc = ( BetaMax - BetaMin ) / SampleCount,
+
+	% No need felt for normalisation.
+
+	cond_utils:if_defined( myriad_debug_random,
+		trace_utils:debug_fmt( "Canonicalising a Beta-2P law of "
+			"Alpha=~f and Beta=~f, discretised on interval ~ts "
+			"with ~B points (increment: ~f).",
+			[ Alphaf, Betaf,  math_utils:bounds_to_string( BetaBounds ),
+			  SampleCount, Inc ] ) ),
+
+	CanonSpec = { beta_2p, Alphaf, Betaf, SampleCount, BetaBounds },
+
+	{ CanonSpec, Inc, BetaPDFFun }.
 
 
 
@@ -2509,6 +2689,25 @@ weibull_3p_pdf( _S, _K, _Lambda, _Gamma ) -> % when S < 0.0 ->
 	0.0.
 
 
+
+% Beta-2P distribution:
+%
+% See https://en.wikipedia.org/wiki/Beta_distribution.
+%
+% Its support is for a sample S in [0,1].
+%
+% Determined by 2 parameters:
+% - Alpha > 0, a shape parameter
+% - Beta > 0, another shape parameter
+%
+% The probabilities that it returns are not normalised, as this would involve
+% the computation of the Gamma function (see
+% https://en.wikipedia.org/wiki/Gamma_function).
+%
+-spec beta_2p_pdf( positive_float_sample(), positive_float(),
+				   positive_float() ) -> probability().
+beta_2p_pdf( S, Alpha, Beta ) when S >= 0.0 andalso S =< 1.0 ->
+	math:pow( S, Alpha-1) * math:pow( 1.0 - S, Beta-1).
 
 
 % @doc Checks that the specified term is a sample count (and returns it).
