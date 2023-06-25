@@ -920,7 +920,7 @@ compute_support( Fun, Origin, MaybeMin, MaybeMax ) ->
 							  _RemainingTests=128, _Epsilon=?epsilon ),
 
 	cond_utils:if_defined( myriad_debug_math,
-		trace_utils:debug_fmt( "Returning support ~ts.",
+		trace_utils:debug_fmt( "Returning float support ~ts.",
 			[ bounds_to_string( Bounds ) ] ) ),
 
 	Bounds.
@@ -1363,6 +1363,7 @@ compute_integer_support( Fun, Min, MaybeMax=undefined ) ->
 	compute_integer_support( Fun, Origin, Min, MaybeMax );
 
 compute_integer_support( Fun, Min, Max ) ->
+	% To support floats (and will be rounded):
 	Origin = ( Min + Max ) / 2,
 	compute_integer_support( Fun, Origin, Min, Max ).
 
@@ -1380,9 +1381,11 @@ compute_integer_support( Fun, Min, Max ) ->
 % Typically useful to properly discretise probability density functions.
 %
 -spec compute_integer_support( integer_to_float_fun(), any_abscissa(),
-			maybe( integer_bound() ), maybe( integer_bound() ) ) ->
-				integer_bounds().
-compute_integer_support( Fun, round( Origin ), MaybeMin, MaybeMax ) ->
+	maybe( integer_bound() ), maybe( integer_bound() ) ) -> integer_bounds().
+compute_integer_support( Fun, AnyOrigin, MaybeMin, MaybeMax ) ->
+
+	% Integer wanted in all cases:
+	Origin = round( AnyOrigin ),
 
 	% Tests are limited, should for example x -> sin(x) be specified:
 	%

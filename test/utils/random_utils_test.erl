@@ -183,8 +183,8 @@ test_exponential() ->
 
 test_gaussian() ->
 
-	%GausLawSpec = { gaussian, _Muf=2.0, _Sigmaf=0.4 },
-	%test_law( GausLawSpec ),
+	GausLawSpec = { gaussian, _Muf=2.0, _Sigmaf=0.4 },
+	test_law( GausLawSpec ),
 
 	IntegerGausLawSpec = { positive_integer_gaussian, _Mu=70, _Sigma=8.0 },
 	test_law( IntegerGausLawSpec ).
@@ -194,8 +194,8 @@ test_gaussian() ->
 test_weibull() ->
 
 	% Default sample count and support:
-	%WbLaw2pSpec = { weibull_2p, _K1=1.5, _Lambda1=1 },
-	%test_law( WbLaw2pSpec ),
+	WbLaw2pSpec = { weibull_2p, _K1=1.5, _Lambda1=1 },
+	test_law( WbLaw2pSpec ),
 
 	WbLaw3pSpec = { weibull_3p, _K2=2.1, _Lambda2=2, _Gamma2=10 },
 	test_law( WbLaw3pSpec ).
@@ -483,19 +483,19 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	%test_basic_random(),
+	test_basic_random(),
 
-	%test_facilities:display( "Testing now non-uniform random sampling." ),
+	test_facilities:display( "Testing now non-uniform random sampling." ),
 
 	% Defined as discrete options:
-	%test_biased_coin(),
+	test_biased_coin(),
 
-	%test_uniform(),
-	%test_exponential(),
+	test_uniform(),
+	test_exponential(),
 	test_gaussian(),
 
-	%test_weibull(),
+	test_weibull(),
 
-	%test_custom_pdf(),
+	test_custom_pdf(),
 
 	test_facilities:stop().
