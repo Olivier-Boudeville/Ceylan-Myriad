@@ -90,6 +90,10 @@
 -export([ check_percent_basic_range/1 ]).
 
 
+% Special functions:
+-export([ factorial/1, gamma/1 ]).
+
+
 % For epsilon define:
 -include("math_utils.hrl").
 
@@ -1874,3 +1878,93 @@ check_percent_basic_range( P ) when P >= 0.0 andalso P =< 1.0 ->
 
 check_percent_basic_range( P ) ->
 	throw( { percentage_not_in_range, P } ).
+
+
+
+
+% Section for special functions.
+
+
+% @doc Returns the factorial of the argument N, that is: N!.
+-spec factorial( non_neg_integer() ) -> pos_integer().
+factorial( _N=0 ) ->
+	1;
+
+factorial( N ) when N > 0 ->
+	N * factorial( N-1 ).
+
+
+
+% @doc Evaluates the well-known Gamma function for the specified value (integer
+% or floating-point: no need felt for one operating on complex numbers).
+%
+%
+%              +infinity
+%             /
+% gamma (z) = | t^(z-1).exp (-t).dt
+%            /
+%         t=0
+%
+% Exact results are returned for integer values, approximated ones for
+% floating-point ones.
+%
+% Refer to https://en.wikipedia.org/wiki/Gamma_function for more information.
+%
+-spec gamma( pos_integer() ) -> pos_integer();
+		   ( float() ) -> float().
+gamma( I ) when is_integer( I ) andalso I > 0 ->
+	factorial( I-1 );
+
+gamma( F ) when is_float( F ) andalso F > 0 ->
+	% We rely here on the Lanczos approximation (see
+	% https://en.wikipedia.org/wiki/Lanczos_approximation):
+
+	G = 7,
+
+	% Not used:
+	%N = 9,
+
+	P = [ 0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+		  771.32342877765313, -176.61502916214059, 12.507343278686905,
+		  -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7 ],
+
+	gamma( F, G, P );
+
+gamma( Other ) ->
+	throw( { invalid_argument, Other } ).
+
+
+
+% (helper)
+gamma( F, G, P ) when F < 0.5 ->
+
+	% Using the reflection formula, as the Lanczos method would not be valid
+	% for Re(F) < 0.5 :
+	%
+	Pi = math:pi(),
+	Pi / ( math:sin( Pi * F ) * gamma( 1-F, G, P ) );
+
+
+gamma( F, G, _P=[ P0 | PT ] ) -> % when F >= 0.5
+
+	% F corresponds to the "z" variable in the algorithm.
+
+	OffsetF = F - 1,
+
+	% V corresponds to the "x" variable in the algorithm.
+	V = add_gamma( PT, OffsetF, _Inc=1, _AccV=P0 ),
+
+	T = OffsetF + G + 0.5,
+
+	math:sqrt( 2*math:pi() ) * math:pow( T, OffsetF + 0.5 )
+		* math:exp( -T ) * V.
+
+
+
+% (helper)
+add_gamma( _P=[], _OffsetF, _Inc, AccV ) ->
+	AccV;
+
+add_gamma( _P=[ H | T ], OffsetF, Inc, AccV ) ->
+	NewAccV = AccV + H / ( OffsetF + Inc),
+	add_gamma( T, OffsetF, Inc+1, NewAccV ).
