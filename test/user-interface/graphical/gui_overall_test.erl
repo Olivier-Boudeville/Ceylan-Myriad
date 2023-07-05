@@ -1,4 +1,4 @@
-% Copyright (C) 2013-2023 Olivier Boudeville
+% Copyvright (C) 2013-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -315,12 +315,12 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Render shape test button ~ts has been clicked (~ts).",
-					[ gui:object_to_string( QuitButton ),
+					[ gui:object_to_string( RenderShapeButton ),
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			NewTestState = TestState#my_test_state{
-								render_mode=test_shape_rendering },
+				render_mode=test_shape_rendering },
 
 			render_shapes( Canvas ),
 
@@ -332,12 +332,12 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Render MEC test button ~ts has been clicked (~ts).",
-					[ gui:object_to_string( QuitButton ),
+					[ gui:object_to_string( RenderMECButton ),
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			NewTestState = TestState#my_test_state{
-								render_mode=test_dynamic_mec },
+				render_mode=test_dynamic_mec },
 
 			render_mec( Canvas, TestState#my_test_state.point_count ),
 
@@ -349,7 +349,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Add point test button ~ts has been clicked (~ts).",
-					[ gui:object_to_string( QuitButton ),
+					[ gui:object_to_string( AddButton ),
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
@@ -366,7 +366,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Paste image button ~ts has been clicked (~ts).",
-					[ gui:object_to_string( QuitButton ),
+					[ gui:object_to_string( PasteImageButton ),
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
@@ -384,7 +384,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Clear canvas button ~ts has been clicked (~ts).",
-					[ gui:object_to_string( QuitButton ),
+					[ gui:object_to_string( ClearCanvasButton ),
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
@@ -420,7 +420,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			gui:blit( Canvas ),
 
 			test_main_loop( TestState#my_test_state{
-								render_count=RenderCount+1 } );
+				render_count=RenderCount+1 } );
 
 
 		{ onResized, [ Canvas, _CanvasId, NewSize, Context ] } ->
@@ -435,7 +435,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			render( RenderMode, TestState#my_test_state.point_count, Canvas ),
 
 			test_main_loop( TestState#my_test_state{
-								render_count=RenderCount+1 } );
+				render_count=RenderCount+1 } );
 
 
 		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->

@@ -75,20 +75,22 @@
 
 
 % User events:
--export([ create_user_event_table/1 ]).
+-export([ create_user_event_registry/1, get_application_event/1,
+		  get_maybe_application_event/1, get_maybe_application_event/2 ]).
+
 
 % Helpers:
 -export([ get_backend_event/1 ]).
 
 % Stringification:
--export([ event_table_to_string/1 ]).
+-export([ event_table_to_string/1, gui_event_to_string/1,
+		  application_event_to_string/1 ]).
 
 % To silence unused warnings:
 -export([ get_subscribers_for/3, adjust_objects/4,
 		  process_only_latest_repaint_event/4, reassign_table_to_string/1,
 		  get_instance_state/2, type_table_to_string/1,
-		  instance_referential_to_string/1, set_canvas_instance_state/3,
-		  process_user_event/2 ]).
+		  instance_referential_to_string/1, set_canvas_instance_state/3 ]).
 
 
 
@@ -103,34 +105,43 @@
 -include("gui_internal_defines.hrl").
 
 
--type basic_user_event_table() ::
+-type basic_event_table() ::
 		table( basic_user_event(), application_event() ).
 % A table allowing to translate a basic user event into an higher level
 % application event.
 
 
--type button_table() :: table( button_id(), application_event()  ).
+-type button_table() :: table( button_ref(), application_event() ).
 % A table allowing to translate a button press event into an higher level
 % application event.
+%
+% Any button reference can be held by such a table: the match can be based
+% either on a button() or, preferably, on a button_id(); this last match is the
+% first searched.
 
--type scancode_table() :: table( scancode(), application_event()  ).
+
+-type scancode_table() :: table( scancode(), application_event() ).
 % A table allowing to translate a key-as-scancode press event into an higher
 % level application event.
 
--type keycode_table() :: table( keycode(), application_event()  ).
+-type keycode_table() :: table( keycode(), application_event() ).
 % A table allowing to translate a key-as-keycode press event into an higher
 % level application event.
 
 
-% For the user_event_table record:
+% For the user_event_registry record:
 -include("gui_event.hrl").
 
--type user_event_table() :: #user_event_table{}.
- % A table translating basic user events into higher-level application events.
+-type user_event_registry() :: #user_event_registry{}.
+% A table translating basic user events into higher-level application events.
+%
+% For example, whether the user closes the main window, clicks on a 'Quit'
+% button or presses a key with a specific scancode, a 'quit_requested'
+% application event may have to be generated and processed.
 
 
--export_type([ basic_user_event_table/0, button_table/0,
-			   scancode_table/0, keycode_table/0, user_event_table/0 ]).
+-export_type([ basic_event_table/0, button_table/0,
+			   scancode_table/0, keycode_table/0, user_event_registry/0 ]).
 
 
 
@@ -154,7 +165,9 @@
 %
 % {event_type(), [gui_object(), ..., event_context()]}
 %
-% For example {onWindowClosed, [Window, CloseContext]}.
+% For example {onWindowClosed, [Window, CloseContext]}, {onButtonClicked,
+% [Button, ButtonId, Context]} etc.
+%
 %
 % So the event context can be fetched with:
 % EventContext = list_utils:get_last_element( Elements ),
@@ -480,26 +493,32 @@
 -type basic_user_event() :: 'window_closed'.
 % A basic, atom-based user event.
 
--type user_event() :: { 'button_clicked', button_id() }
-					| { 'scancode_pressed', scancode() }
-					| { 'keycode_pressed', keycode() }
-					| basic_user_event() .
-% The various user-level events that can specified to trigger application-level
-% events.
+
+-type user_event_spec() :: { 'button_clicked', button_id() }
+						 | { 'scancode_pressed', scancode() }
+						 | { 'keycode_pressed', keycode() }
+						 | basic_user_event() .
+% A specification of the various user-level events that should trigger
+% application-level events.
 %
 % The snake_case (e.g. 'window_closed') is used rather than CamelCase
 % (e.g. 'onWindowClosed') so that user-level events can be more easily
 % distinguished from actual MyriadGUI events.
 
 
--type user_event_spec() :: { application_event(), [ user_event() ] }.
+-type application_event_spec() ::
+	{ application_event(), [ user_event_spec() ] }.
 % The specification of a conversion from any of the listed user events to the
 % specified application event.
 
 
--type user_event_table() :: table( application_event(), user_event() ).
-% A table abstracting-out the various ways for the user to generate
-% application-level events (e.g. based on remapped keys, mouse actions, etc.).
+-type application_event_pair() :: { application_event(), gui_event() }.
+% A pair made of a higher-level application event and, for extra information,
+% the low-level GUI event that originated it.
+
+
+-export_type([ application_event/0, basic_user_event/0, user_event_spec/0,
+			   application_event_spec/0, application_event_pair/0 ]).
 
 
 -record( instance_referential, {
@@ -627,6 +646,7 @@
 % Shorthands:
 
 -type count() :: basic_utils:count().
+-type time_out() :: time_utils:time_out().
 
 -type ustring() :: text_utils:ustring().
 
@@ -642,6 +662,7 @@
 -type wx_server() :: gui:wx_server().
 -type event_subscription_opt() :: gui:event_subscription_opt().
 -type service() :: gui:service().
+-type button_ref() :: gui:button_ref().
 
 
 -type button_id() :: gui_id:button_id().
@@ -2017,7 +2038,7 @@ shrink_event_table( _EventTypes=[ EventType | T ], Subscribers,
 % (helper)
 %
 -spec get_key_from_object( gui_object() ) -> gui_object_key().
-get_key_from_object( _WxObject={wx_ref, WxId, WxType, _AnyState } ) ->
+get_key_from_object( _WxObject={ wx_ref, WxId, WxType, _AnyState } ) ->
 	{ WxType, WxId };
 
 get_key_from_object( #myriad_object_ref{ object_type=ObjectType,
@@ -2030,6 +2051,7 @@ get_key_from_object( #myriad_object_ref{ object_type=ObjectType,
 -spec match( gui_object(), gui_object() ) -> boolean().
 % The point is to ignore the included state (last element), which should not
 % matter:
+%
 match( _FirstWxObject={wx_ref, WxId, WxType, _AnyFirstState },
 	   _SecondWxObject={wx_ref, WxId, WxType, _AnySecondState } ) ->
 	true;
@@ -2045,135 +2067,268 @@ match( _FirstGUIObject, _SecondGUIObject ) ->
 
 
 
-% @doc Returns a user-event (opaque) table corresponding to the user-events
+% @doc Returns a user-event (opaque) registry corresponding to the user-events
 % specifications.
 %
--spec create_user_event_table( [ user_event_spec() ] ) -> user_event_table().
-create_user_event_table( UserEventSpecs ) ->
+% Note that:
+%  - buttons will be searched first by ID (recommended designator), otherwise by
+%  GUI object reference
+%  - keys will be searched first by scancodes, then keycodes
+%
+-spec create_user_event_registry( [ user_event_spec() ] ) ->
+											user_event_registry().
+create_user_event_registry( UserEventSpecs ) ->
 	BlankTable = table:new(),
-	create_user_event_table( UserEventSpecs,
-		#user_event_table{ basic_user_event_table=BlankTable,
-						   button_table=BlankTable,
-						   scancode_table=BlankTable,
-						   keycode_table=BlankTable } ).
+	create_user_event_registry( UserEventSpecs,
+		#user_event_registry{ basic_event_table=BlankTable,
+							  button_table=BlankTable,
+							  scancode_table=BlankTable,
+							  keycode_table=BlankTable } ).
 
 
 % (helper)
-create_user_event_table( _UserEventSpecs=[], UserEventTable ) ->
-	UserEventTable;
+create_user_event_registry( _UserEventSpecs=[], UsrEvReg ) ->
+	UsrEvReg;
 
-create_user_event_table( _UserEventSpecs=[ { AppEvent, UserEvents } | T ],
-						 UserEventTable ) ->
-	NewUserEventTable =
-		register_user_events( UserEvents, AppEvent, UserEventTable ),
+create_user_event_registry( _UserEventSpecs=[ { AppEvent, UserEvents } | T ],
+						 UsrEvReg ) ->
+	NewUsrEvReg =
+		register_user_events( UserEvents, AppEvent, UsrEvReg ),
 
-	create_user_event_table( T, NewUserEventTable ).
+	create_user_event_registry( T, NewUsrEvReg ).
 
 
 % (helper)
-register_user_events( _UserEvents=[], _AppEvent, UserEventTable ) ->
-	UserEventTable;
+register_user_events( _UserEvents=[], _AppEvent, UsrEvReg ) ->
+	UsrEvReg;
 
 register_user_events( _UserEvents=[ { button_clicked, ButtonId } | T ],
-					  AppEvent, UserEventTable=#user_event_table{
+					  AppEvent, UsrEvReg=#user_event_registry{
 							button_table=ButtonTable } ) ->
 	% Overwrites any previous association for that button:
 	NewButtonTable = table:add_entry( ButtonId, AppEvent, ButtonTable ),
-	NewUserEventTable = UserEventTable#user_event_table{
+	NewUsrEvReg = UsrEvReg#user_event_registry{
 		button_table=NewButtonTable },
-	register_user_events( T, AppEvent, NewUserEventTable );
+	register_user_events( T, AppEvent, NewUsrEvReg );
 
 register_user_events( _UserEvents=[ { scancode_pressed, Scancode } | T ],
-					  AppEvent, UserEventTable=#user_event_table{
+					  AppEvent, UsrEvReg=#user_event_registry{
 							scancode_table=ScancodeTable } ) ->
 	% Overwrites any previous association for that scancode:
 	NewScancodeTable = table:add_entry( Scancode, AppEvent, ScancodeTable ),
-	NewUserEventTable = UserEventTable#user_event_table{
+	NewUsrEvReg = UsrEvReg#user_event_registry{
 		scancode_table=NewScancodeTable },
-	register_user_events( T, AppEvent, NewUserEventTable );
+	register_user_events( T, AppEvent, NewUsrEvReg );
 
 register_user_events( _UserEvents=[ { keycode_pressed, Keycode } | T ],
-					  AppEvent, UserEventTable=#user_event_table{
+					  AppEvent, UsrEvReg=#user_event_registry{
 							keycode_table=KeycodeTable } ) ->
 	% Overwrites any previous association for that keycode:
 	NewKeycodeTable = table:add_entry( Keycode, AppEvent, KeycodeTable ),
-	NewUserEventTable = UserEventTable#user_event_table{
+	NewUsrEvReg = UsrEvReg#user_event_registry{
 		keycode_table=NewKeycodeTable },
-	register_user_events( T, AppEvent, NewUserEventTable );
+	register_user_events( T, AppEvent, NewUsrEvReg );
 
 % For example EventAtom=quit_requested:
 register_user_events( _UserEvents=[ EventAtom | T ], AppEvent,
-		UserEventTable=#user_event_table{
-			basic_user_event_table=EventTable } ) when is_atom( EventAtom ) ->
+		UsrEvReg=#user_event_registry{
+			basic_event_table=EventTable } ) when is_atom( EventAtom ) ->
 	% Overwrites any previous association for that event:
 	NewEventTable = table:add_entry( EventAtom, AppEvent, EventTable ),
-	NewUserEventTable =
-		UserEventTable#user_event_table{ basic_user_event_table=NewEventTable },
-	register_user_events( T, AppEvent, NewUserEventTable );
+	NewUsrEvReg =
+		UsrEvReg#user_event_registry{ basic_event_table=NewEventTable },
+	register_user_events( T, AppEvent, NewUsrEvReg );
 
-register_user_events( _UserEvents=[ Other | _T ], AppEvent, _UserEventTable ) ->
+register_user_events( _UserEvents=[ Other | _T ], AppEvent, _UsrEvReg ) ->
 	throw( { invalid_user_event, Other, AppEvent } ).
 
 
 
-
-% @doc Processes the specified user event, possibly returning a corresponding
-% application event.
+% @doc Waits (blocks) for the next user event that can be converted into an
+% application event, which is then returned with its corresponding user event.
 %
--spec process_user_event( user_event(), user_event_table() ) ->
-									maybe( application_event() ).
-process_user_event( { button_clicked, ButtonId },
-					_UserEventTable=#user_event_table{
-						button_table=ButtonTable } ) ->
-	case table:lookup_entry( _K=ButtonId, ButtonTable ) of
+% Processes all user event (even those that do not result in an application
+% event).
+%
+% Meant to be called by the user code, instead of having to define its own event
+% loop. Receives all messages that are collected by the calling process.
+%
+-spec get_application_event( user_event_registry() ) ->
+											application_event_pair().
+get_application_event( UsrEvReg ) ->
+	case get_maybe_application_event( UsrEvReg, _Timeout=infinity ) of
 
-		key_not_found ->
-			undefined;
+		undefined ->
+			get_application_event( UsrEvReg );
 
-		{ value, AppEvent } ->
-			AppEvent
-
-	end;
-
-process_user_event( { scancode_pressed, ScanCode },
-					_UserEventTable=#user_event_table{
-						scancode_table=ScancodeTable } ) ->
-	case table:lookup_entry( _K=ScanCode, ScancodeTable ) of
-
-		key_not_found ->
-			undefined;
-
-		{ value, AppEvent } ->
-			AppEvent
-
-	end;
-
-process_user_event( { keycode_pressed, KeyCode },
-					_UserEventTable=#user_event_table{
-						keycode_table=KeycodeTable } ) ->
-	case table:lookup_entry( _K=KeyCode, KeycodeTable ) of
-
-		key_not_found ->
-			undefined;
-
-		{ value, AppEvent } ->
-			AppEvent
-
-	end;
-
-process_user_event( EventAtom,
-					_UserEventTable=#user_event_table{
-						basic_user_event_table=EventTable } )
-							when is_atom( EventAtom ) ->
-	case table:lookup_entry( _K=EventAtom, EventTable ) of
-
-		key_not_found ->
-			undefined;
-
-		{ value, AppEvent } ->
-			AppEvent
+		AppEventPair ->
+			AppEventPair
 
 	end.
+
+
+% @doc Reads any pending (lower-level) user event that can be converted into an
+% application event, which is then returned with its corresponding user event;
+% if none is available, returns 'undefined' (thus does not block).
+%
+% Processes all user event (even those that do not result in an application
+% event).
+%
+% Meant to be called by the user code, instead of having to define its own event
+% loop. Receives all messages that are collected by the calling process.
+%
+-spec get_maybe_application_event( user_event_registry() ) ->
+										maybe( application_event_pair() ).
+get_maybe_application_event( UsrEvReg ) ->
+	get_maybe_application_event( UsrEvReg, _Timeout=0 ).
+
+
+
+% @doc Reads any (lower-level) user event received during the specified (finite
+% or not) time-out that can be converted into an application event, which is
+% then returned with its corresponding user event; if none is available, returns
+% 'undefined' (thus does not block longer).
+%
+% Processes all user event (even those that do not result in an application
+% event).
+%
+% Meant to be called by the user code, instead of having to define its own event
+% loop. Receives all messages that are collected by the calling process.
+%
+-spec get_maybe_application_event( user_event_registry(), time_out() ) ->
+										maybe( application_event_pair() ).
+get_maybe_application_event( _UsrEvReg=#user_event_registry{
+		basic_event_table=BasicEvTable,
+		button_table=ButtonTable,
+		scancode_table=ScancodeTable,
+		keycode_table=KeycodeTable }, Timeout ) ->
+
+	%trace_utils:debug_fmt( "Entering GUI receive for user events." ),
+
+	% Convenient, as allows to still define a selective receive.
+	%
+	% Roughly sorted from the expected most frequent ones to the least:
+	receive
+
+		% First looking up the button ID, then its GUI object reference:
+		BaseEvent={ onButtonClicked, [ Button, ButtonId, Context ] } ->
+			cond_utils:if_defined( myriad_debug_gui_events,
+				trace_utils:debug_fmt(
+					"Button ~ts (ID: ~w) has been clicked (~ts).",
+					[ gui:object_to_string( Button ), ButtonId,
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( Context ) ),
+
+			case table:lookup_entry( ButtonId, ButtonTable ) of
+
+				key_not_found ->
+					% As any button reference can be used:
+					case table:lookup_entry( Button, ButtonTable ) of
+
+						key_not_found ->
+							undefined;
+
+						% Typically quit_requested:
+						{ value, AppEvent } ->
+							{ AppEvent, BaseEvent }
+
+					end;
+
+				{ value, AppEvent } ->
+					{ AppEvent, BaseEvent }
+
+			end;
+
+
+		% At least currently, first looking for the scancode, then the keycode:
+		BaseEvent={ onKeyPressed, [ Frame, FrameId, Context ] } ->
+
+			{ Scancode, Keycode } =
+				gui_keyboard:event_context_to_code_pair( Context ),
+
+			cond_utils:if_defined( myriad_debug_gui_events,
+				trace_utils:debug_fmt(
+					"Key (scancode: ~w, keycode: ~w) has been pressed"
+					"in frame ~ts (#~B), with ~ts.",
+					[ Scancode, Keycode, gui:object_to_string( Frame ),
+					  FrameId, gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( [ Frame, FrameId ] ) ),
+
+			case table:lookup_entry( Scancode, ScancodeTable ) of
+
+				key_not_found ->
+					case table:lookup_entry( Keycode, KeycodeTable ) of
+
+						key_not_found ->
+							undefined;
+
+						{ value, AppEvent } ->
+							{ AppEvent, BaseEvent }
+
+					end;
+
+				{ value, AppEvent } ->
+					{ AppEvent, BaseEvent }
+
+			end;
+
+
+		_BaseEvent={ onRepaintNeeded, [ Canvas, CanvasId, Context ] } ->
+			cond_utils:if_defined( myriad_debug_gui_events,
+				trace_utils:debug_fmt(
+					"Canvas '~ts' (#~B) needing repaint (~ts).",
+					[ gui:object_to_string( Canvas ), CanvasId,
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( [ CanvasId, Context ] ) ),
+
+			gui:blit( Canvas ),
+			undefined;
+
+
+		_BaseEvent={ onResized, [ Canvas, CanvasId, NewSize, Context ] } ->
+			cond_utils:if_defined( myriad_debug_gui_events,
+				trace_utils:notice_fmt(
+					"Canvas '~ts' (#~B) resized to ~p (~ts).",
+					[ gui:object_to_string( Canvas ), CanvasId, NewSize,
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused( [ CanvasId, NewSize, Context ] ) ),
+
+			gui:clear( Canvas ),
+			undefined;
+
+
+		BaseEvent={ onWindowClosed, [ MainFrame, MainFrameId, Context ] } ->
+			cond_utils:if_defined( myriad_debug_gui_events,
+				trace_utils:debug_fmt( "Main frame ~ts (~B) has been "
+					"closed (~ts).",
+					[ gui:object_to_string( MainFrame ), MainFrameId,
+					  gui:context_to_string( Context ) ] ),
+				basic_utils:ignore_unused(
+					[ MainFrame, MainFrameId, Context ] ) ),
+
+			case table:lookup_entry( window_closed, BasicEvTable ) of
+
+				key_not_found ->
+					undefined;
+
+				% Typically quit_requested:
+				{ value, AppEvent } ->
+					{ AppEvent, BaseEvent }
+
+			end;
+
+
+		Other ->
+			trace_utils:warning_fmt( "The user-level GUI receiving logic "
+				"ignored the following message:~n ~p.", [ Other ] ),
+			undefined
+
+	after Timeout ->
+
+		undefined
+
+	end.
+
 
 
 
@@ -2483,8 +2638,9 @@ type_table_to_string( Table ) ->
 
 % @doc Returns a textual representation of the specified type table.
 -spec instance_referential_to_string( instance_referential() ) -> ustring().
-instance_referential_to_string( #instance_referential{ instance_count=Count,
-										instance_table=InstanceTable } ) ->
+instance_referential_to_string( #instance_referential{
+									instance_count=Count,
+									instance_table=InstanceTable } ) ->
 
 	case table:enumerate( InstanceTable ) of
 
@@ -2493,10 +2649,29 @@ instance_referential_to_string( #instance_referential{ instance_count=Count,
 			"no instance recorded";
 
 		Pairs ->
-			Count = length( Pairs),
+			Count = length( Pairs ),
 			Strings = [ text_utils:format(
 							"ID #~B for instance whose state is: ~w",
 							[ Id, State ] ) || { Id, State } <- Pairs ],
 			text_utils:strings_to_string( Strings, _IndentLevel=1 )
 
 	end.
+
+
+
+% @doc Returns a textual representation of the specified GUI event.
+-spec gui_event_to_string( gui_event() ) -> ustring().
+gui_event_to_string( { EventType, Elements } ) ->
+	text_utils:format( "event of type '~ts', parametrised by elements ~p",
+					   [ EventType, Elements ] ).
+
+
+
+% @doc Returns a textual representation of the specified application event.
+-spec application_event_to_string( application_event() ) -> ustring().
+% For example 'quit_requested':
+application_event_to_string( AE ) when is_atom( AE ) ->
+	text_utils:atom_to_string( AE );
+
+application_event_to_string( AE ) ->
+	text_utils:format( "~p", [ AE ] ).

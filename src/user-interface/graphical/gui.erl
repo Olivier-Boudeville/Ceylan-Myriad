@@ -403,7 +403,8 @@
 
 
 % Buttons:
--export([ create_button/2, create_button/6, create_buttons/2 ]).
+-export([ create_button/2, create_button/3, create_button/6,
+		  create_buttons/2 ]).
 
 
 % Sizers:
@@ -659,9 +660,8 @@
 
 -type gui_object() :: wx_object() | myriad_object_ref().
 % Reference to a GUI object (often designated as "widget" here), somewhat akin
-% to a PID.
-%
-% (e.g. {wx_ref,35,wxFrame,[]} or {myriad_object_ref,myr_canvas,12}).
+% to a PID (e.g. {wx_ref, 35, wxFrame, []} or {myriad_object_ref, myr_canvas,
+% 12}).
 
 
 -type wx_server() :: gui_object().
@@ -700,6 +700,11 @@
 -type panel() :: wxPanel:wxPanel().
 
 -type button() :: wxButton:wxButton().
+% Designates an actual button instance.
+
+
+-type button_ref() :: button() | button_id().
+% Any kind of reference onto a button.
 
 
 -type sizer() :: wxSizer:wxSizer().
@@ -1250,7 +1255,8 @@
 			   widget/0,
 			   window/0, top_level_window/0, splitter_window/0,
 			   frame/0, top_level_frame/0,
-			   panel/0, button/0,
+			   panel/0,
+			   button/0, button_ref/0,
 			   sizer/0, sizer_child/0, sizer_item/0,
 			   splitter/0, sash_gravity/0,
 			   status_bar/0, status_bar_style/0,
@@ -1348,6 +1354,8 @@
 -type name_id() :: gui_id:name_id().
 
 -type backend_id() :: gui_id:backend_id().
+
+-type button_id() :: gui_id:button_id().
 
 -type wx_object() :: wx:wx_object().
 % Shorthand for a wx_object(), that is a #wx_ref record.
@@ -1653,7 +1661,7 @@ unsubscribe_from_events( UnsubscribedEvents, SubscribedDesignator )
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:info_fmt( "User process ~w unsubscribing process ~w to ~w "
 			"regarding following events:~n~p.",
-			[ self(), SubscribedDesignator, LoopPid, SubscribedEvents ] ) ),
+			[ self(), SubscribedDesignator, LoopPid, UnsubscribedEvents ] ) ),
 
 	receive
 
@@ -3015,6 +3023,16 @@ create_button( Label, Parent ) ->
 	wxButton:new( Parent, Id, Options ).
 
 
+% @doc Creates a (labelled) button, with the specified identifier and parent.
+-spec create_button( label(), id(), window() ) -> button().
+create_button( Label, Id, Parent ) ->
+
+	Options = [ { label, Label } ],
+
+	%trace_utils:info_fmt( "Button options for ID #~w: ~p.", [ Id, Options ] ),
+
+	wxButton:new( Parent, declare_id( Id ), Options ).
+
 
 % @doc Creates (labelled) buttons, with their (single, common) parent specified.
 -spec create_buttons( [ label() ], window() ) -> [ button() ].
@@ -3045,7 +3063,7 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 				to_wx_size( Size ),
 				{ style, gui_wx_backend:button_style_to_bitmask( Style ) } ],
 
-	%trace_utils:info_fmt( "Button options for ID #~B: ~p.", [ Id, Options ] ),
+	%trace_utils:info_fmt( "Button options for ID #~w: ~p.", [ Id, Options ] ),
 
 	wxButton:new( Parent, declare_id( Id ), Options ).
 

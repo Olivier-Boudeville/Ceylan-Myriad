@@ -72,6 +72,9 @@
 %
 % May not be defined if the actual event comes from MyriadGUI itself (and thus
 % not wx).
+%
+% As a consequence, such an identifier can be 'undefined', 'my_action_id', 147,
+% and thus shall be printed as ~w.
 
 
 -type button_id() :: id().
