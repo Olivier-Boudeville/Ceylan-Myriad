@@ -26,11 +26,18 @@
 % Creation date: Sunday, June 18, 2023.
 
 
- % A table translating basic user events into higher-level application events:
--record( user_event_table, {
+% A registry defined to abstract-out the various ways for the user to generate
+% application-level events (e.g. based on remapped keys, mouse actions, etc.).
+%
+% Aggregates tables translating user events into higher-level
+% application events.
+%
+-record( user_event_registry, {
 
-	% For all sort of basic, atom-based events (like 'window_closed'):
-	basic_user_event_table :: gui_event:basic_user_event_table(),
+	% For all sort of basic, atom-based user-level events (like
+	% 'window_closed'):
+	%
+	basic_event_table :: gui_event:basic_event_table(),
 
 	% For buttons being clicked:
 	button_table :: gui_event:button_table(),
