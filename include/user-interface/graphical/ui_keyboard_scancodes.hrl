@@ -60,14 +60,14 @@
 % MyriadGUI) - and revamped values.
 
 % Note that, with SDL, 'GUI' designates the former "Windows" key, we prefer
-% naming it 'SUPER' (see https://en.wikipedia.org/wiki/Windows_key).
+% naming it 'Super' (see https://en.wikipedia.org/wiki/Windows_key).
 
+% Preferably not to be included directly; include at least the more general
+% 'myriad_ui.hrl' instead.
 
 % Include guard:
 -ifndef(__MYRIAD_UI_KEYBOARD_SCANCODES_HRL__).
 -define(__MYRIAD_UI_KEYBOARD_SCANCODES_HRL__, 1).
-
-
 
 % Definitions of all known scancodes - a.k.a. button locations of a standard
 % (US) keyboard seen as a ~104-button keypad:
@@ -80,7 +80,11 @@
 
 % Typewriter keys:
 
+% For example with an AZERTY layout, the key returning this scancode is labelled
+% 'Q', not 'A':
+%
 -define(MYR_SCANCODE_A, 38 ).  % 4).
+
 -define(MYR_SCANCODE_B, 56 ).  % 5).
 -define(MYR_SCANCODE_C, 54 ).  % 6).
 -define(MYR_SCANCODE_D, 40 ).  % 7).
@@ -190,7 +194,7 @@
 % Numeric keypad:
 
 -define(MYR_SCANCODE_NUMLOCKCLEAR, 77 ).  % 83).
--define(MYR_SCANCODE_KP_DIVIDE,    106 )  % 84).
+-define(MYR_SCANCODE_KP_DIVIDE,    106 ). % 84).
 -define(MYR_SCANCODE_KP_MULTIPLY,  63 ).  % 85).
 -define(MYR_SCANCODE_KP_MINUS,     82 ).  % 86).
 -define(MYR_SCANCODE_KP_PLUS,      86 ).  % 87).
