@@ -222,8 +222,8 @@
 -type keyboard_event_type() ::
 
 	% Event taking into account any modifier (e.g. Control, Shift, Caps Lock)
-	% for the returned logical haracter (e.g. returning 'A' instead of 'a' iff a
-	% corresponding modifier applies):
+	% for the returned logical character (e.g. returning 'A' instead of 'a' iff
+	% a corresponding modifier applies):
 	%
 	'onCharEntered'
 
