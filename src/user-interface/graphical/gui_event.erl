@@ -2123,13 +2123,18 @@ register_user_events( _UserEvents=[ { scancode_pressed, Scancode } | T ],
 register_user_events( _UserEvents=[ { keycode_pressed, Keycode } | T ],
 					  AppEvent, UsrEvReg=#user_event_registry{
 							keycode_table=KeycodeTable } ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( "Associating keycode ~w to ~ts.",
+			[ Keycode, application_event_to_string( AppEvent ) ] ) ),
+
 	% Overwrites any previous association for that keycode:
 	NewKeycodeTable = table:add_entry( Keycode, AppEvent, KeycodeTable ),
 	NewUsrEvReg = UsrEvReg#user_event_registry{
 		keycode_table=NewKeycodeTable },
 	register_user_events( T, AppEvent, NewUsrEvReg );
 
-% For example EventAtom=quit_requested:
+% For example EventAtom=window_closed:
 register_user_events( _UserEvents=[ EventAtom | T ], AppEvent,
 		UsrEvReg=#user_event_registry{
 			basic_event_table=EventTable } ) when is_atom( EventAtom ) ->
@@ -2167,9 +2172,10 @@ get_application_event( UsrEvReg ) ->
 	end.
 
 
+
 % @doc Reads any pending (lower-level) user event that can be converted into an
 % application event, which is then returned with its corresponding user event;
-% if none is available, returns 'undefined' (thus does not block).
+% if none is available, returns 'undefined' (thus never blocks).
 %
 % Processes all user event (even those that do not result in an application
 % event).
@@ -2192,6 +2198,8 @@ get_maybe_application_event( UsrEvReg ) ->
 % Processes all user event (even those that do not result in an application
 % event).
 %
+% Main, most flexible form.
+%
 % Meant to be called by the user code, instead of having to define its own event
 % loop. Receives all messages that are collected by the calling process.
 %
@@ -2203,9 +2211,10 @@ get_maybe_application_event( _UsrEvReg=#user_event_registry{
 		scancode_table=ScancodeTable,
 		keycode_table=KeycodeTable }, Timeout ) ->
 
-	%trace_utils:debug_fmt( "Entering GUI receive for user events." ),
+	%trace_utils:debug( "Entering GUI receive for user events." ),
 
-	% Convenient, as allows to still define a selective receive.
+	% Relying on an unique function is convenient, as it allows to still define
+	% a selective receive.
 	%
 	% Roughly sorted from the expected most frequent ones to the least:
 	receive
@@ -2248,7 +2257,7 @@ get_maybe_application_event( _UsrEvReg=#user_event_registry{
 
 			cond_utils:if_defined( myriad_debug_gui_events,
 				trace_utils:debug_fmt(
-					"Key (scancode: ~w, keycode: ~w) has been pressed"
+					"Key (scancode: ~w, keycode: ~w) has been pressed "
 					"in frame ~ts (#~B), with ~ts.",
 					[ Scancode, Keycode, gui:object_to_string( Frame ),
 					  FrameId, gui:context_to_string( Context ) ] ),
