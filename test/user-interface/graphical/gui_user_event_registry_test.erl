@@ -45,33 +45,59 @@
 run_test_gui() ->
 
 	test_facilities:display(
-		"~nStarting the actual user-event registery test of MyriadGUI, "
+		"~nStarting the actual user-event registry test of MyriadGUI, "
 		"from ~w. ", [ self() ] ),
 
 	QuitButtonId = quit_button_id,
 
-
-
-	trace_utils:notice( "An empty, resizable test frame shall appear; "
-						"the test will end as soon as it is closed." ),
+	trace_utils:notice( "An empty, resizable test frame shall appear, "
+		"with two panels; the left one listens for keypresses whereas "
+		"the second has a button; the test will end as soon as the "
+		"frame is closed, the button is clicked, "
+		"or 'q' is hit whereas the left panel has the focus "
+		"(which is the case initially)." ),
 
 	gui:start(),
 
 	TestFrame = gui:create_frame( "This is the single and only test frame" ),
 
-	% A frame cannot handle key events, so we create a panel within it:
-	TestPanel = gui:create_panel( _PanelParent=TestFrame ),
+	% A frame cannot handle key events, so we create a panel within it; moreover
+	% as soon as a panel is the parent of a button, it will not receive key
+	% press events (even if having the focus), so we create a panel for key
+	% presses and one for buttons:
+
+	KeyPanel = gui:create_panel( _KPanelParent=TestFrame ),
+	gui:set_background_color( KeyPanel, green ),
+	gui:set_tooltip( KeyPanel, "Panel collecting key presses." ),
+
+	ButtonPanel = gui:create_panel( _BPanelParent=TestFrame ),
+	gui:set_background_color( ButtonPanel, red ),
+	gui:set_tooltip( ButtonPanel, "Panel for buttons." ),
+
+	MainSizer = gui:create_sizer( _Orientation=horizontal ),
+
+	% Grows with the window:
+	gui:add_to_sizer( MainSizer, KeyPanel,
+					  [ { proportion, 2 }, expand_fully ] ),
+
+	% Constant width:
+	gui:add_to_sizer( MainSizer, ButtonPanel,
+					  [ { proportion, 1 }, expand_fully ] ),
+
+	gui:set_sizer( TestFrame, MainSizer ),
 
 	QuitButton = gui:create_button( _Label="Quit by button click!",
-		_Id=QuitButtonId, _ButtonParent=TestPanel ),
+		_Id=QuitButtonId, _ButtonParent=ButtonPanel ),
 
 	EventsOfInterest = [ { onButtonClicked, QuitButton },
-						 { onKeyPressed, TestPanel },
+						 { onKeyPressed, KeyPanel },
+						 { onKeyPressed, ButtonPanel },
 						 { onWindowClosed, TestFrame } ],
-TODO
+
 	gui:subscribe_to_events( EventsOfInterest ),
 
-	% Different ways of quitting:
+
+	% The different ways of quitting:
 	QuitEvents = [ { button_clicked, QuitButtonId },
 				   { keycode_pressed, ?MYR_K_q },
 				   window_closed ],
@@ -79,6 +105,9 @@ TODO
 	UserEventSpecs = [ { quit_requested, QuitEvents } ],
 
 	UserEventRegistry = gui_event:create_user_event_registry( UserEventSpecs ),
+
+	% Focus needed to receive events:
+	gui:set_focus( KeyPanel ),
 
 	gui:show( TestFrame ),
 
@@ -93,7 +122,18 @@ TODO
 		{ quit_requested, BaseEvent } ->
 			trace_utils:notice_fmt( "Quitting, based on the following base "
 				"user event:~n ~ts",
-				[ gui_event:gui_event_to_string( BaseEvent ) ] )
+				[ gui_event:gui_event_to_string( BaseEvent ) ] ),
+
+			% A frame is a window:
+			gui:destruct_window( TestFrame ),
+
+			trace_utils:info( "Test frame closed, test success." ),
+
+			gui:stop();
+
+
+		Other ->
+			throw( { unexpected_application_event_pair, Other } )
 
 	end.
 
