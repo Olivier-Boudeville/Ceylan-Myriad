@@ -263,7 +263,7 @@
 								 | 'callback'
 								 | {'callback', function() }
 								 | {'userData', term() }.
-% Refer to https://erlang.org/doc/man/wxEvtHandler.html
+% Refer to https://erlang.org/doc/man/wxEvtHandler.html.
 % See the corresponding gui:event_subscription_option().
 
 
@@ -529,7 +529,7 @@ frame_style_to_bitmask( StyleOpt ) ->
 % Panels section.
 
 
-% @doc Converts specified MyriadGUI panel option(s) into the appropriate
+% @doc Converts the specified MyriadGUI panel option(s) into the appropriate
 % wx-specific options.
 %
 % (exported helper)
@@ -965,7 +965,7 @@ connect( SourceGUIObject, EventTypes, Options, TrapSet )
 						when is_list( EventTypes ) ->
 
 	%trace_utils:debug_fmt( "Connecting ~p for event types ~w with options ~p.",
-	%                       [ SourceObject, EventTypes, Options ] ),
+	%                       [ SourceGUIObject, EventTypes, Options ] ),
 
 	[ connect( SourceGUIObject, ET, Options, TrapSet ) || ET <- EventTypes ];
 
