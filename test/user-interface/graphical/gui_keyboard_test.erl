@@ -57,7 +57,7 @@ run_test_gui() ->
 
 	trace_utils:notice( "An empty, resizable test frame shall appear; pressing "
 		"keys while this frame has the focus should display the corresponding "
-		"generated keyboard events. " ),
+		"generated keyboard events." ),
 
 	gui:start(),
 
@@ -70,7 +70,7 @@ run_test_gui() ->
 	% A frame cannot handle key events, so we create a panel within it:
 	TestPanel = gui:create_panel( _Parent=TestFrame ),
 
-	% Set to true to focus on the scan codes:
+	% Set to true to focus (only) on the scan codes:
 	CheckScanCode = false,
 	%CheckScanCode = true,
 
