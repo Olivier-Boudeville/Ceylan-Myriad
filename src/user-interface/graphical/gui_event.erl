@@ -64,6 +64,18 @@
 % efficient to have them managed directly by this gui_event main loop.
 
 
+% Panel issues:
+%
+% There is a problem at least with panels: when they are just by themselves
+% (created with no child widgets), when subscribing to key presses (e.g. as
+% {onKeyPressed, TestPanel}), key press events are indeed received by the user
+% event loop; yet, as soon as a button is created as a child of this panel (even
+% without changing any event subscription), for some reason the panel will not
+% send any key press event, and even by fiddling with event propagation /
+% skipping / trapping, we could not change it.
+
+
+
 % Function export section.
 
 
@@ -262,9 +274,10 @@
 					| keyboard_event_type().
 % A type of MyriadGUI event, independent from any backend.
 %
-% Unless specified otherwise, by default the events of a given type will
-% propagate: subscribing to them does not preclude them from being sent also to
-% the parent event handlers in the widget hierarchy.
+% Unless specified otherwise, by default the events (actually: mostly the
+% command ones) of a given type will propagate: subscribing to them does not
+% preclude them from being sent also to the parent event handlers in the widget
+% hierarchy.
 %
 % For some other, less numerous event types (e.g. onWindowClosed), they will be
 % by default trapped (their events will not be propagated, so they will be
@@ -1313,7 +1326,7 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 
 
-% @doc Processes specified wx event message.
+% @doc Processes the specified wx event message.
 -spec process_wx_event( wx_id(), wx_object(), gui:user_data(),
 		wx_event_info(), wx_event(), loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
@@ -2549,9 +2562,9 @@ wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo } ) ->
 % record whose structure depends on that event.
 %
 -spec get_event_info( event_context() ) -> wx_event_info().
-get_event_info( #event_context{
-					backend_event=#wx{ event=WxEventInfo } } ) ->
+get_event_info( #event_context{ backend_event=#wx{ event=WxEventInfo } } ) ->
 	WxEventInfo.
+
 
 
 % Helper section.

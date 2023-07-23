@@ -703,7 +703,7 @@
 %
 % Note though that, as soon as a widget declares that its parent is a panel,
 % this panel will not receive anymore key events (even if the focus is set to
-% the panel).
+% the panel). Refer to "Panel issues" in gui_event for further information.
 
 
 
