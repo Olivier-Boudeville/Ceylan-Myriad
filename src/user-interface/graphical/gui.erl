@@ -698,6 +698,14 @@
 -type top_level_frame() :: frame().
 
 -type panel() :: wxPanel:wxPanel().
+% A panel, able to host child widgets and to catch events such as key presses
+% (unlike windows/frames).
+%
+% Note though that, as soon as a widget declares that its parent is a panel,
+% this panel will not receive anymore key events (even if the focus is set to
+% the panel).
+
+
 
 -type button() :: wxButton:wxButton().
 % Designates an actual button instance.
@@ -1321,7 +1329,6 @@
 
 -type os_type() :: system_utils:os_type().
 -type os_family() :: system_utils:os_family().
-%-type os_name() :: system_utils:os_name().
 
 -type ustring() :: text_utils:ustring().
 
@@ -1348,7 +1355,6 @@
 
 -type text_display_option() :: gui_image:text_display_option().
 
-%-type window_name() :: gui_window_manager:window_name().
 
 -type id() :: gui_id:id().
 -type name_id() :: gui_id:name_id().
@@ -2094,7 +2100,7 @@ set_fill_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 
 
 
-% @doc Returns the RGB value of the pixel at specified position.
+% @doc Returns the RGB value of the pixel at the specified position.
 -spec get_rgb( canvas(), point() ) -> color_by_decimal_with_alpha().
 get_rgb( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point ) ->
 	get_main_loop_pid() ! { getCanvasRGB, [ CanvasId, Point ], self() },
@@ -2172,7 +2178,7 @@ draw_polygon( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Points ) ->
 
 
 
-% @doc Draws the specified label (a plain string) at specified position, on
+% @doc Draws the specified label (a plain string) at the specified position, on
 % specified canvas, using the current draw color.
 %
 -spec draw_label( canvas(), point(), label() ) -> void().
@@ -2182,7 +2188,7 @@ draw_label( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Point,
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with default
+% @doc Draws an upright cross at the specified location (2D point), with default
 % edge length.
 %
 -spec draw_cross( canvas(), point() ) -> void().
@@ -2191,8 +2197,8 @@ draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location ) ->
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length.
+% @doc Draws an upright cross at the specified location (2D point), with the
+% specified edge length.
 %
 -spec draw_cross( canvas(), point(), length() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
@@ -2202,8 +2208,8 @@ draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length and color.
+% @doc Draws an upright cross at the specified location (2D point), with the
+% specified edge length and color.
 %
 -spec draw_cross( canvas(), point(), length(), color() ) -> void().
 draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
@@ -2213,8 +2219,8 @@ draw_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Location,
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length and companion label.
+% @doc Draws an upright cross at the specified location (2D point), with the
+% specified edge length and companion label.
 %
 -spec draw_labelled_cross( canvas(), point(), length(), label()  ) -> void().
 draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
@@ -2224,8 +2230,8 @@ draw_labelled_cross( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 
 
 
-% @doc Draws an upright cross at specified location (2D point), with specified
-% edge length and companion label, and with specified color.
+% @doc Draws an upright cross at the specified location (2D point), with the
+% specified edge length and companion label, and with the specified color.
 %
 -spec draw_labelled_cross( canvas(), point(), length(), color(), label() ) ->
 																void().
@@ -2425,7 +2431,7 @@ check_orientation( Other ) ->
 
 
 % @doc Sets the specified splitter in a single pane configuration, using for
-% that specified window.
+% that the specified window.
 %
 -spec set_unique_pane( splitter(), window() ) -> void().
 set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
@@ -2433,7 +2439,7 @@ set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
 
 
 
-% @doc Shows (renders) specified window (or subclass thereof).
+% @doc Shows (renders) the specified window (or subclass thereof).
 %
 % Returns whether anything had to be done.
 %
@@ -2932,8 +2938,8 @@ create_panel( Parent ) ->
 
 
 
-% @doc Creates a panel, associated to the specified parent and with specified
-% options.
+% @doc Creates a panel, associated to the specified parent and with the
+% specified options.
 %
 -spec create_panel( window() | splitter(), panel_options() ) -> panel().
 create_panel( _Parent=#splitter{ splitter_window=Win }, Options ) ->
@@ -2947,8 +2953,8 @@ create_panel( Parent, Options ) ->
 
 
 
-% @doc Creates a panel, associated to the specified parent and with specified
-% position and dimensions.
+% @doc Creates a panel, associated to the specified parent and with the
+% specified position and dimensions.
 %
 -spec create_panel( window(), coordinate(), coordinate(), length(),
 					length() ) -> panel().
@@ -2957,8 +2963,8 @@ create_panel( Parent, X, Y, Width, Height ) ->
 
 
 
-% @doc Creates a panel, associated to the specified parent and with specified
-% position and dimensions.
+% @doc Creates a panel, associated to the specified parent and with the
+% specified position and dimensions.
 %
 -spec create_panel( window(), position(), size() ) -> panel().
 create_panel( Parent, Position, Size ) ->
@@ -2966,8 +2972,8 @@ create_panel( Parent, Position, Size ) ->
 								 { size, to_wx_size( Size ) } ] ).
 
 
-% @doc Creates a panel, associated to the specified parent and with specified
-% position and dimensions.
+% @doc Creates a panel, associated to the specified parent and with the
+% specified position and dimensions.
 %
 -spec create_panel( window(), position(), size(), panel_options() ) -> panel().
 create_panel( Parent, Position, Size, Options ) ->
@@ -2983,7 +2989,7 @@ create_panel( Parent, Position, Size, Options ) ->
 
 
 
-% @doc Creates a panel, associated to the specified parent, with specified
+% @doc Creates a panel, associated to the specified parent, with the specified
 % position, dimensions and options.
 %
 -spec create_panel( window(), coordinate(), coordinate(), width(), height(),
@@ -3672,7 +3678,7 @@ draw_bitmap( GraphicContext, Bitmap, X, Y, _Dims={ Width, Height } ) ->
 
 
 % @doc Draws the specified bitmap onto the specified graphic context, at
-% specified location with specified dimensions.
+% specified location with the specified dimensions.
 %
 -spec draw_bitmap( graphic_context(), bitmap(), coordinate(), coordinate(),
 				   width(), height() ) -> void().
