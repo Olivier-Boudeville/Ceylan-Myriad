@@ -91,7 +91,10 @@ run_test_gui() ->
 
 	EventsOfInterest = [ { onButtonClicked, QuitButton },
 						 { onKeyPressed, KeyPanel },
+
+						 % Will never trigger:
 						 { onKeyPressed, ButtonPanel },
+
 						 { onWindowClosed, TestFrame } ],
 
 	gui:subscribe_to_events( EventsOfInterest ),
