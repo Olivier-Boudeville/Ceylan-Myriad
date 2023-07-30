@@ -65,7 +65,7 @@
 
 
 % Panel issues:
-%
+
 % There is a problem at least with panels: when they are just by themselves
 % (created with no child widgets), when subscribing to key presses (e.g. as
 % {onKeyPressed, TestPanel}), key press events are indeed received by the user
@@ -2271,9 +2271,10 @@ get_maybe_application_event( _UsrEvReg=#user_event_registry{
 			cond_utils:if_defined( myriad_debug_gui_events,
 				trace_utils:debug_fmt(
 					"Key (scancode: ~w, keycode: ~w) has been pressed "
-					"in frame ~ts (#~B), with ~ts.",
+					"in frame ~ts (~ts), with ~ts.",
 					[ Scancode, Keycode, gui:object_to_string( Frame ),
-					  FrameId, gui:context_to_string( Context ) ] ),
+					  gui_id:id_to_string( FrameId ),
+					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( [ Frame, FrameId ] ) ),
 
 			case table:lookup_entry( Scancode, ScancodeTable ) of
@@ -2298,8 +2299,9 @@ get_maybe_application_event( _UsrEvReg=#user_event_registry{
 		_BaseEvent={ onRepaintNeeded, [ Canvas, CanvasId, Context ] } ->
 			cond_utils:if_defined( myriad_debug_gui_events,
 				trace_utils:debug_fmt(
-					"Canvas '~ts' (#~B) needing repaint (~ts).",
-					[ gui:object_to_string( Canvas ), CanvasId,
+					"Canvas '~ts' (~ts) needing repaint (~ts).",
+					[ gui:object_to_string( Canvas ),
+					  gui_id:id_to_string( CanvasId ),
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( [ CanvasId, Context ] ) ),
 
@@ -2310,8 +2312,9 @@ get_maybe_application_event( _UsrEvReg=#user_event_registry{
 		_BaseEvent={ onResized, [ Canvas, CanvasId, NewSize, Context ] } ->
 			cond_utils:if_defined( myriad_debug_gui_events,
 				trace_utils:notice_fmt(
-					"Canvas '~ts' (#~B) resized to ~p (~ts).",
-					[ gui:object_to_string( Canvas ), CanvasId, NewSize,
+					"Canvas '~ts' (~ts) resized to ~p (~ts).",
+					[ gui:object_to_string( Canvas ),
+					  gui_id:id_to_string( CanvasId ), NewSize,
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( [ CanvasId, NewSize, Context ] ) ),
 
@@ -2321,9 +2324,10 @@ get_maybe_application_event( _UsrEvReg=#user_event_registry{
 
 		BaseEvent={ onWindowClosed, [ MainFrame, MainFrameId, Context ] } ->
 			cond_utils:if_defined( myriad_debug_gui_events,
-				trace_utils:debug_fmt( "Main frame ~ts (~B) has been "
+				trace_utils:debug_fmt( "Main frame ~ts (~ts) has been "
 					"closed (~ts).",
-					[ gui:object_to_string( MainFrame ), MainFrameId,
+					[ gui:object_to_string( MainFrame ),
+					  gui_id:id_to_string( MainFrameId ),
 					  gui:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused(
 					[ MainFrame, MainFrameId, Context ] ) ),
@@ -2673,8 +2677,9 @@ instance_referential_to_string( #instance_referential{
 		Pairs ->
 			Count = length( Pairs ),
 			Strings = [ text_utils:format(
-							"ID #~B for instance whose state is: ~w",
-							[ Id, State ] ) || { Id, State } <- Pairs ],
+				"ID ~ts for instance whose state is: ~w",
+				[ gui_id:id_to_string( Id ), State ] )
+						|| { Id, State } <- Pairs ],
 			text_utils:strings_to_string( Strings, _IndentLevel=1 )
 
 	end.
