@@ -701,9 +701,11 @@
 % A panel, able to host child widgets and to catch events such as key presses
 % (unlike windows/frames).
 %
-% Note though that, as soon as a widget declares that its parent is a panel,
-% this panel will not receive anymore key events (even if the focus is set to
-% the panel). Refer to "Panel issues" in gui_event for further information.
+% Note though that, as soon as a widget declares that its parent is a panel
+% (e.g. if a button is declared in a panel, if a sizer including a box
+% designates the panel as its parent), this panel will not receive anymore key
+% events (even if the focus is set to the panel). Refer to "Panel issues" in
+% gui_event for further information.
 
 
 
@@ -717,6 +719,11 @@
 
 -type sizer() :: wxSizer:wxSizer().
 % A vertical or horizontal container whose elements are dynamically resized.
+%
+% A sizer should not be considered as a widget (e.g. it does not handle events),
+% it is just an helper component to compute the respective sizes of the widgets
+% that it registered.
+
 
 -type sizer_child() :: window() | sizer().
 % Elements that can be included in a sizer.
