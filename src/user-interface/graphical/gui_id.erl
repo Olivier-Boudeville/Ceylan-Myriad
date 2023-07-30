@@ -43,7 +43,8 @@
 		  allocate_id/0, allocate_id/1, allocate_ids/1, allocate_ids/2,
 		  declare_id/1, declare_id/2, declare_ids/1, declare_ids/2,
 		  resolve_id/1, resolve_id/2, resolve_ids/1, resolve_ids/2,
-		  try_resolve_id/1, try_resolve_id/2 ]).
+		  try_resolve_id/1, try_resolve_id/2,
+		  id_to_string/1 ]).
 
 
 % Internals:
@@ -126,6 +127,8 @@
 % Shorthands:
 
 -type count() :: basic_utils:count().
+
+-type ustring() :: text_utils:ustring().
 
 -type wx_id() :: gui_wx_backend:wx_id().
 % Just an integer.
@@ -497,3 +500,13 @@ try_resolve_id( BackendId, NameTable ) ->
 			NameId
 
 	end.
+
+
+
+% @doc Returns a textual representation of the specified object identifier.
+-spec id_to_string( id() ) -> ustring().
+id_to_string( Id ) when is_integer( Id ) ->
+	text_utils:format( "#~B", [ Id ] );
+
+id_to_string( Id ) when is_atom( Id ) ->
+	text_utils:atom_to_string( Id ).
