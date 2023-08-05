@@ -40,8 +40,8 @@
 
 % Implementation notes:
 %
-% Apparently there is actually no such thing as a plain canvas in wx: here, they
-% are actually panels with bitmaps; note however that 'Canvas =
+% Apparently there is actually no such thing as a plain (non-OpenGL) canvas in
+% wx: here, they are actually panels with bitmaps; note however that 'Canvas =
 % wxGraphicsContext:create(Win)' and/or wxglcanvas (see gui_opengl) could be
 % options apparently, refer to the 'graphicsContext' menu entry of wx:demo() for
 % an example, and to https://www.erlang.org/doc/man/wxgraphicscontext).
@@ -52,16 +52,16 @@
 %
 % In any case we emulate a basic canvas here, resulting notably in the fact that
 % a canvas object is not here a reference onto a wx object, but a stateful
-% instance that shall as a result be kept from a call to another: as its state
+% instance that shall, as a result, be kept from a call to another: as its state
 % may change, the result of functions returning a canvas must not be ignored.
 %
-% Due to their number, canvas operations have been defined separately from the
-% gui module.
+% Due to their number, canvas operations have been defined here, separately from
+% the gui module.
 %
-% A canvas is double-buffered, in the sens that it performs its rendering in an
+% A canvas is double-buffered, in the sense that it performs its rendering in an
 % in-memory surface (not onscreen), a back-buffer: operations that are performed
-% on it will not be visible as long as that no blitting of it on the visible
-% buffer is done (see blit/1).
+% on it will not be visible as long as no blitting of it on the visible buffer
+% is done (see blit/1).
 
 % The main event of interest for a canvas is the onRepaintNeeded one: if a user
 % code registered this event (see gui:subscribe_to_events/1) for a canvas, this
