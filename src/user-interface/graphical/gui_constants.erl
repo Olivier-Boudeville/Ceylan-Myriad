@@ -132,6 +132,7 @@ get_object_type_topic_spec() ->
 		{ control,               wxControl        },
 		{ button,                wxButton         },
 		{ panel,                 wxPanel          },
+		{ gl_canvas,             wxGLCanvas       },
 		{ status_bar,            wxStatusBar      },
 		{ top_level_window,      wxTopLevelWindow },
 		{ dialog,                wxDialog         },
