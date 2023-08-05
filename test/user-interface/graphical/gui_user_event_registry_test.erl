@@ -27,7 +27,8 @@
 
 
 % @doc Test showcasing the use of the <b>user event registry</b>, to provide the
-% user a generic main event loop.
+% user with a generic main event loop, with built-in drivers that can be
+% overridden at will.
 %
 -module(gui_user_event_registry_test).
 
@@ -122,7 +123,7 @@ run_test_gui() ->
 	%
 	case gui_event:get_application_event( UserEventRegistry ) of
 
-		{ quit_requested, BaseEvent } ->
+		{ { quit_requested, BaseEvent }, _UserEventRegistry } ->
 			trace_utils:notice_fmt( "Quitting, based on the following base "
 				"user event:~n ~ts",
 				[ gui_event:gui_event_to_string( BaseEvent ) ] ),

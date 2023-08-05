@@ -29,10 +29,20 @@
 % A registry defined to abstract-out the various ways for the user to generate
 % application-level events (e.g. based on remapped keys, mouse actions, etc.).
 %
-% Aggregates tables translating user events into higher-level
-% application events.
+% Event drivers are to take care of the various types of incoming user events;
+% for maximum flexibility, the built-in default event driver may be overridden
+% by the application.
+%
+% Also aggregates tables translating user events into higher-level application
+% events.
 %
 -record( user_event_registry, {
+
+	% Allows to determine how a (lower-level) user event (such as {onResized,
+	% [...]}) shall be processed, by calling the corresponding registered
+	% event driver.
+	%
+	event_driver_table :: gui_event:event_driver_table(),
 
 	% For all sort of basic, atom-based user-level events (like
 	% 'window_closed'):
@@ -46,4 +56,13 @@
 	scancode_table :: gui_event:scancode_table(),
 
 	% For keys-as-keycode being pressed:
-	keycode_table :: gui_event:keycode_table() } ).
+	keycode_table :: gui_event:keycode_table(),
+
+	% As repaint is to be done differently:
+	use_opengl :: boolean(),
+
+	% Any OpenGL state to be kept around, if already initialised:
+	opengl_state :: maybe( gui_event:opengl_state() ),
+
+	% Any persistent application-specific data of use:
+	app_data :: any() } ).
