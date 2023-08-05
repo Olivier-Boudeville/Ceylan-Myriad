@@ -77,6 +77,11 @@
 % appreciated)
 
 
+% Structure of a scancode define, using 'MYR_SCANCODE_Q' as an example:
+% - 'MYR' for Myriad, to avoid any define clash with third-party
+% - 'SCANCODE' (as opposed to keycode)
+% - 'q' designating the location of the 'Q' key in a standard keyboard
+
 
 % Typewriter keys:
 

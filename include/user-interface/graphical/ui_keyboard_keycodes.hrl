@@ -79,6 +79,12 @@
 % scancodes.
 
 
+% Structure of a keycode define, using 'MYR_K_q' as an example:
+% - 'MYR' for Myriad, to avoid any define clash with third-party
+% - 'K' for keycode (as opposed to scancode)
+% - 'q' for the 'q' key
+
+
 % Mask of 0b100-0000-0000-0000-0000-0000-0000-0000:
 -define(MYR_K_SCANCODE_MASK, (1 bsl 30)).
 
