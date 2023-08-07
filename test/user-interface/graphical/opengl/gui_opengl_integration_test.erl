@@ -99,16 +99,16 @@
 	panel :: panel(),
 
 	% The OpenGL canvas on which rendering will be done:
-	canvas :: gl_canvas(),
+	%canvas :: gl_canvas(),
 
 	% The OpenGL context being used:
-	context :: gl_context(),
+	%context :: gl_context(),
 
 	% An image used as a material:
 	image :: image(),
 
 	% The various OpenGL information kept by this test once initialised:
-	opengl_state :: maybe( my_opengl_state() ),
+	%opengl_state :: maybe( my_opengl_state() ),
 
 	% Records the current time to update the clock texture when relevant:
 	time :: maybe( time() ) } ).

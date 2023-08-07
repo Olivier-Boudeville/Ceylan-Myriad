@@ -26,17 +26,23 @@
 % Creation date: Sunday, June 18, 2023.
 
 
-% A registry defined to abstract-out the various ways for the user to generate
-% application-level events (e.g. based on remapped keys, mouse actions, etc.).
+
+% A full, application-specific GUI-related state to be kept around, notably so
+% that it can be used by the event drivers.
 %
-% Event drivers are to take care of the various types of incoming user events;
-% for maximum flexibility, the built-in default event driver may be overridden
-% by the application.
-%
-% Also aggregates tables translating user events into higher-level application
-% events.
-%
--record( user_event_registry, {
+-record( app_gui_state, {
+
+	% Similar to a user event registry, defined to abstract-out the various ways
+	% for the user to generate application-level events (e.g. based on remapped
+	% keys, mouse actions, etc.).
+	%
+	% Event drivers are to take care of the various types of incoming user
+	% events; for maximum flexibility, the built-in default event driver may be
+	% overridden by the application.
+	%
+	% Also aggregates tables translating user events into higher-level
+	% application events.
+	%
 
 	% Allows to determine how a (lower-level) user event (such as {onResized,
 	% [...]}) shall be processed, by calling the corresponding registered
@@ -58,11 +64,29 @@
 	% For keys-as-keycode being pressed:
 	keycode_table :: gui_event:keycode_table(),
 
-	% As repaint is to be done differently:
+
+
+	% As event drivers (at least default ones) may act differently depending on
+	% whether OpenGL is used (e.g. when repainting is needed).
+	%
+	% This information cannot be obtained in all cases from the next attribute
+	% (e.g. prior to OpenGL initialisation).
+	%
 	use_opengl :: boolean(),
 
 	% Any OpenGL state to be kept around, if already initialised:
+	%
+	% (exposed separately to be accessible from all drivers in a standard way)
+	%
 	opengl_state :: maybe( gui_event:opengl_state() ),
 
-	% Any persistent application-specific data of use:
-	app_data :: any() } ).
+
+	% Any arbitrary application-specific GUI information (typically a record) to
+	% be kept around, notably so that it can be used by the application-specific
+	% event drivers.
+	%
+	% Contains generally references to the widgets instantiated by the
+	% application (e.g. the main frame, buttons, etc.), and possibly OpenGL
+	% elements.
+	%
+	app_specific_info :: maybe( app_specific_info() ).

@@ -232,7 +232,7 @@ lorenz_function( _Time, _P={ X0, Y0, Z0 } ) ->
 % GUI section.
 
 
-% State of the program, passed between event handlers.
+% State of the program, passed between event drivers.
 -record( gui_state, { main_frame,
 					  start_button,
 					  increase_step_button,
