@@ -1778,9 +1778,10 @@ render_mesh( #mesh{ vertices=Vertices,
 
 
 
-% @doc Enters in 2D mode for the specified window: applies relevant general
-% state changes, and specific to modelview (which is reset) and to projection (a
-% projection matrix relevant for 2D operations is applied).
+% @doc Enters in 2D mode for the specified window (typically an OpenGL canvas):
+% applies relevant general state changes, and specific to modelview (which is
+% reset) and to projection (a projection matrix relevant for 2D operations is
+% applied).
 %
 % Refer to https://myriad.esperide.org/#2d-referential for more details.
 %
