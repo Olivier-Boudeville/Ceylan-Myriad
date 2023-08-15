@@ -32,6 +32,25 @@
 -module(gui_event).
 
 
+% Usage notes:
+
+% MyriadGUI can be used (with or without OpenGL) in two modes:
+
+%  - either a "direct" mode, where the application has to define by itself a
+%  main loop performing a selective receive of MyriadGUI user, lower-level
+%  messages (for example {onWindowClosed, [ParentFrame, ParentWindowId,
+%  EventContext]})
+%
+%  - or an "applicative" mode based on an application GUI state comprising event
+%  drivers, whose role is to process the previous lower-level messages into,
+%  possibly, higher-level, applicative ones (e.g. quit_requested, which can be
+%  issued whenever the main frame is closed through the window manager, when a
+%  Quit button is clicked, when specific keys like Escape of 'q' are pressed,
+%  etc.); this applicative mode allows to federate services that most
+%  applications may require, like keyboard remapping
+
+
+
 % Implementation notes.
 
 
@@ -88,10 +107,18 @@
 
 % User events:
 -export([ create_app_gui_state/1, create_app_gui_state/2,
-		  set_event_driver/3,
-		  get_application_event/2,
-		  get_maybe_application_event/2, get_maybe_application_event/3,
-		  user_event_registry_to_string/1 ]).
+		  create_app_gui_state/3,
+
+		  set_event_driver/3, set_event_drivers/2,
+
+		  default_onShown_driver/2, default_onRepaintNeeded_driver/2,
+		  default_onResized_driver/2, default_onButtonClicked_driver/2,
+		  default_onKeyPressed_driver/2, default_onWindowClosed_driver/2,
+
+		  enable_opengl/3,
+		  get_application_event/1,
+		  get_maybe_application_event/1, get_maybe_application_event/2,
+		  app_gui_state_to_string/1 ]).
 
 
 % Helpers:
@@ -146,17 +173,19 @@
 % EventContext]} event pair.
 
 
--type event_driver() :: fun( ( event_elements(), user_event_registry() ) ->
+-type event_driver() :: fun( ( event_elements(), app_gui_state() ) ->
 									app_event_return() ).
 % A driver function in charge of processing a given type of MyriadGUI user
-% event, possibly returning an application event out of it.
+% event, returning out of it possibly an application event pair, and an updated
+% GUI state.
 %
 % An event driver is thus relative to an (implicit) event_type(), such as
 % onButtonClicked or onWindowClosed; example of a driver signature:
 % my_onWindowClosed_driver(_EventElements=[WindowGUIObject, WindowId,
-% EventContext], UserEventRegistry) -> ....
+% EventContext], AppGUIState) -> ....
 %
-% It can be either a built-in event driver, or one defined by the application.
+% It can be either a built-in, default event driver, or one defined by the
+% application.
 
 
 -type basic_event_table() ::
@@ -183,14 +212,27 @@
 % level application event.
 
 
--type opengl_state() :: { gl_canvas(), gl_context() }.
-% An OpenGL-related state kept by the registry of event drivers.
+
+-type gl_init_status() ::
+	'uninitialised' % OpenGL enabled, GL canvas and context registered, but
+					% the latter has not been bound on the former (typically
+					% because the corresponding frame was not shown yet).
+  | 'initialised'.  % OpenGL enabled and ready (GL context bound to GL canvas).
+% The current OpenGL runtime status.
+
+
+-type opengl_base_info() :: { gl_canvas(), gl_context() }.
+% Base OpenGL information, typically needed when creating a GUI-related
+% applicative state.
+
+
+-type opengl_base_state() ::
+	'disabled' % For non-OpenGL applications.
+  | { gl_init_status(), gl_canvas(), gl_context() }.
+% An OpenGL-related base state kept by the registry of event drivers.
 %
-% Stores the OpenGL canvas on which rendering will be done, and the associated
-% OpenGL context.
-%
-% Note: may be useless (as the GUI elements of the base events might suffice)
-% and/or better be replaced by any application-specific OpenGL-related state.
+% Stores, if available, the OpenGL canvas on which rendering will be done, and
+% the associated OpenGL context.
 
 
 -type app_specific_info() :: any().
@@ -207,12 +249,11 @@
 
 
 -type app_gui_state() :: #app_gui_state{}.
-% A full, application-specific GUI-related state to be kept around, notably so
+% A full, GUI-related applicative state to be kept around, notably so
 % that it can be used by the event drivers.
-
-
--type user_event_registry() :: #user_event_registry{}.
-% A table translating basic user events into higher-level application events.
+%
+% Tables translating lower-level user events into higher-level application
+% events are stored there, among other information.
 %
 % For example, whether the user closes the main window, clicks on a 'Quit'
 % button or presses a key with a specific scancode, a 'quit_requested'
@@ -221,8 +262,8 @@
 
 -export_type([ event_driver_table/0, basic_event_table/0, button_table/0,
 			   scancode_table/0, keycode_table/0,
-			   opengl_state/0, app_specific_info/0,
-			   app_gui_state/0, user_event_registry/0 ]).
+			   gl_init_status/0, opengl_base_info/0,
+			   app_specific_info/0, app_gui_state/0 ]).
 
 
 
@@ -366,16 +407,16 @@
 
 
 -type window_event_type() ::
-	'onRepaintNeeded'
-  | 'onButtonClicked'
+	'onShown'
+  | 'onRepaintNeeded'
   | 'onResized'
+  | 'onButtonClicked'
+  | 'onKeyPressed'
 
 	% Trapped by default, to avoid race condition in termination procedures
 	% between user handlers and backend ones:
 	%
-  | 'onWindowClosed'
-
-  | 'onShown'.
+  | 'onWindowClosed'.
 % A type of event possibly emitted by a window.
 %
 % Note that resizing a widget (typically a canvas) implies receiving also a
@@ -2147,7 +2188,7 @@ get_key_from_object( #myriad_object_ref{ object_type=ObjectType,
 % @doc Tells whether the two specified GUI objects match (equality operator).
 -spec match( gui_object(), gui_object() ) -> boolean().
 % The point is to ignore the included state (last element), which should not
-% matter:
+% matter here, for reference comparisons:
 %
 match( _FirstWxObject={wx_ref, WxId, WxType, _AnyFirstState },
 	   _SecondWxObject={wx_ref, WxId, WxType, _AnySecondState } ) ->
@@ -2164,34 +2205,40 @@ match( _FirstGUIObject, _SecondGUIObject ) ->
 
 
 
-% @doc Returns a user-event (opaque) registry corresponding to the user-event
-% specifications, with no specific OpenGL support enabled and no specific
-% application data.
+% @doc Returns a full, GUI-related applicative state to be kept around, notably
+% so that it can be used by the event drivers.
+%
+% Here no specific OpenGL support is enabled, and no specific application data
+% is registered.
 %
 % Refer to create_app_gui_state/3 for further details.
 %
 -spec create_app_gui_state( [ user_event_spec() ] ) -> app_gui_state().
 create_app_gui_state( UserEventSpecs ) ->
-	create_app_gui_state( UserEventSpecs, _UseOpenGL=false ).
+	create_app_gui_state( UserEventSpecs, _MaybeOpenGLBaseInfo=undefined ).
 
 
-% @doc Returns a user-event (opaque) registry corresponding to the user-event
-% specifications, with an OpenGL support enabled if requested, and no specified
-% application data.
+% @doc Returns a full, GUI-related applicative state to be kept around, notably
+% so that it can be used by the event drivers.
+%
+% Here an OpenGL support is enabled iff a base state is specified, and no
+% specific application data is registered.
 %
 % Refer to create_app_gui_state/3 for further details.
 %
--spec create_app_gui_state( [ user_event_spec() ], boolean() ) ->
-									app_gui_state().
-create_app_gui_state( UserEventSpecs, UseOpenGL ) ->
-	create_app_gui_state( UserEventSpecs, UseOpenGL,
+-spec create_app_gui_state( [ user_event_spec() ],
+							maybe( opengl_base_info() ) ) -> app_gui_state().
+create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo ) ->
+	create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo,
 						  _MaybeAppSpecificInfo=undefined ).
 
 
 
-% @doc Returns an application-specific GUI-related state with the user-event
-% registry corresponding to the user-events specifications, with an OpenGL
-% support enabled if requested, and the specified (arbitrary) application data.
+% @doc Returns a full, GUI-related applicative state to be kept around, notably
+% so that it can be used by the event drivers.
+%
+% Here an OpenGL support is enabled iff a base state is specified, and any
+% (arbitrary) application- specific data is registered.
 %
 % Note that:
 %  - buttons will be searched first by ID (recommended designator), otherwise by
@@ -2199,14 +2246,24 @@ create_app_gui_state( UserEventSpecs, UseOpenGL ) ->
 %  - keys will be searched first by scancodes, then keycodes, and regardless of
 %  the (focused) widget that reports them
 %
--spec create_app_gui_state( [ user_event_spec() ], boolean(),
-									maybe( any() ) ) -> app_gui_state().
-create_app_gui_state( UserEventSpecs, UseOpenGL, MaybeAppSpecificInfo )
-						when is_boolean( UseOpenGL ) ->
+-spec create_app_gui_state( [ user_event_spec() ], maybe( opengl_base_info() ),
+							maybe( any() ) ) -> app_gui_state().
+create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo,
+					  MaybeAppSpecificInfo ) ->
 
 	EventDriverTable = get_default_event_driver_table(),
 
 	BlankTable = table:new(),
+
+	GLBaseState = case MaybeOpenGLBaseInfo of
+
+		undefined ->
+			disabled;
+
+		_GLBaseInfo={ GLCanvas, GLContext } ->
+			{ uninitialised, GLCanvas, GLContext }
+
+	end,
 
 	create_user_event_reg( UserEventSpecs,
 		#app_gui_state{ event_driver_table=EventDriverTable,
@@ -2214,8 +2271,7 @@ create_app_gui_state( UserEventSpecs, UseOpenGL, MaybeAppSpecificInfo )
 						button_table=BlankTable,
 						scancode_table=BlankTable,
 						keycode_table=BlankTable,
-						use_opengl=UseOpenGL,
-						opengl_state=undefined,
+						opengl_base_state=GLBaseState,
 						app_specific_info=MaybeAppSpecificInfo } ).
 
 
@@ -2235,26 +2291,29 @@ register_user_events( _UserEvents=[], _AppEvent, AppGUIState ) ->
 	AppGUIState;
 
 register_user_events( _UserEvents=[ { button_clicked, ButtonId } | T ],
-					  AppEvent, AppGUIState=#app_gui_state{
-							button_table=ButtonTable } ) ->
+		AppEvent, AppGUIState=#app_gui_state{ button_table=ButtonTable } ) ->
 	% Overwrites any previous association for that button:
 	NewButtonTable = table:add_entry( ButtonId, AppEvent, ButtonTable ),
+
 	NewAppGUIState = AppGUIState#app_gui_state{
 		button_table=NewButtonTable },
+
 	register_user_events( T, AppEvent, NewAppGUIState );
 
 register_user_events( _UserEvents=[ { scancode_pressed, Scancode } | T ],
-					  AppEvent, AppGUIState=#app_gui_state{
-							scancode_table=ScancodeTable } ) ->
+		AppEvent, AppGUIState=#app_gui_state{
+									scancode_table=ScancodeTable } ) ->
 	% Overwrites any previous association for that scancode:
 	NewScancodeTable = table:add_entry( Scancode, AppEvent, ScancodeTable ),
+
 	NewAppGUIState = AppGUIState#app_gui_state{
 		scancode_table=NewScancodeTable },
+
 	register_user_events( T, AppEvent, NewAppGUIState );
 
 register_user_events( _UserEvents=[ { keycode_pressed, Keycode } | T ],
-					  AppEvent, AppGUIState=#app_gui_state{
-							keycode_table=KeycodeTable } ) ->
+		AppEvent, AppGUIState=#app_gui_state{
+									keycode_table=KeycodeTable } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( "Associating keycode ~w to ~ts.",
@@ -2262,18 +2321,22 @@ register_user_events( _UserEvents=[ { keycode_pressed, Keycode } | T ],
 
 	% Overwrites any previous association for that keycode:
 	NewKeycodeTable = table:add_entry( Keycode, AppEvent, KeycodeTable ),
-	NewAppGUIState = AppGUIState#app_gui_state{
-		keycode_table=NewKeycodeTable },
+
+	NewAppGUIState =
+		AppGUIState#app_gui_state{ keycode_table=NewKeycodeTable },
+
 	register_user_events( T, AppEvent, NewAppGUIState );
 
 % For example EventAtom=window_closed:
 register_user_events( _UserEvents=[ EventAtom | T ], AppEvent,
-		AppGUIState=#app_gui_state{
-			basic_event_table=EventTable } ) when is_atom( EventAtom ) ->
+		AppGUIState=#app_gui_state{ basic_event_table=EventTable } )
+										when is_atom( EventAtom ) ->
 	% Overwrites any previous association for that event:
 	NewEventTable = table:add_entry( EventAtom, AppEvent, EventTable ),
+
 	NewAppGUIState =
 		AppGUIState#app_gui_state{ basic_event_table=NewEventTable },
+
 	register_user_events( T, AppEvent, NewAppGUIState );
 
 register_user_events( _UserEvents=[ Other | _T ], AppEvent, _AppGUIState ) ->
@@ -2287,12 +2350,12 @@ register_user_events( _UserEvents=[ Other | _T ], AppEvent, _AppGUIState ) ->
 %
 -spec get_default_event_driver_table() -> event_driver_table().
 get_default_event_driver_table() ->
-	table:new( [ { onButtonClicked, fun default_onButtonClicked_driver/2 },
-				 { onKeyPressed,    fun default_onKeyPressed_driver/2 },
+	table:new( [ { onShown,         fun default_onShown_driver/2         },
 				 { onRepaintNeeded, fun default_onRepaintNeeded_driver/2 },
-				 { onResized,       fun default_onResized_driver/2 },
-				 { onShown,         fun default_onShown_driver/2 },
-				 { onWindowClosed,  fun default_onWindowClosed_driver/2 } ] ).
+				 { onResized,       fun default_onResized_driver/2       },
+				 { onButtonClicked, fun default_onButtonClicked_driver/2 },
+				 { onKeyPressed,    fun default_onKeyPressed_driver/2    },
+				 { onWindowClosed,  fun default_onWindowClosed_driver/2  } ] ).
 
 
 
@@ -2303,10 +2366,28 @@ get_default_event_driver_table() ->
 								app_gui_state().
 set_event_driver( EventType, EventDriver, AppGUIState=#app_gui_state{
 						event_driver_table=DriverTable } ) ->
-	NewDriverTable =
-		table:add_entry( _K=EventType, _V=EventDriver, DriverTable ),
+
+	NewDriverTable = table:add_entry( _K=EventType, _V=EventDriver,
+									  DriverTable ),
 
 	AppGUIState#app_gui_state{ event_driver_table=NewDriverTable }.
+
+
+
+% @doc Associates the specified event drivers to the corresponding specified
+% event types, instead of the previous drivers.
+%
+-spec set_event_drivers( [ { event_type(), event_driver() } ],
+						 app_gui_state() ) -> app_gui_state().
+set_event_drivers( EventTypeDriverPairs, AppGUIState=#app_gui_state{
+						event_driver_table=DriverTable } ) ->
+
+	NewDriverTable = table:add_entries( _Entries=EventTypeDriverPairs,
+										DriverTable ),
+
+	AppGUIState#app_gui_state{ event_driver_table=NewDriverTable }.
+
+
 
 
 
@@ -2317,12 +2398,199 @@ set_event_driver( EventType, EventDriver, AppGUIState=#app_gui_state{
 % can be used.
 
 
+
+% @doc The default event driver for the onShown (user) event type.
+%
+% Its type is event_driver().
+%
+-spec default_onShown_driver( event_elements(), app_gui_state() ) ->
+								app_event_return().
+% This default non-OpenGL implementation does not have much to do:
+default_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
+		AppGUIState=#app_gui_state{ opengl_base_state=disabled } ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt(
+			"Frame ~ts (ID: ~ts) is shown (~ts); not using OpenGL.",
+			[ gui:object_to_string( Frame ), gui_id:id_to_string( FrameId ),
+			  gui:context_to_string( EventContext ) ] ),
+			  basic_utils:ignore_unused( [ FrameId, EventContext ] ) ),
+
+	% Optional yet better:
+	gui:unsubscribe_from_events( { onShown, Frame } ),
+
+	{ _MaybeAppEventPair=undefined, AppGUIState };
+
+% Here OpenGL is to be used, but is not initialised yet:
+default_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
+		AppGUIState=#app_gui_state{ opengl_base_state={ _GLStatus=uninitialised,
+			_GLCanvas, _GLContext } } ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt(
+			"Frame ~ts (ID: ~ts) is shown (~ts); using OpenGL, "
+			"which is not initialised yet.",
+			[ gui:object_to_string( Frame ), gui_id:id_to_string( FrameId ),
+			  gui:context_to_string( EventContext ) ] ),
+			  basic_utils:ignore_unused( [ FrameId, EventContext ] ) ),
+
+	trace_utils:warning(
+		"onShown driver not overridden by the OpenGL application." ),
+
+	% Most OpenGL applications are to override this driver, as it is the most
+	% suitable first location to initialise OpenGL, since making a GL context
+	% current (that is binding it) requires a shown window.
+
+	% For example:
+
+	% Optional yet better:
+	gui:unsubscribe_from_events( { onShown, Frame } ),
+
+	% Done once for all:
+	%InitGUIState = initialise_opengl( AppGUIState ),
+
+	% A onRepaintNeeded event message is expected to be received just
+	% afterwards.
+
+	{ _MaybeAppEvPair=undefined, AppGUIState }.
+
+
+
+% @doc The default event driver for the onRepaintNeeded (user) event type.
+%
+% This default implementation is mostly a boilerplate, as such a driver should
+% trigger, at least with OpenGL, a new (application-specific) rendering for the
+% needed repaint. It is thus generally expected to be overridden.
+%
+% Its type is event_driver().
+%
+-spec default_onRepaintNeeded_driver( event_elements(), app_gui_state() ) ->
+											app_event_return().
+% Default for non-OpenGL rendering:
+default_onRepaintNeeded_driver(
+		_Elements=[ Canvas, CanvasId, EventContext ],
+		AppGUIState=#app_gui_state{ opengl_base_state=disabled } ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt(
+			"Non-OpenGL canvas '~ts' (~ts) needing repaint (~ts).",
+			[ gui:object_to_string( Canvas ),
+			  gui_id:id_to_string( CanvasId ),
+			  gui:context_to_string( EventContext ) ] ),
+		basic_utils:ignore_unused( [ CanvasId, EventContext ] ) ),
+
+	gui:blit( Canvas ),
+
+	{ _MaybeAppEvPair=undefined, AppGUIState };
+
+
+% Here OpenGL is to be used, but is not initialised yet:
+default_onRepaintNeeded_driver(
+		_Elements, % These are [GLCanvas, GLCanvasId, EventContext],
+		AppGUIState=#app_gui_state{ opengl_base_state={ _GLStatus=uninitialised,
+			_GLCanvas, _GLContext } } ) ->
+
+	% OpenGL not ready yet (main window not shown yet):
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug( "To be repainted, yet no OpenGL state yet." ) ),
+
+	{ _MaybeAppEventPair=undefined, AppGUIState };
+
+
+% Here using OpenGL and having it already initialised; rather
+% application-specific:
+%
+default_onRepaintNeeded_driver(
+		_Elements=[ GLCanvas, _GLCanvasId, _EventContext ],
+		AppGUIState=#app_gui_state{
+			opengl_base_state={ initialised, _GLCanvas, _GLContext } } ) ->
+
+	gui:enable_repaint( GLCanvas ),
+
+	trace_utils:warning(
+		"onRepaintNeeded driver not overridden by the OpenGL application." ),
+
+	% Most applications are to override this driver in order to perform a new
+	% rendering (see gui_overall_test.erl for an example).
+
+	% Not strictly necessary, as anyway a regular redraw is to happen soon
+	% afterwards:
+
+	% Should include the GL flushing and the buffer swapping:
+	% NewAppGUIState = render( AppGUIState ),
+	%
+	% { _MaybeAppEventPair=undefined, NewAppGUIState }
+
+	{ _MaybeAppEventPair=undefined, AppGUIState }.
+
+
+
+% @doc The default event driver for the onResized (user) event type.
+%
+% This default implementation is mostly a boilerplate, as such a driver should
+% trigger, at least with OpenGL, a new rendering to account for the resizing.
+%
+% Its type is event_driver().
+%
+-spec default_onResized_driver( event_elements(), app_gui_state() ) ->
+											app_event_return().
+% Default for non-OpenGL rendering:
+default_onResized_driver(
+		_Elements=[ Canvas, CanvasId, NewSize, EventContext ],
+		AppGUIState=#app_gui_state{ opengl_base_state=disabled } ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt(
+			"Non-OpenGL canvas '~ts' (~ts) resized to ~p (~ts).",
+			[ gui:object_to_string( Canvas ), gui_id:id_to_string( CanvasId ),
+			  NewSize, gui:context_to_string( EventContext ) ] ),
+		basic_utils:ignore_unused(
+			[ Canvas, CanvasId, NewSize, EventContext ] ) ),
+
+	% A rendering based on a (standard) canvas should take place here.
+
+	{ _MaybeAppEvPair=undefined, AppGUIState };
+
+
+% Here OpenGL is to be used, but is not initialised yet:
+default_onResized_driver(
+		_Elements, % These are [GLCanvas, GLCanvasId, NewSize, EventContext],
+		AppGUIState=#app_gui_state{ opengl_base_state={ _GLStatus=uninitialised,
+			_GLCanvas, _GLContext } } ) ->
+
+	% OpenGL not ready yet (main window not shown yet):
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug( "To be resized, yet no OpenGL state yet." ) ),
+
+	{ _MaybeAppEventPair=undefined, AppGUIState };
+
+
+% Here using OpenGL and having it already initialised; rather
+% application-specific:
+%
+default_onResized_driver(
+		_Elements, % These are [GLCanvas, GLCanvasId, NewSize, EventContext],
+		AppGUIState=#app_gui_state{
+			opengl_base_state={ initialised, _GLCanvas, _GLContext } } ) ->
+
+	% A full rendering based on the resized canvas should take place here.
+
+	trace_utils:warning(
+		"onResized driver not overridden by the OpenGL application." ),
+
+	% Most applications are to override this driver in order to perform a new
+	% rendering (see gui_overall_test.erl for an example).
+
+	{ _MaybeAppEventPair=undefined, AppGUIState }.
+
+
+
 % @doc The default event driver for the onButtonClicked (user) event type.
 %
 % Its type is event_driver().
 %
 -spec default_onButtonClicked_driver( event_elements(),
-				app_gui_state() ) -> app_event_return().
+									  app_gui_state() ) -> app_event_return().
 default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 		AppGUIState=#app_gui_state{ button_table=ButtonTable } ) ->
 
@@ -2366,10 +2634,10 @@ default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 % Its type is event_driver().
 %
 -spec default_onKeyPressed_driver( event_elements(),
-				app_gui_state() ) -> app_event_return().
+								   app_gui_state() ) -> app_event_return().
 default_onKeyPressed_driver( Elements=[ Frame, FrameId, EventContext ],
 		AppGUIState=#app_gui_state{ scancode_table=ScancodeTable,
-										keycode_table=KeycodeTable } ) ->
+									keycode_table=KeycodeTable } ) ->
 
 	{ Scancode, Keycode } =
 		gui_keyboard:event_context_to_code_pair( EventContext ),
@@ -2408,177 +2676,6 @@ default_onKeyPressed_driver( Elements=[ Frame, FrameId, EventContext ],
 
 
 
-% @doc The default event driver for the onRepaintNeeded (user) event type.
-%
-% This default implementation is mostly a boilerplate, as such a driver should
-% trigger, at least with OpenGL, a new rendering for the needed repaint.
-%
-% Its type is event_driver().
-%
--spec default_onRepaintNeeded_driver( event_elements(),
-				app_gui_state() ) -> app_event_return().
-default_onRepaintNeeded_driver(
-		_Elements=[ Canvas, CanvasId, EventContext ],
-		AppGUIState=#app_gui_state{ use_opengl=false } ) ->
-
-	% Default for non-OpenGL rendering:
-
-	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:debug_fmt(
-			"Canvas '~ts' (~ts) needing repaint (~ts).",
-			[ gui:object_to_string( Canvas ),
-			  gui_id:id_to_string( CanvasId ),
-			  gui:context_to_string( EventContext ) ] ),
-		basic_utils:ignore_unused( [ CanvasId, EventContext ] ) ),
-
-	gui:blit( Canvas ),
-
-	{ _MaybeAppEvPair=undefined, AppGUIState };
-
-
-% Here use_opengl=true:
-default_onRepaintNeeded_driver(
-		_Elements, % These are [GLCanvas, GLCanvasId, EventContext],
-		AppGUIState=#app_gui_state{ opengl_state=undefined } ) ->
-
-	% OpenGL not ready yet (main window not shown yet):
-	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:debug( "To be repainted, yet no OpenGL state yet." ) ),
-
-	{ _MaybeAppEventPair=undefined, AppGUIState };
-
-% Here using OpenGL and having it already initialised; rather
-% application-specific:
-%
-default_onRepaintNeeded_driver(
-		_Elements=[ GLCanvas, _GLCanvasId, _EventContext ],
-		AppGUIState=#app_gui_state{ opengl_state=_GLState } ) ->
-
-	gui:enable_repaint( GLCanvas ),
-
-	trace_utils:warning( "onRepaintNeeded not overridden by the application." ),
-
-	% Most applications are to override this driver in order a new rendering to
-	% be performed, as in:
-
-	% Not strictly necessary, as anyway a regular redraw is to happen soon
-	% afterwards:
-
-	% Should include the GL flushing and the buffer swapping:
-	% NewGLState = render( GLState ),
-	%
-	% { _MaybeAppEventPair=undefined,
-	%   AppGUIState#app_gui_state{ opengl_state=NewGLState }
-
-	{ _MaybeAppEventPair=undefined, AppGUIState }.
-
-
-
-% @doc The default event driver for the onResized (user) event type.
-%
-% This default implementation is mostly a boilerplate, as such a driver should
-% trigger, at least with OpenGL, a new rendering to account for the resizing.
-%
-% Its type is event_driver().
-%
--spec default_onResized_driver( event_elements(),
-				app_gui_state() ) -> app_event_return().
-default_onResized_driver(
-		_Elements=[ Canvas, CanvasId, NewSize, EventContext ],
-		AppGUIState=#app_gui_state{ use_opengl=false } ) ->
-
-	% Default for non-OpenGL rendering:
-
-	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:debug_fmt(
-			"Canvas '~ts' (~ts) resized to ~p (~ts).",
-			[ gui:object_to_string( Canvas ), gui_id:id_to_string( CanvasId ),
-			  NewSize, gui:context_to_string( EventContext ) ] ),
-		basic_utils:ignore_unused(
-			[ Canvas, CanvasId, NewSize, EventContext ] ) ),
-
-	% A rendering based on canvas should take place here.
-
-	{ _MaybeAppEvPair=undefined, AppGUIState };
-
-% Here use_opengl=true:
-default_onResized_driver(
-		_Elements, % These are [GLCanvas, GLCanvasId, NewSize, EventContext],
-		AppGUIState=#app_gui_state{ opengl_state=undefined } ) ->
-
-	% OpenGL not ready yet (main window not shown yet):
-	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:debug( "Resized, yet no OpenGL state yet." ) ),
-
-	{ _MaybeAppEventPair=undefined, AppGUIState };
-
-% Here using OpenGL and having it already initialised; rather
-% application-specific:
-%
-default_onResized_driver(
-		_Elements, % These are [GLCanvas, GLCanvasId, NewSize, EventContext],
-		AppGUIState=#app_gui_state{ opengl_state=_GLState } ) ->
-
-	% A full, resized rendering based on canvas should take place here.
-
-	trace_utils:warning(
-		"onResized not overridden by the OpenGL application." ),
-
-	% Most applications are to override this driver in order a new rendering to
-	% be performed (see for example gui_overall_test.erl for an example).
-
-	{ _MaybeAppEventPair=undefined, AppGUIState }.
-
-
-
-% @doc The default event driver for the onShown (user) event type.
-%
-% Its type is event_driver().
-%
--spec default_onShown_driver( event_elements(), app_gui_state() ) ->
-								app_event_return().
-default_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
-		AppGUIState=#app_gui_state{ use_opengl=false } ) ->
-
-	cond_utils:if_defined( myriad_debug_gui_events,
-		trace_utils:debug_fmt(
-			"Frame ~ts (ID: ~ts) is shown (~ts).",
-			[ gui:object_to_string( Frame ), gui_id:id_to_string( FrameId ),
-			  gui:context_to_string( EventContext ) ] ),
-			  basic_utils:ignore_unused( [ FrameId, EventContext ] ) ),
-
-	% This default implementation does not have much to do.
-
-	% Optional yet better:
-	gui:unsubscribe_from_events( { onShown, Frame } ),
-
-	{ _MaybeAppEventPair=undefined, AppGUIState };
-
-% Here use_opengl=true:
-default_onShown_driver( _Elements=[ _Frame, _FrameId, _EventContext ],
-		%AppGUIState=#app_gui_state{ opengl_state=undefined } ) ->
-		AppGUIState ) -> % We assume no opengl_state is available yet
-
-	trace_utils:warning(
-		"onShown not overridden by the OpenGL application." ),
-
-	% Most OpenGL applications are to override this driver, as it is the most
-	% suitable first location to initialise OpenGL, since making a GL context
-	% current requires a shown window.
-
-	% For example:
-
-	% Optional yet better:
-	%gui:unsubscribe_from_events( { onShown, Frame } ),
-
-	% Done once for all:
-	%InitGUIState = initialise_opengl( GUIState ),
-
-	% A onRepaintNeeded event message expected just afterwards.
-
-	{ _MaybeAppEvPair=undefined, AppGUIState }.
-
-
 
 % @doc The default event driver for the onWindowClosed (user) event type.
 %
@@ -2600,7 +2697,7 @@ default_onWindowClosed_driver(
 		basic_utils:ignore_unused( [ MainFrame, MainFrameId, EventContext ] ) ),
 
 	% For example a returned application event could lead to
-	% gui:destruct_window(MainFrame).
+	% gui:destruct_window(MainFrame) or gui:stop().
 
 	case table:lookup_entry( window_closed, BasicEventTable ) of
 
@@ -2617,25 +2714,61 @@ default_onWindowClosed_driver(
 
 
 
+% @doc Enables OpenGL in the specified application GUI state.
+%
+% Note that OpenGL actual initialisation is bound to happen no sooner than the
+% corresponding window is shown.
+%
+% Note also that this function is of little use, as generally the GL canvas and
+% context are directly set thanks to create_app_gui_state/3.
+%
+-spec enable_opengl( gl_canvas(), gl_context(), app_gui_state() ) ->
+									app_gui_state().
+enable_opengl( GLCanvas, GLContext, AppGUIState ) ->
+
+	cond_utils:assert( myriad_debug_gui_events,
+		AppGUIState#app_gui_state.opengl_base_state =:= disabled ),
+
+	AppGUIState#app_gui_state{
+		opengl_base_state={ uninitialised, GLCanvas, GLContext } }.
+
+
+
 % @doc Waits (blocks) for the next user event that can be converted into an
 % application event, which is then returned with its corresponding user event,
-% together with a possibly updated user event registry.
+% together with a possibly updated application GUI state.
 %
 % Processes all user events (even those that do not result in an application
-% event).
+% event), returning only on the first one that can be converted into an
+% application event.
 %
-% Meant to be called by the user code, instead of having to define its own event
-% loop. Receives all messages that are collected by the calling process.
+% Meant to be called by the user code, instead of having to define its own
+% lower-level event loop. Receives all messages that are collected by the
+% calling process.
 %
--spec get_application_event( user_event_registry(), app_gui_state() ) ->
-										app_event_return().
-get_application_event( UsrEvReg, AppGUIState ) ->
-	case get_maybe_application_event( UsrEvReg, _Timeout=infinity ) of
+-spec get_application_event( app_gui_state() ) -> app_event_return().
+get_application_event( AppGUIState ) ->
+	case get_maybe_application_event( AppGUIState, _Timeout=infinity ) of
 
-		{ _MaybeAppEventPair=undefined, NewUsrEvReg } ->
-			get_application_event( NewUsrEvReg );
+		{ _MaybeAppEventPair=undefined, NewAppGUIState } ->
 
-		% Thus {AppEventPair, NewUsrEvReg} ->
+			% Would be pointless, as cannot be a tight loop, due
+			% to get_maybe_application_event/2:
+
+			% Possibly better than yield/1:
+			% timer:sleep( 10 ),
+
+			get_application_event( NewAppGUIState );
+
+
+		% Not expected to ever happen because of the (infinite) timeout, or
+		% should an unexpected message be received:
+		%
+		%undefined ->
+		%	get_application_event( AppGUIState );
+
+
+		% Thus {DefinedAppEventPair, NewAppGUIState} ->
 		AppEventReturn ->
 			AppEventReturn
 
@@ -2643,41 +2776,53 @@ get_application_event( UsrEvReg, AppGUIState ) ->
 
 
 
-% @doc Reads any pending (lower-level) user event that can be converted into an
-% application event, which is then returned with its corresponding user event;
-% if no user event is available, returns 'undefined' (thus never blocks). In all
-% cases a possibly updated user event registry is returned as well.
+% @doc Reads any pending (lower-level) user event, returning it with any
+% resulting application event, and an updated GUI state
+%
+% More precisely, tries to read any pending UserEvent:
+%  - if none is found, returns just 'undefined'
+%  - if a user event is found, returns {{MaybeApplicationEvent, UserEvent},
+%  UpdatedGUIState}: if UserEvent can be converted into an application event,
+%  returns it as first element of the pair, otherwise puts 'undefined' there
 %
 % Processes all user events (even those that do not result in an application
 % event).
 %
-% Meant to be called by the user code, instead of having to define its own event
-% loop. Receives all messages that are collected by the calling process.
+% Meant to be called by the user code, instead of having to define its own
+% lower-level event loop. Receives all messages that are collected by the
+% calling process.
 %
--spec get_maybe_application_event( user_event_registry() ) ->
-						app_event_return().
-get_maybe_application_event( UsrEvReg ) ->
-	get_maybe_application_event( UsrEvReg, _Timeout=0 ).
+-spec get_maybe_application_event( app_gui_state() ) ->
+									maybe( app_event_return() ).
+get_maybe_application_event( AppGUIState ) ->
+	get_maybe_application_event( AppGUIState, _Timeout=0 ).
 
 
 
 % @doc Reads any (lower-level) user event received during the specified (finite
 % or not) time-out that can be converted into an application event, which is
-% then returned with its corresponding user event; if no user event is
-% available, returns 'undefined' (thus does not block longer). In all cases a
-% possibly updated user event registry is returned as well.
+% then returned with its corresponding user event, together with a possibly
+% updated application GUI state.
 %
-% Processes all user events (even those that do not result in an application
-% event).
+% If a user event is received during the specified time-out yet cannot be
+% converted into an application event, 'undefined' is returned instead of said
+% application event, and an updated application GUI state is still returned.
+%
+% If no user event is available during said time-out, returns just 'undefined'
+% (with no application GUI state), thus never blocks longer.
+%
+% Processes up to one pending user event, whether or not it results in an
+% application event.
 %
 % Main, most flexible form.
 %
-% Meant to be called by the user code, instead of having to define its own event
-% loop. Receives all messages that are collected by the calling process.
+% Meant to be called by the user code, instead of having to define its own
+% lower-level event loop. Receives all messages that are collected by the
+% calling process.
 %
--spec get_maybe_application_event( user_event_registry(), time_out() ) ->
-						app_event_return().
-get_maybe_application_event( UsrEvReg=#user_event_registry{
+-spec get_maybe_application_event( app_gui_state(), time_out() ) ->
+									maybe( app_event_return() ).
+get_maybe_application_event( AppGUIState=#app_gui_state{
 		event_driver_table=EventDriverTable }, Timeout ) ->
 
 	%trace_utils:debug( "Entering GUI receive for user events." ),
@@ -2685,38 +2830,63 @@ get_maybe_application_event( UsrEvReg=#user_event_registry{
 	% Relying on an unique function like the present one is convenient, as it
 	% allows to still define a selective receive.
 	%
-	% Roughly sorted from the expected most frequent ones to the least:
 	receive
 
 		{ EventType, EventElements } ->
-			EventDriverFun = table:get_value( _K=EventType, EventDriverTable ),
-			% Returns {MaybeAppEventPair, UpdatedUsrEvReg}:
-			EventDriverFun( EventElements, UsrEvReg );
+
+			% As a bonus, avoids to have to write selective receives matching
+			% the least-often received messages last:
+			%
+			%EventDriverFun = table:get_value( _K=EventType, EventDriverTable ),
+			EventDriverFun = case table:lookup_entry( _K=EventType,
+													  EventDriverTable ) of
+
+				{ value, EvDrivFun } ->
+					EvDrivFun;
+
+				key_not_found ->
+					throw( { no_event_driver_registered_for, EventType } )
+
+			end,
+
+			% Returns app_event_return(), that is {MaybeAppEventPair,
+			% UpdatedAppGUIState}:
+			%
+			EventDriverFun( EventElements, AppGUIState );
+
 
 		Other ->
-			trace_utils:warning_fmt( "The user-level GUI receiving logic "
-				"ignored the following message:~n ~p.", [ Other ] ),
-			undefined
+			trace_utils:eror_fmt( "The user-level GUI receiving logic "
+				"received the following unexpected message:~n ~p.", [ Other ] ),
+			% See below for semantics:
+			%undefined
+			throw( { unexpected_event_message, Other } )
+
 
 	after Timeout ->
 
+		% Not {undefined, AppGUIState}, to convey a different semantics (no user
+		% event received here - as opposed to the receiving of a user event that
+		% does not convert to an application one)
+		%
 		undefined
 
 	end.
 
 
 
-% @doc Returns a textual representation of the specified user event registry.
--spec user_event_registry_to_string( user_event_registry() ) -> ustring().
-user_event_registry_to_string( #user_event_registry{
+% @doc Returns a textual representation of the specified GUI-related applicative
+% state.
+%
+-spec app_gui_state_to_string( app_gui_state() ) -> ustring().
+app_gui_state_to_string( #app_gui_state{
 		event_driver_table=EventDriverTable,
 		basic_event_table=BasicEventTable,
 		button_table=ButtonTable,
 		scancode_table=ScancodeTable,
 		keycode_table=KeycodeTable,
-		use_opengl=UseOpenGL,
-		opengl_state=MaybeOpenGLState,
-		app_data=MaybeAppData } ) ->
+		opengl_base_state=OpenGLBaseState,
+		app_specific_info=MaybeAppSpecificInfo } ) ->
 
 	EventDriverStr = text_utils:format( "~B event drivers",
 		[ table:size( EventDriverTable ) ] ),
@@ -2733,39 +2903,33 @@ user_event_registry_to_string( #user_event_registry{
 	KeycodeStr = text_utils:format( "~B keycodes",
 		[ table:size( KeycodeTable ) ] ),
 
-	OpenGLStr = case UseOpenGL of
+	OpenGLStr = case OpenGLBaseState of
 
-		true ->
-			case MaybeOpenGLState of
+		disabled ->
+			"not using OpenGL";
 
-				undefined ->
-					"OpenGL used, with no specific state set";
+		{ uninitialised, _GLCanvas, _GLContext } ->
+			"using OpenGL, which is not initialised yet";
 
-				OpenGLState ->
-					text_utils:format( "OpenGL used, with set state ~p",
-									   [ OpenGLState ] )
-
-			end;
-
-		false ->
-			% Supposedly no state of interest:
-			"OpenGL not used"
+		{ initialised, _GLCanvas, _GLContext } ->
+			"using OpenGL, which is already initialised"
 
 	end,
 
-	AppStr = case MaybeAppData of
+	AppStr = case MaybeAppSpecificInfo of
 
 		undefined ->
-			"no application-specific data";
+			"no application-specific information";
 
-		AppData ->
-			text_utils:format( "application-specific data ~p", [ AppData ] )
+		AppSpecificInfo ->
+			text_utils:format( "application-specific information ~p",
+							   [ AppSpecificInfo ] )
 
 	end,
 
 
 	text_utils:format( "user event registry with ~ts, supporting ~ts, "
-		"tracking ~ts, ~ts and ~ts, having ~ts and ~ts",
+		"tracking ~ts, ~ts and ~ts, ~ts and ~ts",
 		[ EventDriverStr, BasicEventStr, ButtonStr, ScancodeStr, KeycodeStr,
 		  OpenGLStr, AppStr ] ).
 
