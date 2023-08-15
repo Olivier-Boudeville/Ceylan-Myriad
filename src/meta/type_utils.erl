@@ -682,6 +682,9 @@
 % check_all_undefined/1, are_all_defined/1, check_defined/1,
 % check_not_undefined/1, check_all_defined/1.
 %
+% For comparisons (equality checks), refer to {basic,cond}_utils:check_equal/2
+% for example, depending on whether such a check should be conditional.
+%
 -export([ check_atom/1, check_atoms/1,
 		  check_boolean/1, check_booleans/1,
 
