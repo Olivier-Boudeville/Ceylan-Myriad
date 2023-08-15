@@ -978,7 +978,7 @@ update_rendering( GUIState=#app_gui_state{
 	% Then call OpenGL accordingly:
 	render( TimeAppSpecificInfo ),
 
-	UpdatedAppSpecificInfo = AppSpecificInfo#my_test_gui_info{
+	UpdatedAppSpecificInfo = TimeAppSpecificInfo#my_test_gui_info{
 		time=NewTime,
 		angle=NewAngle },
 
