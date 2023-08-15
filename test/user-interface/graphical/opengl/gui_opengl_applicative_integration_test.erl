@@ -575,6 +575,8 @@ init_test_gui() ->
 		_Opts=[ { style, full_repaint_on_resize },
 				{ gl_attributes, GLAttributes } ] ),
 
+	% Subscribing to the panel instead would not catch any key press:
+	gui:subscribe_to_events( { onKeyPressed, GLCanvas } ),
 
 	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
@@ -616,6 +618,9 @@ init_test_gui() ->
 			{ scancode_pressed, ?MYR_SCANCODE_ESCAPE },
 			window_closed ] } ],
 
+	% Setting the focus on the panel would work as well:
+	gui:set_focus( GLCanvas ),
+
 	InitAppGUIState = gui_event:create_app_gui_state( UserEventSpecs,
 		GLBaseInfo, TestSpecificGUIInfo ),
 
@@ -633,7 +638,7 @@ init_test_gui() ->
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
 % messages.
 %
--spec gui_main_loop( app_gui_state() ) -> void().
+-spec gui_main_loop( app_gui_state() ) -> no_return().
 gui_main_loop( AppGUIState ) ->
 
 	%trace_utils:debug( "Main loop." ),
@@ -645,7 +650,9 @@ gui_main_loop( AppGUIState ) ->
 	case gui_event:get_maybe_application_event( AppGUIState,
 			_Timeout=?interframe_duration ) of
 
-		{ { quit_requested, _BaseEvent }, QuitAppGUIState } ->
+		{ { quit_requested, BaseEvent }, QuitAppGUIState } ->
+			trace_utils:info_fmt( "Quit just requested (event of origin: ~w).",
+								  [ BaseEvent ] ),
 			AppSpecificInfo = QuitAppGUIState#app_gui_state.app_specific_info,
 			gui:destruct_window( AppSpecificInfo#my_test_gui_info.parent ),
 			gui:stop();
@@ -654,18 +661,7 @@ gui_main_loop( AppGUIState ) ->
 			% User event processed without generating an application one:
 			% (we could trigger a rendering from there as well)
 			%
-			%gui_main_loop( EventAppGUIState );
-			case EventAppGUIState#app_gui_state.opengl_base_state of
-
-				{ uninitialised, _GLCanvas, _GLContext } ->
-					trace_utils:debug( "(OpenGL not initialised yet)" ),
-					gui_main_loop( EventAppGUIState );
-
-				{ initialised, _GLCanvas, _GLContext } ->
-					RenderAppGUIState = update_rendering( EventAppGUIState ),
-					gui_main_loop( RenderAppGUIState )
-
-			end;
+			gui_main_loop( EventAppGUIState );
 
 		undefined ->
 			% As this GUI is to be updated even in the absence of user actions:
