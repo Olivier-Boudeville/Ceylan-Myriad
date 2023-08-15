@@ -27,12 +27,13 @@
 
 
 
-% A full, application-specific GUI-related state to be kept around, notably so
-% that it can be used by the event drivers.
+% A full, GUI-related applicative state to be kept around, notably so that it
+% can be used by the event drivers, therefore in applicative mode (as opposed to
+% in direct mode).
 %
 -record( app_gui_state, {
 
-	% Similar to a user event registry, defined to abstract-out the various ways
+	% Similar to a user event registry, defined to abstract out the various ways
 	% for the user to generate application-level events (e.g. based on remapped
 	% keys, mouse actions, etc.).
 	%
@@ -45,40 +46,41 @@
 	%
 
 	% Allows to determine how a (lower-level) user event (such as {onResized,
-	% [...]}) shall be processed, by calling the corresponding registered
+	% [...]}) shall be processed (possibly resulting in an application event),
+	% by calling, based on the type of that event, any corresponding registered
 	% event driver.
 	%
 	event_driver_table :: gui_event:event_driver_table(),
 
-	% For all sort of basic, atom-based user-level events (like
-	% 'window_closed'):
+	% So that all sorts of basic, atom-based user-level events (like
+	% 'window_closed' - as opposed to events related to mice or keyboards) can
+	% be converted into application-level events:
 	%
 	basic_event_table :: gui_event:basic_event_table(),
 
-	% For buttons being clicked:
+	% So that a button being clicked may result into an application event:
 	button_table :: gui_event:button_table(),
 
-	% For keys-as-scancode being pressed:
+	% So that a key-as-scancode being pressed can result into an application
+	% event:
+	%
 	scancode_table :: gui_event:scancode_table(),
 
-	% For keys-as-keycode being pressed:
+	% So that a key-as-keycode being pressed can result into an application
+	% event:
+	%
 	keycode_table :: gui_event:keycode_table(),
 
 
 
-	% As event drivers (at least default ones) may act differently depending on
-	% whether OpenGL is used (e.g. when repainting is needed).
-	%
-	% This information cannot be obtained in all cases from the next attribute
-	% (e.g. prior to OpenGL initialisation).
-	%
-	use_opengl :: boolean(),
-
-	% Any OpenGL state to be kept around, if already initialised:
+	% Any OpenGL state to be kept around.
 	%
 	% (exposed separately to be accessible from all drivers in a standard way)
 	%
-	opengl_state :: maybe( gui_event:opengl_state() ),
+	% Useful as event drivers (at least default ones) may act differently
+	% depending on whether OpenGL is used (e.g. when repainting is needed).
+	%
+	opengl_base_state :: gui_event:opengl_base_state(),
 
 
 	% Any arbitrary application-specific GUI information (typically a record) to
@@ -89,4 +91,4 @@
 	% application (e.g. the main frame, buttons, etc.), and possibly OpenGL
 	% elements.
 	%
-	app_specific_info :: maybe( app_specific_info() ).
+	app_specific_info :: maybe( gui_event:app_specific_info() ) } ).
