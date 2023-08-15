@@ -314,8 +314,8 @@ scale( Image, Width, Height, Quality ) ->
 
 
 
-% @doc Returns a new image, corresponding to the specified one once mirrored as
-% requested.
+% @doc Flips the specified image: returns a new image, corresponding to the
+% specified one once mirrored as requested.
 %
 -spec mirror( image(), orientation() ) -> image().
 mirror( Image, _Orientation=horizontal ) ->
