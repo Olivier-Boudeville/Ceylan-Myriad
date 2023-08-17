@@ -530,13 +530,15 @@ run_actual_test() ->
 
 	%gui:set_debug_level( [ calls, life_cycle ] ),
 
-	% Postpone the processing of first events to accelerate initial setup:
-	InitialAppGUIState = gui:batch( fun() -> init_test_gui() end ),
-	%InitialAppGUIState = init_test_gui(),
+	% Postpone the processing of first events to accelerate the initial setup:
+	%InitialAppGUIState = gui:batch( fun() -> init_test_gui() end ),
+	InitialAppGUIState = init_test_gui(),
 
 	TestSpecificInfo = InitialAppGUIState#app_gui_state.app_specific_info,
 
-	gui:show( TestSpecificInfo#my_test_gui_info.parent ),
+	MainFrame = TestSpecificInfo#my_test_gui_info.parent,
+
+	gui:show( MainFrame ),
 
 	% Uncomment to check that a no_gl_context error report is triggered indeed,
 	% as expected (as no current GL context exists yet):
@@ -559,7 +561,9 @@ init_test_gui() ->
 
 	MainFrame = gui:create_frame( "MyriadGUI OpenGL Integration Test" ),
 
+	% No way found to properly clear its content before onShow is processed:
 	Panel = gui:create_panel( MainFrame ),
+
 
 	% Creating a GL canvas with 'GLCanvas =
 	% gui_opengl:create_canvas(_Parent=Panel)' would have been enough:
@@ -571,6 +575,7 @@ init_test_gui() ->
 					 { min_green_size, MinSize }, { min_blue_size, MinSize },
 					 { depth_buffer_size, 24 } ],
 
+	% Could not be cleared early:
 	GLCanvas = gui_opengl:create_canvas( _Parent=Panel,
 		_Opts=[ { style, full_repaint_on_resize },
 				{ gl_attributes, GLAttributes } ] ),
@@ -682,8 +687,9 @@ gui_main_loop( AppGUIState ) ->
 
 
 
-% @doc The test-specific event driver for the onShown (user) event type: sets up
-% OpenGL, once for all, now that a proper OpenGL context is available.
+% @doc The test-specific event driver for the onShown (user) event type,
+% overriding default_onShown_driver/2: sets up OpenGL, once for all, now that a
+% proper OpenGL context is available.
 %
 % Its type is event_driver().
 %
@@ -693,17 +699,20 @@ gui_main_loop( AppGUIState ) ->
 %
 % This is the most suitable first location to initialise OpenGL, as making a GL
 % context current requires a shown window. So, as soon as the main frame is
-% shown, OpenGL is initialised once from all, and onShown is not listened
-% anymore (anyway it is not expected to be triggered again).
+% shown, OpenGL is initialised once from all, and the onShown event is not
+% listened to anymore (anyway it is not expected to be triggered again).
 %
 % As a result, this is the only clause defined: neither GLStatus=initialised nor
-% a disabled OpenGL base state to support.
+% a disabled OpenGL base state are to support.
 %
 test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 		AppGUIState=#app_gui_state{
 			opengl_base_state={ _GLStatus=uninitialised, GLCanvas,
 								GLContext },
 			app_specific_info=TestSpecificInfo } ) ->
+
+	% A transient former content for frame and canvas can be seen briefly, as we
+	% did not succeed in clearing it early at start-up.
 
 	trace_utils:debug_fmt( "Frame ~ts (ID: ~ts) is shown (~ts), with an "
 		"initial size of ~w; using OpenGL, which as expected is not "

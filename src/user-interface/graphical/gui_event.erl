@@ -35,19 +35,19 @@
 % Usage notes:
 
 % MyriadGUI can be used (with or without OpenGL) in two modes:
-
+%
 %  - either a "direct" mode, where the application has to define by itself a
 %  main loop performing a selective receive of MyriadGUI user, lower-level
 %  messages (for example {onWindowClosed, [ParentFrame, ParentWindowId,
 %  EventContext]})
 %
-%  - or an "applicative" mode based on an application GUI state comprising event
-%  drivers, whose role is to process the previous lower-level messages into,
-%  possibly, higher-level, applicative ones (e.g. quit_requested, which can be
-%  issued whenever the main frame is closed through the window manager, when a
-%  Quit button is clicked, when specific keys like Escape of 'q' are pressed,
-%  etc.); this applicative mode allows to federate services that most
-%  applications may require, like keyboard remapping
+%  - or an "applicative" mode based on an application GUI state integrating
+%  event drivers, whose role is to process the previous lower-level messages
+%  into, possibly, higher-level, applicative ones (e.g. quit_requested, which
+%  can be issued whenever the main frame is closed through the window manager,
+%  when a Quit button is clicked, when specific keys like Escape of 'q' are
+%  pressed, etc.); this applicative mode allows to support once for all services
+%  that most applications may require, like the remapping of keys
 
 
 
@@ -83,8 +83,14 @@
 % efficient to have them managed directly by this gui_event main loop.
 
 
-% Panel issues:
+% Startup procedure:
+%
+% A typical order for the receiving of event messages is:
 
+%
+
+% Panel issues:
+%
 % There is a problem at least with panels: when they are just by themselves
 % (created with no child widgets), when subscribing to key presses (e.g. as
 % {onKeyPressed, TestPanel}), key press events are indeed received by the user
@@ -646,8 +652,9 @@
 
 -type app_event_return() ::
 	{ maybe( application_event_pair() ), app_gui_state() }.
-% Pair returned whenever a user event has been processed by a corresponding
-% event driver and possibly been converted into an application event.
+% Pair, together with an updated application GUI state, returned whenever a user
+% event has been processed by a corresponding event driver and possibly been
+% converted into an application event.
 
 
 -export_type([ application_event/0, basic_user_event/0, user_event_spec/0,
@@ -922,8 +929,14 @@ get_trapped_event_types( Services ) ->
 % - or from the (here, wx) backend, that notifies this loop of the actual,
 % lower-level events
 %
--spec process_event_messages( loop_state() ) -> no_return().
+-spec process_event_messages( loop_state() | 'terminated' ) -> no_return().
+process_event_messages( terminated ) ->
+	trace_utils:debug( "Main MyriadGUI loop terminated." ),
+	terminated;
+
 process_event_messages( LoopState ) ->
+% To check sooner:
+%process_event_messages( LoopState=#loop_state{} ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_repaint_logic,
 		trace_utils:debug_fmt( "[event] GUI main loop ~w waiting "
@@ -1349,7 +1362,7 @@ process_event_message( { synchroniseWithCaller, [ ], SenderPid }, LoopState ) ->
 
 process_event_message( terminate_gui_loop, _LoopState ) ->
 	%trace_utils:debug( "Main MyriadGUI loop terminating." ),
-	ok;
+	terminated;
 
 process_event_message( UnmatchedEvent, LoopState ) ->
 	trace_utils:warning_fmt( "Ignored following unmatched event "
@@ -1392,6 +1405,9 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 			% By design this is a wx (repaint) event:
 			PostRepaintLoopState = process_wx_event( EventSourceId, GUIObject,
 				UserData, WxEventInfo, CurrentWxRepaintEvent, LoopState ),
+
+			PostRepaintLoopState =:= undefined
+				andalso throw( faulty_loop_state_1 ),
 
 			cond_utils:if_defined( myriad_debug_gui_repaint_logic,
 				case DropCount of
@@ -2624,7 +2640,7 @@ default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 
 	end,
 
-	% With this default implementation, user event registry is constant:
+	% With this default implementation, application GUI state is constant:
 	{ MaybeAppEvPair, AppGUIState }.
 
 
@@ -2671,7 +2687,7 @@ default_onKeyPressed_driver( Elements=[ Frame, FrameId, EventContext ],
 
 	end,
 
-	% With this default implementation, user event registry is constant:
+	% With this default implementation, application GUI state is constant:
 	{ MaybeAppEvPair, AppGUIState }.
 
 
@@ -2783,7 +2799,8 @@ get_application_event( AppGUIState ) ->
 %  - if none is found, returns just 'undefined'
 %  - if a user event is found, returns {{MaybeApplicationEvent, UserEvent},
 %  UpdatedGUIState}: if UserEvent can be converted into an application event,
-%  returns it as first element of the pair, otherwise puts 'undefined' there
+%  returns this application event as first element of the pair, otherwise puts
+%  'undefined' there
 %
 % Processes all user events (even those that do not result in an application
 % event).
@@ -2834,6 +2851,13 @@ get_maybe_application_event( AppGUIState=#app_gui_state{
 
 		{ EventType, EventElements } ->
 
+			% Uncomment to ensure that a given event of interest is indeed
+			% received:
+			%
+			%trace_utils:debug_fmt(
+			%   "Received event of type '~ts', with elements: ~w",
+			%   [ EventType, EventElements ] ),
+
 			% As a bonus, avoids to have to write selective receives matching
 			% the least-often received messages last:
 			%
@@ -2852,8 +2876,12 @@ get_maybe_application_event( AppGUIState=#app_gui_state{
 			% Returns app_event_return(), that is {MaybeAppEventPair,
 			% UpdatedAppGUIState}:
 			%
-			EventDriverFun( EventElements, AppGUIState );
+			R = EventDriverFun( EventElements, AppGUIState ),
 
+			%trace_utils:debug_fmt( "Driver for event type '~ts' returned:~n~w",
+			%                       [ EventType, R ] ),
+
+			R;
 
 		Other ->
 			trace_utils:eror_fmt( "The user-level GUI receiving logic "

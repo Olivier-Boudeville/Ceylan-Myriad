@@ -389,6 +389,11 @@
 % Note that a frame is a top_level_window(), a window() and an event_handler(),
 % and thus can use their methods.
 %
+% At least on some platforms, while initialising a frame, an older graphical
+% content can be seen for a short while, before the first repaint. No amount of
+% wxWindow:{clearBackground,refresh,update}/1 or buffer swapping was able to
+% hide it.
+%
 -export([ create_top_level_frame/1, create_top_level_frame/2,
 		  create_top_level_frame/4,
 		  create_frame/0, create_frame/1, create_frame/2, create_frame/3,
@@ -702,10 +707,12 @@
 % (unlike windows/frames).
 %
 % Note though that, as soon as a widget declares that its parent is a panel
-% (e.g. if a button is declared in a panel, if a sizer including a box
+% (e.g. if a button is declared in a panel, or if a sizer including a box
 % designates the panel as its parent), this panel will not receive anymore key
-% events (even if the focus is set to the panel). Refer to "Panel issues" in
-% gui_event for further information.
+% events (even if the focus is set to the panel), presumably to support
+% accelerator keys.
+%
+% Refer to "Panel issues" in gui_event for further information.
 
 
 

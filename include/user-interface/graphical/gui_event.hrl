@@ -31,6 +31,11 @@
 % can be used by the event drivers, therefore in applicative mode (as opposed to
 % in direct mode).
 %
+% One of its interests is to move away from a purely application-specific state
+% datastructure: defining a common structure allows to share more behaviours
+% that may be applied to it, while still allowing for the needed
+% application-specific GUI information.
+%
 -record( app_gui_state, {
 
 	% Similar to a user event registry, defined to abstract out the various ways

@@ -251,6 +251,11 @@
 -opaque gl_context() :: wxGLContext:wxGLContext().
 % An OpenGL context represents the state of an OpenGL state machine and the
 % connection between OpenGL and the running system.
+%
+% Such a context always uses physical pixels, even on the platforms where the
+% window() base widget uses logical pixels. So dimensions like client sizes may
+% have to be multiplied by the content scale factor before being used with
+% functions like glViewport().
 
 
 -type factor() :: math_utils:factor().
