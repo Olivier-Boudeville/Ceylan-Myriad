@@ -181,7 +181,8 @@
 		  to_wx_event_type/1, from_wx_event_type/1,
 
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
-		  to_wx_orientation/1, wx_id_to_window/1, wx_id_to_string/1,
+		  to_wx_direction/1, to_wx_orientation/1,
+		  wx_id_to_window/1, wx_id_to_string/1,
 
 		  to_wx_device_context_attributes/1,
 
@@ -214,8 +215,8 @@
 
 -type wx_size() :: { 'size', gui:size() }.
 
-
--type wx_orientation() :: ?wxVERTICAL | ?wxHORIZONTAL.
+-type wx_direction() :: ?wxVERTICAL | ?wxHORIZONTAL.
+-type wx_orientation() :: wx_direction() | ?wxBOTH.
 
 
 -type wx_id() :: maybe( integer() ).
@@ -292,7 +293,8 @@
 -export_type([ wx_native_object_type/0, wx_window_option/0,
 			   wx_event_handler_option/0, wx_panel_option/0,
 			   other_wx_device_context_attribute/0,
-			   wx_device_context_attribute/0, wx_enum/0 ]).
+			   wx_device_context_attribute/0, wx_enum/0,
+			   wx_direction/0, wx_orientation/0 ]).
 
 -type wx_art_id() :: unicode:chardata().
 % For example "wxART_NEW".
@@ -353,11 +355,13 @@
 
 -type position() :: gui:position().
 -type size() :: gui:size().
+-type direction() :: gui:direction().
 -type orientation() :: gui:orientation().
--type event_subscription_option() :: gui_event:event_subscription_option().
+
 
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
 
+-type event_subscription_option() :: gui_event:event_subscription_option().
 -type wx_event_type() :: gui_event:wx_event_type().
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
@@ -802,16 +806,22 @@ to_wx_size( Size ) ->
 
 
 
+% @doc Converts to back-end direction.
+%
+% (helper)
+%
+-spec to_wx_direction( direction() ) -> wx_direction().
+to_wx_direction( Direction ) ->
+	gui_generated:get_second_for_direction( Direction ).
+
+
 % @doc Converts to back-end orientation.
 %
 % (helper)
 %
 -spec to_wx_orientation( orientation() ) -> wx_orientation().
-to_wx_orientation( vertical ) ->
-	?wxVERTICAL;
-
-to_wx_orientation( horizontal ) ->
-	?wxHORIZONTAL.
+to_wx_orientation( Orientation ) ->
+	gui_generated:get_second_for_orientation( Orientation ).
 
 
 

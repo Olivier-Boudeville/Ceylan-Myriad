@@ -39,7 +39,8 @@
 		  get_sizer_flag_topic_spec/0, get_menu_item_id_topic_spec/0,
 		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
 		  get_menu_item_kind_topic_spec/0, get_status_bar_style_topic_spec/0,
-		  get_toolbar_style_topic_spec/0, get_event_type_topic_spec/0 ] ).
+		  get_toolbar_style_topic_spec/0, get_event_type_topic_spec/0,
+		  get_direction_topic_spec/0, get_orientation_topic_spec/0 ] ).
 
 
 -export([ list_topic_spec_functions/0 ]).
@@ -55,7 +56,8 @@ list_topic_spec_functions() ->
 	  get_sizer_flag_topic_spec, get_menu_item_id_topic_spec,
 	  get_bitmap_id_topic_spec, get_icon_name_id_topic_spec,
 	  get_menu_item_kind_topic_spec, get_status_bar_style_topic_spec,
-	  get_toolbar_style_topic_spec, get_event_type_topic_spec ].
+	  get_toolbar_style_topic_spec, get_event_type_topic_spec,
+	  get_direction_topic_spec, get_orientation_topic_spec ].
 
 
 
@@ -105,8 +107,13 @@ list_topic_spec_functions() ->
 -type bitmap_id_opt() :: gui:bitmap_id_opt().
 -type icon_name_id() :: gui:icon_name_id().
 
+-type direction() :: gui:direction().
+-type orientation() :: gui:orientation().
+
 -type wx_art_id() :: gui_wx_backend:wx_art_id().
 -type wx_enum() :: gui_wx_backend:wx_enum().
+-type wx_orientation() :: gui_wx_backend:wx_orientation().
+-type wx_direction() :: gui_wx_backend:wx_direction().
 
 -type wx_id() :: gui_id:wx_id().
 
@@ -576,3 +583,20 @@ get_event_type_topic_spec() ->
 		{ onWindowClosed,  close_window } ],
 
 	{ event_type, Entries }.
+
+
+
+% @doc Returns the two-way conversion specification for the 'direction' topic.
+-spec get_direction_topic_spec() ->
+						topic_spec( direction(), wx_direction() ).
+get_direction_topic_spec() ->
+	{ direction, [ { vertical,   ?wxVERTICAL   },
+				   { horizontal, ?wxHORIZONTAL } ] }.
+
+
+% @doc Returns the two-way conversion specification for the 'orientation' topic.
+-spec get_orientation_topic_spec() ->
+						topic_spec( orientation(), wx_orientation() ).
+get_orientation_topic_spec() ->
+	DirEntries = pair:second( get_direction_topic_spec() ),
+	{ orientation, [ { both, ?wxBOTH } | DirEntries ] }.

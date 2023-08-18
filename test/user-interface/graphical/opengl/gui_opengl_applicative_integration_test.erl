@@ -617,6 +617,7 @@ init_test_gui() ->
 											 image=Image },
 
 	UserEventSpecs = [ % Trigger the following app-level event...
+		{ toggle_fullscreen, [ { keycode_pressed, ?MYR_K_f } ] },
 		{ quit_requested,
 		  % ... whenever any of these user-level events happens:
 		  [ { keycode_pressed, ?MYR_K_q },
@@ -654,6 +655,21 @@ gui_main_loop( AppGUIState ) ->
 	%
 	case gui_event:get_maybe_application_event( AppGUIState,
 			_Timeout=?interframe_duration ) of
+
+		{ { toggle_fullscreen, _BaseEvent }, ToggleAppGUIState } ->
+			AppSpecificInfo = ToggleAppGUIState#app_gui_state.app_specific_info,
+			MainFrame = AppSpecificInfo#my_test_gui_info.parent,
+
+			IsFullscreen = gui:is_fullscreen( MainFrame ),
+
+			% Toggle:
+			true = gui:set_fullscreen( MainFrame, not IsFullscreen ),
+
+			%trace_utils:info_fmt( "Toggle fullscreen just requested "
+			%   "(event of origin: ~w), whereas fullscreen status is ~ts.",
+			%   [ BaseEvent, IsFullscreen ] ),
+
+			gui_main_loop( ToggleAppGUIState );
 
 		{ { quit_requested, BaseEvent }, QuitAppGUIState } ->
 			trace_utils:info_fmt( "Quit just requested (event of origin: ~w).",
@@ -804,13 +820,14 @@ test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 
 
 % Overrides default_onRepaintNeeded_driver/2:
-test_onRepaintNeeded_driver( _Elements=[ GLCanvas, _GLCanvasId, _EventContext ],
+test_onRepaintNeeded_driver(
+		_Elements=[ _GLCanvas, _GLCanvasId, _EventContext ],
 		AppGUIState=#app_gui_state{
-			opengl_base_state={ _GLStatus=uninitialised, _GLCanvas,
-								_GLContext } } ) ->
+			opengl_base_state={ _GLStatus=uninitialised, _SecondGLCanvas,
+								_SecondGLContext } } ) ->
 
-	trace_utils:debug_fmt( "Test GL canvas ~w to be repainted, "
-		"however OpenGL is not initialised yet.", [ GLCanvas ] ),
+	%trace_utils:debug_fmt( "Test GL canvas ~w to be repainted, "
+	%   "however OpenGL is not initialised yet.", [ GLCanvas ] ),
 
 	{ _MaybeAppEventPair=undefined, AppGUIState };
 
@@ -821,8 +838,8 @@ test_onRepaintNeeded_driver( _Elements=[ GLCanvas, _GLCanvasId, _EventContext ],
 								_GLContext },
 			app_specific_info=TestSpecificInfo } ) ->
 
-	trace_utils:debug_fmt( "Test GL canvas ~w to be repainted, "
-		"which can be done as OpenGL is already initialised.", [ GLCanvas ] ),
+	%trace_utils:debug_fmt( "Test GL canvas ~w to be repainted, "
+	%   "which can be done as OpenGL is already initialised.", [ GLCanvas ] ),
 
 	basic_utils:assert_equal( GLCanvas, SameGLCanvas ),
 

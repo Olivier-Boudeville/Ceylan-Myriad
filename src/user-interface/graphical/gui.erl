@@ -167,7 +167,7 @@
 	{ 'id_allocator_pid', id_allocator_pid() },
 
 	% The main, top-level window (if any; generally a frame) of the application:
-	{ 'top_level_window', maybe( window() ) },
+	{ 'top_level_window', maybe( top_level_window() ) },
 
 	% PID of the MyriadGUI main event loop:
 	{ 'loop_pid', pid() },
@@ -372,13 +372,22 @@
 		  set_font/2, set_font/3,
 		  set_sizer/2, add_stretch_spacer/1, layout/1, fit_to_sizer/2,
 		  create_splitter/4, create_splitter/5, set_unique_pane/2,
-		  show/1, hide/1, is_maximised/1, maximize/1, set_title/2,
+		  show/1, hide/1,
 		  get_focused/0, set_focus/1,
 		  get_size/1, get_client_size/1,
 		  get_best_size/1, set_client_size/2, fit/1,
 		  maximise_in_parent/1, sync/1, enable_repaint/1,
 		  lock_window/1, unlock_window/1,
 		  destruct_window/1, destruct_window/2 ]).
+
+
+% The top-level window is a base class common to frames and dialogs.
+-export([ set_title/2, get_title/1, set_icon/2,
+		  center_on_screen/1, center_on_screen/2,
+		  is_maximised/1, maximize/1,
+		  is_fullscreen/1, set_fullscreen/2,
+		  is_active/1 ]).
+
 
 
 % Frames:
@@ -398,7 +407,7 @@
 		  create_top_level_frame/4,
 		  create_frame/0, create_frame/1, create_frame/2, create_frame/3,
 		  create_frame/4, create_frame/6,
-		  set_icon/2, create_toolbar/1, create_toolbar/3, set_toolbar/2,
+		  create_toolbar/1, create_toolbar/3, set_toolbar/2,
 		  destruct_frame/1 ]).
 
 
@@ -590,6 +599,10 @@
 % an horizontal one means left to right, for example.
 
 
+-type direction() :: orientation() | 'both'.
+% A direction, for example to maximise a widget in a container.
+
+
 -type fps() :: count().
 % Number of frames per second.
 %
@@ -690,8 +703,10 @@
 
 
 
--type top_level_window() :: window().
+-type top_level_window() :: wxTopLevelWindow:wxTopLevelWindow().
 % A top-level (application-wide) window.
+%
+% Typically a frame (including any main one) or a dialog.
 
 
 -type splitter_window() :: wxSplitterWindow:wxSplitterWindow().
@@ -1267,7 +1282,7 @@
 			   length/0, width/0, height/0, aspect_ratio/0, dimensions/0,
 			   any_length/0, any_width/0, any_height/0,
 			   coordinate/0, point/0, position/0, size/0,
-			   orientation/0, fps/0, id/0,
+			   orientation/0, direction/0, fps/0, id/0,
 
 			   model_pid/0, view_pid/0, controller_pid/0,
 			   object_type/0, wx_object_type/0,
@@ -2503,6 +2518,7 @@ show_fix() ->
 	timer:sleep( 10 ).
 	%ok.
 
+
 % @doc Hides the specified window.
 %
 % Returns whether anything had to be done.
@@ -2510,24 +2526,6 @@ show_fix() ->
 -spec hide( window() ) -> boolean().
 hide( Window ) ->
 	wxWindow:show( Window, [ { show, false } ] ).
-
-
-% @doc Tells whether the specified top-level window is maximised.
--spec is_maximised( top_level_window() ) -> boolean().
-is_maximised( TopLevelWindow ) ->
-	wxTopLevelWindow:isMaximized( TopLevelWindow ).
-
-
-% @doc Maximises the specified top-level window.
--spec maximize( top_level_window() ) -> void().
-maximize( TopLevelWindow ) ->
-	wxTopLevelWindow:maximize( TopLevelWindow ).
-
-
-% @doc Sets the title of the specified top-level window.
--spec set_title( top_level_window(), title() ) -> void().
-set_title( TopLevelWindow, Title ) ->
-	wxTopLevelWindow:setTitle( TopLevelWindow, Title ).
 
 
 
@@ -2745,6 +2743,96 @@ destruct_window( Window, GUIEnvPid ) ->
 
 
 
+% Top-level window section.
+
+
+% @doc Sets the title of the specified top-level window.
+-spec set_title( top_level_window(), title() ) -> void().
+set_title( TopLevelWindow, Title ) ->
+	wxTopLevelWindow:setTitle( TopLevelWindow, Title ).
+
+
+% @doc Returns the title of the specified top-level window.
+-spec get_title( top_level_window() ) -> title().
+get_title( TopLevelWindow ) ->
+	wxTopLevelWindow:getTitle( TopLevelWindow ).
+
+
+% @doc Sets the icon of the specified top-level window.
+-spec set_icon( top_level_window(), file_path() ) -> void().
+set_icon( TopLvlWin, IconPath ) ->
+
+	% Supported image formats documented as being only BMP by default, yet test
+	% on PNG succeeded.
+
+	% Current no wx_image:initAllImageHandlers/* (for other formats than BMP),
+	% just wx_image:initStandardHandlers/0.
+
+	% Apparently 'Icon = wxIcon:new( IconPath ),' could have sufficed:
+	Img = wxImage:new( IconPath ),
+	Bitmap = wxBitmap:new( Img ),
+	Icon = wxIcon:new(),
+	wxIcon:copyFromBitmap( Icon, Bitmap ),
+
+	wxTopLevelWindow:setIcon( TopLvlWin, Icon ).
+
+
+% @doc Centers the specified top-level window on screen.
+-spec center_on_screen( top_level_window() ) -> void().
+center_on_screen( TopLvlWin ) ->
+	wxTopLevelWindow:centerOnScreen( TopLvlWin ).
+
+
+% @doc Centers the specified top-level window on screen, according to the
+% specified orientation(s).
+%
+-spec center_on_screen( top_level_window(), orientation() ) -> void().
+center_on_screen( TopLvlWin, Orientation ) ->
+	wxTopLevelWindow:centerOnScreen( TopLvlWin,
+		to_wx_orientation( Orientation ) ).
+
+
+% @doc Tells whether the specified top-level window is maximised.
+-spec is_maximised( top_level_window() ) -> boolean().
+is_maximised( TopLevelWindow ) ->
+	wxTopLevelWindow:isMaximized( TopLevelWindow ).
+
+
+% @doc Maximises the specified top-level window.
+-spec maximize( top_level_window() ) -> void().
+maximize( TopLevelWindow ) ->
+	wxTopLevelWindow:maximize( TopLevelWindow ).
+
+
+
+% @doc Returns whether the specified top-level window is fullscreen.
+-spec is_fullscreen( top_level_window() ) -> boolean().
+is_fullscreen( TopLvlWin ) ->
+	wxTopLevelWindow:isFullScreen( TopLvlWin ).
+
+
+% @doc Shows the specified top-level window to fullscreen (if true) or restores
+% it to its normal state (if false).
+%
+% Showing a window full screen also actually shows the window if it is not
+% already shown.
+%
+% Returns (supposedly) whether the operation succeeded.
+%
+-spec set_fullscreen( top_level_window(), boolean() ) -> void().
+set_fullscreen( TopLvlWin, ForceFullscreen ) ->
+	wxTopLevelWindow:showFullScreen( TopLvlWin, ForceFullscreen ).
+
+
+% @doc Returns whether the specified top-level window is currently active, that
+% is if the user is currently interacting with it.
+%
+-spec is_active( top_level_window() ) -> boolean().
+is_active( TopLvlWin ) ->
+	wxTopLevelWindow:isActive( TopLvlWin ).
+
+
+
 % Frame section.
 %
 % A frame is a window whose size and position can (usually) be changed by the
@@ -2875,26 +2963,6 @@ create_frame( Title, Position, Size, Style, Id, Parent ) ->
 	ActualParent = to_wx_parent( Parent ),
 
 	wxFrame:new( ActualParent, ActualId, Title, Options ).
-
-
-
-% @doc Sets the icon of the specified (main) frame.
--spec set_icon( frame(), file_path() ) -> void().
-set_icon( Frame, IconPath ) ->
-
-	% Supported image formats documented as being only BMP by default, yet test
-	% on PNG succeeded.
-
-	% Current no wx_image:initAllImageHandlers/* (for other formats than BMP),
-	% just wx_image:initStandardHandlers/0.
-
-	% Apparently 'Icon = wxIcon:new( IconPath ),' could have sufficed:
-	Img = wxImage:new( IconPath ),
-	Bitmap = wxBitmap:new( Img ),
-	Icon = wxIcon:new(),
-	wxIcon:copyFromBitmap( Icon, Bitmap ),
-
-	wxTopLevelWindow:setIcon( Frame, Icon ).
 
 
 
