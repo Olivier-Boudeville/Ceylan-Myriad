@@ -3794,7 +3794,7 @@ split_after_prefix( _Prefix, _String ) ->
 
 
 
-% @doc Splits the specified string before specified suffix and returns the
+% @doc Splits the specified string before the specified suffix, and returns the
 % leading part, otherwise returns that the suffix was not found.
 %
 % For example: split_before_suffix("baz.", "Foobar is baz.") returns "Foobar is
