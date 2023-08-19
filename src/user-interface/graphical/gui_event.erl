@@ -121,6 +121,8 @@
 		  default_onResized_driver/2, default_onButtonClicked_driver/2,
 		  default_onKeyPressed_driver/2, default_onWindowClosed_driver/2,
 
+		  get_base_application_event_specs/0,
+
 		  enable_opengl/3,
 		  get_application_event/1,
 		  get_maybe_application_event/1, get_maybe_application_event/2,
@@ -152,6 +154,10 @@
 % For wx headers:
 -include("gui_internal_defines.hrl").
 
+
+% For key/scan codes:
+-include("ui_keyboard_keycodes.hrl").
+-include("ui_keyboard_scancodes.hrl").
 
 
 -type event_driver_table() :: table( event_type(), event_driver() ).
@@ -616,7 +622,9 @@
 
 
 
--type application_event() :: 'quit_requested'.
+-type application_event() :: 'quit_requested'
+						   | 'toggle_fullscreen'
+						   | term().
 % The higher-level, application events.
 
 
@@ -1073,7 +1081,7 @@ process_event_message( { resolveBackendId, BackendId, SenderPid },
 
 		undefined ->
 			case gui_generated:get_maybe_first_for_menu_item_id(
-				   BackendId ) of
+					BackendId ) of
 
 				undefined ->
 					bijective_table:get_maybe_first_for( BackendId, NameTable );
@@ -2273,9 +2281,9 @@ match( _FirstGUIObject, _SecondGUIObject ) ->
 %
 % Refer to create_app_gui_state/3 for further details.
 %
--spec create_app_gui_state( [ user_event_spec() ] ) -> app_gui_state().
-create_app_gui_state( UserEventSpecs ) ->
-	create_app_gui_state( UserEventSpecs, _MaybeOpenGLBaseInfo=undefined ).
+-spec create_app_gui_state( [ application_event_spec() ] ) -> app_gui_state().
+create_app_gui_state( AppEventSpecs ) ->
+	create_app_gui_state( AppEventSpecs, _MaybeOpenGLBaseInfo=undefined ).
 
 
 % @doc Returns a full, GUI-related applicative state to be kept around, notably
@@ -2286,10 +2294,10 @@ create_app_gui_state( UserEventSpecs ) ->
 %
 % Refer to create_app_gui_state/3 for further details.
 %
--spec create_app_gui_state( [ user_event_spec() ],
+-spec create_app_gui_state( [ application_event_spec() ],
 							maybe( opengl_base_info() ) ) -> app_gui_state().
-create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo ) ->
-	create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo,
+create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo ) ->
+	create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
 						  _MaybeAppSpecificInfo=undefined ).
 
 
@@ -2306,9 +2314,9 @@ create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo ) ->
 %  - keys will be searched first by scancodes, then keycodes, and regardless of
 %  the (focused) widget that reports them
 %
--spec create_app_gui_state( [ user_event_spec() ], maybe( opengl_base_info() ),
-							maybe( any() ) ) -> app_gui_state().
-create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo,
+-spec create_app_gui_state( [ application_event_spec() ],
+			maybe( opengl_base_info() ), maybe( any() ) ) -> app_gui_state().
+create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
 					  MaybeAppSpecificInfo ) ->
 
 	EventDriverTable = get_default_event_driver_table(),
@@ -2325,7 +2333,7 @@ create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo,
 
 	end,
 
-	create_user_event_reg( UserEventSpecs,
+	register_app_event_spec( AppEventSpecs,
 		#app_gui_state{ event_driver_table=EventDriverTable,
 						basic_event_table=BlankTable,
 						button_table=BlankTable,
@@ -2336,13 +2344,13 @@ create_app_gui_state( UserEventSpecs, MaybeOpenGLBaseInfo,
 
 
 % (helper)
-create_user_event_reg( _UserEventSpecs=[], AppGUIState ) ->
+register_app_event_spec( _AppEventSpecs=[], AppGUIState ) ->
 	AppGUIState;
 
-create_user_event_reg( _UserEventSpecs=[ { AppEvent, UserEvents } | T ],
+register_app_event_spec( _AppEventSpecs=[ { AppEvent, UserEvents } | T ],
 					   AppGUIState ) ->
 	NewAppGUIState = register_user_events( UserEvents, AppEvent, AppGUIState ),
-	create_user_event_reg( T, NewAppGUIState ).
+	register_app_event_spec( T, NewAppGUIState ).
 
 
 
@@ -2691,6 +2699,9 @@ default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 
 % @doc The default event driver for the onKeyPressed (user) event type.
 %
+% It looks up the scancode and keycode tables in order to map key events to any
+% user-defined application event.
+%
 % Its type is event_driver().
 %
 -spec default_onKeyPressed_driver( event_elements(),
@@ -2772,6 +2783,29 @@ default_onWindowClosed_driver(
 
 	end.
 
+
+
+% @doc Returns usual, basic defaults in terms of application event
+% specification, that is how user events shall be abstracted out in terms of
+% (higher-level) application events.
+%
+% Corresponds to reasonable defaults for the first parameter of the
+% create_app_gui_state/* functions.
+%
+-spec get_base_application_event_specs() -> [ application_event_spec() ].
+get_base_application_event_specs() ->
+
+	% - key "f" shall toggle fullscreen
+	% - key "q" or Escape, or closing the (main) window shall quit the
+	% application
+
+	[ % Trigger the following app-level event...
+		{ toggle_fullscreen, [ { keycode_pressed, ?MYR_K_f } ] },
+		{ quit_requested,
+		  % ... whenever any of these user-level events happens:
+		  [ { keycode_pressed, ?MYR_K_q },
+			{ scancode_pressed, ?MYR_SCANCODE_ESCAPE },
+			window_closed ] } ].
 
 
 % @doc Enables OpenGL in the specified application GUI state.

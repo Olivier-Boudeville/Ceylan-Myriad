@@ -52,6 +52,28 @@
 -export([ create_id_allocator/0 ]).
 
 
+% Usage notes:
+%
+% There are two main kinds of identifiers, designated collectively as gui:id():
+%
+% - gui:name_id(), the higher-level ones, introduced by MyriadGUI, which are
+% atoms (e.g. select_color_button) and that may be defined by the user
+%
+% - gui:backend_id(): the native, backend-specific (wx) ones, that are integers
+% (e.g. 5153); while they can be used directly, MyriadGUI promotes more the
+% native_id() ones
+%
+% Backend identifiers are either allocated dynamically, each time a new widget
+% is created, or correspond to static, stock identifiers.
+%
+% Dynamic identifiers are managed thanks to a bijective table that is kept up to
+% date by the MyriadGUI main loop, thanks to this gui_id module.
+%
+% Static identifiers are managed thanks to a build-time bijective table, thanks
+% to the gui_constants module.
+
+
+
 -type name_id() :: atom().
 % A higher-level, user-defined identifier of a widget (e.g. 'my_file_menu_id'),
 % as a name (an atom internally translated transparently to a relevant wx_id()).
@@ -69,14 +91,14 @@
 % Defined here so that no user-level datastructure (like the event_context
 % public record) bears any trace of any GUI actual backend.
 %
-% 'undefined' means that any identifier may be used, as chosen by the backend
-% rather than by the user.
+% An 'undefined' value means that any identifier may be used, as chosen by the
+% backend rather than by the user.
 %
 % May not be defined if the actual event comes from MyriadGUI itself (and thus
 % not wx).
 %
 % As a consequence, such an identifier can be 'undefined', 'my_action_id', 147,
-% and thus shall be printed as ~w.
+% and thus shall better be printed as "~w" (see id_to_string/1).
 
 
 -type button_id() :: id().
@@ -91,8 +113,8 @@
 % Myriad-specific instance identifier, corresponding a reference in the internal
 % MyriadGUI type table.
 %
-% This is a different identifier from id() or backend_id(): it is not a
-% standalone, user-level symbol to be used to designate directly an instance,
+% This is a different identifier from id(), name_id() or backend_id(): it is not
+% a standalone, user-level symbol to be used to designate directly an instance,
 % but a part of its internal technical reference (similar in spirit to the
 % integer in wx object references, like {wx_ref,35,wxFrame,[]}).
 

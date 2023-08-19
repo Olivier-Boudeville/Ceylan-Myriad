@@ -616,18 +616,12 @@ init_test_gui() ->
 											 panel=Panel,
 											 image=Image },
 
-	UserEventSpecs = [ % Trigger the following app-level event...
-		{ toggle_fullscreen, [ { keycode_pressed, ?MYR_K_f } ] },
-		{ quit_requested,
-		  % ... whenever any of these user-level events happens:
-		  [ { keycode_pressed, ?MYR_K_q },
-			{ scancode_pressed, ?MYR_SCANCODE_ESCAPE },
-			window_closed ] } ],
-
 	% Setting the focus on the panel would work as well:
 	gui:set_focus( GLCanvas ),
 
-	InitAppGUIState = gui_event:create_app_gui_state( UserEventSpecs,
+	AppEventSpecs = gui_event:get_base_application_event_specs(),
+
+	InitAppGUIState = gui_event:create_app_gui_state( AppEventSpecs,
 		GLBaseInfo, TestSpecificGUIInfo ),
 
 	% Overrides the default drivers with ours:
@@ -644,7 +638,7 @@ init_test_gui() ->
 % @doc The main loop of this test, driven by the receiving of MyriadGUI
 % messages.
 %
--spec gui_main_loop( app_gui_state() ) -> no_return().
+-spec gui_main_loop( app_gui_state() ) -> void().
 gui_main_loop( AppGUIState ) ->
 
 	%trace_utils:debug( "Main loop." ),
@@ -824,7 +818,7 @@ test_onRepaintNeeded_driver(
 		_Elements=[ _GLCanvas, _GLCanvasId, _EventContext ],
 		AppGUIState=#app_gui_state{
 			opengl_base_state={ _GLStatus=uninitialised, _SecondGLCanvas,
-								_SecondGLContext } } ) ->
+								_GLContext } } ) ->
 
 	%trace_utils:debug_fmt( "Test GL canvas ~w to be repainted, "
 	%   "however OpenGL is not initialised yet.", [ GLCanvas ] ),
