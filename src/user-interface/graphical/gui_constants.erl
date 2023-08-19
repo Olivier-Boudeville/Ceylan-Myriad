@@ -37,6 +37,7 @@
 -export([ get_object_type_topic_spec/0, get_window_style_topic_spec/0,
 		  get_frame_style_topic_spec/0, get_button_style_topic_spec/0,
 		  get_sizer_flag_topic_spec/0, get_menu_item_id_topic_spec/0,
+		  get_button_id_topic_spec/0,
 		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
 		  get_menu_item_kind_topic_spec/0, get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0, get_event_type_topic_spec/0,
@@ -54,10 +55,11 @@ list_topic_spec_functions() ->
 	[ get_object_type_topic_spec, get_window_style_topic_spec,
 	  get_frame_style_topic_spec, get_button_style_topic_spec,
 	  get_sizer_flag_topic_spec, get_menu_item_id_topic_spec,
-	  get_bitmap_id_topic_spec, get_icon_name_id_topic_spec,
-	  get_menu_item_kind_topic_spec, get_status_bar_style_topic_spec,
-	  get_toolbar_style_topic_spec, get_event_type_topic_spec,
-	  get_direction_topic_spec, get_orientation_topic_spec ].
+	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
+	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
+	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
+	  get_event_type_topic_spec, get_direction_topic_spec,
+	  get_orientation_topic_spec ].
 
 
 
@@ -97,8 +99,12 @@ list_topic_spec_functions() ->
 
 -type window_style_opt() :: gui:window_style_opt().
 -type frame_style_opt() :: gui:frame_style_opt().
--type button_style_opt() :: gui:button_style_opt().
+
 -type sizer_flag_opt() :: gui:sizer_flag_opt().
+
+-type button_id() :: gui:button_id().
+-type button_style_opt() :: gui:button_style_opt().
+
 -type menu_item_id() :: gui:menu_item_id().
 -type menu_item_kind() :: gui:menu_item_kind().
 
@@ -283,8 +289,20 @@ get_sizer_flag_topic_spec() ->
 %
 % Converts wx standard menu item identifiers.
 %
+% Note that the same numerical identifiers also apply to buttons (button_id/0).
+%
+% Refer to https://docs.wxwidgets.org/3.0/page_stockitems.html for their list.
+%
 -spec get_menu_item_id_topic_spec() -> topic_spec( menu_item_id(), wx_id() ).
 get_menu_item_id_topic_spec() ->
+
+	% Some may be lacking (at least on some platforms, like GTK3), in which case
+	% neither their icons/images nor their standard label would be displayed
+	% (thus resulting in fully-blank entries); they are commented as "ML"
+	% (Maybe-Lacking); those which have been known to be lacking but are not
+	% anymore, at least on some platforms, are between parentheses.
+	%
+	% Refer also to wx-x.y/include/wx.hrl for their wx support.
 
 	Entries = [
 		{ new_menu_item,             ?wxID_NEW               },
@@ -292,11 +310,14 @@ get_menu_item_id_topic_spec() ->
 		{ close_menu_item,           ?wxID_CLOSE             },
 		{ save_menu_item,            ?wxID_SAVE              },
 		{ save_as_menu_item,         ?wxID_SAVEAS            },
-		{ revert_to_saved_menu_item, ?wxID_REVERT_TO_SAVED   },
+		{ revert_to_saved_menu_item, ?wxID_REVERT_TO_SAVED   }, % (ML)
 		{ undelete_menu_item,        ?wxID_UNDELETE          },
 		{ print_menu_item,           ?wxID_PRINT             },
+
+		% Print preview:
 		{ preview_menu_item,         ?wxID_PREVIEW           },
-		{ revert_menu_item,          ?wxID_REVERT            },
+
+		{ revert_menu_item,          ?wxID_REVERT            }, % ML
 		{ edit_menu_item,            ?wxID_EDIT              },
 		{ file_menu_item,            ?wxID_FILE              },
 		{ properties_menu_item,      ?wxID_PROPERTIES        },
@@ -306,8 +327,11 @@ get_menu_item_id_topic_spec() ->
 		{ delete_menu_item,          ?wxID_DELETE            },
 		{ find_menu_item,            ?wxID_FIND              },
 		{ select_all_menu_item,      ?wxID_SELECTALL         },
+
+		% Find and replace:
 		{ replace_menu_item,         ?wxID_REPLACE           },
-		{ replace_all_menu_item,     ?wxID_REPLACE_ALL       },
+
+		{ replace_all_menu_item,     ?wxID_REPLACE_ALL       }, % ML
 		{ clear_menu_item,           ?wxID_CLEAR             },
 		{ ok_menu_item,              ?wxID_OK                },
 		{ cancel_menu_item,          ?wxID_CANCEL            },
@@ -334,10 +358,12 @@ get_menu_item_id_topic_spec() ->
 		{ last_menu_item,            ?wxID_LAST              },
 		{ jump_to_menu_item,         ?wxID_JUMP_TO           },
 		{ info_menu_item,            ?wxID_INFO              },
-		{ zoom_factor_one,           ?wxID_ZOOM_100          },
-		{ zoom_factor_fit,           ?wxID_ZOOM_FIT          },
-		{ zoom_factor_in,            ?wxID_ZOOM_IN           },
-		{ zoom_factor_out,           ?wxID_ZOOM_OUT          },
+
+		{ zoom_factor_one_menu_item, ?wxID_ZOOM_100          }, % (ML)
+		{ zoom_factor_fit_menu_item, ?wxID_ZOOM_FIT          }, % (ML)
+		{ zoom_factor_in_menu_item,  ?wxID_ZOOM_IN           }, % (ML)
+		{ zoom_factor_out_menu_item, ?wxID_ZOOM_OUT          }, % (ML)
+
 		{ undo_menu_item,            ?wxID_UNDO              },
 		{ redo_menu_item,            ?wxID_REDO              },
 		{ help_menu_item,            ?wxID_HELP              },
@@ -346,10 +372,80 @@ get_menu_item_id_topic_spec() ->
 		{ floppy_menu_item,          ?wxID_FLOPPY            },
 		{ hard_disk_menu_item,       ?wxID_HARDDISK          },
 		{ network_menu_item,         ?wxID_NETWORK           },
+
+		{ bold_menu_item,            ?wxID_BOLD              }, % ML
+		{ cdrom_menu_item,           ?wxID_CDROM             }, % ML
+		{ indent_menu_item,          ?wxID_INDENT            }, % ML
+		{ italic_menu_item,          ?wxID_ITALIC            }, % ML
+
+		{ justify_center_menu_item,  ?wxID_JUSTIFY_CENTER    }, % ML
+		{ justify_fill_menu_item,    ?wxID_JUSTIFY_FILL      }, % ML
+		{ justify_left_menu_item,    ?wxID_JUSTIFY_LEFT      }, % ML
+		{ justify_right_menu_item,   ?wxID_JUSTIFY_RIGHT     }, % ML
+
+		{ sort_ascending_menu_item,  ?wxID_SORT_ASCENDING    }, % ML
+		{ sort_descending_menu_item, ?wxID_SORT_DESCENDING   }, % ML
+
+		{ spell_check_menu_item,     ?wxID_SPELL_CHECK       }, % ML
+
+		{ strikethrough_menu_item,   ?wxID_STRIKETHROUGH     }, % ML
+
+		{ underline_menu_item,       ?wxID_UNDERLINE         }, % ML
+		{ unindent_menu_item,        ?wxID_UNINDENT          }, % ML
+
+
+
+		% Quit:
 		{ exit_menu_item,            ?wxID_EXIT              },
+
+		% (blank)
 		{ undefined,                 ?wxID_ANY               } ],
 
 	{ menu_item_id, Entries, _ElemLookup=maybe }.
+
+
+
+% @doc Returns the two-way maybe-conversion specification for the 'button_id'
+% topic.
+%
+% Converts wx standard menu item identifiers.
+%
+% Note that the same numerical identifiers also apply to menu items
+% (menu_item_id/0).
+%
+-spec get_button_id_topic_spec() -> topic_spec( button_id(), wx_id() ).
+get_button_id_topic_spec() ->
+
+	{ menu_item_id, MenuEntries, ElemLookup } = get_menu_item_id_topic_spec(),
+
+	ButtonEntries = [
+		case MenuId of
+
+			% Special case:
+			undefined ->
+				{ MenuId, WxId };
+
+			% For example sort_ascending_menu_item:
+			_ ->
+				LabelStr = text_utils:atom_to_string( MenuId ),
+
+				case text_utils:split_before_suffix( _Suffix="_menu_item",
+													 LabelStr ) of
+
+					no_suffix ->
+						throw( { invalid_menu_id, MenuId, WxId } );
+
+					LeadingStr ->
+						ButtonId = text_utils:atom_format( "~ts_button",
+							[ LeadingStr ] ),
+						{ ButtonId, WxId }
+
+				end
+
+		end || { MenuId, WxId } <- MenuEntries ],
+
+	{ button_id, ButtonEntries, ElemLookup }.
+
 
 
 

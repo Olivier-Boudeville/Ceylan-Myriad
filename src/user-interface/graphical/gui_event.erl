@@ -722,7 +722,9 @@
 	% The next backend identifier that will be allocated.
 
 	id_name_alloc_table :: id_name_alloc_table()
-	% A bijective table to convert between name identifiers and backend ones.
+	% A bijective table to convert between name identifiers and backend ones
+	% (stored directly here, as the name allocation is directly managed by the
+	% main loop, rather than by a dedicated gui_id allocator process).
 
 
 	% List of the MyriadGUI objects that shall be adjusted after a show:
@@ -942,6 +944,10 @@ process_event_messages( LoopState ) ->
 		trace_utils:debug_fmt( "[event] GUI main loop ~w waiting "
 							   "for event messages...", [ self() ] ) ),
 
+	cond_utils:if_defined( myriad_debug_gui_id,
+		trace_utils:debug_fmt( "Name table: ~ts", [ bijective_table:to_string(
+			LoopState#loop_state.id_name_alloc_table ) ] ) ),
+
 	% Special management of repaint requests, to avoid useless repaintings.
 	%
 	% Indeed, even if having registered (with wxEvtHandler:connect/3) a panel
@@ -1037,20 +1043,52 @@ process_event_message( { declareNameId, NameId, SenderPid },
 		LoopState=#loop_state{ id_next=NextId,
 							   id_name_alloc_table=NameTable } ) ->
 
-	SenderPid ! { notifyingAssignedId, NextId },
+	{ AllocatedId, NewNextId, NewNameTable } =
+		gui_id:declare_id( NameId, NextId, NameTable ),
 
-	NewNameTable = bijective_table:add_new_entry( NameId, NextId, NameTable ),
+	%trace_utils:debug_fmt( "Allocated to name '~ts': ~ts.",
+	%                       [ NameId, gui_id:id_to_string( AllocatedId ) ] ),
 
-	LoopState#loop_state{ id_next=NextId+1,
+	SenderPid ! { notifyingAssignedId, AllocatedId },
+
+	LoopState#loop_state{ id_next=NewNextId,
 						  id_name_alloc_table=NewNameTable };
 
 
 process_event_message( { resolveNameId, NameId, SenderPid },
 		LoopState=#loop_state{ id_name_alloc_table=NameTable } ) ->
 
-	Id = bijective_table:get_second_for( NameId, NameTable ),
+	BackendId = bijective_table:get_second_for( NameId, NameTable ),
 
-	SenderPid ! { notifyResolvedIdentifier, Id },
+	SenderPid ! { notifyResolvedIdentifier, BackendId },
+
+	LoopState;
+
+
+process_event_message( { resolveBackendId, BackendId, SenderPid },
+		LoopState=#loop_state{ id_name_alloc_table=NameTable } ) ->
+
+	MaybeNameId =
+			case gui_generated:get_maybe_first_for_button_id( BackendId ) of
+
+		undefined ->
+			case gui_generated:get_maybe_first_for_menu_item_id(
+				   BackendId ) of
+
+				undefined ->
+					bijective_table:get_maybe_first_for( BackendId, NameTable );
+
+				NameIdFromMenu ->
+					NameIdFromMenu
+
+			end;
+
+		NameIdFromButton ->
+			NameIdFromButton
+
+	end,
+
+	SenderPid ! { notifyResolvedBackendIdentifier, MaybeNameId },
 
 	LoopState;
 
@@ -1536,6 +1574,9 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 			% Converting to a MyriadGUI event to look-up any subscribers:
 			EventType = gui_wx_backend:from_wx_event_type( WxEventType ),
 
+			% We could try here to convert any backend identifier in the event
+			% term into a MyriadGUI (atom) identifier.
+
 			case list_table:lookup_entry( EventType, DispatchTable ) of
 
 				key_not_found ->
@@ -1857,7 +1898,10 @@ register_in_event_loop_tables( _SubscribedEvents=[
 		DefaultSubscriberDesignator, LoopState ) ->
 
 	EventTypes = list_utils:ensure_atoms( EventTypeMaybeList ),
+
+	% Objects, not identifiers for example:
 	GUIObjects = list_utils:ensure_tuples( GUIObjectMaybeList ),
+
 	SubOpts = list_utils:ensure_proplist( SubscriptionMaybeOpts ),
 	Subscribers = list_utils:ensure_pids( SubscriberMaybeList ),
 

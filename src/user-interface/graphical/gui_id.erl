@@ -41,7 +41,8 @@
 -export([ get_first_allocatable_id/0, get_initial_allocation_table/0,
 		  get_id_allocator_pid/0,
 		  allocate_id/0, allocate_id/1, allocate_ids/1, allocate_ids/2,
-		  declare_id/1, declare_id/2, declare_ids/1, declare_ids/2,
+		  declare_id/1, declare_id/2, declare_id/3,
+		  declare_ids/1, declare_ids/2,
 		  resolve_id/1, resolve_id/2, resolve_ids/1, resolve_ids/2,
 		  try_resolve_id/1, try_resolve_id/2,
 		  id_to_string/1 ]).
@@ -109,6 +110,12 @@
 -include("gui_internal_defines.hrl").
 
 
+% The smallest (backend-specific) identifier that can be allocated by MyriadGUI,
+% so that the first identifier to be returned will typically be 10000:
+
+-define( min_allocated_id, ?wxID_HIGHEST + 4001 ).
+
+
 % Identifier allocation.
 %
 % The allocation server holds:
@@ -142,8 +149,23 @@
 %
 -spec get_first_allocatable_id() -> backend_id().
 get_first_allocatable_id() ->
-	% So that the first identifier to be returned will typically be 10000:
-	?wxID_HIGHEST + 4001.
+	% Just a sanity check:
+	cond_utils:if_defined( myriad_debug_gui_id,
+		begin
+			MaxStandard = lists:max(
+				[ gui_wx_backend:to_wx_menu_item_id( N )
+					|| N <- gui:get_standard_item_names() ] ),
+
+			% Typically 5154 vs highest bound 5999:
+			%trace_utils:debug_fmt(
+			%   "Maximum standard ID: ~B; highest bound: ~B",
+			%   [ MaxStandard, Highest ] ),
+
+			MaxStandard >= ?wxID_HIGHEST andalso
+				throw( { invalid_standard_identifiers, MaxStandard, Highest } )
+		end ),
+
+	?min_allocated_id.
 
 
 
@@ -152,10 +174,15 @@ get_first_allocatable_id() ->
 get_initial_allocation_table() ->
 
 	% Statically known name/id associations:
-	InitialEntries = [ { N, gui_wx_backend:to_wx_menu_item_id( N ) }
-								|| N <- gui:get_standard_item_names() ],
+	%
+	% (seems to be a bad idea as it would prevent to create a standard item
+	% afterwards)
+	%
+	%InitialEntries = [ { N, gui_wx_backend:to_wx_menu_item_id( N ) }
+	%                           || N <- gui:get_standard_item_names() ],
 
-	bijective_table:new( InitialEntries ).
+	%bijective_table:new( _InitialEntries ).
+	bijective_table:new().
 
 
 
@@ -167,8 +194,9 @@ get_initial_allocation_table() ->
 % Otherwise the user would have to hardcode its own identifiers (e.g. for menu
 % items), which is fragile and error-prone.
 %
-% Note that the standard name/id associations (typically the standard menu
-% items, like 'undo_menu_item') are reserved and automatically registered.
+% Note that the standard name/id associations (typically the standard buttons /
+% menu items, like 'zoom_factor_one' or 'undo_menu_item') are reserved and
+% automatically registered.
 %
 -spec create_id_allocator() -> no_return().
 create_id_allocator() ->
@@ -206,19 +234,30 @@ id_allocator_main_loop( NextId, NameTable ) ->
 		% For name identifiers:
 
 		{ declareNamedIdentifier, NameId, RequesterPid } ->
-			NewNameTable =
-				bijective_table:add_new_entry( NameId, NextId, NameTable ),
-			RequesterPid ! { notifyDeclaredIdentifier, NextId },
-			id_allocator_main_loop( NextId+1, NewNameTable );
+
+			{ AllocatedId, NewNextId, NewNameTable } =
+				declare_id( NameId, NextId, NameTable ),
+
+			trace_utils:debug_fmt( "Name '~ts' declared as ~B.",
+								   [ NameId, AllocatedId ] ),
+
+			RequesterPid ! { notifyDeclaredIdentifier, AllocatedId },
+			id_allocator_main_loop( NewNextId, NewNameTable );
 
 		{ declareNamedIdentifiers, NameIds, RequesterPid } ->
-			Count = length( NameIds ),
-			Ids = lists:seq( NextId, NextId+Count-1 ),
+			% Using here foldr to avoid a reverse of the accumulated ids:
+			{ FinalNextId, FinalNameTable, Ids } = lists:foldr(
+				fun( NameId, { AccNextId, AccNameTable, AccIds } ) ->
+					{ AllocatedId, NewNextId, NewNameTable } =
+						declare_id( NameId, AccNextId, AccNameTable ),
+					{ NewNextId, NewNameTable, [ AllocatedId | AccIds ] }
+
+				end,
+				_Acc0={ NextId, NameTable, _Ids=[] },
+				_List=NameIds ),
+
 			RequesterPid ! { notifyDeclaredIdentifiers, Ids },
-			NewEntries = lists:zip( NameIds, Ids ),
-			NewNameTable =
-				bijective_table:add_new_entries( NewEntries, NameTable ),
-			id_allocator_main_loop( NextId+Count, NewNameTable );
+			id_allocator_main_loop( FinalNextId, FinalNameTable );
 
 
 		{ resolveIdentifier, NameId, RequesterPid } ->
@@ -256,6 +295,44 @@ id_allocator_main_loop( NextId, NameTable ) ->
 
 		terminate ->
 			ok
+
+	end.
+
+
+
+% @doc Declares the specified name identifier, possibly enriching the name
+% allocation table, returning updated information.
+%
+-spec declare_id( name_id(), backend_id(), id_name_alloc_table() ) ->
+			{ name_id(), id_name_alloc_table() }.
+declare_id( NameId, NextId, NameTable ) ->
+
+	% As standard/stock identifiers do not have to be stored (thanks to the
+	% bijective table):
+	%
+	case gui_generated:get_maybe_second_for_button_id( NameId ) of
+
+		undefined ->
+			case gui_generated:get_maybe_second_for_menu_item_id( NameId ) of
+
+				undefined ->
+					% Neither a standard button or menu item name, hence id
+					% auto-allocated:
+					%
+					NewNameTable = bijective_table:add_new_entry( NameId,
+						NextId, NameTable ),
+
+					{ _AllocatedId=NextId, _NewNextId=NextId+1, NewNameTable };
+
+				MenuItemWxId ->
+					% Standard menu item name, hence no new identifier issued:
+					{ _AllocatedId=MenuItemWxId, _NewNextId=NextId, NameTable }
+
+			end;
+
+		ButtonWxId ->
+			% Standard button name, hence no allocation change:
+			{ _AllocatedId=ButtonWxId, _NewNextId=NextId, NameTable }
 
 	end.
 
@@ -345,6 +422,8 @@ declare_id( NameId ) ->
 	receive
 
 		{ notifyDeclaredIdentifier, AllocatedId } ->
+			%trace_utils:debug_fmt( "Name '~ts' declared as ~B.",
+			%                       [ NameId, AllocatedId ] ),
 			AllocatedId
 
 	end.

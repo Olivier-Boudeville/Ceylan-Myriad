@@ -345,28 +345,28 @@ start() ->
 	Position = auto,
 	ButtonSize = auto,
 	ButtonStyle = default,
-	ParentButton = LeftPanel,
+	ButtonParent = LeftPanel,
 
 	StartButton = gui:create_button( "Start resolution", Position, ButtonSize,
-		ButtonStyle, start_button_id, ParentButton ),
+		ButtonStyle, start_button_id, ButtonParent ),
 
 	IncButton = gui:create_button( "Increase timestep", Position, ButtonSize,
-		ButtonStyle, inc_button_id, ParentButton ),
+		ButtonStyle, inc_button_id, ButtonParent ),
 
 	DecButton = gui:create_button( "Decrease timestep", Position, ButtonSize,
-		ButtonStyle, dec_button_id, ParentButton ),
+		ButtonStyle, dec_button_id, ButtonParent ),
 
 	StopButton = gui:create_button( "Stop resolution", Position, ButtonSize,
-		ButtonStyle, stop_button_id, ParentButton ),
+		ButtonStyle, stop_button_id, ButtonParent ),
 
 	ClearButton = gui:create_button( "Clear phase space", Position, ButtonSize,
-		ButtonStyle, clear_button_id, ParentButton ),
+		ButtonStyle, clear_button_id, ButtonParent ),
 
 	ResetButton = gui:create_button( "Reset initial conditions", Position,
-		ButtonSize, ButtonStyle, reset_button_id, ParentButton ),
+		ButtonSize, ButtonStyle, reset_button_id, ButtonParent ),
 
 	QuitButton = gui:create_button( "Quit", Position, ButtonSize, ButtonStyle,
-		quit_button_id, ParentButton ),
+		quit_button_id, ButtonParent ),
 
 	Buttons = [ StartButton, IncButton, DecButton, StopButton, ClearButton,
 				ResetButton, QuitButton ],

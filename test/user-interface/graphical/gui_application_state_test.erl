@@ -26,11 +26,11 @@
 % Creation date: Wednesday, July 5, 2023.
 
 
-% @doc Test showcasing the use of the <b>user event registry</b>, to provide the
-% user with a generic main event loop, with built-in drivers that can be
+% @doc Test showcasing the use of the <b>application GUI state</b>, to provide
+% the user with a generic main event loop, with built-in drivers that can be
 % overridden at will.
 %
--module(gui_user_event_registry_test).
+-module(gui_application_state_test).
 
 
 % For run/0 export and al:
@@ -108,7 +108,7 @@ run_test_gui() ->
 
 	UserEventSpecs = [ { quit_requested, QuitEvents } ],
 
-	UserEventRegistry = gui_event:create_user_event_registry( UserEventSpecs ),
+	UserEventRegistry = gui_event:create_app_gui_state( UserEventSpecs ),
 
 	% Focus needed to receive events:
 	gui:set_focus( KeyPanel ),

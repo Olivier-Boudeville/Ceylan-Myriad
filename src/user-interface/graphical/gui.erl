@@ -105,6 +105,26 @@
 % See lorenz_test.erl as a full, executable usage example thereof.
 
 
+% Regarding accelerators:
+%
+% These are key shortcuts (mnemonics) associated to widgets such as buttons or
+% menu items.
+%
+% They are to be designated by prefixing the chosen accelerator character with
+% an ampersand ("&").
+%
+% At runtime:
+%  - holding Alt will underline all accelerator keys
+%  - holding Alt while pressing the (lowercase) key corresponding to an
+%  accelerator will activate the corresponding widget (e.g. the corresponding
+%  button will be clicked), providing that this accelerator key is bound exactly
+%  once in that window (otherwise no event will be generated); note that
+%  standard accelerator mappings collide (e.g. for "Find" and "Font")
+%
+% See also https://www.wxwidgets.org/docs/tutorials/using-mnemonics/.
+
+
+
 % Implementation notes:
 
 % This module used to rely on the gs module, whose API was quite simple and
@@ -377,6 +397,7 @@
 		  get_size/1, get_client_size/1,
 		  get_best_size/1, set_client_size/2, fit/1,
 		  maximise_in_parent/1, sync/1, enable_repaint/1,
+		  refresh/1, update/1,
 		  lock_window/1, unlock_window/1,
 		  destruct_window/1, destruct_window/2 ]).
 
@@ -425,7 +446,9 @@
 -export([ create_sizer/1, create_sizer_with_box/2,
 		  create_sizer_with_labelled_box/3, create_sizer_with_labelled_box/4,
 		  add_to_sizer/2, add_to_sizer/3, add_spacer_to_sizer/4,
-		  clear_sizer/1, clear_sizer/2 ]).
+		  clear_sizer/1, clear_sizer/2,
+
+		  create_grid_sizer/4 ]).
 
 
 
@@ -530,7 +553,7 @@
 -export([ create_gui_environment/1,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
 		  event_interception_callback/2,
-		  resolve_id/1 ]).
+		  resolve_id/1, unresolve_id/1 ]).
 
 
 % API for module generation:
@@ -601,6 +624,14 @@
 
 -type direction() :: orientation() | 'both'.
 % A direction, for example to maximise a widget in a container.
+
+-type row_count() :: count().
+% A number of rows.
+
+-type column_count() :: count().
+% A number of columns.
+
+
 
 
 -type fps() :: count().
@@ -745,6 +776,13 @@
 % A sizer should not be considered as a widget (e.g. it does not handle events),
 % it is just an helper component to compute the respective sizes of the widgets
 % that it registered.
+
+
+-type grid_sizer() :: wxGridSizer:wxGridSizer().
+% A grid sizer is a sizer which lays out its children in a two-dimensional table
+% with all table fields having the same size, i.e. the width of each field is
+% the width of the widest child, the height of each field is the height of the
+% tallest child.
 
 
 -type sizer_child() :: window() | sizer().
@@ -1039,7 +1077,14 @@
 -type font_option() :: gui_font:font_option().
 
 -type title() :: text().
+
 -type label() :: text().
+% A label, typically of a widget.
+%
+% Control characters can be used (e.g. "\n", "\t"), and accelerators (with a "&"
+% prefix).
+
+
 -type help_info() :: text().
 
 
@@ -1282,7 +1327,9 @@
 			   length/0, width/0, height/0, aspect_ratio/0, dimensions/0,
 			   any_length/0, any_width/0, any_height/0,
 			   coordinate/0, point/0, position/0, size/0,
-			   orientation/0, direction/0, fps/0, id/0,
+			   orientation/0, direction/0,
+			   row_count/0, column_count/0,
+			   fps/0, id/0,
 
 			   model_pid/0, view_pid/0, controller_pid/0,
 			   object_type/0, wx_object_type/0,
@@ -1294,7 +1341,8 @@
 			   frame/0, top_level_frame/0,
 			   panel/0,
 			   button/0, button_ref/0,
-			   sizer/0, sizer_child/0, sizer_item/0,
+			   sizer/0, grid_sizer/0,
+			   sizer_child/0, sizer_item/0,
 			   splitter/0, sash_gravity/0,
 			   status_bar/0, status_bar_style/0,
 
@@ -2687,6 +2735,35 @@ enable_repaint( Window ) ->
 	wxPaintDC:destroy( DC ).
 
 
+
+% @doc Causes this window, and all of its children recursively to be repainted
+% during the next event loop iteration.
+%
+% If you need to update the window immediately, use update/1 instead.
+%
+-spec refresh( window() ) -> void().
+refresh( Window ) ->
+	wxWindow:refresh( Window ).
+
+
+
+% @doc Repaints the invalidated area of the window and all of its children
+% recursively (this normally only happens when the flow of control returns to
+% the event loop).
+%
+% Note that this function does not invalidate any area of the window so nothing
+% happens if nothing has been invalidated (i.e. marked as requiring a
+% redraw).
+%
+% Use refresh/1 first if you want to "immediately" redraw the window
+% unconditionally.
+%
+-spec update( window() ) -> void().
+update( Window ) ->
+	wxWindow:update( Window ).
+
+
+
 % @doc Locks the specified window, so that direct access to its content can be
 % done, through the returned device context.
 %
@@ -3094,7 +3171,15 @@ destruct_panel( Panel ) ->
 
 % Button section.
 %
-% Note that the parent of a button must be a widget, not a sizer for example.
+% Note that:
+%
+%  - the parent of a button must be a widget (not a sizer for example)
+%
+%  - for a corresponding stock image/icon to be displayed within a button, its
+%  stock identifier shall of course be specified (e.g. 'about_button'), but,if
+%  specified, its label must also match (e.g. "About" or "&About") - otherwise
+%  no image will be added; specifying an empty label will set the stock one
+
 
 
 % @doc Creates a (labelled) button, with the specified parent.
@@ -3117,9 +3202,13 @@ create_button( Label, Id, Parent ) ->
 
 	Options = [ { label, Label } ],
 
-	%trace_utils:info_fmt( "Button options for ID #~w: ~p.", [ Id, Options ] ),
+	BackendId = declare_id( Id ),
 
-	wxButton:new( Parent, declare_id( Id ), Options ).
+	%trace_utils:debug_fmt( "Button options for ~ts (backend ~ts): ~p.",
+	% [ gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
+	%   Options ] ),
+
+	wxButton:new( Parent, BackendId, Options ).
 
 
 % @doc Creates (labelled) buttons, with their (single, common) parent specified.
@@ -3151,16 +3240,22 @@ create_button( Label, Position, Size, Style, Id, Parent ) ->
 				to_wx_size( Size ),
 				{ style, gui_wx_backend:button_style_to_bitmask( Style ) } ],
 
-	%trace_utils:info_fmt( "Button options for ID #~w: ~p.", [ Id, Options ] ),
+	BackendId = declare_id( Id ),
 
-	wxButton:new( Parent, declare_id( Id ), Options ).
+	%trace_utils:debug_fmt( "For button '~ts' (~ts), got ~ts. "
+	%   "Options: ~n ~p.",
+	%   [ Label, gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
+	%     Options ] ),
+
+	wxButton:new( Parent, BackendId, Options ).
 
 
 
 
 % Sizer section.
 %
-% Sizers correspond actually to wxBoxSizer (wxSizer is an abstract class).
+% Base sizers correspond actually to wxBoxSizer (wxSizer is an abstract class).
+% There also exist grid sizers.
 %
 % Their elements will be rendered in their addition order.
 
@@ -3242,7 +3337,7 @@ add_to_sizer( Sizer, Element ) ->
 -spec add_to_sizer( sizer(), sizer_child(), maybe_list( sizer_options() ) ) ->
 											sizer_item();
 				  ( sizer(), [ sizer_child() ],
-								maybe_list( sizer_options() ) ) -> void().
+					maybe_list( sizer_options() ) ) -> void().
 add_to_sizer( Sizer, _Element={ myriad_object_ref, myr_canvas, CanvasId },
 			  Options ) ->
 	get_main_loop_pid() ! { getPanelForCanvas, CanvasId, self() },
@@ -3288,6 +3383,19 @@ clear_sizer( Sizer ) ->
 -spec clear_sizer( sizer(), boolean() ) -> void().
 clear_sizer( Sizer, DeleteWindows ) ->
 	wxSizer:clear( Sizer, [ { delete_windows, DeleteWindows } ] ).
+
+
+% @doc Creates a grid sizer.
+%
+% A zero count requires that the sizer is automatically adjusting in the
+% corresponding dimension its number of elements depending on the number of its
+% children.
+%
+-spec create_grid_sizer( row_count(), column_count(), width(), height() ) ->
+											grid_sizer().
+create_grid_sizer( RowCount, ColumnCount, HorizGap, VertGap ) ->
+	% Note the gap swap:
+	wxGridSizer:new( RowCount, ColumnCount, VertGap, HorizGap ).
 
 
 
@@ -3861,15 +3969,18 @@ add_item( Menu, MenuItemId, MenuItemLabel ) when is_integer( MenuItemId ) ->
 
 add_item( Menu, MenuItemId, MenuItemLabel ) when is_atom( MenuItemId ) ->
 	% We must not declare a standard name identifier (as it already is):
-	BackendId = case lists:member( MenuItemId, get_standard_item_names() ) of
+	% BackendId = case lists:member( MenuItemId, get_standard_item_names() ) of
 
-		true ->
-			resolve_id( MenuItemId );
+	%	true ->
+	%		resolve_id( MenuItemId );
 
-		false ->
-			declare_id( MenuItemId )
+	%	false ->
+	%		declare_id( MenuItemId )
 
-	end,
+	% end,
+
+	% Now not predeclared anymore, was a bad idea:
+	BackendId = declare_id( MenuItemId ),
 	wxMenu:append( Menu, BackendId, MenuItemLabel ).
 
 
@@ -4166,23 +4277,25 @@ declare_id( NameId ) -> % when is_atom( NameId ) ->
 	receive
 
 		{ notifyingAssignedId, BackendId } ->
+			%trace_utils:debug_fmt( "Got backend id #~B for ~ts.",
+			%                       [ BackendId, NameId ] ),
 			BackendId
 
 	end.
 
 
 
-% @doc Returns the backend-specific widget identifier supposed to be already
-% associated to the specified identifier, expected not to have already been
-% resolved.
+% @doc Returns a backend identifier corresponding to the specified identifier of
+% any type (MyriadGUI name identifier, possibly an undefined one, or already a
+% backend identifier).
 %
 -spec resolve_id( id() ) -> backend_id().
 % Module-local, meant to resolve quickly most cases.
 resolve_id( undefined ) ->
 	?wxID_ANY;
 
-resolve_id( Id ) when is_integer( Id ) ->
-	Id;
+resolve_id( BackendId ) when is_integer( BackendId ) ->
+	BackendId;
 
 resolve_id( NameId ) ->
 	get_main_loop_pid() ! { resolveNameId, NameId, self() },
@@ -4192,6 +4305,25 @@ resolve_id( NameId ) ->
 			BackendId
 
 	end.
+
+
+
+% @doc Returns any MyriadGUI name identifier associated to the specified
+% backend-specific widget identifier.
+%
+% Not exactly the reciprocal of resolve_id/1.
+%
+-spec unresolve_id( backend_id() ) -> maybe( name_id() ).
+unresolve_id( BackendId ) when is_integer( BackendId ) ->
+	get_main_loop_pid() ! { resolveBackendId, BackendId, self() },
+	receive
+
+		{ notifyResolvedBackendIdentifier, MaybeNameId } ->
+			MaybeNameId
+
+	end.
+
+
 
 
 
@@ -4245,7 +4377,8 @@ context_to_string( #event_context{ id=Id, user_data=UserData,
 
 	end,
 
-	EventString = text_utils:format( "~p", [ WxEvent ] ),
+	% Preferred to ~p:
+	EventString = text_utils:format( "~w", [ WxEvent ] ),
 
 	text_utils:format( "context for event ~ts: ~ts and ~ts",
 					   [ EventString, IdString, UserDataString ] ).
