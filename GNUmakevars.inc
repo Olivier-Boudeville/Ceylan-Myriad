@@ -135,6 +135,7 @@ endif
 #  - strings: notably for mismatches between plain and binary ones
 #  - binaries: how binaries are created, used, matched
 #  - lists: how lists are processed
+#  - datastructures: how (non-list) datastructures are processed
 #  - registration: regarding naming registering
 #  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
@@ -154,6 +155,7 @@ endif
 #  - gui_instances: how MyriadGUI manages widget instances
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
+#  - gui_id: about widget identifiers
 #  - gui_performance: about the runtime performance monitoring of MyriadGUI
 #
 #  - linear: for operations on vectors, matrices, etc.
@@ -176,6 +178,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_binaries
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_lists
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_datastructures
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
@@ -194,6 +197,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
