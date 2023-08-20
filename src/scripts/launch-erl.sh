@@ -905,7 +905,12 @@ else
 
 	fi
 
-	if ! "${erl}" ${to_eval} ${command}; then
+	"${erl}" ${to_eval} ${command}
+
+	res=$?
+	#echo "Execution result: ${res}."
+
+	if [ ! $res -eq 0 ]; then
 
 		if [ $non_interactive -eq 1 ]; then
 
@@ -1001,8 +1006,6 @@ else
 
 fi
 
-
-res=$?
 
 # However run_erl may return 0 despite errors:
 if [ ! ${res} -eq 0 ]; then
