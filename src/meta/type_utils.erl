@@ -593,6 +593,9 @@
 % As (maps:)map/2 does not even exist apparently, at least not since 18.0.
 
 
+-type pid_ref() :: naming_utils:local_designator().
+% Any kind of reference onto a process.
+
 
 -type permanent_term() :: integer() | float() | atom() | boolean() | binary()
 		| list( permanent_term() ) | tuple( permanent_term() )
@@ -637,6 +640,7 @@
 			   tuploid/0, tuploid/1,
 			   pair/0, triplet/0, tuple/1,
 			   map/2,
+			   pid_ref/0,
 			   permanent_term/0, transient_term/0 ]).
 
 
