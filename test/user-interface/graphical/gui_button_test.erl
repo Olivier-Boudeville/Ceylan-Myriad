@@ -124,6 +124,14 @@ test_main_loop( State=Frame ) ->
 
 	receive
 
+		{ onButtonClicked, [ Button, ButtonId=exit_button, EventContext ] } ->
+			trace_utils:debug_fmt(
+				"Exit Button ~ts (~ts) clicked (~ts).",
+				[ gui:object_to_string( Button ),
+				  gui_id:id_to_string( ButtonId ),
+				  gui:context_to_string( EventContext ) ] ),
+			stop( Frame );
+
 		{ onButtonClicked, [ Button, ButtonId, EventContext ] } ->
 			trace_utils:debug_fmt( "Button ~ts (~ts) clicked (~ts).",
 				[ gui:object_to_string( Button ),
@@ -132,9 +140,8 @@ test_main_loop( State=Frame ) ->
 			test_main_loop( State );
 
 		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
-			trace_utils:info( "Main frame has been closed; test success." ),
-			gui:destruct_window( Frame ),
-			gui:stop();
+			trace_utils:info( "Main frame has been closed." ),
+			stop( Frame );
 
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "
@@ -142,6 +149,12 @@ test_main_loop( State=Frame ) ->
 			test_main_loop( State )
 
 	end.
+
+
+stop( Frame ) ->
+	trace_utils:info( "Test success, stopping." ),
+	gui:destruct_window( Frame ),
+	gui:stop().
 
 
 

@@ -286,9 +286,35 @@ get_sizer_flag_topic_spec() ->
 
 
 
-% @doc Returns the two-way maybe-conversion specification for the 'menu_item_id'
-% topic.
+% A possible future change is to replace separate tables for button and menu
+% item identifiers by a single 'stock_id' one (currently we rely on the event
+% type as a context used to select a name identifier either belonging to buttons
+% or menu items):
 %
+% at-doc Returns the two-way maybe-conversion specification for the 'stock_id'
+% topic, that is identifiers of standard elements, for which stock buttons and
+% menu items are created.
+%
+% Previously, separate bijective tables existed for menu items and buttons,
+% however standard (stock) ones had the same backend identifiers. So for example
+% ?wxID_OPEN could correspond both to open_menu_item and open_button (which
+% actually relate to the same bitmap). Even by defining a priority order
+% (e.g. buttons before menu items), such an approach could not be satisfactory
+% as incoming event would include a name identifier that would or would not
+% match the one expected by the application (typically open_menu_item would be
+% expected, but open_button would be received).
+%
+% We could consider that identifiers of menu items and buttons could be
+% discriminated based on the event at hand (e.g. translates backend identifier
+% as menu item for the onItemSelected event type), however we can imagine that
+% some event types may apply to menu items and buttons (yet we suppose it is not
+% the case), or even that other widgets rely on such identifiers (this does not
+% seem to be the case, though).
+
+
+
+
+
 % Converts wx standard menu item identifiers.
 %
 % Note that the same numerical identifiers also apply to buttons (button_id/0);

@@ -54,6 +54,7 @@
 		  maybe_resolve_backend_id/1, maybe_resolve_backend_id_internal/2,
 
 		  get_best_id/1, get_best_id/2, get_best_id_internal/2,
+		  get_best_menu_item_id_internal/2, get_best_button_id_internal/2,
 
 		  id_to_string/1 ]).
 
@@ -746,11 +747,66 @@ get_best_id_internal( BackendId, NameTable ) ->
 	end.
 
 
+% @doc Tries to resolve the specified lower-level, backend-specific identifier
+% supposedly of a menu item, internally (directly from the current process):
+% returns any corresponding named one, otherwise returns that backend identifier
+% as it is.
+%
+-spec get_best_menu_item_id_internal( backend_id(), id_name_alloc_table() ) ->
+											id().
+get_best_menu_item_id_internal( BackendId, _NameTable )
+							when is_integer( BackendId ) ->
+	BackendId;
+
+get_best_menu_item_id_internal( NameId, NameTable ) when is_atom( NameId ) ->
+	case gui_generated:get_maybe_second_for_menu_item_id( NameId ) of
+
+		undefined ->
+			bijective_table:get_maybe_second_for( NameId, NameTable );
+
+		MenuItemWxId ->
+			MenuItemWxId
+
+	end.
+
+
+
+% @doc Tries to resolve the specified lower-level, backend-specific identifier
+% supposedly of a button internally (directly from the current process): returns
+% any corresponding named one, otherwise returns that backend identifier as it
+% is.
+%
+-spec get_best_button_id_internal( backend_id(), id_name_alloc_table() ) ->
+											id().
+get_best_button_id_internal( BackendId, _NameTable )
+									when BackendId < ?min_allocated_id ->
+	case gui_generated:get_maybe_first_for_button_id( BackendId ) of
+
+		undefined ->
+			BackendId;
+
+		ButtonNameId ->
+			ButtonNameId
+
+	end;
+
+get_best_button_id_internal( BackendId, NameTable ) ->
+	case bijective_table:get_maybe_first_for( BackendId, NameTable ) of
+
+		undefined ->
+			BackendId;
+
+		ButtonNameId ->
+			ButtonNameId
+
+	end.
+
+
 
 % @doc Returns a textual representation of the specified object identifier.
 -spec id_to_string( id() ) -> ustring().
-id_to_string( Id ) when is_integer( Id ) ->
-	text_utils:format( "#~B", [ Id ] );
+id_to_string( BackendId ) when is_integer( BackendId ) ->
+	text_utils:format( "#~B", [ BackendId ] );
 
-id_to_string( Id ) when is_atom( Id ) ->
-	text_utils:atom_to_string( Id ).
+id_to_string( NameId ) when is_atom( NameId ) ->
+	text_utils:atom_to_string( NameId ).

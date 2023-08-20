@@ -1825,7 +1825,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 %
 % (helper)
 %
--spec send_event( [ event_subscriber() ], event_type(), gui:id(),
+-spec send_event( [ event_subscriber() ], event_type(), backend_id(),
 			gui_object(), gui:user_data(), gui:backend_event(),
 			id_name_alloc_table() ) -> void().
 send_event( _Subscribers=[], _EventType, _EventSourceId, _GUIObject, _UserData,
@@ -1835,11 +1835,14 @@ send_event( _Subscribers=[], _EventType, _EventSourceId, _GUIObject, _UserData,
 % Special cases first, when the information to return to the user process is to
 % be specifically adapted.
 %
-% Wanting to have the new size directly available in the message sent back:
+% Window-specific clause; for resizing, wanting to have the new size directly
+% available in the message sent back, so that there is no need to search the
+% backend event for that information:
+%
 send_event( Subscribers, EventType=onResized, EventSourceId, GUIObject,
 			UserData, Event, NameTable ) ->
 
-	BestId = gui_id:get_best_id_internal( EventSourceId, NameTable ),
+	BestSrcId = gui_id:get_best_id_internal( EventSourceId, NameTable ),
 
 	Context = #event_context{ id=EventSourceId, user_data=UserData,
 							  backend_event=Event },
@@ -1854,7 +1857,7 @@ send_event( Subscribers, EventType=onResized, EventSourceId, GUIObject,
 	%trace_utils:debug_fmt( "onResized event: new size is ~p.", [ NewSize ] ),
 
 	% Same structure as for OpenGL canvases:
-	Msg = { EventType, [ GUIObject, BestId, NewSize, Context ] },
+	Msg = { EventType, [ GUIObject, BestSrcId, NewSize, Context ] },
 
 	%trace_utils:debug_fmt( "Sending back following resize event "
 	%   "to subscriber(s) ~w:~n~p.", [ Subscribers, Msg ] ),
@@ -1863,19 +1866,55 @@ send_event( Subscribers, EventType=onResized, EventSourceId, GUIObject,
 	[ SubDesignator ! Msg || SubDesignator <- Subscribers ];
 
 
+% Button-specific clause:
+send_event( Subscribers, EventType=onButtonClicked, EventSourceId, GUIObject,
+			UserData, Event, NameTable ) ->
+
+	BestSrcId = gui_id:get_best_button_id_internal( EventSourceId, NameTable ),
+
+	%trace_utils:debug_fmt( "onButtonClicked: using ~w for ~w.",
+	%                       [ BestSrcId, EventSourceId ] ),
+
+	send_event_for_id( BestSrcId, Subscribers, EventType, EventSourceId,
+					   GUIObject, UserData, Event );
+
+% Menu item specific clause (although applies to toolbar tools as well):
+send_event( Subscribers, EventType=onItemSelected, EventSourceId, GUIObject,
+			UserData, Event, NameTable ) ->
+
+	BestSrcId = gui_id:get_best_menu_item_id_internal( EventSourceId,
+													   NameTable ),
+
+	send_event_for_id( BestSrcId, Subscribers, EventType, EventSourceId,
+					   GUIObject, UserData, Event );
+
 % Base case, for all events that do not require specific treatments:
 send_event( Subscribers, EventType, EventSourceId, GUIObject, UserData, Event,
 			NameTable ) ->
 
-	BestId = gui_id:get_best_id_internal( EventSourceId, NameTable ),
+	BestSrcId = gui_id:get_best_id_internal( EventSourceId, NameTable ),
+
+	send_event_for_id( BestSrcId, Subscribers, EventType, EventSourceId,
+					   GUIObject, UserData, Event ).
+
+
+% Sends the specified event using the specified best event source identifier.
+%
+% Factoring helper.
+%
+-spec send_event_for_id( gui_id:id(), [ event_subscriber() ], event_type(),
+			backend_id(), gui_object(),
+			gui:user_data(), gui:backend_event() ) -> void().
+send_event_for_id( BestEventSourceId, Subscribers, EventType, EventSourceId,
+				   GUIObject, UserData, Event ) ->
 
 	%trace_utils:debug_fmt( "Best identifier for source ~w: ~w.",
-	%					   [ EventSourceId, BestId ] ),
+	%                        [ EventSourceId, BestId ] ),
 
 	Context = #event_context{ id=EventSourceId, user_data=UserData,
 							  backend_event=Event },
 
-	Msg = { EventType, [ GUIObject, BestId, Context ] },
+	Msg = { EventType, [ GUIObject, BestEventSourceId, Context ] },
 
 	%trace_utils:debug_fmt( "Sending back following event "
 	%   "to subscriber(s) ~w:~n~p.", [ Subscribers, Msg ] ),
