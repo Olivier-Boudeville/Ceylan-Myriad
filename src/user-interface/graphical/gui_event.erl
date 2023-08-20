@@ -206,13 +206,16 @@
 % application event.
 
 
--type button_table() :: table( button_ref(), application_event() ).
+% If found useful, in the future any button reference may be held by such a
+% table: the match can be based either on a button() or, preferably, on a
+% button_backend_id(); this last match is the first searched. No named_id() is
+% expected there.
+%
+-type button_table() ::
+	%table( button_backend_id() | button(), application_event() ).
+	table( button_backend_id(), application_event() ).
 % A table allowing to translate a widget button press event into an higher level
 % application event.
-%
-% Any button reference can be held by such a table: the match can be based
-% either on a button() or, preferably, on a button_id(); this last match is the
-% first searched.
 
 
 -type scancode_table() :: table( scancode(), application_event() ).
@@ -813,7 +816,7 @@
 -type wx_server() :: gui:wx_server().
 -type event_subscription_opt() :: gui:event_subscription_opt().
 -type service() :: gui:service().
--type button_ref() :: gui:button_ref().
+-type button_backend_id() :: gui:button_backend_id().
 
 
 -type button_id() :: gui_id:button_id().
@@ -1042,38 +1045,40 @@ process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 					  WxEvent, LoopState );
 
 
+% Here the MyriadGUI main process impersonates a standalone gui_id server:
+
 % Special case: when creating a widget instance (e.g. a frame) while specifying
 % its name, the GUI loop must be notified so that it stores this name,
 % associates it to a new backend identifier (wx_id()) and returns it to the
 % sender for its upcoming, corresponding wx creation call.
 %
-process_event_message( { declareNameId, NameId, SenderPid },
+process_event_message( { declareNameIdentifier, NameId, SenderPid },
 		LoopState=#loop_state{ id_next=NextId,
 							   id_name_alloc_table=NameTable } ) ->
 
 	{ AllocatedId, NewNextId, NewNameTable } =
-		gui_id:declare_id( NameId, NextId, NameTable ),
+		gui_id:declare_name_id_internal( NameId, NextId, NameTable ),
 
 	%trace_utils:debug_fmt( "Allocated to name '~ts': ~ts.",
 	%                       [ NameId, gui_id:id_to_string( AllocatedId ) ] ),
 
-	SenderPid ! { notifyingAssignedId, AllocatedId },
+	SenderPid ! { notifyDeclaredNameIdentifier, AllocatedId },
 
 	LoopState#loop_state{ id_next=NewNextId,
 						  id_name_alloc_table=NewNameTable };
 
 
-process_event_message( { resolveNameId, NameId, SenderPid },
+process_event_message( { resolveNameIdentifier, NameId, SenderPid },
 		LoopState=#loop_state{ id_name_alloc_table=NameTable } ) ->
 
-	BackendId = bijective_table:get_second_for( NameId, NameTable ),
+	BackendId = gui_id:resolve_named_id_internal( NameId, NameTable ),
 
-	SenderPid ! { notifyResolvedIdentifier, BackendId },
+	SenderPid ! { notifyResolvedNameIdentifier, BackendId },
 
 	LoopState;
 
 
-process_event_message( { resolveBackendId, BackendId, SenderPid },
+process_event_message( { resolveBackendIdentifier, BackendId, SenderPid },
 		LoopState=#loop_state{ id_name_alloc_table=NameTable } ) ->
 
 	MaybeNameId =
@@ -1523,7 +1528,11 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 					type_table=TypeTable,
 					id_name_alloc_table=NameTable } ) ->
 
-	%trace_utils:debug_fmt( "Processing wx event~n  ~p.", [ WxEvent ] ),
+	% The backend indentifier EventSourceId is kept as is: an attempt of
+	% promoting to a named identifier will be done in send_event/7.
+
+	%trace_utils:debug_fmt(
+	%   "Processing wx event from ~w:~n  ~p.", [ EventSourceId, WxEvent ] ),
 
 	% Reassigns this event and possibly updates its actual target:
 	{ ActualGUIObject, NewTypeTable } =
@@ -1810,6 +1819,10 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 % Refer to gui:subscribe_to_events/1 for a description of the messages to be
 % sent to subscribers.
 %
+% In all cases we keep a raw event context (hence with backend identifiers), but
+% update the event source identifier so that if possible it becomes a named
+% identifier.
+%
 % (helper)
 %
 -spec send_event( [ event_subscriber() ], event_type(), gui:id(),
@@ -1826,7 +1839,7 @@ send_event( _Subscribers=[], _EventType, _EventSourceId, _GUIObject, _UserData,
 send_event( Subscribers, EventType=onResized, EventSourceId, GUIObject,
 			UserData, Event, NameTable ) ->
 
-	BestId = gui_id:try_resolve_id( EventSourceId, NameTable ),
+	BestId = gui_id:get_best_id_internal( EventSourceId, NameTable ),
 
 	Context = #event_context{ id=EventSourceId, user_data=UserData,
 							  backend_event=Event },
@@ -1851,10 +1864,13 @@ send_event( Subscribers, EventType=onResized, EventSourceId, GUIObject,
 
 
 % Base case, for all events that do not require specific treatments:
-send_event( Subscribers, EventType, EventSourceId, GUIObject, UserData,
-			Event, NameTable ) ->
+send_event( Subscribers, EventType, EventSourceId, GUIObject, UserData, Event,
+			NameTable ) ->
 
-	BestId = gui_id:try_resolve_id( EventSourceId, NameTable ),
+	BestId = gui_id:get_best_id_internal( EventSourceId, NameTable ),
+
+	%trace_utils:debug_fmt( "Best identifier for source ~w: ~w.",
+	%					   [ EventSourceId, BestId ] ),
 
 	Context = #event_context{ id=EventSourceId, user_data=UserData,
 							  backend_event=Event },
@@ -2319,6 +2335,11 @@ create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo ) ->
 create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
 					  MaybeAppSpecificInfo ) ->
 
+	trace_utils:debug_fmt( "Creating an application GUI state from:~n"
+		" - specs: ~p~n - OpenGL base information: ~p~n"
+		" - application-specific information: ~p",
+		[ AppEventSpecs, MaybeOpenGLBaseInfo, MaybeAppSpecificInfo ] ),
+
 	EventDriverTable = get_default_event_driver_table(),
 
 	BlankTable = table:new(),
@@ -2348,7 +2369,7 @@ register_app_event_spec( _AppEventSpecs=[], AppGUIState ) ->
 	AppGUIState;
 
 register_app_event_spec( _AppEventSpecs=[ { AppEvent, UserEvents } | T ],
-					   AppGUIState ) ->
+						 AppGUIState ) ->
 	NewAppGUIState = register_user_events( UserEvents, AppEvent, AppGUIState ),
 	register_app_event_spec( T, NewAppGUIState ).
 
@@ -2360,11 +2381,14 @@ register_user_events( _UserEvents=[], _AppEvent, AppGUIState ) ->
 
 register_user_events( _UserEvents=[ { button_clicked, ButtonId } | T ],
 		AppEvent, AppGUIState=#app_gui_state{ button_table=ButtonTable } ) ->
-	% Overwrites any previous association for that button:
-	NewButtonTable = table:add_entry( ButtonId, AppEvent, ButtonTable ),
 
-	NewAppGUIState = AppGUIState#app_gui_state{
-		button_table=NewButtonTable },
+	% Not wanting names in the table keys:
+	BackendButtonId = gui:ensure_backend_id( ButtonId ),
+
+	% Overwrites any previous association for that button:
+	NewButtonTable = table:add_entry( BackendButtonId, AppEvent, ButtonTable ),
+
+	NewAppGUIState = AppGUIState#app_gui_state{ button_table=NewButtonTable },
 
 	register_user_events( T, AppEvent, NewAppGUIState );
 
@@ -2662,15 +2686,20 @@ default_onResized_driver(
 default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 		AppGUIState=#app_gui_state{ button_table=ButtonTable } ) ->
 
-	cond_utils:if_defined( myriad_debug_gui_events,
+	%cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt(
 			"Button ~ts (ID: ~ts) has been clicked (~ts).",
 			[ gui:object_to_string( Button ), gui_id:id_to_string( ButtonId ),
 			  gui:context_to_string( EventContext ) ] ),
-			  basic_utils:ignore_unused( EventContext ) ),
+			 % basic_utils:ignore_unused( EventContext ) ),
+
+	ButtonBackendId = gui:ensure_backend_id( ButtonId ),
+
+	%trace_utils:debug_fmt( "Button table: ~ts",
+	%                       [ table:to_string( ButtonTable ) ] ),
 
 	% First looking up the button ID, then its GUI object reference:
-	MaybeAppEvPair = case table:lookup_entry( ButtonId, ButtonTable ) of
+	MaybeAppEvPair = case table:lookup_entry( ButtonBackendId, ButtonTable ) of
 
 		key_not_found ->
 			% As any button reference can be used:
@@ -2713,14 +2742,14 @@ default_onKeyPressed_driver( Elements=[ Frame, FrameId, EventContext ],
 	{ Scancode, Keycode } =
 		gui_keyboard:event_context_to_code_pair( EventContext ),
 
-	cond_utils:if_defined( myriad_debug_gui_events,
+	%cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt(
 			"Key (scancode: ~w, keycode: ~w) has been pressed "
 			"in frame ~ts (~ts), with ~ts.",
 			[ Scancode, Keycode, gui:object_to_string( Frame ),
 			  gui_id:id_to_string( FrameId ),
 			  gui:context_to_string( EventContext ) ] ),
-		basic_utils:ignore_unused( [ Frame, FrameId ] ) ),
+		basic_utils:ignore_unused( [ Frame, FrameId ] ), % ),
 
 	MaybeAppEvPair = case table:lookup_entry( Scancode, ScancodeTable ) of
 

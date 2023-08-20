@@ -73,7 +73,9 @@ run_test_gui() ->
 
 	ButtonPanel = gui:create_panel( _BPanelParent=TestFrame ),
 	gui:set_background_color( ButtonPanel, red ),
-	gui:set_tooltip( ButtonPanel, "Panel for buttons." ),
+
+	gui:set_tooltip( ButtonPanel,
+					 "Panel for buttons\n(not collecting key presses)." ),
 
 	MainSizer = gui:create_sizer( _Orientation=horizontal ),
 
@@ -108,7 +110,10 @@ run_test_gui() ->
 
 	UserEventSpecs = [ { quit_requested, QuitEvents } ],
 
-	UserEventRegistry = gui_event:create_app_gui_state( UserEventSpecs ),
+	AppGUIState = gui_event:create_app_gui_state( UserEventSpecs ),
+
+	%trace_utils:debug_fmt( "Button table: ~ts",
+	%   [ table:to_string( AppGUIState#app_gui_state.button_table ) ] ),
 
 	% Focus needed to receive events:
 	gui:set_focus( KeyPanel ),
@@ -121,9 +126,9 @@ run_test_gui() ->
 	% Not even a main loop here, just using the MyriadGUI one based on
 	% user-events, and waiting for a single of them:
 	%
-	case gui_event:get_application_event( UserEventRegistry ) of
+	case gui_event:get_application_event( AppGUIState ) of
 
-		{ { quit_requested, BaseEvent }, _UserEventRegistry } ->
+		{ { quit_requested, BaseEvent }, _AppGUIState } ->
 			trace_utils:notice_fmt( "Quitting, based on the following base "
 				"user event:~n ~ts",
 				[ gui_event:gui_event_to_string( BaseEvent ) ] ),

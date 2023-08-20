@@ -185,7 +185,7 @@ test_main_loop( State={ Frame, PopupMenu } ) ->
 
 		{ onItemSelected, [ _Menu, ItemId, _Context ] } ->
 			%trace_utils:debug_fmt( "Received for menu ~w: ~w",
-			%                       [  Menu, Context ] ),
+			%                       [ Menu, Context ] ),
 			trace_utils:info_fmt( "Menu item '~w' selected.", [ ItemId ] ),
 			test_main_loop( State );
 

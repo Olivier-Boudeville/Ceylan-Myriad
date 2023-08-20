@@ -78,7 +78,7 @@ run_gui_test() ->
 
 	% Will auto-adjust the number of rows:
 	GridSizer = gui:create_grid_sizer( _RowCount=0, ColumnCount,
-									   _HorizGap=3, _VertGap=3 ),
+									   _HorizGap=2, _VertGap=1 ),
 
 	gui:set_sizer( Panel, GridSizer ),
 
@@ -124,12 +124,10 @@ test_main_loop( State=Frame ) ->
 
 	receive
 
-		{ onButtonClicked, [ Button, ButtonBackendId, EventContext ] } ->
-			% Known to have a name_id():
-			ButtonMyriadId = gui:unresolve_id( ButtonBackendId ),
-			trace_utils:debug_fmt( "Button ~ts (~ts, i.e. ~ts) clicked (~ts).",
+		{ onButtonClicked, [ Button, ButtonId, EventContext ] } ->
+			trace_utils:debug_fmt( "Button ~ts (~ts) clicked (~ts).",
 				[ gui:object_to_string( Button ),
-				  gui_id:id_to_string( ButtonBackendId ), ButtonMyriadId,
+				  gui_id:id_to_string( ButtonId ),
 				  gui:context_to_string( EventContext ) ] ),
 			test_main_loop( State );
 

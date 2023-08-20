@@ -71,6 +71,7 @@ list_topic_spec_functions() ->
 %
 % These constants correspond to many of the ones that were defined in
 % gui_wx_backend.erl.
+%
 % All topics could be maybe-ones to resist to unknown elements, yet for a GUI we
 % prefer crashing.
 %
@@ -81,8 +82,9 @@ list_topic_spec_functions() ->
 % defines correspond actually to the same value (then only the first_to_second
 % conversion direction is requested).
 %
-% For a topic T, we generate here gui_generated::get_{first,second}_for_T/1 (if
-% both directions are enabled).
+% For a topic T, we generate here gui_generated:get_{first,second}_for_T/1 (if
+% both directions are enabled) and possibly
+% gui_generated:get_maybe_{first,second}_for_T/1.
 
 
 % Shorthands:
@@ -144,6 +146,7 @@ get_object_type_topic_spec() ->
 		{ window,                wxWindow         },
 		{ control,               wxControl        },
 		{ button,                wxButton         },
+		{ bitmap_button,         wxBitmapButton   },
 		{ panel,                 wxPanel          },
 		{ gl_canvas,             wxGLCanvas       },
 		{ status_bar,            wxStatusBar      },
@@ -279,8 +282,7 @@ get_sizer_flag_topic_spec() ->
 		{ align_center_horizontal, ?wxALIGN_CENTER_HORIZONTAL      } ],
 
 	% Not a bijection, the second element '0' is present thrice:
-	{ sizer_flag, Entries, _ElemLookup=strict,
-	  _Direction=first_to_second }.
+	{ sizer_flag, Entries, _ElemLookup=strict, _Direction=first_to_second }.
 
 
 
@@ -289,7 +291,12 @@ get_sizer_flag_topic_spec() ->
 %
 % Converts wx standard menu item identifiers.
 %
-% Note that the same numerical identifiers also apply to buttons (button_id/0).
+% Note that the same numerical identifiers also apply to buttons (button_id/0);
+% a single bijective table cannot therefore be considered, as for a given
+% backend identifier (e.g. ?wxID_NEW) two name identifiers will correspond
+% (e.g. new_menu_item and new_button). Therefore resolving a backend identifier
+% into a name one must be done by possibly looking it up in both tables
+% (although at least currently buttons fully supersede menu items).
 %
 % Refer to https://docs.wxwidgets.org/3.0/page_stockitems.html for their list.
 %
@@ -393,8 +400,6 @@ get_menu_item_id_topic_spec() ->
 		{ underline_menu_item,       ?wxID_UNDERLINE         }, % ML
 		{ unindent_menu_item,        ?wxID_UNINDENT          }, % ML
 
-
-
 		% Quit:
 		{ exit_menu_item,            ?wxID_EXIT              },
 
@@ -425,7 +430,9 @@ get_button_id_topic_spec() ->
 			undefined ->
 				{ MenuId, WxId };
 
-			% For example sort_ascending_menu_item:
+			% For example so that sort_ascending_menu_item becomes
+			% sort_ascending_button:
+			%
 			_ ->
 				LabelStr = text_utils:atom_to_string( MenuId ),
 
@@ -437,7 +444,7 @@ get_button_id_topic_spec() ->
 
 					LeadingStr ->
 						ButtonId = text_utils:atom_format( "~ts_button",
-							[ LeadingStr ] ),
+														   [ LeadingStr ] ),
 						{ ButtonId, WxId }
 
 				end

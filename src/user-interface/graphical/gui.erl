@@ -184,7 +184,9 @@
 
 
 	% The PID of the allocator of unique backend identifiers:
-	{ 'id_allocator_pid', id_allocator_pid() },
+	% (now corresponds to the MyriadGUI gui_event main process)
+	%
+	%{ 'id_allocator_pid', id_allocator_pid() },
 
 	% The main, top-level window (if any; generally a frame) of the application:
 	{ 'top_level_window', maybe( top_level_window() ) },
@@ -363,6 +365,8 @@
 		  register_event_callback/3, register_event_callback/4,
 		  trap_event/1, propagate_event/1 ]).
 
+% Identifier-related operations.
+-export([ ensure_backend_id/1 ]).
 
 
 % Stringification section.
@@ -439,7 +443,8 @@
 
 % Buttons:
 -export([ create_button/2, create_button/3, create_button/6,
-		  create_buttons/2 ]).
+		  create_buttons/2, create_bitmap_button/3,
+		  set_label/2, destruct_button/1 ]).
 
 
 % Sizers:
@@ -553,7 +558,7 @@
 -export([ create_gui_environment/1,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
 		  event_interception_callback/2,
-		  resolve_id/1, unresolve_id/1 ]).
+		  resolve_any_id/1, get_maybe_name_id/1 ]).
 
 
 % API for module generation:
@@ -721,6 +726,11 @@
 % Defining the actual widget types corresponding to wx_object_type():
 
 
+% Includes wx:null(), i.e. a #wx_ref{ref=0, type=wx}.
+-type window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
+% Any kind of window, that is widget (e.g. any canvas is a window).
+
+
 -type widget() :: window().
 % Any kind of widget (graphical component).
 %
@@ -728,10 +738,8 @@
 % window.
 
 
-% Includes wx:null(), i.e. a #wx_ref{ref=0, type=wx}.
--type window() :: maybe( wxWindow:wxWindow() | gui_canvas:canvas() ).
-% Any kind of window, that is widget (e.g. any canvas is a window).
-
+-type parent() :: widget().
+% The parent (widget) of a widget.
 
 
 -type top_level_window() :: wxTopLevelWindow:wxTopLevelWindow().
@@ -768,6 +776,11 @@
 
 -type button_ref() :: button() | button_id().
 % Any kind of reference onto a button.
+
+
+-type bitmap_button() :: wxBitmapButton:wxBitmapButton().
+% Designates an actual button instance displaying a bitmap.
+
 
 
 -type sizer() :: wxSizer:wxSizer().
@@ -947,7 +960,7 @@
 % standard menu items, which are quite numerous:
 %
 -type standard_menu_item_name_id() ::
-	'new_menu_item'
+	   'new_menu_item'
 	| 'open_menu_item'
 	| 'close_menu_item'
 	| 'save_menu_item'
@@ -1037,6 +1050,9 @@
 -type icon_name_id() :: standard_icon_name_id() | id().
 
 
+% In the same order as listed in
+% https://docs.wxwidgets.org/3.0/classwx_art_provider.html:
+%
 -type standard_bitmap_name_id() ::
 	'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
  | 'information_bitmap' | 'add_bookmark_bitmap'
@@ -1056,7 +1072,7 @@
  | 'quit_bitmap' | 'find_bitmap' | 'find_and_replace_bitmap'
  | 'full_screen_bitmap' | 'edit_bitmap' | 'hard_disk_bitmap'
  | 'floppy_bitmap' | 'cdrom_bitmap' | 'removable_bitmap'
-| 'backend_logo_bitmap'.
+ | 'backend_logo_bitmap'.
 % The name identifiers of the standard bitmaps.
 
 
@@ -1336,11 +1352,11 @@
 			   myriad_object_type/0,
 			   title/0, label/0, event_callback/0, user_data/0,
 			   gui_object/0, wx_server/0,
-			   widget/0,
 			   window/0, top_level_window/0, splitter_window/0,
+			   widget/0, parent/0,
 			   frame/0, top_level_frame/0,
 			   panel/0,
-			   button/0, button_ref/0,
+			   button/0, button_ref/0, bitmap_button/0,
 			   sizer/0, grid_sizer/0,
 			   sizer_child/0, sizer_item/0,
 			   splitter/0, sash_gravity/0,
@@ -1490,8 +1506,8 @@ start() ->
 -spec start( [ service() ] | debug_level() ) -> gui_env_info().
 start( Services ) when is_list( Services ) ->
 
-	% Now the identifier allocator is directly integrated in the gui_event main
-	% loop:
+	% Now the identifier allocator is directly integrated in the MyriadGUI
+	% (gui_event) main loop:
 	%
 	%IdAllocPid = ?myriad_spawn_link( fun gui_id:create_id_allocator/0 ),
 
@@ -1837,7 +1853,7 @@ event_interception_callback( WxEventRecord=#wx{
 			userData={ EventCallbackFun, ActualUserData } },
 							 WxEventObject ) ->
 
-	% For example WxEventObject={ wx_ref, 92, wxPaintEvent, [] }:
+	% For example WxEventObject={wx_ref, 92, wxPaintEvent, []}:
 	%trace_utils:debug_fmt( "Event interception callback: WxEventObject is ~p",
 	%                       [ WxEventObject ] ),
 
@@ -1907,6 +1923,19 @@ propagate_event( GUIEventObject ) ->
 
 
 
+% @doc Returns a backend identifier corresponding to the specified identifier:
+% if this last one is already a backend identifier, returns it, otherwise a name
+% identifier must have been specified, in which can it is resolved into a
+% backend one.
+%
+-spec ensure_backend_id( id() ) -> backend_id().
+ensure_backend_id( BackendId ) when is_integer( BackendId ) ->
+	BackendId;
+
+ensure_backend_id( NameId ) when is_atom( NameId ) ->
+	gui_id:resolve_named_id( NameId, _IdAllocRef=get_main_loop_pid() ).
+
+
 % @doc Stops the GUI subsystem.
 -spec stop() -> void().
 stop() ->
@@ -1952,18 +1981,20 @@ get_environment_server() ->
 
 
 
-% @doc Attaches a tooltip to specified widget.
--spec set_tooltip( window(), label() ) -> void().
+% @doc Attaches a tooltip to the specified widget.
+-spec set_tooltip( widget(), label() ) -> void().
 set_tooltip( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Label ) ->
 	get_main_loop_pid() ! { setTooltip, [ CanvasId, Label ] };
 
-set_tooltip( Window, Label ) ->
+set_tooltip( Widget, Label ) ->
 
 	%trace_utils:debug_fmt( "Setting tooltip '~ts' to ~ts.",
-	%                       [ Label, object_to_string( Window ) ] ),
+	%                       [ Label, object_to_string( Widget ) ] ),
 
-	% For an unknown reason, works on panels but never on buttons:
-	wxWindow:setToolTip( Window, Label ).
+	% For an unknown reason, works on panels but never on buttons (this is even
+	% the case for ex_button.erl):
+	%
+	wxWindow:setToolTip( Widget, Label ).
 
 
 
@@ -2006,10 +2037,10 @@ create_window() ->
 %
 % @hidden (internal use only)
 %
--spec create_window( id(), window() ) -> window().
+-spec create_window( id(), parent() ) -> window().
 create_window( Id, Parent ) ->
 
-	ActualId = declare_id( Id ),
+	ActualId = declare_any_id( Id ),
 
 	% Should not be 'undefined', otherwise: "wxWidgets Assert failure:
 	% ./src/gtk/window.cpp(2586): \"parent\" in PreCreation() : Must have
@@ -2024,7 +2055,7 @@ create_window( Id, Parent ) ->
 -spec create_window( size() ) -> window().
 create_window( Size ) ->
 
-	ActualId = declare_id( undefined ),
+	ActualId = declare_any_id( undefined ),
 	ActualParent = to_wx_parent( undefined ),
 
 	Options = [ to_wx_size( Size ) ],
@@ -2036,14 +2067,14 @@ create_window( Size ) ->
 %
 % @hidden (internal use only)
 %
--spec create_window( position(), size(), window_style(), id(), window() ) ->
+-spec create_window( position(), size(), window_style(), id(), parent() ) ->
 													window().
 create_window( Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 		{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
-	ActualId = declare_id( Id ),
+	ActualId = declare_any_id( Id ),
 	ActualParent = to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId, Options ).
@@ -2153,7 +2184,7 @@ set_font( Window={ wx_ref, _Id, _AnyWxWindowLike, _State }, Font, Color,
 %
 % Note: not to be mixed up with gui_opengl:create_canvas/{1,2}.
 %
--spec create_canvas( window() ) -> canvas().
+-spec create_canvas( parent() ) -> canvas().
 create_canvas( Parent ) ->
 	% Returns the corresponding myriad_object_ref:
 	execute_instance_creation( myr_canvas, [ Parent ] ).
@@ -2510,7 +2541,7 @@ check_orientation( Other ) ->
 % @doc Sets the specified splitter in a single pane configuration, using for
 % that the specified window.
 %
--spec set_unique_pane( splitter(), window() ) -> void().
+-spec set_unique_pane( splitter(), parent() ) -> void().
 set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
 	wxSplitterWindow:initialize( SplitterWin, WindowPane ).
 
@@ -2978,7 +3009,7 @@ create_frame() ->
 %
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
-	wxFrame:new( to_wx_parent( undefined ), declare_id( undefined ), Title ).
+	wxFrame:new( to_wx_parent( undefined ), declare_any_id( undefined ), Title ).
 
 
 
@@ -2992,7 +3023,7 @@ create_frame( Title, Size ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), declare_id( undefined ), Title,
+	wxFrame:new( to_wx_parent( undefined ), declare_any_id( undefined ), Title,
 				 Options ).
 
 
@@ -3001,9 +3032,9 @@ create_frame( Title, Size ) ->
 %
 % (internal use only)
 %
--spec create_frame( title(), id(), maybe( window() ) ) -> frame().
+-spec create_frame( title(), id(), maybe( parent() ) ) -> frame().
 create_frame( Title, Id, Parent ) ->
-	wxFrame:new( to_wx_parent( Parent ), declare_id( Id ), Title ).
+	wxFrame:new( to_wx_parent( Parent ), declare_any_id( Id ), Title ).
 
 
 
@@ -3018,7 +3049,7 @@ create_frame( Title, Position, Size, Style ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), declare_id( undefined ), Title,
+	wxFrame:new( to_wx_parent( undefined ), declare_any_id( undefined ), Title,
 				 Options ).
 
 
@@ -3029,13 +3060,13 @@ create_frame( Title, Position, Size, Style ) ->
 % (internal use only: wx exposed)
 %
 -spec create_frame( title(), position(), size(), frame_style(), id(),
-					window() ) -> frame().
+					parent() ) -> frame().
 create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 				{ style, frame_style_to_bitmask( Style ) } ],
 
-	ActualId = declare_id( Id ),
+	ActualId = declare_any_id( Id ),
 
 	ActualParent = to_wx_parent( Parent ),
 
@@ -3058,7 +3089,7 @@ create_toolbar( Frame ) ->
 -spec create_toolbar( frame(), id(), maybe_list( toolbar_style() ) ) ->
 											toolbar().
 create_toolbar( Frame, Id, MaybeToolbarStyles ) ->
-	wxFrame:createToolBar( Frame, [ { id, declare_id( Id ) },
+	wxFrame:createToolBar( Frame, [ { id, declare_any_id( Id ) },
 		{ style, gui_wx_backend:to_wx_toolbar_style( MaybeToolbarStyles ) } ] ).
 
 
@@ -3183,7 +3214,7 @@ destruct_panel( Panel ) ->
 
 
 % @doc Creates a (labelled) button, with the specified parent.
--spec create_button( label(), window() ) -> button().
+-spec create_button( label(), parent() ) -> button().
 create_button( Label, Parent ) ->
 
 	Id = ?wxID_ANY,
@@ -3197,12 +3228,12 @@ create_button( Label, Parent ) ->
 
 
 % @doc Creates a (labelled) button, with the specified identifier and parent.
--spec create_button( label(), id(), window() ) -> button().
+-spec create_button( label(), id(), parent() ) -> button().
 create_button( Label, Id, Parent ) ->
 
 	Options = [ { label, Label } ],
 
-	BackendId = declare_id( Id ),
+	BackendId = declare_any_id( Id ),
 
 	%trace_utils:debug_fmt( "Button options for ~ts (backend ~ts): ~p.",
 	% [ gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
@@ -3211,8 +3242,32 @@ create_button( Label, Id, Parent ) ->
 	wxButton:new( Parent, BackendId, Options ).
 
 
+
+% @doc Creates a button, with parent and most settings specified.
+%
+% (internal use only)
+%
+-spec create_button( label(), position(), size(), button_style(), id(),
+					 parent() ) -> button().
+create_button( Label, Position, Size, Style, Id, Parent ) ->
+
+	Options = [ { label, Label }, to_wx_position( Position ),
+				to_wx_size( Size ),
+				{ style, gui_wx_backend:button_style_to_bitmask( Style ) } ],
+
+	BackendId = declare_any_id( Id ),
+
+	%trace_utils:debug_fmt( "For button '~ts' (~ts), got ~ts. "
+	%   "Options: ~n ~p.",
+	%   [ Label, gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
+	%     Options ] ),
+
+	wxButton:new( Parent, BackendId, Options ).
+
+
+
 % @doc Creates (labelled) buttons, with their (single, common) parent specified.
--spec create_buttons( [ label() ], window() ) -> [ button() ].
+-spec create_buttons( [ label() ], parent() ) -> [ button() ].
 create_buttons( Labels, Parent ) ->
 	create_buttons_helper( Labels, Parent, _Acc=[] ).
 
@@ -3226,29 +3281,24 @@ create_buttons_helper( [ Label | T ], Parent, Acc ) ->
 	create_buttons_helper( T, Parent, [ NewButton | Acc ] ).
 
 
-
-
-% @doc Creates a button, with parent and most settings specified.
+% @doc Creates a button with the specified identifier, and which displays the
+% specified bitmap.
 %
-% (internal use only)
-%
--spec create_button( label(), position(), size(), button_style(), id(),
-					 window() ) -> button().
-create_button( Label, Position, Size, Style, Id, Parent ) ->
+-spec create_bitmap_button( bitmap(), id(), parent() ) -> bitmap_button().
+create_bitmap_button( Bitmap, Id, Parent ) ->
+	wxBitmapButton:new( Parent, declare_any_id( Id ), Bitmap ).
 
-	Options = [ { label, Label }, to_wx_position( Position ),
-				to_wx_size( Size ),
-				{ style, gui_wx_backend:button_style_to_bitmask( Style ) } ],
 
-	BackendId = declare_id( Id ),
+% @doc Sets the label of the specified button.
+-spec set_label( button(), label() ) -> void().
+set_label( Button, Label ) ->
+	wxButton:setLabel( Button, Label ).
 
-	%trace_utils:debug_fmt( "For button '~ts' (~ts), got ~ts. "
-	%   "Options: ~n ~p.",
-	%   [ Label, gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
-	%     Options ] ),
 
-	wxButton:new( Parent, BackendId, Options ).
-
+% @doc Destructs the specified button.
+-spec destruct_button( button() ) -> void().
+destruct_button( Button ) ->
+	wxButton:destroy( Button ).
 
 
 
@@ -3271,7 +3321,7 @@ create_sizer( Orientation ) ->
 % @doc Creates a sizer operating on specified orientation, within specified
 % parent, with a box drawn around.
 %
--spec create_sizer_with_box( orientation(), window() ) -> sizer().
+-spec create_sizer_with_box( orientation(), parent() ) -> sizer().
 create_sizer_with_box( Orientation, Parent ) ->
 
 	ActualOrientation = to_wx_orientation( Orientation ),
@@ -3517,7 +3567,7 @@ add_tool( Toolbar, Id, Label, Bitmap, ShortHelp ) ->
 
 	end,
 
-	wxToolBar:addTool( Toolbar, declare_id( Id ), Label, Bitmap, Opts ).
+	wxToolBar:addTool( Toolbar, declare_any_id( Id ), Label, Bitmap, Opts ).
 
 
 % @doc Adds the specified tool, represented by the specified enabled/disabled
@@ -3542,7 +3592,7 @@ add_tool( Toolbar, Id, Label, BitmapIfEnabled, BitmapIfDisabled,
 		_ -> [ { longHelp, LongHelp } ]
 	end,
 
-	wxToolBar:addTool( Toolbar, declare_id( Id ), Label,
+	wxToolBar:addTool( Toolbar, declare_any_id( Id ), Label,
 					   BitmapIfEnabled, BitmapIfDisabled, Opts ).
 
 
@@ -3605,7 +3655,7 @@ create_blank_bitmap( Width, Height ) ->
 % @doc Returns a blank bitmap whose size is the client one of the specified
 % window.
 %
--spec create_blank_bitmap_for( window() ) -> bitmap().
+-spec create_blank_bitmap_for( parent() ) -> bitmap().
 create_blank_bitmap_for( Window ) ->
 	ClientSize = wxWindow:getClientSize( Window ),
 	create_blank_bitmap( ClientSize ).
@@ -3653,18 +3703,18 @@ destruct_bitmap( Bitmap ) ->
 
 
 % @doc Creates a bitmap display from the specified bitmap.
--spec create_bitmap_display( window(), bitmap() ) -> bitmap_display().
-create_bitmap_display( Parent, Bitmap ) ->
-	gui_image:create_bitmap_display( Parent, Bitmap ).
+-spec create_bitmap_display( bitmap(), parent() ) -> bitmap_display().
+create_bitmap_display( Bitmap, Parent ) ->
+	gui_image:create_bitmap_display( Bitmap, Parent ).
 
 
 % @doc Creates a bitmap display from the specified bitmap and with the specified
 % options.
 %
--spec create_bitmap_display( window(), bitmap(), [ window_option() ] ) ->
+-spec create_bitmap_display( bitmap(), [ window_option() ], parent() ) ->
 												bitmap_display().
-create_bitmap_display( Parent, Bitmap, Options ) ->
-	gui_image:create_bitmap_display( Parent, Bitmap, Options ).
+create_bitmap_display( Bitmap, Options, Parent ) ->
+	gui_image:create_bitmap_display( Bitmap, Options, Parent ).
 
 
 % @doc Destructs the specified bitmap display.
@@ -3675,18 +3725,18 @@ destruct_bitmap_display( BitmapDisplay ) ->
 
 
 % @doc Creates a text display from the specified text.
--spec create_text_display( window(), label() ) -> text_display().
-create_text_display( Parent, Label ) ->
-	gui_image:create_text_display( Parent, Label ).
+-spec create_text_display( label(), parent() ) -> text_display().
+create_text_display( Label, Parent ) ->
+	gui_image:create_text_display( Label, Parent ).
 
 
 % @doc Creates a text display from the specified label and with the specified
 % options.
 %
--spec create_text_display( window(), label(), [ text_display_option() ] ) ->
+-spec create_text_display( label(), [ text_display_option() ], parent() ) ->
 													text_display().
-create_text_display( Parent, Label, Options ) ->
-	gui_image:create_text_display( Parent, Label, Options ).
+create_text_display( Label, Options, Parent ) ->
+	gui_image:create_text_display( Label, Options, Parent ).
 
 
 % @doc Destructs the specified text display.
@@ -3923,32 +3973,13 @@ destruct_menu( Menu ) ->
 % @doc Returns a list of the names of the standard menu item identifiers.
 -spec get_standard_item_names() -> [ name_id() ].
 get_standard_item_names() ->
-	% Must correspond to standard_menu_item_name_id():
-	[ new_menu_item, open_menu_item, close_menu_item,
-	  save_menu_item, save_as_menu_item,
-	  revert_to_saved_menu_item,
-	  undelete_menu_item,
-	  print_menu_item, preview_menu_item,
-	  revert_menu_item, edit_menu_item, file_menu_item, properties_menu_item,
-	  cut_menu_item, copy_menu_item, paste_menu_item, delete_menu_item,
-	  find_menu_item, select_all_menu_item,
-	  replace_menu_item, replace_all_menu_item,
-	  clear_menu_item,
-	  ok_menu_item, cancel_menu_item, apply_menu_item,
-	  yes_menu_item, no_menu_item,
-	  add_menu_item, remove_menu_item,
-	  convert_menu_item, execute_menu_item,
-	  home_menu_item, refresh_menu_item, stop_menu_item, index_menu_item,
-	  select_color_menu_item, select_font_menu_item,
-	  forward_menu_item, backward_menu_item,
-	  up_menu_item, down_menu_item,
-	  top_menu_item, bottom_menu_item, first_menu_item, last_menu_item,
-	  jump_to_menu_item, info_menu_item,
-	  zoom_factor_one, zoom_factor_fit, zoom_factor_in, zoom_factor_out,
-	  undo_menu_item, redo_menu_item, help_menu_item, preferences_menu_item,
-	  about_menu_item,
-	  floppy_menu_item, hard_disk_menu_item, network_menu_item,
-	  exit_menu_item ].
+	% Must correspond to standard_menu_item_name_id() (could be obtained from
+	% standard buttons as well):
+	%
+	 { menu_item_id, MenuItemEntries, _ElemLookup } =
+		gui_constants:get_menu_item_id_topic_spec(),
+
+	pair:firsts( MenuItemEntries ).
 
 
 % @doc Creates a menu item based on the specified label, adds it to the
@@ -3965,22 +3996,22 @@ add_item( Menu, MenuItemLabel ) ->
 %
 -spec add_item( menu(), menu_item_id(), menu_item_label() ) -> menu_item().
 add_item( Menu, MenuItemId, MenuItemLabel ) when is_integer( MenuItemId ) ->
-	wxMenu:append( Menu, declare_id( MenuItemId ), MenuItemLabel );
+	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel );
 
 add_item( Menu, MenuItemId, MenuItemLabel ) when is_atom( MenuItemId ) ->
 	% We must not declare a standard name identifier (as it already is):
 	% BackendId = case lists:member( MenuItemId, get_standard_item_names() ) of
 
 	%	true ->
-	%		resolve_id( MenuItemId );
+	%		resolve_any_id( MenuItemId );
 
 	%	false ->
-	%		declare_id( MenuItemId )
+	%		declare_any_id( MenuItemId )
 
 	% end,
 
 	% Now not predeclared anymore, was a bad idea:
-	BackendId = declare_id( MenuItemId ),
+	BackendId = declare_any_id( MenuItemId ),
 	wxMenu:append( Menu, BackendId, MenuItemLabel ).
 
 
@@ -3999,8 +4030,8 @@ append_item( Menu, MenuItem ) ->
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu() ) ->
 													menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
-	% Not resolve_id( MenuItemId ):
-	wxMenu:append( Menu, declare_id( MenuItemId ), MenuItemLabel, SubMenu ).
+	% Not resolve_any_id( MenuItemId ):
+	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel, SubMenu ).
 
 
 % @doc Adds the specified labelled submenu, associated to the specified
@@ -4009,7 +4040,7 @@ append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu(),
 					  help_info() ) -> menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu, HelpInfoStr ) ->
-	wxMenu:append( Menu, declare_id( MenuItemId ), MenuItemLabel, SubMenu,
+	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel, SubMenu,
 				   [ { help, HelpInfoStr } ] ).
 
 
@@ -4028,7 +4059,7 @@ add_checkable_item( Menu, MenuItemLabel ) ->
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
-	wxMenu:appendCheckItem( Menu, declare_id( MenuItemId ), MenuItemLabel ).
+	wxMenu:appendCheckItem( Menu, declare_any_id( MenuItemId ), MenuItemLabel ).
 
 
 % @doc Creates a menu item that can be toggled/checked, based on the specified
@@ -4038,7 +4069,7 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label(),
 						  help_info() ) -> menu_item().
 add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
-	wxMenu:appendCheckItem( Menu, declare_id( MenuItemId ), MenuItemLabel,
+	wxMenu:appendCheckItem( Menu, declare_any_id( MenuItemId ), MenuItemLabel,
 							[ { help, HelpInfoStr } ] ).
 
 
@@ -4047,7 +4078,7 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
 %
 -spec set_checkable_menu_item( menu(), menu_item_id(), boolean() ) -> void().
 set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
-	wxMenu:check( Menu, resolve_id( MenuItemId ), SetAsChecked ).
+	wxMenu:check( Menu, resolve_any_id( MenuItemId ), SetAsChecked ).
 
 
 % @doc Adds the specified radio item to the specified menu, and returns that
@@ -4059,7 +4090,7 @@ set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
-	wxMenu:appendRadioItem( Menu, resolve_id( MenuItemId ), MenuItemLabel ).
+	wxMenu:appendRadioItem( Menu, resolve_any_id( MenuItemId ), MenuItemLabel ).
 
 
 % @doc Adds the specified labelled item that can be checkd/checked to the
@@ -4068,7 +4099,7 @@ add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label(),
 					  help_info() ) -> menu_item().
 add_radio_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
-	wxMenu:appendRadioItem( Menu, resolve_id( MenuItemId ), MenuItemLabel,
+	wxMenu:appendRadioItem( Menu, resolve_any_id( MenuItemId ), MenuItemLabel,
 							[ { help, HelpInfoStr } ] ).
 
 
@@ -4090,10 +4121,10 @@ add_separator(
 -spec set_menu_item_status( menu(), menu_item_id(), menu_item_status() ) ->
 														void().
 set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=enabled ) ->
-	wxMenu:enable( Menu, resolve_id( MenuItemId ), _Check=true );
+	wxMenu:enable( Menu, resolve_any_id( MenuItemId ), _Check=true );
 
 set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
-	wxMenu:enable( Menu, resolve_id( MenuItemId ), _Check=false ).
+	wxMenu:enable( Menu, resolve_any_id( MenuItemId ), _Check=false ).
 
 
 
@@ -4103,7 +4134,7 @@ set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
 %
 -spec remove_menu_item( menu(), menu_item_id() ) -> void().
 remove_menu_item( Menu, MenuItemId ) ->
-	wxMenu:delete( Menu, resolve_id( MenuItemId ) ).
+	wxMenu:delete( Menu, resolve_any_id( MenuItemId ) ).
 
 
 
@@ -4241,8 +4272,9 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 		{ instance_created, ObjectType, ObjectRef } ->
 
 			cond_utils:if_defined( myriad_debug_gui_instances,
-				trace_utils:debug_fmt( "'~ts' instance created, now referenced "
-									   "as ~w.", [ ObjectType, ObjectRef ] ) ),
+				trace_utils:debug_fmt(
+					"'~ts' instance created, now referenced as ~w.",
+					[ ObjectType, ObjectRef ] ) ),
 
 			ObjectRef
 
@@ -4261,27 +4293,21 @@ get_main_loop_pid() ->
 % @doc Returns a backend-specific widget identifier associated to the specified
 % new identifier, expected not to have already been declared.
 %
--spec declare_id( id() ) -> backend_id().
+-spec declare_any_id( id() ) -> backend_id().
 % Module-local, meant to declare quickly most cases.
-declare_id( undefined ) ->
+declare_any_id( undefined ) ->
 	?wxID_ANY;
 
 % Integers are set by the (wx) backend (wx_id()):
-declare_id( Id ) when is_integer( Id ) ->
+declare_any_id( Id ) when is_integer( Id ) ->
 	Id;
 
-
 % Atoms are higher-level identifiers set at the MyriadGUI level:
-declare_id( NameId ) -> % when is_atom( NameId ) ->
-	get_main_loop_pid() ! { declareNameId, NameId, self() },
-	receive
-
-		{ notifyingAssignedId, BackendId } ->
-			%trace_utils:debug_fmt( "Got backend id #~B for ~ts.",
-			%                       [ BackendId, NameId ] ),
-			BackendId
-
-	end.
+declare_any_id( NameId ) when is_atom( NameId ) ->
+	% Relies on the fact that the MyriadGUI main process now impersonates a
+	% standalone gui_id server:
+	%
+	gui_id:declare_name_id( NameId, _IdAllocRef=get_main_loop_pid() ).
 
 
 
@@ -4289,42 +4315,34 @@ declare_id( NameId ) -> % when is_atom( NameId ) ->
 % any type (MyriadGUI name identifier, possibly an undefined one, or already a
 % backend identifier).
 %
--spec resolve_id( id() ) -> backend_id().
+-spec resolve_any_id( id() ) -> backend_id().
 % Module-local, meant to resolve quickly most cases.
-resolve_id( undefined ) ->
+resolve_any_id( undefined ) ->
 	?wxID_ANY;
 
-resolve_id( BackendId ) when is_integer( BackendId ) ->
+resolve_any_id( BackendId ) when is_integer( BackendId ) ->
 	BackendId;
 
-resolve_id( NameId ) ->
-	get_main_loop_pid() ! { resolveNameId, NameId, self() },
-	receive
-
-		{ notifyResolvedIdentifier, BackendId } ->
-			BackendId
-
-	end.
+resolve_any_id( NameId ) when is_atom( NameId ) ->
+	% Relies on the fact that the MyriadGUI main process now impersonates a
+	% standalone gui_id server:
+	%
+	gui_id:resolve_named_id( NameId, _IdAllocRef=get_main_loop_pid() ).
 
 
 
 % @doc Returns any MyriadGUI name identifier associated to the specified
 % backend-specific widget identifier.
 %
-% Not exactly the reciprocal of resolve_id/1.
+% Not exactly the reciprocal of resolve_any_id/1.
 %
--spec unresolve_id( backend_id() ) -> maybe( name_id() ).
-unresolve_id( BackendId ) when is_integer( BackendId ) ->
-	get_main_loop_pid() ! { resolveBackendId, BackendId, self() },
-	receive
-
-		{ notifyResolvedBackendIdentifier, MaybeNameId } ->
-			MaybeNameId
-
-	end.
-
-
-
+-spec get_maybe_name_id( backend_id() ) -> maybe( name_id() ).
+get_maybe_name_id( BackendId ) when is_integer( BackendId ) ->
+	% Relies on the fact that the MyriadGUI main process now impersonates a
+	% standalone gui_id server:
+	%
+	gui_id:maybe_resolve_backend_id_internal( BackendId,
+		_IdAllocRef=get_main_loop_pid() ).
 
 
 
