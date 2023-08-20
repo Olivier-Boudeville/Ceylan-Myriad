@@ -68,7 +68,7 @@
 		  create_bitmap/1,
 		  create_blank_bitmap/1, create_blank_bitmap/2,
 		  create_blank_bitmap_for/1,
-		  get_standard_bitmap/1,
+		  get_standard_bitmap/1, get_standard_bitmap/2,
 		  destruct_bitmap/1,
 
 		  lock_bitmap/1, draw_bitmap/3, unlock_bitmap/1,
@@ -217,6 +217,7 @@
 -type size() :: gui:size().
 -type dimensions() :: gui:dimensions().
 -type window() :: gui:window().
+-type parent() :: gui:parent().
 -type label() :: gui:label().
 -type device_context() :: gui:device_context().
 -type window_option() :: gui:window_option().
@@ -490,7 +491,10 @@ create_blank_bitmap_for( Window ) ->
 	create_blank_bitmap( ClientSize ).
 
 
-% @doc Returns the standard bitmap corresponding to the specified identifier.
+
+% @doc Returns the standard bitmap of default dimensions, corresponding to the
+% specified identifier.
+%
 -spec get_standard_bitmap( standard_bitmap_name_id() ) -> bitmap().
 get_standard_bitmap( StdBitmapId ) ->
 
@@ -499,10 +503,36 @@ get_standard_bitmap( StdBitmapId ) ->
 	% Computed (not a literal constant):
 	NullBitmap = ?wxNullBitmap,
 
+	% Using default size:
 	case wxArtProvider:getBitmap( WxArtId ) of
 
 		NullBitmap ->
 			throw( { standard_bitmap_not_available, StdBitmapId, WxArtId } );
+
+		Bitmap ->
+			Bitmap
+
+	end.
+
+
+% @doc Returns the standard bitmap corresponding to the specified identifier and
+% dimensions.
+%
+-spec get_standard_bitmap( standard_bitmap_name_id(), dimensions() ) ->
+											bitmap().
+get_standard_bitmap( StdBitmapId, Dimensions ) ->
+
+	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
+
+	% Computed (not a literal constant):
+	NullBitmap = ?wxNullBitmap,
+
+	% Using default size:
+	case wxArtProvider:getBitmap( WxArtId, _Opts=[ { size, Dimensions } ] ) of
+
+		NullBitmap ->
+			throw( { standard_bitmap_not_available, StdBitmapId, Dimensions,
+					 WxArtId } );
 
 		Bitmap ->
 			Bitmap
@@ -556,17 +586,17 @@ unlock_bitmap( DC ) ->
 
 
 % @doc Creates a bitmap display from the specified bitmap.
--spec create_bitmap_display( window(), bitmap() ) -> bitmap_display().
-create_bitmap_display( Parent, Bitmap ) ->
-	create_bitmap_display( Parent, Bitmap, _Opts=[] ).
+-spec create_bitmap_display( bitmap(), parent() ) -> bitmap_display().
+create_bitmap_display( Bitmap, Parent ) ->
+	create_bitmap_display( Bitmap, _Opts=[], Parent ).
 
 
 % @doc Creates a bitmap display from the specified bitmap and with the specified
 % options.
 %
--spec create_bitmap_display( window(), bitmap(), [ window_option() ] ) ->
+-spec create_bitmap_display( bitmap(), [ window_option() ], parent() ) ->
 												bitmap_display().
-create_bitmap_display( Parent, Bitmap, Options ) ->
+create_bitmap_display( Bitmap, Options, Parent ) ->
 	wxStaticBitmap:new( Parent, _Id=?wxID_ANY, Bitmap, Options ).
 
 
@@ -578,17 +608,17 @@ destruct_bitmap_display( BitmapDisplay ) ->
 
 
 % @doc Creates a text display from the specified label.
--spec create_text_display( window(), label() ) -> text_display().
-create_text_display( Parent, Label ) ->
-	create_text_display( Parent, Label, _Opts=[] ).
+-spec create_text_display( label(), parent() ) -> text_display().
+create_text_display( Label, Parent ) ->
+	create_text_display( Label, _Opts=[], Parent ).
 
 
 % @doc Creates a text display from the specified label and with the specified
 % options.
 %
--spec create_text_display( window(), label(), [ window_option() ] ) ->
+-spec create_text_display( label(), [ window_option() ], parent() ) ->
 												text_display().
-create_text_display( Parent, Label, Options ) ->
+create_text_display( Label, Options, Parent ) ->
 	wxStaticText:new( Parent, _Id=?wxID_ANY, Label,
 					  to_wx_static_text_options( Options ) ).
 
