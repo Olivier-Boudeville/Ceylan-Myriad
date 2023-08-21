@@ -1885,6 +1885,9 @@ send_event( Subscribers, EventType=onItemSelected, EventSourceId, GUIObject,
 	BestSrcId = gui_id:get_best_menu_item_id_internal( EventSourceId,
 													   NameTable ),
 
+	%trace_utils:debug_fmt( "onItemSelected: using ~w for ~w.",
+	%                       [ BestSrcId, EventSourceId ] ),
+
 	send_event_for_id( BestSrcId, Subscribers, EventType, EventSourceId,
 					   GUIObject, UserData, Event );
 

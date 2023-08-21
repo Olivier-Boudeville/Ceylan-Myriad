@@ -755,17 +755,25 @@ get_best_id_internal( BackendId, NameTable ) ->
 -spec get_best_menu_item_id_internal( backend_id(), id_name_alloc_table() ) ->
 											id().
 get_best_menu_item_id_internal( BackendId, _NameTable )
-							when is_integer( BackendId ) ->
-	BackendId;
-
-get_best_menu_item_id_internal( NameId, NameTable ) when is_atom( NameId ) ->
-	case gui_generated:get_maybe_second_for_menu_item_id( NameId ) of
+									when BackendId < ?min_allocated_id ->
+	case gui_generated:get_maybe_first_for_menu_item_id( BackendId ) of
 
 		undefined ->
-			bijective_table:get_maybe_second_for( NameId, NameTable );
+			BackendId;
 
-		MenuItemWxId ->
-			MenuItemWxId
+		MenuItemNameId ->
+			MenuItemNameId
+
+	end;
+
+get_best_menu_item_id_internal( BackendId, NameTable ) ->
+	case bijective_table:get_maybe_first_for( BackendId, NameTable ) of
+
+		undefined ->
+			BackendId;
+
+		MenuItemNameId ->
+			MenuItemNameId
 
 	end.
 
