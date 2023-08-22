@@ -91,11 +91,19 @@ run_gui_test() ->
 
 	%trace_utils:debug_fmt( "AllButtonIds = ~w", [ AllButtonIds ] ),
 
+	% Showing that we cannot set custom labels if selecting a standard/stock
+	% identifier (so we cannot have both a non-default label and the
+	% corresponding icon unfortunately)
+	%
+	TestButton = gui:create_button( "My label\n(lost icon)",
+		_ButtId=zoom_factor_fit_button,	ButtonParent ),
+
 	% To force the use of the stock labels:
 	NoLabel = "",
 
-	AllButtons = [ gui:create_button( NoLabel, Position, ButtonSize,
-		ButtonStyle, BId, ButtonParent ) || BId <- AllButtonIds ],
+	AllButtons = [ TestButton |
+		[ gui:create_button( NoLabel, Position, ButtonSize,	ButtonStyle, BId,
+							 ButtonParent ) || BId <- AllButtonIds ] ],
 
 	ButtonFlags = [ { proportion, 0 }, { border, 4 }, all_borders ],
 
