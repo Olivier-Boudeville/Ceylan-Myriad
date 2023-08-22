@@ -301,7 +301,7 @@
 	% Generally little use of console outputs for this backend:
 	log_console = false :: boolean(),
 
-	log_file = undefined :: maybe( file_utils:file() ),
+	log_file = undefined :: maybe( file() ),
 	settings :: setting_table() } ).
 
 
@@ -318,6 +318,9 @@
 
 -export_type([ ui_state/0 ]).
 
+% The key used by this module to store its state in the process dictionaty:
+-define( state_key, term_ui_state ).
+
 
 % Shorthands:
 
@@ -326,17 +329,33 @@
 -type format_values() :: text_utils:format_values().
 
 -type file_path() :: file_utils:file_path().
+-type file() :: file_utils:file().
 
+-type text() :: ui:text() .
+-type label() :: ui:label() .
+-type prompt() :: ui:prompt().
+-type message() :: ui:message().
 
-% The key used by this module to store its state in the process dictionaty:
--define( state_key, term_ui_state ).
+-type setting_table() :: ui:setting_table().
+
+-type ui_options() :: ui:ui_options().
+
+-type ui_setting_key() :: ui:ui_setting_key().
+-type ui_setting_value() :: ui:ui_setting_value().
+-type ui_setting_entry() :: ui:ui_setting_entry().
+
+-type choice_designator() :: ui:choice_designator().
+-type choice_index() :: ui:choice_index().
+-type choice_text() :: ui:choice_text().
+-type choice_element() :: ui:choice_element().
+-type binary_choice() :: ui:binary_choice().
 
 
 
 % @doc Tells whether this user-interface backend is available.
 -spec is_available() -> boolean().
 is_available() ->
-   % Cannot be simplified (no 'tru'e but { T, TPath }):
+   % Cannot be simplified (no 'true but { T, TPath }):
 	not( lookup_dialog_tool() =:= false ).
 
 
