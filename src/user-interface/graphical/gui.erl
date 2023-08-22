@@ -147,6 +147,10 @@
 % In general, the opaqueness of types is too difficult to preserve here.
 
 
+% We tried to make so that this gui module shares as much as possible
+% conventions with the more general 'ui' one, at least through base types.
+
+
 % Event loops.
 %
 % There is generally two event loops involved here:
@@ -365,6 +369,7 @@
 		  register_event_callback/3, register_event_callback/4,
 		  trap_event/1, propagate_event/1 ]).
 
+
 % Identifier-related operations.
 -export([ ensure_backend_id/1 ]).
 
@@ -475,6 +480,25 @@
 -export([ add_control/2, add_tool/5, add_tool/7, update_tools/1 ]).
 
 
+% Dialogs:
+-export([ show_modal/1 ]).
+
+% Message dialogs:
+-export([ create_message_dialog/2, create_message_dialog/3,
+		  destruct_message_dialog/1 ]).
+
+% Single-choice dialogs:
+-export([ create_single_choice_dialog/4, create_single_choice_dialog/5,
+		  set_selected_choice/3, get_choice_designator/2,
+		  destruct_single_choice_dialog/1 ]).
+
+% Multiple-choice dialogs:
+-export([ create_multi_choice_dialog/4, create_multi_choice_dialog/5,
+		  set_selected_choices/3, get_choice_designators/2,
+		  destruct_multi_choice_dialog/1 ]).
+
+
+
 % Brushes:
 -export([ create_brush/1, create_transparent_brush/1, destruct_brush/1 ]).
 
@@ -538,7 +562,8 @@
 		  add_radio_item/3, add_radio_item/4,
 		  add_separator/1,
 		  set_menu_item_status/3, remove_menu_item/2,
-		  create_menu_bar/0, add_menu/3, set_menu_bar/2,
+		  create_menu_bar/0, create_menu_bar/1,
+		  add_menu/3, set_menu_bar/2,
 		  activate_popup_menu/2 ]).
 
 
@@ -842,7 +867,6 @@
 %
 % A toolbar emits menu commands in the same way that a frame menubar does.
 
-
 -type toolbar_style_opt() ::
 	'top'
   | 'bottom'
@@ -874,6 +898,107 @@
 -type control() :: wxControl:wxControl().
 % A control is generally a small window which processes user input and/or
 % displays one or more item of data.
+
+
+-type dialog() :: wxDialog:wxDialog().
+% Any type of dialog.
+%
+% This is a window that can be shown in a modal way (GUI-blocking), or modeless.
+
+
+-type dialog_return_code() ::
+	'ok_returned'
+  | 'cancel_returned'
+  | 'yes_returned'
+  | 'no_returned'.
+% A return code obtained when showing a dialog in a modal way.
+
+
+-type message_dialog() :: wxMessageDialog:wxMessageDialog().
+% A dialog displaying a message and a few buttons.
+
+
+-type message_dialog_opt() ::
+	{ 'caption', ustring() }
+  | { 'style', [ message_dialog_style() ] }
+  | { 'pos', point() }.
+% An option for a message dialog.
+
+
+-type message_dialog_style() ::
+	'ok_button'
+  | 'cancel_button'
+  | 'yes_no_buttons'
+  | 'help_button'
+  | 'default_is_no'
+  | 'default_is_cancel'
+  % (alias of default_is_ok) | 'default_is_yes'
+  | 'default_is_ok'
+  | 'no_icon'
+  | 'error_icon'
+  | 'warning_icon'
+  | 'question_icon'
+  | 'information_icon'
+  | 'security_icon'
+  | 'stay_on_top'
+  | 'center'.
+% A style of message dialog.
+
+
+-type single_choice_dialog() :: wxSingleChoiceDialog:wxSingleChoiceDialog().
+% A dialog allowing the user to select a single option among a set thereof.
+%
+% Double-clicking on a list item is equivalent to single-clicking and then
+% pressing OK.
+
+
+-type single_choice_dialog_opt() ::
+	{ 'style', [ single_choice_dialog_style() ] }
+  | { 'pos', point() }.
+% An option for a single-choice dialog.
+
+
+-type single_choice_dialog_style() ::
+	'ok_button'
+  | 'cancel_button'
+  | 'center'.
+% A style of single-choice dialog.
+
+
+
+-type multi_choice_dialog() :: wxMultiChoiceDialog:wxMultiChoiceDialog().
+% A dialog allowing the user to select multiple options from a set thereof.
+
+
+-type multi_choice_dialog_opt() ::
+	{ 'style', [ multi_choice_dialog_style() ] }
+  | { 'pos', point() }.
+% An option for a multiple-choice dialog.
+
+
+-type multi_choice_dialog_style() ::
+	'ok_button'
+  | 'cancel_button'
+  | 'center'.
+% A style of multiple-choice dialog.
+
+
+
+-type text_entry_dialog() :: wxTextEntryDialog:wxTextEntryDialog().
+% A dialog allowing the user to enter a (line of) text.
+
+-type directory_dialog() :: wxDirDialog:wxDirDialog().
+% A dialog allowing to select a local directory.
+
+-type file_dialog() :: wxDirDialog:wxDirDialog().
+% A dialog allowing to select a local file.
+
+-type colour_dialog() :: wxColourDialog:wxColourDialog().
+% A dialog allowing to select a colour.
+
+-type font_dialog() :: wxFontDialog:wxFontDialog().
+% A dialog allowing to select a font.
+
 
 
 -type field_count() :: count().
@@ -1036,6 +1161,8 @@
 
 -opaque menu_bar() :: wxMenuBar:wxMenuBar().
 % A menu bar is a series of menus in a row, accessible from the top of a frame.
+%
+% When a frame goes fullscreen, any menu bar it has is hidden.
 
 % Not existing? -type menu_bar_option() :: ''.
 
@@ -1092,9 +1219,8 @@
 
 -type font_option() :: gui_font:font_option().
 
--type title() :: text().
 
--type label() :: text().
+-type label() :: ui:label().
 % A label, typically of a widget.
 %
 % Control characters can be used (e.g. "\n", "\t"), and accelerators (with a "&"
@@ -1135,9 +1261,9 @@
 
 -type window_style() :: [ window_style_opt() ].
 
--type window_option() :: { pos, point() }
-					   | { size, size() }
-					   | { style, [ window_style_opt() ] }.
+-type window_option() :: { 'pos', point() }
+					   | { 'size', size() }
+					   | { 'style', [ window_style_opt() ] }.
 % Window-specific options (quite common).
 
 % Unused: -type window_options() :: [ window_option() ].
@@ -1365,6 +1491,13 @@
 			   toolbar/0, toolbar_style/0, tool/0, tool_kind/0,
 			   control/0,
 
+			   dialog/0, dialog_return_code/0,
+			   message_dialog/0, message_dialog_opt/0,  message_dialog_style/0,
+			   single_choice_dialog/0, multi_choice_dialog/0,
+			   text_entry_dialog/0,
+			   directory_dialog/0, file_dialog/0,
+			   colour_dialog/0, font_dialog/0,
+
 			   menu/0, menu_option/0,
 			   menu_item/0, menu_title/0, menu_label/0,
 			   menu_item_label/0, menu_item_kind/0,
@@ -1410,9 +1543,6 @@
 						   to_wx_size/1, to_wx_orientation/1,
 						   frame_style_to_bitmask/1, get_panel_options/1 ]).
 
--type text() :: ustring().
-
-
 % Type shorthands:
 
 -type count() :: basic_utils:count().
@@ -1433,6 +1563,14 @@
 -type any_file_path() :: file_utils:any_file_path().
 
 -type line2() :: linear_2D:line2().
+
+-type text() :: ui:text().
+
+-type title() :: ui:title().
+-type caption() :: ui:caption().
+-type message() :: ui:message().
+-type choice_spec() :: ui:choice_spec().
+-type choice_designator() :: ui:choice_designator().
 
 -type color() :: gui_color:color().
 -type color_by_decimal() :: gui_color:color_by_decimal().
@@ -2923,7 +3061,7 @@ is_fullscreen( TopLvlWin ) ->
 % it to its normal state (if false).
 %
 % Showing a window full screen also actually shows the window if it is not
-% already shown.
+% already shown. Any menu bar is then hidden.
 %
 % Returns (supposedly) whether the operation succeeded.
 %
@@ -3375,6 +3513,10 @@ add_to_sizer( Sizer, _Elements=[ { Elem, Opts } | T ] ) ->
 	add_to_sizer( Sizer, Elem, Opts ),
 	add_to_sizer( Sizer, T );
 
+add_to_sizer( Sizer, _Elements=[ Elem | T ] ) ->
+	add_to_sizer( Sizer, Elem ),
+	add_to_sizer( Sizer, T );
+
 add_to_sizer( Sizer, Element ) ->
 	%trace_utils:debug_fmt( "Adding ~w to sizer ~w.", [ Element, Sizer ] ),
 	wxSizer:add( Sizer, Element ).
@@ -3603,6 +3745,185 @@ add_tool( Toolbar, Id, Label, BitmapIfEnabled, BitmapIfDisabled,
 -spec update_tools( toolbar() ) -> boolean().
 update_tools( Toolbar ) ->
 	wxToolBar:realize( Toolbar ).
+
+
+
+
+% Dialog section.
+%
+% Use show_modal/1 to show such dialog.
+
+
+% Subsection transverse to all dialogs.
+
+
+% @doc Shows the specified dialog in a modal way.
+%
+% Use show/1 to show it in a modeless way.
+%
+-spec show_modal( dialog() ) -> dialog_return_code().
+show_modal( Dialog ) ->
+	WxReturnCode = wxDialog:showModal( Dialog ),
+	gui_generated:get_first_for_dialog_return( WxReturnCode ).
+
+
+
+% Message dialog subsection.
+
+
+% @doc Creates a dialog displaying the specified message.
+-spec create_message_dialog( message(), parent() ) -> message_dialog().
+create_message_dialog( Message, Parent ) ->
+	create_message_dialog( Message, _Opts=[], Parent ).
+
+
+% @doc Creates a dialog displaying the specified message, with specified
+% options.
+%
+-spec create_message_dialog( message(), maybe_list( message_dialog_opt() ),
+							 parent() ) -> message_dialog().
+create_message_dialog( Message, Opts, Parent ) when is_list( Opts ) ->
+	WxOpts = gui_wx_backend:to_wx_message_dialog_opts( Opts ),
+	wxMessageDialog:new( Parent, Message, WxOpts );
+
+create_message_dialog( Message, SingleOpt, Parent ) ->
+	create_message_dialog( Message, [ SingleOpt ], Parent ).
+
+
+% @doc Destructs the specified message dialog.
+-spec destruct_message_dialog( message_dialog() ) -> void().
+destruct_message_dialog( MsgDialog ) ->
+	wxMessageDialog:destroy( MsgDialog ).
+
+
+% Choice-related dialogs.
+%
+% For selections, rather than relying on basic strings and indexes thereof, we
+% prefer relying on choice elements, that are application-friendly logical
+% elements (atoms) associated to arbitrary texts (e.g. {my_foobar_elem, "This is
+% my foo bar element"}).
+%
+% Then the developer has simply to handle atoms like my_foobar_elem, regardless
+% of the content of the associated text.
+%
+% Refer to gui_dialog_test.erl for a full example thereof.
+
+
+
+% Single-choice dialog subsection.
+
+
+% @doc Creates a dialog that will offer the user to select a single choice
+% option among the specified ones.
+%
+% A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
+% functions.
+%
+-spec create_single_choice_dialog( message(), caption(), choice_spec(),
+								   parent() ) -> single_choice_dialog().
+create_single_choice_dialog( Message, Caption, ChoiceSpec, Parent ) ->
+	ChoiceTexts = pair:seconds( ChoiceSpec ),
+	wxSingleChoiceDialog:new( Parent, Message, Caption, ChoiceTexts ).
+
+
+% @doc Creates a dialog that will offer the user to select a single choice
+% option among the specified ones.
+%
+% A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
+% functions.
+%
+-spec create_single_choice_dialog( message(), caption(), choice_spec(),
+		maybe_list( single_choice_dialog_opt() ), parent() ) ->
+			single_choice_dialog().
+create_single_choice_dialog( Message, Caption, ChoiceSpec, DialogOpts,
+							 Parent ) ->
+	ChoiceTexts = pair:seconds( ChoiceSpec ),
+	WxOpts = gui_wx_backend:to_wx_single_choice_dialog_opts( DialogOpts ),
+	wxSingleChoiceDialog:new( Parent, Message, Caption, ChoiceTexts, WxOpts ).
+
+
+% @doc Sets the initially selected choice option of the specified single-choice
+% dialog.
+%
+-spec set_selected_choice( single_choice_dialog(), choice_designator(),
+						   choice_spec() ) -> void().
+set_selected_choice( SingleChoiceDialog, ChoiceDesignator, ChoiceSpec ) ->
+	Designators = pair:firsts( ChoiceSpec ),
+	Index = list_utils:get_index_of( ChoiceDesignator, Designators ),
+	wxSingleChoiceDialog:setSelection( SingleChoiceDialog, Index-1 ).
+
+
+% @doc Returns the designator of the option choice made based on the specified
+% single-choice dialog.
+%
+-spec get_choice_designator( single_choice_dialog(), choice_spec() ) ->
+			choice_designator().
+get_choice_designator( SingleChoiceDialog, ChoiceSpec ) ->
+	Index = wxSingleChoiceDialog:getSelection( SingleChoiceDialog ),
+	Designators = pair:firsts( ChoiceSpec ),
+	lists:nth( Index+1, Designators ).
+
+
+% @doc Destructs the specified single-choice dialog.
+-spec destruct_single_choice_dialog( single_choice_dialog() ) -> void().
+destruct_single_choice_dialog( SingleChoiceDialog ) ->
+	wxSingleChoiceDialog:destroy( SingleChoiceDialog ).
+
+
+
+% Multiple-choice dialog subsection.
+
+
+% @doc Creates a dialog that will offer the user to select multiple-choice
+% options among the specified ones.
+%
+-spec create_multi_choice_dialog( message(), caption(), choice_spec(),
+								  parent() ) -> multi_choice_dialog().
+create_multi_choice_dialog( Message, Caption, ChoiceSpec, Parent ) ->
+	ChoiceTexts = pair:seconds( ChoiceSpec ),
+	wxMultiChoiceDialog:new( Parent, Message, Caption, ChoiceTexts ).
+
+
+% @doc Creates a dialog that will offer the user to select multiple-choice
+% options among the specified ones.
+%
+-spec create_multi_choice_dialog( message(), caption(), choice_spec(),
+		maybe_list( multi_choice_dialog_opt() ), parent() ) ->
+			multi_choice_dialog().
+create_multi_choice_dialog( Message, Caption, ChoiceSpec, DialogOpts,
+							 Parent ) ->
+	ChoiceTexts = pair:seconds( ChoiceSpec ),
+	WxOpts = gui_wx_backend:to_wx_multi_choice_dialog_opts( DialogOpts ),
+	wxMultiChoiceDialog:new( Parent, Message, Caption, ChoiceTexts, WxOpts ).
+
+
+% @doc Sets the initially selected option choices of the specified
+% multiple-choice dialog.
+%
+-spec set_selected_choices( multi_choice_dialog(), [ choice_designator() ],
+						   choice_spec() ) -> void().
+set_selected_choices( MultiChoiceDialog, ChoiceDesignators, ChoiceSpec ) ->
+	Designators = pair:firsts( ChoiceSpec ),
+	Indexes = [ list_utils:get_index_of( CD, Designators ) - 1
+				|| CD <- ChoiceDesignators ],
+	wxMultiChoiceDialog:setSelections( MultiChoiceDialog, Indexes ).
+
+
+% @doc Returns the designators (in unspecified order) of the choices made based
+% on the specified multi-choice dialog.
+%
+-spec get_choice_designators( multi_choice_dialog(), choice_spec() ) ->
+			[ choice_designator() ].
+get_choice_designators( MultiChoiceDialog, ChoiceSpec ) ->
+	Indexes = wxMultiChoiceDialog:getSelections( MultiChoiceDialog ),
+	Designators = pair:firsts( ChoiceSpec ),
+	[ lists:nth( Id+1, Designators ) || Id <- Indexes ].
+
+
+% @doc Destructs the specified multi-choice dialog.
+-spec destruct_multi_choice_dialog( multi_choice_dialog() ) -> void().
+destruct_multi_choice_dialog( MultiChoiceDialog ) ->
+	wxMultiChoiceDialog:destroy( MultiChoiceDialog ).
 
 
 
@@ -3930,16 +4251,23 @@ draw_bitmap( GraphicContext, Bitmap, X, Y, Width, Height ) ->
 
 % Menu section.
 %
-% A menu can be generically designed, before being assigned to a menu bar or a
-% popup menu.
+% A menu can be generically designed, before being assigned either to a menu bar
+% or to a popup menu.
 %
 % Items are added at the current bottom of a menu.
 %
 % A submenu may be attached up to once in a menu.
+%
+% At least for menus meant to be assigned to a menu bar, specifying a title for
+% them is of little interest, as when assigning them (at least with add_menu/3),
+% a title has to be specified and will take precedence.
+
 
 
 % @doc Creates a menu, either to be attached to a menu bar, or to be used as a
 % popup menu.
+%
+% This is the most recommended and useful function to create a menu.
 %
 -spec create_menu() -> menu().
 create_menu() ->
@@ -3951,8 +4279,10 @@ create_menu() ->
 %
 -spec create_menu( maybe_list( menu_option() ) ) -> menu().
 create_menu( MaybeOptions ) ->
-	WxStyleOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
-	wxMenu:new( [ { style, WxStyleOpts } ] ).
+	WxOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
+	trace_utils:debug_fmt( "Creating a menu with options ~p.",
+						   [ WxOpts ] ),
+	wxMenu:new( WxOpts ).
 
 
 % @doc Creates a menu with the specified title and options, either to be
@@ -3960,8 +4290,10 @@ create_menu( MaybeOptions ) ->
 %
 -spec create_menu( title(), maybe_list( menu_option() ) ) -> menu().
 create_menu( Title, MaybeOptions ) ->
-	WxStyleOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
-	wxMenu:new( Title, [ { style, WxStyleOpts } ] ).
+	WxOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
+	trace_utils:debug_fmt( "Creating a menu '~ts' with options ~p.",
+						   [ Title, WxOpts ] ),
+	wxMenu:new( Title, WxOpts ).
 
 
 % @doc Destructs the specified menu.
@@ -3994,11 +4326,16 @@ add_item( Menu, MenuItemLabel ) ->
 % @doc Creates a menu item based on the specified identifier and label, adds it
 % to the specified menu, and returns that menu item.
 %
+% If using a standard (stock) menu item identifier (e.g. help_menu_item), an
+% empty label can be specified, in which case it will be automatically set
+% (e.g. as "Help").
+%
 -spec add_item( menu(), menu_item_id(), menu_item_label() ) -> menu_item().
-add_item( Menu, MenuItemId, MenuItemLabel ) when is_integer( MenuItemId ) ->
-	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel );
+% Now applies to all sorts of identifiers:
+add_item( Menu, MenuItemId, MenuItemLabel ) -> %when is_integer( MenuItemId ) ->
+	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel ).
 
-add_item( Menu, MenuItemId, MenuItemLabel ) when is_atom( MenuItemId ) ->
+%add_item( Menu, MenuItemId, MenuItemLabel ) when is_atom( MenuItemId ) ->
 	% We must not declare a standard name identifier (as it already is):
 	% BackendId = case lists:member( MenuItemId, get_standard_item_names() ) of
 
@@ -4011,8 +4348,8 @@ add_item( Menu, MenuItemId, MenuItemLabel ) when is_atom( MenuItemId ) ->
 	% end,
 
 	% Now not predeclared anymore, was a bad idea:
-	BackendId = declare_any_id( MenuItemId ),
-	wxMenu:append( Menu, BackendId, MenuItemLabel ).
+%	BackendId = declare_any_id( MenuItemId ),
+%	wxMenu:append( Menu, BackendId, MenuItemLabel ).
 
 
 
@@ -4027,6 +4364,10 @@ append_item( Menu, MenuItem ) ->
 % @doc Adds the specified labelled submenu, associated to the specified
 % identifier, to the specified menu, and returns the corresponding menu item.
 %
+% If using a standard (stock) menu item identifier (e.g. help_menu_item), an
+% empty label can be specified, in which case it will be automatically set
+% (e.g. as "Help").
+%
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu() ) ->
 													menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
@@ -4036,6 +4377,10 @@ append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
 
 % @doc Adds the specified labelled submenu, associated to the specified
 % identifier and help information, to the specified menu, and returns that item.
+%
+% If using a standard (stock) menu item identifier (e.g. help_menu_item), an
+% empty label can be specified, in which case it will be automatically set
+% (e.g. as "Help").
 %
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu(),
 					  help_info() ) -> menu_item().
@@ -4056,6 +4401,10 @@ add_checkable_item( Menu, MenuItemLabel ) ->
 % identifier and label, adds it to the specified menu, and returns that menu
 % item.
 %
+% If using a standard (stock) menu item identifier (e.g. help_menu_item), an
+% empty label can be specified, in which case it will be automatically set
+% (e.g. as "Help").
+%
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
@@ -4065,6 +4414,10 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
 % @doc Creates a menu item that can be toggled/checked, based on the specified
 % identifier, label and help information, adds it to the specified menu, and
 % returns that menu item.
+%
+% If using a standard (stock) menu item identifier (e.g. help_menu_item), an
+% empty label can be specified, in which case it will be automatically set
+% (e.g. as "Help").
 %
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label(),
 						  help_info() ) -> menu_item().
@@ -4087,6 +4440,10 @@ set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
 % All consequent radio items form a group and when an item in the group is
 % checked, all the others are automatically unchecked.
 %
+% If using a standard (stock) menu item identifier (e.g. help_menu_item), an
+% empty label can be specified, in which case it will be automatically set
+% (e.g. as "Help").
+%
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
@@ -4095,6 +4452,10 @@ add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
 
 % @doc Adds the specified labelled item that can be checkd/checked to the
 % specified menu, and returns that item.
+%
+% If using a standard (stock) menu item identifier (e.g. help_menu_item), an
+% empty label can be specified, in which case it will be automatically set
+% (e.g. as "Help").
 %
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label(),
 					  help_info() ) -> menu_item().
@@ -4141,14 +4502,22 @@ remove_menu_item( Menu, MenuItemId ) ->
 % Menu bar subsection.
 
 
-% @doc Creates an empty menu bar, at the top of the specified parent window.
+% @doc Creates an empty menu bar, not yet specifically associated to a frame.
 -spec create_menu_bar() -> menu_bar().
 create_menu_bar() ->
 	wxMenuBar:new().
 
 
+% @doc Creates an empty menu bar, associated to the specified frame.
+-spec create_menu_bar( frame() ) -> menu_bar().
+create_menu_bar( Frame ) ->
+	MenuBar = wxMenuBar:new(),
+	set_menu_bar( Frame, MenuBar ),
+	MenuBar.
+
+
 % @doc Adds the specified menu to the specified menu bar.
--spec add_menu( menu_bar(), menu(), menu_label() ) -> void().
+-spec add_menu( menu_bar(), menu(), title() ) -> void().
 add_menu( MenuBar, Menu, MenuTitle ) ->
 	true = wxMenuBar:append( MenuBar, Menu, MenuTitle ).
 

@@ -34,13 +34,18 @@
 
 
 
+% When adding a spec function here, do not forget to list its name as well in
+% list_topic_spec_functions/0 just below:
+%
 -export([ get_object_type_topic_spec/0, get_window_style_topic_spec/0,
 		  get_frame_style_topic_spec/0, get_button_style_topic_spec/0,
 		  get_sizer_flag_topic_spec/0, get_menu_item_id_topic_spec/0,
 		  get_button_id_topic_spec/0,
 		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
 		  get_menu_item_kind_topic_spec/0, get_status_bar_style_topic_spec/0,
-		  get_toolbar_style_topic_spec/0, get_event_type_topic_spec/0,
+		  get_toolbar_style_topic_spec/0,
+		  get_dialog_return_topic_spec/0, get_message_dialog_style_topic_spec/0,
+		  get_event_type_topic_spec/0,
 		  get_direction_topic_spec/0, get_orientation_topic_spec/0 ] ).
 
 
@@ -58,6 +63,7 @@ list_topic_spec_functions() ->
 	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
+	  get_dialog_return_topic_spec, get_message_dialog_style_topic_spec,
 	  get_event_type_topic_spec, get_direction_topic_spec,
 	  get_orientation_topic_spec ].
 
@@ -81,6 +87,13 @@ list_topic_spec_functions() ->
 % Quite often both conversion directions cannot be enabled, as different wx
 % defines correspond actually to the same value (then only the first_to_second
 % conversion direction is requested).
+%
+% As much as possible, when such wx synonyms exist (e.g. wxICON_HAND being an
+% alias for wxICON_ERROR), one is kept and the other prohibited.
+%
+% Of course a given MyriadGUI symbol (e.g. 'text', 'right') must be unique only
+% in a given bijective table (so different bijective tables may share some of
+% such symbols).
 %
 % For a topic T, we generate here gui_generated:get_{first,second}_for_T/1 (if
 % both directions are enabled) and possibly
@@ -112,6 +125,8 @@ list_topic_spec_functions() ->
 
 -type status_bar_style() :: gui:status_bar_style().
 -type toolbar_style() :: gui:toolbar_style().
+-type dialog_return_code() :: gui:dialog_return_code().
+-type message_dialog_style() :: gui:message_dialog_style().
 -type bitmap_id_opt() :: gui:bitmap_id_opt().
 -type icon_name_id() :: gui:icon_name_id().
 
@@ -646,6 +661,62 @@ get_toolbar_style_topic_spec() ->
 
 	% Not a bijection, the element '4' is present twice:
 	{ toolbar_style, Entries, _ElemLookup=strict, _Direction=first_to_second }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'dialog_return' topic.
+%
+-spec get_dialog_return_topic_spec() ->
+			topic_spec( dialog_return_code(), wx_enum() ).
+get_dialog_return_topic_spec() ->
+
+	% We tried to determine exactly the values returned by actual dialogs:
+	Entries = [
+		{ ok_returned,     ?wxID_OK     },
+		{ cancel_returned, ?wxID_CANCEL },
+		{ yes_returned,    ?wxID_YES    },
+		{ no_returned,     ?wxID_NO     } ],
+
+	{ dialog_return, Entries, _ElemLookup=strict }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'message_dialog_style' topic.
+%
+-spec get_message_dialog_style_topic_spec() ->
+						topic_spec( message_dialog_style(), wx_enum() ).
+get_message_dialog_style_topic_spec() ->
+
+	% Refer to https://docs.wxwidgets.org/3.1/classwx_message_dialog.html.
+
+	% Perhaps some constants collide on some platforms and not on others
+	% (e.g. at least on this GNU/Linux ?wxYES_DEFAULT =:= ?wxOK_DEFAULT); then
+	% the lookup should be set to first_to_second.
+
+	Entries = [
+		{ ok_button,         ?wxOK               },
+		{ cancel_button,     ?wxCANCEL           },
+		{ yes_no_buttons,    ?wxYES_NO           },
+		{ help_button,       ?wxHELP             },
+		{ default_is_no,     ?wxNO_DEFAULT       },
+		{ default_is_cancel, ?wxCANCEL_DEFAULT   },
+		%{ default_is_yes,    ?wxYES_DEFAULT      }, % alias of wxOK_DEFAULT
+		{ default_is_ok,     ?wxOK_DEFAULT       },
+		{ no_icon,           ?wxICON_NONE        },
+		{ error_icon,        ?wxICON_ERROR       }, % alias of wxICON_HAND
+
+		% Alias of wxICON_EXCLAMATION:
+		{ warning_icon,      ?wxICON_WARNING     },
+
+		{ question_icon,     ?wxICON_QUESTION    },
+		{ information_icon,  ?wxICON_INFORMATION },
+		{ security_icon,     ?wxICON_AUTH_NEEDED },
+		{ stay_on_top,       ?wxSTAY_ON_TOP      },
+		{ center,            ?wxCENTRE           } ],
+
+	{ message_dialog_style, Entries, _ElemLookup=strict }.
 
 
 

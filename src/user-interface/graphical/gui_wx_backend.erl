@@ -178,6 +178,10 @@
 		  to_wx_toolbar_style/1,
 		  to_wx_tool_kind/1,
 
+		  to_wx_message_dialog_opts/1, to_wx_message_dialog_opt/1,
+		  to_wx_single_choice_dialog_opts/1, to_wx_single_choice_dialog_opt/1,
+		  to_wx_multi_choice_dialog_opts/1, to_wx_multi_choice_dialog_opt/1,
+
 		  to_wx_event_type/1, from_wx_event_type/1,
 
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
@@ -352,6 +356,10 @@
 -type toolbar_style_opt() :: gui:toolbar_style_opt().
 
 -type tool_kind() :: gui:tool_kind().
+
+-type message_dialog_opt() :: gui:message_dialog_opt().
+-type single_choice_dialog_opt() :: gui:single_choice_dialog_opt().
+-type multi_choice_dialog_opt() :: gui:multi_choice_dialog_opt().
 
 -type position() :: gui:position().
 -type size() :: gui:size().
@@ -629,12 +637,12 @@ to_wx_menu_options( Options ) when is_list( Options ) ->
 	[ to_wx_menu_option( O ) || O <- Options ];
 
 to_wx_menu_options( Opt ) ->
-	[ to_wx_menu_option( Opt ) ].
+	to_wx_menu_options( [ Opt ] ).
 
 
 % (helper)
 to_wx_menu_option( _Opt=detachable ) ->
-	?wxMENU_TEAROFF.
+	{ style, ?wxMENU_TEAROFF }.
 
 
 
@@ -734,6 +742,87 @@ to_wx_toolbar_style( StyleOpts ) when is_list( StyleOpts ) ->
 
 to_wx_toolbar_style( StyleOpt ) ->
 	gui_generated:get_second_for_toolbar_style( StyleOpt ).
+
+
+
+% @doc Converts the specified options for message dialogs into wx-specific ones.
+-spec to_wx_message_dialog_opts( maybe_list( message_dialog_opt() ) ) -> list().
+to_wx_message_dialog_opts( MsgOpts ) when is_list( MsgOpts ) ->
+	Res = [ to_wx_message_dialog_opt( MO ) || MO <- MsgOpts ],
+	%trace_utils:debug_fmt( "Wx message dialog options: ~p", [ Res ] ),
+	Res;
+
+to_wx_message_dialog_opts( MsgOpt ) ->
+	to_wx_message_dialog_opts( [ MsgOpt ] ).
+
+
+
+% @doc Converts the specified option for message dialogs into a wx-specific one.
+-spec to_wx_message_dialog_opt( message_dialog_opt() ) -> tuple().
+to_wx_message_dialog_opt( MsgOpt={ caption, _CaptionStr } ) ->
+	MsgOpt;
+
+to_wx_message_dialog_opt( _MsgOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_message_dialog_style( S ) bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_message_dialog_opt( MsgOpt={ pos, _Pos } ) ->
+	MsgOpt.
+
+
+
+% @doc Converts the specified options for single-choice dialogs into wx-specific
+% ones.
+%
+-spec to_wx_single_choice_dialog_opts(
+						maybe_list( single_choice_dialog_opt() ) ) -> list().
+to_wx_single_choice_dialog_opts( ScdOpts ) when is_list( ScdOpts ) ->
+	Res = [ to_wx_single_choice_dialog_opt( SO ) || SO <- ScdOpts ],
+	%trace_utils:debug_fmt( "Wx single-choice dialog options: ~p", [ Res ] ),
+	Res;
+
+to_wx_single_choice_dialog_opts( ScdOpt ) ->
+	to_wx_single_choice_dialog_opts( [ ScdOpt ] ).
+
+
+
+% @doc Converts the specified option for single-choice dialogs into a
+% wx-specific one.
+%
+-spec to_wx_single_choice_dialog_opt( single_choice_dialog_opt() ) -> tuple().
+to_wx_single_choice_dialog_opt( _ScdOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		% More general table used:
+		gui_generated:get_second_for_message_dialog_style( S ) bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_single_choice_dialog_opt( ScdOpt={ pos, _Pos } ) ->
+	ScdOpt.
+
+
+
+% @doc Converts the specified options for multiple-choice dialogs into
+% wx-specific ones.
+%
+-spec to_wx_multi_choice_dialog_opts(
+						maybe_list( multi_choice_dialog_opt() ) ) -> list().
+to_wx_multi_choice_dialog_opts( MultOpts ) ->
+	to_wx_single_choice_dialog_opts( MultOpts ).
+
+
+% @doc Converts the specified option for multi-choice dialogs into a
+% wx-specific one.
+%
+-spec to_wx_multi_choice_dialog_opt( multi_choice_dialog_opt() ) -> tuple().
+to_wx_multi_choice_dialog_opt( MultOpt ) ->
+	to_wx_single_choice_dialog_opt( MultOpt ).
 
 
 
