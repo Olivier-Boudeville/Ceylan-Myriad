@@ -181,6 +181,7 @@
 		  to_wx_message_dialog_opts/1, to_wx_message_dialog_opt/1,
 		  to_wx_single_choice_dialog_opts/1, to_wx_single_choice_dialog_opt/1,
 		  to_wx_multi_choice_dialog_opts/1, to_wx_multi_choice_dialog_opt/1,
+		  to_wx_text_entry_dialog_opts/1, to_wx_text_entry_dialog_opt/1,
 
 		  to_wx_event_type/1, from_wx_event_type/1,
 
@@ -360,6 +361,7 @@
 -type message_dialog_opt() :: gui:message_dialog_opt().
 -type single_choice_dialog_opt() :: gui:single_choice_dialog_opt().
 -type multi_choice_dialog_opt() :: gui:multi_choice_dialog_opt().
+-type text_entry_dialog_opt() :: gui:text_entry_dialog_opt().
 
 -type position() :: gui:position().
 -type size() :: gui:size().
@@ -683,6 +685,13 @@ to_new_wx_menu_item_id( MenuItemId ) ->
 	end.
 
 
+% @doc Converts the specified kind of menu identifier into a wx-specific one.
+-spec to_wx_menu_item_kind( menu_item_kind() ) -> wx_enum().
+to_wx_menu_item_kind( Kind ) ->
+	% Same:
+	gui_generated:get_second_for_menu_item_kind( Kind ).
+
+
 
 % @doc Converts the specified bitmap identifier (for an already-existing menu
 % item) into a wx-specific one.
@@ -814,6 +823,7 @@ to_wx_single_choice_dialog_opt( ScdOpt={ pos, _Pos } ) ->
 -spec to_wx_multi_choice_dialog_opts(
 						maybe_list( multi_choice_dialog_opt() ) ) -> list().
 to_wx_multi_choice_dialog_opts( MultOpts ) ->
+	% Same:
 	to_wx_single_choice_dialog_opts( MultOpts ).
 
 
@@ -826,10 +836,40 @@ to_wx_multi_choice_dialog_opt( MultOpt ) ->
 
 
 
-% @doc Converts the specified kind of menu identifier into a wx-specific one.
--spec to_wx_menu_item_kind( menu_item_kind() ) -> wx_enum().
-to_wx_menu_item_kind( Kind ) ->
-	gui_generated:get_second_for_menu_item_kind( Kind ).
+
+% @doc Converts the specified options for text-entry dialogs into wx-specific
+% ones.
+%
+-spec to_wx_text_entry_dialog_opts( maybe_list( text_entry_dialog_opt() ) ) ->
+											 list().
+to_wx_text_entry_dialog_opts( TextEntryOpts ) when is_list( TextEntryOpts ) ->
+	[ to_wx_text_entry_dialog_opt( TEO ) || TEO <- TextEntryOpts ];
+
+to_wx_text_entry_dialog_opts( TextEntryOpt ) ->
+	to_wx_text_entry_dialog_opts( [ TextEntryOpt ] ).
+
+
+% @doc Converts the specified option for text-entry dialogs into a wx-specific
+% one.
+%
+-spec to_wx_text_entry_dialog_opt( text_entry_dialog_opt() ) -> tuple().
+to_wx_text_entry_dialog_opt( TextEntryOpt={ caption, _CaptionStr } ) ->
+	TextEntryOpt;
+
+to_wx_text_entry_dialog_opt( _TextEntryOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_message_dialog_style( S ) bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_text_entry_dialog_opt( TextEntryOpt={ pos, _Pos } ) ->
+	TextEntryOpt;
+
+to_wx_text_entry_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
+	{ value, InitialText }.
+
 
 
 % @doc Converts the specified kind of tool into a wx-specific one.

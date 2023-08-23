@@ -489,13 +489,21 @@
 
 % Single-choice dialogs:
 -export([ create_single_choice_dialog/4, create_single_choice_dialog/5,
+		  create_single_choice_dialog/6,
 		  set_selected_choice/3, get_choice_designator/2,
 		  destruct_single_choice_dialog/1 ]).
 
 % Multiple-choice dialogs:
 -export([ create_multi_choice_dialog/4, create_multi_choice_dialog/5,
+		  create_multi_choice_dialog/6,
 		  set_selected_choices/3, get_choice_designators/2,
 		  destruct_multi_choice_dialog/1 ]).
+
+% Text-entry dialogs:
+-export([ create_text_entry_dialog/2, create_text_entry_dialog/3,
+		  create_text_entry_dialog/4,
+		  set_default_text/2, get_filled_text/1,
+		  destruct_text_entry_dialog/1 ]).
 
 
 
@@ -986,6 +994,15 @@
 
 -type text_entry_dialog() :: wxTextEntryDialog:wxTextEntryDialog().
 % A dialog allowing the user to enter a (line of) text.
+
+
+-type text_entry_dialog_opt() ::
+	{ 'caption', ustring() }
+  | { 'style', [ message_dialog_style() ] }
+  | { 'initial_text', text() }
+  | { 'pos', point() }.
+% An option for a text entry dialog.
+
 
 -type directory_dialog() :: wxDirDialog:wxDirDialog().
 % A dialog allowing to select a local directory.
@@ -3816,6 +3833,8 @@ destruct_message_dialog( MsgDialog ) ->
 % @doc Creates a dialog that will offer the user to select a single choice
 % option among the specified ones.
 %
+% None is selected initially.
+%
 % A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
 % functions.
 %
@@ -3829,6 +3848,8 @@ create_single_choice_dialog( Message, Caption, ChoiceSpec, Parent ) ->
 % @doc Creates a dialog that will offer the user to select a single choice
 % option among the specified ones.
 %
+% None is selected initially.
+%
 % A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
 % functions.
 %
@@ -3840,6 +3861,29 @@ create_single_choice_dialog( Message, Caption, ChoiceSpec, DialogOpts,
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
 	WxOpts = gui_wx_backend:to_wx_single_choice_dialog_opts( DialogOpts ),
 	wxSingleChoiceDialog:new( Parent, Message, Caption, ChoiceTexts, WxOpts ).
+
+
+% @doc Creates a dialog that will offer the user to select a single choice
+% option among the specified ones, with the specified one being selected
+% initially.
+%
+% A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
+% functions.
+%
+-spec create_single_choice_dialog( message(), caption(), choice_spec(),
+	choice_designator(), maybe_list( single_choice_dialog_opt() ), parent() ) ->
+			single_choice_dialog().
+create_single_choice_dialog( Message, Caption, ChoiceSpec,
+							 InitialChoiceDesignator, DialogOpts, Parent ) ->
+	ChoiceTexts = pair:seconds( ChoiceSpec ),
+	WxOpts = gui_wx_backend:to_wx_single_choice_dialog_opts( DialogOpts ),
+
+	Dlg = wxSingleChoiceDialog:new( Parent, Message, Caption, ChoiceTexts,
+									WxOpts ),
+
+	set_selected_choice( Dlg, InitialChoiceDesignator, ChoiceSpec ),
+
+	Dlg.
 
 
 % @doc Sets the initially selected choice option of the specified single-choice
@@ -3877,6 +3921,8 @@ destruct_single_choice_dialog( SingleChoiceDialog ) ->
 % @doc Creates a dialog that will offer the user to select multiple-choice
 % options among the specified ones.
 %
+% None is selected initially.
+%
 -spec create_multi_choice_dialog( message(), caption(), choice_spec(),
 								  parent() ) -> multi_choice_dialog().
 create_multi_choice_dialog( Message, Caption, ChoiceSpec, Parent ) ->
@@ -3887,14 +3933,37 @@ create_multi_choice_dialog( Message, Caption, ChoiceSpec, Parent ) ->
 % @doc Creates a dialog that will offer the user to select multiple-choice
 % options among the specified ones.
 %
+% None is selected initially.
+
 -spec create_multi_choice_dialog( message(), caption(), choice_spec(),
 		maybe_list( multi_choice_dialog_opt() ), parent() ) ->
 			multi_choice_dialog().
 create_multi_choice_dialog( Message, Caption, ChoiceSpec, DialogOpts,
-							 Parent ) ->
+							Parent ) ->
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
 	WxOpts = gui_wx_backend:to_wx_multi_choice_dialog_opts( DialogOpts ),
 	wxMultiChoiceDialog:new( Parent, Message, Caption, ChoiceTexts, WxOpts ).
+
+
+% @doc Creates a dialog that will offer the user to select multiple-choice
+% options among the specified ones.
+%
+% None is selected initially.
+%
+-spec create_multi_choice_dialog( message(), caption(), choice_spec(),
+		[ choice_designator() ], maybe_list( multi_choice_dialog_opt() ),
+		parent() ) -> multi_choice_dialog().
+create_multi_choice_dialog( Message, Caption, ChoiceSpec,
+							InitialChoiceDesignators, DialogOpts, Parent ) ->
+	ChoiceTexts = pair:seconds( ChoiceSpec ),
+	WxOpts = gui_wx_backend:to_wx_multi_choice_dialog_opts( DialogOpts ),
+
+	Dlg = wxMultiChoiceDialog:new( Parent, Message, Caption, ChoiceTexts,
+								   WxOpts ),
+
+	set_selected_choices( Dlg, InitialChoiceDesignators, ChoiceSpec ),
+
+	Dlg.
 
 
 % @doc Sets the initially selected option choices of the specified
@@ -3905,7 +3974,7 @@ create_multi_choice_dialog( Message, Caption, ChoiceSpec, DialogOpts,
 set_selected_choices( MultiChoiceDialog, ChoiceDesignators, ChoiceSpec ) ->
 	Designators = pair:firsts( ChoiceSpec ),
 	Indexes = [ list_utils:get_index_of( CD, Designators ) - 1
-				|| CD <- ChoiceDesignators ],
+					|| CD <- ChoiceDesignators ],
 	wxMultiChoiceDialog:setSelections( MultiChoiceDialog, Indexes ).
 
 
@@ -3924,6 +3993,63 @@ get_choice_designators( MultiChoiceDialog, ChoiceSpec ) ->
 -spec destruct_multi_choice_dialog( multi_choice_dialog() ) -> void().
 destruct_multi_choice_dialog( MultiChoiceDialog ) ->
 	wxMultiChoiceDialog:destroy( MultiChoiceDialog ).
+
+
+
+% Text-entry dialog subsection.
+
+
+% @doc Creates a dialog that will offer the user to enter a text, while
+% displaying the specified label.
+%
+-spec create_text_entry_dialog( label(), parent() ) -> text_entry_dialog().
+create_text_entry_dialog( Label, Parent ) ->
+	wxTextEntryDialog:new( Parent, Label ).
+
+
+% @doc Creates a dialog that will offer the user to enter a text with the
+% specified options, while displaying the specified label.
+%
+-spec create_text_entry_dialog( label(), [ text_entry_dialog_opt() ],
+								parent() ) -> text_entry_dialog().
+create_text_entry_dialog( Label, DialogOpts, Parent ) ->
+	WxOpts = gui_wx_backend:to_wx_text_entry_dialog_opts( DialogOpts ),
+	wxTextEntryDialog:new( Parent, Label, WxOpts ).
+
+
+% @doc Creates a dialog that will offer the user to enter a text with the
+% specified options, while displaying the specified label, and once having set
+% the specified initial text.
+%
+-spec create_text_entry_dialog( label(), [ text_entry_dialog_opt() ], text(),
+								parent() ) -> text_entry_dialog().
+create_text_entry_dialog( Label, DialogOpts, InitialText, Parent ) ->
+	WxOpts = gui_wx_backend:to_wx_text_entry_dialog_opts( DialogOpts ),
+	Dlg = wxTextEntryDialog:new( Parent, Label, WxOpts ),
+	set_default_text( Dlg, InitialText ),
+	Dlg.
+
+
+% @doc Sets the default, initially filled, text of the specified text-entry
+% dialog.
+%
+-spec set_default_text( text_entry_dialog(), text() ) -> void().
+set_default_text( TextEntryDialog, Text ) ->
+	wxTextEntryDialog:setValue( TextEntryDialog, Text ).
+
+
+% @doc Returns the text filled in the specified text-entry dialog.
+-spec get_filled_text( text_entry_dialog() ) -> text().
+get_filled_text( TextEntryDialog ) ->
+	wxTextEntryDialog:getValue( TextEntryDialog ).
+
+
+% @doc Destructs the specified text-entry dialog.
+-spec destruct_text_entry_dialog( text_entry_dialog() ) -> void().
+destruct_text_entry_dialog( TextEntryDialog ) ->
+	wxTextEntryDialog:destroy( TextEntryDialog ).
+
+
 
 
 

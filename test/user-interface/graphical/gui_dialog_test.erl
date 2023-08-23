@@ -81,7 +81,10 @@ run_gui_test() ->
 	MultiChButton = gui:create_button( "Show multi-choice dialog", Position,
 		ButtonSize, ButtonStyle, multi_choice_dialog_button_id, Parent ),
 
-	Buttons = [ MsgButton, SingChButton, MultiChButton ],
+	TextEntButton = gui:create_button( "Show text-entry dialog", Position,
+		ButtonSize, ButtonStyle, text_entry_dialog_button_id, Parent ),
+
+	Buttons = [ MsgButton, SingChButton, MultiChButton, TextEntButton ],
 
 	gui:add_to_sizer( Sizer, Buttons ),
 	gui:subscribe_to_events( [ { onButtonClicked, B } || B <- Buttons ] ),
@@ -135,10 +138,8 @@ test_main_loop( State=Frame ) ->
 
 			SingChDialog = gui:create_single_choice_dialog(
 				"This is a single-choice dialog.", "This is a caption",
-				ChoiceSpec, { style, [ ok_button, cancel_button, center ] },
+				ChoiceSpec, _InitialChoiceDesignator=choice_c, _DialogOpts=[],
 				_Parent=Frame ),
-
-			gui:set_selected_choice( SingChDialog, choice_c, ChoiceSpec ),
 
 			case gui:show_modal( SingChDialog ) of
 
@@ -167,11 +168,10 @@ test_main_loop( State=Frame ) ->
 
 			MultChDialog = gui:create_multi_choice_dialog(
 				"This is a multi-choice dialog.", "This is a caption",
-				ChoiceSpec, { style, [ ok_button, cancel_button, center ] },
+				ChoiceSpec,
+				_InitialChoiceDesignators=[ choice_b, choice_c ],
+				 { style, [ ok_button, cancel_button, center ] },
 				_Parent=Frame ),
-
-			gui:set_selected_choices( MultChDialog, [ choice_b, choice_c ],
-									  ChoiceSpec ),
 
 			case gui:show_modal( MultChDialog ) of
 
@@ -185,6 +185,29 @@ test_main_loop( State=Frame ) ->
 
 				cancel_returned ->
 					trace_utils:debug( "Multi-choice dialog cancelled." )
+
+			end,
+
+			test_main_loop( State );
+
+
+		{ onButtonClicked, [ _Button, _ButtonId=text_entry_dialog_button_id,
+							 _Context ] } ->
+
+			TextEntDialog = gui:create_text_entry_dialog(
+				"This is a text-entry dialog.", _DlgOpts=[],
+				_InitialText="This is my initial text.", _Parent=Frame ),
+
+			case gui:show_modal( TextEntDialog ) of
+
+				ok_returned ->
+					Text = gui:get_filled_text( TextEntDialog ),
+
+					trace_utils:debug_fmt( "Text entry dialog returned "
+						"text '~ts'.", [ Text ] );
+
+				cancel_returned ->
+					trace_utils:debug( "Text-entry dialog cancelled." )
 
 			end,
 
