@@ -140,9 +140,6 @@
 -type choice_text() :: text().
 % The text of a choice.
 
--type choice_text() :: text().
-% The text of a choice.
-
 
 -type choice_designator() :: term() | 'ui_cancel'.
 % Designator of a choice (regardless of the choice labels, locales, etc.).
