@@ -182,6 +182,13 @@
 		  to_wx_single_choice_dialog_opts/1, to_wx_single_choice_dialog_opt/1,
 		  to_wx_multi_choice_dialog_opts/1, to_wx_multi_choice_dialog_opt/1,
 		  to_wx_text_entry_dialog_opts/1, to_wx_text_entry_dialog_opt/1,
+		  to_wx_file_selection_dialog_opts/1, to_wx_file_selection_dialog_opt/1,
+		  to_wx_directory_selection_dialog_opts/1,
+		  to_wx_directory_selection_dialog_opt/1,
+		  to_wx_colour_selection_dialog_opts/1,
+		  to_wx_colour_selection_dialog_opt/1,
+		  to_wx_font_selection_dialog_opts/1,
+		  to_wx_font_selection_dialog_opt/1,
 
 		  to_wx_event_type/1, from_wx_event_type/1,
 
@@ -277,7 +284,7 @@
 
 % Precisely:
 %    {id, integer()} |
-%    {pos, {X :: integer(), Y :: integer()}} |
+%    {position, {X :: integer(), Y :: integer()}} |
 %    {size, {W :: integer(), H :: integer()}} |
 %    {style, integer()} |
 %    {name, unicode:chardata()} |
@@ -358,10 +365,14 @@
 
 -type tool_kind() :: gui:tool_kind().
 
--type message_dialog_opt() :: gui:message_dialog_opt().
--type single_choice_dialog_opt() :: gui:single_choice_dialog_opt().
--type multi_choice_dialog_opt() :: gui:multi_choice_dialog_opt().
--type text_entry_dialog_opt() :: gui:text_entry_dialog_opt().
+-type message_dialog_opt() :: gui_dialog:message_dialog_opt().
+-type single_choice_dialog_opt() :: gui_dialog:single_choice_dialog_opt().
+-type multi_choice_dialog_opt() :: gui_dialog:multi_choice_dialog_opt().
+-type text_entry_dialog_opt() :: gui_dialog:text_entry_dialog_opt().
+-type file_selection_dialog_opt() :: gui_dialog:file_selection_dialog_opt().
+-type directory_selection_dialog_opt() :: gui_dialog:directory_selection_opt().
+-type colour_selection_dialog_opt() :: gui_dialog:colour_selection_dialog_opt().
+-type font_selection_dialog_opt() :: gui_dialog:font_selection_dialog_opt().
 
 -type position() :: gui:position().
 -type size() :: gui:size().
@@ -754,6 +765,9 @@ to_wx_toolbar_style( StyleOpt ) ->
 
 
 
+% Dialog subsection.
+
+
 % @doc Converts the specified options for message dialogs into wx-specific ones.
 -spec to_wx_message_dialog_opts( maybe_list( message_dialog_opt() ) ) -> list().
 to_wx_message_dialog_opts( MsgOpts ) when is_list( MsgOpts ) ->
@@ -779,8 +793,8 @@ to_wx_message_dialog_opt( _MsgOpt={ style, Styles } ) ->
 
 	{ style, WxStyle };
 
-to_wx_message_dialog_opt( MsgOpt={ pos, _Pos } ) ->
-	MsgOpt.
+to_wx_message_dialog_opt( _MsgOpt={ position, Pos } ) ->
+	{ pos, Pos }.
 
 
 
@@ -798,22 +812,21 @@ to_wx_single_choice_dialog_opts( ScdOpt ) ->
 	to_wx_single_choice_dialog_opts( [ ScdOpt ] ).
 
 
-
 % @doc Converts the specified option for single-choice dialogs into a
 % wx-specific one.
 %
 -spec to_wx_single_choice_dialog_opt( single_choice_dialog_opt() ) -> tuple().
 to_wx_single_choice_dialog_opt( _ScdOpt={ style, Styles } ) ->
 	WxStyle = lists:foldl( fun( S, Acc ) ->
-		% More general table used:
-		gui_generated:get_second_for_message_dialog_style( S ) bor Acc end,
+		gui_generated:get_second_for_single_choice_dialog_style( S ) bor Acc
+						   end,
 		_InitialAcc=0,
 		_List=Styles ),
 
 	{ style, WxStyle };
 
-to_wx_single_choice_dialog_opt( ScdOpt={ pos, _Pos } ) ->
-	ScdOpt.
+to_wx_single_choice_dialog_opt( _ScdOpt={ position, Pos } ) ->
+	{ pos, Pos }.
 
 
 
@@ -822,17 +835,28 @@ to_wx_single_choice_dialog_opt( ScdOpt={ pos, _Pos } ) ->
 %
 -spec to_wx_multi_choice_dialog_opts(
 						maybe_list( multi_choice_dialog_opt() ) ) -> list().
-to_wx_multi_choice_dialog_opts( MultOpts ) ->
-	% Same:
-	to_wx_single_choice_dialog_opts( MultOpts ).
+to_wx_multi_choice_dialog_opts( MultOpts ) when is_list( MultOpts ) ->
+	[ to_wx_multi_choice_dialog_opt( MO ) || MO <- MultOpts ];
+
+to_wx_multi_choice_dialog_opts( MultOpt ) ->
+	to_wx_multi_choice_dialog_opts( [ MultOpt ] ).
 
 
 % @doc Converts the specified option for multi-choice dialogs into a
 % wx-specific one.
 %
 -spec to_wx_multi_choice_dialog_opt( multi_choice_dialog_opt() ) -> tuple().
-to_wx_multi_choice_dialog_opt( MultOpt ) ->
-	to_wx_single_choice_dialog_opt( MultOpt ).
+to_wx_multi_choice_dialog_opt( _MultOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_multi_choice_dialog_style( S ) bor Acc
+						   end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_multi_choice_dialog_opt( _MultOpt={ position, Pos } ) ->
+	{ pos, Pos }.
 
 
 
@@ -858,16 +882,172 @@ to_wx_text_entry_dialog_opt( TextEntryOpt={ caption, _CaptionStr } ) ->
 
 to_wx_text_entry_dialog_opt( _TextEntryOpt={ style, Styles } ) ->
 	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_message_dialog_style( S ) bor Acc end,
+		gui_generated:get_second_for_text_entry_dialog_style( S ) bor Acc end,
 		_InitialAcc=0,
 		_List=Styles ),
 
 	{ style, WxStyle };
 
-to_wx_text_entry_dialog_opt( TextEntryOpt={ pos, _Pos } ) ->
+to_wx_text_entry_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
+	{ value, InitialText };
+
+to_wx_text_entry_dialog_opt( _TextEntryOpt={ position, Pos } ) ->
+	{ pos, Pos }.
+
+
+
+% @doc Converts the specified options for file-selection dialogs into
+% wx-specific ones.
+%
+-spec to_wx_file_selection_dialog_opts(
+				maybe_list( file_selection_dialog_opt() ) ) -> list().
+to_wx_file_selection_dialog_opts( FileSelOpts ) when is_list( FileSelOpts ) ->
+	[ to_wx_file_selection_dialog_opt( FSO ) || FSO <- FileSelOpts ];
+
+to_wx_file_selection_dialog_opts( FileSelOpt ) ->
+	to_wx_file_selection_dialog_opts( [ FileSelOpt ] ).
+
+
+% @doc Converts the specified option for file-selection dialogs into a
+% wx-specific one.
+%
+-spec to_wx_file_selection_dialog_opt( file_selection_dialog_opt() ) -> tuple().
+to_wx_file_selection_dialog_opt( FileSelOpt={ message, _CaptionStr } ) ->
+	FileSelOpt;
+
+to_wx_file_selection_dialog_opt( _FileSelOpt={ default_dir, DefDir } ) ->
+	{ defaultDir, DefDir };
+
+to_wx_file_selection_dialog_opt( _FileSelOpt={ default_file, DefFile } ) ->
+	{ defaultFile, DefFile };
+
+to_wx_file_selection_dialog_opt( _FileSelOpt={ match_filter, MatchFilter } ) ->
+	{ wildCard, MatchFilter };
+
+to_wx_file_selection_dialog_opt( _FileSelOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_file_selection_dialog_style( S )
+			bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_file_selection_dialog_opt( _FileSelOpt={ position, Pos } ) ->
+	{ pos, Pos };
+
+to_wx_file_selection_dialog_opt( _FileSelOpt={ size, Size } ) ->
+	{ sz, Size }.
+
+
+
+% @doc Converts the specified options for directory-selection dialogs into
+% wx-specific ones.
+%
+-spec to_wx_directory_selection_dialog_opts(
+				maybe_list( directory_selection_dialog_opt() ) ) -> list().
+to_wx_directory_selection_dialog_opts( DirSelOpts )
+											when is_list( DirSelOpts ) ->
+	[ to_wx_directory_selection_dialog_opt( DSO ) || DSO <- DirSelOpts ];
+
+to_wx_directory_selection_dialog_opts( DirSelOpt ) ->
+	to_wx_directory_selection_dialog_opts( [ DirSelOpt ] ).
+
+
+% @doc Converts the specified option for directory-selection dialogs into a
+% wx-specific one.
+%
+-spec to_wx_directory_selection_dialog_opt(
+						directory_selection_dialog_opt() ) -> tuple().
+to_wx_directory_selection_dialog_opt( _DirSelOpt={ caption, CaptionStr } ) ->
+	{ title, CaptionStr };
+
+to_wx_directory_selection_dialog_opt( _DirSelOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_directory_selection_dialog_style( S )
+			bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_directory_selection_dialog_opt( _FileSelOpt={ default_dir, DefDir } ) ->
+	{ defaultPath, DefDir };
+
+to_wx_directory_selection_dialog_opt( _DirSelOpt={ position, Pos } ) ->
+	{ pos, Pos };
+
+to_wx_directory_selection_dialog_opt( _DirSelOpt={ size, Size } ) ->
+	{ sz, Size }.
+
+
+
+% @doc Converts the specified options for colour-selection dialogs into
+% wx-specific ones.
+%
+-spec to_wx_colour_selection_dialog_opts( maybe_list( colour_selection_dialog_opt() ) ) ->
+											 list().
+to_wx_colour_selection_dialog_opts( TextEntryOpts ) when is_list( TextEntryOpts ) ->
+	[ to_wx_colour_selection_dialog_opt( TEO ) || TEO <- TextEntryOpts ];
+
+to_wx_colour_selection_dialog_opts( TextEntryOpt ) ->
+	to_wx_colour_selection_dialog_opts( [ TextEntryOpt ] ).
+
+
+% @doc Converts the specified option for colour-selection dialogs into a wx-specific
+% one.
+%
+-spec to_wx_colour_selection_dialog_opt( colour_selection_dialog_opt() ) -> tuple().
+to_wx_colour_selection_dialog_opt( TextEntryOpt={ caption, _CaptionStr } ) ->
 	TextEntryOpt;
 
-to_wx_text_entry_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
+to_wx_colour_selection_dialog_opt( _TextEntryOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_colour_selection_dialog_style( S ) bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_colour_selection_dialog_opt( _TextEntryOpt={ position, Pos } ) ->
+	{ pos, Pos };
+
+to_wx_colour_selection_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
+	{ value, InitialText }.
+
+
+
+% @doc Converts the specified options for font-selection dialogs into wx-specific
+% ones.
+%
+-spec to_wx_font_selection_dialog_opts( maybe_list( font_selection_dialog_opt() ) ) ->
+											 list().
+to_wx_font_selection_dialog_opts( TextEntryOpts ) when is_list( TextEntryOpts ) ->
+	[ to_wx_font_selection_dialog_opt( TEO ) || TEO <- TextEntryOpts ];
+
+to_wx_font_selection_dialog_opts( TextEntryOpt ) ->
+	to_wx_font_selection_dialog_opts( [ TextEntryOpt ] ).
+
+
+% @doc Converts the specified option for font-selection dialogs into a wx-specific
+% one.
+%
+-spec to_wx_font_selection_dialog_opt( font_selection_dialog_opt() ) -> tuple().
+to_wx_font_selection_dialog_opt( TextEntryOpt={ caption, _CaptionStr } ) ->
+	TextEntryOpt;
+
+to_wx_font_selection_dialog_opt( _TextEntryOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_font_selection_dialog_style( S ) bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_font_selection_dialog_opt( _TextEntryOpt={ position, Pos } ) ->
+	{ pos, Pos };
+
+to_wx_font_selection_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
 	{ value, InitialText }.
 
 

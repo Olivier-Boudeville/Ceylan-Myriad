@@ -44,7 +44,17 @@
 		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
 		  get_menu_item_kind_topic_spec/0, get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
-		  get_dialog_return_topic_spec/0, get_message_dialog_style_topic_spec/0,
+
+		  get_dialog_return_topic_spec/0,
+		  get_message_dialog_style_topic_spec/0,
+		  get_single_choice_dialog_style_topic_spec/0,
+		  get_multi_choice_dialog_style_topic_spec/0,
+		  get_text_entry_dialog_style_topic_spec/0,
+		  get_file_selection_dialog_style_topic_spec/0,
+		  get_directory_selection_dialog_style_topic_spec/0,
+		  %get_colour_selection_dialog_style_topic_spec/0,
+		  %get_font_selection_dialog_style_topic_spec/0,
+
 		  get_event_type_topic_spec/0,
 		  get_direction_topic_spec/0, get_orientation_topic_spec/0 ] ).
 
@@ -63,9 +73,19 @@ list_topic_spec_functions() ->
 	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
-	  get_dialog_return_topic_spec, get_message_dialog_style_topic_spec,
-	  get_event_type_topic_spec, get_direction_topic_spec,
-	  get_orientation_topic_spec ].
+
+	  get_dialog_return_topic_spec,
+	  get_message_dialog_style_topic_spec,
+	  get_single_choice_dialog_style_topic_spec,
+	  get_multi_choice_dialog_style_topic_spec,
+	  get_text_entry_dialog_style_topic_spec,
+	  get_file_selection_dialog_style_topic_spec,
+	  get_directory_selection_dialog_style_topic_spec,
+	  %get_colour_selection_dialog_style_topic_spec,
+	  %get_font_selection_dialog_style_topic_spec,
+
+	  get_event_type_topic_spec,
+	  get_direction_topic_spec, get_orientation_topic_spec ].
 
 
 
@@ -99,6 +119,12 @@ list_topic_spec_functions() ->
 % both directions are enabled) and possibly
 % gui_generated:get_maybe_{first,second}_for_T/1.
 
+% Some wx symbols, like ?wxFD_MULTIPLE, are resolved at compilation time,
+% through a persistent term that is not available when building the current
+% module. We determined (see wx_test:determine_constants/0) their actual value
+% on our platform (GNU/Linux) and hardcoded it here, although it must be for
+% some reason a platform-specific value and/or one that may change over time.
+
 
 % Shorthands:
 
@@ -126,7 +152,17 @@ list_topic_spec_functions() ->
 -type status_bar_style() :: gui:status_bar_style().
 -type toolbar_style() :: gui:toolbar_style().
 -type dialog_return_code() :: gui:dialog_return_code().
+
 -type message_dialog_style() :: gui:message_dialog_style().
+-type single_choice_dialog_style() :: gui:single_choice_dialog_style().
+-type multi_choice_dialog_style() :: gui:multi_choice_dialog_style().
+-type text_entry_dialog_style() :: gui:text_entry_dialog_style().
+-type file_selection_dialog_style() :: gui:file_selection_dialog_style().
+-type directory_selection_dialog_style() ::
+		gui:directory_selection_dialog_style().
+%-type colour_selection_dialog_style() :: gui:colour_selection_dialog_style().
+%-type font_selection_dialog_style() :: gui:font_selection_dialog_style().
+
 -type bitmap_id_opt() :: gui:bitmap_id_opt().
 -type icon_name_id() :: gui:icon_name_id().
 
@@ -717,6 +753,121 @@ get_message_dialog_style_topic_spec() ->
 		{ center,            ?wxCENTRE           } ],
 
 	{ message_dialog_style, Entries, _ElemLookup=strict }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'single_choice_dialog_style' topic.
+%
+-spec get_single_choice_dialog_style_topic_spec() ->
+						topic_spec( single_choice_dialog_style(), wx_enum() ).
+get_single_choice_dialog_style_topic_spec() ->
+
+	% Refer to https://docs.wxwidgets.org/3.1/classwx_single_choice_dialog.html.
+
+	% See get_message_dialog_style_topic_spec/0 for more comments.
+
+	Entries = [
+		{ ok_button,         ?wxOK               },
+		{ cancel_button,     ?wxCANCEL           },
+		{ center,            ?wxCENTRE           } ],
+
+	{ single_choice_dialog_style, Entries, _ElemLookup=strict }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'multi_choice_dialog_style' topic.
+%
+-spec get_multi_choice_dialog_style_topic_spec() ->
+						topic_spec( multi_choice_dialog_style(), wx_enum() ).
+get_multi_choice_dialog_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_multi_choice_dialog.html for
+	% more comments.
+
+	Entries = [
+		{ ok_button,         ?wxOK               },
+		{ cancel_button,     ?wxCANCEL           },
+		{ center,            ?wxCENTRE           } ],
+
+	{ multi_choice_dialog_style, Entries, _ElemLookup=strict }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'text_entry_dialog_style' topic.
+%
+-spec get_text_entry_dialog_style_topic_spec() ->
+						topic_spec( text_entry_dialog_style(), wx_enum() ).
+get_text_entry_dialog_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_text_entry_dialog.html for
+	% more comments.
+
+	Entries = [
+		{ ok_button,         ?wxOK               },
+		{ cancel_button,     ?wxCANCEL           },
+		{ center,            ?wxCENTRE           } ],
+
+	{ text_entry_dialog_style, Entries, _ElemLookup=strict }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'file_selection_dialog_style' topic.
+%
+-spec get_file_selection_dialog_style_topic_spec() ->
+						topic_spec( file_selection_dialog_style(), wx_enum() ).
+get_file_selection_dialog_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_file_dialog.html for more
+	% comments.
+
+	Entries = [
+		{ open_file,          ?wxFD_OPEN                     },
+		{ save_file,          ?wxFD_SAVE                     },
+		{ confirm_overwrite,  ?wxFD_OVERWRITE_PROMPT         },
+		{ follow_no_link,     ?wxFD_NO_FOLLOW                },
+		{ only_existing_file, ?wxFD_FILE_MUST_EXIST          },
+
+		% See implementation notes:
+		%{ multiple_files,     ?wxFD_MULTIPLE                },
+		{ multiple_files,     512                            },
+
+		{ change_working_dir, ?wxFD_CHANGE_DIR               },
+		{ preview_selected,   ?wxFD_PREVIEW                  },
+		{ show_hidden_files,  ?wxFD_SHOW_HIDDEN              } ],
+
+	{ file_selection_dialog_style, Entries, _ElemLookup=strict }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'directory_selection_dialog_style' topic.
+%
+-spec get_directory_selection_dialog_style_topic_spec() ->
+					topic_spec( directory_selection_dialog_style(), wx_enum() ).
+get_directory_selection_dialog_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_dir_dialog.html for more
+	% comments.
+
+	Entries = [
+		{ only_existing_directory,   ?wxDD_DIR_MUST_EXIST },
+		{ change_working_dir,        ?wxDD_CHANGE_DIR },
+		{ multiple_directories,      ?wxDD_MULTIPLE },
+		{ show_hidden_directories,   ?wxDD_SHOW_HIDDEN },
+
+		% However wxDD_NEW_DIR_BUTTON not in wxwidgets docs:
+		{ enable_directory_creation, ?wxDD_NEW_DIR_BUTTON } ],
+
+	{ directory_selection_dialog_style, Entries, _ElemLookup=strict }.
+
+
+% No colour_selection_dialog_style topuc.
+
+% No font_selection_dialog_style topic.
 
 
 

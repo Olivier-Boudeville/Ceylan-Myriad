@@ -72,24 +72,27 @@ run_gui_test() ->
 
 	Parent = Panel,
 
-	MsgButton = gui:create_button( "Show message dialog", Position, ButtonSize,
-		ButtonStyle, message_dialog_button_id, Parent ),
+	% Label / name identifier pairs for each dialog-specific button:
+	DlgPairs = [ { "message", message_dialog_button_id },
+				 { "single-choice", single_choice_dialog_button_id },
+				 { "multi-choice", multi_choice_dialog_button_id },
+				 { "text-entry", text_entry_dialog_button_id },
+				 { "file-selection", file_selection_dialog_button_id },
+				 { "directory-selection",
+				   directory_selection_dialog_button_id },
+				 { "color-selection", color_selection_dialog_button_id },
+				 { "font-selection", font_selection_dialog_button_id } ],
 
-	SingChButton = gui:create_button( "Show single-choice dialog", Position,
-		ButtonSize, ButtonStyle, single_choice_dialog_button_id, Parent ),
-
-	MultiChButton = gui:create_button( "Show multi-choice dialog", Position,
-		ButtonSize, ButtonStyle, multi_choice_dialog_button_id, Parent ),
-
-	TextEntButton = gui:create_button( "Show text-entry dialog", Position,
-		ButtonSize, ButtonStyle, text_entry_dialog_button_id, Parent ),
-
-	Buttons = [ MsgButton, SingChButton, MultiChButton, TextEntButton ],
+	Buttons = [ gui:create_button( "Show " ++ Lbl ++ " dialog", Position,
+		ButtonSize, ButtonStyle, Nid, Parent ) || { Lbl, Nid } <- DlgPairs ],
 
 	gui:add_to_sizer( Sizer, Buttons ),
 	gui:subscribe_to_events( [ { onButtonClicked, B } || B <- Buttons ] ),
 
 	gui:show( Frame ),
+
+	% Order matters (bottom-up):
+	[ gui:fit( W  ) || W <- [ Panel, Frame ] ],
 
 	test_main_loop( _InitialState=Frame ).
 
@@ -110,11 +113,12 @@ test_main_loop( State=Frame ) ->
 		{ onButtonClicked,
 				[ _Button, _ButtonId=message_dialog_button_id, _Context ] } ->
 
-			MsgDialog = gui:create_message_dialog( "This is a message dialog",
+			MsgDialog = gui_dialog:create_for_message(
+				"This is a message dialog",
 				{ style, [ yes_no_buttons, information_icon, center ] },
 				_Parent=Frame ),
 
-			case gui:show_modal( MsgDialog ) of
+			case gui_dialog:show_modal( MsgDialog ) of
 
 				yes_returned ->
 					trace_utils:debug( "Message dialog returned 'yes'." );
@@ -127,6 +131,8 @@ test_main_loop( State=Frame ) ->
 
 			end,
 
+			gui_dialog:destruct_for_message( MsgDialog ),
+
 			test_main_loop( State );
 
 
@@ -136,16 +142,16 @@ test_main_loop( State=Frame ) ->
 			ChoiceSpec = [ { choice_a, "Choice A" }, { choice_b, "Choice B" },
 						   { choice_c, "Choice C" } ],
 
-			SingChDialog = gui:create_single_choice_dialog(
+			SingChDialog = gui_dialog:create_for_single_choice(
 				"This is a single-choice dialog.", "This is a caption",
 				ChoiceSpec, _InitialChoiceDesignator=choice_c, _DialogOpts=[],
 				_Parent=Frame ),
 
-			case gui:show_modal( SingChDialog ) of
+			case gui_dialog:show_modal( SingChDialog ) of
 
 				ok_returned ->
-					Designator =
-						gui:get_choice_designator( SingChDialog, ChoiceSpec ),
+					Designator = gui_dialog:get_choice_designator( SingChDialog,
+																   ChoiceSpec ),
 
 					trace_utils:debug_fmt( "Single-choice dialog returned "
 						"'ok', selected designator being '~ts'.",
@@ -155,6 +161,8 @@ test_main_loop( State=Frame ) ->
 					trace_utils:debug( "Single-choice dialog cancelled." )
 
 			end,
+
+			gui_dialog:destruct_for_single_choice( SingChDialog ),
 
 			test_main_loop( State );
 
@@ -166,18 +174,18 @@ test_main_loop( State=Frame ) ->
 						   { choice_c, "Choice C" }, { choice_d, "Choice D" },
 						   { choice_e, "Choice E" } ],
 
-			MultChDialog = gui:create_multi_choice_dialog(
+			MultChDialog = gui_dialog:create_for_multi_choice(
 				"This is a multi-choice dialog.", "This is a caption",
 				ChoiceSpec,
 				_InitialChoiceDesignators=[ choice_b, choice_c ],
 				 { style, [ ok_button, cancel_button, center ] },
 				_Parent=Frame ),
 
-			case gui:show_modal( MultChDialog ) of
+			case gui_dialog:show_modal( MultChDialog ) of
 
 				ok_returned ->
-					Designators =
-						gui:get_choice_designators( MultChDialog, ChoiceSpec ),
+					Designators = gui_dialog:get_choice_designators(
+						MultChDialog, ChoiceSpec ),
 
 					trace_utils:debug_fmt( "Multi-choice dialog returned "
 						"'ok', selected designators being ~w.",
@@ -188,20 +196,22 @@ test_main_loop( State=Frame ) ->
 
 			end,
 
+			gui_dialog:destruct_for_multi_choice( MultChDialog ),
+
 			test_main_loop( State );
 
 
 		{ onButtonClicked, [ _Button, _ButtonId=text_entry_dialog_button_id,
 							 _Context ] } ->
 
-			TextEntDialog = gui:create_text_entry_dialog(
+			TextEntDialog = gui_dialog:create_for_text_entry(
 				"This is a text-entry dialog.", _DlgOpts=[],
 				_InitialText="This is my initial text.", _Parent=Frame ),
 
-			case gui:show_modal( TextEntDialog ) of
+			case gui_dialog:show_modal( TextEntDialog ) of
 
 				ok_returned ->
-					Text = gui:get_filled_text( TextEntDialog ),
+					Text = gui_dialog:get_filled_text( TextEntDialog ),
 
 					trace_utils:debug_fmt( "Text entry dialog returned "
 						"text '~ts'.", [ Text ] );
@@ -210,6 +220,123 @@ test_main_loop( State=Frame ) ->
 					trace_utils:debug( "Text-entry dialog cancelled." )
 
 			end,
+
+			gui_dialog:destruct_for_text_entry( TextEntDialog ),
+
+			test_main_loop( State );
+
+
+		{ onButtonClicked, [ _Button, _ButtonId=file_selection_dialog_button_id,
+							 _Context ] } ->
+
+			MatchFilter = "All kinds of Erlang files|*.?rl;*.beam",
+
+			FileSelDialog = gui_dialog:create_for_file_selection(
+				_DlgOpts=[ { style, [ multiple_files, show_hidden_files ] },
+						   { match_filter, MatchFilter } ],
+				_Parent=Frame ),
+
+			case gui_dialog:show_modal( FileSelDialog ) of
+
+				ok_returned ->
+					SelectedPaths =
+						gui_dialog:get_selected_files( FileSelDialog ),
+
+					trace_utils:debug_fmt( "File selection dialog returned "
+						"following ~B paths: ~ts.", [ length( SelectedPaths ),
+							text_utils:strings_to_listed_string(
+								SelectedPaths ) ] );
+
+				cancel_returned ->
+					trace_utils:debug( "File selection dialog cancelled." )
+
+			end,
+
+			gui_dialog:destruct_for_file_selection( FileSelDialog ),
+
+			test_main_loop( State );
+
+
+		{ onButtonClicked,
+				[ _Button, _ButtonId=directory_selection_dialog_button_id,
+				  _Context ] } ->
+
+			DirectorySelDialog = gui_dialog:create_for_directory_selection(
+										_DlgOpts=[], _Parent=Frame ),
+
+			case gui_dialog:show_modal( DirectorySelDialog ) of
+
+				ok_returned ->
+					SelectedPath =
+						gui_dialog:get_selected_directory( DirectorySelDialog ),
+
+					trace_utils:debug_fmt( "Directory selection dialog returned"
+						" path '~ts'.", [ SelectedPath ] );
+
+				cancel_returned ->
+					trace_utils:debug( "Directory selection dialog cancelled." )
+
+			end,
+
+			gui_dialog:destruct_for_directory_selection( DirectorySelDialog ),
+
+			test_main_loop( State );
+
+
+		{ onButtonClicked, [ _Button,
+							 _ButtonId=color_selection_dialog_button_id,
+							 _Context ] } ->
+
+			ColorSelDialog =
+				gui_dialog:create_for_color_selection( _Parent=Frame ),
+
+			case gui_dialog:show_modal( ColorSelDialog ) of
+
+				ok_returned ->
+					SelectedColorPath =
+						gui_dialog:get_selected_color( ColorSelDialog ),
+
+					trace_utils:debug_fmt( "Color selection dialog returned "
+						"RGBA color ~w.", [ SelectedColorPath ] );
+
+				cancel_returned ->
+					trace_utils:debug( "Color selection dialog cancelled." )
+
+			end,
+
+			gui_dialog:destruct_for_color_selection( ColorSelDialog ),
+
+			test_main_loop( State );
+
+
+		{ onButtonClicked, [ _Button,
+							 _ButtonId=font_selection_dialog_button_id,
+							 _Context ] } ->
+
+			FontSelDialog =
+				gui_dialog:create_for_font_selection( _Parent=Frame ),
+
+			case gui_dialog:show_modal( FontSelDialog ) of
+
+				ok_returned ->
+					SelectedFont =
+						gui_dialog:get_selected_font( FontSelDialog ),
+
+					trace_utils:debug_fmt( "Font selection dialog returned "
+						"font ~w, described in a platform-dependent way "
+						"as '~ts', in a user-friendly one as '~ts'.",
+						[ SelectedFont,
+						  gui_font:get_platform_dependent_description(
+							SelectedFont ),
+						  gui_font:get_user_friendly_description(
+							SelectedFont ) ] );
+
+				cancel_returned ->
+					trace_utils:debug( "Font selection dialog cancelled." )
+
+			end,
+
+			gui_dialog:destruct_for_font_selection( FontSelDialog ),
 
 			test_main_loop( State );
 
