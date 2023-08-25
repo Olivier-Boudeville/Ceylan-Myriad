@@ -155,6 +155,12 @@
 -type pixel_format() :: 'rgb' | 'rgba'.
 % A specification of a pixel format.
 
+-type color_data() :: wxColourData:wxColourData().
+% A wx object.
+%
+% For example {wx_ref,92,wxColourData,[]}.
+
+
 
 -export_type([ color_by_name/0, logical_color/0,
 
@@ -166,7 +172,8 @@
 			   render_rgb_color/0, render_rgba_color/0, render_color/0,
 
 			   color_buffer/0, rgb_color_buffer/0, rgba_color_buffer/0,
-			   alpha_buffer/0, pixel_format/0 ]).
+			   alpha_buffer/0, pixel_format/0,
+			   color_data/0 ]).
 
 
 % Shorthands:
