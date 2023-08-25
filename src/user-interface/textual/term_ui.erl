@@ -803,6 +803,11 @@ add_separation() ->
 
 
 
+% Text input:
+%  - the get_text variations allow to obtain directly a raw text from the user
+%  - the read_text variations will loop until a suitable text entry is entered
+
+
 % @doc Returns the user-entered text, based on an implicit state.
 %
 % (const)
