@@ -46,6 +46,7 @@
 
 		  declare_name_id/1, declare_name_id/2, declare_name_id_internal/3,
 		  declare_name_ids/1, declare_name_ids/2,
+		  declare_any_id/1,
 
 		  resolve_named_id/1, resolve_named_id/2,
 		  resolve_named_ids/1, resolve_named_ids/2,
@@ -53,6 +54,7 @@
 
 		  maybe_resolve_backend_id/1, maybe_resolve_backend_id_internal/2,
 
+		  get_any_id/0,
 		  get_best_id/1, get_best_id/2, get_best_id_internal/2,
 		  get_best_menu_item_id_internal/2, get_best_button_id_internal/2,
 
@@ -462,14 +464,6 @@ maybe_resolve_named_id_internal( NameId, NameTable ) ->
 
 
 
-% @doc Returns the PID of the unique backend identifier allocator.
--spec get_id_allocator_pid() -> id_allocator_pid().
-get_id_allocator_pid() ->
-	naming_utils:get_registered_pid_for( ?gui_id_alloc_reg_name, _Scope=local ).
-
-
-
-
 % Allocation section.
 
 
@@ -580,6 +574,33 @@ declare_name_ids( NameIds, IdAllocRef ) ->
 			AllocatedIds
 
 	end.
+
+
+
+% @doc Returns a backend-specific widget identifier associated to the specified
+% new identifier, expected not to have already been declared.
+%
+-spec declare_any_id( id() ) -> backend_id().
+declare_any_id( undefined ) ->
+	?gui_any_id;
+
+% Integers are set by the (wx) backend (wx_id()):
+declare_any_id( Id ) when is_integer( Id ) ->
+	Id;
+
+% Atoms are higher-level identifiers set at the MyriadGUI level:
+declare_any_id( NameId ) when is_atom( NameId ) ->
+	% Relies on the fact that the MyriadGUI main process now impersonates a
+	% standalone gui_id server:
+	%
+	declare_name_id( NameId, _IdAllocRef=gui:get_main_loop_pid() ).
+
+
+
+% @doc Returns the PID of the unique backend identifier allocator.
+-spec get_id_allocator_pid() -> id_allocator_pid().
+get_id_allocator_pid() ->
+	naming_utils:get_registered_pid_for( ?gui_id_alloc_reg_name, _Scope=local ).
 
 
 
@@ -697,6 +718,16 @@ maybe_resolve_backend_id_internal( BackendId, NameTable ) ->
 	bijective_table:get_maybe_first_for( BackendId, NameTable ).
 
 
+
+% @doc Returns an unconstrained identifier, whose value is left free.
+-spec get_any_id() -> id().
+get_any_id() ->
+	% Not wanting the other MyriadGUI module to depend on wx includes.
+
+	% Using directly that constant rather than calling this function can be
+	% preferred:
+	%
+	?gui_any_id.
 
 
 % @doc Returns the best (highest-level) identifier for the specified backend

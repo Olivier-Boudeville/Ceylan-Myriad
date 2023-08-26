@@ -178,6 +178,8 @@
 		  to_wx_toolbar_style/1,
 		  to_wx_tool_kind/1,
 
+		  to_wx_button_opts/1, to_wx_button_opt/1,
+
 		  to_wx_message_dialog_opts/1, to_wx_message_dialog_opt/1,
 		  to_wx_single_choice_dialog_opts/1, to_wx_single_choice_dialog_opt/1,
 		  to_wx_multi_choice_dialog_opts/1, to_wx_multi_choice_dialog_opt/1,
@@ -185,10 +187,10 @@
 		  to_wx_file_selection_dialog_opts/1, to_wx_file_selection_dialog_opt/1,
 		  to_wx_directory_selection_dialog_opts/1,
 		  to_wx_directory_selection_dialog_opt/1,
-		  to_wx_colour_selection_dialog_opts/1,
-		  to_wx_colour_selection_dialog_opt/1,
-		  to_wx_font_selection_dialog_opts/1,
-		  to_wx_font_selection_dialog_opt/1,
+		  %to_wx_color_selection_dialog_opts/1,
+		  %to_wx_color_selection_dialog_opt/1,
+		  %to_wx_font_selection_dialog_opts/1,
+		  %to_wx_font_selection_dialog_opt/1,
 
 		  to_wx_event_type/1, from_wx_event_type/1,
 
@@ -365,14 +367,18 @@
 
 -type tool_kind() :: gui:tool_kind().
 
+-type button_opt() :: gui_button:button_opt().
+
+
 -type message_dialog_opt() :: gui_dialog:message_dialog_opt().
 -type single_choice_dialog_opt() :: gui_dialog:single_choice_dialog_opt().
 -type multi_choice_dialog_opt() :: gui_dialog:multi_choice_dialog_opt().
 -type text_entry_dialog_opt() :: gui_dialog:text_entry_dialog_opt().
 -type file_selection_dialog_opt() :: gui_dialog:file_selection_dialog_opt().
 -type directory_selection_dialog_opt() :: gui_dialog:directory_selection_opt().
--type colour_selection_dialog_opt() :: gui_dialog:colour_selection_dialog_opt().
--type font_selection_dialog_opt() :: gui_dialog:font_selection_dialog_opt().
+%-type colour_selection_dialog_opt() ::
+%    gui_dialog:colour_selection_dialog_opt().
+%-type font_selection_dialog_opt() :: gui_dialog:font_selection_dialog_opt().
 
 -type position() :: gui:position().
 -type size() :: gui:size().
@@ -568,6 +574,33 @@ get_panel_options( Options ) ->
 
 
 % Buttons section.
+
+
+% @doc Converts the specified button options into wx-specific ones.
+-spec to_wx_button_opts( maybe_list( button_opt() ) ) -> list().
+to_wx_button_opts( ButtonOpts ) when is_list( ButtonOpts ) ->
+	[ to_wx_button_opt( BO ) || BO <- ButtonOpts ];
+
+to_wx_button_opts( ButtonOpt ) ->
+	to_wx_button_opts( [ ButtonOpt ] ).
+
+
+% @doc Converts the specified button option into the wx-specific one.
+-spec to_wx_button_opt( button_opt() ) -> tuple().
+to_wx_button_opt( ButtonOpt={ label, _Label } ) ->
+	ButtonOpt;
+
+to_wx_button_opt( _ButtonOpt={ style, ButtonStyle } ) ->
+	{ style, button_style_to_bitmask( ButtonStyle ) };
+
+to_wx_button_opt( _ButtonOpt={ position, Pos } ) ->
+	{ pos, Pos };
+
+to_wx_button_opt( _ButtonOpt={ size, Size } ) ->
+	{ sz, Size }.
+
+% validator not supported apparently.
+
 
 
 % @doc Converts the specified MyriadGUI button style into the appropriate
@@ -982,76 +1015,6 @@ to_wx_directory_selection_dialog_opt( _DirSelOpt={ size, Size } ) ->
 
 
 
-% @doc Converts the specified options for colour-selection dialogs into
-% wx-specific ones.
-%
--spec to_wx_colour_selection_dialog_opts( maybe_list( colour_selection_dialog_opt() ) ) ->
-											 list().
-to_wx_colour_selection_dialog_opts( TextEntryOpts ) when is_list( TextEntryOpts ) ->
-	[ to_wx_colour_selection_dialog_opt( TEO ) || TEO <- TextEntryOpts ];
-
-to_wx_colour_selection_dialog_opts( TextEntryOpt ) ->
-	to_wx_colour_selection_dialog_opts( [ TextEntryOpt ] ).
-
-
-% @doc Converts the specified option for colour-selection dialogs into a wx-specific
-% one.
-%
--spec to_wx_colour_selection_dialog_opt( colour_selection_dialog_opt() ) -> tuple().
-to_wx_colour_selection_dialog_opt( TextEntryOpt={ caption, _CaptionStr } ) ->
-	TextEntryOpt;
-
-to_wx_colour_selection_dialog_opt( _TextEntryOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_colour_selection_dialog_style( S ) bor Acc end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_colour_selection_dialog_opt( _TextEntryOpt={ position, Pos } ) ->
-	{ pos, Pos };
-
-to_wx_colour_selection_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
-	{ value, InitialText }.
-
-
-
-% @doc Converts the specified options for font-selection dialogs into wx-specific
-% ones.
-%
--spec to_wx_font_selection_dialog_opts( maybe_list( font_selection_dialog_opt() ) ) ->
-											 list().
-to_wx_font_selection_dialog_opts( TextEntryOpts ) when is_list( TextEntryOpts ) ->
-	[ to_wx_font_selection_dialog_opt( TEO ) || TEO <- TextEntryOpts ];
-
-to_wx_font_selection_dialog_opts( TextEntryOpt ) ->
-	to_wx_font_selection_dialog_opts( [ TextEntryOpt ] ).
-
-
-% @doc Converts the specified option for font-selection dialogs into a wx-specific
-% one.
-%
--spec to_wx_font_selection_dialog_opt( font_selection_dialog_opt() ) -> tuple().
-to_wx_font_selection_dialog_opt( TextEntryOpt={ caption, _CaptionStr } ) ->
-	TextEntryOpt;
-
-to_wx_font_selection_dialog_opt( _TextEntryOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_font_selection_dialog_style( S ) bor Acc end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_font_selection_dialog_opt( _TextEntryOpt={ position, Pos } ) ->
-	{ pos, Pos };
-
-to_wx_font_selection_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
-	{ value, InitialText }.
-
-
-
 % @doc Converts the specified kind of tool into a wx-specific one.
 -spec to_wx_tool_kind( tool_kind() ) -> wx_enum().
 to_wx_tool_kind( ToolKind ) ->
@@ -1066,7 +1029,7 @@ to_wx_tool_kind( ToolKind ) ->
 %
 -spec to_wx_id( maybe( myriad_instance_id() ) ) -> wx_id().
 to_wx_id( undefined ) ->
-	?any_id;
+	?gui_any_id;
 
 to_wx_id( Other ) ->
 	Other.
@@ -1212,7 +1175,7 @@ wx_id_to_window( Id ) ->
 wx_id_to_string( _Id=undefined ) ->
 	"no id defined";
 
-wx_id_to_string( _Id=?any_id ) ->
+wx_id_to_string( _Id=?gui_any_id ) ->
 	"'any id' defined";
 
 wx_id_to_string( Id ) ->

@@ -26,7 +26,7 @@
 % Creation date: Saturday, September 16, 2017.
 
 
-% @doc <b>GUI-Internal defines</b>, hence to be included solely by the gui
+% @doc <b>MyriadGUI-Internal defines</b>, hence to be included solely by the gui
 % subsystem, not by user code (as depends on wx).
 
 
@@ -36,7 +36,7 @@
 
 % Some defines:
 
--define( any_id, ?wxID_ANY ).
+-define( gui_any_id, ?wxID_ANY ).
 
 -define( no_parent, wx:null() ).
 

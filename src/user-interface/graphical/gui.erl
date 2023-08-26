@@ -384,13 +384,29 @@
 
 % Widget-related section.
 
+% Types of GUI elements defined in a dedicated module:
+% - gui_button
+% - gui_canvas
+% - gui_color
+% - gui_dialog
+% - gui_font
+% - gui_image
+% - gui_keyboard
+% - gui_mouse
+% - gui_opengl
+% - gui_shader
+% - gui_text
+% - gui_texture
+% - gui_window_manager
+
 
 % General-purpose:
 -export([ set_tooltip/2, set_as_controller/1, set_controller/2 ]).
 
 
 % Miscellaneous:
--export([ get_backend_environment/0, set_backend_environment/1 ]).
+-export([ get_backend_environment/0, set_backend_environment/1,
+		  get_main_loop_pid/0 ]).
 
 
 % Windows (see also the gui_window_manager module regarding the insertion of
@@ -446,10 +462,6 @@
 		  create_panel/5, create_panel/6, destruct_panel/1 ]).
 
 
-% Buttons:
--export([ create_button/2, create_button/3, create_button/6,
-		  create_buttons/2, create_bitmap_button/3,
-		  set_label/2, destruct_button/1 ]).
 
 
 % Sizers:
@@ -774,18 +786,6 @@
 %
 % Refer to "Panel issues" in gui_event for further information.
 
-
-
--type button() :: wxButton:wxButton().
-% Designates an actual button instance.
-
-
--type button_ref() :: button() | button_id().
-% Any kind of reference onto a button.
-
-
--type bitmap_button() :: wxBitmapButton:wxBitmapButton().
-% Designates an actual button instance displaying a bitmap.
 
 
 
@@ -1211,21 +1211,6 @@
 -type panel_options() :: maybe_list( panel_option() ).
 
 
--type button_style_opt() ::
-	'default'
-  | 'left_justified'
-  | 'right_justified'
-  | 'top_justified'
-  | 'bottom_justified'
-  | 'exact_fit'
-  | 'flat'.
-% Options for button style, see
-% [http://docs.wxwidgets.org/stable/classwx_button.html].
-
-
--type button_style() :: [ button_style_opt() ].
-
-
 -type sizer_flag_opt() ::
 	'default'
   | 'top_border'
@@ -1364,7 +1349,6 @@
 			   widget/0, parent/0,
 			   frame/0, top_level_frame/0,
 			   panel/0,
-			   button/0, button_ref/0, bitmap_button/0,
 			   sizer/0, grid_sizer/0,
 			   sizer_child/0, sizer_item/0,
 			   splitter/0, sash_gravity/0,
@@ -1398,12 +1382,11 @@
 			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0,
 			   event_subscription_options/0,
-			   window_style/0, frame_style/0, button_style/0,
+			   window_style/0, frame_style/0,
 
 			   window_style_opt/0, window_option/0,
 			   frame_style_opt/0,
 			   panel_option/0, panel_options/0,
-			   button_style_opt/0,
 			   sizer_flag_opt/0, sizer_flags/0, sizer_option/0, sizer_options/0,
 			   image/0,
 			   event_subscription_opt/0,
@@ -1461,8 +1444,6 @@
 -type name_id() :: gui_id:name_id().
 
 -type backend_id() :: gui_id:backend_id().
-
--type button_id() :: gui_id:button_id().
 
 -type wx_object() :: wx:wx_object().
 % Shorthand for a wx_object(), that is a #wx_ref record.
@@ -2048,7 +2029,7 @@ create_window() ->
 -spec create_window( id(), parent() ) -> window().
 create_window( Id, Parent ) ->
 
-	ActualId = declare_any_id( Id ),
+	ActualId = gui_id:declare_any_id( Id ),
 
 	% Should not be 'undefined', otherwise: "wxWidgets Assert failure:
 	% ./src/gtk/window.cpp(2586): \"parent\" in PreCreation() : Must have
@@ -2063,7 +2044,7 @@ create_window( Id, Parent ) ->
 -spec create_window( size() ) -> window().
 create_window( Size ) ->
 
-	ActualId = declare_any_id( undefined ),
+	ActualId = gui_id:declare_any_id( undefined ),
 	ActualParent = to_wx_parent( undefined ),
 
 	Options = [ to_wx_size( Size ) ],
@@ -2082,7 +2063,7 @@ create_window( Position, Size, Style, Id, Parent ) ->
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 		{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
-	ActualId = declare_any_id( Id ),
+	ActualId = gui_id:declare_any_id( Id ),
 	ActualParent = to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId, Options ).
@@ -3017,7 +2998,7 @@ create_frame() ->
 %
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
-	wxFrame:new( to_wx_parent( undefined ), declare_any_id( undefined ), Title ).
+	wxFrame:new( to_wx_parent( undefined ), ?gui_any_id, Title ).
 
 
 
@@ -3031,8 +3012,8 @@ create_frame( Title, Size ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), declare_any_id( undefined ), Title,
-				 Options ).
+	wxFrame:new( to_wx_parent( undefined ), gui_id:declare_any_id( undefined ),
+				 Title, Options ).
 
 
 
@@ -3042,7 +3023,7 @@ create_frame( Title, Size ) ->
 %
 -spec create_frame( title(), id(), maybe( parent() ) ) -> frame().
 create_frame( Title, Id, Parent ) ->
-	wxFrame:new( to_wx_parent( Parent ), declare_any_id( Id ), Title ).
+	wxFrame:new( to_wx_parent( Parent ), gui_id:declare_any_id( Id ), Title ).
 
 
 
@@ -3057,8 +3038,8 @@ create_frame( Title, Position, Size, Style ) ->
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), declare_any_id( undefined ), Title,
-				 Options ).
+	wxFrame:new( to_wx_parent( undefined ), gui_id:declare_any_id( undefined ),
+				 Title, Options ).
 
 
 
@@ -3074,7 +3055,7 @@ create_frame( Title, Position, Size, Style, Id, Parent ) ->
 	Options = [ to_wx_position( Position ), to_wx_size( Size ),
 				{ style, frame_style_to_bitmask( Style ) } ],
 
-	ActualId = declare_any_id( Id ),
+	ActualId = gui_id:declare_any_id( Id ),
 
 	ActualParent = to_wx_parent( Parent ),
 
@@ -3097,7 +3078,7 @@ create_toolbar( Frame ) ->
 -spec create_toolbar( frame(), id(), maybe_list( toolbar_style() ) ) ->
 											toolbar().
 create_toolbar( Frame, Id, MaybeToolbarStyles ) ->
-	wxFrame:createToolBar( Frame, [ { id, declare_any_id( Id ) },
+	wxFrame:createToolBar( Frame, [ { id, gui_id:declare_any_id( Id ) },
 		{ style, gui_wx_backend:to_wx_toolbar_style( MaybeToolbarStyles ) } ] ).
 
 
@@ -3205,108 +3186,6 @@ create_panel( Parent, X, Y, Width, Height, Options ) ->
 -spec destruct_panel( panel() ) -> void().
 destruct_panel( Panel ) ->
 	wxPanel:destroy( Panel ).
-
-
-
-% Button section.
-%
-% Note that:
-%
-%  - the parent of a button must be a widget (not a sizer for example)
-%
-%  - for a corresponding stock image/icon to be displayed within a button, its
-%  stock identifier shall of course be specified (e.g. 'about_button'), but,if
-%  specified, its label must also match (e.g. "About" or "&About") - otherwise
-%  no image will be added; specifying an empty label will set the stock one
-
-
-
-% @doc Creates a (labelled) button, with the specified parent.
--spec create_button( label(), parent() ) -> button().
-create_button( Label, Parent ) ->
-
-	Id = ?wxID_ANY,
-
-	Options = [ { label, Label } ],
-
-	%trace_utils:info_fmt( "Button options (for any ID): ~p.",
-	%                      [ Id, Options ] ),
-
-	wxButton:new( Parent, Id, Options ).
-
-
-% @doc Creates a (labelled) button, with the specified identifier and parent.
--spec create_button( label(), id(), parent() ) -> button().
-create_button( Label, Id, Parent ) ->
-
-	Options = [ { label, Label } ],
-
-	BackendId = declare_any_id( Id ),
-
-	%trace_utils:debug_fmt( "Button options for ~ts (backend ~ts): ~p.",
-	% [ gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
-	%   Options ] ),
-
-	wxButton:new( Parent, BackendId, Options ).
-
-
-
-% @doc Creates a button, with parent and most settings specified.
-%
-% (internal use only)
-%
--spec create_button( label(), position(), size(), button_style(), id(),
-					 parent() ) -> button().
-create_button( Label, Position, Size, Style, Id, Parent ) ->
-
-	Options = [ { label, Label }, to_wx_position( Position ),
-				to_wx_size( Size ),
-				{ style, gui_wx_backend:button_style_to_bitmask( Style ) } ],
-
-	BackendId = declare_any_id( Id ),
-
-	%trace_utils:debug_fmt( "For button '~ts' (~ts), got ~ts. "
-	%   "Options: ~n ~p.",
-	%   [ Label, gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
-	%     Options ] ),
-
-	wxButton:new( Parent, BackendId, Options ).
-
-
-
-% @doc Creates (labelled) buttons, with their (single, common) parent specified.
--spec create_buttons( [ label() ], parent() ) -> [ button() ].
-create_buttons( Labels, Parent ) ->
-	create_buttons_helper( Labels, Parent, _Acc=[] ).
-
-
-% (helper)
-create_buttons_helper( _Labels=[], _Parent, Acc ) ->
-	lists:reverse( Acc );
-
-create_buttons_helper( [ Label | T ], Parent, Acc ) ->
-	NewButton = create_button( Label, Parent ),
-	create_buttons_helper( T, Parent, [ NewButton | Acc ] ).
-
-
-% @doc Creates a button with the specified identifier, and which displays the
-% specified bitmap.
-%
--spec create_bitmap_button( bitmap(), id(), parent() ) -> bitmap_button().
-create_bitmap_button( Bitmap, Id, Parent ) ->
-	wxBitmapButton:new( Parent, declare_any_id( Id ), Bitmap ).
-
-
-% @doc Sets the label of the specified button.
--spec set_label( button(), label() ) -> void().
-set_label( Button, Label ) ->
-	wxButton:setLabel( Button, Label ).
-
-
-% @doc Destructs the specified button.
--spec destruct_button( button() ) -> void().
-destruct_button( Button ) ->
-	wxButton:destroy( Button ).
 
 
 
@@ -3579,7 +3458,8 @@ add_tool( Toolbar, Id, Label, Bitmap, ShortHelp ) ->
 
 	end,
 
-	wxToolBar:addTool( Toolbar, declare_any_id( Id ), Label, Bitmap, Opts ).
+	wxToolBar:addTool( Toolbar, gui_id:declare_any_id( Id ), Label, Bitmap,
+					   Opts ).
 
 
 % @doc Adds the specified tool, represented by the specified enabled/disabled
@@ -3604,7 +3484,7 @@ add_tool( Toolbar, Id, Label, BitmapIfEnabled, BitmapIfDisabled,
 		_ -> [ { longHelp, LongHelp } ]
 	end,
 
-	wxToolBar:addTool( Toolbar, declare_any_id( Id ), Label,
+	wxToolBar:addTool( Toolbar, gui_id:declare_any_id( Id ), Label,
 					   BitmapIfEnabled, BitmapIfDisabled, Opts ).
 
 
@@ -4025,7 +3905,7 @@ add_item( Menu, MenuItemLabel ) ->
 -spec add_item( menu(), menu_item_id(), menu_item_label() ) -> menu_item().
 % Now applies to all sorts of identifiers:
 add_item( Menu, MenuItemId, MenuItemLabel ) -> %when is_integer( MenuItemId ) ->
-	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel ).
+	wxMenu:append( Menu, gui_id:declare_any_id( MenuItemId ), MenuItemLabel ).
 
 %add_item( Menu, MenuItemId, MenuItemLabel ) when is_atom( MenuItemId ) ->
 	% We must not declare a standard name identifier (as it already is):
@@ -4035,12 +3915,12 @@ add_item( Menu, MenuItemId, MenuItemLabel ) -> %when is_integer( MenuItemId ) ->
 	%		resolve_any_id( MenuItemId );
 
 	%	false ->
-	%		declare_any_id( MenuItemId )
+	%		gui_id:declare_any_id( MenuItemId )
 
 	% end,
 
 	% Now not predeclared anymore, was a bad idea:
-%	BackendId = declare_any_id( MenuItemId ),
+%	BackendId = gui_id:declare_any_id( MenuItemId ),
 %	wxMenu:append( Menu, BackendId, MenuItemLabel ).
 
 
@@ -4064,7 +3944,8 @@ append_item( Menu, MenuItem ) ->
 													menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
 	% Not resolve_any_id( MenuItemId ):
-	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel, SubMenu ).
+	wxMenu:append( Menu, gui_id:declare_any_id( MenuItemId ), MenuItemLabel,
+				   SubMenu ).
 
 
 % @doc Adds the specified labelled submenu, associated to the specified
@@ -4077,8 +3958,8 @@ append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu(),
 					  help_info() ) -> menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu, HelpInfoStr ) ->
-	wxMenu:append( Menu, declare_any_id( MenuItemId ), MenuItemLabel, SubMenu,
-				   [ { help, HelpInfoStr } ] ).
+	wxMenu:append( Menu, gui_id:declare_any_id( MenuItemId ), MenuItemLabel,
+				   SubMenu, [ { help, HelpInfoStr } ] ).
 
 
 % @doc Creates a menu item that can be toggled/checked, based on the specified
@@ -4100,7 +3981,8 @@ add_checkable_item( Menu, MenuItemLabel ) ->
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
-	wxMenu:appendCheckItem( Menu, declare_any_id( MenuItemId ), MenuItemLabel ).
+	wxMenu:appendCheckItem( Menu, gui_id:declare_any_id( MenuItemId ),
+							MenuItemLabel ).
 
 
 % @doc Creates a menu item that can be toggled/checked, based on the specified
@@ -4114,8 +3996,8 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel ) ->
 -spec add_checkable_item( menu(), menu_item_id(), menu_item_label(),
 						  help_info() ) -> menu_item().
 add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
-	wxMenu:appendCheckItem( Menu, declare_any_id( MenuItemId ), MenuItemLabel,
-							[ { help, HelpInfoStr } ] ).
+	wxMenu:appendCheckItem( Menu, gui_id:declare_any_id( MenuItemId ),
+							MenuItemLabel, [ { help, HelpInfoStr } ] ).
 
 
 % @doc Checks/unchecks the (checkable) menu item specified by its identifier
@@ -4351,26 +4233,6 @@ get_main_loop_pid() ->
 	environment:get( loop_pid, ?gui_env_process_key ).
 
 
-% @doc Returns a backend-specific widget identifier associated to the specified
-% new identifier, expected not to have already been declared.
-%
--spec declare_any_id( id() ) -> backend_id().
-% Module-local, meant to declare quickly most cases.
-declare_any_id( undefined ) ->
-	?wxID_ANY;
-
-% Integers are set by the (wx) backend (wx_id()):
-declare_any_id( Id ) when is_integer( Id ) ->
-	Id;
-
-% Atoms are higher-level identifiers set at the MyriadGUI level:
-declare_any_id( NameId ) when is_atom( NameId ) ->
-	% Relies on the fact that the MyriadGUI main process now impersonates a
-	% standalone gui_id server:
-	%
-	gui_id:declare_name_id( NameId, _IdAllocRef=get_main_loop_pid() ).
-
-
 
 % @doc Returns a backend identifier corresponding to the specified identifier of
 % any type (MyriadGUI name identifier, possibly an undefined one, or already a
@@ -4379,7 +4241,7 @@ declare_any_id( NameId ) when is_atom( NameId ) ->
 -spec resolve_any_id( id() ) -> backend_id().
 % Module-local, meant to resolve quickly most cases.
 resolve_any_id( undefined ) ->
-	?wxID_ANY;
+	?gui_any_id;
 
 resolve_any_id( BackendId ) when is_integer( BackendId ) ->
 	BackendId;

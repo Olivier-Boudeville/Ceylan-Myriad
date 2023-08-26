@@ -212,7 +212,7 @@
 
 
 -type font_selection_dialog() :: wxFontDialog:wxFontDialog().
-% A dialog allowing to select a font.
+% A dialog allowing to select a font installed on the system, and its size.
 
 % No font_selection_dialog_opt() or font_selection_dialog_style() applies.
 
@@ -432,7 +432,7 @@ create_for_single_choice( Message, Caption, ChoiceSpec, DialogOpts, Parent ) ->
 	choice_designator(), maybe_list( single_choice_dialog_opt() ), parent() ) ->
 			single_choice_dialog().
 create_for_single_choice( Message, Caption, ChoiceSpec,
-							 InitialChoiceDesignator, DialogOpts, Parent ) ->
+						  InitialChoiceDesignator, DialogOpts, Parent ) ->
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
 	WxOpts = gui_wx_backend:to_wx_single_choice_dialog_opts( DialogOpts ),
 

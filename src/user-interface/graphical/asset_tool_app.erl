@@ -140,9 +140,9 @@ init_app_gui() ->
 
 	% Common settings:
 
-	LoadImageButton = gui:create_button( "Load image", LeftPanel ),
+	LoadImageButton = gui_button:create( "Load image", LeftPanel ),
 
-	QuitButton = gui:create_button( "Quit", LeftPanel ),
+	QuitButton = gui_button:create( "Quit", LeftPanel ),
 
 	gui:set_tooltip( LeftPanel, "Controls for assets" ),
 

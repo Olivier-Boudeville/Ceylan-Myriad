@@ -95,14 +95,17 @@ run_gui_test() ->
 	% identifier (so we cannot have both a non-default label and the
 	% corresponding icon unfortunately)
 	%
-	TestButton = gui:create_button( "My label\n(lost icon)",
-		_ButtId=zoom_factor_fit_button,	ButtonParent ),
+	LostIconButton = gui_button:create( "My label\n(lost icon)",
+		_ButtId=zoom_factor_fit_button, ButtonParent ),
+
+	ToggleButton = gui_button:create_toggle( "I am a\ntoggle button",
+		_TogId=toggle_button, ButtonParent ),
 
 	% To force the use of the stock labels:
 	NoLabel = "",
 
-	AllButtons = [ TestButton |
-		[ gui:create_button( NoLabel, Position, ButtonSize,	ButtonStyle, BId,
+	AllButtons = [ LostIconButton, ToggleButton |
+		[ gui_button:create( NoLabel, Position, ButtonSize, ButtonStyle, BId,
 							 ButtonParent ) || BId <- AllButtonIds ] ],
 
 	ButtonFlags = [ { proportion, 0 }, { border, 4 }, all_borders ],

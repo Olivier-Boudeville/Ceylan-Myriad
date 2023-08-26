@@ -88,6 +88,9 @@
 % For the raw_bitmap record:
 -include("gui_image.hrl").
 
+% For ?gui_any_id:
+-include("gui_internal_defines.hrl").
+
 
 -type image() :: wxImage:wxImage().
 % An image is a bitmap buffer of RGB bytes with an optional buffer for the alpha
@@ -190,11 +193,6 @@
 			   bitmap/0, bitmap_display/0, icon/0, text_display/0,
 			   raw_bitmap/0, text_display_option/0,
 			   image_path/0, bin_image_path/0, any_image_path/0  ]).
-
-
-% For the wx defines:
--include_lib("wx/include/wx.hrl").
-
 
 
 % Shorthands:
@@ -597,7 +595,7 @@ create_bitmap_display( Bitmap, Parent ) ->
 -spec create_bitmap_display( bitmap(), [ window_option() ], parent() ) ->
 												bitmap_display().
 create_bitmap_display( Bitmap, Options, Parent ) ->
-	wxStaticBitmap:new( Parent, _Id=?wxID_ANY, Bitmap, Options ).
+	wxStaticBitmap:new( Parent, gui_id:get_any_id(), Bitmap, Options ).
 
 
 % @doc Destructs the specified bitmap display.
@@ -619,7 +617,7 @@ create_text_display( Label, Parent ) ->
 -spec create_text_display( label(), [ window_option() ], parent() ) ->
 												text_display().
 create_text_display( Label, Options, Parent ) ->
-	wxStaticText:new( Parent, _Id=?wxID_ANY, Label,
+	wxStaticText:new( Parent, ?gui_any_id, Label,
 					  to_wx_static_text_options( Options ) ).
 
 

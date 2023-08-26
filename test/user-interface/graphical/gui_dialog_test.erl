@@ -83,7 +83,7 @@ run_gui_test() ->
 				 { "color-selection", color_selection_dialog_button_id },
 				 { "font-selection", font_selection_dialog_button_id } ],
 
-	Buttons = [ gui:create_button( "Show " ++ Lbl ++ " dialog", Position,
+	Buttons = [ gui_button:create( "Show " ++ Lbl ++ " dialog", Position,
 		ButtonSize, ButtonStyle, Nid, Parent ) || { Lbl, Nid } <- DlgPairs ],
 
 	gui:add_to_sizer( Sizer, Buttons ),

@@ -200,7 +200,7 @@ run_test_gui() ->
 
 	ControlButtons = [ RenderShapeButton, RenderMECButton, AddPointButton,
 					   PasteImageButton, ClearCanvasButton, QuitButton ] =
-		gui:create_buttons( ButtonLabels, _Parent=LeftPanel ),
+		gui_button:creates( ButtonLabels, _Parent=LeftPanel ),
 
 	ButtonEvents = { onButtonClicked, ControlButtons },
 

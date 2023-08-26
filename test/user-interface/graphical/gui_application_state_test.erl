@@ -89,7 +89,7 @@ run_test_gui() ->
 
 	gui:set_sizer( TestFrame, MainSizer ),
 
-	QuitButton = gui:create_button( _Label="Quit by button click!",
+	QuitButton = gui_button:create( _Label="Quit by button click!",
 		_Id=QuitButtonId, _ButtonParent=ButtonPanel ),
 
 	EventsOfInterest = [ { onButtonClicked, QuitButton },
