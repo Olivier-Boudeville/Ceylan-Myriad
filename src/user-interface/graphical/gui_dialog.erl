@@ -26,9 +26,23 @@
 % Creation date: Friday, August 25, 2023.
 
 
-% @doc Gathering of various facilities for <b>dialog management</b>.
+% @doc Gathering of various facilities for <b>dialog management</b>, for all
+% base dialogs.
+%
+% Covers the 8 following dialog needs:
+%  - displaying a message: message_dialog()
+%  - offering to select a single choice among a set: single_choice_dialog()
+%  - offering to select multiple choices among a set: multi_choice_dialog()
+%  - collecting a text from the user: text_entry_dialog()
+%  - selecting one or more files: file_selection_dialog()
+%  - selecting one or more directories: directory_selection_dialog()
+%  - selecting a color: color_selection_dialog()
+%  - selecting a font: font_selection_dialog()
+%
 -module(gui_dialog).
 
+
+% Dialog-general subsection.
 
 -type dialog() :: wxDialog:wxDialog().
 % Any type of dialog.
@@ -43,16 +57,22 @@
   | 'no_returned'.
 % A return code obtained when showing a dialog in a modal way.
 
+-export_type([ dialog/0, dialog_return_code/0 ]).
+
+
+
+% Dialog-specific subsection.
+
 
 -type message_dialog() :: wxMessageDialog:wxMessageDialog().
 % A dialog displaying a message and a few buttons.
 
 
--type message_dialog_opt() ::
+-type message_dialog_option() ::
 	{ 'caption', caption() }
   | { 'style', [ message_dialog_style() ] }
   | { 'position', point() }.
-% An option for a message dialog.
+% An option for the creation of a message dialog.
 
 
 -type message_dialog_style() ::
@@ -72,7 +92,12 @@
   | 'security_icon'
   | 'stay_on_top'
   | 'center'.
-% A style of message dialog.
+% A style element of a message dialog.
+
+
+-export_type([ message_dialog/0, message_dialog_option/0,
+			   message_dialog_style/0 ]).
+
 
 
 -type single_choice_dialog() :: wxSingleChoiceDialog:wxSingleChoiceDialog().
@@ -82,17 +107,21 @@
 % pressing OK.
 
 
--type single_choice_dialog_opt() ::
+-type single_choice_dialog_option() ::
 	{ 'style', [ single_choice_dialog_style() ] }
   | { 'position', point() }.
-% An option for a single-choice dialog.
+% An option for the creation of a single-choice dialog.
 
 
 -type single_choice_dialog_style() ::
 	'ok_button'
   | 'cancel_button'
   | 'center'.
-% A style of single-choice dialog.
+% A style element of a single-choice dialog.
+
+
+-export_type([ single_choice_dialog/0, single_choice_dialog_option/0,
+			   single_choice_dialog_style/0 ]).
 
 
 
@@ -100,17 +129,21 @@
 % A dialog allowing the user to select multiple options from a set thereof.
 
 
--type multi_choice_dialog_opt() ::
+-type multi_choice_dialog_option() ::
 	{ 'style', [ multi_choice_dialog_style() ] }
   | { 'position', point() }.
-% An option for a multiple-choice dialog.
+% An option for the creation of a multiple-choice dialog.
 
 
 -type multi_choice_dialog_style() ::
 	'ok_button'
   | 'cancel_button'
   | 'center'.
-% A style of multiple-choice dialog.
+% A style element of a multiple-choice dialog.
+
+
+-export_type([ multi_choice_dialog/0, multi_choice_dialog_option/0,
+			   multi_choice_dialog_style/0 ]).
 
 
 
@@ -118,46 +151,31 @@
 % A dialog allowing the user to enter a (line of) text.
 
 
--type text_entry_dialog_opt() ::
+-type text_entry_dialog_option() ::
 	{ 'caption', caption() }
   | { 'style', [ text_entry_dialog_style() ] }
   | { 'initial_text', text() }
   | { 'position', point() }.
-% An option for a text entry dialog.
+% An option for the creation of a text entry dialog.
 
 
 -type text_entry_dialog_style() ::
 	'ok_button'
   | 'cancel_button'
   | 'center'.
-% A style of text-entry dialog.
+% A style element of a text-entry dialog.
 
 
-% Selection with filesystem-related dialogs!
-%
-% Typing a filename containing wildcards (*, ?) in the filename text item, and
-% clicking on Ok, will result in only those files matching the pattern being
-% displayed.
+-export_type([ text_entry_dialog/0, text_entry_dialog_option/0,
+			   text_entry_dialog_style/0 ]).
 
-
--type match_filter() :: any_string().
-% A specification of matching expressions, based on wildcards (*, ?).
-%
-% Entries are separated with semicolons (";"), and if a pipe ("|") is specified,
-% it is ignored with all preceding characters in this entry.
-%
-% For example:
-% "BMP and GIF files (*.bmp;*.gif)|*.bmp;*.gif|PNG files (*.png)|*.png;*.jpeg".
-%
-% Typically useful to select which filesystem entries could be candidates for a
-% selection.
 
 
 -type file_selection_dialog() :: wxDirDialog:wxDirDialog().
 % A dialog allowing to select a local file.
 
 
--type file_selection_dialog_opt() ::
+-type file_selection_dialog_option() ::
 	{ 'message', message() }
   | { 'style', [ file_selection_dialog_style() ] }
   | { 'default_dir', any_directory_path() }
@@ -165,7 +183,7 @@
   | { 'match_filter', match_filter() }
   | { 'position', point() }
   | { 'size', dimensions() }.
-% An option for a file-selection dialog.
+% An option for the creation of a file-selection dialog.
 
 
 -type file_selection_dialog_style() ::
@@ -178,7 +196,28 @@
   | 'change_working_dir'
   | 'preview_selected'
   | 'show_hidden_files'.
-% A style of file-selection dialog.
+% A style element of a file-selection dialog.
+
+% Regarding selections made with filesystem-related dialogs: typing a filename
+% containing wildcards (*, ?) in the filename text item and clicking on OK will
+% result in only the files matching the pattern being displayed.
+
+
+-type match_filter() :: any_string().
+% A specification of matching expressions, based on wildcards (*, ?).
+%
+% Entries are separated with semicolons (";"), and if a pipe ("|") is specified,
+% it is ignored together with all preceding characters in this entry.
+%
+% For example:
+% "BMP and GIF files (*.bmp;*.gif)|*.bmp;*.gif|PNG files (*.png)|*.png;*.jpeg".
+%
+% Typically useful to select which filesystem entries could be candidates for a
+% selection.
+
+
+-export_type([ file_selection_dialog/0, file_selection_dialog_option/0,
+			   file_selection_dialog_style/0, match_filter/0 ]).
 
 
 
@@ -186,13 +225,13 @@
 % A dialog allowing to select a local directory.
 
 
--type directory_selection_dialog_opt() ::
+-type directory_selection_dialog_option() ::
 	{ 'caption', caption() }
   | { 'style', [ message_dialog_style() ] }
   | { 'default_dir', any_directory_path() }
   | { 'position', point() }
   | { 'size', dimensions() }.
-% An option for a directory-selection dialog.
+% An option for the creation of a directory-selection dialog.
 
 
 -type directory_selection_dialog_style() ::
@@ -202,48 +241,30 @@
   % Not supported currently by wx apparently:
   %| 'multiple_directories'
   | 'show_hidden_directories'.
-% A style of directory-selection dialog.
+% A style element of a directory-selection dialog.
+
+
+-export_type([ directory_selection_dialog/0,
+			   directory_selection_dialog_option/0,
+			   directory_selection_dialog_style/0 ]).
+
 
 
 -type color_selection_dialog() :: wxColorDialog:wxColorDialog().
 % A dialog allowing to select a color.
 
-% No color_selection_dialog_opt() or color_selection_dialog_style() applies.
+% No color_selection_dialog_option() or color_selection_dialog_style() applies.
+
+-export_type([ color_selection_dialog/0 ]).
 
 
 -type font_selection_dialog() :: wxFontDialog:wxFontDialog().
 % A dialog allowing to select a font installed on the system, and its size.
 
-% No font_selection_dialog_opt() or font_selection_dialog_style() applies.
+% No font_selection_dialog_option() or font_selection_dialog_style() applies.
 
+-export_type([ font_selection_dialog/0 ]).
 
-
--export_type([
-	dialog/0, dialog_return_code/0,
-
-	message_dialog/0, message_dialog_opt/0, message_dialog_style/0,
-
-	single_choice_dialog/0, single_choice_dialog_opt/0,
-	single_choice_dialog_style/0,
-
-	multi_choice_dialog/0, multi_choice_dialog_opt/0,
-	multi_choice_dialog_style/0,
-
-	text_entry_dialog/0, text_entry_dialog_opt/0,
-	text_entry_dialog_style/0,
-
-	file_selection_dialog/0, file_selection_dialog_opt/0,
-	file_selection_dialog_style/0,
-
-	directory_selection_dialog/0, directory_selection_dialog_opt/0,
-	directory_selection_dialog_style/0,
-
-	color_selection_dialog/0, %color_selection_dialog_opt/0,
-	%color_selection_dialog_style/0,
-
-	font_selection_dialog/0 %font_selection_dialog_opt/0,
-	%font_selection_dialog_style/0
-			 ]).
 
 
 
@@ -261,7 +282,6 @@
 
 -type text() :: ui:text().
 
-%-type title() :: ui:title().
 -type caption() :: ui:caption().
 -type label() :: ui:label().
 -type message() :: ui:message().
@@ -278,12 +298,11 @@
 
 
 
-% Dialogs in general:
--export([ show_modal/1 ]).
+% For dialogs in general:
+-export([ show/1, show_modal/1 ]).
 
 % Message dialogs:
--export([ create_for_message/2, create_for_message/3,
-		  destruct_for_message/1 ]).
+-export([ create_for_message/2, create_for_message/3, destruct_for_message/1 ]).
 
 % Single-choice dialogs:
 -export([ create_for_single_choice/4, create_for_single_choice/5,
@@ -300,7 +319,7 @@
 % Text-entry dialogs:
 -export([ create_for_text_entry/2, create_for_text_entry/3,
 		  create_for_text_entry/4,
-		  set_default_text/2, get_filled_text/1,
+		  set_default_text/2, get_entered_text/1,
 		  destruct_for_text_entry/1 ]).
 
 % File-selection dialogs:
@@ -324,12 +343,18 @@
 
 
 
-% Dialog section.
-%
-% Use show_modal/1 to show such dialog.
-
-
 % Subsection transverse to all dialogs.
+
+
+% @doc Shows the specified dialog in a modeless way; returns true if the dialog
+% has been shown or hidden, or false if nothing was done because it already was
+% in the requested state.
+%
+% Use show_modal/1 to show it in a modal way.
+%
+-spec show( dialog() ) -> boolean().
+show( Dialog ) ->
+	wxDialog:show( Dialog ).
 
 
 % @doc Shows the specified dialog in a modal way.
@@ -355,14 +380,10 @@ create_for_message( Message, Parent ) ->
 % @doc Creates a dialog displaying the specified message, with specified
 % options.
 %
--spec create_for_message( message(), maybe_list( message_dialog_opt() ),
-							 parent() ) -> message_dialog().
+-spec create_for_message( message(), maybe_list( message_dialog_option() ),
+						  parent() ) -> message_dialog().
 create_for_message( Message, Opts, Parent ) when is_list( Opts ) ->
-	WxOpts = gui_wx_backend:to_wx_message_dialog_opts( Opts ),
-	wxMessageDialog:new( Parent, Message, WxOpts );
-
-create_for_message( Message, SingleOpt, Parent ) ->
-	create_for_message( Message, [ SingleOpt ], Parent ).
+	wxMessageDialog:new( Parent, Message, to_wx_message_dialog_opts( Opts ) ).
 
 
 % @doc Destructs the specified message dialog.
@@ -376,11 +397,11 @@ destruct_for_message( MsgDialog ) ->
 %
 % For selections, rather than relying on basic strings and indexes thereof, we
 % prefer relying on choice elements, that are application-friendly logical
-% elements (atoms) associated to arbitrary texts (e.g. {my_foobar_elem, "This is
-% my foo bar element"}).
+% elements (atoms) associated to arbitrary texts (e.g. _ChoiceElement={
+% _ChoiceDesignator=my_foobar_elem, _ChoiceText="This is my foo bar element"}).
 %
 % Then the developer has simply to handle atoms like my_foobar_elem, regardless
-% of the content of the associated text.
+% of the content of the associated (possibly translated) text.
 %
 % Refer to gui_dialog_test.erl for a full example thereof.
 
@@ -392,7 +413,7 @@ destruct_for_message( MsgDialog ) ->
 % @doc Creates a dialog that will offer the user to select a single choice
 % option among the specified ones.
 %
-% None is selected initially.
+% No entry is selected initially.
 %
 % A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
 % functions.
@@ -407,17 +428,17 @@ create_for_single_choice( Message, Caption, ChoiceSpec, Parent ) ->
 % @doc Creates a dialog that will offer the user to select a single choice
 % option among the specified ones.
 %
-% None is selected initially.
+% Noentry  is selected initially.
 %
 % A bit similar in spirit to the {,text_,term_}ui:choose_designated_item/*
 % functions.
 %
 -spec create_for_single_choice( message(), caption(), choice_spec(),
-		maybe_list( single_choice_dialog_opt() ), parent() ) ->
+		maybe_list( single_choice_dialog_option() ), parent() ) ->
 			single_choice_dialog().
 create_for_single_choice( Message, Caption, ChoiceSpec, DialogOpts, Parent ) ->
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
-	WxOpts = gui_wx_backend:to_wx_single_choice_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_single_choice_dialog_opts( DialogOpts ),
 	wxSingleChoiceDialog:new( Parent, Message, Caption, ChoiceTexts, WxOpts ).
 
 
@@ -429,12 +450,12 @@ create_for_single_choice( Message, Caption, ChoiceSpec, DialogOpts, Parent ) ->
 % functions.
 %
 -spec create_for_single_choice( message(), caption(), choice_spec(),
-	choice_designator(), maybe_list( single_choice_dialog_opt() ), parent() ) ->
-			single_choice_dialog().
+	choice_designator(), maybe_list( single_choice_dialog_option() ),
+	parent() ) -> single_choice_dialog().
 create_for_single_choice( Message, Caption, ChoiceSpec,
 						  InitialChoiceDesignator, DialogOpts, Parent ) ->
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
-	WxOpts = gui_wx_backend:to_wx_single_choice_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_single_choice_dialog_opts( DialogOpts ),
 
 	Dlg = wxSingleChoiceDialog:new( Parent, Message, Caption, ChoiceTexts,
 									WxOpts ),
@@ -482,7 +503,7 @@ destruct_for_single_choice( SingleChoiceDialog ) ->
 % None is selected initially.
 %
 -spec create_for_multi_choice( message(), caption(), choice_spec(),
-								  parent() ) -> multi_choice_dialog().
+							   parent() ) -> multi_choice_dialog().
 create_for_multi_choice( Message, Caption, ChoiceSpec, Parent ) ->
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
 	wxMultiChoiceDialog:new( Parent, Message, Caption, ChoiceTexts ).
@@ -492,29 +513,27 @@ create_for_multi_choice( Message, Caption, ChoiceSpec, Parent ) ->
 % options among the specified ones.
 %
 % None is selected initially.
-
+%
 -spec create_for_multi_choice( message(), caption(), choice_spec(),
-		maybe_list( multi_choice_dialog_opt() ), parent() ) ->
+		maybe_list( multi_choice_dialog_option() ), parent() ) ->
 										multi_choice_dialog().
 create_for_multi_choice( Message, Caption, ChoiceSpec, DialogOpts,
-							Parent ) ->
+						 Parent ) ->
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
-	WxOpts = gui_wx_backend:to_wx_multi_choice_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_multi_choice_dialog_opts( DialogOpts ),
 	wxMultiChoiceDialog:new( Parent, Message, Caption, ChoiceTexts, WxOpts ).
 
 
 % @doc Creates a dialog that will offer the user to select multiple-choice
-% options among the specified ones.
-%
-% None is selected initially.
+% options among the specified ones, with the designated ones already selected.
 %
 -spec create_for_multi_choice( message(), caption(), choice_spec(),
-		[ choice_designator() ], maybe_list( multi_choice_dialog_opt() ),
+		[ choice_designator() ], maybe_list( multi_choice_dialog_option() ),
 		parent() ) -> multi_choice_dialog().
 create_for_multi_choice( Message, Caption, ChoiceSpec,
-							InitialChoiceDesignators, DialogOpts, Parent ) ->
+						 InitialChoiceDesignators, DialogOpts, Parent ) ->
 	ChoiceTexts = pair:seconds( ChoiceSpec ),
-	WxOpts = gui_wx_backend:to_wx_multi_choice_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_multi_choice_dialog_opts( DialogOpts ),
 
 	Dlg = wxMultiChoiceDialog:new( Parent, Message, Caption, ChoiceTexts,
 								   WxOpts ),
@@ -568,10 +587,10 @@ create_for_text_entry( Label, Parent ) ->
 % @doc Creates a dialog that will offer the user to enter a text with the
 % specified options, while displaying the specified label.
 %
--spec create_for_text_entry( label(), maybe_list( text_entry_dialog_opt() ),
+-spec create_for_text_entry( label(), maybe_list( text_entry_dialog_option() ),
 							 parent() ) -> text_entry_dialog().
 create_for_text_entry( Label, DialogOpts, Parent ) ->
-	WxOpts = gui_wx_backend:to_wx_text_entry_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_text_entry_dialog_opts( DialogOpts ),
 	wxTextEntryDialog:new( Parent, Label, WxOpts ).
 
 
@@ -579,16 +598,16 @@ create_for_text_entry( Label, DialogOpts, Parent ) ->
 % specified options, while displaying the specified label, and once having set
 % the specified initial text.
 %
--spec create_for_text_entry( label(), maybe_list( text_entry_dialog_opt() ),
+-spec create_for_text_entry( label(), maybe_list( text_entry_dialog_option() ),
 							 text(), parent() ) -> text_entry_dialog().
 create_for_text_entry( Label, DialogOpts, InitialText, Parent ) ->
-	WxOpts = gui_wx_backend:to_wx_text_entry_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_text_entry_dialog_opts( DialogOpts ),
 	Dlg = wxTextEntryDialog:new( Parent, Label, WxOpts ),
 	set_default_text( Dlg, InitialText ),
 	Dlg.
 
 
-% @doc Sets the default, initially filled, text of the specified text-entry
+% @doc Sets the default, initially present, text of the specified text-entry
 % dialog.
 %
 -spec set_default_text( text_entry_dialog(), text() ) -> void().
@@ -596,9 +615,9 @@ set_default_text( TextEntryDialog, Text ) ->
 	wxTextEntryDialog:setValue( TextEntryDialog, Text ).
 
 
-% @doc Returns the text filled in the specified text-entry dialog.
--spec get_filled_text( text_entry_dialog() ) -> text().
-get_filled_text( TextEntryDialog ) ->
+% @doc Returns the text present in the specified text-entry dialog.
+-spec get_entered_text( text_entry_dialog() ) -> text().
+get_entered_text( TextEntryDialog ) ->
 	wxTextEntryDialog:getValue( TextEntryDialog ).
 
 
@@ -622,10 +641,10 @@ create_for_file_selection( Parent ) ->
 % @doc Creates a dialog that will offer to select a file, based on the specified
 % options.
 %
--spec create_for_file_selection( maybe_list( file_selection_dialog_opt() ),
+-spec create_for_file_selection( maybe_list( file_selection_dialog_option() ),
 								 parent() ) -> file_selection_dialog().
 create_for_file_selection( DialogOpts, Parent ) ->
-	WxOpts = gui_wx_backend:to_wx_file_selection_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_file_selection_dialog_opts( DialogOpts ),
 	wxFileDialog:new( Parent, WxOpts ).
 
 
@@ -659,6 +678,7 @@ destruct_for_file_selection( FileSelectionDialog ) ->
 
 % Directory-selection dialog subsection.
 
+
 % @doc Creates a dialog that will offer to select a directory.
 -spec create_for_directory_selection( parent() ) ->
 										directory_selection_dialog().
@@ -670,10 +690,10 @@ create_for_directory_selection( Parent ) ->
 % specified options.
 %
 -spec create_for_directory_selection(
-			maybe_list( directory_selection_dialog_opt() ), parent() ) ->
+			maybe_list( directory_selection_dialog_option() ), parent() ) ->
 		directory_selection_dialog().
 create_for_directory_selection( DialogOpts, Parent ) ->
-	WxOpts = gui_wx_backend:to_wx_directory_selection_dialog_opts( DialogOpts ),
+	WxOpts = to_wx_directory_selection_dialog_opts( DialogOpts ),
 	wxDirDialog:new( Parent, WxOpts ).
 
 
@@ -695,12 +715,12 @@ get_selected_directory( DirSelDialog ) ->
 
 % @doc Returns the full path of the selected directories.
 %
-% The 'multiple_directorys' option should have been specified for this dialog.
+% The 'multiple_directories' option should have been specified for this dialog.
 %
 %-spec get_selected_paths( directory_selection_dialog() ) ->
-%			[ directory_path() ].
+%           [ directory_path() ].
 %get_selected_paths( DirSelDialog ) ->
-%	wxDirDialog:getPaths( DirSelDialog ).
+%   wxDirDialog:getPaths( DirSelDialog ).
 
 
 % @doc Destructs the specified directory-selection dialog.
@@ -726,11 +746,11 @@ create_for_color_selection( Parent ) ->
 % specified options.
 %
 %-spec create_for_color_selection(
-%			maybe_list( color_selection_dialog_opt() ), parent() ) ->
-%		color_selection_dialog().
+%           maybe_list( color_selection_dialog_option() ), parent() ) ->
+%       color_selection_dialog().
 %create_for_color_selection( DialogOpts, Parent ) ->
-%	WxOpts = gui_wx_backend:to_wx_color_selection_dialog_opts( DialogOpts ),
-%	wxColourDialog:new( Parent, WxOpts ).
+%   WxOpts = to_wx_color_selection_dialog_opts( DialogOpts ),
+%   wxColourDialog:new( Parent, WxOpts ).
 
 
 % @doc Returns the RGBA definition of the selected color.
@@ -755,14 +775,14 @@ destruct_for_color_selection( ColSelDialog ) ->
 % @doc Creates a dialog that will offer to select one of the known fonts,
 % together with its size.
 %
-% For example "Sans Bold 10".
+% For example a font described as "Sans Bold 10" may be selected.
 %
 -spec create_for_font_selection( parent() ) -> font_selection_dialog().
 create_for_font_selection( Parent ) ->
 	wxFontDialog:new( Parent, _Data=wxFontData:new() ).
 
 
-% @doc Returns the RGBA definition of the selected font.
+% @doc Returns the selected font.
 -spec get_selected_font( font_selection_dialog() ) -> font().
 get_selected_font( FontSelDialog ) ->
 	FontData = wxFontDialog:getFontData( FontSelDialog ),
@@ -773,3 +793,232 @@ get_selected_font( FontSelDialog ) ->
 -spec destruct_for_font_selection( font_selection_dialog() ) -> void().
 destruct_for_font_selection( FontSelDialog ) ->
 	wxFontDialog:destroy( FontSelDialog ).
+
+
+
+
+
+% Dialog helpers.
+%
+% Defined here to clear the API above.
+
+
+% @doc Converts the specified option(s) for message dialogs into wx-specific
+% ones.
+%
+-spec to_wx_message_dialog_opts( maybe_list( message_dialog_option() ) ) ->
+											list().
+to_wx_message_dialog_opts( MsgOpts ) when is_list( MsgOpts ) ->
+	Res = [ to_wx_message_dialog_opt( MO ) || MO <- MsgOpts ],
+	%trace_utils:debug_fmt( "Wx message dialog options: ~p", [ Res ] ),
+	Res;
+
+to_wx_message_dialog_opts( MsgOpt ) ->
+	to_wx_message_dialog_opts( [ MsgOpt ] ).
+
+
+
+% @doc Converts the specified option for message dialogs into a wx-specific one.
+-spec to_wx_message_dialog_opt( message_dialog_option() ) -> tuple().
+to_wx_message_dialog_opt( MsgOpt={ caption, _CaptionStr } ) ->
+	MsgOpt;
+
+to_wx_message_dialog_opt( _MsgOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_message_dialog_style( S ) bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_message_dialog_opt( _MsgOpt={ position, Pos } ) ->
+	{ pos, Pos }.
+
+
+
+% @doc Converts the specified option(s) for single-choice dialogs into
+% wx-specific ones.
+%
+-spec to_wx_single_choice_dialog_opts(
+						maybe_list( single_choice_dialog_option() ) ) -> list().
+to_wx_single_choice_dialog_opts( ScdOpts ) when is_list( ScdOpts ) ->
+	Res = [ to_wx_single_choice_dialog_option( SO ) || SO <- ScdOpts ],
+	%trace_utils:debug_fmt( "Wx single-choice dialog options: ~p", [ Res ] ),
+	Res;
+
+to_wx_single_choice_dialog_opts( ScdOpt ) ->
+	to_wx_single_choice_dialog_opts( [ ScdOpt ] ).
+
+
+% @doc Converts the specified option for single-choice dialogs into a
+% wx-specific one.
+%
+-spec to_wx_single_choice_dialog_option( single_choice_dialog_option() ) ->
+											tuple().
+to_wx_single_choice_dialog_option( _ScdOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_single_choice_dialog_style( S ) bor Acc
+						   end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_single_choice_dialog_option( _ScdOpt={ position, Pos } ) ->
+	{ pos, Pos }.
+
+
+
+% @doc Converts the specified option(s) for multiple-choice dialogs into
+% wx-specific ones.
+%
+-spec to_wx_multi_choice_dialog_opts(
+						maybe_list( multi_choice_dialog_option() ) ) -> list().
+to_wx_multi_choice_dialog_opts( MultOpts ) when is_list( MultOpts ) ->
+	[ to_wx_multi_choice_dialog_option( MO ) || MO <- MultOpts ];
+
+to_wx_multi_choice_dialog_opts( MultOpt ) ->
+	to_wx_multi_choice_dialog_opts( [ MultOpt ] ).
+
+
+% @doc Converts the specified option for multi-choice dialogs into a
+% wx-specific one.
+%
+-spec to_wx_multi_choice_dialog_option( multi_choice_dialog_option() ) ->
+											tuple().
+to_wx_multi_choice_dialog_option( _MultOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_multi_choice_dialog_style( S ) bor Acc
+						   end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_multi_choice_dialog_option( _MultOpt={ position, Pos } ) ->
+	{ pos, Pos }.
+
+
+
+
+% @doc Converts the specified option(s) for text-entry dialogs into wx-specific
+% ones.
+%
+-spec to_wx_text_entry_dialog_opts(
+			maybe_list( text_entry_dialog_option() ) ) -> list().
+to_wx_text_entry_dialog_opts( TextEntryOpts ) when is_list( TextEntryOpts ) ->
+	[ to_wx_text_entry_dialog_option( TEO ) || TEO <- TextEntryOpts ];
+
+to_wx_text_entry_dialog_opts( TextEntryOpt ) ->
+	to_wx_text_entry_dialog_opts( [ TextEntryOpt ] ).
+
+
+% @doc Converts the specified option for text-entry dialogs into a wx-specific
+% one.
+%
+-spec to_wx_text_entry_dialog_option( text_entry_dialog_option() ) -> tuple().
+to_wx_text_entry_dialog_option( TextEntryOpt={ caption, _CaptionStr } ) ->
+	TextEntryOpt;
+
+to_wx_text_entry_dialog_option( _TextEntryOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_text_entry_dialog_style( S ) bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_text_entry_dialog_option( _TextEntryOpt={ initial_text, InitialText } ) ->
+	{ value, InitialText };
+
+to_wx_text_entry_dialog_option( _TextEntryOpt={ position, Pos } ) ->
+	{ pos, Pos }.
+
+
+
+% @doc Converts the specified option(s) for file-selection dialogs into
+% wx-specific ones.
+%
+-spec to_wx_file_selection_dialog_opts(
+				maybe_list( file_selection_dialog_option() ) ) -> list().
+to_wx_file_selection_dialog_opts( FileSelOpts ) when is_list( FileSelOpts ) ->
+	[ to_wx_file_selection_dialog_option( FSO ) || FSO <- FileSelOpts ];
+
+to_wx_file_selection_dialog_opts( FileSelOpt ) ->
+	to_wx_file_selection_dialog_opts( [ FileSelOpt ] ).
+
+
+% @doc Converts the specified option for file-selection dialogs into a
+% wx-specific one.
+%
+-spec to_wx_file_selection_dialog_option( file_selection_dialog_option() ) ->
+											tuple().
+to_wx_file_selection_dialog_option( FileSelOpt={ message, _CaptionStr } ) ->
+	FileSelOpt;
+
+to_wx_file_selection_dialog_option( _FileSelOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_file_selection_dialog_style( S )
+			bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_file_selection_dialog_option( _FileSelOpt={ default_dir, DefDir } ) ->
+	{ defaultDir, DefDir };
+
+to_wx_file_selection_dialog_option( _FileSelOpt={ default_file, DefFile } ) ->
+	{ defaultFile, DefFile };
+
+to_wx_file_selection_dialog_option(
+		_FileSelOpt={ match_filter, MatchFilter } ) ->
+	{ wildCard, MatchFilter };
+
+to_wx_file_selection_dialog_option( _FileSelOpt={ position, Pos } ) ->
+	{ pos, Pos };
+
+to_wx_file_selection_dialog_option( _FileSelOpt={ size, Size } ) ->
+	{ sz, Size }.
+
+
+
+% @doc Converts the specified option(s) for directory-selection dialogs into
+% wx-specific ones.
+%
+-spec to_wx_directory_selection_dialog_opts(
+				maybe_list( directory_selection_dialog_option() ) ) -> list().
+to_wx_directory_selection_dialog_opts( DirSelOpts )
+											when is_list( DirSelOpts ) ->
+	[ to_wx_directory_selection_dialog_option( DSO ) || DSO <- DirSelOpts ];
+
+to_wx_directory_selection_dialog_opts( DirSelOpt ) ->
+	to_wx_directory_selection_dialog_opts( [ DirSelOpt ] ).
+
+
+% @doc Converts the specified option for directory-selection dialogs into a
+% wx-specific one.
+%
+-spec to_wx_directory_selection_dialog_option(
+						directory_selection_dialog_option() ) -> tuple().
+to_wx_directory_selection_dialog_option( _DirSelOpt={ caption, CaptionStr } ) ->
+	{ title, CaptionStr };
+
+to_wx_directory_selection_dialog_option( _DirSelOpt={ style, Styles } ) ->
+	WxStyle = lists:foldl( fun( S, Acc ) ->
+		gui_generated:get_second_for_directory_selection_dialog_style( S )
+			bor Acc end,
+		_InitialAcc=0,
+		_List=Styles ),
+
+	{ style, WxStyle };
+
+to_wx_directory_selection_dialog_option(
+		_FileSelOpt={ default_dir, DefDir } ) ->
+	{ defaultPath, DefDir };
+
+to_wx_directory_selection_dialog_option( _DirSelOpt={ position, Pos } ) ->
+	{ pos, Pos };
+
+to_wx_directory_selection_dialog_option( _DirSelOpt={ size, Size } ) ->
+	{ sz, Size }.

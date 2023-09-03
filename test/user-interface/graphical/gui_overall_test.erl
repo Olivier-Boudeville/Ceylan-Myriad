@@ -179,18 +179,18 @@ run_test_gui() ->
 	%gui:set_background_color( LeftPanel, blue ),
 	%gui:set_background_color( RightPanel, green ),
 
-	MainSizer = gui:create_sizer( _Orientation=horizontal ),
+	MainSizer = gui_sizer:create( _Orientation=horizontal ),
 
 	% Constant width:
-	gui:add_to_sizer( MainSizer, LeftPanel,
-					  [ { proportion, 0 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, LeftPanel,
+						   [ { proportion, 0 }, expand_fully ] ),
 
 	% Grows with the window:
-	gui:add_to_sizer( MainSizer, RightPanel,
-					  [ { proportion, 2 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, RightPanel,
+						   [ { proportion, 2 }, expand_fully ] ),
 
 
-	ControlBoxSizer = gui:create_sizer_with_labelled_box( vertical, LeftPanel,
+	ControlBoxSizer = gui_sizer:create_with_labelled_box( vertical, LeftPanel,
 														  "Controls" ),
 
 	% Adding the buttons to the control panel:
@@ -200,7 +200,7 @@ run_test_gui() ->
 
 	ControlButtons = [ RenderShapeButton, RenderMECButton, AddPointButton,
 					   PasteImageButton, ClearCanvasButton, QuitButton ] =
-		gui_button:creates( ButtonLabels, _Parent=LeftPanel ),
+		gui_button:create_multiple( ButtonLabels, _Parent=LeftPanel ),
 
 	ButtonEvents = { onButtonClicked, ControlButtons },
 
@@ -213,12 +213,12 @@ run_test_gui() ->
 	gui:set_tooltip( ClearCanvasButton, "Clear canvas" ),
 	gui:set_tooltip( QuitButton, "Quit" ),
 
-	gui:add_to_sizer( ControlBoxSizer, ControlButtons, expand_fully ),
+	gui_sizer:add_elements( ControlBoxSizer, ControlButtons, expand_fully ),
 
-	gui:set_sizer( LeftPanel, ControlBoxSizer ),
+	gui_widget:set_sizer( LeftPanel, ControlBoxSizer ),
 
-	PolyBoxSizer = gui:create_sizer_with_labelled_box( vertical, RightPanel,
-													   "Polygon View" ),
+	PolyBoxSizer = gui:create_with_labelled_box( vertical, RightPanel,
+												 "Polygon View" ),
 
 	Canvas = gui:create_canvas( RightPanel ),
 
@@ -235,15 +235,15 @@ run_test_gui() ->
 	%CanvasEvents = { onRepaintNeeded, Canvas },
 	CanvasEvents = { [ onRepaintNeeded, onResized ], Canvas },
 
-	gui:add_to_sizer( PolyBoxSizer, Canvas,
-					  [ { proportion, 1 }, expand_fully ] ),
+	gui_sizer:add_element( PolyBoxSizer, Canvas,
+						   [ { proportion, 1 }, expand_fully ] ),
 
 	gui:set_tooltip( Canvas, "Random polygons and their MEC\n"
 							 "(Minimum Enclosing Circle Box) are drawn here." ),
 
-	gui:set_sizer( RightPanel, PolyBoxSizer ),
+	gui_widget:set_sizer( RightPanel, PolyBoxSizer ),
 
-	gui:set_sizer( MainFrame, MainSizer ),
+	gui_widget:set_sizer( MainFrame, MainSizer ),
 
 	EventsOfInterest = [ MainFrameEvents, ButtonEvents, CanvasEvents ],
 
@@ -316,7 +316,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Render shape test button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( RenderShapeButton ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			NewTestState = TestState#my_test_state{
@@ -333,7 +333,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Render MEC test button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( RenderMECButton ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			NewTestState = TestState#my_test_state{
@@ -350,7 +350,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Add point test button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( AddButton ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			NewPointCount = TestState#my_test_state.point_count + 1,
@@ -367,7 +367,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Paste image button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( PasteImageButton ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			ImagePath = "../../../doc/myriad-small.png",
@@ -385,7 +385,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Clear canvas button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( ClearCanvasButton ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			gui:clear( Canvas ),
@@ -400,7 +400,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt( "Quit test button ~ts has been clicked "
 					"(~ts), test success.",
 					[ gui:object_to_string( QuitButton ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			gui:destruct_window( MainFrame ),
@@ -414,7 +414,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Test canvas '~ts' needing repaint (~ts).",
 					[ gui:object_to_string( Canvas ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			gui:blit( Canvas ),
@@ -429,7 +429,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Test canvas '~ts' resized to ~p (~ts).",
 					[ gui:object_to_string( Canvas ), NewSize,
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( [ NewSize, Context ] ) ),
 
 			render( RenderMode, TestState#my_test_state.point_count, Canvas ),
@@ -443,7 +443,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 				"(~ts), test success.",
 				[ gui:object_to_string( MainFrame ),
-				  gui:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( Context ) ] ),
 
 			gui:destruct_window( MainFrame ),
 

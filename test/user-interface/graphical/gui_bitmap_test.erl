@@ -74,7 +74,7 @@ run_bitmap_test() ->
 	ColumnCount = 8,
 
 	% Will auto-adjust the number of rows:
-	GridSizer = gui:create_grid_sizer( _RowCount=0, ColumnCount,
+	GridSizer = gui_sizer:create_grid( _RowCount=0, ColumnCount,
 									   _HorizGap=3, _VertGap=3 ),
 
 	{ bitmap_id, BitmapEntries, _ElemLookup } =
@@ -104,9 +104,9 @@ run_bitmap_test() ->
 
 	BitmapFlags = [],
 
-	gui:add_to_sizer( GridSizer, AllBitmapDisplays, BitmapFlags ),
+	gui_sizer:add_element( GridSizer, AllBitmapDisplays, BitmapFlags ),
 
-	gui:set_sizer( Panel, GridSizer ),
+	gui_widget:set_sizer( Panel, GridSizer ),
 
 	% No need to subscribe to 'onRepaintNeeded' for the panel:
 	gui:subscribe_to_events( [ { onWindowClosed, MainFrame } ] ),
@@ -132,7 +132,7 @@ test_main_loop( MainFrame ) ->
 				trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 					"(~ts), test success.",
 					[ gui:object_to_string( MainFrame ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			gui:destruct_window( MainFrame );

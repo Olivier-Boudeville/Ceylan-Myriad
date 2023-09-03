@@ -29,7 +29,7 @@
 % @doc The very beginning of a tool to manage <b>assets</b>, especially for
 % rendering.
 %
-% @hidden Note: far from being ready.
+% @hidden Note: extremely far from being ready.
 %
 -module(asset_tool_app).
 
@@ -41,9 +41,9 @@
 -record( app_state, {
 
 	main_frame :: gui:frame(),
-	load_image_button :: gui:button(),
-	quit_button :: gui:button(),
-	info_sizer :: gui:sizer(),
+	load_image_button :: gui_button:button(),
+	quit_button :: gui_button:button(),
+	info_sizer :: gui_sizer:sizer(),
 	left_panel :: gui:panel(),
 	canvas :: gui:canvas() } ).
 
@@ -112,29 +112,28 @@ init_app_gui() ->
 
 	RightPanel = gui:create_panel( MainFrame ),
 
-	MainSizer = gui:create_sizer( horizontal ),
+	MainSizer = gui_sizer:create( _Orientation=horizontal ),
 
 	% Constant width:
-	gui:add_to_sizer( MainSizer, LeftPanel,
-					  [ { proportion, 0 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, LeftPanel,
+						   [ { proportion, 0 }, expand_fully ] ),
 
 	% Grows with the window:
-	gui:add_to_sizer( MainSizer, RightPanel,
-					  [ { proportion, 2 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, RightPanel,
+						   [ { proportion, 2 }, expand_fully ] ),
 
-	LeftSizer = gui:create_sizer( vertical ),
+	LeftSizer = gui_sizer:create( vertical ),
 
-	ControlBoxSizer = gui:create_sizer_with_labelled_box( vertical, LeftPanel,
+	ControlBoxSizer = gui_sizer:create_with_labelled_box( vertical, LeftPanel,
 														  "Controls" ),
 
-	InfoSizer = gui:create_sizer_with_labelled_box( vertical, LeftPanel,
+	InfoSizer = gui_sizer:create_with_labelled_box( vertical, LeftPanel,
 													"Information" ),
 
 	update_information_sizer( InfoSizer, LeftPanel, [ "(no image loaded)" ] ),
 
-	gui:add_to_sizer( LeftSizer, ControlBoxSizer ),
+	gui_sizer:add_elements( LeftSizer, [ ControlBoxSizer, InfoSizer ] ),
 
-	gui:add_to_sizer( LeftSizer, InfoSizer ),
 
 	% Adding the buttons to the control panel:
 
@@ -149,27 +148,27 @@ init_app_gui() ->
 	% Not working apparently:
 	gui:set_tooltip( LoadImageButton, "Load image" ),
 
-	gui:add_to_sizer( ControlBoxSizer, [ LoadImageButton, QuitButton ],
-					  expand_fully ),
+	gui_sizer:add_elements( ControlBoxSizer, [ LoadImageButton, QuitButton ],
+						   expand_fully ),
 
 
-	gui:set_sizer( LeftPanel, LeftSizer ),
+	gui_widget:set_sizer( LeftPanel, LeftSizer ),
 
-	AssetBoxSizer = gui:create_sizer_with_labelled_box( vertical, RightPanel,
+	AssetBoxSizer = gui_sizer:create_with_labelled_box( vertical, RightPanel,
 														"Asset View" ),
 
 	Canvas = gui_canvas:create_instance( RightPanel ),
 
 	gui_canvas:set_background_color( Canvas, pink ),
 
-	gui:add_to_sizer( AssetBoxSizer, Canvas,
-					  [ { proportion, 1 }, expand_fully ] ),
+	gui_sizer:add_element( AssetBoxSizer, Canvas,
+						   [ { proportion, 1 }, expand_fully ] ),
 
 	gui:set_tooltip( Canvas, "Asset view." ),
 
-	gui:set_sizer( RightPanel, AssetBoxSizer ),
+	gui_widget:set_sizer( RightPanel, AssetBoxSizer ),
 
-	gui:set_sizer( MainFrame, MainSizer ),
+	gui_widget:set_sizer( MainFrame, MainSizer ),
 
 	% Sets the GUI to visible:
 	gui:show( MainFrame ),
@@ -295,12 +294,12 @@ load_image( Canvas ) ->
 % @doc Updates information sizer with specified texts.
 update_information_sizer( InfoSizer, Panel, Texts ) ->
 
-	%gui:clear_sizer( InfoSizer ),
+	%gui_sizer:clear( InfoSizer ),
 
 	TextOpts = [ { border, 10 }, expand_fully ],
 
-   [ gui:add_to_sizer( InfoSizer, gui_text:create_static( Panel, T ),
-					   TextOpts ) || T <- Texts ].
+   [ gui_sizer:add_element( InfoSizer, gui_text:create_static( T, Panel ),
+							TextOpts ) || T <- Texts ].
 
 
 

@@ -275,8 +275,8 @@
 % General section.
 
 
-% @doc Returns the biggest integer smaller than the specified
-% floating-point value.
+% @doc Rounds down the specified floating-point value: returns the biggest
+% integer smaller than this value.
 %
 % Note: used to be deprecated in favor of math:floor/1, yet we prefer the
 % version here, which returns an integer rather than a float.
@@ -306,8 +306,8 @@ floor( X ) ->
 
 
 
-% @doc Returns the smallest integer bigger than the specified floating-point
-% value.
+% @doc Rounds up the specified floating-point value: returns the smallest
+% integer bigger than the specified floating-point value.
 %
 % Note: used to be deprecated in favor of math:ceil/1, yet we prefer the version
 % here, which returns an integer rather than a float.
@@ -337,7 +337,7 @@ ceiling( X ) ->
 %
 % For example round_after(12.3456, _DigitCount3) = 12.346.
 %
--spec round_after( float(), basic_utils:count() ) -> float().
+-spec round_after( float(), count() ) -> float().
 round_after( F, DigitCount ) ->
 
 	Multiplier = math:pow( 10, DigitCount ),

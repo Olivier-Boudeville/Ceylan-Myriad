@@ -26,7 +26,9 @@
 % Creation date: Monday, March 6, 2023.
 
 
-% @doc Module defining most of the MyriadGUI constants.
+% @doc Module defining most of the <b>MyriadGUI constants</b>, notably so that
+% higher level MyriadGUI atom-designated values and backend-specific (wx) ones
+% can be translated, generally both ways.
 %
 % Called by gui:generate_support_modules/0.
 %
@@ -44,6 +46,7 @@
 		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
 		  get_menu_item_kind_topic_spec/0, get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
+		  get_static_text_display_style_topic_spec/0,
 
 		  get_dialog_return_topic_spec/0,
 		  get_message_dialog_style_topic_spec/0,
@@ -73,6 +76,7 @@ list_topic_spec_functions() ->
 	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
+	  get_static_text_display_style_topic_spec,
 
 	  get_dialog_return_topic_spec,
 	  get_message_dialog_style_topic_spec,
@@ -95,42 +99,55 @@ list_topic_spec_functions() ->
 
 % Implementation notes:
 %
-% These constants correspond to many of the ones that were defined in
-% gui_wx_backend.erl.
+% These constants correspond to many of the ones that were defined through
+% (one-way) functions in gui_wx_backend.erl. Thanks to the
+% const_bijective_topics module, they are compiled in the gui_generated module,
+% used by many MyriadGUI gui_* modules.
 %
-% All topics could be maybe-ones to resist to unknown elements, yet for a GUI we
-% prefer crashing.
+% All topics could be configured maybe-ones (instead of strict-ones) to resist
+% to the lookèup of unknown elements, yet for a GUI we prefer crashing.
 %
 % At least generally the first elements are MyriadGUI ones, and the second ones
-% are wx ones.
+% are backend ones. Entries shall preferably be listed according to the backend
+% native order (thus based on the second elements), to check more easily whether
+% a current conversion covers all backend-defined values (that may be enriched
+% with newer versions).
 %
 % Quite often both conversion directions cannot be enabled, as different wx
 % defines correspond actually to the same value (then only the first_to_second
-% conversion direction is requested).
+% conversion direction is requested, from MyriadGUI to the backend).
 %
 % As much as possible, when such wx synonyms exist (e.g. wxICON_HAND being an
-% alias for wxICON_ERROR), one is kept and the other prohibited.
+% alias for wxICON_ERROR), here one is kept and the other(s) prohibited.
+%
+% Many tables are "mostly one-way"; for example a MyriadGUI widget style is
+% often converted into a backend one - not the other way round. If maintaining
+% systematically a reverse table was deemed too expensive, performing more
+% CPU-demanding yet punctual reverse lookups based on a unique
+% MyriadGUI-to-backend table could be considered.
 %
 % Of course a given MyriadGUI symbol (e.g. 'text', 'right') must be unique only
-% in a given bijective table (so different bijective tables may share some of
-% such symbols).
+% within a given bijective table (so different bijective tables may share some
+% of such symbols, and associate to possibly different values).
 %
 % For a topic T, we generate here gui_generated:get_{first,second}_for_T/1 (if
 % both directions are enabled) and possibly
 % gui_generated:get_maybe_{first,second}_for_T/1.
-
+%
 % Some wx symbols, like ?wxFD_MULTIPLE, are resolved at compilation time,
 % through a persistent term that is not available when building the current
 % module. We determined (see wx_test:determine_constants/0) their actual value
-% on our platform (GNU/Linux) and hardcoded it here, although it must be for
-% some reason a platform-specific value and/or one that may change over time.
+% on our platform (GNU/Linux) and hardcoded it here - although it must be for
+% some reason a platform-specific value and/or one that may change over time. An
+% improvement at this level will probably be needed.
+
+% See const_bijective_topics:topic_spec() for defaults (i.e. the 'strict'
+% element look-up and the 'both' conversion direction).
 
 
 % Shorthands:
 
 -type topic_spec( F, S ) :: const_bijective_topics:topic_spec( F, S ).
-
-%-type bijective_table( F, S ) :: bijective_table:bijective_table( F, S ).
 
 -type bit_mask() :: basic_utils:bit_mask().
 
@@ -243,6 +260,7 @@ get_window_style_topic_spec() ->
 		% (see https://docs.wxwidgets.org/3.0/classwx_window.html)
 		%
 		{ full_repaint_on_resize,    ?wxFULL_REPAINT_ON_RESIZE } ],
+
 	% Cannot be bijective, as a second_to_first function cannot be defined: some
 	% wx defines collide, at least on some configurations (e.g. platforms; for
 	% example ?wxBORDER_THEME may be equal to ?wxBORDER_DOUBLE):
@@ -383,7 +401,7 @@ get_menu_item_id_topic_spec() ->
 	% Some may be lacking (at least on some platforms, like GTK3), in which case
 	% neither their icons/images nor their standard label would be displayed
 	% (thus resulting in fully-blank entries); they are commented as "ML"
-	% (Maybe-Lacking); those which have been known to be lacking but are not
+	% (Maybe-Lacking); those that have been known to be lacking but are not
 	% anymore, at least on some platforms, are between parentheses.
 	%
 	% Refer also to wx-x.y/include/wx.hrl for their wx support.
@@ -503,7 +521,7 @@ get_button_id_topic_spec() ->
 	ButtonEntries = [
 		case MenuId of
 
-			% Special case:
+			% Special case for the 'undefined' identifier:
 			undefined ->
 				{ MenuId, WxId };
 
@@ -622,8 +640,8 @@ get_icon_name_id_topic_spec() ->
 		{ hand_icon,        ?wxICON_HAND        },
 		{ exclamation_icon, ?wxICON_EXCLAMATION } ],
 
-	% Not a bijection, the element '512' is present thrice, the element '256'
-	% and '2048' are present twice:
+	% Not a bijection, the element '512' is present thrice, and the element
+	% '256' and '2048' are present twice:
 	%
 	{ icon_name_id, Entries, _ElemLookup=maybe, _Direction=first_to_second }.
 
@@ -646,6 +664,7 @@ get_menu_item_kind_topic_spec() ->
 	% No ?wxITEM_MAX
 
 	{ menu_item_kind, Entries }.
+
 
 
 % @doc Returns the two-way conversion specification for the 'status_bar_style'
@@ -701,6 +720,28 @@ get_toolbar_style_topic_spec() ->
 
 
 % @doc Returns the two-way conversion specification for the
+% 'static_text_display_style' topic.
+%
+-spec get_static_text_display_style_topic_spec() ->
+				topic_spec( gui_text:static_display_style(), wx_enum() ).
+get_static_text_display_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/stable/classwx_static_text.html:
+
+	Entries = [
+		{ align_left,       ?wxALIGN_LEFT              },
+		{ align_right,      ?wxALIGN_RIGHT             },
+		{ center,           ?wxALIGN_CENTRE_HORIZONTAL },
+		{ fixed_size,       ?wxST_NO_AUTORESIZE        },
+		{ ellipsize_end,    ?wxST_ELLIPSIZE_END        },
+		{ ellipsize_middle, ?wxST_ELLIPSIZE_MIDDLE     },
+		{ ellipsize_begin,  ?wxST_ELLIPSIZE_START      } ],
+
+	{ static_text_display_style, Entries }.
+
+
+
+% @doc Returns the two-way conversion specification for the
 % 'dialog_return' topic.
 %
 -spec get_dialog_return_topic_spec() ->
@@ -714,7 +755,7 @@ get_dialog_return_topic_spec() ->
 		{ yes_returned,    ?wxID_YES    },
 		{ no_returned,     ?wxID_NO     } ],
 
-	{ dialog_return, Entries, _ElemLookup=strict }.
+	{ dialog_return, Entries }.
 
 
 
@@ -752,7 +793,7 @@ get_message_dialog_style_topic_spec() ->
 		{ stay_on_top,       ?wxSTAY_ON_TOP      },
 		{ center,            ?wxCENTRE           } ],
 
-	{ message_dialog_style, Entries, _ElemLookup=strict }.
+	{ message_dialog_style, Entries }.
 
 
 
@@ -768,11 +809,11 @@ get_single_choice_dialog_style_topic_spec() ->
 	% See get_message_dialog_style_topic_spec/0 for more comments.
 
 	Entries = [
-		{ ok_button,         ?wxOK               },
-		{ cancel_button,     ?wxCANCEL           },
-		{ center,            ?wxCENTRE           } ],
+		{ ok_button,     ?wxOK     },
+		{ cancel_button, ?wxCANCEL },
+		{ center,        ?wxCENTRE } ],
 
-	{ single_choice_dialog_style, Entries, _ElemLookup=strict }.
+	{ single_choice_dialog_style, Entries }.
 
 
 
@@ -787,11 +828,11 @@ get_multi_choice_dialog_style_topic_spec() ->
 	% more comments.
 
 	Entries = [
-		{ ok_button,         ?wxOK               },
-		{ cancel_button,     ?wxCANCEL           },
-		{ center,            ?wxCENTRE           } ],
+		{ ok_button,     ?wxOK     },
+		{ cancel_button, ?wxCANCEL },
+		{ center,        ?wxCENTRE } ],
 
-	{ multi_choice_dialog_style, Entries, _ElemLookup=strict }.
+	{ multi_choice_dialog_style, Entries }.
 
 
 
@@ -806,11 +847,11 @@ get_text_entry_dialog_style_topic_spec() ->
 	% more comments.
 
 	Entries = [
-		{ ok_button,         ?wxOK               },
-		{ cancel_button,     ?wxCANCEL           },
-		{ center,            ?wxCENTRE           } ],
+		{ ok_button,     ?wxOK     },
+		{ cancel_button, ?wxCANCEL },
+		{ center,        ?wxCENTRE } ],
 
-	{ text_entry_dialog_style, Entries, _ElemLookup=strict }.
+	{ text_entry_dialog_style, Entries }.
 
 
 
@@ -839,7 +880,7 @@ get_file_selection_dialog_style_topic_spec() ->
 		{ preview_selected,   ?wxFD_PREVIEW                  },
 		{ show_hidden_files,  ?wxFD_SHOW_HIDDEN              } ],
 
-	{ file_selection_dialog_style, Entries, _ElemLookup=strict }.
+	{ file_selection_dialog_style, Entries }.
 
 
 
@@ -862,7 +903,7 @@ get_directory_selection_dialog_style_topic_spec() ->
 		% However wxDD_NEW_DIR_BUTTON not in wxwidgets docs:
 		{ enable_directory_creation, ?wxDD_NEW_DIR_BUTTON } ],
 
-	{ directory_selection_dialog_style, Entries, _ElemLookup=strict }.
+	{ directory_selection_dialog_style, Entries }.
 
 
 % No colour_selection_dialog_style topuc.

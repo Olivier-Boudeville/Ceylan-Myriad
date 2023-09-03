@@ -77,10 +77,10 @@ run_gui_test() ->
 	ColumnCount = 8,
 
 	% Will auto-adjust the number of rows:
-	GridSizer = gui:create_grid_sizer( _RowCount=0, ColumnCount,
+	GridSizer = gui_sizer:create_grid( _RowCount=0, ColumnCount,
 									   _HorizGap=2, _VertGap=1 ),
 
-	gui:set_sizer( Panel, GridSizer ),
+	gui_widget:set_sizer( Panel, GridSizer ),
 
 	% Fetching all known button identifiers:
 	{ button_id, Entries, _ElemLookup } =
@@ -110,7 +110,7 @@ run_gui_test() ->
 
 	ButtonFlags = [ { proportion, 0 }, { border, 4 }, all_borders ],
 
-	gui:add_to_sizer( GridSizer, AllButtons, ButtonFlags ),
+	gui_sizer:add_elements( GridSizer, AllButtons, ButtonFlags ),
 
 	% No specific need to call gui:layout/1 or gui:{refresh,update}/1.
 
@@ -140,14 +140,14 @@ test_main_loop( State=Frame ) ->
 				"Exit Button ~ts (~ts) clicked (~ts).",
 				[ gui:object_to_string( Button ),
 				  gui_id:id_to_string( ButtonId ),
-				  gui:context_to_string( EventContext ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 			stop( Frame );
 
 		{ onButtonClicked, [ Button, ButtonId, EventContext ] } ->
 			trace_utils:debug_fmt( "Button ~ts (~ts) clicked (~ts).",
 				[ gui:object_to_string( Button ),
 				  gui_id:id_to_string( ButtonId ),
-				  gui:context_to_string( EventContext ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 			test_main_loop( State );
 
 		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->

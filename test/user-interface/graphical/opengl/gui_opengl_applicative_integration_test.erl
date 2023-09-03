@@ -728,7 +728,8 @@ test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 		"initial size of ~w; using OpenGL, which as expected is not "
 		"initialised yet; initialising it.",
 		[ gui:object_to_string( Frame ), gui_id:id_to_string( FrameId ),
-		  gui:context_to_string( EventContext ), gui:get_size( Frame ) ] ),
+		  gui_event:context_to_string( EventContext ),
+		  gui:get_size( Frame ) ] ),
 
 	% Optional yet better:
 	gui:unsubscribe_from_events( { onShown, Frame } ),

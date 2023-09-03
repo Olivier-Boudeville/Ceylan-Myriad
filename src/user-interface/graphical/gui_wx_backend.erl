@@ -37,6 +37,15 @@
 -module(gui_wx_backend).
 
 
+% In the current module are gathered the wx-specific functions that may be
+% shared across multiple MyriadGUI ones.
+%
+% As a MyriadGUI module already depends on the backend of choice (currently wx),
+% helpers (e.g. conversion functions) that are specific to a MyriadGUI module
+% shall preferably be directly defined in the corresponding module (more
+% balanced sizes, selective loading, less backend-related types to export, less
+% cross-module calls, etc.).
+
 
 % Usually a class of wxWidgets is represented as a module in Erlang.
 %
@@ -146,71 +155,6 @@
 
 
 
-% Function export section.
-
-
--export([ get_wx_version/0 ]).
-
-
-% Conversions between MyriadGUI and backend (wx) are now mostly done thanks to
-% the gui_generated module:
-%
--export([ to_wx_object_type/1,
-		  to_wx_connect_options/3,
-		  to_wx_debug_level/1,
-
-		  window_style_to_bitmask/1, get_window_options/1,
-		  frame_style_to_bitmask/1,
-		  get_panel_options/1,
-		  button_style_to_bitmask/1,
-
-		  to_wx_sizer_options/1, sizer_flags_to_bitmask/1,
-
-		  to_wx_menu_options/1,
-		  to_new_wx_menu_item_id/1,
-		  to_wx_menu_item_id/1,
-
-		  %to_wx_menu_item_options/1,
-
-		  to_wx_bitmap_id/1, to_wx_icon_id/1,
-
-		  to_wx_status_bar_style/1,
-		  to_wx_toolbar_style/1,
-		  to_wx_tool_kind/1,
-
-		  to_wx_button_opts/1, to_wx_button_opt/1,
-
-		  to_wx_message_dialog_opts/1, to_wx_message_dialog_opt/1,
-		  to_wx_single_choice_dialog_opts/1, to_wx_single_choice_dialog_opt/1,
-		  to_wx_multi_choice_dialog_opts/1, to_wx_multi_choice_dialog_opt/1,
-		  to_wx_text_entry_dialog_opts/1, to_wx_text_entry_dialog_opt/1,
-		  to_wx_file_selection_dialog_opts/1, to_wx_file_selection_dialog_opt/1,
-		  to_wx_directory_selection_dialog_opts/1,
-		  to_wx_directory_selection_dialog_opt/1,
-		  %to_wx_color_selection_dialog_opts/1,
-		  %to_wx_color_selection_dialog_opt/1,
-		  %to_wx_font_selection_dialog_opts/1,
-		  %to_wx_font_selection_dialog_opt/1,
-
-		  to_wx_event_type/1, from_wx_event_type/1,
-
-		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
-		  to_wx_direction/1, to_wx_orientation/1,
-		  wx_id_to_window/1, wx_id_to_string/1,
-
-		  to_wx_device_context_attributes/1,
-
-		  connect/2, connect/3, connect/4, disconnect/1, disconnect/2 ]).
-
-
-% Conversions from wx to MyriadGUI:
--export([ from_wx_object_type/1 ]).
-
-
-% For the wx defines:
--include("gui_internal_defines.hrl").
-
-
 % Type section.
 
 
@@ -269,6 +213,8 @@
 % No enumeration like 'wxWindow' | 'wxFrame' | ... found in wx.
 
 
+-type wx_opt_pair() :: { atom(), term() }.
+% A wx option pair, like {pos, {0,0}};
 
 -type wx_window_option() :: term().
 
@@ -304,7 +250,7 @@
 % A wxWidgets enumerated value.
 
 
--export_type([ wx_native_object_type/0, wx_window_option/0,
+-export_type([ wx_native_object_type/0, wx_opt_pair/0, wx_window_option/0,
 			   wx_event_handler_option/0, wx_panel_option/0,
 			   other_wx_device_context_attribute/0,
 			   wx_device_context_attribute/0, wx_enum/0,
@@ -315,6 +261,60 @@
 
 
 % Preferably no '-export_type' here to avoid leakage of backend conventions.
+
+
+
+% Function export section.
+
+
+-export([ get_wx_version/0, get_wx_null_bitmap/0 ]).
+
+
+% Conversions between MyriadGUI and backend (wx) are now mostly done thanks to
+% the gui_generated module, obtained from gui_constants.erl.
+%
+-export([ to_wx_object_type/1,
+		  to_wx_connect_options/3,
+		  to_wx_debug_level/1,
+
+		  window_styles_to_bitmask/1, get_window_options/1,
+		  frame_styles_to_bitmask/1,
+		  get_panel_options/1,
+
+		  to_wx_sizer_options/1, sizer_flags_to_bitmask/1,
+
+		  to_wx_menu_options/1,
+		  to_new_wx_menu_item_id/1,
+		  to_wx_menu_item_id/1,
+
+		  %to_wx_menu_item_options/1,
+
+		  to_wx_bitmap_id/1, to_wx_icon_id/1,
+
+		  to_wx_status_bar_style/1,
+		  to_wx_toolbar_style/1,
+		  to_wx_tool_kind/1,
+
+		  to_wx_event_type/1, from_wx_event_type/1,
+
+		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
+		  to_wx_direction/1, to_wx_orientation/1,
+		  wx_id_to_window/1, wx_id_to_string/1,
+
+		  to_wx_device_context_attributes/1 ]).
+
+% For event management:
+-export([ connect/2, connect/3, connect/4, disconnect/1, disconnect/2 ]).
+
+
+% Conversions from wx to MyriadGUI:
+-export([ from_wx_object_type/1 ]).
+
+
+% For the wx defines:
+-include("gui_internal_defines.hrl").
+
+
 
 
 % Shorthands:
@@ -344,9 +344,6 @@
 
 -type panel_option() :: gui:panel_option().
 
--type button_style() :: gui:button_style().
--type button_style_opt() :: gui:button_style_opt().
-
 
 -type bitmap_name_id() :: gui:bitmap_name_id().
 -type icon_name_id() :: gui:icon_name_id().
@@ -367,18 +364,6 @@
 
 -type tool_kind() :: gui:tool_kind().
 
--type button_opt() :: gui_button:button_opt().
-
-
--type message_dialog_opt() :: gui_dialog:message_dialog_opt().
--type single_choice_dialog_opt() :: gui_dialog:single_choice_dialog_opt().
--type multi_choice_dialog_opt() :: gui_dialog:multi_choice_dialog_opt().
--type text_entry_dialog_opt() :: gui_dialog:text_entry_dialog_opt().
--type file_selection_dialog_opt() :: gui_dialog:file_selection_dialog_opt().
--type directory_selection_dialog_opt() :: gui_dialog:directory_selection_opt().
-%-type colour_selection_dialog_opt() ::
-%    gui_dialog:colour_selection_dialog_opt().
-%-type font_selection_dialog_opt() :: gui_dialog:font_selection_dialog_opt().
 
 -type position() :: gui:position().
 -type size() :: gui:size().
@@ -429,6 +414,15 @@
 get_wx_version() ->
 	{ ?wxMAJOR_VERSION, ?wxMINOR_VERSION, ?wxRELEASE_NUMBER,
 	  ?wxSUBRELEASE_NUMBER }.
+
+
+% @doc Return the wx null bitmap, which is typically returned whenever a bitmap
+% is not found.
+%
+-spec get_wx_null_bitmap() -> bitmap().
+get_wx_null_bitmap() -> 
+	% Computed (not a literal constant):
+	?wxNullBitmap.
 
 
 
@@ -491,16 +485,16 @@ to_wx_debug_level( _DebugLevel=life_cycle ) ->
 %
 % (helper)
 %
--spec window_style_to_bitmask( window_style() | window_style_opt() ) ->
+-spec window_styles_to_bitmask( window_style() | window_style_opt() ) ->
 										bit_mask().
-window_style_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
+window_styles_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
 	lists:foldl( fun( S, Acc ) ->
 					gui_generated:get_second_for_window_style( S ) bor Acc
 				 end,
 				 _InitialAcc=0,
 				 _List=StyleOpts );
 
-window_style_to_bitmask( StyleOpt ) ->
+window_styles_to_bitmask( StyleOpt ) ->
 	gui_generated:get_second_for_window_style( StyleOpt ).
 
 
@@ -525,7 +519,7 @@ get_window_options( _Options=[], Acc ) ->
 
 get_window_options( _Options=[ { style, Style } | T ], Acc ) ->
 	get_window_options( T,
-		[ { style, window_style_to_bitmask( Style ) } | Acc ] );
+		[ { style, window_styles_to_bitmask( Style ) } | Acc ] );
 
 % Unchanged:
 get_window_options( _Options=[ H | T ], Acc ) ->
@@ -541,17 +535,17 @@ get_window_options( _Options=[ H | T ], Acc ) ->
 %
 % (helper)
 %
--spec frame_style_to_bitmask( frame_style() | frame_style_opt() ) -> bit_mask().
-frame_style_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
+-spec frame_styles_to_bitmask( maybe_list( frame_style() ) ) -> bit_mask().
+frame_styles_to_bitmask( Styles ) when is_list( Styles ) ->
 	% 'bor ?wxWANTS_CHARS' not desirable a priori:
 	lists:foldl( fun( S, Acc ) ->
 					gui_generated:get_second_for_frame_style( S ) bor Acc
 				 end,
 				 _InitialAcc=0,
-				 _List=StyleOpts );
+				 _List=Styles );
 
-frame_style_to_bitmask( StyleOpt ) ->
-	gui_generated:get_second_for_frame_style( StyleOpt ).
+frame_styles_to_bitmask( Style ) ->
+	frame_styles_to_bitmask( [ Style ] ).
 
 
 
@@ -569,57 +563,6 @@ frame_style_to_bitmask( StyleOpt ) ->
 											[ wx_panel_option() ].
 get_panel_options( Options ) ->
 	get_window_options( Options ).
-
-
-
-
-% Buttons section.
-
-
-% @doc Converts the specified button options into wx-specific ones.
--spec to_wx_button_opts( maybe_list( button_opt() ) ) -> list().
-to_wx_button_opts( ButtonOpts ) when is_list( ButtonOpts ) ->
-	[ to_wx_button_opt( BO ) || BO <- ButtonOpts ];
-
-to_wx_button_opts( ButtonOpt ) ->
-	to_wx_button_opts( [ ButtonOpt ] ).
-
-
-% @doc Converts the specified button option into the wx-specific one.
--spec to_wx_button_opt( button_opt() ) -> tuple().
-to_wx_button_opt( ButtonOpt={ label, _Label } ) ->
-	ButtonOpt;
-
-to_wx_button_opt( _ButtonOpt={ style, ButtonStyle } ) ->
-	{ style, button_style_to_bitmask( ButtonStyle ) };
-
-to_wx_button_opt( _ButtonOpt={ position, Pos } ) ->
-	{ pos, Pos };
-
-to_wx_button_opt( _ButtonOpt={ size, Size } ) ->
-	{ sz, Size }.
-
-% validator not supported apparently.
-
-
-
-% @doc Converts the specified MyriadGUI button style into the appropriate
-% wx-specific bit mask.
-%
-% (helper)
-%
--spec button_style_to_bitmask( button_style() | button_style_opt() ) ->
-										bit_mask().
-button_style_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
-	lists:foldl( fun( S, Acc ) ->
-					gui_generated:get_second_for_button_style( S ) bor Acc
-				 end,
-				 _InitialAcc=0,
-				 _List=StyleOpts );
-
-button_style_to_bitmask( StyleOpt ) ->
-	gui_generated:get_second_for_button_style( StyleOpt ).
-
 
 
 
@@ -786,232 +729,15 @@ to_wx_status_bar_style( StyleOpt ) ->
 
 
 % @doc Converts the specified style of toolbar into a wx-specific one.
--spec to_wx_toolbar_style( toolbar_style() | toolbar_style_opt() ) -> wx_enum().
-to_wx_toolbar_style( StyleOpts ) when is_list( StyleOpts ) ->
+-spec to_wx_toolbar_style( [ toolbar_style() ] ) -> wx_enum().
+to_wx_toolbar_style( Styles ) when is_list( Styles ) ->
 	lists:foldl( fun( S, Acc ) ->
 					gui_generated:get_second_for_toolbar_style( S ) bor Acc end,
 				 _InitialAcc=0,
-				 _List=StyleOpts );
+				 _List=Styles );
 
-to_wx_toolbar_style( StyleOpt ) ->
-	gui_generated:get_second_for_toolbar_style( StyleOpt ).
-
-
-
-% Dialog subsection.
-
-
-% @doc Converts the specified options for message dialogs into wx-specific ones.
--spec to_wx_message_dialog_opts( maybe_list( message_dialog_opt() ) ) -> list().
-to_wx_message_dialog_opts( MsgOpts ) when is_list( MsgOpts ) ->
-	Res = [ to_wx_message_dialog_opt( MO ) || MO <- MsgOpts ],
-	%trace_utils:debug_fmt( "Wx message dialog options: ~p", [ Res ] ),
-	Res;
-
-to_wx_message_dialog_opts( MsgOpt ) ->
-	to_wx_message_dialog_opts( [ MsgOpt ] ).
-
-
-
-% @doc Converts the specified option for message dialogs into a wx-specific one.
--spec to_wx_message_dialog_opt( message_dialog_opt() ) -> tuple().
-to_wx_message_dialog_opt( MsgOpt={ caption, _CaptionStr } ) ->
-	MsgOpt;
-
-to_wx_message_dialog_opt( _MsgOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_message_dialog_style( S ) bor Acc end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_message_dialog_opt( _MsgOpt={ position, Pos } ) ->
-	{ pos, Pos }.
-
-
-
-% @doc Converts the specified options for single-choice dialogs into wx-specific
-% ones.
-%
--spec to_wx_single_choice_dialog_opts(
-						maybe_list( single_choice_dialog_opt() ) ) -> list().
-to_wx_single_choice_dialog_opts( ScdOpts ) when is_list( ScdOpts ) ->
-	Res = [ to_wx_single_choice_dialog_opt( SO ) || SO <- ScdOpts ],
-	%trace_utils:debug_fmt( "Wx single-choice dialog options: ~p", [ Res ] ),
-	Res;
-
-to_wx_single_choice_dialog_opts( ScdOpt ) ->
-	to_wx_single_choice_dialog_opts( [ ScdOpt ] ).
-
-
-% @doc Converts the specified option for single-choice dialogs into a
-% wx-specific one.
-%
--spec to_wx_single_choice_dialog_opt( single_choice_dialog_opt() ) -> tuple().
-to_wx_single_choice_dialog_opt( _ScdOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_single_choice_dialog_style( S ) bor Acc
-						   end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_single_choice_dialog_opt( _ScdOpt={ position, Pos } ) ->
-	{ pos, Pos }.
-
-
-
-% @doc Converts the specified options for multiple-choice dialogs into
-% wx-specific ones.
-%
--spec to_wx_multi_choice_dialog_opts(
-						maybe_list( multi_choice_dialog_opt() ) ) -> list().
-to_wx_multi_choice_dialog_opts( MultOpts ) when is_list( MultOpts ) ->
-	[ to_wx_multi_choice_dialog_opt( MO ) || MO <- MultOpts ];
-
-to_wx_multi_choice_dialog_opts( MultOpt ) ->
-	to_wx_multi_choice_dialog_opts( [ MultOpt ] ).
-
-
-% @doc Converts the specified option for multi-choice dialogs into a
-% wx-specific one.
-%
--spec to_wx_multi_choice_dialog_opt( multi_choice_dialog_opt() ) -> tuple().
-to_wx_multi_choice_dialog_opt( _MultOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_multi_choice_dialog_style( S ) bor Acc
-						   end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_multi_choice_dialog_opt( _MultOpt={ position, Pos } ) ->
-	{ pos, Pos }.
-
-
-
-
-% @doc Converts the specified options for text-entry dialogs into wx-specific
-% ones.
-%
--spec to_wx_text_entry_dialog_opts( maybe_list( text_entry_dialog_opt() ) ) ->
-											 list().
-to_wx_text_entry_dialog_opts( TextEntryOpts ) when is_list( TextEntryOpts ) ->
-	[ to_wx_text_entry_dialog_opt( TEO ) || TEO <- TextEntryOpts ];
-
-to_wx_text_entry_dialog_opts( TextEntryOpt ) ->
-	to_wx_text_entry_dialog_opts( [ TextEntryOpt ] ).
-
-
-% @doc Converts the specified option for text-entry dialogs into a wx-specific
-% one.
-%
--spec to_wx_text_entry_dialog_opt( text_entry_dialog_opt() ) -> tuple().
-to_wx_text_entry_dialog_opt( TextEntryOpt={ caption, _CaptionStr } ) ->
-	TextEntryOpt;
-
-to_wx_text_entry_dialog_opt( _TextEntryOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_text_entry_dialog_style( S ) bor Acc end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_text_entry_dialog_opt( _TextEntryOpt={ initial_text, InitialText } ) ->
-	{ value, InitialText };
-
-to_wx_text_entry_dialog_opt( _TextEntryOpt={ position, Pos } ) ->
-	{ pos, Pos }.
-
-
-
-% @doc Converts the specified options for file-selection dialogs into
-% wx-specific ones.
-%
--spec to_wx_file_selection_dialog_opts(
-				maybe_list( file_selection_dialog_opt() ) ) -> list().
-to_wx_file_selection_dialog_opts( FileSelOpts ) when is_list( FileSelOpts ) ->
-	[ to_wx_file_selection_dialog_opt( FSO ) || FSO <- FileSelOpts ];
-
-to_wx_file_selection_dialog_opts( FileSelOpt ) ->
-	to_wx_file_selection_dialog_opts( [ FileSelOpt ] ).
-
-
-% @doc Converts the specified option for file-selection dialogs into a
-% wx-specific one.
-%
--spec to_wx_file_selection_dialog_opt( file_selection_dialog_opt() ) -> tuple().
-to_wx_file_selection_dialog_opt( FileSelOpt={ message, _CaptionStr } ) ->
-	FileSelOpt;
-
-to_wx_file_selection_dialog_opt( _FileSelOpt={ default_dir, DefDir } ) ->
-	{ defaultDir, DefDir };
-
-to_wx_file_selection_dialog_opt( _FileSelOpt={ default_file, DefFile } ) ->
-	{ defaultFile, DefFile };
-
-to_wx_file_selection_dialog_opt( _FileSelOpt={ match_filter, MatchFilter } ) ->
-	{ wildCard, MatchFilter };
-
-to_wx_file_selection_dialog_opt( _FileSelOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_file_selection_dialog_style( S )
-			bor Acc end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_file_selection_dialog_opt( _FileSelOpt={ position, Pos } ) ->
-	{ pos, Pos };
-
-to_wx_file_selection_dialog_opt( _FileSelOpt={ size, Size } ) ->
-	{ sz, Size }.
-
-
-
-% @doc Converts the specified options for directory-selection dialogs into
-% wx-specific ones.
-%
--spec to_wx_directory_selection_dialog_opts(
-				maybe_list( directory_selection_dialog_opt() ) ) -> list().
-to_wx_directory_selection_dialog_opts( DirSelOpts )
-											when is_list( DirSelOpts ) ->
-	[ to_wx_directory_selection_dialog_opt( DSO ) || DSO <- DirSelOpts ];
-
-to_wx_directory_selection_dialog_opts( DirSelOpt ) ->
-	to_wx_directory_selection_dialog_opts( [ DirSelOpt ] ).
-
-
-% @doc Converts the specified option for directory-selection dialogs into a
-% wx-specific one.
-%
--spec to_wx_directory_selection_dialog_opt(
-						directory_selection_dialog_opt() ) -> tuple().
-to_wx_directory_selection_dialog_opt( _DirSelOpt={ caption, CaptionStr } ) ->
-	{ title, CaptionStr };
-
-to_wx_directory_selection_dialog_opt( _DirSelOpt={ style, Styles } ) ->
-	WxStyle = lists:foldl( fun( S, Acc ) ->
-		gui_generated:get_second_for_directory_selection_dialog_style( S )
-			bor Acc end,
-		_InitialAcc=0,
-		_List=Styles ),
-
-	{ style, WxStyle };
-
-to_wx_directory_selection_dialog_opt( _FileSelOpt={ default_dir, DefDir } ) ->
-	{ defaultPath, DefDir };
-
-to_wx_directory_selection_dialog_opt( _DirSelOpt={ position, Pos } ) ->
-	{ pos, Pos };
-
-to_wx_directory_selection_dialog_opt( _DirSelOpt={ size, Size } ) ->
-	{ sz, Size }.
+to_wx_toolbar_style( Style ) ->
+	to_wx_toolbar_style( [ Style ] ).
 
 
 
@@ -1366,6 +1092,11 @@ disconnect( _SourceObject=#canvas_state{ panel=Panel } ) ->
 	disconnect( Panel );
 
 disconnect( SourceObject ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( " - disconnecting event source '~ts' from ~w.",
+			[ gui:object_to_string( SourceObject ), self() ] ) ),
+
 	wxEvtHandler:disconnect( SourceObject ).
 
 

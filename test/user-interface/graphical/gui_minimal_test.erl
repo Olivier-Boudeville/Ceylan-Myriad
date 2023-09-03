@@ -71,7 +71,7 @@ run_test_gui() ->
 
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
-				  gui:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( Context ) ] ),
 
 			% A frame is a window:
 			gui:destruct_window( TestFrame ),

@@ -60,9 +60,9 @@ run_gui_test() ->
 
 	Panel = gui:create_panel( Frame ),
 
-	Sizer = gui:create_sizer( vertical ),
+	Sizer = gui_sizer:create( _Orientation=vertical ),
 
-	gui:set_sizer( Panel, Sizer ),
+	gui_sizer:set( Panel, Sizer ),
 
 	% Common settings:
 
@@ -86,7 +86,7 @@ run_gui_test() ->
 	Buttons = [ gui_button:create( "Show " ++ Lbl ++ " dialog", Position,
 		ButtonSize, ButtonStyle, Nid, Parent ) || { Lbl, Nid } <- DlgPairs ],
 
-	gui:add_to_sizer( Sizer, Buttons ),
+	gui_sizer:add( Sizer, Buttons ),
 	gui:subscribe_to_events( [ { onButtonClicked, B } || B <- Buttons ] ),
 
 	gui:show( Frame ),
@@ -211,7 +211,7 @@ test_main_loop( State=Frame ) ->
 			case gui_dialog:show_modal( TextEntDialog ) of
 
 				ok_returned ->
-					Text = gui_dialog:get_filled_text( TextEntDialog ),
+					Text = gui_dialog:get_entered_text( TextEntDialog ),
 
 					trace_utils:debug_fmt( "Text entry dialog returned "
 						"text '~ts'.", [ Text ] );

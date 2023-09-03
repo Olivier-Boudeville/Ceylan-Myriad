@@ -185,7 +185,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Test panel '~ts' resized to ~p (~ts).",
 					[ gui:object_to_string( Panel ), NewSize,
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( [ NewSize, Context ] ) ),
 
 			% We have to resize the framebuffer first:
@@ -207,7 +207,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 					"(~ts), test success.",
 					[ gui:object_to_string( MainFrame ),
-					  gui:context_to_string( Context ) ] ),
+					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
 			gui:destruct_window( MainFrame );

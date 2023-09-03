@@ -27,7 +27,7 @@
 
 
 % @doc Gathers all elements relative to the management of <b>images</b>
-% (including bitmaps, icons, etc.), for loadaing, modifying, saving, scaling,
+% (including icons, etc.), for loading, modifying, saving, scaling,
 % resizing, clipping, etc., in link to MyriadGUI, and in a platform-independent
 % way.
 %
@@ -38,51 +38,6 @@
 % May be useful also for textures.
 %
 -module(gui_image).
-
-
-% Implementation notes.
-%
-% We recommend using the following formats and extensions:
-% - PNG (*.png) for lossless, bitmap-like images
-% - JPEG (*.jpeg) for images akin to camera snapshots
-
-% Relies on the wxWidgets backend.
-
-% Here also, the opaqueness of types is difficult to preserve.
-
-% We test whether images exist before specifying them to wx, in order to have
-% more proper error reports (otherwise just '{bitmap_creation_failed,
-% IMG_PATH}').
-
-
-
--export([ load_from_file/1, load_from_file/2,
-		  get_size/1, has_alpha/1,
-		  load/2, load/3, save/2, save/3,
-		  scale/3, scale/4, mirror/2,
-		  colorize/2, to_string/1,
-
-		  get_standard_icon/1,
-
-		  % from_bitmap/1,
-		  create_bitmap/1,
-		  create_blank_bitmap/1, create_blank_bitmap/2,
-		  create_blank_bitmap_for/1,
-		  get_standard_bitmap/1, get_standard_bitmap/2,
-		  destruct_bitmap/1,
-
-		  lock_bitmap/1, draw_bitmap/3, unlock_bitmap/1,
-
-		  create_bitmap_display/2, create_bitmap_display/3,
-		  destruct_bitmap_display/1,
-
-		  create_text_display/2, create_text_display/3,
-		  destruct_text_display/1,
-
-		  lock_window/1, unlock_window/1,
-		  clear_device_context/1, blit/5, blit/6,
-
-		  destruct/1 ]).
 
 
 % For the raw_bitmap record:
@@ -96,7 +51,8 @@
 % An image is a bitmap buffer of RGB bytes with an optional buffer for the alpha
 % bytes.
 %
-% It is thus generic, independent from platforms and image file formats.
+% It is thus generic, independent from platforms and image file formats (as
+% opposed to bitmaps).
 
 
 -type image_format() :: 'png'
@@ -131,52 +87,8 @@
  % The requested quality for an image operation (e.g. for a scaling).
 
 
--type bitmap() :: wxBitmap:wxBitmap().
-% Platform-dependent bitmap, either monochrome or colour (with or without alpha
-% channel).
-%
-% Intended to be a wrapper of whatever is the native image format, which is
-% quickest/easiest to draw to a display context.
-
-
--opaque bitmap_display() :: wxStaticBitmap:wxStaticBitmap().
-% A widget displaying a bitmap; a bitmap display behaves like a panel dedicated
-% to the rendering of a bitmap.
-
-
 -opaque icon() :: wxIcon:wxIcon().
 % A small rectangular bitmap usually used for denoting a minimised application.
-
-
--opaque text_display() :: wxStaticText:wxStaticText().
-% A widget displaying a text; a text display behaves like a panel dedicated
-% to the rendering of a text.
-
-
--type raw_bitmap() :: #raw_bitmap{}.
-% A record describing a raw, ready-to-use, bitmap, as a term, possibly loaded
-% from file, or generated, etc., as opposed to an image (which respects a format
-% like PNG or JPEG, has metadata, etc.).
-%
-% Note: currently not used, as a bitmap() offers all services needed.
-
-
--type text_display_option() :: { 'pos', point() }
-							 | { 'size', size() }
-							 | { 'style', [ text_display_style_opt() ] }.
-% Text display specific options.
-
-
--type text_display_style_opt() ::
-	'align_left'   % Align the text to the left.
-  | 'align_right'  % Align the text to the right.
-  | 'center'       % Center the text (horizontally).
-  | 'fixed_size'   % No auto-resize.
-  | 'ellipsize_beginning' % Any shrinking done from the start of the text.
-  | 'ellipsize_middle'    % Any shrinking done at the middle of the text.
-  | 'ellipsize_end'.      % Any shrinking done at the middle of the text.
-% Options for text displays. See also
-% [http://docs.wxwidgets.org/stable/classwx_static_text.html]
 
 
 -type image_path() :: file_path().
@@ -193,6 +105,47 @@
 			   bitmap/0, bitmap_display/0, icon/0, text_display/0,
 			   raw_bitmap/0, text_display_option/0,
 			   image_path/0, bin_image_path/0, any_image_path/0  ]).
+
+% For images:
+-export([ load_from_file/1, load_from_file/2,
+		  get_size/1, has_alpha/1,
+		  load/2, load/3, save/2, save/3,
+		  scale/3, scale/4, mirror/2,
+		  colorize/2, to_string/1,
+
+
+% For icons:
+-export([ get_standard_icon/1 ]).
+
+
+% For display:
+-export([ create_bitmap_display/2, create_bitmap_display/3,
+		  destruct_bitmap_display/1,
+
+		  create_text_display/2, create_text_display/3,
+		  destruct_text_display/1 ]).
+
+
+		  lock_window/1, unlock_window/1,
+		  clear_device_context/1, blit/5, blit/6,
+
+		  destruct/1 ]).
+
+
+
+% Implementation notes.
+%
+% We recommend using the following formats and extensions:
+% - PNG (*.png) for lossless, bitmap-like images
+% - JPEG (*.jpeg) for images akin to camera snapshots
+
+% Relies on the wxWidgets backend.
+
+% Here also, the opaqueness of types is difficult to preserve.
+
+% We test whether images exist before specifying them to wx, in order to have
+% more proper error reports (otherwise just '{bitmap_creation_failed,
+% IMG_PATH}').
 
 
 % Shorthands:
@@ -457,239 +410,6 @@ create_bitmap( ImagePath ) ->
 
 
 
-% @doc Returns a blank bitmap of the specified size.
--spec create_blank_bitmap( dimensions() ) -> bitmap().
-create_blank_bitmap( _Dimensions={ Width, Height } ) ->
-	create_blank_bitmap( Width, Height ).
-
-
-% @doc Returns a blank bitmap of the specified size.
--spec create_blank_bitmap( width(), height() ) -> bitmap().
-create_blank_bitmap( Width, Height ) ->
-	ImgBitmap = wxBitmap:new( Width, Height ),
-
-	case wxBitmap:isOk( ImgBitmap ) of
-
-		true ->
-			ImgBitmap;
-
-		false ->
-			throw( { bitmap_creation_failed, { Width, Height } } )
-
-	end.
-
-
-
-% @doc Returns a blank bitmap whose size is the client one of the specified
-% window.
-%
--spec create_blank_bitmap_for( window() ) -> bitmap().
-create_blank_bitmap_for( Window ) ->
-	ClientSize = wxWindow:getClientSize( Window ),
-	create_blank_bitmap( ClientSize ).
-
-
-
-% @doc Returns the standard bitmap of default dimensions, corresponding to the
-% specified identifier.
-%
--spec get_standard_bitmap( standard_bitmap_name_id() ) -> bitmap().
-get_standard_bitmap( StdBitmapId ) ->
-
-	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
-
-	% Computed (not a literal constant):
-	NullBitmap = ?wxNullBitmap,
-
-	% Using default size:
-	case wxArtProvider:getBitmap( WxArtId ) of
-
-		NullBitmap ->
-			throw( { standard_bitmap_not_available, StdBitmapId, WxArtId } );
-
-		Bitmap ->
-			Bitmap
-
-	end.
-
-
-% @doc Returns the standard bitmap corresponding to the specified identifier and
-% dimensions.
-%
--spec get_standard_bitmap( standard_bitmap_name_id(), dimensions() ) ->
-											bitmap().
-get_standard_bitmap( StdBitmapId, Dimensions ) ->
-
-	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
-
-	% Computed (not a literal constant):
-	NullBitmap = ?wxNullBitmap,
-
-	% Using default size:
-	case wxArtProvider:getBitmap( WxArtId, _Opts=[ { size, Dimensions } ] ) of
-
-		NullBitmap ->
-			throw( { standard_bitmap_not_available, StdBitmapId, Dimensions,
-					 WxArtId } );
-
-		Bitmap ->
-			Bitmap
-
-	end.
-
-
-% @doc Destructs the specified bitmap (which must not be locked).
--spec destruct_bitmap( bitmap() ) -> void().
-destruct_bitmap( Bitmap ) ->
-	wxBitmap:destroy( Bitmap ).
-
-
-
-% @doc Locks the specified bitmap, so that direct access to its content can be
-% done, through the returned device context.
-%
-% Once the desired changes will have been made, this bitmap must be unlocked.
-%
--spec lock_bitmap( bitmap() ) -> device_context().
-lock_bitmap( Bitmap ) ->
-	DC = wxMemoryDC:new( Bitmap ),
-	case wxDC:isOk( DC ) of
-
-		true ->
-			DC;
-
-		false ->
-			throw( { lock_bitmap_failed, Bitmap } )
-
-	end.
-
-
-
-% @doc Draws the specified bitmap in the specified device context, at the
-% specified position.
-%
--spec draw_bitmap( bitmap(), device_context(), point() ) -> void().
-draw_bitmap( SourceBitmap, TargetDC, PosInTarget ) ->
-	wxDC:drawBitmap( TargetDC, SourceBitmap, PosInTarget ).
-
-
-
-% @doc Unlocks the specified bitmap, based on the specified device context
-% obtained from a previous locking.
-%
--spec unlock_bitmap( device_context() ) -> void().
-unlock_bitmap( DC ) ->
-	wxMemoryDC:destroy( DC ).
-
-
-
-% @doc Creates a bitmap display from the specified bitmap.
--spec create_bitmap_display( bitmap(), parent() ) -> bitmap_display().
-create_bitmap_display( Bitmap, Parent ) ->
-	create_bitmap_display( Bitmap, _Opts=[], Parent ).
-
-
-% @doc Creates a bitmap display from the specified bitmap and with the specified
-% options.
-%
--spec create_bitmap_display( bitmap(), [ window_option() ], parent() ) ->
-												bitmap_display().
-create_bitmap_display( Bitmap, Options, Parent ) ->
-	wxStaticBitmap:new( Parent, gui_id:get_any_id(), Bitmap, Options ).
-
-
-% @doc Destructs the specified bitmap display.
--spec destruct_bitmap_display( bitmap_display() ) -> void().
-destruct_bitmap_display( BitmapDisplay ) ->
-	wxStaticBitmap:destroy( BitmapDisplay ).
-
-
-
-% @doc Creates a text display from the specified label.
--spec create_text_display( label(), parent() ) -> text_display().
-create_text_display( Label, Parent ) ->
-	create_text_display( Label, _Opts=[], Parent ).
-
-
-% @doc Creates a text display from the specified label and with the specified
-% options.
-%
--spec create_text_display( label(), [ window_option() ], parent() ) ->
-												text_display().
-create_text_display( Label, Options, Parent ) ->
-	wxStaticText:new( Parent, ?gui_any_id, Label,
-					  to_wx_static_text_options( Options ) ).
-
-
-% @doc Destructs the specified text display.
--spec destruct_text_display( text_display() ) -> void().
-destruct_text_display( TextDisplay ) ->
-	wxStaticText:destroy( TextDisplay ).
-
-
-
-% @doc Locks the specified window, so that direct access to its content can be
-% done, through the returned device context.
-%
-% Once the desired changes will have been made, this window must be unlocked.
-%
--spec lock_window( window() ) -> device_context().
-lock_window( Window ) ->
-	DC = wxWindowDC:new( Window ),
-	case wxDC:isOk( DC ) of
-
-		true ->
-			DC;
-
-		false ->
-			throw( { lock_window_failed, Window } )
-
-	end.
-
-
-
-% @doc Unlocks the specified window, based on the specified device context
-% obtained from a previous locking.
-%
--spec unlock_window( device_context() ) -> void().
-unlock_window( DC ) ->
-	wxWindowDC:destroy( DC ).
-
-
-
-% @doc Clears the specified device context, using the current background brush.
-% If none was set, a solid white brush is used.
-%
--spec clear_device_context( device_context() ) -> void().
-clear_device_context( DC ) ->
-	wxDC:clear( DC ).
-
-
-
-% @doc Blits (copies) the specified area of the source device context at the
-% specified position in the target device context.
-%
-% Returns a boolean of unspecified meaning.
-%
--spec blit( device_context(), point(), width(), height(), device_context(),
-			point() ) -> boolean().
-blit( SourceDC, SrcTopLeft, Width, Height, TargetDC, TgtTopLeft ) ->
-	blit( SourceDC, SrcTopLeft, _Size={ Width, Height }, TargetDC, TgtTopLeft ).
-
-
-
-% @doc Blits (copies) the specified area of the source device context at the
-% specified position in the target device context.
-%
-% Returns a boolean of unspecified meaning.
-%
--spec blit( device_context(), point(), dimensions() , device_context(),
-			point() ) -> boolean().
-blit( SourceDC, SrcTopLeft, Size, TargetDC, TgtTopLeft ) ->
-	wxDC:blit( TargetDC, TgtTopLeft, Size, SourceDC, SrcTopLeft ).
-
-
-
 
 % @doc Converts the specified MyriadGUI image format into a wx one.
 -spec to_wx_image_format( image_format() ) -> media_type().
@@ -747,56 +467,6 @@ to_wx_image_quality( high ) ->
 
 to_wx_image_quality( Other ) ->
 	throw( { unknown_image_quality, Other } ).
-
-
-
-% @doc Converts the specified MyriadGUI text display options into wx static text
-% ones.
-%
--spec to_wx_static_text_options( [ text_display_option() ] ) -> list().
-to_wx_static_text_options( Options ) ->
-	[ to_wx_static_text_option( Opt ) || Opt <- Options ].
-
-
-
-% @doc Converts the specified MyriadGUI text display option into a wx static
-% text one.
-%
--spec to_wx_static_text_option( text_display_option() ) -> pair:pair().
-to_wx_static_text_option( { style, TextDisplayStyle }  ) ->
-	{ style, to_wx_static_text_style( TextDisplayStyle ) };
-
-% pos, size are to go through:
-to_wx_static_text_option( Opt ) ->
-	Opt.
-
-
-
-% @doc Converts the specified MyriadGUI text display style into a wx static text
-% one.
-%
--spec to_wx_static_text_style( text_display_style_opt() ) -> wx:wx_enum().
-to_wx_static_text_style( _TextDisplayStyle=align_left ) ->
-	?wxALIGN_LEFT;
-
-to_wx_static_text_style( _TextDisplayStyle=align_right ) ->
-	?wxALIGN_RIGHT;
-
-to_wx_static_text_style( _TextDisplayStyle=center ) ->
-	?wxALIGN_CENTRE_HORIZONTAL;
-
-to_wx_static_text_style( _TextDisplayStyle=fixed_size ) ->
-	?wxST_NO_AUTORESIZE;
-
-to_wx_static_text_style( _TextDisplayStyle=ellipsize_beginning ) ->
-	?wxST_ELLIPSIZE_START;
-
-to_wx_static_text_style( _TextDisplayStyle=ellipsize_middle ) ->
-	?wxST_ELLIPSIZE_MIDDLE;
-
-to_wx_static_text_style( _TextDisplayStyle=ellipsize_end ) ->
-	?wxST_ELLIPSIZE_END.
-
 
 
 % @doc Declares that the specified instance(s) can be destructed.

@@ -33,8 +33,8 @@
 
 % Colors.
 %
-% Colors are designated by {R,G,B}, or as one of the predefined names, like red,
-% green, blue, white, black, grey, or yellow.
+% Colors are designated by {R,G,B} triplets, or as one of the predefined names,
+% like red, green, etc.
 %
 % For example {0,0,0} is black and {255,255,255} is white.
 
@@ -65,15 +65,15 @@
 % color.
 
 -type logical_color() :: color_by_name().
-% A logicial color, like 'window_frame_color'.
+% A logical color, like 'window_frame_color'.
 
 
 -type color_by_decimal() :: { Red :: byte(), Green :: byte(), Blue :: byte() }.
-% RGB (integer, in [0;255]) color; no alpha coordinate here.
+% RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
 
 -type color_by_decimal_with_alpha() ::
 		{ Red :: byte(), Green :: byte(), Blue :: byte(), Alpha :: byte() }.
-% RGBA (integer, in [0;255]) color.
+% RGBA (integer coordinates, in [0;255]) color.
 
 -type any_color_by_decimal() ::
 		color_by_decimal() | color_by_decimal_with_alpha().
@@ -82,15 +82,22 @@
 % Any kind of RGB color.
 
 
+-type color_depth() :: system_utils:bit_size().
+% A color depth, as a positive number of bits.
+%
+% For example the color depth of a monochrome display is 1.
+
+
 -type color_coordinate() :: float().
-% Color coordinate, in [0.0, 1.0].
+% Color coordinate, floating-point in [0.0, 1.0].
 %
 % For example as used and clamped by OpenGL.
 
 
 -type alpha_coordinate() :: color_coordinate().
 % An alpha-transparency color coordinate.
-
+%
+% From 0.0 (full transparent) to 1.0 (solid); same as OpenGL conventions.
 
 
 -type render_rgb_color() :: { Red :: color_coordinate(),
@@ -146,8 +153,8 @@
 
 
 -type alpha_buffer() :: buffer().
-% A buffer of pixel alpha coordinates, from the top-left pixel to bottom-right
-% one, row per row.
+% A buffer of (only) pixel alpha coordinates, from the top-left pixel to
+% bottom-right one, row per row.
 %
 % Useful for direct image manipulation.
 
@@ -156,7 +163,7 @@
 % A specification of a pixel format.
 
 -type color_data() :: wxColourData:wxColourData().
-% A wx object.
+% A wx object representing information regarding a color.
 %
 % For example {wx_ref,92,wxColourData,[]}.
 
@@ -168,6 +175,7 @@
 			   any_color_by_decimal/0,
 			   color/0,
 
+			   color_depth/0,
 			   color_coordinate/0, alpha_coordinate/0,
 			   render_rgb_color/0, render_rgba_color/0, render_color/0,
 
@@ -203,12 +211,13 @@ get_colors() ->
 	[
 
 	  % Initially, first, "functional" (RGBA) colors were listed (from wx.hrl),
-	  % yet it must be avoided as the next call would require wx to be
+	  % yet this must be avoided, as the next call would require wx to be
 	  % initialised and its environment to be available, which is not the case
-	  % generally:
+	  % generally, like in:
 	  %
 	  %{ window_frame_color,
-	  %  wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ) },
+	  %  wxSystemSettings:getColour( ?wxSYS_COLOUR_WINDOWFRAME ) }, ...
+	  %
 	  % See now get_logical_color/1.
 
 	  % No less than 141 RGB color definitions follow, based on
@@ -353,7 +362,7 @@ get_colors() ->
 	  { wheat,                { 245, 222, 179 } },
 	  { white,                { 255, 255, 255 } },
 	  { whitesmoke,           { 245, 245, 245 } },
-	  { yellow,               { 255, 255, 0   } },
+	  { yellow,               { 255, 255,   0 } },
 	  { yellowgreen,          { 139, 205,  50 } } ].
 
 
@@ -403,7 +412,7 @@ get_logical_colors() ->
 
 % @doc Returns the RGB definition of the specified logical color.
 %
-% Note that the underlying GUI backend must be initialised and usable by this
+% Note that the underlying GUI backend shall be initialised and usable by this
 % process first.
 %
 -spec get_logical_color( logical_color() ) -> color_by_decimal_with_alpha().
@@ -426,7 +435,7 @@ get_color_for_gnuplot( ColorName ) ->
 
 
 
-% @doc Returns a list of the specified number of different colors.
+% @doc Returns a random list of the specified number of different colors.
 -spec get_random_colors( count() ) -> [ color_by_decimal() ].
 get_random_colors( ColorCount ) ->
 
@@ -443,7 +452,7 @@ get_random_colors( ColorCount ) ->
 
 % @doc Returns the number of bytes used by each pixel of the specified format.
 -spec get_pixel_size( pixel_format() ) -> byte_size().
-get_pixel_size(  _PixelFormat=rgb ) ->
+get_pixel_size( _PixelFormat=rgb ) ->
 	3;
 
 get_pixel_size( _PixelFormat=rgba ) ->

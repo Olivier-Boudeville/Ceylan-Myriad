@@ -51,18 +51,21 @@
 		  resolve_named_id/1, resolve_named_id/2,
 		  resolve_named_ids/1, resolve_named_ids/2,
 		  resolve_named_id_internal/2,
+		  resolve_any_id/1,
 
 		  maybe_resolve_backend_id/1, maybe_resolve_backend_id_internal/2,
 
 		  get_any_id/0,
 		  get_best_id/1, get_best_id/2, get_best_id_internal/2,
 		  get_best_menu_item_id_internal/2, get_best_button_id_internal/2,
+		  get_maybe_name_id/1,
 
 		  id_to_string/1 ]).
 
 
 % Internals:
 -export([ create_id_allocator/0 ]).
+
 
 
 % Usage notes:
@@ -131,13 +134,13 @@
 
 
 -type myriad_instance_id() :: count().
-% Myriad-specific instance identifier, corresponding to a reference in the
-% internal MyriadGUI type table.
+% Myriad-specific instance identifier, corresponding to a Myriad object
+% reference in the internal MyriadGUI type table.
 %
 % This is a different identifier from id(), name_id() or backend_id(): it is not
 % a standalone, user-level symbol to be used to designate directly an instance,
 % but a part of its internal technical reference, like in {myriad_object_ref,
-% myr_canvas, CanvasId } (similar in spirit to the integer in wx object
+% myr_canvas, CanvasId} (similar in spirit to the integer in wx object
 % references, like {wx_ref, 35, wxFrame, []}).
 
 
@@ -426,6 +429,28 @@ resolve_named_id_internal( NameId, NameTable ) ->
 			BackendId
 
 	end.
+
+
+
+% @doc Returns a backend identifier corresponding to the specified identifier of
+% any type (MyriadGUI name identifier, possibly an undefined one, or already a
+% backend identifier).
+%
+% Throws an exception should the resolution fail.
+%
+-spec resolve_any_id( id() ) -> backend_id().
+% Module-local, meant to resolve quickly most cases.
+resolve_any_id( undefined ) ->
+	?gui_any_id;
+
+resolve_any_id( BackendId ) when is_integer( BackendId ) ->
+	BackendId;
+
+resolve_any_id( NameId ) when is_atom( NameId ) ->
+	% Relies on the fact that the MyriadGUI main process now impersonates a
+	% standalone gui_id server:
+	%
+	resolve_named_id( NameId, _IdAllocRef=get_main_loop_pid() ).
 
 
 
@@ -839,6 +864,21 @@ get_best_button_id_internal( BackendId, NameTable ) ->
 			ButtonNameId
 
 	end.
+
+
+
+% @doc Returns any MyriadGUI name identifier associated to the specified
+% backend-specific widget identifier.
+%
+% Not exactly the reciprocal of resolve_any_id/1.
+%
+-spec get_maybe_name_id( backend_id() ) -> maybe( name_id() ).
+get_maybe_name_id( BackendId ) when is_integer( BackendId ) ->
+	% Relies on the fact that the MyriadGUI main process now impersonates a
+	% standalone gui_id server:
+	%
+	maybe_resolve_backend_id_internal( BackendId,
+									   _IdAllocRef=gui:get_main_loop_pid() ).
 
 
 

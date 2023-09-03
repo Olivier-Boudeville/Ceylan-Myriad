@@ -104,7 +104,7 @@ test_main_loop( CloseFrame ) ->
 			trace_utils:info_fmt( "The closing frame ~ts has been, well, "
 				"closed (~ts); test success.",
 				[ gui:object_to_string( CloseFrame ),
-				  gui:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( Context ) ] ),
 
 			gui:destruct_window( CloseFrame ),
 
@@ -114,7 +114,7 @@ test_main_loop( CloseFrame ) ->
 		{ onWindowClosed, [ AnyFrame, AnyFrameId, Context ] } ->
 			trace_utils:info_fmt( "Frame ~ts (id: ~w) closed (~ts).",
 				[ gui:object_to_string( AnyFrame ), AnyFrameId,
-				  gui:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( Context ) ] ),
 
 			gui:destruct_window( AnyFrame ),
 			test_main_loop( CloseFrame );

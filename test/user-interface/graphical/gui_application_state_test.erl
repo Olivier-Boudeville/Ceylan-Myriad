@@ -77,17 +77,17 @@ run_test_gui() ->
 	gui:set_tooltip( ButtonPanel,
 					 "Panel for buttons\n(not collecting key presses)." ),
 
-	MainSizer = gui:create_sizer( _Orientation=horizontal ),
+	MainSizer = gui_sizer:create( _Orientation=horizontal ),
 
 	% Grows with the window:
-	gui:add_to_sizer( MainSizer, KeyPanel,
-					  [ { proportion, 2 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, KeyPanel,
+						   [ { proportion, 2 }, expand_fully ] ),
 
 	% Constant width:
-	gui:add_to_sizer( MainSizer, ButtonPanel,
-					  [ { proportion, 1 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, ButtonPanel,
+						   [ { proportion, 1 }, expand_fully ] ),
 
-	gui:set_sizer( TestFrame, MainSizer ),
+	gui_widget:set_sizer( TestFrame, MainSizer ),
 
 	QuitButton = gui_button:create( _Label="Quit by button click!",
 		_Id=QuitButtonId, _ButtonParent=ButtonPanel ),

@@ -723,7 +723,10 @@
 
 
 % Checks with potential conversions:
--export([ ensure_integer/1, ensure_rounded_integer/1,
+-export([ ensure_integer/1,
+		  ensure_rounded_integer/1,
+		  ensure_floored_integer/1, ensure_ceiled_integer/1,
+
 		  ensure_float/1, ensure_positive_float/1,
 		  ensure_string/1, ensure_binary/1 ]).
 
@@ -1413,6 +1416,37 @@ ensure_rounded_integer( N ) when is_float( N ) ->
 ensure_rounded_integer( N ) ->
 	throw( { cannot_coerce_to_integer, N } ).
 
+
+
+% @doc Ensures that the specified term is an integer, and returns it.
+%
+% If it is a float, will return a floored (rounded-down integer) version of it.
+%
+-spec ensure_floored_integer( number() ) -> integer().
+ensure_floored_integer( N ) when is_integer( N ) ->
+	N;
+
+ensure_floored_integer( N ) when is_float( N ) ->
+	math_utils:floor( N );
+
+ensure_floored_integer( N ) ->
+	throw( { cannot_coerce_to_integer, N } ).
+
+
+
+% @doc Ensures that the specified term is an integer, and returns it.
+%
+% If it is a float, will return a ceiled (rounded-up integer) version of it.
+%
+-spec ensure_ceiled_integer( number() ) -> integer().
+ensure_ceiled_integer( N ) when is_integer( N ) ->
+	N;
+
+ensure_ceiled_integer( N ) when is_float( N ) ->
+	math_utils:ceiling( N );
+
+ensure_ceiled_integer( N ) ->
+	throw( { cannot_coerce_to_integer, N } ).
 
 
 

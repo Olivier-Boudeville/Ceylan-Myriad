@@ -47,100 +47,10 @@
 %  can be issued whenever the main frame is closed through the window manager,
 %  when a Quit button is clicked, when specific keys like Escape of 'q' are
 %  pressed, etc.); this applicative mode allows to support once for all services
-%  that most applications may require, like the remapping of keys
+%  that most applications may require, like the remapping of keys; it defines
+%  its own GUI event loop, to be customised thanks to event drivers
 
 
-
-% Implementation notes.
-
-
-% So for at least most of the functions here are executed in the context of the
-% process of the MyriadGUI main loop.
-
-
-% Events can be managed as messages or callbacks. We generally prefer the former
-% (as messages can be selectively received, any context can be kept in the
-% receive loop, no temporary process is created, no wx include is needed hence
-% the backend can be well encapsulated, etc.).
-%
-% Whether an event shall be also dispatched to subsequent handlers may be
-% decided by using trap_event/1.
-%
-% Event messages are internally converted, in order to hide the wx backend,
-% augment it with other primitives (e.g. canvas widget) and make them compliant
-% with the MyriadGUI conventions, as seen by the user code (hint: these
-% conventions comply with the WOOPER ones, should the GUI be used in an OOP
-% context).
-%
-% Regarding events, see also:
-% https://wiki.wxwidgets.org/Events#Event.Skip_and_Event.Veto
-
-% Please refer to wx.pdf (available on http://www.erlang.org/doc/apps/wx/wx.pdf)
-% for more architecture/implementation details about wx.
-
-% We used to rely on a separate process obtained from
-% gui_id:create_id_allocator/0 to manage identifiers, yet it is certainly more
-% efficient to have them managed directly by this gui_event main loop.
-
-
-% Startup procedure:
-%
-% A typical order for the receiving of event messages is:
-
-%
-
-% Panel issues:
-%
-% There is a problem at least with panels: when they are just by themselves
-% (created with no child widgets), when subscribing to key presses (e.g. as
-% {onKeyPressed, TestPanel}), key press events are indeed received by the user
-% event loop; yet, as soon as a button is created as a child of this panel (even
-% without changing any event subscription), for some reason the panel will not
-% send any key press event, and even by fiddling with event propagation /
-% skipping / trapping, we could not change it.
-
-
-
-% Function export section.
-
-
-% Main event primitives:
--export([ start_main_event_loop/3,
-		  get_trapped_event_types/1, trap_event/1, propagate_event/1,
-		  wx_to_myriad_event/1, get_event_info/1,
-		  set_instance_state/3, match/2 ]).
-
-
-% User events:
--export([ create_app_gui_state/1, create_app_gui_state/2,
-		  create_app_gui_state/3,
-
-		  set_event_driver/3, set_event_drivers/2,
-
-		  default_onShown_driver/2, default_onRepaintNeeded_driver/2,
-		  default_onResized_driver/2, default_onButtonClicked_driver/2,
-		  default_onKeyPressed_driver/2, default_onWindowClosed_driver/2,
-
-		  get_base_application_event_specs/0,
-
-		  enable_opengl/3,
-		  get_application_event/1,
-		  get_maybe_application_event/1, get_maybe_application_event/2,
-		  app_gui_state_to_string/1 ]).
-
-
-% Helpers:
--export([ get_backend_event/1 ]).
-
-% Stringification:
--export([ event_table_to_string/1, gui_event_to_string/1,
-		  application_event_to_string/1 ]).
-
-% To silence unused warnings:
--export([ get_subscribers_for/3, adjust_objects/4,
-		  process_only_latest_repaint_event/4, reassign_table_to_string/1,
-		  get_instance_state/2, type_table_to_string/1,
-		  instance_referential_to_string/1, set_canvas_instance_state/3 ]).
 
 
 
@@ -326,7 +236,6 @@
 % Unless explicitly trapped by such a function (see the 'trap_event'
 % subscription option, or the gui:trap_event/1 function), most event types are
 % propagated upward in the widget hierarchy.
-
 
 
 -type instance_count() :: basic_utils:count().
@@ -544,7 +453,7 @@
 % last, 'state' element of this quadruplet).
 %
 % For example the gui_object() {wx_ref,63,wxFrame,AnyState} results in the
-% {wxFrame,63} key.
+% {wxFrame,63} gui_wx_object_key() key.
 
 
 -type myriad_object_key() :: { myriad_object_type(), myriad_instance_id() }.
@@ -611,9 +520,15 @@
 % to which event subscribers the corresponding GUI messages shall be sent.
 
 
--type reassign_table() :: table( gui_object(), gui_object() ).
-% To replace source events objects (e.g. a panel) by others (e.g. its associated
-% canvas, if any).
+-type reassign_table() ::
+		table( SourceObject :: gui_object(), TargetObject :: gui_object() ).
+% To replace actual source events objects (e.g. a panel) by others (e.g. its
+% associated canvas, if any).
+%
+% For a given actual target object, a single source one must exist.
+%
+% Using a bijective_table could speed up the look-ups done when an instance is
+% destructed.
 
 
 -type myriad_type_table() ::
@@ -621,7 +536,7 @@
 % To store the MyriadGUI instances (sorted by types) and manage them like wx
 % native objects.
 %
-% Keys are like 'canvas'.
+% Keys are like 'myr_canvas'.
 
 
 
@@ -750,6 +665,10 @@
 -type loop_state() :: #loop_state{}.
 
 
+-type backend_event() :: wx_event().
+% A (supposedly opaque) backend GUI event.
+
+
 -type wx_event() ::
 	{ 'wx', wx_id(), wx:wx_object(), gui:user_data(), wx_event_info() }.
 % A wx_event record comprises:
@@ -793,7 +712,105 @@
 % A set of the event types that shall be trapped by default.
 
 
--export_type([ wx_event/0, wx_event_info/0, trap_set/0 ]).
+-export_type([ backend_event/0, wx_event/0, wx_event_info/0, trap_set/0 ]).
+
+
+
+
+
+% Function export section.
+
+
+% Main event primitives:
+-export([ start_main_event_loop/3,
+		  get_trapped_event_types/1, trap_event/1, propagate_event/1,
+		  wx_to_myriad_event/1, get_event_info/1,
+		  set_instance_state/3, match/2 ]).
+
+
+% User events:
+-export([ create_app_gui_state/1, create_app_gui_state/2,
+		  create_app_gui_state/3,
+
+		  set_event_driver/3, set_event_drivers/2,
+
+		  default_onShown_driver/2, default_onRepaintNeeded_driver/2,
+		  default_onResized_driver/2, default_onButtonClicked_driver/2,
+		  default_onKeyPressed_driver/2, default_onWindowClosed_driver/2,
+
+		  get_base_application_event_specs/0,
+
+		  enable_opengl/3,
+		  get_application_event/1,
+		  get_maybe_application_event/1, get_maybe_application_event/2,
+		  app_gui_state_to_string/1 ]).
+
+
+% Helpers:
+-export([ get_backend_event/1 ]).
+
+% Stringification:
+-export([ event_table_to_string/1, gui_event_to_string/1, context_to_string/1,
+		  application_event_to_string/1 ]).
+
+% To silence unused warnings:
+-export([ get_subscribers_for/3, adjust_objects/4,
+		  process_only_latest_repaint_event/4, reassign_table_to_string/1,
+		  get_instance_state/2, type_table_to_string/1,
+		  instance_referential_to_string/1, set_canvas_instance_state/3 ]).
+
+
+
+
+% Implementation notes.
+
+% So for at least most of the functions here are executed in the context of the
+% process of the MyriadGUI main loop.
+
+
+% Events can be managed as messages or callbacks. We generally prefer the former
+% (as messages can be selectively received, any context can be kept in the
+% receive loop, no temporary process is created, no wx include is needed hence
+% the backend can be well encapsulated, etc.).
+%
+% Whether an event shall be also dispatched to subsequent handlers may be
+% decided by using trap_event/1.
+%
+% Event messages are internally converted, in order to hide the wx backend,
+% augment it with other primitives (e.g. canvas widget) and make them compliant
+% with the MyriadGUI conventions, as seen by the user code (hint: these
+% conventions comply with the WOOPER ones, should the GUI be used in an OOP
+% context).
+%
+% Regarding events, see also:
+% https://wiki.wxwidgets.org/Events#Event.Skip_and_Event.Veto
+
+% Please refer to wx.pdf (available on http://www.erlang.org/doc/apps/wx/wx.pdf)
+% for more architecture/implementation details about wx.
+
+% We used to rely on a separate process obtained from
+% gui_id:create_id_allocator/0 to manage identifiers, yet it is certainly more
+% efficient to have them managed directly by this gui_event main loop.
+
+
+% Identifier/reference memento:
+%  - an object type (gui:object_type()) is either a wx one (wx_object_type(),
+%  like 'frame') or a Myriad one (myriad_object_type(), like 'myr_canvas'
+%  - a Myriad instance identifier is just a positive integer (e.g. 12)
+%  - GUI object keys are typically {wxFrame,63} or {myr_canvas,12} pairs
+%  - Myriad object references are myriad_object_ref records, such as
+%  {myriad_object_ref, myr_canvas, 12}
+
+
+% Panel issues:
+%
+% There is a problem at least with panels: when they are just by themselves
+% (created with no child widgets), when subscribing to key presses (e.g. as
+% {onKeyPressed, TestPanel}), key press events are indeed received by the user
+% event loop; yet, as soon as a button is created as a child of this panel (even
+% without changing any event subscription), for some reason the panel will not
+% send any key press event, and even by fiddling with event propagation /
+% skipping / trapping, we could not change it.
 
 
 
@@ -1107,10 +1124,11 @@ process_event_message( { resolveBackendIdentifier, BackendId, SenderPid },
 
 
 % From now, the event messages received are *MyriadGUI* ones, i.e. gui_event()
-% (either internal or user-emanating):
+% (either internal or user-emanating), roughly sorted by decreasing expected
+% calling frequency:
 %
 % (some operations directly impact the canvas state as seen from MyriadGUI,
-% others, like draw operations, not;they impact only the state of backend
+% others, like draw operations, not; they impact only the state of backend
 % objects, thus references on them in CanvasState and thus LoopState can be kept
 % as are)
 %
@@ -1143,17 +1161,17 @@ process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
 	gui_canvas:set_background_color( CanvasState, Color ),
 	LoopState;
 
-process_event_message( { getCanvasRGB, [ CanvasId, Point2 ], CallerPid },
+process_event_message( { getCanvasRGBA, [ CanvasId, Point2 ], CallerPid },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	Color = gui_canvas:get_rgb( CanvasState, Point2 ),
-	CallerPid ! { notifyCanvasRGB, Color },
+	Color = gui_canvas:get_rgba( CanvasState, Point2 ),
+	CallerPid ! { notifyCanvasRGBA, Color },
 	LoopState;
 
-process_event_message( { setCanvasRGB, [ CanvasId, Point ] },
+process_event_message( { setCanvasRGBA, [ CanvasId, Point ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:set_rgb( CanvasState, Point ),
+	gui_canvas:set_rgba( CanvasState, Point ),
 	LoopState;
 
 process_event_message( { drawCanvasLine, [ CanvasId, P1, P2 ] },
@@ -1326,11 +1344,17 @@ process_event_message( { getCanvasClientSize, CanvasId, CallerPid },
 	LoopState;
 
 
-% MyriadGUI user request (e.g. emanating from gui:create_canvas/1):
+% MyriadGUI user requests (e.g. emanating from gui_canvas:create/1):
+
 process_event_message( { createInstance, [ ObjectType, ConstructionParams ],
 						 CallerPid }, LoopState ) ->
 	process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 							 LoopState );
+
+
+process_event_message( { destructInstance, [ ObjectType, InstanceId ] },
+					   LoopState ) ->
+	process_myriad_destruction( ObjectType, InstanceId, LoopState );
 
 
 process_event_message( { subscribeToEvents,
@@ -1756,6 +1780,68 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 
 
 
+% @doc Destructs the specified MyriadGUI object.
+-spec process_myriad_destruction( myriad_object_type(), instance_id(),
+								  loop_state() ) -> loop_state().
+process_myriad_destruction( ObjectType, InstanceId,
+							LoopState=#loop_state{ reassign_table=ReassignTable,
+												   type_table=TypeTable } ) ->
+
+	%trace_utils:debug_fmt( "Myriad instance destruction request received, "
+	%    "for type '~ts', instance identifier #~B.",
+	%    [ ObjectType, InstanceId ] ),
+
+	ShrunkTypeTable = unregister_instance( ObjectType, InstanceId, TypeTable ),
+
+	case ObjectType of
+
+		myr_canvas ->
+	
+			ToDelTargetRef = #myriad_object_ref{ object_type=myr_canvas, 
+				myriad_instance_id=InstanceId },
+
+			{ SourceRef, ShrunkReassignTable } = 
+				table:extract_entry_by_value( ToDelTargetRef, ReassignTable
+
+			TypeTable
+
+
+			{ CanvasInitialState, PanelRef } =
+				gui_canvas:create_instance( ConstructionParams ),
+
+			{ CanvasRef, NewTypeTable } =
+				register_instance( ObjectType, CanvasInitialState, TypeTable ),
+
+			CallerPid ! { instance_created, ObjectType, CanvasRef },
+
+			% An event about its (already connected by
+			% gui_canvas:create_instance/1) parent panel must be reassigned to
+			% its canvas:
+			%
+			NewReassignTable =
+				table:add_new_entry( PanelRef, CanvasRef, ReassignTable ),
+
+			%trace_utils:debug_fmt( "Events sent to panel ~w will be from now "
+			%    "reassigned to canvas ~w.", [ PanelRef, CanvasRef ] ),
+
+
+				gui_wx_backend:disconnect(
+
+			LoopState#loop_state{ reassign_table=NewReassignTable,
+								  type_table=NewTypeTable };
+
+
+		UnexpectedType ->
+			trace_utils:error_fmt( "'~ts' is not a known MyriadGUI type.",
+								   [ UnexpectedType ] ),
+
+			throw( { unexpected_myriad_type, UnexpectedType } )
+
+
+	end.
+
+
+
 % @doc Registers the creation of a MyriadGUI instance of the specified type and
 % initial state, in the specified instance table.
 %
@@ -1775,7 +1861,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 			FirstInstanceId = 1,
 
 			FirstInstanceTable =
-				table:new( [ { FirstInstanceId, ObjectInitialState } ] ),
+				table:singleton( FirstInstanceId, ObjectInitialState ),
 
 			FirstInstanceReferential = #instance_referential{
 				instance_count=1,
@@ -1806,11 +1892,47 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 	MyriadRef = #myriad_object_ref{ object_type=ObjectType,
 									myriad_instance_id=NewInstanceId },
 
-	NewTypeTable = table:add_entry( ObjectType, NewInstanceReferential,
-									TypeTable ),
+	NewTypeTable =
+		table:add_entry( ObjectType, NewInstanceReferential, TypeTable ),
 
 	{ MyriadRef, NewTypeTable }.
 
+
+
+% @doc Unregisters the specified MyriadGUI instance of the specified type from
+% the specified instance table.
+%
+-spec unregister_instance( myriad_object_type(), instance_id(),
+						   myriad_type_table() ) -> myriad_type_table().
+unregister_instance( ObjectType, InstanceId, TypeTable ) ->
+
+	%trace_utils:info_fmt( "Unregistering the MyriadGUI instance of "
+	%   "id #~B and type '~ts'.", [ InstanceId, ObjectType ] ),
+
+	NewInstReferential = case table:lookup_entry( ObjectType, TypeTable ) of
+
+		key_not_found ->
+			throw( { invalid_object_type_to_unregister, ObjectType } );
+
+		{ value, InstanceReferential=#instance_referential{
+				instance_count=InstanceCount,
+				instance_table=InstanceTable } } ->
+
+			case table:extract_entry_if_existing( _K=InstanceId,
+												  InstanceTable ) of
+
+				{ _InstanceState, ShrunkInstTable } ->
+					InstanceReferential#instance_referential{
+						instance_count=InstanceCount-1,
+						instance_table=ShrunkInstTable };
+
+				false ->
+					throw( { instance_to_unregister_not_found, InstanceId,
+							 ObjectType } )
+
+	end,
+
+	table:add_entry( ObjectType, NewInstReferential, TypeTable ).
 
 
 
@@ -2547,7 +2669,7 @@ default_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 		trace_utils:debug_fmt(
 			"Frame ~ts (ID: ~ts) is shown (~ts); not using OpenGL.",
 			[ gui:object_to_string( Frame ), gui_id:id_to_string( FrameId ),
-			  gui:context_to_string( EventContext ) ] ),
+			  context_to_string( EventContext ) ] ),
 			  basic_utils:ignore_unused( [ FrameId, EventContext ] ) ),
 
 	% Optional yet better:
@@ -2565,7 +2687,7 @@ default_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 			"Frame ~ts (ID: ~ts) is shown (~ts); using OpenGL, "
 			"which is not initialised yet.",
 			[ gui:object_to_string( Frame ), gui_id:id_to_string( FrameId ),
-			  gui:context_to_string( EventContext ) ] ),
+			  context_to_string( EventContext ) ] ),
 			  basic_utils:ignore_unused( [ FrameId, EventContext ] ) ),
 
 	trace_utils:warning(
@@ -2610,7 +2732,7 @@ default_onRepaintNeeded_driver(
 			"Non-OpenGL canvas '~ts' (~ts) needing repaint (~ts).",
 			[ gui:object_to_string( Canvas ),
 			  gui_id:id_to_string( CanvasId ),
-			  gui:context_to_string( EventContext ) ] ),
+			  context_to_string( EventContext ) ] ),
 		basic_utils:ignore_unused( [ CanvasId, EventContext ] ) ),
 
 	gui:blit( Canvas ),
@@ -2677,7 +2799,7 @@ default_onResized_driver(
 		trace_utils:debug_fmt(
 			"Non-OpenGL canvas '~ts' (~ts) resized to ~p (~ts).",
 			[ gui:object_to_string( Canvas ), gui_id:id_to_string( CanvasId ),
-			  NewSize, gui:context_to_string( EventContext ) ] ),
+			  NewSize, context_to_string( EventContext ) ] ),
 		basic_utils:ignore_unused(
 			[ Canvas, CanvasId, NewSize, EventContext ] ) ),
 
@@ -2732,7 +2854,7 @@ default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 		trace_utils:debug_fmt(
 			"Button ~ts (ID: ~ts) has been clicked (~ts).",
 			[ gui:object_to_string( Button ), gui_id:id_to_string( ButtonId ),
-			  gui:context_to_string( EventContext ) ] ),
+			  context_to_string( EventContext ) ] ),
 			 % basic_utils:ignore_unused( EventContext ) ),
 
 	ButtonBackendId = gui:ensure_backend_id( ButtonId ),
@@ -2790,7 +2912,7 @@ default_onKeyPressed_driver( Elements=[ Frame, FrameId, EventContext ],
 			"in frame ~ts (~ts), with ~ts.",
 			[ Scancode, Keycode, gui:object_to_string( Frame ),
 			  gui_id:id_to_string( FrameId ),
-			  gui:context_to_string( EventContext ) ] ),
+			  context_to_string( EventContext ) ] ),
 		basic_utils:ignore_unused( [ Frame, FrameId ] ), % ),
 
 	MaybeAppEvPair = case table:lookup_entry( Scancode, ScancodeTable ) of
@@ -2835,7 +2957,7 @@ default_onWindowClosed_driver(
 		trace_utils:debug_fmt( "Frame ~ts (~ts) has been closed (~ts).",
 			[ gui:object_to_string( MainFrame ),
 			  gui_id:id_to_string( MainFrameId ),
-			  gui:context_to_string( EventContext ) ] ),
+			  context_to_string( EventContext ) ] ),
 		basic_utils:ignore_unused( [ MainFrame, MainFrameId, EventContext ] ) ),
 
 	% For example a returned application event could lead to
@@ -3446,6 +3568,35 @@ gui_event_to_string( { EventType, Elements } ) ->
 	% ~w clearer than ~p here:
 	text_utils:format( "event of type '~ts', parametrised by elements ~w",
 					   [ EventType, Elements ] ).
+
+
+
+% @doc Returns a textual representation of the specified GUI event context.
+%
+% Typically obtained from an event-triggered message.
+%
+-spec context_to_string( event_context() ) -> ustring().
+context_to_string( #event_context{ id=Id, user_data=UserData,
+								   backend_event=WxEvent } ) ->
+
+	IdString = gui_wx_backend:wx_id_to_string( Id ),
+
+	UserDataString = case UserData of
+
+		[] ->
+			"no user data";
+
+		_ ->
+			text_utils:format( "following user data: ~p", [ UserData ] )
+
+	end,
+
+	% Preferred to ~p:
+	EventString = text_utils:format( "~w", [ WxEvent ] ),
+
+	text_utils:format( "context for event ~ts: ~ts and ~ts",
+					   [ EventString, IdString, UserDataString ] ).
+
 
 
 
