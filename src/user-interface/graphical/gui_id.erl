@@ -37,36 +37,6 @@
 -module(gui_id).
 
 
-% Management of widget identifiers.
--export([ get_first_allocatable_id/0, get_initial_allocation_table/0,
-		  get_id_allocator_pid/0,
-
-		  allocate_backend_id/0, allocate_backend_id/1,
-		  allocate_backend_ids/1, allocate_backend_ids/2,
-
-		  declare_name_id/1, declare_name_id/2, declare_name_id_internal/3,
-		  declare_name_ids/1, declare_name_ids/2,
-		  declare_any_id/1,
-
-		  resolve_named_id/1, resolve_named_id/2,
-		  resolve_named_ids/1, resolve_named_ids/2,
-		  resolve_named_id_internal/2,
-		  resolve_any_id/1,
-
-		  maybe_resolve_backend_id/1, maybe_resolve_backend_id_internal/2,
-
-		  get_any_id/0,
-		  get_best_id/1, get_best_id/2, get_best_id_internal/2,
-		  get_best_menu_item_id_internal/2, get_best_button_id_internal/2,
-		  get_maybe_name_id/1,
-
-		  id_to_string/1 ]).
-
-
-% Internals:
--export([ create_id_allocator/0 ]).
-
-
 
 % Usage notes:
 %
@@ -149,6 +119,41 @@
 			   backend_id/0, wx_id/0, id_name_alloc_table/0 ]).
 
 
+% Management of widget identifiers.
+-export([ get_first_allocatable_id/0, get_initial_allocation_table/0,
+		  get_id_allocator_pid/0,
+
+		  allocate_backend_id/0, allocate_backend_id/1,
+		  allocate_backend_ids/1, allocate_backend_ids/2,
+
+		  declare_name_id/1, declare_name_id/2, declare_name_id_internal/3,
+		  declare_name_ids/1, declare_name_ids/2,
+		  declare_any_id/1,
+
+		  resolve_named_id/1, resolve_named_id/2,
+		  resolve_named_ids/1, resolve_named_ids/2,
+		  resolve_named_id_internal/2,
+		  resolve_any_id/1,
+
+		  maybe_resolve_backend_id/1, maybe_resolve_backend_id_internal/2,
+
+		  get_any_id/0,
+		  get_best_id/1, get_best_id/2, get_best_id_internal/2,
+		  get_best_menu_item_id_internal/2, get_best_button_id_internal/2,
+		  get_maybe_name_id/1,
+
+		  id_to_string/1 ]).
+
+
+
+
+% Internals:
+
+-export([ create_id_allocator/0 ]).
+
+-compile({ inline, [ resolve_any_id/1 ]}).
+
+
 
 % For related, public defines like gui_id_alloc_reg_name:
 -include("gui_base.hrl").
@@ -176,6 +181,8 @@
 
 -type id_name_alloc_table() :: bijective_table( name_id(), backend_id() ).
 % A table to convert between (MyriadGUI) name identifiers and backend ones.
+
+
 
 
 
@@ -450,7 +457,7 @@ resolve_any_id( NameId ) when is_atom( NameId ) ->
 	% Relies on the fact that the MyriadGUI main process now impersonates a
 	% standalone gui_id server:
 	%
-	resolve_named_id( NameId, _IdAllocRef=get_main_loop_pid() ).
+	resolve_named_id( NameId, _IdAllocRef=gui:get_main_loop_pid() ).
 
 
 

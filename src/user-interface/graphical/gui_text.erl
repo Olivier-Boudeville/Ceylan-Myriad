@@ -63,12 +63,16 @@
 			   static_display_option/0, static_display_style/0 ]).
 
 
+-type text() :: ui:text().
+% Any kind of GUI-related text.
+
 
 -type help_info() :: text().
 % A text for help information.
 
+
 % Other text-related types:
--export_type([ help_info/0 ]).
+-export_type([ text/0, help_info/0 ]).
 
 
 % Operations related to static texts to display:
@@ -153,7 +157,7 @@ to_wx_static_display_opts( Opt ) ->
 
 
 % (helper)
--spec to_wx_static_text_opt( static_display_option() ) -> a
+-spec to_wx_static_text_opt( static_display_option() ) -> wx_opt_pair().
 to_wx_static_text_opt( _Opt={ position, Pos } ) ->
 	{ pos, Pos };
 

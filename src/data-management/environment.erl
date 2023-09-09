@@ -890,6 +890,7 @@ get( KeyMaybes, FilePath ) when is_list( FilePath ) ->
 	EnvSrvPid = start( FilePath ),
 	get( KeyMaybes, EnvSrvPid );
 
+% Hence EnvPid expected to be a PID here:
 get( Keys, EnvPid ) when is_list( Keys ) ->
 	case process_dictionary:get( ?env_dictionary_key ) of
 

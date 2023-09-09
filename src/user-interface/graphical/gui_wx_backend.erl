@@ -1,4 +1,4 @@
-% Copyright (C) 2017-2023 Olivier Boudeville
+x% Copyright (C) 2017-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -134,8 +134,8 @@
 
 
 % See also all the classes of wxwidgets:
-% https://docs.wxwidgets.org/3.0/page_class_cat.html and
-% https://docs.wxwidgets.org/3.0/classes.html
+% https://docs.wxwidgets.org/stable/page_class_cat.html and
+% https://docs.wxwidgets.org/stable/classes.html
 
 
 % Additional widgets
@@ -277,9 +277,9 @@
 		  to_wx_connect_options/3,
 		  to_wx_debug_level/1,
 
-		  window_styles_to_bitmask/1, get_window_options/1,
+		  window_styles_to_bitmask/1, to_wx_window_options/1,
 		  frame_styles_to_bitmask/1,
-		  get_panel_options/1,
+		  to_wx_panel_options/1,
 
 		  to_wx_sizer_options/1, sizer_flags_to_bitmask/1,
 
@@ -504,26 +504,26 @@ window_styles_to_bitmask( StyleOpt ) ->
 %
 % (exported helper)
 %
--spec get_window_options( maybe_list( window_option() ) ) ->
+-spec to_wx_window_options( maybe_list( window_option() ) ) ->
 								[ wx_window_option() ].
-get_window_options( Options ) when is_list( Options ) ->
-	get_window_options( Options, _Acc=[] );
+to_wx_window_options( Options ) when is_list( Options ) ->
+	to_wx_window_options( Options, _Acc=[] );
 
-get_window_options( Option ) ->
-	get_window_options( [ Option ] ).
+to_wx_window_options( Option ) ->
+	to_wx_window_options( [ Option ] ).
 
 
 
-get_window_options( _Options=[], Acc ) ->
+to_wx_window_options( _Options=[], Acc ) ->
 	Acc;
 
-get_window_options( _Options=[ { style, Style } | T ], Acc ) ->
-	get_window_options( T,
+to_wx_window_options( _Options=[ { style, Style } | T ], Acc ) ->
+	to_wx_window_options( T,
 		[ { style, window_styles_to_bitmask( Style ) } | Acc ] );
 
 % Unchanged:
-get_window_options( _Options=[ H | T ], Acc ) ->
-	get_window_options( T, [ H | Acc ] ).
+to_wx_window_options( _Options=[ H | T ], Acc ) ->
+	to_wx_window_options( T, [ H | Acc ] ).
 
 
 
@@ -559,10 +559,10 @@ frame_styles_to_bitmask( Style ) ->
 %
 % (exported helper)
 %
--spec get_panel_options( maybe_list( panel_option() ) ) ->
+-spec to_wx_panel_options( maybe_list( panel_option() ) ) ->
 											[ wx_panel_option() ].
-get_panel_options( Options ) ->
-	get_window_options( Options ).
+to_wx_panel_options( Options ) ->
+	to_wx_window_options( Options ).
 
 
 

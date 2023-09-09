@@ -40,7 +40,7 @@
 
 
 % Could include wx:null(), i.e. a #wx_ref{ref=0, type=wx}:
--type widget() :: wxWindow:wxWindow() | gui_canvas:canvas() ).
+-type widget() :: wxWindow:wxWindow() | gui_canvas:canvas().
 % Any kind of widget, that is graphical component; for example a button or a
 % canvas is a widget.
 %
@@ -63,9 +63,23 @@
 
 
 
--export([ set_sizer/2, fit_to_sizer/2,
+-export([ destruct/1, destruct/2,
+
+		  set_sizer/2, fit_to_sizer/2, layout/1,
+
+		  set_foreground_color/2, set_background_color/2,
+
+		  set_font/2, set_font/4,
+
 		  set_tooltip/2,
-		  sync/1, enable_repaint/1, refresh/1 ]).
+
+		  sync/1, enable_repaint/1, refresh/1, update/1,
+		  lock/1, unlock/1,
+
+		  get_focused/0, set_focus/1,
+
+		  get_size/1, get_client_size/1, get_best_size/1, set_client_size/2,
+		  fit/1, maximise_in_parent/1 ]).
 
 
 % Implementation notes:
@@ -82,17 +96,24 @@
 
 % Shorthands:
 
--type label() :: gui:label()
+-type label() :: gui:label().
+-type size() :: gui:size().
 
 -type sizer() :: gui_sizer:sizer().
 
+-type gui_env_pid() :: gui:gui_env_pid().
 
+-type color() :: gui_color:color().
+
+-type font() :: gui_font:font().
+
+-type device_context() :: gui_render:device_context().
 
 
 % @doc Destructs the specified widget.
 -spec destruct( widget() ) -> void().
 destruct( Widget ) ->
-	destruct( Widget, get_environment_server() ).
+	destruct( Widget, gui:get_environment_server() ).
 
 
 % @doc Destructs the specified widget, using the specified environment server.
@@ -110,7 +131,7 @@ destruct( Widget, GUIEnvPid ) ->
 	% GUI loop be waited for to flush any pending operations, before triggering
 	% the requested destruction:
 
-	gui_env_pid() ! { synchroniseWithCaller, [], self() },
+	gui:get_main_loop_pid( GUIEnvPid ) ! { synchroniseWithCaller, [], self() },
 
 	receive
 
@@ -131,7 +152,7 @@ destruct( Widget, GUIEnvPid ) ->
 %
 -spec set_sizer( widget(), sizer() ) -> void().
 set_sizer( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Sizer ) ->
-	get_main_loop_pid() ! { getCanvasPanel, [ CanvasId ], self() },
+	gui:get_main_loop_pid() ! { getCanvasPanel, [ CanvasId ], self() },
 
 	receive
 
@@ -170,7 +191,7 @@ set_foreground_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 	%trace_utils:debug_fmt( "Setting foreground color of canvas ~w to ~p.",
 	%                       [ Canvas, Color ] ),
 
-	get_main_loop_pid() ! { setCanvasForegroundColor, [ CanvasId, Color ] };
+	gui:get_main_loop_pid() ! { setCanvasForegroundColor, [ CanvasId, Color ] };
 
 set_foreground_color( Widget, Color ) ->
 	ActualColor = gui_color:get_color( Color ),
@@ -186,7 +207,7 @@ set_background_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 	%trace_utils:debug_fmt( "Setting background color of canvas ~w to ~p.",
 	%                       [ Canvas, Color ] ),
 
-	get_main_loop_pid() ! { setCanvasBackgroundColor, [ CanvasId, Color ] };
+	gui:get_main_loop_pid() ! { setCanvasBackgroundColor, [ CanvasId, Color ] };
 
 set_background_color( Widget, Color ) ->
 	ActualColor = gui_color:get_color( Color ),
@@ -233,7 +254,7 @@ set_font( Widget={ wx_ref, _Id, _AnyWxWidgetLike, _State }, Font, Color,
 %
 -spec set_tooltip( widget(), label() ) -> void().
 set_tooltip( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Label ) ->
-	get_main_loop_pid() ! { setTooltip, [ CanvasId, Label ] };
+	gui:get_main_loop_pid() ! { setTooltip, [ CanvasId, Label ] };
 
 set_tooltip( Widget, Label ) ->
 
@@ -241,8 +262,6 @@ set_tooltip( Widget, Label ) ->
 	%                       [ Label, object_to_string( Widget ) ] ),
 
 	wxWindow:setToolTip( Widget, Label ).
-
-
 
 
 
@@ -258,7 +277,7 @@ set_tooltip( Widget, Label ) ->
 % See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details;
 % see also the synchroniseWithCaller message supported by the MyriadGUI loop.
 %
--spec sync( widget() ) -> dimensions().
+-spec sync( widget() ) -> size().
 sync( Widget ) ->
 	% The result in itself may be of no use; the point here is just, through a
 	% synchronous operation (a request), to ensure that the specified widget is
@@ -343,8 +362,6 @@ unlock( DC ) ->
 
 
 
-
-
 % @doc Returns the widget (if any) that has the current keyboard focus.
 %
 % Refer to the 'Keyboard-related events' section of the gui_keyboard module for
@@ -367,23 +384,19 @@ set_focus( Widget ) ->
 
 
 
-% @doc Returns the size (as {Width,Height}) of the specified widget or bitmap.
--spec get_size( widget() | bitmap() ) -> dimensions().
+% @doc Returns the size (as {Width,Height}) of the specified widget.
+-spec get_size( widget() ) -> size().
 get_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
 	%trace_utils:debug_fmt( "Getting size of canvas #~B.", [ CanvasId ] ),
 
-	get_main_loop_pid() ! { getCanvasSize, CanvasId, self() },
+	gui:get_main_loop_pid() ! { getCanvasSize, CanvasId, self() },
 	receive
 
 		{ notifyCanvasSize, Size } ->
 			Size
 
 	end;
-
-get_size( Bitmap={ wx_ref, _Id, wxBitmap, _List } ) ->
-	% No wxBitmap:getSize/1 implemented in wx:
-	{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) };
 
 get_size( Widget ) ->
 	%trace_utils:debug_fmt( "get_size for ~w.", [ Widget ] ),
@@ -395,10 +408,10 @@ get_size( Widget ) ->
 % is the actual size of the area that can be drawn upon (excluded menu, bars,
 % etc.).
 %
--spec get_client_size( widget() ) -> dimensions().
+-spec get_client_size( widget() ) -> size().
 get_client_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
-	get_main_loop_pid() ! { getCanvasClientSize, CanvasId, self() },
+	gui:get_main_loop_pid() ! { getCanvasClientSize, CanvasId, self() },
 	receive
 
 		{ notifyCanvasClientSize, Size } ->
@@ -414,10 +427,10 @@ get_client_size( Widget ) ->
 % @doc Returns the best size (as {Width,Height}) of the specified widget, that
 % is its best acceptable minimal size.
 %
--spec get_best_size( widget() ) -> dimensions().
+-spec get_best_size( widget() ) -> size().
 get_best_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
-	get_main_loop_pid() ! { getCanvasClientSize, CanvasId, self() },
+	gui:get_main_loop_pid() ! { getCanvasClientSize, CanvasId, self() },
 	receive
 
 		{ notifyCanvasClientSize, Size } ->
@@ -431,13 +444,14 @@ get_best_size( Widget ) ->
 
 
 % @doc Sets the size of the client area of the specified widget.
--spec set_client_size( widget(), dimensions() ) -> void().
+-spec set_client_size( widget(), size() ) -> void().
 set_client_size( _Canvas={ myriad_object_ref, myr_canvas, _CanvasId },
 				 _Size ) ->
 	throw( not_implemented );
 
 set_client_size( Widget, Size ) ->
 	wxWindow:setClientSize( Widget, Size ).
+
 
 
 % @doc Fits the specified widget to its best size.
@@ -457,7 +471,7 @@ fit( Widget ) ->
 % panel) in its parent (adopting its maximum client size), and returns the new
 % size of this widget.
 %
--spec maximise_in_parent( widget() ) -> dimensions().
+-spec maximise_in_parent( widget() ) -> size().
 maximise_in_parent( Widget ) ->
 	ParentWindow = wxWindow:getParent( Widget ),
 	ParentWindowClientSize = wxWindow:getClientSize( ParentWindow ),

@@ -73,7 +73,13 @@
 
 % Shorthands:
 
--type text() :: ui:text().
+-type count() :: basic_utils:count().
+-type positive_index() :: basic_utils:positive_index().
+
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
+
+-type text() :: gui_text:text().
 
 -type frame() :: gui_window:frame().
 

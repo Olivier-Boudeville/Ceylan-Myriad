@@ -115,6 +115,10 @@
 %
 % These conversions are generally two-way, between MyriadGUI and the backend of
 % choice (see the const_bijective_topics for their implementation).
+%
+% Links to the WxWidgets documentation shall point to the latest stable version
+% rather than a specific one (e.g. https://docs.wxwidgets.org/stable/xxx rather
+% than https://docs.wxwidgets.org/3.0/xxx).
 
 
 
@@ -210,279 +214,6 @@
 
 
 
-% Implementation notes:
-
-% This module used to rely on the gs module, whose API was quite simple and
-% elegant.
-%
-% As 'gs' was replaced (quite quickly, with short notice unfortunately) by 'wx'
-% (a very interesting Erlang binding to WxWidgets), now we rely on the latter
-% and wrap it accordingly, to be future-proof (i.e. to have a fair chance of
-% sheltering already-written applications from any backend change - should wx be
-% replaced in turn by another backend).
-%
-% The general convention is still to put as first argument the object on which
-% the operation is to be applied (e.g. the window).
-%
-% See also:
-% - the gui_wx_backend module for our use of wx as a backend
-% - the gui_canvas module for all canvas-related operations
-
-% The gui module uses its own environment server to record its defaults and also
-% elements about its current state.
-%
-% In general, the opaqueness of types is too difficult to preserve here.
-
-
-% We tried to make so that this gui module shares as much as possible
-% conventions with the more general 'ui' one (for all user interfaces, be them
-% graphical or not), at least through base types.
-
-
-% Event loops.
-%
-% There are generally two event loops involved here:
-%
-% - a mandatory, generic, MyriadGUI-internal one (defined in the gui_event
-% module), looping over process_event_messages/1 that relies on an (opaque)
-% gui_event:loop_state(), running on a dedicated process spawned by the
-% start/* functions
-%
-% - a user-defined, application-specific one, fed by the former internal loop
-% (e.g. with onWindowClosed messages), possibly using any client-side state of
-% interest (whose definition is fully free); a predefined, integrated
-% app_gui_state() may be used instead
-
-
-
-
-% Environments.
-
-
-% Environment-related storage of the current state of the GUI (merely
-% references):
-%
--define( gui_env_entries, [
-
-	% GUI-level entries:
-
-	% The family of the current operating system, typically to adapt to OS
-	% GUI specificities:
-	%
-	{ 'os_family', os_family() },
-
-	% A more precise name of the current operating system, for finer control:
-	{ 'os_name', os_name() },
-
-
-	% The PID of the allocator of unique backend identifiers:
-	%
-	% (now corresponds directly to the MyriadGUI gui_event main event-loop
-	% process, see the loop_pid entry)
-	%
-	%{ 'id_allocator_pid', id_allocator_pid() },
-
-	% The main, top-level window (if any; generally a frame) of the application:
-	{ 'top_level_window', maybe( top_level_window() ) },
-
-	% PID of the MyriadGUI main event loop:
-	{ 'loop_pid', pid() },
-
-	% The event types that are trapped by default:
-	{ 'trap_set', trap_set() },
-
-	% Any backend-specific top-level server used for the GUI (here wx):
-	{ 'backend_server', wx_object() },
-
-	% Any backend-specific, opaque environment term used for the GUI (here wx):
-	{ 'backend_env', wx_environment() },
-
-
-	% OpenGL-related entries:
-
-	% The current OpenGL canvas (if any):
-	{ 'gl_canvas', maybe( opengl_canvas() ) },
-
-	% The current OpenGL context (if any):
-	{ 'gl_context', maybe( opengl_context() ) },
-
-
-	% Mouse-related entries:
-
-	% A table keeping track of the various mouse cursors available:
-	{ 'cursor_table', gui_mouse:cursor_table() },
-
-	% The current type of cursor (if any):
-	{ 'current_cursor_type', maybe( gui_mouse:cursor_type() ) },
-
-	% The stack (as a list) of the windows that grabbed the mouse cursor:
-	{ 'grab_stack', [ window() ] },
-
-	% Tells whether we are in key-released event-handling mode:
-	{ 'key_released', boolean() },
-
-	% The coordinates (if any) at which the mouse cursor shall warp:
-	{ 'warp_coordinates', maybe( point() ) },
-
-
-	% Window manager related entries:
-
-	% The currently active window (if any), i.e. the one handling current
-	% events:
-	%
-	{ 'active_window', maybe( window_name() ) },
-
-	% The window (if any) currently having the focus (implicitly or because
-	% having grabbed the mouse):
-	%
-	{ 'focused_window', maybe( window_name() ) } ] ).
-% These keys, associated to values of the associated types, are used (and
-% reserved) by MyriadGUI in order to record application-level information, made
-% available to its processes through its environment server.
-%
-% At least a subset of these entries may be cached from the environment by a
-% given process, for easier/faster lookups and updates.
-%
-% One or multiple entries can be fetched in one go; for example:
-%
-% GUIEnvPid = gui:get_environment_server(),
-%
-% GLCanvas = environment:get(gl_canvas, GUIEnvPid), ...
-%
-% or
-%
-% [GLCanvas, Context] = environment:get([gl_canvas, gl_context], GUIEnvPid), ...
-
-
--type service() :: 'mouse'.
-% The various MyriadGUI services that may or may not be enabled.
-
-
--type backend_identifier() :: 'gs' % Now obsolete
-							| 'wx' % Based on WxWidgets
-							| atom().
-% Identifier of a graphical backend.
-
-
--type backend_information() ::
-	{ backend_identifier(), basic_utils:any_version() }.
-% Information regarding a graphical backend.
-
-
-% Current backend is wx (based on WxWidgets).
-%
-% (useful to avoid including the header of wx in our own public ones)
-%
--type backend_event() :: gui_event:wx_event().
-% A (supposedly opaque) backend GUI event.
-
-
--opaque backend_environment() :: wx_environment().
-% An (opaque) environment used by a GUI backend.
-
-
--type wx_environment() :: term().
-% An (opaque) wx process environment.
-
-
-
--type opengl_canvas() :: gui_opengl:gl_canvas().
-% An OpenGL canvas (not to be mixed with a basic one, canvas/0).
-
--type opengl_context() :: gui_opengl:gl_context().
-% An OpenGL context.
-
-
-
-% Basic GUI operations.
--export([ is_available/0, get_backend_information/0,
-		  start/0, start/1, set_debug_level/1, stop/0 ]).
-
-
-% Extra overall operations.
--export([ batch/1, get_environment_server/0 ]).
-
-
-% Event-related operations.
--export([ subscribe_to_events/1, subscribe_to_events/2,
-		  unsubscribe_from_events/1, unsubscribe_from_events/2,
-		  register_event_callback/3, register_event_callback/4,
-		  trap_event/1, propagate_event/1 ]).
-
-
-
-
-% Widget-related section.
-
-% Types of GUI elements defined in a dedicated module:
-% - gui_button
-% - gui_canvas
-% - gui_color
-% - gui_dialog
-% - gui_font
-% - gui_image
-% - gui_keyboard
-% - gui_mouse
-% - gui_opengl
-% - gui_shader
-% - gui_sizer
-% - gui_text
-% - gui_texture
-% - gui_window_manager
-%
-% Most elements are to be placed in a separate gui_* module - yet not
-% necessarily one dedicated to them.
-
-
-% Related to GUI objects in general:
--export([ set_as_controller/1, set_controller/2 ]).
-
-
-% Stringification section.
-%
-% (mostly internal purpose)
-%
--export([ object_to_string/1, object_key_to_string/1 ]).
-
-
-% Regarding MyriadGUI own conventions:
--export([ check_orientation/1 ]).
-
-
-% To be used by widgets introduced by MyriadGUI:
--export([ execute_instance_creation/2, execute_instance_destruction/2 ]).
-
-
-% Miscellaneous:
--export([ get_backend_environment/0, set_backend_environment/1,
-		  get_main_loop_pid/0 ]).
-
-
-
-% Internal, silencing exports:
--export([ create_gui_environment/1,
-		  destruct_gui_environment/0, destruct_gui_environment/1,
-		  event_interception_callback/2 ]).
-
-
-% API for module generation:
--export([ generate_support_modules/0 ]).
-
-% As possibly used much by the gui_* modules:
--compile({ inline, [ get_environment_server/0, get_main_loop_pid/0 ]}).
-
-
-% For related, public defines:
--include("gui_base.hrl").
-
-% For related, internal, wx-related defines:
--include("gui_internal_defines.hrl").
-
-
-% For myriad_spawn*:
--include("spawn_utils.hrl").
-
-
 
 % Type declarations:
 
@@ -524,9 +255,17 @@
 
 -type dimensions() :: linear_2D:integer_rect_dimensions().
 % Dimensions in pixels, as {IntegerWidth,IntegerHeight}.
+%
+% Note that in general size() shall be preferred to this type, notably to
+% designate an attribute of a graphical element - except for example for
+% textures or to express dimensions in general.
 
--type size() :: dimensions() | 'auto'.
+
+-type size() :: dimensions().
 % Size, typically of a widget.
+
+-type sizing() :: size() | 'auto'.
+% Sizing information, typically of a widget.
 
 
 -type orientation() :: 'vertical' | 'horizontal'.
@@ -709,7 +448,7 @@
 % these events are trapped.
 %
 % See
-% https://docs.wxwidgets.org/3.0/overview_events.html#overview_events_propagation
+% https://docs.wxwidgets.org/stable/overview_events.html#overview_events_propagation
 % for further information regarding event propagation.
 
 
@@ -738,7 +477,7 @@
 
 			   length/0, width/0, height/0, aspect_ratio/0, dimensions/0,
 			   any_length/0, any_width/0, any_height/0,
-			   coordinate/0, point/0, position/0, size/0,
+			   coordinate/0, point/0, position/0, size/0, sizing/0,
 			   orientation/0, direction/0,
 			   row_count/0, column_count/0,
 			   fps/0, id/0,
@@ -764,6 +503,278 @@
 
 % To avoid unused warnings:
 -export_type([ myriad_object_state/0, backend_environment/0 ]).
+
+
+% Environments.
+
+
+% Environment-related storage of the current state of the GUI (merely
+% references):
+%
+-define( gui_env_entries, [
+
+	% GUI-level entries:
+
+	% The family of the current operating system, typically to adapt to OS
+	% GUI specificities:
+	%
+	{ 'os_family', os_family() },
+
+	% A more precise name of the current operating system, for finer control:
+	{ 'os_name', os_name() },
+
+
+	% The PID of the allocator of unique backend identifiers:
+	%
+	% (now corresponds directly to the MyriadGUI gui_event main event-loop
+	% process, see the loop_pid entry)
+	%
+	%{ 'id_allocator_pid', id_allocator_pid() },
+
+	% The main, top-level window (if any; generally a frame) of the application:
+	{ 'top_level_window', maybe( top_level_window() ) },
+
+	% PID of the MyriadGUI main event loop:
+	{ 'loop_pid', loop_pid() },
+
+	% The event types that are trapped by default:
+	{ 'trap_set', trap_set() },
+
+	% Any backend-specific top-level server used for the GUI (here wx):
+	{ 'backend_server', wx_object() },
+
+	% Any backend-specific, opaque environment term used for the GUI (here wx):
+	{ 'backend_env', wx_environment() },
+
+
+	% OpenGL-related entries:
+
+	% The current OpenGL canvas (if any):
+	{ 'gl_canvas', maybe( opengl_canvas() ) },
+
+	% The current OpenGL context (if any):
+	{ 'gl_context', maybe( opengl_context() ) },
+
+
+	% Mouse-related entries:
+
+	% A table keeping track of the various mouse cursors available:
+	{ 'cursor_table', gui_mouse:cursor_table() },
+
+	% The current type of cursor (if any):
+	{ 'current_cursor_type', maybe( gui_mouse:cursor_type() ) },
+
+	% The stack (as a list) of the windows that grabbed the mouse cursor:
+	{ 'grab_stack', [ window() ] },
+
+	% Tells whether we are in key-released event-handling mode:
+	{ 'key_released', boolean() },
+
+	% The coordinates (if any) at which the mouse cursor shall warp:
+	{ 'warp_coordinates', maybe( point() ) },
+
+
+	% Window manager related entries:
+
+	% The currently active window (if any), i.e. the one handling current
+	% events:
+	%
+	{ 'active_window', maybe( window_name() ) },
+
+	% The window (if any) currently having the focus (implicitly or because
+	% having grabbed the mouse):
+	%
+	{ 'focused_window', maybe( window_name() ) } ] ).
+% These keys, associated to values of the associated types, are used (and
+% reserved) by MyriadGUI in order to record application-level information, made
+% available to its processes through its environment server.
+%
+% At least a subset of these entries may be cached from the environment by a
+% given process, for easier/faster lookups and updates.
+%
+% One or multiple entries can be fetched in one go; for example:
+%
+% GUIEnvPid = gui:get_environment_server(),
+%
+% GLCanvas = environment:get(gl_canvas, GUIEnvPid), ...
+%
+% or
+%
+% [GLCanvas, Context] = environment:get([gl_canvas, gl_context], GUIEnvPid), ...
+
+
+-type service() :: 'mouse'.
+% The various MyriadGUI services that may or may not be enabled.
+
+
+-type backend_identifier() :: 'gs' % Now obsolete
+							| 'wx' % Based on WxWidgets
+							| atom().
+% Identifier of a graphical backend.
+
+
+-type backend_information() ::
+	{ backend_identifier(), basic_utils:any_version() }.
+% Information regarding a graphical backend.
+
+
+% Current backend is wx (based on WxWidgets).
+%
+% (useful to avoid including the header of wx in our own public ones)
+%
+-type backend_event() :: gui_event:wx_event().
+% A (supposedly opaque) backend GUI event.
+
+
+-opaque backend_environment() :: wx_environment().
+% An (opaque) environment used by a GUI backend.
+
+
+-type wx_environment() :: term().
+% An (opaque) wx process environment.
+
+
+
+-type opengl_canvas() :: gui_opengl:gl_canvas().
+% An OpenGL canvas (not to be mixed with a basic one, canvas/0).
+
+-type opengl_context() :: gui_opengl:gl_context().
+% An OpenGL context.
+
+
+
+% Basic GUI operations.
+-export([ is_available/0, get_backend_information/0,
+		  start/0, start/1, set_debug_level/1, stop/0 ]).
+
+
+% Extra overall operations.
+-export([ batch/1, get_environment_server/0 ]).
+
+
+% Event-related operations.
+-export([ subscribe_to_events/1, subscribe_to_events/2,
+		  unsubscribe_from_events/1, unsubscribe_from_events/2,
+		  register_event_callback/3, register_event_callback/4,
+		  trap_event/1, propagate_event/1 ]).
+
+
+
+
+% Widget-related section.
+
+% Types of GUI elements defined in a dedicated module:
+% - gui_button
+% - gui_canvas
+% - gui_color
+% - gui_dialog
+% - gui_font
+% - gui_image
+% - gui_keyboard
+% - gui_mouse
+% - gui_opengl
+% - gui_shader
+% - gui_sizer
+% - gui_text
+% - gui_texture
+% - gui_window_manager
+%
+% Most elements are to be placed in a separate gui_* module - yet not
+% necessarily one dedicated to them.
+
+
+% Related to GUI objects in general:
+-export([ set_as_controller/1, set_controller/2 ]).
+
+
+% Stringification section.
+%
+% (mostly internal purpose)
+%
+-export([ object_to_string/1, object_key_to_string/1 ]).
+
+
+% Regarding MyriadGUI own conventions:
+-export([ check_orientation/1 ]).
+
+
+% To be used by widgets introduced by MyriadGUI:
+-export([ execute_instance_creation/2, execute_instance_destruction/2 ]).
+
+
+% Miscellaneous:
+-export([ get_backend_environment/0, set_backend_environment/1,
+		  get_main_loop_pid/0, get_main_loop_pid/1 ]).
+
+
+
+% Internal, silencing exports:
+-export([ create_gui_environment/1,
+		  destruct_gui_environment/0, destruct_gui_environment/1,
+		  event_interception_callback/2 ]).
+
+
+% API for module generation:
+-export([ generate_support_modules/0 ]).
+
+% As possibly used much by the gui_* modules:
+-compile({ inline, [ get_environment_server/0, get_main_loop_pid/0 ]}).
+
+
+% For related, public defines:
+-include("gui_base.hrl").
+
+% For related, internal, wx-related defines:
+-include("gui_internal_defines.hrl").
+
+
+% For myriad_spawn*:
+-include("spawn_utils.hrl").
+
+
+% Implementation notes:
+
+% This module used to rely on the gs module, whose API was quite simple and
+% elegant.
+%
+% As 'gs' was replaced (quite quickly, with short notice unfortunately) by 'wx'
+% (a very interesting Erlang binding to WxWidgets), now we rely on the latter
+% and wrap it accordingly, to be future-proof (i.e. to have a fair chance of
+% sheltering already-written applications from any backend change - should wx be
+% replaced in turn by another backend).
+%
+% The general convention is still to put as first argument the object on which
+% the operation is to be applied (e.g. the window).
+%
+% See also:
+% - the gui_wx_backend module for our use of wx as a backend
+% - the gui_canvas module for all canvas-related operations
+
+% The gui module uses its own environment server to record its defaults and also
+% elements about its current state.
+%
+% In general, the opaqueness of types is too difficult to preserve here.
+
+
+% We tried to make so that this gui module shares as much as possible
+% conventions with the more general 'ui' one (for all user interfaces, be them
+% graphical or not), at least through base types.
+
+
+% Event loops.
+%
+% There are generally two event loops involved here:
+%
+% - a mandatory, generic, MyriadGUI-internal one (defined in the gui_event
+% module), looping over process_event_messages/1 that relies on an (opaque)
+% gui_event:loop_state(), running on a dedicated process spawned by the
+% start/* functions
+%
+% - a user-defined, application-specific one, fed by the former internal loop
+% (e.g. with onWindowClosed messages), possibly using any client-side state of
+% interest (whose definition is fully free); a predefined, integrated
+% app_gui_state() may be used instead
+
 
 
 
@@ -1464,6 +1475,17 @@ set_backend_environment( WxEnv ) ->
 -spec get_main_loop_pid() -> pid().
 get_main_loop_pid() ->
 	environment:get( loop_pid, ?gui_env_process_key ).
+
+
+% @doc Fetches from the specified environment the PID of the process in charge
+% of running the main MyriadGUI loop.
+%
+% Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas).
+%
+-spec get_main_loop_pid( gui_env_designator() ) -> pid().
+get_main_loop_pid( GUIEnvDesignator ) ->
+	environment:get( loop_pid, GUIEnvDesignator ).
+
 
 
 

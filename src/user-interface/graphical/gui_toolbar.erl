@@ -26,9 +26,10 @@
 % Creation date: Saturday, September 2, 2023.
 
 
-% @doc Gathering of various facilities for <b>toolbar management</b>. A tool bar
-% is a bar of buttons and/or other controls usually placed below the menu bar in
-% a frame.
+% @doc Gathering of various facilities for <b>toolbar management</b>.
+%
+% A tool bar is a bar of buttons and/or other controls usually placed below the
+% menu bar in a frame.
 %
 % Use our gui_frame_bars_test.erl test in order to display all known tools.
 %
@@ -64,26 +65,42 @@
 
 
 % Corresponds to menu items:
--type tool_kind() :: menu_item_kind().
+-type tool_kind() :: gui_menu:menu_item_kind().
 % The kind of a tool in a toolbar.
 
+-type separator() :: wx_object().
+% A separator for spacing groups of tools.
 
--export_type([ toolbar/0, toolbar_style/0, tool/0, tool_kind/0 ]).
+
+-export_type([ toolbar/0, toolbar_style/0, tool/0, tool_kind/0,
+			   separator/0 ]).
 
 
--export([]).
+-export([ create/1, create/3, set/2,
+		  add_control/2, add_tool/5, add_tool/7, add_separator/1,
+		  update_tools/1 ]).
 
 
 % Shorthands:
 
 -type wx_object() :: gui:wx_object().
+-type label() :: gui:label().
 
+-type frame() :: gui_window:frame().
+
+-type control() :: gui_widget:control().
+
+-type bitmap() :: gui_bitmap:bitmap().
+
+-type help_info() :: gui_text:help_info().
+
+-type id() :: gui_id:id().
 
 
 
 % @doc Creates a toolbar in the specified frame.
--spec create_toolbar( frame() ) -> toolbar().
-create_toolbar( Frame ) ->
+-spec create( frame() ) -> toolbar().
+create( Frame ) ->
 	wxFrame:createToolBar( Frame ).
 
 
@@ -93,16 +110,16 @@ create_toolbar( Frame ) ->
 % Apparently up to one toolbar can be associated to a frame (e.g. no top and
 % left toolbars allowed simultaneously).
 %
--spec create_toolbar( frame(), id(), [ toolbar_style() ] ) -> toolbar().
-create_toolbar( Frame, Id, MaybeToolbarStyles ) ->
+-spec create( frame(), id(), [ toolbar_style() ] ) -> toolbar().
+create( Frame, Id, ToolbarStyles ) ->
 	wxFrame:createToolBar( Frame, [ { id, gui_id:declare_any_id( Id ) },
-		{ style, gui_wx_backend:to_wx_toolbar_style( MaybeToolbarStyles ) } ] ).
+		{ style, gui_wx_backend:to_wx_toolbar_style( ToolbarStyles ) } ] ).
 
 
 
 % @doc Sets the specified toolbar in the specified frame.
--spec set_toolbar( frame(), toolbar() ) -> void().
-set_toolbar( Frame, Toolbar ) ->
+-spec set( frame(), toolbar() ) -> void().
+set( Frame, Toolbar ) ->
 	wxFrame:setToolBar( Frame, Toolbar ).
 
 
@@ -113,54 +130,64 @@ add_control( Toolbar, Control ) ->
 	wxToolBar:addControl( Toolbar, Control ).
 
 
-% For add_separator/1, refer to the menu section.
-
 
 % @doc Adds the specified tool, represented by the specified bitmap, with the
-% specified identifier (if any) and short help, to the specified toolbar.
+% specified identifier (if any) and any short help, to the specified toolbar.
 %
 % update_tools/1 should be called once additions have been done, so that they
 % are taken into account.
 %
--spec add_tool( toolbar(), id(), label(), bitmap(), help_info() ) -> void().
-add_tool( Toolbar, Id, Label, Bitmap, ShortHelp ) ->
+-spec add_tool( toolbar(), id(), label(), bitmap(), maybe( help_info() ) ) ->
+											void().
+add_tool( Toolbar, Id, Label, Bitmap, MaybeShortHelp ) ->
 
-	Opts = case ShortHelp of
+	WxOpts = case MaybeShortHelp of
 
 		undefined ->
 			[];
 
-		_ ->
+		ShortHelp ->
 			[ { shortHelp, ShortHelp } ]
 
 	end,
 
 	wxToolBar:addTool( Toolbar, gui_id:declare_any_id( Id ), Label, Bitmap,
-					   Opts ).
+					   WxOpts ).
 
 
 % @doc Adds the specified tool, represented by the specified enabled/disabled
-% bitmaps, with the specified identifier (if any) and short/long helps, to the
-% specified toolbar.
+% bitmaps, with the specified identifier (if any) and any short/long helps, to
+% the specified toolbar.
 %
 % update_tools/1 should be called once additions have been done, so that they
 % are taken into account.
 %
--spec add_tool( toolbar(), id(), label(), bitmap(), bitmap(), help_info(),
-				help_info() ) -> void().
+-spec add_tool( toolbar(), id(), label(), bitmap(), bitmap(),
+				maybe( help_info() ), maybe( help_info() ) ) -> void().
 add_tool( Toolbar, Id, Label, BitmapIfEnabled, BitmapIfDisabled,
-		  ShortHelp, LongHelp ) ->
+		  MaybeShortHelp, MaybeLongHelp ) ->
 
-	Opts = case ShortHelp of
+	WxOpts = case MaybeShortHelp of
 		undefined -> [];
-		_ -> [ { shortHelp, ShortHelp } ]
-	end ++ case LongHelp  of
+		ShortHelp -> [ { shortHelp, ShortHelp } ]
+	end ++ case MaybeLongHelp of
 		undefined -> [];
-		_ -> [ { longHelp, LongHelp } ]
+		LongHelp -> [ { longHelp, LongHelp } ]
 	end,
 
 	wxToolBar:addTool( Toolbar, gui_id:declare_any_id( Id ), Label,
-					   BitmapIfEnabled, BitmapIfDisabled, Opts ).
+					   BitmapIfEnabled, BitmapIfDisabled, WxOpts ).
+
+
+% @doc Adds a separator to the specified toolbar, and returns that separator.
+%
+% update_tools/1 should be called once additions have been done, so that they
+% are taken into account.
+%
+-spec add_separator( toolbar() ) -> separator().
+add_separator( Toolbar ) ->
+	wxToolBar:addSeparator( Toolbar ).
+
 
 
 % @doc Updates the specified toolbar so that it takes into account any new
@@ -169,9 +196,3 @@ add_tool( Toolbar, Id, Label, BitmapIfEnabled, BitmapIfDisabled,
 -spec update_tools( toolbar() ) -> boolean().
 update_tools( Toolbar ) ->
 	wxToolBar:realize( Toolbar ).
-
-
-% @doc Adds a separator to the specified toolbar, and returns that separator.
--spec add_separator( menu() | toolbar() ) -> menu_item().
-add_separator( Toolbar ) ->
-	wxToolBar:addSeparator( Toolbar ).

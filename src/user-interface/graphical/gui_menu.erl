@@ -213,7 +213,7 @@
 -export([ create_menu/0, create_menu/1, create_menu/2, destruct_menu/1 ]).
 
 % Functions related to menus in general.
--export([ set_standard_item_names/0, add_item/2, add_item/3,
+-export([ get_standard_item_names/0, add_item/2, add_item/3, append_item/2,
 		  append_submenu/4, append_submenu/5,
 		  add_checkable_item/2, add_checkable_item/3, add_checkable_item/4,
 		  set_checkable_menu_item/3,
@@ -228,6 +228,23 @@
 
 % Functions for popup menus.
 -export([ activate_popup_menu/2 ]).
+
+
+
+% Shorthands:
+
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
+-type label() :: gui:label().
+-type title() :: gui:title().
+-type widget() :: gui:widget().
+
+-type frame() :: gui_window:frame().
+
+-type help_info() :: gui_text:help_info().
+
+-type id() :: gui_id:id().
+-type name_id() :: gui_id:name_id().
 
 
 
@@ -316,7 +333,7 @@ add_item( Menu, MenuItemId, MenuItemLabel ) -> %when is_integer( MenuItemId ) ->
 	% BackendId = case lists:member( MenuItemId, get_standard_item_names() ) of
 
 	%	true ->
-	%		resolve_any_id( MenuItemId );
+	%		gui_id:resolve_any_id( MenuItemId );
 
 	%	false ->
 	%		gui_id:declare_any_id( MenuItemId )
@@ -347,7 +364,7 @@ append_item( Menu, MenuItem ) ->
 -spec append_submenu( menu(), menu_item_id(), menu_item_label(), menu() ) ->
 													menu_item().
 append_submenu( Menu, MenuItemId, MenuItemLabel, SubMenu ) ->
-	% Not resolve_any_id( MenuItemId ):
+	% Not gui_id:resolve_any_id( MenuItemId ):
 	wxMenu:append( Menu, gui_id:declare_any_id( MenuItemId ), MenuItemLabel,
 				   SubMenu ).
 
@@ -409,7 +426,7 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
 %
 -spec set_checkable_menu_item( menu(), menu_item_id(), boolean() ) -> void().
 set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
-	wxMenu:check( Menu, resolve_any_id( MenuItemId ), SetAsChecked ).
+	wxMenu:check( Menu, gui_id:resolve_any_id( MenuItemId ), SetAsChecked ).
 
 
 % @doc Adds the specified radio item to the specified menu, and returns that
@@ -425,7 +442,8 @@ set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
-	wxMenu:appendRadioItem( Menu, resolve_any_id( MenuItemId ), MenuItemLabel ).
+	wxMenu:appendRadioItem( Menu, gui_id:resolve_any_id( MenuItemId ), 
+							MenuItemLabel ).
 
 
 % @doc Adds the specified labelled item that can be checked to the specified
@@ -438,8 +456,8 @@ add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label(),
 					  help_info() ) -> menu_item().
 add_radio_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
-	wxMenu:appendRadioItem( Menu, resolve_any_id( MenuItemId ), MenuItemLabel,
-							[ { help, HelpInfoStr } ] ).
+	wxMenu:appendRadioItem( Menu, gui_id:resolve_any_id( MenuItemId ), 
+							MenuItemLabel, [ { help, HelpInfoStr } ] ).
 
 
 % @doc Adds a separator to the specified menu, and returns that separator.
@@ -452,10 +470,10 @@ add_separator( Menu ) ->
 -spec set_menu_item_status( menu(), menu_item_id(), menu_item_status() ) ->
 														void().
 set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=enabled ) ->
-	wxMenu:enable( Menu, resolve_any_id( MenuItemId ), _Check=true );
+	wxMenu:enable( Menu, gui_id:resolve_any_id( MenuItemId ), _Check=true );
 
 set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
-	wxMenu:enable( Menu, resolve_any_id( MenuItemId ), _Check=false ).
+	wxMenu:enable( Menu, gui_id:resolve_any_id( MenuItemId ), _Check=false ).
 
 
 % @doc Removes the specified item from the specified menu.
@@ -464,7 +482,7 @@ set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
 %
 -spec remove_menu_item( menu(), menu_item_id() ) -> void().
 remove_menu_item( Menu, MenuItemId ) ->
-	wxMenu:delete( Menu, resolve_any_id( MenuItemId ) ).
+	wxMenu:delete( Menu, gui_id:resolve_any_id( MenuItemId ) ).
 
 
 

@@ -114,7 +114,7 @@
 
 
 % For device contexts in general:
--export([ clear_device_context/1, blit/5, blit/6 ])
+-export([ clear_device_context/1, blit/5, blit/6 ]).
 
 
 % For paint device contexts:
@@ -127,6 +127,39 @@
 -export([ destruct_memory_device_context/1 ]).
 
 
+% For wx defines:
+-include_lib("wx/include/wx.hrl").
+
+
+
+% Shorthands:
+
+-type ustring() :: text_utils:ustring().
+
+-type os_family() :: system_utils:os_family().
+
+-type dimensions() :: gui:dimensions().
+-type coordinate() :: gui:coordinate().
+
+-type any_width() :: gui:any_width().
+-type any_height() :: gui:any_height().
+
+-type width() :: gui:width().
+-type height() :: gui:height().
+
+-type any_length() :: gui:any_length().
+-type point() :: gui:point().
+-type widget() :: gui:widget().
+
+-type window() :: gui_window:window().
+
+-type image() :: gui_image:image().
+-type bitmap() :: gui_bitmap:bitmap().
+
+-type color() :: gui_color:color().
+-type color_by_decimal() :: gui_color:color_by_decimal().
+
+-type font() :: gui_font:font().
 
 
 
@@ -262,7 +295,7 @@ draw_text( GraphicContext, Text, X, Y ) ->
 -spec draw_bitmap( graphic_context(), bitmap(), coordinate(), coordinate() ) ->
 																void().
 draw_bitmap( GraphicContext, Bitmap, X, Y ) ->
-	{ W, H } = get_size( Bitmap ),
+	{ W, H } = gui_bitmap:get_size( Bitmap ),
 	wxGraphicsContext:drawBitmap( GraphicContext, Bitmap, X, Y, W, H ).
 
 

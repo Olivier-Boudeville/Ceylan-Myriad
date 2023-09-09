@@ -57,7 +57,9 @@
 -type ustring() :: text_utils:ustring().
 
 -type length() :: gui:length().
--type dimensions() :: gui:dimensions().
+-type size() :: gui:size().
+-type width() :: gui:width().
+-type height() :: gui:height().
 
 -type button() :: gui:button().
 -type canvas() :: gui:canvas().
@@ -121,24 +123,24 @@ test_state_to_string( #my_test_state{ main_frame=MainFrame,
 
 
 
--spec get_main_window_width() -> length().
+-spec get_main_window_width() -> width().
 get_main_window_width() ->
 	800.
 
 
--spec get_main_window_height() -> length().
+-spec get_main_window_height() -> height().
 get_main_window_height() ->
 	600.
 
 
-% @doc Returns the dimensions of the main test window.
--spec get_main_window_size() -> dimensions().
+% @doc Returns the size of the main test window.
+-spec get_main_window_size() -> size().
 get_main_window_size() ->
 	{ get_main_window_width(), get_main_window_height() }.
 
 
 
-% Canvas dimensions automatically determined based on parent panel.
+% Canvas size automatically determined based on its parent panel.
 
 
 % @doc Executes the actual test.

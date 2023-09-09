@@ -96,7 +96,7 @@
 % Our gui_keyboard_test module can be used in order to check scan codes (then
 % set CheckScanCode to true).
 %
-% See also https://docs.wxwidgets.org/3.1/classwx_key_event.html for guidance
+% See also https://docs.wxwidgets.org/stable/classwx_key_event.html for guidance
 % regarding key management.
 
 

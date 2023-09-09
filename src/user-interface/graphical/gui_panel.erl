@@ -65,9 +65,22 @@
 % that may have to be special-cased.
 
 
+% At least for the splitter record:
+-include("gui_base.hrl").
+
+
 % Shorthands:
 
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
 -type parent() :: gui:parent().
+-type width() :: gui:width().
+-type height() :: gui:height().
+-type size() :: gui:size().
+-type position() :: gui:position().
+-type coordinate() :: gui:coordinate().
+
+-type window_option() :: gui_window:window_option().
 
 
 % @doc Creates a panel.
@@ -95,7 +108,7 @@ create( Options, _Parent=#splitter{ splitter_window=Win } ) ->
 	create( Options, Win );
 
 create( Options, Parent ) ->
-	ActualOptions = get_panel_options( Options ),
+	ActualOptions = gui_wx_backend:to_wx_panel_options( Options ),
 	wxPanel:new( Parent, ActualOptions ).
 
 
@@ -103,7 +116,7 @@ create( Options, Parent ) ->
 % @doc Creates a panel, associated to the specified parent and with the
 % specified position and dimensions.
 %
--spec create( coordinate(), coordinate(), witdh(), height(), parent() ) ->
+-spec create( coordinate(), coordinate(), width(), height(), parent() ) ->
 											panel().
 create( X, Y, Width, Height, Parent ) ->
 	create( _Pos={ X, Y }, _Size={ Width, Height }, Parent ).
@@ -115,8 +128,11 @@ create( X, Y, Width, Height, Parent ) ->
 %
 -spec create( position(), size(), parent() ) -> panel().
 create( Position, Size, Parent ) ->
-	wxPanel:new( Parent, _Opts=[ { pos, to_wx_position( Position ) },
-								 { size, to_wx_size( Size ) } ] ).
+
+	WxOpts = [ { pos, gui_wx_backend:to_wx_position( Position ) },
+			   { size, gui_wx_backend:to_wx_size( Size ) } ],
+
+	wxPanel:new( Parent, WxOpts ).
 
 
 % @doc Creates a panel, associated to the specified parent and with the
@@ -125,14 +141,15 @@ create( Position, Size, Parent ) ->
 -spec create( position(), size(), panel_options(), parent() ) -> panel().
 create( Position, Size, Options, Parent ) ->
 
-	FullOptions = [ to_wx_position( Position ), to_wx_size( Size )
-						| get_panel_options( Options ) ],
+	WxOpts = [ gui_wx_backend:to_wx_position( Position ), 
+			   gui_wx_backend:to_wx_size( Size )
+			 | gui_wx_backend:to_wx_panel_options( Options ) ],
 
 	%trace_utils:debug_fmt( "Creating panel: parent: ~w, position: ~w, "
 	%    "size: ~w, options: ~w, full options: ~w.",
-	%    [ Parent, Position, Size, Options, FullOptions ] ),
+	%    [ Parent, Position, Size, Options, WxOpts ] ),
 
-	wxPanel:new( Parent, FullOptions ).
+	wxPanel:new( Parent, WxOpts ).
 
 
 
@@ -143,10 +160,10 @@ create( Position, Size, Options, Parent ) ->
 			  parent() ) -> panel().
 create( X, Y, Width, Height, Options, Parent ) ->
 
-	FullOptions = [ { pos, { X, Y } }, { size, { Width, Height } }
-						| get_panel_options( Options ) ],
+	WxOpts = [ { pos, { X, Y } }, { size, { Width, Height } }
+						| gui_wx_backend:to_wx_panel_options( Options ) ],
 
-	wxPanel:new( Parent, FullOptions ).
+	wxPanel:new( Parent, WxOpts ).
 
 
 

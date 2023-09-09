@@ -52,8 +52,6 @@
 
 
 
-
-
 % For the event_context record:
 -include("gui_base.hrl").
 
@@ -670,7 +668,7 @@
 
 
 -type wx_event() ::
-	{ 'wx', wx_id(), wx:wx_object(), gui:user_data(), wx_event_info() }.
+	{ 'wx', wx_id(), wx_object(), gui:user_data(), wx_event_info() }.
 % A wx_event record comprises:
 %
 % - (the 'wx' record tag, if the record instance is seen as a tuple)
@@ -678,7 +676,7 @@
 % - id :: wx_id() the (integer) identifier of the object (e.g. widget) that
 % received the event (event source)
 %
-% - obj :: wx:wx_object() is the reference of the wx object that was specified
+% - obj :: wx_object() is the reference of the wx object that was specified
 % in the connect/n call, i.e. on which connect/n was called (e.g.
 % {wx_ref,35,wxFrame,[]})
 %
@@ -840,7 +838,9 @@
 -type backend_id() :: gui_id:backend_id().
 -type wx_id() :: gui_id:wx_id().
 -type id_name_alloc_table() :: gui_id:id_name_alloc_table().
+-type instance_id() :: gui_id:instance_id().
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
+
 
 -type keyboard_event_type() :: gui_keyboard:keyboard_event_type().
 -type scancode() :: gui_keyboard:scancode().
@@ -852,8 +852,7 @@
 -type gl_context() :: gui_opengl:gl_context().
 
 
-
--type wx_object() :: wx:wx_object().
+-type wx_object() :: gui:wx_object().
 -type wx_env() :: wx:wx_env().
 
 
@@ -1775,7 +1774,6 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 
 			throw( { unexpected_myriad_type, UnexpectedType } )
 
-
 	end.
 
 
@@ -1791,45 +1789,18 @@ process_myriad_destruction( ObjectType, InstanceId,
 	%    "for type '~ts', instance identifier #~B.",
 	%    [ ObjectType, InstanceId ] ),
 
-	ShrunkTypeTable = unregister_instance( ObjectType, InstanceId, TypeTable ),
+	{ InstanceState, ShrunkTypeTable } =
+		unregister_instance( ObjectType, InstanceId, TypeTable ),
 
-	case ObjectType of
+	ShrunkReassignTable = case ObjectType of
 
 		myr_canvas ->
-	
-			ToDelTargetRef = #myriad_object_ref{ object_type=myr_canvas, 
-				myriad_instance_id=InstanceId },
+			#canvas_state{ panel=Panel } = InstanceState,
 
-			{ SourceRef, ShrunkReassignTable } = 
-				table:extract_entry_by_value( ToDelTargetRef, ReassignTable
+			 gui_canvas:destruct_instance( InstanceState ),
 
-			TypeTable
-
-
-			{ CanvasInitialState, PanelRef } =
-				gui_canvas:create_instance( ConstructionParams ),
-
-			{ CanvasRef, NewTypeTable } =
-				register_instance( ObjectType, CanvasInitialState, TypeTable ),
-
-			CallerPid ! { instance_created, ObjectType, CanvasRef },
-
-			% An event about its (already connected by
-			% gui_canvas:create_instance/1) parent panel must be reassigned to
-			% its canvas:
-			%
-			NewReassignTable =
-				table:add_new_entry( PanelRef, CanvasRef, ReassignTable ),
-
-			%trace_utils:debug_fmt( "Events sent to panel ~w will be from now "
-			%    "reassigned to canvas ~w.", [ PanelRef, CanvasRef ] ),
-
-
-				gui_wx_backend:disconnect(
-
-			LoopState#loop_state{ reassign_table=NewReassignTable,
-								  type_table=NewTypeTable };
-
+			% This panel is associated to this canvas:
+			table:remove_entry( Panel, ReassignTable );
 
 		UnexpectedType ->
 			trace_utils:error_fmt( "'~ts' is not a known MyriadGUI type.",
@@ -1837,8 +1808,12 @@ process_myriad_destruction( ObjectType, InstanceId,
 
 			throw( { unexpected_myriad_type, UnexpectedType } )
 
+	end,
 
-	end.
+	% No interest found in making it synchronous, no message sent.
+
+	LoopState#loop_state{ reassign_table=ShrunkReassignTable,
+						  type_table=ShrunkTypeTable }.
 
 
 
@@ -1903,13 +1878,14 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 % the specified instance table.
 %
 -spec unregister_instance( myriad_object_type(), instance_id(),
-						   myriad_type_table() ) -> myriad_type_table().
+		myriad_type_table() ) -> { myriad_object_state(), myriad_type_table() }.
 unregister_instance( ObjectType, InstanceId, TypeTable ) ->
 
 	%trace_utils:info_fmt( "Unregistering the MyriadGUI instance of "
 	%   "id #~B and type '~ts'.", [ InstanceId, ObjectType ] ),
 
-	NewInstReferential = case table:lookup_entry( ObjectType, TypeTable ) of
+	{ InstanceState, NewInstReferential } =
+			case table:lookup_entry( ObjectType, TypeTable ) of
 
 		key_not_found ->
 			throw( { invalid_object_type_to_unregister, ObjectType } );
@@ -1921,18 +1897,23 @@ unregister_instance( ObjectType, InstanceId, TypeTable ) ->
 			case table:extract_entry_if_existing( _K=InstanceId,
 												  InstanceTable ) of
 
-				{ _InstanceState, ShrunkInstTable } ->
-					InstanceReferential#instance_referential{
+				{ InstState, ShrunkInstTable } ->
+					{ InstState,
+					  InstanceReferential#instance_referential{
 						instance_count=InstanceCount-1,
-						instance_table=ShrunkInstTable };
+						instance_table=ShrunkInstTable } };
 
 				false ->
 					throw( { instance_to_unregister_not_found, InstanceId,
 							 ObjectType } )
 
+		end
+
 	end,
 
-	table:add_entry( ObjectType, NewInstReferential, TypeTable ).
+	NewTypeTable = table:add_entry( ObjectType, NewInstReferential, TypeTable ),
+
+	{ InstanceState, NewTypeTable }.
 
 
 

@@ -40,16 +40,6 @@
 
 
 
-% Usage notes:
-%
-
-
-% Implementation notes:
-%
-% The wx backend names the concept of widget "window", which is a bit
-% restrictive (a window is seen at least here in MyriadGUI as a special case of
-% widget).
-
 
 -type window() :: gui_widget:widget().
 % Any kind of window.
@@ -57,7 +47,7 @@
 % Base, most general class for all windows (for example, a frame is a window
 % whose size and position can usually be changed by the user).
 %
-% This corresponds to "real" windows - not to any widget, as wx/WxWidgets calls
+% This corresponds to "real" windows - not to any widget, as wx/WxWidgets call
 % windows.
 
 -type window_option() :: { 'position', point() }
@@ -117,6 +107,8 @@
 -export_type([ top_level_window/0 ]).
 
 
+% At least for the splitter record:
+-include("gui_base.hrl").
 
 -type splitter() :: #splitter{}.
 % Represents a window able to be split into two panes.
@@ -217,7 +209,7 @@
 
 % For standard, basic windows:
 -export([ create/0, create/1, create/2, create/5,
-		  destruct/1, destruct/2 ]).
+		  destruct/1 ]).
 
 
 % For splitter windows:
@@ -225,15 +217,32 @@
 
 
 % For any kind of window:
--export([ show/1, hide/1, lock/1, unlock/1 ]).
+-export([ show/1, hide/1 ]).
 
 
-% For related, internal, wx-related defines:
-%-include("gui_internal_defines.hrl").
+% Implementation notes:
+%
+% The wx backend names the concept of widget "window", which is a bit
+% restrictive (a window is seen at least here in MyriadGUI as a special case of
+% widget).
 
+
+% For ?gui_any_id:
+-include("gui_internal_defines.hrl").
 
 
 % Shorthands:
+
+-type any_file_path() :: file_utils:any_file_path().
+
+-type point() :: gui:point().
+-type size() :: gui:size().
+-type position() :: gui:position().
+-type orientation() :: orientation(). 
+-type parent() :: gui:parent().
+-type title() :: gui:title().
+
+-type id() :: gui_id:id().
 
 
 
@@ -260,7 +269,7 @@ create( Id, Parent ) ->
 	% ./src/gtk/window.cpp(2586): \"parent\" in PreCreation() : Must have
 	% non-NULL parent"}
 	%
-	ActualParent = to_wx_parent( Parent ),
+	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
 
 	wxWindow:new( ActualParent, ActualId ).
 
@@ -271,11 +280,11 @@ create( Id, Parent ) ->
 create( Size ) ->
 
 	ActualId = gui_id:declare_any_id( undefined ),
-	ActualParent = to_wx_parent( undefined ),
+	ActualParent = gui_wx_backend:to_wx_parent( undefined ),
 
-	Options = [ to_wx_size( Size ) ],
+	WxOpts = [ gui_wx_backend:to_wx_size( Size ) ],
 
-	wxWindow:new( ActualParent, ActualId, Options ).
+	wxWindow:new( ActualParent, ActualId, WxOpts ).
 
 
 
@@ -287,14 +296,20 @@ create( Size ) ->
 											window().
 create( Position, Size, Style, Id, Parent ) ->
 
-	Options = [ to_wx_position( Position ), to_wx_size( Size ),
-		{ style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
+	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
+			   gui_wx_backend:to_wx_size( Size ),
+			   { style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
 
 	ActualId = gui_id:declare_any_id( Id ),
-	ActualParent = to_wx_parent( Parent ),
+	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
 
-	wxWindow:new( ActualParent, ActualId, Options ).
+	wxWindow:new( ActualParent, ActualId, WxOpts ).
 
+
+% @doc Destructs the specified window.
+-spec destruct( window() ) -> void().
+destruct( Window ) ->
+	wxWindow:destroy( Window ).
 
 
 
@@ -406,7 +421,7 @@ center_on_screen( TopLvlWin ) ->
 -spec center_on_screen( top_level_window(), orientation() ) -> void().
 center_on_screen( TopLvlWin, Orientation ) ->
 	wxTopLevelWindow:centerOnScreen( TopLvlWin,
-		to_wx_orientation( Orientation ) ).
+		gui_wx_backend:to_wx_orientation( Orientation ) ).
 
 
 % @doc Tells whether the specified top-level window is maximised.
@@ -524,7 +539,7 @@ create_frame() ->
 %
 -spec create_frame( title() ) -> frame().
 create_frame( Title ) ->
-	wxFrame:new( to_wx_parent( undefined ), ?gui_any_id, Title ).
+	wxFrame:new( gui_wx_backend:to_wx_parent( undefined ), ?gui_any_id, Title ).
 
 
 
@@ -534,12 +549,12 @@ create_frame( Title ) ->
 -spec create_frame( title(), size() ) -> frame().
 create_frame( Title, Size ) ->
 
-	Options = [ to_wx_size( Size ) ],
+	WxOpts = [ gui_wx_backend:to_wx_size( Size ) ],
 
-	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
+	%trace_utils:debug_fmt( "create_frame options: ~p.", [ WxOpts ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), gui_id:declare_any_id( undefined ),
-				 Title, Options ).
+	wxFrame:new( gui_wx_backend:to_wx_parent( undefined ),
+				 gui_id:declare_any_id( undefined ), Title, WxOpts ).
 
 
 
@@ -549,7 +564,8 @@ create_frame( Title, Size ) ->
 %
 -spec create_frame( title(), id(), maybe( parent() ) ) -> frame().
 create_frame( Title, Id, Parent ) ->
-	wxFrame:new( to_wx_parent( Parent ), gui_id:declare_any_id( Id ), Title ).
+	wxFrame:new( gui_wx_backend:to_wx_parent( Parent ),
+				 gui_id:declare_any_id( Id ), Title ).
 
 
 
@@ -559,13 +575,14 @@ create_frame( Title, Id, Parent ) ->
 -spec create_frame( title(), position(), size(), frame_style() ) -> frame().
 create_frame( Title, Position, Size, Style ) ->
 
-	Options = [ to_wx_position( Position ), to_wx_size( Size ),
+	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
+				gui_wx_backend:to_wx_size( Size ),
 				{ style, frame_style_to_bitmask( Style ) } ],
 
-	%trace_utils:debug_fmt( "create_frame options: ~p.", [ Options ] ),
+	%trace_utils:debug_fmt( "create_frame options: ~p.", [ WxOpts ] ),
 
-	wxFrame:new( to_wx_parent( undefined ), gui_id:declare_any_id( undefined ),
-				 Title, Options ).
+	wxFrame:new( gui_wx_backend:to_wx_parent( undefined ),
+				 gui_id:declare_any_id( undefined ), Title, WxOpts ).
 
 
 
@@ -578,20 +595,35 @@ create_frame( Title, Position, Size, Style ) ->
 					parent() ) -> frame().
 create_frame( Title, Position, Size, Style, Id, Parent ) ->
 
-	Options = [ to_wx_position( Position ), to_wx_size( Size ),
+	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
+				gui_wx_backend:to_wx_size( Size ),
 				{ style, frame_style_to_bitmask( Style ) } ],
 
 	ActualId = gui_id:declare_any_id( Id ),
 
-	ActualParent = to_wx_parent( Parent ),
+	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
 
-	wxFrame:new( ActualParent, ActualId, Title, Options ).
+	wxFrame:new( ActualParent, ActualId, Title, WxOpts ).
+
 
 
 % @doc Destructs the specified frame.
 -spec destruct_frame( frame() ) -> void().
 destruct_frame( Frame  ) ->
 	wxFrame:destroy( Frame ).
+
+
+
+% Records the specified window as the application top-level one, in the
+% MyriadGUI environment.
+%
+% (helper)
+%
+-spec record_top_level_window( top_level_window() ) -> void().
+record_top_level_window( TopLvlWindow ) ->
+	environment:set( _K=top_level_window, _V=TopLvlWindow,
+					 _Designator=?gui_env_reg_name ).
+
 
 
 

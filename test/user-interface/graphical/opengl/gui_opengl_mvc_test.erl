@@ -625,7 +625,7 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 	Image = gui_image:load_from_file( ImagePath ),
 	MirroredImage = gui_image:mirror( Image, _Orientation=horizontal ),
 	Texture = gui_texture:create_from_image( MirroredImage ),
-	gui_image:destruct( [ Image, MirroredImage ] ),
+	gui_image:destruct_multiple( [ Image, MirroredImage ] ),
 
 	InitViewState = ViewState#view_state{ opengl_state=Texture },
 

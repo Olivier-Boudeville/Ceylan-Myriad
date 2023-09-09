@@ -60,8 +60,9 @@ run_gui_test() ->
 
 
 	% Should a button of interest (e.g. see
-	% https://docs.wxwidgets.org/3.0/page_stockitems.html) be lacking, feel free
-	% to add it to MyriadGUI (refer to the gui and the gui_constants modules).
+	% https://docs.wxwidgets.org/stable/page_stockitems.html) be lacking, feel
+	% free to add it to MyriadGUI (refer to the gui and the gui_constants
+	% modules).
 	%
 	test_facilities:display(
 		"A button may be clicked for further information." ),

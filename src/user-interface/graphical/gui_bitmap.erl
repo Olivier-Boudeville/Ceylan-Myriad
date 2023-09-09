@@ -77,7 +77,7 @@
 
 
 % In the same order as listed in
-% https://docs.wxwidgets.org/3.0/classwx_art_provider.html:
+% https://docs.wxwidgets.org/stable/classwx_art_provider.html:
 %
 -type standard_bitmap_name_id() ::
 	'error_bitmap' | 'question_bitmap' | 'warning_bitmap'
@@ -121,6 +121,7 @@
 		  destruct/1,
 
 		  populate_buffer/4,
+		  get_width/1, get_height/1, get_size/1,
 
 		  lock/1, unlock/1,
 		  draw/3 ]).
@@ -141,7 +142,9 @@
 
 -type width() :: gui:width().
 -type height() :: gui:height().
+-type size() :: gui:size().
 -type dimensions() :: gui:dimensions().
+
 -type parent() :: gui:parent().
 -type point() :: gui:point().
 
@@ -179,9 +182,9 @@ create_from( ImagePath ) ->
 
 
 
-% @doc Returns an empty (buffer-less) bitmap of the specified dimensions.
--spec create_empty( dimensions() ) -> empty_bitmap().
-create_empty( _Dimensions={ Width, Height } ) ->
+% @doc Returns an empty (buffer-less) bitmap of the specified size.
+-spec create_empty( size() ) -> empty_bitmap().
+create_empty( _Size={ Width, Height } ) ->
 	create_empty( Width, Height ).
 
 
@@ -272,6 +275,25 @@ populate_buffer( EmptyBitmap, Width, Height, ColorDepth ) ->
 	wxBitmap:create( EmptyBitmap, Width, Height,
 					 [ { depth, ColorDepth } ] ) orelse
 		throw( { bitmap_buffer_creation_failed, Width, Height, ColorDepth } ).
+
+
+
+% @doc Returns the current width of the specified bitmap.
+-spec get_width( bitmap() ) -> width().
+get_width( Bitmap ) ->
+	wxBitmap:getWidth( Bitmap ).
+
+
+% @doc Returns the current height of the specified bitmap.
+-spec get_height( bitmap() ) -> height().
+get_height( Bitmap ) ->
+	wxBitmap:getHeight( Bitmap ).
+
+
+% @doc Returns the current size of the specified bitmap.
+-spec get_size( bitmap() ) -> size().
+get_size( Bitmap ) ->
+	{ wxBitmap:getWidth( Bitmap ), wxBitmap:getHeight( Bitmap ) }.
 
 
 

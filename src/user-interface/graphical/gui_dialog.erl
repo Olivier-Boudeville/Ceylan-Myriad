@@ -280,7 +280,7 @@
 
 -type any_string() :: text_utils:any_string().
 
--type text() :: ui:text().
+-type text() :: gui_text:text().
 
 -type caption() :: ui:caption().
 -type label() :: ui:label().

@@ -202,7 +202,7 @@
 % Any OpenGL canvas is not resized when its containers are resized.
 
 
-% See https://docs.wxwidgets.org/3.0/glcanvas_8h.html#wxGL_FLAGS for more
+% See https://docs.wxwidgets.org/stable/glcanvas_8h.html#wxGL_FLAGS for more
 % backend details.
 %
 % Note though that not all attributes are listed there, a more complete list is
@@ -1646,7 +1646,7 @@ create_canvas( Parent, Opts ) ->
 
 	WxAttrs = gui_wx_backend:to_wx_device_context_attributes( Attrs ),
 
-	OtherWxOpts = gui_wx_backend:get_window_options( OtherOpts ),
+	OtherWxOpts = gui_wx_backend:to_wx_window_options( OtherOpts ),
 
 	WxOpts = [ { attribList, WxAttrs } | OtherWxOpts ],
 

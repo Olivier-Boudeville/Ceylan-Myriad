@@ -26,10 +26,11 @@
 % Creation date: Tuesday, January 29, 2013.
 
 
-% Header to export <b>MyriadGUI-related base defines</b>, both for user code and
-% for internal one.
+% Header to export <b>MyriadGUI-related base defines and records</b>, both for
+% user code and for internal one.
 %
-% See gui.erl for the corresponding implementation.
+% See gui.hrl for the overall, single user-facing MyriadGUI include.
+
 
 
 % Registration name of the MyriadGUI environment process:

@@ -191,12 +191,11 @@
 % Sizers surrounded by a box (possibly with a label) are wxStaticBoxSizer
 % instances.
 %
-% Null dimensions (zero width/height) may mean that a sizer element (e.g. a
-% spacer) is stretchable; conversely, a zero proportion will mean
-% non-stretchable.
+% Null size (zero width/height) may mean that a sizer element (e.g. a spacer) is
+% stretchable; conversely, a zero proportion will mean non-stretchable.
 %
-% Refer to https://docs.wxwidgets.org/3.1/overview_sizer.html#overview_sizer for
-% details.
+% Refer to https://docs.wxwidgets.org/stable/overview_sizer.html#overview_sizer
+% for details.
 
 
 

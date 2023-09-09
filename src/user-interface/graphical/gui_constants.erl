@@ -257,7 +257,7 @@ get_window_style_topic_spec() ->
 		% Forces a complete redraw of the window whenever it is resized instead
 		% of redrawing just the part of the window affected by resizing
 		%
-		% (see https://docs.wxwidgets.org/3.0/classwx_window.html)
+		% (see https://docs.wxwidgets.org/stable/classwx_window.html)
 		%
 		{ full_repaint_on_resize,    ?wxFULL_REPAINT_ON_RESIZE } ],
 
@@ -393,7 +393,8 @@ get_sizer_flag_topic_spec() ->
 % into a name one must be done by possibly looking it up in both tables
 % (although at least currently buttons fully supersede menu items).
 %
-% Refer to https://docs.wxwidgets.org/3.0/page_stockitems.html for their list.
+% Refer to https://docs.wxwidgets.org/stable/page_stockitems.html for their
+% list.
 %
 -spec get_menu_item_id_topic_spec() -> topic_spec( menu_item_id(), wx_id() ).
 get_menu_item_id_topic_spec() ->
@@ -766,7 +767,7 @@ get_dialog_return_topic_spec() ->
 						topic_spec( message_dialog_style(), wx_enum() ).
 get_message_dialog_style_topic_spec() ->
 
-	% Refer to https://docs.wxwidgets.org/3.1/classwx_message_dialog.html.
+	% Refer to https://docs.wxwidgets.org/stable/classwx_message_dialog.html.
 
 	% Perhaps some constants collide on some platforms and not on others
 	% (e.g. at least on this GNU/Linux ?wxYES_DEFAULT =:= ?wxOK_DEFAULT); then
@@ -804,7 +805,8 @@ get_message_dialog_style_topic_spec() ->
 						topic_spec( single_choice_dialog_style(), wx_enum() ).
 get_single_choice_dialog_style_topic_spec() ->
 
-	% Refer to https://docs.wxwidgets.org/3.1/classwx_single_choice_dialog.html.
+	% Refer to
+	% https://docs.wxwidgets.org/stable/classwx_single_choice_dialog.html.
 
 	% See get_message_dialog_style_topic_spec/0 for more comments.
 
@@ -824,7 +826,7 @@ get_single_choice_dialog_style_topic_spec() ->
 						topic_spec( multi_choice_dialog_style(), wx_enum() ).
 get_multi_choice_dialog_style_topic_spec() ->
 
-	% See https://docs.wxwidgets.org/3.1/classwx_multi_choice_dialog.html for
+	% See https://docs.wxwidgets.org/stable/classwx_multi_choice_dialog.html for
 	% more comments.
 
 	Entries = [
@@ -843,7 +845,7 @@ get_multi_choice_dialog_style_topic_spec() ->
 						topic_spec( text_entry_dialog_style(), wx_enum() ).
 get_text_entry_dialog_style_topic_spec() ->
 
-	% See https://docs.wxwidgets.org/3.1/classwx_text_entry_dialog.html for
+	% See https://docs.wxwidgets.org/stable/classwx_text_entry_dialog.html for
 	% more comments.
 
 	Entries = [
@@ -862,7 +864,7 @@ get_text_entry_dialog_style_topic_spec() ->
 						topic_spec( file_selection_dialog_style(), wx_enum() ).
 get_file_selection_dialog_style_topic_spec() ->
 
-	% See https://docs.wxwidgets.org/3.1/classwx_file_dialog.html for more
+	% See https://docs.wxwidgets.org/stable/classwx_file_dialog.html for more
 	% comments.
 
 	Entries = [
@@ -891,7 +893,7 @@ get_file_selection_dialog_style_topic_spec() ->
 					topic_spec( directory_selection_dialog_style(), wx_enum() ).
 get_directory_selection_dialog_style_topic_spec() ->
 
-	% See https://docs.wxwidgets.org/3.1/classwx_dir_dialog.html for more
+	% See https://docs.wxwidgets.org/stable/classwx_dir_dialog.html for more
 	% comments.
 
 	Entries = [

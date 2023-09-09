@@ -74,9 +74,9 @@
 % extension of a filename, as it is clearer and more reliable.
 %
 % Refer to
-% https://docs.wxwidgets.org/3.1/gdicmn_8h.html#a90a1eb6d85b5044a99b706fd979f27f5
+% https://docs.wxwidgets.org/stable/gdicmn_8h.html#a90a1eb6d85b5044a99b706fd979f27f5
 % for more image formats and to
-% https://docs.wxwidgets.org/3.1/classwx_image.html for the available image
+% https://docs.wxwidgets.org/stable/classwx_image.html for the available image
 % handlers (e.g. BMP, PNG, JPEG, GIF, PCX, TIFF, TGA).
 %
 % We recommend PNG for bitmap-like images (as lossless) and JPEG for
@@ -85,10 +85,6 @@
 
 -type image_quality() :: 'normal' | 'high'.
  % The requested quality for an image operation (e.g. for a scaling).
-
-
--opaque icon() :: wxIcon:wxIcon().
-% A small rectangular bitmap usually used for denoting a minimised application.
 
 
 -type image_path() :: file_path().
@@ -101,36 +97,30 @@
 % Any kind of path to an image.
 
 
+-opaque icon() :: wxIcon:wxIcon().
+% A small rectangular bitmap usually used for denoting a minimised application.
+
+
 -export_type([ image/0, image_format/0, image_quality/0,
-			   bitmap/0, bitmap_display/0, icon/0, text_display/0,
-			   raw_bitmap/0, text_display_option/0,
-			   image_path/0, bin_image_path/0, any_image_path/0  ]).
+			   image_path/0, bin_image_path/0, any_image_path/0,
+			   icon/0 ]).
+
 
 % For images:
 -export([ load_from_file/1, load_from_file/2,
+		  destruct/1, destruct_multiple/1,
+
 		  get_size/1, has_alpha/1,
 		  load/2, load/3, save/2, save/3,
 		  scale/3, scale/4, mirror/2,
-		  colorize/2, to_string/1,
+		  colorize/2, to_string/1 ]).
 
+
+% Other functions:
+-export([ create_bitmap/1 ]).
 
 % For icons:
 -export([ get_standard_icon/1 ]).
-
-
-% For display:
--export([ create_bitmap_display/2, create_bitmap_display/3,
-		  destruct_bitmap_display/1,
-
-		  create_text_display/2, create_text_display/3,
-		  destruct_text_display/1 ]).
-
-
-		  lock_window/1, unlock_window/1,
-		  clear_device_context/1, blit/5, blit/6,
-
-		  destruct/1 ]).
-
 
 
 % Implementation notes.
@@ -163,20 +153,14 @@
 
 -type width() :: gui:width().
 -type height() :: gui:height().
--type point() :: gui:point().
 -type orientation() :: gui:orientation().
--type size() :: gui:size().
 -type dimensions() :: gui:dimensions().
--type window() :: gui:window().
--type parent() :: gui:parent().
--type label() :: gui:label().
--type device_context() :: gui:device_context().
--type window_option() :: gui:window_option().
 -type standard_icon_name_id() :: gui:standard_icon_name_id().
--type standard_bitmap_name_id() :: gui:standard_bitmap_name_id().
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().
+
+-type bitmap() :: gui_bitmap:bitmap().
 
 
 -type wx_enum() :: gui_wx_backend:wx_enum().
@@ -233,6 +217,27 @@ load_from_file( ImageFormat, AnyImagePath ) ->
 			throw( { image_loading_failed, ImagePath, ImageFormat } )
 
 	end.
+
+
+% @doc Declares that the specified image can be destructed.
+%
+% As it can be reference-counted, this may or may not result in an actual
+% deallocation.
+%
+-spec destruct( maybe_list( image() ) ) -> void().
+destruct( Image ) ->
+	wxImage:destroy( Image ).
+
+
+% @doc Declares that the specified images can be destructed.
+%
+% As it can be reference-counted, this may or may not result in actual
+% deallocations.
+%
+-spec destruct_multiple( [ image() ] ) -> void().
+destruct_multiple( Images ) ->
+	[ wxImage:destroy( Img ) || Img <- Images ].
+
 
 
 
@@ -467,19 +472,6 @@ to_wx_image_quality( high ) ->
 
 to_wx_image_quality( Other ) ->
 	throw( { unknown_image_quality, Other } ).
-
-
-% @doc Declares that the specified instance(s) can be destructed.
-%
-% As it can be reference-counted, this may or may not result in actual
-% deallocation(s).
-%
--spec destruct( maybe_list( image() ) ) -> void().
-destruct( Images ) when is_list( Images ) ->
-	[ wxImage:destroy( Img ) || Img <- Images ];
-
-destruct( Image ) ->
-	wxImage:destroy( Image ).
 
 
 
