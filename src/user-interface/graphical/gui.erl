@@ -67,6 +67,9 @@
 % gui_button:create_button/N).
 %
 % For creation functions, the convention is:
+% - to create an instance of X from a module gui_X, create/* functions shall be
+% defined and used (not create_X/*) ones; for Y in gui_X, create_Y/* is the way
+% to go
 % - to start with the essential construction parameters, followed by any
 % identifier specification
 % - to finish with the parent widget
@@ -83,8 +86,8 @@
 % elements should always be considered
 %  - not defining specific types corresponding to only a list of instances a
 %  given of a given type; for example sizer_options() :: [sizer_option()] is not
-%  deem worthwhile as its direct actual type is clearer; moreover in this case a
-%  maybe_list/1 may be more relevant
+%  deemed worthwhile as its direct actual type is clearer; moreover in this case
+%  a maybe_list/1 may be more relevant
 %
 % Note that, for a widget type X (e.g. X being 'button'), a X_option() type will
 % generally be defined (rather than X_opt()), and that if a style is supported,
@@ -332,13 +335,17 @@
 						| 'window'
 						| 'control'
 						| 'button'
+						| 'toggle_button'
+						| 'bitmap_button'
 						| 'panel'
+						| 'gl_canvas'
 						| 'status_bar'
 						| 'top_level_window'
 						| 'dialog'
 						| 'frame'
 						| 'sizer'
-						| 'server'.
+						| 'bitmap'
+						| 'memory_device_context'.
 % MyriadGUI-translated version of a native wx type, that is of the
 % wx_native_object_type(); for example 'window', instead of 'wxWindow'.
 
@@ -467,7 +474,7 @@
 
 -type error_message() :: term().
 
--type wx_object() :: wx:wx_object().
+-opaque wx_object() :: wx:wx_object().
 % MyriadGUI-level type for a wx_object(), that is a #wx_ref record.
 
 
@@ -490,12 +497,10 @@
 			   widget/0, parent/0 ]).
 
 
--export_type([
-
+-export_type([ loop_pid/0,
 			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0,
 			   event_subscription_options/0,
-
 			   event_subscription_opt/0,
 			   debug_level_opt/0, debug_level/0, error_message/0,
 			   wx_object/0 ]).
@@ -527,9 +532,10 @@
 	% The PID of the allocator of unique backend identifiers:
 	%
 	% (now corresponds directly to the MyriadGUI gui_event main event-loop
-	% process, see the loop_pid entry)
+	% process, which acts as a simplified gui_id identifier allocator; see the
+	% loop_pid entry)
 	%
-	%{ 'id_allocator_pid', id_allocator_pid() },
+	{ 'id_allocator_pid', id_allocator_pid() },
 
 	% The main, top-level window (if any; generally a frame) of the application:
 	{ 'top_level_window', maybe( top_level_window() ) },
@@ -634,6 +640,9 @@
 % An (opaque) wx process environment.
 
 
+-type loop_pid() :: pid().
+% The PID of the MyriadGUI main loop.
+
 
 -type opengl_canvas() :: gui_opengl:gl_canvas().
 % An OpenGL canvas (not to be mixed with a basic one, canvas/0).
@@ -704,12 +713,13 @@
 
 % Miscellaneous:
 -export([ get_backend_environment/0, set_backend_environment/1,
-		  get_main_loop_pid/0, get_main_loop_pid/1 ]).
+		  get_main_loop_pid/0, get_main_loop_pid/1,
+		  get_id_allocator_pid/0, get_id_allocator_pid/1 ]).
 
 
 
 % Internal, silencing exports:
--export([ create_gui_environment/1,
+-export([ create_gui_environment/1, create_gui_environment/2,
 		  destruct_gui_environment/0, destruct_gui_environment/1,
 		  event_interception_callback/2 ]).
 
@@ -718,7 +728,8 @@
 -export([ generate_support_modules/0 ]).
 
 % As possibly used much by the gui_* modules:
--compile({ inline, [ get_environment_server/0, get_main_loop_pid/0 ]}).
+-compile({ inline, [ get_environment_server/0, get_main_loop_pid/0,
+					 get_id_allocator_pid/0, get_id_allocator_pid/1 ]}).
 
 
 % For related, public defines:
@@ -815,13 +826,7 @@
 
 -type id() :: gui_id:id().
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
-
-
-
-% GUI-specific defines:
-
-% Key of the MyriadGUI environment, in the process dictionary:
--define( gui_env_process_key, myriad_gui_environment ).
+-type id_allocator_pid() :: gui_id:id_allocator_pid().
 
 
 
@@ -867,7 +872,7 @@ start( Services ) when is_list( Services ) ->
 	% Now the identifier allocator is directly integrated in the MyriadGUI
 	% (gui_event) main loop:
 	%
-	%IdAllocPid = ?myriad_spawn_link( fun gui_id:create_id_allocator/0 ),
+	%IdAllocPid = ?myriad_spawn_link( fun gui_id:embody_as_id_allocator/0 ),
 
 	% Starting the MyriadGUI environment:
 	%create_gui_environment( Services, IdAllocPid );
@@ -887,11 +892,25 @@ start( DebugLevel ) ->
 % Some services must be specifically declared here, as they require
 % initialisation (e.g. for the loading of mouse cursors).
 %
-%-spec create_gui_environment( [ service() ], id_allocator_pid() ) ->
-%                                           gui_env_info().
 -spec create_gui_environment( [ service() ] ) -> gui_env_info().
-%create_gui_environment( Services, IdAllocPid ) ->
 create_gui_environment( Services ) ->
+	% Now, at least currently, the MyriadGUI main loop process directly hosts
+	% the identifier allocation table (to avoid more messages having to be
+	% exchanged between the two); so no standalone id allocator is wanted:
+	%
+	create_gui_environment( Services, _MaybeIdAllocPid=undefined ).
+
+
+
+% @doc Creates and initialises the MyriadGUI environment server; returns the
+% information of the just created MyriadGUI environment.
+%
+% Some services must be specifically declared here, as they require
+% initialisation (e.g. for the loading of mouse cursors).
+%
+-spec create_gui_environment( [ service() ], maybe( id_allocator_pid() ) ) ->
+											gui_env_info().
+create_gui_environment( Services, MaybeIdAllocPid ) ->
 
 	cond_utils:if_defined( myriad_debug_user_interface,
 		trace_utils:info_fmt( "Starting GUI, with following services: ~p",
@@ -922,6 +941,17 @@ create_gui_environment( Services ) ->
 	LoopPid = ?myriad_spawn_link( gui_event, start_main_event_loop,
 								  [ WxServer, WxEnv, TrapSet ] ),
 
+	IdAllocPid = case MaybeIdAllocPid of
+
+		undefined ->
+			% Then the main loop acts as a simplified id allocator:
+			LoopPid;
+
+		IdAllcPid ->
+			IdAllcPid
+
+	end,
+
 	% Caches in the calling process and initialises some GUI-related entries
 	% (refer to the gui_env_entries define):
 	%
@@ -930,7 +960,7 @@ create_gui_environment( Services ) ->
 		{ os_family, OSFamily },
 		{ os_name, OSName },
 
-		%{ id_allocator_pid, IdAllocPid },
+		{ id_allocator_pid, IdAllocPid },
 
 		{ top_level_window, undefined },
 
@@ -1199,12 +1229,11 @@ register_event_callback( SourceGUIObject, EventTypes, EventCallbackFun,
 	WxCallback = fun event_interception_callback/2,
 
 	% No other option found interesting ('skip' would be ignored here):
-	WxOptions = [ { callback, WxCallback },
-				  { userData, CallbackData } ],
+	WxOptions = [ { callback, WxCallback }, { userData, CallbackData } ],
 
 	[ begin
 
-		WxEventType = gui_wx_backend:to_wx_event_type( ET ),
+		WxEventType = gui_event:to_wx_event_type( ET ),
 
 		%trace_utils:debug_fmt( "Callback-connecting object ~w "
 		%   "for event type ~w with options ~w.",
@@ -1472,9 +1501,9 @@ set_backend_environment( WxEnv ) ->
 %
 % Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas).
 %
--spec get_main_loop_pid() -> pid().
+-spec get_main_loop_pid() -> loop_pid().
 get_main_loop_pid() ->
-	environment:get( loop_pid, ?gui_env_process_key ).
+	environment:get( loop_pid, ?gui_env_reg_name ).
 
 
 % @doc Fetches from the specified environment the PID of the process in charge
@@ -1482,9 +1511,38 @@ get_main_loop_pid() ->
 %
 % Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas).
 %
--spec get_main_loop_pid( gui_env_designator() ) -> pid().
+-spec get_main_loop_pid( gui_env_designator() ) -> loop_pid().
 get_main_loop_pid( GUIEnvDesignator ) ->
 	environment:get( loop_pid, GUIEnvDesignator ).
+
+
+
+% @doc Fetches (from the MyriadGUI environment) the PID of the process in charge
+% of running the MyriadGUI identifier allocation process.
+%
+% Allows, as much as possible, to resolve this PID locally, without any message
+% sending.
+%
+% Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas,
+% gui_id).
+%
+-spec get_id_allocator_pid() -> id_allocator_pid().
+get_id_allocator_pid() ->
+	environment:get( id_allocator_pid, ?gui_env_reg_name ).
+
+
+% @doc Fetches from the specified environment the PID of the process in charge
+% of running the MyriadGUI identifier allocation process.
+%
+% Allows, as much as possible, to resolve this PID locally, without any message
+% sending.
+%
+% Note that it is sometimes inlined in other gui_* modules (e.g. gui_canvas,
+% gui_id).
+%
+-spec get_id_allocator_pid( gui_env_designator() ) -> id_allocator_pid().
+get_id_allocator_pid( GUIEnvDesignator ) ->
+	environment:get( id_allocator_pid, GUIEnvDesignator ).
 
 
 

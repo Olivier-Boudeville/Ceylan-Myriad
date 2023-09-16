@@ -44,7 +44,8 @@
 		  get_sizer_flag_topic_spec/0, get_menu_item_id_topic_spec/0,
 		  get_button_id_topic_spec/0,
 		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
-		  get_menu_item_kind_topic_spec/0, get_status_bar_style_topic_spec/0,
+		  get_menu_item_kind_topic_spec/0, get_menu_style_topic_spec/0, 
+		  get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
 		  get_static_text_display_style_topic_spec/0,
 
@@ -72,7 +73,8 @@ list_topic_spec_functions() ->
 	% Directly adapted from the first export define:
 	[ get_object_type_topic_spec, get_window_style_topic_spec,
 	  get_frame_style_topic_spec, get_button_style_topic_spec,
-	  get_sizer_flag_topic_spec, get_menu_item_id_topic_spec,
+	  get_sizer_flag_topic_spec, 
+	  get_menu_item_id_topic_spec, get_menu_style_topic_spec,
 	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
@@ -152,39 +154,46 @@ list_topic_spec_functions() ->
 -type bit_mask() :: basic_utils:bit_mask().
 
 -type myriad_object_type() :: gui:myriad_object_type().
-
 -type wx_object_type() :: gui:wx_object_type().
-
--type window_style_opt() :: gui:window_style_opt().
--type frame_style_opt() :: gui:frame_style_opt().
-
--type sizer_flag_opt() :: gui:sizer_flag_opt().
-
--type button_id() :: gui:button_id().
--type button_style_opt() :: gui:button_style_opt().
-
--type menu_item_id() :: gui:menu_item_id().
--type menu_item_kind() :: gui:menu_item_kind().
-
--type status_bar_style() :: gui:status_bar_style().
--type toolbar_style() :: gui:toolbar_style().
--type dialog_return_code() :: gui:dialog_return_code().
-
--type message_dialog_style() :: gui:message_dialog_style().
--type single_choice_dialog_style() :: gui:single_choice_dialog_style().
--type multi_choice_dialog_style() :: gui:multi_choice_dialog_style().
--type text_entry_dialog_style() :: gui:text_entry_dialog_style().
--type file_selection_dialog_style() :: gui:file_selection_dialog_style().
--type directory_selection_dialog_style() ::
-		gui:directory_selection_dialog_style().
-%-type colour_selection_dialog_style() :: gui:colour_selection_dialog_style().
-%-type font_selection_dialog_style() :: gui:font_selection_dialog_style().
-
--type bitmap_id_opt() :: gui:bitmap_id_opt().
--type icon_name_id() :: gui:icon_name_id().
-
 -type direction() :: gui:direction().
 -type orientation() :: gui:orientation().
+
+-type event_type() :: gui_event:event_type().
+-type wx_event_type() :: gui_event:wx_event_type().
+
+-type window_style_opt() :: gui_window:window_style_opt().
+-type frame_style_opt() :: gui_window:frame_style_opt().
+-type icon_name_id() :: gui_window:icon_name_id().
+
+-type bitmap_id_opt() :: gui_bitmap:bitmap_id_opt().
+
+-type sizer_flag_opt() :: gui_sizer:sizer_flag_opt().
+
+-type button_id() :: gui_button:button_id().
+-type button_style_opt() :: gui_button:button_style_opt().
+
+-type menu_item_id() :: gui_menu:menu_item_id().
+-type menu_item_kind() :: gui_menu:menu_item_kind().
+-type menu_style() :: gui_menu:menu_style().
+
+-type status_bar_style() :: gui_statusbar:status_bar_style().
+
+-type toolbar_style() :: gui_toolbar:toolbar_style().
+
+-type dialog_return_code() :: gui_dialog:dialog_return_code().
+-type message_dialog_style() :: gui_dialog:message_dialog_style().
+-type single_choice_dialog_style() :: gui_dialog:single_choice_dialog_style().
+-type multi_choice_dialog_style() :: gui_dialog:multi_choice_dialog_style().
+-type text_entry_dialog_style() :: gui_dialog:text_entry_dialog_style().
+-type file_selection_dialog_style() :: gui_dialog:file_selection_dialog_style().
+-type directory_selection_dialog_style() ::
+		gui_dialog:directory_selection_dialog_style().
+%-type colour_selection_dialog_style() ::
+%    gui_dialog:colour_selection_dialog_style().
+
+%-type font_selection_dialog_style() ::
+%    gui_dialog:font_selection_dialog_style().
+
 
 -type wx_art_id() :: gui_wx_backend:wx_art_id().
 -type wx_enum() :: gui_wx_backend:wx_enum().
@@ -193,8 +202,6 @@ list_topic_spec_functions() ->
 
 -type wx_id() :: gui_id:wx_id().
 
--type event_type() :: gui_event:event_type().
--type wx_event_type() :: gui_event:wx_event_type().
 
 
 % @doc Returns the two-way conversion specification for the 'object_type' topic.
@@ -214,6 +221,7 @@ get_object_type_topic_spec() ->
 		{ window,                wxWindow         },
 		{ control,               wxControl        },
 		{ button,                wxButton         },
+		{ toggle_button,         wxToggleButton   },
 		{ bitmap_button,         wxBitmapButton   },
 		{ panel,                 wxPanel          },
 		{ gl_canvas,             wxGLCanvas       },
@@ -310,7 +318,7 @@ get_frame_style_topic_spec() ->
 get_button_style_topic_spec() ->
 
 	Entries = [
-		{ default,          0              },
+		% Meaningless: { default,          0              },
 		{ left_justified,   ?wxBU_LEFT     },
 		{ right_justified,  ?wxBU_RIGHT    },
 		{ top_justified,    ?wxBU_TOP      },
@@ -503,6 +511,20 @@ get_menu_item_id_topic_spec() ->
 		{ undefined,                 ?wxID_ANY               } ],
 
 	{ menu_item_id, Entries, _ElemLookup=maybe }.
+
+
+
+% Converts wx standard menu styles.
+%
+% Refer to https://docs.wxwidgets.org/stable/classwx_menu.html.
+%
+-spec get_menu_style_topic_spec() -> topic_spec( menu_style(), wx_enum() ).
+get_menu_style_topic_spec() ->
+
+	Entries = [
+		{ detachable, ?wxMENU_TEAROFF } ],
+
+	{ menu_style, Entries }.
 
 
 
@@ -968,12 +990,16 @@ get_event_type_topic_spec() ->
 		{ onToolRightClicked, command_tool_rclicked },
 
 
+		% Button-related section:
+		{ onButtonClicked, command_button_clicked },
+		{ onButtonToggled, command_togglebutton_clicked },
+
+
 		% Window section:
 
 		{ onShown,         show },
 		{ onResized,       size },
 		{ onRepaintNeeded, paint },
-		{ onButtonClicked, command_button_clicked },
 		{ onWindowClosed,  close_window } ],
 
 	{ event_type, Entries }.

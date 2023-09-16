@@ -42,23 +42,26 @@
 
 
 
--type button() :: wxButton:wxButton().
+-opaque button() :: wxButton:wxButton().
 % Designates an actual button instance.
-
+%
+% When such a button is clicked, it emits an onButtonClicked event.
 
 -type button_ref() :: button() | button_id().
 % Any kind of reference onto a button.
 
 
--type toggle_button() :: wxToggleButton:wxToggleButton().
+-opaque toggle_button() :: wxToggleButton:wxToggleButton().
 % Designates a toggle button, that is a button that, when clicked by the user,
 % stays pressed.
 %
 % It is therefore similar to a checkbox in functionality, but looks like a
 % button.
+%
+% When such a toggle button is clicked, it emits an onButtonToggled event.
 
 
--type bitmap_button() :: wxBitmapButton:wxBitmapButton().
+-opaque bitmap_button() :: wxBitmapButton:wxBitmapButton().
 % Designates an actual button instance displaying a bitmap instead of the usual
 % label.
 
@@ -75,8 +78,7 @@
 
 
 -type button_style() ::
-	'default'
-  | 'left_justified'
+	'left_justified'
   | 'right_justified'
   | 'top_justified'
   | 'bottom_justified'
@@ -177,7 +179,7 @@ create( Label, Position, Size, Styles, Id, Parent ) ->
 
 	Options = [ { label, Label }, gui_wx_backend:to_wx_position( Position ),
 				gui_wx_backend:to_wx_size( Size ),
-				{ style, button_style_to_bitmask( Styles ) } ],
+				{ style, button_styles_to_bitmask( Styles ) } ],
 
 	BackendId = gui_id:declare_any_id( Id ),
 
@@ -269,7 +271,7 @@ to_wx_button_opt( ButtonOpt={ label, _Label } ) ->
 	ButtonOpt;
 
 to_wx_button_opt( _ButtonOpt={ style, ButtonStyle } ) ->
-	{ style, button_style_to_bitmask( ButtonStyle ) };
+	{ style, button_styles_to_bitmask( ButtonStyle ) };
 
 to_wx_button_opt( _ButtonOpt={ position, Pos } ) ->
 	{ pos, Pos };
@@ -286,8 +288,8 @@ to_wx_button_opt( _ButtonOpt={ size, Size } ) ->
 %
 % (helper)
 %
--spec button_style_to_bitmask( [ button_style() ] ) -> bit_mask().
-button_style_to_bitmask( Styles ) when is_list( Styles ) ->
+-spec button_styles_to_bitmask( [ button_style() ] ) -> bit_mask().
+button_styles_to_bitmask( Styles ) ->
 	lists:foldl( fun( S, Acc ) ->
 					gui_generated:get_second_for_button_style( S ) bor Acc
 				 end,

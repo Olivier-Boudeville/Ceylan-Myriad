@@ -46,7 +46,7 @@
 run_test_gui() ->
 
 	test_facilities:display(
-		"~nStarting the actual user-event registry test of MyriadGUI, "
+		"~nStarting the actual user-event application state test of MyriadGUI, "
 		"from ~w. ", [ self() ] ),
 
 	QuitButtonId = quit_button_id,
@@ -60,21 +60,21 @@ run_test_gui() ->
 
 	gui:start(),
 
-	TestFrame = gui:create_frame( "This is the single and only test frame" ),
+	TestFrame = gui_frame:create( "This is the single and only test frame" ),
 
 	% A frame cannot handle key events, so we create a panel within it; moreover
 	% as soon as a panel is the parent of a button, it will not receive key
 	% press events (even if having the focus), so we create a panel for key
 	% presses and one for buttons:
 
-	KeyPanel = gui:create_panel( _KPanelParent=TestFrame ),
-	gui:set_background_color( KeyPanel, green ),
-	gui:set_tooltip( KeyPanel, "Panel collecting key presses." ),
+	KeyPanel = gui_panel:create( _KPanelParent=TestFrame ),
+	gui_widget:set_background_color( KeyPanel, green ),
+	gui_widget:set_tooltip( KeyPanel, "Panel collecting key presses." ),
 
-	ButtonPanel = gui:create_panel( _BPanelParent=TestFrame ),
-	gui:set_background_color( ButtonPanel, red ),
+	ButtonPanel = gui_panel:create( _BPanelParent=TestFrame ),
+	gui_widget:set_background_color( ButtonPanel, red ),
 
-	gui:set_tooltip( ButtonPanel,
+	gui_widget:set_tooltip( ButtonPanel,
 					 "Panel for buttons\n(not collecting key presses)." ),
 
 	MainSizer = gui_sizer:create( _Orientation=horizontal ),
@@ -116,9 +116,9 @@ run_test_gui() ->
 	%   [ table:to_string( AppGUIState#app_gui_state.button_table ) ] ),
 
 	% Focus needed to receive events:
-	gui:set_focus( KeyPanel ),
+	gui_widget:set_focus( KeyPanel ),
 
-	gui:show( TestFrame ),
+	gui_frame:show( TestFrame ),
 
 	trace_utils:notice( "Please click the quit button, hit 'q' or "
 						"close the frame to end this test." ),
@@ -133,8 +133,7 @@ run_test_gui() ->
 				"user event:~n ~ts",
 				[ gui_event:gui_event_to_string( BaseEvent ) ] ),
 
-			% A frame is a window:
-			gui:destruct_window( TestFrame ),
+			gui_frame:destruct( TestFrame ),
 
 			trace_utils:info( "Test frame closed, test success." ),
 

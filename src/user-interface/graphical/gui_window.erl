@@ -33,15 +33,16 @@
 % A window is a special case of widget, which is the most general form of
 % graphical component.
 %
-% See also the gui_window_manager module regarding the insertion of windows in
-% their environment.
+% See also:
+% - the gui_window_manager module regarding the insertion of windows in their
+% environment
+% - the gui_frame module
 %
 -module(gui_window).
 
 
 
-
--type window() :: gui_widget:widget().
+-opaque window() :: gui_widget:widget().
 % Any kind of window.
 %
 % Base, most general class for all windows (for example, a frame is a window
@@ -97,7 +98,7 @@
 
 
 
--type top_level_window() :: wxTopLevelWindow:wxTopLevelWindow().
+-opaque top_level_window() :: wxTopLevelWindow:wxTopLevelWindow().
 % A top-level (application-wide) window.
 %
 % The top-level window is a base class common to frames and dialogs; so such a
@@ -105,6 +106,7 @@
 
 
 -export_type([ top_level_window/0 ]).
+
 
 
 % At least for the splitter record:
@@ -117,7 +119,7 @@
 % a window into two ones.
 
 
--type splitter_window() :: wxSplitterWindow:wxSplitterWindow().
+-opaque splitter_window() :: wxSplitterWindow:wxSplitterWindow().
 % A window able to be split into two panes; it may thus manage up to two
 % subwindows.
 
@@ -136,88 +138,31 @@
 
 
 
--opaque frame() :: wxFrame:wxFrame().
-% A frame is a window whose size and position can usually be changed by the
-% user.
-%
-% Note that a frame is a top_level_window(), a window() and an event_handler(),
-% and thus can use their methods.
-%
-% At least on some platforms, while initialising a frame, an older graphical
-% content can be seen for a short while, before the first repaint. No amount of
-% wxWindow:{clearBackground,refresh,update}/1 or buffer swapping was able to
-% hide it.
-
-
--type top_level_frame() :: frame().
-% A top-level (application-wide) frame.
-
-
-% 'iconized' not kept (duplicate of 'minimize').
--type frame_style() ::
-
-	% Corresponds to the following options: minimize_icon, maximize_icon,
-	% resize_border, system_menu, caption, close_icon and clip_children.
-	%
-	'default'
-
-	% Displays a caption on the title bar of this frame (needed for icons).
-  | 'caption'
-
-	% Displays a minimize icon on the title bar of this frame.
-  | 'minimize_icon'
-
-	% Displays a maximize icon on the title bar of this frame.
-  | 'maximize_icon'
-
-	% Displays a close icon on the title bar of this frame.
-  | 'close_icon'
-
-	% Stays on top of all other windows.
-  | 'stay_on_top'
-
-	% Displays a system menu containing the list of various windows commands
-	% in the window title bar.
-	%
-  | 'system_menu'
-
-	% Displays a resizable border around the window.
-  | 'resize_border'
-
-	% This frame will have a small title bar:
-  | 'tool_window'
-
-	% Requests that this frame does not appear in the taskbar:
-  | 'no_taskbar'
-
-	% Stays on top of (only) its parent:
-  | 'float_on_parent'
-
-	% Allows this frame to have its shape changed:
-  | 'shaped'.
-% A style element for frames.
-%
-% Note that specifying an empty option list does not enable any option,; one may
-% use 'default' instead.
-%
-% See also [http://docs.wxwidgets.org/stable/classwx_frame.html].
-
-
--export_type([ frame/0, top_level_frame/0, frame_style/0 ]).
-
-
-
 % For standard, basic windows:
 -export([ create/0, create/1, create/2, create/5,
 		  destruct/1 ]).
 
 
-% For splitter windows:
+% For any kind of window:
+-export([ show/1, hide/1, record_as_top_level/1 ]).
+
+
+% For top-level windows:
+-export([ set_title/2, get_title/1,
+		  set_icon/2,
+		  center_on_screen/1, center_on_screen/2,
+		  is_maximised/1, maximize/1,
+		  is_fullscreen/1, set_fullscreen/2,
+		  is_active/1 ]).
+
+
+% For splitters:
 -export([ create_splitter/4, create_splitter/5, set_unique_pane/2 ]).
 
 
-% For any kind of window:
--export([ show/1, hide/1 ]).
+% Wx-level:
+-export([ window_styles_to_bitmask/1, to_wx_window_options/1 ]).
+
 
 
 % Implementation notes:
@@ -230,15 +175,23 @@
 % For ?gui_any_id:
 -include("gui_internal_defines.hrl").
 
+-type wx_window_option() :: term().
+
 
 % Shorthands:
+
+-type bit_mask() :: basic_utils:bit_mask().
+
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
+-type os_type() :: system_utils:os_type().
 
 -type any_file_path() :: file_utils:any_file_path().
 
 -type point() :: gui:point().
 -type size() :: gui:size().
 -type position() :: gui:position().
--type orientation() :: orientation(). 
+-type orientation() :: orientation().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
 
@@ -298,7 +251,7 @@ create( Position, Size, Style, Id, Parent ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
 			   gui_wx_backend:to_wx_size( Size ),
-			   { style, gui_wx_backend:window_style_to_bitmask( Style ) } ],
+			   { style, window_styles_to_bitmask( Style ) } ],
 
 	ActualId = gui_id:declare_any_id( Id ),
 	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
@@ -355,8 +308,8 @@ show_helper( _Windows=[ W | T ], Acc ) ->
 
 % This is certainly a strange fix. It was observed with gui_image_test.erl that
 % the image was initially displayed iff such a sleep was following
-% 'gui:show(MainFrame)' - although there was no next rendering operation (a
-% receive blocking until the user closes the window). Otherwise the panel
+% 'gui_window:show(MainFrame)' - although there was no next rendering operation
+% (a receive blocking until the user closes the window). Otherwise the panel
 % remained blank until the frame was redrawn for any reason (e.g. resize).
 %
 show_fix() ->
@@ -465,168 +418,6 @@ is_active( TopLvlWin ) ->
 
 
 
-
-% Frame subsection.
-%
-% A frame is a window whose size and position can (usually) be changed by the
-% user. It usually has thick borders and a title bar, and can optionally contain
-% a menu bar, toolbar and status bar. A frame can contain any window that is not
-% a frame or a dialog.
-%
-% Source: http://docs.wxwidgets.org/stable/classwx_frame.html
-
-% An application has generally exactly one top-level frame. Creating such kind
-% of frame allows to record it, and then the window management services are able
-% to tell whether for example the application as a whole shall be considered as
-% maximised.
-
-
-
-% @doc Creates a top-level frame, with default position, size, style and
-% identifier.
-%
--spec create_top_level_frame( title() ) -> frame().
-create_top_level_frame( Title ) ->
-	Frame = create_frame( Title ),
-	record_top_level_window( Frame ),
-	Frame.
-
-
-
-% @doc Creates a top-level frame, with the specified size, and a default
-% identifier.
-%
--spec create_top_level_frame( title(), size() ) -> frame().
-create_top_level_frame( Title, Size ) ->
-	Frame = create_frame( Title, Size ),
-	record_top_level_window( Frame ),
-	Frame.
-
-
-
-% @doc Creates a top-level frame, with the specified title, position, size and
-% style.
-%
--spec create_top_level_frame( title(), position(), size(), frame_style() ) ->
-												frame().
-create_top_level_frame( Title, Position, Size, Style ) ->
-	Frame = create_frame( Title, Position, Size, Style ),
-	record_top_level_window( Frame ),
-	Frame.
-
-
-
-% @doc Creates a frame, with default title, identifier, parent, position, size
-% and style.
-%
-% Note: this version apparently does not correctly initialise the frame;
-% following error is indeed reported:
-% "wxWidgets Assert failure: ./src/gtk/toplevel.cpp(988): \"m_widget\" in Show()
-% : invalid frame".
-%
--spec create_frame() -> frame().
-create_frame() ->
-	% We could see a case where a call to wxFrame:new/0 issued by an helper
-	% spawned process (having set its environment) would trigger a segmentation
-	% fault, whereas wxFrame:new(wx:null(), ?wxID_ANY, "Hello") worked
-	% flawlessly:
-	%
-	wxFrame:new().
-
-
-% @doc Creates a titled frame, with default position, size, style, identifier
-% and parent.
-%
--spec create_frame( title() ) -> frame().
-create_frame( Title ) ->
-	wxFrame:new( gui_wx_backend:to_wx_parent( undefined ), ?gui_any_id, Title ).
-
-
-
-% @doc Creates a frame, with the specified title and size, and default
-% identifier and parent.
-%
--spec create_frame( title(), size() ) -> frame().
-create_frame( Title, Size ) ->
-
-	WxOpts = [ gui_wx_backend:to_wx_size( Size ) ],
-
-	%trace_utils:debug_fmt( "create_frame options: ~p.", [ WxOpts ] ),
-
-	wxFrame:new( gui_wx_backend:to_wx_parent( undefined ),
-				 gui_id:declare_any_id( undefined ), Title, WxOpts ).
-
-
-
-% @doc Creates a frame, with default position, size and style.
-%
-% (internal use only)
-%
--spec create_frame( title(), id(), maybe( parent() ) ) -> frame().
-create_frame( Title, Id, Parent ) ->
-	wxFrame:new( gui_wx_backend:to_wx_parent( Parent ),
-				 gui_id:declare_any_id( Id ), Title ).
-
-
-
-% @doc Creates a frame, with the specified title, position, size and style, and
-% with a default parent.
-%
--spec create_frame( title(), position(), size(), frame_style() ) -> frame().
-create_frame( Title, Position, Size, Style ) ->
-
-	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
-				gui_wx_backend:to_wx_size( Size ),
-				{ style, frame_style_to_bitmask( Style ) } ],
-
-	%trace_utils:debug_fmt( "create_frame options: ~p.", [ WxOpts ] ),
-
-	wxFrame:new( gui_wx_backend:to_wx_parent( undefined ),
-				 gui_id:declare_any_id( undefined ), Title, WxOpts ).
-
-
-
-% @doc Creates a frame, with the specified title, position, size and style, and
-% with a default parent.
-%
-% (internal use only: wx exposed)
-%
--spec create_frame( title(), position(), size(), frame_style(), id(),
-					parent() ) -> frame().
-create_frame( Title, Position, Size, Style, Id, Parent ) ->
-
-	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
-				gui_wx_backend:to_wx_size( Size ),
-				{ style, frame_style_to_bitmask( Style ) } ],
-
-	ActualId = gui_id:declare_any_id( Id ),
-
-	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
-
-	wxFrame:new( ActualParent, ActualId, Title, WxOpts ).
-
-
-
-% @doc Destructs the specified frame.
--spec destruct_frame( frame() ) -> void().
-destruct_frame( Frame  ) ->
-	wxFrame:destroy( Frame ).
-
-
-
-% Records the specified window as the application top-level one, in the
-% MyriadGUI environment.
-%
-% (helper)
-%
--spec record_top_level_window( top_level_window() ) -> void().
-record_top_level_window( TopLvlWindow ) ->
-	environment:set( _K=top_level_window, _V=TopLvlWindow,
-					 _Designator=?gui_env_reg_name ).
-
-
-
-
 % Splitter subsection.
 %
 % Note that these functions handle splitter() instances - not any form of
@@ -685,15 +476,57 @@ set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
 
 
 
-% Helper section.
-
 
 % Records, in the MyriadGUI environment, the specified window (typically a
 % frame) as the application top-level window.
-%
-% (helper)
 %
 -spec record_as_top_level( window() ) -> void().
 record_as_top_level( Window ) ->
 	environment:set( _K=top_level_window, _V=Window,
 					 _Designator=?gui_env_reg_name ).
+
+
+
+% @doc Converts the specified MyriadGUI window style elements into the
+% appropriate wx-specific bit mask.
+%
+% (helper)
+%
+-spec window_styles_to_bitmask( [ window_style() ] ) -> bit_mask().
+window_styles_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
+	lists:foldl( fun( S, Acc ) ->
+					gui_generated:get_second_for_window_style( S ) bor Acc
+				 end,
+				 _InitialAcc=0,
+				 _List=StyleOpts );
+
+window_styles_to_bitmask( StyleOpt ) ->
+	gui_generated:get_second_for_window_style( StyleOpt ).
+
+
+
+% @doc Converts the specified MyriadGUI window option(s) into the appropriate
+% wx-specific options.
+%
+% (exported helper)
+%
+-spec to_wx_window_options( maybe_list( window_option() ) ) ->
+								[ wx_window_option() ].
+to_wx_window_options( Options ) when is_list( Options ) ->
+	to_wx_window_options( Options, _Acc=[] );
+
+to_wx_window_options( Option ) ->
+	to_wx_window_options( [ Option ] ).
+
+
+
+to_wx_window_options( _Options=[], Acc ) ->
+	Acc;
+
+to_wx_window_options( _Options=[ { style, Style } | T ], Acc ) ->
+	to_wx_window_options( T,
+		[ { style, window_styles_to_bitmask( Style ) } | Acc ] );
+
+% Unchanged:
+to_wx_window_options( _Options=[ H | T ], Acc ) ->
+	to_wx_window_options( T, [ H | Acc ] ).

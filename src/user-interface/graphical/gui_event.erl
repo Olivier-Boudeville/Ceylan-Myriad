@@ -225,7 +225,7 @@
 
 
 
-% Thus an actual wx:wx_object(), i.e. a #wx_ref record:
+% Thus an actual (non-opaque) wx:wx_object(), i.e. a #wx_ref record:
 -type gui_event_object() :: wxEvent:wxEvent().
 % A Myriad GUI object (therefore the reference to a full-blown backend process -
 % not a mere datastructure like an event record received as a message) holding
@@ -236,7 +236,7 @@
 % propagated upward in the widget hierarchy.
 
 
--type instance_count() :: basic_utils:count().
+-type instance_count() :: count().
 % A count of instances of a given object type.
 
 
@@ -257,7 +257,7 @@
 
 
 
--type wx_event_handler() :: wxEvtHandler:wxEvtHandler().
+-opaque wx_event_handler() :: wxEvtHandler:wxEvtHandler().
 
 
 
@@ -282,6 +282,7 @@
 
 -type wx_repaint_event_type() :: 'paint'.
 
+% Toggle may be added:
 -type wx_click_event_type() :: 'command_button_clicked'.
 
 -type wx_resize_event_type() :: 'size'.
@@ -758,6 +759,9 @@
 		  instance_referential_to_string/1, set_canvas_instance_state/3 ]).
 
 
+% Wx-level:
+-export([ to_wx_event_type/1, from_wx_event_type/1 ]).
+
 
 
 % Implementation notes.
@@ -786,9 +790,10 @@
 % Please refer to wx.pdf (available on http://www.erlang.org/doc/apps/wx/wx.pdf)
 % for more architecture/implementation details about wx.
 
-% We used to rely on a separate process obtained from
-% gui_id:create_id_allocator/0 to manage identifiers, yet it is certainly more
-% efficient to have them managed directly by this gui_event main loop.
+% We used to rely on a separate process created for
+% gui_id:embody_as_id_allocator/0 to manage identifiers, yet it is certainly
+% more efficient to have them managed directly by this gui_event main loop (less
+% messages involved for declarations/resolutions).
 
 
 % Identifier/reference memento:
@@ -1067,6 +1072,10 @@ process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 % its name, the GUI loop must be notified so that it stores this name,
 % associates it to a new backend identifier (wx_id()) and returns it to the
 % sender for its upcoming, corresponding wx creation call.
+%
+% Note that, at least currently, this MyriadGUI main loop supports only a subset
+% of the message types that a real identifier allocator (see gui_id) would
+% support.
 %
 process_event_message( { declareNameIdentifier, NameId, SenderPid },
 		LoopState=#loop_state{ id_next=NextId,
@@ -1612,7 +1621,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 			WxEventType = element( 2, WxEventInfo ),
 
 			% Converting to a MyriadGUI event to look-up any subscribers:
-			EventType = gui_wx_backend:from_wx_event_type( WxEventType ),
+			EventType = from_wx_event_type( WxEventType ),
 
 			% We could try here to convert any backend identifier in the event
 			% term into a MyriadGUI (atom) identifier.
@@ -2528,7 +2537,7 @@ register_user_events( _UserEvents=[ { button_clicked, ButtonId } | T ],
 		AppEvent, AppGUIState=#app_gui_state{ button_table=ButtonTable } ) ->
 
 	% Not wanting names in the table keys:
-	BackendButtonId = gui:ensure_backend_id( ButtonId ),
+	BackendButtonId = gui_id:resolve_any_id( ButtonId ),
 
 	% Overwrites any previous association for that button:
 	NewButtonTable = table:add_entry( BackendButtonId, AppEvent, ButtonTable ),
@@ -2838,7 +2847,7 @@ default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 			  context_to_string( EventContext ) ] ),
 			 % basic_utils:ignore_unused( EventContext ) ),
 
-	ButtonBackendId = gui:ensure_backend_id( ButtonId ),
+	ButtonBackendId = gui_id:resolve_any_id( ButtonId ),
 
 	%trace_utils:debug_fmt( "Button table: ~ts",
 	%                       [ table:to_string( ButtonTable ) ] ),
@@ -3409,7 +3418,7 @@ wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo } ) ->
 	%
 	WxEventType = element( 2, WxEventInfo ),
 
-	MyriadEventType = gui_wx_backend:from_wx_event_type( WxEventType ),
+	MyriadEventType = from_wx_event_type( WxEventType ),
 
 	EventContext = #event_context{ id=WxId,
 								   user_data=UserData,
@@ -3589,3 +3598,19 @@ application_event_to_string( AE ) when is_atom( AE ) ->
 
 application_event_to_string( AE ) ->
 	text_utils:format( "~p", [ AE ] ).
+
+
+
+% Event type section.
+
+
+% @doc Converts a MyriadGUI type of event into a wx one.
+-spec to_wx_event_type( event_type() ) -> wx_event_type().
+to_wx_event_type( EventType ) ->
+	gui_generated:get_second_for_event_type( EventType ).
+
+
+% @doc Converts a wx type of event into a MyriadGUI one.
+-spec from_wx_event_type( wx_event_type() ) -> event_type().
+from_wx_event_type( WxEventType ) ->
+	gui_generated:get_first_for_event_type( WxEventType ).

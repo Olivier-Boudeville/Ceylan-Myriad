@@ -75,6 +75,7 @@
 
 -type count() :: basic_utils:count().
 -type positive_index() :: basic_utils:positive_index().
+-type bit_mask() :: basic_utils:bit_mask().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -100,7 +101,7 @@ create( Frame ) ->
 create( Frame, StatusBarStyles ) ->
 	% No interesting option (winid):
 	wxFrame:createStatusBar( Frame, [ { style,
-		gui_wx_backend:to_wx_style( StatusBarStyles ) } ] ).
+		statusbar_styles_to_bitmask( StatusBarStyles ) } ] ).
 
 
 
@@ -162,3 +163,17 @@ push_field_status( StatusBar, Text, FieldIndex ) ->
 push_field_status( StatusBar, FormatString, FormatValues, FieldIndex ) ->
 	Text = text_utils:format( FormatString, FormatValues ),
 	push_field_status( StatusBar, Text, FieldIndex ).
+
+
+% @doc Converts the specified MyriadGUI status bar style elements into the
+% appropriate wx-specific bit mask.
+%
+% (helper)
+%
+-spec statusbar_styles_to_bitmask( [ status_bar_style() ] ) -> bit_mask().
+statusbar_styles_to_bitmask( Styles ) ->
+	lists:foldl( fun( S, Acc ) ->
+					gui_generated:get_second_for_status_bar_style( S ) bor Acc
+				 end,
+				 _InitialAcc=0,
+				 _List=Styles ).

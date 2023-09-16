@@ -48,12 +48,8 @@
 -module(gui_sizer).
 
 
-% Usage notes:
-%
 
-
-
--type sizer() :: wxSizer:wxSizer().
+-opaque sizer() :: wxSizer:wxSizer().
 % A vertical and/or horizontal virtual (not a widget) container whose elements
 % are dynamically resized.
 %
@@ -64,14 +60,14 @@
 % that it registered.
 
 
--type grid_sizer() :: wxGridSizer:wxGridSizer().
+-opaque grid_sizer() :: wxGridSizer:wxGridSizer().
 % A grid sizer is a sizer that lays out its children in a two-dimensional table
 % with all table fields having the same size, i.e. the width of each field is
 % the width of the widest child, the height of each field is the height of the
 % tallest child.
 
 
--type compact_grid_sizer() :: wxFlexGridSizer:wxFlexGridSizer().
+-opaque compact_grid_sizer() :: wxFlexGridSizer:wxFlexGridSizer().
 % A grid sizer trying to be as compact as possible.
 %
 % Indeed the width of each column and the height of each row are calculated
@@ -88,7 +84,7 @@
 % Sizers can thus be included in sizers.
 
 
--type sizer_item() :: wxSizerItem:wxSizerItem().
+-opaque sizer_item() :: wxSizerItem:wxSizerItem().
 % An object in charge of tracking the position, size and other attributes of an
 % element of a sizer.
 
@@ -116,11 +112,6 @@
 % See [https://docs.wxwidgets.org/stable/classwx_sizer.html].
 
 
--type sizer_flags() :: [ sizer_flag_opt() ].
-% Creation option flags for a sizer.
-
-
-
 % Simplification for the user: no specific flag needed.
 -type sizer_option() :: { 'proportion', weight_factor() }
 					  | { 'border', width() }
@@ -142,7 +133,7 @@
 
 -export_type([ sizer/0, grid_sizer/0, compact_grid_sizer/0,
 			   sizer_child/0, sizer_item/0,
-			   sizer_flags/0, sizer_flag_opt/0,
+			   sizer_flag_opt/0,
 			   sizer_option/0, weight_factor/0 ]).
 
 
@@ -158,14 +149,15 @@
 		  clear/1, clear/2 ]).
 
 
-% For related, internal, wx-related defines:
-%-include("gui_internal_defines.hrl").
-
+% To improve:
+-type wx_sizer_options() :: [ sizer_option() ].
 
 
 % Shorthands:
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
+
+-type bit_mask() :: basic_utils:bit_mask().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -301,7 +293,7 @@ add_element( Sizer, _Element={ myriad_object_ref, myr_canvas, CanvasId },
 	end;
 
 add_element( Sizer, Element, Options ) ->
-	ActualOptions = gui_wx_backend:to_wx_sizer_options( Options ),
+	ActualOptions = to_wx_sizer_options( Options ),
 
 	%trace_utils:debug_fmt( "Adding ~w to sizer ~w with options ~w "
 	%    "(i.e. ~w).", [ Element, Sizer, Options, ActualOptions ] ),
@@ -321,11 +313,11 @@ add_elements( _Sizer, _Elements=[] ) ->
 
 add_elements( Sizer, _Elements=[ { Elem, Opts } | T ] ) ->
 	Item = add_element( Sizer, Elem, Opts ),
-	[ Item | add_element( Sizer, T ) ];
+	[ Item | add_elements( Sizer, T ) ];
 
 add_elements( Sizer, _Elements=[ Elem | T ] ) ->
 	Item = add_element( Sizer, Elem ),
-	[ Item | add_element( Sizer, T ) ].
+	[ Item | add_elements( Sizer, T ) ].
 
 
 
@@ -358,8 +350,8 @@ add_spacer( Sizer, Length ) ->
 -spec add_spacer( sizer(), width(), height(), maybe_list( sizer_option() ) ) ->
 											sizer_item().
 add_spacer( Sizer, Width, Height, Options ) ->
-	ActualOptions = gui_wx_backend:to_wx_sizer_options( Options ),
-	wxSizer:addSpacer( Sizer, Width, Height, ActualOptions).
+	ActualOptions = to_wx_sizer_options( Options ),
+	wxSizer:addSpacer( Sizer, Width, Height, ActualOptions ).
 
 
 % @doc Adds to the specified sizer a stretchable spacer child, and returns the
@@ -382,3 +374,53 @@ clear( Sizer ) ->
 -spec clear( sizer(), boolean() ) -> void().
 clear( Sizer, DeleteChildWidgets ) ->
 	wxSizer:clear( Sizer, [ { delete_windows, DeleteChildWidgets } ] ).
+
+
+
+% @doc Converts the specified sizer options into wx-specific ones.
+%
+% (helper)
+%
+-spec to_wx_sizer_options( maybe_list( sizer_option() ) ) -> wx_sizer_options().
+to_wx_sizer_options( Options ) when is_list( Options ) ->
+	to_wx_sizer_options( Options, _AccOpts=[], _AccFlags=[] );
+
+to_wx_sizer_options( Option ) ->
+	to_wx_sizer_options( [ Option ] ).
+
+
+
+% (helper)
+to_wx_sizer_options( _Options=[], AccOpts, _AccFlags=[]  ) ->
+	AccOpts;
+
+to_wx_sizer_options( _Options=[], AccOpts, AccFlags ) ->
+	[ { flag, sizer_flags_to_bitmask( AccFlags ) } | AccOpts ];
+
+to_wx_sizer_options( _Options=[ { userData, Data } | T ], AccOpts, AccFlags ) ->
+	to_wx_sizer_options( T, [ { user_data, Data } | AccOpts ], AccFlags );
+
+% Letting {proportion, integer()} and {border, integer()} go through:
+to_wx_sizer_options( _Options=[ P | T ], AccOpts, AccFlags )
+											when is_tuple( P ) ->
+	to_wx_sizer_options( T, [ P | AccOpts ], AccFlags );
+
+to_wx_sizer_options( _Options=[ F | T ], AccOpts, AccFlags ) ->
+	to_wx_sizer_options( T, AccOpts, [ F | AccFlags ] ).
+
+
+
+% @doc Converts the specified MyriadGUI sizer flag options into the appropriate
+% wx-specific bit mask.
+%
+% (helper)
+%
+-spec sizer_flags_to_bitmask( maybe_list( sizer_option() ) ) -> bit_mask().
+sizer_flags_to_bitmask( FlagOpts ) when is_list( FlagOpts ) ->
+	lists:foldl( fun( F, Acc ) ->
+					gui_generated:get_second_for_sizer_flag( F ) bor Acc end,
+				 _InitialAcc=0,
+				 _List=FlagOpts );
+
+sizer_flags_to_bitmask( FlagOpt ) ->
+	gui_generated:get_second_for_sizer_flag( FlagOpt ).

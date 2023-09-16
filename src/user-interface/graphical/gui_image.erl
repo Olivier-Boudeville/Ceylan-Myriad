@@ -47,7 +47,7 @@
 -include("gui_internal_defines.hrl").
 
 
--type image() :: wxImage:wxImage().
+-opaque image() :: wxImage:wxImage().
 % An image is a bitmap buffer of RGB bytes with an optional buffer for the alpha
 % bytes.
 %

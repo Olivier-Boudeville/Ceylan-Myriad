@@ -50,6 +50,11 @@
 % An option when creating a menu.
 
 
+-type menu_style() :: 'detachable'.
+% A style element of a menu, see
+% [http://docs.wxwidgets.org/stable/classwx_menu.html].
+
+
 -opaque menu_item() :: wxMenuItem:wxMenuItem().
 % An entry registered in a menu; possibly a basic item, a submenu or a
 % separator.
@@ -202,7 +207,7 @@
 % Not existing? -type menu_bar_option() :: ''.
 
 
--export_type([ menu/0, menu_option/0, menu_item/0, menu_title/0,
+-export_type([ menu/0, menu_option/0, menu_style/0,  menu_item/0, menu_title/0,
 			   menu_label/0, menu_item_label/0, menu_item_kind/0,
 			   menu_item_status/0, standard_menu_item_name_id/0, menu_item_id/0,
 			   menu_bar/0 ]).
@@ -210,28 +215,36 @@
 
 
 % Menu life-cycle, to be used as a menu bar or a popup menu.
--export([ create_menu/0, create_menu/1, create_menu/2, destruct_menu/1 ]).
+-export([ create/0, create/1, create/2, destruct/1 ]).
+
 
 % Functions related to menus in general.
 -export([ get_standard_item_names/0, add_item/2, add_item/3, append_item/2,
 		  append_submenu/4, append_submenu/5,
 		  add_checkable_item/2, add_checkable_item/3, add_checkable_item/4,
-		  set_checkable_menu_item/3,
+		  set_checkable_item/3,
 		  add_radio_item/3, add_radio_item/4,
-		  add_separator/1, set_menu_item_status/3,
+		  add_separator/1, set_item_status/3,
 		  remove_menu_item/2 ]).
 
 
 % Functions for menu bars.
--export([ create_menu_bar/0, create_menu_bar/1, add_menu/3, set_menu_bar/2 ]).
+-export([ create_bar/0, create_bar/1, add_menu/3, set_menu_bar/2 ]).
 
 
 % Functions for popup menus.
--export([ activate_popup_menu/2 ]).
+-export([ activate_as_popup/2 ]).
+
+
+% Exported helpers:
+-export([ to_wx_menu_item_id/1, to_new_wx_menu_item_id/1,
+		  to_wx_menu_item_kind/1 ]).
 
 
 
 % Shorthands:
+
+-type bit_mask() :: basic_utils:bit_mask().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -246,6 +259,9 @@
 -type id() :: gui_id:id().
 -type name_id() :: gui_id:name_id().
 
+-type wx_id() :: gui_wx_backend:wx_id().
+-type wx_enum() :: gui_wx_backend:wx_enum().
+
 
 
 % @doc Creates a menu, either to be attached to a menu bar, or to be used as a
@@ -253,17 +269,17 @@
 %
 % This is the most recommended and useful function to create a menu.
 %
--spec create_menu() -> menu().
-create_menu() ->
+-spec create() -> menu().
+create() ->
 	wxMenu:new().
 
 
 % @doc Creates a menu with the specified options, either to be attached to a
 % menu bar, or to be used as a popup menu.
 %
--spec create_menu( maybe_list( menu_option() ) ) -> menu().
-create_menu( MaybeOptions ) ->
-	WxOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
+-spec create( maybe_list( menu_option() ) ) -> menu().
+create( MaybeOptions ) ->
+	WxOpts = to_wx_menu_options( MaybeOptions ),
 
 	%trace_utils:debug_fmt( "Creating a menu with options ~p.",
 	%                       [ WxOpts ] ),
@@ -274,9 +290,9 @@ create_menu( MaybeOptions ) ->
 % @doc Creates a menu with the specified title and options, either to be
 % attached to a menu bar, or to be used as a popup menu.
 %
--spec create_menu( title(), maybe_list( menu_option() ) ) -> menu().
-create_menu( Title, MaybeOptions ) ->
-	WxOpts = gui_wx_backend:to_wx_menu_options( MaybeOptions ),
+-spec create( title(), maybe_list( menu_option() ) ) -> menu().
+create( Title, MaybeOptions ) ->
+	WxOpts = to_wx_menu_options( MaybeOptions ),
 
 	%trace_utils:debug_fmt( "Creating a menu '~ts' with options ~p.",
 	%                       [ Title, WxOpts ] ),
@@ -285,8 +301,8 @@ create_menu( Title, MaybeOptions ) ->
 
 
 % @doc Destructs the specified menu.
--spec destruct_menu( menu() ) -> void().
-destruct_menu( Menu ) ->
+-spec destruct( menu() ) -> void().
+destruct( Menu ) ->
 	wxMenu:destroy( Menu ).
 
 
@@ -424,8 +440,8 @@ add_checkable_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
 % @doc Checks/unchecks the (checkable) menu item specified by its identifier
 % (not by its menu item reference).
 %
--spec set_checkable_menu_item( menu(), menu_item_id(), boolean() ) -> void().
-set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
+-spec set_checkable_item( menu(), menu_item_id(), boolean() ) -> void().
+set_checkable_item( Menu, MenuItemId, SetAsChecked ) ->
 	wxMenu:check( Menu, gui_id:resolve_any_id( MenuItemId ), SetAsChecked ).
 
 
@@ -442,7 +458,7 @@ set_checkable_menu_item( Menu, MenuItemId, SetAsChecked ) ->
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label() ) ->
 													menu_item().
 add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
-	wxMenu:appendRadioItem( Menu, gui_id:resolve_any_id( MenuItemId ), 
+	wxMenu:appendRadioItem( Menu, gui_id:resolve_any_id( MenuItemId ),
 							MenuItemLabel ).
 
 
@@ -456,7 +472,7 @@ add_radio_item( Menu, MenuItemId, MenuItemLabel ) ->
 -spec add_radio_item( menu(), menu_item_id(), menu_item_label(),
 					  help_info() ) -> menu_item().
 add_radio_item( Menu, MenuItemId, MenuItemLabel, HelpInfoStr ) ->
-	wxMenu:appendRadioItem( Menu, gui_id:resolve_any_id( MenuItemId ), 
+	wxMenu:appendRadioItem( Menu, gui_id:resolve_any_id( MenuItemId ),
 							MenuItemLabel, [ { help, HelpInfoStr } ] ).
 
 
@@ -467,12 +483,12 @@ add_separator( Menu ) ->
 
 
 % @doc Sets the enabled/disabled status of the specified menu item.
--spec set_menu_item_status( menu(), menu_item_id(), menu_item_status() ) ->
+-spec set_item_status( menu(), menu_item_id(), menu_item_status() ) ->
 														void().
-set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=enabled ) ->
+set_item_status( Menu, MenuItemId, _NewEnableStatus=enabled ) ->
 	wxMenu:enable( Menu, gui_id:resolve_any_id( MenuItemId ), _Check=true );
 
-set_menu_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
+set_item_status( Menu, MenuItemId, _NewEnableStatus=disabled ) ->
 	wxMenu:enable( Menu, gui_id:resolve_any_id( MenuItemId ), _Check=false ).
 
 
@@ -489,14 +505,14 @@ remove_menu_item( Menu, MenuItemId ) ->
 % Menu bar subsection.
 
 % @doc Creates an empty menu bar, not yet specifically associated to a frame.
--spec create_menu_bar() -> menu_bar().
-create_menu_bar() ->
+-spec create_bar() -> menu_bar().
+create_bar() ->
 	wxMenuBar:new().
 
 
 % @doc Creates an empty menu bar, associated to the specified frame.
--spec create_menu_bar( frame() ) -> menu_bar().
-create_menu_bar( Frame ) ->
+-spec create_bar( frame() ) -> menu_bar().
+create_bar( Frame ) ->
 	MenuBar = wxMenuBar:new(),
 	set_menu_bar( Frame, MenuBar ),
 	MenuBar.
@@ -517,11 +533,90 @@ set_menu_bar( MenuBar, Frame ) ->
 
 % Popup menu subsection.
 
+
 % @doc Activates the specified menu as a popup one on the specified widget.
 %
 % Typically called on receiving of a onMouseRightButtonReleased event.
 %
--spec activate_popup_menu( widget(), menu() ) -> void().
-activate_popup_menu( Widget, Menu ) ->
+-spec activate_as_popup( widget(), menu() ) -> void().
+activate_as_popup( Widget, Menu ) ->
 	% Meaning on returned boolean unclear:
 	wxWindow:popupMenu( Widget, Menu ).
+
+
+
+% Wx support.
+
+
+% @doc Converts the specified menu option(s) into wx-specific ones.
+-spec to_wx_menu_options( maybe_list( menu_option() ) ) -> list().
+to_wx_menu_options( Options ) when is_list( Options ) ->
+	[ to_wx_menu_option( O ) || O <- Options ];
+
+to_wx_menu_options( Opt ) ->
+	to_wx_menu_options( [ Opt ] ).
+
+
+% (helper)
+to_wx_menu_option( Opt=detachable ) ->
+	{ style, menu_styles_to_bitmask( _MenuStyle=Opt ) }.
+
+
+
+% @doc Converts the specified menu item identifier (for an already-existing menu
+% item) into a wx-specific one.
+%
+-spec to_wx_menu_item_id( menu_item_id() ) -> wx_id().
+to_wx_menu_item_id( MenuItemId ) ->
+
+	%trace_utils:debug_fmt( "Testing availability: ~ts",
+	%   [ code_utils:study_function_availability( gui_generated,
+	%       get_maybe_second_for_menu_item_id, 1 ) ] ),
+
+	case gui_generated:get_maybe_second_for_menu_item_id( MenuItemId ) of
+
+		undefined ->
+			gui_id:resolve_id( MenuItemId );
+
+		WxId ->
+			WxId
+
+	end.
+
+
+% @doc Converts the specified menu identifier for a new menu item into a
+% wx-specific one.
+%
+-spec to_new_wx_menu_item_id( menu_item_id() ) -> wx_id().
+to_new_wx_menu_item_id( MenuItemId ) ->
+	case gui_generated:get_maybe_second_for_menu_item_id( MenuItemId ) of
+
+		undefined ->
+			gui_id:declare_id( MenuItemId );
+
+		WxId ->
+			WxId
+
+	end.
+
+
+% @doc Converts the specified kind of menu identifier into a wx-specific one.
+-spec to_wx_menu_item_kind( menu_item_kind() ) -> wx_enum().
+to_wx_menu_item_kind( Kind ) ->
+	% Same:
+	gui_generated:get_second_for_menu_item_kind( Kind ).
+
+
+
+% @doc Converts the specified MyriadGUI menu style elements into the
+% appropriate wx-specific bit mask.
+%
+% (helper)
+%
+-spec menu_styles_to_bitmask( [ menu_style() ] ) -> bit_mask().
+menu_styles_to_bitmask( Styles ) ->
+	lists:foldl( fun( S, Acc ) ->
+					gui_generated:get_second_for_menu_style( S ) bor Acc
+				 end,
+				 _InitialAcc=0,
+				 _List=Styles ).

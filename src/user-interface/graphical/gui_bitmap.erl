@@ -228,7 +228,7 @@ get_standard( StdBitmapId ) ->
 
 	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
 
-	NullBitmap = gui_wx_backend:get_wx_null_bitmap(),
+	NullBitmap = get_wx_null_bitmap(),
 
 	% Using default size:
 	case wxArtProvider:getBitmap( WxArtId ) of
@@ -250,7 +250,7 @@ get_standard( StdBitmapId, Dimensions ) ->
 
 	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
 
-	NullBitmap = gui_wx_backend:get_wx_null_bitmap(),
+	NullBitmap = get_wx_null_bitmap(),
 
 	% Using default size:
 	case wxArtProvider:getBitmap( WxArtId, _Opts=[ { size, Dimensions } ] ) of
@@ -356,3 +356,13 @@ create_static_display( Bitmap, Options, Parent ) ->
 -spec destruct_static_display( bitmap_display() ) -> void().
 destruct_static_display( BitmapDisplay ) ->
 	wxStaticBitmap:destroy( BitmapDisplay ).
+
+
+
+% @doc Return the wx null bitmap, which is typically returned whenever a bitmap
+% is not found.
+%
+-spec get_wx_null_bitmap() -> bitmap().
+get_wx_null_bitmap() ->
+	% Computed (not a literal constant):
+	?wxNullBitmap.

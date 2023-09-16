@@ -48,8 +48,7 @@
 
 % Shorthands:
 
--type frame() :: gui:frame().
-%-type bitmap() :: gui:bitmap().
+-type frame() :: gui_frame:frame().
 
 
 
@@ -65,11 +64,11 @@ run_bitmap_test() ->
 
 	gui:start(),
 
-	MainFrame = gui:create_frame( _Title="MyriadGUI Bitmap Test",
+	MainFrame = gui_frame:create( _Title="MyriadGUI Bitmap Test",
 								  gui_overall_test:get_main_window_size() ),
 
 	% No need to add _Opts=[{style, full_repaint_on_resize}]:
-	Panel = gui:create_panel( MainFrame ),
+	Panel = gui_panel:create( MainFrame ),
 
 	ColumnCount = 8,
 
@@ -85,7 +84,7 @@ run_bitmap_test() ->
 	BitmapIdss = list_utils:group_by( ColumnCount, AllBitmapIds ),
 
 	BitmapStrs = [ text_utils:atoms_to_listed_string( Ids )
-				   || Ids <- BitmapIdss ],
+						|| Ids <- BitmapIdss ],
 
 	trace_utils:debug_fmt(
 		"All ~B standard bitmap identifiers, listed per row: ~ts",
@@ -96,15 +95,13 @@ run_bitmap_test() ->
 
 	Dims = { 32, 32 },
 
-	AllBitmaps = [ gui_image:get_standard_bitmap( BId, Dims )
+	AllBitmaps = [ gui_bitmap:get_standard( BId, Dims )
 					|| BId <- AllBitmapIds ],
 
-	AllBitmapDisplays = [ gui:create_bitmap_display( B, BitmapParent )
+	AllBitmapDisplays = [ gui_bitmap:create_static_display( B, BitmapParent )
 								|| B <- AllBitmaps ],
 
-	BitmapFlags = [],
-
-	gui_sizer:add_element( GridSizer, AllBitmapDisplays, BitmapFlags ),
+	gui_sizer:add_elements( GridSizer, AllBitmapDisplays, _BitmapFlags=[] ),
 
 	gui_widget:set_sizer( Panel, GridSizer ),
 
@@ -112,7 +109,7 @@ run_bitmap_test() ->
 	gui:subscribe_to_events( [ { onWindowClosed, MainFrame } ] ),
 
 	% Renders the GUI:
-	gui:show( MainFrame ),
+	gui_frame:show( MainFrame ),
 
 	test_main_loop( MainFrame ),
 
@@ -135,7 +132,7 @@ test_main_loop( MainFrame ) ->
 					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
-			gui:destruct_window( MainFrame );
+			gui_frame:destruct( MainFrame );
 
 
 		Other ->

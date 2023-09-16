@@ -34,7 +34,7 @@
 -module(gui_text).
 
 
--type static_text_display() :: wxStaticText:wxStaticText().
+-opaque static_text_display() :: wxStaticText:wxStaticText().
 % A widget displaying a text; a text display behaves like a panel dedicated
 % to the rendering of a text.
 
@@ -102,6 +102,7 @@
 -type id() :: gui_id:id().
 
 -type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
+
 
 
 % Text display section.

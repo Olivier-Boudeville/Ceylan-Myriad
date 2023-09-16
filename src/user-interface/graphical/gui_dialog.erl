@@ -44,7 +44,7 @@
 
 % Dialog-general subsection.
 
--type dialog() :: wxDialog:wxDialog().
+-opaque dialog() :: wxDialog:wxDialog().
 % Any type of dialog.
 %
 % This is a window that can be shown in a modal way (GUI-blocking), or modeless.
@@ -64,7 +64,7 @@
 % Dialog-specific subsection.
 
 
--type message_dialog() :: wxMessageDialog:wxMessageDialog().
+-opaque message_dialog() :: wxMessageDialog:wxMessageDialog().
 % A dialog displaying a message and a few buttons.
 
 
@@ -100,7 +100,7 @@
 
 
 
--type single_choice_dialog() :: wxSingleChoiceDialog:wxSingleChoiceDialog().
+-opaque single_choice_dialog() :: wxSingleChoiceDialog:wxSingleChoiceDialog().
 % A dialog allowing the user to select a single option among a set thereof.
 %
 % Double-clicking on a list item is equivalent to single-clicking and then
@@ -125,7 +125,7 @@
 
 
 
--type multi_choice_dialog() :: wxMultiChoiceDialog:wxMultiChoiceDialog().
+-opaque multi_choice_dialog() :: wxMultiChoiceDialog:wxMultiChoiceDialog().
 % A dialog allowing the user to select multiple options from a set thereof.
 
 
@@ -147,7 +147,7 @@
 
 
 
--type text_entry_dialog() :: wxTextEntryDialog:wxTextEntryDialog().
+-opaque text_entry_dialog() :: wxTextEntryDialog:wxTextEntryDialog().
 % A dialog allowing the user to enter a (line of) text.
 
 
@@ -171,7 +171,7 @@
 
 
 
--type file_selection_dialog() :: wxDirDialog:wxDirDialog().
+-opaque file_selection_dialog() :: wxDirDialog:wxDirDialog().
 % A dialog allowing to select a local file.
 
 
@@ -221,7 +221,7 @@
 
 
 
--type directory_selection_dialog() :: wxDirDialog:wxDirDialog().
+-opaque directory_selection_dialog() :: wxDirDialog:wxDirDialog().
 % A dialog allowing to select a local directory.
 
 
@@ -250,7 +250,7 @@
 
 
 
--type color_selection_dialog() :: wxColorDialog:wxColorDialog().
+-opaque color_selection_dialog() :: wxColorDialog:wxColorDialog().
 % A dialog allowing to select a color.
 
 % No color_selection_dialog_option() or color_selection_dialog_style() applies.
@@ -258,44 +258,12 @@
 -export_type([ color_selection_dialog/0 ]).
 
 
--type font_selection_dialog() :: wxFontDialog:wxFontDialog().
+-opaque font_selection_dialog() :: wxFontDialog:wxFontDialog().
 % A dialog allowing to select a font installed on the system, and its size.
 
 % No font_selection_dialog_option() or font_selection_dialog_style() applies.
 
 -export_type([ font_selection_dialog/0 ]).
-
-
-
-
-% Shorthands:
-
--type maybe_list( T ) :: list_utils:maybe_list( T ).
-
--type file_path() :: file_utils:file_path().
--type any_file_path() :: file_utils:any_file_path().
-
--type directory_path() :: file_utils:directory_path().
--type any_directory_path() :: file_utils:any_directory_path().
-
--type any_string() :: text_utils:any_string().
-
--type text() :: gui_text:text().
-
--type caption() :: ui:caption().
--type label() :: ui:label().
--type message() :: ui:message().
--type choice_spec() :: ui:choice_spec().
--type choice_designator() :: ui:choice_designator().
-
--type point() :: gui:point().
--type dimensions() :: gui:dimensions().
--type parent() :: gui:parent().
-
--type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
-
--type font() :: gui_font:font().
-
 
 
 % For dialogs in general:
@@ -343,6 +311,38 @@
 
 
 
+% Shorthands:
+
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
+-type file_path() :: file_utils:file_path().
+-type any_file_path() :: file_utils:any_file_path().
+
+-type directory_path() :: file_utils:directory_path().
+-type any_directory_path() :: file_utils:any_directory_path().
+
+-type any_string() :: text_utils:any_string().
+
+-type text() :: gui_text:text().
+
+-type caption() :: ui:caption().
+-type label() :: ui:label().
+-type message() :: ui:message().
+-type choice_spec() :: ui:choice_spec().
+-type choice_designator() :: ui:choice_designator().
+
+-type point() :: gui:point().
+-type dimensions() :: gui:dimensions().
+-type parent() :: gui:parent().
+
+-type color_by_decimal_with_alpha() :: gui_color:color_by_decimal_with_alpha().
+
+-type font() :: gui_font:font().
+
+
+
+
+
 % Subsection transverse to all dialogs.
 
 
@@ -383,7 +383,11 @@ create_for_message( Message, Parent ) ->
 -spec create_for_message( message(), maybe_list( message_dialog_option() ),
 						  parent() ) -> message_dialog().
 create_for_message( Message, Opts, Parent ) when is_list( Opts ) ->
-	wxMessageDialog:new( Parent, Message, to_wx_message_dialog_opts( Opts ) ).
+	wxMessageDialog:new( Parent, Message, to_wx_message_dialog_opts( Opts ) );
+
+create_for_message( Message, Opt, Parent ) ->
+	create_for_message( Message, [ Opt ], Parent ).
+
 
 
 % @doc Destructs the specified message dialog.

@@ -81,6 +81,10 @@
 		  update_tools/1 ]).
 
 
+% Exported helpers:
+-export([ to_wx_tool_kind/1 ]).
+
+
 % Shorthands:
 
 -type wx_object() :: gui:wx_object().
@@ -96,6 +100,7 @@
 
 -type id() :: gui_id:id().
 
+-type wx_enum() :: gui_wx_backend:wx_enum().
 
 
 % @doc Creates a toolbar in the specified frame.
@@ -113,7 +118,7 @@ create( Frame ) ->
 -spec create( frame(), id(), [ toolbar_style() ] ) -> toolbar().
 create( Frame, Id, ToolbarStyles ) ->
 	wxFrame:createToolBar( Frame, [ { id, gui_id:declare_any_id( Id ) },
-		{ style, gui_wx_backend:to_wx_toolbar_style( ToolbarStyles ) } ] ).
+		{ style, toolbar_styles_to_bitmask( ToolbarStyles ) } ] ).
 
 
 
@@ -196,3 +201,28 @@ add_separator( Toolbar ) ->
 -spec update_tools( toolbar() ) -> boolean().
 update_tools( Toolbar ) ->
 	wxToolBar:realize( Toolbar ).
+
+
+
+% Wx support.
+
+
+% @doc Converts the specified MyriadGUI toolbar style elements into the
+% appropriate wx-specific bit mask.
+%
+% (helper)
+%
+-spec toolbar_styles_to_bitmask( [ toolbar_style() ] ) -> wx_enum().
+toolbar_styles_to_bitmask( Styles ) ->
+	lists:foldl( fun( S, Acc ) ->
+					gui_generated:get_second_for_toolbar_style( S ) bor Acc end,
+				 _InitialAcc=0,
+				 _List=Styles ).
+
+
+
+% @doc Converts the specified kind of tool into a wx-specific one.
+-spec to_wx_tool_kind( tool_kind() ) -> wx_enum().
+to_wx_tool_kind( ToolKind ) ->
+	% Same:
+	gui_generated:get_second_for_menu_item_kind( ToolKind ).

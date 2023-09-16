@@ -1,4 +1,4 @@
-x% Copyright (C) 2017-2023 Olivier Boudeville
+% Copyright (C) 2017-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -173,6 +173,11 @@ x% Copyright (C) 2017-2023 Olivier Boudeville
 
 -type wx_size() :: { 'size', gui:size() }.
 
+
+% For the wx defines:
+-include("gui_internal_defines.hrl").
+
+
 -type wx_direction() :: ?wxVERTICAL | ?wxHORIZONTAL.
 -type wx_orientation() :: wx_direction() | ?wxBOTH.
 
@@ -216,19 +221,19 @@ x% Copyright (C) 2017-2023 Olivier Boudeville
 -type wx_opt_pair() :: { atom(), term() }.
 % A wx option pair, like {pos, {0,0}};
 
--type wx_window_option() :: term().
 
 -type wx_event_handler_option() :: { 'id', integer() }
 								 | { 'lastId', integer() }
 								 | { 'skip', boolean() }
 								 | 'callback'
-								 | {'callback', function() }
-								 | {'userData', term() }.
+								 | { 'callback', function() }
+								 | { 'userData', term() }.
 % Refer to https://erlang.org/doc/man/wxEvtHandler.html.
 % See the corresponding gui:event_subscription_option().
 
 
--type wx_panel_option() :: wx_window_option() | wx_event_handler_option().
+-type wx_panel_option() :: gui_window:wx_window_option()
+						 | wx_event_handler_option().
 
 % Precisely:
 %    {id, integer()} |
@@ -250,7 +255,7 @@ x% Copyright (C) 2017-2023 Olivier Boudeville
 % A wxWidgets enumerated value.
 
 
--export_type([ wx_native_object_type/0, wx_opt_pair/0, wx_window_option/0,
+-export_type([ wx_native_object_type/0, wx_opt_pair/0,
 			   wx_event_handler_option/0, wx_panel_option/0,
 			   other_wx_device_context_attribute/0,
 			   wx_device_context_attribute/0, wx_enum/0,
@@ -267,7 +272,7 @@ x% Copyright (C) 2017-2023 Olivier Boudeville
 % Function export section.
 
 
--export([ get_wx_version/0, get_wx_null_bitmap/0 ]).
+-export([ get_wx_version/0 ]).
 
 
 % Conversions between MyriadGUI and backend (wx) are now mostly done thanks to
@@ -277,25 +282,9 @@ x% Copyright (C) 2017-2023 Olivier Boudeville
 		  to_wx_connect_options/3,
 		  to_wx_debug_level/1,
 
-		  window_styles_to_bitmask/1, to_wx_window_options/1,
-		  frame_styles_to_bitmask/1,
 		  to_wx_panel_options/1,
 
-		  to_wx_sizer_options/1, sizer_flags_to_bitmask/1,
-
-		  to_wx_menu_options/1,
-		  to_new_wx_menu_item_id/1,
-		  to_wx_menu_item_id/1,
-
-		  %to_wx_menu_item_options/1,
-
 		  to_wx_bitmap_id/1, to_wx_icon_id/1,
-
-		  to_wx_status_bar_style/1,
-		  to_wx_toolbar_style/1,
-		  to_wx_tool_kind/1,
-
-		  to_wx_event_type/1, from_wx_event_type/1,
 
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
 		  to_wx_direction/1, to_wx_orientation/1,
@@ -311,15 +300,8 @@ x% Copyright (C) 2017-2023 Olivier Boudeville
 -export([ from_wx_object_type/1 ]).
 
 
-% For the wx defines:
--include("gui_internal_defines.hrl").
-
-
-
 
 % Shorthands:
-
--type bit_mask() :: basic_utils:bit_mask().
 
 -type maybe_list(T) :: list_utils:maybe_list( T ).
 
@@ -329,64 +311,36 @@ x% Copyright (C) 2017-2023 Olivier Boudeville
 
 -type wx_object_type() :: gui:wx_object_type().
 -type myriad_object_type() :: gui:myriad_object_type().
-
 -type gui_object() :: gui:gui_object().
-
--type window() :: gui:window().
-
--type window_style() :: gui:window_style().
--type window_style_opt() :: gui:window_style_opt().
-
--type window_option() :: gui:window_option().
-
--type frame_style() :: gui:frame_style().
--type frame_style_opt() :: gui:frame_style_opt().
-
--type panel_option() :: gui:panel_option().
-
-
--type bitmap_name_id() :: gui:bitmap_name_id().
--type icon_name_id() :: gui:icon_name_id().
-
--type sizer_options() :: gui:sizer_options().
--type sizer_flags() :: gui:sizer_flags().
--type sizer_flag_opt() :: gui:sizer_flag_opt().
-
--type menu_option() :: gui:menu_option().
--type menu_item_id() :: gui:menu_item_id().
--type menu_item_kind() :: gui:menu_item_kind().
-
--type status_bar_style() :: gui:status_bar_style().
--type status_bar_style_opt() :: gui:status_bar_style_opt().
-
--type toolbar_style() :: gui:toolbar_style().
--type toolbar_style_opt() :: gui:toolbar_style_opt().
-
--type tool_kind() :: gui:tool_kind().
-
-
 -type position() :: gui:position().
 -type size() :: gui:size().
 -type direction() :: gui:direction().
 -type orientation() :: gui:orientation().
-
+-type parent() :: gui:parent().
 
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
 
 -type event_subscription_option() :: gui_event:event_subscription_option().
--type wx_event_type() :: gui_event:wx_event_type().
+
 -type event_type() :: gui_event:event_type().
 -type event_source() :: gui_event:event_source().
 -type trap_set() :: gui_event:trap_set().
 
+
+-type window() :: gui_window:window().
+
+-type icon_name_id() :: gui_window:icon_name_id().
+
+-type panel_option() :: gui_panel:panel_option().
+
+-type bitmap_name_id() :: gui_bitmap:bitmap_name_id().
+
 -type device_context_attribute() :: gui_opengl:device_context_attribute().
 
-% To improve:
--type wx_sizer_options() :: sizer_options().
 
 
 % To avoid unused warnings:
--export_type([ wx_id/0 ]).
+%-export_type([ wx_id/0 ]).
 
 
 % For canvas_state():
@@ -416,15 +370,6 @@ get_wx_version() ->
 	  ?wxSUBRELEASE_NUMBER }.
 
 
-% @doc Return the wx null bitmap, which is typically returned whenever a bitmap
-% is not found.
-%
--spec get_wx_null_bitmap() -> bitmap().
-get_wx_null_bitmap() -> 
-	% Computed (not a literal constant):
-	?wxNullBitmap.
-
-
 
 % Object type section.
 
@@ -440,21 +385,6 @@ to_wx_object_type( MyrObjType ) ->
 from_wx_object_type( WxObjectType ) ->
 	gui_generated:get_first_for_object_type( WxObjectType ).
 
-
-
-% Event type section.
-
-
-% @doc Converts a MyriadGUI type of event into a wx one.
--spec to_wx_event_type( event_type() ) -> wx_event_type().
-to_wx_event_type( EventType ) ->
-	gui_generated:get_second_for_event_type( EventType ).
-
-
-% @doc Converts a wx type of event into a MyriadGUI one.
--spec from_wx_event_type( wx_event_type() ) -> event_type().
-from_wx_event_type( WxEventType ) ->
-	gui_generated:get_first_for_event_type( WxEventType ).
 
 
 
@@ -477,79 +407,6 @@ to_wx_debug_level( _DebugLevel=life_cycle ) ->
 
 
 
-% Windows section.
-
-
-% @doc Converts the specified MyriadGUI window style into the appropriate
-% wx-specific bit mask.
-%
-% (helper)
-%
--spec window_styles_to_bitmask( window_style() | window_style_opt() ) ->
-										bit_mask().
-window_styles_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
-	lists:foldl( fun( S, Acc ) ->
-					gui_generated:get_second_for_window_style( S ) bor Acc
-				 end,
-				 _InitialAcc=0,
-				 _List=StyleOpts );
-
-window_styles_to_bitmask( StyleOpt ) ->
-	gui_generated:get_second_for_window_style( StyleOpt ).
-
-
-
-% @doc Converts the specified MyriadGUI window option(s) into the appropriate
-% wx-specific options.
-%
-% (exported helper)
-%
--spec to_wx_window_options( maybe_list( window_option() ) ) ->
-								[ wx_window_option() ].
-to_wx_window_options( Options ) when is_list( Options ) ->
-	to_wx_window_options( Options, _Acc=[] );
-
-to_wx_window_options( Option ) ->
-	to_wx_window_options( [ Option ] ).
-
-
-
-to_wx_window_options( _Options=[], Acc ) ->
-	Acc;
-
-to_wx_window_options( _Options=[ { style, Style } | T ], Acc ) ->
-	to_wx_window_options( T,
-		[ { style, window_styles_to_bitmask( Style ) } | Acc ] );
-
-% Unchanged:
-to_wx_window_options( _Options=[ H | T ], Acc ) ->
-	to_wx_window_options( T, [ H | Acc ] ).
-
-
-
-% Frames section.
-
-
-% @doc Converts the specified MyriadGUI frame style into the appropriate
-% wx-specific bit mask.
-%
-% (helper)
-%
--spec frame_styles_to_bitmask( maybe_list( frame_style() ) ) -> bit_mask().
-frame_styles_to_bitmask( Styles ) when is_list( Styles ) ->
-	% 'bor ?wxWANTS_CHARS' not desirable a priori:
-	lists:foldl( fun( S, Acc ) ->
-					gui_generated:get_second_for_frame_style( S ) bor Acc
-				 end,
-				 _InitialAcc=0,
-				 _List=Styles );
-
-frame_styles_to_bitmask( Style ) ->
-	frame_styles_to_bitmask( [ Style ] ).
-
-
-
-
 
 % Panels section.
 
@@ -562,121 +419,9 @@ frame_styles_to_bitmask( Style ) ->
 -spec to_wx_panel_options( maybe_list( panel_option() ) ) ->
 											[ wx_panel_option() ].
 to_wx_panel_options( Options ) ->
-	to_wx_window_options( Options ).
+	gui_window:to_wx_window_options( Options ).
 
 
-
-% Sizers section.
-
-
-
-% @doc Converts the specified sizer options into wx-specific ones.
-%
-% (helper)
-%
--spec to_wx_sizer_options( maybe_list( sizer_options() ) ) ->
-											wx_sizer_options().
-to_wx_sizer_options( Options ) when is_list( Options ) ->
-	to_wx_sizer_options( Options, _AccOpts=[], _AccFlags=[] );
-
-to_wx_sizer_options( Option ) ->
-	to_wx_sizer_options( [ Option ] ).
-
-
-
-% (helper)
-to_wx_sizer_options( _Options=[], AccOpts, _AccFlags=[]  ) ->
-	AccOpts;
-
-to_wx_sizer_options( _Options=[], AccOpts, AccFlags ) ->
-	[ { flag, sizer_flags_to_bitmask( AccFlags ) } | AccOpts ];
-
-to_wx_sizer_options( _Options=[ { userData, Data } | T ], AccOpts, AccFlags ) ->
-	to_wx_sizer_options( T, [ { user_data, Data } | AccOpts ], AccFlags );
-
-% Letting {proportion, integer()} and {border, integer()} go through:
-to_wx_sizer_options( _Options=[ P | T ], AccOpts, AccFlags )
-											when is_tuple( P ) ->
-	to_wx_sizer_options( T, [ P | AccOpts ], AccFlags );
-
-to_wx_sizer_options( _Options=[ F | T ], AccOpts, AccFlags ) ->
-	to_wx_sizer_options( T, AccOpts, [ F | AccFlags ] ).
-
-
-
-% @doc Converts the specified MyriadGUI sizer flag options into the appropriate
-% wx-specific bit mask.
-%
-% (helper)
-%
--spec sizer_flags_to_bitmask( sizer_flags() | sizer_flag_opt() ) -> bit_mask().
-sizer_flags_to_bitmask( FlagOpts ) when is_list( FlagOpts ) ->
-	lists:foldl( fun( F, Acc ) ->
-					gui_generated:get_second_for_sizer_flag( F ) bor Acc end,
-				 _InitialAcc=0,
-				 _List=FlagOpts );
-
-sizer_flags_to_bitmask( FlagOpt ) ->
-	gui_generated:get_second_for_sizer_flag( FlagOpt ).
-
-
-% @doc Converts specified menu option(s) into wx-specific ones.
--spec to_wx_menu_options( maybe_list( menu_option() ) ) -> list().
-to_wx_menu_options( Options ) when is_list( Options ) ->
-	[ to_wx_menu_option( O ) || O <- Options ];
-
-to_wx_menu_options( Opt ) ->
-	to_wx_menu_options( [ Opt ] ).
-
-
-% (helper)
-to_wx_menu_option( _Opt=detachable ) ->
-	{ style, ?wxMENU_TEAROFF }.
-
-
-
-% @doc Converts the specified menu item identifier (for an already-existing menu
-% item) into a wx-specific one.
-%
--spec to_wx_menu_item_id( menu_item_id() ) -> wx_id().
-to_wx_menu_item_id( MenuItemId ) ->
-
-	%trace_utils:debug_fmt( "Testing availability: ~ts",
-	%   [ code_utils:study_function_availability( gui_generated,
-	%       get_maybe_second_for_menu_item_id, 1 ) ] ),
-
-	case gui_generated:get_maybe_second_for_menu_item_id( MenuItemId ) of
-
-		undefined ->
-			gui_id:resolve_id( MenuItemId );
-
-		WxId ->
-			WxId
-
-	end.
-
-
-% @doc Converts the specified menu identifier for a new menu item into a
-% wx-specific one.
-%
--spec to_new_wx_menu_item_id( menu_item_id() ) -> wx_id().
-to_new_wx_menu_item_id( MenuItemId ) ->
-	case gui_generated:get_maybe_second_for_menu_item_id( MenuItemId ) of
-
-		undefined ->
-			gui_id:declare_id( MenuItemId );
-
-		WxId ->
-			WxId
-
-	end.
-
-
-% @doc Converts the specified kind of menu identifier into a wx-specific one.
--spec to_wx_menu_item_kind( menu_item_kind() ) -> wx_enum().
-to_wx_menu_item_kind( Kind ) ->
-	% Same:
-	gui_generated:get_second_for_menu_item_kind( Kind ).
 
 
 
@@ -712,39 +457,6 @@ to_wx_icon_id( IconId ) ->
 	end.
 
 
-% @doc Converts the specified style of status bar into a wx-specific one.
--spec to_wx_status_bar_style( status_bar_style() | status_bar_style_opt() ) ->
-										wx_enum().
-to_wx_status_bar_style( StyleOpts ) when is_list( StyleOpts ) ->
-	lists:foldl( fun( S, Acc ) ->
-					gui_generated:get_second_for_status_bar_style( S ) bor Acc
-				 end,
-				 _InitialAcc=0,
-				 _List=StyleOpts );
-
-to_wx_status_bar_style( StyleOpt ) ->
-	gui_generated:get_second_for_status_bar_style( StyleOpt ).
-
-
-
-
-% @doc Converts the specified style of toolbar into a wx-specific one.
--spec to_wx_toolbar_style( [ toolbar_style() ] ) -> wx_enum().
-to_wx_toolbar_style( Styles ) when is_list( Styles ) ->
-	lists:foldl( fun( S, Acc ) ->
-					gui_generated:get_second_for_toolbar_style( S ) bor Acc end,
-				 _InitialAcc=0,
-				 _List=Styles );
-
-to_wx_toolbar_style( Style ) ->
-	to_wx_toolbar_style( [ Style ] ).
-
-
-
-% @doc Converts the specified kind of tool into a wx-specific one.
--spec to_wx_tool_kind( tool_kind() ) -> wx_enum().
-to_wx_tool_kind( ToolKind ) ->
-	to_wx_menu_item_kind( ToolKind ).
 
 
 
@@ -767,7 +479,7 @@ to_wx_id( Other ) ->
 %
 % (helper)
 %
--spec to_wx_parent( maybe( gui_object() ) ) -> gui_object().
+-spec to_wx_parent( maybe( parent() ) ) -> gui_object().
 to_wx_parent( undefined ) ->
 	?no_parent;
 
@@ -980,7 +692,7 @@ connect( SourceGUIObject, EventTypes, Options, TrapSet )
 connect( SourceGUIObject, EventType, Options, TrapSet ) ->
 
 	% Events to be processed through messages, not callbacks:
-	WxEventType = to_wx_event_type( EventType ),
+	WxEventType = gui_event:to_wx_event_type( EventType ),
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
@@ -1117,7 +829,7 @@ disconnect( #canvas_state{ panel=Panel }, EventType ) ->
 
 disconnect( SourceObject, EventType ) ->
 
-	WxEventType = to_wx_event_type( EventType ),
+	WxEventType = gui_event:to_wx_event_type( EventType ),
 
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( " - disconnecting event source '~ts' from ~w "

@@ -30,7 +30,7 @@
 -module(gui_panel).
 
 
--type panel() :: wxPanel:wxPanel().
+-opaque panel() :: wxPanel:wxPanel().
 % A panel, able to host child widgets and to catch events such as key presses
 % (unlike windows/frames).
 %
@@ -141,7 +141,7 @@ create( Position, Size, Parent ) ->
 -spec create( position(), size(), panel_options(), parent() ) -> panel().
 create( Position, Size, Options, Parent ) ->
 
-	WxOpts = [ gui_wx_backend:to_wx_position( Position ), 
+	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
 			   gui_wx_backend:to_wx_size( Size )
 			 | gui_wx_backend:to_wx_panel_options( Options ) ],
 

@@ -40,6 +40,7 @@
 
 
 % Could include wx:null(), i.e. a #wx_ref{ref=0, type=wx}:
+% (probably cannot be opaque because of the union)
 -type widget() :: wxWindow:wxWindow() | gui_canvas:canvas().
 % Any kind of widget, that is graphical component; for example a button or a
 % canvas is a widget.
@@ -82,16 +83,15 @@
 		  fit/1, maximise_in_parent/1 ]).
 
 
+
 % Implementation notes:
 %
 % The wx backend names the concept of widget "window", which is a bit
 % restrictive (a window is seen at least here as a special case of widget).
 
 
-
 % For related, internal, wx-related defines:
 %-include("gui_internal_defines.hrl").
-
 
 
 % Shorthands:

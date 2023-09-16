@@ -38,8 +38,8 @@
 
 % Shorthands:
 
--type frame() :: gui:frame().
--type toolbar() :: gui:toolbar().
+-type frame() :: gui_frame:frame().
+-type toolbar() :: gui_toolbar:toolbar().
 
 
 -type my_test_state() :: { frame(), toolbar() }.
@@ -59,46 +59,48 @@ run_gui_test() ->
 
 	gui:start(),
 
-	Frame = gui:create_frame( "This is the overall frame for bar testing" ),
+	Frame = gui_frame:create( "This is the overall frame for bar testing" ),
 
-	StatusBar = gui:create_status_bar( Frame, _Style=sunken ),
+	StatusBar = gui_statusbar:create( Frame, _Styles=[ sunken ] ),
 
 	% Thus 1/3 for the first field, 2/3 for the second:
-	gui:set_field_widths( StatusBar, [ -1, -2 ] ),
+	gui_statusbar:set_field_widths( StatusBar, [ -1, -2 ] ),
 
-	gui:push_field_status_text( "First field", StatusBar, _FieldIndex=1 ),
-	gui:push_field_status_text( "Second, wider field", StatusBar, _FIndex=2 ),
+	gui_statusbar:push_field_status( StatusBar, "First field", _FieldIndex=1 ),
+
+	gui_statusbar:push_field_status( StatusBar, "Second, wider field",
+									 _FIndex=2 ),
 
 	ToolbarStyle = [ top, dockable, flat, text ],
 	%ToolbarStyle = bottom,
 	%ToolbarStyle = left,
 	%ToolbarStyle = right,
 
-	Toolbar = gui:create_toolbar( Frame, _ToobarId=undefined, ToolbarStyle ),
+	Toolbar = gui_toolbar:create( Frame, _ToobarId=undefined, ToolbarStyle ),
 
-	NewBitmap = gui_image:get_standard_bitmap( new_bitmap ),
-	gui:add_tool( Toolbar, _Id=my_new_id, _Label="New", NewBitmap,
-				  "New short help" ),
+	NewBitmap = gui_bitmap:get_standard( new_bitmap ),
+	gui_toolbar:add_tool( Toolbar, _Id=my_new_id, _Label="New", NewBitmap,
+						  "New short help" ),
 
-	QuestionBitmap = gui_image:get_standard_bitmap( question_bitmap ),
-	gui:add_tool( Toolbar, my_question_id, "Question", QuestionBitmap,
-				  "Question short help" ),
+	QuestionBitmap = gui_bitmap:get_standard( question_bitmap ),
+	gui_toolbar:add_tool( Toolbar, my_question_id, "Question", QuestionBitmap,
+						  "Question short help" ),
 
-	WarningBitmap = gui_image:get_standard_bitmap( warning_bitmap ),
-	gui:add_tool( Toolbar, my_warning_id, "Warning", WarningBitmap,
-				  "Warning short help" ),
+	WarningBitmap = gui_bitmap:get_standard( warning_bitmap ),
+	gui_toolbar:add_tool( Toolbar, my_warning_id, "Warning", WarningBitmap,
+						  "Warning short help" ),
 
-	InformationBitmap = gui_image:get_standard_bitmap( information_bitmap ),
-	gui:add_tool( Toolbar, my_information_id, "Information",
-				  InformationBitmap, "Information short help" ),
+	InformationBitmap = gui_bitmap:get_standard( information_bitmap ),
+	gui_toolbar:add_tool( Toolbar, my_information_id, "Information",
+						  InformationBitmap, "Information short help" ),
 
-	AddBookmarkBitmap = gui_image:get_standard_bitmap( add_bookmark_bitmap ),
-	gui:add_tool( Toolbar, my_add_bookmark_id, "Add Bookmark",
-				  AddBookmarkBitmap, "Add bookmark short help" ),
+	AddBookmarkBitmap = gui_bitmap:get_standard( add_bookmark_bitmap ),
+	gui_toolbar:add_tool( Toolbar, my_add_bookmark_id, "Add Bookmark",
+						  AddBookmarkBitmap, "Add bookmark short help" ),
 
-	DelBookmarkBitmap = gui_image:get_standard_bitmap( delete_bookmark_bitmap ),
-	gui:add_tool( Toolbar, my_del_bookmark_id, "Delete Bookmark",
-				  DelBookmarkBitmap, "Delete bookmark short help" ),
+	DelBookmarkBitmap = gui_bitmap:get_standard( delete_bookmark_bitmap ),
+	gui_toolbar:add_tool( Toolbar, my_del_bookmark_id, "Delete Bookmark",
+						  DelBookmarkBitmap, "Delete bookmark short help" ),
 
 
 	% Some bitmaps may be unavailable (yielding a bitmap.IsOk() wxWidgets Assert
@@ -120,20 +122,19 @@ run_gui_test() ->
 		hard_disk_bitmap, floppy_bitmap, cdrom_bitmap, removable_bitmap,
 		backend_logo_bitmap ],
 
-	[ gui:add_tool( Toolbar, _ToolId=N,
+	[ gui_toolbar:add_tool( Toolbar, _ToolId=N,
 		text_utils:atom_to_string( N ),
-		gui_image:get_standard_bitmap( N ), "Other short help" )
-								|| N <- OtherNames ],
+		gui_bitmap:get_standard( N ), "Other short help" ) || N <- OtherNames ],
 
 	% May not be necessary in this case:
-	gui:update_tools( Toolbar ),
+	gui_toolbar:update_tools( Toolbar ),
 
 	gui:subscribe_to_events( [
 		{ [ onMouseRightButtonReleased, onWindowClosed ], Frame },
 		{ [ onToolbarEntered, onItemSelected, onToolRightClicked ],
 		  Toolbar } ] ),
 
-	gui:show( Frame ),
+	gui_frame:show( Frame ),
 
 	test_main_loop( _InitialState={ Frame, Toolbar } ).
 
@@ -172,7 +173,7 @@ test_main_loop( State={ Frame, Toolbar } ) ->
 
 		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
-			gui:destruct_window( Frame ),
+			gui_frame:destruct( Frame ),
 			gui:stop();
 
 		Other ->

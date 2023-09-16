@@ -121,7 +121,6 @@
 
 % Management of widget identifiers.
 -export([ get_first_allocatable_id/0, get_initial_allocation_table/0,
-		  get_id_allocator_pid/0,
 
 		  allocate_backend_id/0, allocate_backend_id/1,
 		  allocate_backend_ids/1, allocate_backend_ids/2,
@@ -149,7 +148,7 @@
 
 % Internals:
 
--export([ create_id_allocator/0 ]).
+-export([ embody_as_id_allocator/0 ]).
 
 -compile({ inline, [ resolve_any_id/1 ]}).
 
@@ -185,7 +184,6 @@
 
 
 
-
 % Shorthands:
 
 -type count() :: basic_utils:count().
@@ -201,6 +199,9 @@
 
 
 
+% Section concentrating functions to implement an identifier allocator.
+
+
 % @doc Returns the first backend-specific widget identifier that may be
 % allocated by MyriadGUI.
 %
@@ -210,7 +211,7 @@ get_first_allocatable_id() ->
 	cond_utils:if_defined( myriad_debug_gui_id,
 		begin
 			MaxStandard = lists:max(
-				[ gui_wx_backend:to_wx_menu_item_id( N )
+				[ gui_menu:to_wx_menu_item_id( N )
 					|| N <- gui:get_standard_item_names() ] ),
 
 			% Typically 5154 vs highest bound 5999:
@@ -235,7 +236,7 @@ get_initial_allocation_table() ->
 	% (seems to be a bad idea as it would prevent to create a standard item
 	% afterwards)
 	%
-	%InitialEntries = [ { N, gui_wx_backend:to_wx_menu_item_id( N ) }
+	%InitialEntries = [ { N, gui_menu:to_wx_menu_item_id( N ) }
 	%                           || N <- gui:get_standard_item_names() ],
 
 	%bijective_table:new( _InitialEntries ).
@@ -248,15 +249,18 @@ get_initial_allocation_table() ->
 % At least currently, with wx, no service seems to be provided in order to
 % generate unique user-level wx_id(), so we provide ours.
 %
-% Otherwise the user would have to hardcode its own identifiers (e.g. for menu
+% Otherwise the user would have to hardcode their own identifiers (e.g. for menu
 % items), which is fragile and error-prone.
 %
 % Note that the standard name/id associations (typically the standard buttons /
 % menu items, like 'zoom_factor_one' or 'undo_menu_item') are reserved and
 % automatically registered.
 %
--spec create_id_allocator() -> no_return().
-create_id_allocator() ->
+% This created identifier allocator shall be best looked-up thanks to the
+% gui:get_id_allocator_pid/{0,1} functions.
+%
+-spec embody_as_id_allocator() -> no_return().
+embody_as_id_allocator() ->
 
 	naming_utils:register_as( ?gui_id_alloc_reg_name, _RegScope=local_only ),
 
@@ -424,7 +428,7 @@ declare_name_id_internal( NameId, NextId, NameTable ) ->
 % involving messages), which takes care of the identifier management as well.
 %
 -spec resolve_named_id_internal( name_id(), id_name_alloc_table() ) ->
-									backend_id().
+											backend_id().
 resolve_named_id_internal( NameId, NameTable ) ->
 
 	case maybe_resolve_named_id_internal( NameId, NameTable ) of
@@ -437,6 +441,11 @@ resolve_named_id_internal( NameId, NameTable ) ->
 
 	end.
 
+
+
+
+
+% Section to manage user-originating identifier operations.
 
 
 % @doc Returns a backend identifier corresponding to the specified identifier of
@@ -455,9 +464,7 @@ resolve_any_id( BackendId ) when is_integer( BackendId ) ->
 
 resolve_any_id( NameId ) when is_atom( NameId ) ->
 	% Relies on the fact that the MyriadGUI main process now impersonates a
-	% standalone gui_id server:
-	%
-	resolve_named_id( NameId, _IdAllocRef=gui:get_main_loop_pid() ).
+	resolve_named_id( NameId, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 
@@ -504,7 +511,7 @@ maybe_resolve_named_id_internal( NameId, NameTable ) ->
 %
 -spec allocate_backend_id() -> backend_id().
 allocate_backend_id() ->
-	allocate_backend_id( _IdAllocRef=?gui_id_alloc_reg_name ).
+	allocate_backend_id( _IdAllocRef=gui:get_id_allocator_pid()  ).
 
 
 % @doc Returns a new, original (never used) unnamed backend object identifier,
@@ -528,7 +535,7 @@ allocate_backend_id( IdAllocRef ) ->
 %
 -spec allocate_backend_ids( count() ) -> [ backend_id() ].
 allocate_backend_ids( Count ) ->
-	allocate_backend_ids( Count, _IdAllocRef=?gui_id_alloc_reg_name ).
+	allocate_backend_ids( Count, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 % @doc Returns the specified number of new, original (never used) unnamed
@@ -558,7 +565,7 @@ allocate_backend_ids( Count, IdAllocRef ) ->
 %
 -spec declare_name_id( name_id() ) -> backend_id().
 declare_name_id( NameId ) ->
-	declare_name_id( NameId, _IdAllocRef=?gui_id_alloc_reg_name ).
+	declare_name_id( NameId, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 % @doc Declares the specified named identifier, so that it becomes registered by
@@ -588,7 +595,7 @@ declare_name_id( NameId, IdAllocRef ) ->
 %
 -spec declare_name_ids( [ name_id() ] ) -> void().
 declare_name_ids( NameIds ) ->
-	declare_name_ids( NameIds, _IdAllocRef=?gui_id_alloc_reg_name ).
+	declare_name_ids( NameIds, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 % @doc Declares the specified named identifiers, so that they become registered
@@ -612,6 +619,9 @@ declare_name_ids( NameIds, IdAllocRef ) ->
 % @doc Returns a backend-specific widget identifier associated to the specified
 % new identifier, expected not to have already been declared.
 %
+% Specifying a name identifier requires interacting with the MyriadGUI process
+% in charge of the identifier allocation.
+%
 -spec declare_any_id( id() ) -> backend_id().
 declare_any_id( undefined ) ->
 	?gui_any_id;
@@ -625,14 +635,7 @@ declare_any_id( NameId ) when is_atom( NameId ) ->
 	% Relies on the fact that the MyriadGUI main process now impersonates a
 	% standalone gui_id server:
 	%
-	declare_name_id( NameId, _IdAllocRef=gui:get_main_loop_pid() ).
-
-
-
-% @doc Returns the PID of the unique backend identifier allocator.
--spec get_id_allocator_pid() -> id_allocator_pid().
-get_id_allocator_pid() ->
-	naming_utils:get_registered_pid_for( ?gui_id_alloc_reg_name, _Scope=local ).
+	declare_name_id( NameId, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 
@@ -645,7 +648,7 @@ get_id_allocator_pid() ->
 %
 -spec resolve_named_id( name_id() ) -> backend_id().
 resolve_named_id( NameId ) ->
-	resolve_named_id( NameId, _IdAllocRef=?gui_id_alloc_reg_name ).
+	resolve_named_id( NameId, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 % @doc Returns the low-level backend object identifier corresponding to the
@@ -670,7 +673,7 @@ resolve_named_id( NameId, IdAllocRef ) ->
 %
 -spec resolve_named_ids( [ name_id() ] ) -> [ backend_id() ].
 resolve_named_ids( NameIds ) ->
-	resolve_named_ids( NameIds, _IdAllocRef=?gui_id_alloc_reg_name ).
+	resolve_named_ids( NameIds, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 % @doc Returns the low-level backend object identifiers corresponding to the
@@ -695,7 +698,7 @@ resolve_named_ids( NameIds, IdAllocRef ) ->
 %
 -spec maybe_resolve_backend_id( backend_id() ) -> maybe( name_id() ).
 maybe_resolve_backend_id( BackendId ) ->
-	maybe_resolve_backend_id( BackendId, _IdAllocRef=?gui_id_alloc_reg_name ).
+	maybe_resolve_backend_id( BackendId, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 % @doc Tries to resolve the specified backend identifier into a named one,
@@ -769,7 +772,7 @@ get_any_id() ->
 %
 -spec get_best_id( backend_id() ) -> id().
 get_best_id( BackendId ) ->
-	get_best_id( BackendId, _IdAllocRef=?gui_id_alloc_reg_name ).
+	get_best_id( BackendId, _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 
@@ -885,7 +888,7 @@ get_maybe_name_id( BackendId ) when is_integer( BackendId ) ->
 	% standalone gui_id server:
 	%
 	maybe_resolve_backend_id_internal( BackendId,
-									   _IdAllocRef=gui:get_main_loop_pid() ).
+									   _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 

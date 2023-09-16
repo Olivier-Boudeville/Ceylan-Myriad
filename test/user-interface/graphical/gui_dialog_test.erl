@@ -36,13 +36,14 @@
 -include("test_facilities.hrl").
 
 
-% Shorthands:
-
--type frame() :: gui:frame().
-
 -type my_test_state() :: frame().
 % Here the main loop just has to remember the frame whose closing is awaited
 % for.
+
+
+% Shorthands:
+
+-type frame() :: gui_frame:frame().
 
 
 
@@ -54,21 +55,21 @@ run_gui_test() ->
 
 	gui:start(),
 
-	Frame = gui:create_frame( "This is the overall frame for dialog testing" ),
+	Frame = gui_frame:create( "This is the overall frame for dialog testing" ),
 
 	gui:subscribe_to_events( { onWindowClosed, Frame } ),
 
-	Panel = gui:create_panel( Frame ),
+	Panel = gui_panel:create( Frame ),
 
 	Sizer = gui_sizer:create( _Orientation=vertical ),
 
-	gui_sizer:set( Panel, Sizer ),
+	gui_widget:set_sizer( Panel, Sizer ),
 
 	% Common settings:
 
 	Position = auto,
 	ButtonSize = auto,
-	ButtonStyle = default,
+	ButtonStyle = [],
 
 	Parent = Panel,
 
@@ -86,13 +87,13 @@ run_gui_test() ->
 	Buttons = [ gui_button:create( "Show " ++ Lbl ++ " dialog", Position,
 		ButtonSize, ButtonStyle, Nid, Parent ) || { Lbl, Nid } <- DlgPairs ],
 
-	gui_sizer:add( Sizer, Buttons ),
+	gui_sizer:add_elements( Sizer, Buttons ),
 	gui:subscribe_to_events( [ { onButtonClicked, B } || B <- Buttons ] ),
 
-	gui:show( Frame ),
+	gui_frame:show( Frame ),
 
 	% Order matters (bottom-up):
-	[ gui:fit( W  ) || W <- [ Panel, Frame ] ],
+	[ gui_widget:fit( W  ) || W <- [ Panel, Frame ] ],
 
 	test_main_loop( _InitialState=Frame ).
 
@@ -262,7 +263,7 @@ test_main_loop( State=Frame ) ->
 				  _Context ] } ->
 
 			DirectorySelDialog = gui_dialog:create_for_directory_selection(
-										_DlgOpts=[], _Parent=Frame ),
+				_DlgOpts=[], _Parent=Frame ),
 
 			case gui_dialog:show_modal( DirectorySelDialog ) of
 
@@ -343,7 +344,7 @@ test_main_loop( State=Frame ) ->
 
 		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
-			gui:destruct_window( Frame ),
+			gui_frame:destruct( Frame ),
 			gui:stop();
 
 		Other ->

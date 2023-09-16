@@ -626,7 +626,7 @@ key_event_to_string( _WxKey=#wxKey{ type=WxKeyEventType,
 	% To check that all fields are interpreted:
 	%trace_utils:debug_fmt( "wxKey: ~p", [ WxKey ] ),
 
-	KeyEventType = gui_wx_backend:from_wx_event_type( WxKeyEventType ),
+	KeyEventType = gui_event:from_wx_event_type( WxKeyEventType ),
 
 	Mods = case CtrlDown of
 				true -> [ "control" ];

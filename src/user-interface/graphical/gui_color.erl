@@ -162,7 +162,7 @@
 -type pixel_format() :: 'rgb' | 'rgba'.
 % A specification of a pixel format.
 
--type color_data() :: wxColourData:wxColourData().
+-opaque color_data() :: wxColourData:wxColourData().
 % A wx object representing information regarding a color.
 %
 % For example {wx_ref,92,wxColourData,[]}.
@@ -182,6 +182,7 @@
 			   color_buffer/0, rgb_color_buffer/0, rgba_color_buffer/0,
 			   alpha_buffer/0, pixel_format/0,
 			   color_data/0 ]).
+
 
 
 % Shorthands:

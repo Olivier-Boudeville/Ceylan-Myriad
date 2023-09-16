@@ -38,7 +38,7 @@
 
 % Shorthands:
 
--type frame() :: gui:frame().
+-type frame() :: gui_frame:frame().
 
 
 -type my_test_state() :: frame().
@@ -55,7 +55,7 @@ run_gui_test() ->
 
 	gui:start(),
 
-	Frame = gui:create_frame( "This is the overall frame for button testing",
+	Frame = gui_frame:create( "This is the overall frame for button testing",
 							  _Size={ 1280, 1024 } ),
 
 
@@ -68,11 +68,11 @@ run_gui_test() ->
 		"A button may be clicked for further information." ),
 
 
-	Panel = gui:create_panel( Frame ),
+	Panel = gui_panel:create( Frame ),
 
 	Position = auto,
 	ButtonSize = auto,
-	ButtonStyle = default,
+	ButtonStyle = [],
 	ButtonParent = Panel,
 
 	ColumnCount = 8,
@@ -90,7 +90,9 @@ run_gui_test() ->
 	% Button identifier:
 	AllButtonIds = pair:firsts( Entries ),
 
-	%trace_utils:debug_fmt( "AllButtonIds = ~w", [ AllButtonIds ] ),
+	trace_utils:notice_fmt( "Identifiers of the ~B standard buttons: ~ts.",
+		[ length( AllButtonIds ),
+		  text_utils:atoms_to_listed_string( AllButtonIds ) ] ),
 
 	% Showing that we cannot set custom labels if selecting a standard/stock
 	% identifier (so we cannot have both a non-default label and the
@@ -105,20 +107,21 @@ run_gui_test() ->
 	% To force the use of the stock labels:
 	NoLabel = "",
 
-	AllButtons = [ LostIconButton, ToggleButton |
+	AllPlainButtons = [ LostIconButton, ToggleButton |
 		[ gui_button:create( NoLabel, Position, ButtonSize, ButtonStyle, BId,
 							 ButtonParent ) || BId <- AllButtonIds ] ],
 
 	ButtonFlags = [ { proportion, 0 }, { border, 4 }, all_borders ],
 
-	gui_sizer:add_elements( GridSizer, AllButtons, ButtonFlags ),
+	gui_sizer:add_elements( GridSizer, AllPlainButtons, ButtonFlags ),
 
 	% No specific need to call gui:layout/1 or gui:{refresh,update}/1.
 
-	gui:subscribe_to_events( [ { onWindowClosed, Frame }
-		| [ { onButtonClicked, B } || B <- AllButtons ] ] ),
+	gui:subscribe_to_events( [ { onWindowClosed, Frame },
+							   { onButtonToggled, ToggleButton }
+		| [ { onButtonClicked, B } || B <- AllPlainButtons ] ] ),
 
-	gui:show( Frame ),
+	gui_frame:show( Frame ),
 
 	test_main_loop( _InitialState=Frame ).
 
@@ -145,7 +148,14 @@ test_main_loop( State=Frame ) ->
 			stop( Frame );
 
 		{ onButtonClicked, [ Button, ButtonId, EventContext ] } ->
-			trace_utils:debug_fmt( "Button ~ts (~ts) clicked (~ts).",
+			trace_utils:debug_fmt( "Plain button ~ts (~ts) clicked (~ts).",
+				[ gui:object_to_string( Button ),
+				  gui_id:id_to_string( ButtonId ),
+				  gui_event:context_to_string( EventContext ) ] ),
+			test_main_loop( State );
+
+		{ onButtonToggled, [ Button, ButtonId, EventContext ] } ->
+			trace_utils:debug_fmt( "Toggle Button ~ts (~ts) toggled (~ts).",
 				[ gui:object_to_string( Button ),
 				  gui_id:id_to_string( ButtonId ),
 				  gui_event:context_to_string( EventContext ) ] ),
@@ -165,7 +175,7 @@ test_main_loop( State=Frame ) ->
 
 stop( Frame ) ->
 	trace_utils:info( "Test success, stopping." ),
-	gui:destruct_window( Frame ),
+	gui_frame:destruct( Frame ),
 	gui:stop().
 
 

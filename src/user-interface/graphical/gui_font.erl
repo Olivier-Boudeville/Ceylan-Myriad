@@ -30,7 +30,7 @@
 -module(gui_font).
 
 
--type font() :: wxFont:wxFont().
+-opaque font() :: wxFont:wxFont().
 % Designates a font object.
 
 
@@ -66,7 +66,7 @@
 % A font option.
 
 
--type font_data() :: wxFontData:wxFontData().
+-opaque font_data() :: wxFontData:wxFontData().
 % Actual (opaque) data corresponding to a font.
 %
 % A wx object.
@@ -105,7 +105,6 @@
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
-
 -type any_string() :: text_utils:any_string().
 
 -type dimensions() :: gui:dimensions().
@@ -235,6 +234,9 @@ get_text_extent( Text, Font ) ->
 
 
 % Helpers.
+
+
+% Next constants will have to be integrated in gui_constants.
 
 
 % @doc Converts the specified font family into a wx one.

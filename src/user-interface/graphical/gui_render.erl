@@ -35,10 +35,10 @@
 -module(gui_render).
 
 
--type brush() :: wxBrush:wxBrush().
+-opaque brush() :: wxBrush:wxBrush().
 % A brush, used to draw elements.
 
--type graphic_context() :: wxGraphicsContext:wxGraphicsContext().
+-opaque graphic_context() :: wxGraphicsContext:wxGraphicsContext().
 % Corresponds to a GUI object that is drawn upon.
 %
 % It is created by a renderer; some of them (like Direct2D or Cairo) defer their
@@ -49,17 +49,17 @@
 % explicitly managed (e.g. wxMemoryDC:destroy/1 must be called when finished
 % with them), which is inconvenient and error-prone.
 %
--type device_context() :: wxDC:wxDC().
+-opaque device_context() :: wxDC:wxDC().
 % Designates an abstract device where rendering can take place, and which can be
 % the source or target of a blit. Akin to a surface in SDL (libsdl).
 
 
--type paint_device_context() :: wxPaintDC:wxPaintDC().
+-opaque paint_device_context() :: wxPaintDC:wxPaintDC().
 % Designates a device context allowing to paint on the client area of a window
 % from within an onRepaintNeeded event handler.
 
 
--type memory_device_context() :: wxMemoryDC:wxMemoryDC().
+-opaque memory_device_context() :: wxMemoryDC:wxMemoryDC().
 % Provides a means of drawing graphics onto a bitmap.
 %
 % https://docs.wxwidgets.org/stable/classwx_memory_d_c.html
@@ -70,7 +70,7 @@
 % visible as a whole, to avoid flicker.
 
 
--type window_device_context() :: wxWindowDC:wxWindowDC().
+-opaque window_device_context() :: wxWindowDC:wxWindowDC().
 % Allows to paint on the whole area of a window (client and decorations). This
 % should normally be constructed as a temporary stack object, and shall never be
 % stored.

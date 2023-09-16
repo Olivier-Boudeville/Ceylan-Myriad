@@ -56,7 +56,6 @@
 
 -type ustring() :: text_utils:ustring().
 
--type length() :: gui:length().
 -type size() :: gui:size().
 -type width() :: gui:width().
 -type height() :: gui:height().
