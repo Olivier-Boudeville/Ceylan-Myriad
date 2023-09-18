@@ -60,8 +60,8 @@
 -type width() :: gui:width().
 -type height() :: gui:height().
 
--type button() :: gui:button().
--type canvas() :: gui:canvas().
+-type button() :: gui_button:button().
+-type canvas() :: gui_canvas:canvas().
 
 
 -type render_mode() :: 'test_shape_rendering' | 'test_dynamic_mec'.
@@ -70,7 +70,7 @@
 % The state of the test application, kept and updated by its main loop.
 -record( my_test_state, {
 
-	main_frame :: gui:frame(),
+	main_frame :: gui_frame:frame(),
 
 	render_shape_button :: button(),
 	render_mec_button   :: button(),
@@ -160,23 +160,23 @@ run_test_gui() ->
 
 	gui:start(),
 
-	MainFrame = gui:create_frame( _Title="MyriadGUI Overall Test",
+	MainFrame = gui_frame:create( _Title="MyriadGUI Overall Test",
 								  get_main_window_size() ),
 
 	% This process will subscribe to following event:
 	MainFrameEvents = { onWindowClosed, MainFrame },
 
 
-	StatusBar = gui:create_status_bar( MainFrame ),
+	StatusBar = gui_statusbar:create( MainFrame ),
 
-	gui:push_status_text( "Waiting for points to be added.", StatusBar ),
+	gui_statusbar:push_text( StatusBar, "Waiting for points to be added." ),
 
-	LeftPanel = gui:create_panel( MainFrame ),
+	LeftPanel = gui_panel:create( MainFrame ),
 
-	RightPanel = gui:create_panel( MainFrame ),
+	RightPanel = gui_panel:create( MainFrame ),
 
 	% To check surfaces:
-	%gui:set_background_color( MainFrame, red ),
+	%gui_widget:set_background_color( MainFrame, red ),
 	%gui:set_background_color( LeftPanel, blue ),
 	%gui:set_background_color( RightPanel, green ),
 
@@ -191,8 +191,8 @@ run_test_gui() ->
 						   [ { proportion, 2 }, expand_fully ] ),
 
 
-	ControlBoxSizer = gui_sizer:create_with_labelled_box( vertical, LeftPanel,
-														  "Controls" ),
+	ControlBoxSizer = gui_sizer:create_with_labelled_box( vertical, "Controls",
+														  LeftPanel ),
 
 	% Adding the buttons to the control panel:
 
@@ -205,25 +205,30 @@ run_test_gui() ->
 
 	ButtonEvents = { onButtonClicked, ControlButtons },
 
-	gui:set_tooltip( LeftPanel, "Controls for the GUI test" ),
+	gui_widget:set_tooltip( LeftPanel, "Controls for the GUI test" ),
 
-	gui:set_tooltip( RenderShapeButton, "Render shape" ),
-	gui:set_tooltip( RenderMECButton, "Render Minimal Enclosing Circle" ),
-	gui:set_tooltip( AddPointButton, "Add a point to the\ncurrent polygon" ),
-	gui:set_tooltip( PasteImageButton, "Paste image" ),
-	gui:set_tooltip( ClearCanvasButton, "Clear canvas" ),
-	gui:set_tooltip( QuitButton, "Quit" ),
+	gui_widget:set_tooltip( RenderShapeButton, "Render shape" ),
+
+	gui_widget:set_tooltip( RenderMECButton,
+							"Render Minimal Enclosing Circle" ),
+
+	gui_widget:set_tooltip( AddPointButton,
+							"Add a point to the\ncurrent polygon" ),
+
+	gui_widget:set_tooltip( PasteImageButton, "Paste image" ),
+	gui_widget:set_tooltip( ClearCanvasButton, "Clear canvas" ),
+	gui_widget:set_tooltip( QuitButton, "Quit" ),
 
 	gui_sizer:add_elements( ControlBoxSizer, ControlButtons, expand_fully ),
 
 	gui_widget:set_sizer( LeftPanel, ControlBoxSizer ),
 
-	PolyBoxSizer = gui:create_with_labelled_box( vertical, RightPanel,
-												 "Polygon View" ),
+	PolyBoxSizer = gui_sizer:create_with_labelled_box( vertical, "Polygon View",
+													   RightPanel ),
 
-	Canvas = gui:create_canvas( RightPanel ),
+	Canvas = gui_canvas:create( RightPanel ),
 
-	gui:set_background_color( Canvas, pink ),
+	gui_widget:set_background_color( Canvas, pink ),
 
 	% Generally back-buffered canvases need to subscribe to onRepaintNeeded but
 	% also to onResized, if they just *blit* their back-buffer (not re-render
@@ -239,8 +244,8 @@ run_test_gui() ->
 	gui_sizer:add_element( PolyBoxSizer, Canvas,
 						   [ { proportion, 1 }, expand_fully ] ),
 
-	gui:set_tooltip( Canvas, "Random polygons and their MEC\n"
-							 "(Minimum Enclosing Circle Box) are drawn here." ),
+	gui_widget:set_tooltip( Canvas, "Random polygons and their MEC\n"
+		"(Minimum Enclosing Circle Box) are drawn here." ),
 
 	gui_widget:set_sizer( RightPanel, PolyBoxSizer ),
 
@@ -280,7 +285,7 @@ run_test_gui() ->
 
 
 	% Renders the GUI:
-	gui:show( MainFrame ),
+	gui_frame:show( MainFrame ),
 
 	test_main_loop( InitialTestState ).
 
@@ -373,8 +378,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			ImagePath = "../../../doc/myriad-small.png",
 
-			gui:load_image( Canvas, _Pos={150,50}, ImagePath ),
-			gui:blit( Canvas ),
+			gui_canvas:load_image( Canvas, _Pos={150,50}, ImagePath ),
+			gui_canvas:blit( Canvas ),
 
 			test_main_loop( TestState );
 
@@ -389,8 +394,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
-			gui:clear( Canvas ),
-			gui:blit( Canvas ),
+			gui_canvas:clear( Canvas ),
+			gui_canvas:blit( Canvas ),
 
 			test_main_loop( TestState );
 
@@ -404,7 +409,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
-			gui:destruct_window( MainFrame ),
+			gui_frame:destruct( MainFrame ),
 
 			gui:stop();
 
@@ -418,7 +423,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
-			gui:blit( Canvas ),
+			gui_canvas:blit( Canvas ),
 
 			test_main_loop( TestState#my_test_state{
 				render_count=RenderCount+1 } );
@@ -446,7 +451,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				[ gui:object_to_string( MainFrame ),
 				  gui_event:context_to_string( Context ) ] ),
 
-			gui:destruct_window( MainFrame ),
+			gui_frame:destruct( MainFrame ),
 
 			gui:stop();
 
@@ -481,42 +486,43 @@ render_shapes( Canvas ) ->
 
 	%gui:set_background_color( Canvas, yellow ),
 
-	gui:clear( Canvas ),
+	gui_canvas:clear( Canvas ),
 
 	P1 = { 20,10 },
 	P2 = { 100, 200 },
 
-	gui:draw_line( Canvas, P1, P2 ),
+	gui_canvas:draw_line( Canvas, P1, P2 ),
 
 	P3 = {300,50},
 	Purple = gui_color:get_color( blue ),
 
-	gui:draw_line( Canvas, P2, P3, Purple ),
+	gui_canvas:draw_line( Canvas, P2, P3, Purple ),
 	P4 = {400,250},
 
-	gui:set_draw_color( Canvas, red ),
-	gui:draw_lines( Canvas, [ P1, P3, P4 ] ),
+	gui_canvas:set_draw_color( Canvas, red ),
+	gui_canvas:draw_lines( Canvas, [ P1, P3, P4 ] ),
 
 
-	gui:set_draw_color( Canvas, black ),
-	gui:draw_cross( Canvas, {36,26}, _FirstEdgeLength=6 ),
+	gui_canvas:set_draw_color( Canvas, black ),
+	gui_canvas:draw_cross( Canvas, {36,26}, _FirstEdgeLength=6 ),
 
 	LabelPosition = {72,300},
 
 	LabelText = "A simple label, the cross indicating its specified location",
 
-	gui:draw_label( Canvas, LabelPosition, LabelText ),
-	gui:draw_cross( Canvas, LabelPosition ),
+	gui_canvas:draw_label( Canvas, LabelPosition, LabelText ),
+	gui_canvas:draw_cross( Canvas, LabelPosition ),
 
-	gui:draw_labelled_cross( Canvas, {36,86}, _SecondEdgeLength=4,
-							 "Cross label" ),
+	gui_canvas:draw_labelled_cross( Canvas, {36,86}, _SecondEdgeLength=4,
+									"Cross label" ),
 
-	gui:set_draw_color( Canvas, firebrick ),
-	gui:set_fill_color( Canvas, chartreuse ),
-	gui:draw_circle( Canvas, _CircleCenter={80,80}, _Radius=80 ),
+	gui_canvas:set_draw_color( Canvas, firebrick ),
+	gui_canvas:set_fill_color( Canvas, chartreuse ),
+	gui_canvas:draw_circle( Canvas, _CircleCenter={80,80}, _Radius=80 ),
 
-	gui:set_fill_color( Canvas, undefined ),
-	gui:draw_circle( Canvas, _OtherCircleCenter={180,180}, _OtherRadius=180 ),
+	gui_canvas:set_fill_color( Canvas, undefined ),
+	gui_canvas:draw_circle( Canvas, _OtherCircleCenter={180,180},
+							_OtherRadius=180 ),
 
 	% Taken from polygon_test.erl:
 	MyTriangle = polygon:update_bounding_surface( lazy_circle,
@@ -543,7 +549,7 @@ render_shapes( Canvas ) ->
 
 	polygon:render( RootPoly, Canvas ),
 
-	gui:blit( Canvas ).
+	gui_canvas:blit( Canvas ).
 
 
 
@@ -559,9 +565,9 @@ render_mec( Canvas, PointCount ) ->
 
 	%gui:set_background_color( Canvas, blue ),
 
-	gui:clear( Canvas ),
+	gui_canvas:clear( Canvas ),
 
-	gui:set_draw_color( Canvas, white ),
+	gui_canvas:set_draw_color( Canvas, white ),
 
 	RandomPoints = [ { random_utils:get_uniform_value( 200 ) + 300,
 					   random_utils:get_uniform_value( 300 ) + 100 }
@@ -578,7 +584,8 @@ render_mec( Canvas, PointCount ) ->
 
 	%trace_utils:debug_fmt( "Sorted points: ~w.", [ SortedPoints ] ),
 
-	gui:draw_lines( Canvas, [ Pivot | SortedPoints ] ++ [ Pivot ], green ),
+	gui_canvas:draw_lines( Canvas, [ Pivot | SortedPoints ] ++ [ Pivot ],
+						   green ),
 
 	HullPoints = linear_2D:compute_convex_hull( RandomPoints ),
 
@@ -597,21 +604,21 @@ render_mec( Canvas, PointCount ) ->
 	%trace_utils:debug_fmt( "Bounding Minimal Enclosing Circle: "
 	%                       "center = ~p, radius = ~f.", [ Center, Radius ] ),
 
-	gui:draw_labelled_cross( Canvas, Center, 5, purple, "MEC center" ),
+	gui_canvas:draw_labelled_cross( Canvas, Center, 5, purple, "MEC center" ),
 
-	gui:draw_circle( Canvas, Center, round( Radius ) ),
+	gui_canvas:draw_circle( Canvas, Center, round( Radius ) ),
 
-	gui:draw_lines( Canvas, [ Pivot | HullPoints ], blue ),
+	gui_canvas:draw_lines( Canvas, [ Pivot | HullPoints ], blue ),
 
 	% Draws the crosses last, to have them on top:
-	gui:draw_labelled_cross( Canvas, Pivot, _OtherEdgeLength=10, black,
+	gui_canvas:draw_labelled_cross( Canvas, Pivot, _OtherEdgeLength=10, black,
 							 "Pivot" ),
 
-	gui:set_draw_color( Canvas, blue ),
+	gui_canvas:set_draw_color( Canvas, blue ),
 
-	gui:draw_numbered_points( Canvas, SortedPoints ),
+	gui_canvas:draw_numbered_points( Canvas, SortedPoints ),
 
-	gui:blit( Canvas ).
+	gui_canvas:blit( Canvas ).
 
 
 

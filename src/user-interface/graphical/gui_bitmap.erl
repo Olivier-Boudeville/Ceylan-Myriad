@@ -171,8 +171,9 @@ create( Width, Height ) ->
 % @doc Returns a bitmap of the specified dimensions and color depth.
 -spec create( width(), height(), color_depth() ) -> bitmap().
 create( Width, Height, ColorDepth ) ->
-	EmptyBitmap = create_empty( Width, Height ),
-	populate_buffer( EmptyBitmap, Width, Height, ColorDepth ).
+	NewBitmap = create_empty( Width, Height ),
+	populate_buffer( NewBitmap, Width, Height, ColorDepth ),
+	NewBitmap.
 
 
 % @doc Returns a bitmap created from the image at the specified path.

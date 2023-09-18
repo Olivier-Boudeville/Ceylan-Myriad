@@ -1147,16 +1147,14 @@ process_event_message( { setCanvasDrawColor, [ CanvasId, Color ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-
-	gui_canvas:set_draw_color( CanvasState, Color ),
-
+	gui_canvas:set_draw_color_impl( CanvasState, Color ),
 	LoopState;
 
 
 process_event_message( { setCanvasFillColor, [ CanvasId, MaybeColor ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:set_fill_color( CanvasState, MaybeColor ),
+	gui_canvas:set_fill_color_impl( CanvasState, MaybeColor ),
 	LoopState;
 
 process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
@@ -1166,45 +1164,45 @@ process_event_message( { setCanvasBackgroundColor, [ CanvasId, Color ] },
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 
 	%trace_utils:debug_fmt( "CanvasState: ~p", [ CanvasState ] ),
-	gui_canvas:set_background_color( CanvasState, Color ),
+	gui_canvas:set_background_color_impl( CanvasState, Color ),
 	LoopState;
 
 process_event_message( { getCanvasRGBA, [ CanvasId, Point2 ], CallerPid },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	Color = gui_canvas:get_rgba( CanvasState, Point2 ),
+	Color = gui_canvas:get_rgba_impl( CanvasState, Point2 ),
 	CallerPid ! { notifyCanvasRGBA, Color },
 	LoopState;
 
 process_event_message( { setCanvasRGBA, [ CanvasId, Point ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:set_rgba( CanvasState, Point ),
+	gui_canvas:set_rgba_impl( CanvasState, Point ),
 	LoopState;
 
 process_event_message( { drawCanvasLine, [ CanvasId, P1, P2 ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_line( CanvasState, P1, P2 ),
+	gui_canvas:draw_line_impl( CanvasState, P1, P2 ),
 	LoopState;
 
 process_event_message( { drawCanvasLine, [ CanvasId, P1, P2, Color ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_line( CanvasState, P1, P2, Color ),
+	gui_canvas:draw_line_impl( CanvasState, P1, P2, Color ),
 	LoopState;
 
 process_event_message( { drawCanvasLines, [ CanvasId, Points ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_lines( CanvasState, Points ),
+	gui_canvas:draw_lines_impl( CanvasState, Points ),
 	LoopState;
 
 process_event_message( { drawCanvasLines, [ CanvasId, Points, Color ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_lines( CanvasState, Points, Color ),
+	gui_canvas:draw_lines_impl( CanvasState, Points, Color ),
 	LoopState;
 
 process_event_message( { drawCanvasSegment, [ CanvasId, _Points ] },
@@ -1212,8 +1210,8 @@ process_event_message( { drawCanvasSegment, [ CanvasId, _Points ] },
 	_CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 	throw( not_implemented ),
 	% 2 missing arguments in:
-	%gui_canvas:draw_segment( CanvasState, Points ),
-	%gui_canvas:draw_segment(canvas_state(), line2(), coordinate(),
+	%gui_canvas:draw_segment_impl( CanvasState, Points ),
+	%gui_canvas:draw_segment_impl(canvas_state(), line2(), coordinate(),
 	% coordinate()),
 
 	LoopState;
@@ -1221,80 +1219,80 @@ process_event_message( { drawCanvasSegment, [ CanvasId, _Points ] },
 process_event_message( { drawCanvasPolygon, [ CanvasId, Points ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_polygon( CanvasState, Points ),
+	gui_canvas:draw_polygon_impl( CanvasState, Points ),
 	LoopState;
 
 process_event_message( { drawCanvasLabel, [ CanvasId, Point, Label ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_label( CanvasState, Point, Label ),
+	gui_canvas:draw_label_impl( CanvasState, Point, Label ),
 	LoopState;
 
 process_event_message( { drawCanvasCross, [ CanvasId, Location ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_cross( CanvasState, Location ),
+	gui_canvas:draw_cross_impl( CanvasState, Location ),
 	LoopState;
 
 process_event_message( { drawCanvasCross, [ CanvasId, Location, EdgeLength ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_cross( CanvasState, Location, EdgeLength ),
+	gui_canvas:draw_cross_impl( CanvasState, Location, EdgeLength ),
 	LoopState;
 
 process_event_message( { drawCanvasCross,
 							[ CanvasId, Location, EdgeLength, Color ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_cross( CanvasState, Location, EdgeLength, Color ),
+	gui_canvas:draw_cross_impl( CanvasState, Location, EdgeLength, Color ),
 	LoopState;
 
 process_event_message( { drawCanvasLabelledCross,
 							[ CanvasId, Location, EdgeLength, LabelText ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_labelled_cross( CanvasState, Location, EdgeLength,
-									LabelText ),
+	gui_canvas:draw_labelled_cross_impl( CanvasState, Location, EdgeLength,
+										 LabelText ),
 	LoopState;
 
 process_event_message( { drawCanvasLabelledCross,
 		[ CanvasId, Location, EdgeLength, Color, LabelText ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_labelled_cross( CanvasState, Location, EdgeLength,
-									Color, LabelText ),
+	gui_canvas:draw_labelled_cross_impl( CanvasState, Location, EdgeLength,
+										 Color, LabelText ),
 	LoopState;
 
 process_event_message( { drawCanvasCircle, [ CanvasId, Center, Radius ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_circle( CanvasState, Center, Radius ),
+	gui_canvas:draw_circle_impl( CanvasState, Center, Radius ),
 	LoopState;
 
 process_event_message( { drawCanvasCircle,
 		[ CanvasId, Center, Radius, Color ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_circle( CanvasState, Center, Radius, Color ),
+	gui_canvas:draw_circle_impl( CanvasState, Center, Radius, Color ),
 	LoopState;
 
 process_event_message( { drawCanvasNumberedPoints, [ CanvasId, Points ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:draw_numbered_points( CanvasState, Points ),
+	gui_canvas:draw_numbered_points_impl( CanvasState, Points ),
 	LoopState;
 
 process_event_message( { loadCanvasImage, [ CanvasId, Filename ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 	% Canvas state is const (just an update of the back-buffer):
-	gui_canvas:load_image( CanvasState, Filename ),
+	gui_canvas:load_image_impl( CanvasState, Filename ),
 	LoopState;
 
 process_event_message( { loadCanvasImage, [ CanvasId, Position, Filename ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:load_image( CanvasState, Position, Filename ),
+	gui_canvas:load_image_impl( CanvasState, Position, Filename ),
 	LoopState;
 
 process_event_message( { resizeCanvas, [ CanvasId, NewSize ] },
@@ -1304,7 +1302,7 @@ process_event_message( { resizeCanvas, [ CanvasId, NewSize ] },
 
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 
-	NewCanvasState = gui_canvas:resize( CanvasState, NewSize ),
+	NewCanvasState = gui_canvas:resize_impl( CanvasState, NewSize ),
 
 	%trace_utils:debug_fmt( "NewCanvasState = ~p", [ NewCanvasState ] ),
 
@@ -1316,19 +1314,19 @@ process_event_message( { resizeCanvas, [ CanvasId, NewSize ] },
 process_event_message( { blitCanvas, CanvasId },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:blit( CanvasState ),
+	gui_canvas:blit_impl( CanvasState ),
 	LoopState;
 
 process_event_message( { clearCanvas, CanvasId },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui_canvas:clear( CanvasState ),
+	gui_canvas:clear_impl( CanvasState ),
 	LoopState;
 
 process_event_message( { setTooltip, [ CanvasId, Label ] },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	gui:set_tooltip( CanvasState#canvas_state.panel, Label ),
+	gui_widget:set_tooltip( CanvasState#canvas_state.panel, Label ),
 	LoopState;
 
 process_event_message( { getPanelForCanvas, CanvasId, CallerPid },
@@ -1340,14 +1338,14 @@ process_event_message( { getPanelForCanvas, CanvasId, CallerPid },
 process_event_message( { getCanvasSize, CanvasId, CallerPid },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	Size = gui_canvas:get_size( CanvasState ),
+	Size = gui_canvas:get_size_impl( CanvasState ),
 	CallerPid ! { notifyCanvasSize, Size },
 	LoopState;
 
 process_event_message( { getCanvasClientSize, CanvasId, CallerPid },
 					   LoopState=#loop_state{ type_table=TypeTable } ) ->
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
-	Size = gui_canvas:get_client_size( CanvasState ),
+	Size = gui_canvas:get_client_size_impl( CanvasState ),
 	CallerPid ! { notifyCanvasClientSize, Size },
 	LoopState;
 
@@ -1675,7 +1673,7 @@ update_instance_on_event(
 
 			CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 
-			NewCanvasState = gui_canvas:resize( CanvasState, NewSize ),
+			NewCanvasState = gui_canvas:resize_impl( CanvasState, NewSize ),
 
 			set_canvas_instance_state( CanvasId, NewCanvasState, TypeTable );
 
@@ -3243,7 +3241,7 @@ adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 
 	CanvasState = get_canvas_instance_state( CanvasId, TypeTable ),
 
-	NewCanvasState = case gui_canvas:adjust_size( CanvasState ) of
+	NewCanvasState = case gui_canvas:adjust_size_impl( CanvasState ) of
 
 		{ _NeedsRepaint=true, AdjCanvasState } ->
 

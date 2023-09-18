@@ -66,10 +66,10 @@ run_gui_test() ->
 	% Thus 1/3 for the first field, 2/3 for the second:
 	gui_statusbar:set_field_widths( StatusBar, [ -1, -2 ] ),
 
-	gui_statusbar:push_field_status( StatusBar, "First field", _FieldIndex=1 ),
+	gui_statusbar:push_field_text( StatusBar, "First field", _FieldIndex=1 ),
 
-	gui_statusbar:push_field_status( StatusBar, "Second, wider field",
-									 _FIndex=2 ),
+	gui_statusbar:push_field_text( StatusBar, "Second, wider field",
+								   _FIndex=2 ),
 
 	ToolbarStyle = [ top, dockable, flat, text ],
 	%ToolbarStyle = bottom,

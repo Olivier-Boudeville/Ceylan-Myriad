@@ -138,7 +138,7 @@ run_image_test() ->
 	render_scene( Panel, BackbufferBitmap, ImgBitmap ),
 	StatusBar = gui_statusbar:create( MainFrame ),
 
-	gui_statusbar:push_status( StatusBar, "Displaying image." ),
+	gui_statusbar:push_text( StatusBar, "Displaying image." ),
 
 	% No need to subscribe to 'onRepaintNeeded' for the panel:
 	gui:subscribe_to_events( [ { onWindowClosed, MainFrame },

@@ -113,7 +113,7 @@
 
 % Canvas user API:
 -export([ create/1, destruct/1,
-		  set_draw_color/2, set_fill_color/2,
+		  set_draw_color/2, set_fill_color/2, set_background_color/2,
 		  get_rgba/2, set_rgba/2,
 		  draw_line/3, draw_line/4, draw_lines/2, draw_lines/3,
 		  draw_segment/4, draw_polygon/2, draw_label/3,
@@ -262,6 +262,17 @@ set_draw_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 -spec set_fill_color( canvas(), maybe( color() ) ) -> void().
 set_fill_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 	gui:get_main_loop_pid() ! { setCanvasFillColor, [ CanvasId, Color ] }.
+
+
+
+% @doc Sets the background color to be using on the specified canvas.
+%
+% An undefined color corresponds to a fully transparent one.
+%
+-spec set_background_color( canvas(), maybe( color() ) ) -> void().
+set_background_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
+					  Color ) ->
+	gui:get_main_loop_pid() ! { setCanvasBackgroundColor, [ CanvasId, Color ] }.
 
 
 
@@ -505,6 +516,11 @@ clear( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
 
 % Section regarding canvas implementation.
+%
+% All (method-like) functions operating on a canvas state are called by the
+% gui_event main loop; their name shall be suffixed with "_impl" to differ from
+% their counterparts belonging to the user API.
+
 
 
 % @doc Returns the types of events regarding its panel that a canvas will
@@ -535,14 +551,14 @@ create_instance( [ Parent ] ) ->
 			"whose parent is ~w.", [ Parent ] ) ),
 
 	% Could have been: Size = auto,
-	Size = { W, H } = gui:get_size( Parent ),
+	Size = { W, H } = gui_widget:get_size( Parent ),
 
 	% Internally, a canvas is mostly an association between a dedicated panel,
 	% bitmap and back-buffer:
 
 	% A canvas is to be fully repainted when resized:
 	Panel = gui_panel:create( _Pos=auto, Size,
-		_Opt=[ { style, [ full_repaint_on_resize ] }, Parent ] ),
+		_Opt=[ { style, [ full_repaint_on_resize ] } ], Parent ),
 
 	% Creates an actual bitmap with the screen color path:
 	Bitmap = gui_bitmap:create( W, H ),
@@ -609,9 +625,9 @@ adjust_size_impl( CanvasState=#canvas_state{ panel=Panel, size=Size } ) ->
 	cond_utils:if_defined( myriad_debug_gui_canvas,
 		trace_utils:debug_fmt( "Adjusting size of canvas '~p': currently ~w, "
 			"while panel's is ~w.",
-			[ CanvasState, Size, gui:get_size( Panel ) ] ) ),
+			[ CanvasState, Size, gui_widget:get_size( Panel ) ] ) ),
 
-	case gui:get_size( Panel ) of
+	case gui_widget:get_size( Panel ) of
 
 		% Nothing to do if the size of the panel already matches the one of its
 		% canvas:
@@ -633,15 +649,15 @@ adjust_size_impl( CanvasState=#canvas_state{ panel=Panel, size=Size } ) ->
 -spec resize_impl( canvas_state(), size() ) -> canvas_state().
 resize_impl( CanvasState=#canvas_state{ bitmap=Bitmap,
 										back_buffer=BackBuffer },
-				 NewSize={ W, H } ) ->
+			 NewSize={ W, H } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_canvas,
 		trace_utils:debug_fmt( "Resizing canvas to ~w.", [ NewSize ] ) ),
 
-	% Regardless of call order and wheter either one or both of the next calls
+	% Regardless of call order and whether either one or both of the next calls
 	% are enabled, if an error like {'_wxe_error_',710, {wxDC,setPen,2},
 	% {badarg,"This"}} is triggered, then probably some operation replaced these
-	% elements, yet did not update their reference in the canvas/loop states.
+	% elements yet did not update their reference in the canvas/loop states.
 	%
 	wxMemoryDC:destroy( BackBuffer ),
 	wxBitmap:destroy( Bitmap ),
@@ -839,8 +855,8 @@ draw_lines_impl( #canvas_state{ back_buffer=BackBuffer }, Points ) ->
 %
 -spec draw_lines_impl( canvas_state(), [ point() ], color() ) -> void().
 draw_lines_impl( Canvas, Points, Color ) ->
-	set_draw_color( Canvas, Color),
-	draw_lines( Canvas, Points ).
+	set_draw_color_impl( Canvas, Color),
+	draw_lines_impl( Canvas, Points ).
 
 
 
@@ -972,7 +988,7 @@ draw_numbered_points_impl( Canvas, Points ) ->
 	%trace_utils:debug_fmt( "Labelled points: ~p.", [ LabelledPoints ] ),
 
 	[ draw_labelled_cross_impl( Canvas, Location, _EdgeLength=6, Label )
-			|| { Label, Location } <- LabelledPoints  ].
+			|| { Label, Location } <- LabelledPoints ].
 
 
 

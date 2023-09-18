@@ -66,8 +66,8 @@
 
 -export([ create/1, create/2, destruct/1,
 		  set_field_count/2, set_field_widths/2,
-		  push_status/2, push_status/3,
-		  push_field_status/3, push_field_status/4 ]).
+		  push_text/2, push_text/3,
+		  push_field_text/3, push_field_text/4 ]).
 
 
 
@@ -100,8 +100,8 @@ create( Frame ) ->
 -spec create( frame(), [ status_bar_style() ] ) -> status_bar().
 create( Frame, StatusBarStyles ) ->
 	% No interesting option (winid):
-	wxFrame:createStatusBar( Frame, [ { style,
-		statusbar_styles_to_bitmask( StatusBarStyles ) } ] ).
+	wxFrame:createStatusBar( Frame,
+		[ { style, statusbar_styles_to_bitmask( StatusBarStyles ) } ] ).
 
 
 
@@ -133,36 +133,36 @@ set_field_widths( StatusBar, FieldWidths ) ->
 % @doc Pushes the specified text in the (first field of the) specified status
 % bar.
 %
--spec push_status( status_bar(), text() ) -> void().
-push_status( StatusBar, Text ) ->
+-spec push_text( status_bar(), text() ) -> void().
+push_text( StatusBar, Text ) ->
 	wxStatusBar:pushStatusText( StatusBar, Text ).
 
 
 % @doc Pushes the specified formatted text in the (first field of the) specified
 % status bar.
 %
--spec push_status( status_bar(), format_string(), format_values() ) -> void().
-push_status( StatusBar, FormatString, FormatValues ) ->
+-spec push_text( status_bar(), format_string(), format_values() ) -> void().
+push_text( StatusBar, FormatString, FormatValues ) ->
 	Text = text_utils:format( FormatString, FormatValues ),
-	push_status( Text, StatusBar ).
+	push_text( StatusBar, Text ).
 
 
 
 % @doc Pushes the specified text in the specified field of the specified status
 % bar.
 %
--spec push_field_status( status_bar(), text(), field_index() ) -> void().
-push_field_status( StatusBar, Text, FieldIndex ) ->
+-spec push_field_text( status_bar(), text(), field_index() ) -> void().
+push_field_text( StatusBar, Text, FieldIndex ) ->
 	% Wx starts at zero:
 	wxStatusBar:pushStatusText( StatusBar, Text, [ { number, FieldIndex-1 } ] ).
 
 
 % @doc Pushes the specified formatted text in the specified status bar.
--spec push_field_status( status_bar(), format_string(), format_values(),
+-spec push_field_text( status_bar(), format_string(), format_values(),
 						 field_index() ) -> void().
-push_field_status( StatusBar, FormatString, FormatValues, FieldIndex ) ->
+push_field_text( StatusBar, FormatString, FormatValues, FieldIndex ) ->
 	Text = text_utils:format( FormatString, FormatValues ),
-	push_field_status( StatusBar, Text, FieldIndex ).
+	push_field_text( StatusBar, Text, FieldIndex ).
 
 
 % @doc Converts the specified MyriadGUI status bar style elements into the
