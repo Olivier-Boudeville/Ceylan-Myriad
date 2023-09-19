@@ -144,7 +144,12 @@ Purpose of ``gui``
 
 The goal is to provide a small, lightweight API (including message types) that are higher-level than ``wx`` and OpenGL (more integrated, more typed, possibly clearer, having more runtime checks - that can be toggled at build time), and do not depend on any particular GUI backend (such as ``wx``, ``gs``, etc.; so none of their includes, records, types or functions leak in the user realm), to avoid that user programs become obsolete too quickly because of the UI backend they rely on.
 
-So for example the messages received by the user programs do not mention ``wx``, and respect only MyriadGUI conventions. These conventions are in line with the `WOOPER ones <https://wooper.esperide.org/#method-invocation>`_, enabling (in a fully optional manner) the user code to rely on WOOPER if wanted.
+So for example the messages received by the user programs do not mention ``wx``, and respect only MyriadGUI conventions. These conventions are in line with the `WOOPER ones <https://wooper.esperide.org/#method-invocation>`_, enabling (in a fully optional manner) the user code to rely on WOOPER if wanted [#]_.
+
+.. [#] Inspired from MyriadGUI, one could consider creating WOOPERGUI, which would provide basically the same services, yet relying on inheritance on the Erlang side as well.
+
+	   That way for example a frame would be a special case (hence a child class) of window, and frames would automatically inherit all window operations; so the user would have just to handle a frame by itself, without having to take into account the fact that some operations of interest are actually defined at the window level instead.
+
 
 The usual mode of operation is the following:
 

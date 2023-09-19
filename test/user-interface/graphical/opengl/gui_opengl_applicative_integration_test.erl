@@ -99,8 +99,8 @@
 
 	% Subsection for MyriadGUI-level test information:
 
-	% The main window of this test:
-	parent :: window(),
+	% The main frame of this test:
+	main_frame :: frame(),
 
 	% The panel occupying the client area of the main window:
 	panel :: panel(),
@@ -119,7 +119,7 @@
 	% (explicitly stored, as not all rendering triggers pass such a canvas as
 	% event elements - typically if performing a time-based rendering update)
 	%
-	client_widget :: window(),
+	client_widget :: widget(),
 
 	mesh :: mesh(),
 
@@ -159,15 +159,17 @@
 
 -type render_rgb_color() :: gui_color:render_rgb_color().
 
--type window() :: gui:window().
--type panel() :: gui:panel().
--type image() :: gui:image().
--type font() :: gui:font().
--type brush() :: gui:brush().
+-type frame() :: gui_frame:frame().
+-type widget() :: gui_widget:widget().
+-type panel() :: gui_panel:panel().
+-type image() :: gui_image:image().
+-type font() :: gui_frame:font().
 
 -type app_gui_state() :: gui_event:app_gui_state().
 -type event_elements() :: gui_event:event_elements().
 -type app_event_return() :: gui_event:app_event_return().
+
+-type brush() :: gui_render:brush().
 
 -type glu_id() :: gui_opengl:glu_id().
 
@@ -536,9 +538,9 @@ run_actual_test() ->
 
 	TestSpecificInfo = InitialAppGUIState#app_gui_state.app_specific_info,
 
-	MainFrame = TestSpecificInfo#my_test_gui_info.parent,
+	MainFrame = TestSpecificInfo#my_test_gui_info.main_frame,
 
-	gui:show( MainFrame ),
+	gui_frame:show( MainFrame ),
 
 	% Uncomment to check that a no_gl_context error report is triggered indeed,
 	% as expected (as no current GL context exists yet):
@@ -559,10 +561,11 @@ run_actual_test() ->
 -spec init_test_gui() -> app_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame( "MyriadGUI OpenGL Integration Test" ),
+	MainFrame = 
+		gui_frame:create( "MyriadGUI OpenGL Applicative Integration Test" ),
 
 	% No way found to properly clear its content before onShow is processed:
-	Panel = gui:create_panel( MainFrame ),
+	Panel = gui_panel:create( MainFrame ),
 
 
 	% Creating a GL canvas with 'GLCanvas =
@@ -594,9 +597,9 @@ init_test_gui() ->
 	% (on Apple's Cocoa, subscribing to onRepaintNeeded might be required)
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
-	StatusBar = gui:create_status_bar( MainFrame ),
+	StatusBar = gui_statusbar:create( MainFrame ),
 
-	gui:push_status_text( "Testing OpenGL now.", StatusBar ),
+	gui_statusbar:push_text( StatusBar, "Testing OpenGL now." ),
 
 	InvImage = gui_image:load_from_file( get_test_image_path() ),
 
@@ -612,12 +615,12 @@ init_test_gui() ->
 	% No OpenGL-related GUI information yet (GL context cannot be set as current
 	% yet):
 	%
-	TestSpecificGUIInfo = #my_test_gui_info{ parent=MainFrame,
+	TestSpecificGUIInfo = #my_test_gui_info{ main_frame=MainFrame,
 											 panel=Panel,
 											 image=Image },
 
 	% Setting the focus on the panel would work as well:
-	gui:set_focus( GLCanvas ),
+	gui_widget:set_focus( GLCanvas ),
 
 	AppEventSpecs = gui_event:get_base_application_event_specs(),
 
@@ -652,12 +655,12 @@ gui_main_loop( AppGUIState ) ->
 
 		{ { toggle_fullscreen, _BaseEvent }, ToggleAppGUIState } ->
 			AppSpecificInfo = ToggleAppGUIState#app_gui_state.app_specific_info,
-			MainFrame = AppSpecificInfo#my_test_gui_info.parent,
+			MainFrame = AppSpecificInfo#my_test_gui_info.main_frame,
 
-			IsFullscreen = gui:is_fullscreen( MainFrame ),
+			IsFullscreen = gui_frame:is_fullscreen( MainFrame ),
 
 			% Toggle:
-			true = gui:set_fullscreen( MainFrame, not IsFullscreen ),
+			true = gui_frame:set_fullscreen( MainFrame, not IsFullscreen ),
 
 			%trace_utils:info_fmt( "Toggle fullscreen just requested "
 			%   "(event of origin: ~w), whereas fullscreen status is ~ts.",
@@ -669,7 +672,7 @@ gui_main_loop( AppGUIState ) ->
 			trace_utils:info_fmt( "Quit just requested (event of origin: ~w).",
 								  [ BaseEvent ] ),
 			AppSpecificInfo = QuitAppGUIState#app_gui_state.app_specific_info,
-			gui:destruct_window( AppSpecificInfo#my_test_gui_info.parent ),
+			gui_frame:destruct( AppSpecificInfo#my_test_gui_info.main_frame ),
 			gui:stop();
 
 		{ _MaybeAppEventPair=undefined, EventAppGUIState } ->
@@ -729,13 +732,13 @@ test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 		"initialised yet; initialising it.",
 		[ gui:object_to_string( Frame ), gui_id:id_to_string( FrameId ),
 		  gui_event:context_to_string( EventContext ),
-		  gui:get_size( Frame ) ] ),
+		  gui_widget:get_size( Frame ) ] ),
 
 	% Optional yet better:
 	gui:unsubscribe_from_events( { onShown, Frame } ),
 
 	% Initial size of GL canvas is typically 20x20 pixels:
-	Size = gui:get_client_size( GLCanvas ),
+	Size = gui_widget:get_client_size( GLCanvas ),
 
 	trace_utils:debug_fmt( "Test initialising OpenGL "
 		"(whereas canvas is of initial size ~w).", [ Size ] ),
@@ -765,10 +768,10 @@ test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 
 	AlphaTexture = gui_texture:load_from_file( get_logo_image_path() ),
 
-	Font = gui:create_font( _PointSize=32, _Family=default_font_family,
+	Font = gui_font:create( _PointSize=32, _Family=default_font_family,
 							_Style=normal, _Weight=bold ),
 
-	Brush = gui:create_brush( _BlackRGB={ 0, 0, 0 } ),
+	Brush = gui_render:create_brush( _BlackRGB={ 0, 0, 0 } ),
 
 	% Myriad RGB dark blue:
 	TextColor = { 0, 39, 165 },
@@ -841,7 +844,7 @@ test_onRepaintNeeded_driver( _Elements=[ GLCanvas, _GLCanvasId, _EventContext ],
 	% A rendering is not strictly necessary in this case, as anyway a regular
 	% redraw is to happen soon afterwards.
 
-	gui:enable_repaint( GLCanvas ),
+	gui_widget:enable_repaint( GLCanvas ),
 
 	% Includes the GL flushing and the buffer swaping:
 	%
@@ -883,7 +886,7 @@ test_onResized_driver( _Elements=[ _ParentWindow, _ParentWindowId,
 	{ _MaybeAppEventPair=undefined, ResizedAppGUIState }.
 
 
-
+% Is actually a frame:
 test_onWindowClosed( Elements=[ ParentWindow, _ParentWindowId,
 								_EventContext ],
 					 AppGUIState ) ->
@@ -894,7 +897,7 @@ test_onWindowClosed( Elements=[ ParentWindow, _ParentWindowId,
 	% Very final check, while there is still an OpenGL context:
 	gui_opengl:check_error(),
 
-	gui:destruct_window( ParentWindow ),
+	gui_window:destruct( ParentWindow ),
 
 	BaseGUIEvent = { onWindowClosed, Elements },
 
@@ -919,10 +922,10 @@ on_main_frame_resized( GUIState=#app_gui_state{
 	% Maximises widgets in their respective area:
 
 	% First, panel in main frame:
-	gui:maximise_in_parent( Panel ),
+	gui_widget:maximise_in_parent( Panel ),
 
 	% Then OpenGL canvas in panel:
-	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
+	{ CanvasWidth, CanvasHeight } = gui_widget:maximise_in_parent( GLCanvas ),
 
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
@@ -941,7 +944,7 @@ on_main_frame_resized( GUIState=#app_gui_state{
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
-	gui:sync( GLCanvas ),
+	gui_widget:sync( GLCanvas ),
 
 	gl:matrixMode( ?GL_PROJECTION ),
 
@@ -1010,7 +1013,7 @@ update_clock_texture( Time, TestGUIInfo=#my_test_gui_info{
 		font=Font,
 		brush=Brush } ) ->
 
-	gui_texture:delete( ClockTexture ),
+	gui_texture:destruct( ClockTexture ),
 	NewClockTexture = get_clock_texture( Time, Font, Brush ),
 	TestGUIInfo#my_test_gui_info{ clock_texture=NewClockTexture }.
 
@@ -1079,7 +1082,7 @@ render( #my_test_gui_info{ client_widget=GLCanvas,
 
 	gui_opengl:enter_2d_mode( GLCanvas ),
 
-	{ Width, Height } = gui:get_client_size( GLCanvas ),
+	{ Width, Height } = gui_widget:get_client_size( GLCanvas ),
 
 	Move = abs( 90 - ( trunc( Angle ) rem 180 ) ),
 

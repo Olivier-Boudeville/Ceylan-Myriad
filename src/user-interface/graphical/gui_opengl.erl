@@ -196,8 +196,8 @@
 
 -opaque gl_canvas() :: wxGLCanvas:wxGLCanvas().
 % An OpenGL-based, back-buffered canvas (not to be mixed with a basic
-% gui:canvas/0 one), to which an OpenGL context shall be set in order to execute
-% OpenGL commands.
+% gui_canvas:canvas/0 one), to which an OpenGL context shall be set in order to
+% execute OpenGL commands.
 %
 % Any OpenGL canvas is not resized when its containers are resized.
 
@@ -1646,7 +1646,7 @@ create_canvas( Parent, Opts ) ->
 
 	WxAttrs = gui_wx_backend:to_wx_device_context_attributes( Attrs ),
 
-	OtherWxOpts = gui_wx_backend:to_wx_window_options( OtherOpts ),
+	OtherWxOpts = gui_window:to_wx_window_options( OtherOpts ),
 
 	WxOpts = [ { attribList, WxAttrs } | OtherWxOpts ],
 

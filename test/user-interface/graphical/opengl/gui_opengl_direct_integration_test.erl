@@ -903,7 +903,7 @@ update_rendering( GUIState=#my_gui_state{ opengl_state=GLState,
 update_clock_texture( Time, GLState=#my_opengl_state{
 		clock_texture=ClockTexture, font=Font, brush=Brush } ) ->
 
-	gui_texture:delete( ClockTexture ),
+	gui_texture:destruct( ClockTexture ),
 	NewClockTexture = get_clock_texture( Time, Font, Brush ),
 	GLState#my_opengl_state{ clock_texture=NewClockTexture }.
 

@@ -498,7 +498,6 @@
 
 
 -export_type([ loop_pid/0,
-			   opengl_canvas/0, opengl_context/0,
 			   construction_parameters/0, backend_event/0,
 			   event_subscription_options/0,
 			   event_subscription_opt/0,
@@ -642,13 +641,6 @@
 
 -type loop_pid() :: pid().
 % The PID of the MyriadGUI main loop.
-
-
--type opengl_canvas() :: gui_opengl:gl_canvas().
-% An OpenGL canvas (not to be mixed with a basic one, canvas/0).
-
--type opengl_context() :: gui_opengl:gl_context().
-% An OpenGL context.
 
 
 

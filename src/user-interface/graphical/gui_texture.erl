@@ -196,6 +196,8 @@
 
 		  create_from_text/4, create_from_text/5,
 
+		  destruct/1,
+
 		  apply_basic_settings_on_current/0,
 
 		  generate_mipmaps/0, generate_mipmaps/1, generate_mipmaps_for_id/1,
@@ -211,7 +213,6 @@
 
 		  get_color_buffer/1, get_color_buffer/3,
 
-		  delete/1,
 
 		  get_dimensions/1, get_dimensions/2,
 		  generate_id/0, to_string/1,
@@ -279,7 +280,6 @@
 -type dimensions() :: gui:dimensions().
 -type width() :: gui:width().
 -type height() :: gui:height().
--type brush() :: gui:brush().
 
 -type coordinate() :: gui:coordinate().
 -type position() :: gui:position().
@@ -296,6 +296,8 @@
 -type image_format() :: gui_image:image_format().
 
 -type font() :: gui_font:font().
+
+-type brush() :: gui_render:brush().
 
 -type enum() :: gui_opengl:enum().
 
@@ -542,6 +544,19 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 	% Not supposed to be null dimensions:
 	#texture{ id=TextureId, width=StrW, height=StrH, min_x=0.0, min_y=0.0,
 			  max_x=StrW/Width, max_y=StrH/Height }.
+
+
+
+% @doc Destructs (that is: deletes) the specified texture(s).
+-spec destruct( maybe_list( texture() ) ) -> void().
+destruct( Textures ) when is_list( Textures ) ->
+	gl:deleteTextures( [ Id || #texture{ id=Id } <- Textures ] ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() );
+
+destruct( #texture{ id=Id } ) ->
+	gl:deleteTextures( [ Id ] ),
+	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
+
 
 
 
@@ -795,18 +810,6 @@ render( #texture{ id=TextureId,
 
 	gl:'end'(),
 
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
-
-
-
-% @doc Deletes the specified texture(s).
--spec delete( maybe_list( texture() ) ) -> void().
-delete( Textures ) when is_list( Textures ) ->
-	gl:deleteTextures( [ Id || #texture{ id=Id } <- Textures ] ),
-	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() );
-
-delete( #texture{ id=Id } ) ->
-	gl:deleteTextures( [ Id ] ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 

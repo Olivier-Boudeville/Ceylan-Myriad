@@ -128,7 +128,8 @@
 
 
 % For top-level frames:
--export([ create_top_level/1, create_top_level/2, create_top_level/4 ]).
+-export([ create_top_level/1, create_top_level/2, create_top_level/4,
+		  is_fullscreen/1, set_fullscreen/2 ]).
 
 
 
@@ -308,3 +309,23 @@ create_top_level( Title, Position, Size, Style ) ->
 	Frame = create( Title, Position, Size, Style ),
 	gui_window:record_as_top_level( Frame ),
 	Frame.
+
+
+
+% @doc Returns whether the specified top-level frame is fullscreen.
+-spec is_fullscreen( top_level_frame() ) -> boolean().
+is_fullscreen( TopLvlFrame ) ->
+	wxTopLevelWindow:isFullScreen( TopLvlFrame ).
+
+
+% @doc Shows the specified top-level frame to fullscreen (if true) or restores
+% it to its normal state (if false).
+%
+% Showing a frame full screen also actually shows the frame if it is not already
+% shown. Any menu bar is then hidden.
+%
+% Returns (supposedly) whether the operation succeeded.
+%
+-spec set_fullscreen( top_level_frame(), boolean() ) -> void().
+set_fullscreen( TopLvlFrame, ForceFullscreen ) ->
+	wxTopLevelWindow:showFullScreen( TopLvlFrame, ForceFullscreen ).
