@@ -362,7 +362,7 @@ float_to_integer( F ) ->
 
 
 
-% @doc Converts the specified float to integer, using specified conversion
+% @doc Converts the specified float to integer, using the specified conversion
 % tolerance.
 %
 -spec float_to_integer( float(), conversion_type() ) -> integer().
@@ -370,12 +370,14 @@ float_to_integer( F, _ConversionType=exact ) ->
 
 	Int = round( F ),
 
-	case Int - F of
+	Diff = Int - F,
 
-		0.0 ->
+	case Diff == 0 of
+
+		true ->
 			Int;
 
-		Diff ->
+		false ->
 			throw( { non_exact_integer_conversion, { F, Int }, Diff } )
 
 	end;
@@ -539,6 +541,9 @@ are_close( X, Y ) ->
 % @doc Returns true iff the two specified floating-point numbers are deemed
 % close enough to be equal, based on specified epsilon threshold.
 %
+% Note that such absolute tolerance comparison fails when X and Y become large,
+% so generally are_relatively_close/2 shall be preferred.
+%
 -spec are_close( number(), number(), number() ) -> boolean().
 are_close( X, Y, Epsilon ) ->
 	erlang:abs( X - Y ) < Epsilon.
@@ -582,49 +587,50 @@ are_relatively_close( X, Y ) ->
 % @doc Returns true iff the two specified (usually floating-point) numbers are
 % deemed close enough, relatively, to be equal.
 %
-% The difference between these numbers, divided by their average (a.k.a. the
-% relative error), must be smaller than the specified epsilon threshold,
-% ie the maximum tolerance.
-%
 % For example to know whether X and Y are equal with a 5% tolerance, use:
 % math_utils:are_relatively_close(X, Y, _Tolerance=0.05).
 %
 -spec are_relatively_close( number(), number(), number() ) -> boolean().
 are_relatively_close( X, Y, Epsilon ) ->
 
-	% are_close/2 is not satisfactory when X and Y are small:
-
+	% are_close/2 is not satisfactory at least when X and Y are large.
+	%
 	% As for: 'abs( X - Y ) < ?epsilon * max( abs(X), abs(Y) )' it would fail
 	% when X and Y are small.
 
-	% Another approach than the one currently used below is to perform a
-	% comparison with a relative tolerance for large values, and an absolute
-	% tolerance for small values, as described by Christer Ericson in
+	% Another approach than the one below is to perform a comparison with a
+	% relative tolerance for large values, and an absolute tolerance for small
+	% values, as described by Christer Ericson in
 	% http://realtimecollisiondetection.net/blog/?p=89 and in his book
 	% "Real-Time Collision Detection", yielding to:
 	%
-	% abs( X - Y ) =< ?epsilon * max( 1.0, max( abs(X), abs(Y) ) ).
+	abs( X - Y ) =< Epsilon * max( 1.0, max( abs(X), abs(Y) ) ).
 
-	% Here, we will divide by X+Y ... provided this is not null:
-	case X+Y of
+	% The previous implementation was:
 
-		0.0 ->
-			% X+Y=0, okay; they will be relatively close iff absolutely close
-			% (between them, and to zero) here (think for example to X=3 and
-			% Y=-3):
-			%
-			are_close( X, Y, Epsilon );
+	% The difference between these numbers, divided by their average (a.k.a. the
+	% relative error), must be smaller than the specified epsilon threshold, ie
+	% the maximum tolerance.
 
+	% Here, we will divide by X+Y ... provided that this is not null:
+	% case X+Y of
 
-		0 ->
-			% Implies X and Y are integer zeros, so:
-			true;
+	%	0.0 ->
+	%		% X+Y=0, okay; then they will be relatively close iff absolutely
+	%		% close (between them, and to zero) here (think for example to X=3
+	%		% and Y=-3):
+	%		%
+	%		are_close( X, Y, Epsilon );
 
-		_ ->
-			%trace_utils:debug_fmt( "X= ~p, Y= ~p~n", [ X, Y ] ),
-			2 * erlang:abs( ( X - Y ) / ( X + Y ) ) < Epsilon
+	%	0 ->
+	%		% Implies X and Y are both integers, so:
+	%		X =:= Y;
 
-	end.
+	%	_ ->
+	%		%trace_utils:debug_fmt( "X= ~p, Y= ~p~n", [ X, Y ] ),
+	%		2 * erlang:abs( ( X - Y ) / ( X + Y ) ) < Epsilon
+
+	% end.
 
 
 
@@ -647,13 +653,14 @@ get_relative_difference( X, Y ) ->
 	%       2 * erlang:abs( X - Y ) / ( X + Y )
 	%
 	%end.
-	% Yet this did not catch cases like: X= 0.0, Y= 0, so:
+	% Yet this did not catch cases like: X=0.0, Y=0, so:
 
 	% Preventing any future division by zero:
-	case X+Y of
+	Sum = X + Y,
 
-		0.0 ->
+	case Sum == 0 of
 
+		true ->
 			% Not =:=, we want X to be converted to a float if needed:
 			case X == 0.0 of
 
@@ -666,7 +673,7 @@ get_relative_difference( X, Y ) ->
 
 			end;
 
-		Sum ->
+		false ->
 			2 * erlang:abs( ( X - Y ) / Sum )
 
 	end.
