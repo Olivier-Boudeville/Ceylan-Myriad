@@ -65,8 +65,8 @@
 %
 -record( my_gui_state, {
 
-	% The main window of this test:
-	parent :: window(),
+	% The main frame of this test:
+	main_frame :: frame(),
 
 	% The OpenGL canvas on which rendering will be done:
 	canvas :: gl_canvas(),
@@ -88,12 +88,12 @@
 
 % Shorthands:
 
--type window() :: gui:window().
+-type frame() :: gui:frame().
 
 -type render_rgb_color() :: gui_color:render_rgb_color().
 
--type gl_canvas() :: gui:opengl_canvas().
--type gl_context() :: gui:opengl_context().
+-type gl_canvas() :: gui_opengl:gl_canvas().
+-type gl_context() :: gui_opengl:gl_context().
 
 
 
@@ -138,7 +138,7 @@ run_actual_test() ->
 	InitialGUIState = init_test_gui(),
 	%InitialGUIState = gui:batch( fun() -> init_test_gui() end ),
 
-	gui:show( InitialGUIState#my_gui_state.parent ),
+	gui_frame:show( InitialGUIState#my_gui_state.main_frame ),
 
 	% OpenGL will be initialised only when the corresponding frame will be ready
 	% (that is once first reported as resized):
@@ -158,7 +158,7 @@ run_actual_test() ->
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame( "MyriadGUI Minimal OpenGL Test",
+	MainFrame = gui_frame:create( "MyriadGUI Minimal OpenGL Test",
 								  _Size={ 500, 250 } ),
 
 	% This test may request additionally an OpenGL debug context:
@@ -180,7 +180,7 @@ init_test_gui() ->
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet):
-	#my_gui_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext }.
+	#my_gui_state{ main_frame=MainFrame, canvas=GLCanvas, context=GLContext }.
 
 
 
@@ -204,7 +204,7 @@ gui_main_loop( GUIState ) ->
 			RepaintedGUIState = case GUIState#my_gui_state.opengl_initialised of
 
 				true ->
-					gui:enable_repaint( GLCanvas ),
+					gui_widget:enable_repaint( GLCanvas ),
 					render(),
 					gui_opengl:swap_buffers( GLCanvas ),
 					GUIState;
@@ -249,7 +249,8 @@ gui_main_loop( GUIState ) ->
 		{ onShown, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
-				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
+				"(initial size of ~w).",
+				[ gui_widget:get_size( ParentWindow ) ] ),
 
 			% Optional yet better:
 			gui:unsubscribe_from_events( { onShown, ParentWindow } ),
@@ -270,7 +271,7 @@ gui_main_loop( GUIState ) ->
 			gui_opengl:check_error(),
 
 			% No more recursing:
-			gui:destruct_window( ParentWindow );
+			gui_window:destruct( ParentWindow );
 
 
 		OtherEvent ->
@@ -294,7 +295,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Initial size of canvas is typically 20x20 pixels:
 	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
-						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
+						   "size ~w).", [ gui_widget:get_size( GLCanvas ) ] ),
 
 	% So done only once:
 	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
@@ -349,7 +350,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 
 	% Maximises the canvas in the main frame:
-	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
+	{ CanvasWidth, CanvasHeight } = gui_widget:maximise_in_parent( GLCanvas ),
 
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
@@ -368,7 +369,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
-	gui:sync( GLCanvas ),
+	gui_widget:sync( GLCanvas ),
 
 	% Any OpenGL reset to be done because of the resizing should take place
 	% here.

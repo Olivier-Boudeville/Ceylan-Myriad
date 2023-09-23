@@ -92,7 +92,7 @@
 -type height() :: gui:height().
 
 -type gl_canvas() :: gui_opengl:gl_canvas().
--type gl_context() :: gui_opengl:opengl_context().
+-type gl_context() :: gui_opengl:gl_context().
 
 
 

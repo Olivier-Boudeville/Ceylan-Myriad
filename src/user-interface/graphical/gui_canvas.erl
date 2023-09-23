@@ -182,7 +182,7 @@
 % The actual canvas type we are to use.
 
 -type canvas() :: { 'myriad_object_ref', 'myr_canvas', myriad_instance_id() }.
-% A basic canvas (not to be mixed with an OpenGL one, opengl_canvas/0).
+% A basic canvas (not to be mixed with an OpenGL one, gui_opengl:gl_canvas/0).
 %
 % This is a specific kind for canvases of the myriad_object_ref() record, thus
 % relating to a gui_object().

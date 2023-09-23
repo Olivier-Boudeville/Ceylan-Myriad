@@ -555,10 +555,10 @@
 	% OpenGL-related entries:
 
 	% The current OpenGL canvas (if any):
-	{ 'gl_canvas', maybe( opengl_canvas() ) },
+	{ 'gl_canvas', maybe( gl_canvas() ) },
 
 	% The current OpenGL context (if any):
-	{ 'gl_context', maybe( opengl_context() ) },
+	{ 'gl_context', maybe( gl_context() ) },
 
 
 	% Mouse-related entries:
