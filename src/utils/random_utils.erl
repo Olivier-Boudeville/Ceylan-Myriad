@@ -1727,7 +1727,7 @@ sigma_loop( Mu, Sigma ) ->
 	S  = (V1 * V1) + (V2 * V2),
 
 	% Loop until S in ]0,1[:
-	case S >= 1.0 orelse S =:= 0.0 of
+	case S >= 1.0 orelse S == 0.0 of
 
 		% Rejected:
 		true ->

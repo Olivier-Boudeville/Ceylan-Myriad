@@ -2781,7 +2781,7 @@ compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 	case User + Nice + System + Idle + Other of
 
 		% Yes, this happens:
-		0.0 ->
+		0 ->
 			undefined;
 
 		Sum ->
