@@ -579,7 +579,12 @@
 
 -type tuple( _T ) :: tuple().
 % Designates an uniform tuple (of unspecified size), that is a tuple whose
-% elements are all of the specified type.
+% elements are all of the specified type T.
+
+
+-type tuple( _T, _S ) :: tuple().
+% Designates an uniform tuple of the specified size, that is a tuple whose
+% S elements are all of the type T.
 
 
 -type counters() :: tuple( count() ).
@@ -638,7 +643,7 @@
 
 			   record/0,
 			   tuploid/0, tuploid/1,
-			   pair/0, triplet/0, tuple/1,
+			   pair/0, triplet/0, tuple/1, tuple/2,
 			   map/2,
 			   pid_ref/0,
 			   permanent_term/0, transient_term/0 ]).
