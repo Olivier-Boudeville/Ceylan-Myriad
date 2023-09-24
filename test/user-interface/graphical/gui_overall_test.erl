@@ -177,8 +177,8 @@ run_test_gui() ->
 
 	% To check surfaces:
 	%gui_widget:set_background_color( MainFrame, red ),
-	%gui:set_background_color( LeftPanel, blue ),
-	%gui:set_background_color( RightPanel, green ),
+	%gui_widget:set_background_color( LeftPanel, blue ),
+	%gui_widget:set_background_color( RightPanel, green ),
 
 	MainSizer = gui_sizer:create( _Orientation=horizontal ),
 
@@ -484,7 +484,7 @@ render_shapes( Canvas ) ->
 	%   "Rendering example shapes, redrawing canvas ~w, of size ~w.",
 	%   [ Canvas, gui:get_size( Canvas ) ] ),
 
-	%gui:set_background_color( Canvas, yellow ),
+	%gui_widget:set_background_color( Canvas, yellow ),
 
 	gui_canvas:clear( Canvas ),
 
@@ -563,7 +563,7 @@ render_mec( Canvas, PointCount ) ->
 	%trace_utils:info_fmt( "Rendering MEC for ~B random points.",
 	%                      [ PointCount ] ),
 
-	%gui:set_background_color( Canvas, blue ),
+	%gui_widget:set_background_color( Canvas, blue ),
 
 	gui_canvas:clear( Canvas ),
 
