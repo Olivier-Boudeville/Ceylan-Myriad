@@ -40,49 +40,59 @@
 % State of the program, passed between event handlers.
 -record( app_state, {
 
-	main_frame :: gui:frame(),
-	load_image_button :: gui_button:button(),
-	quit_button :: gui_button:button(),
-	info_sizer :: gui_sizer:sizer(),
-	left_panel :: gui:panel(),
-	canvas :: gui:canvas() } ).
-
+	main_frame :: frame(),
+	load_image_button :: button(),
+	quit_button :: button(),
+	info_sizer :: sizer(),
+	left_panel :: panel(),
+	canvas :: canvas() } ).
 
 -type app_state() :: #app_state{}.
 % The application state.
 
 
+
 % Shorthands:
 
--type integer_coordinate() :: linear:integer_coordinate().
+-type width() :: gui:width().
+-type height() :: gui:height().
+
 -type canvas() :: gui_canvas:canvas().
+
+-type frame() :: gui_frame:frame().
+
+-type sizer() :: gui_sizer:sizer().
+
+-type button() :: gui_button:button().
+
+-type panel() :: gui_panel:panel().
+
 
 % Temporary:
 -export_type([ app_state/0 ]).
+
 -export([ gui_main_loop/1, get_canvas_width/0, get_canvas_height/0,
 		  render_main_view/1, load_image/1 ]).
 
 
-% @doc Returns the width of the main window.
--spec get_main_window_width() -> integer_coordinate().
-get_main_window_width() ->
+% @doc Returns the width of the main frame.
+-spec get_main_frame_width() -> width().
+get_main_frame_width() ->
 	800.
 
-
-% @doc Returns the height of the main window.
--spec get_main_window_height() -> integer_coordinate().
-get_main_window_height() ->
+% @doc Returns the height of the main frame.
+-spec get_main_frame_height() -> height().
+get_main_frame_height() ->
 	600.
 
 
 % @doc Returns the width of the displayed canvas.
--spec get_canvas_width() -> integer_coordinate().
+-spec get_canvas_width() -> width().
 get_canvas_width() ->
 	640.
 
-
 % @doc Returns the height of the displayed canvas.
--spec get_canvas_height() -> integer_coordinate().
+-spec get_canvas_height() -> height().
 get_canvas_height() ->
 	480.
 
@@ -94,23 +104,23 @@ init_app_gui() ->
 
 	gui:start(),
 
-	FrameSize = { get_main_window_width(), get_main_window_height() },
+	FrameSize = { get_main_frame_width(), get_main_frame_height() },
 
-	MainFrame = gui:create_frame( _Title="Asset tool", FrameSize ),
+	MainFrame = gui_frame:create( _Title="Asset tool", FrameSize ),
 
-	gui:subscribe_to_events( { close_window, MainFrame } ),
+	gui:subscribe_to_events( { onWindowClosed, MainFrame } ),
 
-	%gui:set_background_color( MainFrame, red ),
-	%gui:set_background_color( LeftPanel, blue ),
-	%gui:set_background_color( RightPanel, green ),
+	%gui_widget:set_background_color( MainFrame, red ),
+	%gui_widget:set_background_color( LeftPanel, blue ),
+	%gui_widget:set_background_color( RightPanel, green ),
 
-	StatusBar = gui:create_status_bar( MainFrame ),
+	StatusBar = gui_statusbar:create( MainFrame ),
 
-	gui:push_status_text( "Waiting for assets to manage.", StatusBar ),
+	gui_statusbar:push_text( StatusBar, "Waiting for assets to manage." ),
 
-	LeftPanel = gui:create_panel( MainFrame ),
+	LeftPanel = gui_panel:create( MainFrame ),
 
-	RightPanel = gui:create_panel( MainFrame ),
+	RightPanel = gui_panel:create( MainFrame ),
 
 	MainSizer = gui_sizer:create( _Orientation=horizontal ),
 
@@ -124,11 +134,11 @@ init_app_gui() ->
 
 	LeftSizer = gui_sizer:create( vertical ),
 
-	ControlBoxSizer = gui_sizer:create_with_labelled_box( vertical, LeftPanel,
-														  "Controls" ),
+	ControlBoxSizer = gui_sizer:create_with_labelled_box( vertical, "Controls",
+														  LeftPanel ),
 
-	InfoSizer = gui_sizer:create_with_labelled_box( vertical, LeftPanel,
-													"Information" ),
+	InfoSizer = gui_sizer:create_with_labelled_box( vertical, "Information",
+													LeftPanel ),
 
 	update_information_sizer( InfoSizer, LeftPanel, [ "(no image loaded)" ] ),
 
@@ -143,10 +153,10 @@ init_app_gui() ->
 
 	QuitButton = gui_button:create( "Quit", LeftPanel ),
 
-	gui:set_tooltip( LeftPanel, "Controls for assets" ),
+	gui_widget:set_tooltip( LeftPanel, "Controls for assets" ),
 
 	% Not working apparently:
-	gui:set_tooltip( LoadImageButton, "Load image" ),
+	gui_widget:set_tooltip( LoadImageButton, "Load image" ),
 
 	gui_sizer:add_elements( ControlBoxSizer, [ LoadImageButton, QuitButton ],
 						   expand_fully ),
@@ -154,24 +164,24 @@ init_app_gui() ->
 
 	gui_widget:set_sizer( LeftPanel, LeftSizer ),
 
-	AssetBoxSizer = gui_sizer:create_with_labelled_box( vertical, RightPanel,
-														"Asset View" ),
+	AssetBoxSizer = gui_sizer:create_with_labelled_box( vertical, "Asset View",
+														RightPanel ),
 
-	Canvas = gui_canvas:create_instance( RightPanel ),
+	Canvas = gui_canvas:create( RightPanel ),
 
 	gui_canvas:set_background_color( Canvas, pink ),
 
 	gui_sizer:add_element( AssetBoxSizer, Canvas,
 						   [ { proportion, 1 }, expand_fully ] ),
 
-	gui:set_tooltip( Canvas, "Asset view." ),
+	gui_widget:set_tooltip( Canvas, "Asset view." ),
 
 	gui_widget:set_sizer( RightPanel, AssetBoxSizer ),
 
 	gui_widget:set_sizer( MainFrame, MainSizer ),
 
 	% Sets the GUI to visible:
-	gui:show( MainFrame ),
+	gui_frame:show( MainFrame ),
 
 	InitialAppState = #app_state{ main_frame=MainFrame,
 								  load_image_button=LoadImageButton,
@@ -298,8 +308,8 @@ update_information_sizer( InfoSizer, Panel, Texts ) ->
 
 	TextOpts = [ { border, 10 }, expand_fully ],
 
-   [ gui_sizer:add_element( InfoSizer, gui_text:create_static( T, Panel ),
-							TextOpts ) || T <- Texts ].
+   [ gui_sizer:add_element( InfoSizer,
+		gui_text:create_static_display( T, Panel ), TextOpts ) || T <- Texts ].
 
 
 
