@@ -2201,6 +2201,10 @@ endif
 # Then ensure that ~/Software/gradualizer/Gradualizer/bin is in your PATH so
 # that 'gradualizer' can be run directly.
 #
+# We also recommend to update it regularly, as it is still in active
+# development; for that, run from the root of its clone:
+# 'git pull && make clean escript'
+#
 GRADUALIZER := $$(which gradualizer 2>/dev/null)
 
 
@@ -2231,6 +2235,7 @@ GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
 # Refer to 'gradualizer --help' for further guidance.
 GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 					$(GRADUALIZER_CONTEXTUAL_OPTS) \
+					$(OVERALL_PA_OPTS)
 
 
 # eqWAlizer is provided by WhatsApp:
