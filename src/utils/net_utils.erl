@@ -1699,7 +1699,8 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 % Net-related transfers.
 %
 % They are done through a dedicated TCP/IP socket pair, using sendfile (hence
-% not using the base inter-node Erlang TCP connection).
+% not using the base inter-node Erlang TCP connection), directly writing the
+% files on the target filesystem.
 %
 % For proper operation, a sufficient number of async threads should be
 % available.
@@ -1708,7 +1709,7 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 % matter for firewall settings.
 %
 % The sender is to use send_file/2 while the recipient is to use one of the
-% receive_file/{1,2,3}. As they synchronize through messages, no specific order
+% receive_file/{1,2,3}. As they synchronise through messages, no specific order
 % of these two calls matters (the first will wait for the second).
 
 
@@ -1723,9 +1724,12 @@ get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 -define( send_file_listen_opts, [ binary, { active, false }, { packet,0 } ] ).
 
 
-% @doc Sends specified file (probably over the network) to the specified
-% recipient PID, supposed to have already called one of the receive_file/{1,2,3}
-% functions.
+% @doc Sends the specified file (most probably over the network) to the
+% specified recipient PID, supposed to have already called one of the
+% receive_file/{1,2,3} functions.
+%
+% The operation will be done filesystem-to-filesystem, hence no specific return
+% is made.
 %
 -spec send_file( file_path(), pid() ) -> void().
 send_file( FilePath, RecipientPid ) ->

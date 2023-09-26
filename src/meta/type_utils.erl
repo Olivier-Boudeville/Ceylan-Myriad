@@ -579,7 +579,12 @@
 
 -type tuple( _T ) :: tuple().
 % Designates an uniform tuple (of unspecified size), that is a tuple whose
-% elements are all of the specified type.
+% elements are all of the specified type T.
+
+
+-type tuple( _T, _S ) :: tuple().
+% Designates an uniform tuple of the specified size, that is a tuple whose
+% S elements are all of the type T.
 
 
 -type counters() :: tuple( count() ).
@@ -592,6 +597,9 @@
 -type map( _K, _V ) :: map().
 % As (maps:)map/2 does not even exist apparently, at least not since 18.0.
 
+
+-type pid_ref() :: naming_utils:local_designator().
+% Any kind of reference onto a process.
 
 
 -type permanent_term() :: integer() | float() | atom() | boolean() | binary()
@@ -635,8 +643,9 @@
 
 			   record/0,
 			   tuploid/0, tuploid/1,
-			   pair/0, triplet/0, tuple/1,
+			   pair/0, triplet/0, tuple/1, tuple/2,
 			   map/2,
+			   pid_ref/0,
 			   permanent_term/0, transient_term/0 ]).
 
 
@@ -682,6 +691,9 @@
 % check_all_undefined/1, are_all_defined/1, check_defined/1,
 % check_not_undefined/1, check_all_defined/1.
 %
+% For comparisons (equality checks), refer to {basic,cond}_utils:check_equal/2
+% for example, depending on whether such a check should be conditional.
+%
 -export([ check_atom/1, check_atoms/1,
 		  check_boolean/1, check_booleans/1,
 
@@ -716,7 +728,10 @@
 
 
 % Checks with potential conversions:
--export([ ensure_integer/1, ensure_rounded_integer/1,
+-export([ ensure_integer/1,
+		  ensure_rounded_integer/1,
+		  ensure_floored_integer/1, ensure_ceiled_integer/1,
+
 		  ensure_float/1, ensure_positive_float/1,
 		  ensure_string/1, ensure_binary/1 ]).
 
@@ -1406,6 +1421,37 @@ ensure_rounded_integer( N ) when is_float( N ) ->
 ensure_rounded_integer( N ) ->
 	throw( { cannot_coerce_to_integer, N } ).
 
+
+
+% @doc Ensures that the specified term is an integer, and returns it.
+%
+% If it is a float, will return a floored (rounded-down integer) version of it.
+%
+-spec ensure_floored_integer( number() ) -> integer().
+ensure_floored_integer( N ) when is_integer( N ) ->
+	N;
+
+ensure_floored_integer( N ) when is_float( N ) ->
+	math_utils:floor( N );
+
+ensure_floored_integer( N ) ->
+	throw( { cannot_coerce_to_integer, N } ).
+
+
+
+% @doc Ensures that the specified term is an integer, and returns it.
+%
+% If it is a float, will return a ceiled (rounded-up integer) version of it.
+%
+-spec ensure_ceiled_integer( number() ) -> integer().
+ensure_ceiled_integer( N ) when is_integer( N ) ->
+	N;
+
+ensure_ceiled_integer( N ) when is_float( N ) ->
+	math_utils:ceiling( N );
+
+ensure_ceiled_integer( N ) ->
+	throw( { cannot_coerce_to_integer, N } ).
 
 
 

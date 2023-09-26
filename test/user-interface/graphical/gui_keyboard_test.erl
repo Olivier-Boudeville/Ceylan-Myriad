@@ -57,20 +57,20 @@ run_test_gui() ->
 
 	trace_utils:notice( "An empty, resizable test frame shall appear; pressing "
 		"keys while this frame has the focus should display the corresponding "
-		"generated keyboard events. " ),
+		"generated keyboard events." ),
 
 	gui:start(),
 
-	TestFrame = gui:create_frame( "This is the single and only test frame, "
+	TestFrame = gui_frame:create( "This is the single and only test frame, "
 								  "for keyboard testing" ),
 
 	gui:subscribe_to_events( { onWindowClosed, TestFrame } ),
 
 
 	% A frame cannot handle key events, so we create a panel within it:
-	TestPanel = gui:create_panel( _Parent=TestFrame ),
+	TestPanel = gui_panel:create( _Parent=TestFrame ),
 
-	% Set to true to focus on the scan codes:
+	% Set to true to focus (only) on the scan codes:
 	CheckScanCode = false,
 	%CheckScanCode = true,
 
@@ -88,11 +88,11 @@ run_test_gui() ->
 	gui:subscribe_to_events( { EventTypes, TestPanel } ),
 
 	% Focus needed to receive events:
-	gui:set_focus( TestPanel ),
+	gui_widget:set_focus( TestPanel ),
 
 	trace_utils:notice( "Please close the frame to end this test." ),
 
-	gui:show( TestFrame ),
+	gui_frame:show( TestFrame ),
 
 	test_main_loop( { TestFrame, CheckScanCode } ).
 
@@ -124,10 +124,9 @@ test_main_loop( TestState={ TestFrame, CheckScanCode } ) ->
 		{ onWindowClosed, [ _TestFrame, _TestFrameId, Context ] } ->
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
-				  gui:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( Context ) ] ),
 
-			% A frame is a window:
-			gui:destruct_window( TestFrame ),
+			gui_frame:destruct( TestFrame ),
 
 			trace_utils:info( "Test frame closed, test success." ),
 

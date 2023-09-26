@@ -1405,7 +1405,7 @@ checkpoint( Number ) ->
 % Assert subsection.
 %
 % For counterparts that can be conditionally defined at compilation time, see
-% cond_utils:/assert/*.
+% cond_utils:assert/*.
 
 
 % @doc Asserts that the specified (runtime) expression is true, otherwise throws
@@ -1453,6 +1453,8 @@ assert_false( Other ) ->
 
 % @doc Asserts that the specified (runtime) expressions compare equal, otherwise
 % throws an exception.
+%
+% Sometimes searched as check_equal/2.
 %
 -spec assert_equal( term(), term() ) -> void().
 assert_equal( Expr, Expr ) ->

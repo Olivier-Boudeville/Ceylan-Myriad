@@ -156,6 +156,14 @@ in_background=1
 #
 non_interactive=1
 
+
+# Often left disabled (hence at 1), since most crashes require only Erlang-level
+# debugging:
+#
+#investigate_post_mortem=0
+investigate_post_mortem=1
+
+
 # Erlang defaults (see http://erlang.org/doc/man/erl.html#+zdbbl):
 busy_limit=1024
 
@@ -897,85 +905,94 @@ else
 
 	fi
 
-	if ! "${erl}" ${to_eval} ${command}; then
+	"${erl}" ${to_eval} ${command}
+
+	res=$?
+	#echo "Execution result: ${res}."
+
+	if [ ! $res -eq 0 ]; then
 
 		if [ $non_interactive -eq 1 ]; then
 
-			core_exec="$(which coredumpctl 2>/dev/null)"
+			if [ $investigate_post_mortem -eq 0 ]; then
 
-			if [ ! -x "${core_exec}" ]; then
+				core_exec="$(which coredumpctl 2>/dev/null)"
 
-				echo "(no 'coredumpctl' tool available, no post-mortem investigation performed)" 1>&2
+				if [ ! -x "${core_exec}" ]; then
 
-				exit 105
+					echo "(no 'coredumpctl' tool available, no post-mortem investigation performed)" 1>&2
 
-			fi
-
-			# Especially useful whenever crashing one's OpenGL driver:
-			echo "This execution of the Erlang VM failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
-			read answer
-			if [ "${answer}" = "y" ]; then
-
-				# We want to select a proper coredump (if any).
-				#
-
-				# ('coredumpctl list' would list all known core dumps from
-				# oldest to most recent; see
-				# https://howtos.esperide.org/GNULinux.html#process-related-post-mortem-investigations
-				# for more information)
-
-
-				echo "Analysing latest-found Erlang VM coredump (use the 'bt' command to print the backtrace; 'q' to quit):"
-
-				#echo "erl = ${erl}"
-
-				# As we need [...]/lib/erlang/erts-xx.y/bin/beam.smp rather than
-				# [...]/bin/erl:
-				#
-				base_erl_install="$(dirname $(dirname ${erl}))"
-
-				# Expecting exactly one erts-* directory to be found:
-				beam_exec="$(/bin/ls -1 ${base_erl_install}/lib/erlang/erts-*/bin/beam.smp 2>/dev/null)"
-
-				if [ -z "${beam_exec}" ]; then
-
-					echo "(the actual beam.smp executable could not be located in '${base_erl_install}')" 1>&2
-					exit 112
+					exit 105
 
 				fi
 
-				beam_exec_count="$(echo ${beam_exec}| wc -l)"
-				if [ ! "${beam_exec_count}" = "1" ]; then
+				# Especially useful whenever crashing one's OpenGL driver:
+				echo "This execution of the Erlang VM failed. Shall we run a post-mortem investigation? (y/n) [n]" 1>&2
+				read answer
+				if [ "${answer}" = "y" ]; then
 
-					echo "(could not locate the actual single beam.smp executable in '${base_erl_install}', got '${beam_exec_count}')" 1>&2
-					exit 114
+					# We want to select a proper coredump (if any).
+					#
+
+					# ('coredumpctl list' would list all known core dumps from
+					# oldest to most recent; see
+					# https://howtos.esperide.org/GNULinux.html#process-related-post-mortem-investigations
+					# for more information)
+
+
+					echo "Analysing latest-found Erlang VM coredump (use the 'bt' command to print the backtrace; 'q' to quit):"
+
+					#echo "erl = ${erl}"
+
+					# As we need [...]/lib/erlang/erts-xx.y/bin/beam.smp rather
+					# than [...]/bin/erl:
+					#
+					base_erl_install="$(dirname $(dirname ${erl}))"
+
+					# Expecting exactly one erts-* directory to be found:
+					beam_exec="$(/bin/ls -1 ${base_erl_install}/lib/erlang/erts-*/bin/beam.smp 2>/dev/null)"
+
+					if [ -z "${beam_exec}" ]; then
+
+						echo "(the actual beam.smp executable could not be located in '${base_erl_install}')" 1>&2
+						exit 112
+
+					fi
+
+					beam_exec_count="$(echo ${beam_exec}| wc -l)"
+					if [ ! "${beam_exec_count}" = "1" ]; then
+
+						echo "(could not locate the actual single beam.smp executable in '${base_erl_install}', got '${beam_exec_count}')" 1>&2
+						exit 114
+
+					fi
+
+					# As the paths must match exactly (despite symlinks such as
+					# Erlang-current-install masking Erlang-x.y directories):
+					#
+					real_beam_exec="$(realpath ${beam_exec})"
+
+					if [ ! -x "${real_beam_exec}" ]; then
+
+						echo "(could not locate the actual real beam.smp executable, got '${real_beam_exec}')" 1>&2
+						exit 116
+
+					fi
+
+					# Yet a crash does not always creates a core (e.g. if using
+					# xkill; even if ulimit is "unlimited"):
+					#
+					#echo "${core_exec}" debug "${real_beam_exec}"
+					"${core_exec}" debug "${real_beam_exec}"
+
+					exit $?
+
+				else
+
+					echo "(no coredump analysis wanted)"
+					exit 100
 
 				fi
-
-				# As the paths must match exactly (despite symlinks such as
-				# Erlang-current-install masking Erlang-x.y directories):
-				#
-				real_beam_exec="$(realpath ${beam_exec})"
-
-				if [ ! -x "${real_beam_exec}" ]; then
-
-					echo "(could not locate the actual real beam.smp executable, got '${real_beam_exec}')" 1>&2
-					exit 116
-
-				fi
-
-				# Yet a crash does not always creates a core (e.g. if using
-				# xkill; even if ulimit is "unlimited"):
-				#
-				#echo "${core_exec}" debug "${real_beam_exec}"
-				"${core_exec}" debug "${real_beam_exec}"
-
-				exit $?
-
-			else
-
-				echo "(no coredump analysis wanted)"
-				exit 100
 
 			fi
 
@@ -989,8 +1006,6 @@ else
 
 fi
 
-
-res=$?
 
 # However run_erl may return 0 despite errors:
 if [ ! ${res} -eq 0 ]; then

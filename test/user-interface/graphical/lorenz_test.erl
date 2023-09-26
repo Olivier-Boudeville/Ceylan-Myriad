@@ -232,7 +232,7 @@ lorenz_function( _Time, _P={ X0, Y0, Z0 } ) ->
 % GUI section.
 
 
-% State of the program, passed between event handlers.
+% State of the program, passed between event drivers.
 -record( gui_state, { main_frame,
 					  start_button,
 					  increase_step_button,
@@ -275,7 +275,7 @@ get_main_window_height() ->
 %   480.
 
 
-% @doc Initialises the GUI and associated parts (solver).
+% @doc Initialises the GUI and the associated parts (solvers).
 -spec start() -> no_return().
 start() ->
 
@@ -296,13 +296,13 @@ start() ->
 
 	FrameSize = { get_main_window_width(), get_main_window_height() },
 
-	MainFrame = gui:create_frame( _Title="Lorenz Test", _FramePos=auto,
-		FrameSize, _FrameStyle=default, _Id=main_frame_id,
+	MainFrame = gui_frame:create( _Title="Lorenz Test", _FramePos=auto,
+		FrameSize, _FrameStyles=[ default ], _Id=main_frame_id,
 		_MaybeParent=undefined ),
 
 	gui:subscribe_to_events( { onWindowClosed, MainFrame } ),
 
-	StatusBar = gui:create_status_bar( MainFrame ),
+	StatusBar = gui_statusbar:create( MainFrame ),
 
 	% Not wanting to overwhelm the MyriadGUI main loop (not this test main
 	% loop), which may happen quite easily if having many cores:
@@ -314,29 +314,30 @@ start() ->
 
 	InitialTimestep = 0.005,
 
-	gui:push_status_text( "Initialisation of ~B solvers (not started yet), "
-		"with a timestep of ~f.", [ SolverCount, InitialTimestep ], StatusBar ),
+	gui_statusbar:push_text( StatusBar, "Initialisation of ~B solvers "
+		"(not started yet), with a timestep of ~f.",
+		[ SolverCount, InitialTimestep ] ),
 
-	LeftPanel = gui:create_panel( MainFrame ),
+	LeftPanel = gui_panel:create( MainFrame ),
 
-	RightPanel = gui:create_panel( MainFrame ),
+	RightPanel = gui_panel:create( MainFrame ),
 
-	%gui:set_background_color( MainFrame, red ),
-	%gui:set_background_color( LeftPanel, blue ),
-	%gui:set_background_color( RightPanel, green ),
+	%gui_widget:set_background_color( MainFrame, red ),
+	%gui_widget:set_background_color( LeftPanel, blue ),
+	%gui_widget:set_background_color( RightPanel, green ),
 
-	MainSizer = gui:create_sizer( horizontal ),
+	MainSizer = gui_sizer:create( _Orientation=horizontal ),
 
 	% Constant width:
-	gui:add_to_sizer( MainSizer, LeftPanel,
-					  [ { proportion, 0 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, LeftPanel,
+						   [ { proportion, 0 }, expand_fully ] ),
 
 	% Grows with the window:
-	gui:add_to_sizer( MainSizer, RightPanel,
-					  [ { proportion, 2 }, expand_fully ] ),
+	gui_sizer:add_element( MainSizer, _Elements=RightPanel,
+						   _Opts=[ { proportion, 2 }, expand_fully ] ),
 
 	ControlBoxSizer =
-		gui:create_sizer_with_labelled_box( vertical, LeftPanel, "Controls" ),
+		gui_sizer:create_with_labelled_box( vertical, "Controls", LeftPanel ),
 
 	% Adding the buttons to the control panel:
 
@@ -344,29 +345,29 @@ start() ->
 
 	Position = auto,
 	ButtonSize = auto,
-	ButtonStyle = default,
-	ParentButton = LeftPanel,
+	ButtonStyles = [],
+	ButtonParent = LeftPanel,
 
-	StartButton = gui:create_button( "Start resolution", Position, ButtonSize,
-		ButtonStyle, start_button_id, ParentButton ),
+	StartButton = gui_button:create( "Start resolution", Position, ButtonSize,
+		ButtonStyles, start_button_id, ButtonParent ),
 
-	IncButton = gui:create_button( "Increase timestep", Position, ButtonSize,
-		ButtonStyle, inc_button_id, ParentButton ),
+	IncButton = gui_button:create( "Increase timestep", Position, ButtonSize,
+		ButtonStyles, inc_button_id, ButtonParent ),
 
-	DecButton = gui:create_button( "Decrease timestep", Position, ButtonSize,
-		ButtonStyle, dec_button_id, ParentButton ),
+	DecButton = gui_button:create( "Decrease timestep", Position, ButtonSize,
+		ButtonStyles, dec_button_id, ButtonParent ),
 
-	StopButton = gui:create_button( "Stop resolution", Position, ButtonSize,
-		ButtonStyle, stop_button_id, ParentButton ),
+	StopButton = gui_button:create( "Stop resolution", Position, ButtonSize,
+		ButtonStyles, stop_button_id, ButtonParent ),
 
-	ClearButton = gui:create_button( "Clear phase space", Position, ButtonSize,
-		ButtonStyle, clear_button_id, ParentButton ),
+	ClearButton = gui_button:create( "Clear phase space", Position, ButtonSize,
+		ButtonStyles, clear_button_id, ButtonParent ),
 
-	ResetButton = gui:create_button( "Reset initial conditions", Position,
-		ButtonSize, ButtonStyle, reset_button_id, ParentButton ),
+	ResetButton = gui_button:create( "Reset initial conditions", Position,
+		ButtonSize, ButtonStyles, reset_button_id, ButtonParent ),
 
-	QuitButton = gui:create_button( "Quit", Position, ButtonSize, ButtonStyle,
-		quit_button_id, ParentButton ),
+	QuitButton = gui_button:create( "Quit", Position, ButtonSize, ButtonStyles,
+		quit_button_id, ButtonParent ),
 
 	Buttons = [ StartButton, IncButton, DecButton, StopButton, ClearButton,
 				ResetButton, QuitButton ],
@@ -374,34 +375,35 @@ start() ->
 	gui:subscribe_to_events( [ { onButtonClicked, B } || B <- Buttons ] ),
 
 
-	gui:set_tooltip( LeftPanel, "Controls for the Lorenz test" ),
+	gui_widget:set_tooltip( LeftPanel, "Controls for the Lorenz test" ),
 
-	[ gui:add_to_sizer( ControlBoxSizer, B, expand_fully ) || B <- Buttons ],
+	gui_sizer:add_elements( ControlBoxSizer, Buttons, expand_fully ),
 
-	gui:set_sizer( LeftPanel, ControlBoxSizer ),
+	gui_widget:set_sizer( LeftPanel, ControlBoxSizer ),
 
-	PolyBoxSizer = gui:create_sizer_with_labelled_box( vertical, RightPanel,
-		"Phase Space with ~B parallel RK4 solvers", [ SolverCount ] ),
+	PolyBoxSizer = gui_sizer:create_with_labelled_box( vertical,
+		"Phase Space with ~B parallel RK4 solvers", [ SolverCount ],
+		RightPanel ),
 
-	Canvas = gui:create_canvas( RightPanel ),
+	Canvas = gui_canvas:create( RightPanel ),
 
-	gui:set_background_color( Canvas, red ),
+	gui_canvas:set_background_color( Canvas, red ),
 
-	gui:clear( Canvas ),
+	gui_canvas:clear( Canvas ),
 
 	gui:subscribe_to_events( { [ onRepaintNeeded, onResized ], Canvas } ),
 
-	gui:add_to_sizer( PolyBoxSizer, Canvas,
-					  [ { proportion, 1 }, expand_fully ] ),
+	gui_sizer:add_element( PolyBoxSizer, Canvas,
+						   [ { proportion, 1 }, expand_fully ] ),
 
-	gui:set_tooltip( Canvas, "Lorenz Attractor." ),
+	gui_widget:set_tooltip( Canvas, "Lorenz Attractor." ),
 
-	gui:set_sizer( RightPanel, PolyBoxSizer ),
+	gui_widget:set_sizer( RightPanel, PolyBoxSizer ),
 
-	gui:set_sizer( MainFrame, MainSizer ),
+	gui_widget:set_sizer( MainFrame, MainSizer ),
 
 	% Sets the GUI to visible:
-	gui:show( MainFrame ),
+	gui_frame:show( MainFrame ),
 
 	ZoomFactor = 24.0,
 
@@ -528,7 +530,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 				"(~ts), quitting Lorenz test, test success.",
 				[ gui:object_to_string( MainFrame ),
-				  gui:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( Context ) ] ),
 			undefined;
 
 
@@ -537,9 +539,9 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 
 			SolverTable = GUIState#gui_state.solver_table,
 
-			gui:push_status_text( "Starting ~B solvers (timestep of ~f).",
-				[ table:size( SolverTable ), GUIState#gui_state.timestep ],
-				GUIState#gui_state.status_bar ),
+			gui_statusbar:push_text( GUIState#gui_state.status_bar,
+				"Starting ~B solvers (timestep of ~f).",
+				[ table:size( SolverTable ), GUIState#gui_state.timestep ] ),
 
 			send_to_solvers( _Msg=start, SolverTable ),
 
@@ -554,8 +556,8 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			send_to_solvers( _Msg={ set_time_step, NewTimestep },
 							 GUIState#gui_state.solver_table ),
 
-			gui:push_status_text( "Timestep increased to ~f.",
-				[ NewTimestep ], GUIState#gui_state.status_bar ),
+			gui_statusbar:push_text( GUIState#gui_state.status_bar,
+				"Timestep increased to ~f.",[ NewTimestep ] ),
 
 			GUIState#gui_state{ timestep=NewTimestep };
 
@@ -568,8 +570,8 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			send_to_solvers( _Msg={ set_time_step, NewTimestep },
 							 GUIState#gui_state.solver_table ),
 
-			gui:push_status_text( "Timestep decreased to ~f.",
-				[ NewTimestep ], GUIState#gui_state.status_bar ),
+			gui_statusbar:push_text( GUIState#gui_state.status_bar,
+				"Timestep decreased to ~f.", [ NewTimestep ] ),
 
 			GUIState#gui_state{ timestep=NewTimestep };
 
@@ -577,11 +579,11 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 		{ onButtonClicked, [ ClearButton, _ClearButtonId, _Context ] } ->
 			%test_facilities:display( "Clear button clicked." ),
 
-			gui:push_status_text( "Phase space cleared.",
-								  GUIState#gui_state.status_bar ),
+			gui_statusbar:push_text( GUIState#gui_state.status_bar,
+									 "Phase space cleared." ),
 
-			gui:clear( Canvas ),
-			gui:blit( Canvas ),
+			gui_canvas:clear( Canvas ),
+			gui_canvas:blit( Canvas ),
 			GUIState;
 
 
@@ -590,9 +592,9 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 
 			SolverTable = GUIState#gui_state.solver_table,
 
-			gui:push_status_text( "Stopping ~B solvers (timestep was ~f).",
-				[ table:size( SolverTable ), GUIState#gui_state.timestep ],
-				GUIState#gui_state.status_bar ),
+			gui_statusbar:push_text( GUIState#gui_state.status_bar,
+				"Stopping ~B solvers (timestep was ~f).",
+				[ table:size( SolverTable ), GUIState#gui_state.timestep ] ),
 
 			send_to_solvers( _Msg={ stop, self() }, SolverTable ),
 
@@ -605,8 +607,8 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			reset_solvers( GUIState#gui_state.solver_table,
 						   get_initial_base_point() ),
 
-			gui:push_status_text( "Initial conditions of solvers reset.",
-								  GUIState#gui_state.status_bar ),
+			gui_statusbar:push_text( GUIState#gui_state.status_bar,
+									 "Initial conditions of solvers reset." ),
 			GUIState;
 
 
@@ -626,9 +628,9 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 
 			%trace_utils:notice_fmt( "Test canvas '~ts' needing repaint (~ts).",
 			%   [ gui:object_to_string( Canvas ),
-			%     gui:context_to_string( Context ) ] ),
+			%     gui_event:context_to_string( Context ) ] ),
 
-			gui:blit( Canvas ),
+			gui_canvas:blit( Canvas ),
 			GUIState;
 
 
@@ -636,9 +638,9 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 
 			%trace_utils:notice_fmt( "Test canvas '~ts' resized to ~p (~ts).",
 			%   [ gui:object_to_string( Canvas ), NewSize,
-			%     gui:context_to_string( Context ) ] ),
+			%     gui_event:context_to_string( Context ) ] ),
 
-			gui:clear( Canvas ),
+			gui_canvas:clear( Canvas ),
 			GUIState;
 
 
@@ -655,7 +657,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			NewLastPoint =
 				draw_lines( Canvas, [ LastPoint | NewPoints ], Color ),
 
-			gui:blit( Canvas ),
+			gui_canvas:blit( Canvas ),
 
 			SolverTable = GUIState#gui_state.solver_table,
 
@@ -679,10 +681,10 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 
 			DestinationDrawPoint = project_2D( NewPoint, Screen ),
 
-			gui:draw_line( Canvas, SourceDrawPoint, DestinationDrawPoint,
+			gui_canvas:draw_line( Canvas, SourceDrawPoint, DestinationDrawPoint,
 						   Color ),
 
-			gui:blit( Canvas ),
+			gui_canvas:blit( Canvas ),
 
 			NewSolverTable = table:add_entry( _K=SendingSolverPid,
 				_V={ Color, NewPoint }, SolverTable ),
@@ -717,7 +719,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 								  _Count=table:size( ThisSolverTable ) ),
 
 			% Simply stop recursing:
-			gui:destruct_window( MainFrame ),
+			gui_frame:destruct( MainFrame ),
 
 			gui:stop();
 
@@ -755,9 +757,7 @@ draw_lines( _Canvas, _Points=[ LastPoint ], _Color ) ->
 	LastPoint;
 
 draw_lines( Canvas, _Points=[ P1, P2 | T ], Color ) ->
-
-	gui:draw_line( Canvas, P1, P2, Color ),
-
+	gui_canvas:draw_line( Canvas, P1, P2, Color ),
 	draw_lines( Canvas, [ P2 | T ], Color ).
 
 

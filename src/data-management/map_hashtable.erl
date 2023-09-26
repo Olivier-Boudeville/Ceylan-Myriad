@@ -540,7 +540,7 @@ has_entry( Key, MapHashtable ) ->
 % returns it directly.
 %
 % The key/value pair is expected to exist already in the table, otherwise an
-% exception ({bad_key, Key}) is raised.
+% exception is raised.
 %
 -spec get_value( key(), map_hashtable() ) -> value().
 %get_value( Key, #{ Key := Value } ) ->
@@ -553,7 +553,7 @@ get_value( Key, MapHashtable ) ->
 	catch
 
 		error:{ badkey, _K } ->
-			trace_utils:error_fmt( "No key '~p' found in following table "
+			trace_utils:error_fmt( "No key '~p' found in the following table "
 				"(process: ~w): ~ts",
 				[ Key, self(), to_string( MapHashtable ) ] ),
 			throw( { key_not_found, Key } )
@@ -569,7 +569,7 @@ get_value( Key, MapHashtable ) ->
 % exception is raised.
 %
 % For example [Color, Age, Mass] =
-%   map_hashtable:get_values([color, age, mass], MyMapTable])
+%   map_hashtable:get_values([color, age, mass], MyMapTable)
 %
 -spec get_values( [ key() ], map_hashtable() ) -> [ value() ].
 get_values( Keys, Hashtable ) ->

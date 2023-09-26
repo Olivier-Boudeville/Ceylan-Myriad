@@ -1113,6 +1113,7 @@ check-with-dialyzer-hook:
 
 check-with-gradualizer: all
 	@echo "  Checking BEAMs in $$(basename $$(pwd)) with Gradualizer"
+	@#echo $(GRADUALIZER) $(GRADUALIZER_OPTS) -- $(TARGETS_TO_CHECK)
 	@$(GRADUALIZER) $(GRADUALIZER_OPTS) -- $(TARGETS_TO_CHECK)
 
 

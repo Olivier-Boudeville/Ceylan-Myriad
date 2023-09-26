@@ -26,7 +26,10 @@
 % Creation date: 2021.
 
 
-% @doc Testing the <b>OpenGL support</b>, as an integration test.
+% @doc Testing the <b>OpenGL support</b>, as an integration test, designated as
+% "direct" since directly listening to incoming event messages, that is not
+% using application events and higher-level applicative GUI states (see
+% app_gui_state()) like gui_opengl_applicative_integration_test.erl does.
 %
 % This test relies on the old OpenGL (the one obtained with the "compatibility"
 % profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
@@ -36,7 +39,7 @@
 %
 % See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
 %
--module(gui_opengl_integration_test).
+-module(gui_opengl_direct_integration_test).
 
 
 % Implementation notes:
@@ -45,8 +48,8 @@
 % - wx:demo/0: lib/wx/examples/demo/ex_gl.erl
 % - test suite: lib/wx/test/wx_opengl_SUITE.erl
 %
-% As the OpenGL canvas is not resized when its containers are resized, so we
-% listen to the resizing of the parent window and adapt accordingly.
+% As the OpenGL canvas is not resized when its containers are resized, we listen
+% to the resizing of the parent window and adapt accordingly.
 
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
@@ -84,18 +87,19 @@
 
 
 % The duration, in milliseconds, between two updates of the OpenGL rendering:
+%
 % (hence presumably at 50 Hz)
 %
 -define( interframe_duration, 20 ).
 
 
-% Test-specific overall GUI state:
+% This is the test-specific overall GUI state:
 -record( my_gui_state, {
 
-	% The main window of this test:
-	parent :: window(),
+	% The main frame of this test:
+	main_frame :: frame(),
 
-	% The panel occupying the client area of the main window:
+	% The panel occupying the client area of the main frame:
 	panel :: panel(),
 
 	% The OpenGL canvas on which rendering will be done:
@@ -121,8 +125,8 @@
 % OpenGL-specific GUI test state:
 -record( my_opengl_state, {
 
-	% The place where the rendering is to occur, typically the GL canvas:
-	window :: window(),
+	% The widget where the rendering is to occur, typically the GL canvas:
+	render_target :: frame(),
 
 	mesh :: mesh(),
 
@@ -161,15 +165,14 @@
 
 -type render_rgb_color() :: gui_color:render_rgb_color().
 
--type window() :: gui:window().
--type panel() :: gui:panel().
--type image() :: gui:image().
--type font() :: gui:font().
--type brush() :: gui:brush().
+-type frame() :: gui_frame:frame().
+-type panel() :: gui_panel:panel().
+-type image() :: gui_image:image().
+-type font() :: gui_font:font().
+-type brush() :: gui_render:brush().
 
--type gl_canvas() :: gui:opengl_canvas().
-
--type gl_context() :: gui:opengl_context().
+-type gl_canvas() :: gui_opengl:gl_canvas().
+-type gl_context() :: gui_opengl:gl_context().
 
 -type glu_id() :: gui_opengl:glu_id().
 
@@ -476,7 +479,7 @@ get_test_image_directory() ->
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
 	file_utils:join( get_test_image_directory(),
-	%                "myriad-space-time-referential.png" ).
+					 %"myriad-space-time-referential.png" ).
 					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
@@ -486,8 +489,8 @@ get_test_image_path() ->
 -spec get_logo_image_path() -> file_path().
 get_logo_image_path() ->
 	file_utils:join( get_test_image_directory(),
-	%   "myriad-title.png" ).
-	%   "myriad-minimal-enclosing-circle-test.png" ).
+		% "myriad-title.png" ).
+		% "myriad-minimal-enclosing-circle-test.png" ).
 		"myriad-space-time-referential.png" ).
 
 
@@ -536,7 +539,7 @@ run_actual_test() ->
 	InitialGUIState = gui:batch( fun() -> init_test_gui() end ),
 	%InitialGUIState = init_test_gui(),
 
-	gui:show( InitialGUIState#my_gui_state.parent ),
+	gui_frame:show( InitialGUIState#my_gui_state.main_frame ),
 
 	% Uncomment to check that a no_gl_context error report is triggered indeed,
 	% as expected (as no current GL context exists yet):
@@ -560,10 +563,9 @@ run_actual_test() ->
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame( "MyriadGUI OpenGL Integration Test" ),
+	MainFrame = gui_frame:create( "MyriadGUI OpenGL Direct Integration Test" ),
 
-	Panel = gui:create_panel( MainFrame ),
-
+	Panel = gui_panel:create( MainFrame ),
 
 	% Creating a GL canvas with 'GLCanvas =
 	% gui_opengl:create_canvas(_Parent=Panel)' would have been enough:
@@ -589,19 +591,23 @@ init_test_gui() ->
 	% (on Apple's Cocoa, subscribing to onRepaintNeeded might be required)
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
-	StatusBar = gui:create_status_bar( MainFrame ),
+	StatusBar = gui_statusbar:create( MainFrame ),
 
-	gui:push_status_text( "Testing OpenGL now.", StatusBar ),
+	gui_statusbar:push_text( StatusBar, "Testing OpenGL now." ),
 
-	Image = gui_image:load_from_file( get_test_image_path() ),
+	InvImage = gui_image:load_from_file( get_test_image_path() ),
 
-	% Not necessary to scale to dimensions that are powers of two; moreover even
-	% downscaling results in an image quite far from the original:
+	Image = gui_image:mirror( InvImage, _Orientation=horizontal ),
+
+	gui_image:destruct( InvImage ),
+
+	% It is not necessary to scale to dimensions that are powers of two;
+	% moreover even downscaling results in an image quite far from the original:
 	%
 	%gui_image:scale( Image, _NewWidth=128, _NewHeight=128 ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet):
-	#my_gui_state{ parent=MainFrame, panel=Panel, canvas=GLCanvas,
+	#my_gui_state{ main_frame=MainFrame, panel=Panel, canvas=GLCanvas,
 				   context=GLContext, image=Image }.
 
 
@@ -634,7 +640,7 @@ gui_main_loop( GUIState ) ->
 					GUIState;
 
 				GLState ->
-					gui:enable_repaint( GLCanvas ),
+					gui_widget:enable_repaint( GLCanvas ),
 					% Includes the GL flushing and the buffer swaping:
 					render( GLState ),
 					GUIState
@@ -673,7 +679,8 @@ gui_main_loop( GUIState ) ->
 		{ onShown, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
-				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
+				"(initial size of ~w).",
+				[ gui_widget:get_size( ParentWindow ) ] ),
 
 			% Optional, yet better:
 			gui:unsubscribe_from_events( { onShown, ParentWindow } ),
@@ -697,7 +704,7 @@ gui_main_loop( GUIState ) ->
 			% Very final check, while there is still an OpenGL context:
 			gui_opengl:check_error(),
 
-			gui:destruct_window( ParentFrame );
+			gui_frame:destruct( ParentFrame );
 
 
 		OtherEvent ->
@@ -736,7 +743,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 										   opengl_state=undefined } ) ->
 
 	% Initial size of canvas is typically 20x20 pixels:
-	Size = gui:get_client_size( GLCanvas ),
+	Size = gui_widget:get_client_size( GLCanvas ),
 
 	trace_utils:debug_fmt( "Initialising OpenGL "
 		"(whereas canvas is of initial size ~w).", [ Size ] ),
@@ -758,10 +765,10 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	AlphaTexture = gui_texture:load_from_file( get_logo_image_path() ),
 
-	Font = gui:create_font( _PointSize=32, _Family=default_font_family,
+	Font = gui_font:create( _PointSize=32, _Family=default_font_family,
 							_Style=normal, _Weight=bold ),
 
-	Brush = gui:create_brush( _BlackRGB={ 0, 0, 0 } ),
+	Brush = gui_render:create_brush( _BlackRGB={ 0, 0, 0 } ),
 
 	% Myriad RGB dark blue:
 	TextColor = { 0, 39, 165 },
@@ -778,7 +785,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	SphereId = glu:newQuadric(),
 
-	InitialGLState = #my_opengl_state{ window=GLCanvas,
+	InitialGLState = #my_opengl_state{ render_target=GLCanvas,
 									   mesh=TestMesh,
 									   angle=0.0,
 									   material_texture=MatTexture,
@@ -809,10 +816,10 @@ on_main_frame_resized( GUIState=#my_gui_state{ panel=Panel,
 	% Maximises widgets in their respective area:
 
 	% First, panel in main frame:
-	gui:maximise_in_parent( Panel ),
+	gui_widget:maximise_in_parent( Panel ),
 
 	% Then OpenGL canvas in panel:
-	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
+	{ CanvasWidth, CanvasHeight } = gui_widget:maximise_in_parent( GLCanvas ),
 
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
@@ -831,7 +838,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ panel=Panel,
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
-	gui:sync( GLCanvas ),
+	gui_widget:sync( GLCanvas ),
 
 	gl:matrixMode( ?GL_PROJECTION ),
 
@@ -877,6 +884,7 @@ update_rendering( GUIState=#my_gui_state{ opengl_state=GLState,
 		PreviousTime ->
 			AngleGLState;
 
+		% Time changed:
 		_ ->
 			update_clock_texture( NewTime, AngleGLState )
 
@@ -895,7 +903,7 @@ update_rendering( GUIState=#my_gui_state{ opengl_state=GLState,
 update_clock_texture( Time, GLState=#my_opengl_state{
 		clock_texture=ClockTexture, font=Font, brush=Brush } ) ->
 
-	gui_texture:delete( ClockTexture ),
+	gui_texture:destruct( ClockTexture ),
 	NewClockTexture = get_clock_texture( Time, Font, Brush ),
 	GLState#my_opengl_state{ clock_texture=NewClockTexture }.
 
@@ -916,7 +924,7 @@ get_clock_texture( Time, Font, Brush ) ->
 % OpenGL state.
 %
 -spec render( my_opengl_state() ) -> void().
-render( #my_opengl_state{ window=Window,
+render( #my_opengl_state{ render_target=Widget,
 						  mesh=CubeMesh,
 						  angle=Angle,
 						  material_texture=MatTexture,
@@ -962,9 +970,9 @@ render( #my_opengl_state{ window=Window,
 
 	cond_utils:if_defined( myriad_check_opengl, gui_opengl:check_error() ),
 
-	gui_opengl:enter_2d_mode( Window ),
+	gui_opengl:enter_2d_mode( Widget ),
 
-	{ Width, Height } = gui:get_client_size( Window ),
+	{ Width, Height } = gui_widget:get_client_size( Widget ),
 
 	Move = abs( 90 - ( trunc( Angle ) rem 180 ) ),
 
@@ -999,7 +1007,7 @@ render( #my_opengl_state{ window=Window,
 	% Can be done here, as window-related (actually: GLCanvas) information were
 	% already necessary anyway; includes a gl:flush/0:
 	%
-	gui_opengl:swap_buffers( Window ).
+	gui_opengl:swap_buffers( Widget ).
 
 
 
