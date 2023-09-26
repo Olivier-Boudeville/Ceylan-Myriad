@@ -579,7 +579,7 @@
 
 
 -type weibull_3p_law_settings() :: { 'weibull_3p', K :: positive_float(),
-		Lambda :: positive_float(), sampling_info() }.
+		Lambda :: positive_float(), Gamma :: float(), sampling_info() }.
 % Internal settings of the Weibull-3p laws.
 
 
@@ -716,8 +716,8 @@
 			   uniform_law_data/0, integer_uniform_law_data/0,
 			   exponential_law_data/0, positive_integer_exponential_law_data/0,
 			   gaussian_law_data/0, positive_integer_gaussian_law_data/0,
-			   %weibull_2p_law_data/0, 
-			   %weibull_3p_law_data/0,  
+			   %weibull_2p_law_data/0,
+			   %weibull_3p_law_data/0,
 			   beta_2p_law_data/0,
 			   arbitrary_law_data/0 ]).
 
@@ -1463,7 +1463,7 @@ initialise_law( LS ) ->
 					  SampleCount, Inc ] ),
 				basic_utils:ignore_unused( WbBounds ) ),
 
-			SampledPDFPairs = 
+			SampledPDFPairs =
 				math_utils:sample_as_pairs( WbPDFFun, Min, Max, Inc ),
 
 			AliasTable = generate_alias_table_from( SampledPDFPairs ),
@@ -2484,7 +2484,7 @@ canonicalise_weibull_spec_with( WbPDFFun,
 -spec canonicalise_beta_spec_with( beta_pdf(), tuple() ) ->
 			{ full_beta_law_spec(), increment(), beta_pdf() }.
 canonicalise_beta_spec_with( BetaPDFFun,
-		{ beta_2p, Alphaf, Betaf, SampleCount, 
+		{ beta_2p, Alphaf, Betaf, SampleCount,
 		  BetaBounds={ BetaMin, BetaMax } } ) ->
 
 	check_sample_count( SampleCount ),
@@ -2535,9 +2535,19 @@ get_sample_from( { _LawData={ positive_integer_exponential, Lambda },
 get_sample_from( { _LawData={ gaussian, Mu, Sigma }, undefined } ) ->
 	get_gaussian_value( Mu, Sigma );
 
-get_sample_from( { _LawData={ positive_integer_gaussian, Mu, Sigma } ,
+get_sample_from( { _LawData={ positive_integer_gaussian, Mu, Sigma },
 				   undefined } ) ->
 	get_positive_integer_gaussian_value( Mu, Sigma );
+
+get_sample_from( { _LawData={ weibull_2p, _K, _Lambda }, AliasTable } ) ->
+	get_sample_from_table( AliasTable );
+
+get_sample_from( { _LawData={ weibull_3p, _K, _Lambda, _Gamma },
+				   AliasTable } ) ->
+	get_sample_from_table( AliasTable );
+
+get_sample_from( { _LawData={ beta_2p, _Alpha, _Beta }, AliasTable } ) ->
+	get_sample_from_table( AliasTable );
 
 get_sample_from( { _AnyRandomLawData, AliasTable } ) ->
 	get_sample_from_table( AliasTable ).
@@ -2710,6 +2720,7 @@ beta_2p_pdf( S, Alpha, Beta ) when S >= 0.0 andalso S =< 1.0 ->
 	math:pow( S, Alpha-1) * math:pow( 1.0 - S, Beta-1).
 
 
+
 % @doc Checks that the specified term is a sample count (and returns it).
 -spec check_sample_count( term() ) -> sample_count().
 check_sample_count( C ) when is_integer( C ) andalso C > 0 ->
@@ -2779,6 +2790,11 @@ law_spec_to_string( { weibull_3p, K, Lambda, Gamma, SampleCount } ) ->
 		"(sample count: ~B)", [ K, Lambda, Gamma, SampleCount ] );
 
 
+law_spec_to_string( { beta_2p, Alpha, Beta, SampleCount } ) ->
+	text_utils:format( "Beta-2P law of shape parameters alpha=~w "
+		"and beta=~w (sample count: ~B)", [ Alpha, Beta, SampleCount ] );
+
+
 law_spec_to_string( { arbitrary, Name, PDFInfo } ) when is_tuple( PDFInfo ) ->
 	text_utils:format( "arbitrary law named '~ts', an ~ts",
 					   [ Name, pdf_info_to_string( PDFInfo ) ] );
@@ -2802,33 +2818,39 @@ law_data_to_string( { _LawSettings={ integer_uniform, NMin, NMax },
 
 law_data_to_string( { _LawSettings={ exponential, Lambda },
 					  _MaybeAliasTable=undefined } ) ->
-	text_utils:format( "exponential law of Lambda=~f", [ Lambda ] );
+	text_utils:format( "exponential law of lambda=~f", [ Lambda ] );
 
 law_data_to_string( { _LawSettings={ positive_integer_exponential, Lambda },
 					  _MaybeAliasTable=undefined } ) ->
-	text_utils:format( "integer exponential law of Lambda=~f", [ Lambda ] );
+	text_utils:format( "integer exponential law of lambda=~f", [ Lambda ] );
 
 
 law_data_to_string( { _LawSettings={ gaussian, Mu, Sigma },
 					  _MaybeAliasTable=undefined } ) ->
-	text_utils:format( "gaussian law of Mu=~f and Sigma=~f",
+	text_utils:format( "gaussian law of mu=~f and sigma=~f",
 					   [ Mu, Sigma ] );
 
 law_data_to_string( { _LawSettings={ positive_integer_gaussian, Mu, Sigma },
 					  _MaybeAliasTable=undefined } ) ->
-	text_utils:format( "integer gaussian law of Mu=~f and Sigma=~f",
+	text_utils:format( "integer gaussian law of mu=~f and sigma=~f",
 					   [ Mu, Sigma ] );
 
 
 law_data_to_string( { _LawSettings={ weibull_2p, K, Lambda, SamplingInfo },
 					  _MaybeAliasTable } ) ->
-	text_utils:format( "Weibull-2P law of K=~f and Lambda=~f, ~ts",
+	text_utils:format( "Weibull-2P law of k=~f and lambda=~f, ~ts",
 		[ K, Lambda, sampling_info_to_string( SamplingInfo ) ] );
 
 law_data_to_string( { _LawSettings={ weibull_3p, K, Lambda, Gamma,
 									 SamplingInfo }, _MaybeAliasTable } ) ->
-	text_utils:format( "Weibull-3P law of K=~f, Lambda=~f and Gamma=~f, ~ts",
+	text_utils:format( "Weibull-3P law of k=~f, lambda=~f and gamma=~f, ~ts",
 		[ K, Lambda, Gamma, sampling_info_to_string( SamplingInfo ) ] );
+
+
+law_data_to_string( { _LawSettings={ beta_2p, Alpha, Beta, SamplingInfo },
+					  _MaybeAliasTable } ) ->
+	text_utils:format( "Beta-2P law of alpha=~f, beta=~f, ~ts",
+		[ Alpha, Beta, sampling_info_to_string( SamplingInfo ) ] );
 
 
 % For basic laws:

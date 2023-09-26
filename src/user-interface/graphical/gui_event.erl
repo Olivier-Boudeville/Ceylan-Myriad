@@ -74,6 +74,9 @@
 		  set_instance_state/3, match/2 ]).
 
 
+% User events:
+-export([ create_user_event_table/1 ]).
+
 % Helpers:
 -export([ get_backend_event/1 ]).
 
@@ -84,7 +87,8 @@
 -export([ get_subscribers_for/3, adjust_objects/4,
 		  process_only_latest_repaint_event/4, reassign_table_to_string/1,
 		  get_instance_state/2, type_table_to_string/1,
-		  instance_referential_to_string/1, set_canvas_instance_state/3 ]).
+		  instance_referential_to_string/1, set_canvas_instance_state/3,
+		  process_user_event/2 ]).
 
 
 
@@ -97,6 +101,37 @@
 
 % For wx headers:
 -include("gui_internal_defines.hrl").
+
+
+-type basic_user_event_table() ::
+		table( basic_user_event(), application_event() ).
+% A table allowing to translate a basic user event into an higher level
+% application event.
+
+
+-type button_table() :: table( button_id(), application_event()  ).
+% A table allowing to translate a button press event into an higher level
+% application event.
+
+-type scancode_table() :: table( scancode(), application_event()  ).
+% A table allowing to translate a key-as-scancode press event into an higher
+% level application event.
+
+-type keycode_table() :: table( keycode(), application_event()  ).
+% A table allowing to translate a key-as-keycode press event into an higher
+% level application event.
+
+
+% For the user_event_table record:
+-include("gui_event.hrl").
+
+-type user_event_table() :: #user_event_table{}.
+ % A table translating basic user events into higher-level application events.
+
+
+-export_type([ basic_user_event_table/0, button_table/0,
+			   scancode_table/0, keycode_table/0, user_event_table/0 ]).
+
 
 
 
@@ -438,6 +473,35 @@
 
 
 
+-type application_event() :: 'quit_requested'.
+% The higher-level, application events.
+
+
+-type basic_user_event() :: 'window_closed'.
+% A basic, atom-based user event.
+
+-type user_event() :: { 'button_clicked', button_id() }
+					| { 'scancode_pressed', scancode() }
+					| { 'keycode_pressed', keycode() }
+					| basic_user_event() .
+% The various user-level events that can specified to trigger application-level
+% events.
+%
+% The snake_case (e.g. 'window_closed') is used rather than CamelCase
+% (e.g. 'onWindowClosed') so that user-level events can be more easily
+% distinguished from actual MyriadGUI events.
+
+
+-type user_event_spec() :: { application_event(), [ user_event() ] }.
+% The specification of a conversion from any of the listed user events to the
+% specified application event.
+
+
+-type user_event_table() :: table( application_event(), user_event() ).
+% A table abstracting-out the various ways for the user to generate
+% application-level events (e.g. based on remapped keys, mouse actions, etc.).
+
+
 -record( instance_referential, {
 
 	% Total count of the instances already created for that type:
@@ -559,6 +623,7 @@
 -export_type([ wx_event/0, wx_event_info/0, trap_set/0 ]).
 
 
+
 % Shorthands:
 
 -type count() :: basic_utils:count().
@@ -579,12 +644,17 @@
 -type service() :: gui:service().
 
 
+-type button_id() :: gui_id:button_id().
 -type backend_id() :: gui_id:backend_id().
 -type wx_id() :: gui_id:wx_id().
 -type id_name_alloc_table() :: gui_id:id_name_alloc_table().
 -type myriad_instance_id() :: gui_id:myriad_instance_id().
 
 -type keyboard_event_type() :: gui_keyboard:keyboard_event_type().
+-type scancode() :: gui_keyboard:scancode().
+-type keycode() :: gui_keyboard:keycode().
+
+
 -type mouse_event_type() :: gui_mouse:mouse_event_type().
 
 -type wx_object() :: wx:wx_object().
@@ -765,7 +835,7 @@ process_event_messages( LoopState ) ->
 
 
 
-% @doc Processes specified GUI event from the current (wx) backend.
+% @doc Processes the specified GUI event from the current (wx) backend.
 %
 % A *wx* (backend) event has been received here, in this first clause:
 %
@@ -1972,6 +2042,138 @@ match( #myriad_object_ref{ object_type=ObjectType,
 
 match( _FirstGUIObject, _SecondGUIObject ) ->
 	false.
+
+
+
+% @doc Returns a user-event (opaque) table corresponding to the user-events
+% specifications.
+%
+-spec create_user_event_table( [ user_event_spec() ] ) -> user_event_table().
+create_user_event_table( UserEventSpecs ) ->
+	BlankTable = table:new(),
+	create_user_event_table( UserEventSpecs,
+		#user_event_table{ basic_user_event_table=BlankTable,
+						   button_table=BlankTable,
+						   scancode_table=BlankTable,
+						   keycode_table=BlankTable } ).
+
+
+% (helper)
+create_user_event_table( _UserEventSpecs=[], UserEventTable ) ->
+	UserEventTable;
+
+create_user_event_table( _UserEventSpecs=[ { AppEvent, UserEvents } | T ],
+						 UserEventTable ) ->
+	NewUserEventTable =
+		register_user_events( UserEvents, AppEvent, UserEventTable ),
+
+	create_user_event_table( T, NewUserEventTable ).
+
+
+% (helper)
+register_user_events( _UserEvents=[], _AppEvent, UserEventTable ) ->
+	UserEventTable;
+
+register_user_events( _UserEvents=[ { button_clicked, ButtonId } | T ],
+					  AppEvent, UserEventTable=#user_event_table{
+							button_table=ButtonTable } ) ->
+	% Overwrites any previous association for that button:
+	NewButtonTable = table:add_entry( ButtonId, AppEvent, ButtonTable ),
+	NewUserEventTable = UserEventTable#user_event_table{
+		button_table=NewButtonTable },
+	register_user_events( T, AppEvent, NewUserEventTable );
+
+register_user_events( _UserEvents=[ { scancode_pressed, Scancode } | T ],
+					  AppEvent, UserEventTable=#user_event_table{
+							scancode_table=ScancodeTable } ) ->
+	% Overwrites any previous association for that scancode:
+	NewScancodeTable = table:add_entry( Scancode, AppEvent, ScancodeTable ),
+	NewUserEventTable = UserEventTable#user_event_table{
+		scancode_table=NewScancodeTable },
+	register_user_events( T, AppEvent, NewUserEventTable );
+
+register_user_events( _UserEvents=[ { keycode_pressed, Keycode } | T ],
+					  AppEvent, UserEventTable=#user_event_table{
+							keycode_table=KeycodeTable } ) ->
+	% Overwrites any previous association for that keycode:
+	NewKeycodeTable = table:add_entry( Keycode, AppEvent, KeycodeTable ),
+	NewUserEventTable = UserEventTable#user_event_table{
+		keycode_table=NewKeycodeTable },
+	register_user_events( T, AppEvent, NewUserEventTable );
+
+% For example EventAtom=quit_requested:
+register_user_events( _UserEvents=[ EventAtom | T ], AppEvent,
+		UserEventTable=#user_event_table{
+			basic_user_event_table=EventTable } ) when is_atom( EventAtom ) ->
+	% Overwrites any previous association for that event:
+	NewEventTable = table:add_entry( EventAtom, AppEvent, EventTable ),
+	NewUserEventTable =
+		UserEventTable#user_event_table{ basic_user_event_table=NewEventTable },
+	register_user_events( T, AppEvent, NewUserEventTable );
+
+register_user_events( _UserEvents=[ Other | _T ], AppEvent, _UserEventTable ) ->
+	throw( { invalid_user_event, Other, AppEvent } ).
+
+
+
+
+% @doc Processes the specified user event, possibly returning a corresponding
+% application event.
+%
+-spec process_user_event( user_event(), user_event_table() ) ->
+									maybe( application_event() ).
+process_user_event( { button_clicked, ButtonId },
+					_UserEventTable=#user_event_table{
+						button_table=ButtonTable } ) ->
+	case table:lookup_entry( _K=ButtonId, ButtonTable ) of
+
+		key_not_found ->
+			undefined;
+
+		{ value, AppEvent } ->
+			AppEvent
+
+	end;
+
+process_user_event( { scancode_pressed, ScanCode },
+					_UserEventTable=#user_event_table{
+						scancode_table=ScancodeTable } ) ->
+	case table:lookup_entry( _K=ScanCode, ScancodeTable ) of
+
+		key_not_found ->
+			undefined;
+
+		{ value, AppEvent } ->
+			AppEvent
+
+	end;
+
+process_user_event( { keycode_pressed, KeyCode },
+					_UserEventTable=#user_event_table{
+						keycode_table=KeycodeTable } ) ->
+	case table:lookup_entry( _K=KeyCode, KeycodeTable ) of
+
+		key_not_found ->
+			undefined;
+
+		{ value, AppEvent } ->
+			AppEvent
+
+	end;
+
+process_user_event( EventAtom,
+					_UserEventTable=#user_event_table{
+						basic_user_event_table=EventTable } )
+							when is_atom( EventAtom ) ->
+	case table:lookup_entry( _K=EventAtom, EventTable ) of
+
+		key_not_found ->
+			undefined;
+
+		{ value, AppEvent } ->
+			AppEvent
+
+	end.
 
 
 

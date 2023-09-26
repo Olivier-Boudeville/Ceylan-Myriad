@@ -187,6 +187,23 @@ test_amortised_sinus_function_support() ->
 							 [ math_utils:bounds_to_string( ASinBounds ) ] ).
 
 
+test_gamma() ->
+
+	test_facilities:display( "Testing the Gamma function." ),
+
+	% Checked for example with:
+	%
+	% octave:1> gamma(10)
+	% ans = 362880
+
+	1      = math_utils:gamma( 1 ),
+	24     = math_utils:gamma( 5 ),
+	362880 = math_utils:gamma( 10 ),
+
+	math_utils:are_equal( math_utils:gamma( 2.1 ), 1.0465 ),
+	math_utils:are_equal( math_utils:gamma( 4.8 ), 17.838 ),
+	math_utils:are_equal( math_utils:gamma( 10.7 ), 1.7998e+06 ).
+
 
 
 -spec run() -> no_return().
@@ -199,5 +216,7 @@ run() ->
 	test_sampling(),
 
 	test_function_support(),
+
+	test_gamma(),
 
 	test_facilities:stop().
