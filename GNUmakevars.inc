@@ -2238,7 +2238,7 @@ GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 					$(OVERALL_PA_OPTS)
 
 
-# eqWAlizer is provided by WhatsApp:
+# eqWAlizer to be obtained through https://github.com/WhatsApp/eqwalizer:
 EQWALIZER := $$(which elp 2>/dev/null)
 
 EQWALIZER_OPTS = --project $(LAYER_TOP)/conf/$(PROJECT_SHORT_NAME)-for-eqwalizer.json
