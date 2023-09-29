@@ -329,19 +329,8 @@ endif
 
 
 %.plt: %.beam
-	@echo "		Checking module '$<' against relevant PLT ($(PLT_FILE))"
+	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"
 	@"$(DIALYZER)" $(DIALYZER_OPTS) --plt $(PLT_FILE) $<
-
-
-# Does not trigger a full rebuild.
-#
-# Example of use: 'make eqwalize-text_utils'.
-#
-# (see also the check-with-eqwalizer explicit target)
-#
-eqwalize-%: ebin/%.beam
-	@echo "		Checking module '$<' with eqWAlizer"
-	@$(EQWALIZER) eqwalize $* $(EQWALIZER_OPTS)
 
 
 

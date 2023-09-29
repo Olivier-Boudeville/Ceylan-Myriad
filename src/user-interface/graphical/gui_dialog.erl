@@ -717,7 +717,7 @@ get_selected_directory( DirSelDialog ) ->
 
 % Apparently not currently supported by wx:
 
-% @doc Returns the full path of the selected directories.
+% at-doc Returns the full path of the selected directories.
 %
 % The 'multiple_directories' option should have been specified for this dialog.
 %
@@ -746,7 +746,7 @@ create_for_color_selection( Parent ) ->
 
 % At least currently not supporting wxColorData (not useful enough).
 
-% @doc Creates a dialog that will offer to select a color, based on the
+% at-doc Creates a dialog that will offer to select a color, based on the
 % specified options.
 %
 %-spec create_for_color_selection(

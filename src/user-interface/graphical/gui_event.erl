@@ -832,7 +832,6 @@
 -type myriad_object_type() :: gui:myriad_object_type().
 -type myriad_object_state() :: gui:myriad_object_state().
 -type construction_parameters() :: gui:construction_parameters().
--type backend_event() :: gui:backend_event().
 -type wx_server() :: gui:wx_server().
 -type event_subscription_opt() :: gui:event_subscription_opt().
 -type service() :: gui:service().

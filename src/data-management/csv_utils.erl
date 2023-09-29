@@ -63,10 +63,6 @@
 % more compact in memory.
 
 
-% The line number of a row in a file.
-%-type row_number() :: count().
-
-
 -type content() :: [ row() ].
 % A CSV content, as an (ordered) list of rows.
 
@@ -88,7 +84,7 @@
 
 
 -type field_count() :: count().
-% Number of fields in a row.
+% A number of fields in a row.
 
 
 -type reading_outcome() :: { Rows :: content(), RowCount :: row_count(),

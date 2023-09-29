@@ -47,8 +47,9 @@
 
 % Silencing:
 -export([ test_basic_random/0, test_biased_coin/0,
-		  test_uniform/0, test_exponential/0, test_gaussian/0,
-		  test_weibull/0,
+		  test_uniform/0, test_exponential/0, test_gamma/0, test_gumbel/0,
+		  test_loglogistic/0, test_lognormal/0,
+		  test_gaussian/0, test_weibull/0, test_beta/0,
 		  test_custom_pdf/0 ]).
 
 
@@ -64,7 +65,10 @@
 % (see, in random_utils, the default_pdf_sample_count define), to avoid again an
 % undesirable scaling, they shall match as well, so:
 %
--define( test_sample_count, 512 ).
+%-define( test_sample_count, 512 ).
+-define( test_sample_count, 1024 ).
+%-define( test_sample_count, 4096 ).
+
 
 
 % Shorthands:
@@ -162,8 +166,7 @@ test_biased_coin() ->
 
 
 test_uniform() ->
-
-	UniformSpec = { uniform, _Minf=3, _Maxf=9.0 },
+	UniformSpec = { uniform, _Minf=3, _Maxf=9 },
 	test_law( UniformSpec ),
 
 	IntegerUniformSpec = { integer_uniform, _Min=-10, _Max=5 },
@@ -172,33 +175,99 @@ test_uniform() ->
 
 
 test_exponential() ->
+	Exp1pLawSpec = { exponential_1p, _Lambda1p=0.2 },
+	test_law( Exp1pLawSpec ),
 
-	ExpLawSpec = { exponential, _Lambda=0.2 },
-	test_law( ExpLawSpec ),
+	IntegerExp1pLawSpec = { positive_integer_exponential_1p, _IntLambda1p=0.1 },
+	test_law( IntegerExp1pLawSpec ),
 
-	IntegerExpLawSpec = { positive_integer_exponential, _IntLambda=0.1 },
-	test_law( IntegerExpLawSpec ).
+	Exp2pLawSpec = { exponential_2p, _Lambda2p=0.8, _Gamma2p=0.1 },
+	test_law( Exp2pLawSpec ).
+
+
+
+test_gamma() ->
+
+	% Reasonable values:
+	Gam2pLawSpec = { gamma_2p, _K=5, _Theta=1 },
+	test_law( Gam2pLawSpec ).
+
+	% More problematic ones:
+	%Gam3pLawSpec = { gamma_3p, _AlphaH=650.0, _Beta=0.51, _Theta=0.06 },
+	%test_law( Gam3pLawSpec ).
 
 
 
 test_gaussian() ->
-
-	GausLawSpec = { gaussian, _Muf=2.0, _Sigmaf=0.4 },
+	GausLawSpec = { gaussian, _Muf=2, _Sigmaf=0.4 },
 	test_law( GausLawSpec ),
 
-	IntegerGausLawSpec = { positive_integer_gaussian, _Mu=70, _Sigma=8.0 },
+	IntegerGausLawSpec = { positive_integer_gaussian, _Mu=70, _Sigma=8 },
 	test_law( IntegerGausLawSpec ).
+
+
+
+test_gumbel() ->
+	GumLawSpec = { gumbel_2p, _Mu=3, _Beta=4 },
+	test_law( GumLawSpec ).
+
+
+
+test_loglogistic() ->
+	Log2pLawSpec = { loglogistic_2p, _Alpha2p=3, _Beta2p=4 },
+	test_law( Log2pLawSpec ),
+
+	Log3pLawSpec = { loglogistic_3p, _Alpha3p=3, _Beta3p=4, _Theta3p=1 },
+	test_law( Log3pLawSpec ).
+
+
+
+test_lognormal() ->
+	Log2pLawSpec = { lognormal_2p, _Mu2p=0, _Sigma2p=0.25 },
+	test_law( Log2pLawSpec ),
+
+	Log3pLawSpec = { lognormal_3p, _Mu3p=0.5, _Sigma3p=0.4, _Theta3p=1.2 },
+	test_law( Log3pLawSpec ).
 
 
 
 test_weibull() ->
 
 	% Default sample count and support:
-	WbLaw2pSpec = { weibull_2p, _K1=1.5, _Lambda1=1 },
+	WbLaw2pSpec = { weibull_2p, _K2p=1.5, _Lambda2p=1 },
 	test_law( WbLaw2pSpec ),
 
-	WbLaw3pSpec = { weibull_3p, _K2=2.1, _Lambda2=2, _Gamma2=10 },
-	test_law( WbLaw3pSpec ).
+	WbLaw3pSpec = { weibull_3p, _K3p=2.1, _Lambda3p=2, _Gamma3p=10 },
+	test_law( WbLaw3pSpec ),
+
+	WbCrLawSpec = { weibull_cr, _LambdaCr=1.1, _KCr=1.2, _ThetaCr=4 },
+	test_law( WbCrLawSpec ),
+
+	WbDsLawSpec = { weibull_ds, _LambdaDs=2.1, _KDs=0.2, _SigmaDs=3 },
+	test_law( WbDsLawSpec ),
+
+	% Parameters could be also taken from
+	% https://reliability.readthedocs.io/en/latest/DSZI%20models.html?highlight=DSZI#example-1;
+	% then the approximation seems a lot less good:
+	%
+	%WbDsziLawSpec = { weibull_dszi, _LambdaDszi=50, _KDszi=2,
+	%				  _SigmaDszi=0.8, _ThetaDszi=0.3 },
+
+	WbDsziLawSpec = { weibull_dszi, _LambdaDszi=10, _KDszi=1,
+					  _SigmaDszi=0.8, _ThetaDszi=0.3 },
+	test_law( WbDsziLawSpec ),
+
+	WbMixLawSpec = { weibull_mixture, _PMix=0.3, _LambdaMix1=1.0, _KMix1=5.0,
+					 _LambdaMix2=1.7, _KMix2=4.2 },
+	test_law( WbMixLawSpec ),
+
+	WbZiLawSpec = { weibull_zi, _LambdaZi=0.4, _KZi=1.2, _PZi=4.3 },
+	test_law( WbZiLawSpec ).
+
+
+test_beta() ->
+	Beta2pSpec = { beta_2p, _Alpha=2, _Beta=5 },
+	test_law( Beta2pSpec ).
 
 
 
@@ -309,15 +378,16 @@ graph_law( LawSpec, LawData ) ->
 			% First, just capture the ideal law as it is:
 			PDFPairs = random_utils:get_all_sample_pairs( LawSpec ),
 
-			% Very theoretical, as depend on the discretisation step:
+			% Very theoretical, as depends on the discretisation step:
 			NormalisedPDFPairs = math_utils:normalise( PDFPairs, _Index=2 ),
 
 			csv_utils:write_file( NormalisedPDFPairs, PDFDataFilename ),
 
 
 			% Now seeing whether drawings converge to it:
-			%PDFSamplingCount = 1000000,
-			PDFSamplingCount = 500000,
+			PDFSamplingCount = 1000000,
+			%PDFSamplingCount =   500000,
+			%PDFSamplingCount =    10000,
 
 			test_facilities:display( "Comparing the test PDF with the "
 				"frequencies of ~B samplings.", [ PDFSamplingCount ] ),
@@ -339,8 +409,8 @@ graph_law( LawSpec, LawData ) ->
 				_OriginalFilePath=GnuplotCmdFileTemplate,
 				_TargetFilePath=CmdFilename, TranslationTable ),
 
-			RawSamples = random_utils:get_samples_from( PDFSamplingCount,
-														LawData ),
+			RawSamples =
+				random_utils:get_samples_from( PDFSamplingCount, LawData ),
 
 			% To check that any artifact in the drawn data (brief returns to
 			% zero) are due to the bucket aggregation, not to the sample
@@ -488,14 +558,20 @@ run() ->
 	test_facilities:display( "Testing now non-uniform random sampling." ),
 
 	% Defined as discrete options:
-	test_biased_coin(),
+	%test_biased_coin(),
 
-	test_uniform(),
-	test_exponential(),
-	test_gaussian(),
+	%test_uniform(),
+	%test_exponential(),
+	test_gamma(),
+	%test_gumbel(),
+	%test_loglogistic(),
+	%test_lognormal(),
+	%test_gaussian(),
 
-	test_weibull(),
+	%test_weibull(),
 
-	test_custom_pdf(),
+	%test_beta(),
+
+	%test_custom_pdf(),
 
 	test_facilities:stop().

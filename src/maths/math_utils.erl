@@ -39,7 +39,9 @@
 -export([ floor/1, ceiling/1, round_after/2,
 		  float_to_integer/1, float_to_integer/2,
 		  modulo/2, clamp/2, clamp/3, squarify/1,
-		  sign/1, get_next_power_of_two/1 ]).
+		  sign/1,
+		  square/1, int_pow/2, get_next_power_of_two/1,
+		  ln/1 ]).
 
 -compile({ inline, [ floor/1, ceiling/1, round_after/2,
 					 float_to_integer/1, float_to_integer/2,
@@ -47,13 +49,18 @@
 
 
 % Operations on floating-point values (in Erlang, a float is a C double):
+%
+% (note also that now +0.0 and -0.0 do not match)
+%
 -export([ are_close/2, are_close/3, are_equal/2, are_equal/3,
 		  are_relatively_close/2, are_relatively_close/3,
-		  get_relative_difference/2, is_null/1, is_null/2 ]).
+		  get_relative_difference/2, is_null/1, is_null/2,
+		  is_greater/2, is_lower/2, is_greater/3, is_lower/3 ]).
 
 -compile({ inline, [ are_close/2, are_close/3,
 					 are_relatively_close/2, are_relatively_close/3,
-					 get_relative_difference/2, is_null/1 ] }).
+					 get_relative_difference/2, is_null/1,
+					 is_greater/2, is_lower/2, is_greater/3, is_lower/3 ] }).
 
 
 % Operations on number():
@@ -70,7 +77,7 @@
 
 
 % Operations related to functions:
--export([ sample/4, sample_as_pairs/4, normalise/2,
+-export([ evaluate/2, sample/4, sample_as_pairs/4, normalise/2,
 
 		  compute_support/1, compute_support/3, compute_support/4,
 
@@ -233,6 +240,10 @@
 % A function returning a float from an integer.
 
 
+-type float_result_value() :: float().
+% A floating-point value obtained when evaluating a function.
+
+
 
 -export_type([ factor/0, integer_factor/0, any_factor/0,
 			   positive_factor/0, non_negative_factor/0,
@@ -246,7 +257,8 @@
 			   abscissa/0, integer_abscissa/0, any_abscissa/0,
 			   integer_to_integer_fun/0, float_to_integer_fun/0,
 			   number_to_integer_fun/0, number_to_float_fun/0,
-			   integer_to_float_fun/0, float_to_float_fun/0 ]).
+			   integer_to_float_fun/0, float_to_float_fun/0,
+			   float_result_value/0 ]).
 
 
 % Local types:
@@ -255,7 +267,7 @@
 -type integer_increment() :: integer().
 
 -type epsilon() :: float().
-
+% A smaller, positive floating-point value.
 
 
 % Shorthands:
@@ -276,7 +288,7 @@
 
 
 % @doc Rounds down the specified floating-point value: returns the biggest
-% integer smaller than this value.
+% integer smaller than the specified floating-point value.
 %
 % Note: used to be deprecated in favor of math:floor/1, yet we prefer the
 % version here, which returns an integer rather than a float.
@@ -494,6 +506,45 @@ squarify( L ) ->
 
 
 
+% @doc Returns the sign of the specified value, either as 1 or -1.
+-spec sign( number() ) -> 1 | -1.
+sign( N ) when N >= 0 ->
+	1;
+
+sign( _N ) ->
+	-1.
+
+
+% @doc Returns the square of the specified number.
+%
+% Always useful.
+%
+-spec square( number() ) -> number().
+square( N ) ->
+	N*N.
+
+
+% @doc Returns the power of the specified number X to the specified positive
+% integer N: X^N.
+%
+% Designed for integer exponents, as opposed to math:pow/1.
+%
+% Refer to
+% https://stackoverflow.com/questions/38533797/how-to-calculate-5262144-in-erlang/38534076#38534076
+% for a presumably faster version.
+%
+-spec int_pow( number(), non_neg_integer() ) -> number().
+int_pow( _X, _N=0 ) ->
+	1;
+
+int_pow( X, _N=1 ) ->
+	X;
+
+int_pow( X, N ) when is_integer( N ) ->
+	X * int_pow( X, N-1 ).
+
+
+
 % @doc Returns the smallest power of two that is greater or equal to the
 % specified integer.
 %
@@ -513,13 +564,22 @@ get_next_power_of_two( I, Candidate ) ->
 
 
 
-% @doc Returns the sign of the specified value, either as 1 or -1.
--spec sign( number() ) -> 1 | -1.
-sign( N ) when N >= 0 ->
-	1;
-
-sign( _N ) ->
-	-1.
+% @doc Returns the natural logarithm (that is the log in base e) of the
+% specified number.
+%
+% The natural logarithm n of x>0 is the power to which e would have to be raised
+% to equal x: n = ln(x) or e^n = x.
+%
+% Logarithms in other bases (here: than e) differ only by a constant multiplier
+% from the natural logarithm, and can be defined in terms of the latter: for a
+% base 'b', logb(x) = ln(x)/ln(b) = ln(x)*logb(e).
+%
+% Note that math:log/1 is x -> ln(x), whereas math:log10/1 is the standard base
+% 10 log.
+%
+-spec ln( number() ) -> float().
+ln( X ) ->
+	math:log( X ).
 
 
 
@@ -544,7 +604,7 @@ are_close( X, Y ) ->
 % Note that such absolute tolerance comparison fails when X and Y become large,
 % so generally are_relatively_close/2 shall be preferred.
 %
--spec are_close( number(), number(), number() ) -> boolean().
+-spec are_close( number(), number(), epsilon() ) -> boolean().
 are_close( X, Y, Epsilon ) ->
 	erlang:abs( X - Y ) < Epsilon.
 
@@ -565,7 +625,7 @@ are_equal( X, Y ) ->
 %
 % Note: alias of are_close/3, defined for consistency.
 %
--spec are_equal( number(), number(), number() ) -> boolean().
+-spec are_equal( number(), number(), epsilon() ) -> boolean().
 are_equal( X, Y, Epsilon ) ->
 	erlang:abs( X - Y ) < Epsilon.
 
@@ -587,10 +647,14 @@ are_relatively_close( X, Y ) ->
 % @doc Returns true iff the two specified (usually floating-point) numbers are
 % deemed close enough, relatively, to be equal.
 %
+% The difference between these numbers, divided by their average (a.k.a. the
+% relative error), must be smaller than the specified epsilon threshold,
+% that is the maximum tolerance.
+%
 % For example to know whether X and Y are equal with a 5% tolerance, use:
 % math_utils:are_relatively_close(X, Y, _Tolerance=0.05).
 %
--spec are_relatively_close( number(), number(), number() ) -> boolean().
+-spec are_relatively_close( number(), number(), epsilon() ) -> boolean().
 are_relatively_close( X, Y, Epsilon ) ->
 
 	% are_close/2 is not satisfactory at least when X and Y are large.
@@ -655,9 +719,13 @@ get_relative_difference( X, Y ) ->
 	%end.
 	% Yet this did not catch cases like: X=0.0, Y=0, so:
 
-	% Preventing any future division by zero:
+	% Avoiding to match directly with 0.0, as wanting to match -0.0 as well:
 	Sum = X + Y,
 
+	% Preventing any future division by zero:
+	%
+	% (avoiding to match directly with 0.0, as wanting to match -0.0 as well)
+	%
 	case Sum == 0 of
 
 		true ->
@@ -691,7 +759,7 @@ is_null( X ) ->
 % @doc Returns true iff the specified number (floating-point or even integer) is
 % deemed close enough (based on specified epsilon) to zero to be null.
 %
--spec is_null( number(), float() ) -> boolean().
+-spec is_null( number(), epsilon() ) -> boolean().
 is_null( X, Epsilon ) ->
 	erlang:abs( X ) < Epsilon.
 
@@ -713,6 +781,55 @@ is_null_number( F ) ->
 
 
 
+% @doc Returns whether X is greater than Y (with a small margin), both being
+% expected to be floats.
+%
+% No is_greater_or_equal/2 makes sense with floats.
+%
+-spec is_greater( float(), float() ) -> boolean().
+is_greater( X, Y ) ->
+	% Could make sense, yet we do not want, for any (X,Y), is_greater(X,Y) and
+	% is_equal(X,Y) to be both true:
+	% X > Y - ?epsilon.
+	X > Y + ?epsilon.
+
+
+% @doc Returns whether X is greater than Y, with the specified margin, both
+% being expected to be floats.
+%
+% No is_greater_or_equal/3 makes sense with floats.
+%
+-spec is_greater( float(), float(), epsilon() ) -> boolean().
+is_greater( X, Y, Epsilon ) ->
+	% Refer to is_greater/2 for further details:
+	X > Y + Epsilon.
+
+
+
+% @doc Returns whether X is lower than Y (with a small margin), both being
+% expected to be floats.
+%
+% No is_lower_or_equal/2 makes sense with floats.
+%
+-spec is_lower( float(), float() ) -> boolean().
+is_lower( X, Y ) ->
+	% Could make sense, yet we do not want, for any (X,Y), is_lower(X,Y) and
+	% is_equal(X,Y) to be both true:
+	% X < Y + ?epsilon.
+	X < Y - ?epsilon.
+
+
+% @doc Returns whether X is lower than Y (with a small margin), both being
+% expected to be floats.
+%
+% No is_lower_or_equal/3 makes sense with floats.
+%
+-spec is_lower( float(), float(), epsilon() ) -> boolean().
+is_lower( X, Y, Epsilon ) ->
+	X < Y - Epsilon.
+
+
+
 % Angle section.
 
 % As we try to remain as much as possible with integer computations, for angle
@@ -730,14 +847,14 @@ radians_to_degrees( AngleInRadians ) ->
 	AngleInRadians * 180 / math:pi().
 
 
-% @doc Converts the specified angle in radians into the same angle expressed in
-% degrees.
+% at-doc Converts the specified angle in radians into the same angle expressed
+% in degrees.
 %
 % The plural form radians_to_degrees/1 is now to be preferred.
 %
 %-spec radian_to_degree( radians() ) -> degrees().
 %radian_to_degree( AngleInRadians ) ->
-%	radians_to_degrees( AngleInRadians ).
+%   radians_to_degrees( AngleInRadians ).
 
 
 
@@ -749,8 +866,8 @@ degrees_to_radians( AngleInDegrees ) ->
 	AngleInDegrees * math:pi() / 180.
 
 
-% @doc Converts the specified angle in degrees into the same angle expressed in
-% radians.
+% at-doc Converts the specified angle in degrees into the same angle expressed
+% in radians.
 %
 % The plural form degrees_to_radians/1 is now to be preferred.
 %
@@ -773,6 +890,24 @@ canonify( AngleInDegrees ) ->
 
 
 
+% @doc Evaluates the specified function as the specified abscissa, and returns
+% the corresponding value if it could be computed, otherwise returns 'undefined'
+% (this happens when typically 'badarith' is thrown due to an operation failing,
+% like for math:pow(1000,1000).
+%
+-spec evaluate( float_to_float_fun(), abscissa() ) ->
+											maybe( float_result_value() ).
+evaluate( Fun, Abs ) ->
+	try
+
+		Fun( Abs )
+
+	catch error:badarith ->
+		undefined
+
+	end.
+
+
 
 % @doc Samples the specified function taking a single numerical argument, by
 % evaluating it on every point in turn from Start until up to Stop, with
@@ -790,6 +925,7 @@ sample( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
 	lists:reverse( Acc );
 
 sample( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
+	% Not trying to resist errors with evaluate/2:
 	NewValue = Fun( CurrentPoint ),
 	sample( Fun, CurrentPoint + Increment, StopPoint, Increment,
 			[ NewValue | Acc ] ).
@@ -1046,21 +1182,30 @@ search_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 	case is_within( TestedPoint, MaybeMin, MaybeMax ) of
 
 		true ->
-			trace_utils:debug_fmt( "Searching for a non-null point at "
-								   "abscissa ~w.", [ TestedPoint ] ),
+			cond_utils:if_defined( myriad_debug_math,
+				trace_utils:debug_fmt( "Searching for a non-null point at "
+									   "abscissa ~w.", [ TestedPoint ] ) ),
 
-			Value = Fun( TestedPoint ),
-			case is_null( Value, Epsilon ) of
+			case evaluate( Fun, TestedPoint ) of
 
-				true ->
+				undefined ->
+					% Often unlikely to get better:
 					search_non_null( Fun, Origin, MaybeMin, MaybeMax,
-									 Factor * Inc, RemainingTests-1, Epsilon );
+						Factor * Inc, RemainingTests-1, Epsilon );
 
-				false ->
-					TestedPoint
+				Value ->
+					case is_null( Value, Epsilon ) of
+
+						true ->
+							search_non_null( Fun, Origin, MaybeMin, MaybeMax,
+								Factor * Inc, RemainingTests-1, Epsilon );
+
+						false ->
+							TestedPoint
+
+					end
 
 			end;
-
 
 		false ->
 			% No test spent here, on this side:
@@ -1096,46 +1241,61 @@ search_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests, Epsilon ) ->
 	case is_before( TestedPoint, MaybeMax, Inc ) of
 
 		true ->
-			trace_utils:debug_fmt( "Testing point ~f as potential zero.",
-								   [ TestedPoint ] ),
+			cond_utils:if_defined( myriad_debug_math,
+				trace_utils:debug_fmt( "Testing point ~f as potential zero.",
+									   [ TestedPoint ] ) ),
 
-			Value = Fun( TestedPoint ),
-			case is_null( Value, Epsilon ) of
+			case evaluate( Fun, TestedPoint ) of
 
-				true ->
-					trace_utils:debug_fmt( "Point ~f is a zero.",
-										   [ TestedPoint ] ),
-
-					TestInc = ?coarse_increment * sign( Inc ),
-
-					% As we do not want to be fooled by an only-local zero:
-					case search_non_null_one_direction( Fun, TestedPoint,
-							_MaybeMin=undefined, MaybeMax, TestInc,
-							_RemTests=48, Epsilon ) of
-
-						undefined ->
-							% OK, confirmed (a relevant trace already emitted):
-							%trace_utils:debug_fmt(
-							%   "Point ~f is considered as a zero onward.",
-							%   [ TestedPoint ] ),
-							TestedPoint;
-
-						FartherNonZero ->
-							trace_utils:warning_fmt( "A non-zero farther "
-								"than the current zero candidate ~f has been "
-								"detected: ~f; recalibrating.",
-								[ TestedPoint, FartherNonZero ] ),
-							search_first_null( Fun, FartherNonZero, MaybeMax,
-											   Inc, _NewTest=48, Epsilon )
-
-					end;
-
-				false ->
-					% Same sign for increment, hence same direction, again
-					% exponential:
-					%
+				undefined ->
+					% If ever it improved:
 					search_first_null( Fun, Pivot, MaybeMax, 2.0 * Inc,
-									   RemainingTests-1, Epsilon )
+									   RemainingTests-1, Epsilon );
+
+				Value ->
+					case is_null( Value, Epsilon ) of
+
+						true ->
+							cond_utils:if_defined( myriad_debug_math,
+								trace_utils:debug_fmt( "Point ~f is a zero.",
+													   [ TestedPoint ] ) ),
+
+							TestInc = ?coarse_increment * sign( Inc ),
+
+							% As we do not want to be fooled by an only-local
+							% zero:
+							case search_non_null_one_direction( Fun,
+									TestedPoint, _MaybeMin=undefined, MaybeMax,
+									TestInc, _RemTests=48, Epsilon ) of
+
+								undefined ->
+									% OK, confirmed (a relevant trace already
+									% emitted):
+
+									%trace_utils:debug_fmt( "Point ~f is "
+									%   "considered as a zero onward.",
+									%   [ TestedPoint ] ),
+									TestedPoint;
+
+								FartherNonZero ->
+									trace_utils:warning_fmt( "A non-zero "
+										"farther than the current zero "
+										"candidate ~f has been detected: ~f; "
+										"recalibrating.",
+										[ TestedPoint, FartherNonZero ] ),
+									search_first_null( Fun, FartherNonZero,
+										MaybeMax, Inc, _NewTest=48, Epsilon )
+
+							end;
+
+						false ->
+							% Same sign for increment, hence same direction,
+							% again exponential:
+							%
+							search_first_null( Fun, Pivot, MaybeMax, 2.0 * Inc,
+								RemainingTests-1, Epsilon )
+
+					end
 
 			end;
 
@@ -1235,46 +1395,62 @@ minimise_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax, Epsilon ) ->
 		% Still having to narrow down:
 		false ->
 			Midpoint = ( Pivot + FartherZero ) / 2.0,
-			trace_utils:debug_fmt( "Testing midpoint ~f.", [ Midpoint ] ),
-			MidValue = Fun( Midpoint ),
-			case is_null( MidValue, Epsilon ) of
 
-				true ->
-					% A check, should we have found only a local zero, with
-					% non-null values present farther away:
+			cond_utils:if_defined( myriad_debug_math,
+				trace_utils:debug_fmt( "Testing midpoint ~f.", [ Midpoint ] ) ),
 
-					Inc = ?coarse_increment * sign( FartherZero - Pivot ),
+			case evaluate( Fun, Midpoint ) of
 
-					trace_utils:debug_fmt( "Midpoint ~f seems to be a good "
-						"candidate for closest zero.", [ Midpoint ] ),
+				undefined ->
+					% Not knowing how to handle:
+					throw( { undefined_midpoint, Midpoint, Pivot,
+							 FartherZero } );
 
-					% Just a light, raw, security operating on an intermediary
-					% candidate:
-					%
-					case search_non_null_one_direction( Fun, Midpoint,
-							MaybeMin, MaybeMax, Inc, _RemainingTests=24,
-							Epsilon ) of
+				MidValue ->
 
-						% Midpoint looks like a good zero then, let's use it
-						% from now:
-						%
-						undefined ->
-							minimise_zero( Fun, Pivot, Midpoint,
-										   MaybeMin, MaybeMax, Epsilon );
+					case is_null( MidValue, Epsilon ) of
 
-						% It was not a "permanent" zero, let's offset the pivot
-						% to this farther position:
-						%
-						NewPivot ->
-							minimise_zero( Fun, NewPivot, FartherZero,
+						true ->
+							% A check, should we have found only a local zero,
+							% with non-null values present farther away:
+
+							Inc = ?coarse_increment
+								* sign( FartherZero - Pivot ),
+
+							cond_utils:if_defined( myriad_debug_math,
+								trace_utils:debug_fmt( "Midpoint ~f seems to "
+									"be a good candidate for closest zero.",
+									[ Midpoint ] ) ),
+
+							% Just a light, raw, security operating on an
+							% intermediary candidate:
+							%
+							case search_non_null_one_direction( Fun, Midpoint,
+								MaybeMin, MaybeMax, Inc, _RemainingTests=24,
+								Epsilon ) of
+
+							% Midpoint looks like a good zero then, let's use it
+							% from now:
+							%
+							undefined ->
+								minimise_zero( Fun, Pivot, Midpoint,
+											   MaybeMin, MaybeMax, Epsilon );
+
+							% It was not a "permanent" zero, let's offset the
+							% pivot to this farther position:
+							%
+							NewPivot ->
+								minimise_zero( Fun, NewPivot, FartherZero,
+											   MaybeMin, MaybeMax, Epsilon )
+
+							end;
+
+						false ->
+							% Not a zero at all, so it becomes the new pivot:
+							minimise_zero( Fun, Midpoint, FartherZero,
 										   MaybeMin, MaybeMax, Epsilon )
 
-					end;
-
-				false ->
-					% Not a zero at all, so it becomes the new pivot:
-					minimise_zero( Fun, Midpoint, FartherZero,
-								   MaybeMin, MaybeMax, Epsilon )
+					end
 
 			end
 
@@ -1311,18 +1487,28 @@ search_non_null_one_direction( Fun, Origin, MaybeMin, MaybeMax, Inc,
 			%trace_utils:debug_fmt( "Searching for a non-null point "
 			%   "at abscissa ~w.", [ TestedPoint ] ),
 
-			Value = Fun( TestedPoint ),
-			case is_null( Value, Epsilon ) of
+			case evaluate( Fun, TestedPoint ) of
 
-				true ->
-					% Hence growing exponentially:
+				undefined ->
+					% If ever useful:
 					Factor = 1.2,
 					search_non_null_one_direction( Fun, Origin, MaybeMin,
 						MaybeMax, Factor * Inc, RemainingTests-1, Epsilon );
 
-				false ->
-					TestedPoint
+				Value ->
+					case is_null( Value, Epsilon ) of
 
+						true ->
+							% Hence growing exponentially:
+							Factor = 1.2,
+							search_non_null_one_direction( Fun, Origin,
+								MaybeMin, MaybeMax, Factor * Inc,
+								RemainingTests-1, Epsilon );
+
+						false ->
+							TestedPoint
+
+					end
 			end;
 
 		false ->
@@ -1529,21 +1715,32 @@ search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 	case is_within( TestedPoint, MaybeMin, MaybeMax ) of
 
 		true ->
-			Value = Fun( TestedPoint ),
-			trace_utils:debug_fmt( "Searching for a non-null point at "
-				"abscissa ~B, got ~w.", [ TestedPoint, Value ] ),
+			case evaluate( Fun, TestedPoint ) of
 
-			case is_null( Value, Epsilon ) of
-
-				true ->
+				undefined ->
+					% Possibly useful:
 					search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax,
 						Factor * Inc, RemainingTests-1, Epsilon );
 
-				false ->
-					TestedPoint
+				Value ->
+					cond_utils:if_defined( myriad_debug_math,
+						trace_utils:debug_fmt( "Searching for a non-null point "
+							"at abscissa ~B, got ~w.",
+							[ TestedPoint, Value ] ) ),
+
+					case is_null( Value, Epsilon ) of
+
+						true ->
+							search_integer_non_null( Fun, Origin,
+								MaybeMin, MaybeMax, Factor * Inc,
+								RemainingTests-1, Epsilon );
+
+						false ->
+							TestedPoint
+
+					end
 
 			end;
-
 
 		false ->
 			% No test spent here, on this side:
@@ -1581,48 +1778,64 @@ search_integer_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests,
 	case is_before( TestedPoint, MaybeMax, Inc ) of
 
 		true ->
-			trace_utils:debug_fmt( "Testing point ~B as potential zero.",
-								   [ TestedPoint ] ),
+			cond_utils:if_defined( myriad_debug_math,
+				trace_utils:debug_fmt( "Testing point ~B as potential zero.",
+									   [ TestedPoint ] ) ),
 
-			Value = Fun( TestedPoint ),
-			case is_null( Value, Epsilon ) of
+			case evaluate( Fun, TestedPoint ) of
 
-				true ->
-					trace_utils:debug_fmt( "Point ~B is a zero (got ~w).",
-						[ TestedPoint, Value ] ),
-
-					TestInc = sign( Inc ),
-
-					% As we do not want to be fooled by an only-local zero:
-					case search_integer_non_null_one_direction( Fun,
-							TestedPoint, _MaybeMin=undefined, MaybeMax, TestInc,
-							_RemTests=48, Epsilon ) of
-
-						undefined ->
-							% OK, confirmed (a relevant trace already emitted):
-							%trace_utils:debug_fmt(
-							%   "Point ~B is considered as a zero onward.",
-							%   [ TestedPoint ] ),
-							TestedPoint;
-
-						FartherNonZero ->
-							trace_utils:warning_fmt( "A non-zero farther "
-								"than the current zero candidate ~B has been "
-								"detected: ~B; recalibrating.",
-								[ TestedPoint, FartherNonZero ] ),
-							search_integer_first_null( Fun, FartherNonZero,
-								MaybeMax, Inc, _NewTest=48, Epsilon )
-
-					end;
-
-				false ->
-					% Same sign for increment, hence same direction, again
-					% exponential:
-					%
+				undefined ->
 					search_integer_first_null( Fun, Pivot, MaybeMax, 2*Inc,
-											   RemainingTests-1, Epsilon )
+											   RemainingTests-1, Epsilon );
 
-			end;
+				Value ->
+					case is_null( Value, Epsilon ) of
+
+						true ->
+							cond_utils:if_defined( myriad_debug_math,
+								trace_utils:debug_fmt(
+									"Point ~B is a zero (got ~w).",
+									[ TestedPoint, Value ] ) ),
+
+							TestInc = sign( Inc ),
+
+							% As we do not want to be fooled by an only-local
+							% zero:
+							%
+							case search_integer_non_null_one_direction( Fun,
+								TestedPoint, _MaybeMin=undefined, MaybeMax,
+								TestInc, _RemTests=48, Epsilon ) of
+
+								undefined ->
+									% OK, confirmed (a relevant trace already
+									% emitted):
+									%trace_utils:debug_fmt(
+									%"Point ~B is considered as a zero onward.",
+									%   [ TestedPoint ] ),
+									TestedPoint;
+
+								FartherNonZero ->
+									trace_utils:warning_fmt( "A non-zero "
+										"farther than the current zero "
+										"candidate ~B has been "
+										"detected: ~B; recalibrating.",
+										[ TestedPoint, FartherNonZero ] ),
+									search_integer_first_null( Fun,
+										FartherNonZero,	MaybeMax, Inc,
+										_NewTest=48, Epsilon )
+
+							end;
+
+						false ->
+							% Same sign for increment, hence same direction,
+							% again exponential:
+							%
+							search_integer_first_null( Fun, Pivot, MaybeMax,
+								2*Inc, RemainingTests-1, Epsilon )
+
+					end
+
+				end;
 
 		false ->
 			% We consider it as a zero (beginning of the open interval on which
@@ -1666,16 +1879,25 @@ search_integer_non_null_one_direction( Fun, Origin, MaybeMin, MaybeMax, Inc,
 			%trace_utils:debug_fmt( "Searching for a non-null point "
 			%   "at abscissa ~B.", [ TestedPoint ] ),
 
-			Value = Fun( TestedPoint ),
-			case is_null( Value, Epsilon ) of
+			case evaluate( Fun, TestedPoint ) of
 
-				true ->
-					% Hence growing exponentially:
+				undefined ->
 					search_integer_non_null_one_direction( Fun, Origin,
 						MaybeMin, MaybeMax, 2*Inc, RemainingTests-1, Epsilon );
 
-				false ->
-					TestedPoint
+				Value ->
+					case is_null( Value, Epsilon ) of
+
+						true ->
+							% Hence growing exponentially:
+							search_integer_non_null_one_direction( Fun, Origin,
+								MaybeMin, MaybeMax, 2*Inc, RemainingTests-1,
+								Epsilon );
+
+						false ->
+							TestedPoint
+
+					end
 
 			end;
 
@@ -1706,8 +1928,9 @@ search_integer_non_null_one_direction( Fun, Origin, MaybeMin, MaybeMax, Inc,
 minimise_integer_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax,
 					   Epsilon ) when abs( Pivot - FartherZero ) =< 1 ->
 
-	trace_utils:debug_fmt( "Integer zero minimised: pivot is ~B, "
-						   "farther zero is ~B.", [ Pivot, FartherZero ] ),
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "Integer zero minimised: pivot is ~B, "
+			"farther zero is ~B.", [ Pivot, FartherZero ] ) ),
 
 	% Before returning our elected zero, we check it a bit more:
 	Inc = sign( FartherZero - Pivot ),
@@ -1734,49 +1957,61 @@ minimise_integer_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax, Epsilon ) ->
 
 	Midpoint = ( Pivot + FartherZero ) div 2,
 
-	trace_utils:debug_fmt( "Testing midpoint ~B (pivot: ~B, zero: ~B).",
-						   [ Midpoint, Pivot, FartherZero ] ),
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "Testing midpoint ~B (pivot: ~B, zero: ~B).",
+							   [ Midpoint, Pivot, FartherZero ] ) ),
 
-	MidValue = Fun( Midpoint ),
+	case evaluate( Fun, Midpoint ) of
 
-	case is_null( MidValue, Epsilon ) of
+		undefined ->
+			% Not knowing how to handle:
+			throw( { undefined_midpoint, Midpoint, Pivot, FartherZero } );
 
-		true ->
-			% A check, should we have found only a local zero, with non-null
-			% values present farther away:
+		MidValue ->
 
-			Inc = sign( FartherZero - Pivot ),
+			case is_null( MidValue, Epsilon ) of
 
-			trace_utils:debug_fmt( "Midpoint ~B seems to be a good "
-				"candidate for closest zero.", [ Midpoint ] ),
+				true ->
+					% A check, should we have found only a local zero, with
+					% non-null values present farther away:
 
-			% Just a light, raw, security operating on an intermediary
-			% candidate:
-			%
-			case search_integer_non_null_one_direction( Fun, Midpoint,
-					MaybeMin, MaybeMax, Inc, _RemainingTests=24, Epsilon ) of
+					Inc = sign( FartherZero - Pivot ),
 
-				% Midpoint looks like a good zero then, let's use it from now:
-				undefined ->
-					minimise_integer_zero( Fun, Pivot, Midpoint, MaybeMin,
-										   MaybeMax, Epsilon );
+					cond_utils:if_defined( myriad_debug_math,
+						trace_utils:debug_fmt( "Midpoint ~B seems to be a good "
+							"candidate for closest zero.", [ Midpoint ] ) ),
 
-				% It was not a "permanent" zero, let's offset the pivot to this
-				% farther position:
-				%
-				NewPivot ->
-					minimise_integer_zero( Fun, NewPivot, FartherZero,
-										   MaybeMin, MaybeMax, Epsilon )
+					% Just a light, raw, security operating on an intermediary
+					% candidate:
+					%
+					case search_integer_non_null_one_direction( Fun, Midpoint,
+						MaybeMin, MaybeMax, Inc, _RemainingTests=24,
+						Epsilon ) of
 
-			end;
+						% Midpoint looks like a good zero then, let's use it
+						% from now:
+						%
+						undefined ->
+							minimise_integer_zero( Fun, Pivot, Midpoint,
+								MaybeMin, MaybeMax, Epsilon );
 
-		false ->
-			% Not a zero at all, so it becomes the new pivot:
-			minimise_integer_zero( Fun, Midpoint, FartherZero,
-								   MaybeMin, MaybeMax, Epsilon )
+						% It was not a "permanent" zero, let's offset the pivot
+						% to this farther position:
+						%
+						NewPivot ->
+							minimise_integer_zero( Fun, NewPivot, FartherZero,
+												   MaybeMin, MaybeMax, Epsilon )
+
+					end;
+
+				false ->
+					% Not a zero at all, so it becomes the new pivot:
+					minimise_integer_zero( Fun, Midpoint, FartherZero,
+						MaybeMin, MaybeMax, Epsilon )
+
+			end
 
 	end.
-
 
 
 

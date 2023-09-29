@@ -2984,7 +2984,8 @@ get_filesystem_info( AnyFilesystemPath ) ->
 % on error if requested, otherwise displaying an error trace and returning
 % 'undefined'.
 %
--spec get_filesystem_info( any_directory_path() ) -> maybe( fs_info() ).
+-spec get_filesystem_info( any_directory_path(), boolean() ) ->
+											maybe( fs_info() ).
 get_filesystem_info( BinFilesystemPath, CanFail )
 								when is_binary( BinFilesystemPath ) ->
 	get_filesystem_info( text_utils:binary_to_string( BinFilesystemPath ),

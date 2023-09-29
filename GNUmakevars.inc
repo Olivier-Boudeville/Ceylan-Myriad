@@ -200,13 +200,13 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
 
@@ -222,11 +222,10 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
-	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
-
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
 
 endif
 
@@ -2238,7 +2237,7 @@ GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 					$(OVERALL_PA_OPTS)
 
 
-# eqWAlizer to be obtained through https://github.com/WhatsApp/eqwalizer:
+# eqWAlizer is provided by WhatsApp:
 EQWALIZER := $$(which elp 2>/dev/null)
 
 EQWALIZER_OPTS = --project $(LAYER_TOP)/conf/$(PROJECT_SHORT_NAME)-for-eqwalizer.json
