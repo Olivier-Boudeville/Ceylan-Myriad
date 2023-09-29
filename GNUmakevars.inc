@@ -135,6 +135,7 @@ endif
 #  - strings: notably for mismatches between plain and binary ones
 #  - binaries: how binaries are created, used, matched
 #  - lists: how lists are processed
+#  - datastructures: how (non-list) datastructures are processed
 #  - registration: regarding naming registering
 #  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
@@ -154,6 +155,7 @@ endif
 #  - gui_instances: how MyriadGUI manages widget instances
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
+#  - gui_id: about widget identifiers
 #  - gui_performance: about the runtime performance monitoring of MyriadGUI
 #
 #  - linear: for operations on vectors, matrices, etc.
@@ -176,6 +178,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_strings
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_binaries
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_lists
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_datastructures
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
@@ -184,8 +187,8 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
@@ -194,6 +197,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
@@ -2197,6 +2201,10 @@ endif
 # Then ensure that ~/Software/gradualizer/Gradualizer/bin is in your PATH so
 # that 'gradualizer' can be run directly.
 #
+# We also recommend to update it regularly, as it is still in active
+# development; for that, run from the root of its clone:
+# 'git pull && make clean escript'
+#
 GRADUALIZER := $$(which gradualizer 2>/dev/null)
 
 
@@ -2227,9 +2235,10 @@ GRADUALIZER_CONTEXTUAL_OPTS := --stop_on_first_error
 # Refer to 'gradualizer --help' for further guidance.
 GRADUALIZER_OPTS := $(GRADUALIZER_ESSENTIAL_OPTS)  \
 					$(GRADUALIZER_CONTEXTUAL_OPTS) \
+					$(OVERALL_PA_OPTS)
 
 
-# eqWAlizer is provided by WhatsApp:
+# eqWAlizer to be obtained through https://github.com/WhatsApp/eqwalizer:
 EQWALIZER := $$(which elp 2>/dev/null)
 
 EQWALIZER_OPTS = --project $(LAYER_TOP)/conf/$(PROJECT_SHORT_NAME)-for-eqwalizer.json

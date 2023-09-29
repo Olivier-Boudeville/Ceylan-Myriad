@@ -265,7 +265,7 @@
 -type time_out() :: 'infinity' | finite_time_out().
 % Any kind of time-out, finite or not.
 %
-% Cannot find the definition of the built-in timeout() type.
+% The actual definition of the built-in timeout() type could not be found.
 
 
 

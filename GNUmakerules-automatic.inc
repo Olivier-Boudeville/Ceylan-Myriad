@@ -60,7 +60,7 @@
 # target, or even preferably, is listed in the EXTRA_BEAM_FILES make
 # variable. Refer to Ceylan-Oceanic for an example thereof.
 #
-%_generated.beam: %.erl %.beam
+%_generated.beam: %_constants.erl %.beam
 	@echo "		Generating support modules based on $<"
 	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $< | sed 's|\.erl$$||1')-generator-for-$$USER --eval $$(echo $@ | sed 's|_generated\.beam$$|:generate_support_modules()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $< | sed 's|\.erl$$||1')-generator-for-$$USER --eval $$(echo $@ | sed 's|_generated\.beam$$|:generate_support_modules()|1') $(ALL_CMD_LINE_OPTIONS)
@@ -329,8 +329,19 @@ endif
 
 
 %.plt: %.beam
-	@echo "    Checking module '$<' against relevant PLT ($(PLT_FILE))"
+	@echo "		Checking module '$<' against relevant PLT ($(PLT_FILE))"
 	@"$(DIALYZER)" $(DIALYZER_OPTS) --plt $(PLT_FILE) $<
+
+
+# Does not trigger a full rebuild.
+#
+# Example of use: 'make eqwalize-text_utils'.
+#
+# (see also the check-with-eqwalizer explicit target)
+#
+eqwalize-%: ebin/%.beam
+	@echo "		Checking module '$<' with eqWAlizer"
+	@$(EQWALIZER) eqwalize $* $(EQWALIZER_OPTS)
 
 
 

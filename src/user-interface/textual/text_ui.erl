@@ -102,21 +102,6 @@
 
 
 
--record( text_ui_state, {
-
-	% Path to our work-around script:
-	get_line_script = file_utils:executable_path(),
-
-	log_console = false :: boolean(),
-	log_file = undefined :: maybe( file_utils:file() ),
-
-	settings :: setting_table() } ).
-
-
--type ui_state() :: #text_ui_state{}.
-% UI State.
-
-
 % For common, transverse defines:
 -include("ui_base.hrl").
 
@@ -141,6 +126,44 @@
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
+
+-type executable_path() :: file_utils:executable_path().
+-type file() :: file_utils:file().
+
+-type text() :: ui:text() .
+-type label() :: ui:label() .
+-type prompt() :: ui:prompt().
+-type message() :: ui:message().
+
+-type setting_table() :: ui:setting_table().
+
+-type ui_options() :: ui:ui_options().
+
+-type ui_setting_key() :: ui:ui_setting_key().
+-type ui_setting_value() :: ui:ui_setting_value().
+-type ui_setting_entry() :: ui:ui_setting_entry().
+
+-type choice_designator() :: ui:choice_designator().
+-type choice_index() :: ui:choice_index().
+%-type choice_text() :: ui:choice_text().
+-type choice_element() :: ui:choice_element().
+%-type binary_choice() :: ui:binary_choice().
+
+
+
+-record( text_ui_state, {
+
+	% Path to our work-around script:
+	get_line_script ::executable_path(),
+
+	log_console = false :: boolean(),
+	log_file = undefined :: maybe( file() ),
+
+	settings :: setting_table() } ).
+
+
+-type ui_state() :: #text_ui_state{}.
+% UI State, for this text-based interface.
 
 
 
@@ -323,6 +346,11 @@ display_error_numbered_list( Label, Lines ) ->
 add_separation() ->
 	display( _Text="" ).
 
+
+
+% Text input:
+%  - the get_text variations allow to obtain directly a raw text from the user
+%  - the read_text variations will loop until a suitable text entry is entered
 
 
 % @doc Returns the user-entered text, based on an implicit state.

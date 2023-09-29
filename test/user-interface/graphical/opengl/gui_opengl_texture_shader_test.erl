@@ -63,7 +63,7 @@
 -record( my_gui_state, {
 
 	% The main frame of this test:
-	parent :: frame(),
+	main_frame :: frame(),
 
 	% The OpenGL canvas on which rendering will be done:
 	canvas :: gl_canvas(),
@@ -140,8 +140,8 @@
 -type width() :: gui:width().
 -type height() :: gui:height().
 
--type gl_canvas() :: gui:opengl_canvas().
--type gl_context() :: gui:opengl_context().
+-type gl_canvas() :: gui_opengl:gl_canvas().
+-type gl_context() :: gui_opengl:gl_context().
 
 -type texture() :: gui_texture:texture().
 
@@ -330,7 +330,7 @@ run_actual_test() ->
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
 
-	gui:show( InitialGUIState#my_gui_state.parent ),
+	gui_frame:show( InitialGUIState#my_gui_state.main_frame ),
 
 	% OpenGL will be initialised only when the corresponding frame will be ready
 	% (that is once first reported as resized):
@@ -350,7 +350,7 @@ run_actual_test() ->
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame( "MyriadGUI OpenGL Shader-based Texture Test",
+	MainFrame = gui_frame:create( "MyriadGUI OpenGL Shader-based Texture Test",
 								  _Size={ 1024, 768 } ),
 
 	% Using mostly default GL attributes:
@@ -380,7 +380,7 @@ init_test_gui() ->
 	% OpenGL initialisation to happen when available, i.e. when the main frame
 	% is shown:
 	%
-	#my_gui_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext,
+	#my_gui_state{ main_frame=MainFrame, canvas=GLCanvas, context=GLContext,
 				   image=TestImage }.
 
 
@@ -410,9 +410,12 @@ gui_main_loop( GUIState ) ->
 					GUIState;
 
 				GLState ->
-					gui:enable_repaint( GLCanvas ),
+					gui_widget:enable_repaint( GLCanvas ),
+
 					% Simpler than storing these at each resize:
-					{ CanvasWidth, CanvasHeight } = gui:get_size( GLCanvas ),
+					{ CanvasWidth, CanvasHeight } =
+						gui_widget:get_size( GLCanvas ),
+
 					render( CanvasWidth, CanvasHeight, GLState ),
 					gui_opengl:swap_buffers( GLCanvas ),
 					GUIState
@@ -453,7 +456,8 @@ gui_main_loop( GUIState ) ->
 		{ onShown, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
-				"(initial size of ~w).", [ gui:get_size( ParentFrame ) ] ),
+				"(initial size of ~w).",
+				[ gui_widget:get_size( ParentFrame ) ] ),
 
 			% Optional yet better:
 			gui:unsubscribe_from_events( { onShown, ParentFrame } ),
@@ -474,7 +478,7 @@ gui_main_loop( GUIState ) ->
 			gui_opengl:check_error(),
 
 			% No more recursing:
-			gui:destruct_frame( ParentFrame );
+			gui_frame:destruct( ParentFrame );
 
 
 		OtherEvent ->
@@ -502,7 +506,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Initial size of canvas is typically 20x20 pixels:
 	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
-						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
+						   "size ~w).", [ gui_widget:get_size( GLCanvas ) ] ),
 
 	% So done only once, with appropriate measures for a first setting:
 	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
@@ -619,8 +623,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		% Two basic triangles referenced in the associated VBO:
 		square_vertex_count=6,
 		square_merged_vbo_id=SquareMergedVBOId,
-		square_ebo_id=SquareEBOId
-						},
+		square_ebo_id=SquareEBOId },
 
 	%trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
 	%                       [ gui:get_size( MainFrame ) ] ),
@@ -672,7 +675,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 											   opengl_state=GLState } ) ->
 
 	% Maximises the canvas in the main frame:
-	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
+	{ CanvasWidth, CanvasHeight } = gui_widget:maximise_in_parent( GLCanvas ),
 
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
@@ -691,7 +694,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
-	gui:sync( GLCanvas ),
+	gui_widget:sync( GLCanvas ),
 
 	% No specific projection settings enforced.
 

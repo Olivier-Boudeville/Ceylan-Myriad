@@ -65,8 +65,8 @@
 %
 -record( my_gui_state, {
 
-	% The main window of this test:
-	parent :: window(),
+	% The main frame of this test:
+	main_frame :: frame(),
 
 	% The OpenGL canvas on which rendering will be done:
 	canvas :: gl_canvas(),
@@ -86,13 +86,13 @@
 
 % Shorthands:
 
--type window() :: gui:window().
+-type frame() :: gui_frame:frame().
 
 -type width() :: gui:width().
 -type height() :: gui:height().
 
--type gl_canvas() :: gui:opengl_canvas().
--type gl_context() :: gui:opengl_context().
+-type gl_canvas() :: gui_opengl:gl_canvas().
+-type gl_context() :: gui_opengl:gl_context().
 
 
 
@@ -133,7 +133,7 @@ run_actual_test() ->
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
 
-	gui:show( InitialGUIState#my_gui_state.parent ),
+	gui_frame:show( InitialGUIState#my_gui_state.main_frame ),
 
 	% OpenGL will be initialised only when the corresponding frame will be ready
 	% (that is once first reported as resized):
@@ -154,7 +154,7 @@ run_actual_test() ->
 init_test_gui() ->
 
 	MainFrame =
-		gui:create_frame( "MyriadGUI OpenGL 2D Test", _Size={ 500, 250 } ),
+		gui_frame:create( "MyriadGUI OpenGL 2D Test", _Size={ 500, 250 } ),
 
 	% Using default GL attributes:
 	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame ),
@@ -172,7 +172,7 @@ init_test_gui() ->
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet):
-	#my_gui_state{ parent=MainFrame, canvas=GLCanvas, context=GLContext }.
+	#my_gui_state{ main_frame=MainFrame, canvas=GLCanvas, context=GLContext }.
 
 
 
@@ -195,9 +195,10 @@ gui_main_loop( GUIState ) ->
 			RepaintedGUIState = case GUIState#my_gui_state.opengl_initialised of
 
 				true ->
-					gui:enable_repaint( GLCanvas ),
+					gui_widget:enable_repaint( GLCanvas ),
 					% Simpler than storing these at each resize:
-					{ CanvasWidth, CanvasHeight } = gui:get_size( GLCanvas ),
+					{ CanvasWidth, CanvasHeight } =
+						gui_widget:get_size( GLCanvas ),
 					render( CanvasWidth, CanvasHeight ),
 					gui_opengl:swap_buffers( GLCanvas ),
 					GUIState;
@@ -242,7 +243,8 @@ gui_main_loop( GUIState ) ->
 		{ onShown, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
-				"(initial size of ~w).", [ gui:get_size( ParentWindow ) ] ),
+				"(initial size of ~w).",
+				[ gui_widget:get_size( ParentWindow ) ] ),
 
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
@@ -250,14 +252,15 @@ gui_main_loop( GUIState ) ->
 			gui_main_loop( InitGUIState );
 
 
-		{ onWindowClosed, [ ParentWindow, _ParentWindowId, _EventContext ] } ->
+		{ onWindowClosed,
+				[ _ParentWindow=MainFrame, _ParentWindowId, _EventContext ] } ->
 			trace_utils:info( "Main frame closed, test success." ),
 
 			% Very final check, while there is still an OpenGL context:
 			gui_opengl:check_error(),
 
 			% No more recursing:
-			gui:destruct_window( ParentWindow );
+			gui_frame:destruct( MainFrame );
 
 
 		OtherEvent ->
@@ -283,7 +286,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Initial size of canvas is typically 20x20 pixels:
 	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
-						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
+						   "size ~w).", [ gui_widget:get_size( GLCanvas ) ] ),
 
 	% So done only once:
 	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
@@ -314,7 +317,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 
 	% Maximises the canvas in the main frame:
-	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
+	{ CanvasWidth, CanvasHeight } = gui_widget:maximise_in_parent( GLCanvas ),
 
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
@@ -335,7 +338,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas } ) ->
 	%
 	% (actually returns {CanvasWidth, CanvasHeight})
 	%
-	gui:sync( GLCanvas ),
+	gui_widget:sync( GLCanvas ),
 
 	% Multiplies the current modelview matrix by an orthographic matrix, a
 	% perspective matrix that produces a parallel projection based on 6 clipping

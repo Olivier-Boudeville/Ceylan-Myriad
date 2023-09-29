@@ -70,7 +70,7 @@
 -record( my_gui_state, {
 
 	% The main frame of this test:
-	parent :: frame(),
+	main_frame :: frame(),
 
 	% The OpenGL canvas on which rendering will be done:
 	canvas :: gl_canvas(),
@@ -281,15 +281,15 @@
 -type perspective_settings() ::
 	projection:perspective_settings().
 
--type frame() :: gui:frame().
+-type frame() :: gui_frame:frame().
 -type aspect_ratio() :: gui:aspect_ratio().
 
 -type image() :: gui_image:image().
 
 -type scancode() :: gui_keyboard:scancode().
 
--type gl_canvas() :: gui:opengl_canvas().
--type gl_context() :: gui:opengl_context().
+-type gl_canvas() :: gui_opengl:gl_canvas().
+-type gl_context() :: gui_opengl:gl_context().
 
 -type texture() :: gui_texture:texture().
 
@@ -331,7 +331,8 @@ prepare_square( Texture ) ->
 	Z = 0.0,
 
 	% Square defined as [vertex3()], directly in normalized device coordinates
-	% here; CCW order (bottom left, bottom right, top right, top left)::
+	% here, in the XY plane (Z=0); CCW order (bottom left, bottom right, top
+	% right, top left):
 	%
 	%         S3--S2
 	%         |    |
@@ -426,7 +427,10 @@ run_actual_test() ->
 		"    * the Z axis: hit '2' to scale it down, '8' up~n~n"
 		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
 		"to switch to the next transformation mode, 'P' to toggle the "
-		"projection mode, 'Escape' to quit.~n",
+		"projection mode, 'Escape' to quit.~n~n"
+		"Hints:~n"
+		" - with the orthographic (default) projection, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range, will fully disappear~n"
+		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis~n",
 		[ ?delta_coord, ?delta_angle, ?delta_scale ] ),
 
 	gui:start(),
@@ -434,7 +438,7 @@ run_actual_test() ->
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
 
-	gui:show( InitialGUIState#my_gui_state.parent ),
+	gui_frame:show( InitialGUIState#my_gui_state.main_frame ),
 
 	% OpenGL will be initialised only when the corresponding frame will be ready
 	% (that is once first reported as resized):
@@ -454,7 +458,7 @@ run_actual_test() ->
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui:create_frame(
+	MainFrame = gui_frame:create(
 		"MyriadGUI OpenGL Shader-based Transformation Test",
 		_Size={ 1024, 768 } ),
 
@@ -491,7 +495,7 @@ init_test_gui() ->
 	% OpenGL initialisation to happen when available, i.e. when the main frame
 	% is shown:
 	%
-	#my_gui_state{ parent=MainFrame,
+	#my_gui_state{ main_frame=MainFrame,
 				   canvas=GLCanvas,
 				   context=GLContext,
 				   image=TestImage,
@@ -555,7 +559,7 @@ gui_main_loop( GUIState ) ->
 					GUIState;
 
 				GLState ->
-					gui:enable_repaint( GLCanvas ),
+					gui_widget:enable_repaint( GLCanvas ),
 					render( GLState ),
 					gui_opengl:swap_buffers( GLCanvas ),
 					GUIState
@@ -596,7 +600,8 @@ gui_main_loop( GUIState ) ->
 		{ onShown, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
 
 			trace_utils:debug_fmt( "Parent window (main frame) just shown "
-				"(initial size of ~w).", [ gui:get_size( ParentFrame ) ] ),
+				"(initial size of ~w).",
+				[ gui_widget:get_size( ParentFrame ) ] ),
 
 			% Optional yet better:
 			gui:unsubscribe_from_events( { onShown, ParentFrame } ),
@@ -640,7 +645,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Initial size of canvas is typically 20x20 pixels:
 	trace_utils:debug_fmt( "Initialising OpenGL (whereas canvas is of initial "
-						   "size ~w).", [ gui:get_size( GLCanvas ) ] ),
+						   "size ~w).", [ gui_widget:get_size( GLCanvas ) ] ),
 
 	% So done only once, with appropriate measures for a first setting:
 	gui_opengl:set_context_on_shown( GLCanvas, GLContext ),
@@ -658,9 +663,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	TargetProfile = compatibility,
 	%TargetProfile = non_existing_profile,
 
-
 	gui_opengl:check_requirements( MinOpenGLVersion, TargetProfile ),
-
 
 	% These settings will not change afterwards here (hence set once for all):
 
@@ -793,7 +796,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 											   opengl_state=GLState } ) ->
 
 	% Maximises the canvas in the main frame:
-	{ CanvasWidth, CanvasHeight } = gui:maximise_in_parent( GLCanvas ),
+	{ CanvasWidth, CanvasHeight } = gui_widget:maximise_in_parent( GLCanvas ),
 
 	%trace_utils:debug_fmt( "New client canvas size: {~B,~B}.",
 	%                       [ CanvasWidth, CanvasHeight ] ),
@@ -812,7 +815,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% canvas size, not according to the one that was expected to be already
 	% resized.
 	%
-	gui:sync( GLCanvas ),
+	gui_widget:sync( GLCanvas ),
 
 	% No specific projection settings enforced.
 
@@ -872,7 +875,7 @@ render( #my_opengl_state{
 
 % @doc Terminates the test.
 -spec terminate( my_gui_state() ) -> void().
-terminate( GUIState=#my_gui_state{ parent=MainFrame } ) ->
+terminate( GUIState=#my_gui_state{ main_frame=MainFrame } ) ->
 
 	cleanup_opengl( GUIState ),
 	trace_utils:info( "Terminating test." ),
@@ -881,7 +884,7 @@ terminate( GUIState=#my_gui_state{ parent=MainFrame } ) ->
 	gui_opengl:check_error(),
 
 	% No more recursing:
-	gui:destruct_frame( MainFrame ).
+	gui_frame:destruct( MainFrame ).
 
 
 % @doc Updates the scene based on the specified user-entered scan code.
@@ -918,8 +921,10 @@ update_scene( _Scancode=?decrease_x_scan_code,
 					model_view_id=ModelViewMatUnifId } } ) ->
 
 	Inc = ?delta_coord,
+
 	% Translation on the X axis:
 	VT = [ -Inc, 0.0, 0.0 ],
+
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
 
 	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts",
@@ -941,6 +946,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 					model_view_id=ModelViewMatUnifId } } ) ->
 
 	Inc = ?delta_coord,
+
 	% Translation on the Y axis:
 	VT = [ 0.0, Inc, 0.0 ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
@@ -960,6 +966,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 					model_view_id=ModelViewMatUnifId } } ) ->
 
 	Inc = ?delta_coord,
+
 	% Translation on the Y axis:
 	VT = [ 0.0, -Inc, 0.0 ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
@@ -980,6 +987,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 					model_view_id=ModelViewMatUnifId } } ) ->
 
 	Inc = ?delta_coord,
+
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, Inc ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
@@ -1000,6 +1008,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 					model_view_id=ModelViewMatUnifId } } ) ->
 
 	Inc = ?delta_coord,
+
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, -Inc ],
 	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
@@ -1384,10 +1393,8 @@ get_base_perspective_settings( AspectRatio ) ->
 	#perspective_settings{
 		fov_y_angle=math_utils:degrees_to_radians( 45 ),
 		aspect_ratio=AspectRatio,
-		%z_near=0.1,
-		%z_far=100.0 }.
-		z_near=-1.0,
-		z_far=1.0 }.
+		z_near=0.1,
+		z_far=100.0 }.
 
 
 % @doc Runs the test.

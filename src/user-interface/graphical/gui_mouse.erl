@@ -49,7 +49,7 @@
 % Largely inspired from: Wings3D, SDL and esdl2.
 
 % Custom cursors may be defined, see
-% https://docs.wxwidgets.org/3.1/classwx_cursor.html.
+% https://docs.wxwidgets.org/stable/classwx_cursor.html.
 
 % Internally we rely directly on wxMouseState records (no translation to
 % SDL-like conventions).

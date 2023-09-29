@@ -196,13 +196,13 @@
 
 -opaque gl_canvas() :: wxGLCanvas:wxGLCanvas().
 % An OpenGL-based, back-buffered canvas (not to be mixed with a basic
-% gui:canvas/0 one), to which an OpenGL context shall be set in order to execute
-% OpenGL commands.
+% gui_canvas:canvas/0 one), to which an OpenGL context shall be set in order to
+% execute OpenGL commands.
 %
 % Any OpenGL canvas is not resized when its containers are resized.
 
 
-% See https://docs.wxwidgets.org/3.0/glcanvas_8h.html#wxGL_FLAGS for more
+% See https://docs.wxwidgets.org/stable/glcanvas_8h.html#wxGL_FLAGS for more
 % backend details.
 %
 % Note though that not all attributes are listed there, a more complete list is
@@ -251,6 +251,11 @@
 -opaque gl_context() :: wxGLContext:wxGLContext().
 % An OpenGL context represents the state of an OpenGL state machine and the
 % connection between OpenGL and the running system.
+%
+% Such a context always uses physical pixels, even on the platforms where the
+% window() base widget uses logical pixels. So dimensions like client sizes may
+% have to be multiplied by the content scale factor before being used with
+% functions like glViewport().
 
 
 -type factor() :: math_utils:factor().
@@ -1641,7 +1646,7 @@ create_canvas( Parent, Opts ) ->
 
 	WxAttrs = gui_wx_backend:to_wx_device_context_attributes( Attrs ),
 
-	OtherWxOpts = gui_wx_backend:get_window_options( OtherOpts ),
+	OtherWxOpts = gui_window:to_wx_window_options( OtherOpts ),
 
 	WxOpts = [ { attribList, WxAttrs } | OtherWxOpts ],
 
@@ -1778,9 +1783,10 @@ render_mesh( #mesh{ vertices=Vertices,
 
 
 
-% @doc Enters in 2D mode for the specified window: applies relevant general
-% state changes, and specific to modelview (which is reset) and to projection (a
-% projection matrix relevant for 2D operations is applied).
+% @doc Enters in 2D mode for the specified window (typically an OpenGL canvas):
+% applies relevant general state changes, and specific to modelview (which is
+% reset) and to projection (a projection matrix relevant for 2D operations is
+% applied).
 %
 % Refer to https://myriad.esperide.org/#2d-referential for more details.
 %

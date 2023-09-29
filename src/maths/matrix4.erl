@@ -47,7 +47,8 @@
 %
 % - special ones, at least the identity matrix
 
-% Supposing a right-handed referential, row-major order and matrix
+
+% We assume here a right-handed referential, row-major order and matrix
 % multiplication on the right (post-multiplication).
 %
 % As a result, matrices here are the transposed versions of GLM or e3d ones.
@@ -86,6 +87,7 @@
 
 
 -type matrix4() :: 'identity_4' | canonical_matrix4() | compact_matrix4().
+% A 4x4 matrix.
 
 
 -type canonical_matrix4() :: #matrix4{}.
@@ -116,8 +118,9 @@
 
 
 -type tuple_matrix4() :: % Not exported yet: gl:m12() | gl:m16().
-						 tuple().
-% A tuple of 12 or 16 floats.
+						 type_utils:tuple( coordinate(), 12 )
+					   | type_utils:tuple( coordinate(), 16 ).
+% A tuple of 12 or 16 coordinates.
 
 
 -export_type([ user_matrix4/0, matrix4/0, canonical_matrix4/0,
@@ -334,7 +337,7 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 								transition_matrix4().
 transition( Origin, X, Y, Z ) ->
 
-	cond_utils:if_defined( osdl_space_debug_referentials,
+	cond_utils:if_defined( myriad_check_linear,
 		begin
 			point3:check( Origin ),
 			vector3:check_unit_vectors( [ X, Y, Z ] ),
