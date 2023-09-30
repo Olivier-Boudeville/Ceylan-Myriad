@@ -296,7 +296,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.32
+MYRIAD_VERSION := 1.0.33
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
