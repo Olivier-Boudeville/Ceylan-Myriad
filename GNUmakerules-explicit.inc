@@ -1117,10 +1117,15 @@ check-with-gradualizer: all
 	@$(GRADUALIZER) $(GRADUALIZER_OPTS) -- $(TARGETS_TO_CHECK)
 
 
-# Not functional yet:
-check-with-eqwalizer: all copy-beams-to-ebin
+# Checks the full code base of the current layer with eqwalizer:
+# (not functional yet)
+#
+check-with-eqwalizer: #all copy-beams-to-ebin
 	@echo "  Checking BEAMs in $$(basename $$(pwd)) with eqWAlizer"
+	@echo $(EQWALIZER) eqwalize-all $(EQWALIZER_OPTS)
 	@$(EQWALIZER) eqwalize-all $(EQWALIZER_OPTS)
+
+# See also the eqwalize-% automatic target.
 
 
 
