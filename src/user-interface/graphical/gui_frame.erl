@@ -124,11 +124,12 @@
 % For frames:
 -export([ create/0, create/1, create/2, create/3, create/4, create/6,
 		  destruct/1,
-		  show/1 ]).
+		  set_menu_bar/2, show/1 ]).
 
 
 % For top-level frames:
 -export([ create_top_level/1, create_top_level/2, create_top_level/4,
+		  set_icon/2,
 		  is_fullscreen/1, set_fullscreen/2 ]).
 
 
@@ -142,10 +143,14 @@
 
 -type bit_mask() :: basic_utils:bit_mask().
 
+-type any_file_path() :: file_utils:any_file_path().
+
 -type size() :: gui:size().
 -type position() :: gui:position().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
+
+-type menu_bar() :: gui_menu:menu_bar().
 
 -type id() :: gui_id:id().
 
@@ -246,6 +251,13 @@ destruct( Frame  ) ->
 
 
 
+% @doc Assigns the specified menu bar to the specified frame.
+-spec set_menu_bar( frame(), menu_bar() ) -> void().
+set_menu_bar( Frame, MenuBar ) ->
+	wxFrame:setMenuBar( Frame, MenuBar ).
+
+
+
 % @doc Shows (renders) the specified frame.
 %
 % Returns whether anything had to be done.
@@ -309,6 +321,13 @@ create_top_level( Title, Position, Size, Style ) ->
 	Frame = create( Title, Position, Size, Style ),
 	gui_window:record_as_top_level( Frame ),
 	Frame.
+
+
+
+% @doc Sets the icon of the specified top-level frame.
+-spec set_icon( top_level_frame(), any_file_path() ) -> void().
+set_icon( TopLvlFrame, IconPath ) ->
+	gui_window:set_icon( TopLvlFrame, IconPath ).
 
 
 

@@ -918,7 +918,7 @@ create_gui_environment( Services, MaybeIdAllocPid ) ->
 	% that both the user code (i.e. the current process) and that loop can make
 	% use of wx:
 	%
-	WxEnv = wx:get_env(),
+	WxEnv = get_backend_environment(),
 
 	% Needed both directly in the main event loop and in the GUI environment
 	% (e.g. for when creating a plain canvas with no specific context):
@@ -1472,7 +1472,11 @@ object_key_to_string( { AnyObjectType, AnyInstanceId } ) ->
 %
 -spec get_backend_environment() -> backend_environment().
 get_backend_environment() ->
-	wx:get_env().
+	WxEnv = wx:get_env(),
+	cond_utils:if_defined( myriad_debug_gui_environments,
+		trace_utils:debug_fmt( "[~w] Getting wx backend environment: ~w.",
+							   [ self(), WxEnv ] ) ),
+	WxEnv.
 
 
 % @doc Sets the specified backend environment for the calling process, so that
@@ -1483,6 +1487,9 @@ get_backend_environment() ->
 %
 -spec set_backend_environment( backend_environment() ) -> void().
 set_backend_environment( WxEnv ) ->
+	cond_utils:if_defined( myriad_debug_gui_environments,
+		trace_utils:debug_fmt( "[~w] Setting wx backend environment ~w.",
+							   [ self(), WxEnv ] ) ),
 	wx:set_env( WxEnv ).
 
 

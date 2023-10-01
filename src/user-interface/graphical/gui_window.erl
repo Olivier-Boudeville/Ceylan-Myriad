@@ -137,6 +137,12 @@
 -export_type([ splitter/0, splitter_window/0, sash_gravity/0 ]).
 
 
+% Local types:
+
+-type wx_art_id() :: unicode:chardata().
+% For example "wxART_NEW".
+
+
 
 % For standard, basic windows:
 -export([ create/0, create/1, create/2, create/5,
@@ -144,7 +150,7 @@
 
 
 % For any kind of window:
--export([ show/1, hide/1, record_as_top_level/1 ]).
+-export([ show/1, hide/1, record_as_top_level/1, set_menu_bar/2 ]).
 
 
 % For top-level windows:
@@ -161,7 +167,8 @@
 
 
 % Wx-level:
--export([ window_styles_to_bitmask/1, to_wx_window_options/1 ]).
+-export([ window_styles_to_bitmask/1, to_wx_window_options/1,
+		  to_wx_icon_id/1 ]).
 
 
 
@@ -194,6 +201,8 @@
 -type orientation() :: orientation().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
+
+-type menu_bar() :: gui_menu:menu_bar().
 
 -type id() :: gui_id:id().
 
@@ -486,6 +495,12 @@ record_as_top_level( Window ) ->
 					 _Designator=?gui_env_reg_name ).
 
 
+% @doc Assigns the specified menu bar to the specified window.
+-spec set_menu_bar( window(), menu_bar() ) -> void().
+set_menu_bar( Window, MenuBar ) ->
+	wxWindow:setMenuBar( Window, MenuBar ).
+
+
 
 % @doc Converts the specified MyriadGUI window style elements into the
 % appropriate wx-specific bit mask.
@@ -530,3 +545,17 @@ to_wx_window_options( _Options=[ { style, Style } | T ], Acc ) ->
 % Unchanged:
 to_wx_window_options( _Options=[ H | T ], Acc ) ->
 	to_wx_window_options( T, [ H | Acc ] ).
+
+
+% @doc Converts the specified icon identifier into a wx-specific one.
+-spec to_wx_icon_id( icon_name_id() ) -> wx_art_id().
+to_wx_icon_id( IconId ) ->
+	case gui_generated:get_maybe_second_for_icon_name_id( IconId ) of
+
+		undefined ->
+			throw( { unknown_icon_id, IconId } );
+
+		WxIconId ->
+			WxIconId
+
+	end.

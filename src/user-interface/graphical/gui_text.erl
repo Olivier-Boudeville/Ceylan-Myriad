@@ -77,6 +77,7 @@
 
 % Operations related to static texts to display:
 -export([ create_static_display/2, create_static_display/3,
+		  create_static_display_with_id/3,
 		  create_static_display/4,
 		  destruct_static_display/1 ]).
 
@@ -111,15 +112,24 @@
 % @doc Creates a static text display, based on the specified label.
 -spec create_static_display( label(), parent() ) -> static_text_display().
 create_static_display( Label, Parent ) ->
-	create_static_display( Label, gui_id:get_any_id(), Parent ).
+	create_static_display( Label, gui_id:get_any_id(), _Opts=[], Parent ).
 
+
+% @doc Creates a static text display, based on the specified label and
+% option(s).
+%
+-spec create_static_display( label(), maybe_list( static_display_option() ),
+							 parent() ) -> static_text_display().
+create_static_display( Label, Options, Parent ) ->
+	create_static_display( Label, gui_id:get_any_id(), Options, Parent ).
 
 
 % @doc Creates a static text display, based on the specified label and
 % identifier.
 %
--spec create_static_display( label(), id(), parent() ) -> static_text_display().
-create_static_display( Label, Id, Parent ) ->
+-spec create_static_display_with_id( label(), id(), parent() ) ->
+											static_text_display().
+create_static_display_with_id( Label, Id, Parent ) ->
 	create_static_display( Label, Id, _Options=[], Parent ).
 
 

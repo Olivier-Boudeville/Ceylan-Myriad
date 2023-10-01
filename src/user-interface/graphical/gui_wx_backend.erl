@@ -232,9 +232,6 @@
 % See the corresponding gui:event_subscription_option().
 
 
--type wx_panel_option() :: gui_window:wx_window_option()
-						 | wx_event_handler_option().
-
 % Precisely:
 %    {id, integer()} |
 %    {position, {X :: integer(), Y :: integer()}} |
@@ -256,13 +253,10 @@
 
 
 -export_type([ wx_native_object_type/0, wx_opt_pair/0,
-			   wx_event_handler_option/0, wx_panel_option/0,
+			   wx_event_handler_option/0,
 			   other_wx_device_context_attribute/0,
 			   wx_device_context_attribute/0, wx_enum/0,
 			   wx_direction/0, wx_orientation/0 ]).
-
--type wx_art_id() :: unicode:chardata().
-% For example "wxART_NEW".
 
 
 % Preferably no '-export_type' here to avoid leakage of backend conventions.
@@ -281,10 +275,6 @@
 -export([ to_wx_object_type/1,
 		  to_wx_connect_options/3,
 		  to_wx_debug_level/1,
-
-		  to_wx_panel_options/1,
-
-		  to_wx_bitmap_id/1, to_wx_icon_id/1,
 
 		  to_wx_id/1, to_wx_parent/1, to_wx_position/1, to_wx_size/1,
 		  to_wx_direction/1, to_wx_orientation/1,
@@ -328,12 +318,6 @@
 
 
 -type window() :: gui_window:window().
-
--type icon_name_id() :: gui_window:icon_name_id().
-
--type panel_option() :: gui_panel:panel_option().
-
--type bitmap_name_id() :: gui_bitmap:bitmap_name_id().
 
 -type device_context_attribute() :: gui_opengl:device_context_attribute().
 
@@ -403,60 +387,6 @@ to_wx_debug_level( _DebugLevel=calls ) ->
 
 to_wx_debug_level( _DebugLevel=life_cycle ) ->
 	driver.
-
-
-
-
-
-% Panels section.
-
-
-% @doc Converts the specified MyriadGUI panel option(s) into the appropriate
-% wx-specific options.
-%
-% (exported helper)
-%
--spec to_wx_panel_options( maybe_list( panel_option() ) ) ->
-											[ wx_panel_option() ].
-to_wx_panel_options( Options ) ->
-	gui_window:to_wx_window_options( Options ).
-
-
-
-
-
-% @doc Converts the specified bitmap identifier (for an already-existing menu
-% item) into a wx-specific one.
-%
--spec to_wx_bitmap_id( bitmap_name_id() ) -> wx_art_id().
-to_wx_bitmap_id( BitmapId ) ->
-	case gui_generated:get_maybe_second_for_bitmap_id( BitmapId ) of
-
-		undefined ->
-			throw( { unknown_bitmap_id, BitmapId } );
-
-		WxArtId ->
-			WxArtId
-
-	end.
-
-
-
-
-% @doc Converts the specified icon identifier into a wx-specific one.
--spec to_wx_icon_id( icon_name_id() ) -> wx_art_id().
-to_wx_icon_id( IconId ) ->
-	case gui_generated:get_maybe_second_for_icon_name_id( IconId ) of
-
-		undefined ->
-			throw( { unknown_icon_id, IconId } );
-
-		WxIconId ->
-			WxIconId
-
-	end.
-
-
 
 
 

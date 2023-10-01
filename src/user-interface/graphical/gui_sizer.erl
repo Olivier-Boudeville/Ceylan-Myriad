@@ -351,7 +351,8 @@ add_spacer( Sizer, Length ) ->
 											sizer_item().
 add_spacer( Sizer, Width, Height, Options ) ->
 	ActualOptions = to_wx_sizer_options( Options ),
-	wxSizer:addSpacer( Sizer, Width, Height, ActualOptions ).
+	% Not addSpacer:
+	wxSizer:add( Sizer, Width, Height, ActualOptions ).
 
 
 % @doc Adds to the specified sizer a stretchable spacer child, and returns the

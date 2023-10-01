@@ -153,6 +153,7 @@ endif
 #  - gui_canvas: how MyriadGUI manages canvases
 #  - gui_font: about font support
 #  - gui_instances: how MyriadGUI manages widget instances
+#  - gui_environments: the management of backend environments
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
 #  - gui_id: about widget identifiers
@@ -196,6 +197,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance

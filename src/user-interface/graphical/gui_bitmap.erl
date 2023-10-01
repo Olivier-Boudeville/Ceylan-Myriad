@@ -112,6 +112,11 @@
 			   bitmap_name_id/0 ]).
 
 
+% Local types:
+
+-type wx_art_id() :: unicode:chardata().
+% For example "wxART_NEW".
+
 
 % Functions on bitmaps:
 -export([ create/2, create/3,
@@ -227,7 +232,7 @@ destruct( Bitmap ) ->
 -spec get_standard( standard_bitmap_name_id() ) -> bitmap().
 get_standard( StdBitmapId ) ->
 
-	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
+	WxArtId = to_wx_bitmap_id( StdBitmapId ),
 
 	NullBitmap = get_wx_null_bitmap(),
 
@@ -249,7 +254,7 @@ get_standard( StdBitmapId ) ->
 -spec get_standard( standard_bitmap_name_id(), dimensions() ) -> bitmap().
 get_standard( StdBitmapId, Dimensions ) ->
 
-	WxArtId = gui_wx_backend:to_wx_bitmap_id( StdBitmapId ),
+	WxArtId = to_wx_bitmap_id( StdBitmapId ),
 
 	NullBitmap = get_wx_null_bitmap(),
 
@@ -367,3 +372,20 @@ destruct_static_display( BitmapDisplay ) ->
 get_wx_null_bitmap() ->
 	% Computed (not a literal constant):
 	?wxNullBitmap.
+
+
+
+% @doc Converts the specified bitmap identifier (for an already-existing item)
+% into a wx-specific one.
+%
+-spec to_wx_bitmap_id( bitmap_name_id() ) -> wx_art_id().
+to_wx_bitmap_id( BitmapId ) ->
+	case gui_generated:get_maybe_second_for_bitmap_id( BitmapId ) of
+
+		undefined ->
+			throw( { unknown_bitmap_id, BitmapId } );
+
+		WxArtId ->
+			WxArtId
+
+	end.

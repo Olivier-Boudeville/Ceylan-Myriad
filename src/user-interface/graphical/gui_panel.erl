@@ -59,6 +59,10 @@
 		  destruct/1 ]).
 
 
+-type wx_panel_option() :: gui_window:wx_window_option()
+						 | gui_wx_backend:wx_event_handler_option().
+
+
 % Implementation notes:
 %
 % The parent of a panel can be widgets like windows, including splitter windows
@@ -93,6 +97,8 @@ create() ->
 % @doc Creates a panel, associated to the specified parent.
 -spec create( parent() ) -> panel().
 create( _Parent=#splitter{ splitter_window=Win } ) ->
+	%trace_utils:debug_fmt( "Creating panel from splitter window ~w.",
+	%                       [ Win ] ),
 	wxPanel:new( Win );
 
 create( Parent ) ->
@@ -108,8 +114,7 @@ create( Options, _Parent=#splitter{ splitter_window=Win } ) ->
 	create( Options, Win );
 
 create( Options, Parent ) ->
-	ActualOptions = gui_wx_backend:to_wx_panel_options( Options ),
-	wxPanel:new( Parent, ActualOptions ).
+	wxPanel:new( Parent, to_wx_panel_options( Options ) ).
 
 
 
@@ -143,7 +148,7 @@ create( Position, Size, Options, Parent ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
 			   gui_wx_backend:to_wx_size( Size )
-			 | gui_wx_backend:to_wx_panel_options( Options ) ],
+					| to_wx_panel_options( Options ) ],
 
 	%trace_utils:debug_fmt( "Creating panel: parent: ~w, position: ~w, "
 	%    "size: ~w, options: ~w, full options: ~w.",
@@ -161,7 +166,7 @@ create( Position, Size, Options, Parent ) ->
 create( X, Y, Width, Height, Options, Parent ) ->
 
 	WxOpts = [ { pos, { X, Y } }, { size, { Width, Height } }
-						| gui_wx_backend:to_wx_panel_options( Options ) ],
+					| to_wx_panel_options( Options ) ],
 
 	wxPanel:new( Parent, WxOpts ).
 
@@ -171,3 +176,15 @@ create( X, Y, Width, Height, Options, Parent ) ->
 -spec destruct( panel() ) -> void().
 destruct( Panel ) ->
 	wxPanel:destroy( Panel ).
+
+
+
+% @doc Converts the specified MyriadGUI panel option(s) into the appropriate
+% wx-specific options.
+%
+% (exported helper)
+%
+-spec to_wx_panel_options( maybe_list( panel_option() ) ) ->
+											[ wx_panel_option() ].
+to_wx_panel_options( Options ) ->
+	gui_window:to_wx_window_options( Options ).
