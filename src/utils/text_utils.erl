@@ -230,6 +230,12 @@
 -type title() :: ustring().
 % A string that describes a title.
 
+-type bin_title() :: bin_string().
+% A binary string that describes a title.
+
+-type any_title() :: title() | bin_title().
+% Any string that describes a title.
+
 
 -type label() :: ustring().
 % A string that describes a label.
@@ -394,7 +400,7 @@
 
 
 -export_type([ format_string/0, format_values/0,
-			   regex_string/0, title/0, label/0,
+			   regex_string/0, title/0, bin_title/0, any_title/0, label/0,
 			   bin_string/0, any_string/0, unicode_string/0, unicode_data/0,
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
 			   parse_string/0, io_list/0, io_data/0,
