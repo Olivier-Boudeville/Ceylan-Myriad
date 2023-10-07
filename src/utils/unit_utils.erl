@@ -217,6 +217,8 @@
 % Exact number:
 -define(meters_per_light_year, 9460730472580800 ).
 
+-define(meters_per_milli_light_year, 9460730472581 ).
+
 
 -type length_reference_unit() :: 'meters'.
 
@@ -706,7 +708,7 @@
 
 -export([ temperature_to_string/1, maybe_temperature_to_string/1,
 		  rpm_to_string/1, maybe_rpm_to_string/1,
-		  meters_to_string/1, position_to_string/1 ]).
+		  meters_to_string/1, position_to_string/1, speed_to_string/1 ]).
 
 
 
@@ -723,6 +725,10 @@
 
 % Number of digits after the decimal point:
 -define( digits_after_decimal, "3" ).
+
+% Note that using the "g" control sequence instead of "f" should be avoided
+% (less clear).
+
 
 % Shorthands:
 
@@ -833,12 +839,12 @@ meters_to_string( Meters ) when Meters >= 1.0 ->
 
 				_ ->
 					text_utils:format( "~." ++ ?digits_after_decimal
-									   ++ "g km", [ Km ] )
+									   ++ "f km", [ Km ] )
 
 			end;
 
 		_ ->
-			text_utils:format( "~." ++ ?digits_after_decimal ++ "gm",
+			text_utils:format( "~." ++ ?digits_after_decimal ++ "f m",
 							   [ Meters ] )
 
 	end;
@@ -846,13 +852,13 @@ meters_to_string( Meters ) when Meters >= 1.0 ->
 % From here Meters < 1.0; less than 1 cm:
 meters_to_string( Meters ) when Meters < 0.01 ->
 	Millimeters = Meters * 1000,
-	text_utils:format( "~." ++ ?digits_after_decimal ++ "gmm",
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "f mm",
 					   [ Millimeters ] );
 
 % Between 1cm and 1m:
 meters_to_string( Meters ) ->
 	Centimeters = Meters * 100,
-	text_utils:format( "~." ++ ?digits_after_decimal ++ "gcm",
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "f cm",
 					   [ Centimeters ] ).
 
 
@@ -863,6 +869,20 @@ position_to_string( _Pos={ Lat, Long } ) ->
 	% Maybe some day returns degrees, minutes, etc.:
 	text_utils:format( "latitude of ~w, longitude of ~w",
 					   [ Lat, Long ] ).
+
+
+
+% @doc Returns a textual, user-friendly, short (possibly rounded) description of
+% the specified speed.
+%
+-spec speed_to_string( meters_per_second() ) -> ustring().
+speed_to_string( Mps ) when Mps > ?meters_per_milli_light_year ->
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "f ly/s",
+					   [ Mps / ?meters_per_light_year ] );
+
+speed_to_string( Mps ) ->
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "f m/s", [ Mps ] ).
+
 
 
 % Implementations for the more elaborate form of units:
