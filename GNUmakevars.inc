@@ -146,6 +146,7 @@ endif
 #  - traces: for Myriad-level traces
 #  - random: about stochastic sample draws and probability density functions
 #  - math: for math-related operations
+#  - plot: for the rendering of all kinds of plots and graphs
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - gui_repaint_logic: how MyriadGUI manages repaints
@@ -190,6 +191,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic

@@ -77,7 +77,10 @@
 
 
 % Operations related to functions:
--export([ evaluate/2, sample/4, sample_as_pairs/4, normalise/2,
+-export([ evaluate/2,
+		  sample/4, sample_for/4,
+		  sample_as_pairs/4, sample_as_pairs_for/4,
+		  normalise/2,
 
 		  compute_support/1, compute_support/3, compute_support/4,
 
@@ -212,6 +215,24 @@
 % support.
 
 
+-type sample() :: any().
+% A basic, unitary sample.
+
+-type float_sample() :: float().
+% A basic, unitary float sample.
+
+
+-type sample_data() :: type_utils:tuple( sample() ).
+% A tuple of data (numbers) to be sent as samples for a plot.
+%
+% This may or may not comprise the common abscissa (e.g. tick) that could be
+% common to these samples.
+
+
+-type sample_count() :: pos_integer().
+% A strictly positive number of samples.
+
+
 -type abscissa() :: float().
 
 -type integer_abscissa() :: integer().
@@ -254,6 +275,7 @@
 			   probability/0, probability_like/0,
 			   bound/0, integer_bound/0,
 			   bounds/0, integer_bounds/0,
+			   sample/0, float_sample/0, sample_data/0, sample_count/0,
 			   abscissa/0, integer_abscissa/0, any_abscissa/0,
 			   integer_to_integer_fun/0, float_to_integer_fun/0,
 			   number_to_integer_fun/0, number_to_float_fun/0,
@@ -521,6 +543,7 @@ sign( _N ) ->
 %
 -spec square( number() ) -> number().
 square( N ) ->
+	% No math:sqr/1; presumably better than math:pow(N,2):
 	N*N.
 
 
@@ -919,6 +942,25 @@ sample( Fun, StartPoint, StopPoint, Increment ) ->
 	sample( Fun, _Current=StartPoint, StopPoint, Increment, _Acc=[] ).
 
 
+% @doc Samples the specified function taking a single numerical argument, by
+% evaluating it on every point in turn from Start until up to Stop, for the
+% specified number of (evenly-spaced) samples: returns the ordered list of the
+% corresponding values that it took.
+%
+-spec sample_for( fun( ( number() ) -> T ), number(), number(),
+				  sample_count() ) -> [ T ].
+sample_for( Fun, StartPoint, StopPoint, SampleCount )
+											when SampleCount > 0 ->
+	Inc = ( StopPoint - StartPoint ) / SampleCount,
+	Samples = sample( Fun, _Current=StartPoint, StopPoint, Inc, _Acc=[] ),
+
+	cond_utils:assert( myriad_debug_math, SampleCount =:= length( Samples ) ),
+
+	Samples.
+
+
+
+
 % (helper)
 sample( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
 											when CurrentPoint > StopPoint ->
@@ -929,6 +971,7 @@ sample( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
 	NewValue = Fun( CurrentPoint ),
 	sample( Fun, CurrentPoint + Increment, StopPoint, Increment,
 			[ NewValue | Acc ] ).
+
 
 
 
@@ -944,6 +987,28 @@ sample_as_pairs( Fun, StartPoint, StopPoint, Increment ) ->
 					 _Acc=[] ).
 
 
+% @doc Samples uniformly the specified function taking a single numerical
+% argument, by evaluating it on every point in turn from Start until up to Stop,
+% for the specified number of (evenly-spaced) samples: returns the ordered list
+% of the corresponding {X,f(X)} pairs that it took.
+%
+-spec sample_as_pairs_for( fun( ( number() ) -> T ), number(), number(),
+						   sample_count() ) -> [ { number(), T } ].
+sample_as_pairs_for( Fun, StartPoint, StopPoint, SampleCount )
+											when SampleCount > 0 ->
+
+	Inc = ( StopPoint - StartPoint ) / SampleCount,
+
+	Pairs = sample_as_pairs( Fun, _CurrentPoint=StartPoint, StopPoint, Inc,
+							 _Acc=[] ),
+
+	cond_utils:assert( myriad_debug_math, SampleCount =:= length( Pairs ) ),
+
+	Pairs.
+
+
+
+
 % (helper)
 sample_as_pairs( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
 								when CurrentPoint > StopPoint ->
@@ -953,6 +1018,9 @@ sample_as_pairs( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
    NewValue = Fun( CurrentPoint ),
    sample_as_pairs( Fun, CurrentPoint+Increment, StopPoint, Increment,
 					[ { CurrentPoint, NewValue } | Acc ] ).
+
+
+
 
 
 
