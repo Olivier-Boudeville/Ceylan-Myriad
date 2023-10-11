@@ -168,6 +168,7 @@
 
 
 -type time_reference_unit() :: 'seconds'.
+% Our default pivot unit for durations.
 
 
 -type time_units() :: time_reference_unit() | 'years' | 'days' | 'hours'
@@ -206,21 +207,77 @@
 -type any_millimeters() :: millimeters() | int_millimeters().
 
 
+% For larger lengths, we recommend relying on light_second() or light_year().
+
+
 -type light_year() :: float().
-% A light-year express astronomical distances, and is equivalent to about
+% A light-year expresses astronomical distances, and is equivalent to about
 % 9.46.10^12 km.
 %
 % Also abbreviated as "ly".
+
+-type ly() :: light_year().
+% Abbreviation of light-year.
 
 -type light_years() :: light_year().
 
 % Exact number:
 -define(meters_per_light_year, 9460730472580800 ).
 
+% Useful for display:
 -define(meters_per_milli_light_year, 9460730472581 ).
 
 
+
+-type light_minute() :: float().
+% The distance that light travels in free space in one minute. It is equal to
+% exactly 17987547480 m (hence about 18 million kilometres).
+
+-type light_minutes() :: light_minute().
+
+
+
+-type light_second() :: float().
+% The distance that light travels in free space in one second. It is equal to
+% exactly 299 792 458 m (hence about 300 000 km).
+
+-type ls() :: light_second().
+% Abbreviation of light-second.
+
+-type light_seconds() :: light_second().
+
+% Exact number:
+-define(meters_per_light_second, 299792458 ).
+
+% Useful for display:
+-define(meters_per_milli_light_second, 299792 ).
+
+
+
+-type light_nanosecond() :: float().
+% The distance that light travels in free space in one nanosecond: 299.8 mm,
+% hence about 30 cm or 0.3 m.
+
+
+-type astronomical_unit() :: float().
+% An astronomical unit expresses astronomical distances; it corresponds roughly
+% to the distance from Earth to the Sun, and is exactly equal to 149 597 870 700
+% m (approximately 150 million kilometres or 8.3 light-minutes).
+%
+% Also abbreviated as "au".
+
+-type au() :: astronomical_unit().
+% Abbreviation of astronomical unit.
+
+-type astronomical_units() :: astronomical_unit().
+
+% Exact number:
+-define(meters_per_astronomical_unit, 149597870700 ).
+
+
+
 -type length_reference_unit() :: 'meters'.
+% Our default pivot unit for lengths.
 
 -type length_units() :: length_reference_unit() | 'millimeters'
 					  | 'int_millimeters'.
@@ -229,7 +286,11 @@
 -export_type([ meters/0, int_meters/0, any_meters/0,
 			   kilometers/0,
 			   millimeters/0, int_millimeters/0, any_millimeters/0,
-			   light_year/0, light_years/0,
+			   light_year/0, ly/0, light_years/0,
+			   light_minute/0, light_minutes/0,
+			   light_second/0, ls/0, light_seconds/0,
+			   light_nanosecond/0,
+			   astronomical_unit/0, au/0, astronomical_units/0,
 			   length_reference_unit/0, length_units/0 ]).
 
 
@@ -250,6 +311,7 @@
 -type square_meters() :: float().
 
 -type surface_reference_unit() :: square_meters().
+% Our default pivot unit for areas.
 
 -type surface_units() :: square_meters().
 
@@ -265,6 +327,7 @@
 % Thus dm^3.
 
 -type volume_reference_unit() :: cubic_meters().
+% Our default pivot unit for volumes.
 
 -type volume_units() :: volume_reference_unit() | 'litre'.
 
@@ -281,6 +344,7 @@
 -type grams() :: float().
 
 -type mass_reference_unit() :: 'kilograms'.
+% Our default pivot unit for masses.
 
 -type mass_units() :: mass_reference_unit() | 'tons' | 'grams'.
 
@@ -295,6 +359,7 @@
 -type joules() :: float().
 
 -type energy_reference_unit() :: 'joules'.
+% Our default pivot unit for energies.
 
 -type energy_units() :: energy_reference_unit().
 
@@ -342,6 +407,7 @@
 
 
 -type angle_reference_unit() :: 'radians'.
+% Our default pivot unit for angles.
 
 -type angle_units() :: angle_reference_unit() | 'degrees' | 'int_degrees'.
 
@@ -614,7 +680,7 @@
 % Layer for more information.
 
 
--type unit_bin_string() :: text_utils:bin_string().
+-type unit_bin_string() :: bin_string().
 % Binary counterpart of a unit string.
 
 
@@ -696,6 +762,13 @@
 
 % Conversion section.
 
+% Lengths:
+-export([ light_years_to_meters/1, meters_to_light_years/1,
+		  light_seconds_to_meters/1, meters_to_light_seconds/1,
+		  astronomical_units_to_meters/1 ]).
+
+
+% Speeds:
 -export([ km_per_hour_to_meters_per_second/1,
 		  meters_per_second_to_km_per_hour/1 ]).
 
@@ -730,22 +803,63 @@
 % (less clear).
 
 
+% For more approximate needs:
+-define( fewer_digits_after_decimal, "1" ).
+
+
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
+
+
+
+% Converting lengths.
+
+
+% @doc Converts the length specified in light-years to meters.
+-spec light_years_to_meters( light_years() ) -> meters().
+light_years_to_meters( Ly ) ->
+	Ly * ?meters_per_light_year.
+
+
+% @doc Converts the length specified in meters to light-years.
+-spec meters_to_light_years( meters() ) -> light_years().
+meters_to_light_years( Meters ) ->
+	Meters / ?meters_per_light_year.
+
+
+
+% @doc Converts the length specified in light-seconds to meters.
+-spec light_seconds_to_meters( light_seconds() ) -> meters().
+light_seconds_to_meters( Ls ) ->
+	Ls * ?meters_per_light_second.
+
+
+% @doc Converts the length specified in meters to light-seconds.
+-spec meters_to_light_seconds( meters() ) -> light_seconds().
+meters_to_light_seconds( Meters ) ->
+	Meters / ?meters_per_light_second.
+
+
+
+% @doc Converts the length specified in astronomical units to meters.
+-spec astronomical_units_to_meters( astronomical_units() ) -> meters().
+astronomical_units_to_meters( Au ) ->
+	Au * ?meters_per_astronomical_unit.
 
 
 
 % Converting speeds.
 
 
-% @doc Converts km/h to m/s.
+% @doc Converts the specified speed in km/h to m/s.
 -spec km_per_hour_to_meters_per_second( km_per_hour() ) -> meters_per_second().
 km_per_hour_to_meters_per_second( K ) ->
 	( K * 1000 ) / 3600.
 
 
-% @doc Converts m/s to km/h.
+% @doc Converts the specified speed in m/s to km/h.
 -spec meters_per_second_to_km_per_hour( meters_per_second() ) -> km_per_hour().
 meters_per_second_to_km_per_hour( M ) ->
 	M * 3600 / 1000.
@@ -815,36 +929,54 @@ maybe_rpm_to_string( Rpm ) ->
 
 
 % @doc Returns a textual, user-friendly, short (possibly rounded) description of
-% the specified distance.
+% the specified, potentially very large, length/distance.
 %
-% See also: text_utils:distance_to_string/1.
+% See also text_utils:distance_to_string/1 for (usually smaller; typically up to
+% a number of kilometers) distances.
 %
 -spec meters_to_string( meters() ) -> ustring().
 meters_to_string( Meters ) when is_integer( Meters ) ->
 	meters_to_string( float( Meters ) );
 
 meters_to_string( Meters ) when Meters < 0.0 ->
-	"-" ++ meters_to_string( - Meters );
+	"-" ++ meters_to_string( -Meters );
 
 meters_to_string( Meters ) when Meters >= 1.0 ->
 
 	case Meters / 1000.0 of
 
 		Km when Km >= 1.0 ->
-			case Meters / ?meters_per_light_year of
+			% Switch at least to ls above 1 million kilometres (~3.336 ls), as
+			% for example 657 000 km remains quite clear:
+			%
+			case Meters >= 1.0e9 of
 
-				Ly when Ly >= 0.001 ->
-					text_utils:format( "~." ++ ?digits_after_decimal
-									   ++ "f ly", [ Ly ] );
+				true ->
+					% Use light-years relatively early (0.001 ly):
+					case Meters / ?meters_per_light_year of
 
-				_ ->
-					text_utils:format( "~." ++ ?digits_after_decimal
+						Ly when Ly >= 0.001 ->
+							text_utils:format( "~." ++ ?digits_after_decimal
+											   ++ "f ly", [ Ly ] );
+
+						_ ->
+							Ls = Meters / ?meters_per_light_second,
+							text_utils:format( "~."
+								++ ?fewer_digits_after_decimal
+								++ "f ls", [ Ls ] )
+
+					end;
+
+				% Between 1 and 1 million kilometres:
+				_False ->
+					text_utils:format( "~." ++ ?fewer_digits_after_decimal
 									   ++ "f km", [ Km ] )
 
 			end;
 
+		% Between 1 m and 1 km:
 		_ ->
-			text_utils:format( "~." ++ ?digits_after_decimal ++ "f m",
+			text_utils:format( "~." ++ ?fewer_digits_after_decimal ++ "f m",
 							   [ Meters ] )
 
 	end;
@@ -857,9 +989,11 @@ meters_to_string( Meters ) when Meters < 0.01 ->
 
 % Between 1cm and 1m:
 meters_to_string( Meters ) ->
+	% Could have been light_nanosecond():
 	Centimeters = Meters * 100,
-	text_utils:format( "~." ++ ?digits_after_decimal ++ "f cm",
+	text_utils:format( "~." ++ ?fewer_digits_after_decimal ++ "f cm",
 					   [ Centimeters ] ).
+
 
 
 

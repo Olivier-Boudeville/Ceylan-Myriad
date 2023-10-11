@@ -51,6 +51,19 @@ test_parse( InputString, ExpectedString ) ->
 	ExpectedString = ResultString.
 
 
+test_lengths() ->
+
+	test_facilities:display( "~nTesting the description of lengths." ),
+
+	[ [ begin
+			Length = math:pow( 10, E ),
+
+			test_facilities:display( " + for ~g m: ~ts",
+				[ Length, unit_utils:meters_to_string( Length ) ] )
+
+		  end || E <- lists:seq(-5,20) ] ].
+
+
 
 -spec run() -> no_return().
 run() ->
@@ -158,5 +171,7 @@ run() ->
 
 	% 'teqCO2' is not a known unit:
 	test_parse( "0.4 teqCO2/year", "0.4 teqCO2^1.year^-1" ),
+
+	test_lengths(),
 
 	test_facilities:stop().
