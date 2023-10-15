@@ -680,6 +680,9 @@ are_relatively_close( X, Y ) ->
 -spec are_relatively_close( number(), number(), epsilon() ) -> boolean().
 are_relatively_close( X, Y, Epsilon ) ->
 
+	cond_utils:if_defined( myriad_debug_math,
+		trace_utils:debug_fmt( "Are ~w and ~w relatively close?", [ X, Y ] ) ),
+
 	% are_close/2 is not satisfactory at least when X and Y are large.
 	%
 	% As for: 'abs( X - Y ) < ?epsilon * max( abs(X), abs(Y) )' it would fail
