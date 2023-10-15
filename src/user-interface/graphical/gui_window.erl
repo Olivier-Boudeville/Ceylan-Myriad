@@ -48,8 +48,8 @@
 % Base, most general class for all windows (for example, a frame is a window
 % whose size and position can usually be changed by the user).
 %
-% This corresponds to "real" windows - not to any widget, as wx/WxWidgets call
-% windows.
+% This corresponds to "real" windows - not to any widget (that wx/WxWidgets call
+% "windows").
 
 -type window_option() :: { 'position', point() }
 					   | { 'size', size() }

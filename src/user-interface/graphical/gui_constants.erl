@@ -44,7 +44,7 @@
 		  get_sizer_flag_topic_spec/0, get_menu_item_id_topic_spec/0,
 		  get_button_id_topic_spec/0,
 		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
-		  get_menu_item_kind_topic_spec/0, get_menu_style_topic_spec/0, 
+		  get_menu_item_kind_topic_spec/0, get_menu_style_topic_spec/0,
 		  get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
 		  get_static_text_display_style_topic_spec/0,
@@ -73,7 +73,7 @@ list_topic_spec_functions() ->
 	% Directly adapted from the first export define:
 	[ get_object_type_topic_spec, get_window_style_topic_spec,
 	  get_frame_style_topic_spec, get_button_style_topic_spec,
-	  get_sizer_flag_topic_spec, 
+	  get_sizer_flag_topic_spec,
 	  get_menu_item_id_topic_spec, get_menu_style_topic_spec,
 	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
@@ -231,6 +231,8 @@ get_object_type_topic_spec() ->
 		{ frame,                 wxFrame          },
 		{ sizer,                 wxSizer          },
 		{ bitmap,                wxBitmap         },
+		{ menu,                  wxMenu           },
+		{ toolbar,               wxToolBar        },
 		{ memory_device_context, wxMemoryDC       } ],
 
 	% Thus strict look-up:

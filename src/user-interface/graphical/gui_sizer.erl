@@ -137,7 +137,7 @@
 			   sizer_option/0, weight_factor/0 ]).
 
 
--export([ create/1, create_with_box/2,
+-export([ create/1, create_with_box/1, create_with_box/2,
 		  create_with_labelled_box/3, create_with_labelled_box/4,
 		  create_grid/4, create_compact_grid/4,
 
@@ -200,6 +200,16 @@ create( Orientation ) ->
 	ActualOrientation = gui_wx_backend:to_wx_orientation( Orientation ),
 	wxBoxSizer:new( ActualOrientation ).
 
+
+
+% @doc Creates a sizer operating along the specified orientation, with a box
+% drawn around.
+%
+-spec create_with_box( orientation() ) -> sizer().
+create_with_box( Orientation ) ->
+	ActualOrientation = gui_wx_backend:to_wx_orientation( Orientation ),
+	% Not a wxStaticBoxSizer:
+	wxBoxSizer:new( ActualOrientation ).
 
 
 % @doc Creates a sizer operating along the specified orientation, within

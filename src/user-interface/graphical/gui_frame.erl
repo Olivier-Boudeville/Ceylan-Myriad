@@ -72,23 +72,23 @@
 -type frame_style() ::
 
 	% Corresponds to the following options: minimize_icon, maximize_icon,
-	% resize_border, system_menu, caption, close_icon and clip_children.
+	% resize_border, system_menu, caption, close_icon and clip_children:
 	%
 	'default'
 
-	% Displays a caption on the title bar of this frame (needed for icons).
+	% Displays a caption on the title bar of this frame (needed for icons):
   | 'caption'
 
-	% Displays a minimize icon on the title bar of this frame.
+	% Displays a minimize icon on the title bar of this frame:
   | 'minimize_icon'
 
-	% Displays a maximize icon on the title bar of this frame.
+	% Displays a maximize icon on the title bar of this frame:
   | 'maximize_icon'
 
-	% Displays a close icon on the title bar of this frame.
+	% Displays a close icon on the title bar of this frame:
   | 'close_icon'
 
-	% Stays on top of all other windows.
+	% Stays on top of all other windows (see also 'float_on_parent'):
   | 'stay_on_top'
 
 	% Displays a system menu containing the list of various windows commands
@@ -105,7 +105,7 @@
 	% Requests that this frame does not appear in the taskbar:
   | 'no_taskbar'
 
-	% Stays on top of (only) its parent:
+	% Stays on top of (only) its parent (see also 'stay_on_top'):
   | 'float_on_parent'
 
 	% Allows this frame to have its shape changed:
@@ -235,6 +235,9 @@ create( Title, Position, Size, Styles, Id, MaybeParent ) ->
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
 				gui_wx_backend:to_wx_size( Size ),
 				{ style, frame_styles_to_bitmask( Styles ) } ],
+
+	trace_utils:debug_fmt( "Creating a frame with WxOpts = ~w "
+		"(styles: ~w).", [ WxOpts, Styles ] ),
 
 	ActualId = gui_id:declare_any_id( Id ),
 

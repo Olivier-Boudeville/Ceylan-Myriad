@@ -382,6 +382,7 @@ get_flickerfree_paint_device_context( Widget, _OSFamily=win32 ) ->
 	wx:typeCast( wxBufferedPaintDC:new( Widget ), _NewType=wxPaintDC );
 
 get_flickerfree_paint_device_context( Widget, _OSFamily ) ->
+	%trace_utils:debug_fmt( "Return flicker-free PDC for ~w.", [ Widget ] ),
 	wxPaintDC:new( Widget ).
 
 

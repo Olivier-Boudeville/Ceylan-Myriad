@@ -48,7 +48,7 @@
 
 
 % For re-use by other tests:
--export([ get_test_image_directory/0 ]).
+-export([ get_test_image_directory/0, get_test_main_image_path/0 ]).
 
 
 
