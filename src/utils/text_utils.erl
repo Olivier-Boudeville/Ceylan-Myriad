@@ -1702,26 +1702,21 @@ number_to_string( Other ) ->
 % expected to be expressed as a floating-point number of millimeters, which will
 % be first rounded to the nearest integer.
 %
-% For example: for a distance of 1001.5 millimeters, returns "1m and 2mm"; for 1
-% 000 001 millimeters, returns "1km and 1mm".
+% For example: for a distance of 1001.5 millimeters, returns "1 m and 2 mm"; for
+% 1 000 001 millimeters, returns "1 km and 1 mm".
 %
-% See also unit_utils:meters_to_string/1.
+% See also unit_utils:meters_to_string/1 for larger lengths/distances.
 %
 -spec distance_to_string( any_millimeters() ) -> ustring().
 distance_to_string( Millimeters ) when is_float( Millimeters ) ->
 	distance_to_string( round( Millimeters ) );
 
-% Returns an exact textual description of the specified distance, expected to be
-% expressed as an integer number of millimeters.
-%
-% For example: for an integer distance of 1000001 millimeters, returns "1km and
-% 1mm".
-%
 distance_to_string( Millimeters ) ->
 
+	% In millimeters:
 	Centimeters = 10,
 	Meters = 100 * Centimeters,
-	Km = Meters*Meters,
+	Km = 1000*Meters,
 
 	ListWithKm = case Millimeters div Km of
 
@@ -1729,7 +1724,7 @@ distance_to_string( Millimeters ) ->
 			[];
 
 		KmNonNull->
-			[ io_lib:format( "~Bkm", [ KmNonNull ] ) ]
+			[ io_lib:format( "~B km", [ KmNonNull ] ) ]
 
    end,
 
@@ -1742,7 +1737,7 @@ distance_to_string( Millimeters ) ->
 			ListWithKm;
 
 		MetersNonNull->
-			[ io_lib:format( "~Bm", [ MetersNonNull ] ) | ListWithKm ]
+			[ io_lib:format( "~B m", [ MetersNonNull ] ) | ListWithKm ]
 
 	end,
 
@@ -1755,7 +1750,7 @@ distance_to_string( Millimeters ) ->
 			ListWithMeters;
 
 		CentNonNull->
-			[ io_lib:format( "~Bcm", [ CentNonNull ] ) | ListWithMeters ]
+			[ io_lib:format( "~B cm", [ CentNonNull ] ) | ListWithMeters ]
 
    end,
 
@@ -1768,7 +1763,7 @@ distance_to_string( Millimeters ) ->
 			ListWithCentimeters;
 
 		AtLeastOneMillimeter ->
-			 [ io_lib:format( "~Bmm", [ AtLeastOneMillimeter ] )
+			 [ io_lib:format( "~B mm", [ AtLeastOneMillimeter ] )
 							| ListWithCentimeters ]
 
 	end,
@@ -1779,7 +1774,7 @@ distance_to_string( Millimeters ) ->
 	case ListWithMillimeters of
 
 		[] ->
-			"0mm";
+			"0 mm";
 
 		[ OneElement ] ->
 			OneElement;
@@ -1810,17 +1805,19 @@ distance_to_short_string( Millimeters ) when is_float( Millimeters ) ->
 % Only one unit, the most appropriate one, will be used, with up to 1 figure
 % after the comma.
 %
-% For example: for a distance of 1000001 millimeters, returns "1.0km".
+% For example: for a distance of 1000001 millimeters, returns "1.0 km".
 %
 distance_to_short_string( Millimeters ) ->
 
 	% Note: very specific limit distances could be better managed.
-	% For example: 999999 millimeters is 999m, 99cm and 9mm, and "1000.0m" due
-	% to rounding, whereas we would have preferred "1km".
+	%
+	% For example: "999999 millimeters" is 999 m, 99 cm and 9 mm, and "1000.0
+	% m", whereas we would have preferred "1 km".
 
+	% In millimeters:
 	Centimeters = 10,
 	Meters = 100 * Centimeters,
-	Km = Meters * Meters,
+	Km = 1000*Meters,
 
 	% First, guess the most suitable unit, then use it:
 
@@ -1836,21 +1833,21 @@ distance_to_short_string( Millimeters ) ->
 
 						0 ->
 							% Centimeters are too big, stick to mm:
-							io_lib:format( "~Bmm", [ Millimeters ] );
+							io_lib:format( "~B mm", [ Millimeters ] );
 
 						_CmNonNull ->
-							io_lib:format( "~.1fcm",
+							io_lib:format( "~.1f cm",
 										   [ Millimeters / Centimeters ] )
 
 					end;
 
 				 _MetersNonNull ->
-					io_lib:format( "~.1fm", [ Millimeters / Meters ] )
+					io_lib:format( "~.1f m", [ Millimeters / Meters ] )
 
 			end;
 
 		_KmNonNull->
-			io_lib:format( "~.1fkm", [ Millimeters / Km ] )
+			io_lib:format( "~.1f km", [ Millimeters / Km ] )
 
 	end.
 

@@ -70,11 +70,11 @@
 -type megaseconds() :: integer().
 
 
--type year()         :: integer().
--type years()        :: integer().
+-type year()  :: integer().
+-type years() :: integer().
 
--type month()        :: integer().
--type months()       :: integer().
+-type month()  :: integer().
+-type months() :: integer().
 
 -type canonical_month() :: 1..12.
 % Month in the year; semantically equivalent to calendar:month().
@@ -83,11 +83,11 @@
 -type absolute_month() :: { year(), canonical_month() }.
 % Absolute months.
 
--type weeks()        :: integer().
--type week()         :: integer().
+-type weeks() :: integer().
+-type week()  :: integer().
 
--type day()          :: integer().
--type days()         :: integer().
+-type day()  :: integer().
+-type days() :: integer().
 
 
 -type canonical_day() :: 1..31.
@@ -97,21 +97,21 @@
 % Day in the (possibly leap) year.
 
 
--type hour()         :: integer().
--type hours()        :: integer().
+-type hour()  :: integer().
+-type hours() :: integer().
 
 -type canonical_hour() :: 0..23.
 % Hour in the day.
 
 
--type minute()       :: integer().
--type minutes()      :: integer().
+-type minute()  :: integer().
+-type minutes() :: integer().
 
 -type canonical_minute() :: 0..59.
 % Minute in the hour.
 
--type second()       :: integer().
--type seconds()      :: integer().
+-type second()  :: integer().
+-type seconds() :: integer().
 
 
 -type canonical_second() :: 0..59.
@@ -125,6 +125,13 @@
 % Any type of second (integer or float).
 
 -type any_seconds() :: seconds() | float_seconds().
+
+
+% Other than a leap year:
+%-define(seconds_per_year, 31536000 ).
+
+% Considering that a Gregorian calendar year has 365.2425 days:
+-define(seconds_per_year, 31556952 ).
 
 
 -type square_seconds() :: float().
@@ -207,12 +214,41 @@
 -type any_millimeters() :: millimeters() | int_millimeters().
 
 
+% Mostly by decreasing magnitude:
+
 % For larger lengths, we recommend relying on light_second() or light_year().
+%
+% Note that relying on days/years makes these units Earth-centric and dependant
+% on time (the duration of a day has changed substantially over the history of
+% our planet). Objective, absolute measurements could be preferred, yet years
+% remain one of the best choices.
+
+
+-type parsec() :: float().
+% A parsec (symbol: pc) is a larger unit of length, for astronomical objects
+% outside the Solar System, approximately equal to 3.26 light-years or 206,265
+% astronomical units (AU), i.e. 30.9 trillion kilometres.
+%
+% Most commonly used in professional astronomy.
+%
+% See https://en.wikipedia.org/wiki/Parsec.
+
+-type pc() :: parsec().
+% Abbreviation of parsec.
+
+-type parsecs() :: parsec().
+
+% Approximately:
+-define(meters_per_parsec, 30.856775814913673e15).
+
 
 
 -type light_year() :: float().
 % A light-year expresses astronomical distances, and is equivalent to about
 % 9.46.10^12 km.
+%
+% Most often used when expressing distances to stars and other distances on a
+% galactic scale.
 %
 % Also abbreviated as "ly".
 
@@ -264,6 +300,8 @@
 % to the distance from Earth to the Sun, and is exactly equal to 149 597 870 700
 % m (approximately 150 million kilometres or 8.3 light-minutes).
 %
+% Primarily used to measure distances around stars.
+%
 % Also abbreviated as "au".
 
 -type au() :: astronomical_unit().
@@ -286,6 +324,8 @@
 -export_type([ meters/0, int_meters/0, any_meters/0,
 			   kilometers/0,
 			   millimeters/0, int_millimeters/0, any_millimeters/0,
+
+			   parsec/0, pc/0, parsecs/0,
 			   light_year/0, ly/0, light_years/0,
 			   light_minute/0, light_minutes/0,
 			   light_second/0, ls/0, light_seconds/0,
@@ -760,11 +800,14 @@
 % Implementations for the simpler, looser form of units:
 
 
+
 % Conversion section.
+
 
 % Lengths:
 -export([ light_years_to_meters/1, meters_to_light_years/1,
 		  light_seconds_to_meters/1, meters_to_light_seconds/1,
+		  parsecs_to_meters/1,
 		  astronomical_units_to_meters/1 ]).
 
 
@@ -841,6 +884,11 @@ light_seconds_to_meters( Ls ) ->
 meters_to_light_seconds( Meters ) ->
 	Meters / ?meters_per_light_second.
 
+
+% @doc Converts the length specified in parsecs to meters.
+-spec parsecs_to_meters( parsecs() ) -> meters().
+parsecs_to_meters( Pc ) ->
+	Pc * ?meters_per_parsec.
 
 
 % @doc Converts the length specified in astronomical units to meters.
@@ -931,6 +979,16 @@ maybe_rpm_to_string( Rpm ) ->
 % @doc Returns a textual, user-friendly, short (possibly rounded) description of
 % the specified, potentially very large, length/distance.
 %
+% Applying these unit rules regarding a given distance, depending on whether it
+% is:
+% - below 1 cm: express it in millimeters
+% - below 1 m: in centimeters
+% - between 1 m and 1 km: in meters
+% - between 1 km and 1 million km: in kilometers
+% - between 1 million km (3.336 ls) and 0.001 ly (31558 ls / 9.46e15 km!):
+% in light-seconds
+% - above 0.001 ly (31558 ls / 9.46e15 km!): in light-years
+%
 % See also text_utils:distance_to_string/1 for (usually smaller; typically up to
 % a number of kilometers) distances.
 %
@@ -987,7 +1045,7 @@ meters_to_string( Meters ) when Meters < 0.01 ->
 	text_utils:format( "~." ++ ?digits_after_decimal ++ "f mm",
 					   [ Millimeters ] );
 
-% Between 1cm and 1m:
+% Below 1m:
 meters_to_string( Meters ) ->
 	% Could have been light_nanosecond():
 	Centimeters = Meters * 100,
