@@ -29,13 +29,16 @@
 % @doc Gathering of various <b>general-purpose basic physics-related</b>
 % facilities.
 %
+% See also: for units, the unit_utils module.
+%
 -module(physics_utils).
 
 
 % General constants:
--export([ g/0, c/0 ]).
+-export([ g/0, c/0, h/0, e/0, m_e/0, m_p/0, m_n/0, k_b/0, sigma/0]).
 
--compile({ inline, [ g/0, c/0 ] }).
+-compile({ inline, [ g/0, c/0, h/0, e/0, m_e/0, m_p/0, m_n/0,
+					 k_b/0, sigma/0 ] }).
 
 
 % Varied functions:
@@ -68,6 +71,7 @@
 
 
 
+
 % Section for general constants.
 
 
@@ -83,6 +87,9 @@ g() ->
 % The upper limit for the speed at which conventional matter or energy (and thus
 % any signal carrying information) can travel through space.
 %
+% This can also be seen as a scale conversion factor for changing distances
+% expressed in terms of units of time to ones in terms of units of space: d=c.t.
+%
 % Approximately 300,000 kilometres per second.
 %
 -spec c() -> meters_per_second().
@@ -90,6 +97,94 @@ c() ->
 	% Exact:
 	299792458.0.
 
+
+% @doc Planck's constant, in J.s.
+%
+% A photon's energy is equal to its frequency multiplied by the Planck constant,
+% and the wavelength of a matter wave equals the Planck constant divided by the
+% associated particle momentum.
+%
+% See https://en.wikipedia.org/wiki/Planck_constant
+%
+-spec h() -> float().
+h() ->
+	6.62607015e-34.
+
+
+
+% @doc Electron charge (in absolute value), in kg^(1/2).m^(3/2)/s.
+%
+% The electric charge carried by a single proton or, equivalently, the magnitude
+% of the negative electric charge carried by a single electron.
+%
+% See https://en.wikipedia.org/wiki/Elementary_charge.
+%
+-spec e() -> float().
+e() ->
+	% In Coulomb: 1.602176634e-19.
+	1.5189e-14.
+
+
+% @doc Electron mass, in kg.
+%
+% Mass of a stationary electron, also known as the invariant mass of the
+% electron.
+%
+% See https://en.wikipedia.org/wiki/Electron_mass.
+%
+-spec m_e() -> kilograms().
+m_e() ->
+	9.1093837015e-31.
+
+
+% @doc Proton mass, in kg.
+%
+% See https://en.wikipedia.org/wiki/Proton.
+%
+-spec m_p() -> kilograms().
+m_p() ->
+	1.67262192369e-27.
+
+
+% @doc Neutron mass, in kg.
+%
+% See https://en.wikipedia.org/wiki/Neutron.
+%
+-spec m_n() -> kilograms().
+m_n() ->
+	1.67492749804e-27.
+
+
+% @doc Boltzmann constant, in J/K.
+%
+% The proportionality factor that relates the average relative thermal energy
+% of particles in a gas with the thermodynamic temperature of the gas.
+%
+% See https://en.wikipedia.org/wiki/Boltzmann_constant.
+%
+-spec k_b() -> float().
+k_b() ->
+	% Exactly:
+	1.380649e-23.
+
+
+% @doc Stefan-Boltzmann constant, in kg.s^-3.K^-4.
+%
+% The factor of proportionality between the total energy radiated per unit
+% surface area per unit time (also known as the radiant exitance) and the fourth
+% power of the black body's temperature: M = Sigma.T^4.
+%
+% See https://en.wikipedia.org/wiki/Stefan%E2%80%93Boltzmann_law.
+%
+-spec sigma() -> float().
+sigma() ->
+	5.670374419e-8.
+
+
+
+
+
+% Astrophysics-related basic functions.
 
 
 % @doc Returns the local gravitational acceleration at the specified distance
