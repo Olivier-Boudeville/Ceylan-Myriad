@@ -42,6 +42,9 @@
 % The user-specified plot name, whence for example the corresponding file names
 % will be derived.
 
+-type bin_plot_name() :: bin_string().
+% Internal plot name.
+
 
 
 -type user_plot_path() :: any_file_path().
@@ -63,6 +66,9 @@
 % (see http://gnuplot.info/docs_5.5/Plotting_Styles.html)
 
 
+-type bin_command_file_name() :: bin_file_name().
+% The name of a gnuplot command file (see the command_extension define).
+
 -type command_file_path() :: file_path().
 % A path to a gnuplot command file (see the command_extension define).
 
@@ -70,11 +76,66 @@
 % A path to a gnuplot command file (see the command_extension define).
 
 
+-type plot_meta_data() :: list_table( atom(), any_string() ).
+% Extra information about data, used to enrich (as comments) data to be plotted,
+% for example to specify origin of data, measurement time, source, author,
+% accuracy, version, etc.
+
+
+-type plot_data() :: [ plot_point() ].
+% A data to plot, based on an (unordered) list of points to be plotted.
+
+
+-type plot_point() :: { plot_parameter(), plot_sample()  }.
+% A data point to plot.
+%
+% May also be designated as a data row.
+%
+% For example {"Monday", {1, undefined, 5.1}}, or {5.5, "hello"}.
+
+
+-type plot_parameter() :: any_string() | number().
+% A parameter corresponding to a plot point.
+%
+% This may be a timestamp.
+%
+% For example "Monday", or 14557.
+
+
+-type plot_parameter_bin_string() :: bin_string().
+% A string corresponding to a plot parameter.
+
+
+-type plot_sample() :: type_utils:tuploid( maybe( plot_value() ) ).
+% A sample to plot.
+%
+% For example {1, undefined, 5.1}, or "hello".
+
+
+-type plot_value() :: any_string() | number().
+% A value corresponding to a plot point.
+%
+% For example "active", or 1.12.
+
+
+
+
+
+-type bin_data_file_name() :: bin_file_name().
+% The name of a data file (see the command_extension define).
+
 -type data_file_path() :: file_path().
-% A path to a gnuplot data file (see the data_extension define).
+% A path to a data file (see the data_extension define).
 
 -type bin_data_file_path() :: bin_file_path().
-% A path to a gnuplot data file (see the data_extension define).
+% A path to a data file (see the data_extension define).
+
+
+-type row_data_string() :: format_string().
+% A data row, typically from a data file.
+
+-type row_format_string() :: format_string().
+% Describes how a data row is to be formatted.
 
 
 -type bin_plot_path() :: bin_file_path().
@@ -86,15 +147,26 @@
 
 
 -export_type([ plot_settings/0,
-			   user_plot_name/0, user_plot_path/0,
+			   user_plot_name/0, bin_plot_name/0, user_plot_path/0,
 			   plot_style/0,
+
+			   bin_command_file_name/0,
 			   command_file_path/0, bin_command_file_path/0,
+
+			   plot_data/0, plot_point/0,
+			   plot_parameter/0, plot_parameter_bin_string/0,
+			   plot_sample/0, plot_value/0,
+
+			   bin_data_file_name/0,
 			   data_file_path/0, bin_data_file_path/0,
+
+			   row_data_string/0, row_format_string/0,
+
 			   bin_plot_path/0, bin_plot_filename/0 ]).
 
 
 
--type declared_curve_name() :: ustring().
+-type declared_curve_name() :: any_string().
 % The name of a user-specified curve.
 
 -type special_curve_id() :: 'abscissa_top' | 'abscissa_bottom'.
@@ -106,12 +178,13 @@
 % The identifier of a user-specified extended curve.
 
 
--type declared_zone_name() :: ustring().
+-type declared_zone_name() :: any_string().
 % The name of a user-specified zone.
 
 -type declared_zone() :: { declared_zone_name(),
 		{ declared_curve_id(), declared_curve_id() } }.
-% The definition of a user-specified zone.
+% The definition of a user-specified zone, the specific area between the two
+% specified curves.
 
 
 -type curve_count() :: count().
@@ -126,11 +199,6 @@
 			   declared_zone_name/0, declared_zone/0,
 			   curve_count/0,
 			   point_size_factor/0 ]).
-
-
-
-% (we use plain strings here, as opposed to the internal representation)
-
 
 
 -type plot_label() :: #plot_label{}.
@@ -228,20 +296,21 @@
 -export_type([ command_element/0, timestamp_string/0, timestamp_bin_string/0 ]).
 
 
+% Main user API:
+-export([ get_plot_settings/1,
+		  set_title/2, set_x_label/2, set_y_label/2,
+		  declare_curves/2, declare_zones/2,
+		  plot_samples/2 ]).
 
 
-
--export([ get_plot_settings/1, set_title/2, plot_samples/2,
-		  generate_command_file/1 ]).
-
-
-% Exported gnuplot helpers:
+% Exported gnuplot helpers, mostly for internal use:
 -export([ get_default_curve_plot_suffix/0, get_default_zone_plot_suffix/0,
 		  get_formatted_orientation/1,
 		  get_label_definitions/1, get_label_definitions/2,
 		  get_xticks_option/1, get_yticks_option/1,
 		  get_x_range_option/1, get_y_range_option/1,
-		  get_x_ticks_option/1, get_y_ticks_option/1 ]).
+		  get_x_ticks_option/1, get_y_ticks_option/1,
+		  generate_command_file/1, generate_data_file/2 ]).
 
 
 
@@ -322,7 +391,7 @@
 % Define section.
 
 
-% To centralize basic open flags:
+% To centralize basic open (write) flags:
 %
 % (exclusive used to avoid that two plots bearing the same name by mistake may
 % end up writing to the same files simultaneously)
@@ -356,8 +425,15 @@
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
--type bin_title() :: text_utils:bin_title().
--type any_title() :: text_utils:any_title().
+-type format_string() :: text_utils:format_string().
+
+-type list_table( K, V ) :: list_table:list_table( K, V ).
+
+
+% Implies any_string():
+-type title() :: ui:title().
+-type label() :: ui:label().
+
 
 -type file_path() :: file_utils:file_path().
 -type any_file_path() :: file_utils:any_file_path().
@@ -385,20 +461,183 @@ get_plot_settings( UsrPlotName ) ->
 % @doc Returns the specification of a plot corresponding to the specified one
 % once the specified title (if any) has been set.
 %
--spec set_title( maybe( any_title() ), plot_settings() ) -> plot_settings().
+-spec set_title( maybe( title() ), plot_settings() ) -> plot_settings().
 set_title( MaybeTitle, PlotSettings ) ->
 	PlotSettings#plot_settings{
 		title=text_utils:ensure_maybe_binary( MaybeTitle ) }.
 
+
+% @doc Returns the specification of a plot corresponding to the specified one
+% once the specified label (if any) for abscissas has been set.
+%
+-spec set_x_label( maybe( label() ), plot_settings() ) -> plot_settings().
+set_x_label( MaybeLabel, PlotSettings ) ->
+	PlotSettings#plot_settings{
+		x_label=text_utils:ensure_maybe_binary( MaybeLabel ) }.
+
+
+% @doc Returns the specification of a plot corresponding to the specified one
+% once the specified label (if any) for ordinate has been set.
+%
+-spec set_y_label( maybe( label() ), plot_settings() ) -> plot_settings().
+set_y_label( MaybeLabel, PlotSettings ) ->
+	PlotSettings#plot_settings{
+		y_label=text_utils:ensure_maybe_binary( MaybeLabel ) }.
+
+
+
+% @doc Declares the specified curves.
+%
+% Supersedes any previous curve entries.
+%
+-spec declare_curves( [ declared_curve_name() ], plot_settings() ) ->
+											plot_settings().
+declare_curves( CurveNames, PlotSettings ) ->
+
+	CurveEntries = transform_curve_names( CurveNames,
+		get_default_curve_plot_suffix(), _Acc=[], _Count=1 ),
+
+	PlotSettings#plot_settings{ curve_entries=CurveEntries }.
+
+
+
+% (helper)
+transform_curve_names( _CurveNames=[], _BinPlotSuffix, Acc, _Count ) ->
+	lists:reverse( Acc );
+
+transform_curve_names( _CurveNames=[ CurveName | T ], BinPlotSuffix, Acc,
+					   Count ) ->
+
+	CurveEntry = { Count, text_utils:ensure_binary( CurveName ),
+				   BinPlotSuffix },
+
+	transform_curve_names( T, BinPlotSuffix, [ CurveEntry| Acc ], Count+1 ).
+
+
+
+% @doc Declares the specified zones.
+%
+% Supersedes any previous zone entries.
+%
+-spec declare_zones( [ declared_zone() ], plot_settings() ) -> plot_settings().
+declare_zones( DeclaredZones, PlotSettings=#plot_settings{
+								curve_entries=CurveEntries } ) ->
+	ZoneEntries =
+		transform_declared_zones( DeclaredZones, CurveEntries, _Acc=[] ),
+
+	PlotSettings#plot_settings{ zone_entries=ZoneEntries }.
+
+
+
+% Transforms a list of zone declarations into actual zone entries, while
+% checking them against the curve names.
+%
+% (helper)
+transform_declared_zones( _DeclaredZones=[], _CurveEntries, Acc ) ->
+	% We preserve order here as well, otherwise zones will be listed in the plot
+	% keys in reverse order:
+	%
+	lists:reverse( Acc );
+
+transform_declared_zones( [ Z={ ZoneName,
+								{ FirstCurveName, SecondCurveName } } | T ],
+						  CurveEntries, Acc ) ->
+
+	First = get_curve_index_for( FirstCurveName, CurveEntries ),
+	Second = get_curve_index_for( SecondCurveName, CurveEntries ),
+
+	% We want to ensure that:
+	%
+	%  1. at least one actual curve is referenced (not two 'abscissa_*' atoms)
+	%
+	%  2. if there is one 'abscissa_*' atom, it ends up in first position of the
+	%  returned pair
+	%
+	%  3. we preserve the input curve order (useful for plot styles requiring a
+	%  single value column, like fillsteps, rather than two, like linecurves:
+	%  they can always select the second curve of the pair):
+	%
+	NewBounds = case First of
+
+		_ when First == 'abscissa_top' orelse First == 'abscissa_bottom' ->
+
+			case Second of
+
+				_ when Second == 'abscissa_top'
+					   orelse Second == 'abscissa_bottom' ->
+					throw( { curveless_zone, Z } );
+
+				_ ->
+					{ First, Second }
+
+			end;
+
+		_ ->
+			% So that we are sure that any abscissa_* atom would end up in first
+			% position:
+			%
+			%{ Second, First }
+
+			% Now preserving input order of normal curves:
+			case Second == 'abscissa_top'
+					orelse Second == 'abscissa_bottom' of
+
+				true ->
+					{ Second, First };
+
+				false ->
+					{ First, Second }
+
+			end
+
+	end,
+
+	ZoneBinName = text_utils:ensure_binary( ZoneName ),
+
+	transform_declared_zones( T, CurveEntries,
+		[ { ZoneBinName, NewBounds, get_default_zone_plot_suffix() } | Acc ] );
+
+
+transform_declared_zones( [ Other | _T ], _CurveEntries, _Acc ) ->
+	throw( { invalid_zone_declaration, Other } ).
+
+
+
+
+% @doc Returns an appropriate curve index to define internally a zone.
+-spec get_curve_index_for( declared_curve_id(), [ curve_entry() ] ) ->
+									extended_curve_id().
+get_curve_index_for( CurveId='abscissa_top', _CurveEntries ) ->
+	CurveId;
+
+get_curve_index_for( CurveId='abscissa_bottom', _CurveEntries ) ->
+	CurveId;
+
+get_curve_index_for( CurveName, CurveEntries ) ->
+
+	BinCurveName = text_utils:ensure_binary( CurveName ),
+
+	case lists:keyfind( _Key=BinCurveName, _Index=2, CurveEntries ) of
+
+		false ->
+			throw( { zone_specified_unknown_curve, CurveName, CurveEntries } );
+
+		{ CurveIndex, _BinCurveName, _BinPlotSuffix } ->
+			CurveIndex
+
+	end.
 
 
 
 % doc Plots the specified samples, based on the specified plot specification,
 % and returns the path to the corresponding generated plot file.
 %
+% Any previous plot file will be overwritten.
+%
 -spec plot_samples( [ sample_data() ], plot_settings() ) -> bin_plot_path().
-plot_samples( _Samples, _PlotSettings=#plot_settings{
-		title=MaybeTitle,
+plot_samples( _Samples, PlotSettings=#plot_settings{
+		name=Name,
+		%title=MaybeTitle,
 		plot_directory=MaybePlotDir,
 		plot_filename=MaybePlotFilename } ) ->
 
@@ -415,7 +654,7 @@ plot_samples( _Samples, _PlotSettings=#plot_settings{
 	BinPlotFilename = case MaybePlotFilename of
 
 		undefined ->
-			forge_plot_filename( MaybeTitle );
+			forge_plot_filename( Name );
 
 		PlotFln ->
 			PlotFln
@@ -424,21 +663,18 @@ plot_samples( _Samples, _PlotSettings=#plot_settings{
 
 	BinPlotPath = file_utils:bin_join( BinPlotDir, BinPlotFilename ),
 
-	trace_utils:debug_fmt( "Plot to be generated in '~ts'.", [ BinPlotPath ] ),
+	%trace_utils:debug_fmt( "Plot to be generated in '~ts'.", [ BinPlotPath ] ),
+
+	_BinCmdFilePath = generate_command_file( PlotSettings ),
 
 	BinPlotPath.
 
 
 
 % (helper)
--spec forge_plot_filename( maybe( bin_title() ) ) -> bin_plot_filename().
-forge_plot_filename( undefined ) ->
-	% Default:
-	forge_plot_filename( <<"myriad-plot">> );
-
-forge_plot_filename( BinTitle ) ->
-	file_utils:convert_to_filename_with_extension( BinTitle, ?plot_extension ).
-
+forge_plot_filename( BinPlotName ) ->
+	file_utils:convert_to_filename_with_extension( BinPlotName,
+												   ?plot_extension ).
 
 
 
@@ -962,14 +1198,14 @@ select_curves( _ZoneEntries=[ { _ZoneName, { C1, C2 }, _ZPlotSuffix } | T ],
 
 
 
-% @doc Generates unconditionally the appropriate gnuplot command file for the
-% specified plot settings.
+% @doc Generates unconditionally an appropriate gnuplot command file
+% corresponding to the specified plot settings, and returns its (absolute) path.
 %
-% Returns the name, as a plain string, of the command file.
-
-% (helper)
+% Returning a filename is more convenient than returning an absolute path, so
+% that interlinked files can be specified as local files and thus directly moved
+% as a whole.
 %
--spec generate_command_file( plot_settings() ) -> command_file_path().
+-spec generate_command_file( plot_settings() ) -> bin_command_file_name().
 generate_command_file( PlotSettings=#plot_settings{
 		name=BinPlotName,
 		labels=Labels,
@@ -1091,4 +1327,286 @@ generate_command_file( PlotSettings=#plot_settings{
 
 	file_utils:close( File ),
 
+	% More flexible than CommandFilePath:
 	CommandFilename.
+
+
+
+% @doc Generates unconditionally an appropriate data file (typically for
+% gnuplot) corresponding to the specified (non-empty) data and plot settings,
+% and returns its filename.
+%
+% Returning a filename is more convenient than returning an absolute path, so
+% that interlinked files can be specified as local files and thus directly moved
+% as a whole.
+%
+-spec generate_data_file( plot_data(), plot_settings() ) ->
+											bin_data_file_name().
+generate_data_file( _PlotData=[], #plot_settings{ name=BinPlotName } ) ->
+	throw( { empty_data_to_plot, BinPlotName } );
+
+generate_data_file( PlotData, PlotSettings=#plot_settings{
+		name=BinPlotName,
+		labels=Labels,
+		extra_defines=ExtraDefines,
+		plot_filename=MaybePlotBinFilename,
+		curve_entries=CurveEntries,
+		zone_entries=ZoneEntries,
+		row_format_string=MaybeRowFmtStr } ) ->
+
+	cond_utils:if_defined( myriad_debug_plot,
+		trace_utils:debug_fmt( "Generating a data file for plot '~ts'; "
+			"(first data point: ~p).", [ BinPlotName, hd( PlotData ) ] ) ),
+
+	DataFilename = get_data_filename( BinPlotName ),
+	BinPlotDir = get_plot_directory( PlotSettings ),
+	DataFilePath = file_utils:bin_join( BinPlotDir, DataFilename ),
+
+	CurveCount = length( CurveEntries ),
+
+	RowFormatStr = case MaybeRowFmtStr of
+
+		undefined ->
+			forge_format_string_for( CurveCount );
+
+		RowFStr ->
+			RowFStr
+
+	end,
+
+	FormattedData = format_rows( PlotData, CurveCount, RowFormatStr ),
+
+	file_utils:remove_file_if_existing( DataFilename ),
+
+	% delayed_write would not be terribly useful here, if not
+	% counter-productive:
+	%
+	File = file_utils:open( DataFilename, ?base_open_flags ),
+
+	write_header( File, CurveEntries, ZoneEntries, BinPlotName, PlotSettings ),
+
+	file_utils:write_ustring( File, FormattedData ),
+
+	file_utils:close( File ).
+
+
+
+% @doc Returns a format string suitable for the writing of the corresponding
+% samples.
+%
+-spec forge_format_string_for( curve_count() ) -> format_string().
+forge_format_string_for( CurveCount ) ->
+
+	% A (binary) string corresponding to a plot parameter (e.g. a raw tick-like
+	% information or actual textual timestamp, if available), then as many
+	% values as needed (some of which being possibly 'undefined', hence '~w'):
+	%
+	"~ts " ++ lists:flatten( lists:duplicate( CurveCount, "~w " ) ) ++ " ~n".
+
+
+
+% @doc Formats the specified data rows according to the specified format.
+-spec format_rows( plot_data(), curve_count(), row_format_string() ) ->
+											ustring().
+format_rows( PlotData, CurveCount, RowFormatStr ) ->
+
+	%trace_utils:debug_fmt(
+	%  "Row format string: '~ts'; curve count: ~B;~ndata: ~p.",
+	%  [ RowFormatStr, CurveCount, PlotData ] ),
+
+	format_rows( _PlotPoints=PlotData, CurveCount, RowFormatStr, _Acc=[] ).
+
+
+
+% (helper)
+format_rows( _PlotPoints=[], _CurveCount, _RowFormatStr, Acc ) ->
+	lists:flatten( Acc );
+
+
+% If the plot parameter is a string (e.g. as a timestamp):
+format_rows( _PlotPoints=[ _DataRow={ PlotParamStr, PlotSample } | T ],
+			 CurveCount, RowFormatStr, Acc ) when is_list( PlotParamStr ) ->
+
+	RowStr = format_row( PlotParamStr, PlotSample, CurveCount, RowFormatStr ),
+
+	%trace_utils:debug_fmt( "RowStr: ~ts", [ RowStr ] ),
+
+	format_rows( T, CurveCount, RowFormatStr, [ RowStr | Acc ] );
+
+
+% Here PlotParam is not a string:
+format_rows( _PlotPoints=[ _DataRow={ PlotParam, PlotSample } | T ], CurveCount,
+			 RowFormatStr, Acc ) ->
+
+	% Hope for the best:
+	PlotParamStr = text_utils:format( "~w", [ PlotParam ] ),
+
+	RowStr = format_row( PlotParamStr, PlotSample, CurveCount, RowFormatStr ),
+
+	%trace_utils:debug_fmt( "RowStr: ~ts", [ RowStr ] ),
+
+	format_rows( T, CurveCount, RowFormatStr, [ RowStr | Acc ] ).
+
+
+
+% @doc Returns a formatted version of the specified data row.
+%
+% Defined also for reuse.
+%
+-spec format_row( ustring(), plot_sample(), curve_count(),
+				  row_format_string() ) -> row_data_string().
+% Real tuploid:
+format_row( PlotParamStr, PlotSample, CurveCount, RowFormatStr )
+											when is_tuple( PlotSample ) ->
+
+	SampleValues = tuple_to_list( PlotSample ),
+
+	format_row_helper( PlotParamStr, SampleValues, CurveCount, RowFormatStr );
+
+
+% Basic tuploid:
+format_row( PlotParamStr, PlotSample, CurveCount, RowFormatStr ) ->
+	format_row_helper( PlotParamStr, _SampleValues=[ PlotSample ], CurveCount,
+					   RowFormatStr ).
+
+
+% (helper)
+format_row_helper( PlotParamStr, SampleValues, CurveCount, RowFormatStr ) ->
+
+	% As samples may contain an increasing number of values over time:
+	case size( Sample ) of
+
+		% Simple, standard case:
+		CurveCount ->
+			text_utils:format( RowFormatStr, [ PlotParamStr | SampleValues ] );
+
+		% Lacking (undefined) values shall be added:
+		VCount when VCount < CurveCount ->
+			UndefCount = CurveCount - VCount,
+			text_utils:format( RowFormatStr,
+				[ PlotParamStr | SampleValues ]
+					++ lists:duplicate( UndefCount, undefined ) );
+
+		LargerCount ->
+			throw( { too_many_sample_values, {got,LargerCount},
+				{expected,CurveCount}, {sample,Sample},
+				{plot_parameter,PlotParamStr} } )
+
+	end.
+
+
+
+% @doc Used by third-party modules.
+-spec write_row( file(), plot_parameter_bin_string(), plot_sample() ) -> void().
+write_row( File, PlotParamBinStr, PlotSample ) when is_tuple( PlotSample ) ->
+	RowFormatStr = forge_format_string_for( size( PlotSample ) ),
+	write_row( File, RowFormatStr, PlotParamBinStr,
+			   tuple_to_list( PlotSample ) );
+
+% Thus a basic tuploid:
+write_row( File, PlotParamBinStr, PlotSample ) ->
+	RowFormatStr = forge_format_string_for( _Size=1 ),
+	write_row( File, RowFormatStr, PlotParamBinStr, [ PlotSample ] ).
+
+
+
+% @doc Used for direct data writing.
+-spec write_row( file(), format_string(), timestamp_bin_string(),
+				 [ term() ] ) -> void().
+write_row( File, RowFormatStr, PlotParamBinStr, PlotTerms ) ->
+	file_utils:write_ustring( File, RowFormatStr,
+							  [ PlotParamBinStr | PlotTerms ) ] ).
+
+
+
+
+% @doc Writes the probe header to the data file.
+-spec write_header( file(), [ curve_entry() ], [ zone_entry() ],
+					plot_settings(), ) -> void().
+write_header( File, CurveEntries, ZoneEntries, BinPlotName,
+			  #plot_settings{ title=MaybeBinTitle,
+							  meta_data=Metadata ) ->
+
+	{ { Year, Month, Day }, { Hour, Minute, Second } } =
+		time_utils:get_timestamp(),
+
+	% Curves might have been reordered; of course we want the order of the names
+	% to match the order in the data samples, so we reorder them according to
+	% the curve index (first element of the curve entry):
+	%
+	ReorderedCurveEntries = lists:keysort( _Index=1, CurveEntries ),
+
+	%trace_utils:debug_fmt( "Listed curve entries: ~p~nReordered: ~p.",
+	%                       [ CurveEntries, ReorderedCurveEntries ] ),
+
+	CurveDescriptions = format_curve_info( ReorderedCurveEntries, _Acc=[] ),
+
+	%trace_utils:debug_fmt( "Curve descriptions: ~p.", [ CurveDescriptions ] ),
+
+	ZoneDescriptions = format_zone_info( ZoneEntries ),
+
+	TitleStr = "# " ++ case MaybeBinTitle of
+
+		undefined ->
+			"(no plot title defined)";
+
+		BinTitle ->
+			text_utils:format( "Plot title: '~ts'.", [ BinTitle ] )
+
+						   end ++ "~n~n",
+
+	MetadataAllStrings = [ text_utils:ensure_string( BinText )
+							|| { _Key, BinText } <- Metadata ],
+
+	MetadataString = text_utils:strings_to_string( MetadataAllStrings,
+												   _Sep="# - " ),
+
+	file_utils:write_ustring( File,
+		"# This time series data file has been written on ~B/~B/~B, at "
+		"~B:~2..0B:~2..0B, on~n"
+		"# host ~ts (node: ~ts).~n~n"
+		"# Plot name: '~ts'.~n"
+		TitleStr,
+		"# Associated meta-data: ~ts~n~n"
+		"# First column corresponds to the abscissa, "
+		"expressed in tick offsets.~n"
+		"# Next columns correspond to following curve names "
+		"(in that order):~n~ts~n"
+		"# ~ts",
+		[ Day, Month, Year, Hour, Minute, Second,
+		  net_utils:localhost(), net_utils:localnode(), Name, TitleComment,
+		  MetadataString, CurveDescriptions, ZoneDescriptions ] ).
+
+
+% (helper)
+format_curve_info( _CurveEntries=[], Acc ) ->
+	lists:reverse( Acc );
+
+format_curve_info( [ _CurveEntry={ Num, BinName, _BinPlotSuffix } | T ],
+				   Acc ) ->
+	Entry = text_utils:format( "# - curve #~B: '~ts'~n", [ Num, BinName ] ),
+	format_curve_info( T, [ Entry | Acc ] ).
+
+
+% (helper)
+format_zone_info( _ZoneInfoList=[] ) ->
+	text_utils:format( "No zone defined.~n~n", [] );
+
+format_zone_info( ZoneInfoList ) ->
+	text_utils:format( "Following zones were defined:~n"
+		++ format_zone_info( ZoneInfoList, _Acc=[] )
+		++ text_utils:format( "~n~n", [] ), [] ).
+
+
+
+% (helper)
+format_zone_info( _ZoneInfoList=[], Acc ) ->
+	lists:reverse( Acc );
+
+format_zone_info(
+		[ { BinName, {FirstBound, SecondBound}, _ZPlotSuffix } | T ], Acc ) ->
+
+	Entry = text_utils:format( "# - zone '~ts', extending from ~p to ~p~n",
+							   [ BinName, FirstBound, SecondBound ] ),
+
+	format_zone_info( T, [ Entry | Acc ] ).

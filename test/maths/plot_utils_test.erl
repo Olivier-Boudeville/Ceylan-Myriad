@@ -38,14 +38,27 @@
 
 
 % Silencing:
--export([  ]).
+-export([ test_basic_plot/0 ]).
 
 
 
 test_basic_plot() ->
 
-	PlotSpec = plot_utils:get_plot_spec( "My test plot" ),
+	InitPlotSettings = plot_utils:get_plot_settings( "My test plot" ),
 
+	TitlePlotSettings = plot_utils:set_title( "Evaluation of the time factor "
+		"due to a larger mass, based on distance to it.", InitPlotSettings ),
+
+	XLabelPlotSettings = plot_utils:set_x_label( "Distance in kilometers",
+												 TitlePlotSettings ),
+
+	YLabelPlotSettings = plot_utils:set_y_label( "Time factor (percentage)",
+												 XLabelPlotSettings ),
+
+	CurvelPlotSettings = plot_utils:declare_curves( [ "Time factor" ],
+													YLabelPlotSettings ),
+
+	FinalPlotSettings = CurvelPlotSettings,
 
 	%M = physics_utils:m_sagittarius_a_star(),
 
@@ -62,15 +75,25 @@ test_basic_plot() ->
 
 	Stop = 1000 * Start,
 
+	SampleCount = 1000,
+
+	test_facilities:display(
+		"Sampling ~B points from a distance of ~ts (~f m) to ~ts (~f m).",
+		[ SampleCount, unit_utils:meters_to_string( Start ), Start,
+		  unit_utils:meters_to_string( Stop ), Stop ] ),
+
 	Pairs = math_utils:sample_as_pairs_for( TimeFactorFun, Start, Stop,
-											_SampleCount=1000 ),
+											SampleCount ),
 
-	trace_utils:debug_fmt( "Sample pairs: ~w.", [ Pairs ] ),
+	% [{meters(),percent()]:
+	%trace_utils:debug_fmt( "Sample pairs: ~w.", [ Pairs ] ),
 
-	_PlotFile = plot_utils:plot_samples( Pairs, PlotSpec ),
+	BinPlotPath = plot_utils:plot_samples( Pairs, FinalPlotSettings ),
 
+	test_facilities:display( "Plot file '~ts' generated.", [ BinPlotPath ] ),
 
 	ok.
+
 
 
 -spec run() -> no_return().

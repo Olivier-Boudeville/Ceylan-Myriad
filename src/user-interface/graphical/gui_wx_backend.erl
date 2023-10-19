@@ -290,6 +290,9 @@
 -export([ from_wx_object_type/1 ]).
 
 
+% Checks:
+-export([ is_wx_event/1 ]).
+
 
 % Shorthands:
 
@@ -369,6 +372,21 @@ to_wx_object_type( MyrObjType ) ->
 from_wx_object_type( WxObjectType ) ->
 	gui_generated:get_first_for_object_type( WxObjectType ).
 
+
+
+% @doc Tells whether the specified term is a wx event.
+%
+% As wxEvent() = wx:wx_object() = #wx_ref{}, for example
+% {wx_ref,131,wxPaintEvent,[]}.
+%
+% Only in wxe.hrl:
+%is_wx_event( E ) when is_record( E, wx_ref ) ->
+is_wx_event( _E={ wx_ref, _RefCount, _EventType, _State } ) ->
+	% Supposedly:
+	true;
+
+is_wx_event( _ ) ->
+	false.
 
 
 
@@ -624,13 +642,13 @@ connect( SourceGUIObject, EventType, Options, TrapSet ) ->
 	% Events to be processed through messages, not callbacks:
 	WxEventType = gui_event:to_wx_event_type( EventType ),
 
+	WxConnOpts = to_wx_connect_options( Options, EventType, TrapSet ),
+
 	cond_utils:if_defined( myriad_debug_gui_events,
 		trace_utils:debug_fmt( " - connecting event source '~ts' to ~w "
-			"for ~p (i.e. ~p), with options ~p.",
+			"for ~p (i.e. ~p), with options ~p, resulting in backend ones: ~w.",
 			[ gui:object_to_string( SourceGUIObject ), self(), EventType,
-			  WxEventType, Options ] ) ),
-
-	WxConnOpts = to_wx_connect_options( Options, EventType, TrapSet ),
+			  WxEventType, Options, WxConnOpts ] ) ),
 
 	wxEvtHandler:connect( SourceGUIObject, WxEventType, WxConnOpts ).
 
@@ -655,7 +673,8 @@ to_wx_connect_options( Opts, EventType, TrapSet ) ->
 % End of recursion, propagation explicitly requested by the user:
 to_wx_connect_options( _Opts=[], _EventType, _TrapSet,
 					   _PropagationSetting=propagate, Acc ) ->
-	[ _Propagate={ skip, true } | Acc ];
+	%[ _Propagate={ skip, true } | Acc ];
+	[ Acc ];
 
 % End of recursion, propagation explicitly denied by the user:
 to_wx_connect_options( _Opts=[], _EventType, _TrapSet,
@@ -678,7 +697,8 @@ to_wx_connect_options( _Opts=[], EventType, TrapSet,
 			Acc;
 
 		false ->
-			[ _Propagate={ skip, true } | Acc ]
+			%[ _Propagate={ skip, true } | Acc ]
+			Acc
 
 	end;
 

@@ -246,6 +246,8 @@ get_time_factor( Distance, Mass ) ->
 
 
 % Mass subsection.
+%
+% Note that the usual unit of mass is kg, not g.
 
 
 % @doc The mass, in kg, of our planet, the Earth.

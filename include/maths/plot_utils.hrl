@@ -48,11 +48,11 @@
 	% The name of this plot, whence for example the corresponding file names
 	% will be derived.
 	%
-	name :: text_utils:bin_string(),
+	name :: plot_utils:bin_plot_name(),
 
 
 	% The title, if any, to display on this plot.
-	title :: maybe( text_utils:bin_title() ),
+	title :: maybe( ui:bin_title() ),
 
 	% Key (legend) options (as a binary):
 	key_options :: text_utils:bin_string(),
@@ -148,6 +148,12 @@
 	extra_defines = [] :: [ text_utils:bin_string() ],
 
 
+	% Extra information about data, used to enrich (as comments) data to be
+	% plotted, for example to specify origin of data, measurement time, source,
+	% author, accuracy, version, etc.
+	%
+	meta_data = [] :: plot_utils:plot_meta_data(),
+
 	% The directory (if any; otherwise the current working directory will be
 	% used) in which the plot is to be generated.
 	%
@@ -168,13 +174,16 @@
 	% names being binaries; the order in this list dictates the actual rendering
 	% order of curves that will be performed.
 	%
-	curve_entries :: [ plot_utils:curve_entry() ],
+	curve_entries = [] :: [ plot_utils:curve_entry() ],
 
 
 	% A list of definitions of zones, between two curves in a 2D plot:
-	zone_entries :: [ plot_utils:zone_entry() ]
+	zone_entries = [] :: [ plot_utils:zone_entry() ],
 
-}).
+
+	% How a data row shall be formatted, should a specific format be wanted:
+	row_format_string :: maybe( text_utils:format_string() ) } ).
+
 
 
 

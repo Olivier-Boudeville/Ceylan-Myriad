@@ -127,6 +127,10 @@
 -type any_seconds() :: seconds() | float_seconds().
 
 
+% 24*3600:
+-define(seconds_per_day, 86400 ).
+
+
 % Other than a leap year:
 %-define(seconds_per_year, 31536000 ).
 
