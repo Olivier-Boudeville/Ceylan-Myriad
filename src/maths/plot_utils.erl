@@ -75,6 +75,10 @@
 % (see http://gnuplot.info/docs_5.5/loc15482.html)
 
 
+-type user_key_options() :: any_string().
+% A user-specified string containing key options.
+%
+% For example "box".
 
 
 -type bin_command_file_name() :: bin_file_name().
@@ -253,9 +257,9 @@
 % Color of the text (default: "blue").
 
 
--type label_position() :: 'left' | 'center' | 'right'.
-% Describes the position of the text based on to the specified location for the
-% label.
+-type label_justification() :: 'left' | 'center' | 'right'.
+% Describes the justification of the text based on to the specified location for
+% the label.
 
 
 -type label_orientation() :: 'upright' | int_degrees().
@@ -263,9 +267,26 @@
 % the abscissa axis.
 
 
+
+-type user_point_style_spec() :: any_string() | boolean().
+% The user specification of a point to be rendered.
+%
+% For example <<"pointtype 1">>.
+%
+% If true, a default point style is selected; if false no point will be
+% rendered.
+
+
+-type point_style_spec() :: bin_string().
+% The internal specification of a point to be rendered.
+%
+% For example <<"pointtype 1">>.
+
+
 -export_type([ plot_label/0,
-			   label_location/0, label_text/0, label_color/0, label_position/0,
-			   label_orientation/0 ]).
+			   label_location/0, label_text/0, label_color/0,
+			   label_justification/0, label_orientation/0,
+			   user_point_style_spec/0, point_style_spec/0 ]).
 
 
 
@@ -345,8 +366,10 @@
 % Main user API:
 -export([ get_plot_settings/1,
 		  set_title/2, set_x_label/2, set_y_label/2,
+		  set_key_options/2,
+		  add_label/3, add_label/4,
 		  declare_curves/2, declare_zones/2,
-		  plot_samples/2 ]).
+		  plot_samples/2, plot_samples/3 ]).
 
 
 % Exported gnuplot helpers, mostly for internal use:
@@ -539,6 +562,53 @@ set_y_label( MaybeLabel, PlotSettings ) ->
 		y_label=text_utils:ensure_maybe_binary( MaybeLabel ) }.
 
 
+% @doc Returns the specification of a plot corresponding to the specified one
+% once the specified key options (if any) have been set.
+%
+% Example of
+-spec set_key_options( maybe( user_key_options() ), plot_settings() ) ->
+											plot_settings().
+set_key_options( MaybeKeyOpts, PlotSettings ) ->
+	PlotSettings#plot_settings{
+		key_options=text_utils:ensure_maybe_binary( MaybeKeyOpts ) }.
+
+
+
+% @doc Adds a in-plot label, with the specified text at the specified location.
+-spec add_label( label_text(), label_location(), plot_settings() ) ->
+											plot_settings().
+add_label( Text, Location, PlotSettings=#plot_settings{ labels=Labels } ) ->
+	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
+						 location=Location },
+	PlotSettings#plot_settings{ labels=[ Label | Labels ] }.
+
+
+% @doc Adds a in-plot label, with the specified text at the specified location,
+% possibly with a point being marked there.
+%
+-spec add_label( label_text(), label_location(), user_point_style_spec(),
+				 plot_settings() ) -> plot_settings().
+add_label( Text, Location, _DoMarkPoint=false,
+		   PlotSettings=#plot_settings{ labels=Labels } ) ->
+	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
+						 location=Location },
+	PlotSettings#plot_settings{ labels=[ Label | Labels ] };
+
+add_label( Text, Location, _DoMarkPoint=true,
+		   PlotSettings=#plot_settings{ labels=Labels } ) ->
+	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
+						 location=Location,
+						 point= <<"pointtype 2">>},
+	PlotSettings#plot_settings{ labels=[ Label | Labels ] };
+
+add_label( Text, Location, MarkPointStyle,
+		   PlotSettings=#plot_settings{ labels=Labels } ) ->
+	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
+						 location=Location,
+						 point=text_utils:ensure_binary( MarkPointStyle ) },
+	PlotSettings#plot_settings{ labels=[ Label | Labels ] }.
+
+
 
 % @doc Declares the specified curves.
 %
@@ -688,11 +758,26 @@ get_curve_index_for( CurveName, CurveEntries ) ->
 %
 % Any previous plot file will be overwritten.
 %
+% The plot will not be specifically displayed.
+%
 -spec plot_samples( plot_data(), plot_settings() ) ->
+											plot_generation_outcome().
+plot_samples( PlotData, PlotSettings ) ->
+	plot_samples( PlotData, PlotSettings, _DoDisplay=false ).
+
+
+
+% doc Plots the specified samples, based on the specified plot specification,
+% and returns the path to the corresponding generated plot file.
+%
+% Any previous plot file will be overwritten.
+%
+-spec plot_samples( plot_data(), plot_settings(), boolean() ) ->
 											plot_generation_outcome().
 plot_samples( PlotData, PlotSettings=#plot_settings{
 		name=BinPlotName,
-		plot_directory=MaybePlotDir } ) ->
+		image_format=ImgFormat,
+		plot_directory=MaybePlotDir }, DoDisplay ) ->
 
 	BinPlotDir = basic_utils:set_maybe( MaybePlotDir,
 		file_utils:get_bin_current_directory() ),
@@ -725,7 +810,8 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 	{ ReturnCode, CmdOutput } = system_utils:run_executable( GnuplotExecPath,
 		_Args=[ BinCmdFilename ], _Env=[], _MaybeWorkingDir=MaybePlotDir ),
 
-	case file_utils:is_existing_file( BinPlotPath ) of
+	{ Outcome, Displayable } =
+			case file_utils:is_existing_file( BinPlotPath ) of
 
 		% Must have succeeded:
 		true ->
@@ -735,7 +821,7 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 					case CmdOutput of
 
 						"" ->
-							{ success, BinPlotPath };
+							{ { success, BinPlotPath }, _Displ=true };
 
 						_ ->
 							WarningMsg = text_utils:format(
@@ -743,7 +829,8 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 								"following information was output: ~ts",
 								[ BinPlotName, CmdOutput ] ),
 
-							{ warning, BinPlotPath, WarningMsg }
+							{ { warning, BinPlotPath, WarningMsg },
+							  _Displ=true }
 
 					end;
 
@@ -768,7 +855,7 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 						"a plot file was however written",
 						[ BinPlotName, ErrorRetCode, BaseErrorMsg ] ),
 
-					{ error, ErrorMsg }
+					{ { error, ErrorMsg }, _Displ=false }
 
 			end;
 
@@ -815,9 +902,15 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 
 			end,
 
-			{ error, ErrorMsg }
+			{ { error, ErrorMsg }, _Displ=false }
 
-	end.
+	end,
+
+	% Non-blocking:
+	DoDisplay andalso Displayable andalso
+		executable_utils:display_image_file( BinPlotPath, ImgFormat ),
+
+	Outcome.
 
 
 
@@ -868,18 +961,39 @@ get_label_definitions( _Labels=[], Acc ) ->
 	Acc;
 
 get_label_definitions( [ #plot_label{ location={ X, Y }, text=BinText,
-		color=Color, position=Position, orientation=Orientation } | T ],
-					   Acc ) ->
+		color=Color, justification=MaybeJustif, orientation=Orientation,
+		point=MaybePtSpec } | T ], Acc ) ->
 
 	% For a list of supported colors, see:
 	% www.uni-hamburg.de/Wiss/FB/15/Sustainability/schneider/gnuplot/colors.htm
 	%
 	ActualColor = gui_color:get_color_for_gnuplot( Color ),
 
+	JustifStr = case MaybeJustif of
+
+		undefined ->
+			"";
+
+		% Atom, but works just as well:
+		Justif ->
+			Justif
+
+	end,
+
+	PointStr = case MaybePtSpec of
+
+		undefined ->
+			"";
+
+		PtSpec ->
+			text_utils:format( "point ~ts", [ PtSpec ] )
+
+	end,
+
 	LabelStr = text_utils:format(
-		"set label \"~ts\" at ~p,~p ~ts ~ts textcolor rgbcolor \"~ts\"",
-		[ text_utils:binary_to_string( BinText ), X, Y, Position,
-		  get_formatted_orientation( Orientation ), ActualColor] ),
+		"set label \"~ts\" at ~p,~p ~ts ~ts ~ts textcolor rgbcolor \"~ts\"",
+		[ text_utils:binary_to_string( BinText ), X, Y, PointStr, JustifStr,
+		  get_formatted_orientation( Orientation ), ActualColor ] ),
 
 	get_label_definitions( T, [ LabelStr | Acc ] ).
 

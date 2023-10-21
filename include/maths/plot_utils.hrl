@@ -59,7 +59,7 @@
 	% The title, if any, to display on this plot.
 	title :: maybe( ui:bin_title() ),
 
-	% Key (legend) options (as a binary):
+	% Key (legend) options:
 	key_options :: maybe( key_options() ),
 
 
@@ -195,17 +195,23 @@
 % Fully defines a label on a plot:
 -record( plot_label, {
 
-	% 2D coordinates of the label on the plot:
-	location :: plot_utils:label_location(),
-
 	% Actual text of the label:
 	text :: plot_utils:label_text(),
 
-	% Color of the text:
-	color :: plot_utils:label_color(),
+	% 2D coordinates of the label on the plot:
+	location :: plot_utils:label_location(),
 
-	% Position of the text based on to the location for the label:
-	position :: plot_utils:label_position(),
+	% Specific color (if any) for the text:
+	color = 'black' :: maybe( plot_utils:label_color() ),
+
+	% Justification (if any) of the text based onto the location for the label:
+	justification :: maybe( plot_utils:label_justification() ),
 
 	% The label may be rendered with an angle from the abscissa axis:
-	orientation :: plot_utils:label_orientation() } ).
+	%
+	% (by default no rotation applied)
+	%
+	orientation = 'upright' :: maybe( plot_utils:label_orientation() ),
+
+	% Tells whether a point shall be rendered at the label location:
+	point :: maybe( plot_utils:point_style_spec() ) } ).

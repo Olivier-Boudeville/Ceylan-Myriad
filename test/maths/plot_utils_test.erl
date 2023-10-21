@@ -50,16 +50,18 @@ test_basic_plot() ->
 		"due to a larger mass, based on its distance to the observer.",
 		InitPlotSettings ),
 
-	XLabelPlotSettings = plot_utils:set_x_label( "Distance in kilometers",
-												 TitlePlotSettings ),
+	XLabelPlotSettings = plot_utils:set_x_label(
+		"Mass-observer distance in kilometers", TitlePlotSettings ),
 
 	YLabelPlotSettings = plot_utils:set_y_label( "Time factor (percentage)",
 												 XLabelPlotSettings ),
 
-	CurvelPlotSettings = plot_utils:declare_curves( [ "Time factor" ],
-													YLabelPlotSettings ),
+	KeyPlotSettings = plot_utils:set_key_options( "box right bottom height 1",
+												  YLabelPlotSettings ),
 
-	FinalPlotSettings = CurvelPlotSettings,
+	CurvePlotSettings = plot_utils:declare_curves(
+		[ "Time factor for a 10-solar mass" ], KeyPlotSettings ),
+
 
 	%M = physics_utils:m_sagittarius_a_star(),
 
@@ -72,11 +74,23 @@ test_basic_plot() ->
 					end,
 
 	% Minimum distance:
-	Start = physics_utils:get_schwarzschild_radius( M ),
+	SchzRadius = physics_utils:get_schwarzschild_radius( M ),
 
-	Stop = 1000 * Start,
+	LabelText = text_utils:format( "Schwarzschild radius\\nat ~ts",
+		[ unit_utils:meters_to_string( SchzRadius ) ] ),
 
-	SampleCount = 1000,
+	LabelLoc = { SchzRadius, 0 },
+
+	LabelPlotSettings = plot_utils:add_label( LabelText, LabelLoc,
+		_DoMarkPoint=true, CurvePlotSettings ),
+
+	FinalPlotSettings = LabelPlotSettings,
+
+	Start = SchzRadius,
+
+	Stop = 100 * Start,
+
+	SampleCount = 100,
 
 	test_facilities:display(
 		"Sampling ~B points from a distance of ~ts (~f m) to ~ts (~f m).",
@@ -89,8 +103,8 @@ test_basic_plot() ->
 	% [{meters(),percent()]:
 	%trace_utils:debug_fmt( "Sample pairs: ~w.", [ Pairs ] ),
 
-	{ success, BinPlotPath } =
-		plot_utils:plot_samples( Pairs, FinalPlotSettings ),
+	{ success, BinPlotPath } = plot_utils:plot_samples( Pairs,
+		FinalPlotSettings, _DoDisplay=not executable_utils:is_batch() ),
 
 	test_facilities:display( "Plot file '~ts' generated.", [ BinPlotPath ] ),
 
