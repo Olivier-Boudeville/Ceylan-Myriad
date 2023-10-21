@@ -84,9 +84,15 @@
 		  identity/1,
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
+		  set_maybe/2,
+
 		  ignore_unused/1,
 		  freeze/0, crash/0, crash/1, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
+
+
+-compile( { inline, [ set_maybe/2 ] } ).
+
 
 
 % Hints about retrieving the name of the function being currently evaluated by a
@@ -246,7 +252,7 @@
 % Denotes a value that may be set to one of type T (with no restriction on T),
 % or that may not be set at all.
 %
-% A bit more expensive than maybe/1.
+% A bit safer and more expensive than maybe/1.
 %
 % Obviously a nod to Haskell.
 
@@ -612,6 +618,24 @@ are_all_defined( _Elems=[ undefined | _T ] ) ->
 
 are_all_defined( _Elems=[ _E | T ] ) ->
 	are_all_defined( T ).
+
+
+
+% @doc Returns the first term is it is not undefined, otherwise returns the
+% second, default, term.
+%
+% Allows to apply a default if a maybe-term is not defined.
+%
+% For example: `ActualX = basic_utils:set_maybe(MaybeX, DefaultX)'.
+%
+% Ideally the default term would be lazily evaluated.
+%
+-spec set_maybe( maybe( term() ), term() ) -> term().
+set_maybe( _MaybeTerm=undefined, TDef ) ->
+	TDef;
+
+set_maybe( T, _TDef ) ->
+	T.
 
 
 
