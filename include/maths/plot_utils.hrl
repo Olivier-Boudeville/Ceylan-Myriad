@@ -34,19 +34,24 @@
 
 % File extensions:
 
+% For (gnuplot) command files:
 -define( command_extension, "p" ).
+
+
+% For data files (typically text files organised by columns separated by
+% whitespaces):
+%
 -define( data_extension, "dat" ).
-
--define( plot_extension, "png" ).
-%-define( plot_extension, "svg" ).
-
 
 
 % The settings governing a given plot.
+%
+% The underlying conventions are the gnuplot ones.
+%
 -record( plot_settings, {
 
-	% The name of this plot, whence for example the corresponding file names
-	% will be derived.
+	% The (mandatory) name of this plot, whence for example the corresponding
+	% file names will be derived.
 	%
 	name :: plot_utils:bin_plot_name(),
 
@@ -55,21 +60,21 @@
 	title :: maybe( ui:bin_title() ),
 
 	% Key (legend) options (as a binary):
-	key_options :: text_utils:bin_string(),
+	key_options :: maybe( key_options() ),
 
 
 	% Label for the abscissa axis (as a binary):
-	x_label :: text_utils:bin_string(),
+	x_label :: maybe( plot_utils:label_text() ),
 
 	% Label for the ordinate axis (as a binary):
-	y_label :: text_utils:bin_string(),
+	y_label :: maybe( plot_utils:label_text() ),
 
 
-	% Settings for tick layout along the abscissa axis (as a binary):
-	x_tick :: text_utils:bin_string(),
+	% Settings for tick layout along the abscissa axis:
+	x_tick :: maybe( plot_utils:tick_option() ),
 
-	% Settings for tick layout along the ordinate axis (as a binary):
-	y_tick :: text_utils:bin_string(),
+	% Settings for tick layout along the ordinate axis:
+	y_tick :: maybe( plot_utils:tick_option() ),
 
 
 	% Abscissa range (pair of {MaybeMinX,MaybeMaxX} integers, or 'undefined'),
@@ -87,10 +92,8 @@
 		{ maybe( gui:coordinate() ), maybe( gui:coordinate() ) } ),
 
 
-	% Fine control of the major (labeled) ticks on the abscissa axis (as a
-	% binary):
-	%
-	x_ticks :: maybe( text_utils:bin_string() ),
+	% Fine control of the major (labeled) ticks on the abscissa axis.
+	x_ticks :: maybe( plot_utils:ticks_option() ),
 
 
 	% Tells whether the abscissa axis gathers timestamps.
@@ -101,18 +104,16 @@
 		maybe( plot_utils:timestamp_time_format() ),
 
 
-	% Fine control of the major (labeled) ticks on the ordinate axis (as a
-	% binary):
-	%
-	y_ticks :: maybe( text_utils:bin_string() ),
+	% Fine control of the major (labeled) ticks on the ordinate axis.
+	y_ticks :: maybe( plot_utils:ticks_option() ),
 
 
-	% Defines how graphs should be rendered (as a binary):
+	% Defines how graphs should be rendered:
 	%
 	% (our default is linespoints, in order to add - compared to mere lines - a
 	% graphical symbol on top of each data point)
 	%
-	plot_style :: text_utils:bin_string(),
+	plot_style = 'linespoints' :: plot_utils:plot_style(),
 
 
 	% Defines the size of each point; 'set pointsize 2' means the point size is
@@ -121,25 +122,27 @@
 	point_size = 1 :: non_neg_integer(),
 
 
-	% Defines how areas like histograms should be filled (as a binary):
-	fill_style :: text_utils:bin_string(),
+	% Defines how areas like histograms should be filled:
+	fill_style = 'empty' :: plot_utils:fill_style(),
 
 
 	% Defines the width of the canvas, i.e. the actual width, in pixels, of the
 	% corresponding plot:
 	%
-	canvas_width = ?default_canvas_width :: gui:length(),
+	canvas_width = ?default_canvas_width :: gui:width(),
 
 	% Defines the height of the canvas, i.e. the actual height, in pixels, of
 	% the corresponding plot:
 	%
-	canvas_height = ?default_canvas_height :: gui:length(),
+	canvas_height = ?default_canvas_height :: gui:height(),
 
 
-	% The default image format for probe rendering (as a binary):
-	image_format = <<?plot_extension>> :: text_utils:bin_string(),
+	% The image format for plot rendering (for the generated plot files):
+	% (default could be 'svg' some day)
+	%
+	image_format = 'png' :: gui_image:image_format(),
 
-	% Lists the arbitrary labels that may be defined over the probe rendering:
+	% Lists the arbitrary labels that may be defined over the plot rendering:
 	labels = [] :: [ plot_utils:plot_label() ],
 
 	% Lists extra defines that shall be added verbatim to the command file (near
@@ -181,8 +184,10 @@
 	zone_entries = [] :: [ plot_utils:zone_entry() ],
 
 
-	% How a data row shall be formatted, should a specific format be wanted:
-	row_format_string :: maybe( text_utils:format_string() ) } ).
+	% How a data row shall be formatted when writing a data file, should a
+	% specific format be wanted:
+	%
+	row_format_string :: maybe( text_utils:format_bin_string() ) } ).
 
 
 

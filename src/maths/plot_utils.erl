@@ -36,6 +36,8 @@
 
 -type plot_settings() :: #plot_settings{}.
 % The settings governing a given plot.
+%
+% The underlying conventions are the gnuplot ones.
 
 
 -type user_plot_name() :: any_string().
@@ -66,6 +68,15 @@
 % (see http://gnuplot.info/docs_5.5/Plotting_Styles.html)
 
 
+-type fill_style() :: 'empty' % (default)
+					| term(). % to be further specified
+% Fill style (default being 'empty'):
+%
+% (see http://gnuplot.info/docs_5.5/loc15482.html)
+
+
+
+
 -type bin_command_file_name() :: bin_file_name().
 % The name of a gnuplot command file (see the command_extension define).
 
@@ -80,14 +91,22 @@
 % Extra information about data, used to enrich (as comments) data to be plotted,
 % for example to specify origin of data, measurement time, source, author,
 % accuracy, version, etc.
+%
+% Reserved keys:
+%
+% - first_column_description: to describe the semantics of the plot parameter;
+% for example: "First column corresponds to the abscissa, expressed in tick
+% offsets."
 
 
 -type plot_data() :: [ plot_point() ].
 % A data to plot, based on an (unordered) list of points to be plotted.
 
 
--type plot_point() :: { plot_parameter(), plot_sample()  }.
-% A data point to plot.
+-type plot_point() :: { plot_parameter(), plot_sample() }.
+% A data point to plot, made of a parameter (like a function one, for example
+% time) and the associated sample values to be plotted (like the values of
+% various functions for the previous parameter).
 %
 % May also be designated as a data row.
 %
@@ -109,15 +128,13 @@
 -type plot_sample() :: type_utils:tuploid( maybe( plot_value() ) ).
 % A sample to plot.
 %
-% For example {1, undefined, 5.1}, or "hello".
+% For example {1, undefined, "red", 5.1}, or "hello".
 
 
 -type plot_value() :: any_string() | number().
 % A value corresponding to a plot point.
 %
 % For example "active", or 1.12.
-
-
 
 
 
@@ -132,23 +149,39 @@
 
 
 -type row_data_string() :: format_string().
-% A data row, typically from a data file.
+% A data row, typically to be written in a data file.
 
 -type row_format_string() :: format_string().
 % Describes how a data row is to be formatted.
 
 
 -type bin_plot_path() :: bin_file_path().
-% A path to a plot (image) file (see the plot_extension define).
+% A path to a plot (image) file (see the image_format field in the plot
+% settings).
 
 -type bin_plot_filename() :: bin_file_name().
-% A filename of a plot (image) file (see the plot_extension define).
+% A filename of a plot (image) file (see the image_format field in the plot
+% settings).
 
+-type plot_generation_outcome() ::
+	{ 'success', bin_plot_path() }
+  | { 'warning', bin_plot_path(), warning_message() }
+  | { 'error', error_message() }.
+% The possible outcomes of an attempt of plot generation.
+
+
+-type warning_message() :: ustring().
+% Any warning (still a success case, plot was generated) message issued when
+% trying to generate a plot.
+
+-type error_message() :: ustring().
+% Any error (failure case, no plot was generated) message issued when
+% trying to generate a plot.
 
 
 -export_type([ plot_settings/0,
 			   user_plot_name/0, bin_plot_name/0, user_plot_path/0,
-			   plot_style/0,
+			   plot_style/0, fill_style/0,
 
 			   bin_command_file_name/0,
 			   command_file_path/0, bin_command_file_path/0,
@@ -162,7 +195,9 @@
 
 			   row_data_string/0, row_format_string/0,
 
-			   bin_plot_path/0, bin_plot_filename/0 ]).
+			   bin_plot_path/0, bin_plot_filename/0,
+
+			   plot_generation_outcome/0, warning_message/0, error_message/0 ]).
 
 
 
@@ -209,7 +244,7 @@
 
 
 -type label_text() :: bin_string().
-% Actual text of the label.
+% Actual text of a label.
 %
 % Note that texts can be "enhanced" (e.g. "for some {/:Bold important} text").
 
@@ -255,15 +290,20 @@
 
 
 
--type tick_option() :: maybe( 'rotate' ).
+-type key_options() :: bin_string().
+% Options related to the plot key.
+%
+% See http://gnuplot.info/docs_5.5/loc12343.html.
+
+
+-type tick_option() :: 'rotate'.
 % Option applying to label ticks.
 
 
--type ticks_option() :: maybe( ustring() ).
+-type ticks_option() :: bin_string().
 % Option applying to ticks (e.g. axis, border, start, font, textcolor, etc.) for
-% a fine control of the major (labelled) tics on an axis.
-%
-% (e.g. see Xtics, in http://www.gnuplot.info/docs_4.2/node295.html)
+% a fine control of the major (labelled) tics on an axis (e.g. see Xtics, in
+% http://www.gnuplot.info/docs_4.2/node295.html)
 
 
 -type timestamp_time_format() ::
@@ -277,8 +317,13 @@
 
 
 -export_type([ rgb_color_spec/0, extra_curve_settings/0, extra_zone_settings/0,
-			   tick_option/0, ticks_option/0, timestamp_time_format/0 ]).
+			   key_options/0, tick_option/0, ticks_option/0,
+			   timestamp_time_format/0 ]).
 
+
+-type elementary_command() :: ustring().
+% A (complete) elementary (gnuplot) command, that is a self-standing line
+% (possibly a comment) of a command file thereof.
 
 
 -type command_element() :: ustring().
@@ -293,7 +338,8 @@
 -type timestamp_bin_string() :: bin_string().
 
 
--export_type([ command_element/0, timestamp_string/0, timestamp_bin_string/0 ]).
+-export_type([ elementary_command/0, command_element/0,
+			   timestamp_string/0, timestamp_bin_string/0 ]).
 
 
 % Main user API:
@@ -310,7 +356,7 @@
 		  get_xticks_option/1, get_yticks_option/1,
 		  get_x_range_option/1, get_y_range_option/1,
 		  get_x_ticks_option/1, get_y_ticks_option/1,
-		  generate_command_file/1, generate_data_file/2 ]).
+		  generate_command_file/1, generate_data_file/2, write_row/3 ]).
 
 
 
@@ -387,6 +433,10 @@
 % richness/level of maturity. So we stick with good old gnuplot, hopefully for
 % the best.
 
+% To debug the generated command/data files, one can run directly gnuplot. This
+% is as simple as 'gnuplot My_test_plot.p'.
+
+
 
 % Define section.
 
@@ -427,6 +477,7 @@
 -type any_string() :: text_utils:any_string().
 -type format_string() :: text_utils:format_string().
 
+
 -type list_table( K, V ) :: list_table:list_table( K, V ).
 
 
@@ -439,16 +490,19 @@
 -type any_file_path() :: file_utils:any_file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 -type bin_file_name() :: file_utils:bin_file_name().
+-type file() :: file_utils:file().
 
 -type int_degrees() :: unit_utils:int_degrees().
 
--type sample_data() :: math_utils:sample_data().
-%-type float_sample() :: math_utils:float_sample().
-
 %-type point() :: gui:point().
+-type width() :: gui:width().
+-type height() :: gui:height().
+
 -type color() :: gui_color:color().
-%-type length() :: gui:length().
+
 %-type coordinate() :: gui:coordinate().
+
+-type image_format() :: gui_image:image_format().
 
 
 
@@ -634,48 +688,136 @@ get_curve_index_for( CurveName, CurveEntries ) ->
 %
 % Any previous plot file will be overwritten.
 %
--spec plot_samples( [ sample_data() ], plot_settings() ) -> bin_plot_path().
-plot_samples( _Samples, PlotSettings=#plot_settings{
-		name=Name,
-		%title=MaybeTitle,
-		plot_directory=MaybePlotDir,
-		plot_filename=MaybePlotFilename } ) ->
+-spec plot_samples( plot_data(), plot_settings() ) ->
+											plot_generation_outcome().
+plot_samples( PlotData, PlotSettings=#plot_settings{
+		name=BinPlotName,
+		plot_directory=MaybePlotDir } ) ->
 
-	BinPlotDir = case MaybePlotDir of
+	BinPlotDir = basic_utils:set_maybe( MaybePlotDir,
+		file_utils:get_bin_current_directory() ),
 
-		undefined ->
-			file_utils:get_current_directory();
+	% Same logic as in the command file:
+	BinImgFilename = get_plot_filename( PlotSettings ),
 
-		PlotDr ->
-			PlotDr
+	BinPlotPath = file_utils:bin_join( BinPlotDir, BinImgFilename ),
 
-	end,
+	trace_utils:debug_fmt( "Plot to be generated in '~ts'.", [ BinPlotPath ] ),
 
-	BinPlotFilename = case MaybePlotFilename of
+	BinCmdFilename = generate_command_file( PlotSettings ),
 
-		undefined ->
-			forge_plot_filename( Name );
+	_BinDataFilename = generate_data_file( PlotData, PlotSettings ),
 
-		PlotFln ->
-			PlotFln
+	GnuplotExecPath = executable_utils:get_gnuplot_path(),
 
-	end,
+	BinPlotPath = file_utils:bin_join( BinPlotDir, BinImgFilename ),
 
-	BinPlotPath = file_utils:bin_join( BinPlotDir, BinPlotFilename ),
+	% Not wanting to be confused by a prior file:
+	file_utils:remove_file_if_existing( BinPlotPath ),
 
-	%trace_utils:debug_fmt( "Plot to be generated in '~ts'.", [ BinPlotPath ] ),
+	% We must set the current directory to the one intended for the plot, yet
+	% just for that execution (we do not want to interfere at the level of the
+	% whole VM), otherwise the plot image will be created in the current
+	% directory; specifying in the command file an absolute path for the image
+	% is not an option either, as we want to be able to move around all
+	% plot-related files
+	%
+	{ ReturnCode, CmdOutput } = system_utils:run_executable( GnuplotExecPath,
+		_Args=[ BinCmdFilename ], _Env=[], _MaybeWorkingDir=MaybePlotDir ),
 
-	_BinCmdFilePath = generate_command_file( PlotSettings ),
+	case file_utils:is_existing_file( BinPlotPath ) of
 
-	BinPlotPath.
+		% Must have succeeded:
+		true ->
+			case ReturnCode of
+
+				0 ->
+					case CmdOutput of
+
+						"" ->
+							{ success, BinPlotPath };
+
+						_ ->
+							WarningMsg = text_utils:format(
+								"Plot generation succeeded for '~ts', but "
+								"following information was output: ~ts",
+								[ BinPlotName, CmdOutput ] ),
+
+							{ warning, BinPlotPath, WarningMsg }
+
+					end;
+
+				% Abnormal, surprising case, we suppose that this plot file is
+				% bogus:
+				%
+				ErrorRetCode ->
+					BaseErrorMsg = case CmdOutput of
+
+						"" ->
+							" (no generation information output)";
+
+						_ ->
+							text_utils:format(
+								", following information was output: '~ts'",
+								[ CmdOutput ] )
+
+					end,
+
+					ErrorMsg = text_utils:format( "Plot generation failed "
+						"for '~ts' with error code #~B~ts; "
+						"a plot file was however written",
+						[ BinPlotName, ErrorRetCode, BaseErrorMsg ] ),
+
+					{ error, ErrorMsg }
+
+			end;
 
 
+		% Must have failed:
+		false ->
+			ErrorMsg = case ReturnCode of
 
-% (helper)
-forge_plot_filename( BinPlotName ) ->
-	file_utils:convert_to_filename_with_extension( BinPlotName,
-												   ?plot_extension ).
+				% Abnormal, surprising case, as nevertheless failed:
+				0 ->
+					case CmdOutput of
 
+						"" ->
+							text_utils:format( "Plot generation failed "
+								"for '~ts', despite no error or "
+								"output being reported)", [ BinPlotName ] );
+
+						_ ->
+							text_utils:format( "Plot generation "
+								"failed for '~ts', despite no error being "
+								"reported; output was: '~ts'",
+								[ BinPlotName, CmdOutput ] )
+
+					end;
+
+				% Abnormal, surprising case, we suppose that this plot file is
+				% bogus:
+				%
+				ErrorRetCode ->
+					BaseErrorMsg = case CmdOutput of
+
+						"" ->
+							" (no generation information output)";
+
+						_ ->
+							text_utils:format(
+								", following information was output: '~ts'",
+								[ CmdOutput ] )
+					end,
+
+					text_utils:format( "Plot generation failed "
+						"for '~ts'; error code was #~B~ts",
+						[ BinPlotName, ErrorRetCode, BaseErrorMsg ] )
+
+			end,
+
+			{ error, ErrorMsg }
+
+	end.
 
 
 
@@ -876,15 +1018,20 @@ get_data_filename( Name ) ->
 	file_utils:convert_to_filename_with_extension( Name, ?data_extension ).
 
 
-% @doc Returns the report filename corresponding to the specified plot name.
--spec get_report_filename( maybe( bin_file_name() ), plot_name() ) ->
-											bin_file_name().
-get_report_filename( _MaybePlotBinFilename=undefined, BinPlotName ) ->
-	file_utils:convert_to_filename_with_extension( BinPlotName,
-												   ?plot_extension );
 
-get_report_filename( PlotBinFilename, _BinPlotName ) ->
+% @doc Returns the plot (image) filename implied by the specified plot settings.
+-spec get_plot_filename( plot_settings() ) -> bin_file_name().
+get_plot_filename( #plot_settings{
+		name=BinPlotName,
+		image_format=ImgFormat,
+		plot_filename=undefined } ) ->
+	% Returns a binary:
+	file_utils:convert_to_filename_with_extension( BinPlotName,
+		gui_image:image_format_to_extension( ImgFormat ) );
+
+get_plot_filename( #plot_settings{ plot_filename=PlotBinFilename } ) ->
 	PlotBinFilename.
+
 
 
 % @doc Returns the appropriate settings, depending on whether the abscissa axis
@@ -1208,9 +1355,21 @@ select_curves( _ZoneEntries=[ { _ZoneName, { C1, C2 }, _ZPlotSuffix } | T ],
 -spec generate_command_file( plot_settings() ) -> bin_command_file_name().
 generate_command_file( PlotSettings=#plot_settings{
 		name=BinPlotName,
+		key_options=MaybeKeyOptsBinStr,
+		x_label=MaybeXLabelBinStr,
+		y_label=MaybeYLabelBinStr,
+		x_tick=MaybeXTickBinStr,
+		y_tick=MaybeYTickBinStr,
+		x_ticks=MaybeXTicksBinStr,
+		y_ticks=MaybeYTicksBinStr,
+		plot_style=PlotStyle,
+		point_size=PointSize,
+		fill_style=FillStyle,
+		canvas_width=CanvasWidth,
+		canvas_height=CanvasHeight,
+		image_format=ImgFormat,
 		labels=Labels,
 		extra_defines=ExtraDefines,
-		plot_filename=MaybePlotBinFilename,
 		curve_entries=CurveEntries,
 		zone_entries=ZoneEntries } ) ->
 
@@ -1230,18 +1389,14 @@ generate_command_file( PlotSettings=#plot_settings{
 
 	YrangeOpt = get_y_range_option( PlotSettings ),
 
-	% Corresponding to the '*ticks' counterparts, not the base '*tick' ones:
-	XticksOpt = get_xticks_option( PlotSettings ),
-	YticksOpt = get_yticks_option( PlotSettings ),
-
 	BinPlotDir = get_plot_directory( PlotSettings ),
 
-	PNGFilename = get_report_filename( MaybePlotBinFilename, BinPlotName ),
+	BinImgFilename = get_plot_filename( PlotSettings ),
 
 	% We prefer defining relative paths, so that a command file and its
 	% dependencies are movable afterwards:
 	%
-	%PNGFilePath = file_utils:bin_join( BinPlotDir, PNGFilename ),
+	%PNGFilePath = file_utils:bin_join( BinPlotDir, BinImgFilename ),
 
 	CommandFilename = get_command_filename( BinPlotName ),
 
@@ -1274,61 +1429,139 @@ generate_command_file( PlotSettings=#plot_settings{
 		"set grid~n"
 		"set style data ~ts~n"
 		"set style fill ~ts~n"
-		"set key box ~ts~n"
+		"~ts~n" % key_options
 		"set pointsize ~B~n"
-		"set xtic ~ts~n"
-		"set ytic ~ts~n"
+		"~ts~n" % xtic
+		"~ts~n" % ytic
 
 		% Note that {x,y}tics options shall be specified *after* {x,y}tic ones
 		% in order to be taken into account:
 		%
-		"~ts~n"
-		"~ts~n"
+		"~ts~n" % x_ticks
+		"~ts~n" % y_ticks
 
-		"~ts~n"
-		"~ts~n"
+		"~ts~n" % XrangeOpt
+		"~ts~n" % YrangeOpt
 
 		"set title \"~ts\" noenhanced~n"
 
-		% Newline added, otherwise the label of the X axis may collide with the
-		% upper part of the box of the key:
-		%
-		"set xlabel \"~ts\\n\"~n"
-		%"set xlabel \"~ts\" offset 0,2~n"
+		"~ts~n" % XLabel
+		"~ts~n" % YLabel
 
-		"set ylabel \"~ts\"~n"
 		"set datafile missing 'undefined'~n"
-		"set terminal ~ts size ~B, ~B~n"
-		"~ts~n"
-		"~ts~n"
-		"set output \"~ts\"~n"
-		"~ts",
+		"~ts~n" % get_terminal_info/3
+		"~ts~n" % LabelDefs
+		"~ts~n" % ExtraDefs
+		"set output \"~ts\"~n" % BinImgFilename
+		"~ts", % PlotCommand
 		[ PreambleStr,
-		  PlotSettings#plot_settings.plot_style,
-		  PlotSettings#plot_settings.fill_style,
-		  PlotSettings#plot_settings.key_options,
-		  PlotSettings#plot_settings.point_size,
-		  PlotSettings#plot_settings.x_tick,
-		  PlotSettings#plot_settings.y_tick,
-		  XticksOpt,
-		  YticksOpt,
+		  PlotStyle,
+		  FillStyle,
+		  get_key_options( MaybeKeyOptsBinStr ),
+		  PointSize,
+		  get_x_tick( MaybeXTickBinStr ),
+		  get_y_tick( MaybeYTickBinStr ),
+
+		  % Corresponding to the '*ticks' counterparts, not the base '*tick'
+		  % ones:
+		  %
+		  get_x_ticks( MaybeXTicksBinStr ),
+		  get_y_ticks( MaybeYTicksBinStr ),
+
 		  XrangeOpt,
 		  YrangeOpt,
-		  PlotSettings#plot_settings.title,
-		  PlotSettings#plot_settings.x_label,
-		  PlotSettings#plot_settings.y_label,
-		  PlotSettings#plot_settings.image_format,
-		  PlotSettings#plot_settings.canvas_width,
-		  PlotSettings#plot_settings.canvas_height,
+		  get_title( PlotSettings ),
+
+		  get_x_label( MaybeXLabelBinStr ),
+		  get_y_label( MaybeYLabelBinStr ),
+
+		  get_terminal_info( ImgFormat, CanvasWidth, CanvasHeight ),
 		  LabelDefs,
 		  ExtraDefs,
-		  PNGFilename,
+		  BinImgFilename,
 		  PlotCommand ] ),
 
 	file_utils:close( File ),
 
 	% More flexible than CommandFilePath:
 	CommandFilename.
+
+
+
+-spec get_title( plot_settings() ) -> title().
+get_title( #plot_settings{ name=BinPlotName,
+						   title=undefined } ) ->
+	text_utils:format( "Plot '~ts'", [ BinPlotName ] );
+
+get_title( #plot_settings{ title=BinTitle } ) ->
+	BinTitle.
+
+
+-spec get_x_label( maybe( label_text() ) ) -> elementary_command().
+get_x_label( _MaybeXLabelBinStr=undefined ) ->
+	"# (no x label)";
+
+get_x_label( XLabelBinStr ) ->
+	% Newline added, otherwise the label of the X axis may collide with the
+	% upper part of the box of the key:
+	%
+	%				   "set xlabel \"~ts\" offset 0,2~n"
+	text_utils:format( "set xlabel \"~ts\\n\"", [ XLabelBinStr ] ).
+
+
+-spec get_y_label( maybe( label_text() ) ) -> elementary_command().
+get_y_label( _MaybeYLabelBinStr=undefined ) ->
+	"# (no y label)";
+
+get_y_label( YLabelBinStr ) ->
+	text_utils:format( "set ylabel \"~ts\"~n", [ YLabelBinStr ] ).
+
+
+
+-spec get_terminal_info( image_format(), width(), height() ) ->
+											elementary_command().
+get_terminal_info( ImgFormat, CanvasWidth, CanvasHeight ) ->
+	% At least currently, ImgFormat can be taken verbatim:
+	text_utils:format( "set terminal ~ts size ~B, ~B",
+					   [ ImgFormat, CanvasWidth, CanvasHeight ] ).
+
+
+-spec get_key_options( maybe( key_options() ) ) -> elementary_command().
+get_key_options( _MaybeKeyOptsBinStr=undefined ) ->
+	"# (no key option)";
+
+get_key_options( KeyOptsBinStr ) ->
+	text_utils:format( "set key ~ts", [ KeyOptsBinStr ] ).
+
+
+
+get_x_tick( _MaxbeXTickBinStr=undefined ) ->
+	"# (no xtick option)";
+
+get_x_tick( XTickBinStr ) ->
+	text_utils:format( "set xtic ~ts", [ XTickBinStr ] ).
+
+
+get_y_tick( _MaybeYTickBinStr=undefined ) ->
+	"# (no ytick option)";
+
+get_y_tick( YTickBinStr ) ->
+	text_utils:format( "set ytic ~ts", [ YTickBinStr ] ).
+
+
+
+get_x_ticks( _MaxbeXTicksBinStr=undefined ) ->
+	"# (no xticks option)";
+
+get_x_ticks( XTicksBinStr ) ->
+	text_utils:format( "set xtic ~ts", [ XTicksBinStr ] ).
+
+
+get_y_ticks( _MaybeYTicksBinStr=undefined ) ->
+	"# (no yticks option)";
+
+get_y_ticks( YTicksBinStr ) ->
+	text_utils:format( "set ytic ~ts", [ YTicksBinStr ] ).
 
 
 
@@ -1347,32 +1580,28 @@ generate_data_file( _PlotData=[], #plot_settings{ name=BinPlotName } ) ->
 
 generate_data_file( PlotData, PlotSettings=#plot_settings{
 		name=BinPlotName,
-		labels=Labels,
-		extra_defines=ExtraDefines,
+		%labels=Labels,
+		%extra_defines=ExtraDefines,
 		plot_filename=MaybePlotBinFilename,
 		curve_entries=CurveEntries,
 		zone_entries=ZoneEntries,
 		row_format_string=MaybeRowFmtStr } ) ->
 
 	cond_utils:if_defined( myriad_debug_plot,
-		trace_utils:debug_fmt( "Generating a data file for plot '~ts'; "
-			"(first data point: ~p).", [ BinPlotName, hd( PlotData ) ] ) ),
+		trace_utils:debug_fmt( "Generating a data file for plot '~ts', whose "
+			"first data point is:~n ~p.", [ BinPlotName, hd( PlotData ) ] ) ),
 
-	DataFilename = get_data_filename( BinPlotName ),
+	DataFilename = basic_utils:set_maybe( MaybePlotBinFilename,
+										  get_data_filename( BinPlotName ) ),
+
 	BinPlotDir = get_plot_directory( PlotSettings ),
+
 	DataFilePath = file_utils:bin_join( BinPlotDir, DataFilename ),
 
 	CurveCount = length( CurveEntries ),
 
-	RowFormatStr = case MaybeRowFmtStr of
-
-		undefined ->
-			forge_format_string_for( CurveCount );
-
-		RowFStr ->
-			RowFStr
-
-	end,
+	RowFormatStr = basic_utils:set_maybe( MaybeRowFmtStr,
+		forge_format_string_for( CurveCount ) ),
 
 	FormattedData = format_rows( PlotData, CurveCount, RowFormatStr ),
 
@@ -1381,7 +1610,7 @@ generate_data_file( PlotData, PlotSettings=#plot_settings{
 	% delayed_write would not be terribly useful here, if not
 	% counter-productive:
 	%
-	File = file_utils:open( DataFilename, ?base_open_flags ),
+	File = file_utils:open( DataFilePath, ?base_open_flags ),
 
 	write_header( File, CurveEntries, ZoneEntries, BinPlotName, PlotSettings ),
 
@@ -1423,7 +1652,7 @@ format_rows( _PlotPoints=[], _CurveCount, _RowFormatStr, Acc ) ->
 	lists:flatten( Acc );
 
 
-% If the plot parameter is a string (e.g. as a timestamp):
+% If the plot parameter is already a string (e.g. as a timestamp):
 format_rows( _PlotPoints=[ _DataRow={ PlotParamStr, PlotSample } | T ],
 			 CurveCount, RowFormatStr, Acc ) when is_list( PlotParamStr ) ->
 
@@ -1434,7 +1663,7 @@ format_rows( _PlotPoints=[ _DataRow={ PlotParamStr, PlotSample } | T ],
 	format_rows( T, CurveCount, RowFormatStr, [ RowStr | Acc ] );
 
 
-% Here PlotParam is not a string:
+% Here PlotParam is not a string yet:
 format_rows( _PlotPoints=[ _DataRow={ PlotParam, PlotSample } | T ], CurveCount,
 			 RowFormatStr, Acc ) ->
 
@@ -1449,7 +1678,7 @@ format_rows( _PlotPoints=[ _DataRow={ PlotParam, PlotSample } | T ], CurveCount,
 
 
 
-% @doc Returns a formatted version of the specified data row.
+% @doc Returns a formatted version of the specified plot sample / data row.
 %
 % Defined also for reuse.
 %
@@ -1473,14 +1702,16 @@ format_row( PlotParamStr, PlotSample, CurveCount, RowFormatStr ) ->
 % (helper)
 format_row_helper( PlotParamStr, SampleValues, CurveCount, RowFormatStr ) ->
 
-	% As samples may contain an increasing number of values over time:
-	case size( Sample ) of
+	% As samples may contain an increasing number of values over time, we have
+	% to complement non-defined values with 'undefined' ones:
+	%
+	case length( SampleValues ) of
 
-		% Simple, standard case:
+		% Simple, standard, fully-specified case:
 		CurveCount ->
 			text_utils:format( RowFormatStr, [ PlotParamStr | SampleValues ] );
 
-		% Lacking (undefined) values shall be added:
+		% The lacking (undefined) values shall be added:
 		VCount when VCount < CurveCount ->
 			UndefCount = CurveCount - VCount,
 			text_utils:format( RowFormatStr,
@@ -1489,24 +1720,25 @@ format_row_helper( PlotParamStr, SampleValues, CurveCount, RowFormatStr ) ->
 
 		LargerCount ->
 			throw( { too_many_sample_values, {got,LargerCount},
-				{expected,CurveCount}, {sample,Sample},
+				{expected,CurveCount}, {sample_values,SampleValues},
 				{plot_parameter,PlotParamStr} } )
 
 	end.
 
 
 
-% @doc Used by third-party modules.
+% @doc Used (only) by third-party modules.
 -spec write_row( file(), plot_parameter_bin_string(), plot_sample() ) -> void().
 write_row( File, PlotParamBinStr, PlotSample ) when is_tuple( PlotSample ) ->
 	RowFormatStr = forge_format_string_for( size( PlotSample ) ),
 	write_row( File, RowFormatStr, PlotParamBinStr,
-			   tuple_to_list( PlotSample ) );
+			   _PlotTerms=tuple_to_list( PlotSample ) );
 
 % Thus a basic tuploid:
 write_row( File, PlotParamBinStr, PlotSample ) ->
 	RowFormatStr = forge_format_string_for( _Size=1 ),
-	write_row( File, RowFormatStr, PlotParamBinStr, [ PlotSample ] ).
+	write_row( File, RowFormatStr, PlotParamBinStr,
+			   _PlotTerms=[ PlotSample ] ).
 
 
 
@@ -1515,17 +1747,17 @@ write_row( File, PlotParamBinStr, PlotSample ) ->
 				 [ term() ] ) -> void().
 write_row( File, RowFormatStr, PlotParamBinStr, PlotTerms ) ->
 	file_utils:write_ustring( File, RowFormatStr,
-							  [ PlotParamBinStr | PlotTerms ) ] ).
+							  [ PlotParamBinStr | PlotTerms ] ).
 
 
 
 
-% @doc Writes the probe header to the data file.
+% @doc Writes the plot header in the specified data file.
 -spec write_header( file(), [ curve_entry() ], [ zone_entry() ],
-					plot_settings(), ) -> void().
+					bin_plot_name(), plot_settings() ) -> void().
 write_header( File, CurveEntries, ZoneEntries, BinPlotName,
 			  #plot_settings{ title=MaybeBinTitle,
-							  meta_data=Metadata ) ->
+							  meta_data=Metadata } ) ->
 
 	{ { Year, Month, Day }, { Hour, Minute, Second } } =
 		time_utils:get_timestamp(),
@@ -1545,7 +1777,7 @@ write_header( File, CurveEntries, ZoneEntries, BinPlotName,
 
 	ZoneDescriptions = format_zone_info( ZoneEntries ),
 
-	TitleStr = "# " ++ case MaybeBinTitle of
+	TitleStr = case MaybeBinTitle of
 
 		undefined ->
 			"(no plot title defined)";
@@ -1553,29 +1785,35 @@ write_header( File, CurveEntries, ZoneEntries, BinPlotName,
 		BinTitle ->
 			text_utils:format( "Plot title: '~ts'.", [ BinTitle ] )
 
-						   end ++ "~n~n",
+	end,
 
-	MetadataAllStrings = [ text_utils:ensure_string( BinText )
-							|| { _Key, BinText } <- Metadata ],
+	FirstColDescDef =
+		"(no information given regarding the meaning of the first column)",
 
-	MetadataString = text_utils:strings_to_string( MetadataAllStrings,
-												   _Sep="# - " ),
+	{ FirstColDesc, ShrunkMetadata } = list_table:extract_entry_with_default(
+		_K=first_column_description, FirstColDescDef, Metadata ),
+
+	ShrunkMetadataStrs = [ text_utils:ensure_string( Text )
+							|| { _Key, Text } <- ShrunkMetadata ],
+
+	MetadataStr = text_utils:strings_to_string( ShrunkMetadataStrs,
+												_Sep="# - " ),
 
 	file_utils:write_ustring( File,
-		"# This time series data file has been written on ~B/~B/~B, at "
+		"# This plot data file has been written on ~B/~B/~B, at "
 		"~B:~2..0B:~2..0B, on~n"
 		"# host ~ts (node: ~ts).~n~n"
 		"# Plot name: '~ts'.~n"
-		TitleStr,
+		"# ~ts~n~n"
 		"# Associated meta-data: ~ts~n~n"
-		"# First column corresponds to the abscissa, "
-		"expressed in tick offsets.~n"
+		"# ~ts~n"
 		"# Next columns correspond to following curve names "
 		"(in that order):~n~ts~n"
 		"# ~ts",
 		[ Day, Month, Year, Hour, Minute, Second,
-		  net_utils:localhost(), net_utils:localnode(), Name, TitleComment,
-		  MetadataString, CurveDescriptions, ZoneDescriptions ] ).
+		  net_utils:localhost(), net_utils:localnode(), BinPlotName,
+		  TitleStr, MetadataStr,
+		  FirstColDesc, CurveDescriptions, ZoneDescriptions ] ).
 
 
 % (helper)

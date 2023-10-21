@@ -47,7 +47,8 @@ test_basic_plot() ->
 	InitPlotSettings = plot_utils:get_plot_settings( "My test plot" ),
 
 	TitlePlotSettings = plot_utils:set_title( "Evaluation of the time factor "
-		"due to a larger mass, based on distance to it.", InitPlotSettings ),
+		"due to a larger mass, based on its distance to the observer.",
+		InitPlotSettings ),
 
 	XLabelPlotSettings = plot_utils:set_x_label( "Distance in kilometers",
 												 TitlePlotSettings ),
@@ -88,7 +89,8 @@ test_basic_plot() ->
 	% [{meters(),percent()]:
 	%trace_utils:debug_fmt( "Sample pairs: ~w.", [ Pairs ] ),
 
-	BinPlotPath = plot_utils:plot_samples( Pairs, FinalPlotSettings ),
+	{ success, BinPlotPath } =
+		plot_utils:plot_samples( Pairs, FinalPlotSettings ),
 
 	test_facilities:display( "Plot file '~ts' generated.", [ BinPlotPath ] ),
 
