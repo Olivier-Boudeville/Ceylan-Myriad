@@ -354,7 +354,7 @@
 
 
 -type environment() :: [ { env_variable_name(), env_variable_value() } ].
-% Represents a shell environment (a set of variables).
+% Represents a shell environment (a set of variable names and values).
 
 
 -type working_dir() :: maybe( any_directory_path() ).
@@ -1006,7 +1006,7 @@ run_executable( ExecPath, Arguments ) ->
 % environment variable; use, in the executable_utils module,
 % lookup_executable/{1,2} or find_executable/1 for that; not using any
 % intermediary shell either) with specified command-line arguments and
-% environment variable, from the current working directory, using the default
+% environment variables, from the current working directory, using the default
 % port options.
 %
 % Returns its return code (exit status) and its outputs (both the standard and
@@ -1025,7 +1025,7 @@ run_executable( ExecPath, Arguments, Environment ) ->
 % environment variable; use, in the executable_utils module,
 % lookup_executable/{1,2} or find_executable/1 for that; not using any
 % intermediary shell either) with specified command-line arguments and
-% environment variable, from any specified working directory, using the default
+% environment variables, from any specified working directory, using the default
 % port options.
 %
 % Returns its return code (exit status) and its outputs (both the standard and
@@ -1043,7 +1043,7 @@ run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir ) ->
 % environment variable; use, in the executable_utils module,
 % lookup_executable/{1,2} or find_executable/1 for that; not using any
 % intermediary shell either) with specified command-line arguments and
-% environment variable, from any specified working directory and any extra port
+% environment variables, from any specified working directory and any extra port
 % options.
 %
 % Returns its return code (exit status) and its outputs (both the standard and
