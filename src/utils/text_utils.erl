@@ -205,6 +205,11 @@
 % These strings are supposed to contain Erlang-fashioned format characters, like
 % in "hello ~p!".
 
+-type format_bin_string() :: bin_string().
+% These strings are supposed to contain Erlang-fashioned format characters, like
+% in `<<"hello ~p!">>'.
+
+
 
 -type control_sequence() :: ustring().
 % In a format string (e.g. "~n").
@@ -399,7 +404,7 @@
 
 
 
--export_type([ format_string/0, format_values/0,
+-export_type([ format_string/0, format_bin_string/0, format_values/0,
 			   regex_string/0, title/0, bin_title/0, any_title/0, label/0,
 			   bin_string/0, any_string/0, unicode_string/0, unicode_data/0,
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
