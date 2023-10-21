@@ -55,20 +55,29 @@
 % opposed to bitmaps).
 
 
--type image_format() :: 'png'
-					  | 'jpeg'
-					  | 'bmp'
-					  | 'gif'
-					  | 'pcx'
-					  | 'tiff'
-					  | 'tga'
-					  | 'pnm'
-					  | 'iff'
-					  | 'xpm'
-					  | 'ico'
-					  | 'cur'
-					  | 'ani'.
-% Designates a supported file format able to store images.
+
+-type image_bitmap_format() :: 'png'
+							 | 'jpeg'
+							 | 'bmp'
+							 | 'gif'
+							 | 'pcx'
+							 | 'tiff'
+							 | 'tga'
+							 | 'pnm'
+							 | 'iff'
+							 | 'xpm'
+							 | 'ico'
+							 | 'cur'
+							 | 'ani'.
+% Designates a supported file format able to store bitmap images.
+
+
+-type image_vector_format() :: 'svg'.
+% Designates a supported file format able to store vector-based images.
+
+
+-type image_format() :: image_bitmap_format() | image_vector_format().
+% Designates a supported file format able to store (bitmap or vector) images.
 %
 % We prefer telling explicitly the type rather than trying to guess it from the
 % extension of a filename, as it is clearer and more reliable.
@@ -79,8 +88,8 @@
 % https://docs.wxwidgets.org/stable/classwx_image.html for the available image
 % handlers (e.g. BMP, PNG, JPEG, GIF, PCX, TIFF, TGA).
 %
-% We recommend PNG for bitmap-like images (as lossless) and JPEG for
-% snapshot-like image (as is lossy but compact).
+% We recommend PNG for bitmap-like images (as lossless), JPEG for snapshot-like
+% images (as is lossy but compact) and SVG for vector-based images.
 
 
 -type image_quality() :: 'normal' | 'high'.
@@ -101,13 +110,16 @@
 % A small rectangular bitmap usually used for denoting a minimised application.
 
 
--export_type([ image/0, image_format/0, image_quality/0,
+-export_type([ image/0,
+			   image_bitmap_format/0, image_vector_format/0, image_format/0,
+			   image_quality/0,
 			   image_path/0, bin_image_path/0, any_image_path/0,
 			   icon/0 ]).
 
 
 % For images:
--export([ load_from_file/1, load_from_file/2,
+-export([ image_format_to_extension/1,
+		  load_from_file/1, load_from_file/2,
 		  destruct/1, destruct_multiple/1,
 
 		  get_size/1, has_alpha/1,
@@ -140,12 +152,12 @@
 
 % Shorthands:
 
-
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:any_file_path().
+-type extension() :: file_utils:extension().
 
 -type ustring() :: text_utils:ustring().
 
@@ -413,6 +425,16 @@ create_bitmap( ImagePath ) ->
 
 	end.
 
+
+% @doc Returns the file extension corresponding to the specified image format.
+%
+% Note though that often the specified atom may be used directly, instead of the
+% corresponding plain string.
+%
+-spec image_format_to_extension( image_format() ) -> extension().
+image_format_to_extension( ImgFormat ) ->
+	% Currently sufficient:
+	text_utils:atom_to_string( ImgFormat ).
 
 
 
