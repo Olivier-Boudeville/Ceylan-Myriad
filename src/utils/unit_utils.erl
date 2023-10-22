@@ -281,15 +281,16 @@
 % The distance that light travels in free space in one second. It is equal to
 % exactly 299 792 458 m (hence about 300 000 km).
 
+
 -type ls() :: light_second().
 % Abbreviation of light-second.
 
 -type light_seconds() :: light_second().
 
-% Exact number:
+% Correspond to c; exact number:
 -define(meters_per_light_second, 299792458 ).
 
-% Useful for display:
+% Useful for display (0.001c):
 -define(meters_per_milli_light_second, 299792 ).
 
 
@@ -341,12 +342,36 @@
 
 % Speed related section.
 
--type km_per_hour() :: float().
+% By increasing speed magnitude:
+
 -type meters_per_second() :: float().
+% Abbreviated as "m/s".
+
+-type km_per_hour() :: float().
+% Abbreviated as "km/h".
+
+
+-type c() :: float().
+% Light-second per second, that is c, the speed of light (as a unit).
+%  Could be abbreviated as "l", or "ls/s", but of course c is a lot clearer.
+
+-type ls_per_second() :: c().
+
+
+-type light_year_per_second() :: float().
+% Abbreviated as "ly/s".
+%
+% Of no real interest, as would designate speeds larger than c.
+
+-type ly_per_second() :: light_year_per_second().
+
 
 -type meters_per_tick() :: float().
 
--export_type([ km_per_hour/0, meters_per_second/0, meters_per_tick/0 ]).
+-export_type([ meters_per_second/0, km_per_hour/0,
+			   c/0, ls_per_second/0,
+			   light_year_per_second/0, ly_per_second/0,
+			   meters_per_tick/0 ]).
 
 
 
@@ -908,13 +933,13 @@ astronomical_units_to_meters( Au ) ->
 % @doc Converts the specified speed in km/h to m/s.
 -spec km_per_hour_to_meters_per_second( km_per_hour() ) -> meters_per_second().
 km_per_hour_to_meters_per_second( K ) ->
-	( K * 1000 ) / 3600.
+	K / 3.6.
 
 
 % @doc Converts the specified speed in m/s to km/h.
 -spec meters_per_second_to_km_per_hour( meters_per_second() ) -> km_per_hour().
 meters_per_second_to_km_per_hour( M ) ->
-	M * 3600 / 1000.
+	M * 3.6.
 
 
 
@@ -1068,13 +1093,31 @@ position_to_string( _Pos={ Lat, Long } ) ->
 
 
 
+% Threshold: over 1000 km/h; in m/s:
+-define( first_speed_threshold, 1000 / 3.6 ).
+
+
 % @doc Returns a textual, user-friendly, short (possibly rounded) description of
-% the specified speed.
+% the specified (supposedly positive) speed.
+%
+% Rules:
+%  - below 1000 km/h: use km/h
+%  - above 1000 km/h but below 0.001 c: use m/s
+%  - above 0.001 c: use c
 %
 -spec speed_to_string( meters_per_second() ) -> ustring().
-speed_to_string( Mps ) when Mps > ?meters_per_milli_light_year ->
-	text_utils:format( "~." ++ ?digits_after_decimal ++ "f ly/s",
-					   [ Mps / ?meters_per_light_year ] );
+speed_to_string( Mps ) when Mps < ?first_speed_threshold ->
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "f km/h",
+		[ meters_per_second_to_km_per_hour( Mps ) ] );
+
+% Never happens:
+%speed_to_string( Mps ) when Mps > ?meters_per_milli_light_year ->
+%	text_utils:format( "~." ++ ?digits_after_decimal ++ "f ly/s",
+%					   [ Mps / ?meters_per_light_year ] );
+
+speed_to_string( Mps ) when Mps > ?meters_per_milli_light_second ->
+	text_utils:format( "~." ++ ?digits_after_decimal ++ "f c",
+					   [ Mps / ?meters_per_light_second ] );
 
 speed_to_string( Mps ) ->
 	text_utils:format( "~." ++ ?digits_after_decimal ++ "f m/s", [ Mps ] ).
