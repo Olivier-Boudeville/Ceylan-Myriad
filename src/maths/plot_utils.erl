@@ -250,7 +250,9 @@
 -type label_text() :: bin_string().
 % Actual text of a label.
 %
-% Note that texts can be "enhanced" (e.g. "for some {/:Bold important} text").
+% Note that texts can be "enhanced" (e.g. "for some {/:Bold important} text"),
+% and may include newlines (e.g. "radius\\nat...").
+
 
 
 -type label_color() :: color().
@@ -269,7 +271,7 @@
 
 
 -type user_point_style_spec() :: any_string() | boolean().
-% The user specification of a point to be rendered.
+% A user specification of a point to be rendered.
 %
 % For example <<"pointtype 1">>.
 %
@@ -283,10 +285,16 @@
 % For example <<"pointtype 1">>.
 
 
+-type label_spec() :: { label_text(), label_location() }
+		| { label_text(), label_location(), user_point_style_spec() }.
+% A user specification of a label.
+
+
 -export_type([ plot_label/0,
 			   label_location/0, label_text/0, label_color/0,
 			   label_justification/0, label_orientation/0,
-			   user_point_style_spec/0, point_style_spec/0 ]).
+			   user_point_style_spec/0, point_style_spec/0,
+			   label_spec/0 ]).
 
 
 
@@ -364,10 +372,13 @@
 
 
 % Main user API:
--export([ get_plot_settings/1,
+-export([ get_plot_settings/1, set_plot_name/2,
 		  set_title/2, set_x_label/2, set_y_label/2,
 		  set_key_options/2,
-		  add_label/3, add_label/4,
+
+		  add_label/3, add_label/4, add_label/7, add_labels/2,
+		  remove_labels/1,
+
 		  declare_curves/2, declare_zones/2,
 		  plot_samples/2, plot_samples/3 ]).
 
@@ -535,6 +546,13 @@ get_plot_settings( UsrPlotName ) ->
 	#plot_settings{ name=text_utils:ensure_binary( UsrPlotName ) }.
 
 
+
+% @doc Sets the name of the target plot.
+-spec set_plot_name( user_plot_name(), plot_settings() ) -> plot_settings().
+set_plot_name( UsrPlotName, PlotSettings ) ->
+	PlotSettings#plot_settings{ name=text_utils:ensure_binary( UsrPlotName ) }.
+
+
 % @doc Returns the specification of a plot corresponding to the specified one
 % once the specified title (if any) has been set.
 %
@@ -588,25 +606,75 @@ add_label( Text, Location, PlotSettings=#plot_settings{ labels=Labels } ) ->
 %
 -spec add_label( label_text(), label_location(), user_point_style_spec(),
 				 plot_settings() ) -> plot_settings().
-add_label( Text, Location, _DoMarkPoint=false,
-		   PlotSettings=#plot_settings{ labels=Labels } ) ->
-	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
-						 location=Location },
-	PlotSettings#plot_settings{ labels=[ Label | Labels ] };
 
-add_label( Text, Location, _DoMarkPoint=true,
+add_label( Text, Location, UsrPtStyleSpec,
 		   PlotSettings=#plot_settings{ labels=Labels } ) ->
 	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
 						 location=Location,
-						 point= <<"pointtype 2">>},
-	PlotSettings#plot_settings{ labels=[ Label | Labels ] };
-
-add_label( Text, Location, MarkPointStyle,
-		   PlotSettings=#plot_settings{ labels=Labels } ) ->
-	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
-						 location=Location,
-						 point=text_utils:ensure_binary( MarkPointStyle ) },
+						 point=from_user_point_style_spec( UsrPtStyleSpec ) },
 	PlotSettings#plot_settings{ labels=[ Label | Labels ] }.
+
+
+
+% @doc Adds a in-plot label, with the specified text at the specified location,
+% possibly with a point being marked there.
+%
+% (most complete label definition)
+%
+add_label( Text, Location, Color, Justification, Orientation, UsrPtStyleSpec,
+		   PlotSettings=#plot_settings{ labels=Labels } ) ->
+
+	Label = #plot_label{ text=text_utils:ensure_binary( Text ),
+						 location=Location,
+						 color=Color,
+						 justification=Justification,
+						 orientation=Orientation,
+						 point=from_user_point_style_spec( UsrPtStyleSpec ) },
+
+	PlotSettings#plot_settings{ labels=[ Label | Labels ] }.
+
+
+
+-spec from_user_point_style_spec( user_point_style_spec() ) ->
+											point_style_spec().
+from_user_point_style_spec( _DoMarkPoint=false ) ->
+	undefined;
+
+from_user_point_style_spec( _DoMarkPoint=true ) ->
+	 <<"pointtype 2">>;
+
+from_user_point_style_spec( MarkPointStyle ) ->
+	text_utils:ensure_binary( MarkPointStyle ) .
+
+
+
+% @doc Adds the specified in-plot labels.
+-spec add_labels( [ label_spec() ], plot_settings() ) -> plot_settings().
+add_labels( _LabelSpecs=[], PlotSettings ) ->
+	PlotSettings;
+
+add_labels( _LabelSpecs=[ { Text, Location } | T ], PlotSettings ) ->
+	NewPlotSettings = add_label( Text, Location, PlotSettings ),
+	add_labels( T, NewPlotSettings );
+
+add_labels( _LabelSpecs=[ { Text, Location, UserPtStSpec } | T ],
+			PlotSettings ) ->
+	NewPlotSettings = add_label( Text, Location, UserPtStSpec, PlotSettings ),
+	add_labels( T, NewPlotSettings );
+
+add_labels( _LabelSpecs=[ { Text, Location, Color, Justification, Orientation,
+							UserPtStSpec } | T ],
+			PlotSettings ) ->
+	NewPlotSettings = add_label( Text, Location, Color, Justification,
+								 Orientation, UserPtStSpec, PlotSettings ),
+	add_labels( T, NewPlotSettings ).
+
+
+
+% @doc Removes all in-plot labels.
+-spec remove_labels( plot_settings() ) -> plot_settings().
+remove_labels( PlotSettings ) ->
+	PlotSettings#plot_settings{ labels=[] }.
 
 
 
