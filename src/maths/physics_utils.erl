@@ -42,7 +42,8 @@
 
 
 % Varied functions:
--export([ get_gravitational_acceleration/2, get_escape_velocity/2,
+-export([ get_lorentz_factor/1,
+		  get_gravitational_acceleration/2, get_escape_velocity/2,
 		  get_schwarzschild_radius/1, get_time_factor/2 ]).
 
 
@@ -52,7 +53,7 @@
 
 
 
--type time_factor() :: float().
+-type time_factor() :: factor().
 % A ratio between the flow of the proper time of an observer and the overall
 % time coordinate.
 %
@@ -69,6 +70,7 @@
 -type meters() :: unit_utils:meters().
 -type meters_per_second() :: unit_utils:meters_per_second().
 
+-type factor() :: math_utils:factor().
 
 
 
@@ -187,6 +189,21 @@ sigma() ->
 % Astrophysics-related basic functions.
 
 
+% @doc Returns the Lorentz factor ("gamma"), a quantity that expresses how much
+% the measurements of time, length, and other physical properties change for an
+% object while that object is moving.
+%
+% S is the speed, i.e. the magnitude of the relative velocity between the
+% inertial reference frame of the object and the one of the observer.
+%
+% See https://en.wikipedia.org/wiki/Lorentz_factor.
+%
+-spec get_lorentz_factor( meters_per_second() ) -> factor().
+get_lorentz_factor( S ) ->
+	math:sqrt( 1 - math_utils:square( S / c() ) ).
+
+
+
 % @doc Returns the local gravitational acceleration at the specified distance
 % from the center of a spherically symmetric primary body (such as a star or a
 % planet) of the specified mass.
@@ -226,7 +243,7 @@ get_schwarzschild_radius( Mass ) ->
 
 % @doc Returns the time factor that shall be applied to the proper time of an
 % observer located at the specified distance from a primary body of the
-% specified mass.
+% specified mass, which creates the gravitational field.
 %
 % The distance is expected to be greater than the Schwarzschild radius of said
 % primary body.
