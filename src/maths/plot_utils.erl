@@ -52,7 +52,7 @@
 -type user_plot_path() :: any_file_path().
 % The path to a file corresponding to a rendering of a plot, as an image.
 %
-% Typically a PNG file.
+% Typically a PNG or a SVG file.
 
 
 -type plot_style() :: 'linespoints' % (default)
@@ -404,7 +404,7 @@
 % The (internal) path to a file corresponding to a rendering of a plot, as an
 % image.
 %
-% Typically a PNG file.
+% Typically a PNG or a SVG file.
 
 
 
@@ -1578,7 +1578,7 @@ generate_command_file( PlotSettings=#plot_settings{
 	% We prefer defining relative paths, so that a command file and its
 	% dependencies are movable afterwards:
 	%
-	%PNGFilePath = file_utils:bin_join( BinPlotDir, BinImgFilename ),
+	%ImgFilePath = file_utils:bin_join( BinPlotDir, BinImgFilename ),
 
 	CommandFilename = get_command_filename( BinPlotName ),
 

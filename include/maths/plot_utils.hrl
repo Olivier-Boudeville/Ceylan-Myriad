@@ -138,7 +138,9 @@
 
 
 	% The image format for plot rendering (for the generated plot files):
-	% (default could be 'svg' some day)
+	%
+	% (default could be 'svg' some day; the rendering is quite close, yet the
+	% file sizes are at least twice as large)
 	%
 	image_format = 'png' :: gui_image:image_format(),
 
