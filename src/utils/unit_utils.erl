@@ -290,7 +290,11 @@
 % Correspond to c; exact number:
 -define(meters_per_light_second, 299792458 ).
 
-% Useful for display (0.001c):
+
+% Useful for display (0.001c; hence about 300 000 m/s, or 300km/s):
+%
+% (a milli-ls corresponds to 300 km)
+%
 -define(meters_per_milli_light_second, 299792 ).
 
 
@@ -346,14 +350,27 @@
 
 -type meters_per_second() :: float().
 % Abbreviated as "m/s".
+%
+% A unit that is 3.6 larger than "km/h".
+
 
 -type km_per_hour() :: float().
 % Abbreviated as "km/h".
+%
+% A unit that is 3.6 smaller than "m/s".
+
 
 
 -type c() :: float().
 % Light-second per second, that is c, the speed of light (as a unit).
-%  Could be abbreviated as "l", or "ls/s", but of course c is a lot clearer.
+%
+% Is exactly 299 792 458 m/s (i.e. about 300 000 km/s).
+%
+% Could be abbreviated as "l" (for "light"), or "ls/s", but of course c is a lot
+% clearer.
+%
+% See the physics_utils:c/0 function.
+
 
 -type ls_per_second() :: c().
 
@@ -1093,7 +1110,7 @@ position_to_string( _Pos={ Lat, Long } ) ->
 
 
 
-% Threshold: over 1000 km/h; in m/s:
+% Threshold: over 1000 km/h; in m/s (about 278 m/s):
 -define( first_speed_threshold, 1000 / 3.6 ).
 
 
