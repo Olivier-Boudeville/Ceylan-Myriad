@@ -71,10 +71,12 @@
 % 'iconized' not kept (duplicate of 'minimize').
 -type frame_style() ::
 
+	window_style()
+
 	% Corresponds to the following options: minimize_icon, maximize_icon,
 	% resize_border, system_menu, caption, close_icon and clip_children:
 	%
-	'default'
+  |	'default'
 
 	% Displays a caption on the title bar of this frame (needed for icons):
   | 'caption'
@@ -112,7 +114,7 @@
   | 'shaped'.
 % A style element for frames.
 %
-% Note that specifying an empty option list does not enable any option,; one may
+% Note that specifying an empty option list does not enable any option; one may
 % use 'default' instead.
 %
 % See also [http://docs.wxwidgets.org/stable/classwx_frame.html].
@@ -146,9 +148,12 @@
 -type any_file_path() :: file_utils:any_file_path().
 
 -type size() :: gui:size().
+-type sizing() :: gui:sizing().
 -type position() :: gui:position().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
+
+-type frame_style() :: gui_frame:frame_style().
 
 -type menu_bar() :: gui_menu:menu_bar().
 
@@ -200,7 +205,7 @@ create( Title, Size ) ->
 
 
 
-% @doc Creates a frame, with default position, size and style.
+% @doc Creates a frame, with default position, size and styles.
 -spec create( title(), id(), maybe( parent() ) ) -> frame().
 create( Title, Id, MaybeParent ) ->
 	wxFrame:new( gui_wx_backend:to_wx_parent( MaybeParent ),
@@ -208,14 +213,14 @@ create( Title, Id, MaybeParent ) ->
 
 
 
-% @doc Creates a frame, with the specified title, position, size and style, and
+% @doc Creates a frame, with the specified title, position, size and styles, and
 % with a default parent.
 %
--spec create( title(), position(), size(), [ frame_style() ] ) -> frame().
-create( Title, Position, Size, Styles ) ->
+-spec create( title(), position(), sizing(), [ frame_style() ] ) -> frame().
+create( Title, Position, Sizing, Styles ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
-				gui_wx_backend:to_wx_size( Size ),
+				gui_wx_backend:to_wx_size( Sizing ),
 				{ style, frame_styles_to_bitmask( Styles ) } ],
 
 	%trace_utils:debug_fmt( "create_frame options: ~p.", [ WxOpts ] ),
@@ -225,19 +230,19 @@ create( Title, Position, Size, Styles ) ->
 
 
 
-% @doc Creates a frame, with the specified title, position, size and style, and
+% @doc Creates a frame, with the specified title, position, size and styles, and
 % with the specified parent.
 %
--spec create( title(), position(), size(), [ frame_style() ], id(),
+-spec create( title(), position(), sizing(), [ frame_style() ], id(),
 			  maybe( parent() ) ) -> frame().
-create( Title, Position, Size, Styles, Id, MaybeParent ) ->
+create( Title, Position, Sizing, Styles, Id, MaybeParent ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
-				gui_wx_backend:to_wx_size( Size ),
-				{ style, frame_styles_to_bitmask( Styles ) } ],
+			   gui_wx_backend:to_wx_size( Sizing ),
+			   { style, frame_styles_to_bitmask( Styles ) } ],
 
-	trace_utils:debug_fmt( "Creating a frame with WxOpts = ~w "
-		"(styles: ~w).", [ WxOpts, Styles ] ),
+	%trace_utils:debug_fmt( "Creating a frame with WxOpts = ~w "
+	%                       "(styles: ~w).", [ WxOpts, Styles ] ),
 
 	ActualId = gui_id:declare_any_id( Id ),
 

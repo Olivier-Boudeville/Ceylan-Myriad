@@ -40,7 +40,7 @@
 
 
 % Silencing:
--export([ determine_constants/0, test_frame/0 ]).
+-export([ determine_constants/0, test_frame/0, test_window_from_frame/0 ]).
 
 
 
@@ -59,7 +59,6 @@ test_frame() ->
 	_WxServer = wx:new(),
 	%process_flag(trap_exit, true),
 
-
 	TestWindowOpts = [ { style, ?wxBORDER_NONE } ],
 
 	TestWindow = wxWindow:new( _Parent=wx:null(), _Id=?wxID_ANY,
@@ -67,6 +66,7 @@ test_frame() ->
 
 	wxWindow:show( TestWindow ),
 
+	%timer:sleep( 3000 ),
 
 	TestFrameOpts = [ { style, ?wxBORDER_NONE } ],
 
@@ -74,6 +74,34 @@ test_frame() ->
 							 "Test frame", TestFrameOpts ),
 
 	wxFrame:show( TestFrame ),
+
+	timer:sleep( 1000 ),
+
+	%% receive
+
+	%%	Any ->
+	%%		trace_utils:debug_fmt( "Test received ~w.", [ Any ] )
+	%%		% Terminates.
+
+	%% end.
+
+	terminates.
+
+
+test_window_from_frame() ->
+	_WxServer = wx:new(),
+	process_flag(trap_exit, true),
+
+	%TestWindowOpts = [ { style, ?wxBORDER_NONE } ],
+	TestWindowOpts = [],
+
+	% Shows that a mere window may not even appear onscreen; use a frame
+	% instead.
+	%
+	TestWindow = wxWindow:new( _Parent=wx:null(), _Id=?wxID_ANY,
+							   TestWindowOpts ),
+
+	wxWindow:show( TestWindow ),
 
 	receive
 
@@ -96,9 +124,11 @@ run_gui_test() ->
 	% already loaded):
 
 	% Loads the wx NIF:
-	determine_constants(),
+	%determine_constants(),
 
-	%test_frame(),
+	test_frame(),
+
+	%test_window_from_frame(),
 
 	test_facilities:display( "End of the wx test." ).
 

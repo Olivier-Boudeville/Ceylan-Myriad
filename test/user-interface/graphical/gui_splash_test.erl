@@ -42,6 +42,10 @@
 -include("test_facilities.hrl").
 
 
+% For myriad_spawn_link:
+-include_lib("myriad/include/spawn_utils.hrl").
+
+
 % Shorthands:
 
 -type frame() :: gui:frame().
@@ -55,7 +59,7 @@
 
 	main_frame :: frame(),
 
-	splash_frame :: frame(),
+	splash_frame :: maybe( frame() ),
 
 	% The splash panel (in the splash frame), used here as a canvas:
 	splash_panel :: panel(),
@@ -94,15 +98,19 @@ run_splash_screen_test() ->
 
 	gui:start(),
 
-	MainFrame = gui_frame:create( _Title="MyriadGUI Splash Screen Test",
-								  gui_overall_test:get_main_window_size() ),
+	Pos = auto,
+	NoId = undefined,
+
+	MainFrame = gui_frame:create( _MTitle="MyriadGUI Splash Screen Test",
+		Pos, _MSize={ 800, 600 }, _MStyles=[ default ], NoId,
+		_MaybeParent=undefined ),
+
 
 	% Rather minimal:
-	SplashStyles = [ no_taskbar, float_on_parent ],
+	SplashStyles = [ no_border, no_taskbar, float_on_parent ],
 
-	SplashFrame = gui_frame:create( _STitle="Myriad Splash Screen",
-		_Position=auto, _Size=auto, SplashStyles, _Id=undefined,
-		_Parent=MainFrame ),
+	SplashFrame = gui_frame:create( _STitle="Myriad Splash Screen", Pos,
+		_SSize=auto, SplashStyles, NoId, _Parent=MainFrame ),
 
 	SplashPanel = gui_panel:create( SplashFrame ),
 
@@ -128,6 +136,19 @@ run_splash_screen_test() ->
 
 	gui_frame:show( SplashFrame ),
 
+	% Closure:
+	MainTestPid = self(),
+
+	DurationMs = 1500,
+
+	trace_utils:debug_fmt( "Will remove splash screen in ~ts.",
+						   [ time_utils:duration_to_string( DurationMs ) ] ),
+
+	?myriad_spawn_link( fun() ->
+							timer:sleep( DurationMs ),
+							MainTestPid ! removeSplash
+						end ),
+
 	test_main_loop( #my_test_state{ main_frame=MainFrame,
 									splash_frame=SplashFrame,
 									splash_panel=SplashPanel,
@@ -141,11 +162,18 @@ run_splash_screen_test() ->
 % The main loop of this test.
 -spec test_main_loop( my_test_state() ) -> void().
 test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
+										  splash_frame=SplashFrame,
 										  %splash_panel=SplashPanel,
 										  backbuffer=BackbufferBitmap,
 										  image_bitmap=ImgBitmap } ) ->
 
 	receive
+
+		removeSplash ->
+			trace_utils:debug( "Removing splash." ),
+			gui_frame:destruct( SplashFrame ),
+			test_main_loop( TestState#my_test_state{ splash_frame=undefined } );
+
 
 		% Not subscribed to onRepaintNeeded, so never activated:
 		%{ onRepaintNeeded, [ Panel, _Context ] } ->

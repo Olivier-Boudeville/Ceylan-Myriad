@@ -248,35 +248,34 @@ get_object_type_topic_spec() ->
 get_window_style_topic_spec() ->
 
 	Entries = [
-		{ default_border,            ?wxBORDER_SIMPLE          },
-		{ simple_border,             ?wxBORDER_SIMPLE          },
-		{ sunken_border,             ?wxBORDER_SUNKEN          },
-		{ raised_border,             ?wxBORDER_RAISED          },
-		{ static_border,             ?wxSTATIC_BORDER          },
-		{ theme_border,              ?wxBORDER_THEME           },
-		{ no_border,                 ?wxBORDER_NONE            },
-		{ double_border,             ?wxBORDER_DOUBLE          },
-		{ transparent,               ?wxTRANSPARENT_WINDOW     },
-		{ tab_traversable,           ?wxTAB_TRAVERSAL          },
-		{ grab_all_keys,             ?wxWANTS_CHARS            },
-		{ with_vertical_scrollbar,   ?wxVSCROLL                },
-		{ with_horizontal_scrollbar, ?wxHSCROLL                },
-		{ never_hide_scrollbars,     ?wxALWAYS_SHOW_SB         },
-		{ clip_children,             ?wxCLIP_CHILDREN          },
+		{ default_border,            ?wxBORDER_SIMPLE      },
+		{ simple_border,             ?wxBORDER_SIMPLE      },
+		{ sunken_border,             ?wxBORDER_SUNKEN      },
+		{ raised_border,             ?wxBORDER_RAISED      },
+		{ static_border,             ?wxSTATIC_BORDER      },
+		{ theme_border,              ?wxBORDER_THEME       },
+		{ no_border,                 ?wxBORDER_NONE        },
+		{ double_border,             ?wxBORDER_DOUBLE      },
+		{ transparent,               ?wxTRANSPARENT_WINDOW },
+		{ tab_traversable,           ?wxTAB_TRAVERSAL      },
+		{ grab_all_keys,             ?wxWANTS_CHARS        },
+		{ with_vertical_scrollbar,   ?wxVSCROLL            },
+		{ with_horizontal_scrollbar, ?wxHSCROLL            },
+		{ never_hide_scrollbars,     ?wxALWAYS_SHOW_SB     },
+		{ clip_children,             ?wxCLIP_CHILDREN      },
 
 		% Forces a complete redraw of the window whenever it is resized instead
 		% of redrawing just the part of the window affected by resizing
 		%
 		% (see https://docs.wxwidgets.org/stable/classwx_window.html)
 		%
-		{ full_repaint_on_resize,    ?wxFULL_REPAINT_ON_RESIZE } ],
+		{ full_repaint_on_resize, ?wxFULL_REPAINT_ON_RESIZE } ],
 
 	% Cannot be bijective, as a second_to_first function cannot be defined: some
 	% wx defines collide, at least on some configurations (e.g. platforms; for
 	% example ?wxBORDER_THEME may be equal to ?wxBORDER_DOUBLE):
 	%
-	{ window_style, Entries, _ElemLookup=strict,
-	  _Direction=first_to_second }.
+	{ window_style, Entries, _ElemLookup=strict, _Direction=first_to_second }.
 
 
 
@@ -287,14 +286,19 @@ get_window_style_topic_spec() ->
 						topic_spec( frame_style_opt(), bit_mask() ).
 get_frame_style_topic_spec() ->
 
-	Entries = [
-		{ default,         ?wxDEFAULT_FRAME_STYLE },
-		{ caption,         ?wxCAPTION },
+	{ window_style, WindowEntries, ElemLookup, Direction } =
+		get_window_style_topic_spec(),
+
+	% As a frame is a special case of window:
+	Entries = WindowEntries ++ [
+
+		{ default, ?wxDEFAULT_FRAME_STYLE },
+		{ caption, ?wxCAPTION },
 
 		% Useless 'minimize' (Windows-only);
 		%{ minimize, ?wxMINIMIZE },
 
-		{ minimize_icon,   ?wxMINIMIZE_BOX },
+		{ minimize_icon, ?wxMINIMIZE_BOX },
 
 		% Useless 'maximize' (Windows-only);
 		%{ maximize, ?wxMAXIMIZE_BOX},
@@ -306,9 +310,10 @@ get_frame_style_topic_spec() ->
 		{ tool_window,     ?wxFRAME_TOOL_WINDOW },
 		{ no_taskbar,      ?wxFRAME_NO_TASKBAR },
 		{ float_on_parent, ?wxFRAME_FLOAT_ON_PARENT },
-		{ shaped,          ?wxFRAME_SHAPED} ],
+		{ shaped,          ?wxFRAME_SHAPED } ],
 
-	{ frame_style, Entries }.
+	{ frame_style, Entries, ElemLookup, Direction }.
+
 
 
 

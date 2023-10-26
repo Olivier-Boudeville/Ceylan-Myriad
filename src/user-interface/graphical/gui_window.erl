@@ -50,6 +50,13 @@
 %
 % This corresponds to "real" windows - not to any widget (that wx/WxWidgets call
 % "windows").
+%
+% Note that this class is mostly a mother, abstract one, and various creation
+% settings will lead to no window being displayed at all. For most practical
+% purposes, a frame (a concrete, special case thereof) may/should be created
+% instead.
+
+
 
 -type window_option() :: { 'position', point() }
 					   | { 'size', size() }
@@ -102,7 +109,7 @@
 % A top-level (application-wide) window.
 %
 % The top-level window is a base class common to frames and dialogs; so such a
-% window is typically a frame (including any main one) or a dialog.
+% window is typically any frame (including any main one) or any dialog.
 
 
 -export_type([ top_level_window/0 ]).
@@ -197,6 +204,8 @@
 
 -type point() :: gui:point().
 -type size() :: gui:size().
+-type sizing() :: gui:sizing().
+
 -type position() :: gui:position().
 -type orientation() :: orientation().
 -type parent() :: gui:parent().
@@ -238,7 +247,7 @@ create( Id, Parent ) ->
 
 
 % @doc Creates a basic window of the specified size.
--spec create( size() ) -> window().
+-spec create( sizing() ) -> window().
 create( Size ) ->
 
 	ActualId = gui_id:declare_any_id( undefined ),
@@ -252,20 +261,22 @@ create( Size ) ->
 
 % @doc Creates a basic window from the specified settings.
 %
-% @hidden (internal use only)
-%
--spec create( position(), size(), window_style(), id(), parent() ) ->
+-spec create( position(), sizing(), [ window_style() ], id(), parent() ) ->
 											window().
-create( Position, Size, Style, Id, Parent ) ->
+create( Position, Sizing, Styles, Id, Parent ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
-			   gui_wx_backend:to_wx_size( Size ),
-			   { style, window_styles_to_bitmask( Style ) } ],
+			   gui_wx_backend:to_wx_size( Sizing ),
+			   { style, window_styles_to_bitmask( Styles ) } ],
 
 	ActualId = gui_id:declare_any_id( Id ),
 	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
 
+	trace_utils:debug_fmt( "Creating a window with backend options ~w, "
+		"identifier ~w and parent ~w.", [ WxOpts, ActualId, ActualParent ] ),
+
 	wxWindow:new( ActualParent, ActualId, WxOpts ).
+
 
 
 % @doc Destructs the specified window.
@@ -486,10 +497,14 @@ set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
 
 
 
-% Records, in the MyriadGUI environment, the specified window (typically a
+% @doc Records, in the MyriadGUI environment, the specified window (typically a
 % frame) as the application top-level window.
 %
--spec record_as_top_level( window() ) -> void().
+% Note that the specified window is expected to be already, in terms of type, a
+% top-level one (e.g. a frame or a dialog); the purpose of this function is only
+% to have it recorded as such by MyriadGUI.
+%
+-spec record_as_top_level( top_level_window() ) -> void().
 record_as_top_level( Window ) ->
 	environment:set( _K=top_level_window, _V=Window,
 					 _Designator=?gui_env_reg_name ).

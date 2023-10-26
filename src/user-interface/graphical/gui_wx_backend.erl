@@ -306,7 +306,7 @@
 -type myriad_object_type() :: gui:myriad_object_type().
 -type gui_object() :: gui:gui_object().
 -type position() :: gui:position().
--type size() :: gui:size().
+-type sizing() :: gui:sizing().
 -type direction() :: gui:direction().
 -type orientation() :: gui:orientation().
 -type parent() :: gui:parent().
@@ -408,7 +408,7 @@ to_wx_debug_level( _DebugLevel=life_cycle ) ->
 
 
 
-% @doc Converts specified MyriadGUI identifier in a wx-specific widget
+% @doc Converts the specified MyriadGUI identifier in a wx-specific widget
 % identifier.
 %
 % (helper)
@@ -436,7 +436,7 @@ to_wx_parent( Other ) ->
 
 
 
-% @doc Converts specified MyriadGUI position in a wx-specific position (with
+% @doc Converts the specified MyriadGUI position in a wx-specific position (with
 % defaults).
 %
 % (helper)
@@ -450,11 +450,12 @@ to_wx_position( Position ) ->
 
 
 
-% @doc Converts specified MyriadGUI size in a wx-specific size (with defaults).
+% @doc Converts the specified MyriadGUI size in a wx-specific size (with
+% defaults).
 %
 % (helper)
 %
--spec to_wx_size( size() ) -> wx_size().
+-spec to_wx_size( sizing() ) -> wx_size().
 to_wx_size( _Size=auto ) ->
 	{ size, ?wx_default_size };
 
@@ -534,7 +535,7 @@ to_wx_device_context_attributes( _Attrs=[ Other | _T ], _Acc ) ->
 
 
 %
-% Section for the conversions from wx to MyriadGUI:
+% Section for the conversions from wx to MyriadGUI.
 %
 
 
