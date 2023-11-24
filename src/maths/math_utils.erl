@@ -39,7 +39,7 @@
 -export([ floor/1, ceiling/1, round_after/2,
 		  float_to_integer/1, float_to_integer/2,
 		  modulo/2, clamp/2, clamp/3, squarify/1,
-		  sign/1,
+		  sign/1, copy_sign/2,
 		  square/1, int_pow/2, get_next_power_of_two/1,
 		  ln/1 ]).
 
@@ -101,7 +101,7 @@
 
 
 % Special functions:
--export([ factorial/1, gamma/1 ]).
+-export([ factorial/1, gamma/1, lgamma/1 ]).
 
 
 % For epsilon define:
@@ -306,6 +306,37 @@
 -type radians() :: unit_utils:radians().
 
 
+-define( lanczos_g, 6.024680040776729583740234375 ).
+
+-define( lanczos_count, 13 ).
+
+
+% Lists of ?lanczos_count elements:
+
+% For the numerators:
+-define( lanczos_num_coeffs, [
+	23531376880.410759688572007674451636754734846804940,
+	42919803642.649098768957899047001988850926355848959,
+	35711959237.355668049440185451547166705960488635843,
+	17921034426.037209699919755754458931112671403265390,
+	6039542586.3520280050642916443072979210699388420708,
+	1439720407.3117216736632230727949123939715485786772,
+	248874557.86205415651146038641322942321632125127801,
+	31426415.585400194380614231628318205362874684987640,
+	2876370.6289353724412254090516208496135991145378768,
+	186056.26539522349504029498971604569928220784236328,
+	8071.6720023658162106380029022722506138218516325024,
+	210.82427775157934587250973392071336271166969580291,
+	2.5066282746310002701649081771338373386264310793408 ] ).
+
+
+% For the denominators, which are: X*(X+1)*...*(X+?lanczos_num_coeffs-2):
+-define( lanczos_den_coeffs, [
+	0.0, 39916800.0, 120543840.0, 150917976.0, 105258076.0, 45995730.0,
+	13339535.0, 2637558.0, 357423.0, 32670.0, 1925.0, 66.0, 1.0 ] ).
+
+
+
 % General section.
 
 
@@ -370,6 +401,10 @@ ceiling( X ) ->
 % the decimal point.
 %
 % For example round_after(12.3456, _DigitCount3) = 12.346.
+%
+% For a standard round operation, simply use the (Erlang-native) round(float())
+% -> integer() function directly. For example: 1 = round(1.1), 2 = round(
+% 1.9) and -2 = round( -1.9).
 %
 -spec round_after( float(), count() ) -> float().
 round_after( F, DigitCount ) ->
@@ -535,6 +570,22 @@ sign( N ) when N >= 0 ->
 
 sign( _N ) ->
 	-1.
+
+
+
+% @doc Returns a float with the magnitude (absolute value) of X but the sign of
+% Y.
+%
+% For example -2.0 = copy_sign( 2.0, -0.0) returns -2.0.
+%
+-spec copy_sign( float(), float() ) -> float().
+copy_sign( X, Y ) when is_float( Y ) andalso Y >= 0.0 ->
+	abs( X );
+
+% Y < 0.0:
+copy_sign( X, Y ) when is_float( Y ) ->
+	-abs( X ).
+
 
 
 % @doc Returns the square of the specified number.
@@ -1618,7 +1669,7 @@ compute_integer_support( Fun ) ->
 % Typically useful to properly discretise probability density functions.
 %
 -spec compute_integer_support( integer_to_float_fun(), maybe( integer_bound() ),
-								maybe( integer_bound() ) ) -> integer_bounds().
+							   maybe( integer_bound() ) ) -> integer_bounds().
 compute_integer_support( Fun, MaybeMin=undefined, MaybeMax=undefined ) ->
 	compute_integer_support( Fun, _Origin=0, MaybeMin, MaybeMax );
 
@@ -2209,8 +2260,7 @@ factorial( N ) when N > 0 ->
 
 
 % @doc Evaluates the well-known Gamma function for the specified value (integer
-% or floating-point: no need felt for one operating on complex numbers).
-%
+% or floating-point - no need felt for one operating on complex numbers).
 %
 %              +infinity
 %             /
@@ -2220,6 +2270,13 @@ factorial( N ) when N > 0 ->
 %
 % Exact results are returned for integer values, approximated ones for
 % floating-point ones.
+%
+% Note that this function returns very quickly extremely large values, soon
+% exceeding, for floating-point values, the range of float() (hence C doubles) -
+% whereas remaining able to be evaluated for integer values (e.g. gamma(650) can
+% be evaluated whereas gamma(650.0) cannot, due to an exception when evaluating
+% an arithmetic expression, related to math:pow/2). One may rely on lgamma/1
+% instead.
 %
 % Refer to https://en.wikipedia.org/wiki/Gamma_function for more information.
 %
@@ -2281,3 +2338,150 @@ add_gamma( _P=[], _OffsetF, _Inc, AccV ) ->
 add_gamma( _P=[ H | T ], OffsetF, Inc, AccV ) ->
 	NewAccV = AccV + H / ( OffsetF + Inc),
 	add_gamma( T, OffsetF, Inc+1, NewAccV ).
+
+
+
+% @doc Evaluates the natural logarithm of the absolute value of the well-known
+% Gamma function for the specified (integer or floating-point) value.
+%
+% Refer to https://en.wikipedia.org/wiki/Gamma_function for more information.
+%
+% See also gamma/1.
+%
+-spec lgamma( pos_integer() ) -> pos_integer();
+			( float() ) -> float().
+lgamma( _I=1 ) ->
+	0;
+
+% Otherwise tends to +infinity:
+lgamma( I ) when is_integer( I ) andalso I > 0 ->
+	lgamma( float( I ) );
+
+lgamma( F ) when is_float( F ) ->
+	% Inspired from the implementation in
+	% https://github.com/python/cpython/blob/31c05b72c15885ad5ff298de39456d8baed28448/Modules/mathmodule.c#L490
+
+	% Apparently, for large arguments, Lanczos' formula works extremely well
+	% here.
+
+	% No specific management of non-finite - including NaN - values.
+
+	AbsF = abs( F ),
+
+	% For tiny arguments, lgamma(x) ~ -log(fabs(x)):
+	case AbsF < ?smaller_epsilon of
+
+		true ->
+			-ln( AbsF );
+
+		_False ->
+			LanczosG = ?lanczos_g,
+			R1 = ln( lanczos_sum( AbsF ) ) - LanczosG,
+			R2 = R1 + (AbsF - 0.5 ) * ( ln( AbsF + LanczosG - 0.5 ) - 1 ),
+			case F < 0.0 of
+
+				true ->
+					% Use reflection formula to get value for negative F:
+					?ln_pi - ln( abs( sin_pi( AbsF ) ) ) - ln( AbsF ) - R2;
+
+				false ->
+					R2
+
+			end
+
+	end.
+
+
+
+% Computes the rational Lanczos sum of the specified strictly positive float.
+lanczos_sum( F ) when is_float( F ) andalso F > 0.0 ->
+
+	Nums = ?lanczos_num_coeffs,
+	Dens = ?lanczos_den_coeffs,
+
+	cond_utils:assert( myriad_debug_math,
+		?lanczos_count =:= length( Nums )
+			andalso ?lanczos_count =:= length( Dens ) ),
+
+	% Evaluates the rational function lanczos_sum(F). For large F, the obvious
+	% algorithm risks overflow, so we instead rescale the denominator and
+	% numerator of the rational function by x**(1-?lanczos_count) and treat this
+	% as a rational function in 1/F. This also reduces the error for larger F
+	% values. The choice of cutoff point (5.0 below) is somewhat arbitrary; in
+	% tests, smaller cutoff values than this resulted in lower accuracy.
+
+	{ Num, Den } = case F < 5.0 of
+
+		true ->
+			RevNums = lists:reverse( Nums ),
+			RevDens = lists:reverse( Dens ),
+
+			mult_lanczos_coeffs( _N=0.0, _D=0.0, F, RevNums, RevDens );
+
+		_False ->
+			div_lanczos_coeffs( _N=0.0, _D=0.0, F, Nums, Dens )
+
+	end,
+
+	Num / Den.
+
+
+
+% (helper)
+mult_lanczos_coeffs( N, D, _F, _Ns=[], _Ds ) ->
+	{ N, D };
+
+mult_lanczos_coeffs( N, D, F, _Ns=[ Num | TN ], _Ds=[ Den | TD ] ) ->
+	NewN = N * F + Num,
+	NewD = D * F + Den,
+	mult_lanczos_coeffs( NewN, NewD, F, TN, TD ).
+
+
+% (helper)
+div_lanczos_coeffs( N, D, _F, _Ns=[], _Ds ) ->
+	{ N, D };
+
+div_lanczos_coeffs( N, D, F, _Ns=[ Num | TN ], _Ds=[ Den | TD ] ) ->
+	NewN = N / F + Num,
+	NewD = D / F + Den,
+	div_lanczos_coeffs( NewN, NewD, F, TN, TD ).
+
+
+
+
+
+
+sin_pi( F ) ->
+
+	AbsF = abs( F ),
+
+	% In [0.0, 2.0]:
+	Mod2F = math:fmod( AbsF, 2.0 ),
+
+	N = round( 2.0 * Mod2F ),
+
+	% Useless: cond_utils:assert( myriad_debug_math, N >= 0 andalso N =< 4 ),
+
+	R = case N of
+
+		0 ->
+			math:sin( math:pi() * Mod2F );
+
+		1 ->
+			math:cos( math:pi() * (Mod2F-0.5) );
+
+		2 ->
+			% -sin(pi*(Mod2F-1.0)) is *not* equivalent: it would give -0.0
+			% instead of 0.0 when Mod2F == 1.0.
+			%
+			math:sin( math:pi() * (1.0-Mod2F));
+
+		3 ->
+			-math:cos( math:pi() * (Mod2F-1.5));
+
+		4 ->
+			math:sin( math:pi() * (Mod2F-2.0))
+
+	end,
+
+	copy_sign( 1.0, F ) * R.
