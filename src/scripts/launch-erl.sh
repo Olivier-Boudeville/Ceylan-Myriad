@@ -82,6 +82,7 @@ Detailed options:
 	--beam-dir a_path: adds specified directory to the path searched for beam files (multiple --beam-dir options can be specified)
 	--beam-paths first_path second_path ...: adds specified directories to the path searched for beam files (multiple paths can be specified; must be the last option)
 	--log-dir: specify the directory in which the VM logs (if using run_erl) shall be written
+	--display-command: displays on the console the actual, final command that is executed by this script (the corresponding printout starts then with 'Launcher executing')
 
 Other options will be passed 'as are' to the interpreter with a warning, except if they are listed after a '-start-verbatim-options' option, in which case they will passed with no warning.
 
@@ -156,6 +157,7 @@ in_background=1
 #
 non_interactive=1
 
+display_command=1
 
 # Often left disabled (hence at 1), since most crashes require only Erlang-level
 # debugging:
@@ -340,6 +342,12 @@ while [ $# -gt 0 ] && [ ${do_stop} -eq 1 ]; do
 		non_interactive=0
 		token_eaten=0
 	fi
+
+	if [ "$1" = "--display-command" ]; then
+		display_command=0
+		token_eaten=0
+	fi
+
 
 	if [ "$1" = "--beam-paths" ]; then
 		# Keep --beam-paths if first position, as will be shifted in end of loop
@@ -854,9 +862,9 @@ if [ $use_run_erl -eq 0 ]; then
 	# Log to console:
 	#echo; echo "##### $0 running final command with run_erl: '${final_command}', with use_run_erl = ${use_run_erl}"
 
-	if [ ${be_verbose} -eq 0 ]; then
+	if [ ${be_verbose} -eq 0 ] || [ ${display_command} -eq 0 ]; then
 
-		echo "Launching with run_erl: ${final_command}"
+		echo "Launcher executing with run_erl: ${final_command}"
 
 	fi
 
@@ -899,9 +907,9 @@ else
 
 	#echo "direct command: ${command}"
 
-	if [ ${be_verbose} -eq 0 ]; then
+	if [ ${be_verbose} -eq 0 ] || [ ${display_command} -eq 0 ]; then
 
-		echo "Executing: ${erl} ${to_eval} ${command}"
+		echo "Launcher executing: ${erl} ${to_eval} ${command}"
 
 	fi
 
