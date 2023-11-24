@@ -38,8 +38,7 @@
 #
 %_parse_transform.beam: %_parse_transform.erl
 	@echo "		Compiling parse transform $<"
-	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
-	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
+	@$(ERLANG_COMPILER_ENV) "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_PT) -o $@ $<
 
 
 
@@ -62,7 +61,6 @@
 #
 %_generated.beam: %_constants.erl %.beam
 	@echo "		Generating support modules based on $<"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $< | sed 's|\.erl$$||1')-generator-for-$$USER --eval $$(echo $@ | sed 's|_generated\.beam$$|:generate_support_modules()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $< | sed 's|\.erl$$||1')-generator-for-$$USER --eval $$(echo $@ | sed 's|_generated\.beam$$|:generate_support_modules()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
@@ -75,28 +73,24 @@
 #
 %_test.beam: %_test.erl %_test.hrl
 	@echo "		Compiling test module with header $<"
-	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
-	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+	@$(ERLANG_COMPILER_ENV) "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
 
 
 %_test.beam: %_test.erl
 	@echo "		Compiling test module $<"
-	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
-	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
+	@$(ERLANG_COMPILER_ENV) "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) $(ERLANG_COMPILER_OPT_FOR_TESTS) -o $@ $<
 
 
 # You probably want to uncomment the next rule, not this one.
 %.beam: %.erl $(LAYER_TOP)/%.hrl
 	@echo "		Compiling standard module with header $<"
-	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
-	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	@$(ERLANG_COMPILER_ENV) "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
 # The main, most usual rule, with its most useful printout:
 %.beam: %.erl
 	@echo "		Compiling standard module $<"
-	@#echo $(ERLANG_COMPILER) $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
-	@"$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
+	@$(ERLANG_COMPILER_ENV) "$(ERLANG_COMPILER)" $(ERLANG_COMPILER_OPT_FOR_STANDARD_MODULES) -o $@ $<
 
 
 
@@ -133,13 +127,11 @@ endif
 
 %_exec: %_app.beam %.beam
 	@echo "		Executing application $^ (first form)"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
 %_exec: %_app.beam
 	@echo "		Executing application $^ (second form)"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
@@ -149,13 +141,11 @@ endif
 #
 %_non_interactive_exec: %_app.beam %.beam
 	@echo "		Executing application $^ (first form, in a non-interactive variant)"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') --non-interactive $(ALL_CMD_LINE_OPTIONS)
 
 
 %_non_interactive_exec: %_app.beam
 	@echo "		Executing application $^ (second form, in a non-interactive variant)"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_exec$$|_app:exec()|1') --non-interactive $(ALL_CMD_LINE_OPTIONS)
 
 
@@ -174,7 +164,6 @@ endif
 
 %_exec_background: %_app.beam
 	@echo "		Executing application $^ in the background (second form)"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_background$$||1')-$$USER --background --eval $$(echo $@|sed 's|_exec_background$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS) &
 
 
@@ -199,7 +188,6 @@ endif
 
 %_exec_service: %_app.beam
 	@echo "		Executing application $^ as a service (second form)"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $$(echo $@|sed 's|_exec_service$$||1') --daemon --eval $$(echo $@|sed 's|_exec_service$$|_app:exec()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
@@ -300,7 +288,6 @@ endif
 
 %_run: %_test %.beam
 	@echo "		Running unitary test $@ (second form) from $^"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
@@ -309,7 +296,6 @@ endif
 #
 %_run: %_test
 	@echo "		Running unitary test $@ (third form) from $^"
-	@#echo $(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 	@$(ERL_PARAMETERIZED_LAUNCHER) $(NODE_NAMING) $@-$$USER --eval $$(echo $@|sed 's|_run$$|_test:run()|1') $(ALL_CMD_LINE_OPTIONS)
 
 
