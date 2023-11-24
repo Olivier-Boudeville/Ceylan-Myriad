@@ -71,6 +71,7 @@ ifndef EXECUTION_TARGET
 endif
 
 
+
 # We defined a symbol specific to the 'production' execution target
 # (exec_target_is_production) instead of relying only on an execution_target
 # variable that could be set either to 'development' or 'production', as we
@@ -1188,6 +1189,10 @@ ERLANG_COMPILER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erlc 2>/dev/nul
 # To check actual compile options:
 #ERLANG_COMPILER := echo "COMPILE OPTIONS:"
 
+#ERLANG_COMPILER_ENV :=
+
+# Should even the compiler be affected by backward monotonic time:
+ERLANG_COMPILER_ENV = env ERL_AFLAGS="$(TIME_OPTS)"
 
 ERLANG_BIN_ROOT := $(shell dirname "$(ERLANG_COMPILER)")
 
@@ -1703,9 +1708,15 @@ endif
 # now that user-defined code paths are absolute, thus significantly longer
 #
 # OVERRIDDEN_OPT left for the user.
+#
+# Refer to -start-verbatim-options / -extra to define additional options.
+#
+# Could be added: '--display-command', to check the full call to erl, with
+# actual options.
+#
 ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(HOSTNAME_OPT) $(FIREWALL_OPT)  \
-							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)       \
-							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)  \
+							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)           \
+							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)      \
 							 $(LOG_DIR_OPT) $(ENCODING_OPT) $(OVERRIDDEN_OPT)
 
 
@@ -1770,6 +1781,26 @@ else
 endif
 
 
+# Should runtime errors like the next one be encountered, typically on some
+# (perhaps a bit exotic) virtual machines:
+#
+# Monotonic time stepped backwards!
+# Previous time: 1243166989
+# Current time:  1243164693
+# Aborted
+#
+# (then relevant for our launcher but for 'erlc' as well)
+#
+TIME_OPTS =
+#TIME_OPTS = +C no_time_warp
+
+
+# Any extra options that shall be passed as it is to 'erl' through our launcher:
+EXTRA_OPTS = $(TIME_OPTS)
+
+
+
+
 # Regarding the VM-specific command-line options, we used to rely on '-noshell'
 # rather than on '-noinput', as no shell was wanted by default for executions,
 # since executables are supposed to interact by themselves with the user.
@@ -1803,18 +1834,18 @@ endif
 
 
 # In this case term_ui is ko (displays and terminates), text_ui is ok:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput -noshell
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput -noshell $(EXTRA_OPTS)
 
 # The same:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS)
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) $(EXTRA_OPTS)
 
 # term_ui is ok, text_ui by default has no input but with our workaround is ok -
 # yet crashing may disrupt the hosting UNIX shell:
 #
-EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput
+EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput $(EXTRA_OPTS)
 
 # term_ui is ok, text_ui has no input:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noshell
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noshell $(EXTRA_OPTS)
 
 
 # EXEC_EXTERNAL_OPTIONS referenced so that upper layers may add their own
