@@ -273,7 +273,7 @@
 -type user_point_style_spec() :: any_string() | boolean().
 % A user specification of a point to be rendered.
 %
-% For example <<"pointtype 1">>.
+% For example `<<"pointtype 1">>'.
 %
 % If true, a default point style is selected; if false no point will be
 % rendered.
@@ -282,7 +282,7 @@
 -type point_style_spec() :: bin_string().
 % The internal specification of a point to be rendered.
 %
-% For example <<"pointtype 1">>.
+% For example `<<"pointtype 1">>'.
 
 
 -type label_spec() :: { label_text(), label_location() }
@@ -430,9 +430,9 @@
 
 
 -type curve_plot_suffix() :: bin_string().
-% A (binary string) suffix (e.g. <<"noenhanced with filledcurves">>, <<"with
-% boxes">> or <<"with boxes lt rgb '#f0f0f0'">>) to be added to the plot command
-% of the corresponding curve.
+% A (binary string) suffix (e.g. `<<"noenhanced with filledcurves">>', `<<"with
+% boxes">>' or `<<"with boxes lt rgb '#f0f0f0'">>') to be added to the plot
+% command of the corresponding curve.
 
 
 -type zone_name() :: bin_string().
@@ -440,7 +440,7 @@
 
 
 -type zone_plot_suffix() :: bin_string().
-% A (binary string) suffix (e.g. <<"fillcolor red">>) to be added to the plot
+% A (binary string) suffix (e.g. `<<"fillcolor red">>') to be added to the plot
 % command of the corresponding zone.
 
 
