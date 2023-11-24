@@ -57,6 +57,8 @@
 -export([
 
 	get_default_image_viewer_name/0,
+	get_secondary_default_image_viewer_name/0,
+	get_default_image_viewer_info/0,
 	get_default_image_viewer_path/0,
 
 	get_default_image_browser_name/0,
@@ -127,8 +129,11 @@
 % A name, not a path.
 
 
+-type executable_info() :: { executable_name(), executable_path() }.
+% Name and absolute path of an executable.
 
--export_type([ executable_name/0 ]).
+
+-export_type([ executable_name/0, executable_info/0 ]).
 
 
 
@@ -485,10 +490,44 @@ get_default_image_viewer_name() ->
 	"gwenview".
 
 
+% @doc Returns the name of the secondary default image viewer.
+-spec get_secondary_default_image_viewer_name() -> executable_name().
+get_secondary_default_image_viewer_name() ->
+	"eog".
+
+
 % @doc Returns an absolute path to the default image viewer tool.
+-spec get_default_image_viewer_info() -> executable_info().
+get_default_image_viewer_info() ->
+	PrimaryImgViewerName = get_default_image_viewer_name(),
+	case lookup_executable( PrimaryImgViewerName ) of
+
+		false ->
+			SecondaryImgViewerName = get_secondary_default_image_viewer_name(),
+			case lookup_executable( SecondaryImgViewerName ) of
+
+				false ->
+					throw( { no_image_viewer_found,
+						{ PrimaryImgViewerName, SecondaryImgViewerName } } );
+
+				SecPath ->
+					{ SecondaryImgViewerName, SecPath }
+
+			end;
+
+		PrimPath ->
+			{ PrimaryImgViewerName, PrimPath }
+
+	end.
+
+
+
+% @doc Returns the information (name and absolute path) relative to the default
+% image viewer tool.
+%
 -spec get_default_image_viewer_path() -> executable_path().
 get_default_image_viewer_path() ->
-	find_executable( get_default_image_viewer_name() ).
+	pair:second( get_default_image_viewer_info() ).
 
 
 
@@ -592,9 +631,10 @@ get_secondary_default_audio_player_name() ->
 
 
 
-% @doc Returns the name and absolute path to the default audio player.
--spec get_default_audio_player_info() ->
-							{ executable_name(), executable_path() }.
+% @doc Returns the information (name and absolute path) relative to the default
+% audio player.
+%
+-spec get_default_audio_player_info() -> executable_info().
 get_default_audio_player_info() ->
 	PrimaryPlayerName = get_default_audio_player_name(),
 	case lookup_executable( PrimaryPlayerName ) of
