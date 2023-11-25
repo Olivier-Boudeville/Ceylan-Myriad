@@ -99,6 +99,7 @@
 
 	get_make_path/0,
 
+	get_maybe_gnuplot_path/0,
 	get_gnuplot_path/0,
 	get_current_gnuplot_version/0,
 	get_current_gnuplot_version/1,
@@ -141,7 +142,10 @@
 -export([ is_batch/0 ]).
 
 
--define( dot_tool, "dot" ).
+-define( dot_exec_name, "dot" ).
+
+-define( gnuplot_exec_name, "gnuplot" ).
+
 
 
 % Shorthands:
@@ -244,7 +248,7 @@ find_executable( ExecutableName ) ->
 -spec can_generate_png_from_graph() -> 'true' | ustring().
 can_generate_png_from_graph() ->
 
-	Tool = ?dot_tool,
+	Tool = ?dot_exec_name,
 
 	case lookup_executable( Tool ) of
 
@@ -781,11 +785,30 @@ get_make_path() ->
 	find_executable( "make" ).
 
 
+
+% @doc Tells whether a gnuplot executable is available, by returning its path if
+% found.
+%
+-spec get_maybe_gnuplot_path() -> maybe( executable_path() ).
+get_maybe_gnuplot_path() ->
+	% Note: expected to be on the PATH:
+	case lookup_executable( ?gnuplot_exec_name ) of
+
+		false ->
+			undefined;
+
+		Path ->
+			Path
+
+	end.
+
+
+
 % @doc Returns an absolute path to a gnuplot executable.
 -spec get_gnuplot_path() -> executable_path().
 get_gnuplot_path() ->
 	% Note: expected to be on the PATH:
-	find_executable( "gnuplot" ).
+	find_executable( ?gnuplot_exec_name ).
 
 
 
@@ -1037,7 +1060,7 @@ is_batch() ->
 -spec execute_dot( file_name(), file_name() ) -> command_output().
 execute_dot( PNGFilename, GraphFilename ) ->
 
-	DotExec = find_executable( ?dot_tool ),
+	DotExec = find_executable( ?dot_exec_name ),
 
 	Cmd = DotExec ++ " -o" ++ PNGFilename ++ " -Tpng " ++ GraphFilename,
 
