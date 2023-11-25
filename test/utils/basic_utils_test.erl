@@ -37,7 +37,7 @@
 
 
 % For myriad_spawn*:
--include("spawn_utils.hrl").
+-include_lib("myriad/include/spawn_utils.hrl").
 
 
 
@@ -170,10 +170,8 @@ run() ->
 							 [ ?myriad_spawn_info ] ),
 
 	?myriad_spawn( fun() ->
-
-					   % Closure:
-					   Self ! myriad_spawned
-
+						% Closure:
+						Self ! myriad_spawned
 				   end ),
 
 	receive
@@ -189,8 +187,8 @@ run() ->
 
 	?myriad_spawn_link( fun() ->
 
-					   % Closure:
-					   Self ! myriad_spawned_linked
+						% Closure:
+						Self ! myriad_spawned_linked
 
 						end ),
 

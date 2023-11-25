@@ -54,9 +54,11 @@
 
 		  resolve_path/1, resolve_any_path/1,
 
-		  convert_to_filename/1, escape_path/1,
+		  convert_to_filename/1, convert_to_filename_with_extension/2,
+		  escape_path/1,
 
 		  get_extensions/1, get_extension/1, get_dotted_extension_for/1,
+		  add_extension/2,
 		  remove_extension/1, remove_extension/2, replace_extension/3,
 
 		  exists/1, get_type_of/1, resolve_type_of/1,
@@ -1019,7 +1021,8 @@ resolve_any_path( Other ) ->
 
 
 
-% @doc Converts the specified name into an acceptable filename, filesystem-wise.
+% @doc Converts the specified name into an acceptable filename (or file path),
+% filesystem-wise.
 %
 % Returns the same type of string as the provided one.
 %
@@ -1039,7 +1042,19 @@ convert_to_filename( Name ) ->
 	% different).
 
 	re:replace( lists:flatten( Name ), ?patterns_to_replace_for_paths,
-				?replacement_for_paths, [ global, { return, list } ] ).
+		?replacement_for_paths, [ global, { return, list } ] ).
+
+
+
+% @doc Converts the specified name into an acceptable filename (or file path),
+% filesystem-wise.
+%
+% Returns the same type of string as the provided one.
+%
+-spec convert_to_filename_with_extension( any_string(), extension() ) ->
+											any_file_name().
+convert_to_filename_with_extension( Name, Ext ) ->
+	convert_to_filename( add_extension( Name, Ext ) ).
 
 
 
@@ -1116,6 +1131,21 @@ get_extension( Filename ) ->
 			list_utils:get_last_element( Extensions )
 
 	end.
+
+
+
+% @doc Adds the specified extension to the specified filename prefix.
+%
+% For example: "/mnt/foobar.txt" = add_extension("/mnt/foobar", "txt")
+%
+% Returns a file path of the same type as the specified one.
+%
+-spec add_extension( any_file_path(), extension() ) -> any_file_path().
+add_extension( BinFilePath, Ext ) when is_binary( BinFilePath ) ->
+	text_utils:bin_format( "~ts.~ts", [ BinFilePath, Ext ] );
+
+add_extension( FilePathStr, Ext ) ->
+	text_utils:format( "~ts.~ts", [ FilePathStr, Ext ] ).
 
 
 

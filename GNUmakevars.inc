@@ -71,6 +71,7 @@ ifndef EXECUTION_TARGET
 endif
 
 
+
 # We defined a symbol specific to the 'production' execution target
 # (exec_target_is_production) instead of relying only on an execution_target
 # variable that could be set either to 'development' or 'production', as we
@@ -146,6 +147,7 @@ endif
 #  - traces: for Myriad-level traces
 #  - random: about stochastic sample draws and probability density functions
 #  - math: for math-related operations
+#  - plot: for the rendering of all kinds of plots and graphs
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - gui_repaint_logic: how MyriadGUI manages repaints
@@ -153,6 +155,7 @@ endif
 #  - gui_canvas: how MyriadGUI manages canvases
 #  - gui_font: about font support
 #  - gui_instances: how MyriadGUI manages widget instances
+#  - gui_environments: the management of backend environments
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
 #  - gui_id: about widget identifiers
@@ -189,6 +192,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
@@ -196,6 +200,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
@@ -296,7 +301,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.33
+MYRIAD_VERSION := 1.0.34
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -1184,6 +1189,10 @@ ERLANG_COMPILER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erlc 2>/dev/nul
 # To check actual compile options:
 #ERLANG_COMPILER := echo "COMPILE OPTIONS:"
 
+#ERLANG_COMPILER_ENV :=
+
+# Should even the compiler be affected by backward monotonic time:
+ERLANG_COMPILER_ENV = env ERL_AFLAGS="$(TIME_OPTS)"
 
 ERLANG_BIN_ROOT := $(shell dirname "$(ERLANG_COMPILER)")
 
@@ -1699,9 +1708,15 @@ endif
 # now that user-defined code paths are absolute, thus significantly longer
 #
 # OVERRIDDEN_OPT left for the user.
+#
+# Refer to -start-verbatim-options / -extra to define additional options.
+#
+# Could be added: '--display-command', to check the full call to erl, with
+# actual options.
+#
 ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(HOSTNAME_OPT) $(FIREWALL_OPT)  \
-							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)       \
-							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)  \
+							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)           \
+							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)      \
 							 $(LOG_DIR_OPT) $(ENCODING_OPT) $(OVERRIDDEN_OPT)
 
 
@@ -1766,6 +1781,26 @@ else
 endif
 
 
+# Should runtime errors like the next one be encountered, typically on some
+# (perhaps a bit exotic) virtual machines:
+#
+# Monotonic time stepped backwards!
+# Previous time: 1243166989
+# Current time:  1243164693
+# Aborted
+#
+# (then relevant for our launcher but for 'erlc' as well)
+#
+TIME_OPTS =
+#TIME_OPTS = +C no_time_warp
+
+
+# Any extra options that shall be passed as it is to 'erl' through our launcher:
+EXTRA_OPTS = $(TIME_OPTS)
+
+
+
+
 # Regarding the VM-specific command-line options, we used to rely on '-noshell'
 # rather than on '-noinput', as no shell was wanted by default for executions,
 # since executables are supposed to interact by themselves with the user.
@@ -1799,18 +1834,18 @@ endif
 
 
 # In this case term_ui is ko (displays and terminates), text_ui is ok:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput -noshell
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput -noshell $(EXTRA_OPTS)
 
 # The same:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS)
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) $(EXTRA_OPTS)
 
 # term_ui is ok, text_ui by default has no input but with our workaround is ok -
 # yet crashing may disrupt the hosting UNIX shell:
 #
-EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput
+EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput $(EXTRA_OPTS)
 
 # term_ui is ok, text_ui has no input:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noshell
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noshell $(EXTRA_OPTS)
 
 
 # EXEC_EXTERNAL_OPTIONS referenced so that upper layers may add their own

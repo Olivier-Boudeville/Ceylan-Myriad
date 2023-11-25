@@ -242,9 +242,16 @@ set_font( Widget, Font, _DestructFont=false ) ->
 % wxWindow, wxPanel, etc.:
 set_font( Widget={ wx_ref, _Id, _AnyWxWidgetLike, _State }, Font, Color,
 		  _DestructFont=false ) ->
-	wxWindow:setFont( Widget, Font ),
-	wxWindow:setForegroundColour( Widget, gui_color:get_color( Color ) ).
 
+	%trace_utils:debug_fmt( "Setting for widget ~w font to ~w (color: ~w).",
+	%                       [ Widget, Font, Color ] ),
+
+	wxWindow:setFont( Widget, Font ),
+	wxWindow:setForegroundColour( Widget, gui_color:get_color( Color ) );
+
+set_font( Widget, Font, Color, _DestructFont=true ) ->
+	set_font( Widget, Font, Color, _DestructFnt=false ),
+	gui_font:destruct( Font ).
 
 
 % @doc Attaches a tooltip to the specified widget.

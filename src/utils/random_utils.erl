@@ -465,21 +465,24 @@
 
 
 -type gamma_2p_law_spec() ::
-	{ 'gamma_2p', K :: positive_float(), Theta :: positive_float() }
-  | { 'gamma_2p', K :: positive_float(), Theta :: positive_float(),
+	{ 'gamma_2p', Alpha :: positive_float(), Beta :: positive_float() }
+  | { 'gamma_2p', Alpha :: positive_float(), Beta :: positive_float(),
 	  sample_count() }
   | full_gamma_2p_law_spec().
-% The Gamma law with two parameters, whose K > 0 is the shape parameter and
-% Theta > 0 is the scale parameter.
+% The Gamma law with two parameters, whose Alpha > 0 (sometimes denoted K) is
+% the shape parameter and Beta > 0 (sometimes denoted Theta) is the scale
+% parameter.
 %
 % A sample count and specific bounds can be specified.
 %
 % See also https://en.wikipedia.org/wiki/Gamma_distribution and
 % https://reliawiki.org/index.php/The_Gamma_Distribution.
+%
+% gamma_2p corresponds to a gamma_3p for which Theta=0.
 
 
 -type full_gamma_2p_law_spec() ::
-	{ 'gamma_2p', K :: positive_float(), Theta :: positive_float(),
+	{ 'gamma_2p', Alpha :: positive_float(), Beta :: positive_float(),
 	  sample_count(), bounds() }.
 % Canonical, most complete Gamma law specification with two parameters.
 % Refer to gamma_2p_law_spec/0 for further details.
@@ -494,11 +497,13 @@
   | full_gamma_3p_law_spec().
 % The Gamma law with three parameters, whose:
 %
-% - Alpha > 0 is a shape parameter
+% - Alpha > 0 is the shape parameter
 %
-% - Beta > 0 is a shape parameter
+% - Beta > 0 is the scale parameter (initially was thought to be a second shape
+% parameter)
 %
-% - Theta > 0 is the scale parameter
+% - Theta > 0 is the location parameter, as an offset for the abscissa of
+% interest (x -> x-theta)
 %
 % A sample count and specific bounds can be specified.
 %
@@ -995,7 +1000,7 @@
 
 
 
--type exponential_1p_law_data() :: 
+-type exponential_1p_law_data() ::
 		{ exponential_1p_law_spec() | exponential_law_spec(), 'undefined' }.
 
 -type exponential_2p_law_data() ::
@@ -1013,8 +1018,8 @@
 
 
 
--type gamma_2p_law_settings() :: { 'gamma_2p', K :: positive_float(),
-		Theta :: positive_float(), sample_count(), bounds() }.
+-type gamma_2p_law_settings() :: { 'gamma_2p', Alpha :: positive_float(),
+		Beta :: positive_float(), sample_count(), bounds() }.
 % Internal settings of the Gamma-2p laws.
 
 -type gamma_3p_law_settings() :: { 'gamma_3p', Alpha :: positive_float(),
@@ -2222,14 +2227,14 @@ initialise_law( LS ) ->
 			_ArbitraryLawData={ Exp2pLawSettings, AliasTable };
 
 
-		{ _CanSpec={ gamma_2p, K, Theta, SampleCount,
+		{ _CanSpec={ gamma_2p, Alpha, Beta, SampleCount,
 					 GamBounds={ Min, Max } }, Inc, GamPDFFun } ->
 
 			cond_utils:if_defined( myriad_debug_random,
-				trace_utils:debug_fmt( "Initialising a Gamma-2p law of k=~f "
-					"and theta=~f, discretised on interval ~ts "
+				trace_utils:debug_fmt( "Initialising a Gamma-2p law of alpha=~f "
+					"and beta=~f, discretised on interval ~ts "
 					"with ~B points (increment: ~f).",
-					[ K, Theta, math_utils:bounds_to_string( GamBounds ),
+					[ Alpha, Beta, math_utils:bounds_to_string( GamBounds ),
 					  SampleCount, Inc ] ) ),
 
 			SampledPDFPairs =
@@ -2238,7 +2243,7 @@ initialise_law( LS ) ->
 			AliasTable = generate_alias_table_from( SampledPDFPairs ),
 
 			GamLawSettings =
-				{ gamma_2p, K, Theta, SampleCount, GamBounds },
+				{ gamma_2p, Alpha, Beta, SampleCount, GamBounds },
 
 			_ArbitraryLawData={ GamLawSettings, AliasTable };
 
@@ -3257,7 +3262,7 @@ get_all_sample_pairs( LS ) ->
 
 	  full_uniform_law_spec() | integer_uniform_law_spec()
 
-  |   exponential_1p_law_spec() | exponential_law_spec() 
+  |   exponential_1p_law_spec() | exponential_law_spec()
   | positive_integer_exponential_1p_law_spec()
   | { full_exponential_2p_law_spec(), increment(), exponential_2p_pdf() }
 
@@ -3872,7 +3877,7 @@ canonicalise_pdf_based_spec( _LS={ arbitrary, AnyName,
 % Main clause, full information available:
 canonicalise_pdf_based_spec( _LS={ arbitrary, AnyName,
 		_PDFInfo={ LawFun, SampleCount, SampleBounds } } )
-			                        when is_function( LawFun ) ->
+									when is_function( LawFun ) ->
 
 	check_sample_count( SampleCount ),
 
@@ -4879,6 +4884,11 @@ gamma_3p_pdf( S, Alpha, Beta, Theta ) when S >= 0.0 ->
 	% f(x; α, β, θ) = (1 / (θ^β * Γ(α/β))) * x^(α-1) * e^(-x/θ)
 	( 1 / ( pow( Theta, Beta ) * math_utils:gamma( Alpha / Beta ) )
 		* pow( S, Alpha-1 ) * exp( -S / Theta ) );
+
+	% However there is a problem as math_utils:gamma/1 would most often return a
+	% NaN, due to a too large value. So instead the logarithm of the PDF is
+	% computed (based on gammaln and xlogy), before an exponential value thereof
+	% is returned.
 
 gamma_3p_pdf( _S, _Alpha, _Beta, _Theta ) -> % when S < 0.0 ->
 	0.0.

@@ -1,4 +1,4 @@
-% Copyright (C) 2021-2023 Olivier Boudeville
+% Copyright (C) 2023-2023 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,16 +23,11 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Thursday, December 23, 2021.
+% Creation date: Wednesday, October 4, 2023.
 
 
-% @doc Testing the <b>support for the management of images</b>.
-%
-% Useful for example to check whether a given format is correctly supported.
-%
-% See the gui_image.erl tested module.
-%
--module(gui_image_test).
+% @doc Testing the <b>support for the management of splash screens</b>.
+-module(gui_splash_test).
 
 
 % Implementation notes:
@@ -47,14 +42,11 @@
 -include("test_facilities.hrl").
 
 
-% For re-use by other tests:
--export([ get_test_image_directory/0, get_test_main_image_path/0 ]).
-
+% For myriad_spawn_link:
+-include_lib("myriad/include/spawn_utils.hrl").
 
 
 % Shorthands:
-
--type directory_path() :: file_utils:directory_path().
 
 -type frame() :: gui:frame().
 -type panel() :: gui:panel().
@@ -67,8 +59,10 @@
 
 	main_frame :: frame(),
 
-	% A panel, used here as a canvas:
-	panel :: panel(),
+	splash_frame :: maybe( frame() ),
+
+	% The splash panel (in the splash frame), used here as a canvas:
+	splash_panel :: panel(),
 
 	% The off-screen bitmaps where all renderings take place:
 	backbuffer :: bitmap(),
@@ -85,70 +79,79 @@
 
 
 
-% @doc Returns the path to a test image directory.
--spec get_test_image_directory() -> directory_path().
-get_test_image_directory() ->
-	% Points to myriad/doc; relative to this test directory:
-	file_utils:join( [ "..", "..", "..", "doc" ] ).
-
-
-% @doc Returns the path to the main test image.
--spec get_test_main_image_path() -> directory_path().
-get_test_main_image_path() ->
-	ImageFilename = "myriad-title.png",
-	%ImageFilename = "myriad-minimal-enclosing-circle-test.png",
-
-	% If having there a local symlink pointing to
-	% Erlang-x.y/lib/erlang/lib/wx-z/examples/demo/image.jpg:
-	%
-	%ImageFilename = "image.jpg",
-
-	file_utils:join( get_test_image_directory(), ImageFilename ).
-
-
-
 % @doc Runs the actual test.
--spec run_image_test() -> void().
-run_image_test() ->
+-spec run_splash_screen_test() -> void().
+run_splash_screen_test() ->
 
-	ImagePath = get_test_main_image_path(),
+	ImagePath = gui_image_test:get_test_main_image_path(),
 
-	test_facilities:display( "Starting the image test, "
-		"simply by displaying the '~ts' image in a resizable window.",
-		[ ImagePath ] ),
+	test_facilities:display( "Starting the splash test, "
+		"by creating an empty main frame followed by said splash screen, "
+		"showing the '~ts' image.", [ ImagePath ] ),
 
-	trace_utils:notice( "A resizable frame displaying the Myriad logo shall "
-		"appear. The test will end as soon as this frame is closed." ),
+	WaitingDurationMs = 2000,
+
+	trace_utils:notice_fmt( "A splash screen displaying the Myriad logo shall "
+		"appear, and vanish when the test requests it, after ~ts. "
+		"The test will end as soon as the main frame is closed.",
+		[ time_utils:duration_to_string( WaitingDurationMs ) ] ),
 
 	gui:start(),
 
-	MainFrame = gui_frame:create( _Title="MyriadGUI Image Test",
-								  gui_overall_test:get_main_window_size() ),
+	Pos = auto,
+	NoId = undefined,
 
-	% No need to add _Opts=[{style, full_repaint_on_resize}]:
-	Panel = gui_panel:create( MainFrame ),
+	MainFrame = gui_frame:create( _MTitle="MyriadGUI Splash Screen Test",
+		Pos, _MSize={ 800, 600 }, _MStyles=[ default ], NoId,
+		_MaybeParent=undefined ),
+
+
+	% Rather minimal:
+	SplashStyles = [ no_border, no_taskbar, float_on_parent ],
+
+	SplashFrame = gui_frame:create( _STitle="Myriad Splash Screen", Pos,
+		_SSize=auto, SplashStyles, NoId, _Parent=MainFrame ),
+
+	SplashPanel = gui_panel:create( SplashFrame ),
+
 
 	% The backbuffer on which panel content will be drawn:
-	BackbufferBitmap = gui_bitmap:create_empty_for( Panel ),
+	BackbufferBitmap = gui_bitmap:create_empty_for( SplashPanel ),
 
 	% The image bitmap, kept to regenerate the backbuffer as needed:
 	ImgBitmap = gui_bitmap:create_from( ImagePath ),
 
 	% Initialisation:
-	render_scene( Panel, BackbufferBitmap, ImgBitmap ),
+	render_scene( SplashPanel, BackbufferBitmap, ImgBitmap ),
 	StatusBar = gui_statusbar:create( MainFrame ),
 
-	gui_statusbar:push_text( StatusBar, "Displaying image." ),
+	gui_statusbar:push_text( StatusBar, "Displaying splash screen." ),
 
 	% No need to subscribe to 'onRepaintNeeded' for the panel:
 	gui:subscribe_to_events( [ { onWindowClosed, MainFrame },
-							   { onResized, Panel } ] ),
+							   { onResized, SplashPanel } ] ),
 
 	% Renders the GUI:
 	gui_frame:show( MainFrame ),
 
+	gui_frame:show( SplashFrame ),
+
+	% Closure:
+	MainTestPid = self(),
+
+	DurationMs = 1500,
+
+	trace_utils:debug_fmt( "Will remove splash screen in ~ts.",
+						   [ time_utils:duration_to_string( DurationMs ) ] ),
+
+	?myriad_spawn_link( fun() ->
+							timer:sleep( DurationMs ),
+							MainTestPid ! removeSplash
+						end ),
+
 	test_main_loop( #my_test_state{ main_frame=MainFrame,
-									panel=Panel,
+									splash_frame=SplashFrame,
+									splash_panel=SplashPanel,
 									backbuffer=BackbufferBitmap,
 									image_bitmap=ImgBitmap } ),
 
@@ -159,11 +162,18 @@ run_image_test() ->
 % The main loop of this test.
 -spec test_main_loop( my_test_state() ) -> void().
 test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
-										  panel=Panel,
+										  splash_frame=SplashFrame,
+										  %splash_panel=SplashPanel,
 										  backbuffer=BackbufferBitmap,
 										  image_bitmap=ImgBitmap } ) ->
 
 	receive
+
+		removeSplash ->
+			trace_utils:debug( "Removing splash." ),
+			gui_frame:destruct( SplashFrame ),
+			test_main_loop( TestState#my_test_state{ splash_frame=undefined } );
+
 
 		% Not subscribed to onRepaintNeeded, so never activated:
 		%{ onRepaintNeeded, [ Panel, _Context ] } ->
@@ -183,7 +193,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
-					"Test panel '~ts' resized to ~p (~ts).",
+					"Splash panel '~ts' resized to ~p (~ts).",
 					[ gui:object_to_string( Panel ), NewSize,
 					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( [ NewSize, Context ] ) ),
@@ -286,7 +296,7 @@ run() ->
 				"(not running the image test, being in batch mode)" );
 
 		false ->
-			run_image_test()
+			run_splash_screen_test()
 
 	end,
 

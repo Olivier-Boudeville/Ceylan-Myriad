@@ -23,6 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2023.
 
 
 % To properly format (as text), typically coordinates:
@@ -60,4 +61,3 @@
 
 % Relatively aggressive inlining for basic operations:
 -define( inline_size, 48 ).
-

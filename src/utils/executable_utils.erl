@@ -47,7 +47,7 @@
 % Section for most usual commands:
 -export([ can_generate_png_from_graph/0, generate_png_from_graph_file/2,
 		  generate_png_from_graph_file/3, display_png_file/1,
-		  browse_images_in/1,
+		  display_image_file/2, browse_images_in/1,
 		  playback_audio_file/1, playback_audio_file/2,
 		  display_pdf_file/1, display_text_file/1,
 		  display_wide_text_file/2, get_ssh_mute_option/0 ]).
@@ -57,6 +57,8 @@
 -export([
 
 	get_default_image_viewer_name/0,
+	get_secondary_default_image_viewer_name/0,
+	get_default_image_viewer_info/0,
 	get_default_image_viewer_path/0,
 
 	get_default_image_browser_name/0,
@@ -127,8 +129,11 @@
 % A name, not a path.
 
 
+-type executable_info() :: { executable_name(), executable_path() }.
+% Name and absolute path of an executable.
 
--export_type([ executable_name/0 ]).
+
+-export_type([ executable_name/0, executable_info/0 ]).
 
 
 
@@ -146,11 +151,15 @@
 
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
+-type any_file_path() :: file_utils:any_file_path().
+
 -type executable_path() :: file_utils:executable_path().
 -type directory_path() :: file_utils:directory_path().
 
 -type command_output() :: system_utils:command_output().
 -type command_line_argument() :: shell_utils:command_line_argument().
+
+-type image_format() :: gui_image:image_format().
 
 
 
@@ -303,16 +312,26 @@ generate_png_from_graph_file( PNGFilePath, GraphFilePath,
 % @doc Displays (without blocking) to the user the specified PNG, using an
 % external viewer.
 %
-% Returns the text output by the tool (if any).
+% Throws an exception if an error occurs.
+%
+-spec display_png_file( any_file_path() ) -> void().
+display_png_file( PNGFilePath ) ->
+	% Viewer output is ignored:
+	system_utils:run_background_executable( get_default_image_viewer_path(),
+		[ PNGFilePath ] ).
+
+
+
+% @doc Displays (without blocking) to the user the specified image, using an
+% external viewer.
 %
 % Throws an exception if an error occurs.
 %
--spec display_png_file( file_path() ) -> void().
-display_png_file( PNGFilePath ) ->
-	% Viewer output is ignored:
-	system_utils:run_background_command(
-		get_default_image_viewer_path() ++ " " ++ PNGFilePath ).
-
+-spec display_image_file( any_file_path(), image_format() ) -> void().
+% Tool supposed able to display all image formats:
+display_image_file( ImgFilePath, _ImgFormat ) ->
+	system_utils:run_background_executable( get_default_image_viewer_path(),
+		[ ImgFilePath ] ).
 
 
 % @doc Allows to browse (without blocking) the images available in specified
@@ -463,13 +482,52 @@ get_ssh_mute_option() ->
 -spec get_default_image_viewer_name() -> executable_name().
 get_default_image_viewer_name() ->
 	% Viewer is 'eye of gnome' here:
+	%
+	% (disabled, as too often not displaying the right version due to strange
+	% caching)
+	%
+	%"eog".
+	"gwenview".
+
+
+% @doc Returns the name of the secondary default image viewer.
+-spec get_secondary_default_image_viewer_name() -> executable_name().
+get_secondary_default_image_viewer_name() ->
 	"eog".
 
 
 % @doc Returns an absolute path to the default image viewer tool.
+-spec get_default_image_viewer_info() -> executable_info().
+get_default_image_viewer_info() ->
+	PrimaryImgViewerName = get_default_image_viewer_name(),
+	case lookup_executable( PrimaryImgViewerName ) of
+
+		false ->
+			SecondaryImgViewerName = get_secondary_default_image_viewer_name(),
+			case lookup_executable( SecondaryImgViewerName ) of
+
+				false ->
+					throw( { no_image_viewer_found,
+						{ PrimaryImgViewerName, SecondaryImgViewerName } } );
+
+				SecPath ->
+					{ SecondaryImgViewerName, SecPath }
+
+			end;
+
+		PrimPath ->
+			{ PrimaryImgViewerName, PrimPath }
+
+	end.
+
+
+
+% @doc Returns the information (name and absolute path) relative to the default
+% image viewer tool.
+%
 -spec get_default_image_viewer_path() -> executable_path().
 get_default_image_viewer_path() ->
-	find_executable( get_default_image_viewer_name() ).
+	pair:second( get_default_image_viewer_info() ).
 
 
 
@@ -573,9 +631,10 @@ get_secondary_default_audio_player_name() ->
 
 
 
-% @doc Returns the name and absolute path to the default audio player.
--spec get_default_audio_player_info() ->
-							{ executable_name(), executable_path() }.
+% @doc Returns the information (name and absolute path) relative to the default
+% audio player.
+%
+-spec get_default_audio_player_info() -> executable_info().
 get_default_audio_player_info() ->
 	PrimaryPlayerName = get_default_audio_player_name(),
 	case lookup_executable( PrimaryPlayerName ) of

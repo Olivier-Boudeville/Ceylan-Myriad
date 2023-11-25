@@ -345,6 +345,8 @@
 						| 'frame'
 						| 'sizer'
 						| 'bitmap'
+						| 'menu'
+						| 'toolbar'
 						| 'memory_device_context'.
 % MyriadGUI-translated version of a native wx type, that is of the
 % wx_native_object_type(); for example 'window', instead of 'wxWindow'.
@@ -913,12 +915,13 @@ create_gui_environment( Services, MaybeIdAllocPid ) ->
 
 	% Initialises the wx backend (no option relevant here):
 	WxServer = wx:new(),
+	%WxServer = wx:new( [ { debug, [ verbose, trace ] } ] ),
 
 	% The wx environment will be exported to the internal main loop process, so
 	% that both the user code (i.e. the current process) and that loop can make
 	% use of wx:
 	%
-	WxEnv = wx:get_env(),
+	WxEnv = get_backend_environment(),
 
 	% Needed both directly in the main event loop and in the GUI environment
 	% (e.g. for when creating a plain canvas with no specific context):
@@ -1277,7 +1280,7 @@ event_interception_callback( WxEventRecord=#wx{
 % type. See also https://howtos.esperide.org/Erlang.html#using-wx for more
 % clarifications about when trapping events is of use.
 %
-% Note: to be called from an event handler, i.e. at least from a process which
+% Note: to be called from an event handler, i.e. at least from a process that
 % set the wx environment.
 %
 % See propagate_event/1 for the opposite operation (forcing the propagation of
@@ -1418,14 +1421,16 @@ execute_instance_destruction( ObjectType, InstanceId ) ->
 % Section related to GUI objects in general.
 
 
-% @doc Sets the current process as the controller of the specified GUI object.
+% @doc Sets the current process as the controller of the specified GUI object
+% handle.
+%
 -spec set_as_controller( gui_object() ) -> gui_object().
 set_as_controller( Object ) ->
 	set_controller( Object, _ControllerPid=self() ).
 
 
 % @doc Sets the process of specified PID as the controller of the specified GUI
-% object.
+% object handle.
 %
 -spec set_controller( gui_object(), pid() ) -> gui_object().
 set_controller( Object, ControllerPid ) ->
@@ -1472,7 +1477,11 @@ object_key_to_string( { AnyObjectType, AnyInstanceId } ) ->
 %
 -spec get_backend_environment() -> backend_environment().
 get_backend_environment() ->
-	wx:get_env().
+	WxEnv = wx:get_env(),
+	cond_utils:if_defined( myriad_debug_gui_environments,
+		trace_utils:debug_fmt( "[~w] Getting wx backend environment: ~w.",
+							   [ self(), WxEnv ] ) ),
+	WxEnv.
 
 
 % @doc Sets the specified backend environment for the calling process, so that
@@ -1483,6 +1492,9 @@ get_backend_environment() ->
 %
 -spec set_backend_environment( backend_environment() ) -> void().
 set_backend_environment( WxEnv ) ->
+	cond_utils:if_defined( myriad_debug_gui_environments,
+		trace_utils:debug_fmt( "[~w] Setting wx backend environment ~w.",
+							   [ self(), WxEnv ] ) ),
 	wx:set_env( WxEnv ).
 
 

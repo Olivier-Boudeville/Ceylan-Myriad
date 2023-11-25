@@ -48,8 +48,15 @@
 % Base, most general class for all windows (for example, a frame is a window
 % whose size and position can usually be changed by the user).
 %
-% This corresponds to "real" windows - not to any widget, as wx/WxWidgets call
-% windows.
+% This corresponds to "real" windows - not to any widget (that wx/WxWidgets call
+% "windows").
+%
+% Note that this class is mostly a mother, abstract one, and various creation
+% settings will lead to no window being displayed at all. For most practical
+% purposes, a frame (a concrete, special case thereof) may/should be created
+% instead.
+
+
 
 -type window_option() :: { 'position', point() }
 					   | { 'size', size() }
@@ -102,7 +109,7 @@
 % A top-level (application-wide) window.
 %
 % The top-level window is a base class common to frames and dialogs; so such a
-% window is typically a frame (including any main one) or a dialog.
+% window is typically any frame (including any main one) or any dialog.
 
 
 -export_type([ top_level_window/0 ]).
@@ -137,6 +144,12 @@
 -export_type([ splitter/0, splitter_window/0, sash_gravity/0 ]).
 
 
+% Local types:
+
+-type wx_art_id() :: unicode:chardata().
+% For example "wxART_NEW".
+
+
 
 % For standard, basic windows:
 -export([ create/0, create/1, create/2, create/5,
@@ -144,7 +157,7 @@
 
 
 % For any kind of window:
--export([ show/1, hide/1, record_as_top_level/1 ]).
+-export([ show/1, hide/1, record_as_top_level/1, set_menu_bar/2 ]).
 
 
 % For top-level windows:
@@ -161,7 +174,8 @@
 
 
 % Wx-level:
--export([ window_styles_to_bitmask/1, to_wx_window_options/1 ]).
+-export([ window_styles_to_bitmask/1, to_wx_window_options/1,
+		  to_wx_icon_id/1 ]).
 
 
 
@@ -190,10 +204,14 @@
 
 -type point() :: gui:point().
 -type size() :: gui:size().
+-type sizing() :: gui:sizing().
+
 -type position() :: gui:position().
 -type orientation() :: orientation().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
+
+-type menu_bar() :: gui_menu:menu_bar().
 
 -type id() :: gui_id:id().
 
@@ -229,7 +247,7 @@ create( Id, Parent ) ->
 
 
 % @doc Creates a basic window of the specified size.
--spec create( size() ) -> window().
+-spec create( sizing() ) -> window().
 create( Size ) ->
 
 	ActualId = gui_id:declare_any_id( undefined ),
@@ -243,20 +261,22 @@ create( Size ) ->
 
 % @doc Creates a basic window from the specified settings.
 %
-% @hidden (internal use only)
-%
--spec create( position(), size(), window_style(), id(), parent() ) ->
+-spec create( position(), sizing(), [ window_style() ], id(), parent() ) ->
 											window().
-create( Position, Size, Style, Id, Parent ) ->
+create( Position, Sizing, Styles, Id, Parent ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
-			   gui_wx_backend:to_wx_size( Size ),
-			   { style, window_styles_to_bitmask( Style ) } ],
+			   gui_wx_backend:to_wx_size( Sizing ),
+			   { style, window_styles_to_bitmask( Styles ) } ],
 
 	ActualId = gui_id:declare_any_id( Id ),
 	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
 
+	trace_utils:debug_fmt( "Creating a window with backend options ~w, "
+		"identifier ~w and parent ~w.", [ WxOpts, ActualId, ActualParent ] ),
+
 	wxWindow:new( ActualParent, ActualId, WxOpts ).
+
 
 
 % @doc Destructs the specified window.
@@ -477,13 +497,23 @@ set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
 
 
 
-% Records, in the MyriadGUI environment, the specified window (typically a
+% @doc Records, in the MyriadGUI environment, the specified window (typically a
 % frame) as the application top-level window.
 %
--spec record_as_top_level( window() ) -> void().
+% Note that the specified window is expected to be already, in terms of type, a
+% top-level one (e.g. a frame or a dialog); the purpose of this function is only
+% to have it recorded as such by MyriadGUI.
+%
+-spec record_as_top_level( top_level_window() ) -> void().
 record_as_top_level( Window ) ->
 	environment:set( _K=top_level_window, _V=Window,
 					 _Designator=?gui_env_reg_name ).
+
+
+% @doc Assigns the specified menu bar to the specified window.
+-spec set_menu_bar( window(), menu_bar() ) -> void().
+set_menu_bar( Window, MenuBar ) ->
+	wxWindow:setMenuBar( Window, MenuBar ).
 
 
 
@@ -530,3 +560,17 @@ to_wx_window_options( _Options=[ { style, Style } | T ], Acc ) ->
 % Unchanged:
 to_wx_window_options( _Options=[ H | T ], Acc ) ->
 	to_wx_window_options( T, [ H | Acc ] ).
+
+
+% @doc Converts the specified icon identifier into a wx-specific one.
+-spec to_wx_icon_id( icon_name_id() ) -> wx_art_id().
+to_wx_icon_id( IconId ) ->
+	case gui_generated:get_maybe_second_for_icon_name_id( IconId ) of
+
+		undefined ->
+			throw( { unknown_icon_id, IconId } );
+
+		WxIconId ->
+			WxIconId
+
+	end.

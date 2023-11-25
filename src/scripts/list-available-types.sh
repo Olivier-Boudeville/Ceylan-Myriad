@@ -1,11 +1,11 @@
 #!/bin/sh
 
-# Copyright (C) 2011-2021 Olivier Boudeville
+# Copyright (C) 2011-2023 Olivier Boudeville
 #
 # This file is part of the Ceylan-Myriad library.
 
 
-usage="Usage: $(basename $0) [-h|--help] [ROOT_DIR]: lists all types (according to Erlang type specifications) defined from the ROOT_DIR directory (if specified) or from the current directory."
+usage="Usage: $(basename $0) [-h|--help] [ROOT_DIR]: lists all types (according to Erlang type specifications) defined from the ROOT_DIR directory (if specified), otherwise from the current directory."
 
 
 target_dir="$(pwd)"
@@ -44,7 +44,7 @@ echo "
   Searching for all Erlang types being defined from '${target_dir}':
 "
 
-cd ${target_dir}
+cd "${target_dir}"
 
 target_files=$(find . -name '*.hrl' -o -name '*.erl')
 
