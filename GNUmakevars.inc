@@ -1789,7 +1789,8 @@ endif
 # Current time:  1243164693
 # Aborted
 #
-# (then relevant for our launcher but for 'erlc' as well)
+# (then relevant for our launcher but for 'erlc' as well, and for any node
+# spawned afterwards)
 #
 TIME_OPTS =
 #TIME_OPTS = +C no_time_warp

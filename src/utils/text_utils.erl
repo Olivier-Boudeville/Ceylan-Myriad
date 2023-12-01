@@ -245,6 +245,13 @@
 -type label() :: ustring().
 % A string that describes a label.
 
+-type bin_label() :: ustring().
+% A binary string that describes a label.
+
+-type any_label() :: label() | bin_label().
+% Any string that describes a label.
+
+
 
 -type bin_string() :: binary().
 % A binary corresponding to a string.
@@ -256,7 +263,8 @@
 
 -type hexastring() :: ustring().
 % A string containing hexadecimal values (possibly with a "0x" prefix).
-% We prefer hexadecimal (letter) characters to be uppercases.
+%
+% We prefer hexadecimal (letter) characters to be in lower case.
 %
 % For example: "0x44e390a3" or "44e390a3".
 
@@ -405,8 +413,11 @@
 
 
 -export_type([ format_string/0, format_bin_string/0, format_values/0,
-			   regex_string/0, title/0, bin_title/0, any_title/0, label/0,
-			   bin_string/0, any_string/0, unicode_string/0, unicode_data/0,
+			   regex_string/0,
+			   title/0, bin_title/0, any_title/0,
+			   label/0, bin_label/0, any_label/0,
+			   bin_string/0, any_string/0,
+			   unicode_string/0, unicode_data/0,
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
 			   parse_string/0, io_list/0, io_data/0,
 			   translation_table/0, length/0, width/0, depth/0,

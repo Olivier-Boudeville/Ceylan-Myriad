@@ -206,6 +206,17 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	test_basic_plot(),
+	case executable_utils:get_maybe_gnuplot_path() of
+
+		undefined ->
+			test_facilities:display(
+				"No gnuplot tool found, no plot generated." );
+
+		GnuplotPath ->
+			test_facilities:display( "Gnuplot available (as '~ts'), "
+				"proceeding with test.", [ GnuplotPath ] ),
+			test_basic_plot()
+
+	end,
 
 	test_facilities:stop().

@@ -71,6 +71,17 @@
 -type color_by_decimal() :: { Red :: byte(), Green :: byte(), Blue :: byte() }.
 % RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
 
+
+-type rgb_hexastring() :: ustring().
+% A RGB color that is encoded based on 6 hexadecimal digits in a string, with a
+% "#" prefix (hence is not a text_utils:hexastring/0).
+%
+% For example "#3ab001" corresponds to lightgreen.
+%
+% Possibly used for HTML content, by gnuplot, etc.
+
+
+
 -type color_by_decimal_with_alpha() ::
 		{ Red :: byte(), Green :: byte(), Blue :: byte(), Alpha :: byte() }.
 % RGBA (integer coordinates, in [0;255]) color.
@@ -78,7 +89,7 @@
 -type any_color_by_decimal() ::
 		color_by_decimal() | color_by_decimal_with_alpha().
 
--type color() :: color_by_name() | color_by_decimal().
+-type color() :: color_by_name() | color_by_decimal() | rgb_hexastring().
 % Any kind of RGB color.
 
 
@@ -173,6 +184,8 @@
 
 			   color_by_decimal/0, color_by_decimal_with_alpha/0,
 			   any_color_by_decimal/0,
+			   rgb_hexastring/0,
+
 			   color/0,
 
 			   color_depth/0,
@@ -427,8 +440,9 @@ get_logical_color( Other ) ->
 
 
 % @doc Returns a stringified representation for gnuplot of the specified color.
--spec get_color_for_gnuplot( color() ) -> ustring().
+-spec get_color_for_gnuplot( color() ) -> color().
 get_color_for_gnuplot( _Color={ _R, _G, _B } ) ->
+	% Would return rgb_hexastring() ("#a1710f" for example):
 	throw( hexadecimal_conversion_not_implemented );
 
 get_color_for_gnuplot( ColorName ) ->
