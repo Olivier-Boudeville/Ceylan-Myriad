@@ -62,7 +62,8 @@
 
 -type color_by_name() :: atom().
 % A color, as designated by an atom (e.g. 'aliceblue'); possibly a logical
-% color.
+% color. See get_colors/0 for a list thereof.
+
 
 -type logical_color() :: color_by_name().
 % A logical color, like 'window_frame_color'.
