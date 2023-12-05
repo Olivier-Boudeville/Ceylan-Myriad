@@ -35,9 +35,6 @@
 -module(gui_widget).
 
 
-% Usage notes:
-%
-
 
 % Could include wx:null(), i.e. a #wx_ref{ref=0, type=wx}:
 % (probably cannot be opaque because of the union)
@@ -141,7 +138,6 @@ destruct( Widget, GUIEnvPid ) ->
 	end,
 
 	wxWindow:destroy( Widget ).
-
 
 
 
