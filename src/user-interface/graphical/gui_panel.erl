@@ -55,8 +55,9 @@
 -export_type([ panel/0, panel_option/0, panel_options/0 ]).
 
 
--export([ create/0, create/1, create/2, create/4, create/5, create/6,
-		  destruct/1 ]).
+-export([ create/0, create/1, create/2, create/3, create/4, create/5, create/6,
+		  destruct/1,
+		  get_size/1 ]).
 
 
 -type wx_panel_option() :: gui_window:wx_window_option()
@@ -81,6 +82,7 @@
 -type width() :: gui:width().
 -type height() :: gui:height().
 -type size() :: gui:size().
+-type dimensions() :: gui:dimensions().
 -type position() :: gui:position().
 -type coordinate() :: gui:coordinate().
 
@@ -134,8 +136,8 @@ create( X, Y, Width, Height, Parent ) ->
 -spec create( position(), size(), parent() ) -> panel().
 create( Position, Size, Parent ) ->
 
-	WxOpts = [ { pos, gui_wx_backend:to_wx_position( Position ) },
-			   { size, gui_wx_backend:to_wx_size( Size ) } ],
+	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
+			   gui_wx_backend:to_wx_size( Size ) ],
 
 	wxPanel:new( Parent, WxOpts ).
 
@@ -177,6 +179,14 @@ create( X, Y, Width, Height, Options, Parent ) ->
 destruct( Panel ) ->
 	wxPanel:destroy( Panel ).
 
+
+% @doc Returns the size of the specified panel.
+%
+% Defined here only for convenience (as gui_widget provides it).
+%
+-spec get_size( panel() ) -> dimensions().
+get_size( Panel ) ->
+	wxWindow:getSize( Panel ).
 
 
 % @doc Converts the specified MyriadGUI panel option(s) into the appropriate
