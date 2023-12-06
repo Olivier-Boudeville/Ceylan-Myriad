@@ -152,6 +152,9 @@
 % A factor expected to be positive or null.
 
 
+-type scale_factor() :: any_factor().
+% A factor of scale.
+
 
 -type standard_deviation() :: float().
 % Standard deviation, as used to describe a Gaussian curve.
@@ -162,7 +165,7 @@
 
 
 -type ratio() :: dimensionless().
-% A ration between two values.
+% A ratio between two values.
 
 
 -type percent() :: ratio().
@@ -270,6 +273,7 @@
 			   positive_factor/0, non_negative_factor/0,
 			   non_zero_integer/0,
 			   infinite_number/0, infinite_range/0,
+			   scale_factor/0,
 			   standard_deviation/0, variance/0,
 			   ratio/0, percent/0, integer_percent/0,
 			   probability/0, probability_like/0,
