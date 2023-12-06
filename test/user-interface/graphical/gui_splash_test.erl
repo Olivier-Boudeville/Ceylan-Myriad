@@ -30,13 +30,6 @@
 -module(gui_splash_test).
 
 
-% Implementation notes:
-%
-% We favor mostly the PNG and JPEG formats.
-%
-% Here, rather than using our canvas, we directly paint of the panel defined
-% within the main frame.
-
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
@@ -49,8 +42,9 @@
 % Shorthands:
 
 -type frame() :: gui:frame().
--type panel() :: gui:panel().
--type bitmap() :: gui:bitmap().
+
+-type splash_info() :: gui_splash:splash_info().
+-type splash_panel() :: gui_splash:splash_panel().
 
 
 
@@ -59,23 +53,14 @@
 
 	main_frame :: frame(),
 
-	splash_frame :: maybe( frame() ),
+	% Information for any current splash screen:
+	splash_info :: maybe( splash_info() ),
 
-	% The splash panel (in the splash frame), used here as a canvas:
-	splash_panel :: panel(),
-
-	% The off-screen bitmaps where all renderings take place:
-	backbuffer :: bitmap(),
-
-	% The ready-to-use in-memory data corresponding to an image to be displayed:
-	image_bitmap :: bitmap() } ).
+	% Allows easy pattern-matching of events:
+	splash_panel :: maybe( splash_panel() ) } ).
 
 -type my_test_state() :: #my_test_state{}.
 
-
-
-% Silencing now that not subscribing to onRepaintNeeded:
--export([ update_panel/2 ]).
 
 
 
@@ -83,13 +68,8 @@
 -spec run_splash_screen_test() -> void().
 run_splash_screen_test() ->
 
-	ImagePath = gui_image_test:get_test_main_image_path(),
-
-	test_facilities:display( "Starting the splash test, "
-		"by creating an empty main frame followed by said splash screen, "
-		"showing the '~ts' image.", [ ImagePath ] ),
-
-	WaitingDurationMs = 2000,
+	% This test just waits for a fixed duration:
+	WaitingDurationMs = 1500,
 
 	trace_utils:notice_fmt( "A splash screen displaying the Myriad logo shall "
 		"appear, and vanish when the test requests it, after ~ts. "
@@ -110,74 +90,33 @@ run_splash_screen_test() ->
 
 	gui_widget:set_background_color( MainPanel, _Color=bisque ),
 
-	% Rather minimal:
-	SplashStyles = [ no_border, no_taskbar, float_on_parent ],
+	SplashInfo = gui_splash:create_basic(
+		_ImgPath=gui_image_test:get_test_main_image_path(),
+		_ScaleFactor=0.5, _SplashParent=MainFrame ),
 
-	% Needing to establish the size of the splash frame:
-	Img = gui_image:load_from_file( ImagePath ),
-
-	% Too large:
-	NativeImgSize = { NativeImgWidth, NativeImgHeight } =
-		gui_image:get_size( Img ),
-
-	ReducedImgWidth = NativeImgWidth div 2,
-	ReducedImgHeight = NativeImgHeight div 2,
-
-	gui_image:scale( Img, ReducedImgWidth, ReducedImgHeight ),
-
-	% The image bitmap, kept to regenerate the backbuffer as needed:
-	ImgBitmap = gui_image:to_bitmap( Img ),
-
-	ImgBitmapSize = gui_bitmap:get_size( ImgBitmap ),
-
-	test_facilities:display( "Image original size: ~w pixels, "
-		"scaled down for bitmap: ~w.", [ NativeImgSize, ImgBitmapSize ] ),
-
-	% Of course better than 'auto', with margins due to included client areas:
-	%SplashFrameSize = { ReducedImgWidth + 15, ReducedImgHeight + 15 },
-	SplashFrameSize = auto,
-
-	% A mere window would not be sufficient:
-	SplashFrame = gui_frame:create( _STitle="Myriad Splash Screen", Pos,
-		SplashFrameSize, SplashStyles, NoId, _Parent=MainFrame ),
-
-	SplashPanel = gui_panel:create( Pos, ImgBitmapSize, SplashFrame ),
-
-	% 20x20 initially, should no size be specified; to be compared afterwards
-	% with bitmap size; even if starting with a correct, sufficient size, will
-	% be immediately shrunk vertically afterwards:
-	%
-	SplashPanelSize = gui_panel:get_size( SplashPanel ),
-
-	test_facilities:display( "Initial splash panel size: ~w.",
-							 [ SplashPanelSize ] ),
-
-	% The backbuffer on which the panel content will be drawn:
-	BackbufferBitmap = gui_bitmap:create_empty_for( SplashPanel ),
-
-
-	% Initialisation:
-	render_splash( SplashPanel, BackbufferBitmap, ImgBitmap ),
 
 	StatusBar = gui_statusbar:create( MainFrame ),
 
 	gui_statusbar:push_text( StatusBar, "Displaying splash screen." ),
 
-	% No need to subscribe to 'onRepaintNeeded' for the panel:
-	gui:subscribe_to_events( [ { onWindowClosed, MainFrame },
-							   { onResized, SplashPanel } ] ),
+	% Splash already subscribed by itself:
+	gui:subscribe_to_events( [ { onWindowClosed, MainFrame } ] ),
 
 	% Renders the GUI:
 	gui_frame:show( MainFrame ),
 
-	gui_widget:set_client_size( SplashFrame, SplashPanelSize ),
+	% Must be shown after the main frame is shown, otherwise will not be
+	% centered in it, but on the whole screen, which is not desirable:
+	%
+	gui_splash:show( SplashInfo ),
 
-	gui_frame:show( SplashFrame ),
+	gui_frame:show( gui_splash:get_frame( SplashInfo ) ),
+
 
 	% Closure:
 	MainTestPid = self(),
 
-	trace_utils:debug_fmt( "Will remove splash screen in ~ts.",
+	trace_utils:debug_fmt( "Will decide to remove splash screen in ~ts.",
 		[ time_utils:duration_to_string( WaitingDurationMs ) ] ),
 
 	?myriad_spawn_link( fun() ->
@@ -185,68 +124,31 @@ run_splash_screen_test() ->
 							MainTestPid ! removeSplash
 						end ),
 
-	test_main_loop( #my_test_state{ main_frame=MainFrame,
-									splash_frame=SplashFrame,
-									splash_panel=SplashPanel,
-									backbuffer=BackbufferBitmap,
-									image_bitmap=ImgBitmap } ),
+	test_main_loop( #my_test_state{
+		main_frame=MainFrame,
+		splash_info=SplashInfo,
 
-	gui:stop().
+		% Needed for properly pattern-matching events afterwards:
+		splash_panel=gui_splash:get_panel( SplashInfo ) } ).
+
 
 
 
 % The main loop of this test.
 -spec test_main_loop( my_test_state() ) -> void().
 test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
-										  splash_frame=SplashFrame,
-										  %splash_panel=SplashPanel,
-										  backbuffer=BackbufferBitmap,
-										  image_bitmap=ImgBitmap } ) ->
+										  splash_info=SplashInfo,
+										  splash_panel=SplashPanel } ) ->
 
 	receive
 
+		% First the application-specific events of interest:
+
 		removeSplash ->
-			trace_utils:debug( "Removing splash." ),
-			gui_frame:destruct( SplashFrame ),
-			test_main_loop( TestState#my_test_state{ splash_frame=undefined } );
-
-
-		% Not subscribed to onRepaintNeeded, so never activated:
-		%{ onRepaintNeeded, [ Panel, _Context ] } ->
-		%   trace_utils:debug( "Repainting test panel." ),
-		%
-		%   % No size change, backbuffer still legit:
-		%   update_panel( Panel, BackbufferBitmap ),
-		%
-		%   %trace_utils:debug( "Test panel repainted (blit)." ),
-		%
-		%   test_main_loop( TestState );
-
-
-		{ onResized, [ Panel, _PanelId, NewSize, Context ] } ->
-
-			trace_utils:debug_fmt( "Resizing splash panel to ~w.",
-								   [ NewSize ] ),
-
-			cond_utils:if_defined( myriad_gui_test_verbose,
-				trace_utils:notice_fmt(
-					"Splash panel '~ts' resized to ~p (~ts).",
-					[ gui:object_to_string( Panel ), NewSize,
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( [ NewSize, Context ] ) ),
-
-			% We have to resize the framebuffer first:
-			NewBackbufferBitmap = gui_bitmap:create_empty( NewSize ),
-
-			render_splash( Panel, NewBackbufferBitmap, ImgBitmap ),
-
-			gui_bitmap:destruct( BackbufferBitmap ),
-
-			%trace_utils:debug( "Test panel resized (render)." ),
-
-			test_main_loop( TestState#my_test_state{
-				backbuffer=NewBackbufferBitmap } );
-
+			trace_utils:debug( "Removing splash screen." ),
+			gui_splash:destruct( SplashInfo ),
+			test_main_loop( TestState#my_test_state{ splash_info=undefined,
+													 splash_panel=undefined } );
 
 		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
 
@@ -257,7 +159,37 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 					  gui_event:context_to_string( Context ) ] ),
 				basic_utils:ignore_unused( Context ) ),
 
-			gui_frame:destruct( MainFrame );
+			gui_frame:destruct( MainFrame ),
+
+			gui:stop();
+
+
+		% Then the splash-related events to manage:
+
+		{ onRepaintNeeded, [ SplashPanel, _SplashPanelId, _Context ] } ->
+
+			% Too verbose:
+			%trace_utils:debug_fmt( "Repainting splash panel ~w.",
+			%                       [ SplashPanel ] ),
+
+			% Implies no state change:
+			gui_splash:on_repaint_needed( SplashPanel, SplashInfo ),
+
+			test_main_loop( TestState );
+
+
+		{ onResized, [ SplashPanel, _SplashPanelId, NewSize, Context ] } ->
+
+			trace_utils:debug_fmt( "Resizing splash panel ~w to ~w (~ts).",
+				[ SplashPanel, NewSize,
+				  gui_event:context_to_string( Context ) ] ),
+
+			NewSplashInfo =
+				gui_splash:on_resized( SplashPanel, NewSize, SplashInfo ),
+
+			NewTestState = TestState#my_test_state{ splash_info=NewSplashInfo },
+
+			test_main_loop( NewTestState );
 
 
 		Other ->
@@ -267,57 +199,6 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState )
 
 	end.
-
-
-
-% @doc Renders the splash: updates the (bitmap) backbuffer accordingly, and
-% blits it to the specified panel.
-%
-render_splash( TargetPanel, BackbufferBitmap, ImageBitmap ) ->
-
-	% Updates the backbuffer with the stored image:
-
-	% Locks the target surface (device context):
-	BackbufferDC = gui_bitmap:lock( BackbufferBitmap ),
-
-	gui_render:clear_device_context( BackbufferDC ),
-
-	Origin = {0,0},
-
-	gui_bitmap:draw( _Source=ImageBitmap, BackbufferDC, _PosInTarget=Origin ),
-
-	% Then blits this updated backbuffer to the panel:
-
-	TargetPanelDC = gui_widget:lock( TargetPanel ),
-
-	gui_render:blit( _From=BackbufferDC, _FromPos=Origin,
-		_BlitArea=gui_bitmap:get_size( BackbufferBitmap ),
-		_To=TargetPanelDC, _ToPos=Origin ),
-
-	gui_widget:unlock( TargetPanelDC ),
-
-	gui_bitmap:unlock( BackbufferDC ).
-
-
-
-% @doc Blits the current backbuffer bitmap to the specified panel once cleared.
-update_panel( TargetPanel, BackbufferBitmap ) ->
-
-	% No need to update the update the framebuffer.
-
-	% Locks the target surface (device context):
-	BackbufferDC = gui_bitmap:lock( BackbufferBitmap ),
-
-	% Then blits this updated backbuffer to the panel:
-	TopLeftPos = {0,0},
-
-	TargetPanelDC = gui_widget:lock( TargetPanel ),
-
-	gui_render:blit( BackbufferDC, TopLeftPos,
-		gui_bitmap:get_size( BackbufferBitmap ), TargetPanelDC, TopLeftPos ),
-
-	gui_widget:unlock( TargetPanelDC ),
-	gui_bitmap:unlock( BackbufferDC ).
 
 
 
