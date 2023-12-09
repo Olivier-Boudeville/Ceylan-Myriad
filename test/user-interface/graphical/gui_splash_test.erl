@@ -47,7 +47,6 @@
 -type splash_panel() :: gui_splash:splash_panel().
 
 
-
 % State of the test application, kept and updated by its main loop.
 -record( my_test_state, {
 
@@ -62,17 +61,79 @@
 -type my_test_state() :: #my_test_state{}.
 
 
+% Silencing:
+-export([ do_trace/1 ]).
+
+
+do_trace( Pid ) ->
+
+	%dbg:tp( gui_splash, []),
+
+	%dbg:p( self(), c ),
+
+	trace_utils:debug_fmt( "[tracer] Tracing ~w.", [ Pid ] ),
+
+	%% dbg:tpl(gui_splash, _Function='_', _Arity='_',
+	%%		[{'_', [], [{return_trace}]}]),
+
+	%dbg:tp( gui_splash, _Function='_', _Arity='_',
+	%		[{'_',[],[{return_trace}]}]),
+
+	%Tracee = Pid,
+	Tracee = all,
+
+	erlang:trace( Tracee, _EnableTracing=true, [ exiting, call, return_to ] ),
+
+	Mod = '_',
+	%Mod = gui_splash,
+
+	erlang:trace_pattern( { Mod, '_', '_' }, true, [ local ] ),
+
+	follow_traces().
+
+
+
+
+follow_traces() ->
+
+	receive
+
+		M ->
+			trace_utils:debug_fmt( "[tracer] ~p.", [ M ] ),
+			follow_traces()
+
+	end.
+
+
 
 
 % @doc Runs the actual test.
 -spec run_splash_screen_test() -> void().
 run_splash_screen_test() ->
 
-	% This test just waits for a fixed duration:
-	WaitingDurationMs = 1500,
+	%observer:start(),
 
-	trace_utils:notice_fmt( "A splash screen displaying the Myriad logo shall "
-		"appear, and vanish when the test requests it, after ~ts. "
+	%follow_traces(),
+
+	%dbg:start(),
+
+	%dbg:tracer(),
+	%dbg:p(all,call),
+	%% dbg:tp( gui_splash, _Function='_', _Arity='_',
+	%%		[{'_',[],[{return_trace}]}]),
+
+	%Self = self(),
+
+	%_TracerPid = ?myriad_spawn( fun() -> do_trace( Self ) end ),
+
+
+	% This test just waits for a fixed duration:
+	WaitingDurationMs = 200,
+
+	trace_utils:notice_fmt( "A basic splash screen displaying the Myriad logo "
+		"shall appear, and vanish when the test requests it, "
+		"after ~ts. Then a dynamic, more complex splash screen shall appear "
+		"(with icon, texts, etc.) and disappear in turn. "
 		"The test will end as soon as the main frame is closed.",
 		[ time_utils:duration_to_string( WaitingDurationMs ) ] ),
 
@@ -90,9 +151,10 @@ run_splash_screen_test() ->
 
 	gui_widget:set_background_color( MainPanel, _Color=bisque ),
 
-	SplashInfo = gui_splash:create_basic(
-		_ImgPath=gui_image_test:get_test_main_image_path(),
-		_ScaleFactor=0.5, _SplashParent=MainFrame ),
+	ImgPath = file_utils:join( "..", test_facilities:get_myriad_logo_path() ),
+
+	BasicSplashInfo = gui_splash:create_basic( ImgPath, _ScaleFactor=0.5,
+											   _SplashParent=MainFrame ),
 
 
 	StatusBar = gui_statusbar:create( MainFrame ),
@@ -108,9 +170,7 @@ run_splash_screen_test() ->
 	% Must be shown after the main frame is shown, otherwise will not be
 	% centered in it, but on the whole screen, which is not desirable:
 	%
-	gui_splash:show( SplashInfo ),
-
-	gui_frame:show( gui_splash:get_frame( SplashInfo ) ),
+	gui_splash:show( BasicSplashInfo ),
 
 
 	% Closure:
@@ -121,15 +181,21 @@ run_splash_screen_test() ->
 
 	?myriad_spawn_link( fun() ->
 							timer:sleep( WaitingDurationMs ),
-							MainTestPid ! removeSplash
+							MainTestPid ! removeBasicSplash,
+
+							timer:sleep( WaitingDurationMs ),
+							MainTestPid ! createDynamicSplash,
+
+							timer:sleep( WaitingDurationMs ),
+							MainTestPid ! removeDynamicSplash
 						end ),
 
 	test_main_loop( #my_test_state{
 		main_frame=MainFrame,
-		splash_info=SplashInfo,
+		splash_info=BasicSplashInfo,
 
 		% Needed for properly pattern-matching events afterwards:
-		splash_panel=gui_splash:get_panel( SplashInfo ) } ).
+		splash_panel=gui_splash:get_panel( BasicSplashInfo ) } ).
 
 
 
@@ -144,11 +210,62 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		% First the application-specific events of interest:
 
-		removeSplash ->
-			trace_utils:debug( "Removing splash screen." ),
+		removeBasicSplash ->
+			trace_utils:debug( "Removing basic splash screen." ),
+
 			gui_splash:destruct( SplashInfo ),
+
 			test_main_loop( TestState#my_test_state{ splash_info=undefined,
 													 splash_panel=undefined } );
+
+
+		createDynamicSplash ->
+
+			trace_utils:debug( "Adding dynamic splash screen." ),
+
+			IconImgPath =
+				file_utils:join( "..", test_facilities:get_myriad_icon_path() ),
+
+			TitleStr = "Foobar",
+
+			VersionStr = "v1.0.17",
+
+			DescStr = "Foobar is a Frobnicator with twin acceleration beams",
+
+			URLStr = "www.foobar.org",
+
+			BackgroundColor = red,
+
+			MainImgPath =
+				file_utils:join( "..", test_facilities:get_myriad_logo_path() ),
+
+			GeneralInfoStr = "Foobar comes with absolutely no% warranty, "
+				"but is completely free for any kind of use "
+				"(including commercial).",
+
+			CopyrightStr = "Copyright (C) 2022-2023 John Doe, "
+				"James Bond and Others",
+
+			DynamicSplashInfo = gui_splash:create_dynamic( IconImgPath,
+				TitleStr, VersionStr, DescStr, URLStr, BackgroundColor,
+				MainImgPath, GeneralInfoStr, CopyrightStr,
+				_SplashParent=MainFrame ),
+
+			gui_splash:show( DynamicSplashInfo ),
+
+			test_main_loop( TestState#my_test_state{
+				splash_info=DynamicSplashInfo,
+				splash_panel=gui_splash:get_panel( DynamicSplashInfo ) } );
+
+
+		removeDynamicSplash ->
+			trace_utils:debug( "Removing dynamic splash screen." ),
+
+			gui_splash:destruct( SplashInfo ),
+
+			test_main_loop( TestState#my_test_state{ splash_info=undefined,
+													 splash_panel=undefined } );
+
 
 		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
 
