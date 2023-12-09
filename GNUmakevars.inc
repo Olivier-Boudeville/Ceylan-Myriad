@@ -82,7 +82,7 @@ endif
 #
 # So our code uses '-ifdef(exec_target_is_production)' instead of something like
 # '-if(execution_target ## production)'.' where ## could be '=', '==', '=:='
-# (not able to find the syntax for such macro conditions)
+# (not able to find the syntax for such macro conditions).
 #
 ifeq ($(EXECUTION_TARGET),development)
 
@@ -94,7 +94,13 @@ ifeq ($(EXECUTION_TARGET),development)
 	# No exec_target_is_production shall be defined here:
 	ERLANG_COMPILER_EXEC_TARGET_OPT =
 
-	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode
+	# Last Call Optimisation (LCO) may be selectively disabled in order to have
+	# unellipsed stacktraces (note that disabling LCO will lead the memory
+	# footprint of recursive functions to explode, so LCO should be left enabled
+	# in the general case - perhaps even in debug mode):
+	#
+	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode  \
+								-Dmyriad_disable_lco
 
 else ifeq ($(EXECUTION_TARGET),production)
 
