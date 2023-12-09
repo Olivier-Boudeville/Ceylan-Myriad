@@ -122,7 +122,9 @@
 		  load_from_file/1, load_from_file/2,
 		  destruct/1, destruct_multiple/1,
 
-		  get_size/1, has_alpha/1,
+		  get_width/1, get_height/1, get_size/1,
+
+		  has_alpha/1,
 		  load/2, load/3, save/2, save/3,
 		  scale/3, scale/4, mirror/2,
 		  colorize/2,
@@ -252,6 +254,17 @@ destruct( Image ) ->
 destruct_multiple( Images ) ->
 	[ wxImage:destroy( Img ) || Img <- Images ].
 
+
+% @doc Returns the width of the specified image.
+-spec get_width( image() ) -> width().
+get_width( Image ) ->
+	wxImage:getWidth( Image ).
+
+
+% @doc Returns the height of the specified image.
+-spec get_height( image() ) -> height().
+get_height( Image ) ->
+	wxImage:getHeight( Image ).
 
 
 
