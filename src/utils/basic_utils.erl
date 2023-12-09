@@ -87,7 +87,7 @@
 		  set_maybe/2,
 
 		  ignore_unused/1,
-		  freeze/0, crash/0, crash/1, enter_infinite_loop/0,
+		  do_nothing/0, freeze/0, crash/0, crash/1, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
 
 
@@ -552,8 +552,12 @@ stop_on_failure( StatusCode ) ->
 
 % @doc Identity function: returns its argument as it is.
 %
-% Useful to avoid having the compiler being too smart by notifying annoying,
-% spurious messages (e.g. no clause will ever match) in some tests.
+% Useful to:
+% - avoid having the compiler being too smart by notifying annoying, spurious
+% messages (e.g. no clause will ever match) in some tests
+% - to prevent manually Last-Call Optimisation by calling this function on the
+% result (last expression) of a function, in order that this last function does
+% not disappear from stacktraces
 %
 -spec identity( term() ) -> term().
 identity( Term ) ->
@@ -654,6 +658,14 @@ ignore_unused( _Term ) ->
 	%trace_utils:warning_fmt( "unused term (~p) ignored "
 	%   "(thanks to basic_utils:ignore_unused/1).", [ _Term ] ).
 
+
+% @doc Does nothing at all, at the expense of a remote call.
+%
+% May be useful for experiments, for example in link with LCO (Last Call
+% Optimisation).
+
+do_nothing() ->
+	ok.
 
 
 % @doc Freezes the current process immediately.
