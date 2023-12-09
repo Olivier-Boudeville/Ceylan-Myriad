@@ -97,8 +97,8 @@
 	% list of values (so they can be all aggregated in that entry)
 	%
 	% - the 'inline' key is special-cased to account for its variants: if full
-	% inlining is enabled ( '-compile( inline ).'), then its associated key is
-	% not a list of function identifiers, but the 'all' atom
+	% inlining is enabled ('-compile(inline).'), then its associated key is not
+	% a list of function identifiers, but the 'all' atom
 	%
 	% - this field is to be kept in sync with its 'compilation_option_defs'
 	% counterpart lower-level field
