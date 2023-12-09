@@ -26,7 +26,6 @@
 % Creation date: Sunday, February 4, 2018.
 
 
-
 % @doc Module in charge of handling <b>maps defined or used within an AST</b>.
 %
 % See [http://erlang.org/doc/apps/erts/absform.html] for more information.
@@ -113,8 +112,8 @@ transform_map_associations( Associations, Transforms ) ?rec_guard ->
 
 % @doc Transforms specified list of map associations involved in a map
 % operation, applying to each association the specified function to perform the
-% relevant transformations (that depends on the context; ex: if being in a
-% guard, in an expression).
+% relevant transformations (that depends on the context; for example if being in
+% a guard, in an expression).
 %
 -spec transform_map_associations( [ ast_map_association() ], ast_transforms(),
 		ast_transform:transform_fun() ) ->
@@ -142,12 +141,12 @@ transform_map_associations( Associations, Transforms,
 %       Rep(A) = {map_field_exact, FILE_LOC, Rep(K), Rep(V)}."
 %
 -spec transform_map_association( ast_map_association(), ast_transforms(),
-		 ast_transform:transform_fun() ) ->
+		ast_transform:transform_fun() ) ->
 				{ ast_map_association(), ast_transforms() }.
 transform_map_association( { MapAssocType, FileLoc, ASTKey, ASTValue },
 						   Transforms, TransformFun )
-  when ( MapAssocType =:= 'map_field_assoc'
-		 orelse MapAssocType =:= 'map_field_exact' ) ?andalso_rec_guard ->
+		when ( MapAssocType =:= 'map_field_assoc'
+			orelse MapAssocType =:= 'map_field_exact' ) ?andalso_rec_guard ->
 
 	{ NewASTKey, KeyTransforms } = TransformFun( ASTKey, Transforms ),
 
