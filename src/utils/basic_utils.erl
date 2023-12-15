@@ -53,6 +53,12 @@
 		  send_to_pid_set/2 ]).
 
 
+% Run-related functions.
+%
+% Not in code_utils, as we want them in a bootstrapped module.
+-export([ run/1, run/2, run/3 ]).
+
+
 % Miscellaneous functions.
 -export([ get_process_info/1, get_process_info/2,
 		  display_process_info/1,
@@ -249,8 +255,9 @@
 
 
 -type safe_maybe( T ) :: { 'just', T } | 'nothing'.
-% Denotes a value that may be set to one of type T (with no restriction on T),
-% or that may not be set at all.
+% Denotes a value that may be set to one of type T (with no restriction on T -
+% unlike maybe/1 where T should not include the 'undefined' value), or that may
+% not be set at all.
 %
 % A bit safer and more expensive than maybe/1.
 %
@@ -353,8 +360,6 @@
 
 -type argument() :: any().
 
--type arguments() :: [ argument() ].
-
 
 
 % Shorthand for Module, Function, Arity:
@@ -364,7 +369,7 @@
 %-type mfa() :: { module_name(), function_name(), arity() }.
 
 
--type command_spec() :: { module_name(), function_name(), arguments() }.
+-type command_spec() :: { module_name(), function_name(), [ argument() ] }.
 % A command (module-function-arguments).
 
 
@@ -434,7 +439,7 @@
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
 			   three_digit_version/0, four_digit_version/0,
 			   positive_index/0, zero_index/0,
-			   module_name/0, function_name/0, argument/0, arguments/0,
+			   module_name/0, function_name/0, argument/0,
 			   command_spec/0, layer_name/0, record_name/0, field_name/0,
 			   activation_switch/0,
 			   comparison_result/0, execution_target/0, execution_context/0,
@@ -452,6 +457,12 @@
 %
 % The 'cond_utils' facilities shall not be used in this module, as it is a
 % pioneer one (they are thus not bootstrapped yet).
+
+
+% Local types:
+
+% Module name as an iolist:
+-type io_list_mod() :: text_utils:io_list().
 
 
 % Shorthands:
@@ -1283,6 +1294,119 @@ send_to_pid_set( _Message, none, Count ) ->
 send_to_pid_set( Message, { Pid, NewIterator }, Count ) ->
 	Pid ! Message,
 	send_to_pid_set( Message, set_utils:next( NewIterator ), Count+1 ).
+
+
+
+% @doc Runs the run/0 function from the specified module.
+%
+% Designed as a convenient launcher used with 'erl -run', dealing notably best
+% with outputs, error management and stacktraces.
+%
+-spec run( io_list_mod() ) -> void().
+run( ModIOList ) ->
+	run( ModIOList, _FunctionName=run ).
+
+
+
+% @doc Runs the specified 0-arity function from the specified module.
+%
+% Designed as a convenient launcher used with 'erl -run', dealing notably best
+% with outputs, error management and stacktraces.
+%
+-spec run( io_list_mod(), function_name() ) -> void().
+run( ModIOList, FunctionName ) ->
+	run( ModIOList, FunctionName, _Args=[] ).
+
+
+% @doc Runs the specified function from the specified module, with the specified
+% arguments.
+%
+% Designed as a convenient launcher used with 'erl -run', dealing notably best
+% with outputs, error management and stacktraces.
+%
+-spec run( io_list_mod(), function_name(), [ argument() ] ) -> void().
+run( ModIOList, FunctionName, Args ) ->
+
+	% Not sufficient, as input is ["my_module"], not "my_module":
+	%ModName = text_utils:string_to_atom( ModName ),
+
+	ModName = list_to_atom( lists:flatten( ModIOList ) ),
+
+	%trace_utils:debug_fmt( "Running ~ts:~ts with arguments ~p.",
+	%                       [ ModName, FunctionName, Args ] ),
+
+	try
+
+		apply( ModName, FunctionName, Args )
+
+	catch Class:Exception:Stacktrace ->
+
+		%trace_utils:debug_fmt( "For exception ~p of class ~p, "
+		%   "obtained stacktrace:~n ~p.", [ Exception, Class, Stacktrace ] ),
+
+		ExplainStr = case Exception of
+
+			undef ->
+				{ Mod, Fun, Third } = case hd( Stacktrace ) of
+
+					Triplet={ _M, _F, _A } ->
+						Triplet;
+
+					{ M, F, A, _FileLoc } ->
+						{ M, F, A }
+
+				end,
+
+				Arity = case Third of
+
+					Ar when is_integer( Ar ) ->
+						Ar;
+
+					Args when is_list( Args ) ->
+						length( Args )
+
+				end,
+
+				text_utils:format( "~nHint: ~ts",
+					[ code_utils:interpret_undef_exception( Mod, Fun,
+															Arity ) ] );
+
+			% Not interpreted (yet?):
+			_ ->
+				""
+
+		end,
+
+		case lists:reverse( Stacktrace ) of
+
+			[ {init,do_boot,3,[]}, {init,start_em,1,[]},
+			  {basic_utils,run,3, _RunFileLoc} | RevRest ] ->
+
+				ShrunkStacktrace = lists:reverse( RevRest ),
+
+				StackStr = code_utils:interpret_stacktrace( ShrunkStacktrace ),
+
+				io:format( "The program crashed with the following ~ts-class "
+					"exception:~n  ~p~n~n"
+					"Latest calls first: ~ts~n~ts",
+					[ Class, Exception, StackStr, ExplainStr ] );
+
+			_ ->
+				StackStr = code_utils:interpret_stacktrace( Stacktrace ),
+				io:format( "the program crashed with the following~ts-class "
+					"exception:~n  ~p~n~n"
+					"Latest calls first "
+					"(warning: stacktrace could not be minimised): ~ts~n~ts",
+					[ Class, Exception, StackStr, ExplainStr ] )
+
+		end,
+
+		init:stop()
+
+	end.
+
+
+
 
 
 
