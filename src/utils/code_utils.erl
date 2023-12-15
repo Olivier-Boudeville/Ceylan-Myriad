@@ -1194,9 +1194,21 @@ interpret_stack_item( { Module, Function, Arity, StackInfo },
 %
 interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 									when is_list( Args ) ->
-	text_utils:format( "~ts:~ts/~B called with following arguments:"
-					   "~n  ~p~ts",
-		[ Module, Function, length( Args ), Args,
+	ArgStr = text_utils:format( "~p", [ Args ] ),
+
+	FullArgStr = case length( ArgStr ) > 50 of
+
+		true ->
+			"~n  ";
+
+		false ->
+			" "
+
+				 end ++ ArgStr,
+
+
+	text_utils:format( "~ts:~ts/~B called with the following arguments:~ts~ts",
+		[ Module, Function, length( Args ), FullArgStr,
 		  get_location_from( StackInfo, FullPathsWanted ) ] );
 
 % Never fail:
@@ -1383,6 +1395,9 @@ error_reason_to_string( Reason ) ->
 -spec interpret_undef_exception( module_name(), function_name(), arity() ) ->
 										ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
+
+	%trace_utils:debug_fmt( "Interpreting undef for ~p:~p/~p.",
+	%                       [ ModuleName, FunctionName, Arity ] ),
 
 	case is_beam_in_path( ModuleName ) of
 
