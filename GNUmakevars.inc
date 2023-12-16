@@ -94,13 +94,18 @@ ifeq ($(EXECUTION_TARGET),development)
 	# No exec_target_is_production shall be defined here:
 	ERLANG_COMPILER_EXEC_TARGET_OPT =
 
+	# By default, LCO kept:
+	MYRIAD_LCO_OPT :=
+
+	# LCO can be temporarily disabled:
+	#MYRIAD_LCO_OPT := -Dmyriad_disable_lco
+
 	# Last Call Optimisation (LCO) may be selectively disabled in order to have
 	# unellipsed stacktraces (note that disabling LCO will lead the memory
 	# footprint of recursive functions to explode, so LCO should be left enabled
 	# in the general case - perhaps even in debug mode):
 	#
-	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode  \
-								-Dmyriad_disable_lco
+	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode $(MYRIAD_LCO_OPT)
 
 else ifeq ($(EXECUTION_TARGET),production)
 
@@ -336,7 +341,7 @@ ifndef PACKAGE_TOP
 endif
 
 
-# Needed, exactly as is (make trick to specify space as a parameter):
+# Needed, exactly as is ('make' trick to specify space as a parameter):
 space :=
 space +=
 
@@ -1352,7 +1357,6 @@ ifndef BOOTSTRAP_MODULES
 		$(MYRIAD_TOP)/src/meta/cond_utils_test.erl                      \
 
 
-
 	META_FILTERED_SRC_FILES = $(filter-out $(EXCLUDED_FROM_BOOTSTRAPPED_META),$(META_SRC_FILES))
 
 	META_BEAM_FILES = $(patsubst %.erl,%.beam,$(META_FILTERED_SRC_FILES))
@@ -1675,7 +1679,7 @@ endif
 # re-add temporarily an exit if wanting to spot faulty paths through a test
 # suite)
 #
-BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2 ; fi; done)
+BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2; fi; done)
 
 
 # -pa rather than -pz, notably for Gradualizer (moreover a bit safer, including
