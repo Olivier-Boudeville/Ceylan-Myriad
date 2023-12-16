@@ -214,8 +214,8 @@ check_ast( AST ) ->
 % @doc Interprets the specified list of issue reports.
 -spec interpret_issue_reports( [ issue_report() ] ) -> void().
 %interpret_issue_reports( _IssueReports=[] ) ->
-%	% Should never happen:
-%	display_info( "(no remark emitted)" );
+%   % Should never happen:
+%   display_info( "(no remark emitted)" );
 
 % No need to further special-case the number of issue reports, as it is not
 % meaningful (one may include an arbitrary long list):
@@ -444,11 +444,11 @@ beam_to_ast( BeamFilename ) ->
 			ok;
 
 		   ( { debug_info, _Mode, _Module, _Filename } ) ->
-				% Refer to GNUmakevars.inc:
-				_Key="Ceylan-Myriad";
+			% Refer to GNUmakevars.inc:
+			_Key="Ceylan-Myriad";
 
 		   ( clear ) ->
-				ok
+			ok
 
 	end,
 

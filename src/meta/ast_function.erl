@@ -335,7 +335,7 @@ transform_spec( OtherSpec, Transforms ) ?rec_guard ->
 % ..., Rep(T_n)]}, Rep(T_0)]}."
 %
 transform_function_type( { 'type', FileLocFirst, 'fun',
-	    [ { 'type', FileLocSecond, 'product', ParamTypes }, ResultType ] },
+		[ { 'type', FileLocSecond, 'product', ParamTypes }, ResultType ] },
 						 Transforms ) ?rec_guard ->
 
 	{ [ NewResultType | NewParamTypes ], NewTransforms } =
