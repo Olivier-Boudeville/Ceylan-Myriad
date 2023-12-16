@@ -56,7 +56,7 @@
 % Run-related functions.
 %
 % Not in code_utils, as we want them in a bootstrapped module.
--export([ run/1, run/2, run/3 ]).
+-export([ run/1, run/2, run/3, exec/1, exec/2, exec/3 ]).
 
 
 % Miscellaneous functions.
@@ -1407,7 +1407,40 @@ run( ModIOList, FunctionName, Args ) ->
 
 
 
+% The exec/N variations for applications behave mostly like the run/N variations
+% for tests (with X_app instead of X_test).
 
+
+% @doc Executes the exec/0 function from the specified application module.
+%
+% Designed as a convenient launcher used with 'erl -run', dealing notably best
+% with outputs, error management and stacktraces.
+%
+-spec exec( io_list_mod() ) -> void().
+exec( ModIOList ) ->
+	run( ModIOList, _FunctionName=exec ).
+
+
+% @doc Executes the specified 0-arity function from the specified application
+% module.
+%
+% Designed as a convenient launcher used with 'erl -run', dealing notably best
+% with outputs, error management and stacktraces.
+%
+-spec exec( io_list_mod(), function_name() ) -> void().
+exec( ModIOList, FunctionName ) ->
+	exec( ModIOList, FunctionName, _Args=[] ).
+
+
+% @doc Executes the specified function from the specified application module,
+% with the specified arguments.
+%
+% Designed as a convenient launcher used with 'erl -run', dealing notably best
+% with outputs, error management and stacktraces.
+%
+-spec exec( io_list_mod(), function_name(), [ argument() ] ) -> void().
+exec( ModIOList, FunctionName, Args ) ->
+	run( ModIOList, FunctionName, Args ).
 
 
 
