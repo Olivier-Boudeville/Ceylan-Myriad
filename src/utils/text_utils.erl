@@ -3179,7 +3179,7 @@ try_string_to_float( Other ) ->
 
 
 
-% @doc Converts specified plain string into an atom.
+% @doc Converts the specified plain string into an atom.
 %
 % Note that only a bounded number of atoms should be created that way, lest the
 % atom table gets saturated.
