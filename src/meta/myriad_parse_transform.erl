@@ -121,7 +121,7 @@
 % module
 %
 %     As a result, one's code source may include 'MyTable = table:new(), ...' or
-%     '-type my_type() :: [ { float(), table() } ].' and have them correctly
+%     '-type my_type() :: [{float(), table()}].' and have them correctly
 %     translated
 %
 % - replacing, in type specifications, any mention to a pseudo-builtin,
@@ -392,6 +392,22 @@ get_myriad_ast_transforms_for(
 	LocalCallTransformTable = get_local_call_transforms(),
 	RemoteCallTransformTable = get_remote_call_transforms(),
 
+	DisableLCO = shall_lco_be_disabled( CompileOptTable ),
+
+	TargetModuleName = case ModuleEntry of
+
+		undefined ->
+			undefined;
+
+		{ ModName, _ModLocForm } ->
+			ModName
+
+	end,
+
+	% Too serious consequences not to be advertised:
+	DisableLCO andalso ast_utils:display_warning(
+		"LCO will be disabled for this '~ts' module.", [ TargetModuleName ] ),
+
 	ASTTransformTable = get_ast_global_transforms( DesiredTableType,
 		_DisableLCO=shall_lco_be_disabled( CompileOptTable ) ),
 
@@ -403,16 +419,6 @@ get_myriad_ast_transforms_for(
 	% Uncomment to see all known tokens:
 	%ast_utils:display_debug( "Token table:~n~ts",
 	%                         [ ?table:to_string( TokenTable ) ] ),
-
-	TargetModuleName = case ModuleEntry of
-
-		undefined ->
-			undefined;
-
-		{ ModName, _ModLocForm } ->
-			ModName
-
-	end,
 
 	% Returns an overall description of these requested AST transformations:
 	#ast_transforms{ local_types=LocalTypeTransformTable,
@@ -464,20 +470,7 @@ shall_lco_be_disabled( CompileOptTable ) ->
 	DebugDefines = ?table:get_value_with_default( _DefinesK='d', _Default=[],
 												  CompileOptTable ),
 
-	DisableLCO = lists:member( myriad_disable_lco, DebugDefines ),
-
-	% case DisableLCO of
-
-	%   true ->
-	%       ast_utils:display_info( "LCO will be disabled." );
-
-	%   false ->
-	%       ast_utils:display_info( "LCO will not be prevented." )
-
-	%% end,
-
-	DisableLCO.
-
+	lists:member( myriad_disable_lco, DebugDefines ).
 
 
 % @doc Returns the table specifying the transformation of the local types.
@@ -499,7 +492,7 @@ shall_lco_be_disabled( CompileOptTable ) ->
 %
 % - table/N (e.g. table() or table(K,V)) with DesiredTableType/N (e.g.
 % DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
-% (as if table() was a local, hence builtin, type)
+% (as if table() was a builtin type)
 %
 -spec get_local_type_transforms( module_name() ) ->
 									ast_transform:local_type_transform_table().
@@ -1256,20 +1249,25 @@ lco_disabling_clause_transform_fun( _Clause={ 'clause', FileLoc,
 	% Mere '_' are file locations:
 	NewBodyExprs = case LastExpr of
 
-		{ call, _, {remote, _, _ModExpr, _FunExpr }, _ArgsExpr } ->
-			%ast_utils:display_debug( "Clause already ends with a remote call, "
-			%                         "no change needed." ),
+		{ call, _, {remote, _, _ModExpr, _FunExpr}, _ArgsExpr } ->
+			%ast_utils:display_debug( "No change needed, clause already ends "
+			%   "with a remote call:~n ~p.~n", [ LastExpr ] ),
 			BodyExprs;
 
 		OtherExpr ->
-			%ast_utils:display_debug( "Clause not ending with a remote call, "
-			%                         "adding one to an identity function." ),
+			% Not reusing FileLoc, as the beginning of that clause may be far
+			% before:
+			%
+			LastFileLoc = element( _Index=2, OtherExpr ),
 
-			% Reusing same file location for least surprise:
-			NewLastExpr = { call, FileLoc, {remote, FileLoc,
-											{atom, FileLoc, basic_utils},
-											{atom, FileLoc, identity } },
+			NewLastExpr = { call, LastFileLoc, {remote, LastFileLoc,
+											{atom, LastFileLoc, basic_utils},
+											{atom, LastFileLoc, identity } },
 							[ OtherExpr ] },
+
+			%ast_utils:display_debug( "Clause not ending with a remote call, "
+			%   "adding one to an identity function:~n ~p.~n",
+			%   [ NewLastExpr ] ),
 
 			RevExprs = [ NewLastExpr | RevRestExprs ],
 
@@ -1280,7 +1278,7 @@ lco_disabling_clause_transform_fun( _Clause={ 'clause', FileLoc,
 	NoLCOClause = { 'clause', FileLoc, HeadPatternSequence, GuardSequence,
 					NewBodyExprs },
 
-	% Now that we have LCO is disabled, let's apply the usual clause-level
+	% Now that LCO is disabled, let's apply the usual clause-level
 	% transformations:
 	%
 	ast_clause:transform_clause_default( NoLCOClause, Transforms ).
