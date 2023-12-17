@@ -85,6 +85,7 @@
 	%
 	main_bitmap :: bitmap() } ).
 
+
 -type dynamic_splash_info() :: #dynamic_splash_info{}.
 % Information to be kept by an application using a dynamic splash screen.
 
@@ -121,7 +122,7 @@
 		  show/1,
 		  on_repaint_needed/2, on_resized/3, remove/1,
 		  get_panel/1, get_frame/1,
-		  destruct/1 ]).
+		  destruct/1, update_panel/2 ]).
 
 
 % Shorthands:
@@ -149,7 +150,9 @@
 % future use (event management).
 %
 % The splash screen will be dismissed when the application will call the
-% remove/1 function.
+% remove/1 function, typically once fully initialised and ready.
+%
+% See the gui_splash_test module for an usage example.
 %
 -spec create_basic( any_image_path(), parent() ) -> basic_splash_info().
 create_basic( ImgPath, Parent ) ->
@@ -165,7 +168,9 @@ create_basic( ImgPath, Parent ) ->
 % information, for future use (event management).
 %
 % The splash screen will be dismissed when the application will call the
-% remove/1 function.
+% remove/1 function, typically once fully initialised and ready.
+%
+% See the gui_splash_test module for an usage example.
 %
 -spec create_basic( any_image_path(), scale_factor(), parent() ) ->
 											basic_splash_info().
@@ -216,6 +221,9 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 	%
 	SplashPanelSize = gui_panel:get_size( SplashPanel ),
 
+	% Panel size should be of the exact same size as the latest actual image
+	% one:
+	%
 	cond_utils:if_defined( myriad_debug_gui_splash, trace_utils:debug_fmt(
 		"Initial splash panel size: ~w.", [ SplashPanelSize ] ) ),
 
@@ -226,15 +234,15 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 	BackbufferBitmap = gui_bitmap:create_empty_for( SplashPanel ),
 
 	% Initialisation:
-	render_basic_splash( SplashPanel, BackbufferBitmap, ImgBitmap ),
+	render_basic_splash( BackbufferBitmap, ImgBitmap ),
 
 	% Both can happen, separately (just a repaint, e.g. after having been masked
-	% by another window) or not (resize+repaint):
+	% by another window) or not (resize then repaint):
 	%
 	gui:subscribe_to_events( [ { onResized,       SplashPanel },
 							   { onRepaintNeeded, SplashPanel } ] ),
 
-	% Would be too early (main frame shall be shown first):
+	% Could/would be too early (main frame shall be shown first):
 	%gui_frame:show( SplashFrame ),
 
 	#basic_splash_info{ splash_frame=SplashFrame,
@@ -245,11 +253,14 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 
 % @doc Blits the specified bitmap to the specified panel, once cleared.
 %
-% For example so that a splash panel is updated based on a backbuffer bitmap.
+% For example so that a splash panel is updated based on an already-available
+% backbuffer bitmap.
 %
 -spec update_panel( panel(), bitmap() ) -> void().
 update_panel( TargetPanel, SourceBitmap ) ->
-	%try
+
+	trace_utils:debug_fmt( "Updating panel ~w from bitmap ~w.",
+						   [ TargetPanel, SourceBitmap ] ),
 
 	% Locks the source surface (device context):
 	SourceBitmapDC = gui_bitmap:lock( SourceBitmap ),
@@ -266,14 +277,9 @@ update_panel( TargetPanel, SourceBitmap ) ->
 
 	gui_widget:unlock( TargetPanelDC ),
 
-	%basic_utils:identity( gui_bitmap:unlock( SourceBitmap ) ).
+	gui_bitmap:unlock( SourceBitmapDC ),
 
-	gui_bitmap:unlock( SourceBitmap ).
-
-	%% catch E ->
-	%%		throw( E )
-
-	%% end.
+	trace_utils:debug( "Updated panel." ).
 
 
 % @doc Creates a dynamic splash screen displaying the specified information on a
@@ -445,7 +451,7 @@ render_dynamic_splash( SplashPanel, IconBitmap, _TitleStr, _VersionStr,
 
 
 
-% @doc Returns a frame suitable to host any kind of splash screen.
+% @doc Returns a frame suitable to hosting any kind of splash screen.
 -spec create_splash_frame( parent() ) -> frame().
 create_splash_frame( Parent ) ->
 
@@ -453,7 +459,7 @@ create_splash_frame( Parent ) ->
 	%SplashFrameSize = { ScaledImgWidth + 15, ScaledImgHeight + 15 },
 	SplashFrameSize = auto,
 
-	% A mere window would not be sufficient; title useless:
+	% A mere window would not be sufficient: frame needed; title useless:
 	gui_frame:create( _STitle="Myriad Splash Screen", _Pos=auto,
 		SplashFrameSize,
 		_SplashStyles=[ no_border, no_taskbar, float_on_parent ],
@@ -488,9 +494,9 @@ on_repaint_needed( SplashPanel, _SplashInfo=#basic_splash_info{
 			"Basic splash panel '~ts' needs to be repainted (from ~w).",
 			[ gui:object_to_string( SplashPanel ), BackbufferBitmap ] ) ),
 
-	% No size change, backbuffer still legit:
+	% No size change, so backbuffer still legit:
 	%render_basic_splash( SplashPanel, BackbufferBitmap, ImgBitmap ).
-		update_panel( SplashPanel, BackbufferBitmap );
+	update_panel( SplashPanel, BackbufferBitmap );
 
 on_repaint_needed( SplashPanel, _SplashInfo=#dynamic_splash_info{} ) ->
 
@@ -509,7 +515,7 @@ on_repaint_needed( SplashPanel, _SplashInfo=#dynamic_splash_info{} ) ->
 %
 -spec on_resized( panel(), size(), splash_info() ) -> splash_info().
 on_resized( SplashPanel, NewSize, SplashInfo=#basic_splash_info{
-		backbuffer=BackbufferBitmap, % } ) ->
+		backbuffer=BackbufferBitmap,
 		image_bitmap=ImgBitmap } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
@@ -522,7 +528,7 @@ on_resized( SplashPanel, NewSize, SplashInfo=#basic_splash_info{
 	% A new backbuffer is used, the image must be copied on it (update_panel/2
 	% would not suffice):
 	%
-	render_basic_splash( SplashPanel, NewBackbufferBitmap, ImgBitmap ),
+	render_basic_splash( NewBackbufferBitmap, ImgBitmap ),
 
 	gui_bitmap:destruct( BackbufferBitmap ),
 
@@ -586,37 +592,27 @@ destruct( #dynamic_splash_info{ splash_frame=SplashFrame,
 % Internal helpers.
 
 
-% @doc Renders the splash screen: updates the (bitmap) backbuffer accordingly,
-% and blits it to the specified panel.
+% @doc Renders the splash screen ("once for all"): updates, from the specified
+% image bitmap, the (bitmap) backbuffer (but does not blit it to any target
+% panel).
 %
--spec render_basic_splash( splash_panel(), bitmap(), bitmap() ) -> void().
-render_basic_splash( TargetPanel, BackbufferBitmap, ImageBitmap ) ->
+-spec render_basic_splash( Target :: bitmap(), Source :: bitmap() ) -> void().
+render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 
 	% Note: the image could be copied directly onto the panel, yet preparing a
-	% backbuffer will allow to easily and efficiently blit it afterwards to said
-	% panel.
+	% backbuffer will allow preparing to easily and efficiently blit this
+	% panel-size backbuffer afterwards to said panel.
 
-	% Updates the backbuffer with the stored image:
+	% Updates the backbuffer with the stored image, drawn from its top-left
+	% position:
+	%
+	TopLeftPos = {0,0},
 
 	% Locks the target surface (device context):
 	BackbufferDC = gui_bitmap:lock( BackbufferBitmap ),
 
 	gui_render:clear_device_context( BackbufferDC ),
 
-	TopLeftPos = {0,0},
-
-	% Just copies the image bitmap onto the backbuffer:
+	% Just copies the image bitmap onto the backbuffer from said corner:
 	gui_bitmap:draw( _Source=ImageBitmap, _Target=BackbufferDC,
-					 _PosInTarget=TopLeftPos ),
-
-	% Then blits this updated backbuffer to the panel:
-
-	TargetPanelDC = gui_widget:lock( TargetPanel ),
-
-	gui_render:blit( _From=BackbufferDC, _FromPos=TopLeftPos,
-		_BlitArea=gui_bitmap:get_size( BackbufferBitmap ),
-		_To=TargetPanelDC, _ToPos=TopLeftPos ),
-
-	gui_widget:unlock( TargetPanelDC ),
-
-	gui_bitmap:unlock( BackbufferDC ).
+					 _PosInTarget=TopLeftPos ).

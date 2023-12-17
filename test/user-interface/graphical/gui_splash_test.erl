@@ -61,71 +61,11 @@
 -type my_test_state() :: #my_test_state{}.
 
 
-% Silencing:
--export([ do_trace/1 ]).
-
-
-do_trace( Pid ) ->
-
-	%dbg:tp( gui_splash, []),
-
-	%dbg:p( self(), c ),
-
-	trace_utils:debug_fmt( "[tracer] Tracing ~w.", [ Pid ] ),
-
-	%% dbg:tpl(gui_splash, _Function='_', _Arity='_',
-	%%		[{'_', [], [{return_trace}]}]),
-
-	%dbg:tp( gui_splash, _Function='_', _Arity='_',
-	%		[{'_',[],[{return_trace}]}]),
-
-	%Tracee = Pid,
-	Tracee = all,
-
-	erlang:trace( Tracee, _EnableTracing=true, [ exiting, call, return_to ] ),
-
-	Mod = '_',
-	%Mod = gui_splash,
-
-	erlang:trace_pattern( { Mod, '_', '_' }, true, [ local ] ),
-
-	follow_traces().
-
-
-
-
-follow_traces() ->
-
-	receive
-
-		M ->
-			trace_utils:debug_fmt( "[tracer] ~p.", [ M ] ),
-			follow_traces()
-
-	end.
-
-
 
 
 % @doc Runs the actual test.
 -spec run_splash_screen_test() -> void().
 run_splash_screen_test() ->
-
-	%observer:start(),
-
-	%follow_traces(),
-
-	%dbg:start(),
-
-	%dbg:tracer(),
-	%dbg:p(all,call),
-	%% dbg:tp( gui_splash, _Function='_', _Arity='_',
-	%%		[{'_',[],[{return_trace}]}]),
-
-	%Self = self(),
-
-	%_TracerPid = ?myriad_spawn( fun() -> do_trace( Self ) end ),
-
 
 	% This test just waits for a fixed duration:
 	WaitingDurationMs = 200,
@@ -146,7 +86,7 @@ run_splash_screen_test() ->
 		Pos, _MSize={ 800, 600 }, _MStyles=[ default ], NoId,
 		_MaybeParent=undefined ),
 
-	% To create a contrast:
+	% To create a contrast between the frame background and the splash screen:
 	MainPanel = gui_panel:create( MainFrame ),
 
 	gui_widget:set_background_color( MainPanel, _Color=bisque ),
@@ -155,7 +95,6 @@ run_splash_screen_test() ->
 
 	BasicSplashInfo = gui_splash:create_basic( ImgPath, _ScaleFactor=0.5,
 											   _SplashParent=MainFrame ),
-
 
 	StatusBar = gui_statusbar:create( MainFrame ),
 
@@ -172,7 +111,6 @@ run_splash_screen_test() ->
 	%
 	gui_splash:show( BasicSplashInfo ),
 
-
 	% Closure:
 	MainTestPid = self(),
 
@@ -184,10 +122,13 @@ run_splash_screen_test() ->
 							MainTestPid ! removeBasicSplash,
 
 							timer:sleep( WaitingDurationMs ),
-							MainTestPid ! createDynamicSplash,
+							%MainTestPid ! createDynamicSplash,
 
 							timer:sleep( WaitingDurationMs ),
-							MainTestPid ! removeDynamicSplash
+							%MainTestPid ! removeDynamicSplash
+
+							MainTestPid ! quit
+
 						end ),
 
 	test_main_loop( #my_test_state{
@@ -267,6 +208,13 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 													 splash_panel=undefined } );
 
 
+		quit ->
+			trace_utils:debug( "Quitting test." ),
+			ok;
+			
+
+		% Then the events this test is subscribed to:
+
 		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
@@ -281,7 +229,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			gui:stop();
 
 
-		% Then the splash-related events to manage:
+		% The splash-related events to manage:
 
 		{ onRepaintNeeded, [ SplashPanel, _SplashPanelId, _Context ] } ->
 
@@ -297,8 +245,10 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		{ onResized, [ SplashPanel, _SplashPanelId, NewSize, Context ] } ->
 
-			trace_utils:debug_fmt( "Resizing splash panel ~w to ~w (~ts).",
-				[ SplashPanel, NewSize,
+			% May actually be resized to the exact same size:
+			trace_utils:debug_fmt( "Resizing splash panel ~w from ~w to ~w "
+				"(~ts).",
+				[ SplashPanel, gui_panel:get_size( SplashPanel ), NewSize,
 				  gui_event:context_to_string( Context ) ] ),
 
 			NewSplashInfo =
