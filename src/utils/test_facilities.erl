@@ -66,11 +66,11 @@
 -spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
 	start_common(),
-	basic_utils:display( "~n~n--> Testing module ~ts.~n", [ Module ] );
+	basic_utils:display( "~n--> Testing module ~ts.~n", [ Module ] );
 
 start( Modules ) when is_list( Modules ) ->
 	start_common(),
-	basic_utils:display( "~n~n--> Testing modules ~p.~n", [ Modules ] ).
+	basic_utils:display( "~n--> Testing modules ~p.~n", [ Modules ] ).
 
 
 % (helper)
