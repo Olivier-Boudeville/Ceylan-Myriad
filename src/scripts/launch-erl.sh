@@ -58,7 +58,7 @@ asynch_thread_count=128
 
 
 usage="
-Usage: $(basename $0) [-v] [-c a_cookie] [--sn a_short_node_name | --ln a_long_node_name | --nn an_ignored_node_name ] [--hostname a_hostname] [--tcp-range min_port max_port] [--epmd-port new_port] [--config cfg_filename] [--max-process-count max_count] [--busy-limit kb_size] [--async-thread-count thread_count] [--background] [--non-interactive] [--eval an_expression|--run a_module_name a_function_name a_single_argument] [--no-auto-start] [-h|--help] [--beam-dir a_path] [--beam-paths path_1 path_2] [-start-verbatim-options [...]]: launches the Erlang interpreter with specified settings.
+Usage: $(basename $0) [-v] [-c a_cookie] [--sn a_short_node_name | --ln a_long_node_name | --nn an_ignored_node_name ] [--hostname a_hostname] [--tcp-range min_port max_port] [--epmd-port new_port] [--config cfg_filename] [--max-process-count max_count] [--busy-limit kb_size] [--async-thread-count thread_count] [--background] [--non-interactive] [--eval an_expression|--run a_module_name a_function_name a_single_argument] [--no-auto-start] [-h|--help] [--beam-dir a_path] [--beam-paths path_1 path_2] [--log-dir a_path] [--display-command] [--investigate-crashes] [-start-verbatim-options [...]]: launches the Erlang interpreter with specified settings.
 
 Detailed options:
 	-v: be verbose
@@ -85,6 +85,7 @@ Detailed options:
 	--beam-paths first_path second_path ...: adds specified directories to the path searched for beam files (multiple paths can be specified; must be the last option)
 	--log-dir: specify the directory in which the VM logs (if using run_erl) shall be written
 	--display-command: displays on the console the actual, final command that is executed by this script (the corresponding printout starts then with 'Launcher executing')
+	--investigate-crashes: performs post-mortem investigations regarding any (OS-level) crash (typically core dump) of the Erlang VM process
 
 Other options will be passed 'as are' to the interpreter with a warning, except if they are listed after a '-start-verbatim-options' option, in which case they will passed with no warning.
 
@@ -166,8 +167,8 @@ display_command=1
 # Often left disabled (hence at 1), since most crashes require only Erlang-level
 # debugging:
 #
-#investigate_post_mortem=0
-investigate_post_mortem=1
+#investigate_crashes=0
+investigate_crashes=1
 
 
 # Erlang defaults (see http://erlang.org/doc/man/erl.html#+zdbbl):
@@ -347,11 +348,6 @@ while [ $# -gt 0 ] && [ ${do_stop} -eq 1 ]; do
 		token_eaten=0
 	fi
 
-	if [ "$1" = "--display-command" ]; then
-		display_command=0
-		token_eaten=0
-	fi
-
 
 	if [ "$1" = "--beam-paths" ]; then
 		# Keep --beam-paths if first position, as will be shifted in end of loop
@@ -383,6 +379,18 @@ while [ $# -gt 0 ] && [ ${do_stop} -eq 1 ]; do
 		fi
 		token_eaten=0
 	fi
+
+	if [ "$1" = "--display-command" ]; then
+		display_command=0
+		token_eaten=0
+	fi
+
+	if [ "$1" = "--investigate-crashes" ]; then
+		investigate_crashes=0
+		token_eaten=0
+	fi
+
+
 
 	# We set the to_execute variable either according to -eval or to -run:
 
@@ -942,7 +950,7 @@ else
 
 		if [ $non_interactive -eq 1 ]; then
 
-			if [ $investigate_post_mortem -eq 0 ]; then
+			if [ $investigate_crashes -eq 0 ]; then
 
 				core_exec="$(which coredumpctl 2>/dev/null)"
 
