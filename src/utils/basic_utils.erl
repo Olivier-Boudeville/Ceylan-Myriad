@@ -1381,29 +1381,37 @@ run( ModIOList, FunctionName, Args ) ->
 
 			[ {init,do_boot,3,[]}, {init,start_em,1,[]},
 			  {basic_utils,run,3, _RunFileLoc} | RevRest ] ->
+				manage_minimised_stacktrace( RevRest, Class, Exception,
+											 ExplainStr );
 
-				ShrunkStacktrace = lists:reverse( RevRest ),
+			[ {init,start_em,1,[]}, {basic_utils,run,3, _RunFileLoc}
+												| RevRest ] ->
+				manage_minimised_stacktrace( RevRest, Class, Exception,
+											 ExplainStr );
 
-				StackStr = code_utils:interpret_stacktrace( ShrunkStacktrace ),
-
-				io:format( "The program crashed with the following ~ts-class "
-					"exception:~n  ~p~n~n"
-					"Latest calls first: ~ts~n~ts",
-					[ Class, Exception, StackStr, ExplainStr ] );
-
-			_ ->
-				StackStr = code_utils:interpret_stacktrace( Stacktrace ),
-				io:format( "the program crashed with the following~ts-class "
-					"exception:~n  ~p~n~n"
-					"Latest calls first "
-					"(warning: stacktrace could not be minimised): ~ts~n~ts",
-					[ Class, Exception, StackStr, ExplainStr ] )
+			% Apparently, sometimes (e.g. for gui_splash_test with LCO disabled)
+			% the stacktrace does not even reference basic_utils:run/3!
+			%
+			Rev ->
+				manage_minimised_stacktrace( Rev, Class, Exception,
+											 ExplainStr )
 
 		end,
 
 		init:stop()
 
 	end.
+
+
+% (helper)
+manage_minimised_stacktrace( RevRest, Class, Exception, ExplainStr ) ->
+	ShrunkStacktrace = lists:reverse( RevRest ),
+
+	StackStr = code_utils:interpret_stacktrace( ShrunkStacktrace ),
+
+	io:format( "~n#### Error: the program crashed with the following ~ts-class "
+		"exception:~n  ~p~n~nLatest calls first: ~ts~n~ts",
+		[ Class, Exception, StackStr, ExplainStr ] ).
 
 
 
