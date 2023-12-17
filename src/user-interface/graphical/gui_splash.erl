@@ -144,6 +144,9 @@
 
 
 
+% Section for basic splash screens.
+
+
 % @doc Creates a basic splash screen that will display the specified image on a
 % minimalist frame created on top of the specified parent (typically a frame,
 % probably the main one), and returns the associated splash information, for
@@ -251,35 +254,34 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 						image_bitmap=ImgBitmap }.
 
 
-% @doc Blits the specified bitmap to the specified panel, once cleared.
+% @doc Renders the splash screen ("once for all"): updates, from the specified
+% image bitmap, the (bitmap) backbuffer (but does not blit it to any target
+% panel).
 %
-% For example so that a splash panel is updated based on an already-available
-% backbuffer bitmap.
-%
--spec update_panel( panel(), bitmap() ) -> void().
-update_panel( TargetPanel, SourceBitmap ) ->
+-spec render_basic_splash( Target :: bitmap(), Source :: bitmap() ) -> void().
+render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 
-	trace_utils:debug_fmt( "Updating panel ~w from bitmap ~w.",
-						   [ TargetPanel, SourceBitmap ] ),
+	% Note: the image could be copied directly onto the panel, yet preparing a
+	% backbuffer will allow preparing to easily and efficiently blit this
+	% panel-size backbuffer afterwards to said panel.
 
-	% Locks the source surface (device context):
-	SourceBitmapDC = gui_bitmap:lock( SourceBitmap ),
-
-	% Then blits this updated backbuffer to the panel:
+	% Updates the backbuffer with the stored image, drawn from its top-left
+	% position:
+	%
 	TopLeftPos = {0,0},
 
 	% Locks the target surface (device context):
-	TargetPanelDC = gui_widget:lock( TargetPanel ),
+	BackbufferDC = gui_bitmap:lock( BackbufferBitmap ),
 
-	gui_render:blit( _From=SourceBitmapDC, _FromPos=TopLeftPos,
-		_BlitArea=gui_bitmap:get_size( SourceBitmap ),
-		_To=TargetPanelDC, _ToPos=TopLeftPos ),
+	gui_render:clear_device_context( BackbufferDC ),
 
-	gui_widget:unlock( TargetPanelDC ),
+	% Just copies the image bitmap onto the backbuffer from said corner:
+	gui_bitmap:draw( _Source=ImageBitmap, _Target=BackbufferDC,
+					 _PosInTarget=TopLeftPos ).
 
-	gui_bitmap:unlock( SourceBitmapDC ),
 
-	trace_utils:debug( "Updated panel." ).
+
+% Section for dynamically-created splash screens.
 
 
 % @doc Creates a dynamic splash screen displaying the specified information on a
@@ -291,7 +293,7 @@ update_panel( TargetPanel, SourceBitmap ) ->
 % rendered on a panel whose background color will be the specified one, and will
 % be organised based on three rows (each described from left to right):
 %
-%  1. a top row (of the same background color), including:
+%  1. a top row (of the same background color), including (left-to-right):
 %     * an icon-like image of the project
 %     * then, just afterwards, two lines:
 %       - top one: with a large font, the title of the project (e.g. "Foobar")
@@ -308,15 +310,16 @@ update_panel( TargetPanel, SourceBitmap ) ->
 %
 %     * general information (e.g. terms of use) on the left, e.g. "Foobar comes
 %     with absolutely no warranty, but is completly free for any kind of use
-%     (including commercial)." or "Published by Foobar
+%     (including commercial).", or "Published by Foobar
 %     Software\nhttp://foobar.com"
 %
 %     * copyright information on the right, i.e. "Copyright (C) 2022-2023 John
-%     Doe, James Bond and Others" or "Copyright" ++ [$\s,169] ++ " 2022-2023
+%     Doe, James Bond and Others", or "Copyright" ++ [$\s,169] ++ " 2022-2023
 %     John Doe\nAll rights reserved"
 %
 % The overall width is solely determined by the one of the image in the middle
-% row.
+% row. Ensure that all other elements are not too wide (e.g. that texts are not
+% too long).
 %
 % The overall height is the sum of the one of the three rows/panels:
 %  1. the height of the first row is solely determined by the one of the icon
@@ -345,7 +348,7 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 	SplashFrame = create_splash_frame( Parent ),
 
 	% No position, no size:
-	SplashPanel = gui_panel:create( _Par=SplashFrame ),
+	%SplashPanel = gui_panel:create( _Par=SplashFrame ),
 
 	IconImg = gui_image:load_from_file( IconImgPath ),
 	IconBitmap = gui_image:to_bitmap( IconImg ),
@@ -356,15 +359,14 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 	% Initialisation:
 	{ _MainSizer, _TopPanel, _MainPanel, _MainStaticBtmpDisp,
 	  _LeftTextDisplay, _RightTextDisplay } =
-		render_dynamic_splash( SplashPanel,
-		IconBitmap, TitleStr, VersionStr, DescStr, URLStr, BackgroundColor,
-		MainBitmap, GeneralInfoStr, CopyrightStr ),
+		render_dynamic_splash( SplashFrame, IconBitmap, TitleStr, VersionStr,
+			DescStr, URLStr, BackgroundColor, MainBitmap, GeneralInfoStr,
+			CopyrightStr ),
 
-	#dynamic_splash_info{
-		splash_frame=SplashFrame,
-		splash_panel=SplashPanel,
-		icon_bitmap=IconBitmap,
-		main_bitmap=MainBitmap }.
+	#dynamic_splash_info{ splash_frame=SplashFrame,
+						  %splash_panel=SplashPanel,
+						  icon_bitmap=IconBitmap,
+						  main_bitmap=MainBitmap }.
 
 
 
@@ -373,14 +375,17 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 %
 % Defined for re-use.
 %
-render_dynamic_splash( SplashPanel, IconBitmap, _TitleStr, _VersionStr,
-		_DescStr, _URLStr, BackgroundColor, MainBitmap, GeneralInfoStr,
+render_dynamic_splash( SplashFrame, IconBitmap, _TitleStr, _VersionStr,
+		_DescStr, _URLStr, _BackgroundColor, MainBitmap, GeneralInfoStr,
 		CopyrightStr ) ->
 
-	gui_widget:set_background_color( SplashPanel, BackgroundColor ),
+	trace_utils:debug_fmt( "Rendering dynamic splash on panel ~w.",
+						   [ SplashFrame ] ),
 
 	% Let's proceed row per row, stacked vertically thanks to:
 	MainSizer = gui_sizer:create_with_box( _Orientation=vertical ),
+
+	trace_utils:debug( "Operating on first row: icon and texts." ),
 
 	IconHeight = gui_bitmap:get_height( IconBitmap ),
 
@@ -391,50 +396,65 @@ render_dynamic_splash( SplashPanel, IconBitmap, _TitleStr, _VersionStr,
 	% (we cannot render the header text yet, as this top panel/static bitmap
 	% display has not its final size)
 	%
-	TopPanel = gui_panel:create( { size, { _W=0, _H=IconHeight } },
-								 SplashPanel ),
+	TopSizer = gui_sizer:create( _Orient=horizontal ),
 
-	gui_widget:set_background_color( TopPanel, BackgroundColor ),
+	IconBmpDisplay =
+		gui_bitmap:create_static_display( IconBitmap, SplashFrame ),
 
-	gui_sizer:add_element( MainSizer, TopPanel,
+	gui_sizer:add_element( TopSizer, IconBmpDisplay,
+						   [ { proportion, 0 }, { border, 5 }, left_border ] ),
+
+	InfoPanel = gui_panel:create( { size, { _Width=0, _Height=IconHeight } },
+								  SplashFrame ),
+
+	gui_widget:set_background_color( InfoPanel, red ),
+
+	gui_sizer:add_element( TopSizer, InfoPanel,
 		[ { proportion, _VerticallyFixed=0 }, expand_fully ] ),
 
+	gui_sizer:add_element( MainSizer, TopSizer,
+		[ { proportion, 1 }, { border, 8 }, all_borders, expand_fully ] ),
 
-	% Second row: the splash (main) image.
+
 
 	MainDims = gui_bitmap:get_size( MainBitmap ),
 
-	MainPanel = gui_panel:create(
-		[ { size, MainDims }, { style, no_border } ], SplashPanel ),
+	trace_utils:debug_fmt( "Operating on second row: the splash (main) image, "
+		"whose dimensions are ~w.", [ MainDims ] ),
+
+	MainImgPanel = gui_panel:create(
+		[ { size, MainDims }, { style, no_border } ], SplashFrame ),
 
 	MainStaticBtmpDisp =
-		gui_bitmap:create_static_display( MainBitmap, _Par=SplashPanel ),
+		gui_bitmap:create_static_display( MainBitmap, _Par=MainImgPanel ),
 
-	gui_sizer:add_element( MainSizer, SplashPanel,
+	gui_sizer:add_element( MainSizer, MainImgPanel,
 		[ { proportion, 0 }, { border, 5 }, all_borders, align_center ] ),
 
 
-	% Taking care of the bottom part (third row) now:
+
+	% Taking care of the bottom part now:
+	trace_utils:debug( "Operating on third row: texts on the side." ),
 
 	BottomFont = gui_font:create( _PointSize=10 ),
 
-	gui_widget:set_font( SplashPanel, BottomFont, _Textcolor=black,
+	gui_widget:set_font( SplashFrame, BottomFont, _Textcolor=black,
 						 _DestructFont=true ),
 
-	BottomSizer = gui_sizer:create( _Orient=horizontal ),
+	BottomSizer = gui_sizer:create( _HOrient=horizontal ),
 
-	LeftTextDisplay = gui_text:create_static_display( GeneralInfoStr,
-													  SplashPanel ),
+	LeftTextDisplay =
+		gui_text:create_static_display( _Lbel=GeneralInfoStr, _Pr=SplashFrame ),
 
 	gui_sizer:add_element( BottomSizer, LeftTextDisplay,
 						   [ { proportion, 0 }, { border, 5 }, left_border ] ),
 
-	% In-between:
-	gui_sizer:add_spacer( BottomSizer, _Width=0, _Height=0,
-						  [ { proportion, 1 }, expand_fully] ),
+	% In-between side texts:
+	gui_sizer:add_spacer( BottomSizer, _Wdth=0, _Hght=0,
+						  [ { proportion, 1 }, expand_fully ] ),
 
-	RightTextDisplay = gui_text:create_static_display( CopyrightStr,
-		{ style, [ align_right ] }, SplashPanel ),
+	RightTextDisplay = gui_text:create_static_display( _L=CopyrightStr,
+		{ style, [ align_right ] }, SplashFrame ),
 
 	gui_sizer:add_element( BottomSizer, RightTextDisplay,
 						   [ { proportion, 0 }, { border, 5 }, right_border ] ),
@@ -442,13 +462,16 @@ render_dynamic_splash( SplashPanel, IconBitmap, _TitleStr, _VersionStr,
 	gui_sizer:add_element( MainSizer, BottomSizer,
 		[ { proportion, 1 }, { border, 8 }, all_borders, expand_fully ] ),
 
-	gui_widget:set_sizer( SplashPanel, MainSizer ),
+	gui_widget:set_sizer( SplashFrame, MainSizer ),
 
-	gui_widget:fit_to_sizer( SplashPanel, MainSizer ),
+	gui_widget:fit_to_sizer( SplashFrame, MainSizer ),
 
-	{ MainSizer, TopPanel, MainPanel, MainStaticBtmpDisp,
+	{ MainSizer, InfoPanel, MainImgPanel, MainStaticBtmpDisp,
 	  LeftTextDisplay, RightTextDisplay }.
 
+
+
+% Section for facilities common to all types of splash screens.
 
 
 % @doc Returns a frame suitable to hosting any kind of splash screen.
@@ -466,7 +489,6 @@ create_splash_frame( Parent ) ->
 		_NoId=undefined, Parent ).
 
 
-
 % @doc Shows the corresponding splash screen.
 %
 % Must be called only after that the parent frame is shown, otherwise the splash
@@ -481,6 +503,36 @@ show( #dynamic_splash_info{ splash_frame=SplashFrame } ) ->
 	gui_frame:show( SplashFrame ).
 
 
+% @doc Blits the specified bitmap to the specified panel, once cleared.
+%
+% For example so that a splash panel is updated based on an already-available
+% backbuffer bitmap.
+%
+-spec update_panel( panel(), bitmap() ) -> void().
+update_panel( TargetPanel, SourceBitmap ) ->
+
+	trace_utils:debug_fmt( "Updating panel ~w from bitmap ~w.",
+						   [ TargetPanel, SourceBitmap ] ),
+
+	% Locks the source surface (device context):
+	SourceBitmapDC = gui_bitmap:lock( SourceBitmap ),
+
+	% Then blits this updated backbuffer to the panel:
+	TopLeftPos = {0,0},
+
+	% Locks the target surface (device context):
+	TargetPanelDC = gui_widget:lock( TargetPanel ),
+
+	gui_render:blit( _From=SourceBitmapDC, _FromPos=TopLeftPos,
+		_BlitArea=gui_bitmap:get_size( SourceBitmap ),
+		_To=TargetPanelDC, _ToPos=TopLeftPos ),
+
+	gui_widget:unlock( TargetPanelDC ),
+
+	gui_bitmap:unlock( SourceBitmapDC ).
+
+
+
 % @doc Callback to be triggered whenever the application catches a
 % onRepaintNeeded event for the splash panel.
 %
@@ -491,7 +543,7 @@ on_repaint_needed( SplashPanel, _SplashInfo=#basic_splash_info{
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt(
-			"Basic splash panel '~ts' needs to be repainted (from ~w).",
+			"Basic splash panel '~ts' needs to be repainted (based on ~w).",
 			[ gui:object_to_string( SplashPanel ), BackbufferBitmap ] ) ),
 
 	% No size change, so backbuffer still legit:
@@ -505,8 +557,7 @@ on_repaint_needed( SplashPanel, _SplashInfo=#dynamic_splash_info{} ) ->
 			"Dynamic splash panel '~ts' needs to be repainted.",
 			[ gui:object_to_string( SplashPanel ) ] ) ),
 
-	% Nothing done.
-
+	% Nothing done:
 	ok.
 
 
@@ -519,7 +570,7 @@ on_resized( SplashPanel, NewSize, SplashInfo=#basic_splash_info{
 		image_bitmap=ImgBitmap } ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
-		trace_utils:debug_fmt( "Splash panel '~ts' resized to ~p.",
+		trace_utils:debug_fmt( "Basic splash panel '~ts' resized to ~p.",
 			[ gui:object_to_string( SplashPanel ), NewSize ] ) ),
 
 	% We have to resize the framebuffer first:
@@ -534,8 +585,16 @@ on_resized( SplashPanel, NewSize, SplashInfo=#basic_splash_info{
 
 	%trace_utils:debug( "Splash panel resized (render)." ),
 
-	SplashInfo#basic_splash_info{ backbuffer=NewBackbufferBitmap }.
+	SplashInfo#basic_splash_info{ backbuffer=NewBackbufferBitmap };
 
+
+on_resized( SplashPanel, NewSize, SplashInfo=#dynamic_splash_info{} ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_splash,
+		trace_utils:debug_fmt( "Dynamic splash panel '~ts' resized to ~p.",
+			[ gui:object_to_string( SplashPanel ), NewSize ] ) ),
+
+	SplashInfo.
 
 
 
@@ -585,34 +644,3 @@ destruct( #dynamic_splash_info{ splash_frame=SplashFrame,
 	gui_frame:destruct( SplashFrame ),
 
 	[ gui_bitmap:destruct( B ) || B <- [ IconBitmap, MainBitmap ] ].
-
-
-
-
-% Internal helpers.
-
-
-% @doc Renders the splash screen ("once for all"): updates, from the specified
-% image bitmap, the (bitmap) backbuffer (but does not blit it to any target
-% panel).
-%
--spec render_basic_splash( Target :: bitmap(), Source :: bitmap() ) -> void().
-render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
-
-	% Note: the image could be copied directly onto the panel, yet preparing a
-	% backbuffer will allow preparing to easily and efficiently blit this
-	% panel-size backbuffer afterwards to said panel.
-
-	% Updates the backbuffer with the stored image, drawn from its top-left
-	% position:
-	%
-	TopLeftPos = {0,0},
-
-	% Locks the target surface (device context):
-	BackbufferDC = gui_bitmap:lock( BackbufferBitmap ),
-
-	gui_render:clear_device_context( BackbufferDC ),
-
-	% Just copies the image bitmap onto the backbuffer from said corner:
-	gui_bitmap:draw( _Source=ImageBitmap, _Target=BackbufferDC,
-					 _PosInTarget=TopLeftPos ).

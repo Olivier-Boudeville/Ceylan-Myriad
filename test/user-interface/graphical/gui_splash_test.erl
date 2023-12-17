@@ -122,10 +122,11 @@ run_splash_screen_test() ->
 							MainTestPid ! removeBasicSplash,
 
 							timer:sleep( WaitingDurationMs ),
-							%MainTestPid ! createDynamicSplash,
+							MainTestPid ! createDynamicSplash,
 
-							timer:sleep( WaitingDurationMs ),
-							%MainTestPid ! removeDynamicSplash
+							%timer:sleep( WaitingDurationMs ),
+							timer:sleep( 25000 ),
+							MainTestPid ! removeDynamicSplash,
 
 							MainTestPid ! quit
 
@@ -175,12 +176,12 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			URLStr = "www.foobar.org",
 
-			BackgroundColor = red,
+			BackgroundColor = red, %yellow,%lightblue,
 
 			MainImgPath =
 				file_utils:join( "..", test_facilities:get_myriad_logo_path() ),
 
-			GeneralInfoStr = "Foobar comes with absolutely no% warranty, "
+			GeneralInfoStr = "Foobar comes with absolutely no warranty, "
 				"but is completely free for any kind of use "
 				"(including commercial).",
 
@@ -211,7 +212,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		quit ->
 			trace_utils:debug( "Quitting test." ),
 			ok;
-			
+
 
 		% Then the events this test is subscribed to:
 
