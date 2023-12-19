@@ -58,6 +58,7 @@ fi
 # source archive, and to be able to switch back and forth more easily:
 
 # To be obtained with: 'sha512sum otp_src_x.y.tar.gz':
+erlang_sha512_for_26_2_1="c822d26af1e653dbd77f7f616b1d1e7f9350967bf95e8a1606c5abccebd65744fb35d1fb92641cd7a7db3626e0451e74db71a5d1718b442924acd410be953d0b"
 erlang_sha512_for_26_2="1b9ab5698d6ea51e471bafd35e39140425dddfa7a7c9fdf547793a85a607d1ce0d603e978bdc0e7be74d0d3a975638e3240721d5398af949a09e891845d66d06"
 erlang_sha512_for_26_1="949815e8a405ed167aab8102f932ba801cfe5245b352cccf373931b3c01fa48c4b578a355b35de68f6b50bbb20cb7d5aecf33389765b758a07332f79b71d239a"
 erlang_sha512_for_26_0_2="4affbd661cf444c3eadbc23e2cd4a494c953d97c0bb7ef1525f28d7a6b4a9abc1f2200f3e842f72d9a5e1dd18b1147a4433ae8038a75b86c4f7fa843d6035d22"
@@ -88,8 +89,8 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable (an update of the next two lines is needed):
-erlang_version="26.2"
-erlang_sum="${erlang_sha512_for_26_2}"
+erlang_version="26.2.1"
+erlang_sum="${erlang_sha512_for_26_2_1}"
 
 
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
