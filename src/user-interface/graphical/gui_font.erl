@@ -32,6 +32,11 @@
 
 -opaque font() :: wxFont:wxFont().
 % Designates a font object.
+%
+% It applies to text rendering, including the ones done from the gui_text
+% module; once created, use gui_widget:set_font/{2,3,4} or
+% gui_render:set_font/{3,4} to make use of it. Do not forget deallocating it
+% with destruct/1.
 
 
 -type font_size() :: gui:dimensions().
@@ -76,10 +81,14 @@
 			   font_weight/0, text_encoding/0, font_option/0, font_data/0 ]).
 
 
-% Font-related operations.
+% Font-related instance-level operations.
 -export([ create/1, create/2, create/3, create/4, create/5, destruct/1,
 		  get_platform_dependent_description/1, get_user_friendly_description/1,
 		  get_text_extent/2 ]).
+
+
+% General font information.
+-export([ list_families/0, list_styles/0, list_weights/0 ]).
 
 
 % Exported helpers (and silencing):
@@ -112,16 +121,20 @@
 -type wx_enum() :: gui_wx_backend:wx_enum().
 
 
-% @doc Creates a font object from specified requirements, to determine the
-% appearance of rendered text.
+
+% Font-related instance-level operations.
+
+
+% @doc Creates a font object from the specified requirements, to determine the
+% appearance of rendered texts from now on.
 %
 -spec create( font_size() | point_size() ) -> font().
 create( FontSize ) ->
 	create( FontSize, _FontFamily=default_font_family ).
 
 
-% @doc Creates a font object from specified requirements, to determine the
-% appearance of rendered text.
+% @doc Creates a font object from the specified requirements, to determine the
+% appearance of rendered texts from now on.
 %
 -spec create( font_size() | point_size(), font_family() ) -> font().
 create( FontSize, FontFamily ) ->
@@ -230,6 +243,29 @@ get_text_extent( Text, Font ) ->
 	wxBitmap:destroy( TmpBmp ),
 
 	Dims.
+
+
+
+% General font information.
+
+
+% @doc Returns a list of the base font families.
+-spec list_families() -> [ font_family() ].
+list_families() ->
+	[ default_font_family, decorative, roman, script, swiss, modern, teletype ].
+
+
+% @doc Returns a list of the supported font styles.
+-spec list_styles() -> [ font_style() ].
+list_styles() ->
+	[ normal, italic, slant ].
+
+
+% @doc Returns a list of the supported font weights.
+-spec list_weights() -> [ font_weight() ].
+list_weights() ->
+	[ thin, extra_light, light, normal, medium, semi_bold, bold, extra_bold,
+	  heavy , extra_heavy ].
 
 
 

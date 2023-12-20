@@ -37,6 +37,8 @@
 -opaque static_text_display() :: wxStaticText:wxStaticText().
 % A widget displaying a text; a text display behaves like a panel dedicated
 % to the rendering of a text.
+%
+% The current font applies to this display.
 
 
 -type static_display_option() ::
@@ -76,7 +78,8 @@
 
 
 % Operations related to static texts to display:
--export([ create_static_display/2, create_static_display/3,
+-export([ create_static_display/2, create_presized_static_display/3,
+		  create_static_display/3, create_presized_static_display/4,
 		  create_static_display_with_id/3,
 		  create_static_display/4,
 		  destruct_static_display/1 ]).
@@ -102,6 +105,8 @@
 
 -type id() :: gui_id:id().
 
+-type font() :: gui_font:font().
+
 -type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
 
 
@@ -115,6 +120,22 @@ create_static_display( Label, Parent ) ->
 	create_static_display( Label, gui_id:get_any_id(), _Opts=[], Parent ).
 
 
+% @doc Creates a static text display, based on the specified label and on a
+% precomputed size, determined thanks to the specified font.
+%
+% This function may be useful as, in some cases, even the rendering if a
+% single-line label in a panel may be wrong, being cropped for some unknown
+% reason.
+%
+-spec create_presized_static_display( label(), font(), parent() ) ->
+			static_text_display().
+create_presized_static_display( Label, Font, Parent ) ->
+	LabelSize = gui_font:get_text_extent( Label, Font ),
+	create_static_display( Label, gui_id:get_any_id(),
+						   _Opts=[ { size, LabelSize } ], Parent ).
+
+
+
 % @doc Creates a static text display, based on the specified label and
 % option(s).
 %
@@ -122,6 +143,23 @@ create_static_display( Label, Parent ) ->
 							 parent() ) -> static_text_display().
 create_static_display( Label, Options, Parent ) ->
 	create_static_display( Label, gui_id:get_any_id(), Options, Parent ).
+
+
+% @doc Creates a static text display, based on the specified label, (non-size)
+% option(s) and a precomputed size, determined thanks to the specified font.
+%
+% This function may be useful as, in some cases, even the rendering if a
+% single-line label in a panel may be wrong, being cropped for some unknown
+% reason.
+%
+-spec create_presized_static_display( label(),
+			maybe_list( static_display_option() ), font(), parent() ) ->
+				static_text_display().
+create_presized_static_display( Label, Options, Font, Parent ) ->
+	LabelSize = gui_font:get_text_extent( Label, Font ),
+	FullOpts = [ { size, LabelSize } | list_utils:ensure_list( Options ) ],
+	create_static_display( Label, gui_id:get_any_id(), FullOpts, Parent ).
+
 
 
 % @doc Creates a static text display, based on the specified label and
@@ -141,7 +179,12 @@ create_static_display_with_id( Label, Id, Parent ) ->
 	maybe_list( static_display_option() ), parent() ) -> static_text_display().
 create_static_display( Label, Id, Options, Parent ) ->
 	WxOpts = to_wx_static_display_opts( Options ),
+
+	%trace_utils:debug_fmt( "Options of static text display '~ts': ~p.",
+	%                       [ Label, WxOpts ] ),
+
 	wxStaticText:new( Parent, Id, Label, WxOpts ).
+
 
 
 % @doc Destructs the specified static text display.

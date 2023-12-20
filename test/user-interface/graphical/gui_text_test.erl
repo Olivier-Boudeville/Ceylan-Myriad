@@ -75,7 +75,7 @@ run_gui_test() ->
 	VertSizer = gui_sizer:create( _Orientation=vertical ),
 
 	Text = "This is an example of text for the '~ts' family "
-		   "of style '~ts' and weight '~ts'. Enjoy!",
+		   "of style '~ts' and weight '~ts'. Enjoy this font!",
 
 	Families = gui_font:list_families(),
 
@@ -93,7 +93,7 @@ run_gui_test() ->
 
 
 	[ register_display( Text, F, S, W, VertSizer, Panel )
-	  || F <- Families, S <- Styles, W <- Weights ],
+		|| F <- Families, S <- Styles, W <- Weights ],
 
 	gui_widget:set_sizer( Panel, VertSizer ),
 

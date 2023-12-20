@@ -118,17 +118,18 @@ run_splash_screen_test() ->
 		[ time_utils:duration_to_string( WaitingDurationMs ) ] ),
 
 	?myriad_spawn_link( fun() ->
-							timer:sleep( WaitingDurationMs ),
-							MainTestPid ! removeBasicSplash,
 
-							timer:sleep( WaitingDurationMs ),
-							MainTestPid ! createDynamicSplash,
+		timer:sleep( WaitingDurationMs ),
+		MainTestPid ! removeBasicSplash,
 
-							%timer:sleep( WaitingDurationMs ),
-							timer:sleep( 25000 ),
-							MainTestPid ! removeDynamicSplash,
+		timer:sleep( WaitingDurationMs ),
+		MainTestPid ! createDynamicSplash,
 
-							MainTestPid ! quit
+		%timer:sleep( WaitingDurationMs ),
+		timer:sleep( 25000 ),
+		MainTestPid ! removeDynamicSplash,
+
+		MainTestPid ! quit
 
 						end ),
 
@@ -176,21 +177,23 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			URLStr = "www.foobar.org",
 
-			BackgroundColor = red, %yellow,%lightblue,
+			%TitleBackgroundColor = lightgrey,
+			TitleBackgroundColor = red,
+			BackgroundColor = gray,
 
 			MainImgPath =
 				file_utils:join( "..", test_facilities:get_myriad_logo_path() ),
 
 			GeneralInfoStr = "Foobar comes with absolutely no warranty, "
-				"but is completely free for any kind of use "
+				"but is completely free\nfor any kind of use "
 				"(including commercial).",
 
-			CopyrightStr = "Copyright (C) 2022-2023 John Doe, "
+			CopyrightStr = "Copyright (C) 2022-2023 John Doe,\n"
 				"James Bond and Others",
 
 			DynamicSplashInfo = gui_splash:create_dynamic( IconImgPath,
-				TitleStr, VersionStr, DescStr, URLStr, BackgroundColor,
-				MainImgPath, GeneralInfoStr, CopyrightStr,
+				TitleStr, VersionStr, DescStr, URLStr, TitleBackgroundColor,
+				BackgroundColor, MainImgPath, GeneralInfoStr, CopyrightStr,
 				_SplashParent=MainFrame ),
 
 			gui_splash:show( DynamicSplashInfo ),

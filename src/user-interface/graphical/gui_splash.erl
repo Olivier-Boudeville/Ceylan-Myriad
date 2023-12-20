@@ -118,7 +118,7 @@
 % loop of the overall application.
 
 
--export([ create_basic/2, create_basic/3, create_dynamic/10,
+-export([ create_basic/2, create_basic/3, create_dynamic/11,
 		  show/1,
 		  on_repaint_needed/2, on_resized/3, remove/1,
 		  get_panel/1, get_frame/1,
@@ -290,12 +290,13 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 % (event management).
 %
 % The resulting splash screen (heavily inspired from the one of Wings3D) will be
-% rendered on a panel whose background color will be the specified one, and will
-% be organised based on three rows (each described from left to right):
+% rendered with the specified overall background color, and will be organised
+% based on three rows (each described from left to right):
 %
 %  1. a top row (of the same background color), including (left-to-right):
 %     * an icon-like image of the project
-%     * then, just afterwards, two lines:
+%     * then, just afterwards, two lines, on the specified title background
+%     color:
 %       - top one: with a large font, the title of the project (e.g. "Foobar")
 %       followed on its right, with a smaller font, by a version string
 %       (e.g. "v1.0.17")
@@ -334,11 +335,12 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 %
 -spec create_dynamic( IconImgPath :: any_image_path(), TitleStr :: any_string(),
 	VersionStr :: any_string(), DescStr :: any_string(), URLStr :: any_string(),
-	BackgroundColor :: color(),
+	TitleBackgroundColor :: color(), OverallBackgroundColor :: color(),
 	MainImgPath :: any_image_path(), GeneralInfoStr :: any_string(),
 	CopyrightStr :: any_string(), parent() ) -> dynamic_splash_info().
 create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
-		BackgroundColor, MainImgPath, GeneralInfoStr, CopyrightStr, Parent ) ->
+		TitleBackgroundColor, OverallBackgroundColor, MainImgPath,
+		GeneralInfoStr, CopyrightStr, Parent ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt( "Creating a dynamic splash screen, "
@@ -360,8 +362,8 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 	{ _MainSizer, _TopPanel, _MainPanel, _MainStaticBtmpDisp,
 	  _LeftTextDisplay, _RightTextDisplay } =
 		render_dynamic_splash( SplashFrame, IconBitmap, TitleStr, VersionStr,
-			DescStr, URLStr, BackgroundColor, MainBitmap, GeneralInfoStr,
-			CopyrightStr ),
+			DescStr, URLStr, TitleBackgroundColor, OverallBackgroundColor,
+			MainBitmap, GeneralInfoStr, CopyrightStr ),
 
 	#dynamic_splash_info{ splash_frame=SplashFrame,
 						  %splash_panel=SplashPanel,
@@ -375,19 +377,20 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 %
 % Defined for re-use.
 %
-render_dynamic_splash( SplashFrame, IconBitmap, _TitleStr, _VersionStr,
-		_DescStr, _URLStr, _BackgroundColor, MainBitmap, GeneralInfoStr,
-		CopyrightStr ) ->
+render_dynamic_splash( SplashFrame, IconBitmap, TitleStr, _VersionStr,
+		_DescStr, _URLStr, TitleBackgroundColor, OverallBackgroundColor,
+		MainBitmap, GeneralInfoStr, CopyrightStr ) ->
 
-	trace_utils:debug_fmt( "Rendering dynamic splash on panel ~w.",
+	trace_utils:debug_fmt( "Rendering dynamic splash on frame ~w.",
 						   [ SplashFrame ] ),
 
+	gui_widget:set_background_color( SplashFrame, OverallBackgroundColor ),
+
 	% Let's proceed row per row, stacked vertically thanks to:
-	MainSizer = gui_sizer:create_with_box( _Orientation=vertical ),
+	MainSizer = gui_sizer:create( _Orientation=vertical ),
+
 
 	trace_utils:debug( "Operating on first row: icon and texts." ),
-
-	IconHeight = gui_bitmap:get_height( IconBitmap ),
 
 	% First row: setting a sufficient initial height of the top panel in order
 	% to contain all elements (so that the icon image and bottom text fit); it
@@ -402,25 +405,43 @@ render_dynamic_splash( SplashFrame, IconBitmap, _TitleStr, _VersionStr,
 		gui_bitmap:create_static_display( IconBitmap, SplashFrame ),
 
 	gui_sizer:add_element( TopSizer, IconBmpDisplay,
-						   [ { proportion, 0 }, { border, 5 }, left_border ] ),
+		[ { proportion, 0 }, { border, 5 }, right_border, align_left ] ),
 
-	InfoPanel = gui_panel:create( { size, { _Width=0, _Height=IconHeight } },
+	%IconHeight = gui_bitmap:get_height( IconBitmap ),
+
+	InfoPanel = gui_panel:create( %{ size, { _Width=0, _Height=IconHeight } },
 								  SplashFrame ),
 
-	gui_widget:set_background_color( InfoPanel, red ),
+	gui_widget:set_background_color( InfoPanel, TitleBackgroundColor ),
+
+	TitleFont = gui_font:create( _FontSize=20, _FontFamily=decorative,
+								 _FontStyle=slant ),
+
+	gui_widget:set_font( InfoPanel, TitleFont ),
+
+	% If not pre-sizing, the display is cropped for some unknown reason:
+	TitleDisplay = gui_text:create_presized_static_display( TitleStr, _Opt={position, {59,20} }, TitleFont,
+															InfoPanel ),
+
+% {size, {110,50}}, InfoPanel ),
+	%TitleDisplay = gui_text:create_static_display( TitleStr, InfoPanel ),
+	%gui_widget:layout( InfoPanel ),
+	gui_widget:set_background_color( TitleDisplay, yellow ),
+
+trace_utils:debug_fmt( "S = ~p", [ gui_widget:get_size( TitleDisplay ) ] ),
+trace_utils:debug_fmt( "T = ~p", [ gui_font:get_text_extent( TitleStr, TitleFont ) ] ),
 
 	gui_sizer:add_element( TopSizer, InfoPanel,
-		[ { proportion, _VerticallyFixed=0 }, expand_fully ] ),
+		[ { proportion, 1 }, expand_fully ] ),
 
 	gui_sizer:add_element( MainSizer, TopSizer,
-		[ { proportion, 1 }, { border, 8 }, all_borders, expand_fully ] ),
-
+		[ { proportion, 0 }, { border, 8 }, all_borders, expand_fully ] ),
 
 
 	MainDims = gui_bitmap:get_size( MainBitmap ),
 
 	trace_utils:debug_fmt( "Operating on second row: the splash (main) image, "
-		"whose dimensions are ~w.", [ MainDims ] ),
+	   "whose dimensions are ~w.", [ MainDims ] ),
 
 	MainImgPanel = gui_panel:create(
 		[ { size, MainDims }, { style, no_border } ], SplashFrame ),
@@ -460,10 +481,9 @@ render_dynamic_splash( SplashFrame, IconBitmap, _TitleStr, _VersionStr,
 						   [ { proportion, 0 }, { border, 5 }, right_border ] ),
 
 	gui_sizer:add_element( MainSizer, BottomSizer,
-		[ { proportion, 1 }, { border, 8 }, all_borders, expand_fully ] ),
+		[ { proportion, 1 }, { border, 2 }, all_borders, expand_fully ] ),
 
 	gui_widget:set_sizer( SplashFrame, MainSizer ),
-
 	gui_widget:fit_to_sizer( SplashFrame, MainSizer ),
 
 	{ MainSizer, InfoPanel, MainImgPanel, MainStaticBtmpDisp,
