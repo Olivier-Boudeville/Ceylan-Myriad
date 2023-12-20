@@ -1328,6 +1328,12 @@ ERL_LAUNCHER = "$(MYRIAD_SRC)/scripts/launch-erl.sh"
 # If wanting to specify (Erlang) configuration file(s):
 # INTERNAL_OPTIONS += --config my-traces-test.config
 
+# If wanting to enable the post-mortem investigations about any (OS-level) crash
+# (typically core dump) of the Erlang VM process:
+#
+#INTERNAL_OPTIONS += --investigate-crashes
+
+
 
 # Compiler section.
 
