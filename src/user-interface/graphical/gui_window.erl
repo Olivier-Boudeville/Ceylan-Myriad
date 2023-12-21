@@ -76,8 +76,16 @@
   | 'transparent' % Windows-only
   | 'tab_traversable'
   | 'grab_all_keys'
+
+  % Note that, in most ports, scrollbars cannot be used with native controls
+  % that do not support scrollbars (i.e. that do not derive from
+  % wxScrolledWindow) nor with top-level windows; see our gui_scrollable module
+  % instead. Refer to https://docs.wxwidgets.org/latest/overview_scrolling.html
+  % for more details.
+  %
   | 'with_vertical_scrollbar'
   | 'with_horizontal_scrollbar'
+
   | 'never_hide_scrollbars'
   | 'clip_children'
   | 'full_repaint_on_resize'.
@@ -272,8 +280,8 @@ create( Position, Sizing, Styles, Id, Parent ) ->
 	ActualId = gui_id:declare_any_id( Id ),
 	ActualParent = gui_wx_backend:to_wx_parent( Parent ),
 
-	trace_utils:debug_fmt( "Creating a window with backend options ~w, "
-		"identifier ~w and parent ~w.", [ WxOpts, ActualId, ActualParent ] ),
+	%trace_utils:debug_fmt( "Creating a window with backend options ~w, "
+	%   "identifier ~w and parent ~w.", [ WxOpts, ActualId, ActualParent ] ),
 
 	wxWindow:new( ActualParent, ActualId, WxOpts ).
 
