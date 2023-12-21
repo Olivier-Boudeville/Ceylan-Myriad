@@ -52,6 +52,9 @@ register_display( Text, Family, Style, Weight, Sizer, Panel ) ->
 
 	Display = gui_text:create_static_display( FullText, _Parent=Panel ),
 
+	% Allows to check text extent:
+	gui_widget:set_background_color( Display, yellow ),
+
 	gui_sizer:add_element( Sizer, Display, [ { proportion, 0 } ] ),
 
 	gui_widget:set_font( Display, Font ),
