@@ -1362,8 +1362,9 @@ run( ModIOList, FunctionName, Args ) ->
 					Ar when is_integer( Ar ) ->
 						Ar;
 
-					Args when is_list( Args ) ->
-						length( Args )
+					% 'Args' already used!
+					SomeArgs when is_list( SomeArgs ) ->
+						length( SomeArgs )
 
 				end,
 
