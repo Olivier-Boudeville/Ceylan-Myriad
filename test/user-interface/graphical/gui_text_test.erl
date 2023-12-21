@@ -34,6 +34,9 @@
 -include("test_facilities.hrl").
 
 
+-define( test_font_size, 14 ).
+
+
 % Shorthands:
 
 -type frame() :: gui_frame:frame().
@@ -46,20 +49,23 @@
 
 register_display( Text, Family, Style, Weight, Sizer, Panel ) ->
 
-	FullText = text_utils:format( Text, [ Family, Style, Weight ] ),
+	Font = gui_font:create( ?test_font_size, Family, Style, Weight ),
 
-	Font = gui_font:create( _FontSize=10, Family, Style, Weight ),
+	FullText = text_utils:format( Text, [ Family, Style, Weight,
+		gui_font:get_platform_dependent_description( Font ),
+		gui_font:get_user_friendly_description( Font ) ] ),
 
 	Display = gui_text:create_static_display( FullText, _Parent=Panel ),
+
+	gui_widget:set_font( Display, Font ),
 
 	% Allows to check text extent:
 	gui_widget:set_background_color( Display, yellow ),
 
 	gui_sizer:add_element( Sizer, Display, [ { proportion, 0 } ] ),
 
-	gui_widget:set_font( Display, Font ),
-
 	gui_font:destruct( Font ).
+
 
 
 % @doc Executes the actual test.
@@ -70,35 +76,43 @@ run_gui_test() ->
 
 	gui:start(),
 
-	Frame = gui_frame:create( "This is the overall frame for text testing",
-							  _Size={ 1280, 1024 } ),
 
-	Panel = gui_panel:create( Frame ),
+	AutoPos = auto,
+
+	% Not defining scrollbars here (e.g. with with_vertical_scrollbar), as would
+	% do nothing on such a top-level window:
+	%
+	Frame = gui_frame:create( "This is the overall frame for text testing",
+		AutoPos, _Sizing={ 1280, 1024 }, _FrameStyles=[ default ] ),
+
+	ScrollablePanel =
+		gui_scrollable:create( _Inc=?test_font_size, _Parent=Frame ),
 
 	VertSizer = gui_sizer:create( _Orientation=vertical ),
 
 	Text = "This is an example of text for the '~ts' family "
-		   "of style '~ts' and weight '~ts'. Enjoy this font!",
+		   "of style '~ts' and weight '~ts': it is '~ts' (a.k.a. '~ts').",
 
 	Families = gui_font:list_families(),
 
 	Styles =  gui_font:list_styles(),
 
-	% Not too many:
-	%Weights = gui_font:list_weights(),
-	%Weights = [ thin, normal, medium, bold, extra_heavy ],
-	Weights = [ thin, normal, bold ],
+	Weights = gui_font:list_weights(),
 
-	test_facilities:display( "For fonts, sampling following:"
+	test_facilities:display( "Sampling following fonts: "
 		"~n - ~B families: ~p~n - ~B styles: ~p~n - ~B weights: ~p",
 		[ length( Families ), Families, length( Styles ), Styles,
 		  length( Weights ), Weights ] ),
 
+	IntroDisplay = gui_text:create_static_display(
+		_Text="Note that this content is scrollable horizontally "
+			  "and vertically.", _P=ScrollablePanel ),
 
-	[ register_display( Text, F, S, W, VertSizer, Panel )
-		|| F <- Families, S <- Styles, W <- Weights ],
+	gui_sizer:add_element( VertSizer, IntroDisplay, [ { proportion, 0 } ] ),
 
-	gui_widget:set_sizer( Panel, VertSizer ),
+	render_fonts( Text, Families, Styles, Weights, VertSizer, ScrollablePanel ),
+
+	gui_widget:set_sizer( ScrollablePanel, VertSizer ),
 
 	gui:subscribe_to_events( [ { onWindowClosed, Frame } ] ),
 
@@ -106,6 +120,34 @@ run_gui_test() ->
 
 	test_main_loop( _InitialState=Frame ).
 
+
+
+% Add a text display to render each font setting in turn.
+render_fonts( _Text, _Families=[], _Styles, _Weights, _Sizer,
+			  _ScrollablePanel ) ->
+	ok;
+
+render_fonts( Text, _Families=[ F | T ], Styles, Weights, Sizer,
+			  ScrollablePanel ) ->
+
+	Font = gui_font:create( _FontSize=?test_font_size + 2, F,
+							_Style=normal, _Weight=normal ),
+
+	FirstText = text_utils:format(
+		"~n  I am a rendering example of font '~ts'.",
+		[ gui_font:get_platform_dependent_description( Font ) ] ),
+
+	FirstDisplay = gui_text:create_static_display( FirstText,
+												   _Parent=ScrollablePanel ),
+
+	gui_widget:set_font( FirstDisplay, Font ),
+
+	gui_sizer:add_element( Sizer, FirstDisplay, [ { proportion, 0 } ] ),
+
+	[ register_display( Text, F, S, W, Sizer, ScrollablePanel )
+		|| S <- Styles, W <- Weights ],
+
+	render_fonts( Text, _Fs=T, Styles, Weights, Sizer, ScrollablePanel ).
 
 
 
