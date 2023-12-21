@@ -1207,7 +1207,8 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 				 end ++ ArgStr,
 
 
-	text_utils:format( "~ts:~ts/~B called with the following arguments:~ts~ts",
+	text_utils:format(
+		"~ts:~ts/~B called with the following list of arguments:~ts~ts",
 		[ Module, Function, length( Args ), FullArgStr,
 		  get_location_from( StackInfo, FullPathsWanted ) ] );
 
