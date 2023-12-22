@@ -106,6 +106,7 @@
 -type id() :: gui_id:id().
 
 -type font() :: gui_font:font().
+-type precise_text_extent() :: gui_font:precise_text_extent().
 
 -type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
 
@@ -120,23 +121,30 @@ create_static_display( Label, Parent ) ->
 	create_static_display( Label, gui_id:get_any_id(), _Opts=[], Parent ).
 
 
+
 % @doc Creates a static text display, based on the specified label and on a
 % precomputed size, determined thanks to the specified font, which is associated
-% to it.
+% to it. Returns the created static display, together with its precise text
+% extent.
 %
 % This function may be useful as, in some cases, even the rendering if a
 % single-line label in a panel may be wrong, being cropped for some unknown
 % reason (presumably a wxWidgets bug).
 %
 -spec create_presized_static_display( label(), font(), parent() ) ->
-			static_text_display().
+			{ static_text_display(), precise_text_extent() }.
 create_presized_static_display( Label, Font, Parent ) ->
 	% See explanation in create_presized_static_display/4.
-	LabelSize = gui_font:get_text_extent( Label, Font ),
+	PExtent = { W, H, _Descent, _ExtLeading } =
+		gui_font:get_precise_text_extent( Label, Font ),
+
+	LabelSize = { W, H },
+
 	Display = create_static_display( Label, gui_id:get_any_id(),
 		_Opts=[ { size, LabelSize } ], Parent ),
+
 	gui_widget:set_font( Display, Font ),
-	Display.
+	{ Display, PExtent }.
 
 
 
@@ -150,8 +158,12 @@ create_static_display( Label, Options, Parent ) ->
 
 
 % @doc Creates a static text display, based on the specified label, (non-size)
-% option(s) and a precomputed size, determined thanks to the specified font,
-% which is associated to it.
+% option(s) and its precise text extent, determined thanks to the specified
+% font, which is associated to it.
+%
+% Note that the display height may be higher than the one of the actual text,
+% due to the margin taken for letters possibly going below the baseline (like
+% 'g').
 %
 % This function may be useful as, in some cases, even the rendering if a
 % single-line label in a panel may be wrong, being cropped for some unknown
@@ -159,10 +171,13 @@ create_static_display( Label, Options, Parent ) ->
 %
 -spec create_presized_static_display( label(),
 			maybe_list( static_display_option() ), font(), parent() ) ->
-				static_text_display().
+				{ static_text_display(), precise_text_extent() }.
 create_presized_static_display( Label, Options, Font, Parent ) ->
 
-	LabelSize = gui_font:get_text_extent( Label, Font ),
+	PExtent = { W, H, _Descent, _ExtLeading } =
+		gui_font:get_precise_text_extent( Label, Font ),
+
+	LabelSize = { W, H },
 
 	% One may test it with (at least in our setting, size is wrong (seems to
 	% take into account the former font):
@@ -183,7 +198,7 @@ create_presized_static_display( Label, Options, Font, Parent ) ->
 	%   [ gui_widget:get_size( Display ),
 	%     gui_font:get_text_extent( Label, Font ) ] ),
 
-	Display.
+	{ Display, PExtent }.
 
 
 
