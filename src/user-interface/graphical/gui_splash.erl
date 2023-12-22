@@ -307,7 +307,7 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 %  2. a middle row displaying (without horizontal margins) the project's main
 %  representation, as an image, at full size
 %
-%  3. a bottom row, made of two text displays, on both sides of a spacer:
+%  3. a bottom row, made of two text displays, on either sides of a spacer:
 %
 %     * general information (e.g. terms of use) on the left, e.g. "Foobar comes
 %     with absolutely no warranty, but is completly free for any kind of use
@@ -320,7 +320,7 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 %
 % The overall width is solely determined by the one of the image in the middle
 % row. Ensure that all other elements are not too wide (e.g. that texts are not
-% too long).
+% too long, knowing that they can be multi-lines).
 %
 % The overall height is the sum of the one of the three rows/panels:
 %  1. the height of the first row is solely determined by the one of the icon
@@ -349,14 +349,8 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 
 	SplashFrame = create_splash_frame( Parent ),
 
-	% No position, no size:
-	%SplashPanel = gui_panel:create( _Par=SplashFrame ),
-
-	IconImg = gui_image:load_from_file( IconImgPath ),
-	IconBitmap = gui_image:to_bitmap( IconImg ),
-
-	MainImg = gui_image:load_from_file( MainImgPath ),
-	MainBitmap = gui_image:to_bitmap( MainImg ),
+	IconBitmap = gui_image:create_bitmap( IconImgPath ),
+	MainBitmap = gui_image:create_bitmap( MainImgPath ),
 
 	% Initialisation:
 	{ _MainSizer, _TopPanel, _MainPanel, _MainStaticBtmpDisp,
@@ -372,19 +366,19 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 
 
 
-% @doc Creates the necessary widgets in order to fill the specified splash panel
-% with splash content.
+% @doc Creates the necessary widgets in order to fill the specified frame with
+% splash content.
 %
 % Defined for re-use.
 %
-render_dynamic_splash( SplashFrame, IconBitmap, TitleStr, _VersionStr,
+render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, _VersionStr,
 		_DescStr, _URLStr, TitleBackgroundColor, OverallBackgroundColor,
 		MainBitmap, GeneralInfoStr, CopyrightStr ) ->
 
 	trace_utils:debug_fmt( "Rendering dynamic splash on frame ~w.",
-						   [ SplashFrame ] ),
+						   [ TargetFrame ] ),
 
-	gui_widget:set_background_color( SplashFrame, OverallBackgroundColor ),
+	gui_widget:set_background_color( TargetFrame, OverallBackgroundColor ),
 
 	% Let's proceed row per row, stacked vertically thanks to:
 	MainSizer = gui_sizer:create( _Orientation=vertical ),
@@ -402,34 +396,34 @@ render_dynamic_splash( SplashFrame, IconBitmap, TitleStr, _VersionStr,
 	TopSizer = gui_sizer:create( _Orient=horizontal ),
 
 	IconBmpDisplay =
-		gui_bitmap:create_static_display( IconBitmap, SplashFrame ),
+		gui_bitmap:create_static_display( IconBitmap, TargetFrame ),
+
+
 
 	gui_sizer:add_element( TopSizer, IconBmpDisplay,
 		[ { proportion, 0 }, { border, 5 }, right_border, align_left ] ),
 
-	%IconHeight = gui_bitmap:get_height( IconBitmap ),
+	% To set exactly the height of the information panel:
+	IconHeight = gui_bitmap:get_height( IconBitmap ),
 
-	InfoPanel = gui_panel:create( %{ size, { _Width=0, _Height=IconHeight } },
-								  SplashFrame ),
+	InfoPanel = gui_panel:create( { size, { _Width=0, _Height=IconHeight } },
+								  TargetFrame ),
 
 	gui_widget:set_background_color( InfoPanel, TitleBackgroundColor ),
 
-	TitleFont = gui_font:create( _FontSize=20, _FontFamily=decorative,
-								 _FontStyle=slant ),
+	TitleFontSize = 15,
+	TitleFontFamily = decorative, % teletype,
+	TitleFontStyle = slant, % normal,
 
-	gui_widget:set_font( InfoPanel, TitleFont ),
+	TitleFont = gui_font:create( TitleFontSize, TitleFontFamily,
+								 TitleFontStyle ),
 
-	% If not pre-sizing, the display is cropped for some unknown reason:
-	TitleDisplay = gui_text:create_presized_static_display( TitleStr, _Opt={position, {59,20} }, TitleFont,
-															InfoPanel ),
+	TitleOpts = [], % { position, _TitlePos=auto } % {110,5},
+	TitleDisplay = gui_text:create_presized_static_display( TitleStr, TitleOpts,
+	   TitleFont, InfoPanel ),
 
-% {size, {110,50}}, InfoPanel ),
-	%TitleDisplay = gui_text:create_static_display( TitleStr, InfoPanel ),
-	%gui_widget:layout( InfoPanel ),
 	gui_widget:set_background_color( TitleDisplay, yellow ),
 
-trace_utils:debug_fmt( "S = ~p", [ gui_widget:get_size( TitleDisplay ) ] ),
-trace_utils:debug_fmt( "T = ~p", [ gui_font:get_text_extent( TitleStr, TitleFont ) ] ),
 
 	gui_sizer:add_element( TopSizer, InfoPanel,
 		[ { proportion, 1 }, expand_fully ] ),
@@ -444,7 +438,7 @@ trace_utils:debug_fmt( "T = ~p", [ gui_font:get_text_extent( TitleStr, TitleFont
 	   "whose dimensions are ~w.", [ MainDims ] ),
 
 	MainImgPanel = gui_panel:create(
-		[ { size, MainDims }, { style, no_border } ], SplashFrame ),
+		[ { size, MainDims }, { style, no_border } ], TargetFrame ),
 
 	MainStaticBtmpDisp =
 		gui_bitmap:create_static_display( MainBitmap, _Par=MainImgPanel ),
@@ -459,13 +453,13 @@ trace_utils:debug_fmt( "T = ~p", [ gui_font:get_text_extent( TitleStr, TitleFont
 
 	BottomFont = gui_font:create( _PointSize=10 ),
 
-	gui_widget:set_font( SplashFrame, BottomFont, _Textcolor=black,
+	gui_widget:set_font( TargetFrame, BottomFont, _Textcolor=black,
 						 _DestructFont=true ),
 
 	BottomSizer = gui_sizer:create( _HOrient=horizontal ),
 
 	LeftTextDisplay =
-		gui_text:create_static_display( _Lbel=GeneralInfoStr, _Pr=SplashFrame ),
+		gui_text:create_static_display( _Lbel=GeneralInfoStr, _Pr=TargetFrame ),
 
 	gui_sizer:add_element( BottomSizer, LeftTextDisplay,
 						   [ { proportion, 0 }, { border, 5 }, left_border ] ),
@@ -475,7 +469,7 @@ trace_utils:debug_fmt( "T = ~p", [ gui_font:get_text_extent( TitleStr, TitleFont
 						  [ { proportion, 1 }, expand_fully ] ),
 
 	RightTextDisplay = gui_text:create_static_display( _L=CopyrightStr,
-		{ style, [ align_right ] }, SplashFrame ),
+		{ style, [ align_right ] }, TargetFrame ),
 
 	gui_sizer:add_element( BottomSizer, RightTextDisplay,
 						   [ { proportion, 0 }, { border, 5 }, right_border ] ),
@@ -483,8 +477,8 @@ trace_utils:debug_fmt( "T = ~p", [ gui_font:get_text_extent( TitleStr, TitleFont
 	gui_sizer:add_element( MainSizer, BottomSizer,
 		[ { proportion, 1 }, { border, 2 }, all_borders, expand_fully ] ),
 
-	gui_widget:set_sizer( SplashFrame, MainSizer ),
-	gui_widget:fit_to_sizer( SplashFrame, MainSizer ),
+	% Fitting is necessary to adopt a proper frame size:
+	gui_widget:set_and_fit_to_sizer( TargetFrame, MainSizer ),
 
 	{ MainSizer, InfoPanel, MainImgPanel, MainStaticBtmpDisp,
 	  LeftTextDisplay, RightTextDisplay }.
