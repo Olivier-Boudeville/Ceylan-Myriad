@@ -121,18 +121,22 @@ create_static_display( Label, Parent ) ->
 
 
 % @doc Creates a static text display, based on the specified label and on a
-% precomputed size, determined thanks to the specified font.
+% precomputed size, determined thanks to the specified font, which is associated
+% to it.
 %
 % This function may be useful as, in some cases, even the rendering if a
 % single-line label in a panel may be wrong, being cropped for some unknown
-% reason.
+% reason (presumably a wxWidgets bug).
 %
 -spec create_presized_static_display( label(), font(), parent() ) ->
 			static_text_display().
 create_presized_static_display( Label, Font, Parent ) ->
+	% See explanation in create_presized_static_display/4.
 	LabelSize = gui_font:get_text_extent( Label, Font ),
-	create_static_display( Label, gui_id:get_any_id(),
-						   _Opts=[ { size, LabelSize } ], Parent ).
+	Display = create_static_display( Label, gui_id:get_any_id(),
+		_Opts=[ { size, LabelSize } ], Parent ),
+	gui_widget:set_font( Display, Font ),
+	Display.
 
 
 
@@ -146,19 +150,41 @@ create_static_display( Label, Options, Parent ) ->
 
 
 % @doc Creates a static text display, based on the specified label, (non-size)
-% option(s) and a precomputed size, determined thanks to the specified font.
+% option(s) and a precomputed size, determined thanks to the specified font,
+% which is associated to it.
 %
 % This function may be useful as, in some cases, even the rendering if a
 % single-line label in a panel may be wrong, being cropped for some unknown
-% reason.
+% reason (presumably a wxWidgets bug).
 %
 -spec create_presized_static_display( label(),
 			maybe_list( static_display_option() ), font(), parent() ) ->
 				static_text_display().
 create_presized_static_display( Label, Options, Font, Parent ) ->
+
 	LabelSize = gui_font:get_text_extent( Label, Font ),
+
+	% One may test it with (at least in our setting, size is wrong (seems to
+	% take into account the former font):
+	%
+	%FullOpts = list_utils:ensure_list( Options ),
+
 	FullOpts = [ { size, LabelSize } | list_utils:ensure_list( Options ) ],
-	create_static_display( Label, gui_id:get_any_id(), FullOpts, Parent ).
+
+	Display = create_static_display( Label, gui_id:get_any_id(), FullOpts,
+									 Parent ),
+
+	gui_widget:set_font( Display, Font ),
+
+	% The issue is that if no explicit size is set, they will still not match
+	% even after fit/layout:
+	%
+	%trace_utils:debug_fmt( "Display size = ~p, text extent = ~p.",
+	%   [ gui_widget:get_size( Display ),
+	%     gui_font:get_text_extent( Label, Font ) ] ),
+
+	Display.
+
 
 
 
