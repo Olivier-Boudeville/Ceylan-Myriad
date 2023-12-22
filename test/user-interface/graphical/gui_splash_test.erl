@@ -79,11 +79,11 @@ run_splash_screen_test() ->
 
 	gui:start(),
 
-	Pos = auto,
+	AutoPos = auto,
 	NoId = undefined,
 
 	MainFrame = gui_frame:create( _MTitle="MyriadGUI Splash Screen Test",
-		Pos, _MSize={ 800, 600 }, _MStyles=[ default ], NoId,
+		AutoPos, _MSize={ 800, 600 }, _MStyles=[ default ], NoId,
 		_MaybeParent=undefined ),
 
 	% To create a contrast between the frame background and the splash screen:
@@ -98,7 +98,7 @@ run_splash_screen_test() ->
 
 	StatusBar = gui_statusbar:create( MainFrame ),
 
-	gui_statusbar:push_text( StatusBar, "Displaying splash screen." ),
+	gui_statusbar:push_text( StatusBar, "Displaying basic splash screen." ),
 
 	% Splash already subscribed by itself:
 	gui:subscribe_to_events( [ { onWindowClosed, MainFrame } ] ),
@@ -169,7 +169,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			IconImgPath =
 				file_utils:join( "..", test_facilities:get_myriad_icon_path() ),
 
-			TitleStr = "Foobar",
+			TitleStr = "Foobar Longer Title",
+			%TitleStr = "Foobar",
 
 			VersionStr = "v1.0.17",
 
@@ -179,7 +180,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			%TitleBackgroundColor = lightgrey,
 			TitleBackgroundColor = red,
-			BackgroundColor = gray,
+
+			%BackgroundColor = gray,
+			BackgroundColor = pink,
 
 			MainImgPath =
 				file_utils:join( "..", test_facilities:get_myriad_logo_path() ),
@@ -213,7 +216,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 
 		quit ->
-			trace_utils:debug( "Quitting test." ),
+			trace_utils:debug( "Quitting splash test." ),
 			ok;
 
 
