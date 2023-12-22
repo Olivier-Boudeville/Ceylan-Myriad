@@ -77,14 +77,31 @@
 % A wx object.
 
 
+-type descent() :: length().
+% Length from the baseline of a font to the bottom of the descender.
+
+
+-type external_leading() :: length().
+% Any extra vertical space added to the font by the font designer (usually is
+% null).
+
+
+-type precise_text_extent() ::
+	{ width(), height(), descent(), external_leading() }.
+% A precise text extent.
+%
+% Useful for example so that texts are rendered at the same height.
+
+
 -export_type([ font/0, font_size/0, point_size/0, font_family/0, font_style/0,
-			   font_weight/0, text_encoding/0, font_option/0, font_data/0 ]).
+			   font_weight/0, text_encoding/0, font_option/0, font_data/0,
+			   descent/0, external_leading/0, precise_text_extent/0 ]).
 
 
 % Font-related instance-level operations.
 -export([ create/1, create/2, create/3, create/4, create/5, destruct/1,
 		  get_platform_dependent_description/1, get_user_friendly_description/1,
-		  get_text_extent/2 ]).
+		  get_text_extent/2, get_precise_text_extent/2 ]).
 
 
 % General font information.
@@ -116,6 +133,9 @@
 -type ustring() :: text_utils:ustring().
 -type any_string() :: text_utils:any_string().
 
+-type length() :: gui:length().
+-type width() :: gui:width().
+-type height() :: gui:height().
 -type dimensions() :: gui:dimensions().
 
 -type wx_enum() :: gui_wx_backend:wx_enum().
@@ -194,7 +214,8 @@ destruct( Font ) ->
 
 
 
-% @doc Returns the platform-dependent complete description the specified font.
+% @doc Returns the platform-dependent complete description of the specified
+% font.
 %
 % For example, "Sans 10".
 %
@@ -215,6 +236,10 @@ get_user_friendly_description( Font ) ->
 
 % @doc Returns the extent used by the rendering of the specified single-line
 % text with the specified font.
+%
+% Note that the returned height may be larger than the actual one of the text,
+% due to the margin taken for letters possibly going though the baseline (like
+% 'g'), the descent.
 %
 -spec get_text_extent( ustring(), font() ) -> dimensions().
 get_text_extent( Text, Font ) ->
@@ -243,6 +268,39 @@ get_text_extent( Text, Font ) ->
 	wxBitmap:destroy( TmpBmp ),
 
 	Dims.
+
+
+
+% @doc Returns the precise extent used by the rendering of the specified
+% single-line text with the specified font.
+%
+-spec get_precise_text_extent( ustring(), font() ) -> precise_text_extent().
+get_precise_text_extent( Text, Font ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_font, trace_utils:debug_fmt(
+		"Getting precise extent of text '~ts' for font ~p.", [ Text, Font ] ) ),
+
+	% We have to create dummy bitmap and device contexts in order to determine
+	% these information:
+
+	TmpBmp = wxBitmap:new( _W=200, _H=200 ),
+
+	cond_utils:if_defined( myriad_debug_gui_memory,
+						   true = wxBitmap:isOk( TmpBmp ) ),
+
+	TmpDC = wxMemoryDC:new( TmpBmp ),
+
+	cond_utils:if_defined( myriad_debug_gui_memory, true = wxDC:isOk( TmpDC ) ),
+
+	wxMemoryDC:setFont( TmpDC, Font ),
+
+	PExtent = wxDC:getTextExtent( TmpDC, Text, _Opts=[ { theFont, Font } ] ),
+
+	wxMemoryDC:destroy( TmpDC ),
+
+	wxBitmap:destroy( TmpBmp ),
+
+	PExtent.
 
 
 
