@@ -334,11 +334,11 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 % remove/1 function.
 %
 -spec create_dynamic( IconImgPath :: any_image_path(), TitleStr :: any_string(),
-	VersionStr :: any_string(), DescStr :: any_string(), URLStr :: any_string(),
+	VersionStr :: any_string(), DescStr :: any_string(), UrlStr :: any_string(),
 	TitleBackgroundColor :: color(), OverallBackgroundColor :: color(),
 	MainImgPath :: any_image_path(), GeneralInfoStr :: any_string(),
 	CopyrightStr :: any_string(), parent() ) -> dynamic_splash_info().
-create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
+create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 		TitleBackgroundColor, OverallBackgroundColor, MainImgPath,
 		GeneralInfoStr, CopyrightStr, Parent ) ->
 
@@ -356,7 +356,7 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 	{ _MainSizer, _TopPanel, _MainPanel, _MainStaticBtmpDisp,
 	  _LeftTextDisplay, _RightTextDisplay } =
 		render_dynamic_splash( SplashFrame, IconBitmap, TitleStr, VersionStr,
-			DescStr, URLStr, TitleBackgroundColor, OverallBackgroundColor,
+			DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
 			MainBitmap, GeneralInfoStr, CopyrightStr ),
 
 	#dynamic_splash_info{ splash_frame=SplashFrame,
@@ -371,8 +371,8 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, URLStr,
 %
 % Defined for re-use.
 %
-render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, _VersionStr,
-		_DescStr, _URLStr, TitleBackgroundColor, OverallBackgroundColor,
+render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
+		DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
 		MainBitmap, GeneralInfoStr, CopyrightStr ) ->
 
 	trace_utils:debug_fmt( "Rendering dynamic splash on frame ~w.",
@@ -399,31 +399,113 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, _VersionStr,
 		gui_bitmap:create_static_display( IconBitmap, TargetFrame ),
 
 
-
 	gui_sizer:add_element( TopSizer, IconBmpDisplay,
 		[ { proportion, 0 }, { border, 5 }, right_border, align_left ] ),
 
 	% To set exactly the height of the information panel:
 	IconHeight = gui_bitmap:get_height( IconBitmap ),
 
-	InfoPanel = gui_panel:create( { size, { _Width=0, _Height=IconHeight } },
-								  TargetFrame ),
+	MainBitmapWidth = gui_bitmap:get_width( MainBitmap ),
+
+	% A zero width could have sufficed, yet afterwards for the URL display we
+	% have to rely on a proper evaluation of the panel width in order to
+	% right-align it; so:
+	%
+	InfoPanel = gui_panel:create(
+		{ size, { _Width=MainBitmapWidth, _Height=IconHeight } }, TargetFrame ),
+
+	%trace_utils:debug_fmt( "Size of info panel: ~p.",
+	%                       [ gui_widget:get_size( InfoPanel ) ] ),
 
 	gui_widget:set_background_color( InfoPanel, TitleBackgroundColor ),
 
-	TitleFontSize = 15,
+	TitleFontSize = 12,
 	TitleFontFamily = decorative, % teletype,
 	TitleFontStyle = slant, % normal,
 
 	TitleFont = gui_font:create( TitleFontSize, TitleFontFamily,
 								 TitleFontStyle ),
 
-	TitleOpts = [], % { position, _TitlePos=auto } % {110,5},
-	TitleDisplay = gui_text:create_presized_static_display( TitleStr, TitleOpts,
-	   TitleFont, InfoPanel ),
+	DescFontSize = 9,
 
-	gui_widget:set_background_color( TitleDisplay, yellow ),
+	% Title left-aligned, centered vertically if single-line:
+	%TitlePos = { TitleX=5, TitleY=( IconHeight - TitleFontSize ) div 2 },
 
+	TitleX = 5,
+
+	% Between the two levels of title/desc:
+	YLvlMargin = 2,
+
+	% Between the bottom of the description and the one of the panel:
+	YBottomMargin = 3,
+
+	TitleY = ( IconHeight - YBottomMargin
+			   - ( TitleFontSize + YLvlMargin + DescFontSize ) ) div 2,
+
+	TitlePos = { TitleX, TitleY },
+
+	TitleOpt = { position, TitlePos },
+
+	{ _TitleDisplay,
+	  _TitleDispSize={ TitleDW, TitleDH, TitleDescent, _TitleExtLead } } =
+		gui_text:create_presized_static_display( TitleStr, TitleOpt,
+												 TitleFont, InfoPanel ),
+
+	gui_font:destruct( TitleFont ),
+
+	%gui_widget:set_background_color( TitleDisplay, yellow ),
+
+	DescFontFamily = TitleFontFamily,
+	DescFontStyle = normal,
+
+	DescFont = gui_font:create( DescFontSize, DescFontFamily,
+								DescFontStyle ),
+
+
+	DescPos = { TitleX, IconHeight - DescFontSize - YBottomMargin },
+
+	DescOpt = { position, DescPos },
+
+	gui_text:create_presized_static_display( DescStr, DescOpt, DescFont,
+											 InfoPanel ),
+
+
+	VersionFontSize = 10,
+	VersionFontFamily = TitleFontFamily,
+	VersionFontStyle = normal,
+
+	XMargin = 5,
+
+	VersionPos = { TitleX + TitleDW + XMargin,
+				   TitleY + TitleDH - TitleDescent - VersionFontSize },
+
+	VersionFont = gui_font:create( VersionFontSize, VersionFontFamily,
+								   VersionFontStyle ),
+
+
+	VersionOpt = { position, VersionPos },
+
+	{ _VersionDisplay, _VersionDispSize } =
+		gui_text:create_presized_static_display( VersionStr, VersionOpt,
+												 VersionFont, InfoPanel ),
+
+	%gui_widget:set_background_color( VersionDisplay, brown ),
+
+
+	UrlFont = VersionFont,
+
+	UrlSize = { UrlW, UrlH } = gui_font:get_text_extent( UrlStr, UrlFont ),
+
+	_InfoPanelSize = { IPW, _IPH } = gui_widget:get_size( InfoPanel ),
+
+	UrlPos = { IPW - UrlW - XMargin, ( IconHeight - UrlH ) div 2 },
+
+	UrlDisplay = gui_text:create_static_display( UrlStr,
+		_Opts=[ { position, UrlPos }, { size, UrlSize } ], InfoPanel ),
+
+	gui_widget:set_font( UrlDisplay, UrlFont ),
+
+	gui_font:destruct( VersionFont ),
 
 	gui_sizer:add_element( TopSizer, InfoPanel,
 		[ { proportion, 1 }, expand_fully ] ),
@@ -435,7 +517,7 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, _VersionStr,
 	MainDims = gui_bitmap:get_size( MainBitmap ),
 
 	trace_utils:debug_fmt( "Operating on second row: the splash (main) image, "
-	   "whose dimensions are ~w.", [ MainDims ] ),
+		"whose dimensions are ~w.", [ MainDims ] ),
 
 	MainImgPanel = gui_panel:create(
 		[ { size, MainDims }, { style, no_border } ], TargetFrame ),
@@ -477,7 +559,7 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, _VersionStr,
 	gui_sizer:add_element( MainSizer, BottomSizer,
 		[ { proportion, 1 }, { border, 2 }, all_borders, expand_fully ] ),
 
-	% Fitting is necessary to adopt a proper frame size:
+	% Fitting is necessary to adopt a proper, sufficient frame size:
 	gui_widget:set_and_fit_to_sizer( TargetFrame, MainSizer ),
 
 	{ MainSizer, InfoPanel, MainImgPanel, MainStaticBtmpDisp,

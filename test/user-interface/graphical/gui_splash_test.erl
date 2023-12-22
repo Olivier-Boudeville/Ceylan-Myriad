@@ -176,13 +176,13 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			DescStr = "Foobar is a Frobnicator with twin acceleration beams",
 
-			URLStr = "www.foobar.org",
+			UrlStr = "www.foobar.org",
 
-			%TitleBackgroundColor = lightgrey,
-			TitleBackgroundColor = red,
+			TitleBackgroundColor = lightgrey,
+			%TitleBackgroundColor = red,
 
-			%BackgroundColor = gray,
-			BackgroundColor = pink,
+			BackgroundColor = gray,
+			%BackgroundColor = pink,
 
 			MainImgPath =
 				file_utils:join( "..", test_facilities:get_myriad_logo_path() ),
@@ -192,10 +192,10 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				"(including commercial).",
 
 			CopyrightStr = "Copyright (C) 2022-2023 John Doe,\n"
-				"James Bond and Others",
+				"James Bond and others",
 
 			DynamicSplashInfo = gui_splash:create_dynamic( IconImgPath,
-				TitleStr, VersionStr, DescStr, URLStr, TitleBackgroundColor,
+				TitleStr, VersionStr, DescStr, UrlStr, TitleBackgroundColor,
 				BackgroundColor, MainImgPath, GeneralInfoStr, CopyrightStr,
 				_SplashParent=MainFrame ),
 
