@@ -172,9 +172,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			TitleStr = "Foobar Longer Title",
 			%TitleStr = "Foobar",
 
-			VersionStr = "v1.0.17",
+			VersionStr = "version 1.0.17",
 
-			DescStr = "Foobar is a Frobnicator with twin acceleration beams",
+			DescStr = "Foobar is a Frobnicator with twin acceleration beams.",
 
 			UrlStr = "www.foobar.org",
 
