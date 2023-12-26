@@ -78,7 +78,7 @@ all: all-pre-hook all-parse-transforms create-include-links
 	fi); then exit 1; fi; done
 
 
-# Not removing rebar.config anymore, to avoid that GIT considers it deleted on
+# Not removing rebar.config anymore, to avoid that Git considers it deleted on
 # purpose.
 #
 # Also deactivated, as any dependency in _build would then be lost, whereas we
@@ -390,7 +390,7 @@ copy-all-beams-to-ebins: copy-beams-to-ebin
 FAKE_OTP_ROOT := /tmp/ceylan-fake-otp-projects/$(PROJECT_NAME_FOR_REBAR)
 
 # Section for newer OTP management: we create now automatically from our actual
-# source tree (in GIT) a simpler, fake one that respects the conventions that
+# source tree (in Git) a simpler, fake one that respects the conventions that
 # rebar3 expects (instead of trying to have our actual build tree be somewhat
 # compliant with rebar3, which proved utterly complicated and frustrating) .
 #
@@ -581,7 +581,7 @@ create-myriad-checkout:
 # mentions do match indeed the actual (probably latest) intended Git commit of
 # the corresponding dependencies.
 #
-# (creating a ebin/*.app file is necessary at this point, otherwise no module
+# (creating an ebin/*.app file is necessary at this point, otherwise no module
 # will be compiled, leading to an empty application; the same applies - silently
 # - if the conf/*.app.src, hence the ebin/*.app file, are invalid - e.g. cannot
 # be parsed)
@@ -683,7 +683,7 @@ rebar3-bulletproof-compile-post-hook:
 rebar3-release: rebar3-development-release
 
 
-# Creating a ebin/*.app file is necessary here, otherwise this layer is a
+# Creating an ebin/*.app file is necessary here, otherwise this layer is a
 # dependency "not reachable by the system" (same error is the .app exists yet is
 # invalid):
 #
@@ -790,8 +790,8 @@ rebar3-populate-build-tree:
 
 
 # We generate a .app file and place it both in the OTP build tree (by default:
-# _build/lib/...) and in an ebin directory directly at the GIT root, as it is
-# expected when having specified a GIT dependency with rebar, such as: {myriad,
+# _build/lib/...) and in an ebin directory directly at the Git root, as it is
+# expected when having specified a Git dependency with rebar, such as: {myriad,
 # {git, "https://github.com/Olivier-Boudeville/Ceylan-Myriad.git"} }
 #
 # For the listed modules, this target removes paths, extension, replaces
@@ -815,6 +815,8 @@ rebar3-populate-build-tree:
 # ./_build/lib/FOOBAR/ebin.FOOBAR.app
 # ./ebin/FOOBAR.app
 # ./src/FOOBAR.app.src -> ../ebin/FOOBAR.app
+#
+# So, a priori, only conf/FOOBAR.app.src shall be put in VCS.
 #
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(PROJECT_NAME_FOR_REBAR).app file"
@@ -921,7 +923,7 @@ rebar3-info:
 # - remove rebar.lock, otherwise a past Myriad dep (e.g. Git-based) may be reused
 #
 # - afterwards we restore the ebin/*.app and rebar.config files for standard
-# releases, in order to avoid having them considered as deleted by GIT
+# releases, in order to avoid having them considered as deleted by Git
 #
 rebar3-hex-publish: rebar3-clean clean set-rebar-conf-for-hex rebar3-create-app-file
 	@/bin/cp -f $(MYRIAD_REBAR_BUILD_BASE)/ebin/$(PROJECT_NAME_FOR_REBAR).app src/$(PROJECT_NAME_FOR_REBAR).app.src
