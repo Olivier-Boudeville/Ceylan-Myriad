@@ -52,10 +52,11 @@ test_basic_plot() ->
 		InitPlotSettings ),
 
 	XLabelPlotSettings = plot_utils:set_x_label(
-		"Mass-observer distance in kilometers", TitlePlotSettings ),
+		"Mass-observer distance d, in kilometers", TitlePlotSettings ),
 
-	YLabelPlotSettings = plot_utils:set_y_label( "Time factor (percentage)",
-												 XLabelPlotSettings ),
+	YLabelPlotSettings = plot_utils:set_y_label( "Time factor Tf, as a ratio "
+		"between the proper time\\nof an observer and the coordinate time",
+		XLabelPlotSettings ),
 
 	KeyPlotSettings = plot_utils:set_key_options( "box right bottom height 1",
 												  YLabelPlotSettings ),
@@ -71,9 +72,9 @@ test_basic_plot() ->
 
 	MSag = physics_utils:m_sagittarius_a_star(),
 
-	% The orders of magnitude between the Sun and Sagittarius A* differ vast (by
-	% a factor of more than 4 million), so they should not be displayed on the
-	% same graph.
+	% The orders of magnitude between the Sun and Sagittarius A* differ vastly
+	% (by a factor of more than 4 million), so they should not be displayed on
+	% the same graph.
 
 	% Minimum distance, in kilometers:
 	[ SunSchzRadius, TenSchzRadius, SagSchzRadius ] =
