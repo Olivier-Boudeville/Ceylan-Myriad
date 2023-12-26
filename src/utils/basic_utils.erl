@@ -1367,10 +1367,14 @@ run( ModIOList, FunctionName, Args ) ->
 						length( SomeArgs )
 
 				end,
+				get_hint( code_utils:interpret_undef_exception( Mod, Fun,
+																Arity ) );
 
-				text_utils:format( "~nHint: ~ts",
-					[ code_utils:interpret_undef_exception( Mod, Fun,
-															Arity ) ] );
+
+			{ application_not_found, _AppName, AppFilename, _AbsBaseDir } ->
+				get_hint( text_utils:format( "To generate 'ebin/~ts', "
+					"one may run 'make rebar3-create-app-file' "
+                    "from the root of the sources.", [ AppFilename ] ) );
 
 			% Not interpreted (yet?):
 			_ ->
@@ -1404,6 +1408,12 @@ run( ModIOList, FunctionName, Args ) ->
 	end.
 
 
+
+% (helper)
+get_hint( HintStr ) ->
+	text_utils:format( "~nHint: ~ts~n", [ HintStr ] ).
+
+
 % (helper)
 manage_minimised_stacktrace( RevRest, Class, Exception, ExplainStr ) ->
 	ShrunkStacktrace = lists:reverse( RevRest ),
@@ -1411,8 +1421,8 @@ manage_minimised_stacktrace( RevRest, Class, Exception, ExplainStr ) ->
 	StackStr = code_utils:interpret_stacktrace( ShrunkStacktrace ),
 
 	io:format( "~n#### Error: the program crashed with the following ~ts-class "
-		"exception:~n  ~p~n~nLatest calls first: ~ts~n~ts",
-		[ Class, Exception, StackStr, ExplainStr ] ).
+		"exception:~n  ~p~n~ts~nLatest calls first: ~ts~n",
+		[ Class, Exception, ExplainStr, StackStr ] ).
 
 
 
