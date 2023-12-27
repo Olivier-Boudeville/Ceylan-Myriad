@@ -204,14 +204,14 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
