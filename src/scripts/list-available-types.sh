@@ -5,7 +5,7 @@
 # This file is part of the Ceylan-Myriad library.
 
 
-usage="Usage: $(basename $0) [-h|--help] [ROOT_DIR]: lists all types (according to Erlang type specifications) defined from the ROOT_DIR directory (if specified), otherwise from the current directory."
+usage="Usage: $(basename $0) [-h|--help] [ROOT_DIR]: lists all types (according to the Erlang type specifications found) defined from the ROOT_DIR directory (if specified), otherwise from the current directory."
 
 
 target_dir="$(pwd)"
@@ -73,12 +73,14 @@ for f in ${target_files}; do
 	# after 14, not after the '0.', thus the 'OR ..' clause; same thing for
 	# [warning(),...])
 	#
-	res=$(/bin/cat "$f" | tr '\n' ' ' | grep -o -E '[[:space:]]+\-(type|opaque)([^.]|\.\.|\.\.\.)*\.' | sed -r 's|\s+| |g')
+	res=$(/bin/cat "$f" | tr '\n' ' ' | grep -o -E '[[:space:]]+-(type|opaque)([^.]|\.\.|\.\.\.)*\.' | sed -r 's|\s+| |g')
 
-	if [ -n "$res" ]; then
+	if [ -n "${res}" ]; then
+
 		echo "
    - specifications in $f:
-$res"
+${res}"
+
 	fi
 
 done

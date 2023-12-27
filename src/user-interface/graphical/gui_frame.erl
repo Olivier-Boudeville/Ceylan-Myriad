@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2023-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -115,7 +115,7 @@
 % A style element for frames.
 %
 % Note that specifying an empty option list does not enable any option; one may
-% use 'default' instead.
+% specify 'default' instead.
 %
 % See also [http://docs.wxwidgets.org/stable/classwx_frame.html].
 
@@ -223,7 +223,8 @@ create( Title, Position, Sizing, Styles ) ->
 				gui_wx_backend:to_wx_size( Sizing ),
 				{ style, frame_styles_to_bitmask( Styles ) } ],
 
-	%trace_utils:debug_fmt( "create_frame options: ~p.", [ WxOpts ] ),
+	%trace_utils:debug_fmt( "Creating a frame with WxOpts = ~w "
+	%                       "(styles: ~w).", [ WxOpts, Styles ] ),
 
 	wxFrame:new( gui_wx_backend:to_wx_parent( undefined ),
 				 gui_id:declare_any_id( undefined ), Title, WxOpts ).

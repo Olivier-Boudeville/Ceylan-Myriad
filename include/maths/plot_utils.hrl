@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2023-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -24,6 +24,36 @@
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, October 7, 2023.
+
+
+
+% Define section.
+
+
+% To have rotated tick labels:
+
+% Rotate clockwise (hence end of text below beginning):
+-define( rotate_cw_tick_label_option, "rotate by - 45" ).
+
+% Rotate counter-clockwise (hence end of text above beginning):
+% (note the right alignment here, otherwise the labels run from the base of the
+% graph upwards)
+%
+-define( rotate_ccw_tick_label_option, "rotate by 45 right" ).
+
+
+
+% Not all plot features are available in older gnuplot versions:
+-define( gnuplot_reference_version, { 5, 4 } ).
+
+
+% To centralise basic open (write) flags:
+%
+% (exclusive used to avoid that two plots bearing the same name by mistake may
+% end up writing to the same files simultaneously)
+%
+-define( base_open_flags, [ write, exclusive ] ).
+
 
 
 % Defaults:
@@ -60,7 +90,7 @@
 	title :: maybe( ui:bin_title() ),
 
 	% Key (legend) options:
-	key_options :: maybe( key_options() ),
+	key_options :: maybe( plot_utils:key_options() ),
 
 
 	% Label for the abscissa axis (as a binary):
@@ -144,6 +174,7 @@
 	%
 	image_format = 'png' :: gui_image:image_format(),
 
+
 	% Lists the arbitrary labels that may be defined over the plot rendering:
 	labels = [] :: [ plot_utils:plot_label() ],
 
@@ -186,6 +217,8 @@
 	zone_entries = [] :: [ plot_utils:zone_entry() ],
 
 
+	% A precomputed format string (if any) used to write new samples.
+	%
 	% How a data row shall be formatted when writing a data file, should a
 	% specific format be wanted:
 	%

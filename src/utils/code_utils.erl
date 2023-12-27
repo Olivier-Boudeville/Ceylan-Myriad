@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2023 Olivier Boudeville
+% Copyright (C) 2007-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -1194,9 +1194,22 @@ interpret_stack_item( { Module, Function, Arity, StackInfo },
 %
 interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 									when is_list( Args ) ->
-	text_utils:format( "~ts:~ts/~B called with following arguments:"
-					   "~n  ~p~ts",
-		[ Module, Function, length( Args ), Args,
+	ArgStr = text_utils:format( "~p", [ Args ] ),
+
+	FullArgStr = case length( ArgStr ) > 50 of
+
+		true ->
+			"~n  ";
+
+		false ->
+			" "
+
+				 end ++ ArgStr,
+
+
+	text_utils:format(
+		"~ts:~ts/~B called with the following list of arguments:~ts~ts",
+		[ Module, Function, length( Args ), FullArgStr,
 		  get_location_from( StackInfo, FullPathsWanted ) ] );
 
 % Never fail:
@@ -1384,10 +1397,13 @@ error_reason_to_string( Reason ) ->
 										ustring().
 interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 
+	%trace_utils:debug_fmt( "Interpreting undef for ~p:~p/~p.",
+	%                       [ ModuleName, FunctionName, Arity ] ),
+
 	case is_beam_in_path( ModuleName ) of
 
 		not_found ->
-			text_utils:format( "no module ~ts found in code path, "
+			text_utils:format( "no module '~ts' found in code path, "
 				"which explains why its ~ts/~B function is reported "
 				"as being undefined; ~ts",
 				[ ModuleName, FunctionName, Arity,
@@ -1400,7 +1416,7 @@ interpret_undef_exception( ModuleName, FunctionName, Arity ) ->
 											 FunctionName ) of
 
 				[] ->
-					text_utils:format( "module ~ts found in code path "
+					text_utils:format( "module '~ts' found in code path "
 						"(as '~ts'), yet it does not export a '~ts' function "
 						"(for any arity)",
 						[ ModuleName, ModulePath, FunctionName ] );
@@ -1421,7 +1437,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 
 		true ->
 			% Should never happen?
-			text_utils:format( "module ~ts found in code path (as '~ts'), "
+			text_utils:format( "module '~ts' found in code path (as '~ts'), "
 				"and it exports the ~ts/~B function indeed",
 				[ ModuleName, ModulePath, FunctionName, Arity ] );
 
@@ -1441,7 +1457,7 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 
 			end,
 
-			text_utils:format( "module ~ts found in code path (as '~ts'), "
+			text_utils:format( "module '~ts' found in code path (as '~ts'), "
 				"yet it does export a ~ts/~B function; as it exports "
 				"this function for ~ts, maybe the call to that function "
 				"was made with a wrong number of parameters",
@@ -1461,7 +1477,7 @@ study_function_availability( ModuleName, FunctionName, Arity ) ->
 	case is_beam_in_path( ModuleName ) of
 
 		not_found ->
-			text_utils:format( "no module ~ts found in code path "
+			text_utils:format( "no module '~ts' found in code path "
 				"(its ~ts/~B function therefore cannot be called); ~ts",
 				[ ModuleName, FunctionName, Arity,
 				  get_code_path_as_string() ] );
@@ -1476,8 +1492,8 @@ study_function_availability( ModuleName, FunctionName, Arity ) ->
 					case meta_utils:list_exported_functions( ModuleName ) of
 
 						[] ->
-							text_utils:format( "module ~ts found in code path "
-								"(as '~ts'), yet it does not export any "
+							text_utils:format( "module '~ts' found in code path"
+								" (as '~ts'), yet it does not export any "
 								"function", [ ModuleName, ModulePath ] );
 
 						FunPairs ->
@@ -1485,8 +1501,8 @@ study_function_availability( ModuleName, FunctionName, Arity ) ->
 								text_utils:format( "~ts/~B", [ FName, FArity ] )
 									|| { FName, FArity } <- FunPairs ] ),
 
-							text_utils:format( "module ~ts found in code path "
-								"(as '~ts'), yet it does not export a '~ts' "
+							text_utils:format( "module '~ts' found in code path"
+								" (as '~ts'), yet it does not export a '~ts' "
 								"function (for any arity); it exports only "
 								"the following ~B functions: ~ts",
 								[ ModuleName, ModulePath, FunctionName,

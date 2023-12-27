@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2023-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -35,9 +35,6 @@
 -module(gui_widget).
 
 
-% Usage notes:
-%
-
 
 % Could include wx:null(), i.e. a #wx_ref{ref=0, type=wx}:
 % (probably cannot be opaque because of the union)
@@ -66,7 +63,8 @@
 
 -export([ destruct/1, destruct/2,
 
-		  set_sizer/2, fit_to_sizer/2, layout/1,
+		  set_sizer/2, fit_to_sizer/2, set_and_fit_to_sizer/2,
+		  layout/1,
 
 		  set_foreground_color/2, set_background_color/2,
 
@@ -144,7 +142,6 @@ destruct( Widget, GUIEnvPid ) ->
 
 
 
-
 % @doc Associates the specified sizer to the specified widget.
 %
 % A sizer will not be taken into account as long as it is not associated to a
@@ -171,6 +168,19 @@ set_sizer( Widget, Sizer ) ->
 -spec fit_to_sizer( widget(), sizer() ) -> void().
 fit_to_sizer( Widget, Sizer ) ->
 	wxSizer:fit( Sizer, Widget ).
+
+
+% @doc Associates the specified sizer to the specified window, and sets the size
+% and minimal size of the window accordingly.
+%
+-spec set_and_fit_to_sizer( widget(), sizer() ) -> void().
+set_and_fit_to_sizer( Canvas={ myriad_object_ref, myr_canvas, _CanvasId },
+					  Sizer ) ->
+	set_sizer( Canvas, Sizer ),
+	fit_to_sizer( Canvas, Sizer );
+
+set_and_fit_to_sizer( Widget, Sizer ) ->
+	wxWindow:setSizerAndFit( Widget, Sizer ).
 
 
 

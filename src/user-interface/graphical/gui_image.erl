@@ -1,4 +1,4 @@
-% Copyright (C) 2021-2023 Olivier Boudeville
+% Copyright (C) 2021-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -122,10 +122,14 @@
 		  load_from_file/1, load_from_file/2,
 		  destruct/1, destruct_multiple/1,
 
-		  get_size/1, has_alpha/1,
+		  get_width/1, get_height/1, get_size/1,
+
+		  has_alpha/1,
 		  load/2, load/3, save/2, save/3,
 		  scale/3, scale/4, mirror/2,
-		  colorize/2, to_string/1 ]).
+		  colorize/2,
+		  to_bitmap/1,
+		  to_string/1 ]).
 
 
 % Other functions:
@@ -251,9 +255,20 @@ destruct_multiple( Images ) ->
 	[ wxImage:destroy( Img ) || Img <- Images ].
 
 
+% @doc Returns the width of the specified image.
+-spec get_width( image() ) -> width().
+get_width( Image ) ->
+	wxImage:getWidth( Image ).
 
 
-% @doc Returns the size of this image.
+% @doc Returns the height of the specified image.
+-spec get_height( image() ) -> height().
+get_height( Image ) ->
+	wxImage:getHeight( Image ).
+
+
+
+% @doc Returns the size of the specified image.
 -spec get_size( image() ) -> dimensions().
 get_size( Image ) ->
 	{ wxImage:getWidth( Image ), wxImage:getHeight( Image ) }.
@@ -270,11 +285,12 @@ has_alpha( Image ) ->
 %
 -spec scale( image(), width(), height() ) -> void().
 scale( Image, Width, Height ) ->
+	% In-place; default, unknown quality:
 	wxImage:rescale( Image, Width, Height ).
 
 
-% @doc Scales the specified image to the specified dimensions, with specified
-% quality.
+% @doc Scales the specified image to the specified dimensions, with the
+% specified quality.
 %
 -spec scale( image(), width(), height(), image_quality() ) -> void().
 scale( Image, Width, Height, Quality ) ->
@@ -365,6 +381,19 @@ colorize( SrcBuffer, _Color={ R, G, B } ) ->
 
 
 
+% @doc Returns a bitmap corresponding to the specified image.
+%
+% Does not alter that image.
+%
+-spec to_bitmap( image() ) -> bitmap().
+to_bitmap( Image ) ->
+	ImgBitmap = wxBitmap:new( Image ),
+	wxBitmap:isOk( ImgBitmap ) orelse
+		throw( { conversion_to_bitmap_failed, Image } ),
+	ImgBitmap.
+
+
+
 % @doc Returns a textual representation of the specified image.
 -spec to_string( image() ) -> ustring().
 to_string( Image ) ->
@@ -413,6 +442,7 @@ create_bitmap( ImagePath ) ->
 
 	Image = wxImage:new( ImagePath ),
 
+	% Not using to_bitmap/1 to offer a more precise exception if needed:
 	ImgBitmap = wxBitmap:new( Image ),
 	wxImage:destroy( Image ),
 	case wxBitmap:isOk( ImgBitmap ) of

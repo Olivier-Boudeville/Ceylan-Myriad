@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2023-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -222,8 +222,8 @@
 
 -type declared_zone() :: { declared_zone_name(),
 		{ declared_curve_id(), declared_curve_id() } }.
-% The definition of a user-specified zone, the specific area between the two
-% specified curves.
+% The definition of a user-specified zone, which is the specific area between
+% the two specified curves.
 
 
 -type curve_count() :: count().
@@ -260,7 +260,7 @@
 
 
 -type label_justification() :: 'left' | 'center' | 'right'.
-% Describes the justification of the text based on to the specified location for
+% Describes the justification of the text based on the specified location for
 % the label.
 
 
@@ -305,16 +305,10 @@
 -export_type([ gnuplot_version/0 ]).
 
 
-
-
-
--type rgb_color_spec() :: ustring().
-% For example "3ab001" for lightgreen.
-
--type extra_curve_settings() :: rgb_color_spec().
+-type extra_curve_settings() :: rgb_hexastring().
 % The color of a given curve.
 
--type extra_zone_settings() :: rgb_color_spec().
+-type extra_zone_settings() :: rgb_hexastring().
 % The color of a given zone.
 
 
@@ -345,7 +339,7 @@
 % The display time format to use for timestamped axes.
 
 
--export_type([ rgb_color_spec/0, extra_curve_settings/0, extra_zone_settings/0,
+-export_type([ extra_curve_settings/0, extra_zone_settings/0,
 			   key_options/0, tick_option/0, ticks_option/0,
 			   timestamp_time_format/0 ]).
 
@@ -372,7 +366,9 @@
 
 
 % Main user API:
--export([ get_plot_settings/1, set_plot_name/2,
+-export([ get_plot_settings/1,
+		  get_timestamp_settings/1, get_timestamp_settings/2,
+		  set_plot_name/2,
 		  set_title/2, set_x_label/2, set_y_label/2,
 		  set_key_options/2,
 
@@ -380,17 +376,22 @@
 		  remove_labels/1,
 
 		  declare_curves/2, declare_zones/2,
+		  get_plot_command/5,
 		  plot_samples/2, plot_samples/3 ]).
 
 
 % Exported gnuplot helpers, mostly for internal use:
--export([ get_default_curve_plot_suffix/0, get_default_zone_plot_suffix/0,
+-export([ transform_curve_names/1, transform_declared_zones/2,
+		  get_default_curve_plot_suffix/0, get_default_zone_plot_suffix/0,
 		  get_formatted_orientation/1,
 		  get_label_definitions/1, get_label_definitions/2,
+		  get_gnuplot_reference_version/0, get_basic_options/1,
 		  get_xticks_option/1, get_yticks_option/1,
 		  get_x_range_option/1, get_y_range_option/1,
 		  get_x_ticks_option/1, get_y_ticks_option/1,
-		  generate_command_file/1, generate_data_file/2, write_row/3 ]).
+		  add_plot_index_back/2,
+		  generate_command_file/1, generate_data_file/2, write_row/3,
+		  forge_format_string_for/1	]).
 
 
 
@@ -467,38 +468,54 @@
 % richness/level of maturity. So we stick with good old gnuplot, hopefully for
 % the best.
 
+% Element needed:
+%
+% - gnuplot version 5.4 or higher is preferred (and 4.2 or above is required)
+%
+% - an image viewer, for example eog (eye of gnome) of gwenview; see the
+% executable_utils module (e.g. display_image_file/2 or browse_images_in/1)
+% module for viewers
+
+
 % To debug the generated command/data files, one can run directly gnuplot. This
 % is as simple as 'gnuplot My_test_plot.p'.
 
+% See http://www.gnuplot.info/docs/gnuplot.html for graph generation.
 
 
-% Define section.
-
-
-% To centralize basic open (write) flags:
+% Regarding zones:
 %
-% (exclusive used to avoid that two plots bearing the same name by mistake may
-% end up writing to the same files simultaneously)
+% Zones are different from "stacked histograms" (see 'rowstacked') insofar as a
+% zone corresponds just to the filling of the area between two curves, whereas a
+% stacked histogram should stack (add) values read from columns; for example,
+% if, for a given abscissa, V1 can be read for column C1 and V2 for column C2,
+% then a zone would spread in [C1,C2] whereas a stacked histogram would
+% represent a first "zone" between the abscissa axis and C1, and a second zone
+% between C1 and C1+C2 (*not* C2).
 %
--define( base_open_flags, [ write, exclusive ] ).
-
-
-
-% To have rotated tick labels:
-
-% Rotate clockwise (hence end of text below beginning):
--define( rotate_cw_tick_label_option, "rotate by - 45" ).
-
-% Rotate counter-clockwise (hence end of text above beginning):
-% (note the right alignment here, otherwise the labels run from the base of the
-% graph upwards)
+% The simplest way (other options, such as using 'rowstacked' gnuplot histograms
+% or filledcurves, are considerably less convenient/more problematic) to display
+% with gnuplot such "stacked histograms" is to use our zone feature, and thus to
+% preprocess entries so that they stack additively; e.g. instead of having raw
+% samples like {Timestamp, C1, C2, C3}, the probe should be fed with {Timestamp,
+% C1, C1+C2, C1+C2+C3} samples, and curves shall be rendered from the topmost to
+% the bottom one (i.e. C1+C2+C3, C1+C2 and C1 here), so that the C1+C2 is drawn
+% over C1+C2+C3, and so on; refer to send_stacked_data/3 to have it done for
+% you.
 %
--define( rotate_ccw_tick_label_option, "rotate by 45 right" ).
-
-
-
-% Not all plot features are available in older gnuplot versions:
--define( gnuplot_reference_version, { 5, 4 } ).
+% We however used filledcurves, an approach supposed to be more robust, yet it
+% does not (and probably cannot) render the desired histograms: with
+% filledcurves two data points are linked by a line segment (which of course
+% gets filled), leading to unwanted filled triangles (picture a curve equal to
+% zero until being equal to 1 at timestamp T: the area delimited by the previous
+% timestamp and T will be an upright triangle raising from 0 to 1, whereas we
+% would want a step from 0 to 1 at T. So we now use normal curves drawn as
+% "boxes" (actually 'fillsteps').
+%
+% When rendering them, generally a fill style is needed (generally solid),
+% specific zone colors are specified, ordinates shall start at zero (no
+% autoscaling: y_range = {0,undefined}) and no zone based on abscissa_top is
+% requested.
 
 
 
@@ -510,7 +527,6 @@
 -type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
 -type format_string() :: text_utils:format_string().
-
 
 -type list_table( K, V ) :: list_table:list_table( K, V ).
 
@@ -528,11 +544,12 @@
 
 -type int_degrees() :: unit_utils:int_degrees().
 
-%-type point() :: gui:point().
 -type width() :: gui:width().
 -type height() :: gui:height().
 
 -type color() :: gui_color:color().
+-type rgb_hexastring() :: gui_color:rgb_hexastring().
+
 
 %-type coordinate() :: gui:coordinate().
 
@@ -686,11 +703,27 @@ remove_labels( PlotSettings ) ->
 											plot_settings().
 declare_curves( CurveNames, PlotSettings ) ->
 
-	CurveEntries = transform_curve_names( CurveNames,
-		get_default_curve_plot_suffix(), _Acc=[], _Count=1 ),
+	CurveEntries = transform_curve_names( CurveNames ),
 
 	PlotSettings#plot_settings{ curve_entries=CurveEntries }.
 
+
+
+% @doc Transforms a list of names into a list of {Number, Name, CurvePlotSuffix}
+% curve entries, where Number is the index of the name in the list (starting at
+% 1), Name is a binary name, and CurvePlotSuffix is the curve-specific default
+% plot suffix.
+%
+% Respects the order of specified names.
+%
+% For example transform_curve_names(["a", "b", "c"]) should result in:
+%  [{1,<<"a">>,DefaultBinPlotSuffix}, {2,<<"b">>,DefaultBinPlotSuffix},
+%   {3,<<"c">>,DefaultBinPlotSuffix}].
+%
+-spec transform_curve_names( [ declared_curve_name() ] ) -> [ curve_entry() ].
+transform_curve_names( CurveNames ) ->
+	transform_curve_names( CurveNames, get_default_curve_plot_suffix(), _Acc=[],
+						   _Count=1 ).
 
 
 % (helper)
@@ -714,10 +747,21 @@ transform_curve_names( _CurveNames=[ CurveName | T ], BinPlotSuffix, Acc,
 -spec declare_zones( [ declared_zone() ], plot_settings() ) -> plot_settings().
 declare_zones( DeclaredZones, PlotSettings=#plot_settings{
 								curve_entries=CurveEntries } ) ->
-	ZoneEntries =
-		transform_declared_zones( DeclaredZones, CurveEntries, _Acc=[] ),
+
+	ZoneEntries = transform_declared_zones( DeclaredZones, CurveEntries ),
 
 	PlotSettings#plot_settings{ zone_entries=ZoneEntries }.
+
+
+% @doc Transforms a list of zone declarations into actual zone entries, while
+% checking them against the curve names.
+%
+% (defined for re-use)
+%
+-spec transform_declared_zones( [ declared_zone() ], [ curve_entry() ] ) ->
+										[ zone_entry() ].
+transform_declared_zones( DeclaredZones, CurveEntries ) ->
+	transform_declared_zones( DeclaredZones, CurveEntries, _Acc=[] ).
 
 
 
@@ -1067,6 +1111,73 @@ get_label_definitions( [ #plot_label{ location={ X, Y }, text=BinText,
 
 
 
+% @doc Returns Myriad's gnuplot reference version.
+-spec get_gnuplot_reference_version() -> gnuplot_version().
+get_gnuplot_reference_version() ->
+	?gnuplot_reference_version.
+
+
+
+% @doc Returns some basic rendering options, depending on the current gnuplot
+% version.
+%
+% (helper, for code sharing)
+%
+-spec get_basic_options( maybe( gnuplot_version() ) ) ->
+			{ bin_string(), bin_string() }.
+get_basic_options( _MaybeGnuplotVersion=undefined ) ->
+
+	% For an increased safety:
+	%trace_utils:warning( "Determining gnuplot options whereas its version "
+	%                     "is not known." ),
+
+	get_basic_options_for_older_gnuplot();
+
+
+get_basic_options( GnuplotVersion ) ->
+
+	% If using a very old version of gnuplot (e.g. prior to 4.2), these key
+	% options use default values:
+
+	case basic_utils:compare_versions( GnuplotVersion,
+									   get_gnuplot_reference_version() ) of
+
+		second_bigger ->
+			get_basic_options_for_older_gnuplot();
+
+		_ ->
+			% Here we have a recent enough gnuplot:
+			{
+
+			 % By default we prefer not having rotated ticks:
+
+			 %_Xtick = <<"rotate by - 45 auto">>,
+			 %
+			 % 'out' had been added to avoid that tick marks get hidden by any
+			 % filled area in the plot (e.g. boxes), yet it was wreaking havoc
+			 % on the layout and/or cropping done by gnuplot (leading to
+			 % overlapping legend and truncated timestamps).
+			 %
+			 %_Xtick = <<"axis out mirror font \"sans,8\" auto">>,
+			 _Xtick= <<"out mirror font \"sans,8\" auto">>,
+
+			 % Extra size for box, otherwise may collide with inner text:
+			 _KeyOption=
+				<<"bmargin center horizontal width 0.5 height 0.5">> }
+
+			%image_format = <<"svg">>;
+
+	end.
+
+
+
+% (helper)
+get_basic_options_for_older_gnuplot() ->
+	% As here we only have access to an older, limited gnuplot:
+	{ _Xtick= <<"auto">>, _KeyOption= <<"">> }.
+
+
+
 % @doc Returns the settings for fine control of the major (labeled) ticks on the
 % abscissa axis, as read from the specified settings.
 %
@@ -1149,6 +1260,7 @@ get_y_range_option( #plot_settings{ y_range={ MinY, MaxY } } )
 
 
 
+
 % @doc Returns the plot directory that should be used.
 get_plot_directory( #plot_settings{ plot_directory=undefined } ) ->
 	file_utils:get_bin_current_directory();
@@ -1220,13 +1332,13 @@ get_plot_filename( #plot_settings{ plot_filename=PlotBinFilename } ) ->
 % gathers timestamps or not.
 %
 % Note: now, thanks to quoting, curve offset is always zero as a timestamp
-% occupies only one column.
+% occupies only one column (exactly).
 %
--spec get_timestamp_settings( plot_settings() ) ->
+-spec get_timestamp_settings( plot_settings(), boolean() ) ->
 									{ command_element(), curve_offset() }.
 get_timestamp_settings( #plot_settings{
-		is_timestamped=true,
-		x_ticks_timestamp_time_format=MaybeTimeFmt } ) ->
+		% Overidden here: is_timestamped=xxx,
+		x_ticks_timestamp_time_format=MaybeTimeFmt }, _IsTimestamped=true ) ->
 
 	% Also a check:
 	UserTimeFormat = case MaybeTimeFmt of
@@ -1282,8 +1394,19 @@ get_timestamp_settings( #plot_settings{
 	{ PreambleStr, _CurveOffset=0 };
 
 
-get_timestamp_settings( #plot_settings{ is_timestamped=false } ) ->
+get_timestamp_settings( _PlotSettings, _IsTimestamped=false ) ->
 	{ _PreambleStr="", _CurveOffset=0 }.
+
+
+
+% @doc Returns the appropriate settings, depending on whether the abscissa axis
+% gathers timestamps or not.
+%
+-spec get_timestamp_settings( plot_settings() ) ->
+									{ command_element(), curve_offset() }.
+get_timestamp_settings( PlotSettings=#plot_settings{
+								is_timestamped=IsTimestamped } ) ->
+	get_timestamp_settings( PlotSettings, IsTimestamped ).
 
 
 
@@ -1524,6 +1647,48 @@ select_curves( _ZoneEntries=[
 select_curves( _ZoneEntries=[ { _ZoneName, { C1, C2 }, _ZPlotSuffix } | T ],
 			   Acc ) ->
 	select_curves( T, [ C1, C2 | Acc ] ).
+
+
+
+% @doc Adds back the index in the list of curve names, as read from the list of
+% curve entries, without changing the order of the curve names.
+%
+% Transforms any plain string in a binary one as well.
+%
+% For example add_plot_index_back(["b", "c", "a"], CurveEntries) with
+% CurveEntries=[ {3,<<"a">>}, {2,<<"b">>}, {1,<<"c">>}] should return:
+% [{2,<<"b">>}, {1,<<"c">>}, {3,<<"a">>}], i.e. the items of curve names, in
+% their original order there, with their index added back.
+%
+% (helper function)
+%
+-spec add_plot_index_back( [ declared_curve_name() ], [ curve_entry() ] ) ->
+												[ curve_entry() ].
+add_plot_index_back( CurveNames, CurveEntries ) ->
+	add_plot_index_back( CurveNames, CurveEntries, _Acc=[] ).
+
+
+% (helper)
+add_plot_index_back( _CurveNames=[], _CurveEntries, Acc ) ->
+	lists:reverse( Acc );
+
+add_plot_index_back( _CurveNames=[ CName | T ], CurveEntries, Acc ) ->
+
+	BinCName = text_utils:ensure_binary( CName ),
+
+	% We do not check for duplicated names and removed ones resulting in a
+	% correct length of the name list:
+	%
+	case lists:keyfind( BinCName, 2, CurveEntries ) of
+
+		false ->
+			throw( { unknown_curve, CName } );
+
+		{ Index, _CName, PlotSuffix } ->
+			add_plot_index_back( T, CurveEntries,
+								 [ { Index, BinCName, PlotSuffix } | Acc ] )
+
+	end.
 
 
 

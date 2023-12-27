@@ -82,7 +82,7 @@ endif
 #
 # So our code uses '-ifdef(exec_target_is_production)' instead of something like
 # '-if(execution_target ## production)'.' where ## could be '=', '==', '=:='
-# (not able to find the syntax for such macro conditions)
+# (not able to find the syntax for such macro conditions).
 #
 ifeq ($(EXECUTION_TARGET),development)
 
@@ -94,7 +94,18 @@ ifeq ($(EXECUTION_TARGET),development)
 	# No exec_target_is_production shall be defined here:
 	ERLANG_COMPILER_EXEC_TARGET_OPT =
 
-	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode
+	# By default, LCO kept:
+	MYRIAD_LCO_OPT :=
+
+	# LCO can be temporarily disabled:
+	#MYRIAD_LCO_OPT := -Dmyriad_disable_lco
+
+	# Last Call Optimisation (LCO) may be selectively disabled in order to have
+	# unellipsed stacktraces (note that disabling LCO will lead the memory
+	# footprint of recursive functions to explode, so LCO should be left enabled
+	# in the general case - perhaps even in debug mode):
+	#
+	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode $(MYRIAD_LCO_OPT)
 
 else ifeq ($(EXECUTION_TARGET),production)
 
@@ -154,6 +165,7 @@ endif
 #  - gui_events: how MyriadGUI manages interface-related events
 #  - gui_canvas: how MyriadGUI manages canvases
 #  - gui_font: about font support
+#  - gui_splash: about splash screens
 #  - gui_instances: how MyriadGUI manages widget instances
 #  - gui_environments: the management of backend environments
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
@@ -199,6 +211,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
@@ -328,7 +341,7 @@ ifndef PACKAGE_TOP
 endif
 
 
-# Needed, exactly as is (make trick to specify space as a parameter):
+# Needed, exactly as is ('make' trick to specify space as a parameter):
 space :=
 space +=
 
@@ -1315,6 +1328,12 @@ ERL_LAUNCHER = "$(MYRIAD_SRC)/scripts/launch-erl.sh"
 # If wanting to specify (Erlang) configuration file(s):
 # INTERNAL_OPTIONS += --config my-traces-test.config
 
+# If wanting to enable the post-mortem investigations about any (OS-level) crash
+# (typically core dump) of the Erlang VM process:
+#
+#INTERNAL_OPTIONS += --investigate-crashes
+
+
 
 # Compiler section.
 
@@ -1342,7 +1361,6 @@ ifndef BOOTSTRAP_MODULES
 		$(MYRIAD_TOP)/src/meta/ast_generation_test.erl                  \
 		$(MYRIAD_TOP)/src/meta/meta_utils_test.erl                      \
 		$(MYRIAD_TOP)/src/meta/cond_utils_test.erl                      \
-
 
 
 	META_FILTERED_SRC_FILES = $(filter-out $(EXCLUDED_FROM_BOOTSTRAPPED_META),$(META_SRC_FILES))
@@ -1667,7 +1685,7 @@ endif
 # re-add temporarily an exit if wanting to spot faulty paths through a test
 # suite)
 #
-BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2 ; fi; done)
+BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2; fi; done)
 
 
 # -pa rather than -pz, notably for Gradualizer (moreover a bit safer, including
@@ -1789,7 +1807,8 @@ endif
 # Current time:  1243164693
 # Aborted
 #
-# (then relevant for our launcher but for 'erlc' as well)
+# (then relevant for our launcher but for 'erlc' as well, and for any node
+# spawned afterwards)
 #
 TIME_OPTS =
 #TIME_OPTS = +C no_time_warp

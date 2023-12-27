@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2023-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Oceanic library.
 %
@@ -265,7 +265,7 @@ get_window_style_topic_spec() ->
 		{ clip_children,             ?wxCLIP_CHILDREN      },
 
 		% Forces a complete redraw of the window whenever it is resized instead
-		% of redrawing just the part of the window affected by resizing
+		% of redrawing just the part of the window affected by resizing:
 		%
 		% (see https://docs.wxwidgets.org/stable/classwx_window.html)
 		%
