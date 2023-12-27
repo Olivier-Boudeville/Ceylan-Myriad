@@ -211,7 +211,8 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt( "Image original size: ~w pixels, "
-			"scaled down for bitmap: ~w.", [ NativeImgSize, ImgBitmapSize ] ) ),
+			"scaled down for bitmap: ~w.", [ NativeImgSize, ImgBitmapSize ] ),
+		basic_utils:ignore_unused( [ NativeImgSize, ImgBitmapSize ] ) ),
 
 	SplashFrame = create_splash_frame( Parent ),
 
@@ -651,7 +652,8 @@ on_repaint_needed( SplashPanel, _SplashInfo=#dynamic_splash_info{} ) ->
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt(
 			"Dynamic splash panel '~ts' needs to be repainted.",
-			[ gui:object_to_string( SplashPanel ) ] ) ),
+			[ gui:object_to_string( SplashPanel ) ] ),
+		basic_utils:ignore_unused( [ SplashPanel ] ) ),
 
 	% Nothing done:
 	ok.
@@ -667,7 +669,8 @@ on_resized( SplashPanel, NewSize, SplashInfo=#basic_splash_info{
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt( "Basic splash panel '~ts' resized to ~p.",
-			[ gui:object_to_string( SplashPanel ), NewSize ] ) ),
+			[ gui:object_to_string( SplashPanel ), NewSize ] ),
+		basic_utils:ignore_unused( [ SplashPanel ] ) ),
 
 	% We have to resize the framebuffer first:
 	NewBackbufferBitmap = gui_bitmap:create_empty( NewSize ),
@@ -688,7 +691,8 @@ on_resized( SplashPanel, NewSize, SplashInfo=#dynamic_splash_info{} ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt( "Dynamic splash panel '~ts' resized to ~p.",
-			[ gui:object_to_string( SplashPanel ), NewSize ] ) ),
+			[ gui:object_to_string( SplashPanel ), NewSize ] ),
+		basic_utils:ignore_unused( [ SplashPanel, NewSize ] ) ),
 
 	SplashInfo.
 
