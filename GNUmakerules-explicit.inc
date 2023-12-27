@@ -599,7 +599,11 @@ rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 
 
 # Upgrades the rebar.lock file, regarding the dependencies of the current layer.
-rebar3-upgrade-lock:
+#
+# ebin/THIS_PACKAGE.app is necessary, as otherwise: 'Cannot read app file:
+#  "[...]/src/THIS_PACKAGE.app.src"'.
+#
+rebar3-upgrade-lock: rebar3-create-app-file
 	@$(MYRIAD_REBAR_EXEC) upgrade --all
 
 
@@ -813,10 +817,10 @@ rebar3-populate-build-tree:
 # We have thus:
 # ./conf/FOOBAR.app.src [only real source]
 # ./_build/lib/FOOBAR/ebin.FOOBAR.app
-# ./ebin/FOOBAR.app
+# ./ebin/FOOBAR.app [needed by rebar for dependencies]
 # ./src/FOOBAR.app.src -> ../ebin/FOOBAR.app
 #
-# So, a priori, only conf/FOOBAR.app.src shall be put in VCS.
+# So, a priori, only conf/FOOBAR.app.src and ebin/FOOBAR.ap shall be put in VCS.
 #
 rebar3-create-app-file:
 	@echo "  Generating rebar3 $(PROJECT_NAME_FOR_REBAR).app file"
@@ -833,6 +837,7 @@ rebar3-copy-beams:
 	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/ ';'
 
 
+# Note that at least the ebin/*.app is (and must be) in VCS:
 rebar3-clean: clean-include-links rebar3-restore-unsupported-sources
 	@echo "  Removing any prior rebar3 build tree for this project ($(MYRIAD_REBAR_BUILD_BASE))"
 	-@/bin/rm -rf $(MYRIAD_REBAR_BUILD_BASE) 2>/dev/null
@@ -920,7 +925,8 @@ rebar3-info:
 # recompilation (hex does not take into account the .app.src file, hence does
 # not rely on explicitly-specified modules to build)
 #
-# - remove rebar.lock, otherwise a past Myriad dep (e.g. Git-based) may be reused
+# - remove rebar.lock, otherwise a past Myriad dep (e.g. Git-based) may be
+# reused
 #
 # - afterwards we restore the ebin/*.app and rebar.config files for standard
 # releases, in order to avoid having them considered as deleted by Git
