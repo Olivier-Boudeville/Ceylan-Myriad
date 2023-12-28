@@ -1344,7 +1344,7 @@ run( ModIOList, FunctionName, Args ) ->
 		%trace_utils:debug_fmt( "For exception ~p of class ~p, "
 		%   "obtained stacktrace:~n ~p.", [ Exception, Class, Stacktrace ] ),
 
-		ExplainStr = case Exception of
+		{ ExplainStr, ShowStacktrace } = case Exception of
 
 			undef ->
 				{ Mod, Fun, Third } = case hd( Stacktrace ) of
@@ -1367,41 +1367,53 @@ run( ModIOList, FunctionName, Args ) ->
 						length( SomeArgs )
 
 				end,
-				get_hint( code_utils:interpret_undef_exception( Mod, Fun,
-																Arity ) );
+				{ get_hint( code_utils:interpret_undef_exception( Mod, Fun,
+																  Arity ) ),
+				  true };
 
 
 			{ application_not_found, _AppName, AppFilename, _AbsBaseDir } ->
-				get_hint( text_utils:format( "To generate 'ebin/~ts', "
+				{ get_hint( "To generate 'ebin/~ts', "
 					"one may run 'make rebar3-create-app-file' "
-                    "from the root of the sources.", [ AppFilename ] ) );
+					"from the root of the sources.", [ AppFilename ] ),
+				  false };
+
+
+			{ app_not_compiled, AppName, _AppBeam } ->
+				{ get_hint( "The application '~ts' is not available.",
+							[ AppName ] ), false };
 
 			% Not interpreted (yet?):
 			_ ->
-				""
+				{ _NoHint="", true }
 
 		end,
 
-		case lists:reverse( Stacktrace ) of
+		ShowStacktrace andalso
+			begin
+				case lists:reverse( Stacktrace ) of
 
-			[ {init,do_boot,3,[]}, {init,start_em,1,[]},
-			  {basic_utils,run,3, _RunFileLoc} | RevRest ] ->
-				manage_minimised_stacktrace( RevRest, Class, Exception,
-											 ExplainStr );
+					[ {init,do_boot,3,[]}, {init,start_em,1,[]},
+					  {basic_utils,run,3, _RunFileLoc} | RevRest ] ->
+						manage_minimised_stacktrace( RevRest, Class, Exception,
+													 ExplainStr );
 
-			[ {init,start_em,1,[]}, {basic_utils,run,3, _RunFileLoc}
-												| RevRest ] ->
-				manage_minimised_stacktrace( RevRest, Class, Exception,
-											 ExplainStr );
+					[ {init,start_em,1,[]}, {basic_utils,run,3, _RunFileLoc}
+										| RevRest ] ->
+						manage_minimised_stacktrace( RevRest, Class, Exception,
+													 ExplainStr );
 
-			% Apparently, sometimes (e.g. for gui_splash_test with LCO disabled)
-			% the stacktrace does not even reference basic_utils:run/3!
-			%
-			Rev ->
-				manage_minimised_stacktrace( Rev, Class, Exception,
-											 ExplainStr )
+					% Apparently, sometimes (e.g. for gui_splash_test with LCO
+					% disabled) the stacktrace does not even reference
+					% basic_utils:run/3!
+					%
+					Rev ->
+						manage_minimised_stacktrace( Rev, Class, Exception,
+													 ExplainStr )
 
-		end,
+				end
+
+			end,
 
 		init:stop()
 
@@ -1412,6 +1424,9 @@ run( ModIOList, FunctionName, Args ) ->
 % (helper)
 get_hint( HintStr ) ->
 	text_utils:format( "~nHint: ~ts~n", [ HintStr ] ).
+
+get_hint( HintFormatStr, HintFormatValue ) ->
+	get_hint( text_utils:format( HintFormatStr, HintFormatValue ) ).
 
 
 % (helper)
