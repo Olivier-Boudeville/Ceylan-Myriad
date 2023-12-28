@@ -837,11 +837,13 @@ rebar3-copy-beams:
 	@find src -name '*.beam' -a ! -name '*_test.beam' -exec /bin/cp '{}' $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)/ebin/ ';'
 
 
-# Note that at least the ebin/*.app is (and must be) in VCS:
+# Note that at least the ebin/*.app is (and must be) in VCS, so that it is not
+# removed anymore:
+#
 rebar3-clean: clean-include-links rebar3-restore-unsupported-sources
 	@echo "  Removing any prior rebar3 build tree for this project ($(MYRIAD_REBAR_BUILD_BASE))"
 	-@/bin/rm -rf $(MYRIAD_REBAR_BUILD_BASE) 2>/dev/null
-	-@/bin/rm -f ebin/$(PROJECT_NAME_FOR_REBAR).app
+	-@#/bin/rm -f ebin/$(PROJECT_NAME_FOR_REBAR).app
 
 
 # Adding _build for increased safety:
