@@ -45,7 +45,7 @@
 			help-intro help-erl                                              \
 			clean clean-erlang clean-layer-ebin clean-python clean-protobuf  \
 			clean-database clean-recurse clean-outputs clean-ast-debug       \
-			real-clean track                                                 \
+			clean-previous real-clean track                                  \
 			info-platform info-hardware info-software info-source-layout     \
 			info-erlang-target-version                                       \
 			info info-files info-meta info-erlang info-python info-java      \
@@ -1231,6 +1231,12 @@ clean-ast-debug-myriad:
 
 
 clean-outputs:
+
+
+# Removes the files hidden by file_utils:hide_overwriting/*:
+clean-previous:
+	@echo "  Removing recursively from $$(pwd) all '*.previous' files"
+	@find . -name '*.previous' -exec /bin/rm -f '{}' ';'
 
 
 # To be enriched by user layers:
