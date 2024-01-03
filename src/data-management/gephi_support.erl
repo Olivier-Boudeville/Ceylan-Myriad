@@ -32,7 +32,7 @@
 % networks.
 %
 % See gephi_support_test.erl for the corresponding test, and the Gephi official
-% website https://gephi.org/ for further information.
+% website [https://gephi.org/] for further information.
 %
 % For the vast majority of the services defined here, an instance of a Gephi
 % server is expected to have been configured and launched beforehand, both
@@ -56,8 +56,8 @@
 % A user-specified path to a Gephi project file, from which a project name may
 % be deduced.
 %
-% For example the '/tmp/foo/my_project.gephi' path is to correspond to the
-% 'my_project' project.
+% For example the "/tmp/foo/my_project.gephi" path is to correspond to the
+% "my_project" project.
 %
 %
 
@@ -100,14 +100,14 @@
 	% The TCP port on which a suitable Gephi server is expected to run:
 	port :: gephi_server_port(),
 
-	% The workspace to interact with on this Gephi server:
+	% The workspace to interact with, on this Gephi server:
 	workspace :: bin_gephi_workspace(),
 
 	% The preprocessed base URL used to trigger calls to this Gephi server:
 	base_url :: base_url() } ).
 
 -type gephi_server_info() :: #gephi_server_info{}.
-% To designate an instance of a Gephi server.
+% Information to designate an instance of a Gephi server.
 
 
 -type element_id() :: any_string().
@@ -161,13 +161,18 @@
 		  get_server_info/1, get_server_info/2, get_server_info/3,
 		  server_info_to_string/1 ]).
 
+-export([ send_post/2 ]).
+
+
 
 % Gephi installation:
 %
 % Our convention is to have Gephi installed in GEPHI_ROOT=~/Software/gephi, in
 % which a 'gephi-current-install' symbolic link is to point to an actual sibling
-% installation directory with a version, like: 'gephi-0.9.10'; for example:
+% installation directory corresponding to a given version of Gephi, like:
+% 'gephi-0.9.10'.
 %
+% For example:
 % $ tree -d -L 1 ~/Software/gephi/
 % ~/Software/gephi/
 % ├── gephi-0.9.5
@@ -182,14 +187,14 @@
 % from https://gephi.org/users/download/ (we recommend to avoid the 0.9.6
 % version), to download a corresponding gephi-x.y.z-linux-x64.tar.gz archive in
 % ~/Software/gephi/, to extract it (e.g. 'tar xvf
-% gephi-x.y.z-linux-x64.tar.gz'), and to create a sibling gephi-current-install
-% symbolic link pointing to it.
+% gephi-x.y.z-linux-x64.tar.gz'), and to create/update a sibling
+% gephi-current-install symbolic link pointing to it.
 %
 % The ~/Software/gephi/gephi-current-install/bin directory shall then preferably
-% be set in the PATH environment variable for good (e.g. in one's .bashrc).
+% be set in the PATH environment variable for good (e.g. in one's ~/.bashrc).
 
 
-% Gephi configuration:
+% Gephi configuration
 %
 % The following steps are needed:
 %  - installing the 'Graph Streaming' plugin (listed in Tools -> Plugins ->
@@ -218,7 +223,7 @@
 % If a Gephi instance is already running, launching another one just sets the
 % focus on that initial instance; as a consequence, on a given host, the risk of
 % having conflicting instances is low (especially if they are to operate on the
-% same TCP port, as up to one can be started).
+% same TCP port, as up to one of them can be started).
 %
 % See also: executable_utils:get_default_graph_stream_tool_{name,path}/0.
 
@@ -240,7 +245,7 @@
 % - command-line testing can be done for example with:
 %    $ wget --post-data "XXX" "localhost:8090/myproject?operation=updateGraph"
 %
-% For example "XXX" can be a JSON document JSON like
+% For example "XXX" can be a JSON document like: 
 % "{"cn":{"$NODEID":{"$NAME":"$VALUE"}}}".
 
 % A Gephi server could be detected and waited for, by polling its expected TCP
@@ -249,7 +254,7 @@
 
 % Implementation notes:
 %
-% The communication with the Gephi server of interest may be asynchronous
+% The communication with the Gephi server of interest can be asynchronous
 % (fastest, yet prone to race conditions) or not.
 %
 % Synchronous operations do not return for example the identifiers involved, as
@@ -296,8 +301,9 @@ start() ->
 
 	json_utils:start_parser( JSONParserName ),
 
-	% HTTP POST requests will have to be made to the Gephi server:
+	% HTTP (POST) requests will have to be made to the Gephi server:
 	web_utils:start().
+
 
 
 % @doc Stops the Gephi support.
@@ -305,13 +311,13 @@ start() ->
 stop() ->
 	web_utils:stop(),
 
-	% Side-effect: extra BEAM directory declared.
+	% Side-effect: an extra BEAM directory remains declared.
 	json_utils:stop_parser().
 
 
 
 % @doc Returns relevant information to connect to the specified workspace of a
-% Gephi server expected to run on the local host on the default port.
+% Gephi server expected to run on the local host, on the default port.
 %
 -spec get_server_info( any_gephi_workspace() ) -> gephi_server_info().
 get_server_info( Workspace ) ->
@@ -319,7 +325,7 @@ get_server_info( Workspace ) ->
 
 
 % @doc Returns relevant information to connect to the specified workspace of the
-% specified Gephi server, expected to run on the specified host on the default
+% specified Gephi server, expected to run on the specified host, on the default
 % port.
 %
 -spec get_server_info( gephi_server_host(), any_gephi_workspace() ) ->
@@ -329,8 +335,8 @@ get_server_info( Hostname, Workspace ) ->
 
 
 % @doc Returns relevant information to connect to the specified workspace of the
-% specified Gephi server, expected to run on the specified host on the specified
-% port.
+% specified Gephi server, expected to run on the specified host, on the
+% specified port.
 %
 -spec get_server_info( gephi_server_host(), gephi_server_port(),
 					   any_gephi_workspace() ) -> gephi_server_info().
@@ -340,8 +346,8 @@ get_server_info( Hostname, ServerPort, Workspace ) ->
 
 
 % @doc Returns relevant information to connect to the specified workspace of the
-% specified Gephi server, expected to run on the specified host on the specified
-% port.
+% specified Gephi server, expected to run on the specified host, on the
+% specified port.
 %
 % If requested, the availability of the specified host will be checked (with
 % ping), provided it is not the local one.
@@ -350,6 +356,7 @@ get_server_info( Hostname, ServerPort, Workspace ) ->
 		any_gephi_workspace(), boolean() ) -> gephi_server_info().
 get_server_info( Hostname, ServerPort, Workspace, DoCheckServer )
 						when is_integer( ServerPort ) ->
+
 	InternHostname = case Hostname of
 
 		localhost ->
@@ -358,10 +365,10 @@ get_server_info( Hostname, ServerPort, Workspace, DoCheckServer )
 		H ->
 			DoCheckServer andalso
 				begin
-					net_utils:ping( BinHostname ) orelse
+					net_utils:ping( H ) orelse
 						begin
 							trace_bridge:warning_fmt(
-								"Unable to ping Gephi host '~ts'.", [ H ] )
+								"Unable to ping Gephi host '~ts'.", [ H ] ),
 							throw( { unavailable_gephi_host, H } )
 						end
 				end,
@@ -413,7 +420,7 @@ send_post( Body, #gephi_server_info{ base_url=BaseUrl } ) ->
 
 		{ _HTTPStatusCode=200, Headers, BinBody } ->
 			trace_utils:debug_fmt(
-				"Send POST succeeded (headers: ~p, body: ~w).",
+				"Send POST succeeded (got headers: ~p, body: ~w).",
 				[ Headers, BinBody ] ),
 			BinBody
 
