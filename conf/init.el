@@ -97,7 +97,8 @@
 ;;(global-set-key [(shift mouse-3)] #'acme-search-backward)
 (global-set-key [(shift mouse-3)] #'isearch-backward)
 
-
+;; So to Ctrl-C then v is a prefix:
+(setq smerge-command-prefix "\C-cv")
 
 ;; Set foreground and background colors:
 
