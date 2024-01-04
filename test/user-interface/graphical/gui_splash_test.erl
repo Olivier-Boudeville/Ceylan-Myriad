@@ -68,7 +68,7 @@
 run_splash_screen_test() ->
 
 	% This test just waits for a fixed duration:
-	WaitingDurationMs = 200,
+	WaitingDurationMs = 2000,
 
 	trace_utils:notice_fmt( "A basic splash screen displaying the Myriad logo "
 		"shall appear, and vanish when the test requests it, "
@@ -122,11 +122,13 @@ run_splash_screen_test() ->
 		timer:sleep( WaitingDurationMs ),
 		MainTestPid ! removeBasicSplash,
 
-		timer:sleep( WaitingDurationMs ),
+		timer:sleep( WaitingDurationMs div 2 ),
 		MainTestPid ! createDynamicSplash,
 
-		%timer:sleep( WaitingDurationMs ),
-		timer:sleep( 25000 ),
+		timer:sleep( WaitingDurationMs ),
+		% For a longer contemplation:
+		%timer:sleep( 25000 ),
+
 		MainTestPid ! removeDynamicSplash,
 
 		MainTestPid ! quit
