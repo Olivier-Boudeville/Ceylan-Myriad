@@ -153,8 +153,6 @@
 -type parent() :: gui:parent().
 -type title() :: gui:title().
 
--type frame_style() :: gui_frame:frame_style().
-
 -type menu_bar() :: gui_menu:menu_bar().
 
 -type id() :: gui_id:id().
