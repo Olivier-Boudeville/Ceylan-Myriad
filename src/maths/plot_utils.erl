@@ -716,9 +716,9 @@ declare_curves( CurveNames, PlotSettings ) ->
 %
 % Respects the order of specified names.
 %
-% For example transform_curve_names(["a", "b", "c"]) should result in:
-%  [{1,<<"a">>,DefaultBinPlotSuffix}, {2,<<"b">>,DefaultBinPlotSuffix},
-%   {3,<<"c">>,DefaultBinPlotSuffix}].
+% For example `transform_curve_names(["a", "b", "c"])' should result in:
+%  `[{1,<<"a">>,DefaultBinPlotSuffix}, {2,<<"b">>,DefaultBinPlotSuffix},
+%   {3,<<"c">>,DefaultBinPlotSuffix}]'.
 %
 -spec transform_curve_names( [ declared_curve_name() ] ) -> [ curve_entry() ].
 transform_curve_names( CurveNames ) ->
@@ -1655,9 +1655,9 @@ select_curves( _ZoneEntries=[ { _ZoneName, { C1, C2 }, _ZPlotSuffix } | T ],
 %
 % Transforms any plain string in a binary one as well.
 %
-% For example add_plot_index_back(["b", "c", "a"], CurveEntries) with
-% CurveEntries=[ {3,<<"a">>}, {2,<<"b">>}, {1,<<"c">>}] should return:
-% [{2,<<"b">>}, {1,<<"c">>}, {3,<<"a">>}], i.e. the items of curve names, in
+% For example `add_plot_index_back(["b", "c", "a"], CurveEntries)' with
+% `CurveEntries=[ {3,<<"a">>}, {2,<<"b">>}, {1,<<"c">>}]' should return:
+% `[{2,<<"b">>}, {1,<<"c">>}, {3,<<"a">>}]', i.e. the items of curve names, in
 % their original order there, with their index added back.
 %
 % (helper function)
