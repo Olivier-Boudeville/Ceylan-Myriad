@@ -1,0 +1,221 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>Module gephi_support</title>
+<link rel="stylesheet" type="text/css" href="stylesheet.css" title="EDoc">
+</head>
+<body bgcolor="white">
+<div class="navbar"><a name="#navbar_top"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<hr>
+
+<h1>Module gephi_support</h1>
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Support for the <b>Gephi</b> facilities.
+
+
+<h2><a name="description">Description</a></h2><p>Support for the <b>Gephi</b> facilities.</p>
+
+ <p>Gephi is an open source tool to visualise and explore all kinds of graphs and 
+networks.</p>
+
+ <p>See gephi_support_test.erl for the corresponding test, and the Gephi official
+ website <a href="https://gephi.org/" target="_top"><code>https://gephi.org/</code></a> for further information.</p>
+
+ For the vast majority of the services defined here, an instance of a Gephi
+ server is expected to have been configured and launched beforehand, both
+ according to our conventions.
+
+<h2><a name="types">Data Types</a></h2>
+
+<h3 class="typedecl"><a name="type-any_gephi_workspace">any_gephi_workspace()</a></h3>
+<p><code>any_gephi_workspace() = <a href="#type-bin_string">bin_string()</a></code></p>
+<p> The name of a Gephi workspace, in a project.</p>
+
+<h3 class="typedecl"><a name="type-any_project_name">any_project_name()</a></h3>
+<p><code>any_project_name() = <a href="#type-project_name">project_name()</a> | <a href="#type-bin_project_name">bin_project_name()</a></code></p>
+<p> The name of a Gephi project, typically one that shall be loaded.</p>
+
+<h3 class="typedecl"><a name="type-any_string">any_string()</a></h3>
+<p><code>any_string() = <a href="text_utils.html#type-any_string">text_utils:any_string()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-base_url">base_url()</a></h3>
+<p><code>base_url() = <a href="#type-bin_url">bin_url()</a></code></p>
+<p> A precomputed base URL, used to send requests more efficiently.</p>
+
+<h3 class="typedecl"><a name="type-bin_gephi_server_host">bin_gephi_server_host()</a></h3>
+<p><code>bin_gephi_server_host() = <a href="net_utils.html#type-possibly_local_bin_hostname">net_utils:possibly_local_bin_hostname()</a></code></p>
+<p> To designate internally the host of a Gephi server.</p>
+
+<h3 class="typedecl"><a name="type-bin_gephi_workspace">bin_gephi_workspace()</a></h3>
+<p><code>bin_gephi_workspace() = <a href="#type-bin_string">bin_string()</a></code></p>
+<p> The name of a Gephi workspace, in a project.</p>
+
+<h3 class="typedecl"><a name="type-bin_project_name">bin_project_name()</a></h3>
+<p><code>bin_project_name() = <a href="#type-bin_string">bin_string()</a></code></p>
+<p> The name of a Gephi project, typically one that shall be loaded. For example,
+ a <code>&lt;&lt;"Foobar"&gt;&gt;</code> project name would refer to a "Foobar.gephi" project file.</p>
+
+<h3 class="typedecl"><a name="type-bin_string">bin_string()</a></h3>
+<p><code>bin_string() = <a href="text_utils.html#type-bin_string">text_utils:bin_string()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-bin_url">bin_url()</a></h3>
+<p><code>bin_url() = <a href="web_utils.html#type-bin_url">web_utils:bin_url()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-body">body()</a></h3>
+<p><code>body() = <a href="web_utils.html#type-body">web_utils:body()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-edge_id">edge_id()</a></h3>
+<p><code>edge_id() = <a href="#type-element_id">element_id()</a></code></p>
+<p> The identifier of a graph edge.</p>
+
+<h3 class="typedecl"><a name="type-element_id">element_id()</a></h3>
+<p><code>element_id() = <a href="#type-any_string">any_string()</a></code></p>
+<p><p> The identifier of a graph element.</p>
+
+ This is a node, an edge or a property.</p>
+
+<h3 class="typedecl"><a name="type-element_label">element_label()</a></h3>
+<p><code>element_label() = <a href="#type-any_string">any_string()</a></code></p>
+<p> A label that can be associated to a graph element.</p>
+
+<h3 class="typedecl"><a name="type-file_path">file_path()</a></h3>
+<p><code>file_path() = <a href="file_utils.html#type-file_path">file_utils:file_path()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-gephi_server_host">gephi_server_host()</a></h3>
+<p><code>gephi_server_host() = <a href="net_utils.html#type-possibly_local_hostname">net_utils:possibly_local_hostname()</a></code></p>
+<p> To designate the host of a Gephi server.</p>
+
+<h3 class="typedecl"><a name="type-gephi_server_info">gephi_server_info()</a></h3>
+<p><code>gephi_server_info() = #gephi_server_info{host = <a href="#type-bin_gephi_server_host">bin_gephi_server_host()</a>, port = <a href="#type-gephi_server_port">gephi_server_port()</a>, workspace = <a href="#type-bin_gephi_workspace">bin_gephi_workspace()</a>, base_url = <a href="#type-base_url">base_url()</a>}</code></p>
+<p> Information to designate an instance of a Gephi server.</p>
+
+<h3 class="typedecl"><a name="type-gephi_server_port">gephi_server_port()</a></h3>
+<p><code>gephi_server_port() = <a href="net_utils.html#type-tcp_port">net_utils:tcp_port()</a></code></p>
+<p> A (TCP) port at which a Gephi instance may run.</p>
+
+<h3 class="typedecl"><a name="type-gephi_workspace">gephi_workspace()</a></h3>
+<p><code>gephi_workspace() = <a href="#type-ustring">ustring()</a></code></p>
+<p> The name of a Gephi workspace (for example "Siclone"), in a project.</p>
+
+<h3 class="typedecl"><a name="type-graph_value">graph_value()</a></h3>
+<p><code>graph_value() = float()</code></p>
+<p><p> A value associated to a given timestamp in a graph.</p>
+
+ It would be interesting to determine whether other datatypes can be accepted
+ (e.g. booleans, integers, non-scalar types).</p>
+
+<h3 class="typedecl"><a name="type-node_id">node_id()</a></h3>
+<p><code>node_id() = <a href="#type-element_id">element_id()</a></code></p>
+<p> The identifier of a graph node.</p>
+
+<h3 class="typedecl"><a name="type-project_name">project_name()</a></h3>
+<p><code>project_name() = <a href="#type-ustring">ustring()</a></code></p>
+<p> The name of a Gephi project, typically one that shall be loaded. For example,
+ a "Foobar" project name would refer to a "Foobar.gephi" project file.</p>
+
+<h3 class="typedecl"><a name="type-project_path">project_path()</a></h3>
+<p><code>project_path() = <a href="#type-file_path">file_path()</a></code></p>
+<p><p> A user-specified path to a Gephi project file, from which a project name may 
+be deduced.</p>
+
+ <p>For example the "/tmp/foo/my_project.gephi" path is to correspond to the 
+"my_project" project.</p>
+
+</p>
+
+<h3 class="typedecl"><a name="type-property_id">property_id()</a></h3>
+<p><code>property_id() = <a href="#type-element_id">element_id()</a></code></p>
+<p> The identifier of a node property.</p>
+
+<h3 class="typedecl"><a name="type-time_factor">time_factor()</a></h3>
+<p><code>time_factor() = float()</code></p>
+<p> Typically in [0.0, 1.0].</p>
+
+<h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
+<p><code>ustring() = <a href="text_utils.html#type-ustring">text_utils:ustring()</a></code></p>
+
+
+<h2><a name="index">Function Index</a></h2>
+<table width="100%" border="1" cellspacing="0" cellpadding="2" summary="function index"><tr><td valign="top"><a href="#get_server_info-1">get_server_info/1</a></td><td>Returns relevant information to connect to the specified workspace of a
+ Gephi server expected to run on the local host, on the default port.</td></tr>
+<tr><td valign="top"><a href="#get_server_info-2">get_server_info/2</a></td><td>Returns relevant information to connect to the specified workspace of the
+ specified Gephi server, expected to run on the specified host, on the default
+ port.</td></tr>
+<tr><td valign="top"><a href="#get_server_info-3">get_server_info/3</a></td><td>Returns relevant information to connect to the specified workspace of the
+ specified Gephi server, expected to run on the specified host, on the
+ specified port.</td></tr>
+<tr><td valign="top"><a href="#send_post-2">send_post/2</a></td><td>Sends a POST HTTP "request" with the specified content to the specified 
+server.</td></tr>
+<tr><td valign="top"><a href="#server_info_to_string-1">server_info_to_string/1</a></td><td>Returns a textual description of the specified server information.</td></tr>
+<tr><td valign="top"><a href="#start-0">start/0</a></td><td>Starts the Gephi support.</td></tr>
+<tr><td valign="top"><a href="#stop-0">stop/0</a></td><td>Stops the Gephi support.</td></tr>
+</table>
+
+<h2><a name="functions">Function Details</a></h2>
+
+<h3 class="function"><a name="get_server_info-1">get_server_info/1</a></h3>
+<div class="spec">
+<p><code>get_server_info(Workspace::<a href="#type-any_gephi_workspace">any_gephi_workspace()</a>) -&gt; <a href="#type-gephi_server_info">gephi_server_info()</a></code><br></p>
+<p> </p>
+</div><p>Returns relevant information to connect to the specified workspace of a
+ Gephi server expected to run on the local host, on the default port.
+</p>
+
+<h3 class="function"><a name="get_server_info-2">get_server_info/2</a></h3>
+<div class="spec">
+<p><code>get_server_info(Hostname::<a href="#type-gephi_server_host">gephi_server_host()</a>, Workspace::<a href="#type-any_gephi_workspace">any_gephi_workspace()</a>) -&gt; <a href="#type-gephi_server_info">gephi_server_info()</a></code><br></p>
+<p> </p>
+</div><p>Returns relevant information to connect to the specified workspace of the
+ specified Gephi server, expected to run on the specified host, on the default
+ port.
+</p>
+
+<h3 class="function"><a name="get_server_info-3">get_server_info/3</a></h3>
+<div class="spec">
+<p><code>get_server_info(Hostname::<a href="#type-gephi_server_host">gephi_server_host()</a>, ServerPort::<a href="#type-gephi_server_port">gephi_server_port()</a>, Workspace::<a href="#type-any_gephi_workspace">any_gephi_workspace()</a>) -&gt; <a href="#type-gephi_server_info">gephi_server_info()</a></code><br></p>
+<p> </p>
+</div><p>Returns relevant information to connect to the specified workspace of the
+ specified Gephi server, expected to run on the specified host, on the
+ specified port.
+</p>
+
+<h3 class="function"><a name="send_post-2">send_post/2</a></h3>
+<div class="spec">
+<p><code>send_post(Body::<a href="#type-body">body()</a>, Gephi_server_info::<a href="#type-gephi_server_info">gephi_server_info()</a>) -&gt; <a href="#type-body">body()</a></code><br></p>
+<p> </p>
+</div><p><p>Sends a POST HTTP "request" with the specified content to the specified 
+server.</p>
+
+ <p>The content is generally a JSON document.</p>
+
+ Throws an exception if the sending failed.
+</p>
+
+<h3 class="function"><a name="server_info_to_string-1">server_info_to_string/1</a></h3>
+<div class="spec">
+<p><code>server_info_to_string(Gephi_server_info::<a href="#type-gephi_server_info">gephi_server_info()</a>) -&gt; <a href="#type-ustring">ustring()</a></code><br></p>
+<p> </p>
+</div><p>Returns a textual description of the specified server information.</p>
+
+<h3 class="function"><a name="start-0">start/0</a></h3>
+<div class="spec">
+<p><code>start() -&gt; <a href="#type-void">void()</a></code><br></p>
+<p> </p>
+</div><p>Starts the Gephi support.</p>
+
+<h3 class="function"><a name="stop-0">stop/0</a></h3>
+<div class="spec">
+<p><code>stop() -&gt; <a href="#type-void">void()</a></code><br></p>
+<p> </p>
+</div><p>Stops the Gephi support.</p>
+<hr>
+
+<div class="navbar"><a name="#navbar_bottom"></a><table width="100%" border="0" cellspacing="0" cellpadding="2" summary="navigation bar"><tr><td><a href="overview-summary.html" target="overviewFrame">Overview</a></td><td><a href="http://www.erlang.org/"><img src="erlang.png" align="right" border="0" alt="erlang logo"></a></td></tr></table></div>
+<p><i>Generated by EDoc</i></p>
+</body>
+</html>
