@@ -1415,7 +1415,8 @@ run( ModIOList, FunctionName, Args ) ->
 
 			end,
 
-		init:stop()
+		% As this is an error case:
+		init:stop( _Status=15 )
 
 	end.
 

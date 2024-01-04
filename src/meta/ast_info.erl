@@ -539,9 +539,9 @@ extract_module_info_from_ast( AST ) ->
 	% (thus additionally a given file may happen multiple times); a count is not
 	% useful here anyway.
 
-	% Finally we have not real freedom in terms of output, as we prefer to
+	% Finally we have no real freedom in terms of output, as we prefer to
 	% respect the native display format of the error messages so that tools
-	% (e.g.  emacs, possible erlide and all) are still able to manage them.
+	% (e.g. emacs, possibly erlide and all) are still able to manage them.
 
 	% Useless: would report pre-transform errors that would be solved after
 	% transformation (e.g. void() not existing)
