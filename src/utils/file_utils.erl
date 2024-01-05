@@ -50,7 +50,8 @@
 -export([ join/1, join/2, bin_join/1, bin_join/2, any_join/1, any_join/2,
 		  split/1,
 
-		  get_base_path/1, get_last_path_element/1, split_path/1,
+		  get_base_path/1, get_base_path/2,
+		  get_last_path_element/1, split_path/1,
 
 		  resolve_path/1, resolve_any_path/1,
 
@@ -402,6 +403,13 @@
 % ".." / `<<"..">>' means the parent directory.
 
 
+-type depth() :: count().
+% A depth in a filesystem, when seen as a tree.
+%
+% For example the depth of "a" in "foo/bar/a" is 3.
+
+
+
 -type leaf_name() :: path_element().
 % A leaf name, i.e. the final element of a path (possibly a file or directory).
 %
@@ -505,13 +513,15 @@
 			   filename_radix/0, filepath_radix/0,
 			   extension/0, dotted_extension/0, any_suffix/0,
 			   path_element/0, bin_path_element/0, any_path_element/0,
-			   leaf_name/0,
+			   depth/0, leaf_name/0,
 			   entry_type/0, parent_creation/0, file_open_mode/0,
 			   compression_format/0, file/0, file_info/0,
 			   permission/0, permission_mask/0, improper_encoding_action/0 ]).
 
 
 % Shorthands:
+
+-type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -891,7 +901,7 @@ get_last_element( _List=[ _H | T ] ) ->
 
 
 
-% @doc Returns the complete leading, "directory" part of specified path,
+% @doc Returns the complete leading, "directory" part of the specified path,
 % that is the one with all its element but the last one.
 %
 % For example "/aaa/bbb/ccc" =
@@ -907,7 +917,26 @@ get_last_element( _List=[ _H | T ] ) ->
 %
 -spec get_base_path( any_path() ) -> any_path().
 get_base_path( AnyPath ) ->
-	filename:dirname( AnyPath ).
+	get_base_path( AnyPath, _Depth=1 ).
+
+
+% @doc Returns the leading part of the specified path, obtained at the specified
+% depth, that is when the specified number of bottom-level elements have been
+% chopped.
+%
+% For example "/aaa/bbb" =
+%          file_utils:get_base_path("/aaa/bbb/ccc/foobar.txt", _Depth=2).
+%
+% Note that the return type is the same of the input path, i.e. plain string or
+% binary string.
+%
+-spec get_base_path( any_path(), depth() ) -> any_path().
+get_base_path( AnyPath, _Depth=0 ) ->
+	AnyPath;
+
+get_base_path( AnyPath, Depth ) ->
+	ShrunkPath = filename:dirname( AnyPath ),
+	get_base_path( ShrunkPath, Depth-1 ).
 
 
 

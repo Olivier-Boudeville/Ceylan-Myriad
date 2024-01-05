@@ -1206,10 +1206,11 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 
 				 end ++ ArgStr,
 
-
+	% As FullArgStr must be interpreted, not used verbatim:
 	text_utils:format(
-		"~ts:~ts/~B called with the following list of arguments:~ts~ts",
-		[ Module, Function, length( Args ), FullArgStr,
+		"~ts:~ts/~B called with the following list of arguments:"
+			++ FullArgStr ++ "~ts",
+		[ Module, Function, length( Args ),
 		  get_location_from( StackInfo, FullPathsWanted ) ] );
 
 % Never fail:

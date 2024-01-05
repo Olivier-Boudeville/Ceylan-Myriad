@@ -155,8 +155,10 @@ endif
 #  - environments: about the sharing/caching of application information
 #  - resources: about the management of resources
 #  - files: about the management of files
+#  - network: regarding network-related operations
 #  - traces: for Myriad-level traces
 #  - random: about stochastic sample draws and probability density functions
+#  - graph: for graph-related operations, typically involving Gephi
 #  - math: for math-related operations
 #  - plot: for the rendering of all kinds of plots and graphs
 #
@@ -201,8 +203,10 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_network
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_graph
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
 
