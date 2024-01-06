@@ -155,12 +155,21 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	%SrvInfo = launch_server(),
-	SrvInfo = launch_server_if_needed(),
+	case gephi_support:is_available() of
 
-	test_facilities:display( "Server information: ~ts.",
-		[ gephi_support:server_info_to_string( SrvInfo ) ] ),
+		true ->
+			%SrvInfo = launch_server(),
+			SrvInfo = launch_server_if_needed(),
 
-	test_server( SrvInfo ),
+			test_facilities:display( "Server information: ~ts.",
+				[ gephi_support:server_info_to_string( SrvInfo ) ] ),
+
+			test_server( SrvInfo );
+
+		false ->
+			test_facilities:display( "Gephi not reported as available, "
+				"not testing its support." )
+
+	end,
 
 	test_facilities:stop().
