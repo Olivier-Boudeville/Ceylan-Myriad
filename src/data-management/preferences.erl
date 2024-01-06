@@ -59,16 +59,16 @@
 % {'My name', "Sylvester the cat"}.
 % '''
 %
-% Such a file may be used to create a preferences server (ex: with start/0) or
+% Such a file may be used to create a preferences server (e.g. with start/0) or
 % to update a pre-existing one (with update_from_etf/{1,2}).
 %
 % The corresponding server process is locally registered, generally under a
 % fixed name, which may be the default Myriad one (see the
-% default_preferences_filename define), or a user-defined one (ex:
+% default_preferences_filename define), or a user-defined one (e.g.
 % foobar_preferences).
 %
 % As a consequence, a preferences server can be designated either directly
-% through its PID or through its conventional (atom) registration name (ex:
+% through its PID or through its conventional (atom) registration name (e.g.
 % implicitly with `preferences:get(hello)' for the default one, or explicitly,
 % via its name with `preferences:get(hello, foobar_preferences)'. The former
 % approach is a bit more effective, but the later one is more robust (the server
@@ -287,7 +287,7 @@ start_link() ->
 start_link_with_defaults( DefaultEntries ) ->
 
 	PrefPid = environment:start_link_with_defaults(
-				get_default_preferences_path(), DefaultEntries ),
+		get_default_preferences_path(), DefaultEntries ),
 
 	trace_utils:debug_fmt( "Preferences started, as server ~w.", [ PrefPid ] ),
 
@@ -563,7 +563,7 @@ cache( CacheSpec, PrefData ) ->
 -spec cache_return( maybe_list( key() ) ) -> maybe_list( maybe( value() ) ).
 cache_return( KeyMaybeList ) ->
 	cache_return( KeyMaybeList,
-				_PrefData=get_default_preferences_registration_name() ).
+				  _PrefData=get_default_preferences_registration_name() ).
 
 
 % @doc Caches in the calling process the specified keys, and returns their

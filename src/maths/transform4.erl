@@ -40,8 +40,8 @@
 % transformation is a pair of matrices: a given matrix and its precomputed
 % inverse, so that either can be easily returned.
 %
-% When applying to a transformation T an "operation" O (ex: translation,
-% rotation, scaling, an), we consider that this operation shall happen after the
+% When applying to a transformation T an "operation" O (e.g. translation,
+% rotation, scaling), we consider that this operation shall happen after the
 % transformation.
 %
 % So, in terms of matrices, if T' is the resulting transformation, Mt' = Mo.Mt,

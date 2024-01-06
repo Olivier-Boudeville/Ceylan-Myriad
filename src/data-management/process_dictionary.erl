@@ -30,12 +30,12 @@
 %
 % While using the process dictionary is usually regarded with contempt for good
 % reasons (impure, prone to unwanted side-effects, etc.), there are a few
-% specific cases where it might be nevertheless useful/relevant (ex: to make the
-% state of a user interfaces implicit, rather than adding a parameter to
+% specific cases where it might be nevertheless useful/relevant (e.g. to make
+% the state of a user interfaces implicit, rather than adding a parameter to
 % virtually all functions of views, in the sense of the MVC pattern).
 %
 % We provide a basic encapsulation for the ways of interacting with the process
-% dictionary, notably so that it is easier to locate (ex: thanks to 'grep') the
+% dictionary, notably so that it is easier to locate (e.g. thanks to 'grep') the
 % places where the process dictionary is used.
 %
 % This module could have been named 'impure_table' as well, and could have

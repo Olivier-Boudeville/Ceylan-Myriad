@@ -23,6 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2018.
 
 
 -type ui_options() :: [ any() ].
@@ -53,7 +54,7 @@
 
 
 -type choice_designator() :: term() | 'ui_cancel'.
-% Designator of a choice (ex: regardless of the choice labels, locales, etc.):
+% Designator of a choice (e.g. regardless of the choice labels, locales, etc.):
 %
 % (usually an atom, but possibly an integer or anything else)
 %
