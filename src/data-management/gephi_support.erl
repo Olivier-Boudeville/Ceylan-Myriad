@@ -160,6 +160,14 @@
 			   server_availability/0 ]).
 
 
+% Server management:
+-export([ is_available/0,
+		  launch_server/1, launch_server/2,
+		  launch_server_if_needed/2, launch_server_if_needed/3,
+		  wait_server/1, wait_server/2,
+		  clean_up_server/2 ]).
+
+
 % Client-side API:
 -export([ get_server_default_tcp_port/0, get_gephi_extension/0,
 		  get_project_name_from_path/1,
@@ -172,11 +180,6 @@
 		  add_edge/5, update_edge_property/4, update_edge_property/5 ]).
 
 
-% Server management:
--export([ launch_server/1, launch_server/2,
-		  launch_server_if_needed/2, launch_server_if_needed/3,
-		  wait_server/1, wait_server/2,
-		  clean_up_server/2 ]).
 
 
 % Gephi installation:
@@ -372,6 +375,160 @@
 
 % The file extension of a Gephi project:
 -define( gephi_project_extension, "gephi" ).
+
+
+
+
+
+% Section for Gephi server-side support, in charge of managing (typically
+% launching) a Gephi server.
+
+
+% @doc Tells whether Gephi is available, that is whether its server may be
+% available.
+%
+-spec is_available() -> boolean().
+is_available() ->
+	executable_utils:lookup_executable(
+		executable_utils:get_default_graph_stream_tool_name() ) =/= false.
+
+
+
+% @doc Launches in the background (on the local host) a Gephi server, relying on
+% the specified project file, using the default user directory.
+%
+% Note that the server may not be immediately available.
+%
+-spec launch_server( project_path(), any_directory_path() ) -> void().
+launch_server( ProjectPath ) ->
+	launch_server( ProjectPath, _DefaultUserDir="myriad-gephi-user-directory" ).
+
+
+
+% @doc Launches in the background (on the local host) a Gephi server, relying on
+% the specified user directory and project file.
+%
+% Note that the server may not be immediately available.
+%
+-spec launch_server( project_path(), any_directory_path() ) -> void().
+launch_server( ProjectPath, UserDir ) ->
+
+	trace_bridge:debug_fmt( "Launching a Gephi server with project path '~ts'.",
+						   [ ProjectPath ] ),
+
+	case executable_utils:get_default_graph_stream_tool_name() of
+
+		"gephi" ->
+			ok;
+
+		Other ->
+			throw( { graph_stream_tool_not_gephi, Other } )
+
+	end,
+
+	GephiPath = executable_utils:get_default_graph_stream_tool_path(),
+
+	% Otherwise 'Cannot find java.' even if in the PATH:
+
+	JavaExecPath = executable_utils:get_default_java_runtime(),
+
+	file_utils:is_existing_file_or_link( ProjectPath ) orelse
+		throw( { gephi_project_file_not_found, ProjectPath } ),
+
+	% We have to workaround some Gephi bugs:
+
+	% Apparently project files might be corrupted; using a constant, reference
+	% one:
+
+	ActualProjectPath = get_workaround_project_path( ProjectPath ),
+
+	% Overwriting if needed:
+	file_utils:copy_file( ProjectPath, ActualProjectPath ),
+
+	% User directories may also become a problem:
+	file_utils:remove_directory_if_existing( UserDir ),
+
+	% Remove the trailing "bin/java":
+	JavaHome = file_utils:get_base_path( JavaExecPath, _Depth=2 ),
+
+	Args = [ "--jdkhome", JavaHome, "--userdir", UserDir,
+			 "--branding", "gephi", "--nosplash", ActualProjectPath ],
+
+	system_utils:run_background_executable( _ExecPath=GephiPath, Args ).
+
+
+
+% @doc Launches in the background (on the local host) a Gephi server, relying on
+% the specified project file, using the default user directory, only if needed,
+% that is if no prior instance thereof is detected.
+%
+% Note that the server may not be immediately available.
+%
+-spec launch_server_if_needed( project_path(), gephi_server_info() ) -> void().
+launch_server_if_needed( ProjectPath, SrvInfo ) ->
+	launch_server_if_needed( ProjectPath,
+		_DefaultUserDir="myriad-gephi-user-directory", SrvInfo ).
+
+
+
+% @doc Launches in the background (on the local host) a Gephi server, relying on
+% the specified user directory and project file, only if needed, that is if no
+% prior instance thereof is detected.
+%
+% Note that the server may not be immediately available.
+%
+-spec launch_server_if_needed( project_path(), any_directory_path(),
+							   gephi_server_info() ) -> void().
+launch_server_if_needed( ProjectPath, UserDir, SrvInfo ) ->
+	wait_server( SrvInfo, _Timeout=10 ) orelse
+		begin
+			launch_server( ProjectPath, UserDir ),
+			wait_server( SrvInfo ) orelse
+				throw( gephi_server_not_found )
+		end.
+
+
+% Note that net_utils:ping/1 could be used to check that any remote server
+% responds.
+
+
+% @doc Waits until the designated (Gephi) server seems available, using a
+% default time-out: returns whether it was found available.
+%
+-spec wait_server( gephi_server_info() ) -> boolean().
+wait_server( SrvInfo ) ->
+	wait_server( SrvInfo, _DefTimeout=8000 ).
+
+
+% @doc Waits until the designated (Gephi) server seems available, within the
+% specified time-out: returns whether it was found available.
+%
+-spec wait_server( gephi_server_info(), time_out() ) -> boolean().
+wait_server( #gephi_server_info{ host=BinHostname, port=SrvPort }, Timeout ) ->
+	net_utils:is_service_running_at( BinHostname, SrvPort, Timeout ).
+
+
+
+% @doc Cleans-up the filesystem context of the Gephi server.
+-spec clean_up_server( project_path(), any_directory_path() ) -> void().
+clean_up_server( ProjectPath, UserDir ) ->
+	ActualProjectPath = get_workaround_project_path( ProjectPath ),
+	file_utils:remove_file_if_existing( ActualProjectPath ),
+	file_utils:remove_directory_if_existing( UserDir ).
+
+
+
+-spec get_workaround_project_path( any_directory_path() ) -> directory_path().
+get_workaround_project_path( ProjectPath ) ->
+
+	{ BaseProjPath, ProjFilename } = file_utils:split_path( ProjectPath ),
+
+	ActualProjFilename =
+		text_utils:format( ".myriad-tmp-~ts", [ ProjFilename ] ),
+
+	file_utils:join( BaseProjPath, ActualProjFilename ).
+
+
 
 
 
@@ -647,147 +804,6 @@ update_edge_property( EdgeId, PropertyId, PropertyValue, Timestamp, SrvInfo ) ->
 
 
 
-
-
-
-% Section for Gephi server-side support, in charge of managing (typically
-% launching) a Gephi server.
-
-
-
-% @doc Launches in the background (on the local host) a Gephi server, relying on
-% the specified project file, using the default user directory.
-%
-% Note that the server may not be immediately available.
-%
--spec launch_server( project_path(), any_directory_path() ) -> void().
-launch_server( ProjectPath ) ->
-	launch_server( ProjectPath, _DefaultUserDir="myriad-gephi-user-directory" ).
-
-
-
-% @doc Launches in the background (on the local host) a Gephi server, relying on
-% the specified user directory and project file.
-%
-% Note that the server may not be immediately available.
-%
--spec launch_server( project_path(), any_directory_path() ) -> void().
-launch_server( ProjectPath, UserDir ) ->
-
-	trace_bridge:debug_fmt( "Launching a Gephi server with project path '~ts'.",
-						   [ ProjectPath ] ),
-
-	case executable_utils:get_default_graph_stream_tool_name() of
-
-		"gephi" ->
-			ok;
-
-		Other ->
-			throw( { graph_stream_tool_not_gephi, Other } )
-
-	end,
-
-	GephiPath = executable_utils:get_default_graph_stream_tool_path(),
-
-	% Otherwise 'Cannot find java.' even if in the PATH:
-
-	JavaExecPath = executable_utils:get_default_java_runtime(),
-
-	file_utils:is_existing_file_or_link( ProjectPath ) orelse
-		throw( { gephi_project_file_not_found, ProjectPath } ),
-
-	% We have to workaround some Gephi bugs:
-
-	% Apparently project files might be corrupted; using a constant, reference
-	% one:
-
-	ActualProjectPath = get_workaround_project_path( ProjectPath ),
-
-	% Overwriting if needed:
-	file_utils:copy_file( ProjectPath, ActualProjectPath ),
-
-	% User directories may also become a problem:
-	file_utils:remove_directory_if_existing( UserDir ),
-
-	% Remove the trailing "bin/java":
-	JavaHome = file_utils:get_base_path( JavaExecPath, _Depth=2 ),
-
-	Args = [ "--jdkhome", JavaHome, "--userdir", UserDir,
-			 "--branding", "gephi", "--nosplash", ActualProjectPath ],
-
-	system_utils:run_background_executable( _ExecPath=GephiPath, Args ).
-
-
-
-% @doc Launches in the background (on the local host) a Gephi server, relying on
-% the specified project file, using the default user directory, only if needed,
-% that is if no prior instance thereof is detected.
-%
-% Note that the server may not be immediately available.
-%
--spec launch_server_if_needed( project_path(), gephi_server_info() ) -> void().
-launch_server_if_needed( ProjectPath, SrvInfo ) ->
-	launch_server_if_needed( ProjectPath,
-		_DefaultUserDir="myriad-gephi-user-directory", SrvInfo ).
-
-
-
-% @doc Launches in the background (on the local host) a Gephi server, relying on
-% the specified user directory and project file, only if needed, that is if no
-% prior instance thereof is detected.
-%
-% Note that the server may not be immediately available.
-%
--spec launch_server_if_needed( project_path(), any_directory_path(),
-							   gephi_server_info() ) -> void().
-launch_server_if_needed( ProjectPath, UserDir, SrvInfo ) ->
-	wait_server( SrvInfo, _Timeout=10 ) orelse
-		begin
-			launch_server( ProjectPath, UserDir ),
-			wait_server( SrvInfo ) orelse
-				throw( gephi_server_not_found )
-		end.
-
-
-% Note that net_utils:ping/1 could be used to check that any remote server
-% responds.
-
-
-% @doc Waits until the designated (Gephi) server seems available, using a
-% default time-out: returns whether it was found available.
-%
--spec wait_server( gephi_server_info() ) -> boolean().
-wait_server( SrvInfo ) ->
-	wait_server( SrvInfo, _DefTimeout=8000 ).
-
-
-% @doc Waits until the designated (Gephi) server seems available, within the
-% specified time-out: returns whether it was found available.
-%
--spec wait_server( gephi_server_info(), time_out() ) -> boolean().
-wait_server( #gephi_server_info{ host=BinHostname, port=SrvPort }, Timeout ) ->
-	net_utils:is_service_running_at( BinHostname, SrvPort, Timeout ).
-
-
-
-% @doc Cleans-up the filesystem context of the Gephi server.
--spec clean_up_server( project_path(), any_directory_path() ) -> void().
-clean_up_server( ProjectPath, UserDir ) ->
-	ActualProjectPath = get_workaround_project_path( ProjectPath ),
-	file_utils:remove_file_if_existing( ActualProjectPath ),
-	file_utils:remove_directory_if_existing( UserDir ).
-
-
-
--spec get_workaround_project_path( any_directory_path() ) -> directory_path().
-get_workaround_project_path( ProjectPath ) ->
-
-	{ BaseProjPath, ProjFilename } = file_utils:split_path( ProjectPath ),
-
-	ActualProjFilename =
-		text_utils:format( ".myriad-tmp-~ts", [ ProjFilename ] ),
-
-	file_utils:join( BaseProjPath, ActualProjFilename ).
 
 
 
