@@ -102,8 +102,10 @@ ifeq ($(EXECUTION_TARGET),development)
 
 	# Last Call Optimisation (LCO) may be selectively disabled in order to have
 	# unellipsed stacktraces (note that disabling LCO will lead the memory
-	# footprint of recursive functions to explode, so LCO should be left enabled
-	# in the general case - perhaps even in debug mode):
+	# footprint of recursive functions to explode, and the VM to be killed
+	# should a LCO-disabled module be updated more than once (e.g. with
+	# code:purge/1); therefore LCO should be left enabled in the general case -
+	# perhaps even in debug mode):
 	#
 	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode $(MYRIAD_LCO_OPT)
 
@@ -309,16 +311,16 @@ ifndef PROJECT_SHORT_NAME
 endif
 
 
-# PROJECT_NAME_FOR_REBAR may be defined on a per-project basis.
-ifndef PROJECT_NAME_FOR_REBAR
-	PROJECT_NAME_FOR_REBAR := $(PROJECT_SHORT_NAME)
+# PROJECT_NAME_FOR_OTP may be defined on a per-project basis.
+ifndef PROJECT_NAME_FOR_OTP
+	PROJECT_NAME_FOR_OTP := $(PROJECT_SHORT_NAME)
 endif
 
 
 # The uniquely-defined version of this layer, for all uses (including rebar and
 # hex):
 #
-MYRIAD_VERSION := 1.0.35
+MYRIAD_VERSION := 1.0.36
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -330,8 +332,8 @@ endif
 # Variable name intentionally not including the current layer, for more generic
 # rules:
 
-ifndef VERSION_FOR_REBAR
-	VERSION_FOR_REBAR := $(PROJECT_VERSION)
+ifndef VERSION_FOR_OTP
+	VERSION_FOR_OTP := $(PROJECT_VERSION)
 endif
 
 
@@ -1944,7 +1946,7 @@ API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
 # variable known to be set/used by rebar.
 #
 # Note: for clarity (typically for variables to be defined by upper layers),
-# some variables are instead suffixed by "_FOR_REBAR" (e.g. VERSION_FOR_REBAR).
+# some variables could instead be suffixed by "_FOR_REBAR".
 
 # Toggle for additional logs (this is a rebar-specific variable):
 REBAR_DEBUG =
@@ -1986,7 +1988,7 @@ MYRIAD_REBAR_BUILD_BASE = $(MYRIAD_REBAR_BUILD_DIR)/lib/myriad
 
 
 ifndef MYRIAD_REBAR_BUILD_BASE
-	MYRIAD_REBAR_BUILD_BASE := $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)
+	MYRIAD_REBAR_BUILD_BASE := $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_OTP)
 endif
 
 
