@@ -375,11 +375,17 @@ get_title( TopLevelWindow ) ->
 -spec set_icon( top_level_window(), any_file_path() ) -> void().
 set_icon( TopLvlWin, IconPath ) ->
 
+	%trace_utils:debug_fmt( "Setting icon of ~w to '~ts'.",
+	%                       [ TopLvlWin, IconPath ] ),
+
 	% Supported image formats documented as being only BMP by default, yet test
 	% on PNG succeeded.
 
 	% Current no wx_image:initAllImageHandlers/* (for other formats than BMP),
 	% just wx_image:initStandardHandlers/0.
+
+	cond_utils:if_defined( myriad_debug_resources,
+						   file_utils:check_existing_file_or_link( IconPath ) ),
 
 	% Apparently 'Icon = wxIcon:new(IconPath),' could have sufficed:
 	Img = wxImage:new( IconPath ),
