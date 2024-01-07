@@ -37,7 +37,7 @@
 
 
 % We try to stick close to the latest stable OTP version:
-{minimum_otp_vsn, "25.0"}.
+{minimum_otp_vsn, "26.0"}.
 
 
 % Settings for the 'default' profile follow.
@@ -100,7 +100,7 @@
 %
 {relx, [
 
-  {release, {myriad_release, "VERSION_FOR_REBAR"},
+  {release, {myriad_release, "VERSION_FOR_OTP"},
 			[sasl, myriad]},
 
   %{sys_config, "./config/sys.config"},

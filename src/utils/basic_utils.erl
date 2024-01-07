@@ -1374,7 +1374,7 @@ run( ModIOList, FunctionName, Args ) ->
 
 			{ application_not_found, _AppName, AppFilename, _AbsBaseDir } ->
 				{ get_hint( "To generate 'ebin/~ts', "
-					"one may run 'make rebar3-create-app-file' "
+					"one may run 'make create-app-file' "
 					"from the root of the sources.", [ AppFilename ] ),
 				  false };
 

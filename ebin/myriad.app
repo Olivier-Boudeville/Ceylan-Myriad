@@ -10,8 +10,8 @@
 % ./ebin/myriad.app
 % ./src/myriad.app.src -> ../ebin/myriad.app
 %
-% For more information see the 'rebar3-create-app-file' make target and its
-% associated comments.
+% For more information see the 'create-app-file' make target and its associated
+% comments.
 
 % See also:
 % - http://erlang.org/doc/man/app.html
@@ -20,7 +20,7 @@
 
 {application, myriad,
  [{description, "Ceylan-Myriad, a generic-purpose Erlang toolbox, as an OTP application library here (see http://myriad.esperide.org)"},
-  {vsn, "1.0.35"},
+  {vsn, "1.0.36"},
 
   % No process registered:
   {registered, []},
