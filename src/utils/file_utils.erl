@@ -76,6 +76,9 @@
 		  is_existing_directory_or_link/1,
 		  list_dir_elements/1, list_dir_elements/2,
 
+		  check_existing_file/1, check_existing_file_or_link/1,
+		  check_existing_directory/1,
+
 		  get_size/1, get_last_modification_time/1, touch/1,
 		  create_empty_file/1, create_non_clashing_file/0,
 
@@ -1827,6 +1830,35 @@ list_dir_elements( DirName, ImproperEncodingAction ) ->
 	classify_dir_elements( DirName, LocalDirElements, _Devices=[],
 		_Directories=[], _Files=[], _Symlinks=[], _OtherFiles=[],
 		ImproperEncodingAction ).
+
+
+
+% @doc Checks that the specified path entry exists and is a regular file, or
+% throws an exception if not.
+%
+-spec check_existing_file( any_path() ) -> void().
+check_existing_file( Path ) ->
+	is_existing_file( Path ) orelse
+		throw( { non_existing_file, Path } ).
+
+
+% @doc Checks that the specified path entry exists and is either a regular
+% file or a symbolic link, or throws an exception if not.
+%
+-spec check_existing_file_or_link( any_path() ) -> void().
+check_existing_file_or_link( Path ) ->
+	is_existing_file_or_link( Path ) orelse
+		throw( { non_existing_file_or_link, Path } ).
+
+
+% @doc Checks that the specified path entry exists and is a directory, or throws
+% an exception if not.
+%
+-spec check_existing_directory( any_path() ) -> void().
+check_existing_directory( Path ) ->
+	is_existing_directory( Path ) orelse
+		throw( { non_existing_directory, Path } ).
+
 
 
 
