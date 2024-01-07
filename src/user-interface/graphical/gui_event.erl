@@ -913,6 +913,11 @@
 -spec start_main_event_loop( wx_server(), wx_env(), trap_set() ) -> no_return().
 start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
 
+	cond_utils:if_defined( myriad_debug_gui_events,
+		trace_utils:debug_fmt( "[event] Will start the main MyriadGUI loop "
+			"with wx server ~w, wx environment ~w, trap set ~p.",
+			[ WxServer, WxEnv, TrapSet ] ) ),
+
 	% Yet it can be, often preferably, reached through an environment:
 	naming_utils:register_as( ?gui_event_loop_reg_name, _Scope=local_only ),
 
@@ -941,7 +946,6 @@ start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
 	cond_utils:if_defined( myriad_debug_gui_performance,
 		process_utils:spawn_message_queue_monitor( _MonitoredPid=self(),
 			_MonitoredProcessDesc="MyriadGUI main loop" ) ),
-
 
 	%trace_utils:debug_fmt( "[event] Starting main MyriadGUI loop." ] ),
 
