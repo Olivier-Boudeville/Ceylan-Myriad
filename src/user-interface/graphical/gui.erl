@@ -862,8 +862,12 @@ start() ->
 -spec start( [ service() ] | debug_level() ) -> gui_env_info().
 start( Services ) when is_list( Services ) ->
 
+	%trace_utils:debug_fmt( "Starting MyriadGUI with services ~w.",
+	%                       [ Services ] ),
+
 	% Now the identifier allocator is directly integrated in the MyriadGUI
-	% (gui_event) main loop:
+	% (gui_event) main loop, rather than being a separate process requiring
+	% extra message exchanges):
 	%
 	%IdAllocPid = ?myriad_spawn_link( fun gui_id:embody_as_id_allocator/0 ),
 
@@ -889,7 +893,7 @@ start( DebugLevel ) ->
 create_gui_environment( Services ) ->
 	% Now, at least currently, the MyriadGUI main loop process directly hosts
 	% the identifier allocation table (to avoid more messages having to be
-	% exchanged between the two); so no standalone id allocator is wanted:
+	% exchanged between the two); so no standalone id allocator is wanted here:
 	%
 	create_gui_environment( Services, _MaybeIdAllocPid=undefined ).
 
@@ -914,6 +918,14 @@ create_gui_environment( Services, MaybeIdAllocPid ) ->
 	{ OSFamily, OSName } = system_utils:get_operating_system_type(),
 
 	% Initialises the wx backend (no option relevant here):
+	%
+	% May, at least under some circumstances, issue the following trace:
+	% "[notice][erlang_logger] wx: GTK: State 0 for context 0x7f065424ed90
+	% doesn't match state 128 set via gtk_style_context_set_state ()" (possibly
+	% a wx bug; most probably harmless; seen only if the lower log levels
+	% are enabled)
+	%
+
 	WxServer = wx:new(),
 	%WxServer = wx:new( [ { debug, [ verbose, trace ] } ] ),
 
@@ -1477,10 +1489,21 @@ object_key_to_string( { AnyObjectType, AnyInstanceId } ) ->
 %
 -spec get_backend_environment() -> backend_environment().
 get_backend_environment() ->
+
+	%cond_utils:if_defined( myriad_debug_gui_environments,
+	%  trace_utils:debug_fmt( "[~w] Getting wx backend environment.",
+	%                         [ self() ] ) ),
+
+	%trace_utils:debug_fmt( "Stacktrace: ~ts",
+	%                       [ code_utils:interpret_stacktrace() ] ),
+
+	% Just a lookup in the local process dictionary:
 	WxEnv = wx:get_env(),
+
 	cond_utils:if_defined( myriad_debug_gui_environments,
-		trace_utils:debug_fmt( "[~w] Getting wx backend environment: ~w.",
+		trace_utils:debug_fmt( "[~w] Got wx backend environment: ~w.",
 							   [ self(), WxEnv ] ) ),
+
 	WxEnv.
 
 
