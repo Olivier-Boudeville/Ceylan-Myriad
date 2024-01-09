@@ -9,7 +9,7 @@
 
 .PHONY: .PHONY-myriad-explicit
 
-.PHONY-myriad-explicit:  all all-pre-hook all-parallel-recurse all-recurse   \
+.PHONY-myriad-explicit: all all-pre-hook all-parallel-recurse all-recurse    \
 			all-parse-transforms bootstrap-modules make-all-parse-transforms \
 			build-debug rebuild                                              \
 			test test-recurse test-interactive test-interactive-recurse      \
