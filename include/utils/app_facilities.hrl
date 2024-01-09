@@ -42,8 +42,8 @@
 	% system_utils:get_operating_system_type(/0) on which is this application
 	% runs:
 
-	% Coarse categorization of the current operating system:
+	% Coarse categorisation of the current operating system:
 	os_family :: system_utils:os_family(),
 
-	% More precise categorization of the current operating system:
+	% More precise categorisation of the current operating system:
 	os_name :: system_utils:os_name() } ).
