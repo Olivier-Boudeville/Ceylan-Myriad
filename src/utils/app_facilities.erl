@@ -94,16 +94,16 @@ stop() ->
 
 
 
-% @doc Returns an application information corresponding to specified application
-% name and version.
+% @doc Returns an application information corresponding to the specified
+% application name and version.
 %
 -spec get_app_info( string_like(), any_version() ) -> app_info().
 get_app_info( AppName, AppVersion ) ->
 	get_app_info( AppName, AppVersion, _MaybeAuthorDesc=undefined ).
 
 
-% @doc Returns an application information corresponding to specified application
-% name, version and possibly author description.
+% @doc Returns an application information corresponding to the specified
+% application name, version and possibly author description.
 %
 -spec get_app_info( string_like(), any_version(),
 					maybe( any_string() ) ) -> app_info().
@@ -191,17 +191,17 @@ display( Message ) ->
 	% (empty format string added to force elements in message such as '~n' to be
 	% transformed)
 	%
-	basic_utils:display( lists:flatten( Message ), _ValueList=[] ).
+	basic_utils:display( lists:flatten( Message ), _Values=[] ).
 
 
 % @doc Displays an application message, once formatted.
 %
-% @param FormatString an io:format-style format string, ValueList is the
+% @param FormatString an io:format-style format string, Values is the
 % corresponding list of field values.
 %
 -spec display( format_string(), format_values() ) -> void().
-display( FormatString, ValueList ) ->
-	basic_utils:display( FormatString, ValueList ).
+display( FormatString, Values ) ->
+	basic_utils:display( FormatString, Values ).
 
 
 % Comment out to be able to use the interpreter after the app:
@@ -286,18 +286,18 @@ fail( Reason ) ->
 %
 % @param FormatString an io:format-style format string.
 %
-% @param ValueList the corresponding list of field values.
+% @param Values the corresponding list of field values.
 %
 % For example `app_facilities:fail("server ~ts on strike", ["foobar.org"])'.
 %
 -spec fail( format_string(), format_values() ) -> no_return().
-fail( FormatString, ValueList ) ->
+fail( FormatString, Values ) ->
 
 	% For some reason, erlang:error is unable to interpret strings as strings,
 	% they are always output as unreadable lists.
 
 	ErrorMessage = io_lib:format( "~n!!!! Application failed, reason: ~ts.~n~n",
-								[ io_lib:format( FormatString, ValueList ) ] ),
+								  [ io_lib:format( FormatString, Values ) ] ),
 
 	basic_utils:display( "~n!!!! Application failed, reason: ~ts.~n~n",
 						 [ ErrorMessage ] ),
