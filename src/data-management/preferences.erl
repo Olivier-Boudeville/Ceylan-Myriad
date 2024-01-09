@@ -41,7 +41,7 @@
 % Preferences can be application-specific or component-specific, and obtained
 % from any source (file included); they may also start blank and be exclusively
 % fed by the application or component itself. In any case they are meant to be
-% accessed (read/write) in the course of program execution, before possibly
+% accessed (read/written) in the course of program execution, before possibly
 % being stored at application exit or component stop.
 %
 % A preferences entry is designated by a key (an atom), associated to a value
@@ -71,8 +71,8 @@
 % through its PID or through its conventional (atom) registration name (e.g.
 % implicitly with `preferences:get(hello)' for the default one, or explicitly,
 % via its name with `preferences:get(hello, foobar_preferences)'. The former
-% approach is a bit more effective, but the later one is more robust (the server
-% can be transparently restarted/upgraded).
+% approach is a bit more effective, but the latter one is more robust (the
+% server can be transparently restarted/upgraded).
 %
 % No specific global registration of that server is made here.
 %
@@ -90,8 +90,8 @@
 % In this case the process dictionary of these clients is used, and when
 % updating from a client process a cached key, the corresponding preferences
 % server is updated in turn. However any other client process caching that key
-% will not be aware of this change until it requests an update to this
-% preferences server.
+% will not be aware of this change until it explicitly requests an update to
+% this preferences server.
 %
 % In practice, now preferences are a special case of environment (see our
 % environment module for more details). So each preferences server is an
