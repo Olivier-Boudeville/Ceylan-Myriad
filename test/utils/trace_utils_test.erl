@@ -44,8 +44,9 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	test_facilities:display( "Starting with the default logger handler, "
-		"using directly logger functions, with following configurations:~n ~p.",
-		[ logger:get_handler_config() ] ),
+		"using directly logger functions, with following initial "
+		"configuration:~n - primary: ~p~n - all handlers: ~p",
+		[ logger:get_primary_config(), logger:get_handler_config() ] ),
 
 	% Note that levels lower than 'notice' will not show up due to the default
 	% primary log level of logger (operating before the configuration of the
@@ -94,7 +95,7 @@ run() ->
 	timer:sleep( 100 ),
 
 	% Despite the new (Myriad) log handler set with the level 'all', the next
-	% two logs will still not be visible, due to the loggerprimary log level:
+	% two logs will still not be visible, due to the logger primary log level:
 	%
 	logger:debug( "I am another debug direct logger message "
 				  "(this log will *not* show up)." ),
