@@ -457,7 +457,7 @@
 % String management functions.
 
 
-% @doc Returns a human-readable string describing specified term.
+% @doc Returns a human-readable string describing the specified term.
 -spec term_to_string( term() ) -> ustring().
 term_to_string( _Term=[] ) ->
 	% Otherwise would be an empty string:
@@ -477,7 +477,7 @@ term_to_string( Term ) ->
 
 
 
-% @doc Returns a human-readable string describing specified term, within a
+% @doc Returns a human-readable string describing the specified term, within a
 % bounded, default length.
 %
 -spec term_to_bounded_string( term() ) -> ustring().
@@ -525,7 +525,7 @@ term_to_bounded_string( Term, MaxLen ) ->
 
 
 
-% @doc Returns a human-readable binary string describing specified term.
+% @doc Returns a human-readable binary string describing the specified term.
 -spec term_to_binary( term() ) -> bin_string().
 term_to_binary( Term ) ->
 	String = term_to_string( Term ),
@@ -533,7 +533,7 @@ term_to_binary( Term ) ->
 
 
 
-% @doc Returns a human-readable string describing specified term, up to the
+% @doc Returns a human-readable string describing the specified term, up to the
 % specified nesting depth.
 %
 -spec term_to_string( term(), depth() ) -> ustring().
@@ -555,8 +555,8 @@ term_to_string( Term, MaxDepthCount ) ->
 
 
 
-% @doc Returns a human-readable string describing specified term, up to the
-% specified nesting depth, and up to specified string length (at least 3, so
+% @doc Returns a human-readable string describing the specified term, up to the
+% specified nesting depth, and up to the specified string length (at least 3, so
 % that the "..." marker can be inserted).
 %
 % A plain string is returned (not an iolist/0 for example).
@@ -972,7 +972,7 @@ get_default_bullet() ->
 
 
 
-% @doc Returns the bullet to be used for specified indentation level.
+% @doc Returns the bullet to be used for the specified indentation level.
 -spec get_bullet_for_level( indentation_level() ) -> bullet().
 get_bullet_for_level( 0 ) ->
 	" + ";
@@ -989,8 +989,8 @@ get_bullet_for_level( N ) when is_integer( N ) andalso N > 0 ->
 
 
 
-% @doc Returns the indentation offset to be used for specified indentation level
-% of enumerated lists.
+% @doc Returns the indentation offset to be used for the specified indentation
+% level of enumerated lists.
 %
 -spec get_indentation_offset_for_level( indentation_level() ) ->  ustring().
 get_indentation_offset_for_level( N ) ->
@@ -1039,7 +1039,7 @@ strings_to_enumerated_string( Strings ) ->
 
 
 % @doc Returns a string that pretty-prints the specified list of strings, with
-% enumerated (that is 1, 2, 3) bullets, for specified indentation and not
+% enumerated (that is 1, 2, 3) bullets, for the specified indentation and not
 % prefixed.
 %
 -spec strings_to_enumerated_string( [ string_like() ], indentation_level() ) ->
@@ -1050,7 +1050,7 @@ strings_to_enumerated_string( Strings, IndentationLevel ) ->
 
 
 % @doc Returns a string that pretty-prints the specified list of strings, with
-% enumerated (that is 1, 2, 3) bullets, indented after specified prefix.
+% enumerated (that is 1, 2, 3) bullets, indented after the specified prefix.
 %
 -spec strings_to_enumerated_string( [ string_like() ], indentation_level(),
 									ustring() ) -> ustring().
@@ -1091,7 +1091,8 @@ strings_to_enumerated_comment( Strings ) ->
 
 % @doc Returns a (Erlang) comment string (a series of lines starting with '%')
 % that pretty-prints the specified list of strings, with enumerated (that is 1,
-% 2, 3) bullets, with specified indentation at each beginning of comment line.
+% 2, 3) bullets, with the specified indentation at each beginning of comment
+% line.
 %
 -spec strings_to_enumerated_comment( [ string_like() ], indentation_level() ) ->
 															ustring().
@@ -1100,7 +1101,7 @@ strings_to_enumerated_comment( Strings, IndentationLevel ) ->
 
 
 
-% @doc Returns a plain string that pretty-prints specified list of strings
+% @doc Returns a plain string that pretty-prints the specified list of strings
 % (actually the list may contain also binary strings), with default bullets.
 %
 -spec strings_to_string( [ string_like() ] ) -> ustring().
@@ -1134,9 +1135,9 @@ strings_to_string( ErrorTerm ) ->
 
 
 
-% @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; e.g. atoms) once reordered
-% (and with default bullets).
+% @doc Returns a string that pretty-prints the specified list of strings
+% (actually, any element that can be processed with ~ts will do; e.g. atoms)
+% once reordered (and with default bullets).
 %
 -spec strings_to_sorted_string( [ string_like() ] ) -> ustring().
 strings_to_sorted_string( Strings ) when is_list( Strings ) ->
@@ -1147,9 +1148,9 @@ strings_to_sorted_string( ErrorTerm ) ->
 
 
 
-% @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; e.g. atoms), with
-% user-specified bullets or indentation level.
+% @doc Returns a string that pretty-prints the specified list of strings
+% (actually, any element that can be processed with ~ts will do; e.g. atoms),
+% with user-specified bullets or indentation level.
 %
 % This can be a solution to nest bullet lists, by specifying a bullet with an
 % offset, such as " * ".
@@ -1201,7 +1202,7 @@ strings_to_string( _Strings, IncorrectBullet ) ->
 
 
 
-% @doc Returns a plain string that pretty-prints specified list of strings
+% @doc Returns a plain string that pretty-prints the specified list of strings
 % (actually the list may contain also binary strings), with default bullets and
 % a blank line before each top-level entry in order to better space them, for an
 % increased readability.
@@ -1237,9 +1238,9 @@ strings_to_spaced_string( ErrorTerm ) ->
 	report_not_a_list( ErrorTerm ).
 
 
-% @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; e.g. atoms), with
-% user-specified bullets or indentation level, and a blank line before each
+% @doc Returns a string that pretty-prints the specified list of strings
+% (actually, any element that can be processed with ~ts will do; e.g. atoms),
+% with user-specified bullets or indentation level, and a blank line before each
 % top-level entry in order to better space them, for an increased readability.
 %
 % This can be a solution to nest bullet lists, by specifying a bullet with an
@@ -1284,9 +1285,9 @@ strings_to_spaced_string( _Strings, IncorrectBullet ) ->
 
 
 
-% @doc Returns a string that pretty-prints specified list of strings (actually,
-% any element that can be processed with ~ts will do; e.g. atoms) once
-% reordered, with user-specified indentation level or bullet.
+% @doc Returns a string that pretty-prints the specified list of strings
+% (actually, any element that can be processed with ~ts will do; e.g. atoms)
+% once reordered, with user-specified indentation level or bullet.
 %
 -spec strings_to_sorted_string( [ string_like() ],
 								indentation_level_or_bullet() ) -> ustring().
@@ -1299,7 +1300,7 @@ strings_to_sorted_string( ErrorTerm, _IndentationOrBullet ) ->
 
 
 
-% @doc Returns a plain string that pretty-prints specified list of binary
+% @doc Returns a plain string that pretty-prints the specified list of binary
 % strings, with default bullets.
 %
 -spec binaries_to_string( [ bin_string() ] ) -> ustring().
@@ -1308,8 +1309,8 @@ binaries_to_string( Binaries ) ->
 
 
 
-% @doc Returns a binary string that pretty-prints specified list of binary
-% strings, with specified indentation level or bullet.
+% @doc Returns a binary string that pretty-prints the specified list of binary
+% strings, with the specified indentation level or bullet.
 %
 -spec binaries_to_string( [ bin_string() ], indentation_level_or_bullet() ) ->
 								ustring().
@@ -1346,7 +1347,7 @@ binaries_to_string( _Binaries, IncorrectBullet ) ->
 
 
 
-% @doc Returns a string that pretty-prints specified list of sorted binary
+% @doc Returns a string that pretty-prints the specified list of sorted binary
 % strings, with default bullets.
 %
 -spec binaries_to_sorted_string( [ bin_string() ] ) -> ustring().
@@ -1368,7 +1369,7 @@ binaries_to_listed_string( Binaries ) ->
 
 
 
-% @doc Returns a binary string that pretty-prints specified list of binary
+% @doc Returns a binary string that pretty-prints the specified list of binary
 % strings, with default bullets.
 %
 -spec binaries_to_binary( [ bin_string() ] ) -> bin_string().
@@ -1377,7 +1378,7 @@ binaries_to_binary( Binaries ) ->
 
 
 
-% @doc Returns a binary string that pretty-prints specified list of binary
+% @doc Returns a binary string that pretty-prints the specified list of binary
 % strings, with user-specified bullets or indentation level.
 %
 -spec binaries_to_binary( [ bin_string() ], indentation_level_or_bullet() ) ->
@@ -1458,20 +1459,29 @@ buffer_to_binstring( Bin ) ->
 
 
 
-% @doc Returns a string that pretty-prints specified list of atoms, with default
-% bullets.
+% @doc Returns a string that pretty-prints the specified list of atoms, with
+% default bullets.
 %
 -spec atoms_to_string( [ atom() ] ) -> ustring().
-atoms_to_string( ListOfAtoms ) ->
-	io_lib:format( "~n~ts", [ atoms_to_string( ListOfAtoms, [] ) ] ).
+atoms_to_string( Atoms ) ->
+	io_lib:format( "~n~ts", [ atoms_to_string( Atoms, _Acc="" ) ] ).
 
 
-atoms_to_string( [], Acc ) ->
-	 Acc;
+% (helper)
+atoms_to_string( _Atoms=[], Acc ) ->
+	Acc;
 
-atoms_to_string( [ H | T ], Acc ) when is_atom( H )  ->
+atoms_to_string( _Atoms=[ A | T ], Acc ) when is_atom( A )  ->
 	atoms_to_string( T,
-		Acc ++ get_default_bullet() ++ io_lib:format(  "~ts~n", [ H ] ) ).
+		Acc ++ get_default_bullet() ++ io_lib:format(  "~ts~n", [ A ] ) );
+
+atoms_to_string( _Atoms=[ H | _T ], _Acc ) ->
+	throw( { not_atom, H } );
+
+atoms_to_string( Term, _Acc ) ->
+	throw( { not_list, Term } ).
+
+
 
 
 
@@ -1479,8 +1489,8 @@ atoms_to_string( [ H | T ], Acc ) when is_atom( H )  ->
 % ordered, with default bullets.
 %
 -spec atoms_to_sorted_string( [ atom() ] ) -> ustring().
-atoms_to_sorted_string( ListOfAtoms ) ->
-	atoms_to_string( lists:sort( ListOfAtoms ) ).
+atoms_to_sorted_string( Atoms ) ->
+	atoms_to_string( lists:sort( Atoms ) ).
 
 
 
@@ -1491,8 +1501,8 @@ atoms_to_sorted_string( ListOfAtoms ) ->
 % green".
 %
 -spec atoms_to_listed_string( [ atom() ] ) -> ustring().
-atoms_to_listed_string( ListOfAtoms ) ->
-	Strings = [ atom_to_string( A ) || A <- ListOfAtoms ],
+atoms_to_listed_string( Atoms ) ->
+	Strings = [ atom_to_string( A ) || A <- Atoms ],
 	strings_to_listed_string( Strings ).
 
 
@@ -1504,8 +1514,8 @@ atoms_to_listed_string( ListOfAtoms ) ->
 % 'blue' and 'green'".
 %
 -spec atoms_to_quoted_listed_string( [ atom() ] ) -> ustring().
-atoms_to_quoted_listed_string( ListOfAtoms ) ->
-	Strings = [ text_utils:format("'~ts'", [ A ] ) || A <- ListOfAtoms ],
+atoms_to_quoted_listed_string( Atoms ) ->
+	Strings = [ text_utils:format("'~ts'", [ A ] ) || A <- Atoms ],
 	strings_to_listed_string( Strings ).
 
 
@@ -1553,7 +1563,7 @@ strings_to_listed_string( Strings ) ->
 
 
 % @doc Returns a string that pretty-prints the specified list of strings, listed
-% directly along the text (not one item per line), according to specified
+% directly along the text (not one item per line), according to the specified
 % (human) language.
 %
 % For example: strings_to_listed_string(["red", "blue", "green"]) returns "red,
@@ -1629,7 +1639,7 @@ strings_to_atoms( StringList ) when is_list( StringList ) ->
 
 
 
-% @doc Returns a string that pretty-prints specified list of key (as binary,
+% @doc Returns a string that pretty-prints the specified list of key (as binary,
 % string or atom) / value pairs, with bullets, after having been sorted.
 %
 % For example: proplist_to_string([{ccc, 42}, {"beta", 1.0}]) returns a bullet
@@ -1780,7 +1790,7 @@ distance_to_string( Millimeters ) ->
 
 		AtLeastOneMillimeter ->
 			 [ io_lib:format( "~B mm", [ AtLeastOneMillimeter ] )
-							| ListWithCentimeters ]
+								| ListWithCentimeters ]
 
 	end,
 
@@ -1889,9 +1899,9 @@ repetition_to_string( RepetitionCount ) ->
 
 
 
-% @doc Formats specified string as io_lib:format/2 would do, except it returns a
-% flattened version of it and cannot fail (so that for example a badly formatted
-% log cannot crash anymore its emitter process).
+% @doc Formats the specified string as io_lib:format/2 would do, except it
+% returns a flattened version of it and cannot fail (so that for example a badly
+% formatted log cannot crash anymore its emitter process).
 %
 % Note: rely preferably on '~ts' rather than on '~s', to avoid unexpected
 % Unicode inputs resulting on crashes afterwards.
@@ -2096,8 +2106,8 @@ interpret_faulty_format( FormatString, Values ) ->
 
 
 
-% Removes any leading modifier from a format sequence (e.g. remove 't' from "ts",
-% as if having '~ts' specified, we want to retain only 's').
+% Removes any leading modifier from a format sequence (e.g. remove 't' from
+% "ts", as if having '~ts' specified, we want to retain only 's').
 %
 strip_modifiers( [ $t, Next | _T ] ) ->
 	Next;
@@ -2110,8 +2120,8 @@ strip_modifiers( [] ) ->
 
 
 
-% @doc Tells whether specified control sequence (without its ~ prefix) requires
-% a value (e.g. ~B) or not (e.g. ~n, ~i).
+% @doc Tells whether the specified control sequence (without its ~ prefix)
+% requires a value (e.g. ~B) or not (e.g. ~n, ~i).
 %
 requires_value( "n" ++ _ ) ->
 	% ~n does not use a value:
@@ -2129,10 +2139,10 @@ requires_value( _ ) ->
 
 
 
-% @doc Formats specified values in a fail-safe manner; returns a string meant to
-% correspond as much as possible to these values (rather than diagnosing any
-% problem detected as format/2); cannot fail (so that for example a badly
-% formatted log cannot crash anymore its emitter process).
+% @doc Formats the specified values in a fail-safe manner; returns a string
+% meant to correspond as much as possible to these values (rather than
+% diagnosing any problem detected as format/2); cannot fail (so that for example
+% a badly formatted log cannot crash anymore its emitter process).
 %
 % Typically useful as a failsafe solution, should a previous format string be
 % detected as faulty (e.g. containing '~s' where '~ts' should have been used).
@@ -2161,9 +2171,9 @@ format_failsafe( _Vs=[ V | T ], Values, AccFmtStr ) ->
 
 
 
-% @doc Formats specified string as io_lib:format/2 would do, except it returns a
-% flattened, ellipsed version of it and cannot fail (so that for example a badly
-% formatted log cannot crash anymore its emitter process).
+% @doc Formats the specified string as io_lib:format/2 would do, except it
+% returns a flattened, ellipsed version of it and cannot fail (so that for
+% example a badly formatted log cannot crash anymore its emitter process).
 %
 % Tries to never crash.
 %
@@ -2176,10 +2186,10 @@ format_ellipsed( FormatString, Values ) ->
 
 
 
-% @doc Formats specified string as io_lib:format/2 would do, except it returns a
-% flattened, ellipsed (based on specified length) version of it, and cannot fail
-% (so that for example a badly formatted log cannot crash anymore its emitter
-% process).
+% @doc Formats the specified string as io_lib:format/2 would do, except it
+% returns a flattened, ellipsed (based on the specified length) version of it,
+% and cannot fail (so that for example a badly formatted log cannot crash
+% anymore its emitter process).
 %
 % Tries to never crash.
 %
@@ -2370,7 +2380,7 @@ format_as_comment( Text, CommentChar ) ->
 
 
 
-% @doc Formats specified text as a comment, based on the specified character
+% @doc Formats the specified text as a comment, based on the specified character
 % denoting comments, and for the specified line width (in characters).
 %
 -spec format_as_comment( any_string(), char(), width() ) -> ustring().
@@ -3706,8 +3716,8 @@ remove_empty_lines( Strs ) ->
 
 
 
-% @doc Substitutes in specified string the source character with the target one
-% (all occurrences thereof).
+% @doc Substitutes in the specified string the source character with the target
+% one (all occurrences thereof).
 %
 % Note: simpler and probably more efficient that a regular expression.
 %
@@ -3773,8 +3783,8 @@ find_substring_index( String, SearchPattern, Direction ) ->
 
 
 
-% @doc Filters out in specified string the specified character, so that it does
-% not occur anymore on the returned string.
+% @doc Filters out in the specified string the specified character, so that it
+% does not occur anymore on the returned string.
 %
 % Note: simpler and probably more efficient that a regular expression.
 %
@@ -3795,7 +3805,7 @@ filter( CharToRemove, _String=[ OtherChar | T ], Acc ) ->
 
 
 
-% @doc Splits the specified string after specified prefix and returns the
+% @doc Splits the specified string after the specified prefix and returns the
 % remaining part, otherwise returns that the prefix was not found.
 %
 % For example: split_after_prefix("Foo", "Foobar is baz.") returns "bar is
@@ -3869,13 +3879,17 @@ list_whitespaces() ->
 
 
 
-% @doc Single-quotes specified string, that is returns it once single-quoted.
+% @doc Single-quotes the specified string, that is returns it once
+% single-quoted.
+%
 -spec single_quote_string( any_string() ) -> ustring().
 single_quote_string( AnyStr ) ->
 	format( "'~ts'", [ AnyStr ] ).
 
 
-% @doc Double-quotes specified string, that is returns it once double-quoted.
+% @doc Double-quotes the specified string, that is returns it once
+% double-quoted.
+%
 -spec double_quote_string( any_string() ) -> ustring().
 double_quote_string( AnyStr ) ->
 	format( "\"~ts\"", [ AnyStr ] ).
@@ -3940,8 +3954,8 @@ escape_double_quotes_helper( _Text=[ C | T ], Acc ) ->
 
 
 
-% @doc Returns specified text, in which all quotes have been escaped (that is
-% characters ' and " have been replaced respectively with \' and \").
+% @doc Returns the specified text, in which all quotes have been escaped (that
+% is characters ' and " have been replaced respectively with \' and \").
 %
 -spec escape_all_quotes( ustring() ) -> ustring().
 escape_all_quotes( Text ) ->
@@ -3964,8 +3978,8 @@ escape_all_quotes_helper( _Text=[ C | T ], Acc ) ->
 
 
 
-% @doc Escapes, in specified text, all characters in the specified list, with
-% specified escaping char.
+% @doc Escapes, in the specified text, all characters in the specified list,
+% with the specified escaping char.
 %
 % For example: "baz\.foobar\.org" =
 %   text_utils:escape_with("baz.foobar.org", [ $. ], $\\).
@@ -3996,7 +4010,7 @@ escape_with( _Text=[ C | T ], CharsToEscape, EscapingChar, Acc ) ->
 
 
 
-% @doc Removes all newlines from specified string.
+% @doc Removes all newlines from the specified string.
 -spec remove_newlines( ustring() ) -> ustring().
 remove_newlines( String ) ->
 	lists:flatten( string:replace( String, "\n", "", all ) ).
@@ -4309,7 +4323,7 @@ parse_helper( _InputStr=[ C | T ], QuotingChars, EscapingChars,
 
 
 
-% @doc Tells whether specified character is an uppercase one.
+% @doc Tells whether the specified character is an uppercase one.
 -spec is_uppercase( uchar() ) -> boolean().
 is_uppercase( Char ) ->
 
@@ -4329,7 +4343,7 @@ is_uppercase( Char ) ->
 
 
 
-% @doc Tells whether specified character is a figure (in 0..9).
+% @doc Tells whether the specified character is a figure (in 0..9).
 -spec is_figure( char() ) -> boolean().
 is_figure( Char ) when is_integer( Char ) andalso Char >= $0
 					   andalso Char =< $9 ->
@@ -4432,7 +4446,7 @@ ellipse( String ) ->
 
 
 % @doc Ellipses (shortens by removing the end of) the specified string, so that
-% its total length remains up to specified threshold.
+% its total length remains up to the specified threshold.
 %
 % Note: the specified threshold is expected to be equal at least to 6.
 %
@@ -4460,8 +4474,8 @@ ellipse( String, MaxLen ) ->
 
 
 
-% @doc Ellipses (shortens) specified string to format, so that its total length
-% remains up to specified threshold.
+% @doc Ellipses (shortens) the specified string to format, so that its total
+% length remains up to the specified threshold.
 %
 % Note: the specified threshold is expected to be equal at least to 6.
 %
@@ -4485,7 +4499,7 @@ tail( String ) ->
 
 
 % @doc Tails (shortens by removing the beginning of) the specified string, so
-% that its total length remains up to specified threshold.
+% that its total length remains up to the specified threshold.
 %
 % Note: the specified threshold is expected to be equal at least to 6.
 %
@@ -4690,8 +4704,8 @@ join_words( [ Word | RemainingWords ], Width, DoPad, AccLines, CurrentLine,
 
 
 
-% @doc Returns the specified string, once padded with spaces to specified width,
-% left-justified (that is with spaces added to the right).
+% @doc Returns the specified string, once padded with spaces to the specified
+% width, left-justified (that is with spaces added to the right).
 %
 % For example: pad_string("hello", 8) = ["hello",32,32,32]
 %
@@ -4702,8 +4716,8 @@ pad_string( String, Width ) ->
 	pad_string_left( String, Width ).
 
 
-% @doc Returns the specified string, once padded with spaces to specified width,
-% left-justified (that is with spaces added to the right).
+% @doc Returns the specified string, once padded with spaces to the specified
+% width, left-justified (that is with spaces added to the right).
 %
 % For example: pad_string_left("hello", 8) = ["hello",32,32,32]
 %
@@ -4714,9 +4728,9 @@ pad_string_left( String, Width ) ->
 	pad_string_left( String, Width, _PadChar=$\s ).
 
 
-% @doc Returns the specified string, once padded with spaces to specified width,
-% left-justified (that is with spaces added to the right), with specified
-% padding character.
+% @doc Returns the specified string, once padded with spaces to the specified
+% width, left-justified (that is with spaces added to the right), with the
+% specified padding character.
 %
 % For example: pad_string_left("hello", 8, $*) = ["hello",42,42,42]
 %
@@ -4750,8 +4764,8 @@ pad_string_left( String, Width, PadChar ) ->
 
 
 
-% @doc Returns the specified string, once padded with spaces to specified width,
-% right-justified (that is with spaces added to the left).
+% @doc Returns the specified string, once padded with spaces to the specified
+% width, right-justified (that is with spaces added to the left).
 %
 % For example: pad_string_right("hello", 8) = ["   ", "hello"]
 %
@@ -4762,9 +4776,9 @@ pad_string_right( String, Width ) ->
 	pad_string_right( String, Width, _PadChar=$\s ).
 
 
-% @doc Returns the specified string, once padded with spaces to specified width,
-% right-justified (that is with spaces added to the left), with specified
-% padding character.
+% @doc Returns the specified string, once padded with spaces to the specified
+% width, right-justified (that is with spaces added to the left), with the
+% specified padding character.
 %
 % For example: pad_string_right("hello", 8, $*) = ["***", "hello"]
 %
@@ -4792,8 +4806,8 @@ pad_string_right( String, Width, PadChar ) ->
 
 
 % @doc Returns the specified string once padded with spaces on its left and
-% right, in order that it is centered within specified width (expected of course
-% to be larger than the length of the specified string).
+% right, in order that it is centered within the specified width (expected of
+% course to be larger than the length of the specified string).
 %
 % For example: center_string("hello",8) = [" ","hello"," ",32]
 %
@@ -4802,9 +4816,9 @@ center_string( String, Width ) ->
 	center_string( String, Width, _PaddingChar=$\s ).
 
 
-% @doc Returns the specified string once padded with specified character on its
-% left and right, in order that it is centered within specified width (expected
-% of course to be larger than the length of the specified string).
+% @doc Returns the specified string once padded with the specified character on
+% its left and right, in order that it is centered within the specified width
+% (expected of course to be larger than the length of the specified string).
 %
 % For example: center_string("hello",8, $*) = ["*","hello","*",42]
 %
@@ -4942,7 +4956,7 @@ is_bin_string( _Term ) ->
 
 
 
-% @doc Tells whether specified term is a list of binary strings.
+% @doc Tells whether the specified term is a list of binary strings.
 -spec are_binaries( term() ) -> boolean().
 are_binaries( List ) when is_list( List ) ->
 	lists:all( fun is_bin_string/1, List );
@@ -4968,8 +4982,8 @@ are_of_same_string_type( _S1, _S2 ) ->
 
 
 
-% @doc Returns a list of words obtained from the breaking of specified word,
-% according to specified maximum width.
+% @doc Returns a list of words obtained from the breaking of the specified word,
+% according to the specified maximum width.
 %
 % Parts of that word will use a separating dash.
 %
@@ -4989,8 +5003,8 @@ break_word( Word, Width ) ->
 
 
 
-% @doc Cuts specified string into pieces, each of them having to fit in
-% specified width.
+% @doc Cuts the specified string into pieces, each of them having to fit in
+% the specified width.
 %
 cut_into_chunks( _String=[], _ChunkSize, Acc ) ->
 	%io:format( "cut_into_chunks return ~p.", [ lists:reverse( Acc ) ] ),
@@ -5063,7 +5077,7 @@ try_convert_to_unicode_list( Data ) ->
 
 
 
-% @doc Converts specified Unicode-related datastructure into a flat, plain
+% @doc Converts the specified Unicode-related datastructure into a flat, plain
 % Unicode string.
 %
 % Never fails yet can return a bogus string.
@@ -5075,7 +5089,7 @@ to_unicode_list( Data ) ->
 	to_unicode_list( Data, _CanFail=false ).
 
 
-% @doc Converts specified Unicode-related datastructure into a flat, plain
+% @doc Converts the specified Unicode-related datastructure into a flat, plain
 % Unicode string.
 %
 % If enabled, fails if the conversion cannot be properly done, otherwise can
@@ -5140,7 +5154,7 @@ to_unicode_list( Data, CanFail ) ->
 
 
 
-% @doc Tries to convert specified Unicode-related datastructure into a Unicode
+% @doc Tries to convert the specified Unicode-related datastructure into a Unicode
 % binary string.
 %
 % (exported helper, for re-use)
@@ -5164,7 +5178,7 @@ try_convert_to_unicode_binary( Data ) ->
 
 
 
-% @doc Converts specified Unicode-related datastructure into a flat, plain
+% @doc Converts the specified Unicode-related datastructure into a flat, plain
 % Unicode binary string.
 %
 % Never fails yet can return a bogus string.
@@ -5176,7 +5190,7 @@ to_unicode_binary( Data ) ->
 	to_unicode_binary( Data, _CanFail=false ).
 
 
-% @doc Converts specified Unicode-related datastructure into a flat, plain
+% @doc Converts the specified Unicode-related datastructure into a flat, plain
 % Unicode binary string.
 %
 % If enabled, fails if the conversion cannot be properly done, otherwise can
@@ -5259,7 +5273,7 @@ generate_title( Title, Level ) ->
 
 
 
-% @doc Returns how a title with specified level can be rendered.
+% @doc Returns how a title with the specified level can be rendered.
 %
 % See demo-for-css-testing.rst for the convention.
 %
@@ -5306,7 +5320,7 @@ get_line_of( Character, Length ) ->
 
 
 % @doc Tries to return a string adequate to form a simple name (mostly
-% alphanumerical with underscores) from specified term.
+% alphanumerical with underscores) from the specified term.
 %
 % See also: file_utils:convert_to_filename/1.
 %
