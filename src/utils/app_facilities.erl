@@ -29,21 +29,33 @@
 % @doc This module defines a few basic facilities for <b>applications</b> (in
 % the Myriad sense, not OTP one).
 %
+% See also the preferences module for application preferences.
+%
 -module(app_facilities).
 
 
 -export([ start/1, stop/0,
-		  get_app_info/2, get_app_info/3, get_app_info_map/1,
+		  get_app_info/1, get_app_info/2, get_app_info/3, get_app_info_map/1,
 		  display/1, display/2, fail/1, fail/2, finished/0 ] ).
 
 
 -include("app_facilities.hrl").
 
 -type app_info() :: #app_info{}.
+% A Myriad-defined record introduced in order to store information regarding any
+% application.
+%
+% This information can be transformed in a map that is a bit less detailed (not
+% storing application name, and storing os only, instead of os_family and
+% os_name) and that can be used directly by functions in the standard 'filename'
+% module, such as filename:basedir/3 in order to return suitable system-specific
+% base paths.
+
 
 -type app_info_map() :: % Not exported yet: filename:basedir_opts().
 						any().
 % Needed by some standard functions in the filename module.
+
 
 -type any_app_info() :: app_info() | app_info_map().
 
@@ -95,6 +107,15 @@ stop() ->
 
 
 % @doc Returns an application information corresponding to the specified
+% application name.
+%
+-spec get_app_info( string_like() ) -> app_info().
+get_app_info( AppName ) ->
+	get_app_info( AppName, _MaybeAppVersion=undefined,
+				  _MaybeAuthorDesc=undefined ).
+
+
+% @doc Returns an application information corresponding to the specified
 % application name and version.
 %
 -spec get_app_info( string_like(), any_version() ) -> app_info().
@@ -103,12 +124,11 @@ get_app_info( AppName, AppVersion ) ->
 
 
 % @doc Returns an application information corresponding to the specified
-% application name, version and possibly author description.
+% application name and possibly version and author description.
 %
--spec get_app_info( string_like(), any_version(),
+-spec get_app_info( string_like(), maybe( any_version() ),
 					maybe( any_string() ) ) -> app_info().
-get_app_info( AppName, AppVersion, MaybeAuthorDesc )
-								when is_tuple( AppVersion ) ->
+get_app_info( AppName, MaybeAppVersion, MaybeAuthorDesc ) ->
 
 	MaybeBinAuthorDesc = case MaybeAuthorDesc of
 
@@ -133,7 +153,7 @@ get_app_info( AppName, AppVersion, MaybeAuthorDesc )
 	end,
 
 	#app_info{ name=BinAppName,
-			   version=AppVersion,
+			   version=MaybeAppVersion,
 			   author=MaybeBinAuthorDesc,
 			   os_family=OSFamily,
 			   os_name=OSName }.
@@ -143,7 +163,7 @@ get_app_info( AppName, AppVersion, MaybeAuthorDesc )
 % @doc Returns a map typically relevant for filename:basedir/3.
 -spec get_app_info_map( app_info() ) -> app_info_map().
 get_app_info_map( #app_info{ name=BinAppName,
-							 version=AppVersion,
+							 version=MaybeAppVersion,
 							 author=MaybeBinAuthorDesc,
 							 os_family=OSFamily,
 							 os_name=OSName } ) ->
@@ -168,16 +188,29 @@ get_app_info_map( #app_info{ name=BinAppName,
 	end,
 
 	BaseMap = #{ name => BinAppName,
-				 version => text_utils:version_to_string( AppVersion ),
 				 os => OSType },
 
-	case MaybeBinAuthorDesc of
+	VersionMap = case MaybeAppVersion of
 
 		undefined ->
 			BaseMap;
 
+		AppVersion when is_tuple( AppVersion ) ->
+			BaseMap#{ version => text_utils:version_to_string( AppVersion ) };
+
+		% Version string then:
+		AppVersionStr when is_list( AppVersionStr ) ->
+			BaseMap#{ version => AppVersionStr }
+
+	end,
+
+	case MaybeBinAuthorDesc of
+
+		undefined ->
+			VersionMap;
+
 		BinAuthorDesc ->
-			BaseMap#{ author => BinAuthorDesc }
+			VersionMap#{ author => BinAuthorDesc }
 
 	end.
 
