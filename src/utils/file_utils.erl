@@ -85,7 +85,7 @@
 		  get_current_directory/0, get_bin_current_directory/0,
 		  set_current_directory/1,
 
-		  get_first_existing_directory_in/1,
+		  get_first_existing_directory_in/1, get_first_file_or_link_for/2,
 
 		  filter_by_extension/2, filter_by_extensions/2,
 		  filter_by_included_suffixes/2, filter_by_excluded_suffixes/2,
@@ -156,7 +156,10 @@
 % OS / project / application specific paths:
 -export([ get_cache_directory/1,
 
-		  get_configuration_directory/1, get_extra_configuration_directories/1,
+		  get_configuration_directory/1,
+		  get_most_suitable_configuration_directory/1,
+
+		  get_extra_configuration_directories/1,
 
 		  get_data_directory/1, get_extra_data_directories/1,
 
@@ -976,6 +979,10 @@ split_path( AnyPath ) ->
 
 
 % @doc Resolves the specified resolvable path as a standard path.
+%
+% For exemple resolve_path([home, "computer-info", short_hostname, "info.txt"])
+% may return "/home/john/computer-info/hurricane/info.txt".
+%
 -spec resolve_path( resolvable_path() ) -> path().
 resolve_path( ResolvablePath ) when is_list( ResolvablePath ) ->
 	resolve_path( ResolvablePath, _Acc=[] ).
@@ -1031,6 +1038,9 @@ resolve_path( _ResolvablePath=[ UnexpectedTerm | _T ], _Acc ) ->
 
 % @doc Resolves the specified path - either a standard one or a resolvable one -
 % in all cases as a plain, standard path.
+%
+% For exemple resolve_any_path([home, "computer-info", short_hostname,
+% "info.txt"]) may return "/home/john/computer-info/hurricane/info.txt".
 %
 -spec resolve_any_path( possibly_resolvable_path() ) -> path().
 resolve_any_path( BinPath ) when is_binary( BinPath ) ->
@@ -2070,8 +2080,35 @@ get_first_existing_dir( _DirPaths=[ Dir | T ], Acc ) ->
 		true ->
 			Dir;
 
-		false ->
+		_False ->
 			get_first_existing_dir( T, [ Dir | Acc ] )
+
+	end.
+
+
+
+% @doc Returns, as a full path, the first occurrence (if any) of the specified
+% filename found (as a regular file or a symbolic link) through the specified
+% (ordered) list of directories.
+%
+% For example get_first_file_or_link_for("foobar.etf", ["/home/prefs",
+% "/var/config"]) may return "/var/config/foobar.etf", if this file exists and
+% "/home/prefs/foobar.etf" does not.
+%
+-spec get_first_file_or_link_for( any_file_name(), [ any_directory_path() ] ) ->
+											maybe( any_file_path() ).
+get_first_file_or_link_for( _TargetFilename, _CandidateDirs=[] ) ->
+	undefined;
+
+get_first_file_or_link_for( TargetFilename, _CandidateDirs=[ Dir | T ] ) ->
+	TargetFilePath = join( Dir, TargetFilename ),
+	case is_existing_file_or_link( TargetFilePath ) of
+
+		true ->
+			TargetFilePath;
+
+		_False ->
+			get_first_file_or_link_for( TargetFilename, T )
 
 	end.
 
@@ -4238,6 +4275,8 @@ is_absolute_path( AnyPath ) ->
 % If it is not already absolute, it will made so by using the current working
 % directory.
 %
+% Acts a bit like the realpath command.
+%
 -spec ensure_path_is_absolute( path() ) -> path();
 							 ( bin_path() ) -> bin_path().
 ensure_path_is_absolute( Path ) ->
@@ -4863,9 +4902,9 @@ get_image_file_gif( Image ) ->
 
 
 
-% @doc Returns the path location intended for the storage of transient data
-% files that the specified application may perform on the local machine, that is
-% any cache that it may use.
+% @doc Returns the directory path location intended for the storage of transient
+% data files that the specified application may perform on the local machine,
+% that is any cache that it may use.
 %
 -spec get_cache_directory( any_app_info() ) -> directory_path().
 get_cache_directory( AppInfo=#app_info{} ) ->
@@ -4877,9 +4916,14 @@ get_cache_directory( AppInfoMap=#{ name := BinAppName } ) ->
 
 
 
-% @doc Returns the path location intended for the storage of persistent
-% configuration files that the specified application may perform on the local
-% machine.
+% @doc Returns the main directory path location intended for the storage of
+% persistent user-level configuration files that the specified application may
+% perform on the local machine.
+%
+% Does not check whether this directory exists, and of course a configuration
+% file of interest may or may not be available there.
+%
+% May return for example "~/.config/foobar/0.0.1".
 %
 -spec get_configuration_directory( any_app_info() ) -> directory_path().
 get_configuration_directory( AppInfo=#app_info{} ) ->
@@ -4888,6 +4932,61 @@ get_configuration_directory( AppInfo=#app_info{} ) ->
 
 get_configuration_directory( AppInfoMap=#{ name := BinAppName } ) ->
 	filename:basedir( _PathType=user_config, BinAppName, _Opts=AppInfoMap ).
+
+
+
+% @doc Returns the best, existing directory path intended for the storage of
+% persistent user-level configuration files that the specified application may
+% perform on the local machine: looks up in turn the candidate directories, by
+% decreasing priority order, and returns the relevant, most suitable one (if
+% any).
+%
+% Of course a configuration file of interest may or may not be available there,
+% which may limit the interest of this function; see then
+% preferences:get_most_suitable_configuration_file/1.
+%
+% May return for example "~/.config/foobar/0.0.1" (if existing),
+% otherwise "~/.config/foobar" (if existing), otherwise 'undefined'.
+%
+-spec get_most_suitable_configuration_directory( any_app_info() ) ->
+											maybe( directory_path() ).
+get_most_suitable_configuration_directory( AppInfo=#app_info{} ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_configuration_directory( AppInfoMap );
+
+get_most_suitable_configuration_directory(
+		AppInfoMap=#{ name := BinAppName, version := _VersionStr } ) ->
+
+	FirstCandidateDir =
+		filename:basedir( _PathType=user_config, BinAppName, _Opts=AppInfoMap ),
+
+	case file_utils:is_existing_directory_or_link( FirstCandidateDir ) of
+
+		true ->
+			FirstCandidateDir;
+
+		false ->
+			% Then trying without the version information:
+			NoVersionMap = maps:remove( version, AppInfoMap ),
+			get_most_suitable_configuration_directory( NoVersionMap )
+
+	end;
+
+get_most_suitable_configuration_directory(
+									AppInfoMap=#{ name := BinAppName } ) ->
+	CandidateDir =
+		filename:basedir( _PathType=user_config, BinAppName, _Opts=AppInfoMap ),
+
+	case file_utils:is_existing_directory_or_link( CandidateDir ) of
+
+		true ->
+			CandidateDir;
+
+		false ->
+			undefined
+
+	end.
+
 
 
 % @doc Returns the extra path locations intended for the storage of persistent
