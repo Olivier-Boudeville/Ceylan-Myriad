@@ -26,8 +26,8 @@
 % Creation date: Thursday, October 31, 2013.
 
 
-% @doc Service dedicated to the <b>management of user preferences</b>, thanks to
-% a corresponding server process.
+% @doc Service dedicated to the <b>management of user preferences</b> (for
+% user-level configuration), thanks to a corresponding server process.
 %
 % Preferences are generally default, static settings, like user general
 % preferences, defined in a file meant to be potentially read by multiple
@@ -110,10 +110,18 @@
 		  to_string/0, to_bin_string/0, to_bin_string/1,
 
 		  get_default_preferences_path/0,
-		  get_default_preferences_registration_name/0,
-
 		  is_preferences_default_file_available/0,
 		  check_preferences_default_file/0,
+
+		  get_application_preferences_filename/1,
+
+		  get_application_preferences_file/1,
+		  get_application_preferences_file/2,
+		  get_application_preferences_file/3,
+		  get_application_preferences_file/4,
+
+		  get_default_preferences_registration_name/0,
+
 		  stop/0 ]).
 
 
@@ -153,20 +161,30 @@
 -type entries() :: table:entries().
 
 
--export_type([ pref_reg_name/0, preferences_pid/0, preferences_designator/0,
-			   preferences_data/0,
-			   key/0, value/0, entry/0, entries/0 ]).
+-type app_pref_lookup_outcome() :: any_file_path()
+		| { 'not_found', any_file_path(), [ any_directory_path() ] }.
+% The outcome of the lookup of an application preferences file.
+
+
+-export_type([ pref_reg_name/0, preferences_pid/0, preferences_info/0,
+			   preferences_designator/0, preferences_data/0,
+			   key/0, value/0, entry/0, entries/0,
+			   app_pref_lookup_outcome/0 ]).
 
 
 -compile( { inline, [ get_default_preferences_path/0,
 					  get_default_preferences_registration_name/0] } ).
 
 
+% For the app_info record:
+-include("app_facilities.hrl").
 
 % Shorthands:
 
+-type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
 -type any_file_path() :: file_utils:any_file_path().
+-type any_directory_path() :: file_utils:any_directory_path().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -175,6 +193,7 @@
 
 -type cache_spec() :: environment:cache_spec().
 
+-type any_app_info() :: app_facilities:app_info().
 
 
 % Implementation notes:
@@ -205,12 +224,17 @@
 %-define( default_preferences_server_name, myriad_preferences_server ).
 
 
+% The extension used by default by preferences ETF files:
+-define( default_preferences_extension, "etf" ).
+
+
 % Name of the default Ceylan-level preferences ETF file (searched at the root of
 % the user account):
 %
 % (must be consistent with the default_preferences_pref_reg_name define)
 %
--define( default_preferences_filename, ".ceylan-settings.etf" ).
+-define( default_preferences_filename,
+		 ".ceylan-settings."  ++ ?default_preferences_extension ).
 
 
 % Registration name of the default preferences server:
@@ -621,11 +645,6 @@ get_default_preferences_path() ->
 
 
 
-% @doc Returns the default (local) registration name for the preferences.
--spec get_default_preferences_registration_name() -> pref_reg_name().
-get_default_preferences_registration_name() ->
-	?default_preferences_pref_reg_name.
-
 
 
 % @doc Returns whether the default preferences file is available, together with
@@ -654,6 +673,196 @@ check_preferences_default_file() ->
 			throw( { no_default_preferences_file_found, FilePath } )
 
 	end.
+
+
+
+% @doc Returns the name of the preferences file corresponding to the specified
+% application.
+%
+-spec get_application_preferences_filename( any_app_info() ) -> file_name().
+get_application_preferences_filename( #app_info{ name=BinAppName } ) ->
+	text_utils:format( "~ts." ++ ?default_preferences_extension,
+					   [ BinAppName ] );
+
+get_application_preferences_filename( _AppInfoMap=#{ name := BinAppName } ) ->
+	text_utils:format( "~ts." ++ ?default_preferences_extension,
+					   [ BinAppName ] ).
+
+
+
+% @doc Returns the found preferences file (if any) relevant for the specified
+% application, otherwise the preferences filename and the ordered list of the
+% full paths explored.
+%
+% For example, for an application named "foobar", of version 0.0.1, following
+% paths may be looked up in turn:
+%  - "~/.config/foobar/0.0.1/foobar.etf"
+%  - "~/.config/foobar/foobar.etf"
+%
+% So for example either "/home/john/.config/foobar/foobar.etf" is returned, or a
+% {not_found, "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
+% "/home/john/.config/foobar/foobar.etf"]} triplet.
+%
+-spec get_application_preferences_file( any_app_info() ) ->
+											app_pref_lookup_outcome().
+get_application_preferences_file( AnyAppInfo ) ->
+	get_application_preferences_file( AnyAppInfo, _AddDefaultPrefPath=false ).
+
+
+% @doc Returns the found preferences file (if any) relevant for the specified
+% application, otherwise the preferences filename and the ordered list of the
+% full paths explored.
+%
+% For example, for an application named "foobar", of version 0.0.1, following
+% paths may be looked up in turn:
+%  - "~/.config/foobar/0.0.1/foobar.etf"
+%  - "~/.config/foobar/foobar.etf"
+%  - if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"
+%
+% So for example either "/home/john/.config/foobar/foobar.etf" is returned, or a
+% {not_found, "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
+% "/home/john/.config/foobar/foobar.etf", "/home/john/.ceylan-settings.etf"]}
+% triplet.
+%
+-spec get_application_preferences_file( any_app_info(), boolean() ) ->
+											app_pref_lookup_outcome().
+get_application_preferences_file( AnyAppInfo, AddDefaultPrefPath ) ->
+	get_application_preferences_file( AnyAppInfo, _PrioritaryDirs=[],
+									  _ExtraDirs=[], AddDefaultPrefPath ).
+
+
+% @doc Returns the found preferences file (if any) relevant for the specified
+% application, otherwise the preferences filename and the ordered list of the
+% full paths explored, using first the application-related directories, then the
+% specified extra directory candidates and, if requested, as a last resort, the
+% default preferences path.
+%
+% For example, for an application named "foobar", of version 0.0.1 and
+% extra directories ["/home/a", "/var/b"], following paths may be looked up
+% in turn:
+%  - "~/.config/foobar/0.0.1/foobar.etf"
+%  - "~/.config/foobar/foobar.etf"
+%  - "/home/a/foobar.etf"
+%  - "/var/b/foobar.etf"
+%  - if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"
+%
+% So for example either "/var/b/foobar.etf" is returned, or a {not_found,
+% "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
+%   "/home/john/.config/foobar/foobar.etf", "/home/a/foobar.etf",
+%   "/var/b/foobar.etf", "/home/john/.ceylan-settings.etf"]} triplet.
+%
+%
+-spec get_application_preferences_file( any_app_info(),
+			[ any_directory_path() ], boolean() ) -> app_pref_lookup_outcome().
+get_application_preferences_file( AnyAppInfo, ExtraDirs, AddDefaultPrefPath ) ->
+	get_application_preferences_file( AnyAppInfo, _PrioritaryDirs=[], ExtraDirs,
+								  AddDefaultPrefPath ).
+
+
+% @doc Returns the found preferences file (if any) relevant for the specified
+% application, otherwise the preferences filename and the ordered list of the
+% full paths explored, using the specified prioritary directories as (ordered)
+% first locations, then the application-related directories, then the extra
+% (ordered) directories and, if requested, as a last resort, the default
+% preferences path.
+%
+% For example, for an application named "foobar", of version 0.0.1 and
+% prioritary directories ["/home/a", "/var/b"] and extra directories ["/opt/c"],
+% following paths may be looked up in turn:
+%  - "/home/a/foobar.etf"
+%  - "/var/b/foobar.etf"
+%  - "~/.config/foobar/0.0.1/foobar.etf"
+%  - "~/.config/foobar/foobar.etf"
+%  - "/opt/c/foobar.etf"
+%  - if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"
+%
+% So for example either "/var/b/foobar.etf" is returned, or a {not_found,
+% "foobar.etf", ["/home/a/foobar.etf", "/var/b/foobar.etf",
+%   "/home/john/.config/foobar/0.0.1/foobar.etf",
+%   "/home/john/.config/foobar/foobar.etf", "/opt/c/foobar.etf"
+%   "/home/john/.ceylan-settings.etf"]} triplet.
+%
+-spec get_application_preferences_file( any_app_info(),
+	[ any_directory_path() ], [ any_directory_path() ], boolean() ) ->
+											app_pref_lookup_outcome().
+get_application_preferences_file( AppInfo=#app_info{}, PrioritaryDirs,
+								  ExtraDirs, AddDefaultPrefPath ) ->
+	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
+	get_application_preferences_file( AppInfoMap, PrioritaryDirs, ExtraDirs,
+									  AddDefaultPrefPath );
+
+get_application_preferences_file( AppInfoMap=#{ name := BinAppName },
+		PrioritaryDirs, ExtraDirs, AddDefaultPrefPath ) ->
+
+	PathType = user_config,
+
+	AppCandidateDir =
+		filename:basedir( PathType, BinAppName, _Opts=AppInfoMap ),
+
+	% A second choice could be without the version:
+	AppDirs = [ AppCandidateDir ] ++ case maps:find( _K=version, AppInfoMap ) of
+
+		{ ok, _Version } ->
+			NoVersionMap = maps:remove( version, AppInfoMap ),
+
+			SecondAppCandidateDir =
+				filename:basedir( PathType, BinAppName, NoVersionMap ),
+
+			[ SecondAppCandidateDir ];
+
+		error ->
+			[]
+
+						end,
+
+	OrderedDirs = PrioritaryDirs ++ AppDirs ++ ExtraDirs,
+
+	PrefFilename = get_application_preferences_filename( AppInfoMap ),
+
+	case file_utils:get_first_file_or_link_for( PrefFilename, OrderedDirs ) of
+
+		undefined ->
+			case AddDefaultPrefPath of
+
+				true ->
+					DefPath = get_default_preferences_path(),
+					case file_utils:is_existing_file_or_link( DefPath ) of
+
+						true ->
+							DefPath;
+
+						_False ->
+							BasePathCandidates = [
+								file_utils:ensure_path_is_absolute(
+									file_utils:join( D, PrefFilename ) )
+														|| D <- OrderedDirs ],
+
+							{ not_found, PrefFilename,
+							  BasePathCandidates ++ [ DefPath ] }
+
+					end;
+
+
+				false ->
+					BasePathCandidates = [ file_utils:ensure_path_is_absolute(
+						file_utils:join( D, PrefFilename ) )
+											|| D <- OrderedDirs ],
+
+					{ not_found, PrefFilename, BasePathCandidates }
+
+			end;
+
+		PrefPath ->
+			PrefPath
+
+	end.
+
+
+
+% @doc Returns the default (local) registration name for the preferences.
+-spec get_default_preferences_registration_name() -> pref_reg_name().
+get_default_preferences_registration_name() ->
+	?default_preferences_pref_reg_name.
 
 
 
