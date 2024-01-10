@@ -194,7 +194,7 @@ create_server( AnyRootDir ) ->
 % @doc Creates a linked resource server, and returns its PID.
 -spec create_linked_server() -> resource_server_pid().
 create_linked_server() ->
-	spawn( fun() -> server_init() end ).
+	spawn_link( fun() -> server_init() end ).
 
 
 % @doc Creates a linked resource server anchored at the specified root
@@ -202,7 +202,9 @@ create_linked_server() ->
 %
 -spec create_linked_server( any_directory_path() ) -> resource_server_pid().
 create_linked_server( AnyRootDir ) ->
-	spawn( fun() -> server_init( text_utils:ensure_binary( AnyRootDir ) ) end ).
+	spawn_link( fun() ->
+					server_init( text_utils:ensure_binary( AnyRootDir ) )
+				end ).
 
 
 
@@ -338,8 +340,7 @@ register( RscPairs, RscRef=#resource_referential{ table=RscTable } )
 
 	cond_utils:if_defined( myriad_debug_resources,
 		trace_utils:debug_fmt( "Registering logical resources ~ts.",
-			[ [ text_utils:atoms_to_string( I )
-						|| { I, _R } <- RscPairs ] ] ) ),
+			[ text_utils:atoms_to_string( I ) || { I, _R } <- RscPairs ] ) ),
 
 	NewRscTable = table:add_entries( RscPairs, RscTable ),
 	RscRef#resource_referential{ table=NewRscTable };
@@ -447,7 +448,7 @@ locate_data_from_ref( BinDataPath,
 		true ->
 			file_utils:ensure_path_is_absolute( BinDataPath );
 
-		false ->
+		_False ->
 			throw( { data_file_not_found, BinDataPath,
 					 file_utils:get_current_directory() } )
 
@@ -464,7 +465,7 @@ locate_data_from_ref( BinDataPath,
 		true ->
 			AbsBinDataPath;
 
-		false ->
+		_False ->
 			throw( { data_file_not_found, BinDataPath, BinRootDir,
 					 file_utils:get_current_directory() } )
 
