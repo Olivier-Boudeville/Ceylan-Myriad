@@ -101,9 +101,7 @@ run() ->
 		test_facilities:display( "Naming-compliant hostname for '~ts' "
 			"is '~ts'.", [ Localhost,
 				net_utils:get_naming_compliant_hostname( Localhost,
-														 NamingMode ) ] )
-
-	end,
+														 NamingMode ) ] ),
 
 	TestName = "I have \"<spaces>\" / \ & ~ # @ { } [ ] | $ * ? ! + , . ; :"
 		"(and also 'I have quotes')",
