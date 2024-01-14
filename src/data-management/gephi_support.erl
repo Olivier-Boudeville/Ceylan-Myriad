@@ -399,7 +399,7 @@ is_available() ->
 %
 % Note that the server may not be immediately available.
 %
--spec launch_server( project_path(), any_directory_path() ) -> void().
+-spec launch_server( project_path() ) -> void().
 launch_server( ProjectPath ) ->
 	launch_server( ProjectPath, _DefaultUserDir="myriad-gephi-user-directory" ).
 
@@ -817,8 +817,8 @@ update_edge_property( EdgeId, PropertyId, PropertyValue, Timestamp, SrvInfo ) ->
 %
 % The returned body is generally a JSON document as well. Actually it is at
 % least usually the input body, in a reinterpreted form,
-% e.g. <<"{\"an\":{\"myriad-node-id-1\":{\"label\":\"I am the label of the node
-% whose identifier is 'myriad-node-id-1'.\"}}}\r\n">>).
+% e.g. `<<"{\"an\":{\"myriad-node-id-1\":{\"label\":\"I am the label of the node
+% whose identifier is 'myriad-node-id-1'.\"}}}\r\n">>'.
 %
 % Throws an exception if the sending failed.
 %
