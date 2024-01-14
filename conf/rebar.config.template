@@ -81,13 +81,13 @@
 %{pre_hooks,  [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar --verbose'"} ]}.
 
 % Verbosity disabled:
-{pre_hooks,  [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar'"} ]}.
+%{pre_hooks,  [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar'"} ]}.
 
 
-{post_hooks, [ {compile, "make -s rebar3-bulletproof-compile-post-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar --verbose'"} ]}.
+%{post_hooks, [ {compile, "make -s rebar3-bulletproof-compile-post-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar --verbose'"} ]}.
 
 % Verbosity disabled:
-{post_hooks, [ {compile, "make -s rebar3-bulletproof-compile-post-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar'"} ]}.
+%{post_hooks, [ {compile, "make -s rebar3-bulletproof-compile-post-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar'"} ]}.
 
 
 
