@@ -69,21 +69,28 @@
 %{post_hooks, [ {compile, "make -s rebar3-compile-post-hook"} ]}.
 
 
-% Was deemed likely needed sooner or later to prevent spurious, ill-configured
-% compilations that would be attempted by rebar3, when used as a dependency,
-% however the opposite happened (for projects based on Myriad, with bulletproof
-% hooks rebar3 started to attempt such a failing rebuild, whereas with the base
-% hooks not).
+% Previously, bulletproof build was deemed likely needed sooner or later to
+% prevent spurious, ill-configured compilations that would be attempted by
+% rebar3, when used as a dependency, however the opposite happened (for projects
+% based on Myriad, with bulletproof hooks rebar3 started to attempt such a
+% failing rebuild, whereas with the base hooks not). Not hiding Myriad build
+% elements seemed the way to go.
 %
-% Not hiding Myriad build elements seems the way to go:
+% Yet since then (and after many rebar versions), adding our version define
+% (i.e. {myriad_version,"VERSION_FOR_OTP"}) made the non-bulletproof build of
+% Myriad fail. Switching back to the bulletproof (moreover with hiding), for
+% Myriad and least for most of its dependencies, seemed to fix the issue.
+%
+% Should issues like these come again, maybe the
+% '{erlc_compiler, [{recursive,false}]}.' rebar setting could help.
 
 
-{pre_hooks,  [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--hiding-for-rebar --verbose'"} ]}.
+{pre_hooks, [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--hiding-for-rebar --verbose'"} ]}.
 
-%{pre_hooks,  [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar --verbose'"} ]}.
+%{pre_hooks, [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar --verbose'"} ]}.
 
 % Verbosity disabled:
-%{pre_hooks,  [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar'"} ]}.
+%{pre_hooks, [ {compile, "make -s rebar3-bulletproof-compile-pre-hook REBAR_HOOK_EXTRA_OPTS='--no-hiding-for-rebar'"} ]}.
 
 
 {post_hooks, [ {compile, "make -s rebar3-bulletproof-compile-post-hook REBAR_HOOK_EXTRA_OPTS='--hiding-for-rebar --verbose'"} ]}.
