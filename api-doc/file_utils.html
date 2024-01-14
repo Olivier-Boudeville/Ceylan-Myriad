@@ -128,6 +128,16 @@
 <p><code>compression_format() = zip | bzip2 | xz</code></p>
 <p> The supported compression formats.</p>
 
+<h3 class="typedecl"><a name="type-count">count()</a></h3>
+<p><code>count() = <a href="basic_utils.html#type-count">basic_utils:count()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-depth">depth()</a></h3>
+<p><code>depth() = <a href="#type-count">count()</a></code></p>
+<p><p> A depth in a filesystem, when seen as a tree.</p>
+
+ For example the depth of "a" in "foo/bar/a" is 3.</p>
+
 <h3 class="typedecl"><a name="type-device_path">device_path()</a></h3>
 <p><code>device_path() = <a href="#type-path">path()</a></code></p>
 <p> Designates a path to a device (including its device name), e.g.
@@ -305,6 +315,12 @@ string.</td></tr>
 <tr><td valign="top"><a href="#bin_join-2">bin_join/2</a></td><td>Joins the two specified path elements, returns a corresponding binary 
 string.</td></tr>
 <tr><td valign="top"><a href="#change_permissions-2">change_permissions/2</a></td><td>Changes the permissions ("chmod") of specified filesystem element.</td></tr>
+<tr><td valign="top"><a href="#check_existing_directory-1">check_existing_directory/1</a></td><td>Checks that the specified path entry exists and is a directory, or throws
+ an exception if not.</td></tr>
+<tr><td valign="top"><a href="#check_existing_file-1">check_existing_file/1</a></td><td>Checks that the specified path entry exists and is a regular file, or
+ throws an exception if not.</td></tr>
+<tr><td valign="top"><a href="#check_existing_file_or_link-1">check_existing_file_or_link/1</a></td><td>Checks that the specified path entry exists and is either a regular
+ file or a symbolic link, or throws an exception if not.</td></tr>
 <tr><td valign="top"><a href="#close-1">close/1</a></td><td>Closes the specified file reference.</td></tr>
 <tr><td valign="top"><a href="#close-2">close/2</a></td><td>Closes the specified file reference.</td></tr>
 <tr><td valign="top"><a href="#compress-1">compress/1</a></td><td>Compresses the specified file: creates a compressed version thereof 
@@ -421,15 +437,18 @@ root with specified extension, in the whole subtree (that is recursively).</td><
 from the root, in the whole subtree (that is recursively).</td></tr>
 <tr><td valign="top"><a href="#from_permission_mask-1">from_permission_mask/1</a></td><td>Decodes the specified permission mask into a list of the corresponding
  permissions.</td></tr>
-<tr><td valign="top"><a href="#get_base_path-1">get_base_path/1</a></td><td>Returns the complete leading, "directory" part of specified path, 
+<tr><td valign="top"><a href="#get_base_path-1">get_base_path/1</a></td><td>Returns the complete leading, "directory" part of the specified path, 
 that is the one with all its element but the last one.</td></tr>
+<tr><td valign="top"><a href="#get_base_path-2">get_base_path/2</a></td><td>Returns the leading part of the specified path, obtained at the specified 
+depth, that is when the specified number of bottom-level elements have been 
+chopped.</td></tr>
 <tr><td valign="top"><a href="#get_bin_current_directory-0">get_bin_current_directory/0</a></td><td>Returns the current directory, as a binary string.</td></tr>
-<tr><td valign="top"><a href="#get_cache_directory-1">get_cache_directory/1</a></td><td>Returns the path location intended for the storage of transient data
- files that the specified application may perform on the local machine, that is
- any cache that it may use.</td></tr>
-<tr><td valign="top"><a href="#get_configuration_directory-1">get_configuration_directory/1</a></td><td>Returns the path location intended for the storage of persistent
- configuration files that the specified application may perform on the local
- machine.</td></tr>
+<tr><td valign="top"><a href="#get_cache_directory-1">get_cache_directory/1</a></td><td>Returns the directory path location intended for the storage of transient
+ data files that the specified application may perform on the local machine,
+ that is any cache that it may use.</td></tr>
+<tr><td valign="top"><a href="#get_configuration_directory-1">get_configuration_directory/1</a></td><td>Returns the main directory path location intended for the storage of 
+persistent user-level configuration files that the specified application may 
+perform on the local machine.</td></tr>
 <tr><td valign="top"><a href="#get_current_directory-0">get_current_directory/0</a></td><td>Returns the current directory, as a plain string.</td></tr>
 <tr><td valign="top"><a href="#get_data_directory-1">get_data_directory/1</a></td><td>Returns the path location intended for the storage of persistent data
  files that the specified application may perform on the local machine.</td></tr>
@@ -449,6 +468,9 @@ needing to open a file for writing - should such an option be used.</td></tr>
  data files that the specified application may perform on the local machine.</td></tr>
 <tr><td valign="top"><a href="#get_first_existing_directory_in-1">get_first_existing_directory_in/1</a></td><td>Returns the first (if any) existing directory found in the specified 
 list, or throws an exception if none is found.</td></tr>
+<tr><td valign="top"><a href="#get_first_file_or_link_for-2">get_first_file_or_link_for/2</a></td><td>Returns, as a full path, the first occurrence (if any) of the specified 
+filename found (as a regular file or a symbolic link) through the specified 
+(ordered) list of directories.</td></tr>
 <tr><td valign="top"><a href="#get_group_of-1">get_group_of/1</a></td><td>Returns the group identifier (gid) of the group of the specified file
  entry.</td></tr>
 <tr><td valign="top"><a href="#get_image_extensions-0">get_image_extensions/0</a></td><td>Returns a list of the known file extensions that refer to image files.</td></tr>
@@ -464,6 +486,11 @@ element, as a one-element path, corresponding either to a file or a directory.</
 <tr><td valign="top"><a href="#get_longest_common_path-1">get_longest_common_path/1</a></td><td>Returns a pair made of the longest path common to all specified directory 
 paths, and the corresponding suffixes, that is an (unordered) list of the 
 input paths (as binaries) once the common prefix elements have been removed.</td></tr>
+<tr><td valign="top"><a href="#get_most_suitable_configuration_directory-1">get_most_suitable_configuration_directory/1</a></td><td>Returns the best, existing directory path intended for the storage of 
+persistent user-level configuration files that the specified application may 
+perform on the local machine: looks up in turn the candidate directories, by 
+decreasing priority order, and returns the relevant, most suitable one (if 
+any).</td></tr>
 <tr><td valign="top"><a href="#get_non_clashing_entry_name_from-1">get_non_clashing_entry_name_from/1</a></td><td>Returns a path deriving from the specified one (and of the same type) so 
 that it is unique, meaning that it does not clash with any pre-existing entry.</td></tr>
 <tr><td valign="top"><a href="#get_owner_of-1">get_owner_of/1</a></td><td>Returns the user identifier (uid) of the owner of the specified file
@@ -617,8 +644,8 @@ renames it first by adding the specified suffix to its name (then overwriting
 any identically-named file that would already exist), before performing the 
 renaming.</td></tr>
 <tr><td valign="top"><a href="#replace_extension-3">replace_extension/3</a></td><td>Returns a new file path whose extension has been updated.</td></tr>
-<tr><td valign="top"><a href="#resolve_any_path-1">resolve_any_path/1</a></td><td>Resolves the specified path - either a standard one or a resolvable one -
- in all cases as a plain, standard path.</td></tr>
+<tr><td valign="top"><a href="#resolve_any_path-1">resolve_any_path/1</a></td><td>Resolves the specified path - either a standard one or a resolvable one - 
+in all cases as a plain, standard path.</td></tr>
 <tr><td valign="top"><a href="#resolve_path-1">resolve_path/1</a></td><td>Resolves the specified resolvable path as a standard path.</td></tr>
 <tr><td valign="top"><a href="#resolve_symlink_fully-1">resolve_symlink_fully/1</a></td><td>Resolves fully the specified symbolic link: returns the entry it points
  ultimately to (therefore this entry cannot be a symbolic link), or throws an
@@ -771,6 +798,30 @@ string.</p>
 
  Note: erases any prior permissions, i.e. if specifying [other_read] then a
  corresponding file will end up with (exactly) a -------r-- permission.
+</p>
+
+<h3 class="function"><a name="check_existing_directory-1">check_existing_directory/1</a></h3>
+<div class="spec">
+<p><code>check_existing_directory(Path::<a href="#type-any_path">any_path()</a>) -&gt; <a href="#type-void">void()</a></code><br></p>
+<p> </p>
+</div><p>Checks that the specified path entry exists and is a directory, or throws
+ an exception if not.
+</p>
+
+<h3 class="function"><a name="check_existing_file-1">check_existing_file/1</a></h3>
+<div class="spec">
+<p><code>check_existing_file(Path::<a href="#type-any_path">any_path()</a>) -&gt; <a href="#type-void">void()</a></code><br></p>
+<p> </p>
+</div><p>Checks that the specified path entry exists and is a regular file, or
+ throws an exception if not.
+</p>
+
+<h3 class="function"><a name="check_existing_file_or_link-1">check_existing_file_or_link/1</a></h3>
+<div class="spec">
+<p><code>check_existing_file_or_link(Path::<a href="#type-any_path">any_path()</a>) -&gt; <a href="#type-void">void()</a></code><br></p>
+<p> </p>
+</div><p>Checks that the specified path entry exists and is either a regular
+ file or a symbolic link, or throws an exception if not.
 </p>
 
 <h3 class="function"><a name="close-1">close/1</a></h3>
@@ -1084,8 +1135,10 @@ name foo.extension_of(MY_FORMAT) into an uncompressed version of it named
 
  <p>Returns a string of the same type as the specified one.</p>
 
- If it is not already absolute, it will made so by using the current working
- directory.
+ <p>If it is not already absolute, it will made so by using the current working 
+directory.</p>
+
+ Acts a bit like the realpath command.
 </p>
 
 <h3 class="function"><a name="ensure_path_is_absolute-2">ensure_path_is_absolute/2</a></h3>
@@ -1468,7 +1521,7 @@ are ignored.</p>
 <div class="spec">
 <p><code>get_base_path(AnyPath::<a href="#type-any_path">any_path()</a>) -&gt; <a href="#type-any_path">any_path()</a></code><br></p>
 <p> </p>
-</div><p><p>Returns the complete leading, "directory" part of specified path, 
+</div><p><p>Returns the complete leading, "directory" part of the specified path, 
 that is the one with all its element but the last one.</p>
 
  <p>For example "/aaa/bbb/ccc" =          
@@ -1481,6 +1534,21 @@ binary string.</p>
 clearer).</p>
 
  See get_last_path_element/1 for the counterpart function.
+</p>
+
+<h3 class="function"><a name="get_base_path-2">get_base_path/2</a></h3>
+<div class="spec">
+<p><code>get_base_path(AnyPath::<a href="#type-any_path">any_path()</a>, Depth::<a href="#type-depth">depth()</a>) -&gt; <a href="#type-any_path">any_path()</a></code><br></p>
+<p> </p>
+</div><p><p>Returns the leading part of the specified path, obtained at the specified 
+depth, that is when the specified number of bottom-level elements have been 
+chopped.</p>
+
+ <p>For example "/aaa/bbb" =          
+file_utils:get_base_path("/aaa/bbb/ccc/foobar.txt", _Depth=2).</p>
+
+ Note that the return type is the same of the input path, i.e. plain string or
+ binary string.
 </p>
 
 <h3 class="function"><a name="get_bin_current_directory-0">get_bin_current_directory/0</a></h3>
@@ -1496,18 +1564,23 @@ clearer).</p>
 <div class="spec">
 <p><code>get_cache_directory(AppInfo::<a href="#type-any_app_info">any_app_info()</a>) -&gt; <a href="#type-directory_path">directory_path()</a></code><br></p>
 <p> </p>
-</div><p>Returns the path location intended for the storage of transient data
- files that the specified application may perform on the local machine, that is
- any cache that it may use.
+</div><p>Returns the directory path location intended for the storage of transient
+ data files that the specified application may perform on the local machine,
+ that is any cache that it may use.
 </p>
 
 <h3 class="function"><a name="get_configuration_directory-1">get_configuration_directory/1</a></h3>
 <div class="spec">
 <p><code>get_configuration_directory(AppInfo::<a href="#type-any_app_info">any_app_info()</a>) -&gt; <a href="#type-directory_path">directory_path()</a></code><br></p>
 <p> </p>
-</div><p>Returns the path location intended for the storage of persistent
- configuration files that the specified application may perform on the local
- machine.
+</div><p><p>Returns the main directory path location intended for the storage of 
+persistent user-level configuration files that the specified application may 
+perform on the local machine.</p>
+
+ <p>Does not check whether this directory exists, and of course a configuration 
+file of interest may or may not be available there.</p>
+
+ May return for example "~/.config/foobar/0.0.1".
 </p>
 
 <h3 class="function"><a name="get_current_directory-0">get_current_directory/0</a></h3>
@@ -1616,6 +1689,19 @@ symbolic link.</p>
  only one of them being relevant.
 </p>
 
+<h3 class="function"><a name="get_first_file_or_link_for-2">get_first_file_or_link_for/2</a></h3>
+<div class="spec">
+<p><code>get_first_file_or_link_for(TargetFilename::<a href="#type-any_file_name">any_file_name()</a>, CandidateDirs::[<a href="#type-any_directory_path">any_directory_path()</a>]) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-any_file_path">any_file_path()</a>)</code><br></p>
+<p> </p>
+</div><p><p>Returns, as a full path, the first occurrence (if any) of the specified 
+filename found (as a regular file or a symbolic link) through the specified 
+(ordered) list of directories.</p>
+
+ For example get_first_file_or_link_for("foobar.etf", ["/home/prefs",
+ "/var/config"]) may return "/var/config/foobar.etf", if this file exists and
+ "/home/prefs/foobar.etf" does not.
+</p>
+
 <h3 class="function"><a name="get_group_of-1">get_group_of/1</a></h3>
 <div class="spec">
 <p><code>get_group_of(Path::<a href="#type-any_path">any_path()</a>) -&gt; <a href="system_utils.html#type-group_id">system_utils:group_id()</a></code><br></p>
@@ -1698,6 +1784,24 @@ returns:
 
  Like text_utils:get_longest_common_prefix/1, except that operates on whole
  path elements, not individual characters.
+</p>
+
+<h3 class="function"><a name="get_most_suitable_configuration_directory-1">get_most_suitable_configuration_directory/1</a></h3>
+<div class="spec">
+<p><code>get_most_suitable_configuration_directory(AppInfo::<a href="#type-any_app_info">any_app_info()</a>) -&gt; <a href="#type-maybe">maybe</a>(<a href="#type-directory_path">directory_path()</a>)</code><br></p>
+<p> </p>
+</div><p><p>Returns the best, existing directory path intended for the storage of 
+persistent user-level configuration files that the specified application may 
+perform on the local machine: looks up in turn the candidate directories, by 
+decreasing priority order, and returns the relevant, most suitable one (if 
+any).</p>
+
+ <p>Of course a configuration file of interest may or may not be available there, 
+which may limit the interest of this function; see then 
+preferences:get_most_suitable_configuration_file/1.</p>
+
+ May return for example "~/.config/foobar/0.0.1" (if existing),
+ otherwise "~/.config/foobar" (if existing), otherwise 'undefined'.
 </p>
 
 <h3 class="function"><a name="get_non_clashing_entry_name_from-1">get_non_clashing_entry_name_from/1</a></h3>
@@ -2557,15 +2661,22 @@ return "/home/jack/rosie.wav".</p>
 <div class="spec">
 <p><code>resolve_any_path(BinPath::<a href="#type-possibly_resolvable_path">possibly_resolvable_path()</a>) -&gt; <a href="#type-path">path()</a></code><br></p>
 <p> </p>
-</div><p>Resolves the specified path - either a standard one or a resolvable one -
- in all cases as a plain, standard path.
+</div><p><p>Resolves the specified path - either a standard one or a resolvable one - 
+in all cases as a plain, standard path.</p>
+
+ For example resolve_any_path([home, "computer-info", short_hostname,
+ "info.txt"]) may return "/home/john/computer-info/hurricane/info.txt".
 </p>
 
 <h3 class="function"><a name="resolve_path-1">resolve_path/1</a></h3>
 <div class="spec">
 <p><code>resolve_path(ResolvablePath::<a href="#type-resolvable_path">resolvable_path()</a>) -&gt; <a href="#type-path">path()</a></code><br></p>
 <p> </p>
-</div><p>Resolves the specified resolvable path as a standard path.</p>
+</div><p><p>Resolves the specified resolvable path as a standard path.</p>
+
+ For example resolve_path([home, "computer-info", short_hostname, "info.txt"])
+ may return "/home/john/computer-info/hurricane/info.txt".
+</p>
 
 <h3 class="function"><a name="resolve_symlink_fully-1">resolve_symlink_fully/1</a></h3>
 <div class="spec">

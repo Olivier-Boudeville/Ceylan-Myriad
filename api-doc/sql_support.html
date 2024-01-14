@@ -55,7 +55,7 @@
 
 <h3 class="typedecl"><a name="type-bin_database_name">bin_database_name()</a></h3>
 <p><code>bin_database_name() = <a href="#type-bin_string">bin_string()</a></code></p>
-<p> The name of the target database instance. Ex: <code>&lt;&lt;"acme_stock_db"&gt;&gt;</code>.
+<p> The name of the target database instance. For example <code>&lt;&lt;"acme_stock_db"&gt;&gt;</code>.
  A database instance is also designated as a catalog.</p>
 
 <h3 class="typedecl"><a name="type-bin_field_name">bin_field_name()</a></h3>
@@ -67,7 +67,7 @@
 <p><code>bin_schema_name() = <a href="#type-bin_string">bin_string()</a></code></p>
 <p> A schema describes the organisation of the tables of a database. It defines a
  namespace of tables, and security boundaries.
- Ex: <code>&lt;&lt;"customer_schema"&gt;&gt;</code>.</p>
+ For example <code>&lt;&lt;"customer_schema"&gt;&gt;</code>.</p>
 
 <h3 class="typedecl"><a name="type-bin_string">bin_string()</a></h3>
 <p><code>bin_string() = <a href="text_utils.html#type-bin_string">text_utils:bin_string()</a></code></p>
@@ -96,21 +96,21 @@
 <h3 class="typedecl"><a name="type-database_host_name">database_host_name()</a></h3>
 <p><code>database_host_name() = <a href="net_utils.html#type-string_host_name">net_utils:string_host_name()</a></code></p>
 <p> Designates the hostname on which a target database server instance is running.
- Ex: "baz.foobar.org."</p>
+ For example "baz.foobar.org."</p>
 
 <h3 class="typedecl"><a name="type-database_name">database_name()</a></h3>
 <p><code>database_name() = <a href="#type-ustring">ustring()</a></code></p>
-<p> The name of the target database instance. Ex: "acme_stock_db".
+<p> The name of the target database instance. For example "acme_stock_db".
  A database instance is also designated as a catalog.</p>
 
 <h3 class="typedecl"><a name="type-database_port">database_port()</a></h3>
 <p><code>database_port() = <a href="net_utils.html#type-tcp_port">net_utils:tcp_port()</a></code></p>
 <p> The (TCP) port at which the target database server instance is running.
- Ex: 5432.</p>
+ For example 5432.</p>
 
 <h3 class="typedecl"><a name="type-database_user_name">database_user_name()</a></h3>
 <p><code>database_user_name() = <a href="#type-ustring">ustring()</a></code></p>
-<p> The name of a user of a database server. Ex: "john_smith".</p>
+<p> The name of a user of a database server. For example "john_smith".</p>
 
 <h3 class="typedecl"><a name="type-database_user_password">database_user_password()</a></h3>
 <p><code>database_user_password() = <a href="#type-ustring">ustring()</a></code></p>
@@ -158,7 +158,7 @@
 <h3 class="typedecl"><a name="type-query_string">query_string()</a></h3>
 <p><code>query_string() = <a href="#type-ustring">ustring()</a></code></p>
 <p> A SQL query, as a string.
- Ex: "select * from customers".</p>
+ For example "select * from customers".</p>
 
 <h3 class="typedecl"><a name="type-query_values">query_values()</a></h3>
 <p><code>query_values() = <a href="text_utils.html#type-format_values">text_utils:format_values()</a></code></p>
@@ -177,7 +177,7 @@
 <p><code>schema_name() = <a href="#type-ustring">ustring()</a></code></p>
 <p> A schema describes the organisation of the tables of a database. It defines a
  namespace of tables, and security boundaries.
- Ex: "customer_schema".</p>
+ For example "customer_schema".</p>
 
 <h3 class="typedecl"><a name="type-select_result">select_result()</a></h3>
 <p><code>select_result() = {[<a href="#type-field_description">field_description()</a>], [<a href="#type-record">record()</a>]}</code></p>
@@ -194,7 +194,7 @@
 <h3 class="typedecl"><a name="type-timestamp">timestamp()</a></h3>
 <p><code>timestamp() = <a href="#type-ustring">ustring()</a></code></p>
 <p> A database timestamp.
- Ex: "2021-11-08 13:33:52.895374".</p>
+ For example "2021-11-08 13:33:52.895374".</p>
 
 <h3 class="typedecl"><a name="type-update_result">update_result()</a></h3>
 <p><code>update_result() = <a href="#type-operation_count">operation_count()</a></code></p>
@@ -329,7 +329,7 @@ the one directly read (with is prefixed and in hexadecimal character).</p>
 </div><p><p>Returns a list of the names of all the existing schemas in the database 
 instance of the database server designated by the specified connection.</p>
 
- Ex: <code>[&lt;&lt;"pg_catalog"&gt;&gt;, &lt;&lt;"information_schema"&gt;&gt;, &lt;&lt;"public"&gt;&gt;]</code>.
+ For example <code>[&lt;&lt;"pg_catalog"&gt;&gt;, &lt;&lt;"information_schema"&gt;&gt;, &lt;&lt;"public"&gt;&gt;]</code>.
 </p>
 
 <h3 class="function"><a name="list_table_names-3">list_table_names/3</a></h3>

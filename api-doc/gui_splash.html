@@ -47,7 +47,7 @@ deallocated/terminated as soon as that process will receive a removal message.</
 
 
 <h3 class="typedecl"><a name="type-dynamic_splash_info">dynamic_splash_info()</a></h3>
-<p><code>dynamic_splash_info() = #dynamic_splash_info{splash_frame = <a href="#type-frame">frame()</a>, splash_panel = <a href="#type-splash_panel">splash_panel()</a>, icon_bitmap = <a href="#type-bitmap">bitmap()</a>, main_bitmap = <a href="#type-bitmap">bitmap()</a>}</code></p>
+<p><code>dynamic_splash_info() = #dynamic_splash_info{splash_frame = <a href="#type-frame">frame()</a>, splash_panel = <a href="#type-splash_panel">splash_panel()</a>, symbol_bitmap = <a href="#type-bitmap">bitmap()</a>, main_bitmap = <a href="#type-bitmap">bitmap()</a>}</code></p>
 <p> Information to be kept by an application using a dynamic splash screen.</p>
 
 <h3 class="typedecl"><a name="type-frame">frame()</a></h3>
@@ -145,7 +145,7 @@ remove/1 function, typically once fully initialised and ready.</p>
 
 <h3 class="function"><a name="create_dynamic-11">create_dynamic/11</a></h3>
 <div class="spec">
-<p><code>create_dynamic(IconImgPath::<a href="#type-any_image_path">any_image_path()</a>, TitleStr::<a href="#type-any_string">any_string()</a>, VersionStr::<a href="#type-any_string">any_string()</a>, DescStr::<a href="#type-any_string">any_string()</a>, UrlStr::<a href="#type-any_string">any_string()</a>, TitleBackgroundColor::<a href="#type-color">color()</a>, OverallBackgroundColor::<a href="#type-color">color()</a>, MainImgPath::<a href="#type-any_image_path">any_image_path()</a>, GeneralInfoStr::<a href="#type-any_string">any_string()</a>, CopyrightStr::<a href="#type-any_string">any_string()</a>, Parent::<a href="#type-parent">parent()</a>) -&gt; <a href="#type-dynamic_splash_info">dynamic_splash_info()</a></code><br></p>
+<p><code>create_dynamic(SymbolImgPath::<a href="#type-any_image_path">any_image_path()</a>, TitleStr::<a href="#type-any_string">any_string()</a>, VersionStr::<a href="#type-any_string">any_string()</a>, DescStr::<a href="#type-any_string">any_string()</a>, UrlStr::<a href="#type-any_string">any_string()</a>, TitleBackgroundColor::<a href="#type-color">color()</a>, OverallBackgroundColor::<a href="#type-color">color()</a>, MainImgPath::<a href="#type-any_image_path">any_image_path()</a>, GeneralInfoStr::<a href="#type-any_string">any_string()</a>, CopyrightStr::<a href="#type-any_string">any_string()</a>, Parent::<a href="#type-parent">parent()</a>) -&gt; <a href="#type-dynamic_splash_info">dynamic_splash_info()</a></code><br></p>
 <p> </p>
 </div><p><p>Creates a dynamic splash screen displaying the specified information on a 
 minimalist frame on top of the specified parent (typically a frame, probably 
@@ -157,7 +157,7 @@ rendered with the specified overall background color, and will be organised
 based on three rows (each described from left to right):</p>
 
   <p>1. a top row (of the same background color), including (left-to-right):     
-* an icon-like image of the project     
+* an icon-like image symbolising the project     
 * then, just afterwards, two lines, on the specified title background     
 color:       
 - top one: with a large font, the title of the project (e.g. "Foobar")       
@@ -186,7 +186,7 @@ row. Ensure that all other elements are not too wide (e.g. that texts are not
 too long, knowing that they can be multi-lines).</p>
 
  <p>The overall height is the sum of the one of the three rows/panels:  
-1. the height of the first row is solely determined by the one of the icon  
+1. the height of the first row is solely determined by the one of the symbol  
 image  
 2. the height of the second row is solely determined by the one of its (main)  
 image  

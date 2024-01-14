@@ -206,6 +206,10 @@
 <p><code>tcp_port_restriction() = no_restriction | <a href="#type-tcp_port_range">tcp_port_range()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-time_out">time_out()</a></h3>
+<p><code>time_out() = <a href="time_utils.html#type-time_out">time_utils:time_out()</a></code></p>
+
+
 <h3 class="typedecl"><a name="type-udp_port">udp_port()</a></h3>
 <p><code>udp_port() = <a href="#type-net_port">net_port()</a></code></p>
 
@@ -289,9 +293,13 @@ Erlang node with the specified TCP port restriction, which can be either the
 <tr><td valign="top"><a href="#ipv4_to_string-2">ipv4_to_string/2</a></td><td>Returns a string describing the specified IPv4 address and port.</td></tr>
 <tr><td valign="top"><a href="#ipv6_to_string-1">ipv6_to_string/1</a></td><td>Returns a string describing the specified IPv6 address.</td></tr>
 <tr><td valign="top"><a href="#ipv6_to_string-2">ipv6_to_string/2</a></td><td>Returns a string describing the specified IPv6 address and port.</td></tr>
-<tr><td valign="top"><a href="#is_routable-1">is_routable/1</a></td><td>Tells whether the specified IPv4 address is routable.</td></tr>
-<tr><td valign="top"><a href="#is_service_running_at-1">is_service_running_at/1</a></td><td>Tells whether a service (socket) is running on the local host at
+<tr><td valign="top"><a href="#is_local_service_running_at-1">is_local_service_running_at/1</a></td><td>Tells whether a service (socket) is running on the local host at the
  specified TCP port.</td></tr>
+<tr><td valign="top"><a href="#is_routable-1">is_routable/1</a></td><td>Tells whether the specified IPv4 address is routable.</td></tr>
+<tr><td valign="top"><a href="#is_service_running_at-2">is_service_running_at/2</a></td><td>Tells whether a service (socket) is running on the specified host, at the
+ specified TCP port, using a default time-out.</td></tr>
+<tr><td valign="top"><a href="#is_service_running_at-3">is_service_running_at/3</a></td><td>Tells whether a service (socket) is running on the specified host, at the 
+specified TCP port, based on the specified time-out.</td></tr>
 <tr><td valign="top"><a href="#launch_epmd-0">launch_epmd/0</a></td><td>Launches as a daemon (in the background) an EPMD instance on the Erlang 
 standard port, if needed.</td></tr>
 <tr><td valign="top"><a href="#launch_epmd-1">launch_epmd/1</a></td><td>Launches as a daemon (in the background) an EPMD instance on the 
@@ -685,6 +693,14 @@ Erlang node with the specified TCP port restriction, which can be either the
 <p> </p>
 </div><p>Returns a string describing the specified IPv6 address and port.</p>
 
+<h3 class="function"><a name="is_local_service_running_at-1">is_local_service_running_at/1</a></h3>
+<div class="spec">
+<p><code>is_local_service_running_at(TCPPort::<a href="#type-tcp_port">tcp_port()</a>) -&gt; boolean()</code><br></p>
+<p> </p>
+</div><p>Tells whether a service (socket) is running on the local host at the
+ specified TCP port.
+</p>
+
 <h3 class="function"><a name="is_routable-1">is_routable/1</a></h3>
 <div class="spec">
 <p><code>is_routable(X1::<a href="#type-ip_v4_address">ip_v4_address()</a>) -&gt; boolean()</code><br></p>
@@ -694,12 +710,25 @@ Erlang node with the specified TCP port restriction, which can be either the
  Note: the loopback ({127,0,0,1}, or {0,0,0,0,0,0,0,1}) is deemed routable.
 </p>
 
-<h3 class="function"><a name="is_service_running_at-1">is_service_running_at/1</a></h3>
+<h3 class="function"><a name="is_service_running_at-2">is_service_running_at/2</a></h3>
 <div class="spec">
-<p><code>is_service_running_at(TCPPort::<a href="#type-tcp_port">tcp_port()</a>) -&gt; boolean()</code><br></p>
+<p><code>is_service_running_at(TargetHostname::<a href="#type-any_host_name">any_host_name()</a>, TCPPort::<a href="#type-tcp_port">tcp_port()</a>) -&gt; boolean()</code><br></p>
 <p> </p>
-</div><p>Tells whether a service (socket) is running on the local host at
- specified TCP port.
+</div><p>Tells whether a service (socket) is running on the specified host, at the
+ specified TCP port, using a default time-out.
+</p>
+
+<h3 class="function"><a name="is_service_running_at-3">is_service_running_at/3</a></h3>
+<div class="spec">
+<p><code>is_service_running_at(TargetHostname::<a href="#type-any_host_name">any_host_name()</a>, TCPPort::<a href="#type-tcp_port">tcp_port()</a>, Timeout::<a href="#type-time_out">time_out()</a>) -&gt; boolean()</code><br></p>
+<p> </p>
+</div><p><p>Tells whether a service (socket) is running on the specified host, at the 
+specified TCP port, based on the specified time-out.</p>
+
+ Not that null or even very short time-outs (e.g. 1 ms) may trigger
+ econnrefused (and thus report that the service is not running) whereas a
+ suitable service exists. According to our tests, a 10-millisecond timeout
+ seems already reliable.
 </p>
 
 <h3 class="function"><a name="launch_epmd-0">launch_epmd/0</a></h3>

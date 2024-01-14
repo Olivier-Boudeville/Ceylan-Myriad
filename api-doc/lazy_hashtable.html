@@ -237,7 +237,7 @@ to specified key, this value being assumed to be a list.</p>
 </div><p><p>Returns a flat list whose elements are all the key/value pairs of the 
 hashtable, in no particular order.</p>
 
- Ex: [{K1,V1}, {K2,V2}, ...].
+ For example: [{K1,V1}, {K2,V2}, ...].
 </p>
 
 <h3 class="function"><a name="extract_entry-2">extract_entry/2</a></h3>
@@ -274,7 +274,7 @@ otherwise throwing an exception.</p>
  <p>The key/value pairs are expected to exist already, otherwise an exception is 
 raised.</p>
 
- Ex: [Color=red, Age=23, Mass=51] = lazy_hashtable:get_all_values(
+ For example [Color=red, Age=23, Mass=51] = lazy_hashtable:get_all_values(
    [color, age, mass], [{color, red}, {mass, 51}, {age, 23}])
 </p>
 
@@ -307,8 +307,8 @@ it directly.</p>
  <p>The key/value pairs are expected to exist already, otherwise an exception is 
 raised.</p>
 
- Ex: [Color, Age, Mass] = lazy_hashtable:get_values([color, age, mass],
-  MyLazyTable])
+ For example [Color, Age, Mass] = lazy_hashtable:get_values([color, age, mass],
+ MyLazyTable])
 </p>
 
 <h3 class="function"><a name="has_entry-2">has_entry/2</a></h3>
@@ -356,7 +356,7 @@ enumerate the content of the hashtable and iterate on it (hence without having
 to duplicate the whole content in memory).</p>
 
  <p>Note: as the fun may return modified keys, the whole structure of the 
-hashtable may change (ex: different buckets used for replaced entries, 
+hashtable may change (e.g. different buckets used for replaced entries, 
 colliding keys resulting in having less entries afterwards, etc.).</p>
 
  One may request the returned hashtable to be optimised after this call.
@@ -504,7 +504,8 @@ false, if false will be true.</p>
 <p> </p>
 </div><p><p>Returns a list containing all the values of this hashtable.</p>
 
- Ex: useful if the key was used as an index to generate this table first.
+ For example useful if the key was used as an index to generate this table
+ first.
 </p>
 <hr>
 

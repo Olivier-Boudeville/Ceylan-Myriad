@@ -434,6 +434,8 @@ with the specified arguments.</td></tr>
  (exactly) match the specified one.</td></tr>
 <tr><td valign="top"><a href="#freeze-0">freeze/0</a></td><td>Freezes the current process immediately.</td></tr>
 <tr><td valign="top"><a href="#get_execution_target-0">get_execution_target/0</a></td><td></td></tr>
+<tr><td valign="top"><a href="#get_myriad_version-0">get_myriad_version/0</a></td><td>Returns the version of the Myriad library being used.</td></tr>
+<tr><td valign="top"><a href="#get_myriad_version_string-0">get_myriad_version_string/0</a></td><td>Returns the version of the Myriad library being used, as a string.</td></tr>
 <tr><td valign="top"><a href="#get_process_info-1">get_process_info/1</a></td><td>Returns all general information regarding specified process (which is
  local or not), provided it is still alive (otherwise returns undefined).</td></tr>
 <tr><td valign="top"><a href="#get_process_info-2">get_process_info/2</a></td><td>Returns the specified information regarding specified process (which is
@@ -853,6 +855,18 @@ termination occurs.</p>
 <p><code>get_execution_target() -&gt; development</code><br></p>
 <p> </p>
 </div>
+
+<h3 class="function"><a name="get_myriad_version-0">get_myriad_version/0</a></h3>
+<div class="spec">
+<p><code>get_myriad_version() -&gt; <a href="#type-three_digit_version">three_digit_version()</a></code><br></p>
+<p> </p>
+</div><p>Returns the version of the Myriad library being used.</p>
+
+<h3 class="function"><a name="get_myriad_version_string-0">get_myriad_version_string/0</a></h3>
+<div class="spec">
+<p><code>get_myriad_version_string() -&gt; <a href="#type-ustring">ustring()</a></code><br></p>
+<p> </p>
+</div><p>Returns the version of the Myriad library being used, as a string.</p>
 
 <h3 class="function"><a name="get_process_info-1">get_process_info/1</a></h3>
 <div class="spec">

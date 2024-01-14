@@ -97,10 +97,10 @@ large amounts of numerical data.</p>
 <p><code>dimensions() = <a href="#type-dimension_size">dimension_size()</a> | tuple()</code></p>
 <p><p> Dimensions of a dataspace (number of elements of each dimension).</p>
 
- <p>Typically, for monodimensional data (ex: [4.0, 5.2]), we have dimensions :: 
+ <p>Typically, for monodimensional data (e.g. [4.0, 5.2]), we have dimensions :: 
 dimension(), which corresponds to the number of elements (here, 2).</p>
 
- For bidimensional data (ex: [{1,2,3}, {4,5,6} ], we have Dimensions ::
+ For bidimensional data (e.g. [{1,2,3}, {4,5,6} ], we have Dimensions ::
  {TupleCount :: dimension_size(), TupleSize :: dimension_size()} (corresponding
  here to {2,3}).</p>
 
@@ -132,7 +132,7 @@ dimension(), which corresponds to the number of elements (here, 2).</p>
 
 <h3 class="typedecl"><a name="type-hdf5_predefined_datatype">hdf5_predefined_datatype()</a></h3>
 <p><code>hdf5_predefined_datatype() = atom()</code></p>
-<p> Note: such a datatype is an atom here (ex: 'H5T_NATIVE_DOUBLE'), for actual
+<p> Note: such a datatype is an atom here (e.g. 'H5T_NATIVE_DOUBLE'), for actual
  HDF5 use it must be translated into an integer (using convert_type, defined in
  erlh5t.c).</p>
 
@@ -318,8 +318,8 @@ structure.</p>
 </div><p><p>Creates specified dataspace, with specified dimensions of specified 
 maximum size, and opens it for access.</p>
 
- <p>Ex: to create a dataspace with two dimensions, of size 5 and 9 (hence with 
-5x9=45 elements), use: hdf5_support:create_dataspace( { 5, 9 } ).</p>
+ <p>For example to create a dataspace with two dimensions, of size 5 and 9 (hence 
+with 5x9=45 elements), use: hdf5_support:create_dataspace({5, 9}).</p>
 
  Single-dimension arrays can be declared directly, as in:
  hdf5_support:create_dataspace( 20 ).
@@ -386,7 +386,7 @@ maximum size, and opens it for access.</p>
 </div><p><p>Returns, for specified dataspace, an ordered list of, for each dimension, 
 a pair of current and maximum size.</p>
 
- Ex: may return, for a dataspace of dimension { 5, 9 }, [ {5,5}, {9,9} ].
+ For example may return, for a dataspace of dimension {5, 9}, [{5,5}, {9,9}].
 </p>
 
 <h3 class="function"><a name="get_dimension_extensions-2">get_dimension_extensions/2</a></h3>
@@ -396,8 +396,8 @@ a pair of current and maximum size.</p>
 </div><p><p>Returns, for specified dataspace of specified rank, an ordered list of, 
 for each dimension, a pair of current and maximum size.</p>
 
- Ex: may return, for a dataspace of dimension { 5, 9 } (and thus rank 2), [
- {5,5}, {9,9} ].
+ For example may return, for a dataspace of dimension {5, 9} (and thus rank 2),
+ [{5,5}, {9,9}].
 </p>
 
 <h3 class="function"><a name="get_element_count-1">get_element_count/1</a></h3>

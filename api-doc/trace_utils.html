@@ -15,8 +15,9 @@ the console.
 
 
 <h2><a name="description">Description</a></h2><p>Gathering of various very <b>low-level trace-related facilities</b> on 
-the console. These are (runtime) logs; they are not related to the Erlang 
-tracing subsystem.</p>
+the console. These are (runtime) logs; they are by default not linked to the 
+Erlang logging subsystem; see the set_handler/0 function in the current module 
+so that they are integrated to the logger facilities.</p>
 
  <p>The API functions provided by the current module are mostly useful so that 
 their call can be replaced by calls to the far more advanced facilities of the 
@@ -160,8 +161,8 @@ terms of the newer standard logger).</td></tr>
 <tr><td valign="top"><a href="#notice_fmt-2">notice_fmt/2</a></td><td>Outputs specified formatted notice message.</td></tr>
 <tr><td valign="top"><a href="#safer_display-1">safer_display/1</a></td><td>Displays the specified message.</td></tr>
 <tr><td valign="top"><a href="#safer_display-2">safer_display/2</a></td><td>Displays the specified format-based message, in a safer way.</td></tr>
-<tr><td valign="top"><a href="#set_handler-0">set_handler/0</a></td><td>Replaces the current (probably default) logger handler with this Myriad
- one (registered as the 'default' handler).</td></tr>
+<tr><td valign="top"><a href="#set_handler-0">set_handler/0</a></td><td>Replaces the current (probably default) logger handler with this Myriad 
+one (registered as the 'default' handler).</td></tr>
 <tr><td valign="top"><a href="#set_logger_format_max_depth-1">set_logger_format_max_depth/1</a></td><td>Sets the logger maximum depth when formatting messages.</td></tr>
 <tr><td valign="top"><a href="#void-1">void/1</a></td><td>"Outputs" specified void message.</td></tr>
 <tr><td valign="top"><a href="#void_categorized-2">void_categorized/2</a></td><td>"Outputs" specified void message, with specified message categorization.</td></tr>
@@ -475,8 +476,13 @@ terms of the newer standard logger).</p>
 <div class="spec">
 <p><code>set_handler() -&gt; <a href="#type-void">void()</a></code><br></p>
 <p> </p>
-</div><p>Replaces the current (probably default) logger handler with this Myriad
- one (registered as the 'default' handler).
+</div><p><p>Replaces the current (probably default) logger handler with this Myriad 
+one (registered as the 'default' handler).</p>
+
+ Note that Myriad logging defaults will then apply (see get_handler_config/0),
+ which is bound to imply a finer level of reported logs. As a result, after
+ this function is called (directly or not), new error-like log messages may
+ seem to appear.
 </p>
 
 <h3 class="function"><a name="set_logger_format_max_depth-1">set_logger_format_max_depth/1</a></h3>

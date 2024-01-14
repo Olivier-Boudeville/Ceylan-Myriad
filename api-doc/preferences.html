@@ -10,12 +10,12 @@
 <hr>
 
 <h1>Module preferences</h1>
-<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Service dedicated to the <b>management of user preferences</b>, thanks to 
-a corresponding server process.
+<ul class="index"><li><a href="#description">Description</a></li><li><a href="#types">Data Types</a></li><li><a href="#index">Function Index</a></li><li><a href="#functions">Function Details</a></li></ul>Service dedicated to the <b>management of user preferences</b> (for 
+user-level configuration), thanks to a corresponding server process.
 
 
-<h2><a name="description">Description</a></h2><p>Service dedicated to the <b>management of user preferences</b>, thanks to 
-a corresponding server process.</p>
+<h2><a name="description">Description</a></h2><p>Service dedicated to the <b>management of user preferences</b> (for 
+user-level configuration), thanks to a corresponding server process.</p>
 
  <p>Preferences are generally default, static settings, like user general 
 preferences, defined in a file meant to be potentially read by multiple 
@@ -29,7 +29,7 @@ a configuration file.</p>
  <p>Preferences can be application-specific or component-specific, and obtained 
 from any source (file included); they may also start blank and be exclusively 
 fed by the application or component itself. In any case they are meant to be 
-accessed (read/write) in the course of program execution, before possibly 
+accessed (read/written) in the course of program execution, before possibly 
 being stored at application exit or component stop.</p>
 
  <p>A preferences entry is designated by a key (an atom), associated to a value 
@@ -45,20 +45,20 @@ a key registered to 'undefined'.</p>
  {myHeight, 1.80}.
  {'My name', "Sylvester the cat"}.</pre>
 
- <p>Such a file may be used to create a preferences server (ex: with start/0) or 
+ <p>Such a file may be used to create a preferences server (e.g. with start/0) or 
 to update a pre-existing one (with update_from_etf/{1,2}).</p>
 
  <p>The corresponding server process is locally registered, generally under a 
 fixed name, which may be the default Myriad one (see the 
-default_preferences_filename define), or a user-defined one (ex: 
+default_preferences_filename define), or a user-defined one (e.g. 
 foobar_preferences).</p>
 
  <p>As a consequence, a preferences server can be designated either directly
- through its PID or through its conventional (atom) registration name (ex:
+ through its PID or through its conventional (atom) registration name (e.g.
  implicitly with <code>preferences:get(hello)</code> for the default one, or explicitly,
  via its name with <code>preferences:get(hello, foobar_preferences)</code>. The former 
-approach is a bit more effective, but the later one is more robust (the server 
-can be transparently restarted/upgraded).</p>
+approach is a bit more effective, but the latter one is more robust (the 
+server can be transparently restarted/upgraded).</p>
 
  <p>No specific global registration of that server is made here.</p>
 
@@ -76,8 +76,8 @@ cached directly in client processes.</p>
  <p>In this case the process dictionary of these clients is used, and when 
 updating from a client process a cached key, the corresponding preferences 
 server is updated in turn. However any other client process caching that key 
-will not be aware of this change until it requests an update to this 
-preferences server.</p>
+will not be aware of this change until it explicitly requests an update to 
+this preferences server.</p>
 
  In practice, now preferences are a special case of environment (see our
  environment module for more details). So each preferences server is an
@@ -86,9 +86,21 @@ preferences server.</p>
 
 <h2><a name="types">Data Types</a></h2>
 
+<h3 class="typedecl"><a name="type-any_app_info">any_app_info()</a></h3>
+<p><code>any_app_info() = <a href="app_facilities.html#type-app_info">app_facilities:app_info()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-any_directory_path">any_directory_path()</a></h3>
+<p><code>any_directory_path() = <a href="file_utils.html#type-any_directory_path">file_utils:any_directory_path()</a></code></p>
+
+
 <h3 class="typedecl"><a name="type-any_file_path">any_file_path()</a></h3>
 <p><code>any_file_path() = <a href="file_utils.html#type-any_file_path">file_utils:any_file_path()</a></code></p>
 
+
+<h3 class="typedecl"><a name="type-app_pref_lookup_outcome">app_pref_lookup_outcome()</a></h3>
+<p><code>app_pref_lookup_outcome() = <a href="#type-any_file_path">any_file_path()</a> | {not_found, <a href="#type-any_file_path">any_file_path()</a>, [<a href="#type-any_directory_path">any_directory_path()</a>]}</code></p>
+<p> The outcome of the lookup of an application preferences file.</p>
 
 <h3 class="typedecl"><a name="type-bin_string">bin_string()</a></h3>
 <p><code>bin_string() = <a href="text_utils.html#type-bin_string">text_utils:bin_string()</a></code></p>
@@ -104,6 +116,10 @@ preferences server.</p>
 
 <h3 class="typedecl"><a name="type-entry">entry()</a></h3>
 <p><code>entry() = <a href="table.html#type-entry">table:entry()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-file_name">file_name()</a></h3>
+<p><code>file_name() = <a href="file_utils.html#type-file_name">file_utils:file_name()</a></code></p>
 
 
 <h3 class="typedecl"><a name="type-file_path">file_path()</a></h3>
@@ -177,6 +193,25 @@ preferences (if any), otherwise 'undefined', based on the specified
 preferences file (and possibly launching a corresponding (non-linked) 
 preferences server if needed) or on the specified PID of an already-running 
 preferences server.</td></tr>
+<tr><td valign="top"><a href="#get_application_preferences_file-1">get_application_preferences_file/1</a></td><td>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored.</td></tr>
+<tr><td valign="top"><a href="#get_application_preferences_file-2">get_application_preferences_file/2</a></td><td>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored.</td></tr>
+<tr><td valign="top"><a href="#get_application_preferences_file-3">get_application_preferences_file/3</a></td><td>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored, using first the application-related directories, then the 
+specified extra directory candidates and, if requested, as a last resort, the 
+default preferences path.</td></tr>
+<tr><td valign="top"><a href="#get_application_preferences_file-4">get_application_preferences_file/4</a></td><td>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored, using the specified prioritary directories as (ordered) 
+first locations, then the application-related directories, then the extra 
+(ordered) directories and, if requested, as a last resort, the default 
+preferences path.</td></tr>
+<tr><td valign="top"><a href="#get_application_preferences_filename-1">get_application_preferences_filename/1</a></td><td>Returns the name of the preferences file corresponding to the specified
+ application.</td></tr>
 <tr><td valign="top"><a href="#get_default_preferences_path-0">get_default_preferences_path/0</a></td><td>Returns the full, absolute path to the default preferences filename.</td></tr>
 <tr><td valign="top"><a href="#get_default_preferences_registration_name-0">get_default_preferences_registration_name/0</a></td><td>Returns the default (local) registration name for the preferences.</td></tr>
 <tr><td valign="top"><a href="#is_preferences_default_file_available-0">is_preferences_default_file_available/0</a></td><td>Returns whether the default preferences file is available, together with
@@ -359,6 +394,106 @@ preferences:get([hello, my_number, some_maybe], my_foobar_preferences)</p>
 
   ["Hello!", 42, undefined] =
      preferences:get([hello, my_number, some_maybe], MyPrefServerPid)
+</p>
+
+<h3 class="function"><a name="get_application_preferences_file-1">get_application_preferences_file/1</a></h3>
+<div class="spec">
+<p><code>get_application_preferences_file(AnyAppInfo::<a href="#type-any_app_info">any_app_info()</a>) -&gt; <a href="#type-app_pref_lookup_outcome">app_pref_lookup_outcome()</a></code><br></p>
+<p> </p>
+</div><p><p>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored.</p>
+
+ <p>For example, for an application named "foobar", of version 0.0.1, following 
+paths may be looked up in turn:  
+- "~/.config/foobar/0.0.1/foobar.etf"  
+- "~/.config/foobar/foobar.etf"</p>
+
+ So for example either "/home/john/.config/foobar/foobar.etf" is returned, or a
+ {not_found, "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
+ "/home/john/.config/foobar/foobar.etf"]} triplet.
+</p>
+
+<h3 class="function"><a name="get_application_preferences_file-2">get_application_preferences_file/2</a></h3>
+<div class="spec">
+<p><code>get_application_preferences_file(AnyAppInfo::<a href="#type-any_app_info">any_app_info()</a>, AddDefaultPrefPath::boolean()) -&gt; <a href="#type-app_pref_lookup_outcome">app_pref_lookup_outcome()</a></code><br></p>
+<p> </p>
+</div><p><p>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored.</p>
+
+ <p>For example, for an application named "foobar", of version 0.0.1, following 
+paths may be looked up in turn:  
+- "~/.config/foobar/0.0.1/foobar.etf"  
+- "~/.config/foobar/foobar.etf"  
+- if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"</p>
+
+ So for example either "/home/john/.config/foobar/foobar.etf" is returned, or a
+ {not_found, "foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",
+ "/home/john/.config/foobar/foobar.etf", "/home/john/.ceylan-settings.etf"]}
+ triplet.
+</p>
+
+<h3 class="function"><a name="get_application_preferences_file-3">get_application_preferences_file/3</a></h3>
+<div class="spec">
+<p><code>get_application_preferences_file(AnyAppInfo::<a href="#type-any_app_info">any_app_info()</a>, ExtraDirs::[<a href="#type-any_directory_path">any_directory_path()</a>], AddDefaultPrefPath::boolean()) -&gt; <a href="#type-app_pref_lookup_outcome">app_pref_lookup_outcome()</a></code><br></p>
+<p> </p>
+</div><p><p>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored, using first the application-related directories, then the 
+specified extra directory candidates and, if requested, as a last resort, the 
+default preferences path.</p>
+
+ <p>For example, for an application named "foobar", of version 0.0.1 and 
+extra directories ["/home/a", "/var/b"], following paths may be looked up 
+in turn:  
+- "~/.config/foobar/0.0.1/foobar.etf"  
+- "~/.config/foobar/foobar.etf"  
+- "/home/a/foobar.etf"  
+- "/var/b/foobar.etf"  
+- if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"</p>
+
+ <p>So for example either "/var/b/foobar.etf" is returned, or a {not_found, 
+"foobar.etf", ["/home/john/.config/foobar/0.0.1/foobar.etf",   
+"/home/john/.config/foobar/foobar.etf", "/home/a/foobar.etf",   
+"/var/b/foobar.etf", "/home/john/.ceylan-settings.etf"]} triplet.</p>
+
+</p>
+
+<h3 class="function"><a name="get_application_preferences_file-4">get_application_preferences_file/4</a></h3>
+<div class="spec">
+<p><code>get_application_preferences_file(AppInfo::<a href="#type-any_app_info">any_app_info()</a>, PrioritaryDirs::[<a href="#type-any_directory_path">any_directory_path()</a>], ExtraDirs::[<a href="#type-any_directory_path">any_directory_path()</a>], AddDefaultPrefPath::boolean()) -&gt; <a href="#type-app_pref_lookup_outcome">app_pref_lookup_outcome()</a></code><br></p>
+<p> </p>
+</div><p><p>Returns the found preferences file (if any) relevant for the specified 
+application, otherwise the preferences filename and the ordered list of the 
+full paths explored, using the specified prioritary directories as (ordered) 
+first locations, then the application-related directories, then the extra 
+(ordered) directories and, if requested, as a last resort, the default 
+preferences path.</p>
+
+ <p>For example, for an application named "foobar", of version 0.0.1 and 
+prioritary directories ["/home/a", "/var/b"] and extra directories ["/opt/c"], 
+following paths may be looked up in turn:  
+- "/home/a/foobar.etf"  
+- "/var/b/foobar.etf"  
+- "~/.config/foobar/0.0.1/foobar.etf"  
+- "~/.config/foobar/foobar.etf"  
+- "/opt/c/foobar.etf"  
+- if AddDefaultPrefPath is true: "/home/john/.ceylan-settings.etf"</p>
+
+ So for example either "/var/b/foobar.etf" is returned, or a {not_found,
+ "foobar.etf", ["/home/a/foobar.etf", "/var/b/foobar.etf",
+   "/home/john/.config/foobar/0.0.1/foobar.etf",
+   "/home/john/.config/foobar/foobar.etf", "/opt/c/foobar.etf"
+   "/home/john/.ceylan-settings.etf"]} triplet.
+</p>
+
+<h3 class="function"><a name="get_application_preferences_filename-1">get_application_preferences_filename/1</a></h3>
+<div class="spec">
+<p><code>get_application_preferences_filename(App_info::<a href="#type-any_app_info">any_app_info()</a>) -&gt; <a href="#type-file_name">file_name()</a></code><br></p>
+<p> </p>
+</div><p>Returns the name of the preferences file corresponding to the specified
+ application.
 </p>
 
 <h3 class="function"><a name="get_default_preferences_path-0">get_default_preferences_path/0</a></h3>
