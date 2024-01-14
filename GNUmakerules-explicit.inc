@@ -1033,7 +1033,7 @@ copy-static-content:
 # Generates a relevant overview page for edoc:
 overview.edoc: doc/overview.edoc.template
 	@echo "  Generating $@ from $<"
-	@cat $< | sed "s|PROJECT_VERSION|$(PROJECT_VERSION)|g" | sed "s|GENERATION_DATE|$$(date '+%A, %B %-e, %Y')|g" > $@
+	@cat $< | sed "s|COPYRIGHT_YEAR|$$(date '+%Y')|g" | sed "s|PROJECT_VERSION|$(PROJECT_VERSION)|g" |sed "s|GENERATION_DATE|$$(date '+%A, %B %-e, %Y')|g" > $@
 
 
 clean-api-doc:

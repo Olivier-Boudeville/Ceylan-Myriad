@@ -328,6 +328,9 @@ ifndef PROJECT_VERSION
 	PROJECT_VERSION := $(MYRIAD_VERSION)
 endif
 
+# So that edoc has the right define:
+PROJECT_EDOC_VERSION_KEY = $(PROJECT_SHORT_NAME)_version
+
 
 # Variable name intentionally not including the current layer, for more generic
 # rules:
@@ -1914,7 +1917,7 @@ endif
 
 
 ifndef EDOC_OPTS
-	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module, false}]}, {includes,["$(LAYER_TOP)/include"]}, {overview, "$(LAYER_TOP)/overview.edoc"}]'
+	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
 endif
 
 
