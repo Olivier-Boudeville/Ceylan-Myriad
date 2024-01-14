@@ -59,6 +59,14 @@
 -export([ run/1, run/2, run/3, exec/1, exec/2, exec/3 ]).
 
 
+% Version-related functions.
+-export([ get_myriad_version/0, get_myriad_version_string/0,
+		  % See also text_utils:version_to_string/1:
+		  parse_version/1,
+		  check_three_digit_version/1, check_any_version/1,
+		  compare_versions/2 ]).
+
+
 % Miscellaneous functions.
 -export([ get_process_info/1, get_process_info/2,
 		  display_process_info/1,
@@ -71,11 +79,6 @@
 		  display_error/1, display_error/2,
 		  throw_diagnosed/1, throw_diagnosed/2,
 		  debug/1, debug/2,
-
-		  % See also text_utils:version_to_string/1:
-		  parse_version/1,
-		  check_three_digit_version/1, check_any_version/1,
-		  compare_versions/2,
 
 		  get_unix_process_specific_string/0,
 		  get_process_specific_value/0, get_process_specific_value/1,
@@ -1479,6 +1482,99 @@ exec( ModIOList, FunctionName, Args ) ->
 
 
 
+% Version-related functions.
+
+
+% @doc Returns the version of the Myriad library being used.
+-spec get_myriad_version() -> three_digit_version().
+get_myriad_version() ->
+	parse_version( get_myriad_version_string() ).
+
+
+% @doc Returns the version of the Myriad library being used, as a string.
+-spec get_myriad_version_string() -> ustring().
+get_myriad_version_string() ->
+	% As defined (uniquely) in GNUmakevars.inc:
+	?myriad_version.
+
+
+
+% @doc Parses the specified textual version.
+%
+% For example "4.2.1" should become {4,2,1}, and "2.3" should become {2,3}.
+%
+-spec parse_version( ustring() ) -> any_version().
+parse_version( VersionString ) ->
+
+	% First transform "4.22.1" into ["4","22","1"]:
+	Elems = string:tokens( VersionString, "." ),
+
+	% Then simply switch to {4,22,1}:
+	list_to_tuple( [ text_utils:string_to_integer( E ) || E <- Elems ] ).
+
+
+
+% @doc Checks that the specified term is a three-digit version, and returns it.
+-spec check_three_digit_version( term() ) -> three_digit_version().
+check_three_digit_version( T={ A, B, C } ) when is_integer( A )
+				andalso is_integer( B ) andalso is_integer( C ) ->
+	T;
+
+check_three_digit_version( T ) ->
+	throw( { invalid_three_digit_version, T } ).
+
+
+
+% @doc Checks that the specified term is a any-version, and returns it.
+-spec check_any_version( term() ) -> any_version().
+check_any_version( T ) when is_tuple( T ) ->
+	case lists:all( fun( E ) -> is_integer( E ) andalso E >= 0 end,
+					tuple_to_list( T ) ) of
+
+		true ->
+			T;
+
+		false ->
+			throw( { invalid_any_version, T } )
+
+	end;
+
+check_any_version( V ) ->
+	throw( { invalid_any_version, V } ).
+
+
+
+% @doc Compares the two specified any-versions (expected to be of the same
+% size), which describe two version numbers (e.g. {0,1,0} and {0,1,7}) and
+% returns either first_bigger, second_bigger, or equal.
+%
+% The two compared versions must have the same number of digits.
+%
+-spec compare_versions( any_version(), any_version() ) ->
+								'equal' | 'first_bigger' | 'second_bigger'.
+compare_versions( A, B ) when tuple_size( A ) =:= tuple_size( B ) ->
+	% As the default term order is already what we need:
+	case A > B of
+
+		true ->
+			first_bigger;
+
+		false ->
+			case A =:= B of
+
+				true ->
+					equal;
+
+				false ->
+					second_bigger
+
+			end
+
+	end.
+
+
+
+
 % Miscellaneous functions.
 
 
@@ -1916,80 +2012,6 @@ debug( Message ) ->
 debug( Format, Values ) ->
 	debug( text_utils:format( Format, Values ) ).
 
-
-
-% @doc Parses the specified textual version.
-%
-% For example "4.2.1" should become {4,2,1}, and "2.3" should become {2,3}.
-%
--spec parse_version( ustring() ) -> any_version().
-parse_version( VersionString ) ->
-
-	% First transform "4.22.1" into ["4","22","1"]:
-	Elems = string:tokens( VersionString, "." ),
-
-	% Then simply switch to {4,22,1}:
-	list_to_tuple( [ text_utils:string_to_integer( E ) || E <- Elems ] ).
-
-
-
-% @doc Checks that the specified term is a three-digit version, and returns it.
--spec check_three_digit_version( term() ) -> three_digit_version().
-check_three_digit_version( T={ A, B, C } ) when is_integer( A )
-				andalso is_integer( B ) andalso is_integer( C ) ->
-	T;
-
-check_three_digit_version( T ) ->
-	throw( { invalid_three_digit_version, T } ).
-
-
-
-% @doc Checks that the specified term is a any-version, and returns it.
--spec check_any_version( term() ) -> any_version().
-check_any_version( T ) when is_tuple( T ) ->
-	case lists:all( fun( E ) -> is_integer( E ) andalso E >= 0 end,
-					tuple_to_list( T ) ) of
-
-		true ->
-			T;
-
-		false ->
-			throw( { invalid_any_version, T } )
-
-	end;
-
-check_any_version( V ) ->
-	throw( { invalid_any_version, V } ).
-
-
-
-% @doc Compares the two specified any-versions (expected to be of the same
-% size), which describe two version numbers (e.g. {0,1,0} and {0,1,7}) and
-% returns either first_bigger, second_bigger, or equal.
-%
-% The two compared versions must have the same number of digits.
-%
--spec compare_versions( any_version(), any_version() ) ->
-								'equal' | 'first_bigger' | 'second_bigger'.
-compare_versions( A, B ) when tuple_size( A ) =:= tuple_size( B ) ->
-	% As the default term order is already what we need:
-	case A > B of
-
-		true ->
-			first_bigger;
-
-		false ->
-			case A =:= B of
-
-				true ->
-					equal;
-
-				false ->
-					second_bigger
-
-			end
-
-	end.
 
 
 

@@ -317,8 +317,8 @@ ifndef PROJECT_NAME_FOR_OTP
 endif
 
 
-# The uniquely-defined version of this layer, for all uses (including rebar and
-# hex):
+# The uniquely-defined version of this layer, for all uses (including rebar, hex
+# and the code itself, see basic_utils:get_myriad_version{_string,}/0):
 #
 MYRIAD_VERSION := 1.0.36
 
@@ -1430,7 +1430,8 @@ DEBUG_INFO_KEY_OPT = +'{debug_info_key,$(DEBUG_INFO_KEY)}'
 # the same key as the ones normally built, in order that the Core Erlang of the
 # whole can be read by tools (e.g. Dialyzer):
 #
-ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT) \
+ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)                 \
+							   -Dmyriad_version=\"$(MYRIAD_VERSION)\"        \
 							   -Dmyriad_debug_info_key=\"$(DEBUG_INFO_KEY)\"
 
 

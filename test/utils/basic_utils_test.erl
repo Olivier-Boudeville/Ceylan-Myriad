@@ -88,6 +88,10 @@ run() ->
 	basic_utils:display_error( "error display ~ts",
 							   [ "with a format string" ] ),
 
+	test_facilities:display( "The version of this currently tested Myriad "
+		"library is ~ts (i.e. ~w).", [ basic_utils:get_myriad_version_string(),
+									   basic_utils:get_myriad_version() ] ),
+
 	FirstVersion  = { 0, 0, 0 },
 	SecondVersion = { 0, 0, 1 },
 	ThirdVersion  = { 0, 1, 0 },
