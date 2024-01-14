@@ -980,7 +980,7 @@ split_path( AnyPath ) ->
 
 % @doc Resolves the specified resolvable path as a standard path.
 %
-% For exemple resolve_path([home, "computer-info", short_hostname, "info.txt"])
+% For example resolve_path([home, "computer-info", short_hostname, "info.txt"])
 % may return "/home/john/computer-info/hurricane/info.txt".
 %
 -spec resolve_path( resolvable_path() ) -> path().
@@ -1039,7 +1039,7 @@ resolve_path( _ResolvablePath=[ UnexpectedTerm | _T ], _Acc ) ->
 % @doc Resolves the specified path - either a standard one or a resolvable one -
 % in all cases as a plain, standard path.
 %
-% For exemple resolve_any_path([home, "computer-info", short_hostname,
+% For example resolve_any_path([home, "computer-info", short_hostname,
 % "info.txt"]) may return "/home/john/computer-info/hurricane/info.txt".
 %
 -spec resolve_any_path( possibly_resolvable_path() ) -> path().

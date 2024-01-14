@@ -22,7 +22,8 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Author: Jingxuan Ma [jingxuan (dot) ma (at) edf (dot) fr]
+% Authors: Jingxuan Ma [jingxuan (dot) ma (at) edf (dot) fr]
+%          Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: November 10, 2011.
 
 

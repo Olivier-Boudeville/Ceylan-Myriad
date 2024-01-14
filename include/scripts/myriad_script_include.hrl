@@ -141,14 +141,14 @@ get_myriad_path_from( CodePath ) ->
 
 				Path ->
 					%trace_utils:debug_fmt( "Found from myriad: '~ts'.",
-					%					   [ Path ] ),
+					%                       [ Path ] ),
 					Path
 
 			end;
 
 		Path ->
 			%trace_utils:debug_fmt( "Found from Ceylan-Myriad: '~ts'.",
-			%					   [ Path ] ),
+			%                       [ Path ] ),
 			Path
 
 	end.

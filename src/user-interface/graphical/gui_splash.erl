@@ -77,8 +77,10 @@
 	% The off-screen bitmaps where all renderings take place:
 	%backbuffer :: bitmap(),
 
-	% The ready-to-use in-memory data corresponding to the icon of interest:
-	icon_bitmap :: bitmap(),
+	% The ready-to-use in-memory data corresponding to the small image
+	% (icon-like) of interest representing the application:
+	%
+	symbol_bitmap :: bitmap(),
 
 	% The ready-to-use in-memory data corresponding to the main image (logo) of
 	% interest:
@@ -295,7 +297,7 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 % based on three rows (each described from left to right):
 %
 %  1. a top row (of the same background color), including (left-to-right):
-%     * an icon-like image of the project
+%     * an icon-like image symbolising the project
 %     * then, just afterwards, two lines, on the specified title background
 %     color:
 %       - top one: with a large font, the title of the project (e.g. "Foobar")
@@ -324,7 +326,7 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 % too long, knowing that they can be multi-lines).
 %
 % The overall height is the sum of the one of the three rows/panels:
-%  1. the height of the first row is solely determined by the one of the icon
+%  1. the height of the first row is solely determined by the one of the symbol
 %  image
 %  2. the height of the second row is solely determined by the one of its (main)
 %  image
@@ -334,35 +336,36 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 % The splash screen will be dismissed when the application will call the
 % remove/1 function.
 %
--spec create_dynamic( IconImgPath :: any_image_path(), TitleStr :: any_string(),
-	VersionStr :: any_string(), DescStr :: any_string(), UrlStr :: any_string(),
+-spec create_dynamic( SymbolImgPath :: any_image_path(),
+	TitleStr :: any_string(), VersionStr :: any_string(),
+	DescStr :: any_string(), UrlStr :: any_string(),
 	TitleBackgroundColor :: color(), OverallBackgroundColor :: color(),
 	MainImgPath :: any_image_path(), GeneralInfoStr :: any_string(),
 	CopyrightStr :: any_string(), parent() ) -> dynamic_splash_info().
-create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, UrlStr,
+create_dynamic( SymbolImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 		TitleBackgroundColor, OverallBackgroundColor, MainImgPath,
 		GeneralInfoStr, CopyrightStr, Parent ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt( "Creating a dynamic splash screen, "
 			"to display '~ts' and '~ts', with parent ~w.",
-			[ IconImgPath, MainImgPath, Parent ] ) ),
+			[ SymbolImgPath, MainImgPath, Parent ] ) ),
 
 	SplashFrame = create_splash_frame( Parent ),
 
-	IconBitmap = gui_image:create_bitmap( IconImgPath ),
+	SymbolBitmap = gui_image:create_bitmap( SymbolImgPath ),
 	MainBitmap = gui_image:create_bitmap( MainImgPath ),
 
 	% Initialisation:
 	{ _MainSizer, _TopPanel, _MainPanel, _MainStaticBtmpDisp,
 	  _LeftTextDisplay, _RightTextDisplay } =
-		render_dynamic_splash( SplashFrame, IconBitmap, TitleStr, VersionStr,
+		render_dynamic_splash( SplashFrame, SymbolBitmap, TitleStr, VersionStr,
 			DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
 			MainBitmap, GeneralInfoStr, CopyrightStr ),
 
 	#dynamic_splash_info{ splash_frame=SplashFrame,
 						  %splash_panel=SplashPanel,
-						  icon_bitmap=IconBitmap,
+						  symbol_bitmap=SymbolBitmap,
 						  main_bitmap=MainBitmap }.
 
 
@@ -372,7 +375,7 @@ create_dynamic( IconImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 %
 % Defined for re-use.
 %
-render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
+render_dynamic_splash( TargetFrame, SymbolBitmap, TitleStr, VersionStr,
 		DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
 		MainBitmap, GeneralInfoStr, CopyrightStr ) ->
 
@@ -385,10 +388,10 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
 	MainSizer = gui_sizer:create( _Orientation=vertical ),
 
 
-	trace_utils:debug( "Operating on first row: icon and texts." ),
+	trace_utils:debug( "Operating on first row: symbol and texts." ),
 
 	% First row: setting a sufficient initial height of the top panel in order
-	% to contain all elements (so that the icon image and bottom text fit); it
+	% to contain all elements (so that the symbol image and bottom text fit); it
 	% will be fixed, whereas its width will expand with the sizer:
 	%
 	% (we cannot render the header text yet, as this top panel/static bitmap
@@ -396,15 +399,15 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
 	%
 	TopSizer = gui_sizer:create( _Orient=horizontal ),
 
-	IconBmpDisplay =
-		gui_bitmap:create_static_display( IconBitmap, TargetFrame ),
+	SymbolBmpDisplay =
+		gui_bitmap:create_static_display( SymbolBitmap, TargetFrame ),
 
 
-	gui_sizer:add_element( TopSizer, IconBmpDisplay,
+	gui_sizer:add_element( TopSizer, SymbolBmpDisplay,
 		[ { proportion, 0 }, { border, 5 }, right_border, align_left ] ),
 
 	% To set exactly the height of the information panel:
-	IconHeight = gui_bitmap:get_height( IconBitmap ),
+	SymbolHeight = gui_bitmap:get_height( SymbolBitmap ),
 
 	MainBitmapWidth = gui_bitmap:get_width( MainBitmap ),
 
@@ -413,7 +416,7 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
 	% right-align it; so:
 	%
 	InfoPanel = gui_panel:create(
-		{ size, { _Width=MainBitmapWidth, _Height=IconHeight } }, TargetFrame ),
+		{ size, { _Width=MainBitmapWidth, _Height=SymbolHeight } }, TargetFrame ),
 
 	%trace_utils:debug_fmt( "Size of info panel: ~p.",
 	%                       [ gui_widget:get_size( InfoPanel ) ] ),
@@ -430,7 +433,7 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
 	DescFontSize = 9,
 
 	% Title left-aligned, centered vertically if single-line:
-	%TitlePos = { TitleX=5, TitleY=( IconHeight - TitleFontSize ) div 2 },
+	%TitlePos = { TitleX=5, TitleY=( SymbolHeight - TitleFontSize ) div 2 },
 
 	TitleX = 5,
 
@@ -440,7 +443,7 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
 	% Between the bottom of the description and the one of the panel:
 	YBottomMargin = 3,
 
-	TitleY = ( IconHeight - YBottomMargin
+	TitleY = ( SymbolHeight - YBottomMargin
 			   - ( TitleFontSize + YLvlMargin + DescFontSize ) ) div 2,
 
 	TitlePos = { TitleX, TitleY },
@@ -463,7 +466,7 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
 								DescFontStyle ),
 
 
-	DescPos = { TitleX, IconHeight - DescFontSize - YBottomMargin },
+	DescPos = { TitleX, SymbolHeight - DescFontSize - YBottomMargin },
 
 	DescOpt = { position, DescPos },
 
@@ -499,7 +502,7 @@ render_dynamic_splash( TargetFrame, IconBitmap, TitleStr, VersionStr,
 
 	_InfoPanelSize = { IPW, _IPH } = gui_widget:get_size( InfoPanel ),
 
-	UrlPos = { IPW - UrlW - XMargin, ( IconHeight - UrlH ) div 2 },
+	UrlPos = { IPW - UrlW - XMargin, ( SymbolHeight - UrlH ) div 2 },
 
 	UrlDisplay = gui_text:create_static_display( UrlStr,
 		_Opts=[ { position, UrlPos }, { size, UrlSize } ], InfoPanel ),
@@ -737,10 +740,10 @@ destruct( #basic_splash_info{ splash_frame=SplashFrame,
 	[ gui_bitmap:destruct( B ) || B <- [ BackBufferBitmap, ImgBitmap ] ];
 
 destruct( #dynamic_splash_info{ splash_frame=SplashFrame,
-								icon_bitmap=IconBitmap,
+								symbol_bitmap=SymbolBitmap,
 								main_bitmap=MainBitmap } ) ->
 
 	% Implies panel and all:
 	gui_frame:destruct( SplashFrame ),
 
-	[ gui_bitmap:destruct( B ) || B <- [ IconBitmap, MainBitmap ] ].
+	[ gui_bitmap:destruct( B ) || B <- [ SymbolBitmap, MainBitmap ] ].

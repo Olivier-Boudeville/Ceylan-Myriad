@@ -73,7 +73,7 @@ run_splash_screen_test() ->
 	trace_utils:notice_fmt( "A basic splash screen displaying the Myriad logo "
 		"shall appear, and vanish when the test requests it, "
 		"after ~ts. Then a dynamic, more complex splash screen shall appear "
-		"(with icon, texts, etc.) and disappear in turn. "
+		"(with a symbol image, texts, etc.) and disappear in turn. "
 		"The test will end as soon as the main frame is closed.",
 		[ time_utils:duration_to_string( WaitingDurationMs ) ] ),
 
@@ -105,6 +105,9 @@ run_splash_screen_test() ->
 
 	% Renders the GUI:
 	gui_frame:show( MainFrame ),
+
+	% So that the basic splash appears after the main frame:
+	timer:sleep( WaitingDurationMs div 4 ),
 
 	% Must be shown after the main frame is shown, otherwise will not be
 	% centered in it, but on the whole screen, which is not desirable:
@@ -168,7 +171,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			trace_utils:debug( "Adding dynamic splash screen." ),
 
-			IconImgPath =
+			SymbolImgPath =
 				file_utils:join( "..", test_facilities:get_myriad_icon_path() ),
 
 			TitleStr = "Foobar Longer Title",
@@ -193,10 +196,10 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				"but is completely free\nfor any kind of use "
 				"(including commercial).",
 
-			CopyrightStr = "Copyright (C) 2022-2023 John Doe,\n"
+			CopyrightStr = "Copyright (C) 2022-2045 John Doe,\n"
 				"James Bond and others",
 
-			DynamicSplashInfo = gui_splash:create_dynamic( IconImgPath,
+			DynamicSplashInfo = gui_splash:create_dynamic( SymbolImgPath,
 				TitleStr, VersionStr, DescStr, UrlStr, TitleBackgroundColor,
 				BackgroundColor, MainImgPath, GeneralInfoStr, CopyrightStr,
 				_SplashParent=MainFrame ),
