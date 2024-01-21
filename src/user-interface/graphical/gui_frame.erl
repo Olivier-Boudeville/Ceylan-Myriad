@@ -76,7 +76,7 @@
 	% Corresponds to the following options: minimize_icon, maximize_icon,
 	% resize_border, system_menu, caption, close_icon and clip_children:
 	%
-  |	'default'
+  | 'default'
 
 	% Displays a caption on the title bar of this frame (needed for icons):
   | 'caption'
@@ -131,7 +131,8 @@
 
 % For top-level frames:
 -export([ create_top_level/1, create_top_level/2, create_top_level/4,
-		  set_icon/2,
+		  set_icon/2, center_on_screen/1, center_on_screen/2,
+		  is_maximised/1, maximize/1,
 		  is_fullscreen/1, set_fullscreen/2 ]).
 
 
@@ -150,6 +151,7 @@
 -type size() :: gui:size().
 -type sizing() :: gui:sizing().
 -type position() :: gui:position().
+-type orientation() :: gui:orientation().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
 
@@ -334,8 +336,36 @@ create_top_level( Title, Position, Size, Style ) ->
 
 % @doc Sets the icon of the specified top-level frame.
 -spec set_icon( top_level_frame(), any_file_path() ) -> void().
-set_icon( TopLvlFrame, IconPath ) ->
-	gui_window:set_icon( TopLvlFrame, IconPath ).
+set_icon( TopLevelFrame, IconPath ) ->
+	gui_window:set_icon( TopLevelFrame, IconPath ).
+
+
+
+% @doc Centers the specified top-level frame on screen.
+-spec center_on_screen( top_level_frame() ) -> void().
+center_on_screen( TopLevelFrame ) ->
+	gui_window:center_on_screen( TopLevelFrame ).
+
+
+% @doc Centers the specified top-level frame on screen, along the specified
+% orientation(s).
+%
+-spec center_on_screen( top_level_frame(), orientation() ) -> void().
+center_on_screen( TopLevelFrame, Orientation ) ->
+	gui_window:center_on_screen( TopLevelFrame, Orientation ).
+
+
+
+% @doc Tells whether the specified top-level frame is maximised.
+-spec is_maximised( top_level_frame() ) -> boolean().
+is_maximised( TopLevelFrame ) ->
+	gui_window:is_maximised( TopLevelFrame ).
+
+
+% @doc Maximises the specified top-level frame.
+-spec maximize( top_level_frame() ) -> void().
+maximize( TopLevelFrame ) ->
+	gui_window:maximize( TopLevelFrame ).
 
 
 
