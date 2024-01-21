@@ -2646,8 +2646,8 @@ ensure_maybe_binary( AnyString ) ->
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. It is however
-% convenient to define functions whose string parameters may be of any possible
-% type (plain or binary).
+% convenient to define functions, perhaps user-provided, whose string parameters
+% may be of any possible type (plain or binary).
 %
 -spec ensure_binaries( [ term() ] ) -> [ bin_string() ].
 ensure_binaries( Elems ) ->
@@ -2663,8 +2663,8 @@ ensure_binaries( Elems ) ->
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. It is however
-% convenient to define functions whose string parameters may be of any possible
-% type (plain or binary).
+% convenient to define functions, perhaps user-provided, whose string parameters
+% may be of any possible type (plain or binary).
 %
 -spec ensure_binaries( [ term() ], boolean() ) -> [ bin_string() ].
 ensure_binaries( Elems, CanFailDueToTranscoding ) ->
