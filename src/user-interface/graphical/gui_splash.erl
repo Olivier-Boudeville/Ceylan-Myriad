@@ -234,8 +234,6 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 
 	SplashFrame = create_splash_frame( Parent ),
 
-	gui_frame:center_on_screen( SplashFrame ),
-
 	% (should no size be specified, would be 20x20 initially)
 	SplashPanel = gui_panel:create( Pos, ImgBitmapSize, SplashFrame ),
 
