@@ -39,8 +39,6 @@
 % to the rendering of a text.
 %
 % The current font applies to this display.
-%
-% Note that according in our test (see gui_splash:render_dynamic_splash/12), there may be at least a vertical offset between the top of the parent (e.g. a panel) and the top of a
 
 
 -type static_display_option() ::
