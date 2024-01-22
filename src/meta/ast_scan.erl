@@ -249,7 +249,7 @@ report_error( { Context, Error } ) ->
 			text_utils:format( "~ts", [ Msg ] );
 
 		{ undefined_macro_variable, VariableName }
-						when is_atom( VariableName ) ->
+				when is_atom( VariableName ) ->
 			text_utils:format( "undefined macro variable '~ts'",
 							   [ VariableName ] );
 
@@ -298,6 +298,11 @@ report_error( { Context, Error } ) ->
 		{ epp_error, { call, [ Char, Str ] } } ->
 			text_utils:format( "preprocessor error for character '~c' "
 				"regarding '~ts'", [ Char, Str ] );
+
+		{ epp_error, { redefine, DefineStr } } ->
+			text_utils:format(
+				"the preprocessor symbol '~ts' is already defined",
+				[ DefineStr ] );
 
 		String when is_list( String ) ->
 			text_utils:format( "~ts (raw error string reported)", [ String ] );

@@ -1,4 +1,4 @@
-% Copyvright (C) 2013-2023 Olivier Boudeville
+% Copyvright (C) 2013-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %

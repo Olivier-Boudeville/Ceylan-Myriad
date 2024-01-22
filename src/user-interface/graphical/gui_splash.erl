@@ -35,19 +35,9 @@
 % returns the PID of their controller process), and will be dismissed and fully
 % deallocated/terminated as soon as that process will receive a removal message.
 %
-% Depending on text length and font size, the size of images may help avoiding
-% the collision of texts.
-%
 % Refer to the gui_splash_test module for an example of use.
 %
 -module(gui_splash).
-
-
-% Usage notes:
-%
-% The parent of a splash frame (typically the main frame) should better be
-% centered onscreen, for best appearance (see gui_frame:center_on_screen/1).
-
 
 
 -type splash_panel() :: panel().
@@ -129,14 +119,8 @@
 % resizing and repainting to be needed, which is thus to be managed in the event
 % loop of the overall application.
 
-% Regarding text positioning, sizers in the information panel (a vertical one
-% containing an horizontal one) could be experimented, but aligning the
-% baselines and coping with static displays much larger than their texts would
-% probably a problem. Uncomment the background color of these displays to see.
 
-
--export([ create_basic/2, create_basic/3,
-		  create_dynamic/11, create_dynamic_from_bitmaps/11,
+-export([ create_basic/2, create_basic/3, create_dynamic/11,
 		  show/1,
 		  on_repaint_needed/2, on_resized/3, remove/1,
 		  get_panel/1, get_frame/1,
@@ -234,8 +218,6 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 
 	SplashFrame = create_splash_frame( Parent ),
 
-	gui_frame:center_on_screen( SplashFrame ),
-
 	% (should no size be specified, would be 20x20 initially)
 	SplashPanel = gui_panel:create( Pos, ImgBitmapSize, SplashFrame ),
 
@@ -325,8 +307,8 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 %       a Frobnicator with twin acceleration beams")
 %     * right-justified: the project URL (e.g. "www.foobar.org")
 %
-%  2. a middle row displaying (possibly with horizontal margins) the project's
-%  main representation, as an image, at full size
+%  2. a middle row displaying (without horizontal margins) the project's main
+%  representation, as an image, at full size
 %
 %  3. a bottom row, made of two text displays, on either sides of a spacer:
 %
@@ -354,8 +336,6 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 % The splash screen will be dismissed when the application will call the
 % remove/1 function.
 %
-% Arguments listed roughly in a top-to-bottom image order.
-%
 -spec create_dynamic( SymbolImgPath :: any_image_path(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
 	DescStr :: any_string(), UrlStr :: any_string(),
@@ -371,67 +351,38 @@ create_dynamic( SymbolImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 			"to display '~ts' and '~ts', with parent ~w.",
 			[ SymbolImgPath, MainImgPath, Parent ] ) ),
 
-	SymbolImgBitmap = gui_image:create_bitmap( SymbolImgPath ),
-	MainImgBitmap = gui_image:create_bitmap( MainImgPath ),
-
-	create_dynamic_from_bitmaps( SymbolImgBitmap, TitleStr, VersionStr,
-		DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
-		MainImgBitmap, GeneralInfoStr, CopyrightStr, Parent ).
-
-
-
-% @doc Creates a dynamic splash screen displaying the specified information on a
-% minimalist frame on top of the specified parent (typically a frame, probably
-% the main one), and returns the associated splash information, for future use
-% (event management).
-%
-% This version uses directly bitmaps as arguments, for example to be used as
-% resources. Refer to create_dynamic/11 for further details.
-%
-% Arguments listed roughly in a top-to-bottom image order.
-%
--spec create_dynamic_from_bitmaps( SymbolImgBitmap :: bitmap(),
-	TitleStr :: any_string(), VersionStr :: any_string(),
-	DescStr :: any_string(), UrlStr :: any_string(),
-	TitleBackgroundColor :: color(), OverallBackgroundColor :: color(),
-	MainImgBitmap :: bitmap(), GeneralInfoStr :: any_string(),
-	CopyrightStr :: any_string(), parent() ) -> dynamic_splash_info().
-create_dynamic_from_bitmaps( SymbolImgBitmap, TitleStr, VersionStr, DescStr,
-		UrlStr, TitleBackgroundColor, OverallBackgroundColor, MainImgBitmap,
-		GeneralInfoStr, CopyrightStr, Parent ) ->
-
 	SplashFrame = create_splash_frame( Parent ),
+
+	SymbolBitmap = gui_image:create_bitmap( SymbolImgPath ),
+	MainBitmap = gui_image:create_bitmap( MainImgPath ),
 
 	% Initialisation:
 	{ _MainSizer, _TopPanel, _MainPanel, _MainStaticBtmpDisp,
 	  _LeftTextDisplay, _RightTextDisplay } =
-		render_dynamic_splash( SymbolImgBitmap, TitleStr,
-			VersionStr, DescStr, UrlStr, TitleBackgroundColor,
-			OverallBackgroundColor, MainImgBitmap, GeneralInfoStr,
-			CopyrightStr, _Parent=SplashFrame ),
+		render_dynamic_splash( SplashFrame, SymbolBitmap, TitleStr, VersionStr,
+			DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
+			MainBitmap, GeneralInfoStr, CopyrightStr ),
 
 	#dynamic_splash_info{ splash_frame=SplashFrame,
 						  %splash_panel=SplashPanel,
-						  symbol_bitmap=SymbolImgBitmap,
-						  main_bitmap=MainImgBitmap }.
+						  symbol_bitmap=SymbolBitmap,
+						  main_bitmap=MainBitmap }.
 
 
 
-% @doc Creates the necessary widgets in order to fill the specified parent
-% (e.g. a frame, a panel) with the specified splash content.
+% @doc Creates the necessary widgets in order to fill the specified frame with
+% splash content.
 %
-% Defined for re-use; useful for example to either fill a splash frame (with no
-% title, no 'close' button) or a 'About' window (with a title, a 'close' button,
-% etc.).
+% Defined for re-use.
 %
-render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
+render_dynamic_splash( TargetFrame, SymbolBitmap, TitleStr, VersionStr,
 		DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
-		MainBitmap, GeneralInfoStr, CopyrightStr, Parent ) ->
+		MainBitmap, GeneralInfoStr, CopyrightStr ) ->
 
-	trace_utils:debug_fmt( "Rendering dynamic splash on parent ~w.",
-						   [ Parent ] ),
+	trace_utils:debug_fmt( "Rendering dynamic splash on frame ~w.",
+						   [ TargetFrame ] ),
 
-	gui_widget:set_background_color( Parent, OverallBackgroundColor ),
+	gui_widget:set_background_color( TargetFrame, OverallBackgroundColor ),
 
 	% Let's proceed row per row, stacked vertically thanks to:
 	MainSizer = gui_sizer:create( _Orientation=vertical ),
@@ -441,13 +392,15 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	% First row: setting a sufficient initial height of the top panel in order
 	% to contain all elements (so that the symbol image and bottom text fit); it
-	% will be fixed (constant), whereas its width will expand with this top
-	% sizer:
+	% will be fixed, whereas its width will expand with the sizer:
+	%
+	% (we cannot render the header text yet, as this top panel/static bitmap
+	% display has not its final size)
 	%
 	TopSizer = gui_sizer:create( _Orient=horizontal ),
 
 	SymbolBmpDisplay =
-		gui_bitmap:create_static_display( SymbolBitmap, Parent ),
+		gui_bitmap:create_static_display( SymbolBitmap, TargetFrame ),
 
 
 	gui_sizer:add_element( TopSizer, SymbolBmpDisplay,
@@ -463,86 +416,62 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	% right-align it; so:
 	%
 	InfoPanel = gui_panel:create(
-		{ size, { _Width=MainBitmapWidth, _Height=SymbolHeight } }, Parent ),
+		{ size, { _Width=MainBitmapWidth, _Height=SymbolHeight } }, TargetFrame ),
 
 	%trace_utils:debug_fmt( "Size of info panel: ~p.",
 	%                       [ gui_widget:get_size( InfoPanel ) ] ),
 
 	gui_widget:set_background_color( InfoPanel, TitleBackgroundColor ),
-	%gui_widget:set_background_color( InfoPanel, red ),
 
-	% Run gui_text_test.erl to inspect options:
-	%TitleFontSize = 10,
-	TitleFontSize = 14,
-
-	TitleFontFamily = swiss,
-	%TitleFontFamily = decorative, % teletype,
-
-	TitleFontStyle = normal, % slant
+	TitleFontSize = 12,
+	TitleFontFamily = decorative, % teletype,
+	TitleFontStyle = slant, % normal,
 
 	TitleFont = gui_font:create( TitleFontSize, TitleFontFamily,
 								 TitleFontStyle ),
 
 	DescFontSize = 9,
 
-	DescFontFamily = TitleFontFamily,
-	DescFontStyle = normal,
-
-	DescFont = gui_font:create( DescFontSize, DescFontFamily, DescFontStyle ),
-
 	% Title left-aligned, centered vertically if single-line:
-
-	% As, for text positioning, we cannot rely directly on the font size to
-	% anticipate dimensions and perform correct placement:
-
-	{ _TitleW, TitleH, TitleDescent, _TitleExtLeading } =
-		gui_font:get_precise_text_extent( TitleStr, TitleFont ),
-
-	{ _DescW, DescH, _DescDescent, _DescExtLeading } =
-		gui_font:get_precise_text_extent( DescStr, DescFont ),
+	%TitlePos = { TitleX=5, TitleY=( SymbolHeight - TitleFontSize ) div 2 },
 
 	TitleX = 5,
 
 	% Between the two levels of title/desc:
-	YInterMargin = 2,
+	YLvlMargin = 2,
 
 	% Between the bottom of the description and the one of the panel:
-	YBottomMargin = -2,
+	YBottomMargin = 3,
 
-	% Constant, as we cannot know here the actual height of the future static
-	% text display (from which we could have deduced the actual target height of
-	% the text) and that we would need to reposition (still better than a
-	% vertical sizer, probably):
-	%
-	TitleY = -5,
+	TitleY = ( SymbolHeight - YBottomMargin
+			   - ( TitleFontSize + YLvlMargin + DescFontSize ) ) div 2,
 
 	TitlePos = { TitleX, TitleY },
 
 	TitleOpt = { position, TitlePos },
 
 	{ _TitleDisplay,
-	  _TitleDispSize={ TitleDW, _TitleDH, TitleDescent, _TitleExtLead } } =
+	  _TitleDispSize={ TitleDW, TitleDH, TitleDescent, _TitleExtLead } } =
 		gui_text:create_presized_static_display( TitleStr, TitleOpt,
 												 TitleFont, InfoPanel ),
 
-	%gui_widget:set_background_color( TitleDisplay, green ),
-
 	gui_font:destruct( TitleFont ),
 
-	% Avoid going below the info panel (security often applies):
-	DescY = min( SymbolHeight - DescH - YBottomMargin, % The security
-				 TitleY + TitleH + YInterMargin ),     % The desired position
+	%gui_widget:set_background_color( TitleDisplay, yellow ),
 
-	% As horizontally aligned:
-	DescPos = { TitleX, DescY },
+	DescFontFamily = TitleFontFamily,
+	DescFontStyle = normal,
+
+	DescFont = gui_font:create( DescFontSize, DescFontFamily,
+								DescFontStyle ),
+
+
+	DescPos = { TitleX, SymbolHeight - DescFontSize - YBottomMargin },
 
 	DescOpt = { position, DescPos },
 
-	{ _DescDisplay, _DescDispSize } =
-		gui_text:create_presized_static_display( DescStr, DescOpt, DescFont,
-												 InfoPanel ),
-
-	%gui_widget:set_background_color( DescDisplay, blue ),
+	gui_text:create_presized_static_display( DescStr, DescOpt, DescFont,
+											 InfoPanel ),
 
 
 	VersionFontSize = 10,
@@ -551,42 +480,32 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	XMargin = 5,
 
+	VersionPos = { TitleX + TitleDW + XMargin,
+				   TitleY + TitleDH - TitleDescent - VersionFontSize },
 
 	VersionFont = gui_font:create( VersionFontSize, VersionFontFamily,
 								   VersionFontStyle ),
 
-	% Trying to have the same baseline for title and version:
-
-	{ _VerW, VerH, VerDescent, _VerExtLeading } =
-		gui_font:get_precise_text_extent( VersionStr, VersionFont ),
-
-	BaseLineY = TitleY + TitleH - TitleDescent,
-
-	VersionPos = { TitleX + TitleDW + XMargin,
-				   BaseLineY + VerDescent - VerH },
 
 	VersionOpt = { position, VersionPos },
 
-	% { VersionDisplay, _VersionDispSize } =
-	gui_text:create_presized_static_display( VersionStr, VersionOpt,
-											 VersionFont, InfoPanel ),
+	{ _VersionDisplay, _VersionDispSize } =
+		gui_text:create_presized_static_display( VersionStr, VersionOpt,
+												 VersionFont, InfoPanel ),
 
-	%gui_widget:set_background_color( VersionDisplay, yellow ),
+	%gui_widget:set_background_color( VersionDisplay, brown ),
 
 
 	UrlFont = VersionFont,
 
-	_UrlSize = { UrlW, UrlH } = gui_font:get_text_extent( UrlStr, UrlFont ),
+	UrlSize = { UrlW, UrlH } = gui_font:get_text_extent( UrlStr, UrlFont ),
 
 	_InfoPanelSize = { IPW, _IPH } = gui_widget:get_size( InfoPanel ),
 
-	_UrlPos = { IPW - UrlW - XMargin, ( SymbolHeight - UrlH ) div 2 },
+	UrlPos = { IPW - UrlW - XMargin, ( SymbolHeight - UrlH ) div 2 },
 
 	UrlDisplay = gui_text:create_static_display( UrlStr,
-		%_Opts=[ { position, UrlPos }, { size, UrlSize } ], InfoPanel ),
-		{ style, [ align_right ] }, InfoPanel ),
-
-	gui_widget:set_background_color( UrlDisplay, green ),
+		_Opts=[ { position, UrlPos }, { size, UrlSize } ], InfoPanel ),
 
 	gui_widget:set_font( UrlDisplay, UrlFont ),
 
@@ -599,36 +518,20 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 		[ { proportion, 0 }, { border, 8 }, all_borders, expand_fully ] ),
 
 
-	% Middle row now:
-
-	MiddleSizer = gui_sizer:create( horizontal ),
-
 	MainDims = gui_bitmap:get_size( MainBitmap ),
 
 	trace_utils:debug_fmt( "Operating on second row: the splash (main) image, "
 		"whose dimensions are ~w.", [ MainDims ] ),
 
 	MainImgPanel = gui_panel:create(
-		[ { size, MainDims }, { style, no_border } ], Parent ),
+		[ { size, MainDims }, { style, no_border } ], TargetFrame ),
 
 	MainStaticBtmpDisp =
 		gui_bitmap:create_static_display( MainBitmap, _Par=MainImgPanel ),
 
-	SpacerWidth = 100,
-	SpacerHeight = 0,
-
-	gui_sizer:add_spacer( MiddleSizer, SpacerWidth, SpacerHeight,
-						  [ { proportion, 0 }, expand_fully ] ),
-
-	gui_sizer:add_element( MiddleSizer, MainImgPanel,
+	gui_sizer:add_element( MainSizer, MainImgPanel,
 		[ { proportion, 0 }, { border, 5 }, all_borders, align_center ] ),
 
-	gui_sizer:add_spacer( MiddleSizer, SpacerWidth, SpacerHeight,
-						  [ { proportion, 0 }, expand_fully ] ),
-
-
-	gui_sizer:add_element( MainSizer, MiddleSizer,
-		[ { proportion, 0 }, all_borders, expand_fully ] ),
 
 
 	% Taking care of the bottom part now:
@@ -636,13 +539,13 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	BottomFont = gui_font:create( _PointSize=10 ),
 
-	gui_widget:set_font( Parent, BottomFont, _Textcolor=black,
+	gui_widget:set_font( TargetFrame, BottomFont, _Textcolor=black,
 						 _DestructFont=true ),
 
 	BottomSizer = gui_sizer:create( _HOrient=horizontal ),
 
 	LeftTextDisplay =
-		gui_text:create_static_display( _Lbel=GeneralInfoStr, _Pr=Parent ),
+		gui_text:create_static_display( _Lbel=GeneralInfoStr, _Pr=TargetFrame ),
 
 	gui_sizer:add_element( BottomSizer, LeftTextDisplay,
 						   [ { proportion, 0 }, { border, 5 }, left_border ] ),
@@ -652,7 +555,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 						  [ { proportion, 1 }, expand_fully ] ),
 
 	RightTextDisplay = gui_text:create_static_display( _L=CopyrightStr,
-		{ style, [ align_right ] }, Parent ),
+		{ style, [ align_right ] }, TargetFrame ),
 
 	gui_sizer:add_element( BottomSizer, RightTextDisplay,
 						   [ { proportion, 0 }, { border, 5 }, right_border ] ),
@@ -660,8 +563,8 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	gui_sizer:add_element( MainSizer, BottomSizer,
 		[ { proportion, 1 }, { border, 2 }, all_borders, expand_fully ] ),
 
-	% Fitting is necessary to adopt a proper, sufficient parent size:
-	gui_widget:set_and_fit_to_sizer( Parent, MainSizer ),
+	% Fitting is necessary to adopt a proper, sufficient frame size:
+	gui_widget:set_and_fit_to_sizer( TargetFrame, MainSizer ),
 
 	{ MainSizer, InfoPanel, MainImgPanel, MainStaticBtmpDisp,
 	  LeftTextDisplay, RightTextDisplay }.
@@ -708,8 +611,8 @@ show( #dynamic_splash_info{ splash_frame=SplashFrame } ) ->
 -spec update_panel( panel(), bitmap() ) -> void().
 update_panel( TargetPanel, SourceBitmap ) ->
 
-	%trace_utils:debug_fmt( "Updating panel ~w from bitmap ~w.",
-	%                       [ TargetPanel, SourceBitmap ] ),
+	trace_utils:debug_fmt( "Updating panel ~w from bitmap ~w.",
+						   [ TargetPanel, SourceBitmap ] ),
 
 	% Locks the source surface (device context):
 	SourceBitmapDC = gui_bitmap:lock( SourceBitmap ),

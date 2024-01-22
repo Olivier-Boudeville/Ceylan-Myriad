@@ -1195,9 +1195,10 @@ add_extension( FilePathStr, Ext ) ->
 % specified file path.
 %
 % For example "/home/jack/rosie.tmp" =
-% remove_extension("/home/jack/rosie.tmp.ttf")
+%   remove_extension("/home/jack/rosie.tmp.ttf")
 %
--spec remove_extension( file_path() ) -> file_path().
+-spec remove_extension( file_path() ) -> file_path();
+					  ( bin_file_path() ) -> bin_file_path().
 remove_extension( FilePath ) ->
 
 	case text_utils:split( FilePath, _Delimiters=[ $. ] ) of
@@ -1223,8 +1224,15 @@ remove_extension( FilePath ) ->
 % For example "/home/jack/rosie" = remove_extension("/home/jack/rosie.tmp.ttf",
 % "ttf")
 %
--spec remove_extension( file_path(), extension() ) -> file_path().
-remove_extension( FilePath, ExpectedExtension ) ->
+-spec remove_extension( any_file_path(), extension() ) -> file_path().
+remove_extension( BinFilePath, ExpectedExtension )
+										when is_binary( BinFilePath ) ->
+	remove_extension( text_utils:binary_to_string( BinFilePath ),
+					  ExpectedExtension );
+
+remove_extension( FilePath, ExpectedExtension )
+										% To secure the match:
+										when is_list( ExpectedExtension ) ->
 
 	Separator = $.,
 

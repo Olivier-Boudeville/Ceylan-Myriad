@@ -79,7 +79,8 @@
 % Operations related to functions:
 -export([ evaluate/2,
 		  sample/4, sample_for/4,
-		  sample_as_pairs/4, sample_as_pairs_for/4,
+		  sample_as_pairs/3, sample_as_pairs/4,
+		  sample_as_pairs_for/3, sample_as_pairs_for/4,
 		  normalise/2,
 
 		  compute_support/1, compute_support/3, compute_support/4,
@@ -971,10 +972,10 @@ canonify( AngleInDegrees ) ->
 
 
 
-% @doc Evaluates the specified function as the specified abscissa, and returns
+% @doc Evaluates the specified function at the specified abscissa, and returns
 % the corresponding value if it could be computed, otherwise returns 'undefined'
 % (this happens when typically 'badarith' is thrown due to an operation failing,
-% like for math:pow(1000,1000).
+% like for math:pow(1000,1000) or math:pow(0.0,-0.89)).
 %
 -spec evaluate( float_to_float_fun(), abscissa() ) ->
 											maybe( float_result_value() ).
@@ -984,6 +985,10 @@ evaluate( Fun, Abs ) ->
 		Fun( Abs )
 
 	catch error:badarith ->
+		cond_utils:if_defined( myriad_debug_math,
+			trace_utils:error_fmt( "Unable to evaluate ~w at point ~w.",
+								   [ Fun, Abs ] ) ),
+
 		undefined
 
 	end.
@@ -1026,11 +1031,22 @@ sample( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
 
 sample( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
 	% Not trying to resist errors with evaluate/2:
-	NewValue = Fun( CurrentPoint ),
+	NewValue = evaluate( Fun, CurrentPoint ),
 	sample( Fun, CurrentPoint + Increment, StopPoint, Increment,
 			[ NewValue | Acc ] ).
 
 
+
+% @doc Samples uniformly the specified function taking a single numerical
+% argument, by evaluating it on every point in turn from Start until up to Stop,
+% with specified increment: returns the ordered list of the corresponding
+% {X,f(X)} pairs that it took.
+%
+-spec sample_as_pairs( fun( ( number() ) -> T ), bounds(),
+					   number() ) -> [ { number(), T } ].
+sample_as_pairs( Fun, Bounds, Increment ) ->
+	{ StartPoint, StopPoint } = canonicalise_bounds( Bounds ),
+	sample_as_pairs( Fun, StartPoint, StopPoint, Increment ).
 
 
 % @doc Samples uniformly the specified function taking a single numerical
@@ -1046,6 +1062,18 @@ sample_as_pairs( Fun, StartPoint, StopPoint, Increment ) ->
 
 
 % @doc Samples uniformly the specified function taking a single numerical
+% argument, by evaluating it on every point in turn within the specified
+% bounds', for the specified number of (evenly-spaced) samples: returns the
+% ordered list of the corresponding {X,f(X)} pairs that it took.
+%
+-spec sample_as_pairs_for( fun( ( number() ) -> T ), bounds(),
+						   sample_count() ) -> [ { number(), T } ].
+sample_as_pairs_for( Fun, Bounds, SampleCount ) ->
+	{ StartPoint, StopPoint } = canonicalise_bounds( Bounds ),
+	sample_as_pairs_for( Fun, StartPoint, StopPoint, SampleCount ).
+
+
+% @doc Samples uniformly the specified function taking a single numerical
 % argument, by evaluating it on every point in turn from Start until up to Stop,
 % for the specified number of (evenly-spaced) samples: returns the ordered list
 % of the corresponding {X,f(X)} pairs that it took.
@@ -1055,15 +1083,24 @@ sample_as_pairs( Fun, StartPoint, StopPoint, Increment ) ->
 sample_as_pairs_for( Fun, StartPoint, StopPoint, SampleCount )
 											when SampleCount > 0 ->
 
+	%trace_utils:debug_fmt( "Sampling ~B points from ~w to ~w.",
+	%                       [ SampleCount, StartPoint, StopPoint ] ),
+
 	Inc = ( StopPoint - StartPoint ) / SampleCount,
 
+	% Due to rounding errors after adding the increment multiple times, we might
+	% have one data point too few or too many. We should use a specific function
+	% rather than:
+	%
 	Pairs = sample_as_pairs( Fun, _CurrentPoint=StartPoint, StopPoint, Inc,
 							 _Acc=[] ),
 
-	cond_utils:assert( myriad_debug_math, SampleCount =:= length( Pairs ) ),
+	%trace_utils:debug_fmt( "~B pairs: ~p", [ length( Pairs ), Pairs ] ),
+
+	% May fail, commented until a specific sample helper function is defined:
+	%cond_utils:assert( myriad_debug_math, SampleCount =:= length( Pairs ) ),
 
 	Pairs.
-
 
 
 
@@ -1073,11 +1110,9 @@ sample_as_pairs( _Fun, CurrentPoint, StopPoint, _Increment, Acc )
 	lists:reverse( Acc );
 
 sample_as_pairs( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
-   NewValue = Fun( CurrentPoint ),
+   NewValue = evaluate( Fun, CurrentPoint ),
    sample_as_pairs( Fun, CurrentPoint+Increment, StopPoint, Increment,
 					[ { CurrentPoint, NewValue } | Acc ] ).
-
-
 
 
 
@@ -1342,7 +1377,6 @@ search_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 
 
 
-
 % Searches by dichotomy in one direction (defined by the sign of the increment)
 % the first null point, for which the next ones being are supposed to be all
 % null, found from the specified origin (whose value is expected to be
@@ -1374,8 +1408,21 @@ search_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests, Epsilon ) ->
 			case evaluate( Fun, TestedPoint ) of
 
 				undefined ->
-					% If ever it improved:
-					search_first_null( Fun, Pivot, MaybeMax, 2.0 * Inc,
+					trace_utils:debug_fmt(
+						"No value can be computed for point ~w.",
+						[ TestedPoint ] ),
+
+					% If ever it improved (generally: not at all):
+					%search_first_null( Fun, Pivot, MaybeMax, 2.0 * Inc,
+					%                   RemainingTests-1, Epsilon );
+
+					% Instead we suppose that we just entered a forbidden area,
+					% we thus backtrack a bit and sample uniformly from the
+					% pivot to this bad point:
+
+					NewInc = ( TestedPoint - Pivot ) / RemainingTests,
+
+					search_first_null( Fun, Pivot, _NewMax=TestedPoint, NewInc,
 									   RemainingTests-1, Epsilon );
 
 				Value ->
@@ -1415,6 +1462,10 @@ search_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests, Epsilon ) ->
 							end;
 
 						false ->
+
+							%trace_utils:debug_fmt( "Non-null vamue: ~w.",
+							%   [ Value ] ),
+
 							% Same sign for increment, hence same direction,
 							% again exponential:
 							%

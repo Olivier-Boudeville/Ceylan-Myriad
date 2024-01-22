@@ -47,7 +47,7 @@
 		  term_to_bounded_string/1, term_to_bounded_string/2,
 		  term_to_binary/1,
 
-		  integer_to_string/1,
+		  integer_to_string/1, integer_to_binary/1,
 
 		  integer_to_hexastring/1, integer_to_hexastring/2,
 		  integer_to_hexasbintring/1, integer_to_hexabinstring/2,
@@ -597,7 +597,9 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 
 
 
-% @doc Avoids to have to use lists:flatten/1 when converting an integer to a
+% @doc Converts the specified integer into a plain string.
+%
+% Avoids to have to use lists:flatten/1 when converting an integer to a
 % string. Useless when using functions like io:format, that accept iolists as
 % parameters.
 %
@@ -607,6 +609,16 @@ integer_to_string( IntegerValue ) ->
 	%io_lib:format( "~B", [ IntegerValue ] ).
 	erlang:integer_to_list( IntegerValue ).
 
+
+% @doc Converts the specified integer into a binary string.
+%
+% Avoids to have to use lists:flatten/1 when converting an integer to a
+% string. Useless when using functions like io:format, that accept iolists as
+% parameters.
+%
+-spec integer_to_binary( integer() ) -> bin_string().
+integer_to_binary( IntegerValue ) ->
+	erlang:integer_to_binary( IntegerValue ).
 
 
 
@@ -2628,7 +2640,7 @@ ensure_binary( String, _CanFailDueToTranscoding ) ->
 
 
 % @doc Returns a binary string version of the specified text-like parameter
-% (binary or plain string), if any.
+% (binary or plain string), if any (otherwise leave it to 'undefined').
 %
 -spec ensure_maybe_binary( maybe( any_string() ) ) -> maybe( bin_string() ).
 ensure_maybe_binary( undefined ) ->
@@ -2646,8 +2658,8 @@ ensure_maybe_binary( AnyString ) ->
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. It is however
-% convenient to define functions, perhaps user-provided, whose string parameters
-% may be of any possible type (plain or binary).
+% convenient to define functions whose string parameters may be of any possible
+% type (plain or binary).
 %
 -spec ensure_binaries( [ term() ] ) -> [ bin_string() ].
 ensure_binaries( Elems ) ->
@@ -2663,8 +2675,8 @@ ensure_binaries( Elems ) ->
 %
 % Note: using such functions may be a bad practice, as it may lead to losing the
 % awareness of the types of the variables that are handled. It is however
-% convenient to define functions, perhaps user-provided, whose string parameters
-% may be of any possible type (plain or binary).
+% convenient to define functions whose string parameters may be of any possible
+% type (plain or binary).
 %
 -spec ensure_binaries( [ term() ], boolean() ) -> [ bin_string() ].
 ensure_binaries( Elems, CanFailDueToTranscoding ) ->

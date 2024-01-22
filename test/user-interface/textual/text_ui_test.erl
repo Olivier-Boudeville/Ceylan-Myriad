@@ -23,9 +23,10 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2016.
 
 
-% Unit tests for the text_ui toolbox.
+% @doc Unit tests for the text_ui toolbox.
 %
 % See the text_ui.erl tested module.
 %
@@ -60,20 +61,30 @@ run_test_ui() ->
 								   [ "Foo", "Bar", "Baz" ] ),
 
 	FirstChoice = text_ui:choose_designated_item(
-					[ { choice_1, "Choice 1" },
-					  { choice_2, "Choice 2" },
-					  { choice_3, "Choice 3" },
-					  { choice_4, "Choice 4" } ] ),
+		[ { choice_1, "Choice 1" },
+		  { choice_2, "Choice 2" },
+		  { choice_3, "Choice 3" },
+		  { choice_4, "Choice 4" } ] ),
 
 	text_ui:display( "Choice has been ~p", [ FirstChoice ] ),
 
 	text_ui:add_separation(),
 
 	SecondChoice = text_ui:choose_numbered_item_with_default(
-					 "This is my label; just choose below:",
-					 [ "Choice 1", "Choice 2", "Choice 3", "Choice 4" ], 2 ),
+		"This is my label; just choose below:",
+		[ "Choice 1", "Choice 2", "Choice 3", "Choice 4" ], 2 ),
 
 	text_ui:display( "Second choice has been ~p", [ SecondChoice ] ),
+
+
+	BinaryDefault = yes,
+
+	BinaryText = text_utils:format( "Please make a binary choice "
+		"between yes or no (default being ~ts):", [ BinaryDefault ] ),
+
+	BinaryChoice = text_ui:ask_yes_no( BinaryText, BinaryDefault ),
+
+	text_ui:display( "Binary choice has been ~p", [ BinaryChoice ] ),
 
 	text_ui:trace( "My UI trace" ),
 
@@ -92,7 +103,7 @@ run() ->
 
 		true ->
 			test_facilities:display(
-			  "(not running the text_ui test, being in batch mode)" );
+				"(not running the text_ui test, being in batch mode)" );
 
 		false ->
 			run_test_ui()

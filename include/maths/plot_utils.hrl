@@ -184,9 +184,10 @@
 	extra_defines = [] :: [ text_utils:bin_string() ],
 
 
-	% Extra information about data, used to enrich (as comments) data to be
-	% plotted, for example to specify origin of data, measurement time, source,
-	% author, accuracy, version, etc.
+	% Extra information about data, used to enrich (including for in-file
+	% comments) data to be plotted, for example to specify the origin of data,
+	% measurement time, source, author, accuracy, version, any specific number
+	% of points to be plotted, etc.
 	%
 	meta_data = [] :: plot_utils:plot_meta_data(),
 

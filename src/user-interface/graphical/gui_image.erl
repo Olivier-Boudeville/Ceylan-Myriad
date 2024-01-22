@@ -451,8 +451,7 @@ create_bitmap( ImagePath ) ->
 			ImgBitmap;
 
 		false ->
-			throw( { bitmap_creation_failed,
-					 text_utils:ensure_string( ImagePath ) } )
+			throw( { bitmap_creation_failed, ImagePath } )
 
 	end.
 
@@ -530,7 +529,7 @@ to_wx_image_quality( Other ) ->
 
 % Helper section.
 
--spec check_image_path( any_image_path() ) -> void().
+-spec check_image_path(  any_image_path() ) -> void().
 check_image_path( ImagePath ) ->
 
 	file_utils:is_existing_file_or_link( ImagePath ) orelse

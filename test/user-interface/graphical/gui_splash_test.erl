@@ -69,7 +69,6 @@ run_splash_screen_test() ->
 
 	% This test just waits for a fixed duration:
 	WaitingDurationMs = 2000,
-	%WaitingDurationMs = 0,
 
 	trace_utils:notice_fmt( "A basic splash screen displaying the Myriad logo "
 		"shall appear, and vanish when the test requests it, "
@@ -86,9 +85,6 @@ run_splash_screen_test() ->
 	MainFrame = gui_frame:create( _MTitle="MyriadGUI Splash Screen Test",
 		AutoPos, _MSize={ 800, 600 }, _MStyles=[ default ], NoId,
 		_MaybeParent=undefined ),
-
-	% Optional:
-	gui_frame:center_on_screen( MainFrame ),
 
 	% To create a contrast between the frame background and the splash screen:
 	MainPanel = gui_panel:create( MainFrame ),
@@ -114,7 +110,7 @@ run_splash_screen_test() ->
 	timer:sleep( WaitingDurationMs div 4 ),
 
 	% Must be shown after the main frame is shown, otherwise will not be
-	% centered in it, but on the whole screen, which may not be desirable:
+	% centered in it, but on the whole screen, which is not desirable:
 	%
 	gui_splash:show( BasicSplashInfo ),
 
@@ -132,9 +128,7 @@ run_splash_screen_test() ->
 		timer:sleep( WaitingDurationMs div 2 ),
 		MainTestPid ! createDynamicSplash,
 
-		% Longer to inspect:
-		timer:sleep( 2 * WaitingDurationMs ),
-
+		timer:sleep( WaitingDurationMs ),
 		% For a longer contemplation:
 		%timer:sleep( 25000 ),
 
@@ -220,9 +214,6 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		removeDynamicSplash ->
 			trace_utils:debug( "Removing dynamic splash screen." ),
 
-			% For limitless contemplation:
-			%basic_utils:freeze(),
-
 			gui_splash:destruct( SplashInfo ),
 
 			test_main_loop( TestState#my_test_state{ splash_info=undefined,
@@ -230,7 +221,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 
 		quit ->
-			trace_utils:debug( "Quitting splash test." );
+			trace_utils:debug( "Quitting splash test." ),
+			ok;
 
 
 		% Then the events this test is subscribed to:

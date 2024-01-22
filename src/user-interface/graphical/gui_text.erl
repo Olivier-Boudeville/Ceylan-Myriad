@@ -39,8 +39,6 @@
 % to the rendering of a text.
 %
 % The current font applies to this display.
-%
-% Note that according in our test (see gui_splash:render_dynamic_splash/12), there may be at least a vertical offset between the top of the parent (e.g. a panel) and the top of a
 
 
 -type static_display_option() ::
@@ -168,8 +166,8 @@ create_static_display( Label, Options, Parent ) ->
 % 'g').
 %
 % This function may be useful as, in some cases, even the rendering if a
-% single-line label in a panel may be wrong, being cropped or extended for some
-% unknown reason (presumably a wxWidgets bug).
+% single-line label in a panel may be wrong, being cropped for some unknown
+% reason (presumably a wxWidgets bug).
 %
 -spec create_presized_static_display( label(),
 			maybe_list( static_display_option() ), font(), parent() ) ->
@@ -187,9 +185,6 @@ create_presized_static_display( Label, Options, Font, Parent ) ->
 	%FullOpts = list_utils:ensure_list( Options ),
 
 	FullOpts = [ { size, LabelSize } | list_utils:ensure_list( Options ) ],
-
-	%trace_utils:debug_fmt( "FullOpts = ~p for text static display of '~ts'.",
-	%                       [ FullOpts, Label ] ),
 
 	Display = create_static_display( Label, gui_id:get_any_id(), FullOpts,
 									 Parent ),

@@ -1664,9 +1664,9 @@ draw_element( ElementList ) ->
 % probability).
 %
 -spec draw_element( list(), count() ) -> element().
-draw_element( ElementList, Length ) ->
+draw_element( ElementList, ListLength ) ->
 
-	DrawnIndex = random_utils:get_uniform_value( Length ),
+	DrawnIndex = random_utils:get_uniform_value( ListLength ),
 
 	get_element_at( ElementList, DrawnIndex ).
 

@@ -5217,6 +5217,8 @@ weibull_mixture_pdf( S, P, Lambda1, K1, Lambda2, K2 ) when S >= 0.0 ->
 	Res =     P * ( K1 / Lambda1 ) * P1 * exp( -A1*P1 )
 		+ (1-P) * ( K2 / Lambda2 ) * P2 * exp( -A2*P2 ),
 
+	%trace_utils:debug_fmt( "Weibull-mix: for ~w, got ~w.", [ S, Res ] ),
+
 	Res;
 
 weibull_mixture_pdf( _S, _P, _Lambda1, _K1, _Lambda2, _K2 ) -> % when S < 0.0 ->

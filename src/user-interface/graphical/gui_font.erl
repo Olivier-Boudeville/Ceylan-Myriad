@@ -41,18 +41,10 @@
 
 -type font_size() :: gui:dimensions().
 % The dimensions, in pixels, of characters drawn from a font.
-%
-% Note that generally, due to capital letters, descent and other factors,
-% instead of relying on the size of a font, using the actual extent of a target
-% text (see get_precise_text_extent/2) is a lot more relevant.
 
 
 -type point_size() :: gui:length().
 % A font size, in pixels.
-%
-% Note that generally, due to capital letters, descent and other factors,
-% instead of relying on the point size of a font, using the actual extent of a
-% target text (see get_precise_text_extent/2) is a lot more relevant.
 
 
 -type font_family() :: 'default_font_family' | 'decorative' | 'roman'

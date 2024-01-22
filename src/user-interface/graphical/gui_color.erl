@@ -414,14 +414,7 @@ get_color( ColorName ) when is_atom( ColorName ) ->
 
 			end
 
-	end;
-
-% For example "#0b5474":
-get_color( _RGBHexastr=[ $#, R1, R2, G1, G2, B1, B2 ] ) ->
-	Red   = text_utils:hexastring_to_integer( [ R1, R2 ] ),
-	Green = text_utils:hexastring_to_integer( [ G1, G2 ] ),
-	Blue  = text_utils:hexastring_to_integer( [ B1, B2 ] ),
-	{ Red, Green, Blue }.
+	end.
 
 
 
