@@ -79,6 +79,16 @@ launch_server_if_needed() ->
 	% Before, a source ProjectPath may be copied, and UserDir may be removed:
 	gephi_support:launch_server_if_needed( ?gephi_project_path, SrvInfo ),
 
+	case gephi_support:wait_server( SrvInfo ) of
+
+		true ->
+			SrvInfo;
+
+		false ->
+			throw( gephi_test_server_not_found )
+
+	end,
+
 	SrvInfo.
 
 
@@ -109,10 +119,14 @@ test_server( SrvInfo ) ->
 		_PropertyValue=25, FirstTimestamp, SrvInfo ),
 
 
-	SecondNodePropertyId = "My second node property",
+	%SecondNodePropertyId = "My second node property",
+	SecondNodePropertyId = "color",
+
+	_SecondNodePropertyValue = 10,
+	SecondNodePropertyValue = "#00ff00",
 
 	gephi_support:update_node_property( FirstNodeId, SecondNodePropertyId,
-		_PropValue=10, SrvInfo ),
+		SecondNodePropertyValue, SrvInfo ),
 
 
 	SecondTimestamp = "41.0",
@@ -121,16 +135,30 @@ test_server( SrvInfo ) ->
 		_PValue=26, SecondTimestamp, SrvInfo ),
 
 
-	SecondNodeId = "myriad-node-id-2",
+	% Binary strings accepted as well:
 
-	SecondNodeLabel = text_utils:format(
+	SecondNodeId = <<"myriad-node-id-2">>,
+
+	SecondNodeLabel = text_utils:bin_format(
 		"I am the label of the node whose identifier is '~ts'.",
 		[ SecondNodeId ] ),
 
 	gephi_support:add_node( SecondNodeId, SecondNodeLabel, SrvInfo ),
 
 
-	test_facilities:display( "Testing second edges." ),
+	ThirdNodeId = <<"myriad-node-id-3">>,
+
+	gephi_support:add_node( ThirdNodeId, SrvInfo ),
+
+	ThirdNodePropTable = table:new( [
+		{ label, "I am the third node" },
+		{ color, "#0000ff" } ] ),
+
+	gephi_support:update_node_properties( ThirdNodeId, ThirdNodePropTable,
+										  SrvInfo ),
+
+
+	test_facilities:display( "Testing then edges." ),
 
 	FirstEdgeId = "myriad-edge-id-1",
 	FirstEdgePropertyId = "My first edge property",
@@ -145,6 +173,19 @@ test_server( SrvInfo ) ->
 	gephi_support:update_edge_property( FirstEdgeId, SecondEdgePropertyId,
 		_EPV=-1, SecondTimestamp, SrvInfo ),
 
+
+	SecondEdgeId = "myriad-edge-id-2",
+
+	gephi_support:add_edge( SecondEdgeId, SecondNodeId, ThirdNodeId,
+							_IsDir=false, SrvInfo ),
+
+	SecondEdgePropTable = table:new( [
+		{ label, "I am the second edge" },
+		{ color, "#00ff00" } ] ),
+
+	gephi_support:update_edge_properties( SecondEdgeId, SecondEdgePropTable,
+										  SrvInfo ),
+
 	gephi_support:stop().
 
 
@@ -155,10 +196,10 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case gephi_support:is_available() of
+	case not executable_utils:is_batch() andalso gephi_support:is_available() of
 
 		true ->
-			%SrvInfo = launch_server(),
+			%SrvInfo = launch_server_unconditionally(),
 			SrvInfo = launch_server_if_needed(),
 
 			test_facilities:display( "Server information: ~ts.",
@@ -167,8 +208,8 @@ run() ->
 			test_server( SrvInfo );
 
 		false ->
-			test_facilities:display( "Gephi not reported as available, "
-				"not testing its support." )
+			test_facilities:display( "(not running the Gephi test, being in "
+				"batch mode and/or the Gephi support not being available)" )
 
 	end,
 

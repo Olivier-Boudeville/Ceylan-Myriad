@@ -38,7 +38,7 @@
 
 
 % Silencing:
--export([ test_basic_plot/0 ]).
+-export([ test_basic_plot/0, test_function_plot/0 ]).
 
 
 
@@ -95,7 +95,7 @@ test_basic_plot() ->
 				{ physics_utils:get_time_factor( 1000 * D, MSun ),
 				  physics_utils:get_time_factor( 1000 * D, M10 ) }
 
-			 end
+		end
 
 	end,
 
@@ -202,6 +202,45 @@ test_basic_plot() ->
 
 
 
+test_function_plot() ->
+
+	%FunToPlot = fun math:sin/1,
+
+	P = 0.3456224429838643,
+
+	Lambda1 = 2.507520854513985,
+	K1 = 429.196179207228,
+
+	Lambda2 = 1.0401480099991025,
+	K2 = 0.10712068420515797,
+
+	FunToPlot = fun( S ) ->
+		random_utils:weibull_mixture_pdf( S, P, Lambda1, K1, Lambda2, K2 )
+				end,
+
+	% badarith:
+	%FunToPlot( 25 ),
+
+	Bounds = { 0.0, 13.0 },
+	%Bounds = { 13.03159, 13.0316 },
+
+	PlotName = text_utils:format( "Weibull on ~ts",
+								  [ math_utils:bounds_to_string( Bounds ) ] ),
+
+	Title = text_utils:format( "Weibull-mixture with P=~w, "
+		"Lambda1=~w, K1=~w, Lambda2=~w, K2=~w.",
+		[ P, Lambda1, K1, Lambda2, K2 ] ),
+
+	%PlotSettings = undefined,
+	PlotSettings = plot_utils:set_title( Title,
+		plot_utils:get_default_plot_settings( PlotName ) ),
+
+	DoDisplay = not executable_utils:is_batch(),
+
+	plot_utils:plot( FunToPlot, Bounds, PlotSettings, DoDisplay ).
+
+
+
 -spec run() -> no_return().
 run() ->
 
@@ -214,9 +253,12 @@ run() ->
 				"No gnuplot tool found, no plot generated." );
 
 		GnuplotPath ->
+
 			test_facilities:display( "Gnuplot available (as '~ts'), "
-				"proceeding with test.", [ GnuplotPath ] ),
-			test_basic_plot()
+				"proceeding with tests.", [ GnuplotPath ] ),
+
+			%test_basic_plot(),
+			test_function_plot()
 
 	end,
 

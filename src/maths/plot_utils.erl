@@ -98,10 +98,15 @@
 %
 % Reserved keys:
 %
-% - first_column_description: to describe the semantics of the plot parameter;
-% for example: "First column corresponds to the abscissa, expressed in tick
-% offsets."
+% - first_column_description :: ustring(): to describe the semantics of the plot
+% parameter; for example: "First column corresponds to the abscissa, expressed
+% in tick offsets."
+%
+% - plot_point_count :: count(): the number of points to plot
 
+
+-type plot_function() :: float_to_float_fun().
+% A function to be plotted.
 
 -type plot_data() :: [ plot_point() ].
 % A data to plot, based on an (unordered) list of points to be plotted.
@@ -367,6 +372,8 @@
 
 % Main user API:
 -export([ get_plot_settings/1,
+		  get_default_plot_settings/0, get_default_plot_settings/1,
+
 		  get_timestamp_settings/1, get_timestamp_settings/2,
 		  set_plot_name/2,
 		  set_title/2, set_x_label/2, set_y_label/2,
@@ -377,7 +384,9 @@
 
 		  declare_curves/2, declare_zones/2,
 		  get_plot_command/5,
-		  plot_samples/2, plot_samples/3 ]).
+		  plot_samples/2, plot_samples/3,
+
+		  plot/3, plot/4 ]).
 
 
 % Exported gnuplot helpers, mostly for internal use:
@@ -391,7 +400,7 @@
 		  get_x_ticks_option/1, get_y_ticks_option/1,
 		  add_plot_index_back/2,
 		  generate_command_file/1, generate_data_file/2, write_row/3,
-		  forge_format_string_for/1	]).
+		  forge_format_string_for/1 ]).
 
 
 
@@ -544,6 +553,9 @@
 
 -type int_degrees() :: unit_utils:int_degrees().
 
+-type bounds() :: math_utils:bounds().
+-type float_to_float_fun() :: math_utils:float_to_float_fun().
+
 -type width() :: gui:width().
 -type height() :: gui:height().
 
@@ -561,6 +573,24 @@
 -spec get_plot_settings( user_plot_name() ) -> plot_settings().
 get_plot_settings( UsrPlotName ) ->
 	#plot_settings{ name=text_utils:ensure_binary( UsrPlotName ) }.
+
+
+
+% @doc Returns reasonable defaults in terms of plot settings, for a single,
+% anonymous curve.
+%
+-spec get_default_plot_settings() -> plot_settings().
+get_default_plot_settings() ->
+	get_default_plot_settings( "Myriad plot" ).
+
+
+% @doc Returns reasonable defaults in terms of plot settings, for the specified
+% single curve.
+%
+-spec get_default_plot_settings( user_plot_name() ) -> plot_settings().
+get_default_plot_settings( PlotName ) ->
+	BasePlotSettings = get_plot_settings( PlotName ),
+	declare_curves( _CurveNames=[ "Function value" ], BasePlotSettings ).
 
 
 
@@ -880,7 +910,8 @@ plot_samples( PlotData, PlotSettings ) ->
 
 
 % doc Plots the specified samples, based on the specified plot specification,
-% and returns the path to the corresponding generated plot file.
+% displays it if requested, and returns the path to the corresponding generated
+% plot file.
 %
 % Any previous plot file will be overwritten.
 %
@@ -1023,6 +1054,45 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 		executable_utils:display_image_file( BinPlotPath, ImgFormat ),
 
 	Outcome.
+
+
+
+
+
+% doc Plots the specified function within the specified bounds, based on the
+% specified plot settings (if any, otherwise default ones will be used) and
+% returns the path to the corresponding generated plot file.
+%
+% Any previous plot file will be overwritten.
+%
+-spec plot( plot_function(), bounds(), maybe( plot_settings() ) ) ->
+											plot_generation_outcome().
+plot( FunToPlot, Bounds, MaybePlotSettings ) ->
+	plot( FunToPlot, Bounds, MaybePlotSettings, _DoDisplay=false ).
+
+
+% doc Plots the specified function within the specified bounds, based on the
+% specified plot settings (if any, otherwise default ones will be used),
+% displays it if requested, and returns the path to the corresponding generated
+% plot file.
+%
+% Any previous plot file will be overwritten.
+%
+-spec plot( plot_function(), bounds(), maybe( plot_settings() ),
+			boolean() ) -> plot_generation_outcome().
+plot( FunToPlot, Bounds, _MaybePlotSettings=undefined, DoDisplay ) ->
+	plot( FunToPlot, Bounds, get_default_plot_settings(), DoDisplay );
+
+plot( FunToPlot, Bounds, PlotSettings=#plot_settings{
+		meta_data=MetadataTable }, DoDisplay ) ->
+
+	SampleCount = list_table:get_value_with_default( _K=plot_point_count,
+		_DefaultSampleCount=50, MetadataTable ),
+
+	% Bounds are canonicalised; returns a list of plot points:
+	PlotData = math_utils:sample_as_pairs_for( FunToPlot, Bounds, SampleCount ),
+
+	plot_samples( PlotData, PlotSettings, DoDisplay ).
 
 
 
