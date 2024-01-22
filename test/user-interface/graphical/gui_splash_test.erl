@@ -67,8 +67,12 @@
 -spec run_splash_screen_test() -> void().
 run_splash_screen_test() ->
 
-	% This test just waits for a fixed duration:
+	% This test just waits for a fixed, small enough duration:
 	WaitingDurationMs = 2000,
+
+	% To concentrate on the dynamic splash, if below its (longer) fixed sleep is
+	% uncommented:
+	%
 	%WaitingDurationMs = 0,
 
 	trace_utils:notice_fmt( "A basic splash screen displaying the Myriad logo "
@@ -136,7 +140,7 @@ run_splash_screen_test() ->
 		timer:sleep( 2 * WaitingDurationMs ),
 
 		% For a longer contemplation:
-		%timer:sleep( 25000 ),
+		timer:sleep( 25000 ),
 
 		MainTestPid ! removeDynamicSplash,
 
@@ -187,7 +191,9 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			DescStr = "Foobar is a Frobnicator with twin acceleration beams.",
 
-			UrlStr = "www.foobar.org",
+			%UrlStr = "This is a longer URL string to check the placement "
+			%	"for http://www.foobar.org",
+			UrlStr = "http:/www.foobar.org",
 
 			TitleBackgroundColor = lightgrey,
 			%TitleBackgroundColor = red,
