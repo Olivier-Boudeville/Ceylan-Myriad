@@ -426,8 +426,13 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 		DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
 		MainBitmap, GeneralInfoStr, CopyrightStr, Parent ) ->
 
-	trace_utils:debug_fmt( "Rendering dynamic splash on parent ~w.",
-						   [ Parent ] ),
+	%trace_utils:debug_fmt( "Rendering dynamic splash on parent ~w.",
+	%                       [ Parent ] ),
+
+	% If ever this widget was not satisfactory enough in the future, it should
+	% be updated with an horizontal sizer in the info panel, sizing on the right
+	% the URL display and, on the left, a vertical sizer taking care of the
+	% title and, below, the description.
 
 	gui_widget:set_background_color( Parent, OverallBackgroundColor ),
 
@@ -435,7 +440,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	MainSizer = gui_sizer:create( _Orientation=vertical ),
 
 
-	trace_utils:debug( "Operating on first row: symbol and texts." ),
+	%trace_utils:debug( "Operating on first row: symbol and texts." ),
 
 	% First row: setting a sufficient initial height of the top panel in order
 	% to contain all elements (so that the symbol image and bottom text fit); it
@@ -444,17 +449,18 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	%
 	TopSizer = gui_sizer:create( _Orient=horizontal ),
 
+	MainBitmapWidth = gui_bitmap:get_width( MainBitmap ),
+
 	SymbolBmpDisplay =
 		gui_bitmap:create_static_display( SymbolBitmap, Parent ),
 
-
+	% Border between this symbol and at its right the top panel:
 	gui_sizer:add_element( TopSizer, SymbolBmpDisplay,
 		[ { proportion, 0 }, { border, 5 }, right_border, align_left ] ),
 
 	% To set exactly the height of the information panel:
 	SymbolHeight = gui_bitmap:get_height( SymbolBitmap ),
 
-	MainBitmapWidth = gui_bitmap:get_width( MainBitmap ),
 
 	% A zero width could have sufficed, yet afterwards for the URL display we
 	% have to rely on a proper evaluation of the panel width in order to
@@ -571,20 +577,42 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	%gui_widget:set_background_color( VersionDisplay, yellow ),
 
+	% May work by accident, as using another font that the version one
+	% apparently wreaks havoc the placement:
 
 	UrlFont = VersionFont,
+	%UrlFont = DescFont,
 
-	_UrlSize = { UrlW, UrlH } = gui_font:get_text_extent( UrlStr, UrlFont ),
+	UrlSize = { UrlW, UrlH } = gui_font:get_text_extent( UrlStr, UrlFont ),
 
-	_InfoPanelSize = { IPW, _IPH } = gui_widget:get_size( InfoPanel ),
+	% We cannot speculate on the width of the info panel, as it will be resized:
+	%_InfoPanelSize = { IPW, _IPH } = gui_widget:get_size( InfoPanel ),
 
-	_UrlPos = { IPW - UrlW - XMargin, ( SymbolHeight - UrlH ) div 2 },
+	% However we can anticipate that the final total width will be the one of
+	% the left spacer plus the one of the main bitmap plus the one of the right
+	% spacer; if we subtract the width of the symbol and the interspaces, we
+	% obtain the rightmost bound of the URL display, to which we can subtract
+	% the width of this display in order to obtain the abscissa of this display
+	% within the panel:
+
+	{ SymbolBmpDisplayW, _SymbolBmpDisplayH } =
+		gui_widget:get_size( SymbolBmpDisplay ),
+
+	SpacerWidth = 100,
+
+	Interspaces = 15,
+
+	% Relatively to the info panel:
+	UrlAbscissa = MainBitmapWidth + 2 * SpacerWidth - SymbolBmpDisplayW - UrlW
+		- Interspaces,
+
+	UrlPos = { UrlAbscissa, ( SymbolHeight - UrlH ) div 2 },
 
 	UrlDisplay = gui_text:create_static_display( UrlStr,
-		%_Opts=[ { position, UrlPos }, { size, UrlSize } ], InfoPanel ),
-		{ style, [ align_right ] }, InfoPanel ),
+		_Opts=[ { position, UrlPos }, { size, UrlSize },
+				{ style, [ align_right ] } ], InfoPanel ),
 
-	gui_widget:set_background_color( UrlDisplay, green ),
+	%gui_widget:set_background_color( UrlDisplay, green ),
 
 	gui_widget:set_font( UrlDisplay, UrlFont ),
 
@@ -603,8 +631,8 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	MainDims = gui_bitmap:get_size( MainBitmap ),
 
-	trace_utils:debug_fmt( "Operating on second row: the splash (main) image, "
-		"whose dimensions are ~w.", [ MainDims ] ),
+	%trace_utils:debug_fmt( "Operating on second row: the splash (main) image, "
+	%   "whose dimensions are ~w.", [ MainDims ] ),
 
 	MainImgPanel = gui_panel:create(
 		[ { size, MainDims }, { style, no_border } ], Parent ),
@@ -612,7 +640,6 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	MainStaticBtmpDisp =
 		gui_bitmap:create_static_display( MainBitmap, _Par=MainImgPanel ),
 
-	SpacerWidth = 100,
 	SpacerHeight = 0,
 
 	gui_sizer:add_spacer( MiddleSizer, SpacerWidth, SpacerHeight,
@@ -630,7 +657,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 
 	% Taking care of the bottom part now:
-	trace_utils:debug( "Operating on third row: texts on the side." ),
+	%trace_utils:debug( "Operating on third row: texts on the side." ),
 
 	BottomFont = gui_font:create( _PointSize=10 ),
 
