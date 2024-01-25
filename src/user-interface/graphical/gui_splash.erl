@@ -136,7 +136,10 @@
 
 
 -export([ create_basic/2, create_basic/3,
-		  create_dynamic/11, create_dynamic_from_bitmaps/11,
+
+		  create_dynamic/12, create_dynamic_from_bitmaps/12,
+		  render_dynamic_splash/12,
+
 		  show/1,
 		  on_repaint_needed/2, on_resized/3, remove/1,
 		  get_panel/1, get_frame/1,
@@ -156,6 +159,7 @@
 
 -type any_image_path() :: gui_image:any_image_path().
 
+-type width() :: gui:width().
 -type panel() :: gui_panel:panel().
 -type frame() :: gui_frame:frame().
 -type bitmap() :: gui_bitmap:bitmap().
@@ -323,8 +327,8 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 %       a Frobnicator with twin acceleration beams")
 %     * right-justified: the project URL (e.g. "www.foobar.org")
 %
-%  2. a middle row displaying (possibly with horizontal margins) the project's
-%  main representation, as an image, at full size
+%  2. a middle row displaying (possibly with user-specified horizontal margins -
+%  spacers) the project's main representation, as an image, at full size
 %
 %  3. a bottom row, made of two text displays, on either sides of a spacer:
 %
@@ -354,15 +358,16 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 %
 % Arguments listed roughly in a top-to-bottom image order.
 %
--spec create_dynamic( SymbolImgPath :: any_image_path(),
+-spec create_dynamic( SymbolPath :: any_image_path(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
 	DescStr :: any_string(), UrlStr :: any_string(),
 	TitleBackgroundColor :: color(), OverallBackgroundColor :: color(),
-	MainImgPath :: any_image_path(), GeneralInfoStr :: any_string(),
-	CopyrightStr :: any_string(), parent() ) -> dynamic_splash_info().
+	MainPath :: any_image_path(), SpacerWidth :: width(),
+	GeneralInfoStr :: any_string(), CopyrightStr :: any_string(), parent() ) ->
+											dynamic_splash_info().
 create_dynamic( SymbolImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 		TitleBackgroundColor, OverallBackgroundColor, MainImgPath,
-		GeneralInfoStr, CopyrightStr, Parent ) ->
+		SpacerWidth, GeneralInfoStr, CopyrightStr, Parent ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_splash,
 		trace_utils:debug_fmt( "Creating a dynamic splash screen, "
@@ -374,7 +379,7 @@ create_dynamic( SymbolImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 
 	create_dynamic_from_bitmaps( SymbolImgBitmap, TitleStr, VersionStr,
 		DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
-		MainImgBitmap, GeneralInfoStr, CopyrightStr, Parent ).
+		MainImgBitmap, SpacerWidth, GeneralInfoStr, CopyrightStr, Parent ).
 
 
 
@@ -388,30 +393,31 @@ create_dynamic( SymbolImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 %
 % Arguments listed roughly in a top-to-bottom image order.
 %
--spec create_dynamic_from_bitmaps( SymbolImgBitmap :: bitmap(),
+-spec create_dynamic_from_bitmaps( SymbolBitmap :: bitmap(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
 	DescStr :: any_string(), UrlStr :: any_string(),
 	TitleBackgroundColor :: color(), OverallBackgroundColor :: color(),
-	MainImgBitmap :: bitmap(), GeneralInfoStr :: any_string(),
-	CopyrightStr :: any_string(), parent() ) -> dynamic_splash_info().
-create_dynamic_from_bitmaps( SymbolImgBitmap, TitleStr, VersionStr, DescStr,
-		UrlStr, TitleBackgroundColor, OverallBackgroundColor, MainImgBitmap,
-		GeneralInfoStr, CopyrightStr, Parent ) ->
+	MainBitmap :: bitmap(), SpacerWidth :: width(),
+	GeneralInfoStr :: any_string(), CopyrightStr :: any_string(), parent() ) ->
+											dynamic_splash_info().
+create_dynamic_from_bitmaps( SymbolBitmap, TitleStr, VersionStr, DescStr,
+		UrlStr, TitleBackgroundColor, OverallBackgroundColor, MainBitmap,
+		SpacerWidth, GeneralInfoStr, CopyrightStr, Parent ) ->
 
 	SplashFrame = create_splash_frame( Parent ),
 
 	% Initialisation:
 	{ _MainSizer, _TopPanel, _MainPanel, _MainStaticBtmpDisp,
 	  _LeftTextDisplay, _RightTextDisplay } =
-		render_dynamic_splash( SymbolImgBitmap, TitleStr,
+		render_dynamic_splash( SymbolBitmap, TitleStr,
 			VersionStr, DescStr, UrlStr, TitleBackgroundColor,
-			OverallBackgroundColor, MainImgBitmap, GeneralInfoStr,
+			OverallBackgroundColor, MainBitmap, SpacerWidth, GeneralInfoStr,
 			CopyrightStr, _Parent=SplashFrame ),
 
 	#dynamic_splash_info{ splash_frame=SplashFrame,
 						  %splash_panel=SplashPanel,
-						  symbol_bitmap=SymbolImgBitmap,
-						  main_bitmap=MainImgBitmap }.
+						  symbol_bitmap=SymbolBitmap,
+						  main_bitmap=MainBitmap }.
 
 
 
@@ -422,9 +428,16 @@ create_dynamic_from_bitmaps( SymbolImgBitmap, TitleStr, VersionStr, DescStr,
 % title, no 'close' button) or a 'About' window (with a title, a 'close' button,
 % etc.).
 %
+-spec render_dynamic_splash( SymbolBitmap :: bitmap(),
+	TitleStr :: any_string(), VersionStr :: any_string(),
+	DescStr :: any_string(), UrlStr :: any_string(),
+	TitleBackgroundColor :: color(), OverallBackgroundColor :: color(),
+	MainBitmap :: bitmap(), SpacerWidth :: width(),
+	GeneralInfoStr :: any_string(), CopyrightStr :: any_string(), parent() ) ->
+											dynamic_splash_info().
 render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 		DescStr, UrlStr, TitleBackgroundColor, OverallBackgroundColor,
-		MainBitmap, GeneralInfoStr, CopyrightStr, Parent ) ->
+		MainBitmap, SpacerWidth, GeneralInfoStr, CopyrightStr, Parent ) ->
 
 	%trace_utils:debug_fmt( "Rendering dynamic splash on parent ~w.",
 	%                       [ Parent ] ),
@@ -597,8 +610,6 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	{ SymbolBmpDisplayW, _SymbolBmpDisplayH } =
 		gui_widget:get_size( SymbolBmpDisplay ),
-
-	SpacerWidth = 100,
 
 	Interspaces = 15,
 
