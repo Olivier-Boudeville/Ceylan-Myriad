@@ -140,7 +140,7 @@ run_splash_screen_test() ->
 		timer:sleep( 2 * WaitingDurationMs ),
 
 		% For a longer contemplation:
-		timer:sleep( 25000 ),
+		%timer:sleep( 25000 ),
 
 		MainTestPid ! removeDynamicSplash,
 
@@ -213,8 +213,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			DynamicSplashInfo = gui_splash:create_dynamic( SymbolImgPath,
 				TitleStr, VersionStr, DescStr, UrlStr, TitleBackgroundColor,
-				BackgroundColor, MainImgPath, GeneralInfoStr, CopyrightStr,
-				_SplashParent=MainFrame ),
+				BackgroundColor, MainImgPath, _SpacerWidth=0, GeneralInfoStr,
+				CopyrightStr, _SplashParent=MainFrame ),
 
 			gui_splash:show( DynamicSplashInfo ),
 
