@@ -47,7 +47,9 @@
 		  get_bitmap/2, get_bitmaps/2,
 
 		  has/2, register/2, register/3,
-		  remove/2, locate_data/2, locate_multiple_data/2, get_path/2,
+		  remove/2, remove_multiple/2,
+
+		  locate_data/2, locate_multiple_data/2, get_path/2,
 		  referential_to_string/1, resource_type_to_string/1,
 
 		  % Server-side:
@@ -70,10 +72,20 @@
 % also directly perform the message sending and retrieving, in order to favor
 % process interleaving.
 %
+% For graphical resources:
+%
 % For graphical operations to be able to happen (e.g. with get_bitmap/2,
 % get_bitmaps/2), the calling process shall already have its GUI backend
 % environment set (see gui:{g,s}et_backend_environment/1), otherwise it will
 % exit (for example with a {wx,unknown_env} error).
+%
+% Bitmaps currently do not seem to be clonable (no cheap copy or increase of
+% their reference counter); therefore, if one is used in a frame (typically for
+% a static display thereof) that gets closed, this bitmap will be silently
+% deallocated, and any reference thereof (e.g. {wx_ref,67, wxBitmap,[]}} held in
+% referential will actually become a stale reference (any operation on it
+% resulting in {{badarg,"This"}, ...}). A copy constructor available from wx
+% would help relying on the underlying reference counter of wxWidgets.
 
 
 -type resource() :: term().
@@ -460,10 +472,17 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 	case table:lookup_entry( BmpId, RscTable ) of
 
 		{ value, Bmp } ->
+
+			cond_utils:if_defined( myriad_check_resources,
+				( wx:is_null( Bmp ) orelse wxBitmap:isOk( Bmp ) ) andalso throw(
+					% Already deallocated:
+					{ stale_bitmap, Bmp, BmpId } ) ),
+
 			% Resource logical or not:
 			cond_utils:if_defined( myriad_debug_resources,
 				trace_utils:debug_fmt( "[~w] Returning already-available "
-					"bitmap resource '~p'.", [ self(), BmpId ] ) ),
+					"bitmap resource ~w for '~p'.",
+				   [ self(), Bmp, BmpId ] ) ),
 			{ Bmp, BmpRef };
 
 		key_not_found ->
@@ -488,8 +507,8 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 
 					cond_utils:if_defined( myriad_debug_resources,
 						trace_utils:debug_fmt(
-							"[~w] Returning just-loaded bitmap resource '~p'.",
-							[ self(), BmpId ] ) ),
+							"[~w] Returning just-loaded bitmap resource ~w "
+							"for '~p'.", [ self(), BinBmp, BmpId ] ) ),
 
 					{ BinBmp, NewBmpRef };
 
@@ -513,7 +532,8 @@ get_bitmap( BmpId, BmpSrvPid ) when is_pid( BmpSrvPid ) ->
 		{ notifyBitmapResource, Bitmap } ->
 			cond_utils:if_defined( myriad_debug_resources,
 				trace_utils:debug_fmt( "[~w] Returning received "
-					"bitmap resource for '~p'.", [ self(), BmpId ] ) ),
+					"bitmap resource ~w for '~p'.",
+					[ self(), Bitmap, BmpId ] ) ),
 
 			Bitmap
 
@@ -541,7 +561,8 @@ get_bitmaps( BitmapRscIds, RscSrvPid ) when is_pid( RscSrvPid ) ->
 		{ notifyBitmapResources, BmpRscs } ->
 			cond_utils:if_defined( myriad_debug_resources,
 				trace_utils:debug_fmt( "[~w] Returning received "
-					"bitmap resources for '~p'.", [ self(), BmpRscIds ] ) ),
+					"bitmap resources ~w for ~p.",
+					[ self(), BmpRscs, BestBmpRscIds ] ) ),
 
 			BmpRscs
 
@@ -678,7 +699,7 @@ register( RscLogId, Rsc, RscSrvPid ) ->
 										resource_referential();
 			( any_resource_file_id(), resource_server_pid() ) -> void().
 % As strings are tolerated:
-remove( RscIdStr, RscHolder ) when is_list( RscIdStr )->
+remove( RscIdStr, RscHolder ) when is_list( RscIdStr ) ->
 	remove( text_utils:string_to_binary( RscIdStr ), RscHolder );
 
 % Non-plain list from here; local side:
@@ -697,6 +718,38 @@ remove( RscId, Ref=#resource_referential{ table=RscTable } ) ->
 % Server-side:
 remove( RscId, RscSrvPid ) ->
 	RscSrvPid ! { remove, RscId }.
+
+
+
+% @doc Removes the specified resources from the specified resource holder.
+%
+% These resource are just unregistered; for example file-based ones are not
+% deleted from the filesystem.
+%
+-spec remove_multiple( [ any_resource_file_id() ], resource_referential() ) ->
+										resource_referential();
+					 ( [ any_resource_file_id() ], resource_server_pid() ) ->
+										void().
+% Server-side (mostly like get_multiple/2):
+remove_multiple( RscIds, RscSrvPid ) when is_pid( RscSrvPid ) ->
+	BestRscIds = get_best_identifiers( RscIds ),
+
+	% Wrapping list useless:
+	RscSrvPid ! { removeMultiple, BestRscIds };
+
+% Local side:
+remove_multiple( RscIds, RscRef=#resource_referential{ table=RscTable } ) ->
+
+	BestRscIds = get_best_identifiers( RscIds ),
+
+	% No order matters; existence checked for reliability:
+	ShrunkRscTable = table:remove_existing_entries( BestRscIds, RscTable ),
+
+	%trace_utils:debug_fmt( "Before: ~ts~nAfter: ~ts",
+	%  [ table:to_string( RscTable ),
+	%    table:to_string( ShrunkRscTable ) ] ),
+
+	RscRef#resource_referential{ table=ShrunkRscTable }.
 
 
 
@@ -913,7 +966,7 @@ get_best_identifiers( RscIds ) ->
 		true ->
 			text_utils:string_to_binary( RI );
 
-		  _False ->
+		_False ->
 			RI
 
 	  end || RI <- RscIds ].
@@ -1054,10 +1107,15 @@ server_main_loop( RscRef ) ->
 			server_main_loop( NewRscRef );
 
 
-		% Oneway:
+		% Oneways:
 		{ remove, RscId } ->
-			NewRscRef = remove( RscId, RscRef ),
-			server_main_loop( NewRscRef );
+			ShrunkRscRef = remove( RscId, RscRef ),
+			server_main_loop( ShrunkRscRef );
+
+		{ removeMultiple, RscIds } ->
+			ShrunkRscRef = remove_multiple( RscIds, RscRef ),
+			server_main_loop( ShrunkRscRef );
+
 
 		% Request:
 		{ locateData, RelFilePathBin, SenderPid } ->
@@ -1082,8 +1140,8 @@ server_main_loop( RscRef ) ->
 			ok;
 
 	Other ->
-		trace_utils:warning_fmt( "Resource server ~w ignoring message ~p.",
-								 [ self(), Other ] ),
+		trace_utils:warning_fmt( "Resource server ~w ignoring the following "
+			"message:~n  ~p.", [ self(), Other ] ),
 		server_main_loop( RscRef )
 
 	end.
