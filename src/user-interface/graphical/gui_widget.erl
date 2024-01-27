@@ -61,7 +61,7 @@
 
 
 
--export([ destruct/1, destruct/2,
+-export([ destruct/1, destruct/2, destruct_direct/1,
 
 		  set_sizer/2, fit_to_sizer/2, set_and_fit_to_sizer/2,
 		  layout/1,
@@ -138,6 +138,18 @@ destruct( Widget, GUIEnvPid ) ->
 
 	end,
 
+	destruct_direct( Widget ).
+
+
+
+% @doc Destructs the specified widget directly and basically, with no
+% synchronisation involved.
+%
+% Note however that this corresponds to the decrementing of its reference count,
+% so an actual destruction may not happen immediately.
+%
+-spec destruct_direct( widget() ) -> void().
+destruct_direct( Widget ) ->
 	wxWindow:destroy( Widget ).
 
 
