@@ -226,9 +226,14 @@
 
 
 % Subsection for standard, basic windows.
+%
+% Parent-less windows (widgets) are edge cases; frames shall be preferred.
 
 
 % @doc Creates a basic window.
+%
+% @hidden (internal use only)
+%
 -spec create() -> window().
 create() ->
 	wxWindow:new().
@@ -255,6 +260,9 @@ create( Id, Parent ) ->
 
 
 % @doc Creates a basic window of the specified size.
+%
+% @hidden (internal use only)
+%
 -spec create( sizing() ) -> window().
 create( Size ) ->
 
