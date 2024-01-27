@@ -47,7 +47,7 @@
 		  get_bitmap/2, get_bitmaps/2,
 
 		  has/2, register/2, register/3,
-		  remove/2, remove_multiple/2,
+		  remove/2, remove_multiple/2, flush/1,
 
 		  locate_data/2, locate_multiple_data/2, get_path/2,
 		  referential_to_string/1, resource_type_to_string/1,
@@ -86,6 +86,11 @@
 % referential will actually become a stale reference (any operation on it
 % resulting in {{badarg,"This"}, ...}). A copy constructor available from wx
 % would help relying on the underlying reference counter of wxWidgets.
+%
+% As a result, a specialised resource (like a bitmap) shall not be fetched as a
+% basic resource (e.g. with get/2 or get_multiple/2; use get_bitmap/2,
+% get_bitmaps/2, etc. instead), as the extra provisions undertaken for
+% specialised resources would not be performed.
 
 
 -type resource() :: term().
@@ -474,16 +479,37 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 		{ value, Bmp } ->
 
 			cond_utils:if_defined( myriad_check_resources,
-				( wx:is_null( Bmp ) orelse wxBitmap:isOk( Bmp ) ) andalso throw(
-					% Already deallocated:
-					{ stale_bitmap, Bmp, BmpId } ) ),
+				begin
+
+					% Not expected to happen:
+					wx:is_null( Bmp ) andalso
+						throw( { null_resource_bitmap, Bmp, BmpId } ),
+
+					try
+
+						% wxBitmap:isOk/1 likely to crash with EXIT:
+						% {badarg,"This"} rather than returning false:
+						%
+						true = wxBitmap:isOk( Bmp )
+
+					catch _:E ->
+						% Already deallocated (gui_bitmap_destruct/1), probably
+						% by mistake:
+						%
+						throw( { stale_resource_bitmap, Bmp, BmpId, E } )
+
+					end
+
+				end ),
 
 			% Resource logical or not:
 			cond_utils:if_defined( myriad_debug_resources,
 				trace_utils:debug_fmt( "[~w] Returning already-available "
 					"bitmap resource ~w for '~p'.",
 				   [ self(), Bmp, BmpId ] ) ),
+
 			{ Bmp, BmpRef };
+
 
 		key_not_found ->
 			% Then hopefully it is a binary string to allow for a loading from
@@ -498,19 +524,48 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 						throw( { bitmap_resource_not_found,
 								 text_utils:ensure_string( BmpPath ) } ),
 
-					BinBmp = gui_bitmap:create_from( BmpPath ),
+					Bitmap = gui_bitmap:create_from( BmpPath ),
 
-					NewRscTable = table:add_entry( BmpId, BinBmp, RscTable ),
+					NewRscTable = table:add_entry( BmpId, Bitmap, RscTable ),
 
-					NewBmpRef =
-						BmpRef#resource_referential{ table=NewRscTable },
+					% The following workaround, implemented to circumvent an
+					% early deallocation, was actually useless (see
+					% https://erlangforums.com/t/reference-counting-wx-object-instances/3226/):;
+					% when using such a resource holder, the caller shall not
+					% destruct its instances by itself (for example with
+					% gui_bitmap:destruct/1):
+
+					% Ensures that a dummy frame is available:
+					% DummyFrame =
+					%		case BmpRef#resource_referential.dummy_frame of
+
+					%	undefined ->
+					%		% Parentless gui_window is not a legit one, so:
+					%		gui_frame:create( "MyriadGUI dummy frame" );
+
+					%	DFrame ->
+					%		DFrame
+
+					% end,
+
+					% We created a dummy static bitmap whose parent is / which
+					% is owned by the dummy frame, to prevent that its bitmap is
+					% deallocated whereas that bitmap is still held by the
+					% cache:
+					%
+					%_StaticBmp = gui_bitmap:create_static_display( Bitmap,
+					%	_Parent=DummyFrame ),
+
+					NewBmpRef = BmpRef#resource_referential{
+						table=NewRscTable },
+						%dummy_frame=DummyFrame },
 
 					cond_utils:if_defined( myriad_debug_resources,
 						trace_utils:debug_fmt(
 							"[~w] Returning just-loaded bitmap resource ~w "
-							"for '~p'.", [ self(), BinBmp, BmpId ] ) ),
+							"for '~p'.", [ self(), Bitmap, BmpId ] ) ),
 
-					{ BinBmp, NewBmpRef };
+					{ Bitmap, NewBmpRef };
 
 				_False ->
 					trace_bridge:error_fmt( "No (logical) bitmap resource of "
@@ -570,6 +625,9 @@ get_bitmaps( BitmapRscIds, RscSrvPid ) when is_pid( RscSrvPid ) ->
 
 % Local side; implicit: RscRef=#resource_referential{}:
 get_bitmaps( BitmapRscIds, RscRef ) ->
+
+	%trace_utils:debug_fmt( "Resource referential: ~p.", [ RscRef ] ),
+
 	% (bitmap identifiers being processed in reverse order, bitmaps are returned
 	% in the correct order):
 	%
@@ -750,6 +808,33 @@ remove_multiple( RscIds, RscRef=#resource_referential{ table=RscTable } ) ->
 	%    table:to_string( ShrunkRscTable ) ] ),
 
 	RscRef#resource_referential{ table=ShrunkRscTable }.
+
+
+
+% @doc Fully flushes the specified resource holder.
+flush( RscSrvPid ) when is_pid( RscSrvPid ) ->
+	RscSrvPid ! flush;
+
+% No bitmap held:
+flush( RscRef=#resource_referential{ table=_RscTable } ) ->
+									 %dummy_frame=undefined } ) ->
+	RscRef#resource_referential{ table=table:new() }.
+
+%flush( RscRef=#resource_referential{ table=_RscTable,
+%									  dummy_frame=DummyFrame } ) ->
+
+	% Should trigger in turn the deallocation of its static bitmaps, then of
+	% their bitmap resources.
+	%
+	% Not gui_widget:destruct(DummyFrame) as we do not need synchronisation
+	% here:
+	%
+%	gui_widget:destruct_direct( DummyFrame ),
+
+%	RscRef#resource_referential{ table=table:new(),
+%								 dummy_frame=undefined }.
+
+
 
 
 
@@ -1135,6 +1220,10 @@ server_main_loop( RscRef ) ->
 			BinRscPath = get_path( RscFileId, RscRef ),
 			SenderPid ! { notifyResourcePath, BinRscPath },
 			server_main_loop( RscRef );
+
+		flush ->
+			FlushedRscRef = flush( RscRef ),
+			server_main_loop( FlushedRscRef );
 
 		terminate ->
 			ok;

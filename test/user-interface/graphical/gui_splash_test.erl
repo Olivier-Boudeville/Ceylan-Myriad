@@ -231,6 +231,13 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 			gui_splash:destruct( SplashInfo ),
 
+			% Needed as the dynamic splash does not take ownership of its
+			% bitmaps, so that they can for example be managed by a resource
+			% holder:
+			%
+			[ gui_bitmap:destruct( B )
+				|| B <- gui_splash:get_bitmaps( SplashInfo ) ],
+
 			test_main_loop( TestState#my_test_state{ splash_info=undefined,
 													 splash_panel=undefined } );
 

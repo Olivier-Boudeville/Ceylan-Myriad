@@ -142,7 +142,7 @@
 
 		  show/1,
 		  on_repaint_needed/2, on_resized/3, remove/1,
-		  get_panel/1, get_frame/1,
+		  get_panel/1, get_frame/1, get_bitmaps/1,
 		  destruct/1, update_panel/2 ]).
 
 
@@ -358,6 +358,9 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 %
 % Arguments listed roughly in a top-to-bottom image order.
 %
+% The resources loaded there (the two bitmaps) should be explcitly destructed by
+% the caller once done with them.
+%
 -spec create_dynamic( SymbolPath :: any_image_path(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
 	DescStr :: any_string(), UrlStr :: any_string(),
@@ -392,6 +395,9 @@ create_dynamic( SymbolImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 % resources. Refer to create_dynamic/11 for further details.
 %
 % Arguments listed roughly in a top-to-bottom image order.
+%
+% Does not take ownership of the specified resources (so that for example they
+% can be provided by a resource holder).
 %
 -spec create_dynamic_from_bitmaps( SymbolBitmap :: bitmap(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
@@ -469,7 +475,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	% Border between this symbol and at its right the top panel:
 	gui_sizer:add_element( TopSizer, SymbolBmpDisplay,
-		[ { proportion, 0 }, { border, 5 }, right_border, align_left ] ),
+		[ { proportion, 0 }, { border_width, 5 }, right_border, align_left ] ),
 
 	% To set exactly the height of the information panel:
 	SymbolHeight = gui_bitmap:get_height( SymbolBitmap ),
@@ -633,7 +639,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 		[ { proportion, 1 }, expand_fully ] ),
 
 	gui_sizer:add_element( MainSizer, TopSizer,
-		[ { proportion, 0 }, { border, 8 }, all_borders, expand_fully ] ),
+		[ { proportion, 0 }, { border_width, 8 }, all_borders, expand_fully ] ),
 
 
 	% Middle row now:
@@ -657,7 +663,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 						  [ { proportion, 0 }, expand_fully ] ),
 
 	gui_sizer:add_element( MiddleSizer, MainImgPanel,
-		[ { proportion, 0 }, { border, 5 }, all_borders, align_center ] ),
+		[ { proportion, 0 }, { border_width, 5 }, all_borders, align_center ] ),
 
 	gui_sizer:add_spacer( MiddleSizer, SpacerWidth, SpacerHeight,
 						  [ { proportion, 0 }, expand_fully ] ),
@@ -681,7 +687,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 		gui_text:create_static_display( _Lbel=GeneralInfoStr, _Pr=Parent ),
 
 	gui_sizer:add_element( BottomSizer, LeftTextDisplay,
-						   [ { proportion, 0 }, { border, 5 }, left_border ] ),
+		[ { proportion, 0 }, { border_width, 5 }, left_border ] ),
 
 	% In-between side texts:
 	gui_sizer:add_spacer( BottomSizer, _Wdth=0, _Hght=0,
@@ -691,10 +697,10 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 		{ style, [ align_right ] }, Parent ),
 
 	gui_sizer:add_element( BottomSizer, RightTextDisplay,
-						   [ { proportion, 0 }, { border, 5 }, right_border ] ),
+		[ { proportion, 0 }, { border_width, 5 }, right_border ] ),
 
 	gui_sizer:add_element( MainSizer, BottomSizer,
-		[ { proportion, 1 }, { border, 2 }, all_borders, expand_fully ] ),
+		[ { proportion, 1 }, { border_width, 2 }, all_borders, expand_fully ] ),
 
 	% Fitting is necessary to adopt a proper, sufficient parent size:
 	gui_widget:set_and_fit_to_sizer( Parent, MainSizer ),
@@ -862,7 +868,26 @@ get_frame( #dynamic_splash_info{ splash_frame=SplashFrame } ) ->
 
 
 
+% @doc Returns the bitmaps referenced by the specified splash information.
+%
+% Mostly useful so that the bitmaps of a dynamic splash can be destructed by the
+% caller.
+%
+get_bitmaps( #basic_splash_info{ backbuffer=BackBufferBitmap,
+								 image_bitmap=ImgBitmap } ) ->
+	[ BackBufferBitmap, ImgBitmap ];
+
+get_bitmaps( #dynamic_splash_info{ symbol_bitmap=SymbolBitmap,
+								   main_bitmap=MainBitmap } ) ->
+	[ SymbolBitmap, MainBitmap ].
+
+
+
 % @doc Destructs the splash screen, based on the specified splash information.
+%
+% To be cache-compliant, its bitmap resources are not deallocated here, their
+% destruction is to be done by the caller, when appropriate.
+%
 -spec destruct( splash_info() ) -> void().
 destruct( #basic_splash_info{ splash_frame=SplashFrame,
 							  backbuffer=BackBufferBitmap,
@@ -870,13 +895,21 @@ destruct( #basic_splash_info{ splash_frame=SplashFrame,
 	% Implies panel:
 	gui_frame:destruct( SplashFrame ),
 
+	% Intentionally left uncommented: contrary to the next clause, for a basic
+	% splash, resources are created internally (hence they cannot come from a
+	% cache), and thus are to be destructed internally as well:
+	%
 	[ gui_bitmap:destruct( B ) || B <- [ BackBufferBitmap, ImgBitmap ] ];
 
-destruct( #dynamic_splash_info{ splash_frame=SplashFrame,
-								symbol_bitmap=SymbolBitmap,
-								main_bitmap=MainBitmap } ) ->
+destruct( #dynamic_splash_info{ splash_frame=SplashFrame } ) ->
+								%symbol_bitmap=SymbolBitmap,
+								%main_bitmap=MainBitmap } ) ->
 
 	% Implies panel and all:
-	gui_frame:destruct( SplashFrame ),
+	gui_frame:destruct( SplashFrame ).
 
-	[ gui_bitmap:destruct( B ) || B <- [ SymbolBitmap, MainBitmap ] ].
+	% Explicit deletion would not be a good idea, for example these bitmaps
+	% might be obtained from a resource holder whose references would thus
+	% become invalidated:
+	%
+	%[ gui_bitmap:destruct( B ) || B <- [ SymbolBitmap, MainBitmap ] ].
