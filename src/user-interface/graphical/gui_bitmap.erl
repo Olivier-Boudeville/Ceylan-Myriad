@@ -36,6 +36,10 @@
 %
 % See also the gui_canvas and gui_render (e.g. for draw_bitmap/*) modules.
 %
+% Bitmaps belong to the reference-counted resources; their life-cycle shall be
+% managed by the caller: a creation shall be ultimately paired to a destruction
+% (see destruct/1).
+%
 -module(gui_bitmap).
 
 
@@ -48,6 +52,10 @@
 % platform-independent).
 %
 % A given bitmap may or may not have its internal data buffer set.
+%
+% Bitmaps belong to the reference-counted resources; their life-cycle shall be
+% managed by the caller: a creation shall be ultimately paired to a destruction
+% (see destruct/1).
 
 
 -type empty_bitmap() :: bitmap().
@@ -168,12 +176,17 @@
 % @doc Returns a bitmap of the specified dimensions, using the current system
 % color depth.
 %
+% To be explicitly destructed (see destruct/1) when done with it.
+%
 -spec create( width(), height() ) -> bitmap().
 create( Width, Height ) ->
 	create( Width, Height, ?wxBITMAP_SCREEN_DEPTH ).
 
 
 % @doc Returns a bitmap of the specified dimensions and color depth.
+%
+% To be explicitly destructed (see destruct/1) when done with it.
+%
 -spec create( width(), height(), color_depth() ) -> bitmap().
 create( Width, Height, ColorDepth ) ->
 	NewBitmap = create_empty( Width, Height ),
@@ -182,6 +195,9 @@ create( Width, Height, ColorDepth ) ->
 
 
 % @doc Returns a bitmap created from the image at the specified path.
+%
+% To be explicitly destructed (see destruct/1) when done with it.
+%
 -spec create_from( any_file_path() ) -> bitmap().
 create_from( ImagePath ) ->
 	gui_image:create_bitmap( ImagePath ).
@@ -190,11 +206,17 @@ create_from( ImagePath ) ->
 
 % @doc Returns an empty (buffer-less) bitmap of the specified size.
 -spec create_empty( size() ) -> empty_bitmap().
+%
+% To be explicitly destructed (see destruct/1) when done with it.
+%
 create_empty( _Size={ Width, Height } ) ->
 	create_empty( Width, Height ).
 
 
 % @doc Returns an empty (buffer-less) bitmap of the specified dimensions.
+%
+% To be explicitly destructed (see destruct/1) when done with it.
+%
 -spec create_empty( width(), height() ) -> empty_bitmap().
 create_empty( Width, Height ) ->
 	ImgBitmap = wxBitmap:new( Width, Height ),
@@ -213,13 +235,20 @@ create_empty( Width, Height ) ->
 % @doc Returns an empty bitmap whose size is the client one of the specified
 % widget.
 %
+% To be explicitly destructed (see destruct/1) when done with it.
+%
 -spec create_empty_for( widget() ) -> empty_bitmap().
 create_empty_for( Widget ) ->
 	ClientSize = wxWindow:getClientSize( Widget ),
 	create_empty( ClientSize ).
 
 
+
 % @doc Destructs the specified bitmap (which must not be locked).
+%
+% Decrements its reference count; may trigger an actual destruction immediately
+% or not.
+%
 -spec destruct( bitmap() ) -> void().
 destruct( Bitmap ) ->
 	wxBitmap:destroy( Bitmap ).
