@@ -114,7 +114,10 @@
 
 % Simplification for the user: no specific flag needed.
 -type sizer_option() :: { 'proportion', weight_factor() }
-					  | { 'border', width() }
+
+						% Applies iff at least one border is requested:
+					  | { 'border_width', width() }
+
 					  | { 'user_data', term() }
 					  | sizer_flag_opt().
 % An option when configuring a sizer.
@@ -365,6 +368,7 @@ add_stretchable_spacer( Sizer ) ->
 	wxSizer:addStretchSpacer( Sizer ).
 
 
+
 % @doc Clears the specified sizer, detaching and deleting all its child widgets.
 -spec clear( sizer() ) -> void().
 clear( Sizer ) ->
@@ -403,7 +407,11 @@ to_wx_sizer_options( _Options=[], AccOpts, AccFlags ) ->
 to_wx_sizer_options( _Options=[ { userData, Data } | T ], AccOpts, AccFlags ) ->
 	to_wx_sizer_options( T, [ { user_data, Data } | AccOpts ], AccFlags );
 
-% Letting {proportion, integer()} and {border, integer()} go through:
+to_wx_sizer_options( _Options=[ { border_width, W } | T ], AccOpts,
+					 AccFlags ) ->
+	to_wx_sizer_options( T, [ { border, W } | AccOpts ], AccFlags );
+
+% Letting {proportion, integer()} go through:
 to_wx_sizer_options( _Options=[ P | T ], AccOpts, AccFlags )
 											when is_tuple( P ) ->
 	to_wx_sizer_options( T, [ P | AccOpts ], AccFlags );

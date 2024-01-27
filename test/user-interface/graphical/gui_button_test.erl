@@ -111,7 +111,7 @@ run_gui_test() ->
 		[ gui_button:create( NoLabel, Position, ButtonSize, ButtonStyle, BId,
 							 ButtonParent ) || BId <- AllButtonIds ] ],
 
-	ButtonFlags = [ { proportion, 0 }, { border, 4 }, all_borders ],
+	ButtonFlags = [ { proportion, 0 }, { border_width, 4 }, all_borders ],
 
 	gui_sizer:add_elements( GridSizer, AllPlainButtons, ButtonFlags ),
 
