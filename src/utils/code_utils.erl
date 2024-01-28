@@ -1446,7 +1446,26 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 			ArStr = case Arities of
 
 				[ A ] ->
-					text_utils:format( "another arity (~B)", [ A ] );
+					case A - Arity of
+
+						_SingleLacking=1 ->
+							text_utils:format( "arity ~B (only), the call "
+								"may lack one argument", [ A ] );
+
+						MoreLacking when MoreLacking > 1 ->
+							text_utils:format( "arity ~B (only), the call "
+								"may lack ~B arguments", [ A, MoreLacking ] );
+
+						_SingleExtra=-1 ->
+							text_utils:format( "arity ~B (only), the call "
+								"may have one extra argument", [ A ] );
+
+						MoreExtra when MoreExtra < -1 ->
+							text_utils:format( "arity ~B (only), the call "
+								"may have ~B extra arguments",
+								[ A, -MoreExtra ] )
+
+					end;
 
 				_ ->
 					Ars = [ text_utils:integer_to_string( I )
@@ -1454,14 +1473,15 @@ interpret_arities( ModuleName, FunctionName, Arity, Arities, ModulePath ) ->
 
 					ArsStr = text_utils:strings_to_listed_string( Ars ),
 
-					text_utils:format( "other arities (i.e. ~ts)", [ ArsStr ] )
+					text_utils:format( "other arities (i.e. ~ts), "
+						"maybe the call to that function was made "
+						"with a wrong number of parameters", [ ArsStr ] )
 
 			end,
 
 			text_utils:format( "module '~ts' found in code path (as '~ts'), "
-				"yet it does export a ~ts/~B function; as it exports "
-				"this function for ~ts, maybe the call to that function "
-				"was made with a wrong number of parameters",
+				"yet it does not export a ~ts/~B function; as it exports "
+				"this function for ~ts.",
 				[ ModuleName, ModulePath, FunctionName, Arity, ArStr ] )
 
 	end.
