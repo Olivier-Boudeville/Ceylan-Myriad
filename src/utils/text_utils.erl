@@ -1986,8 +1986,8 @@ format( FormatString, Values ) ->
 							true ->
 								io_lib:format( "format specified as '~ts', "
 									"values as ~ts~ts", [ FormatString, VString,
-									interpret_faulty_format( FormatString,
-															 Values ) ] );
+										interpret_faulty_format( FormatString,
+																 Values ) ] );
 
 							false ->
 								io_lib:format(
@@ -2038,7 +2038,7 @@ format( FormatString, Values ) ->
 -spec interpret_faulty_format( format_string(), format_values() ) -> ustring().
 interpret_faulty_format( FormatString, Values ) ->
 
-	%trace_utils:debug_fmt( "FormatString: ~p;~nValues: ~p.",
+	%trace_utils:debug_fmt( "FormatString: ~p~nValues: ~p.",
 	%                       [ FormatString, Values ] ),
 
 	ValueCount = erlang:length( Values ),
@@ -3729,9 +3729,13 @@ remove_empty_lines( Strs ) ->
 
 
 % @doc Substitutes in the specified string the source character with the target
-% one (all occurrences thereof).
+% one: replaces all occurrences thereof.
 %
 % Note: simpler and probably more efficient that a regular expression.
+%
+% Use string:replace/3 for string-based substitutions. For example:
+%  EscapedArgStr = string:replace(_In=ArgStr, _SearchPattern="~",
+%								  _Replacement="\~", _Where=all)
 %
 -spec substitute( uchar(), uchar(), ustring() | bin_string() ) -> ustring().
 substitute( SourceChar, TargetChar, BinString ) when is_binary( BinString ) ->
