@@ -1194,8 +1194,14 @@ interpret_stack_item( { Module, Function, Arity, StackInfo },
 %
 interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 									when is_list( Args ) ->
+
 	ArgStr = text_utils:format( "~p", [ Args ] ),
 
+	% Any '~' in arguments must be escaped, otherwise next format will fail:
+	EscapedArgStr = string:replace( _In=ArgStr, _SearchPattern="~",
+									  _Replacement="\~", _Where=all ),
+
+	% Based on actual characters:
 	FullArgStr = case length( ArgStr ) > 50 of
 
 		true ->
@@ -1204,7 +1210,7 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 		false ->
 			" "
 
-				 end ++ ArgStr,
+				 end ++ EscapedArgStr,
 
 	% As FullArgStr must be interpreted, not used verbatim:
 	text_utils:format(
