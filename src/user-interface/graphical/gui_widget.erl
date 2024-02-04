@@ -296,12 +296,14 @@ set_tooltip( Widget, Label ) ->
 
 
 
-% @doc Synchronises the specified widget with the MyriadGUI loop, to ensure that
+% @doc Synchronises the specified widget to the MyriadGUI loop, to ensure that
 % no past operation is still pending at its level.
 %
-% Useful if there exists some means of interacting with it directly (e.g. thanks
-% to an OpenGL NIF) that could create a race condition (e.g. presumably a
-% message-based resizing immediately followed by a direct OpenGL rendering).
+% Useful if there exists some means of interacting with the widget directly
+% (e.g. an OpenGL canvas, thanks to an OpenGL NIF) that could create a race
+% condition (e.g. presumably a message-based resizing immediately followed by a
+% direct OpenGL rendering: the rendering may actually happen before the
+% resizing).
 %
 % See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details;
 % see also the synchroniseWithCaller message supported by the MyriadGUI loop.
