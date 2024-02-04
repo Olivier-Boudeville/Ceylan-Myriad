@@ -165,8 +165,8 @@ init_test_gui() ->
 	%GLAttrs = gui_opengl:get_default_canvas_attributes(),
 	GLAttrs = [ debug_context | gui_opengl:get_default_canvas_attributes() ],
 
-	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame,
-		_CanvasAttrs=[ { gl_attributes, GLAttrs } ] ),
+	GLCanvas = gui_opengl:create_canvas(
+		_CanvasOpts=[ { gl_attributes, GLAttrs } ], _Parent=MainFrame ),
 
 	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
