@@ -3735,7 +3735,7 @@ remove_empty_lines( Strs ) ->
 %
 % Use string:replace/3 for string-based substitutions. For example:
 %  EscapedArgStr = string:replace(_In=ArgStr, _SearchPattern="~",
-%								  _Replacement="\~", _Where=all)
+%                                 _Replacement="\~", _Where=all)
 %
 -spec substitute( uchar(), uchar(), ustring() | bin_string() ) -> ustring().
 substitute( SourceChar, TargetChar, BinString ) when is_binary( BinString ) ->
