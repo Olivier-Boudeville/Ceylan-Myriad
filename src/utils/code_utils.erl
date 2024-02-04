@@ -1199,7 +1199,7 @@ interpret_stack_item( { Module, Function, Args, StackInfo }, FullPathsWanted )
 
 	% Any '~' in arguments must be escaped, otherwise next format will fail:
 	EscapedArgStr = string:replace( _In=ArgStr, _SearchPattern="~",
-									  _Replacement="\~", _Where=all ),
+									_Replacement="\~", _Where=all ),
 
 	% Based on actual characters:
 	FullArgStr = case length( ArgStr ) > 50 of
