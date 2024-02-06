@@ -99,6 +99,14 @@ test_server( SrvInfo ) ->
 
 	gephi_support:start(),
 
+	Red    = "#ff0000",
+	Green  = "#00ff00",
+	Blue   = "#0000ff",
+	Yellow = "#ffff00",
+	% Binaries managed as well:
+	Cyan   = <<"#00ffff">>,
+
+	basic_utils:ignore_unused( [ Red, Green, Blue, Yellow, Cyan ] ),
 
 	test_facilities:display( "Testing first nodes." ),
 
@@ -123,7 +131,7 @@ test_server( SrvInfo ) ->
 	SecondNodePropertyId = "color",
 
 	_SecondNodePropertyValue = 10,
-	SecondNodePropertyValue = "#00ff00",
+	SecondNodePropertyValue = Green,
 
 	gephi_support:update_node_property( FirstNodeId, SecondNodePropertyId,
 		SecondNodePropertyValue, SrvInfo ),
@@ -152,7 +160,7 @@ test_server( SrvInfo ) ->
 
 	ThirdNodePropTable = table:new( [
 		{ label, "I am the third node" },
-		{ color, "#0000ff" } ] ),
+		{ color, Blue } ] ),
 
 	gephi_support:update_node_properties( ThirdNodeId, ThirdNodePropTable,
 										  SrvInfo ),
@@ -181,10 +189,25 @@ test_server( SrvInfo ) ->
 
 	SecondEdgePropTable = table:new( [
 		{ label, "I am the second edge" },
-		{ color, "#00ff00" } ] ),
+		{ color, Red } ] ),
 
 	gephi_support:update_edge_properties( SecondEdgeId, SecondEdgePropTable,
 										  SrvInfo ),
+
+
+	test_facilities:display( "Testing the color change for nodes." ),
+
+	FourthNodeId = "My fourth node property",
+
+	FourthNodeLabel = text_utils:format(
+		"I am the label of the node whose identifier is '~ts'.",
+		[ FourthNodeId ] ),
+
+	% Starts cyan but should end up yellow:
+	gephi_support:add_node( FourthNodeId, FourthNodeLabel, Cyan, SrvInfo ),
+
+	gephi_support:update_node_property( FourthNodeId, color, Yellow,
+										SrvInfo ),
 
 	gephi_support:stop().
 

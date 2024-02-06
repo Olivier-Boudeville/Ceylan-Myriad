@@ -236,6 +236,7 @@ add_new_entries( EntryList, Table ) ->
 %
 -spec remove_entry( key(), list_table() ) -> list_table().
 remove_entry( Key, Table ) ->
+	%trace_utils:debug_fmt( "Removing any entry of key '~p'.", [ Key ] ),
 	lists:keydelete( Key, _N=1, Table ).
 
 

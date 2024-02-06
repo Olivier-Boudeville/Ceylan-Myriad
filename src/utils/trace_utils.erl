@@ -393,7 +393,7 @@ error_fmt( Format, Values ) ->
 
 % @doc Outputs specified error message, with specified message categorization.
 -spec error_categorized( trace_message(), trace_message_categorization() ) ->
-		                                    void().
+											void().
 error_categorized( Message, _MessageCategorization=uncategorized ) ->
 	severe_display( "[error] ~ts", [ Message ] );
 
@@ -473,7 +473,7 @@ alert_fmt( Format, Values ) ->
 
 % @doc Outputs specified alert message, with specified message categorization.
 -spec alert_categorized( trace_message(), trace_message_categorization() ) ->
-							                void().
+											void().
 alert_categorized( Message, _MessageCategorization=uncategorized ) ->
 	severe_display( "[alert] ~ts", [ Message ] );
 
@@ -552,7 +552,7 @@ void_fmt( _Format, _Values ) ->
 
 % @doc "Outputs" specified void message, with specified message categorization.
 -spec void_categorized( trace_message(), trace_message_categorization() ) ->
-							                void().
+											void().
 void_categorized( _Message, _MessageCategorization ) ->
 	ok.
 

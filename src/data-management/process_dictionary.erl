@@ -59,7 +59,7 @@
 -export([ put/2, put_as_new/2, get/1, get_existing/1,
 		  remove/1, remove_existing/1,
 		  get_dictionary/0, get_keys/0, get_keys_for/1,
-		  blank/0, to_string/0 ]).
+		  blank/0, to_string/0, to_short_string/0 ]).
 
 
 % Shorthands:
@@ -200,20 +200,32 @@ blank() ->
 %
 -spec to_string() -> ustring().
 to_string() ->
+	text_utils:format( "the process dictionary of ~p ~ts",
+					   [ self(), to_short_string() ] ).
 
+
+% @doc Returns a short textual description of the current state of the process
+% dictionary.
+%
+-spec to_short_string() -> ustring().
+to_short_string() ->
+
+	% Keys can be any terms (not only atoms):
 	case erlang:get() of
 
 		[] ->
-			text_utils:format( "the process dictionary of ~p is empty",
-							   [ self() ] );
+			"is empty";
+
+		[ { K, V } ] ->
+			text_utils:format( "contains a single key, '~p', "
+				"associated to the following value:~n  ~p", [ K, V ] );
 
 		Pairs ->
 			Strings = lists:sort( [ text_utils:format(
-				"key '~ts' associated to value '~p'",
+				"key '~p' associated to value '~p'",
 				[ K, V ] ) || { K, V } <- Pairs ] ),
 
-			text_utils:format( "the process dictionary of ~p contains "
-				"~B pair(s): ~ts", [ self(), length( Pairs ),
-									 text_utils:strings_to_string( Strings ) ] )
+			text_utils:format( "contains ~B entries: ~ts", [ length( Pairs ),
+				text_utils:strings_to_string( Strings ) ] )
 
 	end.

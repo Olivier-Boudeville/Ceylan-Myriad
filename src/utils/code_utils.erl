@@ -1235,7 +1235,8 @@ get_location_from( StackInfo, FullPathsWanted )
 
 get_location_from( StackInfo, FullPathsWanted ) ->
 
-	%trace_utils:format( "get_location_from: StackInfo is ~p", [ StackInfo ] ).
+	%trace_utils:debug_fmt( "get_location_from: StackInfo is ~p",
+	%   [ StackInfo ] ).
 
 	% Not wanted here (succeeds even if key not found):
 	NoErrInfo = list_table:remove_entry( error_info, StackInfo ),

@@ -97,8 +97,8 @@
 		  string_to_integer/1, try_string_to_integer/1, try_string_to_integer/2,
 		  string_to_float/1, try_string_to_float/1,
 		  string_to_atom/1, strings_to_atoms/1,
-		  terms_to_string/1, terms_to_enumerated_string/1,
-		  terms_to_listed_string/1,
+		  terms_to_string/1, terms_to_string/2,
+		  terms_to_enumerated_string/1, terms_to_listed_string/1,
 		  binary_to_atom/1, binary_to_integer/1, binary_to_float/1,
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
@@ -1947,7 +1947,11 @@ format( FormatString, Values ) ->
 				%
 				%throw( { badly_formatted, FormatString, Values } ),
 
-			   ellipse( Msg, _HighThreshold=2500 )
+				% Not ellipsing by default anymore (the caller thus may wrap
+				% with a call to *_to_bounded_string/1 instead):
+				%
+				%ellipse( Msg, _HighThreshold=5000 )
+				Msg
 
 		end,
 
@@ -1986,8 +1990,8 @@ format( FormatString, Values ) ->
 							true ->
 								io_lib:format( "format specified as '~ts', "
 									"values as ~ts~ts", [ FormatString, VString,
-										interpret_faulty_format( FormatString,
-																 Values ) ] );
+									interpret_faulty_format( FormatString,
+															 Values ) ] );
 
 							false ->
 								io_lib:format(
@@ -2005,7 +2009,10 @@ format( FormatString, Values ) ->
 
 				end,
 
-				EllipsedMsg = ellipse( Msg ),
+				% Not ellipsing by default anymore (the caller thus may wrap
+				% with a call to *_to_bounded_string/1 instead):
+				%
+				%EllipsedMsg = ellipse( Msg, _MaxLen=2500 ),
 
 				% If wanting to be extra verbose, duplicating message on the
 				% console:
@@ -2018,8 +2025,7 @@ format( FormatString, Values ) ->
 				% (in development mode here)
 				%
 				%throw( { badly_formatted, FormatString, Values } ),
-
-				EllipsedMsg
+				Msg
 
 	end,
 
@@ -2194,7 +2200,7 @@ format_failsafe( _Vs=[ V | T ], Values, AccFmtStr ) ->
 %
 -spec format_ellipsed( format_string(), format_values() ) -> ustring().
 format_ellipsed( FormatString, Values ) ->
-	ellipse( format( FormatString, Values ), _MaxLen=400 ).
+	ellipse( format( FormatString, Values ), _MaxLen=500 ).
 
 
 
@@ -3227,6 +3233,18 @@ string_to_atom( String ) ->
 -spec terms_to_string( [ term() ] ) -> ustring().
 terms_to_string( Terms ) ->
 	strings_to_string( [ format( "~p", [ T ] ) || T <- Terms ] ).
+
+
+
+% @doc Returns a textual representation of the specified terms, as a list of
+% their user-friendly (that is based on ~p) default representation, for the
+% specified indentation.
+%
+-spec terms_to_string( [ term() ], indentation_level_or_bullet()  ) ->
+											ustring().
+terms_to_string( Terms, IndentationOrBullet ) ->
+	strings_to_string( [ format( "~p", [ T ] ) || T <- Terms ],
+					   IndentationOrBullet ).
 
 
 

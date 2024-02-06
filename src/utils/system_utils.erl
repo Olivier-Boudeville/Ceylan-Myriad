@@ -305,8 +305,7 @@
 % confuse it.
 
 
--type execution_pair() ::
-		{ bin_executable_path(), [ executable_argument() ] }.
+-type execution_pair() :: { bin_executable_path(), [ executable_argument() ] }.
 % A pair specifying a complete command-line ready to be executed by
 % run_executable/n (convenient to store once for all if needing to launch it
 % repeatedly). Generally more secure than command/1 as well.
@@ -1242,7 +1241,7 @@ get_line_helper_script() ->
 
 			end;
 
-		false ->
+		_False ->
 			throw( { script_not_found, GetLineScript } )
 
 	end.
@@ -1296,7 +1295,7 @@ monitor_port( Port, Data ) ->
 
 		{ Port, eof } ->
 			%trace_utils:debug_fmt( "Port monitor ~p received eof (first).",
-			%					   [ self() ] ),
+			%                       [ self() ] ),
 
 			port_close( Port ),
 
@@ -1896,7 +1895,7 @@ environment_to_string( Environment ) ->
 		Environment ),
 
 	VariableStrings = [ text_utils:format( "~ts = ~ts", [ Name, Value ] )
-						|| { Name, Value } <- SetVars ],
+							|| { Name, Value } <- SetVars ],
 
 	FinalVariableStrings = case UnsetVars of
 
@@ -1907,7 +1906,7 @@ environment_to_string( Environment ) ->
 			UnsetNames = [ Name || { Name, _False } <- UnsetVars ],
 
 			UnsetString = "unset variables: "
-								++ text_utils:join( _Sep=", ", UnsetNames ),
+				++ text_utils:join( _Sep=", ", UnsetNames ),
 
 			list_utils:append_at_end( UnsetString, VariableStrings )
 
@@ -2854,11 +2853,20 @@ get_cpu_usage_counters() ->
 
 
 
-% @doc Returns the current usage of disks, as a human-readable string.
+% @doc Returns the current usage of local disks, as a human-readable string.
+%
+% Limiting to disks that are local, otherwise, in the presence of a
+% network/configuration issue regarding a remote filesystem, the command may
+% freeze until a longer time-out (several minutes) kicks in.
+%
 -spec get_disk_usage() -> ustring().
 get_disk_usage() ->
 
-	case run_command( ?df "-h" ) of
+	% Options:
+	%   -h is --human-readable
+	%   -l is -local (limit listing to local file systems)
+	%
+	case run_executable( _ExecPath=?df, _Args=[ "-h", "-l" ] ) of
 
 		{ _ExitCode=0, Output } ->
 			Output;
@@ -3216,7 +3224,7 @@ get_operating_system_description() ->
 
 			end;
 
-		false ->
+		_False ->
 			get_operating_system_description_alternate()
 
 	end.
@@ -3236,7 +3244,7 @@ get_operating_system_description_alternate() ->
 			text_utils:trim_whitespaces(
 				text_utils:binary_to_string( BinString ) );
 
-		false ->
+		_False ->
 			"(unknown operating system)"
 
 	end.
@@ -3267,7 +3275,8 @@ get_operating_system_description_string() ->
 
 % @doc Returns a string describing the current state of the local system.
 %
-% Will not crash, even if some information could not be retrieved.
+% Designed not to crash or freeze, even if some information could not be
+% retrieved.
 %
 -spec get_system_description() -> ustring().
 get_system_description() ->
