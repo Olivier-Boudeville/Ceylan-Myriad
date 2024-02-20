@@ -23,15 +23,16 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2022.
 
 
-% A 4x4 transformation, storing both its corresponding 4x4 matrix and its
-% inverse.
+% A 4x4 transformation, storing both its corresponding homogeneous 4x4 reference
+% matrix and its inverse.
 %
 -record( transform4, {
 
-	% The reference matrix of that transformation:
-	matrix = 'identity_4' :: matrix4:matrix4(),
+	% The reference homogeneous, 4x4 matrix of that transformation:
+	reference = 'identity_4' :: matrix4:homogeneous_matrix4(),
 
-	% The inverse of the reference matrix of that transformation:
-	inverse = 'identity_4' :: matrix4:matrix4() } ).
+	% The inverse of the reference matrix for that transformation:
+	inverse = 'identity_4' :: matrix4:homogeneous_matrix4() } ).

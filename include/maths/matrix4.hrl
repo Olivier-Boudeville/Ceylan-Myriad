@@ -87,6 +87,8 @@
 %
 % A shorthand for these record and corresponding type could be cpt_m4.
 %
+% A (4x4) compact matrix is a (4x4) homogeneous matrix.
+%
 -record( compact_matrix4, {
 
 	m11 :: linear:coordinate(),

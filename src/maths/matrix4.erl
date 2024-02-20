@@ -109,11 +109,17 @@
 % A matrix4 that corresponds to an homogeneous one.
 %
 % So we do not expect canonical matrices here.
+%
+% A notation [R|T] designates for these matrices for R a 3x3 (possibly rotation)
+% matrix, and for T its right-side corresponding 3D (translation) vector.
 
 
 -type transition_matrix4() :: homogeneous_matrix4().
 % An homogeneous matrix4 that corresponds to a transition from a 3D referential
 % to another.
+%
+% It can be noted TM = [R|T] where R is a 3x3 rotation matrix and T its
+% associated translation vector.
 %
 % It can be represented as an orthogonal compact matrix, made of the following
 % four (3D) rows, in that order: I, J, K and O, for the three unit axes and the
@@ -136,7 +142,6 @@
 		  from_columns/4, from_rows/4,
 		  compact_from_columns/4,
 		  from_coordinates/16, from_compact_coordinates/12,
-		  from_3D/2,
 		  from_arbitrary/1, to_arbitrary/1,
 		  dimension/0, dimensions/0,
 		  row/2, column/2,
@@ -150,16 +155,27 @@
 		  scale/2,
 		  add/2, sub/2, mult/2, mult/1, apply/2,
 		  are_equal/2,
-		  translate_homogeneous/2, rotate_homogeneous/3,
+		  translate_homogeneous_left/2, translate_homogeneous_right/2,
+		  rotate_homogeneous_left/3, rotate_homogeneous_right/3,
 
 		  scale_homogeneous/2,
+
 		  scale_homogeneous_x/2, scale_homogeneous_y/2, scale_homogeneous_z/2,
+
+		  scale_homogeneous_x_t/2, scale_homogeneous_y_t/2,
+		  scale_homogeneous_z_t/2,
 
 		  determinant/1, comatrix/1, inverse/1,
 		  to_canonical/1, to_compact/1,
 		  from_tuple/1, to_tuple/1,
 		  check/1,
 		  to_string/1 ] ).
+
+
+% For homogeneous matrices:
+-export([ from_3D/2, to_3D/1 ]).
+
+
 
 
 -import( math_utils, [ is_null/1, are_close/2 ] ).
@@ -329,8 +345,8 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
 
 
-% @doc Returns the 4x4 matrix from the current referential to one in which the
-% origin and axes of the current referential are expressed.
+% @doc Returns the 4x4 transition matrix from the current referential to one in
+% which the origin and axes of the current referential are expressed.
 %
 % Refer to
 % http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices
@@ -470,24 +486,6 @@ to_arbitrary( Matrix4 ) ->
 	M = to_canonical( Matrix4 ),
 	[ _RecordTag | Coords ] = tuple_to_list( M ),
 	matrix:from_coordinates( Coords, _ColumCount=?dim ).
-
-
-
-% @doc Returns the 4x4 compact matrix obtained from the specified 3x3 matrix and
-% 3D (translation) vector.
-%
--spec from_3D( matrix3(), vector3() ) -> compact_matrix4().
-from_3D( #matrix3{ m11=M11, m12=M12, m13=M13,
-				   m21=M21, m22=M22, m23=M23,
-				   m31=M31, m32=M32, m33=M33 },
-		 _Vec3=[ X, Y, Z ] ) ->
-	#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=X,
-					  m21=M21, m22=M22, m23=M23, ty=Y,
-					  m31=M31, m32=M32, m33=M33, tz=Z };
-
-from_3D( OtherMatrix3, Vec3 ) ->
-	CanOtherMatrix3 = matrix3:to_canonical( OtherMatrix3 ),
-	from_3D( CanOtherMatrix3, Vec3 ).
 
 
 
@@ -1331,58 +1329,77 @@ are_equal( Ma=identity_4, Mb ) ->
 
 
 
-% @doc Updates the translation part of the specified matrix, considered to be an
-% homogeneous transformation one, by adding the specified vector to it.
+% @doc Updates the translation part of the specified homogeneous matrix (HM) by
+% adding the specified vector (VT) to it, i.e. multiplying it on its left by a
+% corresponding translation matrix (TM): returns therefore HM' = TM.HM.
 %
-% A lot more efficient than creating a dedicated translation matrix Mt and
-% returning HM.Mt.
+% A lot more efficient than creating a dedicated translation matrix TM and
+% computing from scratch the result.
 %
--spec translate_homogeneous( HM :: homogeneous_matrix4(), vector3() ) ->
+-spec translate_homogeneous_left( vector3(), HM :: homogeneous_matrix4() ) ->
 											homogeneous_matrix4().
-% Not activated, as not expected to be a canonical one:
-%
-% (we also may have messed with the m44 homogeneous element, but we tend to
-% prefer keeping it at 1.0)
-%
-%translate_homogeneous( M=#matrix4{ m14=M14,
-%                                   m24=M24,
-%                                   m34=M34 }, _VT=[ Tx, Ty, Tz ] ) ->
-% % Homogeneous W element m44 not modified.
-% M#matrix4{ m14=M14+Tx,
-%            m24=M24+Ty,
-%            m34=M34+Tz };
+translate_homogeneous_left( _VT=[ Tx, Ty, Tz ],
+							HM=#compact_matrix4{ tx=M14,
+												 ty=M24,
+												 tz=M34 } ) ->
+	% NewHM = TM.HM:
+	HM#compact_matrix4{ tx=M14+Tx,
+						ty=M24+Ty,
+						tz=M34+Tz };
 
-translate_homogeneous( M=#compact_matrix4{ tx=M14,
-										   ty=M24,
-										   tz=M34 }, _VT=[ Tx, Ty, Tz ] ) ->
-	M#compact_matrix4{ tx=M14+Tx,
-					   ty=M24+Ty,
-					   tz=M34+Tz };
-
-translate_homogeneous( _M=identity_4, VT ) ->
+translate_homogeneous_left( VT, _HM=identity_4 ) ->
 	translation( VT ).
 
 
 
-% @doc Updates the specified matrix, considered to be an homogeneous
-% transformation one, by applying on its right the specified rotation.
+% @doc Updates the translation part of the specified homogeneous matrix (HM), by
+% multiplying it on its right by a translation matrix (TM) corresponding to the
+% specified vector (VT): returns therefore HM' = HM.TM.
 %
-% Returns therefore HM.RotM.
+-spec translate_homogeneous_right( HM :: homogeneous_matrix4(), vector3() ) ->
+											homogeneous_matrix4().
+translate_homogeneous_right( _HM=identity_4, VT ) ->
+	translation( VT );
+
+translate_homogeneous_right( HM, VT ) ->
+	% Not specifically optimised/optimisable:
+	TM = translation( VT ),
+	mult( HM, TM ).
+
+
+
+% @doc Updates the specified homogeneous matrix by applying on its left the
+% specified rotation: returns therefore HM' = RotM.HM.
 %
--spec rotate_homogeneous( HM :: homogeneous_matrix4(), unit_vector3(),
-						  radians() ) -> homogeneous_matrix4().
-rotate_homogeneous( HM, UnitAxis, RadAngle ) ->
+-spec rotate_homogeneous_left( unit_vector3(), radians(),
+		HM :: homogeneous_matrix4() ) -> homogeneous_matrix4().
+rotate_homogeneous_left( UnitAxis, RadAngle, HM ) ->
+	RotM = rotation( UnitAxis, RadAngle ),
+	mult( RotM, HM ).
+
+
+% @doc Updates the specified homogeneous matrix by applying on its right the
+% specified rotation: returns therefore HM' = HM.RotM.
+%
+-spec rotate_homogeneous_right( HM :: homogeneous_matrix4(),
+		unit_vector3(), radians() ) -> homogeneous_matrix4().
+rotate_homogeneous_right( HM, UnitAxis, RadAngle ) ->
 	RotM = rotation( UnitAxis, RadAngle ),
 	mult( HM, RotM ).
 
 
 
-% @doc Updates the specified matrix, considered to be an homogeneous
-% transformation one, by applying the specified (uniform) shearing factor to the
-% top-left 3x3 matrix (rightmost column not modified).
+% @doc Updates the specified homogeneous matrix by applying the specified
+% (uniform) shearing factor to the top-left 3x3 matrix (rightmost column not
+% modified): returns therefore HM' = f.HM.
 %
 -spec scale_homogeneous( HM :: homogeneous_matrix4(), factor() ) ->
 											compact_matrix4().
+% Note that, due to the role of the w (bottom-right) coordinate, a basic matrix
+% scaling would have no consequence, in the sense that once renormalised (all
+% coordinates divided by w) the original matrix would be obtained back. So the
+% rightmost remains untouched as a whole.
+%
 scale_homogeneous( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13,   %tx=Tx,
 										m21=M21, m22=M22, m23=M23,   %ty=Ty,
 										m31=M31, m32=M32, m33=M33 }, %tz=Tz },
@@ -1398,10 +1415,12 @@ scale_homogeneous( identity_4, Factor ) ->
 					  m31=Zero,   m32=Zero,   m33=Factor, tz=Zero }.
 
 
-% @doc Updates the specified matrix, considered to be an homogeneous
-% transformation one, by applying the specified (uniform) shearing factor to the
-% leftmost column (X) of the top-left 3x3 matrix (rightmost column of the 4x4
-% matrix not modified).
+
+% @doc Updates the specified homogeneous matrix by applying the specified
+% (uniform) shearing factor on its leftmost column (X), like when this matrix is
+% multiplied on its right by a scaling matrix equal to the identity, except for
+% its first diagonal element, which would be equal to the specified factor;
+% returns therefore HM' = HM.SxM.
 %
 -spec scale_homogeneous_x( HM :: homogeneous_matrix4(), factor() ) ->
 											compact_matrix4().
@@ -1422,10 +1441,36 @@ scale_homogeneous_x( identity_4, Factor ) ->
 
 
 
-% @doc Updates the specified matrix, considered to be an homogeneous
-% transformation one, by applying the specified (uniform) shearing factor to the
-% middle column (Y) of the top-left 3x3 matrix (rightmost column of the 4x4
-% matrix not modified).
+% @doc Updates the specified homogeneous matrix by applying the specified
+% (uniform) shearing factor to its topmost row (hence the "x_t" prefix, for
+% transposed X column), like when this matrix is multiplied on its left by a
+% scaling matrix equal to the identity, except for its first diagonal element,
+% which would be scaled by the specified factor.
+%
+% A lot cheaper than multiplying by a mostly-identity matrix.
+%
+-spec scale_homogeneous_x_t( HM :: homogeneous_matrix4(), factor() ) ->
+											compact_matrix4().
+scale_homogeneous_x_t( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx },
+					   Factor ) ->
+	HM#compact_matrix4{ m11=Factor*M11, m12=Factor*M12,
+						m13=Factor*M13, tx=Factor*Tx };
+
+% Like for the non-transposed case:
+scale_homogeneous_x_t( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=Factor, m12=Zero,   m13=Zero, tx=Zero,
+					  m21=Zero,   m22=One,    m23=Zero, ty=Zero,
+					  m31=Zero,   m32=Zero,   m33=One,  tz=Zero }.
+
+
+
+% @doc Updates the specified homogeneous matrix by applying the specified
+% (uniform) shearing factor on its second column (Y), like when this matrix is
+% multiplied on its right by a scaling matrix equal to the identity, except for
+% its second diagonal element, which would be equal to the specified factor;
+% returns therefore HM' = HM.SyM.
 %
 -spec scale_homogeneous_y( HM :: homogeneous_matrix4(), factor() ) ->
 											compact_matrix4().
@@ -1445,16 +1490,43 @@ scale_homogeneous_y( identity_4, Factor ) ->
 					  m31=Zero, m32=Zero,   m33=One,  tz=Zero }.
 
 
-% @doc Updates the specified matrix, considered to be an homogeneous
-% transformation one, by applying the specified (uniform) shearing factor to the
-% righttmost column (Z) of the top-left 3x3 matrix (rightmost column of the 4x4
-% matrix not modified).
+
+% @doc Updates the specified homogeneous matrix by applying the specified
+% (uniform) shearing factor to its second row (hence the "y_t" prefix, for
+% transposed Y column), like when this matrix is multiplied on its left by a
+% scaling matrix equal to the identity, except for its second diagonal element,
+% which would be scaled by the specified factor.
+%
+% A lot cheaper than multiplying by a mostly-identity matrix.
+%
+-spec scale_homogeneous_y_t( HM :: homogeneous_matrix4(), factor() ) ->
+											compact_matrix4().
+scale_homogeneous_y_t( HM=#compact_matrix4{ m21=M21, m22=M22, m23=M23, ty=Ty },
+					   Factor ) ->
+	HM#compact_matrix4{ m21=Factor*M21, m22=Factor*M22,
+						m23=Factor*M23, ty=Factor*Ty };
+
+% Like for the non-transposed case:
+scale_homogeneous_y_t( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=One,  m12=Zero,   m13=Zero, tx=Zero,
+					  m21=Zero, m22=Factor, m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero,   m33=One,  tz=Zero }.
+
+
+
+% @doc Updates the specified homogeneous matrix by applying the specified
+% (uniform) shearing factor on its third column (Z), like when this matrix is
+% multiplied on its right by a scaling matrix equal to the identity, except for
+% its third diagonal element, which would be equal to the specified factor;
+% returns therefore HM' = HM.SzM.
 %
 -spec scale_homogeneous_z( HM :: homogeneous_matrix4(), factor() ) ->
 											compact_matrix4().
-scale_homogeneous_z( HM=#compact_matrix4{ m12=M13,
-										  m22=M23,
-										  m32=M33 },
+scale_homogeneous_z( HM=#compact_matrix4{ m13=M13,
+										  m23=M23,
+										  m33=M33 },
 					 Factor ) ->
 	HM#compact_matrix4{ m13=Factor*M13,
 						m23=Factor*M23,
@@ -1463,10 +1535,34 @@ scale_homogeneous_z( HM=#compact_matrix4{ m12=M13,
 scale_homogeneous_z( identity_4, Factor ) ->
 	Zero = 0.0,
 	One =  1.0,
-	#compact_matrix4{ m11=One,  m12=Zero, m13=Zero,   tx=Zero,
-					  m21=Zero, m22=One,  m23=Zero,   ty=Zero,
-					  m31=Zero, m32=Zero, m33=Factor, tz=Zero }.
+	#compact_matrix4{ m11=One,  m12=Zero,  m13=Zero,   tx=Zero,
+					  m21=Zero, m22=One,   m23=Zero,   ty=Zero,
+					  m31=Zero, m32=Zero,  m33=Factor, tz=Zero }.
 
+
+
+% @doc Updates the specified homogeneous matrix by applying the specified
+% (uniform) shearing factor to its third row (hence the "z_t" prefix, for
+% transposed Z column), like when this matrix is multiplied on its left by a
+% scaling matrix equal to the identity, except for its third diagonal element,
+% which would be scaled by the specified factor.
+%
+% A lot cheaper than multiplying by a mostly-identity matrix.
+%
+-spec scale_homogeneous_z_t( HM :: homogeneous_matrix4(), factor() ) ->
+											compact_matrix4().
+scale_homogeneous_z_t( HM=#compact_matrix4{ m31=M31, m32=M32, m33=M33, tz=Tz },
+					   Factor ) ->
+	HM#compact_matrix4{ m31=Factor*M31, m32=Factor*M32,
+						m33=Factor*M33, tz=Factor*Tz };
+
+% Like for the non-transposed case:
+scale_homogeneous_z_t( identity_4, Factor ) ->
+	Zero = 0.0,
+	One =  1.0,
+	#compact_matrix4{ m11=One,  m12=Zero, m13=Zero, tx=Zero,
+					  m21=Zero, m22=One,  m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero, m33=Factor,  tz=Zero }.
 
 
 
@@ -1673,6 +1769,51 @@ inverse( M ) when is_record( M, compact_matrix4 ) ->
 
 
 
+% Section dedicated to homogeneous matrices.
+
+
+% @doc Returns the 4x4 compact matrix obtained from the specified 3x3 matrix (M)
+% and 3D (translation) vector (V).
+%
+-spec from_3D( M :: matrix3(), V :: vector3() ) -> compact_matrix4().
+% Never returning identity_4, hence compact_matrix4() is more precise than
+% homogeneous_matrix4().
+%
+from_3D( _M=#matrix3{ m11=M11, m12=M12, m13=M13,
+				   m21=M21, m22=M22, m23=M23,
+				   m31=M31, m32=M32, m33=M33 },
+		 _V=[ X, Y, Z ] ) ->
+	#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=X,
+					  m21=M21, m22=M22, m23=M23, ty=Y,
+					  m31=M31, m32=M32, m33=M33, tz=Z };
+
+% Not specifically managing identity_3:
+from_3D( OtherMatrix3, Vec3 ) ->
+	CanOtherMatrix3 = matrix3:to_canonical( OtherMatrix3 ),
+	from_3D( CanOtherMatrix3, Vec3 ).
+
+
+
+% @doc Returns the top-left 3x3 matrix (M) and the rightmost 3D vector (V)
+% obtained from the specified 4x4 homogeneous matrix.
+%
+-spec to_3D( homogeneous_matrix4() ) -> { M :: matrix3(), V :: vector3() }.
+to_3D( identity_4 ) ->
+	{ _M=identity_3, _V=vector3:null() };
+
+to_3D( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+						 m21=M21, m22=M22, m23=M23, ty=Ty,
+						 m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
+	M = #matrix3{ m11=M11, m12=M12, m13=M13,
+				  m21=M21, m22=M22, m23=M23,
+				  m31=M31, m32=M32, m33=M33 },
+
+	V = [ Tx, Ty, Tz ],
+
+	{ M, V }.
+
+
+
 % @doc Returns the canonical form of the specified 4x4 matrix.
 -spec to_canonical( matrix4() ) -> canonical_matrix4().
 to_canonical( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
@@ -1733,6 +1874,9 @@ to_compact( identity_4 ) ->
 
 to_compact( CM ) when is_record( CM, compact_matrix4 ) ->
 	CM.
+
+
+
 
 
 

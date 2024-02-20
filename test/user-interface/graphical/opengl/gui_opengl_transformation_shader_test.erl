@@ -1113,7 +1113,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
 		"radians, resulting in: MV = ~ts",
@@ -1136,7 +1136,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
 		"radians, resulting in: MV = ~ts",
@@ -1160,7 +1160,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
 		"radians, resulting in: MV = ~ts",
@@ -1184,7 +1184,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
 		"radians, resulting in: MV = ~ts",
@@ -1208,7 +1208,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
 		"radians, resulting in: MV = ~ts",
@@ -1232,7 +1232,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
 		"radians, resulting in: MV = ~ts",
