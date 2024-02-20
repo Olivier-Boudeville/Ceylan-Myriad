@@ -154,7 +154,8 @@ endif
 #  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
-#  - environments: about the sharing/caching of application information
+#  - environments: about the sharing/caching of application information (hence
+#    not GUI-related)
 #  - resources: about the management of resources
 #  - files: about the management of files
 #  - network: regarding network-related operations
@@ -171,7 +172,7 @@ endif
 #  - gui_font: about font support
 #  - gui_splash: about splash screens
 #  - gui_instances: how MyriadGUI manages widget instances
-#  - gui_environments: the management of backend environments
+#  - gui_environments: the management of backend GUI environments
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
 #  - gui_id: about widget identifiers
@@ -243,6 +244,7 @@ ifeq ($(EXECUTION_TARGET),development)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
+	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_resources
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
