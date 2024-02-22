@@ -73,7 +73,8 @@
 
 
 -type any_vector() :: vector() | integer_vector().
-% A vector of any dimension, with any types of numerical coordinates.
+% A vector of any dimension, with any (homogeneous) type of numerical
+% coordinates (hence a special case of user_vector/0).
 
 
 -type unit_vector() :: vector().
@@ -349,7 +350,7 @@ check_integer( V ) ->
 % @doc Returns a textual representation of the specified vector; full float
 % precision is shown.
 %
--spec to_string( vector() ) -> ustring().
+-spec to_string( user_vector() ) -> ustring().
 to_string( Vector ) ->
 	to_user_string( Vector ).
 
@@ -358,7 +359,7 @@ to_string( Vector ) ->
 % @doc Returns a compact, textual, informal representation of the specified
 % vector.
 %
--spec to_compact_string( vector() ) -> ustring().
+-spec to_compact_string( user_vector() ) -> ustring().
 to_compact_string( Vector ) ->
 
 	%Ws = [ "~w" || _ <- Vector ],
@@ -373,7 +374,7 @@ to_compact_string( Vector ) ->
 % (see linear.hrl for width and precision) representation of the specified
 % vector.
 %
--spec to_basic_string( any_vector() ) -> ustring().
+-spec to_basic_string( vector() ) -> ustring().
 to_basic_string( Vector ) ->
 
 	% Vectors supposed to be lists of floats:
@@ -393,7 +394,7 @@ to_basic_string( Vector ) ->
 %
 % This is the recommended representation.
 %
--spec to_user_string( vector() ) -> ustring().
+-spec to_user_string( user_vector() ) -> ustring().
 to_user_string( Vector ) ->
 
 	Strs = linear:coords_to_best_width_strings( Vector ),

@@ -238,20 +238,20 @@ endif
 # Defining check flags:
 ifeq ($(EXECUTION_TARGET),development)
 
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_resources
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_resources
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
 
 endif
 

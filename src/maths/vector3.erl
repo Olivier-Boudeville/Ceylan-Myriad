@@ -63,7 +63,9 @@
 
 
 -type any_vector3() :: vector3() | integer_vector3().
-% A 3D vector, with any types of numerical coordinates.
+% A 3D vector, with any (homogeneous) type of numerical coordinates (hence a
+% special case of user_vector3/0).
+%
 % They are typically referenced as [X, Y, Z].
 
 
@@ -424,7 +426,7 @@ check_unit_vectors( Vs ) ->
 % @doc Returns a textual representation of the specified 3D vector; full float
 % precision is shown.
 %
--spec to_string( vector3() ) -> ustring().
+-spec to_string( user_vector3() ) -> ustring().
 to_string( Vector ) ->
 	to_user_string( Vector ).
 
@@ -433,7 +435,7 @@ to_string( Vector ) ->
 % @doc Returns a compact, textual, informal representation of the specified 3D
 % vector.
 %
--spec to_compact_string( vector3() ) -> ustring().
+-spec to_compact_string( user_vector3() ) -> ustring().
 to_compact_string( Vector ) ->
 
 	%Ws = [ "~w" || _ <- Vector ],
@@ -448,7 +450,7 @@ to_compact_string( Vector ) ->
 % (see linear.hrl for width and precision) representation of the specified 3D
 % vector.
 %
--spec to_basic_string( vector3() ) -> ustring().
+-spec to_basic_string( user_vector3() ) -> ustring().
 to_basic_string( Vector ) ->
 
 	% Vectors supposed to be lists of floats:
@@ -468,7 +470,7 @@ to_basic_string( Vector ) ->
 %
 % This is the recommended representation.
 %
--spec to_user_string( vector3() ) -> ustring().
+-spec to_user_string( user_vector3() ) -> ustring().
 to_user_string( Vector ) ->
 
 	Strs = linear:coords_to_best_width_strings( Vector ),
@@ -488,7 +490,7 @@ to_user_string( Vector ) ->
 % @doc Returns a textual representation of the specified list of 3D vectors;
 % full float precision is shown.
 %
--spec list_to_string( [ vector3() ] ) -> ustring().
+-spec list_to_string( [ user_vector3() ] ) -> ustring().
 list_to_string( Vectors ) ->
 	VecStrs = [ to_string( V ) || V <- Vectors ],
 	"~n" ++ text_utils:join( _Sep=",\n", VecStrs ).

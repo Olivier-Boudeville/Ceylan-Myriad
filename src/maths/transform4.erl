@@ -86,8 +86,8 @@
 		  get_reference/1, get_inverse/1,
 		  translation/1, rotation/2, scaling/1, transition/4,
 		  translate_left/2, translate_right/2,
-		  rotate_left/3, rotate_right/3, 
-		  scale_x/2, scale_y/2, scale_z/2, 
+		  rotate_left/3, rotate_right/3,
+		  scale_x/2, scale_y/2, scale_z/2,
 		  basis_change/3,
 		  %from_columns/4, compact_from_columns/4, from_rows/4,
 		  %from_coordinates/16, from_compact_coordinates/12,
@@ -273,7 +273,7 @@ scaling( Factors={ Sx, Sy, Sz } ) ->
 
 	T = #transform4{ reference=HM, inverse=InvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -308,7 +308,7 @@ transition( Origin, X, Y, Z ) ->
 
 	T = #transform4{ reference=HM, inverse=InvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	% TO-DO: fully inline the computation of InvHM, and check that it is equal
 	% to the previous computation.
@@ -358,7 +358,7 @@ translate_left( VT, #transform4{ reference=HM, inverse=InvHM } ) ->
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -386,7 +386,7 @@ translate_right( #transform4{ reference=HM, inverse=InvHM }, VT ) ->
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -412,7 +412,7 @@ rotate_left( UnitAxis, RadAngle, #transform4{ reference=HM, inverse=InvHM } ) ->
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -435,7 +435,7 @@ rotate_right( #transform4{ reference=HM, inverse=InvHM },
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -453,7 +453,7 @@ scale( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -477,7 +477,7 @@ scale_x( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -500,7 +500,7 @@ scale_y( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -524,7 +524,7 @@ scale_z( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
 
@@ -546,7 +546,7 @@ mult( _T1=#transform4{ reference=HM1, inverse=InvHM1 },
 	M = matrix4:mult( HM1, HM2 ),
 	InvM = matrix4:mult( InvHM2, InvHM1 ),
 	T = #transform4{ reference=M, inverse=InvM },
-	cond_utils:assert( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 	T.
 
 

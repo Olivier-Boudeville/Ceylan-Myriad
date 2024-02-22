@@ -65,9 +65,25 @@ run() ->
 	true = matrix4:are_equal( matrix4:identity(),
 		matrix4:mult( CM, transform4:get_inverse( T1 ) ) ),
 
-	%Tt = transform4:translation
-
 	test_facilities:display( "Base textual representation for T1 = ~w ~n; "
-		"user-friendly one: ~ts", [ T1, transform4:to_string( T1 ) ] ),
+		"user-friendly one: ~ts~n", [ T1, transform4:to_string( T1 ) ] ),
+
+
+	VT = [ 1, 2, 3 ],
+
+	Tt = transform4:translation( VT ),
+
+	test_facilities:display( "Translation transform of vector VT=~ts: ~ts~n",
+		[ vector3:to_string( VT ), transform4:to_string( Tt ) ] ),
+
+	UnitVT = vector3:normalise( VT ),
+
+	RadAngle = math:pi() / 2,
+
+	Tr = transform4:rotation( UnitVT, RadAngle ),
+
+	test_facilities:display( "Rotation transform of unit axis VT=~ts "
+		"and angle ~w radians: ~ts~n",
+		[ vector3:to_string( UnitVT ), RadAngle, transform4:to_string( Tr ) ] ),
 
 	test_facilities:stop().
