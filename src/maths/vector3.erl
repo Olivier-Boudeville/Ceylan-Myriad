@@ -111,7 +111,7 @@
 		  are_close/2, are_equal/2,
 		  square_magnitude/1, magnitude/1, negate/1, scale/2,
 		  normalise/1,
-		  dot_product/2, are_orthogonal/2, check_orthogonal/2,
+		  dot_product/2, are_orthogonal/2, get_orthogonal/1, check_orthogonal/2,
 		  is_unitary/1,
 		  check/1, check_vector/1, check_vectors/1,
 		  check_integer/1, check_unit_vector/1, check_unit_vectors/1,
@@ -359,6 +359,55 @@ are_orthogonal( V1, V2 ) ->
 
 
 
+% @doc Returns a vector (among an infinity) that is orthogonal to the specified
+% (non-null) vector.
+%
+% The returned vector belongs to the plane orthogonal to the specified one.
+%
+% Mostly useful for tests.
+%
+-spec get_orthogonal( vector3() ) -> vector3().
+get_orthogonal( V=[ A, B, C ] ) ->
+	% We want a vector _Vo=[ X, Y, Z ] so that V.Vo=0, i.e. A.X + B.Y + C.Z = 0;
+	% so:
+	%
+	case math_utils:is_null( C ) of
+
+		true ->
+			% C = 0 here.
+			case math_utils:is_null( B ) of
+
+				true ->
+					% B = 0, C = 0:
+					case math_utils:is_null( A ) of
+
+						true ->
+							throw( { null_vector, V } );
+
+						_False ->
+							% B = C = 0, so any Y and Z are adequate, provided
+							% that are not both null:
+							%
+							[ 0.0, 1.0, 1.0 ]
+
+						end;
+
+				_False ->
+					% B =/= 0, C = 0, so any Z is adequate, and Y = -A.X/B for
+					% any X, so taking X=1:
+					%
+					[ 1.0, -A/B, 0.0 ]
+
+			end;
+
+		false ->
+			% C =/= 0; Z = -(A.X+B.Y)/C for any X and Y; so we take X = Y = 1:
+			[ 1.0, 1.0, -(A+B)/C ]
+
+	end.
+
+
+
 % @doc Checks that the two specified vectors are orthogonal: throws an exception
 % if not.
 %
@@ -411,14 +460,14 @@ check_integer( V ) ->
 % @doc Checks that the specified 3D vector is normalised, and returns it.
 -spec check_unit_vector( vector3() ) -> unit_vector3().
 check_unit_vector( V ) ->
-	true = is_unitary( V ),
+	is_unitary( V ) orelse throw( { non_unitary_vector3, V, magnitude( V ) } ),
 	V.
 
 
 % @doc Checks that the specified 3D vectors are normalised, and returns them.
 -spec check_unit_vectors( [ vector3() ] ) -> [ unit_vector3() ].
 check_unit_vectors( Vs ) ->
-	[ true = is_unitary( V ) || V <- Vs ],
+	[ check_unit_vector( V ) || V <- Vs ],
 	Vs.
 
 

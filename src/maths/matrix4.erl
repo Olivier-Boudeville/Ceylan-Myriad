@@ -132,9 +132,15 @@
 % A tuple of 12 or 16 coordinates.
 
 
+-type scale_factors() :: { scale_factor(), scale_factor(), scale_factor() }.
+% Scale factors for 3D content.
+
+
 -export_type([ user_matrix4/0, matrix4/0, canonical_matrix4/0,
 			   compact_matrix4/0, rot_matrix4/0, homogeneous_matrix4/0,
-			   transition_matrix4/0, tuple_matrix4/0 ]).
+			   transition_matrix4/0, tuple_matrix4/0,
+			   scale_factors/0 ]).
+
 
 
 -export([ new/1, new/3, null/0, identity/0, translation/1, scaling/1,
@@ -159,6 +165,8 @@
 		  rotate_homogeneous_left/3, rotate_homogeneous_right/3,
 
 		  scale_homogeneous/2,
+
+		  scale_homogeneous_left/2, scale_homogeneous_right/2,
 
 		  scale_homogeneous_x/2, scale_homogeneous_y/2, scale_homogeneous_z/2,
 
@@ -190,7 +198,7 @@
 
 -type ustring() :: text_utils:ustring().
 
--type factor() :: math_utils:factor().
+-type scale_factor() :: math_utils:scale_factor().
 
 -type radians() :: unit_utils:radians().
 
@@ -279,7 +287,7 @@ translation( _VT=[ Tx, Ty, Tz ] ) ->
 % @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to the
 % scaling of the specified factors.
 %
--spec scaling( { factor(), factor(), factor() } ) -> compact_matrix4();
+-spec scaling( scale_factors() ) -> compact_matrix4();
 			 ( vector3() ) -> compact_matrix4().
 scaling( { Sx, Sy, Sz } ) ->
 	Zero = 0.0,
@@ -355,6 +363,11 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 -spec transition( point3(), unit_vector3(), unit_vector3(), unit_vector3() ) ->
 								transition_matrix4().
 transition( Origin, X, Y, Z ) ->
+
+	cond_utils:if_defined( myriad_debug_linear,
+		trace_utils:debug_fmt( "Computing the transition matrix to "
+			"a referential of origin ~w, axes being ~w, ~w and ~w.",
+			[ Origin, X, Y, Z ] ) ),
 
 	cond_utils:if_defined( myriad_check_linear,
 		begin
@@ -819,7 +832,7 @@ transpose( CompactMatrix ) ->
 
 
 % @doc Scales the specified (4D) matrix of the specified factor.
--spec scale( matrix4(), factor() ) -> matrix4().
+-spec scale( matrix4(), scale_factor() ) -> matrix4().
 scale( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 						 m21=M21, m22=M22, m23=M23, ty=Ty,
 						 m31=M31, m32=M32, m33=M33, tz=Tz }, Factor ) ->
@@ -1329,9 +1342,12 @@ are_equal( Ma=identity_4, Mb ) ->
 
 
 
-% @doc Updates the translation part of the specified homogeneous matrix (HM) by
-% adding the specified vector (VT) to it, i.e. multiplying it on its left by a
-% corresponding translation matrix (TM): returns therefore HM' = TM.HM.
+% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
+% on its left by a translation matrix (TM) of a vector VT: returns therefore HM'
+% = TM.HM.
+%
+% This corresponds to adding the VT vector to the translation part of the
+% reference matrix of this transformation.
 %
 % A lot more efficient than creating a dedicated translation matrix TM and
 % computing from scratch the result.
@@ -1351,10 +1367,9 @@ translate_homogeneous_left( VT, _HM=identity_4 ) ->
 	translation( VT ).
 
 
-
-% @doc Updates the translation part of the specified homogeneous matrix (HM), by
-% multiplying it on its right by a translation matrix (TM) corresponding to the
-% specified vector (VT): returns therefore HM' = HM.TM.
+% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
+% on its right by a translation matrix (TM) of a vector VT: returns therefore
+% HM' = HM.TM.
 %
 -spec translate_homogeneous_right( HM :: homogeneous_matrix4(), vector3() ) ->
 											homogeneous_matrix4().
@@ -1368,8 +1383,9 @@ translate_homogeneous_right( HM, VT ) ->
 
 
 
-% @doc Updates the specified homogeneous matrix by applying on its left the
-% specified rotation: returns therefore HM' = RotM.HM.
+% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
+% on its left by a matrix (RotM) corresponding to the rotation around the
+% specified unit axis of the specified angle: returns therefore HM' = RotM.HM.
 %
 -spec rotate_homogeneous_left( unit_vector3(), radians(),
 		HM :: homogeneous_matrix4() ) -> homogeneous_matrix4().
@@ -1378,8 +1394,9 @@ rotate_homogeneous_left( UnitAxis, RadAngle, HM ) ->
 	mult( RotM, HM ).
 
 
-% @doc Updates the specified homogeneous matrix by applying on its right the
-% specified rotation: returns therefore HM' = HM.RotM.
+% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
+% on its right by a matrix (RotM) corresponding to the rotation around the
+% specified unit axis of the specified angle: returns therefore HM' = HM.RotM.
 %
 -spec rotate_homogeneous_right( HM :: homogeneous_matrix4(),
 		unit_vector3(), radians() ) -> homogeneous_matrix4().
@@ -1389,11 +1406,63 @@ rotate_homogeneous_right( HM, UnitAxis, RadAngle ) ->
 
 
 
+% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
+% on its left by a matrix (SclM) corresponding to a scaling of the specified
+% factors: returns therefore HM' = SclM.HM.
+%
+-spec scale_homogeneous_left( scale_factors(), homogeneous_matrix4() ) ->
+										homogeneous_matrix4().
+scale_homogeneous_left( _ScaleFactors={ Sx, Sy, Sz },
+		HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
+							 m21=M21, m22=M22, m23=M23, ty=Ty,
+							 m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
+
+	% Do not reuse tx, ty and tz as they are, they have to be scaled as well
+	% (refer to the actual 4x4 matrix multiplication to check):
+	%
+	HM#compact_matrix4{ m11=Sx*M11, m12=Sx*M12, m13=Sx*M13, tx=Sx*Tx,
+						m21=Sy*M21, m22=Sy*M22, m23=Sy*M23, ty=Sy*Ty,
+						m31=Sz*M31, m32=Sz*M32, m33=Sz*M33, tz=Sz*Tz };
+
+scale_homogeneous_left( _ScaleFactors={ Sx, Sy, Sz }, _HM=identity_4 ) ->
+	Zero = 0.0,
+	#compact_matrix4{ m11=Sx,   m12=Zero, m13=Zero, tx=Zero,
+					  m21=Zero, m22=Sy,   m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero, m33=Sz,   tz=Zero }.
+
+
+
+% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
+% on its right by a matrix (SclM) corresponding to a scaling of the specified
+% factors: returns therefore HM' = HM.SclM.
+%
+-spec scale_homogeneous_right( homogeneous_matrix4(), scale_factors() ) ->
+										homogeneous_matrix4().
+scale_homogeneous_right(
+		HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13,
+							 m21=M21, m22=M22, m23=M23,
+							 m31=M31, m32=M32, m33=M33 },
+		_ScaleFactors={ Sx, Sy, Sz } ) ->
+
+	% Reuse tx, ty and tz as they are (as multiplied by a 1.0 factor):
+	HM#compact_matrix4{ m11=Sx*M11, m12=Sy*M12, m13=Sz*M13,
+						m21=Sx*M21, m22=Sy*M22, m23=Sz*M23,
+						m31=Sx*M31, m32=Sy*M32, m33=Sz*M33 };
+
+scale_homogeneous_right( _ScaleFactors={ Sx, Sy, Sz }, _HM=identity_4 ) ->
+	Zero = 0.0,
+	#compact_matrix4{ m11=Sx,   m12=Zero, m13=Zero, tx=Zero,
+					  m21=Zero, m22=Sy,   m23=Zero, ty=Zero,
+					  m31=Zero, m32=Zero, m33=Sz,   tz=Zero }.
+
+
+
+
 % @doc Updates the specified homogeneous matrix by applying the specified
 % (uniform) shearing factor to the top-left 3x3 matrix (rightmost column not
 % modified): returns therefore HM' = f.HM.
 %
--spec scale_homogeneous( HM :: homogeneous_matrix4(), factor() ) ->
+-spec scale_homogeneous( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 % Note that, due to the role of the w (bottom-right) coordinate, a basic matrix
 % scaling would have no consequence, in the sense that once renormalised (all
@@ -1408,7 +1477,8 @@ scale_homogeneous( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13,   %tx=Tx,
 						m21=Factor*M21, m22=Factor*M22, m23=Factor*M23,
 						m31=Factor*M31, m32=Factor*M32, m33=Factor*M33 };
 
-scale_homogeneous( identity_4, Factor ) ->
+
+scale_homogeneous( _HM=identity_4, Factor ) ->
 	Zero = 0.0,
 	#compact_matrix4{ m11=Factor, m12=Zero,   m13=Zero,   tx=Zero,
 					  m21=Zero,   m22=Factor, m23=Zero,   ty=Zero,
@@ -1422,7 +1492,7 @@ scale_homogeneous( identity_4, Factor ) ->
 % its first diagonal element, which would be equal to the specified factor;
 % returns therefore HM' = HM.SxM.
 %
--spec scale_homogeneous_x( HM :: homogeneous_matrix4(), factor() ) ->
+-spec scale_homogeneous_x( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_x( HM=#compact_matrix4{ m11=M11,   %m12=M12, m13=M13, tx=Tx,
 										  m21=M21,   %m22=M22, m23=M23, ty=Ty,
@@ -1449,7 +1519,7 @@ scale_homogeneous_x( identity_4, Factor ) ->
 %
 % A lot cheaper than multiplying by a mostly-identity matrix.
 %
--spec scale_homogeneous_x_t( HM :: homogeneous_matrix4(), factor() ) ->
+-spec scale_homogeneous_x_t( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_x_t( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx },
 					   Factor ) ->
@@ -1472,7 +1542,7 @@ scale_homogeneous_x_t( identity_4, Factor ) ->
 % its second diagonal element, which would be equal to the specified factor;
 % returns therefore HM' = HM.SyM.
 %
--spec scale_homogeneous_y( HM :: homogeneous_matrix4(), factor() ) ->
+-spec scale_homogeneous_y( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_y( HM=#compact_matrix4{ m12=M12,
 										  m22=M22,
@@ -1499,7 +1569,7 @@ scale_homogeneous_y( identity_4, Factor ) ->
 %
 % A lot cheaper than multiplying by a mostly-identity matrix.
 %
--spec scale_homogeneous_y_t( HM :: homogeneous_matrix4(), factor() ) ->
+-spec scale_homogeneous_y_t( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_y_t( HM=#compact_matrix4{ m21=M21, m22=M22, m23=M23, ty=Ty },
 					   Factor ) ->
@@ -1522,7 +1592,7 @@ scale_homogeneous_y_t( identity_4, Factor ) ->
 % its third diagonal element, which would be equal to the specified factor;
 % returns therefore HM' = HM.SzM.
 %
--spec scale_homogeneous_z( HM :: homogeneous_matrix4(), factor() ) ->
+-spec scale_homogeneous_z( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_z( HM=#compact_matrix4{ m13=M13,
 										  m23=M23,
@@ -1549,7 +1619,7 @@ scale_homogeneous_z( identity_4, Factor ) ->
 %
 % A lot cheaper than multiplying by a mostly-identity matrix.
 %
--spec scale_homogeneous_z_t( HM :: homogeneous_matrix4(), factor() ) ->
+-spec scale_homogeneous_z_t( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_z_t( HM=#compact_matrix4{ m31=M31, m32=M32, m33=M33, tz=Tz },
 					   Factor ) ->

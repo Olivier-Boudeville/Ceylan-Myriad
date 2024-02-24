@@ -87,6 +87,7 @@
 		  translation/1, rotation/2, scaling/1, transition/4,
 		  translate_left/2, translate_right/2,
 		  rotate_left/3, rotate_right/3,
+		  scale_left/2, scale_right/2,
 		  scale_x/2, scale_y/2, scale_z/2,
 		  basis_change/3,
 		  %from_columns/4, compact_from_columns/4, from_rows/4,
@@ -124,6 +125,10 @@
 
 -type user_matrix4() :: matrix4:user_matrix4().
 -type matrix4() :: matrix4:matrix4().
+
+-type scale_factors() :: matrix4:scale_factors().
+% Here scale factors are expected to be non-null, otherwise no relevant
+% transformation can be defined (not invertible).
 
 -type homogeneous_matrix4() :: matrix4:homogeneous_matrix4().
 
@@ -262,13 +267,17 @@ rotation( UnitAxis, RadAngle ) ->
 % @doc Returns the 4x4 transformation corresponding to the scaling of the
 % specified (supposedly non-null) factors.
 %
--spec scaling( { factor(), factor(), factor() } ) -> transform4().
-scaling( Factors={ Sx, Sy, Sz } ) ->
+% Due to homogenous matrices, the inverse of a scaling matrix is not the matrix
+% of the inverse factors, this function is thus not a proper transform.
+%
+-spec scaling( scale_factors() ) -> transform4().
+scaling( Factors ) ->
 
 	% Hence a compact matrix:
 	HM = matrix4:scaling( Factors ),
 
-	InvFactors = { 1/Sx, 1/Sy, 1/Sz },
+	InvFactors = inverse_factors( Factors ),
+
 	InvHM = matrix4:scaling( InvFactors ),
 
 	T = #transform4{ reference=HM, inverse=InvHM },
@@ -276,6 +285,13 @@ scaling( Factors={ Sx, Sy, Sz } ) ->
 	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
+
+
+
+% @doc Returns the inverse of the specified factors.
+-spec inverse_factors( scale_factors() ) -> scale_factors().
+inverse_factors( _Factors={ Sx, Sy, Sz } ) ->
+	{ 1/Sx, 1/Sy, 1/Sz }.
 
 
 
@@ -299,21 +315,21 @@ transition( Origin, X, Y, Z ) ->
 	% As orthogonal:
 	InvR = matrix3:transpose( R ),
 
-	MinusT = matrix3:apply( InvR, T ),
+	MinusInvT = matrix3:apply( InvR, T ),
 
-	T = vector3:negate( MinusT ),
+	InvT = vector3:negate( MinusInvT ),
 
 	% Hence a compact matrix:
-	InvHM = matrix3:from_3D( InvR, T ),
+	InvHM = matrix4:from_3D( InvR, InvT ),
 
-	T = #transform4{ reference=HM, inverse=InvHM },
+	TRes = #transform4{ reference=HM, inverse=InvHM },
 
-	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+	cond_utils:if_defined( myriad_check_linear, check( TRes ) ),
 
 	% TO-DO: fully inline the computation of InvHM, and check that it is equal
 	% to the previous computation.
 
-	T.
+	TRes.
 
 
 
@@ -441,8 +457,56 @@ rotate_right( #transform4{ reference=HM, inverse=InvHM },
 
 
 
+% @doc Updates the specified 4x4 transformation by applying on its left the
+% scaling of the specified factors: returns therefore T' = SclM.T.
+%
+-spec scale_left( scale_factors(), transform4() ) -> transform4().
+scale_left( ScaleFactors, #transform4{ reference=HM, inverse=InvHM } ) ->
+
+	% NewHM = SclM.HM:
+	NewHM = matrix4:scale_homogeneous_left( ScaleFactors, HM ),
+
+	% NewInvM = InvHM.InvSclM, the inverse of a scaling being the scaling of
+	% inverse factors:
+
+	InvScaleFactors = inverse_factors( ScaleFactors ),
+	NewInvHM = matrix4:scale_homogeneous_right( InvHM, InvScaleFactors ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Updates the specified 4x4 transformation by applying on its right the
+% scaling of the specified factors: returns therefore T' = T.SclM.
+%
+-spec scale_right( transform4(), scale_factors() ) -> transform4().
+scale_right( #transform4{ reference=HM, inverse=InvHM }, ScaleFactors ) ->
+
+	% NewHM = HM.SclM:
+	NewHM = matrix4:scale_homogeneous_right( HM, ScaleFactors ),
+
+	% NewInvHM = InvSclM.InvHM, the inverse of a scaling being the scaling of
+	% inverse factors:
+
+	InvScaleFactors = inverse_factors( ScaleFactors ),
+	NewInvHM = matrix4:scale_homogeneous_left( InvScaleFactors, InvHM ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
 % @doc Returns the specified 4x4 transformation once scaled by the specified
 % (uniform, non-null) factor.
+%
+% Note that no left/right variations apply here.
 %
 -spec scale( transform4(), factor() ) -> transform4().
 scale( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
@@ -647,10 +711,23 @@ inverse( #transform4{ reference=M, inverse=InvM } ) ->
 %
 -spec check( transform4() ) -> transform4().
 check( T=#transform4{ reference=M, inverse=InvM } ) ->
+
 	Mult = matrix4:mult( M, InvM ),
 
-	matrix4:are_equal( Mult, matrix4:identity() )
-		orelse throw( { inconsistent_transform4, T, Mult } ).
+	matrix4:are_equal( Mult, matrix4:identity() ) orelse
+		begin
+
+			cond_utils:if_defined( myriad_debug_linear,
+				trace_utils:error_fmt( "Not close enough to identity_4: ~ts",
+									   [ matrix4:to_string( Mult ) ] ) ),
+
+			cond_utils:if_defined( myriad_debug_linear,
+				trace_utils:error_fmt( "Reference: ~ts~nInverse: ~ts",
+					[ matrix4:to_string( M ), matrix4:to_string( InvM ) ] ) ),
+
+			throw( { inconsistent_transform4, T, Mult } )
+
+		end.
 
 
 
