@@ -84,7 +84,10 @@
 
 -export([ new/1, new/2, identity/0,
 		  get_reference/1, get_inverse/1,
-		  translation/1, rotation/2, scaling/1, transition/4,
+
+		  translation/1, rotation/2, scaling/1,
+		  transition/4,
+
 		  translate_left/2, translate_right/2,
 		  rotate_left/3, rotate_right/3,
 		  scale_left/2, scale_right/2,
@@ -268,12 +271,14 @@ rotation( UnitAxis, RadAngle ) ->
 % specified (supposedly non-null) factors.
 %
 % Due to homogenous matrices, the inverse of a scaling matrix is not the matrix
-% of the inverse factors, this function is thus not a proper transform.
+% of the inverse factors, this function is thus not a proper transform. See
+% sacle_{left,right}/2 instead.
+%
 %
 -spec scaling( scale_factors() ) -> transform4().
 scaling( Factors ) ->
 
-	% Hence a compact matrix:
+   % Hence a compact matrix:
 	HM = matrix4:scaling( Factors ),
 
 	InvFactors = inverse_factors( Factors ),
@@ -295,8 +300,8 @@ inverse_factors( _Factors={ Sx, Sy, Sz } ) ->
 
 
 
-% @doc Returns the 4x4 transition transformation from the current referential to
-% one in which the origin and axes of the current referential are expressed.
+% @doc Returns the 4x4 transition transformation from the current orthonormal
+% basis to one in which the origin and axes of the current basis are expressed.
 %
 % Refer to matrix4:transition/4 for further details.
 %
