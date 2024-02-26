@@ -68,6 +68,13 @@
 % Note that translations are commutative, but not rotations (R1.R2 is in general
 % different from R2.R1).
 
+% Shearing (offset of one component with respect to another component) could be
+% implemented. The shearing of a non-null factor s of a dimension Dx relatively
+% to a dimension Dy corresponds to adding to the identity matrix an
+% extradiagonal element at position (x,y) of value s.
+%
+% The inverse of Sxy(s) is Sxy(-s).
+
 
 % For printout_*, inline_size, etc.:
 -include("linear.hrl").
@@ -353,15 +360,15 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
 
 
-% @doc Returns the 4x4 transition matrix from the current referential to one in
-% which the origin and axes of the current referential are expressed.
+% @doc Returns the 4x4 transition matrix from the current orthonormal basis to
+% one in which the origin and axes of the current basis are expressed.
 %
 % Refer to
 % http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices
 % for further details.
 %
 -spec transition( point3(), unit_vector3(), unit_vector3(), unit_vector3() ) ->
-								transition_matrix4().
+								compact_matrix4().
 transition( Origin, X, Y, Z ) ->
 
 	cond_utils:if_defined( myriad_debug_linear,
