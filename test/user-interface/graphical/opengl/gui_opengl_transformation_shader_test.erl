@@ -301,6 +301,8 @@
 
 -define( projection_mode_scan_code, ?MYR_SCANCODE_P ).
 
+-define( help_scan_code, ?MYR_SCANCODE_H ).
+
 % End test:
 -define( quit_scan_code, ?MYR_SCANCODE_ESCAPE ).
 
@@ -318,6 +320,8 @@
 
 
 % Shorthands:
+
+-type ustring() :: text_utils:ustring().
 
 -type matrix4() :: matrix4:matrix4().
 -type projection_settings() :: projection:projection_settings().
@@ -455,9 +459,8 @@ run_opengl_test() ->
 
 
 
-% @doc Runs the actual test.
--spec run_actual_test() -> void().
-run_actual_test() ->
+-spec get_help_text() -> ustring().
+get_help_text() ->
 
 	% Only true if keypad is enabled
 
@@ -468,7 +471,8 @@ run_actual_test() ->
 	% - Y increases from bottom of screen to top
 	% - Z increases as getting from farther to nearer the observer
 	%
-	test_facilities:display( "This test will display a square textured with a Myriad image, whose center is at the origin, which is belonging to the Z=0 plane (using Z-up conventions), and that can be moved by hitting keys on the numerical keypad (while the rendering window has the focus):~n"
+
+	text_utils:format( "This test displays a square textured with a Myriad image, whose center is at the origin, which is belonging to the Z=0 plane (using Z-up conventions), and that can be moved by hitting keys on the numerical keypad (while the rendering window has the focus):~n"
 		"  - to translate it of ~f units along (if in translation mode):~n"
 		"    * the X (abscissa) axis: hit '4' to move it, on the left, '6' on the right~n"
 		"    * the Y (ordinate) axis: hit '2' to move it down, '8' up~n"
@@ -482,11 +486,19 @@ run_actual_test() ->
 		"    * the Y axis: hit '2' to scale it down, '8' up~n"
 		"    * the Z axis: hit '3' to scale it down, '9' up~n~n"
 		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
-		"to switch to the next transformation mode (cycling between translation, rotation, shearing), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'Escape' to quit.~n~n"
+		"to switch to the next transformation mode (cycling between translation, rotation, shearing), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
 		"Hints:~n"
 		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
 		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, first make the square go further/downward to make it appear~n",
-		[ ?delta_coord, ?delta_angle, ?delta_scale ] ),
+		[ ?delta_coord, ?delta_angle, ?delta_scale ] ).
+
+
+
+% @doc Runs the actual test.
+-spec run_actual_test() -> void().
+run_actual_test() ->
+
+	test_facilities:display( get_help_text() ),
 
 	gui:start(),
 
@@ -979,7 +991,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 	% Translation on the X axis:
 	VT = [ Inc, 0.0, 0.0 ],
 
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
 	trace_utils:debug_fmt( "Increasing X of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
@@ -1000,7 +1012,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	% Translation on the X axis:
 	VT = [ -Inc, 0.0, 0.0 ],
 
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
 	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
@@ -1021,7 +1033,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	% Translation on the Y axis:
 	VT = [ 0.0, Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
 	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
@@ -1041,7 +1053,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 
 	% Translation on the Y axis:
 	VT = [ 0.0, -Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
 	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
@@ -1066,7 +1078,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, Inc ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
 	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
@@ -1087,7 +1099,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, -Inc ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
 	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in: MV = ~ts",
 						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
@@ -1437,6 +1449,10 @@ update_scene( _Scancode=?projection_mode_scan_code,
 update_scene( _Scancode=?quit_scan_code, GUIState ) ->
 	trace_utils:debug( "Requested to quit." ),
 	{ GUIState, _DoQuit=true };
+
+update_scene( _Scancode=?help_scan_code, GUIState ) ->
+	trace_utils:debug( get_help_text() ),
+	{ GUIState, _DoQuit=false };
 
 update_scene( _Scancode, GUIState ) ->
 	%trace_utils:debug_fmt( "(scancode ~B ignored)", [ Scancode ] ),
