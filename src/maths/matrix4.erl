@@ -161,6 +161,8 @@
 		  compact_column/2,
 
 		  get_column_i/1, get_column_j/1, get_column_k/1, get_column_o/1,
+		  get_translation/1,
+
 		  set_column_i/2, set_column_j/2, set_column_k/2, set_column_o/2,
 
 		  get_element/3, set_element/4,
@@ -567,7 +569,7 @@ column( ColCount, OtherMatrix ) ->
 
 
 
-% @doc Returns the specified column of the specified compactmatrix.
+% @doc Returns the specified column of the specified compact matrix.
 -spec compact_column( dimension(), compact_matrix4() ) -> vector3().
 compact_column( _ColumnCount=1,
 				#compact_matrix4{ m11=M11, m21=M21, m31=M31 } ) ->
@@ -678,6 +680,20 @@ get_column_o( identity_4 ) ->
 
 get_column_o( CptMatrix ) ->
 	compact_column( _ColumnCount=4, CptMatrix ).
+
+
+% @doc Returns the translation part (last 3D column) of the specified compact
+% matrix, as a (3D) point.
+%
+% For an homogeneous matrix, this corresponds to a translation.
+%
+-spec get_translation( compact_matrix4() ) -> point3().
+get_translation( _CptMatrix=#compact_matrix4{ tx=Tx, ty=Ty, tz=Tz } ) ->
+	{ Tx, Ty, Tz };
+
+get_translation( _CptMatrix=identity_4 ) ->
+	Zero = 0.0,
+	{ Zero, Zero, Zero }.
 
 
 % @doc Returns the specified transition matrix once its fourth (3D) column has

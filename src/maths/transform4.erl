@@ -83,7 +83,10 @@
 
 
 -export([ new/1, new/2, identity/0,
+
 		  get_reference/1, get_inverse/1,
+
+		  get_origin/1,
 
 		  translation/1, rotation/2, scaling/1,
 		  transition/4,
@@ -101,6 +104,7 @@
 		  mult/1, mult/2,
 		  are_equal/2,
 		  determinant/1, inverse/1,
+
 		  check/1,
 		  to_string/1 ] ).
 
@@ -204,6 +208,21 @@ get_reference( #transform4{ reference=HM } ) ->
 -spec get_inverse( transform4() ) -> homogeneous_matrix4().
 get_inverse( #transform4{ inverse=InvHM } ) ->
 	InvHM.
+
+
+
+% @doc Returns, based on the specified transition transformation from the
+% current orthonormal basis alpha to a beta one, the origin of beta as expressed
+% in alpha.
+%
+-spec get_origin( transform4() ) -> point3().
+% Refer to
+% http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices
+% for further details:
+%
+get_origin( _HM=#transform4{ inverse=InvM } ) ->
+	% No silly inlining:
+	matrix4:get_translation( InvM ).
 
 
 
