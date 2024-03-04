@@ -49,7 +49,7 @@
 % shall be known of members of the Y-UP club as being at P2={A,C,-B}.
 %
 % Said otherwise, P2 = Pmg.P1 where the Pmg is the transition matrix from a
-% MyriadGUI referential to a glTF one, with:
+% MyriadGUI coordinate system to a glTF one, with:
 %
 % Pmg = [ 1   0  0 ]
 %       [ 0   0  1 ]
@@ -129,7 +129,7 @@
 -export([ get_origin/0, compute_smallest_enclosing_cuboid/1 ]).
 
 
-% @doc Returns the origin of this referential.
+% @doc Returns the origin of this coordinate system.
 -spec get_origin() -> point3().
 get_origin() ->
 	Zero = 0.0,

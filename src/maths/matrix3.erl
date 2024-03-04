@@ -228,7 +228,7 @@ scaling( { Sx, Sy } ) ->
 % These 3D rotation matrices form a group known as the special orthogonal group
 % SO(3).
 %
-% See also: quaternion:rotation/2.
+% See also: quaternion:rotation/2 and quaternion:to_rot_matrix3/{1,2}.
 %
 -spec rotation( unit_vector3(), radians() ) -> rot_matrix3().
 rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->

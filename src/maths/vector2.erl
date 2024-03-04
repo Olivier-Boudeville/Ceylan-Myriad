@@ -165,7 +165,7 @@ null() ->
 
 
 % @doc Returns a 2D vector corresponding to the X axis of the current
-% referential.
+% coordinate system.
 %
 -spec x_axis() -> vector2().
 x_axis() ->
@@ -173,7 +173,7 @@ x_axis() ->
 
 
 % @doc Returns a 2D vector corresponding to the Y axis of the current
-% referential.
+% coordinate system.
 %
 -spec y_axis() -> vector2().
 y_axis() ->

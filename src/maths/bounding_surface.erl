@@ -85,7 +85,7 @@
 
 % Design notes:
 %
-% An implicit 2D referential applies here, where:
+% An implicit 2D coordinate system applies here, where:
 % - abscissas (often denoted as X) increase from left to right
 % - ordinates (often denoted as Y) increase from top to bottom
 %

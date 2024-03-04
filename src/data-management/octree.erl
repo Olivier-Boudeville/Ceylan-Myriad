@@ -112,12 +112,12 @@
 % overall octree in a concurrent datastructure; this module offers such an
 % octree.
 %
-% With larger global spaces, to each octant an absolute, fixed referential can
-% be associated, whose origin is defined relatively to the center/origin of its
-% parent. The corresponding transformation, possibly also together with another
-% precomputed one from the local octant to the (unique, top-level) root one,
-% would allow each object to be defined only relatively to the (fixed)
-% referential corresponding to its (current) octant; by enabling smaller
+% With larger global spaces, to each octant an absolute, fixed coordinate system
+% can be associated, whose origin is defined relatively to the center/origin of
+% its parent. The corresponding transformation, possibly also together with
+% another precomputed one from the local octant to the (unique, top-level) root
+% one, would allow each object to be defined only relatively to the (fixed)
+% coordinate system corresponding to its (current) octant; by enabling smaller
 % floating-point distances, numerical errors should be significantly lessened.
 %
 % Note that multiple, different datastructures may be used (created and updated)

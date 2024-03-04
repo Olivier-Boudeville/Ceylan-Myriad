@@ -435,7 +435,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Triangle defined as [vertex3()], directly in normalized device coordinates
 	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
-	% texture referential has its Y ordinate axis up, see
+	% texture coordinate system has its Y ordinate axis up, see
 	% https://learnopengl.com/Getting-started/Hello-Triangle):
 	%
 	%               T2

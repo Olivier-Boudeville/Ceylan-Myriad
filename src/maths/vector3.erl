@@ -177,7 +177,7 @@ null() ->
 
 
 % @doc Returns a 3D vector corresponding to the X axis of the current
-% referential.
+% coordinate system.
 %
 -spec x_axis() -> vector3().
 x_axis() ->
@@ -187,7 +187,7 @@ x_axis() ->
 
 
 % @doc Returns a 3D vector corresponding to the Y axis of the current
-% referential.
+% coordinate system.
 %
 -spec y_axis() -> vector3().
 y_axis() ->
@@ -197,7 +197,7 @@ y_axis() ->
 
 
 % @doc Returns a 3D vector corresponding to the Z axis of the current
-% referential.
+% coordinate system.
 %
 -spec z_axis() -> vector3().
 z_axis() ->

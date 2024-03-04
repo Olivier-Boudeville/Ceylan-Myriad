@@ -48,7 +48,7 @@
 % - special ones, at least the identity matrix
 
 
-% We assume here a right-handed referential, row-major order and matrix
+% We assume here a right-handed coordinate system, row-major order and matrix
 % multiplication on the right (post-multiplication).
 %
 % As a result, matrices here are the transposed versions of GLM or e3d ones.
@@ -122,8 +122,8 @@
 
 
 -type transition_matrix4() :: homogeneous_matrix4().
-% An homogeneous matrix4 that corresponds to a transition from a 3D referential
-% to another.
+% An homogeneous matrix4 that corresponds to a transition from a 3D coordinate
+% system to another.
 %
 % It can be noted TM = [R|T] where R is a 3x3 rotation matrix and T its
 % associated translation vector.
@@ -362,8 +362,9 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
 
 
-% @doc Returns the 4x4 transition matrix from the current orthonormal basis to
-% one in which the origin and axes of the current basis are expressed.
+% @doc Returns the 4x4 transition matrix from the current orthonormal basis (R1)
+% to one (R2) in which the origin and axes of the current basis (R1) are
+% expressed: P1->2.
 %
 % Refer to
 % http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices
@@ -375,7 +376,7 @@ transition( Origin, X, Y, Z ) ->
 
 	cond_utils:if_defined( myriad_debug_linear,
 		trace_utils:debug_fmt( "Computing the transition matrix to "
-			"a referential of origin ~w, axes being ~w, ~w and ~w.",
+			"a coordinate system of origin ~w, axes being ~w, ~w and ~w.",
 			[ Origin, X, Y, Z ] ) ),
 
 	cond_utils:if_defined( myriad_check_linear,

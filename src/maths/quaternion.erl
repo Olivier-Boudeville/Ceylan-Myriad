@@ -78,7 +78,7 @@
 		  square_magnitude/1, magnitude/1,
 		  negate/1, scale/2, normalise/1, conjugate/1, inverse/1, rotate/2,
 		  from_vector3/1, to_vector3/1,
-		  to_matrix4/1, to_rot_matrix3/1,
+		  to_matrix4/1, to_rot_matrix3/1, to_rot_matrix3/2,
 		  is_unitary/1,
 		  to_string/1, to_compact_string/1, to_user_string/1 ]).
 
@@ -373,9 +373,9 @@ to_vector3( _Q={ A, B, C, D } ) ->
 -spec to_matrix4( quaternion() ) -> matrix4().
 to_matrix4( _Q={A,B,C,D} ) ->
 	#matrix4{ m11=A, m12=-B, m13=-C, m14=-D,
-			  m21=B, m22=A,  m23=-D, m24=C,
-			  m31=C, m32=D,  m33=A,  m34=-B,
-			  m41=D, m42=-C, m43=B,  m44=A }.
+			  m21=B, m22= A, m23=-D, m24= C,
+			  m31=C, m32= D, m33= A, m34=-B,
+			  m41=D, m42=-C, m43= B, m44= A }.
 
 
 
@@ -416,6 +416,16 @@ to_rot_matrix3( Q={A,B,C,D} ) ->
 	#matrix3{ m11=M11, m12=M12, m13=M13,
 			  m21=M21, m22=M22, m23=M23,
 			  m31=M31, m32=M32, m33=M33 }.
+
+
+
+% @doc Returns, based on quaternions, the 3x3 rotation matrix corresponding to a
+% rotation of the specified angle around the axis specified as a unit vector.
+%
+-spec to_rot_matrix3( unit_vector3(), radians() ) -> rot_matrix3().
+to_rot_matrix3( UnitAxis, RadAngle ) ->
+	Q = rotation( UnitAxis, RadAngle ),
+	to_rot_matrix3( Q ).
 
 
 

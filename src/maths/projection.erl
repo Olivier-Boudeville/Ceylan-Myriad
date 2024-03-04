@@ -109,7 +109,7 @@ orthographic( #orthographic_settings{
 %  clipping planes; these values are negative if the plane is to be behind the
 %  viewer
 %
-% Note that the context is a right-handed referential with a clip space in
+% Note that the context is a right-handed coordinate system with a clip space in
 % [-1.0, 1.0].
 %
 -spec orthographic( coordinate(), coordinate(), coordinate(), coordinate(),
@@ -168,7 +168,7 @@ perspective( #perspective_settings{
 % For example Mp = perspective( _FoVYAngle=60.0,
 % _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
 %
-% Note that the context is a right-handed referential with a clip space in
+% Note that the context is a right-handed coordinate system with a clip space in
 % [-1.0, 1.0].
 %
 -spec perspective( radians(), ratio(), distance(), distance() ) -> matrix4().
@@ -234,7 +234,7 @@ projection( Settings=#perspective_settings{} ) ->
 %  - ZFar specifies the distance from the viewer to the far clipping plane
 %  (always positive)
 %
-% Note that the context is a right-handed referential with a clip space in
+% Note that the context is a right-handed coordinate system with a clip space in
 % [-1.0, 1.0].
 %
 -spec frustum( coordinate(), coordinate(), coordinate(), coordinate(),

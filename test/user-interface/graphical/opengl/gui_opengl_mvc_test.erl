@@ -617,7 +617,7 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 
 	ImagePath = file_utils:join(
 		gui_opengl_direct_integration_test:get_test_image_directory(),
-		"myriad-space-time-referential.png" ),
+		"myriad-space-time-coordinate-system.png" ),
 
 	% Not directly 'Texture = gui_texture:load_from_file(ImgPath)' as we want to
 	% flip the image:

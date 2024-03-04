@@ -183,14 +183,14 @@ Note that:
 Geometric Conventions
 .....................
 
-.. _`3D referential`:
+.. _`3D coordinate system`:
 
-.. _`4D referential`:
+.. _`4D coordinate system`:
 
-:raw-html:`<center><img src="myriad-space-time-referential.png" id="responsive-image-tiny"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-space-time-referential} \end{figure}`
+:raw-html:`<center><img src="myriad-space-time-coordinate-system.png" id="responsive-image-tiny"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-space-time-coordinate-system} \end{figure}`
 
-For **space** coordinates, three axes are defined for a global referential:
+For **space** coordinates, three axes are defined for a global coordinate system:
 
 - abscissa: X axis (in red, ``#FF0000``)
 - ordinate: Y axis (in green, ``#008000``)
@@ -201,14 +201,14 @@ By default, we consider right-handed Cartesian coordinate systems (like OpenGL; 
 .. [#] Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.
 
 
-.. _`2D referential`:
+.. _`2D coordinate system`:
 
-In 2D, typically for on-screen coordinates (e.g. when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero [#]_:
+In 2D, typically for on-screen coordinates (e.g. when drawing in a canvas), the corresponding projected coordinate system applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero [#]_:
 
-:raw-html:`<center><img src="myriad-2D-referential.png" id="responsive-image-xsmall"></img></center>`
-:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-2D-referential} \end{figure}`
+:raw-html:`<center><img src="myriad-2D-coordinate-system.png" id="responsive-image-xsmall"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.7]{myriad-2D-coordinate-system} \end{figure}`
 
-.. [#] This 2D referential corresponds to the base space-time one, when the viewpoint is located in the negative Z axis and looks at the origin.
+.. [#] This 2D coordinate system corresponds to the base space-time one, when the viewpoint is located in the negative Z axis and looks at the origin.
 
 	   One may also refer to ``gui_opengl:enter_2d_mode/1`` to apply these conventions.
 
@@ -250,7 +250,7 @@ Said otherwise, front-facing polygons are the ones whose signed area (determinan
 A fourth coordinate besides X, Y and Z could be used, as an extra axis (in yellow, ``#F6DE2D``):
 
 - either for **homogeneous** coordinates, in which case it will be considered to be spatial as well, with the same unit as the three first ones, and preferably designated as ``W``
-- or for **time** coordinates, with a single axis defined for a global referential: the ``T`` one, for which ``1.0`` corresponds to 1 second
+- or for **time** coordinates, with a single axis defined for a global coordinate system: the ``T`` one, for which ``1.0`` corresponds to 1 second
 
 We consider that **clip space** ranges in ``[-1.0, 1.0]`` (like OpenGL conventions; rather than for example ``[0.0, 1.0]``, which are the D3D ones).
 

@@ -1797,7 +1797,9 @@ render_mesh( #mesh{ vertices=Vertices,
 % reset) and to projection (a projection matrix relevant for 2D operations is
 % applied).
 %
-% Refer to https://myriad.esperide.org/#2d-referential for more details.
+% Refer to
+% https://myriad.esperide.org/ThreeDimensional.html#coordinate-systems-in-2d for
+% more details.
 %
 -spec enter_2d_mode( widget() ) -> void().
 enter_2d_mode( Widget ) ->
@@ -1830,13 +1832,13 @@ enter_2d_mode( Widget ) ->
 
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
-	% In all MyriadGUI referentials mentioned, abscissas are to increase when
-	% going from left to right.
+	% In all MyriadGUI coordinate systems mentioned, abscissas are to increase
+	% when going from left to right.
 	%
-	% As for ordinates, with the Myriad 2D referential (refer to the 'Geometric
-	% Conventions' in Myriad's technical manual), like for the backend
-	% coordinates (e.g. SDL, wxWidgets), they are to increase when going from
-	% top to bottom.
+	% As for ordinates, with the Myriad 2D coordinate system (refer to the
+	% 'Geometric Conventions' in Myriad's technical manual), like for the
+	% backend coordinates (e.g. SDL, wxWidgets), they are to increase when going
+	% from top to bottom.
 	%
 	% It is the opposite by default with OpenGL (increasing from bottom to top;
 	% the elements would therefore be upside-down in the OpenGL world), so in

@@ -30,11 +30,11 @@
 % a transformation matrix created from the application and displays a textured
 % square based on it that can be moved with the keyboard to test transformations
 % (translations, rotations and shearings) and directions thereof in the current
-% referential.
+% coordinate system.
 %
 % This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
 % as opposed to the compatibility mode for OpenGL 1.x, and on Myriad's
-% conventions (e.g. a Z-UP referential).
+% conventions (e.g. a Z-UP coordinate system).
 %
 -module(gui_opengl_transformation_shader_test).
 
@@ -47,7 +47,7 @@
 % dimensions of the canvas.
 %
 % Refer to https://myriad.esperide.org/#geometric-conventions to better
-% understand the referential and transformations involved.
+% understand the coordinate system and transformations involved.
 %
 % A Myriad-textured square will be initially located "centered on the floor":
 % its center will be the origin, it will belong to the Z=0 plane (zero altitude)
@@ -72,8 +72,8 @@
 % last, whereas rotations and shearings will happen in their reverse
 % specification order. As a result, for example if rotating the square whereas
 % it has been translated far away from the origin, it will not rotate around the
-% origin, but on itself, in its local referential (around the origin of its
-% referential).
+% origin, but on itself, in its local coordinate system (around the origin of
+% its coordinate system).
 
 % This version uses matrices (matrix4), not transformations (transform4), and no
 % camera (the view matrix is the identity; only the model matrix applies).
@@ -120,22 +120,22 @@
 	% recompute the model-view matrix from the next higher-level parameters:
 
 	% The 3D position of the center of the model (textured square) in the world
-	% referential:
+	% coordinate system:
 	%
 	%center_pos :: point3(),
 
 	% The angle of the model (textured square) along the X axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%x_angle :: radians(),
 
 	% The angle of the model (textured square) along the Y axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%y_angle :: radians(),
 
 	% The angle of the model (textured square) along the Z axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%z_angle :: radians(),
 
@@ -201,8 +201,8 @@
 % Key bindings (Z-being-altitude conventions, i.e. Z-UP); note that the
 % user-triggered movements are by default the ones of the model (the square),
 % not the ones of the view (the camera), and that they are defined in absolute
-% terms, relatively to the global referential (as opposed to, for example, based
-% on the camera).
+% terms, relatively to the global coordinate system (as opposed to, for example,
+% based on the camera).
 %
 % First supposing that a keypad is available:
 
@@ -212,7 +212,7 @@
 
 -if( ?has_keypad =:= true ).
 
-% X (abscissa in the Z-up referential) is controlled by left-right keypad
+% X (abscissa in the Z-up coordinate system) is controlled by left-right keypad
 % numbers/arrows:
 
 % Square moving along the +X axis (to the right on the screen, with the default
@@ -226,7 +226,7 @@
 -define( decrease_x_scan_code, ?MYR_SCANCODE_KP_4 ).
 
 
-% Y (depth in the Z-up referential)
+% Y (depth in the Z-up coordinate system)
 
 % Square moving along the +Y axis (to the top of the screen, with the default
 % camera) when hitting the key labelled "8" on keypad:
@@ -239,7 +239,7 @@
 -define( decrease_y_scan_code, ?MYR_SCANCODE_KP_2 ).
 
 
-% Z (ordinate / altitude in the Z-up referential)
+% Z (ordinate / altitude in the Z-up coordinate system)
 
 % Square moving along the +Z axis (from front to behind, with the default
 % camera) when hitting the key labelled "9" on keypad:
@@ -264,7 +264,7 @@
 -else. % Not using keypad here:
 
 
-% X (abscissa in the Z-up referential) is controlled by left-right keypad
+% X (abscissa in the Z-up coordinate system) is controlled by left-right keypad
 % numbers/arrows:
 
 % Square seen moving to the right with the default camera:
@@ -468,9 +468,9 @@ get_help_text() ->
 
 	% Only true if keypad is enabled
 
-	% Using a Myriad 3D referential here with Z-up, where the camera is fixed at
-	% the origin, pointing to the -Z axis, with its up direction being the +Y
-	% axis; so:
+	% Using a Myriad 3D coordinate system here with Z-up, where the camera is
+	% fixed at the origin, pointing to the -Z axis, with its up direction being
+	% the +Y axis; so:
 	% - X increases from, onscreen, left to right
 	% - Y increases from bottom of screen to top
 	% - Z increases as getting from farther to nearer the observer
@@ -1484,7 +1484,7 @@ update_scene( _Scancode, GUIState ) ->
 
 
 % @doc Returns a description of the local origin of the square, in the global
-% referential.
+% coordinate system.
 %
 get_origin_description( ModelViewMat4 ) ->
 
@@ -1492,8 +1492,8 @@ get_origin_description( ModelViewMat4 ) ->
 	InvMat4 = matrix4:inverse( ModelViewMat4 ),
 	LocalOrigin = matrix4:get_translation( InvMat4 ),
 
-	text_utils:format( "In the global referential, the local origin "
-		"of the square referential is now: ~ts",
+	text_utils:format( "In the global coordinate system, the local origin "
+		"of the square coordinate system is now: ~ts",
 		[ point3:to_string( LocalOrigin ) ] ).
 
 

@@ -243,14 +243,14 @@ test_record_speeches( SpeechState ) ->
 
 
 
-% @doc Tests the management of speech referentials and logical speeches.
--spec test_referential_management( speech_state() ) -> void().
-test_referential_management( SpeechState=#speech_state{
+% @doc Tests the management of speech repositories and logical speeches.
+-spec test_repository_management( speech_state() ) -> void().
+test_repository_management( SpeechState=#speech_state{
 											audio_settings=AudioSettings } ) ->
 
-	test_facilities:display( "Testing the management of speech referentials." ),
+	test_facilities:display( "Testing the management of speech repositories." ),
 
-	% Using the referential in the speech state to define two logical speeches,
+	% Using the repository in the speech state to define two logical speeches,
 	% each defined for the following two speech settings, which we register
 	% first:
 
@@ -356,7 +356,7 @@ run_test_tts( SpeechState ) ->
 
 	%test_record_speeches( SpeechState ),
 
-	test_referential_management( SpeechState ).
+	test_repository_management( SpeechState ).
 
 
 

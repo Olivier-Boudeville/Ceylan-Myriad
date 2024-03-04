@@ -29,7 +29,7 @@
 % @doc Gathering of facilities for the management of any kind of <b>data
 % resources</b>, typically a content (e.g. image, sound) read from file as a
 % binary, or generated as a term, and to be stored in a suitable <b>resource
-% referential</b> (mostly a table of resources), possibly made available thanks
+% repository</b> (mostly a table of resources), possibly made available thanks
 % to a <b>resource server</b> (mosty a process holding a table of resources).
 %
 % Specialised accessors are defined for some resource types (e.g. for bitmaps),
@@ -41,8 +41,8 @@
 -module(resource).
 
 
--export([ % Local referential:
-		  create_referential/0, create_referential/1,
+-export([ % Local repository:
+		  create_repository/0, create_repository/1,
 		  get/2, get_multiple/2,
 		  get_bitmap/2, get_bitmaps/2,
 
@@ -50,7 +50,7 @@
 		  remove/2, remove_multiple/2, flush/1,
 
 		  locate_data/2, locate_multiple_data/2, get_path/2,
-		  referential_to_string/1, resource_type_to_string/1,
+		  repository_to_string/1, resource_type_to_string/1,
 
 		  % Server-side:
 
@@ -63,12 +63,12 @@
 
 % Usage notes:
 %
-% While a resource referential acts only at the level of a given process, a
+% While a resource repository acts only at the level of a given process, a
 % resource server allows to share resources between processes. Thanks to the
 % sharing of (large-enough) binaries, this operation makes sense.
 %
 % The API exposed by this module (e.g. get/2) can be used for any resource
-% holder, i.e. a local referential or a server one. In this last case, one may
+% holder, i.e. a local repository or a server one. In this last case, one may
 % also directly perform the message sending and retrieving, in order to favor
 % process interleaving.
 %
@@ -83,7 +83,7 @@
 % their reference counter); therefore, if one is used in a frame (typically for
 % a static display thereof) that gets closed, this bitmap will be silently
 % deallocated, and any reference thereof (e.g. {wx_ref,67, wxBitmap,[]}} held in
-% referential will actually become a stale reference (any operation on it
+% repository will actually become a stale reference (any operation on it
 % resulting in {{badarg,"This"}, ...}). A copy constructor available from wx
 % would help relying on the underlying reference counter of wxWidgets.
 %
@@ -147,11 +147,11 @@
 % A table referencing resources, based on any kind of resource keys.
 
 
-% For the resource_referential record:
+% For the resource_repository record:
 -include("resource.hrl").
 
--type resource_referential() :: #resource_referential{}.
-% A resource referential, storing resources based on their identifier.
+-type resource_repository() :: #resource_repository{}.
+% A resource repository, storing resources based on their identifier.
 %
 % It is a term (a record mostly holding a table of resources) in the current
 % process.
@@ -159,10 +159,10 @@
 
 -type resource_server_pid() :: pid().
 % The PID of a resource server, which is basically a process holding a resource
-% referential.
+% repository.
 
 
--type resource_holder() :: resource_referential() | resource_server_pid().
+-type resource_holder() :: resource_repository() | resource_server_pid().
 % Any container of resources.
 
 
@@ -172,7 +172,7 @@
 			   resource_logical_id/0,
 			   resource_id/0, bitmap_resource_id/0,
 			   resource_table/0, resource_table/1,
-			   resource_referential/0,
+			   resource_repository/0,
 			   resource_holder/0 ]).
 
 
@@ -206,30 +206,30 @@
 
 
 
-% Resource Referential section.
+% Resource Repository section.
 
 
-% @doc Returns an empty referential, not anchored to a specific root directory.
--spec create_referential() -> resource_referential().
-create_referential() ->
-	#resource_referential{ root_directory=undefined,
+% @doc Returns an empty repository, not anchored to a specific root directory.
+-spec create_repository() -> resource_repository().
+create_repository() ->
+	#resource_repository{ root_directory=undefined,
 						   table=table:new() }.
 
 
 
-% @doc Returns an empty referential that is to operate from the specified root
+% @doc Returns an empty repository that is to operate from the specified root
 % directory. File-based resources can then be declared implicitly relatively to
 % this directory.
 %
--spec create_referential( any_directory_path() ) -> resource_referential().
-create_referential( AnyRootDir ) ->
+-spec create_repository( any_directory_path() ) -> resource_repository().
+create_repository( AnyRootDir ) ->
 
 	AbsRootDir = file_utils:ensure_path_is_absolute( AnyRootDir ),
 
 	file_utils:is_existing_directory_or_link( AbsRootDir )
 		orelse throw( { non_existing_resource_directory, AbsRootDir } ),
 
-	#resource_referential{
+	#resource_repository{
 		root_directory=text_utils:ensure_binary( AbsRootDir ),
 		table=table:new() }.
 
@@ -321,27 +321,27 @@ create_linked_server( AnyRootDir, GUIBackendEnv ) ->
 				end ).
 
 
-% Resource holder API: applies both to referentials and servers.
+% Resource holder API: applies both to repositories and servers.
 
 
 % @doc Returns the resource (unspecialised) content corresponding to the
 % specified (file or logical) identifier, based on the specified resource
 % holder.
 %
--spec get( resource_id(), resource_referential() ) ->
-				{ resource(), resource_referential() };
+-spec get( resource_id(), resource_repository() ) ->
+				{ resource(), resource_repository() };
 		 ( resource_id(), resource_server_pid() ) -> resource().
 get( RscIdStr, RscHolder ) when is_list( RscIdStr ) ->
 	get( text_utils:string_to_binary( RscIdStr ), RscHolder );
 
-% First, clauses for referential (local) side:
+% First, clauses for repository (local) side:
 %
 % Here, RscId is not a list/string (generally it is either a binary string or an
 % atom), for which no resource is ever loaded: either the resource is already
-% registered and thus returned, or this operation fails. Referential is thus
+% registered and thus returned, or this operation fails. Repository is thus
 % const.
 %
-get( RscId, RscRef=#resource_referential{ table=RscTable } ) ->
+get( RscId, RscRef=#resource_repository{ table=RscTable } ) ->
 
 	case table:lookup_entry( RscId, RscTable ) of
 
@@ -360,7 +360,7 @@ get( RscId, RscRef=#resource_referential{ table=RscTable } ) ->
 
 				true ->
 					BinRscPath =
-						case RscRef#resource_referential.root_directory of
+						case RscRef#resource_repository.root_directory of
 
 							undefined ->
 								RscId;
@@ -380,7 +380,7 @@ get( RscId, RscRef=#resource_referential{ table=RscTable } ) ->
 						table:add_entry( RscId, BinRsc, RscTable ),
 
 					NewRscRef =
-						RscRef#resource_referential{ table=NewRscTable },
+						RscRef#resource_repository{ table=NewRscTable },
 
 					cond_utils:if_defined( myriad_debug_resources,
 						trace_utils:debug_fmt(
@@ -391,7 +391,7 @@ get( RscId, RscRef=#resource_referential{ table=RscTable } ) ->
 
 				_False ->
 					trace_bridge:error_fmt( "No (logical) resource of "
-						"identifier '~p', in the referential, "
+						"identifier '~p', in the repository, "
 						"and it is not loadable.", [ RscId ] ),
 					throw( { cannot_load_resource_from, RscId } )
 
@@ -421,8 +421,8 @@ get( RscId, RscSrvPid ) when is_pid( RscSrvPid ) ->
 % specified (file or logical) identifiers, based on the specified resource
 % holder.
 %
--spec get_multiple( [ resource_id() ], resource_referential() ) ->
-				{ [ resource() ], resource_referential() };
+-spec get_multiple( [ resource_id() ], resource_repository() ) ->
+				{ [ resource() ], resource_repository() };
 				  ( [ resource_id() ], resource_server_pid() ) ->
 											[ resource() ].
 % Server-side:
@@ -443,7 +443,7 @@ get_multiple( RscIds, RscSrvPid ) when is_pid( RscSrvPid ) ->
 	end;
 
 % Local side:
-get_multiple( RscIds, RscRef ) -> % Implicit: RscRef=#resource_referential{}
+get_multiple( RscIds, RscRef ) -> % Implicit: RscRef=#resource_repository{}
 	% (resource identifiers being processed in reverse order, resources are
 	% returned in the correct order):
 	%
@@ -459,20 +459,20 @@ get_multiple( RscIds, RscRef ) -> % Implicit: RscRef=#resource_referential{}
 % @doc Returns the bitmap resource content corresponding to the specified (file
 % or logical) identifier, based on the specified resource holder.
 %
--spec get_bitmap( bitmap_resource_id(), resource_referential() ) ->
-				{ bitmap(), resource_referential() };
+-spec get_bitmap( bitmap_resource_id(), resource_repository() ) ->
+				{ bitmap(), resource_repository() };
 				( bitmap_resource_id(), resource_server_pid() ) -> bitmap().
 get_bitmap( BmpIdStr, RscHolder ) when is_list( BmpIdStr ) ->
 	get_bitmap( text_utils:string_to_binary( BmpIdStr ), RscHolder );
 
-% First, clauses for referential (local) side:
+% First, clauses for repository (local) side:
 %
 % Here, BmpId is not a list/string (generally it is either a binary string or an
 % atom), for which no resource is ever loaded: either the resource is already
-% registered and thus returned, or this operation fails. Referential is thus
+% registered and thus returned, or this operation fails. Repository is thus
 % const.
 %
-get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
+get_bitmap( BmpId, BmpRef=#resource_repository{ table=RscTable } ) ->
 
 	case table:lookup_entry( BmpId, RscTable ) of
 
@@ -518,7 +518,7 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 			case is_binary( BmpId ) of
 
 				true ->
-					BmpPath = get_path_from_referential( BmpId, BmpRef ),
+					BmpPath = get_path_from_repository( BmpId, BmpRef ),
 
 					file_utils:is_existing_file_or_link( BmpPath ) orelse
 						throw( { bitmap_resource_not_found,
@@ -537,7 +537,7 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 
 					% Ensures that a dummy frame is available:
 					% DummyFrame =
-					%		case BmpRef#resource_referential.dummy_frame of
+					%		case BmpRef#resource_repository.dummy_frame of
 
 					%	undefined ->
 					%		% Parentless gui_window is not a legit one, so:
@@ -556,7 +556,7 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 					%_StaticBmp = gui_bitmap:create_static_display( Bitmap,
 					%	_Parent=DummyFrame ),
 
-					NewBmpRef = BmpRef#resource_referential{
+					NewBmpRef = BmpRef#resource_repository{
 						table=NewRscTable },
 						%dummy_frame=DummyFrame },
 
@@ -569,7 +569,7 @@ get_bitmap( BmpId, BmpRef=#resource_referential{ table=RscTable } ) ->
 
 				_False ->
 					trace_bridge:error_fmt( "No (logical) bitmap resource of "
-						"identifier '~p', in the referential, "
+						"identifier '~p', in the repository, "
 						"and it is not loadable.", [ BmpId ] ),
 					throw( { cannot_load_bitmap_resource_from, BmpId } )
 
@@ -601,8 +601,8 @@ get_bitmap( BmpId, BmpSrvPid ) when is_pid( BmpSrvPid ) ->
 %
 % Like get_multiple/2, but for bitmaps.
 %
--spec get_bitmaps( [ bitmap_resource_id() ], resource_referential() ) ->
-							{ [ bitmap() ], resource_referential() };
+-spec get_bitmaps( [ bitmap_resource_id() ], resource_repository() ) ->
+							{ [ bitmap() ], resource_repository() };
 				 ( [ bitmap_resource_id() ], resource_server_pid() ) ->
 							[ bitmap() ].
 % Server-side:
@@ -623,10 +623,10 @@ get_bitmaps( BitmapRscIds, RscSrvPid ) when is_pid( RscSrvPid ) ->
 
 	end;
 
-% Local side; implicit: RscRef=#resource_referential{}:
+% Local side; implicit: RscRef=#resource_repository{}:
 get_bitmaps( BitmapRscIds, RscRef ) ->
 
-	%trace_utils:debug_fmt( "Resource referential: ~p.", [ RscRef ] ),
+	%trace_utils:debug_fmt( "Resource repository: ~p.", [ RscRef ] ),
 
 	% (bitmap identifiers being processed in reverse order, bitmaps are returned
 	% in the correct order):
@@ -651,7 +651,7 @@ has( RscIdStr, RscHolder ) when is_list( RscIdStr )->
 	has( text_utils:string_to_binary( RscIdStr ), RscHolder );
 
 % Non-plain string from here:
-has( RscId, #resource_referential{ table=RscTable } ) ->
+has( RscId, #resource_repository{ table=RscTable } ) ->
 	table:has_entry( RscId, RscTable );
 
 has( RscId, RscSrvPid ) ->
@@ -676,15 +676,15 @@ has( RscId, RscSrvPid ) ->
 % Any resource previously registered under the same identifier will be replaced.
 %
 -spec register( maybe_list( { resource_logical_id(), resource() } ),
-				resource_referential() ) -> resource_referential();
+				resource_repository() ) -> resource_repository();
 			  ( maybe_list( { resource_logical_id(), resource() } ),
 				resource_server_pid() ) -> void().
 % As maybe_list:
 register( RscPair={ _Id, _RSc }, RscRef ) ->
 	register( [ RscPair ], RscRef );
 
-% Referential (local) side:
-register( RscPairs, RscRef=#resource_referential{ table=RscTable } )
+% Repository (local) side:
+register( RscPairs, RscRef=#resource_repository{ table=RscTable } )
 											when is_list( RscPairs ) ->
 
 	cond_utils:if_defined( myriad_debug_resources,
@@ -695,7 +695,7 @@ register( RscPairs, RscRef=#resource_referential{ table=RscTable } )
 	check_logical_ids( RscPairs ),
 
 	NewRscTable = table:add_entries( RscPairs, RscTable ),
-	RscRef#resource_referential{ table=NewRscTable };
+	RscRef#resource_repository{ table=NewRscTable };
 
 % Server-side:
 register( RscPairs, RscSrvPid ) ->
@@ -723,23 +723,23 @@ check_logical_ids( RscPairs ) ->
 %
 % Any resource previously registered under the same identifier will be replaced.
 %
--spec register( resource_logical_id(), resource(), resource_referential() ) ->
-											resource_referential();
+-spec register( resource_logical_id(), resource(), resource_repository() ) ->
+											resource_repository();
 			  ( resource_logical_id(), resource(), resource_server_pid() ) ->
 											void().
-% Referential (local) side; RscLogId must not be a plain list:
+% Repository (local) side; RscLogId must not be a plain list:
 register( RscLogId, _Rsc, _RscRef ) when is_list( RscLogId ) ->
 	throw( { invalid_logical_resource_identifier, RscLogId } );
 
 % Local side:
-register( RscLogId, Rsc, RscRef=#resource_referential{ table=RscTable } ) ->
+register( RscLogId, Rsc, RscRef=#resource_repository{ table=RscTable } ) ->
 
 	cond_utils:if_defined( myriad_debug_resources,
 		trace_utils:debug_fmt( "[~w] Registering logical resource '~p', "
 			"whose content is ~w.", [ self(), RscLogId, Rsc ] ) ),
 
 	NewRscTable = table:add_entry( RscLogId, Rsc, RscTable ),
-	RscRef#resource_referential{ table=NewRscTable };
+	RscRef#resource_repository{ table=NewRscTable };
 
 % Server-side:
 register( RscLogId, Rsc, RscSrvPid ) ->
@@ -753,20 +753,20 @@ register( RscLogId, Rsc, RscSrvPid ) ->
 % This resource is just unregistered; for example file-based ones are not
 % deleted from the filesystem.
 %
--spec remove( any_resource_file_id(), resource_referential() ) ->
-										resource_referential();
+-spec remove( any_resource_file_id(), resource_repository() ) ->
+										resource_repository();
 			( any_resource_file_id(), resource_server_pid() ) -> void().
 % As strings are tolerated:
 remove( RscIdStr, RscHolder ) when is_list( RscIdStr ) ->
 	remove( text_utils:string_to_binary( RscIdStr ), RscHolder );
 
 % Non-plain list from here; local side:
-remove( RscId, Ref=#resource_referential{ table=RscTable } ) ->
+remove( RscId, Ref=#resource_repository{ table=RscTable } ) ->
 	case table:has_entry( RscId, RscTable ) of
 
 		true ->
 			NewRscTable = table:remove_entry( RscId, RscTable ),
-			Ref#resource_referential{ table=NewRscTable };
+			Ref#resource_repository{ table=NewRscTable };
 
 		false ->
 			throw( { non_existing_resource, RscId } )
@@ -784,8 +784,8 @@ remove( RscId, RscSrvPid ) ->
 % These resource are just unregistered; for example file-based ones are not
 % deleted from the filesystem.
 %
--spec remove_multiple( [ any_resource_file_id() ], resource_referential() ) ->
-										resource_referential();
+-spec remove_multiple( [ any_resource_file_id() ], resource_repository() ) ->
+										resource_repository();
 					 ( [ any_resource_file_id() ], resource_server_pid() ) ->
 										void().
 % Server-side (mostly like get_multiple/2):
@@ -796,7 +796,7 @@ remove_multiple( RscIds, RscSrvPid ) when is_pid( RscSrvPid ) ->
 	RscSrvPid ! { removeMultiple, BestRscIds };
 
 % Local side:
-remove_multiple( RscIds, RscRef=#resource_referential{ table=RscTable } ) ->
+remove_multiple( RscIds, RscRef=#resource_repository{ table=RscTable } ) ->
 
 	BestRscIds = get_best_identifiers( RscIds ),
 
@@ -807,7 +807,7 @@ remove_multiple( RscIds, RscRef=#resource_referential{ table=RscTable } ) ->
 	%  [ table:to_string( RscTable ),
 	%    table:to_string( ShrunkRscTable ) ] ),
 
-	RscRef#resource_referential{ table=ShrunkRscTable }.
+	RscRef#resource_repository{ table=ShrunkRscTable }.
 
 
 
@@ -815,26 +815,8 @@ remove_multiple( RscIds, RscRef=#resource_referential{ table=RscTable } ) ->
 flush( RscSrvPid ) when is_pid( RscSrvPid ) ->
 	RscSrvPid ! flush;
 
-% No bitmap held:
-flush( RscRef=#resource_referential{ table=_RscTable } ) ->
-									 %dummy_frame=undefined } ) ->
-	RscRef#resource_referential{ table=table:new() }.
-
-%flush( RscRef=#resource_referential{ table=_RscTable,
-%									  dummy_frame=DummyFrame } ) ->
-
-	% Should trigger in turn the deallocation of its static bitmaps, then of
-	% their bitmap resources.
-	%
-	% Not gui_widget:destruct(DummyFrame) as we do not need synchronisation
-	% here:
-	%
-%	gui_widget:destruct_direct( DummyFrame ),
-
-%	RscRef#resource_referential{ table=table:new(),
-%								 dummy_frame=undefined }.
-
-
+flush( RscRef=#resource_repository{ table=_RscTable } ) ->
+	RscRef#resource_repository{ table=table:new() }.
 
 
 
@@ -872,7 +854,7 @@ locate_data( BinDataPath, RscRef ) ->
 %
 % Whereas no root directory set:
 locate_data_from_ref( BinDataPath,
-					  #resource_referential{ root_directory=undefined } ) ->
+					  #resource_repository{ root_directory=undefined } ) ->
 	case file_utils:is_existing_file_or_link( BinDataPath ) of
 
 		true ->
@@ -887,7 +869,7 @@ locate_data_from_ref( BinDataPath,
 
 % Whereas a root directory was set:
 locate_data_from_ref( BinDataPath,
-					  #resource_referential{ root_directory=BinRootDir } ) ->
+					  #resource_repository{ root_directory=BinRootDir } ) ->
 
 	AbsBinDataPath =
 		file_utils:ensure_path_is_absolute( BinDataPath, _BasePath=BinRootDir ),
@@ -935,7 +917,7 @@ locate_multiple_data( BinDataPaths, RscRef ) ->
 
 
 % (shared; like locate_data_from_ref/2 but context-optimised)
-locate_multiple_data_from_ref( BinDataPaths, #resource_referential{
+locate_multiple_data_from_ref( BinDataPaths, #resource_repository{
 										root_directory=undefined } ) ->
 	[ case file_utils:is_existing_file_or_link( P ) of
 
@@ -950,7 +932,7 @@ locate_multiple_data_from_ref( BinDataPaths, #resource_referential{
 	end || P <- BinDataPaths ];
 
 
-locate_multiple_data_from_ref( BinDataPaths, #resource_referential{
+locate_multiple_data_from_ref( BinDataPaths, #resource_repository{
 										root_directory=BinRootDir } ) ->
 
 	[ begin
@@ -982,8 +964,8 @@ get_path( RscFileIdStr, RscRef ) when is_list( RscFileIdStr ) ->
 	get_path( text_utils:string_to_binary( RscFileIdStr ), RscRef );
 
 % Binary string expected:
-get_path( RscFileId, #resource_referential{ root_directory=MaybeBinRootDir,
-											table=RscTable } )
+get_path( RscFileId, #resource_repository{ root_directory=MaybeBinRootDir,
+										   table=RscTable } )
 								when is_binary( RscFileId ) ->
 
 	case table:has_entry( RscFileId, RscTable ) of
@@ -1022,18 +1004,18 @@ get_path( RscFileId, RscSrvPid ) when is_binary( RscFileId ) ->
 
 
 % @doc Returns the (unchecked) path corresponding to the specified (file)
-% resource, in the context of the specified referential.
+% resource, in the context of the specified repository.
 %
 % (helper)
 %
--spec get_path_from_referential( any_resource_file_id(),
-				resource_referential() ) -> any_resource_file_id().
-get_path_from_referential( RscFileId, #resource_referential{
+-spec get_path_from_repository( any_resource_file_id(),
+				resource_repository() ) -> any_resource_file_id().
+get_path_from_repository( RscFileId, #resource_repository{
 										root_directory=undefined } ) ->
 	% Relative to current directory:
 	RscFileId;
 
-get_path_from_referential( RscFileId, #resource_referential{
+get_path_from_repository( RscFileId, #resource_repository{
 										root_directory=BinRootDir } ) ->
 	file_utils:bin_join( BinRootDir, RscFileId ).
 
@@ -1058,17 +1040,17 @@ get_best_identifiers( RscIds ) ->
 
 
 
-% @doc Returns a textual description of the specified referential.
--spec referential_to_string( resource_referential() ) -> ustring().
-referential_to_string( #resource_referential{ root_directory=undefined,
+% @doc Returns a textual description of the specified repository.
+-spec repository_to_string( resource_repository() ) -> ustring().
+repository_to_string( #resource_repository{ root_directory=undefined,
 											  table=Rsctable } ) ->
-	text_utils:format( "resource referential, not anchored to a specific "
+	text_utils:format( "resource repository, not anchored to a specific "
 		"root directory, storing ~ts",
 		[ resource_table_to_string( Rsctable ) ] );
 
-referential_to_string( #resource_referential{ root_directory=BinRootDir,
+repository_to_string( #resource_repository{ root_directory=BinRootDir,
 											  table=Rsctable } ) ->
-	text_utils:format( "resource referential whose root directory is '~ts', "
+	text_utils:format( "resource repository whose root directory is '~ts', "
 		"storing ~ts", [ BinRootDir, resource_table_to_string( Rsctable ) ] ).
 
 
@@ -1115,7 +1097,7 @@ resource_type_to_string( _RscId ) ->
 % Initialises the resource server.
 -spec server_init() -> no_return().
 server_init() ->
-	InitialRef = create_referential(),
+	InitialRef = create_repository(),
 	server_main_loop( InitialRef ).
 
 
@@ -1131,7 +1113,7 @@ server_init( BinRootDir ) ->
 -spec server_init( bin_directory_path(), maybe( gui:backend_environment() ) ) ->
 										no_return().
 server_init( BinRootDir, _MaybeGUIBackendEnv=undefined ) ->
-	InitialRef = create_referential( BinRootDir ),
+	InitialRef = create_repository( BinRootDir ),
 	server_main_loop( InitialRef );
 
 server_init( BinRootDir, GUIBackendEnv ) ->
@@ -1147,7 +1129,7 @@ server_init( BinRootDir, GUIBackendEnv ) ->
 % server fails. As a result, it is better to create linked instances thereof.
 %
 % (helper)
--spec server_main_loop( resource_referential() ) -> no_return().
+-spec server_main_loop( resource_repository() ) -> no_return().
 server_main_loop( RscRef ) ->
 
 	receive

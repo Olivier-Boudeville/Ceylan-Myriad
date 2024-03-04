@@ -168,7 +168,7 @@ null() ->
 
 
 % @doc Returns a 4D vector corresponding to the X axis of the current
-% referential.
+% coordinate system.
 %
 -spec x_axis() -> vector4().
 x_axis() ->
@@ -178,7 +178,7 @@ x_axis() ->
 
 
 % @doc Returns a 4D vector corresponding to the Y axis of the current
-% referential.
+% coordinate system.
 %
 -spec y_axis() -> vector4().
 y_axis() ->
@@ -188,7 +188,7 @@ y_axis() ->
 
 
 % @doc Returns a 4D vector corresponding to the Z axis of the current
-% referential.
+% coordinate system.
 %
 -spec z_axis() -> vector4().
 z_axis() ->
@@ -198,7 +198,7 @@ z_axis() ->
 
 
 % @doc Returns a 4D vector corresponding to the W axis of the current
-% referential.
+% coordinate system.
 %
 -spec w_axis() -> vector4().
 w_axis() ->

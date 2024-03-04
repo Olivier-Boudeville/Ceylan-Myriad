@@ -61,19 +61,19 @@
 
 -type coordinate() :: float().
 % Cartesian real (actually double-precision floating-point) coordinates in a
-% referential.
+% coordinate system.
 
 
 -type integer_coordinate() :: integer().
-% Cartesian integer coordinates in a referential.
+% Cartesian integer coordinates in a coordinate system.
 
 
 -type any_coordinate() :: number().
-% Cartesian coordinates in a referential.
+% Cartesian coordinates in a coordinate system.
 
 
 -type user_coordinate() :: number().
-% User-specified coordinates in a referential.
+% User-specified coordinates in a coordinate system.
 
 
 -type distance() :: float().

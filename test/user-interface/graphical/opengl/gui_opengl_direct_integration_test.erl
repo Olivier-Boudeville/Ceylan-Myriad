@@ -305,7 +305,8 @@ get_test_colored_cube_mesh() ->
 
 % @doc Returns the (8) vertices of the test colored cube.
 %
-% See also gui_opengl_cube_referential_test:get_cube_vertices_as_triangles/0.
+% See also
+% gui_opengl_cube_coordinate_system_test:get_cube_vertices_as_triangles/0.
 %
 -spec get_test_colored_cube_vertices() -> [ vertex3() ].
 get_test_colored_cube_vertices() ->
@@ -479,7 +480,7 @@ get_test_image_directory() ->
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
 	file_utils:join( get_test_image_directory(),
-					 %"myriad-space-time-referential.png" ).
+					 %"myriad-space-time-coordinate-system.png" ).
 					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
@@ -491,7 +492,7 @@ get_logo_image_path() ->
 	file_utils:join( get_test_image_directory(),
 		% "myriad-title.png" ).
 		% "myriad-minimal-enclosing-circle-test.png" ).
-		"myriad-space-time-referential.png" ).
+		"myriad-space-time-coordinate-system.png" ).
 
 
 

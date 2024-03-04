@@ -58,8 +58,8 @@
 	% The audio settings regarding the generated output:
 	audio_settings :: audio_utils:audio_stream_settings(),
 
-	% Any associated speech referential:
-	speech_referential :: maybe( speech_support:speech_referential() ) } ).
+	% Any associated speech repository:
+	speech_repository :: maybe( speech_support:speech_repository() ) } ).
 
 
 
@@ -137,7 +137,7 @@
 -record( logical_speech, {
 
 	% The identifier of that speech (intentional duplicate of the corresponding
-	% key in the speech table of any containing referential):
+	% key in the speech table of any containing repository):
 	%
 	id :: speech_support:speech_id(),
 
@@ -151,7 +151,7 @@
 	%
 	% The text information of reference (probably from which the others are
 	% translated) corresponds to the entry whose key is the reference locale of
-	% the overall speech referential.
+	% the overall speech repository.
 	%
 	locale_table :: speech_support:locale_table() } ).
 
@@ -169,14 +169,14 @@
 	speech_settings_id :: speech_support:speech_settings_id(),
 
 	% The filename, relative to the base directory of the underlying speech
-	% referential, of the corresponding audio file:
+	% repository, of the corresponding audio file:
 	%
 	audio_filename :: file_utils:bin_file_name() } ).
 
 
 
 % A datastructure collecting information regarding a set of logical speeches.
--record( speech_referential, {
+-record( speech_repository, {
 
 	% A table associating to each identifier of a logical speech the various
 	% available information about it.
