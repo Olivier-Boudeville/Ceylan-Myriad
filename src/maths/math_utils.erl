@@ -63,6 +63,10 @@
 					 is_greater/2, is_lower/2, is_greater/3, is_lower/3 ] }).
 
 
+% Constants:
+-export([ pi/0 ]).
+
+
 % Operations on number():
 -export([ is_null_number/1 ]).
 
@@ -827,6 +831,16 @@ get_relative_difference( X, Y ) ->
 			2 * erlang:abs( ( X - Y ) / Sum )
 
 	end.
+
+
+% Section for constants.
+
+
+% The Pi constant.
+-spec pi() -> float().
+pi() ->
+	% Mostly as a reminder:
+	math:pi().
 
 
 

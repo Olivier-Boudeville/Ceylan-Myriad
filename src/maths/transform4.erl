@@ -66,6 +66,61 @@
 % is still an open question.
 
 
+% Understanding the role and composition of transformations.
+%
+% A transformation (e.g. T12) conveys how elements expressed in a coordinate
+% system R1 can be expressed in a coordinate system R2, and vice versa: thanks
+% to its pair of reference (RefM) / inverse (InvM) matrices, a transformation
+% provides a two-way conversion between frames of reference:
+% - the reference matrix is the transition matrix from R2 to R1: a vector
+% expressed in R2 as V2 will be expressed in R1 as V1 = RefM.V2
+% - conversely, the inverse matrix takes in charge the transition from R1 to
+% R2: a vector expressed in R1 as V1 will be expressed in R2 as V2 = InvM.V1.
+%
+% For example let's suppose we are in a R1 reference frame, and we would like to
+% introduce a R2 one that is simply defined relatively to R1 by a translation of
+% 5 along its X axis.
+%
+% Then transform4:translation(_VT=[5,0,0]) will return a transformation whose
+% reference matrix RefM is the identity_4 matrix except for its top-right
+% element, equal to +5. Applying (on the right) to RefM a vector of R2
+% V2=[X,Y,Z] will thus result in a vector of R1, V1 = RefM.V2 = [X+5,Y,Z].
+%
+%
+% Regarding composition, transformations can be chained by multiplying them on
+% the right, based on a parent-to-child order.
+%
+% For example, if R1 is a base coordinate system, R2 one defined relatively to
+% R1, and R3 one defined relatively to R2 (noted R1->R2->R3), and if the T12 and
+% T23 transformations have been defined like explained above, then a vector
+% expressed in R3 as V3 will be expressed in R1 as V1 = T12_RefM.T23_RefM.V3.
+% Conversely, V3 = T23_InvM.T12_InvM.V1.
+
+% Usual transformations.
+%
+% 3D models (e.g. one of a type of spaceship) are generally defined centered in
+% a local coordinate system Rl of their own (as a geometry - possibly common to
+% many instances), whereas each model instance (a specific, actual spaceship)
+% has its own geometrical information (e.g. positioning) computed. So a given
+% spaceship may be known to be at a given point, pointing to a given direction,
+% and being potentially scaled - all that relatively to some more global frame
+% of reference Rg (e.g. some galactic center).
+%
+% To place correctly such a model in Rg in one go, a suitable transformation may
+% be devised. To convert the coordinates of a point (e.g. the tip of the
+% cockpit) Pl in Rl to the ones (Pg) of that point in Rg, we can define the Tgl
+% transformation, whose reference matrix RefM allows to determine Pg = RefM.Pl.
+%
+% For that, RefM = TrM.RotM.SclM where SclM applies the scaling (as determined
+% by three scaling factors along the axes of Rl), RotM the rotation (as
+% determined by a unit axis and an angle, so that the axes of Rl match the
+% desired ones in Rg) and TrM the translation (as determined by a vector, from
+% the origin of Rg to the final location of the model).
+%
+% This is the recommended order of the operations, otherwise these
+% transformations will become coupled and would interfere negatively (e.g. a
+% translation vector would be scaled as well).
+%
 
 % For records like matrix4:
 -include("matrix4.hrl").
@@ -74,8 +129,18 @@
 -include("transform4.hrl").
 
 -type transform4() :: #transform4{}.
-% A 4x4 transformation, storing both its corresponding 4x4 matrix and its
-% inverse.
+% A 4x4 transformation between two coordinate systems (R1 and R2), storing both
+% its corresponding reference 4x4 matrix (transition from R2 to R1) and its
+% inverse (transition from R1 to R2).
+%
+% This transformation may be named T12.
+%
+% If a coordinate system Rp can be seen as the parent of a coordinate system Rc
+% (Rc being defined relatively to Rp; Rc being then a child of Rp, noted Rp ->
+% Rc), then by convention we prefer defining Tpc rather than Tcp, as then it is
+% directly the reference matrix of Tpc (RefM) that can be used to convert a
+% vector expressed in the child (Rc) into its representation in the parent (Rp),
+% as Vp = RefM.Vc.
 
 
 
@@ -85,10 +150,11 @@
 -export([ new/1, new/2, identity/0,
 
 		  get_reference/1, get_inverse/1,
+		  swap/1,
 
 		  get_origin/1,
 
-		  translation/1, rotation/2, scaling/1,
+		  translation/1, rotation/2, scaling/1, sc_rot_tr/4,
 		  transition/4,
 
 		  translate_left/2, translate_right/2,
@@ -105,7 +171,8 @@
 		  are_equal/2,
 		  determinant/1, inverse/1,
 
-		  check/1,
+		  is_transform4/1,
+		  check_type/1, check/1,
 		  to_string/1 ] ).
 
 
@@ -211,6 +278,16 @@ get_inverse( #transform4{ inverse=InvHM } ) ->
 
 
 
+% @doc Swaps the two matrices of the specified transform, thus returning the
+% inverse transform (that is the transform from the destination to the source of
+% the specified one).
+%
+-spec swap( transform4() ) -> transform4().
+swap( #transform4{ reference=HM, inverse=InvHM } ) ->
+	#transform4{ reference=InvHM, inverse=HM }.
+
+
+
 % @doc Returns, based on the specified transition transformation from the
 % current orthonormal basis alpha to a beta one, the origin of beta as expressed
 % in alpha.
@@ -227,7 +304,12 @@ get_origin( _HM=#transform4{ inverse=InvM } ) ->
 
 
 % @doc Returns the 4x4 transformation corresponding to a translation of the
-% specified (3D) vector.
+% specified (3D) vector: its reference matrix will be the transition matrix from
+% the translated coordinate system to the current one (and of course its inverse
+% matrix will implement to opposite transition, from current to translated).
+%
+% Refer to the "Understanding the role and composition of transformations"
+% section for more details.
 %
 -spec translation( vector3() ) -> transform4().
 translation( VT ) ->
@@ -248,13 +330,18 @@ translation( VT ) ->
 
 % @doc Returns the 4x4 transformation corresponding to a rotation of the
 % specified angle around the 3D axis specified as a unit vector (and to no
-% translation).
+% translation): its reference matrix will be the transition matrix from
+% the rotated coordinate system to the current one (and of course its inverse
+% matrix will implement to opposite transition, from current to rotated).
 %
 % This will be a counterclockwise rotation for an observer placed so that the
 % specified axis points towards it.
 %
 % Note that this is not the general case of a rotation in 4D (which is of little
 % use, at least here); this corresponds to (4x4) homogeneous matrices.
+%
+% Refer to the "Understanding the role and composition of transformations"
+% section for more details.
 %
 -spec rotation( unit_vector3(), radians() ) -> transform4().
 rotation( UnitAxis, RadAngle ) ->
@@ -287,20 +374,25 @@ rotation( UnitAxis, RadAngle ) ->
 
 
 % @doc Returns the 4x4 transformation corresponding to the scaling of the
-% specified (supposedly non-null) factors.
+% specified (supposedly non-null) factors: its reference matrix will be the
+% transition matrix from the scaled coordinate system to the current one (and of
+% course its inverse matrix will implement to opposite transition, from current
+% to scaled).
 %
 % Due to homogenous matrices, the inverse of a scaling matrix is not the matrix
 % of the inverse factors, this function is thus not a proper transform. See
-% sacle_{left,right}/2 instead.
+% scale_{left,right}/2 instead.
 %
+% Refer to the "Understanding the role and composition of transformations"
+% section for more details.
 %
 -spec scaling( scale_factors() ) -> transform4().
-scaling( Factors ) ->
+scaling( ScaleFactors ) ->
 
    % Hence a compact matrix:
-	HM = matrix4:scaling( Factors ),
+	HM = matrix4:scaling( ScaleFactors ),
 
-	InvFactors = inverse_factors( Factors ),
+	InvFactors = inverse_factors( ScaleFactors ),
 
 	InvHM = matrix4:scaling( InvFactors ),
 
@@ -319,13 +411,39 @@ inverse_factors( _Factors={ Sx, Sy, Sz } ) ->
 
 
 
-% @doc Returns the 4x4 transition transformation from the current orthonormal
-% basis to one in which the origin and axes of the current basis are expressed.
+% @doc Returns the 4x4 transformation corresponding to the scaling of the
+% specified factors, followed by a rotation of the specified axis and angle, and
+% then the translation of the specified vector.
 %
-% Refer to matrix4:transition/4 for further details.
+% Refer to the 'Usual transformations' section for further details.
+%
+-spec sc_rot_tr( scale_factors(), unit_vector3(), radians(), vector3() ) ->
+										transition_matrix4().
+sc_rot_tr( ScaleFactors, RotUnitAxis, RotRadAngle, TransVec ) ->
+
+	% Let's R1 be the current coordinate system, and R2 the target one (R1->R2),
+	% we are computing T12.
+	%
+	% For a vector expressed as V1 in R1 and to be expressed as V2 in R2, we
+	% want V2 = RefM.V1 = TrM.RotM.SclM.V1.
+
+	TScl = scaling( ScaleFactors ),
+	TSclRot = rotate_left( RotUnitAxis, RotRadAngle, TScl ),
+	_TSclRotTr = translate_left( TransVec, TSclRot ).
+
+
+
+% @doc Returns T12, the 4x4 transition transformation from the current
+% orthonormal basis (R1) to one (R2) in which the origin and axes of the current
+% basis (R1) are expressed; its reference matrix will be the transition matrix
+% from R2 to R1 (and of course its inverse matrix will implement to opposite
+% transition, from R1 to R2).
+%
+% Refer to the "Understanding the role and composition of transformations"
+% section and to matrix4:transition/4 for further details.
 %
 -spec transition( point3(), unit_vector3(), unit_vector3(), unit_vector3() ) ->
-								transition_matrix4().
+										transition_matrix4().
 transition( Origin, X, Y, Z ) ->
 
 	% Hence a compact matrix:
@@ -388,12 +506,12 @@ dimensions() ->
 -spec translate_left( vector3(), transform4() ) -> transform4().
 translate_left( VT, #transform4{ reference=HM, inverse=InvHM } ) ->
 
-	% So NewM = MVT.M:
+	% So NewM = TrM.HM:
 	NewHM = matrix4:translate_homogeneous_left( VT, HM ),
 
 	MinusVT = vector3:negate( VT ),
 
-	% So NewInvHM = InvMH.InvMVT; nothing simpler than:
+	% So NewInvHM = InvHM.InvTrM; nothing simpler than:
 	NewInvHM = matrix4:mult( InvHM, matrix4:translation( MinusVT ) ),
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
@@ -415,13 +533,13 @@ translate_left( VT, #transform4{ reference=HM, inverse=InvHM } ) ->
 %
 translate_right( #transform4{ reference=HM, inverse=InvHM }, VT ) ->
 
-	% So NewHM = HM.MVT; nothing simpler than:
+	% So NewHM = HM.TrM; nothing simpler than:
 	NewHM = matrix4:mult( HM, matrix4:translation( VT ) ),
 
 	% For the inverse now:
 	MinusVT = vector3:negate( VT ),
 
-	% So NewInvHM = InvMVT.InvHM:
+	% So NewInvHM = InvTrM.InvHM:
 	NewInvHM = matrix4:translate_homogeneous_left( MinusVT, InvHM ),
 
 	T = #transform4{ reference=NewHM, inverse=NewInvHM },
@@ -670,15 +788,15 @@ are_equal( T1=#transform4{ reference=HM1, inverse=InvHM1 },
 
 
 % @doc Returns a transition transformation whose reference matrix is a
-% change-of-basis matrix from the current referential (R1) to one (R2) whose
-% origin, forward and up directions are the specified ones (still in the current
-% referential R1).
+% change-of-basis matrix from the current coordinate system (reference frame R1)
+% to one (R2) whose origin, forward and up directions are the specified ones
+% (still in the current coordinate system R1).
 %
 % So returns P1->2, allowing, for an (homogeneous) point P, to convert P1, its
-% representation in current referential R1, into P2, its counterpart in R2:
-% P2 = P1->2.P1.
+% representation in current coordinate system R1, into P2, its counterpart in
+% R2: P2 = P1->2.P1.
 %
-% The inverse matrix in this transformation is thus P2->1.
+% The inverse matrix of this transformation corresponds thus to P2->1.
 %
 -spec basis_change( point3(), vector3(), vector3() ) -> transform4().
 basis_change( _O2InR1={ XO2, YO2, ZO2 }, FwdDir2InR1, UpDir2InR1 ) ->
@@ -727,6 +845,29 @@ basis_change( _O2InR1={ XO2, YO2, ZO2 }, FwdDir2InR1, UpDir2InR1 ) ->
 -spec inverse( transform4() ) -> transform4().
 inverse( #transform4{ reference=M, inverse=InvM } ) ->
 	#transform4{ reference=InvM, inverse=M }.
+
+
+
+% @doc Tells whether the specified term is a 4D transformation.
+-spec is_transform4( term() ) -> boolean().
+is_transform4( Transf4 ) when is_record( Transf4, transform4 ) ->
+	true;
+
+is_transform4( _Other ) ->
+	false.
+
+
+
+% @doc Checks that the specified term is a transform4, and returns it.
+%
+% Does not check its consistency (see check/1).
+%
+-spec check_type( term() ) -> transform4().
+check_type( T ) when is_record( T, transform4 ) ->
+	T;
+
+check_type( Other ) ->
+	throw( { not_transform4, Other } ).
 
 
 

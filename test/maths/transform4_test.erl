@@ -109,7 +109,7 @@ run() ->
 
 	Ttr = transform4:transition( _Origin=O, X, Y, Z ),
 
-	test_facilities:display( "Transition transform to the referential of "
+	test_facilities:display( "Transition transform to the coordinate system of "
 		"origin ~ts with axes: ~ts, ~ts and ~ts is: ~ts~n",
 		[ point3:to_string( O ), vector3:to_string( X ), vector3:to_string( Y ),
 		  vector3:to_string( Z ), transform4:to_string( Ttr ) ] ),
