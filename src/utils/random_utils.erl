@@ -136,7 +136,9 @@
 
 
 % Ad hoc functions specific to exponential sampling:
--export([ get_exponential_1p_value/1,
+-export([ get_lambda_from_mean_time/1,
+
+		  get_exponential_1p_value/1,
 
 		  get_positive_integer_exponential_1p_value/1,
 
@@ -1560,6 +1562,9 @@
 -type positive_float() :: type_utils:positive_float().
 %-type non_negative_float() :: type_utils:non_negative_float().
 
+-type seconds() :: unit_utils:seconds().
+-type dhms() :: unit_utils:dhms().
+
 
 -import( math, [ pi/0, exp/1, sqrt/1, pow/2 ] ).
 -import( math_utils, [ ln/1 ] ).
@@ -2636,6 +2641,26 @@ get_random_subset( ValueCount, InputList ) ->
 %
 % Note: each of the three forms comes in two versions, with floating-point or
 % (positive) integer values being returned.
+
+
+
+% @doc Returns the Lamba parameter of the exponential probability density
+% function corresponding to the specified mean time, expressed as a DHMS value
+% or a number of seconds.
+%
+% Typical mean times are the MTTF (Mean Time To Failure) and MTTR (Mean Time to
+% Repair).
+%
+-spec get_lambda_from_mean_time( dhms() | seconds() ) -> rate().
+get_lambda_from_mean_time( MTDHMS ) when is_tuple( MTDHMS ) ->
+	get_lambda_from_mean_time( time_utils:dhms_to_seconds( MTDHMS ) );
+
+get_lambda_from_mean_time( MTSecs ) ->
+
+	% The mean value of drawn samples is 1/Lambda:
+	% (this is a floating-point value)
+	%
+	1.0 / MTSecs.
 
 
 
