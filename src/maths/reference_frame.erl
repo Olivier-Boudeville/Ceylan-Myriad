@@ -29,6 +29,9 @@
 % @doc Base module for the support of <b>reference frames</b> (frames of
 % references) of any dimension.
 %
+% A frame of reference is a part of reference tree; it records the
+% transformation between this frame and its parent frame (if any).
+%
 % @see https://en.wikipedia.org/wiki/Frame_of_reference for further information
 %
 -module(reference_frame).
@@ -57,36 +60,33 @@
 
 -type ref_pid() :: pid().
 % The PID of any kind of process implementing the ref protocol, ultimately
-% equivalent in terms of semantics to a reference frame.
+% equivalent in terms of semantics, once resolved, to a reference frame.
+
+
+-type designated_ref() :: ref() | ref_pid().
+% Any way of designating an actual reference_frame() instance.
 
 
 -type ref_id() :: count().
-% An identifier of a reference frame instance.
+% An identifier of a 3D reference frame.
 %
-% This is typically a key in an (implicit) ref_table().
+% This is typically a key in an (implicit) ref3_table().
 %
 % The null (zero) identifier is reserved. It is used, typically by reference
 % trees, to designate the (implicit) root, absolute reference frame.
 
 
--type ref_designator() :: ref_id() | ref_pid().
-% Any way of designating an actual reference_frame() instance.
-
-
-
-
--type ref_table() :: table( ref_id(), ref_designator() ).
-% A table associating a reference frame designator to a given identifier
-% thereof.
+-type ref_table() :: table( ref_id(), designated_ref() ).
+% A table associating to a given identifier a designated reference frame.
 
 
 -export_type([ reference_frame/0, ref/0,
-			   ref_pid/0, ref_designator/0,
+			   ref_pid/0, designated_ref/0,
 			   ref_id/0, ref_table/0 ]).
 
 
--export([ is_ref_designator/1, check_ref_designator/1,
-		  ref_designator_to_string/1 ]).
+-export([ is_designated_ref/1, check_designated_ref/1,
+		  designated_ref_to_string/1 ]).
 
 
 % Shorthands:
@@ -100,31 +100,31 @@
 
 
 % @doc Tells whether the specified term is a reference frame designator.
--spec is_ref_designator( term() ) -> boolean().
-%is_ref_designator( Ref ) when is_record( Ref, reference_frame3 ) ->
-is_ref_designator( RefId ) when is_integer( RefId ) ->
+-spec is_designated_ref( term() ) -> boolean().
+%is_designated_ref( Ref ) when is_record( Ref, reference_frame3 ) ->
+is_designated_ref( RefId ) when is_integer( RefId ) ->
 	true;
 
-is_ref_designator( RefPid ) when is_pid( RefPid ) ->
+is_designated_ref( RefPid ) when is_pid( RefPid ) ->
 	true;
 
-is_ref_designator( _ ) ->
+is_designated_ref( _ ) ->
 	false.
 
 
 % @doc Ensures that the specified term is a reference frame designator indeed.
--spec check_ref_designator( term() ) -> ref_designator().
-check_ref_designator( T ) ->
-	is_ref_designator( T ) orelse throw( { not_a_ref_designator, T } ).
+-spec check_designated_ref( term() ) -> designated_ref().
+check_designated_ref( T ) ->
+	is_designated_ref( T ) orelse throw( { not_a_designated_ref, T } ).
 
 
 
-% @doc Returns a textual representation of the specified reference frame
-% designator.
+% @doc Returns a textual representation of the specified designated reference
+% frame.
 %
--spec ref_designator_to_string( ref_designator() ) -> ustring().
-ref_designator_to_string( Ref3 ) when is_record( Ref3, reference_frame3 ) ->
+-spec designated_ref_to_string( designated_ref() ) -> ustring().
+designated_ref_to_string( Ref3 ) when is_record( Ref3, reference_frame3 ) ->
 	reference_frame3:to_string( Ref3 );
 
-ref_designator_to_string( DesigPid ) when is_pid( DesigPid ) ->
+designated_ref_to_string( DesigPid ) when is_pid( DesigPid ) ->
 	text_utils:format( "the reference frame held by ~w", [ DesigPid ] ).

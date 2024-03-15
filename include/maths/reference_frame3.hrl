@@ -28,6 +28,9 @@
 
 % A 3D frame of reference, defining notably a coordinate system.
 %
+% Such frame belongs to a (3D) reference tree, which holds notably an
+% associative table of reference frames, based on their identifier.
+%
 % A shorthand for this record and corresponding type is "ref3".
 %
 % A parent frame of reference is either explicitly defined (note that it relies
@@ -46,8 +49,8 @@
 	parent :: maybe( reference_frame3:ref3_id() ),
 
 
-	% The 3D transformation (based on 4x4 matrices) from the parent reference
-	% frame (if any, otherwise from the root, absolute reference frame), to this
+	% The 3D transformation (based on 4x4 matrices) between the parent reference
+	% frame (if any, otherwise from the root, absolute reference frame) and this
 	% one.
 	%
 	% The reference matrix held by this transformation is the transition matrix

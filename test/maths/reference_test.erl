@@ -87,17 +87,17 @@ run() ->
 
 	BlankRefTree = reference_tree:new(),
 
-	test_facilities:display( "Created ~ts",
+	test_facilities:display( "Created a first ~ts.",
 							 [ reference_tree:to_string( BlankRefTree ) ] ),
 
-	{ _RefIds=[ _RaId, RbId, _RcId ], FirstRefTree } =
-		reference_tree:register( _Refs=[ Ra, Rb, Rc ], BlankRefTree ),
+	{ _FirstRefIds=[ RaId, RbId, _RcId ], FirstRefTree } =
+		reference_tree:register( _FirstRefs=[ Ra, Rb, Rc ], BlankRefTree ),
 
 	% Re is more complex here:
 	%
-	% - its transformation is scaling (allowed at it is a leaf of the tree,
-	% hence such scaling will not be inherited), then rotation, then translation
-	% (order matters)
+	% - its transformation is scaling (could be allowed here at it is a leaf of
+	% the tree, hence such scaling will not be inherited), then rotation, then
+	% translation (order matters)
 	%
 	% - it is defined relatively to a non-root parent reference frame, Rb
 
@@ -109,7 +109,27 @@ run() ->
 
 	{ _ReId, WithReTree } = reference_tree:register( Re, FirstRefTree ),
 
-	test_facilities:display( "With Re: ~ts",
+	test_facilities:display( "With Re: ~ts.",
 							 [ reference_tree:to_string( WithReTree ) ] ),
+
+	Transff = transform4:identity(),
+	Rf = reference_frame3:new( Transff, RaId ),
+
+	{ RfId, WithRfTree } = reference_tree:register( Rf, WithReTree ),
+
+	Transfg = transform4:transition( _Origin={5,5,5},
+									 _X=[0,1,0], _Y=[-1,0,0], _Z=[0,0,-1] ),
+
+	Rg = reference_frame3:new( Transfg, RfId ),
+
+	Transfh = transform4:translation( _Vh=[ 10, 20,-5.2 ] ),
+	Rh = reference_frame3:new( Transfh, RfId ),
+
+	{ _SecondRefIds=[ _RgId, _RhId ], LastRefTree } =
+		reference_tree:register( _SecondRefs=[ Rg, Rh ], WithRfTree ),
+
+	test_facilities:display( "Last reference tree: ~ts",
+		[ reference_tree:to_string( LastRefTree, _VerbLevel=high ) ] ),
+
 
 	test_facilities:stop().

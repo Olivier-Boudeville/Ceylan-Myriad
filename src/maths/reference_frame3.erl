@@ -29,6 +29,10 @@
 % @doc Module implementing the support for <b>3D reference frames</b> (frames of
 % references), based on 4x4 transformations.
 %
+% A 3D frame of reference is a part of a (3D) reference tree, which holds
+% notably an associative table of reference frames, based on their identifier; a
+% frame records the transformation to/from its (direct) parent frame (if any).
+%
 % @see https://en.wikipedia.org/wiki/Frame_of_reference for further information
 % @see transform4
 %
@@ -56,25 +60,28 @@
 
 -type ref3_pid() :: pid().
 % The PID of any kind of process implementing the ref3 protocol, ultimately
-% equivalent in terms of semantics to a 3D reference frame.
+% equivalent in terms of semantics, once resolved, to a 3D reference frame.
 
 
--type ref3_designator() :: ref3() | ref3_pid().
+-type designated_ref3() :: ref3() | ref3_pid().
 % Any way of designating an actual reference_frame3() instance.
 
 
 -type ref3_id() :: count().
-% An identifier of a reference_frame3() instance.
+% An identifier of a reference frame.
 %
 % This is typically a key in an (implicit) ref3_table().
+%
+% The null (zero) identifier is reserved. It is used, typically by reference
+% trees, to designate the (implicit) root, absolute reference frame.
 
 
--type ref3_table() :: table( ref3_id(), ref3_designator() ).
-% A table associating a 3D reference designator to a given identifier thereof.
+-type ref3_table() :: table( ref3_id(), designated_ref3() ).
+% A table associating to a given identifier a designated 3D reference frame.
 
 
 -export_type([ reference_frame3/0, ref3/0,
-			   ref3_pid/0, ref3_designator/0,
+			   ref3_pid/0, designated_ref3/0,
 			   ref3_id/0, ref3_table/0 ]).
 
 
@@ -109,13 +116,13 @@ new( Transf4 ) ->
 % @doc Creates a (3D) reference frame, based on the specified transformation
 % relative to the designated parent reference frame.
 %
--spec new( transform4(), ref3_designator() ) -> reference_frame3().
+-spec new( transform4(), designated_ref3() ) -> reference_frame3().
 new( Transf4, ParentRefDesig3 ) ->
 
 	cond_utils:if_defined( myriad_debug_ref_frames,
 		begin
 			transform4:check_type( Transf4 ),
-			reference_frame:check_ref_designator( ParentRefDesig3 )
+			reference_frame:check_designated_ref( ParentRefDesig3 )
 		end ),
 
 	#reference_frame3{ parent=ParentRefDesig3, transform=Transf4 }.
@@ -126,11 +133,11 @@ new( Transf4, ParentRefDesig3 ) ->
 % @doc Returns a textual representation of the specified (3D) reference frame
 % designator.
 %
--spec ref3_designator_to_string( ref3_designator() ) -> ustring().
-ref3_designator_to_string( DesigId ) when is_integer( DesigId ) ->
+-spec designated_ref3_to_string( designated_ref3() ) -> ustring().
+designated_ref3_to_string( DesigId ) when is_integer( DesigId ) ->
 	text_utils:format( "the 3D reference frame #~B", [ DesigId ] );
 
-ref3_designator_to_string( DesigPid ) when is_pid( DesigPid ) ->
+designated_ref3_to_string( DesigPid ) when is_pid( DesigPid ) ->
 	text_utils:format( "the 3D reference frame ~w", [ DesigPid ] ).
 
 
@@ -146,6 +153,6 @@ to_string( #reference_frame3{ parent=MaybeParent, transform=Transf4 } ) ->
 
 		ParentDesignator ->
 			text_utils:format( "3D reference frame defined relatively to ~ts",
-				[ ref3_designator_to_string( ParentDesignator ) ] )
+				[ designated_ref3_to_string( ParentDesignator ) ] )
 
 	end ++ ", based on a " ++ transform4:to_string( Transf4 ).
