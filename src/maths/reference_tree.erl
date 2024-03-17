@@ -61,7 +61,7 @@
 % actual node (and thus it is the only frame not having a parent).
 
 % All examples given relate to the following reference tree (R for local
-% reference frames, C for cameras):
+% reference frames, C for cameras; identifiers added with '#'):
 %
 % Root
 % ├── R1
@@ -151,8 +151,12 @@
 
 
 -type id_path() :: [ ref_id() ].
-% An (ordered) list of identifiers of reference frames, from the root one (not
-% included) to a given frame (whose identifier is included).
+% An (ordered) list of identifiers of reference frames forming a path from the
+% root one to a given frame, whose both endpoints are excluded.
+%
+% For example, for a series of frames from the root one to a frame C that goes
+% through ?root_ref_id, A, B and C, the recorded path is [A,B].
+
 
 -type ref_table() :: table( ref_id(), designated_ref() ).
 % A table associating to a given identifier a designated reference frame.
@@ -180,11 +184,12 @@
 
 -export([ new/0,
 		  register/2,
+		  get_reference_table/1, set_reference_table/2,
 		  check/1,
 		  to_string/1, to_string/2, to_full_string/1 ] ).
 
 % Silencing:
--export([ get_children_direct/2, get_path_to_direct/2 ]).
+-export([ get_children_direct/2, get_path_from_root/2 ]).
 
 
 
@@ -268,19 +273,25 @@ register( _Ref3s=[ Ref3 | T ], AccIds, AccRefTree ) ->
 	register( T, [ ThisId | AccIds ], ThisRefTree ).
 
 
-% @doc Returns a textual representation of the specified 3D frame of reference.
--spec ref3_to_string( ref_id(), ref_table() ) -> ustring().
-ref3_to_string( RefId, RefTable ) ->
-	Ref = table:get_value( RefId, RefTable ),
-	case Ref#reference_frame3.name of
 
-		undefined ->
-			text_utils:format( "frame #~B", [ RefId ] );
+% @doc Returns the reference table of the specified reference tree.
+%
+% Useful to avoid that the caller has to include this corresponding header file,
+% typically for tests.
+%
+-spec get_reference_table( reference_tree() ) -> ref_table().
+get_reference_table( #reference_tree{ ref_table=RefTable } ) ->
+	RefTable.
 
-		BinRefName ->
-			text_utils:format( "frame '~ts' (#~B)", [ BinRefName, RefId ] )
 
-	end.
+% @doc Sets the specified reference table in the specified reference tree.
+%
+% Useful to avoid that the caller has to include this corresponding header file,
+% typically for tests.
+%
+-spec set_reference_table( ref_table(), reference_tree() ) -> reference_tree().
+set_reference_table( RefTable, RefTree ) ->
+	RefTree#reference_tree{ ref_table=RefTable }.
 
 
 
@@ -313,25 +324,86 @@ get_children_direct( RefId, _RefPairs=[ _OtherPair | T ], ChildAcc ) ->
 
 
 % @doc Returns the path from the root reference frame to the specified one,
+% using any cached information or caching any newly processed path, together
+% with a possibly updated reference table.
+
 % based on a direct, stateless look-up (hence the reference table is not
 % modified and thus not returned).
 %
--spec get_path_to_direct( ref_id(), ref_table() ) -> id_path().
-get_path_to_direct( RefId, RefTable ) ->
-	get_path_to_direct( RefId, RefTable, _AccIds=[] ).
+-spec get_path_from_root( ref_id(), ref_table() ) -> { id_path(), ref_table() }.
+get_path_from_root( RefId, RefTable ) ->
+	Ref3 = table:get_value( RefId, RefTable ),
+	case Ref3#reference_frame3.path_from_root of
+
+		undefined ->
+			% Not wanting to include the specified node in the path:
+			StartRefId = Ref3#reference_frame3.parent,
+			ComputedPath = get_path_from_root_direct( StartRefId, RefTable ),
+
+			% As already extracted:
+			PathedRef3 = Ref3#reference_frame3{ path_from_root=ComputedPath },
+			ThisNodeRefTable =
+				table:add_entry( _K=RefId, PathedRef3, RefTable ),
+
+			% Reversed to chop the unit/head more efficiently afterwards:
+			RevComputedPath = lists:reverse( ComputedPath ),
+
+			% Applies the sub-path to all intermediate nodes:
+			PathedRefTable = apply_path( StartRefId, ThisNodeRefTable,
+										 RevComputedPath ),
+
+			{ ComputedPath, PathedRefTable };
+
+		IdPath ->
+			% Trust the cached paths:
+			IdPath
+
+	end.
+
+
+% Applies the relevant shortened version of the specified identifier path to
+% each node from the specified node to the root one.
+%
+% Stopped before:
+%apply_path( _RefId=?root_ref_id, RefTable, _RevIdPath=[] ) ->
+%   RefTable;
+
+apply_path( _RefId, RefTable, _RevIdPath=[] ) ->
+	RefTable;
+
+apply_path( RefId, RefTable, _RevIdPath=[ _PrevRefId | ThisRevIdPath ] ) ->
+	ThisIdPath = lists:reverse( ThisRevIdPath ),
+	trace_utils:debug_fmt( "At frame #~B, path is ~w.", [ RefId, ThisIdPath ] ),
+	Ref3 = table:get_value( RefId, RefTable ),
+	PathedRef3 = Ref3#reference_frame3{ path_from_root=ThisIdPath },
+	ThisNodeRefTable = table:add_entry( _K=RefId, PathedRef3, RefTable ),
+
+	apply_path( Ref3#reference_frame3.parent, ThisNodeRefTable, ThisRevIdPath ).
+
+
+
+% @doc Returns the path from the root reference frame to the specified one, not
+% including the root frame but including the current node (hence not the same
+% convention as id_path()) based on a direct, stateless look-up (hence the
+% reference table is not modified and thus not returned).
+%
+-spec get_path_from_root_direct( ref_id(), ref_table() ) -> id_path().
+get_path_from_root_direct( RefId, RefTable ) ->
+	get_path_from_root_direct( RefId, RefTable, _AccIds=[] ).
 
 
 % (helper)
 %
 % Root reached:
-get_path_to_direct( _RefId=?root_ref_id, _RefTable, AccIds ) ->
+get_path_from_root_direct( _RefId=?root_ref_id, _RefTable, AccIds ) ->
 	% Already in the expected order:
 	AccIds;
 
-get_path_to_direct( NonRootRefId, RefTable, AccIds ) ->
+get_path_from_root_direct( NonRootRefId, RefTable, AccIds ) ->
 	NonRootRef = table:get_value( NonRootRefId, RefTable ),
 	ParentRefId = NonRootRef#reference_frame3.parent,
-	get_path_to_direct( ParentRefId, RefTable, [ NonRootRefId | AccIds ] ).
+	get_path_from_root_direct( ParentRefId, RefTable,
+							   [ NonRootRefId | AccIds ] ).
 
 
 
@@ -344,12 +416,15 @@ get_path_to_direct( NonRootRefId, RefTable, AccIds ) ->
 -spec check( reference_tree() ) -> void().
 check( #reference_tree{ ref_table=RefTable, next_ref_id=NextId } ) ->
 	% No duplicate identifier possible.
-	AllRefIds = table:keys( RefTable ),
+	AllRefPairs = table:enumerate( RefTable ),
+
+	AllRefIds = pair:firsts( AllRefPairs ),
+
 	MaxId = lists:max( AllRefIds ),
 	MaxId >= NextId andalso throw( { invalid_ref_id, NextId, MaxId } ),
 
 	[ check_node( RefId, RefDes, AllRefIds, RefTable )
-		|| { RefId, RefDes } <- table:enumerate( RefTable ) ],
+		|| { RefId, RefDes } <- AllRefPairs ],
 
 	% Now that children are checked, crawl the whole tree, checking that all
 	% nodes are connected; will not terminate if a cycle exists:
@@ -358,7 +433,10 @@ check( #reference_tree{ ref_table=RefTable, next_ref_id=NextId } ) ->
 										 RefTable ),
 
 	table:is_empty( FinalRefTable ) orelse
-		throw( { unconnected_nodes, table:enumerate( FinalRefTable ) } ).
+		throw( { unconnected_nodes, table:enumerate( FinalRefTable ) } ),
+
+	[ check_path( RefId, RefDes, RefTable )
+		|| { RefId, RefDes } <- AllRefPairs ].
 
 
 
@@ -413,6 +491,41 @@ check_all_connected( CurrentNodeId, RefTable ) ->
 				 end,
 				 _Acc0=ShrunkRefTable,
 				 Children ).
+
+
+
+% Checks that any cached path in this reference frame is correct.
+check_path( _RefId, #reference_frame3{ path_from_root=undefined },
+			_RefTable ) ->
+	ok;
+
+check_path( RefId, #reference_frame3{ path_from_root=IdPath }, RefTable ) ->
+
+	%trace_utils:debug_fmt( "Checking for frame #~B path ~w.",
+	%                       [ RefId, IdPath ] ),
+
+	follow_path( _CurrentNodeId=?root_ref_id, _ToNodeId=RefId, RefTable,
+				 list_utils:append_at_end( RefId, IdPath ) ).
+
+
+
+% Follows the specified path, from node to node.
+follow_path( CurrentNodeId, _ToNodeId=CurrentNodeId, _RefTable, _IdPath=[]) ->
+	ok;
+
+follow_path( CurrentNodeId, ToNodeId, RefTable,
+			 _IdPath=[ NextNodeId | NextPath ] ) ->
+	CurrentNode = table:get_value( CurrentNodeId, RefTable ),
+	CurrentChildren = CurrentNode#reference_frame3.children,
+	case lists:member( NextNodeId, CurrentChildren ) of
+
+		true ->
+			follow_path( NextNodeId, ToNodeId, RefTable, NextPath );
+
+		false ->
+			throw( { invalid_path, CurrentNode, NextNodeId, CurrentChildren } )
+
+	end.
 
 
 
@@ -478,6 +591,21 @@ check_all_connected( CurrentNodeId, RefTable ) ->
 
 %	Ta
 %	#transform4
+
+% @doc Returns a textual representation of the specified 3D frame of reference.
+-spec ref3_to_string( ref_id(), ref_table() ) -> ustring().
+ref3_to_string( RefId, RefTable ) ->
+	Ref = table:get_value( RefId, RefTable ),
+	case Ref#reference_frame3.name of
+
+		undefined ->
+			text_utils:format( "frame #~B", [ RefId ] );
+
+		BinRefName ->
+			text_utils:format( "frame '~ts' (#~B)", [ BinRefName, RefId ] )
+
+	end.
+
 
 
 % @doc Returns a (short) textual representation of the specified reference tree.

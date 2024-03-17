@@ -233,7 +233,8 @@ to_string( #reference_frame3{ name=MaybeBinRefName,
 %
 -spec node_to_string( ref_id(), reference_frame3() ) -> ustring().
 node_to_string( RefId, _Ref3=#reference_frame3{ name=MaybeBinRefName,
-											   parent=MaybeParent } ) ->
+												parent=MaybeParent,
+												path_from_root=MaybePath } ) ->
 
 	%trace_utils:debug_fmt( "For id=~B, ref3 = ~p", [ RefId, Ref3 ] ),
 
@@ -250,15 +251,26 @@ node_to_string( RefId, _Ref3=#reference_frame3{ name=MaybeBinRefName,
 
 	end,
 
+	PathStr = case MaybePath of
+
+		undefined ->
+			"";
+
+		Path ->
+			text_utils:format( ", whose path from root is ~w", [ Path ] )
+
+	end,
+
 	case MaybeParent of
 
 		undefined ->
-			text_utils:format( "root reference frame #~B~ts",
-							   [ RefId, NameStr ] );
+			text_utils:format( "root reference frame #~B~ts~ts",
+							   [ RefId, NameStr, PathStr ] );
 
 		ParentDesignator ->
-			text_utils:format( "frame #~B~ts, relative to ~ts",
+			text_utils:format( "frame #~B~ts, relative to ~ts~ts",
 				[ RefId, NameStr,
-				  designated_ref3_to_short_string( ParentDesignator ) ] )
+				  designated_ref3_to_short_string( ParentDesignator ),
+				  PathStr ] )
 
 	end.

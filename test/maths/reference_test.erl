@@ -47,6 +47,18 @@ run() ->
 		"here a version of "
 		"https://howtos.esperide.org/reference-frame-tree.png." ),
 
+	% Target tree (identifiers added with '#'):
+	%
+	% frame 'Root' (#0)
+	%   - frame 'Rs' (#1)
+	%     - frame 'Rc' (#4)
+	%     - frame 'Rb' (#3)
+	%       - frame 'Re' (#5)
+	%     - frame 'Ra' (#2)
+	%       - frame 'Rf' (#6)
+	%         - frame #8
+	%         - frame 'Rg' (#7)
+
 
 	BlankRefTree = reference_tree:new(),
 
@@ -141,11 +153,26 @@ run() ->
 	test_facilities:display( "Reference tree with Rg and Rh: ~ts~n",
 		[ reference_tree:to_string( WithRghTree, _VerbLevel=high ) ] ),
 
+
+	PathedRefId = RfId,
+
+	WithRghRefTable = reference_tree:get_reference_table( WithRghTree ),
+
+	{ IdPath, PathedRefTable } =
+		reference_tree:get_path_from_root( PathedRefId, WithRghRefTable ),
+
+	test_facilities:display( "Identifier path from root node to frame #~B: ~w.",
+							 [ PathedRefId, IdPath ] ),
+
+	ExpectedIdPath = [ RsId, RaId ],
+	ExpectedIdPath = IdPath,
+
+	FinalTree = reference_tree:set_reference_table( PathedRefTable,
+													WithRghTree ),
+
 	test_facilities:display( "Full view of this ~ts",
-							 [ reference_tree:to_full_string( WithRghTree ) ] ),
+							 [ reference_tree:to_full_string( FinalTree ) ] ),
 
-
-	FinalTree = WithRghTree,
 	reference_tree:check( FinalTree ),
 
 	test_facilities:stop().
