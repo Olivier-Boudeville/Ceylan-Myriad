@@ -147,7 +147,7 @@
 -export_type([ transform4/0 ]).
 
 
--export([ new/1, new/2, identity/0,
+-export([ identity/0, new/1, new/2,
 
 		  get_reference/1, get_inverse/1,
 		  swap/1,
@@ -210,6 +210,15 @@
 
 
 
+% No sensible null/0 here.
+
+
+% @doc Returns the 4x4 identity transformation.
+-spec identity() -> transform4().
+identity() ->
+	#transform4{}.
+
+
 % @doc Returns the 4x4 transformation whose reference matrix is the specified
 % one.
 %
@@ -249,15 +258,6 @@ new( HM, InvHM ) ->
 	cond_utils:assert( myriad_check_linear, check( T ) ),
 
 	T.
-
-
-% No sensible null/0 here.
-
-
-% @doc Returns the 4x4 identity transformation.
--spec identity() -> transform4().
-identity() ->
-	#transform4{}.
 
 
 
