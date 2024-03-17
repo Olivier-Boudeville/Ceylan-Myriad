@@ -26,6 +26,10 @@
 % Creation date: Saturday, March 2, 2024.
 
 
+% For root_ref_id:
+-include("reference_tree.hrl").
+
+
 % A 3D frame of reference, defining notably a coordinate system.
 %
 % Such frame belongs to a (3D) reference tree, which holds notably an
@@ -39,14 +43,33 @@
 %
 -record( reference_frame3, {
 
-	% The parent reference frame (if any) of this one, to be found in an
-	% (implicit) reference table.
+	% The name (if any) of a reference frame (this is not an identifier).
+	name :: maybe( reference_frame:ref_name() ),
+
+
+	% The parent reference frame of this one, to be found in an (implicit)
+	% reference table.
 	%
-	% A reference frame having no parent defined shall be considered as
-	% absolutely defined, as opposed to one having a parent, to which it is then
-	% relative.
+	% Any reference frame not having a parent specifically defined (which is the
+	% default for this record) is considered to be absolutely defined, i.e. it
+	% is then defined relative to the root node - as opposed to one having a
+	% parent specified, to which it is then relative.
 	%
-	parent :: maybe( reference_frame3:ref3_id() ),
+	% Only the root of a reference tree as a parent set to 'undefined'.
+	%
+	parent = ?root_ref_id :: maybe( reference_tree:ref_id() ),
+
+
+	% A list of the (direct) children of this reference frame:
+	% (cached precomputation deduced from the parent information)
+	%
+	children = [] :: reference_tree:child_ids(),
+
+
+	% An (optional) identifier path from the (implicit) root frame of reference
+	% to this frame (cached precomputation)
+	%
+	path_from_root :: maybe( reference_tree:id_path() ),
 
 
 	% The 3D transformation (based on 4x4 matrices) between the parent reference

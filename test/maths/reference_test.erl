@@ -47,14 +47,26 @@ run() ->
 		"here a version of "
 		"https://howtos.esperide.org/reference-frame-tree.png." ),
 
-	% Rs is the implicit root frame of reference.
+
+	BlankRefTree = reference_tree:new(),
+
+	test_facilities:display( "Created a first ~ts.",
+							 [ reference_tree:to_string( BlankRefTree ) ] ),
+
+
+	% Rs corresponds to the root frame of reference (but has a name):
+	Rs = reference_frame3:new_absolute( _SName="Rs" ),
+
+	{ RsId, WithRsTree } = reference_tree:register( Rs, BlankRefTree ),
+
+
 
 	% Ra here is just a frame translated, relatively to the absolute frame, of:
 	Va = [ 5, 0, 0 ],
 	Transfa = transform4:translation( Va ),
 
-	% No parent, thus absolutely defined:
-	Ra = reference_frame3:new( Transfa ),
+	% Absolutely defined (no parent):
+	Ra = reference_frame3:new( _AName="Ra", Transfa, RsId ),
 
 	test_facilities:display( "Created Ra: ~ts",
 							 [ reference_frame3:to_string( Ra ) ] ),
@@ -68,7 +80,7 @@ run() ->
 	Transfb = transform4:rotation( UnitAxisRotb, AngleRotb ),
 
 	% No parent:
-	Rb = reference_frame3:new( Transfb ),
+	Rb = reference_frame3:new( _BName="Rb", Transfb, RsId ),
 
 	test_facilities:display( "Created Rb: ~ts",
 							 [ reference_frame3:to_string( Rb ) ] ),
@@ -79,19 +91,14 @@ run() ->
 	Transfc = transform4:scaling( Factorsc ),
 
 	% No parent, thus absolutely defined:
-	Rc = reference_frame3:new( Transfc ),
+	Rc = reference_frame3:new( _CName="Rc", Transfc, RsId ),
 
 	test_facilities:display( "Created Rc: ~ts",
 							 [ reference_frame3:to_string( Rc ) ] ),
 
 
-	BlankRefTree = reference_tree:new(),
-
-	test_facilities:display( "Created a first ~ts.",
-							 [ reference_tree:to_string( BlankRefTree ) ] ),
-
-	{ _FirstRefIds=[ RaId, RbId, _RcId ], FirstRefTree } =
-		reference_tree:register( _FirstRefs=[ Ra, Rb, Rc ], BlankRefTree ),
+	{ _WithRabcRefIds=[ RaId, RbId, _RcId ], WithRabcTree } =
+		reference_tree:register( _WithRabcRefs=[ Ra, Rb, Rc ], WithRsTree ),
 
 	% Re is more complex here:
 	%
@@ -105,31 +112,40 @@ run() ->
 		_RotAxis=[ 1, 0, 0], _RotAngle=math_utils:pi()/4,
 		_TrV=[ 15, -3, 100 ] ),
 
-	Re = reference_frame3:new( Transfe, RbId ),
+	% Anonymous:
+	Re = reference_frame3:new( _EName="Re", Transfe, RbId ),
 
-	{ _ReId, WithReTree } = reference_tree:register( Re, FirstRefTree ),
+	{ _ReId, WithReTree } = reference_tree:register( Re, WithRabcTree ),
 
 	test_facilities:display( "With Re: ~ts.",
 							 [ reference_tree:to_string( WithReTree ) ] ),
 
 	Transff = transform4:identity(),
-	Rf = reference_frame3:new( Transff, RaId ),
+	Rf = reference_frame3:new( "Rf", Transff, RaId ),
 
 	{ RfId, WithRfTree } = reference_tree:register( Rf, WithReTree ),
 
 	Transfg = transform4:transition( _Origin={5,5,5},
 									 _X=[0,1,0], _Y=[-1,0,0], _Z=[0,0,-1] ),
 
-	Rg = reference_frame3:new( Transfg, RfId ),
+	Rg = reference_frame3:new( "Rg", Transfg, RfId ),
 
 	Transfh = transform4:translation( _Vh=[ 10, 20,-5.2 ] ),
+
+	% Anonymous:
 	Rh = reference_frame3:new( Transfh, RfId ),
 
-	{ _SecondRefIds=[ _RgId, _RhId ], LastRefTree } =
-		reference_tree:register( _SecondRefs=[ Rg, Rh ], WithRfTree ),
+	{ _WithRghRefIds=[ _RgId, _RhId ], WithRghTree } =
+		reference_tree:register( _WithRghRefs=[ Rg, Rh ], WithRfTree ),
 
-	test_facilities:display( "Last reference tree: ~ts",
-		[ reference_tree:to_string( LastRefTree, _VerbLevel=high ) ] ),
+	test_facilities:display( "Reference tree with Rg and Rh: ~ts~n",
+		[ reference_tree:to_string( WithRghTree, _VerbLevel=high ) ] ),
 
+	test_facilities:display( "Full view of this ~ts",
+							 [ reference_tree:to_full_string( WithRghTree ) ] ),
+
+
+	FinalTree = WithRghTree,
+	reference_tree:check( FinalTree ),
 
 	test_facilities:stop().

@@ -179,7 +179,8 @@ endif
 #  - gui_performance: about the runtime performance monitoring of MyriadGUI
 #
 #  - linear: for operations on vectors, matrices, etc.
-#  - ref_frames: for operations on reference frames, trees, etc.
+#  - ref_frames: for operations on reference frames in general
+#  - ref_trees: for operations on trees of reference frames
 #  - mesh: for the management of (3D) meshes
 #  - bounding_spaces: for computations of bounding spaces (surfaces, volumes)
 #  - opengl: outcome of OpenGL-related operations
@@ -228,6 +229,7 @@ ifeq ($(ENABLE_DEBUG),true)
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl

@@ -46,7 +46,7 @@
 % For the matrix4 record:
 -include("matrix4.hrl").
 
-% For the reference_frame3 record:
+% For the reference_frame3 actual record:
 -include("reference_frame3.hrl").
 
 
@@ -67,22 +67,17 @@
 % Any way of designating an actual reference_frame() instance.
 
 
--type ref_id() :: count().
-% An identifier of a 3D reference frame.
-%
-% This is typically a key in an (implicit) ref3_table().
-%
-% The null (zero) identifier is reserved. It is used, typically by reference
-% trees, to designate the (implicit) root, absolute reference frame.
+-type user_ref_name() :: any_string().
+% Any user-specified name (not an identifier) of a reference frame.
 
+-type ref_name() :: bin_string().
+% Any (internal) name (not an identifier) of a reference frame.
 
--type ref_table() :: table( ref_id(), designated_ref() ).
-% A table associating to a given identifier a designated reference frame.
 
 
 -export_type([ reference_frame/0, ref/0,
 			   ref_pid/0, designated_ref/0,
-			   ref_id/0, ref_table/0 ]).
+			   user_ref_name/0, ref_name/0 ]).
 
 
 -export([ is_designated_ref/1, check_designated_ref/1,
@@ -91,9 +86,9 @@
 
 % Shorthands:
 
--type count() :: basic_utils:count().
-
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
+-type any_string() :: text_utils:any_string().
 
 -type reference_frame3() :: reference_frame3:reference_frame3().
 

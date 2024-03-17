@@ -126,7 +126,7 @@
 			   node_to_string_fun/0, node_to_children_fun/0 ]).
 
 
--export([ to_string/4, forest_to_string/5 ]).
+-export([ to_string/3, forest_to_string/4 ]).
 
 
 
@@ -311,6 +311,7 @@ to_string( _Tree={ Content, SubTrees }, Prefix ) ->
 
 
 
+
 % Section for trees/forests whose nodes are indexed by an associative table.
 
 
@@ -319,13 +320,14 @@ to_string( _Tree={ Content, SubTrees }, Prefix ) ->
 % table, the one of its children, and the identifier of the root node to
 % consider.
 %
--spec to_string( forest_table(), children_table(), node_id(),
-				 verbosity_level() ) -> ustring().
-to_string( ForestTable, _ChildTable, RootNodeId, _VerbLevel=low ) ->
+-spec to_string( forest_table(), node_id(), verbosity_level() ) -> ustring().
+to_string( ForestTable, RootNodeId, _VerbLevel=low ) ->
 	text_utils:format( "forest table of ~B nodes, whose root node is #~B",
 					   [ table:size( ForestTable ), RootNodeId ] );
 
-to_string( ForestTable, ChildTable, RootNodeId, _VerbLevel=high ) ->
+to_string( ForestTable, RootNodeId, _VerbLevel=high ) ->
+
+	% Basic defaults:
 
 	NodeToStringDefFun = fun( NodeId, _FTable ) ->
 		%NodeContent = table:get_value( NodeId, FTable ),
@@ -333,48 +335,53 @@ to_string( ForestTable, ChildTable, RootNodeId, _VerbLevel=high ) ->
 		text_utils:format( "node #~B", [ NodeId ] )
 						 end,
 
-	NodeToChildrenDefFun = fun( NodeId, CTable ) ->
-		table:get_value( NodeId, CTable )
+	% Here we expect the node content to be a list of the children of the
+	% corresponding node:
+	%
+	NodeToChildrenDefFun = fun( NodeId, FTable ) ->
+							table:get_value( NodeId, FTable )
 						   end,
 
-	forest_to_string( ForestTable, ChildTable, RootNodeId, NodeToStringDefFun,
+	forest_to_string( ForestTable, RootNodeId, NodeToStringDefFun,
 					  NodeToChildrenDefFun ).
 
 
 
 % @doc Returns a textual description of the specified forest table, using the
-% specified root and stringification and children-listing functions.
+% specified starting node, and stringification and children-listing functions.
 %
--spec forest_to_string( forest_table(), children_table(), node_id(),
-	node_to_string_fun(), node_to_children_fun() ) -> ustring().
-forest_to_string( ForestTable, ChildTable, ParentNodeId, NodeToStringFun,
+-spec forest_to_string( forest_table(), node_id(), node_to_string_fun(),
+						node_to_children_fun() ) -> ustring().
+forest_to_string( ForestTable, FromNodeId, NodeToStringFun,
 				  NodeToChildrenFun ) ->
-	forest_to_string( ForestTable, ChildTable, ParentNodeId, NodeToStringFun,
+	forest_to_string( ForestTable, _ParentNodeId=FromNodeId, NodeToStringFun,
 					  NodeToChildrenFun, _Level=0 ).
 
 
 -define( spacer, "  " ).
 
+
 % (helper)
-forest_to_string( ForestTable, ChildTable, ParentNodeId, NodeToStringFun,
-				  NodeToChildrenFun, Level ) ->
+forest_to_string( ForestTable, ParentNodeId, NodeToStringFun, NodeToChildrenFun,
+				  Level ) ->
 
 	ParentStr = case Level of
+			0 ->
+				text_utils:format( "~n~ts",
+					[ NodeToStringFun( ParentNodeId, ForestTable ) ] );
 
-		0 ->
-			text_utils:format( "~nroot ~ts",
-				[ NodeToStringFun( ParentNodeId, ForestTable ) ] );
-
-		_ ->
-			text_utils:format( "~ts- ~ts", [
-				text_utils:duplicate( Level, ?spacer ),
-				NodeToStringFun( ParentNodeId, ForestTable ) ] )
+			_ ->
+				text_utils:format( "~ts- ~ts",
+					[ text_utils:duplicate( Level, ?spacer ),
+					  NodeToStringFun( ParentNodeId, ForestTable ) ] )
 
 	end,
 
-	Children = NodeToChildrenFun( ParentNodeId, ChildTable ),
+	Children = NodeToChildrenFun( ParentNodeId, ForestTable ),
 
-	ChildrenStrs = [ forest_to_string( ForestTable, ChildTable,
-		C, NodeToStringFun, NodeToChildrenFun, Level+1 ) || C <- Children ],
+	trace_utils:debug_fmt( "Children of #~B: ~w.", [ ParentNodeId, Children ] ),
+
+	ChildrenStrs = [ forest_to_string( ForestTable, C, NodeToStringFun,
+						NodeToChildrenFun, Level+1 ) || C <- Children ],
 
 	text_utils:join( _Sep=$\n, [ ParentStr | ChildrenStrs ] ).
