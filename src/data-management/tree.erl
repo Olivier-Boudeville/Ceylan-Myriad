@@ -379,7 +379,8 @@ forest_to_string( ForestTable, ParentNodeId, NodeToStringFun, NodeToChildrenFun,
 
 	Children = NodeToChildrenFun( ParentNodeId, ForestTable ),
 
-	trace_utils:debug_fmt( "Children of #~B: ~w.", [ ParentNodeId, Children ] ),
+	%trace_utils:debug_fmt( "Children of #~B: ~w.",
+	%   [ ParentNodeId, Children ] ),
 
 	ChildrenStrs = [ forest_to_string( ForestTable, C, NodeToStringFun,
 						NodeToChildrenFun, Level+1 ) || C <- Children ],
