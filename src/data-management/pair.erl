@@ -30,7 +30,7 @@
 -module(pair).
 
 -export([ first/1, firsts/1, second/1, seconds/1,
-		  swap/1, check_list/1, to_list/1, to_string/1 ]).
+		  unzip/1, swap/1, check_list/1, to_list/1, to_string/1 ]).
 
 -compile( { inline, [ first/1, second/1, swap/1 ] } ).
 
@@ -39,7 +39,12 @@
 
 -type pair() :: { element(), element() }.
 
--export_type([ pair/0 ]).
+-type pair( _F, _S ) :: pair().
+% A pair whose first element is of type F, and second of type S.
+
+
+-export_type([ pair/0, pair/2 ]).
+
 
 
 % @doc Returns the first element of the specified pair.
@@ -74,6 +79,15 @@ seconds( Pairs ) ->
 	cond_utils:if_defined( myriad_debug_datastructures, check_list( Pairs ) ),
 	[ Y || { _X, Y } <- Pairs ].
 
+
+% @doc Unzips the specified list of pairs.
+%
+% For example, unzip([{a,1}, {b,2}, {c,3}]) = {[a,b,c], [1,2,3]}.
+%
+-spec unzip( [ pair( F, S ) ] ) -> pair( [ F ], [ S ] ).
+unzip( Pairs ) ->
+	% Mostly to remember that it exists:
+	lists:unzip( Pairs ).
 
 
 % @doc Returns a pair whose elements have been swapped compared to the specified
