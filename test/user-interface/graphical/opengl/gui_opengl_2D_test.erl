@@ -387,7 +387,7 @@ render( Width, Height ) ->
 	% whose right angle is at the center of the viewport/frame, and which faces
 	% the top-right frame corner:
 	%
-	% (using MyriadGUI 2D referential)
+	% (using MyriadGUI 2D coordinate system)
 
 	% Draws in white:
 	gl:color3f( 1.0, 1.0, 1.0 ),

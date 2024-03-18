@@ -101,7 +101,7 @@
 
 
 
-% About speech referentials.
+% About speech repositories.
 %
 % A multilangual application has to support multiple language locales (e.g.
 % English, French, Japanese, etc.).
@@ -115,11 +115,11 @@
 % logical speech is to be translated in a corresponding locale-specific SSML
 % text (e.g. "Salut le monde !"), and then generated as an audio content.
 %
-% See for that create_referential/1 and record_logical_speech/5
+% See for that create_repository/1 and record_logical_speech/5
 
 
 % Next evolutions could be adding facilities in order to export a speech
-% referential to JSON and reciprocally import it from JSON, so that afterwards
+% repository to JSON and reciprocally import it from JSON, so that afterwards
 % clients may load such files and fetch all appropriate information for a given
 % spoken locale.
 
@@ -201,7 +201,7 @@
 
 
 
-% For the speech_state, voice_info, speech_settings and speech_referential
+% For the speech_state, voice_info, speech_settings and speech_repository
 % records:
 %
 -include("speech_support.hrl").
@@ -273,7 +273,7 @@
 % Key information regarding an actual text-to-speech, that is the instantiation
 % of a logical speech, i.e. the speech settings that apply to this SSML text and
 % the resulting audio file (relative to the base directory of the speech
-% referential keeping track of the corresponding logical speech).
+% repository keeping track of the corresponding logical speech).
 
 
 -type locale_table() :: table( language_locale(), actual_speech_info() ).
@@ -286,7 +286,7 @@
 % available information about it.
 
 
--type speech_referential() :: #speech_referential{}.
+-type speech_repository() :: #speech_repository{}.
 % A datastructure collecting information regarding a set of logical speeches.
 
 
@@ -302,7 +302,7 @@
 			   ssml_text/0, user_speech_info/0,
 			   speech_id/0, speech_base_name/0, any_speech_base_name/0,
 			   logical_speech/0, actual_speech_info/0, locale_table/0,
-			   speech_table/0, speech_referential/0, speech_state/0,
+			   speech_table/0, speech_repository/0, speech_state/0,
 			   role_played/0 ]).
 
 
@@ -313,7 +313,7 @@
 		  record_speech/3, record_speech/4, record_speech/5,
 
 		  register_speech_settings/2,
-		  create_referential/1, record_logical_speech/3,
+		  create_repository/1, record_logical_speech/3,
 		  get_audio_path_for/3,
 
 		  filter_by_gender/2, filter_by_locale/2,
@@ -322,7 +322,7 @@
 		  tts_provider_to_string/1, voice_table_to_string/1,
 		  voice_info_to_string/1, role_to_string/1,
 		  speech_settings_to_string/1, logical_speech_to_string/1,
-		  actual_speech_info_to_string/1, speech_referential_to_string/1 ]).
+		  actual_speech_info_to_string/1, speech_repository_to_string/1 ]).
 
 
 % Shorthands:
@@ -495,7 +495,7 @@ get_audio_format_string( #audio_stream_settings{
 
 
 
-% @doc Starts the speech support, initialising the embedded speech referential
+% @doc Starts the speech support, initialising the embedded speech repository
 % with the current directory.
 %
 -spec start( speech_state() ) -> speech_state().
@@ -503,7 +503,7 @@ start( SpeechState ) ->
 	start( SpeechState, _DefBaseDir="." ).
 
 
-% @doc Starts the speech support, initialising the embedded speech referential
+% @doc Starts the speech support, initialising the embedded speech repository
 % with the specified directory.
 %
 -spec start( speech_state(), any_directory_path() ) -> speech_state().
@@ -512,11 +512,11 @@ start( SpeechState=#speech_state{ audio_settings=AudioSettings },
 
 	BaseDir = file_utils:ensure_path_is_absolute( AnyBaseDir ),
 
-	SpeechReferential = create_referential( BaseDir, AudioSettings ),
+	SpeechRepository = create_repository( BaseDir, AudioSettings ),
 
 	web_utils:start( _Opts=ssl ),
 
-	SpeechState#speech_state{ speech_referential=SpeechReferential }.
+	SpeechState#speech_state{ speech_repository=SpeechRepository }.
 
 
 
@@ -1029,47 +1029,47 @@ register_speech_settings( SpeechSettings,
 
 
 
-% @doc Returns an empty speech referential with the default "en-US" locale and
-% default audio settings, that is a referential not keeping track of any logical
+% @doc Returns an empty speech repository with the default "en-US" locale and
+% default audio settings, that is a repository not keeping track of any logical
 % speech defined (yet).
 %
--spec create_referential( any_directory_path() ) -> speech_referential().
-create_referential( BaseDir ) ->
-	create_referential( BaseDir, get_default_audio_settings() ).
+-spec create_repository( any_directory_path() ) -> speech_repository().
+create_repository( BaseDir ) ->
+	create_repository( BaseDir, get_default_audio_settings() ).
 
 
-% @doc Returns an empty speech referential with the default "en-US" locale and
-% the specified audio settings, that is a referential not keeping track of any
+% @doc Returns an empty speech repository with the default "en-US" locale and
+% the specified audio settings, that is a repository not keeping track of any
 % logical speech defined (yet).
 %
--spec create_referential( any_directory_path(), audio_stream_settings() ) ->
-											speech_referential().
-create_referential( BaseDir, AudioStreamSettings ) ->
-	create_referential( BaseDir, _RefLocal= <<"en-US">>, AudioStreamSettings ).
+-spec create_repository( any_directory_path(), audio_stream_settings() ) ->
+											speech_repository().
+create_repository( BaseDir, AudioStreamSettings ) ->
+	create_repository( BaseDir, _RefLocal= <<"en-US">>, AudioStreamSettings ).
 
 
-% @doc Returns an empty speech referential with the specified reference locale
-% and audio settings, that is a referential not keeping track of any logical
+% @doc Returns an empty speech repository with the specified reference locale
+% and audio settings, that is a repository not keeping track of any logical
 % speech defined (yet).
 %
--spec create_referential( any_directory_path(), any_locale(),
-						  audio_stream_settings() ) -> speech_referential().
-create_referential( BaseDir, RefLocale, AudioSettings )
+-spec create_repository( any_directory_path(), any_locale(),
+						  audio_stream_settings() ) -> speech_repository().
+create_repository( BaseDir, RefLocale, AudioSettings )
 				when is_record( AudioSettings, audio_stream_settings ) ->
 
 	BinBaseDir = text_utils:ensure_binary( BaseDir ),
 
 	file_utils:is_existing_directory_or_link( BinBaseDir ) orelse
-		throw( { non_existing_referential_base_dir, BaseDir } ),
+		throw( { non_existing_repository_base_dir, BaseDir } ),
 
-	#speech_referential{ speech_table=table:new(),
-						 reference_locale=text_utils:ensure_binary( RefLocale ),
-						 base_dir=BinBaseDir }.
+	#speech_repository{ speech_table=table:new(),
+						reference_locale=text_utils:ensure_binary( RefLocale ),
+						base_dir=BinBaseDir }.
 
 
 
 % @doc Returns the identifier of the logical speech requested to be recorded,
-% together with the specified speech state whose speech referential has been
+% together with the specified speech state whose speech repository has been
 % updated with that speech, created from a speech base name associated to a list
 % of actual speech information, so that the corresponding per-locale audio files
 % are recorded, each with their specified SSML text and speech settings, and
@@ -1086,7 +1086,7 @@ record_logical_speech( AnyBaseName, UserSpeechInfos,
 		SpeechState=#speech_state{
 			speech_settings_table=SpeechSettingsTable,
 			audio_settings=AudioSettings,
-			speech_referential=SpeechRef=#speech_referential{
+			speech_repository=SpeechRef=#speech_repository{
 					speech_table=SpeechTable,
 					base_dir=BinBaseDir,
 					next_speech_id=ThisLogSpeechId } } ) ->
@@ -1105,12 +1105,12 @@ record_logical_speech( AnyBaseName, UserSpeechInfos,
 	NewSpeechTable =
 		table:add_new_entry( ThisLogSpeechId, LogSpeech, SpeechTable ),
 
-	NewSpeechRef = SpeechRef#speech_referential{
+	NewSpeechRef = SpeechRef#speech_repository{
 		speech_table=NewSpeechTable,
 		next_speech_id=ThisLogSpeechId+1 },
 
 	{ ThisLogSpeechId,
-	  SpeechState#speech_state{ speech_referential=NewSpeechRef } }.
+	  SpeechState#speech_state{ speech_repository=NewSpeechRef } }.
 
 
 
@@ -1160,7 +1160,7 @@ record_speeches( _UserlSpeechInfos=[ { SpeechSettingsId, SSMLText } | T ],
 -spec get_audio_path_for( speech_id(), language_locale(), speech_state() ) ->
 											bin_file_path().
 get_audio_path_for( LogSpeechId, LangLocale,
-					#speech_state{ speech_referential=#speech_referential{
+					#speech_state{ speech_repository=#speech_repository{
 										speech_table=SpeechTable,
 										base_dir=BaseDir } } ) ->
 
@@ -1194,9 +1194,9 @@ get_audio_path_for( LogSpeechId, LangLocale,
 speech_state_to_string( #speech_state{
 		cloud_instance_info=InstInfo,
 		speech_settings_table=SpeechSettingsTable,
-		speech_referential=MaybeSpeechReferential } ) ->
+		speech_repository=MaybeSpeechRepository } ) ->
 
-	RefStr = case MaybeSpeechReferential of
+	RefStr = case MaybeSpeechRepository of
 
 		undefined ->
 			"no";
@@ -1207,7 +1207,7 @@ speech_state_to_string( #speech_state{
 	end,
 
 	text_utils:format( "speech taken in charge by a ~ts, "
-		"referencing ~B speech settings and ~ts speech referential",
+		"referencing ~B speech settings and ~ts speech repository",
 		[ web_utils:cloud_instance_info_to_string( InstInfo ),
 		  table:size( SpeechSettingsTable ), RefStr ] ).
 
@@ -1452,15 +1452,15 @@ actual_speech_info_to_string( #actual_speech_info{
 
 
 
-% @doc Returns a textual description of the specified speech referential.
--spec speech_referential_to_string( speech_referential() ) -> ustring().
-speech_referential_to_string( #speech_referential{
+% @doc Returns a textual description of the specified speech repository.
+-spec speech_repository_to_string( speech_repository() ) -> ustring().
+speech_repository_to_string( #speech_repository{
 		speech_table=SpeechTable,
 		reference_locale=RefLocale,
 		base_dir=BaseDir
 		%next_speech_id=NextSpeechId
 								} ) ->
-	text_utils:format( "speech referential of ~B logical speeches, "
+	text_utils:format( "speech repository of ~B logical speeches, "
 		"whose reference locale is '~ts' and "
 		"whose base directory is '~ts'",
 		[ table:size( SpeechTable ), RefLocale, BaseDir ] ).

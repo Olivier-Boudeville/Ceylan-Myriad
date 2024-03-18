@@ -159,7 +159,7 @@ new_integer( X, Y, Z ) when is_integer( X ) andalso is_integer( Y )
 
 
 % @doc Returns a 3D point whose coordinates are all null, that is the origin of
-% the local referential.
+% the local coordinate system.
 %
 % See also linear_3D:get_origin/0.
 %

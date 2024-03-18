@@ -1,39 +1,129 @@
-;; This is the Ceylan-Myriad default Emacs configuration file, typically to
-;; exist as ~/.emacs/init.el; check that none of the many other Emacs
-;; configuration file gets in the way.
+;;; init.el --- Initialization file for Emacs
 
+;;; This is the Ceylan-Myriad default Emacs configuration
+;;; file, typically to exist as ~/.emacs/init.el; check that none of the many
+;;; other Emacs configuration file gets in the way.
 
-;;; package --- This is an initialization script written in elisp.
-
-;;; Commentary: refer to
-;;; https://www.gnu.org/software/emacs/manual/html_node/elisp/
-
-;;; Code: (below)"
 
 ;; Section for package management with straight.el
 
-;; straight.el is a replacement for package.el (not use-package).
-;; use-package can be used with either package.el or straight.el.
+;; straight.el is a replacement for the Emacs now built-in package.el (not a
+;; replacement use-package, which can be used with either package.el or
+;; straight.el).
 
 ;; Must be kept, in order to prevent package.el loading packages prior to their
 ;; init-file loading:
 
+;;; Commentary:
+;; Emacs Startup File --- initialization for Emacs
+
+;;; Code:
+
 (setq package-enable-at-startup nil)
 
+;; Ensures that we have straight.el available:
 (defvar bootstrap-version)
 (let ((bootstrap-file
-	   (expand-file-name "straight/repos/straight.el/bootstrap.el" user-emacs-directory))
-	  (bootstrap-version 5))
+	   (expand-file-name
+		"straight/repos/straight.el/bootstrap.el"
+		(or (bound-and-true-p straight-base-dir)
+			user-emacs-directory)))
+	  (bootstrap-version 7))
   (unless (file-exists-p bootstrap-file)
 	(with-current-buffer
 		(url-retrieve-synchronously
-		 "https://raw.githubusercontent.com/raxod502/straight.el/develop/install.el"
+		 "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
 		 'silent 'inhibit-cookies)
 	  (goto-char (point-max))
 	  (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
+
+;; This is only needed once, near the top of the file
+(eval-when-compile
+  ;; Following line is not needed if use-package.el is in ~/.emacs.d
+  ;;(add-to-list 'load-path "<path where use-package is installed>")
+  (require 'use-package))
+
+;; Integration of straight.el so that the use-package macro relies on it:
 (straight-use-package 'use-package)
+
+;; So that use-package uses straight.el to automatically install missing
+;; packages if you provide ':straight t:':
+(use-package el-patch
+  :straight t)
+
+;; Automatically ensure every package exists (like :ensure or :straight):
+(setq straight-use-package-by-default t)
+
+
+;; Defined early so that hooks can override it later:
+(straight-use-package 'whitespace)
+;; Activated by default:
+(global-whitespace-mode 1)
+
+;; Don't enable whitespace for:
+(setq-default whitespace-global-modes
+			  '(not rust-mode))
+
+;;(setq-default show-trailing-whitespace nil)
+;;(setq whitespace-style '(space tabs lines-tail trailing empty indentation space-before-tab space-after-tab))
+;; Removed: spaces space-mark tab-mark newline-mark
+(setq whitespace-style '(face
+	tabs trailing lines space-before-tab newline
+	indentation empty space-after-tab))
+(setq whitespace-line-column 80)
+
+;; We want to see whether we go past column 80:
+;; (currently disabled, as provided by the whitespace mode)
+;;(require 'highlight-80+)
+;;(add-hook 'find-file-hook 'highlight-80+-mode)
+
+
+
+;; Rust section
+
+;;(straight-use-package 'rustic)
+
+;; Taken from 'https://robert.kra.hn/posts/rust-emacs-setup/#rustic':
+
+(use-package rustic
+  :ensure
+  :bind (:map rustic-mode-map
+			  ("M-j" . lsp-ui-imenu)
+			  ("M-?" . lsp-find-references)
+			  ("C-c C-c l" . flycheck-list-errors)
+			  ("C-c C-c a" . lsp-execute-code-action)
+			  ("C-c C-c r" . lsp-rename)
+			  ("C-c C-c q" . lsp-workspace-restart)
+			  ("C-c C-c Q" . lsp-workspace-shutdown)
+			  ("C-c C-c s" . lsp-rust-analyzer-status))
+  :config
+  ;; Uncomment for less flashiness:
+  ;; (setq lsp-eldoc-hook nil)
+  ;; (setq lsp-enable-symbol-highlighting nil)
+  ;; (setq lsp-signature-auto-activate nil)
+
+  ;; Comment to disable rustfmt on save:
+  (setq rustic-format-on-save t)
+  (add-hook 'rustic-mode-hook 'rk/rustic-mode-hook))
+
+(defun rk/rustic-mode-hook ()
+  "So that run C-c C-c C-r works without having to confirm, but don't try to
+save rust buffers that are not file visiting. Once
+https://github.com/brotzeit/rustic/issues/253 has been resolved this should
+no longer be necessary."
+  (when buffer-file-name
+	(setq-local buffer-save-without-query t))
+  (add-hook 'before-save-hook 'lsp-format-buffer nil t))
+
+;; Use C-h m to determine the current major/minor modes
+
+(defun rust-mode-hook ()
+  "Custom behaviours for `Rust-mode'."
+  (message "Applying Rust mode hook."))
+
+(add-hook 'rust-mode-hook #'rust-mode-hook)
 
 
 
@@ -246,7 +336,7 @@
 
 
 (defun fix-behaviours-for-text-modes ()
-  ;;(message "############## Fixing behaviours for text modes ###########")
+  "(message \"############## Fixing behaviours for text modes ###########\")."
 
   ;; Advanced automatic indentation not adapted to text modes:
   (remove-hook 'find-file-hooks 'set-advanced-ret-behaviour)
@@ -411,6 +501,38 @@ Null prefix argument turns off the mode."
 
 ;; LSP-related section
 ;; See ~/Software/erlang_ls/misc/dotemacs for a configuration example.
+
+;; lsp-mode provides the integration with rust-analyzer; it enables the IDE features such as navigating through source code, highlighting errors via flycheck and provides the auto-completion source for company.
+(use-package lsp-mode
+  :ensure
+  :commands lsp
+  :custom
+  ;; what to use when checking on-save. "check" is default, I prefer clippy
+  (lsp-rust-analyzer-cargo-watch-command "clippy")
+  (lsp-eldoc-render-all t)
+  (lsp-idle-delay 0.6)
+  ;; enable / disable the hints as you prefer:
+  (lsp-inlay-hint-enable t)
+  ;; These are optional configurations. See https://emacs-lsp.github.io/lsp-mode/page/lsp-rust-analyzer/#lsp-rust-analyzer-display-chaining-hints for a full list
+  (lsp-rust-analyzer-display-lifetime-elision-hints-enable "skip_trivial")
+  (lsp-rust-analyzer-display-chaining-hints t)
+  (lsp-rust-analyzer-display-lifetime-elision-hints-use-parameter-names nil)
+  (lsp-rust-analyzer-display-closure-return-type-hints t)
+  (lsp-rust-analyzer-display-parameter-hints nil)
+  (lsp-rust-analyzer-display-reborrow-hints nil)
+  :config
+  ;; lsp-ui is optional; may be commented:
+  (add-hook 'lsp-mode-hook 'lsp-ui-mode))
+
+;; lsp-ui provides inline overlays over the symbol at point and enables code fixes at point:
+(use-package lsp-ui
+  :ensure
+  :commands lsp-ui-mode
+  :custom
+  (lsp-ui-peek-always-show t)
+  (lsp-ui-sideline-show-hover t)
+  (lsp-ui-doc-enable nil))
+
 
 ;; Requires erlang_ls, typically obtained with:
 ;; cd ~/Software
@@ -596,22 +718,6 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (setq uniquify-ignore-buffers-re "^\\*")
 
 
-(straight-use-package 'whitespace)
-(global-whitespace-mode 1)
-
-;;(setq-default show-trailing-whitespace nil)
-;;(setq whitespace-style '(space tabs lines-tail trailing empty indentation space-before-tab space-after-tab))
-;; Removed: spaces space-mark tab-mark newline-mark
-(setq whitespace-style '(face
-	tabs trailing lines space-before-tab newline
-	indentation empty space-after-tab))
-(setq whitespace-line-column 80)
-
-;; We want to see whether we go past column 80:
-;; (currently disabled, as provided by the whitespace mode)
-;;(require 'highlight-80+)
-;;(add-hook 'find-file-hook 'highlight-80+-mode)
-
 
 ;; 85 width would already allow to display correctly even files with
 ;; 9999 lines, knowing that the leftmost column for line numbers uses
@@ -740,7 +846,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; Use M-x describe-key to know to what function a key sequence is bound.
 
 (defun show-assigned-keys ()
-  "Shows the current key bindings"
+  "Show the current key bindings."
   (interactive)
   (message "F1        -> save-buffer" )
   (message "F2        -> query-replace" )
@@ -892,7 +998,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;;my-compile is smarter about how to display the new buffer
 (defun display-buffer-by-splitting-largest (buffer force-other-window)
   "Display buffer BUFFER by splitting the largest buffer vertically, except if
-  there is already a window for it."
+there is already a window for it."
   (or (get-buffer-window buffer)
 	  (let ((new-win
 			 (with-selected-window (get-largest-window)
@@ -1068,9 +1174,13 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 (setq vc-make-backup-files t)
 
-(message "<<<<<<######### init.el version 1.3 #########>>>>>>")
+(message "<<<<<<######### init.el version 1.4 #########>>>>>>")
 
 
 (delete-other-windows)
 (put 'downcase-region 'disabled nil)
 (put 'upcase-region 'disabled nil)
+
+(provide 'init)
+
+;;; init.el ends here

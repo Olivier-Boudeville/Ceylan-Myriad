@@ -69,7 +69,9 @@
 
 
 -type any_vector4() :: vector4() | integer_vector4().
-% A 4D vector, with any types of numerical coordinates.
+% A 4D vector, with any (homogeneous) type of numerical coordinates (hence a
+% special case of user_vector4/0).
+%
 % They are typically referenced as [X, Y, Z, W].
 
 
@@ -166,7 +168,7 @@ null() ->
 
 
 % @doc Returns a 4D vector corresponding to the X axis of the current
-% referential.
+% coordinate system.
 %
 -spec x_axis() -> vector4().
 x_axis() ->
@@ -176,7 +178,7 @@ x_axis() ->
 
 
 % @doc Returns a 4D vector corresponding to the Y axis of the current
-% referential.
+% coordinate system.
 %
 -spec y_axis() -> vector4().
 y_axis() ->
@@ -186,7 +188,7 @@ y_axis() ->
 
 
 % @doc Returns a 4D vector corresponding to the Z axis of the current
-% referential.
+% coordinate system.
 %
 -spec z_axis() -> vector4().
 z_axis() ->
@@ -196,7 +198,7 @@ z_axis() ->
 
 
 % @doc Returns a 4D vector corresponding to the W axis of the current
-% referential.
+% coordinate system.
 %
 -spec w_axis() -> vector4().
 w_axis() ->
@@ -357,7 +359,7 @@ check_unit_vectors( Vs ) ->
 % @doc Returns a textual representation of the specified 4D vector; full float
 % precision is shown.
 %
--spec to_string( vector4() ) -> ustring().
+-spec to_string( user_vector4() ) -> ustring().
 to_string( Vector ) ->
 	to_user_string( Vector ).
 
@@ -366,7 +368,7 @@ to_string( Vector ) ->
 % @doc Returns a compact, textual, informal representation of the specified 4D
 % vector.
 %
--spec to_compact_string( vector4() ) -> ustring().
+-spec to_compact_string( user_vector4() ) -> ustring().
 to_compact_string( Vector ) ->
 
 	%Ws = [ "~w" || _ <- Vector ],
@@ -381,7 +383,7 @@ to_compact_string( Vector ) ->
 % (see linear.hrl for width and precision) representation of the specified 4D
 % vector.
 %
--spec to_basic_string( vector4() ) -> ustring().
+-spec to_basic_string( user_vector4() ) -> ustring().
 to_basic_string( Vector ) ->
 
 	% Vectors supposed to be lists of floats:
@@ -401,7 +403,7 @@ to_basic_string( Vector ) ->
 %
 % This is the recommended representation.
 %
--spec to_user_string( vector4() ) -> ustring().
+-spec to_user_string( user_vector4() ) -> ustring().
 to_user_string( Vector ) ->
 
 	Strs = linear:coords_to_best_width_strings( Vector ),

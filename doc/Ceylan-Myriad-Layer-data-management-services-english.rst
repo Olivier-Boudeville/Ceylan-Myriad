@@ -201,7 +201,7 @@ Resource Holders
 
 Myriad provides, through its ``resource`` module, two types of holders so that resources of interest can be obtained once, returned as often as needed, and stored for as long as wanted:
 
-- resource **referentials**, which are process-local terms akin to associative tables
+- resource **repositories**, which are process-local terms akin to associative tables
 - resource **servers**, i.e. dedicated processes sharing resources (especially `large-enough binaries <https://www.erlang.org/doc/efficiency_guide/binaryhandling.html#how-binaries-are-implemented>`_) between any number of consumer processes
 
 See also the ``resource.hrl`` include and the ``resource_test`` testing module.

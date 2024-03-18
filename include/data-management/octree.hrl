@@ -25,6 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, June 4, 2022.
 
+
 -record( sequential_octants, {
 
 	% Top-level, North-East octant:
@@ -56,7 +57,8 @@
 % Stores the 8 sub-octrees (children cells) that any sequential octree node may
 % reference.
 %
-% In a conventional MyriadGUI absolute referential, space is divided that way:
+% In a conventional MyriadGUI absolute coordinate system, space is divided that
+% way:
 %
 %
 %  Z

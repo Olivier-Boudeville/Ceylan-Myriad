@@ -549,7 +549,7 @@
 
 
 -type myriad_type_table() ::
-		table( myriad_object_type(), instance_referential() ).
+		table( myriad_object_type(), instance_repository() ).
 % To store the MyriadGUI instances (sorted by types) and manage them like wx
 % native objects.
 %
@@ -605,7 +605,7 @@
 			   app_event_return/0 ]).
 
 
--record( instance_referential, {
+-record( instance_repository, {
 
 	% Total count of the instances already created for that type:
 	instance_count :: instance_count(),
@@ -613,7 +613,7 @@
 	instance_table :: table( myriad_instance_id(), myriad_object_state() ) } ).
 
 
--type instance_referential() :: #instance_referential{}.
+-type instance_repository() :: #instance_repository{}.
 % To store, for a given MyriadGUI type (e. g. 'canvas'), all information about
 % all instances.
 %
@@ -774,7 +774,7 @@
 -export([ get_subscribers_for/3, adjust_objects/4,
 		  process_only_latest_repaint_event/4, reassign_table_to_string/1,
 		  get_instance_state/2, type_table_to_string/1,
-		  instance_referential_to_string/1, set_canvas_instance_state/3 ]).
+		  instance_repository_to_string/1, set_canvas_instance_state/3 ]).
 
 
 % Wx-level:
@@ -1872,7 +1872,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 	%trace_utils:info_fmt( "Registering a MyriadGUI instance of type '~ts', "
 	%    "of following state:~n~p.", [ ObjectType, ObjectInitialState ] ),
 
-	{ NewInstanceId, NewInstanceReferential } =
+	{ NewInstanceId, NewInstanceRepository } =
 			case table:lookup_entry( ObjectType, TypeTable ) of
 
 		key_not_found ->
@@ -1883,14 +1883,14 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 			FirstInstanceTable =
 				table:singleton( FirstInstanceId, ObjectInitialState ),
 
-			FirstInstanceReferential = #instance_referential{
+			FirstInstanceRepository = #instance_repository{
 				instance_count=1,
 				instance_table=FirstInstanceTable },
 
-			{ FirstInstanceId, FirstInstanceReferential };
+			{ FirstInstanceId, FirstInstanceRepository };
 
 
-		{ value, InstanceReferential=#instance_referential{
+		{ value, InstanceRepository=#instance_repository{
 				instance_count=InstanceCount,
 				instance_table=InstanceTable } } ->
 
@@ -1899,11 +1899,11 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 			NextInstanceTable = table:add_entry( NextInstanceId,
 				ObjectInitialState, InstanceTable ),
 
-			NextInstanceReferential = InstanceReferential#instance_referential{
+			NextInstanceRepository = InstanceRepository#instance_repository{
 				instance_count=NextInstanceId,
 				instance_table=NextInstanceTable },
 
-			{ NextInstanceId, NextInstanceReferential }
+			{ NextInstanceId, NextInstanceRepository }
 
 
 	end,
@@ -1913,7 +1913,7 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 									myriad_instance_id=NewInstanceId },
 
 	NewTypeTable =
-		table:add_entry( ObjectType, NewInstanceReferential, TypeTable ),
+		table:add_entry( ObjectType, NewInstanceRepository, TypeTable ),
 
 	{ MyriadRef, NewTypeTable }.
 
@@ -1929,13 +1929,13 @@ unregister_instance( ObjectType, InstanceId, TypeTable ) ->
 	%trace_utils:info_fmt( "Unregistering the MyriadGUI instance of "
 	%   "id #~B and type '~ts'.", [ InstanceId, ObjectType ] ),
 
-	{ InstanceState, NewInstReferential } =
+	{ InstanceState, NewInstRepository } =
 			case table:lookup_entry( ObjectType, TypeTable ) of
 
 		key_not_found ->
 			throw( { invalid_object_type_to_unregister, ObjectType } );
 
-		{ value, InstanceReferential=#instance_referential{
+		{ value, InstanceRepository=#instance_repository{
 				instance_count=InstanceCount,
 				instance_table=InstanceTable } } ->
 
@@ -1944,7 +1944,7 @@ unregister_instance( ObjectType, InstanceId, TypeTable ) ->
 
 				{ InstState, ShrunkInstTable } ->
 					{ InstState,
-					  InstanceReferential#instance_referential{
+					  InstanceRepository#instance_repository{
 						instance_count=InstanceCount-1,
 						instance_table=ShrunkInstTable } };
 
@@ -1956,7 +1956,7 @@ unregister_instance( ObjectType, InstanceId, TypeTable ) ->
 
 	end,
 
-	NewTypeTable = table:add_entry( ObjectType, NewInstReferential, TypeTable ),
+	NewTypeTable = table:add_entry( ObjectType, NewInstRepository, TypeTable ),
 
 	{ InstanceState, NewTypeTable }.
 
@@ -3331,7 +3331,7 @@ get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 	case table:lookup_entry( MyriadObjectType, TypeTable ) of
 
-		{ value, #instance_referential{ instance_table=InstanceTable } } ->
+		{ value, #instance_repository{ instance_table=InstanceTable } } ->
 
 			case table:lookup_entry( InstanceId, InstanceTable ) of
 
@@ -3389,18 +3389,18 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 
 	case table:lookup_entry( MyriadObjectType, TypeTable ) of
 
-		{ value, Referential=#instance_referential{
+		{ value, Repository=#instance_repository{
 								instance_table=InstanceTable } } ->
 
 			% Already existing, hence no change in instance count:
 			NewInstanceTable = table:update_entry( InstanceId, InstanceState,
 												   InstanceTable ),
 
-			NewReferential = Referential#instance_referential{
+			NewRepository = Repository#instance_repository{
 				instance_table=NewInstanceTable },
 
 			% An update actually:
-			table:add_entry( MyriadObjectType, NewReferential, TypeTable );
+			table:add_entry( MyriadObjectType, NewRepository, TypeTable );
 
 
 		key_not_found ->
@@ -3567,8 +3567,8 @@ type_table_to_string( Table ) ->
 
 		Pairs ->
 			Strings = [ text_utils:format( "for type '~ts', ~ts", [ Type,
-				instance_referential_to_string( Referential ) ] )
-					|| { Type, Referential } <- Pairs ],
+				instance_repository_to_string( Repository ) ] )
+					|| { Type, Repository } <- Pairs ],
 
 			text_utils:format( "Type table with ~B object types registered: "
 				"~ts",
@@ -3579,8 +3579,8 @@ type_table_to_string( Table ) ->
 
 
 % @doc Returns a textual representation of the specified type table.
--spec instance_referential_to_string( instance_referential() ) -> ustring().
-instance_referential_to_string( #instance_referential{
+-spec instance_repository_to_string( instance_repository() ) -> ustring().
+instance_repository_to_string( #instance_repository{
 									instance_count=Count,
 									instance_table=InstanceTable } ) ->
 

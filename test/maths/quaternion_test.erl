@@ -83,4 +83,7 @@ run() ->
 
 	true = matrix3:are_equal( DirectRot3, Rot3FromQ ),
 
+	true = matrix3:are_equal( DirectRot3,
+							  quaternion:to_rot_matrix3( UnitAxis, RadAngle ) ),
+
 	test_facilities:stop().

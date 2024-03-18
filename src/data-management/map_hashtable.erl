@@ -1039,8 +1039,8 @@ optimise( Hashtable ) ->
 %
 % An exception is thrown if the key does not exist.
 %
-% Note: no check is performed to ensure the value is a list indeed, and the
-% '[|]' operation will not complain if not.
+% Note: no check is performed to ensure that the value is already a list indeed,
+% and the '[|]' operation will not complain if not.
 %
 -spec append_to_existing_entry( key(), term(), map_hashtable() ) ->
 									map_hashtable().

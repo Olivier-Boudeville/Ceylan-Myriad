@@ -153,7 +153,7 @@ new_integer( X, Y ) when is_integer( X ) andalso is_integer( Y ) ->
 
 
 % @doc Returns a 2D point whose coordinates are all null, that is the origin of
-% the local referential.
+% the local coordinate system.
 %
 -spec null() -> point2().
 null() ->

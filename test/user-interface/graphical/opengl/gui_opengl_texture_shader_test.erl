@@ -187,7 +187,7 @@ prepare_triangle( Texture ) ->
 
 	% Triangle defined as [vertex3()], directly in normalised device coordinates
 	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
-	% texture referential has its Y ordinate axis up, see
+	% texture repository has its Y ordinate axis up, see
 	% https://learnopengl.com/Getting-started/Hello-Triangle); we define here an
 	% upright triangle so that the texture is not deformed:
 	%

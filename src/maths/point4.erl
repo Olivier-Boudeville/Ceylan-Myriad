@@ -26,7 +26,6 @@
 % Creation date: Saturday, October 9, 2021.
 
 
-
 % @doc Module implementing the support for <b>4D points</b>.
 %
 % See also:
@@ -147,7 +146,7 @@ new_integer( X, Y, Z, W ) when is_integer( X ) andalso is_integer( Y )
 
 
 % @doc Returns a 4D point whose coordinates are all null, that is the origin of
-% the local referential.
+% the local coordinate system.
 %
 -spec null() -> point4().
 null() ->

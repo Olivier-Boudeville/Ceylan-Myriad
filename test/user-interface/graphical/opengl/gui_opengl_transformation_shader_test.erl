@@ -30,11 +30,11 @@
 % a transformation matrix created from the application and displays a textured
 % square based on it that can be moved with the keyboard to test transformations
 % (translations, rotations and shearings) and directions thereof in the current
-% referential.
+% coordinate system.
 %
 % This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
 % as opposed to the compatibility mode for OpenGL 1.x, and on Myriad's
-% conventions (e.g. a Z-UP referential).
+% conventions (e.g. a Z-UP coordinate system).
 %
 -module(gui_opengl_transformation_shader_test).
 
@@ -47,7 +47,7 @@
 % dimensions of the canvas.
 %
 % Refer to https://myriad.esperide.org/#geometric-conventions to better
-% understand the referential and transformations involved.
+% understand the coordinate system and transformations involved.
 %
 % A Myriad-textured square will be initially located "centered on the floor":
 % its center will be the origin, it will belong to the Z=0 plane (zero altitude)
@@ -72,7 +72,11 @@
 % last, whereas rotations and shearings will happen in their reverse
 % specification order. As a result, for example if rotating the square whereas
 % it has been translated far away from the origin, it will not rotate around the
-% origin, but on itself, in its local referential (around its center).
+% origin, but on itself, in its local coordinate system (around the origin of
+% its coordinate system).
+
+% This version uses matrices (matrix4), not transformations (transform4), and no
+% camera (the view matrix is the identity; only the model matrix applies).
 
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
@@ -116,22 +120,22 @@
 	% recompute the model-view matrix from the next higher-level parameters:
 
 	% The 3D position of the center of the model (textured square) in the world
-	% referential:
+	% coordinate system:
 	%
 	%center_pos :: point3(),
 
 	% The angle of the model (textured square) along the X axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%x_angle :: radians(),
 
 	% The angle of the model (textured square) along the Y axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%y_angle :: radians(),
 
 	% The angle of the model (textured square) along the Z axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%z_angle :: radians(),
 
@@ -197,8 +201,8 @@
 % Key bindings (Z-being-altitude conventions, i.e. Z-UP); note that the
 % user-triggered movements are by default the ones of the model (the square),
 % not the ones of the view (the camera), and that they are defined in absolute
-% terms, relatively to the global referential (as opposed to, for example, based
-% on the camera).
+% terms, relatively to the global coordinate system (as opposed to, for example,
+% based on the camera).
 %
 % First supposing that a keypad is available:
 
@@ -208,7 +212,7 @@
 
 -if( ?has_keypad =:= true ).
 
-% X (abscissa in the Z-up referential) is controlled by left-right keypad
+% X (abscissa in the Z-up coordinate system) is controlled by left-right keypad
 % numbers/arrows:
 
 % Square moving along the +X axis (to the right on the screen, with the default
@@ -222,7 +226,7 @@
 -define( decrease_x_scan_code, ?MYR_SCANCODE_KP_4 ).
 
 
-% Y (depth in the Z-up referential)
+% Y (depth in the Z-up coordinate system)
 
 % Square moving along the +Y axis (to the top of the screen, with the default
 % camera) when hitting the key labelled "8" on keypad:
@@ -235,7 +239,7 @@
 -define( decrease_y_scan_code, ?MYR_SCANCODE_KP_2 ).
 
 
-% Z (ordinate / altitude in the Z-up referential)
+% Z (ordinate / altitude in the Z-up coordinate system)
 
 % Square moving along the +Z axis (from front to behind, with the default
 % camera) when hitting the key labelled "9" on keypad:
@@ -260,7 +264,7 @@
 -else. % Not using keypad here:
 
 
-% X (abscissa in the Z-up referential) is controlled by left-right keypad
+% X (abscissa in the Z-up coordinate system) is controlled by left-right keypad
 % numbers/arrows:
 
 % Square seen moving to the right with the default camera:
@@ -301,6 +305,8 @@
 
 -define( projection_mode_scan_code, ?MYR_SCANCODE_P ).
 
+-define( help_scan_code, ?MYR_SCANCODE_H ).
+
 % End test:
 -define( quit_scan_code, ?MYR_SCANCODE_ESCAPE ).
 
@@ -318,6 +324,8 @@
 
 
 % Shorthands:
+
+-type ustring() :: text_utils:ustring().
 
 -type matrix4() :: matrix4:matrix4().
 -type projection_settings() :: projection:projection_settings().
@@ -455,20 +463,20 @@ run_opengl_test() ->
 
 
 
-% @doc Runs the actual test.
--spec run_actual_test() -> void().
-run_actual_test() ->
+-spec get_help_text() -> ustring().
+get_help_text() ->
 
 	% Only true if keypad is enabled
 
-	% Using a Myriad 3D referential here with Z-up, where the camera is fixed at
-	% the origin, pointing to the -Z axis, with its up direction being the +Y
-	% axis; so:
+	% Using a Myriad 3D coordinate system here with Z-up, where the camera is
+	% fixed at the origin, pointing to the -Z axis, with its up direction being
+	% the +Y axis; so:
 	% - X increases from, onscreen, left to right
 	% - Y increases from bottom of screen to top
 	% - Z increases as getting from farther to nearer the observer
 	%
-	test_facilities:display( "This test will display a square textured with a Myriad image, whose center is at the origin, which is belonging to the Z=0 plane (using Z-up conventions), and that can be moved by hitting keys on the numerical keypad (while the rendering window has the focus):~n"
+
+	text_utils:format( "This test displays a square textured with a Myriad image, whose center is at the origin, which is belonging to the Z=0 plane (using Z-up conventions), and that can be moved by hitting keys on the numerical keypad (while the rendering window has the focus):~n"
 		"  - to translate it of ~f units along (if in translation mode):~n"
 		"    * the X (abscissa) axis: hit '4' to move it, on the left, '6' on the right~n"
 		"    * the Y (ordinate) axis: hit '2' to move it down, '8' up~n"
@@ -482,11 +490,19 @@ run_actual_test() ->
 		"    * the Y axis: hit '2' to scale it down, '8' up~n"
 		"    * the Z axis: hit '3' to scale it down, '9' up~n~n"
 		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
-		"to switch to the next transformation mode (cycling between translation, rotation, shearing), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'Escape' to quit.~n~n"
+		"to switch to the next transformation mode (cycling between translation, rotation, shearing), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
 		"Hints:~n"
 		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
 		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, first make the square go further/downward to make it appear~n",
-		[ ?delta_coord, ?delta_angle, ?delta_scale ] ),
+		[ ?delta_coord, ?delta_angle, ?delta_scale ] ).
+
+
+
+% @doc Runs the actual test.
+-spec run_actual_test() -> void().
+run_actual_test() ->
+
+	test_facilities:display( get_help_text() ),
 
 	gui:start(),
 
@@ -979,10 +995,12 @@ update_scene( _Scancode=?increase_x_scan_code,
 	% Translation on the X axis:
 	VT = [ Inc, 0.0, 0.0 ],
 
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing X of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+
+	trace_utils:debug_fmt( "Increasing X of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1000,10 +1018,11 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	% Translation on the X axis:
 	VT = [ -Inc, 0.0, 0.0 ],
 
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1021,10 +1040,11 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	% Translation on the Y axis:
 	VT = [ 0.0, Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1041,10 +1061,11 @@ update_scene( _Scancode=?decrease_y_scan_code,
 
 	% Translation on the Y axis:
 	VT = [ 0.0, -Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1066,10 +1087,11 @@ update_scene( _Scancode=?increase_z_scan_code,
 
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, Inc ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1087,10 +1109,11 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, -Inc ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1113,11 +1136,12 @@ update_scene( _Scancode=?increase_x_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1136,11 +1160,12 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1160,11 +1185,12 @@ update_scene( _Scancode=?increase_y_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1184,11 +1210,12 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1208,11 +1235,12 @@ update_scene( _Scancode=?increase_z_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1232,11 +1260,12 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1256,8 +1285,9 @@ update_scene( _Scancode=?increase_x_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1275,8 +1305,9 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1295,8 +1326,9 @@ update_scene( _Scancode=?increase_y_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1314,8 +1346,9 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1334,8 +1367,9 @@ update_scene( _Scancode=?increase_z_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1354,8 +1388,9 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
 	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1371,8 +1406,9 @@ update_scene( _Scancode=?reset_scan_code,
 	NewModelViewMat4 = identity_4,
 
 	trace_utils:debug_fmt(
-		"Resetting the modelview matrix, resulting in: MV = ~ts",
-		[ matrix4:to_string( NewModelViewMat4 ) ] ),
+		"Resetting the modelview matrix, resulting in: MV = ~ts~ts",
+		[ matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1438,9 +1474,27 @@ update_scene( _Scancode=?quit_scan_code, GUIState ) ->
 	trace_utils:debug( "Requested to quit." ),
 	{ GUIState, _DoQuit=true };
 
+update_scene( _Scancode=?help_scan_code, GUIState ) ->
+	trace_utils:debug( get_help_text() ),
+	{ GUIState, _DoQuit=false };
+
 update_scene( _Scancode, GUIState ) ->
 	%trace_utils:debug_fmt( "(scancode ~B ignored)", [ Scancode ] ),
 	{ GUIState, _DoQuit=false }.
+
+
+% @doc Returns a description of the local origin of the square, in the global
+% coordinate system.
+%
+get_origin_description( ModelViewMat4 ) ->
+
+	% Using a transformation would eliminate the need of this inversion:
+	InvMat4 = matrix4:inverse( ModelViewMat4 ),
+	LocalOrigin = matrix4:get_translation( InvMat4 ),
+
+	text_utils:format( "In the global coordinate system, the local origin "
+		"of the square coordinate system is now: ~ts",
+		[ point3:to_string( LocalOrigin ) ] ).
 
 
 

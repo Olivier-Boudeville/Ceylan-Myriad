@@ -26,8 +26,8 @@
 % Creation date: Sunday, April 3, 2022.
 
 
-% State of a referential centralising resources.
--record( resource_referential, {
+% State of a repository centralising resources.
+-record( resource_repository, {
 
 	% The (absolute) root directory (if any) whence file-based resources are
 	% loaded: (this can be an actual directory or a symbolic link)
@@ -35,10 +35,4 @@
 	root_directory :: maybe( file_utils:bin_directory_path() ),
 
 	% The table storing the currently-loaded resources:
-	table :: resource:resource_table()
-
-	% Bitmap holder, to be able to control their life-cycle:
-	% (this workaround was actually unecessary)
-	%dummy_frame :: maybe( gui_frame:frame() )
-
-							   } ).
+	table :: resource:resource_table() } ).

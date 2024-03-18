@@ -26,9 +26,24 @@
 % Creation date: Wednesday, February 16, 2022.
 
 
-% @doc Module implementing the support for <b>4x4 transformations</b>.
+% @doc Module implementing the support for <b>4x4 transformations</b> (hence for
+% 3D computations), based on pairs (in logical terms - these are actually
+% records) made of an homogeneous matrix and its inverse, which are updated and
+% maintained through the operations applied to them.
 %
-% See also matrix4.erl
+% The operations triggered on a transformation (the said matrix pair) are the
+% same (name, arguments and their order, contract) that would be triggered
+% directly on its reference matrix only.
+%
+% So, instead of a matrix M, a transformation can be seen (logically) as a
+% {M,InvM} pair, and instead of applying for example an operation O (whose
+% matrix is Mo) on M with M' = M.Mo, we have here T' = T.Mo = {M.Mo,
+% InvMo.InvM}.
+%
+% See also matrix4.erl, as this module offers a larger subset of its API (with
+% any "homogeneous" removed in the function names, as it is implicit here). For
+% non-covered functions, just get/set the reference/inverse matrices that a
+% transform4 contains.
 %
 -module(transform4).
 
@@ -36,23 +51,76 @@
 
 % Implementation notes:
 %
-% Requiring the inverse of a transformation happens frequently, so a
-% transformation is a pair of matrices: a given matrix and its precomputed
-% inverse, so that either can be easily returned.
+% Requiring the inverse of an invertible transformation happens frequently, so
+% such a transformation is a pair of matrices: a given reference matrix and its
+% precomputed inverse, both updated by any operation, one by this actual
+% operation and the other by its reciprocal, so that either remains directly
+% available with no further computation.
 %
-% When applying to a transformation T an "operation" O (e.g. translation,
-% rotation, scaling), we consider that this operation shall happen after the
-% transformation.
-%
-% So, in terms of matrices, if T' is the resulting transformation, Mt' = Mo.Mt,
-% so that for a vector V we have V'= Mt'.V = Mo.Mt.V = Mo.(Mt.v) i.e. first
-% apply T, then O.
-%
-% As for the stored inverse, InvMt' = InvMt.InvMo.
+% If such operations may not be invertible or even linear, we consider here that
+% these are actually 3D operations represented thanks to 4D homogeneous matrices
+% that may be invertible (e.g. for translations).
 %
 % The various types of matrix4 (canonical, compact, identity) are transparently
-% managed.
+% managed. Whether storing any matrix4 instance or only homogeneous_matrix4 ones
+% is still an open question.
 
+
+% Understanding the role and composition of transformations.
+%
+% A transformation (e.g. T12) conveys how elements expressed in a coordinate
+% system R1 can be expressed in a coordinate system R2, and vice versa: thanks
+% to its pair of reference (RefM) / inverse (InvM) matrices, a transformation
+% provides a two-way conversion between frames of reference:
+% - the reference matrix is the transition matrix from R2 to R1: a vector
+% expressed in R2 as V2 will be expressed in R1 as V1 = RefM.V2
+% - conversely, the inverse matrix takes in charge the transition from R1 to
+% R2: a vector expressed in R1 as V1 will be expressed in R2 as V2 = InvM.V1.
+%
+% For example let's suppose we are in a R1 reference frame, and we would like to
+% introduce a R2 one that is simply defined relatively to R1 by a translation of
+% 5 along its X axis.
+%
+% Then transform4:translation(_VT=[5,0,0]) will return a transformation whose
+% reference matrix RefM is the identity_4 matrix except for its top-right
+% element, equal to +5. Applying (on the right) to RefM a vector of R2
+% V2=[X,Y,Z] will thus result in a vector of R1, V1 = RefM.V2 = [X+5,Y,Z].
+%
+%
+% Regarding composition, transformations can be chained by multiplying them on
+% the right, based on a parent-to-child order.
+%
+% For example, if R1 is a base coordinate system, R2 one defined relatively to
+% R1, and R3 one defined relatively to R2 (noted R1->R2->R3), and if the T12 and
+% T23 transformations have been defined like explained above, then a vector
+% expressed in R3 as V3 will be expressed in R1 as V1 = T12_RefM.T23_RefM.V3.
+% Conversely, V3 = T23_InvM.T12_InvM.V1.
+
+% Usual transformations.
+%
+% 3D models (e.g. one of a type of spaceship) are generally defined centered in
+% a local coordinate system Rl of their own (as a geometry - possibly common to
+% many instances), whereas each model instance (a specific, actual spaceship)
+% has its own geometrical information (e.g. positioning) computed. So a given
+% spaceship may be known to be at a given point, pointing to a given direction,
+% and being potentially scaled - all that relatively to some more global frame
+% of reference Rg (e.g. some galactic center).
+%
+% To place correctly such a model in Rg in one go, a suitable transformation may
+% be devised. To convert the coordinates of a point (e.g. the tip of the
+% cockpit) Pl in Rl to the ones (Pg) of that point in Rg, we can define the Tgl
+% transformation, whose reference matrix RefM allows to determine Pg = RefM.Pl.
+%
+% For that, RefM = TrM.RotM.SclM where SclM applies the scaling (as determined
+% by three scaling factors along the axes of Rl), RotM the rotation (as
+% determined by a unit axis and an angle, so that the axes of Rl match the
+% desired ones in Rg) and TrM the translation (as determined by a vector, from
+% the origin of Rg to the final location of the model).
+%
+% This is the recommended order of the operations, otherwise these
+% transformations will become coupled and would interfere negatively (e.g. a
+% translation vector would be scaled as well).
+%
 
 % For records like matrix4:
 -include("matrix4.hrl").
@@ -61,156 +129,635 @@
 -include("transform4.hrl").
 
 -type transform4() :: #transform4{}.
-% A 4x4 transformation, storing both its corresponding 4x4 matrix and its
-% inverse.
+% A 4x4 transformation between two coordinate systems (R1 and R2), storing both
+% its corresponding reference 4x4 matrix (transition from R2 to R1) and its
+% inverse (transition from R1 to R2).
+%
+% This transformation may be named T12.
+%
+% If a coordinate system Rp can be seen as the parent of a coordinate system Rc
+% (Rc being defined relatively to Rp; Rc being then a child of Rp, noted Rp ->
+% Rc), then by convention we prefer defining Tpc rather than Tcp, as then it is
+% directly the reference matrix of Tpc (RefM) that can be used to convert a
+% vector expressed in the child (Rc) into its representation in the parent (Rp),
+% as Vp = RefM.Vc.
 
 
 
 -export_type([ transform4/0 ]).
 
 
--export([ identity/0, new/1,
+-export([ identity/0, new/1, new/2,
+
 		  get_reference/1, get_inverse/1,
-		  translate/2, rotate/2, rotate/3, scale/2, mult/2, mult/1,
+		  swap/1,
+
+		  get_origin/1,
+
+		  translation/1, rotation/2, scaling/1, sc_rot_tr/4,
+		  transition/4,
+
+		  translate_left/2, translate_right/2,
+		  rotate_left/3, rotate_right/3,
+		  scale_left/2, scale_right/2,
+		  scale_x/2, scale_y/2, scale_z/2,
 		  basis_change/3,
-		  inverse/1,
+		  %from_columns/4, compact_from_columns/4, from_rows/4,
+		  %from_coordinates/16, from_compact_coordinates/12,
+		  %from_arbitrary/1, to_arbitrary/1, from_3D/2,
+		  dimension/0, dimensions/0,
+		  scale/2, %add/2, sub/2,
+		  mult/1, mult/2,
+		  are_equal/2,
+		  determinant/1, inverse/1,
+
+		  is_transform4/1,
+		  check_type/1, check/1,
 		  to_string/1 ] ).
 
 
-%-import( math_utils, [ is_null/1, are_close/2 ] ).
-
+-define( dim, 4 ).
 
 
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 
+-type factor() :: math_utils:factor().
+
 -type radians() :: unit_utils:radians().
+
+-type dimension() :: linear:dimension().
+-type scalar() :: linear:scalar().
 
 -type point3() :: point3:point3().
 
 -type vector3() :: vector3:vector3().
 -type unit_vector3() :: vector3:unit_vector3().
 
+-type dimensions() :: matrix:dimensions().
+
+-type user_matrix4() :: matrix4:user_matrix4().
 -type matrix4() :: matrix4:matrix4().
 
+-type scale_factors() :: matrix4:scale_factors().
+% Here scale factors are expected to be non-null, otherwise no relevant
+% transformation can be defined (not invertible).
+
+-type homogeneous_matrix4() :: matrix4:homogeneous_matrix4().
+
+-type transition_matrix4() :: matrix4:transition_matrix4().
 
 
-% @doc Returns the (4D) identity transformation.
+
+% No sensible null/0 here.
+
+
+% @doc Returns the 4x4 identity transformation.
 -spec identity() -> transform4().
 identity() ->
 	#transform4{}.
 
 
-
-% @doc Returns the (4D) identity transformation whose reference matrix is the
-% specified one.
+% @doc Returns the 4x4 transformation whose reference matrix is the specified
+% one.
 %
--spec new( matrix4() ) -> transform4().
-new( M ) ->
-	case matrix4:inverse( M ) of
+-spec new( user_matrix4() | matrix4() ) -> transform4().
+new( _M=identity_4 ) ->
+	#transform4{};
+
+new( CM ) when is_record( CM, compact_matrix4 ) ->
+	T = case matrix4:inverse( CM ) of
 
 		undefined ->
-			throw( { non_invertible_matrix, M } );
+			throw( { non_invertible_matrix, CM } );
 
-		InvM ->
-			#transform4{ matrix=M, inverse=InvM }
+		InvCM ->
+			#transform4{ reference=CM, inverse=InvCM }
 
-	end.
+	end,
+
+	cond_utils:assert( myriad_check_linear, check( T ) ),
+
+	T;
+
+new( UserMatrix ) ->
+	M = matrix4:new( UserMatrix ),
+	new( matrix4:to_compact( M ) ).
 
 
 
-% @doc Returns the reference matrix corresponding to the specified
+% @doc Returns the 4x4 transformation whose reference matrix and inverse one are
+% directly the specified ones.
+%
+-spec new( homogeneous_matrix4(), homogeneous_matrix4() ) -> transform4().
+new( HM, InvHM ) ->
+
+	T = #transform4{ reference=HM, inverse=InvHM },
+
+	cond_utils:assert( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Returns the (4x4) reference matrix corresponding to the specified 4x4
 % transformation.
 %
--spec get_reference( transform4() ) -> matrix4().
-get_reference( #transform4{ matrix=M } ) ->
-	M.
+-spec get_reference( transform4() ) -> homogeneous_matrix4().
+get_reference( #transform4{ reference=HM } ) ->
+	HM.
 
 
-
-% @doc Returns the inverse of the matrix corresponding to the specified
-% transformation.
+% @doc Returns the inverse of the (4x4) matrix corresponding to the specified
+% 4x4 transformation.
 %
--spec get_inverse( transform4() ) -> matrix4().
-get_inverse( #transform4{ inverse=InvM } ) ->
-	InvM.
+-spec get_inverse( transform4() ) -> homogeneous_matrix4().
+get_inverse( #transform4{ inverse=InvHM } ) ->
+	InvHM.
 
 
 
-% @doc Returns the specified transformation once composed with an additional
-% translation (applied last) of the specified 3D vector.
+% @doc Swaps the two matrices of the specified transform, thus returning the
+% inverse transform (that is the transform from the destination to the source of
+% the specified one).
 %
--spec translate( transform4(), vector3() ) -> transform4().
-translate( #transform4{ matrix=M, inverse=InvM }, VT ) ->
+-spec swap( transform4() ) -> transform4().
+swap( #transform4{ reference=HM, inverse=InvHM } ) ->
+	#transform4{ reference=InvHM, inverse=HM }.
 
-	% TO-DO: hardcode/inline directly these operations:
 
-	% This new translation is to be applied last:
-	NewM = matrix4:mult( matrix4:translation( VT ), M ),
+
+% @doc Returns, based on the specified transition transformation from the
+% current orthonormal basis alpha to a beta one, the origin of beta as expressed
+% in alpha.
+%
+-spec get_origin( transform4() ) -> point3().
+% Refer to
+% http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices
+% for further details:
+%
+get_origin( _HM=#transform4{ inverse=InvM } ) ->
+	% No silly inlining:
+	matrix4:get_translation( InvM ).
+
+
+
+% @doc Returns the 4x4 transformation corresponding to a translation of the
+% specified (3D) vector: its reference matrix will be the transition matrix from
+% the translated coordinate system to the current one (and of course its inverse
+% matrix will implement to opposite transition, from current to translated).
+%
+% Refer to the "Understanding the role and composition of transformations"
+% section for more details.
+%
+-spec translation( vector3() ) -> transform4().
+translation( VT ) ->
+
+	% Hence a compact matrix:
+	HM = matrix4:translation( VT ),
+
+	% Inverse of a translation of VT is one of -VT:
+	InvHM = matrix4:translation( vector3:negate( VT ) ),
+
+	T = #transform4{ reference=HM, inverse=InvHM },
+
+	cond_utils:assert( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Returns the 4x4 transformation corresponding to a rotation of the
+% specified angle around the 3D axis specified as a unit vector (and to no
+% translation): its reference matrix will be the transition matrix from
+% the rotated coordinate system to the current one (and of course its inverse
+% matrix will implement to opposite transition, from current to rotated).
+%
+% This will be a counterclockwise rotation for an observer placed so that the
+% specified axis points towards it.
+%
+% Note that this is not the general case of a rotation in 4D (which is of little
+% use, at least here); this corresponds to (4x4) homogeneous matrices.
+%
+% Refer to the "Understanding the role and composition of transformations"
+% section for more details.
+%
+-spec rotation( unit_vector3(), radians() ) -> transform4().
+rotation( UnitAxis, RadAngle ) ->
+
+	HM = #compact_matrix4{ m12=M12, m13=M13,
+						   m21=M21, m23=M23,
+						   m31=M31, m32=M32 }
+	   = matrix4:rotation( UnitAxis, RadAngle ),
+
+	% More expensive:
+	%InvM = matrix4:rotation( UnitAxis, -RadAngle ),
+
+	% A transpose of the 3D part should do the trick as well; just having to
+	% mirror-swap the extra-diagonal terms of the inner 3x3 matrix, knowing
+	% that:
+	% M = #compact_matrix4{ m11, m12, m13, tx=Zero,
+	%                       m21, m22, m23, ty=Zero,
+	%                       m31, m32, m33, tz=Zero }.
+	%
+	InvHM = HM#compact_matrix4{ m12=M21, m13=M31,
+								m21=M12, m23=M32,
+								m31=M13, m32=M23 },
+
+	T = #transform4{ reference=HM, inverse=InvHM },
+
+	cond_utils:assert( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Returns the 4x4 transformation corresponding to the scaling of the
+% specified (supposedly non-null) factors: its reference matrix will be the
+% transition matrix from the scaled coordinate system to the current one (and of
+% course its inverse matrix will implement to opposite transition, from current
+% to scaled).
+%
+% Due to homogenous matrices, the inverse of a scaling matrix is not the matrix
+% of the inverse factors, this function is thus not a proper transform. See
+% scale_{left,right}/2 instead.
+%
+% Refer to the "Understanding the role and composition of transformations"
+% section for more details.
+%
+-spec scaling( scale_factors() ) -> transform4().
+scaling( ScaleFactors ) ->
+
+   % Hence a compact matrix:
+	HM = matrix4:scaling( ScaleFactors ),
+
+	InvFactors = inverse_factors( ScaleFactors ),
+
+	InvHM = matrix4:scaling( InvFactors ),
+
+	T = #transform4{ reference=HM, inverse=InvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Returns the inverse of the specified factors.
+-spec inverse_factors( scale_factors() ) -> scale_factors().
+inverse_factors( _Factors={ Sx, Sy, Sz } ) ->
+	{ 1/Sx, 1/Sy, 1/Sz }.
+
+
+
+% @doc Returns the 4x4 transformation corresponding to the scaling of the
+% specified factors, followed by a rotation of the specified axis and angle, and
+% then the translation of the specified vector.
+%
+% Refer to the 'Usual transformations' section for further details.
+%
+-spec sc_rot_tr( scale_factors(), unit_vector3(), radians(), vector3() ) ->
+										transition_matrix4().
+sc_rot_tr( ScaleFactors, RotUnitAxis, RotRadAngle, TransVec ) ->
+
+	% Let's R1 be the current coordinate system, and R2 the target one (R1->R2),
+	% we are computing T12.
+	%
+	% For a vector expressed as V1 in R1 and to be expressed as V2 in R2, we
+	% want V2 = RefM.V1 = TrM.RotM.SclM.V1.
+
+	TScl = scaling( ScaleFactors ),
+	TSclRot = rotate_left( RotUnitAxis, RotRadAngle, TScl ),
+	_TSclRotTr = translate_left( TransVec, TSclRot ).
+
+
+
+% @doc Returns T12, the 4x4 transition transformation from the current
+% orthonormal basis (R1) to one (R2) in which the origin and axes of the current
+% basis (R1) are expressed; its reference matrix will be the transition matrix
+% from R2 to R1 (and of course its inverse matrix will implement to opposite
+% transition, from R1 to R2).
+%
+% Refer to the "Understanding the role and composition of transformations"
+% section and to matrix4:transition/4 for further details.
+%
+-spec transition( point3(), unit_vector3(), unit_vector3(), unit_vector3() ) ->
+										transition_matrix4().
+transition( Origin, X, Y, Z ) ->
+
+	% Hence a compact matrix:
+	HM = matrix4:transition( Origin, X, Y, Z ),
+
+	% The inverse of a transition matrix [R|T] is [Rt|-Rt.T] where Rt is the
+	% transpose of R; so:
+
+	{ R, T } = matrix4:to_3D( HM ),
+
+	% As orthogonal:
+	InvR = matrix3:transpose( R ),
+
+	MinusInvT = matrix3:apply( InvR, T ),
+
+	InvT = vector3:negate( MinusInvT ),
+
+	% Hence a compact matrix:
+	InvHM = matrix4:from_3D( InvR, InvT ),
+
+	TRes = #transform4{ reference=HM, inverse=InvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( TRes ) ),
+
+	% TO-DO: fully inline the computation of InvHM, and check that it is equal
+	% to the previous computation.
+
+	TRes.
+
+
+
+% @doc Returns the dimension of these transformations.
+%
+% Not useless, when using polymorphism based on module name.
+%
+-spec dimension() -> dimension().
+dimension() ->
+	?dim.
+
+
+
+% @doc Returns the dimensions of these transformations.
+%
+% Not useless, when using polymorphism based on module name.
+%
+-spec dimensions() -> dimensions().
+dimensions() ->
+	{ ?dim, ?dim }.
+
+
+
+% @doc Returns the specified 4x4 transformation (T) once multiplied on its left
+% by a translation matrix (TM) corresponding to the specified vector (VT):
+% returns therefore T' = TM.T.
+%
+% Corresponds to adding the specified translation vector to the right-most
+% column of the reference homogeneous matrix, and updating its inverse
+% accordingly.
+%
+-spec translate_left( vector3(), transform4() ) -> transform4().
+translate_left( VT, #transform4{ reference=HM, inverse=InvHM } ) ->
+
+	% So NewM = TrM.HM:
+	NewHM = matrix4:translate_homogeneous_left( VT, HM ),
 
 	MinusVT = vector3:negate( VT ),
 
-	NewInvM = matrix4:mult( InvM, matrix4:translation( MinusVT ) ),
+	% So NewInvHM = InvHM.InvTrM; nothing simpler than:
+	NewInvHM = matrix4:mult( InvHM, matrix4:translation( MinusVT ) ),
 
-	#transform4{ matrix=NewM, inverse=NewInvM }.
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
 
 
 
-% @doc Returns the specified transformation once composed with an additional
-% rotation (applied last) directly specified as a matrix.
+% @doc Returns the specified 4x4 transformation (T) once multiplied on its right
+% by a translation matrix (TM) corresponding to the specified vector (VT):
+% returns therefore T' = T.TM.
 %
--spec rotate( transform4(), matrix4() ) -> transform4().
-rotate( #transform4{ matrix=M, inverse=InvM }, MRot ) ->
-
-	% For orthogonal matrices like rotations, the inverse are their transpose:
-	InvMRot = matrix4:transpose( MRot ),
-
-	#transform4{ matrix=matrix4:mult( MRot, M ),
-				 inverse=matrix4:mult( InvM, InvMRot ) }.
-
-
-
-% @doc Returns the specified transformation once composed with an additional
-% rotation (applied last), specified as a (unit) axis and an angle.
+-spec translate_right( transform4(), vector3() ) -> transform4().
+% Not helpful: corresponds to adding the opposite of the specified translation
+% vector to the right-most column of the inverse homogeneous matrix, and
+% updating its reference accordingly.
 %
--spec rotate( transform4(), unit_vector3(), radians() ) -> transform4().
-rotate( Transform, UnitAxis, RadAngle ) ->
-	MRot = matrix4:rotation( UnitAxis, RadAngle ),
-	rotate( Transform, MRot ).
+translate_right( #transform4{ reference=HM, inverse=InvHM }, VT ) ->
+
+	% So NewHM = HM.TrM; nothing simpler than:
+	NewHM = matrix4:mult( HM, matrix4:translation( VT ) ),
+
+	% For the inverse now:
+	MinusVT = vector3:negate( VT ),
+
+	% So NewInvHM = InvTrM.InvHM:
+	NewInvHM = matrix4:translate_homogeneous_left( MinusVT, InvHM ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+% No real meaning/use with homogeneous matrices: transpose/1.
 
 
 
-% @doc Returns the specified transformation once composed with an additional
-% scaling (applied last), specified as a vector (of non-null factors).
+
+% @doc Updates the specified 4x4 transformation by applying on its left the
+% specified rotation: returns therefore T' = RotM.T.
 %
--spec scale( transform4(), vector3() ) -> transform4().
-scale( #transform4{ matrix=M, inverse=InvM }, VS=[ Vx, Vy, Vz ] ) ->
+-spec rotate_left( unit_vector3(), radians(), transform4() ) -> transform4().
+rotate_left( UnitAxis, RadAngle, #transform4{ reference=HM, inverse=InvHM } ) ->
 
-	MS = matrix4:scaling( VS ),
+	% NewHM = RotM.HM:
+	NewHM = matrix4:rotate_homogeneous_left( UnitAxis, RadAngle, HM ),
 
-	One = 1.0,
+	% NewInvM = InvHM.InvRotM, the inverse of a rotation being the opposite
+	% angle around the same axis:
+	%
+	NewInvHM = matrix4:rotate_homogeneous_right( InvHM, UnitAxis, -RadAngle ),
 
-	InvMS = matrix4:scaling( [ One/Vx, One/Vy, One/Vz ] ),
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
 
-	#transform4{ matrix=matrix4:mult( MS, M ),
-				 inverse=matrix4:mult( InvM, InvMS ) }.
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
 
 
 
-% @doc Returns the transformation corresponding to the in-order multiplication
-% of the two specified ones.
+% @doc Updates the specified 4x4 transformation by applying on its right the
+% specified rotation: returns therefore T' = T.RotM.
+%
+-spec rotate_right( transform4(), unit_vector3(), radians() ) -> transform4().
+rotate_right( #transform4{ reference=HM, inverse=InvHM },
+			  UnitAxis, RadAngle ) ->
+
+	% NewHM = HM.RotM:
+	NewHM = matrix4:rotate_homogeneous_right( HM, UnitAxis, RadAngle ),
+
+	% NewInvHM = InvRotM.InvHM, the inverse of a rotation being the opposite
+	% angle around the same axis:
+	%
+	NewInvHM = matrix4:rotate_homogeneous_left( UnitAxis, -RadAngle, InvHM ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Updates the specified 4x4 transformation by applying on its left the
+% scaling of the specified factors: returns therefore T' = SclM.T.
+%
+-spec scale_left( scale_factors(), transform4() ) -> transform4().
+scale_left( ScaleFactors, #transform4{ reference=HM, inverse=InvHM } ) ->
+
+	% NewHM = SclM.HM:
+	NewHM = matrix4:scale_homogeneous_left( ScaleFactors, HM ),
+
+	% NewInvM = InvHM.InvSclM, the inverse of a scaling being the scaling of
+	% inverse factors:
+
+	InvScaleFactors = inverse_factors( ScaleFactors ),
+	NewInvHM = matrix4:scale_homogeneous_right( InvHM, InvScaleFactors ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Updates the specified 4x4 transformation by applying on its right the
+% scaling of the specified factors: returns therefore T' = T.SclM.
+%
+-spec scale_right( transform4(), scale_factors() ) -> transform4().
+scale_right( #transform4{ reference=HM, inverse=InvHM }, ScaleFactors ) ->
+
+	% NewHM = HM.SclM:
+	NewHM = matrix4:scale_homogeneous_right( HM, ScaleFactors ),
+
+	% NewInvHM = InvSclM.InvHM, the inverse of a scaling being the scaling of
+	% inverse factors:
+
+	InvScaleFactors = inverse_factors( ScaleFactors ),
+	NewInvHM = matrix4:scale_homogeneous_left( InvScaleFactors, InvHM ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Returns the specified 4x4 transformation once scaled by the specified
+% (uniform, non-null) factor.
+%
+% Note that no left/right variations apply here.
+%
+-spec scale( transform4(), factor() ) -> transform4().
+scale( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
+
+	NewHM = matrix4:scale_homogeneous( HM, Factor ),
+
+	NewInvHM = matrix4:scale_homogeneous( InvHM, 1/Factor ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Updates the specified 4x4 transformation by applying the specified
+% (uniform) shearing factor on the leftmost column (X) of its reference matrix,
+% like when this matrix is multiplied on its right by a scaling matrix
+% equal to the identity, except for its first diagonal element, which would be
+% equal to the specified factor; returns therefore T' = T.SxM.
+%
+-spec scale_x( transform4(), factor() ) -> transform4().
+scale_x( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
+	NewHM = matrix4:scale_homogeneous_x( HM, Factor ),
+
+	% If HM' = HM.SxM, then InvHM' = InvSxM.InvHM; InvSxM is like SxM but with
+	% an inverse factor, so (transposed function version to account for the
+	% reversed multiplication order):
+	%
+	NewInvHM = matrix4:scale_homogeneous_x_t( InvHM, 1/Factor ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+% @doc Updates the specified 4x4 transformation by applying the specified
+% (uniform) shearing factor on the second column (Y) of its reference matrix,
+% like when this matrix is multiplied on its right by a scaling matrix
+% equal to the identity, except for its second diagonal element, which would be
+% equal to the specified factor; returns therefore T' = T.SyM.
+%
+-spec scale_y( transform4(), factor() ) -> transform4().
+scale_y( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
+	NewHM = matrix4:scale_homogeneous_y( HM, Factor ),
+
+	% If HM' = HM.SyM, then InvHM' = InvSyM.InvHM; InvSyM is like SyM but with
+	% an inverse factor, so (transposed function version to account for the
+	% reversed multiplication order):
+	%
+	NewInvHM = matrix4:scale_homogeneous_y_t( InvHM, 1/Factor ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Updates the specified 4x4 transformation by applying the specified
+% (uniform) shearing factor on the third column (Z) of its reference matrix,
+% like when this matrix is multiplied on its right by a scaling matrix
+% equal to the identity, except for its third diagonal element, which would be
+% equal to the specified factor; returns therefore T' = T.SzM.
+%
+-spec scale_z( transform4(), factor() ) -> transform4().
+scale_z( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
+	NewHM = matrix4:scale_homogeneous_z( HM, Factor ),
+
+	% If HM' = HM.SzM, then InvHM' = InvSzM.InvHM; InvSzM is like SzM but with
+	% an inverse factor, so (transposed function version to account for the
+	% reversed multiplication order):
+	%
+	NewInvHM = matrix4:scale_homogeneous_z_t( InvHM, 1/Factor ),
+
+	T = #transform4{ reference=NewHM, inverse=NewInvHM },
+
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+
+	T.
+
+
+
+% @doc Returns the determinant of the specified matrix.
+-spec determinant( transform4() ) -> scalar().
+determinant( #transform4{ reference=HM } ) ->
+	matrix4:determinant( HM ).
+
+
+
+% @doc Returns the (4x4) transformation corresponding to the in-order
+% multiplication of the two specified ones: returns therefore T = T1.T2.
 %
 -spec mult( transform4(), transform4() ) -> transform4().
-mult( #transform4{ matrix=M1, inverse=InvM1 },
-	  #transform4{ matrix=M2, inverse=InvM2 } ) ->
-	M = matrix4:mult( M2, M1 ),
-	InvM = matrix4:mult( InvM1, InvM2 ),
-	#transform4{ matrix=M, inverse=InvM }.
+mult( _T1=#transform4{ reference=HM1, inverse=InvHM1 },
+	  _T2=#transform4{ reference=HM2, inverse=InvHM2 } ) ->
+	M = matrix4:mult( HM1, HM2 ),
+	InvM = matrix4:mult( InvHM2, InvHM1 ),
+	T = #transform4{ reference=M, inverse=InvM },
+	cond_utils:if_defined( myriad_check_linear, check( T ) ),
+	T.
 
 
-% @doc Returns the transformation corresponding to the in-order multiplication
-% of the specified ones.
+% @doc Returns the (4x4) transformation corresponding to the in-order
+% multiplication of the specified ones.
 %
 -spec mult( [ transform4() ] ) -> transform4().
 mult( _Transforms=[ T1, T2 | T ] ) ->
@@ -221,16 +768,35 @@ mult( _Transforms=[ T ] ) ->
 
 
 
+% @doc Tells whether the two specified (4x4) transformations are equal.
+-spec are_equal( transform4(), transform4() ) -> boolean().
+are_equal( T1=#transform4{ reference=HM1, inverse=InvHM1 },
+		   T2=#transform4{ reference=HM2, inverse=InvHM2 } ) ->
+	cond_utils:if_defined( myriad_check_linear,
+		begin
+			FirstTest = matrix4:are_equal( HM1, HM2 ),
+			SecondTest = matrix4:are_equal( InvHM1, InvHM2 ),
+			FirstTest =:= SecondTest orelse
+				throw( { inconsistent_equality, T1, T2 } ),
+			FirstTest
+		end,
+		begin
+			basic_utils:ignore_unused( [ T1, T2, InvHM1, InvHM2 ] ),
+			matrix4:are_equal( HM1, HM2 )
+		end ).
+
+
+
 % @doc Returns a transition transformation whose reference matrix is a
-% change-of-basis matrix from the current referential (R1) to one (R2) whose
-% origin, forward and up directions are the specified ones (still in the current
-% referential R1).
+% change-of-basis matrix from the current coordinate system (reference frame R1)
+% to one (R2) whose origin, forward and up directions are the specified ones
+% (still in the current coordinate system R1).
 %
 % So returns P1->2, allowing, for an (homogeneous) point P, to convert P1, its
-% representation in current referential R1, into P2, its counterpart in R2:
-% P2 = P1->2.P1.
+% representation in current coordinate system R1, into P2, its counterpart in
+% R2: P2 = P1->2.P1.
 %
-% The inverse matrix in this transformation is thus P2->1.
+% The inverse matrix of this transformation corresponds thus to P2->1.
 %
 -spec basis_change( point3(), vector3(), vector3() ) -> transform4().
 basis_change( _O2InR1={ XO2, YO2, ZO2 }, FwdDir2InR1, UpDir2InR1 ) ->
@@ -271,20 +837,68 @@ basis_change( _O2InR1={ XO2, YO2, ZO2 }, FwdDir2InR1, UpDir2InR1 ) ->
 							 m21=XJ2, m22=YJ2, m23=ZJ2, ty=InvTy,
 							 m31=XK2, m32=YK2, m33=ZK2, tz=InvTz },
 
-	#transform4{ matrix=M, inverse=InvM }.
+	#transform4{ reference=M, inverse=InvM }.
 
 
 
 % @doc Returns the inverse transformation of the specified one.
 -spec inverse( transform4() ) -> transform4().
-inverse( #transform4{ matrix=M, inverse=InvM } ) ->
-	#transform4{ matrix=InvM, inverse=M }.
+inverse( #transform4{ reference=M, inverse=InvM } ) ->
+	#transform4{ reference=InvM, inverse=M }.
+
+
+
+% @doc Tells whether the specified term is a 4D transformation.
+-spec is_transform4( term() ) -> boolean().
+is_transform4( Transf4 ) when is_record( Transf4, transform4 ) ->
+	true;
+
+is_transform4( _Other ) ->
+	false.
+
+
+
+% @doc Checks that the specified term is a transform4, and returns it.
+%
+% Does not check its consistency (see check/1).
+%
+-spec check_type( term() ) -> transform4().
+check_type( T ) when is_record( T, transform4 ) ->
+	T;
+
+check_type( Other ) ->
+	throw( { not_transform4, Other } ).
+
+
+
+% @doc Checks that this transformation is consistent; throws an exception if
+% not.
+%
+-spec check( transform4() ) -> transform4().
+check( T=#transform4{ reference=M, inverse=InvM } ) ->
+
+	Mult = matrix4:mult( M, InvM ),
+
+	matrix4:are_equal( Mult, matrix4:identity() ) orelse
+		begin
+
+			cond_utils:if_defined( myriad_debug_linear,
+				trace_utils:error_fmt( "Not close enough to identity_4: ~ts",
+									   [ matrix4:to_string( Mult ) ] ) ),
+
+			cond_utils:if_defined( myriad_debug_linear,
+				trace_utils:error_fmt( "Reference: ~ts~nInverse: ~ts",
+					[ matrix4:to_string( M ), matrix4:to_string( InvM ) ] ) ),
+
+			throw( { inconsistent_transform4, T, Mult } )
+
+		end.
 
 
 
 % @doc Returns a textual representation of the specified (4x4) transformation.
 -spec to_string( transform4() ) -> ustring().
-to_string( #transform4{ matrix=M, inverse=InvM } ) ->
+to_string( #transform4{ reference=M, inverse=InvM } ) ->
 	text_utils:format( "4x4 transformation recording reference matrix ~ts and "
 		"its inverse ~ts",
 		[ matrix4:to_string( M ), matrix4:to_string( InvM ) ] ).

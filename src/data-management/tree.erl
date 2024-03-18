@@ -22,28 +22,30 @@
 % If not, see <http://www.gnu.org/licenses/> and
 % <http://www.mozilla.org/MPL/>.
 %
-% Creation date: Monday, May 25, 2015.
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Monday, May 25, 2015.
 
 
-% @doc Gathering of facilities to manage <b>trees</b> that may be unbalanced.
+% @doc Gathering of facilities to manage <b>trees</b>, balanced or not.
+%
+% The support comprises the one of classical, functional, recursive trees, but
+% also ones (actually forests) whose nodes are indexed by an associative table
+% (typically for faster look-up).
+%
 -module(tree).
 
 
-% So that we can defined our own size/1:
+% So that we can define our own size/1:
 -compile( { no_auto_import, [ size/1 ] } ).
 
 
+
+
+% Section transverse to all kinds of trees.
+
+
 -type node_content() :: maybe( any() ).
-% The content of a node of a tree ('undefined' means empty content).
-
-
--opaque tree() :: { node_content(), [ tree() ] }.
-% Any tree is made of the content of its root and of any number of (ordered)
-% subtrees (children trees).
-
--opaque tree( T ) :: { T, [ tree( T ) ] }.
-% A typed tree is polymorphic according to its node content.
+% The content of a node of a tree ('undefined' meaning empty content).
 
 
 -type content_fold_fun() ::
@@ -53,14 +55,80 @@
 
 -type height() :: count().
 % Height of a tree.
+%
+% Zero for a single node, one for a parent node and its child, etc.
 
 
--export_type([ tree/0, tree/1, node_content/0, content_fold_fun/0, height/0 ]).
+-export_type([ node_content/0, content_fold_fun/0, height/0 ]).
+
+
+
+% Section for classical, functional, recursive trees.
+
+
+-opaque tree() :: { node_content(), [ tree() ] }.
+% Any tree is made of the content of its root and of any number of (ordered)
+% subtrees (children trees).
+
+
+-opaque tree( T ) :: { T, [ tree( T ) ] }.
+% A typed tree is polymorphic according to its node content.
+
+
+
+-export_type([ tree/0, tree/1 ]).
 
 
 -export([ new/0, new/1, new/2, set_content/2, append_child/2, append_children/2,
-		  map/2, fold_breadth_first/3, fold_depth_first/3,
-		  height/1, size/1, to_string/1 ]).
+		  map/2, fold_breadth_first/3, fold_depth_first/3, height/1, size/1,
+		  to_string/1 ]).
+
+
+
+
+% Section for trees/forests whose nodes are indexed by an associative table.
+%
+% No parametric type, as not useful enough.
+
+
+-type node_id() :: term().
+% Designates the identifier of a node of a tree (typically in a forest table).
+
+
+-type child_ids() :: [ node_id() ].
+% A list of node identifiers, usually semantically equivalent to a set thereof.
+
+
+-type forest_table() :: table( node_id(), node_content() ).
+% Another type of tree, based on an indexing table describing, in the general
+% case, a forest.
+%
+% The index of the root node (if any) is implicit (not specified) here.
+
+
+-type children_table() :: table( node_id(), child_ids() ).
+% A table keeping track of the child nodes of each node, based on node
+% identifiers.
+
+
+-type node_to_string_fun() :: fun( ( node_id(), forest_table() ) -> ustring() ).
+% A function able to return, from a given node identifier and its corresponding
+% forest table, a string describing it.
+
+
+-type node_to_children_fun() ::
+		fun( ( node_id(), forest_table() ) -> [ node_id() ] ).
+% A function able to return, from a given node identifier and its corresponding
+% forest table, the identifier of its children.
+
+
+-export_type([ node_id/0, child_ids/0, forest_table/0, children_table/0,
+			   node_to_string_fun/0, node_to_children_fun/0 ]).
+
+
+-export([ to_string/3, forest_to_string/4 ]).
+
+
 
 
 % Shorthands:
@@ -69,7 +137,14 @@
 -type accumulator() :: basic_utils:accumulator().
 
 -type ustring() :: text_utils:ustring().
+-type verbosity_level() :: text_utils:verbosity_level().
 
+
+
+
+
+
+% Section for classical, functional, recursive trees.
 
 
 % @doc Creates a single-node, empty, tree.
@@ -93,17 +168,17 @@ new( NodeContent, Subtrees ) ->
 
 
 
-% @doc Sets the content of specified node.
+% @doc Sets the content of the specified node.
 -spec set_content( node_content(), tree() ) -> tree().
-set_content( Content, _Tree= { _PastContent, ChildrenTrees } ) ->
-	{ Content, ChildrenTrees }.
+set_content( Content, _Tree= { _PastContent, ChildTrees } ) ->
+	{ Content, ChildTrees }.
 
 
 
 % @doc Appends the specified child tree as first child of the specified tree.
 -spec append_child( tree(), tree() ) -> tree().
-append_child( NewChildTree, _TargetTree={ Content, ChildrenTrees } ) ->
-	{ Content, [ NewChildTree | ChildrenTrees ] }.
+append_child( NewChildTree, _TargetTree={ Content, ChildTrees } ) ->
+	{ Content, [ NewChildTree | ChildTrees ] }.
 
 
 
@@ -111,12 +186,13 @@ append_child( NewChildTree, _TargetTree={ Content, ChildrenTrees } ) ->
 % tree.
 %
 -spec append_children( [ tree() ], tree() ) -> tree().
-append_children( NewChildTrees, _TargetTree={ Content, ChildrenTrees } ) ->
-	{ Content, NewChildTrees ++ ChildrenTrees }.
+append_children( NewChildTrees, _TargetTree={ Content, ChildTrees } ) ->
+	{ Content, NewChildTrees ++ ChildTrees }.
 
 
 
-% @doc Maps specified function to the content of all nodes of specified tree.
+% @doc Maps specified function to the content of all nodes of the specified
+% tree.
 %
 % Performs breadth-first mapping.
 %
@@ -164,8 +240,8 @@ fold_depth_first( ContentFun, InitialAcc, _Tree={ Content, Subtrees } ) ->
 
 
 
-% @doc Returns the height (maximum depth) of specified tree, ie the number of
-% edges on the longest downward path between the root and a leaf.
+% @doc Returns the height (maximum depth) of the specified tree, that is the
+% number of edges on the longest downward path between the root and any leaf.
 %
 -spec height( tree() ) -> height().
 height( _Tree={ _Content, _Subtrees=[] } ) ->
@@ -185,8 +261,7 @@ height( _Tree={ _Content, Subtrees } ) ->
 
 
 
-% @doc Returns the total number of nodes that specified tree contains.
-%
+% @doc Returns the total number of nodes that the specified tree contains.
 -spec size( tree() ) -> count().
 %size( _Tree={ _Content, _Subtrees=[] } ) ->
 %   1;
@@ -205,7 +280,7 @@ size( _Tree={ _Content, Subtrees }, Acc ) ->
 
 
 
-% @doc Returns a textual description of specified tree.
+% @doc Returns a textual description of the specified tree.
 -spec to_string( tree() ) -> ustring().
 to_string( Tree ) ->
 	% Is an io_list():
@@ -233,3 +308,81 @@ to_string( _Tree={ Content, SubTrees }, Prefix ) ->
 		_List=SubTrees ),
 
 	lists:reverse( AllStrings ).
+
+
+
+
+% Section for trees/forests whose nodes are indexed by an associative table.
+
+
+
+% @doc Returns a textual description of the specified forest, based on its main
+% table, the one of its children, and the identifier of the root node to
+% consider.
+%
+-spec to_string( forest_table(), node_id(), verbosity_level() ) -> ustring().
+to_string( ForestTable, RootNodeId, _VerbLevel=low ) ->
+	text_utils:format( "forest table of ~B nodes, whose root node is #~B",
+					   [ table:size( ForestTable ), RootNodeId ] );
+
+to_string( ForestTable, RootNodeId, _VerbLevel=high ) ->
+
+	% Basic defaults:
+
+	NodeToStringDefFun = fun( NodeId, _FTable ) ->
+		%NodeContent = table:get_value( NodeId, FTable ),
+		%text_utils:format( "node #~B: ~p", [ NodeId, NodeContent ] )
+		text_utils:format( "node #~B", [ NodeId ] )
+						 end,
+
+	% Here we expect the node content to be a list of the children of the
+	% corresponding node:
+	%
+	NodeToChildrenDefFun = fun( NodeId, FTable ) ->
+							table:get_value( NodeId, FTable )
+						   end,
+
+	forest_to_string( ForestTable, RootNodeId, NodeToStringDefFun,
+					  NodeToChildrenDefFun ).
+
+
+
+% @doc Returns a textual description of the specified forest table, using the
+% specified starting node, and stringification and children-listing functions.
+%
+-spec forest_to_string( forest_table(), node_id(), node_to_string_fun(),
+						node_to_children_fun() ) -> ustring().
+forest_to_string( ForestTable, FromNodeId, NodeToStringFun,
+				  NodeToChildrenFun ) ->
+	forest_to_string( ForestTable, _ParentNodeId=FromNodeId, NodeToStringFun,
+					  NodeToChildrenFun, _Level=0 ).
+
+
+-define( spacer, "  " ).
+
+
+% (helper)
+forest_to_string( ForestTable, ParentNodeId, NodeToStringFun, NodeToChildrenFun,
+				  Level ) ->
+
+	ParentStr = case Level of
+			0 ->
+				text_utils:format( "~n~ts",
+					[ NodeToStringFun( ParentNodeId, ForestTable ) ] );
+
+			_ ->
+				text_utils:format( "~ts- ~ts",
+					[ text_utils:duplicate( Level, ?spacer ),
+					  NodeToStringFun( ParentNodeId, ForestTable ) ] )
+
+	end,
+
+	Children = NodeToChildrenFun( ParentNodeId, ForestTable ),
+
+	%trace_utils:debug_fmt( "Children of #~B: ~w.",
+	%   [ ParentNodeId, Children ] ),
+
+	ChildrenStrs = [ forest_to_string( ForestTable, C, NodeToStringFun,
+						NodeToChildrenFun, Level+1 ) || C <- Children ],
+
+	text_utils:join( _Sep=$\n, [ ParentStr | ChildrenStrs ] ).

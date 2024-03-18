@@ -219,6 +219,10 @@
 % Lists of terms corresponding to values to be referenced from a format string.
 
 
+-type verbosity_level() :: 'low' | 'high'.
+% A level of verbosity (typically for to_string/2 functions).
+
+
 -type regex_string() :: ustring().
 % These strings are supposed to contain Regular Expressions, like in:
 % "*-emitter-(first|second)-*".
@@ -413,6 +417,7 @@
 
 
 -export_type([ format_string/0, format_bin_string/0, format_values/0,
+			   verbosity_level/0,
 			   regex_string/0,
 			   title/0, bin_title/0, any_title/0,
 			   label/0, bin_label/0, any_label/0,

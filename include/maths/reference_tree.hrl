@@ -1,4 +1,4 @@
-% Copyright (C) 2022-2024 Olivier Boudeville
+% Copyright (C) 2024-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,16 +23,27 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2022.
+% Creation date: Saturday, March 16, 2024.
 
 
-% A 4x4 transformation, storing both its corresponding homogeneous 4x4 reference
-% matrix and its inverse.
+-define( root_ref_id, 0 ).
+% The identifier of the root, absolute reference frame.
 %
--record( transform4, {
+% Note that this information is in some sense redundant with the fact that we
+% expect that a single node (the root one) has no parent.
 
-	% The reference homogeneous, 4x4 matrix of that transformation:
-	reference = 'identity_4' :: matrix4:homogeneous_matrix4(),
 
-	% The inverse of the reference matrix for that transformation:
-	inverse = 'identity_4' :: matrix4:homogeneous_matrix4() } ).
+% A reference tree, also known as a scene graph.
+%
+% Note that the root, absolute reference frame is to be designated by the null
+% (zero) reference frame identifier (see the root_ref_id define).
+%
+-record( reference_tree, {
+
+	% The table of this tree concentrating all known reference frames, based on
+	% their identifier.
+	%
+	ref_table :: reference_tree:ref_table(),
+
+	% The identifier to be allocated at the next registered frame:
+	next_ref_id = ?root_ref_id + 1 :: reference_frame:ref_id() } ).
