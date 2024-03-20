@@ -404,9 +404,12 @@ get_myriad_ast_transforms_for(
 
 	end,
 
-	% Too serious consequences not to be advertised:
-	DisableLCO andalso ast_utils:display_warning(
-		"LCO will be disabled for this '~ts' module.", [ TargetModuleName ] ),
+	% Too serious consequences not to be advertised; not using display_warning/2
+	% anymore, as a warning may trigger error-management mechanisms (e.g. with
+	% Emacs preventing a compilation buffer to be buried):
+	%
+	DisableLCO andalso ast_utils:display_info(
+		"LCO disabled for this '~ts' module.", [ TargetModuleName ] ),
 
 	ASTTransformTable = get_ast_global_transforms( DesiredTableType,
 		_DisableLCO=shall_lco_be_disabled( CompileOptTable ) ),
