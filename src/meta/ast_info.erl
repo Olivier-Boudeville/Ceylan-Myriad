@@ -174,7 +174,8 @@
 -type compile_option_value() :: term().
 % In some cases (at least when it is specified from the command-line), a
 % compilation option is a triplet (e.g. -Dmy_other_test_token=51 is translated,
-% in terms of a parse-transform option, as: {d,my_other_test_token,51}).
+% in terms of a parse-transform option, as: {d,my_other_test_token,51}; same for
+% the feature triplets).
 %
 % The value associated to the option name ('d') is then:
 % {my_other_test_token,51}.
@@ -1258,7 +1259,7 @@ get_default_definition_function_location( MarkerTable ) ->
 % elements.
 %
 -spec get_parse_attributes_located_definitions( attribute_table() ) ->
-													[ ast_info:located_form() ].
+														[ located_form() ].
 get_parse_attributes_located_definitions( ParseAttributeTable ) ->
 
 	% Faulty, as we have a *list* of {Value,LocForm} pairs:
@@ -1320,7 +1321,7 @@ module_info_to_string( ModuleInfo, DoIncludeForms ) ->
 % Note: here the location information is dropped for all located definitions.
 %
 -spec module_info_to_string( module_info(), boolean(), indentation_level() ) ->
-									ustring().
+												ustring().
 module_info_to_string( #module_info{
 							module=ModuleEntry,
 							compilation_options=CompileTable,
@@ -1483,7 +1484,6 @@ compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
 
 		[] ->
 			"no compile option defined";
-
 
 		CompileOpts ->
 

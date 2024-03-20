@@ -752,6 +752,9 @@ display_emergency( FormatString, Values ) ->
 -spec notify_warning( [ term() ], form_context() ) -> void().
 notify_warning( Elements, Context ) ->
 
+	%trace_utils:debug_fmt( "Elements = ~p,~nContext = ~p.",
+	%                       [ Elements, Context ] ),
+
 	% The specified elements may then be prefixed by a context string:
 	case get_elements_with_context( Elements, Context ) of
 
@@ -760,10 +763,26 @@ notify_warning( Elements, Context ) ->
 			display_warning( "~ts", [ SingleElement ] );
 
 		[ FirstElem | OtherElems ] when is_list( FirstElem ) ->
-			display_warning( "~ts ~p", [ FirstElem, OtherElems ] );
+			case text_utils:is_string( OtherElems ) of
+
+				true ->
+					display_warning( "~ts ~ts.", [ FirstElem, OtherElems ] );
+
+				false ->
+					display_warning( "~ts ~p", [ FirstElem, OtherElems ] )
+
+			end;
 
 		AllElements ->
-			display_warning( "~p", [ AllElements ] )
+			case text_utils:is_string( AllElements ) of
+
+				true ->
+					display_warning( "~ts", [ AllElements ] );
+
+				false ->
+					display_warning( "~p", [ AllElements ] )
+
+			end
 
 	end.
 
@@ -1087,7 +1106,7 @@ get_elements_with_context( Elements, _Context={ FilePath, FileLoc } ) ->
 	% We mimic the default error formatting so that tools (like IDE) have a
 	% chance to automatically point to the right location in the sources:
 	%
-	Prefix = io_lib:format( "~ts:~ts: ",
+	Prefix = io_lib:format( "~ts at ~ts:",
 							[ FilePath, file_loc_to_string( FileLoc ) ] ),
 
 	[ Prefix | Elements ];

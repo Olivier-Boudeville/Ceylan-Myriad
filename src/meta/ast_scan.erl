@@ -61,8 +61,12 @@
 
 % Shorthands:
 
+-type void() :: basic_utils:void().
+-type error_reason() :: basic_utils:error_reason().
+
 -type ast() :: ast_base:ast().
 -type form_context() :: ast_base:form_context().
+
 -type module_info() :: ast_info:module_info().
 -type compile_option_table() :: ast_info:compile_option_table().
 -type located_form() :: ast_info:located_form().
@@ -234,8 +238,7 @@ scan( AST ) ->
 %
 % For example: 'foo.erl:102: can't find include file "bar.hrl"'.
 %
--spec report_error( { scan_context(), basic_utils:error_reason() } ) ->
-							basic_utils:void().
+-spec report_error( { scan_context(), error_reason() } ) -> void().
 report_error( { Context, Error } ) ->
 
 	% No trace_utils yet here:
@@ -249,7 +252,7 @@ report_error( { Context, Error } ) ->
 			text_utils:format( "~ts", [ Msg ] );
 
 		{ undefined_macro_variable, VariableName }
-				when is_atom( VariableName ) ->
+										when is_atom( VariableName ) ->
 			text_utils:format( "undefined macro variable '~ts'",
 							   [ VariableName ] );
 
@@ -1415,7 +1418,7 @@ scan_forms( Unexpected, _ModuleInfo, _NextASTLoc, CurrentFileReference ) ->
 
 
 
-% @doc Registers specified parse attribute regarding compilation.
+% @doc Registers the specified parse attribute regarding compilation.
 -spec register_compile_attribute( term(), compile_option_table(),
 			scan_context() ) -> { compile_option_table(), [ located_form() ] }.
 % Full inlining requested:
@@ -1446,7 +1449,7 @@ register_compile_attribute( _CompileInfo={ 'inline', InlineValues },
 	?table:add_entry( inline, NewInlineValues, CompileTable );
 
 
-% Non-inlining, compile option with multiple values specified:
+% Non-inlining, compile option pair with multiple values specified:
 register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
 							CompileTable, _Context )
 		when is_atom( CompileOpt ) andalso is_list( OptValues ) ->
@@ -1454,11 +1457,55 @@ register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
 	?table:append_list_to_entry( CompileOpt, OptValues, CompileTable );
 
 
-% Non-inlining, single compile option (hence not a list):
-register_compile_attribute( _CompileInfo={ CompileOpt, OptValue }, CompileTable,
-							_Context ) when is_atom( CompileOpt ) ->
+% Non-inlining, pair with a single compile option (hence not a list):
+register_compile_attribute( CompileInfo={ CompileOpt, OptValue }, CompileTable,
+							Context ) when is_atom( CompileOpt ) ->
+
+	% Pair-based compile info option made of an atom and a non-list; not
+	% currently specifically managed, yet not wanting spurious warnings: (refer
+	% to https://www.erlang.org/doc/man/compile#file-2; last updated for Erlang
+	% 26/erts-14.2, March 2024)
+	%
+	KnownCompileOptsPairTags = [ debug_info_key, makedep_output, makedep_target,
+		error_location, source, outdir, i, d, parse_transform, no_auto_import,
+		extra_chunks, check_ssa, warn_format, nowarn_bif_clash,
+		nowarn_unused_function, nowarn_deprecated_function, nowarn_removed,
+		nowarn_unused_record, nowarn_redefined_builtin_type, inline_size ],
+
+	lists:member( CompileOpt, KnownCompileOptsPairTags ) orelse
+		begin
+			Msg = lists:flatten( io_lib:format( "Myriad-unknown compile "
+				"option pair (yet still included): ~p", [ CompileInfo ] ) ),
+
+			ast_utils:notify_warning( Msg, Context )
+
+		end,
 
 	?table:append_to_entry( CompileOpt, OptValue, CompileTable );
+
+
+% For all compile info triplets:
+register_compile_attribute(
+		CompileInfo={ CompileOpt, FirstOptValue, SecondOptValue }, CompileTable,
+		Context ) when is_atom( CompileOpt ) ->
+
+	% The known triplets are:
+	% - {d,Macro,Value}
+	% - {feature, Feature, enable | disable}
+	%
+	KnownCompileOptsTripletTags = [ 'd', 'feature' ],
+
+	lists:member( CompileOpt, KnownCompileOptsTripletTags ) orelse
+		begin
+			Msg = lists:flatten( io_lib:format( "Myriad-unknown compile "
+				"option triplet (yet still included): ~p", [ CompileInfo ] ) ),
+
+			ast_utils:notify_warning( Msg, Context )
+
+		end,
+
+	?table:append_to_entry( CompileOpt, { FirstOptValue, SecondOptValue },
+							CompileTable );
 
 
 register_compile_attribute( _CompileInfo=[], CompileTable, _Context ) ->
@@ -1477,14 +1524,33 @@ register_compile_attribute( _CompileInfo=[ CpInfo | T ], CompileTable,
 register_compile_attribute( CompileInfoOpt, CompileTable,
 							Context ) when is_atom( CompileInfoOpt ) ->
 
-	% Not currently specifically managed:
-	%KnownOptionlessCompileOpts = [ export_all, nowarn_export_all, debug_info ],
-	KnownOptionlessCompileOpts = [],
+	% Atom-based compile info option with no parameter; not currently
+	% specifically managed, yet not wanting spurious warnings: (refer to
+	% https://www.erlang.org/doc/man/compile#file-2; last updated for Erlang
+	% 26/erts-14.2, March 2024)
+	%
+	KnownOptionlessCompileOpts = [ brief, basic_validation, strong_validation,
+		binary, bin_opt_info, compressed, debug_info, encrypt_debug_info,
+		deterministic, makedep, makedep_side_effect, makedep_quote_target,
+		makedep_add_missing, makedep_phony, 'P', 'E', 'S', recv_opt_info,
+		report_errors, report_warnings, report, return_errors, return_warnings,
+		warnings_as_errors, return, verbose, absolute_source, export_all,
+		from_abstr, from_asm, from_core, no_spawn_compiler_process,
+		no_strict_record_tests, no_error_module_mismatch, no_auto_import,
+		no_line_info, no_lint, nowarn_bif_clash, nowarn_export_all,
+		warn_export_vars, nowarn_shadow_vars, warn_keywords,
+		nowarn_unused_function, nowarn_deprecated_function,
+		nowarn_deprecated_type, nowarn_removed, nowarn_obsolete_guard,
+		warn_unused_import, nowarn_underscore_match, nowarn_unused_vars,
+		nowarn_unused_record, nowarn_unused_type, nowarn_nif_inline,
+		warn_missing_spec, warn_missing_spec_all, nowarn_redefined_builtin_type,
+		nowarn_opportunistic, nowarn_failed, nowarn_ignored, nowarn_nomatch ],
+
 
 	lists:member( CompileInfoOpt, KnownOptionlessCompileOpts ) orelse
 		begin
-			Msg = io_lib:format( "unknown compile option: ~ts",
-								 [ CompileInfoOpt ] ),
+			Msg = io_lib:format( "Myriad-unknown compile option "
+				"(yet still included): ~ts", [ CompileInfoOpt ] ),
 
 			ast_utils:notify_warning( Msg, Context )
 
