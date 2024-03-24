@@ -79,7 +79,8 @@ run() ->
 
 
 	% Ra here is just a frame translated, relatively to the absolute frame, of:
-	Va = [ 5, 0, 0 ],
+	XOffset = 5.0,
+	Va = [ XOffset, 0, 0 ],
 	Transfa = transform4:translation( Va ),
 
 	% Absolutely defined (no parent):
@@ -89,18 +90,57 @@ run() ->
 							 [ reference_frame3:to_string( Ra ) ] ),
 
 
-	% Rb here is just a frame rotated, relatively to the absolute frame, based
-	% on:
+	OriginOfRaInRa = point3:null(),
+
+	OriginOfRaInAbs = transform4:apply_right( Transfa, OriginOfRaInRa ),
+
+	test_facilities:display( "The origin of Ra (~ts), once transformed "
+		"through Transfa to the absolute frame of reference, is: ~ts",
+		[ point3:to_string( OriginOfRaInRa ),
+		  point3:to_string( OriginOfRaInAbs ) ] ),
+
+	true = point3:are_equal( OriginOfRaInAbs, { XOffset, 0.0, 0.0 } ),
+
+
+	% Rb (role of "R1") here is just a frame rotated, relatively to the absolute
+	% frame Rabs (role of "R2"), of 90° counterclockwise around the X axis of
+	% the latter:
 	%
-	UnitAxisRotb = vector3:normalise( [ 1, 2, 3 ] ),
-	AngleRotb = math_utils:degrees_to_radians( 41 ),
+	% (of course useless normalisation here)
+	%
+	UnitAxisRotb = vector3:normalise( [ 1, 0, 0 ] ),
+	AngleRotb = math_utils:degrees_to_radians( 90 ),
+
+	% To be understood as the transformation Tb-abs corresponding to a rotation
+	% of +AngleRotb around UnitAxisRotb, a vector expressed in Rabs:
+	%
 	Transfb = transform4:rotation( UnitAxisRotb, AngleRotb ),
 
-	% No parent:
+	% No parent, hence relative to the absolute reference frame (Rabs):
 	Rb = reference_frame3:new( _BName="Rb", Transfb, RsId ),
 
 	test_facilities:display( "Created Rb: ~ts",
 							 [ reference_frame3:to_string( Rb ) ] ),
+
+	% The test point is the tip of the Y axis of the absolute referential; to be
+	% expressed in Rb (as opposite of its Z axis; one may draw a small diagram
+	% to check)
+	%
+	% (to be understood as (TYAbs)InRb)
+	%
+	TYAbsInRb = { 0.0, 0.0, -1.0 },
+
+	% Applying Tb-abs:
+	TYAbsInAbs = transform4:apply_right( Transfb, TYAbsInRb ),
+
+	test_facilities:display( "The tip of the Y axis of the absolute "
+		"referential, expressed in Rb (~ts), once transformed "
+		"through Transfb to the absolute frame of reference, is: ~ts",
+		[ point3:to_string( TYAbsInRb ),
+		  point3:to_string( TYAbsInAbs ) ] ),
+
+	true = point3:are_equal( TYAbsInAbs, { 0.0, 1.0, 0.0 } ),
+
 
 
 	% Rc here is just a frame scaled, relatively to the absolute frame, of:

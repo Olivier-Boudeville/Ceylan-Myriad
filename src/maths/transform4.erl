@@ -267,6 +267,7 @@
 		  %from_arbitrary/1, to_arbitrary/1, from_3D/2,
 		  dimension/0, dimensions/0,
 		  scale/2, %add/2, sub/2,
+		  apply_left/2, apply_right/2,
 		  mult/1, mult/2,
 		  are_equal/2,
 		  determinant/1,
@@ -418,7 +419,8 @@ get_origin( _HM=#transform4{ reference=M } ) ->
 %
 % So VT is here the coordinates of the origin of R1 as expressed in R2 (we
 % prefer expressing the transformation parameters in R2 rather than in R1,
-% should R1->R2, i.e. expressing the child in its parent, rather the opposite).
+% should R1->R2, i.e. expressing the child in its parent, rather than the
+% opposite).
 %
 % Said differently, the origin of R2 expressed in R1 is -VT.
 %
@@ -445,9 +447,8 @@ translation( VT ) ->
 % @doc Returns the 4x4 transformation corresponding to a rotation of the
 % specified angle around the 3D axis specified as a unit vector (and to no
 % translation or scaling): its reference matrix will be the transition matrix
-% from the current coordinate system to the rotated one (and of course its
-% inverse matrix will implement to opposite transition, from rotated to
-% current).
+% from the rotated coordinate system (R1) to the current one (R2) (and of course
+% its inverse matrix will implement to opposite transition, from R2 to R1).
 %
 % This will be a counterclockwise rotation for an observer placed so that the
 % specified axis points towards it.
@@ -465,7 +466,8 @@ translation( VT ) ->
 % coordinates in R1 P1={0,0,-1} (opposite of its Z axis).
 %
 % We prefer expressing the transformation parameters in R2 rather than in R1,
-% should R1->R2 (i.e. expressing the child in its parent, rather the opposite).
+% should R1->R2 (i.e. expressing the child in its parent, rather than the
+% opposite).
 %
 % Refer to the "Understanding the role and composition of transformations"
 % section for more details.
@@ -476,7 +478,7 @@ rotation( UnitAxis, RadAngle ) ->
 	HM = #compact_matrix4{ m12=M12, m13=M13,
 						   m21=M21, m23=M23,
 						   m31=M31, m32=M32 }
-	   = matrix4:rotation( UnitAxis, -RadAngle ),
+	   = matrix4:rotation( UnitAxis, RadAngle ),
 
 	% More expensive:
 	%InvHM = matrix4:rotation( UnitAxis, RadAngle ),
@@ -510,7 +512,10 @@ rotation( UnitAxis, RadAngle ) ->
 % parameters in R2 rather than in R1, should R1->R2 (i.e. expressing the child
 % in its parent, rather than the opposite); so for example if all scale factors
 % are equal to S, then a [X,Y,Z] point in R1 will be transformed in [S.X, S.Y,
-% S.Z] in R2 (not [X/S, Y/S, Z/S])
+% S.Z] in R2 (not [X/S, Y/S, Z/S]); said differently, the length of the axes of
+% R1 being multiplied by S, the coordinates expressed in it shall be divided by
+% S, so that the position of points does not change; and thus a point P
+% expressed as [X/S, Y/S, Z/S] in R1 becomes [X,Y,Z] in R2
 %
 % - or, maybe more often, as a scaling operation applying directly the specified
 % factors (not their opposite)
@@ -869,6 +874,29 @@ scale_z( #transform4{ reference=HM, inverse=InvHM }, Factor ) ->
 	cond_utils:if_defined( myriad_check_linear, check( T ) ),
 
 	T.
+
+
+
+% @doc Applies the specified 3D point on the left of the reference matrix of the
+% specified transformation.
+%
+% Note: handling a point, not a vector, so that the translation part of the
+% transformation is applied as well.
+%
+-spec apply_left( point3(), transform4() ) -> point3().
+apply_left( P3, #transform4{ reference=HM } ) ->
+	matrix4:apply_homogeneous_left( P3, HM ).
+
+
+% @doc Applies the specified 3D point on the right of the reference matrix of
+% the specified transformation.
+%
+% Note: handling a point, not a vector, so that the translation part of the
+% transformation is applied as well.
+%
+-spec apply_right( transform4(), point3() ) -> point3().
+apply_right( #transform4{ reference=HM }, P3 ) ->
+	matrix4:apply_homogeneous_right( HM, P3 ).
 
 
 
