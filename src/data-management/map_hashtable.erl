@@ -1285,6 +1285,10 @@ size( MapHashtable ) ->
 
 
 % @doc Returns a textual description of the specified map hashtable.
+%
+% See also text_utils:table_to_string/2 for a synthetic description of a table
+% and its entries.
+%
 -spec to_string( map_hashtable() ) -> ustring().
 to_string( MapHashtable ) ->
 	% Newer, better default (was: 'user_friendly'):
@@ -1297,6 +1301,9 @@ to_string( MapHashtable ) ->
 % Either a bullet is specified, or the returned string is ellipsed if needed (if
 % using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
 % even completly raw ('internal').
+%
+% See also text_utils:table_to_string/2 for a synthetic description of a table
+% and its entries.
 %
 -spec to_string( map_hashtable(), hashtable:description_type() ) -> ustring().
 to_string( MapHashtable, DescriptionType ) ->
