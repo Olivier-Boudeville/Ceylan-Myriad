@@ -168,7 +168,8 @@
 		  get_element/3, set_element/4,
 		  transpose/1,
 		  scale/2,
-		  add/2, sub/2, mult/2, mult/1, apply/2,
+		  add/2, sub/2, mult/2, mult/1,
+		  apply/2, apply_homogeneous_left/2, apply_homogeneous_right/2,
 		  are_equal/2,
 		  translate_homogeneous_left/2, translate_homogeneous_right/2,
 		  rotate_homogeneous_left/3, rotate_homogeneous_right/3,
@@ -1301,6 +1302,63 @@ apply( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 	ResW = Pw,
 
 	{ ResX, ResY, ResZ, ResW }.
+
+
+
+% @doc Applies on the left the specified 3D point P to the specified homogeneous
+% matrix HM: returns VPt.HM, as a 3D point, where VPt means the transpose of the
+% 4D vector corresponding to P.
+%
+% Note: handling a point, not a vector, so that the translation part of the
+% matrix is applied as well.
+%
+% This application is rather uncommon and, because of the normalisation, may not
+% yield the intended result.
+%
+-spec apply_homogeneous_left( point3(), homogeneous_matrix4() ) -> point3().
+apply_homogeneous_left( _P={ Px, Py, Pz },
+						_HM=#compact_matrix4{
+								m11=M11, m12=M12, m13=M13, tx=Tx,
+								m21=M21, m22=M22, m23=M23, ty=Ty,
+								m31=M31, m32=M32, m33=M33, tz=Tz } ) ->
+
+	% The fourth (Pw) coordinate of P is considered to be 1.0 (point, not
+	% vector), which yields to a renormalisation:
+
+	Pw = Px*Tx + Py*Ty + Pz*Tz + 1,
+
+	math_utils:is_null( Pw ) andalso throw( cannot_normalise_point ),
+
+	{ ( Px*M11 + Py*M21 + Pz*M31 + Tx ) / Pw,
+	  ( Px*M12 + Py*M22 + Pz*M32 + Ty ) / Pw,
+	  ( Px*M13 + Py*M23 + Pz*M33 + Tz ) / Pw };
+
+apply_homogeneous_left( P, _HM=identity_4 ) ->
+	P.
+
+
+% @doc Applies on the right the specified 3D point P to the specified
+% homogeneous matrix HM: returns HM.VP, as a 3D vector, where VP means the 4D
+% vector corresponding to P.
+%
+% This is thus a specialised, stripped-down version of apply/2.
+%
+-spec apply_homogeneous_right( homogeneous_matrix4(), point3() ) -> vector3().
+apply_homogeneous_right( _HM=#compact_matrix4{
+								m11=M11, m12=M12, m13=M13, tx=Tx,
+								m21=M21, m22=M22, m23=M23, ty=Ty,
+								m31=M31, m32=M32, m33=M33, tz=Tz },
+						 _P={ Px, Py, Pz } ) ->
+
+	% The fourth (Pw) coordinate of P is considered to be 1.0 (point, not
+	% vector):
+
+	{ M11*Px + M12*Py + M13*Pz + Tx,
+	  M21*Px + M22*Py + M23*Pz + Ty,
+	  M31*Px + M32*Py + M33*Pz + Tz };
+
+apply_homogeneous_right( _HM=identity_4, P ) ->
+	P.
 
 
 
