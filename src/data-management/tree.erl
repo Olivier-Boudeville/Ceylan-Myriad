@@ -367,7 +367,8 @@ forest_to_string( ForestTable, ParentNodeId, NodeToStringFun, NodeToChildrenFun,
 
 	ParentStr = case Level of
 			0 ->
-				text_utils:format( "~n~ts",
+				% Was: "~n~ts"
+				text_utils:format( "~ts",
 					[ NodeToStringFun( ParentNodeId, ForestTable ) ] );
 
 			_ ->
