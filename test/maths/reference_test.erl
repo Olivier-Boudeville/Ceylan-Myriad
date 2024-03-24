@@ -37,6 +37,11 @@
 -include("test_facilities.hrl").
 
 
+-import(reference_tree, [ ref3_to_string/2 ]).
+
+-compile(nowarn_unused_vars).
+
+
 
 -spec run() -> no_return().
 run() ->
@@ -127,10 +132,10 @@ run() ->
 	% Anonymous:
 	Re = reference_frame3:new( _EName="Re", Transfe, RbId ),
 
-	{ _ReId, WithReTree } = reference_tree:register( Re, WithRabcTree ),
+	{ ReId, WithReTree } = reference_tree:register( Re, WithRabcTree ),
 
 	test_facilities:display( "With Re: ~ts.",
-							 [ reference_tree:to_string( WithReTree ) ] ),
+		[ reference_tree:to_string( WithReTree, _VrbLevel=high ) ] ),
 
 	Transff = transform4:identity(),
 	Rf = reference_frame3:new( "Rf", Transff, RaId ),
@@ -154,22 +159,35 @@ run() ->
 		[ reference_tree:to_string( WithRghTree, _VerbLevel=high ) ] ),
 
 
-	PathedRefId = RfId,
-
 	WithRghRefTable = reference_tree:get_reference_table( WithRghTree ),
 
-	{ IdPath, PathedRefTable } =
-		reference_tree:get_path_from_root( PathedRefId, WithRghRefTable ),
+	{ IdfPath, PathfRefTable } =
+		reference_tree:get_path_from_root( RfId, WithRghRefTable ),
 
 	test_facilities:display( "Identifier path from root node to frame #~B: ~w.",
-							 [ PathedRefId, IdPath ] ),
+							 [ RfId, IdfPath ] ),
 
 	ExpectedIdPath = [ RsId, RaId ],
-	ExpectedIdPath = IdPath,
+	ExpectedIdPath = IdfPath,
 
-	FinalTree = reference_tree:set_reference_table( PathedRefTable,
+	PathfTree = reference_tree:set_reference_table( PathfRefTable,
 													WithRghTree ),
+	% Or RfId:
+	FromNodeId = RfId,
 
+	ToNodeId = ReId,
+
+	{ ResolvPath, ResolvTree } = reference_tree:resolve_path( FromNodeId,
+		ToNodeId, PathfTree ),
+
+	ResolvRefTable = reference_tree:get_reference_table( ResolvTree ),
+
+	test_facilities:display( "Resolved path from ~ts to ~ts: ~ts.",
+		[ ref3_to_string( FromNodeId, ResolvRefTable ),
+		  ref3_to_string( ToNodeId, ResolvRefTable ),
+		  reference_tree:id_path_to_string( ResolvPath, ResolvRefTable ) ] ),
+
+	FinalTree = ResolvTree,
 	test_facilities:display( "Full view of this ~ts",
 							 [ reference_tree:to_full_string( FinalTree ) ] ),
 

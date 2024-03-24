@@ -56,9 +56,9 @@
 % terms of transition matrices (not reference designators) we can freely
 % navigate the branches of the reference tree both ways.
 
-% Initially the root node was implicit (node #0) and a frame could not have a
-% parent, yet for optimisations like children or path caching, it became an
-% actual node (and thus it is the only frame not having a parent).
+% Initially the root node was implicit (node #0, yet not existing) and a frame
+% may not have a parent, yet for optimisations like children or path caching, it
+% became an actual node (and thus it is the only frame not having a parent).
 
 % All examples given relate to the following reference tree (R for local
 % reference frames, C for cameras; identifiers added with '#'):
@@ -97,9 +97,9 @@
 % ref_path() :: {UpMoves :: [designated_ref()], DownMoves :: [designated_ref()],
 % maybe(transform())}.
 %
-% For example to reach C2 from R3, the shortest path would be:
-% PAs={[R2,R1],[C2]} (meaning R3 -> R2 -> R1 -> C2), while the path through root
-% would be: PAr={[R2,R1,Root],[R1,C2]}.
+% For example to reach C2 from R3, the shortest path that includes these
+% endpoints would be: PAs={[R3,R2,R1],[C2]} (meaning R3 -> R2 -> R1 -> C2),
+% while the path through root would be: PAr={[R3,R2,R1,Root],[R1,C2]}.
 %
 % Either way such a path_table({From :: designated_ref(), To ::
 % designated_ref()}) -> ref_path() could store the known paths.
@@ -112,16 +112,17 @@
 % changes, invalidate the corresponding paths easily.
 %
 % Yet such caching is a bit complex to implement and, at least in some cases
-% (e.g. a constantly rotating higher-level frame of reference), this
-% optimisation may be counter-productive (invalidating all paths, each one being
-% actually used once, caching being then counter-productive).
+% (e.g. most frames of reference rotating, including the rathertop-level ones),
+% this optimisation may be counter-productive (invalidating all paths, each one
+% being actually used once, caching being then counter-productive).
 %
-% So, at least for the moment, we rely on a simpler, reference, unoptimised
-% dynamic algorithm, relying only on paths passing through the root node and not
-% being cached.
+% So, at least for the moment, we rely on dynamic algorithm to compute
+% transformations across paths (not caching these transformations), knowing that
+% nevertheless child nodes and paths are cached, and that only shortest paths
+% are used. Also we cache only the requested paths, not their intermediate
+% subpaths, as they are unlikely to be requested.
 %
-% Anyway all algorithms may respect the same API, akin to get_transform(From ::
-% designated_ref(), To :: designated_ref()) -> transform().
+% Anyway all algorithms may respect the same API, see get_transform/3.
 
 % Note also that the actual reference frames currently supported by ref trees
 % are 3D ones (ref3), yet other dimensions could easily be supported; also all
@@ -133,6 +134,7 @@
 % "direct" algorithms (stateless, non-cached, brute-force, recursive ones). The
 % former ones, intentionally unoptimised but safe, may be used to check the
 % latter ones.
+
 
 
 
@@ -150,19 +152,35 @@
 % A list of the identifier of the child frames of reference of a given frame.
 
 
--type id_path() :: [ ref_id() ].
-% An (ordered) list of identifiers of reference frames forming a path from the
-% root one to a given frame, whose both endpoints are excluded.
-%
-% For example, for a series of frames from the root one to a frame C that goes
-% through ?root_ref_id, A, B and C, the recorded path is [A,B].
-
-
 -type ref_table() :: table( ref_id(), designated_ref() ).
 % A table associating to a given identifier a designated reference frame.
 %
 % It includes the root node, as we may want for example to record its name, its
 % children, etc.
+
+
+-type id_path() :: { Up :: [ ref_id() ], Down :: [ ref_id() ] }.
+% A path from a frame A to a frame B is described as the (ordered) "Up" list of
+% all referentials from A to the root (not including A), and the (ordered)
+% "Down" list of all referentials from the root to B (not including B).
+%
+% Two lists are used as we need to record, for each node, the direction of the
+% corresponding transformation, that is whether we shall apply Tuv or its
+% inverse Tvu.
+%
+% For instance, for the path from the example frame g to the frame e,
+% Up=[Tfa,Tas] (as Tgf is not included) and Down=[Tsb] (as Teb is not included).
+%
+% With a referential-based notation, this corresponds to Up=[Rf,Ra] Down=[Rb]
+% (Rs is not included either as it is meant to deal with its own parent).
+
+
+-type path_endpoints() :: { From :: ref_id(), To :: ref_id() }.
+% The endpoints corresponding to an id_path/0 (and not included in it), that is
+% a path between two reference frames.
+
+-type path_table() :: table( { From :: ref_id(), To :: ref_id() }, id_path() ).
+% A table recording known paths from a reference frame to another.
 
 
 % For record and define:
@@ -178,22 +196,26 @@
 
 
 
--export_type([ ref_id/0, child_ids/0, id_path/0, ref_table/0,
+-export_type([ ref_id/0, child_ids/0, ref_table/0,
+			   id_path/0, path_endpoints/0, path_table/0,
 			   reference_tree/0 ]).
 
 
 -export([ new/0,
-		  register/2,
+		  register/2, resolve_path/3, get_transform/3,
 		  get_reference_table/1, set_reference_table/2,
+
 		  check/1,
+
+		  ref3_to_string/2, ref3_to_short_string/2, id_path_to_string/2,
 		  to_string/1, to_string/2, to_full_string/1 ] ).
 
 % Silencing:
 -export([ get_children_direct/2, get_path_from_root/2 ]).
 
 
-
 -compile({ no_auto_import, [ register/2 ] }).
+
 
 
 % Shorthands:
@@ -207,6 +229,7 @@
 
 -type designated_ref() :: reference_frame:designated_ref().
 
+-type transform4() :: transform4:transform4().
 
 
 % @doc Creates an (empty) reference tree.
@@ -216,7 +239,8 @@ new() ->
 
 	InitRefTable = table:singleton( _RefIdK=?root_ref_id, _V=RootRef3 ),
 
-	#reference_tree{ ref_table=InitRefTable }.
+	#reference_tree{ ref_table=InitRefTable,
+					 path_table=table:new() }.
 
 
 
@@ -263,7 +287,6 @@ register( Ref3s, RefTree ) ->
 	register( Ref3s, _AccIds=[], RefTree ).
 
 
-
 % (helper)
 register( _Ref3s=[], AccIds, AccRefTree ) ->
 	{ lists:reverse( AccIds ), AccRefTree };
@@ -271,6 +294,129 @@ register( _Ref3s=[], AccIds, AccRefTree ) ->
 register( _Ref3s=[ Ref3 | T ], AccIds, AccRefTree ) ->
 	{ ThisId, ThisRefTree } = register( Ref3, AccRefTree ),
 	register( T, [ ThisId | AccIds ], ThisRefTree ).
+
+
+
+
+% @doc Returns the resolved (cached otherwise computed) path from the first
+% reference frame whose identifier is specified to the second one.
+%
+% As the reference tree may be updated in the process, returns one.
+%
+-spec resolve_path( ref_id(), ref_id(), reference_tree() ) ->
+										{ id_path(), reference_tree() }.
+resolve_path( FromRefId, ToRefId,
+			  RefTree=#reference_tree{ path_table=PathTable } ) ->
+
+	PathEndpoints = { FromRefId, ToRefId },
+
+	case table:get_value_with_default( _K=PathEndpoints, _DefValue=undefined,
+									   PathTable ) of
+
+		undefined ->
+			compute_path( PathEndpoints, PathTable, RefTree );
+
+		Path ->
+			{ Path, RefTree }
+
+	end.
+
+
+
+% @doc Returns the computed path from the first reference frame whose identifier
+% is specified to the second one, and an updated tree.
+%
+-spec compute_path( path_endpoints(), path_table(), reference_tree() ) ->
+										{ id_path(), reference_tree() }.
+compute_path( PathEndpoints={ FromRefId, ToRefId }, PathTable,
+			  RefTree=#reference_tree{ ref_table=RefTable } ) ->
+
+	% As paths are quite cheap to compute, it is probably not interesting to
+	% derive this path from any of its possibly cached subpaths.
+
+	% To determine such path, we combine two root-to-node paths; we refer here
+	% to the example at the top of this file, for example resolving path from
+	% (source, S) R3 to (target, T) C2, based on a root pivot (R).
+
+	% Either cached or computed; for example: [R1] (Root and C2 implicit).
+	{ RootToTargetPath, FirstRefTable } =
+		get_path_from_root( ToRefId, RefTable ),
+
+	% For example: [R1, R2].
+	{ RootToSourcePath, SecondRefTable } =
+		get_path_from_root( FromRefId, FirstRefTable ),
+
+	% The actual shortest path is R3, R2, R1, C2, thus [R2,R1]. To obtain it, we
+	% skip the common prefix to both root-to-node paths and branch them based on
+	% their last common node (if any), the root-to-source part being reversed:
+
+	IdPath = skip_and_branch( RootToSourcePath, RootToTargetPath,
+							  _LastCommon=undefined ),
+
+	% As paths are quite cheap to compute, it is probably not interesting to
+	% derive and store the subpaths of this path.
+
+	% (add_new_entry suitable as well):
+	AugmentedPathTable = table:add_entry( _K=PathEndpoints, _V=IdPath,
+										  PathTable ),
+
+	NewRefTree = RefTree#reference_tree{ ref_table=SecondRefTable,
+										 path_table=AugmentedPathTable },
+
+	{ IdPath, NewRefTree }.
+
+
+% (helper)
+% Skip common prefixes:
+skip_and_branch( _FirstPath=[ H | FirstT ], _SecondPath=[ H | SecondT ],
+				 _UndefinedLastCommon ) ->
+	skip_and_branch( FirstT, SecondT, _LastCommon=H );
+
+% From here their heads do not match anymore:
+skip_and_branch( FirstPath, SecondPath, _LastCommon=undefined ) ->
+	lists:reverse( FirstPath ) ++ SecondPath;
+
+skip_and_branch( FirstPath, SecondPath, LastCommon ) ->
+	lists:reverse( FirstPath ) ++ [ LastCommon | SecondPath ].
+
+
+
+% @doc Returns the (4x4) transformation between the first specified frame of
+% reference and the second one, together with a (possibly updated, for example
+% regarding to paths) of the specified reference tree.
+%
+% Does not cache this resulting reference frame (at least for the moment).
+%
+-spec get_transform( designated_ref(), designated_ref(), reference_tree() ) ->
+										{ transform4(), reference_tree() }.
+get_transform( FromRefId, ToRefId, RefTree ) ->
+
+	{ IdPath, PathedRefTree } = resolve_path( FromRefId, ToRefId, RefTree ),
+
+	% Preferring any latest version of tree, just in case:
+	RefTable = PathedRefTree#reference_tree.ref_table,
+
+	[ _FromRef, ToRef ] = table:get_values( [ FromRefId, ToRefId ], RefTable ),
+
+	ToRefTransf4 = ToRef#reference_frame3.transform,
+
+	% Avoids adding ToRefId at the end of IdPath:
+	Transf4 = mult_transforms( _CurrentTransf4=ToRefTransf4, IdPath,
+							   _LastRef=ToRef, RefTable ),
+
+	{ Transf4, PathedRefTree }.
+
+
+
+% We want to compute the Tft transform, between From and To, whose reference
+% matrix is this the transition from To to From.
+
+% (helper)
+mult_transforms( _CurrentTransf4, _IdPath=[], _LastRef, _RefTable ) ->
+	fixme.
+%mult_transforms( CurrentTransf4, _IdPath=[], LastRef, RefTable ) ->
+%mult_transforms( CurrentTransf4, _IdPath=[], LastRef, RefTable ) ->
+
 
 
 
@@ -356,7 +502,7 @@ get_path_from_root( RefId, RefTable ) ->
 
 		IdPath ->
 			% Trust the cached paths:
-			IdPath
+			{ IdPath, RefTable }
 
 	end.
 
@@ -367,13 +513,16 @@ get_path_from_root( RefId, RefTable ) ->
 % Stopped before:
 %apply_path( _RefId=?root_ref_id, RefTable, _RevIdPath=[] ) ->
 %   RefTable;
-
+%
 apply_path( _RefId, RefTable, _RevIdPath=[] ) ->
 	RefTable;
 
 apply_path( RefId, RefTable, _RevIdPath=[ _PrevRefId | ThisRevIdPath ] ) ->
 	ThisIdPath = lists:reverse( ThisRevIdPath ),
-	trace_utils:debug_fmt( "At frame #~B, path is ~w.", [ RefId, ThisIdPath ] ),
+
+	%trace_utils:debug_fmt( "At frame #~B, path is ~w.",
+	%    [ RefId, ThisIdPath ] ),
+
 	Ref3 = table:get_value( RefId, RefTable ),
 	PathedRef3 = Ref3#reference_frame3{ path_from_root=ThisIdPath },
 	ThisNodeRefTable = table:add_entry( _K=RefId, PathedRef3, RefTable ),
@@ -509,7 +658,7 @@ check_path( RefId, #reference_frame3{ path_from_root=IdPath }, RefTable ) ->
 
 
 
-% Follows the specified path, from node to node.
+% Follows the specified path, from node to node, for checking.
 follow_path( CurrentNodeId, _ToNodeId=CurrentNodeId, _RefTable, _IdPath=[]) ->
 	ok;
 
@@ -527,42 +676,6 @@ follow_path( CurrentNodeId, ToNodeId, RefTable,
 
 	end.
 
-
-
-% @doc Returns the children of the specified 3D frame of reference, and a
-% possibly updated reference table.
-%
-%% -spec get_children( ref_id(), ref_table() ) -> { child_ids(), ref_table() }.
-%% get_children( RefId, RefTable ) ->
-
-%%	Ref = table:get_value( RefId, RefTable ),
-
-%%	% If children are precomputed, trust it:
-%%	case Ref#reference_frame3.children of
-
-%%		undefined ->
-%%			Children = determine_children(
-%%				_NextParent=Ref#reference_frame3.parent, RefTable,
-%%				_AccIds=[ RefId ] ),
-%%			NewRef = Ref#reference_frame3{ children=Children },
-
-
-%%		ChildIds ->
-%%			ChildIds
-
-%	end.
-
-
-
-% @doc Determines all children; returns the corresponding path from root.
-%% -spec determine_children(
-
-%% -spec determine_children( ref_id(), ref_table(), child_ids() ) ->
-%%										{ child_ids(), ref_table() }.
-%% % Reached the root:
-%% determine_children( _NextParent=undefined, RefTable, AccIds ) ->
-%%	lists:reverse(
-%% determine_children( NextParent, RefTable, AccIds ) ->
 
 
 
@@ -607,6 +720,30 @@ ref3_to_string( RefId, RefTable ) ->
 	end.
 
 
+% @doc Returns a compact textual representation of the specified 3D frame of
+% reference.
+%
+-spec ref3_to_short_string( ref_id(), ref_table() ) -> ustring().
+ref3_to_short_string( RefId, RefTable ) ->
+	Ref = table:get_value( RefId, RefTable ),
+	case Ref#reference_frame3.name of
+
+		undefined ->
+			text_utils:format( "#~B", [ RefId ] );
+
+		BinRefName ->
+			text_utils:format( "'~ts'", [ BinRefName ] )
+
+	end.
+
+
+
+% @doc Returns a textual representation of the specified identifier path.
+-spec id_path_to_string( id_path(), ref_table() ) -> ustring().
+id_path_to_string( IdPath, RefTable ) ->
+	IdStrs = [ ref3_to_short_string( RefId, RefTable ) || RefId <- IdPath ],
+	text_utils:join( _Sep=" -> ", IdStrs ).
+
 
 % @doc Returns a (short) textual representation of the specified reference tree.
 -spec to_string( reference_tree() ) -> ustring().
@@ -618,26 +755,35 @@ to_string( RefTree ) ->
 % for the specified verbosity level.
 %
 -spec to_string( reference_tree(), verbosity_level() ) -> ustring().
-to_string( #reference_tree{ ref_table=RefTable }, _VerbLevel=low ) ->
-	text_utils:format( "reference tree tracking ~B reference frames",
-					   [ table:size( RefTable ) ] );
+to_string( #reference_tree{ ref_table=RefTable,
+							path_table=PathTable }, _VerbLevel=low ) ->
+	text_utils:format( "reference tree tracking ~ts, and caching ~ts",
+		[ text_utils:table_to_string( RefTable, _EntryDesc="reference frame" ),
+		  text_utils:table_to_string( PathTable, _EntDesc="path" ) ] );
 
-to_string( _RT=#reference_tree{ ref_table=RefTable }, _VerbLevel=high ) ->
+to_string( _RT=#reference_tree{ ref_table=RefTable,
+								path_table=PathTable }, _VerbLevel=high ) ->
 	%trace_utils:debug_fmt( "Ref tree: ~p", [ RT ] ),
 	NodeToStringDefFun = fun ref3_to_string/2,
 	NodeToChildrenFun = fun get_children_direct/2,
-	tree:forest_to_string( RefTable, _FromNodeId=?root_ref_id,
-						   NodeToStringDefFun, NodeToChildrenFun ).
+
+	text_utils:format( "reference tree caching ~ts: ~ts", [
+		text_utils:table_to_string( PathTable, _EntryDesc="path" ),
+		tree:forest_to_string( RefTable, _FromNodeId=?root_ref_id,
+							   NodeToStringDefFun, NodeToChildrenFun ) ] ).
 
 
 % @doc Returns a rather full textual representation of the specified reference
 % tree, tycally for debugging purposes.
 %
 -spec to_full_string( reference_tree() ) -> ustring().
-to_full_string( _RT=#reference_tree{ ref_table=RefTable } ) ->
+to_full_string( _RT=#reference_tree{ ref_table=RefTable,
+									 path_table=PathTable } ) ->
 
 	FrameStrs = [ reference_frame3:node_to_string( Ref3Id, Ref3 )
 					|| { Ref3Id, Ref3 } <- table:enumerate( RefTable ) ],
 
-	text_utils:format( "reference tree registering ~B frames of reference: ~ts",
-		[ table:size( RefTable ), text_utils:strings_to_string( FrameStrs ) ] ).
+	text_utils:format( "reference tree registering ~B frames of reference: ~ts"
+		"~nand caching paths based on: ~ts",
+		[ table:size( RefTable ), text_utils:strings_to_string( FrameStrs ),
+		  table:to_string( PathTable ) ] ).
