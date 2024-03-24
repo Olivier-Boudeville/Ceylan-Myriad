@@ -103,7 +103,7 @@
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
-		  repetition_to_string/1,
+		  repetition_to_string/1, table_to_string/2,
 
 		  format/2, format_failsafe/1, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
@@ -366,7 +366,7 @@
 % for more details.
 
 
--type translation_table() :: ?table:?table( any_string(), any_string() ).
+-type translation_table() :: ?table( any_string(), any_string() ).
 % To convert strings (e.g. keywords) into others.
 
 
@@ -440,6 +440,9 @@
 
 % As this pioneer module is not parse-transformed:
 -type maybe( T ) :: basic_utils:maybe( T ).
+
+-type ?table() :: ?table:?table().
+-type ?table( K, V ) :: ?table:?table( K, V ).
 
 -type integer_id() :: id_utils:integer_id().
 
@@ -1895,6 +1898,7 @@ distance_to_short_string( Millimeters ) ->
 	end.
 
 
+
 % @doc Returns a textual description of the specified number of repetitions
 % (occurrences, number of times).
 %
@@ -1913,6 +1917,30 @@ repetition_to_string( _RepetitionCount=3 ) ->
 
 repetition_to_string( RepetitionCount ) ->
 	text_utils:format( "~B times", [ RepetitionCount ] ).
+
+
+
+% @doc Returns a synthetic textual description of the specified table, holding
+% the specified type of described entries.
+%
+% For example: table_to_string(MyPathTable, _EntryType="path") may return "no
+% path", "a single path", or - for example - "3 paths".
+%
+-spec table_to_string( ?table(), ustring() ) -> ustring().
+table_to_string( Table, EntryDesc ) ->
+	case ?table:size( Table ) of
+
+		0 ->
+			"no " ++ EntryDesc;
+
+		1 ->
+			"a single " ++ EntryDesc;
+
+		S ->
+			% Only a very basic plural mark:
+			text_utils:format( "~B ~tss", [ S, EntryDesc ] )
+
+	end.
 
 
 
