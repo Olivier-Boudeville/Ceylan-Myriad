@@ -29,7 +29,7 @@
 % @doc Minimal testing of <b>shader-based transformation rendering</b>: applies
 % a transformation matrix created from the application and displays a textured
 % square based on it that can be moved with the keyboard to test transformations
-% (translations, rotations and shearings) and directions thereof in the current
+% (translations, rotations and scalings) and directions thereof in the current
 % coordinate system.
 %
 % This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
@@ -65,11 +65,11 @@
 % rendered as pure black); easily done with legacy OpenGL, maybe less with
 % shaders.
 
-% With a square of null thickness, shearing along the Z axis will not change
+% With a square of null thickness, scaling along the Z axis will not change
 % anything.
 
 % Due to how 4x4 matrix multiplication works, the translations will be applied
-% last, whereas rotations and shearings will happen in their reverse
+% last, whereas rotations and scalings will happen in their reverse
 % specification order. As a result, for example if rotating the square whereas
 % it has been translated far away from the origin, it will not rotate around the
 % origin, but on itself, in its local coordinate system (around the origin of
@@ -90,7 +90,7 @@
 -include("test_facilities.hrl").
 
 
--type transformation_mode() :: 'translation' | 'rotation' | 'shearing'.
+-type transformation_mode() :: 'translation' | 'rotation' | 'scaling'.
 
 
 % Test-specific overall GUI state:
@@ -150,7 +150,7 @@
 	projection :: matrix4(),
 
 	% The currently active transformation mode (translation, rotation,
-	% or shearing):
+	% or scaling):
 	%
 	transformation_mode :: transformation_mode(),
 
@@ -485,12 +485,12 @@ get_help_text() ->
 		"    * the X axis: hit '4' to turn it clockwise (CW), '6' counter-clockwise (CCW)~n"
 		"    * the Y axis: hit '2' to turn it CW, '8' CCW~n"
 		"    * the Z axis: hit '3' to turn it CW, '9' CCW~n"
-		"  - to shear it of a ~f factor along (if in shearing mode):~n"
+		"  - to scale it of a ~f factor along (if in scaling mode):~n"
 		"    * the X axis: hit '4' to scale it down, '6' up~n"
 		"    * the Y axis: hit '2' to scale it down, '8' up~n"
 		"    * the Z axis: hit '3' to scale it down, '9' up~n~n"
 		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
-		"to switch to the next transformation mode (cycling between translation, rotation, shearing), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
+		"to switch to the next transformation mode (cycling between translation, rotation, scaling), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
 		"Hints:~n"
 		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
 		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, first make the square go further/downward to make it appear~n",
@@ -1272,11 +1272,11 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-% Thirdly managing shearings:
+% Thirdly managing scalings:
 update_scene( _Scancode=?increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1284,7 +1284,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1296,7 +1296,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 update_scene( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1304,7 +1304,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1317,7 +1317,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 update_scene( _Scancode=?increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1325,7 +1325,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1337,7 +1337,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 update_scene( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1345,7 +1345,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1358,7 +1358,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 update_scene( _Scancode=?increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1366,7 +1366,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1379,7 +1379,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 update_scene( _Scancode=?decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1387,7 +1387,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1424,9 +1424,9 @@ update_scene( _Scancode=?mode_switch_scan_code,
 			rotation;
 
 		rotation ->
-			shearing;
+			scaling;
 
-		shearing ->
+		scaling ->
 			translation
 
 	end,
@@ -1492,7 +1492,7 @@ get_origin_description( ModelViewMat4 ) ->
 	InvMat4 = matrix4:inverse( ModelViewMat4 ),
 	LocalOrigin = matrix4:get_translation( InvMat4 ),
 
-	text_utils:format( "In the global coordinate system, the local origin "
+	text_utils:format( "~nIn the global coordinate system, the local origin "
 		"of the square coordinate system is now: ~ts",
 		[ point3:to_string( LocalOrigin ) ] ).
 
