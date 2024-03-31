@@ -574,18 +574,24 @@ get_value( Key, MapHashtable ) ->
 -spec get_values( [ key() ], map_hashtable() ) -> [ value() ].
 get_values( Keys, Hashtable ) ->
 
-	{ RevValues, _FinalTable } = lists:foldl(
+	% We used to extract (not get) entries (presumably to handle smaller tables
+	% in the process), yet the caller may specify a given key more than once,
+	% which would then result into an abnormal crash; so:
 
-		fun( _Elem=Key, _Acc={ Values, Table } ) ->
+	%{ RevValues, _FinalTable } = lists:foldl(
+	%
+	%   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+	%
+	%       { Value, ShrunkTable } = extract_entry( Key, Table ),
+	%       { [ Value | Values ], ShrunkTable }
+	%
+	%   end,
+	%   _Acc0={ [], Hashtable },
+	%   _List=Keys ),
+	%
+	%lists:reverse( RevValues ).
 
-			{ Value, ShrunkTable } = extract_entry( Key, Table ),
-			{ [ Value | Values ], ShrunkTable }
-
-		end,
-		_Acc0={ [], Hashtable },
-		_List=Keys ),
-
-	lists:reverse( RevValues ).
+	[ get_value( K, Hashtable ) || K <- Keys ].
 
 
 
