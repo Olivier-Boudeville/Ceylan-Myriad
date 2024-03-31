@@ -407,11 +407,17 @@ get_transform( FromRefId, ToRefId, RefTree ) ->
 	{ IdPath={ Up, Down }, PathedRefTree } =
 		resolve_path( FromRefId, ToRefId, RefTree ),
 
+	trace_utils:debug_fmt( "Getting transform from frame #~B to #~B: up is ~w, "
+						   "down is ~w.", [ FromRefId, ToRefId, Up, Down ] ),
+
 	% Preferring any latest version of tree, just in case:
 	RefTable = PathedRefTree#reference_tree.ref_table,
 
-	trace_utils:debug_fmt( "Path from #~B to #~B: ~ts",
-		[ FromRefId, ToRefId, id_path_to_string( IdPath, RefTable ) ] ),
+	trace_utils:debug_fmt(
+		"Path from ~ts to ~ts: ~ts",
+		[ ref3_to_short_string( FromRefId, RefTable ),
+		  ref3_to_short_string( ToRefId, RefTable ),
+		  id_path_to_string( IdPath, RefTable ) ] ),
 
 
 	[ FromRef, ToRef ] = table:get_values( [ FromRefId, ToRefId ], RefTable ),
@@ -433,14 +439,15 @@ get_transform( FromRefId, ToRefId, RefTree ) ->
 	DownTransf4 = mult_down_transforms( Down, transform4:identity(), RefTable ),
 
 	% As the final endpoint is not in Down:
-	FullDownTransf4 =
-		transform4:mult( transform4:inverse( ToRef ), DownTransf4 ),
+	FullDownTransf4 = transform4:mult(
+		reference_frame3:get_inverse_transform( ToRef ), DownTransf4 ),
 
 	% Now the up:
 	UpTransf4 = mult_up_transforms( Up, FullDownTransf4, RefTable ),
 
 	% As the initial endpoint is not in Up:
-	FinalTransf4 = transform4:mult( UpTransf4, FromRef ),
+	FinalTransf4 = transform4:mult( UpTransf4,
+									FromRef#reference_frame3.transform ),
 
 	{ FinalTransf4, PathedRefTree }.
 
@@ -451,10 +458,10 @@ get_transform( FromRefId, ToRefId, RefTree ) ->
 mult_up_transforms( _Up=[], Transf4, _RefTable ) ->
 	Transf4;
 
-mult_up_transforms( _Up=[ TuId | H ], Transf4, RefTable ) ->
-	Tu = table:get_value( _K=TuId, RefTable ),
-	NewTransf4 = transform4:mult( Transf4, Tu ),
-	mult_down_transforms( H, NewTransf4, RefTable ).
+mult_up_transforms( _Up=[ RefId | T ], Transf4, RefTable ) ->
+	Ref = table:get_value( _K=RefId, RefTable ),
+	NewTransf4 = transform4:mult( Transf4, Ref#reference_frame3.transform ),
+	mult_down_transforms( T, NewTransf4, RefTable ).
 
 
 % Version for transformations from parent to leaves.
@@ -463,11 +470,11 @@ mult_up_transforms( _Up=[ TuId | H ], Transf4, RefTable ) ->
 mult_down_transforms( _Down=[], Transf4, _RefTable ) ->
 	Transf4;
 
-mult_down_transforms( _Down=[ TdId | H ], Transf4, RefTable ) ->
-	Td = table:get_value( _K=TdId, RefTable ),
-	InvTd = transform4:inverse( Td ),
-	NewTransf4 = transform4:mult( InvTd, Transf4 ),
-	mult_down_transforms( H, NewTransf4, RefTable ).
+mult_down_transforms( _Down=[ RefId | T ], Transf4, RefTable ) ->
+	Ref = table:get_value( _K=RefId, RefTable ),
+	InvRefTransf4 = reference_frame3:get_inverse_transform( Ref ),
+	NewTransf4 = transform4:mult( InvRefTransf4, Transf4 ),
+	mult_down_transforms( T, NewTransf4, RefTable ).
 
 
 
@@ -769,9 +776,18 @@ ref3_to_short_string( RefId, RefTable ) ->
 
 
 % @doc Returns a textual representation of the specified identifier path.
+%
+% Note that internally the transformations from a given frame to its parent are
+% managed, thus the closest parent ("top frame" of this path) of the endpoints
+% of a path is not listed in the path.
+%
 -spec id_path_to_string( id_path(), ref_table() ) -> ustring().
+id_path_to_string( _IdPath={ _Up=[], _Down=[] }, _RefTable ) ->
+	"empty path";
+
 id_path_to_string( _IdPath={ Up, Down }, RefTable ) ->
-	Path = lists:reverse( Up ) ++ Down,
+	% No reversing needed:
+	Path = Up ++ Down,
 	IdStrs = [ ref3_to_short_string( RefId, RefTable ) || RefId <- Path ],
 	text_utils:join( _Sep=" -> ", IdStrs ).
 

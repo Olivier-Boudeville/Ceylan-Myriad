@@ -70,6 +70,9 @@
 
 -export([ new/0, new/1, new_absolute/1,
 		  new/2, new/3, new_absolute/2,
+
+		  get_transform/1, get_inverse_transform/1, 
+
 		  to_string/1, node_to_string/2 ] ).
 
 
@@ -170,6 +173,25 @@ new_absolute( UserRefName, Transf4 ) ->
 
 	#reference_frame3{ name=text_utils:ensure_binary( UserRefName ),
 					   transform=Transf4 }.
+
+
+
+% @doc Returns the 3D transformation corresponding to the specified reference
+% frame.
+%
+% Note: this transformaton may be accessed directly instead.
+%
+-spec get_transform( reference_frame3() ) -> transform4().
+get_transform( #reference_frame3{ transform=Transf4 } ) ->
+	Transf4.
+
+
+% @doc Returns the inverse of the 3D transformation corresponding to the
+% specified reference frame.
+%
+-spec get_inverse_transform( reference_frame3() ) -> transform4().
+get_inverse_transform( #reference_frame3{ transform=Transf4 } ) ->
+	transform4:inverse( Transf4 ).
 
 
 

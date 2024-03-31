@@ -144,7 +144,7 @@ run() ->
 
 
 	% Rc here is just a frame scaled, relatively to the absolute frame, of:
-	Factorsc = { 1.0, 1.1, 0.8 },
+	Factorsc = { -1.0, 3.0, 0.5 },
 	Transfc = transform4:scaling( Factorsc ),
 
 	% No parent, thus absolutely defined:
@@ -152,6 +152,17 @@ run() ->
 
 	test_facilities:display( "Created Rc: ~ts",
 							 [ reference_frame3:to_string( Rc ) ] ),
+
+	SomePoint = { 1.0, 2.0, 3.0 },
+	ScaledSomePoint = transform4:apply_right( Transfc, SomePoint ),
+
+	test_facilities:display( "Point ~ts, once scaled thanks to the "
+		"transformated associated to Rc, is ~ts in the absolute frame.",
+		[ point3:to_string( SomePoint ),
+		  point3:to_string( ScaledSomePoint ) ] ),
+
+	true = point3:are_equal( ScaledSomePoint, { -1.0, 6.0, 1.5 } ),
+
 
 
 	{ _WithRabcRefIds=[ RaId, RbId, _RcId ], WithRabcTree } =
@@ -189,10 +200,10 @@ run() ->
 
 	Transfh = transform4:translation( _Vh=[ 10, 20,-5.2 ] ),
 
-	% Anonymous:
+	% Rh is anonymous:
 	Rh = reference_frame3:new( Transfh, RfId ),
 
-	{ _WithRghRefIds=[ _RgId, _RhId ], WithRghTree } =
+	{ _WithRghRefIds=[ RgId, _RhId ], WithRghTree } =
 		reference_tree:register( _WithRghRefs=[ Rg, Rh ], WithRfTree ),
 
 	test_facilities:display( "Reference tree with Rg and Rh: ~ts~n",
@@ -227,7 +238,38 @@ run() ->
 		  ref3_to_string( ToNodeId, ResolvRefTable ),
 		  reference_tree:id_path_to_string( ResolvPath, ResolvRefTable ) ] ),
 
-	FinalTree = ResolvTree,
+	IntermediateTree = ResolvTree,
+	test_facilities:display( "Full view of this intermediate ~ts",
+		[ reference_tree:to_full_string( IntermediateTree ) ] ),
+
+	reference_tree:check( IntermediateTree ),
+
+	test_facilities:display(
+		"Testing transformations between frames of reference." ),
+
+	{ Tss, TssRefTree } = reference_tree:get_transform( _FromRefId=RsId,
+		_ToRefId=RsId, IntermediateTree ),
+
+	test_facilities:display( "The transformation between Rs and itself is: ~ts",
+							 [ transform4:to_string( Tss ) ] ),
+
+
+	{ Tsa, TsaRefTree } = reference_tree:get_transform( _From=RsId,
+		_To=RaId, TssRefTree ),
+
+	test_facilities:display( "The transformation between Rs and Ra is: ~ts",
+							 [ transform4:to_string( Tsa ) ] ),
+
+
+	% Reverse direction, passing through root, then going back:
+	{ Tge, TgeRefTree } = 
+		reference_tree:get_transform( RgId, ReId, TsaRefTree ),
+
+	test_facilities:display( "The transformation between Rg and Re is: ~ts",
+							 [ transform4:to_string( Tge ) ] ),
+
+
+	FinalTree = TgeRefTree,
 	test_facilities:display( "Full view of this ~ts",
 							 [ reference_tree:to_full_string( FinalTree ) ] ),
 
