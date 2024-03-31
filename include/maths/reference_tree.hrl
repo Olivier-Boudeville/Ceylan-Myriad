@@ -46,7 +46,7 @@
 	ref_table :: reference_tree:ref_table(),
 
 	% A table caching the computed paths from on frame to another:
-	path_table :: reference_tree:path_table(),				  
+	path_table :: reference_tree:path_table(),
 
 	% The identifier to be allocated at the next registered frame:
 	next_ref_id = ?root_ref_id + 1 :: reference_frame:ref_id() } ).
