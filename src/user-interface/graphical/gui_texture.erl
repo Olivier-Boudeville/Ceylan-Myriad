@@ -27,7 +27,7 @@
 
 
 % @doc Gathering of various facilities for the <b>support of (OpenGL)
-% textures</b>, mostly 2D ones, either old-style (compatibility one) or
+% textures</b>, mostly 2D ones, either old-style (compatibility ones) or
 % according to current, modern OpenGL.
 %
 -module(gui_texture).
@@ -687,8 +687,9 @@ recalibrate_coordinates_for( TexCoords, #texture{ min_x=MinX, min_y=MinY,
 	R = recalibrate_coordinates_for( TexCoords, MinX, MinY, XDiff, YDiff,
 									 _Acc=[] ),
 
-	trace_utils:debug_fmt( "Coordinates ~p once recalibrated:~n ~p.",
-						   [ TexCoords, R ] ),
+	cond_utils:if_defined( myriad_debug_textures,
+		trace_utils:debug_fmt( "Coordinates ~p once recalibrated:~n ~p.",
+							   [ TexCoords, R ] ) ),
 
 	R.
 
