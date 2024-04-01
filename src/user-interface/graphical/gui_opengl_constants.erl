@@ -34,7 +34,8 @@
 
 
 -export([ get_debug_source_topic_spec/0, get_debug_type_topic_spec/0,
-		  get_debug_severity_topic_spec/0 ] ).
+		  get_debug_severity_topic_spec/0, get_polygon_facing_mode_topic_spec/0,
+		  get_rasterization_mode_topic_spec/0 ] ).
 
 
 -export([ list_topic_spec_functions/0 ]).
@@ -55,6 +56,12 @@
 -type debug_severity() :: gui_opengl:debug_severity().
 -type gl_debug_severity() :: gui_opengl:gl_debug_severity().
 
+-type polygon_facing_mode() :: gui_opengl:polygon_facing_mode().
+-type gl_polygon_facing_mode() :: gui_opengl:gl_polygon_facing_mode().
+
+-type rasterization_mode() :: gui_opengl:rasterization_mode().
+-type gl_rasterization_mode() :: gui_opengl:gl_rasterization_mode().
+
 
 
 % @doc Lists all the functions of this module that define a topic specification.
@@ -63,7 +70,8 @@ list_topic_spec_functions() ->
 
 	% Directly adapted from the first export define:
 	[ get_debug_source_topic_spec, get_debug_type_topic_spec,
-	  get_debug_severity_topic_spec ].
+	  get_debug_severity_topic_spec, get_polygon_facing_mode_topic_spec,
+	  get_rasterization_mode_topic_spec	].
 
 
 
@@ -126,7 +134,7 @@ get_debug_source_topic_spec() ->
 % First elements are debug_type(), second ones are gl_debug_type().
 %
 -spec get_debug_type_topic_spec() ->
-		topic_spec( debug_type(), gl_debug_type() ).
+								topic_spec( debug_type(), gl_debug_type() ).
 get_debug_type_topic_spec() ->
 
 	% We use our recommended order (first set for internal, second one for
@@ -169,3 +177,51 @@ get_debug_severity_topic_spec() ->
 
 	% Thus strict look-up:
 	{ debug_severity, Entries }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'polygon_facing_mode' topic, regarding how polygons face the viewpoint
+% (winding).
+%
+% First elements are polygon_facing_mode(), second ones are
+% gl_polygon_facing_mode().
+%
+-spec get_polygon_facing_mode_topic_spec() ->
+			topic_spec( polygon_facing_mode(), gl_polygon_facing_mode() ).
+get_polygon_facing_mode_topic_spec() ->
+
+	% We use our recommended order (first set for internal, second one for
+	% third-party).
+
+	Entries = [
+		{ front_facing,          ?GL_FRONT },
+		{ back_facing,           ?GL_BACK },
+		{ front_and_back_facing, ?GL_FRONT_AND_BACK } ],
+
+	% Thus strict look-up:
+	{ polygon_facing_mode, Entries }.
+
+
+
+% @doc Returns the two-way conversion specification for the
+% 'rasterization_mode_topic_spec' topic, regarding how polygons are to be
+% rasterized.
+%
+% First elements are rasterization_mode(), second ones are
+% gl_rasterization_mode().
+%
+-spec get_rasterization_mode_topic_spec() ->
+			topic_spec( rasterization_mode(), gl_rasterization_mode() ).
+get_rasterization_mode_topic_spec() ->
+
+	% We use our recommended order (first set for internal, second one for
+	% third-party).
+
+	Entries = [
+		{ raster_as_points, ?GL_POINT },
+		{ raster_as_lines,  ?GL_LINE },
+		{ raster_filled,    ?GL_FILL } ],
+
+	% Thus strict look-up:
+	{ rasterization_mode, Entries }.

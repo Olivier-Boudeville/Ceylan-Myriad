@@ -339,24 +339,37 @@
 
 
 -type polygon_facing_mode() ::
+	front_facing           % for front-facing polygons
+  | back_facing            % for back-facing polygons
+  | front_and_back_facing. % for front- and back-facing polygons
+% A selection of polygons, based on how they face the viewpoint (winding).
+
+
+-type gl_polygon_facing_mode() ::
 	?GL_FRONT           % for front-facing polygons
   | ?GL_BACK            % for back-facing polygons
   | ?GL_FRONT_AND_BACK. % for front- and back-facing polygons
-% A selection of polygons, based on how they face the viewpoint (winding).
+% The (low-level) polygon facing mode.
 %
 % For example:
-% gl:enable( ?GL_CULL_FACE ), % Enables the culling of faces
-% gl:cullFace( ?GL_BACK),     % Culls the back faces
-% gl:frontFace( ?GL_CW ),     % Front faces are here the ones whose vertices
-%                             % are listed clock-wise
+% gl:enable(?GL_CULL_FACE), % Enables the culling of faces.
+% gl:cullFace(?GL_BACK),    % Culls the back faces.
+% gl:frontFace(?GL_CW),     % Front faces are here the ones whose vertices
+%                           % are listed clockwise.
 
 
 -type rasterization_mode() ::
+	raster_as_points
+  | raster_as_lines  % Segments.
+  | raster_filled. % The interior of the polygon is filled; the default, for
+				   % both front- and back-facing polygons
+% Specifies how polygons are to be rasterized.
+
+-type gl_rasterization_mode() ::
 	?GL_POINT
   | ?GL_LINE
-  | ?GL_FILL. % The default, for both front- and back-facing polygons
-
-
+  | ?GL_FILL.
+% The (low-level) rasterization mode.
 
 -type actual_debug_source() :: 'api'
 							 | 'window_system'
@@ -510,7 +523,8 @@
 			   gl_error/0, glu_error/0, any_error/0,
 			   glu_id/0,
 
-			   polygon_facing_mode/0, rasterization_mode/0 ]).
+			   polygon_facing_mode/0, gl_polygon_facing_mode/0,
+			   rasterization_mode/0, gl_rasterization_mode/0 ]).
 
 
 % For gl linear types:
@@ -1760,11 +1774,24 @@ swap_buffers( Canvas ) ->
 
 
 
-% @doc Set the polygon rasterization mode.
+% @doc Sets the polygon rasterization mode, based on the polygons to select
+% (depending on their facing mode) and on how polygons will be rasterized.
+%
+% Useful for wireframe rendering.
+%
+% See https://registry.khronos.org/OpenGL-Refpages/gl4/html/glPolygonMode.xhtml
+%
 -spec set_polygon_raster_mode( polygon_facing_mode(),
 							   rasterization_mode() ) -> void().
 set_polygon_raster_mode( FacingMode, RasterMode ) ->
-	gl:polygonMode( FacingMode, RasterMode ),
+
+	GlFacingMode = gui_opengl_generated:get_second_for_polygon_facing_mode(
+						FacingMode ),
+
+	GlRasterMode = gui_opengl_generated:get_second_for_rasterization_mode(
+						RasterMode ),
+
+	gl:polygonMode( GlFacingMode, GlRasterMode ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
 
 
