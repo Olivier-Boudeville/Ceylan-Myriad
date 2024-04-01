@@ -152,6 +152,15 @@
 % designate the root, absolute reference frame.
 
 
+-type ref3_id() :: ref_id().
+% An identifier of a 3D reference frame.
+%
+% This is typically a key in an (implicit) ref3_table().
+%
+% The null (zero) identifier is reserved; it is used by reference trees to
+% designate the root, absolute reference frame.
+
+
 -type child_ids() :: [ ref_id() ].
 % A list of the identifier of the (direct) child frames of reference of a given
 % frame.
@@ -205,7 +214,7 @@
 
 
 
--export_type([ ref_id/0, child_ids/0, ref_table/0,
+-export_type([ ref_id/0, ref3_id/0, child_ids/0, ref_table/0,
 			   id_path/0, path_endpoints/0, path_table/0,
 			   reference_tree/0 ]).
 
