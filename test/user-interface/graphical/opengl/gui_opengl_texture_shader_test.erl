@@ -39,12 +39,16 @@
 % See also the gui_opengl_texture_test module for a corresponding test with the
 % legacy versions of OpenGL (compatibility mode).
 %
+% The textured mode can be replaced with a wireframe one (see RasterMode).
+%
 -module(gui_opengl_texture_shader_test).
 
 
 % Implementation notes:
 %
 % Directly inspired from https://learnopengl.com/Getting-started/Textures.
+%
+% NDC coordinates ("Normalised Device Coordinates") are used here.
 
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
@@ -187,9 +191,10 @@ prepare_triangle( Texture ) ->
 
 	% Triangle defined as [vertex3()], directly in normalised device coordinates
 	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
-	% texture repository has its Y ordinate axis up, see
-	% https://learnopengl.com/Getting-started/Hello-Triangle); we define here an
-	% upright triangle so that the texture is not deformed:
+	% texture coordinate system has its Y ordinate axis up, see
+	% https://learnopengl.com/Getting-started/Hello-Triangle), hence
+	% front-facing; we define here an upright triangle so that the texture is
+	% not deformed:
 	%
 	%                 T2
 	%               /  |
@@ -248,11 +253,14 @@ prepare_square( Texture ) ->
 	Z = 0.0,
 
 	% Square defined as [vertex3()], directly in normalized device coordinates
-	% here; CCW order (bottom left, bottom right, top right, top left)::
+	% here:
 	%
 	%         S3--S2
 	%         |    |
 	%         S0--S1
+	%
+	% Listed here in CW order (top right, bottom right, bottom left, top left),
+	% hence back-facing:
 	%
 	SquareVertices = [ _SV2={  H,  H, Z }, _SV1={  H, -H, Z },
 					   _SV0={ -H, -H, Z }, _SV3={ -H,  H, Z } ],
@@ -588,12 +596,18 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=0 ),
 
 
-	% Uncomment to switch to wireframe and see how the square decomposes in two
-	% triangles:
+	% Switch RasterMode to raster_as_lines in order to render in wireframe
+	% rather than textured, and see how the square decomposes in two triangles:
 	%
-	% (?GL_FRONT_AND_BACK not needed as our vertices are in CCW order)
+	% (front_and_back_facing needed, as the square is back facing, whereas the
+	% triangle is front facing)
 	%
-	%gui_opengl:set_polygon_raster_mode( ?GL_FRONT, ?GL_LINE ),
+	RasterMode = raster_filled,
+	%RasterMode = raster_as_lines,
+
+	gui_opengl:set_polygon_raster_mode( _FacingMode=front_and_back_facing,
+										RasterMode ),
+
 
 	% First, a triangle, whose vertices and texture coordinates are specified
 	% separately:
