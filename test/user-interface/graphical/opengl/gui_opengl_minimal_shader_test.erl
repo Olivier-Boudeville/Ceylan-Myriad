@@ -128,7 +128,7 @@
 -type ebo_id() :: gui_shader:ebo_id().
 
 
-% First and only attribute in the vertex stream that will be passed to the our
+% First and only attribute in the vertex stream that will be passed to our
 % shader: the vertices; attribute 0 was chosen, yet no particular reason for
 % this index, it just must match the layout (cf. 'location = 0') in the shader.
 %
@@ -422,7 +422,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Uncomment to switch to wireframe and see how the square decomposes in two
 	% triangles:
 	%
-	% (?GL_FRONT_AND_BACK not needed as our vertices are in CCW order)
+	% (?GL_FRONT_AND_BACK not needed, as our vertices are in CCW order)
 	%
 	%gui_opengl:set_polygon_raster_mode( ?GL_FRONT, ?GL_LINE ),
 
