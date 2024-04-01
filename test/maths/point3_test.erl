@@ -26,7 +26,6 @@
 % Creation date: Sunday, October 10, 2021.
 
 
-
 % @doc Unit tests for the <b>3D points</b>.
 %
 % See the point3 tested module.
