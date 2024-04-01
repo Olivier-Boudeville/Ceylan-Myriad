@@ -260,6 +260,12 @@
 -type ebo() :: array_buffer().
 % An Element Buffer Object, a (GLSL) buffer storing indices to vertex data.
 %
+% This buffer stores the index of each vertex that OpenGL shall draw (rather
+% than the vertex itself), relatively to a corresponding VBO; defining faces
+% based on indices rather than on vertices allows to avoid vertex duplication
+% (as by design a vertex is common to multiple faces; it should be best
+% specified only once, and referenced as many times as needed).
+%
 % Up to one is bound in a VAO. Usually input data is organised uniformly so that
 % a single EBO is needed for a given object.
 
@@ -267,7 +273,7 @@
 -type ebo_id() :: gl_buffer_id().
 % The identifier of an Element Buffer Object (EBO).
 %
-% It is an array of indices to vertex data.
+% It is an array of indices to vertex data, see ebo().
 %
 % Indices start at zero, and by default are of the ?GL_UNSIGNED_INT type.
 
@@ -2330,7 +2336,7 @@ to_gl_vectors( Vecs ) ->
 % MyriadGUI's conventions regarding types.
 %
 -spec characterise_series( vertex_attribute_series() ) ->
-					{ component_type(), component_count() }.
+					                    { component_type(), component_count() }.
 characterise_series( _VAttrSeries=[ FirstTuple | _T ] ) ->
 	% All tuples of this series supposed to be of the same type, so examining
 	% the first tuple is sufficient:
