@@ -33,7 +33,7 @@
 	vertices = [] :: [ point3:any_vertex3() ],
 
 
-	% The types of the faces from which this mesh is made:
+	% The types of the faces from which this mesh is made (e.g. triangle, quad):
 	face_type :: mesh:face_type(),
 
 
@@ -42,14 +42,22 @@
 
 
 	% To which geometric element (e.g. per vertex, per face) the next normals
-	% correspond:
+	% (if any) correspond:
 	%
 	normal_type :: mesh:normal_type(),
 
 	% The (unit) normals (if any) of that mesh, defined according to the
-	% previous normal type:
+	% previous normal type (normal indices corresponding thus either to vertex
+	% or face ones).
 	%
-	normals = [] :: [ vector3:unit_normal3() ],
+	% (as tessellation induces the sharing of normals of the tessellating
+	% triangles, normals should be indexed as well)
+	%
+	% Normals are optional, as they are mostly used for lighting, and mostly
+	% useful if they are per-vertex (per-face normals can be deduced from the
+	% vertices of that face)
+	%
+	normals = undefined :: maybe( [ vector3:unit_normal3() ] ),
 
 
 	% How this mesh shall be rendered:
@@ -61,3 +69,17 @@
 	% (can be for example a right-cuboid or a sphere)
 	%
 	bounding_volume :: maybe( bounding_volume:bounding_volume() ) } ).
+
+
+
+% OpenGL-related information for a mesh:
+-record( gl_mesh_info, {
+
+	% The overall VAO used for that mesh:
+	vao_id :: gui_opengl:vao_id(),
+
+	% The VBO holding the vertex-related data of that mesh:
+	vbo_id :: gui_opengl:vbo_id(),
+
+	% The EBO holding the face indices of that mesh:
+	ebo_id :: gui_opengl:ebo_id() } ).
