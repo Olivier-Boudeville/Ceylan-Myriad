@@ -339,9 +339,9 @@
 
 
 -type polygon_facing_mode() ::
-	front_facing           % for front-facing polygons
-  | back_facing            % for back-facing polygons
-  | front_and_back_facing. % for front- and back-facing polygons
+	'front_facing'           % for front-facing polygons
+  | 'back_facing'            % for back-facing polygons
+  | 'front_and_back_facing'. % for front- and back-facing polygons
 % A selection of polygons, based on how they face the viewpoint (winding).
 
 
@@ -358,18 +358,22 @@
 %                           % are listed clockwise.
 
 
+
 -type rasterization_mode() ::
-	raster_as_points
-  | raster_as_lines  % Segments.
-  | raster_filled. % The interior of the polygon is filled; the default, for
-				   % both front- and back-facing polygons
+	'raster_as_points'
+  | 'raster_as_lines' % Segments.
+  | 'raster_filled'.  % The interior of the polygon is filled; the default, for
+					  % both front- and back-facing polygons
 % Specifies how polygons are to be rasterized.
+
 
 -type gl_rasterization_mode() ::
 	?GL_POINT
   | ?GL_LINE
   | ?GL_FILL.
 % The (low-level) rasterization mode.
+
+
 
 -type actual_debug_source() :: 'api'
 							 | 'window_system'
@@ -1786,10 +1790,10 @@ swap_buffers( Canvas ) ->
 set_polygon_raster_mode( FacingMode, RasterMode ) ->
 
 	GlFacingMode = gui_opengl_generated:get_second_for_polygon_facing_mode(
-						FacingMode ),
+		FacingMode ),
 
 	GlRasterMode = gui_opengl_generated:get_second_for_rasterization_mode(
-						RasterMode ),
+		RasterMode ),
 
 	gl:polygonMode( GlFacingMode, GlRasterMode ),
 	cond_utils:if_defined( myriad_check_opengl, check_error() ).
