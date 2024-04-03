@@ -89,14 +89,15 @@
 
 
 % Less common list operations:
--export([ dispatch_in/2, add_as_heads/2, insert_at_all_places/2 ]).
+-export([ dispatch_in/2, add_as_heads/2, insert_at_all_places/2,
+		  repeat_elements/2 ]).
 
 
-% For lists of tuples (e.g. typically used by the HDF5 binding), extended
-% flatten and al:
+% For lists of tuples (e.g. typically used by the HDF5 binding) or lists,
+% extended flatten and al:
 %
 -export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2,
-		  zipn/1 ]).
+		  zipn/1, check_same_length/1 ]).
 
 
 % Random operations on lists:
@@ -1018,6 +1019,28 @@ insert_at_all_places( E, _L=[ H | T ], RevL, Acc ) ->
 
 
 
+% @doc Returns a list in which each element of the specified list is repeated
+% the specified (total - not additional) number of times (at least 1), in a row.
+%
+% For example, repeat_elements([a,b,c], _Count=2) = [a,a,b,b,c,c].
+%
+-spec repeat_elements( list(), count() ) -> list().
+repeat_elements( List, RepeatCount ) ->
+	% Better reverse the shorted input list:
+	repeat_elements( lists:reverse( List ), RepeatCount, _Acc=[] ).
+
+
+% (helper)
+repeat_elements( _Elements=[], _RepeatCount, Acc ) ->
+	% Reversing already done:
+	Acc;
+
+repeat_elements( _Elements=[ E | T ], RepeatCount, Acc ) ->
+	Dups = duplicate( E, RepeatCount ),
+	repeat_elements( T, RepeatCount, Dups ++ Acc ).
+
+
+
 % @doc Returns a copy of the specified list where the first element matching
 % Elem is deleted, ensuring that at least one of these elements exists (as
 % opposed to lists:delete/2). The order of the specified list is preserved.
@@ -1518,12 +1541,17 @@ reconstruct_tuples( List, TupleSize, Acc ) ->
 
 
 % @doc Performs a generalization of zip2, zip3: takes one element at a time of
-% each of the input lists, and adds it to a corresponding tuple.
+% each of the input lists, and adds it to a corresponding list; returns thus a
+% list of fixed-size lists (not tuples; like the zip{2,3}). Order is preserved
+% (between and inside each of the input lists).
 %
 % For example, list_utils:zipn([_L1=[a,b,c], _L2=[1,2,3],
-% _L3=[true,false,undefined]]) will return a list containing triplets (as there
-% are 3 lists), whose elements are taken from each of the input lists, in order:
-% [[a,1,true],[b,2,false],[c,3,undefined]].
+% _L3=[true,false,undefined]]) will return a list containing lists of 3 elements
+% (as there are 3 input lists), whose elements are taken from each of the input
+% lists, in order: [[a,1,true],[b,2,false],[c,3,undefined]].
+%
+% If the myriad_check_lists token is not set, no error will be triggered if the
+% input lists are not all of the same length (see check_same_length/1).
 %
 -spec zipn( [ list() ] ) -> list( tuple() ).
 zipn( ListOfLists ) ->
@@ -1566,6 +1594,27 @@ extract_elems( _ListOfLists=[], AccFirstElems, AccRemLists ) ->
 extract_elems( _ListOfLists=[ _L=[F|TL] | T ], AccFirstElems, AccRemLists ) ->
 	extract_elems( T, [ F | AccFirstElems ], [ TL | AccRemLists ] ).
 
+
+
+% @doc Checks that all the specified lists have the same length, and returns
+% it. Throws an exception if the lengths do not match.
+%
+% At least one list must be listed.
+%
+-spec check_same_length( [ list() ] ) -> count().
+check_same_length( Lists ) ->
+
+	Lens = [ Len | _T ] = [ length( L ) || L <- Lists ],
+
+	case are_equal( Lens ) of
+
+		true ->
+			Len;
+
+		false ->
+			throw( { lists_of_different_lengths, Lens, Lists } )
+
+	end.
 
 
 
