@@ -63,6 +63,9 @@
 	% How this mesh shall be rendered:
 	rendering_info = none :: mesh:rendering_info(),
 
+	% Any corresponding (OpenGL-level) rendering state:
+	rendering_state :: maybe( mesh:rendering_state() ),
+
 
 	% Bounding volume information:
 	%
@@ -72,14 +75,17 @@
 
 
 
-% OpenGL-related information for a mesh:
--record( gl_mesh_info, {
+% Rendering (OpenGL-related) state of a mesh.
+-record( rendering_state, {
 
 	% The overall VAO used for that mesh:
-	vao_id :: gui_opengl:vao_id(),
+	vao_id :: gui_shader:vao_id(),
 
 	% The VBO holding the vertex-related data of that mesh:
-	vbo_id :: gui_opengl:vbo_id(),
+	vbo_id :: gui_shader:vbo_id(),
 
 	% The EBO holding the face indices of that mesh:
-	ebo_id :: gui_opengl:ebo_id() } ).
+	ebo_id :: gui_shader:ebo_id(),
+
+	% The number of per-vertex elements of this mesh:
+	vertex_count :: basic_utils:count() } ).

@@ -33,6 +33,9 @@
 %
 -module(mesh).
 
+% For the numerous GL defines notably:
+-include("gui_opengl.hrl").
+
 % For the mesh record:
 -include("mesh.hrl").
 
@@ -40,8 +43,8 @@
 -type mesh() :: #mesh{}.
 % Describes a mesh, convex or not.
 
--type gl_mesh_info() :: #gl_mesh_info{}.
-% OpenGL-related information for that mesh.
+-type rendering_state() :: #rendering_state{}.
+% Rendering (OpenGL-related) state of a mesh.
 
 
 
@@ -61,9 +64,9 @@
 % The type of the faces of a mesh.
 
 
--type indexed_face() :: [ vertex_indice() ].
-% Describes a face of a mesh, based on a list of vertices, specified as indexes
-% (for example 3 of them, to define a triangle).
+-type indexed_face() :: tuple( vertex_indice() ).
+% Describes a face of a mesh, based on an (ordered) tuple of vertices, specified
+% as indexes (for example 3 of them, to define a triangle).
 %
 % Note that usually the vertex order matters (regarding culling).
 
@@ -125,7 +128,10 @@
 	% Per-vertex or per-face colors (color order being the one of the elements -
 	% vertices or faces - at creation):
 	%
-  | { 'color', face_coloring_type(), ElementColors :: [ render_rgb_color() ] }
+	% (solid colors, no transparency here; RGB as triplets of integers, not in
+	% [0.0,1.0])
+	%
+  | { 'color', face_coloring_type(), ElementColors :: [ color_by_decimal() ] }
 
 	% Texture information for the face of the same index:
   | { 'texture', [ texture_face_info() ] }.
@@ -147,7 +153,7 @@
 
 
 
--export_type([ mesh/0, gl_mesh_info/0, indice/0, vertex_indice/0,
+-export_type([ mesh/0, rendering_state/0, indice/0, vertex_indice/0,
 			   face_type/0, indexed_face/0, face_indice/0,
 			   indexed_triangle/0, indexed_quad/0,
 			   normal_type/0,
@@ -161,19 +167,21 @@
 
 
 % Construction-related section.
--export([ create/6 ]).
+-export([ create/4, create/6 ]).
 
 
 % Operations on meshes.
 -export([ tessellate/1, triangulate/1,
+
 		  indexed_face_to_triangle/1,
 		  indexed_faces_to_triangles/1,
-		  register_to_opengl/1, render_as_opengl/1,
+
+		  initialise_for_opengl/1, render_as_opengl/1, cleanup_for_opengl/1,
 
 		  to_string/1, to_compact_string/1,
 		  rendering_info_to_string/1, rendering_info_to_compact_string/1,
 		  face_type_to_string/1, normal_type_to_string/1,
-		  gl_mesh_info_to_string/1 ]).
+		  rendering_state_to_string/1 ]).
 
 
 
@@ -196,8 +204,11 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type tuple( T ) :: type_utils:tuple( T ).
 
+-type color_by_decimal() :: gui_color:color_by_decimal().
 -type render_rgb_color() :: gui_color:render_rgb_color().
+
 %-type canvas() :: gui:canvas().
 
 %-type distance() :: linear:distance().
@@ -229,26 +240,38 @@
 % Construction-related section.
 
 
+% @doc Returns a new mesh whose vertices, faces and rendering information are
+% the specified ones, with no specific bounding volume set.
+%
+-spec create( [ vertex3() ], face_type(), [ indexed_face() ],
+			  rendering_info() ) -> mesh().
+create( Vertices, FaceType, Faces, RenderingInfo ) ->
+	create( Vertices, FaceType, Faces, _AnyNormalType=per_face,
+			_MaybeNormals=[], RenderingInfo ).
+
+
+
 % @doc Returns a new mesh whose vertices, faces, normals (of unit length, and of
 % the specified type; if any), rendering information are the specified ones,
 % with no specific bounding volume set.
 %
 -spec create( [ vertex3() ], face_type(), [ indexed_face() ],
 	normal_type(), maybe( [ unit_normal3() ] ), rendering_info() ) -> mesh().
-create( Vertices, FaceType, Faces, NormalType, Normals, RenderingInfo ) ->
+create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 
 	cond_utils:if_defined( myriad_check_mesh,
 		begin
 			ExpectedVertexCount = get_vertex_count_for_face_type( FaceType ),
-			[ ExpectedVertexCount = length( F ) || F <- Faces ],
-			vector3:check_unit_vectors( Normals )
+			[ ExpectedVertexCount = size( F ) || F <- Faces ],
+			MaybeNormals =:= undefined orelse
+				vector3:check_unit_vectors( MaybeNormals )
 		end ),
 
 	#mesh{ vertices=Vertices,
 		   face_type=FaceType,
 		   faces=Faces,
 		   normal_type=NormalType,
-		   normals=Normals,
+		   normals=MaybeNormals,
 		   rendering_info=RenderingInfo }.
 
 
@@ -299,7 +322,7 @@ tessellate( Mesh=#mesh{ face_type=quad,
 
 				per_face ->
 					% The two triangles have the same normal as their quad:
-					repeat_elements( QuadNormals )
+					list_utils:repeat_elements( QuadNormals, _Count=2 )
 
 			end
 
@@ -317,10 +340,12 @@ tessellate( Mesh=#mesh{ face_type=quad,
 			C;
 
 		{ color, _FaceColoringType=per_face, ElemColors } ->
-			{ color, per_face, repeat_elements( ElemColors ) };
+			{ color, per_face,
+			  list_utils:repeat_elements( ElemColors, _Cnt=2 ) };
 
 		{ texture, TexFaceInfos } ->
 			{ texture, adapt_texture_face_infos( TexFaceInfos ) }
+
 	end,
 
 	Mesh#mesh{ face_type=triangle,
@@ -348,22 +373,6 @@ triangulate( _QuadFaces=[ _QF={ V1Id, V2Id, V3Id, V4Id } | T ], Acc ) ->
 	NewAcc = [ { V3Id, V4Id, V1Id }, { V1Id, V2Id, V3Id } | Acc ],
 	triangulate( T, NewAcc ).
 
-
-
-% @doc Repeats the specified elements; for example, repeat_elements([a,b,c]) =
-% [a,a,b,b,c,c].
-%
-repeat_elements( Elements ) ->
-	% Twice less to reverse if done now:
-	repeat_elements( lists:reverse( Elements ), _Acc=[] ).
-
-
-repeat_elements( _Elements=[], Acc ) ->
-	% Reversing already done:
-	Acc;
-
-repeat_elements( _Elements=[ E | T ], Acc ) ->
-	repeat_elements( T, [ E, E | Acc ] ).
 
 
 % @doc Adapts from quad to triangle the specified list of texture face
@@ -412,20 +421,19 @@ indexed_faces_to_triangles( Faces ) ->
 
 
 % @doc Registers the specified mesh within the current OpenGL context, so that
-% the mesh can be readily rendered afterwards.
+% the mesh can be readily rendered afterwards, and returns an updated mesh.
 %
--spec register_to_opengl( mesh() ) -> gl_mesh_info().
-% Only a subset supported currently:
-register_to_opengl( _Mesh=#mesh{
+-spec initialise_for_opengl( mesh() ) -> mesh().
+% Only a subset supported currently, first the triangle+texture version:
+initialise_for_opengl( Mesh=#mesh{
 		vertices=Vertices,
 		face_type=triangle,
 		faces=FaceIndices,
-
 		% Normals currently ignored (useful for lighting only):
 		%normal_type=per_{vertex,face},
 		%normals=MaybeNormals,
-
-		rendering_info={ texture, _TexFaceInfos={ Texture, TexCoords } } } ) ->
+		rendering_info={ texture, _TexFaceInfos={ Texture, TexCoords } },
+		rendering_state=undefined } ) ->
 
 	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
 	% normals and texture coordinates) and EBO (for indices in the VBO):
@@ -457,19 +465,127 @@ register_to_opengl( _Mesh=#mesh{
 	%
 	gui_shader:unset_current_vao(),
 
-	#gl_mesh_info{ vao_id=MeshVAOId, vbo_id=MeshVBOId, ebo_id=MeshEBOId }.
+	RenderState = #rendering_state{ vao_id=MeshVAOId,
+									vbo_id=MeshVBOId,
+									ebo_id=MeshEBOId,
+									vertex_count=length( Vertices ) },
+
+	Mesh#mesh{ rendering_state=RenderState };
+
+
+% Clause for triangle+solid colors:
+initialise_for_opengl( _Mesh=#mesh{
+		vertices=Vertices,
+		face_type=triangle,
+		faces=FaceIndices,
+		% Normals currently ignored (useful for lighting only):
+		%normal_type=per_{vertex,face},
+		%normals=MaybeNormals,
+		rendering_info={ color, per_face, FaceColors },
+		rendering_state=undefined } ) ->
+
+	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
+	% normals and no texture coordinates) and EBO (for indices in the VBO):
+	%
+	MeshVAOId = gui_shader:set_new_vao(),
+
+	% OpenGL could have been requested to normalise the data by itself instead:
+	FloatFaceColors = gui_color:decimal_to_render( FaceColors ),
+
+	% We have 1 color per face and 3 vertices per face; per-vertex colors will
+	% be specified, so each color must be repeated (for a total of 3 identical
+	% values) to correspond to each vertex:
+	%
+	RepeatedFloatFaceColors =
+		list_utils:repeat_elements( FloatFaceColors, _Count=3 ),
+
+	% Neither normals nor texture coordinates used here:
+	AttrSeries= [ Vertices, RepeatedFloatFaceColors ],
+
+	% Creates a VBO from these two series, by merging them.
+	%
+	% We start at vertex attribute index #0 in this VAO; as there are two
+	% series, the vertex attribute indices will be 0 and 1:
+	%
+	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series( AttrSeries ),
+
+	% As a plain list of indices (not for example a list of triplets of
+	% indices), preferably in CCW order:
+	%
+	MeshEBOId = gui_shader:assign_indices_to_new_ebo( FaceIndices ),
+
+	% As the (single, here) VBO and the EBO were created whereas this VAO was
+	% active, they are tracked by this VAO, which will rebind them automatically
+	% the next time it will be itself bound:
+	%
+	gui_shader:unset_current_vao(),
+
+	#rendering_state{ vao_id=MeshVAOId, vbo_id=MeshVBOId, ebo_id=MeshEBOId,
+					  vertex_count=length( Vertices ) }.
 
 
 
-% @doc Renders the specified mesh based on the current OpenGL context.
--spec render_as_opengl( mesh() ) -> void().
-render_as_opengl( _Mesh ) ->
+% @doc Renders the specified mesh rendering state (if any) based on the current
+% OpenGL context.
+%
+-spec render_as_opengl( maybe( rendering_state() ) ) -> void().
+render_as_opengl( _MaybeRenderState=undefined ) ->
+	trace_utils:debug( "Mesh does not have a rendering state." );
+
+render_as_opengl( _MaybeRenderState=#rendering_state{ vao_id=VAOId,
+		vbo_id=_VBOId, ebo_id=_EBOId, vertex_count=VertexCount } ) ->
+
+	% We rely on our shader program; operations that must be performed at each
+	% rendering:
 
 	% For wireframe rendering_info, use:
 	%gui_opengl:set_polygon_raster_mode( _FacingMode=front_facing,
-	%                                    _RasterMode=raster_filled),
+	%                                    _RasterMode=raster_filled ),
 
-	throw( todo ).
+	PrimType = ?GL_TRIANGLES,
+
+	% Sets the VBO and the vertex attribute:
+	gui_shader:set_current_vao_from_id( VAOId ),
+
+	% So these three calls would be useless:
+	%gui_shader:set_current_vbo_from_id( VBOId ),
+	%gui_shader:enable_vertex_attribute( ?my_vertex_attribute_index ),
+	%gui_shader:set_current_ebo_from_id( EBOId ),
+
+	% Draws our splendid mesh (based on VertexCount vertex elements, starting at
+	% index 0), using the currently active shaders, vertex attribute
+	% configuration and with the VBO's vertex data (indirectly bound via the
+	% VAO):
+	%
+	gui_shader:render_from_enabled_vbos( PrimType, VertexCount ),
+
+	gui_shader:unset_current_vao(),
+
+	% Useless, as reset at each rendering through VAOs:
+	%gui_shader:disable_vertex_attribute( ?my_vertex_attribute_index ),
+
+	ok.
+
+
+
+% @doc Returns the specified mesh once its rendering state has been cleaned up
+% and deallocated.
+%
+-spec cleanup_for_opengl( mesh() ) -> mesh().
+cleanup_for_opengl( Mesh=#mesh{ rendering_state=undefined } ) ->
+   Mesh;
+
+cleanup_for_opengl( Mesh=#mesh{ rendering_state=#rendering_state{
+													vao_id=VAOId,
+													vbo_id=VBOId,
+													ebo_id=EBOId } } ) ->
+
+	trace_utils:debug( "Cleaning up mesh regarding OpenGL." ),
+	gui_shader:delete_ebo( EBOId ),
+	gui_shader:delete_vbo( VBOId ),
+	gui_shader:delete_vao( VAOId ),
+
+	Mesh#mesh{ rendering_state=undefined }.
 
 
 
@@ -485,6 +601,7 @@ to_string( #mesh{ vertices=Vertices,
 				  normal_type=NormalType,
 				  normals=MaybeNormals,
 				  rendering_info=RenderingInfo,
+				  rendering_state=MaybeRenderState,
 				  bounding_volume=MaybeBoundingVolume } ) ->
 
 	NormalStr = case MaybeNormals of
@@ -495,6 +612,16 @@ to_string( #mesh{ vertices=Vertices,
 		Normals ->
 			text_utils:format( "~B ~ts normals: ~w", [ length( Normals ),
 				normal_type_to_string( NormalType ), Normals ] )
+
+	end,
+
+	RenderStateStr = case MaybeRenderState of
+
+		undefined ->
+			"no rendering state available";
+
+		RenderState ->
+			rendering_state_to_string( RenderState )
 
 	end,
 
@@ -513,10 +640,12 @@ to_string( #mesh{ vertices=Vertices,
 		" - ~B ~ts faces: ~w~n"
 		" - ~ts~n"
 		" - ~ts~n"
+		" - ~ts~n"
 		" - bounding volume: ~ts",
 		[ length( Vertices ), Vertices,
 		  length( Faces ), face_type_to_string( FaceType ), Faces,
-		  NormalStr, rendering_info_to_string( RenderingInfo ), BVStr ] ).
+		  NormalStr, rendering_info_to_string( RenderingInfo ),
+		  RenderStateStr, BVStr ] ).
 
 
 
@@ -528,6 +657,7 @@ to_compact_string( #mesh{ vertices=Vertices,
 						  normal_type=NormalType,
 						  normals=MaybeNormals,
 						  rendering_info=RenderingInfo,
+						  rendering_state=MaybeRenderState,
 						  bounding_volume=MaybeBoundingVolume } ) ->
 
 	NormalStr = case MaybeNormals of
@@ -552,9 +682,13 @@ to_compact_string( #mesh{ vertices=Vertices,
 	end,
 
 	text_utils:format( "mesh with ~B vertices, ~B ~ts faces, "
-		"~ts normals, with ~ts and ~ts~n",
+		"~ts normals, with ~ts, ~ts and ~ts~n",
 		[ length( Vertices ), length( Faces ), face_type_to_string( FaceType ),
 		  NormalStr, rendering_info_to_compact_string( RenderingInfo ),
+		  case MaybeRenderState of
+				undefined -> "no";
+				_ -> "a"
+		  end ++ " rendering state",
 		  BVStr ] ).
 
 
@@ -630,13 +764,15 @@ normal_type_to_string( per_face ) ->
 
 
 
-% @doc Returns a textual description of the specified mesh OpenGL information.
--spec gl_mesh_info_to_string( gl_mesh_info() ) -> ustring().
-gl_mesh_info_to_string( #gl_mesh_info{ vao_id=VAOId,
-									   vbo_id=VBOId,
-									   ebo_id=EBOId } ) ->
-	text_utils:format( "OpenGL mesh information is VAO #~B, VBO #~B "
-					   "and EBO #~B", [ VAOId, VBOId, EBOId ] ).
+% @doc Returns a textual description of the specified mesh rendering state.
+-spec rendering_state_to_string( rendering_state() ) -> ustring().
+rendering_state_to_string( #rendering_state{ vao_id=VAOId,
+											 vbo_id=VBOId,
+											 ebo_id=EBOId,
+											 vertex_count=VCount } ) ->
+	text_utils:format( "OpenGL rendering state is VAO #~B, VBO #~B "
+		"and EBO #~B, for ~B vertex elements",
+        [ VAOId, VBOId, EBOId, VCount ] ).
 
 
 
