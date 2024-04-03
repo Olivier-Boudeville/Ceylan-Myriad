@@ -1627,6 +1627,14 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
 -spec assign_new_vbo_from_attribute_series( [ vertex_attribute_series() ],
 		StartVAttrStartIndex :: vertex_attribute_index() ) -> vbo_id().
 assign_new_vbo_from_attribute_series( ListOfVAttrSeries, StartVAttrIndex ) ->
+
+	% Later zipn in characterise_series/1 will check it only if
+	% myriad_check_lists is set, whereas we want to control the check here and
+	% perform it earlier:
+	%
+	cond_utils:if_defined( myriad_check_mesh,
+						   list_utils:check_same_length( ListOfVAttrSeries ) ),
+
 	% A list of {ComponentType, ComponentCount} pairs:
 	CompPairs = [ characterise_series( VAS ) || VAS <- ListOfVAttrSeries ],
 	{ Stride, Offsets } = get_stride_and_offsets( CompPairs ),
@@ -1799,7 +1807,7 @@ declare_vertex_attributes_from( _CompPairs=[ { CT, CC } | Tc ], Stride,
 
 	% At least currently, never normalising (fixed-point) integer components:
 	declare_vertex_attribute( VAttrIndex, CC, CT, _DoNormalise=false,
-		Stride, Offset, DoEnable ),
+							  Stride, Offset, DoEnable ),
 
 	declare_vertex_attributes_from( Tc, Stride, To, VAttrIndex+1, DoEnable ).
 
@@ -2335,8 +2343,10 @@ to_gl_vectors( Vecs ) ->
 % @doc Characterises the specified vertex attribute series, according to
 % MyriadGUI's conventions regarding types.
 %
+% May return for example {?GL_FLOAT,3}.
+%
 -spec characterise_series( vertex_attribute_series() ) ->
-					                    { component_type(), component_count() }.
+										{ component_type(), component_count() }.
 characterise_series( _VAttrSeries=[ FirstTuple | _T ] ) ->
 	% All tuples of this series supposed to be of the same type, so examining
 	% the first tuple is sufficient:
