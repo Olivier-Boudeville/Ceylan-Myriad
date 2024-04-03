@@ -110,6 +110,12 @@
 % Test-specific overall OpenGL state.
 
 
+% First and only attribute in the vertex stream that will be passed to our
+% shader: the vertices; attribute 0 was chosen, yet no particular reason for
+% this index, it just must match the layout (cf. 'location = 0') in the shader.
+%
+-define( my_vertex_attribute_index, 0 ).
+
 
 
 % Shorthands:
@@ -128,34 +134,6 @@
 -type ebo_id() :: gui_shader:ebo_id().
 
 
-% First and only attribute in the vertex stream that will be passed to our
-% shader: the vertices; attribute 0 was chosen, yet no particular reason for
-% this index, it just must match the layout (cf. 'location = 0') in the shader.
-%
--define( my_vertex_attribute_index, 0 ).
-
-
-
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
-
-	test_facilities:display(
-		"~nStarting the minimal test of OpenGL shader support." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts.",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
 
 
 
@@ -416,15 +394,15 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	gui_shader:install_program( ProgramId ),
 
 	gui_shader:set_uniform_vector3( SomeColorUnifId,
-									gui_opengl_minimal_test:get_myriad_blue() ),
+									gui_opengl_for_testing:get_myriad_blue() ),
 
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two
 	% triangles:
 	%
-	% (?GL_FRONT_AND_BACK not needed, as our vertices are in CCW order)
+	% (front_and_back_facing not needed, as our vertices are in CCW order)
 	%
-	%gui_opengl:set_polygon_raster_mode( ?GL_FRONT, ?GL_LINE ),
+	%gui_opengl:set_polygon_raster_mode( front_facing, raster_as_lines ),
 
 
 	% First, a triangle, whose vertices are specified directly:
@@ -619,9 +597,9 @@ render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
 	%gui_shader:set_current_vbo_from_id( TriangleVBOId ),
 	%gui_shader:enable_vertex_attribute( ?my_vertex_attribute_index ),
 
-	% Draws our splendid triangle (from 3 slots, starting at index 0), using the
-	% currently active shaders, vertex attribute configuration and with the
-	% VBO's vertex data (indirectly bound via the VAO):
+	% Draws our splendid triangle (from 3 vertex elements, starting at index 0),
+	% using the currently active shaders, vertex attribute configuration and
+	% with the VBO's vertex data (indirectly bound via the VAO):
 	%
 	gui_shader:render_from_enabled_vbos( PrimType, _VCount=3 ),
 
@@ -661,15 +639,8 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running this OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run(
+			"the minimal test of OpenGL shader support" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

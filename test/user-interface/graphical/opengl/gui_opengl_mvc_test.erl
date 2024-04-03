@@ -166,28 +166,6 @@
 
 
 
-% @doc Runs the OpenGL MVC test if possible.
--spec run_opengl_mvc_test() -> void().
-run_opengl_mvc_test() ->
-
-	test_facilities:display( "~nStarting the OpenGL MVC test." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
-
-
-
 % @doc Runs the actual test.
 -spec run_actual_test() -> void().
 run_actual_test() ->
@@ -615,8 +593,8 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 
 	gl:enable( ?GL_TEXTURE_2D ),
 
-	ImagePath = file_utils:join(
-		gui_opengl_direct_integration_test:get_test_image_directory(),
+	ImagePath = file_utils:join( 
+        gui_opengl_for_testing:get_test_image_directory(),
 		"myriad-space-time-coordinate-system.png" ),
 
 	% Not directly 'Texture = gui_texture:load_from_file(ImgPath)' as we want to
@@ -872,15 +850,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running the OpenGL MVC test, being in batch mode)" );
-
-		false ->
-			run_opengl_mvc_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run( "the OpenGL MVC test" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

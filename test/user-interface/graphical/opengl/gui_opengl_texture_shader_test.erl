@@ -302,30 +302,6 @@ prepare_square( Texture ) ->
 
 
 
-
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
-
-	test_facilities:display(
-		"~nStarting the test of texture support with OpenGL shaders." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts.",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
-
-
-
 % @doc Runs the actual test.
 -spec run_actual_test() -> void().
 run_actual_test() ->
@@ -800,15 +776,8 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running this OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run(
+			"the test of texture support with OpenGL shaders" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

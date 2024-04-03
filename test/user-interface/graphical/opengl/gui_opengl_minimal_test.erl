@@ -34,13 +34,16 @@
 % structure in order to properly initialise the GUI and OpenGL, handle
 % rendering, resizing and closing.
 %
+% This test concentrates a few facilities common to multiple OpenGL tests.
+%
 % This test relies on the OpenGL 1.x compatibility mode, as opposed to more
 % modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
 %
 % See the gui_opengl.erl tested module.
 %
-% See gui_opengl_minimal_test.erl for a similar 2D test yet operating with
-% absolute (non-normalised coordinates).
+% This test uses NDC (Normalized Device Coordinates); See the gui_opengl_2D_test
+% module for a similar 2D test yet operating with absolute (non-normalised
+% coordinates).
 %
 -module(gui_opengl_minimal_test).
 
@@ -83,45 +86,12 @@
 % Test-specific overall GUI state.
 
 
--export([ get_myriad_blue/0 ]).
-
-
 % Shorthands:
 
 -type frame() :: gui:frame().
 
--type render_rgb_color() :: gui_color:render_rgb_color().
-
 -type gl_canvas() :: gui_opengl:gl_canvas().
 -type gl_context() :: gui_opengl:gl_context().
-
-
-
-% Defined for convenience and sharing with other tests.
--spec get_myriad_blue() -> render_rgb_color().
-get_myriad_blue() ->
-	[ 0.05, 0.2, 0.67 ].
-
-
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
-
-	test_facilities:display( "~nStarting the minimal test of OpenGL support." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
 
 
 
@@ -466,15 +436,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running the OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run( "the minimal test of OpenGL support" )
+		=:= yes andalso run_actual_test(),
 
 	test_facilities:stop().
