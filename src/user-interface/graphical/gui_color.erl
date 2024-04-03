@@ -33,19 +33,10 @@
 
 % Colors.
 %
-% Colors are designated by {R,G,B} triplets, or as one of the predefined names,
-% like red, green, etc.
+% Colors are designated here generally by {R,G,B} triplets, or as one of the
+% predefined names, like red, green, etc.
 %
 % For example {0,0,0} is black and {255,255,255} is white.
-
-
-% Color-related operations.
--export([ get_colors/0, get_color/1, get_logical_colors/0, get_logical_color/1,
-		  get_color_for_gnuplot/1, get_random_colors/1 ]).
-
-
-% Other operations:
--export([ get_pixel_size/1, pixel_format_to_string/1 ]).
 
 
 -include("gui_color.hrl").
@@ -198,6 +189,19 @@
 			   color_data/0 ]).
 
 
+% Color definition related operations.
+-export([ get_colors/0, get_color/1, get_logical_colors/0, get_logical_color/1,
+		  get_color_for_gnuplot/1, get_random_colors/1 ]).
+
+
+% Color conversions.
+-export([ decimal_to_render/1 ]).
+
+
+% Other operations:
+-export([ get_pixel_size/1, pixel_format_to_string/1 ]).
+
+
 
 % Shorthands:
 
@@ -211,13 +215,14 @@
 
 
 
-% Color section.
-
 % Here colors are defined as a triplet of color components: {R,G,B}, see the
 % color_by_decimal() type.
 %
 % For example {0,0,0} is black and {255,255,255} is white.
 
+
+
+% Section for color definition.
 
 
 % @doc Returns a list of known {color_name, ColorDefinition} associations.
@@ -462,11 +467,38 @@ get_color_for_gnuplot( ColorName ) ->
 -spec get_random_colors( count() ) -> [ color_by_decimal() ].
 get_random_colors( ColorCount ) ->
 
+	% {R,G,B} values could have been drawn instead.
+
 	AllColors = get_colors(),
 
 	% Only keep RBG values, not the atom-based name:
 	[ RGB || { _Name, RGB } <-
 					list_utils:draw_elements_from( AllColors, ColorCount ) ].
+
+
+
+% Section for color conversion.
+
+
+% @doc Returns the floating-point RGB(A) color(s) corresponding to the specified
+% integer-based one(s).
+%
+-spec decimal_to_render( color_by_decimal() ) -> render_rgb_color();
+					   ( color_by_decimal_with_alpha() ) -> render_rgba_color();
+					   ( [ color_by_decimal() ] ) -> [ render_rgb_color() ];
+					   ( [ color_by_decimal_with_alpha() ] ) ->
+											[ render_rgba_color() ].
+decimal_to_render( { Red, Green, Blue } ) ->
+	Norm = 255,
+	{ Red/Norm, Green/Norm, Blue/Norm };
+
+decimal_to_render( { Red, Green, Blue, Alpha } ) ->
+	Norm = 255,
+	{ Red/Norm, Green/Norm, Blue/Norm, Alpha/Norm };
+
+decimal_to_render( Colors ) when is_list( Colors ) ->
+	[ decimal_to_render( C ) || C <- Colors ].
+
 
 
 
