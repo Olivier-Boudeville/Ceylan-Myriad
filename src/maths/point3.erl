@@ -90,6 +90,9 @@
 			   vertex3/0, integer_vertex3/0, any_vertex3/0, yup_point3/0 ]).
 
 
+% See vector3:compute_normal/3 to determine a normal from a plane defined out of
+% 3 vertices.
+
 -export([ new/1, new/3, new_integer/3, null/0,
 		  from_vector/1, to_vector/1, to_any_vector/1,
 		  point3_to_yup/1, yup_to_point3/1, point3_to_yups/1, yup_to_point3s/1,
@@ -283,7 +286,9 @@ scale( _P={X,Y,Z}, Factor ) ->
 
 
 
-% @doc Returns a vector V made from the specified two points: V=P2-P1.
+% @doc Returns a vector V made from the specified two points, from P1 to P2:
+% V12=P2-P1.
+%
 -spec vectorize( point3(), point3() ) -> vector3().
 vectorize( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
 	[ X2-X1, Y2-Y1, Z2-Z1 ].
