@@ -774,6 +774,8 @@ ensure_is_once_in( Elem, List ) ->
 % @doc Returns a list made of the specified number of occurrences of the
 % specified element.
 %
+% See also repeat_elements/2.
+%
 -spec duplicate( element(), count() ) -> [ element() ].
 duplicate( Elem, Count ) ->
 	%[ Elem || _ <- lists:seq( 1, Count ) ].
@@ -1023,6 +1025,8 @@ insert_at_all_places( E, _L=[ H | T ], RevL, Acc ) ->
 % the specified (total - not additional) number of times (at least 1), in a row.
 %
 % For example, repeat_elements([a,b,c], _Count=2) = [a,a,b,b,c,c].
+%
+% See also duplicate/2.
 %
 -spec repeat_elements( list(), count() ) -> list().
 repeat_elements( List, RepeatCount ) ->
@@ -1560,7 +1564,9 @@ zipn( ListOfLists ) ->
 		begin
 			Lens = [ length( L ) || L <- ListOfLists ],
 			are_equal( Lens ) orelse
-				throw( { lists_of_different_lengths, Lens, ListOfLists } )
+				% A tuple to avoid that lengths are interpreted as a string:
+				throw( { lists_of_different_lengths, list_to_tuple( Lens ),
+						 ListOfLists } )
 		end ),
 
 	zipn_helper( ListOfLists, _Acc=[] ).
@@ -1612,7 +1618,9 @@ check_same_length( Lists ) ->
 			Len;
 
 		false ->
-			throw( { lists_of_different_lengths, Lens, Lists } )
+				% A tuple to avoid that lengths are interpreted as a string:
+			throw( { lists_of_different_lengths, list_to_tuple( Lens ),
+					 Lists } )
 
 	end.
 
