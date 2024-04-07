@@ -112,6 +112,7 @@
 		  square_magnitude/1, magnitude/1, negate/1, scale/2,
 		  normalise/1,
 		  dot_product/2, are_orthogonal/2, get_orthogonal/1, check_orthogonal/2,
+		  compute_normal/3,
 		  is_unitary/1,
 		  check/1, check_vector/1, check_vectors/1,
 		  check_integer/1, check_unit_vector/1, check_unit_vectors/1,
@@ -135,6 +136,7 @@
 -type any_square_distance() :: linear:any_square_distance().
 
 -type any_point3() :: any_point3().
+-type vertex3() :: point3:vertex3().
 
 
 
@@ -415,6 +417,21 @@ get_orthogonal( V=[ A, B, C ] ) ->
 check_orthogonal( V1, V2 ) ->
 	are_orthogonal( V1, V2 ) orelse
 		throw( { not_orthogonal, V1, V2, dot_product( V1, V2 ) } ).
+
+
+
+% @doc Returns a unit vector that is orthogonal to the plane defined by the
+% three specified vertices.
+%
+% If these vertices are listed in a CCW order as seen for a given viewpoint,
+% then the returned normal is pointing towards this viewpoint (i.e. this is an
+% outward normal if the specified points are vertices of a meshed object).
+%
+-spec compute_normal( vertex3(), vertex3(), vertex3() ) -> unit_vector3().
+compute_normal( V1, V2, V3 ) ->
+	VecA = point3:vectorize( V1, V2 ),
+	VecB = point3:vectorize( V2, V3 ),
+	normalise( cross_product( VecA, VecB ) ).
 
 
 
