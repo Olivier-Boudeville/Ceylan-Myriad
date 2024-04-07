@@ -103,13 +103,16 @@
 % From 0.0 (full transparent) to 1.0 (solid); same as OpenGL conventions.
 
 
--type render_rgb_color() :: { Red :: color_coordinate(),
-		Green :: color_coordinate(), Blue :: color_coordinate() }.
+-type render_rgb_color() ::
+		{ Red :: color_coordinate(), Green :: color_coordinate(),
+		  Blue :: color_coordinate() }.
+		%[ color_coordinate() ]. % (a list of 3 elements)
 % A floating-point RGB color (whose coordinates are typically in [0.0,1.0]).
 %
 % The three components shall be encoded with the sRGB transfer function.
 %
-% For example useful with OpenGL.
+% For example useful with OpenGL. Used to be a triplet (a tuple), yet, for
+% example for uniform variable, a (3D) vector is expected instead.
 
 
 -type render_rgba_color() :: { Red ::color_coordinate(),
@@ -490,10 +493,12 @@ get_random_colors( ColorCount ) ->
 											[ render_rgba_color() ].
 decimal_to_render( { Red, Green, Blue } ) ->
 	Norm = 255,
+	%[ Red/Norm, Green/Norm, Blue/Norm ];
 	{ Red/Norm, Green/Norm, Blue/Norm };
 
 decimal_to_render( { Red, Green, Blue, Alpha } ) ->
 	Norm = 255,
+	%[ Red/Norm, Green/Norm, Blue/Norm, Alpha/Norm ];
 	{ Red/Norm, Green/Norm, Blue/Norm, Alpha/Norm };
 
 decimal_to_render( Colors ) when is_list( Colors ) ->

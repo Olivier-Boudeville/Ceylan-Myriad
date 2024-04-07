@@ -30,14 +30,17 @@
 -record( mesh, {
 
 	% The points defining that mesh:
-	vertices = [] :: [ point3:any_vertex3() ],
-
+	vertices = [] :: [ point3:vertex3() ],
+	% (preferred to [ point3:any_vertex3() ])
 
 	% The types of the faces from which this mesh is made (e.g. triangle, quad):
 	face_type :: mesh:face_type(),
 
 
 	% The faces defining that mesh, based on the indices of vertices:
+	%
+	% (all faces of a mesh are expected to have the same number of vertices)
+	%
 	faces = [] :: [ mesh:indexed_face() ],
 
 
@@ -81,8 +84,13 @@
 	% The overall VAO used for that mesh:
 	vao_id :: gui_shader:vao_id(),
 
+
 	% The VBO holding the vertex-related data of that mesh:
 	vbo_id :: gui_shader:vbo_id(),
+
+	% The layout respected by the VBO and the corresponding shaders:
+	vbo_layout :: gui_shader:vbo_layout(),
+
 
 	% The EBO holding the face indices of that mesh:
 	ebo_id :: gui_shader:ebo_id(),

@@ -327,6 +327,7 @@ get_cube_color_names( _FaceColoringType=per_vertex ) ->
 
 get_cube_color_names( _FaceColoringType=per_face ) ->
 	[ red, green, blue, yellow, cyan, pink ].
+	%list_utils:duplicate(red, 6).
 
 
 

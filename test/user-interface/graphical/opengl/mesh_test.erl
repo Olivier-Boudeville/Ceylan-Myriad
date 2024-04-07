@@ -253,7 +253,7 @@ gui_main_loop( GUIState, Mesh ) ->
 			% Now that OpenGL is initialised:
 			RegMesh = mesh:initialise_for_opengl( Mesh ),
 
-			test_facilities:display( "Registered mesh to OpenGL: ~ts",
+			test_facilities:display( "Registered mesh to OpenGL; its ~ts.",
 				[ mesh:rendering_state_to_string(
 					RegMesh#mesh.rendering_state ) ] ),
 
@@ -267,7 +267,7 @@ gui_main_loop( GUIState, Mesh ) ->
 
 			cleanup_opengl( GUIState ),
 
-			trace_utils:info( "Main frame closed, mesh cleaned up (~ts), "
+			trace_utils:info_fmt( "Main frame closed, mesh cleaned up (~ts), "
 				"test success.", [ mesh:to_compact_string( CleanedMesh ) ] ),
 
 			% Very final check, while there is still an OpenGL context:
@@ -378,8 +378,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
-	gui_shader:set_uniform_vector3( SomeColorUnifId,
-									gui_opengl_for_testing:get_myriad_blue() ),
+	% Corresponds to a render_rgb_color():
+	gui_shader:set_uniform_point3( SomeColorUnifId,
+								   gui_opengl_for_testing:get_myriad_blue() ),
 
 
 	% Uncomment to switch to wireframe:
@@ -498,18 +499,21 @@ run() ->
 	%FaceColoringType = per_vertex,
 	FaceColoringType = per_face,
 
-	TestMeshQuad = gui_opengl_for_testing:get_test_colored_cube_mesh(
-		_EdgeLength=1.0, FaceColoringType ),
+	% Based on quads:
+	%TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(
+	%	_EdgeLength=1.0, FaceColoringType ),
 
-	test_facilities:display( "The test (quad-based) mesh is a ~ts~n",
-							 [ mesh:to_string( TestMeshQuad ) ] ),
+	TestMesh = gui_opengl_for_testing:get_test_tetra_mesh( FaceColoringType ),
 
-	TestMeshTrig = mesh:tessellate( TestMeshQuad ),
+	test_facilities:display( "The initial test mesh is a ~ts~n",
+							 [ mesh:to_string( TestMesh ) ] ),
+
+	TestTrigMesh = mesh:tessellate( TestMesh ),
 
 	test_facilities:display( "The triangle-based test mesh is a ~ts~n",
-							 [ mesh:to_string( TestMeshTrig ) ] ),
+							 [ mesh:to_string( TestTrigMesh ) ] ),
 
 	gui_opengl_for_testing:can_be_run( "the OpenGL side of this mesh test" )
-		=:= yes andalso continue_test_with_opengl( TestMeshTrig ),
+		=:= yes andalso continue_test_with_opengl( TestTrigMesh ),
 
 	test_facilities:stop().

@@ -108,7 +108,9 @@
 
 
 -type vao_id() :: non_neg_integer().
-% The identifier of a "Vertex Array Object" (VAO).
+% The identifier of a "Vertex Array Object" (VAO), which can be seen as a
+% datastructure holding rendering-related information (such as VBOs, an EBO,
+% corresponding settings of the OpenGL state machine).
 %
 % A VAO is able to reference "vertex information":
 % - the specification of multiple (enabled) vertex attributes
@@ -118,11 +120,11 @@
 % The core profile requires a VAO to be explicitly used; a default VAO (number
 % 0) exists only with the compatibility profile, so we recommend not using it.
 %
-% Once made active (bound) and until being unbound, a VAO keeps track of the
-% VBOs that are bound. So if a VBO is still bound when a VAO is unbound, the VBO
-% will be tracked by this VAO and be automatically bound when this VAO will be
-% bound next. The same applies to the EBO and to the specifications of vertex
-% attributes.
+% Once made active (bound) and until being unbound, a VAO keeps track of,
+% notably, the VBOs that are bound. So if a VBO is still bound when a VAO is
+% unbound, the VBO will be tracked by this VAO and be automatically bound when
+% this VAO will be bound next. The same applies to the EBO and to the
+% specifications of vertex attributes.
 
 
 -type array_buffer() :: gl_buffer().
@@ -152,13 +154,13 @@
 
 
 -type vbo() :: array_buffer().
-% A "Vertex Buffer Object", that is a (GLSL) buffer storing a specific piece of
-% information (vertex coordinates, or normals, or colors, or texture
+% A "Vertex Buffer Object", that is a (GLSL) buffer storing a series of specific
+% pieces of information (vertex coordinates, or normals, or colors, or texture
 % coordinates, etc.) for each element of a series of vertices (a.k.a. vertex
 % stream).
 %
 % "VBO" designates buffer objects of all sorts - not only those storing vertex
-% coordinates.
+% coordinates: they just concentrate per-vertex information.
 %
 % A VBO corresponds to an homogeneous chunk (an array) of data, sent from the
 % CPU-space, in order to be stored (possibly durably) in the GPU-space.
@@ -210,6 +212,16 @@
 % For example a triplet of floats corresponding to a 3D vertex or a RGB color.
 
 
+-type vertex_attribute_compound() ::
+		type_utils:tuple( vertex_attribute_value() ).
+% The compound of vertex attribute values that corresponds to a given vertex
+% attribute; for example, with the vtx3_nrm_uv VBO layout, each vertex compound
+% may regroup a vertex, a normal and a pair of texture coordinates, and the
+% corresponding VBO will be a concatenation of a given number of such compounds.
+%
+% Type defined mostly for clarity.
+
+
 -type vertex_attribute_series() :: [ vertex_attribute_value() ].
 % A (usually homogeneous) list of vertex attribute values, like a list of
 % vertices, normals, texture coordinates, colors, etc.
@@ -228,11 +240,11 @@
 
 -type stride() :: byte_size().
 % The number of bytes between two vertex attributes of a given type (comprising
-% its own size).
+% its own size), thus corresponding to the size of a vertex attribute compound.
 %
-% A null stride means that the buffer is tightly packed and that OpenGL will
-% determine by itself the actual stride, equal here to the size of such a vertex
-% attribute.
+% Specifying a null stride means that the buffer is tightly packed and that
+% OpenGL will determine by itself the actual stride, equal here to the size of
+% such a vertex attribute compound.
 
 
 -type offset() :: byte_size().
@@ -266,8 +278,21 @@
 % (as by design a vertex is common to multiple faces; it should be best
 % specified only once, and referenced as many times as needed).
 %
-% Up to one is bound in a VAO. Usually input data is organised uniformly so that
-% a single EBO is needed for a given object.
+% Up to one EBO is bound in a given VAO. Usually input data is organised
+% uniformly, so that a single EBO is needed for a given object.
+%
+% We strongly prefer using EBO to specifying vertices in a duplicating way;
+% however it is not a silver bullet against duplication.
+%
+% Taking a textured cube (same texture on every face) as an example, there
+% should be only 8 unique vertices, 6 unique normals (one per face) and 4 unique
+% texture coordinates (one set for all faces); however, typically with a
+% vtx3_nrm_uv VBO layout, 24 unique vertices will be needed in the VBO (as each
+% vertex will be involved in 3 faces, with different extra information regarding
+% normals and texture coordinates).
+%
+% Finally, 12 triangles will be used to draw the cube (2 per face), so the
+% corresponding EBO will hold 36 indices.
 
 
 -type ebo_id() :: gl_buffer_id().
@@ -277,6 +302,27 @@
 %
 % Indices start at zero, and by default are of the ?GL_UNSIGNED_INT type.
 
+
+-type vbo_layout() ::
+	'vtx3'         % A series of vertex3()
+  | 'vtx3_nrm'     % A series of (vertex3(), unit_normal3())
+  | 'vtx3_rgb'     % A series of (vertex3(), render_rgb_color())
+  | 'vtx3_uv'      % A series of (vertex3(), uv_point())
+  | 'vtx3_nrm_rgb' % A series of (vertex3(), unit_normal3(), render_rgb_color())
+  | 'vtx3_nrm_uv'. % A series of (vertex3(), unit_normal3(), uv_point())
+% Identifiers of the layout of a VBO, that is how vertex-related data is
+% organised in a corresponding buffer.
+%
+% These are Myriad-specific conventions, to streamline the processing of
+% geometries.
+%
+% Such a layout must be consistent between how the actual data is organised and
+% how vertex shaders access it.
+
+
+
+-type vbo_layout_id() :: count().
+% Describes, as an (unsigned) integer, a given VBO layout.
 
 
 % Uniform variables.
@@ -356,6 +402,7 @@
 
 			   component_count/0, component_type/0, component_value/0,
 			   vertex_attribute_value/0, vertex_attribute_float_value/0,
+			   vertex_attribute_compound/0,
 			   vertex_attribute_series/0, vertex_attribute_float_series/0,
 
 			   stride/0, offset/0,
@@ -419,8 +466,9 @@
 
 		  assign_texcoords_to_new_vbo/1, assign_texcoords_to_new_vbo/2,
 
-		  render_from_enabled_vbos/2, render_from_enabled_vbos/3,
+		  get_vbo_layouts/0, get_vbo_layout_id/1, get_vbo_layout/1,
 
+		  render_from_enabled_vbos/2, render_from_enabled_vbos/3,
 
 		  delete_vbo/1, delete_vbos/1 ]).
 
@@ -1560,6 +1608,36 @@ assign_texcoords_to_new_vbo( TexCoords, BufferUsageHint ) ->
 
 
 
+% @doc Returns an (ordered) list of all our conventional layouts of VBOs.
+-spec get_vbo_layouts() -> [ vbo_layout() ].
+get_vbo_layouts() ->
+	[ vtx3, vtx3_nrm, vtx3_rgb, vtx3_uv, vtx3_nrm_rgb, vtx3_nrm_uv ].
+
+
+% @doc Returns the identifier of the specified VBO layout.
+-spec get_vbo_layout_id( vbo_layout() ) -> vbo_layout_id().
+get_vbo_layout_id( Layout ) ->
+
+	AllLayouts = get_vbo_layouts(),
+
+	case list_utils:get_maybe_index_of( _Elem=Layout, AllLayouts ) of
+
+		undefined ->
+			throw( { unknown_vbo_layout, Layout, AllLayouts } );
+
+		LayoutIndex ->
+			LayoutIndex
+
+	end.
+
+
+% @doc Returns the VBO layout that corresponds to the specified identifier.
+-spec get_vbo_layout( vbo_layout_id() ) -> vbo_layout().
+get_vbo_layout( LayoutId ) ->
+	lists:nth( _Index=LayoutId, _List=get_vbo_layouts() ).
+
+
+
 % @doc Assigns the specified series of homogeneous vertex attribute values to a
 % new VBO with a default usage profile - a VBO that is made the currently active
 % one, and declares and enables a corresponding vertex attribute for the
@@ -1617,9 +1695,9 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
 
 
 % @doc Assigns a new VBO that is made the currently active one, and which is
-% created from the specified list of vertex attribute series once merged, and
-% declares the corresponding vertex attributes, starting from the specified
-% vertex attribute index.
+% created from the specified list of vertex attribute series once merged in
+% vertex attribute compounds, and declares the corresponding vertex attributes,
+% starting from the specified vertex attribute index.
 %
 % The parameters of the vertex attributes are automatically determined, declared
 % and enabled.
@@ -1628,9 +1706,9 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
 		StartVAttrStartIndex :: vertex_attribute_index() ) -> vbo_id().
 assign_new_vbo_from_attribute_series( ListOfVAttrSeries, StartVAttrIndex ) ->
 
-	% Later zipn in characterise_series/1 will check it only if
-	% myriad_check_lists is set, whereas we want to control the check here and
-	% perform it earlier:
+	% Later zipn in characterise_series/1 will check it, but only if the
+	% myriad_check_lists token is set, whereas we want to control the check here
+	% and perform it earlier:
 	%
 	cond_utils:if_defined( myriad_check_mesh,
 						   list_utils:check_same_length( ListOfVAttrSeries ) ),
@@ -1642,7 +1720,7 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries, StartVAttrIndex ) ->
 	%trace_utils:debug_fmt( "Stride is ~B and offsets are ~p for:~n ~p",
 	%                       [ Stride, Offsets, ListOfVAttrSeries ] ),
 
-	% Tightly-packed buffer:
+	% Tightly-packed buffer of vertex attribute compounds:
 	Buffer = merge_attribute_series( ListOfVAttrSeries, CompPairs ),
 	VBOId = assign_new_vbo( Buffer ),
 
@@ -1658,16 +1736,17 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries, StartVAttrIndex ) ->
 % and counts are specified.
 %
 % Each series is usually homogeneous, that is it contains a single, specific
-% kind of data, like vertices, or normals, or colors, and semantically different
-% from the other series (e.g. one lists vertices, another one lists normals,
-% etc.).
+% kind of vertex attribute, like vertices, or normals, or colors, and
+% semantically different from the other series (e.g. one lists vertices, another
+% one lists normals, etc.).
 %
-% Each element of such series is a tuple of homogeneous components (of the same
-% type), of a series-dependent count (e.g. triplets for normal vectors).
+% Each element of such series is thus a tuple of homogeneous components (of the
+% same type), of a series-dependent count (e.g. triplets for normal vectors).
 %
-% For example: Bin = merge_attribute_series([Vertices, TexCoords,
-% Normals]) where Vertices and Normals could be lists of (float) triplets
-% whereas TexCoords would be a list of (float) pairs.
+% For example: Bin = merge_attribute_series([Vertices, TexCoords, Normals])
+% where Vertices and Normals could be lists of (float) triplets whereas
+% TexCoords would be a list of (float) pairs; Bin is a (binary) buffer
+% containing the corresponding series of vertex attribute compounds.
 %
 % Interleaves all lists in a correctly tighly-encoded binary; all series shall
 % have the same length (equal to the number of vertex attributes to consider)

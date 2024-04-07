@@ -45,7 +45,7 @@ void main()
 	//my_color = vec3(0.0, 1.0, 0.0);
 
 	/* For all fragments, the output color will be set by the test application
-	 * (in practice, it will bethe RGB "Myriad blue"):
+	 * (in practice, it will be the RGB "Myriad blue"):
 	 *
 	 */
 	my_color = some_color;
