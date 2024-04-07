@@ -51,7 +51,7 @@
 
 % Implementation notes:
 %
-% No dependent types, not able to declare a vector(D) type.
+% No dependent types, not able to declare a vector(D) type where D is a size.
 %
 % Arbitrary vectors and specialised ones have the same form (they are list of
 % floats) and therefore do not need conversion primitives between these two
