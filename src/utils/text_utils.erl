@@ -33,7 +33,7 @@
 -module(text_utils).
 
 
-% Note: this a boostrap module, so its build is only to be triggered from the
+% Note: this a bootstrap module, so its build is only to be triggered from the
 % root of Myriad, and it should not depend at runtime on non-bootstrapped
 % modules.
 
@@ -125,8 +125,13 @@
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
 		  flatten/1,
 		  join/2, bin_join/2,
-		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
+
+		  split/2,
+		  split_lines/1, unsplit_lines/1, bin_unsplit_lines/1,
+		  split_per_element/2, split_parsed/2,
+		  split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, split_every/2,
+
 		  tokenizable_to_camel_case/2,
 		  duplicate/2,
 		  concatenate/1, bin_concatenate/1, bin_concatenate/2,
@@ -3436,11 +3441,9 @@ bin_join( Separator, ListToJoin ) ->
 
 
 
-% @doc Splits the specified string into a list of strings, based on the list of
-% specified characters to be interpreted as separators.
-%
-% To split a string according to the newlines (~n) that it contains, one may
-% use: text_utils:split(MyString, "\n").
+% @doc Splits the specified string into a list of strings (of the same type as
+% the input one), based on the list of specified characters to be interpreted as
+% separators.
 %
 % Note that a series of contiguous separators (e.g. two spaces in a row) will
 % result in inserting empty strings (i.e. []) in the returned list. Use
@@ -3452,11 +3455,12 @@ bin_join( Separator, ListToJoin ) ->
 %
 % See also: split_at_whitespaces/0.
 %
--spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
-split( String, Separators ) ->
+-spec split( ustring(), [ uchar() ] ) -> [ ustring() ];
+		   ( bin_string(), [ uchar() ] ) -> [ bin_string() ].
+split( AnyString, Separators ) ->
 
 	%trace_utils:debug_fmt( "Splitting '~ts' with '~ts'.",
-	%                       [ String, Separators ] ),
+	%                       [ AnyString, Separators ] ),
 
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
 	% and anyway both treat two or more adjacent separator graphemes clusters as
@@ -3466,13 +3470,13 @@ split( String, Separators ) ->
 	% Would be quite different, as Separators here would be understood as a
 	% search pattern (i.e. a "word" as a whole) instead of a list of separators:
 	%
-	%string:split( String, _SearchPattern=Separators, _Where=all ).
+	%string:split( AnyString, _SearchPattern=Separators, _Where=all ).
 
 	% Would lead to a breach of contract (no empty string ever inserted):
-	%string:lexemes( String, Separators ).
+	%string:lexemes( AnyString, Separators ).
 
 	% So we go for a multi-pass splitting (one pass per separator):
-	split_helper( Separators, _Acc=[ String ] ).
+	split_helper( Separators, _Acc=[ AnyString ] ).
 
 
 
@@ -3487,6 +3491,31 @@ split_helper( _Separators=[ D | T ], Acc ) ->
 
 	NewAcc = concatenate( SplitStrs ),
 	split_helper( T, NewAcc ).
+
+
+
+% @doc Splits a string according to the newlines (~n) that it contains.
+-spec split_lines( ustring() ) -> [ ustring() ];
+				 ( bin_string() ) -> [ bin_string() ].
+split_lines( AnyString ) ->
+	split( AnyString, "\n" ). % i.e. [ $\n ]
+
+
+
+% @doc Unsplits the specified lines: returns a plain string aggregating the
+% specified strings, once separated by newlines.
+%
+-spec unsplit_lines( [ any_string() ] ) -> ustring().
+unsplit_lines( AnyStrings ) ->
+	join( _Sep=$\n, AnyStrings ).
+
+
+% @doc Unsplits the specified lines: returns a binary string aggregating the
+% specified strings, once separated by newlines.
+%
+-spec bin_unsplit_lines( [ any_string() ] ) -> bin_string().
+bin_unsplit_lines( AnyStrings ) ->
+	bin_join( _Sep=$\n, AnyStrings ).
 
 
 
@@ -3595,6 +3624,9 @@ split_parsed( _ParseString=[ Other | _T ], _Separators, _AccElem, _AccStrs ) ->
 % @doc Splits the specified string into a list of strings, using whitespaces as
 % separators.
 %
+% For example split_at_whitespaces("  aaa  bbb  ccc  ") =
+%                   [[],[],"aaa",[],"bbb",[],"ccc",[],[]]
+%
 -spec split_at_whitespaces( ustring() ) -> [ ustring() ].
 split_at_whitespaces( String ) ->
 	split( String, list_whitespaces() ).
@@ -3604,7 +3636,7 @@ split_at_whitespaces( String ) ->
 % @doc Splits the specified string according to the first occurrence (if any) of
 % the specified character, then returns a pair of two strings, containing
 % respectively all characters strictly before and strictly after the first
-% occurrence of the marker (which thus is not kept); otherwise returns
+% occurrence of the marker (which is thus not kept); otherwise returns
 % 'none_found'.
 %
 % For example: split_at_first($x, " aaaxbbbxccc") shall return {" aaa",
@@ -4458,7 +4490,7 @@ remove_last_characters( String, Count ) ->
 % @doc Removes all whitespaces from the specified string, and returns the
 % result.
 %
--spec remove_whitespaces( ustring() ) -> ustring().
+-spec remove_whitespaces( any_string() ) -> ustring().
 remove_whitespaces( String ) ->
 	re:replace( String, "\s", "", [ global, unicode, { return, list } ] ).
 
@@ -4467,9 +4499,8 @@ remove_whitespaces( String ) ->
 % @doc Removes all leading and trailing whitespaces from the specified string,
 % and returns the result.
 %
--spec trim_whitespaces( ustring() ) -> ustring().
+-spec trim_whitespaces( any_string() ) -> ustring().
 trim_whitespaces( String ) ->
-
 	% Should be done in one pass:
 	trim_leading_whitespaces( trim_trailing_whitespaces( String ) ).
 
@@ -4478,9 +4509,8 @@ trim_whitespaces( String ) ->
 % @doc Removes all leading whitespaces from the specified string, and returns
 % the result.
 %
--spec trim_leading_whitespaces( ustring() ) -> ustring().
+-spec trim_leading_whitespaces( any_string() ) -> ustring().
 trim_leading_whitespaces( String ) ->
-
 	% Largely inspired from http://www.trapexit.org/Trimming_Blanks_from_String:
 	re:replace( String, "^\\s*", "", [ unicode, { return, list } ] ).
 
@@ -4489,9 +4519,8 @@ trim_leading_whitespaces( String ) ->
 % @doc Removes all trailing whitespaces from the specified string, and returns
 % the result.
 %
--spec trim_trailing_whitespaces( ustring() ) -> ustring().
+-spec trim_trailing_whitespaces( any_string() ) -> ustring().
 trim_trailing_whitespaces( String ) ->
-
 	% The $ confuses some syntax highlighting systems (like the one of some
 	% emacs):
 	%
