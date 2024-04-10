@@ -22,8 +22,8 @@
 #version 330 core
 
 
-// Testing the include feature added by MyriadGUI:
-#include "test_include_shader.glsl.h"
+// Testing the (direct) include feature added by MyriadGUI:
+#include "gui_shader.glsl.h"
 
 
 /* User-defined output data, as three floating-point coordinates in [0.0, 1.0]

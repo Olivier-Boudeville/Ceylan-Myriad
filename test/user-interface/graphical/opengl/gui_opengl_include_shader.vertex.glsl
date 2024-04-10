@@ -21,7 +21,8 @@
 #version 330 core
 
 
-// Testing the include feature added by MyriadGUI:
+
+// Testing the nested include feature added by MyriadGUI:
 #include "test_include_shader.glsl.h"
 
 
@@ -44,7 +45,7 @@ in vec3 my_input_vertex;
 uniform uint vbo_layout_id;
 
 
-void main(){
+void main() {
 
 	/* gl_Position is a predefined vec4 output corresponding to the clip-space
 	 * output position of the current vertex.

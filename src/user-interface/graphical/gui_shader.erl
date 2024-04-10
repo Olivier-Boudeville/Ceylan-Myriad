@@ -444,6 +444,7 @@
 		  compile_vertex_shader/1, compile_tessellation_control_shader/1,
 		  compile_tessellation_evaluation_shader/1, compile_geometry_shader/1,
 		  compile_fragment_shader/1, compile_compute_shader/1,
+		  get_myriadgui_base_glsl_include_paths/0,
 
 		  generate_program_from/2, generate_program_from/3,
 		  generate_program_from/4,
@@ -581,6 +582,10 @@
 
 -type count() :: basic_utils:count().
 
+% Also for number of lines:
+-type line_number() :: ast_base:line().
+
+-type file_path() :: file_utils:file_path().
 -type any_file_path() :: file_utils:any_file_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 
@@ -663,12 +668,17 @@ compile_vertex_shader( VertexShaderPath ) ->
 											vertex_shader_id().
 compile_vertex_shader( VertexShaderPath, IncludeSearchPaths ) ->
 
-	VertexShaderStrs =
-		get_shader_sources( VertexShaderPath, IncludeSearchPaths ),
+	{ BinVertexShaderSrc, TotalInclLineCount, MaybeFirstIncludeLine } =
+		get_shader_source( VertexShaderPath, IncludeSearchPaths ),
 
-	cond_utils:if_defined( myriad_debug_shaders,
-		trace_utils:debug_fmt( "Resulting sources of the vertex shader '~ts':"
-			"~n~ts.", [ VertexShaderPath, VertexShaderStrs ] ) ),
+	% A file output is generally preferred, see get_shader_source/2 above:
+	%cond_utils:if_defined( myriad_debug_shaders,
+	%   trace_utils:debug_fmt( "Resulting sources of the vertex shader '~ts':"
+	%      "~n~ts.", [ VertexShaderPath, BinVertexShaderSrc ] ) ),
+
+	%trace_utils:debug_fmt( "Total include line count: ~B, "
+	%   "first include line: ~w.",
+	%   [ TotalInclLineCount, MaybeFirstIncludeLine ] ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -680,7 +690,7 @@ compile_vertex_shader( VertexShaderPath, IncludeSearchPaths ) ->
 							   [ VertexShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( VertexShaderId, VertexShaderStrs ),
+	ok = gl:shaderSource( VertexShaderId, [ BinVertexShaderSrc ] ),
 
 	ok = gl:compileShader( VertexShaderId ),
 
@@ -707,15 +717,17 @@ compile_vertex_shader( VertexShaderPath, IncludeSearchPaths ) ->
 			MsgStr = case MaybeLogStr of
 
 				undefined ->
-					"(no report)";
+					"(no report).";
 
+				% Already with a trailing dot:
 				LogStr ->
-					LogStr
+					fix_line_numbers( LogStr, TotalInclLineCount,
+									  MaybeFirstIncludeLine )
 
 			end,
 
 			trace_utils:error_fmt( "Compilation of the vertex shader in "
-				"'~ts' failed: ~ts.", [ VertexShaderPath, MsgStr ] ),
+				"'~ts' failed:~n~ts", [ VertexShaderPath, MsgStr ] ),
 
 			gl:deleteShader( VertexShaderId ),
 
@@ -757,13 +769,14 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 			include_search_paths() ) -> tessellation_control_shader_id().
 compile_tessellation_control_shader( TessCtrlShaderPath, IncludeSearchPaths ) ->
 
-	TessCtrlShaderStrs =
-		get_shader_sources( TessCtrlShaderPath, IncludeSearchPaths ),
+	{ BinTessCtrlShaderSrc, TotalInclLineCount, MaybeFirstIncludeLine } =
+		get_shader_source( TessCtrlShaderPath, IncludeSearchPaths ),
 
-	cond_utils:if_defined( myriad_debug_shaders,
-		trace_utils:debug_fmt( "Resulting sources of the tessellation control "
-			"shader '~ts':~n~ts.",
-			[ TessCtrlShaderPath, TessCtrlShaderStrs ] ) ),
+	% A file output is generally preferred, see get_shader_source/2 above:
+	%cond_utils:if_defined( myriad_debug_shaders,
+	%   trace_utils:debug_fmt( "Resulting sources of the tessellation control "
+	%       "shader '~ts':~n~ts.",
+	%       [ TessCtrlShaderPath, BinTessCtrlShaderSrc ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -775,7 +788,7 @@ compile_tessellation_control_shader( TessCtrlShaderPath, IncludeSearchPaths ) ->
 							   [ TessCtrlShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( TessCtrlShaderId, TessCtrlShaderStrs ),
+	ok = gl:shaderSource( TessCtrlShaderId, [ BinTessCtrlShaderSrc ] ),
 
 	ok = gl:compileShader( TessCtrlShaderId ),
 
@@ -807,7 +820,8 @@ compile_tessellation_control_shader( TessCtrlShaderPath, IncludeSearchPaths ) ->
 					"(no report)";
 
 				LogStr ->
-					LogStr
+					fix_line_numbers( LogStr, TotalInclLineCount,
+									  MaybeFirstIncludeLine )
 
 			end,
 
@@ -856,13 +870,14 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 compile_tessellation_evaluation_shader( TessEvalShaderPath,
 										IncludeSearchPaths ) ->
 
-	TessEvalShaderStrs =
-		get_shader_sources( TessEvalShaderPath, IncludeSearchPaths ),
+	{ BinTessEvalShaderSrc, TotalInclLineCount, MaybeFirstIncludeLine } =
+		get_shader_source( TessEvalShaderPath, IncludeSearchPaths ),
 
-	cond_utils:if_defined( myriad_debug_shaders,
-		trace_utils:debug_fmt( "Resulting sources of the tessellation "
-			"evaluation shader '~ts':~n~ts.",
-			[ TessEvalShaderPath, TessEvalShaderStrs ] ) ),
+	% A file output is generally preferred, see get_shader_source/2 above:
+	%cond_utils:if_defined( myriad_debug_shaders,
+	%   trace_utils:debug_fmt( "Resulting sources of the tessellation "
+	%       "evaluation shader '~ts':~n~ts.",
+	%       [ TessEvalShaderPath, BinTessEvalShaderSrc ] ) ),
 
 
 	% Creates an empty shader object, and returns a non-zero value by which it
@@ -875,7 +890,7 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath,
 							   "'~ts'.", [ TessEvalShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( TessEvalShaderId, TessEvalShaderStrs ),
+	ok = gl:shaderSource( TessEvalShaderId, [ BinTessEvalShaderSrc ] ),
 
 	ok = gl:compileShader( TessEvalShaderId ),
 
@@ -907,7 +922,8 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath,
 					"(no report)";
 
 				LogStr ->
-					LogStr
+					fix_line_numbers( LogStr, TotalInclLineCount,
+									  MaybeFirstIncludeLine )
 
 			end,
 
@@ -953,12 +969,13 @@ compile_geometry_shader( GeometryShaderPath ) ->
 											geometry_shader_id().
 compile_geometry_shader( GeometryShaderPath, IncludeSearchPaths ) ->
 
-	GeometryShaderStrs =
-		get_shader_sources( GeometryShaderPath, IncludeSearchPaths ),
+	{ BinGeometryShaderSrc, TotalInclLineCount, MaybeFirstIncludeLine } =
+		get_shader_source( GeometryShaderPath, IncludeSearchPaths ),
 
-	cond_utils:if_defined( myriad_debug_shaders,
-		trace_utils:debug_fmt( "Resulting sources of the geometry shader '~ts':"
-			"~n~ts.", [ GeometryShaderPath, GeometryShaderStrs ] ) ),
+	% A file output is generally preferred, see get_shader_source/2 above:
+	%cond_utils:if_defined( myriad_debug_shaders,
+	%   trace_utils:debug_fmt( "Resulting sources of the geometry shader '~ts':"
+	%       "~n~ts.", [ GeometryShaderPath, BinGeometryShaderSrc ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -970,7 +987,7 @@ compile_geometry_shader( GeometryShaderPath, IncludeSearchPaths ) ->
 							   [ GeometryShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( GeometryShaderId, GeometryShaderStrs ),
+	ok = gl:shaderSource( GeometryShaderId, [ BinGeometryShaderSrc ] ),
 
 	ok = gl:compileShader( GeometryShaderId ),
 
@@ -1001,7 +1018,8 @@ compile_geometry_shader( GeometryShaderPath, IncludeSearchPaths ) ->
 					"(no report)";
 
 				LogStr ->
-					LogStr
+					fix_line_numbers( LogStr, TotalInclLineCount,
+									  MaybeFirstIncludeLine )
 
 			end,
 
@@ -1045,12 +1063,13 @@ compile_fragment_shader( FragmentShaderPath ) ->
 											fragment_shader_id().
 compile_fragment_shader( FragmentShaderPath, IncludeSearchPaths ) ->
 
-	FragmentShaderStrs =
-		get_shader_sources( FragmentShaderPath, IncludeSearchPaths ),
+	{ BinFragmentShaderSrc, TotalInclLineCount, MaybeFirstIncludeLine } =
+		get_shader_source( FragmentShaderPath, IncludeSearchPaths ),
 
-	cond_utils:if_defined( myriad_debug_shaders,
-		trace_utils:debug_fmt( "Resulting sources of the fragment shader '~ts':"
-			"~n~ts.", [ FragmentShaderPath, FragmentShaderStrs ] ) ),
+	% A file output is generally preferred, see get_shader_source/2 above:
+	%cond_utils:if_defined( myriad_debug_shaders,
+	%   trace_utils:debug_fmt( "Resulting sources of the fragment shader '~ts':"
+	%     "~n~ts.", [ FragmentShaderPath, BinFragmentShaderSrc ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -1062,7 +1081,7 @@ compile_fragment_shader( FragmentShaderPath, IncludeSearchPaths ) ->
 							   [ FragmentShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( FragmentShaderId, FragmentShaderStrs ),
+	ok = gl:shaderSource( FragmentShaderId, [ BinFragmentShaderSrc ] ),
 
 	ok = gl:compileShader( FragmentShaderId ),
 
@@ -1093,7 +1112,8 @@ compile_fragment_shader( FragmentShaderPath, IncludeSearchPaths ) ->
 					"(no report)";
 
 				LogStr ->
-					LogStr
+					fix_line_numbers( LogStr, TotalInclLineCount,
+									  MaybeFirstIncludeLine )
 
 			end,
 
@@ -1137,12 +1157,13 @@ compile_compute_shader( ComputeShaderPath ) ->
 											compute_shader_id().
 compile_compute_shader( ComputeShaderPath, IncludeSearchPaths ) ->
 
-	ComputeShaderStrs =
-		get_shader_sources( ComputeShaderPath, IncludeSearchPaths ),
+	{ BinComputeShaderSrc, TotalInclLineCount, MaybeFirstIncludeLine } =
+		get_shader_source( ComputeShaderPath, IncludeSearchPaths ),
 
-	cond_utils:if_defined( myriad_debug_shaders,
-		trace_utils:debug_fmt( "Resulting sources of the compute shader '~ts':"
-			"~n~ts.", [ ComputeShaderPath, ComputeShaderStrs ] ) ),
+	% A file output is generally preferred, see get_shader_source/2 above:
+	%cond_utils:if_defined( myriad_debug_shaders,
+	%   trace_utils:debug_fmt( "Resulting sources of the compute shader '~ts':"
+	%       "~n~ts.", [ ComputeShaderPath, BinComputeShaderSrc ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -1154,7 +1175,7 @@ compile_compute_shader( ComputeShaderPath, IncludeSearchPaths ) ->
 							   [ ComputeShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( ComputeShaderId, ComputeShaderStrs ),
+	ok = gl:shaderSource( ComputeShaderId, [ BinComputeShaderSrc ] ),
 
 	ok = gl:compileShader( ComputeShaderId ),
 
@@ -1185,8 +1206,8 @@ compile_compute_shader( ComputeShaderPath, IncludeSearchPaths ) ->
 					"(no report)";
 
 				LogStr ->
-					LogStr
-
+					fix_line_numbers( LogStr, TotalInclLineCount,
+									  MaybeFirstIncludeLine )
 
 			end,
 
@@ -1206,19 +1227,19 @@ compile_compute_shader( ComputeShaderPath, IncludeSearchPaths ) ->
 
 
 
-% @doc Returns the preprocessed sources of the specified shader, possibly using
-% header includes (like '#include "gui_shader.glsl.h"').
+% @doc Returns the preprocessed source of the specified shader, which possibly
+% relies on header includes (like '#include "gui_shader.glsl.h"').
 %
--spec get_shader_sources( any_file_path(), include_search_paths() ) ->
-											[ bin_string() ].
-get_shader_sources( ShaderPath, IncludeSearchPaths ) ->
+-spec get_shader_source( any_file_path(), include_search_paths() ) ->
+							{ bin_string(), count(), maybe( line_number() ) }.
+get_shader_source( ShaderPath, IncludeSearchPaths ) ->
 
 	file_utils:is_existing_file_or_link( ShaderPath ) orelse
 		throw( { shader_source_file_not_found, ShaderPath,
 				 file_utils:get_current_directory() } ),
 
 	FullIncludeSearchPaths =
-		IncludeSearchPaths ++ get_myriad_base_include_paths(),
+		IncludeSearchPaths ++ get_myriadgui_base_glsl_include_paths(),
 
 	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Getting sources of the shader '~ts', "
@@ -1226,73 +1247,135 @@ get_shader_sources( ShaderPath, IncludeSearchPaths ) ->
 			[ ShaderPath, text_utils:strings_to_enumerated_string(
 							FullIncludeSearchPaths ) ] ) ),
 
-	RevLines = preprocess_file( ShaderPath, FullIncludeSearchPaths ),
-	Lines = lists:reverse( RevLines ),
+	{ Lines, TotalInclLineCount, MaybeFirstIncludeLine } =
+		preprocess_shader_file( ShaderPath, FullIncludeSearchPaths ),
 
-	%DoWrite = false,
-	DoWrite = true,
+	% Now line numbers are automatically fixed (for most cases):
 
-	DoWrite andalso
+	% Generally activated, as there are at least the MyriadGUI headers:
+	%TotalInclLineCount =:= 0 orelse
+	%   % Provided that the message is emitted after these (rather initial)
+	%   % includes:
+	%   %
+	%   trace_utils:debug_fmt( "For shader '~ts', due to header includes, "
+	%       "~B lines should be subtracted from any line number reported "
+	%       "by the GLSL compiler (first include found at line #~B).",
+	%       [ ShaderPath, TotalInclLineCount, MaybeFirstIncludeLine ] ),
+
+	BinFinalSource = text_utils:bin_unsplit_lines( Lines ),
+
+	DoWriteToFile = false,
+	%DoWriteToFile = true,
+
+	DoWriteToFile andalso
 		begin
 			CheckFilePath =
 				text_utils:format( "~ts.preprocessed", [ ShaderPath ] ),
-			file_utils:write_whole( CheckFilePath,
-									text_utils:bin_unsplit_lines( Lines ) )
+			file_utils:write_whole( CheckFilePath, BinFinalSource )
 		end,
 
-	Lines.
+	{ BinFinalSource, TotalInclLineCount, MaybeFirstIncludeLine }.
 
 
-get_myriad_base_include_paths() ->
+
+% @doc Returns the paths of the MyriadGUI base GLSL header includes.
+get_myriadgui_base_glsl_include_paths() ->
 	% Typically for gui_shader.glsl.h:
 	[ _BaseShaderPath= gui:get_base_path() ].
 
 
-% Returns the fully-inlined lines determined for the specified file, as a list
-% of bin_string() in reverse order.
+
+% Returns the fully-inlined lines determined for the specified shader file, as a
+% list of bin_string(), the total number of the included lines, and the line (if
+% any) at which the first include was found.
 %
-% (recursive helper)
-preprocess_file( SrcPath, IncludeSearchPaths ) ->
+-spec preprocess_shader_file( file_path(), include_search_paths() ) ->
+				{ [ bin_string() ], count(), maybe( line_number() ) }.
+preprocess_shader_file( SrcPath, IncludeSearchPaths ) ->
+	% Like preprocess_file/3 yet with initialisation and no length added:
 	RawSrcBin = file_utils:read_whole( SrcPath ),
 	BinLines = text_utils:split_lines( RawSrcBin ),
-	preprocess_lines( BinLines, IncludeSearchPaths, _Acc=[] ).
+
+	% CurrentLN for line number in the original sources:
+	{ RevLines, _CurrentLN, TotalInclLineCount, MaybeFirstIncludeLine } =
+		preprocess_lines( BinLines, IncludeSearchPaths, _AccLines=[],
+			_InitCurrentLN=1, _InitTotalInclLineCount=0,
+			_MaybeFirstIncludeLine=undefined ),
+
+	% Restore the original order:
+	{ lists:reverse( RevLines ), TotalInclLineCount, MaybeFirstIncludeLine }.
 
 
 
+% We must keep track of the current line number at least to record the first
+% include line.
+%
 % (helper)
-preprocess_lines( _BinLines=[], _IncludeSearchPaths, Acc ) ->
+%
+-spec preprocess_lines( [ bin_string() ], include_search_paths(),
+		[ bin_string() ], line_number(), count(), maybe( line_number() ) ) ->
+			{ [ bin_string() ], count(), maybe( line_number() ) }.
+preprocess_lines( _BinLines=[], _IncludeSearchPaths, AccLines, CurrentLN,
+				  TotalInclLineCount, MaybeFirstIncludeLine ) ->
 	% No reversing here:
-	Acc;
+	{ AccLines, CurrentLN, TotalInclLineCount, MaybeFirstIncludeLine };
 
-preprocess_lines( _BinLines=[ BinLine | T ], IncludeSearchPaths, Acc ) ->
+preprocess_lines( _BinLines=[ BinLine | T ], IncludeSearchPaths, AccLines,
+				  CurrentLN, TotalInclLineCount, MaybeFirstIncludeLine ) ->
 	case text_utils:trim_whitespaces( BinLine ) of
 
 		% Example: '#include "foobar.glsl.h"'
 		"#include \"" ++ Rest ->
 			% Wanting just 'foobar.glsl.h', looking for second double quote:
-			RevNextLines = case text_utils:split_at_first( $", Rest ) of
+			{ RevNextLines, NewCurrentLN, NewTotalInclLineCount,
+			  NewMaybeFirstIncludeLine } =
+					case text_utils:split_at_first( $", Rest ) of
 
 				none_found ->
 					trace_utils:warning_fmt( "Not considered as an "
 						"include line: '~ts'.", [ BinLine ] ),
-					[ BinLine ];
+					{ [ BinLine ], CurrentLN+1, TotalInclLineCount,
+					  MaybeFirstIncludeLine };
 
 				{ HeaderFilename, _TrailingStr="" } ->
-					trace_utils:debug_fmt( "Detected the inclusion of '~ts'.",
-										   [ HeaderFilename ] ),
+
+					%trace_utils:debug_fmt( "Detected the inclusion of '~ts'.",
+					%                       [ HeaderFilename ] ),
 
 					HeaderPath =
 						find_header( HeaderFilename, IncludeSearchPaths ),
 
-					preprocess_file( HeaderPath, IncludeSearchPaths )
+					NewFirstIncludeLine = basic_utils:set_maybe(
+						MaybeFirstIncludeLine, _Def=CurrentLN ),
+
+					% Minus 1, as content replaces the #include line:
+					preprocess_file( HeaderPath, IncludeSearchPaths, CurrentLN,
+									 TotalInclLineCount-1, NewFirstIncludeLine )
+
 
 			end,
-			preprocess_lines( T, IncludeSearchPaths, RevNextLines ++ Acc );
+			preprocess_lines( T, IncludeSearchPaths, RevNextLines ++ AccLines,
+				NewCurrentLN, NewTotalInclLineCount, NewMaybeFirstIncludeLine );
 
 		_OtherLine ->
-			preprocess_lines( T, IncludeSearchPaths, [ BinLine | Acc ] )
+			preprocess_lines( T, IncludeSearchPaths, [ BinLine | AccLines ],
+				CurrentLN+1, TotalInclLineCount, MaybeFirstIncludeLine )
 
 	end.
+
+
+% (recursive helper)
+-spec preprocess_file( file_path(), include_search_paths(), line_number(),
+					   count(), maybe( line_number() ) ) ->
+			{ [ bin_string() ], count(), maybe( line_number() ) }.
+preprocess_file( HeaderPath, IncludeSearchPaths, CurrentLN, TotalInclLineCount,
+				 MaybeFirstIncludeLine ) ->
+	RawIncBin = file_utils:read_whole( HeaderPath ),
+	BinLines = text_utils:split_lines( RawIncBin ),
+	AddCount = length( BinLines ),
+
+	preprocess_lines( BinLines, IncludeSearchPaths, _AccLines=[], CurrentLN,
+		TotalInclLineCount + AddCount, MaybeFirstIncludeLine ).
 
 
 
@@ -1312,6 +1395,75 @@ find_header( HeaderFilename, IncludeSearchPaths ) ->
 
 		HeaderFilePath ->
 			HeaderFilePath
+
+	end.
+
+
+
+% Fixes the line numbers in the specified message reported by the GLSL compiler.
+%
+% Expecting a message like '0(105) : error C0000: syntax error, ...', where the
+% initial 0 is the vertex index.
+%
+fix_line_numbers( LogStr, TotalInclLineCount, MaybeFirstIncludeLine ) ->
+	%trace_utils:debug_fmt( "Fixing GLSL message '~ts'.", [ LogStr ] ),
+	text_utils:unsplit_lines( [
+		begin
+			NoNewlineLogStr = text_utils:remove_ending_carriage_return( L ),
+			fix_line_numbers_in( NoNewlineLogStr, TotalInclLineCount,
+								 MaybeFirstIncludeLine )
+		end || L <- text_utils:split_lines( LogStr ), L =/= "" ] ).
+
+
+% (helper)
+fix_line_numbers_in( LogStr, _TotalInclLineCount,
+					 _MaybeFirstIncludeLine=undefined ) ->
+	LogStr;
+
+fix_line_numbers_in( LogStr, TotalInclLineCount,
+					 FirstIncludeLine ) ->
+
+	%trace_utils:debug_fmt( "Fixing log message '~ts', based on a total "
+	%   "include line count of ~B, and a first include at #~B.",
+	%   [ LogStr, TotalInclLineCount, FirstIncludeLine ] ),
+
+	case text_utils:split_at_first( _Marker=$(, LogStr ) of
+
+		none_found ->
+			trace_utils:warning_fmt( "Unable to find opening parenthesis "
+				"for line number from '~ts'.", [ LogStr ] ),
+			LogStr;
+
+		{ ShaderIdAsStr, Rest } ->
+			%trace_utils:debug_fmt( "(shader #~ts)", [ ShaderIdAsStr ] ),
+			case text_utils:split_at_first( _Mrkr=$), Rest ) of
+
+				none_found ->
+					trace_utils:warning_fmt( "Unable to find closing "
+						"parenthesis for line number from '~ts'.", [ LogStr ] ),
+					LogStr;
+
+				{ LineAsStr, PostParen } ->
+					case text_utils:try_string_to_integer( LineAsStr ) of
+
+						undefined ->
+							trace_utils:warning_fmt( "Unable to establish "
+								"a line number from '~ts'.", [ LogStr ] ),
+							LogStr;
+
+						Line when Line < FirstIncludeLine ->
+							LogStr;
+
+						Line ->
+							RealLine = Line - TotalInclLineCount,
+
+							text_utils:format( "~ts(~B)~ts (line in "
+								"preprocessed source: #~B)",
+								[ ShaderIdAsStr, RealLine, PostParen, Line ] )
+
+					end
+
+			end
 
 	end.
 
