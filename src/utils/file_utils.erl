@@ -5658,14 +5658,14 @@ write_whole( AnyFilePath, BinaryContent, Modes ) ->
 
 		{ error, eacces } ->
 			throw( { write_whole_failed,
-					 { text_utils:ensure_string( AnyFilePath ), Modes },
-					 access_denied,
-					 get_file_access_denied_info( AnyFilePath ) } );
+						{ text_utils:ensure_string( AnyFilePath ), Modes },
+						access_denied,
+						get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, Error } ->
 			throw( { write_whole_failed,
-					 { text_utils:ensure_string( AnyFilePath ), Modes },
-					 Error } )
+						{ text_utils:ensure_string( AnyFilePath ), Modes },
+						Error } )
 
 	end.
 
