@@ -56,7 +56,8 @@
 % Run-related functions.
 %
 % Not in code_utils, as we want them in a bootstrapped module.
--export([ run/1, run/2, run/3, exec/1, exec/2, exec/3 ]).
+-export([ run/1, run/2, run/3, exec/1, exec/2, exec/3,
+		  get_myriad_root_path/0 ]).
 
 
 % Version-related functions.
@@ -478,6 +479,8 @@
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 
+-type directory_path() :: file_utils:directory_path().
+
 -type atom_node_name() :: net_utils:atom_node_name().
 
 -type byte_size() :: system_utils:byte_size().
@@ -639,7 +642,7 @@ are_all_defined( _Elems=[ _E | T ] ) ->
 
 
 
-% @doc Returns the first term is it is not undefined, otherwise returns the
+% @doc Returns the first term if it is not undefined, otherwise returns the
 % second, default, term.
 %
 % Allows to apply a default if a maybe-term is not defined.
@@ -657,7 +660,7 @@ set_maybe( T, _TDef ) ->
 
 
 
-% @doc Ignores specified argument.
+% @doc Ignores the specified argument.
 %
 % Useful to define, for debugging purposes, terms that will be (temporarily)
 % unused without blocking the compilation.
@@ -677,7 +680,7 @@ ignore_unused( _Term ) ->
 %
 % May be useful for experiments, for example in link with LCO (Last Call
 % Optimisation).
-
+%
 do_nothing() ->
 	ok.
 
@@ -1479,6 +1482,16 @@ exec( ModIOList, FunctionName ) ->
 -spec exec( io_list_mod(), function_name(), [ argument() ] ) -> void().
 exec( ModIOList, FunctionName, Args ) ->
 	run( ModIOList, FunctionName, Args ).
+
+
+
+% @doc Returns a path to the root directory of the Ceylan-Myriad installation
+% that is in use.
+%
+-spec get_myriad_root_path() -> directory_path().
+get_myriad_root_path() ->
+	CodePath = code_utils:get_code_path(),
+	script_utils:get_myriad_path_from( CodePath ).
 
 
 
