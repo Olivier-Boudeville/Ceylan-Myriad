@@ -31,6 +31,9 @@
 %
 % Based on GLSL.
 %
+% Higher-level facilities with error management are offered, with extra features
+% like the support of (arbitrarily nested) include files, with search paths.
+%
 -module(gui_shader).
 
 
@@ -317,8 +320,8 @@
 % geometries.
 %
 % Such a layout must be consistent between how the actual data is organised and
-% how vertex shaders access it.
-
+% how vertex shaders access it; refer to our gui_shader.glsl.h GLSL header,
+% which must be kept consistent with these values and their order.
 
 
 -type vbo_layout_id() :: count().
@@ -361,6 +364,22 @@
 % A vector of any dimension directly suitable for use with the gl module.
 
 
+-type include_search_paths() :: [ any_directory_path() ].
+% An (ordered) list of (plain or binary) directory paths (absolute or relative
+% to the current directory) through which GLSL header includes (typically with a
+% '.glsl.h' extension) are searched in turn.
+%
+% Includes are to be specified (exactly) as:
+% #include "foobar.glsl.h"
+%
+% (only one space between #include and the string, no extra character - besides
+% possible whitespaces - after the second double quote)
+%
+% Note that MyriadGUI built-in search paths are always taken into account (last,
+% that is after any user-specified search path(s), thus with the lowest
+% priority) so that its base headers (typically "gui_shader.glsl.h") can be
+% found in all cases.
+
 
 % Usage notes:
 %
@@ -368,6 +387,9 @@
 % format. Starting with OpenGL 4.2, shaders can be encoded as UTF-8
 % strings. According to the GLSL spec, non-ASCII characters are only allowed in
 % comments.
+%
+% A basic support of includes of GLSL header files (typically having a '.glsl.h'
+% extension) is supported.
 %
 % How the variables of interest of a shader instance correspond to an element in
 % a VBO can be determined through either of the following 3 approaches:
@@ -424,6 +446,8 @@
 		  compile_fragment_shader/1, compile_compute_shader/1,
 
 		  generate_program_from/2, generate_program_from/3,
+		  generate_program_from/4,
+
 		  generate_program/1, generate_program/2,
 
 		  install_program/1, delete_program/1 ]).
@@ -549,15 +573,21 @@
 
 -type comp_pairs() :: [ { component_type(), component_count() } ].
 
+
+
 % Shorthands:
+
+%-type chardata() :: unicode:chardata().
 
 -type count() :: basic_utils:count().
 
 -type any_file_path() :: file_utils:any_file_path().
+-type any_directory_path() :: file_utils:any_directory_path().
 
 -type byte_size() :: system_utils:byte_size().
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 
 -type point2() :: point2:point2().
 -type point3() :: point3:point3().
@@ -580,6 +610,7 @@
 -type gl_base_type() :: gui_opengl:gl_base_type().
 
 -type uv_point() :: gui_texture:uv_point().
+
 
 
 % Section for the build of shader-based programs.
@@ -608,7 +639,8 @@ get_shading_language_version() ->
 % rendering issues on some Intel drivers.
 
 
-% @doc Loads and compiles a vertex shader from the specified source file (whose
+% @doc Loads and compiles (with no specific include search path besides the
+% MyriadGUI built-in ones) a vertex shader from the specified source file (whose
 % extension is typically .vertex.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -616,8 +648,27 @@ get_shading_language_version() ->
 %
 -spec compile_vertex_shader( any_file_path() ) -> vertex_shader_id().
 compile_vertex_shader( VertexShaderPath ) ->
+	compile_vertex_shader( VertexShaderPath, _IncludeSearchPaths=[] ).
 
-	VertexShaderBin = file_utils:read_whole( VertexShaderPath ),
+
+% @doc Loads and compiles, using the specified include search paths (first) in
+% addition to the MyriadGUI built-in ones, a vertex shader from the specified
+% source file (whose extension is typically .vertex.glsl), and returns its
+% identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_vertex_shader( any_file_path(), include_search_paths() ) ->
+											vertex_shader_id().
+compile_vertex_shader( VertexShaderPath, IncludeSearchPaths ) ->
+
+	VertexShaderStrs =
+		get_shader_sources( VertexShaderPath, IncludeSearchPaths ),
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Resulting sources of the vertex shader '~ts':"
+			"~n~ts.", [ VertexShaderPath, VertexShaderStrs ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -629,7 +680,7 @@ compile_vertex_shader( VertexShaderPath ) ->
 							   [ VertexShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( VertexShaderId, [ VertexShaderBin ] ),
+	ok = gl:shaderSource( VertexShaderId, VertexShaderStrs ),
 
 	ok = gl:compileShader( VertexShaderId ),
 
@@ -679,7 +730,8 @@ compile_vertex_shader( VertexShaderPath ) ->
 
 
 
-% @doc Loads and compiles a tessellation control shader from the specified
+% @doc Loads and compiles (with no specific include search path besides the
+% MyriadGUI built-in ones) a tessellation control shader from the specified
 % source file (whose extension is typically .tess-ctrl.glsl), and returns its
 % identifier.
 %
@@ -689,8 +741,29 @@ compile_vertex_shader( VertexShaderPath ) ->
 -spec compile_tessellation_control_shader( any_file_path() ) ->
 											tessellation_control_shader_id().
 compile_tessellation_control_shader( TessCtrlShaderPath ) ->
+	compile_tessellation_control_shader( TessCtrlShaderPath,
+										 _IncludeSearchPaths=[] ).
 
-	TessCtrlShaderBin = file_utils:read_whole( TessCtrlShaderPath ),
+
+% @doc Loads and compiles, using the specified include search paths (first) in
+% addition to the MyriadGUI built-in ones, a tessellation control shader from
+% the specified source file (whose extension is typically .tess-ctrl.glsl), and
+% returns its identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_tessellation_control_shader( any_file_path(),
+			include_search_paths() ) -> tessellation_control_shader_id().
+compile_tessellation_control_shader( TessCtrlShaderPath, IncludeSearchPaths ) ->
+
+	TessCtrlShaderStrs =
+		get_shader_sources( TessCtrlShaderPath, IncludeSearchPaths ),
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Resulting sources of the tessellation control "
+			"shader '~ts':~n~ts.",
+			[ TessCtrlShaderPath, TessCtrlShaderStrs ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -702,7 +775,7 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 							   [ TessCtrlShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( TessCtrlShaderId, [ TessCtrlShaderBin ] ),
+	ok = gl:shaderSource( TessCtrlShaderId, TessCtrlShaderStrs ),
 
 	ok = gl:compileShader( TessCtrlShaderId ),
 
@@ -755,7 +828,8 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 
 
 
-% @doc Loads and compiles a tessellation evaluation shader from the specified
+% @doc Loads and compiles (with no specific include search path besides the
+% MyriadGUI built-in ones) a tessellation evaluation shader from the specified
 % source file (whose extension is typically .tess-eval.glsl), and returns its
 % identifier.
 %
@@ -765,8 +839,31 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 -spec compile_tessellation_evaluation_shader( any_file_path() ) ->
 											tessellation_evaluation_shader_id().
 compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
+	compile_tessellation_evaluation_shader( TessEvalShaderPath,
+											_IncludeSearchPaths=[] ).
 
-	TessEvalShaderBin = file_utils:read_whole( TessEvalShaderPath ),
+
+% @doc Loads and compiles, using the specified include search paths (first) in
+% addition to the MyriadGUI built-in ones, a tessellation evaluation shader from
+% the specified source file (whose extension is typically .tess-eval.glsl), and
+% returns its identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_tessellation_evaluation_shader( any_file_path(),
+			include_search_paths() ) -> tessellation_evaluation_shader_id().
+compile_tessellation_evaluation_shader( TessEvalShaderPath,
+										IncludeSearchPaths ) ->
+
+	TessEvalShaderStrs =
+		get_shader_sources( TessEvalShaderPath, IncludeSearchPaths ),
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Resulting sources of the tessellation "
+			"evaluation shader '~ts':~n~ts.",
+			[ TessEvalShaderPath, TessEvalShaderStrs ] ) ),
+
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -778,7 +875,7 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 							   "'~ts'.", [ TessEvalShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( TessEvalShaderId, [ TessEvalShaderBin ] ),
+	ok = gl:shaderSource( TessEvalShaderId, TessEvalShaderStrs ),
 
 	ok = gl:compileShader( TessEvalShaderId ),
 
@@ -832,7 +929,8 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 
 
 
-% @doc Loads and compiles a geometry shader from the specified source file
+% @doc Loads and compiles (with no specific include search path besides the
+% MyriadGUI built-in ones) a geometry shader from the specified source file
 % (whose extension is typically .geometry.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -840,8 +938,27 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 %
 -spec compile_geometry_shader( any_file_path() ) -> geometry_shader_id().
 compile_geometry_shader( GeometryShaderPath ) ->
+	compile_geometry_shader( GeometryShaderPath, _IncludeSearchPaths=[] ).
 
-	GeometryShaderBin = file_utils:read_whole( GeometryShaderPath ),
+
+% @doc Loads and compiles, using the specified include search paths (first) in
+% addition to the MyriadGUI built-in one, a geometry shader from the specified
+% source file (whose extension is typically .geometry.glsl), and returns its
+% identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_geometry_shader( any_file_path(), include_search_paths() ) ->
+											geometry_shader_id().
+compile_geometry_shader( GeometryShaderPath, IncludeSearchPaths ) ->
+
+	GeometryShaderStrs =
+		get_shader_sources( GeometryShaderPath, IncludeSearchPaths ),
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Resulting sources of the geometry shader '~ts':"
+			"~n~ts.", [ GeometryShaderPath, GeometryShaderStrs ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -853,7 +970,7 @@ compile_geometry_shader( GeometryShaderPath ) ->
 							   [ GeometryShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( GeometryShaderId, [ GeometryShaderBin ] ),
+	ok = gl:shaderSource( GeometryShaderId, GeometryShaderStrs ),
 
 	ok = gl:compileShader( GeometryShaderId ),
 
@@ -904,7 +1021,8 @@ compile_geometry_shader( GeometryShaderPath ) ->
 
 
 
-% @doc Loads and compiles a fragment shader from the specified source file
+% @doc Loads and compiles (with no specific include search path besides the
+% MyriadGUI built-in ones) a fragment shader from the specified source file
 % (whose extension is typically fragment.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -912,8 +1030,27 @@ compile_geometry_shader( GeometryShaderPath ) ->
 %
 -spec compile_fragment_shader( any_file_path() ) -> fragment_shader_id().
 compile_fragment_shader( FragmentShaderPath ) ->
+	compile_fragment_shader( FragmentShaderPath, _IncludeSearchPaths=[] ).
 
-	FragmentShaderBin = file_utils:read_whole( FragmentShaderPath ),
+
+% @doc Loads and compiles, using the specified include search paths (first) in
+% addition to the MyriadGUI built-in ones, a fragment shader from the specified
+% source file (whose extension is typically fragment.glsl), and returns its
+% identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_fragment_shader( any_file_path(), include_search_paths() ) ->
+											fragment_shader_id().
+compile_fragment_shader( FragmentShaderPath, IncludeSearchPaths ) ->
+
+	FragmentShaderStrs =
+		get_shader_sources( FragmentShaderPath, IncludeSearchPaths ),
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Resulting sources of the fragment shader '~ts':"
+			"~n~ts.", [ FragmentShaderPath, FragmentShaderStrs ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -925,7 +1062,7 @@ compile_fragment_shader( FragmentShaderPath ) ->
 							   [ FragmentShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( FragmentShaderId, [ FragmentShaderBin ] ),
+	ok = gl:shaderSource( FragmentShaderId, FragmentShaderStrs ),
 
 	ok = gl:compileShader( FragmentShaderId ),
 
@@ -976,7 +1113,8 @@ compile_fragment_shader( FragmentShaderPath ) ->
 
 
 
-% @doc Loads and compiles a compute shader from the specified source file
+% @doc Loads and compiles (with no specific include search path besides the
+% MyriadGUI built-in ones) a compute shader from the specified source file
 % (whose extension is typically .compute.glsl), and returns its identifier.
 %
 % Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
@@ -984,8 +1122,27 @@ compile_fragment_shader( FragmentShaderPath ) ->
 %
 -spec compile_compute_shader( any_file_path() ) -> compute_shader_id().
 compile_compute_shader( ComputeShaderPath ) ->
+	compile_compute_shader( ComputeShaderPath, _IncludeSearchPaths=[] ).
 
-	ComputeShaderBin = file_utils:read_whole( ComputeShaderPath ),
+
+% @doc Loads and compiles, using the specified include search paths (first) in
+% addition to the MyriadGUI built-in ones, a compute shader from the specified
+% source file (whose extension is typically .compute.glsl), and returns its
+% identifier.
+%
+% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+% anymore.
+%
+-spec compile_compute_shader( any_file_path(), include_search_paths() ) ->
+											compute_shader_id().
+compile_compute_shader( ComputeShaderPath, IncludeSearchPaths ) ->
+
+	ComputeShaderStrs =
+		get_shader_sources( ComputeShaderPath, IncludeSearchPaths ),
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Resulting sources of the compute shader '~ts':"
+			"~n~ts.", [ ComputeShaderPath, ComputeShaderStrs ] ) ),
 
 	% Creates an empty shader object, and returns a non-zero value by which it
 	% can be referenced:
@@ -997,7 +1154,7 @@ compile_compute_shader( ComputeShaderPath ) ->
 							   [ ComputeShaderPath ] ) ),
 
 	% Associates source to empty shader:
-	ok = gl:shaderSource( ComputeShaderId, [ ComputeShaderBin ] ),
+	ok = gl:shaderSource( ComputeShaderId, ComputeShaderStrs ),
 
 	ok = gl:compileShader( ComputeShaderId ),
 
@@ -1030,6 +1187,7 @@ compile_compute_shader( ComputeShaderPath ) ->
 				LogStr ->
 					LogStr
 
+
 			end,
 
 			trace_utils:error_fmt( "Compilation of the compute shader in "
@@ -1048,11 +1206,121 @@ compile_compute_shader( ComputeShaderPath ) ->
 
 
 
+% @doc Returns the preprocessed sources of the specified shader, possibly using
+% header includes (like '#include "gui_shader.glsl.h"').
+%
+-spec get_shader_sources( any_file_path(), include_search_paths() ) ->
+											[ bin_string() ].
+get_shader_sources( ShaderPath, IncludeSearchPaths ) ->
+
+	file_utils:is_existing_file_or_link( ShaderPath ) orelse
+		throw( { shader_source_file_not_found, ShaderPath,
+				 file_utils:get_current_directory() } ),
+
+	FullIncludeSearchPaths =
+		IncludeSearchPaths ++ get_myriad_base_include_paths(),
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Getting sources of the shader '~ts', "
+			"using the following include search paths: ~ts",
+			[ ShaderPath, text_utils:strings_to_enumerated_string(
+							FullIncludeSearchPaths ) ] ) ),
+
+	RevLines = preprocess_file( ShaderPath, FullIncludeSearchPaths ),
+	Lines = lists:reverse( RevLines ),
+
+	%DoWrite = false,
+	DoWrite = true,
+
+	DoWrite andalso
+		begin
+			CheckFilePath =
+				text_utils:format( "~ts.preprocessed", [ ShaderPath ] ),
+			file_utils:write_whole( CheckFilePath,
+									text_utils:bin_unsplit_lines( Lines ) )
+		end,
+
+	Lines.
+
+
+get_myriad_base_include_paths() ->
+	% Typically for gui_shader.glsl.h:
+	[ _BaseShaderPath= gui:get_base_path() ].
+
+
+% Returns the fully-inlined lines determined for the specified file, as a list
+% of bin_string() in reverse order.
+%
+% (recursive helper)
+preprocess_file( SrcPath, IncludeSearchPaths ) ->
+	RawSrcBin = file_utils:read_whole( SrcPath ),
+	BinLines = text_utils:split_lines( RawSrcBin ),
+	preprocess_lines( BinLines, IncludeSearchPaths, _Acc=[] ).
+
+
+
+% (helper)
+preprocess_lines( _BinLines=[], _IncludeSearchPaths, Acc ) ->
+	% No reversing here:
+	Acc;
+
+preprocess_lines( _BinLines=[ BinLine | T ], IncludeSearchPaths, Acc ) ->
+	case text_utils:trim_whitespaces( BinLine ) of
+
+		% Example: '#include "foobar.glsl.h"'
+		"#include \"" ++ Rest ->
+			% Wanting just 'foobar.glsl.h', looking for second double quote:
+			RevNextLines = case text_utils:split_at_first( $", Rest ) of
+
+				none_found ->
+					trace_utils:warning_fmt( "Not considered as an "
+						"include line: '~ts'.", [ BinLine ] ),
+					[ BinLine ];
+
+				{ HeaderFilename, _TrailingStr="" } ->
+					trace_utils:debug_fmt( "Detected the inclusion of '~ts'.",
+										   [ HeaderFilename ] ),
+
+					HeaderPath =
+						find_header( HeaderFilename, IncludeSearchPaths ),
+
+					preprocess_file( HeaderPath, IncludeSearchPaths )
+
+			end,
+			preprocess_lines( T, IncludeSearchPaths, RevNextLines ++ Acc );
+
+		_OtherLine ->
+			preprocess_lines( T, IncludeSearchPaths, [ BinLine | Acc ] )
+
+	end.
+
+
+
+% Finds the specified header file within the specified include search paths.
+find_header( HeaderFilename, IncludeSearchPaths ) ->
+
+	case file_utils:get_first_file_or_link_for( _TargetFilename=HeaderFilename,
+			_CandidateDirs=IncludeSearchPaths ) of
+
+		undefined ->
+			trace_utils:error_fmt( "Header shader file '~ts' not found through "
+				"the following include paths: ~ts.",
+				[ HeaderFilename, text_utils:strings_to_enumerated_string(
+									IncludeSearchPaths ) ] ),
+			throw( { glsl_header_not_found, HeaderFilename,
+					 IncludeSearchPaths } );
+
+		HeaderFilePath ->
+			HeaderFilePath
+
+	end.
+
+
 
 % @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles the specified vertex and fragment shaders (with
-% no user-specified attributes defined), links them in a corresponding program,
-% and returns its identifier.
+% specified: loads and compiles (with no specific include search path) the
+% specified vertex and fragment shaders (with no user-specified attributes
+% defined), links them in a corresponding program, and returns its identifier.
 %
 -spec generate_program_from( any_file_path(), any_file_path() ) -> program_id().
 generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
@@ -1065,16 +1333,32 @@ generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 
 
 % @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles the specified vertex and fragment shaders, with
-% user-specified attributes, links them in a corresponding program, and returns
-% its identifier.
+% specified: loads and compiles (with no specific include search path) the
+% specified vertex and fragment shaders, with user-specified attributes, links
+% them in a corresponding program, and returns its identifier.
 %
 -spec generate_program_from( any_file_path(), any_file_path(),
 							 [ user_vertex_attribute() ] ) -> program_id().
 generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes ) ->
+	generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes,
+						   _IncludeSearchPaths=[] ).
 
-	VertexShaderId = compile_vertex_shader( VertexShaderPath ),
-	FragmentShaderId = compile_fragment_shader( FragmentShaderPath ),
+
+% @doc Generates a GLSL program from the shaders whose source files are
+% specified: loads and compiles (with no specific include search path) the
+% specified vertex and fragment shaders, with user-specified attributes, links
+% them in a corresponding program, and returns its identifier.
+%
+-spec generate_program_from( any_file_path(), any_file_path(),
+		[ user_vertex_attribute() ], include_search_paths() ) -> program_id().
+generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes,
+					   IncludeSearchPaths ) ->
+
+	VertexShaderId =
+		compile_vertex_shader( VertexShaderPath, IncludeSearchPaths ),
+
+	FragmentShaderId =
+		compile_fragment_shader( FragmentShaderPath, IncludeSearchPaths ),
 
 	generate_program( _ShaderIds=[ VertexShaderId, FragmentShaderId ],
 					  UserAttributes ).
@@ -1615,6 +1899,10 @@ get_vbo_layouts() ->
 
 
 % @doc Returns the identifier of the specified VBO layout.
+%
+% See also our gui_shader.glsl.h GLSL header, which must be kept consistent with
+% this list.
+%
 -spec get_vbo_layout_id( vbo_layout() ) -> vbo_layout_id().
 get_vbo_layout_id( Layout ) ->
 

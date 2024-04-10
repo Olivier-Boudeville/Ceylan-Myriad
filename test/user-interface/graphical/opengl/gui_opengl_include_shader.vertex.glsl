@@ -20,9 +20,9 @@
  */
 #version 330 core
 
-// Feature added by MyriadGUI:
-#include "gui_shader.glsl.h"
 
+// Testing the include feature added by MyriadGUI:
+#include "test_include_shader.glsl.h"
 
 
 /* Input vertex data, different for all executions of this shader;
@@ -39,11 +39,9 @@
 in vec3 my_input_vertex;
 
 
-/* Just defined to test the uniform support (will not be found if not explicitly
- * used afterwards):
- *
+/* Tells what is the VBO layout respected by the vertex attributes:
  */
-uniform vec4 some_vector;
+uniform uint vbo_layout_id;
 
 
 void main(){
