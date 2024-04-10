@@ -3507,6 +3507,7 @@ split_lines( AnyString ) ->
 %
 -spec unsplit_lines( [ any_string() ] ) -> ustring().
 unsplit_lines( AnyStrings ) ->
+	%trace_utils:debug_fmt( "Lines to unsplit: '~p'.", [ AnyStrings ] ),
 	join( _Sep=$\n, AnyStrings ).
 
 
@@ -3779,7 +3780,7 @@ duplicate( Count, Str ) ->
 % More general and convenient defined here rather than only in
 % list_utils:flatten_once/1.
 %
--spec concatenate( string() | atom() | number() ) -> ustring().
+-spec concatenate( [ string() | atom() | number() ] ) -> ustring().
 concatenate( Elements ) ->
 	%trace_utils:debug_fmt( "Concatenating ~p.", [ Elements ] ),
 	lists:concat( Elements ).
