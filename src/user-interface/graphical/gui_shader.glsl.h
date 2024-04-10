@@ -14,33 +14,33 @@
 
 
 // A series of vertex3(); corresponds to the 'vtx3' atom:
-const int VTX3 = 1;
+const uint VTX3 = 1u;
 
 
 // A series of (vertex3(), unit_normal3()); corresponds to the 'vtx3_nrm' atom:
-const int VTX3_NRM = 2;
+const uint VTX3_NRM = 2u;
 
 
 /* A series of (vertex3(), render_rgb_color()); corresponds to the 'vtx3_rgb'
  * atom:
  *
  */
-const int VTX3_RGB = 3;
+const uint VTX3_RGB = 3u;
 
 
 // A series of (vertex3(), uv_point()); corresponds to the 'vtx3_uv' atom:
-const int VTX3_UV = 4;
+const uint VTX3_UV = 4u;
 
 
 /* A series of (vertex3(), unit_normal3(), render_rgb_color()); corresponds to
  * the 'vtx3_nrm_rgb' atom:
  *
  */
-const int VTX3_NRM_RGB = 5;
+const uint VTX3_NRM_RGB = 5u;
 
 
 /* A series of (vertex3(), unit_normal3(), uv_point()); corresponds to
  * the 'vtx3_nrm_uv' atom:
  *
  */
-const int VTX3_NRM_UV = 6;
+const uint VTX3_NRM_UV = 6u;
