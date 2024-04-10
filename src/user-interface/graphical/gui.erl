@@ -652,7 +652,7 @@
 
 
 % Extra overall operations.
--export([ batch/1, get_environment_server/0 ]).
+-export([ batch/1, get_environment_server/0, get_base_path/0 ]).
 
 
 % Event-related operations.
@@ -792,6 +792,7 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type directory_path() :: file_utils:directory_path().
 
 -type ratio() :: math_utils:ratio().
 
@@ -1028,6 +1029,12 @@ destruct_gui_environment( GUIEnvPid ) ->
 get_environment_server() ->
 	environment:get_server( ?gui_env_reg_name ).
 
+
+% @doc Returns the root path of the MyriadGUI sources.
+-spec get_base_path() -> directory_path().
+get_base_path() ->
+	file_utils:join( [ basic_utils:get_myriad_root_path(), "src",
+					   "user-interface", "graphical" ] ).
 
 
 
