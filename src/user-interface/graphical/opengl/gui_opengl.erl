@@ -561,7 +561,9 @@
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
 
-		  get_component_size/1 ]).
+		  get_component_size/1,
+
+		  get_base_path/0 ]).
 
 
 % Error-related operations:
@@ -624,6 +626,7 @@
 -type bit_size() :: system_utils:bit_size().
 -type byte_size() :: system_utils:byte_size().
 
+-type directory_path() :: file_utils:directory_path().
 
 -type any_vertex3() :: point3:any_vertex3().
 
@@ -1517,6 +1520,14 @@ get_component_size( _GLType=?GL_FLOAT ) ->
 
 get_component_size( _GLType=?GL_DOUBLE ) ->
 	8.
+
+
+
+% @doc Returns the root path of the MyriadGUI OpenGL-related sources.
+-spec get_base_path() -> directory_path().
+get_base_path() ->
+	file_utils:join( gui:get_base_path(), "opengl" ).
+
 
 
 

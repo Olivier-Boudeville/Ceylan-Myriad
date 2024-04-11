@@ -228,8 +228,8 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
@@ -1303,16 +1303,17 @@ STARTUP_FUNCTION := run
 # Not far from being candidate for deprecation (next: schedule for removal), as
 # top-level 'ebin' does the trick.
 #
-MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
-					$(MYRIAD_BEAM)/apps/merge-tool              \
-					$(MYRIAD_BEAM)/data-management              \
-					$(MYRIAD_BEAM)/maths                        \
-					$(MYRIAD_BEAM)/meta                         \
-					$(MYRIAD_BEAM)/scripts                      \
-					$(MYRIAD_BEAM)/user-interface/graphical     \
-					$(MYRIAD_BEAM)/user-interface/textual       \
-					$(MYRIAD_BEAM)/user-interface/audio         \
-					$(MYRIAD_BEAM)/user-interface               \
+MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password              \
+					$(MYRIAD_BEAM)/apps/merge-tool                     \
+					$(MYRIAD_BEAM)/data-management                     \
+					$(MYRIAD_BEAM)/maths                               \
+					$(MYRIAD_BEAM)/meta                                \
+					$(MYRIAD_BEAM)/scripts                             \
+					$(MYRIAD_BEAM)/user-interface                      \
+					$(MYRIAD_BEAM)/user-interface/audio                \
+					$(MYRIAD_BEAM)/user-interface/textual              \
+					$(MYRIAD_BEAM)/user-interface/graphical            \
+					$(MYRIAD_BEAM)/user-interface/graphical/opengl     \
 					$(MYRIAD_BEAM)/utils
 
 
