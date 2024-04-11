@@ -49,4 +49,4 @@
 	path_table :: reference_tree:path_table(),
 
 	% The identifier to be allocated at the next registered frame:
-	next_ref_id = ?root_ref_id + 1 :: reference_frame:ref_id() } ).
+	next_ref_id = ?root_ref_id + 1 :: reference_tree:ref_id() } ).
