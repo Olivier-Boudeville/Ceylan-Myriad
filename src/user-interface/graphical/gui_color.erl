@@ -65,13 +65,19 @@
 
 
 -type rgb_hexastring() :: ustring().
-% A RGB color that is encoded based on 6 hexadecimal digits in a string, with a
-% "#" prefix (hence is not a text_utils:hexastring/0).
+% A RGB color that is encoded based on 6 hexadecimal digits in a string,
+% with a "#" prefix (hence is not a text_utils:hexastring/0).
 %
 % For example "#3ab001" corresponds to lightgreen.
 %
 % Possibly used for HTML content, by gnuplot, etc.
 
+
+-type rgba_hexastring() :: ustring().
+% A RGBA color that is encoded based on 8 hexadecimal digits in a string,
+% with a "#" prefix (hence is not a text_utils:hexastring/0).
+%
+% For example "#3ab001ee" corresponds to a mostly solid lightgreen.
 
 
 -type color_by_decimal_with_alpha() ::
@@ -179,7 +185,7 @@
 
 			   color_by_decimal/0, color_by_decimal_with_alpha/0,
 			   any_color_by_decimal/0,
-			   rgb_hexastring/0,
+			   rgb_hexastring/0, rgba_hexastring/0,
 
 			   color/0,
 
@@ -195,6 +201,11 @@
 % Color definition related operations.
 -export([ get_colors/0, get_color/1, get_logical_colors/0, get_logical_color/1,
 		  get_color_for_gnuplot/1, get_random_colors/1 ]).
+
+
+% Descriptions:
+-export([ to_string/1, color_by_decimal_to_string/1,
+		  color_by_decimal_with_alpha_to_string/1 ]).
 
 
 % Color conversions.
@@ -457,9 +468,8 @@ get_logical_color( Other ) ->
 
 % @doc Returns a stringified representation for gnuplot of the specified color.
 -spec get_color_for_gnuplot( color() ) -> color().
-get_color_for_gnuplot( _Color={ _R, _G, _B } ) ->
-	% Would return rgb_hexastring() ("#a1710f" for example):
-	throw( hexadecimal_conversion_not_implemented );
+get_color_for_gnuplot( Color={ _R, _G, _B } ) ->
+	"#" ++ color_by_decimal_to_string( Color );
 
 get_color_for_gnuplot( ColorName ) ->
 	text_utils:format( "~ts", [ ColorName ] ).
@@ -475,8 +485,53 @@ get_random_colors( ColorCount ) ->
 	AllColors = get_colors(),
 
 	% Only keep RBG values, not the atom-based name:
-	[ RGB || { _Name, RGB } <-
-					list_utils:draw_elements_from( AllColors, ColorCount ) ].
+	[ RGB || { _Name, RGB }
+				 <- list_utils:draw_elements_from( AllColors, ColorCount ) ].
+
+
+
+
+% Returns a textual description of the specified color.
+-spec to_string( color() ) -> ustring().
+to_string( ColorByName ) when is_atom( ColorByName ) ->
+	text_utils:atom_to_string( ColorByName );
+
+% RGB, not RGBA:
+to_string( ColorByDecimal ) when is_tuple( ColorByDecimal ) ->
+	color_by_decimal_to_string( ColorByDecimal );
+
+to_string( RGBHexaStr ) ->
+	RGBHexaStr.
+
+
+% @doc Returns a description of the specified RGB color like used for HTML
+% ("#a1710f" for example).
+%
+-spec color_by_decimal_to_string( color_by_decimal() ) -> rgb_hexastring().
+color_by_decimal_to_string( { Red, Green, Blue } ) ->
+
+	Strs = %[ RedStr, GreenStr, BlueStr ]
+		   [ text_utils:pad_string_right(
+				text_utils:integer_to_hexastring( C ), _Width=2, _PadChar=$0 )
+					|| C <- [ Red, Green, Blue ] ] ,
+
+	text_utils:format("#~ts~ts~ts", Strs ).
+
+
+
+% @doc Returns a description of the specified RGBA color, a bit like used for
+% HTML ("#a1710f12" for example).
+%
+-spec color_by_decimal_with_alpha_to_string( color_by_decimal_with_alpha() ) ->
+								rgba_hexastring().
+color_by_decimal_with_alpha_to_string( { Red, Green, Blue, Alpha } ) ->
+
+	Strs = %[ RedStr, GreenStr, BlueStr, AlphaStr ]
+		   [ text_utils:pad_string_right(
+				text_utils:integer_to_hexastring( C ), _Width=2, _PadChar=$0 )
+					|| C <- [ Red, Green, Blue, Alpha ] ] ,
+
+	text_utils:format("#~ts~ts~ts~ts", Strs ).
 
 
 
