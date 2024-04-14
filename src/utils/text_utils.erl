@@ -4690,7 +4690,7 @@ join_words( _Words=[], Width, _DoPad=true, AccLines,
 
 	% Ended with a partial line (most likely):
 	R = lists:reverse( [ pad_string_left( CurrentLine, Width, PadChar )
-					   | AccLines ] ),
+					       | AccLines ] ),
 	%io:format( "Returning R2='~w'.~n", [ R ] ),
 	R;
 
