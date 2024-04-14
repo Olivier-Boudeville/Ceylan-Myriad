@@ -81,6 +81,12 @@
 % Rendering (OpenGL-related) state of a mesh.
 -record( rendering_state, {
 
+	% The identifier of the corresponding GLSL program (typically needed to
+	% locate uniform variables):
+	%
+	program_id :: gui_shader:program_id(),
+
+
 	% The overall VAO used for that mesh:
 	vao_id :: gui_shader:vao_id(),
 

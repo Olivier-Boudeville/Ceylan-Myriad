@@ -124,7 +124,7 @@
 
 	% Wireframe only:
   | { 'wireframe', EdgeColor :: render_rgb_color(),
-	HiddenFaceRemoval :: boolean() }
+	  HiddenFaceRemoval :: boolean() }
 
 	% Per-vertex or per-face colors (color order being the one of the elements -
 	% vertices or faces - at creation):
@@ -177,7 +177,7 @@
 		  indexed_face_to_triangle/1,
 		  indexed_faces_to_triangles/1,
 
-		  initialise_for_opengl/1, render_as_opengl/1, cleanup_for_opengl/1,
+		  initialise_for_opengl/2, render_as_opengl/1, cleanup_for_opengl/1,
 
 		  to_string/1, to_compact_string/1,
 		  rendering_info_to_string/1, rendering_info_to_compact_string/1,
@@ -223,7 +223,7 @@
 -type uv_point() :: gui_texture:uv_point().
 
 -type vertex_attribute_series() :: gui_shader:vertex_attribute_series().
-
+-type program_id() :: gui_shader:program_id().
 
 
 % Implementation notes:
@@ -244,7 +244,7 @@
 
 
 % @doc Returns a new mesh whose vertices, faces and rendering information are
-% the specified ones, with no specific bounding volume set.
+% the specified ones, with no specific normal or bounding volume set.
 %
 -spec create( [ vertex3() ], face_type(), [ indexed_face() ],
 			  rendering_info() ) -> mesh().
@@ -472,58 +472,10 @@ indexed_faces_to_triangles( Faces ) ->
 % @doc Registers the specified mesh within the current OpenGL context, so that
 % the mesh can be readily rendered afterwards, and returns an updated mesh.
 %
--spec initialise_for_opengl( mesh() ) -> mesh().
-% Only a subset supported currently, first the triangle+texture version:
-initialise_for_opengl( Mesh=#mesh{
-		vertices=Vertices,
-		face_type=triangle,
-		faces=IndexedFaces,
-		% Normals currently ignored (useful for lighting only):
-		%normal_type=per_{vertex,face},
-		%normals=MaybeNormals,
-		rendering_info={ texture, _TexFaceInfos={ Texture, TexCoords } },
-		rendering_state=undefined } ) ->
-
-	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
-	% normals and texture coordinates) and EBO (for indices in the VBO):
-	%
-	MeshVAOId = gui_shader:set_new_vao(),
-
-	% To have correct texture coordinates in spite of padding:
-	ActualTexCoords =
-		gui_texture:recalibrate_coordinates_for( TexCoords, Texture ),
-
-	% No normals used here:
-	AttrSeries= [ Vertices, ActualTexCoords ],
-
-	% Creates a VBO from these two series, by merging them.
-	%
-	% We start at vertex attribute index #0 in this VAO; as there are two
-	% series, the vertex attribute indices will be 0 and 1:
-	%
-	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series( AttrSeries ),
-
-	% As a plain list of indices (not for example a list of triplets of
-	% indices), preferably in CCW order:
-	%
-	MeshEBOId = gui_shader:assign_indices_to_new_ebo( IndexedFaces ),
-
-	% As the (single, here) VBO and the EBO were created whereas this VAO was
-	% active, they are tracked by this VAO, which will rebind them automatically
-	% the next time it will be itself bound:
-	%
-	gui_shader:unset_current_vao(),
-
-	RenderState = #rendering_state{ vao_id=MeshVAOId,
-									vbo_id=MeshVBOId,
-									vbo_layout=vtx3_uv,
-									ebo_id=MeshEBOId,
-									vertex_count=length( Vertices ) },
-
-	Mesh#mesh{ rendering_state=RenderState };
-
-
-% Clause for triangle+solid colors:
+-spec initialise_for_opengl( mesh(), program_id() ) -> mesh().
+% Only a subset of the combinations supported currently; first, the clause for
+% triangle faces and solid colors:
+%
 initialise_for_opengl( Mesh=#mesh{
 		vertices=Vertices,
 		face_type=triangle,
@@ -532,7 +484,10 @@ initialise_for_opengl( Mesh=#mesh{
 		%normal_type=per_{vertex,face},
 		%normals=MaybeNormals,
 		rendering_info={ color, per_face, FaceColors },
-		rendering_state=undefined } ) ->
+		rendering_state=undefined }, ProgramId ) ->
+
+	trace_utils:debug_fmt( "Initialising for OpenGL ~ts.", 
+						   [ to_string( Mesh ) ] ),
 
 	% Sanity check for input data:
 	FaceCount = length( IndexedFaces ),
@@ -561,7 +516,7 @@ initialise_for_opengl( Mesh=#mesh{
 	% vertex attributes. Here, with a triangle face_type, we have, per-face, 3
 	% vertices and one color, so:
 	%
-	{ AttrSeries, ElemCount } = prepare_uniform_color( IndexedFaces,
+	{ AttrSeries, ElemCount } = prepare_vattrs_single_face_color( IndexedFaces,
 		FloatFaceColors, Vertices, _FaceVCount=3 ),
 
 	% Creates a VBO from these two series, by merging them.
@@ -569,10 +524,12 @@ initialise_for_opengl( Mesh=#mesh{
 	% We start at vertex attribute index #0 in this VAO; as there are two
 	% series, the vertex attribute indices will be 0 and 1:
 	%
+	% (vertex attributes are automatically declared)
+	%
 	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series( AttrSeries ),
 
 	% By design we just iterate over our pre-duplicated VBO; as a plain list of
-	% indices (not for example a list of triplets of indices), still in CCW
+	% indices (for example not a list of triplets of indices), still in CCW
 	% order:
 	%
 	MeshEBOId = gui_shader:assign_indices_to_new_ebo(
@@ -584,13 +541,71 @@ initialise_for_opengl( Mesh=#mesh{
 	%
 	gui_shader:unset_current_vao(),
 
-	RenderState = #rendering_state{ vao_id=MeshVAOId,
+	RenderState = #rendering_state{ program_id=ProgramId,
+									vao_id=MeshVAOId,
 									vbo_id=MeshVBOId,
 									vbo_layout=vtx3_rgb,
 									ebo_id=MeshEBOId,
 									vertex_count=length( Vertices ) },
 
 	Mesh#mesh{ rendering_state=RenderState }.
+
+% Clause for the triangle faces and texture version:
+%% initialise_for_opengl( Mesh=#mesh{
+%%		vertices=Vertices,
+%%		face_type=triangle,
+%%		faces=IndexedFaces,
+%%		% Normals currently ignored (useful for lighting only):
+%%		%normal_type=per_{vertex,face},
+%%		%normals=MaybeNormals,
+%%		rendering_info={ texture, _TexFaceInfos={ Texture, TexCoords } },
+%%		rendering_state=undefined } ) ->
+
+%%	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
+%%	% normals and texture coordinates) and EBO (for indices in the VBO):
+%%	%
+%%	MeshVAOId = gui_shader:set_new_vao(),
+
+%%	% To have correct texture coordinates in spite of padding:
+%%	ActualTexCoords =
+%%		gui_texture:recalibrate_coordinates_for( TexCoords, Texture ),
+
+%%	% No normals used here:
+%%	AttrSeries= [ Vertices, ActualTexCoords ],
+
+%%	% Creates a VBO from these two series, by merging them.
+%%	%
+%%	% We start at vertex attribute index #0 in this VAO; as there are two
+%%	% series, the vertex attribute indices will be 0 and 1:
+%%	%
+%%	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series( AttrSeries ),
+
+%%	% As a plain list of indices (not for example a list of triplets of
+%%	% indices), preferably in CCW order:
+%%	%
+%%	MeshEBOId = gui_shader:assign_indices_to_new_ebo( IndexedFaces ),
+
+%%	% Specified while the triangle VBO and VAO are still active (VBO as it
+%%	% specifies its structure, VAO so that it can record that attribute
+%%	% specification):
+%%	%
+%%	gui_shader:declare_vertex_attribute( ?my_vertex_attribute_index ),
+
+
+%%	% As the (single, here) VBO and the EBO were created whereas this VAO was
+%%	% active, they are tracked by this VAO, which will rebind them automatically
+%%	% the next time it will be itself bound:
+%%	%
+%%	gui_shader:unset_current_vao(),
+
+%%	RenderState = #rendering_state{ vao_id=MeshVAOId,
+%%									vbo_id=MeshVBOId,
+%%									vbo_layout=vtx3_uv,
+%%									ebo_id=MeshEBOId,
+%%									vertex_count=length( Vertices ) },
+
+%%	Mesh#mesh{ rendering_state=RenderState };
+
 
 
 
@@ -601,13 +616,14 @@ initialise_for_opengl( Mesh=#mesh{
 % Each indexed face is expected to have the specified number of vertices, and is
 % to be rendered with a given (solid, unique) color.
 %
--spec prepare_uniform_color( [ indexed_face() ], [ render_rgb_color() ],
-		[ vertex3() ], count() ) -> { [ vertex_attribute_series() ], count() }.
+-spec prepare_vattrs_single_face_color( [ indexed_face() ],
+		[ render_rgb_color() ], [ vertex3() ], count() ) ->
+			{ [ vertex_attribute_series() ], count() }.
 % Actually returns a 2-element [A,B] list with A :: [vertex3()] and B ::
 % [render_rgb_color()].
 %
 % Neither normals nor texture coordinates used here:
-prepare_uniform_color( IndexedFaces, FaceRenderColors, AllVertices,
+prepare_vattrs_single_face_color( IndexedFaces, FaceRenderColors, AllVertices,
 					   FaceVCount ) ->
 
 	% Expected to be uniform (cf. face_type):
@@ -620,24 +636,25 @@ prepare_uniform_color( IndexedFaces, FaceRenderColors, AllVertices,
 	% in sync with any EBO prebuilt indices); and reversing better done earlier
 	% than later, after duplications (cheaper/simpler):
 	%
-	prepare_uniform_color( lists:reverse( IndexedFaces ),
+	prepare_vattrs_single_face_color( lists:reverse( IndexedFaces ),
 		lists:reverse( FaceRenderColors ), AllVertices,
 		_ToStoreVerticesAcc=[], _ToStoreColorAcc=[], FaceVCount, _Count=0 ).
 
 
 % (helper)
-prepare_uniform_color( _IndexedFaces=[], _FaceRenderColors=[], _AllVertices,
-		ToStoreVerticesAcc, ToStoreColorAcc, _FaceVCount, Count ) ->
+prepare_vattrs_single_face_color( _IndexedFaces=[], _FaceRenderColors=[],
+		_AllVertices, ToStoreVerticesAcc, ToStoreColorAcc,
+		_FaceVCount, Count ) ->
 	% No reversing needed; as returning a list (not a tuple) of attribute
 	% series:
 
 	trace_utils:debug_fmt( "~B vertices: ~p~n~B colors: ~p",
-		[ length( ToStoreVerticesAcc ), ToStoreVerticesAcc, 
+		[ length( ToStoreVerticesAcc ), ToStoreVerticesAcc,
 		  length( ToStoreColorAcc ), ToStoreColorAcc ] ),
 
 	{ [ ToStoreVerticesAcc, ToStoreColorAcc ], Count };
 
-prepare_uniform_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
+prepare_vattrs_single_face_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
 		_FaceRenderColors=[ RenderColor | HColors ], AllVertices,
 		ToStoreVerticesAcc, ToStoreColorAcc, FaceVCount, Count ) ->
 
@@ -653,22 +670,27 @@ prepare_uniform_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
 	NewToStoreColorAcc = list_utils:duplicate( _Elem=RenderColor,
 		_Count=FaceVCount) ++ ToStoreColorAcc,
 
-	prepare_uniform_color( HIndexedFaces, HColors, AllVertices,
+	prepare_vattrs_single_face_color( HIndexedFaces, HColors, AllVertices,
 		NewToStoreVerticesAcc, NewToStoreColorAcc, FaceVCount,
 		Count + FaceVCount ).
 
 
 
 
-% @doc Renders the specified mesh rendering state (if any) based on the current
-% OpenGL context.
+% @doc Renders the specified mesh based on its rendering state (if any) and on
+% the current OpenGL context.
 %
--spec render_as_opengl( maybe( rendering_state() ) ) -> void().
-render_as_opengl( _MaybeRenderState=undefined ) ->
+-spec render_as_opengl( mesh() ) -> void().
+render_as_opengl( #mesh{ rendering_state=undefined } ) ->
 	trace_utils:debug( "Mesh does not have a rendering state." );
 
-render_as_opengl( _MaybeRenderState=#rendering_state{ vao_id=VAOId,
-		vbo_id=_VBOId, ebo_id=_EBOId, vertex_count=VertexCount } ) ->
+render_as_opengl( #mesh{ rendering_state=#rendering_state{
+										program_id=ProgramId,
+										vao_id=VAOId,
+										vbo_id=_VBOId,
+										vbo_layout=VBOLayout,
+										ebo_id=_EBOId,
+										vertex_count=VertexCount } } ) ->
 
 	% We rely on our shader program; operations that must be performed at each
 	% rendering:
@@ -678,6 +700,8 @@ render_as_opengl( _MaybeRenderState=#rendering_state{ vao_id=VAOId,
 	%                                    _RasterMode=raster_filled ),
 
 	PrimType = ?GL_TRIANGLES,
+
+	gui_shader:set_vbo_layout( VBOLayout, ProgramId ),
 
 	% Sets the VBO and the vertex attribute:
 	gui_shader:set_current_vao_from_id( VAOId ),
@@ -926,15 +950,16 @@ normal_type_to_string( per_face ) ->
 
 % @doc Returns a textual description of the specified mesh rendering state.
 -spec rendering_state_to_string( rendering_state() ) -> ustring().
-rendering_state_to_string( #rendering_state{ vao_id=VAOId,
+rendering_state_to_string( #rendering_state{ program_id=ProgramId,
+											 vao_id=VAOId,
 											 vbo_id=VBOId,
 											 vbo_layout=VBOLayout,
 											 ebo_id=EBOId,
 											 vertex_count=VCount } ) ->
-	text_utils:format( "OpenGL rendering state is VAO #~B, "
+	text_utils:format( "OpenGL rendering state in GLSL program #~B is VAO #~B, "
 		"VBO #~B with a ~ts layout, and EBO #~B, "
 		"for ~B vertex attribute compounds",
-		[ VAOId, VBOId, VBOLayout, EBOId, VCount ] ).
+		[ ProgramId, VAOId, VBOId, VBOLayout, EBOId, VCount ] ).
 
 
 
