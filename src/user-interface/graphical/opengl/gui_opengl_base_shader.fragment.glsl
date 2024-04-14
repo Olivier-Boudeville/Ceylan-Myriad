@@ -38,6 +38,10 @@
 //layout (location = 2) in vec3 myriad_gui_input_color;
 
 
+// Input of this shader (output of the vertex shader):
+in vec3 myriad_gui_current_color;
+
+
 /* User-defined output data, as three floating-point coordinates in [0.0, 1.0]
  * (see gui_color:render_rgb_color(); alpha of 1.0 implied) for the fragment of
  * interest; no layout specified here:
@@ -58,6 +62,6 @@ void main()
 	 */
 	//myriad_gui_output_color = some_uniform_color;
 
-	//myriad_gui_output_color = myriad_gui_input_color;
+	myriad_gui_output_color = myriad_gui_current_color;
 
 }

@@ -486,7 +486,7 @@ initialise_for_opengl( Mesh=#mesh{
 		rendering_info={ color, per_face, FaceColors },
 		rendering_state=undefined }, ProgramId ) ->
 
-	trace_utils:debug_fmt( "Initialising for OpenGL ~ts.", 
+	trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
 						   [ to_string( Mesh ) ] ),
 
 	% Sanity check for input data:
@@ -610,8 +610,8 @@ initialise_for_opengl( Mesh=#mesh{
 
 
 % @doc Returns, from the specified face information, a {AttrSeries, ElemCount}
-% pair, where AttrSeries={ToStoreVertices,ToStoreColors} is a pair of attribute
-% series and ElemCount is the length of each series.
+% pair, where AttrSeries=[ToStoreVertices,ToStoreColors] contains two attribute
+% series, and ElemCount is the length of each series.
 %
 % Each indexed face is expected to have the specified number of vertices, and is
 % to be rendered with a given (solid, unique) color.
@@ -619,12 +619,16 @@ initialise_for_opengl( Mesh=#mesh{
 -spec prepare_vattrs_single_face_color( [ indexed_face() ],
 		[ render_rgb_color() ], [ vertex3() ], count() ) ->
 			{ [ vertex_attribute_series() ], count() }.
-% Actually returns a 2-element [A,B] list with A :: [vertex3()] and B ::
-% [render_rgb_color()].
+% So returns, as first element of the pair, a 2-element [A,B] list with A ::
+% [vertex3()] and B :: [render_rgb_color()].
 %
 % Neither normals nor texture coordinates used here:
 prepare_vattrs_single_face_color( IndexedFaces, FaceRenderColors, AllVertices,
-					   FaceVCount ) ->
+								  FaceVCount ) ->
+
+	%trace_utils:debug_fmt( "Preparing vertex attributes for faces of "
+	%   "a single color: faces are ~w, colors are ~w.",
+	%   [ IndexedFaces, FaceRenderColors ] ),
 
 	% Expected to be uniform (cf. face_type):
 	ActualFaceVCount = size( _Sample=hd( IndexedFaces ) ),
@@ -648,9 +652,9 @@ prepare_vattrs_single_face_color( _IndexedFaces=[], _FaceRenderColors=[],
 	% No reversing needed; as returning a list (not a tuple) of attribute
 	% series:
 
-	trace_utils:debug_fmt( "~B vertices: ~p~n~B colors: ~p",
-		[ length( ToStoreVerticesAcc ), ToStoreVerticesAcc,
-		  length( ToStoreColorAcc ), ToStoreColorAcc ] ),
+	%trace_utils:debug_fmt( "Preparing vattrs: ~B vertices: ~p~n~B colors: ~p",
+	%   [ length( ToStoreVerticesAcc ), ToStoreVerticesAcc,
+	%     length( ToStoreColorAcc ), ToStoreColorAcc ] ),
 
 	{ [ ToStoreVerticesAcc, ToStoreColorAcc ], Count };
 

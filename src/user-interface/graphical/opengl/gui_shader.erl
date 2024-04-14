@@ -349,7 +349,12 @@
 
 
 % Uniform variables.
-
+%
+% Note that if the GLSL compiler determines that a uniform variable
+% (e.g. 'uniform uint x;') is declared but not used in any shader, it will not
+% include it in the compiled artefacts, and a uniform_id_not_found error is
+% bound to be reported.
+%
 -type uniform_id() :: integer().
 % The identifier of a uniform variable; it represents the location of a specific
 % uniform variable within an installed program object.
@@ -606,6 +611,12 @@
 
 -type comp_pairs() :: [ { component_type(), component_count() } ].
 
+
+% Set to true if wanting, for a shader defined in 'X.glsl', to write the
+% corresponding preprocessed version in 'X.glsl.preprocessed':
+%
+-define( write_preprocessed_shader_sources, true ).
+%-define( write_preprocessed_shader_sources, false ).
 
 
 % Shorthands:
@@ -1316,10 +1327,7 @@ get_shader_source( ShaderPath, GLSLSearchPaths ) ->
 
 	BinFinalSource = text_utils:bin_unsplit_lines( Lines ),
 
-	DoWriteToFile = false,
-	%DoWriteToFile = true,
-
-	DoWriteToFile andalso
+	?write_preprocessed_shader_sources andalso
 		begin
 			CheckFilePath =
 				text_utils:format( "~ts.preprocessed", [ ShaderPath ] ),
@@ -1758,7 +1766,7 @@ get_base_user_attributes( _VBOLayout=vtx3_rgb ) ->
 -spec deploy_base_program( vbo_layout() ) -> program_id().
 deploy_base_program( VBOLayout ) ->
 
-	% Does not depend on VBO layout yet:
+	% Assign shaders do not depend on VBO layout (at least yet):
 	{ VertexShaderPath, FragmentShaderPath } = get_base_shader_filenames(),
 
 	ProgramId = generate_program_from( VertexShaderPath, FragmentShaderPath,
@@ -1770,9 +1778,31 @@ deploy_base_program( VBOLayout ) ->
 
 	% Uniforms can be set as soon as the GLSL program is installed:
 
+	% The color to be used by VBO layouts not specifying any color (e.g. vtx3);
+	% better be set through a uniform than set as a constant at the shader
+	% level):
+
+	% As we 
+	case VBOLayout of
+
+		vtx3 ->
+			GlobalColorUnifId = get_uniform_id(
+				_UnifName=?myriad_gui_global_color_unif_name, ProgramId ),
+
+			GlobalColor = gui_color:get_color( pink ),
+
+			set_uniform_point3( GlobalColorUnifId,
+								gui_color:decimal_to_render( GlobalColor ) );
+
+		_ ->
+			ok
+
+	end,
+
 	% VBO layout not set here, but during rendering.
 
 	ProgramId.
+
 
 
 % @doc Sets, directed to the shaders of the specified program, the current VBO
@@ -1786,7 +1816,13 @@ set_vbo_layout( VBOLayout, ProgramId ) ->
 	VBOLayoutUnifId = get_uniform_id( ?myriad_gui_vbo_layout_unif_name,
 									  ProgramId ),
 
-	set_uniform_ui( VBOLayoutUnifId, get_vbo_layout_id( VBOLayout ) ).
+	VBOLayoutId = get_vbo_layout_id( VBOLayout ),
+
+	%trace_utils:debug_fmt( "Setting VBO layout '~ts' (i.e. ~B)",
+	%                       [ VBOLayout, VBOLayoutId ] ),
+
+	set_uniform_ui( VBOLayoutUnifId, VBOLayoutId ).
+
 
 
 

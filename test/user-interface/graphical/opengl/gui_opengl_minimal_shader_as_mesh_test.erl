@@ -393,12 +393,13 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	case gui_shader:get_maybe_uniform_id( VBOLayoutUnifName, ProgramId ) of
 
-		% The actual case, as not used in these shaders, at least currently:
 		undefined ->
 			trace_utils:error_fmt( "No identifier is associated "
 				"to the uniform variable named '~ts' within program of "
-				"identifier ~B (abnormal).",
-				[ VBOLayoutUnifName, ProgramId ] );
+				"identifier ~B.",
+				[ VBOLayoutUnifName, ProgramId ] ),
+
+			throw( { uniform_id_not_found, VBOLayoutUnifName, ProgramId } );
 
 		VBOLayoutUnifId ->
 			trace_utils:debug_fmt( "The identifier associated to the uniform "

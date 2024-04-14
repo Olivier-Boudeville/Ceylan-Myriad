@@ -1,9 +1,9 @@
 /*
  * This is the MyriadGUI base, built-in vertex shader.
  *
- * Based on the myriadgui_vbo_layout uniform variable, this shader is able to
- * discover the structure of the vertex attributes it has to process, and apply
- * it.
+ * This shader is able to discover the structure of the vertex attributes
+ * it has to process Based on the myriad_gui_vbo_layout uniform variable,
+ * and apply it.
  *
  * Each vertex shader instance is to transform exactly one vertex (received
  * from the vertex stream) into another.
@@ -37,8 +37,17 @@
 uniform uint myriad_gui_vbo_layout;
 
 
+/* The color to be used by VBO layouts not specifying any color (e.g. vtx3):
+ *
+ * (better be set through a uniform than set as a constant like in:
+ * 'myriad_gui_output_color = vec3(0.0, 1.0, 0.0);')
+ *
+ */
+uniform vec3 myriad_gui_global_color;
+
+
 /* Input vertex data, different for all executions of this shader, based on the
- * value to which the myriadgui_vbo_layout uniform variable above is set by the
+ * value to which the myriad_gui_vbo_layout uniform variable above is set by the
  * main program; refer to gui_shader:vbo_layout() for more details.
  *
  * Output is the gl_Position vec4.
@@ -50,6 +59,9 @@ layout (location = 1) in vec3 myriad_gui_input_normal;
 layout (location = 2) in vec3 myriad_gui_input_color;
 layout (location = 3) in vec2 myriad_gui_input_texcoord;
 
+// Output of this shader (input of the fragment shader):
+out vec3 myriad_gui_current_color;
+
 
 void apply_vtx3() {
 
@@ -58,9 +70,27 @@ void apply_vtx3() {
 	 */
 	gl_Position.xyz = myriad_gui_input_vertex;
 
+	// For all fragments, the output color will be pure green:
+	//myriad_gui_current_color = vec3(0.0, 1.0, 0.0);
+
+	myriad_gui_current_color = myriad_gui_global_color;
+
 }
 
-void main(){
+
+void apply_vtx3_rgb() {
+
+	/* This is an identity transformation, basically (so my_input_vertex is
+	 * expected to be already in normalized device coordinates):
+	 */
+	gl_Position.xyz = myriad_gui_input_vertex;
+
+	myriad_gui_current_color = myriad_gui_input_color;
+
+}
+
+
+void main() {
 
 	/* gl_Position is a predefined vec4 output corresponding to the clip-space
 	 * output position of the current vertex.
@@ -71,6 +101,10 @@ void main(){
 
 		case VTX3:
 			apply_vtx3();
+			break;
+
+		case VTX3_RGB:
+			apply_vtx3_rgb();
 			break;
 
 		// All other VBO layouts:

@@ -77,3 +77,6 @@
 
 % To specify the currently MyriadGUI VBO layout being used:
 -define( myriad_gui_vbo_layout_unif_name, "myriad_gui_vbo_layout" ).
+
+% To specify the color to be used by VBO layouts not specifying any color:
+-define( myriad_gui_global_color_unif_name, "myriad_gui_global_color" ).

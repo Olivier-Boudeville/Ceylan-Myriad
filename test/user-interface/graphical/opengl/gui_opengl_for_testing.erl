@@ -162,10 +162,10 @@ get_logo_image_path() ->
 
 
 % Defined for convenience and sharing with other tests.
--spec get_myriad_blue() -> render_rgb_color().
+-spec get_myriad_blue() -> color_by_decimal().
 get_myriad_blue() ->
 	% #0027a5:
-	gui_color:decimal_to_render( _RGB={ 0, 39, 165 } ).
+	_RGB={ 0, 39, 165 }.
 
 
 
