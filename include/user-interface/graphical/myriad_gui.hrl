@@ -35,6 +35,8 @@
 
 -include("gui_opengl.hrl").
 
+-include("gui_shader.hrl").
+
 -include("bounding_surface.hrl").
 
 % As MyriadGUI is a specialisation thereof:
