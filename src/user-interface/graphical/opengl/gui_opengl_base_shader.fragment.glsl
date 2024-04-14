@@ -25,32 +25,39 @@
 #include "gui_shader.glsl.h"
 
 
+// Not needed here:
+//uniform uint myriad_gui_vbo_layout;
+
+/* Just defined to test the uniform support (will not be found if not explicitly
+ * used afterwards):
+ *
+ */
+//uniform vec3 some_uniform_color;
+
+// Would require the GL_ARB_separate_shader_objects extension:
+//layout (location = 2) in vec3 myriad_gui_input_color;
+
 
 /* User-defined output data, as three floating-point coordinates in [0.0, 1.0]
  * (see gui_color:render_rgb_color(); alpha of 1.0 implied) for the fragment of
  * interest; no layout specified here:
  *
  */
-out vec3 my_color;
+out vec3 myriad_gui_output_color;
 
-
-/* Just defined to test the uniform support (will not be found if not explicitly
- * used afterwards):
- *
- */
-uniform vec3 some_color;
 
 
 void main()
 {
 
 	// For all fragments, the output color will be pure green:
-	//my_color = vec3(0.0, 1.0, 0.0);
+	myriad_gui_output_color = vec3(0.0, 1.0, 0.0);
 
 	/* For all fragments, the output color will be set by the test application
-	 * (in practice, it will bethe RGB "Myriad blue"):
 	 *
 	 */
-	my_color = some_color;
+	//myriad_gui_output_color = some_uniform_color;
+
+	//myriad_gui_output_color = myriad_gui_input_color;
 
 }

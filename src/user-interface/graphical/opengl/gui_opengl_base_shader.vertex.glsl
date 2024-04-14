@@ -28,12 +28,13 @@
 #include "gui_shader.glsl.h"
 
 
-/* The conventionally-named uniform variable used by MyriadGUI in order that a
+/* The conventionally-named uniform variable (see the
+ * myriad_gui_vbo_layout_unif_name define) used by MyriadGUI in order that a
  * vertex shader knows the VBO layout, therefore the vertex attributes, that it
  * shall expect:
  *
  */
-uniform uint myriadgui_vbo_layout;
+uniform uint myriad_gui_vbo_layout;
 
 
 /* Input vertex data, different for all executions of this shader, based on the
@@ -44,18 +45,18 @@ uniform uint myriadgui_vbo_layout;
  *
  */
 
-layout (location = 0) in vec3 my_input_vertex;
-layout (location = 1) in vec3 my_input_normal;
-layout (location = 2) in vec3 my_input_color;
-layout (location = 3) in vec2 my_input_texcoords;
+layout (location = 0) in vec3 myriad_gui_input_vertex;
+layout (location = 1) in vec3 myriad_gui_input_normal;
+layout (location = 2) in vec3 myriad_gui_input_color;
+layout (location = 3) in vec2 myriad_gui_input_texcoord;
 
 
-vec3 apply_vtx3() {
+void apply_vtx3() {
 
 	/* This is an identity transformation, basically (so my_input_vertex is
 	 * expected to be already in normalized device coordinates):
 	 */
-	gl_Position.xyz = my_input_vertex;
+	gl_Position.xyz = myriad_gui_input_vertex;
 
 }
 
@@ -66,7 +67,7 @@ void main(){
 	 *
 	 */
 
-	switch (myriadgui_vbo_layout) {
+	switch (myriad_gui_vbo_layout) {
 
 		case VTX3:
 			apply_vtx3();
