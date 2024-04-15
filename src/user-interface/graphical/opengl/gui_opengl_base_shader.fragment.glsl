@@ -55,11 +55,9 @@ void main()
 {
 
 	// For all fragments, the output color will be pure green:
-	myriad_gui_output_color = vec3(0.0, 1.0, 0.0);
+	//myriad_gui_output_color = vec3(0.0, 1.0, 0.0);
 
-	/* For all fragments, the output color will be set by the test application
-	 *
-	 */
+	// For all fragments, the output color will be set by the test application:
 	//myriad_gui_output_color = some_uniform_color;
 
 	myriad_gui_output_color = myriad_gui_current_color;

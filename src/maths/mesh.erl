@@ -36,6 +36,9 @@
 % For the numerous GL defines notably:
 -include("gui_opengl.hrl").
 
+% For the VAI defines:
+-include("gui_shader.hrl").
+
 % For the mesh record:
 -include("mesh.hrl").
 
@@ -123,8 +126,8 @@
 	'none'
 
 	% Wireframe only:
-  | { 'wireframe', EdgeColor :: render_rgb_color(),
-	  HiddenFaceRemoval :: boolean() }
+  | { 'wireframe', RGBEdgeColor :: color_by_decimal(),
+	  AreHiddenFacesRemoved :: boolean() }
 
 	% Per-vertex or per-face colors (color order being the one of the elements -
 	% vertices or faces - at creation):
@@ -336,7 +339,7 @@ tessellate( Mesh=#mesh{ face_type=quad,
 		none ->
 			none;
 
-		WF={ wireframe, _EdgeColor, _HiddenFaceRemoval } ->
+		WF={ wireframe, _EdgeColor, _AreHiddenFacesRemoved } ->
 			WF;
 
 		C={ color, _FaceColoringType=per_vertex, _ElemColors } ->
@@ -473,9 +476,66 @@ indexed_faces_to_triangles( Faces ) ->
 % the mesh can be readily rendered afterwards, and returns an updated mesh.
 %
 -spec initialise_for_opengl( mesh(), program_id() ) -> mesh().
-% Only a subset of the combinations supported currently; first, the clause for
-% triangle faces and solid colors:
+% Only a subset of the combinations supported currently; first, if no rendering
+% requested:
 %
+initialise_for_opengl( Mesh=#mesh{
+		rendering_info=none,
+		rendering_state=undefined }, _ProgramId ) ->
+	Mesh;
+
+% For triangle faces in wireframe mode:
+initialise_for_opengl( Mesh=#mesh{
+		vertices=Vertices,
+		face_type=triangle,
+		faces=IndexedFaces,
+		% Normals currently ignored (useful for lighting only):
+		%normal_type=per_{vertex,face},
+		%normals=MaybeNormals,
+		rendering_info={ wireframe, RGBEdgeColor, _AreHiddenFacesRemoved },
+		rendering_state=undefined }, ProgramId ) ->
+
+	% Mostly the same as for the next case (triangle faces and solid colors),
+	% see it for details; only rendering will differ:
+
+	trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
+						   [ to_string( Mesh ) ] ),
+
+	FloatEdgeColor = gui_color:decimal_to_render( RGBEdgeColor ),
+
+	MeshVAOId = gui_shader:set_new_vao(),
+
+	FloatFaceColors = list_utils:duplicate( _Elem=FloatEdgeColor,
+											_Count=length( IndexedFaces ) ),
+
+	{ AttrSeries, ElemCount } = prepare_vattrs_single_face_color( IndexedFaces,
+		FloatFaceColors, Vertices, _FaceVCount=3 ),
+
+	% vtx3_rgb layout: in the buffer, first write a vertex, at the conventional
+	% index location for vertices, then a color, at their dedicated location as
+	% well:
+	%
+	VAIs = [ ?myriad_gui_input_vertex_vai, ?myriad_gui_input_color_vai ],
+
+	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series_with(
+		AttrSeries, VAIs ),
+
+	MeshEBOId = gui_shader:assign_indices_to_new_ebo(
+		_FaceIndices=lists:seq( _From=1, _To=ElemCount ) ),
+
+	gui_shader:unset_current_vao(),
+
+	RenderState = #rendering_state{ program_id=ProgramId,
+									vao_id=MeshVAOId,
+									vbo_id=MeshVBOId,
+									vbo_layout=vtx3_rgb,
+									ebo_id=MeshEBOId,
+									vertex_count=length( Vertices ) },
+
+	Mesh#mesh{ rendering_state=RenderState };
+
+
+% For triangle faces and solid colors:
 initialise_for_opengl( Mesh=#mesh{
 		vertices=Vertices,
 		face_type=triangle,
@@ -493,8 +553,8 @@ initialise_for_opengl( Mesh=#mesh{
 	FaceCount = length( IndexedFaces ),
 	FaceColorCount = length( FaceColors ),
 
-	FaceCount =:= FaceColorCount orelse throw(
-		{ mismatching_face_data, FaceCount, FaceColorCount } ),
+	FaceCount =:= FaceColorCount orelse
+		throw( { mismatching_face_data, FaceCount, FaceColorCount } ),
 
 	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
 	% normals - at least currently ignored - and no texture coordinates, just a
@@ -519,6 +579,12 @@ initialise_for_opengl( Mesh=#mesh{
 	{ AttrSeries, ElemCount } = prepare_vattrs_single_face_color( IndexedFaces,
 		FloatFaceColors, Vertices, _FaceVCount=3 ),
 
+	% vtx3_rgb layout: in the buffer, first write a vertex, at the conventional
+	% index location for vertices, then a color, at their dedicated location as
+	% well:
+	%
+	VAIs = [ ?myriad_gui_input_vertex_vai, ?myriad_gui_input_color_vai ],
+
 	% Creates a VBO from these two series, by merging them.
 	%
 	% We start at vertex attribute index #0 in this VAO; as there are two
@@ -526,7 +592,8 @@ initialise_for_opengl( Mesh=#mesh{
 	%
 	% (vertex attributes are automatically declared)
 	%
-	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series( AttrSeries ),
+	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series_with(
+		AttrSeries, VAIs ),
 
 	% By design we just iterate over our pre-duplicated VBO; as a plain list of
 	% indices (for example not a list of triplets of indices), still in CCW
@@ -609,9 +676,16 @@ initialise_for_opengl( Mesh=#mesh{
 
 
 
-% @doc Returns, from the specified face information, a {AttrSeries, ElemCount}
-% pair, where AttrSeries=[ToStoreVertices,ToStoreColors] contains two attribute
-% series, and ElemCount is the length of each series.
+% @doc Returns preprocessed information to generate suitable buffers for a list
+% of faces (presumably having the same number of vertices), each having its own
+% color.
+%
+% More precisely, returns from the specified face-related information (list of
+% the indexed faces to account for, their respective RGB color, a list of all
+% vertices, the (constant) number of vertices per face and the locations of the
+% corresponding vertex attributes), a {AttrSeries, ElemCount} pair, where
+% AttrSeries=[ToStoreVertices,ToStoreColors] contains two attribute series, and
+% ElemCount is the common length of these two series.
 %
 % Each indexed face is expected to have the specified number of vertices, and is
 % to be rendered with a given (solid, unique) color.
@@ -627,7 +701,7 @@ prepare_vattrs_single_face_color( IndexedFaces, FaceRenderColors, AllVertices,
 								  FaceVCount ) ->
 
 	%trace_utils:debug_fmt( "Preparing vertex attributes for faces of "
-	%   "a single color: faces are ~w, colors are ~w.",
+	%   "a single color each: faces are ~w, colors are ~w.",
 	%   [ IndexedFaces, FaceRenderColors ] ),
 
 	% Expected to be uniform (cf. face_type):
@@ -645,6 +719,7 @@ prepare_vattrs_single_face_color( IndexedFaces, FaceRenderColors, AllVertices,
 		_ToStoreVerticesAcc=[], _ToStoreColorAcc=[], FaceVCount, _Count=0 ).
 
 
+
 % (helper)
 prepare_vattrs_single_face_color( _IndexedFaces=[], _FaceRenderColors=[],
 		_AllVertices, ToStoreVerticesAcc, ToStoreColorAcc,
@@ -652,9 +727,11 @@ prepare_vattrs_single_face_color( _IndexedFaces=[], _FaceRenderColors=[],
 	% No reversing needed; as returning a list (not a tuple) of attribute
 	% series:
 
-	%trace_utils:debug_fmt( "Preparing vattrs: ~B vertices: ~p~n~B colors: ~p",
-	%   [ length( ToStoreVerticesAcc ), ToStoreVerticesAcc,
-	%     length( ToStoreColorAcc ), ToStoreColorAcc ] ),
+	%cond_utils:if_defined( myriad_debug_gl_encoding,
+	%   trace_utils:debug_fmt( "Preparing vattrs: ~B vertices: ~p~n"
+	%       "~B colors: ~p",
+	%       [ length( ToStoreVerticesAcc ), ToStoreVerticesAcc,
+	%         length( ToStoreColorAcc ), ToStoreColorAcc ] ) ),
 
 	{ [ ToStoreVerticesAcc, ToStoreColorAcc ], Count };
 
@@ -670,9 +747,9 @@ prepare_vattrs_single_face_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
 	%
 	NewToStoreVerticesAcc = FaceVs ++ ToStoreVerticesAcc,
 
-	% Each of the vertex of this face will have the (same) face color:
+	% Each of the vertices of this face will have the (same) face color:
 	NewToStoreColorAcc = list_utils:duplicate( _Elem=RenderColor,
-		_Count=FaceVCount) ++ ToStoreColorAcc,
+		_Count=FaceVCount ) ++ ToStoreColorAcc,
 
 	prepare_vattrs_single_face_color( HIndexedFaces, HColors, AllVertices,
 		NewToStoreVerticesAcc, NewToStoreColorAcc, FaceVCount,
@@ -685,25 +762,56 @@ prepare_vattrs_single_face_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
 % the current OpenGL context.
 %
 -spec render_as_opengl( mesh() ) -> void().
-render_as_opengl( #mesh{ rendering_state=undefined } ) ->
-	trace_utils:debug( "Mesh does not have a rendering state." );
+render_as_opengl( #mesh{ rendering_info=none } ) ->
+	%trace_utils:debug( "(mesh: nothing to render)" );
+	ok;
 
-render_as_opengl( #mesh{ rendering_state=#rendering_state{
-										program_id=ProgramId,
-										vao_id=VAOId,
-										vbo_id=_VBOId,
-										vbo_layout=VBOLayout,
-										ebo_id=_EBOId,
-										vertex_count=VertexCount } } ) ->
+render_as_opengl( #mesh{ rendering_state=undefined } ) ->
+	%trace_utils:debug( "Mesh does not have a rendering state." );
+	ok;
+
+render_as_opengl( _M=#mesh{ rendering_info=RenderingInfoTuple,
+							rendering_state=#rendering_state{
+								program_id=ProgramId,
+								vao_id=VAOId,
+								vbo_id=_VBOId,
+								vbo_layout=VBOLayout,
+								ebo_id=_EBOId,
+								vertex_count=VertexCount } } ) ->
+
+	%trace_utils:debug_fmt( "Rendering ~ts.", [ mesh:to_string( M ) ] ),
 
 	% We rely on our shader program; operations that must be performed at each
 	% rendering:
 
-	% For wireframe rendering_info, use:
-	%gui_opengl:set_polygon_raster_mode( _FacingMode=front_facing,
-	%                                    _RasterMode=raster_filled ),
-
+	% In all cases (even for wireframe - not ?GL_LINES):
 	PrimType = ?GL_TRIANGLES,
+
+	% For wireframe rendering_info, use:
+
+	case RenderingInfoTuple of
+
+		{ wireframe, _RGBEdgeColor, AreHiddenFacesRemoved } ->
+			RasterMode = raster_as_lines,
+			%RasterMode = raster_filled,
+			case AreHiddenFacesRemoved of
+
+				true ->
+					gui_opengl:set_polygon_raster_mode(
+						_FacingMode=front_facing, RasterMode );
+
+				false ->
+					gui_opengl:set_polygon_raster_mode(
+						_FacingMode=front_and_back_facing, RasterMode )
+
+			end;
+
+		% Enforces/restores relevant settings:
+		_ ->
+			gui_opengl:set_polygon_raster_mode( _FacingMode=front_facing,
+												_RasterMode=raster_filled )
+
+	end,
 
 	gui_shader:set_vbo_layout( VBOLayout, ProgramId ),
 
@@ -888,11 +996,14 @@ to_compact_string( #mesh{ vertices=Vertices,
 rendering_info_to_string( _RI=none ) ->
 	"no rendering set";
 
-rendering_info_to_string( _RI={ wireframe, HiddenFaceRemoval } ) ->
-	"wireframe rendering (with " ++ case HiddenFaceRemoval of
-										true -> "";
-										false -> "no "
-									end ++ "hidden-face removal";
+rendering_info_to_string( _RI={ wireframe, RGBEdgeColor,
+								AreHiddenFacesRemoved } ) ->
+	text_utils:format( "wireframe rendering (with edge color ~ts and ~ts)",
+		[ gui_color:to_string( RGBEdgeColor ),
+		  case AreHiddenFacesRemoved of
+				true -> "";
+				false -> "no "
+		  end ++ "hidden-face removal" ] );
 
 rendering_info_to_string( _RI={ color, ColoringType, Colors } ) ->
 	case ColoringType of
@@ -914,11 +1025,11 @@ rendering_info_to_compact_string( _RI=none ) ->
 	"no rendering set";
 
 rendering_info_to_compact_string(
-						_RI={ wireframe, _HiddenFaceRemoval=true } ) ->
+						_RI={ wireframe, _AreHiddenFacesRemoved=true } ) ->
 	"culled wireframe rendering";
 
 rendering_info_to_compact_string(
-						_RI={ wireframe, _HiddenFaceRemoval=false } ) ->
+						_RI={ wireframe, _AreHiddenFacesRemoved=false } ) ->
 	"unculled wireframe rendering";
 
 rendering_info_to_compact_string( _RI={ color, ColoringType, Colors } ) ->

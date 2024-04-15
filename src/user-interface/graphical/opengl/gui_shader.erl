@@ -258,11 +258,10 @@
 
 
 -type offset() :: byte_size().
-% Offset (possibly null) at which the first vertex attribute begins in the
-% buffer.
+% Offset (possibly null) at which a vertex attribute begins in the buffer.
 %
 % This generally corresponds to the sum of the sizes of all previous attributes
-% defined for a given vertex.
+% defined for a given vertex (if tightly packed).
 
 
 -type gl_primitive_type() :: ?GL_POINTS | ?GL_LINE_STRIP | ?GL_LINE_LOOP
@@ -425,8 +424,8 @@
 % a VBO can be determined through either of the following 3 approaches:
 %
 % - by specifying the association directly when generating the GLSL program,
-% thanks to a list of user_attribute(); see generate_program_from/3 and
-% generate_program/2; this is our preferred method
+% thanks to a list of user_attribute(); see the generate_program_from/* and
+% generate_program/* functions; this is our preferred method
 %
 % - by specifying on both sides the same (numerical) index; typically the
 % application would use 'gui_shader:declare_vertex_attribute(INDEX)' while the
@@ -484,7 +483,7 @@
 
 		  % MyriadGUI builtins:
 		  get_base_glsl_include_paths/0, get_base_shader_filenames/0,
-		  get_base_user_attributes/1, deploy_base_program/1,
+		  get_base_user_attributes/0, deploy_base_program/0,
 		  set_vbo_layout/2
 
 		]).
@@ -520,7 +519,8 @@
 		  assign_new_vbo/1, assign_new_vbo/2,
 
 		  assign_new_vbo_from_attribute_series/1,
-		  assign_new_vbo_from_attribute_series/2,
+		  assign_new_vbo_from_attribute_series_from/2,
+		  assign_new_vbo_from_attribute_series_with/2,
 
 		  assign_vertices_to_new_vbo/1, assign_vertices_to_new_vbo/2,
 		  assign_vertex_attribute_as/2, assign_vertex_attribute_as/3,
@@ -1625,8 +1625,8 @@ generate_program( ShaderIds ) ->
 generate_program( ShaderIds, UserAttributes ) ->
 
 	% Note: we do not open the possibility of auto-numbering the user
-	% attributes, as they must specified by the application when generating the
-	% program and when declaring them.
+	% attributes, as they must be specified by the application when generating
+	% the program and when declaring them.
 
 	% Creates an empty program object and returns a non-zero value by which it
 	% can be referenced:
@@ -1645,8 +1645,8 @@ generate_program( ShaderIds, UserAttributes ) ->
 	% Any attribute must be bound before linking:
 
 	cond_utils:if_defined( myriad_debug_shaders,
-		trace_utils:debug_fmt( "Binding user vertex attribute locations ~p.",
-							   [ UserAttributes ] ) ),
+		trace_utils:debug_fmt( "Binding following user vertex attribute "
+			"locations:~n ~p.", [ UserAttributes ] ) ),
 
 	[ gl:bindAttribLocation( ProgramId, Idx, AttrName )
 									|| { AttrName, Idx } <- UserAttributes ],
@@ -1738,23 +1738,27 @@ get_base_shader_filenames() ->
 	  _FragmentShader="gui_opengl_base_shader.fragment.glsl" }.
 
 
+
 % @doc Returns the user vertex attributes corresponding to the MyriadGUI
-% conventions, notably in terms of VBO layout, to declare vertex attributes for
-% the shaders.
+% convention to declare vertex attributes for the shaders.
 %
 % This optional step applies MyriadGUI defaults in order to streamline the user
 % code.
 %
--spec get_base_user_attributes( vbo_layout() ) -> void().
-get_base_user_attributes( _VBOLayout=vtx3_rgb ) ->
+% Done for all VBO layouts.
+%
+-spec get_base_user_attributes() -> void().
+get_base_user_attributes() ->
 	% Just having to declare the corresponding vais:
 
 	% Specifies the location of the vertex attributes, so that the vertex shader
 	% will be able to match its input variables with the vertex attributes of
 	% the application:
 	%
-	[ { "myriad_gui_input_vertex", ?myriad_gui_input_vertex_vai },
-	  { "myriad_gui_input_color",  ?myriad_gui_input_color_vai } ].
+	[ { "myriad_gui_input_vertex",   ?myriad_gui_input_vertex_vai },
+	  { "myriad_gui_input_normal",   ?myriad_gui_input_normal_vai },
+	  { "myriad_gui_input_color",    ?myriad_gui_input_color_vai },
+	  { "myriad_gui_input_texcoord", ?myriad_gui_input_texcoord_vai } ].
 
 
 
@@ -1763,14 +1767,14 @@ get_base_user_attributes( _VBOLayout=vtx3_rgb ) ->
 % corresponding program, prepares for their support, installs the program and
 % returns its identifier.
 %
--spec deploy_base_program( vbo_layout() ) -> program_id().
-deploy_base_program( VBOLayout ) ->
+-spec deploy_base_program() -> program_id().
+deploy_base_program() ->
 
-	% Assign shaders do not depend on VBO layout (at least yet):
+	% Assigned shaders do not depend on VBO layout (at least yet):
 	{ VertexShaderPath, FragmentShaderPath } = get_base_shader_filenames(),
 
 	ProgramId = generate_program_from( VertexShaderPath, FragmentShaderPath,
-		_UserAttributes=get_base_user_attributes( VBOLayout ),
+		_UserAttributes=get_base_user_attributes(),
 		_GLSLSearchPaths=[ gui_opengl:get_base_path() ] ),
 
 	% Rely on these shaders:
@@ -1782,24 +1786,15 @@ deploy_base_program( VBOLayout ) ->
 	% better be set through a uniform than set as a constant at the shader
 	% level):
 
-	% As we 
-	case VBOLayout of
+	GlobalColorUnifId = get_uniform_id(
+		_UnifName=?myriad_gui_global_color_unif_name, ProgramId ),
 
-		vtx3 ->
-			GlobalColorUnifId = get_uniform_id(
-				_UnifName=?myriad_gui_global_color_unif_name, ProgramId ),
+	GlobalColor = gui_color:get_color( pink ),
 
-			GlobalColor = gui_color:get_color( pink ),
+	set_uniform_point3( GlobalColorUnifId,
+						gui_color:decimal_to_render( GlobalColor ) ),
 
-			set_uniform_point3( GlobalColorUnifId,
-								gui_color:decimal_to_render( GlobalColor ) );
-
-		_ ->
-			ok
-
-	end,
-
-	% VBO layout not set here, but during rendering.
+	% VBO layout not set here, but during rendering, on a per-mesh basis.
 
 	ProgramId.
 
@@ -1934,6 +1929,14 @@ declare_vertex_attribute( TargetVAttrIndex, ComponentCount ) ->
 	gl_base_type(), boolean(), stride(), offset(), boolean() ) -> void().
 declare_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
 						  DoNormalise, AttrStride, Offset, DoEnable ) ->
+
+	cond_utils:if_defined( myriad_debug_shaders,
+		trace_utils:debug_fmt( "Declaring vertex attribute index #~B: "
+			"~B components of type ~ts, for a stride of ~B bytes and "
+			"an offset of ~B bytes.",
+			[ TargetVAttrIndex, ComponentCount,
+			  gui_opengl:gl_type_to_string( ComponentType ), AttrStride,
+			  Offset ] ) ),
 
 	gl:vertexAttribPointer( TargetVAttrIndex, ComponentCount, ComponentType,
 		gui_opengl:boolean_to_gl( DoNormalise ), AttrStride, Offset ),
@@ -2312,30 +2315,33 @@ assign_vertex_attribute_as( VAttrIndex, VAttrSeries, BufferUsageHint ) ->
 
 % @doc Assigns a new VBO that is made the currently active one, and which is
 % created from the specified list of vertex attribute series once merged, and
-% declares the corresponding vertex attributes, starting with vertex attribute
-% of index #0.
+% declares the corresponding vertex attributes, starting from vertex attribute
+% of index #0 (this may be useful if devising a shader based on the structure of
+% a VBO).
 %
 % The parameters of the vertex attributes are automatically determined, declared
-% and enabled.
+% and enabled. This is typically useful when devising a shader based on a VBO.
 %
 -spec assign_new_vbo_from_attribute_series( [ vertex_attribute_series() ] ) ->
 						vbo_id().
 assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
-	assign_new_vbo_from_attribute_series( ListOfVAttrSeries,
-										  _StartVAttrIndex=0 ).
+	assign_new_vbo_from_attribute_series_from( ListOfVAttrSeries,
+											   _StartVAttrIndex=0 ).
 
 
 % @doc Assigns a new VBO that is made the currently active one, and which is
 % created from the specified list of vertex attribute series once merged in
 % vertex attribute compounds, and declares the corresponding vertex attributes,
-% starting from the specified vertex attribute index.
+% starting incrementally from the specified vertex attribute index (this may be
+% useful if devising a shader based on the structure of a VBO).
 %
 % The parameters of the vertex attributes are automatically determined, declared
 % and enabled.
 %
--spec assign_new_vbo_from_attribute_series( [ vertex_attribute_series() ],
+-spec assign_new_vbo_from_attribute_series_from( [ vertex_attribute_series() ],
 		StartVAttrStartIndex :: vertex_attribute_index() ) -> vbo_id().
-assign_new_vbo_from_attribute_series( ListOfVAttrSeries, StartVAttrIndex ) ->
+assign_new_vbo_from_attribute_series_from( ListOfVAttrSeries,
+										   StartVAttrIndex ) ->
 
 	% Later zipn in characterise_series/1 will check it, but only if the
 	% myriad_check_lists token is set, whereas we want to control the check here
@@ -2348,14 +2354,55 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries, StartVAttrIndex ) ->
 	CompPairs = [ characterise_series( VAS ) || VAS <- ListOfVAttrSeries ],
 	{ Stride, Offsets } = get_stride_and_offsets( CompPairs ),
 
-	%trace_utils:debug_fmt( "Stride is ~B and offsets are ~p for:~n ~p",
-	%                       [ Stride, Offsets, ListOfVAttrSeries ] ),
+	cond_utils:if_defined( myriad_debug_gl_encoding,
+		trace_utils:debug_fmt( "Stride is ~B and offsets are ~p for:~n ~p",
+							   [ Stride, Offsets, ListOfVAttrSeries ] ) ),
 
 	% Tightly-packed buffer of vertex attribute compounds:
 	Buffer = merge_attribute_series( ListOfVAttrSeries, CompPairs ),
 	VBOId = assign_new_vbo( Buffer ),
 
 	declare_vertex_attributes_from( CompPairs, Stride, Offsets, StartVAttrIndex,
+									_DoEnable=true ),
+
+	VBOId.
+
+
+% @doc Assigns a new VBO that is made the currently active one, and which is
+% created from the specified list of vertex attribute series once merged in
+% vertex attribute compounds, and declares the corresponding vertex attributes,
+% using the specified vertex attribute indices.
+%
+% The parameters of the vertex attributes are automatically determined, declared
+% and enabled.
+-spec assign_new_vbo_from_attribute_series_with( [ vertex_attribute_series() ],
+			[ vertex_attribute_index() ] ) -> vbo_id().
+assign_new_vbo_from_attribute_series_with( ListOfVAttrSeries, ListOfVAIs ) ->
+
+	% Later zipn in characterise_series/1 will check it, but only if the
+	% myriad_check_lists token is set, whereas we want to control the check here
+	% and perform it earlier:
+	%
+	cond_utils:if_defined( myriad_check_mesh,
+		begin
+			list_utils:check_same_length( ListOfVAttrSeries ),
+			basic_utils:assert_equal( length( ListOfVAttrSeries ), 
+									  length( ListOfVAIs ) )
+		end ),
+
+	% A list of {ComponentType, ComponentCount} pairs:
+	CompPairs = [ characterise_series( VAS ) || VAS <- ListOfVAttrSeries ],
+	{ Stride, Offsets } = get_stride_and_offsets( CompPairs ),
+
+	cond_utils:if_defined( myriad_debug_gl_encoding,
+		trace_utils:debug_fmt( "Stride is ~B and offsets are ~p for:~n ~p",
+							   [ Stride, Offsets, ListOfVAttrSeries ] ) ),
+
+	% Tightly-packed buffer of vertex attribute compounds:
+	Buffer = merge_attribute_series( ListOfVAttrSeries, CompPairs ),
+	VBOId = assign_new_vbo( Buffer ),
+
+	declare_vertex_attributes_with( CompPairs, Stride, Offsets, ListOfVAIs,
 									_DoEnable=true ),
 
 	VBOId.
@@ -2392,12 +2439,19 @@ merge_attribute_series( VAttrSeries, CompPairs ) ->
 	%
 	MergedElems = list_utils:zipn( VAttrSeries ),
 
+	cond_utils:if_defined( myriad_debug_gl_encoding,
+		trace_utils:debug_fmt( "Serialising following merged elements "
+			"described by ~w:~n ~p", [ CompPairs, MergedElems ] ) ),
+
 	serialise_attrs( MergedElems, CompPairs, _AccBin= <<>> ).
 
 
 
 % (helper)
 serialise_attrs( _MergedElems=[], _CompPairs, AccBin ) ->
+	cond_utils:if_defined( myriad_debug_gl_encoding,
+		trace_utils:debug_fmt( "Elements merged in a buffer of ~B bytes:~n~w.",
+							   [ size( AccBin ), AccBin ] ) ),
 	AccBin;
 
 serialise_attrs( _MergedElems=[ Elems | T ], CompPairs, AccBin ) ->
@@ -2409,7 +2463,9 @@ serialise_attrs( _MergedElems=[ Elems | T ], CompPairs, AccBin ) ->
 serialise_elements( _Elems=[], _CompPairs=[], AccBin ) ->
 	AccBin;
 
-% From most frequent to least; force selection on component count:
+% From most frequent to least; force selection on component count (presumably
+% cheaper):
+%
 % For floats:
 serialise_elements( _Elems=[ FloatTriplet | Te ],
 					_CompPairs=[ { ?GL_FLOAT, _Count=3 } | Tp ], AccBin ) ->
@@ -2520,6 +2576,29 @@ declare_vertex_attributes_from( _CompPairs=[ { CT, CC } | Tc ], Stride,
 							  Stride, Offset, DoEnable ),
 
 	declare_vertex_attributes_from( Tc, Stride, To, VAttrIndex+1, DoEnable ).
+
+
+
+% @doc Declares the vertex attributes corresponding to the specified information
+% about vertex attribute series in the currently active VBO, using the specified
+% vertex attribute indices, supposing a tightly-packed buffer, and enabling
+% these attributes if requested.
+%
+-spec declare_vertex_attributes_with( comp_pairs(), stride(), [ offset() ],
+		[ vertex_attribute_index() ], boolean() ) -> void().
+declare_vertex_attributes_with( _CompPairs=[], _Stride, _Offsets=[],
+								_VAIs=[], _DoEnable ) ->
+	ok;
+
+declare_vertex_attributes_with( _CompPairs=[ { CT, CC } | Tc ], Stride,
+		_Offsets=[ Offset | To ], _VAIs=[ VAI | Tv ] , DoEnable ) ->
+
+	% At least currently, never normalising (fixed-point) integer components:
+	declare_vertex_attribute( VAI, CC, CT, _DoNormalise=false,
+							  Stride, Offset, DoEnable ),
+
+	declare_vertex_attributes_with( Tc, Stride, To, Tv, DoEnable ).
+
 
 
 
@@ -2658,6 +2737,11 @@ assign_indices_to_new_ebo( Indices, BufferUsageHint ) ->
 	EBOId = set_new_ebo(),
 
 	EBOBuffer = bin_utils:concatenate_as_uint32s( Indices ),
+
+	cond_utils:if_defined( myriad_debug_gl_encoding,
+		trace_utils:debug_fmt( "Concatenating EBO indices ~w "
+			"in a buffer of ~B bytes: ~w",
+			[ Indices, size( EBOBuffer ), EBOBuffer ] ) ),
 
 	assign_current_ebo( EBOBuffer, BufferUsageHint ),
 

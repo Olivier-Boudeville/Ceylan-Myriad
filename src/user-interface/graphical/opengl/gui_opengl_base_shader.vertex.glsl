@@ -54,10 +54,12 @@ uniform vec3 myriad_gui_global_color;
  *
  */
 
-layout (location = 0) in vec3 myriad_gui_input_vertex;
-layout (location = 1) in vec3 myriad_gui_input_normal;
-layout (location = 2) in vec3 myriad_gui_input_color;
-layout (location = 3) in vec2 myriad_gui_input_texcoord;
+// Not using location indices anymore, preferring to use names instead:
+
+/* layout (location = 0) */ in vec3 myriad_gui_input_vertex;
+/* layout (location = 1) */ in vec3 myriad_gui_input_normal;
+/* layout (location = 2) */ in vec3 myriad_gui_input_color;
+/* layout (location = 3) */ in vec2 myriad_gui_input_texcoord;
 
 // Output of this shader (input of the fragment shader):
 out vec3 myriad_gui_current_color;
@@ -86,6 +88,7 @@ void apply_vtx3_rgb() {
 	gl_Position.xyz = myriad_gui_input_vertex;
 
 	myriad_gui_current_color = myriad_gui_input_color;
+	//myriad_gui_current_color = vec3(0.0, 1.0, 0.0);
 
 }
 

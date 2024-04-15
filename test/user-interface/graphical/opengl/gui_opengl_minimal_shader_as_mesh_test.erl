@@ -95,7 +95,8 @@
 
 -record( my_mv_state, {
 
-	triangle_mesh :: mesh()
+	triangle_wireframe_mesh :: mesh(),
+	triangle_solid_mesh :: mesh()
 
 	%square_mesh :: mesh(),
 
@@ -154,31 +155,55 @@ run_actual_test() ->
 -spec create_mv_state() -> my_mv_state().
 create_mv_state() ->
 
+	% Let's start with a triangle with a wireframe red triangle:
+
 	Z = 0.0,
 
 	% Triangle defined as [vertex3()], directly in normalized device coordinates
 	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
-	% texture coordinate system has its Y ordinate axis up, see
+	% texture coordinate system has its Y ordinate axis up; see
 	% https://learnopengl.com/Getting-started/Hello-Triangle):
 	%
 	%               T2
 	%              /  \
 	%             T0--T1
 	%
-	TriangleVertices =
+	TriangleWfVertices =
 		[ _T0={ -1.0, -1.0, Z }, _T1={ 1.0, -1.0, Z }, _T2={ 0.0, 1.0, Z } ],
 
 	% A single (triangle) face; as we rely on vertex indices (i.e. EBO):
 	IndexedFaces = [ _F1={ 1, 2, 3 } ],
 
+	FaceType = triangle,
+
+	% Various rendering_info() can be tested:
+
+	%RenderingInfo = none,
+
+	%AreHiddenFaceRemoved = false,
+	AreHiddenFaceRemoved = true,
+
+	WfRenderingInfo = { wireframe, _RGBEdgeColor=gui_color:get_color( red ),
+						AreHiddenFaceRemoved },
+
+	TriangleWfMesh = mesh:create( TriangleWfVertices, FaceType, IndexedFaces,
+								  WfRenderingInfo ),
+
+
+	% Then a solid Myriad-blue triangle, offset on the right:
+	TriangleSolidVertices =
+		[ point3:translate( P, _V=[ 0.4, 0, 0 ] ) || P <- TriangleWfVertices ],
+
 	% Still a single face:
-	RenderingInfo = { color, _FaceColoringType=per_face,
-		_ElementColors=[ gui_opengl_for_testing:get_myriad_blue() ] },
+	SolidRenderingInfo = { color, _FaceColoringType=per_face,
+		%_ElementColors=[ gui_opengl_for_testing:get_myriad_blue() ] },
+		_ElementColors=[ gui_color:get_color( yellow ) ] },
 
-	TriangleMesh = mesh:create( TriangleVertices, _FaceType=triangle,
-								IndexedFaces, RenderingInfo ),
+	TriangleSolidMesh = mesh:create( TriangleSolidVertices, FaceType,
+									 IndexedFaces, SolidRenderingInfo ),
 
-	#my_mv_state{ triangle_mesh=TriangleMesh }.
+	#my_mv_state{ triangle_wireframe_mesh=TriangleWfMesh,
+				  triangle_solid_mesh=TriangleSolidMesh }.
 
 
 
@@ -377,14 +402,11 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Clears in white (otherwise black background):
 	gl:clearColor( _R=1.0, _G=1.0, _B=1.0, ?alpha_fully_opaque ),
 
-	% Simple setting here, will correspond to the mesh's expectations:
-	VBOLayout = vtx3_rgb,
-
 	% Creates, compiles, links, installs, prepares our GLSL program based on the
 	% MyriadGUI builtin shaders, that are, in the same movement, automatically
 	% attached and linked, then detached and deleted:
 	%
-	ProgramId = gui_shader:deploy_base_program( VBOLayout ),
+	ProgramId = gui_shader:deploy_base_program(),
 
 	% Just as an example check; usable as soon as the program is linked; will be
 	% found iff declared but also explicitly used in at least one shader:
@@ -420,16 +442,26 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 -spec initialise_mv_for_opengl( my_mv_state(), my_gui_state() ) ->
 											my_mv_state().
 initialise_mv_for_opengl( MVState=#my_mv_state{
-								triangle_mesh=TriangleMesh },
+							triangle_wireframe_mesh=TriangleWfMesh,
+							triangle_solid_mesh=TriangleSolidMesh },
 						  #my_gui_state{ opengl_state=#my_opengl_state{
 								program_id=ProgramId } } ) ->
 
-	trace_utils:debug_fmt( "Initialising for OpenGL the ~ts",
-						   [ mesh:to_string( TriangleMesh ) ] ),
+	Meshes = [ TriangleWfMesh, TriangleSolidMesh ],
 
-	InitTriangleMesh = mesh:initialise_for_opengl( TriangleMesh, ProgramId ),
+	[ InitTriangleWfMesh, InitTriangleSolidMesh ] =
+		[ begin
+			trace_utils:debug_fmt( "Initialising for OpenGL the ~ts",
+								   [ mesh:to_string( M ) ] ),
 
-	MVState#my_mv_state{ triangle_mesh=InitTriangleMesh }.
+			mesh:initialise_for_opengl( M, ProgramId )
+
+		  end || M <- Meshes ],
+
+
+	MVState#my_mv_state{
+		triangle_wireframe_mesh=InitTriangleWfMesh,
+		triangle_solid_mesh=InitTriangleSolidMesh }.
 
 
 
@@ -489,10 +521,17 @@ initialise_mv_for_opengl( MVState=#my_mv_state{
 
 % @doc Cleans up the model-view, OpenGL-wise.
 -spec cleanup_mv_for_opengl( my_mv_state() ) -> my_mv_state().
-cleanup_mv_for_opengl( MVState=#my_mv_state{ triangle_mesh=TriangleMesh } ) ->
-									%square_mesh=SquareMesh
-	NewTriangleMesh = mesh:cleanup_for_opengl( TriangleMesh ),
-	MVState#my_mv_state{ triangle_mesh=NewTriangleMesh }.
+cleanup_mv_for_opengl( MVState=#my_mv_state{
+		triangle_wireframe_mesh=TriangleWfMesh,
+		triangle_solid_mesh=TriangleSolidMesh
+		%square_mesh=SquareMesh
+								 } ) ->
+
+	CleanedTriangleWfMesh = mesh:cleanup_for_opengl( TriangleWfMesh ),
+	CleanedTriangleSolidMesh = mesh:cleanup_for_opengl( TriangleSolidMesh ),
+
+	MVState#my_mv_state{ triangle_wireframe_mesh=CleanedTriangleWfMesh,
+						 triangle_solid_mesh=CleanedTriangleSolidMesh }.
 
 
 
@@ -557,7 +596,9 @@ on_main_frame_resized( _GUIState=#my_gui_state{ canvas=GLCanvas }, MVState ) ->
 
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_mv_state() ) -> void().
-render( _Width, _Height, #my_mv_state{ triangle_mesh=TriangleMesh } ) ->
+render( _Width, _Height, #my_mv_state{
+							triangle_wireframe_mesh=TriangleWfMesh,
+							triangle_solid_mesh=TriangleSolidMesh } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -571,7 +612,8 @@ render( _Width, _Height, #my_mv_state{ triangle_mesh=TriangleMesh } ) ->
 	%
 	%gui_opengl:set_polygon_raster_mode( front_facing, raster_as_lines ),
 
-	mesh:render_as_opengl( TriangleMesh ),
+	[ mesh:render_as_opengl( M )
+		|| M <- [ TriangleWfMesh, TriangleSolidMesh ] ],
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.
