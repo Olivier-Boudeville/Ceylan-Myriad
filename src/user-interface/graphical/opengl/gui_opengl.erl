@@ -561,7 +561,7 @@
 		  is_hardware_accelerated/0, is_hardware_accelerated/1,
 		  get_glxinfo_strings/0,
 
-		  get_component_size/1,
+		  get_component_size/1, gl_type_to_string/1,
 
 		  get_base_path/0 ]).
 
@@ -1497,10 +1497,10 @@ check_requirements( MinOpenGLVersion, RequiredProfile, RequiredExtensions ) ->
 % serialised (typically in a buffer - and regardless of the Erlang datatypes).
 %
 -spec get_component_size( gl_base_type() ) -> byte_size().
-get_component_size( _GLType=?GL_BYTE ) ->
+get_component_size( _GLType=?GL_UNSIGNED_BYTE ) ->
 	1;
 
-get_component_size( _GLType=?GL_UNSIGNED_BYTE ) ->
+get_component_size( _GLType=?GL_BYTE ) ->
 	1;
 
 get_component_size( _GLType=?GL_UNSIGNED_SHORT ) ->
@@ -1520,6 +1520,34 @@ get_component_size( _GLType=?GL_FLOAT ) ->
 
 get_component_size( _GLType=?GL_DOUBLE ) ->
 	8.
+
+
+
+% @doc Returns a textual description of the specified GL type.
+-spec gl_type_to_string( gl_base_type() ) -> ustring().
+gl_type_to_string( _GLType=?GL_UNSIGNED_BYTE ) ->
+	"GL unsigned byte";
+
+gl_type_to_string( _GLType=?GL_BYTE ) ->
+	"GL signed byte";
+
+gl_type_to_string( _GLType=?GL_UNSIGNED_SHORT ) ->
+	"GL unsigned short";
+
+gl_type_to_string( _GLType=?GL_SHORT ) ->
+	"GL signed short";
+
+gl_type_to_string( _GLType=?GL_UNSIGNED_INT ) ->
+	"GL unsigned int";
+
+gl_type_to_string( _GLType=?GL_INT ) ->
+	"GL signed int";
+
+gl_type_to_string( _GLType=?GL_FLOAT ) ->
+	"GL float";
+
+gl_type_to_string( _GLType=?GL_DOUBLE ) ->
+	"GL double".
 
 
 
