@@ -404,7 +404,7 @@ extract_element_if_existing( Elem, _List=[ H | T ], Acc ) ->
 
 
 
-% @doc Removes the specified number first elements.
+% @doc Removes the specified number of first elements.
 %
 % For example: [c, d, e] = list_utils:remove_first_elements([a, b, c, d, e], 2).
 %
@@ -473,7 +473,9 @@ remove_last_element( List ) ->
 
 
 % @doc Returns a pair made of the N first elements ("heads") of the specified
-% list, and of its remainder (tail).
+% list, and of its remainder (tail); said otherwise: extracts the N first
+% elements, and returns a pair made first of these elements and second of the
+% rest of the specified list.
 %
 % For example: heads([a,b,c,d,e], _N=3) = {[a,b,c],[d,e]}.
 %
