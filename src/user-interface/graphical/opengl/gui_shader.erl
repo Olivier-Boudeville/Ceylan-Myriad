@@ -2343,29 +2343,10 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
 assign_new_vbo_from_attribute_series_from( ListOfVAttrSeries,
 										   StartVAttrIndex ) ->
 
-	% Later zipn in characterise_series/1 will check it, but only if the
-	% myriad_check_lists token is set, whereas we want to control the check here
-	% and perform it earlier:
-	%
-	cond_utils:if_defined( myriad_check_mesh,
-						   list_utils:check_same_length( ListOfVAttrSeries ) ),
+	ListOfVAIs = lists:seq( StartVAttrIndex,
+		length( ListOfVAttrSeries ) + StartVAttrIndex - 1 ),
 
-	% A list of {ComponentType, ComponentCount} pairs:
-	CompPairs = [ characterise_series( VAS ) || VAS <- ListOfVAttrSeries ],
-	{ Stride, Offsets } = get_stride_and_offsets( CompPairs ),
-
-	cond_utils:if_defined( myriad_debug_gl_encoding,
-		trace_utils:debug_fmt( "Stride is ~B and offsets are ~p for:~n ~p",
-							   [ Stride, Offsets, ListOfVAttrSeries ] ) ),
-
-	% Tightly-packed buffer of vertex attribute compounds:
-	Buffer = merge_attribute_series( ListOfVAttrSeries, CompPairs ),
-	VBOId = assign_new_vbo( Buffer ),
-
-	declare_vertex_attributes_from( CompPairs, Stride, Offsets, StartVAttrIndex,
-									_DoEnable=true ),
-
-	VBOId.
+	assign_new_vbo_from_attribute_series_with( ListOfVAttrSeries, ListOfVAIs ).
 
 
 % @doc Assigns a new VBO that is made the currently active one, and which is
@@ -2375,6 +2356,7 @@ assign_new_vbo_from_attribute_series_from( ListOfVAttrSeries,
 %
 % The parameters of the vertex attributes are automatically determined, declared
 % and enabled.
+%
 -spec assign_new_vbo_from_attribute_series_with( [ vertex_attribute_series() ],
 			[ vertex_attribute_index() ] ) -> vbo_id().
 assign_new_vbo_from_attribute_series_with( ListOfVAttrSeries, ListOfVAIs ) ->
@@ -2386,7 +2368,7 @@ assign_new_vbo_from_attribute_series_with( ListOfVAttrSeries, ListOfVAIs ) ->
 	cond_utils:if_defined( myriad_check_mesh,
 		begin
 			list_utils:check_same_length( ListOfVAttrSeries ),
-			basic_utils:assert_equal( length( ListOfVAttrSeries ), 
+			basic_utils:assert_equal( length( ListOfVAttrSeries ),
 									  length( ListOfVAIs ) )
 		end ),
 

@@ -129,8 +129,9 @@
   | { 'wireframe', RGBEdgeColor :: color_by_decimal(),
 	  AreHiddenFacesRemoved :: boolean() }
 
-	% Per-vertex or per-face colors (color order being the one of the elements -
-	% vertices or faces - at creation):
+	% Per-vertex (then a single color is assigned to a vertex, for all the faces
+	% to which it belongs) or per-face colors (the color order being the one of
+	% the elements - vertices or faces - at specification):
 	%
 	% (solid colors, no transparency here; RGB as triplets of integers, not in
 	% [0.0,1.0])
@@ -193,13 +194,13 @@
 -export([ compute_normal/2, get_vertex_count_for_face_type/1 ]).
 
 
-% Color-related section.
-%-export([ set_edge_color/2, get_edge_color/1,
-%          set_fill_color/2, get_fill_color/1 ]).
-
-
 % Bounding volume related section.
 %-export([ update_bounding_volume/2 ]).
+
+
+% Local types:
+
+-type element() :: vertex3() | render_rgb_color().
 
 
 % Shorthands:
@@ -415,13 +416,10 @@ compute_normal( Face, AllVertices ) ->
 	% A face being a tuple of vertex indices:
 
 	V1Id = element( _FirstIndex=1, Face ),
-	V1 = get_vertex_from_id( V1Id, AllVertices ),
-
 	V2Id = element( 2, Face ),
-	V2 = get_vertex_from_id( V2Id, AllVertices ),
-
 	V3Id = element( 3, Face ),
-	V3 = get_vertex_from_id( V3Id, AllVertices ),
+
+	[ V1, V2, V3 ] = get_elements_from_ids( [ V1Id, V2Id, V3Id ], AllVertices ),
 
 	vector3:compute_normal( V1, V2, V3 ).
 
@@ -498,8 +496,9 @@ initialise_for_opengl( Mesh=#mesh{
 	% Mostly the same as for the next case (triangle faces and solid colors),
 	% see it for details; only rendering will differ:
 
-	trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
-						   [ to_string( Mesh ) ] ),
+	cond_utils:if_defined( myriad_debug_mesh,
+		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
+							   [ to_string( Mesh ) ] ) ),
 
 	FloatEdgeColor = gui_color:decimal_to_render( RGBEdgeColor ),
 
@@ -535,7 +534,7 @@ initialise_for_opengl( Mesh=#mesh{
 	Mesh#mesh{ rendering_state=RenderState };
 
 
-% For triangle faces and solid colors:
+% For triangle faces and solid, per-face colors:
 initialise_for_opengl( Mesh=#mesh{
 		vertices=Vertices,
 		face_type=triangle,
@@ -546,8 +545,9 @@ initialise_for_opengl( Mesh=#mesh{
 		rendering_info={ color, per_face, FaceColors },
 		rendering_state=undefined }, ProgramId ) ->
 
-	trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
-						   [ to_string( Mesh ) ] ),
+	cond_utils:if_defined( myriad_debug_mesh,
+		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
+							   [ to_string( Mesh ) ] ) ),
 
 	% Sanity check for input data:
 	FaceCount = length( IndexedFaces ),
@@ -615,7 +615,93 @@ initialise_for_opengl( Mesh=#mesh{
 									ebo_id=MeshEBOId,
 									vertex_count=length( Vertices ) },
 
+	Mesh#mesh{ rendering_state=RenderState };
+
+
+% For triangle faces and solid, per-vertex colors:
+initialise_for_opengl( Mesh=#mesh{
+		vertices=Vertices,
+		face_type=triangle,
+		faces=IndexedFaces,
+		% Normals currently ignored (useful for lighting only):
+		%normal_type=per_{vertex,face},
+		%normals=MaybeNormals,
+		rendering_info={ color, per_vertex, VertexColors },
+		rendering_state=undefined }, ProgramId ) ->
+
+	cond_utils:if_defined( myriad_debug_mesh,
+		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
+							   [ to_string( Mesh ) ] ) ),
+
+	% Sanity check for input data (yet some vertices could not be used):
+	VertexCount = length( Vertices ),
+	VertexColorCount = length( VertexColors ),
+
+	VertexCount =:= VertexColorCount orelse
+		throw( { mismatching_vertex_data, VertexCount, VertexColorCount } ),
+
+	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
+	% normals - at least currently ignored - and no texture coordinates, just a
+	% per-vertex color) and EBO (for indices in the VBO); we target a rendering
+	% in terms of GL_TRIANGLES (no strip, fan, etc.) and will rely on the
+	% vtx3_rgb VBO layout.
+	%
+	MeshVAOId = gui_shader:set_new_vao(),
+
+	% OpenGL could have been requested to normalise the data by itself instead:
+	FloatVertexColors = gui_color:decimal_to_render( VertexColors ),
+
+	% We use an EBO, yet duplication will be needed, as a given vertex is
+	% expected to pertain to multiple faces, each with its own (normal and)
+	% color.
+	%
+	% We will iterate on faces to prepare the corresponding vertex attribute
+	% compounds, so for the target VBO content we build adequate series of
+	% vertex attributes. Here, with a triangle face_type, we have, per-face, 3
+	% vertices and three colors, so:
+	%
+	{ AttrSeries, ElemCount } = prepare_vattrs_per_vertex_color(
+		IndexedFaces, Vertices, FloatVertexColors, _FaceVCount=3 ),
+
+	% vtx3_rgb layout: in the buffer, first write a vertex, at the conventional
+	% index location for vertices, then a color, at their dedicated location as
+	% well:
+	%
+	VAIs = [ ?myriad_gui_input_vertex_vai, ?myriad_gui_input_color_vai ],
+
+	% Creates a VBO from these two series, by merging them.
+	%
+	% We start at vertex attribute index #0 in this VAO; as there are two
+	% series, the vertex attribute indices will be 0 and 1:
+	%
+	% (vertex attributes are automatically declared)
+	%
+	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series_with(
+		AttrSeries, VAIs ),
+
+	% By design we just iterate over our pre-duplicated VBO; as a plain list of
+	% indices (for example not a list of triplets of indices), still in CCW
+	% order:
+	%
+	MeshEBOId = gui_shader:assign_indices_to_new_ebo(
+		_FaceIndices=lists:seq( _From=1, _To=ElemCount ) ),
+
+	% As the (single, here) VBO and the EBO were created whereas this VAO was
+	% active, they are tracked by this VAO, which will rebind them automatically
+	% the next time it will be itself bound:
+	%
+	gui_shader:unset_current_vao(),
+
+	RenderState = #rendering_state{ program_id=ProgramId,
+									vao_id=MeshVAOId,
+									vbo_id=MeshVBOId,
+									vbo_layout=vtx3_rgb,
+									ebo_id=MeshEBOId,
+									vertex_count=length( Vertices ) },
+
 	Mesh#mesh{ rendering_state=RenderState }.
+
+
 
 % Clause for the triangle faces and texture version:
 %% initialise_for_opengl( Mesh=#mesh{
@@ -677,8 +763,8 @@ initialise_for_opengl( Mesh=#mesh{
 
 
 % @doc Returns preprocessed information to generate suitable buffers for a list
-% of faces (presumably having the same number of vertices), each having its own
-% color.
+% of faces (presumably having the same number of vertices), each face having its
+% own (uniform) color.
 %
 % More precisely, returns from the specified face-related information (list of
 % the indexed faces to account for, their respective RGB color, a list of all
@@ -687,8 +773,9 @@ initialise_for_opengl( Mesh=#mesh{
 % AttrSeries=[ToStoreVertices,ToStoreColors] contains two attribute series, and
 % ElemCount is the common length of these two series.
 %
-% Each indexed face is expected to have the specified number of vertices, and is
-% to be rendered with a given (solid, unique) color.
+% Each indexed face is expected to have the specified number of vertices (this
+% constraint could be relaxed), and is to be rendered with a given (solid,
+% unique) color.
 %
 -spec prepare_vattrs_single_face_color( [ indexed_face() ],
 		[ render_rgb_color() ], [ vertex3() ], count() ) ->
@@ -736,11 +823,11 @@ prepare_vattrs_single_face_color( _IndexedFaces=[], _FaceRenderColors=[],
 	{ [ ToStoreVerticesAcc, ToStoreColorAcc ], Count };
 
 prepare_vattrs_single_face_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
-		_FaceRenderColors=[ RenderColor | HColors ], AllVertices,
+		_FaceRenderColors=[ FRenderColor | HRColors ], AllVertices,
 		ToStoreVerticesAcc, ToStoreColorAcc, FaceVCount, Count ) ->
 
 	FaceVIds = tuple_to_list( VIdTuple ),
-	FaceVs = get_vertices_from_ids( FaceVIds, AllVertices ),
+	FaceVs = get_elements_from_ids( FaceVIds, AllVertices ),
 
 	% Note that in the resulting buffer the vertex order will be preserved,
 	% which matters at least for the outward convention / CCW order:
@@ -748,13 +835,102 @@ prepare_vattrs_single_face_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
 	NewToStoreVerticesAcc = FaceVs ++ ToStoreVerticesAcc,
 
 	% Each of the vertices of this face will have the (same) face color:
-	NewToStoreColorAcc = list_utils:duplicate( _Elem=RenderColor,
+	NewToStoreColorAcc = list_utils:duplicate( _Elem=FRenderColor,
 		_Count=FaceVCount ) ++ ToStoreColorAcc,
 
-	prepare_vattrs_single_face_color( HIndexedFaces, HColors, AllVertices,
+	prepare_vattrs_single_face_color( HIndexedFaces, HRColors, AllVertices,
 		NewToStoreVerticesAcc, NewToStoreColorAcc, FaceVCount,
 		Count + FaceVCount ).
 
+
+
+
+% @doc Returns preprocessed information to generate suitable buffers for a list
+% of faces (presumably having the same number of vertices), each vertex having
+% its own color.
+%
+% More precisely, returns from the specified information (list of the indexed
+% faces to account for, list of all vertices, the respective RGB color of each
+% vertex, the (constant) number of vertices per face and the locations of the
+% corresponding vertex attributes), a {AttrSeries, ElemCount} pair, where
+% AttrSeries=[ToStoreVertices,ToStoreColors] contains two attribute series, and
+% ElemCount is the common length of these two series.
+%
+% Each indexed face is expected to have the specified number of vertices, each
+% of them to be rendered with a given (unique) color.
+%
+-spec prepare_vattrs_per_vertex_color( [ indexed_face() ], [ vertex3() ],
+									   [ render_rgb_color() ], count() ) ->
+			{ [ vertex_attribute_series() ], count() }.
+% So returns, as first element of the pair, a 2-element [A,B] list with A ::
+% [vertex3()] and B :: [render_rgb_color()].
+%
+% Neither normals nor texture coordinates used here:
+prepare_vattrs_per_vertex_color( IndexedFaces, AllVertices, VertexColors,
+								 FaceVCount ) ->
+
+	trace_utils:debug_fmt( "Preparing vertex attributes for faces with "
+	   "per-vertex color: faces are ~w, colors are ~w.",
+	   [ IndexedFaces, VertexColors ] ),
+
+	% Expected to be uniform (cf. face_type):
+	ActualFaceVCount = size( _Sample=hd( IndexedFaces ) ),
+	ActualFaceVCount =:= FaceVCount orelse
+		throw( { incorrect_per_face_vertex_count, FaceVCount,
+				 ActualFaceVCount } ),
+
+	ActualVCount = length( AllVertices ),
+	ActualColCount = length( VertexColors ),
+	ActualVCount =:=  ActualColCount orelse
+		throw( { mismatched_vertex_color_counts, ActualVCount, ActualVCount } ),
+
+
+	% Preserving face order (at least clearer that way; possibly helping keeping
+	% in sync with any EBO prebuilt indices); and reversing better done earlier
+	% than later, after duplications (cheaper/simpler):
+	%
+	prepare_vattrs_per_vertex_color( lists:reverse( IndexedFaces ), AllVertices,
+		VertexColors, _ToStoreVerticesAcc=[],
+		_ToStoreColorAcc=[], FaceVCount, _Count=0 ).
+
+
+
+% (helper)
+prepare_vattrs_per_vertex_color( _IndexedFaces=[], _AllVertices,
+		_VertexRenderColors, ToStoreVerticesAcc, ToStoreColorAcc, _FaceVCount,
+		Count ) ->
+	% No reversing needed; as returning a list (not a tuple) of attribute
+	% series:
+
+	%cond_utils:if_defined( myriad_debug_gl_encoding,
+	%   trace_utils:debug_fmt( "Preparing vattrs: ~B vertices: ~p~n"
+	%       "~B colors: ~p",
+	%       [ length( ToStoreVerticesAcc ), ToStoreVerticesAcc,
+	%         length( ToStoreColorAcc ), ToStoreColorAcc ] ) ),
+
+	{ [ ToStoreVerticesAcc, ToStoreColorAcc ], Count };
+
+% We iterate (solely) per-face:
+prepare_vattrs_per_vertex_color( _IndexedFaces=[ VIdTuple | HIndexedFaces ],
+		AllVertices, VertexRenderColors, ToStoreVerticesAcc, ToStoreColorAcc,
+		FaceVCount, Count ) ->
+
+	FaceVIds = tuple_to_list( VIdTuple ),
+	FaceVs = get_elements_from_ids( FaceVIds, AllVertices ),
+
+	% Note that in the resulting buffer the vertex order will be preserved,
+	% which matters at least for the outward convention / CCW order:
+	%
+	NewToStoreVerticesAcc = FaceVs ++ ToStoreVerticesAcc,
+
+	VColors = get_elements_from_ids( FaceVIds, VertexRenderColors ),
+
+	% Each of the vertices of this face will have its own color:
+	NewToStoreColorAcc = VColors ++ ToStoreColorAcc,
+
+	prepare_vattrs_per_vertex_color( HIndexedFaces, AllVertices,
+		VertexRenderColors, NewToStoreVerticesAcc, NewToStoreColorAcc,
+		FaceVCount,	Count + FaceVCount ).
 
 
 
@@ -865,21 +1041,20 @@ cleanup_for_opengl( Mesh=#mesh{ rendering_state=#rendering_state{
 % Basic helpers.
 
 
-% @doc Returns the vertex of the specified identifier (indice) relative to the
-% specified vertices.
+% @doc Returns the element (typically vertex or color) of the specified index
+% relative to the specified reference elements.
 %
--spec get_vertex_from_id( vertex_indice(), [ vertex3() ] ) -> vertex3().
-get_vertex_from_id( VId, Vertices ) ->
-	lists:nth( VId, Vertices ).
+-spec get_element_from_id( indice(), [ element() ] ) -> element().
+get_element_from_id( Id, Elements ) ->
+	lists:nth( Id, Elements ).
 
 
-% @doc Returns the vertices of the specified identifiers (indices) relative to
-% the specified vertices.
+% @doc Returns the elements (typically vertices or colors) of the specified
+% indices) relative to the specified reference elements.
 %
--spec get_vertices_from_ids( [ vertex_indice() ], [ vertex3() ] ) ->
-											[ vertex3() ].
-get_vertices_from_ids( VIds, Vertices ) ->
-	[ get_vertex_from_id( VId, Vertices ) || VId <- VIds ].
+-spec get_elements_from_ids( [ indice() ], [ element() ] ) -> [ element() ].
+get_elements_from_ids( Ids, Elements ) ->
+	[ get_element_from_id( Id, Elements ) || Id <- Ids ].
 
 
 
