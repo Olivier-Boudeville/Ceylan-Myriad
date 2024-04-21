@@ -60,7 +60,13 @@
 % A logical color, like 'window_frame_color'.
 
 
--type color_by_decimal() :: { Red :: byte(), Green :: byte(), Blue :: byte() }.
+-type decimal_coordinate() :: byte().
+% An integer coordinate, in [0;255].
+
+
+-type color_by_decimal() ::
+		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
+		  Blue :: decimal_coordinate() }.
 % RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
 
 
@@ -81,7 +87,8 @@
 
 
 -type color_by_decimal_with_alpha() ::
-		{ Red :: byte(), Green :: byte(), Blue :: byte(), Alpha :: byte() }.
+		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
+		  Blue :: decimal_coordinate(), Alpha :: decimal_coordinate() }.
 % RGBA (integer coordinates, in [0;255]) color.
 
 -type any_color_by_decimal() ::
@@ -209,7 +216,7 @@
 
 
 % Color conversions.
--export([ decimal_to_render/1 ]).
+-export([ add_alpha_opaque/1, add_alpha/2, decimal_to_render/1 ]).
 
 
 % Other operations:
@@ -559,6 +566,19 @@ decimal_to_render( { Red, Green, Blue, Alpha } ) ->
 decimal_to_render( Colors ) when is_list( Colors ) ->
 	[ decimal_to_render( C ) || C <- Colors ].
 
+
+
+% @doc Adds an alpha, fully opaque coordinate to the specified RGB render color.
+-spec add_alpha_opaque( render_rgb_color() ) -> render_rgba_color().
+add_alpha_opaque( { R, G, B } ) ->
+	{ R, G, B, _Alpha=1.0 }.
+
+
+% @doc Adds the specified alpha coordinate to the specified RGB render color.
+-spec add_alpha( decimal_coordinate(), render_rgb_color() ) ->
+										render_rgba_color().
+add_alpha( Alpha, { R, G, B } ) ->
+	{ R, G, B, Alpha }.
 
 
 
