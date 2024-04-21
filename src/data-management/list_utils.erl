@@ -89,8 +89,8 @@
 
 
 % Less common list operations:
--export([ dispatch_in/2, add_as_heads/2, insert_at_all_places/2,
-		  repeat_elements/2 ]).
+-export([ dispatch_in/2, add_as_heads/2, concatenate_per_rank/2,
+		  split_heads_tails/1, insert_at_all_places/2, repeat_elements/2 ]).
 
 
 % For lists of tuples (e.g. typically used by the HDF5 binding) or lists,
@@ -1453,6 +1453,7 @@ dispatch_in( SublistCount, List, AccSubLists ) ->
 %
 % Of course the two lists shall have the same length.
 %
+-spec add_as_heads( list(), [ list() ] ) -> [ list() ].
 add_as_heads( Heads, Lists ) ->
 	add_as_heads( Heads, Lists, _Acc=[] ).
 
@@ -1465,6 +1466,47 @@ add_as_heads( _Heads=[], _Lists=[], Acc ) ->
 add_as_heads( _Heads=[ H | TH ], _Lists=[ L | TL ], Acc ) ->
 	NewL = [ H | L ],
 	add_as_heads( TH, TL, [ NewL | Acc ] ).
+
+
+% @doc Returns the concatenation of the two lists found at the same rank in the
+% input lists, and returns the (in-order) list of these concatenated lists.
+%
+% Of course the two lists shall have the same length.
+%
+% For example: concatenate_per_rank([La,Lb,Lc], [L1, L2, L3]) =
+%           [La++L1, Lb++L2, Lc++L3].
+%
+% Or: concatenate_per_rank([[a,b], [], [1,2,3]], [[c], [], [4,5,6,7]]) =
+%           [[a,b,c], [], [1,2,3,4,5,6,7]]
+%
+-spec concatenate_per_rank( [ list() ], [ list() ] ) -> [ list() ].
+concatenate_per_rank( _FirstLists=[], _SecondsLists=[] ) ->
+	[];
+
+concatenate_per_rank( _FirstLists=[ FHL | FTL ],
+					  _SecondsLists=[ SHL | STL ] ) ->
+	[ FHL ++ SHL | concatenate_per_rank( FTL, STL ) ].
+
+
+% @doc Splits each of the specified lists in a head and a tail, and returns a
+% pair made of all heads (in-order) and all tails (in-order as well).
+%
+% For example: split_heads_tails([[a,b,c], [1,2], [true]]) =
+%   {[a,1,true], [[b,c], [2], []]}.
+%
+-spec split_heads_tails( [ list() ] ) -> { list(), [ list() ] }.
+split_heads_tails( Lists ) ->
+	% Pre-reverse is cheaper:
+	split_heads_tails( lists:reverse( Lists ), _AccHeads=[], _AccTails=[] ).
+
+
+% (helper)
+split_heads_tails( _Lists=[], AccHeads, AccTails ) ->
+	{ AccHeads, AccTails };
+
+split_heads_tails( _Lists=[ _L=[HL|TL] | T ], AccHeads, AccTails ) ->
+	split_heads_tails( T, [HL|AccHeads], [TL|AccTails] ).
+
 
 
 
