@@ -99,9 +99,12 @@
 
 	triangle_wireframe_mesh :: mesh(),
 	triangle_solid_mesh :: mesh(),
-	triangle_gradient_mesh :: mesh()
+	triangle_gradient_mesh :: mesh(),
+	triangle_texture_mesh :: mesh(),
 
 	%square_mesh :: mesh(),
+
+	texture_cache :: texture_cache()
 
 						  } ).
 
@@ -122,6 +125,8 @@
 -type gl_canvas() :: gui_opengl:gl_canvas().
 -type gl_context() :: gui_opengl:gl_context().
 
+-type texture_cache() :: gui_texture:texture_cache().
+
 -type program_id() :: gui_shader:program_id().
 
 -type mesh() :: mesh:mesh().
@@ -132,13 +137,14 @@
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	test_facilities:display( "This test will display a mesh-based Myriad-blue "
-							 "polygon on a white background." ),
-
-	% Does not depend initially on graphic support:
-	MVState = create_mv_state(),
+	test_facilities:display( "This test will display a series of triangles "
+		"with different renderings, on a white background." ),
 
 	gui:start(),
+
+	% Depends on graphic support for image loading:
+	MVState = create_mv_state(),
+
 
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
@@ -155,6 +161,10 @@ run_actual_test() ->
 
 
 % @doc Creates the initial model-view state.
+%
+% Cannot be done too early as loading images for textures requires the GUI to be
+% started, and even more texture creation requires OpenGL to be initialised.
+%
 -spec create_mv_state() -> my_mv_state().
 create_mv_state() ->
 
@@ -204,7 +214,7 @@ create_mv_state() ->
 		[ point3:translate( P, VOffset ) || P <- TriangleWfVertices ],
 
 	% Still a single face:
-	SolidRenderingInfo = { color, _FaceColoringType=per_face,
+	SolidRenderingInfo = { colored, _FaceColoringType=per_face,
 		_ElementColors=[ gui_color:get_color( yellow ) ] },
 
 
@@ -219,14 +229,41 @@ create_mv_state() ->
 		[ point3:translate( P, VOffset ) || P <- TriangleSolidVertices ],
 
 	GradElemColors = [ gui_color:get_color( C ) || C <- [ red, green, blue ] ],
-	GradRenderingInfo = { color, _FColorType=per_vertex, GradElemColors },
+	GradRenderingInfo = { colored, _FColorType=per_vertex, GradElemColors },
 
 	TriangleGradMesh = mesh:create( TriangleGradVertices, FaceType,
 									IndexedFaces, GradRenderingInfo ),
 
+
+	test_facilities:display(
+		"Creating at its right a texture-based triangle." ),
+
+	TriangleTexVertices =
+		[ point3:translate( P, VOffset ) || P <- TriangleGradVertices ],
+
+	BlankTextureCache = gui_texture:create_cache(),
+
+	{ TextureSpecId, ReadyTextureCache } = gui_texture:declare_texture(
+		_UserTexPathSpec=gui_opengl_for_testing:get_test_image_path(),
+		BlankTextureCache ),
+
+	test_facilities:display( "Having now a ~ts.",
+		[ gui_texture:cache_to_string( ReadyTextureCache ) ] ),
+
+	% As 2D texture coordinates range from 0 to 1 in the X and Y axes:
+	UVVertices = [ { 0, 0 }, { 1, 0 }, { 0.5, 1 } ],
+
+	% Single texture, single face here:
+	TexRenderingInfo = { textured, TextureSpecId, [ UVVertices ] },
+
+	TriangleTexMesh = mesh:create( TriangleTexVertices, FaceType,
+								   IndexedFaces, TexRenderingInfo ),
+
 	#my_mv_state{ triangle_wireframe_mesh=TriangleWfMesh,
 				  triangle_solid_mesh=TriangleSolidMesh,
-				  triangle_gradient_mesh=TriangleGradMesh }.
+				  triangle_gradient_mesh=TriangleGradMesh,
+				  triangle_texture_mesh=TriangleTexMesh,
+				  texture_cache=ReadyTextureCache }.
 
 
 
@@ -454,6 +491,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	end,
 
+	% As textures will be used:
+	gui_texture:set_basic_general_settings(),
+
 	InitOpenGLState = #my_opengl_state{ program_id=ProgramId },
 
 	GUIState#my_gui_state{ opengl_state=InitOpenGLState }.
@@ -467,26 +507,29 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 initialise_mv_for_opengl( MVState=#my_mv_state{
 							triangle_wireframe_mesh=TriangleWfMesh,
 							triangle_solid_mesh=TriangleSolidMesh,
-							triangle_gradient_mesh=TriangleGradMesh },
+							triangle_gradient_mesh=TriangleGradMesh,
+							triangle_texture_mesh=TriangleTexMesh,
+							texture_cache=TexCache },
 						  #my_gui_state{ opengl_state=#my_opengl_state{
 								program_id=ProgramId } } ) ->
 
-	Meshes = [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh ],
+	Meshes = [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh,
+			   TriangleTexMesh ],
 
-	[ InitTriangleWfMesh, InitTriangleSolidMesh, InitTriangleGradMesh ] =
-		[ begin
-			trace_utils:debug_fmt( "Initialising for OpenGL the ~ts",
-								   [ mesh:to_string( M ) ] ),
+	trace_utils:debug_fmt( "Initialising for OpenGL the following meshes: ~ts",
+		[ text_utils:strings_to_string(
+			[ mesh:to_string( M ) || M <- Meshes ] ) ] ),
 
-			mesh:initialise_for_opengl( M, ProgramId )
-
-		  end || M <- Meshes ],
-
+	{ [ InitTriangleWfMesh, InitTriangleSolidMesh, InitTriangleGradMesh,
+		InitTriangleTexMesh ], NewTexCache } =
+			mesh_render:initialise_for_opengl( Meshes, ProgramId, TexCache ),
 
 	MVState#my_mv_state{
 		triangle_wireframe_mesh=InitTriangleWfMesh,
 		triangle_solid_mesh=InitTriangleSolidMesh,
-		triangle_gradient_mesh=InitTriangleGradMesh }.
+		triangle_gradient_mesh=InitTriangleGradMesh,
+		triangle_texture_mesh=InitTriangleTexMesh,
+		texture_cache=NewTexCache }.
 
 
 
@@ -549,17 +592,20 @@ initialise_mv_for_opengl( MVState=#my_mv_state{
 cleanup_mv_for_opengl( MVState=#my_mv_state{
 		triangle_wireframe_mesh=TriangleWfMesh,
 		triangle_solid_mesh=TriangleSolidMesh,
-		triangle_gradient_mesh=TriangleGradMesh
+		triangle_gradient_mesh=TriangleGradMesh,
+		triangle_texture_mesh=TriangleTexMesh
 		%square_mesh=SquareMesh
 								 } ) ->
 
-	[ CleanedTriangleWfMesh, CleanedTriangleSolidMesh, CleanedTriangleGradMesh ]
-		= [ mesh:cleanup_for_opengl( M )
-			|| M <- [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh ] ],
+	[ CleanedTriangleWfMesh, CleanedTriangleSolidMesh, CleanedTriangleGradMesh,
+	  CleanedTriangleTexMesh ] = [ mesh:cleanup_for_opengl( M )
+			|| M <- [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh,
+					  TriangleTexMesh ] ],
 
 	MVState#my_mv_state{ triangle_wireframe_mesh=CleanedTriangleWfMesh,
 						 triangle_solid_mesh=CleanedTriangleSolidMesh,
-						 triangle_gradient_mesh=CleanedTriangleGradMesh }.
+						 triangle_gradient_mesh=CleanedTriangleGradMesh,
+						 triangle_texture_mesh=CleanedTriangleTexMesh }.
 
 
 
@@ -627,7 +673,8 @@ on_main_frame_resized( _GUIState=#my_gui_state{ canvas=GLCanvas }, MVState ) ->
 render( _Width, _Height, #my_mv_state{
 							triangle_wireframe_mesh=TriangleWfMesh,
 							triangle_solid_mesh=TriangleSolidMesh,
-							triangle_gradient_mesh=TriangleGradMesh } ) ->
+							triangle_gradient_mesh=TriangleGradMesh,
+							triangle_texture_mesh=TriangleTexMesh } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -641,8 +688,8 @@ render( _Width, _Height, #my_mv_state{
 	%
 	%gui_opengl:set_polygon_raster_mode( front_facing, raster_as_lines ),
 
-	[ mesh:render_as_opengl( M )
-		|| M <- [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh ] ],
+	[ mesh:render_as_opengl( M ) || M <- [ TriangleWfMesh, TriangleSolidMesh,
+		TriangleGradMesh, TriangleTexMesh ] ],
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.
