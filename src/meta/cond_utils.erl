@@ -471,7 +471,7 @@ assert( _Expression ) ->
 
 
 % @doc If the specified token has been defined through the command-line, asserts
-% that the specified expression is true, ithat is evaluates it at runtime and
+% that the specified expression is true, that is evaluates it at runtime and
 % matches it with the atom 'true'.
 %
 % See assert/1 for use and caveats.
@@ -489,6 +489,12 @@ assert( Token, _Expression ) ->
 % @doc If the specified token has been defined through the command-line and set
 % to the specified value, asserts that the specified expression is true, that is
 % evaluates it at runtime and matches it with the atom 'true'.
+%
+% Note that this compile-time function compares for equality any value
+% associated to the token and the specified value: it does *not* compare at
+% runtime this value with the one of the specified expression; use
+% basic_utils:assert_equal/2 for that (possibly wrapped thanks to a token-based
+% cond_utils:if_defined assertion).
 %
 % See assert/1 for use and caveats.
 %

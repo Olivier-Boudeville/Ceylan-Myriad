@@ -147,6 +147,10 @@ get_immediate_value( { integer, _FileLoc, Integer } ) ->
 get_immediate_value( { float, _FileLoc, Float } ) ->
 	Float;
 
+get_immediate_value( { nil, _FileLoc } ) ->
+	[];
+
+% To be completed:
 get_immediate_value( Other ) ->
 	throw( { unsupported_immediate_value, Other } ).
 

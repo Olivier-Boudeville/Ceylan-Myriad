@@ -1124,15 +1124,22 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 			end;
 
 
-		%%%%%%% Subsection for cond_utils:assert/3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%%%%%%% Subsection for cond_utils:assert/3 %%%%%%%%%%%%%%%%%%%%%%%
+
 
 		( _FileLocCall,
-		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,assert} },
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 % Resist the temptation of naming it assert_equal: we
+						 % are not comparing at runtime ValueForm and
+						 % ExpressionForm, but at compile time the value
+						 % associated to the token with ValueForm:
+						 %
+						 {atom,_,assert} },
 		  _Params=[ {atom,FileLocToken,Token}, ValueForm, ExpressionForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
-			%ast_utils:display_debug( "Call to cond_utils:assert/3 found, "
-			%   "with token '~p' and expression form ~p.",
+			%ast_utils:display_debug( "Call to cond_utils:assert/3 "
+			%   "found, with token '~p' and expression form ~p.",
 			%   [ Token, ExpressionForm ] ),
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
@@ -1359,7 +1366,7 @@ inject_match_expression( ExpressionForm, Transforms, FileLoc ) ->
 
 	% Now corresponds roughly to:
 	%
-	% EXPR =:= true orelse throw( { assertion_failed, Other } )	%
+	% EXPR =:= true orelse throw({assertion_failed,Other})
 	% (no need to do more as the stacktrace with line numbers shall be output)
 
 	% We have to ensure that the name of the variable that we bind in the second
