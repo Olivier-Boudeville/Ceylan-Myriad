@@ -32,7 +32,7 @@
 -define( alpha_fully_transparent, 0.0 ).
 
 
-% Corresponds to an OpenGL texture.
+% Information regarding an OpenGL texture.
 -record( texture, {
 
 	% The identifier (OpenGL "name") of that texture.
@@ -58,3 +58,17 @@
 
 	% The maximum ordinate of this texture relatively to its color buffer.
 	max_y :: gui_opengl:length_factor() } ).
+
+
+
+
+% A cache centralising texture information, for an easier/more efficient
+% referencing/use thereof.
+%
+-record( texture_cache, {
+
+	% All information known based on texture specifications:
+	texture_table :: gui_texture:texture_table(),
+
+	% The identifier that will be assigned to the next texture spec:
+	next_spec_id :: basic_utils:count() } ).
