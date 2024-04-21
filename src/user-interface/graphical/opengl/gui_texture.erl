@@ -33,7 +33,7 @@
 -module(gui_texture).
 
 
-% Notably for the numerous GL defines and the texture record:
+% Notably for the numerous GL defines and the texture/texture_cache records:
 -include("gui_opengl.hrl").
 
 
@@ -51,22 +51,25 @@
 % Information regarding a (2D) texture.
 
 
--type texture_unit() :: enum(). % Actually ?GL_TEXTUREn, where n is an integer
-								% in [0, ?GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS-1]
-								% (the initial value is GL_TEXTURE0)
-% A texture unit corresponds to the location of a texture for a shader.
+-type texture_unit() :: enum(). % i.e. non_neg_integer().
+% A texture unit corresponds to the location of a texture for a shader (a bit
+% like a possible slot).
 %
 % This allows shaders notably to access, through samplers, to more than one
 % texture; a texture unit can thus be seen as a bridge between a texture and a
 % sampler.
 %
-% The default texture unit for a texture is ?GL_TEXTURE0 (it is the initial
-% active texture unit).
+% A texture unit equal to n is translated by MyriadGUI to ?GL_TEXTUREn, where n
+% is an integer in [0, ?GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS-1]; OpenGL
+% implementations should have at least 16 texture units.
 %
-% A texture unit n is to be activated thanks to ?GL_TEXTUREn (whose actual value
-% is not n; for example ?GL_TEXTURE0 may be equal to 33984), but, like in/out
-% shader parameters, its location is to be specified directly as n - not as
-% ?GL_TEXTUREn (and as a signed integer, not an unsigned one).
+% With OpenGL the default texture unit for a texture is 0 (corresponding to
+% ?GL_TEXTURE0); it is the initial active texture unit.
+%
+% The value of a GL_TEXTUREn define is not n (for example ?GL_TEXTURE0 may be
+% equal to 33984), but, like in/out shader parameters, its location is to be
+% specified directly as n - not as ?GL_TEXTUREn (and as a signed integer, not as
+% an unsigned one).
 
 
 -type gl_color_format() :: 1 | 2 | 3 | 4
@@ -103,7 +106,8 @@
 
 
 -type uv_point() :: { uv_coordinate(), uv_coordinate() }.
-% Designates a point in a (2D) texture; not a vector per se.
+% Designates a point in a (2D) texture; not a vector per se (same structural
+% type as point2()).
 %
 % Texture coordinates start at {0.0, 0.0} for the lower left corner of a
 % texture image to {1.0, 1.0} for its upper right corner.
@@ -189,6 +193,68 @@
 			   mipmap_level/0, gl_mipmap_filtering_mode/0 ]).
 
 
+
+-type user_texture_spec() :: any_image_path().
+% Any kind of path to an image to be the source of a texture.
+%
+% In the future other specs may be considered (e.g. for generated textures).
+
+
+-type texture_spec() :: bin_image_path().
+% At least currently, the specification of a texture is simply a (binary,
+% canonical) path to the corresponding image.
+
+
+
+-type texture_spec_id() :: count().
+% The identifier assigned to a texture specification (by a texture cache).
+%
+% Such identifiers shall not be mixed up with the implicit OpenGL ones (based on
+% "texture names", i.e. texture_id()). A texture spec is meaningfull even before
+% OpenGL is initialised.
+
+
+-type texture_entry() ::
+		{ texture_spec_id(), maybe( image() ), maybe( texture() ) }.
+% The information held by a texture cache regarding a given texture, that is the
+% value associated to its texture_spec_id() key.
+%
+% An image will be set iff the corresponding content is readily available to the
+% application, and a texture() record will be set iff if the corresponding
+% texture is currently assigned to OpenGL, i.e. if it is available on the video
+% card.
+
+
+-type texture_table() :: table( texture_spec_id(), texture_entry() ).
+% A table holding information regarding textures.
+
+
+
+-type texture_cache() :: #texture_cache{}.
+% A cache centralising texture information, for an easier/more efficient
+% referencing/use thereof.
+%
+% Generally, there will be multiple textures per object (e.g. mesh) - and of
+% course multiple objects. Typically a face has to specify the (supposedly
+% single) texture it will rely on when it will be rendered. Yet, when describing
+% a 3D model, having each face specify the path of its texture would not be
+% efficient (many duplications of texture paths); this is the purpose of a
+% texture repository to centralise these information so that all textures are
+% available when needed, and with up to one copy of it per address space
+% (CPU/GPU).
+%
+% Lazy loading is favored: images and textures are loaded/assigned only when
+% needed, notably because doing so requires at least that the GUI is
+% started/OpenGL is initialised, whereas objects may be specified earlier.
+%
+% Later texture search paths may be supported.
+
+
+-export_type([ user_texture_spec/0, texture_spec/0, texture_spec_id/0,
+			   texture_entry/0, texture_table/0, texture_cache/0 ]).
+
+
+
 -export([ set_basic_general_settings/0,
 
 		  create_from_image/1, create_from_image/2,
@@ -218,6 +284,10 @@
 		  generate_id/0, to_string/1,
 
 		  get_pixel_size/1, gl_pixel_format_to_pixel_format/1 ]).
+
+
+-export([ create_cache/0, declare_texture/2, get_texture/2,
+		  get_texture_spec/2, cache_to_string/1 ]).
 
 
 
@@ -265,13 +335,14 @@
 % information about textures in general.
 
 
+
+
+
 % Shorthands:
 
 -type count() :: basic_utils:count().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
-
--type any_file_path() :: file_utils:any_file_path().
 
 -type ustring() :: text_utils:ustring().
 
@@ -292,6 +363,8 @@
 -type alpha_buffer() :: gui_color:alpha_buffer().
 -type pixel_format() :: gui_color:pixel_format().
 
+-type bin_image_path() :: gui_image:bin_image_path().
+-type any_image_path() :: gui_image:any_image_path().
 -type image() :: gui_image:image().
 -type image_format() :: gui_image:image_format().
 
@@ -315,12 +388,11 @@ set_basic_general_settings() ->
 
 
 
-% @doc Creates a texture from the specified image instance, applies the default
+% @doc Creates a texture from the specified image instance, flips its Y-axis
+% according to OpenGL conventions, generates mipmaps for it, applies the default
 % texture settings on it, and makes it the currently active texture.
 %
 % The image instance is safe to be deallocated afterwards.
-%
-% Mipmaps are automatically generated.
 %
 -spec create_from_image( image() ) -> texture().
 create_from_image( Image ) ->
@@ -355,7 +427,7 @@ create_from_image( Image, GenMipmaps ) ->
 	% needed, so that it has the right (power-of-two) dimensions:
 	%
 	ColorBuffer = get_color_buffer( FlippedImage, OrigDims, TargetDims ),
-	%trace_utils:debug_fmt( "ColorBuffer : ~p", [ ColorBuffer ] ),
+	%trace_utils:debug_fmt( "ColorBuffer: ~p", [ ColorBuffer ] ),
 
 	% Let's create the OpenGL texture:
 
@@ -427,7 +499,7 @@ create_from_image( Image, GenMipmaps ) ->
 %
 % Prefer load_from_file/2 if applicable.
 %
--spec load_from_file( any_file_path() ) -> texture().
+-spec load_from_file( any_image_path() ) -> texture().
 load_from_file( ImagePath ) ->
 
 	Image = gui_image:load_from_file( ImagePath ),
@@ -445,7 +517,7 @@ load_from_file( ImagePath ) ->
 % applies the default texture settings on it, and makes it the currently active
 % texture.
 %
--spec load_from_file( image_format(), any_file_path() ) -> texture().
+-spec load_from_file( image_format(), any_image_path() ) -> texture().
 load_from_file( ImageFormat, ImagePath ) ->
 	Image = gui_image:load_from_file( ImageFormat, ImagePath ),
 	Tex = create_from_image( Image ),
@@ -635,6 +707,9 @@ set_as_current_from_id( TextureId ) ->
 % @doc Assigns the specified settings and buffer to the currently active (2D)
 % texture, and applies basic settings on it.
 %
+% Normally this is the step where the texture data is transferred to the video
+% card (i.e. copied from the CPU address space to the one of the GPU).
+%
 -spec assign_current( width(), height(), gl_pixel_format(), color_buffer() ) ->
 								void().
 assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
@@ -642,7 +717,7 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 	% Specifies this two-dimensional texture image:
 	%
 	% (note that the first format is a color one, the second one is the
-	% specified pixel one; in the general case they may not match))
+	% specified pixel one; in the general case they may not match)
 	%
 	% (this is typically a call that may result in a SEGV)
 	%
@@ -657,23 +732,27 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 
 
 
-% @doc Sets the current texture unit.
+% @doc Sets the current texture unit: activates its corresponding slot/location.
 %
 % The next texture that will be set current will be associated to this texture
 % unit.
 %
-% The initial (default) value is ?GL_TEXTURE0.
+% To be used for example as: set_current_texture_unit(3) to activate the fourth
+% unit.
+%
+% The initial value, usually set by default by OpenGL drivers, is ?GL_TEXTURE0.
 %
 -spec set_current_texture_unit( texture_unit() ) -> void().
 set_current_texture_unit( TexUnit ) ->
-	gl:activeTexture( TexUnit ),
+	% As defined in order (contiguous):
+	gl:activeTexture( ?GL_TEXTURE0 + TexUnit ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
 
 % @doc Recalibrates the specified logical texture coordinates, supposed to
 % correspond to the original texture, to the specified one, which is typically
-% padded, hence of different dimensions.
+% padded (to have power-of-two dimensions), hence is of different dimensions.
 %
 -spec recalibrate_coordinates_for( [ uv_point() ], texture() ) ->
 										[ uv_point() ].
@@ -759,7 +838,7 @@ apply_basic_settings_on_current() ->
 	%
 	%WrapParameter = ?GL_REPEAT
 
-	% Not unwanting tiling:
+	% No unwanting tiling:
 	WrapParameter = ?GL_CLAMP_TO_EDGE,
 
 	gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_WRAP_S, WrapParameter ),
@@ -1121,3 +1200,161 @@ gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGB ) ->
 
 gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGBA ) ->
 	rgba.
+
+
+
+
+% Section for texture specifications and caching.
+
+
+% @doc Creates an (empty) texture cache.
+-spec create_cache() -> texture_cache().
+create_cache() ->
+	#texture_cache{ texture_table=table:new(),
+					next_spec_id=1 }.
+
+
+
+% @doc Declares the specified texture in the specified cache; returns the
+% identifier allocated to this texture, and the updated cache.
+%
+% A texture specification shall be declared only once (otherwise it will be
+% duplicated in the cache); of course it can be then requested as many times as
+% needed, based on its specification identifier.
+%
+-spec declare_texture( user_texture_spec(), texture_cache() ) ->
+										{ texture_spec_id(), texture_cache() }.
+declare_texture( UserTexPathSpec, TexCache=#texture_cache{
+										texture_table=TexTable,
+										next_spec_id=NextSpecId } ) ->
+
+	BinTexPathSpec = text_utils:ensure_binary(
+		file_utils:ensure_path_is_absolute( UserTexPathSpec ) ),
+
+	file_utils:is_existing_file_or_link( BinTexPathSpec ) orelse
+		throw( { unresolvable_texture_spec, UserTexPathSpec, BinTexPathSpec } ),
+
+	% Lazy loading favored, just recording the specified path for now:
+	TexEntry = { BinTexPathSpec, _MaybeImg=undefined, _MaybeTexId=undefined },
+
+	NewTexTable = table:add_entry( NextSpecId, TexEntry, TexTable ),
+
+	NewTexCache = TexCache#texture_cache{ texture_table=NewTexTable,
+										  next_spec_id=NextSpecId+1 },
+
+	{ NextSpecId, NewTexCache }.
+
+
+
+% @doc Returns the specified texture, looked up in the specified cache, and
+% returns its OpenGL identifier (possibly after having been loaded) and an
+% updated version of that cache.
+%
+% Note that MyriadGUI shall be already started (see gui:start/*) and, more,
+% OpenGL be already initialised.
+%
+-spec get_texture( texture_spec_id(), texture_cache() ) ->
+										{ texture(), texture_cache() }.
+get_texture( SpecId, TexCache=#texture_cache{ texture_table=TexTable } ) ->
+
+	case table:lookup_entry( _K=SpecId, TexTable ) of
+
+		key_not_found ->
+			throw( { unknown_texture_spec, SpecId } );
+
+
+		% No texture, not even an image:
+		{ value, { BinTexSpec, _MaybeImg=undefined, _MaybeTexId=undefined } } ->
+			% Exists by design (already checked), MyriadGUI expected to be
+			% started:
+			%
+			Img = gui_image:load_from_file( BinTexSpec ),
+
+			% OpenGL must be initialised:
+			Tex = gui_texture:create_from_image( Img ),
+
+			NewTexEntry = { BinTexSpec, Img, Tex },
+			NewTexTable = table:add_entry( SpecId, NewTexEntry, TexTable ),
+			NewTexCache = TexCache#texture_cache{ texture_table=NewTexTable },
+			{ Tex, NewTexCache };
+
+
+		% No texture, but already an image:
+		{ value, { BinTexSpec, Img, _MaybeTexId=undefined } } ->
+			% OpenGL must be initialised:
+			Tex = gui_texture:create_from_image( Img ),
+
+			NewTexEntry = { BinTexSpec, Img, Tex },
+			NewTexTable = table:add_entry( SpecId, NewTexEntry, TexTable ),
+			NewTexCache = TexCache#texture_cache{ texture_table=NewTexTable },
+			{ Tex, NewTexCache };
+
+
+		% Already having a texture ready:
+		{ value, { _BinTexSpec, _Img, Tex } } ->
+			{ Tex, TexCache }
+
+	end.
+
+
+
+% @doc Returns the specification of the designated texture.
+-spec get_texture_spec( texture_spec_id(), texture_cache() ) -> texture_spec().
+get_texture_spec( SpecId, #texture_cache{ texture_table=TexTable } ) ->
+	case table:lookup_entry( _K=SpecId, TexTable ) of
+
+		key_not_found ->
+			throw( { unknown_texture_spec, SpecId } );
+
+		{ value, { BinTexSpec, _MaybeImg, _MaybeTexId } } ->
+			BinTexSpec
+
+	end.
+
+
+
+% @doc Returns a textual description of the specified texture cache.
+-spec cache_to_string( texture_cache() ) -> ustring().
+cache_to_string( #texture_cache{ texture_table=TexTable,
+								 next_spec_id=_NextSpecId } ) ->
+	case table:enumerate( TexTable ) of
+
+		[] ->
+			"empty texture cache";
+
+		[ SingleTexEntry ] ->
+			text_utils:format( "texture cache holding a single entry: ~ts",
+				[ texture_entry_to_string( SingleTexEntry ) ] );
+
+		TexEntries ->
+			text_utils:format( "texture cache holding ~B entries: ~ts",
+				[ length( TexEntries ), text_utils:strings_to_string(
+					[ texture_entry_to_string( TE ) || TE <- TexEntries ] ) ] )
+
+	end.
+
+
+% @doc Returns a textual description of the specified texture entry.
+-spec texture_entry_to_string( texture_entry() ) -> ustring().
+texture_entry_to_string(
+		{ TextSpecId, _TextureEntry={ TexSpecId, MaybeImg, MaybeTexture } } ) ->
+
+	ImgStr = text_utils:format(
+		"whose source image, of path '~ts', is~ts cached",
+		[ TexSpecId, case MaybeImg of
+						undefined -> " not";
+						 _ -> ""
+					 end ] ),
+
+	TexStr = "whose OpenGL texture is " ++ case MaybeTexture of
+
+		undefined ->
+			"not available";
+
+		#texture{ id=TexId } ->
+			text_utils:format( "available as identifier #~B", [ TexId ] )
+
+										   end,
+
+	text_utils:format( "texture entry #~B ~ts and ~ts",
+					   [ TextSpecId, ImgStr, TexStr ] ).
