@@ -2218,8 +2218,8 @@ check_gl_error( DoThrowOnError ) ->
 
 					% Recursing until having ?GL_NO_ERROR, knowing that, when
 					% OpenGL is run in distributed mode (like frequently found
-					% on X11 systems), calling gl:getError/0 only resets one of
-					% the error code flags (instead of all of them):
+					% on X11 systems), calling gl:getError/0 only resets *a
+					% single* error code flag (instead of all of them):
 					%
 					check_gl_error( DoThrowOnError )
 
