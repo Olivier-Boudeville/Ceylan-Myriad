@@ -69,7 +69,7 @@
 -type vertex3() :: point3:vertex3().
 -type unit_normal3() :: vector3:unit_normal3().
 
--type color_by_decimal() :: gui_color:color_by_decimal(). 
+-type color_by_decimal() :: gui_color:color_by_decimal().
 -type render_rgb_color() :: gui_color:render_rgb_color().
 
 -type uv_point() :: gui_texture:uv_point().
@@ -113,7 +113,6 @@ has_opengl( TestDescription ) ->
 				" (no GLX visual reported), thus no test performed." );
 
 		GlxInfoStr ->
-
 			test_facilities:display( "Checking whether OpenGL hardware "
 				"acceleration is available: ~ts.",
 				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
