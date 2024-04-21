@@ -232,6 +232,10 @@
 % Type defined mostly for clarity.
 
 
+-type compound_count() :: count().
+% A number of compounds of vertex attributes, in a VBO.
+
+
 -type vertex_attribute_series() :: [ vertex_attribute_value() ].
 % A (usually homogeneous) list of vertex attribute values, like a list of
 % vertices, normals, texture coordinates, colors, etc.
@@ -347,13 +351,20 @@
 % Describes, as an (unsigned) integer, a given VBO layout.
 
 
+
 % Uniform variables.
 %
-% Note that if the GLSL compiler determines that a uniform variable
-% (e.g. 'uniform uint x;') is declared but not used in any shader, it will not
-% include it in the compiled artefacts, and a uniform_id_not_found error is
-% bound to be reported.
+% Note that:
 %
+% - the (only) way of setting the value of a uniform (so that shaders can read
+% it afterwards) is to call functions like get_maybe_uniform_id/2 and
+% get_uniform_id/2
+%
+% - if the GLSL compiler determines that a uniform variable (e.g. 'uniform uint
+% x;') is declared but not used in any shader, it will not include it in the
+% compiled artefacts, and a uniform_id_not_found error is bound to be reported.
+
+
 -type uniform_id() :: integer().
 % The identifier of a uniform variable; it represents the location of a specific
 % uniform variable within an installed program object.
@@ -393,7 +404,7 @@
 % to the current directory) through which GLSL elements will be searched in
 % turn.
 %
-% This applies to the shaders themselves (typically with a <SHADER_TYPE>.glsl
+% This applies to the shaders themselves (typically with a `<SHADER_TYPE>.glsl'
 % extension, e.g. "gui_opengl_base_shader.vertex.glsl") and to their header
 % includes (typically with a '.glsl.h' extension, e.g. "gui_shader.glsl.h").
 %
@@ -453,7 +464,7 @@
 
 			   component_count/0, component_type/0, component_value/0,
 			   vertex_attribute_value/0, vertex_attribute_float_value/0,
-			   vertex_attribute_compound/0,
+			   vertex_attribute_compound/0, compound_count/0,
 			   vertex_attribute_series/0, vertex_attribute_float_series/0,
 
 			   stride/0, offset/0,
@@ -1434,9 +1445,11 @@ preprocess_lines( _BinLines=[ BinLine | T ], GLSLSearchPaths, AccLines,
 					NewFirstIncludeLine = basic_utils:set_maybe(
 						MaybeFirstIncludeLine, _Def=CurrentLN ),
 
-					% Minus 1, as content replaces the #include line:
+					% Exactly TotalInclLineCount: minus 1 as content replaces
+					% the #include line, plus 1 as a comment line was added:
+					%
 					preprocess_file( HeaderPath, GLSLSearchPaths, CurrentLN,
-									 TotalInclLineCount-1, NewFirstIncludeLine )
+									 TotalInclLineCount, NewFirstIncludeLine )
 
 
 			end,
@@ -1457,7 +1470,12 @@ preprocess_lines( _BinLines=[ BinLine | T ], GLSLSearchPaths, AccLines,
 preprocess_file( HeaderPath, GLSLSearchPaths, CurrentLN, TotalInclLineCount,
 				 MaybeFirstIncludeLine ) ->
 	RawIncBin = file_utils:read_whole( HeaderPath ),
-	BinLines = text_utils:split_lines( RawIncBin ),
+
+	% Replacing the '#include "..."' line:
+	ReplacingHeaderBin = text_utils:bin_format( "// Header include for '~ts':",
+												[ HeaderPath ] ),
+
+	BinLines = [ ReplacingHeaderBin | text_utils:split_lines( RawIncBin ) ],
 	AddCount = length( BinLines ),
 
 	preprocess_lines( BinLines, GLSLSearchPaths, _AccLines=[], CurrentLN,
@@ -1705,7 +1723,9 @@ generate_program( ShaderIds, UserAttributes ) ->
 
 
 
-% @doc Installs the specified GLSL program as part of current rendering state.
+% @doc Installs the specified GLSL program as part of current rendering state:
+% it will be used from then on.
+%
 -spec install_program( program_id() ) -> void().
 install_program( ProgramId ) ->
 	gl:useProgram( ProgramId ),
@@ -1780,19 +1800,43 @@ deploy_base_program() ->
 	% Rely on these shaders:
 	install_program( ProgramId ),
 
-	% Uniforms can be set as soon as the GLSL program is installed:
+	% Uniforms can be set as soon as the GLSL program is installed; we manage
+	% them in the context of our MyriadGUI base shaders:
 
 	% The color to be used by VBO layouts not specifying any color (e.g. vtx3);
 	% better be set through a uniform than set as a constant at the shader
-	% level):
+	% level:
 
 	GlobalColorUnifId = get_uniform_id(
 		_UnifName=?myriad_gui_global_color_unif_name, ProgramId ),
 
-	GlobalColor = gui_color:get_color( pink ),
+	GlobalRenderRGBColor =
+		gui_color:decimal_to_render( gui_color:get_color( pink ) ),
 
-	set_uniform_point3( GlobalColorUnifId,
-						gui_color:decimal_to_render( GlobalColor ) ),
+	GlobalRGBAColor = gui_color:add_alpha_opaque( GlobalRenderRGBColor ),
+
+	set_uniform_point4( GlobalColorUnifId, GlobalRGBAColor ),
+
+	% With our base shaders, we use only one texture unit, the #1
+	% (?GL_TEXTURE1), instead of the #0 (?GL_TEXTURE0) default one, in order to
+	% better detect discrepancies.
+	%
+	% As we do not change the texture unit in the course of the program, we can
+	% thus set it once for all here (rather than when each time a rendering is
+	% done):
+	%
+	TexSamplerUnifId = get_uniform_id( ?myriad_gui_texture_sampler_unif_name,
+									   ProgramId ),
+
+	% We set a conventional texture unit (for example not a given texture
+	% directly):
+	%
+	set_uniform_i( TexSamplerUnifId, ?myriad_gui_base_texture_unit ),
+
+	% So that the next textures that will be set are bound through this texture
+	% unit accordingly:
+	%
+	gui_texture:set_current_texture_unit( ?myriad_gui_base_texture_unit ),
 
 	% VBO layout not set here, but during rendering, on a per-mesh basis.
 
@@ -2770,6 +2814,9 @@ delete_ebos( EBOIds ) ->
 %
 % Refer to get_uniform_id/2 for further details.
 %
+% Calling (directly or not, see get_uniform_id/2 as well) this function is the
+% only way to set the value of a uniform variable.
+%
 -spec get_maybe_uniform_id( uniform_name(), program_id() ) ->
 											maybe( uniform_id() ).
 get_maybe_uniform_id( UniformName, ProgId ) ->
@@ -2795,10 +2842,14 @@ get_maybe_uniform_id( UniformName, ProgId ) ->
 % does not exist.
 %
 % The actual locations assigned to uniform variables are not known until the
-% program object is linked successfully.
+% program object is linked successfully; the program does not need to be already
+% installed for that.
 %
 % A uniform variable that is declared in shader(s) yet is not used will be
 % removed during the linking step, and thus cannot be found afterwards.
+%
+% This is, with get_maybe_uniform_id/2, the only way to set the value of a
+% uniform variable.
 %
 -spec get_uniform_id( uniform_name(), program_id() ) -> uniform_id().
 get_uniform_id( UniformName, ProgId ) ->
@@ -2815,6 +2866,9 @@ get_uniform_id( UniformName, ProgId ) ->
 
 
 % Section for the setting of uniform variables.
+%
+% For a uniform variable to be set, the corresponding program must be installed
+% (i.e. to be currently used).
 %
 % We apply here MyriadGUI conventions; for example an Erlang float is mapped to
 % a C float rather than a double.

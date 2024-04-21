@@ -25,21 +25,31 @@
 #include "gui_shader.glsl.h"
 
 
-// Not needed here:
-//uniform uint myriad_gui_vbo_layout;
+uniform uint myriad_gui_vbo_layout;
 
-/* Just defined to test the uniform support (will not be found if not explicitly
- * used afterwards):
+
+/* Instead of relying on the default texture unit (GL_TEXTURE0), the
+ * application may, prior to binding (i.e. setting as current) any texture
+ * of interest, activate a given texture unit (e.g. GL_TEXTURE1); in this
+ * case it may associate, based on the uniform support, this sampler to the
+ * corresponding texture location (e.g. #1 rather than #0), and thus,
+ * indirectly, associate this sampler to a texture of choice.
+ *
+ * So gui_shader:deploy_base_program/0 ensures that this uniform is set
+ * appropriately:
  *
  */
-//uniform vec3 some_uniform_color;
+uniform sampler2D myriad_gui_texture_sampler;
+
 
 // Would require the GL_ARB_separate_shader_objects extension:
 //layout (location = 2) in vec3 myriad_gui_input_color;
 
 
-// Input of this shader (output of the vertex shader):
-in vec3 myriad_gui_current_color;
+// Inputs of this shader (they are outputs of the vertex shader):
+
+in vec4 myriad_gui_current_color;
+in vec2 myriad_gui_current_texcoord;
 
 
 /* User-defined output data, as three floating-point coordinates in [0.0, 1.0]
@@ -47,8 +57,7 @@ in vec3 myriad_gui_current_color;
  * interest; no layout specified here:
  *
  */
-out vec3 myriad_gui_output_color;
-
+out vec4 myriad_gui_output_color;
 
 
 void main()
@@ -60,6 +69,22 @@ void main()
 	// For all fragments, the output color will be set by the test application:
 	//myriad_gui_output_color = some_uniform_color;
 
-	myriad_gui_output_color = myriad_gui_current_color;
+	switch (myriad_gui_vbo_layout) {
+
+		case VTX3:
+		case VTX3_RGB:
+			myriad_gui_output_color = myriad_gui_current_color;
+			break;
+
+		case VTX3_UV:
+			myriad_gui_output_color = texture(myriad_gui_texture_sampler,
+				myriad_gui_current_texcoord);
+			break;
+
+		// All other VBO layouts:
+		default:
+			break;
+
+	}
 
 }

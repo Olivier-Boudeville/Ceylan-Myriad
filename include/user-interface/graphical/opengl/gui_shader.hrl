@@ -80,3 +80,11 @@
 
 % To specify the color to be used by VBO layouts not specifying any color:
 -define( myriad_gui_global_color_unif_name, "myriad_gui_global_color" ).
+
+% To specify any texture sampler:
+-define( myriad_gui_texture_sampler_unif_name, "myriad_gui_texture_sampler" ).
+
+% The texture unit used by the sampler of the MyriadGUI base fragment shader:
+% (thus ?GL_TEXTURE1 instead of the ?GL_TEXTURE0 default one)
+%
+-define( myriad_gui_base_texture_unit, 1 ).

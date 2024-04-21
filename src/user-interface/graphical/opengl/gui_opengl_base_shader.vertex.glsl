@@ -40,10 +40,10 @@ uniform uint myriad_gui_vbo_layout;
 /* The color to be used by VBO layouts not specifying any color (e.g. vtx3):
  *
  * (better be set through a uniform than set as a constant like in:
- * 'myriad_gui_output_color = vec3(0.0, 1.0, 0.0);')
+ * 'myriad_gui_output_color = vec4(0.0, 1.0, 0.0, 1.0);')
  *
  */
-uniform vec3 myriad_gui_global_color;
+uniform vec4 myriad_gui_global_color;
 
 
 /* Input vertex data, different for all executions of this shader, based on the
@@ -58,11 +58,13 @@ uniform vec3 myriad_gui_global_color;
 
 /* layout (location = 0) */ in vec3 myriad_gui_input_vertex;
 /* layout (location = 1) */ in vec3 myriad_gui_input_normal;
-/* layout (location = 2) */ in vec3 myriad_gui_input_color;
+/* layout (location = 2) */ in vec4 myriad_gui_input_color;
 /* layout (location = 3) */ in vec2 myriad_gui_input_texcoord;
 
-// Output of this shader (input of the fragment shader):
-out vec3 myriad_gui_current_color;
+// Outputs of this shader (inputs of the fragment shader):
+
+out vec4 myriad_gui_current_color;
+out vec2 myriad_gui_current_texcoord;
 
 
 void apply_vtx3() {
@@ -72,8 +74,8 @@ void apply_vtx3() {
 	 */
 	gl_Position.xyz = myriad_gui_input_vertex;
 
-	// For all fragments, the output color will be pure green:
-	//myriad_gui_current_color = vec3(0.0, 1.0, 0.0);
+	// For all fragments, the output color will be pure (opaque) green:
+	//myriad_gui_current_color = vec4(0.0, 1.0, 0.0, 1.0);
 
 	myriad_gui_current_color = myriad_gui_global_color;
 
@@ -88,7 +90,20 @@ void apply_vtx3_rgb() {
 	gl_Position.xyz = myriad_gui_input_vertex;
 
 	myriad_gui_current_color = myriad_gui_input_color;
-	//myriad_gui_current_color = vec3(0.0, 1.0, 0.0);
+	//myriad_gui_current_color = vec3(0.0, 1.0, 0.0, 1.0);
+
+}
+
+
+void apply_vtx3_uv() {
+
+	/* This is an identity transformation, basically (so my_input_vertex is
+	 * expected to be already in normalized device coordinates):
+	 */
+	gl_Position.xyz = myriad_gui_input_vertex;
+
+	// Read by the vertex shader in order to forward it to the fragment shader:
+	myriad_gui_current_texcoord = myriad_gui_input_texcoord;
 
 }
 
@@ -108,6 +123,10 @@ void main() {
 
 		case VTX3_RGB:
 			apply_vtx3_rgb();
+			break;
+
+		case VTX3_UV:
+			apply_vtx3_uv();
 			break;
 
 		// All other VBO layouts:
