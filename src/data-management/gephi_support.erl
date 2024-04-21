@@ -159,7 +159,7 @@
 
 
 -type property_id() :: element_id().
-% The identifier of a node property; for example "label", <<"color">>.
+% The identifier of a node property; for example "label", `<<"color">>'.
 
 -type property_value() :: graph_value().
 % A value that can be assigned to a property.
