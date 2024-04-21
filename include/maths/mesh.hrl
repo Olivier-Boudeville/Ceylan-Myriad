@@ -27,6 +27,9 @@
 
 
 % Describes a mesh, convex or not.
+%
+% Refer to mesh_render.hrl for rendering-related topics.
+%
 -record( mesh, {
 
 	% The points defining that mesh:
@@ -64,10 +67,10 @@
 
 
 	% How this mesh shall be rendered:
-	rendering_info = none :: mesh:rendering_info(),
+	rendering_info = none :: mesh_render:rendering_info(),
 
 	% Any corresponding (OpenGL-level) rendering state:
-	rendering_state :: maybe( mesh:rendering_state() ),
+	rendering_state :: maybe( mesh_render:rendering_state() ),
 
 
 	% Bounding volume information:
@@ -75,31 +78,3 @@
 	% (can be for example a right-cuboid or a sphere)
 	%
 	bounding_volume :: maybe( bounding_volume:bounding_volume() ) } ).
-
-
-
-% Rendering (OpenGL-related) state of a mesh.
--record( rendering_state, {
-
-	% The identifier of the corresponding GLSL program (typically needed to
-	% locate uniform variables):
-	%
-	program_id :: gui_shader:program_id(),
-
-
-	% The overall VAO used for that mesh:
-	vao_id :: gui_shader:vao_id(),
-
-
-	% The VBO holding the vertex-related data of that mesh:
-	vbo_id :: gui_shader:vbo_id(),
-
-	% The layout respected by the VBO and the corresponding shaders:
-	vbo_layout :: gui_shader:vbo_layout(),
-
-
-	% The EBO holding the face indices of that mesh:
-	ebo_id :: gui_shader:ebo_id(),
-
-	% The number of per-vertex elements of this mesh:
-	vertex_count :: basic_utils:count() } ).
