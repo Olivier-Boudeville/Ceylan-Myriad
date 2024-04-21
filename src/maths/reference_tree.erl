@@ -43,7 +43,7 @@
 %
 % A reference tree also caches information (e.g. paths between frames).
 %
-% @see reference_frame3 for example
+% See reference_frame3 for example.
 %
 -module(reference_tree).
 

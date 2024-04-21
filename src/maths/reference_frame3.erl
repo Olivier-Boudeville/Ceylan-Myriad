@@ -33,8 +33,9 @@
 % notably an associative table of reference frames, based on their identifier; a
 % frame records the transformation to/from its (direct) parent frame (if any).
 %
-% @see https://en.wikipedia.org/wiki/Frame_of_reference for further information
-% @see transform4
+% See https://en.wikipedia.org/wiki/Frame_of_reference for further information
+%
+% See also the transform4 module.
 %
 -module(reference_frame3).
 

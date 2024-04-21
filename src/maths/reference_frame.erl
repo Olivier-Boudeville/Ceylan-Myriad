@@ -32,7 +32,7 @@
 % A frame of reference is a part of reference tree; it records the
 % transformation between this frame and its parent frame (if any).
 %
-% @see https://en.wikipedia.org/wiki/Frame_of_reference for further information
+% See https://en.wikipedia.org/wiki/Frame_of_reference for further information
 %
 -module(reference_frame).
 
