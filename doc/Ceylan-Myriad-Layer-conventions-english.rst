@@ -97,13 +97,15 @@ The most obvious conventions are:
 
 - defining distinct (non-overlapping), explicit (with a clear-enough name), numerous (statically-defined) **atoms** is cheap; each atom found in the sources is generally to be involved in at least one type definition
 
-- the use of ``case ... of ... end`` should be preferred to the use of ``if`` (never used in our code base)
+- the use of ``case EXPR of ... end`` should be preferred to the use of ``if`` (never used in our code base); when only one branch may apply and does not depend on the actual value of EXPR, one-armed expressions based on ``andalso`` or ``orelse`` should be preferred to a ``case`` expression (e.g. ``DoDisplay andalso render(), ...``)
 
 - we also prefer that the various patterns of a case are indented with exactly one tabulation, and that the closing ``end`` lies as much as possible on the left (e.g. if having specified ``MyVar = case ... end``, then ``end`` should begin at the same column as ``MyVar``); the same applies to ``try ... catch ... end`` clauses
 
 - when a term is ignored, instead of using simply ``_``, one should define a **named mute variable** in order to provide more information about this term (e.g. ``_TimeManagerPid``); one should then to accidental matching of such names (now a warning is emitted)
 
 - some conventional variable names are, and may be, extensively used: ``Res`` for result, ``H`` and ``T`` for respectively the head and tail of a list on which we recursively iterate
+
+- generally, a plural variable name (e.g. ``Elements``) designates a list (e.g. ``[element()]``); consequently, a list of lists of ``element()`` (thus ``[[element()]]``, like ``[[E1,E2], [], [E3]]``) may be designated with the ``Elementss`` variable name
 
 .. _indices:
 
@@ -116,7 +118,7 @@ The most obvious conventions are:
   - if a text is to be rather static (constant) and/or if it is to be exchanged between processes, then it should be a UTF8 ``binary``, and its type shall be declared as ``text_utils:bin_string()``
   - other, a plain string (``text_utils:ustring()``) shall be used
 
-- when defining a non-trivial datastructure, a **record** shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding **type** should be then defined (e.g. a ``foobar`` record leading to a ``foobar()`` type), and a **function to describe it** as text shall be provided (e.g. ``-spec foobar_to_string(foobar()) -> text_utils:string()``)
+- when defining a non-trivial datastructure, a **record** shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding **type** should be then defined (e.g. a ``foobar`` record leading to a ``foobar()`` type), and a **function to describe it** as text shall be provided (e.g. ``-spec foobar_to_string(foobar()) -> text_utils:ustring()``)
 
   - **mute variables** should be used as well to document actual parameters; for example ``f(3,7,10)`` could preferably be written as a clearer ``f(_Min=3,_Max=7,_Deviation=10)``
 
