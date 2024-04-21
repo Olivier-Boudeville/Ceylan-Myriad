@@ -601,7 +601,9 @@ get_values( Keys, Hashtable ) ->
 % Allows to perform in a single operation a look-up followed by a fetch.
 %
 % A popular default value is 'undefined', so that this function can be
-% considered a returning a maybe(value()).
+% considered a returning a maybe(value()); no get_maybe_value/2 function was
+% introduced, as it could be ambiguous, since in the general case a legit value
+% could be 'undefined'.
 %
 -spec get_value_with_default( key(), value(), map_hashtable() ) -> value().
 get_value_with_default( Key, DefaultValue, MapHashtable ) ->
