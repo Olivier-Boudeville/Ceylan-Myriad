@@ -649,7 +649,8 @@ are_all_defined( _Elems=[ _E | T ] ) ->
 %
 % For example: `ActualX = basic_utils:set_maybe(MaybeX, DefaultX)'.
 %
-% Ideally the default term would be lazily evaluated.
+% Ideally the default term would be lazily evaluated (e.g. if calling an
+% initialisation function, notably for the second term).
 %
 -spec set_maybe( maybe( term() ), term() ) -> term().
 set_maybe( _MaybeTerm=undefined, TDef ) ->
