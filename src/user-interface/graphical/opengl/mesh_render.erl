@@ -641,6 +641,9 @@ initialise_for_opengl( Mesh=#mesh{
 	{ AttrSeries, CompoundCount } = prepare_vattrs_per_vertex( IndexedFaces,
 		_SingleList=[ FullTexCoords ], Vertices, _FaceVCount=3 ),
 
+	%trace_utils:debug_fmt( "AttrSeries (vertex/texcoords): ~w.",
+	%                       [ AttrSeries ] ),
+
 	% vtx3_uv layout: in the buffer, first write a vertex, at the conventional
 	% index location for vertices, then the (2D) texture coordinates, at their
 	% dedicated location as well:
@@ -760,7 +763,13 @@ recalibrate_tex_coords_for( _TexFaceInfos=[ UVPoints | T ], Texture ) ->
 %
 % So each indexed face is expected to have the specified number of vertices
 % (this constraint could be relaxed), and each vertex will be rendered with its
-% own set of elements (that thus are not per-face).
+% own set of elements (that thus are not per-face); each of these elements will
+% be in its own list at the same rank as the corresponding vertex identifier
+% found in the list of indexed faces, should the tuple fronteers be ignored.
+%
+% For example, if IndexedFaces = [{V1Id,VId2,V3Id}, {V4Id,V5Id,V6Id}, ...], then
+% the 4th element of each of the lists in Elementss will correspond to the
+% compound for V4.
 %
 -spec prepare_vattrs_per_vertex( [ indexed_face() ], [ [ render_element() ] ],
 								 [ vertex3() ], compound_count() ) ->
@@ -827,22 +836,25 @@ prepare_vattrs_per_vertex( _RevIndexedFaces=[], RevElemss, _AllVertices,
 	{ [ ToStoreVtxAcc | ToStoreElemsAcc ], CompoundCount };
 
 
-prepare_vattrs_per_vertex( _RevIndexedFaces=[ VIdTuple | HIndexedFaces ],
+prepare_vattrs_per_vertex( _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
 		RevElemss, AllVertices, ToStoreVtxAcc, ToStoreElemsAcc,
 		FaceVCount, CompoundCount ) ->
 
-	FaceVIds = tuple_to_list( VIdTuple ),
+	% Reversing the vertex indices as their elements will be extracte from the
+	% element lists that were reversed:
+	%
+	FaceVIds = lists:reverse( tuple_to_list( VIdTuple ) ),
 	FaceVs = mesh:get_elements_from_ids( FaceVIds, AllVertices ),
 	NewToStoreVtxAcc = FaceVs ++ ToStoreVtxAcc,
 
-	% Chops all heads from RevElemss for this face:
-	{ FaceHeadElems, FaceTailElems } =
-		list_utils:split_heads_tails( RevElemss ),
+	% Chops all FaceVCount multi-heads from RevElemss for this face:
+	{ FaceMultiHeadsElems, FaceMultiTailsElems } =
+		list_utils:split_multi_heads_tails( RevElemss, _HeadLen=FaceVCount ),
 
 	NewToStoreElemsAcc =
-		list_utils:add_as_heads( FaceHeadElems, ToStoreElemsAcc ),
+		list_utils:concatenate_as_heads( FaceMultiHeadsElems, ToStoreElemsAcc ),
 
-	prepare_vattrs_per_vertex( HIndexedFaces, FaceTailElems, AllVertices,
+	prepare_vattrs_per_vertex( TIndexedFaces, FaceMultiTailsElems, AllVertices,
 		NewToStoreVtxAcc, NewToStoreElemsAcc, FaceVCount,
 		CompoundCount+FaceVCount ).
 
@@ -868,7 +880,8 @@ prepare_vattrs_per_vertex( _RevIndexedFaces=[ VIdTuple | HIndexedFaces ],
 %
 % So each indexed face is expected to have the specified number of vertices
 % (this constraint could be relaxed), and is to be rendered with a given set of
-% elements (common to all the vertices of that face).
+% elements (common to all the vertices of that face), each specified in its own
+% list at the same rank as this face.
 %
 -spec prepare_vattrs_per_face( [ indexed_face() ], [ [ render_element() ] ],
 							   [ vertex3() ], count() ) ->
@@ -931,7 +944,7 @@ prepare_vattrs_per_face( _RevIndexedFaces=[], RevElemss, _AllVertices,
 	{ [ ToStoreVtxAcc | ToStoreElemsAcc ], CompoundCount };
 
 
-prepare_vattrs_per_face( _RevIndexedFaces=[ VIdTuple | HIndexedFaces ],
+prepare_vattrs_per_face( _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
 		RevElemss, AllVertices, ToStoreVtxAcc, ToStoreElemsAcc,
 		FaceVCount, CompoundCount ) ->
 
@@ -949,7 +962,7 @@ prepare_vattrs_per_face( _RevIndexedFaces=[ VIdTuple | HIndexedFaces ],
 	NewToStoreElemsAcc = list_utils:concatenate_per_rank( DuplFaceHElems,
 														  ToStoreElemsAcc ),
 
-	prepare_vattrs_per_face( HIndexedFaces, FaceTailElems, AllVertices,
+	prepare_vattrs_per_face( TIndexedFaces, FaceTailElems, AllVertices,
 		NewToStoreVtxAcc, NewToStoreElemsAcc, FaceVCount,
 		CompoundCount+FaceVCount ).
 
@@ -977,7 +990,7 @@ render_as_opengl( #mesh{ rendering_state=undefined } ) ->
 %
 % (see the clause for non-textured cases for further details)
 %
-render_as_opengl( M=#mesh{ %rendering_info={ textured, _TexSpecId,
+render_as_opengl( _M=#mesh{ %rendering_info={ textured, _TexSpecId,
 						   %                 _TexFaceInfo },
 						   rendering_state=#rendering_state{
 								program_id=ProgramId,
@@ -985,7 +998,7 @@ render_as_opengl( M=#mesh{ %rendering_info={ textured, _TexSpecId,
 								vbo_layout=vtx3_uv,
 								compound_count=CompoundCount } } ) ->
 
-	trace_utils:debug_fmt( "Rendering ~ts.", [ mesh:to_string( M ) ] ),
+	%trace_utils:debug_fmt( "Rendering ~ts.", [ mesh:to_string( M ) ] ),
 
 	gui_opengl:set_polygon_raster_mode( _FacingMode=front_facing,
 										_RasterMode=raster_filled ),
