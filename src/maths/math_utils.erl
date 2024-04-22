@@ -1056,8 +1056,8 @@ sample( Fun, CurrentPoint, StopPoint, Increment, Acc ) ->
 % with specified increment: returns the ordered list of the corresponding
 % {X,f(X)} pairs that it took.
 %
--spec sample_as_pairs( fun( ( number() ) -> T ), bounds(),
-					   number() ) -> [ { number(), T } ].
+-spec sample_as_pairs( fun( ( number() ) -> T ), bounds(), number() ) ->
+											[ { number(), T } ].
 sample_as_pairs( Fun, Bounds, Increment ) ->
 	{ StartPoint, StopPoint } = canonicalise_bounds( Bounds ),
 	sample_as_pairs( Fun, StartPoint, StopPoint, Increment ).
