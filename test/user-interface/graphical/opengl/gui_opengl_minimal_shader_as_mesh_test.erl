@@ -598,7 +598,7 @@ cleanup_mv_for_opengl( MVState=#my_mv_state{
 								 } ) ->
 
 	[ CleanedTriangleWfMesh, CleanedTriangleSolidMesh, CleanedTriangleGradMesh,
-	  CleanedTriangleTexMesh ] = [ mesh:cleanup_for_opengl( M )
+	  CleanedTriangleTexMesh ] = [ mesh_render:cleanup_for_opengl( M )
 			|| M <- [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh,
 					  TriangleTexMesh ] ],
 
@@ -688,8 +688,8 @@ render( _Width, _Height, #my_mv_state{
 	%
 	%gui_opengl:set_polygon_raster_mode( front_facing, raster_as_lines ),
 
-	[ mesh:render_as_opengl( M ) || M <- [ TriangleWfMesh, TriangleSolidMesh,
-		TriangleGradMesh, TriangleTexMesh ] ],
+	[ mesh_render:render_as_opengl( M ) || M <- [ TriangleWfMesh,
+		TriangleSolidMesh, TriangleGradMesh, TriangleTexMesh ] ],
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.
