@@ -89,8 +89,10 @@
 
 
 % Less common list operations:
--export([ dispatch_in/2, add_as_heads/2, concatenate_per_rank/2,
-		  split_heads_tails/1, insert_at_all_places/2, repeat_elements/2 ]).
+-export([ dispatch_in/2,
+		  add_as_heads/2, split_heads_tails/1,
+		  concatenate_as_heads/2, split_multi_heads_tails/2,
+		  insert_at_all_places/2, concatenate_per_rank/2, repeat_elements/2 ]).
 
 
 % For lists of tuples (e.g. typically used by the HDF5 binding) or lists,
@@ -1453,6 +1455,8 @@ dispatch_in( SublistCount, List, AccSubLists ) ->
 %
 % Of course the two lists shall have the same length.
 %
+% See concatenate_as_heads/2 to add whole lists, instead of head elements.
+%
 -spec add_as_heads( list(), [ list() ] ) -> [ list() ].
 add_as_heads( Heads, Lists ) ->
 	add_as_heads( Heads, Lists, _Acc=[] ).
@@ -1467,25 +1471,6 @@ add_as_heads( _Heads=[ H | TH ], _Lists=[ L | TL ], Acc ) ->
 	NewL = [ H | L ],
 	add_as_heads( TH, TL, [ NewL | Acc ] ).
 
-
-% @doc Returns the concatenation of the two lists found at the same rank in the
-% input lists, and returns the (in-order) list of these concatenated lists.
-%
-% Of course the two lists shall have the same length.
-%
-% For example: concatenate_per_rank([La,Lb,Lc], [L1, L2, L3]) =
-%           [La++L1, Lb++L2, Lc++L3].
-%
-% Or: concatenate_per_rank([[a,b], [], [1,2,3]], [[c], [], [4,5,6,7]]) =
-%           [[a,b,c], [], [1,2,3,4,5,6,7]]
-%
--spec concatenate_per_rank( [ list() ], [ list() ] ) -> [ list() ].
-concatenate_per_rank( _FirstLists=[], _SecondsLists=[] ) ->
-	[];
-
-concatenate_per_rank( _FirstLists=[ FHL | FTL ],
-					  _SecondsLists=[ SHL | STL ] ) ->
-	[ FHL ++ SHL | concatenate_per_rank( FTL, STL ) ].
 
 
 % @doc Splits each of the specified lists in a head and a tail, and returns a
@@ -1507,6 +1492,75 @@ split_heads_tails( _Lists=[], AccHeads, AccTails ) ->
 split_heads_tails( _Lists=[ _L=[HL|TL] | T ], AccHeads, AccTails ) ->
 	split_heads_tails( T, [HL|AccHeads], [TL|AccTails] ).
 
+
+
+% @doc Concatenates the specified lists to the specified lists.
+%
+% Like add_as_heads/2, but for whole lists instead of just head elements.
+%
+% For example: concatenate_as_heads([L1,L2,L3], [La,Lb,Lc]) = [L1++La, L2++Lb,
+% L3++Lb].
+%
+% Of course the two lists shall have the same length.
+%
+-spec concatenate_as_heads( [ list() ], [ list() ] ) -> [ list() ].
+concatenate_as_heads( HeadLists, Lists ) ->
+	concatenate_as_heads( HeadLists, Lists, _Acc=[] ).
+
+
+% (helper)
+concatenate_as_heads( _HeadLists=[], _Lists=[], Acc ) ->
+	% Restores the order of augmented lists:
+	lists:reverse( Acc );
+
+concatenate_as_heads( _HeadLists=[ HL | THL ], _Lists=[ L | TL ], Acc ) ->
+	concatenate_as_heads( THL, TL, [ HL ++ L | Acc ] ).
+
+
+
+% @doc Splits each of the specified lists in the specified number of head
+% elements and a remaining tail, and returns a pair made of all the head lists
+% (in-order) and all tails (in-order as well).
+%
+% For example: split_multi_heads_tails([[a,b,c,d], [1,2,3,4,5], [true,false]],
+% _HeadsLen=2) = {[[a,b], [1,2], [true,false]], [[c,d], [3,4,5], []]}
+%
+%
+-spec split_multi_heads_tails( [ list() ], count() ) ->
+										{ [ list() ], [ list() ] }.
+split_multi_heads_tails( Lists, HeadsLen ) ->
+	% Pre-reverse is cheaper:
+	split_multi_heads_tails( lists:reverse( Lists ), _AccHeads=[],
+							 _AccTails=[], HeadsLen ).
+
+
+% (helper)
+split_multi_heads_tails( _Lists=[], AccHeads, AccTails, _HeadsLen ) ->
+	{ AccHeads, AccTails };
+
+split_multi_heads_tails( _Lists=[ L | TL ], AccHeads, AccTails, HeadsLen ) ->
+	{ Heads, Tail } = heads( L, _Count=HeadsLen ),
+	split_multi_heads_tails( TL, [Heads|AccHeads], [Tail|AccTails], HeadsLen ).
+
+
+% @doc Returns the concatenation of the two lists found at the same rank in the
+% input lists, and returns the (in-order) list of these concatenated lists.
+%
+% Of course the two lists shall have the same length.
+%
+% For example: concatenate_per_rank([La,Lb,Lc], [L1, L2, L3]) =
+%           [La++L1, Lb++L2, Lc++L3].
+%
+% Or: concatenate_per_rank([[a,b], [], [1,2,3]], [[c], [], [4,5,6,7]]) =
+%           [[a,b,c], [], [1,2,3,4,5,6,7]]
+%
+-spec concatenate_per_rank( [ list() ], [ list() ] ) -> [ list() ].
+concatenate_per_rank( _FirstLists=[], _SecondsLists=[] ) ->
+	[];
+
+concatenate_per_rank( _FirstLists=[ FHL | FTL ],
+					  _SecondsLists=[ SHL | STL ] ) ->
+	[ FHL ++ SHL | concatenate_per_rank( FTL, STL ) ].
 
 
 
