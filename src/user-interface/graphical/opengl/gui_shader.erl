@@ -1748,7 +1748,7 @@ delete_program( ProgramId ) ->
 % @doc Returns the paths of the MyriadGUI base GLSL header includes.
 get_base_glsl_include_paths() ->
 	% Typically for gui_shader.glsl.h:
-	[ _BaseShaderPath= gui:get_base_path() ].
+	[ _BaseShaderPath= gui_opengl:get_base_path() ].
 
 
 % @doc Returns the filenames of the MyriadGUI base, built-in shaders.

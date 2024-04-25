@@ -380,7 +380,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Corresponds to a render_rgb_color():
 	gui_shader:set_uniform_point3( SomeColorUnifId,
-								   gui_opengl_for_testing:get_myriad_blue() ),
+		gui_opengl_for_testing:get_myriad_blue_render() ),
 
 
 	% Uncomment to switch to wireframe:

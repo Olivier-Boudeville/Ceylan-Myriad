@@ -220,7 +220,8 @@
 
 
 % Other operations:
--export([ get_pixel_size/1, pixel_format_to_string/1 ]).
+-export([ check_color_by_decimal/1,
+		  get_pixel_size/1, pixel_format_to_string/1 ]).
 
 
 
@@ -579,6 +580,19 @@ add_alpha_opaque( { R, G, B } ) ->
 										render_rgba_color().
 add_alpha( Alpha, { R, G, B } ) ->
 	{ R, G, B, Alpha }.
+
+
+
+% @doc Checks that the specified term is a color_by_decimal() indeed, and
+% returns it.
+%
+-spec check_color_by_decimal( term() ) -> color_by_decimal().
+check_color_by_decimal( { R, G, B } ) ->
+	{ type_utils:check_byte( R ), type_utils:check_byte( G ),
+	  type_utils:check_byte( B ) };
+
+check_color_by_decimal( Other ) ->
+	throw( { not_color_by_decimal, Other } ).
 
 
 

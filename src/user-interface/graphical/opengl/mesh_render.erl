@@ -49,26 +49,53 @@
 	% No rendering info at all:
 	'none'
 
-	% Wireframe only:
-  | { 'wireframe', RGBEdgeColor :: gui_color:color_by_decimal(),
+	% Wireframe only; a single color for all edges:
+  | { 'wireframe', RGBEdgeColor :: color_by_decimal(),
 	  AreHiddenFacesRemoved :: boolean() }
 
-	% Per-vertex (then a single color is assigned to a vertex, for all the faces
-	% to which it belongs) or per-face colors (the color order being the one of
-	% the elements - vertices or faces - at specification):
+	% Each element of the FaceColors list (third element of the triplet below)
+	% corresponds to the element of the same rank in the 'faces' field of the
+	% mesh, knowing that the type of these elements depends on FaceColoringType
+	% (second element of the triplet):
 	%
-	% (solid colors, no transparency here; RGB as triplets of integers, not in
-	% [0.0,1.0])
+	%  - if this face coloring type is per_vertex, then a color is assigned to
+	%  each of the vertex indice of each face, in a corresponding tuple; for
+	%  example if a face F is defined in 'faces' at rank Rf as {V1Id, V2Id,
+	%  V3Id, V4Id}, then in ElementColors there will be, at rank Rf, {Col1,
+	%  Col2, Col3, Col4}, each color (Colk :: color_by_decimal()) applying to
+	%  the vertex specified at the same position (VkId)
 	%
-  | { 'colored', mesh_render:face_coloring_type(),
-	  ElementColors :: [ gui_color:color_by_decimal() ] }
+	%  - if this face coloring type is per_face, then a color is assigned to
+	%  each of the faces; for example if a face F is defined in 'faces' at rank
+	%  Rf as {V1Id, V2Id, V3Id, V4Id}, then in ElementColors, there will be, at
+	%  rank Rf, Col :: color_by_decimal(), which will apply to this face as a
+	%  whole (hence to all its vertices)
+	%
+	% (these are solid colors, with no transparency here; RGB as triplets of
+	% integers - not in [0.0,1.0])
+	%
+  | { 'colored', FaceColoringType :: face_coloring_type(),
+	  % A list of either colors or tuples of colors:
+	  FaceColors :: [ tuploid( color_by_decimal() ) ] }
 
-	% We want to support (single) per-face textures.
+	% We wanted initially to support (single) per-face textures.
 	% Texture information for the face of the same index in their list:
-  %| { 'textured', [ mesh_render:texture_face_info() ] }.
-  % Using now a single texture atlas per mesh:
-  | { 'textured', gui_texture:texture_spec_id(),
-	  [ mesh_render:texture_face_info() ] }.
+  %| { 'textured', [ texture_face_info() ] }.
+
+  % Using now a single texture atlas per mesh (rather than one or more textures
+  % per face; refer to the 'Regarding multitexturing' section for more details);
+  % similarly to the per_vertex scheme defined for the previous 'colored' tuple,
+  % there will be here one texture face information per face, at the same rank
+  % in their respective lists, associating a pair of texture coordinates to each
+  % vertex identifier; for example if a face F is defined in 'faces' at rank Rf
+  % as {V1Id, V2Id, V3Id, V4Id}, then in TextureFaceInfoList there will be, at
+  % rank Rf, {UV1, UV2, UV3, UV4}, each pair of texture coordinates (UVk ::
+  % uv_point()) corresponding to the vertex specified at the same position
+  % (VkId)
+  %
+  | { 'textured', texture_spec_id(),
+	  % Always a list of tuples of (at least) texture coordinates:
+	  TextureFaceInfoList :: [ texture_face_info() ] }.
 % Defines how a mesh shall be rendered.
 
 
@@ -88,8 +115,8 @@
 
 
 % Now assuming a single texture atlas is used:
-%-type texture_face_info() :: { texture_spec_id(), [ uv_point() ] }.
--type texture_face_info() :: [ uv_point() ].
+%-type texture_face_info() :: { texture_spec_id(), tuple( uv_point() ) }.
+-type texture_face_info() :: tuple( uv_point() ).
 % The texture information for a face, based on the identifier of the texture
 % specification (held by a texture cache) that applies to this face and on the
 % corresponding texture coordinates of its vertices, in their definition order.
@@ -97,8 +124,8 @@
 % For example if a triangle face is defined based on vertices {VId1,VId2,VId3},
 % is to be textured with texture of specification identifier TexSpecId, and the
 % texture coordinates associated to VIdk are {Tku,Tkv}, then the corresponding
-% texture information for this face is: {TexSpecId, [{T1u,T1v}, {T2u,T2v},
-% {T3u,T3v}]}.
+% texture information for this face is: {TexSpecId, {{T1u,T1v}, {T2u,T2v},
+% {T3u,T3v}}}.
 %
 % An OpenGL texture identifier would not be enough (i.e. a texture spec is
 % used), notably as the related texture coordinates shall be recalibrated, and
@@ -138,8 +165,12 @@
 
 -type ustring() :: text_utils:ustring().
 
+-type tuple( T ) :: type_utils:tuple( T ).
+-type tuploid( T ) :: type_utils:tuploid( T ).
+
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
+-type color_by_decimal() :: gui_color:color_by_decimal().
 -type render_rgb_color() :: gui_color:render_rgb_color().
 
 -type vertex3() :: point3:vertex3().
@@ -147,6 +178,7 @@
 -type texture() :: gui_texture:texture().
 -type uv_point() :: gui_texture:uv_point().
 -type texture_cache() :: gui_texture:texture_cache().
+-type texture_spec_id() :: gui_texture:texture_spec_id().
 
 -type vertex_attribute_series() :: gui_shader:vertex_attribute_series().
 -type program_id() :: gui_shader:program_id().
@@ -188,55 +220,77 @@
 % be then a single texture per object
 %
 % While the first approach could be implemented as well, we preferred the second
-% one, so we suppose there is (up to) one texture per mesh.
+% one, so we suppose there is now (up to) one texture per mesh.
 %
-% Quite often there would be no choice, as the structure will be driven by the
-% assets and/or their 3D format (e.g. glTF).
+% Quite often there would be no choice to be made anyway, as the structure will
+% be driven by the assets and/or their 3D format (e.g. glTF).
 
 
 
 % @doc Canonicalises and checks the specified, probably user-defined, term as a
 % legit rendering information, and returns it.
 %
--spec canonicalise_rendering_info( term(), [ vertex3() ],
-								   [ indexed_face() ] ) -> rendering_info().
-canonicalise_rendering_info( RenderInfo=none, _Vertices, _Faces ) ->
+-spec canonicalise_rendering_info( term(), [ indexed_face() ] ) ->
+										rendering_info().
+canonicalise_rendering_info( RenderInfo=none, Faces ) ->
+	cond_utils:if_defined( myriad_check_mesh, check_faces( Faces ),
+						   basic_utils:ignore_unused( Faces ) ),
 	RenderInfo;
 
 canonicalise_rendering_info(
-		RenderInfo={ wireframe, _RGBEdgeColor, _AreHiddenFacesRemoved },
-		_Vertices, _Faces ) ->
+		RenderInfo={ wireframe, RGBEdgeColor, AreHiddenFacesRemoved },
+		Faces ) ->
+	cond_utils:if_defined( myriad_check_mesh,
+		begin
+			gui_color:check_color_by_decimal( RGBEdgeColor ),
+			type_utils:check_boolean( AreHiddenFacesRemoved ),
+			check_faces( Faces ),
+			basic_utils:ignore_unused(
+				[ RGBEdgeColor, AreHiddenFacesRemoved, Faces ] )
+		end	),
 	RenderInfo;
 
-canonicalise_rendering_info( RenderInfo={ colored, _FaceColoringType=per_vertex,
-										  ElementColors }, Vertices, _Faces ) ->
-	VtxCount = length( Vertices ),
-	case length( ElementColors ) of
+canonicalise_rendering_info(
+		RenderInfo={ colored, FaceColoringType, FaceColors }, Faces ) ->
 
-		VtxCount ->
-			ok;
+	[ gui_color:check_color_by_decimal( FC ) || FC <- FaceColors ],
 
-		ColCount ->
-			throw( { vertex_color_count_mismatch, VtxCount, ColCount } )
-
-	end,
-
-	RenderInfo;
-
-canonicalise_rendering_info( RenderInfo={ colored, _FaceColoringType=per_face,
-										  ElementColors }, _Vertices, Faces ) ->
+	cond_utils:if_defined( myriad_check_mesh, check_faces( Faces ) ),
 	FaceCount = length( Faces ),
-	case length( ElementColors ) of
+
+	% Currently always activated:
+	case length( FaceColors ) of
 
 		FaceCount ->
 			ok;
 
-		ColCount ->
-			throw( { face_color_count_mismatch, FaceCount, ColCount } )
+		FaceColorElemCount ->
+			throw( { face_color_counts_mismatch, FaceCount,
+					 FaceColorElemCount } )
 
 	end,
 
+	cond_utils:if_defined( myriad_check_mesh,
+		case FaceColoringType of
+
+			per_vertex ->
+				% Checks that a color corresponds to each vertex identifier
+				% (faces already checked taht are of homogeneous size):
+				%
+				FaceVCount = size( hd( Face ) ),
+				[ begin
+					basic_utils:assert_equal( FaceVCount, size( ColTuple ) )
+					[ gui_color:check_color_by_decimal( C )
+						|| C <- tuple_to_list( ColTuple ) ]
+				  end || ColTuple <- FaceColors ];
+
+			per_face ->
+				[ gui_color:check_color_by_decimal( C ) || C <- FaceColors ]
+
+		end ),
+
 	RenderInfo;
+
 
 canonicalise_rendering_info(
 		RenderInfo={ textured, _TexSpecId, FaceInfos }, _Vertices, Faces ) ->
@@ -263,7 +317,7 @@ canonicalise_rendering_info( Other, _Vertices, _Faces ) ->
 % for triangle-based rendering.
 %
 -spec tessellate_rendering_info( face_type(), rendering_info() ) ->
-										  rendering_info().
+										rendering_info().
 tessellate_rendering_info( _OrigFaceType, RenderInfo=none ) ->
 	RenderInfo;
 
@@ -272,8 +326,13 @@ tessellate_rendering_info( _OrigFaceType=quad,
 	RenderInfo;
 
 tessellate_rendering_info( _OrigFaceType=quad,
-		RenderInfo={ colored, _FaceColoringType=per_vertex, _ElemColors } ) ->
-	RenderInfo;
+		_RenderInfo={ colored, _FaceColoringType=per_vertex,
+					  VtxColors } ) ->
+	% A Q1-Q2-Q3-Q4 quad becoming two Q1-Q2-Q3 and Q3-Q4-Q1 triangles:
+	% FIXME RENAME
+	%trace_utils:debug_fmt( "QuadVtxColors = ~w", [ QuadVtxColors ] ),
+	%TrigVtxColors = adapt_texture_face_infos( QuadVtxColors ),
+	{ colored, per_vertex, VtxColors };
 
 tessellate_rendering_info( _OrigFaceType=quad,
 		_RenderInfo={ colored, _FaceColoringType=per_face, ElemColors } ) ->
@@ -312,13 +371,13 @@ adapt_texture_face_infos( _TexFaceInfos=[], Acc ) ->
 	% adapt_texture_face_infos( T, NewAcc ).
 
 adapt_texture_face_infos( _TexFaceInfos=_UVPoints=
-		[ [ UV1Coords, UV2Coords, UV3Coords, UV4Coords ] | T ], Acc ) ->
+		[ UV1Coords, UV2Coords, UV3Coords, UV4Coords | T ], Acc ) ->
 	% Returns triangle faces, anticipate Acc reversal (1-2-3, then 3-4-1), even
 	% if without impact; same order as the vertices of the triangulated faces
 	% (in triangulate/2):
 	%
-	NewAcc = [ [ UV3Coords, UV4Coords, UV1Coords ],
-			   [ UV1Coords, UV2Coords, UV3Coords ] | Acc ],
+	NewAcc = [ UV3Coords, UV4Coords, UV1Coords,
+			   UV1Coords, UV2Coords, UV3Coords | Acc ],
 
 	adapt_texture_face_infos( T, NewAcc ).
 
@@ -496,7 +555,7 @@ initialise_for_opengl( Mesh=#mesh{
 	{ Mesh#mesh{ rendering_state=RenderState }, MaybeTextureCache };
 
 
-% For triangle faces and solid, per-vertex colors:
+% For triangle faces and solid, per-vertex colors for each face:
 initialise_for_opengl( Mesh=#mesh{
 		vertices=Vertices,
 		face_type=triangle,
@@ -516,6 +575,7 @@ initialise_for_opengl( Mesh=#mesh{
 	VertexCount = length( Vertices ),
 	VertexColorCount = length( VertexColors ),
 
+	% As we consider there is one color per vertex, regardless of faces:
 	VertexCount =:= VertexColorCount orelse
 		throw( { mismatching_vertex_data, VertexCount, VertexColorCount } ),
 
@@ -540,6 +600,7 @@ initialise_for_opengl( Mesh=#mesh{
 	% vertices and three colors, so:
 	%
 	{ AttrSeries, CompoundCount } = prepare_vattrs_per_vertex( IndexedFaces,
+NO: THROUGH VERTICES PER FACE
 		_SingleList=[ FloatVertexColors ], Vertices, _FaceVCount=3 ),
 
 	% vtx3_rgb layout: in the buffer, first write a vertex, at the conventional
@@ -680,6 +741,14 @@ initialise_for_opengl( Mesh=#mesh{
 									ebo_id=MeshEBOId },
 
 	{ Mesh#mesh{ rendering_state=RenderState }, NewTexCache };
+
+
+% For all kinds of quads:
+initialise_for_opengl( QuadMesh=#mesh{ face_type=quad }, ProgramId,
+					   MaybeTextureCache ) ->
+	TrigMesh = mesh:tessellate( QuadMesh ),
+	initialise_for_opengl( TrigMesh, ProgramId, MaybeTextureCache );
+
 
 % Multiple meshes now:
 initialise_for_opengl( Meshes=[], _ProgramId, MaybeTextureCache ) ->

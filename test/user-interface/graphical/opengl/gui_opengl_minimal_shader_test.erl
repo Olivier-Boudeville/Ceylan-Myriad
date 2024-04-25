@@ -27,8 +27,10 @@
 
 
 % @doc Minimal testing of the <b>OpenGL GLSL support</b>: displays, based on
-% shaders, a Myriad-blue polygon (actually a triangle and a rectangle that
-% intersect each other) on a white background.
+% ad-hoc shaders (not the MyriadGUI base ones), a Myriad-blue polygon (actually
+% a triangle and a rectangle that intersect each other) on a white background.
+%
+% Only normalized device coordinates are used (no projection).
 %
 % It is therefore a non-interactive, passive test (no spontaneous/scheduled
 % behaviour) whose main interest is to show a simple yet generic, appropriate
@@ -37,6 +39,8 @@
 %
 % This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
 % as opposed to the compatibility mode for OpenGL 1.x.
+%
+% Direct (for the triangle) and indexed (for the square) coordinates are used.
 %
 % See the gui_opengl tested module.
 %
@@ -214,13 +218,12 @@ gui_main_loop( GUIState ) ->
 			%trace_utils:debug_fmt( "Repaint needed for OpenGL canvas ~w.",
 			%                       [ GLCanvas ] ),
 
-			RepaintedGUIState = case GUIState#my_gui_state.opengl_state of
+			case GUIState#my_gui_state.opengl_state of
 
 				% Not ready yet:
 				undefined ->
 					trace_utils:debug(
-						"To be repainted, yet no OpenGL state yet." ),
-					GUIState;
+						"To be repainted, yet no OpenGL state yet." );
 
 				GLState ->
 					gui_widget:enable_repaint( GLCanvas ),
@@ -229,12 +232,12 @@ gui_main_loop( GUIState ) ->
 					{ CanvasWidth, CanvasHeight } =
 						gui_widget:get_size( GLCanvas ),
 
-					render( CanvasWidth, CanvasHeight, GLState ),
-					gui_opengl:swap_buffers( GLCanvas ),
-					GUIState
+					render( CanvasWidth, CanvasHeight, GLState )
 
 			end,
-			gui_main_loop( RepaintedGUIState );
+
+			% No state change:
+			gui_main_loop( GUIState );
 
 
 		% For a window, the first resizing event happens immediately before its
@@ -362,7 +365,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_minimal_shader.vertex.glsl",
-		"gui_opengl_minimal_shader.fragment.glsl", UserVertexAttrs ),
+		"gui_opengl_minimal_shader.fragment.glsl", UserVertexAttrs,
+		% Locally defined:
+		_GLSLSearchPaths=[ "." ] ),
 
 	SomeVectorUnifName = "some_vector",
 
@@ -393,8 +398,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
-	gui_shader:set_uniform_vector3( SomeColorUnifId,
-									gui_opengl_for_testing:get_myriad_blue() ),
+	% As RGB triplet:
+	gui_shader:set_uniform_point3( SomeColorUnifId,
+		gui_opengl_for_testing:get_myriad_blue_render() ),
 
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two

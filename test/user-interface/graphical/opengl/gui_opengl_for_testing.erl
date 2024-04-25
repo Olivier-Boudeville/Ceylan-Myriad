@@ -36,7 +36,7 @@
 		  get_logo_image_path/0 ]).
 
 
--export([ get_myriad_blue/0 ]).
+-export([ get_myriad_blue_rgb/0, get_myriad_blue_render/0 ]).
 
 -export([ get_test_tetra_mesh/1,
 
@@ -161,11 +161,16 @@ get_logo_image_path() ->
 
 
 % Defined for convenience and sharing with other tests.
--spec get_myriad_blue() -> color_by_decimal().
-get_myriad_blue() ->
+-spec get_myriad_blue_rgb() -> color_by_decimal().
+get_myriad_blue_rgb() ->
 	% #0027a5:
 	_RGB={ 0, 39, 165 }.
 
+
+% Defined for convenience and sharing with other tests.
+-spec get_myriad_blue_render() -> render_rgb_color().
+get_myriad_blue_render() ->
+	gui_color:decimal_to_render( get_myriad_blue_rgb() ).
 
 
 

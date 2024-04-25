@@ -95,10 +95,10 @@ ifeq ($(EXECUTION_TARGET),development)
 	ERLANG_COMPILER_EXEC_TARGET_OPT =
 
 	# By default, LCO kept:
-	MYRIAD_LCO_OPT :=
+	#MYRIAD_LCO_OPT :=
 
 	# LCO can be temporarily disabled:
-	#MYRIAD_LCO_OPT := -Dmyriad_disable_lco
+	MYRIAD_LCO_OPT := -Dmyriad_disable_lco
 
 	# Last Call Optimisation (LCO) may be selectively disabled in order to have
 	# unellipsed stacktraces (note that disabling LCO will lead the memory
@@ -186,6 +186,8 @@ endif
 #  - opengl: outcome of OpenGL-related operations
 #  - textures: regarding the (OpenGL) texture management
 #  - shaders: regarding the GLSL shaders and programs
+#  - gl_encoding: about the encoding of data for OpenGL (e.g. to write VBOs)
+#  - gl_decoding: about the decoding of data for OpenGL (e.g. to read VBOs)
 #  - gltf_support: for the support of the glTF 2.0 format
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
@@ -228,13 +230,15 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_encoding
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_decoding
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif

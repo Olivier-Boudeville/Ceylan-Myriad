@@ -170,9 +170,11 @@
 
 % Regarding data-structures.
 %
-% Instead of lists, arrays (see the 'array' module) could be used; however, at
-% least currently, we seldom (except for get_element_from_id/2) have to use
-% random accesses, we mostly iterate on such containers.
+% Mesh vertices used to be stored as [point3:vertex3()], yet most operations
+% (e.g. resolving faces) require random access, so arrays and maps are more
+% suitable, at least for large enough geometries. They should have quite similar
+% performances, but, keys being positive integers, arrays seem more relevant,
+% notably because they should be more compact in memory.
 
 
 
@@ -209,8 +211,7 @@ create( Vertices, FaceType, Faces ) ->
 create( Vertices, FaceType, Faces, RenderingInfo ) ->
 	create( Vertices, FaceType, Faces, _AnyNormalType=per_face,
 		_MaybeNormals=undefined,
-		mesh_render:canonicalise_rendering_info( RenderingInfo,
-												 Vertices, Faces ) ).
+		mesh_render:canonicalise_rendering_info( RenderingInfo, Faces ) ).
 
 
 
@@ -225,7 +226,8 @@ create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 	cond_utils:if_defined( myriad_check_mesh,
 		begin
 			ExpectedVertexCount = get_vertex_count_for_face_type( FaceType ),
-			[ ExpectedVertexCount = size( F ) || F <- Faces ],
+			[ basic_utils:assert_equal( ExpectedVertexCount, size( F ) )
+				|| F <- Faces ],
 			MaybeNormals =:= undefined orelse
 				begin
 					vector3:check_unit_vectors( MaybeNormals ),
@@ -252,7 +254,7 @@ create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 	CanonRenderingInfo = mesh_render:canonicalise_rendering_info( RenderingInfo,
 		Vertices, Faces ),
 
-	#mesh{ vertices=Vertices,
+	#mesh{ vertices=array:from_list( Vertices ),
 		   face_type=FaceType,
 		   faces=Faces,
 		   normal_type=NormalType,
@@ -298,8 +300,7 @@ tessellate( Mesh=#mesh{ face_type=quad,
 						faces=QuadFaces,
 						normal_type=NormalType,
 						normals=MaybeQuadNormals,
-						rendering_info=QuadRendInfo
-					  } ) ->
+						rendering_info=QuadRendInfo } ) ->
 
 	% (a list comprehension would not suffice)
 	TrigFaces = triangulate( QuadFaces ),
@@ -324,7 +325,8 @@ tessellate( Mesh=#mesh{ face_type=quad,
 
 	end,
 
-	TrigRendInfo = mesh_render:tessellate_rendering_info( quad, QuadRendInfo ),
+	TrigRendInfo = mesh_render:tessellate_rendering_info( _FaceType=quad,
+														  QuadRendInfo ),
 
 	Mesh#mesh{ face_type=triangle,
 			   faces=TrigFaces,
