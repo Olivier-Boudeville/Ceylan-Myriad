@@ -705,6 +705,7 @@
 
 		  check_numbers/1, check_maybe_numbers/1,
 
+		  check_byte/1,
 
 		  check_integer/1, check_maybe_integer/1,
 		  check_positive_integer/1, check_strictly_positive_integer/1,
@@ -1272,9 +1273,9 @@ is_of_described_type( _Term, _TypeDescription ) ->
 
 
 
-% @doc Tells whether specified non-empty monomorphic container (list or tuple)
-% is homogeneous in terms of type, ie whether all its elements are of the same
-% type.
+% @doc Tells whether the specified non-empty monomorphic container (list or
+% tuple) is homogeneous in terms of type, that is whether all its elements are
+% of the same type.
 %
 % If true, returns the common type.
 % If false, returns two of the different types found in the container.
@@ -1296,9 +1297,9 @@ is_homogeneous( Tuple ) when is_tuple( Tuple ) ->
 
 
 
-% @doc Tells whether specified non-empty monomorphic container (list or tuple)
-% is homogeneous in terms of type, that is whether all its elements are of the
-% same, specified, primitive type.
+% @doc Tells whether the specified non-empty monomorphic container (list or
+% tuple) is homogeneous in terms of type, that is whether all its elements are
+% of the same, specified, primitive type.
 %
 -spec is_homogeneous( list() | tuple(), primitive_type_description() ) ->
 							boolean().
@@ -1879,7 +1880,6 @@ check_numbers( Numbers ) ->
 	Numbers.
 
 
-
 % @doc Checks that the specified term is a list of maybe-numbers indeed, and
 % returns it.
 %
@@ -1891,6 +1891,13 @@ check_maybe_numbers( MaybeNumbers ) ->
 
 
 
+% @doc Checks that the specified term is a byte indeed, and returns it.
+-spec check_byte( term() ) -> integer().
+check_byte( Int ) when is_integer( Int ) andalso Int >= 0 andalso Int =< 255 ->
+	Int;
+
+check_byte( Other ) ->
+	throw( { not_byte, Other } ).
 
 
 % @doc Checks that the specified term is an integer indeed, and returns it.
