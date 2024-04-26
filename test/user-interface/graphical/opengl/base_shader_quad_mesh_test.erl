@@ -23,31 +23,29 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Wednesday, April 10, 2024.
+% Creation date: Monday, April 22, 2024.
 
 
-% @doc Mesh-based version of the minimal testing of the <b>OpenGL GLSL
-% support</b>: displays, based on shaders, a Myriad-blue polygon (actually a
-% triangle and a rectangle that intersect each other) on a white background,
-% using MyriadGUI shader conventions.
+% @doc Mesh-based version of the minimal testing of the <b>OpenGL mesh
+% rendering</b>: displays, thanks to the MyriadGUI base shaders, a set of 4
+% centered rectangles (quads) of decreasing size, overlaping on a white
+% background; these rectangles are rendered, from outer to inner, as wireframe,
+% with a face-level solid color, a vertex-level solid level and textured.
 %
-% It is therefore a non-interactive, passive test (no spontaneous/scheduled
-% behaviour) whose main interest is to show, here based on a mesh, a simple yet
-% generic, appropriate structure in order to properly initialise the GUI and
-% OpenGL, handle rendering, resizing and closing.
+% This is one of the simplest shader-based tests: uses NDC coordinates (no
+% projection).
 %
 % This test relies on:
-% - shaders and thus on modern versions of OpenGL (e.g. 3.3),
-% as opposed to the compatibility mode for OpenGL 1.x
+% - shaders and thus on modern versions of OpenGL (e.g. 3.3), as opposed to the
+% compatibility mode for OpenGL 1.x
 % - the MyriadGUI shader conventions and its base shaders
 %
--module(gui_opengl_minimal_shader_as_mesh_test).
+-module(base_shader_quad_mesh_test).
 
 
 % Implementation notes:
 %
-% Directly inspired from gui_opengl_minimal_shader_test.erl.
-
+% Directly deriving from the base_shader_triangle_mesh_test module.
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
 -include_lib("myriad/include/myriad_gui.hrl").
@@ -59,9 +57,6 @@
 
 
 % Test-specific overall GUI state:
-%
-% (no OpenGL-specific state to store, like vertices, textures or alike)
-%
 -record( my_gui_state, {
 
 	% The main frame of this test:
@@ -73,14 +68,13 @@
 	% The OpenGL context being used:
 	context :: gl_context(),
 
-	% In more complex cases, would store the loaded textures, etc.
 	opengl_state :: maybe( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.
 
 
-
+% In more complex cases, would store the loaded textures, etc.:
 -record( my_opengl_state, {
 
 	% The identifier of our GLSL program:
@@ -92,25 +86,24 @@
 % Test-specific overall OpenGL state.
 
 
-% Three triangles: one rendered in wireframe, another in a solid (per-face)
-% color, a third with a per-vertex color (hence with a gradient).
+% Four (mesh-based) quads: one rendered in wireframe, another in a solid
+% (per-face) color, a third with a per-vertex color (hence with a gradient), a
+% fourth with a texture.
 %
 -record( my_mv_state, {
 
-	triangle_wireframe_mesh :: mesh(),
-	triangle_solid_mesh :: mesh(),
-	triangle_gradient_mesh :: mesh(),
-	triangle_texture_mesh :: mesh(),
+	quad_wireframe_mesh :: mesh(),
+	quad_solid_mesh :: mesh(),
+	quad_gradient_mesh :: mesh(),
+	quad_texture_mesh :: mesh(),
 
-	%square_mesh :: mesh(),
-
+	% May be better placed in the my_opengl_state record:
 	texture_cache :: texture_cache()
 
 						  } ).
 
 -type my_mv_state() :: #my_mv_state{}.
 % Test-specific state of the model-view of interest.
-
 
 
 
@@ -137,14 +130,13 @@
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	test_facilities:display( "This test will display a series of triangles "
+	test_facilities:display( "This test will display 4 concentric quads "
 		"with different renderings, on a white background." ),
 
 	gui:start(),
 
 	% Depends on graphic support for image loading:
 	MVState = create_mv_state(),
-
 
 	% Could be batched (see gui:batch/1) to be more effective:
 	InitialGUIState = init_test_gui(),
@@ -163,38 +155,44 @@ run_actual_test() ->
 % @doc Creates the initial model-view state.
 %
 % Cannot be done too early as loading images for textures requires the GUI to be
-% started, and even more texture creation requires OpenGL to be initialised.
+% started, and, even more, texture creation requires OpenGL to be initialised.
 %
 -spec create_mv_state() -> my_mv_state().
 create_mv_state() ->
 
-	% Let's start with a triangle with a wireframe red triangle:
+	% Let's start with a quad (actually a square in NDC, becoming a rectangle
+	% due to the viewport aspect ratio), with a wireframe red quad:
 
 	Z = 0.0,
 
-	% Triangle defined as [vertex3()], directly in normalized device coordinates
-	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
-	% texture coordinate system has its Y ordinate axis up; see
-	% https://learnopengl.com/Getting-started/Hello-Triangle):
-	%
-	%               T2
-	%              /  \
-	%             T0--T1
-	%
-	TriangleWfVertices =
-		[ _T0={ -1.5, -1.0, Z }, _T1={ 0.5, -1.0, Z }, _T2={ -0.5, 1.0, Z } ],
+	% Half edge length (each X/Y ranging in [-1;1], so most of the space:
+	H = 0.9,
 
-	% A single (triangle) face; as we rely on vertex indices (i.e. EBO):
-	IndexedFaces = [ _F1={ 1, 2, 3 } ],
+	% Quad defined as [vertex3()], directly in normalized device coordinates
+	% here, centered onscreen; CCW order (Q1 bottom left, Q2 bottom right, Q3
+	% top right, Q43 top left):
+	%
+	%         Q4--Q3
+	%         |    |
+	%         Q1--Q2
+	%
+	QuadWfVertices = [ _Q1={ -H, -H, Z }, _Q2={  H, -H, Z },
+					   _Q3={  H,  H, Z }, _Q4={ -H,  H, Z } ],
 
-	FaceType = triangle,
+
+	% A single (quad) face that will be tessellated into two triangles; as we
+	% rely on vertex indices (i.e. EBO):
+	%
+	IndexedFaces = [ _F1={ 1, 2, 3, 4 } ], % Hence Q1-Q2-Q3-Q4
+
+	FaceType = quad,
 
 	% Various rendering_info() can be tested:
 
 	%RenderingInfo = none,
 
 
-	test_facilities:display( "Creating a wireframe triangle." ),
+	test_facilities:display( "Creating a wireframe quad." ),
 
 	%AreHiddenFacesRemoved = false,
 	AreHiddenFacesRemoved = true,
@@ -202,44 +200,46 @@ create_mv_state() ->
 	WfRenderingInfo = { wireframe, _RGBEdgeColor=gui_color:get_color( red ),
 						AreHiddenFacesRemoved },
 
-	TriangleWfMesh = mesh:create( TriangleWfVertices, FaceType, IndexedFaces,
-								  WfRenderingInfo ),
+	QuadWfMesh = mesh:create( QuadWfVertices, FaceType, IndexedFaces,
+							  WfRenderingInfo ),
 
 
-	test_facilities:display( "Creating at its right a solid yellow triangle." ),
+	test_facilities:display( "Creating inside a smaller solid yellow quad." ),
 
-	VOffset = [ 0.3, 0, 0 ],
+	ShrinkFactor = 0.9,
 
-	TriangleSolidVertices =
-		[ point3:translate( P, VOffset ) || P <- TriangleWfVertices ],
+	QuadSolidVertices =
+		[ point3:scale( P, ShrinkFactor ) || P <- QuadWfVertices ],
 
 	% Still a single face:
 	SolidRenderingInfo = { colored, _FaceColoringType=per_face,
 		_ElementColors=[ gui_color:get_color( yellow ) ] },
 
 
-	TriangleSolidMesh = mesh:create( TriangleSolidVertices, FaceType,
-									 IndexedFaces, SolidRenderingInfo ),
+	QuadSolidMesh = mesh:create( QuadSolidVertices, FaceType,
+								 IndexedFaces, SolidRenderingInfo ),
 
 
 	test_facilities:display(
-		"Creating at its right a gradient-based RGB triangle." ),
+		"Creating inside a smaller gradient-based RGB quad." ),
 
-	TriangleGradVertices =
-		[ point3:translate( P, VOffset ) || P <- TriangleSolidVertices ],
+	QuadGradVertices =
+		[ point3:scale( P, ShrinkFactor ) || P <- QuadSolidVertices ],
 
-	GradElemColors = [ gui_color:get_color( C ) || C <- [ red, green, blue ] ],
+	GradElemColors =
+		[ gui_color:get_color( C ) || C <- [ red, green, blue, black ] ],
+
 	GradRenderingInfo = { colored, _FColorType=per_vertex, GradElemColors },
 
-	TriangleGradMesh = mesh:create( TriangleGradVertices, FaceType,
-									IndexedFaces, GradRenderingInfo ),
+	QuadGradMesh = mesh:create( QuadGradVertices, FaceType, IndexedFaces,
+								GradRenderingInfo ),
 
 
 	test_facilities:display(
-		"Creating at its right a texture-based triangle." ),
+		"Creating at its right a texture-based quad." ),
 
-	TriangleTexVertices =
-		[ point3:translate( P, VOffset ) || P <- TriangleGradVertices ],
+	QuadTexVertices =
+		[ point3:scale( P, ShrinkFactor ) || P <- QuadGradVertices ],
 
 	BlankTextureCache = gui_texture:create_cache(),
 
@@ -251,18 +251,18 @@ create_mv_state() ->
 		[ gui_texture:cache_to_string( ReadyTextureCache ) ] ),
 
 	% As 2D texture coordinates range from 0 to 1 in the X and Y axes:
-	UVVertices = [ { 0, 0 }, { 1, 0 }, { 0.5, 1 } ],
+	UVVertices = [ { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } ],
 
 	% Single texture, single face here:
 	TexRenderingInfo = { textured, TextureSpecId, [ UVVertices ] },
 
-	TriangleTexMesh = mesh:create( TriangleTexVertices, FaceType,
-								   IndexedFaces, TexRenderingInfo ),
+	QuadTexMesh = mesh:create( QuadTexVertices, FaceType, IndexedFaces,
+							   TexRenderingInfo ),
 
-	#my_mv_state{ triangle_wireframe_mesh=TriangleWfMesh,
-				  triangle_solid_mesh=TriangleSolidMesh,
-				  triangle_gradient_mesh=TriangleGradMesh,
-				  triangle_texture_mesh=TriangleTexMesh,
+	#my_mv_state{ quad_wireframe_mesh=QuadWfMesh,
+				  quad_solid_mesh=QuadSolidMesh,
+				  quad_gradient_mesh=QuadGradMesh,
+				  quad_texture_mesh=QuadTexMesh,
 				  texture_cache=ReadyTextureCache }.
 
 
@@ -505,30 +505,30 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 -spec initialise_mv_for_opengl( my_mv_state(), my_gui_state() ) ->
 											my_mv_state().
 initialise_mv_for_opengl( MVState=#my_mv_state{
-							triangle_wireframe_mesh=TriangleWfMesh,
-							triangle_solid_mesh=TriangleSolidMesh,
-							triangle_gradient_mesh=TriangleGradMesh,
-							triangle_texture_mesh=TriangleTexMesh,
+							quad_wireframe_mesh=QuadWfMesh,
+							quad_solid_mesh=QuadSolidMesh,
+							quad_gradient_mesh=QuadGradMesh,
+							quad_texture_mesh=QuadTexMesh,
 							texture_cache=TexCache },
 						  #my_gui_state{ opengl_state=#my_opengl_state{
 								program_id=ProgramId } } ) ->
 
-	Meshes = [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh,
-			   TriangleTexMesh ],
+	Meshes = [ QuadWfMesh, QuadSolidMesh, QuadGradMesh,
+			   QuadTexMesh ],
 
 	trace_utils:debug_fmt( "Initialising for OpenGL the following meshes: ~ts",
 		[ text_utils:strings_to_string(
 			[ mesh:to_string( M ) || M <- Meshes ] ) ] ),
 
-	{ [ InitTriangleWfMesh, InitTriangleSolidMesh, InitTriangleGradMesh,
-		InitTriangleTexMesh ], NewTexCache } =
+	{ [ InitQuadWfMesh, InitQuadSolidMesh, InitQuadGradMesh,
+		InitQuadTexMesh ], NewTexCache } =
 			mesh_render:initialise_for_opengl( Meshes, ProgramId, TexCache ),
 
 	MVState#my_mv_state{
-		triangle_wireframe_mesh=InitTriangleWfMesh,
-		triangle_solid_mesh=InitTriangleSolidMesh,
-		triangle_gradient_mesh=InitTriangleGradMesh,
-		triangle_texture_mesh=InitTriangleTexMesh,
+		quad_wireframe_mesh=InitQuadWfMesh,
+		quad_solid_mesh=InitQuadSolidMesh,
+		quad_gradient_mesh=InitQuadGradMesh,
+		quad_texture_mesh=InitQuadTexMesh,
 		texture_cache=NewTexCache }.
 
 
@@ -558,12 +558,12 @@ initialise_mv_for_opengl( MVState=#my_mv_state{
 	%% % Specified while the square VBO and VAO are still active:
 	%% gui_shader:declare_vertex_attribute( ?my_vertex_attribute_index ),
 
-	%% % We describe our square as two triangles in CCW order; the first, S0-S1-S3
+	%% % We describe our square as two quads in CCW order; the first, S0-S1-S3
 	%% % on the bottom left, the second, S1-S2-S3 on the top right; we have just a
 	%% % list of indices (not for example a list of triplets of indices):
 	%% %
-	%% SquareIndices = [ 0, 1, 3,   % As the first triangle is S0-S1-S3
-	%%				  1, 2, 3 ], % As the second triangle is S1-S2-S3
+	%% SquareIndices = [ 0, 1, 3,   % As the first quad is S0-S1-S3
+	%%				  1, 2, 3 ], % As the second quad is S1-S2-S3
 
 	%% SquareEBOId = gui_shader:assign_indices_to_new_ebo( SquareIndices ),
 
@@ -575,8 +575,8 @@ initialise_mv_for_opengl( MVState=#my_mv_state{
 	%% gui_shader:unset_current_vao(),
 
 	%% InitOpenGLState = #my_opengl_state{ program_id=ProgramId,
-	%%									triangle_vao_id=TriangleVAOId,
-	%%									triangle_vbo_id=TriangleVBOId,
+	%%									quad_vao_id=QuadVAOId,
+	%%									quad_vbo_id=QuadVBOId,
 	%%									square_vao_id=SquareVAOId,
 	%%									square_vbo_id=SquareVBOId,
 	%%									square_ebo_id=SquareEBOId },
@@ -590,22 +590,22 @@ initialise_mv_for_opengl( MVState=#my_mv_state{
 % @doc Cleans up the model-view, OpenGL-wise.
 -spec cleanup_mv_for_opengl( my_mv_state() ) -> my_mv_state().
 cleanup_mv_for_opengl( MVState=#my_mv_state{
-		triangle_wireframe_mesh=TriangleWfMesh,
-		triangle_solid_mesh=TriangleSolidMesh,
-		triangle_gradient_mesh=TriangleGradMesh,
-		triangle_texture_mesh=TriangleTexMesh
+		quad_wireframe_mesh=QuadWfMesh,
+		quad_solid_mesh=QuadSolidMesh,
+		quad_gradient_mesh=QuadGradMesh,
+		quad_texture_mesh=QuadTexMesh
 		%square_mesh=SquareMesh
 								 } ) ->
 
-	[ CleanedTriangleWfMesh, CleanedTriangleSolidMesh, CleanedTriangleGradMesh,
-	  CleanedTriangleTexMesh ] = [ mesh_render:cleanup_for_opengl( M )
-			|| M <- [ TriangleWfMesh, TriangleSolidMesh, TriangleGradMesh,
-					  TriangleTexMesh ] ],
+	[ CleanedQuadWfMesh, CleanedQuadSolidMesh, CleanedQuadGradMesh,
+	  CleanedQuadTexMesh ] = [ mesh_render:cleanup_for_opengl( M )
+			|| M <- [ QuadWfMesh, QuadSolidMesh, QuadGradMesh,
+					  QuadTexMesh ] ],
 
-	MVState#my_mv_state{ triangle_wireframe_mesh=CleanedTriangleWfMesh,
-						 triangle_solid_mesh=CleanedTriangleSolidMesh,
-						 triangle_gradient_mesh=CleanedTriangleGradMesh,
-						 triangle_texture_mesh=CleanedTriangleTexMesh }.
+	MVState#my_mv_state{ quad_wireframe_mesh=CleanedQuadWfMesh,
+						 quad_solid_mesh=CleanedQuadSolidMesh,
+						 quad_gradient_mesh=CleanedQuadGradMesh,
+						 quad_texture_mesh=CleanedQuadTexMesh }.
 
 
 
@@ -671,10 +671,10 @@ on_main_frame_resized( _GUIState=#my_gui_state{ canvas=GLCanvas }, MVState ) ->
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_mv_state() ) -> void().
 render( _Width, _Height, #my_mv_state{
-							triangle_wireframe_mesh=TriangleWfMesh,
-							triangle_solid_mesh=TriangleSolidMesh,
-							triangle_gradient_mesh=TriangleGradMesh,
-							triangle_texture_mesh=TriangleTexMesh } ) ->
+							quad_wireframe_mesh=QuadWfMesh,
+							quad_solid_mesh=QuadSolidMesh,
+							quad_gradient_mesh=QuadGradMesh,
+							quad_texture_mesh=QuadTexMesh } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -682,14 +682,14 @@ render( _Width, _Height, #my_mv_state{
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
 	% Uncomment to switch to wireframe and see how the square decomposes in two
-	% triangles:
+	% quads:
 	%
 	% (front_and_back_facing not needed, as our vertices are in CCW order)
 	%
 	%gui_opengl:set_polygon_raster_mode( front_facing, raster_as_lines ),
 
-	[ mesh_render:render_as_opengl( M ) || M <- [ TriangleWfMesh,
-		TriangleSolidMesh, TriangleGradMesh, TriangleTexMesh ] ],
+	[ mesh_render:render_as_opengl( M ) || M <- [ QuadWfMesh,
+		QuadSolidMesh, QuadGradMesh, QuadTexMesh ] ],
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.
