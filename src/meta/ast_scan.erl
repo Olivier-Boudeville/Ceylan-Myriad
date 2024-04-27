@@ -307,9 +307,10 @@ report_error( { Context, Error } ) ->
 				"the preprocessor symbol '~ts' is already defined",
 				[ DefineStr ] );
 
+		% For example 'multiple definitions for ...', emitted by ast_scan:
 		String when is_list( String ) ->
-			text_utils:format( "~ts (raw error string reported)", [ String ] );
-			%text_utils:format( "~ts", [ String ] );
+			%text_utils:format( "~ts [raw error string reported]", [ String ] );
+			text_utils:format( "~ts", [ String ] );
 
 		Other ->
 			text_utils:format( "~p (raw error reported)", [ Other ] )
