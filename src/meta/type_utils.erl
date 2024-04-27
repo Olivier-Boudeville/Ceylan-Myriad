@@ -604,12 +604,15 @@
 
 -type permanent_term() :: integer() | float() | atom() | boolean() | binary()
 		| list( permanent_term() ) | tuple( permanent_term() )
-		| map( permanent_term(), permanent_term() ).
-% Designates values that are permanent, that is that are context-free, not
-% runtime-specific and can be reproduced (e.g. serialised).
+		% (maps:)map/2 does not exist apparently:
+		%| map( permanent_term(), permanent_term() )
+		| map().
+% Designates values that are permanent, meaning that are context-free, not
+% runtime-specific and can be reproduced (e.g. serialised); and for example PIDs
+% are transient terms, not permanent ones.
 %
 % As for compound datatypes (lists, tuples and thus records, maps), they are
-% also permanent iff all the terms they aggregate are themselves permanent
+% also permanent iff all the terms that they aggregate are themselves permanent
 % terms.
 %
 % Permanent terms are the opposite of transient ones.
@@ -619,10 +622,10 @@
 % Designates values that are transient, that is that are runtime-specific and
 % cannot be reproduced a priori.
 %
-% PIDs belong to this type, ports, references, anonymous functions may also.
+% So for example PIDs are transient terms, whereas integers are permanent terms.
 %
 % As for compound datatypes (lists, tuples and thus records, maps), they are
-% also transient iff at least one of the terms they aggregate is itself a
+% also transient iff at least one of the terms that they aggregate is itself a
 % transient term.
 %
 % Transient terms are the opposite of permanent ones.
