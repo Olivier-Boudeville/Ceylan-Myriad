@@ -554,7 +554,8 @@ color_by_decimal_with_alpha_to_string( { Red, Green, Blue, Alpha } ) ->
 					   ( [ color_by_decimal() ] ) -> [ render_rgb_color() ];
 					   ( [ color_by_decimal_with_alpha() ] ) ->
 											[ render_rgba_color() ].
-decimal_to_render( { Red, Green, Blue } ) ->
+decimal_to_render( _T={ Red, Green, Blue } ) ->
+	%trace_utils:debug_fmt( "Color: ~w.", [ T ] ),
 	Norm = 255,
 	%[ Red/Norm, Green/Norm, Blue/Norm ];
 	{ Red/Norm, Green/Norm, Blue/Norm };

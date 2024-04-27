@@ -33,7 +33,7 @@
 -record( mesh, {
 
 	% The points defining that mesh, as a repository thereof:
-	vertices :: array:array( point3:vertex3() ),
+	vertices :: mesh:vertex_repository(), 
 
 	% The types of the faces from which this mesh is made (e.g. triangle, quad):
 	face_type :: mesh:face_type(),

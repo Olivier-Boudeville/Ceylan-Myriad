@@ -178,7 +178,7 @@ create_mv_state() ->
 		[ _T1={ -1.5, -1.0, Z }, _T2={ 0.5, -1.0, Z }, _T3={ -0.5, 1.0, Z } ],
 
 	% A single (triangle) face; as we rely on vertex indices (i.e. EBO):
-	IndexedFaces = [ _F1={ 1, 2, 3 } ],
+	IndexedFaces = [ _IF1={ 1, 2, 3 } ],
 
 	FaceType = triangle,
 
@@ -221,8 +221,12 @@ create_mv_state() ->
 	TriangleGradVertices =
 		[ point3:translate( P, VOffset ) || P <- TriangleSolidVertices ],
 
-	GradElemColors = [ gui_color:get_color( C ) || C <- [ red, green, blue ] ],
-	GradRenderingInfo = { colored, _FColorType=per_vertex, GradElemColors },
+	GradElemColors = { gui_color:get_color( red ), gui_color:get_color( green ),
+					   gui_color:get_color( blue ) },
+
+	% Like always, a single face:
+	GradRenderingInfo = { colored, _FColorType=per_vertex,
+						  [ _CF1=GradElemColors ] },
 
 	TriangleGradMesh = mesh:create( TriangleGradVertices, FaceType,
 									IndexedFaces, GradRenderingInfo ),
@@ -243,11 +247,13 @@ create_mv_state() ->
 	test_facilities:display( "Having now a ~ts.",
 		[ gui_texture:cache_to_string( ReadyTextureCache ) ] ),
 
-	% As 2D texture coordinates range from 0 to 1 in the X and Y axes:
-	UVVertices = [ { 0, 0 }, { 1, 0 }, { 0.5, 1 } ],
+	% As 2D texture coordinates range from 0 to 1 (as floats) in the X and Y
+	% axes:
+	%
+	UVVertices = { { 0.0, 0.0 }, { 1.0, 0.0 }, { 0.5, 1.0 } },
 
 	% Single texture, single face here:
-	TexRenderingInfo = { textured, TextureSpecId, [ UVVertices ] },
+	TexRenderingInfo = { textured, TextureSpecId, [ _TexF1=UVVertices ] },
 
 	TriangleTexMesh = mesh:create( TriangleTexVertices, FaceType,
 								   IndexedFaces, TexRenderingInfo ),

@@ -55,7 +55,7 @@
 
 	% Each element of the FaceColors list (third element of the triplet below)
 	% corresponds to the element of the same rank in the 'faces' field of the
-	% mesh, knowing that the type of these elements depends on FaceColoringType
+	% mesh, knowing that the type of these elements depends on FaceGranularity
 	% (second element of the triplet):
 	%
 	%  - if this face coloring type is per_vertex, then a color is assigned to
@@ -74,7 +74,7 @@
 	% (these are solid colors, with no transparency here; RGB as triplets of
 	% integers - not in [0.0,1.0])
 	%
-  | { 'colored', FaceColoringType :: face_coloring_type(),
+  | { 'colored', FaceGranularity :: face_granularity(),
 	  % A list of either colors or tuples of colors:
 	  FaceColors :: [ tuploid( color_by_decimal() ) ] }
 
@@ -110,8 +110,8 @@
 -include("mesh.hrl").
 
 
--type face_coloring_type() :: 'per_vertex' | 'per_face'.
-% Defines how a coloring shall be applied to a face.
+-type face_granularity() :: 'per_vertex' | 'per_face'.
+% Defines the granularity of the rendering information for a given face.
 
 
 % Now assuming a single texture atlas is used:
@@ -143,14 +143,14 @@
 
 
 -export_type([ rendering_info/0, rendering_state/0,
-			   face_coloring_type/0, texture_face_info/0,
+			   face_granularity/0, texture_face_info/0,
 			   render_element/0 ]).
 
 
 
 % Rendering operations on meshes.
 
--export([ canonicalise_rendering_info/3, tessellate_rendering_info/2,
+-export([ canonicalise_rendering_info/2, tessellate_rendering_info/2,
 
 		  initialise_for_opengl/2, initialise_for_opengl/3,
 		  render_as_opengl/1, cleanup_for_opengl/1,
@@ -160,8 +160,6 @@
 
 
 % Shorthands:
-
--type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 
@@ -186,6 +184,7 @@
 -type indexed_face() :: mesh:indexed_face().
 -type face_type() :: mesh:face_type().
 -type mesh() :: mesh:mesh().
+-type vertex_count() :: mesh:vertex_count().
 
 
 
@@ -230,62 +229,60 @@
 % @doc Canonicalises and checks the specified, probably user-defined, term as a
 % legit rendering information, and returns it.
 %
+% Note that, should faces be to checked, they are expected to have already been
+% checked.
+%
 -spec canonicalise_rendering_info( term(), [ indexed_face() ] ) ->
 										rendering_info().
-canonicalise_rendering_info( RenderInfo=none, Faces ) ->
-	cond_utils:if_defined( myriad_check_mesh, check_faces( Faces ),
-						   basic_utils:ignore_unused( Faces ) ),
+canonicalise_rendering_info( RenderInfo=none, _Faces ) ->
 	RenderInfo;
+
 
 canonicalise_rendering_info(
 		RenderInfo={ wireframe, RGBEdgeColor, AreHiddenFacesRemoved },
-		Faces ) ->
+		_Faces ) ->
 	cond_utils:if_defined( myriad_check_mesh,
 		begin
 			gui_color:check_color_by_decimal( RGBEdgeColor ),
 			type_utils:check_boolean( AreHiddenFacesRemoved ),
-			check_faces( Faces ),
-			basic_utils:ignore_unused(
-				[ RGBEdgeColor, AreHiddenFacesRemoved, Faces ] )
+			basic_utils:ignore_unused( [ RGBEdgeColor, AreHiddenFacesRemoved ] )
 		end	),
 	RenderInfo;
 
+
 canonicalise_rendering_info(
-		RenderInfo={ colored, FaceColoringType, FaceColors }, Faces ) ->
+		RenderInfo={ colored, FaceGranularity, FaceColorElems }, Faces ) ->
 
-	[ gui_color:check_color_by_decimal( FC ) || FC <- FaceColors ],
-
-	cond_utils:if_defined( myriad_check_mesh, check_faces( Faces ) ),
 	FaceCount = length( Faces ),
 
-	% Currently always activated:
-	case length( FaceColors ) of
+	% Check currently always activated:
+	case length( FaceColorElems ) of
 
 		FaceCount ->
 			ok;
 
 		FaceColorElemCount ->
-			throw( { face_color_counts_mismatch, FaceCount,
+			throw( { face_color_element_counts_mismatch, FaceCount,
 					 FaceColorElemCount } )
 
 	end,
 
 	cond_utils:if_defined( myriad_check_mesh,
-		case FaceColoringType of
+		case FaceGranularity of
 
 			per_vertex ->
 				% Checks that a color corresponds to each vertex identifier
-				% (faces already checked taht are of homogeneous size):
+				% (faces already checked that are of homogeneous size):
 				%
-				FaceVCount = size( hd( Face ) ),
+				FaceVCount = size( hd( Faces ) ),
 				[ begin
-					basic_utils:assert_equal( FaceVCount, size( ColTuple ) )
+					basic_utils:assert_equal( FaceVCount, size( ColTuple ) ),
 					[ gui_color:check_color_by_decimal( C )
 						|| C <- tuple_to_list( ColTuple ) ]
-				  end || ColTuple <- FaceColors ];
+				  end || ColTuple <- FaceColorElems ];
 
 			per_face ->
-				[ gui_color:check_color_by_decimal( C ) || C <- FaceColors ]
+				[ gui_color:check_color_by_decimal( C ) || C <- FaceColorElems ]
 
 		end ),
 
@@ -293,23 +290,41 @@ canonicalise_rendering_info(
 
 
 canonicalise_rendering_info(
-		RenderInfo={ textured, _TexSpecId, FaceInfos }, _Vertices, Faces ) ->
+		RenderInfo={ textured, TexSpecId, TexFaceInfos }, Faces ) ->
+
+	mesh:check_indice( TexSpecId ),
 
 	FaceCount = length( Faces ),
-	case length( FaceInfos ) of
+
+	% Check currently always activated:
+	case length( TexFaceInfos ) of
 
 		FaceCount ->
 			ok;
 
-		FICount ->
-			throw( { face_information_count_mismatch, FaceCount, FICount } )
+		FaceTexFaceInfoCount ->
+			throw( { face_texture_information_counts_mismatch, FaceCount,
+					 FaceTexFaceInfoCount } )
 
 	end,
 
+	[ check_texture_face_info( TFI ) || TFI <- TexFaceInfos ],
+
 	RenderInfo;
 
-canonicalise_rendering_info( Other, _Vertices, _Faces ) ->
+
+canonicalise_rendering_info( Other, _Faces ) ->
 	throw( { invalid_mesh_rendering_information, Other } ).
+
+
+
+% @doc Checks whether the specified term is a legit texture face information,
+% and returns it.
+%
+-spec check_texture_face_info( term() ) -> texture_face_info().
+check_texture_face_info( T ) when is_tuple( T ) ->
+	[ gui_texture:check_texture_coordinate_pair( P )
+		|| P <- tuple_to_list( T ) ].
 
 
 
@@ -326,7 +341,7 @@ tessellate_rendering_info( _OrigFaceType=quad,
 	RenderInfo;
 
 tessellate_rendering_info( _OrigFaceType=quad,
-		_RenderInfo={ colored, _FaceColoringType=per_vertex,
+		_RenderInfo={ colored, _FaceGranularity=per_vertex,
 					  VtxColors } ) ->
 	% A Q1-Q2-Q3-Q4 quad becoming two Q1-Q2-Q3 and Q3-Q4-Q1 triangles:
 	% FIXME RENAME
@@ -335,7 +350,7 @@ tessellate_rendering_info( _OrigFaceType=quad,
 	{ colored, per_vertex, VtxColors };
 
 tessellate_rendering_info( _OrigFaceType=quad,
-		_RenderInfo={ colored, _FaceColoringType=per_face, ElemColors } ) ->
+		_RenderInfo={ colored, _FaceGranularity=per_face, ElemColors } ) ->
 	% Each quad becoming two triangles of the same color:
 	{ colored, per_face, list_utils:repeat_elements( ElemColors, _Count=2 ) };
 
@@ -420,7 +435,7 @@ initialise_for_opengl( Mesh=#mesh{
 
 % For triangle faces in wireframe mode:
 initialise_for_opengl( Mesh=#mesh{
-		vertices=Vertices,
+		vertices=AllVertices,
 		face_type=triangle,
 		faces=IndexedFaces,
 		% Normals currently ignored (useful for lighting only):
@@ -445,7 +460,7 @@ initialise_for_opengl( Mesh=#mesh{
 											_Count=length( IndexedFaces ) ),
 
 	{ AttrSeries, CompoundCount } = prepare_vattrs_per_face( IndexedFaces,
-		_SingleList=[ FloatFaceColors ], Vertices, _FaceVCount=3 ),
+		_SingleVAList=[ FloatFaceColors ], AllVertices, _FaceVCount=3 ),
 
 	% vtx3_rgb layout: in the buffer, first write a vertex, at the conventional
 	% index location for vertices, then a color, at their dedicated location as
@@ -473,7 +488,7 @@ initialise_for_opengl( Mesh=#mesh{
 
 % For triangle faces and solid, per-face colors:
 initialise_for_opengl( Mesh=#mesh{
-		vertices=Vertices,
+		vertices=AllVertices,
 		face_type=triangle,
 		faces=IndexedFaces,
 		% Normals currently ignored (useful for lighting only):
@@ -486,12 +501,15 @@ initialise_for_opengl( Mesh=#mesh{
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
 			"(triangle faces, per-face color) ~ts.", [ to_string( Mesh ) ] ) ),
 
-	% Sanity check for input data:
+	% Sanity check for input data (to be commented-out as already checked when
+	% canonicalised):
+
 	FaceCount = length( IndexedFaces ),
 	FaceColorCount = length( FaceColors ),
 
 	FaceCount =:= FaceColorCount orelse
 		throw( { mismatching_face_data, FaceCount, FaceColorCount } ),
+
 
 	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
 	% normals - at least currently ignored - and no texture coordinates, just a
@@ -514,7 +532,7 @@ initialise_for_opengl( Mesh=#mesh{
 	% vertices and one color, so:
 	%
 	{ AttrSeries, CompoundCount } = prepare_vattrs_per_face( IndexedFaces,
-		_SingleList=[ FloatFaceColors ], Vertices, _FaceVCount=3 ),
+		_SingleVAList=[ FloatFaceColors ], AllVertices, _FaceVCount=3 ),
 
 	% vtx3_rgb layout: in the buffer, first write a vertex, at the conventional
 	% index location for vertices, then a color, at their dedicated location as
@@ -557,27 +575,19 @@ initialise_for_opengl( Mesh=#mesh{
 
 % For triangle faces and solid, per-vertex colors for each face:
 initialise_for_opengl( Mesh=#mesh{
-		vertices=Vertices,
+		vertices=AllVertices,
 		face_type=triangle,
 		faces=IndexedFaces,
 		% Normals currently ignored (useful for lighting only):
 		%normal_type=per_{vertex,face},
 		%normals=MaybeNormals,
-		rendering_info={ colored, per_vertex, VertexColors },
+		rendering_info={ colored, per_vertex, PerFaceVertexColors },
 		rendering_state=undefined }, ProgramId, MaybeTextureCache ) ->
 
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
 			"(triangle faces, per-vertex color) ~ts.",
 			[ to_string( Mesh ) ] ) ),
-
-	% Sanity check for input data (yet some vertices could not be used):
-	VertexCount = length( Vertices ),
-	VertexColorCount = length( VertexColors ),
-
-	% As we consider there is one color per vertex, regardless of faces:
-	VertexCount =:= VertexColorCount orelse
-		throw( { mismatching_vertex_data, VertexCount, VertexColorCount } ),
 
 	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
 	% normals - at least currently ignored - and no texture coordinates, just a
@@ -588,7 +598,7 @@ initialise_for_opengl( Mesh=#mesh{
 	MeshVAOId = gui_shader:set_new_vao(),
 
 	% OpenGL could have been requested to normalise the data by itself instead:
-	FloatVertexColors = gui_color:decimal_to_render( VertexColors ),
+	FloatVertexColors = decimal_to_render_color_tuple( PerFaceVertexColors ),
 
 	% We use an EBO, yet duplication will be needed, as a given vertex is
 	% expected to pertain to multiple faces, each with its own (normal and)
@@ -600,8 +610,7 @@ initialise_for_opengl( Mesh=#mesh{
 	% vertices and three colors, so:
 	%
 	{ AttrSeries, CompoundCount } = prepare_vattrs_per_vertex( IndexedFaces,
-NO: THROUGH VERTICES PER FACE
-		_SingleList=[ FloatVertexColors ], Vertices, _FaceVCount=3 ),
+		_SingleVAList=[ FloatVertexColors ], AllVertices, _FaceVCount=3 ),
 
 	% vtx3_rgb layout: in the buffer, first write a vertex, at the conventional
 	% index location for vertices, then a color, at their dedicated location as
@@ -719,7 +728,7 @@ initialise_for_opengl( Mesh=#mesh{
 	MeshVBOId = gui_shader:assign_new_vbo_from_attribute_series_with(
 		AttrSeries, VAIs ),
 
-	ElemCount = length( Vertices ),
+	ElemCount = array:size( Vertices ),
 
 	% As a plain list of indices (not for example a list of triplets of
 	% indices), preferably in CCW order:
@@ -765,25 +774,35 @@ initialise_for_opengl( _Meshes=[ M | T ], ProgramId, MaybeTextureCache ) ->
 	{ [ NewM | NewT ], NewTTexCache }.
 
 
+% Returns a tuple whose elements are render colors, based on the specified one
+% whose elements are RGB colors.
+%
+-spec decimal_to_render_color_tuple( tuple( color_by_decimal() ) ) ->
+										tuple( render_rgb_color() ).
+decimal_to_render_color_tuple( TupleOfRGBColors ) ->
+	[ begin
+		  RenderColors = gui_color:decimal_to_render(
+						   tuple_to_list( ColorTuple ) ),
+		  list_to_tuple( RenderColors )
+	  end || ColorTuple <- TupleOfRGBColors ].
+
+
 
 % @doc Recalibrates the texture coordinates for each face: returns a
-% corresponding, single, overall list of texture coordinates.
+% corresponding, single, overall list of updated tuples of texture coordinates.
 %
-%-spec recalibrate_tex_coords_for( [ texture_face_info() ], texture_spec_id(),
-%				texture_cache() ) -> { [ [ uv_point() ] ], texture_cache() }.
 -spec recalibrate_tex_coords_for( [ texture_face_info() ], texture() ) ->
-												[ uv_point() ].
-% Could be almost a simple list comprehension; avoiding useless reversings with
-% body-recursion:
-%
+												tuple( uv_point() ).
+% Avoiding useless reversings with body-recursion:
 recalibrate_tex_coords_for( _TexFaceInfos=[], _Texture ) ->
 	[];
 
-recalibrate_tex_coords_for( _TexFaceInfos=[ UVPoints | T ], Texture ) ->
-	RecalUVPoints =
-		gui_texture:recalibrate_coordinates_for( UVPoints, Texture ),
+recalibrate_tex_coords_for( _TexFaceInfos=[ TupleOfUVPoints | T ], Texture ) ->
+	RecalTupleOfUVPoints = list_to_tuple(
+		gui_texture:recalibrate_coordinates_for(
+			tuple_to_list( TupleOfUVPoints ), Texture ) ),
 
-	RecalUVPoints ++ recalibrate_tex_coords_for( T, Texture ).
+	[ RecalTupleOfUVPoints | recalibrate_tex_coords_for( T, Texture ) ].
 
 
 % (helper)
@@ -837,18 +856,19 @@ recalibrate_tex_coords_for( _TexFaceInfos=[ UVPoints | T ], Texture ) ->
 % found in the list of indexed faces, should the tuple fronteers be ignored.
 %
 % For example, if IndexedFaces = [{V1Id,VId2,V3Id}, {V4Id,V5Id,V6Id}, ...], then
-% the 4th element of each of the lists in Elementss will correspond to the
-% compound for V4.
+% the second element of each of the lists in Elementss will correspond to the
+% compound for V2, it will be for example Col2 :: color_by_decimal().
 %
 -spec prepare_vattrs_per_vertex( [ indexed_face() ], [ [ render_element() ] ],
-								 [ vertex3() ], compound_count() ) ->
+								 [ vertex3() ], vertex_count() ) ->
 			{ [ vertex_attribute_series() ], compound_count() }.
 prepare_vattrs_per_vertex( IndexedFaces, Elementss, AllVertices, FaceVCount ) ->
 
 	FaceCount = length( IndexedFaces ),
 
-	trace_utils:debug_fmt( "Preparing vertex attributes with ~B elements "
-		"per vertex: the ~B faces are ~w, the elements to associate are:~n ~w.",
+	trace_utils:debug_fmt( "Preparing vertex attribute compounds "
+		"with ~B extra elements per vertex: the ~B faces are ~w, "
+		"the elements to associate are:~n ~w.",
 		[ length( Elementss ), FaceCount, IndexedFaces, Elementss ] ),
 
 	% Expected to be uniform (cf. face_type):
@@ -857,75 +877,66 @@ prepare_vattrs_per_vertex( IndexedFaces, Elementss, AllVertices, FaceVCount ) ->
 		throw( { incorrect_per_face_vertex_count, FaceVCount,
 				 ActualFaceVCount } ),
 
-	% As each face will result in FaceVCount vertex attribute compounds:
-	VACompoundCount = FaceVCount * FaceCount,
+	% Each element must correspond to an indexed face (tuple of the same size):
+	check_element_structures( Elementss, FaceVCount, _ElemListCount=1 ),
 
+	% In terms of multiplicities: an element (e.g. a color tuple) must be
+	% defined for each vertex referenced by each face:
+	%
 	case list_utils:check_same_length( Elementss ) of
 
-		VACompoundCount ->
+		FaceCount ->
 			ok;
 
-		ElemCount ->
+		OtherElemCount ->
 			% Here all element lists have the same length, but it does not
 			% correspond to the compound count:
 			%
-			throw( { elements_compound_counts_mismatch, VACompoundCount,
-					 ElemCount } )
+			throw( { face_element_counts_mismatch, FaceCount, OtherElemCount } )
 
 	end,
 
 	% Same sublist order, each of them is reversed, like IndexedFaces will be:
 	RevElemss = [ lists:reverse( Es ) || Es <- Elementss ],
 
-	InitToStoreElemsAcc = list_utils:duplicate( _Term=[],
-												_Count=length( Elementss ) ),
+	InitToStoreElemsAcc =
+		list_utils:duplicate( _InitTerm=[], _Count=length( Elementss ) ),
 
 	% Preserving face order in the returned lists (at least clearer that way;
 	% possibly helping keeping in sync with any EBO prebuilt indices); and
 	% reversing better done earlier than later, after duplications
-	% (cheaper/simpler):
+	% (cheaper/simpler); CompoundCount is the resulting number of vertex
+	% attribute compounds:
 	%
-	prepare_vattrs_per_vertex( lists:reverse( IndexedFaces ), RevElemss,
-		AllVertices, _ToStoreVtxAcc=[], InitToStoreElemsAcc, FaceVCount,
-		_CompoundCount=0 ).
+	prepare_vattrs( _FaceGranularity=per_vertex, lists:reverse( IndexedFaces ),
+		RevElemss, AllVertices, _ToStoreVtxAcc=[], InitToStoreElemsAcc,
+		FaceVCount, _CompoundCount=0 ).
 
 
 
-% (helper)
+% Checks the structure of the elements of each of the specified lists (supposing
+% that all elements of a list respect the same structure as its head).
 %
-% By design, all lists in RevElemss are empty as well:
-prepare_vattrs_per_vertex( _RevIndexedFaces=[], RevElemss, _AllVertices,
-		ToStoreVtxAcc, ToStoreElemsAcc, _FaceVCount, CompoundCount ) ->
+check_element_structures( _Elementss=[], _FaceVCount, _ElemListCount ) ->
+	ok;
 
-	% cond_utils:assert/3 not relevant here:
-	cond_utils:if_defined( myriad_debug_shaders, basic_utils:assert_equal( [],
-								list_utils:flatten_once( RevElemss ) ),
-						   basic_utils:ignore_unused( RevElemss ) ),
+% The head of current list is correct here (tail supposed alike):
+check_element_structures( _Elementss=[ _EList=[ HE | _TE ] | T ], FaceVCount,
+						  ElemListCount )
+		when is_tuple( HE ) andalso size( HE ) =:= FaceVCount ->
+	check_element_structures( T, FaceVCount, ElemListCount+1 );
 
-	{ [ ToStoreVtxAcc | ToStoreElemsAcc ], CompoundCount };
+% Tuple found, but of different size:
+check_element_structures( _Elementss=[ _EList=[ HE | _TE ] | _T ], FaceVCount,
+						  ElemListCount ) when is_tuple( HE ) ->
+	throw( { incorrect_vattr_tuple_size, { got, size( HE ), HE },
+		{ expected, FaceVCount }, { vattr_list_count, ElemListCount } } );
 
+% Not even a tuple:
+ check_element_structures( _Elementss=[ _EList=[ HE | _TE ] | _T ], _FaceVCount,
+						   ElemListCount ) ->
+	throw( { invalid_vattr_type, HE, { vattr_list_count, ElemListCount } } ).
 
-prepare_vattrs_per_vertex( _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
-		RevElemss, AllVertices, ToStoreVtxAcc, ToStoreElemsAcc,
-		FaceVCount, CompoundCount ) ->
-
-	% Reversing the vertex indices as their elements will be extracte from the
-	% element lists that were reversed:
-	%
-	FaceVIds = lists:reverse( tuple_to_list( VIdTuple ) ),
-	FaceVs = mesh:get_elements_from_ids( FaceVIds, AllVertices ),
-	NewToStoreVtxAcc = FaceVs ++ ToStoreVtxAcc,
-
-	% Chops all FaceVCount multi-heads from RevElemss for this face:
-	{ FaceMultiHeadsElems, FaceMultiTailsElems } =
-		list_utils:split_multi_heads_tails( RevElemss, _HeadLen=FaceVCount ),
-
-	NewToStoreElemsAcc =
-		list_utils:concatenate_as_heads( FaceMultiHeadsElems, ToStoreElemsAcc ),
-
-	prepare_vattrs_per_vertex( TIndexedFaces, FaceMultiTailsElems, AllVertices,
-		NewToStoreVtxAcc, NewToStoreElemsAcc, FaceVCount,
-		CompoundCount+FaceVCount ).
 
 
 
@@ -953,7 +964,7 @@ prepare_vattrs_per_vertex( _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
 % list at the same rank as this face.
 %
 -spec prepare_vattrs_per_face( [ indexed_face() ], [ [ render_element() ] ],
-							   [ vertex3() ], count() ) ->
+							   [ vertex3() ], vertex_count() ) ->
 			{ [ vertex_attribute_series() ], compound_count() }.
 prepare_vattrs_per_face( IndexedFaces, Elementss, AllVertices, FaceVCount ) ->
 
@@ -974,64 +985,78 @@ prepare_vattrs_per_face( IndexedFaces, Elementss, AllVertices, FaceVCount ) ->
 		FaceCount ->
 			ok;
 
-		ElemCount ->
+		OtherElemCount ->
 			% Here all element lists have the same length, but it does not
 			% correspond to the face count:
 			%
-			throw( { element_face_counts_mismatch, FaceCount, ElemCount } )
+			throw( { face_element_counts_mismatch, FaceCount, OtherElemCount } )
 
 	end,
 
 	% Same sublist order, each of them is reversed, like IndexedFaces will be:
 	RevElemss = [ lists:reverse( Es ) || Es <- Elementss ],
 
-	InitToStoreElemsAcc = list_utils:duplicate( _Term=[],
-												_Count=length( Elementss ) ),
+	InitToStoreElemsAcc =
+		list_utils:duplicate( _InitTerm=[],	_Count=length( Elementss ) ),
 
 	% Preserving face order in the returned lists (at least clearer that way;
 	% possibly helping keeping in sync with any EBO prebuilt indices); and
 	% reversing better done earlier than later, after duplications
-	% (cheaper/simpler):
+	% (cheaper/simpler); CompoundCount is the resulting number of vertex
+	% attribute compounds:
 	%
-	prepare_vattrs_per_face( lists:reverse( IndexedFaces ), RevElemss,
-		AllVertices, _ToStoreVtxAcc=[], InitToStoreElemsAcc, FaceVCount,
-		_CompoundCount=0 ).
+	prepare_vattrs( _FaceGranularity=per_face, lists:reverse( IndexedFaces ),
+		RevElemss, AllVertices, _ToStoreVtxAcc=[], InitToStoreElemsAcc,
+		FaceVCount, _CompoundCount=0 ).
 
 
 
 % (helper)
 %
 % By design, all lists in RevElemss are empty as well:
-prepare_vattrs_per_face( _RevIndexedFaces=[], RevElemss, _AllVertices,
+prepare_vattrs( _FaceGranularity, _RevIndexedFaces=[], RevElemss, _AllVertices,
 		ToStoreVtxAcc, ToStoreElemsAcc, _FaceVCount, CompoundCount ) ->
 
 	% cond_utils:assert/3 not relevant here:
-	cond_utils:if_defined( myriad_debug_shaders, basic_utils:assert_equal( [],
-								list_utils:flatten_once( RevElemss ) ),
-						   basic_utils:ignore_unused( RevElemss ) ),
+	cond_utils:if_defined( myriad_debug_shaders,
+		basic_utils:assert_equal( [], list_utils:flatten_once( RevElemss ) ),
+		basic_utils:ignore_unused( RevElemss ) ),
 
+	% No reversing must be done:
 	{ [ ToStoreVtxAcc | ToStoreElemsAcc ], CompoundCount };
 
 
-prepare_vattrs_per_face( _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
-		RevElemss, AllVertices, ToStoreVtxAcc, ToStoreElemsAcc,
-		FaceVCount, CompoundCount ) ->
+prepare_vattrs( FaceGranularity, _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
+		RevElemss, AllVertices, ToStoreVtxAcc, ToStoreElemsAcc, FaceVCount,
+		CompoundCount ) ->
 
+	% First, for each face, take care of the referenced vertices:
 	FaceVIds = tuple_to_list( VIdTuple ),
-	FaceVs = mesh:get_elements_from_ids( FaceVIds, AllVertices ),
+
+	FaceVs = mesh:get_vertices_from_ids( FaceVIds, AllVertices ),
 	NewToStoreVtxAcc = FaceVs ++ ToStoreVtxAcc,
 
-	% Chops all heads from RevElemss for this face:
+	% Chops all tuple heads for this face (elements already checked for sizes):
 	{ FaceHeadElems, FaceTailElems } =
 		list_utils:split_heads_tails( RevElemss ),
 
-	DuplFaceHElems = [ list_utils:duplicate( _Elem=H, _Cnt=FaceVCount )
-										|| H <- FaceHeadElems ],
+	ToAppendLists = case FaceGranularity of
 
-	NewToStoreElemsAcc = list_utils:concatenate_per_rank( DuplFaceHElems,
-														  ToStoreElemsAcc ),
+		per_vertex ->
+			[ tuple_to_list( ElemTuple ) || ElemTuple <- FaceHeadElems ];
 
-	prepare_vattrs_per_face( TIndexedFaces, FaceTailElems, AllVertices,
+		per_face ->
+			[ list_utils:duplicate( Elem, _Count=FaceVCount )
+										 || Elem <- FaceHeadElems ]
+
+	end,
+
+
+	% Adds these first element to be stored:
+	NewToStoreElemsAcc =
+		list_utils:concatenate_per_rank( ToAppendLists, ToStoreElemsAcc ),
+
+	prepare_vattrs( FaceGranularity, TIndexedFaces, FaceTailElems, AllVertices,
 		NewToStoreVtxAcc, NewToStoreElemsAcc, FaceVCount,
 		CompoundCount+FaceVCount ).
 
@@ -1197,7 +1222,7 @@ rendering_info_to_string( _RI={ wireframe, RGBEdgeColor,
 
 rendering_info_to_string( _RI={ colored, ColoringType, Colors } ) ->
 	text_utils:format( "~ts rendering based on ~B colors: ~w",
-		[ face_coloring_type_to_string( ColoringType), length( Colors ),
+		[ face_granularity_to_string( ColoringType), length( Colors ),
 		  Colors ] );
 
 %rendering_info_to_string( _RI={ textured, TexInfos } ) ->
@@ -1225,7 +1250,7 @@ rendering_info_to_compact_string(
 
 rendering_info_to_compact_string( _RI={ colored, ColoringType, Colors } ) ->
 	text_utils:format( "~ts rendering based on ~B colors: ~w",
-		[ face_coloring_type_to_string( ColoringType), length( Colors ),
+		[ face_granularity_to_string( ColoringType), length( Colors ),
 		  Colors ] );
 
 %rendering_info_to_compact_string( _RI={ textured, _TextureInfo } ) ->
@@ -1253,10 +1278,10 @@ rendering_state_to_string( #rendering_state{ program_id=ProgramId,
 		[ ProgramId, VAOId, VBOId, VBOLayout, CompoundCount, EBOId ] ).
 
 
-% @doc Returns a textual description of the specified face coloring type.
--spec face_coloring_type_to_string( face_coloring_type() ) -> ustring().
-face_coloring_type_to_string( _FCT=per_vertex ) ->
+% @doc Returns a textual description of the specified face granularity.
+-spec face_granularity_to_string( face_granularity() ) -> ustring().
+face_granularity_to_string( _FG=per_vertex ) ->
 	"per-vertex";
 
-face_coloring_type_to_string( _FCT=per_face ) ->
+face_granularity_to_string( _FG=per_face ) ->
 	"per-face".

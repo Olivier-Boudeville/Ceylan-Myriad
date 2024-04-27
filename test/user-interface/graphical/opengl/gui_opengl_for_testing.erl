@@ -77,7 +77,7 @@
 -type mesh() :: mesh:mesh().
 -type indexed_face() :: mesh:indexed_face().
 -type indexed_triangle() :: mesh:indexed_triangle().
--type face_coloring_type() :: mesh:face_coloring_type().
+-type face_granularity() :: mesh:face_granularity().
 
 
 
@@ -183,14 +183,14 @@ get_myriad_blue_render() ->
 
 
 % @doc Returns a mesh corresponding to the Myriad test tetrahedron.
--spec get_test_tetra_mesh( face_coloring_type() ) -> mesh().
-get_test_tetra_mesh( FaceColoringType ) ->
+-spec get_test_tetra_mesh( face_granularity() ) -> mesh().
+get_test_tetra_mesh( FaceGranularity ) ->
 	Vertices = get_test_tetra_vertices(),
 	Faces = get_test_tetra_faces(),
 	Normals = get_test_tetra_normals(),
 
 	% Colors can be used for vertices or faces (4 of them are needed):
-	RenderingInfo = { color, FaceColoringType, get_test_tetra_colors() },
+	RenderingInfo = { color, FaceGranularity, get_test_tetra_colors() },
 
 	mesh:create( Vertices, _FaceType=triangle, Faces,
 				 _NormalType=per_face, Normals, RenderingInfo ).
@@ -259,14 +259,14 @@ get_test_tetra_colors() ->
 % @doc Returns a mesh corresponding to a Myriad test colored cube of the
 % specified edge length.
 %
--spec get_test_colored_cube_mesh( distance(), face_coloring_type() ) -> mesh().
-get_test_colored_cube_mesh( EdgeLength, FaceColoringType ) ->
+-spec get_test_colored_cube_mesh( distance(), face_granularity() ) -> mesh().
+get_test_colored_cube_mesh( EdgeLength, FaceGranularity ) ->
 	Vertices = get_test_cube_vertices( EdgeLength ),
 	Faces = get_test_cube_faces(),
 	Normals = get_test_cube_normals(),
 
-	RenderingInfo = { color, FaceColoringType,
-					  get_test_cube_colors( FaceColoringType ) },
+	RenderingInfo = { color, FaceGranularity,
+					  get_test_cube_colors( FaceGranularity ) },
 
 	mesh:create( Vertices, _FaceType=quad, Faces,
 				 _NormalType=per_face, Normals, RenderingInfo ).
@@ -316,20 +316,20 @@ get_test_cube_normals() ->
 
 
 % @doc Returns the colors to be used to render the test cube, depending on the
-% specified face coloring type: either 8 per-vertex (not per-face) RGB integer
+% specified face granularity: either 8 per-vertex (not per-face) RGB integer
 % colors, or 6 per-face ones.
 %
--spec get_test_cube_colors( face_coloring_type() ) -> [ color_by_decimal() ].
-get_test_cube_colors( FaceColoringType ) ->
+-spec get_test_cube_colors( face_granularity() ) -> [ color_by_decimal() ].
+get_test_cube_colors( FaceGranularity ) ->
 	[ gui_color:get_color( CName )
-		|| CName <- get_cube_color_names( FaceColoringType ) ].
+		|| CName <- get_cube_color_names( FaceGranularity ) ].
 
 
 % (helper)
-get_cube_color_names( _FaceColoringType=per_vertex ) ->
+get_cube_color_names( _FaceGranularity=per_vertex ) ->
 	[ red, green, blue, yellow, cyan, pink, gray, maroon ];
 
-get_cube_color_names( _FaceColoringType=per_face ) ->
+get_cube_color_names( _FaceGranularity=per_face ) ->
 	[ red, green, blue, yellow, cyan, pink ].
 	%list_utils:duplicate(red, 6).
 

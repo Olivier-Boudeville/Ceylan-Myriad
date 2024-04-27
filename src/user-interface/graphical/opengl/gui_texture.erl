@@ -281,7 +281,11 @@
 
 
 		  get_dimensions/1, get_dimensions/2,
-		  generate_id/0, to_string/1,
+		  generate_id/0,
+
+		  check_texture_coordinate_pair/1,
+
+		  to_string/1,
 
 		  get_pixel_size/1, gl_pixel_format_to_pixel_format/1 ]).
 
@@ -918,6 +922,20 @@ generate_id() ->
 	[ TextureId ] = gl:genTextures( _Count=1 ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ),
 	TextureId.
+
+
+
+% @doc Checks whether the specified term is a legit texture coordinate pair, and
+% returns it.
+%
+-spec check_texture_coordinate_pair( term() ) -> uv_point().
+check_texture_coordinate_pair( P={ U, V } )
+		when is_float( U ) andalso is_float( V ) ->
+	P;
+
+check_texture_coordinate_pair( Other ) ->
+	throw( { invalid_texture_coordinate_pair, Other } ).
+
 
 
 -spec to_string( texture() ) -> ustring().

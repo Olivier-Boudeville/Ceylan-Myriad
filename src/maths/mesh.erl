@@ -47,7 +47,7 @@
 
 -type indice() :: linear:indice().
 % The indice of an element (e.g. vertex, normal, texture coordinate), typically
-% in a data container such as a list or a binary buffer.
+% in a data container such as a list, an array or a binary buffer.
 %
 % As always in Myriad, indices start at 1 (e.g. as opposed to zero-based indexes
 % such as glTF).
@@ -55,6 +55,10 @@
 
 -type vertex_indice() :: indice().
 % The index of a vertex (typically a point3()) in an indexed face.
+
+
+-type vertex_repository() :: array( vertex3() ).
+% A repository of vertices, typically to be referenced based on their indice.
 
 
 -type face_type() :: 'triangle' | 'quad'.
@@ -141,6 +145,8 @@
 % Other operations, lower-level:
 -export([ compute_normal/2,
 		  get_vertex_count_for_face_type/1, get_face_type/1,
+		  check_faces/2, check_face/2, check_indice/1,
+		  get_vertex_from_id/2, get_vertices_from_ids/2,
 		  get_element_from_id/2, get_elements_from_ids/2 ]).
 
 
@@ -156,7 +162,7 @@
 -type ustring() :: text_utils:ustring().
 
 -type tuple( T ) :: type_utils:tuple( T ).
-
+-type array( T ) :: array:array( T ).
 
 -type vertex3() :: point3:vertex3().
 
@@ -210,8 +216,7 @@ create( Vertices, FaceType, Faces ) ->
 			  rendering_info() ) -> mesh().
 create( Vertices, FaceType, Faces, RenderingInfo ) ->
 	create( Vertices, FaceType, Faces, _AnyNormalType=per_face,
-		_MaybeNormals=undefined,
-		mesh_render:canonicalise_rendering_info( RenderingInfo, Faces ) ).
+		_MaybeNormals=undefined, RenderingInfo ).
 
 
 
@@ -225,9 +230,8 @@ create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 
 	cond_utils:if_defined( myriad_check_mesh,
 		begin
-			ExpectedVertexCount = get_vertex_count_for_face_type( FaceType ),
-			[ basic_utils:assert_equal( ExpectedVertexCount, size( F ) )
-				|| F <- Faces ],
+			check_faces( Faces, get_vertex_count_for_face_type( FaceType ) ),
+
 			MaybeNormals =:= undefined orelse
 				begin
 					vector3:check_unit_vectors( MaybeNormals ),
@@ -238,7 +242,7 @@ create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 							% Assuming all vertices are involved in at least a
 							% face:
 							%
-							VertexCount = length( Vertices ),
+							VertexCount = array:size( Vertices ),
 							basic_utils:assert_equal( NormalCount,
 													  VertexCount );
 
@@ -252,7 +256,7 @@ create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 		end ),
 
 	CanonRenderingInfo = mesh_render:canonicalise_rendering_info( RenderingInfo,
-		Vertices, Faces ),
+																  Faces ),
 
 	#mesh{ vertices=array:from_list( Vertices ),
 		   face_type=FaceType,
@@ -283,6 +287,38 @@ get_face_type( IndexedFace ) when is_tuple( IndexedFace )
 get_face_type( IndexedFace ) when is_tuple( IndexedFace )
 								  andalso size( IndexedFace ) =:= 4 ->
 	quad.
+
+
+
+% @doc Checks whether the specified term is a legit list of faces, and returns
+% it.
+%
+-spec check_faces( term(), vertex_count() ) -> [ indexed_face() ].
+check_faces( Faces, VCount ) when is_list( Faces ) ->
+	[ check_face( F, VCount ) || F <- Faces ];
+
+check_faces( Other, _VCount ) ->
+	throw( { invalid_faces, Other } ).
+
+
+% @doc Checks whether the specified term is a legit face, and returns it.
+-spec check_face( term(), vertex_count() ) -> indexed_face().
+check_face( Face, VCount )
+		when is_tuple( Face ) andalso size( Face ) =:= VCount ->
+	[ check_indice( VId ) || VId <- tuple_to_list( Face ) ];
+
+check_face( Other, _VCount ) ->
+	throw( { invalid_faces, Other } ).
+
+
+% @doc Checks whether the specified term is a legit indice, and returns it.
+-spec check_indice( term() ) -> indice().
+check_indice( Id ) when is_integer( Id ) andalso Id > 0 ->
+	Id;
+
+check_indice( Other ) ->
+	throw( { invalid_indice, Other } ).
+
 
 
 
@@ -419,8 +455,27 @@ indexed_faces_to_triangles( Faces ) ->
 % Basic helpers.
 
 
-% @doc Returns the element (typically vertex or color) of the specified index
-% relative to the specified referenced mesh elements.
+% @doc Returns the vertex of the specified indice relative to the specified
+% referenced vertex repository.
+%
+-spec get_vertex_from_id( indice(), vertex_repository() ) -> vertex3().
+get_vertex_from_id( Id, VRepository ) ->
+	% As array indices start at zero:
+	array:get( Id-1, VRepository ).
+
+
+% @doc Returns the vertices of the specified indices relative to the specified
+% referenced vertex repository.
+%
+-spec get_vertices_from_ids( [ indice() ], vertex_repository() ) ->
+											[ vertex3() ].
+get_vertices_from_ids( Ids, VRepository ) ->
+	[ get_vertex_from_id( Id, VRepository ) || Id <- Ids ].
+
+
+
+% @doc Returns the element (e.g vertex, color, texture coordinates) of the
+% specified indice relative to the specified referenced mesh elements.
 %
 -spec get_element_from_id( indice(), [ mesh_element() ] ) -> mesh_element().
 get_element_from_id( Id, Elements ) ->
@@ -428,7 +483,7 @@ get_element_from_id( Id, Elements ) ->
 
 
 % @doc Returns the elements (typically vertices, colors, texture coordinates) of
-% the specified indices) relative to the specified referenced lesh elements.
+% the specified indices) relative to the specified referenced mesh elements.
 %
 -spec get_elements_from_ids( [ indice() ], [ mesh_element() ] ) ->
 											[ mesh_element() ].
@@ -490,7 +545,7 @@ to_string( #mesh{ vertices=Vertices,
 		" - ~ts~n"
 		" - ~ts~n"
 		" - bounding volume: ~ts",
-		[ length( Vertices ), Vertices,
+		[ array:size( Vertices ), Vertices,
 		  length( Faces ), face_type_to_string( FaceType ), Faces,
 		  NormalStr, mesh_render:rendering_info_to_string( RenderingInfo ),
 		  RenderStateStr, BVStr ] ).
@@ -531,8 +586,8 @@ to_compact_string( #mesh{ vertices=Vertices,
 
 	text_utils:format( "mesh with ~B vertices, ~B ~ts faces, "
 		"~ts normals, with ~ts, ~ts and ~ts",
-		[ length( Vertices ), length( Faces ), face_type_to_string( FaceType ),
-		  NormalStr,
+		[ array:size( Vertices ), length( Faces ),
+		  face_type_to_string( FaceType ), NormalStr,
 		  mesh_render:rendering_info_to_compact_string( RenderingInfo ),
 		  case MaybeRenderState of
 				undefined -> "no";
