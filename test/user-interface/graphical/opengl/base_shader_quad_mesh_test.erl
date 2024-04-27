@@ -74,6 +74,7 @@
 % Test-specific overall GUI state.
 
 
+
 % In more complex cases, would store the loaded textures, etc.:
 -record( my_opengl_state, {
 
@@ -84,6 +85,7 @@
 
 -type my_opengl_state() :: #my_opengl_state{}.
 % Test-specific overall OpenGL state.
+
 
 
 % Four (mesh-based) quads: one rendered in wireframe, another in a solid
@@ -206,8 +208,9 @@ create_mv_state() ->
 
 	test_facilities:display( "Creating inside a smaller solid yellow quad." ),
 
-	ShrinkFactor = 0.9,
+	ShrinkFactor = 0.65,
 
+	% Still centered:
 	QuadSolidVertices =
 		[ point3:scale( P, ShrinkFactor ) || P <- QuadWfVertices ],
 
@@ -226,10 +229,13 @@ create_mv_state() ->
 	QuadGradVertices =
 		[ point3:scale( P, ShrinkFactor ) || P <- QuadSolidVertices ],
 
-	GradElemColors =
-		[ gui_color:get_color( C ) || C <- [ red, green, blue, black ] ],
+	GradElemColors = { gui_color:get_color( red ),
+					   gui_color:get_color( green ),
+					   gui_color:get_color( blue ),
+					   gui_color:get_color( black ) },
 
-	GradRenderingInfo = { colored, _FColorType=per_vertex, GradElemColors },
+	GradRenderingInfo = { colored, _FColorType=per_vertex,
+						  [ _CF1=GradElemColors ] },
 
 	QuadGradMesh = mesh:create( QuadGradVertices, FaceType, IndexedFaces,
 								GradRenderingInfo ),
@@ -251,10 +257,10 @@ create_mv_state() ->
 		[ gui_texture:cache_to_string( ReadyTextureCache ) ] ),
 
 	% As 2D texture coordinates range from 0 to 1 in the X and Y axes:
-	UVVertices = [ { 0, 0 }, { 1, 0 }, { 1, 1 }, { 0, 1 } ],
+	UVVertices = { { 0.0, 0.0 }, { 1.0, 0.0 }, { 1.0, 1.0 }, { 0.0, 1.0 } },
 
 	% Single texture, single face here:
-	TexRenderingInfo = { textured, TextureSpecId, [ UVVertices ] },
+	TexRenderingInfo = { textured, TextureSpecId, [ _TexF1=UVVertices ] },
 
 	QuadTexMesh = mesh:create( QuadTexVertices, FaceType, IndexedFaces,
 							   TexRenderingInfo ),
@@ -530,59 +536,6 @@ initialise_mv_for_opengl( MVState=#my_mv_state{
 		quad_gradient_mesh=InitQuadGradMesh,
 		quad_texture_mesh=InitQuadTexMesh,
 		texture_cache=NewTexCache }.
-
-
-
-	%% % Second, a square, whose vertices are specified this time through indices:
-
-	%% SquareVAOId = gui_shader:set_new_vao(),
-
-	%% % Half edge length:
-	%% H = 0.5,
-
-	%% % Square defined as [vertex3()], directly in normalized device coordinates
-	%% % here; CCW order (bottom left, bottom right, top right, top left)::
-	%% %
-	%% %         S3--S2
-	%% %         |    |
-	%% %         S0--S1
-	%% %
-	%% SquareVertices = [ _S0={ -H, -H, Z }, _S1={  H, -H, Z },
-	%%				   _S2={  H,  H, Z }, _S3={ -H,  H, Z } ],
-
-	%% % Targeting vertex attributes in a VBO, created and made active once for all
-	%% % here:
-	%% %
-	%% SquareVBOId = gui_shader:assign_vertices_to_new_vbo( SquareVertices ),
-
-	%% % Specified while the square VBO and VAO are still active:
-	%% gui_shader:declare_vertex_attribute( ?my_vertex_attribute_index ),
-
-	%% % We describe our square as two quads in CCW order; the first, S0-S1-S3
-	%% % on the bottom left, the second, S1-S2-S3 on the top right; we have just a
-	%% % list of indices (not for example a list of triplets of indices):
-	%% %
-	%% SquareIndices = [ 0, 1, 3,   % As the first quad is S0-S1-S3
-	%%				  1, 2, 3 ], % As the second quad is S1-S2-S3
-
-	%% SquareEBOId = gui_shader:assign_indices_to_new_ebo( SquareIndices ),
-
-
-	%% % As the EBO is still bound, it is tracked by this VAO (as it is currently
-	%% % active), which will rebind it automatically the next time it will be
-	%% % itself bound:
-	%% %
-	%% gui_shader:unset_current_vao(),
-
-	%% InitOpenGLState = #my_opengl_state{ program_id=ProgramId,
-	%%									quad_vao_id=QuadVAOId,
-	%%									quad_vbo_id=QuadVBOId,
-	%%									square_vao_id=SquareVAOId,
-	%%									square_vbo_id=SquareVBOId,
-	%%									square_ebo_id=SquareEBOId },
-
-	%% %trace_utils:debug_fmt( "Managing a resize of the main frame to ~w.",
-	%% %                       [ gui:get_size( MainFrame ) ] ),
 
 
 

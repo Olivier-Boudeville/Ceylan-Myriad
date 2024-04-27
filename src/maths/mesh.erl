@@ -334,32 +334,33 @@ tessellate( Mesh=#mesh{ face_type=triangle } ) ->
 
 tessellate( Mesh=#mesh{ face_type=quad,
 						faces=QuadFaces,
-						normal_type=NormalType,
-						normals=MaybeQuadNormals,
+						%normal_type=NormalType,
+						%normals=MaybeQuadNormals,
 						rendering_info=QuadRendInfo } ) ->
 
 	% (a list comprehension would not suffice)
 	TrigFaces = triangulate( QuadFaces ),
 
-	MaybeTrigNormals = case MaybeQuadNormals of
+	% MaybeTrigNormals = case MaybeQuadNormals of
 
-		undefined ->
-			undefined;
+	%	undefined ->
+	%		undefined;
 
-		QuadNormals ->
-			case NormalType of
+	%	QuadNormals ->
+	%		case NormalType of
 
-				per_vertex ->
-					% No change in vertices:
-					QuadNormals;
+	%			per_vertex ->
+	%				% TODO: convert 4 normals in 2*3 ones:
+	%				...( QuadNormals);
 
-				per_face ->
-					% The two triangles have the same normal as their quad:
-					list_utils:repeat_elements( QuadNormals, _Count=2 )
+	%			per_face ->
+	%				% The two triangles have the same normal as their quad:
+	%				list_utils:repeat_elements( QuadNormals, _Count=2 )
 
-			end
+	%		end
 
-	end,
+	% end,
+	MaybeTrigNormals = undefined,
 
 	TrigRendInfo = mesh_render:tessellate_rendering_info( _FaceType=quad,
 														  QuadRendInfo ),
@@ -380,17 +381,19 @@ tessellate( Mesh=#mesh{ face_type=quad,
 %
 -spec triangulate( [ indexed_quad() ] ) -> [ indexed_triangle() ].
 triangulate( QuadFaces ) ->
-	% (a list comprehension would not suffice)
-	triangulate( QuadFaces, _Acc=[] ).
+	% (a list comprehension would not suffice; reversing earlier than later is
+	% cheaper)
+	%
+	triangulate( lists:reverse( QuadFaces ), _Acc=[] ).
 
 
 % (helper)
-triangulate( _QuadFaces=[], Acc ) ->
-	lists:reverse( Acc );
+triangulate( _RevQuadFaces=[], Acc ) ->
+	% Reversing already done:
+	Acc;
 
-triangulate( _QuadFaces=[ _QF={ V1Id, V2Id, V3Id, V4Id } | T ], Acc ) ->
-	% Anticipate Acc reversal, even if without impact:
-	NewAcc = [ { V3Id, V4Id, V1Id }, { V1Id, V2Id, V3Id } | Acc ],
+triangulate( _RevQuadFaces=[ _QF={ V1Id, V2Id, V3Id, V4Id } | T ], Acc ) ->
+	NewAcc = [ { V1Id, V2Id, V3Id }, { V3Id, V4Id, V1Id } | Acc ],
 	triangulate( T, NewAcc ).
 
 

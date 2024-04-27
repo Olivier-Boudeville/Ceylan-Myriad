@@ -342,12 +342,10 @@ tessellate_rendering_info( _OrigFaceType=quad,
 
 tessellate_rendering_info( _OrigFaceType=quad,
 		_RenderInfo={ colored, _FaceGranularity=per_vertex,
-					  VtxColors } ) ->
+					  QuadVtxColors } ) ->
 	% A Q1-Q2-Q3-Q4 quad becoming two Q1-Q2-Q3 and Q3-Q4-Q1 triangles:
-	% FIXME RENAME
-	%trace_utils:debug_fmt( "QuadVtxColors = ~w", [ QuadVtxColors ] ),
-	%TrigVtxColors = adapt_texture_face_infos( QuadVtxColors ),
-	{ colored, per_vertex, VtxColors };
+	TrigVtxColors = adapt_texture_face_infos( QuadVtxColors ),
+	{ colored, per_vertex, TrigVtxColors };
 
 tessellate_rendering_info( _OrigFaceType=quad,
 		_RenderInfo={ colored, _FaceGranularity=per_face, ElemColors } ) ->
@@ -370,29 +368,28 @@ adapt_texture_face_infos( TexFaceInfos ) ->
 
 
 % (helper)
-adapt_texture_face_infos( _TexFaceInfos=[], Acc ) ->
+adapt_texture_face_infos( _RevTexFaceInfos=[], Acc ) ->
 	% Reversing already done:
 	Acc;
 
-%adapt_texture_face_infos( _TexFaceInfos=[ { TexId,
-	%   _UVPoints=[ UV1Coords, UV2Coords, UV3Coords, UV4Coords ] } | T ],
+%adapt_texture_face_infos( _RevTexFaceInfos=[ { TexId,
+	%   _UVPoints={ UV1Coords, UV2Coords, UV3Coords, UV4Coords } } | T ],
 	%               Acc ) ->
 	% % Anticipate Acc reversal, even if without impact; same order as the
 	% % vertices of the triangulated faces (in triangulate/2):
 	% %
-	% NewAcc = [ { TexId, [ UV3Coords, UV4Coords, UV1Coords ] },
-	%            { TexId, [ UV1Coords, UV2Coords, UV3Coords ] } | Acc ],
+	% NewAcc = [ { TexId, { UV3Coords, UV4Coords, UV1Coords } },
+	%            { TexId, { UV1Coords, UV2Coords, UV3Coords } } | Acc ],
 
 	% adapt_texture_face_infos( T, NewAcc ).
 
-adapt_texture_face_infos( _TexFaceInfos=_UVPoints=
-		[ UV1Coords, UV2Coords, UV3Coords, UV4Coords | T ], Acc ) ->
-	% Returns triangle faces, anticipate Acc reversal (1-2-3, then 3-4-1), even
-	% if without impact; same order as the vertices of the triangulated faces
-	% (in triangulate/2):
+adapt_texture_face_infos( _RevTexFaceInfos=_UVPoints=
+		[ { UV1Coords, UV2Coords, UV3Coords, UV4Coords } | T ], Acc ) ->
+	% Returns triangle faces; same order as the original vertices and the ones
+	% of the triangulated faces (in mesh:triangulate/2):
 	%
-	NewAcc = [ UV3Coords, UV4Coords, UV1Coords,
-			   UV1Coords, UV2Coords, UV3Coords | Acc ],
+	NewAcc = [ { UV1Coords, UV2Coords, UV3Coords },
+			   { UV3Coords, UV4Coords, UV1Coords } | Acc ],
 
 	adapt_texture_face_infos( T, NewAcc ).
 
@@ -772,6 +769,7 @@ initialise_for_opengl( _Meshes=[ M | T ], ProgramId, MaybeTextureCache ) ->
 		initialise_for_opengl( T, ProgramId, NewMTexCache ),
 
 	{ [ NewM | NewT ], NewTTexCache }.
+
 
 
 % Returns a tuple whose elements are render colors, based on the specified one
