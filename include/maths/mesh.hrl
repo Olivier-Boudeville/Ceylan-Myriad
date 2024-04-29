@@ -33,13 +33,14 @@
 -record( mesh, {
 
 	% The points defining that mesh, as a repository thereof:
-	vertices :: mesh:vertex_repository(), 
+	vertices :: mesh:vertex_repository(),
 
 	% The types of the faces from which this mesh is made (e.g. triangle, quad):
 	face_type :: mesh:face_type(),
 
 
-	% The faces defining that mesh, based on the indices of vertices:
+	% The faces defining that mesh, as a repository thereof, based on the
+	% indices of vertices:
 	%
 	% (all faces of a mesh are expected to have the same number of vertices)
 	%
@@ -62,7 +63,12 @@
 	% useful if they are per-vertex (per-face normals can be deduced from the
 	% vertices of that face)
 	%
-	normals = undefined :: maybe( [ vector3:unit_normal3() ] ),
+	% Normals are stored literally (rather than as identifiers pointing to some
+	% mesh:normal_repository()), as they are expected to be seldom fetched based
+	% on random access, but more iterated through).
+	%
+	normals = undefined ::
+		maybe( type_utils:tuploid( vector3:unit_normal3() ) ),
 
 
 	% How this mesh shall be rendered:

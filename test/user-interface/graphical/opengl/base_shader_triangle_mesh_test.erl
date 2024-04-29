@@ -273,7 +273,8 @@ create_mv_state() ->
 init_test_gui() ->
 
 	MainFrame = gui_frame:create(
-		"MyriadGUI OpenGL Minimal Shader as Mesh Test", _Size={ 1024, 768 } ),
+		"MyriadGUI OpenGL Base Shader as Triangle Mesh Test",
+		_Size={ 1024, 768 } ),
 
 	% Using mostly default GL attributes:
 	GLCanvasAttrs =
@@ -652,7 +653,7 @@ run() ->
 	test_facilities:start( ?MODULE ),
 
 	gui_opengl_for_testing:can_be_run(
-			"the minimal test of OpenGL shader as mesh support" ) =:= yes
+			"the base OpenGL shader test of triangle meshes" ) =:= yes
 		andalso run_actual_test(),
 
 	test_facilities:stop().

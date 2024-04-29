@@ -143,7 +143,8 @@
 
 
 % Other operations, lower-level:
--export([ compute_normal/2,
+-export([ set_vertices/2,
+		  compute_normal/2,
 		  get_vertex_count_for_face_type/1, get_face_type/1,
 		  check_faces/2, check_face/2, check_indice/1,
 		  get_vertex_from_id/2, get_vertices_from_ids/2,
@@ -396,6 +397,15 @@ triangulate( _RevQuadFaces=[ _QF={ V1Id, V2Id, V3Id, V4Id } | T ], Acc ) ->
 	NewAcc = [ { V1Id, V2Id, V3Id }, { V3Id, V4Id, V1Id } | Acc ],
 	triangulate( T, NewAcc ).
 
+
+
+% @doc Returns a mesh whose vertices are the specified ones.
+%
+% No consistency checked with the other information held by this mesh.
+%
+-spec set_vertices( [ vertex3() ], mesh() ) -> mesh().
+set_vertices( NewVertices, Mesh ) ->
+	Mesh#mesh{ vertices=array:from_list( NewVertices ) }.
 
 
 

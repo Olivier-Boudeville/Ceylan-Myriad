@@ -265,7 +265,7 @@ get_test_colored_cube_mesh( EdgeLength, FaceGranularity ) ->
 	Faces = get_test_cube_faces(),
 	Normals = get_test_cube_normals(),
 
-	RenderingInfo = { color, FaceGranularity,
+	RenderingInfo = { colored, FaceGranularity,
 					  get_test_cube_colors( FaceGranularity ) },
 
 	mesh:create( Vertices, _FaceType=quad, Faces,
@@ -320,18 +320,19 @@ get_test_cube_normals() ->
 % colors, or 6 per-face ones.
 %
 -spec get_test_cube_colors( face_granularity() ) -> [ color_by_decimal() ].
-get_test_cube_colors( FaceGranularity ) ->
+get_test_cube_colors( _FaceGranularity=per_vertex ) ->
+	ColQuadruplets = [ _CF1={ red, green, blue, yellow },
+					   _CF2={ cyan, pink, gray, maroon },
+					   _CF3={ aliceblue, antiquewhite, aqua, aquamarine },
+					   _CF4={ azure, beige, bisque, black },
+					   _CF5={ blanchedalmond, blue, blueviolet, brown },
+					   _CF6={ burlywood, cadetblue, chartreuse, chocolate } ],
+
+	mesh_render:color_to_decimal_tuples( ColQuadruplets );
+
+get_test_cube_colors( _FaceGranularity=per_face ) ->
 	[ gui_color:get_color( CName )
-		|| CName <- get_cube_color_names( FaceGranularity ) ].
-
-
-% (helper)
-get_cube_color_names( _FaceGranularity=per_vertex ) ->
-	[ red, green, blue, yellow, cyan, pink, gray, maroon ];
-
-get_cube_color_names( _FaceGranularity=per_face ) ->
-	[ red, green, blue, yellow, cyan, pink ].
-	%list_utils:duplicate(red, 6).
+		|| CName <- [ red, green, blue, yellow, cyan, pink ] ].
 
 
 

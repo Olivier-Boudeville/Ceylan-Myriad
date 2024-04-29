@@ -1843,13 +1843,16 @@ set_polygon_raster_mode( FacingMode, RasterMode ) ->
 %
 % See gui_opengl_test.erl for an usage example.
 %
+% This rendering facility is mostly obsolete, use the mesh_render module
+% instead, itself relying on modern OpenGL (i.e. shaders).
+%
 -spec render_mesh( mesh() ) -> void().
 render_mesh( #mesh{ vertices=Vertices,
 					face_type=FaceType,
 					faces=IndexedFaces,
 					normal_type=per_face,
 					normals=Normals,
-					rendering_info={ color, per_vertex, Colors } } ) ->
+					rendering_info={ colored, per_vertex, Colors } } ) ->
 
 	% We could batch the commands sent to the GUI backend (e.g. with wx:batch/1
 	% or wx:foreach/2).
@@ -2071,10 +2074,12 @@ render_triangles( _IndexedFaces=[], _FaceCount, _Vertices, _Normals,
 				  _Colors ) ->
 	ok;
 
-render_triangles( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
+render_triangles( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx } | T ], FaceCount,
 				  Vertices, Normals, Colors ) ->
 
-	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
+	% A single normal (per-face normal implied here):
+	gl:normal3fv( point3:from_vector(
+		mesh:get_element_from_id( _NId=FaceCount, Normals ) ) ),
 
 	gl:color3fv( lists:nth( V1Idx, Colors ) ),
 	gl:texCoord2f( 0.0, 0.0 ),
@@ -2096,10 +2101,12 @@ render_triangles( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx ] | T ], FaceCount,
 render_quads( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
 	ok;
 
-render_quads( _IndexedFaces=[ [ V1Idx, V2Idx, V3Idx, V4Idx ] | T ], FaceCount,
+render_quads( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx, V4Idx } | T ], FaceCount,
 			  Vertices, Normals, Colors ) ->
 
-	gl:normal3fv( list_to_tuple( lists:nth( FaceCount, Normals ) ) ),
+	% A single normal (per-face normal implied here):
+	gl:normal3fv( point3:from_vector(
+		mesh:get_element_from_id( _NId=FaceCount, Normals ) ) ),
 
 	gl:color3fv( lists:nth( V1Idx, Colors ) ),
 	gl:texCoord2f( 0.0, 0.0 ),

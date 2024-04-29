@@ -221,7 +221,7 @@ init_test_gui() ->
 
 	gui_statusbar:push_text( StatusBar, "Testing OpenGL now." ),
 
-	InvImage = gui_image:load_from_file( 
+	InvImage = gui_image:load_from_file(
 		gui_opengl_for_testing:get_test_image_path() ),
 
 	Image = gui_image:mirror( InvImage, _Orientation=horizontal ),
@@ -387,7 +387,7 @@ test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 	MatTexture = gui_texture:create_from_image(
 		TestSpecificInfo#my_test_gui_info.image ),
 
-	AlphaTexture = gui_texture:load_from_file( 
+	AlphaTexture = gui_texture:load_from_file(
 		gui_opengl_for_testing:get_logo_image_path() ),
 
 	Font = gui_font:create( _PointSize=32, _Family=default_font_family,
@@ -405,7 +405,9 @@ test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 		get_clock_texture( time_utils:get_local_time(), Font, Brush ),
 
 
-	TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(),
+	TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(
+		_EdgeLength=1.0, _FaceGranularity=per_vertex ),
+
 	%TestMesh = gui_opengl_for_testing:get_test_tetra_mesh(),
 
 	SphereId = glu:newQuadric(),

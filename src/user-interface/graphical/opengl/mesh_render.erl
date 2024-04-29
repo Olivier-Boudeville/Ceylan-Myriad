@@ -155,6 +155,8 @@
 		  initialise_for_opengl/2, initialise_for_opengl/3,
 		  render_as_opengl/1, cleanup_for_opengl/1,
 
+		  color_to_decimal_tuples/1, decimal_to_render_color_tuples/1,
+
 		  rendering_info_to_string/1, rendering_info_to_compact_string/1,
 		  rendering_state_to_string/1 ]).
 
@@ -168,6 +170,7 @@
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
+-type color() :: gui_color:color().
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type render_rgb_color() :: gui_color:render_rgb_color().
 
@@ -595,7 +598,7 @@ initialise_for_opengl( Mesh=#mesh{
 	MeshVAOId = gui_shader:set_new_vao(),
 
 	% OpenGL could have been requested to normalise the data by itself instead:
-	FloatVertexColors = decimal_to_render_color_tuple( PerFaceVertexColors ),
+	FloatVertexColors = decimal_to_render_color_tuples( PerFaceVertexColors ),
 
 	% We use an EBO, yet duplication will be needed, as a given vertex is
 	% expected to pertain to multiple faces, each with its own (normal and)
@@ -772,17 +775,33 @@ initialise_for_opengl( _Meshes=[ M | T ], ProgramId, MaybeTextureCache ) ->
 
 
 
-% Returns a tuple whose elements are render colors, based on the specified one
-% whose elements are RGB colors.
+% @doc Returns the tuples whose elements are RGB colors that correspond to the
+% color elements of the specified tuples.
 %
--spec decimal_to_render_color_tuple( tuple( color_by_decimal() ) ) ->
-										tuple( render_rgb_color() ).
-decimal_to_render_color_tuple( TupleOfRGBColors ) ->
+-spec color_to_decimal_tuples( [ tuple( color() ) ] ) ->
+								[ tuple( color_by_decimal() ) ].
+color_to_decimal_tuples( TuplesOfColors ) ->
 	[ begin
-		  RenderColors = gui_color:decimal_to_render(
-						   tuple_to_list( ColorTuple ) ),
-		  list_to_tuple( RenderColors )
-	  end || ColorTuple <- TupleOfRGBColors ].
+
+		RGBColors =
+			[ gui_color:get_color( C ) || C <- tuple_to_list( ColorTuple ) ],
+
+		list_to_tuple( RGBColors )
+
+	  end || ColorTuple <- TuplesOfColors ].
+
+
+% @doc Returns tuples whose elements are render colors, based on the specified
+% ones whose elements are RGB colors.
+%
+-spec decimal_to_render_color_tuples( [ tuple( color_by_decimal() ) ] ) ->
+										[ tuple( render_rgb_color() ) ].
+decimal_to_render_color_tuples( TuplesOfRGBColors ) ->
+	[ begin
+		RenderColors =
+			gui_color:decimal_to_render( tuple_to_list( ColorTuple ) ),
+		list_to_tuple( RenderColors )
+	  end || ColorTuple <- TuplesOfRGBColors ].
 
 
 
@@ -1198,7 +1217,6 @@ cleanup_for_opengl( Mesh=#mesh{ rendering_state=#rendering_state{
 	gui_shader:delete_vao( VAOId ),
 
 	Mesh#mesh{ rendering_state=undefined }.
-
 
 
 
