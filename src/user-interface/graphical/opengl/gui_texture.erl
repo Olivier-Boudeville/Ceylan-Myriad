@@ -492,7 +492,7 @@ create_from_image( Image, GenMipmaps ) ->
 			max_x=ImgWidth / TexWidth, max_y=ImgHeight / TexHeight },
 
 	%trace_utils:debug_fmt( "~Bx~B texture created from image: ~ts",
-	%   [ TexWidth, TexHeight, to_string( T ) ] ),
+	%                       [ TexWidth, TexHeight, to_string( T ) ] ),
 
 	T.
 
@@ -1289,7 +1289,7 @@ get_texture( SpecId, TexCache=#texture_cache{ texture_table=TexTable } ) ->
 			Img = gui_image:load_from_file( BinTexSpec ),
 
 			% OpenGL must be initialised:
-			Tex = gui_texture:create_from_image( Img ),
+			Tex = create_from_image( Img ),
 
 			NewTexEntry = { BinTexSpec, Img, Tex },
 			NewTexTable = table:add_entry( SpecId, NewTexEntry, TexTable ),
@@ -1300,7 +1300,7 @@ get_texture( SpecId, TexCache=#texture_cache{ texture_table=TexTable } ) ->
 		% No texture, but already an image:
 		{ value, { BinTexSpec, Img, _MaybeTexId=undefined } } ->
 			% OpenGL must be initialised:
-			Tex = gui_texture:create_from_image( Img ),
+			Tex = create_from_image( Img ),
 
 			NewTexEntry = { BinTexSpec, Img, Tex },
 			NewTexTable = table:add_entry( SpecId, NewTexEntry, TexTable ),
