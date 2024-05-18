@@ -558,7 +558,7 @@ to_string( #mesh{ vertices=Vertices,
 		" - ~ts~n"
 		" - ~ts~n"
 		" - bounding volume: ~ts",
-		[ array:size( Vertices ), Vertices,
+		[ array:size( Vertices ), array:to_list( Vertices ),
 		  length( Faces ), face_type_to_string( FaceType ), Faces,
 		  NormalStr, mesh_render:rendering_info_to_string( RenderingInfo ),
 		  RenderStateStr, BVStr ] ).
