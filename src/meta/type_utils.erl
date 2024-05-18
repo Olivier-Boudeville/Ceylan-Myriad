@@ -768,8 +768,8 @@
 
 
 % Specials for datatypes:
--export([ get_record_tag/1, get_last_tuple_element/1, augment_tuploid/2 ]).
-
+-export([ get_record_tag/1, get_last_tuple_element/1, augment_tuploid/2,
+		  array_to_string/1 ]).
 
 
 % Work in progress:
@@ -781,6 +781,8 @@
 -type count() :: basic_utils:count().
 -type level() :: basic_utils:level().
 -type positive_index() :: basic_utils:positive_index().
+
+-type array() :: array:array().
 
 -type ustring() :: text_utils:ustring().
 
@@ -2219,3 +2221,18 @@ augment_tuploid( Tuploid, ExtraTerm ) when is_tuple( Tuploid ) ->
 
 augment_tuploid( BasicTuploid, ExtraTerm ) ->
 	{ BasicTuploid, ExtraTerm }.
+
+
+
+% @doc Returns a textual description of the specified array.
+-spec array_to_string( array() ) -> ustring().
+array_to_string( Array ) ->
+	case array:to_list( Array ) of
+
+		[] ->
+			"empty array";
+
+		L ->
+			text_utils:format( "array of ~B elements: ~p", [ length( L ), L ] )
+
+	end.
