@@ -175,7 +175,7 @@ replicate( Bin, Count, Acc ) ->
 %
 % Example: Bin = tuples_to_float32s_binary([{0.0, 1.0}, {0.5, 0.5, 0.5}])
 %
-% Typically useful to create suitable OpenGL arrays from heterogenous tuples
+% Typically useful to create suitable OpenGL arrays from heterogeneous tuples
 % aggregating vertices, normals, colors, etc. on a per vertex attribute basis.
 %
 -spec tuples_to_float32s_binary( [ tuple( float() ) ] ) -> binary().
@@ -191,7 +191,7 @@ tuples_to_float32s_binary( Tuples ) ->
 % Example: FullBin = tuples_to_float32s_binary([{0.0, 1.0}, {0.5, 0.5, 0.5}],
 %                                              Bin)
 %
-% Typically useful to create suitable OpenGL arrays from heterogenous tuples
+% Typically useful to create suitable OpenGL arrays from heterogeneous tuples
 % aggregating vertices, normals, colors, etc. on a per vertex attribute basis.
 %
 -spec tuples_to_float32s_binary( [ tuple( float() ) ], binary() ) -> binary().
