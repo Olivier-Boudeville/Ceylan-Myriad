@@ -1846,6 +1846,8 @@ set_polygon_raster_mode( FacingMode, RasterMode ) ->
 % This rendering facility is mostly obsolete, use the mesh_render module
 % instead, itself relying on modern OpenGL (i.e. shaders).
 %
+% It supports only per-vertex colors (not per-face).
+%
 -spec render_mesh( mesh() ) -> void().
 render_mesh( #mesh{ vertices=Vertices,
 					face_type=FaceType,
@@ -2015,7 +2017,7 @@ boolean_to_gl( false ) ->
 % @doc Converts a MyriadGUI hint about buffer usage to OpenGL conventions.
 %
 % See https://registry.khronos.org/OpenGL-Refpages/gl4/html/glBufferData.xhtml.
--spec buffer_usage_hint_to_gl( buffer_usage_hint()  ) -> enum().
+-spec buffer_usage_hint_to_gl( buffer_usage_hint() ) -> enum().
 buffer_usage_hint_to_gl( _UsageHint={ _Usage=draw, _Access=stream } ) ->
 	% In gl.hrl:
 	?GL_STREAM_DRAW;
@@ -2051,11 +2053,16 @@ buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=dynamic } ) ->
 
 
 
-% @doc Renders the specified indexed faces.
+% @doc Renders the specified indexed faces, supposing per-vertex colors.
+%
+% Note that, if a texture is bound, it will also be rendered, albeit without
+% relying on the actual texture coordinates determined by gui_texture (thus, due
+% to any prior resizing of the texture so that its dimensions are powers of two,
+% the texture will occupy only a fraction of the target surface), not the whole.
+%
 -spec render_faces( face_type(), [ indexed_face() ], [ any_vertex3() ],
 					[ unit_normal3() ], [ render_rgb_color() ] ) -> void().
-render_faces( _FaceType=triangle, IndexedFaces, Vertices, Normals,
-			  Colors ) ->
+render_faces( _FaceType=triangle, IndexedFaces, Vertices, Normals, Colors ) ->
 	gl:'begin'( ?GL_TRIANGLES ),
 	render_triangles( IndexedFaces, _FaceCount=1, Vertices, Normals, Colors ),
 	gl:'end'(),
@@ -2069,62 +2076,85 @@ render_faces( _FaceType=quad, IndexedFaces, Vertices, Normals, Colors ) ->
 
 
 
+% Supposes per-vertex colors.
+%
 % (helper)
 render_triangles( _IndexedFaces=[], _FaceCount, _Vertices, _Normals,
 				  _Colors ) ->
 	ok;
 
 render_triangles( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx } | T ], FaceCount,
-				  Vertices, Normals, Colors ) ->
+		Vertices, Normals, _Colors=[ { V1Col, V2Col, V3Col } | TCol ] ) ->
 
-	% A single normal (per-face normal implied here):
+	%trace_utils:debug_fmt( "Rendering triangle face:~n ~p",
+	%   [ mesh:get_vertices_from_ids( [ V1Idx, V2Idx, V3Idx ], Vertices ) ] ),
+
+	% A single normal (per-face normals implied here):
 	gl:normal3fv( point3:from_vector(
 		mesh:get_element_from_id( _NId=FaceCount, Normals ) ) ),
 
-	gl:color3fv( lists:nth( V1Idx, Colors ) ),
+	% With older OpenGL with plain colors, we do not bother pre-converting
+	% color_by_decimal() into render_rgb_color(), we do it on the fly.
+	%
+	gl:color3fv( gui_color:decimal_to_render( V1Col ) ),
 	gl:texCoord2f( 0.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
+	gl:vertex3fv( mesh:get_vertex_from_id( V1Idx, Vertices ) ),
 
-	gl:color3fv( lists:nth( V2Idx, Colors ) ),
+	gl:color3fv( gui_color:decimal_to_render( V2Col ) ),
 	gl:texCoord2f( 1.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
+	gl:vertex3fv( mesh:get_vertex_from_id( V2Idx, Vertices ) ),
 
-	gl:color3fv( lists:nth( V3Idx, Colors ) ),
+	gl:color3fv( gui_color:decimal_to_render( V3Col ) ),
 	gl:texCoord2f( 1.0, 1.0 ),
-	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
+	gl:vertex3fv( mesh:get_vertex_from_id( V3Idx, Vertices ) ),
 
-	render_triangles( T, FaceCount+1, Vertices, Normals, Colors ).
+	render_triangles( T, FaceCount+1, Vertices, Normals, TCol ).
 
 
 
+% Supposes per-vertex colors.
+%
 % (helper)
 render_quads( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, _Colors ) ->
 	ok;
 
 render_quads( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx, V4Idx } | T ], FaceCount,
-			  Vertices, Normals, Colors ) ->
+			  Vertices, Normals,
+			  _Colors=[ { V1Col, V2Col, V3Col, V4Col } | TCol ] ) ->
 
-	% A single normal (per-face normal implied here):
+	%trace_utils:debug_fmt( "Rendering quad face:~n ~p",
+	%   [ mesh:get_vertices_from_ids( [ V1Idx, V2Idx, V3Idx, V4Idx ],
+	%                                 Vertices ) ] ),
+
+	% A single normal (per-face normals implied here):
 	gl:normal3fv( point3:from_vector(
 		mesh:get_element_from_id( _NId=FaceCount, Normals ) ) ),
 
-	gl:color3fv( lists:nth( V1Idx, Colors ) ),
+	% With older OpenGL with plain colors, we do not bother pre-converting
+	% color_by_decimal() into render_rgb_color(), we do it on the fly.
+	%
+	gl:color3fv( gui_color:decimal_to_render( V1Col ) ),
+
+	% For some reason, instead of scaling the current texture so that it covers
+	% each face, apparently the texture is displayed as it is, without
+	% distorting it to exactly fit in quads:
+
 	gl:texCoord2f( 0.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V1Idx, Vertices ) ),
+	gl:vertex3fv( mesh:get_vertex_from_id( V1Idx, Vertices ) ),
 
-	gl:color3fv( lists:nth( V2Idx, Colors ) ),
+	gl:color3fv( gui_color:decimal_to_render( V2Col ) ),
 	gl:texCoord2f( 1.0, 0.0 ),
-	gl:vertex3fv( lists:nth( V2Idx, Vertices ) ),
+	gl:vertex3fv( mesh:get_vertex_from_id( V2Idx, Vertices ) ),
 
-	gl:color3fv( lists:nth( V3Idx, Colors ) ),
+	gl:color3fv( gui_color:decimal_to_render( V3Col ) ),
 	gl:texCoord2f( 1.0, 1.0 ),
-	gl:vertex3fv( lists:nth( V3Idx, Vertices ) ),
+	gl:vertex3fv( mesh:get_vertex_from_id( V3Idx, Vertices ) ),
 
-	gl:color3fv( lists:nth( V4Idx, Colors ) ),
+	gl:color3fv( gui_color:decimal_to_render( V4Col ) ),
 	gl:texCoord2f( 0.0, 1.0 ),
-	gl:vertex3fv( lists:nth( V4Idx, Vertices ) ),
+	gl:vertex3fv( mesh:get_vertex_from_id( V4Idx, Vertices ) ),
 
-	render_quads( T, FaceCount+1, Vertices, Normals, Colors ).
+	render_quads( T, FaceCount+1, Vertices, Normals, TCol ).
 
 
 
