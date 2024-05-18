@@ -58,18 +58,18 @@
 	% mesh, knowing that the type of these elements depends on FaceGranularity
 	% (second element of the triplet):
 	%
-	%  - if this face coloring type is per_vertex, then a color is assigned to
-	%  each of the vertex indice of each face, in a corresponding tuple; for
-	%  example if a face F is defined in 'faces' at rank Rf as {V1Id, V2Id,
-	%  V3Id, V4Id}, then in ElementColors there will be, at rank Rf, {Col1,
-	%  Col2, Col3, Col4}, each color (Colk :: color_by_decimal()) applying to
-	%  the vertex specified at the same position (VkId)
+	%  - if this face coloring granularity is per_vertex, then a color is
+	%  assigned to each of the vertex indice of each face, in a corresponding
+	%  tuple; for example if a face F is defined in 'faces' at rank Rf as {V1Id,
+	%  V2Id, V3Id, V4Id}, then in ElementColors there will be, at rank Rf,
+	%  {Col1, Col2, Col3, Col4}, each color (Colk :: color_by_decimal())
+	%  applying to the vertex specified at the same position (VkId)
 	%
-	%  - if this face coloring type is per_face, then a color is assigned to
-	%  each of the faces; for example if a face F is defined in 'faces' at rank
-	%  Rf as {V1Id, V2Id, V3Id, V4Id}, then in ElementColors, there will be, at
-	%  rank Rf, Col :: color_by_decimal(), which will apply to this face as a
-	%  whole (hence to all its vertices)
+	%  - if this face coloring granularity is per_face, then a color is assigned
+	%  to each of the faces; for example if a face F is defined in 'faces' at
+	%  rank Rf as {V1Id, V2Id, V3Id, V4Id}, then in ElementColors, there will
+	%  be, at rank Rf, Col :: color_by_decimal(), which will apply to this face
+	%  as a whole (hence to all its vertices)
 	%
 	% (these are solid colors, with no transparency here; RGB as triplets of
 	% integers - not in [0.0,1.0])
@@ -1236,10 +1236,15 @@ rendering_info_to_string( _RI={ wireframe, RGBEdgeColor,
 				false -> "no "
 		  end ++ "hidden-face removal" ] );
 
-rendering_info_to_string( _RI={ colored, ColoringType, Colors } ) ->
-	text_utils:format( "~ts rendering based on ~B colors: ~w",
-		[ face_granularity_to_string( ColoringType), length( Colors ),
-		  Colors ] );
+rendering_info_to_string(
+		_RI={ colored, _FaceGranularity=per_vertex, Colors } ) ->
+	text_utils:format( "per-vertex color rendering based on ~B faces: ~w",
+					   [ length( Colors ), Colors ] );
+
+rendering_info_to_string(
+		_RI={ colored, _FaceGranularity=per_face, Colors } ) ->
+	text_utils:format( "per-face color rendering based on ~B colors: ~w",
+					   [ length( Colors ), Colors ] );
 
 %rendering_info_to_string( _RI={ textured, TexInfos } ) ->
 %	text_utils:format( "rendering based on ~B texture information",
@@ -1264,10 +1269,11 @@ rendering_info_to_compact_string(
 						_RI={ wireframe, _AreHiddenFacesRemoved=false } ) ->
 	"unculled wireframe rendering";
 
-rendering_info_to_compact_string( _RI={ colored, ColoringType, Colors } ) ->
+rendering_info_to_compact_string(
+		_RI={ colored, FaceColoringGranularity, Colors } ) ->
 	text_utils:format( "~ts rendering based on ~B colors: ~w",
-		[ face_granularity_to_string( ColoringType), length( Colors ),
-		  Colors ] );
+		[ face_granularity_to_string( FaceColoringGranularity ),
+		  length( Colors ), Colors ] );
 
 %rendering_info_to_compact_string( _RI={ textured, _TextureInfo } ) ->
 %   "textured rendering".
