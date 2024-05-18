@@ -257,7 +257,7 @@ get_test_tetra_colors() ->
 
 
 % @doc Returns a mesh corresponding to a Myriad test colored cube of the
-% specified edge length.
+% specified edge length, with the specified face-related granularity for colors.
 %
 -spec get_test_colored_cube_mesh( distance(), face_granularity() ) -> mesh().
 get_test_colored_cube_mesh( EdgeLength, FaceGranularity ) ->
@@ -267,6 +267,9 @@ get_test_colored_cube_mesh( EdgeLength, FaceGranularity ) ->
 
 	RenderingInfo = { colored, FaceGranularity,
 					  get_test_cube_colors( FaceGranularity ) },
+
+	%trace_utils:debug_fmt( "For the colored cube: ~ts",
+	%   [ mesh_render:rendering_info_to_string( RenderingInfo ) ] ),
 
 	mesh:create( Vertices, _FaceType=quad, Faces,
 				 _NormalType=per_face, Normals, RenderingInfo ).
@@ -294,8 +297,8 @@ get_test_cube_vertices( _EdgeLength=L ) ->
 get_test_cube_faces() ->
 	% Our indices start at 1:
 	[ _F1={ 1, 4, 3, 2 },
-	  _F2={ 6, 5, 8, 7 },
-	  _F3={ 1, 4, 5, 6 },
+	  _F2={ 6, 7, 8, 5 },
+	  _F3={ 1, 6, 5, 4 },
 	  _F4={ 2, 3, 8, 7 },
 	  _F5={ 1, 2, 7, 6 },
 	  _F6={ 3, 4, 5, 8 } ].
