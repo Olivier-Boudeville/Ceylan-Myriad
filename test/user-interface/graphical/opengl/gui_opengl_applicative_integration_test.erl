@@ -221,12 +221,15 @@ init_test_gui() ->
 
 	gui_statusbar:push_text( StatusBar, "Testing OpenGL now." ),
 
-	InvImage = gui_image:load_from_file(
+	Image = gui_image:load_from_file(
 		gui_opengl_for_testing:get_test_image_path() ),
 
-	Image = gui_image:mirror( InvImage, _Orientation=horizontal ),
+	% No need to mirror images for textures anymore, as already done by
+	% gui_image:load_from_file/1:
+	%
+	%InvImage = gui_image:mirror( Image, _Orientation=horizontal ),
 
-	gui_image:destruct( InvImage ),
+	%gui_image:destruct( InvImage ),
 
 	% It is not necessary to scale to dimensions that are powers of two;
 	% moreover even downscaling results in an image quite far from the original:

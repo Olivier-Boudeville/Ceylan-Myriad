@@ -215,12 +215,15 @@ init_test_gui() ->
 
 	gui_statusbar:push_text( StatusBar, "Testing OpenGL now." ),
 
-	InvImage = gui_image:load_from_file( 
+	Image = gui_image:load_from_file(
 		gui_opengl_for_testing:get_test_image_path() ),
 
-	Image = gui_image:mirror( InvImage, _Orientation=horizontal ),
+	% No need to mirror images for textures anymore, as already done by
+	% gui_image:load_from_file/1:
+	%
+	%InvImage = gui_image:mirror( Image, _Orientation=horizontal ),
 
-	gui_image:destruct( InvImage ),
+	%gui_image:destruct( InvImage ),
 
 	% It is not necessary to scale to dimensions that are powers of two;
 	% moreover even downscaling results in an image quite far from the original:
@@ -384,8 +387,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	MatTexture = gui_texture:create_from_image( Image ),
 
-	AlphaTexture = gui_texture:load_from_file( 
-        gui_opengl_for_testing:get_logo_image_path() ),
+	AlphaTexture = gui_texture:load_from_file(
+		gui_opengl_for_testing:get_logo_image_path() ),
 
 	Font = gui_font:create( _PointSize=32, _Family=default_font_family,
 							_Style=normal, _Weight=bold ),
@@ -402,8 +405,12 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		get_clock_texture( time_utils:get_local_time(), Font, Brush ),
 
 
-	TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(),
+	TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(
+		_EdgeLength=1.0, _FaceGranularity=per_vertex ),
+
 	%TestMesh = gui_opengl_for_testing:get_test_tetra_mesh(),
+
+	trace_utils:debug_fmt( "Test mesh: ~ts.", [ mesh:to_string( TestMesh ) ] ),
 
 	SphereId = glu:newQuadric(),
 
@@ -580,8 +587,16 @@ render( #my_opengl_state{ render_target=Widget,
 	% Specifies a texture environment:
 	gl:texEnvi( ?GL_TEXTURE_ENV, ?GL_TEXTURE_ENV_MODE, ?GL_MODULATE ),
 
-	gl:disable( ?GL_CULL_FACE ),
+	% No effect:
+	%gl:disable( ?GL_CULL_FACE ),
+	gl:enable( ?GL_CULL_FACE ),
 
+	% This is not the support for modern OpenGL; here, with legacy operations,
+	% the gui_texture actual coordinates are not used, leading to textures
+	% covering only partially the mesh surfaces (as textures have been extended
+	% so that their dimensions are power of two, but 1.0 UV coordinates are
+	% used) and a (black) background to be seen:
+	%
 	gui_opengl:render_mesh( CubeMesh ),
 
 	gl:popMatrix(),
