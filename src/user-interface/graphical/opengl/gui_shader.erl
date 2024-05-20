@@ -698,7 +698,7 @@ get_shading_language_version() ->
 % rendering issues on some Intel drivers.
 
 
-% @doc Loads and compiles (with no specific GLSL search path besides the
+% @doc Loads and compiles (with no specific extra GLSL search path besides the
 % MyriadGUI built-in ones) a vertex shader from the specified source file (whose
 % extension is typically .vertex.glsl), and returns its identifier.
 %
@@ -707,11 +707,11 @@ get_shading_language_version() ->
 %
 -spec compile_vertex_shader( any_file_path() ) -> vertex_shader_id().
 compile_vertex_shader( VertexShaderPath ) ->
-	compile_vertex_shader( VertexShaderPath, _GLSLSearchPaths=[] ).
+	compile_vertex_shader( VertexShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified GLSL search paths (first) in
-% addition to the MyriadGUI built-in ones (both for the shaders and for their
+% @doc Loads and compiles, using the specified extra GLSL search paths (first)
+% in addition to the MyriadGUI built-in ones (both for the shaders and for their
 % includes), a vertex shader from the specified source file (whose extension is
 % typically .vertex.glsl), and returns its identifier.
 %
@@ -720,11 +720,11 @@ compile_vertex_shader( VertexShaderPath ) ->
 %
 -spec compile_vertex_shader( any_file_path(), glsl_search_paths() ) ->
 											vertex_shader_id().
-compile_vertex_shader( VertexShaderPath, GLSLSearchPaths ) ->
+compile_vertex_shader( VertexShaderPath, ExtraGLSLSearchPaths ) ->
 
 	{ BinVertexShaderSrc, FullShaderPath, TotalInclLineCount,
 	  MaybeFirstIncludeLine } =
-		get_shader_source( VertexShaderPath, GLSLSearchPaths ),
+		get_shader_source( VertexShaderPath, ExtraGLSLSearchPaths ),
 
 	% A file output is generally preferred, see get_shader_source/2 above:
 	%cond_utils:if_defined( myriad_debug_shaders,
@@ -797,7 +797,7 @@ compile_vertex_shader( VertexShaderPath, GLSLSearchPaths ) ->
 
 
 
-% @doc Loads and compiles (with no specific GLSL search path besides the
+% @doc Loads and compiles (with no specific extra GLSL search path besides the
 % MyriadGUI built-in ones) a tessellation control shader from the specified
 % source file (whose extension is typically .tess-ctrl.glsl), and returns its
 % identifier.
@@ -809,11 +809,11 @@ compile_vertex_shader( VertexShaderPath, GLSLSearchPaths ) ->
 											tessellation_control_shader_id().
 compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 	compile_tessellation_control_shader( TessCtrlShaderPath,
-										 _GLSLSearchPaths=[] ).
+										 _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified GLSL search paths (first) in
-% addition to the MyriadGUI built-in ones (both for the shaders and for their
+% @doc Loads and compiles, using the specified extra GLSL search paths (first)
+% in addition to the MyriadGUI built-in ones (both for the shaders and for their
 % includes), a tessellation control shader from the specified source file (whose
 % extension is typically .tess-ctrl.glsl), and returns its identifier.
 %
@@ -822,11 +822,12 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 %
 -spec compile_tessellation_control_shader( any_file_path(),
 			glsl_search_paths() ) -> tessellation_control_shader_id().
-compile_tessellation_control_shader( TessCtrlShaderPath, GLSLSearchPaths ) ->
+compile_tessellation_control_shader( TessCtrlShaderPath,
+									 ExtraGLSLSearchPaths ) ->
 
 	{ BinTessCtrlShaderSrc, FullShaderPath, TotalInclLineCount,
 	  MaybeFirstIncludeLine } =
-		get_shader_source( TessCtrlShaderPath, GLSLSearchPaths ),
+		get_shader_source( TessCtrlShaderPath, ExtraGLSLSearchPaths ),
 
 	% A file output is generally preferred, see get_shader_source/2 above:
 	%cond_utils:if_defined( myriad_debug_shaders,
@@ -898,7 +899,7 @@ compile_tessellation_control_shader( TessCtrlShaderPath, GLSLSearchPaths ) ->
 
 
 
-% @doc Loads and compiles (with no specific GLSL search path besides the
+% @doc Loads and compiles (with no specific extra GLSL search path besides the
 % MyriadGUI built-in ones) a tessellation evaluation shader from the specified
 % source file (whose extension is typically .tess-eval.glsl), and returns its
 % identifier.
@@ -910,11 +911,11 @@ compile_tessellation_control_shader( TessCtrlShaderPath, GLSLSearchPaths ) ->
 											tessellation_evaluation_shader_id().
 compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 	compile_tessellation_evaluation_shader( TessEvalShaderPath,
-											_GLSLSearchPaths=[] ).
+											_ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified GLSL search paths (first) in
-% addition to the MyriadGUI built-in ones (both for the shaders and for their
+% @doc Loads and compiles, using the specified extra GLSL search paths (first)
+% in addition to the MyriadGUI built-in ones (both for the shaders and for their
 % includes), a tessellation evaluation shader from the specified source file
 % (whose extension is typically .tess-eval.glsl), and returns its identifier.
 %
@@ -924,11 +925,11 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 -spec compile_tessellation_evaluation_shader( any_file_path(),
 			glsl_search_paths() ) -> tessellation_evaluation_shader_id().
 compile_tessellation_evaluation_shader( TessEvalShaderPath,
-										GLSLSearchPaths ) ->
+										ExtraGLSLSearchPaths ) ->
 
 	{ BinTessEvalShaderSrc, FullShaderPath, TotalInclLineCount,
 	  MaybeFirstIncludeLine } =
-		get_shader_source( TessEvalShaderPath, GLSLSearchPaths ),
+		get_shader_source( TessEvalShaderPath, ExtraGLSLSearchPaths ),
 
 	% A file output is generally preferred, see get_shader_source/2 above:
 	%cond_utils:if_defined( myriad_debug_shaders,
@@ -1001,7 +1002,7 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath,
 
 
 
-% @doc Loads and compiles (with no specific GLSL search path besides the
+% @doc Loads and compiles (with no specific extra GLSL search path besides the
 % MyriadGUI built-in ones) a geometry shader from the specified source file
 % (whose extension is typically .geometry.glsl), and returns its identifier.
 %
@@ -1010,11 +1011,11 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath,
 %
 -spec compile_geometry_shader( any_file_path() ) -> geometry_shader_id().
 compile_geometry_shader( GeometryShaderPath ) ->
-	compile_geometry_shader( GeometryShaderPath, _GLSLSearchPaths=[] ).
+	compile_geometry_shader( GeometryShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified GLSL search paths (first) in
-% addition to the MyriadGUI built-in ones (both for the shaders and for their
+% @doc Loads and compiles, using the specified extra GLSL search paths (first)
+% in addition to the MyriadGUI built-in ones (both for the shaders and for their
 % includes), a geometry shader from the specified source file (whose extension
 % is typically .geometry.glsl), and returns its identifier.
 %
@@ -1023,11 +1024,11 @@ compile_geometry_shader( GeometryShaderPath ) ->
 %
 -spec compile_geometry_shader( any_file_path(), glsl_search_paths() ) ->
 											geometry_shader_id().
-compile_geometry_shader( GeometryShaderPath, GLSLSearchPaths ) ->
+compile_geometry_shader( GeometryShaderPath, ExtraGLSLSearchPaths ) ->
 
 	{ BinGeometryShaderSrc, FullShaderPath, TotalInclLineCount,
 	  MaybeFirstIncludeLine } =
-		get_shader_source( GeometryShaderPath, GLSLSearchPaths ),
+		get_shader_source( GeometryShaderPath, ExtraGLSLSearchPaths ),
 
 	% A file output is generally preferred, see get_shader_source/2 above:
 	%cond_utils:if_defined( myriad_debug_shaders,
@@ -1096,7 +1097,7 @@ compile_geometry_shader( GeometryShaderPath, GLSLSearchPaths ) ->
 
 
 
-% @doc Loads and compiles (with no specific GLSL search path besides the
+% @doc Loads and compiles (with no specific extra GLSL search path besides the
 % MyriadGUI built-in ones) a fragment shader from the specified source file
 % (whose extension is typically fragment.glsl), and returns its identifier.
 %
@@ -1105,11 +1106,11 @@ compile_geometry_shader( GeometryShaderPath, GLSLSearchPaths ) ->
 %
 -spec compile_fragment_shader( any_file_path() ) -> fragment_shader_id().
 compile_fragment_shader( FragmentShaderPath ) ->
-	compile_fragment_shader( FragmentShaderPath, _GLSLSearchPaths=[] ).
+	compile_fragment_shader( FragmentShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified GLSL search paths (first) in
-% addition to the MyriadGUI built-in ones (both for the shaders and for their
+% @doc Loads and compiles, using the specified extra GLSL search paths (first)
+% in addition to the MyriadGUI built-in ones (both for the shaders and for their
 % includes), a fragment shader from the specified source file (whose extension
 % is typically fragment.glsl), and returns its identifier.
 %
@@ -1118,11 +1119,11 @@ compile_fragment_shader( FragmentShaderPath ) ->
 %
 -spec compile_fragment_shader( any_file_path(), glsl_search_paths() ) ->
 											fragment_shader_id().
-compile_fragment_shader( FragmentShaderPath, GLSLSearchPaths ) ->
+compile_fragment_shader( FragmentShaderPath, ExtraGLSLSearchPaths ) ->
 
 	{ BinFragmentShaderSrc, FullShaderPath, TotalInclLineCount,
 	  MaybeFirstIncludeLine } =
-		get_shader_source( FragmentShaderPath, GLSLSearchPaths ),
+		get_shader_source( FragmentShaderPath, ExtraGLSLSearchPaths ),
 
 	% A file output is generally preferred, see get_shader_source/2 above:
 	%cond_utils:if_defined( myriad_debug_shaders,
@@ -1191,7 +1192,7 @@ compile_fragment_shader( FragmentShaderPath, GLSLSearchPaths ) ->
 
 
 
-% @doc Loads and compiles (with no specific GLSL search path besides the
+% @doc Loads and compiles (with no specific extra GLSL search path besides the
 % MyriadGUI built-in ones) a compute shader from the specified source file
 % (whose extension is typically .compute.glsl), and returns its identifier.
 %
@@ -1200,11 +1201,11 @@ compile_fragment_shader( FragmentShaderPath, GLSLSearchPaths ) ->
 %
 -spec compile_compute_shader( any_file_path() ) -> compute_shader_id().
 compile_compute_shader( ComputeShaderPath ) ->
-	compile_compute_shader( ComputeShaderPath, _GLSLSearchPaths=[] ).
+	compile_compute_shader( ComputeShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified GLSL search paths (first) in
-% addition to the MyriadGUI built-in ones (both for the shaders and for their
+% @doc Loads and compiles, using the specified extra GLSL search paths (first)
+% in addition to the MyriadGUI built-in ones (both for the shaders and for their
 % includes), a compute shader from the specified source file (whose extension is
 % typically .compute.glsl), and returns its identifier.
 %
@@ -1213,11 +1214,11 @@ compile_compute_shader( ComputeShaderPath ) ->
 %
 -spec compile_compute_shader( any_file_path(), glsl_search_paths() ) ->
 											compute_shader_id().
-compile_compute_shader( ComputeShaderPath, GLSLSearchPaths ) ->
+compile_compute_shader( ComputeShaderPath, ExtraGLSLSearchPaths ) ->
 
 	{ BinComputeShaderSrc, FullShaderPath, TotalInclLineCount,
 	  MaybeFirstIncludeLine } =
-		get_shader_source( ComputeShaderPath, GLSLSearchPaths ),
+		get_shader_source( ComputeShaderPath, ExtraGLSLSearchPaths ),
 
 	% A file output is generally preferred, see get_shader_source/2 above:
 	%cond_utils:if_defined( myriad_debug_shaders,
@@ -1293,10 +1294,10 @@ compile_compute_shader( ComputeShaderPath, GLSLSearchPaths ) ->
 %
 -spec get_shader_source( any_file_path(), glsl_search_paths() ) ->
 							{ bin_string(), count(), maybe( line_number() ) }.
-get_shader_source( ShaderPath, GLSLSearchPaths ) ->
+get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
 
 	FullGLSLSearchPaths =
-		GLSLSearchPaths ++ get_base_glsl_include_paths(),
+		ExtraGLSLSearchPaths ++ get_base_glsl_include_paths(),
 
 	cond_utils:if_defined( myriad_debug_shaders,
 		trace_utils:debug_fmt( "Getting sources of the shader '~ts', "
@@ -1355,7 +1356,7 @@ get_shader_source( ShaderPath, GLSLSearchPaths ) ->
 %
 -spec resolve_glsl_file( any_file_path(), glsl_search_paths() ) ->
 								  maybe( any_file_path() ).
-resolve_glsl_file( FilePath, GLSLSearchPaths ) ->
+resolve_glsl_file( FilePath, ExtraGLSLSearchPaths ) ->
 
 	case file_utils:is_absolute_path( FilePath ) of
 
@@ -1376,7 +1377,7 @@ resolve_glsl_file( FilePath, GLSLSearchPaths ) ->
 		% Then is a relative path:
 		false ->
 			file_utils:get_first_file_or_link_for( FilePath,
-				_CandidateDirs=GLSLSearchPaths )
+				_CandidateDirs=ExtraGLSLSearchPaths )
 
 	end.
 
@@ -1388,14 +1389,14 @@ resolve_glsl_file( FilePath, GLSLSearchPaths ) ->
 %
 -spec preprocess_shader_file( file_path(), glsl_search_paths() ) ->
 				{ [ bin_string() ], count(), maybe( line_number() ) }.
-preprocess_shader_file( SrcPath, GLSLSearchPaths ) ->
+preprocess_shader_file( SrcPath, ExtraGLSLSearchPaths ) ->
 	% Like preprocess_file/3 yet with initialisation and no length added:
 	RawSrcBin = file_utils:read_whole( SrcPath ),
 	BinLines = text_utils:split_lines( RawSrcBin ),
 
 	% CurrentLN for line number in the original sources:
 	{ RevLines, _CurrentLN, TotalInclLineCount, MaybeFirstIncludeLine } =
-		preprocess_lines( BinLines, GLSLSearchPaths, _AccLines=[],
+		preprocess_lines( BinLines, ExtraGLSLSearchPaths, _AccLines=[],
 			_InitCurrentLN=1, _InitTotalInclLineCount=0,
 			_MaybeFirstIncludeLine=undefined ),
 
@@ -1417,7 +1418,7 @@ preprocess_lines( _BinLines=[], _GLSLSearchPaths, AccLines, CurrentLN,
 	% No reversing here:
 	{ AccLines, CurrentLN, TotalInclLineCount, MaybeFirstIncludeLine };
 
-preprocess_lines( _BinLines=[ BinLine | T ], GLSLSearchPaths, AccLines,
+preprocess_lines( _BinLines=[ BinLine | T ], ExtraGLSLSearchPaths, AccLines,
 				  CurrentLN, TotalInclLineCount, MaybeFirstIncludeLine ) ->
 	case text_utils:trim_whitespaces( BinLine ) of
 
@@ -1440,7 +1441,7 @@ preprocess_lines( _BinLines=[ BinLine | T ], GLSLSearchPaths, AccLines,
 					%                       [ HeaderFilename ] ),
 
 					HeaderPath =
-						find_header( HeaderFilePath, GLSLSearchPaths ),
+						find_header( HeaderFilePath, ExtraGLSLSearchPaths ),
 
 					NewFirstIncludeLine = basic_utils:set_maybe(
 						MaybeFirstIncludeLine, _Def=CurrentLN ),
@@ -1448,16 +1449,16 @@ preprocess_lines( _BinLines=[ BinLine | T ], GLSLSearchPaths, AccLines,
 					% Exactly TotalInclLineCount: minus 1 as content replaces
 					% the #include line, plus 1 as a comment line was added:
 					%
-					preprocess_file( HeaderPath, GLSLSearchPaths, CurrentLN,
-									 TotalInclLineCount, NewFirstIncludeLine )
+					preprocess_file( HeaderPath, ExtraGLSLSearchPaths,
+						CurrentLN, TotalInclLineCount, NewFirstIncludeLine )
 
 
 			end,
-			preprocess_lines( T, GLSLSearchPaths, RevNextLines ++ AccLines,
+			preprocess_lines( T, ExtraGLSLSearchPaths, RevNextLines ++ AccLines,
 				NewCurrentLN, NewTotalInclLineCount, NewMaybeFirstIncludeLine );
 
 		_OtherLine ->
-			preprocess_lines( T, GLSLSearchPaths, [ BinLine | AccLines ],
+			preprocess_lines( T, ExtraGLSLSearchPaths, [ BinLine | AccLines ],
 				CurrentLN+1, TotalInclLineCount, MaybeFirstIncludeLine )
 
 	end.
@@ -1467,8 +1468,8 @@ preprocess_lines( _BinLines=[ BinLine | T ], GLSLSearchPaths, AccLines,
 -spec preprocess_file( file_path(), glsl_search_paths(), line_number(),
 					   count(), maybe( line_number() ) ) ->
 			{ [ bin_string() ], count(), maybe( line_number() ) }.
-preprocess_file( HeaderPath, GLSLSearchPaths, CurrentLN, TotalInclLineCount,
-				 MaybeFirstIncludeLine ) ->
+preprocess_file( HeaderPath, ExtraGLSLSearchPaths, CurrentLN,
+				 TotalInclLineCount, MaybeFirstIncludeLine ) ->
 	RawIncBin = file_utils:read_whole( HeaderPath ),
 
 	% Replacing the '#include "..."' line:
@@ -1478,23 +1479,24 @@ preprocess_file( HeaderPath, GLSLSearchPaths, CurrentLN, TotalInclLineCount,
 	BinLines = [ ReplacingHeaderBin | text_utils:split_lines( RawIncBin ) ],
 	AddCount = length( BinLines ),
 
-	preprocess_lines( BinLines, GLSLSearchPaths, _AccLines=[], CurrentLN,
+	preprocess_lines( BinLines, ExtraGLSLSearchPaths, _AccLines=[], CurrentLN,
 		TotalInclLineCount + AddCount, MaybeFirstIncludeLine ).
 
 
 
 % Finds the specified header file within the specified include search paths.
-find_header( HeaderFilePath, GLSLSearchPaths ) ->
+find_header( HeaderFilePath, ExtraGLSLSearchPaths ) ->
 
 	case resolve_glsl_file( _TargetFilename=HeaderFilePath,
-							_CandidateDirs=GLSLSearchPaths ) of
+							_CandidateDirs=ExtraGLSLSearchPaths ) of
 
 		undefined ->
 			trace_utils:error_fmt( "Header shader file '~ts' not found through "
 				"the following GLSL search paths: ~ts.",
 				[ HeaderFilePath, text_utils:strings_to_enumerated_string(
-									GLSLSearchPaths ) ] ),
-			throw( { glsl_header_not_found, HeaderFilePath, GLSLSearchPaths } );
+									ExtraGLSLSearchPaths ) ] ),
+			throw( { glsl_header_not_found, HeaderFilePath,
+					 ExtraGLSLSearchPaths } );
 
 		HdFilePath ->
 			HdFilePath
@@ -1505,7 +1507,7 @@ find_header( HeaderFilePath, GLSLSearchPaths ) ->
 
 % Fixes the line numbers in the specified message reported by the GLSL compiler.
 %
-% Expecting a message like '0(105) : error C0000: syntax error, ...', where the
+% Expecting a message like '0(105): error C0000: syntax error, ...', where the
 % initial 0 is the vertex index.
 %
 fix_line_numbers( LogStr, TotalInclLineCount, MaybeFirstIncludeLine ) ->
@@ -1573,7 +1575,7 @@ fix_line_numbers_in( LogStr, TotalInclLineCount,
 
 
 % @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles (with no specific include search path) the
+% specified: loads and compiles (with no specific extra include search path) the
 % specified vertex and fragment shaders (with no user-specified attributes
 % defined), links them in a corresponding program, and returns its identifier.
 %
@@ -1588,7 +1590,7 @@ generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 
 
 % @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles (with no specific include search path) the
+% specified: loads and compiles (with no specific extra include search path) the
 % specified vertex and fragment shaders, with user-specified attributes, links
 % them in a corresponding program, and returns its identifier.
 %
@@ -1596,24 +1598,24 @@ generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 							 [ user_vertex_attribute() ] ) -> program_id().
 generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes ) ->
 	generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes,
-						   _GLSLSearchPaths=[] ).
+						   _ExtraGLSLSearchPaths=[] ).
 
 
 % @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles (with no specific include search path) the
-% specified vertex and fragment shaders, with user-specified attributes, links
-% them in a corresponding program, and returns its identifier.
+% specified: loads and compiles, with the specified extra include search paths,
+% the specified vertex and fragment shaders, with user-specified attributes,
+% links them in a corresponding program, and returns its identifier.
 %
 -spec generate_program_from( any_file_path(), any_file_path(),
 		[ user_vertex_attribute() ], glsl_search_paths() ) -> program_id().
 generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes,
-					   GLSLSearchPaths ) ->
+					   ExtraGLSLSearchPaths ) ->
 
 	VertexShaderId =
-		compile_vertex_shader( VertexShaderPath, GLSLSearchPaths ),
+		compile_vertex_shader( VertexShaderPath, ExtraGLSLSearchPaths ),
 
 	FragmentShaderId =
-		compile_fragment_shader( FragmentShaderPath, GLSLSearchPaths ),
+		compile_fragment_shader( FragmentShaderPath, ExtraGLSLSearchPaths ),
 
 	generate_program( _ShaderIds=[ VertexShaderId, FragmentShaderId ],
 					  UserAttributes ).
@@ -1795,7 +1797,7 @@ deploy_base_program() ->
 
 	ProgramId = generate_program_from( VertexShaderPath, FragmentShaderPath,
 		_UserAttributes=get_base_user_attributes(),
-		_GLSLSearchPaths=[ gui_opengl:get_base_path() ] ),
+		_ExtraGLSLSearchPaths=[ gui_opengl:get_base_path() ] ),
 
 	% Rely on these shaders:
 	install_program( ProgramId ),
@@ -2859,6 +2861,10 @@ get_uniform_id( UniformName, ProgId ) ->
 			throw( { unknown_uniform_variable, UniformName, ProgId } );
 
 		Id ->
+			%trace_utils:debug_fmt(
+			%   "The identifier of the uniform variable '~ts' is ~w.",
+			%   [ UniformName, Id ] ),
+
 			Id
 
 	end.
@@ -2872,7 +2878,12 @@ get_uniform_id( UniformName, ProgId ) ->
 %
 % We apply here MyriadGUI conventions; for example an Erlang float is mapped to
 % a C float rather than a double.
-
+%
+% Should a GL_INVALID_OPERATION OpenGL error be raised when setting a uniform
+% variable, whereas type and multiplicity are correct for the gl:uniform* call,
+% uniform identifier is correct, program is installed, etc.), the cause may be
+% that in the shader the variable is not declared accordingly (e.g. if setting a
+% vec4 with a point3()).
 
 
 % First, the direct setting of lower-level types:
@@ -2962,8 +2973,15 @@ set_uniform_point2( UniformId, _P2={ X, Y } ) ->
 %
 -spec set_uniform_point3( uniform_id(), point3() ) -> void().
 set_uniform_point3( UniformId, _P3={ X, Y, Z } ) ->
+
+	%trace_utils:debug_fmt( "Setting uniform variable of identifier '~p' "
+	%                       "to ~w.", [ UniformId, P3 ] ),
+
 	gl:uniform3f( UniformId, X, Y, Z ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
+
+	%trace_utils:debug_fmt( "(uniform variable '~p' set)", [ UniformId ] ).
+
 
 
 % @doc Sets the specified uniform variable to the specified point4, in the
