@@ -251,7 +251,8 @@ gui_main_loop( GUIState, Mesh ) ->
 			InitGUIState = initialise_opengl( GUIState ),
 
 			% Now that OpenGL is initialised:
-			RegMesh = mesh:initialise_for_opengl( Mesh ),
+			{ RegMesh, _MaybeTexCache } = mesh_render:initialise_for_opengl(
+				GUIState#my_gui_state.opengl_state#my_opengl_state.program_id ),
 
 			test_facilities:display( "Registered mesh to OpenGL; its ~ts.",
 				[ mesh:rendering_state_to_string(
@@ -371,15 +372,16 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	end,
 
-	SomeColorUnifName = "some_color",
+	GlobalColorUnifName = "myriad_gui_global_color",
 
-	SomeColorUnifId = gui_shader:get_uniform_id( SomeColorUnifName, ProgramId ),
+	GlobalColorUnifId =
+		gui_shader:get_uniform_id( GlobalColorUnifName, ProgramId ),
 
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
-	% Corresponds to a render_rgb_color():
-	gui_shader:set_uniform_point3( SomeColorUnifId,
+	% Corresponds to a render_rgba_color():
+	gui_shader:set_uniform_point4( GlobalColorUnifId,
 		gui_opengl_for_testing:get_myriad_blue_render() ),
 
 
@@ -469,14 +471,17 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 % @doc Performs a (pure OpenGL) rendering.
 -spec render( width(), height(), my_opengl_state(),
 			  mesh_rendering_state() ) -> void().
-render( _Width, _Height, #my_opengl_state{}, MaybeMeshRenderState ) ->
+render( _Width, _Height, _OpenGGLState, _MaybeMeshRenderState=undefined ) ->
+	ok;
+
+render( _Width, _Height, #my_opengl_state{}, MeshRenderState ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
 
 	gl:clear( ?GL_COLOR_BUFFER_BIT ),
 
-	mesh:render_as_opengl( MaybeMeshRenderState ),
+	mesh_render:render_as_opengl( MeshRenderState ),
 
 	% Not swapping buffers here, as would involve GLCanvas, whereas this
 	% function is meant to remain pure OpenGL.
@@ -501,7 +506,7 @@ run() ->
 
 	% Based on quads:
 	%TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(
-	%	_EdgeLength=1.0, FaceColoringType ),
+	%   _EdgeLength=1.0, FaceColoringType ),
 
 	TestMesh = gui_opengl_for_testing:get_test_tetra_mesh( FaceColoringType ),
 
