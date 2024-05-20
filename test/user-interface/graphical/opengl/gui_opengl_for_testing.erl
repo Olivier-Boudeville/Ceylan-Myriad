@@ -71,6 +71,7 @@
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type render_rgb_color() :: gui_color:render_rgb_color().
+-type render_rgba_color() :: gui_color:render_rgba_color().
 
 -type uv_point() :: gui_texture:uv_point().
 
@@ -167,10 +168,17 @@ get_myriad_blue_rgb() ->
 	_RGB={ 0, 39, 165 }.
 
 
+% @doc Returns a conventional RGBA value (hence for a vec4).
+%
 % Defined for convenience and sharing with other tests.
--spec get_myriad_blue_render() -> render_rgb_color().
+%
+-spec get_myriad_blue_render() -> render_rgba_color().
 get_myriad_blue_render() ->
-	gui_color:decimal_to_render( get_myriad_blue_rgb() ).
+	MyriadRGBA = erlang:insert_element( _PosIndex=4, get_myriad_blue_rgb(),
+										_AlphaOpaqueTerm=255 ),
+	RC = gui_color:decimal_to_render( MyriadRGBA ),
+	%trace_utils:debug_fmt( "Myriad render color is ~w.", [ RC ] ),
+	RC.
 
 
 
@@ -190,7 +198,7 @@ get_test_tetra_mesh( FaceGranularity ) ->
 	Normals = get_test_tetra_normals(),
 
 	% Colors can be used for vertices or faces (4 of them are needed):
-	RenderingInfo = { color, FaceGranularity, get_test_tetra_colors() },
+	RenderingInfo = { colored, FaceGranularity, get_test_tetra_colors() },
 
 	mesh:create( Vertices, _FaceType=triangle, Faces,
 				 _NormalType=per_face, Normals, RenderingInfo ).
