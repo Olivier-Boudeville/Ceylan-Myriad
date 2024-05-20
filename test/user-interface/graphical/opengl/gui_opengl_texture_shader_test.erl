@@ -27,7 +27,7 @@
 
 
 % @doc Minimal testing of <b>shader-based texture rendering</b>: displays, based
-% on GLSL shaders, a textured polygon.
+% on GLSL shaders, a textured polygon. Does not rely on our 'mesh' module.
 %
 % It is therefore a non-interactive, passive test (no spontaneous/scheduled
 % behaviour) whose main interest is to show a simple yet generic, appropriate
@@ -172,6 +172,9 @@
 %
 -define( my_texture_coords_attribute_index, 1 ).
 
+
+% Designating the fourth texture unit (they start at zero):
+-define( my_target_texture_unit, 3 ).
 
 
 % @doc Prepares all information needed to render the triangle, and returns them.
@@ -355,9 +358,12 @@ init_test_gui() ->
 	%
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
+	TestTexPath = gui_opengl_texture_test:get_test_texture_path(),
+
+	trace_utils:debug_fmt( "Test texture path: '~ts'.", [ TestTexPath ] ),
+
 	% Would be too early for gui_texture:load_from_file (no GL context yet):
-	TestImage = gui_image:load_from_file(
-		gui_opengl_texture_test:get_test_texture_path() ),
+	TestImage = gui_image:load_from_file( TestTexPath ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet), actual
 	% OpenGL initialisation to happen when available, i.e. when the main frame
@@ -536,7 +542,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_texture_shader.vertex.glsl",
-		"gui_opengl_texture_shader.fragment.glsl", UserVertexAttrs ),
+		"gui_opengl_texture_shader.fragment.glsl", UserVertexAttrs,
+		_ExtraGLSLSearchPaths=[ "." ] ),
 
 	% Usable as soon as the program is linked; refer to the fragment shader:
 	SamplerUnifId = gui_shader:get_uniform_id(
@@ -547,7 +554,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% To showcase that we can use other texture units (locations) than the
 	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit:
 	%
-	gui_texture:set_current_texture_unit( 2 ),
+	gui_texture:set_current_texture_unit( ?my_target_texture_unit ),
 
 	% Thus associated to the previous texture unit:
 	gui_texture:set_as_current( Texture ),
@@ -561,15 +568,16 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Set the texture location of the sampler uniform:
 	%
 	% (as expected, specifying other texture units would result in no texture
-	% being applied; yet, for some reason, using specifically TextureUnit=0
-	% still results in the expected texture to be applied)
+	% being applied, hence black surfaces; yet, for some reason, using
+	% specifically TextureUnit=0 still results in the expected texture to be
+	% applied; at least OpenGL driver enable this one by default)
 	%
 	% No texture: gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=1 ),
 	% Right:
-	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=4 ),
+	gui_shader:set_uniform_i( SamplerUnifId, ?my_target_texture_unit ),
 
 	% Texture shown as well for:
-	% gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=0 ),
+	 %gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=0 ),
 
 
 	% Switch RasterMode to raster_as_lines in order to render in wireframe
