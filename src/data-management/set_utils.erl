@@ -25,31 +25,27 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2016.
 
-
-% @doc Gathering of various facilities about <b>sets</b>.
-%
-% A set is a container that:
-%
-% - does not allow duplicates (adding an element more than once is like adding
-% it only once)
-%
-% - has no intrinsic order (yet can be iterated over)
-%
-% - can efficiently look-up elements, even if containing a large number of them
-%
-% Notes:
-%
-% - we provide here a basic, general-purpose set support, and do not rely on any
-% lighter, alternate level of indirection
-%
-% - if you feel the need for an associative table whose values do no matter,
-% your actual need is a set!
-%
-% See set_utils_test.erl for the corresponding test.
-%
-% See also: list_utils.erl and set_utils_test.erl.
-%
 -module(set_utils).
+
+-moduledoc """
+Gathering of various facilities about **sets**.
+
+A set is a container that:
+- does not allow duplicates (adding an element more than once is like adding it
+only once)
+- has no intrinsic order (yet can be iterated over)
+- can efficiently look-up elements, even if containing a large number of them
+
+Notes:
+- we provide here a basic, general-purpose set support, and do not rely on any
+lighter, alternate level of indirection
+- if you feel the need for an associative table whose values do no matter, your
+actual need is a set!
+
+See set_utils_test.erl for the corresponding test.
+
+See also: list_utils.erl and set_utils_test.erl.
+""".
 
 
 

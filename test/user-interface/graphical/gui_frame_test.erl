@@ -25,16 +25,18 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2013.
 
-
-% <b>Simple unit tests for the MyriadGUI toolbox</b>: creates a few frames,
-% enters a main loop, and exits when the fourth frame is closed by the user.
-%
-% Note: this test showcases also how an (explicit) GUI state can be kept and
-% used, if ever needed.
-%
-% See the gui.erl tested module.
-%
 -module(gui_frame_test).
+
+-moduledoc """
+**Simple unit tests for the MyriadGUI toolbox**: creates a few frames, enters a
+main loop, and exits when the fourth frame is closed by the user.
+
+Note: this test showcases also how an (explicit) GUI state can be kept and
+used, if ever needed.
+
+See the gui.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -147,5 +149,3 @@ run() ->
 	end,
 
 	test_facilities:stop().
-
-

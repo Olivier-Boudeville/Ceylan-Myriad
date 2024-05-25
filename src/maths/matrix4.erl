@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, October 8, 2021.
 
-
-% @doc Module implementing the support for <b>4x4 matrices</b>.
-%
-% See also:
-% - the corresponding (4D) vectors, in vector4.erl
-% - the (unspecialised) matrices of arbitrary dimensions, in matrix.erl
-%
 -module(matrix4).
+
+-moduledoc """
+Module implementing the support for **4x4 matrices**.
+
+See also:
+ - the corresponding (4D) vectors, in `vector4.erl`
+ - the (unspecialised) matrices of arbitrary dimensions, in `matrix.erl`
+""".
 
 
 
@@ -1878,7 +1879,7 @@ comatrix( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 % @doc Returns the inverse of the specified matrix, if it is invertible (that is
 % iff its determinant is non-null), otherwise returns undefined.
 %
--spec inverse( matrix4() ) -> maybe( matrix4() ).
+-spec inverse( matrix4() ) -> option( matrix4() ).
 % Special cases as the inverse of a compact_matrix is another one (even if the
 % intermediary comatrix is generally not one):
 %

@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 20, 2010.
 
-
-% @doc Unit tests for the option list implementation.
-%
-% See the option_list.erl tested module.
-%
 -module(option_list_test).
+
+-moduledoc """
+Unit tests for the **option list** implementation.
+
+See the option_list.erl tested module.
+""".
 
 
 % For run/0 export and al:

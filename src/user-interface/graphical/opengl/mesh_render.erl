@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 21, 2024.
 
-
-% @doc Gathering of various facilities for <b>mesh rendering</b> management.
-%
-% Relies on OpenGL to render the geometry of 3D objects, possibly with the
-% corresponding MyriadGUI base shaders.
-%
-% See `mesh.erl' for the management of meshes by themselves.
-%
 -module(mesh_render).
+
+-moduledoc """
+Gathering of various facilities for **mesh rendering** management.
+
+Relies on OpenGL to render the geometry of 3D objects, possibly with the
+corresponding MyriadGUI base shaders.
+
+See `mesh.erl` for the management of meshes by themselves.
+""".
+
 
 
 % For the numerous GL defines notably:
@@ -409,7 +411,7 @@ adapt_texture_face_infos( _RevTexFaceInfos=_UVPoints=
 %
 % No specific cache used or returned.
 -spec initialise_for_opengl( maybe_list( mesh() ), program_id() ) ->
-			{ maybe_list( mesh() ), maybe( texture_cache() ) }.
+			{ maybe_list( mesh() ), option( texture_cache() ) }.
 initialise_for_opengl( Mesh, ProgramId ) ->
 	initialise_for_opengl( Mesh, ProgramId, _MaybeTextureCache=undefined ).
 
@@ -422,8 +424,8 @@ initialise_for_opengl( Mesh, ProgramId ) ->
 % updated texture cache.
 %
 -spec initialise_for_opengl( maybe_list( mesh() ), program_id(),
-							 maybe( texture_cache() ) ) ->
-			{ maybe_list( mesh() ), maybe( texture_cache() ) }.
+							 option( texture_cache() ) ) ->
+			{ maybe_list( mesh() ), option( texture_cache() ) }.
 % Only a subset of the combinations supported currently; first, if no rendering
 % requested:
 %

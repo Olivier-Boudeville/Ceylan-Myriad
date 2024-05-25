@@ -25,26 +25,28 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, January 9, 2022.
 
-
-% @doc Minimal testing of the <b>OpenGL GLSL support</b>: displays, based on
-% ad-hoc shaders (not the MyriadGUI base ones), a Myriad-blue polygon (actually
-% a triangle and a rectangle that intersect each other) on a white background.
-%
-% Only normalized device coordinates are used (no projection).
-%
-% It is therefore a non-interactive, passive test (no spontaneous/scheduled
-% behaviour) whose main interest is to show a simple yet generic, appropriate
-% structure in order to properly initialise the GUI and OpenGL, handle
-% rendering, resizing and closing.
-%
-% This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
-% as opposed to the compatibility mode for OpenGL 1.x.
-%
-% Direct (for the triangle) and indexed (for the square) coordinates are used.
-%
-% See the gui_opengl tested module.
-%
 -module(gui_opengl_minimal_shader_test).
+
+-moduledoc """
+Minimal testing of the **OpenGL GLSL support**: displays, based on ad-hoc
+shaders (not the MyriadGUI base ones), a Myriad-blue polygon (actually a
+triangle and a rectangle that intersect each other) on a white background.
+
+Only normalized device coordinates are used (no projection).
+
+It is therefore a non-interactive, passive test (no spontaneous/scheduled
+behaviour) whose main interest is to show a simple yet generic, appropriate
+structure in order to properly initialise the GUI and OpenGL, handle rendering,
+resizing and closing.
+
+This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x.
+
+Direct (for the triangle) and indexed (for the square) coordinates are used.
+
+See the gui_opengl tested module.
+""".
+
 
 
 % Implementation notes:
@@ -81,7 +83,7 @@
 	context :: gl_context(),
 
 	% In more complex cases, would store the loaded textures, etc.
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.

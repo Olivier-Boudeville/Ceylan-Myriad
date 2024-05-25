@@ -44,7 +44,7 @@
 -record( reference_frame3, {
 
 	% The name (if any) of a reference frame (this is not an identifier).
-	name :: maybe( reference_frame:ref_name() ),
+	name :: option( reference_frame:ref_name() ),
 
 
 	% The parent reference frame of this one, to be found in an (implicit)
@@ -57,7 +57,7 @@
 	%
 	% Only the root of a reference tree as a parent set to 'undefined'.
 	%
-	parent = ?root_ref_id :: maybe( reference_tree:ref_id() ),
+	parent = ?root_ref_id :: option( reference_tree:ref_id() ),
 
 
 	% A list of the (direct) children of this reference frame:
@@ -69,7 +69,7 @@
 	% An (optional) identifier path from the (implicit) root frame of reference
 	% to this frame (cached precomputation)
 	%
-	path_from_root :: maybe( reference_tree:id_path() ),
+	path_from_root :: option( reference_tree:id_path() ),
 
 
 	% The 3D transformation (based on 4x4 matrices) between the parent reference

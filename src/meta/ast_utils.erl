@@ -25,19 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, January 1, 2018.
 
-
-% @doc Gathering of various convenient <b>facilities to manage ASTs</b>
-% (Abstract Syntax Trees): direct bridge towards plain Erlang AST.
-%
-% Convenient to isolate processings from the current Erlang AST syntax, which
-% could change over time (a bit like the erl_syntax standard module, albeit with
-% a different set of conventions).
-%
-% See also:
-% - the meta_utils module, for meta primitives less directly linked with syntax
-% - the ast_scan module, to perform a full, strict traversal of an AST
-%
 -module(ast_utils).
+
+-moduledoc """
+Gathering of various convenient **facilities to manage ASTs** (*Abstract Syntax
+Trees*): direct bridge towards plain Erlang AST.
+
+Convenient to isolate processings from the current Erlang AST syntax, which
+could change over time (a bit like the erl_syntax standard module, albeit with a
+different set of conventions).
+
+See also:
+- the meta_utils module, for meta primitives less directly linked with syntax
+- the ast_scan module, to perform a full, strict traversal of an AST
+""".
 
 
 
@@ -137,7 +138,7 @@
 
 -type void() :: basic_utils:void().
 -type module_name() :: basic_utils:module_name().
--type maybe(T) :: basic_utils:maybe(T).
+-type option(T) :: basic_utils:option(T).
 -type error_reason() :: basic_utils:error_reason().
 
 -type ustring() :: text_utils:ustring().
@@ -284,7 +285,7 @@ check_file_loc( Line ) ->
 
 
 % @doc Checks that the specified source, in-file location is legit.
--spec check_file_loc( term(), maybe( form_context() ) ) -> file_loc().
+-spec check_file_loc( term(), option( form_context() ) ) -> file_loc().
 check_file_loc( Line, _Context )
 						when is_integer( Line ) andalso Line >= 0 ->
 	Line;
@@ -843,7 +844,7 @@ raise_error( ErrorTerm ) ->
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
--spec raise_error( term(), maybe( source_context() ) ) -> no_return().
+-spec raise_error( term(), option( source_context() ) ) -> no_return().
 raise_error( ErrorTerm, Context ) ->
 	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
 
@@ -864,7 +865,7 @@ raise_error( ErrorTerm, Context ) ->
 % - prefer using raise_usage_error/* to report errors in a more standard,
 % convenient way
 %
--spec raise_error( term(), maybe( source_context() ),
+-spec raise_error( term(), option( source_context() ),
 				   basic_utils:layer_name() ) -> no_return();
 				 ( ustring(), ast_transforms(), file_loc() ) -> no_return().
 raise_error( Message, #ast_transforms{ transformed_module_name=ModName },
@@ -1015,7 +1016,7 @@ raise_usage_error( ErrorFormatString, ErrorValues, FileOrModname ) ->
 % the actual error to the user.
 %
 -spec raise_usage_error( format_string(), format_values(),
-			file_name() | module_name(), maybe( file_loc() ) ) -> no_return().
+			file_name() | module_name(), option( file_loc() ) ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, FileOrModname,
 				   _FileLoc=undefined ) ->
 	raise_usage_error( ErrorFormatString, ErrorValues, FileOrModname,
@@ -1083,7 +1084,7 @@ format_error( ErrorTerm ) ->
 %
 % (helper)
 %
--spec get_elements_with_context( [ term() ], maybe( source_context() ) ) ->
+-spec get_elements_with_context( [ term() ], option( source_context() ) ) ->
 										[ term() ].
 get_elements_with_context( Elements, _Context=undefined ) ->
 	Elements;

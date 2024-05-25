@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities related to the <b>monitoring of
-% processes, ports, time changes or nodes</b>.
-%
-% See monitor_utils_test.erl for the corresponding test.
-%
 -module(monitor_utils).
+
+-moduledoc """
+Gathering of various facilities related to the **monitoring of processes, ports,
+time changes or nodes**.
+
+See monitor_utils_test.erl for the corresponding test.
+""".
 
 
 

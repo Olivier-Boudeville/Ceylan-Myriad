@@ -25,80 +25,81 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, October 31, 2013.
 
-
-% @doc Service dedicated to the <b>management of user preferences</b> (for
-% user-level configuration), thanks to a corresponding server process.
-%
-% Preferences are generally default, static settings, like user general
-% preferences, defined in a file meant to be potentially read by multiple
-% applications. This is a way of storing durable information in one's user
-% account in a transverse way regarding programs and versions thereof, and of
-% sharing these elements (settings, credentials, etc.) conveniently. See also,
-% in the file_utils module, the get_configuration_directory/1 and
-% get_extra_configuration_directories/1 functions in order to locate first such
-% a configuration file.
-%
-% Preferences can be application-specific or component-specific, and obtained
-% from any source (file included); they may also start blank and be exclusively
-% fed by the application or component itself. In any case they are meant to be
-% accessed (read/written) in the course of program execution, before possibly
-% being stored at application exit or component stop.
-%
-% A preferences entry is designated by a key (an atom), associated to a value
-% (that can be any term). No difference is made between a non-registered key and
-% a key registered to 'undefined'.
-%
-% Preferences can be stored in file(s), in the ETF format. This format of
-% preferences is a series of Erlang terms as strings, each ended with a dot
-% (i.e. it is the basic, standard format understood by `file:consult/1').
-%
-% Example of content for a preferences file:
-% ```
-% {my_first_color, red}.
-% {myHeight, 1.80}.
-% {'My name', "Sylvester the cat"}.
-% '''
-%
-% Such a file may be used to create a preferences server (e.g. with start/0) or
-% to update a pre-existing one (with update_from_etf/{1,2}).
-%
-% The corresponding server process is locally registered, generally under a
-% fixed name, which may be the default Myriad one (see the
-% default_preferences_filename define), or a user-defined one (e.g.
-% foobar_preferences).
-%
-% As a consequence, a preferences server can be designated either directly
-% through its PID or through its conventional (atom) registration name (e.g.
-% implicitly with `preferences:get(hello)' for the default one, or explicitly,
-% via its name with `preferences:get(hello, foobar_preferences)'. The former
-% approach is a bit more effective, but the latter one is more robust (the
-% server can be transparently restarted/upgraded).
-%
-% No specific global registration of that server is made here.
-%
-% A (single) explicit start (with one of the start* functions) shall be
-% preferred to implicit ones (typically directly thanks to the get* functions)
-% to avoid any risk of race conditions (should multiple processes attempt
-% concurrently to create the same preferences server), and also in order to be
-% able to request that it is also linked to the calling process.
-%
-% For faster accesses (not involving any inter-process messaging), and if
-% considering that their changes are at least rather infrequent (or never
-% happening), at least some entries managed by a preferences server may be
-% cached directly in client processes.
-%
-% In this case the process dictionary of these clients is used, and when
-% updating from a client process a cached key, the corresponding preferences
-% server is updated in turn. However any other client process caching that key
-% will not be aware of this change until it explicitly requests an update to
-% this preferences server.
-%
-% In practice, now preferences are a special case of environment (see our
-% environment module for more details). So each preferences server is an
-% environment process (not unlike an ETS table) able to read, store, modify,
-% save the data that it manages.
-%
 -module(preferences).
+
+-moduledoc """
+
+Service dedicated to the **management of user preferences** (for user-level
+configuration), thanks to a corresponding server process.
+
+Preferences are generally default, static settings, like user general
+preferences, defined in a file meant to be potentially read by multiple
+applications. This is a way of storing durable information in one's user account
+in a transverse way regarding programs and versions thereof, and of sharing
+these elements (settings, credentials, etc.) conveniently. See also, in the
+file_utils module, the get_configuration_directory/1 and
+get_extra_configuration_directories/1 functions in order to locate first such a
+configuration file.
+
+Preferences can be application-specific or component-specific, and obtained from
+any source (file included); they may also start blank and be exclusively fed by
+the application or component itself. In any case they are meant to be accessed
+(read/written) in the course of program execution, before possibly being stored
+at application exit or component stop.
+
+A preferences entry is designated by a key (an atom), associated to a value
+(that can be any term). No difference is made between a non-registered key and a
+key registered to 'undefined'.
+
+Preferences can be stored in file(s), in the ETF format. This format of
+preferences is a series of Erlang terms as strings, each ended with a dot
+(i.e. it is the basic, standard format understood by `file:consult/1').
+
+Example of content for a preferences file:
+```
+{my_first_color, red}.
+{myHeight, 1.80}.
+{'My name', "Sylvester the cat"}.
+```
+
+Such a file may be used to create a preferences server (e.g. with start/0) or
+to update a pre-existing one (with update_from_etf/{1,2}).
+
+The corresponding server process is locally registered, generally under a fixed
+name, which may be the default Myriad one (see the default_preferences_filename
+define), or a user-defined one (e.g.  foobar_preferences).
+
+As a consequence, a preferences server can be designated either directly through
+its PID or through its conventional (atom) registration name (e.g.  implicitly
+with `preferences:get(hello)' for the default one, or explicitly, via its name
+with `preferences:get(hello, foobar_preferences)'. The former approach is a bit
+more effective, but the latter one is more robust (the server can be
+transparently restarted/upgraded).
+
+No specific global registration of that server is made here.
+
+A (single) explicit start (with one of the start* functions) shall be preferred
+to implicit ones (typically directly thanks to the get* functions) to avoid any
+risk of race conditions (should multiple processes attempt concurrently to
+create the same preferences server), and also in order to be able to request
+that it is also linked to the calling process.
+
+For faster accesses (not involving any inter-process messaging), and if
+considering that their changes are at least rather infrequent (or never
+happening), at least some entries managed by a preferences server may be cached
+directly in client processes.
+
+In this case the process dictionary of these clients is used, and when updating
+from a client process a cached key, the corresponding preferences server is
+updated in turn. However any other client process caching that key will not be
+aware of this change until it explicitly requests an update to this preferences
+server.
+
+In practice, now preferences are a special case of environment (see our
+environment module for more details). So each preferences server is an
+environment process (not unlike an ETS table) able to read, store, modify, save
+the data that it manages. 
+""".
 
 
 -export([ start/0, start/1, start/2, start_with_defaults/1,
@@ -441,7 +442,7 @@ wait_available( ServerRegName ) ->
 %
 % ["Hello!", 42, undefined] = preferences:get([hello, my_number, some_maybe])
 %
--spec get( maybe_list( key() ) ) -> maybe_list( maybe( value() ) ).
+-spec get( maybe_list( key() ) ) -> maybe_list( option( value() ) ).
 get( KeyMaybes ) ->
 	environment:get( KeyMaybes, get_default_preferences_registration_name(),
 					 get_default_preferences_path() ).
@@ -468,7 +469,7 @@ get( KeyMaybes ) ->
 %     preferences:get([hello, my_number, some_maybe], MyPrefServerPid)
 %
 -spec get( maybe_list( key() ), preferences_designator() | file_path() ) ->
-										maybe_list( maybe( value() ) ).
+										maybe_list( option( value() ) ).
 get( KeyMaybes, EnvData ) ->
 	environment:get( KeyMaybes, EnvData ).
 
@@ -584,7 +585,7 @@ cache( CacheSpec, PrefData ) ->
 %
 % Equivalent to a call to cache/1 followed by one to get/1 with the same keys.
 %
--spec cache_return( maybe_list( key() ) ) -> maybe_list( maybe( value() ) ).
+-spec cache_return( maybe_list( key() ) ) -> maybe_list( option( value() ) ).
 cache_return( KeyMaybeList ) ->
 	cache_return( KeyMaybeList,
 				  _PrefData=get_default_preferences_registration_name() ).
@@ -596,7 +597,7 @@ cache_return( KeyMaybeList ) ->
 % Equivalent to a call to cache/2 followed by one to get/2 with the same keys.
 %
 -spec cache_return( maybe_list( key() ), preferences_data() ) ->
-								maybe_list( maybe( value() ) ).
+								maybe_list( option( value() ) ).
 cache_return( KeyMaybeList, PrefData ) ->
 	environment:cache_return( KeyMaybeList, PrefData ).
 

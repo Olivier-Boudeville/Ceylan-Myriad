@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2017.
 
-
-% @doc Gathering of various convenient facilities regarding the <b>support of
-% various programming or communication languages</b>.
-%
-% See language_utils_test.erl for the corresponding test.
-%
 -module(language_utils).
+
+-moduledoc """
+Gathering of various convenient facilities regarding the **support of various
+programming or communication languages**.
+
+See language_utils_test.erl for the corresponding test.
+""".
 
 
 -type language() :: 'erlang' | 'python' | 'java'.

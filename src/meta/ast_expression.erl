@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of handling <b>expressions defined with an AST</b>.
-%
-% See [http://erlang.org/doc/apps/erts/absform.html] for more information.
-%
 -module(ast_expression).
+
+-moduledoc """
+Module in charge of handling **expressions defined with an AST**.
+
+See <http://erlang.org/doc/apps/erts/absform.html> for more information.
+""".
+
 
 
 -type ast_expression() :: ast_base:ast_element().

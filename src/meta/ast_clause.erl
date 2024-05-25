@@ -25,14 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of <b>handling clauses defined within an AST</b>.
-%
-% Refer to the "7.5 Clauses" section of
-% [http://erlang.org/doc/apps/erts/absform.html] for more information.
-%
 -module(ast_clause).
 
+-moduledoc """
+Module in charge of **handling clauses defined within an AST**.
+
+Refer to the "7.5 Clauses" section of
+<http://erlang.org/doc/apps/erts/absform.html> for more information.
+""".
 
 
 -type ast_clause() :: ast_function_clause() | ast_if_clause()
@@ -601,7 +601,7 @@ transform_body( Other, _Transforms ) ->
 % {call,102,{atom,102,some_fun},[{atom,102,a},{atom,102,b}]}.
 %
 -spec forge_local_call( function_name(), [ ast_expression() ], file_loc() ) ->
-		                                ast_expression().
+										ast_expression().
 forge_local_call( FunctionName, Params, FileLoc ) ->
 	forge_local_call( FunctionName, Params, FileLoc, FileLoc ).
 

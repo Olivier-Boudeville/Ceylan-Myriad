@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, July 5, 2023.
 
-
-% @doc Test showcasing the use of the <b>application GUI state</b>, to provide
-% the user with a generic main event loop, with built-in drivers that can be
-% overridden at will.
-%
 -module(gui_application_state_test).
+
+-moduledoc """
+Test showcasing the use of the **application GUI state**, to provide the user
+with a generic main event loop, with built-in drivers that can be overridden at
+will.
+""".
+
 
 
 % For run/0 export and al:

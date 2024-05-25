@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, September 2, 2023.
 
-
-% @doc Gathering of various facilities for <b>menu management</b>, covering both
-% menu bars and popup menus.
-%
 -module(gui_menu).
+
+-moduledoc """
+Gathering of various facilities for **menu management**, covering both menu bars
+and popup menus.
+""".
 
 
 -opaque menu() :: wxMenu:wxMenu().

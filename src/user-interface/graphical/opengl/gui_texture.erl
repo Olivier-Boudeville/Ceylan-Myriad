@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, March 13, 2023.
 
-
-% @doc Gathering of various facilities for the <b>support of (OpenGL)
-% textures</b>, mostly 2D ones, either old-style (compatibility ones) or
-% according to current, modern OpenGL.
-%
 -module(gui_texture).
+
+-moduledoc """
+Gathering of various facilities for the **support of (OpenGL) textures**, mostly
+2D ones, either old-style (compatibility ones) or according to current, modern
+OpenGL.
+""".
+
 
 
 % Notably for the numerous GL defines and the texture/texture_cache records:
@@ -215,7 +217,7 @@
 
 
 -type texture_entry() ::
-		{ texture_spec_id(), maybe( image() ), maybe( texture() ) }.
+		{ texture_spec_id(), option( image() ), option( texture() ) }.
 % The information held by a texture cache regarding a given texture, that is the
 % value associated to its texture_spec_id() key.
 %

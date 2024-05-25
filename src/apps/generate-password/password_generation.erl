@@ -5,14 +5,14 @@
 % Released as LGPL software.
 % Creation date: 2018.
 
-
-% @doc Actual module in charge of the Myriad <b>password generation</b>.
-%
-% Transferred from `generate-password.escript' in order to benefit from a more
-% user-friendly debugging.
-%
 -module(password_generation).
 
+-moduledoc """
+Actual module in charge of the Myriad **password generation**.
+
+Transferred from `generate-password.escript' in order to benefit from a more
+user-friendly debugging.
+""".
 
 -define( exec_name, "generate-password.escript" ).
 

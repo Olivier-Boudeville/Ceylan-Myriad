@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, November 30, 2021.
 
-
-% @doc This module concentrates <b>audio-related elements</b>.
-%
-% See speech_support.erl for TTS.
-%
 -module(audio_utils).
+
+-moduledoc """
+This module concentrates **audio-related elements**.
+
+See speech_support.erl for TTS.
+""".
 
 
 
@@ -117,7 +118,7 @@
 % @doc Performs a playblack of the specified audio file, with specified
 % settings (if any), in a non-blocking (in the background) way.
 %
--spec playback_file( any_file_path(), maybe( audio_stream_settings() ) ) ->
+-spec playback_file( any_file_path(), option( audio_stream_settings() ) ) ->
 											void().
 playback_file( AudioFilePath, MaybeAudioStreamSettings ) ->
 	playback_file( AudioFilePath, MaybeAudioStreamSettings, _DoBlock=false ).
@@ -126,7 +127,7 @@ playback_file( AudioFilePath, MaybeAudioStreamSettings ) ->
 % @doc Performs a playblack of the specified audio file, with specified
 % settings, either in a blocking or in a non-blocking (in the background) way.
 %
--spec playback_file( any_file_path(), maybe( audio_stream_settings() ),
+-spec playback_file( any_file_path(), option( audio_stream_settings() ),
 					 boolean() ) -> void().
 playback_file( AudioFilePath, _MaybeAudioStreamSettings, DoBlock ) ->
 	executable_utils:playback_audio_file( AudioFilePath, DoBlock ).

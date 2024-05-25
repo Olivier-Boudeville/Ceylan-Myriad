@@ -25,11 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, August 26, 2023.
 
-
-% @doc Gathering of various facilities for the management of <b>status bars</b>,
-% a thin space at the bottom of a frame where texts are typically displayed.
-%
 -module(gui_statusbar).
+
+-moduledoc """
+Gathering of various facilities for the management of **status bars**, a thin
+space at the bottom of a frame where texts are typically displayed.
+""".
+
 
 
 -opaque status_bar() :: wxStatusBar:wxStatusBar().

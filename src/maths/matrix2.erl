@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, October 8, 2021.
 
-
-% @doc Module implementing the support for <b>2x2 matrices</b>.
-%
-% See also:
-% - the corresponding (2D) vectors, in vector2.erl
-% - the (unspecialised) matrices of arbitrary dimensions, in matrix.erl
-%
 -module(matrix2).
+
+-moduledoc """
+Module implementing the support for **2x2 matrices**.
+
+See also:
+ - the corresponding (2D) vectors, in `vector2.erl`
+ - the (unspecialised) matrices of arbitrary dimensions, in `matrix.erl`
+""".
+
 
 
 
@@ -481,7 +483,7 @@ comatrix( _M=#matrix2{ m11=M11, m12=M12,
 % operations starting from identity) or computed differently (e.g. by Gaussian
 % elimination), or can be replaced by a mere lower–upper (LU) decomposition.
 %
--spec inverse( matrix2() ) -> maybe( matrix2() ).
+-spec inverse( matrix2() ) -> option( matrix2() ).
 inverse( identity_2 ) ->
 	identity_2;
 

@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, December 25, 2018.
 
-
-% @doc Management of <b>conditional compilation</b> - like generalised,
-% limitation-less macros.
-%
 -module(cond_utils).
+
+-moduledoc """
+Management of **conditional compilation** - like generalised, limitation-less
+macros.
+""".
 
 
 
@@ -171,7 +172,7 @@
 % A table used to associate an expression to a token value.
 
 
--type token_table() :: ?table:?table( token(), basic_utils:maybe( term() ) ).
+-type token_table() :: ?table:?table( token(), basic_utils:option( term() ) ).
 % Table to establish easily whether a token has been defined and, if yes, a
 % value (if any; otherwise it is set to 'undefined') that has been associated to
 % it.

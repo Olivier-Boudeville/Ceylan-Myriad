@@ -25,16 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, February 2, 2022.
 
-
-% @doc Testing of <b>matrix support</b> in relation to OpenGL, to ensure that
-% they can be handled as expected.
-%
-% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
-% modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
-%
-% See the gui_opengl.erl tested module.
-%
 -module(gui_opengl_matrix_test).
+
+-moduledoc """
+Testing of **matrix support** in relation to OpenGL, to ensure that they can be
+handled as expected.
+
+This test relies on the OpenGL 1.x compatibility mode, as opposed to more modern
+versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
+
+See the gui_opengl.erl tested module.
+""".
 
 
 

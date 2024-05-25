@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, August 19, 2023.
 
-
-% @doc Testing the <b>support for the management of (mostly built-in)
-% bitmaps</b>.
-%
 -module(gui_bitmap_test).
+
+-moduledoc """
+Testing the **support for the management of (mostly built-in) bitmaps**.
+""".
+
 
 
 % Implementation notes:

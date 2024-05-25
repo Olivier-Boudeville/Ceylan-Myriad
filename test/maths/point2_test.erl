@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, October 10, 2021.
 
-
-% @doc Unit tests for the <b>2D points</b>.
-%
-% See the point2 tested module.
-%
 -module(point2_test).
+
+-moduledoc """
+Unit tests for the **2D points**.
+
+See the point2 tested module.
+""".
+
 
 
 % For run/0 export and al:

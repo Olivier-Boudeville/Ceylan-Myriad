@@ -25,14 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, September 10, 2023.
 
-
-% @doc Gathering of various facilities for <b>frames</b>, which are windows
-% whose size and position can usually be changed by the user.
-%
-% See also the gui_window module.
-%
 -module(gui_frame).
 
+-moduledoc """
+Gathering of various facilities for **frames**, which are windows whose size and
+position can usually be changed by the user.
+
+See also the gui_window module.
+""".
 
 
 % Usage notes:
@@ -207,7 +207,7 @@ create( Title, Size ) ->
 
 
 % @doc Creates a frame, with default position, size and styles.
--spec create( title(), id(), maybe( parent() ) ) -> frame().
+-spec create( title(), id(), option( parent() ) ) -> frame().
 create( Title, Id, MaybeParent ) ->
 	wxFrame:new( gui_wx_backend:to_wx_parent( MaybeParent ),
 				 gui_id:declare_any_id( Id ), Title ).
@@ -236,7 +236,7 @@ create( Title, Position, Sizing, Styles ) ->
 % with the specified parent.
 %
 -spec create( title(), position(), sizing(), [ frame_style() ], id(),
-			  maybe( parent() ) ) -> frame().
+			  option( parent() ) ) -> frame().
 create( Title, Position, Sizing, Styles, Id, MaybeParent ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),

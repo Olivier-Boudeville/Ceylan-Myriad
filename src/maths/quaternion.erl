@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, October 8, 2021.
 
-
-% @doc Gathering of various facilities for <b>quaternion-related</b> operations.
 -module(quaternion).
+
+-moduledoc """
+Gathering of various facilities for **quaternion-related** operations.
+""".
 
 
 % For printout_*, inline_size, etc.:

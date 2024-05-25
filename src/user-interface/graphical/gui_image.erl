@@ -25,19 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Sunday, November 14, 2021.
 
-
-% @doc Gathers all elements relative to the management of <b>images</b>
-% (including icons, etc.), for loading, modifying, saving, scaling,
-% resizing, clipping, etc., in link to MyriadGUI, and in a platform-independent
-% way.
-%
-% Images shall be considered as just a generic, platform-independent buffer of
-% RGB bytes with an optional buffer for the alpha bytes, whereas bitmaps are
-% platform-specific, readily-usable graphical content.
-%
-% May be useful also for textures.
-%
 -module(gui_image).
+
+-moduledoc """
+Gathers all elements relative to the management of **images** (including icons,
+etc.), for loading, modifying, saving, scaling, resizing, clipping, etc., in
+link to MyriadGUI, and in a platform-independent way.
+
+Images shall be considered as just a generic, platform-independent buffer of RGB
+bytes with an optional buffer for the alpha bytes, whereas bitmaps are
+platform-specific, readily-usable graphical content.
+
+May be useful also for textures.
+""".
+
 
 
 % For the raw_bitmap record:

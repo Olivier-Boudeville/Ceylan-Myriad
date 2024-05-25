@@ -25,25 +25,29 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 20, 2010.
 
-
-% @doc An implementation of <b>option lists</b>, loosely based on `proplist'.
-%
-% Note that our option lists only have {Key,Value} pairs (e.g. no entry is made
-% of a single atom).
-%
-% See `option_list_test.erl' for the corresponding test.
-%
-% An option list is basically a list containing key/value pairs, keys being
-% generally (hence: not necessarily) atoms, values being any Erlang term.
-%
-% In an option list, usually no duplicate keys are expected to exist.
-% Operations on option list tend to preserve the order of their entries.
-%
-% See also the `proplists' standard module, and our very similar, richer,
-% list_table module that is bound to fully supersede the current module in the
-% future.
-%
 -module(option_list).
+
+-moduledoc """
+An implementation of **option lists**, loosely based on `proplist`.
+
+Note that:
+- such 'options' are not linked to the 'option/1' (maybe-like) type
+- our option lists only have {Key,Value} pairs (e.g. no entry is made of a
+single atom)
+
+See `option_list_test.erl` for the corresponding test.
+
+An option list is basically a list containing key/value pairs, keys being
+generally (hence: not necessarily) atoms, values being any Erlang term.
+
+In an option list, usually no duplicate keys are expected to exist.  Operations
+on option list tend to preserve the order of their entries.
+
+See also the `proplists` standard module, and our very similar, richer,
+list_table module that is bound to fully supersede the current module in the
+future.
+""".
+
 
 
 -export([ new/0, new/1, set/2, get/2, lookup/2, update_with/2,
@@ -141,7 +145,7 @@ get( Key, OptionList ) ->
 % defined, or one whose value is 'undefined'. See list_table:lookup_entry/2 for
 % a better management.
 %
--spec lookup( key(), option_list() ) -> maybe( value() ).
+-spec lookup( key(), option_list() ) -> option( value() ).
 lookup( Key, OptionList ) ->
 	proplists:get_value( Key, OptionList ).
 
@@ -198,6 +202,6 @@ enumerate( OptionList ) ->
 to_string( OptionList ) ->
 
 	Strings = [ text_utils:format( "~p: ~p", [ K, V ] )
-				    || { K, V } <- OptionList ],
+					|| { K, V } <- OptionList ],
 
 	text_utils:strings_to_string( Strings ).

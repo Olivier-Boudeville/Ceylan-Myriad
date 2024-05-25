@@ -25,27 +25,29 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, August 31, 2023.
 
-
-% @doc Gathering of various facilities for <b>sizer management</b>.
-%
-% The purpose of a sizer (which is not a widget) is to drive the layout of the
-% child widgets of a given widget (window, panel, etc.), by dynamically resizing
-% them.
-%
-% Various types of sizers are available:
-%  - normal sizers (one-dimension), that are either horizontal or vertical
-%  virtual containers
-%  - variations thereof, rendered in a box and possibly with a label
-%  - grid sizers that are two-dimension sizers, either normal or compact
-%
-% Once created, a sizer is to be associated to a widget, typically thanks to
-% gui_widget:set_sizer/2. A widget can be resized to best fit its sizer, see
-% gui_widget:fit_to_sizer/2.
-%
-% Beyond child elements, a sizer may include spacers, which are empty areas used
-% to define better layouts.
-%
 -module(gui_sizer).
+
+-moduledoc """
+Gathering of various facilities for **sizer management**.
+
+The purpose of a sizer (which is not a widget) is to drive the layout of the
+child widgets of a given widget (window, panel, etc.), by dynamically resizing
+them.
+
+Various types of sizers are available:
+- normal sizers (one-dimension), that are either horizontal or vertical
+ virtual containers
+- variations thereof, rendered in a box and possibly with a label
+- grid sizers that are two-dimension sizers, either normal or compact
+
+Once created, a sizer is to be associated to a widget, typically thanks to
+gui_widget:set_sizer/2. A widget can be resized to best fit its sizer, see
+gui_widget:fit_to_sizer/2.
+
+Beyond child elements, a sizer may include spacers, which are empty areas used
+to define better layouts.
+""".
+
 
 
 

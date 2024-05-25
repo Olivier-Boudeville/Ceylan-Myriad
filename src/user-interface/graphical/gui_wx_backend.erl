@@ -25,16 +25,18 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, October 4, 2017.
 
-
-% @doc Gathers all elements relative to the (Erlang) <b>wx backend</b> version
-% 2.1 (itself based on [wxWidgets](https://www.wxwidgets.org/)).
-%
-% Now uses the gui_generated module, which is generated based on the
-% gui_constants one (see gui:generate_support_modules/0) in order to be able to
-% convert the identifiers / defines / constants between MyriadGUI and their
-% backend (wx) counterparts.
-%
 -module(gui_wx_backend).
+
+-moduledoc """
+Gathers all elements relative to the (Erlang) **wx backend** version
+2.1 (itself based on [wxWidgets](https://www.wxwidgets.org/)).
+
+Now uses the gui_generated module, which is generated based on the
+gui_constants one (see gui:generate_support_modules/0) in order to be able to
+convert the identifiers / defines / constants between MyriadGUI and their
+backend (wx) counterparts.
+""".
+
 
 
 % In the current module are gathered the wx-specific functions that may be
@@ -182,7 +184,7 @@
 -type wx_orientation() :: wx_direction() | ?wxBOTH.
 
 
--type wx_id() :: maybe( integer() ).
+-type wx_id() :: option( integer() ).
 % The identifier (ID) of a wx element is an integer (positive or not).
 %
 % This identifier (e.g. 63) is relative to a given type, like in:
@@ -413,7 +415,7 @@ to_wx_debug_level( _DebugLevel=life_cycle ) ->
 %
 % (helper)
 %
--spec to_wx_id( maybe( myriad_instance_id() ) ) -> wx_id().
+-spec to_wx_id( option( myriad_instance_id() ) ) -> wx_id().
 to_wx_id( undefined ) ->
 	?gui_any_id;
 
@@ -427,7 +429,7 @@ to_wx_id( Other ) ->
 %
 % (helper)
 %
--spec to_wx_parent( maybe( parent() ) ) -> gui_object().
+-spec to_wx_parent( option( parent() ) ) -> gui_object().
 to_wx_parent( undefined ) ->
 	?no_parent;
 
@@ -669,7 +671,7 @@ to_wx_connect_options( Opts, EventType, TrapSet ) ->
 
 % (helper)
 -spec to_wx_connect_options( [ event_subscription_option() ], event_type(),
-	trap_set(), maybe( 'propagate' | 'trap' ), event_type() ) ->
+	trap_set(), option( 'propagate' | 'trap' ), event_type() ) ->
 		[ wx_event_handler_option() ].
 % End of recursion, propagation explicitly requested by the user:
 to_wx_connect_options( _Opts=[], _EventType, _TrapSet,

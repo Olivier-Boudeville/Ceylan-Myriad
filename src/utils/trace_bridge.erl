@@ -25,41 +25,40 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, October 18, 2020.
 
-
-% @doc The <b>trace bridge</b> allows modules to depend only on the
-% Ceylan-Myriad layer, yet to rely optionally on a non-Myriad code for
-% traces/logs (possibly the Ceylan-Traces layer, refer to
-% [http://traces.esperide.org/]) at runtime for <b>its logging</b>, so that in
-% all cases exactly one (and the most appropriate) logging system is used, even
-% when lower-level libraries are involved (designed to operate with or without
-% an advanced trace system), and with no change in the source code of these user
-% modules to be operated.
-%
-% It is useful to provide native, integrated, higher-level logging to basic
-% libraries (e.g. Ceylan-LEEC, see [http://leec.esperide.org]), should their
-% user require it - while being able to remain lean and mean if wanted (e.g
-% while keeping the dependency to Ceylan-Traces optional).
-%
-% Switching to a more advanced trace system (typically Ceylan-Traces) is just a
-% matter of having the process of interest call the register/3 function below.
-%
-% For usage examples, refer to:
-%
-%  - Ceylan-Myriad: trace_bridge_test.erl (directly tracing through basic
-%  trace_utils)
-%
-%  - Ceylan-Traces: trace_bridging_test.erl (using then our advanced trace
-%  system); for example:
-%
-%   BridgeSpec = trace_bridge:get_bridge_spec( _MyEmitterName="MyBridgeTester",
-%     _MyCateg="MyTraceCategory",
-%     _BridgePid=class_TraceAggregator:get_aggregator() ),
-%
-%   trace_bridge:register( BridgeSpec ), [...]
-%
-%  - Ceylan-LEEC: most modules, including leec.erl
-%
 -module(trace_bridge).
+
+-moduledoc """
+The **trace bridge** allows modules to depend only on the Ceylan-Myriad layer,
+yet to rely optionally on a non-Myriad code for traces/logs (possibly the
+Ceylan-Traces layer, refer to <http://traces.esperide.org/>) at runtime for
+**its logging**, so that in all cases exactly one (and the most appropriate)
+logging system is used, even when lower-level libraries are involved (designed
+to operate with or without an advanced trace system), and with no change in the
+source code of these user modules to be operated.
+
+It is useful to provide native, integrated, higher-level logging to basic
+libraries (e.g. Ceylan-LEEC, see <http://leec.esperide.org>), should their
+user require it - while being able to remain lean and mean if wanted (e.g
+while keeping the dependency to Ceylan-Traces optional).
+
+Switching to a more advanced trace system (typically Ceylan-Traces) is just a
+matter of having the process of interest call the register/3 function below.
+
+For usage examples, refer to:
+- Ceylan-Myriad: trace_bridge_test.erl (directly tracing through basic
+  trace_utils)
+- Ceylan-Traces: trace_bridging_test.erl (using then our advanced trace system);
+  for example:
+```
+BridgeSpec = trace_bridge:get_bridge_spec( _MyEmitterName="MyBridgeTester",
+  _MyCateg="MyTraceCategory",
+  _BridgePid=class_TraceAggregator:get_aggregator() ),
+
+trace_bridge:register( BridgeSpec ), [...]
+```
+- Ceylan-LEEC: most modules, including leec.erl
+""".
+
 
 
 % The conventions retained here are suspiciously similar to the Ceylan-Traces
@@ -142,11 +141,12 @@
 
 
 
--opaque bridge_info() :: { TraceEmitterName :: bin_string(),
-						   TraceCategory :: bin_string(),
-						   Location :: bin_string(),
-						   BridgePid :: bridge_pid(),
-						   ApplicationTimestamp :: maybe( trace_timestamp() ) }.
+-opaque bridge_info() :: {
+	TraceEmitterName :: bin_string(),
+	TraceCategory :: bin_string(),
+	Location :: bin_string(),
+	BridgePid :: bridge_pid(),
+	ApplicationTimestamp :: option( trace_timestamp() ) }.
 % A bridging information stored in a target process dictionary.
 
 
@@ -185,7 +185,7 @@ get_bridge_spec( TraceEmitterName, TraceCategory, BridgePid ) ->
 %
 % See also: register_if_not_already/1.
 %
--spec register( maybe( bridge_spec() ) ) -> void().
+-spec register( option( bridge_spec() ) ) -> void().
 register( _MaybeBridgeSpec=undefined ) ->
 	ok;
 
@@ -227,7 +227,7 @@ register( BridgeSpec ) ->
 % Useful to have a bridge yet accept that the caller may have already set its
 % bridge.
 %
--spec register_if_not_already( maybe( bridge_spec() ) ) -> void().
+-spec register_if_not_already( option( bridge_spec() ) ) -> void().
 register_if_not_already( _MaybeBridgeSpec=undefined ) ->
 	ok;
 
@@ -273,7 +273,7 @@ bridge_spec_to_info( OtherBridgeSpec ) ->
 % May be useful for example if spawning processes and wanting that they use the
 % same bridge.
 %
--spec get_bridge_info() -> maybe( bridge_info() ).
+-spec get_bridge_info() -> option( bridge_info() ).
 get_bridge_info() ->
 	process_dictionary:get( ?myriad_trace_bridge_key ).
 
@@ -285,7 +285,7 @@ get_bridge_info() ->
 %
 % Any local pre-existing bridge information will be overwritten.
 %
--spec set_bridge_info( maybe( bridge_info() ) ) -> void().
+-spec set_bridge_info( option( bridge_info() ) ) -> void().
 set_bridge_info( MaybeBridgeInfo ) ->
 	process_dictionary:put( ?myriad_trace_bridge_key, MaybeBridgeInfo ).
 

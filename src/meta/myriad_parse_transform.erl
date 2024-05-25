@@ -26,7 +26,7 @@
 % Creation date: Friday, December 19, 2014.
 
 
-% @doc Overall <b>parse transform for the `Ceylan-Myriad' layer</b>.
+% @doc Overall **parse transform for the `Ceylan-Myriad' layer**.
 %
 % See `meta_utils.erl' and `meta_utils_test.erl'.
 %
@@ -379,8 +379,8 @@ get_myriad_ast_transforms_for(
 	% '{remote_type,FileLoc, [ {atom,FileLoc,basic_utils},
 	%                          {atom,FileLoc,void}, [] ] }'
 
-	% We also manage maybe/1 here: if used as 'maybe(T)', translated as
-	% 'basic_utils:maybe(T)'; the same applies to safe_maybe/1, fallible/{1,2}
+	% We also manage option/1 here: if used as 'option(T)', translated as
+	% 'basic_utils:option(T)'; the same applies to safe_option/1, fallible/{1,2}
 	% and diagnosed_fallible/{1,2}.
 
 	% Determines the target table type that we want to rely on ultimately:
@@ -482,9 +482,9 @@ shall_lco_be_disabled( CompileOptTable ) ->
 %
 % - void() with basic_utils:void() (i.e. prefixed with basic_utils)
 %
-% - maybe(T) with basic_utils:maybe(T)
+% - option(T) with basic_utils:option(T)
 %
-% - safe_maybe(T) with basic_utils:safe_maybe(T)
+% - safe_option(T) with basic_utils:safe_option(T)
 %
 % - fallible(T) with basic_utils:fallible(T)
 %
@@ -505,8 +505,8 @@ get_local_type_transforms( DesiredTableType ) ->
 	% the basic_utils module:
 	%
 	BasicUtilsTypes = [ { void, 0 },
-						{ maybe, 1 },
-						{ safe_maybe, 1 },
+						{ option, 1 },
+						{ safe_option, 1 },
 						{ fallible, 1 }, { fallible, 2 },
 						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 } ],
 

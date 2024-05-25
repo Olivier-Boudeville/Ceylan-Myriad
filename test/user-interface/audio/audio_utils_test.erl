@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, December 15, 2021.
 
-
-% Unit tests for the <b>audio toolbox</b>.
-%
-% See the audio_utils.erl tested module.
-%
 -module(audio_utils_test).
+
+-moduledoc """
+Unit tests for the **audio toolbox**.
+
+See the audio_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

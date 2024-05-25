@@ -25,16 +25,18 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various facilities for <b>canvas management</b>, for the
-% basic, plain ones that MyriadGUI introduced (as opposed to the OpenGL ones,
-% which are handled exclusively in our gui_opengl module).
-%
-% See `gui_canvas_test.erl' for the corresponding test.
-%
-% See `gui.erl' for more general rendering topics.
-%
 -module(gui_canvas).
+
+-moduledoc """
+Gathering of various facilities for **canvas management**, for the basic, plain
+ones that MyriadGUI introduced (as opposed to the OpenGL ones, which are handled
+exclusively in our gui_opengl module).
+
+See `gui_canvas_test.erl` for the corresponding test.
+
+See `gui.erl` for more general rendering topics.
+""".
+
 
 
 
@@ -260,7 +262,7 @@ set_draw_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 %
 % An undefined color corresponds to a fully transparent one.
 %
--spec set_fill_color( canvas(), maybe( color() ) ) -> void().
+-spec set_fill_color( canvas(), option( color() ) ) -> void().
 set_fill_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 	gui:get_main_loop_pid() ! { setCanvasFillColor, [ CanvasId, Color ] }.
 
@@ -270,7 +272,7 @@ set_fill_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Color ) ->
 %
 % An undefined color corresponds to a fully transparent one.
 %
--spec set_background_color( canvas(), maybe( color() ) ) -> void().
+-spec set_background_color( canvas(), option( color() ) ) -> void().
 set_background_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 					  Color ) ->
 	gui:get_main_loop_pid() ! { setCanvasBackgroundColor, [ CanvasId, Color ] }.
@@ -508,7 +510,6 @@ blit( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 -spec clear( canvas() ) -> void().
 clear( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 	gui:get_main_loop_pid() ! { clearCanvas, CanvasId }.
-
 
 
 
@@ -758,7 +759,7 @@ set_draw_color_impl( Canvas, Color ) ->
 %
 % An 'undefined' color corresponds to a fully transparent one.
 %
--spec set_fill_color_impl( canvas_state(), maybe( color() ) ) -> void().
+-spec set_fill_color_impl( canvas_state(), option( color() ) ) -> void().
 set_fill_color_impl( #canvas_state{ back_buffer=BackBuffer },
 					 _MaybeColor=undefined ) ->
 	% We want transparency here:

@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathers all elements relative to the <b>MyriadGUI</b> events, including
-% the event loop.
-%
 -module(gui_event).
+
+-moduledoc """
+Gathers all elements relative to the **MyriadGUI** events, including the event
+loop.
+""".
 
 
 % Usage notes:
@@ -594,7 +595,7 @@
 
 
 -type app_event_return() ::
-	{ maybe( application_event_pair() ), app_gui_state() }.
+	{ option( application_event_pair() ), app_gui_state() }.
 % Pair, together with an updated application GUI state, returned whenever a user
 % event has been processed by a corresponding event driver and possibly been
 % converted into an application event.
@@ -2501,7 +2502,7 @@ create_app_gui_state( AppEventSpecs ) ->
 % Refer to create_app_gui_state/3 for further details.
 %
 -spec create_app_gui_state( [ application_event_spec() ],
-							maybe( opengl_base_info() ) ) -> app_gui_state().
+							option( opengl_base_info() ) ) -> app_gui_state().
 create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo ) ->
 	create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
 						  _MaybeAppSpecificInfo=undefined ).
@@ -2521,7 +2522,7 @@ create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo ) ->
 %  the (focused) widget that reports them
 %
 -spec create_app_gui_state( [ application_event_spec() ],
-			maybe( opengl_base_info() ), maybe( any() ) ) -> app_gui_state().
+			option( opengl_base_info() ), option( any() ) ) -> app_gui_state().
 create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
 					  MaybeAppSpecificInfo ) ->
 
@@ -3107,7 +3108,7 @@ get_application_event( AppGUIState ) ->
 % calling process.
 %
 -spec get_maybe_application_event( app_gui_state() ) ->
-									maybe( app_event_return() ).
+									option( app_event_return() ).
 get_maybe_application_event( AppGUIState ) ->
 	get_maybe_application_event( AppGUIState, _Timeout=0 ).
 
@@ -3135,7 +3136,7 @@ get_maybe_application_event( AppGUIState ) ->
 % calling process.
 %
 -spec get_maybe_application_event( app_gui_state(), time_out() ) ->
-									maybe( app_event_return() ).
+									option( app_event_return() ).
 get_maybe_application_event( AppGUIState=#app_gui_state{
 		event_driver_table=EventDriverTable }, Timeout ) ->
 

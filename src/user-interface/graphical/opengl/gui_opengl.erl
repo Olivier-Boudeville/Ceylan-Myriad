@@ -25,18 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, September 11, 2017.
 
-
-% @doc Gathering of various facilities for <b>OpenGL rendering</b>, notably done
-% through wxWidgets.
-%
-% See gui_opengl_test.erl for the corresponding test.
-%
-% See gui.erl for more general rendering topics.
-%
-% Refer to [https://myriad.esperide.org/#for-3d-applications] for further
-% information.
-%
 -module(gui_opengl).
+
+-moduledoc """
+Gathering of various facilities for **OpenGL rendering**, notably done through
+wxWidgets.
+
+See gui_opengl_test.erl for the corresponding test.
+
+See gui.erl for more general rendering topics.
+
+Refer to <https://myriad.esperide.org/#for-3d-applications> for further
+information.
+""".
+
 
 
 % For example for WX_GL_CORE_PROFILE:
@@ -744,7 +746,7 @@ get_renderer_name() ->
 %
 % Only available if a current OpenGL context is set.
 %
--spec get_version_string() -> maybe( ustring() ).
+-spec get_version_string() -> option( ustring() ).
 get_version_string() ->
 	MaybeRes = try gl:getString( ?GL_VERSION ) of
 
@@ -1615,7 +1617,7 @@ is_hardware_accelerated( GlxinfoStrs ) ->
 % Of course the 'glxinfo' executable must be available on the PATH (install it
 % on Arch Linux with 'pacman -S mesa-utils').
 %
--spec get_glxinfo_strings() -> maybe( glxinfo_report() ).
+-spec get_glxinfo_strings() -> option( glxinfo_report() ).
 get_glxinfo_strings() ->
 
 	% Best diagnosis we know:
@@ -2079,7 +2081,7 @@ render_faces( _FaceType=quad, IndexedFaces, Vertices, Normals, Colors ) ->
 % Supposes per-vertex colors.
 %
 % (helper)
-render_triangles( _IndexedFaces=[], _FaceCount, _Vertices, _Normals,
+render_triangles( _IndexedFaces=[], _FaceCount, _Vertices, _Normals, 
 				  _Colors ) ->
 	ok;
 

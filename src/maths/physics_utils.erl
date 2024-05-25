@@ -25,20 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, October 7, 2023.
 
-
-% @doc Gathering of various <b>general-purpose basic physics-related</b>
-% facilities.
-%
-% See also: for units, the unit_utils module.
-%
 -module(physics_utils).
+
+-moduledoc """
+Gathering of various **general-purpose basic physics-related** facilities.
+
+See also: for units, the `unit_utils` module.
+""".
 
 
 % General constants:
 -export([ g/0, c/0, h/0, e/0, m_e/0, m_p/0, m_n/0, k_b/0, sigma/0]).
 
--compile({ inline, [ g/0, c/0, h/0, e/0, m_e/0, m_p/0, m_n/0,
-					 k_b/0, sigma/0 ] }).
+-compile({ inline,
+		   [ g/0, c/0, h/0, e/0, m_e/0, m_p/0, m_n/0, k_b/0, sigma/0 ] }).
 
 
 % Varied functions:

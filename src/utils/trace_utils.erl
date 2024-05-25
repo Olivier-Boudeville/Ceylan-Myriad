@@ -25,35 +25,35 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, November 1, 2013.
 
-
-% @doc Gathering of various very <b>low-level trace-related facilities</b> on
-% the console. These are (runtime) logs; they are by default not linked to the
-% Erlang logging subsystem; see the set_handler/0 function in the current module
-% so that they are integrated to the logger facilities.
-%
-% The API functions provided by the current module are mostly useful so that
-% their call can be replaced by calls to the far more advanced facilities of the
-% 'Ceylan-Traces' layer with no change in their parameters.
-%
-% For example, 'trace_utils:debug_fmt("I am the ~B.", [1])' may be replaced by
-% '?debug_fmt("I am the ~B.", [1])' to switch, in a trace emitter instance, from
-% basic traces output on the console to traces sent through the Traces
-% subsystem.
-%
-% As a result, for a trace severity S in [debug, info, notice, warning, error,
-% critical, alert, emergency, void], 'trace_utils:S' may be replaced as a whole
-% by '?S' to promote a very debug-oriented trace into a potentially more durable
-% one.
-%
-% Note that a given trace emission can be fully disabled (with no remaining
-% resource consumption at all) thanks to the cond_utils:if_defined* primitives.
-%
-% This module is also a logger one, see
-% [https://erlang.org/doc/apps/kernel/logger_chapter.html].
-%
-% See trace_utils_test.erl for testing.
-%
 -module(trace_utils).
+
+-moduledoc """
+Gathering of various very **low-level trace-related facilities** on the
+console. These are (runtime) logs; they are by default not linked to the Erlang
+logging subsystem; see the set_handler/0 function in the current module so that
+they are integrated to the logger facilities.
+
+The API functions provided by the current module are mostly useful so that their
+call can be replaced by calls to the far more advanced facilities of the
+'Ceylan-Traces' layer with no change in their parameters.
+
+For example, `trace_utils:debug_fmt("I am the ~B.", [1])` may be replaced by
+`?debug_fmt("I am the ~B.", [1])` to switch, in a trace emitter instance, from
+basic traces output on the console to traces sent through the Traces subsystem.
+
+As a result, for a trace severity S in [debug, info, notice, warning, error,
+critical, alert, emergency, void], `trace_utils:S` may be replaced as a whole by
+`?S` to promote a very debug-oriented trace into a potentially more durable one.
+
+Note that a given trace emission can be fully disabled (with no remaining
+resource consumption at all) thanks to the cond_utils:if_defined* primitives.
+
+This module is also a logger one, see
+<https://erlang.org/doc/apps/kernel/logger_chapter.html>.
+
+See trace_utils_test.erl for testing.
+""".
+
 
 
 % To resolve name clash:

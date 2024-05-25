@@ -25,21 +25,19 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, September 19, 2016.
 
-
-
-
-% @doc Gathering of various facilities in relation with <b>RDF</b>,
-% namely <em>Resource Description Framework</em>.
-%
-% See also:
-%
-% - [https://en.wikipedia.org/wiki/Resource_Description_Framework]
-%
-% - [https://www.w3.org/TR/rdf11-primer/]
-%
-% See rdf_utils_test.erl for the corresponding test.
-%
 -module(rdf_utils).
+
+-moduledoc """
+Gathering of various facilities in relation with **RDF**, namely *Resource
+Description Framework*.
+
+See also:
+- <https://en.wikipedia.org/wiki/Resource_Description_Framework>
+- <https://www.w3.org/TR/rdf11-primer/>
+
+See rdf_utils_test.erl for the corresponding test.
+""".
+
 
 
 % See also:

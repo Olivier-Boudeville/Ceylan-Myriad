@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Unit tests for the basic utils toolbox.
-%
-% See the naming_utils.erl tested module.
-%
 -module(naming_utils_test).
+
+-moduledoc """
+Unit tests for the **naming utils** toolbox.
+
+See the naming_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

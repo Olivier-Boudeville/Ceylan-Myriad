@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2017.
 
-
-% @doc Unit tests for the trace_utils toolbox.
-%
-% See the trace_utils.erl tested module.
-%
 -module(trace_utils_test).
+
+-moduledoc """
+Unit tests for the `trace_utils` toolbox.
+
+See the trace_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

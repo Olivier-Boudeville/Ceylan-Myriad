@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, April 3, 2024.
 
-
-% @doc A module to concentrate elements for the testing of OpenGL.
 -module(gui_opengl_for_testing).
+
+-moduledoc """
+A module to concentrate elements for the testing of OpenGL.
+""".
 
 
 -export([ can_be_run/1, has_opengl/1 ]).

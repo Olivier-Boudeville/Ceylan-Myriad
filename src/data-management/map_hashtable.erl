@@ -26,39 +26,36 @@
 % Creation date: Tuesday, December 2, 2014.
 
 
-% @doc Implementation of an <b>associative table based on the <code>map</code>
-% module</b>.
-%
-% Supposedly the most efficient native available implementation of an
-% associative table.
-%
-% See `map_table_test.erl' for the corresponding test.
-% See `hashtable.erl' for the parent, base implementation.
-%
-%
-% We provide different multiple types of hashtables, including:
-%
-% - 'hashtable', the most basic, safest, reference implementation - and quite
-% efficient as well
-%
-% - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
-% best)
-%
-% - 'lazy_hashtable', deciding to optimise in a less costly way than
-% 'tracked_hashtable'
-%
-% - 'map_hashtable' (this module), which is the newest, probably most efficient
-% in most cases implementation (speed/size compromise)
-%
-% - 'list_table', a list-based implementation, efficient for smaller tables (and
-% only them)
-%
-% All these types of tables are to provide the same API (signatures and
-% contracts), yet one should note that this module is the one that tends to
-% supersede all others, and that over time features have been added that may not
-% have been back-ported to the other table types.
-%
 -module(map_hashtable).
+
+-moduledoc """ 
+
+Implementation of an **associative table based on the `map` module**.
+
+Supposedly the most efficient native available implementation of an associative
+table.
+
+See `map_table_test.erl' for the corresponding test.
+See `hashtable.erl' for the parent, base implementation.
+
+We provide different multiple types of hashtables, including:
+- 'hashtable', the most basic, safest, reference implementation - and quite
+efficient as well
+- 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
+best)
+- 'lazy_hashtable', deciding to optimise in a less costly way than
+'tracked_hashtable'
+- 'map_hashtable' (this module), which is the newest, probably most efficient in
+most cases implementation (speed/size compromise)
+- 'list_table', a list-based implementation, efficient for smaller tables (and
+only them)
+
+All these types of tables are to provide the same API (signatures and
+contracts), yet one should note that this module is the one that tends to
+supersede all others, and that over time features have been added that may not
+have been back-ported to the other table types. 
+""".
+
 
 
 % Mostly the same API as the one of hashtable (but richer):
@@ -121,13 +118,13 @@
 
 % As this module is not parse-transformed:
 %
-% (if a 'type maybe(_) is unused' error is reported for this type, this is the
+% (if a 'type option(_) is unused' error is reported for this type, this is the
 % sign that this module is recompiled with the Myriad parse transform, whereas
 % it should not; its compilation should be triggered from the root of Myriad,
 % rather than from the current directory of this module; not a hard problem
 % though)
 %
--type maybe( T ) :: T | 'undefined'.
+-type option( T ) :: T | 'undefined'.
 
 
 % Implementation notes:
@@ -280,7 +277,7 @@ add_entries( Entries, MapHashtable ) ->
 % replaced by the specified one (hence does not check whether or not the key
 % already exist in this table).
 %
--spec add_maybe_entry( key(), maybe( value() ), map_hashtable() ) ->
+-spec add_maybe_entry( key(), option( value() ), map_hashtable() ) ->
 											map_hashtable().
 add_maybe_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
 	MapHashtable;
@@ -601,7 +598,7 @@ get_values( Keys, Hashtable ) ->
 % Allows to perform in a single operation a look-up followed by a fetch.
 %
 % A popular default value is 'undefined', so that this function can be
-% considered a returning a maybe(value()); no get_maybe_value/2 function was
+% considered a returning a option(value()); no get_maybe_value/2 function was
 % introduced, as it could be ambiguous, since in the general case a legit value
 % could be 'undefined'.
 %

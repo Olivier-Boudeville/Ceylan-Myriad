@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Unit tests for the net_utils toolbox.
-%
-% See the net_utils.erl tested module.
-%
 -module(net_utils_test).
+
+-moduledoc """
+Unit tests for the `net_utils` toolbox.
+
+See the net_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

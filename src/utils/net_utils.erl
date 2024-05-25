@@ -27,12 +27,13 @@
 %
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various convenient <b>network-related</b> facilities.
-%
-% See net_utils_test.erl for the corresponding test.
-%
 -module(net_utils).
+
+-moduledoc """
+Gathering of various convenient **network-related** facilities.
+
+See net_utils_test.erl for the corresponding test.
+""".
 
 
 
@@ -574,7 +575,7 @@ get_local_ip_address() ->
 
 
 % @doc Returns information to perform a reverse DNS lookup.
--spec get_reverse_lookup_info() -> maybe( lookup_info() ).
+-spec get_reverse_lookup_info() -> option( lookup_info() ).
 get_reverse_lookup_info() ->
 
 	% Note that the 'host' command is not available on all systems ('dig',
@@ -967,7 +968,7 @@ check_node_availability( _NodeName, _CurrentDurationStep, ElapsedDuration,
 % @doc Returns the naming mode of this node, either 'short_name' or 'long_name',
 % provided that the current node is a distributed one.
 %
--spec get_node_naming_mode() -> maybe( node_naming_mode() ).
+-spec get_node_naming_mode() -> option( node_naming_mode() ).
 get_node_naming_mode() ->
 
 	% We determine the mode based on the returned local node name:
@@ -1593,7 +1594,7 @@ get_default_epmd_port() ->
 % convention (e.g. see the FIREWALL_OPT make option in myriad/GNUmakevars.inc),
 % otherwise available nodes will not be found.
 %
--spec get_epmd_environment( maybe( tcp_port() ) ) -> environment().
+-spec get_epmd_environment( option( tcp_port() ) ) -> environment().
 get_epmd_environment( undefined ) ->
 	[];
 
@@ -1656,8 +1657,8 @@ get_tcp_port_range_option( { MinTCPPort, MaxTCPPort } )
 % settings.
 %
 -spec get_basic_node_launching_command( node_name(), node_naming_mode(),
-		maybe( tcp_port() ), 'no_restriction' | tcp_port_range(), ustring() ) ->
-					{ command(), environment() }.
+		option( tcp_port() ), 'no_restriction' | tcp_port_range(),
+		ustring() ) -> { command(), environment() }.
 get_basic_node_launching_command( NodeName, NodeNamingMode, EpmdSettings,
 		TCPSettings, AdditionalOptions ) when is_atom( NodeName ) ->
 

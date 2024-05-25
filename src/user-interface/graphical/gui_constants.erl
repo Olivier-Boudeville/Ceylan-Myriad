@@ -1,6 +1,6 @@
 % Copyright (C) 2023-2024 Olivier Boudeville
 %
-% This file is part of the Ceylan-Oceanic library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, March 6, 2023.
 
-
-% @doc Module defining most of the <b>MyriadGUI constants</b>, notably so that
-% higher level MyriadGUI atom-designated values and backend-specific (wx) ones
-% can be translated, generally both ways.
-%
-% Called by gui:generate_support_modules/0.
-%
 -module(gui_constants).
+
+-moduledoc """
+Module defining most of the **MyriadGUI constants**, notably so that higher
+level MyriadGUI atom-designated values and backend-specific (wx) ones can be
+translated, generally both ways.
+
+Called by gui:generate_support_modules/0.
+""".
 
 
 
@@ -517,7 +518,7 @@ get_menu_item_id_topic_spec() ->
 		% (blank)
 		{ undefined,                 ?wxID_ANY               } ],
 
-	{ menu_item_id, Entries, _ElemLookup=maybe }.
+	{ menu_item_id, Entries, _ElemLookup='maybe' }.
 
 
 
@@ -648,7 +649,7 @@ get_bitmap_id_topic_spec() ->
 		{ removable_bitmap,        "wxART_REMOVABLE"        },
 		{ backend_logo_bitmap,     "wxART_WX_LOGO"          } ],
 
-	{ bitmap_id, Entries, _ElemLookup=maybe }.
+	{ bitmap_id, Entries, _ElemLookup='maybe' }.
 
 
 
@@ -673,7 +674,7 @@ get_icon_name_id_topic_spec() ->
 	% Not a bijection, the element '512' is present thrice, and the element
 	% '256' and '2048' are present twice:
 	%
-	{ icon_name_id, Entries, _ElemLookup=maybe, _Direction=first_to_second }.
+	{ icon_name_id, Entries, _ElemLookup='maybe', _Direction=first_to_second }.
 
 
 

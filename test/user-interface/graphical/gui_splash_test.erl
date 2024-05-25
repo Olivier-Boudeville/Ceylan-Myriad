@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, October 4, 2023.
 
-
-% @doc Testing the <b>support for the management of splash screens</b>.
 -module(gui_splash_test).
+
+-moduledoc """
+Testing the **support for the management of splash screens**.
+""".
 
 
 
@@ -53,10 +55,10 @@
 	main_frame :: frame(),
 
 	% Information for any current splash screen:
-	splash_info :: maybe( splash_info() ),
+	splash_info :: option( splash_info() ),
 
 	% Allows easy pattern-matching of events:
-	splash_panel :: maybe( splash_panel() ) } ).
+	splash_panel :: option( splash_panel() ) } ).
 
 -type my_test_state() :: #my_test_state{}.
 

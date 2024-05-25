@@ -25,24 +25,25 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, May 4, 2019.
 
-
-% @doc Datastructure allowing to perform <b>bidirectional conversions between
-% two sets</b>.
-%
-% One can see it as a `[{first_type(), second_type()}]' associative table
-% allowing to transform any element of a set into its (unique) corresponding
-% element in the other one.
-%
-% See also const_bijective_table.erl for constant bijective tables that can be
-% requested from any number (potentially extremely large) of callers very
-% efficiently thanks to the generation (only in memory, or in file) of a
-% corresponding module.
-%
-% Refer to:
-% - bijective_table_test.erl for an usage example and testing thereof
-% - const_bijective_table.erl for a constant, compile-time bijective table
-%
 -module(bijective_table).
+
+-moduledoc """
+Datastructure allowing to perform **bidirectional conversions between two
+sets**.
+
+One can see it as a `[{first_type(), second_type()}]` associative table allowing
+to transform any element of a set into its (unique) corresponding element in the
+other one.
+
+See also const_bijective_table.erl for constant bijective tables that can be
+requested from any number (potentially extremely large) of callers very
+efficiently thanks to the generation (only in memory, or in file) of a
+corresponding module.
+
+Refer to:
+- bijective_table_test.erl for an usage example and testing thereof
+- const_bijective_table.erl for a constant, compile-time bijective table
+""".
 
 
 -export([ new/0, new/1,
@@ -204,7 +205,7 @@ get_first_for( Second,
 % specified element of the second type.
 %
 -spec get_maybe_first_for( second_type(), bijective_table() ) ->
-											maybe( first_type() ).
+											option( first_type() ).
 get_maybe_first_for( Second,
 				_BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
 	case table:lookup_entry( Second, SecondToFirstTable ) of
@@ -243,7 +244,7 @@ get_second_for( First,
 % specified element of the first type.
 %
 -spec get_maybe_second_for( first_type(), bijective_table() ) ->
-											maybe( second_type() ).
+											option( second_type() ).
 get_maybe_second_for( First,
 					  _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 	case table:lookup_entry( First, FirstToSecondTable ) of

@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, November 29, 2021.
 
-
-% @doc Gathering of various facilities regarding <b>speech support</b>, that is
-% TTS (Text to Speech), in order to obtain an audio content corresponding to a
-% specified text.
-%
 -module(speech_support).
+
+-moduledoc """
+Gathering of various facilities regarding **speech support**, that is TTS (Text
+to Speech), in order to obtain an audio content corresponding to a specified
+text.
+""".
 
 
 % Implementation notes:
@@ -783,7 +784,7 @@ record_speech( SSMLText, BaseName, SpeechState ) ->
 % See record_speech/5 for further details.
 %
 -spec record_speech( ssml_text(), any_speech_base_name(),
-			maybe( any_directory_path() ), speech_state() ) -> bin_file_name().
+			option( any_directory_path() ), speech_state() ) -> bin_file_name().
 record_speech( _SSMLText, _BaseName, _MaybeOutputDir,
 			   #speech_state{ speech_settings=undefined } ) ->
 	throw( no_speech_settings_stored );
@@ -823,7 +824,7 @@ record_speech( SSMLText, BaseName, MaybeOutputDir,
 % of interest, and anyway the supported 'style' conveys more meaning)
 %
 -spec record_speech( ssml_text(), any_speech_base_name(), speech_settings(),
-			maybe( any_directory_path() ), speech_state() ) -> bin_file_name().
+			option( any_directory_path() ), speech_state() ) -> bin_file_name().
 record_speech( SSMLText,
 			   AnyBaseName,
 			   #speech_settings{

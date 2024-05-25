@@ -25,57 +25,59 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 27, 2022.
 
-
-% @doc Service dedicated to the <b>management of application environments</b>.
-%
-% An application environment is a server-like process that stores static or
-% dynamic information (possibly initialised from an ETF file), as key/value
-% entries (not unlike an ETS table), on behalf of an application or of a subset
-% of its components, and makes it available to client processes.
-%
-% An environment entry is designated by a key (an atom), associated to a value
-% (that can be any term) in a pair.
-%
-% Environments hold application-specific or component-specific data, obtained
-% from any source (file included); they may also start blank and be exclusively
-% fed at runtime by the application or the components. Environments are used
-% afterwards to maintain these pieces of data (read/write), before possibly
-% storing them on file at application exit or component stop.
-%
-% As a whole, an environment server can be seen as a process holding state
-% information meant to be potentially common to various processes of a given
-% application or component.
-%
-% Environment data can be read from or written to file(s) in the ETF format,
-% hence as a series of Erlang terms written as strings, each ending with a dot
-% (i.e. it is the basic, standard format understood by `file:consult/1').
-%
-% Example of content of an environment file:
-% ```
-% {my_first_color, red}.
-% {myHeight, 1.80}.
-% {'My name', "Sylvester the cat"}.
-% '''
-%
-% The server process corresponding to an environment is locally registered; as a
-% consequence it can be designated either directly through its PID or through
-% its conventional (atom) registration name (like 'my_foobar_env_server' in
-% `environment:get(my_first_color, my_foobar_env_server'). No specific global
-% registration of servers is made.
-%
-% A (single) explicit start (with one of the start* functions) shall be
-% preferred to implicit ones (typically triggered thanks to the get* functions)
-% to avoid any risk of race conditions (should multiple processes attempt
-% concurrently to create the same environment server), and also to be able to
-% request that the server is also linked to the calling process.
-%
-% See our 'preferences' module, corresponding to the user preferences, which is
-% implemented as a specific case of environment.
-%
-% See also the (unrelated) resource module for the sharing of any kind of data
-% resource.
-%
 -module(environment).
+
+-moduledoc """
+Service dedicated to the **management of application environments**.
+
+An application environment is a server-like process that stores static or
+dynamic information (possibly initialised from an ETF file), as key/value
+entries (not unlike an ETS table), on behalf of an application or of a subset of
+its components, and makes it available to client processes.
+
+An environment entry is designated by a key (an atom), associated to a value
+(that can be any term) in a pair.
+
+Environments hold application-specific or component-specific data, obtained from
+any source (file included); they may also start blank and be exclusively fed at
+runtime by the application or the components. Environments are used afterwards
+to maintain these pieces of data (read/write), before possibly storing them on
+file at application exit or component stop.
+
+As a whole, an environment server can be seen as a process holding state
+information meant to be potentially common to various processes of a given
+application or component.
+
+Environment data can be read from or written to file(s) in the ETF format, hence
+as a series of Erlang terms written as strings, each ending with a dot (i.e. it
+is the basic, standard format understood by `file:consult/1`).
+
+Example of content of an environment file:
+```
+{my_first_color, red}.
+{myHeight, 1.80}.
+{'My name', "Sylvester the cat"}.
+```
+
+The server process corresponding to an environment is locally registered; as a
+consequence it can be designated either directly through its PID or through
+its conventional (atom) registration name (like 'my_foobar_env_server' in
+`environment:get(my_first_color, my_foobar_env_server`). No specific global
+registration of servers is made.
+
+A (single) explicit start (with one of the start* functions) shall be
+preferred to implicit ones (typically triggered thanks to the get* functions)
+to avoid any risk of race conditions (should multiple processes attempt
+concurrently to create the same environment server), and also to be able to
+request that the server is also linked to the calling process.
+
+See our 'preferences' module, corresponding to the user preferences, which is
+implemented as a specific case of environment.
+
+See also the (unrelated) resource module for the sharing of any kind of data
+resource.
+""".
+
 
 
 % Designating environments:
@@ -877,7 +879,7 @@ wait_available( ServerRegName ) ->
 %     environment:get([hello, my_number, some_maybe], MyEnvInfo)
 %
 -spec get( maybe_list( key() ), env_data() | file_path() ) ->
-										maybe_list( maybe( value() ) ).
+										maybe_list( option( value() ) ).
 get( Key, AnyEnvData ) when is_atom( Key ) ->
 	hd( get( [ Key ], AnyEnvData ) );
 
@@ -983,7 +985,7 @@ aggregate_values( _TargetKeys=[ K | Tt ], ImmediateKeys, ImmediateValues,
 %                      "/var/foobar.etf")
 %
 -spec get( maybe_list( key() ), env_reg_name(), file_path() ) ->
-										maybe_list( maybe( value() ) ).
+										maybe_list( option( value() ) ).
 get( KeyMaybes, ServerRegName, FilePath ) ->
 	EnvSrvPid = case naming_utils:is_registered( ServerRegName,
 												 _LookupScope=local ) of
@@ -1005,7 +1007,7 @@ get( KeyMaybes, ServerRegName, FilePath ) ->
 % (helper)
 %
 -spec get_from_environment( maybe_list( maybe_list( key() ) ),
-					env_designator() ) -> maybe_list( maybe( value() ) ).
+					env_designator() ) -> maybe_list( option( value() ) ).
 get_from_environment( _KeyMaybes=[], _EnvDesignator ) ->
 	[];
 
@@ -1615,7 +1617,7 @@ cache( KeysOrEntries, EnvRegName, EnvPid ) ->
 					DictCachedKeys = table:keys( PrevEnvCacheTable ),
 
 					NewToCacheKeys =
-						list_utils:difference( ToCacheKeys,	DictCachedKeys ),
+						list_utils:difference( ToCacheKeys, DictCachedKeys ),
 
 					{ NewToCacheKeys, ToCacheEntries, PrevEnvCacheTable,
 					  PrevAllEnvTable }
@@ -1675,7 +1677,7 @@ finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
 % Equivalent to a call to cache/2 followed by one to get/2 with the same keys.
 %
 -spec cache_return( maybe_list( key() ), env_data() ) ->
-								maybe_list( maybe( value() ) ).
+								maybe_list( option( value() ) ).
 cache_return( Key, AnyEnvData ) when is_atom( Key ) ->
 	cache_return( [ Key ], AnyEnvData );
 
@@ -2007,7 +2009,7 @@ stop( EnvPid ) ->
 % Launcher of the environment server, to start with either a blank state or with
 % default entries.
 %
--spec server_run( pid(), env_reg_name(), maybe( entries() ) ) -> no_return().
+-spec server_run( pid(), env_reg_name(), option( entries() ) ) -> no_return().
 server_run( SpawnerPid, RegistrationName, MaybeDefaultEntries ) ->
 
 	cond_utils:if_defined( myriad_debug_environments, trace_utils:debug_fmt(
@@ -2051,7 +2053,7 @@ server_run( SpawnerPid, RegistrationName, MaybeDefaultEntries ) ->
 % Launcher of the environment server, to be initialised with any specified
 % default entries, then with the specified file.
 %
--spec server_run( pid(), env_reg_name(), bin_string(), maybe( entries() ) ) ->
+-spec server_run( pid(), env_reg_name(), bin_string(), option( entries() ) ) ->
 												no_return().
 server_run( SpawnerPid, RegistrationName, BinFilePath, MaybeDefaultEntries ) ->
 
@@ -2136,7 +2138,7 @@ ensure_binaries( Keys, Table ) ->
 
 
 % Main loop of the environment server.
--spec server_main_loop( table(), env_reg_name(), maybe( bin_file_path() ) ) ->
+-spec server_main_loop( table(), env_reg_name(), option( bin_file_path() ) ) ->
 												no_return().
 server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->
 

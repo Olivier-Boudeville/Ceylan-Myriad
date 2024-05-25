@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2007.
 
-
-% @doc Unit tests for the system utils toolbox.
-%
-% See the system_utils.erl tested module.
-%
 -module(system_utils_test).
+
+-moduledoc """
+Unit tests for the **system utils** toolbox.
+
+See the system_utils.erl tested module.
+""".
 
 
 
@@ -142,7 +143,7 @@ run() ->
 			|| X <- SizesToInterpret ],
 
 	test_facilities:display(
-	  "Evaluating the size in memory of a few terms:" ),
+		"Evaluating the size in memory of a few terms:" ),
 
 	AFullSentence = "All human beings are born free and equal in dignity "
 		"and rights. They are endowed with reason and conscience and "

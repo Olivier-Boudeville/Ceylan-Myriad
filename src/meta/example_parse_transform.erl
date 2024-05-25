@@ -25,15 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
-
-
-% @doc Example of parse transform.
-%
-% See meta_utils.erl and meta_utils_test.erl.
-%
-% @hidden
-%
 -module(example_parse_transform).
+
+-moduledoc """
+Example of parse transform.
+
+See meta_utils.erl and meta_utils_test.erl.
+""".
 
 
 

@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, March 5, 2013.
 
-
-% @doc Gathering of various convenient facilities regarding <b>graphs</b>.
-%
-% See graph_utils_test.erl for the corresponding test.
-%
 -module(graph_utils).
+
+-moduledoc """
+Gathering of various convenient facilities regarding **graphs**.
+
+See graph_utils_test.erl for the corresponding test.
+""".
 
 
 

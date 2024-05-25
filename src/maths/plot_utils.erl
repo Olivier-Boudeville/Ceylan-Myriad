@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, October 7, 2023.
 
-
-% @doc Gathering of facilities <b>to plot graphs</b>.
 -module(plot_utils).
+
+-moduledoc """
+Gathering of facilities **to plot graphs**.
+""".
 
 
 % For the plot_settings record:
@@ -134,7 +136,7 @@
 % A string corresponding to a plot parameter.
 
 
--type plot_sample() :: type_utils:tuploid( maybe( plot_value() ) ).
+-type plot_sample() :: type_utils:tuploid( option( plot_value() ) ).
 % A sample to plot.
 %
 % For example {1, undefined, "red", 5.1}, or "hello".
@@ -278,7 +280,7 @@
 -type user_point_style_spec() :: any_string() | boolean().
 % A user specification of a point to be rendered.
 %
-% For example `<<"pointtype 1">>'.
+% For example `<<"pointtype 1">>`.
 %
 % If true, a default point style is selected; if false no point will be
 % rendered.
@@ -287,7 +289,7 @@
 -type point_style_spec() :: bin_string().
 % The internal specification of a point to be rendered.
 %
-% For example `<<"pointtype 1">>'.
+% For example `<<"pointtype 1">>`.
 
 
 -type label_spec() :: { label_text(), label_location() }
@@ -440,8 +442,8 @@
 
 
 -type curve_plot_suffix() :: bin_string().
-% A (binary string) suffix (e.g. `<<"noenhanced with filledcurves">>', `<<"with
-% boxes">>' or `<<"with boxes lt rgb '#f0f0f0'">>') to be added to the plot
+% A (binary string) suffix (e.g. `<<"noenhanced with filledcurves">>`, `<<"with
+% boxes">>` or `<<"with boxes lt rgb '#f0f0f0'">>`) to be added to the plot
 % command of the corresponding curve.
 
 
@@ -450,7 +452,7 @@
 
 
 -type zone_plot_suffix() :: bin_string().
-% A (binary string) suffix (e.g. `<<"fillcolor red">>') to be added to the plot
+% A (binary string) suffix (e.g. `<<"fillcolor red">>`) to be added to the plot
 % command of the corresponding zone.
 
 
@@ -603,7 +605,7 @@ set_plot_name( UsrPlotName, PlotSettings ) ->
 % @doc Returns the specification of a plot corresponding to the specified one
 % once the specified title (if any) has been set.
 %
--spec set_title( maybe( title() ), plot_settings() ) -> plot_settings().
+-spec set_title( option( title() ), plot_settings() ) -> plot_settings().
 set_title( MaybeTitle, PlotSettings ) ->
 	PlotSettings#plot_settings{
 		title=text_utils:ensure_maybe_binary( MaybeTitle ) }.
@@ -612,7 +614,7 @@ set_title( MaybeTitle, PlotSettings ) ->
 % @doc Returns the specification of a plot corresponding to the specified one
 % once the specified label (if any) for abscissas has been set.
 %
--spec set_x_label( maybe( label() ), plot_settings() ) -> plot_settings().
+-spec set_x_label( option( label() ), plot_settings() ) -> plot_settings().
 set_x_label( MaybeLabel, PlotSettings ) ->
 	PlotSettings#plot_settings{
 		x_label=text_utils:ensure_maybe_binary( MaybeLabel ) }.
@@ -621,7 +623,7 @@ set_x_label( MaybeLabel, PlotSettings ) ->
 % @doc Returns the specification of a plot corresponding to the specified one
 % once the specified label (if any) for ordinate has been set.
 %
--spec set_y_label( maybe( label() ), plot_settings() ) -> plot_settings().
+-spec set_y_label( option( label() ), plot_settings() ) -> plot_settings().
 set_y_label( MaybeLabel, PlotSettings ) ->
 	PlotSettings#plot_settings{
 		y_label=text_utils:ensure_maybe_binary( MaybeLabel ) }.
@@ -631,7 +633,7 @@ set_y_label( MaybeLabel, PlotSettings ) ->
 % once the specified key options (if any) have been set.
 %
 % Example of
--spec set_key_options( maybe( user_key_options() ), plot_settings() ) ->
+-spec set_key_options( option( user_key_options() ), plot_settings() ) ->
 											plot_settings().
 set_key_options( MaybeKeyOpts, PlotSettings ) ->
 	PlotSettings#plot_settings{
@@ -814,14 +816,14 @@ transform_declared_zones( [ Z={ ZoneName,
 
 	% We want to ensure that:
 	%
-	%  1. at least one actual curve is referenced (not two 'abscissa_*' atoms)
+	% 1. at least one actual curve is referenced (not two 'abscissa_*' atoms)
 	%
-	%  2. if there is one 'abscissa_*' atom, it ends up in first position of the
-	%  returned pair
+	% 2. if there is one 'abscissa_*' atom, it ends up in first position of the
+	% returned pair
 	%
-	%  3. we preserve the input curve order (useful for plot styles requiring a
-	%  single value column, like fillsteps, rather than two, like linecurves:
-	%  they can always select the second curve of the pair):
+	% 3. we preserve the input curve order (useful for plot styles requiring a
+	% single value column, like fillsteps, rather than two, like linecurves:
+	% they can always select the second curve of the pair):
 	%
 	NewBounds = case First of
 
@@ -922,7 +924,7 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 		image_format=ImgFormat,
 		plot_directory=MaybePlotDir }, DoDisplay ) ->
 
-	BinPlotDir = basic_utils:set_maybe( MaybePlotDir,
+	BinPlotDir = basic_utils:set_option( MaybePlotDir,
 		file_utils:get_bin_current_directory() ),
 
 	% Same logic as in the command file:
@@ -1065,7 +1067,7 @@ plot_samples( PlotData, PlotSettings=#plot_settings{
 %
 % Any previous plot file will be overwritten.
 %
--spec plot( plot_function(), bounds(), maybe( plot_settings() ) ) ->
+-spec plot( plot_function(), bounds(), option( plot_settings() ) ) ->
 											plot_generation_outcome().
 plot( FunToPlot, Bounds, MaybePlotSettings ) ->
 	plot( FunToPlot, Bounds, MaybePlotSettings, _DoDisplay=false ).
@@ -1078,7 +1080,7 @@ plot( FunToPlot, Bounds, MaybePlotSettings ) ->
 %
 % Any previous plot file will be overwritten.
 %
--spec plot( plot_function(), bounds(), maybe( plot_settings() ),
+-spec plot( plot_function(), bounds(), option( plot_settings() ),
 			boolean() ) -> plot_generation_outcome().
 plot( FunToPlot, Bounds, _MaybePlotSettings=undefined, DoDisplay ) ->
 	plot( FunToPlot, Bounds, get_default_plot_settings(), DoDisplay );
@@ -1193,7 +1195,7 @@ get_gnuplot_reference_version() ->
 %
 % (helper, for code sharing)
 %
--spec get_basic_options( maybe( gnuplot_version() ) ) ->
+-spec get_basic_options( option( gnuplot_version() ) ) ->
 			{ bin_string(), bin_string() }.
 get_basic_options( _MaybeGnuplotVersion=undefined ) ->
 
@@ -1914,7 +1916,7 @@ get_title( #plot_settings{ title=BinTitle } ) ->
 	BinTitle.
 
 
--spec get_x_label( maybe( label_text() ) ) -> elementary_command().
+-spec get_x_label( option( label_text() ) ) -> elementary_command().
 get_x_label( _MaybeXLabelBinStr=undefined ) ->
 	"# (no x label)";
 
@@ -1926,7 +1928,7 @@ get_x_label( XLabelBinStr ) ->
 	text_utils:format( "set xlabel \"~ts\\n\"", [ XLabelBinStr ] ).
 
 
--spec get_y_label( maybe( label_text() ) ) -> elementary_command().
+-spec get_y_label( option( label_text() ) ) -> elementary_command().
 get_y_label( _MaybeYLabelBinStr=undefined ) ->
 	"# (no y label)";
 
@@ -1943,7 +1945,7 @@ get_terminal_info( ImgFormat, CanvasWidth, CanvasHeight ) ->
 					   [ ImgFormat, CanvasWidth, CanvasHeight ] ).
 
 
--spec get_key_options( maybe( key_options() ) ) -> elementary_command().
+-spec get_key_options( option( key_options() ) ) -> elementary_command().
 get_key_options( _MaybeKeyOptsBinStr=undefined ) ->
 	"# (no key option)";
 
@@ -2008,7 +2010,7 @@ generate_data_file( PlotData, PlotSettings=#plot_settings{
 		trace_utils:debug_fmt( "Generating a data file for plot '~ts', whose "
 			"first data point is:~n ~p.", [ BinPlotName, hd( PlotData ) ] ) ),
 
-	DataFilename = basic_utils:set_maybe( MaybePlotBinFilename,
+	DataFilename = basic_utils:set_option( MaybePlotBinFilename,
 										  get_data_filename( BinPlotName ) ),
 
 	BinPlotDir = get_plot_directory( PlotSettings ),
@@ -2017,7 +2019,7 @@ generate_data_file( PlotData, PlotSettings=#plot_settings{
 
 	CurveCount = length( CurveEntries ),
 
-	RowFormatStr = basic_utils:set_maybe( MaybeRowFmtStr,
+	RowFormatStr = basic_utils:set_option( MaybeRowFmtStr,
 		forge_format_string_for( CurveCount ) ),
 
 	FormattedData = format_rows( PlotData, CurveCount, RowFormatStr ),

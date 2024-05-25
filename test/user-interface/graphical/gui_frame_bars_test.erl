@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, April 27, 2022.
 
-
-% @doc Unit tests for the management of <b>toolbars and status bars</b> in
-% frames.
-%
 -module(gui_frame_bars_test).
+
+-moduledoc """
+Unit tests for the management of **toolbars and status bars** in frames.
+""".
+
 
 
 % For run/0 export and al:

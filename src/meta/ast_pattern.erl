@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of handling <b>patterns defined with an AST</b>.
-%
-% See the "7.3 Patterns" section of
-% [http://erlang.org/doc/apps/erts/absform.html] for more information.
-%
 -module(ast_pattern).
+
+-moduledoc """
+Module in charge of handling **patterns defined with an AST**.
+
+See the "7.3 Patterns" section of <http://erlang.org/doc/apps/erts/absform.html>
+for more information.
+""".
+
 
 
 -type ast_pattern() :: ast_base:ast_element().
@@ -111,14 +113,14 @@
 %transform_pattern( PatternList, Transforms ) when is_list( PatternList ) ->
 
 	%ast_utils:display_debug( "Intercepting pattern list ~p...",
-	%						 [ PatternList ] ),
+	%                         [ PatternList ] ),
 
 	%%Res = { NewPatternList, NewTransforms }:
 	%Res = lists:mapfoldl( fun transform_pattern/2, _Acc0=Transforms,
 	%                       _List=PatternList ).
 
 	%ast_utils:display_debug( "... returning pattern list and state ~p",
-	%						  [ Res ] ),
+	%                         [ Res ] ),
 
 	%Res;
 
@@ -288,7 +290,7 @@ transform_pattern( _E={ 'map_field_exact', FileLoc, Key, Value },
 				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting map exact association ~p...",
-	%						  [ E ] ),
+	%                         [ E ] ),
 
 	{ [ NewKey ], KeyTransforms } =
 		ast_expression:transform_expression( Key, Transforms ),
@@ -323,13 +325,13 @@ transform_pattern( _Clause={ 'bin', FileLoc, BinElements },
 				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting bitstring pattern ~p...",
-	%						 [ Clause ] ),
+	%                         [ Clause ] ),
 
 	% Actually no need to introduce a pattern-specific way of transforming a
 	% bitstring:
 	%
 	%NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
-	%					   Transforms, fun transform_pattern/2 ),
+	%   Transforms, fun transform_pattern/2 ),
 
 	{ NewBinElements, NewTransforms } =
 		ast_bitstring:transform_bin_elements( BinElements, Transforms ),
@@ -383,7 +385,7 @@ transform_pattern( _Clause={ 'var', FileLoc, VariableName },
 				   Transforms ) ?rec_guard ->
 
 	%ast_utils:display_debug( "Intercepting variable pattern ~p...",
-	%						 [ Clause ] ),
+	%                         [ Clause ] ),
 
 	{ NewVariableName, NewTransforms } =
 		transform_variable( VariableName, FileLoc, Transforms ),

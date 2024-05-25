@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, July 30, 2017.
 
-
-% @doc Gathering of various facilities regarding the management of <b>binary,
-% bit-level operations</b>, like cyclic redundancy check (CRC) calculations.
-%
-% See bin_utils_test.erl for the corresponding test.
-%
 -module(bin_utils).
+
+-moduledoc """
+Gathering of various facilities regarding the management of
+**binary, bit-level operations**, like cyclic redundancy check (CRC)
+calculations.
+
+See bin_utils_test.erl for the corresponding test.
+""".
 
 
 % Binary basics (see also the 'binary' standard module):

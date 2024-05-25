@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, October 9, 2021.
 
-
-% @doc Module implementing the support for <b>3D vectors</b>.
-%
-% See also:
-% - the corresponding points (in point3.erl) and matrices (in matrix3.erl)
-% - the (unspecialised) vectors of arbitrary dimensions, in vector.erl
-% - the various 3D extra services in linear_3D.erl
-%
 -module(vector3).
+
+-moduledoc """
+Module implementing the support for **3D vectors**.
+
+See also:
+- the corresponding points (in `point3.erl`) and matrices (in `matrix3.erl`)
+- the (unspecialised) vectors of arbitrary dimensions, in `vector.erl`
+- the various 3D extra services in `linear_3D.erl`
+""".
+
 
 
 % For printout_*, inline_size, etc.:

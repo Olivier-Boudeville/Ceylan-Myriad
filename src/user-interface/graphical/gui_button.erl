@@ -25,20 +25,21 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, August 26, 2023.
 
-
-% @doc Gathering of various facilities for <b>button management</b>.
 -module(gui_button).
 
+-moduledoc """
+Gathering of various facilities for **button management**.
 
-% Usage notes:
-%
-%  - the parent of a button must be a widget (not a sizer for example)
-%
-%  - for a corresponding stock image/icon to be displayed within a button, its
-%  stock identifier shall of course be specified (e.g. 'about_button'), but, if
-%  specified, its label must also exactly match a built-in one (e.g. "About" or
-%  "&About") - otherwise no image will be added; for a stock button it is thus
-%  recommended to specify an empty label
+Usage notes:
+
+- the parent of a button must be a widget (not a sizer for example)
+
+- for a corresponding stock image/icon to be displayed within a button, its
+  stock identifier shall of course be specified (e.g. 'about_button'), but, if
+  specified, its label must also exactly match a built-in one (e.g. "About" or
+  "&About") - otherwise no image will be added; for a stock button it is thus
+  recommended to specify an empty label
+""".
 
 
 

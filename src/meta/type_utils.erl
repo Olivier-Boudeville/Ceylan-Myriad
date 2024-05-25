@@ -25,16 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
-
-% @doc Module helping to manage <b>datatypes</b> (and also values), notably in
-% ASTs.
-%
-% See `type_utils_test.erl' for the corresponding test.
-%
-% See also `meta_utils' for all topics regarding metaprogramming,
-% parse-transforms, etc.
-%
 -module(type_utils).
+
+-moduledoc """
+Module helping to manage **datatypes** (and also values), notably in ASTs.
+
+See `type_utils_test.erl` for the corresponding test.
+
+See also `meta_utils` for all topics regarding metaprogramming,
+parse-transforms, etc.
+""".
+
 
 
 % Design notes about types.
@@ -789,7 +790,7 @@
 -type byte_size() :: system_utils:byte_size().
 
 % (cannot use our extended types here)
--type maybe( T ) :: T | 'undefined'.
+-type option( T ) :: T | 'undefined'.
 
 
 
@@ -1806,7 +1807,7 @@ check_pid( Other ) ->
 % @doc Checks that the specified term is a PID indeed or the 'undefined' atom,
 % and returns it.
 %
--spec check_maybe_pid( term() ) -> maybe( pid() ).
+-spec check_maybe_pid( term() ) -> option( pid() ).
 check_maybe_pid( Pid ) when is_pid( Pid ) ->
 	Pid;
 
@@ -1838,7 +1839,7 @@ check_number( Other ) ->
 
 
 % @doc Checks that the specified term is a maybe-number indeed, and returns it.
--spec check_maybe_number( term() ) -> maybe( number() ).
+-spec check_maybe_number( term() ) -> option( number() ).
 check_maybe_number( undefined ) ->
 	undefined;
 
@@ -1888,7 +1889,7 @@ check_numbers( Numbers ) ->
 % @doc Checks that the specified term is a list of maybe-numbers indeed, and
 % returns it.
 %
--spec check_maybe_numbers( term() ) -> [ maybe( number() ) ].
+-spec check_maybe_numbers( term() ) -> [ option( number() ) ].
 check_maybe_numbers( MaybeNumbers ) ->
 	% Possibly a bit quicker that way:
 	[ check_maybe_number( MN ) || MN <- MaybeNumbers ],
@@ -1916,7 +1917,7 @@ check_integer( Other ) ->
 
 
 % @doc Checks that the specified term is a maybe-integer indeed, and returns it.
--spec check_maybe_integer( term() ) -> maybe( integer() ).
+-spec check_maybe_integer( term() ) -> option( integer() ).
 check_maybe_integer( undefined ) ->
 	undefined;
 
@@ -1955,7 +1956,7 @@ check_strictly_positive_integer( Other ) ->
 % @doc Checks that the specified term is a positive or null integer or the
 % 'undefined' atom, and returns it.
 %
--spec check_maybe_positive_integer( term() ) -> maybe( pos_integer() ).
+-spec check_maybe_positive_integer( term() ) -> option( pos_integer() ).
 check_maybe_positive_integer( Int ) when is_integer( Int ) andalso Int >= 0 ->
 	Int;
 
@@ -1981,7 +1982,7 @@ check_integers( Integers ) ->
 % @doc Checks that the specified term is a list of maybe-integers indeed, and
 % returns it.
 %
--spec check_maybe_integers( term() ) -> [ maybe( integer() ) ].
+-spec check_maybe_integers( term() ) -> [ option( integer() ) ].
 check_maybe_integers( MaybeIntegers ) ->
 	% Possibly a bit quicker that way:
 	[ check_maybe_integer( MI ) || MI <- MaybeIntegers ],
@@ -2000,7 +2001,7 @@ check_float( Other ) ->
 
 
 % @doc Checks that the specified term is a maybe-float indeed, and returns it.
--spec check_maybe_float( term() ) -> maybe( float() ).
+-spec check_maybe_float( term() ) -> option( float() ).
 check_maybe_float( undefined ) ->
 	undefined;
 
@@ -2026,7 +2027,7 @@ check_floats( Floats ) ->
 % @doc Checks that the specified term is a list of maybe-floats indeed, and
 % returns it.
 %
--spec check_maybe_floats( term() ) -> [ maybe( float() ) ].
+-spec check_maybe_floats( term() ) -> [ option( float() ) ].
 check_maybe_floats( MaybeFloats ) ->
 	% Possibly a bit quicker that way:
 	[ check_maybe_float( MF ) || MF <- MaybeFloats ],
@@ -2050,7 +2051,7 @@ check_positive_float( Other ) ->
 % @doc Checks that the specified term is a maybe-(positive float) indeed, and
 % returns it.
 %
--spec check_maybe_positive_float( term() ) -> maybe( float() ).
+-spec check_maybe_positive_float( term() ) -> option( float() ).
 check_maybe_positive_float( undefined ) ->
 	undefined;
 
@@ -2090,7 +2091,7 @@ check_strictly_positive_float( Other ) ->
 % @doc Checks that the specified term is a maybe-(strictly positive float)
 % indeed, and returns it.
 %
--spec check_maybe_strictly_positive_float( term() ) -> maybe( float() ).
+-spec check_maybe_strictly_positive_float( term() ) -> option( float() ).
 check_maybe_strictly_positive_float( undefined ) ->
 	undefined;
 

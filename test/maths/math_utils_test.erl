@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2010.
 
-
-% @doc Unit tests for the <b>math-related basic toolbox</b> facilities.
-%
-% See the math_utils tested module.
-%
 -module(math_utils_test).
+
+-moduledoc """
+Unit tests for the **math-related basic toolbox** facilities.
+
+See the math_utils tested module.
+""".
+
 
 
 % For run/0 export and al:

@@ -25,21 +25,22 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, August 25, 2023.
 
-
-% @doc Gathering of various facilities for <b>dialog management</b>, for all
-% base dialogs.
-%
-% Covers the 8 following dialog needs:
-%  - displaying a message: message_dialog()
-%  - offering to select a single choice among a set: single_choice_dialog()
-%  - offering to select multiple choices among a set: multi_choice_dialog()
-%  - collecting a text from the user: text_entry_dialog()
-%  - selecting one or more files: file_selection_dialog()
-%  - selecting one or more directories: directory_selection_dialog()
-%  - selecting a color: color_selection_dialog()
-%  - selecting a font: font_selection_dialog()
-%
 -module(gui_dialog).
+
+-moduledoc """
+Gathering of various facilities for **dialog management**, for all base dialogs.
+
+Covers the 8 following dialog needs:
+- displaying a message: message_dialog()
+- offering to select a single choice among a set: single_choice_dialog()
+- offering to select multiple choices among a set: multi_choice_dialog()
+- collecting a text from the user: text_entry_dialog()
+- selecting one or more files: file_selection_dialog()
+- selecting one or more directories: directory_selection_dialog()
+- selecting a color: color_selection_dialog()
+- selecting a font: font_selection_dialog()
+""".
+
 
 
 % Dialog-general subsection.
@@ -766,8 +767,7 @@ get_selected_color( ColSelDialog ) ->
 
 
 % @doc Destructs the specified color-selection dialog.
--spec destruct_for_color_selection( color_selection_dialog() ) ->
-											void().
+-spec destruct_for_color_selection( color_selection_dialog() ) -> void().
 destruct_for_color_selection( ColSelDialog ) ->
 	wxColourDialog:destroy( ColSelDialog ).
 

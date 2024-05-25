@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, March 31, 2024.
 
-
-% @doc Unit tests for the <b>mesh</b> services.
-%
-% See the mesh tested module.
-%
-% Uses a minimal OpenGL environment (including our base shaders) for its
-% rendering.
-%
 -module(mesh_test).
+
+-moduledoc """
+Unit tests for the **mesh** services.
+
+See the mesh tested module.
+
+Uses a minimal OpenGL environment (including our base shaders) for its
+rendering.
+""".
+
 
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
@@ -63,7 +65,7 @@
 	context :: gl_context(),
 
 	% In more complex cases, would store the loaded textures, etc.
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.

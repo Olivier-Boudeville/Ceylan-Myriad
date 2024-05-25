@@ -25,18 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2015.
 
-
-% @doc Unit tests for the <b>JSON services</b>.
-%
-% For a more proper testing, each JSON backend shall be tested separately.
-%
-% See the json_utils.erl tested module.
-%
-% If running directly with the makefile system (i.e. not from an OTP/rebar3
-% context), see, in GNUmakevars.inc, the USE_{JSON,JSX,JIFFY} variables to
-% enable/disable JSON support and/or backend ones.
-%
 -module(json_utils_test).
+
+-moduledoc """
+Unit tests for the **JSON services**.
+
+For a more proper testing, each JSON backend shall be tested separately.
+
+See the json_utils.erl tested module.
+
+If running directly with the makefile system (i.e. not from an OTP/rebar3
+context), see, in GNUmakevars.inc, the USE_{JSON,JSX,JIFFY} variables to
+enable/disable JSON support and/or backend ones.
+""".
+
 
 
 % For run/0 export and al:
@@ -76,7 +78,7 @@ get_test_file_path() ->
 
 
 % @doc Returns a term decoded from JSON test file, if a parser is available.
--spec run_stateless_testing() -> maybe( json_utils:json_term() ).
+-spec run_stateless_testing() -> option( json_utils:json_term() ).
 run_stateless_testing() ->
 
 	BackendName = json_utils:get_parser_backend_name(),

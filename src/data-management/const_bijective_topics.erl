@@ -25,71 +25,71 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, September 14, 2022.
 
-
-% @doc This module allows to generate <b>modules sharing read-only, per-topic
-% two-way (bijective) associative tables whose stored pairs can be read from any
-% number (potentially extremely large) of readers very efficiently</b> (possibly
-% the most efficient way in Erlang), for each topic.
-%
-% Such modules gathering topic-based conversion tables are especially useful
-% when implementing conversions between external constants (e.g. the ones of a
-% graphical interface, or of a protocol) and ones defined by the current program
-% (possibly as convenient atoms), moreover with a low overhead. Consider relying
-% on the const_bijective_table module is a single (possibly large) table is to
-% be shared.
-%
-% Any number of topics (e.g. 'color', 'reference', 'city') can be declared,
-% whose pairs can be decided at runtime, from any source. Their elements can be
-% of any permanent (non-transient) type (not atoms only; the first elements can
-% be heterogeneous, they do not have to be of the same type, and the same of
-% course applies for the second elements). Using a transient type is bound to
-% result in a badarg. As two-way conversions are to be performed, for a given
-% set of values (first ones or second ones), there must be no duplicated
-% elements (otherwise no bijectivity can exist).
-%
-% These tables may be kept in-memory only (hence with the corresponding modules
-% being generated and used at runtime) and/or be generated and stored in an
-% actual BEAM file, for a single generation and later direct (re)loading(s)
-% thereof.
-%
-% No ETS table, replication (e.g. per-user table copy) or message sending is
-% involved: thanks to metaprogramming, a module is generated on-the-fly,
-% exporting two functions designed to access either of the elements of the
-% entries of interest.
-%
-% More precisely, a module name (e.g. 'foobar'), a list of topics (atoms)
-% together with their respective list of `{any(), any()}' entries must be
-% provided to the `const_bijective_topics:generate*/*' functions; for any given
-% topic (e.g. 'packet_type'), any element E of any pair in the resulting table
-% (e.g. 'discover_packet') in `{'discover_packet', `<<42,11>>'}') can then be
-% accessed thanks to foobar:get_{first|second}_for_TOPIC/1 (e.g. discover_packet
-% = foobar:get_first_for_packet_type(`<<42,11>>')).
-%
-% For that, for each topic, two corresponding 1-arity functions are generated
-% and exported in that module, as if we were using a bijective_table()
-% underneath.
-%
-% No restriction applies to the elements stored (notably they may be all of
-% different types), except, at the leve of each topicn the absence of duplicates
-% between its first values and between its second ones.
-%
-% This is presumably the most efficient way of sharing constants in Erlang.
-%
-% However generating a module of the same name more than once should be done
-% with care, as if a given module is generated three times (hence updated/loaded
-% twice), the initial module would become 'current', then 'old', and then be
-% removed. Any process that would linger in it would then be terminated (see
-% [http://www.erlang.org/doc/reference_manual/code_loading.html]). However, due
-% to the nature of these modules (just one-shot fully-qualified calls, no
-% recursion or message-waiting construct), this is not expected to happen.
-%
-% Refer to:
-% - const_bijective_topics_test.erl for an usage example and testing thereof
-% - const_bijective_table.erl for a "single-topic" constant bijective table
-% - bijective_table.erl for a runtime, mutable, term-based bijective table
-% - const_table.erl, for a constant, "simple" (oneway) associative table
-%
 -module(const_bijective_topics).
+
+-moduledoc """
+This module allows to generate **modules sharing read-only, per-topic two-way
+(bijective) associative tables whose stored pairs can be read from any number
+(potentially extremely large) of readers very efficiently** (possibly the most
+efficient way in Erlang), for each topic.
+
+Such modules gathering topic-based conversion tables are especially useful when
+implementing conversions between external constants (e.g. the ones of a
+graphical interface, or of a protocol) and ones defined by the current program
+(possibly as convenient atoms), moreover with a low overhead. Consider relying
+on the const_bijective_table module is a single (possibly large) table is to be
+shared.
+
+Any number of topics (e.g. 'color', 'reference', 'city') can be declared, whose
+pairs can be decided at runtime, from any source. Their elements can be of any
+permanent (non-transient) type (not atoms only; the first elements can be
+heterogeneous, they do not have to be of the same type, and the same of course
+applies for the second elements). Using a transient type is bound to result in a
+badarg. As two-way conversions are to be performed, for a given set of values
+(first ones or second ones), there must be no duplicated elements (otherwise no
+bijectivity can exist).
+
+These tables may be kept in-memory only (hence with the corresponding modules
+being generated and used at runtime) and/or be generated and stored in an actual
+BEAM file, for a single generation and later direct (re)loading(s) thereof.
+
+No ETS table, replication (e.g. per-user table copy) or message sending is
+involved: thanks to metaprogramming, a module is generated on-the-fly, exporting
+two functions designed to access either of the elements of the entries of
+interest.
+
+More precisely, a module name (e.g. 'foobar'), a list of topics (atoms) together
+with their respective list of `{any(), any()}' entries must be provided to the
+`const_bijective_topics:generate*/*' functions; for any given topic
+(e.g. 'packet_type'), any element E of any pair in the resulting table
+(e.g. 'discover_packet') in `{'discover_packet', `<<42,11>>'}') can then be
+accessed thanks to foobar:get_{first|second}_for_TOPIC/1 (e.g. discover_packet =
+foobar:get_first_for_packet_type(`<<42,11>>')).
+
+For that, for each topic, two corresponding 1-arity functions are generated and
+exported in that module, as if we were using a bijective_table() underneath.
+
+No restriction applies to the elements stored (notably they may be all of
+different types), except, at the leve of each topicn the absence of duplicates
+between its first values and between its second ones.
+
+This is presumably the most efficient way of sharing constants in Erlang.
+
+However generating a module of the same name more than once should be done with
+care, as if a given module is generated three times (hence updated/loaded
+twice), the initial module would become 'current', then 'old', and then be
+removed. Any process that would linger in it would then be terminated (see
+[http://www.erlang.org/doc/reference_manual/code_loading.html]). However, due to
+the nature of these modules (just one-shot fully-qualified calls, no recursion
+or message-waiting construct), this is not expected to happen.
+
+Refer to:
+- const_bijective_topics_test.erl for an usage example and testing thereof
+- const_bijective_table.erl for a "single-topic" constant bijective table
+- bijective_table.erl for a runtime, mutable, term-based bijective table
+- const_table.erl, for a constant, "simple" (oneway) associative table
+""".
+
 
 
 % For example, we may want to support, thanks to a 'foobar' generated module,
@@ -478,7 +478,7 @@ canonicalise_topic_spec( TS={ TopicName, Entries, Lookup, ConvDir } ) ->
 	is_list( Entries ) orelse
 		throw( { non_list_topic_entries, Entries, TopicName } ),
 
-	( Lookup =:= strict orelse Lookup =:= maybe ) orelse
+	( Lookup =:= strict orelse Lookup =:= 'maybe' ) orelse
 		throw( { invalid_topic_element_lookup, Lookup, TopicName } ),
 
 	lists:member( ConvDir, [ first_to_second, second_to_first, both ] ) orelse
@@ -626,7 +626,7 @@ generate_forms( TopicName, Entries, _ElementLookup=strict, ConversionDirection,
 
 	end;
 
-generate_forms( TopicName, Entries, _ElementLookup=maybe, ConversionDirection,
+generate_forms( TopicName, Entries, _ElementLookup='maybe', ConversionDirection,
 				FileLoc ) ->
 
 	RevEntries = lists:reverse( Entries ),
@@ -843,7 +843,7 @@ catch_all_clause( ErrorAtom, TopicName, _Lookup=strict, FileLoc ) ->
 		_Body=[ ThrowCall ] };
 
 
-catch_all_clause( _ErrorAtom, _TopicName, _Lookup=maybe, FileLoc ) ->
+catch_all_clause( _ErrorAtom, _TopicName, _Lookup='maybe', FileLoc ) ->
 
 	% Corresponds to a clause:
 	%  FUNC( _NotMatched ) ->

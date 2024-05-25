@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, October 8, 2021.
 
-
-% @doc Module implementing the support for <b>3x3 matrices</b>.
-%
-% See also:
-% - the corresponding (3D) vectors, in vector3.erl
-% - the (unspecialised) matrices of arbitrary dimensions, in matrix.erl
-%
 -module(matrix3).
+
+-moduledoc """
+Module implementing the support for **3x3 matrices**.
+
+ See also:
+ - the corresponding (3D) vectors, in `vector3.erl`
+ - the (unspecialised) matrices of arbitrary dimensions, in `matrix.erl`
+""".
+
 
 
 
@@ -1012,7 +1014,7 @@ comatrix( _M=#compact_matrix3{ m11=M11, m12=M12, tx=Tx,
 % @doc Returns the inverse of the specified matrix, if it is invertible (that is
 % iff its determinant is non-null), otherwise returns undefined.
 %
--spec inverse( matrix3() ) -> maybe( matrix3() ).
+-spec inverse( matrix3() ) -> option( matrix3() ).
 inverse( M ) when is_record( M, matrix3 ) ->
 	Det = determinant( M ),
 	case math_utils:is_null( Det ) of

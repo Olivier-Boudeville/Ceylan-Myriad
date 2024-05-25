@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
-
-
-% @doc This module allows to test the 'myriad_parse_transform' parse transform
-% as a standalone unit, hence with proper error and warning messages.
-%
-% See the myriad_parse_transform.erl tested module.
-%
 -module(myriad_parse_transform_test).
+
+-moduledoc """
+This module allows to test the `myriad_parse_transform` parse
+transform as a standalone unit, hence with proper error and warning messages.
+
+See the myriad_parse_transform.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

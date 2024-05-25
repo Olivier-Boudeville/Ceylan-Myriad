@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, December 23, 2014.
 
-
-
-% @doc Unit tests for the list-based table implementation.
-%
-% See the list_table.erl tested module.
-%
 -module(list_table_test).
+
+-moduledoc """
+Unit tests for the **list-based table** implementation.
+
+See the list_table.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

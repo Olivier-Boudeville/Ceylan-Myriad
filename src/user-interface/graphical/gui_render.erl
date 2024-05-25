@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, September 2, 2023.
 
-
-% @doc Gathering of various facilities related to <b>rendering</b>. This
-% comprises the management of brushes for drawing, of graphic contexts, of the
-% various kinds of device contexts.
-%
-% See also the gui_canvas and gui_bitmap modules.
-%
 -module(gui_render).
+
+-moduledoc """
+Gathering of various facilities related to **rendering**. This comprises the
+management of brushes for drawing, of graphic contexts, of the various kinds of
+device contexts.
+
+See also the gui_canvas and gui_bitmap modules.
+""".
+
 
 
 -opaque brush() :: wxBrush:wxBrush().

@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, August 24, 2022.
 
-
-% @doc Unit tests for the <b>hashing-related services</b>.
-%
-% See the hash_utils.erl tested module.
-%
 -module(hash_utils_test).
+
+-moduledoc """
+Unit tests for the **hashing-related services**.
+
+See the hash_utils.erl tested module.
+""".
 
 
 % For run/0 export and al:
@@ -110,8 +111,8 @@ run() ->
 		"algorithm '~ts' (~B-bit hashes, i.e. ~B bytes), by hashing the "
 		"following content: '~ts'. The corresponding, expected (hexadecimal) "
 		"hash is then '~ts' (as a binary: ~w).",
-		[ HashAlg, ByteSize * 8, ByteSize, ContentToHash,
-		  ContentHashStr, ContentHashBin ] ),
+		[ HashAlg, ByteSize * 8, ByteSize, ContentToHash, ContentHashStr,
+		  ContentHashBin ] ),
 
 
 	test_file_hashing( HashAlg, ContentToHash, ContentHashBin ),

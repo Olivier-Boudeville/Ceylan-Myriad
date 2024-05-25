@@ -1,6 +1,6 @@
 % Copyright (C) 2023-2024 Olivier Boudeville
 %
-% This file is part of the Ceylan-Oceanic library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, March 27, 2023.
 
-
-% @doc Module defining most of the MyriadGUI OpenGL constants.
-%
-% Called by gui_opengl:generate_support_modules/0.
-%
 -module(gui_opengl_constants).
+
+-moduledoc """
+Module defining most of the MyriadGUI **OpenGL constants**.
+
+Called by gui_opengl:generate_support_modules/0.
+""".
+
 
 
 -export([ get_debug_source_topic_spec/0, get_debug_type_topic_spec/0,
@@ -71,7 +73,7 @@ list_topic_spec_functions() ->
 	% Directly adapted from the first export define:
 	[ get_debug_source_topic_spec, get_debug_type_topic_spec,
 	  get_debug_severity_topic_spec, get_polygon_facing_mode_topic_spec,
-	  get_rasterization_mode_topic_spec	].
+	  get_rasterization_mode_topic_spec ].
 
 
 

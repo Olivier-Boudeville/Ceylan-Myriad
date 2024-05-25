@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, October 4, 2021.
 
-
-% @doc Unit tests for the <b>points of arbitrary dimensions</b>.
-%
-% See the point tested module.
-%
 -module(point_test).
+
+-moduledoc """
+Unit tests for the **points of arbitrary dimensions**.
+
+See the point tested module.
+""".
+
 
 
 % For run/0 export and al:

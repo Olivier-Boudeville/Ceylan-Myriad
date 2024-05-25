@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities to manage <b>textual content</b>.
-%
-% See text_utils_test.erl for the corresponding test.
-%
 -module(text_utils).
+
+-moduledoc """
+Gathering of various facilities to manage **textual content**.
+
+See text_utils_test.erl for the corresponding test.
+""".
+
 
 
 % Note: this a bootstrap module, so its build is only to be triggered from the
@@ -444,7 +446,7 @@
 -type count() :: basic_utils:count().
 
 % As this pioneer module is not parse-transformed:
--type maybe( T ) :: basic_utils:maybe( T ).
+-type option( T ) :: basic_utils:option( T ).
 
 -type ?table() :: ?table:?table().
 -type ?table( K, V ) :: ?table:?table( K, V ).
@@ -1644,7 +1646,7 @@ strings_to_listed_string( Strings, Lang ) ->
 % "green", undefined]) returns "red, blue and green".
 %
 
--spec maybe_strings_to_listed_string( [ maybe( ustring() ) ] ) -> ustring().
+-spec maybe_strings_to_listed_string( [ option( ustring() ) ] ) -> ustring().
 maybe_strings_to_listed_string( Strings ) ->
 	strings_to_listed_string( [ S || S <- Strings, S =/= undefined ] ).
 
@@ -2686,7 +2688,7 @@ ensure_binary( String, _CanFailDueToTranscoding ) ->
 % @doc Returns a binary string version of the specified text-like parameter
 % (binary or plain string), if any (otherwise leave it to 'undefined').
 %
--spec ensure_maybe_binary( maybe( any_string() ) ) -> maybe( bin_string() ).
+-spec ensure_maybe_binary( option( any_string() ) ) -> option( bin_string() ).
 ensure_maybe_binary( undefined ) ->
 	undefined;
 
@@ -2933,7 +2935,7 @@ suffix_uniq_helper( Prefix, Count, Strs ) ->
 % string:length/1 would have thrown a badarg exception, typically because of an
 % inconsistent encoding).
 %
--spec safe_length( unicode_data() ) -> maybe( length() ).
+-spec safe_length( unicode_data() ) -> option( length() ).
 safe_length( PseudoStr ) ->
 	try string:length( PseudoStr ) of
 
@@ -3005,7 +3007,7 @@ string_to_binary( Other, _CanFailDueToTranscoding ) ->
 % CanFailDueToTranscoding tells whether, should a transcoding fail, this
 % function is allowed to fail in turn.
 %
--spec maybe_string_to_binary( maybe( ustring() ) ) -> maybe( bin_string() ).
+-spec maybe_string_to_binary( option( ustring() ) ) -> option( bin_string() ).
 maybe_string_to_binary( _MaybeString=undefined ) ->
 	undefined;
 
@@ -3106,7 +3108,7 @@ string_to_integer( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_integer( ustring() ) -> maybe( integer() ).
+-spec try_string_to_integer( ustring() ) -> option( integer() ).
 try_string_to_integer( String ) ->
 	try_string_to_integer( String, _Base=10 ).
 
@@ -3117,7 +3119,7 @@ try_string_to_integer( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_integer( ustring(), 2..36 ) -> maybe( integer() ).
+-spec try_string_to_integer( ustring(), 2..36 ) -> option( integer() ).
 try_string_to_integer( String, Base ) when is_list( String ) ->
 	try list_to_integer( String, Base ) of
 
@@ -3161,7 +3163,7 @@ string_to_float( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_float( ustring() ) -> maybe( float() ).
+-spec try_string_to_float( ustring() ) -> option( float() ).
 try_string_to_float( String ) when is_list( String ) ->
 
 	% Erlang is very picky (too much?) when interpreting floats-as-a-string: if
@@ -4690,7 +4692,7 @@ join_words( _Words=[], Width, _DoPad=true, AccLines,
 
 	% Ended with a partial line (most likely):
 	R = lists:reverse( [ pad_string_left( CurrentLine, Width, PadChar )
-					       | AccLines ] ),
+						   | AccLines ] ),
 	%io:format( "Returning R2='~w'.~n", [ R ] ),
 	R;
 
@@ -5153,7 +5155,7 @@ aggregate_word( [ H | T ], Count, Acc ) ->
 %
 % (exported helper, for re-use)
 %
--spec try_convert_to_unicode_list( unicode_data() ) -> maybe( ustring() ).
+-spec try_convert_to_unicode_list( unicode_data() ) -> option( ustring() ).
 try_convert_to_unicode_list( Data ) ->
 
 	% A binary_to_list/1 would not be sufficient here.
@@ -5251,12 +5253,12 @@ to_unicode_list( Data, CanFail ) ->
 
 
 
-% @doc Tries to convert the specified Unicode-related datastructure into a Unicode
-% binary string.
+% @doc Tries to convert the specified Unicode-related datastructure into a
+% Unicode binary string.
 %
 % (exported helper, for re-use)
 %
--spec try_convert_to_unicode_binary( unicode_data() ) -> maybe( bin_string() ).
+-spec try_convert_to_unicode_binary( unicode_data() ) -> option( bin_string() ).
 try_convert_to_unicode_binary( Data ) ->
 
 	% A list_to_binary/1 would not be sufficient here.

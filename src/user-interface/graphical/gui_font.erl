@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, November 19, 2021.
 
-
-% @doc Gathering of various facilities for <b>font management</b>.
 -module(gui_font).
+
+-moduledoc """
+Gathering of various facilities for **font management**.
+""".
 
 
 -opaque font() :: wxFont:wxFont().

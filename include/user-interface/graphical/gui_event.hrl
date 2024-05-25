@@ -26,7 +26,6 @@
 % Creation date: Sunday, June 18, 2023.
 
 
-
 % A full, GUI-related applicative state to be kept around, notably so that it
 % can be used by the event drivers, therefore in applicative mode (as opposed to
 % in direct mode).
@@ -96,4 +95,4 @@
 	% application (e.g. the main frame, buttons, etc.), and possibly OpenGL
 	% elements.
 	%
-	app_specific_info :: maybe( gui_event:app_specific_info() ) } ).
+	app_specific_info :: option( gui_event:app_specific_info() ) } ).

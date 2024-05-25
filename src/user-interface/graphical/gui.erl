@@ -25,23 +25,24 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Main module of MyriadGUI, a gathering of various <b>facilities for
-% Graphical User Interfaces</b> (GUI).
-%
-% We name this library MyriadGUI (shortened here, whenever it is not ambiguous,
-% in 'gui'), a part of Ceylan-Myriad.
-%
-% The purpose of MyriadGUI is to wrap, complement and improve what we consider
-% the best set of gui backends available (previously: gs alone; now: wx, with
-% OpenGL), for classical applications and interactive multimedia ones
-% (e.g. video games).
-%
-% wx is the standard Erlang binding to WxWidgets (https://www.wxwidgets.org/).
-%
-% See `gui_test.erl' for the corresponding test.
-%
 -module(gui).
+
+-moduledoc """
+Main module of MyriadGUI, a gathering of various **facilities for Graphical User
+Interfaces** (GUI).
+
+We name this library MyriadGUI (shortened here, whenever it is not ambiguous, in
+'gui'), a part of Ceylan-Myriad.
+
+The purpose of MyriadGUI is to wrap, complement and improve what we consider the
+best set of gui backends available (previously: gs alone; now: wx, with OpenGL),
+for classical applications and interactive multimedia ones (e.g. video games).
+
+wx is the standard Erlang binding to WxWidgets (https://www.wxwidgets.org/).
+
+See `gui_test.erl` for the corresponding test.
+""".
+
 
 
 % For the canvas_state record:
@@ -539,7 +540,7 @@
 	{ 'id_allocator_pid', id_allocator_pid() },
 
 	% The main, top-level window (if any; generally a frame) of the application:
-	{ 'top_level_window', maybe( top_level_window() ) },
+	{ 'top_level_window', option( top_level_window() ) },
 
 	% PID of the MyriadGUI main event loop:
 	{ 'loop_pid', loop_pid() },
@@ -557,10 +558,10 @@
 	% OpenGL-related entries:
 
 	% The current OpenGL canvas (if any):
-	{ 'gl_canvas', maybe( gl_canvas() ) },
+	{ 'gl_canvas', option( gl_canvas() ) },
 
 	% The current OpenGL context (if any):
-	{ 'gl_context', maybe( gl_context() ) },
+	{ 'gl_context', option( gl_context() ) },
 
 
 	% Mouse-related entries:
@@ -569,7 +570,7 @@
 	{ 'cursor_table', gui_mouse:cursor_table() },
 
 	% The current type of cursor (if any):
-	{ 'current_cursor_type', maybe( gui_mouse:cursor_type() ) },
+	{ 'current_cursor_type', option( gui_mouse:cursor_type() ) },
 
 	% The stack (as a list) of the windows that grabbed the mouse cursor:
 	{ 'grab_stack', [ window() ] },
@@ -578,7 +579,7 @@
 	{ 'key_released', boolean() },
 
 	% The coordinates (if any) at which the mouse cursor shall warp:
-	{ 'warp_coordinates', maybe( point() ) },
+	{ 'warp_coordinates', option( point() ) },
 
 
 	% Window manager related entries:
@@ -586,12 +587,12 @@
 	% The currently active window (if any), i.e. the one handling current
 	% events:
 	%
-	{ 'active_window', maybe( window_name() ) },
+	{ 'active_window', option( window_name() ) },
 
 	% The window (if any) currently having the focus (implicitly or because
 	% having grabbed the mouse):
 	%
-	{ 'focused_window', maybe( window_name() ) } ] ).
+	{ 'focused_window', option( window_name() ) } ] ).
 % These keys, associated to values of the associated types, are used (and
 % reserved) by MyriadGUI in order to record application-level information, made
 % available to its processes through its environment server.
@@ -906,7 +907,7 @@ create_gui_environment( Services ) ->
 % Some services must be specifically declared here, as they require
 % initialisation (e.g. for the loading of mouse cursors).
 %
--spec create_gui_environment( [ service() ], maybe( id_allocator_pid() ) ) ->
+-spec create_gui_environment( [ service() ], option( id_allocator_pid() ) ) ->
 											gui_env_info().
 create_gui_environment( Services, MaybeIdAllocPid ) ->
 
@@ -1209,7 +1210,7 @@ register_event_callback( SourceGUIObject, MaybeListEventType,
 % terminating.
 %
 -spec register_event_callback( gui_object(), maybe_list( event_type() ),
-					event_callback(), maybe( user_data() ) ) -> void().
+					event_callback(), option( user_data() ) ) -> void().
 register_event_callback( SourceGUIObject, EventType, EventCallbackFun,
 						 MaybeUserData ) when is_atom( EventType ) ->
 	register_event_callback( SourceGUIObject, [ EventType ], EventCallbackFun,

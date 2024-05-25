@@ -25,10 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various facilities for <b>color management</b>.
 -module(gui_color).
 
+-moduledoc """
+Gathering of various facilities for **color management**.
+""".
 
 
 % Colors.

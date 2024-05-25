@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various <b>general-purpose basic math</b> facilities.
-%
-% See `math_utils_test.erl' for the corresponding test.
-%
-% See `random_utils' for random-related operations.
-%
 -module(math_utils).
+
+-moduledoc """
+Gathering of various **general-purpose basic math** facilities.
+
+See `math_utils_test.erl` for the corresponding test.
+
+See `random_utils` for random-related operations.
+""".
+
 
 
 % General operations:
@@ -992,7 +994,7 @@ canonify( AngleInDegrees ) ->
 % like for math:pow(1000,1000) or math:pow(0.0,-0.89)).
 %
 -spec evaluate( float_to_float_fun(), abscissa() ) ->
-											maybe( float_result_value() ).
+											option( float_result_value() ).
 evaluate( Fun, Abs ) ->
 	try
 
@@ -1203,7 +1205,7 @@ compute_support( Fun ) ->
 % floating-point samples).
 %
 -spec compute_support( float_to_float_fun(),
-					   maybe( bound() ), maybe( bound() ) ) -> bounds().
+					   option( bound() ), option( bound() ) ) -> bounds().
 compute_support( Fun, MaybeMin=undefined, MaybeMax=undefined ) ->
 	compute_support( Fun, _Origin=0.0, MaybeMin, MaybeMax );
 
@@ -1234,7 +1236,7 @@ compute_support( Fun, Min, Max ) ->
 % floating-point samples).
 %
 -spec compute_support( float_to_float_fun(), abscissa(),
-					   maybe( bound() ), maybe( bound() ) ) -> bounds().
+					   option( bound() ), option( bound() ) ) -> bounds().
 compute_support( Fun, Origin, MaybeMin, MaybeMax ) ->
 
 	% Tests are limited, should for example x -> sin(x) be specified:
@@ -1253,8 +1255,8 @@ compute_support( Fun, Origin, MaybeMin, MaybeMax ) ->
 %
 % (helper)
 %
--spec compute_support( float_to_float_fun(), abscissa(), maybe( bound() ),
-			maybe( bound() ), increment(), count(), epsilon() ) -> bounds().
+-spec compute_support( float_to_float_fun(), abscissa(), option( bound() ),
+			option( bound() ), increment(), count(), epsilon() ) -> bounds().
 compute_support( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 				 Epsilon ) ->
 
@@ -1329,9 +1331,9 @@ compute_support( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 % looking for any non-null value.
 %
 % (helper)
--spec search_non_null( float_to_float_fun(), abscissa(), maybe( bound() ),
-					   maybe( bound() ), increment(), count(), epsilon() ) ->
-							maybe( abscissa() ).
+-spec search_non_null( float_to_float_fun(), abscissa(), option( bound() ),
+					   option( bound() ), increment(), count(), epsilon() ) ->
+							option( abscissa() ).
 % Search failed:
 search_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc,
 				 _RemainingTests=0, _Epsilon ) ->
@@ -1396,7 +1398,7 @@ search_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 % null, found from the specified origin (whose value is expected to be
 % non-null).
 %
--spec search_first_null( float_to_float_fun(), abscissa(), maybe( bound() ),
+-spec search_first_null( float_to_float_fun(), abscissa(), option( bound() ),
 						 increment(), count(), epsilon() ) -> abscissa().
 search_first_null( Fun, Pivot, MaybeMax, Inc, _RemainingTests=0, _Epsilon ) ->
 
@@ -1505,7 +1507,7 @@ search_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests, Epsilon ) ->
 % @doc Tells whether the specified value lies within the specified maybe-bounds
 % (included).
 %
--spec is_within( float(), maybe( bound() ), maybe( bound() ) ) -> boolean().
+-spec is_within( float(), option( bound() ), option( bound() ) ) -> boolean().
 is_within( _V, _MaybeMin=undefined, _MaybeMax=undefined ) ->
 	true;
 
@@ -1526,7 +1528,7 @@ is_within( _V, _Min, _Max ) ->
 % @doc Tells whether the specified value lies "before" (closer to the opposite
 % end, based on the sign of the increment) the specified maybe-maximum.
 %
--spec is_before( float(), maybe( bound() ), increment() ) -> boolean().
+-spec is_before( float(), option( bound() ), increment() ) -> boolean().
 is_before( _V, _MaybeMax=undefined, _Inc ) ->
 	true;
 
@@ -1556,7 +1558,7 @@ is_before( _V, _Max, _Inc ) ->
 % No bounds checked, as expected to remain within an already validated interval.
 %
 -spec minimise_zero( float_to_float_fun(), abscissa(), abscissa(),
-			maybe( bound() ), maybe( bound() ), epsilon() ) -> abscissa().
+			option( bound() ), option( bound() ), epsilon() ) -> abscissa().
 minimise_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax, Epsilon ) ->
 	case are_close( Pivot, FartherZero, Epsilon ) of
 
@@ -1653,8 +1655,8 @@ minimise_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax, Epsilon ) ->
 % search_non_null/5), determined by the sign of the increment.
 %
 -spec search_non_null_one_direction( float_to_float_fun(), abscissa(),
-		maybe( bound() ), maybe( bound() ), increment(), count(), epsilon() ) ->
-								maybe( abscissa() ).
+		option( bound() ), option( bound() ), increment(), count(), epsilon() ) ->
+								option( abscissa() ).
 search_non_null_one_direction( _Fun, Origin, MaybeMin, MaybeMax, Inc,
 							   _RemainingTests=0, _Epsilon ) ->
 
@@ -1737,8 +1739,8 @@ compute_integer_support( Fun ) ->
 %%
 % Typically useful to properly discretise probability density functions.
 %
--spec compute_integer_support( integer_to_float_fun(), maybe( integer_bound() ),
-							   maybe( integer_bound() ) ) -> integer_bounds().
+-spec compute_integer_support( integer_to_float_fun(), option( integer_bound() ),
+							   option( integer_bound() ) ) -> integer_bounds().
 compute_integer_support( Fun, MaybeMin=undefined, MaybeMax=undefined ) ->
 	compute_integer_support( Fun, _Origin=0, MaybeMin, MaybeMax );
 
@@ -1769,7 +1771,7 @@ compute_integer_support( Fun, Min, Max ) ->
 % Typically useful to properly discretise probability density functions.
 %
 -spec compute_integer_support( integer_to_float_fun(), any_abscissa(),
-	maybe( integer_bound() ), maybe( integer_bound() ) ) -> integer_bounds().
+	option( integer_bound() ), option( integer_bound() ) ) -> integer_bounds().
 compute_integer_support( Fun, AnyOrigin, MaybeMin, MaybeMax ) ->
 
 	% Integer wanted in all cases:
@@ -1795,7 +1797,7 @@ compute_integer_support( Fun, AnyOrigin, MaybeMin, MaybeMax ) ->
 % (helper)
 %
 -spec compute_integer_support( integer_to_float_fun(), integer_abscissa(),
-		maybe( integer_bound() ), maybe( integer_bound() ), integer_increment(),
+		option( integer_bound() ), option( integer_bound() ), integer_increment(),
 		count(), epsilon() ) -> bounds().
 compute_integer_support( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 						 Epsilon ) ->
@@ -1872,8 +1874,8 @@ compute_integer_support( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 %
 % (helper)
 -spec search_integer_non_null( integer_to_float_fun(), integer_abscissa(),
-		maybe( bound() ), maybe( bound() ), integer_increment(), count(),
-		epsilon() ) -> maybe( integer_abscissa() ).
+		option( bound() ), option( bound() ), integer_increment(), count(),
+		epsilon() ) -> option( integer_abscissa() ).
 % Search failed:
 search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc,
 						 _RemainingTests=0, _Epsilon ) ->
@@ -1948,7 +1950,7 @@ search_integer_non_null( Fun, Origin, MaybeMin, MaybeMax, Inc, RemainingTests,
 % non-null).
 %
 -spec search_integer_first_null( integer_to_float_fun(), integer_abscissa(),
-			maybe( bound() ), integer_increment(), count(), epsilon() ) ->
+			option( bound() ), integer_increment(), count(), epsilon() ) ->
 				integer_abscissa().
 search_integer_first_null( Fun, Pivot, MaybeMax, Inc, _RemainingTests=0,
 						   _Epsilon ) ->
@@ -2044,9 +2046,9 @@ search_integer_first_null( Fun, Pivot, MaybeMax, Inc, RemainingTests,
 % search_non_null/5), determined by the sign of the increment.
 %
 -spec search_integer_non_null_one_direction( integer_to_float_fun(),
-		integer_abscissa(), maybe( bound() ), maybe( bound() ),
+		integer_abscissa(), option( bound() ), option( bound() ),
 		integer_increment(), count(), epsilon() ) ->
-			maybe( integer_abscissa() ).
+			option( integer_abscissa() ).
 search_integer_non_null_one_direction( _Fun, Origin, MaybeMin, MaybeMax, Inc,
 									   _RemainingTests=0, _Epsilon ) ->
 
@@ -2113,7 +2115,7 @@ search_integer_non_null_one_direction( Fun, Origin, MaybeMin, MaybeMax, Inc,
 % No bounds checked, as expected to remain within an already validated interval.
 %
 -spec minimise_integer_zero( integer_to_float_fun(), integer_abscissa(),
-		integer_abscissa(), maybe( bound() ), maybe( bound() ), epsilon() ) ->
+		integer_abscissa(), option( bound() ), option( bound() ), epsilon() ) ->
 			integer_abscissa().
 % Finished, this is the ending criterion, the search range is now mostly empty:
 minimise_integer_zero( Fun, Pivot, FartherZero, MaybeMin, MaybeMax,

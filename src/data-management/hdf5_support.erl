@@ -25,22 +25,22 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, July 31, 2015.
 
-
-% @doc This module centralises the support for <b>HDF5</b> (<em>Hierarchical
-% Data Format version 5</em>), a file format designed to store and organize
-% large amounts of numerical data.
-%
-% <a href="https://en.wikipedia.org/wiki/Hierarchical_Data_Format#HDF5">More
-% information</a>.
-%
-% Some installation conventions should have been respected, typically so that
-% the libraries can be located. For that, refer to the <a
-% href="https://github.com/Olivier-Boudeville-EDF/erlhdf5#installation-instructions">
-% Installation Instructions</a> section of our fork.
-%
-% See also `raw_hdf5_test.erl' for a lower-level, more direct access to HDF5.
-%
 -module(hdf5_support).
+
+-moduledoc """
+This module centralises the support for **HDF5** (<em>Hierarchical Data Format
+version 5</em>), a file format designed to store and organize large amounts of
+numerical data.
+
+[More information](https://en.wikipedia.org/wiki/Hierarchical_Data_Format#HDF5).
+
+Some installation conventions should have been respected, typically so that the
+libraries can be located. For that, refer to the [section of our
+fork](https://github.com/Olivier-Boudeville-EDF/erlhdf5#installation-instructions).
+
+See also `raw_hdf5_test.erl` for a lower-level, more direct access to HDF5.
+""".
+
 
 
 
@@ -183,7 +183,7 @@
 % Byte order of an atomic datatype.
 
 
--type dataset_name() :: string().
+-type dataset_name() :: ustring().
 % The name of a HDF5 dataset.
 
 
@@ -1242,7 +1242,7 @@ convert_datatype_class_identifier( Other ) ->
 
 % @doc Converts binding identifiers into our higher-level ones.
 -spec deconvert_datatype_class_identifier( hdf5_class_identifier() ) ->
-												 datatype_class_identifier().
+												datatype_class_identifier().
 %deconvert_datatype_class_identifier( 'H5T_NO_CLASS' ) ->
 deconvert_datatype_class_identifier( ?H5T_NO_CLASS ) ->
 	no_class;

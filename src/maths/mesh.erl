@@ -25,15 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, November 13, 2021.
 
-
-% @doc Gathering of various facilities for <b>mesh</b> management, to define the
-% geometry of 3D objects.
-%
-% Refer to the mesh_render module for the rendering of meshes.
-%
-% See `mesh_test.erl' for the corresponding test.
-%
 -module(mesh).
+
+-moduledoc """
+Gathering of various facilities for **mesh** management, to define the geometry
+of 3D objects.
+
+Refer to the `mesh_render` module for the rendering of meshes.
+
+See `mesh_test.erl` for the corresponding test.
+""".
 
 
 % For the mesh record:
@@ -226,7 +227,7 @@ create( Vertices, FaceType, Faces, RenderingInfo ) ->
 % with no specific bounding volume set.
 %
 -spec create( [ vertex3() ], face_type(), [ indexed_face() ],
-	normal_type(), maybe( [ unit_normal3() ] ), rendering_info() ) -> mesh().
+	normal_type(), option( [ unit_normal3() ] ), rendering_info() ) -> mesh().
 create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 
 	cond_utils:if_defined( myriad_check_mesh,
@@ -646,8 +647,6 @@ normal_type_to_string( per_face ) ->
 %   SphereBVolume = bounding_volume:get_lazy_sphere( Mesh#mesh.vertices ),
 
 %   Mesh#mesh{ bounding_volume=SphereBVolume }.
-
-
 
 
 % Helper functions.

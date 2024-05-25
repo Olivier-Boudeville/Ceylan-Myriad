@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2007.
 
-
-% @doc Unit tests for the <b>random-related</b> toolbox.
-%
-% See the random_utils.erl tested module.
-%
 -module(random_utils_test).
+
+-moduledoc """
+Unit tests for the **random-related** toolbox.
+
+See the random_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

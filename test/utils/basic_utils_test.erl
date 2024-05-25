@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Unit tests for the basic utils toolbox.
-%
-% See the basic_utils.erl tested module.
-%
 -module(basic_utils_test).
+
+-moduledoc """
+Unit tests for the **basic utils** toolbox.
+
+See the basic_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -191,10 +193,8 @@ run() ->
 							 [ ?myriad_spawn_info ] ),
 
 	?myriad_spawn_link( fun() ->
-
-						% Closure:
-						Self ! myriad_spawned_linked
-
+							% Closure:
+							Self ! myriad_spawned_linked
 						end ),
 
 	receive

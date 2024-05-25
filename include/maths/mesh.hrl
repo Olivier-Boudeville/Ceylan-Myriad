@@ -68,18 +68,18 @@
 	% on random access, but more iterated through).
 	%
 	normals = undefined ::
-		maybe( type_utils:tuploid( vector3:unit_normal3() ) ),
+		option( type_utils:tuploid( vector3:unit_normal3() ) ),
 
 
 	% How this mesh shall be rendered:
 	rendering_info = none :: mesh_render:rendering_info(),
 
 	% Any corresponding (OpenGL-level) rendering state:
-	rendering_state :: maybe( mesh_render:rendering_state() ),
+	rendering_state :: option( mesh_render:rendering_state() ),
 
 
 	% Bounding volume information:
 	%
 	% (can be for example a right-cuboid or a sphere)
 	%
-	bounding_volume :: maybe( bounding_volume:bounding_volume() ) } ).
+	bounding_volume :: option( bounding_volume:bounding_volume() ) } ).

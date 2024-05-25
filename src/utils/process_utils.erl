@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, May 18, 2023.
 
-
-% @doc Gathering of various convenient facilities regarding <b>(Erlang)
-% processes</b>.
-%
-% See process_utils_test.erl for the corresponding test.
-%
 -module(process_utils).
+
+-moduledoc """
+Gathering of various convenient facilities regarding **(Erlang) processes**.
+
+See process_utils_test.erl for the corresponding test.
+""".
+
 
 
 -export([ spawn_message_queue_monitor/1, spawn_message_queue_monitor/2,
@@ -79,7 +80,7 @@ spawn_message_queue_monitor( MonitoredPid ) ->
 % The 'terminate' atom shall be sent to the returned PID in order to terminate
 % the corresponding monitoring process.
 %
--spec spawn_message_queue_monitor( pid(), maybe( any_string() ) ) ->
+-spec spawn_message_queue_monitor( pid(), option( any_string() ) ) ->
 											monitor_pid().
 spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc ) ->
 	spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc,
@@ -94,7 +95,7 @@ spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc ) ->
 % The 'terminate' atom shall be sent to the returned PID in order to terminate
 % the corresponding monitoring process.
 %
--spec spawn_message_queue_monitor( pid(), maybe( any_string() ),
+-spec spawn_message_queue_monitor( pid(), option( any_string() ),
 			count(), milliseconds() ) -> monitor_pid().
 spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc,
 		MsgThreshold, SamplingPeriod ) ->

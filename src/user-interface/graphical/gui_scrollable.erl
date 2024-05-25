@@ -25,15 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, December 21, 2023.
 
-
-% @doc Gathering of various facilities for <b>scrollable widgets</b>, like
-% panels that can be scrolled horizontally and/or vertically.
-%
-% Note that using the with_vertical_scrollbar / with_horizontal_scrollbar window
-% styles is generally not a viable solution (refer to their specification for
-% more details).
-%
 -module(gui_scrollable).
+
+-moduledoc """
+Gathering of various facilities for **scrollable widgets**, like panels that can
+be scrolled horizontally and/or vertically.
+
+Note that using the with_vertical_scrollbar / with_horizontal_scrollbar window
+styles is generally not a viable solution (refer to their specification for more
+details).
+""".
 
 
 
@@ -74,7 +75,7 @@
 % @doc Creates a scrollable, with the specified parent and the default number of
 % pixels per scroll step.
 %
--spec create( maybe( parent() ) ) -> scrollable().
+-spec create( option( parent() ) ) -> scrollable().
 create( MaybeParent ) ->
 	create( _Inc=?default_scroll_increment, MaybeParent ).
 
@@ -85,7 +86,7 @@ create( MaybeParent ) ->
 %
 -spec create( pixels_per_scroll_step()
 			| { pixels_per_scroll_step(), pixels_per_scroll_step() },
-			  maybe( parent() ) ) -> scrollable().
+			  option( parent() ) ) -> scrollable().
 create( { HPixPerStep, VPixPerStep }, MaybeParent ) ->
 	Scrollable = wxScrolledWindow:new( MaybeParent ),
 

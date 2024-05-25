@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various <b>two-dimensional "linear"</b> facilities.
-%
-% See `linear_2D_test.erl' for the corresponding test.
-%
 -module(linear_2D).
+
+-moduledoc """
+Gathering of various **two-dimensional "linear"** facilities.
+
+See `linear_2D_test.erl` for the corresponding test.
+""".
 
 
 % For printout_*, inline_size, etc.:
@@ -292,7 +293,7 @@ find_pivot( [ Point={_X,Y} | Others ], PreviousPivot={ _Xp, Yp }, PList )
 
 % Same level as the pivot, but at its right, thus not wanted:
 find_pivot( [ Point={X,_Yp} | Others ], Pivot={ Xp, _UselessMatchYp }, PList )
-        when X > Xp ->
+		when X > Xp ->
 	find_pivot( Others, Pivot, [ Point | PList ] );
 
 % Same level as the pivot, but at its left, thus wanted:
@@ -329,7 +330,7 @@ sort_by_angle( Pivot, Points ) ->
 % (helper)
 %
 -spec sort_by_angle( integer_point2(), [ integer_point2() ], [ angle_pair() ],
-		maybe( integer_point2() ), [ angle_pair() ] ) ->  [ integer_point2() ].
+		option( integer_point2() ), [ angle_pair() ] ) ->  [ integer_point2() ].
 sort_by_angle( _Pivot, _Points=[], LeftPairs, _MaybeP=undefined, RightPairs ) ->
 
 	cond_utils:if_defined( bounding_spaces, trace_utils:debug(
@@ -405,8 +406,8 @@ sort_by_angle( Pivot={Xp,Yp}, [ Point={X,Y} | T ], LeftPairs, MiddlePoint,
 		NegativeDeltaX ->
 			% This is a point on the left of the pivot:
 			sort_by_angle( Pivot, T,
-						   [ { (Y-Yp) / NegativeDeltaX, Point } | LeftPairs ],
-						   MiddlePoint, RightPairs )
+				[ { (Y-Yp) / NegativeDeltaX, Point } | LeftPairs ],
+				 MiddlePoint, RightPairs )
 
 	end.
 

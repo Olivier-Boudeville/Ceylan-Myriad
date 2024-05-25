@@ -25,21 +25,23 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, August 15, 2023.
 
-
-% @doc Testing the <b>OpenGL support</b>, as an integration test, designated as
-% "applicative" since using application events and higher-level applicative GUI
-% states (as opposed to direct event messages, like
-% gui_opengl_direct_integration_test.erl does).
-%
-% This test relies on the old OpenGL (the one obtained with the "compatibility"
-% profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
-% shaders and GLSL.
-%
-% See the gui_opengl and gui_texture tested modules.
-%
-% See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
-%
 -module(gui_opengl_applicative_integration_test).
+
+-moduledoc """
+Testing the **OpenGL support**, as an integration test, designated as
+"applicative" since using application events and higher-level applicative GUI
+states (as opposed to direct event messages, like
+gui_opengl_direct_integration_test.erl does).
+
+This test relies on the old OpenGL (the one obtained with the "compatibility"
+profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
+shaders and GLSL.
+
+See the gui_opengl and gui_texture tested modules.
+
+See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
+""".
+
 
 
 % Implementation notes:
@@ -86,7 +88,7 @@
 	image :: image(),
 
 	% Records the current time to update the clock texture when relevant:
-	time :: maybe( time() ),
+	time :: option( time() ),
 
 
 	% Subsection for OpenGL-related GUI test information:

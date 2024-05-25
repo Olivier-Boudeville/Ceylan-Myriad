@@ -25,37 +25,34 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 2, 2007.
 
-
-% Generic hash table implementation.
-% See hashtable_test.erl for the corresponding test.
-
-
-% @doc Implementation of a simple, generic <b>hash table</b>.
-%
-% An hashtable is basically a tuple whose size (number of elements) is the
-% number of buckets in the hashtable. Each element of the tuple is a list
-% containing key/value pairs.
-%
-% We provide different multiple types of hashtables, including:
-%
-% - 'hashtable' (this module), the most basic, safest, reference implementation
-% - and quite efficient as well
-%
-% - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
-% best)
-%
-% - 'lazy_hashtable', deciding to optimise in a less costly way
-% than 'tracked_hashtable'
-%
-% - 'map_hashtable', which is probably the most efficient implementation
-% (speed/size compromise)
-%
-% - 'list_table', a list-based implementation, efficient for smaller tables (and
-% only them)
-%
-% They are to provide the same API (signatures and contracts).
-%
 -module(hashtable).
+
+-moduledoc """
+Generic hash table implementation.
+
+See hashtable_test.erl for the corresponding test.
+
+Implementation of a simple, generic **hash table**.
+
+An hashtable is basically a tuple whose size (number of elements) is the number
+of buckets in the hashtable. Each element of the tuple is a list containing
+key/value pairs.
+
+We provide different multiple types of hashtables, including:
+- 'hashtable' (this module), the most basic, safest, reference implementation -
+  and quite efficient as well
+- 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
+best)
+- 'lazy_hashtable', deciding to optimise in a less costly way than
+'tracked_hashtable'
+- 'map_hashtable', which is probably the most efficient implementation
+(speed/size compromise)
+- 'list_table', a list-based implementation, efficient for smaller tables (and
+only them)
+
+They are to provide the same API (signatures and contracts).
+""".
+
 
 
 % To avoid code duplication yet having fastest speed:
@@ -144,8 +141,8 @@
 -type entries() :: [ entry() ].
 -type entries( K, V ) :: [ { K, V } ].
 
--type maybe_entry() :: { key(), maybe( value() ) }.
--type maybe_entries() :: [ maybe_entry() ].
+-type option_entry() :: { key(), option( value() ) }.
+-type option_entries() :: [ option_entry() ].
 
 
 -type entry_count() :: basic_utils:count().
@@ -172,7 +169,7 @@
 
 
 -export_type([ key/0, value/0, default_value/0, entry/0, entry/2, atom_entry/0,
-			   entries/0, entries/2, maybe_entry/0, maybe_entries/0,
+			   entries/0, entries/2, option_entry/0, option_entries/0,
 			   entry_count/0, bucket/0, bucket/2, bucket_count/0,
 			   hashtable/0, bullet/0, description_type/0 ]).
 
@@ -464,10 +461,8 @@ get_values( Keys, Hashtable ) ->
 	{ RevValues, _FinalTable } = lists:foldl(
 
 		fun( _Elem=Key, _Acc={ Values, Table } ) ->
-
 			{ Value, ShrunkTable } = extract_entry( Key, Table ),
 			{ [ Value | Values ], ShrunkTable }
-
 		end,
 		_Acc0={ [], Hashtable },
 		_List=Keys ),
@@ -491,10 +486,8 @@ get_all_values( Keys, Hashtable ) ->
 
 	{ RevValues, FinalTable } = lists:foldl(
 		fun( _Elem=Key, _Acc={ Values, Table } ) ->
-
 			{ Value, ShrunkTable } = extract_entry( Key, Table ),
 			{ [ Value | Values ], ShrunkTable }
-
 		end,
 		_Acc0={ [], Hashtable },
 		_List=Keys ),
@@ -883,7 +876,7 @@ is_empty_helper( _Any ) ->
 size( Hashtable ) ->
 
 	lists:foldl( fun( Bucket, Sum ) ->
-						 Sum + length( Bucket )
+					Sum + length( Bucket )
 				 end,
 				 _InitialAcc=0,
 				 _List=tuple_to_list( Hashtable ) ).

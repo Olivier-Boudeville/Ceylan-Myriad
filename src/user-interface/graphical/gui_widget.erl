@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, August 31, 2023.
 
-
-% @doc Gathering of various facilities for <b>widgets</b>.
-%
-% A widget is the most general form of graphical component.
-%
-% Some very general functions are gathered here as well.
-%
 -module(gui_widget).
+
+-moduledoc """
+Gathering of various facilities for **widgets**.
+
+A widget is the most general form of graphical component.
+
+Some very general functions are gathered here as well.
+""".
 
 
 
@@ -398,7 +399,7 @@ unlock( DC ) ->
 % Refer to the 'Keyboard-related events' section of the gui_keyboard module for
 % further information.
 %
--spec get_focused() -> maybe( widget() ).
+-spec get_focused() -> option( widget() ).
 get_focused() ->
 	wxWindow:findFocus().
 

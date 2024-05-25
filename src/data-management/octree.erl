@@ -25,23 +25,24 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, June 4, 2022.
 
-
-% @doc Gathering of facilities to manage <b>octrees</b>, a tree datastructure in
-% which each internal node has exactly 8 children (octants, i.e. sub-octrees or
-% "cells" - a naming that is probably clearer) that partition the parent space.
-%
-% We consider here that the octree acts as a server in charge of resolving
-% spatial queries emitted by many clients having to interact in a shared space.
-%
-% A global axis-aligned right cuboid is recursively split in 8 smaller,
-% same-sized octants, (which are its direct child right cuboids), dividing the
-% space thanks to a tree until some criterion is met (volume/number of elements
-% in the resulting leaves below some threshold, maximum tree depth reached,
-% etc.).
-%
-% See https://en.wikipedia.org/wiki/Octree.
-%
 -module(octree).
+
+-moduledoc """
+Gathering of facilities to manage **octrees**, a tree datastructure in which
+each internal node has exactly 8 children (octants, i.e. sub-octrees or "cells"
+- a naming that is probably clearer) that partition the parent space.
+
+We consider here that the octree acts as a server in charge of resolving spatial
+queries emitted by many clients having to interact in a shared space.
+
+A global axis-aligned right cuboid is recursively split in 8 smaller, same-sized
+octants, (which are its direct child right cuboids), dividing the space thanks
+to a tree until some criterion is met (volume/number of elements in the
+resulting leaves below some threshold, maximum tree depth reached, etc.).
+
+See <https://en.wikipedia.org/wiki/Octree>.
+""".
+
 
 
 % Design notes:
@@ -191,10 +192,10 @@
 % diameter is D is given by: SL = fun(H) -> D/math:pow(2,H) end.
 %
 % The total number of cells (leaves or not) for a (totally populated) octree of
-% height H is: NC(H)=(8^(H+1)-1)/7, i.e.:
-% 'NC = fun(H) -> (math:pow(8,H+1)-1)/7 end.'.
+% height H is: NC(H)=(8^(H+1)-1)/7, i.e.: `NC = fun(H) -> (math:pow(8,H+1)-1)/7
+% end.`.
 %
-% Ex: let's D be the diameter of the observable universe (8.8.10^26 m,
+% For example let's D be the diameter of the observable universe (8.8.10^26 m,
 % i.e. D=8.8e26). SL(64) is about 48 000 km, yet NC(64) is 7.1e57. Luckly the
 % universe is mostly empty.
 
@@ -303,7 +304,7 @@
 -compile( { no_auto_import, [ size/1 ] } ).
 
 
--type node_content() :: maybe( any() ).
+-type node_content() :: option( any() ).
 % The content of a node of an octree ('undefined' meaning empty content).
 
 
@@ -320,7 +321,7 @@
 
 
 %-opaque sequential_octree() ::
-%  { node_content(), maybe( sequential_octants() ) }.
+%  { node_content(), option( sequential_octants() ) }.
 % A sequential octree is made of its own content and of up to 8 child sequential
 % octrees.
 %
@@ -335,7 +336,7 @@
 % concurrent_octree/0.
 
 
-%-opaque sequential_octree( T ) :: { T , maybe( sequential_octants( T )  ) }.
+%-opaque sequential_octree( T ) :: { T , option( sequential_octants( T )  ) }.
 % A typed sequential octree, polymorphic regarding its node content.
 %
 % See sequential_octree/0 for further details.
@@ -351,7 +352,7 @@
 
 
 %-opaque concurrent_octree() ::
-%  { node_content(), maybe( concurrent_octants() ) }.
+%  { node_content(), option( concurrent_octants() ) }.
 % A concurrent octree is made of its own content and of up to 8 child concurrent
 % octrees.
 %
@@ -365,7 +366,7 @@
 % it is defined as a (single) process, unlike sequential_octree/0.
 
 
-%-opaque concurrent_octree( T ) :: { T , maybe( concurrent_octants( T )  ) }.
+%-opaque concurrent_octree( T ) :: { T , option( concurrent_octants( T )  ) }.
 % A typed concurrent octree, polymorphic regarding its node content.
 %
 % See concurrent_octree/0 for further details.
@@ -382,7 +383,7 @@
 
 
 %-opaque hybrid_octree() ::
-%  { node_content(), maybe( hybrid_octants() ) }.
+%  { node_content(), option( hybrid_octants() ) }.
 % A hybrid octree is made of its own content and of up to 8 child hybrid
 % octrees.
 %
@@ -396,7 +397,7 @@
 % the sense that it is defined either as a term or as a process.
 
 
-%-opaque hybrid_octree( T ) :: { T , maybe( hybrid_octants( T )  ) }.
+%-opaque hybrid_octree( T ) :: { T , option( hybrid_octants( T )  ) }.
 % A typed hybrid octree, polymorphic regarding its node content.
 %
 % See hybrid_octree/0 for further details.

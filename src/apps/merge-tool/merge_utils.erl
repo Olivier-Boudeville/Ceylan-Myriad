@@ -8,14 +8,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2016.
 
-
-% @doc Module in charge of providing the actual support for the <b>management of
-% filesystem trees</b> (merging, unifiquation, comparison, etc.).
-%
-% Note that it is currently architectured mostly as a program rather than as a
-% library (most services of interest are not exported currently).
-%
 -module(merge_utils).
+
+-moduledoc """
+Module in charge of providing the actual support for the **management of
+filesystem trees** (merging, unifiquation, comparison, etc.).
+
+Note that it is currently architectured mostly as a program rather than as a
+ library (most services of interest are not exported currently).
+""".
 
 
 % Implementation notes:
@@ -203,7 +204,7 @@
 -record( user_state, {
 
 	% File handle (if any) to write logs:
-	log_file = undefined :: maybe( file() ) } ).
+	log_file = undefined :: option( file() ) } ).
 
 
 -type user_state() :: #user_state{}.
@@ -1986,7 +1987,7 @@ purge_helper( _Hashs=[ Hash | T ], Entries, BinRootDir, RemoveCount,
 %
 -spec clear_input_tree( tree_data(), count(), set( binary_hash() ),
 			bin_directory_path(), bin_directory_path(), user_state() ) ->
-								maybe( tree_data() ).
+								option( tree_data() ).
 clear_input_tree( InputTree, LackingCount, ContentToClear, InputRootDir,
 				  ReferenceRootDir, UserState ) ->
 
@@ -2790,7 +2791,7 @@ cherry_pick_files_to_merge( _HashsToPick=[ Hash | T ], InputRootDir,
 
 					remove_files( ToRemoveFullPaths, UserState ),
 
-					NewTimestamp = file_utils:get_last_modification_time( 
+					NewTimestamp = file_utils:get_last_modification_time(
 						MovedAbsRelPath ),
 
 					% Any will do:
@@ -3227,7 +3228,7 @@ update_content_tree( BinTreePath, AnalyzerRing, UserState ) ->
 % the actual files (as relative paths).
 %
 -spec find_newest_timestamp_from( bin_directory_path(), bin_file_path() ) ->
-						{ maybe( posix_seconds() ), [ bin_file_path() ] }.
+						{ option( posix_seconds() ), [ bin_file_path() ] }.
 find_newest_timestamp_from( RootPath, CacheFilePath ) ->
 
 	CacheFilename = file_utils:get_last_path_element( CacheFilePath ),
@@ -3281,7 +3282,7 @@ get_newest_timestamp( _ContentFiles=[ F | T ], RootPath,
 % (helper)
 -spec handle_newest_timestamp( posix_seconds(), [ file_path() ],
    file_path(), bin_directory_path(), analyzer_ring(), user_state() ) ->
-									maybe( tree_data() ).
+									option( tree_data() ).
 handle_newest_timestamp( NewestTimestamp, ContentFiles, CacheFilePath,
 						 BinTreePath, AnalyzerRing, UserState ) ->
 
@@ -4586,7 +4587,7 @@ create_links_to( TargetFilePath, _LinkPaths= [ Link | T ], BinRootDir ) ->
 % file sizes match as well.
 %
 -spec quick_cache_check( file_path(), [ file_path() ], bin_directory_path(),
-					analyzer_ring(), user_state() ) -> maybe( tree_data() ).
+					analyzer_ring(), user_state() ) -> option( tree_data() ).
 quick_cache_check( CacheFilePath, ContentFiles, BinTreePath, AnalyzerRing,
 				   UserState ) ->
 
@@ -4618,7 +4619,7 @@ quick_cache_check( CacheFilePath, ContentFiles, BinTreePath, AnalyzerRing,
 % (helper)
 -spec quick_cache_check_helper( bin_fqdn(), [ bin_file_path() ],
 		bin_directory_path(), bin_directory_path(), [ file_info() ],
-		analyzer_ring(), user_state() ) -> maybe( tree_data() ).
+		analyzer_ring(), user_state() ) -> option( tree_data() ).
 quick_cache_check_helper( BinFQDN, ContentFiles, BinActualTreePath,
 			BinCachedTreePath, FileInfos, AnalyzerRing, UserState ) ->
 
@@ -4881,17 +4882,14 @@ prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 	DeltaFilePath = file_utils:any_join(
 		system_utils:get_user_home_directory(), DeltaFilename ),
 
-	case file_utils:is_existing_file_or_link( DeltaFilePath ) of
-
-		true ->
+	file_utils:is_existing_file_or_link( DeltaFilePath ) andalso
+		begin
 			trace_utils:warning_fmt(
-			  "Overwriting preexisting delta file '~ts'.", [ DeltaFilePath ] ),
-			file_utils:remove_file( DeltaFilePath );
+				"Overwriting preexisting delta file '~ts'.",
+				[ DeltaFilePath ] ),
 
-		false ->
-			ok
-
-	end,
+			file_utils:remove_file( DeltaFilePath )
+		end,
 
 	% Same options apply:
 	DeltaFile = file_utils:open( DeltaFilePath, ?merge_file_options ),
@@ -4904,7 +4902,7 @@ prepare_delta( FirstHostname, FirstRootPath, SecondHostname,
 % writes a corresponding information in specified opened file (if any).
 %
 -spec list_lacking_content( [ binary_hash() ], hash_table(), ustring(),
-			maybe( bin_directory_path() ), maybe( file() ) ) -> ustring().
+			option( bin_directory_path() ), option( file() ) ) -> ustring().
 list_lacking_content( _Hashs=[ Hash ], HashTable, OtherTreeDesc, MaybeRootPath,
 					  MaybeDeltaFile ) ->
 
@@ -5132,9 +5130,9 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 			case DupCount > 0 of
 
 				true ->
-					text_utils:format( "~ts and ~B regular files"
-						" (hence with ~ts)", [ count_content( ContentCount ),
-											   FileCount, case DupCount of
+					text_utils:format( "~ts and ~B regular files "
+						"(hence with ~ts)", [ count_content( ContentCount ),
+											  FileCount, case DupCount of
 
 							1 ->
 								"a single duplicate";
@@ -5142,7 +5140,7 @@ display_tree_data( TreeData=#tree_data{ entries=EntryTable,
 							_ ->
 								text_utils:format( "a total of ~B duplicates",
 												   [ DupCount ] )
-												   end ] );
+														 end ] );
 
 				false ->
 					trace_bridge:error_fmt(

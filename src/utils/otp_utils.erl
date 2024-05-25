@@ -25,24 +25,26 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, July 15, 2019.
 
-
-% @doc Various helpers for <b>OTP applications, releases</b>, and so on.
-%
-% Useful notably to test an OTP application from within it, from a non-OTP
-% context, i.e. from a simple test without needing to create a separate,
-% dedicated OTP release for that.
-%
-% See myriad_otp_application_test.erl as an example.
-%
-% Following convention is supposed to apply for testing: all applications
-% (i.e. the tested one and its prerequisites) are expected to have their build
-% trees (typically GIT clones) located in the same parent directory (as
-% siblings), each named as its application (e.g. "myriad" root directory for the
-% myriad application, not for example "Ceylan-Myriad"), so that, from the build
-% tree of a tested application, the build trees of its prerequisites can be
-% found (e.g. as "../myriad").
-%
 -module(otp_utils).
+
+-moduledoc """
+Various helpers for **OTP applications, releases**, and so on.
+
+Useful notably to test an OTP application from within it, from a non-OTP
+context, i.e. from a simple test without needing to create a separate, dedicated
+OTP release for that.
+
+See myriad_otp_application_test.erl as an example.
+
+Following convention is supposed to apply for testing: all applications
+(i.e. the tested one and its prerequisites) are expected to have their build
+trees (typically GIT clones) located in the same parent directory (as siblings),
+each named as its application (e.g. "myriad" root directory for the myriad
+application, not for example "Ceylan-Myriad"), so that, from the build tree of a
+tested application, the build trees of its prerequisites can be found (e.g. as
+"../myriad").
+""".
+
 
 
 -type application_name() :: atom().
@@ -178,7 +180,7 @@
 
 	% If set, means that it is an active application:
 	start_mod_args ::
-		maybe( { module_name(), basic_utils:arguments() } ),
+		option( { module_name(), basic_utils:arguments() } ),
 
 	% As contained in its .app file:
 	spec :: app_spec() } ).

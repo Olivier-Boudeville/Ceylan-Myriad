@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, May 20, 2020.
 
-
-% Unit tests for the shell_utils toolbox.
-%
-% See the shell_utils.erl tested module.
-%
 -module(shell_utils_test).
+
+-moduledoc """
+Unit tests for the `shell_utils` toolbox.
+
+See the shell_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -89,7 +91,7 @@ run() ->
 
 	{ RealOptValues, RealOptRemainingArguments } =
 		shell_utils:extract_command_arguments_for_option( RealOption,
-													PzRemainingArguments ),
+			PzRemainingArguments ),
 
 	test_facilities:display( "For (user) option '~ts', we extracted following "
 		"value(s):~n~p~nand got the rest of the arguments: ~ts",

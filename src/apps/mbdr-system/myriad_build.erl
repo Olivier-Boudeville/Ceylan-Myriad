@@ -4,19 +4,19 @@
 %
 % Released as LGPL software.
 
-
-% @doc An experimental (not functional yet) module to <b>explore alternate build
-% systems</b>.
-%
-% We finally stick to our make-based build system that we found more suitable
-% than (for example) rebar3.
-%
-% Better here than in `myriad-build.escript' to benefit from a more
-% user-friendly debugging.
-%
-% @hidden Most empty currently.
-%
 -module(myriad_build).
+
+% Should be hidden, as not useful to list in APIs (and mostly empty currently):
+-moduledoc """
+An experimental (not functional yet) module to **explore alternate build
+systems**.
+
+We finally stick to our make-based build system that we found more suitable than
+ (for example) rebar3.
+
+Better here than in `myriad-build.escript' to benefit from a more user-friendly
+debugging.
+""".
 
 
 -define( exec_name, "myriad-build.escript" ).
@@ -54,7 +54,7 @@ get_usage() ->
 main( ArgTable ) ->
 
 	%trace_utils:debug_fmt( "Original script-specific arguments: ~ts",
-	%	[ shell_utils:argument_table_to_string( ArgTable ) ] ),
+	%   [ shell_utils:argument_table_to_string( ArgTable ) ] ),
 
 	[ %InteractiveRefKey,
 	  HelpRefKey ] =
@@ -67,7 +67,7 @@ main( ArgTable ) ->
 			{ HelpRefKey, [ 'h' ] } ], ArgTable ),
 
 	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~ts",
-	%	   [ shell_utils:argument_table_to_string( MergedTable ) ] ),
+	%   [ shell_utils:argument_table_to_string( MergedTable ) ] ),
 
 	list_table:has_entry( HelpRefKey, MergedTable ) andalso display_usage(),
 

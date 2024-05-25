@@ -25,9 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, May 21, 2023.
 
-
-% @doc Gathering of various facilities for <b>projection management</b>.
 -module(projection).
+
+-moduledoc """
+Gathering of various facilities for **projection management**.
+""".
+
 
 
 % For the projection records:
@@ -41,8 +44,7 @@
 							 | perspective_settings().
 
 
--export_type([ orthographic_settings/0,
-			   perspective_settings/0,
+-export_type([ orthographic_settings/0, perspective_settings/0,
 			   projection_settings/0 ]).
 
 

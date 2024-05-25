@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities about <b>naming services</b> (local and
-% global).
-%
-% See naming_utils_test.erl for the corresponding test.
-%
 -module(naming_utils).
+
+-moduledoc """
+Gathering of various facilities about **naming services** (local and
+global).
+
+See naming_utils_test.erl for the corresponding test.
+""".
+
 
 
 % Registration functions.

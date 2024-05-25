@@ -25,18 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 9, 2023.
 
-
-% @doc Minimal testing of <b>shader-based transformation rendering</b>: applies
-% a transformation matrix created from the application and displays a textured
-% square based on it that can be moved with the keyboard to test transformations
-% (translations, rotations and scalings) and directions thereof in the current
-% coordinate system.
-%
-% This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
-% as opposed to the compatibility mode for OpenGL 1.x, and on Myriad's
-% conventions (e.g. a Z-UP coordinate system).
-%
 -module(gui_opengl_transformation_shader_test).
+
+-moduledoc """
+Minimal testing of **shader-based transformation rendering**: applies a
+transformation matrix created from the application and displays a textured
+square based on it that can be moved with the keyboard to test transformations
+(translations, rotations and scalings) and directions thereof in the current
+coordinate system.
+
+This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
+(e.g. a Z-UP coordinate system).
+""".
+
 
 
 % Implementation notes:
@@ -155,7 +157,7 @@
 	transformation_mode :: transformation_mode(),
 
 	% In more complex cases, would store the loaded textures, etc.:
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.
@@ -168,7 +170,7 @@
 	program_id :: program_id(),
 
 	% Needs an OpenGL context:
-	texture :: maybe( texture() ),
+	texture :: option( texture() ),
 
 	% The identifier of the Model-View uniform matrix:
 	model_view_id :: uniform_id(),

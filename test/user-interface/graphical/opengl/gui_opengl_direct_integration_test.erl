@@ -25,21 +25,23 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2021.
 
-
-% @doc Testing the <b>OpenGL support</b>, as an integration test, designated as
-% "direct" since directly listening to incoming event messages, that is not
-% using application events and higher-level applicative GUI states (see
-% app_gui_state()) like gui_opengl_applicative_integration_test.erl does.
-%
-% This test relies on the old OpenGL (the one obtained with the "compatibility"
-% profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
-% shaders and GLSL.
-%
-% See the gui_opengl and gui_texture tested modules.
-%
-% See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
-%
 -module(gui_opengl_direct_integration_test).
+
+-moduledoc """
+Testing the **OpenGL support**, as an integration test, designated as "direct"
+since directly listening to incoming event messages, that is not using
+application events and higher-level applicative GUI states (see app_gui_state())
+like gui_opengl_applicative_integration_test.erl does.
+
+This test relies on the old OpenGL (the one obtained with the "compatibility"
+profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
+shaders and GLSL.
+
+See the gui_opengl and gui_texture tested modules.
+
+See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
+""".
+
 
 
 % Implementation notes:
@@ -91,10 +93,10 @@
 	image :: image(),
 
 	% The various OpenGL information kept by this test once initialised:
-	opengl_state :: maybe( my_opengl_state() ),
+	opengl_state :: option( my_opengl_state() ),
 
 	% Records the current time to update the clock texture when relevant:
-	time :: maybe( time() ) } ).
+	time :: option( time() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.

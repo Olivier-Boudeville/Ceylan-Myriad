@@ -25,13 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2010.
 
-
-% @doc The very beginning of a tool to manage <b>assets</b>, especially for
-% rendering.
-%
-% @hidden Note: extremely far from being ready.
-%
 -module(asset_tool_app).
+
+-moduledoc """
+The very beginning of a tool to manage **assets**, especially for rendering.
+
+Note: extremely far from being ready.
+""".
 
 
 -export([ exec/0 ]).

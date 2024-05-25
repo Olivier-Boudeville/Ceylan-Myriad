@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, July 16, 2020.
 
-
-% @doc Gathering of various convenient facilities regarding the support of
-% various <b>locales</b> (e.g. for the management of per-country bank holidays)
-% and related character sets.
-%
 -module(locale_utils).
+
+-moduledoc """
+Gathering of various convenient facilities regarding the support of various
+**locales** (e.g. for the management of per-country bank holidays) and related
+character sets.
+""".
+
 
 
 -type country() :: 'france' | 'united_kingdom' | atom().

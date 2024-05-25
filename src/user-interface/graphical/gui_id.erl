@@ -25,16 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 24, 2022.
 
-
-% @doc Management of (higher-level) <b>widget identifiers</b>.
-%
-% User-defined, atom-based identifiers can be introduced in order to simplify
-% the GUI-related processings.
-%
-% They can be managed thanks to a separate server (process), or directly through
-% an embedded allocation table (like the MyriadGUI main loop).
-%
 -module(gui_id).
+
+-moduledoc """
+Management of (higher-level) **widget identifiers**.
+
+User-defined, atom-based identifiers can be introduced in order to simplify
+the GUI-related processings.
+
+They can be managed thanks to a separate server (process), or directly through
+an embedded allocation table (like the MyriadGUI main loop).
+""".
 
 
 
@@ -72,7 +73,7 @@
 % Lowest-level, backend-specific identifier.
 
 
--type id() :: maybe( backend_id() ) | name_id().
+-type id() :: option( backend_id() ) | name_id().
 % Object identifier, backend-specific or not.
 %
 % Defined here so that no user-level datastructure (like the event_context
@@ -473,7 +474,7 @@ resolve_any_id( NameId ) when is_atom( NameId ) ->
 % allocation table.
 %
 -spec maybe_resolve_named_id_internal( name_id(), id_name_alloc_table() ) ->
-											maybe( backend_id() ).
+											option( backend_id() ).
 maybe_resolve_named_id_internal( NameId, NameTable ) ->
 
 	% As standard/stock identifiers do not have to be stored (thanks to the
@@ -696,9 +697,10 @@ resolve_named_ids( NameIds, IdAllocRef ) ->
 % otherwise returns 'undefined', based on the MyriadGUI identifier allocator (if
 % any).
 %
--spec maybe_resolve_backend_id( backend_id() ) -> maybe( name_id() ).
+-spec maybe_resolve_backend_id( backend_id() ) -> option( name_id() ).
 maybe_resolve_backend_id( BackendId ) ->
-	maybe_resolve_backend_id( BackendId, _IdAllocRef=gui:get_id_allocator_pid() ).
+	maybe_resolve_backend_id( BackendId, 
+							  _IdAllocRef=gui:get_id_allocator_pid() ).
 
 
 % @doc Tries to resolve the specified backend identifier into a named one,
@@ -706,7 +708,7 @@ maybe_resolve_backend_id( BackendId ) ->
 % any).
 %
 -spec maybe_resolve_backend_id( backend_id(), id_allocator_ref() ) ->
-										maybe( name_id() ).
+										option( name_id() ).
 maybe_resolve_backend_id( BackendId, IdAllocRef ) ->
 	IdAllocRef ! { resolveBackendIdentifier, BackendId, self() },
 	receive
@@ -726,7 +728,7 @@ maybe_resolve_backend_id( BackendId, IdAllocRef ) ->
 % item one or, for MyriadGUI ones, the specified name allocation table.
 %
 -spec maybe_resolve_backend_id_internal( backend_id(),
-						id_name_alloc_table() ) -> maybe( name_id() ).
+						id_name_alloc_table() ) -> option( name_id() ).
 % If a standard/stock identifier:
 maybe_resolve_backend_id_internal( BackendId, _NameTable )
 								when BackendId < ?min_allocated_id ->
@@ -882,7 +884,7 @@ get_best_button_id_internal( BackendId, NameTable ) ->
 %
 % Not exactly the reciprocal of resolve_any_id/1.
 %
--spec get_maybe_name_id( backend_id() ) -> maybe( name_id() ).
+-spec get_maybe_name_id( backend_id() ) -> option( name_id() ).
 get_maybe_name_id( BackendId ) when is_integer( BackendId ) ->
 	% Relies on the fact that the MyriadGUI main process now impersonates a
 	% standalone gui_id server:

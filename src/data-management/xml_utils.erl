@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, December 5, 2021.
 
-
-% @doc Gathering of management facilities for <b>XML</b> processing.
-%
-% See xml_utils_test.erl for the corresponding test.
-%
-% Mostly a wrapper around the standard, always available xmerl modules.
-%
 -module(xml_utils).
+
+-moduledoc """
+Gathering of management facilities for **XML** processing.
+
+See xml_utils_test.erl for the corresponding test.
+
+Mostly a wrapper around the standard, always available xmerl modules.
+""".
+
 
 
 % Implementation notes:

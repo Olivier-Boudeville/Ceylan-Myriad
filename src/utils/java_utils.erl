@@ -27,15 +27,16 @@
 % Authors: Robin Huart        [robin (dot) huart (at) edf (dot) fr]
 %          Olivier Boudeville [olivier (dot) boudeville (at) edf (dot) fr]
 
-
-% @doc Gathering of some convenient facilities for the <b>binding to the Java
-% language</b>.
-%
-% See java_utils_test.erl for the corresponding tests.
-%
-% See also python_utils.erl for a similar binding.
-%
 -module(java_utils).
+
+-moduledoc """
+Gathering of some convenient facilities for the **binding to the Java
+language**.
+
+See java_utils_test.erl for the corresponding tests.
+
+See also python_utils.erl for a similar binding.
+""".
 
 
 
@@ -235,14 +236,14 @@ wait_for_request_result( MailboxPid, MethodName )
 
 		% Trace emitted from Java:
 		TraceMessage = { trace_emitted, TraceType, _TraceFormattedMessage }
-		  when is_atom( TraceType ) ->
+			when is_atom( TraceType ) ->
 
 			TraceMessage;
 
 		% Exception raised from Java:
 		ExceptionMessage = { exception_raised, ExceptionType,
 							 _ExceptionFormattedMessage }
-		  when is_atom( ExceptionType ) ->
+			when is_atom( ExceptionType ) ->
 
 			ExceptionMessage;
 

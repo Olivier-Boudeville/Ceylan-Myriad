@@ -25,20 +25,22 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, August 31, 2023.
 
-
-% @doc Gathering of various facilities for <b>windows</b>.
-%
-% A window may be a top-level of not, a frame, a splitter window, etc.
-%
-% A window is a special case of widget, which is the most general form of
-% graphical component.
-%
-% See also:
-% - the gui_window_manager module regarding the insertion of windows in their
-% environment
-% - the gui_frame module
-%
 -module(gui_window).
+
+-moduledoc """
+@doc Gathering of various facilities for **windows**.
+
+A window may be a top-level of not, a frame, a splitter window, etc.
+
+A window is a special case of widget, which is the most general form of
+graphical component.
+
+See also:
+- the gui_window_manager module regarding the insertion of windows in their
+environment
+- the gui_frame module
+""".
+
 
 
 

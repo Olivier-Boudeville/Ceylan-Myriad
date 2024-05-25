@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, January 21, 2018.
 
-
-% @doc Module in charge of <b>scanning an AST</b>, a prerequisite notably for
-% later transformations (see ast_transform.erl for that).
-%
 -module(ast_scan).
+
+-moduledoc """
+Module in charge of **scanning an AST**, a prerequisite notably for later
+transformations (see ast_transform.erl for that).
+""".
 
 
 % For the table macro for example:

@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, May 25, 2015.
 
-
-% @doc Gathering of facilities to manage <b>trees</b>, balanced or not.
-%
-% The support comprises the one of classical, functional, recursive trees, but
-% also ones (actually forests) whose nodes are indexed by an associative table
-% (typically for faster look-up).
-%
 -module(tree).
+
+-moduledoc """
+Gathering of facilities to manage **trees**, balanced or not.
+
+The support comprises the one of classical, functional, recursive trees, but
+also ones (actually forests) whose nodes are indexed by an associative table
+(typically for faster look-up).
+""".
 
 
 % So that we can define our own size/1:
@@ -44,7 +45,7 @@
 % Section transverse to all kinds of trees.
 
 
--type node_content() :: maybe( any() ).
+-type node_content() :: option( any() ).
 % The content of a node of a tree ('undefined' meaning empty content).
 
 
@@ -381,7 +382,7 @@ forest_to_string( ForestTable, ParentNodeId, NodeToStringFun, NodeToChildrenFun,
 	Children = NodeToChildrenFun( ParentNodeId, ForestTable ),
 
 	%trace_utils:debug_fmt( "Children of #~B: ~w.",
-	%   [ ParentNodeId, Children ] ),
+	%                       [ ParentNodeId, Children ] ),
 
 	ChildrenStrs = [ forest_to_string( ForestTable, C, NodeToStringFun,
 						NodeToChildrenFun, Level+1 ) || C <- Children ],

@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, June 8, 2016.
 
-
-% @doc Unit tests for the <b>SQL support</b>, based on available backend(s).
-%
-% See the sql_support tested module.
-%
 -module(sql_support_test).
+
+-moduledoc """
+Unit tests for the **SQL support**, based on available backend(s).
+
+See the sql_support tested module.
+""".
 
 
 
@@ -87,8 +88,8 @@ get_test_settings() ->
 														  name=DbName },
 
 			UserSettings = #database_user_settings{
-								user_name=DbUserName,
-								user_password=DbUserPassword },
+				user_name=DbUserName,
+				user_password=DbUserPassword },
 
 			{ ConnSettings, UserSettings };
 
@@ -142,7 +143,7 @@ test_sqlite3() ->
 
 	% First writing:
 	{ rowid, 1 } = sqlite3:write( DbPid, my_table,
-						[ {name,"abby"}, {age, 20}, {<<"wage">>, 2000} ] ),
+		[ {name,"abby"}, {age, 20}, {<<"wage">>, 2000} ] ),
 
 	% Second one:
 	MargeEntry = [ {name, "marge"}, {age, 30}, {wage, 2000} ],

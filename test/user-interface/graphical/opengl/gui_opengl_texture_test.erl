@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, March 11, 2023.
 
-
-% @doc Testing of the <b>texture support</b>; displays an image as a texture.
-%
-% This test relies on the old OpenGL (the one obtained with the "compatibility"
-% profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
-% shaders and GLSL. See gui_opengl_texture_shader_test for its more modern
-% counterpart.
-%
 -module(gui_opengl_texture_test).
+
+-moduledoc """
+Testing of the **texture support**; displays an image as a texture.
+
+This test relies on the old OpenGL (the one obtained with the "compatibility"
+profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
+shaders and GLSL. See gui_opengl_texture_shader_test for its more modern
+counterpart.
+""".
+
 
 
 % Implementation notes:
@@ -70,7 +72,7 @@
 	image :: image(),
 
 	% Needs an OpenGL context:
-	texture :: maybe( texture() ),
+	texture :: option( texture() ),
 
 	% Here just a boolean; in more complex cases, would be a maybe-(OpenGL
 	% state), e.g. to store the loaded textures:

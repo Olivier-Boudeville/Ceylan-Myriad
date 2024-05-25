@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2016.
 
-
-% @doc Unit tests for the <b>management of CSV files</b>.
-%
-% See the csv_utils.erl tested module.
-%
 -module(csv_utils_test).
+
+-moduledoc """
+Unit tests for the **management of CSV files**.
+
+See the csv_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

@@ -25,23 +25,24 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, January 9, 2022.
 
-
-% @doc Minimal testing of <b>shader-based texture rendering</b>: displays, based
-% on GLSL shaders, a textured polygon. Does not rely on our 'mesh' module.
-%
-% It is therefore a non-interactive, passive test (no spontaneous/scheduled
-% behaviour) whose main interest is to show a simple yet generic, appropriate
-% use of textures.
-%
-% This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
-% as opposed to the compatibility mode for OpenGL 1.x.
-%
-% See also the gui_opengl_texture_test module for a corresponding test with the
-% legacy versions of OpenGL (compatibility mode).
-%
-% The textured mode can be replaced with a wireframe one (see RasterMode).
-%
 -module(gui_opengl_texture_shader_test).
+
+-moduledoc """
+Minimal testing of **shader-based texture rendering**: displays, based on GLSL
+shaders, a textured polygon. Does not rely on our 'mesh' module.
+
+It is therefore a non-interactive, passive test (no spontaneous/scheduled
+behaviour) whose main interest is to show a simple yet generic, appropriate use
+of textures.
+
+This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x.
+
+See also the gui_opengl_texture_test module for a corresponding test with the
+legacy versions of OpenGL (compatibility mode).
+
+The textured mode can be replaced with a wireframe one (see RasterMode).
+""".
 
 
 % Implementation notes:
@@ -79,10 +80,10 @@
 	image :: image(),
 
 	% Needs an OpenGL context:
-	texture :: maybe( texture() ),
+	texture :: option( texture() ),
 
 	% In more complex cases, would store the loaded textures, etc.
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.

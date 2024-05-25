@@ -42,17 +42,17 @@
 
 	% The version (if any) of the corresponding application:
 	%
-	version :: maybe( basic_utils:any_version() | text_utils:ustring() ),
+	version :: option( basic_utils:any_version() | text_utils:ustring() ),
 
 	% The author description (if any)  of the corresponding application:
-	author :: maybe( text_utils:bin_string() ),
+	author :: option( text_utils:bin_string() ),
 
 	% The current operating system information (see
 	% system_utils:get_operating_system_type(/0), if any, on which is this
 	% application runs:
 
 	% Coarse categorisation of the current operating system:
-	os_family :: maybe( system_utils:os_family() ),
+	os_family :: option( system_utils:os_family() ),
 
 	% More precise categorisation of the current operating system:
-	os_name :: maybe( system_utils:os_name() ) } ).
+	os_name :: option( system_utils:os_name() ) } ).

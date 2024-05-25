@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 26, 2022.
 
-
-% @doc Gathering of various facilities for <b>mouse management</b>.
 -module(gui_mouse).
+
+-moduledoc """
+Gathering of various facilities for **mouse management**.
+""".
 
 
 % We consider that each mouse can have up to 5 buttons, designated as:

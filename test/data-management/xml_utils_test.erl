@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, December 5, 2021.
 
-
-% Unit tests for the <b>XML services</b>.
-%
-% See the xml_utils.erl tested module.
-%
 -module(xml_utils_test).
+
+-moduledoc """
+Unit tests for the **XML services**.
+
+See the xml_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

@@ -25,20 +25,21 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, May 5, 2018.
 
-
-% @doc Aggregates all code <b>transverse to the various actual UI
-% backends</b>. This module shall be, if possible, directly used by programs, so
-% that they can at runtime select the best available UI backend for the context
-% at hand.
-%
-% See:
-% - `text_ui_test.erl' for the test of the most basic text interface
-% - `term_ui.erl' for a more advanced text interface (ncurses-based)
-% - `gui.erl' for a graphical counterpart thereof
-%
-% See also: `trace_utils.erl' for another kind of output.
-%
 -module(ui).
+
+-moduledoc """
+Aggregates all code **transverse to the various actual UI backends**. This
+module shall be, if possible, directly used by programs, so that they can at
+runtime select the best available UI backend for the context at hand.
+
+See:
+- `text_ui_test.erl` for the test of the most basic text interface
+- `term_ui.erl` for a more advanced text interface (ncurses-based)
+- `gui.erl` for a graphical counterpart thereof
+
+See also: `trace_utils.erl` for another kind of output.
+""".
+
 
 
 
@@ -615,7 +616,7 @@ read_text_as_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+-spec get_text_as_maybe_integer( prompt() ) -> option( text() ).
 get_text_as_maybe_integer( Prompt ) ->
 	UIModule = get_backend_name(),
 	UIModule:get_text_as_maybe_integer( Prompt ).
@@ -627,7 +628,7 @@ get_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> option( text() ).
 get_text_as_maybe_integer( Prompt, UIState ) ->
 	UIModule = get_backend_name(),
 	UIModule:get_text_as_maybe_integer( Prompt, UIState ).
@@ -641,7 +642,7 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt() ) -> maybe( text() ).
+-spec read_text_as_maybe_integer( prompt() ) -> option( text() ).
 read_text_as_maybe_integer( Prompt ) ->
 	UIModule = get_backend_name(),
 	UIModule:read_text_as_maybe_integer( Prompt ).
@@ -655,7 +656,7 @@ read_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( text() ).
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> option( text() ).
 read_text_as_maybe_integer( Prompt, UIState ) ->
 	UIModule = get_backend_name(),
 	UIModule:read_text_as_maybe_integer( Prompt, UIState ).
@@ -861,7 +862,7 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 -spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
 										 ui_state() ) -> choice_index();
 									   ( prompt(), [ choice_element() ],
-										 maybe( choice_index() ) ) ->
+										 option( choice_index() ) ) ->
 												choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
 	UIModule = get_backend_name(),
@@ -878,7 +879,7 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState ) ->
 % atom, should the user prefer to cancel that operation.
 %
 -spec choose_numbered_item_with_default( prompt(), [ choice_element() ],
-			maybe( choice_index() ), ui_state() ) -> choice_index().
+			option( choice_index() ), ui_state() ) -> choice_index().
 choose_numbered_item_with_default( Prompt, Choices, DefaultChoiceIndex,
 								   UIState ) ->
 	UIModule = get_backend_name(),
@@ -962,7 +963,7 @@ unset_settings( SettingKeys, UIState ) ->
 % @doc Returns the value (if any) associated, in the (implicit) UI state, to the
 % specified setting.
 %
--spec get_setting( ui_setting_key() ) -> maybe( ui_setting_value() ).
+-spec get_setting( ui_setting_key() ) -> option( ui_setting_value() ).
 get_setting( SettingKey ) ->
 	UIModule = get_backend_name(),
 	UIModule:get_setting( SettingKey ).

@@ -25,19 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, March 2, 2024.
 
-
-% @doc Module implementing the support for <b>3D reference frames</b> (frames of
-% references), based on 4x4 transformations.
-%
-% A 3D frame of reference is a part of a (3D) reference tree, which holds
-% notably an associative table of reference frames, based on their identifier; a
-% frame records the transformation to/from its (direct) parent frame (if any).
-%
-% See https://en.wikipedia.org/wiki/Frame_of_reference for further information
-%
-% See also the transform4 module.
-%
 -module(reference_frame3).
+
+-moduledoc """
+Module implementing the support for **3D reference frames** (frames of
+references), based on 4x4 transformations.
+
+A 3D frame of reference is a part of a (3D) reference tree, which holds notably
+an associative table of reference frames, based on their identifier; a frame
+records the transformation to/from its (direct) parent frame (if any).
+
+See <https://en.wikipedia.org/wiki/Frame_of_reference> for further information.
+
+See also the `transform4` module.
+""".
 
 
 
@@ -72,7 +73,7 @@
 -export([ new/0, new/1, new_absolute/1,
 		  new/2, new/3, new_absolute/2,
 
-		  get_transform/1, get_inverse_transform/1, 
+		  get_transform/1, get_inverse_transform/1,
 
 		  to_string/1, node_to_string/2 ] ).
 

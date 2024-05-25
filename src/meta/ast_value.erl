@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of handling <b>values defined within an AST</b>,
-% including atomic literals.
-%
-% Refer to the "7.2 Atomic Literals" section of
-% [http://erlang.org/doc/apps/erts/absform.html for more information].
-%
 -module(ast_value).
+
+-moduledoc """
+Module in charge of handling **values defined within an AST**, including atomic
+literals.
+
+Refer to the "7.2 Atomic Literals" section of
+<http://erlang.org/doc/apps/erts/absform.html for more information>.
+""".
 
 
 
@@ -64,7 +65,8 @@
 
 -type ast_immediate_value() :: ast_atomic_literal() | ast_compound_literal().
 
--type maybe_ast_immediate_value() :: basic_utils:maybe( ast_immediate_value() ).
+-type maybe_ast_immediate_value() ::
+		basic_utils:option( ast_immediate_value() ).
 
 
 

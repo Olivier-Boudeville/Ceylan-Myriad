@@ -7,12 +7,14 @@
 %
 % Released as LGPL software.
 
-
-% @doc A Myriad application to <b>generate strong, safe passwords</b>.
-%
-% @hidden Not useful to list in API.
-%
 -module(generate_password_app).
+
+% Hidden, as not useful to list in APIs:
+-moduledoc false.
+
+-doc """
+A Myriad application to **generate strong, safe passwords**.
+""".
 
 
 -export([ exec/0 ]).

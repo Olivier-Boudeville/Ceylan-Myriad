@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, October 10, 2021.
 
-
-% @doc Unit tests for the <b>3D vector</b> facilities.
-%
-% See the vector3 tested module.
-%
 -module(vector3_test).
+
+-moduledoc """
+Unit tests for the **3D vector** facilities.
+
+See the vector3 tested module.
+""".
+
 
 
 % For run/0 export and al:

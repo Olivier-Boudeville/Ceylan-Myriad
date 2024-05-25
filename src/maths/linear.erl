@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various facilities for <b>linear-related</b> operations.
 -module(linear).
+
+-moduledoc """
+Gathering of various facilities for **linear-related** operations.
+""".
 
 
 % For printout_*, inline_size, etc.:

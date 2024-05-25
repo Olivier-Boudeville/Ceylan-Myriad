@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 26, 2022.
 
-
-% @doc Gathering of various facilities for <b>keyboard management</b>.
-%
-% See also the gui_keyboard_test module.
-%
 -module(gui_keyboard).
+
+-moduledoc """
+Gathering of various facilities for **keyboard management**.
+
+See also the gui_keyboard_test module.
+""".
+
 
 
 % Implementation notes:
@@ -350,7 +352,7 @@ to_lower( _Mod, Char ) ->
 
 
 % @doc Returns the MyriadGUI keycode corresponding to the specified wx one.
--spec wx_keycode_to_myr( wx_keycode() ) -> maybe( keycode() ).
+-spec wx_keycode_to_myr( wx_keycode() ) -> option( keycode() ).
 % Directly obtained from wings_io_wx:wx_key_map/1:
 % (could be substituted with a corresponding edsl2 NIF)
 
@@ -505,7 +507,7 @@ get_backend_event( #event_context{
 % Returns 'undefined' when the key corresponds to a non-printable character
 % (e.g. PRINTSCREEN or SCROLLLOCK).
 %
--spec get_maybe_uchar( backend_keyboard_event() ) -> maybe( uchar() ).
+-spec get_maybe_uchar( backend_keyboard_event() ) -> option( uchar() ).
 get_maybe_uchar( _WxKey=#wxKey{ uniChar=0 } ) ->
 	undefined;
 
@@ -567,7 +569,7 @@ get_code_pair( _WxKey=#wxKey{ rawFlags=Scancode,
 %
 % Refer to get_maybe_uchar/1 for further details.
 %
--spec event_context_to_maybe_uchar( event_context() ) -> maybe( uchar() ).
+-spec event_context_to_maybe_uchar( event_context() ) -> option( uchar() ).
 event_context_to_maybe_uchar( EventContext ) ->
 	BackendKeyboardEvent = get_backend_event( EventContext ),
 	get_maybe_uchar( BackendKeyboardEvent ).

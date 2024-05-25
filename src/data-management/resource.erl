@@ -25,20 +25,22 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 3, 2022.
 
-
-% @doc Gathering of facilities for the management of any kind of <b>data
-% resources</b>, typically a content (e.g. image, sound) read from file as a
-% binary, or generated as a term, and to be stored in a suitable <b>resource
-% repository</b> (mostly a table of resources), possibly made available thanks
-% to a <b>resource server</b> (mosty a process holding a table of resources).
-%
-% Specialised accessors are defined for some resource types (e.g. for bitmaps),
-% so that they can be loaded specifically and conveniently.
-
-% See also the (unrelated) environment module for the caching of application
-% environments.
-%
 -module(resource).
+
+-moduledoc """
+Gathering of facilities for the management of any kind of **data resources**,
+typically a content (e.g. image, sound) read from file as a binary, or generated
+as a term, and to be stored in a suitable **resource repository** (mostly a
+table of resources), possibly made available thanks to a **resource server**
+(mosty a process holding a table of resources).
+
+Specialised accessors are defined for some resource types (e.g. for bitmaps), so
+that they can be loaded specifically and conveniently.
+
+See also the (unrelated) environment module for the caching of application
+environments.
+""".
+
 
 
 -export([ % Local repository:
@@ -1110,8 +1112,8 @@ server_init( BinRootDir ) ->
 % Initialises the resource server with specified root directory and maybe-GUI
 % environment.
 %
--spec server_init( bin_directory_path(), maybe( gui:backend_environment() ) ) ->
-										no_return().
+-spec server_init( bin_directory_path(),
+				   option( gui:backend_environment() ) ) ->	no_return().
 server_init( BinRootDir, _MaybeGUIBackendEnv=undefined ) ->
 	InitialRef = create_repository( BinRootDir ),
 	server_main_loop( InitialRef );

@@ -75,7 +75,7 @@
 	% CPU percentages (floats in [0,100]), since last update, or 'undefined' (if
 	% not usage could be computed).
 	%
-	cpu_usage :: maybe( system_utils:cpu_usage_percentages() ),
+	cpu_usage :: option( system_utils:cpu_usage_percentages() ),
 
 
 	% The number of Erlang processes running on this node:

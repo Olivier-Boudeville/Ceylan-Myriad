@@ -25,16 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, September 26, 2021.
 
-
-% @doc Module implementing the support for vectors of <b>arbitrary
-% dimension</b>.
-%
-% See also:
-% - the corresponding arbitrary-dimensioned points (in point.erl) and matrices
-% (in matrix.erl)
-% - the specialised vectors, such as vector{2,3,4}.erl
-%
 -module(vector).
+
+-moduledoc """
+Module implementing the support for vectors of **arbitrary dimension**.
+
+See also:
+- the corresponding arbitrary-dimensioned points (in `point.erl`) and matrices
+ (in `matrix.erl`)
+- the specialised vectors, such as `vector{2,3,4}.erl`
+""".
+
 
 
 % For printout_*, inline_size, etc.:

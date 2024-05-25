@@ -95,10 +95,10 @@ ifeq ($(EXECUTION_TARGET),development)
 	ERLANG_COMPILER_EXEC_TARGET_OPT =
 
 	# By default, LCO kept:
-	#MYRIAD_LCO_OPT :=
+	MYRIAD_LCO_OPT :=
 
 	# LCO can be temporarily disabled:
-	MYRIAD_LCO_OPT := -Dmyriad_disable_lco
+	#MYRIAD_LCO_OPT := -Dmyriad_disable_lco
 
 	# Last Call Optimisation (LCO) may be selectively disabled in order to have
 	# unellipsed stacktraces (note that disabling LCO will lead the memory
@@ -330,7 +330,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar, hex
 # and the code itself, see basic_utils:get_myriad_version{_string,}/0):
 #
-MYRIAD_VERSION := 1.0.37
+MYRIAD_VERSION := 1.0.38
 
 
 # PROJECT_VERSION should be defined on a per-project basis.

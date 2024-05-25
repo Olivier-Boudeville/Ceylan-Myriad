@@ -25,17 +25,19 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities about <b>lists</b>.
-%
-% This includes the addition of general-purpose functions operating on lists,
-% and the support of tagged lists (a special case of proplist).
-
-% See list_utils_test.erl for the corresponding test.
-%
-% See also: set_utils.erl and list_table.erl.
-%
 -module(list_utils).
+
+-moduledoc """
+Gathering of various facilities about **lists**.
+
+This includes the addition of general-purpose functions operating on lists, and
+the support of tagged lists (a special case of proplist).
+
+See list_utils_test.erl for the corresponding test.
+
+See also: set_utils.erl and list_table.erl.
+""".
+
 
 
 % Note: if having an (at least mostly) constant list, possibly containing a
@@ -120,7 +122,7 @@
 -type maybe_list( T ) :: [ T ] | T.
 % Either a list of terms, or a term by itself.
 %
-% Note: different from maybe(list()).
+% Note: different from option(list()).
 
 
 -type duplicate_info() :: [ { element(), count() } ].
@@ -632,7 +634,7 @@ get_index_of( Element, List ) ->
 
 
 
-% @doc Returns the index, in `[1..length(List)]', of the (first occurrence of
+% @doc Returns the index, in `[1..length(List)]`, of the (first occurrence of
 % the) specified element in the specified list, or 'undefined' if the element is
 % not found.
 %
@@ -640,7 +642,7 @@ get_index_of( Element, List ) ->
 %   3 = get_maybe_index_of(bar, [foo, ugh, bar, baz])
 %   undefined = get_maybe_index_of(xxx, [foo, ugh, bar, baz])
 %
--spec get_maybe_index_of( element(), list() ) -> maybe( count() ).
+-spec get_maybe_index_of( element(), list() ) -> option( count() ).
 get_maybe_index_of( Element, List ) ->
 	get_maybe_index_of( Element, List, _Count=1 ).
 

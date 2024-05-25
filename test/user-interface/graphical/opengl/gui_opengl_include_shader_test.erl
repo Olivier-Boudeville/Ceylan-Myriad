@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, April 8, 2024.
 
-
-% @doc Testing of the feature for basic <b>header include</b> for shaders.
 -module(gui_opengl_include_shader_test).
+
+-moduledoc """
+Testing of the feature for basic **header include** for shaders.
+""".
 
 
 
@@ -56,7 +58,7 @@
 	context :: gl_context(),
 
 	% In more complex cases, would store the loaded textures, etc.
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.

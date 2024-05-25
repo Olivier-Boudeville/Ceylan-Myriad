@@ -25,15 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, February 21, 2020.
 
-
-% @doc Gathering of management facilities for <b>JSON</b> processing.
-%
-% See json_utils_test.erl for the corresponding test.
-%
-% Refer to http://myriad.esperide.org/#json-use for more details.
-%
 -module(json_utils).
 
+-moduledoc """
+Gathering of management facilities for **JSON** processing.
+
+See json_utils_test.erl for the corresponding test.
+
+Refer to http://myriad.esperide.org/#json-use for more details.
+""".
 
 
 % Implementation notes:
@@ -77,7 +77,8 @@
 %
 % - for each parser, we expect that from_json . to_json = Id, i.e. for each
 % valid Erlang term T, from_json(to_json(T)) = T
-
+%
+% - since Erlang 27.0, a built-in parser is available (`json` module)
 
 % Curently no extra (transverse) user-specified encoding/decoding options are
 % supported.
@@ -145,7 +146,7 @@
 
 
 -type parser_state() ::
-		{ parser_backend_name(), InternalBackendState :: maybe( term() ) }.
+		{ parser_backend_name(), InternalBackendState :: option( term() ) }.
 % Often no internal state is really needed.
 
 
@@ -248,7 +249,7 @@ get_parser_name_paths() ->
 % ebin directory of the specified JSON parser.
 %
 -spec get_paths_for( parser_backend_name() ) ->
-						maybe( { resolvable_path(), directory_path() } ).
+						option( { resolvable_path(), directory_path() } ).
 get_paths_for( _ParserName=jsx ) ->
 
 	ResolvablePath = [ home, "Software", "jsx", "jsx-current-install", "_build",
@@ -328,7 +329,7 @@ start_parser( BackendName )
 % So this function is also a way of testing whether JSON support is available at
 % all.
 %
--spec get_parser_backend_name() -> maybe( parser_backend_name() ).
+-spec get_parser_backend_name() -> option( parser_backend_name() ).
 get_parser_backend_name() ->
 
 	% Useful to detect repeated initializations that may be unwanted (then rely
@@ -380,7 +381,7 @@ is_parser_available() ->
 % @doc Tells whether a suitable JSON parser is available, based on the specified
 % (maybe) parser state.
 %
--spec is_parser_available( maybe( parser_state() ) ) -> boolean().
+-spec is_parser_available( option( parser_state() ) ) -> boolean().
 is_parser_available( undefined ) ->
 	false;
 
@@ -522,7 +523,7 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 % For example `json_utils:to_json( #{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned} )'.
+%   <<"signature">> => EncSigned} )`.
 %
 -spec to_json( json_term() ) -> json().
 to_json( Term ) ->
@@ -540,7 +541,7 @@ to_json( Term ) ->
 % For example `json_utils:to_json(#{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned }, _ParserName=jsx )'.
+%   <<"signature">> => EncSigned }, _ParserName=jsx )`.
 %
 -spec to_json( json_term(), parser_state() ) -> json().
 to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
@@ -573,7 +574,7 @@ to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 % For example `json_utils:to_json_file(#{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned}, TargetJsonFilePath )'.
+%   <<"signature">> => EncSigned}, TargetJsonFilePath )`.
 %
 -spec to_json_file( json_term(), file_path() ) -> void().
 to_json_file( Term, TargetJsonFilePath ) ->
@@ -588,7 +589,7 @@ to_json_file( Term, TargetJsonFilePath ) ->
 % For example `json_utils:to_json_file(#{
 %   <<"protected">> => Protected,
 %   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState )'.
+%   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState )`.
 %
 -spec to_json_file( json_term(), file_path(), parser_state() ) -> void().
 to_json_file( Term, TargetJsonFilePath, ParserState ) ->
@@ -682,7 +683,7 @@ from_json( Json, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 get_base_json_decoding_options( _BackendName=jsx ) ->
 	% We used to prefer {state,<<"PUBLISHED">>} to
 	% {<<"state">>,<<"PUBLISHED">>}, yet for compatibility with jiffy we stick
-	% to binaries now, so [ { labels, atom } ] is not used anymore.
+	% to binaries now, so [{labels, atom}] is not used anymore.
 	%
 	% return_maps is default:
 	[];
@@ -732,7 +733,7 @@ from_json_file( JsonFilePath, ParserState ) ->
 %
 % (helper)
 %
--spec get_parser_backend_state() -> maybe( parser_state() ).
+-spec get_parser_backend_state() -> option( parser_state() ).
 get_parser_backend_state() ->
 
 	ParserName = get_available_parser_backend_name(),

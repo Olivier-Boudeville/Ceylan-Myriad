@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, March 2, 2024.
 
-
-% @doc Unit tests for the <b>management of reference frames and trees</b>.
-%
-% See the reference_{frame,frame3,tree} tested modules.
-%
 -module(reference_test).
+
+-moduledoc """
+Unit tests for the **management of reference frames and trees**.
+
+See the reference_{frame,frame3,tree} tested modules.
+""".
+
 
 
 % For run/0 export and al:
@@ -262,7 +264,7 @@ run() ->
 
 
 	% Reverse direction, passing through root, then going back:
-	{ Tge, TgeRefTree } = 
+	{ Tge, TgeRefTree } =
 		reference_tree:get_transform( RgId, ReId, TsaRefTree ),
 
 	test_facilities:display( "The transformation between Rg and Re is: ~ts",

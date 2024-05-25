@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, December 23, 2021.
 
-
-% @doc Testing the <b>support for the management of images</b>.
-%
-% Useful for example to check whether a given format is correctly supported.
-%
-% See the gui_image.erl tested module.
-%
 -module(gui_image_test).
+
+-moduledoc """
+Testing the **support for the management of images**.
+
+Useful for example to check whether a given format is correctly supported.
+
+See the gui_image.erl tested module.
+""".
+
 
 
 % Implementation notes:

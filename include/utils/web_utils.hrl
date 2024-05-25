@@ -59,7 +59,7 @@
 	host_identifier :: net_utils:host_identifier(),
 
 	% For example 8081; possibly undefined.
-	port = 80 :: maybe( net_utils:net_port() ),
+	port = 80 :: option( net_utils:net_port() ),
 
 	% For example 'access/login'.
 	path :: web_utils:path() } ).

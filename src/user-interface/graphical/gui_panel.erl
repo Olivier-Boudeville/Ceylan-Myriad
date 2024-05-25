@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, August 31, 2023.
 
-
-% @doc Gathering of various facilities for <b>panels</b>.
 -module(gui_panel).
+
+-moduledoc """
+Gathering of various facilities for **panels**.
+""".
 
 
 -opaque panel() :: wxPanel:wxPanel().

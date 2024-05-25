@@ -6,18 +6,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 %
 % Released as LGPL software.
-%
 
-
-% @doc Module in charge of the actual <b>launch of the Myriad merge tool</b>.
-%
-% Transferred from `merge-tree.escript' in order to benefit from a more
-% user-friendly debugging.
-%
-% @hidden (not an API).
-%
 -module(merge_app).
 
+-moduledoc """
+Module in charge of the actual **launch of the Myriad merge tool**.
+
+Transferred from `merge-tree.escript' in order to benefit from a
+more user-friendly debugging.
+""".
 
 -export([ exec/0 ]).
 

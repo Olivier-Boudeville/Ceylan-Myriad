@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 3, 2018.
 
-
-% @doc Module centralising the management of all <b>information that can be
-% extracted from ASTs</b>.
-%
 -module(ast_info).
+
+-moduledoc """
+Module centralising the management of all **information that can be extracted
+from ASTs**.
+""".
 
 
 % For table type:
@@ -187,7 +188,8 @@
 
 
 -type compile_option_table() ::
-	?table:?table( compile_option_name(), maybe( [ compile_option_value() ] ) ).
+	?table:?table( compile_option_name(),
+				   option( [ compile_option_value() ] ) ).
 % For easy access to compilation information:
 %
 % Note that an option specified without a value (e.g. -Dmy_token on the command
@@ -387,7 +389,7 @@
 
 % Local shorthands:
 
--type maybe( T ) :: basic_utils:maybe( T ).
+-type option( T ) :: basic_utils:option( T ).
 
 -type ustring() :: text_utils:ustring().
 
@@ -1835,7 +1837,7 @@ functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
 
 
 % @doc Returns a textual representation of a module last line / line count.
--spec last_file_loc_to_string( maybe( located_form() ) ) -> ustring().
+-spec last_file_loc_to_string( option( located_form() ) ) -> ustring().
 last_file_loc_to_string( _LastFileLoc=undefined ) ->
 	"unknown line count";
 

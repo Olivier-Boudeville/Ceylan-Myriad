@@ -25,22 +25,23 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, April 22, 2024.
 
-
-% @doc Mesh-based version of the minimal testing of the <b>OpenGL mesh
-% rendering</b>: displays, thanks to the MyriadGUI base shaders, a set of 4
-% centered rectangles (quads) of decreasing size, overlaping on a white
-% background; these rectangles are rendered, from outer to inner, as wireframe,
-% with a face-level solid color, a vertex-level solid level and textured.
-%
-% This is one of the simplest shader-based tests: uses NDC coordinates (no
-% projection).
-%
-% This test relies on:
-% - shaders and thus on modern versions of OpenGL (e.g. 3.3), as opposed to the
-% compatibility mode for OpenGL 1.x
-% - the MyriadGUI shader conventions and its base shaders
-%
 -module(base_shader_quad_mesh_test).
+
+-moduledoc """
+Mesh-based version of the minimal testing of the **OpenGL mesh rendering**:
+displays, thanks to the MyriadGUI base shaders, a set of 4 centered rectangles
+(quads) of decreasing size, overlaping on a white background; these rectangles
+are rendered, from outer to inner, as wireframe, with a face-level solid color,
+a vertex-level solid level and textured.
+
+This is one of the simplest shader-based tests: uses NDC coordinates (no
+projection).
+
+This test relies on:
+- shaders and thus on modern versions of OpenGL (e.g. 3.3), as opposed to the
+compatibility mode for OpenGL 1.x
+- the MyriadGUI shader conventions and its base shaders
+""".
 
 
 % Implementation notes:
@@ -68,7 +69,7 @@
 	% The OpenGL context being used:
 	context :: gl_context(),
 
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.

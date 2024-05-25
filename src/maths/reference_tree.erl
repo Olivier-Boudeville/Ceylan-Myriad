@@ -25,27 +25,28 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, March 2, 2024.
 
-
-% @doc Module implementing the support for <b>trees of reference frames</b>
-% (frames of references).
-%
-% Such a tree (abbreviated as a "ref tree"; and also known as a "scene graph")
-% keeps track of the parent/child relationships between reference frames.
-%
-% The root of a reference tree corresponds to the identity transform.
-%
-% The tree holds notably an associative table of reference frames, so that each
-% of them can be easily looked up based on its identifier.
-%
-% We expect mostly transition matrices to be held by a reference tree (e.g. no
-% scaling expected), as child frames would inherit them, which may not be
-% desirable (for example if a camera was attached to such a scaled frame).
-%
-% A reference tree also caches information (e.g. paths between frames).
-%
-% See reference_frame3 for example.
-%
 -module(reference_tree).
+
+-moduledoc """
+Module implementing the support for **trees of reference frames** (frames of
+references).
+
+Such a tree (abbreviated as a "ref tree"; and also known as a "scene graph")
+keeps track of the parent/child relationships between reference frames.
+
+The root of a reference tree corresponds to the identity transform.
+
+The tree holds notably an associative table of reference frames, so that each of
+them can be easily looked up based on its identifier.
+
+We expect mostly transition matrices to be held by a reference tree (e.g. no
+scaling expected), as child frames would inherit them, which may not be
+desirable (for example if a camera was attached to such a scaled frame).
+
+A reference tree also caches information (e.g. paths between frames).
+
+See `reference_frame3` for example.
+""".
 
 
 % Implementation notes:
@@ -98,7 +99,7 @@
 % then any already computed transform:
 %
 % ref_path() :: {UpMoves :: [designated_ref()], DownMoves :: [designated_ref()],
-% maybe(transform())}.
+% option(transform())}.
 %
 % For example to reach C2 from R3, the shortest path that includes these
 % endpoints would be: PAs={[R3,R2,R1],[C2]} (meaning R3 -> R2 -> R1 -> C2),

@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, July 9, 2023.
 
-
-% @doc Testing of the <b>MyriadGUI keyboard scancodes and keycodes</b>.
-%
-% See the gui_keyboard.erl tested module.
-%
 -module(gui_keyboard_codes_test).
+
+-moduledoc """
+Testing of the **MyriadGUI keyboard scancodes and keycodes**.
+
+See the gui_keyboard.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

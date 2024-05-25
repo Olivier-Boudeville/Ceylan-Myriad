@@ -25,27 +25,29 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, December 25, 2021.
 
-
-% @doc Minimal testing of the <b>OpenGL support</b>; displays a white rectangle
-% on a black background.
-%
-% It is therefore a non-interactive, passive test (no spontaneous/scheduled
-% behaviour) whose main interest is to show a simple yet generic, appropriate
-% structure in order to properly initialise the GUI and OpenGL, handle
-% rendering, resizing and closing.
-%
-% This test concentrates a few facilities common to multiple OpenGL tests.
-%
-% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
-% modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
-%
-% See the gui_opengl.erl tested module.
-%
-% This test uses NDC (Normalized Device Coordinates); See the gui_opengl_2D_test
-% module for a similar 2D test yet operating with absolute (non-normalised
-% coordinates).
-%
 -module(gui_opengl_minimal_test).
+
+-moduledoc """
+Minimal testing of the **OpenGL support**; displays a white rectangle on a black
+background.
+
+It is therefore a non-interactive, passive test (no spontaneous/scheduled
+behaviour) whose main interest is to show a simple yet generic, appropriate
+structure in order to properly initialise the GUI and OpenGL, handle rendering,
+resizing and closing.
+
+This test concentrates a few facilities common to multiple OpenGL tests.
+
+This test relies on the OpenGL 1.x compatibility mode, as opposed to more modern
+versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
+
+See the gui_opengl.erl tested module.
+
+This test uses NDC (Normalized Device Coordinates); See the gui_opengl_2D_test
+module for a similar 2D test yet operating with absolute (non-normalised
+coordinates).
+""".
+
 
 
 % Implementation notes:

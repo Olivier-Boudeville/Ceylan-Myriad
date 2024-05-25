@@ -25,22 +25,22 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, September 2, 2023.
 
-
-% @doc Gathering of various facilities related to the <b>management of bitmap
-% content</b>.
-%
-% Bitmaps correspond to the locally-native image format that is the
-% quickest/easiest to operate with - as opposed to images, which are generic
-% elements, independent from platform and image file format (these are just
-% buffers of RGB bytes, with an optional buffer for the alpha bytes).
-%
-% See also the gui_canvas and gui_render (e.g. for draw_bitmap/*) modules.
-%
-% Bitmaps belong to the reference-counted resources; their life-cycle shall be
-% managed by the caller: a creation shall be ultimately paired to a destruction
-% (see destruct/1).
-%
 -module(gui_bitmap).
+
+-moduledoc """
+Gathering of various facilities related to the **management of bitmap content**.
+
+Bitmaps correspond to the locally-native image format that is the
+quickest/easiest to operate with - as opposed to images, which are generic
+elements, independent from platform and image file format (these are just
+buffers of RGB bytes, with an optional buffer for the alpha bytes).
+
+See also the gui_canvas and gui_render (e.g. for draw_bitmap/*) modules.
+
+Bitmaps belong to the reference-counted resources; their life-cycle shall be
+managed by the caller: a creation shall be ultimately paired to a destruction
+(see destruct/1).
+""".
 
 
 -type bitmap() :: gui_image:bitmap().

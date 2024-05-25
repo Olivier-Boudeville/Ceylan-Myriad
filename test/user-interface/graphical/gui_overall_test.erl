@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2013.
 
-
-% @doc More <b>global testing</b> of the MyriadGUI toolbox.
-%
-% See the gui.erl tested module.
-%
 -module(gui_overall_test).
+
+-moduledoc """
+More **global testing** of the MyriadGUI toolbox.
+
+See the gui.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

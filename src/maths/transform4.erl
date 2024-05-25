@@ -25,27 +25,28 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, February 16, 2022.
 
-
-% @doc Module implementing the support for <b>4x4 transformations</b> (hence for
-% 3D computations), based on pairs (in logical terms - these are actually
-% records) made of an homogeneous matrix and its inverse, which are updated and
-% maintained through the operations applied to them.
-%
-% The operations triggered on a transformation (the said matrix pair) are the
-% same (name, arguments and their order, contract) that would be triggered
-% directly on its reference matrix only.
-%
-% So, instead of a matrix M, a transformation can be seen (logically) as a
-% {M,InvM} pair, and instead of applying for example an operation O (whose
-% matrix is Mo) on M with M' = M.Mo, we have here T' = T.Mo = {M.Mo,
-% InvMo.InvM}.
-%
-% See also matrix4.erl, as this module offers a larger subset of its API (with
-% any "homogeneous" removed in the function names, as it is implicit here). For
-% non-covered functions, just get/set the reference/inverse matrices that a
-% transform4 contains.
-%
 -module(transform4).
+
+-moduledoc """
+Module implementing the support for **4x4 transformations** (hence for
+3D computations), based on pairs (in logical terms - these are actually
+records) made of an homogeneous matrix and its inverse, which are updated and
+maintained through the operations applied to them.
+
+The operations triggered on a transformation (the said matrix pair) are the
+same (name, arguments and their order, contract) that would be triggered
+directly on its reference matrix only.
+
+So, instead of a matrix M, a transformation can be seen (logically) as a
+{M,InvM} pair, and instead of applying for example an operation O (whose
+matrix is Mo) on M with M' = M.Mo, we have here T' = T.Mo = {M.Mo,
+InvMo.InvM}.
+
+See also `matrix4.erl`, as this module offers a larger subset of its API (with
+any "homogeneous" removed in the function names, as it is implicit here). For
+non-covered functions, just get/set the reference/inverse matrices that a
+transform4 contains.
+""".
 
 
 

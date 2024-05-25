@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities regarding the management of <b>Erlang
-% code</b> (typically BEAM files).
-%
-% See code_utils_test.erl for the corresponding test.
-%
 -module(code_utils).
+
+-moduledoc """
+Gathering of various facilities regarding the management of **Erlang code**
+(typically BEAM files).
+
+See code_utils_test.erl for the corresponding test.
+""".
+
 
 
 -export([ get_code_for/1, get_md5_for_loaded_module/1,
@@ -286,8 +288,8 @@ deploy_modules( Modules, Nodes, Timeout ) ->
 	naming_utils:wait_for_remote_local_registrations_of( code_server, Nodes ),
 
 	%trace_utils:debug_fmt( "Getting code for modules ~p, on ~ts, "
-	%	"whereas code path (evaluated from ~ts) is:~n  ~p",
-	%	[ Modules, node(), file_utils:get_current_directory(),
+	%   "whereas code path (evaluated from ~ts) is:~n  ~p",
+	%   [ Modules, node(), file_utils:get_current_directory(),
 	%     code:get_path() ] ),
 
 	% Then for each module in turn, contact each and every node, in parallel:
@@ -1133,7 +1135,8 @@ interpret_stacktrace( Stacktrace ) ->
 % stacktrace, including any argument-level analysis of the failure, listing just
 % the filename of the corresponding source files (no full path wanted).
 %
--spec interpret_stacktrace( stack_trace(), maybe( error_term() ) ) -> ustring().
+-spec interpret_stacktrace( stack_trace(), option( error_term() ) ) -> 
+		                                ustring().
 interpret_stacktrace( Stacktrace, MaybeErrorTerm ) ->
 	interpret_stacktrace( Stacktrace, MaybeErrorTerm, _FullPathsWanted=false ).
 
@@ -1144,8 +1147,8 @@ interpret_stacktrace( Stacktrace, MaybeErrorTerm ) ->
 % either the full path of the corresponding source files, or just their
 % filename.
 %
--spec interpret_stacktrace( stack_trace(), maybe( error_term() ), boolean() ) ->
-									ustring().
+-spec interpret_stacktrace( stack_trace(), option( error_term() ), 
+							boolean() ) -> ustring().
 % At least one stack item expected:
 interpret_stacktrace( Stacktrace=[ FirstStackItem | OtherStackItems ],
 					  MaybeErrorTerm, FullPathsWanted ) ->

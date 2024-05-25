@@ -25,9 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, April 30, 2015.
 
-
-% @doc Minor utilities to manage <b>pairs</b> (that is 2-element tuples).
 -module(pair).
+
+-moduledoc """
+Minor utilities to manage **pairs** (that is 2-element tuples).
+""".
+
 
 -export([ first/1, firsts/1, second/1, seconds/1,
 		  unzip/1, swap/1, check_list/1, to_list/1, to_string/1 ]).

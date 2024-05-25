@@ -25,26 +25,27 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, April 30, 2018.
 
-
-% @doc Support for the <b>process dictionary</b>.
-%
-% While using the process dictionary is usually regarded with contempt for good
-% reasons (impure, prone to unwanted side-effects, etc.), there are a few
-% specific cases where it might be nevertheless useful/relevant (e.g. to make
-% the state of a user interfaces implicit, rather than adding a parameter to
-% virtually all functions of views, in the sense of the MVC pattern).
-%
-% We provide a basic encapsulation for the ways of interacting with the process
-% dictionary, notably so that it is easier to locate (e.g. thanks to 'grep') the
-% places where the process dictionary is used.
-%
-% This module could have been named 'impure_table' as well, and could have
-% obeyed a table-like API applying only to a singleton.
-%
-% Note: associating to a key the 'undefined' value is, here, semantically the
-% same as not defining at all such an entry.
-%
 -module(process_dictionary).
+
+-moduledoc """
+Support for the **process dictionary**.
+
+While using the process dictionary is usually regarded with contempt for good
+reasons (impure, prone to unwanted side-effects, etc.), there are a few specific
+cases where it might be nevertheless useful/relevant (e.g. to make the state of
+a user interfaces implicit, rather than adding a parameter to virtually all
+functions of views, in the sense of the MVC pattern).
+
+We provide a basic encapsulation for the ways of interacting with the process
+dictionary, notably so that it is easier to locate (e.g. thanks to 'grep') the
+places where the process dictionary is used.
+
+This module could have been named 'impure_table' as well, and could have obeyed
+a table-like API applying only to a singleton.
+
+Note: associating to a key the 'undefined' value is, here, semantically the same
+as not defining at all such an entry.
+""".
 
 
 -type process_dictionary() :: list_table:list_table().
@@ -83,7 +84,7 @@
 % @doc Puts the specified entry in the process dictionary; returns any value
 % that was previously associated to that key.
 %
--spec put( key(), value() ) -> maybe( value() ).
+-spec put( key(), value() ) -> option( value() ).
 put( Key, Value ) ->
 	erlang:put( Key, Value ).
 
@@ -110,7 +111,7 @@ put_as_new( Key, Value ) ->
 % @doc Returns the value (if any) associated to the specified key in the process
 % dictionary, otherwise the 'undefined' atom.
 %
--spec get( key() ) -> maybe( value() ).
+-spec get( key() ) -> option( value() ).
 get( Key ) ->
 	%trace_utils:debug_fmt( "Getting key '~ts' (as ~p).", [ Key, self() ] ),
 	erlang:get( Key ).
@@ -138,7 +139,7 @@ get_existing( Key ) ->
 % @doc Removes any entry in the process dictionary corresponding to the
 % specified key, returning any value that was associated to it.
 %
--spec remove( key() ) -> maybe( value() ).
+-spec remove( key() ) -> option( value() ).
 remove( Key ) ->
 	erlang:erase( Key ).
 

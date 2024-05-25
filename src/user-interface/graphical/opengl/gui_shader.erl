@@ -25,19 +25,19 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, March 13, 2023.
 
-
-% @doc Gathering of various facilities for the <b>support of (OpenGL) shaders
-% and programs</b>.
-%
-% Based on GLSL.
-%
-% Higher-level facilities with error management are offered, with extra features
-% like the support of (arbitrarily nested) include files, with search paths and
-% the transparent update of (at least most of) the line numbers in messages
-% output by the GLSL compiler.
-%
 -module(gui_shader).
 
+-moduledoc """
+Gathering of various facilities for the **support of (OpenGL) shaders and
+programs**.
+
+Based on GLSL.
+
+Higher-level facilities with error management are offered, with extra features
+like the support of (arbitrarily nested) include files, with search paths and
+the transparent update of (at least most of) the line numbers in messages output
+by the GLSL compiler.
+""".
 
 
 % Notably for the numerous GL defines:
@@ -1293,7 +1293,7 @@ compile_compute_shader( ComputeShaderPath, ExtraGLSLSearchPaths ) ->
 % first include found (if any).
 %
 -spec get_shader_source( any_file_path(), glsl_search_paths() ) ->
-							{ bin_string(), count(), maybe( line_number() ) }.
+							{ bin_string(), count(), option( line_number() ) }.
 get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
 
 	FullGLSLSearchPaths =
@@ -1355,7 +1355,7 @@ get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
 % on the specified search paths.
 %
 -spec resolve_glsl_file( any_file_path(), glsl_search_paths() ) ->
-								  maybe( any_file_path() ).
+								  option( any_file_path() ).
 resolve_glsl_file( FilePath, ExtraGLSLSearchPaths ) ->
 
 	case file_utils:is_absolute_path( FilePath ) of
@@ -1388,7 +1388,7 @@ resolve_glsl_file( FilePath, ExtraGLSLSearchPaths ) ->
 % any) at which the first include was found.
 %
 -spec preprocess_shader_file( file_path(), glsl_search_paths() ) ->
-				{ [ bin_string() ], count(), maybe( line_number() ) }.
+				{ [ bin_string() ], count(), option( line_number() ) }.
 preprocess_shader_file( SrcPath, ExtraGLSLSearchPaths ) ->
 	% Like preprocess_file/3 yet with initialisation and no length added:
 	RawSrcBin = file_utils:read_whole( SrcPath ),
@@ -1411,8 +1411,8 @@ preprocess_shader_file( SrcPath, ExtraGLSLSearchPaths ) ->
 % (helper)
 %
 -spec preprocess_lines( [ bin_string() ], glsl_search_paths(),
-		[ bin_string() ], line_number(), count(), maybe( line_number() ) ) ->
-			{ [ bin_string() ], count(), maybe( line_number() ) }.
+		[ bin_string() ], line_number(), count(), option( line_number() ) ) ->
+			{ [ bin_string() ], count(), option( line_number() ) }.
 preprocess_lines( _BinLines=[], _GLSLSearchPaths, AccLines, CurrentLN,
 				  TotalInclLineCount, MaybeFirstIncludeLine ) ->
 	% No reversing here:
@@ -1443,7 +1443,7 @@ preprocess_lines( _BinLines=[ BinLine | T ], ExtraGLSLSearchPaths, AccLines,
 					HeaderPath =
 						find_header( HeaderFilePath, ExtraGLSLSearchPaths ),
 
-					NewFirstIncludeLine = basic_utils:set_maybe(
+					NewFirstIncludeLine = basic_utils:set_option(
 						MaybeFirstIncludeLine, _Def=CurrentLN ),
 
 					% Exactly TotalInclLineCount: minus 1 as content replaces
@@ -1466,8 +1466,8 @@ preprocess_lines( _BinLines=[ BinLine | T ], ExtraGLSLSearchPaths, AccLines,
 
 % (recursive helper)
 -spec preprocess_file( file_path(), glsl_search_paths(), line_number(),
-					   count(), maybe( line_number() ) ) ->
-			{ [ bin_string() ], count(), maybe( line_number() ) }.
+					   count(), option( line_number() ) ) ->
+			{ [ bin_string() ], count(), option( line_number() ) }.
 preprocess_file( HeaderPath, ExtraGLSLSearchPaths, CurrentLN,
 				 TotalInclLineCount, MaybeFirstIncludeLine ) ->
 	RawIncBin = file_utils:read_whole( HeaderPath ),
@@ -2820,7 +2820,7 @@ delete_ebos( EBOIds ) ->
 % only way to set the value of a uniform variable.
 %
 -spec get_maybe_uniform_id( uniform_name(), program_id() ) ->
-											maybe( uniform_id() ).
+											option( uniform_id() ).
 get_maybe_uniform_id( UniformName, ProgId ) ->
 
 	MaybeUniformId = case gl:getUniformLocation( ProgId, UniformName ) of

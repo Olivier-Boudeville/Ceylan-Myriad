@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various <b>convenient facilities of all sorts</b>.
-%
-% See basic_utils_test.erl for the corresponding test.
-%
 -module(basic_utils).
+
+-moduledoc """
+Gathering of various **convenient facilities of all sorts**.
+
+See basic_utils_test.erl for the corresponding test.
+""".
+
 
 
 % Notification-related functions.
@@ -94,14 +96,14 @@
 		  identity/1,
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
-		  set_maybe/2,
+		  set_option/2,
 
 		  ignore_unused/1,
 		  do_nothing/0, freeze/0, crash/0, crash/1, enter_infinite_loop/0,
 		  trigger_oom/0 ]).
 
 
--compile( { inline, [ set_maybe/2 ] } ).
+-compile( { inline, [ set_option/2 ] } ).
 
 
 
@@ -247,8 +249,9 @@
 -type base_outcome() :: 'ok' | error_term().
 
 
--type maybe( T ) :: T | 'undefined'.
-% Denotes a value that may be set to one in T, or that may not be set at all.
+-type option( T ) :: T | 'undefined'.
+% Denotes an optional value, that is a value that may be set to one in T, or
+% that may not be set at all.
 %
 % Note that the type T should not include the 'undefined' atom, otherwise one
 % cannot discriminate between a value that happens to be set to 'undefined'
@@ -258,12 +261,12 @@
 % being set later.
 
 
--type safe_maybe( T ) :: { 'just', T } | 'nothing'.
+-type safe_option( T ) :: { 'just', T } | 'nothing'.
 % Denotes a value that may be set to one of type T (with no restriction on T -
-% unlike maybe/1 where T should not include the 'undefined' value), or that may
+% unlike option/1 where T should not include the 'undefined' value), or that may
 % not be set at all.
 %
-% A bit safer and more expensive than maybe/1.
+% A bit safer and more expensive than option/1.
 %
 % Obviously a nod to Haskell.
 
@@ -434,7 +437,7 @@
 			   diagnosed_error_reason/0, tagged_error/0,
 			   error_term/0, diagnosed_error_term/0,
 			   base_status/0, base_outcome/0,
-			   maybe/1, safe_maybe/1,
+			   option/1, safe_option/1,
 			   wildcardable/1,
 			   fallible/1, fallible/2,
 			   diagnosed_fallible/1, diagnosed_fallible/2,
@@ -645,18 +648,18 @@ are_all_defined( _Elems=[ _E | T ] ) ->
 % @doc Returns the first term if it is not undefined, otherwise returns the
 % second, default, term.
 %
-% Allows to apply a default if a maybe-term is not defined.
+% Allows to apply a default if a option-term is not defined.
 %
-% For example: `ActualX = basic_utils:set_maybe(MaybeX, DefaultX)'.
+% For example: `ActualX = basic_utils:set_option(OptionX, DefaultX)'.
 %
 % Ideally the default term would be lazily evaluated (e.g. if calling an
 % initialisation function, notably for the second term).
 %
--spec set_maybe( maybe( term() ), term() ) -> term().
-set_maybe( _MaybeTerm=undefined, TDef ) ->
+-spec set_option( option( term() ), term() ) -> term().
+set_option( _OptionTerm=undefined, TDef ) ->
 	TDef;
 
-set_maybe( T, _TDef ) ->
+set_option( T, _TDef ) ->
 	T.
 
 
@@ -1595,7 +1598,7 @@ compare_versions( A, B ) when tuple_size( A ) =:= tuple_size( B ) ->
 % @doc Returns all general information regarding specified process (which is
 % local or not), provided it is still alive (otherwise returns undefined).
 %
--spec get_process_info( pid() ) -> maybe( [ process_info_result_item() ] ).
+-spec get_process_info( pid() ) -> option( [ process_info_result_item() ] ).
 get_process_info( Pid ) ->
 
 	LocalNode = node(),
@@ -1632,9 +1635,9 @@ get_process_info( Pid ) ->
 % local or not), provided it is still alive (otherwise returns undefined).
 %
 -spec get_process_info( pid(), process_info_result_item() ) ->
-								maybe( process_info_result_item() );
+								option( process_info_result_item() );
 					  ( pid(), [ process_info_result_item() ] ) ->
-								maybe( [ process_info_result_item() ] ).
+								option( [ process_info_result_item() ] ).
 get_process_info( Pid, ItemTerm ) ->
 
 	LocalNode = node(),
