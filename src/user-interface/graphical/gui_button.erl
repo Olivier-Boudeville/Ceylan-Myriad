@@ -31,9 +31,7 @@
 Gathering of various facilities for **button management**.
 
 Usage notes:
-
 - the parent of a button must be a widget (not a sizer for example)
-
 - for a corresponding stock image/icon to be displayed within a button, its
   stock identifier shall of course be specified (e.g. 'about_button'), but, if
   specified, its label must also exactly match a built-in one (e.g. "About" or
@@ -43,41 +41,53 @@ Usage notes:
 
 
 
+-doc """
+Designates an actual button instance.
+
+When such a button is clicked, it emits an onButtonClicked event.
+""".
 -opaque button() :: wxButton:wxButton().
-% Designates an actual button instance.
-%
-% When such a button is clicked, it emits an onButtonClicked event.
 
+
+
+-doc "Any kind of reference onto a button.".
 -type button_ref() :: button() | button_id().
-% Any kind of reference onto a button.
 
 
+-doc """
+Designates a toggle button, that is a button that, when clicked by the user,
+stays pressed.
+
+It is therefore similar to a checkbox in functionality, but looks like a button.
+
+When such a toggle button is clicked, it emits an onButtonToggled event.
+""".
 -opaque toggle_button() :: wxToggleButton:wxToggleButton().
-% Designates a toggle button, that is a button that, when clicked by the user,
-% stays pressed.
-%
-% It is therefore similar to a checkbox in functionality, but looks like a
-% button.
-%
-% When such a toggle button is clicked, it emits an onButtonToggled event.
 
 
+-doc """
+Designates an actual button instance displaying a bitmap instead of the usual
+label.
+""".
 -opaque bitmap_button() :: wxBitmapButton:wxBitmapButton().
-% Designates an actual button instance displaying a bitmap instead of the usual
-% label.
 
 
 -export_type([ button/0, button_ref/0, toggle_button/0, bitmap_button/0 ]).
 
 
+-doc "An option for the creation of a button.".
 -type button_option() ::
 	{ 'label', label() }
   | { 'style', [ button_style() ] }
   | { 'position', point() }
   | { 'size', dimensions() }.
-% An option for the creation of a button.
 
 
+
+-doc """
+A style element of a button, see
+<http://docs.wxwidgets.org/stable/classwx_button.html>.
+""".
 -type button_style() ::
 	'left_justified'
   | 'right_justified'
@@ -85,8 +95,6 @@ Usage notes:
   | 'bottom_justified'
   | 'exact_fit'
   | 'flat'.
-% A style element of a button, see
-% [http://docs.wxwidgets.org/stable/classwx_button.html].
 
 
 -export_type([ button_option/0, button_style/0 ]).
@@ -124,7 +132,7 @@ Usage notes:
 
 
 
-% @doc Creates a (labelled) button, with the specified parent.
+-doc "Creates a (labelled) button, with the specified parent.".
 -spec create( label(), parent() ) -> button().
 create( Label, Parent ) ->
 
@@ -139,7 +147,7 @@ create( Label, Parent ) ->
 
 
 
-% @doc Creates a (labelled) button, with the specified identifier and parent.
+-doc "Creates a (labelled) button, with the specified identifier and parent.".
 -spec create( label(), id(), parent() ) -> button().
 create( Label, Id, Parent ) ->
 
@@ -148,18 +156,19 @@ create( Label, Id, Parent ) ->
 	BackendId = gui_id:declare_any_id( Id ),
 
 	%trace_utils:debug_fmt( "Button options for ~ts (backend ~ts): ~p.",
-	% [ gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
-	%   Options ] ),
+	%  [ gui_id:id_to_string( Id ), gui_id:id_to_string( BackendId ),
+	%    Options ] ),
 
 	wxButton:new( Parent, BackendId, Options ).
 
 
 
-% @doc Creates a (labelled) button, with the specified identifier, option(s) and
-% parent.
-%
-% No 'label' option is to be specified among the options.
-%
+-doc """
+Creates a (labelled) button, with the specified identifier, option(s) and
+parent.
+
+No 'label' option is to be specified among the options.
+""".
 -spec create( label(), id(), maybe_list( button_option() ), parent() ) ->
 											button().
 create( Label, Id, Opts, Parent ) ->
@@ -170,10 +179,11 @@ create( Label, Id, Opts, Parent ) ->
 
 
 
-% @doc Creates a button, with parent and most settings specified.
-%
-% (internal use only)
-%
+-doc """
+Creates a button, with parent and most settings specified.
+
+(internal use only)
+""".
 -spec create( label(), position(), size(), [ button_style() ], id(),
 			  parent() ) -> button().
 create( Label, Position, Size, Styles, Id, Parent ) ->
@@ -193,8 +203,9 @@ create( Label, Position, Size, Styles, Id, Parent ) ->
 
 
 
-
-% @doc Creates (labelled) buttons, with their (single, common) parent specified.
+-doc """
+Creates (labelled) buttons, with their (single, common) parent specified.
+""".
 -spec create_multiple( [ label() ], parent() ) -> [ button() ].
 % Not merged with create/2, as would not be clear enough.
 create_multiple( Labels, Parent ) ->
@@ -211,19 +222,21 @@ create_multiple_helper( [ Label | T ], Parent, Acc ) ->
 
 
 
-% @doc Creates a (labelled) toggle button with the specified identifier and
-% parent.
-%
+-doc """
+Creates a (labelled) toggle button with the specified identifier and parent.
+""".
 -spec create_toggle( label(), id(), parent() ) -> toggle_button().
 create_toggle( Label, Id, Parent ) ->
 	wxToggleButton:new( Parent, gui_id:declare_any_id( Id ), Label ).
 
 
-% @doc Creates a (labelled) toggle button, with the specified identifier,
-% option(s) and parent.
-%
-% No 'label' option is to be specified among the options.
-%
+
+-doc """
+Creates a (labelled) toggle button, with the specified identifier, option(s) and
+parent.
+
+No 'label' option is to be specified among the options.
+""".
 -spec create_toggle( label(), id(), maybe_list( button_option() ), parent() ) ->
 											toggle_button().
 create_toggle( Label, Id, Opts, Parent ) ->
@@ -232,22 +245,23 @@ create_toggle( Label, Id, Opts, Parent ) ->
 
 
 
-% @doc Creates a button with the specified identifier and that displays the
-% specified bitmap.
-%
+-doc """
+Creates a button with the specified identifier and that displays the specified
+bitmap.
+""".
 -spec create_bitmap( bitmap(), id(), parent() ) -> bitmap_button().
 create_bitmap( Bitmap, Id, Parent ) ->
 	wxBitmapButton:new( Parent, gui_id:declare_any_id( Id ), Bitmap ).
 
 
 
-% @doc Sets the label of the specified button.
+-doc "Sets the label of the specified button.".
 -spec set_label( button(), label() ) -> void().
 set_label( Button, Label ) ->
 	wxButton:setLabel( Button, Label ).
 
 
-% @doc Destructs the specified button.
+-doc "Destructs the specified button.".
 -spec destruct( button() ) -> void().
 destruct( Button ) ->
 	wxButton:destroy( Button ).
@@ -257,7 +271,7 @@ destruct( Button ) ->
 % Helper section.
 
 
-% @doc Converts the specified button options into wx-specific ones.
+-doc "Converts the specified button options into wx-specific ones.".
 -spec to_wx_button_opts( maybe_list( button_option() ) ) -> list().
 to_wx_button_opts( ButtonOpts ) when is_list( ButtonOpts ) ->
 	[ to_wx_button_opt( BO ) || BO <- ButtonOpts ];
@@ -266,7 +280,7 @@ to_wx_button_opts( ButtonOpt ) ->
 	to_wx_button_opts( [ ButtonOpt ] ).
 
 
-% @doc Converts the specified button option into the wx-specific one.
+-doc "Converts the specified button option into the wx-specific one.".
 -spec to_wx_button_opt( button_option() ) -> tuple().
 to_wx_button_opt( ButtonOpt={ label, _Label } ) ->
 	ButtonOpt;
@@ -284,11 +298,12 @@ to_wx_button_opt( _ButtonOpt={ size, Size } ) ->
 
 
 
-% @doc Converts the specified MyriadGUI button style elements into the
-% appropriate wx-specific bit mask.
-%
-% (helper)
-%
+-doc """
+Converts the specified MyriadGUI button style elements into the appropriate
+wx-specific bit mask.
+
+(helper)
+""".
 -spec button_styles_to_bitmask( [ button_style() ] ) -> bit_mask().
 button_styles_to_bitmask( Styles ) ->
 	lists:foldl( fun( S, Acc ) ->

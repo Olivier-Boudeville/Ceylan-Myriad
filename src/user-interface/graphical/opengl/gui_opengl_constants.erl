@@ -66,8 +66,8 @@ Called by gui_opengl:generate_support_modules/0.
 
 
 
-% @doc Lists all the functions of this module that define a topic specification.
 -doc """
+Lists all the functions of this module that define a topic specification.
 """.
 -spec list_topic_spec_functions() -> [ basic_utils:function_name() ].
 list_topic_spec_functions() ->

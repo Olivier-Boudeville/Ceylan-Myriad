@@ -69,49 +69,64 @@ loop.
 -include("ui_keyboard_scancodes.hrl").
 
 
+-doc """
+A table associating an event type (like onWindowClosed) to an event driver, to
+which the full events of that type, with their elements (like {onWindowClosed,
+[Window, CloseContext]}), will be fed for processing.
+
+This allows MyriadGUI to provide default drivers, while letting the user code
+override them as needed.
+""".
 -type event_driver_table() :: table( event_type(), event_driver() ).
-% A table associating an event type (like onWindowClosed) to an event driver, to
-% which the full events of that type, with their elements (like {onWindowClosed,
-% [Window, CloseContext]}), will be fed for processing.
-%
-% This allows MyriadGUI to provide default drivers, while letting the user code
-% override them as needed.
 
 
+
+-doc """
+One of the elements that could be sent by MyriadGUI when an event happened
+(together with the type of this event).
+
+For example the list in the {onWindowClosed, [WindowGUIObject, WindowId,
+EventContext]} event pair includes such event elements.
+""".
 -type event_element() :: gui_object() | backend_id() | event_context().
-% One of the elements that could be sent by MyriadGUI when an event happened
-% (together with the type of this event).
-%
-% For example the list in the {onWindowClosed, [WindowGUIObject, WindowId,
-% EventContext]} event pair includes such event elements.
 
 
+
+-doc """
+Elements that could be sent by MyriadGUI when an event happened (together with
+the type of this event).
+
+For example the list in the {onWindowClosed, [WindowGUIObject, WindowId,
+EventContext]} event pair.
+""".
 -type event_elements() :: [ event_element() ].
-% Elements that could be sent by MyriadGUI when an event happened (together with
-% the type of this event).
-%
-% For example the list in the {onWindowClosed, [WindowGUIObject, WindowId,
-% EventContext]} event pair.
 
 
+
+-doc """
+A driver function in charge of processing a given type of MyriadGUI user event,
+returning out of it possibly an application event pair, and an updated GUI
+state.
+
+An event driver is thus relative to an (implicit) event_type(), such as
+onButtonClicked or onWindowClosed; example of a driver signature:
+my_onWindowClosed_driver(_EventElements=[WindowGUIObject, WindowId,
+EventContext], AppGUIState) -> ....
+
+It can be either a built-in, default event driver, or one defined by the
+application.
+""".
 -type event_driver() :: fun( ( event_elements(), app_gui_state() ) ->
 									app_event_return() ).
-% A driver function in charge of processing a given type of MyriadGUI user
-% event, returning out of it possibly an application event pair, and an updated
-% GUI state.
-%
-% An event driver is thus relative to an (implicit) event_type(), such as
-% onButtonClicked or onWindowClosed; example of a driver signature:
-% my_onWindowClosed_driver(_EventElements=[WindowGUIObject, WindowId,
-% EventContext], AppGUIState) -> ....
-%
-% It can be either a built-in, default event driver, or one defined by the
-% application.
 
 
+
+-doc """
+A table allowing to translate a basic user event into an higher level
+application event.
+""".
 -type basic_event_table() :: table( basic_user_event(), application_event() ).
-% A table allowing to translate a basic user event into an higher level
-% application event.
+
 
 
 % If found useful, in the future any button reference may be held by such a
@@ -119,68 +134,89 @@ loop.
 % button_backend_id(); this last match is the first searched. No named_id() is
 % expected there.
 %
+-doc """
+A table allowing to translate a widget button press event into an higher level
+application event.
+""".
 -type button_table() ::
 	%table( button_backend_id() | button(), application_event() ).
 	table( button_backend_id(), application_event() ).
-% A table allowing to translate a widget button press event into an higher level
-% application event.
 
 
+
+-doc """
+A table allowing to translate a key-as-scancode press event into an higher level
+application event.
+""".
 -type scancode_table() :: table( scancode(), application_event() ).
-% A table allowing to translate a key-as-scancode press event into an higher
-% level application event.
 
+
+
+-doc """
+A table allowing to translate a key-as-keycode press event into an higher level
+application event.
+""".
 -type keycode_table() :: table( keycode(), application_event() ).
-% A table allowing to translate a key-as-keycode press event into an higher
-% level application event.
 
 
 
+-doc "The current OpenGL runtime status.".
 -type gl_init_status() ::
 	'uninitialised' % OpenGL enabled, GL canvas and context registered, but
 					% the latter has not been bound on the former (typically
 					% because the corresponding frame was not shown yet).
   | 'initialised'.  % OpenGL enabled and ready (GL context bound to GL canvas).
-% The current OpenGL runtime status.
 
 
+
+-doc """
+Base OpenGL information, typically needed when creating a GUI-related
+applicative state.
+""".
 -type opengl_base_info() :: { gl_canvas(), gl_context() }.
-% Base OpenGL information, typically needed when creating a GUI-related
-% applicative state.
 
 
+
+-doc """
+An OpenGL-related base state kept by the registry of event drivers.
+
+Stores, if available, the OpenGL canvas on which rendering will be done, and the
+associated OpenGL context.
+""".
 -type opengl_base_state() ::
 	'disabled' % For non-OpenGL applications.
   | { gl_init_status(), gl_canvas(), gl_context() }.
-% An OpenGL-related base state kept by the registry of event drivers.
-%
-% Stores, if available, the OpenGL canvas on which rendering will be done, and
-% the associated OpenGL context.
 
 
+
+-doc """
+An arbitrary application-specific GUI information (typically a record) to be
+kept around, notably so that it can be used by the application-specific event
+drivers.
+
+Contains generally references to the widgets instantiated by the application
+(e.g. the main frame, buttons, etc.), and possibly OpenGL elements.
+
+For the app_gui_state and user_event_registry records:
+""".
 -type app_specific_info() :: any().
-% An arbitrary application-specific GUI information (typically a record) to be
-% kept around, notably so that it can be used by the application-specific event
-% drivers.
-%
-% Contains generally references to the widgets instantiated by the application
-% (e.g. the main frame, buttons, etc.), and possibly OpenGL elements.
 
 
-% For the app_gui_state and user_event_registry records:
 -include("gui_event.hrl").
 
 
+-doc """
+A full, GUI-related applicative state to be kept around, notably so that it can
+be used by the event drivers.
+
+Tables translating lower-level user events into higher-level application events
+are stored there, among other information.
+
+For example, whether the user closes the main window, clicks on a 'Quit' button
+or presses a key with a specific scancode, a 'quit_requested' application event
+may have to be generated and processed.
+""".
 -type app_gui_state() :: #app_gui_state{}.
-% A full, GUI-related applicative state to be kept around, notably so
-% that it can be used by the event drivers.
-%
-% Tables translating lower-level user events into higher-level application
-% events are stored there, among other information.
-%
-% For example, whether the user closes the main window, clicks on a 'Quit'
-% button or presses a key with a specific scancode, a 'quit_requested'
-% application event may have to be generated and processed.
 
 
 -export_type([ event_driver_table/0, basic_event_table/0, button_table/0,
@@ -201,45 +237,51 @@ loop.
 
 
 
+-doc """
+A (MyriadGUI) event is a pair whose first element is the event type, as an atom
+(e.g. 'onWindowClosed'), and whose second element is a list, whose first element
+is the GUI object that generated that event (the closed window, here), and whose
+last element is the event context (intermediary elements carrying event-specific
+information):
+
+{event_type(), [gui_object(), ..., event_context()]}
+
+For example {onWindowClosed, [Window, CloseContext]}, {onButtonClicked, [Button,
+ButtonId, Context]} etc.
+
+
+So the event context can be fetched with:
+EventContext = list_utils:get_last_element( Elements ),
+
+These values are sent as messages to the processes having subscribed to this
+type of event.
+
+Note: these messages respect the WOOPER conventions, and this is done on
+purpose, to facilitate any integration with upper layers.
+""".
 -type gui_event() :: { event_type(), event_elements() }.
-% A (MyriadGUI) event is a pair whose first element is the event type, as an
-% atom (e.g. 'onWindowClosed'), and whose second element is a list, whose first
-% element is the GUI object that generated that event (the closed window, here),
-% and whose last element is the event context (intermediary elements carrying
-% event-specific information):
-%
-% {event_type(), [gui_object(), ..., event_context()]}
-%
-% For example {onWindowClosed, [Window, CloseContext]}, {onButtonClicked,
-% [Button, ButtonId, Context]} etc.
-%
-%
-% So the event context can be fetched with:
-% EventContext = list_utils:get_last_element( Elements ),
-%
-% These values are sent as messages to the processes having subscribed to this
-% type of event.
-%
-% Note: these messages respect the WOOPER conventions, and this is done on
-% purpose, to facilitate any integration with upper layers.
 
 
 
 % Thus an actual (non-opaque) wx:wx_object(), i.e. a #wx_ref record, for example
 % {wx_ref,131,wxPaintEvent,[]}:
 %
+-doc """
+A MyriadGUI object (therefore the reference to a full-blown backend process -
+not a mere datastructure like an event record received as a message) holding
+information about an event passed to a callback or member function.
+
+Unless explicitly trapped by such a function (see the 'trap_event' subscription
+option, or the gui:trap_event/1 function), most event types are propagated
+upward in the widget hierarchy.
+""".
 -type gui_event_object() :: wxEvent:wxEvent().
-% A MyriadGUI object (therefore the reference to a full-blown backend process -
-% not a mere datastructure like an event record received as a message) holding
-% information about an event passed to a callback or member function.
-%
-% Unless explicitly trapped by such a function (see the 'trap_event'
-% subscription option, or the gui:trap_event/1 function), most event types are
-% propagated upward in the widget hierarchy.
 
 
+
+-doc "A count of instances of a given object type.".
 -type instance_count() :: count().
-% A count of instances of a given object type.
+
 
 
 % Event management.
@@ -249,25 +291,35 @@ loop.
 % whereas the latter is only executed into a transient process (less convenient,
 % probably less efficient).
 
+
+-doc "Any kind of event source.".
 -type event_source() :: wx_event_handler() | myriad_event_handler().
 
 
+
+-doc """
+Context sent to corresponding subscribers together with an event.
+
+This context can be ignored in most cases.
+""".
 -type event_context() :: #event_context{}.
-% Context sent to corresponding subscribers together with an event.
-%
-% This context can be ignored in most cases.
 
 
 
+-doc "Backend event handler".
 -opaque wx_event_handler() :: wxEvtHandler:wxEvtHandler().
 
 
 
+-doc "Only one currently.".
 -type myriad_event_handler() :: gui_canvas:canvas().
-% Only one currently.
+
 
 
 % | ...
+-doc """
+Using the wx-event type, leaked by wx.hrl (enrich this union whenever needed).
+""".
 -type wx_event_type() ::
 	% For windows:
 	wx_repaint_event_type()
@@ -279,7 +331,7 @@ loop.
 	% For I/O:
   | wx_mouse_event_type()
   | wx_keyboard_event_type().
-% Using the wx-event type, leaked by wx.hrl (enrich this union whenever needed).
+
 
 
 -type wx_repaint_event_type() :: 'paint'.
@@ -289,46 +341,63 @@ loop.
 
 -type wx_resize_event_type() :: 'size'.
 
+
+-doc "Associated to wxCloseEvent.".
 -type wx_close_event_type() :: 'close_window'
 							 | 'end_session'
 							 | 'query_end_session'.
-% Associated to wxCloseEvent.
+
 
 -type wx_show_event_type() :: 'show'.
 
 
+-doc "For left_down | left_up | middle_down, etc.".
 -type wx_mouse_event_type() :: wxMouseEvent:wxMouseEventType().
-% For left_down | left_up | middle_down, etc.
 
+
+-doc "For char | char_hook | key_down | key_up.".
 -type wx_keyboard_event_type() :: wxKeyEvent:wxKeyEventType().
-% For char | char_hook | key_down | key_up.
 
 
+
+-doc """
+A type of MyriadGUI event, independent from any backend.
+
+Unless specified otherwise, by default the events (actually: mostly the command
+ones) of a given type will propagate: subscribing to them does not preclude them
+from being sent also to the parent event handlers in the widget hierarchy.
+
+For some other, more basic, event types (e.g. onWindowClosed), they will be by
+default trapped (their events will not be propagated, so they will be processed
+only by the user event handler).
+
+For the event types that propagate by default, specifying the 'trap_event'
+subscription option, or calling the trap_event/1 function in one's event
+handler, will disable that propagation.
+
+Conversely, for the event types that are trapped by default, specifying the
+'propagate_event' subscription option or calling the propagate_event/1 function
+in one's event handler will enable that propagation.
+
+Note: if adding event types, consider updating get_trapped_event_types/0 as
+well.
+""".
 -type event_type() :: command_event_type()
 					| basic_event_type().
-% A type of MyriadGUI event, independent from any backend.
-%
-% Unless specified otherwise, by default the events (actually: mostly the
-% command ones) of a given type will propagate: subscribing to them does not
-% preclude them from being sent also to the parent event handlers in the widget
-% hierarchy.
-%
-% For some other, more basic, event types (e.g. onWindowClosed), they will be by
-% default trapped (their events will not be propagated, so they will be
-% processed only by the user event handler).
-%
-% For the event types that propagate by default, specifying the 'trap_event'
-% subscription option, or calling the trap_event/1 function in one's event
-% handler, will disable that propagation.
-%
-% Conversely, for the event types that are trapped by default, specifying the
-% 'propagate_event' subscription option or calling the propagate_event/1
-% function in one's event handler will enable that propagation.
-%
-% Note: if adding event types, consider updating get_trapped_event_types/0 as
-% well.
 
 
+
+-doc """
+A type of events emitted by commands, a variety of simple controls
+(e.g. buttons, menus, toolbars) or an actual window.
+
+By default these higher-level command events are propagated upward in the widget
+hierarchy, so that multiple handlers may manage them - unless a given handler
+chooses to trap them.
+
+See https://docs.wxwidgets.org/stable/classwx_command_event.html to better
+picture them.
+""".
 -type command_event_type() ::
 
 	% Typically when the mouse cursor enters a toolbar (hovering):
@@ -341,34 +410,35 @@ loop.
 
 	% Typically when right-clicking on a tool of a toolbar:
   | 'onToolRightClicked'.
-% A type of events emitted by commands, a variety of simple controls
-% (e.g. buttons, menus, toolbars) or an actual window.
-%
-% By default these higher-level command events are propagated upward in the
-% widget hierarchy, so that multiple handlers may manage them - unless a given
-% handler chooses to trap them.
-%
-% See https://docs.wxwidgets.org/stable/classwx_command_event.html to better
-% picture them.
 
 
+
+-doc """
+Basically the type of all non-command events.
+
+These lower-level events may be triggered by using the input devices (such as
+keyboard, mouse, joystick) directly.
+
+By default these lower-level events are not propagated in the widget hierarchy,
+as a single, user-defined handler usually suffices - unless a given handler
+chooses to propagate them explicitly.
+
+See <https://docs.wxwidgets.org/stable/classwx_event.html> to better picture
+them.
+""".
 -type basic_event_type() :: window_event_type()
 						  | mouse_event_type()
 						  | keyboard_event_type().
 						  % | many_other_event_types()
-% Basically the type of all non-command events.
-%
-% These lower-level events may be triggered by using the input devices (such as
-% keyboard, mouse, joystick) directly.
-%
-% By default these lower-level events are not propagated in the widget
-% hierarchy, as a single, user-defined handler usually suffices - unless a given
-% handler chooses to propagate them explicitly.
-%
-% See https://docs.wxwidgets.org/stable/classwx_event.html to better picture
-% them.
 
 
+-doc """
+A type of event possibly emitted by a window.
+
+Note that resizing a widget (typically a canvas) implies receiving also a
+onRepaintNeeded event; so a canvas may subscribe only to onRepaintNeeded (not
+necessarily to onResized).
+""".
 -type window_event_type() ::
 	'onShown'
   | 'onRepaintNeeded'
@@ -380,14 +450,24 @@ loop.
 	% between user handlers and backend ones:
 	%
   | 'onWindowClosed'.
-% A type of event possibly emitted by a window.
-%
-% Note that resizing a widget (typically a canvas) implies receiving also a
-% onRepaintNeeded event; so a canvas may subscribe only to onRepaintNeeded (not
-% necessarily to onResized).
 
 
 
+-doc """
+The options that can be specified whenever subscribing to a type of events.
+
+For most event types, by default, once an event has been processed by a
+user-defined handler, it is propagated upward in the widget hierarchy, so that
+further event handlers (including the built-in backend ones) can be triggered.
+It is usually necessary so that the GUI backend can update the other widgets
+accordingly (e.g. for proper resizes). Specifying the 'trap_event' option
+disable this automatic propagation; note that this may disable in turn key GUI
+update behaviours (such as the automatic resizing of widgets).
+
+Conversely, for the fewer event types for which by default no event propagation
+occurs, such a propagation to parent event handlers may be enabled by specifying
+the 'propagate_event' option.
+""".
 -type event_subscription_option() ::
 
 	% Disables any automatic event propagation:
@@ -395,29 +475,26 @@ loop.
 
 	% Enables automatic event propagation:
   | 'propagate_event'.
-% The options that can be specified whenever subscribing to a type of events.
-%
-% For most event types, by default, once an event has been processed by a
-% user-defined handler, it is propagated upward in the widget hierarchy, so that
-% further event handlers (including the built-in backend ones) can be triggered.
-% It is usually necessary so that the GUI backend can update the other widgets
-% accordingly (e.g. for proper resizes). Specifying the 'trap_event' option
-% disable this automatic propagation; note that this may disable in turn key GUI
-% update behaviours (such as the automatic resizing of widgets).
-%
-% Conversely, for the fewer event types for which by default no event
-% propagation occurs, such a propagation to parent event handlers may be enabled
-% by specifying the 'propagate_event' option.
 
 
+-doc " The PID of a user calling process.".
 -type user_pid() :: pid().
-% The PID of a user calling process.
 
 
+
+-doc "The PID or locally-registered name of an event subscriber.".
 -type event_subscriber() :: naming_utils:local_designator().
-% The PID or locally-registered name of an event subscriber.
 
 
+
+-doc """
+Describes, in the context of an event subscription, the type(s) of events
+generated by specific GUI object(s) to be listened to, with any relevant
+options, by which subscribers.
+
+To be specified so that user process(es) can subscribe to GUI events of
+interest.
+""".
 -type event_subscription() ::
 
 	{ maybe_list( event_type() ), maybe_list( gui_object() ) }
@@ -430,66 +507,79 @@ loop.
   | { maybe_list( event_type() ), maybe_list( gui_object() ),
 	  maybe_list( event_subscription_opt() ),
 	  maybe_list( event_subscriber() ) }.
-% Describes, in the context of an event subscription, the type(s) of events
-% generated by specific GUI object(s) to be listened to, with any relevant
-% options, by which subscribers.
-%
-% To be specified so that user process(es) can subscribe to GUI events of
-% interest.
 
 
+
+-doc """
+Specifies, for event subscribers (by default: the calling process), any
+combination of types of events and GUI objects that shall be listened to.
+""".
 -type event_subscription_spec() :: maybe_list( event_subscription() ).
-% Specifies, for event subscribers (by default: the calling process), any
-% combination of types of events and GUI objects that shall be listened to.
 
 
+
+-doc "So that user process(es) can unsubscribe from GUI events.".
 -type event_unsubscription() ::
 	{ maybe_list( event_type() ), maybe_list( gui_object() ) }.
-% So that user process(es) can unsubscribe from GUI events.
 
+
+
+-doc """
+Specifies, for an event subscriber (by default: the calling process), any
+combination of types of events and GUI objects to which it was subscribed yet
+that shall not be listened to anymore.
+""".
 -type event_unsubscription_spec() :: maybe_list( event_unsubscription() ).
-% Specifies, for an event subscriber (by default: the calling process), any
-% combination of types of events and GUI objects to which it was subscribed yet
-% that shall not be listened to anymore.
 
 
+
+-doc """
+A user-defined function to be called whenever an event occurred that corresponds
+to an already-registered GUI callback.
+
+It takes two parameters, an event tuple (whose content is typically used by the
+callback in order to process this event and act accordingly), and (the reference
+onto) an actual MyriadGUI object that corresponds to this event (that will
+typically be propagated upward in the widget hierarchy; see trap_event/1) to
+prevent this).
+""".
 -type event_callback() ::
 	fun( ( gui_event(), gui_event_object() ) -> void() ).
-% A user-defined function to be called whenever an event occurred that
-% corresponds to an already-registered GUI callback.
-%
-% It takes two parameters, an event tuple (whose content is typically used by
-% the callback in order to process this event and act accordingly), and (the
-% reference onto) an actual MyriadGUI object that corresponds to this event
-% (that will typically be propagated upward in the widget hierarchy; see
-% trap_event/1) to prevent this).
 
 
+
+-doc """
+A suitable stable key corresponding to a gui_object() (notably ignoring the
+last, 'state' element of this quadruplet).
+
+For example the gui_object() {wx_ref,63,wxFrame,AnyState} results in the
+{wxFrame,63} gui_wx_object_key() key.
+""".
 -type gui_wx_object_key() ::
 	{ gui_wx_backend:wx_native_object_type(), gui_wx_backend:wx_id() }.
-% A suitable stable key corresponding to a gui_object() (notably ignoring the
-% last, 'state' element of this quadruplet).
-%
-% For example the gui_object() {wx_ref,63,wxFrame,AnyState} results in the
-% {wxFrame,63} gui_wx_object_key() key.
 
 
+
+-doc """
+The MyriadGUI type corresponding to gui_wx_object_key/0.
+
+For example the myriad_object_ref() {myriad_object_ref,myr_canvas,12} results in
+the {myr_canvas,12} key.
+""".
 -type myriad_object_key() :: { myriad_object_type(), myriad_instance_id() }.
-% The MyriadGUI type corresponding to gui_wx_object_key/0.
-%
-% For example the myriad_object_ref() {myriad_object_ref,myr_canvas,12} results
-% in the {myr_canvas,12} key.
 
 
+-doc """
+Stable reference to a widget instance.
+
+This type has been introduced in order to benefit from more relevant keys for
+event tables: previously these keys were gui_object(), until more complex GUI
+uses shown that, after using wx_object:set_pid/2, a frame now known as
+`{wx_ref,63,wxFrame,<0.119.0>}` still generated events as
+`{wx_ref,63,wxFrame,[]}`, so a better, stable identifier thereof is
+`{wxFrame,63}`.
+""".
 -type gui_object_key() :: gui_wx_object_key() | myriad_object_key().
-% Stable reference to a widget instance.
-%
-% This type has been introduced in order to benefit from more relevant keys for
-% event tables: previously these keys were gui_object(), until more complex GUI
-% uses shown that, after using wx_object:set_pid/2, a frame now known as
-% `{wx_ref,63,wxFrame,<0.119.0>}' still generated events as
-% `{wx_ref,63,wxFrame,[]}', so a better, stable identifier thereof is
-% `{wxFrame,63}'.
 
 
 
@@ -511,99 +601,122 @@ loop.
 
 
 
+
+-doc """
+An indirection table dispatching events according to subscription
+specifications.
+
+For an incoming event, we see this type (virtually, logically) as:
+table({gui_object(), event_type()}, set_utils:set(event_subscriber())):
+- the first key is the key corresponding to the GUI object (e.g. widget) from
+which the event emanates (e.g. a frame)
+- the second key is its corresponding (internal) event type (e.g.
+'onWindowClosed')
+- the associated value is a list/set of the PID/name of the subscribers
+regarding this (object,event) combination
+
+Note: two nested tables (one table(), one list_table()) are used also in order
+to ensure that there is up to one entry per GUI object and per event type
+stored.
+""".
 -type event_table() :: table( gui_object_key(), event_dispatch_table() ).
-% An indirection table dispatching events according to subscription
-% specifications.
-%
-% For an incoming event, we see this type (virtually, logically) as:
-% table({gui_object(), event_type()}, set_utils:set(event_subscriber())):
-%
-% - the first key is the key corresponding to the GUI object (e.g. widget) from
-% which the event emanates (e.g. a frame)
-%
-% - the second key is its corresponding (internal) event type (e.g.
-% 'onWindowClosed')
-%
-% - the associated value is a list/set of the PID/name of the subscribers
-% regarding this (object,event) combination
-%
-% Note: two nested tables (one table(), one list_table()) are used also in
-% order to ensure that there is up to one entry per GUI object and per event
-% type stored.
 
 
+
+-doc """
+Tells, for a given event type (e.g. in the context of a specific GUI object), to
+which event subscribers the corresponding GUI messages shall be sent.
+""".
 -type event_dispatch_table() ::
 		list_table:list_table( event_type(), [ event_subscriber() ] ).
-% Tells, for a given event type (e.g. in the context of a specific GUI object),
-% to which event subscribers the corresponding GUI messages shall be sent.
 
 
+
+-doc """
+To replace actual source events objects (e.g. a panel) by others (e.g. its
+associated canvas, if any).
+
+For a given actual target object, a single source one must exist.
+
+Using a bijective_table could speed up the look-ups done when an instance is
+destructed.
+""".
 -type reassign_table() ::
 		table( SourceObject :: gui_object(), TargetObject :: gui_object() ).
-% To replace actual source events objects (e.g. a panel) by others (e.g. its
-% associated canvas, if any).
-%
-% For a given actual target object, a single source one must exist.
-%
-% Using a bijective_table could speed up the look-ups done when an instance is
-% destructed.
 
 
+
+-doc """
+To store the MyriadGUI instances (sorted by types) and manage them like wx
+native objects.
+
+Keys are like 'myr_canvas'.
+""".
 -type myriad_type_table() ::
 		table( myriad_object_type(), instance_repository() ).
-% To store the MyriadGUI instances (sorted by types) and manage them like wx
-% native objects.
-%
-% Keys are like 'myr_canvas'.
 
 
 
+-doc "The higher-level, application events.".
 -type application_event() :: 'quit_requested'
 						   | 'toggle_fullscreen'
 						   | term().
-% The higher-level, application events.
 
 
+
+-doc "A basic, atom-based user event.".
 -type basic_user_event() :: 'window_closed'.
-% A basic, atom-based user event.
 
 
+
+-doc """
+A specification of the various user-level events that should trigger
+application-level events.
+
+The snake_case (e.g. 'window_closed') is used rather than CamelCase
+(e.g. 'onWindowClosed') so that user-level events can be more easily
+distinguished from actual MyriadGUI events.
+
+The received event about key presses will be managed regardless of the (focused)
+widget that reports them.
+""".
 -type user_event_spec() :: { 'button_clicked', button_id() }
 						 | { 'scancode_pressed', scancode() }
 						 | { 'keycode_pressed', keycode() }
 						 | basic_user_event() .
-% A specification of the various user-level events that should trigger
-% application-level events.
-%
-% The snake_case (e.g. 'window_closed') is used rather than CamelCase
-% (e.g. 'onWindowClosed') so that user-level events can be more easily
-% distinguished from actual MyriadGUI events.
-%
-% The received event about key presses will be managed regardless of the
-% (focused) widget that reports them.
 
 
+
+-doc """
+The specification of a conversion from any of the listed user events to the
+specified application event.
+""".
 -type application_event_spec() ::
 	{ application_event(), [ user_event_spec() ] }.
-% The specification of a conversion from any of the listed user events to the
-% specified application event.
 
 
+
+-doc """
+A pair made of a higher-level application event and, for extra information, the
+low-level GUI event that originated it.
+""".
 -type application_event_pair() :: { application_event(), gui_event() }.
-% A pair made of a higher-level application event and, for extra information,
-% the low-level GUI event that originated it.
 
 
+
+-doc """
+Pair, together with an updated application GUI state, returned whenever a user
+event has been processed by a corresponding event driver and possibly been
+converted into an application event.
+""".
 -type app_event_return() ::
 	{ option( application_event_pair() ), app_gui_state() }.
-% Pair, together with an updated application GUI state, returned whenever a user
-% event has been processed by a corresponding event driver and possibly been
-% converted into an application event.
 
 
 -export_type([ application_event/0, basic_user_event/0, user_event_spec/0,
 			   application_event_spec/0, application_event_pair/0,
 			   app_event_return/0 ]).
+
 
 
 -record( instance_repository, {
@@ -614,17 +727,19 @@ loop.
 	instance_table :: table( myriad_instance_id(), myriad_object_state() ) } ).
 
 
+-doc """
+To store, for a given MyriadGUI type (e. g. 'canvas'), all information about all
+instances.
+
+- a total count of the instances already created for that type
+
+- a table whose keys are the identifiers of the objects of that type, and whose
+values are the actual state of these instances.
+
+Note: the total count is not the same as the size of the table, as instances may
+be deleted.
+""".
 -type instance_repository() :: #instance_repository{}.
-% To store, for a given MyriadGUI type (e. g. 'canvas'), all information about
-% all instances.
-%
-% - a total count of the instances already created for that type
-%
-% - a table whose keys are the identifiers of the objects of that type, and
-% whose values are the actual state of these instances.
-%
-% Note: the total count is not the same as the size of the table, as instances
-% may be deleted.
 
 
 
@@ -680,54 +795,59 @@ loop.
 } ).
 
 
+-doc "State of the MyriadGUI main loop.".
 -type loop_state() :: #loop_state{}.
 
 
+-doc "A (supposedly opaque) backend GUI event.".
 -type backend_event() :: wx_event().
-% A (supposedly opaque) backend GUI event.
 
 
+
+-doc """
+
+A wx_event record comprises:
+
+- (the 'wx' record tag, if the record instance is seen as a tuple)
+- id :: wx_id() the (integer) identifier of the object (e.g. widget) that
+received the event (event source)
+- obj :: wx_object() is the reference of the wx object that was specified in the
+connect/n call, i.e. on which connect/n was called (e.g.
+{wx_ref,35,wxFrame,[]})
+- userData :: user_data() is the user-specified data that was specified in the
+connect/n call (typically [], as not very useful)
+- event :: wx_event_info() is the description of the event itself
+
+As always, same as: -record( wx,...
+
+Note: not to be mixed up with wx:wxEvent(), which is a full-blown wx_object().
+""".
 -type wx_event() ::
 	{ 'wx', wx_id(), wx_object(), gui:user_data(), wx_event_info() }.
-% A wx_event record comprises:
-%
-% - (the 'wx' record tag, if the record instance is seen as a tuple)
-%
-% - id :: wx_id() the (integer) identifier of the object (e.g. widget) that
-% received the event (event source)
-%
-% - obj :: wx_object() is the reference of the wx object that was specified
-% in the connect/n call, i.e. on which connect/n was called (e.g.
-% {wx_ref,35,wxFrame,[]})
-%
-% - userData :: user_data() is the user-specified data that was specified in the
-% connect/n call (typically [], as not very useful)
-%
-% - event :: wx_event_info() is the description of the event itself
-%
-% As always, same as: -record( wx,...
-%
-% Note: not to be mixed up with wx:wxEvent(), which is a full-blown wx_object().
 
 
+
+-doc """
+A wx-defined record describing an actual event.
+
+A WxFoobar-like record whose first field is its 'type', and which may have other
+fields, whose number and types depend on the event.
+
+Examples of descriptions, as tuples:
+- {wxClose, close_window}
+- {wxCommand, command_button_clicked, CmdString, CmdInt, ...}
+- {wxKey, char, 227, 139, 97,false, ...}
+""".
 -type wx_event_info() :: wxClose() | wxCommand() | wxKey() | tuple().
-% A wx-defined record describing an actual event.
-%
-% A WxFoobar-like record whose first field is its 'type', and which may have
-% other fields, whose number and types depend on the event.
-%
-% Examples of descriptions, as tuples:
-% - {wxClose, close_window}
-% - {wxCommand, command_button_clicked, CmdString, CmdInt, ...}
-% - {wxKey, char, 227, 139, 97,false, ...}
 
 
+-doc "A received event is either a backend one or a MyriadGUI one.".
 -type received_event() :: wx_event() | gui_event().
-% A received event is either a backend one or a MyriadGUI one.
 
 
+
+-doc "A set of the event types that shall be trapped by default.".
 -type trap_set() :: set( [ event_type() ] ).
-% A set of the event types that shall be trapped by default.
 
 
 -export_type([ backend_event/0, wx_event/0, wx_event_info/0, trap_set/0 ]).
@@ -801,7 +921,7 @@ loop.
 % (useful for example to trigger a resize or a repaint of each).
 
 % Refer to:
-%  - https://docs.wxwidgets.org/stable/overview_events.html#overview_events_propagation
+%  - <https://docs.wxwidgets.org/stable/overview_events.html#overview_events_propagation>
 % for more details (see notably "How Events are Processed")
 %  - https://docs.wxwidgets.org/stable/classwx_event.html to better discriminate
 %  between event types (command or basic events)
@@ -903,14 +1023,15 @@ loop.
 
 
 
-% @doc Starts the internal, main event loop of MyriadGUI.
-%
-% The backend events received will result in callbacks to be triggered on their
-% respective subscribers.
-%
-% The goal is to devise a generic event loop, while still being able to be
-% notified of all relevant information (and only them).
-%
+-doc """
+Starts the internal, main event loop of MyriadGUI.
+
+The backend events received will result in callbacks to be triggered on their
+respective subscribers.
+
+The goal is to devise a generic event loop, while still being able to be
+notified of all relevant information (and only them).
+""".
 -spec start_main_event_loop( wx_server(), wx_env(), trap_set() ) -> no_return().
 start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
 
@@ -955,7 +1076,7 @@ start_main_event_loop( WxServer, WxEnv, TrapSet ) ->
 
 
 
-% @doc Returns the set of event types that shall be trapped by default.
+-doc "Returns the set of event types that shall be trapped by default.".
 -spec get_trapped_event_types( [ service() ] ) -> trap_set().
 get_trapped_event_types( Services ) ->
 
@@ -992,16 +1113,16 @@ get_trapped_event_types( Services ) ->
 
 
 
+-doc """
+Receives and process all messages (this is the actual MyriadGUI main event
+loop), coming:
 
-% @doc Receives and process all messages (this is the actual MyriadGUI main
-% event loop), coming:
-%
-% - either from controlling processes (typically from application processes
-% subscribing to some events)
-%
-% - or from the (here, wx) backend, that notifies this loop of the actual,
-% lower-level events
-%
+- either from controlling processes (typically from application processes
+subscribing to some events)
+
+- or from the (here, wx) backend, that notifies this loop of the actual,
+lower-level events
+""".
 -spec process_event_messages( loop_state() | 'terminated' ) -> no_return().
 process_event_messages( terminated ) ->
 	trace_utils:debug( "Main MyriadGUI loop terminated." ),
@@ -1084,15 +1205,16 @@ process_event_messages( LoopState ) ->
 
 
 
-% @doc Processes the specified GUI event from the current (wx) backend.
-%
-% A *wx* (backend) event has been received here, in this first clause:
-%
-% Structure: {wx, EventSourceId, Obj, UserData, EventInfo }, with EventInfo:
-% {WxEventName, EventType, ...}
-%
-% For example {wx, -2006, {wx_ref,35,wxFrame,[]}, [], {wxClose,close_window}}.
-%
+-doc """
+Processes the specified GUI event from the current (wx) backend.
+
+A *wx* (backend) event has been received here, in this first clause:
+
+Structure: {wx, EventSourceId, Obj, UserData, EventInfo }, with EventInfo:
+{WxEventName, EventType, ...}
+
+For example {wx, -2006, {wx_ref,35,wxFrame,[]}, [], {wxClose,close_window}}.
+""".
 -spec process_event_message( received_event(), loop_state() ) -> loop_state().
 process_event_message( WxEvent=#wx{ id=EventSourceId, obj=GUIObject,
 									userData=UserData, event=WxEventInfo },
@@ -1491,9 +1613,10 @@ process_event_message( UnmatchedEvent, LoopState ) ->
 
 
 
-% @doc Drops all intermediate repaint events, and processes the last one, and
-% then the next non-repaint event.
-%
+-doc """
+Drops all intermediate repaint events, and processes the last one, and then the
+next non-repaint event.
+""".
 -spec process_only_latest_repaint_event( wx_event(), wx_object(), count(),
 										 loop_state() ) -> loop_state().
 process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
@@ -1587,7 +1710,7 @@ process_only_latest_repaint_event( CurrentWxRepaintEvent, SourceObject,
 
 
 
-% @doc Processes the specified wx event message.
+-doc "Processes the specified wx event message.".
 -spec process_wx_event( wx_id(), wx_object(), gui:user_data(),
 		wx_event_info(), wx_event(), loop_state() ) -> loop_state().
 process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
@@ -1695,9 +1818,10 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 
 
-% @doc Updates specified GUI object (probably a MyriadGUI one, like a canvas)
-% after specified event (e.g. an onResized one) has been received.
-%
+-doc """
+Updates specified GUI object (probably a MyriadGUI one, like a canvas) after
+specified event (e.g. an onResized one) has been received.
+""".
 -spec update_instance_on_event( gui_object(), wx_event_info(),
 								myriad_type_table() ) -> myriad_type_table().
 update_instance_on_event(
@@ -1737,9 +1861,10 @@ update_instance_on_event( GuiObject, WxEventInfo, TypeTable ) ->
 
 
 
-% @doc Returns the subscribers (if any) to the specified GUI object, for the
-% specified event type.
-%
+-doc """
+Returns the subscribers (if any) to the specified GUI object, for the specified
+event type.
+""".
 -spec get_subscribers_for( gui_object(), event_type(), event_table() ) ->
 									[ event_subscriber() ].
 get_subscribers_for( GUIObject, EventType, EventTable ) ->
@@ -1767,7 +1892,7 @@ get_subscribers_for( GUIObject, EventType, EventTable ) ->
 
 
 
-% @doc Creates the specified MyriadGUI object.
+-doc "Creates the specified MyriadGUI object.".
 -spec process_myriad_creation( myriad_object_type(),
 	construction_parameters(), user_pid(), loop_state() ) -> loop_state().
 process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
@@ -1824,7 +1949,7 @@ process_myriad_creation( ObjectType, ConstructionParams, CallerPid,
 
 
 
-% @doc Destructs the specified MyriadGUI object.
+-doc "Destructs the specified MyriadGUI object.".
 -spec process_myriad_destruction( myriad_object_type(), instance_id(),
 								  loop_state() ) -> loop_state().
 process_myriad_destruction( ObjectType, InstanceId,
@@ -1863,9 +1988,10 @@ process_myriad_destruction( ObjectType, InstanceId,
 
 
 
-% @doc Registers the creation of a MyriadGUI instance of the specified type and
-% initial state, in the specified instance table.
-%
+-doc """
+Registers the creation of a MyriadGUI instance of the specified type and initial
+state, in the specified instance table.
+""".
 -spec register_instance( myriad_object_type(), myriad_object_state(),
 		myriad_type_table() ) -> { myriad_object_ref(), myriad_type_table() }.
 register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
@@ -1920,9 +2046,10 @@ register_instance( ObjectType, ObjectInitialState, TypeTable ) ->
 
 
 
-% @doc Unregisters the specified MyriadGUI instance of the specified type from
-% the specified instance table.
-%
+-doc """
+Unregisters the specified MyriadGUI instance of the specified type from the
+specified instance table.
+""".
 -spec unregister_instance( myriad_object_type(), instance_id(),
 		myriad_type_table() ) -> { myriad_object_state(), myriad_type_table() }.
 unregister_instance( ObjectType, InstanceId, TypeTable ) ->
@@ -1963,17 +2090,18 @@ unregister_instance( ObjectType, InstanceId, TypeTable ) ->
 
 
 
-% @doc Sends the specified MyriadGUI event to the relevant subscribers.
-%
-% Refer to gui:subscribe_to_events/1 for a description of the messages to be
-% sent to subscribers.
-%
-% In all cases we keep a raw event context (hence with backend identifiers), but
-% update the event source identifier so that if possible it becomes a named
-% identifier.
-%
-% (helper)
-%
+-doc """
+Sends the specified MyriadGUI event to the relevant subscribers.
+
+Refer to gui:subscribe_to_events/1 for a description of the messages to be sent
+to subscribers.
+
+In all cases we keep a raw event context (hence with backend identifiers), but
+update the event source identifier so that if possible it becomes a named
+identifier.
+
+(helper)
+""".
 -spec send_event( [ event_subscriber() ], event_type(), backend_id(),
 			gui_object(), gui:user_data(), gui:backend_event(),
 			id_name_alloc_table() ) -> void().
@@ -2075,11 +2203,13 @@ send_event_for_id( BestEventSourceId, Subscribers, EventType, EventSourceId,
 
 
 
-% @doc Enriches the specified event table with the specified event subscription
-% information.
-%
-% (helper)
-%
+-doc """
+Enriches the specified event table with the specified event subscription
+information.
+
+(helper)
+""".
+
 -spec register_in_event_loop_tables( event_subscription_spec(),
 		event_subscriber(), loop_state() ) -> loop_state().
 register_in_event_loop_tables( _SubscribedEvents=[],
@@ -2220,11 +2350,12 @@ register_event_types_for( GUIObject, EventTypes, SubOpts, Subscribers,
 
 
 
-% @doc Removes from the specified event table the specified event subscription
-% information.
-%
-% (helper)
-%
+-doc """
+Removes from the specified event table the specified event subscription
+information.
+
+(helper)
+""".
 -spec unregister_from_event_loop_tables( event_unsubscription_spec(),
 		event_subscriber(), loop_state() ) -> loop_state().
 unregister_from_event_loop_tables( _SubscribedEvents=[], _DefaultSubscribedPid,
@@ -2318,11 +2449,12 @@ unregister_event_types_from( GUIObject, EventTypes, Unsubscribers,
 
 
 
-% @doc Records the specified subscribers for each of the specified event types
-% for the specified GUI object.
-%
-% (helper)
-%
+-doc """
+Records the specified subscribers for each of the specified event types for the
+specified GUI object.
+
+(helper)
+""".
 -spec record_subscriptions( gui_object(), [ event_type() ],
 			[ event_subscriber() ], event_table() ) -> event_table().
 record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
@@ -2345,11 +2477,12 @@ record_subscriptions( GUIObject, EventTypes, Subscribers, EventTable ) ->
 
 
 
-% @doc Records the removal of the specified subscribers for each of the
-% specified event types for the specified GUI object.
-%
-% (helper)
-%
+-doc """
+Records the removal of the specified subscribers for each of the specified event
+types for the specified GUI object.
+
+(helper)
+""".
 -spec record_unsubscriptions( gui_object(), [ event_type() ],
 			[ event_subscriber() ], event_table() ) -> event_table().
 record_unsubscriptions( GUIObject, EventTypes, Unsubscribers, EventTable ) ->
@@ -2374,9 +2507,10 @@ record_unsubscriptions( GUIObject, EventTypes, Unsubscribers, EventTable ) ->
 
 
 
-% @doc Returns an event dispatch table recording specified event type /
-% subscriber associations.
-%
+-doc """
+Returns an event dispatch table recording specified event type / subscriber
+associations.
+""".
 -spec enrich_event_table( [ event_type() ], [ event_subscriber() ],
 						  event_dispatch_table() ) -> event_dispatch_table().
 enrich_event_table( _EventTypes=[], _Subscribers, DispatchTable ) ->
@@ -2403,9 +2537,10 @@ enrich_event_table( _EventTypes=[ EventType | T ], Subscribers,
 
 
 
-% @doc Returns an event dispatch table from which the specified event type /
-% subscriber associations have been removed.
-%
+-doc """
+Returns an event dispatch table from which the specified event type / subscriber
+associations have been removed.
+""".
 -spec shrink_event_table( [ event_type() ], [ event_subscriber() ],
 						  event_dispatch_table() ) -> event_dispatch_table().
 shrink_event_table( _EventTypes=[], _Subscribers, DispatchTable ) ->
@@ -2445,11 +2580,11 @@ shrink_event_table( _EventTypes=[ EventType | T ], Subscribers,
 
 
 
-% Returns a suitable, stable key corresponding to the specified object
-% reference.
-%
-% (helper)
-%
+-doc """
+Returns a suitable, stable key corresponding to the specified object reference.
+
+(helper)
+""".
 -spec get_key_from_object( gui_object() ) -> gui_object_key().
 get_key_from_object( _WxObject={ wx_ref, WxId, WxType, _AnyState } ) ->
 	{ WxType, WxId };
@@ -2460,7 +2595,7 @@ get_key_from_object( #myriad_object_ref{ object_type=ObjectType,
 
 
 
-% @doc Tells whether the two specified GUI objects match (equality operator).
+-doc "Tells whether the two specified GUI objects match (equality operator).".
 -spec match( gui_object(), gui_object() ) -> boolean().
 % The point is to ignore the included state (last element), which should not
 % matter here, for reference comparisons:
@@ -2480,27 +2615,30 @@ match( _FirstGUIObject, _SecondGUIObject ) ->
 
 
 
-% @doc Returns a full, GUI-related applicative state to be kept around, notably
-% so that it can be used by the event drivers.
-%
-% Here no specific OpenGL support is enabled, and no specific application data
-% is registered.
-%
-% Refer to create_app_gui_state/3 for further details.
-%
+-doc """
+Returns a full, GUI-related applicative state to be kept around, notably so that
+it can be used by the event drivers.
+
+Here no specific OpenGL support is enabled, and no specific application data is
+registered.
+
+Refer to create_app_gui_state/3 for further details.
+""".
 -spec create_app_gui_state( [ application_event_spec() ] ) -> app_gui_state().
 create_app_gui_state( AppEventSpecs ) ->
 	create_app_gui_state( AppEventSpecs, _MaybeOpenGLBaseInfo=undefined ).
 
 
-% @doc Returns a full, GUI-related applicative state to be kept around, notably
-% so that it can be used by the event drivers.
-%
-% Here an OpenGL support is enabled iff a base state is specified, and no
-% specific application data is registered.
-%
-% Refer to create_app_gui_state/3 for further details.
-%
+
+-doc """
+Returns a full, GUI-related applicative state to be kept around, notably so that
+it can be used by the event drivers.
+
+Here an OpenGL support is enabled iff a base state is specified, and no specific
+application data is registered.
+
+Refer to create_app_gui_state/3 for further details.
+""".
 -spec create_app_gui_state( [ application_event_spec() ],
 							option( opengl_base_info() ) ) -> app_gui_state().
 create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo ) ->
@@ -2509,18 +2647,19 @@ create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo ) ->
 
 
 
-% @doc Returns a full, GUI-related applicative state to be kept around, notably
-% so that it can be used by the event drivers.
-%
-% Here an OpenGL support is enabled iff a base state is specified, and any
-% (arbitrary) application- specific data is registered.
-%
-% Note that:
-%  - buttons will be searched first by ID (recommended designator), otherwise by
-%  GUI object reference
-%  - keys will be searched first by scancodes, then keycodes, and regardless of
-%  the (focused) widget that reports them
-%
+-doc """
+Returns a full, GUI-related applicative state to be kept around, notably so that
+it can be used by the event drivers.
+
+Here an OpenGL support is enabled iff a base state is specified, and any
+(arbitrary) application- specific data is registered.
+
+Note that:
+ - buttons will be searched first by ID (recommended designator), otherwise by
+  GUI object reference
+ - keys will be searched first by scancodes, then keycodes, and regardless of
+  the (focused) widget that reports them
+""".
 -spec create_app_gui_state( [ application_event_spec() ],
 			option( opengl_base_info() ), option( any() ) ) -> app_gui_state().
 create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
@@ -2627,10 +2766,11 @@ register_user_events( _UserEvents=[ Other | _T ], AppEvent, _AppGUIState ) ->
 
 
 
-% @doc Returns the table of the default event drivers.
-%
-% The user application may override them as necessary.
-%
+-doc """
+Returns the table of the default event drivers.
+
+The user application may override them as necessary.
+""".
 -spec get_default_event_driver_table() -> event_driver_table().
 get_default_event_driver_table() ->
 	table:new( [ { onShown,         fun default_onShown_driver/2         },
@@ -2642,9 +2782,10 @@ get_default_event_driver_table() ->
 
 
 
-% @doc Associates the specified event driver to the specified event type,
-% instead of the previous driver.
-%
+-doc """
+Associates the specified event driver to the specified event type, instead of
+the previous driver.
+""".
 -spec set_event_driver( event_type(), event_driver(), app_gui_state() ) ->
 								app_gui_state().
 set_event_driver( EventType, EventDriver, AppGUIState=#app_gui_state{
@@ -2657,9 +2798,10 @@ set_event_driver( EventType, EventDriver, AppGUIState=#app_gui_state{
 
 
 
-% @doc Associates the specified event drivers to the corresponding specified
-% event types, instead of the previous drivers.
-%
+-doc """
+Associates the specified event drivers to the corresponding specified event
+types, instead of the previous drivers.
+""".
 -spec set_event_drivers( [ { event_type(), event_driver() } ],
 						 app_gui_state() ) -> app_gui_state().
 set_event_drivers( EventTypeDriverPairs, AppGUIState=#app_gui_state{
@@ -2682,10 +2824,11 @@ set_event_drivers( EventTypeDriverPairs, AppGUIState=#app_gui_state{
 
 
 
-% @doc The default event driver for the onShown (user) event type.
-%
-% Its type is event_driver().
-%
+-doc """
+The default event driver for the onShown (user) event type.
+
+Its type is event_driver().
+""".
 -spec default_onShown_driver( event_elements(), app_gui_state() ) ->
 								app_event_return().
 % This default non-OpenGL implementation does not have much to do:
@@ -2739,14 +2882,15 @@ default_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 
 
 
-% @doc The default event driver for the onRepaintNeeded (user) event type.
-%
-% This default implementation is mostly a boilerplate, as such a driver should
-% trigger, at least with OpenGL, a new (application-specific) rendering for the
-% needed repaint. It is thus generally expected to be overridden.
-%
-% Its type is event_driver().
-%
+-doc """
+The default event driver for the onRepaintNeeded (user) event type.
+
+This default implementation is mostly a boilerplate, as such a driver should
+trigger, at least with OpenGL, a new (application-specific) rendering for the
+needed repaint. It is thus generally expected to be overridden.
+
+Its type is event_driver().
+""".
 -spec default_onRepaintNeeded_driver( event_elements(), app_gui_state() ) ->
 											app_event_return().
 % Default for non-OpenGL rendering:
@@ -2808,13 +2952,14 @@ default_onRepaintNeeded_driver(
 
 
 
-% @doc The default event driver for the onResized (user) event type.
-%
-% This default implementation is mostly a boilerplate, as such a driver should
-% trigger, at least with OpenGL, a new rendering to account for the resizing.
-%
-% Its type is event_driver().
-%
+-doc """
+The default event driver for the onResized (user) event type.
+
+This default implementation is mostly a boilerplate, as such a driver should
+trigger, at least with OpenGL, a new rendering to account for the resizing.
+
+Its type is event_driver().
+""".
 -spec default_onResized_driver( event_elements(), app_gui_state() ) ->
 											app_event_return().
 % Default for non-OpenGL rendering:
@@ -2868,10 +3013,11 @@ default_onResized_driver(
 
 
 
-% @doc The default event driver for the onButtonClicked (user) event type.
-%
-% Its type is event_driver().
-%
+-doc """
+The default event driver for the onButtonClicked (user) event type.
+
+Its type is event_driver().
+""".
 -spec default_onButtonClicked_driver( event_elements(),
 									  app_gui_state() ) -> app_event_return().
 default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
@@ -2917,13 +3063,14 @@ default_onButtonClicked_driver( Elements=[ Button, ButtonId, EventContext ],
 
 
 
-% @doc The default event driver for the onKeyPressed (user) event type.
-%
-% It looks up the scancode and keycode tables in order to map key events to any
-% user-defined application event.
-%
-% Its type is event_driver().
-%
+-doc """
+The default event driver for the onKeyPressed (user) event type.
+
+It looks up the scancode and keycode tables in order to map key events to any
+user-defined application event.
+
+Its type is event_driver().
+""".
 -spec default_onKeyPressed_driver( event_elements(),
 								   app_gui_state() ) -> app_event_return().
 default_onKeyPressed_driver( Elements=[ Frame, FrameId, EventContext ],
@@ -2967,11 +3114,11 @@ default_onKeyPressed_driver( Elements=[ Frame, FrameId, EventContext ],
 
 
 
+-doc """
+The default event driver for the onWindowClosed (user) event type.
 
-% @doc The default event driver for the onWindowClosed (user) event type.
-%
-% Its type is event_driver().
-%
+Its type is event_driver().
+""".
 -spec default_onWindowClosed_driver( event_elements(),
 				app_gui_state() ) -> app_event_return().
 default_onWindowClosed_driver(
@@ -3005,13 +3152,14 @@ default_onWindowClosed_driver(
 
 
 
-% @doc Returns usual, basic defaults in terms of application event
-% specification, that is how user events shall be abstracted out in terms of
-% (higher-level) application events.
-%
-% Corresponds to reasonable defaults for the first parameter of the
-% create_app_gui_state/* functions.
-%
+-doc """
+Returns usual, basic defaults in terms of application event specification, that
+is how user events shall be abstracted out in terms of (higher-level)
+application events.
+
+Corresponds to reasonable defaults for the first parameter of the
+create_app_gui_state/* functions.
+""".
 -spec get_base_application_event_specs() -> [ application_event_spec() ].
 get_base_application_event_specs() ->
 
@@ -3028,14 +3176,16 @@ get_base_application_event_specs() ->
 			window_closed ] } ].
 
 
-% @doc Enables OpenGL in the specified application GUI state.
-%
-% Note that OpenGL actual initialisation is bound to happen no sooner than the
-% corresponding window is shown.
-%
-% Note also that this function is of little use, as generally the GL canvas and
-% context are directly set thanks to create_app_gui_state/3.
-%
+
+-doc """
+Enables OpenGL in the specified application GUI state.
+
+Note that OpenGL actual initialisation is bound to happen no sooner than the
+corresponding window is shown.
+
+Note also that this function is of little use, as generally the GL canvas and
+context are directly set thanks to create_app_gui_state/3.
+""".
 -spec enable_opengl( gl_canvas(), gl_context(), app_gui_state() ) ->
 									app_gui_state().
 enable_opengl( GLCanvas, GLContext, AppGUIState ) ->
@@ -3048,18 +3198,19 @@ enable_opengl( GLCanvas, GLContext, AppGUIState ) ->
 
 
 
-% @doc Waits (blocks) for the next user event that can be converted into an
-% application event, which is then returned with its corresponding user event,
-% together with a possibly updated application GUI state.
-%
-% Processes all user events (even those that do not result in an application
-% event), returning only on the first one that can be converted into an
-% application event.
-%
-% Meant to be called by the user code, instead of having to define its own
-% lower-level event loop. Receives all messages that are collected by the
-% calling process.
-%
+-doc """
+Waits (blocks) for the next user event that can be converted into an application
+event, which is then returned with its corresponding user event, together with a
+possibly updated application GUI state.
+
+Processes all user events (even those that do not result in an application
+event), returning only on the first one that can be converted into an
+application event.
+
+Meant to be called by the user code, instead of having to define its own
+lower-level event loop. Receives all messages that are collected by the calling
+process.
+""".
 -spec get_application_event( app_gui_state() ) -> app_event_return().
 get_application_event( AppGUIState ) ->
 	case get_maybe_application_event( AppGUIState, _Timeout=infinity ) of
@@ -3079,7 +3230,7 @@ get_application_event( AppGUIState ) ->
 		% should an unexpected message be received:
 		%
 		%undefined ->
-		%	get_application_event( AppGUIState );
+		%   get_application_event( AppGUIState );
 
 
 		% Thus {DefinedAppEventPair, NewAppGUIState} ->
@@ -3090,23 +3241,24 @@ get_application_event( AppGUIState ) ->
 
 
 
-% @doc Reads any pending (lower-level) user event, returning it with any
-% resulting application event, and an updated GUI state
-%
-% More precisely, tries to read any pending UserEvent:
-%  - if none is found, returns just 'undefined'
-%  - if a user event is found, returns {{MaybeApplicationEvent, UserEvent},
-%  UpdatedGUIState}: if UserEvent can be converted into an application event,
-%  returns this application event as first element of the pair, otherwise puts
-%  'undefined' there
-%
-% Processes all user events (even those that do not result in an application
-% event).
-%
-% Meant to be called by the user code, instead of having to define its own
-% lower-level event loop. Receives all messages that are collected by the
-% calling process.
-%
+-doc """
+Reads any pending (lower-level) user event, returning it with any resulting
+application event, and an updated GUI state
+
+More precisely, tries to read any pending UserEvent:
+ - if none is found, returns just 'undefined'
+ - if a user event is found, returns {{MaybeApplicationEvent, UserEvent},
+ UpdatedGUIState}: if UserEvent can be converted into an application event,
+ returns this application event as first element of the pair, otherwise puts
+ 'undefined' there
+
+Processes all user events (even those that do not result in an application
+event).
+
+Meant to be called by the user code, instead of having to define its own
+lower-level event loop. Receives all messages that are collected by the calling
+process.
+""".
 -spec get_maybe_application_event( app_gui_state() ) ->
 									option( app_event_return() ).
 get_maybe_application_event( AppGUIState ) ->
@@ -3114,27 +3266,28 @@ get_maybe_application_event( AppGUIState ) ->
 
 
 
-% @doc Reads any (lower-level) user event received during the specified (finite
-% or not) time-out that can be converted into an application event, which is
-% then returned with its corresponding user event, together with a possibly
-% updated application GUI state.
-%
-% If a user event is received during the specified time-out yet cannot be
-% converted into an application event, 'undefined' is returned instead of said
-% application event, and an updated application GUI state is still returned.
-%
-% If no user event is available during said time-out, returns just 'undefined'
-% (with no application GUI state), thus never blocks longer.
-%
-% Processes up to one pending user event, whether or not it results in an
-% application event.
-%
-% Main, most flexible form.
-%
-% Meant to be called by the user code, instead of having to define its own
-% lower-level event loop. Receives all messages that are collected by the
-% calling process.
-%
+-doc """
+Reads any (lower-level) user event received during the specified (finite or not)
+time-out that can be converted into an application event, which is then returned
+with its corresponding user event, together with a possibly updated application
+GUI state.
+
+If a user event is received during the specified time-out yet cannot be
+converted into an application event, 'undefined' is returned instead of said
+application event, and an updated application GUI state is still returned.
+
+If no user event is available during said time-out, returns just 'undefined'
+(with no application GUI state), thus never blocks longer.
+
+Processes up to one pending user event, whether or not it results in an
+application event.
+
+Main, most flexible form.
+
+Meant to be called by the user code, instead of having to define its own
+lower-level event loop. Receives all messages that are collected by the calling
+process.
+""".
 -spec get_maybe_application_event( app_gui_state(), time_out() ) ->
 									option( app_event_return() ).
 get_maybe_application_event( AppGUIState=#app_gui_state{
@@ -3201,9 +3354,9 @@ get_maybe_application_event( AppGUIState=#app_gui_state{
 
 
 
-% @doc Returns a textual representation of the specified GUI-related applicative
-% state.
-%
+-doc """
+Returns a textual representation of the specified GUI-related applicative state.
+""".
 -spec app_gui_state_to_string( app_gui_state() ) -> ustring().
 app_gui_state_to_string( #app_gui_state{
 		event_driver_table=EventDriverTable,
@@ -3253,7 +3406,6 @@ app_gui_state_to_string( #app_gui_state{
 
 	end,
 
-
 	text_utils:format( "user event registry with ~ts, supporting ~ts, "
 		"tracking ~ts, ~ts and ~ts, ~ts and ~ts",
 		[ EventDriverStr, BasicEventStr, ButtonStr, ScancodeStr, KeycodeStr,
@@ -3261,13 +3413,14 @@ app_gui_state_to_string( #app_gui_state{
 
 
 
-% @doc Returns the backend event included in the specified event context.
+-doc "Returns the backend event included in the specified event context.".
 -spec get_backend_event( event_context() ) -> backend_event().
 get_backend_event( #event_context{ backend_event=BackendEvent } ) ->
 	BackendEvent.
 
 
-% @doc Adjusts the specified MyriadGUI instances.
+
+-doc "Adjusts the specified MyriadGUI instances.".
 -spec adjust_objects( [ myriad_object_ref() ], event_table(),
 			myriad_type_table(), id_name_alloc_table() ) -> myriad_type_table().
 adjust_objects( _ObjectsToAdjust=[], _EventTable, TypeTable, _NameTable ) ->
@@ -3306,7 +3459,7 @@ adjust_objects( _ObjectsToAdjust=[ CanvasRef=#myriad_object_ref{
 
 
 
-% @doc Returns the internal state of the specified canvas instance.
+-doc "Returns the internal state of the specified canvas instance.".
 -spec get_canvas_instance_state( myriad_instance_id(),
 								 myriad_type_table() ) -> myriad_object_state().
 get_canvas_instance_state( CanvasId, TypeTable ) ->
@@ -3314,7 +3467,7 @@ get_canvas_instance_state( CanvasId, TypeTable ) ->
 
 
 
-% @doc Returns the internal state of the specified MyriadGUI instance.
+-doc "Returns the internal state of the specified MyriadGUI instance.".
 -spec get_instance_state( myriad_object_ref(), myriad_type_table() ) ->
 								myriad_object_state().
 get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
@@ -3323,7 +3476,7 @@ get_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 
 
 
-% @doc Returns the internal state of the specified MyriadGUI instance.
+-doc "Returns the internal state of the specified MyriadGUI instance.".
 -spec get_instance_state( myriad_object_ref(), myriad_instance_id(),
 						  myriad_type_table() ) -> myriad_object_state().
 get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
@@ -3357,7 +3510,7 @@ get_instance_state( MyriadObjectType, InstanceId, TypeTable ) ->
 
 
 
-% @doc Sets the internal state of the specified canvas instance.
+-doc "Sets the internal state of the specified canvas instance.".
 -spec set_canvas_instance_state( myriad_instance_id(), myriad_object_state(),
 								 myriad_type_table() ) -> myriad_type_table().
 set_canvas_instance_state( CanvasId, CanvasState, TypeTable ) ->
@@ -3366,7 +3519,7 @@ set_canvas_instance_state( CanvasId, CanvasState, TypeTable ) ->
 
 
 
-% @doc Returns the internal state of the specified MyriadGUI instance.
+-doc "Returns the internal state of the specified MyriadGUI instance.".
 -spec set_instance_state( myriad_object_ref(), myriad_object_state(),
 						  myriad_type_table() ) -> myriad_type_table().
 set_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
@@ -3376,9 +3529,10 @@ set_instance_state( { myriad_object_ref, MyriadObjectType, InstanceId },
 
 
 
-% @doc Returns the internal state of the specified, already-existing MyriadGUI
-% instance.
-%
+-doc """
+Returns the internal state of the specified, already-existing MyriadGUI
+instance.
+""".
 -spec set_instance_state( gui:myriad_object_type(), myriad_instance_id(),
 			myriad_object_state(), myriad_type_table() ) -> myriad_type_table().
 set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
@@ -3411,12 +3565,13 @@ set_instance_state( MyriadObjectType, InstanceId, InstanceState, TypeTable ) ->
 
 
 
-% @doc Traps the specified event: does not propagate it upward in the widget
-% hierarchy, thus considering that it has been processed once for all by the
-% current handler. May typically apply to command events.
-%
-% Refer to gui:trap_event/1 for all details.
-%
+-doc """
+Traps the specified event: does not propagate it upward in the widget hierarchy,
+thus considering that it has been processed once for all by the current
+handler. May typically apply to command events.
+
+Refer to gui:trap_event/1 for all details.
+""".
 -spec trap_event( gui_event_object() ) -> void().
 trap_event( GUIEventObject ) ->
 
@@ -3439,13 +3594,14 @@ trap_event( GUIEventObject ) ->
 
 
 
-% @doc Propagates the specified event upward in the widget hierarchy, so that it
-% can be processed by parent handlers knowing that, for some event types (basic
-% events, i.e. non-command ones like onRepaintNeeded), by default no event
-% propagation is enabled.
-%
-% Refer to gui:propagate_event/1 for all details.
-%
+-doc """
+Propagates the specified event upward in the widget hierarchy, so that it can be
+processed by parent handlers knowing that, for some event types (basic events,
+i.e. non-command ones like onRepaintNeeded), by default no event propagation is
+enabled.
+
+Refer to gui:propagate_event/1 for all details.
+""".
 -spec propagate_event( gui_event_object() ) -> void().
 propagate_event( GUIEventObject ) ->
 
@@ -3460,7 +3616,7 @@ propagate_event( GUIEventObject ) ->
 
 
 
-% @doc Converts the specified wx event into a MyriadGUI one.
+-doc "Converts the specified wx event into a MyriadGUI one.".
 -spec wx_to_myriad_event( wx_event() ) -> gui_event().
 wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo } ) ->
 
@@ -3479,9 +3635,10 @@ wx_to_myriad_event( WxEvent={ wx, WxId, WxObject, UserData, WxEventInfo } ) ->
 
 
 
-% @doc Returns the low-level wx record describing its full actual event, a
-% record whose structure depends on that event.
-%
+-doc """
+Returns the low-level wx record describing its full actual event, a record whose
+structure depends on that event.
+""".
 -spec get_event_info( event_context() ) -> wx_event_info().
 get_event_info( #event_context{ backend_event=#wx{ event=WxEventInfo } } ) ->
 	WxEventInfo.
@@ -3494,7 +3651,7 @@ get_event_info( #event_context{ backend_event=#wx{ event=WxEventInfo } } ) ->
 % Stringification subsection.
 
 
-% @doc Returns a textual representation of the specified event table.
+-doc "Returns a textual representation of the specified event table.".
 -spec event_table_to_string( event_table() ) -> ustring().
 event_table_to_string( EventTable ) ->
 
@@ -3517,7 +3674,7 @@ event_table_to_string( EventTable ) ->
 
 
 
-% @doc Returns a textual representation of specified dispatch table.
+-doc "Returns a textual representation of the specified dispatch table.".
 -spec dispatch_table_to_string( gui_object_key(), event_dispatch_table() ) ->
 										ustring().
 dispatch_table_to_string( GUIObjectKey, DispatchTable ) ->
@@ -3536,7 +3693,7 @@ dispatch_table_to_string( GUIObjectKey, DispatchTable ) ->
 
 
 
-% @doc Returns a textual representation of the specified reassign table.
+-doc "Returns a textual representation of the specified reassign table.".
 -spec reassign_table_to_string( reassign_table() ) -> ustring().
 reassign_table_to_string( ReassignTable ) ->
 
@@ -3557,7 +3714,7 @@ reassign_table_to_string( ReassignTable ) ->
 
 
 
-% @doc Returns a textual representation of the specified type table.
+-doc "Returns a textual representation of the specified type table.".
 -spec type_table_to_string( myriad_type_table() ) -> ustring().
 type_table_to_string( Table ) ->
 
@@ -3579,7 +3736,7 @@ type_table_to_string( Table ) ->
 
 
 
-% @doc Returns a textual representation of the specified type table.
+-doc "Returns a textual representation of the specified type table.".
 -spec instance_repository_to_string( instance_repository() ) -> ustring().
 instance_repository_to_string( #instance_repository{
 									instance_count=Count,
@@ -3603,7 +3760,7 @@ instance_repository_to_string( #instance_repository{
 
 
 
-% @doc Returns a textual representation of the specified GUI event.
+-doc "Returns a textual representation of the specified GUI event.".
 -spec gui_event_to_string( gui_event() ) -> ustring().
 gui_event_to_string( { EventType, Elements } ) ->
 	% ~w clearer than ~p here:
@@ -3612,10 +3769,11 @@ gui_event_to_string( { EventType, Elements } ) ->
 
 
 
-% @doc Returns a textual representation of the specified GUI event context.
-%
-% Typically obtained from an event-triggered message.
-%
+-doc """
+Returns a textual representation of the specified GUI event context.
+
+Typically obtained from an event-triggered message.
+""".
 -spec context_to_string( event_context() ) -> ustring().
 context_to_string( #event_context{ id=Id, user_data=UserData,
 								   backend_event=WxEvent } ) ->
@@ -3640,8 +3798,7 @@ context_to_string( #event_context{ id=Id, user_data=UserData,
 
 
 
-
-% @doc Returns a textual representation of the specified application event.
+-doc "Returns a textual representation of the specified application event.".
 -spec application_event_to_string( application_event() ) -> ustring().
 % For example 'quit_requested':
 application_event_to_string( AE ) when is_atom( AE ) ->
@@ -3655,13 +3812,13 @@ application_event_to_string( AE ) ->
 % Event type section.
 
 
-% @doc Converts a MyriadGUI type of event into a wx one.
+-doc "Converts a MyriadGUI type of event into a wx one.".
 -spec to_wx_event_type( event_type() ) -> wx_event_type().
 to_wx_event_type( EventType ) ->
 	gui_generated:get_second_for_event_type( EventType ).
 
 
-% @doc Converts a wx type of event into a MyriadGUI one.
+-doc "Converts a wx type of event into a MyriadGUI one.".
 -spec from_wx_event_type( wx_event_type() ) -> event_type().
 from_wx_event_type( WxEventType ) ->
 	gui_generated:get_first_for_event_type( WxEventType ).

@@ -52,140 +52,190 @@ Gathering of various facilities for **color management**.
 
 
 
+-doc """
+A color, as designated by an atom (e.g. 'aliceblue'); possibly a logical
+color. See get_colors/0 for a list thereof.
+""".
 -type color_by_name() :: atom().
-% A color, as designated by an atom (e.g. 'aliceblue'); possibly a logical
-% color. See get_colors/0 for a list thereof.
 
 
+
+-doc "A logical color, like 'window_frame_color'.".
 -type logical_color() :: color_by_name().
-% A logical color, like 'window_frame_color'.
 
 
+-doc "An integer coordinate, in [0;255].".
 -type decimal_coordinate() :: byte().
-% An integer coordinate, in [0;255].
 
 
+
+-doc """
+RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
+""".
 -type color_by_decimal() ::
 		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
 		  Blue :: decimal_coordinate() }.
-% RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
+ 
 
+-doc """
+A RGB color that is encoded based on 6 hexadecimal digits in a string, with a
+"#" prefix (hence is not a text_utils:hexastring/0).
 
+For example "#3ab001" corresponds to lightgreen.
+
+Possibly used for HTML content, by gnuplot, etc.
+""".
 -type rgb_hexastring() :: ustring().
-% A RGB color that is encoded based on 6 hexadecimal digits in a string,
-% with a "#" prefix (hence is not a text_utils:hexastring/0).
-%
-% For example "#3ab001" corresponds to lightgreen.
-%
-% Possibly used for HTML content, by gnuplot, etc.
 
 
+
+-doc """
+A RGBA color that is encoded based on 8 hexadecimal digits in a string, with a
+"#" prefix (hence is not a text_utils:hexastring/0).
+
+For example "#3ab001ee" corresponds to a mostly solid lightgreen.
+""".
 -type rgba_hexastring() :: ustring().
-% A RGBA color that is encoded based on 8 hexadecimal digits in a string,
-% with a "#" prefix (hence is not a text_utils:hexastring/0).
-%
-% For example "#3ab001ee" corresponds to a mostly solid lightgreen.
 
 
+
+-doc "RGBA (integer coordinates, in [0;255]) color.".
 -type color_by_decimal_with_alpha() ::
 		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
 		  Blue :: decimal_coordinate(), Alpha :: decimal_coordinate() }.
-% RGBA (integer coordinates, in [0;255]) color.
 
+
+
+-doc "Any RGB or RGBA color.".
 -type any_color_by_decimal() ::
 		color_by_decimal() | color_by_decimal_with_alpha().
 
+
+
+-doc "Any kind of RGB color.".
 -type color() :: color_by_name() | color_by_decimal() | rgb_hexastring().
-% Any kind of RGB color.
 
 
+
+-doc """
+A color depth, as a positive number of bits.
+
+For example the color depth of a monochrome display is 1.
+""".
 -type color_depth() :: system_utils:bit_size().
-% A color depth, as a positive number of bits.
-%
-% For example the color depth of a monochrome display is 1.
 
 
+
+-doc """
+Color coordinate, floating-point in [0.0, 1.0].
+
+For example as used and clamped by OpenGL.
+""".
 -type color_coordinate() :: float().
-% Color coordinate, floating-point in [0.0, 1.0].
-%
-% For example as used and clamped by OpenGL.
 
 
+
+-doc """
+An alpha-transparency color coordinate.
+
+From 0.0 (full transparent) to 1.0 (solid); same as OpenGL conventions.
+""".
 -type alpha_coordinate() :: color_coordinate().
-% An alpha-transparency color coordinate.
-%
-% From 0.0 (full transparent) to 1.0 (solid); same as OpenGL conventions.
 
 
+
+-doc """
+A floating-point RGB color (whose coordinates are typically in [0.0,1.0]).
+
+The three components shall be encoded with the sRGB transfer function.
+
+For example useful with OpenGL. Used to be a triplet (a tuple), yet, for example
+for uniform variable, a (3D) vector is expected instead.
+""".
 -type render_rgb_color() ::
 		{ Red :: color_coordinate(), Green :: color_coordinate(),
 		  Blue :: color_coordinate() }.
 		%[ color_coordinate() ]. % (a list of 3 elements)
-% A floating-point RGB color (whose coordinates are typically in [0.0,1.0]).
-%
-% The three components shall be encoded with the sRGB transfer function.
-%
-% For example useful with OpenGL. Used to be a triplet (a tuple), yet, for
-% example for uniform variable, a (3D) vector is expected instead.
 
 
+
+-doc """
+A floating-point RGBA color.
+
+The first three components (RGB) shall be encoded with the sRGB transfer
+function.
+
+For example useful with OpenGL.
+""".
 -type render_rgba_color() :: { Red ::color_coordinate(),
 		Green :: color_coordinate(), Blue ::color_coordinate(),
 		Alpha :: alpha_coordinate() }.
-% A floating-point RGBA color.
-%
-% The first three components (RGB) shall be encoded with the sRGB transfer
-% function.
-%
-% For example useful with OpenGL.
 
 
+
+-doc """
+A floating-point RGB or RGBA color.
+
+The first three components (RGB) shall be encoded with the sRGB transfer
+function.
+
+For example useful with OpenGL.
+""".
 -type render_color() :: render_rgb_color() | render_rgba_color().
-% A floating-point RGB or RGBA color.
-%
-% The first three components (RGB) shall be encoded with the sRGB transfer
-% function.
-%
-% For example useful with OpenGL.
 
 
 
+-doc """
+A buffer of pixel colors coded as a sequence of RGB or RGBA binary elements
+(e.g. RGBRGBRGB..., or RGBARGBARGBA...), from the top-left pixel to bottom-right
+one, row per row.
+
+Useful for direct image manipulation.
+""".
 -type color_buffer() :: rgb_color_buffer() | rgba_color_buffer().
-% A buffer of pixel colors coded as a sequence of RGB or RGBA binary elements
-% (e.g. RGBRGBRGB..., or RGBARGBARGBA...), from the top-left pixel to
-% bottom-right one, row per row.
-%
-% Useful for direct image manipulation.
 
 
+
+-doc """
+A buffer of pixel colors coded as a sequence of RGB binary elements (RGBRGBRGB),
+from the top-left pixel to bottom-right one, row per row.
+
+Useful for direct image manipulation.
+""".
 -type rgb_color_buffer() :: buffer().
-% A buffer of pixel colors coded as a sequence of RGB binary elements
-% (RGBRGBRGB), from the top-left pixel to bottom-right one, row per row.
-%
-% Useful for direct image manipulation.
 
 
+
+-doc """
+A buffer of pixel colors coded as a sequence of RGBA binary elements
+(RGBARGBARGBA), from the top-left pixel to bottom-right one, row per row.
+
+Useful for direct image manipulation.
+""".
 -type rgba_color_buffer() :: buffer().
-% A buffer of pixel colors coded as a sequence of RGBA binary elements
-% (RGBARGBARGBA), from the top-left pixel to bottom-right one, row per row.
-%
-% Useful for direct image manipulation.
 
 
+
+-doc """
+A buffer of (only) pixel alpha coordinates, from the top-left pixel to
+bottom-right one, row per row.
+
+Useful for direct image manipulation.
+""".
 -type alpha_buffer() :: buffer().
-% A buffer of (only) pixel alpha coordinates, from the top-left pixel to
-% bottom-right one, row per row.
-%
-% Useful for direct image manipulation.
 
 
+-doc "A specification of a pixel format.".
 -type pixel_format() :: 'rgb' | 'rgba'.
-% A specification of a pixel format.
 
+
+
+-doc """
+A wx object representing information regarding a color.
+
+For example {wx_ref,92,wxColourData,[]}.
+""".
 -opaque color_data() :: wxColourData:wxColourData().
-% A wx object representing information regarding a color.
-%
-% For example {wx_ref,92,wxColourData,[]}.
 
 
 
@@ -248,7 +298,9 @@ Gathering of various facilities for **color management**.
 % Section for color definition.
 
 
-% @doc Returns a list of known {color_name, ColorDefinition} associations.
+-doc """
+Returns a list of known {color_name, ColorDefinition} associations.
+""".
 -spec get_colors() -> [ { color_by_name(), any_color_by_decimal() } ].
 get_colors() ->
 	[
@@ -410,12 +462,12 @@ get_colors() ->
 
 
 
+-doc """
+Returns the RGB definition of the color specified by name (atom) or directly as
+a triplet of color components.
 
-% @doc Returns the RGB definition of the color specified by name (atom) or
-% directly as a triplet of color components.
-%
-% No 'undefined' color (meaning transparent) accepted.
-%
+No 'undefined' color (meaning transparent) accepted.
+""".
 -spec get_color( color() ) -> color_by_decimal().
 get_color( Color={ _R, _G, _B } ) ->
 	% Optimised for this most frequent form (first pattern):
@@ -453,18 +505,19 @@ get_color( _RGBHexastr=[ $#, R1, R2, G1, G2, B1, B2 ] ) ->
 
 
 
-% @doc Returns the known logical colors.
+-doc "Returns the known logical colors.".
 -spec get_logical_colors() -> [ logical_color() ].
 get_logical_colors() ->
 	[ window_frame_color ].
 
 
 
-% @doc Returns the RGB definition of the specified logical color.
-%
-% Note that the underlying GUI backend shall be initialised and usable by this
-% process first.
-%
+-doc """
+Returns the RGB definition of the specified logical color.
+
+Note that the underlying GUI backend shall be initialised and usable by this
+process first.
+""".
 -spec get_logical_color( logical_color() ) -> color_by_decimal_with_alpha().
 % Requires a process-level wx environment:
 get_logical_color( _LogicalColor=window_frame_color ) ->
@@ -475,7 +528,9 @@ get_logical_color( Other ) ->
 
 
 
-% @doc Returns a stringified representation for gnuplot of the specified color.
+-doc """
+Returns a stringified representation for gnuplot of the specified color.
+""".
 -spec get_color_for_gnuplot( color() ) -> color().
 get_color_for_gnuplot( Color={ _R, _G, _B } ) ->
 	"#" ++ color_by_decimal_to_string( Color );
@@ -485,7 +540,9 @@ get_color_for_gnuplot( ColorName ) ->
 
 
 
-% @doc Returns a random list of the specified number of different colors.
+-doc """
+Returns a random list of the specified number of different colors.
+""".
 -spec get_random_colors( count() ) -> [ color_by_decimal() ].
 get_random_colors( ColorCount ) ->
 
@@ -495,12 +552,13 @@ get_random_colors( ColorCount ) ->
 
 	% Only keep RBG values, not the atom-based name:
 	[ RGB || { _Name, RGB }
-				 <- list_utils:draw_elements_from( AllColors, ColorCount ) ].
+				<- list_utils:draw_elements_from( AllColors, ColorCount ) ].
 
 
 
-
-% Returns a textual description of the specified color.
+-doc """
+Returns a textual description of the specified color.
+""".
 -spec to_string( color() ) -> ustring().
 to_string( ColorByName ) when is_atom( ColorByName ) ->
 	text_utils:atom_to_string( ColorByName );
@@ -513,9 +571,11 @@ to_string( RGBHexaStr ) ->
 	RGBHexaStr.
 
 
-% @doc Returns a description of the specified RGB color like used for HTML
-% ("#a1710f" for example).
-%
+
+-doc """
+Returns a description of the specified RGB color like used for HTML ("#a1710f"
+for example).
+""".
 -spec color_by_decimal_to_string( color_by_decimal() ) -> rgb_hexastring().
 color_by_decimal_to_string( { Red, Green, Blue } ) ->
 
@@ -528,9 +588,10 @@ color_by_decimal_to_string( { Red, Green, Blue } ) ->
 
 
 
-% @doc Returns a description of the specified RGBA color, a bit like used for
-% HTML ("#a1710f12" for example).
-%
+-doc """
+Returns a description of the specified RGBA color, a bit like used for HTML
+("#a1710f12" for example).
+""".
 -spec color_by_decimal_with_alpha_to_string( color_by_decimal_with_alpha() ) ->
 								rgba_hexastring().
 color_by_decimal_with_alpha_to_string( { Red, Green, Blue, Alpha } ) ->
@@ -547,9 +608,10 @@ color_by_decimal_with_alpha_to_string( { Red, Green, Blue, Alpha } ) ->
 % Section for color conversion.
 
 
-% @doc Returns the floating-point RGB(A) color(s) corresponding to the specified
-% integer-based one(s).
-%
+-doc """
+Returns the floating-point RGB(A) color(s) corresponding to the specified
+integer-based one(s).
+""".
 -spec decimal_to_render( color_by_decimal() ) -> render_rgb_color();
 					   ( color_by_decimal_with_alpha() ) -> render_rgba_color();
 					   ( [ color_by_decimal() ] ) -> [ render_rgb_color() ];
@@ -571,13 +633,15 @@ decimal_to_render( Colors ) when is_list( Colors ) ->
 
 
 
-% @doc Adds an alpha, fully opaque coordinate to the specified RGB render color.
+-doc """
+Adds an alpha, fully opaque coordinate to the specified RGB render color.
+""".
 -spec add_alpha_opaque( render_rgb_color() ) -> render_rgba_color().
 add_alpha_opaque( { R, G, B } ) ->
 	{ R, G, B, _Alpha=1.0 }.
 
 
-% @doc Adds the specified alpha coordinate to the specified RGB render color.
+-doc "Adds the specified alpha coordinate to the specified RGB render color.".
 -spec add_alpha( decimal_coordinate(), render_rgb_color() ) ->
 										render_rgba_color().
 add_alpha( Alpha, { R, G, B } ) ->
@@ -585,9 +649,9 @@ add_alpha( Alpha, { R, G, B } ) ->
 
 
 
-% @doc Checks that the specified term is a color_by_decimal() indeed, and
-% returns it.
-%
+-doc """
+Checks that the specified term is a color_by_decimal() indeed, and returns it.
+""".
 -spec check_color_by_decimal( term() ) -> color_by_decimal().
 check_color_by_decimal( { R, G, B } ) ->
 	{ type_utils:check_byte( R ), type_utils:check_byte( G ),
@@ -601,7 +665,9 @@ check_color_by_decimal( Other ) ->
 % Pixel formats.
 
 
-% @doc Returns the number of bytes used by each pixel of the specified format.
+-doc """
+Returns the number of bytes used by each pixel of the specified format.
+""".
 -spec get_pixel_size( pixel_format() ) -> byte_size().
 get_pixel_size( _PixelFormat=rgb ) ->
 	3;
@@ -610,7 +676,8 @@ get_pixel_size( _PixelFormat=rgba ) ->
 	4.
 
 
-% @doc Returns a textual description of the specified pixel format.
+
+-doc "Returns a textual description of the specified pixel format.".
 -spec pixel_format_to_string( pixel_format() ) -> ustring().
 pixel_format_to_string( _PixelFormat=rgb ) ->
 	"RGB";
