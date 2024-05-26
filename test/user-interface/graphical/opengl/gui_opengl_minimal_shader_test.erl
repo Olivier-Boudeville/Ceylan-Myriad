@@ -401,7 +401,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	gui_shader:install_program( ProgramId ),
 
 	% As RGB triplet:
-	gui_shader:set_uniform_point3( SomeColorUnifId,
+	gui_shader:set_uniform_point4( SomeColorUnifId,
 		gui_opengl_for_testing:get_myriad_blue_render() ),
 
 

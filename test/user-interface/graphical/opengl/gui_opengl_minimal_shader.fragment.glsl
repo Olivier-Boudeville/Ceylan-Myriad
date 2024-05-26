@@ -28,14 +28,14 @@
  * interest; no layout specified here:
  *
  */
-out vec3 my_color;
+out vec4 my_color;
 
 
 /* Just defined to test the uniform support (will not be found if not explicitly
  * used afterwards):
  *
  */
-uniform vec3 some_color;
+uniform vec4 some_color;
 
 
 void main()

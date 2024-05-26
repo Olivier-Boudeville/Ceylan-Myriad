@@ -634,7 +634,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_transformation_shader.vertex.glsl",
-		"gui_opengl_transformation_shader.fragment.glsl", UserVertexAttrs ),
+		"gui_opengl_transformation_shader.fragment.glsl", UserVertexAttrs,
+		_ExtraGLSLSearchPaths=[ "." ] ),
 
 	% Uniform locations can be fetched as soon as the program is linked:
 
@@ -652,9 +653,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	Texture = gui_texture:create_from_image( Image ),
 
 	% To showcase that we can use other texture units (locations) than the
-	% default ?GL_TEXTURE0 one:
+	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit:
 	%
-	gui_texture:set_current_texture_unit( ?GL_TEXTURE2 ),
+	gui_texture:set_current_texture_unit( 2 ),
 
 	% Thus associated to the previous texture unit:
 	gui_texture:set_as_current( Texture ),
