@@ -79,7 +79,7 @@ See `polygon_test.erl` for the corresponding test.
 -type any_vertex2() :: point2:any_vertex2().
 
 -type color() :: gui_color:color().
--type canvas() :: gui:canvas().
+-type canvas() :: gui_canvas:canvas().
 
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().

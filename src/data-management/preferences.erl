@@ -28,7 +28,6 @@
 -module(preferences).
 
 -moduledoc """
-
 Service dedicated to the **management of user preferences** (for user-level
 configuration), thanks to a corresponding server process.
 
@@ -53,7 +52,7 @@ key registered to 'undefined'.
 
 Preferences can be stored in file(s), in the ETF format. This format of
 preferences is a series of Erlang terms as strings, each ended with a dot
-(i.e. it is the basic, standard format understood by `file:consult/1').
+(i.e. it is the basic, standard format understood by `file:consult/1`).
 
 Example of content for a preferences file:
 ```
@@ -71,8 +70,8 @@ define), or a user-defined one (e.g.  foobar_preferences).
 
 As a consequence, a preferences server can be designated either directly through
 its PID or through its conventional (atom) registration name (e.g.  implicitly
-with `preferences:get(hello)' for the default one, or explicitly, via its name
-with `preferences:get(hello, foobar_preferences)'. The former approach is a bit
+with `preferences:get(hello)` for the default one, or explicitly, via its name
+with `preferences:get(hello, foobar_preferences)`. The former approach is a bit
 more effective, but the latter one is more robust (the server can be
 transparently restarted/upgraded).
 

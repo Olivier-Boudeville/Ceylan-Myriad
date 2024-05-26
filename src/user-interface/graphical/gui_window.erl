@@ -156,10 +156,6 @@ environment
 
 % Local types:
 
--type wx_art_id() :: unicode:chardata().
-% For example "wxART_NEW".
-
-
 
 % For standard, basic windows:
 -export([ create/0, create/1, create/2, create/5,
@@ -221,9 +217,12 @@ environment
 -type parent() :: gui:parent().
 -type title() :: gui:title().
 
+-type id() :: gui_id:id().
+
+-type backend_bitmap_id() :: gui_bitmap:backend_bitmap_id().
+
 -type menu_bar() :: gui_menu:menu_bar().
 
--type id() :: gui_id:id().
 
 
 
@@ -586,8 +585,8 @@ to_wx_window_options( _Options=[ H | T ], Acc ) ->
 	to_wx_window_options( T, [ H | Acc ] ).
 
 
-% @doc Converts the specified icon identifier into a wx-specific one.
--spec to_wx_icon_id( icon_name_id() ) -> wx_art_id().
+% @doc Converts the specified icon identifier into a backend-specific one.
+-spec to_wx_icon_id( icon_name_id() ) -> backend_bitmap_id().
 to_wx_icon_id( IconId ) ->
 	case gui_generated:get_maybe_second_for_icon_name_id( IconId ) of
 

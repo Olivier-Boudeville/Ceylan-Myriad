@@ -49,7 +49,7 @@ value.
 
 More precisely, a module name (e.g. 'foobar') and a list of `{atom(), any()}`
 entries are provided to the `const_table:generate*/*` functions; for each
-key/value pair in the specified entries (e.g. `{'baz', 42.0}'), a 0-arity
+key/value pair in the specified entries (e.g. `{'baz', 42.0}`), a 0-arity
 function is generated and exported in that module, as if we had:
 
 ```
@@ -64,7 +64,7 @@ baz() ->
    42.0.
 ```
 
-Then third-party code can call for example `foobar:baz()' and have `42.0'
+Then third-party code can call for example `foobar:baz()` and have `42.0`
 returned. This is presumably the most efficient way of sharing constants in
 Erlang.
 

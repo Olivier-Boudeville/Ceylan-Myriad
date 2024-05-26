@@ -161,7 +161,7 @@ Gathering of various facilities for **mouse management**.
 % Shorthands:
 
 -type coordinate() :: gui:coordinate().
--type window() :: gui:window().
+-type window() :: gui_window:window().
 -type gui_env_pid() :: gui:gui_env_pid().
 
 -type gui_env_designator() :: gui:gui_env_designator().

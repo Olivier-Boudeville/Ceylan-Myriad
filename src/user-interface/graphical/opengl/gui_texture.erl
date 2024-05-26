@@ -39,9 +39,11 @@ OpenGL.
 -include("gui_opengl.hrl").
 
 
+-doc "
+An OpenGL texture _name_ (meant to be unique), an identifier thereof.
+".
 -type texture_id() :: non_neg_integer().
-% An OpenGL texture "name" (meant to be unique), an identifier thereof.
-
+ 
 
 -type texture_dimension() :: ?GL_TEXTURE_1D | ?GL_TEXTURE_2D | ?GL_TEXTURE_3D.
 % The dimensionality of a texture.
@@ -746,7 +748,7 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 % To be used for example as: set_current_texture_unit(3) to activate the fourth
 % unit.
 %
-% The initial value, usually set by default by OpenGL drivers, is ?GL_TEXTURE0.
+% The initial value, usually set by default by OpenGL drivers, corresponds to 0 (hence internally translated to ?GL_TEXTURE0).
 %
 -spec set_current_texture_unit( texture_unit() ) -> void().
 set_current_texture_unit( TexUnit ) ->

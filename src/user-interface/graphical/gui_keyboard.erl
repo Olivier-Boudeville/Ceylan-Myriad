@@ -287,7 +287,7 @@ See also the gui_keyboard_test module.
 -type ustring() :: text_utils:ustring().
 -type uchar() :: text_utils:uchar().
 
--type event_context() :: gui:event_context().
+-type event_context() :: gui_event:event_context().
 
 -type wx_keycode() :: integer().
 

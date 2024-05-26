@@ -78,7 +78,7 @@ run_bitmap_test() ->
 									   _HorizGap=3, _VertGap=3 ),
 
 	{ bitmap_id, BitmapEntries, _ElemLookup } =
-		gui_constants:get_bitmap_id_topic_spec(),
+		gui_constants:get_standard_bitmap_name_id_topic_spec(),
 
 	AllBitmapIds = pair:firsts( BitmapEntries ),
 

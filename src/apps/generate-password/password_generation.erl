@@ -10,7 +10,7 @@
 -moduledoc """
 Actual module in charge of the Myriad **password generation**.
 
-Transferred from `generate-password.escript' in order to benefit from a more
+Transferred from `generate-password.escript` in order to benefit from a more
 user-friendly debugging.
 """.
 

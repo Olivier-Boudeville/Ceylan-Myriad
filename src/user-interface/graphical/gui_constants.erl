@@ -44,7 +44,8 @@ Called by gui:generate_support_modules/0.
 		  get_frame_style_topic_spec/0, get_button_style_topic_spec/0,
 		  get_sizer_flag_topic_spec/0, get_menu_item_id_topic_spec/0,
 		  get_button_id_topic_spec/0,
-		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
+		  get_standard_bitmap_name_id_topic_spec/0,
+		  get_icon_name_id_topic_spec/0,
 		  get_menu_item_kind_topic_spec/0, get_menu_style_topic_spec/0,
 		  get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
@@ -76,7 +77,7 @@ list_topic_spec_functions() ->
 	  get_frame_style_topic_spec, get_button_style_topic_spec,
 	  get_sizer_flag_topic_spec,
 	  get_menu_item_id_topic_spec, get_menu_style_topic_spec,
-	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
+	  get_button_id_topic_spec, get_standard_bitmap_name_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
 	  get_static_text_display_style_topic_spec,
@@ -162,16 +163,16 @@ list_topic_spec_functions() ->
 -type event_type() :: gui_event:event_type().
 -type wx_event_type() :: gui_event:wx_event_type().
 
--type window_style_opt() :: gui_window:window_style_opt().
--type frame_style_opt() :: gui_window:frame_style_opt().
+-type window_style() :: gui_window:window_style().
+-type frame_style() :: gui_frame:frame_style().
 -type icon_name_id() :: gui_window:icon_name_id().
 
--type bitmap_id_opt() :: gui_bitmap:bitmap_id_opt().
+-type standard_bitmap_name_id() :: gui_bitmap:standard_bitmap_name_id().
 
 -type sizer_flag_opt() :: gui_sizer:sizer_flag_opt().
 
 -type button_id() :: gui_button:button_id().
--type button_style_opt() :: gui_button:button_style_opt().
+-type button_style() :: gui_button:button_style().
 
 -type menu_item_id() :: gui_menu:menu_item_id().
 -type menu_item_kind() :: gui_menu:menu_item_kind().
@@ -196,12 +197,13 @@ list_topic_spec_functions() ->
 %    gui_dialog:font_selection_dialog_style().
 
 
--type wx_art_id() :: gui_wx_backend:wx_art_id().
 -type wx_enum() :: gui_wx_backend:wx_enum().
 -type wx_orientation() :: gui_wx_backend:wx_orientation().
 -type wx_direction() :: gui_wx_backend:wx_direction().
 
 -type wx_id() :: gui_id:wx_id().
+
+-type backend_bitmap_id() :: gui_bitmap:backend_bitmap_id().
 
 
 
@@ -244,8 +246,7 @@ get_object_type_topic_spec() ->
 % @doc Returns the two-way conversion specification for the 'window_style'
 % topic.
 %
--spec get_window_style_topic_spec() ->
-						topic_spec( window_style_opt(), bit_mask() ).
+-spec get_window_style_topic_spec() -> topic_spec( window_style(), bit_mask() ).
 get_window_style_topic_spec() ->
 
 	Entries = [
@@ -283,8 +284,7 @@ get_window_style_topic_spec() ->
 % @doc Returns the two-way conversion specification for the 'frame_style'
 % topic.
 %
--spec get_frame_style_topic_spec() ->
-						topic_spec( frame_style_opt(), bit_mask() ).
+-spec get_frame_style_topic_spec() -> topic_spec( frame_style(), bit_mask() ).
 get_frame_style_topic_spec() ->
 
 	{ window_style, WindowEntries, ElemLookup, Direction } =
@@ -321,12 +321,12 @@ get_frame_style_topic_spec() ->
 % @doc Returns the two-way conversion specification for the 'button_style'
 % topic.
 %
--spec get_button_style_topic_spec() ->
-						topic_spec( button_style_opt(), bit_mask() ).
+-spec get_button_style_topic_spec() -> topic_spec( button_style(), bit_mask() ).
 get_button_style_topic_spec() ->
 
 	Entries = [
-		% Meaningless: { default,          0              },
+		% Meaningless:
+		%{ default,         0              },
 		{ left_justified,   ?wxBU_LEFT     },
 		{ right_justified,  ?wxBU_RIGHT    },
 		{ top_justified,    ?wxBU_TOP      },
@@ -582,14 +582,14 @@ get_button_id_topic_spec() ->
 
 
 
-% @doc Returns the two-way maybe-conversion specification for the 'bitmap_id'
-% topic.
+% @doc Returns the two-way maybe-conversion specification for the
+% 'standard_bitmap_name_id' topic.
 %
 % Converts wx standard bitmap identifiers.
 %
--spec get_bitmap_id_topic_spec() ->
-						topic_spec( bitmap_id_opt(), wx_art_id() ).
-get_bitmap_id_topic_spec() ->
+-spec get_standard_bitmap_name_id_topic_spec() ->
+						topic_spec( standard_bitmap_name_id(), backend_bitmap_id() ).
+get_standard_bitmap_name_id_topic_spec() ->
 
 	Entries = [
 		{ error_bitmap,            "wxART_ERROR"            },
@@ -649,7 +649,7 @@ get_bitmap_id_topic_spec() ->
 		{ removable_bitmap,        "wxART_REMOVABLE"        },
 		{ backend_logo_bitmap,     "wxART_WX_LOGO"          } ],
 
-	{ bitmap_id, Entries, _ElemLookup='maybe' }.
+	{ standard_bitmap_name_id, Entries, _ElemLookup='maybe' }.
 
 
 
@@ -657,7 +657,7 @@ get_bitmap_id_topic_spec() ->
 % topic.
 %
 -spec get_icon_name_id_topic_spec() ->
-						topic_spec( icon_name_id(), wx_art_id() ).
+						topic_spec( icon_name_id(), backend_bitmap_id() ).
 get_icon_name_id_topic_spec() ->
 
 	% Based on the wx standard bitmap identifiers:

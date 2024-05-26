@@ -199,7 +199,15 @@ Another option is to use ``ctags`` to generate Emacs' compliant `tags <https://w
 For Documentation Generation
 ----------------------------
 
-Refer now to our `dedicated HOW-TO <http://howtos.esperide.org/DocGeneration.html>`_.
+Since Erlang/OTP 27, Myriad relies on the `overhauled documentation system <https://www.erlang.org/doc/system/documentation.html>`_ (stemming from `EEP 59 <https://www.erlang.org/eeps/eep-0059>`_) and on the `Markdown <https://en.wikipedia.org/wiki/Markdown>`_ syntax.
+
+This produces doc chunks, and `ExDoc <https://hexdocs.pm/ex_doc/readme.html>`_ is used (as a command-line tool) to generate the actual documentation out of it.
+
+As ExDoc is in Elixir, it is to be installed thanks to ``mix``, which can be installed on Arch thanks to ``pacman -S elixir``.
+
+Then ExDoc can be installed as an escript: ``mix escript.install hex ex_doc``; it becomes then available as ``~/.mix/escripts/ex_doc``, that may be added in one's PATH.
+
+For other documentation topics, refer to our `dedicated HOW-TO <http://howtos.esperide.org/DocGeneration.html>`_.
 
 
 Release Conventions

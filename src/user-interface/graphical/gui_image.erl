@@ -172,7 +172,7 @@ May be useful also for textures.
 -type height() :: gui:height().
 -type orientation() :: gui:orientation().
 -type dimensions() :: gui:dimensions().
--type standard_icon_name_id() :: gui:standard_icon_name_id().
+-type standard_icon_name_id() :: gui_window:standard_icon_name_id().
 
 -type color_by_decimal() :: gui_color:color_by_decimal().
 -type rgba_color_buffer() :: gui_color:rgba_color_buffer().

@@ -1,5 +1,10 @@
 # Prerequisite: MYRIAD_TOP must be set.
 
+# Useful for generic rules:
+ifndef PROJECT_TOP
+	PROJECT_TOP = $(MYRIAD_TOP)
+endif
+
 
 # On conditional variables depending on conditionals.
 #
@@ -337,6 +342,12 @@ MYRIAD_VERSION := 1.0.38
 ifndef PROJECT_VERSION
 	PROJECT_VERSION := $(MYRIAD_VERSION)
 endif
+
+
+PROJECT_WEB_HOST := esperide.org
+
+PROJECT_URL := "https://$(PROJECT_SHORT_NAME).$(PROJECT_WEB_HOST)"
+
 
 # So that edoc has the right define:
 PROJECT_EDOC_VERSION_KEY = $(PROJECT_SHORT_NAME)_version
@@ -1909,6 +1920,9 @@ GLSL_REF_COMPILER_OPT :=
 
 
 ## Documentation section.
+#
+# Refer to https://myriad.esperide.org/#for-documentation-generation for further
+# information.
 
 # Available in Ceylan-Hull:
 DOC_TRACKER := $$(which track-make-automatic-source.sh 2>/dev/null)
@@ -1920,29 +1934,40 @@ ifdef PROJECT_ICON
 endif
 
 
-# When relying directly on edoc (the default):
+# We now rely on ExDoc, rather than on edoc:
+
+EXDOC := $$(which ex_doc 2>/dev/null)
+
+# Finally not used, as specifying the options on the command line allows the
+# Makefiles to set/override them conveniently:
+#
+#EXDOC_CONFIG_FILE := $(MYRIAD_ROOT)/conf/myriad-for-exdoc.config
+
+# Not using multiple --paths with $(BEAM_DIRS), relying on ebin instead:
+EXDOC_OPTS = --formatter html --homepage-url "$(PROJECT_URL)" --language en --logo "$(MYRIAD_TOP)/doc/doc/myriad-title.png" --output "$(API_DOC_ROOT)" --proglang erlang
+
 
 ifndef API_DOC_ROOT
 	API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
 endif
 
 
-ifndef EDOC_OPTS
-	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
-endif
+# When relying directly on edoc:
+#ifndef EDOC_OPTS
+#	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
+#endif
 
 
-# When relying directly on erldocs:
-
-API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
+# When relying directly on a second doc generator (like erldocs):
+#API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
 
 
 # We tested erldocs (see https://github.com/erldocs/erldocs), yet vanilla edoc
-# seems to generate a lot more informational content so is preferred now:
+# seems to generate a lot more informational content so was preferred:
 #
 # (commented out as was misleading)
 #ifndef API_DOC_GENERATOR
-#	API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
+#   API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
 #endif
 
 

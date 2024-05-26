@@ -185,7 +185,7 @@ loop.
 
 -export_type([ event_driver_table/0, basic_event_table/0, button_table/0,
 			   scancode_table/0, keycode_table/0,
-			   gl_init_status/0, opengl_base_info/0,
+			   gl_init_status/0, opengl_base_info/0, opengl_base_state/0,
 			   app_specific_info/0, app_gui_state/0 ]).
 
 
@@ -871,7 +871,7 @@ loop.
 -type wx_server() :: gui:wx_server().
 -type event_subscription_opt() :: gui:event_subscription_opt().
 -type service() :: gui:service().
--type button_backend_id() :: gui:button_backend_id().
+-type button_backend_id() :: gui_id:button_backend_id().
 
 
 -type button_id() :: gui_id:button_id().

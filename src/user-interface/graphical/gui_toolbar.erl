@@ -92,7 +92,7 @@ Use our gui_frame_bars_test.erl test in order to display all known tools.
 -type wx_object() :: gui:wx_object().
 -type label() :: gui:label().
 
--type frame() :: gui_window:frame().
+-type frame() :: gui_frame:frame().
 
 -type control() :: gui_widget:control().
 

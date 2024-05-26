@@ -25,11 +25,9 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, December 2, 2014.
 
-
 -module(map_hashtable).
 
--moduledoc """ 
-
+-moduledoc """
 Implementation of an **associative table based on the `map` module**.
 
 Supposedly the most efficient native available implementation of an associative
@@ -53,7 +51,7 @@ only them)
 All these types of tables are to provide the same API (signatures and
 contracts), yet one should note that this module is the one that tends to
 supersede all others, and that over time features have been added that may not
-have been back-ported to the other table types. 
+have been back-ported to the other table types.
 """.
 
 
@@ -61,7 +59,7 @@ have been back-ported to the other table types.
 % Mostly the same API as the one of hashtable (but richer):
 -export([ new/0, singleton/2, new/1, new_from_unique_entries/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
-		  add_maybe_entry/3, add_maybe_entries/2,
+		  add_option_entry/3, add_option_entries/2,
 		  update_entry/3, update_entries/2, update_existing_entries/2,
 		  swap_value/3,
 		  remove_entry/2, remove_existing_entry/2,
@@ -93,9 +91,9 @@ have been back-ported to the other table types.
 
 -type entry() :: hashtable:entry().
 
--type maybe_entry() :: hashtable:maybe_entry().
+-type option_entry() :: hashtable:option_entry().
 
--type maybe_entries() :: hashtable:maybe_entries().
+-type option_entries() :: hashtable:option_entries().
 
 
 -type entries() :: hashtable:entries().
@@ -110,7 +108,7 @@ have been back-ported to the other table types.
 
 
 -export_type([ key/0, value/0, entry/0, entries/0,
-			   entry_count/0, maybe_entry/0, maybe_entries/0,
+			   entry_count/0, option_entry/0, option_entries/0,
 			   map_hashtable/0, map_hashtable/2 ]).
 
 
@@ -277,12 +275,12 @@ add_entries( Entries, MapHashtable ) ->
 % replaced by the specified one (hence does not check whether or not the key
 % already exist in this table).
 %
--spec add_maybe_entry( key(), option( value() ), map_hashtable() ) ->
+-spec add_option_entry( key(), option( value() ), map_hashtable() ) ->
 											map_hashtable().
-add_maybe_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
+add_option_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
 	MapHashtable;
 
-add_maybe_entry( Key, MaybeValue, MapHashtable ) ->
+add_option_entry( Key, MaybeValue, MapHashtable ) ->
 	add_entry( Key, MaybeValue, MapHashtable ).
 
 
@@ -295,10 +293,11 @@ add_maybe_entry( Key, MaybeValue, MapHashtable ) ->
 % replaced by the specified one (hence does not check whether or not keys
 % already exist in this table).
 %
--spec add_maybe_entries( maybe_entries(), map_hashtable() ) -> map_hashtable().
-add_maybe_entries( MaybeEntries, MapHashtable ) ->
+-spec add_option_entries( option_entries(), map_hashtable() ) ->
+											map_hashtable().
+add_option_entries( MaybeEntries, MapHashtable ) ->
 	lists:foldl( fun( { K, MV }, Map ) ->
-					add_maybe_entry( K, MV, Map )
+					add_option_entry( K, MV, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=MaybeEntries ).

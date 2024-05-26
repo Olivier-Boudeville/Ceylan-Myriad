@@ -254,11 +254,16 @@ backend (wx) counterparts.
 % A wxWidgets enumerated value.
 
 
+-type wx_art_id() :: unicode:chardata().
+% For example "wxART_NEW".
+
+
 -export_type([ wx_native_object_type/0, wx_opt_pair/0,
 			   wx_event_handler_option/0,
 			   other_wx_device_context_attribute/0,
 			   wx_device_context_attribute/0, wx_enum/0,
-			   wx_direction/0, wx_orientation/0 ]).
+			   wx_direction/0, wx_orientation/0,
+			   wx_art_id/0 ]).
 
 
 % Preferably no '-export_type' here to avoid leakage of backend conventions.

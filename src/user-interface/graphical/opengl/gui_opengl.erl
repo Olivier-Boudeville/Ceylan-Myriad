@@ -643,7 +643,7 @@ information.
 
 -type widget() :: gui_widget:widget().
 
--type buffer() :: gui:buffer().
+-type buffer() :: bin_utils:buffer().
 
 -type render_rgb_color() :: gui_color:render_rgb_color().
 

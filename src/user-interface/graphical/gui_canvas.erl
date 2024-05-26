@@ -222,7 +222,7 @@ See `gui.erl` for more general rendering topics.
 -type dimensions() :: gui:dimensions().
 -type size() :: gui:size().
 -type length() :: gui:length().
--type panel() :: gui:panel().
+-type panel() :: gui_panel:panel().
 -type parent() :: gui:parent().
 -type label() :: gui:label().
 

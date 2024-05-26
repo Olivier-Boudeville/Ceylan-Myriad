@@ -1,6 +1,7 @@
 % Copyright (C) 2020-2024 Olivier Boudeville
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2020.
 %
 % Released as LGPL software.
 
@@ -14,7 +15,7 @@ systems**.
 We finally stick to our make-based build system that we found more suitable than
  (for example) rebar3.
 
-Better here than in `myriad-build.escript' to benefit from a more user-friendly
+Better here than in `myriad-build.escript` to benefit from a more user-friendly
 debugging.
 """.
 

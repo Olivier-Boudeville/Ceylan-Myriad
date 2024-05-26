@@ -84,7 +84,7 @@ space at the bottom of a frame where texts are typically displayed.
 
 -type text() :: gui_text:text().
 
--type frame() :: gui_window:frame().
+-type frame() :: gui_frame:frame().
 
 
 

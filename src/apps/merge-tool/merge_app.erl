@@ -4,6 +4,7 @@
 % escript context.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2016.
 %
 % Released as LGPL software.
 
@@ -12,8 +13,8 @@
 -moduledoc """
 Module in charge of the actual **launch of the Myriad merge tool**.
 
-Transferred from `merge-tree.escript' in order to benefit from a
-more user-friendly debugging.
+Transferred from `merge-tree.escript` in order to benefit from a more
+user-friendly debugging.
 """.
 
 -export([ exec/0 ]).

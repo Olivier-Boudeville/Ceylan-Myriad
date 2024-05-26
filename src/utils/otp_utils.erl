@@ -180,7 +180,7 @@ tested application, the build trees of its prerequisites can be found (e.g. as
 
 	% If set, means that it is an active application:
 	start_mod_args ::
-		option( { module_name(), basic_utils:arguments() } ),
+		option( { module_name(), [ basic_utils:argument() ] } ),
 
 	% As contained in its .app file:
 	spec :: app_spec() } ).

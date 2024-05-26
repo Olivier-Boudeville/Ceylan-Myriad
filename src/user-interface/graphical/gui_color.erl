@@ -234,7 +234,7 @@ Gathering of various facilities for **color management**.
 
 -type byte_size() :: system_utils:byte_size().
 
--type buffer() :: gui:buffer().
+-type buffer() :: bin_utils:buffer().
 
 
 

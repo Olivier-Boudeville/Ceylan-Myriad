@@ -67,7 +67,7 @@ on-the-fly, exporting two functions designed to access either of the elements of
 the entries of interest.
 
 More precisely, a module name (e.g. 'foobar') and a list of `{any(), any()}`
-entries must be provided to the `const_bijective_table:generate*/*' functions;
+entries must be provided to the `const_bijective_table:generate*/*` functions;
 any element E of any pair in the resulting table (e.g. 42.0 in `{'baz', 42.0}`)
 can then be accessed thanks to foobar:get_{first|second}_for/1 (e.g. `baz =
 foobar:get_first_for(42.0)`).

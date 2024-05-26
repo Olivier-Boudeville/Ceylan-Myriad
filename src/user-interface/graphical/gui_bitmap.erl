@@ -109,21 +109,23 @@ managed by the caller: a creation shall be ultimately paired to a destruction
  | 'backend_logo_bitmap'.
 % The name identifiers of the standard bitmaps.
 %
-% See also gui_constants:get_bitmap_id_topic_spec/0.
+% See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 
 
 -type bitmap_name_id() :: standard_bitmap_name_id() | id().
 
+-type backend_bitmap_id() :: wx_art_id().
+% An identifier if a bitmap provided by the GUI backend.
+
 
 -export_type([ bitmap/0, empty_bitmap/0, raw_bitmap/0,
 			   bitmap_display/0, standard_bitmap_name_id/0,
-			   bitmap_name_id/0 ]).
+			   bitmap_name_id/0, backend_bitmap_id/0 ]).
 
 
 % Local types:
 
--type wx_art_id() :: unicode:chardata().
-% For example "wxART_NEW".
+-type wx_art_id() :: gui_wx_backend:wx_art_id().
 
 
 % Functions on bitmaps:
