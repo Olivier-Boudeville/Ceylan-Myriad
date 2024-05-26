@@ -51,102 +51,146 @@ by the GLSL compiler.
 %-include("type_utils.hrl").
 
 
+-doc "The identifier of (any kind of) a shader.".
 -type shader_id() :: non_neg_integer().
-% The identifier of (any kind of) a shader.
 
 
 % There are 6 types of shaders; in pipeline order:
 
+
+-doc """
+The identifier of a vertex shader, to run on a programmable vertex processor.
+""".
 -type vertex_shader_id() :: shader_id().
-% The identifier of a vertex shader, to run on a programmable vertex processor.
 
 
+
+-doc """
+The identifier of a tessellation shader, to run on a programmable tessellation
+processor in the control stage.
+""".
 -type tessellation_control_shader_id() :: shader_id().
-% The identifier of a tessellation shader, to run on a programmable tessellation
-% processor in the control stage.
 
 
+
+-doc """
+The identifier of a tessellation shader, to run on a programmable tessellation
+processor in the evaluation stage.
+""".
 -type tessellation_evaluation_shader_id() :: shader_id().
-% The identifier of a tessellation shader, to run on a programmable tessellation
-% processor in the evaluation stage.
 
 
+
+-doc """
+The identifier of a geometry shader, to run on a programmable geometry
+processor.
+""".
 -type geometry_shader_id() :: shader_id().
-% The identifier of a geometry shader, to run on a programmable geometry
-% processor.
 
 
+
+-doc """
+The identifier of a fragment shader, to run on a programmable fragment
+processor.
+""".
 -type fragment_shader_id() :: shader_id().
-% The identifier of a fragment shader, to run on a programmable fragment
-% processor.
 
 
+
+-doc """
+The identifier of a compute shader, to run on a programmable compute processor.
+""".
 -type compute_shader_id() :: shader_id().
 % The identifier of a compute shader, to run on a programmable compute
 % processor.
 
 
+
+-doc "The identifier of GLSL, shader-based program.".
 -type program_id() :: non_neg_integer().
-% The identifier of GLSL, shader-based program.
 
 
 
+-doc """
+The name of a user-defined attribute, meant to be set through an associated
+index.
+
+By default a vertex attribute is disabled.
+
+A vertex attribute is typically abbreviated as VAttr.
+""".
 -type vertex_attribute_name() :: ustring().
-% The name of a user-defined attribute, meant to be set through an associated
-% index.
-%
-% By default a vertex attribute is disabled.
-%
-% A vertex attribute is typically abbreviated as VAttr.
 
 
+
+
+-doc """
+The index of a vertex attribute, in each data conveyed through the vertex
+stream.
+
+We may abbreviate this type as "vai".
+
+Such an index corresponds to a location for a shader (like in
+`layout (location= 0)')`. At least 16 indices are supported by OpenGL-compliant
+cards.
+
+When specifying such an attribute, it is done relatively to the currently active
+VBO.
+""".
 -type vertex_attribute_index() :: non_neg_integer().
-% The index of a vertex attribute, in each data conveyed through the vertex
-% stream.
-%
-% We may abbreviate this type as "vai".
-%
-% Such an index corresponds to a location for a shader (like in `layout
-% (location = 0)'). At least 16 indices are supported by OpenGL-compliant cards.
-%
-% When specifying such an attribute, it is done relatively to the currently
-% active VBO.
 
 
+
+-doc """
+A user-defined vertex attribute variable, meant to be associated to a generic
+vertex attribute index in a GLSL program.
+""".
 -type user_vertex_attribute() ::
 		{ vertex_attribute_name(), vertex_attribute_index() }.
-% A user-defined vertex attribute variable, meant to be associated to a generic
-% vertex attribute index in a GLSL program.
+%
 
+-doc """
+The identifier of a "Vertex Array Object" (VAO), which can be seen as a
+datastructure holding rendering-related information (such as VBOs, an EBO,
+corresponding settings of the OpenGL state machine).
 
+A VAO is able to reference "vertex information":
+- the specification of multiple (enabled) vertex attributes
+- multiple VBOs (up to one for vertices, the others for per-vertex attributes)
+- up to one EOB
+
+The core profile requires a VAO to be explicitly used; a default VAO (number 0)
+exists only with the compatibility profile, so we recommend not using it.
+
+Once made active (bound) and until being unbound, a VAO keeps track of, notably,
+the VBOs that are bound. So if a VBO is still bound when a VAO is unbound, the
+VBO will be tracked by this VAO and be automatically bound when this VAO will be
+bound next. The same applies to the EBO and to the specifications of vertex
+attributes.
+""".
 -type vao_id() :: non_neg_integer().
-% The identifier of a "Vertex Array Object" (VAO), which can be seen as a
-% datastructure holding rendering-related information (such as VBOs, an EBO,
-% corresponding settings of the OpenGL state machine).
-%
-% A VAO is able to reference "vertex information":
-% - the specification of multiple (enabled) vertex attributes
-% - multiple VBOs (up to one for vertices, the others for per-vertex attributes)
-% - up to one EOB
-%
-% The core profile requires a VAO to be explicitly used; a default VAO (number
-% 0) exists only with the compatibility profile, so we recommend not using it.
-%
-% Once made active (bound) and until being unbound, a VAO keeps track of,
-% notably, the VBOs that are bound. So if a VBO is still bound when a VAO is
-% unbound, the VBO will be tracked by this VAO and be automatically bound when
-% this VAO will be bound next. The same applies to the EBO and to the
-% specifications of vertex attributes.
 
 
+
+-doc """
+An OpenGL/GLSL array buffer; for example a VBO or an EBO.
+""".
 -type array_buffer() :: gl_buffer().
-% An OpenGL/GLSL array buffer; for example a VBO or an EBO.
 
+
+
+-doc """
+The identifier of an (OpenGL/GLSL) array buffer, i.e. a "array buffer object
+name".
+""".
 -type array_buffer_id() :: gl_buffer_id().
-% The identifier of an (OpenGL/GLSL) array buffer, i.e. a "array buffer object
-% name".
 
 
+
+
+-doc """
+Designates a type of buffer object, typically used as a binding target.
+""".
 -type array_bind_target() ::
 	?GL_ARRAY_BUFFER              % Vertex attributes
   | ?GL_ATOMIC_COUNTER_BUFFER     % Atomic counter storage
@@ -162,160 +206,225 @@ by the GLSL compiler.
   | ?GL_TEXTURE_BUFFER            % Texture data buffer
   | ?GL_TRANSFORM_FEEDBACK_BUFFER % Transform feedback buffer
   | ?GL_UNIFORM_BUFFER.           % Uniform block storage
-% Designates a type of buffer object, typically used as a binding target.
 
 
+
+-doc """
+A "Vertex Buffer Object", that is a (GLSL) buffer storing a series of specific
+pieces of information (vertex coordinates, or normals, or colors, or texture
+coordinates, etc.) for each element of a series of vertices (a.k.a. vertex
+stream).
+
+"VBO" designates buffer objects of all sorts - not only those storing vertex
+coordinates: they just concentrate per-vertex information.
+
+A VBO corresponds to an homogeneous chunk (an array) of data, sent from the
+CPU-space, in order to be stored (possibly durably) in the GPU-space.
+
+So a 3D object may have a VBO for its vertices, one for its normals, etc.
+
+The key point is that the data is retrieved once per vertex and passed to a
+given shader instance. If a buffer contains 3 elements, each will be sent to a
+different shader instance, all of them processing their data in parallel.
+
+Furthermore interpolation may be done, for example from the outputs of the
+vertex shader (one such output per vertex) to the many fragments placed as input
+to the fragment shaders (one per pixel).
+""".
 -type vbo() :: array_buffer().
-% A "Vertex Buffer Object", that is a (GLSL) buffer storing a series of specific
-% pieces of information (vertex coordinates, or normals, or colors, or texture
-% coordinates, etc.) for each element of a series of vertices (a.k.a. vertex
-% stream).
-%
-% "VBO" designates buffer objects of all sorts - not only those storing vertex
-% coordinates: they just concentrate per-vertex information.
-%
-% A VBO corresponds to an homogeneous chunk (an array) of data, sent from the
-% CPU-space, in order to be stored (possibly durably) in the GPU-space.
-%
-% So a 3D object may have a VBO for its vertices, one for its normals, etc.
-%
-% The key point is that the data is retrieved once per vertex and passed to a
-% given shader instance. If a buffer contains 3 elements, each will be sent to a
-% different shader instance, all of them processing their data in
-% parallel.
-%
-% Furthermore interpolation may be done, for example from the outputs of the
-% vertex shader (one such output per vertex) to the many fragments placed as
-% input to the fragment shaders (one per pixel).
 
 
+-doc "The identifier of a Vertex Buffer Object (VBO).".
 -type vbo_id() :: gl_buffer_id().
-% The identifier of a Vertex Buffer Object (VBO).
 
 
 
+-doc """
+The number of component values (separate values of the same type) in a given
+vertex attribute.
+
+Must be in [1, 2, 3, 4].
+""".
 -type component_count() :: count().
-% The number of component values (separate values of the same type) in a given
-% vertex attribute.
-%
-% Must be in [1, 2, 3, 4].
 
 
+
+-doc "The (OpenGL) type of a component of an actual vertex attribute.".
 -type component_type() :: gl_base_type().
-% The (OpenGL) type of a component of an actual vertex attribute.
 
+
+
+-doc """
+A value of a component of an actual vertex attribute.
+
+For example one of the coordinates of a vertex position, normal, or texel.
+""".
 -type component_value() :: integer() | float().
-% A value of a component of an actual vertex attribute.
-%
-% For example one of the coordinates of a vertex position, normal, or texel.
 
 
+
+-doc """
+A value of a vertex attribute.
+
+For example a float triplet corresponding to a 3D vertex or a RGB color.
+""".
 -type vertex_attribute_value() :: type_utils:tuple( component_value() ).
-% A value of a vertex attribute.
-%
-% For example a float triplet corresponding to a 3D vertex or a RGB color.
 
 
+
+-doc """
+A value of a float-based vertex attribute.
+
+For example a triplet of floats corresponding to a 3D vertex or a RGB color.
+""".
 -type vertex_attribute_float_value() :: type_utils:tuple( float() ).
-% A value of a float-based vertex attribute.
-%
-% For example a triplet of floats corresponding to a 3D vertex or a RGB color.
 
 
+
+-doc """
+The compound of vertex attribute values that corresponds to a given vertex
+attribute; for example, with the vtx3_nrm_uv VBO layout, each vertex compound
+may regroup a vertex, a normal and a pair of texture coordinates, and the
+corresponding VBO will be a concatenation of a given number of such compounds.
+
+Type defined mostly for clarity.
+""".
 -type vertex_attribute_compound() ::
 		type_utils:tuple( vertex_attribute_value() ).
-% The compound of vertex attribute values that corresponds to a given vertex
-% attribute; for example, with the vtx3_nrm_uv VBO layout, each vertex compound
-% may regroup a vertex, a normal and a pair of texture coordinates, and the
-% corresponding VBO will be a concatenation of a given number of such compounds.
-%
-% Type defined mostly for clarity.
 
 
+-doc "A number of compounds of vertex attributes, in a VBO.".
 -type compound_count() :: count().
-% A number of compounds of vertex attributes, in a VBO.
 
 
+
+-doc """
+A (usually homogeneous) list of vertex attribute values, like a list of
+vertices, normals, texture coordinates, colors, etc.
+
+Series is a way of not mentioning "list" again, so that a list of series is
+easier to understand.
+""".
 -type vertex_attribute_series() :: [ vertex_attribute_value() ].
-% A (usually homogeneous) list of vertex attribute values, like a list of
-% vertices, normals, texture coordinates, colors, etc.
-%
-% Series is a way of not mentioning "list" again, so that a list of series is
-% easier to understand.
 
 
+
+-doc """
+A (usually homogeneous) list of float-based vertex attribute values, like a list
+of vertices, normals, texture coordinates, colors, etc.
+""".
 -type vertex_attribute_float_series() :: [ vertex_attribute_float_value() ].
-% A (usually homogeneous) list of float-based vertex attribute values, like a
-% list of vertices, normals, texture coordinates, colors, etc.
+
 
 
 % The position of a vertex attribute is determined based on the array stride and
 % offset:
 
+
+-doc """
+The number of bytes between two vertex attributes of a given type (comprising
+its own size), thus corresponding to the size of a vertex attribute compound.
+
+Specifying a null stride means that the buffer is tightly packed and that OpenGL
+will determine by itself the actual stride, equal here to the size of such a
+vertex attribute compound.
+""".
 -type stride() :: byte_size().
-% The number of bytes between two vertex attributes of a given type (comprising
-% its own size), thus corresponding to the size of a vertex attribute compound.
-%
-% Specifying a null stride means that the buffer is tightly packed and that
-% OpenGL will determine by itself the actual stride, equal here to the size of
-% such a vertex attribute compound.
 
 
+
+-doc """
+Offset (possibly null) at which a vertex attribute begins in the buffer.
+
+This generally corresponds to the sum of the sizes of all previous attributes
+defined for a given vertex (if tightly packed).
+""".
 -type offset() :: byte_size().
-% Offset (possibly null) at which a vertex attribute begins in the buffer.
-%
-% This generally corresponds to the sum of the sizes of all previous attributes
-% defined for a given vertex (if tightly packed).
 
 
+
+-doc "A type of OpenGL primitive for rendering.".
 -type gl_primitive_type() :: ?GL_POINTS | ?GL_LINE_STRIP | ?GL_LINE_LOOP
 	| ?GL_LINES | ?GL_LINE_STRIP_ADJACENCY | ?GL_LINES_ADJACENCY
 	| ?GL_TRIANGLE_STRIP | ?GL_TRIANGLE_FAN | ?GL_TRIANGLES
 	| ?GL_TRIANGLE_STRIP_ADJACENCY | ?GL_TRIANGLES_ADJACENCY | ?GL_PATCHES.
-% A type of OpenGL primitive for rendering.
 
 
+-doc """
+An index in an array, typically of an element in a VBO (then, a vertex index) or
+directly contained in an EBO.
+
+Starts at zero.
+""".
 -type index() :: count().
-% An index in an array, typically of an element in a VBO (then, a vertex index)
-% or directly contained in an EBO.
-%
-% Starts at zero.
 
 
+
+-doc """
+An Element Buffer Object, a (GLSL) buffer storing indices to vertex data.
+
+This buffer stores the index of each vertex that OpenGL shall draw (rather than
+the vertex itself), relatively to a corresponding VBO; defining faces based on
+indices rather than on vertices allows to avoid vertex duplication (as by design
+a vertex is common to multiple faces; it should be best specified only once, and
+referenced as many times as needed).
+
+Up to one EBO is bound in a given VAO. Usually input data is organised
+uniformly, so that a single EBO is needed for a given object.
+
+We strongly prefer using EBO to specifying vertices in a duplicating way;
+however it is not a silver bullet against duplication.
+
+Taking a textured cube (same texture on every face) as an example, there should
+be only 8 unique vertices, 6 unique normals (one per face) and 4 unique texture
+coordinates (one set for all faces); however, typically with a vtx3_nrm_uv VBO
+layout, 24 unique vertices will be needed in the VBO (as each vertex will be
+involved in 3 faces, with different extra information regarding normals and
+texture coordinates).
+
+Finally, 12 triangles will be used to draw the cube (2 per face), so the
+corresponding EBO will hold 36 indices.
+""".
 -type ebo() :: array_buffer().
-% An Element Buffer Object, a (GLSL) buffer storing indices to vertex data.
-%
-% This buffer stores the index of each vertex that OpenGL shall draw (rather
-% than the vertex itself), relatively to a corresponding VBO; defining faces
-% based on indices rather than on vertices allows to avoid vertex duplication
-% (as by design a vertex is common to multiple faces; it should be best
-% specified only once, and referenced as many times as needed).
-%
-% Up to one EBO is bound in a given VAO. Usually input data is organised
-% uniformly, so that a single EBO is needed for a given object.
-%
-% We strongly prefer using EBO to specifying vertices in a duplicating way;
-% however it is not a silver bullet against duplication.
-%
-% Taking a textured cube (same texture on every face) as an example, there
-% should be only 8 unique vertices, 6 unique normals (one per face) and 4 unique
-% texture coordinates (one set for all faces); however, typically with a
-% vtx3_nrm_uv VBO layout, 24 unique vertices will be needed in the VBO (as each
-% vertex will be involved in 3 faces, with different extra information regarding
-% normals and texture coordinates).
-%
-% Finally, 12 triangles will be used to draw the cube (2 per face), so the
-% corresponding EBO will hold 36 indices.
 
 
+
+-doc """
+The identifier of an Element Buffer Object (EBO).
+
+It is an array of indices to vertex data, see ebo().
+
+Indices start at zero, and by default are of the ?GL_UNSIGNED_INT type.
+""".
 -type ebo_id() :: gl_buffer_id().
-% The identifier of an Element Buffer Object (EBO).
-%
-% It is an array of indices to vertex data, see ebo().
-%
-% Indices start at zero, and by default are of the ?GL_UNSIGNED_INT type.
 
 
+
+
+-doc """
+Identifiers of the layout of a VBO, that is how vertex-related data is organised
+in a corresponding buffer.
+
+Locations start at zero and are enumerated that way, with their Myriad / GLSL
+type (each VBO layout will use a subset of them; each card supports at least 16
+locations):
+- 0 :: vertex3() / vec3 for the current vertex to be processed by this shader
+- 1 :: unit_normal3() / vec3 for its normal (if any is set)
+- 2 :: render_rgb_color() / vec3 for its RGB color (if any)
+- 3 :: uv_point() / vec2 for its texture coordinates (if any)
+
+Many other combinations may be supported (e.g. color and texture).
+
+For example, the vtx3_rgb layout will involve locations 0 and 2, and the
+corresponding vertex attribute compound will be made of a vertex followed by a
+render RGB color.
+
+These are Myriad-specific conventions, to streamline the processing of
+geometries.  Such a layout must be consistent between how the actual data is
+organised and how vertex shaders access it; refer to our gui_shader.glsl.h GLSL
+header, which must be kept consistent with these values and their order
+(e.g. see the MyriadGUI builtin gui_opengl_base_shader.vertex.glsl).
+""".
 -type vbo_layout() ::
 	'vtx3'         % A series of vertex3()
   | 'vtx3_nrm'     % A series of (vertex3(), unit_normal3())
@@ -323,32 +432,11 @@ by the GLSL compiler.
   | 'vtx3_uv'      % A series of (vertex3(), uv_point())
   | 'vtx3_nrm_rgb' % A series of (vertex3(), unit_normal3(), render_rgb_color())
   | 'vtx3_nrm_uv'. % A series of (vertex3(), unit_normal3(), uv_point())
-% Identifiers of the layout of a VBO, that is how vertex-related data is
-% organised in a corresponding buffer.
-%
-% Locations start at zero and are enumerated that way, with their Myriad / GLSL
-% type (each VBO layout will use a subset of them; each card supports at least
-% 16 locations):
-% - 0 :: vertex3() / vec3 for the current vertex to be processed by this shader
-% - 1 :: unit_normal3() / vec3 for its normal (if any is set)
-% - 2 :: render_rgb_color() / vec3 for its RGB color (if any)
-% - 3 :: uv_point() / vec2 for its texture coordinates (if any)
-%
-% Many other combinations may be supported (e.g. color and texture).
-%
-% For example, the vtx3_rgb layout will involve locations 0 and 2, and the
-% corresponding vertex attribute compound will be made of a vertex followed by a
-% render RGB color.
-%
-% These are Myriad-specific conventions, to streamline the processing of
-% geometries.  Such a layout must be consistent between how the actual data is
-% organised and how vertex shaders access it; refer to our gui_shader.glsl.h
-% GLSL header, which must be kept consistent with these values and their order
-% (e.g. see the MyriadGUI builtin gui_opengl_base_shader.vertex.glsl).
 
 
+
+-doc "Describes, as an (unsigned) integer, a given VBO layout.".
 -type vbo_layout_id() :: count().
-% Describes, as an (unsigned) integer, a given VBO layout.
 
 
 
@@ -365,60 +453,73 @@ by the GLSL compiler.
 % compiled artefacts, and a uniform_id_not_found error is bound to be reported.
 
 
+-doc """
+The identifier of a uniform variable; it represents the location of a specific
+uniform variable within an installed program object.
+""".
 -type uniform_id() :: integer().
-% The identifier of a uniform variable; it represents the location of a specific
-% uniform variable within an installed program object.
 
 
+
+-doc """
+The name of a uniform variable.
+
+It must not be a structure, an array of structures, or a subcomponent of a
+vector or a matrix.
+
+No user-defined uniform name shall start with the reserved prefix "gl_".
+""".
 -type uniform_name() :: ustring().
-% The name of a uniform variable.
-%
-% It must not be a structure, an array of structures, or a subcomponent of a
-% vector or a matrix.
-%
-% No user-defined uniform name shall start with the reserved prefix "gl_".
 
 
+
+-doc """
+A value that can be assigned or read from a uniform variable.
+""".
 -type uniform_value() :: any().
-% A value that can be assigned or read from a uniform variable.
 
 
 
 % Knowing that Myriad vectors are lists (contrary to points, which are tuples):
 
+-doc "A 2D vector directly suitable for use with the gl module.".
 -type gl_vec2() :: { float(), float() }.
-% A 2D vector directly suitable for use with the gl module.
 
+
+-doc "A 3D vector directly suitable for use with the gl modul.".
 -type gl_vec3() :: { float(), float(), float() }.
-% A 3D vector directly suitable for use with the gl module.
 
+
+-doc "A 4D vector directly suitable for use with the gl module.".
 -type gl_vec4() :: { float(), float(), float(), float() }.
-% A 4D vector directly suitable for use with the gl module.
 
+
+-doc "A vector of any dimension directly suitable for use with the gl module.".
 -type gl_vector() :: type_utils:tuple( float() ).
-% A vector of any dimension directly suitable for use with the gl module.
 
 
+
+-doc """
+An (ordered) list of (plain or binary) directory paths (absolute or relative to
+the current directory) through which GLSL elements will be searched in turn.
+
+This applies to the shaders themselves (typically with a `<SHADER_TYPE>.glsl`
+extension, e.g. "gui_opengl_base_shader.vertex.glsl") and to their header
+includes (typically with a '.glsl.h' extension, e.g. "gui_shader.glsl.h").
+
+In the shader code such includes are to be specified (exactly) as:
+`#include "foobar.glsl.h"`.
+
+(only one space between #include and the string, no extra character - besides
+possible whitespaces - after the second double quote)
+
+Note that MyriadGUI built-in search paths are always taken into account (last,
+that is after any user-specified search path(s), thus with the lowest priority)
+so that its base elements (shaders like "gui_opengl_base_shader.*.glsl" and
+headers like "gui_shader.glsl.h") can be found in all cases.
+""".
 -type glsl_search_paths() :: [ any_directory_path() ].
-% An (ordered) list of (plain or binary) directory paths (absolute or relative
-% to the current directory) through which GLSL elements will be searched in
-% turn.
-%
-% This applies to the shaders themselves (typically with a `<SHADER_TYPE>.glsl'
-% extension, e.g. "gui_opengl_base_shader.vertex.glsl") and to their header
-% includes (typically with a '.glsl.h' extension, e.g. "gui_shader.glsl.h").
-%
-% In the shader code such includes are to be specified (exactly) as:
-% #include "foobar.glsl.h"
-%
-% (only one space between #include and the string, no extra character - besides
-% possible whitespaces - after the second double quote)
-%
-% Note that MyriadGUI built-in search paths are always taken into account (last,
-% that is after any user-specified search path(s), thus with the lowest
-% priority) so that its base elements (shaders like
-% "gui_opengl_base_shader.*.glsl" and headers like "gui_shader.glsl.h") can be
-% found in all cases.
+
 
 
 % Usage notes:
@@ -632,7 +733,6 @@ by the GLSL compiler.
 
 % Shorthands:
 
-%-type chardata() :: unicode:chardata().
 
 -type count() :: basic_utils:count().
 
@@ -675,14 +775,16 @@ by the GLSL compiler.
 % Section for the build of shader-based programs.
 
 
-% @doc Returns the version /release number of the currently used OpenGL
-% shading language.
-%
-% Example: "4.60 FOOBAR".
-%
-% Since OpenGL 3.3, the version numbers of GLSL match the version of OpenGL
-% (GLSL version 420 corresponds to OpenGL version 4.2 for example).
-%
+
+-doc """
+Returns the version /release number of the currently used OpenGL shading
+language.
+
+Example: `"4.60 FOOBAR"`.
+
+Since OpenGL 3.3, the version numbers of GLSL match the version of OpenGL (GLSL
+version 420 corresponds to OpenGL version 4.2 for example).
+""".
 -spec get_shading_language_version() -> ustring().
 get_shading_language_version() ->
 	Res = gl:getString( ?GL_SHADING_LANGUAGE_VERSION ),
@@ -698,26 +800,30 @@ get_shading_language_version() ->
 % rendering issues on some Intel drivers.
 
 
-% @doc Loads and compiles (with no specific extra GLSL search path besides the
-% MyriadGUI built-in ones) a vertex shader from the specified source file (whose
-% extension is typically .vertex.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+
+-doc """
+Loads and compiles (with no specific extra GLSL search path besides the
+MyriadGUI built-in ones) a vertex shader from the specified source file (whose
+extension is typically .vertex.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_vertex_shader( any_file_path() ) -> vertex_shader_id().
 compile_vertex_shader( VertexShaderPath ) ->
 	compile_vertex_shader( VertexShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified extra GLSL search paths (first)
-% in addition to the MyriadGUI built-in ones (both for the shaders and for their
-% includes), a vertex shader from the specified source file (whose extension is
-% typically .vertex.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+
+-doc """
+Loads and compiles, using the specified extra GLSL search paths (first) in
+addition to the MyriadGUI built-in ones (both for the shaders and for their
+includes), a vertex shader from the specified source file (whose extension is
+typically .vertex.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_vertex_shader( any_file_path(), glsl_search_paths() ) ->
 											vertex_shader_id().
 compile_vertex_shader( VertexShaderPath, ExtraGLSLSearchPaths ) ->
@@ -797,14 +903,15 @@ compile_vertex_shader( VertexShaderPath, ExtraGLSLSearchPaths ) ->
 
 
 
-% @doc Loads and compiles (with no specific extra GLSL search path besides the
-% MyriadGUI built-in ones) a tessellation control shader from the specified
-% source file (whose extension is typically .tess-ctrl.glsl), and returns its
-% identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+
+-doc """
+Loads and compiles (with no specific extra GLSL search path besides the
+MyriadGUI built-in ones) a tessellation control shader from the specified source
+file (whose extension is typically .tess-ctrl.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_tessellation_control_shader( any_file_path() ) ->
 											tessellation_control_shader_id().
 compile_tessellation_control_shader( TessCtrlShaderPath ) ->
@@ -812,14 +919,16 @@ compile_tessellation_control_shader( TessCtrlShaderPath ) ->
 										 _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified extra GLSL search paths (first)
-% in addition to the MyriadGUI built-in ones (both for the shaders and for their
-% includes), a tessellation control shader from the specified source file (whose
-% extension is typically .tess-ctrl.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+
+-doc """
+Loads and compiles, using the specified extra GLSL search paths (first) in
+addition to the MyriadGUI built-in ones (both for the shaders and for their
+includes), a tessellation control shader from the specified source file (whose
+extension is typically .tess-ctrl.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_tessellation_control_shader( any_file_path(),
 			glsl_search_paths() ) -> tessellation_control_shader_id().
 compile_tessellation_control_shader( TessCtrlShaderPath,
@@ -899,14 +1008,15 @@ compile_tessellation_control_shader( TessCtrlShaderPath,
 
 
 
-% @doc Loads and compiles (with no specific extra GLSL search path besides the
-% MyriadGUI built-in ones) a tessellation evaluation shader from the specified
-% source file (whose extension is typically .tess-eval.glsl), and returns its
-% identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+-doc """
+Loads and compiles (with no specific extra GLSL search path besides the
+MyriadGUI built-in ones) a tessellation evaluation shader from the specified
+source file (whose extension is typically .tess-eval.glsl), and returns its
+identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_tessellation_evaluation_shader( any_file_path() ) ->
 											tessellation_evaluation_shader_id().
 compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
@@ -914,13 +1024,17 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath ) ->
 											_ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified extra GLSL search paths (first)
-% in addition to the MyriadGUI built-in ones (both for the shaders and for their
-% includes), a tessellation evaluation shader from the specified source file
-% (whose extension is typically .tess-eval.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
+
+-doc """
+Loads and compiles, using the specified extra GLSL search paths (first) in
+addition to the MyriadGUI built-in ones (both for the shaders and for their
+includes), a tessellation evaluation shader from the specified source file
+(whose extension is typically .tess-eval.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
+
 %
 -spec compile_tessellation_evaluation_shader( any_file_path(),
 			glsl_search_paths() ) -> tessellation_evaluation_shader_id().
@@ -1002,26 +1116,29 @@ compile_tessellation_evaluation_shader( TessEvalShaderPath,
 
 
 
-% @doc Loads and compiles (with no specific extra GLSL search path besides the
-% MyriadGUI built-in ones) a geometry shader from the specified source file
-% (whose extension is typically .geometry.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+-doc """
+Loads and compiles (with no specific extra GLSL search path besides the
+MyriadGUI built-in ones) a geometry shader from the specified source file (whose
+extension is typically .geometry.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_geometry_shader( any_file_path() ) -> geometry_shader_id().
 compile_geometry_shader( GeometryShaderPath ) ->
 	compile_geometry_shader( GeometryShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified extra GLSL search paths (first)
-% in addition to the MyriadGUI built-in ones (both for the shaders and for their
-% includes), a geometry shader from the specified source file (whose extension
-% is typically .geometry.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+
+-doc """
+Loads and compiles, using the specified extra GLSL search paths (first) in
+addition to the MyriadGUI built-in ones (both for the shaders and for their
+includes), a geometry shader from the specified source file (whose extension is
+typically .geometry.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_geometry_shader( any_file_path(), glsl_search_paths() ) ->
 											geometry_shader_id().
 compile_geometry_shader( GeometryShaderPath, ExtraGLSLSearchPaths ) ->
@@ -1097,26 +1214,29 @@ compile_geometry_shader( GeometryShaderPath, ExtraGLSLSearchPaths ) ->
 
 
 
-% @doc Loads and compiles (with no specific extra GLSL search path besides the
-% MyriadGUI built-in ones) a fragment shader from the specified source file
-% (whose extension is typically fragment.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+-doc """
+Loads and compiles (with no specific extra GLSL search path besides the
+MyriadGUI built-in ones) a fragment shader from the specified source file (whose
+extension is typically fragment.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_fragment_shader( any_file_path() ) -> fragment_shader_id().
 compile_fragment_shader( FragmentShaderPath ) ->
 	compile_fragment_shader( FragmentShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified extra GLSL search paths (first)
-% in addition to the MyriadGUI built-in ones (both for the shaders and for their
-% includes), a fragment shader from the specified source file (whose extension
-% is typically fragment.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+
+-doc """
+Loads and compiles, using the specified extra GLSL search paths (first) in
+addition to the MyriadGUI built-in ones (both for the shaders and for their
+includes), a fragment shader from the specified source file (whose extension is
+typically fragment.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_fragment_shader( any_file_path(), glsl_search_paths() ) ->
 											fragment_shader_id().
 compile_fragment_shader( FragmentShaderPath, ExtraGLSLSearchPaths ) ->
@@ -1192,26 +1312,29 @@ compile_fragment_shader( FragmentShaderPath, ExtraGLSLSearchPaths ) ->
 
 
 
-% @doc Loads and compiles (with no specific extra GLSL search path besides the
-% MyriadGUI built-in ones) a compute shader from the specified source file
-% (whose extension is typically .compute.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+-doc """
+Loads and compiles (with no specific extra GLSL search path besides the
+MyriadGUI built-in ones) a compute shader from the specified source file (whose
+extension is typically .compute.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_compute_shader( any_file_path() ) -> compute_shader_id().
 compile_compute_shader( ComputeShaderPath ) ->
 	compile_compute_shader( ComputeShaderPath, _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Loads and compiles, using the specified extra GLSL search paths (first)
-% in addition to the MyriadGUI built-in ones (both for the shaders and for their
-% includes), a compute shader from the specified source file (whose extension is
-% typically .compute.glsl), and returns its identifier.
-%
-% Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
-% anymore.
-%
+
+-doc """
+Loads and compiles, using the specified extra GLSL search paths (first) in
+addition to the MyriadGUI built-in ones (both for the shaders and for their
+includes), a compute shader from the specified source file (whose extension is
+typically .compute.glsl), and returns its identifier.
+
+Will have to be explicitly deleted (with gl:DeleteShader/1) once not useful
+anymore.
+""".
 -spec compile_compute_shader( any_file_path(), glsl_search_paths() ) ->
 											compute_shader_id().
 compile_compute_shader( ComputeShaderPath, ExtraGLSLSearchPaths ) ->
@@ -1287,11 +1410,12 @@ compile_compute_shader( ComputeShaderPath, ExtraGLSLSearchPaths ) ->
 
 
 
-% @doc Returns the preprocessed source of the specified shader, which possibly
-% relies on header includes (like '#include "gui_shader.glsl.h"'), its full
-% path, the total number of lines inlined due to headers, and the line of the
-% first include found (if any).
-%
+-doc """
+Returns the preprocessed source of the specified shader, which possibly relies
+on header includes (like '#include "gui_shader.glsl.h"'), its full path, the
+total number of lines inlined due to headers, and the line of the first include
+found (if any).
+""".
 -spec get_shader_source( any_file_path(), glsl_search_paths() ) ->
 							{ bin_string(), count(), option( line_number() ) }.
 get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
@@ -1312,7 +1436,7 @@ get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
 			trace_utils:error_fmt( "Shader source file '~ts' not found through "
 				"the following GLSL search paths: ~ts.",
 				[ ShaderPath, text_utils:strings_to_enumerated_string(
-									FullGLSLSearchPaths ) ] ),
+					FullGLSLSearchPaths ) ] ),
 			throw( { shader_source_file_not_found, ShaderPath,
 					 FullGLSLSearchPaths } );
 
@@ -1351,11 +1475,13 @@ get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
 
 
 
-% @doc Resolves the specified GLSL-related file (e.g. shader or include) based
-% on the specified search paths.
-%
+
+-doc """
+Resolves the specified GLSL-related file (e.g. shader or include) based on the
+specified search paths.
+""".
 -spec resolve_glsl_file( any_file_path(), glsl_search_paths() ) ->
-								  option( any_file_path() ).
+									option( any_file_path() ).
 resolve_glsl_file( FilePath, ExtraGLSLSearchPaths ) ->
 
 	case file_utils:is_absolute_path( FilePath ) of
@@ -1383,10 +1509,11 @@ resolve_glsl_file( FilePath, ExtraGLSLSearchPaths ) ->
 
 
 
-% Returns the fully-inlined lines determined for the specified shader file, as a
-% list of bin_string(), the total number of the included lines, and the line (if
-% any) at which the first include was found.
-%
+-doc """
+Returns the fully-inlined lines determined for the specified shader file, as a
+list of bin_string(), the total number of the included lines, and the line (if
+any) at which the first include was found.
+""".
 -spec preprocess_shader_file( file_path(), glsl_search_paths() ) ->
 				{ [ bin_string() ], count(), option( line_number() ) }.
 preprocess_shader_file( SrcPath, ExtraGLSLSearchPaths ) ->
@@ -1574,11 +1701,12 @@ fix_line_numbers_in( LogStr, TotalInclLineCount,
 
 
 
-% @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles (with no specific extra include search path) the
-% specified vertex and fragment shaders (with no user-specified attributes
-% defined), links them in a corresponding program, and returns its identifier.
-%
+-doc """
+Generates a GLSL program from the shaders whose source files are specified:
+loads and compiles (with no specific extra include search path) the specified
+vertex and fragment shaders (with no user-specified attributes defined), links
+them in a corresponding program, and returns its identifier.
+""".
 -spec generate_program_from( any_file_path(), any_file_path() ) -> program_id().
 generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 
@@ -1589,11 +1717,12 @@ generate_program_from( VertexShaderPath, FragmentShaderPath ) ->
 
 
 
-% @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles (with no specific extra include search path) the
-% specified vertex and fragment shaders, with user-specified attributes, links
-% them in a corresponding program, and returns its identifier.
-%
+-doc """
+Generates a GLSL program from the shaders whose source files are specified:
+loads and compiles (with no specific extra include search path) the specified
+vertex and fragment shaders, with user-specified attributes, links them in a
+corresponding program, and returns its identifier.
+""".
 -spec generate_program_from( any_file_path(), any_file_path(),
 							 [ user_vertex_attribute() ] ) -> program_id().
 generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes ) ->
@@ -1601,11 +1730,13 @@ generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes ) ->
 						   _ExtraGLSLSearchPaths=[] ).
 
 
-% @doc Generates a GLSL program from the shaders whose source files are
-% specified: loads and compiles, with the specified extra include search paths,
-% the specified vertex and fragment shaders, with user-specified attributes,
-% links them in a corresponding program, and returns its identifier.
-%
+
+-doc """
+Generates a GLSL program from the shaders whose source files are specified:
+loads and compiles, with the specified extra include search paths, the specified
+vertex and fragment shaders, with user-specified attributes, links them in a
+corresponding program, and returns its identifier.
+""".
 -spec generate_program_from( any_file_path(), any_file_path(),
 		[ user_vertex_attribute() ], glsl_search_paths() ) -> program_id().
 generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes,
@@ -1622,24 +1753,27 @@ generate_program_from( VertexShaderPath, FragmentShaderPath, UserAttributes,
 
 
 
-% @doc Generates a GLSL program from the (already loaded and compiled) shaders
-% whose identifiers are specified, with no user-specified attributes defined:
-% links these shaders in a corresponding program, and returns its identifier.
-%
-% Deletes the specified shaders once the program is generated.
-%
+-doc """
+Generates a GLSL program from the (already loaded and compiled) shaders whose
+identifiers are specified, with no user-specified attributes defined: links
+these shaders in a corresponding program, and returns its identifier.
+
+Deletes the specified shaders once the program is generated.
+""".
 -spec generate_program( [ shader_id() ] ) -> program_id().
 generate_program( ShaderIds ) ->
 	generate_program( ShaderIds, _UserAttributes=[] ).
 
 
 
-% @doc Generates a GLSL program from the (already loaded and compiled) shaders
-% whose identifiers are specified, with user-specified attributes: links these
-% shaders in a corresponding program, and returns its identifier.
-%
-% Deletes the specified shaders once the program is generated.
-%
+
+-doc """
+Generates a GLSL program from the (already loaded and compiled) shaders whose
+identifiers are specified, with user-specified attributes: links these shaders
+in a corresponding program, and returns its identifier.
+
+Deletes the specified shaders once the program is generated.
+""".
 -spec generate_program( [ shader_id() ], [ user_vertex_attribute() ] ) ->
 								program_id().
 generate_program( ShaderIds, UserAttributes ) ->
@@ -1725,9 +1859,10 @@ generate_program( ShaderIds, UserAttributes ) ->
 
 
 
-% @doc Installs the specified GLSL program as part of current rendering state:
-% it will be used from then on.
-%
+-doc """
+Installs the specified GLSL program as part of current rendering state: it will
+be used from then on.
+""".
 -spec install_program( program_id() ) -> void().
 install_program( ProgramId ) ->
 	gl:useProgram( ProgramId ),
@@ -1735,7 +1870,7 @@ install_program( ProgramId ) ->
 
 
 
-% @doc Deletes the specified GLSL program.
+-doc "Deletes the specified GLSL program".
 -spec delete_program( program_id() ) -> void().
 delete_program( ProgramId ) ->
 	gl:deleteProgram( ProgramId ),
@@ -1747,13 +1882,18 @@ delete_program( ProgramId ) ->
 % Section for the support of the MyriadGUI base conventions.
 
 
-% @doc Returns the paths of the MyriadGUI base GLSL header includes.
+-doc """
+Returns the paths of the MyriadGUI base GLSL header includes.
+""".
 get_base_glsl_include_paths() ->
 	% Typically for gui_shader.glsl.h:
 	[ _BaseShaderPath= gui_opengl:get_base_path() ].
 
 
-% @doc Returns the filenames of the MyriadGUI base, built-in shaders.
+
+-doc """
+Returns the filenames of the MyriadGUI base, built-in shaders.
+""".
 -spec get_base_shader_filenames() -> { file_path(), file_path() }.
 get_base_shader_filenames() ->
 	{ _VertexShader=  "gui_opengl_base_shader.vertex.glsl",
@@ -1761,14 +1901,15 @@ get_base_shader_filenames() ->
 
 
 
-% @doc Returns the user vertex attributes corresponding to the MyriadGUI
-% convention to declare vertex attributes for the shaders.
-%
-% This optional step applies MyriadGUI defaults in order to streamline the user
-% code.
-%
-% Done for all VBO layouts.
-%
+-doc """
+Returns the user vertex attributes corresponding to the MyriadGUI convention to
+declare vertex attributes for the shaders.
+
+This optional step applies MyriadGUI defaults in order to streamline the user
+code.
+
+Done for all VBO layouts.
+""".
 -spec get_base_user_attributes() -> void().
 get_base_user_attributes() ->
 	% Just having to declare the corresponding vais:
@@ -1784,11 +1925,12 @@ get_base_user_attributes() ->
 
 
 
-% @doc Generates a GLSL program from the MyriadGUI base shaders: loads and
-% compiles the corresponding vertex and fragment shaders, links them in a
-% corresponding program, prepares for their support, installs the program and
-% returns its identifier.
-%
+-doc """
+Generates a GLSL program from the MyriadGUI base shaders: loads and compiles the
+corresponding vertex and fragment shaders, links them in a corresponding
+program, prepares for their support, installs the program and returns its
+identifier.
+""".
 -spec deploy_base_program() -> program_id().
 deploy_base_program() ->
 
@@ -1846,11 +1988,12 @@ deploy_base_program() ->
 
 
 
-% @doc Sets, directed to the shaders of the specified program, the current VBO
-% layout.
-%
-% Typically to be used when rendering a mesh.
-%
+
+-doc """
+Sets, directed to the shaders of the specified program, the current VBO layout.
+
+Typically to be used when rendering a mesh.
+""".
 -spec set_vbo_layout( vbo_layout(), program_id() ) -> void().
 set_vbo_layout( VBOLayout, ProgramId ) ->
 
@@ -1870,10 +2013,11 @@ set_vbo_layout( VBOLayout, ProgramId ) ->
 % Section for the management of the building blocks used by shaders.
 
 
-% @doc Returns a new, unique, buffer identifier.
-%
-% Operates for all kinds of arrays.
-%
+-doc """
+Returns a new, unique, buffer identifier.
+
+Operates for all kinds of arrays.
+""".
 -spec generate_buffer_id() -> gl_buffer_id().
 generate_buffer_id() ->
 	[ BufferId ] = gl:genBuffers( _Count=1 ),
@@ -1881,10 +2025,12 @@ generate_buffer_id() ->
 	BufferId.
 
 
-% @doc Returns the specified number of new, unique, buffer identifier.s
-%
-% Operates for all kinds of arrays.
-%
+
+-doc """
+Returns the specified number of new, unique, buffer identifiers.
+
+Operates for all kinds of arrays.
+""".
 -spec generate_buffer_ids( count() ) -> [ gl_buffer_id() ].
 generate_buffer_ids( Count ) ->
 	BufferIds = gl:genBuffers( Count ),
@@ -1892,9 +2038,11 @@ generate_buffer_ids( Count ) ->
 	BufferIds.
 
 
-% @doc Assigns the specified buffer to the specified array in the OpenGL
-% context, based on the specified usage hint.
-%
+
+-doc """
+Assigns the specified buffer to the specified array in the OpenGL context, based
+on the specified usage hint.
+""".
 -spec assign_array( array_buffer(), array_bind_target(),
 					buffer_usage_hint() ) -> void().
 assign_array( ArrayBuffer, BindTarget, BufferUsageHint ) ->
@@ -1918,13 +2066,14 @@ assign_array( ArrayBuffer, BindTarget, BufferUsageHint ) ->
 
 
 
-% @doc Deletes the specified buffer.
+-doc "Deletes the specified buffer.".
 -spec delete_buffer( array_buffer_id() ) -> void().
 delete_buffer( BufferId ) ->
 	delete_buffers( [ BufferId ] ).
 
 
-% @doc Deletes the specified buffers.
+
+-doc "Deletes the specified buffers.".
 -spec delete_buffers( [ array_buffer_id() ] ) -> void().
 delete_buffers( BufferIds ) ->
 	gl:deleteBuffers( BufferIds ),
@@ -1936,10 +2085,11 @@ delete_buffers( BufferIds ) ->
 % Vertex attribute subsection.
 
 
-% @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
-% the currently active VBO, supposing 3 floats per vertex attribute directly in
-% a tightly-packed buffer, and enables this attribute.
-%
+-doc """
+Tells OpenGL how the specified vertex attribute shall be interpreted in the
+currently active VBO, supposing 3 floats per vertex attribute directly in a
+tightly-packed buffer, and enables this attribute.
+""".
 -spec declare_vertex_attribute( vertex_attribute_index() ) -> void().
 declare_vertex_attribute( TargetVAttrIndex ) ->
 	declare_vertex_attribute( TargetVAttrIndex, _ComponentCount=3,
@@ -1947,10 +2097,12 @@ declare_vertex_attribute( TargetVAttrIndex ) ->
 		_Offset=0, _DoEnable=true ).
 
 
-% @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
-% the currently active VBO, supposing the specified number of floats per vertex
-% attribute directly in a tightly-packed buffer, and enables this attribute.
-%
+
+-doc """
+Tells OpenGL how the specified vertex attribute shall be interpreted in the
+currently active VBO, supposing the specified number of floats per vertex
+attribute directly in a tightly-packed buffer, and enables this attribute.
+""".
 -spec declare_vertex_attribute( vertex_attribute_index(),
 								component_count() ) -> void().
 declare_vertex_attribute( TargetVAttrIndex, ComponentCount ) ->
@@ -1959,18 +2111,20 @@ declare_vertex_attribute( TargetVAttrIndex, ComponentCount ) ->
 		_Offset=0, _DoEnable=true ).
 
 
-% @doc Tells OpenGL how the specified vertex attribute shall be interpreted in
-% the currently active VBO, and enables this attribute if requested.
-%
-% The various components corresponding to a single vertex shall be described in
-% terms of component count (e.g. 3 coordinates for a 3D position, a normal or a
-% RGB value) and component type (e.g. floats for coordinates, integers for color
-% element, etc.).
-%
-% Normalisation applies only to (fixed-point) integer components.
-%
-% Will be stored in any already-bound VAO.
-%
+
+-doc """
+Tells OpenGL how the specified vertex attribute shall be interpreted in the
+currently active VBO, and enables this attribute if requested.
+
+The various components corresponding to a single vertex shall be described in
+terms of component count (e.g. 3 coordinates for a 3D position, a normal or a
+RGB value) and component type (e.g. floats for coordinates, integers for color
+element, etc.).
+
+Normalisation applies only to (fixed-point) integer components.
+
+Will be stored in any already-bound VAO.
+""".
 -spec declare_vertex_attribute( vertex_attribute_index(), component_count(),
 	gl_base_type(), boolean(), stride(), offset(), boolean() ) -> void().
 declare_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
@@ -1993,13 +2147,13 @@ declare_vertex_attribute( TargetVAttrIndex, ComponentCount, ComponentType,
 
 
 
-% @doc Declares and enables, for the specified index of the currently active
-% VBO, a vertex attribute that is automatically parametrised based on the
-% specified data to which it is to correspond (typically an homogeneous,
-% tightly-packed VBO).
-%
-% Will be stored in any already-bound VAO.
-%
+-doc """
+Declares and enables, for the specified index of the currently active VBO, a
+vertex attribute that is automatically parametrised based on the specified data
+to which it is to correspond (typically an homogeneous, tightly-packed VBO).
+
+Will be stored in any already-bound VAO.
+""".
 -spec declare_vertex_attribute_for( vertex_attribute_index(),
 									vertex_attribute_series() ) -> void().
 declare_vertex_attribute_for( TargetVAttrIndex, VAttrSeries ) ->
@@ -2007,13 +2161,15 @@ declare_vertex_attribute_for( TargetVAttrIndex, VAttrSeries ) ->
 								  _DoEnable=true ).
 
 
-% @doc Declares - and, if requested, enables - for the specified index of the
-% currently active VBO, a vertex attribute that is automatically parametrised
-% based on the specified data to which it is to correspond (typically an
-% homogeneous, tightly-packed VBO).
-%
-% Will be stored in any already-bound VAO.
-%
+
+-doc """
+Declares - and, if requested, enables - for the specified index of the currently
+active VBO, a vertex attribute that is automatically parametrised based on the
+specified data to which it is to correspond (typically an homogeneous,
+tightly-packed VBO).
+
+Will be stored in any already-bound VAO.
+""".
 -spec declare_vertex_attribute_for( vertex_attribute_index(),
 		vertex_attribute_series(), boolean() ) -> void().
 declare_vertex_attribute_for( VAttrIndex,
@@ -2034,11 +2190,12 @@ declare_vertex_attribute_for( VAttrIndex,
 
 
 
-% @doc Enables the specified vertex attribute.
-%
-% If enabled, the values in the generic vertex attribute array will be accessed
-% and used for rendering when calls are made to vertex array commands.
-%
+-doc """
+Enables the specified vertex attribute.
+
+If enabled, the values in the generic vertex attribute array will be accessed
+and used for rendering when calls are made to vertex array commands.
+""".
 -spec enable_vertex_attribute( vertex_attribute_index() ) -> void().
 enable_vertex_attribute( VAttrIndex ) ->
 
@@ -2047,7 +2204,8 @@ enable_vertex_attribute( VAttrIndex ) ->
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Disables the specified vertex attribute.
+
+-doc "Disables the specified vertex attribute.".
 -spec disable_vertex_attribute( vertex_attribute_index() ) -> void().
 disable_vertex_attribute( VAttrIndex ) ->
 
@@ -2057,11 +2215,10 @@ disable_vertex_attribute( VAttrIndex ) ->
 
 
 
-
 % VAO subsection.
 
 
-% @doc Returns a new, unique, VAO identifier.
+-doc "Returns a new, unique, VAO identifier.".
 -spec generate_vao_id() -> vao_id().
 generate_vao_id() ->
 	[ VAOId ] = gl:genVertexArrays( _Count=1 ),
@@ -2069,7 +2226,8 @@ generate_vao_id() ->
 	VAOId.
 
 
-% @doc Returns the specified number of new, unique, VAO identifiers.
+
+-doc "Returns the specified number of new, unique, VAO identifiers.".
 -spec generate_vao_ids( count() ) -> [ vao_id() ].
 generate_vao_ids( Count ) ->
 	VAOIds = gl:genVertexArrays( Count ),
@@ -2077,20 +2235,23 @@ generate_vao_ids( Count ) ->
 	VAOIds.
 
 
-% @doc Creates a VAO identifier, sets it as the currently active one, and
-% returns it.
-%
-% From now on, all operations done regarding VAOs will be applied to this one.
-%
+
+-doc """
+Creates a VAO identifier, sets it as the currently active one, and returns it.
+
+From now on, all operations done regarding VAOs will be applied to this one.
+""".
 -spec set_new_vao() -> vao_id().
 set_new_vao() ->
 	set_current_vao_from_id( generate_vao_id() ).
 
 
-% @doc Sets the specified VBO as the currently active one.
-%
-% Returns, if useful, the specified identifier, for chaining.
-%
+
+-doc """
+Sets the specified VBO as the currently active one.
+
+Returns, if useful, the specified identifier, for chaining.
+""".
 -spec set_current_vao_from_id( vao_id() ) -> vao_id().
 set_current_vao_from_id( VAOId ) ->
 
@@ -2103,12 +2264,14 @@ set_current_vao_from_id( VAOId ) ->
 	VAOId.
 
 
-% @doc Unsets the current VAO from the context.
-%
-% This is the moment when this VAO records the vertex information that has been
-% set since it was bound, in order to be able to set again that information at
-% its next binding.
-%
+
+-doc """
+Unsets the current VAO from the context.
+
+This is the moment when this VAO records the vertex information that has been
+set since it was bound, in order to be able to set again that information at its
+next binding.
+""".
 -spec unset_current_vao() -> void().
 unset_current_vao() ->
 	gl:bindVertexArray( _Unbind=0 ),
@@ -2116,20 +2279,24 @@ unset_current_vao() ->
 
 
 
-% @doc Deletes the specified VAO.
-%
-% If a currently bound VAO is deleted, the binding for that object reverts to
-% zero and the default VAO becomes current.
-%
+-doc """
+Deletes the specified VAO.
+
+If a currently bound VAO is deleted, the binding for that object reverts to zero
+and the default VAO becomes current.
+""".
+-spec delete_vao( vao_id() ) -> void().
 delete_vao( VAOId ) ->
 	delete_vaos( [ VAOId ] ).
 
 
-% @doc Deletes the specified VAOs.
-%
-% If a currently bound VAO is deleted, the binding for that object reverts to
-% zero and the default VAO becomes current.
-%
+
+-doc """
+Deletes the specified VAOs.
+
+If a currently bound VAO is deleted, the binding for that object reverts to zero
+and the default VAO becomes current.
+""".
 -spec delete_vaos( [ vao_id() ] ) -> void().
 delete_vaos( VAOIds ) ->
 	gl:deleteVertexArrays( VAOIds ),
@@ -2141,39 +2308,42 @@ delete_vaos( VAOIds ) ->
 % VBO subsection.
 
 
-% @doc Returns a new, unique, VBO identifier.
+-doc "Returns a new, unique, VBO identifier.".
 -spec generate_vbo_id() -> vbo_id().
 generate_vbo_id() ->
 	generate_buffer_id().
 
 
-% @doc Returns the specified number of new, unique, VBO identifiers.
+
+-doc "Returns the specified number of new, unique, VBO identifiers.".
 -spec generate_vbo_ids( count() ) -> [ vbo_id() ].
 generate_vbo_ids( Count ) ->
 	generate_buffer_ids( Count ).
 
 
 
-% @doc Creates a VBO identifier, sets it as the currently active one, and
-% returns it.
-%
-% From now on, all operations done regarding the ?GL_ARRAY_BUFFER target will be
-% applied to this VBO.
-%
+-doc """
+Creates a VBO identifier, sets it as the currently active one, and returns it.
+
+From now on, all operations done regarding the ?GL_ARRAY_BUFFER target will be
+applied to this VBO.
+""".
 -spec set_new_vbo() -> vbo_id().
 set_new_vbo() ->
 	set_current_vbo_from_id( generate_vbo_id() ).
 
 
-% @doc Sets the specified VBO as the currently active one.
-%
-% From now on, all operations done regarding the ?GL_ARRAY_BUFFER target will be
-% applied to this buffer.
-%
-% Lower-level, defined to centralise calls.
-%
-% Returns, if useful, the specified identifier, for chaining.
-%
+
+-doc """
+Sets the specified VBO as the currently active one.
+
+From now on, all operations done regarding the ?GL_ARRAY_BUFFER target will be
+applied to this buffer.
+
+Lower-level, defined to centralise calls.
+
+Returns, if useful, the specified identifier, for chaining.
+""".
 -spec set_current_vbo_from_id( vbo_id() ) -> vbo_id().
 set_current_vbo_from_id( VBOId ) ->
 
@@ -2187,42 +2357,48 @@ set_current_vbo_from_id( VBOId ) ->
 
 
 
-% @doc Assigns the specified buffer to the currently active VBO, and associates
-% it a default usage profile.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+-doc """
+Assigns the specified buffer to the currently active VBO, and associates it a
+default usage profile.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_current_vbo( array_buffer() ) -> void().
 assign_current_vbo( ArrayBuffer ) ->
 	assign_current_vbo( ArrayBuffer, ?default_vbo_usage_hint ).
 
 
-% @doc Assigns the specified buffer and associated usage settings to the
-% currently active VBO.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+
+-doc """
+Assigns the specified buffer and associated usage settings to the currently
+active VBO.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_current_vbo( array_buffer(), buffer_usage_hint() ) -> void().
 assign_current_vbo( ArrayBuffer, BufferUsageHint ) ->
 	assign_array( ArrayBuffer, _BindTarget=?GL_ARRAY_BUFFER, BufferUsageHint ).
 
 
 
-% @doc Assigns the specified buffer to a new VBO that is made the currently
-% active one, and associates it a default usage profile.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+-doc """
+Assigns the specified buffer to a new VBO that is made the currently active one,
+and associates it a default usage profile.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_new_vbo( array_buffer() ) -> vbo_id().
 assign_new_vbo( ArrayBuffer ) ->
 	assign_new_vbo( ArrayBuffer, ?default_vbo_usage_hint ).
 
 
-% @doc Assigns the specified buffer and associated usage settings to a new VBO
-% that is made the currently active one.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+
+-doc """
+Assigns the specified buffer and associated usage settings to a new VBO that is
+made the currently active one.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_new_vbo( array_buffer(), buffer_usage_hint() ) -> vbo_id().
 assign_new_vbo( ArrayBuffer, BufferUsageHint ) ->
 	NewVBOId = set_new_vbo(),
@@ -2231,19 +2407,22 @@ assign_new_vbo( ArrayBuffer, BufferUsageHint ) ->
 
 
 
-% @doc Assigns the specified (3D) vertices to a new VBO (associated to a default
-% usage profile) that is made the currently active one, and whose identifier is
-% returned.
-%
+-doc """
+Assigns the specified (3D) vertices to a new VBO (associated to a default usage
+profile) that is made the currently active one, and whose identifier is
+returned.
+""".
 -spec assign_vertices_to_new_vbo( [ any_vertex3() ] ) -> vbo_id().
 assign_vertices_to_new_vbo( Vertices ) ->
 	assign_vertices_to_new_vbo( Vertices, ?default_vbo_usage_hint ).
 
 
-% @doc Assigns the specified (3D) vertices to a new VBO that is made the
-% currently active one, associates the specified usage profile, and returns the
-% identifier of this VBO.
-%
+
+-doc """
+Assigns the specified (3D) vertices to a new VBO that is made the currently
+active one, associates the specified usage profile, and returns the identifier
+of this VBO.
+""".
 -spec assign_vertices_to_new_vbo( [ any_vertex3() ], buffer_usage_hint()  ) ->
 											vbo_id().
 assign_vertices_to_new_vbo( Vertices, BufferUsageHint ) ->
@@ -2257,19 +2436,23 @@ assign_vertices_to_new_vbo( Vertices, BufferUsageHint ) ->
 	VBOId.
 
 
-% @doc Assigns the specified (2D) texture coordinates to a new VBO (associated
-% to a default usage profile) that is made the currently active one, and whose
-% identifier is returned.
-%
+
+-doc """
+Assigns the specified (2D) texture coordinates to a new VBO (associated to a
+default usage profile) that is made the currently active one, and whose
+identifier is returned.
+""".
 -spec assign_texcoords_to_new_vbo( [ uv_point() ] ) -> vbo_id().
 assign_texcoords_to_new_vbo( TexCoords ) ->
 	assign_texcoords_to_new_vbo( TexCoords, ?default_vbo_usage_hint ).
 
 
-% @doc Assigns the specified (2D) texture coordinates to a new VBO that is made
-% the currently active one, associates the specified usage profile, and returns
-% the identifier of this VBO.
-%
+
+-doc """
+Assigns the specified (2D) texture coordinates to a new VBO that is made the
+currently active one, associates the specified usage profile, and returns the
+identifier of this VBO.
+""".
 -spec assign_texcoords_to_new_vbo( [ uv_point() ], buffer_usage_hint()  ) ->
 											vbo_id().
 assign_texcoords_to_new_vbo( TexCoords, BufferUsageHint ) ->
@@ -2284,17 +2467,19 @@ assign_texcoords_to_new_vbo( TexCoords, BufferUsageHint ) ->
 
 
 
-% @doc Returns an (ordered) list of all our conventional layouts of VBOs.
+-doc "Returns an (ordered) list of all our conventional layouts of VBOs.".
 -spec get_vbo_layouts() -> [ vbo_layout() ].
 get_vbo_layouts() ->
 	[ vtx3, vtx3_nrm, vtx3_rgb, vtx3_uv, vtx3_nrm_rgb, vtx3_nrm_uv ].
 
 
-% @doc Returns the identifier of the specified VBO layout.
-%
-% See also our gui_shader.glsl.h GLSL header, which must be kept consistent with
-% this list.
-%
+
+-doc """
+Returns the identifier of the specified VBO layout.
+
+See also our gui_shader.glsl.h GLSL header, which must be kept consistent with
+this list.
+""".
 -spec get_vbo_layout_id( vbo_layout() ) -> vbo_layout_id().
 get_vbo_layout_id( Layout ) ->
 
@@ -2311,20 +2496,22 @@ get_vbo_layout_id( Layout ) ->
 	end.
 
 
-% @doc Returns the VBO layout that corresponds to the specified identifier.
+
+-doc "Returns the VBO layout that corresponds to the specified identifier.".
 -spec get_vbo_layout( vbo_layout_id() ) -> vbo_layout().
 get_vbo_layout( LayoutId ) ->
 	lists:nth( _Index=LayoutId, _List=get_vbo_layouts() ).
 
 
 
-% @doc Assigns the specified series of homogeneous vertex attribute values to a
-% new VBO with a default usage profile - a VBO that is made the currently active
-% one, and declares and enables a corresponding vertex attribute for the
-% specified index.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+
+-doc """
+Assigns the specified series of homogeneous vertex attribute values to a new VBO
+with a default usage profile - a VBO that is made the currently active one, and
+declares and enables a corresponding vertex attribute for the specified index.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_vertex_attribute_as( vertex_attribute_index(),
 								  vertex_attribute_series() ) -> vbo_id().
 assign_vertex_attribute_as( VAttrIndex, VAttrSeries ) ->
@@ -2332,13 +2519,15 @@ assign_vertex_attribute_as( VAttrIndex, VAttrSeries ) ->
 								?default_vbo_usage_hint ).
 
 
-% @doc Assigns the specified series of homogeneous vertex attribute values to a
-% new VBO with the specified usage profile - a VBO that is made the currently
-% active one, and declares and enables a corresponding vertex attribute for the
-% specified index.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+
+-doc """
+Assigns the specified series of homogeneous vertex attribute values to a new VBO
+with the specified usage profile - a VBO that is made the currently active one,
+and declares and enables a corresponding vertex attribute for the specified
+index.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_vertex_attribute_as( vertex_attribute_index(),
 		vertex_attribute_series(), buffer_usage_hint() ) -> vbo_id().
 assign_vertex_attribute_as( VAttrIndex, VAttrSeries, BufferUsageHint ) ->
@@ -2359,15 +2548,15 @@ assign_vertex_attribute_as( VAttrIndex, VAttrSeries, BufferUsageHint ) ->
 
 
 
-% @doc Assigns a new VBO that is made the currently active one, and which is
-% created from the specified list of vertex attribute series once merged, and
-% declares the corresponding vertex attributes, starting from vertex attribute
-% of index #0 (this may be useful if devising a shader based on the structure of
-% a VBO).
-%
-% The parameters of the vertex attributes are automatically determined, declared
-% and enabled. This is typically useful when devising a shader based on a VBO.
-%
+-doc """
+Assigns a new VBO that is made the currently active one, and which is created
+from the specified list of vertex attribute series once merged, and declares the
+corresponding vertex attributes, starting from vertex attribute of index #0
+(this may be useful if devising a shader based on the structure of a VBO).
+
+The parameters of the vertex attributes are automatically determined, declared
+and enabled. This is typically useful when devising a shader based on a VBO.
+""".
 -spec assign_new_vbo_from_attribute_series( [ vertex_attribute_series() ] ) ->
 						vbo_id().
 assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
@@ -2375,15 +2564,17 @@ assign_new_vbo_from_attribute_series( ListOfVAttrSeries ) ->
 											   _StartVAttrIndex=0 ).
 
 
-% @doc Assigns a new VBO that is made the currently active one, and which is
-% created from the specified list of vertex attribute series once merged in
-% vertex attribute compounds, and declares the corresponding vertex attributes,
-% starting incrementally from the specified vertex attribute index (this may be
-% useful if devising a shader based on the structure of a VBO).
-%
-% The parameters of the vertex attributes are automatically determined, declared
-% and enabled.
-%
+
+-doc """
+Assigns a new VBO that is made the currently active one, and which is created
+from the specified list of vertex attribute series once merged in vertex
+attribute compounds, and declares the corresponding vertex attributes, starting
+incrementally from the specified vertex attribute index (this may be useful if
+devising a shader based on the structure of a VBO).
+
+The parameters of the vertex attributes are automatically determined, declared
+and enabled.
+""".
 -spec assign_new_vbo_from_attribute_series_from( [ vertex_attribute_series() ],
 		StartVAttrStartIndex :: vertex_attribute_index() ) -> vbo_id().
 assign_new_vbo_from_attribute_series_from( ListOfVAttrSeries,
@@ -2395,14 +2586,16 @@ assign_new_vbo_from_attribute_series_from( ListOfVAttrSeries,
 	assign_new_vbo_from_attribute_series_with( ListOfVAttrSeries, ListOfVAIs ).
 
 
-% @doc Assigns a new VBO that is made the currently active one, and which is
-% created from the specified list of vertex attribute series once merged in
-% vertex attribute compounds, and declares the corresponding vertex attributes,
-% using the specified vertex attribute indices.
-%
-% The parameters of the vertex attributes are automatically determined, declared
-% and enabled.
-%
+
+-doc """
+Assigns a new VBO that is made the currently active one, and which is created
+from the specified list of vertex attribute series once merged in vertex
+attribute compounds, and declares the corresponding vertex attributes, using the
+specified vertex attribute indices.
+
+The parameters of the vertex attributes are automatically determined, declared
+and enabled.
+""".
 -spec assign_new_vbo_from_attribute_series_with( [ vertex_attribute_series() ],
 			[ vertex_attribute_index() ] ) -> vbo_id().
 assign_new_vbo_from_attribute_series_with( ListOfVAttrSeries, ListOfVAIs ) ->
@@ -2437,27 +2630,29 @@ assign_new_vbo_from_attribute_series_with( ListOfVAttrSeries, ListOfVAIs ) ->
 
 
 
-% @doc Generates a raw buffer, typically suitable to be assigned to a VBO, from
-% the specified list of series of vertex attribute values, whose component types
-% and counts are specified.
-%
-% Each series is usually homogeneous, that is it contains a single, specific
-% kind of vertex attribute, like vertices, or normals, or colors, and
-% semantically different from the other series (e.g. one lists vertices, another
-% one lists normals, etc.).
-%
-% Each element of such series is thus a tuple of homogeneous components (of the
-% same type), of a series-dependent count (e.g. triplets for normal vectors).
-%
-% For example: Bin = merge_attribute_series([Vertices, TexCoords, Normals])
-% where Vertices and Normals could be lists of (float) triplets whereas
-% TexCoords would be a list of (float) pairs; Bin is a (binary) buffer
-% containing the corresponding series of vertex attribute compounds.
-%
-% Interleaves all lists in a correctly tighly-encoded binary; all series shall
-% have the same length (equal to the number of vertex attributes to consider)
-% and contain only tuples of components.
-%
+
+-doc """
+Generates a raw buffer, typically suitable to be assigned to a VBO, from the
+specified list of series of vertex attribute values, whose component types and
+counts are specified.
+
+Each series is usually homogeneous, that is it contains a single, specific kind
+of vertex attribute, like vertices, or normals, or colors, and semantically
+different from the other series (e.g. one lists vertices, another one lists
+normals, etc.).
+
+Each element of such series is thus a tuple of homogeneous components (of the
+same type), of a series-dependent count (e.g. triplets for normal vectors).
+
+For example: Bin = merge_attribute_series([Vertices, TexCoords, Normals]) where
+Vertices and Normals could be lists of (float) triplets whereas TexCoords would
+be a list of (float) pairs; Bin is a (binary) buffer containing the
+corresponding series of vertex attribute compounds.
+
+Interleaves all lists in a correctly tighly-encoded binary; all series shall
+have the same length (equal to the number of vertex attributes to consider) and
+contain only tuples of components.
+""".
 -spec merge_attribute_series( [ vertex_attribute_series() ], comp_pairs() ) ->
 											array_buffer().
 merge_attribute_series( VAttrSeries, CompPairs ) ->
@@ -2557,10 +2752,10 @@ serialise_elements( _Elems=[ I | Te ],
 
 
 
-
-% @doc Deduces, according to MyriadGUI's conventions, the OpenGL data type
-% corresponding to the specified component in an array (like a VBO).
-%
+-doc """
+Deduces, according to MyriadGUI's conventions, the OpenGL data type
+corresponding to the specified component in an array (like a VBO).
+""".
 -spec infer_gl_component_type( term() ) -> gl_base_type().
 % So never returns ?GL_BYTE, ?GL_UNSIGNED_SHORT, ?GL_SHORT, ?GL_INT or
 % ?GL_DOUBLE:
@@ -2573,11 +2768,13 @@ infer_gl_component_type( I ) when is_integer( I ) ->
 
 
 
-% @doc Declares the vertex attributes corresponding to the specified information
-% about vertex attribute series in the currently active VBO, starting from the
-% specified vertex attribute index, supposing a tightly-packed buffer, and
-% enables these attributes.
-%
+
+-doc """
+Declares the vertex attributes corresponding to the specified information about
+vertex attribute series in the currently active VBO, starting from the specified
+vertex attribute index, supposing a tightly-packed buffer, and enables these
+attributes.
+""".
 -spec declare_vertex_attributes_from( comp_pairs(), stride(), [ offset() ],
 		StartVAttrStartIndex :: vertex_attribute_index() ) -> void().
 declare_vertex_attributes_from( CompPairs, Stride, Offsets, StartVAttrIndex ) ->
@@ -2585,11 +2782,13 @@ declare_vertex_attributes_from( CompPairs, Stride, Offsets, StartVAttrIndex ) ->
 									_DoEnable=true ).
 
 
-% @doc Declares the vertex attributes corresponding to the specified information
-% about vertex attribute series in the currently active VBO, starting from the
-% specified vertex attribute index, supposing a tightly-packed buffer, and
-% enabling these attributes if requested.
-%
+
+-doc """
+Declares the vertex attributes corresponding to the specified information about
+vertex attribute series in the currently active VBO, starting from the specified
+vertex attribute index, supposing a tightly-packed buffer, and enabling these
+attributes if requested.
+""".
 -spec declare_vertex_attributes_from( comp_pairs(), stride(), [ offset() ],
 		StartVAttrStartIndex :: vertex_attribute_index(), boolean() ) -> void().
 declare_vertex_attributes_from( _CompPairs=[], _Stride, _Offsets=[],
@@ -2607,11 +2806,12 @@ declare_vertex_attributes_from( _CompPairs=[ { CT, CC } | Tc ], Stride,
 
 
 
-% @doc Declares the vertex attributes corresponding to the specified information
-% about vertex attribute series in the currently active VBO, using the specified
-% vertex attribute indices, supposing a tightly-packed buffer, and enabling
-% these attributes if requested.
-%
+-doc """
+Declares the vertex attributes corresponding to the specified information about
+vertex attribute series in the currently active VBO, using the specified vertex
+attribute indices, supposing a tightly-packed buffer, and enabling these
+attributes if requested.
+""".
 -spec declare_vertex_attributes_with( comp_pairs(), stride(), [ offset() ],
 		[ vertex_attribute_index() ], boolean() ) -> void().
 declare_vertex_attributes_with( _CompPairs=[], _Stride, _Offsets=[],
@@ -2629,25 +2829,27 @@ declare_vertex_attributes_with( _CompPairs=[ { CT, CC } | Tc ], Stride,
 
 
 
+-doc """
+Renders the specified primitives based on the enabled VBOs, starting from their
+first index.
 
-% @doc Renders the specified primitives based on the enabled VBOs, starting from
-% their first index.
-%
-% The vertex count corresponds to the vertices that the rendering will have to
-% actually take into account, typically the number of vertex attributes in the
-% VBO(s); it is not necessarily the number of vertices of the original geometry
-% (for example a square has 4 vertices, yet rendering it as a series of two
-% basic triangles will lead to specify here a count of 6 vertex indices).
-%
+The vertex count corresponds to the vertices that the rendering will have to
+actually take into account, typically the number of vertex attributes in the
+VBO(s); it is not necessarily the number of vertices of the original geometry
+(for example a square has 4 vertices, yet rendering it as a series of two basic
+triangles will lead to specify here a count of 6 vertex indices).
+""".
 -spec render_from_enabled_vbos( gl_primitive_type(), count() ) -> void().
 render_from_enabled_vbos( PrimType, VertexCount ) ->
 	render_from_enabled_vbos( PrimType, _StartIndex=0, VertexCount ).
 
 
-% @doc Renders the specified primitives based on the enabled VBOs.
-%
-% See render_from_enabled_vbos/3 for the vertex count.
-%
+
+-doc """
+Renders the specified primitives based on the enabled VBOs.
+
+See render_from_enabled_vbos/3 for the vertex count.
+""".
 -spec render_from_enabled_vbos( gl_primitive_type(), index(), count() ) ->
 												void().
 render_from_enabled_vbos( PrimType, StartIndex, VertexCount ) ->
@@ -2664,54 +2866,61 @@ render_from_enabled_vbos( PrimType, StartIndex, VertexCount ) ->
 
 
 
-% @doc Deletes the specified VBO.
+-doc "Deletes the specified VBO.".
+-spec delete_vbo( vbo_id() ) -> void().
 delete_vbo( VBOId ) ->
 	delete_buffer( VBOId ).
 
 
-% @doc Deletes the specified VBOs.
+
+-doc "Deletes the specified VBOs.".
 -spec delete_vbos( [ vbo_id() ] ) -> void().
 delete_vbos( VBOIds ) ->
 	delete_buffers( VBOIds ).
 
 
 
+
 % EBO subsection.
 
 
-% @doc Returns a new, unique, EBO identifier.
+-doc "Returns a new, unique, EBO identifier.".
 -spec generate_ebo_id() -> ebo_id().
 generate_ebo_id() ->
 	generate_buffer_id().
 
 
-% @doc Returns the specified number of new, unique, EBO identifiers.
+
+-doc "Returns the specified number of new, unique, EBO identifiers.".
 -spec generate_ebo_ids( count() ) -> [ ebo_id() ].
 generate_ebo_ids( Count ) ->
 	generate_buffer_ids( Count ).
 
 
 
-% @doc Creates a EBO identifier, sets it as the currently active one, and
-% returns it.
-%
-% From now on, all operations done regarding the ?GL_ELEMENT_ARRAY_BUFFER target
-% will be applied to this EBO.
-%
+
+-doc """
+Creates a EBO identifier, sets it as the currently active one, and returns it.
+
+From now on, all operations done regarding the ?GL_ELEMENT_ARRAY_BUFFER target
+will be applied to this EBO.
+""".
 -spec set_new_ebo() -> ebo_id().
 set_new_ebo() ->
 	set_current_ebo_from_id( generate_ebo_id() ).
 
 
-% @doc Sets the specified EBO as the currently active one.
-%
-% From now on, all operations done regarding the ?GL_ELEMENT_ARRAY_BUFFER target
-% will be applied to this buffer.
-%
-% Lower-level, defined to centralise calls.
-%
-% Returns, if useful, the specified identifier, for chaining.
-%
+
+-doc """
+Sets the specified EBO as the currently active one.
+
+From now on, all operations done regarding the ?GL_ELEMENT_ARRAY_BUFFER target
+will be applied to this buffer.
+
+Lower-level, defined to centralise calls.
+
+Returns, if useful, the specified identifier, for chaining.
+""".
 -spec set_current_ebo_from_id( ebo_id() ) -> ebo_id().
 set_current_ebo_from_id( EBOId ) ->
 
@@ -2725,21 +2934,25 @@ set_current_ebo_from_id( EBOId ) ->
 
 
 
-% @doc Assigns the specified buffer to the currently active EBO, and associates
-% it a default usage profile.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+
+-doc """
+Assigns the specified buffer to the currently active EBO, and associates it a
+default usage profile.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_current_ebo( array_buffer() ) -> void().
 assign_current_ebo( ArrayBuffer ) ->
 	assign_current_ebo( ArrayBuffer, ?default_ebo_usage_hint ).
 
 
-% @doc Assigns the specified buffer and associated usage settings to the
-% currently active EBO.
-%
-% The specified data will thus typically be transferred to the graphic card.
-%
+
+-doc """
+Assigns the specified buffer and associated usage settings to the currently
+active EBO.
+
+The specified data will thus typically be transferred to the graphic card.
+""".
 -spec assign_current_ebo( array_buffer(), buffer_usage_hint() ) -> void().
 assign_current_ebo( ArrayBuffer, BufferUsageHint ) ->
 	assign_array( ArrayBuffer, _BindTarget=?GL_ELEMENT_ARRAY_BUFFER,
@@ -2747,17 +2960,20 @@ assign_current_ebo( ArrayBuffer, BufferUsageHint ) ->
 
 
 
-% @doc Assigns the specified vertices to a new EBO (associated to a default
-% usage profile), whose identifier is returned.
-%
+-doc """
+Assigns the specified vertices to a new EBO (associated to a default usage
+profile), whose identifier is returned.
+""".
 -spec assign_indices_to_new_ebo( [ index() ] ) -> ebo_id().
 assign_indices_to_new_ebo( Indices ) ->
 	assign_indices_to_new_ebo( Indices, ?default_ebo_usage_hint ).
 
 
-% @doc Assigns the specified vertices to a new EBO, associates the specified
-% usage profile, and returns the identifier of this EBO.
-%
+
+-doc """
+Assigns the specified vertices to a new EBO, associates the specified usage
+profile, and returns the identifier of this EBO.
+""".
 -spec assign_indices_to_new_ebo( [ index() ], buffer_usage_hint()  ) ->
 											ebo_id().
 assign_indices_to_new_ebo( Indices, BufferUsageHint ) ->
@@ -2777,9 +2993,10 @@ assign_indices_to_new_ebo( Indices, BufferUsageHint ) ->
 
 
 
-% @doc Renders the specified primitives based on the enabled EBO, not using any
-% specific offset.
-%
+-doc """
+Renders the specified primitives based on the enabled EBO, not using any
+specific offset.
+""".
 -spec render_from_enabled_ebo( gl_primitive_type(), count() ) -> void().
 render_from_enabled_ebo( PrimType, VertexCount ) ->
 
@@ -2796,12 +3013,15 @@ render_from_enabled_ebo( PrimType, VertexCount ) ->
 
 
 
-% @doc Deletes the specified EBO.
+
+-doc "Deletes the specified EBO.".
+-spec delete_ebo( ebo_id() ) -> void().
 delete_ebo( EBOId ) ->
 	delete_buffer( EBOId ).
 
 
-% @doc Deletes the specified EBOs.
+
+-doc "Deletes the specified EBOs.".
 -spec delete_ebos( [ ebo_id() ] ) -> void().
 delete_ebos( EBOIds ) ->
 	delete_buffers( EBOIds ).
@@ -2811,14 +3031,15 @@ delete_ebos( EBOIds ) ->
 % Uniform variable subsection.
 
 
-% @doc Returns the identifier of the active uniform variable (if any) that is
-% specified by its name in the specified program.
-%
-% Refer to get_uniform_id/2 for further details.
-%
-% Calling (directly or not, see get_uniform_id/2 as well) this function is the
-% only way to set the value of a uniform variable.
-%
+-doc """
+Returns the identifier of the active uniform variable (if any) that is specified
+by its name in the specified program.
+
+Refer to get_uniform_id/2 for further details.
+
+Calling (directly or not, see get_uniform_id/2 as well) this function is the
+only way to set the value of a uniform variable.
+""".
 -spec get_maybe_uniform_id( uniform_name(), program_id() ) ->
 											option( uniform_id() ).
 get_maybe_uniform_id( UniformName, ProgId ) ->
@@ -2839,20 +3060,21 @@ get_maybe_uniform_id( UniformName, ProgId ) ->
 
 
 
-% @doc Returns the identifier of the active uniform variable that is specified
-% by its name in the specified program. Throws an exception if such a variable
-% does not exist.
-%
-% The actual locations assigned to uniform variables are not known until the
-% program object is linked successfully; the program does not need to be already
-% installed for that.
-%
-% A uniform variable that is declared in shader(s) yet is not used will be
-% removed during the linking step, and thus cannot be found afterwards.
-%
-% This is, with get_maybe_uniform_id/2, the only way to set the value of a
-% uniform variable.
-%
+-doc """
+Returns the identifier of the active uniform variable that is specified by its
+name in the specified program. Throws an exception if such a variable does not
+exist.
+
+The actual locations assigned to uniform variables are not known until the
+program object is linked successfully; the program does not need to be already
+installed for that.
+
+A uniform variable that is declared in shader(s) yet is not used will be removed
+during the linking step, and thus cannot be found afterwards.
+
+This is, with get_maybe_uniform_id/2, the only way to set the value of a uniform
+variable.
+""".
 -spec get_uniform_id( uniform_name(), program_id() ) -> uniform_id().
 get_uniform_id( UniformName, ProgId ) ->
 	case get_maybe_uniform_id( UniformName, ProgId ) of
@@ -2889,54 +3111,65 @@ get_uniform_id( UniformName, ProgId ) ->
 % First, the direct setting of lower-level types:
 
 
-% @doc Sets the specified uniform variable to the specified integer, as a GLSL
-% unsigned integer, in the context of the currently installed shader program.
-%
+-doc """
+Sets the specified uniform variable to the specified integer, as a GLSL unsigned
+integer, in the context of the currently installed shader program.
+""".
 -spec set_uniform_ui( uniform_id(), non_neg_integer() ) -> void().
 set_uniform_ui( UniformId, NonNegInt ) ->
 	gl:uniform1ui( UniformId, NonNegInt ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified integer, as a signed
-% GLSL integer, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified integer, as a signed GLSL
+integer, in the context of the currently installed shader program.
+""".
 -spec set_uniform_i( uniform_id(), integer() ) -> void().
 set_uniform_i( UniformId, Int ) ->
 	gl:uniform1i( UniformId, Int ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified float, as a GLSL
-% float, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified float, as a GLSL float, in
+the context of the currently installed shader program.
+""".
 -spec set_uniform_f( uniform_id(), float() ) -> void().
 set_uniform_f( UniformId, Float ) ->
 	gl:uniform1f( UniformId, Float ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the two specified floats, as GLSL
-% floats, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the two specified floats, as GLSL floats,
+in the context of the currently installed shader program.
+""".
 -spec set_uniform_2f( uniform_id(), float(), float() ) -> void().
 set_uniform_2f( UniformId, F1, F2 ) ->
 	gl:uniform2f( UniformId, F1, F2 ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the three specified floats, as
-% GLSL floats, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the three specified floats, as GLSL
+floats, in the context of the currently installed shader program.
+""".
 -spec set_uniform_3f( uniform_id(), float(), float(), float() ) -> void().
 set_uniform_3f( UniformId, F1, F2, F3 ) ->
 	gl:uniform3f( UniformId, F1, F2, F3 ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the four specified floats, as GLSL
-% floats, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the four specified floats, as GLSL
+floats, in the context of the currently installed shader program.
+""".
 -spec set_uniform_4f( uniform_id(), float(), float(), float(), float() ) ->
 												void().
 set_uniform_4f( UniformId, F1, F2, F3, F4 ) ->
@@ -2944,9 +3177,11 @@ set_uniform_4f( UniformId, F1, F2, F3, F4 ) ->
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified list of floats, as
-% GLSL floats, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified list of floats, as GLSL
+floats, in the context of the currently installed shader program.
+""".
 -spec set_uniform_fs( uniform_id(), [ float() ] ) -> void().
 set_uniform_fs( UniformId, Floats ) ->
 	gl:uniform1fv( UniformId, Floats ),
@@ -2959,18 +3194,22 @@ set_uniform_fs( UniformId, Floats ) ->
 
 % For points:
 
-% @doc Sets the specified uniform variable to the specified point2, in the
-% context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified point2, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_point2( uniform_id(), point2() ) -> void().
 set_uniform_point2( UniformId, _P2={ X, Y } ) ->
 	gl:uniform2f( UniformId, X, Y ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified point3, in the
-% context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified point3, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_point3( uniform_id(), point3() ) -> void().
 set_uniform_point3( UniformId, _P3={ X, Y, Z } ) ->
 
@@ -2984,9 +3223,10 @@ set_uniform_point3( UniformId, _P3={ X, Y, Z } ) ->
 
 
 
-% @doc Sets the specified uniform variable to the specified point4, in the
-% context of the currently installed shader program.
-%
+-doc """
+Sets the specified uniform variable to the specified point4, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_point4( uniform_id(), point4() ) -> void().
 set_uniform_point4( UniformId, _P4={ X, Y, Z, W } ) ->
 	gl:uniform4f( UniformId, X, Y, Z, W ),
@@ -2994,27 +3234,32 @@ set_uniform_point4( UniformId, _P4={ X, Y, Z, W } ) ->
 
 
 
-% @doc Sets the specified uniform array variable to the specified list of
-% point2, in the context of the currently installed shader program.
-%
+-doc """
+Sets the specified uniform array variable to the specified list of point2, in
+the context of the currently installed shader program.
+""".
 -spec set_uniform_point2s( uniform_id(), [ point2() ] ) -> void().
 set_uniform_point2s( UniformId, Point2s ) ->
 	gl:uniform2fv( UniformId, Point2s ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform array variable to the specified list of
-% point3, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform array variable to the specified list of point3, in
+the context of the currently installed shader program.
+""".
 -spec set_uniform_point3s( uniform_id(), [ point3() ] ) -> void().
 set_uniform_point3s( UniformId, Point3s ) ->
 	gl:uniform3fv( UniformId, Point3s ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform array variable to the specified list of
-% point4, in the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform array variable to the specified list of point4, in
+the context of the currently installed shader program.
+""".
 -spec set_uniform_point4s( uniform_id(), [ point4() ] ) -> void().
 set_uniform_point4s( UniformId, Point4s ) ->
 	gl:uniform4fv( UniformId, Point4s ),
@@ -3024,54 +3269,66 @@ set_uniform_point4s( UniformId, Point4s ) ->
 
 % For vectors:
 
-% @doc Sets the specified uniform variable to the specified vector2, in the
-% context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified vector2, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_vector2( uniform_id(), vector2() ) -> void().
 set_uniform_vector2( UniformId, _Vec2=[ X, Y ] ) ->
 	gl:uniform2f( UniformId, X, Y ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified vector3, in the
-% context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified vector3, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_vector3( uniform_id(), vector3() ) -> void().
 set_uniform_vector3( UniformId, _Vec3=[ X, Y, Z ] ) ->
 	gl:uniform3f( UniformId, X, Y, Z ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified vector4, in the
-% context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified vector4, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_vector4( uniform_id(), vector4() ) -> void().
 set_uniform_vector4( UniformId, _Vec4=[ X, Y, Z, W ] ) ->
 	gl:uniform4f( UniformId, X, Y, Z, W ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified list of vector2, in
-% the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified list of vector2, in the
+context of the currently installed shader program.
+""".
 -spec set_uniform_vector2s( uniform_id(), [ vector2() ] ) -> void().
 set_uniform_vector2s( UniformId, Vec2s ) ->
 	set_uniform_point2s( UniformId, to_gl_vectors( Vec2s ) ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified list of vector3, in
-% the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified list of vector3, in the
+context of the currently installed shader program.
+""".
 -spec set_uniform_vector3s( uniform_id(), [ vector3() ] ) -> void().
 set_uniform_vector3s( UniformId, Vec3s ) ->
 	set_uniform_point3s( UniformId, to_gl_vectors( Vec3s ) ),
 	cond_utils:if_defined( myriad_check_shaders, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified uniform variable to the specified list of vector4, in
-% the context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified list of vector4, in the
+context of the currently installed shader program.
+""".
 -spec set_uniform_vector4s( uniform_id(), [ vector4() ] ) -> void().
 set_uniform_vector4s( UniformId, Vec4s ) ->
 	set_uniform_point4s( UniformId, to_gl_vectors( Vec4s ) ),
@@ -3094,17 +3351,21 @@ set_uniform_vector4s( UniformId, Vec4s ) ->
 % primitive to do so (set_uniform_matrix*) do transpose by default.
 
 
-% @doc Sets the specified uniform variable to the specified matrix2, in the
-% context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified matrix2, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_matrix2( uniform_id(), matrix2() ) -> void().
 set_uniform_matrix2( UniformId, M2 ) ->
 	set_uniform_matrix2( UniformId, M2, _DoTranspose=true ).
 
 
-% @doc Sets the specified uniform variable to the specified matrix2, in the
-% context of the currently installed shader program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified matrix2, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_matrix2( uniform_id(), matrix2(), boolean() ) -> void().
 set_uniform_matrix2( UniformId, M2, DoTranspose ) ->
 
@@ -3119,18 +3380,20 @@ set_uniform_matrix2( UniformId, M2, DoTranspose ) ->
 
 
 
-% @doc Sets the specified uniform variable to the specified matrix3, in the
-% context of the currently installed shader program.
-%
+-doc """
+Sets the specified uniform variable to the specified matrix3, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_matrix3( uniform_id(), matrix3() ) -> void().
 set_uniform_matrix3( UniformId, M3 ) ->
 	set_uniform_matrix3( UniformId, M3, _DoTranspose=true ).
 
 
-% @doc Sets the specified uniform variable to the specified matrix3 - once
-% transposed if requested, in the context of the currently installed shader
-% program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified matrix3 - once transposed
+if requested, in the context of the currently installed shader program.
+""".
 -spec set_uniform_matrix3( uniform_id(), matrix3(), boolean() ) -> void().
 set_uniform_matrix3( UniformId, M3, DoTranspose ) ->
 
@@ -3146,18 +3409,20 @@ set_uniform_matrix3( UniformId, M3, DoTranspose ) ->
 
 
 
-% @doc Sets the specified uniform variable to the specified matrix4, in the
-% context of the currently installed shader program.
-%
+-doc """
+Sets the specified uniform variable to the specified matrix4, in the context of
+the currently installed shader program.
+""".
 -spec set_uniform_matrix4( uniform_id(), matrix4() ) -> void().
 set_uniform_matrix4( UniformId, M4 ) ->
 	set_uniform_matrix4( UniformId, M4, _DoTranspose=true ).
 
 
-% @doc Sets the specified uniform variable to the specified matrix4 - once
-% transposed if requested, in the context of the currently installed shader
-% program.
-%
+
+-doc """
+Sets the specified uniform variable to the specified matrix4 - once transposed
+if requested, in the context of the currently installed shader program.
+""".
 -spec set_uniform_matrix4( uniform_id(), matrix4(), boolean() ) -> void().
 set_uniform_matrix4( UniformId, M4, DoTranspose ) ->
 
@@ -3173,12 +3438,13 @@ set_uniform_matrix4( UniformId, M4, DoTranspose ) ->
 
 
 
-% @doc Converts the specified list of (Myriad) vectors (hence lists of
-% coordinate lists) of any dimension into a list of vectors suitable for the gl
-% API (hence tuples).
-%
-% Note: points (vertices), hence tuples, shall be preferred wherever relevant.
-%
+-doc """
+Converts the specified list of (Myriad) vectors (hence lists of coordinate
+lists) of any dimension into a list of vectors suitable for the gl API (hence
+tuples).
+
+Note: points (vertices), hence tuples, shall be preferred wherever relevant.
+""".
 -spec to_gl_vectors( [ vector2() ] ) -> [ gl_vec2()   ];
 				   ( [ vector3() ] ) -> [ gl_vec3()   ];
 				   ( [ vector4() ] ) -> [ gl_vec4()   ];
@@ -3191,11 +3457,12 @@ to_gl_vectors( Vecs ) ->
 
 
 
-% @doc Characterises the specified vertex attribute series, according to
-% MyriadGUI's conventions regarding types.
-%
-% May return for example {?GL_FLOAT,3}.
-%
+-doc """
+Characterises the specified vertex attribute series, according to MyriadGUI's
+conventions regarding types.
+
+May return for example {?GL_FLOAT,3}.
+""".
 -spec characterise_series( vertex_attribute_series() ) ->
 										{ component_type(), component_count() }.
 characterise_series( _VAttrSeries=[ FirstTuple | _T ] ) ->
@@ -3211,9 +3478,10 @@ characterise_series( _VAttrSeries=[ FirstTuple | _T ] ) ->
 
 
 
-% @doc Returns the stride and the offsets corresponding to the pairs describing
-% vertex attribute series.
-%
+-doc """
+Returns the stride and the offsets corresponding to the pairs describing vertex
+attribute series.
+""".
 -spec get_stride_and_offsets( comp_pairs() ) -> { stride(), [ offset() ] }.
 get_stride_and_offsets( CompPairs ) ->
 	get_stride_and_offsets( CompPairs, _Stride=0, _CurrentOffset=0,
@@ -3233,7 +3501,8 @@ get_stride_and_offsets( _CompPairs=[ { CType, CCount } | T ], Stride,
 							NewAccOffsets ).
 
 
-% @doc Serialises in a binary the specified series of vertex attribute values.
+
+-doc "Serialises in a binary the specified series of vertex attribute values.".
 -spec to_buffer( vertex_attribute_series(), component_type() ) ->
 													array_buffer().
 % From most frequent type to least:

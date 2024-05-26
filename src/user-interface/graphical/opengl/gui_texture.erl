@@ -39,43 +39,49 @@ OpenGL.
 -include("gui_opengl.hrl").
 
 
--doc "
-An OpenGL texture _name_ (meant to be unique), an identifier thereof.
-".
+-doc "An OpenGL texture _name_ (meant to be unique), an identifier thereof.".
 -type texture_id() :: non_neg_integer().
- 
 
+
+-doc """
+The dimensionality of a texture.
+
+Most textures are 2D ones.
+""".
 -type texture_dimension() :: ?GL_TEXTURE_1D | ?GL_TEXTURE_2D | ?GL_TEXTURE_3D.
-% The dimensionality of a texture.
-%
-% Most textures are 2D ones.
 
 
+-doc "Information regarding a (2D) texture.".
 -type texture() :: #texture{}.
-% Information regarding a (2D) texture.
 
 
+-doc """
+A texture unit corresponds to the location of a texture for a shader (a bit like
+a possible slot).
+
+This allows shaders notably to access, through samplers, to more than one
+texture; a texture unit can thus be seen as a bridge between a texture and a
+sampler.
+
+A texture unit equal to n is translated by MyriadGUI to ?GL_TEXTUREn, where n is
+an integer in [0, ?GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS-1]; OpenGL
+implementations should have at least 16 texture units.
+
+With OpenGL the default texture unit for a texture is 0 (corresponding to
+?GL_TEXTURE0); it is the initial active texture unit.
+
+The value of a GL_TEXTUREn define is not n (for example ?GL_TEXTURE0 may be
+equal to 33984), but, like in/out shader parameters, its location is to be
+specified directly as n - not as ?GL_TEXTUREn (and as a signed integer, not as
+an unsigned one).
+""".
 -type texture_unit() :: enum(). % i.e. non_neg_integer().
-% A texture unit corresponds to the location of a texture for a shader (a bit
-% like a possible slot).
-%
-% This allows shaders notably to access, through samplers, to more than one
-% texture; a texture unit can thus be seen as a bridge between a texture and a
-% sampler.
-%
-% A texture unit equal to n is translated by MyriadGUI to ?GL_TEXTUREn, where n
-% is an integer in [0, ?GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS-1]; OpenGL
-% implementations should have at least 16 texture units.
-%
-% With OpenGL the default texture unit for a texture is 0 (corresponding to
-% ?GL_TEXTURE0); it is the initial active texture unit.
-%
-% The value of a GL_TEXTUREn define is not n (for example ?GL_TEXTURE0 may be
-% equal to 33984), but, like in/out shader parameters, its location is to be
-% specified directly as n - not as ?GL_TEXTUREn (and as a signed integer, not as
-% an unsigned one).
 
 
+-doc """
+An OpenGL color format (e.g. ?GL_RGBA), which specifies the number of color
+components in a texture.
+""".
 -type gl_color_format() :: 1 | 2 | 3 | 4
 	| ?GL_ALPHA | ?GL_ALPHA4 | ?GL_ALPHA8 | ?GL_ALPHA12 | ?GL_ALPHA16
 	| ?GL_LUMINANCE | ?GL_LUMINANCE4 | ?GL_LUMINANCE8 | ?GL_LUMINANCE12
@@ -86,39 +92,42 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
 	| ?GL_R3_G3_B2 | ?GL_RGB | ?GL_RGB4 | ?GL_RGB5 | ?GL_RGB8 | ?GL_RGB10
 	| ?GL_RGB12 | ?GL_RGB16 | ?GL_RGBA | ?GL_RGBA2 | ?GL_RGBA4
 	| ?GL_RGB5_A1 | ?GL_RGBA8 | ?GL_RGB10_A2 | ?GL_RGBA12 | ?GL_RGBA16.
-% An OpenGL color format (e.g. ?GL_RGBA), which specifies the number of color
-% components in a texture.
 
 
+-doc "A format of a pixel data.".
 -type gl_pixel_format() :: ?GL_COLOR_INDEX | ?GL_RED | ?GL_GREEN | ?GL_BLUE
 	| ?GL_ALPHA | ?GL_RGB | ?GL_RGBA | ?GL_LUMINANCE | ?GL_LUMINANCE_ALPHA.
-% A format of a pixel data.
 
 
 % A texel is a texture pixel.
 
 
+-doc """
+A texture UV (or {S,T}) coordinate. They do not depend on resolution, and
+generally are in [0.0, 1.0]. They are used to sample the source image (texels)
+in order to fill a given polygon to texture with corresponding pixels /
+fragments.
+
+OpenGL expects the 0.0 coordinate on the Y axis to be on the bottom side of the
+image, yet images usually have 0.0 at the top of this axis, so images may have
+to be flipped upside-down first, when loaded.
+""".
 -type uv_coordinate() :: float().
-% A texture UV (or {S,T}) coordinate. They do not depend on resolution, and
-% generally are in [0.0, 1.0]. They are used to sample the source image (texels)
-% in order to fill a given polygon to texture with corresponding pixels /
-% fragments.
-%
-% OpenGL expects the 0.0 coordinate on the Y axis to be on the bottom side of
-% the image, yet images usually have 0.0 at the top of this axis, so images may
-% have to be flipped upside-down first, when loaded.
 
 
+-doc """
+Designates a point in a (2D) texture; not a vector per se (same structural type
+as point2()).
+
+Texture coordinates start at {0.0, 0.0} for the lower left corner of a texture
+image to {1.0, 1.0} for its upper right corner.
+
+The fragment shader interpolates the texture coordinates for each fragment.
+""".
 -type uv_point() :: { uv_coordinate(), uv_coordinate() }.
-% Designates a point in a (2D) texture; not a vector per se (same structural
-% type as point2()).
-%
-% Texture coordinates start at {0.0, 0.0} for the lower left corner of a
-% texture image to {1.0, 1.0} for its upper right corner.
-%
-% The fragment shader interpolates the texture coordinates for each fragment.
 
 
+-doc "OpenGL mode for texture wrapping.".
 -type gl_texture_wrapping_mode() ::
 
 	?GL_REPEAT % The default behavior for textures. Repeats the texture image.
@@ -134,7 +143,15 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
 						 % user-specified border color.
 
 
+-doc """
+OpenGL mode for texture filtering.
 
+Designates a method to select a texel based on UV coordinates.
+
+Texture filtering can be set for magnifying and minifying operations.
+
+Other modes exist.
+""".
 -type gl_texture_filtering_mode() ::
 
 	?GL_NEAREST % Also known as nearest neighbor or point filtering); this is
@@ -147,23 +164,31 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
 				% approximating a color between the texels.
 
   | enum().
-% Designates a method to select a texel based on UV coordinates.
-%
-% Texture filtering can be set for magnifying and minifying operations.
-%
-% Other modes exist.
 
 
+
+-doc """
+Uses to designate a level of scale regarding a given texture.
+
+A mipmap is a collection of texture images in which each subsequent texture is
+twice as small compared to the previous one. Use gl:generateMipmap/1 to generate
+scaled down version of a given texture.
+
+0 is the base level (full, original size).
+""".
 -type mipmap_level() :: non_neg_integer().
-% Uses to designate a level of scale regarding a given texture.
-%
-% A mipmap is a collection of texture images in which each subsequent texture is
-% twice as small compared to the previous one. Use gl:generateMipmap/1 to
-% generate scaled down version of a given texture.
-%
-% 0 is the base level (full, original size).
 
 
+
+-doc """
+OpenGL mode for mipmap filtering.
+
+To specify the filtering method between mipmap levels, for a more seamless
+switching between them.
+
+Note: ensure that any texture to which such filtering mode is applied has
+mipmaps generated indeed, otherwise no texturing may be done.
+""".
 -type gl_mipmap_filtering_mode() ::
 
 	?GL_NEAREST_MIPMAP_NEAREST % Takes the nearest mipmap to match the pixel
@@ -181,11 +206,6 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
   | ?GL_LINEAR_MIPMAP_LINEAR.  % Linearly interpolates between the two closest
 							   % mipmaps and samples the interpolated level via
 							   % linear interpolation.
-% To specify the filtering method between mipmap levels, for a more seamless
-% switching between them.
-%
-% Note: ensure that any texture to which such filtering mode is applied has
-% mipmaps generated indeed, otherwise no texturing may be done.
 
 
 -export_type([ texture_id/0, texture_dimension/0, texture/0, texture_unit/0,
@@ -198,60 +218,68 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
 
 
 
+-doc """
+Any kind of path to an image to be the source of a texture.
+
+In the future other specs may be considered (e.g. for generated textures).
+""".
 -type user_texture_spec() :: any_image_path().
-% Any kind of path to an image to be the source of a texture.
-%
-% In the future other specs may be considered (e.g. for generated textures).
 
 
+-doc """
+At least currently, the specification of a texture is simply a (binary,
+canonical) path to the corresponding image.
+""".
 -type texture_spec() :: bin_image_path().
-% At least currently, the specification of a texture is simply a (binary,
-% canonical) path to the corresponding image.
 
 
+-doc """
+The identifier assigned to a texture specification (by a texture cache).
 
+Such identifiers shall not be mixed up with the implicit OpenGL ones (based on
+"texture names", i.e. texture_id()). A texture spec is meaningfull even before
+OpenGL is initialised.
+""".
 -type texture_spec_id() :: count().
-% The identifier assigned to a texture specification (by a texture cache).
-%
-% Such identifiers shall not be mixed up with the implicit OpenGL ones (based on
-% "texture names", i.e. texture_id()). A texture spec is meaningfull even before
-% OpenGL is initialised.
 
 
+
+-doc """
+The information held by a texture cache regarding a given texture, that is the
+value associated to its texture_spec_id() key.
+
+An image will be set iff the corresponding content is readily available to the
+application, and a texture() record will be set iff if the corresponding texture
+is currently assigned to OpenGL, i.e. if it is available on the video card.
+""".
 -type texture_entry() ::
 		{ texture_spec_id(), option( image() ), option( texture() ) }.
-% The information held by a texture cache regarding a given texture, that is the
-% value associated to its texture_spec_id() key.
-%
-% An image will be set iff the corresponding content is readily available to the
-% application, and a texture() record will be set iff if the corresponding
-% texture is currently assigned to OpenGL, i.e. if it is available on the video
-% card.
 
 
+-doc "A table holding information regarding textures.".
 -type texture_table() :: table( texture_spec_id(), texture_entry() ).
-% A table holding information regarding textures.
 
 
 
+-doc """
+A cache centralising texture information, for an easier/more efficient
+referencing/use thereof.
+
+Generally, there will be multiple textures per object (e.g. mesh) - and of
+course multiple objects. Typically a face has to specify the (supposedly single)
+texture it will rely on when it will be rendered. Yet, when describing a 3D
+model, having each face specify the path of its texture would not be efficient
+(many duplications of texture paths); this is the purpose of a texture
+repository to centralise these information so that all textures are available
+when needed, and with up to one copy of it per address space (CPU/GPU).
+
+Lazy loading is favored: images and textures are loaded/assigned only when
+needed, notably because doing so requires at least that the GUI is
+started/OpenGL is initialised, whereas objects may be specified earlier.
+
+Later texture search paths may be supported.
+""".
 -type texture_cache() :: #texture_cache{}.
-% A cache centralising texture information, for an easier/more efficient
-% referencing/use thereof.
-%
-% Generally, there will be multiple textures per object (e.g. mesh) - and of
-% course multiple objects. Typically a face has to specify the (supposedly
-% single) texture it will rely on when it will be rendered. Yet, when describing
-% a 3D model, having each face specify the path of its texture would not be
-% efficient (many duplications of texture paths); this is the purpose of a
-% texture repository to centralise these information so that all textures are
-% available when needed, and with up to one copy of it per address space
-% (CPU/GPU).
-%
-% Lazy loading is favored: images and textures are loaded/assigned only when
-% needed, notably because doing so requires at least that the GUI is
-% started/OpenGL is initialised, whereas objects may be specified earlier.
-%
-% Later texture search paths may be supported.
 
 
 -export_type([ user_texture_spec/0, texture_spec/0, texture_spec_id/0,
@@ -310,7 +338,7 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
 % Fully opaque pure green:
 -define( padding_rgba_bin, <<0, 255, 0, 255>> ).
 
--else.
+-else. % myriad_debug_opengl
 
 % Pure black:
 -define( padding_rgb_bin, <<0, 0, 0>> ).
@@ -318,7 +346,7 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
 % Fully transparent pure black:
 -define( padding_rgba_bin, <<0, 0, 0, 0>> ).
 
--endif.
+-endif. % myriad_debug_opengl
 
 
 
@@ -384,11 +412,12 @@ An OpenGL texture _name_ (meant to be unique), an identifier thereof.
 
 
 
-% @doc Sets basic, general parameters regarding (2D) textures.
-%
-% Refer to apply_basic_settings_on_current/0 to define basic settings to a given
-% texture instance.
-%
+-doc """
+Sets basic, general parameters regarding (2D) textures.
+
+Refer to apply_basic_settings_on_current/0 to define basic settings to a given
+texture instance.
+""".
 -spec set_basic_general_settings() -> void().
 set_basic_general_settings() ->
 	gl:enable( ?GL_TEXTURE_2D ),
@@ -396,24 +425,26 @@ set_basic_general_settings() ->
 
 
 
-% @doc Creates a texture from the specified image instance, flips its Y-axis
-% according to OpenGL conventions, generates mipmaps for it, applies the default
-% texture settings on it, and makes it the currently active texture.
-%
-% The image instance is safe to be deallocated afterwards.
-%
+-doc """
+Creates a texture from the specified image instance, flips its Y-axis according
+to OpenGL conventions, generates mipmaps for it, applies the default texture
+settings on it, and makes it the currently active texture.
+
+The image instance is safe to be deallocated afterwards.
+""".
 -spec create_from_image( image() ) -> texture().
 create_from_image( Image ) ->
 	create_from_image( Image, _GenMipmaps=true ).
 
 
 
-% @doc Creates a texture from the specified image instance, flipping its Y-axis
-% according to OpenGL conventions, generating mipmaps if requested, applies the
-% default texture settings on it, and makes it the currently active texture.
-%
-% The image instance is safe to be deallocated afterwards.
-%
+-doc """
+Creates a texture from the specified image instance, flipping its Y-axis
+according to OpenGL conventions, generating mipmaps if requested, applies the
+default texture settings on it, and makes it the currently active texture.
+
+The image instance is safe to be deallocated afterwards.
+""".
 -spec create_from_image( image(), boolean() ) -> texture().
 create_from_image( Image, GenMipmaps ) ->
 
@@ -502,11 +533,12 @@ create_from_image( Image, GenMipmaps ) ->
 
 
 
-% @doc Creates a texture from the specified image file, applies the default
-% texture settings on it, and makes it the currently active texture.
-%
-% Prefer load_from_file/2 if applicable.
-%
+-doc """
+Creates a texture from the specified image file, applies the default texture
+settings on it, and makes it the currently active texture.
+
+Prefer load_from_file/2 if applicable.
+""".
 -spec load_from_file( any_image_path() ) -> texture().
 load_from_file( ImagePath ) ->
 
@@ -521,10 +553,10 @@ load_from_file( ImagePath ) ->
 
 
 
-% @doc Creates a texture from the specified image file of the specified type,
-% applies the default texture settings on it, and makes it the currently active
-% texture.
-%
+-doc """
+Creates a texture from the specified image file of the specified type, applies
+the default texture settings on it, and makes it the currently active texture.
+""".
 -spec load_from_file( image_format(), any_image_path() ) -> texture().
 load_from_file( ImageFormat, ImagePath ) ->
 	Image = gui_image:load_from_file( ImageFormat, ImagePath ),
@@ -534,10 +566,11 @@ load_from_file( ImageFormat, ImagePath ) ->
 
 
 
-% @doc Creates a texture corresponding to the specified text, rendered with the
-% specified font, brush and color, applies the default texture settings on it,
-% and makes it the currently active texture.
-%
+-doc """
+Creates a texture corresponding to the specified text, rendered with the
+specified font, brush and color, applies the default texture settings on it, and
+makes it the currently active texture.
+""".
 -spec create_from_text( ustring(), font(), brush(), color_by_decimal() ) ->
 											texture().
 create_from_text( Text, Font, Brush, Color ) ->
@@ -545,11 +578,12 @@ create_from_text( Text, Font, Brush, Color ) ->
 
 
 
-% @doc Creates a texture corresponding to the specified text, rendered with the
-% specified font, brush and color, flipping it vertically (upside down) if
-% requested, applies the default texture settings on it, and makes it the
-% currently active texture.
-%
+-doc """
+Creates a texture corresponding to the specified text, rendered with the
+specified font, brush and color, flipping it vertically (upside down) if
+requested, applies the default texture settings on it, and makes it the
+currently active texture.
+""".
 -spec create_from_text( ustring(), font(), brush(), color_by_decimal(),
 						boolean() ) -> texture().
 create_from_text( Text, Font, Brush, TextColor, Flip ) ->
@@ -627,7 +661,7 @@ create_from_text( Text, Font, Brush, TextColor, Flip ) ->
 
 
 
-% @doc Destructs (that is: deletes) the specified texture(s).
+-doc "Destructs (that is: deletes) the specified texture(s).".
 -spec destruct( maybe_list( texture() ) ) -> void().
 destruct( Textures ) when is_list( Textures ) ->
 	gl:deleteTextures( [ Id || #texture{ id=Id } <- Textures ] ),
@@ -647,56 +681,57 @@ destruct( #texture{ id=Id } ) ->
 %   gl:texParameteri( ?GL_TEXTURE_2D, ?GL_TEXTURE_MIN_FILTER,
 %                     ?GL_LINEAR_MIPMAP_LINEAR )
 
-
-% @doc Generates mipmaps for the currently active (2D) texture.
+-doc "Generates mipmaps for the currently active (2D) texture.".
 -spec generate_mipmaps() -> void().
 generate_mipmaps() ->
 	generate_mipmaps( _Dim=?GL_TEXTURE_2D ).
 
 
-% @doc Generates mipmaps for the currently active texture.
+-doc "Generates mipmaps for the currently active texture.".
 -spec generate_mipmaps( texture_dimension() ) -> void().
 generate_mipmaps( TexDim ) ->
 	gl:generateMipmap( TexDim ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
-% @doc Generates mipmaps for the texture whose identifier is specified.
+-doc "Generates mipmaps for the texture whose identifier is specified.".
 -spec generate_mipmaps_for_id( texture_id() ) -> void().
 generate_mipmaps_for_id( TextureId ) ->
 	gl:generateTextureMipmap( TextureId ),
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
-% @doc Sets the specified (2D) texture as the currently active one.
-%
-% Returns, if useful, its identifier.
-%
+
+-doc """
+Sets the specified (2D) texture as the currently active one.
+
+Returns, if useful, its identifier.
+""".
 -spec set_as_current( texture() ) -> texture_id().
 set_as_current( #texture{ id=TextureId } ) ->
 	set_as_current_from_id( TextureId ).
 
 
-% @doc Creates a texture identifier, sets it as the currently active (2D) one,
-% and returns it.
-%
+-doc """
+Creates a texture identifier, sets it as the currently active (2D) one, and
+returns it.
+""".
 -spec set_new_as_current() -> texture_id().
 set_new_as_current() ->
 	set_as_current_from_id( generate_id() ).
 
 
+-doc """
+Sets the specified (2D) texture identifier as the currently active one.
 
-% @doc Sets the specified (2D) texture identifier as the currently active
-% one.
-%
-% From now on, all operations done regarding (2D) textures (that is the
-% ?GL_TEXTURE_2D target) will be applied to this texture, that moreover will be
-% registered in the currently active texture unit.
-%
-% Lower-level, defined to centralise calls.
-%
-% Returns, if useful, the specified identifier.
-%
+From now on, all operations done regarding (2D) textures (that is the
+?GL_TEXTURE_2D target) will be applied to this texture, that moreover will be
+registered in the currently active texture unit.
+
+Lower-level, defined to centralise calls.
+
+Returns, if useful, the specified identifier.
+""".
 -spec set_as_current_from_id( texture_id() ) -> texture_id().
 set_as_current_from_id( TextureId ) ->
 
@@ -711,13 +746,13 @@ set_as_current_from_id( TextureId ) ->
 	TextureId.
 
 
+-doc """
+Assigns the specified settings and buffer to the currently active (2D) texture,
+and applies basic settings on it.
 
-% @doc Assigns the specified settings and buffer to the currently active (2D)
-% texture, and applies basic settings on it.
-%
-% Normally this is the step where the texture data is transferred to the video
-% card (i.e. copied from the CPU address space to the one of the GPU).
-%
+Normally this is the step where the texture data is transferred to the video
+card (i.e. copied from the CPU address space to the one of the GPU).
+""".
 -spec assign_current( width(), height(), gl_pixel_format(), color_buffer() ) ->
 								void().
 assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
@@ -739,17 +774,18 @@ assign_current( TexWidth, TexHeight, PixelFormat, ColorBuffer ) ->
 	apply_basic_settings_on_current().
 
 
+-doc """
+Sets the current texture unit: activates its corresponding slot/location.
 
-% @doc Sets the current texture unit: activates its corresponding slot/location.
-%
-% The next texture that will be set current will be associated to this texture
-% unit.
-%
-% To be used for example as: set_current_texture_unit(3) to activate the fourth
-% unit.
-%
-% The initial value, usually set by default by OpenGL drivers, corresponds to 0 (hence internally translated to ?GL_TEXTURE0).
-%
+The next texture that will be set current will be associated to this texture
+unit.
+
+To be used for example as: set_current_texture_unit(3) to activate the fourth
+unit.
+
+The initial value, usually set by default by OpenGL drivers, corresponds to 0
+(hence internally translated to ?GL_TEXTURE0).
+""".
 -spec set_current_texture_unit( texture_unit() ) -> void().
 set_current_texture_unit( TexUnit ) ->
 	% As defined in order (contiguous):
@@ -757,11 +793,11 @@ set_current_texture_unit( TexUnit ) ->
 	cond_utils:if_defined( myriad_check_textures, gui_opengl:check_error() ).
 
 
-
-% @doc Recalibrates the specified logical texture coordinates, supposed to
-% correspond to the original texture, to the specified one, which is typically
-% padded (to have power-of-two dimensions), hence is of different dimensions.
-%
+-doc """
+Recalibrates the specified logical texture coordinates, supposed to correspond
+to the original texture, to the specified one, which is typically padded (to
+have power-of-two dimensions), hence is of different dimensions.
+""".
 -spec recalibrate_coordinates_for( [ uv_point() ], texture() ) ->
 										[ uv_point() ].
 recalibrate_coordinates_for( TexCoords, #texture{ min_x=MinX, min_y=MinY,
@@ -796,11 +832,12 @@ recalibrate_coordinates_for( _TexCoords=[ { X, Y } | T ], MinX, MinY,
 
 
 
-% @doc Sets basic parameters on the currently active (2D) texture.
-%
-% Refer to set_basic_general_settings/0 for overall settings (transverse to all
-% texture instances).
-%
+-doc """
+Sets basic parameters on the currently active (2D) texture.
+
+Refer to set_basic_general_settings/0 for overall settings (transverse to all
+texture instances).
+""".
 -spec apply_basic_settings_on_current() -> void().
 apply_basic_settings_on_current() ->
 
@@ -857,14 +894,14 @@ apply_basic_settings_on_current() ->
 
 
 
-% @doc Renders the specified texture, at the specified position.
+-doc "Renders the specified texture, at the specified position.".
 -spec render( texture(), position() ) -> void().
 render( Texture, _Pos={X,Y} ) ->
 	render( Texture, X, Y ).
 
 
 
-% @doc Renders the specified texture, at the specified position.
+-doc "Renders the specified texture, at the specified position.".
 -spec render( texture(), coordinate(), coordinate() ) -> void().
 render( #texture{ id=TextureId,
 				  width=Width,
@@ -902,17 +939,20 @@ render( #texture{ id=TextureId,
 
 
 
-% @doc Returns texture dimensions that are suitable for a (2D) content of the
-% specified dimensions.
-%
+-doc """
+Returns texture dimensions that are suitable for a (2D) content of the specified
+dimensions.
+""".
 -spec get_dimensions( dimensions() ) -> dimensions().
 get_dimensions( _Dims={ W, H } ) ->
 	get_dimensions( W, H ).
 
 
-% @doc Returns texture dimensions that are suitable for a (2D) content of the
-% specified dimensions.
-%
+
+-doc """
+Returns texture dimensions that are suitable for a (2D) content of the specified
+dimensions.
+""".
 -spec get_dimensions( width(), height() ) -> dimensions().
 get_dimensions( Width, Height ) ->
 	{ math_utils:get_next_power_of_two( Width ),
@@ -920,7 +960,7 @@ get_dimensions( Width, Height ) ->
 
 
 
-% @doc Returns a new, unique, texture identifier.
+-doc "Returns a new, unique, texture identifier.".
 -spec generate_id() -> texture_id().
 generate_id() ->
 	[ TextureId ] = gl:genTextures( _Count=1 ),
@@ -929,9 +969,10 @@ generate_id() ->
 
 
 
-% @doc Checks whether the specified term is a legit texture coordinate pair, and
-% returns it.
-%
+-doc """
+Checks whether the specified term is a legit texture coordinate pair, and
+returns it.
+""".
 -spec check_texture_coordinate_pair( term() ) -> uv_point().
 check_texture_coordinate_pair( P={ U, V } )
 		when is_float( U ) andalso is_float( V ) ->
@@ -942,6 +983,7 @@ check_texture_coordinate_pair( Other ) ->
 
 
 
+-doc "Returns a textual representation of the specified texture.".
 -spec to_string( texture() ) -> ustring().
 to_string( #texture{ id=TexId,
 					 width=Width,
@@ -956,12 +998,12 @@ to_string( #texture{ id=TexId,
 
 
 
-% @doc Returns the RGB or RGBA color buffer corresponding to the specified
-% image.
-%
-% The returned buffer shall be "const", in the sense of being neither
-% deallocated nor assigned to any image.
-%
+-doc """
+Returns the RGB or RGBA color buffer corresponding to the specified image.
+
+The returned buffer shall be "const", in the sense of being neither deallocated
+nor assigned to any image.
+""".
 -spec get_color_buffer( image() ) -> color_buffer().
 get_color_buffer( Image ) ->
 
@@ -982,7 +1024,8 @@ get_color_buffer( Image ) ->
 	end.
 
 
-% @doc Merges the specified RGB and alpha buffers into a single RGBA one.
+
+-doc "Merges the specified RGB and alpha buffers into a single RGBA one.".
 -spec merge_alpha( rgb_color_buffer(), alpha_buffer() ) -> rgba_color_buffer().
 merge_alpha( RGBBuffer, AlphaBuffer ) ->
 	% These are bitstring generators:
@@ -995,12 +1038,13 @@ merge_alpha( RGBBuffer, AlphaBuffer ) ->
 
 
 
-% @doc Returns the RGB or RGBA color buffer corresponding to the specified
-% image, once padded according to the specified current and target dimensions.
-%
-% The returned buffer shall be "const", in the sense of being neither
-% deallocated nor assigned to any image.
-%
+-doc """
+Returns the RGB or RGBA color buffer corresponding to the specified image, once
+padded according to the specified current and target dimensions.
+
+The returned buffer shall be "const", in the sense of being neither deallocated
+nor assigned to any image.
+""".
 -spec get_color_buffer( image(), dimensions(), dimensions() ) -> color_buffer().
 get_color_buffer( Image, CurrentDimensions, TargetDimensions ) ->
 
@@ -1023,9 +1067,10 @@ get_color_buffer( Image, CurrentDimensions, TargetDimensions ) ->
 
 
 
-% @doc Returns the specified RGB buffer once padded to the specified dimensions,
-% expected to be at least as large as its own.
-%
+-doc """
+Returns the specified RGB buffer once padded to the specified dimensions,
+expected to be at least as large as its own.
+""".
 -spec pad_buffer( rgb_color_buffer(), dimensions(), dimensions() ) ->
 			rgb_color_buffer().
 pad_buffer( Buffer, CurrentDimensions={ CurrentW, CurrentH },
@@ -1099,9 +1144,11 @@ pad_rows( Buffer, OrigRowSize, BinPadRow, BinAcc ) ->
 	end.
 
 
-% @doc Returns the specified RGB buffer once padded to the specified dimensions,
-% expected to be at least as large as its own.
-%
+
+-doc """
+Returns the specified RGB buffer once padded to the specified dimensions,
+expected to be at least as large as its own.
+""".
 -spec pad_buffer_with_alpha( rgb_color_buffer(), alpha_buffer(), dimensions(),
 							 dimensions() ) -> rgb_color_buffer().
 pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
@@ -1169,9 +1216,10 @@ pad_buffer_with_alpha( RGBBuffer, AlphaBuffer,
 
 
 
-% Pads each row, once the alpha coordinates have been interleaved, with the
-% specified padding binary.
-%
+-doc """
+Pads each row, once the alpha coordinates have been interleaved, with the
+specified padding binary.
+""".
 -spec pad_rows_with_alpha( rgb_color_buffer(), alpha_buffer(), count(),
 						   binary() ) -> rgba_color_buffer().
 pad_rows_with_alpha( RGBBuffer, AlphaBuffer, Width, BinPadRow ) ->
@@ -1181,7 +1229,7 @@ pad_rows_with_alpha( RGBBuffer, AlphaBuffer, Width, BinPadRow ) ->
 
 % (helper)
 %
-% All mixels/rows scanned:
+% All pixels/rows scanned:
 pad_rows_with_alpha( _RGBBuffer= <<>>, _AlphaBuffer= <<>>,
 					 _PixCount=Width, Width, BinPadRow, BinAcc ) ->
 	 <<BinAcc/binary, BinPadRow/binary>>;
@@ -1203,19 +1251,18 @@ pad_rows_with_alpha( _RGBBuffer= <<R:8, G:8, B:8, T/binary>>,
 
 
 
-
-% @doc Returns the number of bytes used by each pixel of the specified GL
-% format.
-%
+-doc """
+Returns the number of bytes used by each pixel of the specified GL format.
+""".
 -spec get_pixel_size( gl_pixel_format() ) -> byte_size().
 get_pixel_size( GLPixFormat ) ->
 	gui_color:get_pixel_size( gl_pixel_format_to_pixel_format( GLPixFormat ) ).
 
 
 
-% @doc Returns our "standard" pixel format corresponding to the specified GL
-% one.
-%
+-doc """
+Returns our "standard" pixel format corresponding to the specified GL one.
+""".
 -spec gl_pixel_format_to_pixel_format( gl_pixel_format() ) -> pixel_format().
 gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGB ) ->
 	rgb;
@@ -1229,7 +1276,7 @@ gl_pixel_format_to_pixel_format( _GLPixFormat=?GL_RGBA ) ->
 % Section for texture specifications and caching.
 
 
-% @doc Creates an (empty) texture cache.
+-doc "Creates an (empty) texture cache.".
 -spec create_cache() -> texture_cache().
 create_cache() ->
 	#texture_cache{ texture_table=table:new(),
@@ -1237,13 +1284,14 @@ create_cache() ->
 
 
 
-% @doc Declares the specified texture in the specified cache; returns the
-% identifier allocated to this texture, and the updated cache.
-%
-% A texture specification shall be declared only once (otherwise it will be
-% duplicated in the cache); of course it can be then requested as many times as
-% needed, based on its specification identifier.
-%
+-doc """
+Declares the specified texture in the specified cache; returns the identifier
+allocated to this texture, and the updated cache.
+
+A texture specification shall be declared only once (otherwise it will be
+duplicated in the cache); of course it can be then requested as many times as
+needed, based on its specification identifier.
+""".
 -spec declare_texture( user_texture_spec(), texture_cache() ) ->
 										{ texture_spec_id(), texture_cache() }.
 declare_texture( UserTexPathSpec, TexCache=#texture_cache{
@@ -1268,13 +1316,14 @@ declare_texture( UserTexPathSpec, TexCache=#texture_cache{
 
 
 
-% @doc Returns the specified texture, looked up in the specified cache, and
-% returns its OpenGL identifier (possibly after having been loaded) and an
-% updated version of that cache.
-%
-% Note that MyriadGUI shall be already started (see gui:start/*) and, more,
-% OpenGL be already initialised.
-%
+-doc """
+Returns the specified texture, looked up in the specified cache, and returns its
+OpenGL identifier (possibly after having been loaded) and an updated version of
+that cache.
+
+Note that MyriadGUI shall be already started (see gui:start/*) and, more, OpenGL
+be already initialised.
+""".
 -spec get_texture( texture_spec_id(), texture_cache() ) ->
 										{ texture(), texture_cache() }.
 get_texture( SpecId, TexCache=#texture_cache{ texture_table=TexTable } ) ->
@@ -1320,7 +1369,7 @@ get_texture( SpecId, TexCache=#texture_cache{ texture_table=TexTable } ) ->
 
 
 
-% @doc Returns the specification of the designated texture.
+-doc "Returns the specification of the designated texture.".
 -spec get_texture_spec( texture_spec_id(), texture_cache() ) -> texture_spec().
 get_texture_spec( SpecId, #texture_cache{ texture_table=TexTable } ) ->
 	case table:lookup_entry( _K=SpecId, TexTable ) of
@@ -1335,7 +1384,7 @@ get_texture_spec( SpecId, #texture_cache{ texture_table=TexTable } ) ->
 
 
 
-% @doc Returns a textual description of the specified texture cache.
+-doc "Returns a textual description of the specified texture cache.".
 -spec cache_to_string( texture_cache() ) -> ustring().
 cache_to_string( #texture_cache{ texture_table=TexTable,
 								 next_spec_id=_NextSpecId } ) ->
@@ -1356,7 +1405,8 @@ cache_to_string( #texture_cache{ texture_table=TexTable,
 	end.
 
 
-% @doc Returns a textual description of the specified texture entry.
+
+-doc "Returns a textual description of the specified texture entry.".
 -spec texture_entry_to_string( texture_entry() ) -> ustring().
 texture_entry_to_string(
 		{ TextSpecId, _TextureEntry={ TexSpecId, MaybeImg, MaybeTexture } } ) ->

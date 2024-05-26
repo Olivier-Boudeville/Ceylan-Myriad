@@ -45,7 +45,12 @@ See `mesh.erl` for the management of meshes by themselves.
 -include("gui_shader.hrl").
 
 
-% Higher-level mesh-related rendering information.
+
+-doc """
+Higher-level mesh-related rendering information.
+
+Defines how a mesh shall be rendered.
+""".
 -type rendering_info() ::
 
 	% No rendering info at all:
@@ -98,40 +103,44 @@ See `mesh.erl` for the management of meshes by themselves.
   | { 'textured', texture_spec_id(),
 	  % Always a list of tuples of (at least) texture coordinates:
 	  TextureFaceInfoList :: [ texture_face_info() ] }.
-% Defines how a mesh shall be rendered.
 
 
 % For the related mesh-related rendering records:
 -include("mesh_render.hrl").
 
+
+-doc "Rendering (OpenGL-related) state of a mesh.".
 -type rendering_state() :: #rendering_state{}.
-% Rendering (OpenGL-related) state of a mesh.
 
 
 % For the mesh record:
 -include("mesh.hrl").
 
 
+-doc "Defines the granularity of the rendering information for a given face.".
 -type face_granularity() :: 'per_vertex' | 'per_face'.
-% Defines the granularity of the rendering information for a given face.
 
 
 % Now assuming a single texture atlas is used:
 %-type texture_face_info() :: { texture_spec_id(), tuple( uv_point() ) }.
+
+
+-doc """
+The texture information for a face, based on the identifier of the texture
+specification (held by a texture cache) that applies to this face and on the
+corresponding texture coordinates of its vertices, in their definition order.
+
+For example if a triangle face is defined based on vertices {VId1,VId2,VId3}, is
+to be textured with texture of specification identifier TexSpecId, and the
+texture coordinates associated to VIdk are {Tku,Tkv}, then the corresponding
+texture information for this face is: {TexSpecId, {{T1u,T1v}, {T2u,T2v},
+{T3u,T3v}}}.
+
+An OpenGL texture identifier would not be enough (i.e. a texture spec is used),
+notably as the related texture coordinates shall be recalibrated, and the
+corresponding metadata shall be stored - here in a texture() record.
+""".
 -type texture_face_info() :: tuple( uv_point() ).
-% The texture information for a face, based on the identifier of the texture
-% specification (held by a texture cache) that applies to this face and on the
-% corresponding texture coordinates of its vertices, in their definition order.
-%
-% For example if a triangle face is defined based on vertices {VId1,VId2,VId3},
-% is to be textured with texture of specification identifier TexSpecId, and the
-% texture coordinates associated to VIdk are {Tku,Tkv}, then the corresponding
-% texture information for this face is: {TexSpecId, {{T1u,T1v}, {T2u,T2v},
-% {T3u,T3v}}}.
-%
-% An OpenGL texture identifier would not be enough (i.e. a texture spec is
-% used), notably as the related texture coordinates shall be recalibrated, and
-% the corresponding metadata shall be stored - here in a texture() record.
 
 
 % Indexed lists used instead of a table (or an array):
@@ -139,9 +148,10 @@ See `mesh.erl` for the management of meshes by themselves.
 % A table associating to the index of a given face its texture information.
 
 
+-doc """
+A render-related element, typically in a list, associated to a vertex or a face.
+""".
 -type render_element() :: render_rgb_color() | uv_point().
-% A render-related element, typically in a list, associated to a vertex or a
-% face.
 
 
 -export_type([ rendering_info/0, rendering_state/0,
@@ -230,13 +240,13 @@ See `mesh.erl` for the management of meshes by themselves.
 % be driven by the assets and/or their 3D format (e.g. glTF).
 
 
+-doc """
+Canonicalises and checks the specified, probably user-defined, term as a legit
+rendering information, and returns it.
 
-% @doc Canonicalises and checks the specified, probably user-defined, term as a
-% legit rendering information, and returns it.
-%
-% Note that, should faces be to checked, they are expected to have already been
-% checked.
-%
+Note that, should faces be to checked, they are expected to have already been
+checked.
+""".
 -spec canonicalise_rendering_info( term(), [ indexed_face() ] ) ->
 										rendering_info().
 canonicalise_rendering_info( RenderInfo=none, _Faces ) ->
@@ -323,9 +333,10 @@ canonicalise_rendering_info( Other, _Faces ) ->
 
 
 
-% @doc Checks whether the specified term is a legit texture face information,
-% and returns it.
-%
+-doc """
+Checks whether the specified term is a legit texture face information, and
+returns it.
+""".
 -spec check_texture_face_info( term() ) -> texture_face_info().
 check_texture_face_info( T ) when is_tuple( T ) ->
 	[ gui_texture:check_texture_coordinate_pair( P )
@@ -333,9 +344,10 @@ check_texture_face_info( T ) when is_tuple( T ) ->
 
 
 
-% @doc Returns a rendering information deriving from the specified one, suitable
-% for triangle-based rendering.
-%
+-doc """
+Returns a rendering information deriving from the specified one, suitable for
+triangle-based rendering.
+""".
 -spec tessellate_rendering_info( face_type(), rendering_info() ) ->
 										rendering_info().
 tessellate_rendering_info( _OrigFaceType, RenderInfo=none ) ->
@@ -364,9 +376,10 @@ tessellate_rendering_info( _OrigFaceType=quad,
 
 
 
-% @doc Adapts from quad to triangle the specified list of texture face
-% information elements.
-%
+-doc """
+Adapts from quad to triangle the specified list of texture face information
+elements.
+""".
 adapt_texture_face_infos( TexFaceInfos ) ->
 	% Early, twice-as-small reversing:
 	adapt_texture_face_infos( lists:reverse( TexFaceInfos ), _Acc=[] ).
@@ -404,25 +417,26 @@ adapt_texture_face_infos( _RevTexFaceInfos=_UVPoints=
 % Initialisation section.
 
 
-% @doc Registers the specified mesh(es) within the current OpenGL context, so
-% that the mesh(es) can be readily rendered afterwards, and returns the updated
-% mesh(es) (if multiple meshes are specified, in their original order), together
-% with possibly a created texture cache.
-%
-% No specific cache used or returned.
+-doc """
+Registers the specified mesh(es) within the current OpenGL context, so that the
+mesh(es) can be readily rendered afterwards, and returns the updated mesh(es)
+(if multiple meshes are specified, in their original order), together with
+possibly a created texture cache.
+
+No specific cache used or returned.
+""".
 -spec initialise_for_opengl( maybe_list( mesh() ), program_id() ) ->
 			{ maybe_list( mesh() ), option( texture_cache() ) }.
 initialise_for_opengl( Mesh, ProgramId ) ->
 	initialise_for_opengl( Mesh, ProgramId, _MaybeTextureCache=undefined ).
 
 
-
-% @doc Registers the specified mesh(es) within the current OpenGL context, so
-% that the mesh(es) can be readily rendered afterwards, using any specified
-% texture cache, and returns the updated mesh(es) (if multiple meshes are
-% specified, in their original order), together with possibly a created or
-% updated texture cache.
-%
+-doc """
+Registers the specified mesh(es) within the current OpenGL context, so that the
+mesh(es) can be readily rendered afterwards, using any specified texture cache,
+and returns the updated mesh(es) (if multiple meshes are specified, in their
+original order), together with possibly a created or updated texture cache.
+""".
 -spec initialise_for_opengl( maybe_list( mesh() ), program_id(),
 							 option( texture_cache() ) ) ->
 			{ maybe_list( mesh() ), option( texture_cache() ) }.
@@ -777,9 +791,10 @@ initialise_for_opengl( _Meshes=[ M | T ], ProgramId, MaybeTextureCache ) ->
 
 
 
-% @doc Returns the tuples whose elements are RGB colors that correspond to the
-% color elements of the specified tuples.
-%
+-doc """
+Returns the tuples whose elements are RGB colors that correspond to the color
+elements of the specified tuples.
+""".
 -spec color_to_decimal_tuples( [ tuple( color() ) ] ) ->
 								[ tuple( color_by_decimal() ) ].
 color_to_decimal_tuples( TuplesOfColors ) ->
@@ -793,9 +808,11 @@ color_to_decimal_tuples( TuplesOfColors ) ->
 	  end || ColorTuple <- TuplesOfColors ].
 
 
-% @doc Returns tuples whose elements are render colors, based on the specified
-% ones whose elements are RGB colors.
-%
+
+-doc """
+Returns tuples whose elements are render colors, based on the specified ones
+ whose elements are RGB colors.
+""".
 -spec decimal_to_render_color_tuples( [ tuple( color_by_decimal() ) ] ) ->
 										[ tuple( render_rgb_color() ) ].
 decimal_to_render_color_tuples( TuplesOfRGBColors ) ->
@@ -807,9 +824,10 @@ decimal_to_render_color_tuples( TuplesOfRGBColors ) ->
 
 
 
-% @doc Recalibrates the texture coordinates for each face: returns a
-% corresponding, single, overall list of updated tuples of texture coordinates.
-%
+-doc """
+Recalibrates the texture coordinates for each face: returns a corresponding,
+single, overall list of updated tuples of texture coordinates.
+""".
 -spec recalibrate_tex_coords_for( [ texture_face_info() ], texture() ) ->
 												tuple( uv_point() ).
 % Avoiding useless reversings with body-recursion:
@@ -850,37 +868,39 @@ recalibrate_tex_coords_for( _TexFaceInfos=[ TupleOfUVPoints | T ], Texture ) ->
 
 
 
-% @doc Returns preprocessed information to generate suitable buffers for a list
-% of faces (presumably all having the specified number of vertices), each vertex
-% thereof having its own elements (in the general case, multiple elements per
-% vertex), specified in as many lists, contained in an overall list.
-%
-% More precisely, from the specified:
-%  - (indexed) faces
-%  - vertex-related elements (list of the per-vertex elements, like color,
-%  normal, texture coordinates, etc.),
-%  - list of all vertices
-%  - the (supposedly constant) number of vertices per face
-%
-% returns a {AttrSeries, CompoundCount} pair, where AttrSeries=[ToStoreVertices,
-% ToStoreElements1, ToStoreElements2, ...] and CompoundCount is the common
-% length of all these series (which corresponds to the number of vertices listed
-% through all faces, i.e. the number of vertex attribute compounds of a VBO that
-% would derive from these inputs).
-%
-% So each indexed face is expected to have the specified number of vertices
-% (this constraint could be relaxed), and each vertex will be rendered with its
-% own set of elements (that thus are not per-face); each of these elements will
-% be in its own list at the same rank as the corresponding vertex identifier
-% found in the list of indexed faces, should the tuple fronteers be ignored.
-%
-% For example, if IndexedFaces = [{V1Id,VId2,V3Id}, {V4Id,V5Id,V6Id}, ...], then
-% the second element of each of the lists in Elementss will correspond to the
-% compound for V2, it will be for example Col2 :: color_by_decimal().
-%
+-doc """
+Returns preprocessed information to generate suitable buffers for a list of
+faces (presumably all having the specified number of vertices), each vertex
+thereof having its own elements (in the general case, multiple elements per
+vertex), specified in as many lists, contained in an overall list.
+
+More precisely, from the specified:
+ - (indexed) faces
+ - vertex-related elements (list of the per-vertex elements, like color,
+ normal, texture coordinates, etc.),
+ - list of all vertices
+ - the (supposedly constant) number of vertices per face
+
+Returns a {AttrSeries, CompoundCount} pair, where AttrSeries=[ToStoreVertices,
+ToStoreElements1, ToStoreElements2, ...] and CompoundCount is the common length
+of all these series (which corresponds to the number of vertices listed through
+all faces, i.e. the number of vertex attribute compounds of a VBO that would
+derive from these inputs).
+
+So each indexed face is expected to have the specified number of vertices (this
+constraint could be relaxed), and each vertex will be rendered with its own set
+of elements (that thus are not per-face); each of these elements will be in its
+own list at the same rank as the corresponding vertex identifier found in the
+list of indexed faces, should the tuple fronteers be ignored.
+
+For example, if IndexedFaces = [{V1Id,VId2,V3Id}, {V4Id,V5Id,V6Id}, ...], then
+the second element of each of the lists in Elementss will correspond to the
+compound for V2, it will be for example Col2 :: color_by_decimal().
+
 -spec prepare_vattrs_per_vertex( [ indexed_face() ], [ [ render_element() ] ],
 								 [ vertex3() ], vertex_count() ) ->
 			{ [ vertex_attribute_series() ], compound_count() }.
+""".
 prepare_vattrs_per_vertex( IndexedFaces, Elementss, AllVertices, FaceVCount ) ->
 
 	FaceCount = length( IndexedFaces ),
@@ -958,30 +978,30 @@ check_element_structures( _Elementss=[ _EList=[ HE | _TE ] | _T ], FaceVCount,
 
 
 
+-doc """
+Returns preprocessed information to generate suitable buffers for a list of
+faces (presumably all having the specified number of vertices), each face having
+its own elements (in the general case, multiple elements per face), specified in
+as many lists, contained in an overall list.
 
-% @doc Returns preprocessed information to generate suitable buffers for a list
-% of faces (presumably all having the specified number of vertices), each face
-% having its own elements (in the general case, multiple elements per face),
-% specified in as many lists, contained in an overall list.
-%
-% More precisely, from the specified:
-%  - (indexed) faces
-%  - face-related elements (list of the per-face elements, like color, normal,
-%  texture coordinates, etc.),
-%  - list of all vertices
-%  - the (supposedly constant) number of vertices per face
-%
-% returns a {AttrSeries, CompoundCount} pair, where AttrSeries=[ToStoreVertices,
-% ToStoreElements1, ToStoreElements2, ...] and CompoundCount is the common
-% length of all these series (which corresponds to the number of vertices listed
-% through all faces, i.e. the number of vertex attribute compounds of a VBO that
-% would derive from these inputs).
-%
-% So each indexed face is expected to have the specified number of vertices
-% (this constraint could be relaxed), and is to be rendered with a given set of
-% elements (common to all the vertices of that face), each specified in its own
-% list at the same rank as this face.
-%
+More precisely, from the specified:
+ - (indexed) faces
+ - face-related elements (list of the per-face elements, like color, normal,
+ texture coordinates, etc.),
+ - list of all vertices
+ - the (supposedly constant) number of vertices per face
+
+Returns a {AttrSeries, CompoundCount} pair, where AttrSeries=[ToStoreVertices,
+ToStoreElements1, ToStoreElements2, ...] and CompoundCount is the common length
+of all these series (which corresponds to the number of vertices listed through
+all faces, i.e. the number of vertex attribute compounds of a VBO that would
+derive from these inputs).
+
+So each indexed face is expected to have the specified number of vertices (this
+constraint could be relaxed), and is to be rendered with a given set of elements
+(common to all the vertices of that face), each specified in its own list at the
+same rank as this face.
+""".
 -spec prepare_vattrs_per_face( [ indexed_face() ], [ [ render_element() ] ],
 							   [ vertex3() ], vertex_count() ) ->
 			{ [ vertex_attribute_series() ], compound_count() }.
@@ -1084,10 +1104,10 @@ prepare_vattrs( FaceGranularity, _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
 % Rendering section; based on OpenGL.
 
 
-
-% @doc Renders the specified mesh based on its rendering state (if any) and on
-% the current OpenGL context.
-%
+-doc """
+Renders the specified mesh based on its rendering state (if any) and on the
+current OpenGL context.
+""".
 -spec render_as_opengl( mesh() ) -> void().
 render_as_opengl( #mesh{ rendering_info=none } ) ->
 	%trace_utils:debug( "(mesh: nothing to render)" );
@@ -1190,18 +1210,17 @@ render_as_opengl( _M=#mesh{ rendering_info=RenderingInfoTuple,
 	%
 	gui_shader:render_from_enabled_vbos( PrimType, CompoundCount ),
 
-	gui_shader:unset_current_vao(),
+	gui_shader:unset_current_vao().
 
 	% Useless, as reset at each rendering through VAOs:
 	%gui_shader:disable_vertex_attribute( ... ),
 
-	ok.
 
 
-
-% @doc Returns the specified mesh once its rendering state has been cleaned up
-% and deallocated.
-%
+-doc """
+Returns the specified mesh once its rendering state has been cleaned up and
+deallocated.
+""".
 -spec cleanup_for_opengl( mesh() ) -> mesh().
 cleanup_for_opengl( Mesh=#mesh{ rendering_state=undefined } ) ->
    Mesh;
@@ -1222,9 +1241,10 @@ cleanup_for_opengl( Mesh=#mesh{ rendering_state=#rendering_state{
 
 
 
-% @doc Returns a (rather full) textual description of the specified rendering
-% information.
-%
+-doc """
+Returns a (rather full) textual description of the specified rendering
+information.
+""".
 -spec rendering_info_to_string( rendering_info() ) -> ustring().
 rendering_info_to_string( _RI=none ) ->
 	"no rendering set";
@@ -1257,8 +1277,9 @@ rendering_info_to_string( _RI={ textured, TexSpecId, TexCoords } ) ->
 
 
 
-% @doc Returns a compact textual description of the specified rendering
-% information.
+-doc """
+Returns a compact textual description of the specified rendering information.
+""".
 -spec rendering_info_to_compact_string( rendering_info() ) -> ustring().
 rendering_info_to_compact_string( _RI=none ) ->
 	"no rendering set";
@@ -1287,8 +1308,9 @@ rendering_info_to_compact_string(
 
 
 
-
-% @doc Returns a textual description of the specified mesh rendering state.
+-doc """
+Returns a textual description of the specified mesh rendering state.
+""".
 -spec rendering_state_to_string( rendering_state() ) -> ustring().
 rendering_state_to_string( #rendering_state{ program_id=ProgramId,
 											 vao_id=VAOId,
@@ -1302,7 +1324,10 @@ rendering_state_to_string( #rendering_state{ program_id=ProgramId,
 		[ ProgramId, VAOId, VBOId, VBOLayout, CompoundCount, EBOId ] ).
 
 
-% @doc Returns a textual description of the specified face granularity.
+
+-doc """
+Returns a textual description of the specified face granularity.
+""".
 -spec face_granularity_to_string( face_granularity() ) -> ustring().
 face_granularity_to_string( _FG=per_vertex ) ->
 	"per-vertex";
