@@ -199,15 +199,70 @@ Another option is to use ``ctags`` to generate Emacs' compliant `tags <https://w
 For Documentation Generation
 ----------------------------
 
+
+Generation of API documentation
+...............................
+
 Since Erlang/OTP 27, Myriad relies on the `overhauled documentation system <https://www.erlang.org/doc/system/documentation.html>`_ (stemming from `EEP 59 <https://www.erlang.org/eeps/eep-0059>`_) and on the `Markdown <https://en.wikipedia.org/wiki/Markdown>`_ syntax.
 
 This produces doc chunks, and `ExDoc <https://hexdocs.pm/ex_doc/readme.html>`_ is used (as a command-line tool) to generate the actual documentation out of it.
 
 As ExDoc is in Elixir, it is to be installed thanks to ``mix``, which can be installed on Arch thanks to ``pacman -S elixir``.
 
-Then ExDoc can be installed as an escript: ``mix escript.install hex ex_doc``; it becomes then available as ``~/.mix/escripts/ex_doc``, that may be added in one's PATH.
+Then ExDoc can be installed as an escript: ``mix escript.install hex ex_doc``; it becomes then available as ``~/.mix/escripts/ex_doc``, that may be added in one's ``PATH``. Refer to our ``generate-api-doc`` make target that automates the generation of the API documentation of the current layer.
+
+
+Writing API documentation
+.........................
+
+Short reminders for the writing of a proper corresponding documentation (see also the `Erlang reference guide <https://www.erlang.org/doc/system/documentation.html>`_ about it):
+
+- the documentation regarding an element must come just *before* that element
+- for each module file, first comes a ``-moduledoc`` (module-level) attribute
+- then as many ``-doc`` as there are elements that shall be documented: user-defined types (for ``-type`` and ``-opaque``), behaviour module attributes (``-callback``) and functions (``-spec``)
+- each of these documentation attributes (``-moduledoc`` / ``-doc``) can be followed by a single-quoted or a `triple-quoted string <https://www.erlang.org/blog/highlights-otp-27/#triple-quoted-strings>`_; this entry should start with a short paragraph describing the purpose of the documented element, and then go into greater detail if needed; we recommend the MarkDown syntax for it (see `this reference <https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax>`_); for example:
+
+
+.. code:: erlang
+
+ -moduledoc """
+ A module for **basic arithmetic**.
+
+ It is based on *XXX* and performs *YYY*.
+
+ ZZZ is of interest, see [this page](http://www.foobar.org).
+ See `sub/2`, <http://www.foobar.org#hello> and `arith:sub/2` for more details.
+ """.
+
+
+and
+
+.. code:: erlang
+
+ -doc "Adds two numbers."
+
+(note that both simple and triple quotes *must* be followed by a dot)
+
+Let's name an *element specification* the documentation attribute (``-doc``), possibly its type spec (``-spec``) and its actual (code-based) definition.
+
+We recommend that:
+
+- element specifications are separated by three blank lines
+- no blank line exists between a document attribute and the rest of the corresponding element specification
+
+
+.. comment For pick and paste:
+
+  -doc ".".
+
+  -doc """
+
+   """.
+
+
 
 For other documentation topics, refer to our `dedicated HOW-TO <http://howtos.esperide.org/DocGeneration.html>`_.
+
 
 
 Release Conventions
