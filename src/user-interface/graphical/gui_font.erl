@@ -32,75 +32,97 @@ Gathering of various facilities for **font management**.
 """.
 
 
+-doc """
+Designates a font object.
+
+It applies to text rendering, including the ones done from the gui_text module;
+once created, use gui_widget:set_font/{2,3,4} or gui_render:set_font/{3,4} to
+make use of it. Do not forget deallocating it with destruct/1.
+""".
 -opaque font() :: wxFont:wxFont().
-% Designates a font object.
-%
-% It applies to text rendering, including the ones done from the gui_text
-% module; once created, use gui_widget:set_font/{2,3,4} or
-% gui_render:set_font/{3,4} to make use of it. Do not forget deallocating it
-% with destruct/1.
 
 
+
+-doc """
+The dimensions, in pixels, of characters drawn from a font.
+
+Note that generally, due to capital letters, descent and other factors, instead
+of relying on the size of a font, using the actual extent of a target text (see
+get_precise_text_extent/2) is a lot more relevant.
+""".
 -type font_size() :: gui:dimensions().
-% The dimensions, in pixels, of characters drawn from a font.
-%
-% Note that generally, due to capital letters, descent and other factors,
-% instead of relying on the size of a font, using the actual extent of a target
-% text (see get_precise_text_extent/2) is a lot more relevant.
 
 
+
+-doc """
+A font size, in pixels.
+
+Note that generally, due to capital letters, descent and other factors, instead
+of relying on the point size of a font, using the actual extent of a target text
+(see get_precise_text_extent/2) is a lot more relevant.
+""".
 -type point_size() :: gui:length().
-% A font size, in pixels.
-%
-% Note that generally, due to capital letters, descent and other factors,
-% instead of relying on the point size of a font, using the actual extent of a
-% target text (see get_precise_text_extent/2) is a lot more relevant.
 
 
+
+-doc "A font family.".
 -type font_family() :: 'default_font_family' | 'decorative' | 'roman'
 					 | 'script' | 'swiss' | 'modern' | 'teletype'.
-% A font family.
 
 
+
+-doc "A font style.".
 -type font_style() :: 'normal' | 'italic' | 'slant'.
-% A font style.
 
 
+
+-doc "A font weight".
 -type font_weight() :: 'thin' | 'extra_light' | 'light' | 'normal' | 'medium'
 					 | 'semi_bold' | 'bold' | 'extra_bold' | 'heavy'
 					 | 'extra_heavy'.
-% A font weight.
 
+
+
+-doc "Currently the same as wx.".
 -type text_encoding() :: wx_text_encoding().
-% Currently the same as wx.
 
 
+
+-doc "A font option.".
 -type font_option() :: { 'underline', boolean() }
 					 | { 'face_name', any_string() }
 					 | { 'encoding', text_encoding() }.
-% A font option.
 
 
+
+-doc """
+Actual (opaque) data corresponding to a font.
+
+A wx object.
+""".
 -opaque font_data() :: wxFontData:wxFontData().
-% Actual (opaque) data corresponding to a font.
-%
-% A wx object.
 
 
+
+-doc "Length from the baseline of a font to the bottom of the descender.".
 -type descent() :: length().
-% Length from the baseline of a font to the bottom of the descender.
+ 
 
 
+-doc """
+Any extra vertical space added to the font by the font designer (usually is
+null).
+""".
 -type external_leading() :: length().
-% Any extra vertical space added to the font by the font designer (usually is
-% null).
 
 
+-doc """
+A precise text extent.
+
+Useful for example so that texts are rendered at the same height.
+""".
 -type precise_text_extent() ::
 	{ width(), height(), descent(), external_leading() }.
-% A precise text extent.
-%
-% Useful for example so that texts are rendered at the same height.
 
 
 -export_type([ font/0, font_size/0, point_size/0, font_family/0, font_style/0,
@@ -152,45 +174,56 @@ Gathering of various facilities for **font management**.
 
 
 
+
 % Font-related instance-level operations.
 
 
-% @doc Creates a font object from the specified requirements, to determine the
-% appearance of rendered texts from now on.
-%
+-doc """
+Creates a font object from the specified requirements, to determine the
+appearance of rendered texts from now on.
+""".
 -spec create( font_size() | point_size() ) -> font().
 create( FontSize ) ->
 	create( FontSize, _FontFamily=default_font_family ).
 
 
-% @doc Creates a font object from the specified requirements, to determine the
-% appearance of rendered texts from now on.
-%
+
+-doc """
+Creates a font object from the specified requirements, to determine the
+appearance of rendered texts from now on. 
+""".
 -spec create( font_size() | point_size(), font_family() ) -> font().
 create( FontSize, FontFamily ) ->
 	create( FontSize, FontFamily, _FontStyle=normal ).
 
-% @doc Creates a font object from specified requirements, to determine the
-% appearance of rendered text.
-%
+
+
+-doc """
+Creates a font object from specified requirements, to determine the appearance
+of rendered text.
+""".
 -spec create( font_size() | point_size(), font_family(), font_style() ) ->
 											font().
 create( FontSize, FontFamily, FontStyle ) ->
 	create( FontSize, FontFamily, FontStyle, _FontWeight=normal ).
 
 
-% @doc Creates a font object from specified requirements, to determine the
-% appearance of rendered text.
-%
+
+-doc """
+Creates a font object from specified requirements, to determine the appearance
+of rendered text.
+""".
 -spec create( font_size() | point_size(), font_family(), font_style(),
 			  font_weight() ) -> font().
 create( FontSize, FontFamily, FontStyle, FontWeight ) ->
 	create( FontSize, FontFamily, FontStyle, FontWeight, _FontOpts=[] ).
 
 
-% @doc Creates a font object from specified requirements, to determine the
-% appearance of rendered text.
-%
+
+-doc """
+Creates a font object from specified requirements, to determine the appearance
+of rendered text.
+""".
 -spec create( font_size() | point_size(), font_family(), font_style(),
 			  font_weight(), [ font_option() ] ) -> font().
 create( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ) ->
@@ -217,40 +250,44 @@ create( FontSize, FontFamily, FontStyle, FontWeight, FontOpts ) ->
 	Font.
 
 
-% @doc Destructs the specified font.
+
+-doc "Destructs the specified font.".
 -spec destruct( font() ) -> void().
 destruct( Font ) ->
 	wxFont:destroy( Font ).
 
 
 
-% @doc Returns the platform-dependent complete description of the specified
-% font.
-%
-% For example, "Sans 10".
-%
+-doc """
+Returns the platform-dependent complete description of the specified font.
+
+For example, "Sans 10".
+""".
 -spec get_platform_dependent_description( font() ) -> ustring().
 get_platform_dependent_description( Font ) ->
 	wxFont:getNativeFontInfoDesc( Font ).
 
 
-% @doc Returns a user-friendly description of the specified font.
-%
-% For example, "Sans 10".
-%
+
+-doc """
+Returns a user-friendly description of the specified font.
+
+For example, "Sans 10".
+""".
 -spec get_user_friendly_description( font() ) -> ustring().
 get_user_friendly_description( Font ) ->
 	wxFont:getNativeFontInfoUserDesc( Font ).
 
 
 
-% @doc Returns the extent used by the rendering of the specified single-line
-% text with the specified font.
-%
-% Note that the returned height may be larger than the actual one of the text,
-% due to the margin taken for letters possibly going though the baseline (like
-% 'g'), the descent.
-%
+-doc """
+Returns the extent used by the rendering of the specified single-line text with
+the specified font.
+
+Note that the returned height may be larger than the actual one of the text, due
+to the margin taken for letters possibly going though the baseline (like 'g'),
+the descent.
+""".
 -spec get_text_extent( ustring(), font() ) -> dimensions().
 get_text_extent( Text, Font ) ->
 
@@ -281,9 +318,10 @@ get_text_extent( Text, Font ) ->
 
 
 
-% @doc Returns the precise extent used by the rendering of the specified
-% single-line text with the specified font.
-%
+-doc """
+Returns the precise extent used by the rendering of the specified single-line
+text with the specified font.
+""".
 -spec get_precise_text_extent( ustring(), font() ) -> precise_text_extent().
 get_precise_text_extent( Text, Font ) ->
 
@@ -317,19 +355,21 @@ get_precise_text_extent( Text, Font ) ->
 % General font information.
 
 
-% @doc Returns a list of the base font families.
+-doc "Returns a list of the base font families.".
 -spec list_families() -> [ font_family() ].
 list_families() ->
 	[ default_font_family, decorative, roman, script, swiss, modern, teletype ].
 
 
-% @doc Returns a list of the supported font styles.
+
+-doc "Returns a list of the supported font styles.".
 -spec list_styles() -> [ font_style() ].
 list_styles() ->
 	[ normal, italic, slant ].
 
 
-% @doc Returns a list of the supported font weights.
+
+-doc "Returns a list of the supported font weights.".
 -spec list_weights() -> [ font_weight() ].
 list_weights() ->
 	[ thin, extra_light, light, normal, medium, semi_bold, bold, extra_bold,
@@ -343,7 +383,7 @@ list_weights() ->
 % Next constants will have to be integrated in gui_constants.
 
 
-% @doc Converts the specified font family into a wx one.
+-doc "Converts the specified font family into a wx one.".
 -spec to_wx_font_family( font_family() ) -> wx_font_family().
 to_wx_font_family( default_font_family ) ->
 	?wxFONTFAMILY_DEFAULT;
@@ -371,7 +411,7 @@ to_wx_font_family( Other ) ->
 
 
 
-% @doc Converts the specified font style into a wx one.
+-doc "Converts the specified font style into a wx one.".
 -spec to_wx_font_style( font_style() ) -> wx_font_style().
 to_wx_font_style( normal ) ->
 	?wxFONTSTYLE_NORMAL;
@@ -387,7 +427,7 @@ to_wx_font_style( Other ) ->
 
 
 
-% @doc Converts the specified font weight into a wx one.
+-doc "Converts the specified font weight into a wx one.".
 -spec to_wx_font_weight( font_weight() ) -> wx_font_weight().
 to_wx_font_weight( thin ) ->
 	?wxFONTWEIGHT_THIN;
@@ -423,13 +463,15 @@ to_wx_font_weight( Other ) ->
 	throw( { unknown_font_weight, Other } ).
 
 
-% @doc Converts the specified font options into wx ones.
+
+-doc "Converts the specified font options into wx ones.".
 -spec to_wx_font_options( [ font_option() ] ) -> [ wx_font_option() ].
 to_wx_font_options( FontOpts ) ->
 	[ to_wx_font_option( FO ) || FO <- FontOpts ].
 
 
-% @doc Converts the specified font option into a wx one.
+
+-doc "Converts the specified font option into a wx one.".
 -spec to_wx_font_option( font_option() ) -> wx_font_option().
 to_wx_font_option( FontOpt={ underline, _Bool } ) ->
 	FontOpt;
