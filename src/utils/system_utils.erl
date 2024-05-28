@@ -25,13 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, February 11, 2010.
 
-
-% @doc Gathering of various <b>system-level</b> (operating system) convenient
-% facilities.
-%
-% See system_utils_test.erl for the corresponding test.
-%
 -module(system_utils).
+
+-moduledoc """
+Gathering of various **system-level** (operating system) convenient facilities.
+
+See system_utils_test.erl for the corresponding test.
+""".
 
 
 
@@ -356,7 +356,7 @@
 % Represents a shell environment (a set of variable names and values).
 
 
--type working_dir() :: maybe( any_directory_path() ).
+-type working_dir() :: option( any_directory_path() ).
 % Working directory of an executed command.
 
 
@@ -899,7 +899,7 @@ run_command( Command, Environment ) ->
 % regarding encoding and security) to the run_command/* ones, which may be
 % considered available only for backward compatibility.
 %
--spec run_command( command(), environment(), maybe( working_dir() ) ) ->
+-spec run_command( command(), environment(), option( working_dir() ) ) ->
 							execution_outcome().
 run_command( Command, Environment, MaybeWorkingDir ) ->
 	run_command( Command, Environment, MaybeWorkingDir,
@@ -930,7 +930,7 @@ run_command( Command, Environment, MaybeWorkingDir ) ->
 % regarding encoding and security) to the run_command/* ones, which may be
 % considered available only for backward compatibility.
 %
--spec run_command( command(), environment(), maybe( working_dir() ),
+-spec run_command( command(), environment(), option( working_dir() ),
 				   [ port_option() ] ) -> execution_outcome().
 run_command( Command, Environment, MaybeWorkingDir, PortOptions ) ->
 
@@ -1033,7 +1033,7 @@ run_executable( ExecPath, Arguments, Environment ) ->
 % the error ones): {ReturnCode, CmdOutput}.
 %
 -spec run_executable( executable_path(), [ executable_argument() ],
-		environment(), maybe( working_dir() ) ) -> execution_outcome().
+		environment(), option( working_dir() ) ) -> execution_outcome().
 run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir ) ->
 	run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
 					get_default_port_options() ).
@@ -1053,7 +1053,7 @@ run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir ) ->
 % This is the recommended, most complete way of running an executable.
 %
 -spec run_executable( executable_path(), [ executable_argument() ],
-		environment(), maybe( working_dir() ), [ port_option() ] ) ->
+		environment(), option( working_dir() ), [ port_option() ] ) ->
 							execution_outcome().
 run_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
 				PortOptions ) ->
@@ -1438,7 +1438,7 @@ run_background_command( Command, Environment ) ->
 % instead.
 %
 -spec run_background_command( command(), environment(),
-							  maybe( working_dir() ) ) -> void().
+							  option( working_dir() ) ) -> void().
 run_background_command( Command, Environment, MaybeWorkingDir ) ->
 	run_background_command( Command, Environment, MaybeWorkingDir,
 							_PortOptions=[] ).
@@ -1462,7 +1462,7 @@ run_background_command( Command, Environment, MaybeWorkingDir ) ->
 % This is the most complete function to run a background option.
 %
 -spec run_background_command( command(), environment(),
-						maybe( working_dir() ), [ port_option() ] ) -> void().
+						option( working_dir() ), [ port_option() ] ) -> void().
 run_background_command( Command, Environment, MaybeWorkingDir,
 						PortOptions ) ->
 
@@ -1580,7 +1580,7 @@ run_background_executable( ExecPath, Arguments, Environment ) ->
 % leak, one may consider using evaluate_background_shell_expression/2 instead.
 %
 -spec run_background_executable( executable_path(), [ executable_argument() ],
-				environment(), maybe( working_dir() ) ) -> void().
+				environment(), option( working_dir() ) ) -> void().
 run_background_executable( ExecPath, Arguments, Environment,
 						   MaybeWorkingDir ) ->
 	run_background_executable( ExecPath, Arguments, Environment,
@@ -1608,7 +1608,7 @@ run_background_executable( ExecPath, Arguments, Environment,
 % background.
 %
 -spec run_background_executable( executable_path(), [ executable_argument() ],
-		environment(), maybe( working_dir() ), [ port_option() ] ) -> void().
+		environment(), option( working_dir() ), [ port_option() ] ) -> void().
 run_background_executable( ExecPath, Arguments, Environment, MaybeWorkingDir,
 						   PortOptions ) ->
 
@@ -1743,7 +1743,7 @@ set_environment_variable( VarName, VarValue ) ->
 % lookup of executables.
 %
 -spec get_environment_variable_for_executable_lookup() ->
-									maybe( env_variable_name() ).
+									option( env_variable_name() ).
 get_environment_variable_for_executable_lookup() ->
 	?executable_search_path_variable.
 
@@ -1752,7 +1752,7 @@ get_environment_variable_for_executable_lookup() ->
 % lookup of (shared) libraries.
 %
 -spec get_environment_variable_for_library_lookup() ->
-									maybe( env_variable_name() ).
+									option( env_variable_name() ).
 get_environment_variable_for_library_lookup() ->
 	?library_search_path_variable.
 
@@ -2737,8 +2737,8 @@ compute_cpu_usage_between( StartCounters, EndCounters ) ->
 %
 % Returns 'undefined' iff the specified usage is itself undefined.
 %
--spec compute_cpu_usage_for( maybe( cpu_usage_percentages() ) ) ->
-										maybe( percent() ).
+-spec compute_cpu_usage_for( option( cpu_usage_percentages() ) ) ->
+										option( percent() ).
 compute_cpu_usage_for( undefined ) ->
 	undefined;
 
@@ -2761,7 +2761,7 @@ compute_cpu_usage_for( { UserPercent, NicePercent, SystemPercent, _IdlePercent,
 % usage can be quantified then.
 %
 -spec compute_detailed_cpu_usage( cpu_usage_info(), cpu_usage_info() ) ->
-										maybe( cpu_usage_percentages() ).
+										option( cpu_usage_percentages() ).
 compute_detailed_cpu_usage( _StartCounters={ U1, N1, S1, I1, O1 },
 							_EndCounters = { U2, N2, S2, I2, O2 } ) ->
 
@@ -2921,7 +2921,7 @@ get_mount_points() ->
 % pseudo-filesystems), throwing an exception on error if requested, otherwise
 % displaying an error trace and returning 'undefined'.
 %
--spec get_mount_points( boolean() ) -> maybe( [ directory_path() ] ).
+-spec get_mount_points( boolean() ) -> option( [ directory_path() ] ).
 get_mount_points( CanFail ) ->
 
 	FirstCmd = ?df "-h --local --output=target"
@@ -2992,7 +2992,7 @@ get_filesystem_info( AnyFilesystemPath ) ->
 % 'undefined'.
 %
 -spec get_filesystem_info( any_directory_path(), boolean() ) ->
-											maybe( fs_info() ).
+											option( fs_info() ).
 get_filesystem_info( BinFilesystemPath, CanFail )
 								when is_binary( BinFilesystemPath ) ->
 	get_filesystem_info( text_utils:binary_to_string( BinFilesystemPath ),

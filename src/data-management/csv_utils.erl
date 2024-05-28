@@ -25,18 +25,19 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, February 22, 2018.
 
-
-% @doc Management of <b>CSV</b> (<em>Comma-Separated Values</em>) data.
-%
-% Note that such a data format is not at the state of the art: it is very basic
-% if not rudimentary, not formalised and quite limited (no meta-data, escaping
-% being required, etc.).
-%
-% See also [https://en.wikipedia.org/wiki/Comma-separated_values].
-%
-% See csv_utils_test.erl for the corresponding test.
-%
 -module(csv_utils).
+
+-moduledoc """
+Management of **CSV** (*Comma-Separated Values*) data.
+
+Note that such a data format is not at the state of the art: it is very basic
+if not rudimentary, not formalised and quite limited (no meta-data, escaping
+being required, etc.).
+
+See also <https://en.wikipedia.org/wiki/Comma-separated_values>.
+
+See csv_utils_test.erl for the corresponding test.
+""".
 
 
 % Usual extension of CSV files, which we recommend:
@@ -133,7 +134,7 @@
 % This work-around is still necessary (still true with Erlang 23.0):
 %-define( read_options, [ read, { read_ahead, ?ahead_size } ] ).
 -define( read_options,
-   [ read, { read_ahead, ?ahead_size }, { encoding, utf8 } ] ).
+		 [ read, { read_ahead, ?ahead_size }, { encoding, utf8 } ] ).
 
 
 

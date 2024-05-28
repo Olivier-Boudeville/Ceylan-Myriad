@@ -25,10 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
-
-% A simple target module in order to test how parse transforms can operate.
-%
 -module(simple_parse_transform_target).
+
+-moduledoc """
+A simple target module in order to test how parse transforms can operate.
+""".
+
 
 -export([ f/1 ]).
 

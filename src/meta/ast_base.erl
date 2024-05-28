@@ -25,12 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of providing <b>base, transverse constructs to manage
-% ASTs</b>, notably in order to transform them (meta-programming).
-%
 -module(ast_base).
 
+-moduledoc """
+Module in charge of providing **base, transverse constructs to manage ASTs**,
+notably in order to transform them (meta-programming).
+""".
 
 
 % Section about general locations in AST, sources, etc.
@@ -43,7 +43,7 @@
 % Higher-level location, not to be mixed up with file_loc/0.
 
 
--type file_reference() :: basic_utils:maybe( file_utils:file_path() ).
+-type file_reference() :: basic_utils:option( file_utils:file_path() ).
 % In-file reference, typically like:
 % `{"../data-management/simple_parse_transform_target.erl",1}'.
 
@@ -65,12 +65,12 @@
 % The (newer) pair form shall now be preferred.
 
 
--type form_context() :: basic_utils:maybe( file_loc() ).
+-type form_context() :: basic_utils:option( file_loc() ).
 % Context (if any) of a form.
 
 
 -type source_context() ::
-		{ file_utils:filename(), basic_utils:maybe( file_loc() ) }.
+		{ file_utils:filename(), basic_utils:option( file_loc() ) }.
 % In-source context (typically to report errors); e.g. `{"foo.erl",{112,4}}'.
 
 

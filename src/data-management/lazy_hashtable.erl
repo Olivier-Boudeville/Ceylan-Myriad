@@ -25,47 +25,41 @@
 % Author: Jingxuan Ma [jingxuan (dot) ma (at) edf (dot) fr]
 % Creation date: November 10, 2011.
 
-
-% @doc Implementation of an <b>hashtable that optimises itself lazily</b>: the
-% decision to perform a check for optimization is made based on the number of
-% operations triggered since last check. It allows to avoid triggering these
-% checkings too frequently or to spend too much resources determining whether a
-% check should be done.
-%
-% See `lazy_table_test.erl' for the corresponding test.
-% See `hashtable.erl'.
-%
-% A lazy_hashtable is a {Hashtable, NumberOfOperations} pair where:
-%
-% - Hashtable is an hashtable, refer to hashtable.erl for more detail
-%
-% - NumberOfOperations represents the number of operations on the corresponding
-% hashtable performed since the last optimization check, so that the next check
-% can be triggered appropriately
-%
-%
-% We provide different multiple types of hashtables, including:
-%
-% - 'hashtable', the most basic, safest, reference implementation - and quite
-% efficient as well
-%
-% - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
-% best)
-%
-% - 'lazy_hashtable' (this module), deciding to optimise in a less costly way
-% than 'tracked_hashtable'
-%
-% - 'map_hashtable', which is probably the most efficient implementation
-% (speed/size compromise)
-%
-% - 'list_table', a list-based implementation, efficient for smaller tables (and
-% only them)
-%
-% They are to provide the same API (signatures and contracts).
-%
 -module(lazy_hashtable).
 
-% Directly depends on the hashtable module.
+-moduledoc """
+Implementation of an **hashtable that optimises itself lazily**: the decision to
+perform a check for optimization is made based on the number of operations
+triggered since last check. It allows to avoid triggering these checkings too
+frequently or to spend too much resources determining whether a check should be
+done.
+
+See `lazy_table_test.erl' for the corresponding test.
+See `hashtable.erl'.
+
+A lazy_hashtable is a {Hashtable, NumberOfOperations} pair where:
+- Hashtable is an hashtable, refer to hashtable.erl for more detail
+- NumberOfOperations represents the number of operations on the corresponding
+hashtable performed since the last optimization check, so that the next check
+can be triggered appropriately
+
+We provide different multiple types of hashtables, including:
+- 'hashtable', the most basic, safest, reference implementation - and quite
+efficient as well
+- 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
+best)
+- 'lazy_hashtable' (this module), deciding to optimise in a less costly way than
+'tracked_hashtable'
+- 'map_hashtable', which is probably the most efficient implementation
+(speed/size compromise)
+- 'list_table', a list-based implementation, efficient for smaller tables (and
+only them)
+
+They are to provide the same API (signatures and contracts).
+
+Directly depends on the hashtable module.
+""".
+
 
 
 % Mostly the same API as the one of hashtable:
@@ -113,7 +107,7 @@
 % Not supported since Erlang 18.0:
 %
 %-opaque lazy_hashtable( K, V ) ::
-%		  { hashtable:hashtable( K, V ), operation_count() }.
+%   { hashtable:hashtable( K, V ), operation_count() }.
 
 
 -export_type([ key/0, value/0, entry/0, entries/0, entry_count/0,

@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, July 24, 2015.
 
-
-% @doc Gathering of <b>time management</b> facilities.
-%
-% See time_utils_test.erl for the corresponding test.
-%
 -module(time_utils).
+
+-moduledoc """
+Gathering of **time management** facilities.
+
+See time_utils_test.erl for the corresponding test.
+""".
 
 
 
@@ -1361,7 +1362,7 @@ check_timestamp( Term ) ->
 % @doc Checks that specified term is a maybe-timestamp (then a valid one)
 % indeed.
 %
--spec check_maybe_timestamp( term() ) -> maybe( timestamp() ).
+-spec check_maybe_timestamp( term() ) -> option( timestamp() ).
 check_maybe_timestamp( Term=undefined ) ->
 	Term;
 

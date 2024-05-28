@@ -26,14 +26,16 @@
 % Creation date: Monday, April 10, 2023.
 
 
-% A single MyriadGUI Header to rule them all: <b>the MyriadGUI include that user
-% code shall reference</b>.
+% A single MyriadGUI Header to rule them all: **the MyriadGUI include that user
+% code shall reference**.
 
 -include("gui_base.hrl").
 
 -include("gui_event.hrl").
 
 -include("gui_opengl.hrl").
+
+-include("gui_shader.hrl").
 
 -include("bounding_surface.hrl").
 

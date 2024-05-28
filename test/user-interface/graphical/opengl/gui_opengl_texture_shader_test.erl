@@ -25,26 +25,31 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, January 9, 2022.
 
-
-% @doc Minimal testing of <b>shader-based texture rendering</b>: displays, based
-% on GLSL shaders, a textured polygon.
-%
-% It is therefore a non-interactive, passive test (no spontaneous/scheduled
-% behaviour) whose main interest is to show a simple yet generic, appropriate
-% use of textures.
-%
-% This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
-% as opposed to the compatibility mode for OpenGL 1.x.
-%
-% See also the gui_opengl_texture_test module for a corresponding test with the
-% legacy versions of OpenGL (compatibility mode).
-%
 -module(gui_opengl_texture_shader_test).
+
+-moduledoc """
+Minimal testing of **shader-based texture rendering**: displays, based on GLSL
+shaders, a textured polygon. Does not rely on our 'mesh' module.
+
+It is therefore a non-interactive, passive test (no spontaneous/scheduled
+behaviour) whose main interest is to show a simple yet generic, appropriate use
+of textures.
+
+This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x.
+
+See also the gui_opengl_texture_test module for a corresponding test with the
+legacy versions of OpenGL (compatibility mode).
+
+The textured mode can be replaced with a wireframe one (see RasterMode).
+""".
 
 
 % Implementation notes:
 %
 % Directly inspired from https://learnopengl.com/Getting-started/Textures.
+%
+% NDC coordinates ("Normalised Device Coordinates") are used here.
 
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
@@ -75,10 +80,10 @@
 	image :: image(),
 
 	% Needs an OpenGL context:
-	texture :: maybe( texture() ),
+	texture :: option( texture() ),
 
 	% In more complex cases, would store the loaded textures, etc.
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.
@@ -169,6 +174,9 @@
 -define( my_texture_coords_attribute_index, 1 ).
 
 
+% Designating the fourth texture unit (they start at zero):
+-define( my_target_texture_unit, 3 ).
+
 
 % @doc Prepares all information needed to render the triangle, and returns them.
 %
@@ -187,9 +195,10 @@ prepare_triangle( Texture ) ->
 
 	% Triangle defined as [vertex3()], directly in normalised device coordinates
 	% here; CCW order (T0 bottom left, T1 bottom right, T2 top, knowing that the
-	% texture repository has its Y ordinate axis up, see
-	% https://learnopengl.com/Getting-started/Hello-Triangle); we define here an
-	% upright triangle so that the texture is not deformed:
+	% texture coordinate system has its Y ordinate axis up, see
+	% https://learnopengl.com/Getting-started/Hello-Triangle), hence
+	% front-facing; we define here an upright triangle so that the texture is
+	% not deformed:
 	%
 	%                 T2
 	%               /  |
@@ -248,11 +257,14 @@ prepare_square( Texture ) ->
 	Z = 0.0,
 
 	% Square defined as [vertex3()], directly in normalized device coordinates
-	% here; CCW order (bottom left, bottom right, top right, top left)::
+	% here:
 	%
 	%         S3--S2
 	%         |    |
 	%         S0--S1
+	%
+	% Listed here in CW order (top right, bottom right, bottom left, top left),
+	% hence back-facing:
 	%
 	SquareVertices = [ _SV2={  H,  H, Z }, _SV1={  H, -H, Z },
 					   _SV0={ -H, -H, Z }, _SV3={ -H,  H, Z } ],
@@ -291,30 +303,6 @@ prepare_square( Texture ) ->
 	gui_shader:unset_current_vao(),
 
 	{ SquareVAOId, SquareMergedVBOId, SquareEBOId }.
-
-
-
-
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
-
-	test_facilities:display(
-		"~nStarting the test of texture support with OpenGL shaders." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts.",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
 
 
 
@@ -371,9 +359,12 @@ init_test_gui() ->
 	%
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
+	TestTexPath = gui_opengl_texture_test:get_test_texture_path(),
+
+	trace_utils:debug_fmt( "Test texture path: '~ts'.", [ TestTexPath ] ),
+
 	% Would be too early for gui_texture:load_from_file (no GL context yet):
-	TestImage = gui_image:load_from_file(
-		gui_opengl_texture_test:get_test_texture_path() ),
+	TestImage = gui_image:load_from_file( TestTexPath ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet), actual
 	% OpenGL initialisation to happen when available, i.e. when the main frame
@@ -552,7 +543,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_texture_shader.vertex.glsl",
-		"gui_opengl_texture_shader.fragment.glsl", UserVertexAttrs ),
+		"gui_opengl_texture_shader.fragment.glsl", UserVertexAttrs,
+		_ExtraGLSLSearchPaths=[ "." ] ),
 
 	% Usable as soon as the program is linked; refer to the fragment shader:
 	SamplerUnifId = gui_shader:get_uniform_id(
@@ -561,9 +553,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	Texture = gui_texture:create_from_image( Image ),
 
 	% To showcase that we can use other texture units (locations) than the
-	% default ?GL_TEXTURE0 one:
+	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit:
 	%
-	gui_texture:set_current_texture_unit( ?GL_TEXTURE4 ),
+	gui_texture:set_current_texture_unit( ?my_target_texture_unit ),
 
 	% Thus associated to the previous texture unit:
 	gui_texture:set_as_current( Texture ),
@@ -577,23 +569,30 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Set the texture location of the sampler uniform:
 	%
 	% (as expected, specifying other texture units would result in no texture
-	% being applied; yet, for some reason, using specifically TextureUnit=0
-	% still results in the expected texture to be applied)
+	% being applied, hence black surfaces; yet, for some reason, using
+	% specifically TextureUnit=0 still results in the expected texture to be
+	% applied; at least OpenGL driver enable this one by default)
 	%
 	% No texture: gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=1 ),
 	% Right:
-	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=4 ),
+	gui_shader:set_uniform_i( SamplerUnifId, ?my_target_texture_unit ),
 
 	% Texture shown as well for:
-	% gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=0 ),
+	 %gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=0 ),
 
 
-	% Uncomment to switch to wireframe and see how the square decomposes in two
-	% triangles:
+	% Switch RasterMode to raster_as_lines in order to render in wireframe
+	% rather than textured, and see how the square decomposes in two triangles:
 	%
-	% (?GL_FRONT_AND_BACK not needed as our vertices are in CCW order)
+	% (front_and_back_facing needed, as the square is back facing, whereas the
+	% triangle is front facing)
 	%
-	%gui_opengl:set_polygon_raster_mode( ?GL_FRONT, ?GL_LINE ),
+	RasterMode = raster_filled,
+	%RasterMode = raster_as_lines,
+
+	gui_opengl:set_polygon_raster_mode( _FacingMode=front_and_back_facing,
+										RasterMode ),
+
 
 	% First, a triangle, whose vertices and texture coordinates are specified
 	% separately:
@@ -786,15 +785,8 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running this OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run(
+			"the test of texture support with OpenGL shaders" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

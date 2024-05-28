@@ -25,11 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2009.
 
-
-% @doc This module defines a few <b>basic facilities for tests</b>, at the level
-% of the 'Myriad' layer.
-%
 -module(test_facilities).
+
+-moduledoc """
+This module defines a few **basic facilities for tests**, at the level of the
+'Myriad' layer.
+""".
+
 
 
 % To be output before each displayed message:

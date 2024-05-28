@@ -25,17 +25,19 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, December 24, 2017.
 
-
-% @doc Management of various <b>identifiers</b>, such as UUIDs or ones not only
-% sortable but also for which any number of identifiers may be inserted between
-% any two of them.
-%
-% See id_utils_test.erl for the corresponding test.
-%
-% See also, in the basic_utils module, get_unix_process_specific_string/0 and
-% get_process_specific_value/0.
-%
 -module(id_utils).
+
+-moduledoc """
+Management of various **identifiers**, such as UUIDs or ones not only sortable
+but also for which any number of identifiers may be inserted between any two of
+them.
+
+See id_utils_test.erl for the corresponding test.
+
+See also, in the basic_utils module, get_unix_process_specific_string/0 and
+get_process_specific_value/0.
+""".
+
 
 
 % For the table macro, knowing the current module is bootstrapped:
@@ -578,7 +580,7 @@ assign_sorted_identifiers( _ElementsToIdentify=[ E | T ], IdentifierTable ) ->
 % (helper)
 %
 -spec find_lowest_identifier_in( [ identifiable_element() ],
-				identifier_table() ) -> basic_utils:maybe( sortable_id() ).
+				identifier_table() ) -> basic_utils:option( sortable_id() ).
 find_lowest_identifier_in( Elements, IdentifierTable ) ->
 
 	MaybeLowestId = find_lowest_identifier_in( Elements, IdentifierTable,

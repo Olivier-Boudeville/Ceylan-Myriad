@@ -26,7 +26,7 @@
 % Creation date: Friday, December 19, 2014.
 
 
-% @doc Overall <b>parse transform for the `Ceylan-Myriad' layer</b>.
+% @doc Overall **parse transform for the `Ceylan-Myriad' layer**.
 %
 % See `meta_utils.erl' and `meta_utils_test.erl'.
 %
@@ -379,8 +379,8 @@ get_myriad_ast_transforms_for(
 	% '{remote_type,FileLoc, [ {atom,FileLoc,basic_utils},
 	%                          {atom,FileLoc,void}, [] ] }'
 
-	% We also manage maybe/1 here: if used as 'maybe(T)', translated as
-	% 'basic_utils:maybe(T)'; the same applies to safe_maybe/1, fallible/{1,2}
+	% We also manage option/1 here: if used as 'option(T)', translated as
+	% 'basic_utils:option(T)'; the same applies to safe_option/1, fallible/{1,2}
 	% and diagnosed_fallible/{1,2}.
 
 	% Determines the target table type that we want to rely on ultimately:
@@ -404,9 +404,12 @@ get_myriad_ast_transforms_for(
 
 	end,
 
-	% Too serious consequences not to be advertised:
-	DisableLCO andalso ast_utils:display_warning(
-		"LCO will be disabled for this '~ts' module.", [ TargetModuleName ] ),
+	% Too serious consequences not to be advertised; not using display_warning/2
+	% anymore, as a warning may trigger error-management mechanisms (e.g. with
+	% Emacs preventing a compilation buffer to be buried):
+	%
+	DisableLCO andalso ast_utils:display_info(
+		"LCO disabled for this '~ts' module.", [ TargetModuleName ] ),
 
 	ASTTransformTable = get_ast_global_transforms( DesiredTableType,
 		_DisableLCO=shall_lco_be_disabled( CompileOptTable ) ),
@@ -479,9 +482,9 @@ shall_lco_be_disabled( CompileOptTable ) ->
 %
 % - void() with basic_utils:void() (i.e. prefixed with basic_utils)
 %
-% - maybe(T) with basic_utils:maybe(T)
+% - option(T) with basic_utils:option(T)
 %
-% - safe_maybe(T) with basic_utils:safe_maybe(T)
+% - safe_option(T) with basic_utils:safe_option(T)
 %
 % - fallible(T) with basic_utils:fallible(T)
 %
@@ -502,8 +505,8 @@ get_local_type_transforms( DesiredTableType ) ->
 	% the basic_utils module:
 	%
 	BasicUtilsTypes = [ { void, 0 },
-						{ maybe, 1 },
-						{ safe_maybe, 1 },
+						{ option, 1 },
+						{ safe_option, 1 },
 						{ fallible, 1 }, { fallible, 2 },
 						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 } ],
 
@@ -1121,15 +1124,22 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 			end;
 
 
-		%%%%%%% Subsection for cond_utils:assert/3 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		%%%%%%% Subsection for cond_utils:assert/3 %%%%%%%%%%%%%%%%%%%%%%%
+
 
 		( _FileLocCall,
-		  _FunctionRef={ remote, _, {atom,_,cond_utils}, {atom,_,assert} },
+		  _FunctionRef={ remote, _, {atom,_,cond_utils},
+						 % Resist the temptation of naming it assert_equal: we
+						 % are not comparing at runtime ValueForm and
+						 % ExpressionForm, but at compile time the value
+						 % associated to the token with ValueForm:
+						 %
+						 {atom,_,assert} },
 		  _Params=[ {atom,FileLocToken,Token}, ValueForm, ExpressionForm ],
 		  Transforms=#ast_transforms{ transformation_state=TokenTable } ) ->
 
-			%ast_utils:display_debug( "Call to cond_utils:assert/3 found, "
-			%   "with token '~p' and expression form ~p.",
+			%ast_utils:display_debug( "Call to cond_utils:assert/3 "
+			%   "found, with token '~p' and expression form ~p.",
 			%   [ Token, ExpressionForm ] ),
 
 			RequestedValue = ast_value:get_immediate_value( ValueForm ),
@@ -1356,7 +1366,7 @@ inject_match_expression( ExpressionForm, Transforms, FileLoc ) ->
 
 	% Now corresponds roughly to:
 	%
-	% EXPR =:= true orelse throw( { assertion_failed, Other } )	%
+	% EXPR =:= true orelse throw({assertion_failed,Other})
 	% (no need to do more as the stacktrace with line numbers shall be output)
 
 	% We have to ensure that the name of the variable that we bind in the second

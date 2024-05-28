@@ -23,13 +23,16 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2010.
 
-
-% @doc Unit tests for the <b>linear 2D facilities</b>.
-%
-% See the linear_2D tested module.
-%
 -module(linear_2D_test).
+
+-moduledoc """
+Unit tests for the **linear 2D facilities**.
+
+See the linear_2D tested module.
+""".
+
 
 
 % For run/0 export and al:

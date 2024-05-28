@@ -25,23 +25,25 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, March 2, 2024.
 
-
-% @doc Base module for the support of <b>reference frames</b> (frames of
-% references) of any dimension.
-%
-% A frame of reference is a part of reference tree; it records the
-% transformation between this frame and its parent frame (if any).
-%
-% @see https://en.wikipedia.org/wiki/Frame_of_reference for further information
-%
 -module(reference_frame).
+
+-moduledoc """
+Base module for the support of **reference frames** (frames of references) of
+any dimension.
+
+A frame of reference is a part of reference tree; it records the
+transformation between this frame and its parent frame (if any).
+
+See https://en.wikipedia.org/wiki/Frame_of_reference for further information
+""".
 
 
 
 % Implementation notes:
 %
+% Refer to <https://howtos.esperide.org/reference-frame-tree.png> for an
+% example.
 
-% https://howtos.esperide.org/reference-frame-tree.png
 
 % For the matrix4 record:
 -include("matrix4.hrl").

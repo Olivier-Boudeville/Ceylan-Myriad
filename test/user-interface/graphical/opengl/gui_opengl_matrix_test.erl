@@ -25,16 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, February 2, 2022.
 
-
-% @doc Testing of <b>matrix support</b> in relation to OpenGL, to ensure that
-% they can be handled as expected.
-%
-% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
-% modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
-%
-% See the gui_opengl.erl tested module.
-%
 -module(gui_opengl_matrix_test).
+
+-moduledoc """
+Testing of **matrix support** in relation to OpenGL, to ensure that they can be
+handled as expected.
+
+This test relies on the OpenGL 1.x compatibility mode, as opposed to more modern
+versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
+
+See the gui_opengl.erl tested module.
+""".
 
 
 
@@ -78,28 +79,6 @@
 
 -type gl_canvas() :: gui_opengl:gl_canvas().
 -type gl_context() :: gui_opengl:gl_context().
-
-
-
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
-
-	test_facilities:display( "~nStarting the test of OpenGL Matrix support." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
 
 
 
@@ -323,15 +302,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running the OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run(
+		"the test of OpenGL Matrix support" ) =:= yes andalso run_actual_test(),
 
 	test_facilities:stop().

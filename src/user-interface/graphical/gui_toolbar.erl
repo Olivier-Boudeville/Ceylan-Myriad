@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, September 2, 2023.
 
-
-% @doc Gathering of various facilities for <b>toolbar management</b>.
-%
-% A tool bar is a bar of buttons and/or other controls usually placed below the
-% menu bar in a frame.
-%
-% Use our gui_frame_bars_test.erl test in order to display all known tools.
-%
 -module(gui_toolbar).
+
+-moduledoc """
+Gathering of various facilities for **toolbar management**.
+
+A tool bar is a bar of buttons and/or other controls usually placed below the
+menu bar in a frame.
+
+Use our gui_frame_bars_test.erl test in order to display all known tools.
+""".
+
 
 
 -opaque toolbar() :: wxToolBar:wxToolBar().
@@ -90,7 +92,7 @@
 -type wx_object() :: gui:wx_object().
 -type label() :: gui:label().
 
--type frame() :: gui_window:frame().
+-type frame() :: gui_frame:frame().
 
 -type control() :: gui_widget:control().
 
@@ -142,7 +144,7 @@ add_control( Toolbar, Control ) ->
 % update_tools/1 should be called once additions have been done, so that they
 % are taken into account.
 %
--spec add_tool( toolbar(), id(), label(), bitmap(), maybe( help_info() ) ) ->
+-spec add_tool( toolbar(), id(), label(), bitmap(), option( help_info() ) ) ->
 											void().
 add_tool( Toolbar, Id, Label, Bitmap, MaybeShortHelp ) ->
 
@@ -168,7 +170,7 @@ add_tool( Toolbar, Id, Label, Bitmap, MaybeShortHelp ) ->
 % are taken into account.
 %
 -spec add_tool( toolbar(), id(), label(), bitmap(), bitmap(),
-				maybe( help_info() ), maybe( help_info() ) ) -> void().
+				option( help_info() ), option( help_info() ) ) -> void().
 add_tool( Toolbar, Id, Label, BitmapIfEnabled, BitmapIfDisabled,
 		  MaybeShortHelp, MaybeLongHelp ) ->
 

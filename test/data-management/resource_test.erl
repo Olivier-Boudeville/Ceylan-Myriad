@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, April 6, 2022.
 
-
-% @doc Test of the <b>resource</b> implementation.
-%
-% See the bijective_table.erl tested module.
-%
 -module(resource_test).
+
+-moduledoc """
+Test of the **resource** implementation.
+
+See the bijective_table.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

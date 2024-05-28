@@ -25,15 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, October 10, 2021.
 
-
-% @doc Module implementing the support for <b>4D vectors</b>.
-%
-% See also:
-% - the corresponding points (in point4.erl) and matrices (in matrix4.erl)
-% - the (unspecialised) vectors of arbitrary dimensions, in vector.erl
-% - the various 4D extra services in linear_4D.erl
-%
 -module(vector4).
+
+-moduledoc """
+Module implementing the support for **4D vectors**.
+
+See also:
+- the corresponding points (in `point4.erl`) and matrices (in `matrix4.erl`)
+- the (unspecialised) vectors of arbitrary dimensions, in `vector.erl`
+- the various 4D extra services in `linear_4D.erl`
+""".
 
 
 % For printout_*, inline_size, etc.:

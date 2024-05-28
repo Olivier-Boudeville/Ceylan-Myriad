@@ -25,38 +25,34 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, December 22, 2014.
 
-
-% @doc Implementation of an <b>associative table relying on a simple list of
-% key/value pairs</b>.
-%
-% Beware of multiple entries having the same key in such a list_table, as the
-% first one will eclipse all others; this may happen if not building explicitly,
-% with this API, one's list_table instance.
-%
-% See `list_table_test.erl' for the corresponding test.
-%
-% We provide different multiple types of tables, including:
-%
-% - 'hashtable', the most basic, safest, reference implementation - and quite
-% efficient as well
-%
-% - 'tracked_table', an attempt of optimisation of it (not necessarily the best)
-%
-% - 'lazy_table', deciding to optimise in a less costly way than 'tracked_table'
-%
-% - 'map_table', which is probably the most efficient implementation (speed/size
-% compromise)
-%
-% - 'list_table' (this module), a list-based implementation, efficient for
-% smaller table (and only them)
-%
-% They are to provide the same API (signatures and contracts).
-%
-% See also: `list_utils.erl' if having to deal with tagged lists, that is: lists
-% possibly containing pairs and also single atoms (e.g. see
-% list_utils:extract_{atom,pair}_*/*).
-%
 -module(list_table).
+
+-moduledoc """
+Implementation of an **associative table relying on a simple list of key/value
+pairs**.
+
+Beware of multiple entries having the same key in such a list_table, as the
+first one will eclipse all others; this may happen if not building explicitly,
+with this API, one's list_table instance.
+
+See `list_table_test.erl` for the corresponding test.
+
+We provide different multiple types of tables, including:
+- 'hashtable', the most basic, safest, reference implementation - and quite
+efficient as well
+- 'tracked_table', an attempt of optimisation of it (not necessarily the best)
+- 'lazy_table', deciding to optimise in a less costly way than 'tracked_table'
+- 'map_table', which is probably the most efficient implementation (speed/size
+compromise)
+- 'list_table' (this module), a list-based implementation, efficient for smaller
+table (and only them)
+
+They are to provide the same API (signatures and contracts).
+
+See also: `list_utils.erl` if having to deal with tagged lists, that is: lists
+possibly containing pairs and also single atoms (e.g. see
+`list_utils:extract_{atom,pair}_*/*`.
+""".
 
 
 

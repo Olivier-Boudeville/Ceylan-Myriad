@@ -25,18 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 9, 2023.
 
-
-% @doc Minimal testing of <b>shader-based transformation rendering</b>: applies
-% a transformation matrix created from the application and displays a textured
-% square based on it that can be moved with the keyboard to test transformations
-% (translations, rotations and shearings) and directions thereof in the current
-% coordinate system.
-%
-% This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
-% as opposed to the compatibility mode for OpenGL 1.x, and on Myriad's
-% conventions (e.g. a Z-UP coordinate system).
-%
 -module(gui_opengl_transformation_shader_test).
+
+-moduledoc """
+Minimal testing of **shader-based transformation rendering**: applies a
+transformation matrix created from the application and displays a textured
+square based on it that can be moved with the keyboard to test transformations
+(translations, rotations and scalings) and directions thereof in the current
+coordinate system.
+
+This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
+(e.g. a Z-UP coordinate system).
+""".
+
 
 
 % Implementation notes:
@@ -65,11 +67,11 @@
 % rendered as pure black); easily done with legacy OpenGL, maybe less with
 % shaders.
 
-% With a square of null thickness, shearing along the Z axis will not change
+% With a square of null thickness, scaling along the Z axis will not change
 % anything.
 
 % Due to how 4x4 matrix multiplication works, the translations will be applied
-% last, whereas rotations and shearings will happen in their reverse
+% last, whereas rotations and scalings will happen in their reverse
 % specification order. As a result, for example if rotating the square whereas
 % it has been translated far away from the origin, it will not rotate around the
 % origin, but on itself, in its local coordinate system (around the origin of
@@ -90,7 +92,7 @@
 -include("test_facilities.hrl").
 
 
--type transformation_mode() :: 'translation' | 'rotation' | 'shearing'.
+-type transformation_mode() :: 'translation' | 'rotation' | 'scaling'.
 
 
 % Test-specific overall GUI state:
@@ -143,19 +145,19 @@
 	% The model-view matrix for the square of interest:
 	model_view :: matrix4(),
 
-	% The currect projection settings that apply:
+	% The current projection settings that apply:
 	projection_settings :: projection_settings(),
 
 	% The corresponding projection matrix of interest:
 	projection :: matrix4(),
 
 	% The currently active transformation mode (translation, rotation,
-	% or shearing):
+	% or scaling):
 	%
 	transformation_mode :: transformation_mode(),
 
 	% In more complex cases, would store the loaded textures, etc.:
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
 -type my_gui_state() :: #my_gui_state{}.
 % Test-specific overall GUI state.
@@ -168,7 +170,7 @@
 	program_id :: program_id(),
 
 	% Needs an OpenGL context:
-	texture :: maybe( texture() ),
+	texture :: option( texture() ),
 
 	% The identifier of the Model-View uniform matrix:
 	model_view_id :: uniform_id(),
@@ -188,7 +190,7 @@
 	% The VBO concentrating vertices and texture coordinates:
 	square_merged_vbo_id :: vbo_id(),
 
-	% Indices for the vertex:
+	% Indices of the vertices:
 	square_ebo_id :: ebo_id() } ).
 
 -type my_opengl_state() :: #my_opengl_state{}.
@@ -198,129 +200,32 @@
 % properly once not needed anymore.
 
 
-% Key bindings (Z-being-altitude conventions, i.e. Z-UP); note that the
-% user-triggered movements are by default the ones of the model (the square),
-% not the ones of the view (the camera), and that they are defined in absolute
-% terms, relatively to the global coordinate system (as opposed to, for example,
-% based on the camera).
-%
-% First supposing that a keypad is available:
 
--define( has_keypad, true ).
-%-define( has_keypad, false ).
+% For the shared navigation defines:
+-include("gui_opengl_test_defines.hrl").
 
+
+% Test-specific defines:
 
 -if( ?has_keypad =:= true ).
 
-% X (abscissa in the Z-up coordinate system) is controlled by left-right keypad
-% numbers/arrows:
-
-% Square moving along the +X axis (to the right on the screen, with the default
-% camera) when hitting the key labelled "6" on keypad:
-%
--define( increase_x_scan_code, ?MYR_SCANCODE_KP_6 ).
-
-% Square moving along the -X axis (to the left on the screen, with the default
-% camera) when hitting the key labelled "4" on keypad:
-%
--define( decrease_x_scan_code, ?MYR_SCANCODE_KP_4 ).
-
-
-% Y (depth in the Z-up coordinate system)
-
-% Square moving along the +Y axis (to the top of the screen, with the default
-% camera) when hitting the key labelled "8" on keypad:
-%
--define( increase_y_scan_code, ?MYR_SCANCODE_KP_8 ).
-
-% Square moving along the -Y axis (to the bottom of the screen, with the default
-% camera) when hitting the key labelled "2" on keypad:
-%
--define( decrease_y_scan_code, ?MYR_SCANCODE_KP_2 ).
-
-
-% Z (ordinate / altitude in the Z-up coordinate system)
-
-% Square moving along the +Z axis (from front to behind, with the default
-% camera) when hitting the key labelled "9" on keypad:
-%
--define( increase_z_scan_code, ?MYR_SCANCODE_KP_9 ).
-
-% Square moving along the -Z axis (from behind to front, with the default
-% camera) when hitting the key labelled "9" on keypad:
-%
--define( decrease_z_scan_code, ?MYR_SCANCODE_KP_3 ).
-
-
-% Re-center all:
+% Re-centers all:
 -define( reset_scan_code, ?MYR_SCANCODE_KP_5 ).
 
-
-% Switch to the next transformation mode:
+% Switches to the next transformation mode:
 -define( mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
-
 
 
 -else. % Not using keypad here:
 
 
-% X (abscissa in the Z-up coordinate system) is controlled by left-right keypad
-% numbers/arrows:
-
-% Square seen moving to the right with the default camera:
--define( increase_x_scan_code, ?MYR_SCANCODE_RIGHT ).
-
-% To the left:
--define( decrease_x_scan_code, ?MYR_SCANCODE_LEFT ).
-
-
-% Y (ordinate)
-
-% Up:
--define( increase_y_scan_code, ?MYR_SCANCODE_UP ).
-
-% Down:
--define( decrease_y_scan_code, ?MYR_SCANCODE_DOWN ).
-
-
-% Z (depth/altitude)
-
-% Moving nearer/upward:
--define( increase_z_scan_code, ?MYR_SCANCODE_PAGEUP ).
-
-% Moving farther/downward:
--define( decrease_z_scan_code, ?MYR_SCANCODE_PAGEDOWN ).
-
-
-% Re-center all:
 -define( reset_scan_code, ?MYR_SCANCODE_SPACE ).
 
-
-% Switch to the next transformation mode:
 -define( mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
+
 
 -endif. % has_keypad
 
-
-
--define( projection_mode_scan_code, ?MYR_SCANCODE_P ).
-
--define( help_scan_code, ?MYR_SCANCODE_H ).
-
-% End test:
--define( quit_scan_code, ?MYR_SCANCODE_ESCAPE ).
-
-
-
-
-% An increment on a given dimension:
--define ( delta_coord, 0.1 ).
-
-% An increment on a given angle, in degrees:
--define ( delta_angle, 2.0 ).
-
-% A factor of a given scaling:
--define ( delta_scale, 0.1 ).
 
 
 % Shorthands:
@@ -329,12 +234,6 @@
 
 -type matrix4() :: matrix4:matrix4().
 -type projection_settings() :: projection:projection_settings().
-
--type orthographic_settings() ::
-	projection:orthographic_settings().
-
--type perspective_settings() ::
-	projection:perspective_settings().
 
 -type frame() :: gui_frame:frame().
 -type aspect_ratio() :: gui:aspect_ratio().
@@ -438,31 +337,6 @@ prepare_square( Texture ) ->
 	{ SquareVAOId, SquareMergedVBOId, SquareEBOId }.
 
 
-
-
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
-
-	test_facilities:display(
-		"~nStarting the test of transformation support with OpenGL shaders." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts.",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
-
-
-
 -spec get_help_text() -> ustring().
 get_help_text() ->
 
@@ -485,12 +359,12 @@ get_help_text() ->
 		"    * the X axis: hit '4' to turn it clockwise (CW), '6' counter-clockwise (CCW)~n"
 		"    * the Y axis: hit '2' to turn it CW, '8' CCW~n"
 		"    * the Z axis: hit '3' to turn it CW, '9' CCW~n"
-		"  - to shear it of a ~f factor along (if in shearing mode):~n"
+		"  - to scale it of a ~f factor along (if in scaling mode):~n"
 		"    * the X axis: hit '4' to scale it down, '6' up~n"
 		"    * the Y axis: hit '2' to scale it down, '8' up~n"
 		"    * the Z axis: hit '3' to scale it down, '9' up~n~n"
 		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
-		"to switch to the next transformation mode (cycling between translation, rotation, shearing), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
+		"to switch to the next transformation mode (cycling between translation, rotation, scaling), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
 		"Hints:~n"
 		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
 		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, first make the square go further/downward to make it appear~n",
@@ -563,7 +437,7 @@ init_test_gui() ->
 	TestImage = gui_image:load_from_file(
 		gui_opengl_texture_test:get_test_texture_path() ),
 
-	ProjSettings = get_base_orthographic_settings(),
+	ProjSettings = projection:get_base_orthographic_settings(),
 
 	_Zero = 0.0,
 
@@ -760,7 +634,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_transformation_shader.vertex.glsl",
-		"gui_opengl_transformation_shader.fragment.glsl", UserVertexAttrs ),
+		"gui_opengl_transformation_shader.fragment.glsl", UserVertexAttrs,
+		_ExtraGLSLSearchPaths=[ "." ] ),
 
 	% Uniform locations can be fetched as soon as the program is linked:
 
@@ -778,9 +653,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	Texture = gui_texture:create_from_image( Image ),
 
 	% To showcase that we can use other texture units (locations) than the
-	% default ?GL_TEXTURE0 one:
+	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit:
 	%
-	gui_texture:set_current_texture_unit( ?GL_TEXTURE2 ),
+	gui_texture:set_current_texture_unit( 2 ),
 
 	% Thus associated to the previous texture unit:
 	gui_texture:set_as_current( Texture ),
@@ -1272,11 +1147,11 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-% Thirdly managing shearings:
+% Thirdly managing scalings:
 update_scene( _Scancode=?increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1284,7 +1159,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1296,7 +1171,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 update_scene( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1304,7 +1179,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1317,7 +1192,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 update_scene( _Scancode=?increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1325,7 +1200,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1337,7 +1212,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 update_scene( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1345,7 +1220,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1358,7 +1233,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 update_scene( _Scancode=?increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1366,7 +1241,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1379,7 +1254,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 update_scene( _Scancode=?decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1387,7 +1262,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
+	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
 		"resulting in: MV = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelViewMat4 ),
 		  get_origin_description( NewModelViewMat4 ) ] ),
@@ -1424,9 +1299,9 @@ update_scene( _Scancode=?mode_switch_scan_code,
 			rotation;
 
 		rotation ->
-			shearing;
+			scaling;
 
-		shearing ->
+		scaling ->
 			translation
 
 	end,
@@ -1449,11 +1324,11 @@ update_scene( _Scancode=?projection_mode_scan_code,
 
 		orthographic_settings ->
 			PerspSettings =
-				get_base_perspective_settings( AspectRatio ),
+				projection:get_base_orthographic_settings( AspectRatio ),
 			{ PerspSettings, projection:perspective( PerspSettings ) };
 
 		perspective_settings ->
-			OrthoSettings = get_base_orthographic_settings(),
+			OrthoSettings = projection:get_base_orthographic_settings(),
 			{ OrthoSettings, projection:orthographic( OrthoSettings ) }
 
 	end,
@@ -1492,41 +1367,9 @@ get_origin_description( ModelViewMat4 ) ->
 	InvMat4 = matrix4:inverse( ModelViewMat4 ),
 	LocalOrigin = matrix4:get_translation( InvMat4 ),
 
-	text_utils:format( "In the global coordinate system, the local origin "
+	text_utils:format( "~nIn the global coordinate system, the local origin "
 		"of the square coordinate system is now: ~ts",
 		[ point3:to_string( LocalOrigin ) ] ).
-
-
-
--spec get_base_orthographic_settings() ->
-						orthographic_settings().
-get_base_orthographic_settings() ->
-	%#orthographic_settings{
-	%	left=0.0,
-	%	right=800.0,
-	%	bottom=0.0,
-	%	top=600.0,
-	%	z_near=0.1,
-	%	z_far=100.0 }.
-
-	% Corresponds to a default identity matrix:
-	#orthographic_settings{
-		left=-1.0,
-		right=1.0,
-		bottom=-1.0,
-		top=1.0,
-		z_near=1.0,
-		z_far=-1.0 }.
-
-
--spec get_base_perspective_settings( aspect_ratio() ) ->
-						perspective_settings().
-get_base_perspective_settings( AspectRatio ) ->
-	#perspective_settings{
-		fov_y_angle=math_utils:degrees_to_radians( 45 ),
-		aspect_ratio=AspectRatio,
-		z_near=0.1,
-		z_far=100.0 }.
 
 
 
@@ -1536,15 +1379,8 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running this OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run(
+			"the test of transformation support with OpenGL shaders" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

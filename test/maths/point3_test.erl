@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, October 10, 2021.
 
-
-
-% @doc Unit tests for the <b>3D points</b>.
-%
-% See the point3 tested module.
-%
 -module(point3_test).
+
+-moduledoc """
+Unit tests for the **3D points**.
+
+See the point3 tested module.
+""".
+
 
 
 % For run/0 export and al:

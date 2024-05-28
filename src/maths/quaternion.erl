@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, October 8, 2021.
 
-
-% @doc Gathering of various facilities for <b>quaternion-related</b> operations.
 -module(quaternion).
+
+-moduledoc """
+Gathering of various facilities for **quaternion-related** operations.
+""".
 
 
 % For printout_*, inline_size, etc.:
@@ -174,7 +176,7 @@ add( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 
 % @doc Returns the (Hamilton) product of the two specified quaternions.
 %
-% This product is not commutative, but is associative.
+% This product is associative, but not commutative.
 %
 % Multiplying imaginary quaternions corresponds to computing the cross-product
 % of their coordinates.
@@ -187,7 +189,7 @@ add( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 mult( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 
 	A = A1*A2 - B1*B2 - C1*C2 - D1*D1,
-	B = A1*B2 + B1*A2 + C1*D2 -D1*C2,
+	B = A1*B2 + B1*A2 + C1*D2 - D1*C2,
 	C = A1*C2 - B1*D2 + C1*A2 + D1*B2,
 	D = A1*D2 + B1*C2 - C1*B2 + D1*A2,
 
@@ -258,7 +260,7 @@ normalise( Q ) ->
 			throw( cannot_normalise_null_quaternion );
 
 		M ->
-			scale( Q, 1.0 / M )
+			scale( Q, _Factor=1.0/M )
 
 	end.
 
@@ -280,7 +282,7 @@ inverse( Q ) ->
 			throw( cannot_inverse_null_quaternion );
 
 		SM ->
-			scale( conjugate( Q ), 1.0 / SM )
+			scale( conjugate( Q ), _Factor=1.0/SM )
 
 	end.
 
@@ -319,8 +321,7 @@ rotate( Q={ A, B, C, D }, V ) ->
 
 	% Optimised implementation (1) derived from
 	% https://gamedev.stackexchange.com/questions/28395/rotating-vector3-by-a-quaternion
-	% returning V' = 2.(Vq.V).Vq + (A*A-Vq.Vq).V + 2.A.(Vq^V)
-
+	% returning V' = 2.(Vq.V).Vq + (A*A-Vq.Vq).V + 2.A.(Vq^V) = V1 + V2 + V3
 
 	% A variation (2), not used here, based only on cross-products (not dot
 	% products) exist also: V' = V + A.Vq^V + 2.U^(U^V)
@@ -369,7 +370,9 @@ to_vector3( _Q={ A, B, C, D } ) ->
 
 
 
-% @doc Returns the 4x4 matrix representation of the specified quaternion.
+% @doc Returns the 4x4 matrix representation of the specified (unitary or not)
+% quaternion.
+%
 -spec to_matrix4( quaternion() ) -> matrix4().
 to_matrix4( _Q={A,B,C,D} ) ->
 	#matrix4{ m11=A, m12=-B, m13=-C, m14=-D,
@@ -439,7 +442,7 @@ is_unitary( Q ) ->
 
 
 
-% @doc Returns a textual description of specified quaternion; full float
+% @doc Returns a textual description of the specified quaternion; full float
 % precision is shown.
 %
 -spec to_string( quaternion() ) -> ustring().

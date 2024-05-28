@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2010.
 
-
-% @doc Unit tests for the (2D) <b>bounding surface facilities</b>.
-%
-% See the bounding_surface tested module.
-%
 -module(bounding_surface_test).
+
+-moduledoc """
+Unit tests for the (2D) **bounding surface facilities**.
+
+See the bounding_surface tested module.
+""".
+
 
 
 % For run/0 export and al:

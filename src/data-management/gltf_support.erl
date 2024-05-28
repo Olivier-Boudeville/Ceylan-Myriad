@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, October 4, 2021.
 
-
-% @doc Gathering of various facilities about the <b>glTF 2.0</b> file format (GL
-% Transmission Format).
-%
-% See [https://en.wikipedia.org/wiki/GlTF].
-%
 -module(gltf_support).
+
+-moduledoc """
+Gathering of various facilities about the **glTF 2.0** file format (GL
+Transmission Format).
+
+See <https://en.wikipedia.org/wiki/GlTF>.
+""".
+
 
 
 % Design notes:
@@ -1224,7 +1226,7 @@ raw_buffer_to_gltf_buffer_embedded( BinContent ) ->
 % its content directly into a relevant base64-encoded URI.
 %
 -spec raw_buffer_to_gltf_buffer_embedded( raw_buffer(),
-								maybe( object_name() ) ) -> gltf_buffer().
+								option( object_name() ) ) -> gltf_buffer().
 raw_buffer_to_gltf_buffer_embedded( BinContent, MaybeBufferName ) ->
 
 	Base64Uri = "data:application/octet-stream;base64,"
@@ -1745,8 +1747,8 @@ get_topology_type_associations() ->
 % @doc Converts a (Myriad-level) topology type (if any) into a (lower-level)
 % glTF one.
 %
--spec maybe_topology_to_gltf( maybe( topology_type() ) ) ->
-								 maybe( gltf_topology_type() ).
+-spec maybe_topology_to_gltf( option( topology_type() ) ) ->
+								 option( gltf_topology_type() ).
 maybe_topology_to_gltf( _MaybeTopologyType=undefined ) ->
 	% Preferred to default glTF value (4, for triangles):
 	undefined;
@@ -2095,7 +2097,7 @@ add_primitive( Vertices, Normals, TexCoords, TopologyType, IndexedTriangles,
 % Directly embeds the resulting buffer; returns the index of the new primitive
 % (in that mesh) and an updated glTF content.
 %
--spec add_primitive( maybe( primitive_name() ), [ specialised_vertex() ],
+-spec add_primitive( option( primitive_name() ), [ specialised_vertex() ],
 		[ specialised_normal() ], [ specialised_texture_coordinates() ],
 		topology_type(), gltf_topology(), material_index(), mesh_index(),
 		gltf_content() ) -> { primitive_index(), gltf_content() }.
@@ -2191,9 +2193,9 @@ add_primitive( MaybePrimName, Vertices, Normals, TexCoords,
 % These vertices are expected to be already transformed to Y-UP conventions (see
 % the 'Orientation section' at the top of this file).
 %
--spec integrate_vertices( [ specialised_vertex() ], maybe( object_name() ),
+-spec integrate_vertices( [ specialised_vertex() ], option( object_name() ),
 				buffer_index(), raw_buffer(), byte_offset(), gltf_content() ) ->
-		{ maybe( accessor_index() ), raw_buffer(), byte_offset(),
+		{ option( accessor_index() ), raw_buffer(), byte_offset(),
 		  gltf_content() }.
 integrate_vertices( _Vertices=[], _MaybeName, _PrimBufferIndex, Buffer,
 					BufferOffset, Content ) ->
@@ -2260,9 +2262,9 @@ integrate_vertices( Vertices, MaybeName, PrimBufferIndex, Buffer,
 % @doc Integrates the specified normals (if any) in the specified buffer and
 % content, which are returned.
 %
--spec integrate_normals( [ specialised_vertex() ], maybe( object_name() ),
+-spec integrate_normals( [ specialised_vertex() ], option( object_name() ),
 				buffer_index(), raw_buffer(), byte_offset(), gltf_content() ) ->
-		{ maybe( accessor_index() ), raw_buffer(), byte_offset(),
+		{ option( accessor_index() ), raw_buffer(), byte_offset(),
 		  gltf_content() }.
 integrate_normals( _Normals=[], _MaybeName, _PrimBufferIndex, Buffer,
 					BufferOffset, Content ) ->
@@ -2324,9 +2326,9 @@ integrate_normals( Normals, MaybeName, PrimBufferIndex, Buffer,
 % @doc Integrates the specified texture coordinates (if any) in the specified
 % buffer and content, which are returned.
 %
--spec integrate_texture_coordinates( [ uv_point() ], maybe( object_name() ),
+-spec integrate_texture_coordinates( [ uv_point() ], option( object_name() ),
 			buffer_index(), raw_buffer(), byte_offset(), gltf_content() ) ->
-		{ maybe( accessor_index() ), raw_buffer(), byte_offset(),
+		{ option( accessor_index() ), raw_buffer(), byte_offset(),
 		  gltf_content() }.
 integrate_texture_coordinates( _TexCoords=[], _MaybeName, _PrimBufferIndex,
 							   Buffer, BufferOffset, Content ) ->
@@ -2389,9 +2391,9 @@ integrate_texture_coordinates( TexCoords, MaybeName, PrimBufferIndex, Buffer,
 % @doc Integrates the specified indexes (if any) in the specified buffer and
 % content, which are returned.
 %
--spec integrate_indexes( [ gltf_index() ], maybe( object_name() ),
+-spec integrate_indexes( [ gltf_index() ], option( object_name() ),
 		buffer_index(), raw_buffer(), byte_offset(), gltf_content() ) ->
-			{ maybe( accessor_index() ), raw_buffer(), byte_offset(),
+			{ option( accessor_index() ), raw_buffer(), byte_offset(),
 			  gltf_content() }.
 integrate_indexes( _Indexes=[], _MaybeName, _PrimBufferIndex, Buffer,
 				   BufferOffset, Content ) ->
@@ -2569,8 +2571,8 @@ get_buffer_view_binary( BufferViewIndex, BufferViews, Buffers, BufferTable ) ->
 % @doc Returns an appropriate object name (if any), based on specified string
 % and deriving name (e.g. the one of a primitive).
 %
--spec forge_maybe_name( ustring(), maybe( object_name() ) ) ->
-													maybe( object_name() ).
+-spec forge_maybe_name( ustring(), option( object_name() ) ) ->
+													option( object_name() ).
 forge_maybe_name( _BaseStr, _MaybeName=undefined ) ->
 	undefined;
 

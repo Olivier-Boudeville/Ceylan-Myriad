@@ -25,9 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, December 18, 2023.
 
-
-% @doc Unit tests for the management of <b>texts and fonts</b>.
 -module(gui_text_test).
+
+-moduledoc """
+Unit tests for the management of **texts and fonts**.
+""".
+
 
 
 % For run/0 export and al:

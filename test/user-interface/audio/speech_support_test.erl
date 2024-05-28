@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, November 30, 2021.
 
-
-% @doc This is a test of Myriad's <b>speech support</b>, more precisely the
-% generation of Text-to-Speech (TTS) audio content.
-%
-% See the speech_support.erl tested module.
-%
 -module(speech_support_test).
+
+-moduledoc """
+This is a test of Myriad's **speech support**, more precisely the generation of
+Text-to-Speech (TTS) audio content.
+
+See the speech_support.erl tested module.
+""".
+
 
 
 % Usage notes:

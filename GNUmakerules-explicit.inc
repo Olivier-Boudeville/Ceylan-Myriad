@@ -37,8 +37,9 @@
 			test-hex-package                                                 \
 			generate-protobuf                                                \
 			sync-sources-to-server sync-all-to-server                        \
-			generate-api-doc generate-api-alt-doc copy-static-content        \
-			clean-api-doc clean-api-alt-doc                                  \
+			generate-api-doc generate-api-doc-with-exdoc                     \
+			generate-api-edoc generate-api-doc-with-erldocs                  \
+			copy-static-content clean-api-doc clean-api-alt-doc              \
 			generate-list-of-erlang-types generate-list-of-local-types       \
 			generate-local-plt self-check-against-plt write-debug-key-file   \
 			check check-hook check-with-dialyzer check-with-gradualizer      \
@@ -988,7 +989,7 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 # are elsewhere); see the next 'sync-all-to-server' server.
 #
 sync-sources-to-server: all
-	@echo " Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
+	@echo "  Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) src include $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
 	@echo "(source synchronisation to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT) done)"
 
@@ -1001,31 +1002,45 @@ sync-sources-to-server: all
 # executed.
 #
 sync-all-to-server: all
-	@echo " Synchronising the full content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
+	@echo "  Synchronising the full content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
 	@if [ -n "$(WEB_SRV)" ]; then if [ -n "$(CEYLAN_SYNC_TARGET_ROOT)" ]; then $(SYNC_TOOL) $(SYNC_OPT) $(LAYER_TOP) $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)/$$(basename $$(pwd)); else echo "Error, no CEYLAN_SYNC_TARGET_ROOT variable set." 1>&2; exit 4; fi; else echo "Error, no WEB_SRV variable set." 1>&2; exit 5; fi
 	@echo "(full synchronisation to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT) done)"
 
 
 
-# Main doc generator, directly relying on edoc:
+generate-api-doc: generate-api-doc-with-exdoc
+
+
+# Main doc generator, relying on ExDoc:
+#
+# (simpler to look into ebin rather than forging many --paths options)
+#
+generate-api-doc-with-exdoc:
+	@cd $(PROJECT_TOP) && $(MAKE) -s all copy-beams-to-ebin
+	@echo "  Generating API documentation with ExDoc"
+	@$(EXDOC) "$(PROJECT_NAME)" "$(PROJECT_VERSION)" "$(PROJECT_TOP)/ebin" $(EXDOC_OPTS) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
+	@$(MAKE) -s copy-static-content
+
+
+# Doc generator directly relying on edoc:
 #
 # (include symlinks needed for layers having a full include tree)
 #
-generate-api-doc: overview.edoc create-include-links
+generate-api-edoc: overview.edoc create-include-links
 	@echo "  Generating API documentation with edoc"
 	@$(ERLANG_INTERPRETER) -noshell -run edoc_run application "'$(PROJECT_NAME)'" '"."' $(EDOC_OPTS) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
 	@$(MAKE) -s copy-static-content
 
 
-# Alternate doc generator, relying on erldocs:
-generate-api-alt-doc: overview.edoc
+# Doc generator relying on erldocs:
+generate-api-doc-with-erldocs: overview.edoc
 	@echo "  Generating API documentation with erldocs"
 	@$(API_DOC_GENERATOR) -o $(API_DOC_ALT_ROOT) $(LAYER_TOP) && echo "  API alternate documentation generated in file://$$(realpath $(API_DOC_ALT_ROOT)/index.html)"
 
 
 # For the main doc generator:
 copy-static-content:
-	@echo "  Copying static content for edoc"
+	@echo "  Copying static content for the API documentation"
 	-@/bin/cp -f $(LAYER_TOP)/doc/$(PROJECT_SHORT_NAME)-api.css $(LAYER_TOP)/doc/api-doc/stylesheet.css
 	@/bin/cp -f $(LAYER_TOP)/doc/$(PROJECT_SHORT_NAME)-small.png $(LAYER_TOP)/doc/api-doc/erlang.png
 
@@ -1469,10 +1484,18 @@ info-sql:
 	@echo "POSTGRESQL_BASE = $(POSTGRESQL_BASE)"
 	@echo "SQL_OPTS        = $(SQL_OPTS)"
 
+
 info-doc:
+	@echo "PROJECT_URL = $(PROJECT_URL)"
 	@echo "API_DOC_GENERATOR = $(API_DOC_GENERATOR)"
 	@echo "API_DOC_ROOT = $(API_DOC_ROOT)"
-	@echo "EDOC_OPTS = $(EDOC_OPTS)"
+	@echo "EXDOC = $(EXDOC)"
+	@echo "EXDOC_OPTS = $(EXDOC_OPTS)"
+
+
+# Previously:
+#   @echo "EXDOC_CONFIG_FILE = $(EXDOC_CONFIG_FILE)"
+#   @echo "EDOC_OPTS = $(EDOC_OPTS)"
 
 
 # Put here, as defining explicit targets:

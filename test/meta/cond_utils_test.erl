@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, December 25, 2018.
 
-
-% @doc Unit tests for the <b>cond_utils</b> services.
-%
-% See the cond_utils.erl tested module.
-%
 -module(cond_utils_test).
+
+-moduledoc """
+Unit tests for the **cond_utils** services.
+
+See the cond_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

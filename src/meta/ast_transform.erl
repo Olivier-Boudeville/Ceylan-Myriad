@@ -25,16 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of <b>transforming AST elements</b>, typically by
-% operating on a `module_info' record obtained after the transforming of an AST.
-%
-% Note that the transform relies on a rather complex and complete traversal of
-% the abstract syntax of the AST, inspired from the spec (in
-% [http://erlang.org/doc/apps/erts/absform.html]) and also checked against the
-% Erlang 'id' parse transformation (see lib/stdlib/examples/erl_id_trans.erl).
-%
 -module(ast_transform).
+
+-moduledoc """
+Module in charge of **transforming AST elements**, typically by operating on a
+`module_info` record obtained after the transforming of an AST.
+
+Note that the transform relies on a rather complex and complete traversal of the
+abstract syntax of the AST, inspired from the spec (in
+<http://erlang.org/doc/apps/erts/absform.html>) and also checked against the
+Erlang 'id' parse transformation (see lib/stdlib/examples/erl_id_trans.erl).
+""".
 
 
 % For table macro, etc.:
@@ -355,7 +356,7 @@
 %  - void() into basic_utils:void(), as the same type name is implied there; it
 %  is just the addition (prefix) of a module, as a remote type
 %
-%  - my_maybe(T) into basic_utils:maybe(T)
+%  - my_option(T) into basic_utils:option(T)
 %
 %  - other_void() into other_utils:other_void()
 %
@@ -421,7 +422,7 @@ get_local_type_repl_helper(_Replacements=[
 %
 %  - a_module:void() into basic_utils:void(), as the same type name is implied
 %  there; it is just the modification of the module used by a remote type
-%  - a_module:my_maybe(T) into basic_utils:maybe(T)
+%  - a_module:my_option(T) into basic_utils:option(T)
 %  - M:other_void() into M:other_utils()
 %  - any type of any module depending on three other types by
 %  foo_utils:some_type/3
@@ -560,7 +561,7 @@ get_local_call_repl_helper( _Replacements=[
 %
 %  - a_module:void() into basic_utils:void(), as the same type name is implied
 %  there; it is just the modification of the module used by a remote type
-%  - a_module:my_maybe(T) into basic_utils:maybe(T)
+%  - a_module:my_option(T) into basic_utils:option(T)
 %  - M:other_void() into M:other_utils()
 %  - any type of any module depending on three other types by
 %  foo_utils:some_type/3
@@ -719,7 +720,7 @@ ast_transforms_to_string( #ast_transforms{
 
 % @doc The default transform_formatter() to be used.
 -spec default_formatter( format_string(), format_values() ) ->
-								basic_utils:maybe( ustring() ).
+								basic_utils:option( ustring() ).
 default_formatter( _FormatString, _FormatValue ) ->
 	%text_utils:format( "[Myriad-Transforms] " ++ FormatString, FormatValue ).
 	undefined.

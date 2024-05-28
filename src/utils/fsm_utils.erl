@@ -25,16 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: August 30, 2007.
 
-
-% @doc Gathering of various Finite State Machine related facilities.
-%
-% Should rely on gen_statem.
-%
-% See fsm_utils_test.erl for the corresponding test.
-%
-% @hidden Not ready.
-%
 -module(fsm_utils).
+
+-moduledoc """
+Gathering of various **Finite State Machine** related facilities.
+
+Should rely on gen_statem.
+
+See fsm_utils_test.erl for the corresponding test.
+""".
 
 
 -export([ create_blank_fsm_state/0, setFsmAttribute/3, getFsmAttribute/2 ]).

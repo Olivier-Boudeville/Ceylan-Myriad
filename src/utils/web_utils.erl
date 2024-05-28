@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, June 25, 2019.
 
-
-% @doc Gathering of services for <b>web-related</b> uses, notably for <b>HTML
-% generation</b> or <b>HTTP/HTTPS management</b>.
-%
-% See web_utils_test.erl for the corresponding test.
-%
-% See also: rest_utils.erl.
-%
 -module(web_utils).
+
+-moduledoc """
+Gathering of services for **web-related** uses, notably for **HTML generation**
+or **HTTP/HTTPS management**.
+
+See web_utils_test.erl for the corresponding test.
+
+See also: rest_utils.erl.
+""".
+
 
 
 % Implementation notes:
@@ -604,7 +606,7 @@ escape_term_as_html_content( Term ) ->
 % status code.
 %
 -spec get_http_status_class( http_status_code() ) ->
-								maybe( http_status_class() ).
+								option( http_status_class() ).
 get_http_status_class( StatusCode )
 							when StatusCode >= 100 andalso StatusCode < 200 ->
 	informational_response;
@@ -634,7 +636,7 @@ get_http_status_class( StatusCode ) ->
 
 
 % @doc Returns a textual description of specified HTTP status class.
--spec http_status_class_to_string( maybe( http_status_class() ) ) -> ustring().
+-spec http_status_class_to_string( option( http_status_class() ) ) -> ustring().
 http_status_class_to_string( informational_response ) ->
 	"informational response";
 
@@ -955,8 +957,8 @@ start( Option ) ->
 % For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
 %
--spec request( method(), uri(), headers(), http_options(), maybe( bin_body() ),
-			   maybe( content_type() ) ) -> request_result().
+-spec request( method(), uri(), headers(), http_options(), option( bin_body() ),
+			   option( content_type() ) ) -> request_result().
 request( _Method=get, Uri, Headers, HttpOptions, _MaybeBody=undefined,
 		 _MaybeContentType=undefined ) ->
 	get( Uri, Headers, HttpOptions );
@@ -1070,7 +1072,7 @@ post( Uri, Headers, HttpOptions ) ->
 % For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
 %
--spec post( uri(), headers(), http_options(), maybe( body() ) ) ->
+-spec post( uri(), headers(), http_options(), option( body() ) ) ->
 								request_result().
 post( Uri, Headers, HttpOptions, MaybeBody ) ->
 	post( Uri, Headers, HttpOptions, MaybeBody, _MaybeContentType=undefined ).
@@ -1091,8 +1093,8 @@ post( Uri, Headers, HttpOptions, MaybeBody ) ->
 % For more advanced uses (e.g. re-using of permanent connections, HTTP/2, etc.),
 % consider relying on Gun or Shotgun.
 %
--spec post( uri(), headers(), http_options(), maybe( body() ),
-			maybe( content_type() ) ) -> request_result().
+-spec post( uri(), headers(), http_options(), option( body() ),
+			option( content_type() ) ) -> request_result().
 post( Uri, Headers, HttpOptions, MaybeBody, MaybeContentType ) ->
 
 	cond_utils:if_defined( myriad_debug_web_exchanges,

@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, October 9, 2021.
 
-
-% @doc Module implementing the support for <b>3D points</b>.
-%
-% See also:
-% - the corresponding vectors (in vector3.erl) and matrices (in matrix3.erl)
-% - the (unspecialised) points of arbitrary dimensions, in point.erl
-% - the various 3D services in linear_3D.erl
-%
 -module(point3).
+
+-moduledoc """
+Module implementing the support for **3D points**.
+
+See also:
+- the corresponding vectors (in `vector3.erl`) and matrices (in `matrix3.erl`)
+- the (unspecialised) points of arbitrary dimensions, in `point.erl`
+- the various 3D services in `linear_3D.erl`
+""".
+
 
 
 % For printout_*, inline_size, etc.:
@@ -89,6 +91,9 @@
 -export_type([ user_point3/0, point3/0, integer_point3/0, any_point3/0,
 			   vertex3/0, integer_vertex3/0, any_vertex3/0, yup_point3/0 ]).
 
+
+% See vector3:compute_normal/3 to determine a normal from a plane defined out of
+% 3 vertices.
 
 -export([ new/1, new/3, new_integer/3, null/0,
 		  from_vector/1, to_vector/1, to_any_vector/1,
@@ -283,7 +288,9 @@ scale( _P={X,Y,Z}, Factor ) ->
 
 
 
-% @doc Returns a vector V made from the specified two points: V=P2-P1.
+% @doc Returns a vector V made from the specified two points, from P1 to P2:
+% V12=P2-P1.
+%
 -spec vectorize( point3(), point3() ) -> vector3().
 vectorize( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
 	[ X2-X1, Y2-Y1, Z2-Z1 ].

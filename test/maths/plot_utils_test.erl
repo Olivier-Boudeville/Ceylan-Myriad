@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, October 7, 2023.
 
-
-% @doc Unit tests for the <b>plot-related basic toolbox</b> facilities.
-%
-% See the plot_utils tested module.
-%
 -module(plot_utils_test).
+
+-moduledoc """
+Unit tests for the **plot-related basic toolbox** facilities.
+
+See the plot_utils tested module.
+""".
+
 
 
 % For run/0 export and al:

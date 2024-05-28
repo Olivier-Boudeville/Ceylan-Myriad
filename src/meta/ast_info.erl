@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 3, 2018.
 
-
-% @doc Module centralising the management of all <b>information that can be
-% extracted from ASTs</b>.
-%
 -module(ast_info).
+
+-moduledoc """
+Module centralising the management of all **information that can be extracted
+from ASTs**.
+""".
 
 
 % For table type:
@@ -174,7 +175,8 @@
 -type compile_option_value() :: term().
 % In some cases (at least when it is specified from the command-line), a
 % compilation option is a triplet (e.g. -Dmy_other_test_token=51 is translated,
-% in terms of a parse-transform option, as: {d,my_other_test_token,51}).
+% in terms of a parse-transform option, as: {d,my_other_test_token,51}; same for
+% the feature triplets).
 %
 % The value associated to the option name ('d') is then:
 % {my_other_test_token,51}.
@@ -186,7 +188,8 @@
 
 
 -type compile_option_table() ::
-	?table:?table( compile_option_name(), maybe( [ compile_option_value() ] ) ).
+	?table:?table( compile_option_name(),
+				   option( [ compile_option_value() ] ) ).
 % For easy access to compilation information:
 %
 % Note that an option specified without a value (e.g. -Dmy_token on the command
@@ -386,7 +389,7 @@
 
 % Local shorthands:
 
--type maybe( T ) :: basic_utils:maybe( T ).
+-type option( T ) :: basic_utils:option( T ).
 
 -type ustring() :: text_utils:ustring().
 
@@ -1258,7 +1261,7 @@ get_default_definition_function_location( MarkerTable ) ->
 % elements.
 %
 -spec get_parse_attributes_located_definitions( attribute_table() ) ->
-													[ ast_info:located_form() ].
+														[ located_form() ].
 get_parse_attributes_located_definitions( ParseAttributeTable ) ->
 
 	% Faulty, as we have a *list* of {Value,LocForm} pairs:
@@ -1320,7 +1323,7 @@ module_info_to_string( ModuleInfo, DoIncludeForms ) ->
 % Note: here the location information is dropped for all located definitions.
 %
 -spec module_info_to_string( module_info(), boolean(), indentation_level() ) ->
-									ustring().
+												ustring().
 module_info_to_string( #module_info{
 							module=ModuleEntry,
 							compilation_options=CompileTable,
@@ -1483,7 +1486,6 @@ compilation_options_to_string( CompileTable, CompileOptDefs, DoIncludeForms,
 
 		[] ->
 			"no compile option defined";
-
 
 		CompileOpts ->
 
@@ -1835,7 +1837,7 @@ functions_to_string( FunctionTable, DoIncludeForms, IndentationLevel ) ->
 
 
 % @doc Returns a textual representation of a module last line / line count.
--spec last_file_loc_to_string( maybe( located_form() ) ) -> ustring().
+-spec last_file_loc_to_string( option( located_form() ) ) -> ustring().
 last_file_loc_to_string( _LastFileLoc=undefined ) ->
 	"unknown line count";
 

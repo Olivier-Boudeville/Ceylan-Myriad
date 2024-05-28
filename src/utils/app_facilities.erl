@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2011.
 
-
-% @doc This module defines a few basic facilities for <b>applications</b> (in
-% the Myriad sense, not OTP one).
-%
-% See also the preferences module for application preferences.
-%
 -module(app_facilities).
+
+-moduledoc """
+This module defines a few basic facilities for **applications** (in the Myriad
+sense, not OTP one).
+
+See also the preferences module for application preferences.
+""".
 
 
 -export([ start/1, stop/0,
@@ -126,8 +127,8 @@ get_app_info( AppName, AppVersion ) ->
 % @doc Returns an application information corresponding to the specified
 % application name and possibly version and author description.
 %
--spec get_app_info( string_like(), maybe( any_version() ),
-					maybe( any_string() ) ) -> app_info().
+-spec get_app_info( string_like(), option( any_version() ),
+					option( any_string() ) ) -> app_info().
 get_app_info( AppName, MaybeAppVersion, MaybeAuthorDesc ) ->
 
 	MaybeBinAuthorDesc = case MaybeAuthorDesc of

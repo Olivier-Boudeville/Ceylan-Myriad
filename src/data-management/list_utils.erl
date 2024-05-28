@@ -25,17 +25,19 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities about <b>lists</b>.
-%
-% This includes the addition of general-purpose functions operating on lists,
-% and the support of tagged lists (a special case of proplist).
-
-% See list_utils_test.erl for the corresponding test.
-%
-% See also: set_utils.erl and list_table.erl.
-%
 -module(list_utils).
+
+-moduledoc """
+Gathering of various facilities about **lists**.
+
+This includes the addition of general-purpose functions operating on lists, and
+the support of tagged lists (a special case of proplist).
+
+See list_utils_test.erl for the corresponding test.
+
+See also: set_utils.erl and list_table.erl.
+""".
+
 
 
 % Note: if having an (at least mostly) constant list, possibly containing a
@@ -89,14 +91,17 @@
 
 
 % Less common list operations:
--export([ dispatch_in/2, add_as_heads/2, insert_at_all_places/2 ]).
+-export([ dispatch_in/2,
+		  split_heads_tails/1, add_as_heads/2,
+		  split_multi_heads_tails/2, concatenate_per_rank/2,
+		  insert_at_all_places/2, repeat_elements/2 ]).
 
 
-% For lists of tuples (e.g. typically used by the HDF5 binding), extended
-% flatten and al:
+% For lists of tuples (e.g. typically used by the HDF5 binding) or lists,
+% extended flatten and al:
 %
 -export([ determine_tuple_info/1, flatten_tuples/1, reconstruct_tuples/2,
-		  zipn/1 ]).
+		  zipn/1, check_same_length/1 ]).
 
 
 % Random operations on lists:
@@ -117,7 +122,7 @@
 -type maybe_list( T ) :: [ T ] | T.
 % Either a list of terms, or a term by itself.
 %
-% Note: different from maybe(list()).
+% Note: different from option(list()).
 
 
 -type duplicate_info() :: [ { element(), count() } ].
@@ -403,7 +408,7 @@ extract_element_if_existing( Elem, _List=[ H | T ], Acc ) ->
 
 
 
-% @doc Removes the specified number first elements.
+% @doc Removes the specified number of first elements.
 %
 % For example: [c, d, e] = list_utils:remove_first_elements([a, b, c, d, e], 2).
 %
@@ -472,11 +477,15 @@ remove_last_element( List ) ->
 
 
 % @doc Returns a pair made of the N first elements ("heads") of the specified
-% list, and of its remainder (tail).
+% list, and of its remainder (tail); said otherwise: extracts the N first
+% elements, and returns a pair made first of these elements and second of the
+% rest of the specified list.
 %
 % For example: heads([a,b,c,d,e], _N=3) = {[a,b,c],[d,e]}.
 %
 % Like list:sublist/1 yet returning the tail (list:nthtail/1) as well.
+%
+% See split_heads_tails/1 to extract a single element yet from multiple lists.
 %
 -spec heads( list(), count() ) -> { list(), list() }.
 heads( List, N ) ->
@@ -625,7 +634,7 @@ get_index_of( Element, List ) ->
 
 
 
-% @doc Returns the index, in `[1..length(List)]', of the (first occurrence of
+% @doc Returns the index, in `[1..length(List)]`, of the (first occurrence of
 % the) specified element in the specified list, or 'undefined' if the element is
 % not found.
 %
@@ -633,7 +642,7 @@ get_index_of( Element, List ) ->
 %   3 = get_maybe_index_of(bar, [foo, ugh, bar, baz])
 %   undefined = get_maybe_index_of(xxx, [foo, ugh, bar, baz])
 %
--spec get_maybe_index_of( element(), list() ) -> maybe( count() ).
+-spec get_maybe_index_of( element(), list() ) -> option( count() ).
 get_maybe_index_of( Element, List ) ->
 	get_maybe_index_of( Element, List, _Count=1 ).
 
@@ -772,6 +781,8 @@ ensure_is_once_in( Elem, List ) ->
 
 % @doc Returns a list made of the specified number of occurrences of the
 % specified element.
+%
+% See also repeat_elements/2.
 %
 -spec duplicate( element(), count() ) -> [ element() ].
 duplicate( Elem, Count ) ->
@@ -1015,6 +1026,30 @@ insert_at_all_places( E, _L=[ H | T ], RevL, Acc ) ->
 	NewList = lists:reverse( [ H, E | RevL ] ) ++ T,
 	NewAcc = [ NewList | Acc ],
 	insert_at_all_places( E, T, [ H | RevL ], NewAcc ).
+
+
+
+% @doc Returns a list in which each element of the specified list is repeated
+% the specified (total - not additional) number of times (at least 1), in a row.
+%
+% For example, repeat_elements([a,b,c], _Count=2) = [a,a,b,b,c,c].
+%
+% See also duplicate/2.
+%
+-spec repeat_elements( list(), count() ) -> list().
+repeat_elements( List, RepeatCount ) ->
+	% Better reverse the shorted input list:
+	repeat_elements( lists:reverse( List ), RepeatCount, _Acc=[] ).
+
+
+% (helper)
+repeat_elements( _Elements=[], _RepeatCount, Acc ) ->
+	% Reversing already done:
+	Acc;
+
+repeat_elements( _Elements=[ E | T ], RepeatCount, Acc ) ->
+	Dups = duplicate( E, RepeatCount ),
+	repeat_elements( T, RepeatCount, Dups ++ Acc ).
 
 
 
@@ -1418,12 +1453,42 @@ dispatch_in( SublistCount, List, AccSubLists ) ->
 
 
 
+% @doc Splits each of the specified lists in a head and a tail, and returns a
+% pair made of all heads (in-order) and all tails (in-order as well).
+%
+% For example: split_heads_tails([[a,b,c], [1,2], [true]]) =
+%   {[a,1,true], [[b,c], [2], []]}.
+%
+% May be paired with add_as_heads/2.
+%
+% See heads/2 instead to operate on a single list yet extract multiple elements.
+%
+-spec split_heads_tails( [ list() ] ) -> { list(), [ list() ] }.
+split_heads_tails( Lists ) ->
+	% Pre-reverse is cheaper:
+	split_heads_tails( lists:reverse( Lists ), _AccHeads=[], _AccTails=[] ).
+
+
+% (helper)
+split_heads_tails( _Lists=[], AccHeads, AccTails ) ->
+	{ AccHeads, AccTails };
+
+split_heads_tails( _Lists=[ _L=[HL|TL] | T ], AccHeads, AccTails ) ->
+	split_heads_tails( T, [HL|AccHeads], [TL|AccTails] ).
+
+
+
 % @doc Adds the specified elements as heads of the specified lists.
 %
 % For example: add_as_heads([a,b,c], [[u,v], [], [w]]) = [[a,u,v], [b], [c,w]].
 %
 % Of course the two lists shall have the same length.
 %
+% May be paired with split_heads_tails/1.
+%
+% See concatenate_per_rank/2 to add whole lists, instead of head elements.
+%
+-spec add_as_heads( list(), [ list() ] ) -> [ list() ].
 add_as_heads( Heads, Lists ) ->
 	add_as_heads( Heads, Lists, _Acc=[] ).
 
@@ -1436,6 +1501,78 @@ add_as_heads( _Heads=[], _Lists=[], Acc ) ->
 add_as_heads( _Heads=[ H | TH ], _Lists=[ L | TL ], Acc ) ->
 	NewL = [ H | L ],
 	add_as_heads( TH, TL, [ NewL | Acc ] ).
+
+
+
+
+% @doc Splits each of the specified lists in the specified number of head
+% elements and a remaining tail, and returns a pair made of all the head lists
+% (in-order) and all tails (in-order as well).
+%
+% For example: split_multi_heads_tails([[a,b,c,d], [1,2,3,4,5], [true,false]],
+% _HeadsLen=2) = {[[a,b], [1,2], [true,false]], [[c,d], [3,4,5], []]}
+%
+% May be paired with concatenate_per_rank/2.
+%
+-spec split_multi_heads_tails( [ list() ], count() ) ->
+										{ [ list() ], [ list() ] }.
+split_multi_heads_tails( Lists, HeadsLen ) ->
+	% Pre-reverse is cheaper:
+	split_multi_heads_tails( lists:reverse( Lists ), _AccHeads=[],
+							 _AccTails=[], HeadsLen ).
+
+
+% (helper)
+split_multi_heads_tails( _Lists=[], AccHeads, AccTails, _HeadsLen ) ->
+	{ AccHeads, AccTails };
+
+split_multi_heads_tails( _Lists=[ L | TL ], AccHeads, AccTails, HeadsLen ) ->
+	{ Heads, Tail } = heads( L, _Count=HeadsLen ),
+	split_multi_heads_tails( TL, [Heads|AccHeads], [Tail|AccTails], HeadsLen ).
+
+
+% @doc Concatenates the specified lists to the specified lists: returns the
+% concatenation of the two lists found at the same rank in both input lists, and
+% returns the (in-order) list of these concatenated lists.
+%
+% Like add_as_heads/2, but for whole lists instead of just head elements.
+%
+% For example: concatenate_per_rank([L1,L2,L3], [La,Lb,Lc]) = [L1++La, L2++Lb,
+% L3++Lb].
+%
+% Or: concatenate_per_rank([[a,b], [], [1,2,3]], [[c], [], [4,5,6,7]]) =
+%           [[a,b,c], [], [1,2,3,4,5,6,7]]
+%
+% May be paired with split_multi_heads_tails/2; could have been named
+% add_as_multi_heads/2.
+%
+% Of course the two lists shall have the same length.
+%
+-spec concatenate_per_rank( [ list() ], [ list() ] ) -> [ list() ].
+concatenate_per_rank( HeadLists, Lists ) ->
+	concatenate_per_rank( HeadLists, Lists, _Acc=[] ).
+
+% (helper)
+concatenate_per_rank( _HeadLists=[], _Lists=[], Acc ) ->
+	% Restores the order of augmented lists:
+	lists:reverse( Acc );
+
+concatenate_per_rank( _HeadLists=[ HL | THL ], _Lists=[ L | TL ], Acc ) ->
+	concatenate_per_rank( THL, TL, [ HL ++ L | Acc ] ).
+
+
+% Alternate form:
+%
+% (helper)
+%concatenate_per_rank( HeadLists, Lists ) ->
+%   concatenate_per_rank( HeadLists, Lists, _Acc=[] ).
+
+%concatenate_per_rank( _FirstLists=[], _SecondsLists=[] ) ->
+%   [];
+
+%concatenate_per_rank( _FirstLists=[ FHL | FTL ],
+%                      _SecondsLists=[ SHL | STL ] ) ->
+%   [ FHL ++ SHL | concatenate_per_rank( FTL, STL ) ].
 
 
 
@@ -1518,12 +1655,17 @@ reconstruct_tuples( List, TupleSize, Acc ) ->
 
 
 % @doc Performs a generalization of zip2, zip3: takes one element at a time of
-% each of the input lists, and adds it to a corresponding tuple.
+% each of the input lists, and adds it to a corresponding list; returns thus a
+% list of fixed-size lists (not tuples; like the zip{2,3}). Order is preserved
+% (between and inside each of the input lists).
 %
 % For example, list_utils:zipn([_L1=[a,b,c], _L2=[1,2,3],
-% _L3=[true,false,undefined]]) will return a list containing triplets (as there
-% are 3 lists), whose elements are taken from each of the input lists, in order:
-% [[a,1,true],[b,2,false],[c,3,undefined]].
+% _L3=[true,false,undefined]]) will return a list containing lists of 3 elements
+% (as there are 3 input lists), whose elements are taken from each of the input
+% lists, in order: [[a,1,true],[b,2,false],[c,3,undefined]].
+%
+% If the myriad_check_lists token is not set, no error will be triggered if the
+% input lists are not all of the same length (see check_same_length/1).
 %
 -spec zipn( [ list() ] ) -> list( tuple() ).
 zipn( ListOfLists ) ->
@@ -1532,7 +1674,9 @@ zipn( ListOfLists ) ->
 		begin
 			Lens = [ length( L ) || L <- ListOfLists ],
 			are_equal( Lens ) orelse
-				throw( { lists_of_different_lengths, Lens, ListOfLists } )
+				% A tuple to avoid that lengths are interpreted as a string:
+				throw( { lists_of_different_lengths, list_to_tuple( Lens ),
+						 ListOfLists } )
 		end ),
 
 	zipn_helper( ListOfLists, _Acc=[] ).
@@ -1566,6 +1710,29 @@ extract_elems( _ListOfLists=[], AccFirstElems, AccRemLists ) ->
 extract_elems( _ListOfLists=[ _L=[F|TL] | T ], AccFirstElems, AccRemLists ) ->
 	extract_elems( T, [ F | AccFirstElems ], [ TL | AccRemLists ] ).
 
+
+
+% @doc Checks that all the specified lists have the same length, and returns
+% it. Throws an exception if the lengths do not match.
+%
+% At least one list must be listed.
+%
+-spec check_same_length( [ list() ] ) -> count().
+check_same_length( Lists ) ->
+
+	Lens = [ Len | _T ] = [ length( L ) || L <- Lists ],
+
+	case are_equal( Lens ) of
+
+		true ->
+			Len;
+
+		false ->
+				% A tuple to avoid that lengths are interpreted as a string:
+			throw( { lists_of_different_lengths, list_to_tuple( Lens ),
+					 Lists } )
+
+	end.
 
 
 

@@ -25,9 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, May 21, 2023.
 
-
-% @doc Gathering of various facilities for <b>projection management</b>.
 -module(projection).
+
+-moduledoc """
+Gathering of various facilities for **projection management**.
+""".
+
 
 
 % For the projection records:
@@ -41,8 +44,7 @@
 							 | perspective_settings().
 
 
--export_type([ orthographic_settings/0,
-			   perspective_settings/0,
+-export_type([ orthographic_settings/0, perspective_settings/0,
 			   projection_settings/0 ]).
 
 
@@ -50,6 +52,7 @@
 -export([ orthographic/1, orthographic/6, perspective/1, perspective/4,
 		  projection/1,
 		  frustum/6,
+		  get_base_orthographic_settings/0, get_base_perspective_settings/1,
 		  settings_to_string/1 ]).
 
 
@@ -72,6 +75,9 @@
 
 -type compact_matrix4() :: matrix4:compact_matrix4().
 -type matrix4() :: matrix4:matrix4().
+
+-type aspect_ratio() :: gui:aspect_ratio().
+
 
 
 % Implementation notes:
@@ -266,6 +272,42 @@ frustum( Left, Right, Bottom, Top, ZNear, ZFar ) ->
 			  m21=Zero, m22=M22,  m23=M23,  m24=Zero,
 			  m31=Zero, m32=Zero, m33=M33,  m34=M34,
 			  m41=Zero, m42=Zero, m43=-1.0, m44=Zero }.
+
+
+
+% @doc Returns base orthographic settings, in the NDC [-1.0, 1.0] range, thus
+% independent from the size of the viewport.
+%
+-spec get_base_orthographic_settings() -> orthographic_settings().
+get_base_orthographic_settings() ->
+   %#orthographic_settings{
+   %   left=0.0,
+   %   right=800.0,
+   %   bottom=0.0,
+   %   top=600.0,
+   %   z_near=0.1,
+   %   z_far=100.0 }.
+
+	% Corresponds to a default identity matrix:
+	#orthographic_settings{
+		left=-1.0,
+		right=1.0,
+		bottom=-1.0,
+		top=1.0,
+		z_near=1.0,
+		z_far=-1.0 }.
+
+
+% @doc Returns base perspective settings, based on a common field of view and on
+% the specified aspect ratio.
+%
+-spec get_base_perspective_settings( aspect_ratio() ) -> perspective_settings().
+get_base_perspective_settings( AspectRatio ) ->
+	#perspective_settings{
+		fov_y_angle=math_utils:degrees_to_radians( 45 ),
+		aspect_ratio=AspectRatio,
+		z_near=0.1,
+		z_far=100.0 }.
 
 
 

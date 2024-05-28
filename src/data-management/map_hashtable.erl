@@ -25,46 +25,41 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, December 2, 2014.
 
-
-% @doc Implementation of an <b>associative table based on the <code>map</code>
-% module</b>.
-%
-% Supposedly the most efficient native available implementation of an
-% associative table.
-%
-% See `map_table_test.erl' for the corresponding test.
-% See `hashtable.erl' for the parent, base implementation.
-%
-%
-% We provide different multiple types of hashtables, including:
-%
-% - 'hashtable', the most basic, safest, reference implementation - and quite
-% efficient as well
-%
-% - 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
-% best)
-%
-% - 'lazy_hashtable', deciding to optimise in a less costly way than
-% 'tracked_hashtable'
-%
-% - 'map_hashtable' (this module), which is the newest, probably most efficient
-% in most cases implementation (speed/size compromise)
-%
-% - 'list_table', a list-based implementation, efficient for smaller tables (and
-% only them)
-%
-% All these types of tables are to provide the same API (signatures and
-% contracts), yet one should note that this module is the one that tends to
-% supersede all others, and that over time features have been added that may not
-% have been back-ported to the other table types.
-%
 -module(map_hashtable).
+
+-moduledoc """
+Implementation of an **associative table based on the `map` module**.
+
+Supposedly the most efficient native available implementation of an associative
+table.
+
+See `map_table_test.erl' for the corresponding test.
+See `hashtable.erl' for the parent, base implementation.
+
+We provide different multiple types of hashtables, including:
+- 'hashtable', the most basic, safest, reference implementation - and quite
+efficient as well
+- 'tracked_hashtable', an attempt of optimisation of it (not necessarily the
+best)
+- 'lazy_hashtable', deciding to optimise in a less costly way than
+'tracked_hashtable'
+- 'map_hashtable' (this module), which is the newest, probably most efficient in
+most cases implementation (speed/size compromise)
+- 'list_table', a list-based implementation, efficient for smaller tables (and
+only them)
+
+All these types of tables are to provide the same API (signatures and
+contracts), yet one should note that this module is the one that tends to
+supersede all others, and that over time features have been added that may not
+have been back-ported to the other table types.
+""".
+
 
 
 % Mostly the same API as the one of hashtable (but richer):
 -export([ new/0, singleton/2, new/1, new_from_unique_entries/1,
 		  add_entry/3, add_entries/2, add_new_entry/3, add_new_entries/2,
-		  add_maybe_entry/3, add_maybe_entries/2,
+		  add_option_entry/3, add_option_entries/2,
 		  update_entry/3, update_entries/2, update_existing_entries/2,
 		  swap_value/3,
 		  remove_entry/2, remove_existing_entry/2,
@@ -96,9 +91,9 @@
 
 -type entry() :: hashtable:entry().
 
--type maybe_entry() :: hashtable:maybe_entry().
+-type option_entry() :: hashtable:option_entry().
 
--type maybe_entries() :: hashtable:maybe_entries().
+-type option_entries() :: hashtable:option_entries().
 
 
 -type entries() :: hashtable:entries().
@@ -113,7 +108,7 @@
 
 
 -export_type([ key/0, value/0, entry/0, entries/0,
-			   entry_count/0, maybe_entry/0, maybe_entries/0,
+			   entry_count/0, option_entry/0, option_entries/0,
 			   map_hashtable/0, map_hashtable/2 ]).
 
 
@@ -121,13 +116,13 @@
 
 % As this module is not parse-transformed:
 %
-% (if a 'type maybe(_) is unused' error is reported for this type, this is the
+% (if a 'type option(_) is unused' error is reported for this type, this is the
 % sign that this module is recompiled with the Myriad parse transform, whereas
 % it should not; its compilation should be triggered from the root of Myriad,
 % rather than from the current directory of this module; not a hard problem
 % though)
 %
--type maybe( T ) :: T | 'undefined'.
+-type option( T ) :: T | 'undefined'.
 
 
 % Implementation notes:
@@ -280,12 +275,12 @@ add_entries( Entries, MapHashtable ) ->
 % replaced by the specified one (hence does not check whether or not the key
 % already exist in this table).
 %
--spec add_maybe_entry( key(), maybe( value() ), map_hashtable() ) ->
+-spec add_option_entry( key(), option( value() ), map_hashtable() ) ->
 											map_hashtable().
-add_maybe_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
+add_option_entry( _Key, _MaybeValue=undefined, MapHashtable ) ->
 	MapHashtable;
 
-add_maybe_entry( Key, MaybeValue, MapHashtable ) ->
+add_option_entry( Key, MaybeValue, MapHashtable ) ->
 	add_entry( Key, MaybeValue, MapHashtable ).
 
 
@@ -298,10 +293,11 @@ add_maybe_entry( Key, MaybeValue, MapHashtable ) ->
 % replaced by the specified one (hence does not check whether or not keys
 % already exist in this table).
 %
--spec add_maybe_entries( maybe_entries(), map_hashtable() ) -> map_hashtable().
-add_maybe_entries( MaybeEntries, MapHashtable ) ->
+-spec add_option_entries( option_entries(), map_hashtable() ) ->
+											map_hashtable().
+add_option_entries( MaybeEntries, MapHashtable ) ->
 	lists:foldl( fun( { K, MV }, Map ) ->
-					add_maybe_entry( K, MV, Map )
+					add_option_entry( K, MV, Map )
 				 end,
 				 _Acc0=MapHashtable,
 				 _List=MaybeEntries ).
@@ -574,18 +570,24 @@ get_value( Key, MapHashtable ) ->
 -spec get_values( [ key() ], map_hashtable() ) -> [ value() ].
 get_values( Keys, Hashtable ) ->
 
-	{ RevValues, _FinalTable } = lists:foldl(
+	% We used to extract (not get) entries (presumably to handle smaller tables
+	% in the process), yet the caller may specify a given key more than once,
+	% which would then result into an abnormal crash; so:
 
-		fun( _Elem=Key, _Acc={ Values, Table } ) ->
+	%{ RevValues, _FinalTable } = lists:foldl(
+	%
+	%   fun( _Elem=Key, _Acc={ Values, Table } ) ->
+	%
+	%       { Value, ShrunkTable } = extract_entry( Key, Table ),
+	%       { [ Value | Values ], ShrunkTable }
+	%
+	%   end,
+	%   _Acc0={ [], Hashtable },
+	%   _List=Keys ),
+	%
+	%lists:reverse( RevValues ).
 
-			{ Value, ShrunkTable } = extract_entry( Key, Table ),
-			{ [ Value | Values ], ShrunkTable }
-
-		end,
-		_Acc0={ [], Hashtable },
-		_List=Keys ),
-
-	lists:reverse( RevValues ).
+	[ get_value( K, Hashtable ) || K <- Keys ].
 
 
 
@@ -595,7 +597,9 @@ get_values( Keys, Hashtable ) ->
 % Allows to perform in a single operation a look-up followed by a fetch.
 %
 % A popular default value is 'undefined', so that this function can be
-% considered a returning a maybe(value()).
+% considered a returning a option(value()); no get_maybe_value/2 function was
+% introduced, as it could be ambiguous, since in the general case a legit value
+% could be 'undefined'.
 %
 -spec get_value_with_default( key(), value(), map_hashtable() ) -> value().
 get_value_with_default( Key, DefaultValue, MapHashtable ) ->
@@ -1285,6 +1289,10 @@ size( MapHashtable ) ->
 
 
 % @doc Returns a textual description of the specified map hashtable.
+%
+% See also text_utils:table_to_string/2 for a synthetic description of a table
+% and its entries.
+%
 -spec to_string( map_hashtable() ) -> ustring().
 to_string( MapHashtable ) ->
 	% Newer, better default (was: 'user_friendly'):
@@ -1297,6 +1305,9 @@ to_string( MapHashtable ) ->
 % Either a bullet is specified, or the returned string is ellipsed if needed (if
 % using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
 % even completly raw ('internal').
+%
+% See also text_utils:table_to_string/2 for a synthetic description of a table
+% and its entries.
 %
 -spec to_string( map_hashtable(), hashtable:description_type() ) -> ustring().
 to_string( MapHashtable, DescriptionType ) ->

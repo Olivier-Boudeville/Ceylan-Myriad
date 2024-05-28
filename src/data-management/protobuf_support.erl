@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, November 5, 2021.
 
-
-% @doc Support for the <b>Protocol Buffer</b> facilities, a.k.a. Protobuf.
-%
-% We generally prefer using the proto3 version (rather than the proto2 one).
-%
-% See protobuf_support_test.erl for the corresponding test, and
-% http://myriad.esperide.org/#about-protobuf for further information.
-%
 -module(protobuf_support).
+
+-moduledoc """
+Support for the **Protocol Buffer** facilities, a.k.a. Protobuf.
+
+We generally prefer using the proto3 version (rather than the proto2 one).
+
+See protobuf_support_test.erl for the corresponding test, and
+http://myriad.esperide.org/#about-protobuf for further information.
+""".
+
 
 
 -type spec_name() :: atom().

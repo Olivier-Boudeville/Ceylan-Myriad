@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Unit tests for the <b>linear 3D facilities</b>.
-%
-% See the linear_3D tested module.
-%
 -module(linear_3D_test).
+
+-moduledoc """
+Unit tests for the **linear 3D facilities**.
+
+See the linear_3D tested module.
+""".
+
 
 
 % For run/0 export and al:

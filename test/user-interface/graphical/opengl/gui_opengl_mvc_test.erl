@@ -25,29 +25,29 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, December 27, 2021.
 
-
-% @doc Testing of the <b>OpenGL support in a MVC setting</b>, evaluated
-% concurrently at fixed, independent frequencies; in practice displays a
-% textured rotating square.
-%
-% It is therefore a non-interactive, active test (the square is scheduled, so
-% that it spontaneously rotates) whose main interest is to show a simple yet
-% generic, appropriate structure in order to properly initialise the GUI and
-% OpenGL, handle rendering, resizing and closing, and integrate a MVC-style
-% (Model-View-Controller) parallel logic, with the model scheduling mostly
-% uncoupled from the one of the rendering, i.e. a Model running in a different
-% process from the View and from the test itself. This test being
-% non-interactive, only a very basic controller exists, notably to listen to
-% window-related events.
-%
-% This test relies on the OpenGL 1.x compatibility mode, as opposed to more
-% modern versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
-%
-% See the gui_opengl.erl tested module and
-% https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller for the
-% MVC pattern.
-%
 -module(gui_opengl_mvc_test).
+
+-moduledoc """
+Testing of the **OpenGL support in a MVC setting**, evaluated concurrently at
+fixed, independent frequencies; in practice displays a textured rotating square.
+
+It is therefore a non-interactive, active test (the square is scheduled, so that
+it spontaneously rotates) whose main interest is to show a simple yet generic,
+appropriate structure in order to properly initialise the GUI and OpenGL, handle
+rendering, resizing and closing, and integrate a MVC-style
+(Model-View-Controller) parallel logic, with the model scheduling mostly
+uncoupled from the one of the rendering, i.e. a Model running in a different
+process from the View and from the test itself. This test being non-interactive,
+only a very basic controller exists, notably to listen to window-related events.
+
+This test relies on the OpenGL 1.x compatibility mode, as opposed to more modern
+versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
+
+See the gui_opengl.erl tested module and
+https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller for the MVC
+pattern.
+""".
+
 
 
 % Implementation notes:
@@ -97,7 +97,7 @@
 	% (keeping around this texture is not necessary; a mere atom could have
 	% sufficed)
 	%
-	opengl_state :: maybe( texture() ),
+	opengl_state :: option( texture() ),
 
 	% The model must be known, in order to fetch relevant information from it.
 	model_pid :: model_pid(),
@@ -163,28 +163,6 @@
 -type gl_canvas() :: gui_opengl:gl_canvas().
 -type gl_context() :: gui_opengl:gl_context().
 -type texture() :: gui_opengl:texture().
-
-
-
-% @doc Runs the OpenGL MVC test if possible.
--spec run_opengl_mvc_test() -> void().
-run_opengl_mvc_test() ->
-
-	test_facilities:display( "~nStarting the OpenGL MVC test." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
 
 
 
@@ -616,7 +594,7 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 	gl:enable( ?GL_TEXTURE_2D ),
 
 	ImagePath = file_utils:join(
-		gui_opengl_direct_integration_test:get_test_image_directory(),
+		gui_opengl_for_testing:get_test_image_directory(),
 		"myriad-space-time-coordinate-system.png" ),
 
 	% Not directly 'Texture = gui_texture:load_from_file(ImgPath)' as we want to
@@ -872,15 +850,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running the OpenGL MVC test, being in batch mode)" );
-
-		false ->
-			run_opengl_mvc_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run( "the OpenGL MVC test" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

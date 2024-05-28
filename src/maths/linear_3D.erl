@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various <b>three dimensional "linear"</b> facilities.
-%
-% See `linear_3D_test.erl' for the corresponding test.
-%
 -module(linear_3D).
+
+-moduledoc """
+Gathering of various **three dimensional "linear"** facilities.
+
+See `linear_3D_test.erl` for the corresponding test.
+""".
+
 
 
 

@@ -25,16 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2008.
 
-
-% @doc Gathering of various convenient facilities regarding the <b>execution of
-% third-party programs</b>.
-%
-% See executable_utils_test.erl for the corresponding test, and shell_utils.erl
-% for the management of the shells and command lines.
-%
-% See system_utils.erl for the actual execution of programs.
-%
 -module(executable_utils).
+
+-moduledoc """
+Gathering of various convenient facilities regarding the **execution of
+third-party programs**.
+
+See executable_utils_test.erl for the corresponding test, and shell_utils.erl
+for the management of the shells and command lines.
+
+See system_utils.erl for the actual execution of programs.
+""".
 
 
 
@@ -789,7 +790,7 @@ get_make_path() ->
 % @doc Tells whether a gnuplot executable is available, by returning its path if
 % found.
 %
--spec get_maybe_gnuplot_path() -> maybe( executable_path() ).
+-spec get_maybe_gnuplot_path() -> option( executable_path() ).
 get_maybe_gnuplot_path() ->
 	% Note: expected to be on the PATH:
 	case lookup_executable( ?gnuplot_exec_name ) of

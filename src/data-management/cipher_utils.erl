@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, November 1, 2013.
 
-
-% @doc Gathering of various <b>cipher-related facilities</b>.
-%
-% We focus on symmetric ciphering here.
-%
-% See cipher_utils_test.erl for testing.
-%
 -module(cipher_utils).
+
+-moduledoc """
+Gathering of various **cipher-related facilities**.
+
+We focus on symmetric ciphering here.
+
+See cipher_utils_test.erl for testing.
+""".
 
 
 -export([ generate_key/2, key_to_string/1,

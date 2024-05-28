@@ -25,15 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, August 8, 2021.
 
-
-% @doc Gathering of various convenient <b>email-related</b> facilities.
 -module(email_utils).
 
-
-
-% Implementation notes.
-%
-
+-moduledoc """
+Gathering of various convenient **email-related** facilities.
+""".
 
 
 % Type declarations.
@@ -44,7 +40,7 @@
 
 
 -type bin_email_address() :: bin_string().
-% Binary email address (e.g. `<<"john@hello.org">>').
+% Binary email address (e.g. `<<"john@hello.org">>`).
 
 
 % Shorthands:

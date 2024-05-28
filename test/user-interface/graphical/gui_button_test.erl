@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, August 18, 2023.
 
-
-% @doc Unit tests for the management of <b>buttons</b>, possibly with icons in
-% them.
-%
 -module(gui_button_test).
+
+-moduledoc """
+Unit tests for the management of **buttons**, possibly with icons in them.
+""".
+
 
 
 % For run/0 export and al:

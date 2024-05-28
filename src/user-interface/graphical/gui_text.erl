@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various facilities for <b>text input and display</b>.
-%
-% See also the corresponding dialogs: gui_dialog:text_entry_dialog() and
-% gui_dialog:message_dialog().
-%
 -module(gui_text).
+
+-moduledoc """
+Gathering of various facilities for **text input and display**.
+
+See also the corresponding dialogs: gui_dialog:text_entry_dialog() and
+gui_dialog:message_dialog().
+""".
 
 
 -opaque static_text_display() :: wxStaticText:wxStaticText().

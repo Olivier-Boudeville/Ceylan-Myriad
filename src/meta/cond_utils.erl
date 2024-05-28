@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, December 25, 2018.
 
-
-% @doc Management of <b>conditional compilation</b> - like generalised,
-% limitation-less macros.
-%
 -module(cond_utils).
+
+-moduledoc """
+Management of **conditional compilation** - like generalised, limitation-less
+macros.
+""".
 
 
 
@@ -171,7 +172,7 @@
 % A table used to associate an expression to a token value.
 
 
--type token_table() :: ?table:?table( token(), basic_utils:maybe( term() ) ).
+-type token_table() :: ?table:?table( token(), basic_utils:option( term() ) ).
 % Table to establish easily whether a token has been defined and, if yes, a
 % value (if any; otherwise it is set to 'undefined') that has been associated to
 % it.
@@ -471,7 +472,7 @@ assert( _Expression ) ->
 
 
 % @doc If the specified token has been defined through the command-line, asserts
-% that the specified expression is true, ithat is evaluates it at runtime and
+% that the specified expression is true, that is evaluates it at runtime and
 % matches it with the atom 'true'.
 %
 % See assert/1 for use and caveats.
@@ -489,6 +490,12 @@ assert( Token, _Expression ) ->
 % @doc If the specified token has been defined through the command-line and set
 % to the specified value, asserts that the specified expression is true, that is
 % evaluates it at runtime and matches it with the atom 'true'.
+%
+% Note that this compile-time function compares for equality any value
+% associated to the token and the specified value: it does *not* compare at
+% runtime this value with the one of the specified expression; use
+% basic_utils:assert_equal/2 for that (possibly wrapped thanks to a token-based
+% cond_utils:if_defined assertion).
 %
 % See assert/1 for use and caveats.
 %

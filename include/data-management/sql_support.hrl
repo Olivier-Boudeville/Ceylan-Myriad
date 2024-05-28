@@ -39,7 +39,7 @@
 	host_name :: sql_support:database_host_name(),
 
 	% The (TCP) port at which the target database instance is running:
-	port = ?default_database_port :: maybe( sql_support:database_port() ),
+	port = ?default_database_port :: option( sql_support:database_port() ),
 
 	% The name of the target database instance. Ex: "acme_stock_db".
 	name :: sql_support:database_name() } ).

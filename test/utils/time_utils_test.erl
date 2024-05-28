@@ -25,17 +25,18 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2015.
 
-
-% @doc Unit tests for the time utils toolbox.
-%
-% See the time_utils.erl tested module.
-%
 -module(time_utils_test).
+
+-moduledoc """
+Unit tests for the **time utils** toolbox.
+
+See the time_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
-
 
 
 

@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities to manage <b>textual content</b>.
-%
-% See text_utils_test.erl for the corresponding test.
-%
 -module(text_utils).
 
+-moduledoc """
+Gathering of various facilities to manage **textual content**.
 
-% Note: this a boostrap module, so its build is only to be triggered from the
+See text_utils_test.erl for the corresponding test.
+""".
+
+
+
+% Note: this a bootstrap module, so its build is only to be triggered from the
 % root of Myriad, and it should not depend at runtime on non-bootstrapped
 % modules.
 
@@ -103,7 +105,7 @@
 		  float_to_string/1, float_to_string/2, number_to_string/1,
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
-		  repetition_to_string/1,
+		  repetition_to_string/1, table_to_string/2,
 
 		  format/2, format_failsafe/1, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
@@ -125,8 +127,13 @@
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
 		  flatten/1,
 		  join/2, bin_join/2,
-		  split/2, split_per_element/2, split_parsed/2, split_at_whitespaces/1,
+
+		  split/2,
+		  split_lines/1, unsplit_lines/1, bin_unsplit_lines/1,
+		  split_per_element/2, split_parsed/2,
+		  split_at_whitespaces/1,
 		  split_at_first/2, split_camel_case/1, split_every/2,
+
 		  tokenizable_to_camel_case/2,
 		  duplicate/2,
 		  concatenate/1, bin_concatenate/1, bin_concatenate/2,
@@ -366,7 +373,7 @@
 % for more details.
 
 
--type translation_table() :: ?table:?table( any_string(), any_string() ).
+-type translation_table() :: ?table( any_string(), any_string() ).
 % To convert strings (e.g. keywords) into others.
 
 
@@ -439,7 +446,10 @@
 -type count() :: basic_utils:count().
 
 % As this pioneer module is not parse-transformed:
--type maybe( T ) :: basic_utils:maybe( T ).
+-type option( T ) :: basic_utils:option( T ).
+
+-type ?table() :: ?table:?table().
+-type ?table( K, V ) :: ?table:?table( K, V ).
 
 -type integer_id() :: id_utils:integer_id().
 
@@ -1636,7 +1646,7 @@ strings_to_listed_string( Strings, Lang ) ->
 % "green", undefined]) returns "red, blue and green".
 %
 
--spec maybe_strings_to_listed_string( [ maybe( ustring() ) ] ) -> ustring().
+-spec maybe_strings_to_listed_string( [ option( ustring() ) ] ) -> ustring().
 maybe_strings_to_listed_string( Strings ) ->
 	strings_to_listed_string( [ S || S <- Strings, S =/= undefined ] ).
 
@@ -1895,6 +1905,7 @@ distance_to_short_string( Millimeters ) ->
 	end.
 
 
+
 % @doc Returns a textual description of the specified number of repetitions
 % (occurrences, number of times).
 %
@@ -1913,6 +1924,30 @@ repetition_to_string( _RepetitionCount=3 ) ->
 
 repetition_to_string( RepetitionCount ) ->
 	text_utils:format( "~B times", [ RepetitionCount ] ).
+
+
+
+% @doc Returns a synthetic textual description of the specified table, holding
+% the specified type of described entries.
+%
+% For example: table_to_string(MyPathTable, _EntryType="path") may return "no
+% path", "a single path", or - for example - "3 paths".
+%
+-spec table_to_string( ?table(), ustring() ) -> ustring().
+table_to_string( Table, EntryDesc ) ->
+	case ?table:size( Table ) of
+
+		0 ->
+			"no " ++ EntryDesc;
+
+		1 ->
+			"a single " ++ EntryDesc;
+
+		S ->
+			% Only a very basic plural mark:
+			text_utils:format( "~B ~tss", [ S, EntryDesc ] )
+
+	end.
 
 
 
@@ -2653,7 +2688,7 @@ ensure_binary( String, _CanFailDueToTranscoding ) ->
 % @doc Returns a binary string version of the specified text-like parameter
 % (binary or plain string), if any (otherwise leave it to 'undefined').
 %
--spec ensure_maybe_binary( maybe( any_string() ) ) -> maybe( bin_string() ).
+-spec ensure_maybe_binary( option( any_string() ) ) -> option( bin_string() ).
 ensure_maybe_binary( undefined ) ->
 	undefined;
 
@@ -2900,7 +2935,7 @@ suffix_uniq_helper( Prefix, Count, Strs ) ->
 % string:length/1 would have thrown a badarg exception, typically because of an
 % inconsistent encoding).
 %
--spec safe_length( unicode_data() ) -> maybe( length() ).
+-spec safe_length( unicode_data() ) -> option( length() ).
 safe_length( PseudoStr ) ->
 	try string:length( PseudoStr ) of
 
@@ -2972,7 +3007,7 @@ string_to_binary( Other, _CanFailDueToTranscoding ) ->
 % CanFailDueToTranscoding tells whether, should a transcoding fail, this
 % function is allowed to fail in turn.
 %
--spec maybe_string_to_binary( maybe( ustring() ) ) -> maybe( bin_string() ).
+-spec maybe_string_to_binary( option( ustring() ) ) -> option( bin_string() ).
 maybe_string_to_binary( _MaybeString=undefined ) ->
 	undefined;
 
@@ -3073,7 +3108,7 @@ string_to_integer( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_integer( ustring() ) -> maybe( integer() ).
+-spec try_string_to_integer( ustring() ) -> option( integer() ).
 try_string_to_integer( String ) ->
 	try_string_to_integer( String, _Base=10 ).
 
@@ -3084,7 +3119,7 @@ try_string_to_integer( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_integer( ustring(), 2..36 ) -> maybe( integer() ).
+-spec try_string_to_integer( ustring(), 2..36 ) -> option( integer() ).
 try_string_to_integer( String, Base ) when is_list( String ) ->
 	try list_to_integer( String, Base ) of
 
@@ -3128,7 +3163,7 @@ string_to_float( String ) ->
 %
 % Returns the 'undefined' atom if the conversion failed.
 %
--spec try_string_to_float( ustring() ) -> maybe( float() ).
+-spec try_string_to_float( ustring() ) -> option( float() ).
 try_string_to_float( String ) when is_list( String ) ->
 
 	% Erlang is very picky (too much?) when interpreting floats-as-a-string: if
@@ -3408,11 +3443,9 @@ bin_join( Separator, ListToJoin ) ->
 
 
 
-% @doc Splits the specified string into a list of strings, based on the list of
-% specified characters to be interpreted as separators.
-%
-% To split a string according to the newlines (~n) that it contains, one may
-% use: text_utils:split(MyString, "\n").
+% @doc Splits the specified string into a list of strings (of the same type as
+% the input one), based on the list of specified characters to be interpreted as
+% separators.
 %
 % Note that a series of contiguous separators (e.g. two spaces in a row) will
 % result in inserting empty strings (i.e. []) in the returned list. Use
@@ -3424,11 +3457,12 @@ bin_join( Separator, ListToJoin ) ->
 %
 % See also: split_at_whitespaces/0.
 %
--spec split( ustring(), [ uchar() ] ) -> [ ustring() ].
-split( String, Separators ) ->
+-spec split( ustring(), [ uchar() ] ) -> [ ustring() ];
+		   ( bin_string(), [ uchar() ] ) -> [ bin_string() ].
+split( AnyString, Separators ) ->
 
 	%trace_utils:debug_fmt( "Splitting '~ts' with '~ts'.",
-	%                       [ String, Separators ] ),
+	%                       [ AnyString, Separators ] ),
 
 	% Note: string:tokens/2 is now deprecated in favor of string:lexemes/2, and
 	% and anyway both treat two or more adjacent separator graphemes clusters as
@@ -3438,13 +3472,13 @@ split( String, Separators ) ->
 	% Would be quite different, as Separators here would be understood as a
 	% search pattern (i.e. a "word" as a whole) instead of a list of separators:
 	%
-	%string:split( String, _SearchPattern=Separators, _Where=all ).
+	%string:split( AnyString, _SearchPattern=Separators, _Where=all ).
 
 	% Would lead to a breach of contract (no empty string ever inserted):
-	%string:lexemes( String, Separators ).
+	%string:lexemes( AnyString, Separators ).
 
 	% So we go for a multi-pass splitting (one pass per separator):
-	split_helper( Separators, _Acc=[ String ] ).
+	split_helper( Separators, _Acc=[ AnyString ] ).
 
 
 
@@ -3459,6 +3493,32 @@ split_helper( _Separators=[ D | T ], Acc ) ->
 
 	NewAcc = concatenate( SplitStrs ),
 	split_helper( T, NewAcc ).
+
+
+
+% @doc Splits a string according to the newlines (~n) that it contains.
+-spec split_lines( ustring() ) -> [ ustring() ];
+				 ( bin_string() ) -> [ bin_string() ].
+split_lines( AnyString ) ->
+	split( AnyString, "\n" ). % i.e. [ $\n ]
+
+
+
+% @doc Unsplits the specified lines: returns a plain string aggregating the
+% specified strings, once separated by newlines.
+%
+-spec unsplit_lines( [ any_string() ] ) -> ustring().
+unsplit_lines( AnyStrings ) ->
+	%trace_utils:debug_fmt( "Lines to unsplit: '~p'.", [ AnyStrings ] ),
+	join( _Sep=$\n, AnyStrings ).
+
+
+% @doc Unsplits the specified lines: returns a binary string aggregating the
+% specified strings, once separated by newlines.
+%
+-spec bin_unsplit_lines( [ any_string() ] ) -> bin_string().
+bin_unsplit_lines( AnyStrings ) ->
+	bin_join( _Sep=$\n, AnyStrings ).
 
 
 
@@ -3567,6 +3627,9 @@ split_parsed( _ParseString=[ Other | _T ], _Separators, _AccElem, _AccStrs ) ->
 % @doc Splits the specified string into a list of strings, using whitespaces as
 % separators.
 %
+% For example split_at_whitespaces("  aaa  bbb  ccc  ") =
+%                   [[],[],"aaa",[],"bbb",[],"ccc",[],[]]
+%
 -spec split_at_whitespaces( ustring() ) -> [ ustring() ].
 split_at_whitespaces( String ) ->
 	split( String, list_whitespaces() ).
@@ -3576,7 +3639,7 @@ split_at_whitespaces( String ) ->
 % @doc Splits the specified string according to the first occurrence (if any) of
 % the specified character, then returns a pair of two strings, containing
 % respectively all characters strictly before and strictly after the first
-% occurrence of the marker (which thus is not kept); otherwise returns
+% occurrence of the marker (which is thus not kept); otherwise returns
 % 'none_found'.
 %
 % For example: split_at_first($x, " aaaxbbbxccc") shall return {" aaa",
@@ -3719,7 +3782,7 @@ duplicate( Count, Str ) ->
 % More general and convenient defined here rather than only in
 % list_utils:flatten_once/1.
 %
--spec concatenate( string() | atom() | number() ) -> ustring().
+-spec concatenate( [ string() | atom() | number() ] ) -> ustring().
 concatenate( Elements ) ->
 	%trace_utils:debug_fmt( "Concatenating ~p.", [ Elements ] ),
 	lists:concat( Elements ).
@@ -4430,7 +4493,7 @@ remove_last_characters( String, Count ) ->
 % @doc Removes all whitespaces from the specified string, and returns the
 % result.
 %
--spec remove_whitespaces( ustring() ) -> ustring().
+-spec remove_whitespaces( any_string() ) -> ustring().
 remove_whitespaces( String ) ->
 	re:replace( String, "\s", "", [ global, unicode, { return, list } ] ).
 
@@ -4439,9 +4502,8 @@ remove_whitespaces( String ) ->
 % @doc Removes all leading and trailing whitespaces from the specified string,
 % and returns the result.
 %
--spec trim_whitespaces( ustring() ) -> ustring().
+-spec trim_whitespaces( any_string() ) -> ustring().
 trim_whitespaces( String ) ->
-
 	% Should be done in one pass:
 	trim_leading_whitespaces( trim_trailing_whitespaces( String ) ).
 
@@ -4450,9 +4512,8 @@ trim_whitespaces( String ) ->
 % @doc Removes all leading whitespaces from the specified string, and returns
 % the result.
 %
--spec trim_leading_whitespaces( ustring() ) -> ustring().
+-spec trim_leading_whitespaces( any_string() ) -> ustring().
 trim_leading_whitespaces( String ) ->
-
 	% Largely inspired from http://www.trapexit.org/Trimming_Blanks_from_String:
 	re:replace( String, "^\\s*", "", [ unicode, { return, list } ] ).
 
@@ -4461,9 +4522,8 @@ trim_leading_whitespaces( String ) ->
 % @doc Removes all trailing whitespaces from the specified string, and returns
 % the result.
 %
--spec trim_trailing_whitespaces( ustring() ) -> ustring().
+-spec trim_trailing_whitespaces( any_string() ) -> ustring().
 trim_trailing_whitespaces( String ) ->
-
 	% The $ confuses some syntax highlighting systems (like the one of some
 	% emacs):
 	%
@@ -4632,7 +4692,7 @@ join_words( _Words=[], Width, _DoPad=true, AccLines,
 
 	% Ended with a partial line (most likely):
 	R = lists:reverse( [ pad_string_left( CurrentLine, Width, PadChar )
-					   | AccLines ] ),
+						   | AccLines ] ),
 	%io:format( "Returning R2='~w'.~n", [ R ] ),
 	R;
 
@@ -5095,7 +5155,7 @@ aggregate_word( [ H | T ], Count, Acc ) ->
 %
 % (exported helper, for re-use)
 %
--spec try_convert_to_unicode_list( unicode_data() ) -> maybe( ustring() ).
+-spec try_convert_to_unicode_list( unicode_data() ) -> option( ustring() ).
 try_convert_to_unicode_list( Data ) ->
 
 	% A binary_to_list/1 would not be sufficient here.
@@ -5193,12 +5253,12 @@ to_unicode_list( Data, CanFail ) ->
 
 
 
-% @doc Tries to convert the specified Unicode-related datastructure into a Unicode
-% binary string.
+% @doc Tries to convert the specified Unicode-related datastructure into a
+% Unicode binary string.
 %
 % (exported helper, for re-use)
 %
--spec try_convert_to_unicode_binary( unicode_data() ) -> maybe( bin_string() ).
+-spec try_convert_to_unicode_binary( unicode_data() ) -> option( bin_string() ).
 try_convert_to_unicode_binary( Data ) ->
 
 	% A list_to_binary/1 would not be sufficient here.

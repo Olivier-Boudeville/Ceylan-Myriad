@@ -1,5 +1,10 @@
 # Prerequisite: MYRIAD_TOP must be set.
 
+# Useful for generic rules:
+ifndef PROJECT_TOP
+	PROJECT_TOP = $(MYRIAD_TOP)
+endif
+
 
 # On conditional variables depending on conditionals.
 #
@@ -186,6 +191,8 @@ endif
 #  - opengl: outcome of OpenGL-related operations
 #  - textures: regarding the (OpenGL) texture management
 #  - shaders: regarding the GLSL shaders and programs
+#  - gl_encoding: about the encoding of data for OpenGL (e.g. to write VBOs)
+#  - gl_decoding: about the decoding of data for OpenGL (e.g. to read VBOs)
 #  - gltf_support: for the support of the glTF 2.0 format
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
@@ -234,7 +241,9 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_encoding
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_decoding
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
@@ -326,13 +335,19 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar, hex
 # and the code itself, see basic_utils:get_myriad_version{_string,}/0):
 #
-MYRIAD_VERSION := 1.0.37
+MYRIAD_VERSION := 1.0.38
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
 ifndef PROJECT_VERSION
 	PROJECT_VERSION := $(MYRIAD_VERSION)
 endif
+
+
+PROJECT_WEB_HOST := esperide.org
+
+PROJECT_URL := "https://$(PROJECT_SHORT_NAME).$(PROJECT_WEB_HOST)"
+
 
 # So that edoc has the right define:
 PROJECT_EDOC_VERSION_KEY = $(PROJECT_SHORT_NAME)_version
@@ -1303,16 +1318,17 @@ STARTUP_FUNCTION := run
 # Not far from being candidate for deprecation (next: schedule for removal), as
 # top-level 'ebin' does the trick.
 #
-MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
-					$(MYRIAD_BEAM)/apps/merge-tool              \
-					$(MYRIAD_BEAM)/data-management              \
-					$(MYRIAD_BEAM)/maths                        \
-					$(MYRIAD_BEAM)/meta                         \
-					$(MYRIAD_BEAM)/scripts                      \
-					$(MYRIAD_BEAM)/user-interface/graphical     \
-					$(MYRIAD_BEAM)/user-interface/textual       \
-					$(MYRIAD_BEAM)/user-interface/audio         \
-					$(MYRIAD_BEAM)/user-interface               \
+MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password              \
+					$(MYRIAD_BEAM)/apps/merge-tool                     \
+					$(MYRIAD_BEAM)/data-management                     \
+					$(MYRIAD_BEAM)/maths                               \
+					$(MYRIAD_BEAM)/meta                                \
+					$(MYRIAD_BEAM)/scripts                             \
+					$(MYRIAD_BEAM)/user-interface                      \
+					$(MYRIAD_BEAM)/user-interface/audio                \
+					$(MYRIAD_BEAM)/user-interface/textual              \
+					$(MYRIAD_BEAM)/user-interface/graphical            \
+					$(MYRIAD_BEAM)/user-interface/graphical/opengl     \
 					$(MYRIAD_BEAM)/utils
 
 
@@ -1904,6 +1920,9 @@ GLSL_REF_COMPILER_OPT :=
 
 
 ## Documentation section.
+#
+# Refer to https://myriad.esperide.org/#for-documentation-generation for further
+# information.
 
 # Available in Ceylan-Hull:
 DOC_TRACKER := $$(which track-make-automatic-source.sh 2>/dev/null)
@@ -1915,29 +1934,40 @@ ifdef PROJECT_ICON
 endif
 
 
-# When relying directly on edoc (the default):
+# We now rely on ExDoc, rather than on edoc:
+
+EXDOC := $$(which ex_doc 2>/dev/null)
+
+# Finally not used, as specifying the options on the command line allows the
+# Makefiles to set/override them conveniently:
+#
+#EXDOC_CONFIG_FILE := $(MYRIAD_ROOT)/conf/myriad-for-exdoc.config
+
+# Not using multiple --paths with $(BEAM_DIRS), relying on ebin instead:
+EXDOC_OPTS = --formatter html --homepage-url "$(PROJECT_URL)" --language en --logo "$(MYRIAD_TOP)/doc/doc/myriad-title.png" --output "$(API_DOC_ROOT)" --proglang erlang
+
 
 ifndef API_DOC_ROOT
 	API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
 endif
 
 
-ifndef EDOC_OPTS
-	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
-endif
+# When relying directly on edoc:
+#ifndef EDOC_OPTS
+#	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
+#endif
 
 
-# When relying directly on erldocs:
-
-API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
+# When relying directly on a second doc generator (like erldocs):
+#API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
 
 
 # We tested erldocs (see https://github.com/erldocs/erldocs), yet vanilla edoc
-# seems to generate a lot more informational content so is preferred now:
+# seems to generate a lot more informational content so was preferred:
 #
 # (commented out as was misleading)
 #ifndef API_DOC_GENERATOR
-#	API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
+#   API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
 #endif
 
 

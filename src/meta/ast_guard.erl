@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of handling <b>guards defined with an AST</b>.
-%
-% See the "7.6 Guards" section of [http://erlang.org/doc/apps/erts/absform.html]
-% for more information.
-%
 -module(ast_guard).
+
+-moduledoc """
+Module in charge of handling **guards defined with an AST**.
+
+See the "7.6 Guards" section of <http://erlang.org/doc/apps/erts/absform.html>
+for more information.
+""".
 
 
 -type ast_guard_sequence() :: [ ast_guard() ].
@@ -289,7 +290,7 @@ direct_transform_guard_test( _GuardTest={ 'bin', FileLoc, BinElements },
 	% expression):
 	%
 	%NewBinElements = ast_bitstring:transform_bin_elements( BinElements,
-	%						Transforms, fun direct_transform_guard_test/2 ),
+	%   Transforms, fun direct_transform_guard_test/2 ),
 
 	{ NewBinElements, NewTransforms } =
 		ast_bitstring:transform_bin_elements( BinElements, Transforms ),

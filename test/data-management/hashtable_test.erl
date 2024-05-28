@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: November 10, 2011.
 
-
-% @doc Unit tests for the generic hashtable implementation.
-%
-% See the hashtable.erl tested module.
-%
 -module(hashtable_test).
+
+-moduledoc """
+Unit tests for the generic **hashtable** implementation.
+
+See the hashtable.erl tested module.
+""".
+
 
 
 % Directly depends on the hashtable module.

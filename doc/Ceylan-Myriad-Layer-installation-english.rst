@@ -193,6 +193,8 @@ Its content could then be for example:
 
 where the specified reference is nothing more than the corresponding Git commit that will be used in order to build that dependency (Myriad here).
 
+Myriad-based projects should better execute their (inherited, more robust/integrated) ``rebar3-upgrade-lock`` make target instead.
+
 
 :raw-html:`<a name="otp"></a>`
 

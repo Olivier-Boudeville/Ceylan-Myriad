@@ -25,28 +25,28 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various facilities for (2D) <b>bounding surface</b>
-% management.
-%
-% Currently the types of supported bounding surfaces are:
-% - bounding rectangles, which can be quickly determined
-% - "lazy" circles, directly deriving from the previous rectangle
-% - MEC (Minimal Enclosing Circles), whose processing, based on convex hull,
-% is more demanding
-%
-% With the lazy algorithm, circle parameters are simply deduced from the
-% smallest enclosing rectangle; it is fast and easy, yet less precise than the
-% <em>Minimal Enclosing Circle</em> (MEC).
-%
-% Determining the MEC involves computing the convex hull of the points. It is
-% expensive, but not a problem if precomputing it.
-%
-% Bounding surfaces operate on floating-point (not integer) coordinates.
-%
-% See `bounding_surface_test.erl' for the corresponding test.
-%
 -module(bounding_surface).
+
+-moduledoc """
+Gathering of various facilities for (2D) **bounding surface** management.
+
+Currently the types of supported bounding surfaces are:
+- bounding rectangles, which can be quickly determined
+- "lazy" circles, directly deriving from the previous rectangle
+- MEC (Minimal Enclosing Circles), whose processing, based on convex hull, is
+more demanding
+
+With the lazy algorithm, circle parameters are simply deduced from the smallest
+enclosing rectangle; it is fast and easy, yet less precise than the *Minimal
+Enclosing Circle* (MEC).
+
+Determining the MEC involves computing the convex hull of the points. It is
+expensive, but not a problem if precomputing it.
+
+Bounding surfaces operate on floating-point (not integer) coordinates.
+
+See `bounding_surface_test.erl` for the corresponding test.
+""".
 
 
 -export([ get_bounding_rectangle/1,
@@ -290,7 +290,7 @@ get_minimal_enclosing_circle( Points ) ->
 % point P is in it (bounds of the circle included), otherwise 'undefined'.
 %
 -spec get_circle_if_in_range( P :: any_point2(), A :: any_point2(),
-							  B :: any_point2() ) -> maybe( circle() ).
+							  B :: any_point2() ) -> option( circle() ).
 get_circle_if_in_range( P, A, B ) ->
 	Center = point2:get_center( A, B ),
 	SquareRadius = point2:square_distance( A, B ) / 4.0,
@@ -327,7 +327,7 @@ is_within( P, Center, SquareRadius ) ->
 % (otherwise returns undefined).
 %
 -spec get_circumscribed_circle_for( any_point2(), any_point2(),
-									any_point2() ) -> maybe( circle() ).
+									any_point2() ) -> option( circle() ).
 get_circumscribed_circle_for( P1, P2, P3 ) ->
 
 	% Here we have three points, a triangle, which defines the circumscribed

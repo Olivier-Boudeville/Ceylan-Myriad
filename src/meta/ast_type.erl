@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of handling <b>types, but also variables and values</b>
-% defined with an AST.
-%
-% See the "7.7 Types" section of [http://erlang.org/doc/apps/erts/absform.html]
-% for more information.
-%
 -module(ast_type).
+
+-moduledoc """
+Module in charge of handling **types, but also variables and values** defined
+with an AST.
+
+See the "7.7 Types" section of <http://erlang.org/doc/apps/erts/absform.html>
+for more information.
+""".
+
 
 
 % For the table macro:
@@ -120,7 +122,7 @@
 -type ast_remote_type() :: #remote_type{}.
 % Reference to a remote type, in an AST.
 %
-% Example for basic_utils:maybe(float()):
+% Example for basic_utils:option(float()):
 % {remote_type,43,[{atom,43,basic_utils},{atom,43,maybe},[{type,43,float,[]}]]}
 
 
@@ -128,7 +130,7 @@
 % Any kind of reference onto a type.
 
 
--type maybe_ast_type() :: basic_utils:maybe( ast_type() ).
+-type maybe_ast_type() :: basic_utils:option( ast_type() ).
 
 
 % May be constrained or not (see http://erlang.org/doc/apps/erts/absform.html):

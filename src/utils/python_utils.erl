@@ -28,15 +28,16 @@
 %          Samuel Thiriot     [samuel (dot) thiriot (at) edf (dot) fr]
 % Creation date: 2016.
 
-
-% @doc Gathering of some convenient facilities for the <b>binding to the Python
-% language</b>.
-%
-% See python_utils_test.erl for the corresponding tests.
-%
-% See also: java_utils.erl for a similar binding.
-%
 -module(python_utils).
+
+-moduledoc """
+Gathering of some convenient facilities for the **binding to the Python
+language**.
+
+See python_utils_test.erl for the corresponding tests.
+
+See also: java_utils.erl for a similar binding.
+""".
 
 
 
@@ -194,8 +195,8 @@ pep8_class_to_pep8_module( ClassnameString ) ->
 	% [ "partner", "transport_model", "my_foobar_example" ].
 	%
 	TokensSnake = [ string:join( [ string:to_lower( CamelWord )
-				|| CamelWord <- text_utils:split_camel_case( CamelCaseToken )
-								 ], _Separator="_" )
+				|| CamelWord <- text_utils:split_camel_case( CamelCaseToken ) ],
+								 _Separator="_" )
 					|| CamelCaseToken <- TokensCamel ],
 
 	% The concatenation of those should lead to a valid package name, so that

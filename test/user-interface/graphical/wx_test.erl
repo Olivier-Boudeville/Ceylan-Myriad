@@ -25,9 +25,11 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, August 25, 2023.
 
-
-% @doc A minimalistic test to investigate wx.
 -module(wx_test).
+
+-moduledoc """
+A minimalistic test to investigate wx.
+""".
 
 
 % For run/0 export and al:

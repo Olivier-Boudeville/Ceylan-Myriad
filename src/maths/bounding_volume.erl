@@ -25,17 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various facilities for (3D) <b>bounding volume</b>
-% management.
-%
-% Currently the types of supported bounding volumes are:
-% - right-cuboids, see <a href="http://en.wikipedia.org/wiki/Cuboid">cuboids</a>
-% - spheres
-%
-% See `bounding_volume_test.erl' for the corresponding test.
-%
 -module(bounding_volume).
+
+-moduledoc """
+Gathering of various facilities for (3D) **bounding volume** management.
+
+Currently the types of supported bounding volumes are:
+- right-cuboids, see [cuboids](http://en.wikipedia.org/wiki/Cuboid)
+- spheres
+
+See `bounding_volume_test.erl` for the corresponding test.
+""".
 
 
 -export([ get_lazy_bounding_sphere/1, get_minimal_enclosing_sphere/1,

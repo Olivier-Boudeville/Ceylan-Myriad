@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 5, 2024.
 
-
-% @doc Unit tests for the <b>3D transformations based on 4x4 matrices</b>.
-%
-% See the transform4 tested module.
-%
 -module(transform4_test).
+
+-moduledoc """
+Unit tests for the **3D transformations based on 4x4 matrices**.
+
+See the transform4 tested module.
+""".
+
 
 
 -include_lib("myriad/include/matrix4.hrl").
@@ -168,7 +170,6 @@ run() ->
 	test_facilities:display( "Base transform when right-scaled "
 		"of factors ~w: ~ts~n",
 		[ FactorsOther, transform4:to_string( SrTBase ) ] ),
-
 
 
 	test_facilities:stop().

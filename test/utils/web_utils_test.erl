@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, June 25, 2019.
 
-
-% Unit tests for the services related to <b>web content</b>.
-%
-% See the web_utils.erl tested module.
-%
 -module(web_utils_test).
+
+-moduledoc """
+Unit tests for the services related to **web content**.
+
+See the web_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

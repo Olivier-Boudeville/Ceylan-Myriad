@@ -25,19 +25,20 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, May 2, 2018.
 
-
-% @doc This is the second most basic, terminal-based <b>textual interface</b>,
-% with colors, dialog boxes, etc., relying on the 'dialog' or 'whiptail' tools.
-%
-% See:
-% - term_ui_test.erl for the corresponding test
-% - text_ui.erl for a more basic text interface
-% - gui.erl for a graphical counterpart
-%
-% See also: trace_utils.erl for another kind of output and test-dialog.sh for an
-% autonomous, standalone test.
-%
 -module(term_ui).
+
+-moduledoc """
+This is the second most basic, terminal-based **textual interface**,
+with colors, dialog boxes, etc., relying on the 'dialog' or 'whiptail' tools.
+
+See:
+- term_ui_test.erl for the corresponding test
+- text_ui.erl for a more basic text interface
+- gui.erl for a graphical counterpart
+
+See also: trace_utils.erl for another kind of output and test-dialog.sh for an
+autonomous, standalone test.
+""".
 
 
 
@@ -301,7 +302,7 @@
 	% Generally little use of console outputs for this backend:
 	log_console = false :: boolean(),
 
-	log_file = undefined :: maybe( file() ),
+	log_file = undefined :: option( file() ),
 	settings :: setting_table() } ).
 
 
@@ -944,7 +945,7 @@ read_text_as_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt() ) -> maybe( integer() ).
+-spec get_text_as_maybe_integer( prompt() ) -> option( integer() ).
 get_text_as_maybe_integer( Prompt ) ->
 	get_text_as_maybe_integer( Prompt, _UIState=get_state() ).
 
@@ -954,7 +955,7 @@ get_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( integer() ).
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> option( integer() ).
 get_text_as_maybe_integer( Prompt, UIState ) ->
 
 	case get_text( Prompt, UIState ) of
@@ -976,7 +977,7 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt() ) -> maybe( integer() ).
+-spec read_text_as_maybe_integer( prompt() ) -> option( integer() ).
 read_text_as_maybe_integer( Prompt ) ->
 	read_text_as_maybe_integer( Prompt, _UIState=get_state() ).
 
@@ -988,7 +989,7 @@ read_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( integer() ).
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> option( integer() ).
 read_text_as_maybe_integer( Prompt, UIState ) ->
 
 	case get_text( Prompt, UIState ) of
@@ -1619,7 +1620,7 @@ stop_helper( _UIState ) ->
 
 
 % @doc Tries to find a suitable dialog tool.
--spec lookup_dialog_tool() -> maybe( { dialog_tool(), file_path() } ).
+-spec lookup_dialog_tool() -> option( { dialog_tool(), file_path() } ).
 lookup_dialog_tool() ->
 
 	case executable_utils:lookup_executable( "dialog" ) of
@@ -1877,7 +1878,7 @@ unset_settings( SettingKeys,
 % @doc Returns the value (if any) associated, in the (implicit) UI state, to the
 % specified setting.
 %
--spec get_setting( ui_setting_key() ) -> maybe( ui_setting_value() ).
+-spec get_setting( ui_setting_key() ) -> option( ui_setting_value() ).
 get_setting( SettingKey ) ->
 	get_setting( SettingKey, get_state() ).
 
@@ -1886,7 +1887,7 @@ get_setting( SettingKey ) ->
 % specified setting.
 %
 -spec get_setting( ui_setting_key(), ui_state() ) ->
-							maybe( ui_setting_value() ).
+							option( ui_setting_value() ).
 get_setting( SettingKey, #term_ui_state{ settings=SettingTable } ) ->
 	?ui_table:get_value_with_default( SettingKey, _Default=undefined,
 									  SettingTable ).

@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Unit tests for the <b>text utils toolbox.</b>
-%
-% See the text_utils.erl tested module.
-%
 -module(text_utils_test).
+
+-moduledoc """
+Unit tests for the **text utils** toolbox.
+
+See the text_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

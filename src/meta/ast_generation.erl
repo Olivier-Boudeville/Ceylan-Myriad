@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of <b>generating parts of an AST</b> (for example
-% elements of forms).
-%
 -module(ast_generation).
+
+-moduledoc """
+Module in charge of **generating parts of an AST** (for example elements of
+forms).
+""".
 
 
 -export([ list_to_form/1, form_to_list/1,

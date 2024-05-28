@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2008.
 
-
-% @doc Gathering of various facilities regarding <b>files and other filesystem
-% elements</b>.
-%
-% See file_utils_test.erl for the corresponding test.
-%
 -module(file_utils).
+
+-moduledoc """
+Gathering of various facilities regarding **files and other filesystem
+elements**.
+
+See file_utils_test.erl for the corresponding test.
+""".
+
 
 
 % Related standard modules: file, filename.
@@ -2104,7 +2106,7 @@ get_first_existing_dir( _DirPaths=[ Dir | T ], Acc ) ->
 % "/home/prefs/foobar.etf" does not.
 %
 -spec get_first_file_or_link_for( any_file_name(), [ any_directory_path() ] ) ->
-											maybe( any_file_path() ).
+											option( any_file_path() ).
 get_first_file_or_link_for( _TargetFilename, _CandidateDirs=[] ) ->
 	undefined;
 
@@ -4957,7 +4959,7 @@ get_configuration_directory( AppInfoMap=#{ name := BinAppName } ) ->
 % otherwise "~/.config/foobar" (if existing), otherwise 'undefined'.
 %
 -spec get_most_suitable_configuration_directory( any_app_info() ) ->
-											maybe( directory_path() ).
+											option( directory_path() ).
 get_most_suitable_configuration_directory( AppInfo=#app_info{} ) ->
 	AppInfoMap = app_facilities:get_app_info_map( AppInfo ),
 	get_configuration_directory( AppInfoMap );
@@ -5658,14 +5660,14 @@ write_whole( AnyFilePath, BinaryContent, Modes ) ->
 
 		{ error, eacces } ->
 			throw( { write_whole_failed,
-					 { text_utils:ensure_string( AnyFilePath ), Modes },
-					 access_denied,
-					 get_file_access_denied_info( AnyFilePath ) } );
+						{ text_utils:ensure_string( AnyFilePath ), Modes },
+						access_denied,
+						get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, Error } ->
 			throw( { write_whole_failed,
-					 { text_utils:ensure_string( AnyFilePath ), Modes },
-					 Error } )
+						{ text_utils:ensure_string( AnyFilePath ), Modes },
+						Error } )
 
 	end.
 
@@ -5789,7 +5791,7 @@ write_terms( Terms, AnyFilePath ) ->
 %
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
--spec write_etf_file( [ term() ], maybe( ustring() ), maybe( ustring() ),
+-spec write_etf_file( [ term() ], option( ustring() ), option( ustring() ),
 					  file_path() ) -> void().
 write_etf_file( Terms, Header, Footer, Filename ) ->
 	write_terms( Terms, Header, Footer, Filename ).
@@ -5801,7 +5803,7 @@ write_etf_file( Terms, Header, Footer, Filename ) ->
 %
 % Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
 %
--spec write_terms( [ term() ], maybe( ustring() ), maybe( ustring() ),
+-spec write_terms( [ term() ], option( ustring() ), option( ustring() ),
 				   any_file_path() ) -> void().
 write_terms( Terms, Header, Footer, AnyFilePath ) ->
 

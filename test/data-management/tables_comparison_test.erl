@@ -26,26 +26,27 @@
 %          Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: November 10, 2011.
 
-
-% @doc Tests for comparing and illustrating the differences of following types
-% of <b>associative tables</b>:
-% - hashtable
-% - tracked hashtable
-% - lazy hashtable
-% - map hashtable
-% - list table
-%
-% See also hashtable.erl, tracked_hashtable.erl, lazy_hashtable.erl,
-% map_hashtable.erl, list_table.erl and their respective test modules.
-%
-% Directly depends on the following modules: hashtable, tracked_hashtable,
-% lazy_hashtable, map_hashtable, list_table.
-%
-% Note that the 'table' pseudo-module is not tested here: not only it is
-% actually one of the previous implementations, but also modules are applied
-% dynamically here, hence the parse transform will not replace anything.
-%
 -module(tables_comparison_test).
+
+-moduledoc """
+Tests for comparing and illustrating the differences of following types
+of **associative tables**:
+- hashtable
+- tracked hashtable
+- lazy hashtable
+- map hashtable
+- list table
+
+See also hashtable.erl, tracked_hashtable.erl, lazy_hashtable.erl,
+map_hashtable.erl, list_table.erl and their respective test modules.
+
+Directly depends on the following modules: hashtable, tracked_hashtable,
+lazy_hashtable, map_hashtable, list_table.
+
+Note that the 'table' pseudo-module is not tested here: not only it is
+actually one of the previous implementations, but also modules are applied
+dynamically here, hence the parse transform will not replace anything.
+""".
 
 
 % For run/0 export and al:
@@ -466,13 +467,13 @@ get_pairs( _Series=0, _Count, Acc ) ->
 get_pairs( Series, Count, Acc ) ->
 
 	ToAddStrings = [
-			 { io_lib:format( "key-~B", [ Count + 1 ] ) , self() },
-			 { io_lib:format( "key-~B", [ Count + 2 ] ) , "hello world!" },
-			 { io_lib:format( "key-~B", [ Count + 3 ] ) , an_atom },
-			 { io_lib:format( "key-~B", [ Count + 4 ] ) , [ "a", 123, list ] },
-			 { io_lib:format( "key-~B", [ Count + 5 ] ) , { 23, 45, 67, 90 } },
-			 { io_lib:format( "key-~B", [ Count + 6 ] ) , 1.0 },
-			 { io_lib:format( "key-~B", [ Count + 7 ] ) , << "A binary" >> } ],
+		{ io_lib:format( "key-~B", [ Count + 1 ] ) , self() },
+		{ io_lib:format( "key-~B", [ Count + 2 ] ) , "hello world!" },
+		{ io_lib:format( "key-~B", [ Count + 3 ] ) , an_atom },
+		{ io_lib:format( "key-~B", [ Count + 4 ] ) , [ "a", 123, list ] },
+		{ io_lib:format( "key-~B", [ Count + 5 ] ) , { 23, 45, 67, 90 } },
+		{ io_lib:format( "key-~B", [ Count + 6 ] ) , 1.0 },
+		{ io_lib:format( "key-~B", [ Count + 7 ] ) , << "A binary" >> } ],
 
 	ToAdd = [ { text_utils:string_to_atom( lists:flatten( K ) ), V }
 					|| { K, V } <- ToAddStrings ],

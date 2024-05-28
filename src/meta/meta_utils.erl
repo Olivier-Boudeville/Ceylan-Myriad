@@ -25,28 +25,28 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, December 19, 2014.
 
-
-% @doc Gathering of various higher-level, convenient <b>meta-related
-% facilities</b>, notably regarding metaprogramming, types and parse transforms.
-%
-% See meta_utils_test.erl for the corresponding test, and ast_info.erl for the
-% more basic services used by this module.
-%
-% Note that this module is a prerequisite of at least most of our parse
-% transforms, hence it must be bootstrapped *before* they are built, and cannot
-% use them.
-%
-% So, to compile it, just go to the root of this layer and execute for example
-% 'make all'.
-%
-% To determine the other bootstrapped modules (i.e. the subset of our modules
-% that this module can use), see the BOOTSTRAP_MODULES variable in
-% GNUmakevars.inc.
-%
-% See also: the type_utils module, about the management of datatypes themselves,
-% and the ast* modules for lower-level operations.
-%
 -module(meta_utils).
+
+-moduledoc """
+Gathering of various higher-level, convenient **meta-related facilities**,
+notably regarding metaprogramming, types and parse transforms.
+
+See meta_utils_test.erl for the corresponding test, and ast_info.erl for the
+more basic services used by this module.
+
+Note that this module is a prerequisite of at least most of our parse
+transforms, hence it must be bootstrapped *before* they are built, and cannot
+use them.
+
+So, to compile it, just go to the root of this layer and execute for example
+'make all'.
+
+To determine the other bootstrapped modules (i.e. the subset of our modules that
+this module can use), see the BOOTSTRAP_MODULES variable in GNUmakevars.inc.
+
+See also: the type_utils module, about the management of datatypes themselves,
+and the ast* modules for lower-level operations.
+""".
 
 
 
@@ -609,8 +609,10 @@ check_potential_call( ModuleName, FunctionName, Arguments ) ->
 % is transformed in turn. If the transformed term is the same as the original
 % one, then that content will be shown as analysed twice.
 %
--spec transform_term( term(), basic_utils:maybe( primitive_type_description() ),
-				term_transformer(), user_data() ) -> { term(), user_data() }.
+-spec transform_term( term(), 
+					  basic_utils:option( primitive_type_description() ),
+					  term_transformer(), user_data() ) ->
+		                { term(), user_data() }.
 % Here the term is a list and this is the type we want to intercept:
 transform_term( TargetTerm, TypeDescription=list, TermTransformer, UserData )
 								when is_list( TargetTerm ) ->

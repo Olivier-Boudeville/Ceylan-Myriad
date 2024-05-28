@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, February 15, 2010.
 
-
-% @doc Gathering of various facilities for <b>polygon</b> management.
-%
-% When used for rendering, coordinates are expected to be often integers.
-%
-% See `polygon_test.erl' for the corresponding test.
-%
 -module(polygon).
+
+-moduledoc """
+Gathering of various facilities for **polygon** management.
+
+When used for rendering, coordinates are expected to be often integers.
+
+See `polygon_test.erl` for the corresponding test.
+""".
+
 
 
 -include("polygon.hrl").
@@ -77,13 +79,14 @@
 -type any_vertex2() :: point2:any_vertex2().
 
 -type color() :: gui_color:color().
--type canvas() :: gui:canvas().
+-type canvas() :: gui_canvas:canvas().
 
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
 -type area() :: linear:area().
 
 -type bounding_algorithm() :: bounding_surface:bounding_algorithm().
+
 
 
 % Construction-related section.
@@ -295,7 +298,7 @@ set_edge_color( Color, Polygon ) ->
 % @doc Returns the current edge color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_edge_color( polygon() ) -> maybe( color() ).
+-spec get_edge_color( polygon() ) -> option( color() ).
 get_edge_color( Polygon ) ->
 	option_list:lookup( edge_color, Polygon#polygon.rendering ).
 
@@ -316,7 +319,7 @@ set_fill_color( Color, Polygon ) ->
 % @doc Returns the current fill color of the specified polygon, if specified,
 % otherwise 'undefined'.
 %
--spec get_fill_color( polygon() ) -> maybe( color() ).
+-spec get_fill_color( polygon() ) -> option( color() ).
 get_fill_color( Polygon ) ->
 	option_list:lookup( _Key=fill, _OptionList=Polygon#polygon.rendering ).
 

@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, March 6, 2022.
 
-
-% @doc Testing of the <b>MyriadGUI keyboard support</b>.
-%
-% See the gui_keyboard.erl tested module.
-%
 -module(gui_keyboard_test).
+
+-moduledoc """
+Testing of the **MyriadGUI keyboard support**.
+
+See the gui_keyboard.erl tested module.
+""".
+
 
 
 % For run/0 export and al:

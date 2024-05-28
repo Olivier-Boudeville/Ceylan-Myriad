@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, February 4, 2018.
 
-
-% @doc Module in charge of handling <b>records defined or used within an
-% AST</b>.
-%
-% See [http://erlang.org/doc/apps/erts/absform.html] for more information.
-%
 -module(ast_record).
+
+-moduledoc """
+Module in charge of handling **records defined or used within an AST**.
+
+See <http://erlang.org/doc/apps/erts/absform.html> for more information.
+""".
+
 
 
 

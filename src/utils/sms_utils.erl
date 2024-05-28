@@ -25,15 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, November 1, 2013.
 
-
-% @doc Gathering of various convenient <b>SMS-related</b> facilities.
-%
-% They rely mostly on a web gateway for that. See [http://mobile.esperide.org]
-% for one based typically on 3G devices.
-%
-% See sms_utils_test.erl for testing.
-%
 -module(sms_utils).
+
+-moduledoc """
+Gathering of various convenient **SMS-related** facilities.
+
+They rely mostly on a web gateway for that. See <http://mobile.esperide.org> for
+one based typically on 3G devices.
+
+See sms_utils_test.erl for testing.
+""".
 
 
 
@@ -141,7 +142,7 @@
 % Describes the result of the sending, as reported by the gateway.
 
 
--type credits() :: maybe( count() ).
+-type credits() :: option( count() ).
 % Number of credits left (if applicable).
 
 
@@ -179,7 +180,7 @@
 	sender_description :: sender_description(),
 
 	% Default account service class to be used, if not specified here:
-	service_class :: maybe( service_class() ) } ).
+	service_class :: option( service_class() ) } ).
 
 
 -type sms() :: #sms{}.
@@ -214,7 +215,7 @@ create_sms( Message, Recipient, SenderDescription ) when is_list( Message )
 
 % @doc Creates a SMS record instance from specified information.
 -spec create_sms( message(), recipient(), sender_description(),
-				  maybe( service_class() ) ) -> sms().
+				  option( service_class() ) ) -> sms().
 create_sms( Message, Recipient, SenderDescription, ServiceClass )
 		when is_list( Message ) andalso is_list( Recipient )
 			 andalso is_list( SenderDescription )

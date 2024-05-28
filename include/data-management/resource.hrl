@@ -32,7 +32,7 @@
 	% The (absolute) root directory (if any) whence file-based resources are
 	% loaded: (this can be an actual directory or a symbolic link)
 	%
-	root_directory :: maybe( file_utils:bin_directory_path() ),
+	root_directory :: option( file_utils:bin_directory_path() ),
 
 	% The table storing the currently-loaded resources:
 	table :: resource:resource_table() } ).

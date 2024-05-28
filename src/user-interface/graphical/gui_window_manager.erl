@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, February 26, 2022.
 
-
-% @doc Services in terms of <b>window management</b>, to offer a window manager
-% specific to a (multi-window) application.
-%
-% More generally offers global, application-wide features.
-%
 -module(gui_window_manager).
+
+-moduledoc """
+Services in terms of **window management**, to offer a window manager specific
+to a (multi-window) application.
+
+More generally offers global, application-wide features.
+""".
 
 
 -type window_name() :: atom().

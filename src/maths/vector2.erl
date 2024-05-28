@@ -25,15 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, October 9, 2021.
 
-
-% @doc Module implementing the support for <b>2D vectors</b>.
-%
-% See also:
-% - the corresponding points (in point2.erl) and matrices (in matrix2.erl)
-% - the (unspecialised) vectors of arbitrary dimensions, in vector.erl
-% - the various 2D extra services in linear_2D.erl
-%
 -module(vector2).
+
+-moduledoc """
+Module implementing the support for **2D vectors**.
+
+See also:
+- the corresponding points (in `point2.erl`) and matrices (in `matrix2.erl`)
+- the (unspecialised) vectors of arbitrary dimensions, in `vector.erl`
+- the various 2D extra services in `linear_2D.erl`
+""".
 
 
 % For printout_*, inline_size, etc.:

@@ -25,22 +25,25 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, December 6, 2023.
 
-
-% @doc Support for <b>splash screens</b>.
-%
-% Basic splash screens just display images, whereas more complex ones are
-% dynamically built from elements that can include versions, release dates, etc.
-%
-% In all cases they are to be displayed as soon as possible (when created, which
-% returns the PID of their controller process), and will be dismissed and fully
-% deallocated/terminated as soon as that process will receive a removal message.
-%
-% Depending on text length and font size, the size of images may help avoiding
-% the collision of texts.
-%
-% Refer to the gui_splash_test module for an example of use.
-%
 -module(gui_splash).
+
+-moduledoc """
+
+@doc Support for **splash screens**.
+
+Basic splash screens just display images, whereas more complex ones are
+dynamically built from elements that can include versions, release dates, etc.
+
+In all cases they are to be displayed as soon as possible (when created, which
+returns the PID of their controller process), and will be dismissed and fully
+deallocated/terminated as soon as that process will receive a removal message.
+
+Depending on text length and font size, the size of images may help avoiding the
+collision of texts.
+
+Refer to the gui_splash_test module for an example of use.
+""".
+
 
 
 % Usage notes:

@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, May 20, 2020.
 
-
-% @doc Gathering of various convenient facilities regarding the management of
-% the <b>shells and command lines</b> (e.g. specified arguments).
-%
-% See shell_utils_test.erl for the corresponding test.
-%
 -module(shell_utils).
+
+-moduledoc """
+Gathering of various convenient facilities regarding the management of the
+**shells and command lines** (e.g. specified arguments).
+
+See shell_utils_test.erl for the corresponding test.
+""".
 
 
 
@@ -441,7 +442,7 @@ generate_argument_table( ArgString ) ->
 % more relevant to use.
 %
 -spec get_command_arguments_for_option( command_line_option() ) ->
-									maybe( [ command_line_values() ] ).
+									option( [ command_line_values() ] ).
 get_command_arguments_for_option( Option ) ->
 
 	ArgumentTable = get_argument_table(),
@@ -482,7 +483,7 @@ get_optionless_command_arguments() ->
 % the table, yet that no parameter has been specified for it.
 %
 -spec extract_command_arguments_for_option( command_line_option() ) ->
-			{ maybe( [ command_line_values() ] ), argument_table() }.
+			{ option( [ command_line_values() ] ), argument_table() }.
 extract_command_arguments_for_option( Option ) ->
 
 	ArgumentTable = get_argument_table(),
@@ -504,7 +505,7 @@ extract_command_arguments_for_option( Option ) ->
 %
 -spec extract_command_arguments_for_option( command_line_option(),
 											argument_table() ) ->
-				{ maybe( [ command_line_values() ] ), argument_table() }.
+				{ option( [ command_line_values() ] ), argument_table() }.
 extract_command_arguments_for_option( Option, ArgumentTable ) ->
 	?arg_table:extract_entry_with_default( _K=Option, _DefaultValue=undefined,
 										   ArgumentTable ).
@@ -519,7 +520,7 @@ extract_command_arguments_for_option( Option, ArgumentTable ) ->
 % argument table.
 %
 -spec extract_optionless_command_arguments() ->
-			{ maybe( [ command_line_values() ] ), argument_table() }.
+			{ option( [ command_line_values() ] ), argument_table() }.
 extract_optionless_command_arguments() ->
 
 	ArgumentTable = get_argument_table(),
@@ -540,7 +541,7 @@ extract_optionless_command_arguments() ->
 % the table, yet that no parameter has been specified for it.
 %
 -spec extract_optionless_command_arguments( argument_table() ) ->
-				{ maybe( [ command_line_values() ] ), argument_table() }.
+				{ option( [ command_line_values() ] ), argument_table() }.
 extract_optionless_command_arguments( ArgumentTable ) ->
 
 	%trace_utils:debug_fmt( "ArgumentTable: ~p.", [ ArgumentTable ] ),

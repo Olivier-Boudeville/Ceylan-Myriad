@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, August 23, 2022.
 
-
-% @doc Gathering of various <b>hashing-related facilities</b>,
-% cryptographically-secure or not, to be applied either to files or directly to
-% (Erlang, binary) terms.
-%
-% See hash_utils_test.erl for testing.
-%
 -module(hash_utils).
+
+-moduledoc """
+Gathering of various **hashing-related facilities**, cryptographically-secure or
+not, to be applied either to files or directly to (Erlang, binary) terms.
+
+See hash_utils_test.erl for testing.
+""".
+
 
 
 % Current defaults:

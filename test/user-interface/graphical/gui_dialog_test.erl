@@ -25,11 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, August 21, 2023.
 
-
-% @doc Unit tests for the management of <b>dialogs</b>, that are various
-% standard modal windows.
-%
 -module(gui_dialog_test).
+
+-moduledoc """
+Unit tests for the management of **dialogs**, that are various standard modal
+windows.
+""".
+
 
 
 % For run/0 export and al:

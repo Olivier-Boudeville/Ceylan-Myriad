@@ -25,18 +25,18 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, May 2, 2018.
 
-
-% @doc This is the most basic, line-based monochrome <b>textual interface</b>,
-% directly in raw text, with no cursor control.
-%
-% See:
-% - text_ui_test.erl for the corresponding test
-% - gui.erl for a graphical counterpart
-%
-% See also: trace_utils.erl for another kind of output.
-%
 -module(text_ui).
 
+-moduledoc """
+This is the most basic, line-based monochrome **textual interface**, directly in
+raw text, with no cursor control.
+
+See:
+- text_ui_test.erl for the corresponding test
+- gui.erl for a graphical counterpart
+
+See also: trace_utils.erl for another kind of output.
+""".
 
 
 % Implementation notes:
@@ -163,7 +163,7 @@
 	get_line_script ::executable_path(),
 
 	log_console = false :: boolean(),
-	log_file = undefined :: maybe( file() ),
+	log_file = undefined :: option( file() ),
 
 	settings :: setting_table() } ).
 
@@ -452,7 +452,7 @@ read_text_as_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt() ) -> maybe( integer() ).
+-spec get_text_as_maybe_integer( prompt() ) -> option( integer() ).
 get_text_as_maybe_integer( Prompt ) ->
 	get_text_as_maybe_integer( Prompt, _UIState=get_state() ).
 
@@ -462,7 +462,7 @@ get_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec get_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( integer() ).
+-spec get_text_as_maybe_integer( prompt(), ui_state() ) -> option( integer() ).
 get_text_as_maybe_integer( Prompt, UIState ) ->
 
 	case get_text( Prompt, UIState ) of
@@ -484,7 +484,7 @@ get_text_as_maybe_integer( Prompt, UIState ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt() ) -> maybe( integer() ).
+-spec read_text_as_maybe_integer( prompt() ) -> option( integer() ).
 read_text_as_maybe_integer( Prompt ) ->
 	read_text_as_maybe_integer( Prompt, _UIState=get_state() ).
 
@@ -496,7 +496,7 @@ read_text_as_maybe_integer( Prompt ) ->
 %
 % (const)
 %
--spec read_text_as_maybe_integer( prompt(), ui_state() ) -> maybe( integer() ).
+-spec read_text_as_maybe_integer( prompt(), ui_state() ) -> option( integer() ).
 read_text_as_maybe_integer( Prompt, UIState ) ->
 
 	case get_text( Prompt, UIState ) of
@@ -758,7 +758,7 @@ choose_numbered_item_with_default( Choices, DefaultChoiceIndex ) ->
 -spec choose_numbered_item_with_default( [ choice_element() ], choice_index(),
 										 ui_state() ) -> choice_index();
 									   ( label(), [ choice_element() ],
-										 maybe( choice_index() ) ) ->
+										 option( choice_index() ) ) ->
 												choice_index().
 choose_numbered_item_with_default( Choices, DefaultChoiceIndex, UIState )
 								when is_record( UIState, text_ui_state ) ->
@@ -782,7 +782,7 @@ choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex ) ->
 % cancel that operation.
 %
 -spec choose_numbered_item_with_default( label(), [ choice_element() ],
-			maybe( choice_index() ), ui_state() ) -> choice_index().
+			option( choice_index() ), ui_state() ) -> choice_index().
 choose_numbered_item_with_default( Label, Choices, DefaultChoiceIndex,
 								   UIState ) ->
 
@@ -1062,7 +1062,7 @@ unset_settings( SettingKeys,
 % @doc Returns the value (if any) associated, in the (implicit) UI state, to the
 % specified setting.
 %
--spec get_setting( ui_setting_key() ) -> maybe( ui_setting_value() ).
+-spec get_setting( ui_setting_key() ) -> option( ui_setting_value() ).
 get_setting( SettingKey ) ->
 	get_setting( SettingKey, get_state() ).
 
@@ -1071,7 +1071,7 @@ get_setting( SettingKey ) ->
 % specified setting.
 %
 -spec get_setting( ui_setting_key(), ui_state() ) ->
-							maybe( ui_setting_value() ).
+							option( ui_setting_value() ).
 get_setting( SettingKey, #text_ui_state{ settings=SettingTable } ) ->
 	?ui_table:get_value_with_default( SettingKey, _Default=undefined,
 									  SettingTable ).

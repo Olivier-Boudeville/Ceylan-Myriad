@@ -25,20 +25,21 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, December 20, 2023.
 
-
-% @doc Support for the <b>Gephi</b> facilities.
-%
-% Gephi is an open source tool to visualise and explore all kinds of graphs and
-% networks.
-%
-% See gephi_support_test.erl for the corresponding test, and the Gephi official
-% website [https://gephi.org/] for further information.
-%
-% For the vast majority of the services defined here, an instance of a Gephi
-% server is expected to have been configured and launched beforehand, both
-% according to our conventions.
-%
 -module(gephi_support).
+
+-moduledoc """
+Support for the **Gephi** facilities.
+
+Gephi is an open source tool to visualise and explore all kinds of graphs and
+networks.
+
+See gephi_support_test.erl for the corresponding test, and the Gephi official
+website <https://gephi.org/> for further information.
+
+For the vast majority of the services defined here, an instance of a Gephi
+server is expected to have been configured and launched beforehand, both
+according to our conventions.
+""".
 
 
 -type gephi_server_host() :: net_utils:possibly_local_hostname().
@@ -64,7 +65,7 @@
 % A user-specified path to a Gephi project file, from which a project name may
 % be deduced.
 %
-% For example the `<<"/tmp/foo/my_project.gephi">>' path is to correspond to the
+% For example the `<<"/tmp/foo/my_project.gephi">>` path is to correspond to the
 % "my_project" project.
 
 
@@ -83,7 +84,7 @@
 
 -type bin_project_name() :: bin_string().
 % The name of a Gephi project, typically one that shall be loaded. For example,
-% a `<<"Foobar">>' project name would refer to a "Foobar.gephi" project file.
+% a `<<"Foobar">>` project name would refer to a "Foobar.gephi" project file.
 
 
 -type any_project_name() :: project_name() | bin_project_name().
@@ -120,7 +121,7 @@
 	% (note that this information is not needed in order to interact with an
 	% already-launched Gephi server)
 	%
-	project_path :: maybe( bin_project_path() ),
+	project_path :: option( bin_project_path() ),
 
 	% The workspace to interact with, on this Gephi server, for this project:
 	workspace :: bin_workspace_name(),
@@ -159,7 +160,7 @@
 
 
 -type property_id() :: element_id().
-% The identifier of a node property; for example "label", <<"color">>.
+% The identifier of a node property; for example "label", `<<"color">>`.
 
 -type property_value() :: graph_value().
 % A value that can be assigned to a property.
@@ -746,7 +747,7 @@ get_server_info( Hostname, ServerPort, WorkspaceName ) ->
 % ping), provided it is not the local one.
 %
 -spec get_server_info( gephi_server_host(), gephi_server_port(),
-					   maybe( any_project_path() ), any_workspace_name() ) ->
+					   option( any_project_path() ), any_workspace_name() ) ->
 							gephi_server_info().
 get_server_info( Hostname, ServerPort, MaybeProjectPath, WorkspaceName ) ->
 	get_server_info( Hostname, ServerPort, MaybeProjectPath, WorkspaceName,
@@ -762,7 +763,7 @@ get_server_info( Hostname, ServerPort, MaybeProjectPath, WorkspaceName ) ->
 % ping), provided it is not the local one.
 %
 -spec get_server_info( gephi_server_host(), gephi_server_port(),
-	maybe( any_project_path() ), any_workspace_name(), boolean() ) ->
+	option( any_project_path() ), any_workspace_name(), boolean() ) ->
 							gephi_server_info().
 get_server_info( Hostname, ServerPort, MaybeProjectPath, WorkspaceName,
 				 DoCheckServer ) when is_integer( ServerPort ) ->
@@ -1127,7 +1128,7 @@ properties_to_json( PropertyTable ) ->
 % The returned body is generally a JSON document as well. Actually it is at
 % least usually the input body, in a reinterpreted form,
 % e.g. `<<"{\"an\":{\"myriad-node-id-1\":{\"label\":\"I am the label of the node
-% whose identifier is 'myriad-node-id-1'.\"}}}\r\n">>'.
+% whose identifier is 'myriad-node-id-1'.\"}}}\r\n">>`.
 %
 % Throws an exception if the sending failed.
 %

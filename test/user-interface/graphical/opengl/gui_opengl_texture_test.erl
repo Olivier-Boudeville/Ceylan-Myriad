@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, March 11, 2023.
 
-
-% @doc Testing of the <b>texture support</b>; displays an image as a texture.
-%
-% This test relies on the old OpenGL (the one obtained with the "compatibility"
-% profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
-% shaders and GLSL. See gui_opengl_texture_shader_test for its more modern
-% counterpart.
-%
 -module(gui_opengl_texture_test).
+
+-moduledoc """
+Testing of the **texture support**; displays an image as a texture.
+
+This test relies on the old OpenGL (the one obtained with the "compatibility"
+profile), as opposed to more modern versions of OpenGL (e.g. 3.1) that rely on
+shaders and GLSL. See gui_opengl_texture_shader_test for its more modern
+counterpart.
+""".
+
 
 
 % Implementation notes:
@@ -70,7 +72,7 @@
 	image :: image(),
 
 	% Needs an OpenGL context:
-	texture :: maybe( texture() ),
+	texture :: option( texture() ),
 
 	% Here just a boolean; in more complex cases, would be a maybe-(OpenGL
 	% state), e.g. to store the loaded textures:
@@ -93,28 +95,6 @@
 -type gl_context() :: gui_opengl:gl_context().
 
 -type texture() :: gui_texture:texture().
-
-
-
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
-
-	test_facilities:display( "~nStarting the test of texture support." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts.",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
 
 
 
@@ -449,15 +429,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running the OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run( "the test of texture support" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

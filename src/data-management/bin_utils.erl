@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, July 30, 2017.
 
-
-% @doc Gathering of various facilities regarding the management of <b>binary,
-% bit-level operations</b>, like cyclic redundancy check (CRC) calculations.
-%
-% See bin_utils_test.erl for the corresponding test.
-%
 -module(bin_utils).
+
+-moduledoc """
+Gathering of various facilities regarding the management of
+**binary, bit-level operations**, like cyclic redundancy check (CRC)
+calculations.
+
+See bin_utils_test.erl for the corresponding test.
+""".
 
 
 % Binary basics (see also the 'binary' standard module):
@@ -175,7 +177,7 @@ replicate( Bin, Count, Acc ) ->
 %
 % Example: Bin = tuples_to_float32s_binary([{0.0, 1.0}, {0.5, 0.5, 0.5}])
 %
-% Typically useful to create suitable OpenGL arrays from heterogenous tuples
+% Typically useful to create suitable OpenGL arrays from heterogeneous tuples
 % aggregating vertices, normals, colors, etc. on a per vertex attribute basis.
 %
 -spec tuples_to_float32s_binary( [ tuple( float() ) ] ) -> binary().
@@ -191,7 +193,7 @@ tuples_to_float32s_binary( Tuples ) ->
 % Example: FullBin = tuples_to_float32s_binary([{0.0, 1.0}, {0.5, 0.5, 0.5}],
 %                                              Bin)
 %
-% Typically useful to create suitable OpenGL arrays from heterogenous tuples
+% Typically useful to create suitable OpenGL arrays from heterogeneous tuples
 % aggregating vertices, normals, colors, etc. on a per vertex attribute basis.
 %
 -spec tuples_to_float32s_binary( [ tuple( float() ) ], binary() ) -> binary().

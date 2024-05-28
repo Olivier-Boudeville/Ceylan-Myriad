@@ -23,26 +23,27 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, November 17, 2014
+% Creation date: Monday, November 17, 2014.
 
 
-
-% @doc Basic <b>numerical solver based on the classic Runge–Kutta fourth-order
-% method</b>, operating on three dimensions.
-%
-% See [http://en.wikipedia.org/wiki/List_of_Runge–Kutta_methods].
-%
-% We want to evaluate a given function f, whose spec could be: `f( time(),
-%     vector() ) -> vector()' that would comply to the following equation:
-%     `dy/dt = f(t,y)'.
-%
-% For that we compute `yn+1 = yn + h.sum(bi.ki)' with `ki=f(ti,yi)', with ti and
-% yi depending on the order, and h being the chosen timestep. ki and bi are
-% determined by the corresponding Butcher tableau.
-%
-% The implementation of `f' corresponds here to the anonymous function `F'.
-%
 -module(rk4_solver).
+
+-moduledoc """
+Basic **numerical solver based on the classic Runge–Kutta fourth-order method**,
+operating on three dimensions.
+
+See <http://en.wikipedia.org/wiki/List_of_Runge–Kutta_methods>.
+
+We want to evaluate a given function f, whose spec could be: `f(time(),
+vector()) -> vector()` that would comply to the following equation: `dy/dt =
+f(t,y)`.
+
+For that we compute `yn+1 = yn + h.sum(bi.ki)` with `ki=f(ti,yi)`, with ti and
+yi depending on the order, and h being the chosen timestep. ki and bi are
+determined by the corresponding Butcher tableau.
+
+The implementation of `f` corresponds here to the anonymous function `F`.
+""".
 
 
 
@@ -100,6 +101,7 @@
 
 -type vector2() :: vector2:vector2().
 -type vector3() :: vector3:vector3().
+
 
 
 % @doc Computes the next point (yn+1), based on the current one (yn), the

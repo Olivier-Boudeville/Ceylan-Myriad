@@ -1,6 +1,6 @@
 % Copyright (C) 2023-2024 Olivier Boudeville
 %
-% This file is part of the Ceylan-Oceanic library.
+% This file is part of the Ceylan-Myriad library.
 %
 % This library is free software: you can redistribute it and/or modify
 % it under the terms of the GNU Lesser General Public License or
@@ -25,14 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, March 6, 2023.
 
-
-% @doc Module defining most of the <b>MyriadGUI constants</b>, notably so that
-% higher level MyriadGUI atom-designated values and backend-specific (wx) ones
-% can be translated, generally both ways.
-%
-% Called by gui:generate_support_modules/0.
-%
 -module(gui_constants).
+
+-moduledoc """
+Module defining most of the **MyriadGUI constants**, notably so that higher
+level MyriadGUI atom-designated values and backend-specific (wx) ones can be
+translated, generally both ways.
+
+Called by gui:generate_support_modules/0.
+""".
 
 
 
@@ -43,7 +44,8 @@
 		  get_frame_style_topic_spec/0, get_button_style_topic_spec/0,
 		  get_sizer_flag_topic_spec/0, get_menu_item_id_topic_spec/0,
 		  get_button_id_topic_spec/0,
-		  get_bitmap_id_topic_spec/0, get_icon_name_id_topic_spec/0,
+		  get_standard_bitmap_name_id_topic_spec/0,
+		  get_icon_name_id_topic_spec/0,
 		  get_menu_item_kind_topic_spec/0, get_menu_style_topic_spec/0,
 		  get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
@@ -66,7 +68,10 @@
 -export([ list_topic_spec_functions/0 ]).
 
 
-% @doc Lists all the functions of this module that define a topic specification.
+
+-doc """
+Lists all the functions of this module that define a topic specification.
+""".
 -spec list_topic_spec_functions() -> [ basic_utils:function_name() ].
 list_topic_spec_functions() ->
 
@@ -75,7 +80,7 @@ list_topic_spec_functions() ->
 	  get_frame_style_topic_spec, get_button_style_topic_spec,
 	  get_sizer_flag_topic_spec,
 	  get_menu_item_id_topic_spec, get_menu_style_topic_spec,
-	  get_button_id_topic_spec, get_bitmap_id_topic_spec,
+	  get_button_id_topic_spec, get_standard_bitmap_name_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
 	  get_static_text_display_style_topic_spec,
@@ -161,16 +166,16 @@ list_topic_spec_functions() ->
 -type event_type() :: gui_event:event_type().
 -type wx_event_type() :: gui_event:wx_event_type().
 
--type window_style_opt() :: gui_window:window_style_opt().
--type frame_style_opt() :: gui_window:frame_style_opt().
+-type window_style() :: gui_window:window_style().
+-type frame_style() :: gui_frame:frame_style().
 -type icon_name_id() :: gui_window:icon_name_id().
 
--type bitmap_id_opt() :: gui_bitmap:bitmap_id_opt().
+-type standard_bitmap_name_id() :: gui_bitmap:standard_bitmap_name_id().
 
 -type sizer_flag_opt() :: gui_sizer:sizer_flag_opt().
 
 -type button_id() :: gui_button:button_id().
--type button_style_opt() :: gui_button:button_style_opt().
+-type button_style() :: gui_button:button_style().
 
 -type menu_item_id() :: gui_menu:menu_item_id().
 -type menu_item_kind() :: gui_menu:menu_item_kind().
@@ -195,19 +200,21 @@ list_topic_spec_functions() ->
 %    gui_dialog:font_selection_dialog_style().
 
 
--type wx_art_id() :: gui_wx_backend:wx_art_id().
 -type wx_enum() :: gui_wx_backend:wx_enum().
 -type wx_orientation() :: gui_wx_backend:wx_orientation().
 -type wx_direction() :: gui_wx_backend:wx_direction().
 
 -type wx_id() :: gui_id:wx_id().
 
+-type backend_bitmap_id() :: gui_bitmap:backend_bitmap_id().
 
 
-% @doc Returns the two-way conversion specification for the 'object_type' topic.
-%
-% First elements are myriad_object_type(), second ones are wx_object_type().
-%
+
+-doc """
+Returns the two-way conversion specification for the 'object_type' topic.
+
+First elements are myriad_object_type(), second ones are wx_object_type().
+""".
 -spec get_object_type_topic_spec() ->
 		topic_spec( myriad_object_type(), wx_object_type() ).
 get_object_type_topic_spec() ->
@@ -240,11 +247,10 @@ get_object_type_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the 'window_style'
-% topic.
-%
--spec get_window_style_topic_spec() ->
-						topic_spec( window_style_opt(), bit_mask() ).
+-doc """
+Returns the two-way conversion specification for the 'window_style' topic.
+""".
+-spec get_window_style_topic_spec() -> topic_spec( window_style(), bit_mask() ).
 get_window_style_topic_spec() ->
 
 	Entries = [
@@ -279,11 +285,10 @@ get_window_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the 'frame_style'
-% topic.
-%
--spec get_frame_style_topic_spec() ->
-						topic_spec( frame_style_opt(), bit_mask() ).
+-doc """
+Returns the two-way conversion specification for the 'frame_style' topic.
+""".
+-spec get_frame_style_topic_spec() -> topic_spec( frame_style(), bit_mask() ).
 get_frame_style_topic_spec() ->
 
 	{ window_style, WindowEntries, ElemLookup, Direction } =
@@ -316,16 +321,15 @@ get_frame_style_topic_spec() ->
 
 
 
-
-% @doc Returns the two-way conversion specification for the 'button_style'
-% topic.
-%
--spec get_button_style_topic_spec() ->
-						topic_spec( button_style_opt(), bit_mask() ).
+-doc """
+Returns the two-way conversion specification for the 'button_style' topic.
+""".
+-spec get_button_style_topic_spec() -> topic_spec( button_style(), bit_mask() ).
 get_button_style_topic_spec() ->
 
 	Entries = [
-		% Meaningless: { default,          0              },
+		% Meaningless:
+		%{ default,         0              },
 		{ left_justified,   ?wxBU_LEFT     },
 		{ right_justified,  ?wxBU_RIGHT    },
 		{ top_justified,    ?wxBU_TOP      },
@@ -341,7 +345,7 @@ get_button_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the 'sizer_flag' topic.
+-doc "Returns the two-way conversion specification for the 'sizer_flag' topic.".
 -spec get_sizer_flag_topic_spec() ->
 						topic_spec( sizer_flag_opt(), bit_mask() ).
 get_sizer_flag_topic_spec() ->
@@ -397,20 +401,19 @@ get_sizer_flag_topic_spec() ->
 
 
 
+-doc """
+Converts wx standard menu item identifiers.
 
+Note that the same numerical identifiers also apply to buttons (button_id/0); a
+single bijective table cannot therefore be considered, as for a given backend
+identifier (e.g. ?wxID_NEW) two name identifiers will correspond
+(e.g. new_menu_item and new_button). Therefore resolving a backend identifier
+into a name one must be done by possibly looking it up in both tables (although
+at least currently buttons fully supersede menu items).
 
-% Converts wx standard menu item identifiers.
-%
-% Note that the same numerical identifiers also apply to buttons (button_id/0);
-% a single bijective table cannot therefore be considered, as for a given
-% backend identifier (e.g. ?wxID_NEW) two name identifiers will correspond
-% (e.g. new_menu_item and new_button). Therefore resolving a backend identifier
-% into a name one must be done by possibly looking it up in both tables
-% (although at least currently buttons fully supersede menu items).
-%
-% Refer to https://docs.wxwidgets.org/stable/page_stockitems.html for their
-% list.
-%
+Refer to <https://docs.wxwidgets.org/stable/page_stockitems.html> for their
+list.
+""".
 -spec get_menu_item_id_topic_spec() -> topic_spec( menu_item_id(), wx_id() ).
 get_menu_item_id_topic_spec() ->
 
@@ -517,7 +520,7 @@ get_menu_item_id_topic_spec() ->
 		% (blank)
 		{ undefined,                 ?wxID_ANY               } ],
 
-	{ menu_item_id, Entries, _ElemLookup=maybe }.
+	{ menu_item_id, Entries, _ElemLookup='maybe' }.
 
 
 
@@ -535,14 +538,14 @@ get_menu_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way maybe-conversion specification for the 'button_id'
-% topic.
-%
-% Converts wx standard menu item identifiers.
-%
-% Note that the same numerical identifiers also apply to menu items
-% (menu_item_id/0).
-%
+-doc """
+Returns the two-way maybe-conversion specification for the 'button_id' topic.
+
+Converts wx standard menu item identifiers.
+
+Note that the same numerical identifiers also apply to menu items
+(menu_item_id/0).
+""".
 -spec get_button_id_topic_spec() -> topic_spec( button_id(), wx_id() ).
 get_button_id_topic_spec() ->
 
@@ -581,14 +584,16 @@ get_button_id_topic_spec() ->
 
 
 
-% @doc Returns the two-way maybe-conversion specification for the 'bitmap_id'
-% topic.
-%
-% Converts wx standard bitmap identifiers.
-%
--spec get_bitmap_id_topic_spec() ->
-						topic_spec( bitmap_id_opt(), wx_art_id() ).
-get_bitmap_id_topic_spec() ->
+-doc """
+Returns the two-way maybe-conversion specification for the
+'standard_bitmap_name_id' topic.
+
+Converts wx standard bitmap identifiers.
+""".
+
+-spec get_standard_bitmap_name_id_topic_spec() ->
+				topic_spec( standard_bitmap_name_id(), backend_bitmap_id() ).
+get_standard_bitmap_name_id_topic_spec() ->
 
 	Entries = [
 		{ error_bitmap,            "wxART_ERROR"            },
@@ -648,15 +653,15 @@ get_bitmap_id_topic_spec() ->
 		{ removable_bitmap,        "wxART_REMOVABLE"        },
 		{ backend_logo_bitmap,     "wxART_WX_LOGO"          } ],
 
-	{ bitmap_id, Entries, _ElemLookup=maybe }.
+	{ standard_bitmap_name_id, Entries, _ElemLookup='maybe' }.
 
 
 
-% @doc Returns the two-way maybe-conversion specification for the 'icon_name_id'
-% topic.
-%
+-doc """
+Returns the two-way maybe-conversion specification for the 'icon_name_id' topic.
+""".
 -spec get_icon_name_id_topic_spec() ->
-						topic_spec( icon_name_id(), wx_art_id() ).
+						topic_spec( icon_name_id(), backend_bitmap_id() ).
 get_icon_name_id_topic_spec() ->
 
 	% Based on the wx standard bitmap identifiers:
@@ -673,13 +678,13 @@ get_icon_name_id_topic_spec() ->
 	% Not a bijection, the element '512' is present thrice, and the element
 	% '256' and '2048' are present twice:
 	%
-	{ icon_name_id, Entries, _ElemLookup=maybe, _Direction=first_to_second }.
+	{ icon_name_id, Entries, _ElemLookup='maybe', _Direction=first_to_second }.
 
 
 
-% @doc Returns the two-way conversion specification for the 'menu_item_kind'
-% topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'menu_item_kind' topic.
+""".
 -spec get_menu_item_kind_topic_spec() ->
 						topic_spec( menu_item_kind(), wx_enum() ).
 get_menu_item_kind_topic_spec() ->
@@ -697,9 +702,9 @@ get_menu_item_kind_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the 'status_bar_style'
-% topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'status_bar_style' topic.
+""".
 -spec get_status_bar_style_topic_spec() ->
 						topic_spec( status_bar_style(), wx_enum() ).
 get_status_bar_style_topic_spec() ->
@@ -714,26 +719,26 @@ get_status_bar_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the 'toolbar_style'
-% topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'toolbar_style' topic.
+""".
 -spec get_toolbar_style_topic_spec() ->
 						topic_spec( toolbar_style(), wx_enum() ).
 get_toolbar_style_topic_spec() ->
 
 	Entries = [
-		{ top,               ?wxTB_TOP           },
-		{ bottom,            ?wxTB_BOTTOM        },
-		{ left,              ?wxTB_VERTICAL      },
-		{ right,             ?wxTB_RIGHT         },
-		{ flat,              ?wxTB_FLAT          },
-		{ dockable,          ?wxTB_DOCKABLE      },
-		{ no_icons,          ?wxTB_NOICONS       },
-		{ text,              ?wxTB_TEXT          },
-		{ no_divider,        ?wxTB_NODIVIDER     },
-		{ no_align,          ?wxTB_NOALIGN       },
-		{ horizontal_layout, ?wxTB_HORZ_LAYOUT   },
-		{ no_tooltips,       ?wxTB_NO_TOOLTIPS   },
+		{ top,               ?wxTB_TOP          },
+		{ bottom,            ?wxTB_BOTTOM       },
+		{ left,              ?wxTB_VERTICAL     },
+		{ right,             ?wxTB_RIGHT        },
+		{ flat,              ?wxTB_FLAT         },
+		{ dockable,          ?wxTB_DOCKABLE     },
+		{ no_icons,          ?wxTB_NOICONS      },
+		{ text,              ?wxTB_TEXT         },
+		{ no_divider,        ?wxTB_NODIVIDER    },
+		{ no_align,          ?wxTB_NOALIGN      },
+		{ horizontal_layout, ?wxTB_HORZ_LAYOUT  },
+		{ no_tooltips,       ?wxTB_NO_TOOLTIPS  },
 
 		% Warning: ?wxTB_DEFAULT_STYLE is not a constant, it is actually a call:
 		% 'wxe_util:get_const(wxTB_DEFAULT_STYLE)', which must moreover be
@@ -749,9 +754,10 @@ get_toolbar_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'static_text_display_style' topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'static_text_display_style'
+topic.
+""".
 -spec get_static_text_display_style_topic_spec() ->
 				topic_spec( gui_text:static_display_style(), wx_enum() ).
 get_static_text_display_style_topic_spec() ->
@@ -771,9 +777,9 @@ get_static_text_display_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'dialog_return' topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'dialog_return' topic.
+""".
 -spec get_dialog_return_topic_spec() ->
 			topic_spec( dialog_return_code(), wx_enum() ).
 get_dialog_return_topic_spec() ->
@@ -789,9 +795,10 @@ get_dialog_return_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'message_dialog_style' topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'message_dialog_style'
+topic.
+""".
 -spec get_message_dialog_style_topic_spec() ->
 						topic_spec( message_dialog_style(), wx_enum() ).
 get_message_dialog_style_topic_spec() ->
@@ -827,9 +834,10 @@ get_message_dialog_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'single_choice_dialog_style' topic.
-%
+-doc """
+Returns the two-way conversion specification for the
+'single_choice_dialog_style' topic.
+""".
 -spec get_single_choice_dialog_style_topic_spec() ->
 						topic_spec( single_choice_dialog_style(), wx_enum() ).
 get_single_choice_dialog_style_topic_spec() ->
@@ -848,9 +856,10 @@ get_single_choice_dialog_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'multi_choice_dialog_style' topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'multi_choice_dialog_style'
+topic.
+""".
 -spec get_multi_choice_dialog_style_topic_spec() ->
 						topic_spec( multi_choice_dialog_style(), wx_enum() ).
 get_multi_choice_dialog_style_topic_spec() ->
@@ -867,9 +876,10 @@ get_multi_choice_dialog_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'text_entry_dialog_style' topic.
-%
+-doc """
+Returns the two-way conversion specification for the 'text_entry_dialog_style'
+topic.
+""".
 -spec get_text_entry_dialog_style_topic_spec() ->
 						topic_spec( text_entry_dialog_style(), wx_enum() ).
 get_text_entry_dialog_style_topic_spec() ->
@@ -886,9 +896,10 @@ get_text_entry_dialog_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'file_selection_dialog_style' topic.
-%
+-doc """
+Returns the two-way conversion specification for the
+'file_selection_dialog_style' topic.
+""".
 -spec get_file_selection_dialog_style_topic_spec() ->
 						topic_spec( file_selection_dialog_style(), wx_enum() ).
 get_file_selection_dialog_style_topic_spec() ->
@@ -915,9 +926,10 @@ get_file_selection_dialog_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the
-% 'directory_selection_dialog_style' topic.
-%
+-doc """
+Returns the two-way conversion specification for the
+'directory_selection_dialog_style' topic.
+""".
 -spec get_directory_selection_dialog_style_topic_spec() ->
 					topic_spec( directory_selection_dialog_style(), wx_enum() ).
 get_directory_selection_dialog_style_topic_spec() ->
@@ -943,7 +955,9 @@ get_directory_selection_dialog_style_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the 'event_type' topic.
+-doc """
+Returns the two-way conversion specification for the 'event_type' topic.
+""".
 -spec get_event_type_topic_spec() ->
 						topic_spec( event_type(), wx_event_type() ).
 get_event_type_topic_spec() ->
@@ -1013,7 +1027,9 @@ get_event_type_topic_spec() ->
 
 
 
-% @doc Returns the two-way conversion specification for the 'direction' topic.
+-doc """
+Returns the two-way conversion specification for the 'direction' topic.
+""".
 -spec get_direction_topic_spec() ->
 						topic_spec( direction(), wx_direction() ).
 get_direction_topic_spec() ->
@@ -1021,7 +1037,10 @@ get_direction_topic_spec() ->
 				   { horizontal, ?wxHORIZONTAL } ] }.
 
 
-% @doc Returns the two-way conversion specification for the 'orientation' topic.
+
+-doc """
+Returns the two-way conversion specification for the 'orientation' topic.
+""".
 -spec get_orientation_topic_spec() ->
 						topic_spec( orientation(), wx_orientation() ).
 get_orientation_topic_spec() ->

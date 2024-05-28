@@ -27,15 +27,16 @@
 %
 % Creation date: Tuesday, December 1, 2015.
 
-
-% @doc Gathering of management facilities for <b>REST architectures</b>
-% (<em>Representational State Transfer</em>).
-%
-% See rest_utils_test.erl for the corresponding test.
-%
-% See also: web_utils.erl.
-%
 -module(rest_utils).
+
+-moduledoc """
+Gathering of management facilities for **REST architectures** (*Representational
+State Transfer*).
+
+See rest_utils_test.erl for the corresponding test.
+
+See also: web_utils.erl.
+""".
 
 
 

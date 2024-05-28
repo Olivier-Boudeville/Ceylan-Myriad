@@ -24,13 +24,34 @@
 %
 % Authors: Jingxuan Ma [jingxuan (dot) ma (at) edf (dot) fr]
 %          Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+%
 % Creation date: November 10, 2011.
 
+-module(tracked_hashtable).
 
-% @doc Implementation of so-called <b>tracked hashtables</b>.
+-moduledoc """
+A tracked_hashtable is a {Hashtable, NumberOfEntries, NumberOfBuckets} triplet
+where:
+- Hashtable is a hashtable(), refer to the hashtable module for more detail
+- NumberOfEntries represents the number of entries in the hashtable; it is zero
+when an hashtable is created
+- NumberOfBuckets is the number of buckets of the internal hashtable; a default
+number of buckets is chosen at the creation of an hashtable
+
+Directly depends on the hashtable module.
+""".
+
+% However this tracked version is deemed less effective than the lazy version,
+% and thus is not updated/tested as much as the others (for example: error cases
+% have not been uniformised, insofar that they can still issue badmatches while
+% other implementations raise more proper exceptions).
+
+
+
+% Implementation of so-called **tracked hashtables**.
 %
-% See `tracked_hashtable_test.erl' for the corresponding test.
-% See `hashtable.erl'.
+% See `tracked_hashtable_test.erl` for the corresponding test.
+% See `hashtable.erl`.
 %
 % We provide different multiple types of hashtables, including:
 %
@@ -51,29 +72,6 @@
 %
 % They are to provide the same API (signatures and contracts).
 
-
-
-% However this tracked version is deemed less effective than the lazy version,
-% and thus is not updated/tested as much as the others (for example: error cases
-% have not been uniformised, insofar that they can still issue badmatches while
-% other implementations raise more proper exceptions).
-
-
-
-% A tracked_hashtable is a {Hashtable, NumberOfEntries, NumberOfBuckets} triplet
-% where:
-%
-% - Hashtable is a hashtable(), refer to the hashtable module for more detail
-%
-% - NumberOfEntries represents the number of entries in the hashtable; it is
-% zero when an hashtable is created
-%
-% - NumberOfBuckets is the number of buckets of the internal hashtable; a
-% default number of buckets is chosen at the creation of an hashtable
-%
-% Directly depends on the hashtable module.
-%
--module(tracked_hashtable).
 
 
 % Same as hashtable:
@@ -105,8 +103,8 @@
 % Not supported since Erlang 18.0:
 %
 %-opaque tracked_hashtable( K, V ) ::
-%		  { hashtable:hashtable( K, V ), hashtable:entry_count(),
-%			hashtable:bucket_count() }.
+%   { hashtable:hashtable( K, V ), hashtable:entry_count(),
+%     hashtable:bucket_count() }.
 
 -opaque tracked_hashtable() :: { hashtable:hashtable(), hashtable:entry_count(),
 								 hashtable:bucket_count() }.
@@ -372,8 +370,8 @@ get_values( Keys, Hashtable ) ->
 	{ RevValues, _FinalTable } = lists:foldl(
 
 		fun( _Elem=Key, _Acc={ Values, Table } ) ->
-			    { Value, ShrunkTable } = extract_entry( Key, Table ),
-			    { [ Value | Values ], ShrunkTable }
+				{ Value, ShrunkTable } = extract_entry( Key, Table ),
+				{ [ Value | Values ], ShrunkTable }
 		end,
 		_Acc0={ [], Hashtable },
 		_List=Keys ),
@@ -671,7 +669,7 @@ to_string( _TrackedHashtable={ Hashtable, _NEnt, _NBuck } ) ->
 % display setting.
 %
 -spec to_string( tracked_hashtable(), 'internal' | 'user_friendly' ) ->
-						                    ustring().
+											ustring().
 to_string( _TrackedHashtable={ Hashtable, _NEnt, _NBuck }, DescriptionType ) ->
 	hashtable:to_string( Hashtable, DescriptionType ).
 

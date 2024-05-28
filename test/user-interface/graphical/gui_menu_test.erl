@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, April 22, 2022.
 
-
-% @doc Unit tests for the management of <b>menus</b>, in menu bars and popup
-% menus.
-%
 -module(gui_menu_test).
+
+-moduledoc """
+Unit tests for the management of **menus**, in menu bars and popup menus.
+""".
+
 
 
 % For run/0 export and al:
@@ -57,7 +58,7 @@ create_named_ids_dropdown( MenuBar ) ->
 
 	[ gui_menu:add_item( NamedMenu, N,
 		_Label=text_utils:format( "I am named &'~ts'", [ N ] ) )
-								|| N <- gui_menu:get_standard_item_names() ],
+			|| N <- gui_menu:get_standard_item_names() ],
 
 	gui_menu:add_menu( MenuBar, NamedMenu, "&Named menu" ),
 
@@ -72,7 +73,7 @@ create_numerical_ids_dropdown( MenuBar ) ->
 	NumMenu = gui_menu:create(),
 
 	[ gui_menu:add_item( NumMenu, N,
-					_Label=text_utils:format( "I am id #~B", [ N ] ) )
+		_Label=text_utils:format( "I am id #~B", [ N ] ) )
 								|| N <- lists:seq( 4999, 5206 ) ],
 
 	gui_menu:add_menu( MenuBar, NumMenu, "&Numerical menu" ),
@@ -110,7 +111,7 @@ create_popup_menu() ->
 
 	% E let as it is.
 	gui_menu:set_checkable_item( FirstSubMenu, item_f,
-									  _SetAsChecked=true ),
+								 _SetAsChecked=true ),
 
 	gui_menu:set_checkable_item( FirstSubMenu, item_g, false ),
 

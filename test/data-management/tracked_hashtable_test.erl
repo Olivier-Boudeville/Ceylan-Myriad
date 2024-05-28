@@ -26,12 +26,15 @@
 %          Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: November 10, 2011.
 
-
-% @doc Unit tests for the tracked hashtable implementation.
-%
-% See the tracked_hashtable.erl module.
-%
 -module(tracked_hashtable_test).
+
+-moduledoc """
+Unit tests for the **tracked hashtable** implementation.
+
+See the tracked_hashtable.erl module.
+""".
+
+
 
 % Directly depends on tracked_hashtable module.
 

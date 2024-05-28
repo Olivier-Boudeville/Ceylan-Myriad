@@ -25,12 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2014.
 
-
-% @doc Unit test mostly for the <b>canvas facility</b>, based on the Lorenz
-% equations to show its strange attractor (and also test the `rk4_solver'
-% module).
-%
 -module(lorenz_test).
+
+-moduledoc """
+Unit test mostly for the **canvas facility**, based on the Lorenz equations to
+show its strange attractor (and also test the `rk4_solver` module).
+""".
+
 
 
 % For run/0 export and al:

@@ -25,16 +25,18 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, October 21, 2020.
 
-
-% Unit tests for the trace_bridge toolbox, when no specific bridge is
-% registered.
-%
-% See the trace_bridge.erl tested module.
-%
-% For a test with a bridge registered, refer, in Ceylan-Traces, to
-% trace_bridging_test.erl.
-%
 -module(trace_bridge_test).
+
+-moduledoc """
+Unit tests for the `trace_bridge` toolbox, when no specific bridge is
+registered.
+
+See the trace_bridge.erl tested module.
+
+For a test with a bridge registered, refer, in Ceylan-Traces, to
+trace_bridging_test.erl.
+""".
+
 
 
 % For run/0 export and al:
@@ -67,7 +69,7 @@ emit_traces() ->
 	trace_bridge:error_fmt( "I am an error ~ts message.", [ "formatted" ] ),
 
 	trace_bridge:critical( "I am a critical simple message." ),
-	trace_bridge:critical_fmt( "I am a critical ~ts message.", 
+	trace_bridge:critical_fmt( "I am a critical ~ts message.",
 							   [ "formatted" ] ),
 
 	trace_bridge:alert( "I am an alert simple message." ),

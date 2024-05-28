@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, October 24, 2012.
 
-
-% @doc Gathering helper functions for the <b>development and use of all kinds of
-% scripts</b> (Erlang escripts and shell scripts alike).
-%
-% Intended use for escripts: add, in the script directory, a symbolic link to
-% this module so that the script can readily call it and thus bootstrap the use
-% of all others.
-%
 -module(script_utils).
+
+-moduledoc """
+Gathering helper functions for the **development and use of all kinds of
+scripts** (Erlang escripts and shell scripts alike).
+
+Intended use for escripts: add, in the script directory, a symbolic link to this
+module so that the script can readily call it and thus bootstrap the use of all
+others.
+""".
+
 
 
 % Implementation notes:
@@ -43,7 +45,7 @@
 % here meant to be run before the update of the code path.
 %
 -export([ is_running_as_escript/0, get_script_base_directory/0,
-		  get_myriad_base_directory/0,
+		  get_myriad_base_directory/0, get_myriad_path_from/1,
 		  update_code_path_for_myriad/0,
 		  update_code_path_for_myriad_from_module/0,
 		  get_arguments/1 ]).

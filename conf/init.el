@@ -961,10 +961,10 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 ;; https://stackoverflow.com/questions/11043004/emacs-compile-buffer-auto-close:
 ;; and https://www.emacswiki.org/emacs/ModeCompile
 
- (defun bury-compile-buffer-if-successful (buffer string)
-  "Bury a compilation buffer if succeeded without warnings "
+(defun bury-compile-buffer-if-successful (buffer string)
+  "Bury a compilation buffer if succeeded without warnings."
   (when (and
-		;; (buffer-live-p buffer)
+		 ;; (buffer-live-p buffer)
 		 (string-match "compilation" (buffer-name buffer))
 		 (string-match "finished" string)
 		 (not

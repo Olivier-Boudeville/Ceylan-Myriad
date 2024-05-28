@@ -25,13 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various facilities about <b>rings</b> (infinite lists,
-% looping on themselves).
-%
-% See ring_utils_test.erl for the corresponding test.
-%
 -module(ring_utils).
+
+-moduledoc """
+Gathering of various facilities about **rings** (infinite lists, looping on
+themselves).
+
+See `ring_utils_test.erl` for the corresponding test.
+""".
+
 
 
 % Opaqueness difficult to preserve:

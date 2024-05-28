@@ -25,15 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: July 1, 2007.
 
-
-% @doc Gathering of various <b>random-related</b> facilities, based on
-% probability distributions, either as Myriad built-in ones (uniform,
-% exponential, gaussian, etc.) or user-defined, arbitrary ones.
-%
-% See random_utils_test.erl for the corresponding test.
-%
 -module(random_utils).
 
+-moduledoc """
+Gathering of various **random-related** facilities, based on probability
+distributions, either as Myriad built-in ones (uniform, exponential, gaussian,
+etc.) or user-defined, arbitrary ones.
+
+See random_utils_test.erl for the corresponding test.
+""".
 
 
 % Usage notes.
@@ -959,7 +959,7 @@
 -type random_law_data() ::
 
   % The general rule:
-  { random_law_settings(), maybe( alias_table() ) }
+  { random_law_settings(), option( alias_table() ) }
 
   | uniform_law_data()
   | integer_uniform_law_data()
@@ -1210,7 +1210,7 @@
 
 -type arbitrary_law_pseudo_spec() ::
 		{ 'arbitrary', Name :: bin_string(), sample_count(),
-		  maybe( bounds() ) }.
+		  option( bounds() ) }.
 % A (pseudo) specification for an arbitrary law, to be stored in a law data.
 %
 %
@@ -1603,7 +1603,7 @@
 -spec get_uniform_floating_point_value( number() ) -> float().
 -spec get_uniform_floating_point_value( number(), number() ) -> float().
 
--spec get_random_state() -> maybe( random_state() ).
+-spec get_random_state() -> option( random_state() ).
 -spec set_random_state( random_state() ) -> void().
 
 

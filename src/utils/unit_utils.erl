@@ -25,24 +25,24 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, October 24, 2012.
 
-
-% @doc Gathering of <b>unit management</b> facilities, to denote quantities
-% first in a simple, ad hoc, limited form, then on a more formal, heavyweight
-% one.
-%
-% All kinds of units are listed here, alongside the reference ones (e.g. the
-% meter is the unit of length in the International System of Units).
-%
-% One objective is to be able to specify, instead of mere values (e.g. "1.14"),
-% values with units (e.g. "1.14 km/h"), and possibly to convert them into a
-% canonical form transparently, for automated checking and exact conversion.
-%
-% See unit_utils_test.erl for the corresponding test.
-%
-% Read the 'Management of Units' section of the technical manual of the Myriad
-% Layer for more information.
-%
 -module(unit_utils).
+
+-moduledoc """
+Gathering of **unit management** facilities, to denote quantities first in a
+simple, ad hoc, limited form, then on a more formal, heavyweight one.
+
+All kinds of units are listed here, alongside the reference ones (e.g. the meter
+is the unit of length in the International System of Units).
+
+One objective is to be able to specify, instead of mere values (e.g. "1.14"),
+values with units (e.g. "1.14 km/h"), and possibly to convert them into a
+canonical form transparently, for automated checking and exact conversion.
+
+See unit_utils_test.erl for the corresponding test.
+
+Read the 'Management of Units' section of the technical manual of the Myriad
+Layer for more information.
+""".
 
 
 
@@ -993,7 +993,7 @@ temperature_to_string( Temp ) ->
 % @doc Returns a textual, possibly rounded, description of the specified
 % temperature (if any).
 %
--spec maybe_temperature_to_string( maybe( celsius() ) ) -> ustring().
+-spec maybe_temperature_to_string( option( celsius() ) ) -> ustring().
 maybe_temperature_to_string( _Temp=undefined ) ->
 	"undefined";
 

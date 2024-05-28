@@ -25,12 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, July 12, 2008.
 
-
-% @doc Unit tests for the <b>file_utils toolbox</b>.
-%
-% See the file_utils.erl tested module.
-%
 -module(file_utils_test).
+
+-moduledoc """
+Unit tests for the **file_utils toolbox**.
+
+See the file_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -72,7 +74,7 @@ run() ->
 	test_facilities:display( "All files found recursively "
 		"from the current directory, with directories ~p excluded:~n~p",
 		[ ExcludedDirs, file_utils:find_files_with_excluded_dirs( CurrentDir,
-															ExcludedDirs ) ] ),
+			ExcludedDirs ) ] ),
 
 
 	ExcludedSuffixes = [ ".erl", ".beam", "non-existing-suffix" ],
@@ -80,7 +82,7 @@ run() ->
 	test_facilities:display( "All files found recursively "
 		"from the current directory, with suffixes ~p excluded:~n~p",
 		[ ExcludedSuffixes, file_utils:find_files_with_excluded_suffixes(
-						CurrentDir, ExcludedSuffixes ) ] ),
+			CurrentDir, ExcludedSuffixes ) ] ),
 
 
 	test_facilities:display( "All files found recursively "
@@ -88,7 +90,7 @@ run() ->
 		"excluded:~n~p",
 		[ ExcludedDirs, ExcludedSuffixes,
 		  file_utils:find_files_with_excluded_dirs_and_suffixes(
-						CurrentDir, ExcludedDirs, ExcludedSuffixes ) ] ),
+			CurrentDir, ExcludedDirs, ExcludedSuffixes ) ] ),
 
 
 	true  = file_utils:is_absolute_path( "/etc/host.conf" ),

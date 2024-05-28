@@ -25,21 +25,19 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, June 8, 2016.
 
-
-% @doc Gathering of various facilities regarding the management of <b>SQL
-% databases</b>.
-%
-% The current implementation is mostly geared towards the use of:
-%
-% - `SQLite3' (an optional dependency), through the <a
-% href="https://github.com/alexeyr/erlang-sqlite3">erlang-sqlite3</a> binding
-%
-% - `PostgreSQL', through either its command-line client (psql; the least
-% recommended approach) or the epgsql [https://github.com/epgsql/epgsql] binding
-%
-% See `sql_support_test.erl' for the corresponding test.
-%
 -module(sql_support).
+
+-moduledoc """
+Gathering of various facilities regarding the management of **SQL databases**.
+
+The current implementation is mostly geared towards the use of:
+- `SQLite3` (an optional dependency), through the
+  [erlang-sqlite3](https://github.com/alexeyr/erlang-sqlite3) binding
+- `PostgreSQL`, through either its command-line client (psql; the least
+recommended approach) or the [epgsql](https://github.com/epgsql/epgsql) binding
+
+See `sql_support_test.erl` for the corresponding test.
+""".
 
 
 
@@ -244,7 +242,7 @@
 % values.
 
 
--type field_value() :: maybe( read_binary() ).
+-type field_value() :: option( read_binary() ).
 % The value of a field in a returned record, that may be 'null', that is
 % translated here as 'undefined' (hence the maybe).
 
@@ -386,7 +384,7 @@ has_backend( BackendName ) ->
 
 
 % @doc Returns the type of the currently used (build-time) SQL backend (if any).
--spec get_backend_name() -> maybe( backend_name() ).
+-spec get_backend_name() -> option( backend_name() ).
 get_backend_name() ->
 	cond_utils:switch_set_to( myriad_sql_backend, [
 

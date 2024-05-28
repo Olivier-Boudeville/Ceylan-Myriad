@@ -25,64 +25,67 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Tuesday, May 12, 2015.
 
-
-% @doc This module allows to generate <b>read-only associative tables whose
-% key/value pairs can be read from any number (potentially extremely large) of
-% readers very efficiently</b> (possibly the most efficient way in Erlang).
-%
-% These key/value pairs can be decided at runtime, from any source; keys must be
-% atoms while values can be of any permanent (non-transient) type (and two
-% values in a table do not have to be of the same type). Using a transient type
-% is bound to result in a badarg.
-%
-% These tables may be kept in-memory only (hence with the corresponding modules
-% being generated and used at runtime) and/or be generated and stored in an
-% actual BEAM file, for a later direct (re)loading thereof.
-%
-% No ETS table, replication (e.g. per-user table copy) or message sending is
-% involved: thanks to meta-programming, a module is generated on-the-fly,
-% exporting as many functions as there are different keys in the entries of
-% interest; calling a function corresponding to a key returns the associated
-% value.
-%
-% More precisely, a module name (e.g. 'foobar') and a list of `{atom(), any()}'
-% entries are provided to the `const_table:generate*/*' functions; for each
-% key/value pair in the specified entries (e.g. `{'baz', 42.0}'), a 0-arity
-% function is generated and exported in that module, as if we had:```
-%
-% -module(foobar).
-%
-% [...]
-%
-% -export([baz/0]).
-%
-% -spec baz() -> term().
-% baz() ->
-%    42.0.'''
-%
-% Then third-party code can call for example `foobar:baz()' and have `42.0'
-% returned. This is presumably the most efficient way of sharing constants in
-% Erlang.
-%
-% Keys must be atoms (as they will correspond to function names), and the
-% resulting table is immutable (const), even if, thanks to hot code upgrade, one
-% may imagine updating the table at will, having any number of successive
-% versions of it.
-%
-% However generating a table of the same name more than once should be done with
-% care, as if a given table is generated three times (hence updated twice), the
-% initial table would become 'current', then 'old', and then be removed. Any
-% process that would linger in it would then be terminated (see
-% [http://www.erlang.org/doc/reference_manual/code_loading.html]). However, due
-% to the nature of these tables (just one-shot fully-qualified calls, no
-% recursion or message-waiting construct), this is not expected to happen.
-%
-% Refer to:
-% - const_table_test.erl for an usage example and testing thereof
-% - map_hashtable.erl for a runtime, mutable, term-based table
-% - const_bijective_table.erl for a constant, two-way (bijective) table
-%
 -module(const_table).
+
+-moduledoc """
+This module allows to generate **read-only associative tables whose key/value
+pairs can be read from any number (potentially extremely large) of readers very
+efficiently** (possibly the most efficient way in Erlang).
+
+These key/value pairs can be decided at runtime, from any source; keys must be
+atoms while values can be of any permanent (non-transient) type (and two values
+in a table do not have to be of the same type). Using a transient type is bound
+to result in a badarg.
+
+These tables may be kept in-memory only (hence with the corresponding modules
+being generated and used at runtime) and/or be generated and stored in an actual
+BEAM file, for a later direct (re)loading thereof.
+
+No ETS table, replication (e.g. per-user table copy) or message sending is
+involved: thanks to meta-programming, a module is generated on-the-fly,
+exporting as many functions as there are different keys in the entries of
+interest; calling a function corresponding to a key returns the associated
+value.
+
+More precisely, a module name (e.g. 'foobar') and a list of `{atom(), any()}`
+entries are provided to the `const_table:generate*/*` functions; for each
+key/value pair in the specified entries (e.g. `{'baz', 42.0}`), a 0-arity
+function is generated and exported in that module, as if we had:
+
+```
+-module(foobar).
+
+[...]
+
+-export([baz/0]).
+
+-spec baz() -> term().
+baz() ->
+   42.0.
+```
+
+Then third-party code can call for example `foobar:baz()` and have `42.0`
+returned. This is presumably the most efficient way of sharing constants in
+Erlang.
+
+Keys must be atoms (as they will correspond to function names), and the
+resulting table is immutable (const), even if, thanks to hot code upgrade, one
+may imagine updating the table at will, having any number of successive versions
+of it.
+
+However generating a table of the same name more than once should be done with
+care, as if a given table is generated three times (hence updated twice), the
+initial table would become 'current', then 'old', and then be removed. Any
+process that would linger in it would then be terminated (see
+[http://www.erlang.org/doc/reference_manual/code_loading.html]). However, due to
+the nature of these tables (just one-shot fully-qualified calls, no recursion or
+message-waiting construct), this is not expected to happen.
+
+Refer to:
+- const_table_test.erl for an usage example and testing thereof
+- map_hashtable.erl for a runtime, mutable, term-based table
+- const_bijective_table.erl for a constant, two-way (bijective) table
+""".
 
 
 % User API:

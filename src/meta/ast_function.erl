@@ -25,14 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, February 7, 2018.
 
-
-% @doc Module in charge of providing constructs to manage <b>functions in an
-% AST</b>.
-%
-% Note: function clauses are managed in the ast_clause module.
-%
 -module(ast_function).
 
+-moduledoc """
+Module in charge of providing constructs to manage **functions in an AST**.
+
+Note: function clauses are managed in the ast_clause module.
+""".
 
 
 % Checking:
