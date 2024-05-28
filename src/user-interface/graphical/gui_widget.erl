@@ -39,23 +39,28 @@ Some very general functions are gathered here as well.
 
 % Could include wx:null(), i.e. a #wx_ref{ref=0, type=wx}:
 % (probably cannot be opaque because of the union)
+-doc """
+Any kind of widget, that is graphical component; for example a button or a
+canvas is a widget.
+
+Represents any visible object on screen. All controls, top level windows,
+buttons, etc. are widgets.
+
+Sizers and device contexts are not, however, as they do not appear on screen
+themselves.
+
+Widget is a clearer naming than "window" (chosen by wx/WxWidgets), as not
+necessarily directly akin to a regular window.
+""".
 -type widget() :: wxWindow:wxWindow() | gui_canvas:canvas().
-% Any kind of widget, that is graphical component; for example a button or a
-% canvas is a widget.
-%
-% Represents any visible object on screen. All controls, top level windows,
-% buttons, etc. are widgets.
-%
-% Sizers and device contexts are not, however, as they do not appear on screen
-% themselves.
-%
-% Widget is a clearer naming than "window" (chosen by wx/WxWidgets), as not
-% necessarily directly akin to a regular window.
 
 
+
+-doc """
+A control is generally a small window that processes user input and/or displays
+one or more items of data.
+""".
 -opaque control() :: wxControl:wxControl().
-% A control is generally a small window that processes user input and/or
-% displays one or more items of data.
 
 
 -export_type([ widget/0, control/0 ]).
@@ -109,13 +114,17 @@ Some very general functions are gathered here as well.
 -type device_context() :: gui_render:device_context().
 
 
-% @doc Destructs the specified widget.
+
+-doc "Destructs the specified widget.".
 -spec destruct( widget() ) -> void().
 destruct( Widget ) ->
 	destruct( Widget, gui:get_environment_server() ).
 
 
-% @doc Destructs the specified widget, using the specified environment server.
+
+-doc """
+Destructs the specified widget, using the specified environment server.
+""".
 -spec destruct( widget(), gui_env_pid() ) -> void().
 destruct( Widget, GUIEnvPid ) ->
 
@@ -143,23 +152,25 @@ destruct( Widget, GUIEnvPid ) ->
 
 
 
-% @doc Destructs the specified widget directly and basically, with no
-% synchronisation involved.
-%
-% Note however that this corresponds to the decrementing of its reference count,
-% so an actual destruction may not happen immediately.
-%
+-doc """
+Destructs the specified widget directly and basically, with no synchronisation
+involved.
+
+Note however that this corresponds to the decrementing of its reference count,
+so an actual destruction may not happen immediately.
+""".
 -spec destruct_direct( widget() ) -> void().
 destruct_direct( Widget ) ->
 	wxWindow:destroy( Widget ).
 
 
 
-% @doc Associates the specified sizer to the specified widget.
-%
-% A sizer will not be taken into account as long as it is not associated to a
-% widget (typically prior to showing that widget).
-%
+-doc """
+Associates the specified sizer to the specified widget.
+
+A sizer will not be taken into account as long as it is not associated to a
+widget (typically prior to showing that widget).
+""".
 -spec set_sizer( widget(), sizer() ) -> void().
 set_sizer( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Sizer ) ->
 	gui:get_main_loop_pid() ! { getCanvasPanel, [ CanvasId ], self() },
@@ -175,17 +186,21 @@ set_sizer( Widget, Sizer ) ->
 	wxWindow:setSizer( Widget, Sizer ).
 
 
-% @doc Resizes the specified widget so that its client area matches the minimal
-% size of the specified sizer.
-%
+
+-doc """
+Resizes the specified widget so that its client area matches the minimal size of
+the specified sizer.
+""".
 -spec fit_to_sizer( widget(), sizer() ) -> void().
 fit_to_sizer( Widget, Sizer ) ->
 	wxSizer:fit( Sizer, Widget ).
 
 
-% @doc Associates the specified sizer to the specified window, and sets the size
-% and minimal size of the window accordingly.
-%
+
+-doc """
+Associates the specified sizer to the specified window, and sets the size and
+minimal size of the window accordingly.
+""".
 -spec set_and_fit_to_sizer( widget(), sizer() ) -> void().
 set_and_fit_to_sizer( Canvas={ myriad_object_ref, myr_canvas, _CanvasId },
 					  Sizer ) ->
@@ -197,16 +212,17 @@ set_and_fit_to_sizer( Widget, Sizer ) ->
 
 
 
-% @doc Lays out the children of this widget, using any associated sizer,
-% otherwise does nothing (except if it is a top level window).
-%
+-doc """
+Lays out the children of this widget, using any associated sizer, otherwise does
+nothing (except if it is a top level window).
+""".
 -spec layout( widget() ) -> void().
 layout( Widget ) ->
 	wxWindow:layout( Widget ).
 
 
 
-% @doc Sets the foreground color of the specified widget.
+-doc "Sets the foreground color of the specified widget.".
 -spec set_foreground_color( widget(), color() ) -> void().
 set_foreground_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 					  Color ) ->
@@ -222,7 +238,7 @@ set_foreground_color( Widget, Color ) ->
 
 
 
-% @doc Sets the background color of the specified widget.
+-doc "Sets the background color of the specified widget.".
 -spec set_background_color( widget(), color() ) -> void().
 set_background_color( _Canvas={ myriad_object_ref, myr_canvas, CanvasId },
 					  Color ) ->
@@ -238,15 +254,17 @@ set_background_color( Widget, Color ) ->
 
 
 
-% @doc Sets the font to be used by the specified widget and its children.
+-doc "Sets the font to be used by the specified widget and its children.".
 -spec set_font( widget(), font() ) -> void().
 set_font( Widget, Font ) ->
 	set_font( Widget, Font, _DestructFont=false ).
 
 
-% @doc Sets the font to be used by the specified widget and its children, then,
-% if requested, destructs that font.
-%
+
+-doc """
+Sets the font to be used by the specified widget and its children, then, if
+requested, destructs that font.
+""".
 -spec set_font( widget(), font(), boolean() ) -> void().
 set_font( Widget, Font, _DestructFont=true ) ->
 	set_font( Widget, Font, _DoDestructFont=false ),
@@ -256,11 +274,13 @@ set_font( Widget, Font, _DestructFont=false ) ->
 	wxWindow:setFont( Widget, Font ).
 
 
-% @doc Sets the font and color to be used by the specified widget (and its
-% children), then, if requested, destructs that font.
-%
-% A side-effect is that the foreground color gets set.
-%
+
+-doc """
+Sets the font and color to be used by the specified widget (and its children),
+then, if requested, destructs that font.
+
+A side-effect is that the foreground color gets set.
+""".
 -spec set_font( widget(), font(), color(), boolean() ) -> void().
 % wxWindow, wxPanel, etc.:
 set_font( Widget={ wx_ref, _Id, _AnyWxWidgetLike, _State }, Font, Color,
@@ -277,11 +297,13 @@ set_font( Widget, Font, Color, _DestructFont=true ) ->
 	gui_font:destruct( Font ).
 
 
-% @doc Attaches a tooltip to the specified widget.
-%
-% For an unknown reason, works on panels but never on buttons (this is even the
-% case for ex_button.erl).
-%
+
+-doc """
+Attaches a tooltip to the specified widget.
+
+For an unknown reason, works on panels but never on buttons (this is even the
+case for ex_button.erl).
+""".
 -spec set_tooltip( widget(), label() ) -> void().
 set_tooltip( _Canvas={ myriad_object_ref, myr_canvas, CanvasId }, Label ) ->
 	gui:get_main_loop_pid() ! { setTooltip, [ CanvasId, Label ] };
@@ -295,20 +317,18 @@ set_tooltip( Widget, Label ) ->
 
 
 
+-doc """
+Synchronises the specified widget to the MyriadGUI loop, to ensure that no past
+operation is still pending at its level.
 
+Useful if there exists some means of interacting with the widget directly
+(e.g. an OpenGL canvas, thanks to an OpenGL NIF) that could create a race
+condition (e.g. presumably a message-based resizing immediately followed by a
+direct OpenGL rendering: the rendering may actually happen before the resizing).
 
-% @doc Synchronises the specified widget to the MyriadGUI loop, to ensure that
-% no past operation is still pending at its level.
-%
-% Useful if there exists some means of interacting with the widget directly
-% (e.g. an OpenGL canvas, thanks to an OpenGL NIF) that could create a race
-% condition (e.g. presumably a message-based resizing immediately followed by a
-% direct OpenGL rendering: the rendering may actually happen before the
-% resizing).
-%
-% See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details;
-% see also the synchroniseWithCaller message supported by the MyriadGUI loop.
-%
+See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details; see
+also the synchroniseWithCaller message supported by the MyriadGUI loop.
+""".
 -spec sync( widget() ) -> size().
 sync( Widget ) ->
 	% The result in itself may be of no use; the point here is just, through a
@@ -321,15 +341,16 @@ sync( Widget ) ->
 
 
 
-% @doc Updates the specified window-like object (e.g. a canvas) so that its
-% client area can be painted.
-%
-% To be called from a repaint event handler.
-%
-% See [https://www.erlang.org/doc/man/wxpaintdc#description] for more details.
-%
-% Based on our tests, does not seem strictly necessary.
-%
+-doc """
+Updates the specified window-like object (e.g. a canvas) so that its client area
+can be painted.
+
+To be called from a repaint event handler.
+
+See <https://www.erlang.org/doc/man/wxpaintdc#description> for more details.
+
+Based on our tests, does not seem strictly necessary.
+""".
 -spec enable_repaint( widget() ) -> void().
 enable_repaint( Widget ) ->
 	DC = wxPaintDC:new( Widget ),
@@ -337,38 +358,40 @@ enable_repaint( Widget ) ->
 
 
 
-% @doc Causes this widget, and all of its children recursively, to be repainted
-% during the next event loop iteration.
-%
-% If you need to update the widget immediately, use update/1 instead.
-%
+-doc """
+Causes this widget, and all of its children recursively, to be repainted during
+the next event loop iteration.
+
+If you need to update the widget immediately, use update/1 instead.
+""".
 -spec refresh( widget() ) -> void().
 refresh( Widget ) ->
 	wxWindow:refresh( Widget ).
 
 
 
-% @doc Repaints the invalidated area of the window and all of its children
-% recursively (this normally only happens when the flow of control returns to
-% the event loop).
-%
-% Note that this function does not invalidate any area of the window, so nothing
-% happens if nothing has been invalidated (i.e. marked as requiring a redraw).
-%
-% Use refresh/1 first if you want to "immediately" redraw the window
-% unconditionally.
-%
+-doc """
+Repaints the invalidated area of the window and all of its children recursively
+(this normally only happens when the flow of control returns to the event loop).
+
+Note that this function does not invalidate any area of the window, so nothing
+happens if nothing has been invalidated (i.e. marked as requiring a redraw).
+
+Use refresh/1 first if you want to "immediately" redraw the window
+unconditionally.
+""".
 -spec update( widget() ) -> void().
 update( Widget ) ->
 	wxWindow:update( Widget ).
 
 
 
-% @doc Locks the specified widget, so that direct access to its content can be
-% done, through the returned device context.
-%
-% Once the desired changes will have been made, this widget must be unlocked.
-%
+-doc """
+Locks the specified widget, so that direct access to its content can be done,
+through the returned device context.
+
+Once the desired changes will have been made, this widget must be unlocked.
+""".
 -spec lock( widget() ) -> device_context().
 lock( Widget ) ->
 	DC = wxWindowDC:new( Widget ),
@@ -384,39 +407,43 @@ lock( Widget ) ->
 
 
 
-% @doc Unlocks the specified widget, based on the specified device context
-% obtained from a previous locking.
-%
+-doc """
+Unlocks the specified widget, based on the specified device context obtained
+from a previous locking.
+""".
 -spec unlock( device_context() ) -> void().
 unlock( DC ) ->
 	wxWindowDC:destroy( DC ).
 
 
 
+-doc """
+Returns the widget (if any) that has the current keyboard focus.
 
-% @doc Returns the widget (if any) that has the current keyboard focus.
-%
-% Refer to the 'Keyboard-related events' section of the gui_keyboard module for
-% further information.
-%
+Refer to the 'Keyboard-related events' section of the gui_keyboard module for
+further information.
+""".
 -spec get_focused() -> option( widget() ).
 get_focused() ->
 	wxWindow:findFocus().
 
 
-% @doc Sets the specified widget to receive keyboard input, provided notably
-% that this type of widget can have the focus (e.g. frame() cannot).
-%
-% Refer to the 'Keyboard-related events' section of the gui_keyboard module for
-% further information.
-%
+
+-doc """
+Sets the specified widget to receive keyboard input, provided notably that this
+type of widget can have the focus (e.g. frame() cannot).
+
+Refer to the 'Keyboard-related events' section of the gui_keyboard module for
+further information.
+""".
+
 -spec set_focus( widget() ) -> void().
 set_focus( Widget ) ->
 	wxWindow:setFocus( Widget ).
 
 
 
-% @doc Returns the size (as {Width,Height}) of the specified widget.
+-doc "Returns the size (as {Width,Height}) of the specified widget.".
 -spec get_size( widget() ) -> size().
 get_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
@@ -436,10 +463,10 @@ get_size( Widget ) ->
 
 
 
-% @doc Returns the client size (as {Width,Height}) of the specified widget, that
-% is the actual size of the area that can be drawn upon (excluded menu, bars,
-% etc.).
-%
+-doc """
+Returns the client size (as {Width,Height}) of the specified widget, that is the
+actual size of the area that can be drawn upon (excluded menu, bars, etc.).
+""".
 -spec get_client_size( widget() ) -> size().
 get_client_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
@@ -456,9 +483,10 @@ get_client_size( Widget ) ->
 
 
 
-% @doc Returns the best size (as {Width,Height}) of the specified widget, that
-% is its best acceptable minimal size.
-%
+-doc """
+Returns the best size (as {Width,Height}) of the specified widget, that is its
+best acceptable minimal size.
+""".
 -spec get_best_size( widget() ) -> size().
 get_best_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
@@ -475,7 +503,7 @@ get_best_size( Widget ) ->
 
 
 
-% @doc Sets the size of the client area of the specified widget.
+-doc "Sets the size of the client area of the specified widget.".
 -spec set_client_size( widget(), size() ) -> void().
 set_client_size( _Canvas={ myriad_object_ref, myr_canvas, _CanvasId },
 				 _Size ) ->
@@ -486,10 +514,11 @@ set_client_size( Widget, Size ) ->
 
 
 
-% @doc Fits the specified widget to its best size.
-%
-% Corresponds to setting its client size to its best one.
-%
+-doc """
+Fits the specified widget to its best size.
+
+Corresponds to setting its client size to its best one.
+""".
 -spec fit( widget() ) -> void().
 fit( _Canvas={ myriad_object_ref, myr_canvas, _CanvasId } ) ->
 	throw( not_implemented );
@@ -499,10 +528,11 @@ fit( Widget ) ->
 
 
 
-% @doc Maximises the specified widget (a specialised window, for example a
-% panel) in its parent (adopting its maximum client size), and returns the new
-% size of this widget.
-%
+-doc """
+Maximises the specified widget (a specialised window, for example a panel) in
+its parent (adopting its maximum client size), and returns the new size of this
+widget.
+""".
 -spec maximise_in_parent( widget() ) -> size().
 maximise_in_parent( Widget ) ->
 	ParentWindow = wxWindow:getParent( Widget ),

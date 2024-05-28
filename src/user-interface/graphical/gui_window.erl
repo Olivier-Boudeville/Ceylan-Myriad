@@ -44,28 +44,36 @@ environment
 
 
 
+-doc """
+Any kind of window.
+
+Base, most general class for all windows (for example, a frame is a window whose
+size and position can usually be changed by the user).
+
+This corresponds to "real" windows - not to any widget (that wx/WxWidgets call
+"windows").
+
+Note that this class is mostly a mother, abstract one, and various creation
+settings will lead to no window being displayed at all. For most practical
+purposes, a frame (a concrete, special case thereof) may/should be created
+instead.
+""".
 -opaque window() :: gui_widget:widget().
-% Any kind of window.
-%
-% Base, most general class for all windows (for example, a frame is a window
-% whose size and position can usually be changed by the user).
-%
-% This corresponds to "real" windows - not to any widget (that wx/WxWidgets call
-% "windows").
-%
-% Note that this class is mostly a mother, abstract one, and various creation
-% settings will lead to no window being displayed at all. For most practical
-% purposes, a frame (a concrete, special case thereof) may/should be created
-% instead.
 
 
 
+-doc "Window-specific options (quite common).".
 -type window_option() :: { 'position', point() }
 					   | { 'size', size() }
 					   | { 'style', [ window_style() ] }.
-% Window-specific options (quite common).
+ 
 
 
+-doc """
+A style element of a window.
+
+See also <http://docs.wxwidgets.org/stable/classwx_window.html>.
+""".
 -type window_style() ::
 	'default_border'
   | 'simple_border'
@@ -91,35 +99,35 @@ environment
   | 'never_hide_scrollbars'
   | 'clip_children'
   | 'full_repaint_on_resize'.
-% A style element of a window.
-%
-% See also [http://docs.wxwidgets.org/stable/classwx_window.html]
 
 
 -export_type([ window/0, window_option/0, window_style/0 ]).
 
 
 
+-doc "The identifier of an icon.".
 -type icon_name_id() :: standard_icon_name_id() | id().
-% The identifier of an icon.
+ 
 
 
+-doc "The name identifiers of the standard icons.".
 -type standard_icon_name_id() ::
 	'asterisk_icon' | 'stop_icon' | 'information_icon'
   | 'question_icon' | 'error_icon' | 'warning_icon' | 'hand_icon'
   | 'exclamation_icon'.
-% The name identifiers of the standard icons.
 
 
 -export_type([ icon_name_id/0, standard_icon_name_id/0 ]).
 
 
 
+-doc """
+A top-level (application-wide) window.
+
+The top-level window is a base class common to frames and dialogs; so such a
+window is typically any frame (including any main one) or any dialog.
+""".
 -opaque top_level_window() :: wxTopLevelWindow:wxTopLevelWindow().
-% A top-level (application-wide) window.
-%
-% The top-level window is a base class common to frames and dialogs; so such a
-% window is typically any frame (including any main one) or any dialog.
 
 
 -export_type([ top_level_window/0 ]).
@@ -129,26 +137,34 @@ environment
 % At least for the splitter record:
 -include("gui_base.hrl").
 
+
+-doc """
+Represents a window able to be split into two panes.
+
+Information regarding the (fixed, static) horizontal or vertical splitting of a
+window into two ones.
+""".
 -type splitter() :: #splitter{}.
-% Represents a window able to be split into two panes.
-%
-% Information regarding the (fixed, static) horizontal or vertical splitting of
-% a window into two ones.
 
 
+
+-doc """
+A window able to be split into two panes; it may thus manage up to two
+subwindows.
+""".
 -opaque splitter_window() :: wxSplitterWindow:wxSplitterWindow().
-% A window able to be split into two panes; it may thus manage up to two
-% subwindows.
 
 
+
+-doc """
+Tells how much the first pane of a splitter window is to grow while resizing it:
+ - 0.0: only the bottom/right window is automatically resized
+ - 0.5: both windows grow by equal size
+ - 1.0: only left/top window grows
+
+Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
+""".
 -type sash_gravity() :: number().
-% Tells how much the first pane of a splitter window is to grow while resizing
-% it:
-%  - 0.0: only the bottom/right window is automatically resized
-%  - 0.5: both windows grow by equal size
-%  - 1.0: only left/top window grows
-%
-% Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 
 
 -export_type([ splitter/0, splitter_window/0, sash_gravity/0 ]).
@@ -231,20 +247,22 @@ environment
 % Parent-less windows (widgets) are edge cases; frames shall be preferred.
 
 
-% @doc Creates a basic window.
-%
-% @hidden (internal use only)
-%
+-doc """
+Creates a basic window.
+
+(internal use only)
+""".
 -spec create() -> window().
 create() ->
 	wxWindow:new().
 
 
 
-% @doc Creates a basic window having the specified identifier.
-%
-% @hidden (internal use only)
-%
+-doc """
+Creates a basic window having the specified identifier.
+
+(internal use only)
+""".
 -spec create( id(), parent() ) -> window().
 create( Id, Parent ) ->
 
@@ -260,10 +278,11 @@ create( Id, Parent ) ->
 
 
 
-% @doc Creates a basic window of the specified size.
-%
-% @hidden (internal use only)
-%
+-doc """
+Creates a basic window of the specified size.
+
+(internal use only)
+""".
 -spec create( sizing() ) -> window().
 create( Size ) ->
 
@@ -276,8 +295,7 @@ create( Size ) ->
 
 
 
-% @doc Creates a basic window from the specified settings.
-%
+-doc "Creates a basic window from the specified settings.".
 -spec create( position(), sizing(), [ window_style() ], id(), parent() ) ->
 											window().
 create( Position, Sizing, Styles, Id, Parent ) ->
@@ -296,20 +314,20 @@ create( Position, Sizing, Styles, Id, Parent ) ->
 
 
 
-% @doc Destructs the specified window.
+-doc "Destructs the specified window.".
 -spec destruct( window() ) -> void().
 destruct( Window ) ->
 	wxWindow:destroy( Window ).
 
 
 
-% @doc Shows (renders) the specified window (or subclass thereof).
-%
-% Returns whether anything had to be done.
-%
-% This is the place where all widgets resolve their positions, sizes and
-% contents.
-%
+-doc """
+Shows (renders) the specified window (or subclass thereof).
+
+Returns whether anything had to be done.
+
+This is the place where all widgets resolve their positions, sizes and contents.
+""".
 -spec show( window() | [ window() ] ) -> boolean().
 show( Windows ) when is_list( Windows )->
 
@@ -354,10 +372,13 @@ show_fix() ->
 	%ok.
 
 
-% @doc Hides the specified window.
-%
-% Returns whether anything had to be done.
-%
+
+-doc """
+Hides the specified window.
+
+Returns whether anything had to be done.
+""".
+
 -spec hide( window() ) -> boolean().
 hide( Window ) ->
 	wxWindow:show( Window, [ { show, false } ] ).
@@ -368,19 +389,21 @@ hide( Window ) ->
 % Top-level window subsection.
 
 
-% @doc Sets the title of the specified top-level window.
+-doc "Sets the title of the specified top-level window.".
 -spec set_title( top_level_window(), title() ) -> void().
 set_title( TopLevelWindow, Title ) ->
 	wxTopLevelWindow:setTitle( TopLevelWindow, Title ).
 
 
-% @doc Returns the title of the specified top-level window.
+
+-doc "Returns the title of the specified top-level window.".
 -spec get_title( top_level_window() ) -> title().
 get_title( TopLevelWindow ) ->
 	wxTopLevelWindow:getTitle( TopLevelWindow ).
 
 
-% @doc Sets the icon of the specified top-level window.
+
+-doc "Sets the icon of the specified top-level window.".
 -spec set_icon( top_level_window(), any_file_path() ) -> void().
 set_icon( TopLvlWin, IconPath ) ->
 
@@ -405,59 +428,69 @@ set_icon( TopLvlWin, IconPath ) ->
 	wxTopLevelWindow:setIcon( TopLvlWin, Icon ).
 
 
-% @doc Centers the specified top-level window on screen.
+
+-doc "Centers the specified top-level window on screen.".
 -spec center_on_screen( top_level_window() ) -> void().
 center_on_screen( TopLvlWin ) ->
 	wxTopLevelWindow:centerOnScreen( TopLvlWin ).
 
 
-% @doc Centers the specified top-level window on screen, along the specified
-% orientation(s).
-%
+
+-doc """
+Centers the specified top-level window on screen, along the specified
+orientation(s).
+""".
 -spec center_on_screen( top_level_window(), orientation() ) -> void().
 center_on_screen( TopLvlWin, Orientation ) ->
 	wxTopLevelWindow:centerOnScreen( TopLvlWin,
 		gui_wx_backend:to_wx_orientation( Orientation ) ).
 
 
-% @doc Tells whether the specified top-level window is maximised.
+
+-doc "Tells whether the specified top-level window is maximised.".
 -spec is_maximised( top_level_window() ) -> boolean().
 is_maximised( TopLevelWindow ) ->
 	wxTopLevelWindow:isMaximized( TopLevelWindow ).
 
 
-% @doc Maximises the specified top-level window.
+
+-doc "Maximises the specified top-level window.".
 -spec maximize( top_level_window() ) -> void().
 maximize( TopLevelWindow ) ->
 	wxTopLevelWindow:maximize( TopLevelWindow ).
 
 
 
-% @doc Returns whether the specified top-level window is fullscreen.
+-doc "Returns whether the specified top-level window is fullscreen.".
 -spec is_fullscreen( top_level_window() ) -> boolean().
 is_fullscreen( TopLvlWin ) ->
 	wxTopLevelWindow:isFullScreen( TopLvlWin ).
 
 
-% @doc Shows the specified top-level window to fullscreen (if true) or restores
-% it to its normal state (if false).
-%
-% Showing a window full screen also actually shows the window if it is not
-% already shown. Any menu bar is then hidden.
-%
-% Returns (supposedly) whether the operation succeeded.
-%
+
+-doc """
+Shows the specified top-level window to fullscreen (if true) or restores it to
+its normal state (if false).
+
+Showing a window full screen also actually shows the window if it is not already
+shown. Any menu bar is then hidden.
+
+Returns (supposedly) whether the operation succeeded.
+""".
 -spec set_fullscreen( top_level_window(), boolean() ) -> void().
 set_fullscreen( TopLvlWin, ForceFullscreen ) ->
 	wxTopLevelWindow:showFullScreen( TopLvlWin, ForceFullscreen ).
 
 
-% @doc Returns whether the specified top-level window is currently active, that
-% is if the user is currently interacting with it.
-%
+
+-doc """
+Returns whether the specified top-level window is currently active, that is if
+the user is currently interacting with it.
+""".
 -spec is_active( top_level_window() ) -> boolean().
 is_active( TopLvlWin ) ->
 	wxTopLevelWindow:isActive( TopLvlWin ).
+
 
 
 
@@ -467,10 +500,11 @@ is_active( TopLvlWin ) ->
 % splitter_window().
 
 
-% @doc Creates a splitter of the specified orientation, in the specified window,
-% based on the specified sash gravity and pane size, returning a corresponding
-% splitter record so that the up to two subwindows can be declared afterwards.
-%
+-doc """
+Creates a splitter of the specified orientation, in the specified window, based
+on the specified sash gravity and pane size, returning a corresponding splitter
+record so that the up to two subwindows can be declared afterwards.
+""".
 -spec create_splitter( window(), orientation(), sash_gravity(), size() ) ->
 								splitter().
 create_splitter( ParentWindow, Orientation, SashGravity, PaneSize ) ->
@@ -478,11 +512,13 @@ create_splitter( ParentWindow, Orientation, SashGravity, PaneSize ) ->
 					 system_utils:get_operating_system_type() ).
 
 
-% @doc Creates a splitter of the specified orientation, in the specified window,
-% based on the specified sash gravity and pane size, according to the specified
-% OS, returning a corresponding splitter record so that the up to two subwindows
-% can be declared afterwards.
-%
+
+-doc """
+Creates a splitter of the specified orientation, in the specified window, based
+on the specified sash gravity and pane size, according to the specified OS,
+returning a corresponding splitter record so that the up to two subwindows can
+be declared afterwards.
+""".
 -spec create_splitter( window(), orientation(), sash_gravity(), size(),
 					   os_type() ) -> splitter().
 create_splitter( ParentWindow, Orientation, SashGravity, PaneSize, OSType ) ->
@@ -510,41 +546,45 @@ create_splitter( ParentWindow, Orientation, SashGravity, PaneSize, OSType ) ->
 			   orientation=gui:check_orientation( Orientation ) }.
 
 
-% @doc Sets the specified splitter in a single pane configuration, using for
-% that the specified window.
-%
+
+-doc """
+Sets the specified splitter in a single pane configuration, using for that the
+specified window.
+""".
 -spec set_unique_pane( splitter(), parent() ) -> void().
 set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
 	wxSplitterWindow:initialize( SplitterWin, WindowPane ).
 
 
 
+-doc """
+Records, in the MyriadGUI environment, the specified window (typically a frame)
+as the application top-level window.
 
-% @doc Records, in the MyriadGUI environment, the specified window (typically a
-% frame) as the application top-level window.
-%
-% Note that the specified window is expected to be already, in terms of type, a
-% top-level one (e.g. a frame or a dialog); the purpose of this function is only
-% to have it recorded as such by MyriadGUI.
-%
+Note that the specified window is expected to be already, in terms of type, a
+top-level one (e.g. a frame or a dialog); the purpose of this function is only
+to have it recorded as such by MyriadGUI.
+""".
 -spec record_as_top_level( top_level_window() ) -> void().
 record_as_top_level( Window ) ->
 	environment:set( _K=top_level_window, _V=Window,
 					 _Designator=?gui_env_reg_name ).
 
 
-% @doc Assigns the specified menu bar to the specified window.
+
+-doc "Assigns the specified menu bar to the specified window.".
 -spec set_menu_bar( window(), menu_bar() ) -> void().
 set_menu_bar( Window, MenuBar ) ->
 	wxWindow:setMenuBar( Window, MenuBar ).
 
 
 
-% @doc Converts the specified MyriadGUI window style elements into the
-% appropriate wx-specific bit mask.
-%
-% (helper)
-%
+-doc """
+Converts the specified MyriadGUI window style elements into the appropriate
+wx-specific bit mask.
+
+(helper)
+""".
 -spec window_styles_to_bitmask( [ window_style() ] ) -> bit_mask().
 window_styles_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
 	lists:foldl( fun( S, Acc ) ->
@@ -558,11 +598,12 @@ window_styles_to_bitmask( StyleOpt ) ->
 
 
 
-% @doc Converts the specified MyriadGUI window option(s) into the appropriate
-% wx-specific options.
-%
-% (exported helper)
-%
+-doc """
+Converts the specified MyriadGUI window option(s) into the appropriate
+wx-specific options.
+
+(exported helper)
+""".
 -spec to_wx_window_options( maybe_list( window_option() ) ) ->
 								[ wx_window_option() ].
 to_wx_window_options( Options ) when is_list( Options ) ->
@@ -585,7 +626,8 @@ to_wx_window_options( _Options=[ H | T ], Acc ) ->
 	to_wx_window_options( T, [ H | Acc ] ).
 
 
-% @doc Converts the specified icon identifier into a backend-specific one.
+
+-doc "Converts the specified icon identifier into a backend-specific one.".
 -spec to_wx_icon_id( icon_name_id() ) -> backend_bitmap_id().
 to_wx_icon_id( IconId ) ->
 	case gui_generated:get_maybe_second_for_icon_name_id( IconId ) of

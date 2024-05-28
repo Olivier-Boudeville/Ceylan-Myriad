@@ -28,7 +28,6 @@
 -module(gui_splash).
 
 -moduledoc """
-
 @doc Support for **splash screens**.
 
 Basic splash screens just display images, whereas more complex ones are
@@ -45,16 +44,15 @@ Refer to the gui_splash_test module for an example of use.
 """.
 
 
-
 % Usage notes:
 %
 % The parent of a splash frame (typically the main frame) should better be
 % centered onscreen, for best appearance (see gui_frame:center_on_screen/1).
 
 
-
+-doc "A panel used by a splash screen.".
 -type splash_panel() :: panel().
-% A panel used by a splash screen.
+
 
 
 -record( basic_splash_info, {
@@ -73,8 +71,11 @@ Refer to the gui_splash_test module for an example of use.
 	image_bitmap :: bitmap() } ).
 
 
+
+-doc "
+Information to be kept by an application using a basic splash screen.
+".
 -type basic_splash_info() :: #basic_splash_info{}.
-% Information to be kept by an application using a basic splash screen.
 
 
 
@@ -101,19 +102,26 @@ Refer to the gui_splash_test module for an example of use.
 	main_bitmap :: bitmap() } ).
 
 
+
+-doc """
+Information to be kept by an application using a dynamic splash screen.
+""".
 -type dynamic_splash_info() :: #dynamic_splash_info{}.
-% Information to be kept by an application using a dynamic splash screen.
 
 
 
-
+-doc """
+Information regarding a splash screen so that it can be properly managed.
+""".
 -type splash_info() :: basic_splash_info().
-% Information regarding a splash screen so that it can be properly managed.
 
 
+
+-doc """
+The atom to be received by a controller to dismiss its splash screen and
+terminate.
+""".
 -type removal_message() :: 'removeSplash'.
-% The atom to be received by a controller to dismiss its splash screen and
-% terminate.
 
 
 -export_type([ splash_panel/0, basic_splash_info/0, splash_info/0,
@@ -172,34 +180,35 @@ Refer to the gui_splash_test module for an example of use.
 % Section for basic splash screens.
 
 
-% @doc Creates a basic splash screen that will display the specified image on a
-% minimalist frame created on top of the specified parent (typically a frame,
-% probably the main one), and returns the associated splash information, for
-% future use (event management).
-%
-% The splash screen will be dismissed when the application will call the
-% remove/1 function, typically once fully initialised and ready.
-%
-% See the gui_splash_test module for an usage example.
-%
+-doc """
+Creates a basic splash screen that will display the specified image on a
+minimalist frame created on top of the specified parent (typically a frame,
+probably the main one), and returns the associated splash information, for
+future use (event management).
+
+The splash screen will be dismissed when the application will call the remove/1
+function, typically once fully initialised and ready.
+
+See the gui_splash_test module for an usage example.
+""".
 -spec create_basic( any_image_path(), parent() ) -> basic_splash_info().
 create_basic( ImgPath, Parent ) ->
 	create_basic( ImgPath, _ScaleFactor=1, Parent ).
 
 
 
+-doc """
+Creates a basic splash screen that will display the specified image once scaled
+(uniformously) at the specified factor (typically in ]0,1[ to shrink a too large
+image) on a minimalist frame on top of the specified parent (typically a frame,
+probably the main one), and returns the associated splash information, for
+future use (event management).
 
-% @doc Creates a basic splash screen that will display the specified image
-% once scaled (uniformously) at the specified factor (typically in ]0,1[ to
-% shrink a too large image) on a minimalist frame on top of the specified parent
-% (typically a frame, probably the main one), and returns the associated splash
-% information, for future use (event management).
-%
-% The splash screen will be dismissed when the application will call the
-% remove/1 function, typically once fully initialised and ready.
-%
-% See the gui_splash_test module for an usage example.
-%
+The splash screen will be dismissed when the application will call the remove/1
+function, typically once fully initialised and ready.
+
+See the gui_splash_test module for an usage example.
+""".
 -spec create_basic( any_image_path(), scale_factor(), parent() ) ->
 											basic_splash_info().
 create_basic( ImgPath, ScaleF, Parent ) ->
@@ -280,10 +289,11 @@ create_basic( ImgPath, ScaleF, Parent ) ->
 						image_bitmap=ImgBitmap }.
 
 
-% @doc Renders the splash screen ("once for all"): updates, from the specified
-% image bitmap, the (bitmap) backbuffer (but does not blit it to any target
-% panel).
-%
+
+-doc """
+Renders the splash screen ("once for all"): updates, from the specified image
+bitmap, the (bitmap) backbuffer (but does not blit it to any target panel).
+""".
 -spec render_basic_splash( Target :: bitmap(), Source :: bitmap() ) -> void().
 render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 
@@ -310,60 +320,61 @@ render_basic_splash( BackbufferBitmap, ImageBitmap ) ->
 % Section for dynamically-created splash screens.
 
 
-% @doc Creates a dynamic splash screen displaying the specified information on a
-% minimalist frame on top of the specified parent (typically a frame, probably
-% the main one), and returns the associated splash information, for future use
-% (event management).
-%
-% The resulting splash screen (heavily inspired from the one of Wings3D) will be
-% rendered with the specified overall background color, and will be organised
-% based on three rows (each described from left to right):
-%
-%  1. a top row (of the same background color), including (left-to-right):
-%     * an icon-like image symbolising the project
-%     * then, just afterwards, two lines, on the specified title background
-%     color:
-%       - top one: with a large font, the title of the project (e.g. "Foobar")
-%       followed on its right, with a smaller font, by a version string
-%       (e.g. "v1.0.17")
-%       - bottom one (finer font): a description of the project (e.g. "Foobar is
-%       a Frobnicator with twin acceleration beams")
-%     * right-justified: the project URL (e.g. "www.foobar.org")
-%
-%  2. a middle row displaying (possibly with user-specified horizontal margins -
-%  spacers) the project's main representation, as an image, at full size
-%
-%  3. a bottom row, made of two text displays, on either sides of a spacer:
-%
-%     * general information (e.g. terms of use) on the left, e.g. "Foobar comes
-%     with absolutely no warranty, but is completly free for any kind of use
-%     (including commercial).", or "Published by Foobar
-%     Software\nhttp://foobar.com"
-%
-%     * copyright information on the right, i.e. "Copyright (C) 2022-2023 John
-%     Doe, James Bond and Others", or "Copyright" ++ [$\s,169] ++ " 2022-2023
-%     John Doe\nAll rights reserved"
-%
-% The overall width is solely determined by the one of the image in the middle
-% row. Ensure that all other elements are not too wide (e.g. that texts are not
-% too long, knowing that they can be multi-lines).
-%
-% The overall height is the sum of the one of the three rows/panels:
-%  1. the height of the first row is solely determined by the one of the symbol
-%  image
-%  2. the height of the second row is solely determined by the one of its (main)
-%  image
-%  3. the height of the third row is solely determined by the maximum one of the
-%  two text displays
-%
-% The splash screen will be dismissed when the application will call the
-% remove/1 function.
-%
-% Arguments listed roughly in a top-to-bottom image order.
-%
-% The resources loaded there (the two bitmaps) should be explcitly destructed by
-% the caller once done with them.
-%
+-doc """
+Creates a dynamic splash screen displaying the specified information on a
+minimalist frame on top of the specified parent (typically a frame, probably the
+main one), and returns the associated splash information, for future use (event
+management).
+
+The resulting splash screen (heavily inspired from the one of Wings3D) will be
+rendered with the specified overall background color, and will be organised
+based on three rows (each described from left to right):
+
+ 1. a top row (of the same background color), including (left-to-right):
+	* an icon-like image symbolising the project
+	* then, just afterwards, two lines, on the specified title background
+	color:
+	  - top one: with a large font, the title of the project (e.g. "Foobar")
+	  followed on its right, with a smaller font, by a version string
+	  (e.g. "v1.0.17")
+	  - bottom one (finer font): a description of the project (e.g. "Foobar is
+	  a Frobnicator with twin acceleration beams")
+	* right-justified: the project URL (e.g. "www.foobar.org")
+
+ 2. a middle row displaying (possibly with user-specified horizontal margins -
+ spacers) the project's main representation, as an image, at full size
+
+ 3. a bottom row, made of two text displays, on either sides of a spacer:
+
+	* general information (e.g. terms of use) on the left, e.g. "Foobar comes
+	with absolutely no warranty, but is completly free for any kind of use
+	(including commercial).", or "Published by Foobar
+	Software\nhttp://foobar.com"
+
+	* copyright information on the right, i.e. "Copyright (C) 2022-2023 John
+	Doe, James Bond and Others", or "Copyright" ++ [$\s,169] ++ " 2022-2023
+	John Doe\nAll rights reserved"
+
+The overall width is solely determined by the one of the image in the middle
+row. Ensure that all other elements are not too wide (e.g. that texts are not
+too long, knowing that they can be multi-lines).
+
+The overall height is the sum of the one of the three rows/panels:
+ 1. the height of the first row is solely determined by the one of the symbol
+ image
+ 2. the height of the second row is solely determined by the one of its (main)
+ image
+ 3. the height of the third row is solely determined by the maximum one of the
+ two text displays
+
+The splash screen will be dismissed when the application will call the remove/1
+function.
+
+Arguments listed roughly in a top-to-bottom image order.
+
+The resources loaded there (the two bitmaps) should be explcitly destructed by
+the caller once done with them.
+""".
 -spec create_dynamic( SymbolPath :: any_image_path(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
 	DescStr :: any_string(), UrlStr :: any_string(),
@@ -389,19 +400,20 @@ create_dynamic( SymbolImgPath, TitleStr, VersionStr, DescStr, UrlStr,
 
 
 
-% @doc Creates a dynamic splash screen displaying the specified information on a
-% minimalist frame on top of the specified parent (typically a frame, probably
-% the main one), and returns the associated splash information, for future use
-% (event management).
-%
-% This version uses directly bitmaps as arguments, for example to be used as
-% resources. Refer to create_dynamic/11 for further details.
-%
-% Arguments listed roughly in a top-to-bottom image order.
-%
-% Does not take ownership of the specified resources (so that for example they
-% can be provided by a resource holder).
-%
+-doc """
+Creates a dynamic splash screen displaying the specified information on a
+minimalist frame on top of the specified parent (typically a frame, probably the
+main one), and returns the associated splash information, for future use (event
+management).
+
+This version uses directly bitmaps as arguments, for example to be used as
+resources. Refer to create_dynamic/11 for further details.
+
+Arguments listed roughly in a top-to-bottom image order.
+
+Does not take ownership of the specified resources (so that for example they can
+be provided by a resource holder).
+""".
 -spec create_dynamic_from_bitmaps( SymbolBitmap :: bitmap(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
 	DescStr :: any_string(), UrlStr :: any_string(),
@@ -430,13 +442,14 @@ create_dynamic_from_bitmaps( SymbolBitmap, TitleStr, VersionStr, DescStr,
 
 
 
-% @doc Creates the necessary widgets in order to fill the specified parent
-% (e.g. a frame, a panel) with the specified splash content.
-%
-% Defined for re-use; useful for example to either fill a splash frame (with no
-% title, no 'close' button) or a 'About' window (with a title, a 'close' button,
-% etc.).
-%
+-doc """
+Creates the necessary widgets in order to fill the specified parent (e.g. a
+frame, a panel) with the specified splash content.
+
+Defined for re-use; useful for example to either fill a splash frame (with no
+title, no 'close' button) or a 'About' window (with a title, a 'close' button,
+etc.).
+""".
 -spec render_dynamic_splash( SymbolBitmap :: bitmap(),
 	TitleStr :: any_string(), VersionStr :: any_string(),
 	DescStr :: any_string(), UrlStr :: any_string(),
@@ -716,7 +729,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 % Section for facilities common to all types of splash screens.
 
 
-% @doc Returns a frame suitable to hosting any kind of splash screen.
+-doc "Returns a frame suitable to hosting any kind of splash screen.".
 -spec create_splash_frame( parent() ) -> frame().
 create_splash_frame( Parent ) ->
 
@@ -731,12 +744,14 @@ create_splash_frame( Parent ) ->
 		_NoId=undefined, Parent ).
 
 
-% @doc Shows the corresponding splash screen.
-%
-% Must be called only after that the parent frame is shown, otherwise the splash
-% screen will not be centered in the parent, but on the whole screen, which
-% generally is not desirable.
-%
+
+-doc """
+Shows the corresponding splash screen.
+
+Must be called only after that the parent frame is shown, otherwise the splash
+screen will not be centered in the parent, but on the whole screen, which
+generally is not desirable.
+""".
 -spec show( splash_info() ) -> void().
 show( #basic_splash_info{ splash_frame=SplashFrame } ) ->
 	gui_frame:show( SplashFrame );
@@ -745,11 +760,13 @@ show( #dynamic_splash_info{ splash_frame=SplashFrame } ) ->
 	gui_frame:show( SplashFrame ).
 
 
-% @doc Blits the specified bitmap to the specified panel, once cleared.
-%
-% For example so that a splash panel is updated based on an already-available
-% backbuffer bitmap.
-%
+
+-doc """
+Blits the specified bitmap to the specified panel, once cleared.
+
+For example so that a splash panel is updated based on an already-available
+backbuffer bitmap.
+""".
 -spec update_panel( panel(), bitmap() ) -> void().
 update_panel( TargetPanel, SourceBitmap ) ->
 
@@ -775,9 +792,10 @@ update_panel( TargetPanel, SourceBitmap ) ->
 
 
 
-% @doc Callback to be triggered whenever the application catches a
-% onRepaintNeeded event for the splash panel.
-%
+-doc """
+Callback to be triggered whenever the application catches a onRepaintNeeded
+event for the splash panel.
+""".
 -spec on_repaint_needed( panel(), splash_info() ) -> void().
 on_repaint_needed( SplashPanel, _SplashInfo=#basic_splash_info{
 		backbuffer=BackbufferBitmap } ) ->
@@ -804,9 +822,11 @@ on_repaint_needed( SplashPanel, _SplashInfo=#dynamic_splash_info{} ) ->
 	ok.
 
 
-% @doc Callback to be triggered whenever the application catches a onResized
-% event for the splash panel.
-%
+
+-doc """
+Callback to be triggered whenever the application catches a onResized event for
+the splash panel.
+""".
 -spec on_resized( panel(), size(), splash_info() ) -> splash_info().
 on_resized( SplashPanel, NewSize, SplashInfo=#basic_splash_info{
 		backbuffer=BackbufferBitmap,
@@ -843,16 +863,17 @@ on_resized( SplashPanel, NewSize, SplashInfo=#dynamic_splash_info{} ) ->
 
 
 
-% @doc Callback to be triggered whenever the application chooses to remove the
-% corresponding splash screen.
-%
+-doc """
+Callback to be triggered whenever the application chooses to remove the
+corresponding splash screen.
+""".
 -spec remove( splash_info() ) -> void().
 remove( SplashInfo ) ->
 	destruct( SplashInfo ).
 
 
 
-% @doc Returns the splash panel, as stored in the specified splash information.
+-doc "Returns the splash panel, as stored in the specified splash information.".
 -spec get_panel( splash_info() ) -> panel().
 get_panel( #basic_splash_info{ splash_panel=SplashPanel } ) ->
 	SplashPanel;
@@ -861,7 +882,8 @@ get_panel( #dynamic_splash_info{ splash_panel=SplashPanel } ) ->
 	SplashPanel.
 
 
-% @doc Returns the splash frame, as stored in the specified splash information.
+
+-doc "Returns the splash frame, as stored in the specified splash information.".
 -spec get_frame( splash_info() ) -> frame().
 get_frame( #basic_splash_info{ splash_frame=SplashFrame } ) ->
 	SplashFrame;
@@ -871,11 +893,12 @@ get_frame( #dynamic_splash_info{ splash_frame=SplashFrame } ) ->
 
 
 
-% @doc Returns the bitmaps referenced by the specified splash information.
-%
-% Mostly useful so that the bitmaps of a dynamic splash can be destructed by the
-% caller.
-%
+-doc """
+Returns the bitmaps referenced by the specified splash information.
+
+Mostly useful so that the bitmaps of a dynamic splash can be destructed by the
+caller.
+""".
 get_bitmaps( #basic_splash_info{ backbuffer=BackBufferBitmap,
 								 image_bitmap=ImgBitmap } ) ->
 	[ BackBufferBitmap, ImgBitmap ];
@@ -886,11 +909,12 @@ get_bitmaps( #dynamic_splash_info{ symbol_bitmap=SymbolBitmap,
 
 
 
-% @doc Destructs the splash screen, based on the specified splash information.
-%
-% To be cache-compliant, its bitmap resources are not deallocated here, their
-% destruction is to be done by the caller, when appropriate.
-%
+-doc """
+Destructs the splash screen, based on the specified splash information.
+
+To be cache-compliant, its bitmap resources are not deallocated here, their
+destruction is to be done by the caller, when appropriate.
+""".
 -spec destruct( splash_info() ) -> void().
 destruct( #basic_splash_info{ splash_frame=SplashFrame,
 							  backbuffer=BackBufferBitmap,

@@ -44,15 +44,22 @@ details).
 % set for it.
 
 
+-doc """
+A scrollable is a widget that can be scrolled horizontally and/or vertically.
+""".
 -opaque scrollable() :: wxScrolledWindow:wxScrolledWindow().
-% A scrollable is a widget that can be scrolled horizontally and/or vertically.
 
 
+
+-doc "A number of scroll steps.".
 -type step_count() :: integer().
-% A number of scroll steps.
 
+
+
+-doc """
+A number of pixels per scroll step (a.k.a. a scroll increment).
+""".
 -type pixels_per_scroll_step() :: integer().
-% A number of pixels per scroll step (a.k.a. a scroll increment).
 
 
 -export_type([ scrollable/0, step_count/0, pixels_per_scroll_step/0 ]).
@@ -72,18 +79,20 @@ details).
 
 
 
-% @doc Creates a scrollable, with the specified parent and the default number of
-% pixels per scroll step.
-%
+-doc """
+Creates a scrollable, with the specified parent and the default number of pixels
+per scroll step.
+""".
 -spec create( option( parent() ) ) -> scrollable().
 create( MaybeParent ) ->
 	create( _Inc=?default_scroll_increment, MaybeParent ).
 
 
 
-% @doc Creates a scrollable, with the specified scroll increment (both for
-% horizontal and vertical orientations) and the specified parent.
-%
+-doc """
+Creates a scrollable, with the specified scroll increment (both for horizontal
+and vertical orientations) and the specified parent.
+""".
 -spec create( pixels_per_scroll_step()
 			| { pixels_per_scroll_step(), pixels_per_scroll_step() },
 			  option( parent() ) ) -> scrollable().
@@ -100,7 +109,7 @@ create( PixPerStep, MaybeParent ) ->
 
 
 
-% @doc Destructs the specified scrollable.
+-doc "Destructs the specified scrollable.".
 -spec destruct( scrollable() ) -> void().
 destruct( Scrollable  ) ->
 	wxScrolledWindow:destroy( Scrollable ).
