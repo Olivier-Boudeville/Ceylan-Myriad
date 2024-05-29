@@ -157,57 +157,86 @@ resource.
 		  stop/1 ]).
 
 
+
+-doc "The name under which an environment server can be (locally) registered.".
 -type env_reg_name() :: registration_name().
-% The name under which an environment server can be (locally) registered.
 
+
+
+-doc """
+The PID of an environment server, the most direct reference to an environment.
+""".
 -type env_pid() :: pid().
-% The PID of an environment server, the most direct reference to an environment.
 
 
+
+-doc """
+The full reference to an environment.
+
+The registration name is needed as a key of any local cache, and the PID allows
+to spare extra naming look-ups.
+""".
 -type env_info() :: { env_reg_name(), env_pid() }.
-% The full reference to an environment.
-%
-% The registration name is needed as a key of any local cache, and the PID
-% allows to spare extra naming look-ups.
 
 
+
+-doc """
+The two standard ways according to which an environment server can be
+designated: either directly thanks to its PID or to the name under which it is
+locally registered.
+""".
 -type env_designator() :: env_pid() | env_reg_name().
-% The two standard ways according to which an environment server can be
-% designated: either directly thanks to its PID or to the name under which it is
-% locally registered.
 
 
+
+-doc "Any element designating an environment (most general handle).".
 -type env_data() :: env_info() | env_designator().
-% Any element designating an environment (most general handle).
 
 
+
+-doc """
+Information stored regarding an environment, typically to be cached in the
+process dictionary in an all_env_table() table, and indexed by the PID of the
+corresponding environment server.
+
+Specifying the registration name is required for caching.
+""".
 -type cache_info() :: { env_reg_name(), env_cache_table() }.
-% Information stored regarding an environment, typically to be cached in the
-% process dictionary in an all_env_table() table, and indexed by the PID of the
-% corresponding environment server.
-%
-% Specifying the registration name is required for caching.
 
 
 
+-doc "Key of an entry.".
 -type key() :: atom().
 
 
+
+-doc """
+Value of an entry.
+
+Can be 'undefined' (no difference between a non-registered key and a key
+registered to 'undefined').
+""".
 -type value() :: table:value().
-% Can be 'undefined' (no difference between a non-registered key and a key
-% registered to 'undefined').
 
 
+
+-doc "An entry is a key/value pair.".
 -type entry() :: table:entry().
-% An entry is a key/value pair.
 
+
+
+-doc "Entries are lists of entry/0 terms, i.e. lists of pairs.".
 -type entries() :: table:entries().
-% Entries are lists of entry/0 terms, i.e. lists of pairs.
 
+
+
+-doc """
+A specification of the environment keys (possibly with their initial values)
+that shall be cached in a client process (hence locally, in addition to the
+environment server).
+""".
 -type cache_spec() :: maybe_list( [ key() | entry() ] ).
-% A specification of the environment keys (possibly with their initial values)
-% that shall be cached in a client process (hence locally, in addition to the
-% environment server).
+
 
 
 -export_type([ env_pid/0, env_reg_name/0, env_info/0, env_designator/0,
@@ -225,14 +254,19 @@ resource.
 -define( env_dictionary_key, 'myriad_environment_cache' ).
 
 
+
 % A list_table, as it is expected to reference only very few environments:
+-doc """
+Corresponds to the value associated to the env_dictionary_key key in the process
+dictionary of a process using environment caching.
+""".
 -type all_env_table() :: list_table( env_pid(), cache_info() ).
-% Corresponds to the value associated to the env_dictionary_key key in
-% the process dictionary of a process using environment caching.
 
 
+
+-doc "A table storing the (local) cached entries for a given environment.".
 -type env_cache_table() :: table( atom(), term() ).
-% A table storing the (local) cached entries for a given environment.
+
 
 
 
@@ -298,21 +332,22 @@ resource.
 
 
 
-% @doc Ensures explicitly that, if not running already, a specified environment
-% server is started.
-%
-% If a name is specified: if no server already registered it, starts it with a
-% blank state.
-%
-% If instead a filename is specified: if a server with a deriving name is not
-% already registered, starts a corresponding server and initialises it with the
-% corresponding file content.
-%
-% Does not link any started environment server to the calling process.
-%
-% Returns in any case the PID of the corresponding environment server, already
-% existing or not, blank or not.
-%
+-doc """
+Ensures explicitly that, if not running already, a specified environment server
+is started.
+
+If a name is specified: if no server already registered it, starts it with a
+blank state.
+
+If instead a filename is specified: if a server with a deriving name is not
+already registered, starts a corresponding server and initialises it with the
+corresponding file content.
+
+Does not link any started environment server to the calling process.
+
+Returns in any case the PID of the corresponding environment server, already
+existing or not, blank or not.
+""".
 -spec start( env_reg_name() | file_path() ) -> env_pid().
 start( ServerRegName ) when is_atom( ServerRegName ) ->
 	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
@@ -382,23 +417,24 @@ start( FilePath ) when is_list( FilePath ) ->
 
 
 
-% @doc Starts and initialises an environment server based first on the specified
-% defaults.
-%
-% If a name is specified: registers it under that name, and starts it just with
-% the specified defaults.
-%
-% If instead a filename is specified: starts a corresponding server with a
-% deriving name, and initialises it first with the specified defaults, then with
-% the corresponding file content (thus potentially overriding these defaults).
-%
-% Ensures that no prior corresponding environment server already exists, as the
-% specified defaults could not then be properly taken into account.
-%
-% Does not link the started environment server to the calling process.
-%
-% Returns the PID of the corresponding, just created, environment server.
-%
+-doc """
+Starts and initialises an environment server based first on the specified
+defaults.
+
+If a name is specified: registers it under that name, and starts it just with
+the specified defaults.
+
+If instead a filename is specified: starts a corresponding server with a
+deriving name, and initialises it first with the specified defaults, then with
+the corresponding file content (thus potentially overriding these defaults).
+
+Ensures that no prior corresponding environment server already exists, as the
+specified defaults could not then be properly taken into account.
+
+Does not link the started environment server to the calling process.
+
+Returns the PID of the corresponding, just created, environment server.
+""".
 -spec start_with_defaults( env_reg_name() | file_path(), entries() ) ->
 													env_pid().
 start_with_defaults( ServerRegName, DefaultEntries )
@@ -469,19 +505,20 @@ start_with_defaults( FilePath, DefaultEntries ) when is_list( FilePath ) ->
 
 
 
-% @doc Ensures explicitly that, if not running already, a specified environment
-% server is started and linked.
-%
-% If a name is specified: if no server already registered it, starts it with a
-% blank state, and links that server to the calling process.
-%
-% If instead a filename is specified, if a server with a deriving name is not
-% already registered, starts a corresponding server, links it to the calling
-% process and initialises it with the file content.
-%
-% Returns in any case the PID of the corresponding environment server, already
-% existing or not, blank or not.
-%
+-doc """
+Ensures explicitly that, if not running already, a specified environment server
+is started and linked.
+
+If a name is specified: if no server already registered it, starts it with a
+blank state, and links that server to the calling process.
+
+If instead a filename is specified, if a server with a deriving name is not
+already registered, starts a corresponding server, links it to the calling
+process and initialises it with the file content.
+
+Returns in any case the PID of the corresponding environment server, already
+existing or not, blank or not.
+""".
 -spec start_link( env_reg_name() | file_path() ) -> env_pid().
 start_link( ServerRegName ) when is_atom( ServerRegName ) ->
 	case naming_utils:is_registered( ServerRegName, _LookupScope=local ) of
@@ -544,22 +581,22 @@ start_link( FilePath ) when is_list( FilePath ) ->
 
 
 
-% @doc Starts, links and initialises an environment server based first on the
-% specified defaults.
-%
-% If a name is specified: registers it under that name, and starts-linked it
-% just with the specified defaults.
-%
-% If instead a filename is specified: starts-linked a corresponding server with
-% a deriving name, and initialises it first with the specified defaults, then
-% with the corresponding file content (thus potentially overriding these
-% defaults).
-%
-% Ensures that no prior corresponding environment server already exists, as the
-% specified defaults could not then be properly taken into account.
-%
-% Returns the PID of the corresponding, just created, environment server.
-%
+-doc """
+Starts, links and initialises an environment server based first on the specified
+defaults.
+
+If a name is specified: registers it under that name, and starts-linked it just
+with the specified defaults.
+
+If instead a filename is specified: starts-linked a corresponding server with a
+deriving name, and initialises it first with the specified defaults, then with
+the corresponding file content (thus potentially overriding these defaults).
+
+Ensures that no prior corresponding environment server already exists, as the
+specified defaults could not then be properly taken into account.
+
+Returns the PID of the corresponding, just created, environment server.
+""".
 -spec start_link_with_defaults( env_reg_name() | file_path(), entries() ) ->
 													env_pid().
 start_link_with_defaults( ServerRegName, DefaultEntries )
@@ -625,18 +662,18 @@ start_link_with_defaults( FilePath, DefaultEntries )
 
 
 
-% @doc Ensures explicitly that, if not running already, an environment server is
-% started with the specified registration name, and based on the specified file.
-%
-% If a server with the specified name is not already registered, starts a
-% corresponding server and initialises it with the content of the specified
-% file.
-%
-% Does not link the started environment server to the calling process.
-%
-% Returns in any case the PID of the corresponding environment server, already
-% existing or not.
-%
+-doc """
+Ensures explicitly that, if not running already, an environment server is
+started with the specified registration name, and based on the specified file.
+
+If a server with the specified name is not already registered, starts a
+corresponding server and initialises it with the content of the specified file.
+
+Does not link the started environment server to the calling process.
+
+Returns in any case the PID of the corresponding environment server, already
+existing or not.
+""".
 -spec start( env_reg_name(), any_file_path() ) -> env_pid().
 start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
@@ -673,17 +710,18 @@ start( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
 
 
-% @doc Ensures explicitly that, if not running already, an environment server is
-% started and linked with the specified registration name, and based on the
-% specified file.
-%
-% If a server with the specified name is not already registered, starts a
-% corresponding server, links it to the calling process and initialises it with
-% the content of the specified file.
-%
-% Returns in any case the PID of the corresponding environment server, already
-% existing or not.
-%
+-doc """
+Ensures explicitly that, if not running already, an environment server is
+started and linked with the specified registration name, and based on the
+specified file.
+
+If a server with the specified name is not already registered, starts a
+corresponding server, links it to the calling process and initialises it with
+the content of the specified file.
+
+Returns in any case the PID of the corresponding environment server, already
+existing or not.
+""".
 -spec start_link( env_reg_name(), any_file_path() ) -> env_pid().
 start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
@@ -717,24 +755,25 @@ start_link( ServerRegName, AnyFilePath ) when is_atom( ServerRegName ) ->
 
 
 
-% @doc Ensures explicitly that, if not running already, a specified environment
-% server is started, and caches the specified elements.
-%
-% If a name is specified: if no server already registered it, starts it with a
-% blank state.
-%
-% If instead a filename is specified: if a server with a deriving name is not
-% already registered, starts a corresponding server and initialises it with the
-% corresponding file content.
-%
-% See the cache_spec/0 type and the cache/2 function for related information
-% regarding caching.
-%
-% Does not link any started environment server to the calling process.
-%
-% Returns in any case the PID of the corresponding environment server, already
-% existing or not, and caching specified elements.
-%
+-doc """
+Ensures explicitly that, if not running already, a specified environment server
+is started, and caches the specified elements.
+
+If a name is specified: if no server already registered it, starts it with a
+blank state.
+
+If instead a filename is specified: if a server with a deriving name is not
+already registered, starts a corresponding server and initialises it with the
+corresponding file content.
+
+See the cache_spec/0 type and the cache/2 function for related information
+regarding caching.
+
+Does not link any started environment server to the calling process.
+
+Returns in any case the PID of the corresponding environment server, already
+existing or not, and caching specified elements.
+""".
 -spec start_cached( env_reg_name(), cache_spec() ) -> env_pid().
 start_cached( ServerRegName, CacheSpec ) ->
 	EnvPid = start( ServerRegName ),
@@ -743,24 +782,26 @@ start_cached( ServerRegName, CacheSpec ) ->
 
 
 
-% @doc Ensures explicitly that, if not running already, a specified environment
-% server is started and linked, and caches the specified elements.
-%
-% If a name is specified: if no server already registered it, starts it with a
-% blank state.
-%
-% If instead a filename is specified: if a server with a deriving name is not
-% already registered, starts a corresponding server and initialises it with the
-% corresponding file content.
-%
-% See the cache_spec/0 type and the cache/2 function for related information
-% regarding caching.
-%
-% Links any started environment server to the calling process.
-%
-% Returns in any case the PID of the corresponding environment server, already
-% existing or not, and caching specified elements.
-%
+-doc """
+Ensures explicitly that, if not running already, a specified environment server
+is started and linked, and caches the specified elements.
+
+If a name is specified: if no server already registered it, starts it with a
+blank state.
+
+If instead a filename is specified: if a server with a deriving name is not
+already registered, starts a corresponding server and initialises it with the
+corresponding file content.
+
+See the cache_spec/0 type and the cache/2 function for related information
+regarding caching.
+
+Links any started environment server to the calling process.
+
+Returns in any case the PID of the corresponding environment server, already
+existing or not, and caching specified elements.
+""".
+
 -spec start_link_cached( env_reg_name(), cache_spec() ) -> env_pid().
 start_link_cached( ServerRegName, CacheSpec ) ->
 	EnvPid = start_link( ServerRegName ),
@@ -769,9 +810,10 @@ start_link_cached( ServerRegName, CacheSpec ) ->
 
 
 
-% @doc Returns the PID of a supposedly already-running environment server,
-% specified based on either its name or content filename.
-%
+-doc """
+Returns the PID of a supposedly already-running environment server, specified
+based on either its name or content filename.
+""".
 -spec get_server( env_reg_name() | file_path() ) -> env_pid().
 get_server( ServerRegName ) when is_atom( ServerRegName ) ->
 
@@ -803,9 +845,10 @@ get_server( FilePath ) when is_list( FilePath ) ->
 
 
 
-% @doc Returns the server information of a supposedly already-running
-% environment server, specified based on either its name or content filename.
-%
+-doc """
+Returns the server information of a supposedly already-running environment
+server, specified based on either its name or content filename.
+""".
 -spec get_server_info( env_reg_name() | file_path() ) -> env_info().
 get_server_info( ServerRegName ) when is_atom( ServerRegName ) ->
 
@@ -837,12 +880,13 @@ get_server_info( FilePath ) when is_list( FilePath ) ->
 
 
 
-% @doc Waits (up to 5 seconds, otherwise throws an exception) until the
-% specified environment server becomes available, then returns its PID.
-%
-% Allows to synchronise to an environment server typically launched
-% concurrently, before being able to look-up values from it.
-%
+-doc """
+Waits (up to 5 seconds, otherwise throws an exception) until the specified
+environment server becomes available, then returns its PID.
+
+Allows to synchronise to an environment server typically launched concurrently,
+before being able to look-up values from it.
+""".
 -spec wait_available( env_reg_name() ) -> env_pid().
 wait_available( ServerRegName ) ->
 
@@ -853,31 +897,33 @@ wait_available( ServerRegName ) ->
 
 
 
-% @doc Returns the value associated to each of the specified key(s) in the
-% environment (if any), otherwise 'undefined', based on the specified
-% environment file (and possibly launching a corresponding, non-linked,
-% environment server if needed) or on an already-running environment server
-% (specified as a registration name, an environment information or a PID).
-%
-% Any cached key will be read from the local process cache, not from the
-% environment server.
-%
-% Examples:
-%
-%  "Hello!" = environment:get(hello, "/var/foobar.etf")
-%
-%  ["Hello!", 42, undefined] =
-%     environment:get([hello, my_number, some_maybe], "/var/foobar.etf")
-%
-%  ["Hello!", 42, undefined] =
-%     environment:get([hello, my_number, some_maybe], my_env_server_name)
-%
-%  ["Hello!", 42, undefined] =
-%     environment:get([hello, my_number, some_maybe], MyEnvServerPid)
-%
-%  ["Hello!", 42, undefined] =
-%     environment:get([hello, my_number, some_maybe], MyEnvInfo)
-%
+-doc """
+Returns the value associated to each of the specified key(s) in the environment
+(if any), otherwise 'undefined', based on the specified environment file (and
+possibly launching a corresponding, non-linked, environment server if needed) or
+on an already-running environment server (specified as a registration name, an
+environment information or a PID).
+
+Any cached key will be read from the local process cache, not from the
+environment server.
+
+Examples:
+```
+"Hello!" = environment:get(hello, "/var/foobar.etf")
+
+["Hello!", 42, undefined] =
+   environment:get([hello, my_number, some_maybe], "/var/foobar.etf")
+
+["Hello!", 42, undefined] =
+   environment:get([hello, my_number, some_maybe], my_env_server_name)
+
+["Hello!", 42, undefined] =
+   environment:get([hello, my_number, some_maybe], MyEnvServerPid)
+
+["Hello!", 42, undefined] =
+   environment:get([hello, my_number, some_maybe], MyEnvInfo)
+```
+""".
 -spec get( maybe_list( key() ), env_data() | file_path() ) ->
 										maybe_list( option( value() ) ).
 get( Key, AnyEnvData ) when is_atom( Key ) ->
@@ -968,22 +1014,24 @@ aggregate_values( _TargetKeys=[ K | Tt ], ImmediateKeys, ImmediateValues,
 
 
 
-% @doc Returns the value associated to each of the specified key(s) in the
-% environment (if any), otherwise 'undefined', based on the specified
-% registration name: uses any server registered with that name, otherwise uses
-% the specified filename to start a corresponding server.
-%
-% Any cached key will be read from the local process cache, not from the
-% environment server.
-%
-% Examples:
-%
-%  "Hello!" = environment:get(hello, my_env_server_name, "/var/foobar.etf")
-%
-%  ["Hello!", 42, undefined] =
-%     environment:get([hello, my_number, some_maybe], my_env_server_name,
-%                      "/var/foobar.etf")
-%
+-doc """
+Returns the value associated to each of the specified key(s) in the environment
+(if any), otherwise 'undefined', based on the specified registration name: uses
+any server registered with that name, otherwise uses the specified filename to
+start a corresponding server.
+
+Any cached key will be read from the local process cache, not from the
+environment server.
+
+Examples:
+```
+"Hello!" = environment:get(hello, my_env_server_name, "/var/foobar.etf")
+
+["Hello!", 42, undefined] =
+	 environment:get([hello, my_number, some_maybe], my_env_server_name,
+					  "/var/foobar.etf")
+```
+""".
 -spec get( maybe_list( key() ), env_reg_name(), file_path() ) ->
 										maybe_list( option( value() ) ).
 get( KeyMaybes, ServerRegName, FilePath ) ->
@@ -1001,11 +1049,12 @@ get( KeyMaybes, ServerRegName, FilePath ) ->
 
 
 
-% @doc Gets the specified entries unconditionally from the environment server
-% (not taking into account any cache).
-%
-% (helper)
-%
+-doc """
+Gets the specified entries unconditionally from the environment server (not
+taking into account any cache).
+
+(helper)
+""".
 -spec get_from_environment( maybe_list( maybe_list( key() ) ),
 					env_designator() ) -> maybe_list( option( value() ) ).
 get_from_environment( _KeyMaybes=[], _EnvDesignator ) ->
@@ -1022,15 +1071,16 @@ get_from_environment( KeyMaybes, EnvDesignator ) ->
 
 
 
-% @doc Sets (unconditionally) the specified key/value pairs (possibly
-% overwriting any previous values) in the specified environment, based on the
-% specified environment file (and possibly launching a corresponding environment
-% server if needed) or on the designated already-running environment server
-% (specified by registration name, environment information or PID).
-%
-% Any cached key will be updated in the local process cache, in addition to the
-% environment server.
-%
+-doc """
+Sets (unconditionally) the specified key/value pairs (possibly overwriting any
+previous values) in the specified environment, based on the specified
+environment file (and possibly launching a corresponding environment server if
+needed) or on the designated already-running environment server (specified by
+registration name, environment information or PID).
+
+Any cached key will be updated in the local process cache, in addition to the
+environment server.
+""".
 -spec set( [ entry() ], env_data() | file_path() ) -> void().
 set( Entries, _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	set( Entries, EnvPid );
@@ -1083,29 +1133,31 @@ set( Entries, EnvPid ) when is_list( Entries ) ->
 
 
 
-% @doc Associates (unconditionally), in the specified environment, the specified
-% value to the specified key (possibly overwriting any previous value), based on
-% the specified environment file (and possibly launching a corresponding
-% environment server if needed) or on the designated already-running environment
-% server (specified by registration name, environment information or PID).
-%
-% Any cached key will be updated in the local process cache, in addition to the
-% environment server.
-%
+-doc """
+Associates (unconditionally), in the specified environment, the specified value
+to the specified key (possibly overwriting any previous value), based on the
+specified environment file (and possibly launching a corresponding environment
+server if needed) or on the designated already-running environment server
+(specified by registration name, environment information or PID).
+
+Any cached key will be updated in the local process cache, in addition to the
+environment server.
+""".
 -spec set( key(), value(), env_data() | file_path() ) -> void().
 set( Key, Value, AnyEnvElem ) ->
 	set( _Entries=[ { Key, Value } ], AnyEnvElem ).
 
 
 
-% @doc Associates (unconditionally), in the specified environment, the specified
-% value to the specified key (possibly overwriting any previous value), based on
-% the specified registration name: uses any server registered with that name,
-% otherwise uses the specified filename to start a corresponding server.
-%
-% Any cached key will be updated in the local process cache, in addition to the
-% environment server.
-%
+-doc """
+Associates (unconditionally), in the specified environment, the specified value
+to the specified key (possibly overwriting any previous value), based on the
+specified registration name: uses any server registered with that name,
+otherwise uses the specified filename to start a corresponding server.
+
+Any cached key will be updated in the local process cache, in addition to the
+environment server.
+""".
 -spec set( key(), value(), env_reg_name(), file_path() ) -> void().
 set( Key, Value, ServerRegName, FilePath ) ->
 	EnvPid = case naming_utils:is_registered( ServerRegName,
@@ -1122,18 +1174,18 @@ set( Key, Value, ServerRegName, FilePath ) ->
 
 
 
+-doc """
+Sets conditionally the specified key/value pairs (that is, only if necessary,
+meaning only if the specified value does not match any currently cached one for
+that key; possibly overwriting any previous values) in the specified
+environment, based on the specified environment file (and possibly launching a
+corresponding environment server if needed) or on the designated already-running
+environment server (specified by registration name, environment information or
+PID).
 
-% @doc Sets conditionally the specified key/value pairs (that is, only if
-% necessary, meaning only if the specified value does not match any currently
-% cached one for that key; possibly overwriting any previous values) in the
-% specified environment, based on the specified environment file (and possibly
-% launching a corresponding environment server if needed) or on the designated
-% already-running environment server (specified by registration name,
-% environment information or PID).
-%
-% Any cached key will be updated in the local process cache, in addition to the
-% environment server.
-%
+Any cached key will be updated in the local process cache, in addition to the
+environment server.
+""".
 -spec set_cond( [ entry() ], env_data() | file_path() ) -> void().
 set_cond( Entries, _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	set_cond( Entries, EnvPid );
@@ -1173,7 +1225,7 @@ set_cond( Entries, EnvPid ) when is_list( Entries ) ->
 				{ value, { EnvRegName, EnvCacheTable } } ->
 
 					NewEnvCacheTable = case get_needed_sendings( Entries,
-											EnvCacheTable, _AccEntries=[] ) of
+							EnvCacheTable, _AccEntries=[] ) of
 
 						% Spared sending:
 						{ _ToSendEntries=[], UpdatedEnvCacheTable } ->
@@ -1197,11 +1249,12 @@ set_cond( Entries, EnvPid ) when is_list( Entries ) ->
 
 
 
-% @doc Updates the specified environment with the entries found in the specified
-% ETF file.
-%
-% Loaded entries supersede any pre-existing ("default") ones.
-%
+-doc """
+Updates the specified environment with the entries found in the specified ETF
+file.
+
+Loaded entries supersede any pre-existing ("default") ones.
+""".
 -spec update_from_etf( any_file_path(), env_data() ) -> void().
 update_from_etf( AnyETFFilePath, AnyEnvData ) ->
 	LoadedEntries = file_utils:read_etf_file( AnyETFFilePath ),
@@ -1209,9 +1262,10 @@ update_from_etf( AnyETFFilePath, AnyEnvData ) ->
 
 
 
-% @doc Returns the non-matching entries (that thus shall be sent to the
-% environment server), and an updated environment cache.
-%
+-doc """
+Returns the non-matching entries (that thus shall be sent to the environment
+server), and an updated environment cache.
+""".
 -spec get_needed_sendings( entries(), env_cache_table(), entries() ) ->
 										{ entries(), env_cache_table() }.
 get_needed_sendings( _NewEntries=[], EnvCacheTable, AccEntries ) ->
@@ -1239,33 +1293,35 @@ get_needed_sendings( _NewEntries=[ E={ K, V } | T ], EnvCacheTable,
 
 
 
-% @doc Associates conditionally (that is, only if necessary, meaning only if the
-% specified value does not match any currently cached one for that key), in the
-% specified environment, the specified value to the specified key (possibly
-% overwriting any previous value), based on the specified environment file (and
-% possibly launching a corresponding environment server if needed) or on the
-% designated already-running environment server (specified by registration name,
-% environment information or PID).
-%
-% Any cached key will be updated in the local process cache, in addition to the
-% environment server.
-%
+-doc """
+Associates conditionally (that is, only if necessary, meaning only if the
+specified value does not match any currently cached one for that key), in the
+specified environment, the specified value to the specified key (possibly
+overwriting any previous value), based on the specified environment file (and
+possibly launching a corresponding environment server if needed) or on the
+designated already-running environment server (specified by registration name,
+environment information or PID).
+
+Any cached key will be updated in the local process cache, in addition to the
+environment server.
+""".
 -spec set_cond( key(), value(), env_data() | file_path() ) -> void().
 set_cond( Key, Value, AnyEnvElem ) ->
 	set_cond( _Entries=[ { Key, Value } ], AnyEnvElem ).
 
 
 
-% @doc Associates conditionally (that is, only if necessary, meaning only if the
-% specified value does not match any currently cached one for that key), in the
-% specified environment, the specified value to the specified key (possibly
-% overwriting any previous value), based on the specified registration name:
-% uses any server registered with that name, otherwise uses the specified
-% filename to start a corresponding server.
-%
-% Any cached key will be updated in the local process cache, in addition to the
-% environment server.
-%
+-doc """
+Associates conditionally (that is, only if necessary, meaning only if the
+specified value does not match any currently cached one for that key), in the
+specified environment, the specified value to the specified key (possibly
+overwriting any previous value), based on the specified registration name: uses
+any server registered with that name, otherwise uses the specified filename to
+start a corresponding server.
+
+Any cached key will be updated in the local process cache, in addition to the
+environment server.
+""".
 -spec set_cond( key(), value(), env_reg_name(), file_path() ) -> void().
 set_cond( Key, Value, ServerRegName, FilePath ) ->
 	EnvPid = case naming_utils:is_registered( ServerRegName,
@@ -1282,10 +1338,11 @@ set_cond( Key, Value, ServerRegName, FilePath ) ->
 
 
 
-% @doc Removes the specified entries (a single one or multiple ones) from the
-% specified environment, based on the designated already-running environment
-% server (specified by registration name, environment information or PID).
-%
+-doc """
+Removes the specified entries (a single one or multiple ones) from the specified
+environment, based on the designated already-running environment server
+(specified by registration name, environment information or PID).
+""".
 -spec remove( key(), env_data() ) -> void();
 			( [ key() ], env_data() ) -> void().
 remove( Key, EnvPid ) when is_atom( Key ) ->
@@ -1347,12 +1404,12 @@ remove( Keys, EnvPid ) when is_list( Keys ) ->
 
 
 
-% @doc Extracts the specified entries (a single one or multiple ones) from the
-% specified environment, based on the designated already-running environment
-% server (specified by registration name, environment information or PID):
-% removes these entries (including from any local cache) and returns their
-% value.
-%
+-doc """
+Extracts the specified entries (a single one or multiple ones) from the
+specified environment, based on the designated already-running environment
+server (specified by registration name, environment information or PID): removes
+these entries (including from any local cache) and returns their value.
+""".
 -spec extract( key(), env_data() ) -> value();
 			 ( [ key() ], env_data() ) -> [ value() ].
 extract( Key, EnvPid ) when is_atom( Key ) ->
@@ -1425,28 +1482,28 @@ extract( Keys, EnvPid ) when is_list( Keys ) ->
 
 
 
-% @doc Requests the calling process to cache the entries corresponding to the
-% specified key(s), which will thus be appropriately synchronised with the
-% server from now on, in addition to any already cached keys.
-%
-% Either single keys or full entries can be specified there. Both will lead the
-% corresponding keys to be cached, yet a single key, if it is not already cached
-% (otherwise, its update will be ignored), will trigger its value to be fetched
-% from the environment server whereas the value of a full entry will be cached
-% and also sent to the environment server (therefore being equivalent to set/2).
-%
-% Any next setting by this process of one of these cached keys will update its
-% local cache as well as the specified environment server; as a consequence,
-% here the cache is expected to start consistent with its server; afterwards by
-% default only the entries not already in cache will be requested from the
-% server.
-%
-% The environment can be specified through its information (recommended), or
-% from its registration name, otherwise directly through its PID, in which case
-% at least one of its entries shall already be cached (indeed a client cache
-% stores the registration name of the cached environments, which cannot be
-% deduced from their PID).
-%
+-doc """
+Requests the calling process to cache the entries corresponding to the specified
+key(s), which will thus be appropriately synchronised with the server from now
+on, in addition to any already cached keys.
+
+Either single keys or full entries can be specified there. Both will lead the
+corresponding keys to be cached, yet a single key, if it is not already cached
+(otherwise, its update will be ignored), will trigger its value to be fetched
+from the environment server whereas the value of a full entry will be cached and
+also sent to the environment server (therefore being equivalent to set/2).
+
+Any next setting by this process of one of these cached keys will update its
+local cache as well as the specified environment server; as a consequence, here
+the cache is expected to start consistent with its server; afterwards by default
+only the entries not already in cache will be requested from the server.
+
+The environment can be specified through its information (recommended), or from
+its registration name, otherwise directly through its PID, in which case at
+least one of its entries shall already be cached (indeed a client cache stores
+the registration name of the cached environments, which cannot be deduced from
+their PID).
+""".
 -spec cache( cache_spec(), env_data() ) -> void().
 cache( AnyElem, _EnvInfo={ EnvRegName, EnvPid } ) ->
 	cache( AnyElem, EnvRegName, EnvPid );
@@ -1540,22 +1597,22 @@ cache( KeysOrEntries, EnvRegName ) when is_atom( EnvRegName ) ->
 
 
 
-% @doc Requests the calling process to cache the entries corresponding to the
-% specified key(s), which will thus be appropriately synchronised with the
-% server from now on, in addition to any already cached keys.
-%
-% Either single keys or full entries can be specified there. Both will lead the
-% corresponding keys to be cached, yet a single key, if it is not already cached
-% (otherwise, it will be ignored), will trigger its value to be fetched from the
-% environment server whereas the value of a full entry will be cached and also
-% sent to the environment server (therefore being equivalent to set/2).
-%
-% Any next setting by this process of one of these cached keys will update its
-% local cache as well as the specified environment server; as a consequence,
-% here the cache is expected to start consistent with its server; afterwards by
-% default only the entries not already in cache will be requested from the
-% server.
-%
+-doc """
+Requests the calling process to cache the entries corresponding to the specified
+key(s), which will thus be appropriately synchronised with the server from now
+on, in addition to any already cached keys.
+
+Either single keys or full entries can be specified there. Both will lead the
+corresponding keys to be cached, yet a single key, if it is not already cached
+(otherwise, it will be ignored), will trigger its value to be fetched from the
+environment server whereas the value of a full entry will be cached and also
+sent to the environment server (therefore being equivalent to set/2).
+
+Any next setting by this process of one of these cached keys will update its
+local cache as well as the specified environment server; as a consequence, here
+the cache is expected to start consistent with its server; afterwards by default
+only the entries not already in cache will be requested from the server.
+""".
 -spec cache( cache_spec(), env_reg_name(), env_pid() ) -> void().
 cache( Key, EnvRegName, EnvPid ) when is_atom( Key ) ->
 	cache( [ Key ], EnvRegName, EnvPid );
@@ -1671,11 +1728,12 @@ finish_caching( EnvPid, EnvRegName, SingleKeys, Entries, EnvCacheTable,
 
 
 
-% @doc Caches in the calling process the specified keys, and returns their
-% associated value.
-%
-% Equivalent to a call to cache/2 followed by one to get/2 with the same keys.
-%
+-doc """
+Caches in the calling process the specified keys, and returns their associated
+value.
+
+Equivalent to a call to cache/2 followed by one to get/2 with the same keys.
+""".
 -spec cache_return( maybe_list( key() ), env_data() ) ->
 								maybe_list( option( value() ) ).
 cache_return( Key, AnyEnvData ) when is_atom( Key ) ->
@@ -1687,9 +1745,10 @@ cache_return( Keys, AnyEnvData ) ->
 
 
 
-% @doc Removes any (local) cache regarding the specified environment, resulting
-% in all subsequent operations on it to happen at the level of its server.
-%
+-doc """
+Removes any (local) cache regarding the specified environment, resulting in all
+subsequent operations on it to happen at the level of its server.
+""".
 -spec uncache( env_data() ) -> void().
 uncache( _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	uncache( EnvPid );
@@ -1728,19 +1787,21 @@ uncache( EnvPid ) ->
 
 
 
-% @doc Removes all (local) environment caches (if any), resulting in all
-% subsequent operations on environments to happen at the level of their server.
-%
+-doc """
+Removes all (local) environment caches (if any), resulting in all subsequent
+operations on environments to happen at the level of their server.
+""".
 -spec uncache() -> void().
 uncache() ->
 	process_dictionary:remove( ?env_dictionary_key ).
 
 
 
-% @doc Synchronises the local cache (if any) from the specified environment
-% server, assuming the server entries are references (that is more recent than
-% the cached ones).
-%
+-doc """
+Synchronises the local cache (if any) from the specified environment server,
+assuming the server entries are references (that is more recent than the cached
+ones).
+""".
 -spec sync( env_data() ) -> void().
 sync( _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	sync( EnvPid ) ;
@@ -1788,12 +1849,13 @@ sync( EnvPid ) ->
 
 
 
-% @doc Ensures that the specified key(s), expected to be some kind of strings,
-% are binary strings.
-%
-% Typically useful so that default plain strings may be specified, even if
-% internally they should be binary ones.
-%
+-doc """
+Ensures that the specified key(s), expected to be some kind of strings, are
+binary strings.
+
+Typically useful so that default plain strings may be specified, even if
+internally they should be binary ones.
+""".
 -spec ensure_binary( maybe_list( key() ), env_data() ) -> void().
 ensure_binary( KeyMaybeList, _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	ensure_binary( KeyMaybeList, EnvPid );
@@ -1807,9 +1869,10 @@ ensure_binary( KeyMaybeList, EnvPid ) ->
 
 
 
-% @doc Stores (asynchronously) the current state of the specified environment in
-% the file whence it supposedly was loaded initially.
-%
+-doc """
+Stores (asynchronously) the current state of the specified environment in the
+file whence it supposedly was loaded initially.
+""".
 -spec store( env_data() ) -> void().
 store( _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	store( EnvPid );
@@ -1823,11 +1886,12 @@ store( EnvPid ) ->
 
 
 
-% @doc Stores (asynchronously) the current state of the specified environment in
-% the specified file, regardless of any file from which it was loaded.
-%
-% The specified path becomes the reference one.
-%
+-doc """
+Stores (asynchronously) the current state of the specified environment in the
+specified file, regardless of any file from which it was loaded.
+
+The specified path becomes the reference one.
+""".
 -spec store( env_data(), any_file_path() ) -> void().
 store( _EnvInfo={ _EnvRegName, EnvPid }, TargetFilePath ) ->
 	store( EnvPid, TargetFilePath );
@@ -1842,9 +1906,10 @@ store( EnvPid, TargetFilePath ) ->
 
 
 
-% @doc Returns a textual description of the environments known of the calling
-% process, based on its cache (if any).
-%
+-doc """
+Returns a textual description of the environments known of the calling process,
+based on its cache (if any).
+""".
 -spec to_string() -> ustring().
 to_string() ->
 	case process_dictionary:get( ?env_dictionary_key ) of
@@ -1875,30 +1940,29 @@ to_string() ->
 
 
 
-% @doc Returns a textual description of the environment server (if any)
-% specified from an information or designator thereof, or from its environment
-% file.
-%
-% Prefer calling to_bin_string/1.
-%
+-doc """
+Returns a textual description of the environment server (if any) specified from
+an information or designator thereof, or from its environment file.
+
+Prefer calling to_bin_string/1.
+""".
 -spec to_string( env_data() | file_path() ) -> ustring().
 to_string( EnvData ) ->
 	text_utils:binary_to_string( to_bin_string( EnvData ) ).
 
 
 
-% @doc Returns a textual description of the environment server (if any)
-% specified from an information or designator thereof, or from its environment
-% file.
-%
-% To be preferred to to_string/1.
-%
+-doc """
+Returns a textual description of the environment server (if any) specified from
+an information or designator thereof, or from its environment file.
+
+To be preferred to to_string/1.
+""".
 -spec to_bin_string( env_data() | file_path() ) -> bin_string().
 to_bin_string( _EnvInfo={ EnvRegName, _EnvPid } ) ->
 	to_bin_string( EnvRegName );
 
 to_bin_string( EnvRegAtom ) when is_atom( EnvRegAtom ) ->
-
 	case naming_utils:is_registered( EnvRegAtom, local ) of
 
 		not_registered ->
@@ -1910,13 +1974,11 @@ to_bin_string( EnvRegAtom ) when is_atom( EnvRegAtom ) ->
 
 	end;
 
-
 to_bin_string( FilePath ) when is_list( FilePath ) ->
 
 	EnvRegAtom = get_env_reg_name_from( FilePath ),
 
 	to_bin_string( EnvRegAtom );
-
 
 % Then supposed to be existing:
 to_bin_string( EnvSrvPid ) when is_pid( EnvSrvPid ) ->
@@ -1959,13 +2021,13 @@ cache_to_string( EnvCacheTable ) ->
 
 
 
-% @doc Returns the automatic naming used for registering an environment server,
-% as deduced from the specified environment filename.
-%
-% For example, the registration name associated to the
-% "/var/opt/foobar.application.etf" environment filename is
-% 'foobar_application'.
-%
+-doc """
+Returns the automatic naming used for registering an environment server, as
+deduced from the specified environment filename.
+
+For example, the registration name associated to the
+"/var/opt/foobar.application.etf" environment filename is 'foobar_application'.
+""".
 -spec get_env_reg_name_from( file_path() ) -> env_reg_name().
 get_env_reg_name_from( FilePath ) ->
 
@@ -1978,11 +2040,12 @@ get_env_reg_name_from( FilePath ) ->
 
 
 
-% @doc Stops (asynchronously) the environment server designated by the specified
-% registration name or file, if it is running.
-%
-% Never fails.
-%
+-doc """
+Stops (asynchronously) the environment server designated by the specified
+registration name or file, if it is running.
+
+Never fails.
+""".
 -spec stop( env_data() | file_path() ) -> void().
 stop( _EnvInfo={ _EnvRegName, EnvPid } ) ->
 	stop( EnvPid );
@@ -2003,12 +2066,14 @@ stop( EnvPid ) ->
 
 
 
+
 % Section for the environment server itself.
 
 
-% Launcher of the environment server, to start with either a blank state or with
-% default entries.
-%
+-doc """
+Launcher of the environment server, to start with either a blank state or with
+default entries.
+""".
 -spec server_run( pid(), env_reg_name(), option( entries() ) ) -> no_return().
 server_run( SpawnerPid, RegistrationName, MaybeDefaultEntries ) ->
 
@@ -2050,9 +2115,10 @@ server_run( SpawnerPid, RegistrationName, MaybeDefaultEntries ) ->
 
 
 
-% Launcher of the environment server, to be initialised with any specified
-% default entries, then with the specified file.
-%
+-doc """
+Launcher of the environment server, to be initialised with any specified default
+entries, then with the specified file.
+""".
 -spec server_run( pid(), env_reg_name(), bin_string(), option( entries() ) ) ->
 												no_return().
 server_run( SpawnerPid, RegistrationName, BinFilePath, MaybeDefaultEntries ) ->
@@ -2137,7 +2203,7 @@ ensure_binaries( Keys, Table ) ->
 
 
 
-% Main loop of the environment server.
+-doc "Main loop of the environment server.".
 -spec server_main_loop( table(), env_reg_name(), option( bin_file_path() ) ) ->
 												no_return().
 server_main_loop( Table, EnvRegName, MaybeBinFilePath ) ->

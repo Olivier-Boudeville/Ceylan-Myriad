@@ -74,113 +74,158 @@ See cipher_utils_test.erl for testing.
 
 
 
-
 % Available transformations are:
-%
-% - id: identity (content not changed)
-%
-% - offset: the specified value is added to all bytes of the file
-%
-% - compress: the file content is replaced by a compressed version thereof,
-% using one of the supported formats (see compress_format/0)
-%
-% - insert_random: based on the specified seed and on the specified range R, a
-% series of strictly positive values is uniformly drawn in [1,R]; these values
-% are offsets relative to the last random insertion (initial one is 0); at each
-% position determined thanks to offsets, a random value in [0,255] is inserted
-%
-% - delta_combine: a byte Bk+1 is replaced by its difference with the previous
-% byte, with B0=128; hence Bk+1 is replaced by Bk+1 - Bk (Bk having obeyed the
-% same rule)
-%
-% - shuffle: based on the specified seed and length L, each series of up to L
-% bytes is uniformly shuffled
-%
-% - xor: based on the specified list of bytes, the content of the file is XOR'ed
-%
-% - mealy: based on specified state-transition data, the content of the file is
-% modified accordingly; the input and output alphabet are the same, B, the set
-% of all bytes (i.e. integers in [0,255]), while the states are strictly
-% positive integers; the transition and output function are coalesced into a
-% single function: f({ CurrentState, InputByte }) -> {NewState, OutputByte};
-% for more information: https://en.wikipedia.org/wiki/Mealy_machine
 
 
+-doc """
+Identity (content not changed).
+
+Just for testing.
+""".
 -type id_transform() :: 'id'.
-% Just for testing.
 
 
+
+-doc """
+The specified offset value is added to all bytes of the file.
+""".
 -type offset_transform() :: { 'offset', integer() }.
 
 
+
+-doc """
+The stream content is replaced by a compressed version thereof, using one of the
+supported formats (see compress_format/0).
+""".
 -type compress_transform() :: { 'compress', compression_format() }.
 
+
+
+-doc """
+The stream content is replaced by a decompressed version thereof, using one of
+the supported formats (see compress_format/0).
+""".
 -type decompress_transform() :: { 'decompress', compression_format() }.
 
 
+
+-doc """
+Based on the specified seed and on the specified range R, a series of strictly
+positive values is uniformly drawn in [1,R]; these values are offsets relative
+to the last random insertion (initial one is 0); at each position determined
+thanks to offsets, a random value in [0,255] is inserted.
+""".
 -type insert_random_transform() :: { 'insert_random', seed(), count() }.
 
+
+
+-doc """
+Based on the specified seed and on the specified range R, a series of strictly
+positive values is uniformly drawn in [1,R]; these values are offsets relative
+to the last random insertion (initial one is 0); at each position determined
+thanks to offsets, a random value in [0,255] is extracted.  
+""".
 -type extract_random_transform() :: { 'extract_random', seed(), count() }.
 
 
+
+-doc """
+A byte Bk+1 is replaced by its difference with the previous byte, with B0=128;
+hence Bk+1 is replaced by Bk+1 - Bk (Bk having obeyed the same rule).
+""".
 -type delta_combine_transform() :: 'delta_combine'.
+
+
+-doc "Reverse operation of delta_combine_transform/0.".
 -type delta_combine_reverse_transform() :: 'delta_combine_reverse'.
 
 
+
+-doc """
+Based on the specified seed and length L, each series of up to L bytes is
+uniformly shuffled.
+""".
 -type shuffle_transform() :: { 'shuffle', seed(), count() }.
 
+
+
+-doc "Reverse operation of shuffle_transform/0.".
 -type reciprocal_shuffle_transform() ::
 		{ 'reciprocal_shuffle', seed(), count() }.
 
 
+
+-doc """
+Based on the specified list of bytes, the content of the stream is XOR'ed.
+""".
 -type xor_transform() :: { 'xor', [ integer() ] }.
+
 
 
 
 % Mealy transform section.
 
+
+-doc "Designates a state of the Mealy machine, starting from 1.".
 -type state() :: pos_integer().
-% Designates a state of the Mealy machine, starting from 1.
 
 
+-doc "A letter (of both alphabets, i.e. input and output one).".
 -type letter() :: byte().
-% A letter (of both alphabets, i.e. input and output).
 
 
+
+-doc """
+A cell of any inner array, each of these arrays being relative to a given input
+letter and being indexed by the possible machine states.
+""".
 -type cell() :: { state(), letter() }.
-% A cell of any inner array, each of these arrays being relative to a given
-% input letter and being indexed by the possible machine states.
+ 
 
 
+-doc """
+Each array of this type is relative to an input letter, and its cell are indexed
+by states.
+""".
 -type inner_array() :: array:array( cell() ).
-% Each array of this type is relative to an input letter, and its cell are
-% indexed by states.
 
 
 
+-doc """
+A Mealy table can be seen as a two-dimensional array, whose first dimension is
+the states of the Machine (in [1,StateCount]) and second is the input alphabet
+(here letters are bytes, in [0,255]).
+
+Each cell is a {NextState, OutputLetter} pair.
+
+The Mealy table is implemented (easier to build) as a fixed-size array, one
+element per possible state (corresponding to a column of the 2D array).
+
+Each element of this table is itself an array, having as many elements as the
+size of the input alphabet, hence 256 of them, in [0,255].
+
+Each element of these inner arrays corresponds to the aforementioned cell.
+""".
 -type mealy_table() :: array:array( inner_array() ).
-% A Mealy table can be seen as a two-dimensional array, whose first dimension is
-% the states of the Machine (in [1,StateCount]) and second is the input alphabet
-% (here letters are bytes, in [0,255]).
-%
-% Each cell is a {NextState, OutputLetter} pair.
-%
-% The Mealy table is implemented (easier to build) as a fixed-size array, one
-% element per possible state (corresponding to a column of the 2D array).
-%
-% Each element of this table is itself an array, having as many elements as the
-% size of the input alphabet, hence 256 of them, in [0,255].
-%
-% Each element of these inner arrays corresponds to the aforementioned cell.
 
 
+-doc "A state is defined by a strictly positive integer.".
 -type mealy_state() :: pos_integer().
-% A state is defined by a strictly positive integer.
 
 
+-doc """
+Based on specified state-transition data, the content of the file is modified
+accordingly; the input and output alphabet are the same, B, the set of all bytes
+(i.e. integers in [0,255]), while the states are strictly positive integers; the
+transition and output function are coalesced into a single function: f({
+CurrentState, InputByte }) -> {NewState, OutputByte}; for more information:
+<https://en.wikipedia.org/wiki/Mealy_machine>.
+""".
 -type mealy_transform() :: { 'mealy', mealy_state(), mealy_table() }.
 
 
+
+-doc "All supported cipher transformations.".
 -type cipher_transform() :: id_transform()
 						  | offset_transform()
 						  | compress_transform()
@@ -191,20 +236,28 @@ See cipher_utils_test.erl for testing.
 						  | mealy_transform().
 
 
+-doc """
+All supported decipher transformations, for ciphers that require specific
+reverse transformations.
+""".
 -type decipher_transform() :: decompress_transform()
 							| extract_random_transform()
 							| delta_combine_reverse_transform()
 							| reciprocal_shuffle_transform().
-% For ciphers which require specific reverse transformations.
 
 
+-doc "Any transformation".
 -type any_transform() :: cipher_transform() | decipher_transform().
 
 
+-doc """
+User may specify either some licit transform, or possibly mistakes.
+""".
 -type user_specified_transform() :: any().
-% User may specify either some licit transform, or possibly mistakes.
 
 
+
+-doc "A key is an (ordered) list of (parametrised) transformations.".
 -type key() :: [ any_transform() ].
 
 
@@ -233,7 +286,7 @@ See cipher_utils_test.erl for testing.
 
 
 
-% @doc Generates a key file.
+-doc "Generates a key file.".
 -spec generate_key( file_path(), [ cipher_transform() ] ) -> void().
 generate_key( KeyFilePath, Transforms ) ->
 
@@ -257,8 +310,7 @@ generate_key( KeyFilePath, Transforms ) ->
 
 
 
-
-% @doc Returns a description of the specified key.
+-doc "Returns a textual description of the specified key.".
 -spec key_to_string( key() ) -> ustring().
 key_to_string( Key ) ->
 	text_utils:format( "Key composed of following ~B cipher(s): ~ts",
@@ -297,12 +349,12 @@ key_to_strings( [ Cipher | T ], Acc ) ->
 
 
 
+-doc """
+Encrypts the specified source file using specified key file, and writes the
+result in the specified target file.
 
-% @doc Encrypts specified source file using specified key file, and writes the
-% result in specified target file.
-%
-% The original file is kept as is.
-%
+The original file is kept as is.
+""".
 -spec encrypt( file_path(), file_path(), file_path() ) -> void().
 encrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
@@ -329,12 +381,12 @@ encrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
 
 
+-doc """
+Decrypts specified source file using specified key file, and writes the result
+in specified target file.
 
-% @doc Decrypts specified source file using specified key file, and writes the
-% result in specified target file.
-%
-% The ciphered file is kept as is.
-%
+The ciphered file is kept as is.
+""".
 -spec decrypt( file_path(), file_path(), file_path() ) -> void().
 decrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 
@@ -369,10 +421,11 @@ decrypt( SourceFilePath, TargetFilePath, KeyFilePath ) ->
 % Helper section.
 
 
-% @doc Reads key from specified filename, and returns it.
-%
-% (helper)
-%
+-doc """
+Reads a key from the specified filename, and returns it.
+
+(helper)
+""".
 -spec read_key( file_path() ) -> [ user_specified_transform() ].
 read_key( KeyFilePath ) ->
 
@@ -399,10 +452,11 @@ read_key( KeyFilePath ) ->
 
 
 
-% @doc Returns the reverse key of specified one.
-%
-% (helper)
-%
+-doc """
+Returns the reverse key of the specified one.
+
+(helper)
+""".
 -spec get_reverse_key_from( [ user_specified_transform() ] ) ->
 									[ any_transform() ].
 get_reverse_key_from( KeyInfos ) ->
@@ -420,12 +474,11 @@ get_reverse_key_from( _KeyInfos=[ K | H ], Acc ) ->
 
 
 
+-doc """
+Applies the specified key to the specified file.
 
-
-% @doc Applies specified key to specified file.
-%
-% Returns the filename of the resulting file.
-%
+Returns the filename of the resulting file.
+""".
 apply_key( KeyInfos, SourceFilePath ) ->
 	apply_key( KeyInfos, SourceFilePath, _CipherCount=1 ).
 
@@ -451,22 +504,24 @@ apply_key( _KeyInfos=[ C | H ], SourceFilePath, CipherCount ) ->
 
 
 
-% @doc Table way too big to be displayed:
+-doc "Returns a description, as a term, of the specified transformation.".
+-spec get_cipher_description( any_transform() ) -> term().
+% Table way too big to be displayed:
 get_cipher_description( { mealy, InitialState, _Table } ) ->
 	text_utils:format( "Mealy transform, with initial state ~p",
 					   [ InitialState ] );
-
 
 get_cipher_description( OtherCipher ) ->
 	OtherCipher.
 
 
 
-% @doc Applies specified cipher to specified file.
-%
-% Some ciphers are better managed if special-cased, whereas others can rely on
-% base (yet generic) mechanisms.
-%
+-doc """
+Applies the specified cipher to the specified file.
+
+Some ciphers are better managed if special-cased, whereas others can rely on
+base (yet generic) mechanisms.
+""".
 -spec apply_cipher( any(), file_path(), file_path() ) -> void().
 apply_cipher( id, SourceFilePath, CipheredFilePath ) ->
 	id_cipher( SourceFilePath, CipheredFilePath );
@@ -568,7 +623,8 @@ apply_cipher( C, _SourceFilePath, _CipheredFilePath ) ->
 
 
 
-% Returns the reverse cipher of the specified one.
+-doc "Returns the reverse cipher of the specified one.".
+-spec reverse_cipher( any_transform() ) -> any_transform().
 reverse_cipher( C=id ) ->
 	C;
 
@@ -604,9 +660,10 @@ reverse_cipher( C ) ->
 % Cipher section.
 
 
-%  @doc For all ciphers that can be expressed by a byte-level, stateful
-%  transformation fun.
-%
+-doc """
+For all ciphers that can be expressed by a byte-level, stateful transformation
+fun.
+""".
 apply_byte_level_cipher( SourceFilePath, CipheredFilePath, CipherFun,
 						 CipherInitialState ) ->
 
@@ -637,7 +694,7 @@ apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
 		{ ok, DataBin } ->
 
 			{ NewDataBin, NewCipherState } = transform_bytes( DataBin,
-									CipherFun, CipherInitialState ),
+				CipherFun, CipherInitialState ),
 
 			file_utils:write( TargetFile, NewDataBin ),
 
@@ -648,11 +705,12 @@ apply_byte_level_helper( SourceFile, TargetFile, CipherFun,
 
 
 
-% There must be a way of folding onto binaries (bitstring comprehensions):
+% Bitstring comprehensions could be used.
 transform_bytes( DataBin, CipherFun, CipherInitialState ) ->
 	transform_bytes( DataBin, CipherFun, CipherInitialState, _AccBin = <<>> ).
 
 
+% (helper)
 transform_bytes( <<>>, _CipherFun, CipherState, AccBin ) ->
 	{ AccBin, CipherState };
 
@@ -666,12 +724,13 @@ transform_bytes( _A = << InputByte:8, T/binary >>, CipherFun,
 
 
 
+-doc """
+No-op cipher.
 
-% @doc No-op cipher.
-%
-% We must though create a new file, as the semantics is to create an additional
-% file in all cases.
-%
+We must though create a new file, as the semantics is to create an additional
+file in all cases.
+""".
+
 id_cipher( SourceFilePath, CipheredFilePath ) ->
 	file_utils:copy_file( SourceFilePath, CipheredFilePath ).
 
@@ -757,7 +816,7 @@ insert_helper( SourceFile, TargetFile, Range, Count ) ->
 
 
 extract_random_cipher( CipheredFilePath, TargetFilePath, Range )
-  when Range > 1 ->
+                                        when Range > 1 ->
 
 	CipheredFile = file_utils:open( CipheredFilePath, ?bin_read_opts ),
 
@@ -868,7 +927,6 @@ xor_cipher( SourceFilePath, CipheredFilePath, XORList ) ->
 	xor_helper( SourceFile, TargetFile, XORRing ).
 
 
-
 xor_helper( SourceFile, TargetFile, XORRing ) ->
 
 	case file_utils:read( SourceFile, 1 ) of
@@ -972,28 +1030,33 @@ generate_filename() ->
 % .       .
 % 255
 
-% Each inner array corresponds to a column, in charge of the behaviour of the
-% machine when it is in the corresponding state Sn.
+% Each inner array corresponds to a column, in charge of describing the
+% behaviour of the machine when it is in the corresponding state Sn.
 
 
 
-% @doc Generates a Mealy table for the specified number of states.
-%
-% Relies on the current random state.
-%
+-doc """
+Generates a Mealy table for the specified number of states.
+
+Relies on the current random state.
+""".
+-spec generate_mealy_table( count() ) -> mealy_table().
 generate_mealy_table( StateCount ) ->
 	% Default alphabet is all byte values:
 	generate_mealy_table( StateCount, _AlphabetSize=256 ).
 
 
-% Generates a Mealy table for the specified number of states and alphabet size.
-%
-% We manage index to designate symbols of the alphabet; for example, if the
-% alphabet is [ alpha, beta, gamma ], then the alpha symbol is coded by 1, the
-% beta one by 2, etc.
-%
-% Relies on the current random state.
-%
+
+-doc """
+Generates a Mealy table for the specified number of states and alphabet size.
+
+We manage index to designate symbols of the alphabet; for example, if the
+alphabet is [alpha, beta, gamma], then the alpha symbol is coded by 1, the beta
+one by 2, etc.
+
+Relies on the current random state.
+""".
+-spec generate_mealy_table( count(), count() ) -> mealy_table().
 generate_mealy_table( StateCount, AlphabetSize ) ->
 
 	io:format( "Generating a Mealy table for ~B states and "
@@ -1063,8 +1126,7 @@ fill_inner_array( Array, Index, FinalIndex, _Letters=[ L | T ], StateCount ) ->
 
 
 
-
-% @doc Returns the inverse Mealy table of the specified one.
+-doc "Returns the inverse Mealy table of the specified one.".
 -spec compute_inverse_mealy_table( mealy_table() ) -> mealy_table().
 compute_inverse_mealy_table( Table ) ->
 
@@ -1130,7 +1192,7 @@ inverse_cells( _Cells=[ { NextState, OutputLetter } | T ], Index, AccArray ) ->
 
 
 
-% @doc Returns a textual representation of this mealy table.
+-doc "Returns a textual representation of this mealy table.".
 -spec mealy_table_to_string( mealy_table() ) -> ustring().
 mealy_table_to_string( Table ) ->
 

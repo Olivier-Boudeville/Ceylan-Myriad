@@ -58,25 +58,46 @@ Refer to:
 
 		  to_string/1 ]).
 
+
 % Apparently having bijective_table/N opaque causes problems (subtypes being
 % violated by the success typing), so:
-
+%
+-doc "A bijective table.".
 -type bijective_table() :: bijective_table( any(), any() ).
 
 
+
+-doc """
+A bijective table.
+
+Internally, two tables used, one for each direction of conversion.
+""".
 -type bijective_table( F, S ) :: { table:table( F, S ), table:table( S, F ) }.
-% Internally, two tables used, one for each direction of conversion.
+ 
 
 
+-doc "Type of the first elements stored in the bijective table.".
 -type first_type() :: any().
+
+
+-doc "Type of the second elements stored in the bijective table.".
 -type second_type() :: any().
 
+
+-doc "An entry stored in a bijective table.".
 -type entry() :: { first_type(), second_type() }.
 
--type entries() :: [ entry() ].
-% Entries that can be fed to a bijective table.
 
--export_type([ bijective_table/0, bijective_table/2 ]).
+-doc """
+Entries that can be fed to a bijective table.
+
+Now we recommend using [ entry() ] only.
+""".
+-type entries() :: [ entry() ].
+ 
+
+-export_type([ bijective_table/0, bijective_table/2,
+			   entry/0, entries/0 ]).
 
 
 % Shorthands:
@@ -84,16 +105,18 @@ Refer to:
 -type ustring() :: text_utils:ustring().
 
 
-% @doc Returns a new, empty bijective table.
+-doc "Returns a new, empty bijective table.".
 -spec new() -> bijective_table().
 new() ->
 	EmptyTable = table:new(),
 	{ EmptyTable, EmptyTable }.
 
 
-% @doc Returns a new bijective table allowing a two-way conversion between
-% the specified (initial) entries.
-%
+
+-doc """
+Returns a new bijective table allowing a two-way conversion between the
+specified (initial) entries.
+""".
 -spec new( entries() ) -> bijective_table().
 new( InitialEntries ) -> % list type tested by table:new/1:
 
@@ -120,10 +143,11 @@ new( InitialEntries ) -> % list type tested by table:new/1:
 
 
 
-% @doc Adds the specified (pair of) corresponding elements in the specified
-% bijective table, possibly overwriting any already-existing entry, and returns
-% this enriched table.
-%
+-doc """
+Adds the specified (pair of) corresponding elements in the specified bijective
+table, possibly overwriting any already-existing entry, and returns this
+enriched table.
+""".
 -spec add_entry( first_type(), second_type(), bijective_table() ) ->
 												bijective_table().
 add_entry( First, Second,
@@ -133,17 +157,21 @@ add_entry( First, Second,
 	{ NewFirstTable, NewSecondTable }.
 
 
-% @doc Adds the specified entry in the specified bijective table, possibly
-% overwriting any already-existing entry, and returns this enriched table.
-%
+
+-doc """
+Adds the specified entry in the specified bijective table, possibly overwriting
+any already-existing entry, and returns this enriched table.
+""".
 -spec add_entry( entry(), bijective_table() ) -> bijective_table().
 add_entry( _Entry={ First, Second }, BijTable ) ->
 	add_entry( First, Second, BijTable ).
 
 
-% @doc Adds the specified entries in the specified bijective table, possibly
-% overwriting any already-existing entries, and returns this enriched table.
-%
+
+-doc """
+Adds the specified entries in the specified bijective table, possibly
+overwriting any already-existing entries, and returns this enriched table.
+""".
 -spec add_entries( entries(), bijective_table() ) -> bijective_table().
 add_entries( Entries, BijTable ) ->
 	lists:foldl( fun( E, BijTableAcc ) ->
@@ -154,12 +182,12 @@ add_entries( Entries, BijTable ) ->
 
 
 
-% @doc Adds the specified (pair of) corresponding elements in the specified
-% bijective table, none expected to be already registered, and returns this
-% enriched table.
-%
-% Throws an exception should an element happened to be already registered.
-%
+-doc """
+Adds the specified (pair of) corresponding elements in the specified bijective
+table, none expected to be already registered, and returns this enriched table.
+
+Throws an exception should an element happened to be already registered.
+""".
 -spec add_new_entry( first_type(), second_type(), bijective_table() ) ->
 												bijective_table().
 add_new_entry( First, Second,
@@ -169,19 +197,21 @@ add_new_entry( First, Second,
 	{ NewFirstTable, NewSecondTable }.
 
 
-% @doc Adds the specified entry in the specified bijective table, none of the
-% pair element expected to be already registered, and returns this enriched
-% table.
-%
+
+-doc """
+Adds the specified entry in the specified bijective table, none of the pair
+element expected to be already registered, and returns this enriched table.
+""".
 -spec add_new_entry( entry(), bijective_table() ) -> bijective_table().
 add_new_entry( _Entry={ First, Second }, BijTable ) ->
 	add_new_entry( First, Second, BijTable ).
 
 
-% @doc Adds the specified entries in the specified bijective table, none of the
-% element of the pairs expected to be already registered, and returns this
-% enriched table.
-%
+
+-doc """
+Adds the specified entries in the specified bijective table, none of the element
+of the pairs expected to be already registered, and returns this enriched table.
+""".
 -spec add_new_entries( entries(), bijective_table() ) -> bijective_table().
 add_new_entries( Entries, BijTable ) ->
 	lists:foldl( fun( E, BijTableAcc ) ->
@@ -192,18 +222,21 @@ add_new_entries( Entries, BijTable ) ->
 
 
 
-% @doc Returns the element of the first type that corresponds to the specified
-% element of the second type.
-%
+-doc """
+Returns the element of the first type that corresponds to the specified element
+of the second type.
+""".
 -spec get_first_for( second_type(), bijective_table() ) -> first_type().
 get_first_for( Second,
 			   _BijTable={ _FirstToSecondTable, SecondToFirstTable } ) ->
 	table:get_value( Second, SecondToFirstTable ).
 
 
-% @doc Returns the element of the first type (if any) that corresponds to the
-% specified element of the second type.
-%
+
+-doc """
+Returns the element of the first type (if any) that corresponds to the specified
+element of the second type.
+""".
 -spec get_maybe_first_for( second_type(), bijective_table() ) ->
 											option( first_type() ).
 get_maybe_first_for( Second,
@@ -220,9 +253,10 @@ get_maybe_first_for( Second,
 
 
 
-% @doc Returns the elements of the first type that correspond to the specified
-% elements of the second type.
-%
+-doc """
+Returns the elements of the first type that correspond to the specified elements
+of the second type.
+""".
 -spec get_first_elements_for( [ second_type() ], bijective_table() ) ->
 											[ first_type() ].
 get_first_elements_for( SecondElems,
@@ -231,18 +265,21 @@ get_first_elements_for( SecondElems,
 
 
 
-% @doc Returns the element of the second type that corresponds to the specified
-% element of the first type.
-%
+-doc """
+Returns the element of the second type that corresponds to the specified element
+of the first type.
+""".
 -spec get_second_for( first_type(), bijective_table() ) -> second_type().
 get_second_for( First,
 				_BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 	table:get_value( First, FirstToSecondTable ).
 
 
-% @doc Returns the element of the second type (if any) that corresponds to the
-% specified element of the first type.
-%
+
+-doc """
+Returns the element of the second type (if any) that corresponds to the
+specified element of the first type.
+""".
 -spec get_maybe_second_for( first_type(), bijective_table() ) ->
 											option( second_type() ).
 get_maybe_second_for( First,
@@ -259,9 +296,10 @@ get_maybe_second_for( First,
 
 
 
-% @doc Returns the elements of the first type that correspond to the specified
-% elements of the first type.
-%
+-doc """
+Returns the elements of the first type that correspond to the specified elements
+of the first type.
+""".
 -spec get_second_elements_for( [ first_type() ], bijective_table() ) ->
 											[ second_type() ].
 get_second_elements_for( FirstElems,
@@ -270,13 +308,14 @@ get_second_elements_for( FirstElems,
 
 
 
-% @doc Removes the specified entry, as designated by its first element, from the
-% specified bijective table.
-%
-% Throws an exception if the corresponding entry is not found.
-%
-% Returns an updated table.
-%
+-doc """
+Removes the specified entry, as designated by its first element, from the
+specified bijective table.
+
+Throws an exception if the corresponding entry is not found.
+
+Returns an updated table.
+""".
 -spec remove_entry_by_first( first_type(), bijective_table() ) ->
 											bijective_table().
 remove_entry_by_first( First,
@@ -287,13 +326,15 @@ remove_entry_by_first( First,
 	{ ShrunkFirstTable, ShrunkSecondTable }.
 
 
-% @doc Removes the specified entry, as designated by its second element, from
-% the specified bijective table.
-%
-% Throws an exception if the corresponding entry is not found.
-%
-% Returns an updated table.
-%
+
+-doc """
+Removes the specified entry, as designated by its second element, from the
+specified bijective table.
+
+Throws an exception if the corresponding entry is not found.
+
+Returns an updated table.
+""".
 -spec remove_entry_by_second( second_type(), bijective_table() ) ->
 												bijective_table().
 remove_entry_by_second( Second,
@@ -305,7 +346,7 @@ remove_entry_by_second( Second,
 
 
 
-% @doc Returns a textual description of the specified bijective table.
+-doc "Returns a textual description of the specified bijective table.".
 -spec to_string( bijective_table() ) -> ustring().
 to_string( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 
@@ -320,6 +361,5 @@ to_string( _BijTable={ FirstToSecondTable, _SecondToFirstTable } ) ->
 				  text_utils:strings_to_string(
 					[ text_utils:format( "~p <-> ~p", [ F, S ] )
 						|| { F, S } <- Elems ] ) ] )
-
 
 	end.

@@ -92,20 +92,32 @@ Refer to:
 -export([ generate_in_memory/2, generate_in_file/2, generate_in_file/3 ]).
 
 
+-doc """
+Designates the keys of the table.
+
+A module-based storage cannot hold transient terms.
+""".
 -type key() :: permanent_term().
-% Designates the keys of the table.
-% A module-based storage cannot hold transient terms.
 
+
+
+-doc """
+Designates the values of the table.
+
+A module-based storage cannot hold transient terms.
+""".
 -type value() :: permanent_term().
-% Designates the values of the table.
-% A module-based storage cannot hold transient terms.
 
 
+
+-doc "An entry to be fed to a const-table.".
 -type entry() :: { key(), value() }.
-% An entry to be fed to a const-table.
 
+
+
+-doc "Entries to be fed to a const-table.".
 -type entries() :: [ entry() ].
-% Entries to be fed to a const-table.
+
 
 -export_type([ key/0, value/0, entry/0, entries/0 ]).
 
@@ -129,13 +141,15 @@ Refer to:
 -type permanent_term() :: type_utils:permanent_term().
 
 
-% @doc Generates in memory (only) and loads a module sharing the specified
-% entries by exporting as many functions named according to the keys, and
-% returning the value corresponding to the selected key.
-%
-% Note that no actual module file is generated (e.g. no 'foobar.beam'), the
-% operation remains fully in-memory.
-%
+
+-doc """
+Generates in memory (only) and loads a module sharing the specified entries by
+exporting as many functions named according to the keys, and returning the value
+corresponding to the selected key.
+
+Note that no actual module file is generated (e.g. no 'foobar.beam'), the
+operation remains fully in-memory.
+""".
 -spec generate_in_memory( module_name(), entries() ) -> void().
 generate_in_memory( ModuleName, Entries ) ->
 
@@ -175,31 +189,33 @@ generate_in_memory( ModuleName, Entries ) ->
 
 
 
-% @doc Generates in-file (a BEAM file created in the current directory) and
-% loads a module sharing the specified entries by exporting as many functions
-% named according to the keys, and returning the value corresponding to the
-% selected key.
-%
-% Returns the generated filename (not path), for any further reference.
-%
+-doc """
+Generates in-file (a BEAM file created in the current directory) and loads a
+module sharing the specified entries by exporting as many functions named
+according to the keys, and returning the value corresponding to the selected
+key.
+
+Returns the generated filename (not path), for any further reference.
+""".
 -spec generate_in_file( module_name(), entries() ) -> file_name().
 generate_in_file( ModuleName, Entries ) ->
 	generate_in_file( ModuleName, Entries,
 					  file_utils:get_current_directory() ).
 
 
-% @doc Generates in-file (a BEAM file created in the specified directory) a
-% module sharing the specified entries by exporting as many functions named
-% according to the keys, and returning the value corresponding to the selected
-% key.
-%
-% For a clearer setting, generated modules may be named as such
-% (e.g. 'foobar_generated').
-%
-% The resulting module is not loaded by this function.
-%
-% Returns the generated filename (not path), for any further reference.
-%
+
+-doc """
+Generates in-file (a BEAM file created in the specified directory) a module
+sharing the specified entries by exporting as many functions named according to
+the keys, and returning the value corresponding to the selected key.
+
+For a clearer setting, generated modules may be named as such
+(e.g. 'foobar_generated').
+
+The resulting module is not loaded by this function.
+
+Returns the generated filename (not path), for any further reference.
+""".
 -spec generate_in_file( module_name(), entries(), any_directory_path() ) ->
 														file_name().
 generate_in_file( ModuleName, Entries, TargetDir ) ->
@@ -249,9 +265,9 @@ generate_in_file( ModuleName, Entries, TargetDir ) ->
 
 
 
-% @doc Returns a filename corresponding to the specified BEAM module to be
-% generated.
-%
+-doc """
+Returns a filename corresponding to the specified BEAM module to be generated.
+""".
 -spec get_generated_beam_filename_for( module_name() ) -> file_name().
 get_generated_beam_filename_for( ModName ) ->
 
@@ -260,7 +276,6 @@ get_generated_beam_filename_for( ModName ) ->
 	%
 	%"const_table_generated_" ++ code_utils:get_beam_filename( ModName ).
 	code_utils:get_beam_filename( ModName ).
-
 
 
 

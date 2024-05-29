@@ -105,22 +105,35 @@ instead
 		  generate_in_file/2, generate_in_file/3, generate_in_file/4 ]).
 
 
+-doc """
+Designates the first elements of the table pairs.
+
+A module-based storage cannot hold transient terms.
+""".
 -type first_type() :: permanent_term().
-% Designates the first elements of the table pairs.
-% A module-based storage cannot hold transient terms.
 
+
+
+-doc """
+Designates the second elements of the table pairs.
+
+A module-based storage cannot hold transient terms.
+""".
 -type second_type() :: permanent_term().
-% Designates the second elements of the table pairs.
-% A module-based storage cannot hold transient terms.
 
 
+
+-doc "An entry to be fed to a const-bijective table.".
 -type entry() :: { first_type(), second_type() }.
-% An entry to be fed to a const-bijective table.
 
+
+
+-doc "Entries that can be fed to a const-bijective table.".
 -type entries() :: [ entry() ].
-% Entries that can be fed to a const-bijective table.
+
 
 -export_type([ first_type/0, second_type/0, entry/0, entries/0 ]).
+
 
 
 % Implementation notes:
@@ -158,37 +171,38 @@ instead
 
 
 
-% @doc Generates in memory (only) and loads a module sharing bijectively the
-% specified entries by exporting suitably-generated get_{first,second}_for/1
-% functions ('strict' look-up) in order to access either element of the recorded
-% pairs.
-%
-% Note that no actual module file is generated (e.g. no 'foobar.beam'), the
-% operation remains fully in-memory.
-%
+-doc """
+Generates in memory (only) and loads a module sharing bijectively the specified
+entries by exporting suitably-generated get_{first,second}_for/1 functions
+('strict' look-up) in order to access either element of the recorded pairs.
+
+Note that no actual module file is generated (e.g. no 'foobar.beam'), the
+operation remains fully in-memory.
+""".
 -spec generate_in_memory( module_name(), entries() ) -> void().
 generate_in_memory( ModuleName, Entries ) ->
 	generate_in_memory( ModuleName, Entries, _ElementLookup=strict ).
 
 
 
-% @doc Generates in memory (only) and loads a module sharing bijectively the
-% specified entries by exporting suitably-generated functions in order to access
-% either element of the recorded pairs.
-%
-% If the 'strict' element look-up is selected, the get_{first,second}_for/1
-% functions will be available.
-%
-% If the 'maybe' element look-up is selected, additionally to the 'strict' case
-% the get_maybe_{first,second}_for/1 functions will be available. Selecting that
-% 'maybe' element look-up is not recommended if either of the first and second
-% sets contains the 'undefined' atom, as it leads to ambiguity.
-%
-% Note that no actual module file is generated (e.g. no 'foobar.beam'), the
-% operation remains fully in-memory.
-%
--spec generate_in_memory( module_name(), entries(), element_lookup() ) ->
-											void().
+-doc """
+Generates in memory (only) and loads a module sharing bijectively the specified
+entries by exporting suitably-generated functions in order to access either
+element of the recorded pairs.
+
+If the 'strict' element look-up is selected, the get_{first,second}_for/1
+functions will be available.
+
+If the 'maybe' element look-up is selected, additionally to the 'strict' case
+the get_maybe_{first,second}_for/1 functions will be available. Selecting that
+'maybe' element look-up is not recommended if either of the first and second
+sets contains the 'undefined' atom, as it leads to ambiguity.
+
+Note that no actual module file is generated (e.g. no 'foobar.beam'), the
+operation remains fully in-memory.
+""".
+-spec generate_in_memory( module_name(), entries(), element_lookup() ) ->	
+										void().
 generate_in_memory( ModuleName, Entries, ElementLookup ) ->
 
 	cond_utils:if_defined( myriad_debug_code_generation,
@@ -231,43 +245,45 @@ generate_in_memory( ModuleName, Entries, ElementLookup ) ->
 
 
 
-% @doc Generates in-file (a BEAM file created in the current directory) a module
-% sharing bijectively the specified entries by exporting suitably-generated
-% get_{first,second}_for/1 functions ('strict' look-up) in order to access
-% either element of the recorded pairs.
-%
-% For a clearer setting, generated modules may be named as such
-% (e.g. 'foobar_generated').
-%
-% The resulting module is not loaded by this function.
-%
-% Returns the generated filename (not path), for any further reference.
-%
+-doc """
+Generates in-file (a BEAM file created in the current directory) a module
+sharing bijectively the specified entries by exporting suitably-generated
+get_{first,second}_for/1 functions ('strict' look-up) in order to access either
+element of the recorded pairs.
+
+For a clearer setting, generated modules may be named as such
+(e.g. 'foobar_generated').
+
+The resulting module is not loaded by this function.
+
+Returns the generated filename (not path), for any further reference.
+""".
 -spec generate_in_file( module_name(), entries() ) -> file_name().
 generate_in_file( ModuleName, Entries ) ->
 	generate_in_file( ModuleName, Entries, _ElementLookup=strict ).
 
 
 
-% @doc Generates in-file (a BEAM file created in the current directory) a module
-% sharing bijectively the specified entries by exporting suitably-generated
-% functions in order to access either element of the recorded pairs.
-%
-% If the 'strict' element look-up is selected, the get_{first,second}_for/1
-% functions will be available.
-%
-% If the 'maybe' element look-up is selected, additionally to the 'strict' case
-% the get_maybe_{first,second}_for/1 functions will be available. Selecting that
-% 'maybe' element look-up is not recommended if either of the first and second
-% sets contains the 'undefined' atom, as it leads to ambiguity.
-%
-% For a clearer setting, generated modules may be named as such
-% (e.g. 'foobar_generated').
-%
-% The resulting module is not loaded by this function.
-%
-% Returns the generated filename (not path), for any further reference.
-%
+-doc """
+Generates in-file (a BEAM file created in the current directory) a module
+sharing bijectively the specified entries by exporting suitably-generated
+functions in order to access either element of the recorded pairs.
+
+If the 'strict' element look-up is selected, the get_{first,second}_for/1
+functions will be available.
+
+If the 'maybe' element look-up is selected, additionally to the 'strict' case
+the get_maybe_{first,second}_for/1 functions will be available. Selecting that
+'maybe' element look-up is not recommended if either of the first and second
+sets contains the 'undefined' atom, as it leads to ambiguity.
+
+For a clearer setting, generated modules may be named as such
+(e.g. 'foobar_generated').
+
+The resulting module is not loaded by this function.
+
+Returns the generated filename (not path), for any further reference.
+""".
 -spec generate_in_file( module_name(), entries(), element_lookup() ) ->
 												file_name().
 generate_in_file( ModuleName, Entries, ElementLookup ) ->
@@ -276,26 +292,26 @@ generate_in_file( ModuleName, Entries, ElementLookup ) ->
 
 
 
-% @doc Generates in-file (a BEAM file created in the specified directory) a
-% module sharing bijectively the specified entries by exporting
-% suitably-generated functions in order to access either element of the recorded
-% pairs.
-%
-% If the 'strict' element look-up is selected, the get_{first,second}_for/1
-% functions will be available.
-%
-% If the 'maybe' element look-up is selected, additionally to the 'strict' case
-% the get_maybe_{first,second}_for/1 functions will be available. Selecting that
-% 'maybe' element look-up is not recommended if either of the first and second
-% sets contains the 'undefined' atom, as it leads to ambiguity.
-%
-% For a clearer setting, generated modules may be named as such
-% (e.g. 'foobar_generated').
-%
-% The resulting module is not loaded by this function.
-%
-% Returns the generated filename (not path), for any further reference.
-%
+-doc """
+Generates in-file (a BEAM file created in the specified directory) a module
+sharing bijectively the specified entries by exporting suitably-generated
+functions in order to access either element of the recorded pairs.
+
+If the 'strict' element look-up is selected, the get_{first,second}_for/1
+functions will be available.
+
+If the 'maybe' element look-up is selected, additionally to the 'strict' case
+the get_maybe_{first,second}_for/1 functions will be available. Selecting that
+'maybe' element look-up is not recommended if either of the first and second
+sets contains the 'undefined' atom, as it leads to ambiguity.
+
+For a clearer setting, generated modules may be named as such
+(e.g. 'foobar_generated').
+
+The resulting module is not loaded by this function.
+
+Returns the generated filename (not path), for any further reference.
+""".
 -spec generate_in_file( module_name(), entries(), element_lookup(),
 						any_directory_path() ) -> file_name().
 generate_in_file( ModuleName, Entries, ElementLookup, TargetDir ) ->
@@ -350,9 +366,9 @@ generate_in_file( ModuleName, Entries, ElementLookup, TargetDir ) ->
 % Helper section.
 
 
-% @doc Returns a filename corresponding to the specified BEAM module to be
-% generated.
-%
+-doc """
+Returns a filename corresponding to the specified BEAM module to be generated.
+""".
 -spec get_generated_beam_filename_for( module_name() ) -> file_name().
 get_generated_beam_filename_for( ModName ) ->
 
@@ -366,7 +382,9 @@ get_generated_beam_filename_for( ModName ) ->
 
 
 
-% Generates the forms corresponding to the specified entries and module.
+-doc """
+Generates the forms corresponding to the specified entries and module.
+""".
 -spec generate_table_forms( module_name(), entries(), element_lookup() ) ->
 												[ form() ].
 generate_table_forms( ModuleName, Entries, ElementLookup ) ->
@@ -382,7 +400,7 @@ generate_table_forms( ModuleName, Entries, ElementLookup ) ->
 
 	[ const_bijective_topics:generate_header_form( ModuleName, FileLoc ) |
 	  generate_fun_forms( RevEntries, ElementLookup, FileLoc ) ] ++
-		  [ const_bijective_topics:generate_footer_form( FileLoc ) ].
+		[ const_bijective_topics:generate_footer_form( FileLoc ) ].
 
 
 
@@ -543,14 +561,14 @@ generate_strict_calling_clauses( ErrorAtom, MaybeFunName, FileLoc ) ->
 
 
 
-% @doc Returns a catch-all clause throwing an (hopefully) informative
-% {ErrorAtom, Value} exception, like {first_not_found, MyUnexpectedValue}
-% (rather than a {my_generated_module, '-inlined-get_second_for/1-',
-% ... function_clause).
-%
-% Thus results in { {nocatch, {first_not_found, MyUnexpectedValue} },
-% [{my_generated_module, get_second_for,1,[]}, ...
-%
+-doc """
+Returns a catch-all clause throwing an (hopefully) informative {ErrorAtom,
+Value} exception, like {first_not_found, MyUnexpectedValue} (rather than a
+{my_generated_module, '-inlined-get_second_for/1-', ... function_clause).
+
+Thus results in { {nocatch, {first_not_found, MyUnexpectedValue} },
+[{my_generated_module, get_second_for,1,[]}, ...
+""".
 -spec catch_all_clause( error_type(), element_lookup(), file_loc() ) ->
 								clause_def().
 catch_all_clause( ErrorAtom, _Lookup=strict, FileLoc ) ->
