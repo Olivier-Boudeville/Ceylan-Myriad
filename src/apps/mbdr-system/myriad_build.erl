@@ -1,9 +1,9 @@
 % Copyright (C) 2020-2024 Olivier Boudeville
 %
+% Released as LGPL software.
+%
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2020.
-%
-% Released as LGPL software.
 
 -module(myriad_build).
 
@@ -27,7 +27,7 @@ debugging.
 
 
 
-% @doc Typically for testing.
+-doc "Typically for testing.".
 -spec run() -> void().
 run() ->
 	ArgTable = shell_utils:get_argument_table(),
@@ -37,7 +37,7 @@ run() ->
 % Defaults:
 
 
-% @doc Returns the usage information of the corresponding application.
+-doc "Returns the usage information of the corresponding application.".
 -spec get_usage() -> void().
 get_usage() ->
 	text_utils:format( "Usage: ~ts MBDR_PROJECT_FILE.mbdr"
@@ -48,9 +48,10 @@ get_usage() ->
 
 
 
-% @doc Sole entry point for this generation service, either triggered by `run/0'
-% or by the associated escript.
-%
+-doc """
+Sole entry point for this buid service, either triggered by `run/0` or by the
+associated escript.
+""".
 -spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
@@ -108,7 +109,8 @@ main( ArgTable ) ->
 	basic_utils:stop( _ErrorCode=0 ).
 
 
-% @doc Displays the usage of this service, and stops (with no error).
+
+-doc "Displays the usage of this service, and stops (with no error).".
 display_usage() ->
 	io:format( get_usage(), [] ),
 	basic_utils:stop( _ErrorCode=0 ).

@@ -1,8 +1,8 @@
 % Copyright (C) 2018-2024 Olivier Boudeville
 %
-% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-%
 % Released as LGPL software.
+%
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2018.
 
 -module(password_generation).
@@ -33,7 +33,7 @@ user-friendly debugging.
 
 
 
-% @doc Typically for testing.
+-doc "Typically for testing.".
 -spec run() -> void().
 run() ->
 	ArgTable = shell_utils:get_argument_table(),
@@ -49,7 +49,8 @@ run() ->
 -define( default_alphabet, "extended" ).
 
 
-% @doc Returns the usage information of the corresponding application.
+
+-doc "Returns the usage information of the corresponding application.".
 -spec get_usage() -> void().
 get_usage() ->
 	text_utils:format( "Usage: ~ts "
@@ -73,9 +74,10 @@ get_usage() ->
 
 
 
-% @doc Sole entry point for this generation service, either triggered by `run/0'
-% or by the associated escript.
-%
+-doc """
+Sole entry point for this generation service, either triggered by `run/0` or by
+the associated escript.
+""".
 -spec main( shell_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
@@ -181,16 +183,17 @@ main( ArgTable ) ->
 
 
 
-% @doc Displays the usage of this service, and stops (with no error).
+-doc "Displays the usage of this service, and stops (with no error).".
 display_usage() ->
 	io:format( get_usage(), [] ),
 	basic_utils:stop( _ErrorCode=0 ).
 
 
 
-% @doc Returns the corresponding alphabet, based on its spec, expressed as an
-% atom (e.g. 'numeric' for all numeric literals) or as a list thereof.
-%
+-doc """
+Returns the corresponding alphabet, based on its spec, expressed as an atom
+(e.g. 'numeric' for all numeric literals) or as a list thereof.
+""".
 get_alphabet( AlphabetSpecs ) when is_list( AlphabetSpecs ) ->
 	list_utils:flatten_once( [ get_alphabet( A ) || A <- AlphabetSpecs ] );
 
@@ -221,7 +224,9 @@ get_alphabet( _AlphabetSpec=extra_punctuation ) ->
 
 
 
-% @doc Generates a password of specified exact length, from specified alphabet.
+-doc """
+Generates a password of the specified exact length, from the specified alphabet.
+""".
 -spec generate_password( alphabet(), count() ) -> password().
 generate_password( Alphabet, CharCount ) ->
 

@@ -1,12 +1,9 @@
 % Copyright (C) 2016-2024 Olivier Boudeville
 %
-% Module defined in order to be able to test the merge services outside of an
-% escript context.
+% Released as LGPL software.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2016.
-%
-% Released as LGPL software.
 
 -module(merge_app).
 
@@ -25,7 +22,7 @@ user-friendly debugging.
 
 
 
-% @doc Runs the merge service, directly from a module.
+-doc "Runs the merge service, directly from a module.".
 -spec exec() -> void().
 exec() ->
 
