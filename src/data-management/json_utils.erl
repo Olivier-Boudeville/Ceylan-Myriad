@@ -33,6 +33,9 @@ Gathering of management facilities for **JSON** processing.
 See json_utils_test.erl for the corresponding test.
 
 Refer to http://myriad.esperide.org/#json-use for more details.
+
+Note that since Erlang 27.0 a built-in JSON parser is available, see the `json`
+module.
 """.
 
 
@@ -141,55 +144,76 @@ Refer to http://myriad.esperide.org/#json-use for more details.
 					  get_base_json_decoding_options/1 ] } ).
 
 
+-doc "The known, and potentially supported, backends in terms of JSON parsers.".
 -type parser_backend_name() :: 'jsx' | 'jiffy' | otp_utils:application_name().
-% The known, and potentially supported, backends in terms of JSON parsers.
+ 
 
 
+-doc "Often no internal state is really needed.".
 -type parser_state() ::
 		{ parser_backend_name(), InternalBackendState :: option( term() ) }.
-% Often no internal state is really needed.
+ 
 
 
+-doc "A (plain) string containing JSON content.".
 -type string_json() :: ustring().
-% A (plain) string containing JSON content.
 
+ 
+
+-doc "A binary string containing JSON content.".
 -type bin_json() :: bin_string().
-% A binary string containing JSON content.
+ 
 
 
+-doc "A JSON document.".
 -type json() :: bin_json() | string_json().
-% A JSON document.
 
 
+
+-doc "A key in a decoded JSON table.".
 -type decoded_json_key() :: bin_string().
-% A key in a decoded JSON table.
 
+ 
+
+-doc "A value in a decoded JSON table.".
 -type decoded_json_value() :: decoded_json().
-% A value in a decoded JSON table.
 
+ 
 
+-doc "A decoded entry.".
 -type decoded_json_pair() :: { decoded_json_key(), decoded_json_value() }.
 
+
+
+-doc "A term that was decoded from JSON.".
 -type decoded_json() :: json_term().
 
 
+
+-doc """
+An (Erlang) term corresponding to a JSON document (e.g. a decoded one, or one
+not encoded yet), at least often a map whose keys are binary strings and whose
+values are json_term() or basic types such as integers, floats, strings, etc.).
+""".
 -type json_term() ::
 	map_hashtable:map_hashtable( decoded_json_key(), decoded_json_value() )
   | integer() | float() | binary() | atom() | term().
-% An (Erlang) term corresponding to a JSON document (e.g. a decoded one, or one
-% not encoded yet), at least often a map whose keys are binary strings and whose
-% values are json_term() or basic types such as integers, floats, strings,
-% etc.).
 
 
+
+-doc """
+Options for the JSON encoding (they shall be usable transparently with all
+supported backends).
+""".
 -type json_encoding_option() :: any().
-% Options for the JSON encoding (they shall be usable transparently with all
-% supported backends).
 
 
+
+-doc """
+Options for the JSON parsing, that is decoding (they shall be usable
+transparently with all supported backends).
+""".
 -type json_decoding_option() :: any().
-% Options for the JSON parsing, that is decoding (they shall be usable
-% transparently with all supported backends).
 
 
 
@@ -216,11 +240,12 @@ Refer to http://myriad.esperide.org/#json-use for more details.
 
 
 
-% @doc Returns information regarding any JSON parser found, as a triplet made of
-% its name, a resolvable path to its ebin directory (for example useful to any
-% upcoming deployment of a vanilla node) and a directly resolved one; otherwise
-% throws an exception.
-%
+-doc """
+Returns information regarding any JSON parser found, as a triplet made of its
+name, a resolvable path to its ebin directory (for example useful to any
+upcoming deployment of a vanilla node) and a directly resolved one; otherwise
+throws an exception.
+""".
 -spec get_parser_name_paths() ->
 			{ parser_backend_name(), resolvable_path(), directory_path() }.
 get_parser_name_paths() ->
@@ -244,10 +269,11 @@ get_parser_name_paths() ->
 
 
 
-% @doc Returns an existing path (if any, and according to the Myriad
-% conventions), as both a resolvable one and a directly resolved one, to the
-% ebin directory of the specified JSON parser.
-%
+-doc """
+Returns an existing path (if any, and according to the Myriad conventions), as
+both a resolvable one and a directly resolved one, to the ebin directory of the
+specified JSON parser.
+""".
 -spec get_paths_for( parser_backend_name() ) ->
 						option( { resolvable_path(), directory_path() } ).
 get_paths_for( _ParserName=jsx ) ->
@@ -266,7 +292,6 @@ get_paths_for( _ParserName=jsx ) ->
 			undefined
 
 	end;
-
 
 get_paths_for( _ParserName=jiffy ) ->
 
@@ -288,10 +313,10 @@ get_paths_for( _ParserName=jiffy ) ->
 
 
 
-
-% @doc Starts the JSON parser found by default (if any), and returns its initial
-% state, which optionally may be used afterwards.
-%
+-doc """
+Starts the JSON parser found by default (if any), and returns its initial state,
+which optionally may be used afterwards.
+""".
 -spec start_parser() -> parser_state().
 start_parser() ->
 
@@ -303,9 +328,10 @@ start_parser() ->
 
 
 
-% @doc Starts the specified JSON parser, returns its initial state, which may be
-% used optionally afterwards.
-%
+-doc """
+Starts the specified JSON parser, returns its initial state, which may be used
+optionally afterwards.
+""".
 -spec start_parser( parser_backend_name() ) -> parser_state().
 start_parser( BackendName )
 				when BackendName =:= jsx orelse BackendName =:= jiffy ->
@@ -321,14 +347,13 @@ start_parser( BackendName )
 
 
 
+-doc """
+Returns (as an atom) the JSON parser (as an OTP application name) that would
+currently be used, if any (returns 'undefined' if none was found available).
 
-% @doc Returns (as an atom) the JSON parser (as an OTP application name) that
-% would currently be used, if any (returns 'undefined' if none was found
-% available).
-%
-% So this function is also a way of testing whether JSON support is available at
-% all.
-%
+So this function is also a way of testing whether JSON support is available at
+all.
+""".
 -spec get_parser_backend_name() -> option( parser_backend_name() ).
 get_parser_backend_name() ->
 
@@ -371,16 +396,17 @@ get_parser_backend_name() ->
 
 
 
-% @doc Tells whether a suitable JSON parser is available.
+-doc "Tells whether a suitable JSON parser is available.".
 -spec is_parser_available() -> boolean().
 is_parser_available() ->
 	get_parser_backend_name() =/= undefined.
 
 
 
-% @doc Tells whether a suitable JSON parser is available, based on the specified
-% (maybe) parser state.
-%
+-doc """
+Tells whether a suitable JSON parser is available, based on the specified
+(maybe) parser state.
+""".
 -spec is_parser_available( option( parser_state() ) ) -> boolean().
 is_parser_available( undefined ) ->
 	false;
@@ -391,10 +417,11 @@ is_parser_available( { _ParserBackendName, _MaybeInternalState } ) ->
 
 
 
-% @doc Returns whether specified parser backend is available.
-%
-% Useful for testing for example.
-%
+-doc """
+Returns whether specified parser backend is available.
+
+Useful for testing for example.
+""".
 -spec is_parser_backend_available( parser_backend_name() ) ->
 										'false' | [ directory_path() ].
 is_parser_backend_available( BackendName ) ->
@@ -411,9 +438,10 @@ is_parser_backend_available( BackendName ) ->
 
 
 
-% @doc Returns (as an atom) the JSON parser (as an OTP application name) that
-% corresponds to specified parser state.
-%
+-doc """
+Returns (as an atom) the JSON parser (as an OTP application name) that
+corresponds to specified parser state.
+""".
 -spec get_parser_backend_name( parser_state() ) -> parser_backend_name().
 get_parser_backend_name(
 		_ParserState={ BackendName, _InternalBackendState } ) ->
@@ -421,9 +449,10 @@ get_parser_backend_name(
 
 
 
-% @doc Returns the name of the JSON parser found by default and available (if
-% any; otherwise throws an exception).
-%
+-doc """
+Returns the name of the JSON parser found by default and available (if any;
+otherwise throws an exception).
+""".
 -spec get_available_parser_backend_name() -> parser_backend_name().
 get_available_parser_backend_name() ->
 
@@ -445,9 +474,10 @@ get_available_parser_backend_name() ->
 
 
 
-% @doc Checks whether the JSON parser found by default (if any) is operational;
-% throws an exception if not.
-%
+-doc """
+Checks whether the JSON parser found by default (if any) is operational; throws
+an exception if not.
+""".
 -spec check_parser_operational() -> void().
 check_parser_operational() ->
 
@@ -457,9 +487,10 @@ check_parser_operational() ->
 
 
 
-% @doc Checks whether the specified JSON parser is operational; returns an
-% updated state if yes, otherwise throws an exception.
-%
+-doc """
+Checks whether the specified JSON parser is operational; returns an updated
+state if yes, otherwise throws an exception.
+""".
 -spec check_parser_operational( parser_state() ) -> parser_state().
 check_parser_operational( ParserState={ jsx, _InternalBackendState } ) ->
 
@@ -517,14 +548,15 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 % Encoding section.
 
 
-% @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON
-% counterpart element, using the looked-up default JSON backend for that.
-%
-% For example `json_utils:to_json( #{
-%   <<"protected">> => Protected,
-%   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned} )`.
-%
+-doc """
+Converts (encodes) specified JSON-compliant Erlang term into a JSON counterpart
+element, using the looked-up default JSON backend for that.
+
+For example `json_utils:to_json( #{
+  <<"protected">> => Protected,
+  <<"payload">> => Payload,
+  <<"signature">> => EncSigned} )`.
+""".
 -spec to_json( json_term() ) -> json().
 to_json( Term ) ->
 
@@ -535,14 +567,15 @@ to_json( Term ) ->
 
 
 
-% @doc Converts (encodes) specified Erlang term into a JSON counterpart element,
-% using directly the JSON backend designated by the specified parser state.
-%
-% For example `json_utils:to_json(#{
-%   <<"protected">> => Protected,
-%   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned }, _ParserName=jsx )`.
-%
+-doc """
+Converts (encodes) specified Erlang term into a JSON counterpart element, using
+directly the JSON backend designated by the specified parser state.
+
+For example `json_utils:to_json(#{
+  <<"protected">> => Protected,
+  <<"payload">> => Payload,
+  <<"signature">> => EncSigned }, _ParserName=jsx )`.
+""".
 -spec to_json( json_term(), parser_state() ) -> json().
 to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
@@ -568,14 +601,15 @@ to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 
 
 
-% @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON file,
-% using the looked-up default JSON backend for that.
-%
-% For example `json_utils:to_json_file(#{
-%   <<"protected">> => Protected,
-%   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned}, TargetJsonFilePath )`.
-%
+-doc """
+Converts (encodes) specified JSON-compliant Erlang term into a JSON file, using
+the looked-up default JSON backend for that.
+
+For example `json_utils:to_json_file(#{
+   <<"protected">> => Protected,
+   <<"payload">> => Payload,
+   <<"signature">> => EncSigned}, TargetJsonFilePath )`.
+""".
 -spec to_json_file( json_term(), file_path() ) -> void().
 to_json_file( Term, TargetJsonFilePath ) ->
 	JsonContent = to_json( Term ),
@@ -583,14 +617,15 @@ to_json_file( Term, TargetJsonFilePath ) ->
 
 
 
-% @doc Converts (encodes) specified JSON-compliant Erlang term into a JSON file,
-% using the specified JSON backend for that.
-%
-% For example `json_utils:to_json_file(#{
-%   <<"protected">> => Protected,
-%   <<"payload">> => Payload,
-%   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState )`.
-%
+-doc """
+Converts (encodes) specified JSON-compliant Erlang term into a JSON file, using
+the specified JSON backend for that.
+
+For example `json_utils:to_json_file(#{
+   <<"protected">> => Protected,
+   <<"payload">> => Payload,
+   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState )`.
+""".
 -spec to_json_file( json_term(), file_path(), parser_state() ) -> void().
 to_json_file( Term, TargetJsonFilePath, ParserState ) ->
 	JsonContent = to_json( Term, ParserState ),
@@ -598,7 +633,7 @@ to_json_file( Term, TargetJsonFilePath, ParserState ) ->
 
 
 
-% @doc Returns the default options for the JSON encoding.
+-doc "Returns the default options for the JSON encoding.".
 -spec get_base_json_encoding_options( parser_backend_name() ) ->
 												[ json_encoding_option() ].
 get_base_json_encoding_options( _BackendName=jsx ) ->
@@ -621,14 +656,15 @@ get_base_json_encoding_options( _BackendName=jiffy ) ->
 % Decoding section.
 
 
-% @doc Converts (decodes) specified JSON element into an Erlang term
-% counterpart, recursively so that it cab return a table containing tables,
-% themselves containing potentially tables, and so on, using the looked-up
-% default JSON backend for that.
-%
-% Note that if in a given scope a key is present more than once, only one of its
-% values will be retained (actually the lastly defined one).
-%
+-doc """
+Converts (decodes) specified JSON element into an Erlang term counterpart,
+recursively so that it cab return a table containing tables, themselves
+containing potentially tables, and so on, using the looked-up default JSON
+backend for that.
+
+Note that if in a given scope a key is present more than once, only one of its
+values will be retained (actually the lastly defined one).
+""".
 -spec from_json( json() ) -> json_term().
 from_json( Json ) ->
 	ParserState = get_parser_backend_state(),
@@ -636,14 +672,14 @@ from_json( Json ) ->
 
 
 
-% @doc Converts (decodes) specified JSON element into an Erlang term
-% counterpart, recursively so that it returns a table containing tables,
-% themselves containing potentially tables, and so on, using the specified JSON
-% backend for that.
-%
-% Note that if in a given scope a key is present more than once, only one of its
-% values will be retained (actually the lastly defined one).
-%
+-doc """
+Converts (decodes) specified JSON element into an Erlang term counterpart,
+recursively so that it returns a table containing tables, themselves containing
+potentially tables, and so on, using the specified JSON backend for that.
+
+Note that if in a given scope a key is present more than once, only one of its
+values will be retained (actually the lastly defined one).
+""".
 -spec from_json( json(), parser_state() ) -> json_term().
 from_json( Json, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
@@ -677,7 +713,7 @@ from_json( Json, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 
 
 
-% @doc Returns the default options for the JSON decoding.
+-doc "Returns the default options for the JSON decoding.".
 -spec get_base_json_decoding_options( parser_backend_name() ) ->
 												[ json_decoding_option() ].
 get_base_json_decoding_options( _BackendName=jsx ) ->
@@ -698,15 +734,14 @@ get_base_json_decoding_options( _BackendName=jiffy ) ->
 
 
 
+-doc """
+Converts (decodes) specified JSON file recursively into an Erlang term
+counterpart, so that it returns typically a table containing tables, themselves
+containing potentially tables, and so on, with specified parser state.
 
-% @doc Converts (decodes) specified JSON file recursively into an Erlang term
-% counterpart, so that it returns typically a table containing tables,
-% themselves containing potentially tables, and so on, with specified parser
-% state.
-%
-% Note that if in a given scope a key is present more than once, only one of its
-% values will be retained (actually the lastly defined one).
-%
+Note that if in a given scope a key is present more than once, only one of its
+values will be retained (actually the lastly defined one).
+""".
 -spec from_json_file( any_file_path() ) -> json_term().
 from_json_file( JsonFilePath ) ->
 	BinJson = file_utils:read_whole( JsonFilePath ),
@@ -714,14 +749,14 @@ from_json_file( JsonFilePath ) ->
 
 
 
-% @doc Converts (decodes) specified JSON file recursively into an Erlang term
-% counterpart, so that it returns typically a table containing tables,
-% themselves containing potentially tables, and so on, with specified parser
-% state.
-%
-% Note that if in a given scope a key is present more than once, only one of its
-% values will be retained (actually the lastly defined one).
-%
+-doc """
+Converts (decodes) specified JSON file recursively into an Erlang term
+counterpart, so that it returns typically a table containing tables, themselves
+containing potentially tables, and so on, with specified parser state.
+
+Note that if in a given scope a key is present more than once, only one of its
+values will be retained (actually the lastly defined one).
+""".
 -spec from_json_file( any_file_path(), parser_state() ) -> json_term().
 from_json_file( JsonFilePath, ParserState ) ->
 	BinJson = file_utils:read_whole( JsonFilePath ),
@@ -729,10 +764,11 @@ from_json_file( JsonFilePath, ParserState ) ->
 
 
 
-% @doc Returns a (blank) parser state corresponding to the default parser.
-%
-% (helper)
-%
+-doc """
+Returns a (blank) parser state corresponding to the default parser.
+
+(helper)
+""".
 -spec get_parser_backend_state() -> option( parser_state() ).
 get_parser_backend_state() ->
 
@@ -743,13 +779,13 @@ get_parser_backend_state() ->
 
 
 
-% @doc Stops the JSON parser.
+-doc "Stops the JSON parser.".
 -spec stop_parser() -> void().
 stop_parser() ->
 	ok.
 
 
-% @doc Stops the specified JSON parser.
+-doc "Stops the specified JSON parser.".
 -spec stop_parser( parser_state() ) -> void().
 stop_parser( _ParserState ) ->
 	ok.
