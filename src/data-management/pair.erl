@@ -50,16 +50,18 @@ Minor utilities to manage **pairs** (that is 2-element tuples).
 
 
 
-% @doc Returns the first element of the specified pair.
+-doc "Returns the first element of the specified pair.".
 -spec first( pair() ) -> element().
 first( { X, _Y } ) ->
 	X.
 
 
-% @doc Returns the first elements of the specified list of pairs, in-order.
-%
-% Does not check whether non-pairs exist in the input list.
-%
+
+-doc """
+Returns the first elements of the specified list of pairs, in-order.
+
+Does not check whether non-pairs exist in the input list.
+""".
 -spec firsts( [ pair() ] ) -> [ element() ].
 firsts( Pairs ) ->
 	cond_utils:if_defined( myriad_debug_datastructures, check_list( Pairs ) ),
@@ -67,42 +69,47 @@ firsts( Pairs ) ->
 
 
 
-% @doc Returns the second element of the specified pair.
+-doc "Returns the second element of the specified pair.".
 -spec second( pair() ) -> element().
 second( { _X, Y } ) ->
 	Y.
 
 
-% @doc Returns the second elements of the specified list of pairs, in-order.
-%
-% Does not check whether non-pairs exist in the input list.
-%
+
+-doc """
+Returns the second elements of the specified list of pairs, in-order.
+
+Does not check whether non-pairs exist in the input list.
+""".
 -spec seconds( [ pair() ] ) -> [ element() ].
 seconds( Pairs ) ->
 	cond_utils:if_defined( myriad_debug_datastructures, check_list( Pairs ) ),
 	[ Y || { _X, Y } <- Pairs ].
 
 
-% @doc Unzips the specified list of pairs.
-%
-% For example, unzip([{a,1}, {b,2}, {c,3}]) = {[a,b,c], [1,2,3]}.
-%
+
+-doc """
+Unzips the specified list of pairs.
+
+For example, unzip([{a,1}, {b,2}, {c,3}]) = {[a,b,c], [1,2,3]}.
+""".
 -spec unzip( [ pair( F, S ) ] ) -> pair( [ F ], [ S ] ).
 unzip( Pairs ) ->
 	% Mostly to remember that it exists:
 	lists:unzip( Pairs ).
 
 
-% @doc Returns a pair whose elements have been swapped compared to the specified
-% one.
-%
+
+-doc """
+Returns a pair whose elements have been swapped compared to the specified one.
+""".
 -spec swap( pair() ) -> pair().
 swap( { X, Y } ) ->
 	{ Y, X }.
 
 
 
-% @doc Throws an exception if the specified list is not a list of pairs.
+-doc "Throws an exception if the specified list is not a list of pairs.".
 -spec check_list( term() ) -> void().
 check_list( Term ) ->
 	check_list( Term, Term ).
@@ -120,13 +127,14 @@ check_list( Other, Term ) ->
 
 
 
-% @doc Returns a list of two elements corresponding to the specified pair.
+-doc "Returns a list of two elements corresponding to the specified pair.".
 -spec to_list( pair() ) -> [ element() ].
 to_list( { F, S } ) ->
 	[ F, S ].
 
 
-% @doc Returns a textual description of the specified pair.
+
+-doc "Returns a textual description of the specified pair.".
 -spec to_string( pair() ) -> text_utils:ustring().
 to_string( { X, Y } ) ->
 	text_utils:format( "{ ~p, ~p }", [ X, Y ] ).

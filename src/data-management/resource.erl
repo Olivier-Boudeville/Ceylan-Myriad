@@ -95,77 +95,104 @@ environments.
 % specialised resources would not be performed.
 
 
+-doc """
+Any (unspecialised) resource, often as a binary term (e.g. if loaded from file).
+""".
 -type resource() :: term().
-% Any (unspecialised) resource, often as a binary term (e.g. if loaded from
-% file).
 
 
+-doc "A bitmap resource.".
 -type bitmap_resource() :: bitmap().
-% A bitmap resource.
 
 
+
+-doc """
+An identifier of a file resource, that is a resource that can be read directly
+from a filesystem, as a path either absolute or relative to an (implicit)
+resource root directory. For example: `<<"images/hello.png">>`.
+""".
 -type resource_file_id() :: bin_file_path().
-% An identifier of a file resource, that is a resource that can be read directly
-% from a filesystem, as a path either absolute or relative to an (implicit)
-% resource root directory. For example: `<<"images/hello.png">>'.
 
 
+
+-doc """
+A (plain) string version of a file resource identifier, possibly more convenient
+for the user.
+""".
 -type resource_file_id_string() :: file_path().
-% A (plain) string version of a file resource identifier, possibly more
-% convenient for the user.
 
 
+
+-doc "Any kind of file resource identifier.".
 -type any_resource_file_id() :: resource_file_id() | resource_file_id_string().
-% Any kind of file resource identifier.
+ 
 
 
+-doc """
+A logical, user-introduced resource identifier (e.g. 'my_splash_content', or
+147), which does not correspond (at least directly) to a resource that can be
+read directly from a filesystem (otherwise any_resource_file_id() should be
+used); it is thus opaque, explicitly registered by the user, and refer to any
+term (e.g. a generated bitmap).
+
+Using often a symbol (an atom), so that it cannot be mixed up with an actual
+path.
+""".
 -type resource_logical_id() :: any(). % Precisely: non-list().
-% A logical, user-introduced resource identifier (e.g. 'my_splash_content', or
-% 147), which does not correspond (at least directly) to a resource that can be
-% read directly from a filesystem (otherwise any_resource_file_id() should be
-% used); it is thus opaque, explicitly registered by the user, and refer to any
-% term (e.g. a generated bitmap).
-%
-% Using often a symbol (an atom), so that it cannot be mixed up with an actual
-% path.
 
 
+
+-doc "Any type of resource identifier.".
 -type resource_id() :: any_resource_file_id() | resource_logical_id().
-% Any type of resource identifier.
 
+
+
+-doc "Any type of bitmap resource identifier.".
 -type bitmap_resource_id() :: resource_id().
-% Any type of bitmap resource identifier.
 
 
 
+-doc """
+A table referencing resources, based on keys of the specified type, except lists
+(that are prohibited in order to avoid ambiguity with plain strings).
+
+Generally I is resource_id(), see resource_table/0.
+""".
 -type resource_table( I ) :: table( I, resource() ).
-% A table referencing resources, based on keys of the specified type, except
-% lists (that are prohibited in order to avoid ambiguity with plain strings).
-%
-% Generally I is resource_id(), see resource_table/0.
 
 
+
+-doc """
+A table referencing resources, based on any kind of resource keys.
+""".
 -type resource_table() :: resource_table( resource_id() ).
-% A table referencing resources, based on any kind of resource keys.
+
 
 
 % For the resource_repository record:
 -include("resource.hrl").
 
+
+-doc """
+A resource repository, storing resources based on their identifier.
+
+It is a term (a record mostly holding a table of resources) in the current
+process.
+""".
 -type resource_repository() :: #resource_repository{}.
-% A resource repository, storing resources based on their identifier.
-%
-% It is a term (a record mostly holding a table of resources) in the current
-% process.
 
 
+
+-doc """
+The PID of a resource server, which is basically a process holding a resource
+repository.
+""".
 -type resource_server_pid() :: pid().
-% The PID of a resource server, which is basically a process holding a resource
-% repository.
 
 
+
+-doc "Any container of resources.".
 -type resource_holder() :: resource_repository() | resource_server_pid().
-% Any container of resources.
 
 
 -export_type([ resource/0, bitmap_resource/0,
@@ -208,10 +235,11 @@ environments.
 
 
 
+
 % Resource Repository section.
 
 
-% @doc Returns an empty repository, not anchored to a specific root directory.
+-doc "Returns an empty repository, not anchored to a specific root directory.".
 -spec create_repository() -> resource_repository().
 create_repository() ->
 	#resource_repository{ root_directory=undefined,
@@ -219,10 +247,11 @@ create_repository() ->
 
 
 
-% @doc Returns an empty repository that is to operate from the specified root
-% directory. File-based resources can then be declared implicitly relatively to
-% this directory.
-%
+-doc """
+Returns an empty repository that is to operate from the specified root
+directory. File-based resources can then be declared implicitly relatively to
+this directory.
+""".
 -spec create_repository( any_directory_path() ) -> resource_repository().
 create_repository( AnyRootDir ) ->
 
@@ -241,37 +270,42 @@ create_repository( AnyRootDir ) ->
 % Resource Server section.
 
 
-% @doc Creates a resource server, and returns its PID.
-%
-% For graphical operations to be able to happen (e.g. with get_bitmap/2,
-% get_bitmaps/2), the calling process shall already have its GUI backend
-% environment set (see gui:{g,s}et_backend_environment/1).
-%
+-doc """
+Creates a resource server, and returns its PID.
+
+For graphical operations to be able to happen (e.g. with get_bitmap/2,
+get_bitmaps/2), the calling process shall already have its GUI backend
+environment set (see gui:{g,s}et_backend_environment/1).
+""".
 -spec create_server() -> resource_server_pid().
 create_server() ->
 	spawn( fun() -> server_init() end ).
 
 
-% @doc Creates a resource server anchored at the specified root directory, and
-% returns its PID.
-%
-% For graphical operations to be able to happen (e.g. with get_bitmap/2,
-% get_bitmaps/2), the calling process shall already have its GUI backend
-% environment set (see gui:{g,s}et_backend_environment/1).
-%
+
+-doc """
+Creates a resource server anchored at the specified root directory, and returns
+its PID.
+
+For graphical operations to be able to happen (e.g. with get_bitmap/2,
+get_bitmaps/2), the calling process shall already have its GUI backend
+environment set (see gui:{g,s}et_backend_environment/1).
+""".
 -spec create_server( any_directory_path() ) -> resource_server_pid().
 create_server( AnyRootDir ) ->
 	spawn( fun() -> server_init( text_utils:ensure_binary( AnyRootDir ) ) end ).
 
 
-% @doc Creates a resource server anchored at the specified root directory and
-% using the specified GUI backend environment (useful to perform for example
-% bitmap loading), and returns its PID.
-%
-% For graphical operations to be able to happen (e.g. with get_bitmap/2,
-% get_bitmaps/2), the calling process shall already have its GUI backend
-% environment set (see gui:{g,s}et_backend_environment/1).
-%
+
+-doc """
+Creates a resource server anchored at the specified root directory and using the
+specified GUI backend environment (useful to perform for example bitmap
+loading), and returns its PID.
+
+For graphical operations to be able to happen (e.g. with get_bitmap/2,
+get_bitmaps/2), the calling process shall already have its GUI backend
+environment set (see gui:{g,s}et_backend_environment/1).
+""".
 -spec create_server( any_directory_path(), gui:backend_environment() ) ->
 											resource_server_pid().
 create_server( AnyRootDir, GUIBackendEnv ) ->
@@ -281,24 +315,27 @@ create_server( AnyRootDir, GUIBackendEnv ) ->
 
 
 
-% @doc Creates a linked resource server, and returns its PID.
-%
-% For graphical operations to be able to happen (e.g. with get_bitmap/2,
-% get_bitmaps/2), the calling process shall already have its GUI backend
-% environment set (see gui:{g,s}et_backend_environment/1).
-%
+-doc """
+Creates a linked resource server, and returns its PID.
+
+For graphical operations to be able to happen (e.g. with get_bitmap/2,
+get_bitmaps/2), the calling process shall already have its GUI backend
+environment set (see gui:{g,s}et_backend_environment/1).
+""".
 -spec create_linked_server() -> resource_server_pid().
 create_linked_server() ->
 	spawn_link( fun() -> server_init() end ).
 
 
-% @doc Creates a linked resource server anchored at the specified root
-% directory, and returns its PID.
-%
-% For graphical operations to be able to happen (e.g. with get_bitmap/2,
-% get_bitmaps/2), the calling process shall already have its GUI backend
-% environment set (see gui:{g,s}et_backend_environment/1).
-%
+
+-doc """
+Creates a linked resource server anchored at the specified root directory, and
+returns its PID.
+
+For graphical operations to be able to happen (e.g. with get_bitmap/2,
+get_bitmaps/2), the calling process shall already have its GUI backend
+environment set (see gui:{g,s}et_backend_environment/1).
+""".
 -spec create_linked_server( any_directory_path() ) -> resource_server_pid().
 create_linked_server( AnyRootDir ) ->
 	spawn_link( fun() ->
@@ -306,14 +343,16 @@ create_linked_server( AnyRootDir ) ->
 				end ).
 
 
-% @doc Creates a linked resource server anchored at the specified root directory
-% and using the specified GUI backend environment (useful to perform for example
-% bitmap loading), and returns its PID.
-%
-% For graphical operations to be able to happen (e.g. with get_bitmap/2,
-% get_bitmaps/2), the calling process shall already have its GUI backend
-% environment set (see gui:{g,s}et_backend_environment/1).
-%
+
+-doc """
+Creates a linked resource server anchored at the specified root directory and
+using the specified GUI backend environment (useful to perform for example
+bitmap loading), and returns its PID.
+
+For graphical operations to be able to happen (e.g. with get_bitmap/2,
+get_bitmaps/2), the calling process shall already have its GUI backend
+environment set (see gui:{g,s}et_backend_environment/1).
+""".
 -spec create_linked_server( any_directory_path(), gui:backend_environment() ) ->
 											resource_server_pid().
 create_linked_server( AnyRootDir, GUIBackendEnv ) ->
@@ -323,13 +362,14 @@ create_linked_server( AnyRootDir, GUIBackendEnv ) ->
 				end ).
 
 
+
 % Resource holder API: applies both to repositories and servers.
 
 
-% @doc Returns the resource (unspecialised) content corresponding to the
-% specified (file or logical) identifier, based on the specified resource
-% holder.
-%
+-doc """
+Returns the resource (unspecialised) content corresponding to the specified
+(file or logical) identifier, based on the specified resource holder.
+""".
 -spec get( resource_id(), resource_repository() ) ->
 				{ resource(), resource_repository() };
 		 ( resource_id(), resource_server_pid() ) -> resource().
@@ -419,10 +459,10 @@ get( RscId, RscSrvPid ) when is_pid( RscSrvPid ) ->
 
 
 
-% @doc Returns the resource (unspecialised) contents corresponding to the
-% specified (file or logical) identifiers, based on the specified resource
-% holder.
-%
+-doc """
+Returns the resource (unspecialised) contents corresponding to the specified
+(file or logical) identifiers, based on the specified resource holder.
+""".
 -spec get_multiple( [ resource_id() ], resource_repository() ) ->
 				{ [ resource() ], resource_repository() };
 				  ( [ resource_id() ], resource_server_pid() ) ->
@@ -458,9 +498,10 @@ get_multiple( RscIds, RscRef ) -> % Implicit: RscRef=#resource_repository{}
 
 
 
-% @doc Returns the bitmap resource content corresponding to the specified (file
-% or logical) identifier, based on the specified resource holder.
-%
+-doc """
+Returns the bitmap resource content corresponding to the specified (file or
+logical) identifier, based on the specified resource holder.
+""".
 -spec get_bitmap( bitmap_resource_id(), resource_repository() ) ->
 				{ bitmap(), resource_repository() };
 				( bitmap_resource_id(), resource_server_pid() ) -> bitmap().
@@ -598,11 +639,12 @@ get_bitmap( BmpId, BmpSrvPid ) when is_pid( BmpSrvPid ) ->
 
 
 
-% @doc Returns the bitmap resource contents corresponding to the specified (file
-% or logical) identifiers, based on the specified resource holder.
-%
-% Like get_multiple/2, but for bitmaps.
-%
+-doc """
+Returns the bitmap resource contents corresponding to the specified (file or
+logical) identifiers, based on the specified resource holder.
+
+Like get_multiple/2, but for bitmaps.
+""".
 -spec get_bitmaps( [ bitmap_resource_id() ], resource_repository() ) ->
 							{ [ bitmap() ], resource_repository() };
 				 ( [ bitmap_resource_id() ], resource_server_pid() ) ->
@@ -642,11 +684,10 @@ get_bitmaps( BitmapRscIds, RscRef ) ->
 
 
 
-
-
-% @doc Returns whether the resource content corresponding to the specified
-% identifier is registered in the specified resource holder.
-%
+-doc """
+Returns whether the resource content corresponding to the specified identifier
+is registered in the specified resource holder.
+""".
 -spec has( resource_id(), resource_holder() ) -> boolean().
 % As plain strings are tolerated:
 has( RscIdStr, RscHolder ) when is_list( RscIdStr )->
@@ -667,16 +708,17 @@ has( RscId, RscSrvPid ) ->
 
 
 
-% @doc Registers explicitly the specified logical resource(s) in the specified
-% resource holder, based on either a pair made of a logical (non-plain string)
-% identifier and the resource itself, or a list of such pairs.
-%
-% Useful for resources that cannot be loaded directly from a filesystem
-% (e.g. because they have to be processed first, or are obtained through other
-% means - for example through a network or if being generated as a whole).
-%
-% Any resource previously registered under the same identifier will be replaced.
-%
+-doc """
+Registers explicitly the specified logical resource(s) in the specified resource
+holder, based on either a pair made of a logical (non-plain string) identifier
+and the resource itself, or a list of such pairs.
+
+Useful for resources that cannot be loaded directly from a filesystem
+(e.g. because they have to be processed first, or are obtained through other
+means - for example through a network or if being generated as a whole).
+
+Any resource previously registered under the same identifier will be replaced.
+""".
 -spec register( maybe_list( { resource_logical_id(), resource() } ),
 				resource_repository() ) -> resource_repository();
 			  ( maybe_list( { resource_logical_id(), resource() } ),
@@ -706,25 +748,26 @@ register( RscPairs, RscSrvPid ) ->
 
 
 
-% @doc Checks that the resource identifiers in the specified pairs are legit
-% logical ones.
-%
+-doc """
+Checks that the resource identifiers in the specified pairs are legit logical
+ones.
+""".
 check_logical_ids( RscPairs ) ->
 	[ is_list( I ) andalso throw( { invalid_logical_resource_identifier, I } )
 		|| { I, _R } <- RscPairs ].
 
 
 
-% @doc Registers explicitly the specified (single, logical) resource, based on
-% the specified logical (non-plain list) identifier, in the specified resource
-% holder.
-%
-% Useful for resources that cannot be loaded directly from a filesystem
-% (e.g. because they have to be processed first, or are obtained through other
-% means - for example through a network or if being generated as a whole).
-%
-% Any resource previously registered under the same identifier will be replaced.
-%
+-doc """
+Registers explicitly the specified (single, logical) resource, based on the
+specified logical (non-plain list) identifier, in the specified resource holder.
+
+Useful for resources that cannot be loaded directly from a filesystem
+(e.g. because they have to be processed first, or are obtained through other
+means - for example through a network or if being generated as a whole).
+
+Any resource previously registered under the same identifier will be replaced.
+""".
 -spec register( resource_logical_id(), resource(), resource_repository() ) ->
 											resource_repository();
 			  ( resource_logical_id(), resource(), resource_server_pid() ) ->
@@ -749,12 +792,12 @@ register( RscLogId, Rsc, RscSrvPid ) ->
 
 
 
+-doc """
+Removes the specified resource from the specified resource holder.
 
-% @doc Removes the specified resource from the specified resource holder.
-%
-% This resource is just unregistered; for example file-based ones are not
-% deleted from the filesystem.
-%
+This resource is just unregistered; for example file-based ones are not deleted
+from the filesystem.
+""".
 -spec remove( any_resource_file_id(), resource_repository() ) ->
 										resource_repository();
 			( any_resource_file_id(), resource_server_pid() ) -> void().
@@ -781,11 +824,12 @@ remove( RscId, RscSrvPid ) ->
 
 
 
-% @doc Removes the specified resources from the specified resource holder.
-%
-% These resource are just unregistered; for example file-based ones are not
-% deleted from the filesystem.
-%
+-doc """
+Removes the specified resources from the specified resource holder.
+
+These resource are just unregistered; for example file-based ones are not
+deleted from the filesystem.
+""".
 -spec remove_multiple( [ any_resource_file_id() ], resource_repository() ) ->
 										resource_repository();
 					 ( [ any_resource_file_id() ], resource_server_pid() ) ->
@@ -813,7 +857,7 @@ remove_multiple( RscIds, RscRef=#resource_repository{ table=RscTable } ) ->
 
 
 
-% @doc Fully flushes the specified resource holder.
+-doc "Fully flushes the specified resource holder.".
 flush( RscSrvPid ) when is_pid( RscSrvPid ) ->
 	RscSrvPid ! flush;
 
@@ -822,15 +866,16 @@ flush( RscRef=#resource_repository{ table=_RscTable } ) ->
 
 
 
-% @doc Returns the full, absolute path (not a resource per se) to the (single)
-% file-based specified data whose relative path to the resource directory is
-% specified; ensures that the returned file exists indeed (as a regular file or
-% a symbolic link).
-%
-% Especially useful with register/3, in order to locate data files through the
-% resource root directory, so that a logical resource is first obtained from
-% them, and then registered as such.
-%
+-doc """
+Returns the full, absolute path (not a resource per se) to the (single)
+file-based specified data whose relative path to the resource directory is
+specified; ensures that the returned file exists indeed (as a regular file or a
+symbolic link).
+
+Especially useful with register/3, in order to locate data files through the
+resource root directory, so that a logical resource is first obtained from them,
+and then registered as such.
+""".
 -spec locate_data( any_file_path(), resource_holder() ) -> bin_file_path().
 % As strings are tolerated:
 locate_data( DataRelPathStr, AnyRscHolder ) when is_list( DataRelPathStr ) ->
@@ -890,15 +935,16 @@ locate_data_from_ref( BinDataPath,
 
 
 
-% @doc Returns the full, absolute paths (not resources per se) to each of the
-% file-based specified data elements whose relative path to the resource
-% directory is specified; ensures that the returned files exist indeed (as
-% regular files or symbolic links).
-%
-% Especially useful with register/3, in order to locate data files through the
-% resource root directory, so that a logical resource is first obtained from
-% them, and then registered as such.
-%
+-doc """
+Returns the full, absolute paths (not resources per se) to each of the
+file-based specified data elements whose relative path to the resource directory
+is specified; ensures that the returned files exist indeed (as regular files or
+symbolic links).
+
+Especially useful with register/3, in order to locate data files through the
+resource root directory, so that a logical resource is first obtained from them,
+and then registered as such.
+""".
 -spec locate_multiple_data( [ any_file_path() ], resource_holder() ) ->
 										[ bin_file_path() ].
 locate_multiple_data( DataRelPaths, RscSrvPid ) when is_pid( RscSrvPid ) ->
@@ -957,9 +1003,10 @@ locate_multiple_data_from_ref( BinDataPaths, #resource_repository{
 
 
 
-% @doc Returns the full, absolute path to the file-based, already-registered
-% resource specified through its identifier in the specified resource holder.
-%
+-doc """
+Returns the full, absolute path to the file-based, already-registered resource
+specified through its identifier in the specified resource holder.
+""".
 -spec get_path( any_resource_file_id(), resource_holder() ) -> bin_file_path().
 % As strings are tolerated:
 get_path( RscFileIdStr, RscRef ) when is_list( RscFileIdStr ) ->
@@ -1005,11 +1052,12 @@ get_path( RscFileId, RscSrvPid ) when is_binary( RscFileId ) ->
 
 
 
-% @doc Returns the (unchecked) path corresponding to the specified (file)
-% resource, in the context of the specified repository.
-%
-% (helper)
-%
+-doc """
+Returns the (unchecked) path corresponding to the specified (file) resource, in
+the context of the specified repository.
+
+(helper)
+""".
 -spec get_path_from_repository( any_resource_file_id(),
 				resource_repository() ) -> any_resource_file_id().
 get_path_from_repository( RscFileId, #resource_repository{
@@ -1023,12 +1071,12 @@ get_path_from_repository( RscFileId, #resource_repository{
 
 
 
-% @doc Returns the best identifiers in order to communicate with a resource
-% server: transforms the plain string ones into binary ones (others left
-% unchanged).
+-doc """
+Returns the best identifiers in order to communicate with a resource server:
+transforms the plain string ones into binary ones (others left unchanged).
 
-% (helper)
-%
+(helper)
+""".
 -spec get_best_identifiers( [ resource_id() ] ) -> [ resource_id() ].
 get_best_identifiers( RscIds ) ->
 	[ case is_list( RI ) of
@@ -1042,22 +1090,22 @@ get_best_identifiers( RscIds ) ->
 
 
 
-% @doc Returns a textual description of the specified repository.
+-doc "Returns a textual description of the specified repository.".
 -spec repository_to_string( resource_repository() ) -> ustring().
 repository_to_string( #resource_repository{ root_directory=undefined,
-											  table=Rsctable } ) ->
+											table=Rsctable } ) ->
 	text_utils:format( "resource repository, not anchored to a specific "
 		"root directory, storing ~ts",
 		[ resource_table_to_string( Rsctable ) ] );
 
 repository_to_string( #resource_repository{ root_directory=BinRootDir,
-											  table=Rsctable } ) ->
+											table=Rsctable } ) ->
 	text_utils:format( "resource repository whose root directory is '~ts', "
 		"storing ~ts", [ BinRootDir, resource_table_to_string( Rsctable ) ] ).
 
 
 
-% @doc Returns a textual description of the specified resource table.
+-doc "Returns a textual description of the specified resource table.".
 -spec resource_table_to_string( resource_table() ) -> ustring().
 resource_table_to_string( Rsctable ) ->
 	case table:keys( Rsctable ) of
@@ -1080,7 +1128,7 @@ resource_table_to_string( Rsctable ) ->
 
 
 
-% @doc Returns a textual description of the type of the specified resource.
+-doc "Returns a textual description of the type of the specified resource.".
 -spec resource_type_to_string( resource_id() ) -> ustring().
 resource_type_to_string( RscId )
 							when is_list( RscId ) orelse is_binary( RscId ) ->
@@ -1096,22 +1144,26 @@ resource_type_to_string( _RscId ) ->
 
 % Resource server implementation.
 
-% Initialises the resource server.
+
+-doc "Initialises the resource server.".
 -spec server_init() -> no_return().
 server_init() ->
 	InitialRef = create_repository(),
 	server_main_loop( InitialRef ).
 
 
-% Initialises the resource server with specified root directory.
+
+-doc "Initialises the resource server with specified root directory.".
 -spec server_init( bin_directory_path() ) -> no_return().
 server_init( BinRootDir ) ->
 	server_init( BinRootDir, _MaybeGUIBackendEnv=undefined ).
 
 
-% Initialises the resource server with specified root directory and maybe-GUI
-% environment.
-%
+
+-doc """
+Initialises the resource server with specified root directory and maybe-GUI
+environment.
+""".
 -spec server_init( bin_directory_path(),
 				   option( gui:backend_environment() ) ) ->	no_return().
 server_init( BinRootDir, _MaybeGUIBackendEnv=undefined ) ->
@@ -1124,13 +1176,15 @@ server_init( BinRootDir, GUIBackendEnv ) ->
 
 
 
-% Message-based interactions, made according to conventions similar to the
-% Ceylan-WOOPER ones.
-%
-% When an operation fails, no answer is sent to the caller, and the resource
-% server fails. As a result, it is better to create linked instances thereof.
-%
-% (helper)
+-doc """
+Message-based interactions, made according to conventions similar to the
+Ceylan-WOOPER ones.
+
+When an operation fails, no answer is sent to the caller, and the resource
+server fails. As a result, it is better to create linked instances thereof.
+
+(helper)
+""".
 -spec server_main_loop( resource_repository() ) -> no_return().
 server_main_loop( RscRef ) ->
 

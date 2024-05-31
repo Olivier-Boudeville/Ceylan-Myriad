@@ -74,14 +74,16 @@ future.
 
 
 
-% @doc Returns an empty option list.
+-doc "Returns an empty option list.".
 -spec new() -> option_list().
 new() ->
 	[].
 
 
 
-% @doc Creates an option list from specified list containing {Key,Value} pairs.
+-doc """
+Creates an option list from specified list containing {Key,Value} pairs.
+""".
 -spec new( entries() ) -> option_list().
 new( Entries ) ->
 	% The internal representation happens to be the same:
@@ -89,15 +91,16 @@ new( Entries ) ->
 
 
 
-% @doc Sets, in the specified option list, the specified entry.
-%
-% Returns an updated option list.
-%
-% The first previously existing entry found with Key (if any) is replaced
-% 'in place' by this entry.
-%
-% If none is found, the specified entry is put as first element.
-%
+-doc """
+Sets, in the specified option list, the specified entry.
+
+Returns an updated option list.
+
+The first previously existing entry found with Key (if any) is replaced 'in
+place' by this entry.
+
+If none is found, the specified entry is put as first element.
+""".
 -spec set( entry(), option_list() ) -> option_list().
 set( Entry, OptionList ) ->
 	set( Entry, OptionList, _Acc=[] ).
@@ -118,11 +121,11 @@ set( Entry, [ NonMatchingEntry | T ], Acc ) ->
 
 
 
-% @doc Returns the value associated to the specified key in specified option
-% list.
-%
-% Throws an exception if an entry with that key could not be found.
-%
+-doc """
+Returns the value associated to the specified key in specified option list.
+
+Throws an exception if an entry with that key could not be found.
+""".
 -spec get( key(), option_list() ) -> value().
 get( Key, OptionList ) ->
 
@@ -138,25 +141,27 @@ get( Key, OptionList ) ->
 
 
 
-% @doc Returns the value associated to the specified key in specified option
-% list, if found, otherwise (key not found), returns 'undefined'.
-%
-% As a result, this function is not able to discriminate between no entry
-% defined, or one whose value is 'undefined'. See list_table:lookup_entry/2 for
-% a better management.
-%
+-doc """
+Returns the value associated to the specified key in specified option list, if
+found, otherwise (key not found), returns 'undefined'.
+
+As a result, this function is not able to discriminate between no entry defined,
+or one whose value is 'undefined'. See list_table:lookup_entry/2 for a better
+management.
+""".
 -spec lookup( key(), option_list() ) -> option( value() ).
 lookup( Key, OptionList ) ->
 	proplists:get_value( Key, OptionList ).
 
 
 
-% @doc Updates BaseOptionList with the entries of UpdatingOptionList.
-%
-% Merges the two specified option lists into the returned one, knowing that all
-% entries found with the same key in both option lists will end up with the
-% value defined in the second, UpdatingOptionList.
-%
+-doc """
+Updates BaseOptionList with the entries of UpdatingOptionList.
+
+Merges the two specified option lists into the returned one, knowing that all
+entries found with the same key in both option lists will end up with the value
+defined in the second, UpdatingOptionList.
+""".
 -spec update_with( option_list(), option_list() ) -> option_list().
 update_with( BaseOptionList, _UpdatingOptionList=[] ) ->
 	BaseOptionList;
@@ -166,13 +171,13 @@ update_with( BaseOptionList, [ H | T ] ) ->
 
 
 
-% @doc Extracts the entry that is specified by its key from the specified option
-% list, and returns either 'undefined' if not entry with that key could be
-% found, or {Value, RemainingOptionList} where Value is the value associated to
-% this key and RemainingOptionList is the original option list from which this
-% entry (the first found with the specified key) has been removed (order
-% preserved).
-%
+-doc """
+Extracts the entry that is specified by its key from the specified option list,
+and returns either 'undefined' if not entry with that key could be found, or
+{Value, RemainingOptionList} where Value is the value associated to this key and
+RemainingOptionList is the original option list from which this entry (the first
+found with the specified key) has been removed (order preserved).
+""".
 -spec extract( key(), option_list() ) -> { value(), option_list() }.
 extract( Key, OptionList ) ->
 	extract( Key, OptionList, _Acc=[] ).
@@ -188,16 +193,18 @@ extract( Key, _OptionList=[ E | T ], Acc ) ->
 	extract( Key, T, [ E | Acc ] ).
 
 
-% @doc Enumerates specified option list: returns an (ordered) list of {Key,
-% Value} pairs, possibly with duplicates.
-%
+
+-doc """
+Enumerates specified option list: returns an (ordered) list of {Key, Value}
+pairs, possibly with duplicates.
+""".
 -spec enumerate( option_list() ) -> entries().
 enumerate( OptionList ) ->
 	OptionList.
 
 
 
-% @doc Returns a string describing the specified option list.
+-doc "Returns a string describing the specified option list.".
 -spec to_string( option_list() ) -> text_utils:ustring().
 to_string( OptionList ) ->
 
