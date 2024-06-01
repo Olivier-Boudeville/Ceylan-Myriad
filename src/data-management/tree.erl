@@ -28,7 +28,7 @@
 -module(tree).
 
 -moduledoc """
-Gathering of facilities to manage **trees**, balanced or not.
+Gathering of facilities to manage **trees**, binary or not, balanced or not.
 
 The support comprises the one of classical, functional, recursive trees, but
 also ones (actually forests) whose nodes are indexed by an associative table
@@ -45,19 +45,23 @@ also ones (actually forests) whose nodes are indexed by an associative table
 % Section transverse to all kinds of trees.
 
 
+-doc "The content of a node of a tree ('undefined' meaning empty content).".
 -type node_content() :: option( any() ).
-% The content of a node of a tree ('undefined' meaning empty content).
+ 
 
 
+-doc "Describes a function that can be folded onto the content of trees.".
 -type content_fold_fun() ::
 		fun( ( node_content(), accumulator() ) -> accumulator() ).
-% Describes a function that can be folded onto the content of trees.
 
+ 
 
+-doc """
+Height of a tree.
+
+Zero for a single node, one for a parent node and its child, etc.
+""".
 -type height() :: count().
-% Height of a tree.
-%
-% Zero for a single node, one for a parent node and its child, etc.
 
 
 -export_type([ node_content/0, content_fold_fun/0, height/0 ]).
@@ -67,14 +71,16 @@ also ones (actually forests) whose nodes are indexed by an associative table
 % Section for classical, functional, recursive trees.
 
 
+-doc """
+Any tree is made of the content of its root and of any number of (ordered)
+subtrees (children trees).
+""".
 -opaque tree() :: { node_content(), [ tree() ] }.
-% Any tree is made of the content of its root and of any number of (ordered)
-% subtrees (children trees).
 
 
+
+-doc "A typed tree is polymorphic according to its node content.".
 -opaque tree( T ) :: { T, [ tree( T ) ] }.
-% A typed tree is polymorphic according to its node content.
-
 
 
 -export_type([ tree/0, tree/1 ]).
@@ -92,35 +98,52 @@ also ones (actually forests) whose nodes are indexed by an associative table
 % No parametric type, as not useful enough.
 
 
+-doc """
+Designates the identifier of a node of a tree (typically in a forest table).
+""".
 -type node_id() :: term().
-% Designates the identifier of a node of a tree (typically in a forest table).
+ 
 
 
+-doc """
+A list of node identifiers, usually semantically equivalent to a set thereof.
+""".
 -type child_ids() :: [ node_id() ].
-% A list of node identifiers, usually semantically equivalent to a set thereof.
 
 
+
+-doc """
+Another type of tree, based on an indexing table describing, in the general
+case, a forest.
+
+The index of the root node (if any) is implicit (not specified) here.
+""".
 -type forest_table() :: table( node_id(), node_content() ).
-% Another type of tree, based on an indexing table describing, in the general
-% case, a forest.
-%
-% The index of the root node (if any) is implicit (not specified) here.
 
 
+
+-doc """
+A table keeping track of the child nodes of each node, based on node
+identifiers.
+""".
 -type children_table() :: table( node_id(), child_ids() ).
-% A table keeping track of the child nodes of each node, based on node
-% identifiers.
 
 
+
+-doc """
+A function able to return, from a given node identifier and its corresponding
+forest table, a string describing it.
+""".
 -type node_to_string_fun() :: fun( ( node_id(), forest_table() ) -> ustring() ).
-% A function able to return, from a given node identifier and its corresponding
-% forest table, a string describing it.
 
 
+
+-doc """
+A function able to return, from a given node identifier and its corresponding
+forest table, the identifier of its children.
+""".
 -type node_to_children_fun() ::
 		fun( ( node_id(), forest_table() ) -> [ node_id() ] ).
-% A function able to return, from a given node identifier and its corresponding
-% forest table, the identifier of its children.
 
 
 -export_type([ node_id/0, child_ids/0, forest_table/0, children_table/0,
@@ -148,55 +171,55 @@ also ones (actually forests) whose nodes are indexed by an associative table
 % Section for classical, functional, recursive trees.
 
 
-% @doc Creates a single-node, empty, tree.
+-doc "Creates a single-node, empty, tree.".
 -spec new() -> tree().
 new() ->
 	{ _NodeContent=undefined, _Subtrees=[] }.
 
 
 
-% @doc Creates a tree with a single node containing specified content.
+-doc "Creates a tree with a single node containing the specified content.".
 -spec new( node_content() ) -> tree().
 new( NodeContent ) ->
 	{ NodeContent, _Subtrees=[] }.
 
 
 
-% @doc Creates a tree with specified content and child trees.
+-doc "Creates a tree with the specified content and child trees.".
 -spec new( node_content(), [ tree() ] ) -> tree().
 new( NodeContent, Subtrees ) ->
 	{ NodeContent, Subtrees }.
 
 
 
-% @doc Sets the content of the specified node.
+-doc "Sets the content of the specified node.".
 -spec set_content( node_content(), tree() ) -> tree().
 set_content( Content, _Tree= { _PastContent, ChildTrees } ) ->
 	{ Content, ChildTrees }.
 
 
 
-% @doc Appends the specified child tree as first child of the specified tree.
+-doc "Appends the specified child tree as first child of the specified tree.".
 -spec append_child( tree(), tree() ) -> tree().
 append_child( NewChildTree, _TargetTree={ Content, ChildTrees } ) ->
 	{ Content, [ NewChildTree | ChildTrees ] }.
 
 
 
-% @doc Appends the specified child trees as first children of the specified
-% tree.
-%
+-doc """
+Appends the specified child trees as first children of the specified tree.
+""".
 -spec append_children( [ tree() ], tree() ) -> tree().
 append_children( NewChildTrees, _TargetTree={ Content, ChildTrees } ) ->
 	{ Content, NewChildTrees ++ ChildTrees }.
 
 
 
-% @doc Maps specified function to the content of all nodes of the specified
-% tree.
-%
-% Performs breadth-first mapping.
-%
+-doc """
+Maps the specified function to the content of all nodes of the specified tree.
+
+Performs breadth-first mapping.
+""".
 -spec map( fun( ( node_content() ) -> node_content() ), tree() ) -> tree().
 map( Fun, _Tree={ Content, Subtrees } ) ->
 	NewContent = Fun( Content ),
@@ -204,12 +227,13 @@ map( Fun, _Tree={ Content, Subtrees } ) ->
 
 
 
-% @doc Folds specified function breadth-first onto the content of all nodes of
-% specified tree, and returns the corresponding result.
-%
-% At a given height, siblings will be traversed from most recent to oldest
-% attached.
-%
+-doc """
+Folds the specified function breadth-first onto the content of all nodes of the
+specified tree, and returns the corresponding result.
+
+At a given height, siblings will be traversed from most recent to oldest
+attached.
+""".
 -spec fold_breadth_first( content_fold_fun(), accumulator(), tree() ) ->
 								accumulator().
 fold_breadth_first( ContentFun, InitialAcc, _Tree={ Content, Subtrees } ) ->
@@ -223,12 +247,13 @@ fold_breadth_first( ContentFun, InitialAcc, _Tree={ Content, Subtrees } ) ->
 
 
 
-% @doc Folds specified function depth-first onto the content of all nodes of
-% specified tree, and returns the corresponding result.
-%
-% In case of unbalanced trees, there is no guarantee that the deepest element is
-% examined first, as the first branch examined may not be the deepest.
-%
+-doc """
+Folds the specified function depth-first onto the content of all nodes of
+specified tree, and returns the corresponding result.
+
+In case of unbalanced trees, there is no guarantee that the deepest element is
+examined first, as the first branch examined may not be the deepest.
+""".
 -spec fold_depth_first( content_fold_fun(), accumulator(), tree() ) ->
 														accumulator().
 fold_depth_first( ContentFun, InitialAcc, _Tree={ Content, Subtrees } ) ->
@@ -241,9 +266,10 @@ fold_depth_first( ContentFun, InitialAcc, _Tree={ Content, Subtrees } ) ->
 
 
 
-% @doc Returns the height (maximum depth) of the specified tree, that is the
-% number of edges on the longest downward path between the root and any leaf.
-%
+-doc """
+Returns the height (maximum depth) of the specified tree, that is the number of
+edges on the longest downward path between the root and any leaf.
+""".
 -spec height( tree() ) -> height().
 height( _Tree={ _Content, _Subtrees=[] } ) ->
 	0;
@@ -262,7 +288,7 @@ height( _Tree={ _Content, Subtrees } ) ->
 
 
 
-% @doc Returns the total number of nodes that the specified tree contains.
+-doc "Returns the total number of nodes that the specified tree contains.".
 -spec size( tree() ) -> count().
 %size( _Tree={ _Content, _Subtrees=[] } ) ->
 %   1;
@@ -281,7 +307,7 @@ size( _Tree={ _Content, Subtrees }, Acc ) ->
 
 
 
-% @doc Returns a textual description of the specified tree.
+-doc "Returns a textual description of the specified tree.".
 -spec to_string( tree() ) -> ustring().
 to_string( Tree ) ->
 	% Is an io_list():
@@ -316,11 +342,10 @@ to_string( _Tree={ Content, SubTrees }, Prefix ) ->
 % Section for trees/forests whose nodes are indexed by an associative table.
 
 
-
-% @doc Returns a textual description of the specified forest, based on its main
-% table, the one of its children, and the identifier of the root node to
-% consider.
-%
+-doc """
+Returns a textual description of the specified forest, based on its main table,
+the one of its children, and the identifier of the root node to consider.
+""".
 -spec to_string( forest_table(), node_id(), verbosity_level() ) -> ustring().
 to_string( ForestTable, RootNodeId, _VerbLevel=low ) ->
 	text_utils:format( "forest table of ~B nodes, whose root node is #~B",
@@ -348,9 +373,10 @@ to_string( ForestTable, RootNodeId, _VerbLevel=high ) ->
 
 
 
-% @doc Returns a textual description of the specified forest table, using the
-% specified starting node, and stringification and children-listing functions.
-%
+-doc """
+Returns a textual description of the specified forest table, using the specified
+starting node, and stringification and children-listing functions.
+""".
 -spec forest_to_string( forest_table(), node_id(), node_to_string_fun(),
 						node_to_children_fun() ) -> ustring().
 forest_to_string( ForestTable, FromNodeId, NodeToStringFun,

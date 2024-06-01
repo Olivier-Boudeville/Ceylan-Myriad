@@ -453,7 +453,7 @@ remove_first_elements( List, Count ) ->
 Returns a list corresponding to the specified one with the element at the
 specified index removed.
 
-If the index is out of bounds, a function_clause like '[{list_utils,
+If the index is out of bounds, a function_clause like `[{list_utils,
 remove_element_at, ...}]` is triggered.
 
 Note: usually these kinds of functions should not be used, recursive algorithms
