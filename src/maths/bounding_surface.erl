@@ -60,23 +60,31 @@ See `bounding_surface_test.erl` for the corresponding test.
 -include("bounding_surface.hrl").
 
 
+
+-doc """
+Allows to designate an algorithm in charge of computing a bounding surface.  For
+example several algorithms allow, with different trade-offs, to compute
+(different) instances of bounding surfaces (of the same type, e.g. circle, or of
+different types).
+""".
 -type bounding_algorithm() :: 'rectangle' | 'lazy_circle' | 'mec'.
-% Allows to designate an algorithm in charge of computing a bounding surface.
-% For example several algorithms allow, with different trade-offs, to compute
-% (different) instances of bounding surfaces (of the same type, e.g. circle, or
-% of different types).
 
 
+
+-doc "A bounding surface defined based on a rectangle.".
 -type rectangle() :: #rectangle{}.
-% A bounding surface defined based on a rectangle.
 
 
+
+-doc """
+A bounding surface defined based on any circle (e.g. lazy or MEC).
+""".
 -type circle() :: #circle{}.
-% A bounding surface defined based on any circle (e.g. lazy or MEC).
 
 
+
+-doc "All supported types of bounding surfaces.".
 -type bounding_surface() :: rectangle() | circle().
-% All supported types of bounding surfaces.
 
 
 -export_type([ bounding_algorithm/0,
@@ -131,12 +139,13 @@ See `bounding_surface_test.erl` for the corresponding test.
 
 
 
-% @doc Returns a rectangle that is a bounding surface for the specified list of
-% points, which must not be empty.
-%
-% Note: this bounding surface is not the smallest one, but the most lightweight
-% to compute.
-%
+-doc """
+Returns a rectangle that is a bounding surface for the specified list of points,
+which must not be empty.
+
+Note: this bounding surface is not the smallest one, but the most lightweight to
+compute.
+""".
 -spec get_bounding_rectangle( [ any_point2() ] ) -> rectangle().
 get_bounding_rectangle( Points ) ->
 
@@ -147,12 +156,13 @@ get_bounding_rectangle( Points ) ->
 
 
 
-% @doc Returns a circle that is a bounding surface for the specified list of
-% points, which must not be empty.
-%
-% Note: this bounding surface is not the smallest one, but is very lightweight
-% to compute.
-%
+-doc """
+Returns a circle that is a bounding surface for the specified list of points,
+which must not be empty.
+
+Note: this bounding surface is not the smallest one, but is very lightweight to
+compute.
+""".
 -spec get_lazy_bounding_circle( [ any_point2() ] ) -> circle().
 get_lazy_bounding_circle( Points ) ->
 
@@ -168,17 +178,17 @@ get_lazy_bounding_circle( Points ) ->
 
 
 
-% @doc Returns {Center, SquareRadius} which defines a bounding surface
-% consisting in the Minimal Enclosing Circle (MEC) for the specified list of
-% points.
-%
-% Note: this bounding surface is the unique, smallest possible circle, but
-% requires non-negligible computations.
-%
-% Apparently there is no way of adding a point to an existing MEC without
-% recomputing everything from scratch. So we do not provide a
-% update_minimal_enclosing_circle_surface/2 function.
-%
+-doc """
+Returns {Center, SquareRadius} which defines a bounding surface consisting in
+the Minimal Enclosing Circle (MEC) for the specified list of points.
+
+Note: this bounding surface is the unique, smallest possible circle, but
+requires non-negligible computations.
+
+Apparently there is no way of adding a point to an existing MEC without
+recomputing everything from scratch. So we do not provide a
+update_minimal_enclosing_circle_surface/2 function.
+""".
 -spec get_minimal_enclosing_circle( [ any_point2() ] ) -> circle().
 get_minimal_enclosing_circle( _Points=[] ) ->
 	throw( no_point_to_enclose );
@@ -286,9 +296,10 @@ get_minimal_enclosing_circle( Points ) ->
 
 
 
-% @doc Returns the circle whose diameter is the [A,B] segment if the specified
-% point P is in it (bounds of the circle included), otherwise 'undefined'.
-%
+-doc """
+Returns the circle whose diameter is the [A,B] segment if the specified point P
+is in it (bounds of the circle included), otherwise 'undefined'.
+""".
 -spec get_circle_if_in_range( P :: any_point2(), A :: any_point2(),
 							  B :: any_point2() ) -> option( circle() ).
 get_circle_if_in_range( P, A, B ) ->
@@ -307,25 +318,25 @@ get_circle_if_in_range( P, A, B ) ->
 
 
 
-% @doc Tells whether the specified point P is within the specified circle.
+-doc "Tells whether the specified point P is within the specified circle.".
 -spec is_within( any_point2(), circle() ) -> boolean().
 is_within( P, #circle{ center=C, square_radius=SR } ) ->
 	is_within( P, C, SR ).
 
 
 
-% @doc Tells whether specified the point P is within the specified circle.
+-doc "Tells whether the specified point P is within the specified circle.".
 -spec is_within( any_point2(), any_point2(), square_distance() ) -> boolean().
 is_within( P, Center, SquareRadius ) ->
 	point2:square_distance( P, Center ) =< SquareRadius.
 
 
 
-
-% @doc Returns the circumscribed circle of the three specified points, that is
-% the (unique) circle intersecting them all, provided that they are not aligned
-% (otherwise returns undefined).
-%
+-doc """
+Returns the circumscribed circle of the three specified points, that is the
+(unique) circle intersecting them all, provided that they are not aligned
+(otherwise returns undefined).
+""".
 -spec get_circumscribed_circle_for( any_point2(), any_point2(),
 									any_point2() ) -> option( circle() ).
 get_circumscribed_circle_for( P1, P2, P3 ) ->
@@ -360,7 +371,7 @@ get_circumscribed_circle_for( P1, P2, P3 ) ->
 
 
 
-% @doc Returns the MEC of the three specified points, supposed to be aligned.
+-doc "Returns the MEC of the three specified points, supposed to be aligned.".
 -spec get_circle_for_aligned( any_point2(), any_point2(), any_point2() ) ->
 														circle().
 get_circle_for_aligned( P1, P2, P3 ) ->
@@ -472,9 +483,10 @@ try_side( P1, P2, OtherPoints ) ->
 
 
 
-% @doc Returns {MinAngle, MinVertex}, the minimum angle (in canonical degrees)
-% subtended by the segment [P1, P2] among the specified list of points.
-%
+-doc """
+Returns {MinAngle, MinVertex}, the minimum angle (in canonical degrees)
+subtended by the segment [P1, P2] among the specified list of points.
+""".
 -spec find_minimal_angle( any_point2(), any_point2(), [ any_point2() ] ) ->
 											{ int_degrees(), any_point2() }.
 find_minimal_angle( _P1, _P2, _Points=[] ) ->
@@ -510,7 +522,7 @@ find_minimal_angle( P1, P2, [ P | OtherPoints ], MinAngle, MinVertex ) ->
 
 
 
-% @doc Returns a textual description of the specified bounding surface.
+-doc "Returns a textual description of the specified bounding surface.".
 -spec to_string( bounding_surface() ) -> ustring().
 to_string( #rectangle{ top_left=TopLeft, bottom_right=BottomRight } ) ->
 	text_utils:format( "bounding rectangle whose top-left corner is ~ts "

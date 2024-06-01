@@ -41,79 +41,108 @@ See `mesh_test.erl` for the corresponding test.
 -include("mesh.hrl").
 
 
+-doc "Describes a mesh, convex or not.".
 -type mesh() :: #mesh{}.
-% Describes a mesh, convex or not.
 
 
 
+-doc """
+The indice of an element (e.g. vertex, normal, texture coordinate), typically in
+a data container such as a list, an array or a binary buffer.
+
+As always in Myriad, indices start at 1 (e.g. as opposed to zero-based indexes
+such as glTF).
+""".
 -type indice() :: linear:indice().
-% The indice of an element (e.g. vertex, normal, texture coordinate), typically
-% in a data container such as a list, an array or a binary buffer.
-%
-% As always in Myriad, indices start at 1 (e.g. as opposed to zero-based indexes
-% such as glTF).
 
 
+
+-doc "The index of a vertex (typically a point3()) in an indexed face.".
 -type vertex_indice() :: indice().
-% The index of a vertex (typically a point3()) in an indexed face.
 
 
+
+-doc """
+A repository of vertices, typically to be referenced based on their indice.
+""".
 -type vertex_repository() :: array( vertex3() ).
-% A repository of vertices, typically to be referenced based on their indice.
 
 
+
+-doc """
+The type of the faces of a mesh.
+
+'arbitrary' could be supported later.
+""".
 -type face_type() :: 'triangle' | 'quad'.
-% The type of the faces of a mesh.
-%
-% 'arbitrary' could be supported later.
 
 
+
+-doc """
+Describes a face of a mesh, based on an (ordered) tuple of vertices (at least
+three of them), specified as indexes (for example 3 of them, to define a
+triangle).
+
+Note that usually the vertex order matters (regarding culling).
+""".
 -type indexed_face() :: tuple( vertex_indice() ).
-% Describes a face of a mesh, based on an (ordered) tuple of vertices (at least
-% three of them), specified as indexes (for example 3 of them, to define a
-% triangle).
-%
-% Note that usually the vertex order matters (regarding culling).
 
 
+
+-doc "The index of a face in a container thereof.".
 -type face_indice() :: indice().
-% The index of a face in a container thereof.
 
 
+
+-doc """
+Made of the corresponding three vertices.
+
+Note that usually the vertex order matters (regarding culling).
+""".
 -type indexed_triangle() ::
 	{ vertex_indice(), vertex_indice(), vertex_indice() }.
-% Made of the corresponding three vertices.
-%
-% Note that usually the vertex order matters (regarding culling).
 
 
+
+-doc """
+Made of the corresponding four vertices.
+
+Note that usually the vertex order matters (regarding culling).
+""".
 -type indexed_quad() ::
 	{ vertex_indice(), vertex_indice(), vertex_indice(), vertex_indice() }.
-% Made of the corresponding four vertices.
-%
-% Note that usually the vertex order matters (regarding culling).
 
 
+
+-doc "Elements that may be referenced by a mesh.".
 -type mesh_element() :: vertex3() | unit_normal3()
 					  | mesh_render:render_element().
-% Elements that may be referenced by a mesh.
 
 
+
+-doc "Defines to which geometric element a normal corresponds.".
 -type normal_type() :: 'per_vertex' | 'per_face'.
-% Defines to which geometric element a normal corresponds.
 
 
+
+-doc "A number of vertices.".
 -type vertex_count() :: count().
-% A number of vertices.
 
+
+
+-doc "A number of normals.".
 -type normal_count() :: count().
-% A number of normals.
 
+
+
+-doc "A number of edges.".
 -type edge_count() :: count().
-% A number of edges.
 
+
+
+-doc "A number of faces.".
 -type face_count() :: count().
-% A number of faces.
+%
 
 
 
@@ -189,12 +218,13 @@ See `mesh_test.erl` for the corresponding test.
 % Construction-related section.
 
 
-% @doc Returns a new mesh whose vertices and faces are the specified ones, with
-% no specific normal, rendering information or bounding volume set.
-%
-% Determines automatically the face type, assuming it is homogeneous across all
-% the declared faces.
-%
+-doc """
+Returns a new mesh whose vertices and faces are the specified ones, with no
+specific normal, rendering information or bounding volume set.
+
+Determines automatically the face type, assuming it is homogeneous across all
+the declared faces.
+""".
 -spec create( [ vertex3() ], [ indexed_face() ] ) -> mesh().
 create( _Vertices, _Faces=[] ) ->
 	throw( no_face_declared );
@@ -203,17 +233,21 @@ create( Vertices, Faces=[ F | _T ] ) ->
 	create( Vertices, get_face_type( F ), Faces, _RenderingInfo=none ).
 
 
-% @doc Returns a new mesh whose vertices and faces are the specified ones, with
-% no specific normal, rendering information or bounding volume set.
-%
+
+-doc """
+Returns a new mesh whose vertices and faces are the specified ones, with no
+specific normal, rendering information or bounding volume set.
+""".
 -spec create( [ vertex3() ], face_type(), [ indexed_face() ] ) -> mesh().
 create( Vertices, FaceType, Faces ) ->
 	create( Vertices, FaceType, Faces, _RenderingInfo=none ).
 
 
-% @doc Returns a new mesh whose vertices, faces and rendering information are
-% the specified ones, with no specific normal or bounding volume set.
-%
+
+-doc """
+Returns a new mesh whose vertices, faces and rendering information are the
+specified ones, with no specific normal or bounding volume set.
+""".
 -spec create( [ vertex3() ], face_type(), [ indexed_face() ],
 			  rendering_info() ) -> mesh().
 create( Vertices, FaceType, Faces, RenderingInfo ) ->
@@ -222,10 +256,11 @@ create( Vertices, FaceType, Faces, RenderingInfo ) ->
 
 
 
-% @doc Returns a new mesh whose vertices, faces, normals (of unit length, and of
-% the specified type; if any), rendering information are the specified ones,
-% with no specific bounding volume set.
-%
+-doc """
+Returns a new mesh whose vertices, faces, normals (of unit length, and of the
+specified type; if any), rendering information are the specified ones, with no
+specific bounding volume set.
+""".
 -spec create( [ vertex3() ], face_type(), [ indexed_face() ],
 	normal_type(), option( [ unit_normal3() ] ), rendering_info() ) -> mesh().
 create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
@@ -269,9 +304,10 @@ create( Vertices, FaceType, Faces, NormalType, MaybeNormals, RenderingInfo ) ->
 
 
 
-% @doc Returns the number of vertices per face to be expected for the specified
-% face type.
-%
+-doc """
+Returns the number of vertices per face to be expected for the specified face
+type.
+""".
 -spec get_vertex_count_for_face_type( face_type() ) -> count().
 get_vertex_count_for_face_type( _FaceType=triangle ) ->
 	3;
@@ -280,7 +316,8 @@ get_vertex_count_for_face_type( _FaceType=quad ) ->
 	4.
 
 
-% @doc Returns the face type corresponding to the specified (indexed) face.
+
+-doc "Returns the face type corresponding to the specified (indexed) face.".
 -spec get_face_type( indexed_face() ) -> face_type().
 get_face_type( IndexedFace ) when is_tuple( IndexedFace )
 								  andalso size( IndexedFace ) =:= 3 ->
@@ -292,9 +329,9 @@ get_face_type( IndexedFace ) when is_tuple( IndexedFace )
 
 
 
-% @doc Checks whether the specified term is a legit list of faces, and returns
-% it.
-%
+-doc """
+Checks whether the specified term is a legit list of faces, and returns it.
+""".
 -spec check_faces( term(), vertex_count() ) -> [ indexed_face() ].
 check_faces( Faces, VCount ) when is_list( Faces ) ->
 	[ check_face( F, VCount ) || F <- Faces ];
@@ -303,7 +340,8 @@ check_faces( Other, _VCount ) ->
 	throw( { invalid_faces, Other } ).
 
 
-% @doc Checks whether the specified term is a legit face, and returns it.
+
+-doc "Checks whether the specified term is a legit face, and returns it.".
 -spec check_face( term(), vertex_count() ) -> indexed_face().
 check_face( Face, VCount )
 		when is_tuple( Face ) andalso size( Face ) =:= VCount ->
@@ -313,7 +351,8 @@ check_face( Other, _VCount ) ->
 	throw( { invalid_faces, Other } ).
 
 
-% @doc Checks whether the specified term is a legit indice, and returns it.
+
+-doc "Checks whether the specified term is a legit indice, and returns it.".
 -spec check_indice( term() ) -> indice().
 check_indice( Id ) when is_integer( Id ) andalso Id > 0 ->
 	Id;
@@ -327,9 +366,10 @@ check_indice( Other ) ->
 % Exported helpers.
 
 
-% @doc "Tessellates" the specified mesh: returns a version of it whose faces are
-% triangles (e.g. not quads).
-%
+-doc """
+"Tessellates" the specified mesh: returns a version of it whose faces are
+triangles (e.g. not quads).
+""".
 -spec tessellate( mesh() ) -> mesh().
 tessellate( Mesh=#mesh{ face_type=triangle } ) ->
 	Mesh;
@@ -374,13 +414,14 @@ tessellate( Mesh=#mesh{ face_type=quad,
 
 
 
-% @doc Converts each quad face (an indexed_quad(), defined by vertex indices
-% {V1,V2,V3,V4}) into two triangle faces (indexed_triangle()): {V1,V2,V3} and
-% {V3,V4,V1} (thus preserving the original conventional order).
-%
-% So the length of the returned (triangle) list is twice as long as the one of
-% the specified (quad) one.
-%
+-doc """
+Converts each quad face (an indexed_quad(), defined by vertex indices
+{V1,V2,V3,V4}) into two triangle faces (indexed_triangle()): {V1,V2,V3} and
+{V3,V4,V1} (thus preserving the original conventional order).
+
+So the length of the returned (triangle) list is twice as long as the one of the
+specified (quad) one.
+""".
 -spec triangulate( [ indexed_quad() ] ) -> [ indexed_triangle() ].
 triangulate( QuadFaces ) ->
 	% (a list comprehension would not suffice; reversing earlier than later is
@@ -400,23 +441,25 @@ triangulate( _RevQuadFaces=[ _QF={ V1Id, V2Id, V3Id, V4Id } | T ], Acc ) ->
 
 
 
-% @doc Returns a mesh whose vertices are the specified ones.
-%
-% No consistency checked with the other information held by this mesh.
-%
+-doc """
+Returns a mesh whose vertices are the specified ones.
+
+No consistency checked with the other information held by this mesh.
+""".
 -spec set_vertices( [ vertex3() ], mesh() ) -> mesh().
 set_vertices( NewVertices, Mesh ) ->
 	Mesh#mesh{ vertices=array:from_list( NewVertices ) }.
 
 
 
-% @doc Updates the specified mesh by computing automatically the "basic"
-% per-face normals that can be deduced from the vertices of each face of this
-% mesh, replacing any previously defined normals.
-%
-% Vertex ordering is supposed to respect Myriad's conventions (CCW from
-% outside), so that the added normals are pointing outward.
-%
+-doc """
+Updates the specified mesh by computing automatically the "basic" per-face
+normals that can be deduced from the vertices of each face of this mesh,
+replacing any previously defined normals.
+
+Vertex ordering is supposed to respect Myriad's conventions (CCW from outside),
+so that the added normals are pointing outward.
+""".
 -spec compute_normals( mesh() ) -> mesh().
 compute_normals( Mesh=#mesh{ vertices=Vertices,
 							 faces=Faces }) ->
@@ -424,13 +467,15 @@ compute_normals( Mesh=#mesh{ vertices=Vertices,
 	Mesh#mesh{ normals=Normals }.
 
 
-% @doc Updates the specified mesh by computing automatically the "basic"
-% per-face normals that can be deduced from the vertices of each face of this
-% mesh, replacing any previously defined normals.
-%
-% Vertex ordering is supposed to respect Myriad's conventions (CCW from
-% outside), so that the added normals are pointing outward.
-%
+
+-doc """
+Updates the specified mesh by computing automatically the "basic" per-face
+normals that can be deduced from the vertices of each face of this mesh,
+replacing any previously defined normals.
+
+Vertex ordering is supposed to respect Myriad's conventions (CCW from outside),
+so that the added normals are pointing outward.
+""".
 -spec compute_normal( indexed_face(), [ vertex3() ] ) -> unit_normal3().
 compute_normal( Face, AllVertices ) ->
 
@@ -447,17 +492,21 @@ compute_normal( Face, AllVertices ) ->
 	vector3:compute_normal( V1, V2, V3 ).
 
 
-% @doc Returns the indexed triangle corresponding to the specified indexed face
-% (thus expected to comprise 3 vertices).
-%
+
+-doc """
+Returns the indexed triangle corresponding to the specified indexed face (thus
+expected to comprise 3 vertices).
+""".
 -spec indexed_face_to_triangle( indexed_face() ) -> indexed_triangle().
 indexed_face_to_triangle( _F=[ V1, V2, V3 ] ) ->
 	_IT={ V1, V2, V3 }.
 
 
-% @doc Returns the indexed triangles corresponding to the specified indexed
-% faces (thus expected to comprise 3 vertices each).
-%
+
+-doc """
+Returns the indexed triangles corresponding to the specified indexed faces (thus
+expected to comprise 3 vertices each).
+""".
 -spec indexed_faces_to_triangles( [ indexed_face() ] ) ->
 												[ indexed_triangle() ].
 indexed_faces_to_triangles( Faces ) ->
@@ -469,18 +518,21 @@ indexed_faces_to_triangles( Faces ) ->
 % Basic helpers.
 
 
-% @doc Returns the vertex of the specified indice relative to the specified
-% referenced vertex repository.
-%
+-doc """
+Returns the vertex of the specified indice relative to the specified referenced
+vertex repository.
+""".
 -spec get_vertex_from_id( indice(), vertex_repository() ) -> vertex3().
 get_vertex_from_id( Id, VRepository ) ->
 	% As array indices start at zero:
 	array:get( Id-1, VRepository ).
 
 
-% @doc Returns the vertices of the specified indices relative to the specified
-% referenced vertex repository.
-%
+
+-doc """
+Returns the vertices of the specified indices relative to the specified
+referenced vertex repository.
+""".
 -spec get_vertices_from_ids( [ indice() ], vertex_repository() ) ->
 											[ vertex3() ].
 get_vertices_from_ids( Ids, VRepository ) ->
@@ -488,17 +540,20 @@ get_vertices_from_ids( Ids, VRepository ) ->
 
 
 
-% @doc Returns the element (e.g vertex, color, texture coordinates) of the
-% specified indice relative to the specified referenced mesh elements.
-%
+-doc """
+Returns the element (e.g vertex, color, texture coordinates) of the specified
+indice relative to the specified referenced mesh elements.
+""".
 -spec get_element_from_id( indice(), [ mesh_element() ] ) -> mesh_element().
 get_element_from_id( Id, Elements ) ->
 	lists:nth( Id, Elements ).
 
 
-% @doc Returns the elements (typically vertices, colors, texture coordinates) of
-% the specified indices) relative to the specified referenced mesh elements.
-%
+
+-doc """
+Returns the elements (typically vertices, colors, texture coordinates) of the
+specified indices) relative to the specified referenced mesh elements.
+""".
 -spec get_elements_from_ids( [ indice() ], [ mesh_element() ] ) ->
 											[ mesh_element() ].
 get_elements_from_ids( Ids, Elements ) ->
@@ -510,7 +565,7 @@ get_elements_from_ids( Ids, Elements ) ->
 % Operations on meshes.
 
 
-% @doc Returns a (rather full) textual description of the specified mesh.
+-doc "Returns a (rather full) textual description of the specified mesh.".
 -spec to_string( mesh() ) -> ustring().
 to_string( #mesh{ vertices=Vertices,
 				  face_type=FaceType,
@@ -566,7 +621,7 @@ to_string( #mesh{ vertices=Vertices,
 
 
 
-% @doc Returns a compact textual description of the specified mesh.
+-doc "Returns a compact textual description of the specified mesh.".
 -spec to_compact_string( mesh() ) -> ustring().
 to_compact_string( #mesh{ vertices=Vertices,
 						  face_type=FaceType,
@@ -611,7 +666,7 @@ to_compact_string( #mesh{ vertices=Vertices,
 
 
 
-% @doc Returns a textual description of the specified face type.
+-doc "Returns a textual description of the specified face type.".
 -spec face_type_to_string( face_type() ) -> ustring().
 face_type_to_string( triangle ) ->
 	"triangle";
@@ -620,7 +675,8 @@ face_type_to_string( quad ) ->
 	"quad".
 
 
-% @doc Returns a textual description of the specified normal type.
+
+-doc "Returns a textual description of the specified normal type.".
 -spec normal_type_to_string( normal_type() ) -> ustring().
 normal_type_to_string( per_vertex ) ->
 	"per-vertex";

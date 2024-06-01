@@ -92,56 +92,72 @@ See also:
 
 
 
+-doc """
+A matrix4 can be specified as a list of same-size rows (akin to a user arbitrary
+matrix) containing any kind of numerical coordinates.
+""".
 -type user_matrix4() :: user_matrix().
-% A matrix4 can be specified as a list of same-size rows (akin to a user
-% arbitrary matrix) containing any kind of numerical coordinates.
 
 
+
+-doc "A 4x4 matrix.".
 -type matrix4() :: 'identity_4' | canonical_matrix4() | compact_matrix4().
-% A 4x4 matrix.
 
 
+
+-doc "Alias for 4x4 canonical matrices.".
 -type canonical_matrix4() :: #matrix4{}.
 % Alias for 4x4 canonical matrices.
 
 
+
+-doc "Alias for 4x4 compact matrices.".
 -type compact_matrix4() :: #compact_matrix4{}.
 % Alias for 4x4 compact matrices.
 
 
+
+-doc "A matrix describing a 4D rotation.".
 -type rot_matrix4() :: canonical_matrix4().
-% A matrix describing a 4D rotation.
 
 
+
+-doc """
+A matrix4 that corresponds to an homogeneous one.
+
+So we do not expect canonical matrices here.
+
+A notation [R|T] designates for these matrices for R a 3x3 (possibly rotation)
+matrix, and for T its right-side corresponding 3D (translation) vector.
+""".
 -type homogeneous_matrix4() :: 'identity_4' | compact_matrix4().
-% A matrix4 that corresponds to an homogeneous one.
-%
-% So we do not expect canonical matrices here.
-%
-% A notation [R|T] designates for these matrices for R a 3x3 (possibly rotation)
-% matrix, and for T its right-side corresponding 3D (translation) vector.
 
 
+
+-doc """
+An homogeneous matrix4 that corresponds to a transition from a 3D coordinate
+system to another.
+
+It can be noted TM = [R|T] where R is a 3x3 rotation matrix and T its associated
+translation vector.
+
+It can be represented as an orthogonal compact matrix, made of the following
+four (3D) rows, in that order: I, J, K and O, for the three unit axes and the
+origin.
+""".
 -type transition_matrix4() :: homogeneous_matrix4().
-% An homogeneous matrix4 that corresponds to a transition from a 3D coordinate
-% system to another.
-%
-% It can be noted TM = [R|T] where R is a 3x3 rotation matrix and T its
-% associated translation vector.
-%
-% It can be represented as an orthogonal compact matrix, made of the following
-% four (3D) rows, in that order: I, J, K and O, for the three unit axes and the
-% origin.
 
 
+
+-doc "A tuple of 12 or 16 coordinates.".
 -type tuple_matrix4() :: % Not exported yet: gl:m12() | gl:m16().
 						 type_utils:tuple( coordinate(), 12 )
 					   | type_utils:tuple( coordinate(), 16 ).
-% A tuple of 12 or 16 coordinates.
 
 
+
+-doc "Scale factors for 3D content.".
 -type scale_factors() :: { scale_factor(), scale_factor(), scale_factor() }.
-% Scale factors for 3D content.
 
 
 -export_type([ user_matrix4/0, matrix4/0, canonical_matrix4/0,
@@ -235,9 +251,9 @@ See also:
 
 
 
-% @doc Returns a 4D (canonical) matrix corresponding to the user-specified
-% matrix.
-%
+-doc """
+Returns a 4D (canonical) matrix corresponding to the user-specified matrix.
+""".
 -spec new( user_matrix4() ) -> canonical_matrix4().
 new( UserMatrix ) ->
 
@@ -249,9 +265,9 @@ new( UserMatrix ) ->
 
 
 
-% @doc Returns a 4D compact matrix corresponding to the user-specified
-% row vectors.
-%
+-doc """
+Returns a 4D compact matrix corresponding to the user-specified row vectors.
+""".
 -spec new( user_vector4(), user_vector4(), user_vector4() ) ->
 											compact_matrix4().
 new( UserVecRow1, UserVecRow2, UserVecRow3 ) ->
@@ -266,7 +282,7 @@ new( UserVecRow1, UserVecRow2, UserVecRow3 ) ->
 
 
 
-% @doc Returns the null (4x4) matrix.
+-doc "Returns the null (4x4) matrix.".
 -spec null() -> canonical_matrix4().
 null() ->
 	Zero = 0.0,
@@ -275,16 +291,17 @@ null() ->
 
 
 
-% @doc Returns the identity (4x4) matrix.
+-doc "Returns the identity (4x4) matrix.".
 -spec identity() -> matrix4().
 identity() ->
 	identity_4.
 
 
 
-% @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to a
-% translation of the specified vector.
-%
+-doc """
+Returns the (4x4) homogeneous (thus compact) matrix corresponding to a
+translation of the specified vector.
+""".
 -spec translation( vector3() ) -> compact_matrix4().
 translation( _VT=[ Tx, Ty, Tz ] ) ->
 	Zero = 0.0,
@@ -295,9 +312,10 @@ translation( _VT=[ Tx, Ty, Tz ] ) ->
 
 
 
-% @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to the
-% scaling of the specified factors.
-%
+-doc """
+Returns the (4x4) homogeneous (thus compact) matrix corresponding to the scaling
+of the specified factors.
+""".
 -spec scaling( scale_factors() ) -> compact_matrix4();
 			 ( vector3() ) -> compact_matrix4().
 scaling( { Sx, Sy, Sz } ) ->
@@ -314,16 +332,17 @@ scaling( [ Sx, Sy, Sz ] ) ->
 
 
 
-% @doc Returns the (4x4) homogeneous (thus compact) matrix corresponding to a
-% rotation of the specified angle around the 3D axis specified as a unit vector,
-% and to no translation.
-%
-% This will be a counterclockwise rotation for an observer placed so that the
-% specified axis points towards it.
-%
-% Note that this is not the general case of a rotation in 4D (which is of little
-% use, at least here), but this corresponds to (4x4) homogeneous matrices.
-%
+-doc """
+Returns the (4x4) homogeneous (thus compact) matrix corresponding to a rotation
+of the specified angle around the 3D axis specified as a unit vector, and to no
+translation.
+
+This will be a counterclockwise rotation for an observer placed so that the
+specified axis points towards it.
+
+Note that this is not the general case of a rotation in 4D (which is of little
+use, at least here), but this corresponds to (4x4) homogeneous matrices.
+""".
 -spec rotation( unit_vector3(), radians() ) -> compact_matrix4().
 rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
@@ -364,14 +383,15 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
 
 
-% @doc Returns the 4x4 transition matrix from the current orthonormal basis (R1)
-% to one (R2) in which the origin and axes of the current basis (R1) are
-% expressed: P1->2.
-%
-% Refer to
-% http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices
-% for further details.
-%
+-doc """
+Returns the 4x4 transition matrix from the current orthonormal basis (R1) to one
+(R2) in which the origin and axes of the current basis (R1) are expressed:
+P1->2.
+
+Refer to
+<http://howtos.esperide.org/ThreeDimensional.html#computing-transition-matrices>
+for further details.
+""".
 -spec transition( point3(), unit_vector3(), unit_vector3(), unit_vector3() ) ->
 								compact_matrix4().
 transition( Origin, X, Y, Z ) ->
@@ -394,17 +414,17 @@ transition( Origin, X, Y, Z ) ->
 
 
 
-% @doc Returns the 4x4 matrix whose columns correspond to the specified 4 4D
-% vectors.
-%
-% Returns thus:
-%  ```
-%  [ Va Vb Vc Vd ]
-%  [ |  |  |  |  ]
-%  [ |  |  |  |  ]
-%  [ |  |  |  |  ]
-%  '''
-%
+-doc """
+Returns the 4x4 matrix whose columns correspond to the 4 specified 4D vectors.
+
+Returns thus:
+```
+[ Va Vb Vc Vd ]
+[ |  |  |  |  ]
+[ |  |  |  |  ]
+[ |  |  |  |  ]
+```
+""".
 -spec from_columns( vector4(), vector4(), vector4(), vector4() ) ->
 														canonical_matrix4().
 from_columns( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
@@ -416,17 +436,18 @@ from_columns( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
 
 
 
-% @doc Returns the 4x4 compact matrix whose columns correspond to the specified
-% 3 vectors and 1 point (all expressed as 3D ones).
-%
-% Returns thus:
-%  ```
-%  [ Va Vb Vc P ]
-%  [ |  |  |  | ]
-%  [ |  |  |  | ]
-%  [ 0  0  0  1 ]
-%  '''
-%
+-doc """
+Returns the 4x4 compact matrix whose columns correspond to the 3 specified
+vectors and 1 point (all expressed as 3D ones).
+
+Returns thus:
+```
+[ Va Vb Vc P ]
+[ |  |  |  | ]
+[ |  |  |  | ]
+[ 0  0  0  1 ]
+```
+""".
 -spec compact_from_columns( vector3(), vector3(), vector3(), point3() ) ->
 														compact_matrix4().
 compact_from_columns( _Va=[Xa,Ya,Za], _Vb=[Xb,Yb,Zb],
@@ -437,17 +458,17 @@ compact_from_columns( _Va=[Xa,Ya,Za], _Vb=[Xb,Yb,Zb],
 
 
 
-% @doc Returns the 4x4 matrix whose rows correspond to the specified 4 4D
-% vectors.
-%
-% Returns thus:
-%  ```
-% [ Va - - - ]
-% [ Vb - - - ]
-% [ Vc - - - ]
-% [ Vd - - - ]
-%  '''
-%
+-doc """
+Returns the 4x4 matrix whose rows correspond to the 4 specified 4D vectors.
+
+Returns thus:
+```
+[ Va - - - ]
+[ Vb - - - ]
+[ Vc - - - ]
+[ Vd - - - ]
+```
+""".
 -spec from_rows( vector4(), vector4(), vector4(), vector4() ) ->
 							canonical_matrix4().
 from_rows( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
@@ -459,9 +480,10 @@ from_rows( _Va=[Xa,Ya,Za,Wa], _Vb=[Xb,Yb,Zb,Wb],
 
 
 
-% @doc Returns the (4x4, canonical) matrix whose (16) coordinates are the
-% specified ones, as listed row after row.
-%
+-doc """
+Returns the (4x4, canonical) matrix whose (16) coordinates are the specified
+ones, as listed row after row.
+""".
 -spec from_coordinates( coordinate(), coordinate(), coordinate(), coordinate(),
 						coordinate(), coordinate(), coordinate(), coordinate(),
 						coordinate(), coordinate(), coordinate(), coordinate(),
@@ -478,9 +500,10 @@ from_coordinates( M11, M12, M13, M14,
 
 
 
-% @doc Returns the "4x4" (actually 3x4) compact matrix whose 12 actual
-% coordinates are the specified ones, as listed row after row.
-%
+-doc """
+Returns the "4x4" (actually 3x4) compact matrix whose 12 actual coordinates are
+the specified ones, as listed row after row.
+""".
 -spec from_compact_coordinates(
 					coordinate(), coordinate(), coordinate(), coordinate(),
 					coordinate(), coordinate(), coordinate(), coordinate(),
@@ -495,17 +518,20 @@ from_compact_coordinates( M11, M12, M13, Tx,
 
 
 
-% @doc Returns the 4x4 matrix corresponding to the specified
-% arbitrary-dimensioned matrix.
-%
+-doc """
+Returns the 4x4 matrix corresponding to the specified arbitrary-dimensioned
+matrix.
+""".
 -spec from_arbitrary( matrix() ) -> matrix4().
 from_arbitrary( Matrix ) ->
 	erlang:apply( fun from_rows/?dim, Matrix ).
 
 
-% @doc Returns the arbitrary-dimensioned matrix corresponding to the specified
-% 4x4 matrix.
-%
+
+-doc """
+Returns the arbitrary-dimensioned matrix corresponding to the specified 4x4
+matrix.
+""".
 -spec to_arbitrary( matrix4() ) -> matrix().
 to_arbitrary( Matrix4 ) ->
 	M = to_canonical( Matrix4 ),
@@ -514,27 +540,29 @@ to_arbitrary( Matrix4 ) ->
 
 
 
-% @doc Returns the dimension of these matrices.
-%
-% Not useless, when using polymorphism based on module name.
-%
+-doc """
+Returns the dimension of these matrices.
+
+Not useless, when using polymorphism based on module name.
+""".
 -spec dimension() -> dimension().
 dimension() ->
 	?dim.
 
 
 
-% @doc Returns the dimensions of these matrices.
-%
-% Not useless, when using polymorphism based on module name.
-%
+-doc """
+Returns the dimensions of these matrices.
+
+Not useless, when using polymorphism based on module name.
+""".
 -spec dimensions() -> dimensions().
 dimensions() ->
 	{ ?dim, ?dim }.
 
 
 
-% @doc Returns the specified row of the specified matrix.
+-doc "Returns the specified row of the specified matrix.".
 -spec row( dimension(), matrix4() ) -> vector4().
 row( _RowCount=1, #matrix4{ m11=M11, m12=M12, m13=M13, m14=M14 } ) ->
 	[ M11, M12, M13, M14 ];
@@ -553,7 +581,7 @@ row( RowCount, OtherMatrix ) ->
 
 
 
-% @doc Returns the specified column of the specified matrix.
+-doc "Returns the specified column of the specified matrix.".
 -spec column( dimension(), matrix4() ) -> vector4().
 column( _ColumnCount=1, #matrix4{ m11=M11, m21=M21, m31=M31, m41=M41 } ) ->
 	[ M11, M21, M31, M41 ];
@@ -572,7 +600,7 @@ column( ColCount, OtherMatrix ) ->
 
 
 
-% @doc Returns the specified column of the specified compact matrix.
+-doc "Returns the specified column of the specified compact matrix.".
 -spec compact_column( dimension(), compact_matrix4() ) -> vector3().
 compact_column( _ColumnCount=1,
 				#compact_matrix4{ m11=M11, m21=M21, m31=M31 } ) ->
@@ -592,7 +620,7 @@ compact_column( _ColumnCount=4,
 
 
 
-% @doc Returns the first (3D) column of the specified transition matrix.
+-doc "Returns the first (3D) column of the specified transition matrix.".
 -spec get_column_i( transition_matrix4() ) -> unit_vector3().
 get_column_i( identity_4 ) ->
 	vector3:x_axis();
@@ -601,9 +629,11 @@ get_column_i( CptMatrix ) ->
 	compact_column( _ColumnCount=1, CptMatrix ).
 
 
-% @doc Returns the specified transition matrix once its first (3D) column has
-% been updated with the specified one.
-%
+
+-doc """
+Returns the specified transition matrix once its first (3D) column has been
+updated with the specified one.
+""".
 -spec set_column_i( transition_matrix4(), unit_vector3() ) -> unit_vector3().
 set_column_i( identity_4, _Column=[ X, Y, Z ] ) ->
 	Zero = 0.0,
@@ -619,7 +649,7 @@ set_column_i( CptMatrix, _Column=[ X, Y, Z ] ) ->
 
 
 
-% @doc Returns the second (3D) column of the specified transition matrix.
+-doc "Returns the second (3D) column of the specified transition matrix.".
 -spec get_column_j( transition_matrix4() ) -> unit_vector3().
 get_column_j( identity_4 ) ->
 	vector3:y_axis();
@@ -628,9 +658,11 @@ get_column_j( CptMatrix ) ->
 	compact_column( _ColumnCount=2, CptMatrix ).
 
 
-% @doc Returns the specified transition matrix once its second (3D) column has
-% been updated with the specified one.
-%
+
+-doc """
+Returns the specified transition matrix once its second (3D) column has been
+updated with the specified one.
+""".
 -spec set_column_j( transition_matrix4(), unit_vector3() ) -> unit_vector3().
 set_column_j( identity_4, _Column=[ X, Y, Z ] ) ->
 	Zero = 0.0,
@@ -646,7 +678,7 @@ set_column_j( CptMatrix, _Column=[ X, Y, Z ] ) ->
 
 
 
-% @doc Returns the third (3D) column of the specified transition matrix.
+-doc "Returns the third (3D) column of the specified transition matrix.".
 -spec get_column_k( transition_matrix4() ) -> unit_vector3().
 get_column_k( identity_4 ) ->
 	vector3:z_axis();
@@ -655,9 +687,11 @@ get_column_k( CptMatrix ) ->
 	compact_column( _ColumnCount=3, CptMatrix ).
 
 
-% @doc Returns the specified transition matrix once its third (3D) column has
-% been updated with the specified one.
-%
+
+-doc """
+Returns the specified transition matrix once its third (3D) column has been
+updated with the specified one.
+""".
 -spec set_column_k( transition_matrix4(), unit_vector3() ) -> unit_vector3().
 set_column_k( identity_4, _Column=[ X, Y, Z ] ) ->
 	Zero = 0.0,
@@ -673,10 +707,11 @@ set_column_k( CptMatrix, _Column=[ X, Y, Z ] ) ->
 
 
 
-% @doc Returns the fourth (3D) column of the specified transition matrix.
-%
-% This one is generally not a unit vector.
-%
+-doc """
+Returns the fourth (3D) column of the specified transition matrix.
+
+This one is generally not a unit vector.
+""".
 -spec get_column_o( transition_matrix4() ) -> vector3().
 get_column_o( identity_4 ) ->
 	vector3:null();
@@ -685,11 +720,13 @@ get_column_o( CptMatrix ) ->
 	compact_column( _ColumnCount=4, CptMatrix ).
 
 
-% @doc Returns the translation part (last 3D column) of the specified compact
-% matrix, as a (3D) point.
-%
-% For an homogeneous matrix, this corresponds to a translation.
-%
+
+-doc """
+Returns the translation part (last 3D column) of the specified compact matrix,
+as a (3D) point.
+
+For an homogeneous matrix, this corresponds to a translation.
+""".
 -spec get_translation( compact_matrix4() ) -> point3().
 get_translation( _CptMatrix=#compact_matrix4{ tx=Tx, ty=Ty, tz=Tz } ) ->
 	{ Tx, Ty, Tz };
@@ -699,9 +736,11 @@ get_translation( _CptMatrix=identity_4 ) ->
 	{ Zero, Zero, Zero }.
 
 
-% @doc Returns the specified transition matrix once its fourth (3D) column has
-% been updated with the specified one.
-%
+
+-doc """
+Returns the specified transition matrix once its fourth (3D) column has been
+updated with the specified one.
+""".
 -spec set_column_o( transition_matrix4(), unit_vector3() ) -> unit_vector3().
 set_column_o( identity_4, _Column=[ X, Y, Z ] ) ->
 	Zero = 0.0,
@@ -717,7 +756,9 @@ set_column_o( CptMatrix, _Column=[ X, Y, Z ] ) ->
 
 
 
-% @doc Returns the element at specified row and column of the specified matrix.
+-doc """
+Returns the element at the specified row and column of the specified matrix.
+""".
 -spec get_element( dimension(), dimension(), matrix4() ) -> coordinate().
 get_element( _R=1, _C=1, #matrix4{ m11=M11 } ) ->
 	M11;
@@ -775,9 +816,10 @@ get_element( R, C, OtherMatrix ) ->
 
 
 
-% @doc Returns a matrix identical to the specified one except that its specified
-% element at specified location has been set to the specified value.
-%
+-doc """
+Returns a matrix identical to the specified one except that its specified
+element at specified location has been set to the specified value.
+""".
 -spec set_element( dimension(), dimension(), coordinate(), matrix4() ) ->
 									matrix4().
 set_element( _R=1, _C=1, Value, Matrix=#matrix4{} ) ->
@@ -836,7 +878,7 @@ set_element( R, C, Value, OtherMatrix ) ->
 
 
 
-% @doc Returns the transpose of the specified matrix.
+-doc "Returns the transpose of the specified matrix.".
 -spec transpose( matrix4() ) -> matrix4().
 % Diagonal untouched:
 transpose( M=#matrix4{ m12=M12, m13=M13, m14=M14,
@@ -857,7 +899,7 @@ transpose( CompactMatrix ) ->
 
 
 
-% @doc Scales the specified (4D) matrix of the specified factor.
+-doc "Scales the specified (4D) matrix of the specified factor.".
 -spec scale( matrix4(), scale_factor() ) -> matrix4().
 scale( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 						 m21=M21, m22=M22, m23=M23, ty=Ty,
@@ -892,7 +934,7 @@ scale( M=identity_4, Factor ) ->
 
 
 
-% @doc Returns the sum of the two specified matrices: M = Ma + Mb.
+-doc "Returns the sum of the two specified matrices: `M = Ma + Mb`.".
 -spec add( matrix4(), matrix4() ) -> matrix4().
 add( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 				   m21=A21, m22=A22, m23=A23, m24=A24,
@@ -943,7 +985,7 @@ add( Ma, Mb ) ->
 
 
 
-% @doc Returns the subtraction of the two specified matrices: M = Ma - Mb.
+-doc "Returns the subtraction of the two specified matrices: `M = Ma - Mb`.".
 -spec sub( matrix4(), matrix4() ) -> matrix4().
 % Quick and dirty, yet not satisfactory as expands compact matrices:
 %sub( Ma, Mb ) ->
@@ -1008,7 +1050,7 @@ sub( Ma, Mb ) ->
 
 
 
-% @doc Multiplies the first matrix by the second one: returns Mc = Ma.Mb.
+-doc "Multiplies the first matrix by the second one: returns `M = Ma.Mb`.".
 -spec mult( Ma:: matrix4(), Mb :: matrix4() ) -> matrix4().
 mult( _Ma=identity_4, Mb ) ->
 	Mb;
@@ -1149,10 +1191,11 @@ mult( _Ma=#compact_matrix4{ m11=A11, m12=A12, m13=A13, tx=Ax,
 
 
 
-% @doc Multiplies (in-order) the specified matrices.
-%
-% For example mult([Ma, Mb, Mc]) = mult(mult(Ma,Mb),Mc) = Ma.Mb.Mc
-%
+-doc """
+Multiplies (in-order) all specified matrices.
+
+For example `mult([Ma, Mb, Mc]) = mult(mult(Ma,Mb),Mc) = Ma.Mb.Mc`.
+""".
 -spec mult( [ matrix4() ] ) -> matrix4().
 mult( [ Ma, Mb | T ] ) ->
 	mult( [ mult( Ma, Mb ) | T ] );
@@ -1162,17 +1205,18 @@ mult( [ M ] ) ->
 
 
 
-% @doc Applies (on the right) the specified 3D or 4D vector V or point P to the
-% specified matrix M: returns M.V or M.P.
-%
-% If the specified vector is a 3D one (i.e. not a 4D one), we assume that its
-% fourth (Vw) coordinate is 0.0, whereas if the specified point is a 3D one
-% (i.e. not a 4D one), we assume that its fourth (Pw) coordinate is 1.0, and
-% returns a 3D point whose coordinates have been normalised regarding the W
-% coordinate resulting from the application of that extended point.
-%
-% Not a clause of mult/2 for an increased clarity.
-%
+-doc """
+Applies (on the right) the specified 3D or 4D vector V or point P to the
+specified matrix M: returns M.V or M.P.
+
+If the specified vector is a 3D one (i.e. not a 4D one), we assume that its
+fourth (Vw) coordinate is 0.0, whereas if the specified point is a 3D one
+(i.e. not a 4D one), we assume that its fourth (Pw) coordinate is 1.0, and
+returns a 3D point whose coordinates have been normalised regarding the W
+coordinate resulting from the application of that extended point.
+
+Not a clause of mult/2 for an increased clarity.
+""".
 -spec apply( matrix4(), vector3() ) -> vector3();
 		   ( matrix4(), vector4() ) -> vector4();
 		   ( matrix4(), point3() ) -> point3();
@@ -1306,16 +1350,17 @@ apply( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 
 
 
-% @doc Applies on the left the specified 3D point P to the specified homogeneous
-% matrix HM: returns VPt.HM, as a 3D point, where VPt means the transpose of the
-% 4D vector corresponding to P.
-%
-% Note: handling a point, not a vector, so that the translation part of the
-% matrix is applied as well.
-%
-% This application is rather uncommon and, because of the normalisation, may not
-% yield the intended result.
-%
+-doc """
+Applies on the left the specified 3D point P to the specified homogeneous matrix
+HM: returns VPt.HM, as a 3D point, where VPt means the transpose of the 4D
+vector corresponding to P.
+
+Note: handling a point, not a vector, so that the translation part of the matrix
+is applied as well.
+
+This application is rather uncommon and, because of the normalisation, may not
+yield the intended result.
+""".
 -spec apply_homogeneous_left( point3(), homogeneous_matrix4() ) -> point3().
 apply_homogeneous_left( _P={ Px, Py, Pz },
 						_HM=#compact_matrix4{
@@ -1338,12 +1383,14 @@ apply_homogeneous_left( P, _HM=identity_4 ) ->
 	P.
 
 
-% @doc Applies on the right the specified 3D point P to the specified
-% homogeneous matrix HM: returns HM.VP, as a 3D vector, where VP means the 4D
-% vector corresponding to P.
-%
-% This is thus a specialised, stripped-down version of apply/2.
-%
+
+-doc """
+Applies on the right the specified 3D point P to the specified homogeneous
+matrix HM: returns HM.VP, as a 3D vector, where VP means the 4D vector
+corresponding to P.
+
+This is thus a specialised, stripped-down version of apply/2.
+""".
 -spec apply_homogeneous_right( homogeneous_matrix4(), point3() ) -> vector3().
 apply_homogeneous_right( _HM=#compact_matrix4{
 								m11=M11, m12=M12, m13=M13, tx=Tx,
@@ -1363,7 +1410,7 @@ apply_homogeneous_right( _HM=identity_4, P ) ->
 
 
 
-% @doc Tells whether the two specified (4x4) matrices are equal.
+-doc "Tells whether the two specified (4x4) matrices are equal.".
 -spec are_equal( matrix4(), matrix4() ) -> boolean().
 are_equal( _Ma=#matrix4{ m11=A11, m12=A12, m13=A13, m14=A14,
 						 m21=A21, m22=A22, m23=A23, m24=A24,
@@ -1425,16 +1472,17 @@ are_equal( Ma=identity_4, Mb ) ->
 
 
 
-% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
-% on its left by a translation matrix (TM) of a vector VT: returns therefore HM'
-% = TM.HM.
-%
-% This corresponds to adding the VT vector to the translation part of the
-% reference matrix of this transformation.
-%
-% A lot more efficient than creating a dedicated translation matrix TM and
-% computing from scratch the result.
-%
+-doc """
+Returns the specified homogeneous matrix (HM) after having multiplied it on its
+left by a translation matrix (TM) of a vector VT: returns therefore `HM' =
+TM.HM`.
+
+This corresponds to adding the VT vector to the translation part of the
+reference matrix of this transformation.
+
+A lot more efficient than creating a dedicated translation matrix TM and
+computing from scratch the result.
+""".
 -spec translate_homogeneous_left( vector3(), HM :: homogeneous_matrix4() ) ->
 											homogeneous_matrix4().
 translate_homogeneous_left( _VT=[ Tx, Ty, Tz ],
@@ -1450,10 +1498,12 @@ translate_homogeneous_left( VT, _HM=identity_4 ) ->
 	translation( VT ).
 
 
-% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
-% on its right by a translation matrix (TM) of a vector VT: returns therefore
-% HM' = HM.TM.
-%
+
+-doc """
+Returns the specified homogeneous matrix (HM) after having multiplied it on its
+right by a translation matrix (TM) of a vector VT: returns therefore `HM' =
+HM.TM`.
+""".
 -spec translate_homogeneous_right( HM :: homogeneous_matrix4(), vector3() ) ->
 											homogeneous_matrix4().
 translate_homogeneous_right( _HM=identity_4, VT ) ->
@@ -1466,10 +1516,11 @@ translate_homogeneous_right( HM, VT ) ->
 
 
 
-% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
-% on its left by a matrix (RotM) corresponding to the rotation around the
-% specified unit axis of the specified angle: returns therefore HM' = RotM.HM.
-%
+-doc """
+Returns the specified homogeneous matrix (HM) after having multiplied it on its
+left by a matrix (RotM) corresponding to the rotation around the specified unit
+axis of the specified angle: returns therefore HM' = RotM.HM.
+""".
 -spec rotate_homogeneous_left( unit_vector3(), radians(),
 		HM :: homogeneous_matrix4() ) -> homogeneous_matrix4().
 rotate_homogeneous_left( UnitAxis, RadAngle, HM ) ->
@@ -1477,10 +1528,12 @@ rotate_homogeneous_left( UnitAxis, RadAngle, HM ) ->
 	mult( RotM, HM ).
 
 
-% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
-% on its right by a matrix (RotM) corresponding to the rotation around the
-% specified unit axis of the specified angle: returns therefore HM' = HM.RotM.
-%
+
+-doc """
+Returns the specified homogeneous matrix (HM) after having multiplied it on its
+right by a matrix (RotM) corresponding to the rotation around the specified unit
+axis of the specified angle: returns therefore HM' = HM.RotM.
+""".
 -spec rotate_homogeneous_right( HM :: homogeneous_matrix4(),
 		unit_vector3(), radians() ) -> homogeneous_matrix4().
 rotate_homogeneous_right( HM, UnitAxis, RadAngle ) ->
@@ -1489,10 +1542,11 @@ rotate_homogeneous_right( HM, UnitAxis, RadAngle ) ->
 
 
 
-% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
-% on its left by a matrix (SclM) corresponding to a scaling of the specified
-% factors: returns therefore HM' = SclM.HM.
-%
+-doc """
+Returns the specified homogeneous matrix (HM) after having multiplied it on its
+left by a matrix (SclM) corresponding to a scaling of the specified factors:
+returns therefore HM' = SclM.HM.
+""".
 -spec scale_homogeneous_left( scale_factors(), homogeneous_matrix4() ) ->
 										homogeneous_matrix4().
 scale_homogeneous_left( _ScaleFactors={ Sx, Sy, Sz },
@@ -1515,10 +1569,11 @@ scale_homogeneous_left( _ScaleFactors={ Sx, Sy, Sz }, _HM=identity_4 ) ->
 
 
 
-% @doc Returns the specified homogeneous matrix (HM) after having multiplied it
-% on its right by a matrix (SclM) corresponding to a scaling of the specified
-% factors: returns therefore HM' = HM.SclM.
-%
+-doc """
+Returns the specified homogeneous matrix (HM) after having multiplied it on its
+right by a matrix (SclM) corresponding to a scaling of the specified factors:
+returns therefore HM' = HM.SclM.
+""".
 -spec scale_homogeneous_right( homogeneous_matrix4(), scale_factors() ) ->
 										homogeneous_matrix4().
 scale_homogeneous_right(
@@ -1540,11 +1595,11 @@ scale_homogeneous_right( _ScaleFactors={ Sx, Sy, Sz }, _HM=identity_4 ) ->
 
 
 
-
-% @doc Updates the specified homogeneous matrix by applying the specified
-% (uniform) shearing factor to the top-left 3x3 matrix (rightmost column not
-% modified): returns therefore HM' = f.HM.
-%
+-doc """
+Updates the specified homogeneous matrix by applying the specified (uniform)
+shearing factor to the top-left 3x3 matrix (rightmost column not modified):
+returns therefore HM' = f.HM.
+""".
 -spec scale_homogeneous( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 % Note that, due to the role of the w (bottom-right) coordinate, a basic matrix
@@ -1569,12 +1624,13 @@ scale_homogeneous( _HM=identity_4, Factor ) ->
 
 
 
-% @doc Updates the specified homogeneous matrix by applying the specified
-% (uniform) shearing factor on its leftmost column (X), like when this matrix is
-% multiplied on its right by a scaling matrix equal to the identity, except for
-% its first diagonal element, which would be equal to the specified factor;
-% returns therefore HM' = HM.SxM.
-%
+-doc """
+Updates the specified homogeneous matrix by applying the specified (uniform)
+shearing factor on its leftmost column (X), like when this matrix is multiplied
+on its right by a scaling matrix equal to the identity, except for its first
+diagonal element, which would be equal to the specified factor; returns
+therefore HM' = HM.SxM.
+""".
 -spec scale_homogeneous_x( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_x( HM=#compact_matrix4{ m11=M11,   %m12=M12, m13=M13, tx=Tx,
@@ -1594,14 +1650,15 @@ scale_homogeneous_x( identity_4, Factor ) ->
 
 
 
-% @doc Updates the specified homogeneous matrix by applying the specified
-% (uniform) shearing factor to its topmost row (hence the "x_t" prefix, for
-% transposed X column), like when this matrix is multiplied on its left by a
-% scaling matrix equal to the identity, except for its first diagonal element,
-% which would be scaled by the specified factor.
-%
-% A lot cheaper than multiplying by a mostly-identity matrix.
-%
+-doc """
+Updates the specified homogeneous matrix by applying the specified (uniform)
+shearing factor to its topmost row (hence the "x_t" prefix, for transposed X
+column), like when this matrix is multiplied on its left by a scaling matrix
+equal to the identity, except for its first diagonal element, which would be
+scaled by the specified factor.
+
+A lot cheaper than multiplying by a mostly-identity matrix.
+""".
 -spec scale_homogeneous_x_t( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_x_t( HM=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx },
@@ -1619,12 +1676,13 @@ scale_homogeneous_x_t( identity_4, Factor ) ->
 
 
 
-% @doc Updates the specified homogeneous matrix by applying the specified
-% (uniform) shearing factor on its second column (Y), like when this matrix is
-% multiplied on its right by a scaling matrix equal to the identity, except for
-% its second diagonal element, which would be equal to the specified factor;
-% returns therefore HM' = HM.SyM.
-%
+-doc """
+Updates the specified homogeneous matrix by applying the specified (uniform)
+shearing factor on its second column (Y), like when this matrix is multiplied on
+its right by a scaling matrix equal to the identity, except for its second
+diagonal element, which would be equal to the specified factor; returns
+therefore HM' = HM.SyM.
+""".
 -spec scale_homogeneous_y( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_y( HM=#compact_matrix4{ m12=M12,
@@ -1644,14 +1702,15 @@ scale_homogeneous_y( identity_4, Factor ) ->
 
 
 
-% @doc Updates the specified homogeneous matrix by applying the specified
-% (uniform) shearing factor to its second row (hence the "y_t" prefix, for
-% transposed Y column), like when this matrix is multiplied on its left by a
-% scaling matrix equal to the identity, except for its second diagonal element,
-% which would be scaled by the specified factor.
-%
-% A lot cheaper than multiplying by a mostly-identity matrix.
-%
+-doc """
+Updates the specified homogeneous matrix by applying the specified (uniform)
+shearing factor to its second row (hence the "y_t" prefix, for transposed Y
+column), like when this matrix is multiplied on its left by a scaling matrix
+equal to the identity, except for its second diagonal element, which would be
+scaled by the specified factor.
+
+A lot cheaper than multiplying by a mostly-identity matrix.
+""".
 -spec scale_homogeneous_y_t( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_y_t( HM=#compact_matrix4{ m21=M21, m22=M22, m23=M23, ty=Ty },
@@ -1669,12 +1728,13 @@ scale_homogeneous_y_t( identity_4, Factor ) ->
 
 
 
-% @doc Updates the specified homogeneous matrix by applying the specified
-% (uniform) shearing factor on its third column (Z), like when this matrix is
-% multiplied on its right by a scaling matrix equal to the identity, except for
-% its third diagonal element, which would be equal to the specified factor;
-% returns therefore HM' = HM.SzM.
-%
+-doc """
+Updates the specified homogeneous matrix by applying the specified (uniform)
+shearing factor on its third column (Z), like when this matrix is multiplied on
+its right by a scaling matrix equal to the identity, except for its third
+diagonal element, which would be equal to the specified factor; returns
+therefore HM' = HM.SzM.
+""".
 -spec scale_homogeneous_z( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_z( HM=#compact_matrix4{ m13=M13,
@@ -1694,14 +1754,15 @@ scale_homogeneous_z( identity_4, Factor ) ->
 
 
 
-% @doc Updates the specified homogeneous matrix by applying the specified
-% (uniform) shearing factor to its third row (hence the "z_t" prefix, for
-% transposed Z column), like when this matrix is multiplied on its left by a
-% scaling matrix equal to the identity, except for its third diagonal element,
-% which would be scaled by the specified factor.
-%
-% A lot cheaper than multiplying by a mostly-identity matrix.
-%
+-doc """
+Updates the specified homogeneous matrix by applying the specified (uniform)
+shearing factor to its third row (hence the "z_t" prefix, for transposed Z
+column), like when this matrix is multiplied on its left by a scaling matrix
+equal to the identity, except for its third diagonal element, which would be
+scaled by the specified factor.
+
+A lot cheaper than multiplying by a mostly-identity matrix.
+""".
 -spec scale_homogeneous_z_t( HM :: homogeneous_matrix4(), scale_factor() ) ->
 											compact_matrix4().
 scale_homogeneous_z_t( HM=#compact_matrix4{ m31=M31, m32=M32, m33=M33, tz=Tz },
@@ -1719,7 +1780,7 @@ scale_homogeneous_z_t( identity_4, Factor ) ->
 
 
 
-% @doc Returns the determinant of the specified matrix.
+-doc "Returns the determinant of the specified matrix.".
 -spec determinant( matrix4() ) -> scalar().
 determinant( _M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
 						  m21=M21, m22=M22, m23=M23, m24=M24,
@@ -1748,9 +1809,10 @@ determinant( M ) ->
 
 
 
-% @doc Returns the comatrix of the specified matrix (that is the matrix of its
-% cofactors).
-%
+-doc """
+Returns the comatrix of the specified matrix (that is the matrix of its
+cofactors).
+""".
 -spec comatrix( matrix4() ) -> matrix4().
 comatrix( identity_4 ) ->
 	identity_4;
@@ -1876,9 +1938,10 @@ comatrix( _M=#compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 
 
 
-% @doc Returns the inverse of the specified matrix, if it is invertible (that is
-% iff its determinant is non-null), otherwise returns undefined.
-%
+-doc """
+Returns the inverse of the specified matrix, if it is invertible (that is iff
+its determinant is non-null), otherwise returns undefined.
+""".
 -spec inverse( matrix4() ) -> option( matrix4() ).
 % Special cases as the inverse of a compact_matrix is another one (even if the
 % intermediary comatrix is generally not one):
@@ -1922,12 +1985,14 @@ inverse( M ) when is_record( M, compact_matrix4 ) ->
 
 
 
+
 % Section dedicated to homogeneous matrices.
 
 
-% @doc Returns the 4x4 compact matrix obtained from the specified 3x3 matrix (M)
-% and 3D (translation) vector (V).
-%
+-doc """
+Returns the 4x4 compact matrix obtained from the specified 3x3 matrix (M) and 3D
+(translation) vector (V).
+""".
 -spec from_3D( M :: matrix3(), V :: vector3() ) -> compact_matrix4().
 % Never returning identity_4, hence compact_matrix4() is more precise than
 % homogeneous_matrix4().
@@ -1947,9 +2012,10 @@ from_3D( OtherMatrix3, Vec3 ) ->
 
 
 
-% @doc Returns the top-left 3x3 matrix (M) and the rightmost 3D vector (V)
-% obtained from the specified 4x4 homogeneous matrix.
-%
+-doc """
+Returns the top-left 3x3 matrix (M) and the rightmost 3D vector (V) obtained
+from the specified 4x4 homogeneous matrix.
+""".
 -spec to_3D( homogeneous_matrix4() ) -> { M :: matrix3(), V :: vector3() }.
 to_3D( identity_4 ) ->
 	{ _M=identity_3, _V=vector3:null() };
@@ -1967,7 +2033,7 @@ to_3D( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 
 
 
-% @doc Returns the canonical form of the specified 4x4 matrix.
+-doc "Returns the canonical form of the specified 4x4 matrix.".
 -spec to_canonical( matrix4() ) -> canonical_matrix4().
 to_canonical( #compact_matrix4{ m11=M11, m12=M12, m13=M13, tx=Tx,
 								m21=M21, m22=M22, m23=M23, ty=Ty,
@@ -1991,11 +2057,12 @@ to_canonical( M ) when is_record( M, matrix4 ) ->
 
 
 
-% @doc Returns the compact form of the specified (4x4) matrix.
-%
-% Throws an exception if the specified matrix cannot be expressed as a compact
-% one.
-%
+-doc """
+Returns the compact form of the specified (4x4) matrix.
+
+Throws an exception if the specified matrix cannot be expressed as a compact
+one.
+""".
 -spec to_compact( matrix4() ) -> compact_matrix4().
 to_compact( M=#matrix4{ m11=M11, m12=M12, m13=M13, m14=M14,
 						m21=M21, m22=M22, m23=M23, m24=M24,
@@ -2030,13 +2097,11 @@ to_compact( CM ) when is_record( CM, compact_matrix4 ) ->
 
 
 
+-doc """
+Returns a matrix corresponding to the specified tuple-based one.
 
-
-
-% @doc Returns a matrix corresponding to the specified tuple-based one.
-%
-% The elements are expected to be already floats().
-%
+The elements are expected to be already floats().
+""".
 -spec from_tuple( tuple_matrix4() ) -> matrix4().
 from_tuple( Tuple ) when is_tuple( Tuple ) andalso size( Tuple ) =:= 12 ->
 	erlang:insert_element( _Index=1, Tuple, compact_matrix4 );
@@ -2045,7 +2110,8 @@ from_tuple( Tuple ) when is_tuple( Tuple ) andalso size( Tuple ) =:= 16 ->
 	erlang:insert_element( _Index=1, Tuple, matrix4 ).
 
 
-% @doc Returns a tuple-based version of the specified matrix.
+
+-doc "Returns a tuple-based version of the specified matrix.".
 -spec to_tuple( matrix4() ) -> tuple_matrix4().
 to_tuple( M=identity_4 ) ->
 	to_tuple( to_compact( M ) );
@@ -2057,7 +2123,7 @@ to_tuple( M ) ->
 
 
 
-% @doc Checks that the specified matrix is legit, and returns it.
+-doc "Checks that the specified matrix is legit, and returns it.".
 -spec check( matrix4() ) -> matrix4().
 check( M=identity_4 ) ->
 	M;
@@ -2079,7 +2145,7 @@ check( M ) ->
 
 
 
-% @doc Returns a textual representation of the specified (4x4) matrix.
+-doc "Returns a textual representation of the specified (4x4) matrix.".
 -spec to_string( matrix4() ) -> ustring().
 to_string( _Matrix=identity_4 ) ->
 	"4x4 identity";
