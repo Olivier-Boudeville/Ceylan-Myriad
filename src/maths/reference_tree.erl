@@ -142,75 +142,97 @@ See `reference_frame3` for example.
 
 
 
+-doc """
+An identifier of a reference frame.
 
+This is typically a key in an (implicit) reference table, at least generally a
+ref3_table().
+
+The null (zero) identifier is reserved; it is used by reference trees to
+designate the root, absolute reference frame.
+""".
 -type ref_id() :: count().
-% An identifier of a reference frame.
-%
-% This is typically a key in an (implicit) reference table, at least generally a
-% ref3_table().
-%
-% The null (zero) identifier is reserved; it is used by reference trees to
-% designate the root, absolute reference frame.
 
 
+
+-doc """
+An identifier of a 3D reference frame.
+
+This is typically a key in an (implicit) ref3_table().
+
+The null (zero) identifier is reserved; it is used by reference trees to
+designate the root, absolute reference frame.
+""".
 -type ref3_id() :: ref_id().
-% An identifier of a 3D reference frame.
-%
-% This is typically a key in an (implicit) ref3_table().
-%
-% The null (zero) identifier is reserved; it is used by reference trees to
-% designate the root, absolute reference frame.
 
 
+
+-doc """
+A list of the identifier of the (direct) child frames of reference of a given
+frame.
+""".
 -type child_ids() :: [ ref_id() ].
-% A list of the identifier of the (direct) child frames of reference of a given
-% frame.
 
 
+
+-doc """
+A table associating to a given identifier a designated reference frame.
+
+It includes the root node, as we may want for example to record its name, its
+children, etc.
+""".
 -type ref_table() :: table( ref_id(), designated_ref() ).
-% A table associating to a given identifier a designated reference frame.
-%
-% It includes the root node, as we may want for example to record its name, its
-% children, etc.
 
 
+
+-doc """
+A path from a frame A to a frame B is described as the (ordered) "Up" list of
+all reference frames from A to the selected common parent (not including A), and
+the (ordered) "Down" list of all reference frames from that parent to B (not
+including B).
+
+Two different lists are used as we need to record, for each node, the direction
+of the corresponding transformation, that is whether we shall apply Tuv or its
+inverse Tvu.
+
+For instance, for the path from the example frame g to the frame e, Up=[Tfa,Tas]
+(as Tgf is not included) and Down=[Tsb] (as Teb is not included).
+
+With a reference frame-based notation (knowing that the previous
+transformation-based notation is more relevant), this corresponds to Up=[Rf,Ra]
+Down=[Rb] (Rs is not included either as it is only meant to deal with its own
+parent).
+""".
 -type id_path() :: { Up :: [ ref_id() ], Down :: [ ref_id() ] }.
-% A path from a frame A to a frame B is described as the (ordered) "Up" list of
-% all reference frames from A to the selected common parent (not including A),
-% and the (ordered) "Down" list of all reference frames from that parent to B
-% (not including B).
-%
-% Two different lists are used as we need to record, for each node, the
-% direction of the corresponding transformation, that is whether we shall apply
-% Tuv or its inverse Tvu.
-%
-% For instance, for the path from the example frame g to the frame e,
-% Up=[Tfa,Tas] (as Tgf is not included) and Down=[Tsb] (as Teb is not included).
-%
-% With a reference frame-based notation (knowing that the previous
-% transformation-based notation is more relevant), this corresponds to
-% Up=[Rf,Ra] Down=[Rb] (Rs is not included either as it is only meant to deal
-% with its own parent).
 
 
+
+-doc """
+The endpoints corresponding to an id_path/0 (and are not included in it), that
+is a path between two reference frames.
+""".
 -type path_endpoints() :: { From :: ref_id(), To :: ref_id() }.
-% The endpoints corresponding to an id_path/0 (and are not included in it), that
-% is a path between two reference frames.
 
+
+
+-doc """
+A table recording known paths, queried based on their reference frame endpoints.
+""".
 -type path_table() :: table( path_endpoints(), id_path() ).
-% A table recording known paths, queried based on their reference frame
-% endpoints.
 
 
 % For record and define:
 -include("reference_frame3.hrl").
 
 
+
+-doc """
+A reference tree, also known as a scene graph.
+
+Note that the root, absolute reference frame is to be designated by the null
+(zero) reference frame identifier (see the root_ref_id define).
+""".
 -type reference_tree() :: #reference_tree{}.
-% A reference tree, also known as a scene graph.
-%
-% Note that the root, absolute reference frame is to be designated by the null
-% (zero) reference frame identifier (see the root_ref_id define).
 
 
 
@@ -252,7 +274,7 @@ See `reference_frame3` for example.
 
 
 
-% @doc Creates an (empty) reference tree.
+-doc "Creates an (empty) reference tree.".
 -spec new() -> reference_tree().
 new() ->
 	% Identity:
@@ -265,11 +287,12 @@ new() ->
 
 
 
-% @doc Registers the specified reference frame(s) in the specified reference
-% tree; returns the identifier allocated to that frame or these frames (then in
-% the same order as specified) in the tree, and the corresponding updated
-% version of that tree.
-%
+-doc """
+Registers the specified reference frame(s) in the specified reference tree;
+returns the identifier allocated to that frame or these frames (then in the same
+order as specified) in the tree, and the corresponding updated version of that
+tree.
+""".
 -spec register( reference_frame(), reference_tree() ) ->
 								{ ref_id(), reference_tree() };
 			  ( [ reference_frame() ], reference_tree() ) ->
@@ -318,12 +341,12 @@ register( _Ref3s=[ Ref3 | T ], AccIds, AccRefTree ) ->
 
 
 
+-doc """
+Returns the resolved (cached otherwise computed) path from the first reference
+frame whose identifier is specified to the second one.
 
-% @doc Returns the resolved (cached otherwise computed) path from the first
-% reference frame whose identifier is specified to the second one.
-%
-% As the reference tree may be updated in the process, returns one.
-%
+As the reference tree may be updated in the process, returns one.
+""".
 -spec resolve_path( ref_id(), ref_id(), reference_tree() ) ->
 										{ id_path(), reference_tree() }.
 resolve_path( FromRefId, ToRefId,
@@ -344,9 +367,10 @@ resolve_path( FromRefId, ToRefId,
 
 
 
-% @doc Returns the computed path from the first reference frame whose identifier
-% is specified to the second one, and an updated tree.
-%
+-doc """
+Returns the computed path from the first reference frame whose identifier is
+specified to the second one, and an updated tree.
+""".
 -spec compute_path( path_endpoints(), path_table(), reference_tree() ) ->
 										{ id_path(), reference_tree() }.
 compute_path( PathEndpoints={ FromRefId, ToRefId }, PathTable,
@@ -399,17 +423,18 @@ skip_and_branch( FirstPath, SecondPath ) ->
 
 
 
-% @doc Returns the (4x4) transformation between the first specified frame of
-% reference and the second one (based on their identifier in the specified
-% reference tree), together with a (possibly updated, for example regarding to
-% paths) version of the specified reference tree.
-%
-% More precisely, for two reference frames Ra and Rb, returns Tab so that its
-% reference matrix corresponds to the transition from Ra to Rb (and thus its
-% inverse corresponds to: from Rb to Ra).
-%
-% Does not cache this resulting reference frame (at least for the moment).
-%
+-doc """
+Returns the (4x4) transformation between the first specified frame of reference
+and the second one (based on their identifier in the specified reference tree),
+together with a (possibly updated, for example regarding to paths) version of
+the specified reference tree.
+
+More precisely, for two reference frames Ra and Rb, returns Tab so that its
+reference matrix corresponds to the transition from Ra to Rb (and thus its
+inverse corresponds to: from Rb to Ra).
+
+Does not cache this resulting reference frame (at least for the moment).
+""".
 -spec get_transform( designated_ref(), designated_ref(), reference_tree() ) ->
 										{ transform4(), reference_tree() }.
 get_transform( FromRefId, ToRefId, RefTree ) ->
@@ -488,31 +513,35 @@ mult_down_transforms( _Down=[ RefId | T ], Transf4, RefTable ) ->
 
 
 
-% @doc Returns the reference table of the specified reference tree.
-%
-% Useful to avoid that the caller has to include this corresponding header file,
-% typically for tests.
-%
+-doc """
+Returns the reference table of the specified reference tree.
+
+Useful to avoid that the caller has to include this corresponding header file,
+typically for tests.
+""".
 -spec get_reference_table( reference_tree() ) -> ref_table().
 get_reference_table( #reference_tree{ ref_table=RefTable } ) ->
 	RefTable.
 
 
-% @doc Sets the specified reference table in the specified reference tree.
-%
-% Useful to avoid that the caller has to include this corresponding header file,
-% typically for tests.
-%
+
+-doc """
+Sets the specified reference table in the specified reference tree.
+
+Useful to avoid that the caller has to include this corresponding header file,
+typically for tests.
+""".
 -spec set_reference_table( ref_table(), reference_tree() ) -> reference_tree().
 set_reference_table( RefTable, RefTree ) ->
 	RefTree#reference_tree{ ref_table=RefTable }.
 
 
 
-% @doc Returns the children of the specified 3D frame of reference, based on a
-% direct, stateless look-up (hence the reference table is not modified and thus
-% not returned).
-%
+-doc """
+Returns the children of the specified 3D frame of reference, based on a direct,
+stateless look-up (hence the reference table is not modified and thus not
+returned).
+""".
 -spec get_children_direct( ref_id(), ref_table() ) -> child_ids().
 get_children_direct( RefId, RefTable ) ->
 	% Brute-force, as speed is irrelevant for this implementation:
@@ -537,10 +566,11 @@ get_children_direct( RefId, _RefPairs=[ _OtherPair | T ], ChildAcc ) ->
 
 
 
-% @doc Returns the path from the root reference frame to the specified one,
-% using any cached information or caching any newly processed path, together
-% with a possibly updated reference table.
-%
+-doc """
+Returns the path from the root reference frame to the specified one, using any
+cached information or caching any newly processed path, together with a possibly
+updated reference table.
+""".
 -spec get_path_from_root( ref_id(), ref_table() ) -> { id_path(), ref_table() }.
 get_path_from_root( _TargetRefId=?root_ref_id, RefTable ) ->
 	{ _IdPath=[], RefTable };
@@ -579,8 +609,11 @@ get_path_from_root( TargetRefId, RefTable ) ->
 	end.
 
 
+
 % Applies the relevant shortened version of the specified identifier path to
 % each node from the specified node to the root one.
+%
+% (helper)
 %
 % Stopped before:
 %apply_path( _RefId=?root_ref_id, RefTable, _RevIdPath=[] ) ->
@@ -603,11 +636,12 @@ apply_path( RefId, RefTable, _RevIdPath=[ _PrevRefId | ThisRevIdPath ] ) ->
 
 
 
-% @doc Returns the path from the root reference frame to the specified one, not
-% including the root frame but including the current node (hence not the same
-% convention as id_path()) based on a direct, stateless look-up (hence the
-% reference table is not modified and thus not returned).
-%
+-doc """
+Returns the path from the root reference frame to the specified one, not
+including the root frame but including the current node (hence not the same
+convention as id_path()) based on a direct, stateless look-up (hence the
+reference table is not modified and thus not returned).
+""".
 -spec get_path_from_root_direct( ref_id(), ref_table() ) -> id_path().
 get_path_from_root_direct( RefId, RefTable ) ->
 	get_path_from_root_direct( RefId, RefTable, _AccIds=[] ).
@@ -628,12 +662,13 @@ get_path_from_root_direct( NonRootRefId, RefTable, AccIds ) ->
 
 
 
-% @doc Checks the integrity of the specified reference tree.
-%
-% Throws an exception if found inconsistent.
-%
-% Designed for safety, not for speed.
-%
+-doc """
+Checks the integrity of the specified reference tree.
+
+Throws an exception if found inconsistent.
+
+Designed for safety, not for speed.
+""".
 -spec check( reference_tree() ) -> void().
 check( #reference_tree{ ref_table=RefTable, next_ref_id=NextId } ) ->
 	% No duplicate identifier possible:
@@ -663,13 +698,14 @@ check( #reference_tree{ ref_table=RefTable, next_ref_id=NextId } ) ->
 
 
 
-% @doc Checks the integrity of the specified node (reference frame) of the
-% specified reference tree.
-%
-% Throws an exception if found inconsistent.
-%
-% Designed for safety, not for speed.
-%
+-doc """
+Checks the integrity of the specified node (reference frame) of the specified
+reference tree.
+
+Throws an exception if found inconsistent.
+
+Designed for safety, not for speed.
+""".
 -spec check_node( ref_id(), designated_ref(), [ ref_id() ],
 				  ref_table() ) -> void().
 check_node( RefId, #reference_frame3{ parent=MaybeParent,
@@ -733,6 +769,9 @@ check_path( RefId, #reference_frame3{ path_from_root=IdPath }, RefTable ) ->
 
 
 % Follows the specified path, from node to node, for checking.
+%
+% (helper)
+%
 follow_path( CurrentNodeId, _ToNodeId=CurrentNodeId, _RefTable, _IdPath=[]) ->
 	ok;
 
@@ -752,7 +791,7 @@ follow_path( CurrentNodeId, ToNodeId, RefTable,
 
 
 
-% @doc Returns a textual representation of the specified 3D frame of reference.
+-doc "Returns a textual representation of the specified 3D frame of reference.".
 -spec ref3_to_string( ref_id(), ref_table() ) -> ustring().
 ref3_to_string( RefId, RefTable ) ->
 	Ref = table:get_value( RefId, RefTable ),
@@ -767,9 +806,10 @@ ref3_to_string( RefId, RefTable ) ->
 	end.
 
 
-% @doc Returns a compact textual representation of the specified 3D frame of
-% reference.
-%
+
+-doc """
+Returns a compact textual representation of the specified 3D frame of reference.
+""".
 -spec ref3_to_short_string( ref_id(), ref_table() ) -> ustring().
 ref3_to_short_string( RefId, RefTable ) ->
 	Ref = table:get_value( RefId, RefTable ),
@@ -785,12 +825,13 @@ ref3_to_short_string( RefId, RefTable ) ->
 
 
 
-% @doc Returns a textual representation of the specified identifier path.
-%
-% Note that internally the transformations from a given frame to its parent are
-% managed, thus the closest parent ("top frame" of this path) of the endpoints
-% of a path is not listed in the path.
-%
+-doc """
+Returns a textual representation of the specified identifier path.
+
+Note that internally the transformations from a given frame to its parent are
+managed, thus the closest parent ("top frame" of this path) of the endpoints of
+a path is not listed in the path.
+""".
 -spec id_path_to_string( id_path(), ref_table() ) -> ustring().
 id_path_to_string( _IdPath={ _Up=[], _Down=[] }, _RefTable ) ->
 	"empty path";
@@ -802,15 +843,20 @@ id_path_to_string( _IdPath={ Up, Down }, RefTable ) ->
 	text_utils:join( _Sep=" -> ", IdStrs ).
 
 
-% @doc Returns a (short) textual representation of the specified reference tree.
+
+-doc """
+Returns a (short) textual representation of the specified reference tree.
+""".
 -spec to_string( reference_tree() ) -> ustring().
 to_string( RefTree ) ->
 	to_string( RefTree, _VerbLevel=low ).
 
 
-% @doc Returns a (short) textual representation of the specified reference tree,
-% for the specified verbosity level.
-%
+
+-doc """
+Returns a (short) textual representation of the specified reference tree, for
+the specified verbosity level.
+""".
 -spec to_string( reference_tree(), verbosity_level() ) -> ustring().
 to_string( #reference_tree{ ref_table=RefTable,
 							path_table=PathTable }, _VerbLevel=low ) ->
@@ -830,9 +876,11 @@ to_string( _RT=#reference_tree{ ref_table=RefTable,
 							   NodeToStringDefFun, NodeToChildrenFun ) ] ).
 
 
-% @doc Returns a rather full textual representation of the specified reference
-% tree, tycally for debugging purposes.
-%
+
+-doc """
+Returns a rather full textual representation of the specified reference tree,
+typically for debugging purposes.
+""".
 -spec to_full_string( reference_tree() ) -> ustring().
 to_full_string( _RT=#reference_tree{ ref_table=RefTable,
 									 path_table=PathTable } ) ->

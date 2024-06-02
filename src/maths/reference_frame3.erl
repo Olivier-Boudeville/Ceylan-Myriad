@@ -49,21 +49,27 @@ See also the `transform4` module.
 -include("reference_frame3.hrl").
 
 
+
+-doc "A 3D frame of reference, defining a coordinate system.".
 -type reference_frame3() :: #reference_frame3{}.
-% A 3D frame of reference, defining a coordinate system.
 
+
+
+-doc "Shorthand of reference_frame3().".
 -type ref3() :: reference_frame3().
-% Shorthand of reference_frame3().
 
 
+
+-doc """
+The PID of any kind of process implementing the ref3 protocol, ultimately
+equivalent in terms of semantics, once resolved, to a 3D reference frame.
+""".
 -type ref3_pid() :: reference_frame:ref_pid().
-% The PID of any kind of process implementing the ref3 protocol, ultimately
-% equivalent in terms of semantics, once resolved, to a 3D reference frame.
 
 
+
+-doc "Any way of designating an actual reference_frame3() instance.".
 -type designated_ref3() :: ref3() | ref3_pid().
-% Any way of designating an actual reference_frame3() instance.
-
 
 
 -export_type([ reference_frame3/0, ref3/0,
@@ -90,9 +96,10 @@ See also the `transform4` module.
 
 
 
-% @doc Creates the absolute (3D) reference frame, relying on the identity
-% transformation; this is thus the (only) root frame.
-%
+-doc """
+Creates the absolute (3D) reference frame, relying on the identity
+transformation; this is thus the (only) root frame.
+""".
 -spec new() -> reference_frame3().
 new() ->
 	% Anonymous and parentless:
@@ -101,11 +108,13 @@ new() ->
 					   transform=transform4:identity() }.
 
 
-% @doc Creates an absolute (3D) reference frame, relying on the identity
-% transformation and named as specified.
-%
-% Its is deemed absolute as it is only relative to the root frame.
-%
+
+-doc """
+Creates an absolute (3D) reference frame, relying on the identity transformation
+and named as specified.
+
+Its is deemed absolute as it is only relative to the root frame.
+""".
 -spec new_absolute( user_ref_name() ) -> reference_frame3().
 new_absolute( UserRefName ) ->
 	% Anonymous and parentless:
@@ -115,9 +124,9 @@ new_absolute( UserRefName ) ->
 
 
 
-% @doc Creates an absolute (3D) reference frame, based on the specified
-% transformation.
-%
+-doc """
+Creates an absolute (3D) reference frame, based on the specified transformation.
+""".
 -spec new( transform4() ) -> reference_frame3().
 new( Transf4 ) ->
 
@@ -129,9 +138,10 @@ new( Transf4 ) ->
 
 
 
-% @doc Creates a (3D) reference frame, based on the specified transformation
-% relative to the designated parent reference frame.
-%
+-doc """
+Creates a (3D) reference frame, based on the specified transformation relative
+to the designated parent reference frame.
+""".
 -spec new( transform4(), designated_ref3() ) -> reference_frame3().
 new( Transf4, ParentRefDesig3 ) ->
 
@@ -145,9 +155,10 @@ new( Transf4, ParentRefDesig3 ) ->
 
 
 
-% @doc Creates a (3D) reference frame, based on the specified transformation
-% relative to the designated parent reference frame, named as specified.
-%
+-doc """
+Creates a (3D) reference frame, based on the specified transformation relative
+to the designated parent reference frame, named as specified.
+""".
 -spec new( user_ref_name(), transform4(), designated_ref3() ) ->
 		  reference_frame3().
 new( UserRefName, Transf4, ParentRefDesig3 ) ->
@@ -164,9 +175,10 @@ new( UserRefName, Transf4, ParentRefDesig3 ) ->
 
 
 
-% @doc Creates a (3D) reference frame, based on the specified absolute
-% transformation, named as specified.
-%
+-doc """
+Creates a (3D) reference frame, based on the specified absolute transformation,
+named as specified.
+""".
 -spec new_absolute( user_ref_name(), transform4() ) -> reference_frame3().
 new_absolute( UserRefName, Transf4 ) ->
 
@@ -178,28 +190,31 @@ new_absolute( UserRefName, Transf4 ) ->
 
 
 
-% @doc Returns the 3D transformation corresponding to the specified reference
-% frame.
-%
-% Note: this transformaton may be accessed directly instead.
-%
+-doc """
+Returns the 3D transformation corresponding to the specified reference frame.
+
+Note: this transformaton may be accessed directly instead.
+""".
 -spec get_transform( reference_frame3() ) -> transform4().
 get_transform( #reference_frame3{ transform=Transf4 } ) ->
 	Transf4.
 
 
-% @doc Returns the inverse of the 3D transformation corresponding to the
-% specified reference frame.
-%
+
+-doc """
+Returns the inverse of the 3D transformation corresponding to the specified
+reference frame.
+""".
 -spec get_inverse_transform( reference_frame3() ) -> transform4().
 get_inverse_transform( #reference_frame3{ transform=Transf4 } ) ->
 	transform4:inverse( Transf4 ).
 
 
 
-% @doc Returns a textual representation of the specified (3D) reference frame
-% designator.
-%
+-doc """
+Returns a textual representation of the specified (3D) reference frame
+designator.
+""".
 -spec designated_ref3_to_string( designated_ref3() ) -> ustring().
 designated_ref3_to_string( DesigId ) when is_integer( DesigId ) ->
 	text_utils:format( "the 3D reference frame #~B", [ DesigId ] );
@@ -208,9 +223,11 @@ designated_ref3_to_string( DesigPid ) when is_pid( DesigPid ) ->
 	text_utils:format( "the 3D reference frame ~w", [ DesigPid ] ).
 
 
-% @doc Returns a short textual representation of the specified (3D) reference
-% frame designator.
-%
+
+-doc """
+Returns a short textual representation of the specified (3D) reference frame
+designator.
+""".
 -spec designated_ref3_to_short_string( designated_ref3() ) -> ustring().
 designated_ref3_to_short_string( DesigId ) when is_integer( DesigId ) ->
 	text_utils:format( "frame #~B", [ DesigId ] );
@@ -220,9 +237,9 @@ designated_ref3_to_short_string( DesigPid ) when is_pid( DesigPid ) ->
 
 
 
-
-
-% @doc Returns a textual representation of the specified (3D) reference frame.
+-doc """
+Returns a textual representation of the specified (3D) reference frame.
+""".
 -spec to_string( reference_frame3() ) -> ustring().
 to_string( #reference_frame3{ name=MaybeBinRefName,
 							  parent=Parent,
@@ -252,9 +269,10 @@ to_string( #reference_frame3{ name=MaybeBinRefName,
 
 
 
-% @doc Returns a textual representation of the specified node of a reference
-% tree, made of a (3D) reference frame and its identifier.
-%
+-doc """
+Returns a textual representation of the specified node of a reference tree, made
+of a (3D) reference frame and its identifier.
+""".
 -spec node_to_string( ref_id(), reference_frame3() ) -> ustring().
 node_to_string( RefId, _Ref3=#reference_frame3{ name=MaybeBinRefName,
 												parent=MaybeParent,

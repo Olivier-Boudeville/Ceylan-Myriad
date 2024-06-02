@@ -51,24 +51,33 @@ Gathering of various facilities for **quaternion-related** operations.
 
 
 
+-doc """
+`Q = A + B.i + C.j + D.k`, where i, j and k are the basic quaternions.
+
+A quaternion encodes an axis-angle representation of a 3D rotation.
+""".
 -type quaternion() :: { A :: coordinate(), B :: coordinate(),
 						C :: coordinate(), D :: coordinate() }.
-% Q = A + B.i + C.j + D.k, where i, j and k are the basic quaternions.
-% A quaternion encodes an axis-angle representation of a 3D rotation.
 
 
+
+-doc """
+A unit quaternion, known as versor, is a quaternion of magnitude (norm) 1.0.
+
+For a unit quaternion, its inverse is its conjugate.
+
+Defined for documentation purpose.
+""".
 -type unit_quaternion() :: quaternion().
-% A unit quaternion, known as versor, is a quaternion of magnitude (norm) 1.0.
-%
-% For a unit quaternion, its inverse is its conjugate.
-%
-% Defined for documentation purpose.
 
 
+
+-doc """
+A quaternion whose scalar part (A) is null.
+
+Defined for documentation purpose.
+""".
 -type vector_quaternion() :: quaternion().
-% A quaternion whose scalar part (A) is null.
-%
-% Defined for documentation purpose.
 
 
 -export_type([ quaternion/0, unit_quaternion/0, vector_quaternion/0 ]).
@@ -115,7 +124,7 @@ Gathering of various facilities for **quaternion-related** operations.
 
 
 
-% @doc Returns a corresponding (checked) quaternion.
+-doc "Returns a corresponding (checked) quaternion.".
 -spec new( any_coordinate(), any_coordinate(), any_coordinate(),
 		   any_coordinate() ) -> quaternion().
 new( A, B, C, D ) ->
@@ -124,7 +133,7 @@ new( A, B, C, D ) ->
 
 
 
-% @doc Returns the null quaternion.
+-doc "Returns the null quaternion.".
 -spec null() -> quaternion().
 null() ->
 	Zero = 0.0,
@@ -132,20 +141,21 @@ null() ->
 
 
 
-% @doc Returns the quaternion corresponding to a rotation of the specified angle
-% around the axis specified as a unit vector.
-%
-% This will be a counterclockwise rotation for an observer placed so that the
-% specified axis points towards it.
-%
-% A rotation matrix is orthogonal, its inverse is its transpose, and its
-% determinant is 1.0.
-%
-% These 3D rotation matrices form a group known as the special orthogonal group
-% SO(3).
-%
-% See also: rotate/2.
-%
+-doc """
+Returns the quaternion corresponding to a rotation of the specified angle around
+the axis specified as a unit vector.
+
+This will be a counterclockwise rotation for an observer placed so that the
+specified axis points towards it.
+
+A rotation matrix is orthogonal, its inverse is its transpose, and its
+determinant is 1.0.
+
+These 3D rotation matrices form a group known as the special orthogonal group
+SO(3).
+
+See also: rotate/2.
+""".
 -spec rotation( unit_vector3(), radians() ) -> quaternion().
 rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
@@ -163,28 +173,30 @@ rotation( UnitAxis=[ Ux, Uy, Uz ], RadAngle ) ->
 
 
 
-% @doc Returns the sum of the two specified quaternions: Q = Q1 + Q2.
-%
-% Addition is associative, commutative, and every quaternion Q has its opposite
-% -Q.
-%
+-doc """
+Returns the sum of the two specified quaternions: Q = Q1 + Q2.
+
+Addition is associative, commutative, and every quaternion Q has its opposite
+-Q.
+""".
 -spec add( quaternion(), quaternion() ) -> quaternion().
 add( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 	{ A1 + A2, B1 + B2, C1 + C2, D1 + D2 }.
 
 
 
-% @doc Returns the (Hamilton) product of the two specified quaternions.
-%
-% This product is associative, but not commutative.
-%
-% Multiplying imaginary quaternions corresponds to computing the cross-product
-% of their coordinates.
-%
-% Dividing Q1 / Q2 would be multiplying Q1 by Q2^-1, the inverse of Q2, yet
-% multiplication is not commutative so Q1 / Q2 could be either Q1*Q2^-1 or
-% Q2^-1*Q1.
-%
+-doc """
+Returns the (Hamilton) product of the two specified quaternions.
+
+This product is associative, but not commutative.
+
+Multiplying imaginary quaternions corresponds to computing the cross-product of
+their coordinates.
+
+Dividing Q1 / Q2 would be multiplying Q1 by Q2^-1, the inverse of Q2, yet
+multiplication is not commutative so Q1 / Q2 could be either Q1*Q2^-1 or
+Q2^-1*Q1.
+""".
 -spec mult( quaternion(), quaternion() ) -> quaternion().
 mult( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 
@@ -197,19 +209,22 @@ mult( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 
 
 
-% @doc Returns whether the two specified quaternions are close, that is if they
-% could be considered as representing the same quaternion (equality operator on
-% quaternions).
-%
+-doc """
+Returns whether the two specified quaternions are close, that is if they could
+be considered as representing the same quaternion (equality operator on
+quaternions).
+""".
 -spec are_close( quaternion(), quaternion() ) -> boolean().
 are_close( Q1, Q2 ) ->
 	are_equal( Q1, Q2 ).
 
 
-% @doc Returns whether the two specified quaternions are equal, that is if they
-% could be considered as representing the same quaternion (equality operator on
-% quaternions).
-%
+
+-doc """
+Returns whether the two specified quaternions are equal, that is if they could
+be considered as representing the same quaternion (equality operator on
+quaternions).
+""".
 -spec are_equal( quaternion(), quaternion() ) -> boolean().
 are_equal( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 	math_utils:are_close( A1, A2 ) andalso math_utils:are_close( B1, B2 )
@@ -218,40 +233,43 @@ are_equal( _Q1={A1,B1,C1,D1}, _Q2={A2,B2,C2,D2} ) ->
 
 
 
-% @doc Returns the square of the magnitude of the specified quaternion.
+-doc "Returns the square of the magnitude of the specified quaternion.".
 -spec square_magnitude( quaternion() ) -> square_distance().
 square_magnitude( _Q={A,B,C,D} ) ->
 	A*A + B*B + C*C + D*D.
 
 
-% @doc Returns the magnitude of the specified quaternion.
+
+-doc "Returns the magnitude of the specified quaternion.".
 -spec magnitude( quaternion() ) -> distance().
 magnitude( Q ) ->
 	math:sqrt( square_magnitude( Q ) ).
 
 
 
-% @doc Negates the specified quaternion: returns the opposite one (of the same
-% magnitude).
-%
-% See also: conjugate/1.
-%
+-doc """
+Negates the specified quaternion: returns the opposite one (of the same
+magnitude).
+
+See also: conjugate/1.
+""".
 -spec negate( quaternion() ) -> quaternion().
 negate( _Q={A,B,C,D} ) ->
 	{ -A, -B, -C, -D }.
 
 
 
-% @doc Scales the specified quaternion of the specified scalar factor.
+-doc "Scales the specified quaternion of the specified scalar factor.".
 -spec scale( quaternion(), factor() ) -> quaternion().
 scale( _Q={A,B,C,D}, Factor ) ->
 	{ Factor*A, Factor*B, Factor*C, Factor*D }.
 
 
 
-% @doc Normalises the specified non-null quaternion, that is returns it once
-% scaled to an unit length (whose magnitude is thus 1.0).
-%
+-doc """
+Normalises the specified non-null quaternion, that is returns it once scaled to
+an unit length (whose magnitude is thus 1.0).
+""".
 -spec normalise( quaternion() ) -> unit_quaternion().
 normalise( Q ) ->
 	case magnitude( Q ) of
@@ -266,14 +284,14 @@ normalise( Q ) ->
 
 
 
-% @doc Returns the conjugate of the specified quaternion.
+-doc "Returns the conjugate of the specified quaternion.".
 -spec conjugate( quaternion() ) -> quaternion().
 conjugate( _Q={A,B,C,D} ) ->
 	{ A, -B, -C, -D }.
 
 
 
-% @doc Returns the inverse of the specified quaternion.
+-doc "Returns the inverse of the specified quaternion.".
 -spec inverse( quaternion() ) -> quaternion().
 inverse( Q ) ->
 	case square_magnitude( Q ) of
@@ -288,16 +306,17 @@ inverse( Q ) ->
 
 
 
-% @doc Returns the specified vector once rotated according to the specified
-% unitary quaternion.
-%
-% Another option, if multiple vectors have to be rotated, is to go through the
-% corresponding 3x3 matrix, computed once for all:
-%    matrix3:apply(quaternion:to_rot_matrix3(Q), V)
-%
-% A quaternion-based approach allows to avoid the problem of gimbal lock (see
-% https://en.wikipedia.org/wiki/Gimbal_lock).
-%
+-doc """
+Returns the specified vector once rotated according to the specified unitary
+quaternion.
+
+Another option, if multiple vectors have to be rotated, is to go through the
+corresponding 3x3 matrix, computed once for all:
+   `matrix3:apply(quaternion:to_rot_matrix3(Q), V)`
+
+A quaternion-based approach allows to avoid the problem of gimbal lock (see
+<https://en.wikipedia.org/wiki/Gimbal_lock>).
+""".
 -spec rotate( unit_quaternion(), vector3() ) -> vector3().
 rotate( Q={ A, B, C, D }, V ) ->
 
@@ -346,18 +365,20 @@ rotate( Q={ A, B, C, D }, V ) ->
 
 
 
-% @doc Returns the quaternion obtained from the specified 3D vector, that is the
-% vector (a.k.a. imaginary) quaternion whose vector part is this one.
-%
+-doc """
+Returns the quaternion obtained from the specified 3D vector, that is the vector
+(a.k.a. imaginary) quaternion whose vector part is this one.
+""".
 -spec from_vector3( vector3() ) -> vector_quaternion().
 from_vector3( _V=[ Vx, Vy, Vz ] ) ->
 	{ 0.0, Vx, Vy, Vz }.
 
 
 
-% @doc Returns the vector part of the specified quaternion, expected to be a
-% vector quaternion (that is to have is scalar part null).
-%
+-doc """
+Returns the vector part of the specified quaternion, expected to be a vector
+quaternion (that is to have is scalar part null).
+""".
 -spec to_vector3( vector_quaternion() ) -> vector3().
 to_vector3( _Q={ A, B, C, D } ) ->
 
@@ -370,9 +391,10 @@ to_vector3( _Q={ A, B, C, D } ) ->
 
 
 
-% @doc Returns the 4x4 matrix representation of the specified (unitary or not)
-% quaternion.
-%
+-doc """
+Returns the 4x4 matrix representation of the specified (unitary or not)
+quaternion.
+""".
 -spec to_matrix4( quaternion() ) -> matrix4().
 to_matrix4( _Q={A,B,C,D} ) ->
 	#matrix4{ m11=A, m12=-B, m13=-C, m14=-D,
@@ -382,9 +404,10 @@ to_matrix4( _Q={A,B,C,D} ) ->
 
 
 
-% @doc Returns the 3x3 rotation matrix corresponding to the specified unitary
-% quaternion.
-%
+-doc """
+Returns the 3x3 rotation matrix corresponding to the specified unitary
+quaternion.
+""".
 -spec to_rot_matrix3( unit_quaternion() ) -> rot_matrix3().
 to_rot_matrix3( Q={A,B,C,D} ) ->
 
@@ -422,9 +445,10 @@ to_rot_matrix3( Q={A,B,C,D} ) ->
 
 
 
-% @doc Returns, based on quaternions, the 3x3 rotation matrix corresponding to a
-% rotation of the specified angle around the axis specified as a unit vector.
-%
+-doc """
+Returns, based on quaternions, the 3x3 rotation matrix corresponding to a
+rotation of the specified angle around the axis specified as a unit vector.
+""".
 -spec to_rot_matrix3( unit_vector3(), radians() ) -> rot_matrix3().
 to_rot_matrix3( UnitAxis, RadAngle ) ->
 	Q = rotation( UnitAxis, RadAngle ),
@@ -432,9 +456,10 @@ to_rot_matrix3( UnitAxis, RadAngle ) ->
 
 
 
-% @doc Returns whether the specified quaternion is unitary, that is whether it
-% is of magnitude (norm) 1.0.
-%
+-doc """
+Returns whether the specified quaternion is unitary, that is whether it is of
+magnitude (norm) 1.0.
+""".
 -spec is_unitary( quaternion() ) -> boolean().
 is_unitary( Q ) ->
 	% No specific need of computing the square root thereof:
@@ -442,20 +467,21 @@ is_unitary( Q ) ->
 
 
 
-% @doc Returns a textual description of the specified quaternion; full float
-% precision is shown.
-%
+-doc """
+Returns a textual description of the specified quaternion; full float precision
+is shown.
+""".
 -spec to_string( quaternion() ) -> ustring().
 to_string( Q ) ->
 	to_compact_string( Q ).
 
 
 
-% @doc Returns a compact, textual, informal representation of the specified
-% quaternion.
-%
-% This is the recommended representation.
-%
+-doc """
+Returns a compact, textual, informal representation of the specified quaternion.
+
+This is the recommended representation.
+""".
 -spec to_compact_string( quaternion() ) -> ustring().
 to_compact_string( _Q={ A, B, C, D } ) ->
 
@@ -468,9 +494,11 @@ to_compact_string( _Q={ A, B, C, D } ) ->
 
 
 
-% @doc Returns a textual, more user-friendly representation of the specified
-% quaternion; full float precision is shown.
-%
+-doc """
+Returns a textual, more user-friendly representation of the specified
+quaternion; full float precision is shown.
+""".
+
 -spec to_user_string( quaternion() ) -> ustring().
 to_user_string( Q ) ->
 

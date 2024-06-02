@@ -59,47 +59,67 @@ See also:
 % kinds of types.
 
 
+-doc """
+A user-specified vector, as a list (hence not a tuple) with integer or
+floating-point coordinates.
+""".
 -type user_vector() :: [ any_coordinate() ].
-% A user-specified vector, as a list (hence not a tuple) with integer or
-% floating-point coordinates.
 
 
 
+-doc """
+An (internal) vector of arbitrary dimension (with floating-point coordinates).
+""".
 -type vector() :: [ coordinate() ].
-% An (internal) vector of arbitrary dimension (with floating-point coordinates).
 
 
+
+-doc "A vector of arbitrary dimension, with integer coordinates.".
 -type integer_vector() :: [ integer_coordinate() ].
-% A vector of arbitrary dimension, with integer coordinates.
 
 
+
+-doc """
+A vector of any dimension, with any (homogeneous) type of numerical coordinates
+(hence a special case of user_vector/0).
+""".
 -type any_vector() :: vector() | integer_vector().
-% A vector of any dimension, with any (homogeneous) type of numerical
-% coordinates (hence a special case of user_vector/0).
 
 
+
+-doc """
+A unit vector, that is a vector of magnitude 1.0.
+
+Defined for documentation purpose.
+""".
 -type unit_vector() :: vector().
-% A unit vector, that is a vector of magnitude 1.0.
-%
-% Defined for documentation purpose.
 
 
+
+-doc """
+A vector orthogonal to a plane.
+
+Defined for documentation purpose.
+""".
 -type normal() :: vector().
-% A vector orthogonal to a plane.
-%
-% Defined for documentation purpose.
 
 
+
+-doc """
+A unit vector orthogonal to a plane.
+
+Defined for documentation purpose.
+""".
 -type unit_normal() :: unit_vector().
-% A unit vector orthogonal to a plane.
-%
-% Defined for documentation purpose.
 
 
+
+-doc """
+A specialised vector that is of one of the specifically supported dimensions.
+""".
 -type specialised_vector() :: vector2:vector2()
 							| vector3:vector3()
 							| vector4:vector4().
-% A specialised vector that is of one of the specifically supported dimensions.
 
 
 -export_type([ user_vector/0, vector/0, integer_vector/0, any_vector/0,
@@ -139,7 +159,7 @@ See also:
 
 
 
-% @doc Returns an (arbitrary) vector corresponding to the user-specified one.
+-doc "Returns an (arbitrary) vector corresponding to the user-specified one.".
 -spec new( user_vector() ) -> vector().
 %new( UserVector ) when is_tuple( UserVector ) ->
 %   new( tuple_to_list( UserVector ) );
@@ -149,39 +169,43 @@ new( UserVector ) -> %when is_list( UserVector ) ->
 
 
 
-% @doc Returns an (arbitrary) vector of specified dimension whose coordinates
-% are all null.
-%
+-doc """
+Returns an (arbitrary) vector of specified dimension whose coordinates are all
+null.
+""".
 -spec null( dimension() ) -> vector().
 null( Dim ) ->
 	lists:duplicate( Dim, 0.0 ).
 
 
-% @doc Returns an (arbitrary) vector corresponding to the specified point.
+
+-doc "Returns an (arbitrary) vector corresponding to the specified point.".
 -spec from_point( any_point() ) -> vector().
 from_point( P ) ->
 	[ type_utils:ensure_float( C ) || C <- tuple_to_list( P ) ].
 
 
-% @doc Returns an (arbitrary, and with floating-point coordinates) point
-% corresponding to the specified vector.
-%
+
+-doc """
+Returns an (arbitrary, and with floating-point coordinates) point corresponding
+to the specified vector.
+""".
 -spec to_point( vector() ) -> point().
 to_point( V ) ->
 	point:from_vector( V ).
 
 
 
-% @doc Returns the dimension of the specified vector.
+-doc "Returns the dimension of the specified vector.".
 -spec dimension( any_vector() ) -> dimension().
 dimension( V ) ->
 	length( V ).
 
 
 
-% @doc Returns the sum of the two specified vectors (supposedly of the same
-% dimension).
-%
+-doc """
+Returns the sum of the two specified vectors (supposedly of the same dimension).
+""".
 -spec add( vector(), vector() ) -> vector().
 add( V1, V2 ) ->
 	lists:zipwith( fun( C1, C2 ) ->
@@ -190,9 +214,11 @@ add( V1, V2 ) ->
 				   V1, V2 ).
 
 
-% @doc Returns the sum of all vectors (supposedly of the same dimension) in the
-% specified (supposedly non-empty) list.
-%
+
+-doc """
+Returns the sum of all vectors (supposedly of the same dimension) in the
+specified (supposedly non-empty) list.
+""".
 -spec add( [ vector() ] ) -> vector().
 % Just to avoid using null() as Acc0 and thus having to compute the dimension:
 add( _Vectors=[ VFirst | VOthers ] ) ->
@@ -204,9 +230,10 @@ add( _Vectors=[ VFirst | VOthers ] ) ->
 
 
 
-% @doc Returns the subtraction of the two specified vectors (supposedly of the
-% same dimension): V = V1 - V2.
-%
+-doc """
+Returns the subtraction of the two specified vectors (supposedly of the same
+dimension): `V = V1 - V2`.
+""".
 -spec sub( vector(), vector() ) -> vector().
 sub( V1, V2 ) ->
 	lists:zipwith( fun( C1, C2 ) ->
@@ -216,11 +243,12 @@ sub( V1, V2 ) ->
 
 
 
-% @doc Returns the Hadamard product of the two specified vectors.
-%
-% Each coordinate of the result vector is the product of the coordinates of the
-% same ranks in the two input vectors.
-%
+-doc """
+Returns the Hadamard product of the two specified vectors.
+
+Each coordinate of the result vector is the product of the coordinates of the
+same ranks in the two input vectors.
+""".
 -spec mult( vector(), vector() ) -> vector().
 mult( V1, V2 ) ->
 	mult( V1, V2, _Acc=[] ).
@@ -237,7 +265,7 @@ mult( _V1=[ C1 | T1 ], _V2=[ C2 | T2 ], Acc ) ->
 % No need for an are_close/2 alias.
 
 
-% @doc Returns true iff the two specified vectors are considered equal.
+-doc "Returns true iff the two specified vectors are considered equal.".
 -spec are_equal( vector(), vector() ) -> boolean().
 are_equal( _V1=[], _V2=[] ) ->
 	true;
@@ -255,7 +283,7 @@ are_equal( _V1=[ C1 | T1 ], _V2=[ C2 | T2 ] ) ->
 
 
 
-% @doc Returns the square of the magnitude of the specified vector.
+-doc "Returns the square of the magnitude of the specified vector.".
 -spec square_magnitude( vector() ) -> any_square_distance().
 square_magnitude( V ) ->
 	square_magnitude( V, _Acc=0.0 ).
@@ -270,32 +298,33 @@ square_magnitude( _V=[ C | T ], Acc ) ->
 
 
 
-% @doc Returns the magnitude of the specified vector.
+-doc "Returns the magnitude of the specified vector.".
 -spec magnitude( vector() ) -> distance().
 magnitude( V ) ->
 	math:sqrt( square_magnitude( V ) ).
 
 
 
-% @doc Negates the specified vector: returns the opposite one (of the same
-% magnitude).
-%
+-doc """
+Negates the specified vector: returns the opposite one (of the same magnitude).
+""".
 -spec negate( vector() ) -> vector().
 negate( V ) ->
 	[ -C || C <- V ].
 
 
 
-% @doc Scales the specified vector of the specified factor.
+-doc "Scales the specified vector of the specified factor.".
 -spec scale( vector(), factor() ) -> vector().
 scale( V, Factor ) ->
 	[ Factor*C || C <- V ].
 
 
 
-% @doc Normalises the specified non-null vector, that is returns it once scaled
-% to an unit length (whose magnitude is thus 1.0).
-%
+-doc """
+Normalises the specified non-null vector, that is returns it once scaled to an
+unit length (whose magnitude is thus 1.0).
+""".
 -spec normalise( vector() ) -> unit_vector().
 normalise( V ) ->
 	case magnitude( V ) of
@@ -310,7 +339,7 @@ normalise( V ) ->
 
 
 
-% @doc Returns the dot-product of the two specified vectors.
+-doc "Returns the dot-product of the two specified vectors.".
 -spec dot_product( vector(), vector() ) -> float().
 dot_product( V1, V2 ) ->
 	dot_product( V1, V2, _Acc=0.0 ).
@@ -325,9 +354,10 @@ dot_product( _V1=[ H1 | T1 ], _V2=[ H2 | T2 ], Acc ) ->
 
 
 
-% @doc Returns whether the specified vector is unitary, that is whether it is of
-% magnitude 1.0.
-%
+-doc """
+Returns whether the specified vector is unitary, that is whether it is of
+magnitude 1.0.
+""".
 -spec is_unitary( vector() ) -> boolean().
 is_unitary( V ) ->
 	% No specific need of computing the square root thereof:
@@ -335,31 +365,33 @@ is_unitary( V ) ->
 
 
 
-% @doc Checks that the specified vector is legit, and returns it.
+-doc "Checks that the specified vector is legit, and returns it.".
 -spec check( vector() ) -> vector().
 check( V ) ->
 	type_utils:check_floats( V ).
 
 
-% @doc Checks that the specified integer vector is legit, and returns it.
+
+-doc "Checks that the specified integer vector is legit, and returns it.".
 -spec check_integer( integer_vector() ) -> integer_vector().
 check_integer( V ) ->
 	type_utils:check_integers( V ).
 
 
 
-% @doc Returns a textual representation of the specified vector; full float
-% precision is shown.
-%
+-doc """
+Returns a textual representation of the specified vector; full float precision
+is shown.
+""".
 -spec to_string( user_vector() ) -> ustring().
 to_string( Vector ) ->
 	to_user_string( Vector ).
 
 
 
-% @doc Returns a compact, textual, informal representation of the specified
-% vector.
-%
+-doc """
+Returns a compact, textual, informal representation of the specified vector.
+""".
 -spec to_compact_string( user_vector() ) -> ustring().
 to_compact_string( Vector ) ->
 
@@ -371,10 +403,10 @@ to_compact_string( Vector ) ->
 
 
 
-% @doc Returns a basic, not even fixed-width for floating-vector coordinates
-% (see linear.hrl for width and precision) representation of the specified
-% vector.
-%
+-doc """
+Returns a basic, not even fixed-width for floating-vector coordinates (see
+linear.hrl for width and precision) representation of the specified vector.
+""".
 -spec to_basic_string( vector() ) -> ustring().
 to_basic_string( Vector ) ->
 
@@ -390,11 +422,12 @@ to_basic_string( Vector ) ->
 
 
 
-% @doc Returns a textual, more user-friendly representation of the specified
-% vector; full float precision is shown.
-%
-% This is the recommended representation.
-%
+-doc """
+Returns a textual, more user-friendly representation of the specified vector;
+full float precision is shown.
+
+This is the recommended representation.
+""".
 -spec to_user_string( user_vector() ) -> ustring().
 to_user_string( Vector ) ->
 

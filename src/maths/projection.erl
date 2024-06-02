@@ -37,9 +37,15 @@ Gathering of various facilities for **projection management**.
 -include("projection.hrl").
 
 
+-doc "Settings of an orthographic projection.".
 -type orthographic_settings() :: #orthographic_settings{}.
+
+
+-doc "Settings of a perspective projection.".
 -type perspective_settings()  :: #perspective_settings{}.
 
+
+-doc "Settings of any type of projection.".
 -type projection_settings() :: orthographic_settings()
 							 | perspective_settings().
 
@@ -93,9 +99,10 @@ Gathering of various facilities for **projection management**.
 
 
 
-% @doc Returns a matrix for orthographic projection corresponding to the
-% specified settings.
-%
+-doc """
+Returns a matrix for orthographic projection corresponding to the specified
+settings.
+""".
 -spec orthographic( orthographic_settings() ) -> compact_matrix4().
 orthographic( #orthographic_settings{
 				left=Left, right=Right, bottom=Bottom, top=Top,
@@ -103,21 +110,23 @@ orthographic( #orthographic_settings{
 	orthographic( Left, Right, Bottom, Top, ZNear, ZFar ).
 
 
-% @doc Returns a matrix for orthographic projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - Left and Right are the coordinates for the left and right vertical clipping
-% planes
-%  - Bottom and Top are the coordinates for the bottom and top horizontal
-% clipping planes
-%  - ZNear and ZFar are the signed distances to the nearer and farther depth
-%  clipping planes; these values are negative if the plane is to be behind the
-%  viewer
-%
-% Note that the context is a right-handed coordinate system with a clip space in
-% [-1.0, 1.0].
-%
+
+-doc """
+Returns a matrix for orthographic projection corresponding to the specified
+settings.
+
+Parameters are:
+ - Left and Right are the coordinates for the left and right vertical clipping
+planes
+ - Bottom and Top are the coordinates for the bottom and top horizontal
+clipping planes
+ - ZNear and ZFar are the signed distances to the nearer and farther depth
+ clipping planes; these values are negative if the plane is to be behind the
+ viewer
+
+Note that the context is a right-handed coordinate system with a clip space in
+[-1.0, 1.0].
+""".
 -spec orthographic( coordinate(), coordinate(), coordinate(), coordinate(),
 					signed_distance(), signed_distance() ) -> compact_matrix4().
 orthographic( Left, Right, Bottom, Top, ZNear, ZFar ) ->
@@ -146,9 +155,10 @@ orthographic( Left, Right, Bottom, Top, ZNear, ZFar ) ->
 
 
 
-% @doc Returns a matrix for perspective projection corresponding to the
-% specified settings.
-%
+-doc """
+Returns a matrix for perspective projection corresponding to the specified
+settings.
+""".
 -spec perspective( perspective_settings() ) -> compact_matrix4().
 perspective( #perspective_settings{
 				fov_y_angle=FoVYAngle, aspect_ratio=AspectRatio,
@@ -156,27 +166,28 @@ perspective( #perspective_settings{
 	perspective( FoVYAngle, AspectRatio, ZNear, ZFar ).
 
 
-% @doc Returns a matrix for perspective projection corresponding to the
-% specified settings.
-%
-% Parameters are:
 
-%  - FoVYAngle is the field of view angle, in radians, in the Y (vertical)
-%  direction (the angle from the top of the screen to the bottom); often set to
-%  45 degrees (then converted in radians)
-%  - AspectRatio determines the field of view in the X (horizontal) direction:
-%  AspectRatio = Width/Height
-%  - ZNear specifies the distance from the viewer to the near clipping plane,
-%  along the -Z axis (always strictly positive)
-%  - ZFar specifies the distance from the viewer to the far clipping plane along
-%  the -Z axis (always positive)
-%
-% For example Mp = perspective( _FoVYAngle=60.0,
-% _AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0 )
-%
-% Note that the context is a right-handed coordinate system with a clip space in
-% [-1.0, 1.0].
-%
+-doc """
+Returns a matrix for perspective projection corresponding to the specified
+settings.
+
+Parameters are:
+ - FoVYAngle is the field of view angle, in radians, in the Y (vertical)
+ direction (the angle from the top of the screen to the bottom); often set to
+ 45 degrees (then converted in radians)
+ - AspectRatio determines the field of view in the X (horizontal) direction:
+ AspectRatio = Width/Height
+ - ZNear specifies the distance from the viewer to the near clipping plane,
+ along the -Z axis (always strictly positive)
+ - ZFar specifies the distance from the viewer to the far clipping plane along
+ the -Z axis (always positive)
+
+For example `Mp = perspective(_FoVYAngle=60.0,
+_AspectRatio=WindowWidth/WindowHeight, _ZNear=1.0, _ZFar=100.0)`.
+
+Note that the context is a right-handed coordinate system with a clip space in
+[-1.0, 1.0].
+""".
 -spec perspective( radians(), ratio(), distance(), distance() ) -> matrix4().
 perspective( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
 
@@ -212,12 +223,14 @@ perspective( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
 
 % From https://www.khronos.org/opengl/wiki/GluPerspective_code:
 %perspective2( FoVYAngle, AspectRatio, ZNear, ZFar ) ->
-%	Ymax = ZNear * math:tan( FoVYAngle ),
-%	Xmax = Ymax * AspectRatio,
-%	frustum( -Xmax, Xmax, -Ymax, Ymax, ZNear, ZFar ).
+%  Ymax = ZNear * math:tan( FoVYAngle ),
+%   Xmax = Ymax * AspectRatio,
+%   frustum( -Xmax, Xmax, -Ymax, Ymax, ZNear, ZFar ).
 
 
-% @doc Returns a matrix for projection corresponding to the specified settings.
+-doc """
+Returns a matrix for projection corresponding to the specified settings.
+""".
 -spec projection( projection_settings() ) -> matrix4().
 projection( Settings=#orthographic_settings{} ) ->
 	orthographic( Settings );
@@ -227,22 +240,23 @@ projection( Settings=#perspective_settings{} ) ->
 
 
 
-% @doc Returns a matrix for perspective projection corresponding to the
-% specified settings.
-%
-% Parameters are:
-%  - Left and Right are the coordinates for the left and right vertical clipping
-% planes
-%  - Bottom and Top are the coordinates for the bottom and top horizontal
-% clipping planes
-%  - ZNear specifies the distance from the viewer to the near clipping plane
-%  (always strictly positive)
-%  - ZFar specifies the distance from the viewer to the far clipping plane
-%  (always positive)
-%
-% Note that the context is a right-handed coordinate system with a clip space in
-% [-1.0, 1.0].
-%
+-doc """
+Returns a matrix for perspective projection corresponding to the specified
+settings.
+
+Parameters are:
+ - Left and Right are the coordinates for the left and right vertical clipping
+planes
+ - Bottom and Top are the coordinates for the bottom and top horizontal
+clipping planes
+ - ZNear specifies the distance from the viewer to the near clipping plane
+ (always strictly positive)
+ - ZFar specifies the distance from the viewer to the far clipping plane
+ (always positive)
+
+Note that the context is a right-handed coordinate system with a clip space in
+[-1.0, 1.0].
+""".
 -spec frustum( coordinate(), coordinate(), coordinate(), coordinate(),
 			   distance(), distance() ) -> matrix4().
 frustum( Left, Right, Bottom, Top, ZNear, ZFar ) ->
@@ -275,9 +289,10 @@ frustum( Left, Right, Bottom, Top, ZNear, ZFar ) ->
 
 
 
-% @doc Returns base orthographic settings, in the NDC [-1.0, 1.0] range, thus
-% independent from the size of the viewport.
-%
+-doc """
+Returns base orthographic settings, in the NDC [-1.0, 1.0] range, thus
+independent from the size of the viewport.
+""".
 -spec get_base_orthographic_settings() -> orthographic_settings().
 get_base_orthographic_settings() ->
    %#orthographic_settings{
@@ -298,9 +313,11 @@ get_base_orthographic_settings() ->
 		z_far=-1.0 }.
 
 
-% @doc Returns base perspective settings, based on a common field of view and on
-% the specified aspect ratio.
-%
+
+-doc """
+Returns base perspective settings, based on a common field of view and on the
+specified aspect ratio.
+""".
 -spec get_base_perspective_settings( aspect_ratio() ) -> perspective_settings().
 get_base_perspective_settings( AspectRatio ) ->
 	#perspective_settings{
@@ -311,9 +328,10 @@ get_base_perspective_settings( AspectRatio ) ->
 
 
 
-% @doc Returns a textual (approximate) representation of the specified
-% projection settings.
-%
+-doc """
+Returns a textual (approximate) representation of the specified projection
+settings.
+""".
 -spec settings_to_string( projection_settings() ) -> ustring().
 settings_to_string( #orthographic_settings{
 		left=Left, right=Right, bottom=Bottom, top=Top,

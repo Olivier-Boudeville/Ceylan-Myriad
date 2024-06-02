@@ -50,8 +50,8 @@ The implementation of `f` corresponds here to the anonymous function `F`.
 -export([ compute_next_estimate3p/4, compute_next_estimate3v/4 ]).
 
 
+-doc "Simulation time.".
 -type time() :: float().
-% Simulation time.
 
 
 % Definition depends on the function of interest, more precisely on the
@@ -61,27 +61,43 @@ The implementation of `f` corresponds here to the anonymous function `F`.
 % or scalars (no suffix).
 
 
+-doc """
+The function f in the equation that we want to solve numerically, here in a 1D
+space, based on scalars.
+""".
 -type f1() :: fun( ( time(), scalar() ) -> scalar() ).
-% The function f in the equation that we want to solve numerically, here in a 1D
-% space, based on scalars.
 
 
+
+-doc """
+The function f in the equation that we want to solve numerically, here in a 2D
+space, based on points.
+""".
 -type f2p() :: fun( ( time(), point2() ) -> point2() ).
-% The function f in the equation that we want to solve numerically, here in a 2D
-% space, based on points.
 
+
+
+-doc """
+The function f in the equation that we want to solve numerically, here in a 2D
+space, based on vectors.
+""".
 -type f2v() :: fun( ( time(), vector2() ) -> vector2() ).
-% The function f in the equation that we want to solve numerically, here in a 2D
-% space, based on vectors.
 
 
+
+-doc """
+The function f in the equation that we want to solve numerically, here in a 3D
+space, based on points.
+""".
 -type f3p() :: fun( ( time(), point3() ) -> point3() ).
-% The function f in the equation that we want to solve numerically, here in a 3D
-% space, based on points.
 
+
+
+-doc """
+The function f in the equation that we want to solve numerically, here in a 3D
+space, based on vectors.
+""".
 -type f3v() :: fun( ( time(), vector3() ) -> vector3() ).
-% The function f in the equation that we want to solve numerically, here in a 3D
-% space, based on vectors.
 
 
 -export_type([ time/0, f1/0, f2p/0, f2v/0, f3p/0, f3v/0 ]).
@@ -104,9 +120,10 @@ The implementation of `f` corresponds here to the anonymous function `F`.
 
 
 
-% @doc Computes the next point (yn+1), based on the current one (yn), the
-% function (F) and the timestep (h).
-%
+-doc """
+Computes the next point (yn+1), based on the current one (yn), the function (F)
+and the timestep (h).
+""".
 -spec compute_next_estimate3p( f3p(), point3(), time(), time() ) -> point3().
 compute_next_estimate3p( F, Point, Time, Step ) ->
 
@@ -149,9 +166,10 @@ compute_next_estimate3p( F, Point, Time, Step ) ->
 
 
 
-% @doc Computes the next vector (yn+1), based on the current one (yn), the
-% function (F) and the timestep (h).
-%
+-doc """
+Computes the next vector (yn+1), based on the current one (yn), the function (F)
+and the timestep (h).
+""".
 -spec compute_next_estimate3v( f3v(), vector3(), time(), time() ) -> vector3().
 compute_next_estimate3v( F, Vector, Time, Step ) ->
 

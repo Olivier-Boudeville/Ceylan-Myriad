@@ -52,28 +52,44 @@ See https://en.wikipedia.org/wiki/Frame_of_reference for further information
 -include("reference_frame3.hrl").
 
 
+
+-doc """
+A frame of reference, defining a coordinate system, for each of the supported
+dimensions.
+""".
 -type reference_frame() :: reference_frame3().
-% A frame of reference, defining a coordinate system, for each of the supported
-% dimensions.
 
+
+
+-doc "Shorthand of reference_frame/0.".
 -type ref() :: reference_frame().
-% Shorthand of reference_frame().
 
 
+
+-doc """
+The PID of any kind of process implementing the ref protocol, ultimately
+equivalent in terms of semantics, once resolved, to a reference frame.
+""".
 -type ref_pid() :: pid().
-% The PID of any kind of process implementing the ref protocol, ultimately
-% equivalent in terms of semantics, once resolved, to a reference frame.
 
 
+
+-doc "Any way of designating an actual reference_frame() instance.".
 -type designated_ref() :: ref() | ref_pid().
-% Any way of designating an actual reference_frame() instance.
 
 
+
+-doc """
+Any user-specified name (not an identifier) of a reference frame.
+""".
 -type user_ref_name() :: any_string().
-% Any user-specified name (not an identifier) of a reference frame.
 
+
+
+-doc """
+Any (internal) name (not an identifier) of a reference frame.
+""".
 -type ref_name() :: bin_string().
-% Any (internal) name (not an identifier) of a reference frame.
 
 
 
@@ -96,7 +112,7 @@ See https://en.wikipedia.org/wiki/Frame_of_reference for further information
 
 
 
-% @doc Tells whether the specified term is a reference frame designator.
+-doc "Tells whether the specified term is a reference frame designator.".
 -spec is_designated_ref( term() ) -> boolean().
 %is_designated_ref( Ref ) when is_record( Ref, reference_frame3 ) ->
 is_designated_ref( RefId ) when is_integer( RefId ) ->
@@ -109,16 +125,17 @@ is_designated_ref( _ ) ->
 	false.
 
 
-% @doc Ensures that the specified term is a reference frame designator indeed.
+
+-doc "Ensures that the specified term is a reference frame designator indeed.".
 -spec check_designated_ref( term() ) -> designated_ref().
 check_designated_ref( T ) ->
 	is_designated_ref( T ) orelse throw( { not_a_designated_ref, T } ).
 
 
 
-% @doc Returns a textual representation of the specified designated reference
-% frame.
-%
+-doc """
+Returns a textual representation of the specified designated reference frame.
+""".
 -spec designated_ref_to_string( designated_ref() ) -> ustring().
 designated_ref_to_string( Ref3 ) when is_record( Ref3, reference_frame3 ) ->
 	reference_frame3:to_string( Ref3 );
