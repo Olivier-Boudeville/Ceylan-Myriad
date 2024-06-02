@@ -33,45 +33,64 @@ notably in order to transform them (meta-programming).
 """.
 
 
+
 % Section about general locations in AST, sources, etc.
 
 
+
+-doc """
+So that forms can be independently managed while being able to be reordered
+later, according to their original position in a source AST.
+
+Higher-level location, not to be mixed up with file_loc/0.
+""".
 -type form_location() :: id_utils:sortable_id().
-% So that forms can be independently managed while being able to be reordered
-% later, according to their original position in a source AST.
-%
-% Higher-level location, not to be mixed up with file_loc/0.
 
 
+
+-doc """
+In-file reference, typically like:
+ `{"../data-management/simple_parse_transform_target.erl",1}`.
+""".
 -type file_reference() :: basic_utils:option( file_utils:file_path() ).
-% In-file reference, typically like:
-% `{"../data-management/simple_parse_transform_target.erl",1}'.
 
 
+
+-doc """
+Line location (that is: line number, starting at 0) of a form in a source file.
+""".
 -type line() :: erl_anno:line().
-% Line location (that is: line number, starting at 0) of a form in a source
-% file.
 
 
+
+-doc """
+Column location (that is: column number, starting at 1) of a form in a source
+file.
+""".
 -type column() :: erl_anno:column().
-% Column location (that is: column number, starting at 1) of a form in a source
-% file.
 
 
+
+-doc """
+Line-related location in a source file (either `line()` or `{line(),
+column()}`).
+
+The (newer) pair form shall now be preferred.
+""".
 -type file_loc() :: erl_anno:location().
-% Line-related location in a source file (either `line()' or `{line(),
-% column()}').
-%
-% The (newer) pair form shall now be preferred.
 
 
+
+-doc "Context (if any) of a form.".
 -type form_context() :: basic_utils:option( file_loc() ).
-% Context (if any) of a form.
 
 
+
+-doc """
+In-source context (typically to report errors); e.g. `{"foo.erl",{112,4}}`.
+""".
 -type source_context() ::
 		{ file_utils:filename(), basic_utils:option( file_loc() ) }.
-% In-source context (typically to report errors); e.g. `{"foo.erl",{112,4}}'.
 
 
 -export_type([ form_location/0, file_reference/0, line/0, column/0, file_loc/0,
@@ -80,38 +99,47 @@ notably in order to transform them (meta-programming).
 
 
 
+
 % Section about AST elements.
 
 
+-doc "Most general form of an element of an AST.".
 -type ast_element() :: tuple().
-% Most general form of an element of an AST.
 
 
+
+-doc """
+Abstract form, part of an AST (e.g. `{attribute,40,file,{"foo.erl",40}}`).
+""".
 -type form() :: erl_parse:abstract_form() | erl_parse:form_info().
-% Abstract form, part of an AST (e.g. `{attribute,40,file,{"foo.erl",40}}').
 
 
+
+-doc "An element (a part) of a form (e.g. a clause of a function definition).".
 -type form_element() :: any().
-% An element (a part) of a form (e.g. a clause of a function definition).
 
 
+
+-doc """
+*Abstract Syntax Tree*, standard representation of parse trees for Erlang
+programs as Erlang terms. This representation is known as the abstract format.
+
+Defined as `erl_parse_tree()`.
+
+See also:
+
+- for the type: <http://erlang.org/doc/man/erl_parse.html#type-erl_parse_tree>
+
+- for the overall logic and structure:
+<http://erlang.org/doc/apps/erts/absform.html>
+""".
 -type ast() :: [ form() ].
-% <em>Abstract Syntax Tree</em>, standard representation of parse trees for
-% Erlang programs as Erlang terms. This representation is known as the abstract
-% format.
-%
-% Defined as `erl_parse_tree()'.
-%
-% See also:
-%
-% - for the type: [http://erlang.org/doc/man/erl_parse.html#type-erl_parse_tree]
-%
-% - for the overall logic and structure:
-% [http://erlang.org/doc/apps/erts/absform.html]
 
 
+
+-doc "In-AST description of a value of type atom.".
 -type ast_atom() :: { 'atom', file_loc(), atom() }.
-% In-AST description of a value of type atom.
+
 
 
 -export_type([ ast_element/0, form/0, form_element/0, ast/0, ast_atom/0 ]).

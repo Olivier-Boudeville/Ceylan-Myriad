@@ -49,9 +49,17 @@ See also:
 % Directly obtained from the epp module:
 
 -type include_path() :: [ directory_name() ].
+
 -type macro() :: atom() | { atom(), term() }.
+
+
+
+-doc "An encoding of sources.".
 -type source_encoding() :: 'latin1' | 'utf8'.
 
+
+
+-doc "A preprocessor option.".
 -type preprocessor_option() :: { 'includes', include_path() }
 							 | { 'macros', [ macro() ] }
 							 | { 'default_encoding', source_encoding() }
@@ -73,19 +81,24 @@ See also:
 % Directly inspired from erl_lint:
 
 
+-doc "Description of a compilation-related issue (error or warning).".
 -type issue_description() :: term().
-% Description of a compilation-related issue (error or warning).
 
 
+
+-doc """
+Full information about a compilation-related issue.
+
+The module is the one emitting that issue (e.g. erl_lint).
+""".
 -type issue_info() :: { file_loc(), module(), issue_description() }.
-% Full information about a compilation-related issue.
-%
-% The module is the one emitting that issue (e.g. erl_lint).
 
 
+
+-doc """
+A warning regarding a source file, corresponding to a list of error information.
+""".
 -type issue_report() :: { file_name(), [ issue_info() ] }.
-% A warning regarding a source file, corresponding to a list of error
-% information.
 
 
 -export_type([ issue_description/0, issue_info/0, issue_report/0 ]).
@@ -161,7 +174,7 @@ See also:
 % Checking section.
 
 
-% @doc Checks whether specified AST is legit: lints it.
+-doc "Checks whether specified AST is legit: lints it.".
 -spec check_ast( ast() ) -> void().
 check_ast( AST ) ->
 
@@ -212,7 +225,7 @@ check_ast( AST ) ->
 
 
 
-% @doc Interprets the specified list of issue reports.
+-doc "Interprets the specified list of issue reports.".
 -spec interpret_issue_reports( [ issue_report() ] ) -> void().
 %interpret_issue_reports( _IssueReports=[] ) ->
 %   % Should never happen:
@@ -233,7 +246,7 @@ interpret_issue_reports( IssueReports ) ->
 
 
 
-% @doc Interprets the specified issue report.
+-doc "Interprets the specified issue report.".
 -spec interpret_issue_report( issue_report() ) -> void().
 interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 
@@ -247,7 +260,7 @@ interpret_issue_report( _IssueReport={ Filename, IssueInfos } ) ->
 
 
 
-% @doc Interprets the specified error description.
+-doc "Interprets the specified error description.".
 -spec interpret_issue_info( file_name(), issue_info() ) -> void().
 interpret_issue_info( Filename,
 					  _IssueInfo={ FileLoc, DetectorModule, IssueDesc } ) ->
@@ -265,11 +278,11 @@ interpret_issue_info( Filename,
 
 
 
-% @doc Interprets the specified issue description, detected by the specified
-% module.
-%
-% Note: full control is offered here to enrich this function at will, if wanted.
-%
+-doc """
+Interprets the specified issue description, detected by the specified module.
+
+Note: full control is offered here to enrich this function at will, if wanted.
+""".
 -spec interpret_issue_description( issue_description(), module_name() ) ->
 										ustring().
 interpret_issue_description( IssueDescription, DectectorModule ) ->
@@ -278,13 +291,14 @@ interpret_issue_description( IssueDescription, DectectorModule ) ->
 
 
 
-% @doc Checks that the specified source, in-file location is legit.
+-doc "Checks that the specified source, in-file location is legit.".
 -spec check_file_loc( term() ) -> file_loc().
 check_file_loc( Line ) ->
 	check_file_loc( Line, _Context=undefined ).
 
 
-% @doc Checks that the specified source, in-file location is legit.
+
+-doc "Checks that the specified source, in-file location is legit.".
 -spec check_file_loc( term(), option( form_context() ) ) -> file_loc().
 check_file_loc( Line, _Context )
 						when is_integer( Line ) andalso Line >= 0 ->
@@ -302,14 +316,14 @@ check_file_loc( Other, Context ) ->
 
 
 
-% @doc Checks that the specified module name is legit, and returns it.
+-doc "Checks that the specified module name is legit, and returns it.".
 -spec check_module_name( term() ) -> module_name().
 check_module_name( Name ) ->
 	check_module_name( Name, _Context=undefined ).
 
 
 
-% @doc Checks that the specified module name is legit, and returns it.
+-doc "Checks that the specified module name is legit, and returns it.".
 -spec check_module_name( term(), form_context() ) -> module_name().
 check_module_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
@@ -319,13 +333,14 @@ check_module_name( Other, Context ) ->
 
 
 
-% @doc Checks that the specified inline options are legit.
+-doc "Checks that the specified inline options are legit.".
 -spec check_inline_options( term() ) -> [ function_id() ].
 check_inline_options( FunIds ) ->
 	check_inline_options( FunIds, _Context=undefined ).
 
 
-% @doc Checks that the specified inline options are legit.
+
+-doc "Checks that the specified inline options are legit.".
 -spec check_inline_options( term(), form_context() ) -> [ function_id() ].
 check_inline_options( FunIds, Context ) when is_list( FunIds ) ->
 	ast_function:check_function_ids( FunIds, Context );
@@ -335,14 +350,14 @@ check_inline_options( Other, Context ) ->
 
 
 
-
-% @doc Checks that the specified (function or type) arity is legit.
+-doc "Checks that the specified (function or type) arity is legit.".
 -spec check_arity( term() ) -> arity().
 check_arity( Arity ) ->
 	check_arity( Arity, _Context=undefined ).
 
 
-% @doc Checks that the specified (function or type) arity is legit.
+
+-doc "Checks that the specified (function or type) arity is legit.".
 -spec check_arity( term(), form_context() ) -> arity().
 check_arity( Arity, _Context ) when is_integer( Arity ) andalso Arity >= 0 ->
 	Arity;
@@ -352,31 +367,34 @@ check_arity( Other, Context ) ->
 
 
 
+
 % Conversion section.
 
 
-% @doc Reads specified Erlang source file (*.erl) and returns the corresponding
-% AST, based on default preprocessor options.
-%
-% For example useful to debug a parse transform first separately from the
-% compile pipe-line, relying here on the usual, convenient error management
-% instead of having little informative messages like: 'undefined parse transform
-% 'foobar'' as soon as a call to a non-existing module:function/arity is made.
-%
+-doc """
+Reads specified Erlang source file (*.erl) and returns the corresponding AST,
+based on default preprocessor options.
+
+For example useful to debug a parse transform first separately from the compile
+pipe-line, relying here on the usual, convenient error management instead of
+having little informative messages like: 'undefined parse transform 'foobar'' as
+soon as a call to a non-existing module:function/arity is made.
+""".
 -spec erl_to_ast( file_name() ) -> ast().
 erl_to_ast( ErlSourceFilename ) ->
 	erl_to_ast( ErlSourceFilename, _PreprocessorOptions=[] ).
 
 
 
-% @doc Reads specified Erlang source file (*.erl) and returns the corresponding
-% AST, based on specified preprocessor (eep) options.
-%
-% For example useful to debug a parse transform first separately from the
-% compile pipe-line, relying here on the usual, convenient error management
-% instead of having little informative messages like: 'undefined parse transform
-% 'foobar'' as soon as a call to a non-existing module:function/arity is made.
-%
+-doc """
+Reads specified Erlang source file (*.erl) and returns the corresponding AST,
+based on specified preprocessor (eep) options.
+
+For example useful to debug a parse transform first separately from the compile
+pipe-line, relying here on the usual, convenient error management instead of
+having little informative messages like: 'undefined parse transform 'foobar'' as
+soon as a call to a non-existing module:function/arity is made.
+""".
 -spec erl_to_ast( file_name(), [ preprocessor_option() ] ) -> ast().
 erl_to_ast( ErlSourceFilename, PreprocessorOptions ) ->
 
@@ -392,12 +410,13 @@ erl_to_ast( ErlSourceFilename, PreprocessorOptions ) ->
 
 
 
-% @doc Reads the specified BEAM file (expected to be compiled with debug
-% information) and returns the corresponding AST.
-%
-% Note that the filename must be a relative or absolute path pointing directly
-% to the BEAM file (it is not searched through the code path).
-%
+-doc """
+Reads the specified BEAM file (expected to be compiled with debug information)
+and returns the corresponding AST.
+
+Note that the filename must be a relative or absolute path pointing directly to
+the BEAM file (it is not searched through the code path).
+""".
 -spec beam_to_ast( file_name() ) -> ast().
 beam_to_ast( BeamFilename ) ->
 
@@ -473,9 +492,10 @@ beam_to_ast( BeamFilename ) ->
 % Section to manage ASTs and forms.
 
 
-% @doc Converts the specified Erlang term (e.g. the float '42.0') into a
-% corresponding form (e.g. '{float, _FileLoc={0,1}, 42.0}').
-%
+-doc """
+Converts the specified Erlang term (e.g. the float '42.0') into a corresponding
+form (e.g. '{float, _FileLoc={0,1}, 42.0}').
+""".
 -spec term_to_form( term() ) -> form().
 term_to_form( Term ) ->
 
@@ -497,13 +517,16 @@ term_to_form( Term ) ->
 
 
 
-% @doc Converts a list of names of variables into the corresponding AST, at
-% the specified in-file location.
-%
-% For example if wanting to specify '[V1, Alpha, A]', we have:
-% variable_names_to_ast( ["V1", "Alpha", "A"], _FileLoc=0) = [ {cons,0,
-% {var,0,'V1'}, {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0}}}}]
-%
+-doc """
+Converts a list of names of variables into the corresponding AST, at the
+specified in-file location.
+
+For example if wanting to specify '[V1, Alpha, A]', we have:
+```
+variable_names_to_ast(["V1", "Alpha", "A"], _FileLoc=0) = [ {cons,0,
+{var,0,'V1'}, {cons,0,{var,0,'Alpha'}, {cons,0,{var,0,'A'}, {nil,0}}}}]
+```
+""".
 -spec variable_names_to_ast( [ ustring() ], file_loc() ) -> ast().
 variable_names_to_ast( VariableNames, FileLoc ) ->
 
@@ -516,26 +539,30 @@ variable_names_to_ast( VariableNames, FileLoc ) ->
 
 
 
-% @doc Converts the specified source code of a form (as a string) into its
-% corresponding abstract form (using the default in-file location applying to
-% generated code).
-%
-% For example string_to_form("f() -> hello_world.") may return
-%   {function, {0,1}, f, 0, [{clause, {0,1}, [], [],
-%       [ {atom, {0,1}, hello_world} ] } ] }
-%
+-doc """
+Converts the specified source code of a form (as a string) into its
+corresponding abstract form (using the default in-file location applying to
+generated code).
+
+For example string_to_form("f() -> hello_world.") may return
+```
+   {function, {0,1}, f, 0, [{clause, {0,1}, [], [],
+	   [ {atom, {0,1}, hello_world} ] } ] }
+```
+""".
 -spec string_to_form( ustring() ) -> form().
 string_to_form( FormString ) ->
 	string_to_form( FormString, _FileLoc=?default_generation_location ).
 
 
 
-% @doc Converts the specified source code of a form (that is, a string) into its
-% corresponding abstract form, at the specified in-file location.
-%
-% For example string_to_form("f() -> hello_world.", 42) may return
-%   {function, 42, f, 0, [{clause, 42, [], [], [{atom,42,hello_world}]}]}
-%
+-doc """
+Converts the specified source code of a form (that is, a string) into its
+corresponding abstract form, at the specified in-file location.
+
+For example `string_to_form("f() -> hello_world.", 42)` may return
+   `{function, 42, f, 0, [{clause, 42, [], [], [{atom,42,hello_world}]}]}`
+""".
 -spec string_to_form( ustring(), file_loc() ) -> form().
 string_to_form( FormString, FileLoc ) ->
 
@@ -568,14 +595,18 @@ string_to_form( FormString, FileLoc ) ->
 
 
 
-% @doc Converts the specified source code of a list of expressions (that is, a
-% string) into its corresponding AST (using the default in-file location
-% applying to generated code).
-%
-% For example string_to_expressions("[{a, 1}, foobar]") may return:
-%   [{cons,  {0,1}, {tuple,  {0,1}, [{atom, {0,1},a}, {integer, {0,1},1}]},
-%    {cons,  {0,1}, {atom, {0,1},foobar}, {nil, {0,1}}}}]
-%
+-doc """
+Converts the specified source code of a list of expressions (that is, a string)
+into its corresponding AST (using the default in-file location applying to
+generated code).
+
+For example `string_to_expressions("[{a, 1}, foobar]")` may return:
+```
+[{cons,  {0,1}, {tuple,  {0,1}, [{atom, {0,1},a}, {integer, {0,1},1}]},
+ {cons,  {0,1}, {atom, {0,1},foobar}, {nil, {0,1}}}}]
+```
+""".
+
 -spec string_to_expressions( ustring() ) -> ast().
 string_to_expressions( ExpressionString ) ->
 	string_to_expressions( ExpressionString,
@@ -583,14 +614,17 @@ string_to_expressions( ExpressionString ) ->
 
 
 
-% @doc Converts the specified source code of a term (that is, a string) and a
-% location into the corresponding abstract form.
-%
-% For example string_to_expressions("[{a, 1}, foobar]", _Loc=42) may return
-%   [ {cons, 42, {tuple, 42, [ {atom,42,a}, {integer,42,1} ]},
-%     {cons, 42, {atom,42,foobar}, {nil,42} }}]
-%
-% Note: at least with OTP24, apparently FileLoc cannot include a column
+-doc """
+Converts the specified source code of a term (that is, a string) and a location
+into the corresponding abstract form.
+
+For example `string_to_expressions("[{a, 1}, foobar]", _Loc=42)` may return
+```
+[ {cons, 42, {tuple, 42, [ {atom,42,a}, {integer,42,1} ]},
+  {cons, 42, {atom,42,foobar}, {nil,42} }}]
+```
+Note: at least with OTP24, apparently FileLoc cannot include a column
+""".
 -spec string_to_expressions( ustring(), file_loc() ) -> ast().
 string_to_expressions( ExpressionString, FileLoc ) ->
 
@@ -623,12 +657,13 @@ string_to_expressions( ExpressionString, FileLoc ) ->
 
 
 
-% @doc Converts the specified source code of a term (that is, a string) into its
-% corresponding value.
-%
-% For example string_to_value("[{tiger,[lion,leopard]}]") returns the
-% [{tiger, [lion,leopard]}] term.
-%
+-doc """
+Converts the specified source code of a term (that is, a string) into its
+corresponding value.
+
+For example `string_to_value("[{tiger,[lion,leopard]}]")` returns the `[{tiger,
+[lion,leopard]}]` term.
+""".
 -spec string_to_value( ustring() ) -> term().
 string_to_value( ExpressionString ) ->
 
@@ -645,111 +680,104 @@ string_to_value( ExpressionString ) ->
 % Subsection for trace outputs that are specific to parse-transforms.
 
 
-% @doc Displays specified text as debug.
+-doc "Displays the specified text as debug.".
 -spec display_debug( ustring() ) -> void().
 display_debug( String ) ->
 	io:format( "[debug] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as debug.
+-doc "Displays the specified formatted text as debug.".
 -spec display_debug( format_string(), [ term() ] ) -> void().
 display_debug( FormatString, Values ) ->
 	display_debug( io_lib:format( FormatString, Values ) ).
 
 
-
-% @doc Displays specified text as info.
+-doc "Displays the specified text as info.".
 -spec display_info( ustring() ) -> void().
 display_info( String ) ->
 	io:format( "[info] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as info.
+-doc "Displays the specified formatted text as info.".
 -spec display_info( format_string(), [ term() ] ) -> void().
 display_info( FormatString, Values ) ->
 	display_info( io_lib:format( FormatString, Values ) ).
 
 
-
-% @doc Displays specified text as notice.
+-doc "Displays the specified text as notice.".
 -spec display_notice( ustring() ) -> void().
 display_notice( String ) ->
 	io:format( "[notice] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as notice.
+-doc "Displays the specified formatted text as notice.".
 -spec display_notice( format_string(), [ term() ] ) -> void().
 display_notice( FormatString, Values ) ->
 	display_notice( io_lib:format( FormatString, Values ) ).
 
 
-
-% @doc Displays specified text as warning.
+-doc "Displays the specified text as warning.".
 -spec display_warning( ustring() ) -> void().
 display_warning( String ) ->
 	io:format( "[warning] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as warning.
+-doc "Displays the specified formatted text as warning.".
 -spec display_warning( format_string(), [ term() ] ) -> void().
 display_warning( FormatString, Values ) ->
 	display_warning( io_lib:format( FormatString, Values ) ).
 
 
-
-% @doc Displays specified text as error.
+-doc "Displays the specified text as error.".
 -spec display_error( ustring() ) -> void().
 display_error( String ) ->
 	io:format( "~n[error] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as error.
+-doc "Displays the specified formatted text as error.".
 -spec display_error( format_string(), [ term() ] ) -> void().
 display_error( FormatString, Values ) ->
 	display_error( io_lib:format( FormatString, Values ) ).
 
 
-
-% @doc Displays specified text as critical.
+-doc "Displays the specified text as critical.".
 -spec display_critical( ustring() ) -> void().
 display_critical( String ) ->
 	io:format( "[critical] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as critical.
+-doc "Displays the specified formatted text as critical.".
 -spec display_critical( format_string(), [ term() ] ) -> void().
 display_critical( FormatString, Values ) ->
 	display_critical( io_lib:format( FormatString, Values ) ).
 
 
-
-% @doc Displays specified text as alert.
+-doc "Displays the specified text as alert.".
 -spec display_alert( ustring() ) -> void().
 display_alert( String ) ->
 	io:format( "[alert] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as alert.
+-doc "Displays the specified formatted text as alert.".
 -spec display_alert( format_string(), [ term() ] ) -> void().
 display_alert( FormatString, Values ) ->
 	display_alert( io_lib:format( FormatString, Values ) ).
 
 
-
-% @doc Displays specified text as emergency.
+-doc "Displays the specified text as emergency.".
 -spec display_emergency( ustring() ) -> void().
 display_emergency( String ) ->
 	io:format( "[emergency] ~ts~n", [ String ] ).
 
 
-% @doc Displays specified formatted text as emergency.
+-doc "Displays the specified formatted text as emergency.".
 -spec display_emergency( format_string(), [ term() ] ) -> void().
 display_emergency( FormatString, Values ) ->
 	display_emergency( io_lib:format( FormatString, Values ) ).
 
 
 
-% @doc Notifies a warning, with specified context.
+-doc "Notifies a warning, with specified context.".
 -spec notify_warning( [ term() ], form_context() ) -> void().
 notify_warning( Elements, Context ) ->
 
@@ -788,30 +816,32 @@ notify_warning( Elements, Context ) ->
 	end.
 
 
-% @doc Raises a (compile-time, rather ad hoc) error when applying a parse
-% transform, to stop the build on failure and report the actual error, thanks to
-% the specified term (often, a list of error elements).
-%
-% Used to be a simple throw, but then for parse transforms the error message was
-% garbled in messages like:
-%
-% ```
-% internal error in lint_module;
-% crash reason: function_clause
-%
-%  in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
-%     called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
-% table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
-% '''
-%
-% Note:
-%
-% - this function is used to report errors detected by Myriad itself (not by the
-% Erlang toolchain)
-%
-% - prefer using raise_usage_error/* to report errors in a more standard,
-% convenient way
-%
+
+-doc """
+Raises a (compile-time, rather ad hoc) error when applying a parse transform, to
+stop the build on failure and report the actual error, thanks to the specified
+term (often, a list of error elements).
+
+Used to be a simple throw, but then for parse transforms the error message was
+garbled in messages like:
+
+```
+internal error in lint_module;
+crash reason: function_clause
+
+ in function  erl_lint:'-compiler_options/1-lc$^0/1-0-'/1
+	called as erl_lint:'-compiler_options/1-lc$^0/1-0-'({
+table_type_defined_more_than_once,{line,12},foo_hashtable,bar_hashtable})
+```
+
+Note:
+
+- this function is used to report errors detected by Myriad itself (not by the
+Erlang toolchain)
+
+- prefer using raise_usage_error/* to report errors in a more standard,
+convenient way
+""".
 -spec raise_error( term() ) -> no_return().
 raise_error( ErrorTerm ) ->
 
@@ -830,41 +860,43 @@ raise_error( ErrorTerm ) ->
 
 
 
-% @doc Raises an error, with specified context, thanks to the specified term
-% (often, a list of error elements), from the Myriad layer.
-%
-% For example raise_error([invalid_module_name, Other], _Context=112) shall
-% result in throwing {invalid_module_name, Other, {line, 112}}.
-%
-% Note:
-%
-% - this function is used to report errors detected by Myriad itself (not by the
-% Erlang toolchain)
-%
-% - prefer using raise_usage_error/* to report errors in a more standard,
-% convenient way
-%
+-doc """
+Raises an error, with the specified context, thanks to the specified term
+(often, a list of error elements), from the Myriad layer.
+
+For example raise_error([invalid_module_name, Other], _Context=112) shall result
+in throwing {invalid_module_name, Other, {line, 112}}.
+
+Note:
+
+- this function is used to report errors detected by Myriad itself (not by the
+Erlang toolchain)
+
+- prefer using raise_usage_error/* to report errors in a more standard,
+convenient way
+""".
 -spec raise_error( term(), option( source_context() ) ) -> no_return().
 raise_error( ErrorTerm, Context ) ->
 	raise_error( ErrorTerm, Context, _OriginLayer="Myriad" ).
 
 
 
-% @doc Raises an error, with specified context, from the specified layer
-% (expected to be above Myriad).
-%
-% For example raise_error([invalid_module_name, Other], _Context=112,
-% _OriginLayer="FooLayer") shall result in throwing {invalid_module_name, Other,
-% {line, 112}}.
-%
-% Note:
-%
-% - this function is used to report errors detected by Myriad itself (not by the
-% Erlang toolchain)
-%
-% - prefer using raise_usage_error/* to report errors in a more standard,
-% convenient way
-%
+-doc """
+Raises an error, with the specified context, from the specified layer (expected
+to be above Myriad).
+
+For example raise_error([invalid_module_name, Other], _Context=112,
+_OriginLayer="FooLayer") shall result in throwing {invalid_module_name, Other,
+{line, 112}}.
+
+Note:
+
+- this function is used to report errors detected by Myriad itself (not by the
+Erlang toolchain)
+
+- prefer using raise_usage_error/* to report errors in a more standard,
+convenient way
+""".
 -spec raise_error( term(), option( source_context() ),
 				   basic_utils:layer_name() ) -> no_return();
 				 ( ustring(), ast_transforms(), file_loc() ) -> no_return().
@@ -998,11 +1030,11 @@ interpret_stack_trace( _StackTrace=[ H | T ], Acc, Count ) ->
 
 
 
-
-% @doc Raises a (compile-time, relatively standard) user-related error, with
-% specified source context, to stop the build on failure and report adequately
-% the actual error to the user.
-%
+-doc """
+Raises a (compile-time, relatively standard) user-related error, with specified
+source context, to stop the build on failure and report adequately the actual
+error to the user.
+""".
 -spec raise_usage_error( format_string(), format_values(),
 						 file_name() | module_name() ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, FileOrModname ) ->
@@ -1011,10 +1043,11 @@ raise_usage_error( ErrorFormatString, ErrorValues, FileOrModname ) ->
 
 
 
-% @doc Raises a (compile-time, relatively standard) user-related error, with
-% specified source context, to stop the build on failure and report adequately
-% the actual error to the user.
-%
+-doc """
+Raises a (compile-time, relatively standard) user-related error, with specified
+source context, to stop the build on failure and report adequately the actual
+error to the user.
+""".
 -spec raise_usage_error( format_string(), format_values(),
 			file_name() | module_name(), option( file_loc() ) ) -> no_return().
 raise_usage_error( ErrorFormatString, ErrorValues, FileOrModname,
@@ -1039,15 +1072,16 @@ raise_usage_error( ErrorFormatString, ErrorValues, Filename, FileLoc ) ->
 
 
 
-% @doc Returns an AST form in order to raise a (compile-time, standard) error
-% when applying a parse transform, to stop the build on failure and report the
-% actual error.
-%
-% The specified error term will be transformed by the specified module into a
-% (textual) error message (see format_error/1), and then will be reported as
-% originating from the specified location in the source file of the module being
-% compiled.
-%
+-doc """
+Returns an AST form in order to raise a (compile-time, standard) error when
+applying a parse transform, to stop the build on failure and report the actual
+error.
+
+The specified error term will be transformed by the specified module into a
+(textual) error message (see format_error/1), and then will be reported as
+originating from the specified location in the source file of the module being
+compiled.
+""".
 -spec get_error_form( error_reason(), module_name(), file_loc() ) -> form().
 get_error_form( ErrorTerm, FormatErrorModule, FileLoc ) ->
 
@@ -1068,11 +1102,12 @@ get_error_form( ErrorTerm, FormatErrorModule, FileLoc ) ->
 
 
 
-% @doc This function (whose name is standard, conventional) is to be defined on
-% a per-module basis (typically in the module defining the parse transform being
-% applied) and allows to convert error terms (that are, here, related to
-% parse-transforms) into textual messages that can be output by the build chain.
-%
+-doc """
+This function (whose name is standard, conventional) is to be defined on a
+per-module basis (typically in the module defining the parse transform being
+applied) and allows to convert error terms (that are, here, related to
+parse-transforms) into textual messages that can be output by the build chain.
+""".
 -spec format_error( error_reason() ) -> ustring().
 format_error( ErrorTerm ) ->
 	% Of course this is just an example:
@@ -1080,10 +1115,11 @@ format_error( ErrorTerm ) ->
 
 
 
-% @doc Returns error/warning elements including the specified context.
-%
-% (helper)
-%
+-doc """
+Returns error/warning elements including the specified context.
+
+(helper)
+""".
 -spec get_elements_with_context( [ term() ], option( source_context() ) ) ->
 										[ term() ].
 get_elements_with_context( Elements, _Context=undefined ) ->
@@ -1127,10 +1163,10 @@ get_elements_with_context( Elements, Context ) ->
 
 
 
-
-% @doc Returns the conventional virtual in-file (not AST) location denoting
-% generated code.
-%
+-doc """
+Returns the conventional virtual in-file (not AST) location denoting generated
+code.
+""".
 -spec get_generated_code_location() -> file_loc().
 get_generated_code_location() ->
 	% Preferring currently not returning { _Line=0, _Column=1 }, for pre-OTP24
@@ -1142,10 +1178,11 @@ get_generated_code_location() ->
 
 
 
-% @doc Returns a standard textual description of specified in-file location
-% (typically to output the usual, canonical reference expected by most tools,
-% often to report compilation issues).
-%
+-doc """
+Returns a standard textual description of specified in-file location (typically
+to output the usual, canonical reference expected by most tools, often to report
+compilation issues).
+""".
 -spec format_file_loc( file_loc() ) -> ustring().
 format_file_loc( { Line, Column } ) ->
 	io_lib:format( "~B:~B", [ Line, Column ] );
@@ -1155,9 +1192,10 @@ format_file_loc( Line ) ->
 
 
 
-% @doc Returns an alternative textual description of specified in-file location
-% (e.g. in order to name variables in AST).
-%
+-doc """
+Returns an alternative textual description of specified in-file location
+(e.g. in order to name variables in AST).
+""".
 -spec format_file_loc_alt( file_loc() ) -> ustring().
 format_file_loc_alt( { Line, Column } ) ->
 	io_lib:format( "~B_~B", [ Line, Column ] );
@@ -1167,9 +1205,9 @@ format_file_loc_alt( Line ) ->
 
 
 
-% @doc Returns a textual, user-friendly description of specified in-file
-% location.
-%
+-doc """
+Returns a textual, user-friendly description of specified in-file location.
+""".
 -spec file_loc_to_string( file_loc() ) -> ustring().
 file_loc_to_string( { Line, Column } ) ->
 	io_lib:format( "line ~B, column ~B", [ Line, Column ] );
@@ -1178,10 +1216,12 @@ file_loc_to_string( Line ) ->
 	io_lib:format( "line ~B", [ Line ] ).
 
 
-% @doc Returns a textual, user-friendly description of specified in-file
-% location, just specifying the line (defined for the cases where a column would
-% not be especially useful, like when referencing a clause).
-%
+
+-doc """
+Returns a textual, user-friendly description of specified in-file location, just
+specifying the line (defined for the cases where a column would not be
+especially useful, like when referencing a clause).
+""".
 -spec file_loc_to_line_string( file_loc() ) -> ustring().
 file_loc_to_line_string( { Line, _Column } ) ->
 	io_lib:format( "line ~B", [ Line ] );
@@ -1190,9 +1230,11 @@ file_loc_to_line_string( Line ) ->
 	io_lib:format( "line ~B", [ Line ] ).
 
 
-% @doc Returns an explicative term (typically to be part of a thrown exception)
-% corresponding to the specified in-file location.
-%
+
+-doc """
+Returns an explicative term (typically to be part of a thrown exception)
+corresponding to the specified in-file location.
+""".
 -spec file_loc_to_explicative_term( file_loc() ) -> term().
 file_loc_to_explicative_term( { Line, Column } ) ->
 	{ { line, Line }, { column, Column } };
@@ -1202,10 +1244,11 @@ file_loc_to_explicative_term( Line ) ->
 
 
 
-% @doc Writes the specified AST into the specified (text) file.
-%
-% Useful for example to determine differences between ASTs.
-%
+-doc """
+Writes the specified AST into the specified (text) file.
+
+Useful for example to determine differences between ASTs.
+""".
 -spec write_ast_to_file( ast(), file_name() ) -> void().
 write_ast_to_file( AST, Filename ) ->
 

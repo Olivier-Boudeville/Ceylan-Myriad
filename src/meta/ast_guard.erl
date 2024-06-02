@@ -35,22 +35,30 @@ for more information.
 """.
 
 
+
+-doc """
+The description of a sequence of guards in an AST.
+
+"A guard sequence Gs is a sequence of guards G_1; ...; G_k, and Rep(Gs) =
+[Rep(G_1), ..., Rep(G_k)]. If the guard sequence is empty, then Rep(Gs) = []."
+
+For example `{call, 102, {atom,102,is_integer}, [{var,102,'X'}]}`.
+""".
 -type ast_guard_sequence() :: [ ast_guard() ].
-% The description of a sequence of guards in an AST.
-%
-% "A guard sequence Gs is a sequence of guards G_1; ...; G_k, and Rep(Gs) =
-% [Rep(G_1), ..., Rep(G_k)]. If the guard sequence is empty, then Rep(Gs) = []."
-%
-% For example {call, 102, {atom,102,is_integer}, [{var,102,'X'}]}.
 
 
+
+-doc """
+The description of a guard in an AST.
+
+"A guard G is a non-empty sequence of guard tests Gt_1, ..., Gt_k, and Rep(G) =
+[Rep(Gt_1), ..., Rep(Gt_k)]."
+""".
 -type ast_guard() :: nonempty_list( ast_guard_test() ).
-% The description of a guard in an AST.
-%
-% "A guard G is a non-empty sequence of guard tests Gt_1, ..., Gt_k, and Rep(G)
-% = [Rep(Gt_1), ..., Rep(Gt_k)]."
 
 
+
+-doc "The description of a guard test in an AST.".
 -type ast_guard_test() ::
 	ast_bitstring:constructor( ast_guard_test() )
   | { 'cons', file_loc(), ast_guard_test(), ast_guard_test() }
@@ -60,27 +68,29 @@ for more information.
   [ ast_guard_test() ] }
   %| ast_map:ast_map_form( ast_guard_test() ).
   | ast_map:ast_map_form().
-% The description of a guard test in an AST.
 
 
+
+-doc """
+"If Gt is a bitstring constructor `<<Gt_1:Size_1/TSL_1, ...,
+Gt_k:Size_k/TSL_k>>`, where each Size_i is a guard test and each TSL_i is a type
+specificer list, then Rep(Gt) = {bin, FILE_LOC, [{bin_element, FILE_LOC,
+Rep(Gt_1), Rep(Size_1), Rep(TSL_1)}, ..., {bin_element, FILE_LOC, Rep(Gt_k),
+Rep(Size_k), Rep(TSL_k)}]}. For Rep(TSL), see above.
+
+An omitted Size_i is represented by default. An omitted TSL_i is represented by
+default."
+
+So apparently a guard test is a recursive type.
+""".
 -type ast_bitstring_constructor() ::
 		ast_bitstring:constructor( ast_guard_test() ).
-% "If Gt is a bitstring constructor `<<Gt_1:Size_1/TSL_1, ...,
-% Gt_k:Size_k/TSL_k>>', where each Size_i is a guard test and each TSL_i is a
-% type specificer list, then Rep(Gt) = {bin, FILE_LOC, [{bin_element, FILE_LOC,
-% Rep(Gt_1), Rep(Size_1), Rep(TSL_1)}, ..., {bin_element, FILE_LOC, Rep(Gt_k),
-% Rep(Size_k), Rep(TSL_k)}]}. For Rep(TSL), see above.
-%
-% An omitted Size_i is represented by default. An omitted TSL_i is
-% represented by default."
-%
-% So apparently a guard test is a recursive type.
 
 
+
+-doc "Defined in the context of a guard.".
 -type ast_bitstring_bin_element() ::
 		ast_bitstring:bin_element( ast_guard_test() ).
-% Defined in the context of a guard.
-
 
 
 -export_type([ ast_guard_sequence/0, ast_guard/0, ast_guard_test/0,
@@ -89,6 +99,7 @@ for more information.
 
 -export([ transform_guard_test/2, transform_guard/2,
 		  transform_guard_sequence/2 ]).
+
 
 
 % Shorthands:
@@ -110,14 +121,14 @@ for more information.
 
 
 
-% @doc Transforms the specified guard sequence, operating relevant AST
-% transformations.
-%
-% "A guard sequence Gs is a sequence of guards G_1; ...; G_k, and Rep(Gs) =
-% [Rep(G_1), ..., Rep(G_k)]. If the guard sequence is empty, then Rep(Gs) = []."
-%
-% Note: the cases where the sequence is empty is managed here as well.
-%
+-doc """
+Transforms the specified guard sequence, operating relevant AST transformations.
+
+"A guard sequence Gs is a sequence of guards G_1; ...; G_k, and Rep(Gs) =
+[Rep(G_1), ..., Rep(G_k)]. If the guard sequence is empty, then Rep(Gs) = []."
+
+Note: the cases where the sequence is empty is managed here as well.
+""".
 -spec transform_guard_sequence( ast_guard_sequence(), ast_transforms() ) ->
 									{ ast_guard_sequence(), ast_transforms() }.
 transform_guard_sequence( Guards, Transforms ) ?rec_guard ->
@@ -125,12 +136,12 @@ transform_guard_sequence( Guards, Transforms ) ?rec_guard ->
 
 
 
+-doc """
+Transforms the specified guard, operating relevant AST transformations.
 
-% @doc Transforms the specified guard, operating relevant AST transformations.
-%
-% "A guard G is a non-empty sequence of guard tests Gt_1, ..., Gt_k, and Rep(G)
-% = [Rep(Gt_1), ..., Rep(Gt_k)]."
-%
+"A guard G is a non-empty sequence of guard tests Gt_1, ..., Gt_k, and Rep(G) =
+[Rep(Gt_1), ..., Rep(Gt_k)]."
+""".
 -spec transform_guard( ast_guard(), ast_transforms() ) ->
 								{ ast_guard(), ast_transforms() }.
 transform_guard( _GuardTests=[], _Transforms ) ->
@@ -148,13 +159,14 @@ transform_guard( Other, Transforms )
 
 
 
-% @doc Transforms the specified list of guard tests.
-%
-% Note: unlike transform_guard/2, the list may be empty, and a direct
-% transformation is now expected to be performed.
-%
-% (helper)
-%
+-doc """
+Transforms the specified list of guard tests.
+
+Note: unlike transform_guard/2, the list may be empty, and a direct
+transformation is now expected to be performed.
+
+(helper)
+""".
 -spec direct_transform_guard_tests( [ ast_guard_test() ], ast_transforms() ) ->
 									{ [ ast_guard_test() ], ast_transforms() }.
 direct_transform_guard_tests( GuardTests, Transforms ) ?rec_guard ->
@@ -163,10 +175,11 @@ direct_transform_guard_tests( GuardTests, Transforms ) ?rec_guard ->
 
 
 
-% @doc (corresponds to grecord_inits/1 in erl_id_trans)
-%
-% (helper)
-%
+-doc """
+(corresponds to grecord_inits/1 in erl_id_trans)
+
+(helper)
+""".
 -spec transform_record_field_inits( [ ast_record_field_init() ],
 	ast_transforms() ) -> { [ ast_record_field_init() ], ast_transforms() }.
 transform_record_field_inits( RecordFieldInits, Transforms ) ?rec_guard ->
@@ -175,11 +188,12 @@ transform_record_field_inits( RecordFieldInits, Transforms ) ?rec_guard ->
 
 
 
-% @doc Field names are full expressions here, but only atoms are allowed by the
-% linter.
-%
-% Note: includes the case where FieldName is '_'.
-%
+-doc """
+Field names are full expressions here, but only atoms are allowed by the linter.
+
+Note: includes the case where FieldName is '_'.
+
+""".
 transform_record_field_init( { 'record_field', FileLocField,
 		FieldNameASTAtom={ atom, _FileLocAtom, _FieldName }, FieldValue },
 							 Transforms ) ?rec_guard ->
@@ -193,17 +207,18 @@ transform_record_field_init( { 'record_field', FileLocField,
 
 
 
-% @doc Transforms specified guard test.
-%
-% Local call (to a builtin-only):
-% "If Gt is a function call A(Gt_1, ..., Gt_k), where A is an atom, then Rep(Gt)
-% = {call, FILE_LOC, Rep(A), [Rep(Gt_1), ..., Rep(Gt_k)]}."
-%
-% For example {call, 102, {atom,102,is_integer}, [{var,102,'X'}]}
-%
-% Note: the subject of a special case in erl_id_trans (guard_test/1), delegated
-% appropriately to the direct counterpart.
-%
+-doc """
+Transforms specified guard test.
+
+Local call (to a builtin-only): "If Gt is a function call A(Gt_1, ..., Gt_k),
+where A is an atom, then Rep(Gt) = {call, FILE_LOC, Rep(A), [Rep(Gt_1), ...,
+Rep(Gt_k)]}."
+
+For example {call, 102, {atom,102,is_integer}, [{var,102,'X'}]}
+
+Note: the subject of a special case in erl_id_trans (guard_test/1), delegated
+appropriately to the direct counterpart.
+""".
 transform_guard_test(
 		GuardTest={ 'call', FileLoc, FunctionASTName, GuardTests },
 		Transforms ) ?rec_guard ->
@@ -258,26 +273,24 @@ transform_guard_test( AnyOtherGuardTest, Transforms ) ?rec_guard ->
 
 
 
+-doc """
+Transforms the specified guard test, operating relevant AST transformations.
 
+(see section 7.6 for complete detail)
 
-% @doc Transforms the specified guard test, operating relevant AST
-% transformations.
-%
-% (see section 7.6 for complete detail)
-%
-% Note that we should not consider that guard tests are simply AST expressions
-% (they are only a very specific subset thereof, with guard-specific rules -
-% hence not plugging here to any expression-generic code).
-%
-% If the guard test is a bitstring constructor:
-%
-% "If Gt is a bitstring constructor `<<Gt_1:Size_1/TSL_1, ...,
-% Gt_k:Size_k/TSL_k>>', where each Size_i is a guard test and each TSL_i is a
-% type specifier list, then Rep(Gt) = {bin, FILE_LOC, [{bin_element, FILE_LOC,
-% Rep(Gt_1), Rep(Size_1), Rep(TSL_1)}, ..., {bin_element, FILE_LOC, Rep(Gt_k),
-% Rep(Size_k), Rep(TSL_k)}]}. For Rep(TSL), see above. An omitted Size_i is
-% represented by default. An omitted TSL_i is represented by default."
-%
+Note that we should not consider that guard tests are simply AST expressions
+(they are only a very specific subset thereof, with guard-specific rules - hence
+not plugging here to any expression-generic code).
+
+If the guard test is a bitstring constructor:
+
+"If Gt is a bitstring constructor `<<Gt_1:Size_1/TSL_1, ...,
+Gt_k:Size_k/TSL_k>>', where each Size_i is a guard test and each TSL_i is a type
+specifier list, then Rep(Gt) = {bin, FILE_LOC, [{bin_element, FILE_LOC,
+Rep(Gt_1), Rep(Size_1), Rep(TSL_1)}, ..., {bin_element, FILE_LOC, Rep(Gt_k),
+Rep(Size_k), Rep(TSL_k)}]}. For Rep(TSL), see above. An omitted Size_i is
+represented by default. An omitted TSL_i is represented by default."
+""".
 -spec direct_transform_guard_test( ast_guard_test(), ast_transforms() ) ->
 									{ ast_guard_test(), ast_transforms() }.
 direct_transform_guard_test( _GuardTest={ 'bin', FileLoc, BinElements },

@@ -50,15 +50,18 @@ Refer to the "7.2 Atomic Literals" section of
 % parsed as an application of the unary negation operator."
 
 
+
+-doc """
+The description of an immediate value (atomic literal) in an AST, with in-file
+location information (line/column).
+
+For example: nil, in {nil,{33,2}} for [] at column 2 of line #33.
+""".
 -type ast_atomic_literal() :: { 'atom',    file_loc(), atom() }
 							| { 'char',    file_loc(), char() }
 							| { 'float',   file_loc(), float() }
 							| { 'integer', file_loc(), integer() }
 							| { 'string',  file_loc(), ustring() }.
-% The description of an immediate value (atomic literal) in an AST, with in-file
-% location information (line/column).
-%
-% For example: nil, in {nil,{33,2}} for [] at column 2 of line #33.
 
 
 -type ast_compound_literal() :: { 'nil', file_loc() }.
@@ -106,12 +109,14 @@ Refer to the "7.2 Atomic Literals" section of
 -include("ast_utils.hrl").
 
 
+
 % Section for value transformation.
 
 
-% @doc Transforms specified literal value, operating relevant AST
-% transformations onto it.
-%
+-doc """
+Transforms specified literal value, operating relevant AST transformations onto
+it.
+""".
 -spec transform_value( ast_atomic_literal(), ast_transforms() ) ->
 								{ ast_atomic_literal(), ast_transforms() }.
 transform_value( Literal={ atom, _FileLoc, _Atom }, Transforms ) ?rec_guard ->
@@ -137,9 +142,10 @@ transform_value( UnexpectedLiteral, Transforms )
 
 
 
-% @doc Returns the actual (immediate) value corresponding to the specified form
-% (regardless of its actual type).
-%
+-doc """
+Returns the actual (immediate) value corresponding to the specified form
+(regardless of its actual type).
+""".
 get_immediate_value( { atom, _FileLoc, Atom } ) ->
 	Atom;
 
@@ -161,44 +167,50 @@ get_immediate_value( Other ) ->
 % Section for immediate value forging.
 
 
-% @doc Returns an AST-compliant value designating specified boolean, defined at
-% column 0 of line #0 of the current source file.
-%
-% For example: forge_boolean_value(true) returns: {boolean,{0,1},true}.
-%
+-doc """
+Returns an AST-compliant value designating specified boolean, defined at column
+0 of line #0 of the current source file.
+
+For example: forge_boolean_value(true) returns: {boolean,{0,1},true}.
+""".
 -spec forge_boolean_value( boolean() ) -> ast_element().
 forge_boolean_value( BooleanValue ) ->
 	forge_boolean_value( BooleanValue, ?default_generation_location ).
 
 
-% @doc Returns an AST-compliant value designating specified boolean, defined at
-% specified location of the current source file.
-%
-% For example: forge_boolean_value(false, {43,1}) returns: {boolean, {43,1},
-% false}.
-%
+
+-doc """
+Returns an AST-compliant value designating specified boolean, defined at
+specified location of the current source file.
+
+For example: forge_boolean_value(false, {43,1}) returns: {boolean, {43,1},
+false}.
+""".
 -spec forge_boolean_value( boolean(), file_loc() ) -> ast_element().
 forge_boolean_value( BooleanValue, FileLoc ) ->
 	{ boolean, FileLoc, BooleanValue }.
 
 
 
-% @doc Returns an AST-compliant value designating specified atom, defined at
-% column 0 of line #0 of the current source file.
-%
-% For example: forge_atom_value(basic_utils) returns: {atom,{0,1},basic_utils}.
-%
+-doc """
+Returns an AST-compliant value designating specified atom, defined at column 0
+of line #0 of the current source file.
+
+For example: forge_atom_value(basic_utils) returns: {atom,{0,1},basic_utils}.
+""".
 -spec forge_atom_value( atom() ) -> ast_element().
 forge_atom_value( AtomValue ) ->
 	forge_atom_value( AtomValue, ?default_generation_location ).
 
 
-% @doc Returns an AST-compliant value designating specified atom, defined at
-% specified location of the current source file.
-%
-% For example: forge_atom_value(basic_utils, {4,1}) returns:
-% {atom,{4,1},basic_utils}.
-%
+
+-doc """
+Returns an AST-compliant value designating specified atom, defined at specified
+location of the current source file.
+
+For example: forge_atom_value(basic_utils, {4,1}) returns:
+{atom,{4,1},basic_utils}.
+""".
 -spec forge_atom_value( atom(), file_loc() ) -> ast_element().
 forge_atom_value( AtomValue, FileLoc ) ->
 	{ atom, FileLoc, AtomValue }.

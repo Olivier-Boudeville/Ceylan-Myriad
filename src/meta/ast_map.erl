@@ -35,41 +35,56 @@ See <http://erlang.org/doc/apps/erts/absform.html> for more information.
 
 
 
+-doc "A map in the AST.".
 -type ast_map( _KeyType, _ValueType ) :: ast_element().
 
 
+
+-doc "Map field association type.".
 -type map_field_association_type() :: 'map_field_assoc' | 'map_field_exact'.
 
 
+
+-doc "Map association.".
 -type ast_map_association() ::
 		ast_map_association( ast_element(), ast_element() ).
 
 
+
+-doc "Map association.".
 -type ast_map_association( KeyType, ValueType ) ::
 		{ map_field_association_type(), file_loc(), KeyType, ValueType }.
 
 
+
+-doc "AST form corresponding to a map creation.".
 -type ast_map_creation_form() ::
 		ast_map_creation_form( ast_element(), ast_element() ).
-% AST form corresponding to a map creation.
 
 
+
+-doc "AST map creation form.".
 -type ast_map_creation_form( KeyType, ValueType ) ::
 		{ 'map', file_loc(), [ ast_map_association( KeyType, ValueType ) ] }.
 
 
+
+-doc "AST map update form.".
 -type ast_map_update_form() ::
 		ast_map_update_form( ast_element(), ast_element() ).
 % AST form corresponding to a map update.
 
 
+
+-doc "AST map update form.".
 -type ast_map_update_form( KeyType, ValueType ) ::
 		{ 'map', file_loc(), ast_map( KeyType, ValueType ),
 		  [ ast_map_association( KeyType, ValueType ) ] }.
 
 
+
+-doc "AST map update form. Possibly not relevant.".
 -type ast_map_form() :: ast_map_creation_form() | ast_map_update_form().
-% Possibly not relevant.
 
 
 -export_type([ ast_map/2, map_field_association_type/0,
@@ -99,12 +114,12 @@ See <http://erlang.org/doc/apps/erts/absform.html> for more information.
 
 
 
-% @doc Transforms specified list of map associations involved in a map
-% operation.
-%
-% Note: context-insensitive function, considering that any kind of expression
-% can be found for the association keys and values.
-%
+-doc """
+Transforms specified list of map associations involved in a map operation.
+
+Note: context-insensitive function, considering that any kind of expression can
+be found for the association keys and values.
+""".
 -spec transform_map_associations( [ ast_map_association() ],
 		ast_transforms() ) -> { [ ast_map_association() ], ast_transforms() }.
 transform_map_associations( Associations, Transforms ) ?rec_guard ->
@@ -112,11 +127,13 @@ transform_map_associations( Associations, Transforms ) ?rec_guard ->
 								fun ast_expression:transform_expression/2 ).
 
 
-% @doc Transforms specified list of map associations involved in a map
-% operation, applying to each association the specified function to perform the
-% relevant transformations (that depends on the context; for example if being in
-% a guard, in an expression).
-%
+
+-doc """
+Transforms specified list of map associations involved in a map operation,
+applying to each association the specified function to perform the relevant
+transformations (that depends on the context; for example if being in a guard,
+in an expression).
+""".
 -spec transform_map_associations( [ ast_map_association() ], ast_transforms(),
 		ast_transform:transform_fun() ) ->
 							{ [ ast_map_association() ], ast_transforms() }.
@@ -132,16 +149,17 @@ transform_map_associations( Associations, Transforms,
 
 
 
-% @doc Transforms specified map association involved in a map operation.
-%
-% "An association A is one of the following:
-%
-%    If A is an association K => V, then
-%       Rep(A) = {map_field_assoc, FILE_LOC, Rep(K), Rep(V)}.
-%
-%    If A is an association K := V, then
-%       Rep(A) = {map_field_exact, FILE_LOC, Rep(K), Rep(V)}."
-%
+-doc """
+Transforms specified map association involved in a map operation.
+
+An association A is one of the following:
+
+ - if A is an association K => V, then
+	  Rep(A) = {map_field_assoc, FILE_LOC, Rep(K), Rep(V)}.
+
+ - if A is an association K := V, then
+	  Rep(A) = {map_field_exact, FILE_LOC, Rep(K), Rep(V)}."
+""".
 -spec transform_map_association( ast_map_association(), ast_transforms(),
 		ast_transform:transform_fun() ) ->
 				{ ast_map_association(), ast_transforms() }.

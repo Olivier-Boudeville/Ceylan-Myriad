@@ -72,7 +72,6 @@ Note: function clauses are managed in the ast_clause module.
 -type function_type() :: meta_utils:function_type().
 
 
-%-type file_loc() :: ast_base:file_loc().
 -type form_context() :: ast_base:form_context().
 
 -type located_form() :: ast_info:located_form().
@@ -100,14 +99,14 @@ Note: function clauses are managed in the ast_clause module.
 
 
 
-% @doc Checks that the specified function name is legit.
+-doc "Checks that the specified function name is legit.".
 -spec check_function_name( term() ) -> function_name().
 check_function_name( Name ) ->
 	check_function_name( Name, _Context=undefined ).
 
 
 
-% @doc Checks that the specified function name is legit.
+-doc "Checks that the specified function name is legit.".
 -spec check_function_name( term(), form_context() ) -> function_name().
 check_function_name( Name, _Context ) when is_atom( Name ) ->
 	Name;
@@ -118,13 +117,13 @@ check_function_name( Other, Context ) ->
 
 
 
-% @doc Checks that the specified function identifier is legit.
+-doc "Checks that the specified function identifier is legit.".
 -spec check_function_id( term() ) -> function_id().
 check_function_id( Id ) ->
 	check_function_id( Id, _Context=undefined ).
 
 
-% @doc Checks that the specified function identifier is legit.
+-doc "Checks that the specified function identifier is legit.".
 -spec check_function_id( term(), form_context() ) -> function_id().
 check_function_id( FunctionId={ FunctionName, FunctionArity }, Context ) ->
 	check_function_name( FunctionName, Context ),
@@ -136,13 +135,13 @@ check_function_id( Other, Context ) ->
 
 
 
-% @doc Checks that the specified function identifiers are legit.
+-doc "Checks that the specified function identifiers are legit.".
 -spec check_function_ids( term() ) -> [ function_id() ].
 check_function_ids( Ids ) ->
 	check_function_ids( Ids, _Context=undefined ).
 
 
-% @doc Checks that the specified function identifiers are legit.
+-doc "Checks that the specified function identifiers are legit.".
 -spec check_function_ids( term(), form_context() ) -> [ function_id() ].
 check_function_ids( List, Context ) when is_list( List ) ->
 	[ check_function_id( Id, Context ) || Id <- List ];
@@ -153,13 +152,13 @@ check_function_ids( Other, Context ) ->
 
 
 
-% @doc Checks that the specified function type is legit.
+-doc "Checks that the specified function type is legit.".
 -spec check_function_type( term(), function_arity() ) -> function_type().
 check_function_type( Type, FunctionArity ) ->
 	check_function_type( Type, FunctionArity, _Context=undefined ).
 
 
-% @doc Checks that the specified function type is legit.
+-doc "Checks that the specified function type is legit.".
 -spec check_function_type( term(), function_arity(), form_context() ) ->
 									function_type().
 check_function_type( _FunctionType, _FunctionArity, _Context ) ->
@@ -173,13 +172,13 @@ check_function_type( _FunctionType, _FunctionArity, _Context ) ->
 
 
 
-% @doc Checks that the specified function types are legit.
+-doc "Checks that the specified function types are legit.".
 -spec check_function_types( term(), function_arity() ) -> [ function_type() ].
 check_function_types( Types, FunctionArity ) ->
 	check_function_types( Types, FunctionArity, _Context=undefined ).
 
 
-% @doc Checks that the specified function types are legit.
+-doc "Checks that the specified function types are legit.".
 -spec check_function_types( term(), function_arity(), form_context() ) ->
 								[ function_type() ].
 check_function_types( List, FunctionArity, Context ) when is_list( List ) ->
@@ -190,9 +189,10 @@ check_function_types( Other, _FunctionArity, Context ) ->
 
 
 
-% @doc Transforms the functions in the specified table, based on the specified
-% transforms.
-%
+-doc """
+Transforms the functions in the specified table, based on the specified
+transforms.
+""".
 -spec transform_functions( function_table(), ast_transforms() ) ->
 									{ function_table(), ast_transforms() }.
 transform_functions( FunctionTable, Transforms ) ?rec_guard ->
@@ -211,11 +211,12 @@ transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 
 
 
-% @doc Transforms the specified function pair: {FunId, FunInfo}.
-%
-% Allows to keep around the function identifier, to recreate the function table
-% more easily.
-%
+-doc """
+Transforms the specified function pair: {FunId, FunInfo}.
+
+Allows to keep around the function identifier, to recreate the function table
+more easily.
+""".
 -spec transform_function_pair( function_pair(), ast_transforms() ) ->
 										{ function_pair(), ast_transforms() }.
 transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
@@ -229,7 +230,7 @@ transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
 
 
 
-% @doc Transforms the specified function.
+-doc "Transforms the specified function.".
 -spec transform_function( function_info(), ast_transforms() ) ->
 								{ function_info(), ast_transforms() }.
 transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
@@ -265,14 +266,15 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 
 
 
-% @doc Transforms the specified function specification.
-%
-% "If F is a function specification -Spec Name Ft_1; ...; Ft_k, where Spec is
-% either the atom spec or the atom callback, and each Ft_i is a possibly
-% constrained function type with an argument sequence of the same length Arity,
-% then Rep(F) = {attribute, FileLoc, Spec, {{Name,Arity}, [Rep(Ft_1), ...,
-% Rep(Ft_k)]}}.
-%
+-doc """
+Transforms the specified function specification.
+
+"If F is a function specification -Spec Name Ft_1; ...; Ft_k, where Spec is
+either the atom spec or the atom callback, and each Ft_i is a possibly
+constrained function type with an argument sequence of the same length Arity,
+then Rep(F) = {attribute, FileLoc, Spec, {{Name,Arity}, [Rep(Ft_1), ...,
+Rep(Ft_k)]}}.
+""".
 -spec transform_function_spec( function_spec(), ast_transforms() ) ->
 										{ function_spec(), ast_transforms() }.
 transform_function_spec( { 'attribute', FileLoc, SpecType,
@@ -296,15 +298,15 @@ transform_function_spec( { 'attribute', FileLoc, SpecType,
 
 
 
+-doc """
+Transforms the specified function specification.
 
-% @doc Transforms the specified function specification.
-%
-% (corresponds to function_type_list/1 in erl_id_trans)
-%
-% "If Ft is a constrained function type Ft_1 when Fc, where Ft_1 is a function
-% type and Fc is a function constraint, then Rep(T) = {type, FILE_LOC,
-% bounded_fun, [Rep(Ft_1), Rep(Fc)]}."
-%
+(corresponds to function_type_list/1 in erl_id_trans)
+
+"If Ft is a constrained function type Ft_1 when Fc, where Ft_1 is a function
+type and Fc is a function constraint, then Rep(T) = {type, FILE_LOC,
+bounded_fun, [Rep(Ft_1), Rep(Fc)]}."
+""".
 transform_spec( { 'type', FileLoc, 'bounded_fun',
 			[ FunctionType, FunctionConstraint ] }, Transforms ) ?rec_guard ->
 
@@ -325,14 +327,15 @@ transform_spec( OtherSpec, Transforms ) ?rec_guard ->
 
 
 
-% @doc Transforms the specified function type.
-%
-% (helper, corresponding to function_type/1 in erl_id_trans)
-%
-% "If Ft is a function type (T_1, ..., T_n) -> T_0, where each T_i is a type,
-% then Rep(Ft) = {type, FILE_LOC, 'fun', [{type, FILE_LOC, product, [Rep(T_1),
-% ..., Rep(T_n)]}, Rep(T_0)]}."
-%
+-doc """
+Transforms the specified function type.
+
+(helper, corresponding to function_type/1 in erl_id_trans)
+
+"If Ft is a function type (T_1, ..., T_n) -> T_0, where each T_i is a type,
+then Rep(Ft) = {type, FILE_LOC, 'fun', [{type, FILE_LOC, product, [Rep(T_1),
+..., Rep(T_n)]}, Rep(T_0)]}."
+""".
 transform_function_type( { 'type', FileLocFirst, 'fun',
 		[ { 'type', FileLocSecond, 'product', ParamTypes }, ResultType ] },
 						 Transforms ) ?rec_guard ->
@@ -351,26 +354,27 @@ transform_function_type( UnexpectedFunType, _Transforms ) ->
 
 
 
+-doc """
+Transforms the specified function constraints.
 
-% @doc Transforms the specified function constraints.
-%
-% (Helper, corresponding to function_constraint/1 in erl_id_trans)
-%
-% "A function constraint Fc is a non-empty sequence of constraints C_1, ...,
-% C_k, and Rep(Fc) = [Rep(C_1), ..., Rep(C_k)]."
-%
+(Helper, corresponding to function_constraint/1 in erl_id_trans)
+
+"A function constraint Fc is a non-empty sequence of constraints C_1, ..., C_k,
+and Rep(Fc) = [Rep(C_1), ..., Rep(C_k)]."
+""".
 transform_function_constraints( FunctionConstraints, Transforms ) ?rec_guard ->
 	lists:mapfoldl( fun transform_function_constraint/2, _Acc0=Transforms,
 					_List=FunctionConstraints ).
 
 
 
-% @doc Transforms the specified function constraint.
-%
-% "If C is a constraint V :: T, where V is a type variable and T is a type, then
-% Rep(C) = {type, FILE_LOC, constraint,[{atom, FILE_LOC, is_subtype},[Rep(V),
-% Rep(T)]]}."
-%
+-doc """
+Transforms the specified function constraint.
+
+"If C is a constraint V :: T, where V is a type variable and T is a type, then
+Rep(C) = {type, FILE_LOC, constraint,[{atom, FILE_LOC, is_subtype},[Rep(V),
+Rep(T)]]}."
+""".
 transform_function_constraint( { 'type', FileLoc, 'constraint',
 		[ AtomConstraint={ atom, _FileLocAtom, _SomeAtom },
 		  [ TypeVar, Type ] ] }, Transforms ) ?rec_guard ->
@@ -387,16 +391,17 @@ transform_function_constraint( { 'type', FileLoc, 'constraint',
 
 
 
-% @doc Returns a pair made of (two) lists of located forms regarding exports.
-%
-% These lists of located forms correspond to:
-%
-% - all the function export declarations (possibly automatically enriched) that
-% are described in the specified function export table
-%
-% - all the function definitions and specs that are described in the specified
-% function table
-%
+-doc """
+Returns a pair made of (two) lists of located forms regarding exports.
+
+These lists of located forms correspond to:
+
+- all the function export declarations (possibly automatically enriched) that
+are described in the specified function export table
+
+- all the function definitions and specs that are described in the specified
+function table
+""".
 -spec get_located_forms_for( function_export_table(), function_table() ) ->
 									{ [ located_form() ], [ located_form() ] }.
 get_located_forms_for( FunctionExportTable, FunctionTable ) ->
@@ -490,9 +495,11 @@ get_located_forms_for( FunctionExportTable, FunctionTable ) ->
 
 
 
-% @doc Ensures that the specified function is as expected exported in the
-% specified (supposedly export) locations.
-%
+
+-doc """
+Ensures that the specified function is as expected exported in the specified
+(supposedly export) locations.
+""".
 -spec update_export_table( function_name(), arity(),
 		[ ast_info:ast_location() ], function_export_table() ) ->
 													function_export_table().
@@ -533,9 +540,10 @@ update_export_table( FunctionName, Arity, _ExportLocs=[ ASTLoc | H ],
 
 
 
-% @doc Returns located forms corresponding to the known function exports,
-% generated from the specified table.
-%
+-doc """
+Returns located forms corresponding to the known function exports, generated
+from the specified table.
+""".
 -spec get_function_export_forms( function_export_table() ) ->
 										[ located_form() ].
 get_function_export_forms( FunctionExportTable ) ->
@@ -550,9 +558,10 @@ get_function_export_forms( FunctionExportTable ) ->
 
 
 
-% @doc Returns a textual description of the specified function clauses, using
-% the specified indentation level.
-%
+-doc """
+Returns a textual description of the specified function clauses, using the
+specified indentation level.
+""".
 -spec clauses_to_string( [ meta_utils:clause_def() ],
 						 text_utils:indentation_level() ) -> ustring().
 clauses_to_string( _Clauses=[], _IndentationLevel ) ->

@@ -34,16 +34,22 @@ See meta_utils.erl and meta_utils_test.erl.
 """.
 
 
-
-% Implementation notes:
-
-
 -export([ parse_transform/2 ]).
 
 
-% The parse transform itself, transforming the specified Abstract Format code
-% into another one.
-%
+% Shorthands:
+
+-type ast() :: ast_base:ast().
+
+-type parse_transform_options() :: meta_utils:parse_transform_options().
+
+
+
+-doc """
+The parse transform itself, transforming the specified Abstract Format code into
+another one.
+""".
+-spec parse_transform( ast(), parse_transform_options() ) -> ast().
 parse_transform( AST, _Options ) ->
 
 	% Less verbose:

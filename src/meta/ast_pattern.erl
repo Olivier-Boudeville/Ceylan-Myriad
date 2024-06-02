@@ -36,33 +36,38 @@ for more information.
 
 
 
+-doc """
+The description of a pattern in an AST, with in-file location (line/column)
+information.
+
+For example: `{match,12,X,Y}`.
+
+Too many patterns to fully specify them all (see "7.3 Patterns").
+
+Note: a pattern is different from an expression: even if they share at least
+some types of forms, they are to be interpreted differently (e.g. their
+sub-elements are of the same kind as they are, and at least some rules differ).
+""".
 -type ast_pattern() :: ast_base:ast_element().
-% The description of a pattern in an AST, with in-file location
-% (line/column) information.
-%
-% For example: {match,12,X,Y}.
-%
-% Too many patterns to fully specify all (see "7.3 Patterns").
-%
-% Note: a pattern is different from an expression: even if they share at least
-% some types of forms, they are to be interpreted differently (e.g. their
-% sub-elements are of the same kind as they are, and at least some rules
-% differ).
 
 
+
+-doc """
+The description of a sequence of patterns in an AST, with in-file location
+information.
+
+A pattern sequence is simply an (ordered) list of patterns.
+
+For example: `[{match,12,X,Y}]`.
+""".
 -type ast_pattern_sequence() :: [ ast_pattern() ].
-% The description of a sequence of patterns in an AST, with in-file location
-% information.
-%
-% A pattern sequence is simply an (ordered) list of patterns.
-%
-% For example: [{match,12,X,Y}].
 
 
 -export_type([ ast_pattern/0, ast_pattern_sequence/0 ]).
 
 
 -export([ transform_pattern/2, transform_pattern_sequence/2 ]).
+
 
 
 % Shorthands:
@@ -90,23 +95,22 @@ for more information.
 
 
 
+-doc """
+Transforms specified pattern, operating relevant AST transformations onto it (eg
+call ones).
 
-% @doc Transforms specified pattern, operating relevant AST transformations onto
-% it (eg call ones).
-% @end
-%
-% (note: this clause may be removed in the future, once all AST elements will
-% have been specifically intercepted by a dedicated clause, and when the nature
-% of their elements will be established and thus traversed specifically, rather
-% than opening the possibility that each element may be a list)
-%
-% See section "7.3  Patterns" in http://erlang.org/doc/apps/erts/absform.html.
-%
-% "If Ps is a sequence of patterns P_1, ..., P_k, then Rep(Ps) = [Rep(P_1), ...,
-% Rep(P_k)]."
-%
-% "Such sequences occur as the list of arguments to a function or fun."
-%
+(note: this clause may be removed in the future, once all AST elements will have
+been specifically intercepted by a dedicated clause, and when the nature of
+their elements will be established and thus traversed specifically, rather than
+opening the possibility that each element may be a list)
+
+See section "7.3  Patterns" in http://erlang.org/doc/apps/erts/absform.html.
+
+"If Ps is a sequence of patterns P_1, ..., P_k, then Rep(Ps) = [Rep(P_1), ...,
+Rep(P_k)]."
+
+"Such sequences occur as the list of arguments to a function or fun."
+""".
 -spec transform_pattern( ast_pattern(), ast_transforms() ) ->
 								{ ast_pattern(), ast_transforms() }.
 % A list of patterns should have already been iterated over upstream:
@@ -553,11 +557,11 @@ transform_pattern( E, Transforms )
 
 
 
-% @doc Transforms specified pattern sequence, operating relevant AST
-% transformations.
-%
-% Note: the case where the sequence is empty is managed here as well.
-%
+-doc """
+Transforms specified pattern sequence, operating relevant AST transformations.
+
+Note: the case where the sequence is empty is managed here as well.
+""".
 -spec transform_pattern_sequence( ast_pattern_sequence(), ast_transforms() ) ->
 							{ ast_pattern_sequence(), ast_transforms() }.
 transform_pattern_sequence( Patterns, Transforms ) ?rec_guard ->
@@ -566,9 +570,10 @@ transform_pattern_sequence( Patterns, Transforms ) ?rec_guard ->
 
 
 
-% @doc Transforms specified variable (possibly the universal one, '_'),
-% operating relevant AST transformations.
-%
+-doc """
+Transforms specified variable (possibly the universal one, '_'), operating
+relevant AST transformations.
+""".
 -spec transform_variable( meta_utils:variable_name(), line(),
 				ast_transforms() ) -> { ast_element(), ast_transforms() }.
 transform_variable( VariableName, _FileLoc, Transforms ) ?rec_guard ->
@@ -577,10 +582,11 @@ transform_variable( VariableName, _FileLoc, Transforms ) ?rec_guard ->
 
 
 
-% @doc Transforms specified pattern fields.
-%
-% (note: better here than in ast_record)
-%
+-doc """
+Transforms specified pattern fields.
+
+(note: better here than in ast_record)
+""".
 -spec transform_pattern_fields( [ ast_pattern_field() ],
 				ast_transforms() ) -> { [ ast_element() ], ast_transforms() }.
 transform_pattern_fields( PatternFields, Transforms ) ?rec_guard ->
@@ -589,11 +595,12 @@ transform_pattern_fields( PatternFields, Transforms ) ?rec_guard ->
 
 
 
-% @doc Transforms specified pattern field.
-%
-% Note: according to erl_id_trans, field names are full expressions here, but
-% only atoms are allowed by the linter.
-%
+-doc """
+Transforms specified pattern field.
+
+Note: according to erl_id_trans, field names are full expressions here, but only
+atoms are allowed by the linter.
+""".
 -spec transform_pattern_field( ast_pattern_field(), ast_transforms() ) ->
 									{ ast_element(), ast_transforms() }.
 transform_pattern_field( { 'record_field', FileLoc1,
