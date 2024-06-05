@@ -41,7 +41,7 @@
 	% The (TCP) port at which the target database instance is running:
 	port = ?default_database_port :: option( sql_support:database_port() ),
 
-	% The name of the target database instance. Ex: "acme_stock_db".
+	% The name of the target database instance, e.g. "acme_stock_db".
 	name :: sql_support:database_name() } ).
 
 
@@ -49,7 +49,7 @@
 % The settings corresponding to a given database user:
 -record( database_user_settings, {
 
-	% The name of a database user. Ex: "john_smith".
+	% The name of a database user, e.g. "john_smith".
 	user_name :: sql_support:database_user_name(),
 
 	% The password of a database user:
