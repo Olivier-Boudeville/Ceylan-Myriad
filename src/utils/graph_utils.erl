@@ -47,23 +47,29 @@ See graph_utils_test.erl for the corresponding test.
 -define( list_impl, gb_sets ).
 
 
+
 % Type declarations:
 
 
+-doc "The node of a graph of interest (can be any type).".
 -type vertex() :: any().
-% The node of a graph of interest (can be any type).
 
 
--type predicate() :: fun( ( vertex(), basic_utils:user_data() ) -> boolean() ).
-% Tells whether the specified node can be considered as a solution.
+-doc "Tells whether the specified node can be considered as a solution.".
+-type predicate() :: fun( ( vertex(), user_data() ) -> boolean() ).
 
 
--type feeder() :: fun( ( vertex(), basic_utils:user_data() ) -> [ vertex() ] ).
-% Lists the children nodes of the specified one.
+-doc "Lists the children nodes of the specified one.".
+-type feeder() :: fun( ( vertex(), user_data() ) -> [ vertex() ] ).
 
 
 -export_type([ vertex/0, predicate/0, feeder/0 ]).
 
+
+
+% Type shorthands:
+
+-type user_data() :: basic_utils:user_data().
 
 
 
@@ -75,17 +81,18 @@ See graph_utils_test.erl for the corresponding test.
 %
 % Based on a queue.
 %
-% See: http://en.wikipedia.org/wiki/Breadth-first_search
+% See: <http://en.wikipedia.org/wiki/Breadth-first_search>
 
 
 
-% @doc Tries to find, breadth-first, the first vertex to satisfy specified
-% predicate, from specified initial vertex, relying on the specified feeder
-% function to obtain outbound edges of a vertex of interest.
-%
-% Returns the path found, i.e. the ordered list of vertices, from the initial
-% vertex to the found one.
-%
+-doc """
+Tries to find, breadth-first, the first vertex to satisfy specified predicate,
+from specified initial vertex, relying on the specified feeder function to
+obtain outbound edges of a vertex of interest.
+
+Returns the path found, i.e. the ordered list of vertices, from the initial
+vertex to the found one.
+""".
 -spec find_breadth_first( vertex(), predicate(), feeder() ) ->
 								'no_path_found' | [ vertex() ].
 find_breadth_first( InitialVertex, Predicate, Feeder ) ->
@@ -93,16 +100,17 @@ find_breadth_first( InitialVertex, Predicate, Feeder ) ->
 
 
 
-% @doc Tries to find, breadth-first, the first vertex to satisfy specified
-% predicate, from specified initial vertex, relying on the specified feeder
-% function to obtain outbound edges of a vertex of interest.
-%
-% Returns the path found, i.e. the ordered list of vertices, from the initial
-% vertex to the found one.
-%
-% The user data might be anything, from 'undefined' to a description of the
-% graph structure (see graph_utils_test.erl).
-%
+-doc """
+Tries to find, breadth-first, the first vertex to satisfy specified predicate,
+from specified initial vertex, relying on the specified feeder function to
+obtain outbound edges of a vertex of interest.
+
+Returns the path found, i.e. the ordered list of vertices, from the initial
+vertex to the found one.
+
+The user data might be anything, from 'undefined' to a description of the graph
+structure (see graph_utils_test.erl).
+""".
 -spec find_breadth_first( vertex(), predicate(), feeder(),
 				basic_utils:user_data() ) -> 'no_path_found' | [ vertex() ].
 find_breadth_first( InitialVertex, Predicate, Feeder, UserData ) ->

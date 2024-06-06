@@ -56,28 +56,34 @@ See naming_utils_test.erl for the corresponding test.
 		  display_registered/0 ]).
 
 
+-doc "Necessarily an atom.".
 -type registration_name() :: atom().
-% Necessarily an atom.
 
+
+
+-doc """
+The two ways according to which a locally-registered process can be designated:
+either directly thanks to its PID or to the name under which it is locally
+registered.
+""".
 -type local_designator() :: pid() | registration_name().
-% The two ways according to which a locally-registered process can be
-% designated: either directly thanks to its PID or to the name under which it is
-% locally registered.
 
 
+
+-doc "Not to be mixed up with a look-up scope.".
 -type registration_scope() :: 'global_only'
 							| 'local_only'
 							| 'local_and_global'
 							| 'none'.
-% Not to be mixed up with a look-up scope.
 
 
+
+-doc "Not to be mixed up with a registration scope.".
 -type look_up_scope() :: 'global'
 					   | 'local'
 					   | 'local_and_global'
 					   | 'local_otherwise_global'
 					   | 'global_otherwise_local'.
-% Not to be mixed up with a registration scope.
 
 
 -export_type([ registration_name/0, local_designator/0,
@@ -114,30 +120,30 @@ See naming_utils_test.erl for the corresponding test.
 
 
 
-% @doc Registers the current process under specified name and scope.
-% be an atom.
-%
-% Various kinds of registrations can be requested, depending on the targeted
-% visibility and the possibilities in terms of desired multiplicities (at any
-% scope, up to one process can register a given name).
-%
-% Throws an exception on failure (e.g. if that name is already registered).
-%
+-doc """
+Registers the current process under specified name and scope.  be an atom.
+
+Various kinds of registrations can be requested, depending on the targeted
+visibility and the possibilities in terms of desired multiplicities (at any
+scope, up to one process can register a given name).
+
+Throws an exception on failure (e.g. if that name is already registered).
+""".
 -spec register_as( registration_name(), registration_scope() ) -> void().
 register_as( Name, RegistrationScope ) ->
 	register_as( self(), Name, RegistrationScope ).
 
 
 
-% @doc Registers the specified process under specified name and scope.
-% be an atom.
+-doc """
+Registers the specified process under specified name and scope.  be an atom.
 
-% Various kinds of registrations can be requested, depending on the targeted
-% visibility and the possibilities in terms of desired multiplicities (at any
-% scope, up to one process can register a given name).
-%
-% Throws an exception on failure.
-%
+Various kinds of registrations can be requested, depending on the targeted
+visibility and the possibilities in terms of desired multiplicities (at any
+scope, up to one process can register a given name).
+
+Throws an exception on failure.
+""".
 -spec register_as( pid(), registration_name(), registration_scope() ) -> void().
 register_as( Pid, Name, local_only ) when is_atom( Name ) ->
 
@@ -200,16 +206,17 @@ register_as( _Pid, Name, _Other ) ->
 
 
 
-% @doc Registers specified PID under specified name (which must be an atom) and
-% scope (only local_only and global_only registration scopes permitted), and
-% returns 'registered', or returns the PID of any process already registered.
-%
-% This is an atomic operation, which is not meant to fail.
-%
-% Allows for example a series of non-synchronised processes to all attempt to
-% register: the first will succeed, all the others will get its PID, none will
-% fail.
-%
+-doc """
+Registers specified PID under specified name (which must be an atom) and scope
+(only local_only and global_only registration scopes permitted), and returns
+'registered', or returns the PID of any process already registered.
+
+This is an atomic operation, which is not meant to fail.
+
+Allows for example a series of non-synchronised processes to all attempt to
+register: the first will succeed, all the others will get its PID, none will
+fail.
+""".
 -spec register_or_return_registered( registration_name(),
 	'global_only' | 'local_only' ) -> 'registered' | pid().
 register_or_return_registered( Name, Scope ) when is_atom( Name ) ->
@@ -250,13 +257,14 @@ register_or_return_registered( Name, Scope ) when is_atom( Name ) ->
 
 
 
-% @doc Unregisters specified name from specified registry.
-%
-% Throws an exception in case of failure.
-%
-% Note: when a process terminates, it unregisters its name (if any)
-% automatically from all scopes.
-%
+-doc """
+Unregisters specified name from specified registry.
+
+Throws an exception in case of failure.
+
+Note: when a process terminates, it unregisters its name (if any) automatically
+from all scopes.
+""".
 -spec unregister( registration_name(), registration_scope() ) -> void().
 unregister( Name, local_only ) ->
 
@@ -296,7 +304,7 @@ unregister( _Name, none ) ->
 
 
 
-% @doc Tells whether the specified term is a legit registration name.
+-doc "Tells whether the specified term is a legit registration name.".
 -spec vet_registration_name( term() ) -> boolean().
 vet_registration_name( Name ) when is_atom( Name ) ->
 	true;
@@ -306,7 +314,7 @@ vet_registration_name( _Other ) ->
 
 
 
-% @doc Tells whether the specified term is a legit registration scope.
+-doc "Tells whether the specified term is a legit registration scope.".
 -spec vet_registration_scope( term() ) -> boolean().
 vet_registration_scope( global_only ) ->
 	true;
@@ -325,29 +333,31 @@ vet_registration_scope( _Other ) ->
 
 
 
-% @doc Returns the PID that should be already registered, as specified name.
-%
-% Local registering will be requested first, if not found global one will be
-% tried.
-%
-% No specific waiting for registration will be performed, see
-% wait_for_*_registration_of instead.
-%
+-doc """
+Returns the PID that should be already registered, as specified name.
+
+Local registering will be requested first, if not found global one will be
+tried.
+
+No specific waiting for registration will be performed, see
+wait_for_*_registration_of instead.
+""".
 -spec get_registered_pid_for( registration_name() ) -> pid().
 get_registered_pid_for( Name ) ->
 	get_registered_pid_for( Name, _RegistrationScope=local_otherwise_global ).
 
 
 
-% @doc Returns the PID that should be already registered, as specified name, at
-% specified scope.
-%
-% Local registering will be requested first, if not found global one will be
-% tried.
-%
-% No specific waiting for registration will be performed, see
-% wait_for_*_registration_of instead.
-%
+-doc """
+Returns the PID that should be already registered, as specified name, at
+specified scope.
+
+Local registering will be requested first, if not found global one will be
+tried.
+
+No specific waiting for registration will be performed, see
+wait_for_*_registration_of instead.
+""".
 -spec get_registered_pid_for( registration_name(), look_up_scope() ) -> pid().
 get_registered_pid_for( Name, _RegistrationScope=local_otherwise_global ) ->
 
@@ -425,12 +435,13 @@ get_registered_pid_for( Name, _RegistrationScope=local_and_global ) ->
 
 
 
-% @doc Returns the PID of the process corresponding to the specified local name
-% on the specified node: that process is expected to be locally registered on
-% that specified node.
-%
-% Throws an exception on failure.
-%
+-doc """
+Returns the PID of the process corresponding to the specified local name on the
+specified node: that process is expected to be locally registered on that
+specified node.
+
+Throws an exception on failure.
+""".
 -spec get_locally_registered_pid_for( registration_name(), atom_node_name() ) ->
 											pid().
 get_locally_registered_pid_for( Name, TargetNode ) ->
@@ -447,9 +458,10 @@ get_locally_registered_pid_for( Name, TargetNode ) ->
 
 
 
-% @doc Returns a list of the names of the registered processes, for specified
-% global or local look-up scope.
-%
+-doc """
+Returns a list of the names of the registered processes, for specified global or
+local look-up scope.
+""".
 -spec get_registered_names( look_up_scope() ) -> [ registration_name() ].
 % Preferring not matching other look-up scopes:
 get_registered_names( _LookUpScope=global ) ->
@@ -460,28 +472,30 @@ get_registered_names( _LookUpScope=local ) ->
 
 
 
-% @doc Tells whether specified name is registered in the specified local/global
-% context: if no, returns the 'not_registered' atom, otherwise returns the
-% corresponding PID.
-%
-% Local registering will be requested first, if not found global one will be
-% tried.
-%
-% No specific waiting for registration will be performed, see
-% wait_for_*_registration_of instead.
-%
+-doc """
+Tells whether specified name is registered in the specified local/global
+context: if no, returns the 'not_registered' atom, otherwise returns the
+corresponding PID.
+
+Local registering will be requested first, if not found global one will be
+tried.
+
+No specific waiting for registration will be performed, see
+wait_for_*_registration_of instead.
+""".
 -spec is_registered( registration_name() ) -> pid() | 'not_registered'.
 is_registered( Name ) ->
 	is_registered( Name, _RegistrationScope=local_otherwise_global ).
 
 
 
-% @doc Tells whether specified name is registered in the specified scope: if no,
-% returns the 'not_registered' atom, otherwise returns the corresponding PID.
-%
-% No specific waiting for registration will be performed, see
-% wait_for_*_registration_of instead.
-%
+-doc """
+Tells whether specified name is registered in the specified scope: if no,
+returns the 'not_registered' atom, otherwise returns the corresponding PID.
+
+No specific waiting for registration will be performed, see
+wait_for_*_registration_of instead.
+""".
 -spec is_registered( registration_name(), look_up_scope() ) ->
 						pid() | 'not_registered'.
 is_registered( Name, _LookUpScope=global ) ->
@@ -520,9 +534,8 @@ is_registered( Name, _LookUpScope=local ) ->
 	end;
 
 
-
-% @doc Returns a PID iff both local and global look-ups returns a PID, and the
-% same one.
+% Returns a PID iff both local and global look-ups returns a PID, and the same
+% one.
 %
 is_registered( Name, _LookUpScope=local_and_global ) ->
 
@@ -606,11 +619,12 @@ is_registered( Name, _LookUpScope=global_only ) ->
 
 
 
-% @doc Waits (up to a few seconds) until specified name is registered, within
-% specified scope.
-%
-% Returns the resolved PID, or throws an exception.
-%
+-doc """
+Waits (up to a few seconds) until specified name is registered, within specified
+scope.
+
+Returns the resolved PID, or throws an exception.
+""".
 -spec wait_for_registration_of( registration_name(), look_up_scope() ) -> pid().
 wait_for_registration_of( Name, _LookUpScope=global ) ->
 	wait_for_global_registration_of( Name );
@@ -637,22 +651,25 @@ wait_for_registration_of( Name, InvalidLookUpScope ) ->
 
 
 
-% @doc Waits (up to 10 seconds) until specified name is globally registered.
-%
-% Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
-% Name} exception.
-%
+-doc """
+Waits (up to 10 seconds) until specified name is globally registered.
+
+Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
+Name} exception.
+""".
 -spec wait_for_global_registration_of( registration_name() ) -> pid().
 wait_for_global_registration_of( Name ) ->
 	wait_for_global_registration_of( Name, _Seconds=10 ).
 
 
-% @doc Waits (up to to the specified number of seconds) until specified name is
-% globally registered.
-%
-% Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
-% Name} exception.
-%
+
+-doc """
+Waits (up to to the specified number of seconds) until specified name is
+globally registered.
+
+Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
+Name} exception.
+""".
 wait_for_global_registration_of( Name, _Seconds=0 ) ->
 
 	cond_utils:if_defined( myriad_debug_registration,
@@ -677,22 +694,23 @@ wait_for_global_registration_of( Name, SecondsToWait ) ->
 
 
 
-% @doc Waits (up to 5 seconds) until specified name is locally registered.
-%
-% Returns the resolved PID, or throws {registration_waiting_timeout, Scope,
-% Name}.
-%
+-doc """
+Waits (up to 5 seconds) until specified name is locally registered.
+
+Returns the resolved PID, or throws {registration_waiting_timeout, Scope, Name}.
+""".
 -spec wait_for_local_registration_of( registration_name() ) -> pid() | port().
 wait_for_local_registration_of( Name ) ->
-	wait_for_local_registration_of( Name , _Seconds=5 ).
+	wait_for_local_registration_of( Name, _Seconds=5 ).
 
 
-% @doc Waits (up to the specified number of seconds) until specified name is
-% locally registered.
-%
-% Returns the resolved PID, or throws {registration_waiting_timeout, Scope,
-% Name}.
-%
+
+-doc """
+Waits (up to the specified number of seconds) until specified name is locally
+registered.
+
+Returns the resolved PID, or throws {registration_waiting_timeout, Scope, Name}.
+""".
 wait_for_local_registration_of( Name, _Seconds=0 ) ->
 
 	cond_utils:if_defined( myriad_debug_registration,
@@ -718,12 +736,13 @@ wait_for_local_registration_of( Name, SecondsToWait ) ->
 
 
 
-% @doc Waits (up to 10 seconds) until specified name is locally, otherwise
-% globally, registered.
-%
-% Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
-% Name} exception.
-%
+-doc """
+Waits (up to 10 seconds) until specified name is locally, otherwise globally,
+registered.
+
+Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
+Name} exception.
+""".
 -spec wait_for_local_otherwise_global_registration_of( registration_name() ) ->
 																pid().
 wait_for_local_otherwise_global_registration_of( Name ) ->
@@ -731,12 +750,13 @@ wait_for_local_otherwise_global_registration_of( Name ) ->
 
 
 
-% @doc Waits (up to to the specified number of seconds) until specified name is
-% locally, otherwise globally registered.
-%
-% Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
-% Name} exception.
-%
+-doc """
+Waits (up to to the specified number of seconds) until specified name is
+locally, otherwise globally registered.
+
+Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
+Name} exception.
+""".
 wait_for_local_otherwise_global_registration_of( Name, _Seconds=0 ) ->
 	throw( { registration_waiting_timeout, Name, local_otherwise_global } );
 
@@ -763,12 +783,13 @@ wait_for_local_otherwise_global_registration_of( Name, SecondsToWait ) ->
 
 
 
-% @doc Waits (up to 10 seconds) until specified name is globally, otherwise
-% locally, registered.
-%
-% Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
-% Name} exception.
-%
+-doc """
+Waits (up to 10 seconds) until specified name is globally, otherwise locally,
+registered.
+
+Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
+Name} exception.
+""".
 -spec wait_for_global_otherwise_local_registration_of( registration_name() ) ->
 																pid().
 wait_for_global_otherwise_local_registration_of( Name ) ->
@@ -776,12 +797,13 @@ wait_for_global_otherwise_local_registration_of( Name ) ->
 
 
 
-% @doc Waits (up to to the specified number of seconds) until specified name is
-% globally, otherwise locally registered.
-%
-% Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
-% Name} exception.
-%
+-doc """
+Waits (up to to the specified number of seconds) until specified name is
+globally, otherwise locally registered.
+
+Returns the resolved PID, or throws a {registration_waiting_timeout, Scope,
+Name} exception.
+""".
 wait_for_global_otherwise_local_registration_of( Name, _Seconds=0 ) ->
 	throw( { registration_waiting_timeout, Name, global_otherwise_local } );
 
@@ -808,11 +830,12 @@ wait_for_global_otherwise_local_registration_of( Name, SecondsToWait ) ->
 
 
 
-% @doc Waits for specified name RegisteredName (an atom) to be locally
-% registered on all specified nodes before returning.
-%
-% A time-out is triggered if the waited duration exceeds 10 seconds.
-%
+-doc """
+Waits for specified name RegisteredName (an atom) to be locally registered on
+all specified nodes before returning.
+
+A time-out is triggered if the waited duration exceeds 10 seconds.
+""".
 -spec wait_for_remote_local_registrations_of( registration_name(),
 											  [ atom_node_name() ] ) -> void().
 wait_for_remote_local_registrations_of( RegisteredName, Nodes ) ->
@@ -836,20 +859,12 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 	{ ResList, BadNodes } = rpc:multicall( Nodes, erlang, whereis,
 										   [ RegisteredName  ], _Timeout=2000 ),
 
-	case BadNodes of
-
-		[] ->
-			ok;
-
-		_ ->
+	BadNodes =/= [] andalso
 			throw( { bad_nodes_while_waiting_remote_registration, local,
-					 RegisteredName, BadNodes } )
+					 RegisteredName, BadNodes } ),
 
-	end,
-
-	case lists:member( undefined, ResList ) of
-
-		true ->
+	lists:member( undefined, ResList ) andalso
+		begin
 
 			% Happens regularly on some settings:
 			%trace_utils:debug_fmt( "wait_for_remote_local_registrations_of: "
@@ -860,16 +875,13 @@ wait_for_remote_local_registrations_of( RegisteredName, Nodes,
 			%
 			timer:sleep( 500 ),
 			wait_for_remote_local_registrations_of( RegisteredName, Nodes,
-													RemainingAttempts - 1 );
+													RemainingAttempts - 1 )
 
-		false ->
-			ok
-
-	end.
+		end.
 
 
 
-% @doc Displays registered processes.
+-doc "Displays the currently registered processes.".
 -spec display_registered() -> void().
 display_registered() ->
 
@@ -900,13 +912,14 @@ display_registered() ->
 
 
 
-% @doc Converts a registration scope into a look-up one.
-%
-% Note: only legit for a subset of the registration scopes, otherwise a case
-% clause is triggered.
-%
-% (helper)
-%
+-doc """
+Converts a registration scope into a look-up one.
+
+Note: only legit for a subset of the registration scopes, otherwise a case
+clause is triggered.
+
+(helper)
+""".
 -spec registration_to_look_up_scope( registration_scope() ) -> look_up_scope().
 registration_to_look_up_scope( _Scope=global_only ) ->
 	global;

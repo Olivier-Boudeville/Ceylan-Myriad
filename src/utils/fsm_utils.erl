@@ -40,34 +40,47 @@ See fsm_utils_test.erl for the corresponding test.
 
 % As these types are not exported by gen_statem:
 
+
+
+-doc "A callback mode.".
 -type callback_mode() :: 'state_functions' | 'handle_event_function'.
 
+
+
+-doc "When entering a state.".
 -type state_enter() :: 'state_enter'.
 
+
+
+-doc "Return for a callback mode.".
 -type callback_mode_ret() ::
 		callback_mode() | [ callback_mode() | state_enter() ].
 
 
+
+-doc "Result of a state callback".
 -type state_callback_result( _T) :: term().
+
+
 
 -export_type([ callback_mode/0, callback_mode_ret/0,
 			   state_callback_result/1 ]).
 
 
 
-% @doc Creates an attribute table appropriate to store a FSM state.
-%
-% setFsmAttribute, getFsmAttribute and getFsmAttr are to be used with these
-% variables too.
-%
+-doc """
+Creates an attribute table appropriate to store a FSM state.
+
+setFsmAttribute, getFsmAttribute and getFsmAttr are to be used with these
+variables too.
+""".
 -spec create_blank_fsm_state() -> table:table().
 create_blank_fsm_state() ->
 	table:new().
 
 
 
-
-% @doc Sets the specified FSM state attribute.
+-doc "Sets the specified FSM state attribute.".
 -spec setFsmAttribute( table:table(), table:key(), table:value() ) ->
 								table:table().
 setFsmAttribute( FsmState, AttributeName, AttributeValue ) ->
@@ -75,7 +88,7 @@ setFsmAttribute( FsmState, AttributeName, AttributeValue ) ->
 
 
 
-% @doc Retrieves the specified FSM state attribute.
+-doc "Retrieves the specified FSM state attribute.".
 -spec getFsmAttribute( table:table(), table:key() ) ->
 				{ 'value', table:value() } | 'attribute_not_found'.
 getFsmAttribute( FsmState, AttributeName ) ->
