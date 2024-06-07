@@ -39,11 +39,14 @@ See process_utils_test.erl for the corresponding test.
 		  spawn_message_queue_monitor/4 ]).
 
 
+
+-doc "The PID of a monitoring process.".
 -type monitor_pid() :: pid().
-% The PID of a monitoring process.
 
 -export_type([ monitor_pid/0 ]).
 
+
+% Type shorthands:
 
 -type any_string() :: text_utils:any_string().
 -type bin_string() :: text_utils:bin_string().
@@ -58,28 +61,31 @@ See process_utils_test.erl for the corresponding test.
 -include("spawn_utils.hrl").
 
 
-% @doc Spawns a process monitoring the length of the message queue of the
-% specified process: returns the PID of an helper process that displays a
-% warning message if, during a periodic sampling each two seconds, this length
-% is above 1000.
-%
-% The 'terminate' atom shall be sent to the returned PID in order to terminate
-% the corresponding monitoring process.
-%
+
+-doc """
+Spawns a process monitoring the length of the message queue of the specified
+process: returns the PID of an helper process that displays a warning message
+if, during a periodic sampling each two seconds, this length is above 1000.
+
+The 'terminate' atom shall be sent to the returned PID in order to terminate the
+corresponding monitoring process.
+""".
 -spec spawn_message_queue_monitor( pid() ) -> monitor_pid().
 spawn_message_queue_monitor( MonitoredPid ) ->
 	spawn_message_queue_monitor( MonitoredPid,
 		_MaybeMonitoredProcessDescStr=undefined ).
 
 
-% @doc Spawns a process monitoring the length of the message queue of the
-% specified process: returns the PID of an helper process that displays a
-% warning message (with any description thereof supplied) if, during a periodic
-% sampling each two seconds, this length is above 1000.
-%
-% The 'terminate' atom shall be sent to the returned PID in order to terminate
-% the corresponding monitoring process.
-%
+
+-doc """
+Spawns a process monitoring the length of the message queue of the specified
+process: returns the PID of an helper process that displays a warning message
+(with any description thereof supplied) if, during a periodic sampling each two
+seconds, this length is above 1000.
+
+The 'terminate' atom shall be sent to the returned PID in order to terminate the
+corresponding monitoring process.
+""".
 -spec spawn_message_queue_monitor( pid(), option( any_string() ) ) ->
 											monitor_pid().
 spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc ) ->
@@ -87,14 +93,16 @@ spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc ) ->
 		_MsgThreshold=1000, _SamplingPeriod=2000 ).
 
 
-% @doc Spawns a process monitoring the length of the message queue of the
-% specified process: returns the PID of an helper process that displays a
-% warning message (with any description thereof supplied) if, during a periodic
-% sampling, this length is above the specified threshold.
-%
-% The 'terminate' atom shall be sent to the returned PID in order to terminate
-% the corresponding monitoring process.
-%
+
+-doc """
+Spawns a process monitoring the length of the message queue of the specified
+process: returns the PID of an helper process that displays a warning message
+(with any description thereof supplied) if, during a periodic sampling, this
+length is above the specified threshold.
+
+The 'terminate' atom shall be sent to the returned PID in order to terminate the
+corresponding monitoring process.
+""".
 -spec spawn_message_queue_monitor( pid(), option( any_string() ),
 			count(), milliseconds() ) -> monitor_pid().
 spawn_message_queue_monitor( MonitoredPid, MaybeMonitoredProcessDesc,

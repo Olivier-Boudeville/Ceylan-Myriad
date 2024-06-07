@@ -47,68 +47,88 @@ tested application, the build trees of its prerequisites can be found (e.g. as
 
 
 
+-doc "Name of an OTP application (e.g. 'myriad').".
 -type application_name() :: atom().
-% Name of an OTP application (e.g. 'myriad').
 
 
+
+-doc """
+Name of an OTP application as a string (e.g. "myriad").
+""".
 -type string_application_name() :: ustring().
-% Name of an OTP application as a string (e.g. "myriad").
 
 
+
+-doc "Name of an OTP application, as any legit type.".
 -type any_application_name() :: application_name() | string_application_name().
-% Name of an OTP application, as any legit type.
+
 
 
 % Not exported by the standard module:
 %-type restart_type() :: application:restart_type().
+-doc "How supervised code can be restarted.".
 -type restart_type() :: 'permanent' | 'transient' | 'temporary'.
 
 
+
+-doc "The PID of an OTP supervisor.".
 -type supervisor_pid() :: pid().
-% The PID of an OTP supervisor.
 
+
+
+-doc "The PID of an OTP worker, managed by a supervisor.".
 -type worker_pid() :: pid().
-% The PID of an OTP worker, managed by a supervisor.
 
 
+
+-doc "Designates how an (OTP) application is run.".
 -type application_run_context() ::
 	% If using Ceylan native build/run system:
 	'as_native'
 	% If using an OTP release (hence OTP applications as well):
   | 'as_otp_release'.
-% Designates how an (OTP) application is run.
+
 
 
 % Naming deemed clearer:
+-doc "Settings of an OTP supervisor.".
 -type supervisor_settings() :: supervisor:sup_flags().
-% Settings of an OTP supervisor.
 
 
 
+-doc """
+The state of a process implementing an OTP behaviour, typically the gen_server
+one.
+""".
 -type otp_state() :: term().
-% The state of a process implementing an OTP behaviour, typically the gen_server
-% one.
 
 
+
+-doc "Data specified to be used in a continue callback.".
 -type continue_data() :: term().
-% Data specified to be used in a continue callback.
 
 
+
+-doc "Denotes the reason for stopping.".
 -type termination_reason() ::
 	'normal' | 'shutdown' | { 'shutdown', term() } | term().
-% Denotes the reason for stopping.
 
 
+
+-doc """
+The type corresponding to the values to be returned by
+gen_server:handle_{cast,continue,info}/2.
+""".
 -type handle_return() ::
 	{ 'noreply', otp_state() }
   | { 'noreply', otp_state(), time_out() }
   | { 'noreply', otp_state(), 'hibernate' }
   | { 'noreply', otp_state(), { 'continue', continue_data() } }
   | { 'stop', termination_reason(), otp_state() }.
-% The type corresponding to the values to be returned by
-% gen_server:handle_{cast,continue,info}/2.
 
 
+
+-doc "Restart settings for a supervisor.".
 -type supervisor_restart() :: % Not exported yet: supervisor:restart().
 							  any().
 
@@ -160,9 +180,11 @@ tested application, the build trees of its prerequisites can be found (e.g. as
 
 -type milliseconds() :: unit_utils:milliseconds().
 
--type app_spec() :: list_table:list_table().
+
 % Entries corresponding to the application specifications (see
-% [https://erlang.org/doc/man/app.html]) read from a .app file.
+% <https://erlang.org/doc/man/app.html>) read from a .app file.
+%
+-type app_spec() :: list_table:list_table().
 
 -type time_out() :: time_utils:time_out().
 
@@ -186,13 +208,17 @@ tested application, the build trees of its prerequisites can be found (e.g. as
 	spec :: app_spec() } ).
 
 
+
+-doc "Information regarding a (generally prerequisite, OTP) application.".
 -type app_info() :: #app_info{}.
-% Information regarding a (generally prerequisite, OTP) application.
 
 
+
+-doc """
+A table allowing to look-up dependencies only once (and not many times, like for
+the kernel application).
+""".
 -type app_table() :: table( application_name(), app_info() ).
-% A table allowing to look-up dependencies only once (and not many times, like
-% for the kernel application).
 
 
 % To easily activate/deactivate a type of traces as a whole:
@@ -275,56 +301,59 @@ tested application, the build trees of its prerequisites can be found (e.g. as
 
 
 
-% @doc Prepares the VM environment so that the specified top-level prerequisite
-% application(s) to be involved in a non-OTP execution - and also all their own
-% prerequisites recursively in turn - can be later started, based on the
-% specified current base tree.
-%
-% @see prepare_for_execution/2
-%
+-doc """
+Prepares the VM environment so that the specified top-level prerequisite
+application(s) to be involved in a non-OTP execution - and also all their own
+prerequisites recursively in turn - can be later started, based on the specified
+current base tree.
+
+See prepare_for_execution/2.
+""".
 -spec prepare_for_execution( application_name() | [ application_name() ],
 							 directory_path() ) -> [ application_name() ].
 prepare_for_execution( AppName, BaseDir ) ->
 	prepare_for_execution( AppName, BaseDir, _BlacklistedApps=[] ).
 
 
-% @doc Prepares the VM environment so that the specified top-level prerequisite
-% application(s) to be involved in a non-OTP execution - and also all their own
-% prerequisites recursively in turn - can be later started, based on the
-% specified current base tree, provided that they are not blacklisted.
-%
-% Ensures that their .app can be found (supposing thus that they are available
-% and built, checks being performed), including afterwards by OTP, when starting
-% them (thanks to updates to the current code path).
-%
-% The possibility of blacklisting an application is useful whenever a .app file
-% lists applications that are actually not useful for the current application,
-% or that even may induce clashes among prerequisites. Blacklisting them allows
-% not searching for them, not modifying the overall code path accordingly, and
-% ignoring their own dependencies. They shall then be blacklisted with
-% start_applications/3 as well (otherwise an attempt of starting them will be
-% done and will fail).
-%
-% Returns an ordered, complete list (with no duplicates) of applications names
-% that shall be started in turn (otherwise throws an exception), so that each
-% application is started once if active (or not at all if non-active), and after
-% all its prerequisites.
-%
-% The specified, ordered, application list is somehow semantically similar to
-% the 'deps' entry of a rebar.config file.
-%
-% Prerequisites that are common to multiple dependencies are supposed to be of a
-% single version.
-%
-% Note that our previous implementation (refer to commit 5fffa10) used to
-% discriminate between applications that are active or not, and to collect their
-% start module/arguments; this is not necessary though, as application:start/1
-% seems able to support non-active applications, and for active ones to trigger
-% by itself the right start call.
-%
-% Application information is now cached, so that base applications (e.g. kernel)
-% are not repeatedly searched, but just once.
-%
+
+-doc """
+Prepares the VM environment so that the specified top-level prerequisite
+application(s) to be involved in a non-OTP execution - and also all their own
+prerequisites recursively in turn - can be later started, based on the specified
+current base tree, provided that they are not blacklisted.
+
+Ensures that their .app can be found (supposing thus that they are available and
+built, checks being performed), including afterwards by OTP, when starting them
+(thanks to updates to the current code path).
+
+The possibility of blacklisting an application is useful whenever a .app file
+lists applications that are actually not useful for the current application, or
+that even may induce clashes among prerequisites. Blacklisting them allows not
+searching for them, not modifying the overall code path accordingly, and
+ignoring their own dependencies. They shall then be blacklisted with
+start_applications/3 as well (otherwise an attempt of starting them will be done
+and will fail).
+
+Returns an ordered, complete list (with no duplicates) of applications names
+that shall be started in turn (otherwise throws an exception), so that each
+application is started once if active (or not at all if non-active), and after
+all its prerequisites.
+
+The specified, ordered, application list is somehow semantically similar to the
+'deps' entry of a rebar.config file.
+
+Prerequisites that are common to multiple dependencies are supposed to be of a
+single version.
+
+Note that our previous implementation (refer to commit 5fffa10) used to
+discriminate between applications that are active or not, and to collect their
+start module/arguments; this is not necessary though, as application:start/1
+seems able to support non-active applications, and for active ones to trigger by
+itself the right start call.
+
+Application information is now cached, so that base applications (e.g. kernel)
+are not repeatedly searched, but just once.
+""".
 -spec prepare_for_execution( application_name() | [ application_name() ],
 		directory_path(), [ application_name() ] ) -> [ application_name() ].
 prepare_for_execution( AppName, BaseDir, BlacklistedApps )
@@ -424,28 +453,29 @@ prepare_for_exec( [ AppName | T ], AbsBaseDir, BlacklistedApps, AccDeps,
 
 
 
-% @doc Returns the information about the specified OTP application, namely the
-% executed application itself or one of its own (direct or indirect)
-% prerequisites (supposing the 'default' rebar3 profile being used, if
-% relevant), based on the specified root of the current base tree.
-%
-% Following locations will be searched for the relevant directories, from the
-% root of the specified base directory, and in that order:
-%
-%  1. local ebin (for the executed application itself)
-%  2. any local _checkouts/APP_NAME/ebin (2.1) or
-%  _checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin (2.2)
-%  3. any local _build/default/lib/APP_NAME/ebin (for the dependencies of the
-%  executed application)
-%  4. any sibling ../APP_NAME/ebin (4.1) or
-%  ../APP_NAME/_build/default/lib/APP_NAME/ebin (4.2)
-%  5. the installed OTP system tree itself, where standard applications are
-%  available (i.e. in ${ERLANG_ROOT}/lib/erlang/lib)
-%
-% Returning also the application base directory of this application allows to
-% locate in turn any prerequisite it would have (typically through checkouts,
-% local _build or siblings).
-%
+-doc """
+Returns the information about the specified OTP application, namely the executed
+application itself or one of its own (direct or indirect) prerequisites
+(supposing the 'default' rebar3 profile being used, if relevant), based on the
+specified root of the current base tree.
+
+Following locations will be searched for the relevant directories, from the root
+of the specified base directory, and in that order:
+
+ 1. local ebin (for the executed application itself)
+ 2. any local _checkouts/APP_NAME/ebin (2.1) or
+ _checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin (2.2)
+ 3. any local _build/default/lib/APP_NAME/ebin (for the dependencies of the
+ executed application)
+ 4. any sibling ../APP_NAME/ebin (4.1) or
+ ../APP_NAME/_build/default/lib/APP_NAME/ebin (4.2)
+ 5. the installed OTP system tree itself, where standard applications are
+ available (i.e. in ${ERLANG_ROOT}/lib/erlang/lib)
+
+Returning also the application base directory of this application allows to
+locate in turn any prerequisite it would have (typically through checkouts,
+local _build or siblings).
+""".
 -spec get_app_info( application_name(), abs_directory_path(), app_table() ) ->
 							{ app_info(), app_table() }.
 get_app_info( AppName, AbsBaseDir, AppTable ) ->
@@ -463,9 +493,10 @@ get_app_info( AppName, AbsBaseDir, AppTable ) ->
 
 
 
-% @doc Generates and stores the information regarding the specified application.
-% Modifies the code path.
-%
+-doc """
+Generates and stores the information regarding the specified application.
+Modifies the code path.
+""".
 -spec generate_app_info( application_name(), abs_directory_path(),
 						 app_table() ) -> { app_info(), app_table() }.
 generate_app_info( AppName, AbsBaseDir, AppTable ) ->
@@ -699,7 +730,7 @@ try_last_locations( AppName, AppFilename, AbsBaseDir ) ->
 
 
 
-% @doc Returns a string version of the specified application name.
+-doc "Returns a string version of the specified application name.".
 -spec get_string_application_name( application_name() ) ->
 										string_application_name().
 get_string_application_name( AppName ) ->
@@ -707,9 +738,10 @@ get_string_application_name( AppName ) ->
 
 
 
-% @doc Returns the ebin in 'lib' subdirectory in the _build tree from specified
-% base directory, for specified application.
-%
+-doc """
+Returns the ebin in 'lib' subdirectory in the _build tree from specified base
+directory, for specified application.
+""".
 -spec get_build_ebin_from_lib( directory_path(), string_application_name() ) ->
 									directory_path().
 get_build_ebin_from_lib( BaseDir, AppNameStr ) ->
@@ -717,9 +749,11 @@ get_build_ebin_from_lib( BaseDir, AppNameStr ) ->
 		[ BaseDir, "_build", "default", "lib", AppNameStr, "ebin" ] ).
 
 
-% @doc Returns the ebin in 'checkouts' directory in the _build tree from
-% specified base directory, for specified application.
-%
+
+-doc """
+Returns the ebin in 'checkouts' directory in the _build tree from specified base
+directory, for specified application.
+""".
 -spec get_build_ebin_from_checkouts( directory_path(),
 							string_application_name() ) -> directory_path().
 get_build_ebin_from_checkouts( BaseDir, AppNameStr ) ->
@@ -728,9 +762,10 @@ get_build_ebin_from_checkouts( BaseDir, AppNameStr ) ->
 
 
 
-% @doc Searches for the BEAM file corresponding to the specified module in the
-% specified ebin or build directory, otherwise through current code path.
-%
+-doc """
+Searches for the BEAM file corresponding to the specified module in the
+specified ebin or build directory, otherwise through current code path.
+""".
 -spec look_up_beam( module_name(), abs_directory_path(),
 			abs_directory_path(), file_path(), application_name() ) -> void().
 look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
@@ -753,6 +788,7 @@ look_up_beam( ModuleName, EBinPath, BaseDir, AppFilePath, AppName ) ->
 					AppName, TestedBeamFilename, ExpectedModPath )
 
 		end.
+
 
 
 % Last chance to find a right BEAM path.
@@ -840,14 +876,14 @@ look_up_beam_last_chance( EBinPath, BaseDir, AppFilePath, AppName,
 
 
 
-% @doc Interprets the specification of the application whose .app file is
-% specified.
-%
-% Returns the specification of the specified application, as read from its
-% specified (supposedly already checked for existence) .app file.
-%
-% (helper)
-%
+-doc """
+Interprets the specification of the application whose .app file is specified.
+
+Returns the specification of the specified application, as read from its
+specified (supposedly already checked for existence) .app file.
+
+(helper)
+""".
 -spec interpret_app_file( file_path(), application_name(),
 				abs_directory_path(), abs_directory_path() ) -> app_spec().
 interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
@@ -902,7 +938,7 @@ interpret_app_file( AppFilePath, AppName, EBinPath, BaseDir ) ->
 
 
 
-% @doc Returns a textual representation of specified application information.
+-doc "Returns a textual representation of specified application information.".
 -spec app_info_to_string( app_info() ) -> ustring().
 app_info_to_string( #app_info{ app_name=AppName,
 							   root_dir=RootDir,
@@ -942,33 +978,37 @@ app_info_to_string( #app_info{ app_name=AppName,
 
 
 
-% @doc Starts the specified OTP application, with the 'temporary' restart type.
-%
-% Note: all prerequisite applications shall have been started beforehand
-% (not relying on OTP here, hence no automatic start of dependencies).
-%
+-doc """
+Starts the specified OTP application, with the 'temporary' restart type.
+
+Note: all prerequisite applications shall have been started beforehand (not
+relying on OTP here, hence no automatic start of dependencies).
+""".
 -spec start_application( application_name() ) -> void().
 start_application( AppName ) ->
 	start_application( AppName, _RestartType=temporary ).
 
 
-% @doc Starts the specified OTP application, with the specified restart type.
-%
-% Note: all prerequisite applications shall have been started beforehand
-% (not relying on OTP here, hence no automatic start of dependencies).
-%
+
+-doc """
+Starts the specified OTP application, with the specified restart type.
+
+Note: all prerequisite applications shall have been started beforehand (not
+relying on OTP here, hence no automatic start of dependencies).
+""".
 -spec start_application( application_name(), restart_type() ) -> void().
 start_application( AppName, RestartType ) ->
 	start_application( AppName, RestartType, _BlacklistedApps=[] ).
 
 
 
-% @doc Starts the specified OTP application, with the specified restart type,
-% blacklisting specified applications.
-%
-% Note: all prerequisite applications shall have been started beforehand
-% (not relying on OTP here, hence no automatic start of dependencies).
-%
+-doc """
+Starts the specified OTP application, with the specified restart type,
+blacklisting specified applications.
+
+Note: all prerequisite applications shall have been started beforehand (not
+relying on OTP here, hence no automatic start of dependencies).
+""".
 -spec start_application( application_name(), restart_type(),
 						 [ application_name() ] ) -> void().
 start_application( AppName, RestartType, BlacklistedApps ) ->
@@ -1003,42 +1043,41 @@ start_application( AppName, RestartType, BlacklistedApps ) ->
 
 
 
-% @doc Starts each of the specified OTP applications (if not started yet),
-% sequentially and in the specified order, all with the 'temporary' restart
-% type.
-%
-% Note: any non-included prerequisite application shall have been started
-% beforehand (not relying on OTP here, hence no automatic start of
-% dependencies).
-%
+-doc """
+Starts each of the specified OTP applications (if not started yet), sequentially
+and in the specified order, all with the 'temporary' restart type.
+
+Note: any non-included prerequisite application shall have been started
+beforehand (not relying on OTP here, hence no automatic start of dependencies).
+""".
 -spec start_applications( [ application_name() ] ) -> void().
 start_applications( AppNames ) ->
 	start_applications( AppNames, _RestartType=temporary ).
 
 
 
-% @doc Starts each of the specified OTP applications (if not started yet),
-% sequentially and in the specified order, all with the specified restart type,
-% while not blacklisting any specific application.
-%
-% Note: any non-included prerequisite application shall have been started
-% beforehand (not relying on OTP here, hence no automatic start of
-% dependencies).
-%
+-doc """
+Starts each of the specified OTP applications (if not started yet), sequentially
+and in the specified order, all with the specified restart type, while not
+blacklisting any specific application.
+
+Note: any non-included prerequisite application shall have been started
+beforehand (not relying on OTP here, hence no automatic start of dependencies).
+""".
 -spec start_applications( [ application_name() ], restart_type() ) -> void().
 start_applications( AppNames, RestartType ) ->
 	start_applications( AppNames, RestartType, _BlacklistedApps=[] ).
 
 
 
-% @doc Starts each of the specified OTP applications (if not started yet, and
-% provided it is not blacklisted), sequentially and in the specified order, all
-% with the specified restart type.
-%
-% Note: any non-included prerequisite application shall have been started
-% beforehand (not relying on OTP here, hence no automatic start of
-% dependencies).
-%
+-doc """
+Starts each of the specified OTP applications (if not started yet, and provided
+it is not blacklisted), sequentially and in the specified order, all with the
+specified restart type.
+
+Note: any non-included prerequisite application shall have been started
+beforehand (not relying on OTP here, hence no automatic start of dependencies).
+""".
 -spec start_applications( [ application_name() ], restart_type(),
 						  [ application_name() ] ) -> void().
 start_applications( _AppNames=[], _RestartType, _BlacklistedApps ) ->
@@ -1076,11 +1115,12 @@ start_applications( [ AppName | T ], RestartType, BlacklistedApps ) ->
 
 
 
-% @doc Stops the specified OTP application.
-%
-% Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
-% in the reverse order of the starting of these applications.
-%
+-doc """
+Stops the specified OTP application.
+
+Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
+in the reverse order of the starting of these applications.
+""".
 -spec stop_application( application_name() ) -> void().
 stop_application( _AppName=kernel ) ->
 	% No output of any sort as the VM is then stopped, otherwise an
@@ -1122,29 +1162,31 @@ stop_application( AppName ) ->
 
 
 
-% @doc Stops the specified OTP applications, sequentially and in the *reverse*
-% order of the specified one (so that the same list of prerequisite applications
-% can be used both for starting and stopping).
-%
-% Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
-% in the reverse order of the starting of these applications.
-%
+-doc """
+Stops the specified OTP applications, sequentially and in the *reverse* order of
+the specified one (so that the same list of prerequisite applications can be
+used both for starting and stopping).
+
+Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
+in the reverse order of the starting of these applications.
+""".
 -spec stop_applications( [ application_name() ] ) -> void().
 stop_applications( AppNames ) ->
 	[ stop_application( App ) || App <- lists:reverse( AppNames ) ].
 
 
 
-% @doc Stops the specified user (non-VM essential) OTP applications,
-% sequentially and in the *reverse* order of the specified one (so that the same
-% list of prerequisite applications can be used both for starting and stopping).
-%
-% Not stopping the base Erlang applications allows to remain with a functional
-% VM (e.g. able to finish a test, to perform console outputs, etc.).
-%
-% Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
-% in the reverse order of the starting of these applications.
-%
+-doc """
+Stops the specified user (non-VM essential) OTP applications, sequentially and
+in the *reverse* order of the specified one (so that the same list of
+prerequisite applications can be used both for starting and stopping).
+
+Not stopping the base Erlang applications allows to remain with a functional VM
+(e.g. able to finish a test, to perform console outputs, etc.).
+
+Note: not relying on OTP here, hence dependencies shall be explicitly stopped,
+in the reverse order of the starting of these applications.
+""".
 -spec stop_user_applications( [ application_name() ] ) -> void().
 stop_user_applications( AppNames ) ->
 	BaseVMApps = [ kernel, stdlib ],
@@ -1153,17 +1195,18 @@ stop_user_applications( AppNames ) ->
 
 
 
-% @doc Returns the supervisor-level settings corresponding to the specified
-% restart strategy and execution context.
-%
-% Note that the execution context must be explicitly specified here (typically
-% by calling a get_execution_target/0 function defined in a key module of that
-% layer, based on Myriad's basic_utils.hrl), as otherwise the one that would
-% apply is the one of Myriad - not the one of the calling layer.
-%
-% See [https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags]
-% for further information.
-%
+-doc """
+Returns the supervisor-level settings corresponding to the specified restart
+strategy and execution context.
+
+Note that the execution context must be explicitly specified here (typically by
+calling a get_execution_target/0 function defined in a key module of that layer,
+based on Myriad's basic_utils.hrl), as otherwise the one that would apply is the
+one of Myriad - not the one of the calling layer.
+
+See <https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags>
+for further information.
+""".
 -spec get_supervisor_settings( supervisor:strategy(), execution_target() ) ->
 												supervisor_settings().
 get_supervisor_settings( RestartStrategy, _ExecutionTarget=development ) ->
@@ -1189,11 +1232,12 @@ get_supervisor_settings( RestartStrategy, _ExecutionTarget=production ) ->
 
 
 
-% @doc Returns supervisor-level settings for a supervisor that would be
-% supervised by a supervisor relying on the specified settings.
-%
-% Not tremendously useful.
-%
+-doc """
+Returns supervisor-level settings for a supervisor that would be supervised by a
+supervisor relying on the specified settings.
+
+Not tremendously useful.
+""".
 -spec get_child_supervisor_settings( supervisor_settings() ) ->
 												supervisor_settings().
 get_child_supervisor_settings(
@@ -1205,14 +1249,15 @@ get_child_supervisor_settings(
 
 
 
-% @doc Returns default, base restart settings depending on the specified
-% execution target.
-%
-% Note that the execution context must be explicitly specified here (typically
-% by calling a get_execution_target/0 function defined in a key module of that
-% layer, based on Myriad's basic_utils.hrl), as otherwise the one that would
-% apply is the one of Myriad - not the one of the calling layer.
-%
+-doc """
+Returns default, base restart settings depending on the specified execution
+target.
+
+Note that the execution context must be explicitly specified here (typically by
+calling a get_execution_target/0 function defined in a key module of that layer,
+based on Myriad's basic_utils.hrl), as otherwise the one that would apply is the
+one of Myriad - not the one of the calling layer.
+""".
 -spec get_restart_setting( execution_target() ) -> supervisor_restart().
 get_restart_setting( _ExecutionTarget=development ) ->
 	% In development, failing as clearly as possible; here at least so that
@@ -1226,10 +1271,11 @@ get_restart_setting( _ExecutionTarget=production ) ->
 
 
 
-% @doc Returns a default, reasonable shutdown maximum duration to be used by a
-% supervisor for its basic OTP workers, depending on the specified execution
-% target.
-%
+-doc """
+Returns a default, reasonable shutdown maximum duration to be used by a
+supervisor for its basic OTP workers, depending on the specified execution
+target.
+""".
 -spec get_maximum_shutdown_duration( execution_target() ) -> milliseconds().
 get_maximum_shutdown_duration( _ExecutionTarget=development ) ->
 	2000;
@@ -1239,7 +1285,7 @@ get_maximum_shutdown_duration( _ExecutionTarget=production ) ->
 
 
 
-% @doc Checks that the specified application run context is legit.
+-doc "Checks that the specified application run context is legit.".
 -spec check_application_run_context( application_run_context() ) -> void().
 check_application_run_context( _AppRunContext=as_native ) ->
 	ok;
@@ -1252,7 +1298,9 @@ check_application_run_context( OtherAppRunContext ) ->
 
 
 
-% @doc Returns a textual representation of specified application run context.
+-doc """
+Returns a textual representation of specified application run context.
+""".
 -spec application_run_context_to_string( application_run_context() ) ->
 												ustring().
 application_run_context_to_string( _AppRunContext=as_native ) ->
@@ -1263,19 +1311,19 @@ application_run_context_to_string( _AppRunContext=as_otp_release ) ->
 
 
 
-% @doc Returns the path to the root of the specified OTP application (i.e. its
-% top directory, a.k.a. its "library directory"), for an application located
-% under $OTPROOT/lib or on a directory referred to with environment variable
-% ERL_LIBS.
-%
-% For example
-% "/home/bond/Software/Erlang/Erlang-24.2/lib/erlang/lib/mnesia-4.20.1" =
-% otp_utils:get_application_root( mnesia ).
-%
-% For this look-up, it is expected that an application named 'foobar' defined a
-% module of the same name (which is thus expected to be compiled as
-% "foobar.beam").
-%
+-doc """
+Returns the path to the root of the specified OTP application (i.e. its top
+directory, a.k.a. its "library directory"), for an application located under
+$OTPROOT/lib or on a directory referred to with environment variable ERL_LIBS.
+
+For example
+"/home/bond/Software/Erlang/Erlang-24.2/lib/erlang/lib/mnesia-4.20.1" =
+otp_utils:get_application_root( mnesia ).
+
+For this look-up, it is expected that an application named 'foobar' defined a
+module of the same name (which is thus expected to be compiled as
+"foobar.beam").
+""".
 -spec get_application_root( application_name() ) -> directory_path().
 get_application_root( AppName ) ->
 	case code:lib_dir( AppName ) of
@@ -1308,29 +1356,31 @@ get_application_root( AppName ) ->
 
 
 
-% @doc Returns the root directory of the application-private tree ('priv'),
-% based on specified module (expected to belong to that application).
-%
-% It may be useful to fetch data or NIF code for example.
-%
-% One may specify ?MODULE as argument, provided that this module belongs to the
-% application of interest.
-%
+-doc """
+Returns the root directory of the application-private tree ('priv'), based on
+specified module (expected to belong to that application).
+
+It may be useful to fetch data or NIF code for example.
+
+One may specify ?MODULE as argument, provided that this module belongs to the
+application of interest.
+""".
 -spec get_priv_root( module_name() ) -> directory_path().
 get_priv_root( ModuleName ) ->
 	get_priv_root( ModuleName, _BeSilent=false ).
 
 
 
-% @doc Returns the root directory of the application-private tree ('priv'),
-% based on specified module (expected to belong to that application), being
-% silent (no trace) if requested.
-%
-% It may be useful to fetch data or NIF code for example.
-%
-% One may specify ?MODULE as argument, provided that this module belongs to the
-% application of interest.
-%
+-doc """
+Returns the root directory of the application-private tree ('priv'), based on
+specified module (expected to belong to that application), being silent (no
+trace) if requested.
+
+It may be useful to fetch data or NIF code for example.
+
+One may specify ?MODULE as argument, provided that this module belongs to the
+application of interest.
+""".
 -spec get_priv_root( module_name(), boolean() ) -> directory_path().
 get_priv_root( ModuleName, BeSilent ) ->
 
