@@ -930,7 +930,7 @@ This function will run a specific executable, not evaluate a shell expression
 (that would possibly run executables); see evaluate_shell_expression/{1,2} for
 that.
 
-So one should not try to abuse this function by adding an ampersand (`&') at the
+So one should not try to abuse this function by adding an ampersand (`&`) at the
 end to trigger a background launch - this would just be interpreted as a last
 argument. Use run_background_command/{1,2,3} in this module instead.
 
@@ -954,7 +954,7 @@ working directory, and returns its return code (exit status) and its outputs
 This function will run a specific executable, not evaluate a shell expression
 (that would possibly run executables).
 
-So one should not try to abuse this function by adding an ampersand (`&') at the
+So one should not try to abuse this function by adding an ampersand (`&`) at the
 end to trigger a background launch - this would just be interpreted as a last
 argument. Use run_background_command/{1,2,3} in this module instead.
 
@@ -978,7 +978,7 @@ error ones): {ReturnCode,CmdOutput}.
 This function will run a specific executable, not evaluate a shell expression
 (that would possibly run executables).
 
-So one should not try to abuse this function by adding an ampersand (`&') at the
+So one should not try to abuse this function by adding an ampersand (`&`) at the
 end to trigger a background launch - this would just be interpreted as a last
 argument. Use run_background_command/{1,2,3} in this module instead.
 
@@ -1007,7 +1007,7 @@ error ones): {ReturnCode,CmdOutput}.
 This function will run a specific executable, not evaluate a shell expression
 (that would possibly run executables).
 
-So one should not try to abuse this function by adding an ampersand (`&') at the
+So one should not try to abuse this function by adding an ampersand (`&`) at the
 end to trigger a background launch - this would just be interpreted as a last
 argument. Use run_background_command/{1,2,3} in this module instead.
 

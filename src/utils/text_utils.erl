@@ -3628,7 +3628,7 @@ Joins, with the specified separator, the specified strings (of any type), and
 returns a corresponding binary string.
 
 `bin_join(Separator, BinStringsToJoin)`, to be used like in: `join($-,
-[`<<"Barbara">>', `<<"Ann">>']) = `<<"Barbara-Ann">>`.
+[<<"Barbara">>, <<"Ann">>]) = <<"Barbara-Ann">>`.
 
 Separator can be a character, like $a, or any string, like ", " or
 `<<"hello">>`.
