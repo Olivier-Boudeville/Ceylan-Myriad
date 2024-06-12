@@ -125,45 +125,70 @@ text.
 % spoken locale.
 
 
+
+-doc """
+A known provider of TTS.
+
+See also web_utils:cloud_provider/0.
+""".
 -type tts_provider() :: 'google' % Google (Wavenet)
 					  | 'aws'    % Amazon Polly
 					  | 'azure'. % Microsoft Azure (Neural)
-% A known provider of TTS.
-%
-% See also web_utils:cloud_provider/0.
 
 
+
+-doc """
+The absolute (reference) identifier of a voice (e.g. `{azure,
+<<"fr-FR-DeniseNeural">>}`.
+""".
 -type voice_id() :: { tts_provider(), voice_id_at_provider() }.
-% The absolute (reference) identifier of a voice (e.g. {azure,
-% `<<"fr-FR-DeniseNeural">>'}.
 
 
+
+-doc """
+The identifier of a voice (e.g. `<<"fr-FR-DeniseNeural">>`, `<<"ar-SA-Naayf">>`)
+ in the context of a specific TTS provider.
+""".
 -type voice_id_at_provider() :: bin_string().
-% The identifier of a voice (e.g. `<<"fr-FR-DeniseNeural">>',
-% `<<"ar-SA-Naayf">>') in the context of a specific TTS provider.
 
 
+
+-doc """
+The full name (just informative) of a voice.
+
+For example `<<"Foobar Server Speech Text to Speech Voice (xr-XG, Yoda)">>`.
+""".
 -type voice_name() :: bin_string().
-% The full name (just informative) of a voice.
-%
-% For example `<<"Foobar Server Speech Text to Speech Voice (xr-XG, Yoda)">>'.
 
 
+
+-doc "The type of a voice.".
 -type voice_type() :: 'normal'  % Basic.
 					| 'neural'. % AI-produced.
-% The type of a voice.
 
 
+
+-doc "The gender of a voice.".
 -type voice_gender() :: 'male' | 'female'.
-% The gender of a voice.
 
 
+
+-doc """
+The language locale to be used (e.g. `<<"fr-FR">>`), knowing that for example a
+voice may speak in multiple languages (e.g. "Jenny Multilingual").
+""".
 -type language_locale() :: bin_locale().
-% The language locale to be used (e.g. `<<"fr-FR">>'), knowing that for example
-% a voice may speak in multiple languages (e.g. "Jenny Multilingual").
+
 
 
 % Not existing apparently: 'general' | 'senior' | 'child'
+-doc """
+Defines a style of speech that may be supported by voices.
+
+See, for a synthesis of the styles supported by each voice,
+<https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup>
+or enable the list_voices/1 the writing of the voice JSON listing.
+""".
 -type supported_style() :: 'assistant'
 						 | 'news_reading'
 						 | 'news_reading_casual'
@@ -186,19 +211,16 @@ text.
 						 | 'embarrassed'
 						 | 'empathetic'
 						 | 'lyrical'.
-% Defines a style of speech that may be supported by voices.
-%
-% See, for a synthesis of the styles supported by each voice,
-% https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup
-% or enable the list_voices/1 the writing of the voice JSON listing.
 
 
+
+-doc "A role that a voice may play.".
 -type role_played() :: { voice_gender(), age_played() } | 'narrator'.
-% A role that a voice may play.
 
 
+
+-doc "An age that a voice may roleplay.".
 -type age_played() :: 'child' | 'young_adult' | 'older_adult' | 'senior' .
-% An age that a voice may roleplay.
 
 
 
@@ -214,85 +236,126 @@ text.
 -include("web_utils.hrl").
 
 
+
+-doc "Information regarding a voice for TTS.".
 -type voice_info() :: #voice_info{}.
-% Information regarding a voice for TTS.
 
+
+
+-doc """
+A table associating the information regarding a voice based on its identifier.
+""".
 -type voice_table() :: table( voice_id(), voice_info() ).
-% A table associating the information regarding a voice based on its identifier.
 
 
+
+-doc """
+Information regarding a speech to be recorded (many of whom are optional).
+""".
 -type speech_settings() :: #speech_settings{}.
-% Information regarding a speech to be recorded (many of whom are optional).
 
+
+
+-doc "The identifier of given speech settings in a table thereof.".
 -type speech_settings_id() :: count().
-% The identifier of given speech settings in a table thereof.
 
+
+
+-doc "A table of speech settings.".
 -type speech_settings_table() ::
 		table( speech_settings_id(), speech_settings() ).
 
 
+
+-doc """
+A text to be spoken, specified in Speech Synthesis Markup Language (SSML),
+therefore as an XML document.
+
+Special characters, such as quotation marks, apostrophes, and brackets will be
+automatically escaped here.
+
+Refer to <https://www.w3.org/TR/2004/REC-speech-synthesis-20040907/> and
+<https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup>
+for further SSML details.
+""".
 -type ssml_text() :: xml_document().
-% A text to be spoken, specified in Speech Synthesis Markup Language (SSML),
-% therefore as an XML document.
-%
-% Special characters, such as quotation marks, apostrophes, and brackets will be
-% automatically escaped here.
-%
-% Refer to https://www.w3.org/TR/2004/REC-speech-synthesis-20040907/ and
-% https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/speech-synthesis-markup
-% for further SSML details.
 
 
+
+-doc """
+User-specified information regarding an actual text-to-speech, to allow for the
+instantiation of a logical speech.
+""".
 -type user_speech_info() :: { speech_settings_id(), ssml_text() }.
-% User-specified information regarding an actual text-to-speech, to allow for
-% the instantiation of a logical speech.
 
 
 
+-doc "The identifier of a record about a logical speech.".
 -type speech_id() :: count().
-% The identifier of a record about a logical speech.
 
 
+
+-doc """
+A short name to designate a logical speech, able to be used as a prefix of a
+filename; e.g. `<<"welcome-new-recruits">>`). Not an identifier, but preferably
+unique.
+""".
 -type speech_base_name() :: bin_path_element().
-% A short name to designate a logical speech, able to be used as a prefix of a
-% filename; e.g. `<<"welcome-new-recruits">>'). Not an identifier, but
-% preferably unique.
 
 
+
+-doc """
+A short name (any kind of string) to designate a logical speech, able to be used
+as a prefix of a filename; e.g. "welcome-new-recruits"). Not an identifier, but
+preferably unique.
+""".
 -type any_speech_base_name() :: any_path_element().
-% A short name (any kind of string) to designate a logical speech, able to be
-% used as a prefix of a filename; e.g. "welcome-new-recruits"). Not an
-% identifier, but preferably unique.
 
 
+
+-doc """
+All information regarding a logical speech, possibly recorded based on multiple,
+different spoken locales.
+""".
 -type logical_speech() :: #logical_speech{}.
-% All information regarding a logical speech, possibly recorded based on
-% multiple, different spoken locales.
 
 
+
+-doc """
+Key information regarding an actual text-to-speech, that is the instantiation of
+a logical speech, i.e. the speech settings that apply to this SSML text and the
+resulting audio file (relative to the base directory of the speech repository
+keeping track of the corresponding logical speech).
+""".
 -type actual_speech_info() :: #actual_speech_info{}.
-% Key information regarding an actual text-to-speech, that is the instantiation
-% of a logical speech, i.e. the speech settings that apply to this SSML text and
-% the resulting audio file (relative to the base directory of the speech
-% repository keeping track of the corresponding logical speech).
 
 
+
+-doc """
+A table associating, in the context of a given logical speech, for each spoken
+locale, the information of the corresponding text to speech.
+""".
 -type locale_table() :: table( language_locale(), actual_speech_info() ).
-% A table associating, in the context of a given logical speech, for each spoken
-% locale, the information of the corresponding text to speech.
 
 
+
+-doc """
+A table associating to the identifier of a logical speech the various available
+information about it.
+""".
 -type speech_table() :: table( speech_id(), logical_speech() ).
-% A table associating to the identifier of a logical speech the various
-% available information about it.
 
 
+
+-doc """
+A datastructure collecting information regarding a set of logical speeches.
+""".
 -type speech_repository() :: #speech_repository{}.
-% A datastructure collecting information regarding a set of logical speeches.
 
 
+
+-doc "The state of the speech support, to be carried between calls.".
 -opaque speech_state() :: #speech_state{}.
-% The state of the speech support, to be carried between calls.
 
 
 -export_type([ tts_provider/0, voice_id/0, voice_id_at_provider/0,
@@ -326,7 +389,8 @@ text.
 		  actual_speech_info_to_string/1, speech_repository_to_string/1 ]).
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -357,12 +421,13 @@ text.
 
 
 
-% @doc Tells whether the speech support is available:
-% - if true, returns a preliminary, configured speech state
-% - if false, returns an extra textual diagnosis
-%
-% Side-effect: ensures that a Myriad preferences server is running.
-%
+-doc """
+Tells whether the speech support is available:
+- if true, returns a preliminary, configured speech state
+- if false, returns an extra textual diagnosis
+
+Side-effect: ensures that a Myriad preferences server is running.
+""".
 -spec check_availability() -> { 'true', speech_state() }
 							| { 'false', ustring() }.
 check_availability() ->
@@ -386,7 +451,7 @@ check_availability() ->
 
 
 
-% @doc Returns the default settings enforced for the speech audio output.
+-doc "Returns the default settings enforced for the speech audio output.".
 -spec get_default_audio_settings() -> audio_stream_settings().
 get_default_audio_settings() ->
 	% Corresponds to 'ogg-48khz-16bit-mono-opus', probably close to the best
@@ -403,12 +468,13 @@ get_default_audio_settings() ->
 
 
 
-% @doc Tells whether the speech support is available:
-% - if true, returns a preliminary, configured speech state
-% - if false, returns an extra textual diagnosis
-%
-% Side-effect: ensures that a Myriad preferences server is running.
-%
+-doc """
+Tells whether the speech support is available:
+- if true, returns a preliminary, configured speech state
+- if false, returns an extra textual diagnosis
+
+Side-effect: ensures that a Myriad preferences server is running.
+""".
 -spec check_tts_provider_availability( speech_state() ) ->
 			{ 'true', speech_state() } | { 'false', ustring() }.
 check_tts_provider_availability( SpeechState ) ->
@@ -452,20 +518,22 @@ check_tts_provider_availability( SpeechState ) ->
 
 
 
-% @doc Returns the audio format description string corresponding to specified
-% settings.
-%
-% Not all combinations are supported:
-% - sampling rate is in [8, 16, 24, 48]
-% - channel layout can at least currently only be 'mono'
-% - bit depth is 8 or 16, otherwise it is a bit rate in [32, 48, 64, 96, 128,
-%   160, 192]
-% - recommended container formats are ogg or riff
-% - strongly recommended audio format is opus
-%
-% Refer to
-% https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/rest-text-to-speech#audio-outputs for more information.
-%
+-doc """
+Returns the audio format description string corresponding to specified settings.
+
+Not all combinations are supported:
+- sampling rate is in [8, 16, 24, 48]
+- channel layout can at least currently only be 'mono'
+- bit depth is 8 or 16, otherwise it is a bit rate in [32, 48, 64, 96, 128,
+  160, 192]
+- recommended container formats are ogg or riff
+- strongly recommended audio format is opus
+
+Refer to
+<https://docs.microsoft.com/en-us/azure/cognitive-services/speech-service/rest-text-to-speech#audio-outputs>
+for more information.
+
+""".
 -spec get_audio_format_string( audio_stream_settings() ) -> bin_string().
 get_audio_format_string( #audio_stream_settings{
 							sampling_rate=StdSamplingRate,
@@ -496,17 +564,20 @@ get_audio_format_string( #audio_stream_settings{
 
 
 
-% @doc Starts the speech support, initialising the embedded speech repository
-% with the current directory.
-%
+-doc """
+Starts the speech support, initialising the embedded speech repository with the
+current directory.
+""".
 -spec start( speech_state() ) -> speech_state().
 start( SpeechState ) ->
 	start( SpeechState, _DefBaseDir="." ).
 
 
-% @doc Starts the speech support, initialising the embedded speech repository
-% with the specified directory.
-%
+
+-doc """
+Starts the speech support, initialising the embedded speech repository with the
+specified directory.
+""".
 -spec start( speech_state(), any_directory_path() ) -> speech_state().
 start( SpeechState=#speech_state{ audio_settings=AudioSettings },
 	   AnyBaseDir ) ->
@@ -521,9 +592,10 @@ start( SpeechState=#speech_state{ audio_settings=AudioSettings },
 
 
 
-% @doc Returns the available information about all the voices offered by the
-% current TTS provider.
-%
+-doc """
+Returns the available information about all the voices offered by the current
+TTS provider.
+""".
 -spec list_voices( speech_state() ) -> voice_table().
 list_voices( #speech_state{ cloud_instance_info=#azure_instance_info{
 									instance_key=InstKey,
@@ -569,9 +641,10 @@ list_voices( #speech_state{ cloud_instance_info=#azure_instance_info{
 
 
 
-% @doc Registers the specified (non-deprecated, non-preview) voices of specified
-% TTS provider in the specified voice table.
-%
+-doc """
+Registers the specified (non-deprecated, non-preview) voices of specified TTS
+provider in the specified voice table.
+""".
 -spec register_voices( tts_provider(), json_term(), voice_table() ) ->
 															voice_table().
 register_voices( _TTSProvider, _JsonTerm=[], VoiceTable ) ->
@@ -690,9 +763,10 @@ register_voices( TTSProvider, _JsonTerm=[ VoiceMap | T ], VoiceTable ) ->
 
 
 
-% @doc Returns a voice table corresponding to the specified one where only the
-% voice of the specified gender would be kept.
-%
+-doc """
+Returns a voice table corresponding to the specified one where only the voice of
+the specified gender would be kept.
+""".
 -spec filter_by_gender( voice_gender(), voice_table() ) -> voice_table().
 filter_by_gender( Gender, VoiceTable ) ->
 	table:fold( fun( VId, VInfo=#voice_info{ gender=G }, Acc )
@@ -707,9 +781,10 @@ filter_by_gender( Gender, VoiceTable ) ->
 
 
 
-% @doc Returns a voice table corresponding to the specified one where only the
-% voice of the specified spoken locale (as primary or secondary) would be kept.
-%
+-doc """
+Returns a voice table corresponding to the specified one where only the voice of
+the specified spoken locale (as primary or secondary) would be kept.
+""".
 -spec filter_by_locale( any_locale(), voice_table() ) -> voice_table().
 filter_by_locale( SpokenLocale, VoiceTable ) ->
 
@@ -736,26 +811,27 @@ filter_by_locale( SpokenLocale, VoiceTable ) ->
 
 
 
-% @doc Records the speech corresponding to the specified SSML message, according
-% to the (supposedly set) current speech settings, using the specified base name
-% to forge the filename in which the generated audio will be stored, in the
-% current directory; the corresponding audio path is returned; the corresponding
-% filename (relative to the elected directory) is returned.
-%
-% For example if BaseName is "hello-world", the current directory is
-% /home/bond/my-speeches", and the audio settings imply a Ogg container format
-% with an Opus audio format and the fr-FR locale, the specified speech will be
-% stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
-%
-% A SSML message is an XML document, we recommend using the so-called "simple
-% form" to define it, refer to the "Defining one's XML document" in
-% xml_utils.erl for further details. Also spaces shall exist around tags.
-%
-% For example record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], ["
-% John"]},...
-%
-% See record_speech/5 for further details.
-%
+-doc """
+Records the speech corresponding to the specified SSML message, according to the
+(supposedly set) current speech settings, using the specified base name to forge
+the filename in which the generated audio will be stored, in the current
+directory; the corresponding audio path is returned; the corresponding filename
+(relative to the elected directory) is returned.
+
+For example if BaseName is "hello-world", the current directory is
+/home/bond/my-speeches", and the audio settings imply a Ogg container format
+with an Opus audio format and the fr-FR locale, the specified speech will be
+stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
+
+A SSML message is an XML document, we recommend using the so-called "simple
+form" to define it, refer to the "Defining one's XML document" in xml_utils.erl
+for further details. Also spaces shall exist around tags.
+
+For example `record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], ["
+John"]},...`.
+
+See record_speech/5 for further details.
+""".
 -spec record_speech( ssml_text(), any_speech_base_name(), speech_state() ) ->
 													file_path().
 record_speech( SSMLText, BaseName, SpeechState ) ->
@@ -763,26 +839,27 @@ record_speech( SSMLText, BaseName, SpeechState ) ->
 
 
 
-% @doc Records the speech corresponding to the specified SSML message, according
-% to the (supposedly set) current speech settings, using the specified base name
-% to forge the filename in which the generated audio will be stored, in the
-% specified directory (otherwise in the current one); the corresponding filename
-% (relative to the elected directory) is returned.
-%
-% For example if BaseName is "hello-world", the specified directory is
-% /home/bond/my-speeches", and the audio settings imply a Ogg container format
-% with an Opus audio format and the fr-FR locale, the specified speech will be
-% stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
-%
-% A SSML message is an XML document, we recommend using the so-called "simple
-% form" to define it, refer to the "Defining one's XML document" in
-% xml_utils.erl for further details.
-%
-% For example record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], ["
-% John"]},...
-%
-% See record_speech/5 for further details.
-%
+-doc """
+Records the speech corresponding to the specified SSML message, according to the
+(supposedly set) current speech settings, using the specified base name to forge
+the filename in which the generated audio will be stored, in the specified
+directory (otherwise in the current one); the corresponding filename (relative
+to the elected directory) is returned.
+
+For example if BaseName is "hello-world", the specified directory is
+/home/bond/my-speeches", and the audio settings imply a Ogg container format
+with an Opus audio format and the fr-FR locale, the specified speech will be
+stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
+
+A SSML message is an XML document, we recommend using the so-called "simple
+form" to define it, refer to the "Defining one's XML document" in xml_utils.erl
+for further details.
+
+For example `record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], ["
+John"]},...`.
+
+See record_speech/5 for further details.
+""".
 -spec record_speech( ssml_text(), any_speech_base_name(),
 			option( any_directory_path() ), speech_state() ) -> bin_file_name().
 record_speech( _SSMLText, _BaseName, _MaybeOutputDir,
@@ -796,33 +873,35 @@ record_speech( SSMLText, BaseName, MaybeOutputDir,
 
 
 
-% @doc Records the speech corresponding to the specified SSML message, according
-% to the specified speech settings, using the specified base name to forge the
-% filename in which the generated audio will be stored, in the specified
-% directory (otherwise in the current one); the corresponding filename (relative
-% to the elected directory) is returned.
-%
-% For example if BaseName is "hello-world", the specified directory is
-% "/home/bond/my-speeches", and the audio settings imply a Ogg container format
-% with an Opus audio format and the fr-FR locale, the specified speech will be
-% stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
-%
-% A SSML message is an XML document, we recommend using the so-called "simple
-% form" to define it, refer to the "Defining one's XML document" in
-% xml_utils.erl for further details.
-%
-% For example record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], ["
-% John"]},...
-%
-% Restrictions:
-% - the text-to-speech must be an XML document, yet may be as simple as "Hello
-% world!"
-% - this is a single-voice speech (no multiple texts per recording, as expecting
-% to split these)
-% - style adjustments: 'styledegree' (stronger or softer style, to make the
-% speech more expressive or subdued) is not used (not offered by the voices
-% of interest, and anyway the supported 'style' conveys more meaning)
-%
+-doc """
+Records the speech corresponding to the specified SSML message, according to the
+specified speech settings, using the specified base name to forge the filename
+in which the generated audio will be stored, in the specified directory
+(otherwise in the current one); the corresponding filename (relative to the
+elected directory) is returned.
+
+For example if BaseName is "hello-world", the specified directory is
+"/home/bond/my-speeches", and the audio settings imply a Ogg container format
+with an Opus audio format and the fr-FR locale, the specified speech will be
+stored in "/home/bond/my-speeches/hello-world-fr-FR.ogg.opus".
+
+A SSML message is an XML document, we recommend using the so-called "simple
+form" to define it, refer to the "Defining one's XML document" in xml_utils.erl
+for further details.
+
+For example `record_speech(["Hello ", {prosody, [{volume, "+20.00%"}], ["
+John"]},...`.
+
+Restrictions:
+- the text-to-speech must be an XML document, yet may be as simple as "Hello
+world!"
+- this is a single-voice speech (no multiple texts per recording, as expecting
+to split these)
+- style adjustments: 'styledegree' (stronger or softer style, to make the speech
+more expressive or subdued) is not used (not offered by the voices of interest,
+and anyway the supported 'style' conveys more meaning)
+
+""".
 -spec record_speech( ssml_text(), any_speech_base_name(), speech_settings(),
 			option( any_directory_path() ), speech_state() ) -> bin_file_name().
 record_speech( SSMLText,
@@ -1011,9 +1090,10 @@ record_speech( SSMLText,
 
 
 
-% @doc Registers the specified speech settings in the specified state, and
-% returns it once updated, along with the identifier assigned to these settings.
-%
+-doc """
+Registers the specified speech settings in the specified state, and returns it
+once updated, along with the identifier assigned to these settings.
+""".
 -spec register_speech_settings( speech_settings(), speech_state() ) ->
 						{ speech_settings_id(), speech_state() }.
 register_speech_settings( SpeechSettings,
@@ -1030,29 +1110,34 @@ register_speech_settings( SpeechSettings,
 
 
 
-% @doc Returns an empty speech repository with the default "en-US" locale and
-% default audio settings, that is a repository not keeping track of any logical
-% speech defined (yet).
-%
+-doc """
+Returns an empty speech repository with the default "en-US" locale and default
+audio settings, that is a repository not keeping track of any logical speech
+defined (yet).
+""".
 -spec create_repository( any_directory_path() ) -> speech_repository().
 create_repository( BaseDir ) ->
 	create_repository( BaseDir, get_default_audio_settings() ).
 
 
-% @doc Returns an empty speech repository with the default "en-US" locale and
-% the specified audio settings, that is a repository not keeping track of any
-% logical speech defined (yet).
-%
+
+-doc """
+Returns an empty speech repository with the default "en-US" locale and the
+specified audio settings, that is a repository not keeping track of any logical
+speech defined (yet).
+""".
 -spec create_repository( any_directory_path(), audio_stream_settings() ) ->
 											speech_repository().
 create_repository( BaseDir, AudioStreamSettings ) ->
 	create_repository( BaseDir, _RefLocal= <<"en-US">>, AudioStreamSettings ).
 
 
-% @doc Returns an empty speech repository with the specified reference locale
-% and audio settings, that is a repository not keeping track of any logical
-% speech defined (yet).
-%
+
+-doc """
+Returns an empty speech repository with the specified reference locale and audio
+settings, that is a repository not keeping track of any logical speech defined
+(yet).
+""".
 -spec create_repository( any_directory_path(), any_locale(),
 						  audio_stream_settings() ) -> speech_repository().
 create_repository( BaseDir, RefLocale, AudioSettings )
@@ -1069,16 +1154,17 @@ create_repository( BaseDir, RefLocale, AudioSettings )
 
 
 
-% @doc Returns the identifier of the logical speech requested to be recorded,
-% together with the specified speech state whose speech repository has been
-% updated with that speech, created from a speech base name associated to a list
-% of actual speech information, so that the corresponding per-locale audio files
-% are recorded, each with their specified SSML text and speech settings, and
-% referenced.
-%
-% Note that all speech settings referenced for the generation have to have their
-% locale defined.
-%
+-doc """
+Returns the identifier of the logical speech requested to be recorded, together
+with the specified speech state whose speech repository has been updated with
+that speech, created from a speech base name associated to a list of actual
+speech information, so that the corresponding per-locale audio files are
+recorded, each with their specified SSML text and speech settings, and
+referenced.
+
+Note that all speech settings referenced for the generation have to have their
+locale defined.
+""".
 -spec record_logical_speech( any_speech_base_name(),
 		% A list of per-locale {speech_settings_id(), ssml_text()}:
 		[ user_speech_info() ], speech_state() ) ->
@@ -1115,9 +1201,10 @@ record_logical_speech( AnyBaseName, UserSpeechInfos,
 
 
 
-% @doc Records and references all speeches described in the specified list of
-% speech information.
-%
+-doc """
+Records and references all speeches described in the specified list of speech
+information.
+""".
 record_speeches( _UserlSpeechInfos=[], _BinBaseName, _AudioSettings,
 		_BinBaseDir, LocTable, _SpeechSettingsTable, _SpeechState ) ->
 	LocTable;
@@ -1155,9 +1242,10 @@ record_speeches( _UserlSpeechInfos=[ { SpeechSettingsId, SSMLText } | T ],
 
 
 
-% @doc Returns the absolute path of the audio file corresponding to the logical
-% speech specified through its identifier, for the specified locale.
-%
+-doc """
+Returns the absolute path of the audio file corresponding to the logical speech
+specified through its identifier, for the specified locale.
+""".
 -spec get_audio_path_for( speech_id(), language_locale(), speech_state() ) ->
 											bin_file_path().
 get_audio_path_for( LogSpeechId, LangLocale,
@@ -1187,10 +1275,11 @@ get_audio_path_for( LogSpeechId, LangLocale,
 
 
 
+
 % Section to obtain textual descriptions of the speech-related elements.
 
 
-% @doc Returns a textual description of the specified speech state.
+-doc "Returns a textual description of the specified speech state.".
 -spec speech_state_to_string( speech_state() ) -> ustring().
 speech_state_to_string( #speech_state{
 		cloud_instance_info=InstInfo,
@@ -1214,7 +1303,7 @@ speech_state_to_string( #speech_state{
 
 
 
-% @doc Returns a textual description of the specified voice identifier.
+-doc "Returns a textual description of the specified voice identifier.".
 -spec voice_id_to_string( voice_id() ) -> ustring().
 voice_id_to_string( _VoiceId={ TTSProvider, BinVoiceName } ) ->
 	text_utils:format( "voice '~ts' from ~ts",
@@ -1222,7 +1311,7 @@ voice_id_to_string( _VoiceId={ TTSProvider, BinVoiceName } ) ->
 
 
 
-% @doc Returns a textual description of the specified TTS provider.
+-doc "Returns a textual description of the specified TTS provider.".
 -spec tts_provider_to_string( tts_provider() ) -> ustring().
 tts_provider_to_string( _TTSProvider=google ) ->
 	"Google Wavenet";
@@ -1235,7 +1324,7 @@ tts_provider_to_string( _TTSProvider=azure ) ->
 
 
 
-% @doc Returns a textual description of the specified voice table.
+-doc "Returns a textual description of the specified voice table.".
 -spec voice_table_to_string( voice_table() ) -> ustring().
 voice_table_to_string( VoiceTable ) ->
 
@@ -1257,7 +1346,7 @@ voice_table_to_string( VoiceTable ) ->
 
 
 
-% @doc Returns a textual description of the specified voice.
+-doc "Returns a textual description of the specified voice.".
 -spec voice_info_to_string( voice_info() ) -> ustring().
 voice_info_to_string( #voice_info{
 						name=FullName,
@@ -1284,8 +1373,8 @@ voice_info_to_string( #voice_info{
 
 		SecLocs ->
 			text_utils:format( "and supporting ~B secondary locales: ~ts",
-			   [ length( SecLocs ),
-				 text_utils:binaries_to_listed_string( SecLocs ) ] )
+				[ length( SecLocs ),
+				  text_utils:binaries_to_listed_string( SecLocs ) ] )
 
 	end,
 
@@ -1338,7 +1427,7 @@ voice_info_to_string( #voice_info{
 
 
 
-% @doc Returns a textual description of the specified role.
+-doc "Returns a textual description of the specified role.".
 -spec role_to_string( role_played() ) -> ustring().
 role_to_string( { _Gender=male, _AgePlayed=child } ) ->
 	"boy";
@@ -1372,7 +1461,7 @@ role_to_string( narrator ) ->
 
 
 
-% @doc Returns a textual description of the specified speech settings.
+-doc "Returns a textual description of the specified speech settings.".
 -spec speech_settings_to_string( speech_settings() ) -> ustring().
 speech_settings_to_string( #speech_settings{ voice_id=VoiceId,
 											 language_locale=MaybeLoc,
@@ -1427,7 +1516,7 @@ speech_settings_to_string( #speech_settings{ voice_id=VoiceId,
 
 
 
-% @doc Returns a textual description of the specified logical speech.
+-doc "Returns a textual description of the specified logical speech.".
 -spec logical_speech_to_string( logical_speech() ) -> ustring().
 logical_speech_to_string( #logical_speech{ id=Id,
 										   base_name=BaseName,
@@ -1439,9 +1528,10 @@ logical_speech_to_string( #logical_speech{ id=Id,
 
 
 
-% @doc Returns a textual description of the specified information about an
-% actual speech.
-%
+-doc """
+Returns a textual description of the specified information about an actual
+speech.
+""".
 -spec actual_speech_info_to_string( actual_speech_info() ) -> ustring().
 actual_speech_info_to_string( #actual_speech_info{
 								ssml_text=SSMLText,
@@ -1453,7 +1543,7 @@ actual_speech_info_to_string( #actual_speech_info{
 
 
 
-% @doc Returns a textual description of the specified speech repository.
+-doc "Returns a textual description of the specified speech repository.".
 -spec speech_repository_to_string( speech_repository() ) -> ustring().
 speech_repository_to_string( #speech_repository{
 		speech_table=SpeechTable,
@@ -1468,8 +1558,7 @@ speech_repository_to_string( #speech_repository{
 
 
 
-
-% @doc Stops the speech support.
+-doc "Stops the speech support.".
 -spec stop( speech_state() ) -> void().
 stop( _SpeechState=#speech_state{ json_parser_state=ParserState } ) ->
 	json_utils:stop_parser( ParserState ),
@@ -1480,10 +1569,11 @@ stop( _SpeechState=#speech_state{ json_parser_state=ParserState } ) ->
 % Helpers
 
 
-% @doc Returns the file extension corresponding to the specified audio settings.
-%
-% For example "ogg.opus".
-%
+-doc """
+Returns the file extension corresponding to the specified audio settings.
+
+For example "ogg.opus".
+""".
 -spec get_extension_for( audio_stream_settings() ) -> extension().
 get_extension_for( #audio_stream_settings{ container_format=ContainerFormat,
 										   audio_format=AudioFormat } ) ->
@@ -1491,7 +1581,7 @@ get_extension_for( #audio_stream_settings{ container_format=ContainerFormat,
 
 
 
-% @doc Converts Azure styles into our own.
+-doc "Converts Azure styles into our own.".
 convert_styles_from_azure( [] ) ->
 	[];
 
@@ -1543,7 +1633,7 @@ convert_styles_from_azure( [ Other | T ] ) ->
 
 
 
-% @doc Returns a list of the known supported styles.
+-doc "Returns a list of the known supported styles.".
 -spec get_supported_styles() -> [ supported_style() ].
 get_supported_styles() ->
 	[ assistant, news_reading, news_reading_casual, news_reading_formal,
@@ -1553,7 +1643,7 @@ get_supported_styles() ->
 
 
 
-% @doc Converts Azure role plays into our own.
+-doc "Converts Azure role plays into our own.".
 -spec convert_roles_played_from_azure( [ bin_string() ] ) ->
 												[ supported_style() ].
 convert_roles_played_from_azure( [] ) ->
@@ -1595,7 +1685,7 @@ convert_roles_played_from_azure( [ Other | T ] ) ->
 % Bijective tables would have little interest (as we merged a few notions).
 
 
-% @doc Converts back our notion of gender into the one of Azure:
+-doc "Converts back our notion of gender into the one of Azure.".
 -spec convert_gender_to_azure( voice_gender() ) -> ustring().
 convert_gender_to_azure( _Gender=male ) ->
 	"Male";
@@ -1604,7 +1694,8 @@ convert_gender_to_azure( _Gender=female ) ->
 	"Female".
 
 
-% @doc Converts back our notion of style into the one of Azure:
+
+-doc "Converts back our notion of style into the one of Azure.".
 -spec convert_style_to_azure( supported_style() ) -> ustring().
 % First the different translations:
 convert_style_to_azure( _Style=conversing ) ->
@@ -1645,7 +1736,8 @@ convert_style_to_azure( Style ) ->
 	end.
 
 
-% @doc Converts back our notion of age played into the one of Azure:
+
+-doc "Converts back our notion of age played into the one of Azure.".
 -spec convert_age_played_to_azure( age_played() ) -> ustring().
 % Not defined: convert_age_played_to_azure( child ) ->
 convert_age_played_to_azure( young_adult ) ->
@@ -1659,7 +1751,7 @@ convert_age_played_to_azure( senior ) ->
 
 
 
-% @doc Converts back our notion of roleplay into the one of Azure:
+-doc "Converts back our notion of roleplay into the one of Azure.".
 -spec convert_roleplay_to_azure( role_played() ) -> ustring().
 convert_roleplay_to_azure( narrator ) ->
 	"Narrator";

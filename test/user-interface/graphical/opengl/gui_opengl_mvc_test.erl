@@ -44,8 +44,8 @@ This test relies on the OpenGL 1.x compatibility mode, as opposed to more modern
 versions of OpenGL (e.g. 3.1) that rely on shaders and GLSL.
 
 See the gui_opengl.erl tested module and
-https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller for the MVC
-pattern.
+<https://en.wikipedia.org/wiki/Model%E2%80%93view%E2%80%93controller> for the
+MVC pattern.
 """.
 
 
@@ -74,11 +74,15 @@ pattern.
 	%
 	scheduling_period :: milliseconds() } ).
 
+
+-doc """
+Stores the current state of the Model, that is its logic, which here mostly
+manages the current rotating angle of the square.
+
+The model does not know any controller or view, nor the test itself.
+""".
 -type model_state() :: #model_state{}.
-% Stores the current state of the Model, that is its logic, which here mostly
-% manages the current rotating angle of the square.
-%
-% The model does not know any controller or view, nor the test itself.
+
 
 
 -record( view_state, {
@@ -113,11 +117,15 @@ pattern.
 	%
 	scheduling_period :: milliseconds() } ).
 
+
+
+-doc """
+Stores the current state of the View, that is all relevant rendering
+information.
+
+The view mostly knowns the model.
+""".
 -type view_state() :: #view_state{}.
-% Stores the current state of the View, that is all relevant rendering
-% information.
-%
-% The view mostly knowns the model.
 
 
 
@@ -134,21 +142,27 @@ pattern.
 	%
 	test_pid :: test_pid() } ).
 
+
+
+-doc """
+Stores the current state of the Controller, that is its inputs.
+
+The controller knows the view and the test, so that it can drive the termination
+and notify them of it.
+
+It also knows the model, even if it is not necessary for this test (as no user
+input is to impact the model).
+""".
 -type controller_state() :: #controller_state{}.
-% Stores the current state of the Controller, that is its inputs.
-%
-% The controller knows the view and the test, so that it can drive the
-% termination and notify them of it.
-%
-% It also knows the model, even if it is not necessary for this test (as no user
-% input is to impact the model).
 
 
+
+-doc "PID of the main test process.".
 -type test_pid() :: pid().
-% PID of the main test process.
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
 
@@ -159,14 +173,13 @@ pattern.
 -type view_pid() :: gui:view_pid().
 -type controller_pid() :: gui:controller_pid().
 
-
 -type gl_canvas() :: gui_opengl:gl_canvas().
 -type gl_context() :: gui_opengl:gl_context().
 -type texture() :: gui_opengl:texture().
 
 
 
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
@@ -231,7 +244,7 @@ run_actual_test() ->
 % Model section.
 
 
-% @doc Runs the model; initialises it and runs its main loop.
+-doc "Runs the model; initialises it and runs its main loop.".
 -spec run_model( any_hertz() ) -> no_return().
 run_model( EvalFrequency ) ->
 
@@ -250,7 +263,7 @@ run_model( EvalFrequency ) ->
 
 
 
-% @doc Main loop of the model logic.
+-doc "Main loop of the model logic.".
 -spec model_main_loop( model_state() ) -> no_return().
 model_main_loop( ModelState=#model_state{ spin_angle=Angle,
 										  scheduling_period=MsPeriod } ) ->
@@ -294,7 +307,7 @@ model_main_loop( ModelState=#model_state{ spin_angle=Angle,
 
 
 
-% @doc Handles any model-level pending requests.
+-doc "Handles any model-level pending requests.".
 -spec handle_pending_model_requests( model_state() ) ->
 				model_state() | 'model_terminated'.
 handle_pending_model_requests( ModelState ) ->
@@ -336,10 +349,12 @@ handle_pending_model_requests( ModelState ) ->
 
 % View section.
 
-% @doc Runs the view; initialises it and runs its main loop.
-%
-% No OpenGL outside of the view!
-%
+
+-doc """
+Runs the view; initialises it and runs its main loop.
+
+No OpenGL outside of the view!
+""".
 -spec run_view( any_hertz(), model_pid(), controller_pid() ) -> no_return().
 run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 
@@ -372,16 +387,17 @@ run_view( EvalFrequency, ModelPid, ControllerPid ) ->
 
 
 
-% @doc Main loop of the view logic.
+
+% Main loop of the view logic.
 
 
+-doc """
+Creates the initial test GUI: a main frame containing an OpenGL canvas is
+associated, in which an OpenGL context is created.
 
-% @doc Creates the initial test GUI: a main frame containing an OpenGL canvas is
-% associated, in which an OpenGL context is created.
-%
-% Once the rendering is done, the buffers are swapped and the current one is
-% displayed.
-%
+Once the rendering is done, the buffers are swapped and the current one is
+displayed.
+""".
 -spec init_test_gui() -> view_state().
 init_test_gui() ->
 
@@ -411,9 +427,10 @@ init_test_gui() ->
 
 
 
-% @doc The main loop of the test view, driven by the receiving of MyriadGUI
-% rendering-related messages.
-%
+-doc """
+The main loop of the test view, driven by the receiving of MyriadGUI
+rendering-related messages.
+""".
 -spec view_main_loop( view_state() ) -> void().
 view_main_loop( ViewState=#view_state{ scheduling_period=MsPeriod } ) ->
 
@@ -440,7 +457,7 @@ view_main_loop( ViewState=#view_state{ scheduling_period=MsPeriod } ) ->
 
 
 
-% @doc Handles any view-level pending events.
+-doc "Handles any view-level pending events.".
 -spec handle_pending_view_events( view_state() ) ->
 									view_state() | 'view_terminated'.
 %handle_pending_view_events( ViewState=#view_state{ main_frame=MainFrame } ) ->
@@ -548,7 +565,9 @@ handle_pending_view_events( ViewState ) ->
 
 
 
-% @doc Sets up OpenGL, once for all, once a proper OpenGL context is available.
+-doc """
+Sets up OpenGL, once for all, once a proper OpenGL context is available.
+""".
 -spec initialise_opengl( view_state() ) -> view_state().
 initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 										  context=GLContext,
@@ -614,10 +633,11 @@ initialise_opengl( ViewState=#view_state{ canvas=GLCanvas,
 
 
 
-% @doc Managing a resizing of the main frame.
-%
-% OpenGL context expected here to have already been set.
-%
+-doc """
+Managing a resizing of the main frame.
+
+OpenGL context expected here to have already been set.
+""".
 -spec on_main_frame_resized( view_state() ) -> view_state().
 on_main_frame_resized( ViewState=#view_state{ canvas=GLCanvas } ) ->
 
@@ -659,7 +679,9 @@ on_main_frame_resized( ViewState=#view_state{ canvas=GLCanvas } ) ->
 
 
 
-% @doc Performs a ("pure OpenGL") rendering of the view.
+-doc """
+Performs a ("pure OpenGL") rendering of the view.
+""".
 -spec render_view( view_state() ) -> void().
 render_view( #view_state{ opengl_state=undefined } ) ->
 	% Not ready yet, no GL context available before the main frame is shown:
@@ -744,13 +766,14 @@ render_view( #view_state{ canvas=GLCanvas,
 % Controller section.
 
 
-% @doc Runs the controller; initialises it and runs its main loop.
-%
-% No specific polling frequency applies.
-%
-% A more complex controller would manage user entries (mouse, keyboard,
-% joystick, etc.).
-%
+-doc """
+Runs the controller; initialises it and runs its main loop.
+
+No specific polling frequency applies.
+
+A more complex controller would manage user entries (mouse, keyboard, joystick,
+etc.).
+""".
 -spec run_controller( model_pid(), test_pid() ) -> no_return().
 run_controller( ModelPid, TestPid ) ->
 
@@ -788,9 +811,10 @@ run_controller( ModelPid, TestPid ) ->
 
 
 
-% @doc The main loop of the controller process, driven by the receiving of
-% MyriadGUI messages relating to user inputs.
-%
+-doc """
+The main loop of the controller process, driven by the receiving of MyriadGUI
+messages relating to user inputs.
+""".
 -spec controller_main_loop( controller_state() ) -> void().
 controller_main_loop( ControllerState ) ->
 
@@ -844,7 +868,7 @@ controller_main_loop( ControllerState ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

@@ -81,7 +81,9 @@ display_separator() ->
 
 
 
-% @doc Performs the same set of operations of an instance of each type of table.
+-doc """
+Performs the same set of operations of an instance of each type of table.
+""".
 run_basic_tests() ->
 
 	% Tests for each kind of table should be separated.

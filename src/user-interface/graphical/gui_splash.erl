@@ -28,7 +28,7 @@
 -module(gui_splash).
 
 -moduledoc """
-@doc Support for **splash screens**.
+Support for **splash screens**.
 
 Basic splash screens just display images, whereas more complex ones are
 dynamically built from elements that can include versions, release dates, etc.

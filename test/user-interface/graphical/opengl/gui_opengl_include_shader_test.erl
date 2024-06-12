@@ -60,8 +60,9 @@ Testing of the feature for basic **header include** for shaders.
 	% In more complex cases, would store the loaded textures, etc.
 	opengl_state :: option( my_opengl_state() ) } ).
 
+
+-doc "Test-specific overall GUI state.".
 -type my_gui_state() :: #my_gui_state{}.
-% Test-specific overall GUI state.
 
 
 
@@ -72,18 +73,20 @@ Testing of the feature for basic **header include** for shaders.
 
 						  } ).
 
+
+-doc """
+Test-specific overall OpenGL state.
+
+Storing VBOs and EBOs is probably only of use in order to deallocate them
+properly once not needed anymore.
+""".
 -type my_opengl_state() :: #my_opengl_state{}.
-% Test-specific overall OpenGL state.
-%
-% Storing VBOs and EBOs is probably only of use in order to deallocate them
-% properly once not needed anymore.
 
 
 
-% Shorthands:
+% Tupe shorthands:
 
 -type frame() :: gui:frame().
-
 
 -type gl_canvas() :: gui_opengl:gl_canvas().
 -type gl_context() :: gui_opengl:gl_context().
@@ -109,7 +112,7 @@ Testing of the feature for basic **header include** for shaders.
 
 
 
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
@@ -132,12 +135,13 @@ run_actual_test() ->
 
 
 
-% @doc Creates the initial test GUI: a main frame containing an OpenGL canvas to
-% which an OpenGL context is associated.
-%
-% Once the rendering is done, the buffers are swapped, and the content is
-% displayed.
-%
+-doc """
+Creates the initial test GUI: a main frame containing an OpenGL canvas to which
+an OpenGL context is associated.
+
+Once the rendering is done, the buffers are swapped, and the content is
+displayed.
+""".
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
@@ -164,9 +168,9 @@ init_test_gui() ->
 
 
 
-% @doc The main loop of this test, driven by the receiving of MyriadGUI
-% messages.
-%
+-doc """
+The main loop of this test, driven by the receiving of MyriadGUI messages.
+""".
 -spec gui_main_loop( my_gui_state() ) -> void().
 gui_main_loop( GUIState ) ->
 
@@ -220,9 +224,10 @@ gui_main_loop( GUIState ) ->
 
 
 
-% @doc Sets up OpenGL, once for all (regardless of next resizings), once a
-% proper OpenGL context is available.
-%
+-doc """
+Sets up OpenGL, once for all (regardless of next resizings), once a proper
+OpenGL context is available.
+""".
 -spec initialise_opengl( my_gui_state() ) -> my_gui_state().
 initialise_opengl( _GUIState=#my_gui_state{ canvas=GLCanvas,
 											context=GLContext,
@@ -291,7 +296,7 @@ initialise_opengl( _GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
-% @doc Cleans up OpenGL.
+-doc "Cleans up OpenGL.".
 -spec cleanup_opengl( my_gui_state() ) -> void().
 cleanup_opengl( #my_gui_state{ opengl_state=undefined } ) ->
 	ok;
@@ -305,9 +310,7 @@ cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 
 
 
-
-
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

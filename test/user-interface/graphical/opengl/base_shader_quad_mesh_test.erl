@@ -71,8 +71,9 @@ compatibility mode for OpenGL 1.x
 
 	opengl_state :: option( my_opengl_state() ) } ).
 
+
+-doc "Test-specific overall GUI state.".
 -type my_gui_state() :: #my_gui_state{}.
-% Test-specific overall GUI state.
 
 
 
@@ -84,9 +85,9 @@ compatibility mode for OpenGL 1.x
 
 						  } ).
 
--type my_opengl_state() :: #my_opengl_state{}.
-% Test-specific overall OpenGL state.
 
+-doc "Test-specific overall OpenGL state.".
+-type my_opengl_state() :: #my_opengl_state{}.
 
 
 % Four (mesh-based) quads: one rendered in wireframe, another in a solid
@@ -105,13 +106,13 @@ compatibility mode for OpenGL 1.x
 
 						  } ).
 
+-doc "Test-specific state of the model-view of interest.".
 -type my_mv_state() :: #my_mv_state{}.
-% Test-specific state of the model-view of interest.
 
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
 
@@ -129,7 +130,7 @@ compatibility mode for OpenGL 1.x
 
 
 
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
@@ -155,11 +156,12 @@ run_actual_test() ->
 
 
 
-% @doc Creates the initial model-view state.
-%
-% Cannot be done too early as loading images for textures requires the GUI to be
-% started, and, even more, texture creation requires OpenGL to be initialised.
-%
+-doc """
+Creates the initial model-view state.
+
+Cannot be done too early as loading images for textures requires the GUI to be
+started, and, even more, texture creation requires OpenGL to be initialised.
+""".
 -spec create_mv_state() -> my_mv_state().
 create_mv_state() ->
 
@@ -274,9 +276,10 @@ create_mv_state() ->
 
 
 
-% @doc Creates the initial test GUI: a main frame containing an OpenGL canvas to
-% which an OpenGL context is associated.
-%
+-doc """
+Creates the initial test GUI: a main frame containing an OpenGL canvas to which
+an OpenGL context is associated.
+""".
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
@@ -309,9 +312,9 @@ init_test_gui() ->
 
 
 
-% @doc The main loop of this test, driven by the receiving of MyriadGUI
-% messages.
-%
+-doc """
+The main loop of this test, driven by the receiving of MyriadGUI messages.
+""".
 -spec gui_main_loop( my_gui_state(), my_mv_state() ) -> void().
 gui_main_loop( GUIState, MVState ) ->
 
@@ -425,9 +428,10 @@ gui_main_loop( GUIState, MVState ) ->
 
 
 
-% @doc Sets up OpenGL, once for all (regardless of next resizings), once a
-% proper OpenGL context is available.
-%
+-doc """
+Sets up OpenGL, once for all (regardless of next resizings), once a proper
+OpenGL context is available.
+""".
 -spec initialise_opengl( my_gui_state() ) -> my_gui_state().
 initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 										   context=GLContext,
@@ -508,7 +512,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
-% @doc Initialises, OpenGL-wise, the model-view.
+-doc "Initialises, OpenGL-wise, the model-view.".
 -spec initialise_mv_for_opengl( my_mv_state(), my_gui_state() ) ->
 											my_mv_state().
 initialise_mv_for_opengl( MVState=#my_mv_state{
@@ -540,8 +544,7 @@ initialise_mv_for_opengl( MVState=#my_mv_state{
 
 
 
-
-% @doc Cleans up the model-view, OpenGL-wise.
+-doc "Cleans up the model-view, OpenGL-wise.".
 -spec cleanup_mv_for_opengl( my_mv_state() ) -> my_mv_state().
 cleanup_mv_for_opengl( MVState=#my_mv_state{
 		quad_wireframe_mesh=QuadWfMesh,
@@ -563,7 +566,7 @@ cleanup_mv_for_opengl( MVState=#my_mv_state{
 
 
 
-% @doc Cleans up OpenGL.
+-doc "Cleans up OpenGL.".
 -spec cleanup_opengl( my_gui_state() ) -> void().
 cleanup_opengl( #my_gui_state{ opengl_state=undefined } ) ->
 	ok;
@@ -575,13 +578,14 @@ cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 
 
 
-% @doc Managing a resizing of the main frame.
-%
-% OpenGL context expected here to have already been set.
-%
-% Once the rendering is done, the buffers are swapped, and the content is
-% displayed.
-%
+-doc """
+Managing a resizing of the main frame.
+
+OpenGL context expected here to have already been set.
+
+Once the rendering is done, the buffers are swapped, and the content is
+displayed.
+""".
 -spec on_main_frame_resized( my_gui_state(), my_mv_state() ) -> void().
 on_main_frame_resized( _GUIState=#my_gui_state{ canvas=GLCanvas }, MVState ) ->
 
@@ -622,7 +626,7 @@ on_main_frame_resized( _GUIState=#my_gui_state{ canvas=GLCanvas }, MVState ) ->
 
 
 
-% @doc Performs a (pure OpenGL) rendering.
+-doc "Performs a (pure OpenGL) rendering.".
 -spec render( width(), height(), my_mv_state() ) -> void().
 render( _Width, _Height, #my_mv_state{
 							quad_wireframe_mesh=QuadWfMesh,
@@ -654,7 +658,7 @@ render( _Width, _Height, #my_mv_state{
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

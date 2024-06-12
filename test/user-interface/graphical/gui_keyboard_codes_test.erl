@@ -42,7 +42,7 @@ See the gui_keyboard.erl tested module.
 -include_lib("myriad/include/myriad_ui.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -51,7 +51,9 @@ See the gui_keyboard.erl tested module.
 
 
 
-% @doc Lists all known scancodes: name of their define, then (decimal) value.
+-doc """
+Lists all known scancodes: name of their define, then (decimal) value.
+""".
 -spec list_scancode_pairs() -> { ustring(), scancode() }.
 list_scancode_pairs() ->
 	[	{ "MYR_SCANCODE_A", ?MYR_SCANCODE_A },
@@ -321,7 +323,9 @@ list_scancode_pairs() ->
 
 
 
-% @doc Lists all known keycodes: name of their define, then (decimal) value.
+-doc """
+Lists all known keycodes: name of their define, then (decimal) value.
+""".
 -spec list_keycode_pairs() -> { ustring(), keycode() }.
 list_keycode_pairs() ->
 	[
@@ -585,7 +589,8 @@ list_keycode_pairs() ->
 ].
 
 
-% @doc Runs the test.
+
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

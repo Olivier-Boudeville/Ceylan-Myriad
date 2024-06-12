@@ -32,7 +32,6 @@ Unit tests for the management of **texts and fonts**.
 """.
 
 
-
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
@@ -40,14 +39,18 @@ Unit tests for the management of **texts and fonts**.
 -define( test_font_size, 14 ).
 
 
-% Shorthands:
+
+-doc """
+Here the main loop just has to remember the frame whose closing is awaited for.
+""".
+-type my_test_state() :: frame().
+
+
+
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
 
-
--type my_test_state() :: frame().
-% Here the main loop just has to remember the frame whose closing is awaited
-% for.
 
 
 register_display( Text, Family, Style, Weight, Sizer, Panel ) ->
@@ -71,7 +74,7 @@ register_display( Text, Family, Style, Weight, Sizer, Panel ) ->
 
 
 
-% @doc Executes the actual test.
+-doc "Executes the actual test.".
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
@@ -154,10 +157,11 @@ render_fonts( Text, _Families=[ F | T ], Styles, Weights, Sizer,
 
 
 
-% @doc A very simple main loop, whose actual state is simply the GUI object
-% corresponding to the frame that shall be closed to stop the test
-% (i.e. CloseFrame).
-%
+-doc """
+A very simple main loop, whose actual state is simply the GUI object
+corresponding to the frame that shall be closed to stop the test
+(i.e. CloseFrame).
+""".
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( State=Frame ) ->
 
@@ -184,7 +188,7 @@ stop( Frame ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

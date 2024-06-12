@@ -59,7 +59,7 @@ A module to concentrate elements for the testing of OpenGL.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -87,7 +87,7 @@ A module to concentrate elements for the testing of OpenGL.
 % Section for general test facilities.
 
 
-% @doc Tells whether the described OpenGL test can be run.
+-doc "Tells whether the described OpenGL test can be run.".
 -spec can_be_run( ustring() ) -> 'yes' | 'batch' | 'no_opengl'.
 can_be_run( TestDescription ) ->
 
@@ -105,7 +105,7 @@ can_be_run( TestDescription ) ->
 
 
 
-% @doc Tells whether an OpenGL support seems available.
+-doc "Tells whether an OpenGL support seems available.".
 -spec has_opengl( ustring() ) -> 'yes' | 'no_opengl'.
 has_opengl( TestDescription ) ->
 
@@ -133,7 +133,7 @@ has_opengl( TestDescription ) ->
 % Path-related section.
 
 
-% @doc Returns the path to a test image directory.
+-doc "Returns the path to a test image directory.".
 -spec get_test_image_directory() -> directory_path().
 get_test_image_directory() ->
 	% Points to myriad/doc; relative to this test directory:
@@ -141,10 +141,10 @@ get_test_image_directory() ->
 
 
 
-
-% @doc Returns the path to a basic "material" test image, for example to be
-% mapped on a rotating cube.
-%
+-doc """
+Returns the path to a basic "material" test image, for example to be mapped on a
+rotating cube.
+""".
 -spec get_test_image_path() -> file_path().
 get_test_image_path() ->
 	file_utils:join( get_test_image_directory(),
@@ -152,9 +152,11 @@ get_test_image_path() ->
 					 "myriad-minimal-enclosing-circle-test.png" ).
 
 
-% @doc Returns the path to a logo test image. It may endlessly go up and down
-% on the screen.
-%
+
+-doc """
+Returns the path to a logo test image. It may endlessly go up and down on the
+screen.
+""".
 -spec get_logo_image_path() -> file_path().
 get_logo_image_path() ->
 	file_utils:join( get_test_image_directory(),
@@ -163,17 +165,20 @@ get_logo_image_path() ->
 		"myriad-space-time-coordinate-system.png" ).
 
 
-% Defined for convenience and sharing with other tests.
+
+-doc "Defined for convenience and sharing with other tests.".
 -spec get_myriad_blue_rgb() -> color_by_decimal().
 get_myriad_blue_rgb() ->
 	% #0027a5:
 	_RGB={ 0, 39, 165 }.
 
 
-% @doc Returns a conventional RGBA value (hence for a vec4).
-%
-% Defined for convenience and sharing with other tests.
-%
+
+-doc """
+Returns a conventional RGBA value (hence for a vec4).
+
+Defined for convenience and sharing with other tests.
+""".
 -spec get_myriad_blue_render() -> render_rgba_color().
 get_myriad_blue_render() ->
 	MyriadRGBA = erlang:insert_element( _PosIndex=4, get_myriad_blue_rgb(),
@@ -192,7 +197,7 @@ get_myriad_blue_render() ->
 % Logically, 4 vertices, 4 (triangle) faces.
 
 
-% @doc Returns a mesh corresponding to the Myriad test tetrahedron.
+-doc "Returns a mesh corresponding to the Myriad test tetrahedron.".
 -spec get_test_tetra_mesh( face_granularity() ) -> mesh().
 get_test_tetra_mesh( FaceGranularity ) ->
 	Vertices = get_test_tetra_vertices(),
@@ -206,7 +211,8 @@ get_test_tetra_mesh( FaceGranularity ) ->
 				 _NormalType=per_face, Normals, RenderingInfo ).
 
 
-% @doc Returns the (4) vertices of the Myriad test tetrahedron.
+
+-doc "Returns the (4) vertices of the Myriad test tetrahedron.".
 -spec get_test_tetra_vertices() -> [ vertex3() ].
 get_test_tetra_vertices() ->
 	[ _V1={ 0.0,  0.0,  0.0 }, % A
@@ -217,11 +223,12 @@ get_test_tetra_vertices() ->
 
 
 
-% @doc Returns the (4; as triangles) indexed faces of the test tetrahedron.
-%
-% Vertex order matters: it respects Myriad's conventions (CCW when seen from
-% outside).
-%
+-doc """
+Returns the (4; as triangles) indexed faces of the test tetrahedron.
+
+Vertex order matters: it respects Myriad's conventions (CCW when seen from
+outside).
+""".
 -spec get_test_tetra_faces() -> [ indexed_face() ].
 get_test_tetra_faces() ->
 	% Our indices start at 1:
@@ -233,7 +240,9 @@ get_test_tetra_faces() ->
 
 
 
-% @doc Returns the (4) per-face unit normals of the test tetrahedron.
+-doc """
+Returns the (4) per-face unit normals of the test tetrahedron.
+""".
 -spec get_test_tetra_normals() -> [ unit_normal3() ].
 get_test_tetra_normals() ->
 	[ _NF1=[  0.0,  0.0, -1.0 ], % normal of ACB
@@ -250,7 +259,7 @@ get_test_tetra_normals() ->
 
 
 
-% @doc Returns the (4) per-face colors of the test tetrahedron.
+-doc "Returns the (4) per-face colors of the test tetrahedron.".
 -spec get_test_tetra_colors( ) -> [ render_rgb_color() ].
 get_test_tetra_colors() ->
 	[ gui_color:get_color( CName ) || CName <- [ red, green, blue, yellow ] ].
@@ -266,9 +275,10 @@ get_test_tetra_colors() ->
 % It can be colored per-vertex or per-face.
 
 
-% @doc Returns a mesh corresponding to a Myriad test colored cube of the
-% specified edge length, with the specified face-related granularity for colors.
-%
+-doc """
+Returns a mesh corresponding to a Myriad test colored cube of the specified edge
+length, with the specified face-related granularity for colors.
+""".
 -spec get_test_colored_cube_mesh( distance(), face_granularity() ) -> mesh().
 get_test_colored_cube_mesh( EdgeLength, FaceGranularity ) ->
 	Vertices = get_test_cube_vertices( EdgeLength ),
@@ -286,9 +296,10 @@ get_test_colored_cube_mesh( EdgeLength, FaceGranularity ) ->
 
 
 
-% @doc Returns the (8) vertices corresponding to a Myriad test cube of the
-% specified edge length.
-%
+-doc """
+Returns the (8) vertices corresponding to a Myriad test cube of the specified
+edge length.
+""".
 -spec get_test_cube_vertices( distance() ) -> [ vertex3() ].
 get_test_cube_vertices( _EdgeLength=L ) ->
 	[ _V1={ -L,  L,  L }, _V2={  L,  L,  L },
@@ -298,11 +309,12 @@ get_test_cube_vertices( _EdgeLength=L ) ->
 
 
 
-% @doc Returns the (6; as quads) faces of the test cube.
-%
-% Vertex order matters: it respects Myriad's conventions (CCW when seen from
-% outside).
-%
+-doc """
+Returns the (6; as quads) faces of the test cube.
+
+Vertex order matters: it respects Myriad's conventions (CCW when seen from
+outside).
+""".
 -spec get_test_cube_faces() -> [ indexed_face() ].
 get_test_cube_faces() ->
 	% Our indices start at 1:
@@ -315,11 +327,12 @@ get_test_cube_faces() ->
 
 
 
-% @doc Returns the (6) per-face unit normals of the test cube.
-%
-% NFk is the normal of face Fk; they are actually useless, as here just
-% orthogonal to their respective faces.
-%
+-doc """
+Returns the (6) per-face unit normals of the test cube.
+
+NFk is the normal of face Fk; they are actually useless, as here just orthogonal
+to their respective faces.
+""".
 -spec get_test_cube_normals() -> [ unit_normal3() ].
 get_test_cube_normals() ->
 	[ _NF1=[  0.0, 0.0, 1.0 ], _NF2=[ 0.0,  0.0, -1.0 ],
@@ -328,10 +341,11 @@ get_test_cube_normals() ->
 
 
 
-% @doc Returns the colors to be used to render the test cube, depending on the
-% specified face granularity: either 8 per-vertex (not per-face) RGB integer
-% colors, or 6 per-face ones.
-%
+-doc """
+Returns the colors to be used to render the test cube, depending on the
+specified face granularity: either 8 per-vertex (not per-face) RGB integer
+colors, or 6 per-face ones.
+""".
 -spec get_test_cube_colors( face_granularity() ) -> [ color_by_decimal() ].
 get_test_cube_colors( _FaceGranularity=per_vertex ) ->
 	ColQuadruplets = [ _CF1={ red, green, blue, yellow },
@@ -359,9 +373,10 @@ get_test_cube_colors( _FaceGranularity=per_face ) ->
 % Blender default scene.
 
 
-% @doc Returns a mesh corresponding to a Myriad test textured cube of the
-% specified edge length, based on a previous glTF decoding.
-%
+-doc """
+Returns a mesh corresponding to a Myriad test textured cube of the specified
+edge length, based on a previous glTF decoding.
+""".
 -spec get_test_textured_cube_mesh( distance() ) -> mesh().
 get_test_textured_cube_mesh( EdgeLength ) ->
 	Vertices = get_test_cube_vertices( EdgeLength ),
@@ -375,9 +390,10 @@ get_test_textured_cube_mesh( EdgeLength ) ->
 
 
 
-% @doc Returns the (8 in theory, 24 in practice - each vertex belonging to
-% multiple faces/triangles) vertices of the test textured, decoded cube.
-%
+-doc """
+Returns the (8 in theory, 24 in practice - each vertex belonging to multiple
+faces/triangles) vertices of the test textured, decoded cube.
+""".
 -spec get_test_textured_cube_vertices() -> [ vertex3() ].
 get_test_textured_cube_vertices() ->
 	% Stangely enough, in this imported cube, each of the 8 (3D) vertices was
@@ -392,7 +408,9 @@ get_test_textured_cube_vertices() ->
 
 
 
-% @doc Returns the (2*6=12) face triangles of the test textured, decoded cube.
+-doc """
+Returns the (2*6=12) face triangles of the test textured, decoded cube.
+""".
 -spec get_test_textured_cube_faces() -> [ indexed_triangle() ].
 get_test_textured_cube_faces() ->
 
@@ -408,13 +426,12 @@ get_test_textured_cube_faces() ->
 
 
 
+-doc """
+Returns the 24 (3D, unitary) unit normals of the test textured, decoded cube.
 
-% @doc Returns the 24 (3D, unitary) unit normals of the test textured, decoded
-% cube.
-%
-% Possibly 24=3*8 corresponds to 3 normals per vertex of the cube (a given
-% vertex taking part to 3 faces / 6 triangles).
-%
+Possibly 24=3*8 corresponds to 3 normals per vertex of the cube (a given vertex
+taking part to 3 faces / 6 triangles).
+""".
 -spec get_test_textured_cube_normals() -> [ unit_normal3() ].
 get_test_textured_cube_normals() ->
 	[ [  0.0,  0.0, -1.0 ], [ 0.0,  1.0, -0.0 ], [ 1.0, 0.0, -0.0 ],
@@ -428,11 +445,12 @@ get_test_textured_cube_normals() ->
 
 
 
-% @doc Returns the 24 texture (2D) coordinates (each repeated thrice) of the
-% test textured, decoded cube.
-%
+-doc """
+Returns the 24 texture (2D) coordinates (each repeated thrice) of the test
+textured, decoded cube.
+""".
 -spec get_test_textured_cube_tex_coords( ) -> [ uv_point() ].
 get_test_textured_cube_tex_coords() ->
-	list_utils:repeat_elements( [ { 0.625,0.5  }, { 0.375,0.5  },
+	list_utils:repeat_elements( [ { 0.625,0.5 }, { 0.375,0.5 },
 		{ 0.625,0.25 }, { 0.375,0.25 }, { 0.625,0.75 }, { 0.375,0.75 },
-		{ 0.625,1.0  }, { 0.375,1.0  } ] ).
+		{ 0.625,1.0  }, { 0.375,1.0 } ] ).
