@@ -104,6 +104,15 @@ one.
 
 
 
+-doc """
+A result returned when starting an OTP instance, typically a supervisor bridge.
+""".
+-type start_result() :: { 'ok', pid() }
+					  | 'ignore'
+					  | { 'error', error_reason() }.
+
+
+
 -doc "Data specified to be used in a continue callback.".
 -type continue_data() :: term().
 
@@ -137,7 +146,8 @@ gen_server:handle_{cast,continue,info}/2.
 			   any_application_name/0, restart_type/0,
 			   supervisor_pid/0, worker_pid/0,
 			   application_run_context/0, supervisor_settings/0,
-			   otp_state/0, continue_data/0, termination_reason/0,
+			   otp_state/0, start_result/0, continue_data/0,
+			   termination_reason/0,
 			   handle_return/0, supervisor_restart/0 ]).
 
 
@@ -164,10 +174,11 @@ gen_server:handle_{cast,continue,info}/2.
 -export([ app_info_to_string/1 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type module_name() :: basic_utils:module_name().
 -type execution_target() :: basic_utils:execution_target().
+-type error_reason() :: basic_utils:error_reason().
 
 -type file_name() :: file_utils:file_name().
 -type file_path() :: file_utils:file_path().
