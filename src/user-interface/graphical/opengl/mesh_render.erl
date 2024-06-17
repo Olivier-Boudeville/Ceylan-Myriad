@@ -173,7 +173,7 @@ A render-related element, typically in a list, associated to a vertex or a face.
 		  rendering_state_to_string/1 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -1086,7 +1086,7 @@ prepare_vattrs( FaceGranularity, _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
 
 		per_face ->
 			[ list_utils:duplicate( Elem, _Count=FaceVCount )
-										 || Elem <- FaceHeadElems ]
+											|| Elem <- FaceHeadElems ]
 
 	end,
 
@@ -1124,8 +1124,8 @@ render_as_opengl( #mesh{ rendering_state=undefined } ) ->
 % (see the clause for non-textured cases for further details)
 %
 render_as_opengl( _M=#mesh{ %rendering_info={ textured, _TexSpecId,
-						   %                 _TexFaceInfo },
-						   rendering_state=#rendering_state{
+							%                 _TexFaceInfo },
+							rendering_state=#rendering_state{
 								program_id=ProgramId,
 								vao_id=VAOId,
 								vbo_layout=vtx3_uv,
@@ -1269,8 +1269,8 @@ rendering_info_to_string(
 					   [ length( Colors ), Colors ] );
 
 %rendering_info_to_string( _RI={ textured, TexInfos } ) ->
-%	text_utils:format( "rendering based on ~B texture information",
-%					   [ length( TexInfos ) ] ).
+%   text_utils:format( "rendering based on ~B texture information",
+%                      [ length( TexInfos ) ] ).
 rendering_info_to_string( _RI={ textured, TexSpecId, TexCoords } ) ->
 	text_utils:format( "rendering based on ~B texture coordinates relative "
 		"to texture specification #~B", [ length( TexCoords ), TexSpecId ] ).
