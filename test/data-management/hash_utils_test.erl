@@ -38,13 +38,14 @@ See the hash_utils.erl tested module.
 -include("test_facilities.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type hash_algorithm() :: hash_utils:hash_algorithm().
 -type binary_hash() :: hash_utils:binary_hash().
 
 
-% @doc Tests the hashing of files.
+
+-doc "Tests the hashing of files.".
 -spec test_file_hashing( hash_algorithm(), binary(), binary_hash() ) -> void().
 test_file_hashing( HashAlg, ContentToHash, ContentHashBin ) ->
 
@@ -67,7 +68,7 @@ test_file_hashing( HashAlg, ContentToHash, ContentHashBin ) ->
 
 
 
-% @doc Tests the hashing of terms.
+-doc "Tests the hashing of terms.".
 -spec test_term_hashing( hash_algorithm(), binary(), binary_hash() ) -> void().
 test_term_hashing( HashAlg, ContentToHash, ContentHashBin ) ->
 

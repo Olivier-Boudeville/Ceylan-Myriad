@@ -46,7 +46,7 @@ enable/disable JSON support and/or backend ones.
 
 
 
-% @doc Returns a term-to-encode and its expected JSON-encoded form.
+-doc "Returns a term-to-encode and its expected JSON-encoded form.".
 -spec get_encoding_sample() -> { term(), json_utils:bin_json() }.
 get_encoding_sample() ->
 	get_encoding_sample( as_map ).
@@ -70,14 +70,16 @@ get_encoding_sample( as_map ) ->
 
 
 
-% @doc Returns the local test JSON file.
+-doc "Returns the local test JSON file.".
 -spec get_test_file_path() -> file_utils:file_path().
 get_test_file_path() ->
 	"example.json".
 
 
 
-% @doc Returns a term decoded from JSON test file, if a parser is available.
+-doc """
+Returns a term decoded from JSON test file, if a parser is available.
+""".
 -spec run_stateless_testing() -> option( json_utils:json_term() ).
 run_stateless_testing() ->
 
@@ -155,7 +157,7 @@ run_stateless_testing() ->
 
 
 
-% Returns a term decoded from JSON test file.
+-doc "Returns a term decoded from JSON test file.".
 -spec run_stateful_testing( json_utils:parser_state() ) ->
 									json_utils:json_term().
 run_stateful_testing( ParserState ) ->
@@ -246,9 +248,9 @@ run_stateful_testing( ParserState ) ->
 
 
 
-% @doc Compares the decoding done by specified parser with the expected decoded
-% term.
-%
+-doc """
+Compares the decoding done by specified parser with the expected decoded term.
+""".
 -spec compare_with_if_available( json_utils:json_term(),
 					json_utils:parser_backend_name() ) -> void().
 compare_with_if_available( JsonDecodedTerm, BackendName ) ->

@@ -118,13 +118,14 @@ See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
 
 	sphere :: glu_id() } ).
 
+
+-doc "This is the test-specific overall GUI information.".
 -type my_test_gui_info() :: #my_test_gui_info{}.
-% This is the test-specific overall GUI information.
 
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type time() :: time_utils:time().
 
@@ -151,8 +152,7 @@ See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
 
 
 
-
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
@@ -189,10 +189,10 @@ run_actual_test() ->
 
 
 
-
-% @doc Creates the initial test GUI: a main frame containing a panel to which an
-% OpenGL canvas is associated, in which an OpenGL context is created.
-%
+-doc """
+Creates the initial test GUI: a main frame containing a panel to which an OpenGL
+canvas is associated, in which an OpenGL context is created.
+""".
 -spec init_test_gui() -> app_gui_state().
 init_test_gui() ->
 
@@ -263,10 +263,9 @@ init_test_gui() ->
 
 
 
-
-% @doc The main loop of this test, driven by the receiving of MyriadGUI
-% messages.
-%
+-doc """
+The main loop of this test, driven by the receiving of MyriadGUI messages.
+""".
 -spec gui_main_loop( app_gui_state() ) -> void().
 gui_main_loop( AppGUIState ) ->
 
@@ -325,13 +324,13 @@ gui_main_loop( AppGUIState ) ->
 
 
 
+-doc """
+The test-specific event driver for the onShown (user) event type, overriding
+default_onShown_driver/2: sets up OpenGL, once for all, now that a proper OpenGL
+context is available.
 
-% @doc The test-specific event driver for the onShown (user) event type,
-% overriding default_onShown_driver/2: sets up OpenGL, once for all, now that a
-% proper OpenGL context is available.
-%
-% Its type is event_driver().
-%
+Its type is event_driver().
+""".
 -spec test_onShown_driver( event_elements(), app_gui_state() ) ->
 								app_event_return().
 % Here OpenGL is to be used, but is not initialised yet.
@@ -485,10 +484,11 @@ test_onRepaintNeeded_driver( _Elements=[ GLCanvas, _GLCanvasId, _EventContext ],
 
 
 
-% @doc The test-specific event driver for the onResized (user) event type.
-%
-% Its type is event_driver().
-%
+-doc """
+The test-specific event driver for the onResized (user) event type.
+
+Its type is event_driver().
+""".
 -spec test_onResized_driver( event_elements(), app_gui_state() ) ->
 											app_event_return().
 test_onResized_driver( _Elements=[ _ParentWindow, _ParentWindowId,
@@ -537,13 +537,14 @@ test_onWindowClosed( Elements=[ ParentWindow, _ParentWindowId,
 
 
 
-% @doc Managing a resizing of the main frame.
-%
-% Defined as a separate function, as to be called from two contexts: when the
-% main frame is shown and when a resizing is needed.
-%
-% OpenGL context expected here to have already been set.
-%
+-doc """
+Managing a resizing of the main frame.
+
+Defined as a separate function, as to be called from two contexts: when the main
+frame is shown and when a resizing is needed.
+
+OpenGL context expected here to have already been set.
+""".
 -spec on_main_frame_resized( app_gui_state() ) -> app_gui_state().
 on_main_frame_resized( GUIState=#app_gui_state{
 		opengl_base_state={ initialised, GLCanvas, _GLContext },
@@ -595,10 +596,11 @@ on_main_frame_resized( GUIState=#app_gui_state{
 
 
 
-% @doc Updates the rendering.
-%
-% Expected to be called periodically.
-%
+-doc """
+Updates the rendering.
+
+Expected to be called periodically.
+""".
 -spec update_rendering( app_gui_state() ) -> app_gui_state().
 update_rendering( GUIState=#app_gui_state{
 		app_specific_info=AppSpecificInfo=#my_test_gui_info{
@@ -635,7 +637,7 @@ update_rendering( GUIState=#app_gui_state{
 
 
 
-% @doc Updates the texture of the clock according to the specified time.
+-doc "Updates the texture of the clock according to the specified time.".
 -spec update_clock_texture( time(), my_test_gui_info() ) -> my_test_gui_info().
 update_clock_texture( Time, TestGUIInfo=#my_test_gui_info{
 		clock_texture=ClockTexture,
@@ -648,7 +650,7 @@ update_clock_texture( Time, TestGUIInfo=#my_test_gui_info{
 
 
 
-% @doc Returns a texture corresponding to the specified clock time.
+-doc "Returns a texture corresponding to the specified clock time.".
 -spec get_clock_texture( time(), font(), brush() ) -> texture().
 get_clock_texture( Time, Font, Brush ) ->
 
@@ -659,9 +661,10 @@ get_clock_texture( Time, Font, Brush ) ->
 
 
 
-% @doc Performs a ("pure OpenGL") rendering, based on the specified (const)
-% OpenGL-based GUI information.
-%
+-doc """
+Performs a ("pure OpenGL") rendering, based on the specified (const)
+OpenGL-based GUI information.
+""".
 -spec render( my_test_gui_info() ) -> void().
 render( #my_test_gui_info{ client_widget=GLCanvas,
 						   mesh=CubeMesh,
@@ -750,7 +753,7 @@ render( #my_test_gui_info{ client_widget=GLCanvas,
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

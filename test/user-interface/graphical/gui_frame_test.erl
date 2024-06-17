@@ -43,13 +43,15 @@ See the gui.erl tested module.
 -include("test_facilities.hrl").
 
 
+
+-doc """
+Here the main loop just has to remember the frame whose closing is awaited for.
+""".
 -type my_test_state() :: gui_frame:frame().
-% Here the main loop just has to remember the frame whose closing is awaited
-% for.
 
 
 
-% @doc Executes the actual test.
+-doc "Executes the actual test.".
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
@@ -90,11 +92,11 @@ run_gui_test() ->
 
 
 
-
-% @doc A very simple main loop, whose actual state is simply the GUI object
-% corresponding to the frame that shall be closed to stop the test
-% (i.e. CloseFrame).
-%
+-doc """
+A very simple main loop, whose actual state is simply the GUI object
+corresponding to the frame that shall be closed to stop the test
+(i.e. CloseFrame).
+""".
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( CloseFrame ) ->
 
@@ -131,7 +133,7 @@ test_main_loop( CloseFrame ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

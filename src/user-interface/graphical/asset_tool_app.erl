@@ -52,7 +52,7 @@ Note: extremely far from being ready.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type width() :: gui:width().
 -type height() :: gui:height().
@@ -294,16 +294,17 @@ gui_main_loop( _GUIState=#app_state{ main_frame=_MainFrame,
 
 
 
-% @doc Loads image in specified canvas, and returns a list of information texts
-% about it.
-%
+-doc """
+Loads image in specified canvas, and returns a list of information texts about
+ it.
+""".
 load_image( Canvas ) ->
 	gui_canvas:load_image( Canvas, { 40, 20 }, "../../doc/example.bmp" ),
 	[ "eeee", "aaaa", "rrrrr" ].
 
 
 
-% @doc Updates information sizer with specified texts.
+-doc "Updates the information sizer with specified texts.".
 update_information_sizer( InfoSizer, Panel, Texts ) ->
 
 	%gui_sizer:clear( InfoSizer ),

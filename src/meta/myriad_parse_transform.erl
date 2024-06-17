@@ -256,7 +256,7 @@ apply_myriad_transform( InputAST, Options ) ->
 
 	%ast_utils:display_debug( "Myriad options:~n~p~n", [ Options ] ),
 
-	ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
+	%ast_utils:write_ast_to_file( InputAST, "Myriad-input-AST.txt" ),
 
 	% This allows to compare input and output ASTs more easily:
 	% (most useful input option)

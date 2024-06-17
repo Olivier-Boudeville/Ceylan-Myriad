@@ -43,9 +43,10 @@ See the web_utils.erl tested module.
 -compile( { nowarn_unused_function, [ test_local/0, test_online/0 ] } ).
 
 
-% @doc Just an example. A webserver is expected to run at the specified location
-% (see US-Web from an example thereof).
-%
+-doc """
+Just an example. A webserver is expected to run at the specified location (see
+US-Web from an example thereof).
+""".
 test_local() ->
 
 	TargetPort = 8080,

@@ -41,15 +41,6 @@ Testing the **support for the management of splash screens**.
 -include_lib("myriad/include/spawn_utils.hrl").
 
 
-% Shorthands:
-
--type frame() :: gui:frame().
-
--type splash_info() :: gui_splash:splash_info().
--type splash_panel() :: gui_splash:splash_panel().
-
-
-% State of the test application, kept and updated by its main loop.
 -record( my_test_state, {
 
 	main_frame :: frame(),
@@ -60,12 +51,22 @@ Testing the **support for the management of splash screens**.
 	% Allows easy pattern-matching of events:
 	splash_panel :: option( splash_panel() ) } ).
 
+
+-doc "State of the test application, kept and updated by its main loop.".
 -type my_test_state() :: #my_test_state{}.
 
 
 
+% Type shorthands:
 
-% @doc Runs the actual test.
+-type frame() :: gui:frame().
+
+-type splash_info() :: gui_splash:splash_info().
+-type splash_panel() :: gui_splash:splash_panel().
+
+
+
+-doc "Runs the actual test.".
 -spec run_splash_screen_test() -> void().
 run_splash_screen_test() ->
 
@@ -159,8 +160,7 @@ run_splash_screen_test() ->
 
 
 
-
-% The main loop of this test.
+-doc "The main loop of this test.".
 -spec test_main_loop( my_test_state() ) -> void().
 test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  splash_info=SplashInfo,
@@ -304,7 +304,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

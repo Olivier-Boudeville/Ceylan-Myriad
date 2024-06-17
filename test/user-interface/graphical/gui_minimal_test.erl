@@ -40,7 +40,7 @@ See the gui.erl tested module.
 
 
 
-% @doc Actual execution of the test.
+-doc "Actual execution of the test.".
 -spec run_test_gui() -> void().
 run_test_gui() ->
 
@@ -85,7 +85,7 @@ run_test_gui() ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

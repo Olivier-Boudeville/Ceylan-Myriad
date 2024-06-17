@@ -67,8 +67,10 @@ rendering.
 	% In more complex cases, would store the loaded textures, etc.
 	opengl_state :: option( my_opengl_state() ) } ).
 
+
+-doc "Test-specific overall GUI state.".
 -type my_gui_state() :: #my_gui_state{}.
-% Test-specific overall GUI state.
+
 
 
 -record( my_opengl_state, {
@@ -80,8 +82,10 @@ rendering.
 
 						  } ).
 
+
+-doc "Test-specific overall OpenGL state.".
 -type my_opengl_state() :: #my_opengl_state{}.
-% Test-specific overall OpenGL state.
+
 
 
 % First and only attribute in the vertex stream that will be passed to our
@@ -92,7 +96,7 @@ rendering.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type mesh() :: mesh:mesh().
 -type mesh_rendering_state() :: mesh:rendering_state().
@@ -109,9 +113,10 @@ rendering.
 
 
 
-% @doc Continues this test by rendering the specified mesh; however OpenGL must
-% be already initialised for that.
-%
+-doc """
+Continues this test by rendering the specified mesh; however OpenGL must be
+already initialised for that.
+""".
 -spec continue_test_with_opengl( mesh() ) -> void().
 continue_test_with_opengl( Mesh ) ->
 
@@ -131,12 +136,13 @@ continue_test_with_opengl( Mesh ) ->
 
 
 
-% @doc Creates the initial test GUI: a main frame containing an OpenGL canvas to
-% which an OpenGL context is associated.
-%
-% Once the rendering is done, the buffers are swapped, and the content is
-% displayed.
-%
+-doc """
+Creates the initial test GUI: a main frame containing an OpenGL canvas to which
+an OpenGL context is associated.
+
+Once the rendering is done, the buffers are swapped, and the content is
+displayed.
+""".
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
@@ -169,9 +175,9 @@ init_test_gui() ->
 
 
 
-% @doc The main loop of this test, driven by the receiving of MyriadGUI
-% messages.
-%
+-doc """
+The main loop of this test, driven by the receiving of MyriadGUI messages.
+""".
 -spec gui_main_loop( my_gui_state(), mesh() ) -> void().
 gui_main_loop( GUIState, Mesh ) ->
 
@@ -292,9 +298,10 @@ gui_main_loop( GUIState, Mesh ) ->
 
 
 
-% @doc Sets up OpenGL, once for all (regardless of next resizings), once a
-% proper OpenGL context is available.
-%
+-doc """
+Sets up OpenGL, once for all (regardless of next resizings), once a proper
+OpenGL context is available.
+""".
 -spec initialise_opengl( my_gui_state() ) -> my_gui_state().
 initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 										   context=GLContext,
@@ -408,7 +415,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
-% @doc Cleans up OpenGL.
+-doc "Cleans up OpenGL.".
 -spec cleanup_opengl( my_gui_state() ) -> void().
 cleanup_opengl( #my_gui_state{ opengl_state=undefined } ) ->
 	ok;
@@ -420,10 +427,11 @@ cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 
 
 
-% @doc Managing a resizing of the main frame.
-%
-% OpenGL context expected here to have already been set.
-%
+-doc """
+Managing a resizing of the main frame.
+
+OpenGL context expected here to have already been set.
+""".
 -spec on_main_frame_resized( my_gui_state(), mesh_rendering_state() ) ->
 											my_gui_state().
 on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
@@ -470,7 +478,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
-% @doc Performs a (pure OpenGL) rendering.
+-doc "Performs a (pure OpenGL) rendering.".
 -spec render( width(), height(), my_opengl_state(),
 			  mesh_rendering_state() ) -> void().
 render( _Width, _Height, _OpenGGLState, _MaybeMeshRenderState=undefined ) ->

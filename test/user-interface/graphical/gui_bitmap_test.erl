@@ -46,14 +46,13 @@ Testing the **support for the management of (mostly built-in) bitmaps**.
 
 
 
-
-% Shorthands:
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
 
 
 
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_bitmap_test() -> void().
 run_bitmap_test() ->
 
@@ -118,7 +117,7 @@ run_bitmap_test() ->
 
 
 
-% The main loop of this test.
+-doc "The main loop of this test.".
 -spec test_main_loop( frame() ) -> void().
 test_main_loop( MainFrame ) ->
 
@@ -146,7 +145,7 @@ test_main_loop( MainFrame ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

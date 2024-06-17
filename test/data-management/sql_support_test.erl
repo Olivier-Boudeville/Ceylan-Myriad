@@ -47,7 +47,7 @@ See the sql_support tested module.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type connection() :: sql_support:connection().
 
@@ -61,7 +61,9 @@ See the sql_support tested module.
 
 
 
-% @doc Returns the connection and user settings (if any) to apply to this test.
+-doc """
+Returns the connection and user settings (if any) to apply to this test.
+""".
 get_test_settings() ->
 
 	% Optional; will look-up the default '~/.ceylan-settings.etf' preference
@@ -257,17 +259,19 @@ run() ->
 
 
 
-% @doc Connects to the tested database and returns a corresponding connection,
-% useful for interactive testing.
-%
-% Usage example: run 'make shell' from the current test directory, then:
-%
-%  1> MyConn = sql_support_test:run_interactive().
-%  2> Tables = sql_support:list_table_names(MyConn).
-%  2> sql_support:execute_query(MyConn, "select * from customers").
-%  [...]
-%  n > ok = sql_support:close(Conn).
-%
+-doc """
+Connects to the tested database and returns a corresponding connection, useful
+for interactive testing.
+
+Usage example: run 'make shell' from the current test directory, then:
+```
+  1> MyConn = sql_support_test:run_interactive().
+  2> Tables = sql_support:list_table_names(MyConn).
+  2> sql_support:execute_query(MyConn, "select * from customers").
+  [...]
+  n > ok = sql_support:close(Conn).
+```
+""".
 -spec run_interactive() -> connection().
 run_interactive() ->
 

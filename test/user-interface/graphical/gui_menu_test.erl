@@ -37,16 +37,20 @@ Unit tests for the management of **menus**, in menu bars and popup menus.
 -include("test_facilities.hrl").
 
 
-% Shorthands:
+
+-doc """
+Here the main loop just has to remember the popup menu to activate in case of
+right click on the main frame, and this frame whose closing is awaited for.
+""".
+-type my_test_state() :: { frame(), menu() }.
+
+
+
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
 -type menu() :: gui_menu:menu().
 -type menu_bar() :: gui_menu:menu_bar().
-
-
--type my_test_state() :: { frame(), menu() }.
-% Here the main loop just has to remember the popup menu to activate in case of
-% right click on the main frame, and this frame whose closing is awaited for.
 
 
 
@@ -103,7 +107,6 @@ create_popup_menu() ->
 	_D = gui_menu:append_submenu( PopupMenu, item_d, "Item D", SecondSubMenu,
 								  "I am D's help" ),
 
-
 	_E = gui_menu:add_checkable_item( FirstSubMenu, _EId=item_e, "Item E" ),
 	_F = gui_menu:add_checkable_item( FirstSubMenu, _FId=item_f, "Item F",
 									  "I am F's help" ),
@@ -129,7 +132,7 @@ create_popup_menu() ->
 
 
 
-% @doc Executes the actual test.
+-doc "Executes the actual test.".
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
@@ -168,11 +171,11 @@ run_gui_test() ->
 
 
 
-
-% @doc A very simple main loop, whose actual state is simply the GUI object
-% corresponding to the frame that shall be closed to stop the test
-% (i.e. CloseFrame).
-%
+-doc """
+A very simple main loop, whose actual state is simply the GUI object
+corresponding to the frame that shall be closed to stop the test
+(i.e. CloseFrame).
+""".
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( State={ Frame, PopupMenu } ) ->
 
@@ -209,7 +212,7 @@ test_main_loop( State={ Frame, PopupMenu } ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

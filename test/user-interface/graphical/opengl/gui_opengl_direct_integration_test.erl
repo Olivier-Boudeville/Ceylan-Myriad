@@ -98,8 +98,9 @@ See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
 	% Records the current time to update the clock texture when relevant:
 	time :: option( time() ) } ).
 
+
+-doc "Test-specific overall GUI state.".
 -type my_gui_state() :: #my_gui_state{}.
-% Test-specific overall GUI state.
 
 
 
@@ -127,12 +128,14 @@ See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
 
 	sphere :: glu_id() } ).
 
+
+-doc "OpenGL-specific GUI test state.".
 -type my_opengl_state() :: #my_opengl_state{}.
-% OpenGL-specific GUI test state.
 
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type time() :: time_utils:time().
 
@@ -156,7 +159,7 @@ See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
 
 
 
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
@@ -191,10 +194,10 @@ run_actual_test() ->
 
 
 
-
-% @doc Creates the initial test GUI: a main frame containing a panel to which an
-% OpenGL canvas is associated, in which an OpenGL context is created.
-%
+-doc """
+Creates the initial test GUI: a main frame containing a panel to which an OpenGL
+canvas is associated, in which an OpenGL context is created.
+""".
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
@@ -238,9 +241,9 @@ init_test_gui() ->
 
 
 
-% @doc The main loop of this test, driven by the receiving of MyriadGUI
-% messages.
-%
+-doc """
+The main loop of this test, driven by the receiving of MyriadGUI messages.
+""".
 -spec gui_main_loop( my_gui_state() ) -> void().
 gui_main_loop( GUIState ) ->
 
@@ -360,7 +363,9 @@ gui_main_loop( GUIState ) ->
 
 
 
-% @doc Sets up OpenGL, once for all, once a proper OpenGL context is available.
+-doc """
+Sets up OpenGL, once for all, once a proper OpenGL context is available.
+""".
 -spec initialise_opengl( my_gui_state() ) -> my_gui_state().
 initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 										   context=GLContext,
@@ -436,10 +441,11 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
-% @doc Managing a resizing of the main frame.
-%
-% OpenGL context expected here to have already been set.
-%
+-doc """
+Managing a resizing of the main frame.
+
+OpenGL context expected here to have already been set.
+""".
 -spec on_main_frame_resized( my_gui_state() ) -> my_gui_state().
 on_main_frame_resized( GUIState=#my_gui_state{ panel=Panel,
 											   canvas=GLCanvas } ) ->
@@ -491,10 +497,11 @@ on_main_frame_resized( GUIState=#my_gui_state{ panel=Panel,
 
 
 
-% @doc Updates the rendering.
-%
-% Expected to be called periodically.
-%
+-doc """
+Updates the rendering.
+
+Expected to be called periodically.
+""".
 -spec update_rendering( my_gui_state() ) -> my_gui_state().
 update_rendering( GUIState=#my_gui_state{ opengl_state=GLState,
 										  time=PreviousTime } ) ->
@@ -528,7 +535,9 @@ update_rendering( GUIState=#my_gui_state{ opengl_state=GLState,
 
 
 
-% @doc Updates the texture of the clock according to the specified time.
+-doc """
+Updates the texture of the clock according to the specified time.
+""".
 -spec update_clock_texture( time(), my_opengl_state() ) ->
 												my_opengl_state().
 update_clock_texture( Time, GLState=#my_opengl_state{
@@ -540,7 +549,7 @@ update_clock_texture( Time, GLState=#my_opengl_state{
 
 
 
-% @doc Returns a texture corresponding to the specified clock time.
+-doc "Returns a texture corresponding to the specified clock time.".
 -spec get_clock_texture( time(), font(), brush() ) -> texture().
 get_clock_texture( Time, Font, Brush ) ->
 
@@ -551,9 +560,10 @@ get_clock_texture( Time, Font, Brush ) ->
 
 
 
-% @doc Performs a ("pure OpenGL") rendering, based on the specified (const)
-% OpenGL state.
-%
+-doc """
+Performs a ("pure OpenGL") rendering, based on the specified (const) OpenGL
+state.
+""".
 -spec render( my_opengl_state() ) -> void().
 render( #my_opengl_state{ render_target=Widget,
 						  mesh=CubeMesh,
@@ -650,7 +660,7 @@ render( #my_opengl_state{ render_target=Widget,
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

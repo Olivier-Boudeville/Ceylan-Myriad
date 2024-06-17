@@ -45,7 +45,6 @@ show its strange attractor (and also test the `rk4_solver` module).
 % Rendering section.
 
 
-% Description of a simple, local, screen coordinate system:
 -record( screen, {
 
 	center :: integer_point2(),
@@ -53,17 +52,21 @@ show its strange attractor (and also test the `rk4_solver` module).
 	zoom_x :: zoom_factor(),
 	zoom_y :: zoom_factor() } ).
 
+
+-doc "Description of a simple, local, screen coordinate system.".
 -type screen() :: #screen{}.
 
 
 
+-doc """
+The solver table is an associative table whose keys are the PID of each solver,
+and whose values are {Color, LastPoint} pairs.
+""".
 -type solver_table() :: table( solver_pid(), { color(), point3() } ).
-% The solver table is an associative table whose keys are the PID of each
-% solver, and whose values are {Color, LastPoint} pairs.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type message() :: basic_utils:message().
 
@@ -87,12 +90,12 @@ show its strange attractor (and also test the `rk4_solver` module).
 
 
 
-% @doc Resolves the specified equations based on the specified initial
-% conditions and derivate function, notifying the specified listener of the new
-% computations.
-%
-% Main loop of a solver instance.
-%
+-doc """
+Resolves the specified equations based on the specified initial conditions and
+derivate function, notifying the specified listener of the new computations.
+
+Main loop of a solver instance.
+""".
 % We are in 3D here:
 -spec solver_main_loop( f3p(), point3(), time(), time_step(), screen(),
 						pid() ) -> no_return().
@@ -183,9 +186,10 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 
 
 
-% @doc Returns a list of the next PointCount projected points, the last point
-% computed and the corresponding next current time.
-%
+-doc """
+Returns a list of the next PointCount projected points, the last point computed
+and the corresponding next current time.
+""".
 compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount ) ->
 	% Clearer than a fold:
 	compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount,
@@ -208,10 +212,11 @@ compute_next_estimates( F, Point, Time, Timestep, Screen, PointCount, Acc ) ->
 
 
 
-% @doc Function f(t,v) corresponding to the equations of the Lorenz system.
-%
-% See http://en.wikipedia.org/wiki/Lorenz_system
-%
+-doc """
+Function f(t,v) corresponding to the equations of the Lorenz system.
+
+See <http://en.wikipedia.org/wiki/Lorenz_system>.
+""".
 -spec lorenz_function( time(), point3() ) -> point3().
 lorenz_function( _Time, _P={ X0, Y0, Z0 } ) ->
 
@@ -232,6 +237,9 @@ lorenz_function( _Time, _P={ X0, Y0, Z0 } ) ->
 
 % GUI section.
 
+% The left part of the frame gathers the buttons, while the right one shows the
+% canvas.
+
 
 % State of the program, passed between event drivers.
 -record( gui_state, { main_frame,
@@ -249,11 +257,6 @@ lorenz_function( _Time, _P={ X0, Y0, Z0 } ) ->
 
 					  % The current applicable timestep:
 					  timestep :: time_step() } ).
-
-
-
-% The left part of the frame gathers the buttons, while the right one shows the
-% canvas.
 
 
 -spec get_main_window_width() -> coordinate().
@@ -276,7 +279,7 @@ get_main_window_height() ->
 %   480.
 
 
-% @doc Initialises the GUI and the associated parts (solvers).
+-doc "Initialises the GUI and the associated parts (solvers).".
 -spec start() -> no_return().
 start() ->
 
@@ -447,15 +450,17 @@ start() ->
 
 
 
-% @doc Returns the initial base point (initial condition) for solvers.
+-doc "Returns the initial base point (initial condition) for solvers.".
 -spec get_initial_base_point() -> point3().
 get_initial_base_point() ->
 	{ 0.1, 0.0, 0.0 }.
 
 
-% @doc This table helps the rendering process keeping track of the solvers that
-% feed it with new points to plot.
-%
+
+-doc """
+This table helps the rendering process keeping track of the solvers that feed it
+with new points to plot.
+""".
 create_solver_table( Derivative, Colors, InitialPoint, InitialTime,
 					 InitialTimestep, Screen ) ->
 	create_solver_table( Derivative, Colors, InitialPoint, InitialTime,
@@ -487,7 +492,8 @@ create_solver_table( Derivative, _Colors=[ C | T ],
 						 InitialTimestep, Screen, NewAcc ).
 
 
-% @doc Resets the solvers based on the specified base point.
+
+-doc "Resets the solvers based on the specified base point.".
 -spec reset_solvers( solver_table(), point3() ) -> void().
 reset_solvers( SolverTable, InitialP ) ->
 	TransVec = [ -4.0, 11.0, 7.0 ],
@@ -505,9 +511,9 @@ reset_solvers( _Solvers=[ SolverPid | T ], CurrentP, TransVec ) ->
 
 
 
-% @doc The main loop of this test, driven by the receiving of MyriadGUI
-% messages.
-%
+-doc """
+The main loop of this test, driven by the receiving of MyriadGUI messages.
+""".
 gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 									start_button=StartButton,
 									increase_step_button=IncButton,
@@ -731,7 +737,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 
 
 
-% @doc Sends specified message to all solvers.
+-doc "Sends specified message to all solvers.".
 -spec send_to_solvers( message(), solver_table() ) -> void().
 send_to_solvers( Msg, SolverTable ) ->
 	Solvers = table:keys( SolverTable ),
@@ -739,7 +745,9 @@ send_to_solvers( Msg, SolverTable ) ->
 
 
 
-% @doc Projects the specified 3D point onto 2D screen system.
+-doc """
+Projects the specified 3D point onto 2D screen system.
+""".
 -spec project_2D( point3(), screen() ) -> integer_point2().
 project_2D( _Point={ X, Y, Z }, #screen{ center={ Xc, Yc },
 										 zoom_x=ZoomX,
@@ -751,9 +759,10 @@ project_2D( _Point={ X, Y, Z }, #screen{ center={ Xc, Yc },
 
 
 
-% @doc Draws lines between all the specified (already projected) points, and
-% returns the last of these points.
-%
+-doc """
+Draws lines between all the specified (already projected) points, and returns
+the last of these points.
+""".
 draw_lines( _Canvas, _Points=[ LastPoint ], _Color ) ->
 	LastPoint;
 
@@ -763,7 +772,7 @@ draw_lines( Canvas, _Points=[ P1, P2 | T ], Color ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

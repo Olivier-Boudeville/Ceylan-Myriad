@@ -28,7 +28,7 @@
 -module(gui_window).
 
 -moduledoc """
-@doc Gathering of various facilities for **windows**.
+Gathering of various facilities for **windows**.
 
 A window may be a top-level of not, a frame, a splitter window, etc.
 

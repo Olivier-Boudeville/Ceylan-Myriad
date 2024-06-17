@@ -52,24 +52,6 @@ See the gui.erl tested module.
 -export([ test_state_to_string/1 ]).
 
 
-% Shorthands:
-
--type count() :: basic_utils:count().
-
--type ustring() :: text_utils:ustring().
-
--type size() :: gui:size().
--type width() :: gui:width().
--type height() :: gui:height().
-
--type button() :: gui_button:button().
--type canvas() :: gui_canvas:canvas().
-
-
--type render_mode() :: 'test_shape_rendering' | 'test_dynamic_mec'.
-
-
-% The state of the test application, kept and updated by its main loop.
 -record( my_test_state, {
 
 	main_frame :: gui_frame:frame(),
@@ -93,7 +75,30 @@ See the gui.erl tested module.
 
 	render_mode = test_shape_rendering :: render_mode() } ).
 
+
+-doc """
+The state of the test application, kept and updated by its main loop.
+""".
 -type my_test_state() :: #my_test_state{}.
+
+
+% Local type:
+-type render_mode() :: 'test_shape_rendering' | 'test_dynamic_mec'.
+
+
+% Type shorthands:
+
+-type count() :: basic_utils:count().
+
+-type ustring() :: text_utils:ustring().
+
+-type size() :: gui:size().
+-type width() :: gui:width().
+-type height() :: gui:height().
+
+-type button() :: gui_button:button().
+-type canvas() :: gui_canvas:canvas().
+
 
 
 -spec test_state_to_string( my_test_state() ) -> ustring().
@@ -134,7 +139,8 @@ get_main_window_height() ->
 	600.
 
 
-% @doc Returns the size of the main test window.
+
+-doc "Returns the size of the main test window.".
 -spec get_main_window_size() -> size().
 get_main_window_size() ->
 	{ get_main_window_width(), get_main_window_height() }.
@@ -144,7 +150,7 @@ get_main_window_size() ->
 % Canvas size automatically determined based on its parent panel.
 
 
-% @doc Executes the actual test.
+-doc "Executes the actual test.".
 -spec run_test_gui() -> void().
 run_test_gui() ->
 
@@ -285,7 +291,6 @@ run_test_gui() ->
 		trace_utils:debug_fmt( "Initial ~ts",
 							   [ test_state_to_string( InitialTestState ) ] ) ),
 
-
 	% Renders the GUI:
 	gui_frame:show( MainFrame ),
 
@@ -293,7 +298,7 @@ run_test_gui() ->
 
 
 
-% @doc The main loop of this test.
+-doc "The main loop of this test.".
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  render_shape_button=RenderShapeButton,
@@ -468,7 +473,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 
 
-% @doc Renders the specified canvas.
+-doc "Renders the specified canvas.".
 -spec render( render_mode(), count(), canvas() ) -> void().
 render( _RenderMode=test_shape_rendering, _PointCount, Canvas ) ->
 	render_shapes( Canvas );
@@ -478,7 +483,7 @@ render( _RenderMode=test_dynamic_mec, PointCount, Canvas ) ->
 
 
 
-% @doc Renders the shape examples onto the specified canvas.
+-doc "Renders the shape examples onto the specified canvas.".
 -spec render_shapes( canvas() ) -> void().
 render_shapes( Canvas ) ->
 
@@ -555,10 +560,11 @@ render_shapes( Canvas ) ->
 
 
 
-% @doc Renders the MEC (Minimal Enclosing Circle) view, for a polygon of
-% specified number of vertices, whose coordinates are randomly determined at
-% each invocation.
-%
+-doc """
+Renders the MEC (Minimal Enclosing Circle) view, for a polygon of specified
+number of vertices, whose coordinates are randomly determined at each
+invocation.
+""".
 -spec render_mec( canvas(), count() ) -> void().
 render_mec( Canvas, PointCount ) ->
 
@@ -624,7 +630,7 @@ render_mec( Canvas, PointCount ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 
