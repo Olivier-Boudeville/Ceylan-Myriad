@@ -166,7 +166,8 @@ See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 -include_lib("wx/include/wx.hrl").
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type any_file_path() :: file_utils:any_file_path().
 
@@ -190,7 +191,6 @@ See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 
 
 
-
 -doc """
 Returns a bitmap of the specified dimensions, using the current system color
 depth.
@@ -200,6 +200,7 @@ To be explicitly destructed (see destruct/1) when done with it.
 -spec create( width(), height() ) -> bitmap().
 create( Width, Height ) ->
 	create( Width, Height, ?wxBITMAP_SCREEN_DEPTH ).
+
 
 
 -doc """
@@ -212,6 +213,7 @@ create( Width, Height, ColorDepth ) ->
 	NewBitmap = create_empty( Width, Height ),
 	populate_buffer( NewBitmap, Width, Height, ColorDepth ),
 	NewBitmap.
+
 
 
 -doc """
@@ -273,7 +275,6 @@ Destructs the specified bitmap (which must not be locked).
 
 Decrements its reference count; may trigger an actual destruction immediately or
 not.
-
 """.
 -spec destruct( bitmap() ) -> void().
 destruct( Bitmap ) ->
@@ -451,7 +452,8 @@ wx-specific one.
 """.
 -spec to_wx_bitmap_id( bitmap_name_id() ) -> wx_art_id().
 to_wx_bitmap_id( BitmapId ) ->
-	case gui_generated:get_maybe_second_for_bitmap_id( BitmapId ) of
+	case gui_generated:get_maybe_second_for_standard_bitmap_name_id(
+			BitmapId ) of
 
 		undefined ->
 			throw( { unknown_bitmap_id, BitmapId } );

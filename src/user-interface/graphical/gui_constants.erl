@@ -152,7 +152,7 @@ list_topic_spec_functions() ->
 % element look-up and the 'both' conversion direction).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type topic_spec( F, S ) :: const_bijective_topics:topic_spec( F, S ).
 
@@ -191,8 +191,10 @@ list_topic_spec_functions() ->
 -type multi_choice_dialog_style() :: gui_dialog:multi_choice_dialog_style().
 -type text_entry_dialog_style() :: gui_dialog:text_entry_dialog_style().
 -type file_selection_dialog_style() :: gui_dialog:file_selection_dialog_style().
+
 -type directory_selection_dialog_style() ::
 		gui_dialog:directory_selection_dialog_style().
+
 %-type colour_selection_dialog_style() ::
 %    gui_dialog:colour_selection_dialog_style().
 
