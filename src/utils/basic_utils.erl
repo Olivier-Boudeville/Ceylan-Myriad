@@ -49,7 +49,6 @@ See basic_utils_test.erl for the corresponding test.
 		  wait_for_acks_nothrow/3, wait_for_acks_nothrow/4,
 
 		  wait_for_acks/4, wait_for_acks/5,
-
 		  wait_for_summable_acks/5,
 		  wait_for_many_acks/4, wait_for_many_acks/5,
 		  send_to_pid_set/2 ]).
@@ -578,7 +577,7 @@ eliminate afterwards).
 -type io_list_mod() :: text_utils:io_list().
 
 
-% Shorthands:
+% Type shorthands:
 
 -type set( T ) :: set_utils:set( T ).
 
