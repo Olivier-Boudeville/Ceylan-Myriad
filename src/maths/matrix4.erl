@@ -1509,10 +1509,36 @@ HM.TM`.
 translate_homogeneous_right( _HM=identity_4, VT ) ->
 	translation( VT );
 
-translate_homogeneous_right( HM, VT ) ->
-	% Not specifically optimised/optimisable:
-	TM = translation( VT ),
-	mult( HM, TM ).
+translate_homogeneous_right( HM=#compact_matrix4{
+								m11=M11, m12=M12, m13=M13, tx=Tx,
+								m21=M21, m22=M22, m23=M23, ty=Ty,
+								m31=M31, m32=M32, m33=M33, tz=Tz },
+							 VT=[ Vx, Vy, Vz ] ) ->
+	% Could be directly:
+	%TM = translation( VT ),
+	%mult( HM, TM ).
+
+	% A bit more optimised:
+
+	NewTx = Tx + M11*Vx + M12*Vy + M13*Vz,
+	NewTy = Ty + M21*Vx + M22*Vy + M23*Vz,
+	NewTz = Tz + M31*Vx + M32*Vy + M33*Vz,
+
+	Res = HM#compact_matrix4{ tx=NewTx,
+							  ty=NewTy,
+							  tz=NewTz },
+
+	% No need to check more, it is correct:
+	cond_utils:if_defined( myriad_check_paranoid_linear,
+						   begin
+								TM = translation( VT ),
+								CorrectRes = mult( HM, TM ),
+								true = are_equal( Res, CorrectRes )
+						   end,
+						   basic_utils:ignore_unused( VT ) ),
+
+	Res.
+
 
 
 
