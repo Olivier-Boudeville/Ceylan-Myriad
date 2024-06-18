@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2023-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,28 +25,60 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 9, 2023.
 
-
-% @doc Minimal testing of <b>shader-based transformation rendering</b>: applies
-% a transformation matrix created from the application and displays a textured
-% square based on it that can be moved with the keyboard to test translations
-% (and directions thereof) in the current referential.
-%
-% This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3),
-% as opposed to the compatibility mode for OpenGL 1.x.
-%
 -module(gui_opengl_transformation_shader_test).
+
+-moduledoc """
+Minimal testing of **shader-based transformation rendering**: applies a
+transformation matrix created from the application and displays a textured
+square based on it that can be moved with the keyboard to test transformations
+(translations, rotations and scalings) and directions thereof in the current
+coordinate system.
+
+This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
+(e.g. a Z-UP coordinate system).
+""".
+
 
 
 % Implementation notes:
 %
 % Inspired from https://learnopengl.com/Getting-started/Transformations.
 %
-% Here, as we used NDC (normalised coordinates), not need to render based on the
+% Here, as we used NDC (normalised coordinates), no need to render based on the
 % dimensions of the canvas.
 %
 % Refer to https://myriad.esperide.org/#geometric-conventions to better
-% understand the referential and transformations involved.
+% understand the coordinate system and transformations involved.
+%
+% A Myriad-textured square will be initially located "centered on the floor":
+% its center will be the origin, it will belong to the Z=0 plane (zero altitude)
+% and its axes will be parallel to the X and Y ones.
+%
+% The camera will be located at the origin, looking towards the -Z axis
+% ("downward"), and its up direction will be the Y axis.
+%
+% No specific lighting applies.
+%
+% Refer to myriad-opengl-transformation-setting.png for a (Blender-based) view
+% of the initial setting of this test.
 
+% An improvement could be not to texture the backside of the square (just
+% rendered as pure black); easily done with legacy OpenGL, maybe less with
+% shaders.
+
+% With a square of null thickness, scaling along the Z axis will not change
+% anything.
+
+% Due to how 4x4 matrix multiplication works, the translations will be applied
+% last, whereas rotations and scalings will happen in their reverse
+% specification order. As a result, for example if rotating the square whereas
+% it has been translated far away from the origin, it will not rotate around the
+% origin, but on itself, in its local coordinate system (around the origin of
+% its coordinate system).
+
+% This version uses matrices (matrix4), not transformations (transform4), and no
+% camera (the view matrix is the identity; only the model matrix applies).
 
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
@@ -60,7 +92,8 @@
 -include("test_facilities.hrl").
 
 
--type transformation_mode() :: 'translation' | 'rotation' | 'shearing'.
+-doc "A transformation mode.".
+-type transformation_mode() :: 'translation' | 'rotation' | 'scaling'.
 
 
 % Test-specific overall GUI state:
@@ -90,22 +123,22 @@
 	% recompute the model-view matrix from the next higher-level parameters:
 
 	% The 3D position of the center of the model (textured square) in the world
-	% referential:
+	% coordinate system:
 	%
 	%center_pos :: point3(),
 
 	% The angle of the model (textured square) along the X axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%x_angle :: radians(),
 
 	% The angle of the model (textured square) along the Y axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%y_angle :: radians(),
 
 	% The angle of the model (textured square) along the Z axis of the world
-	% referential:
+	% coordinate system:
 	%
 	%z_angle :: radians(),
 
@@ -113,23 +146,23 @@
 	% The model-view matrix for the square of interest:
 	model_view :: matrix4(),
 
-	% The currect projection settings that apply:
+	% The current projection settings that apply:
 	projection_settings :: projection_settings(),
 
-	% The projection matrix of interest:
+	% The corresponding projection matrix of interest:
 	projection :: matrix4(),
 
 	% The currently active transformation mode (translation, rotation,
-	% or shearing):
+	% or scaling):
 	%
 	transformation_mode :: transformation_mode(),
 
 	% In more complex cases, would store the loaded textures, etc.:
-	opengl_state :: maybe( my_opengl_state() ) } ).
+	opengl_state :: option( my_opengl_state() ) } ).
 
+
+-doc "Test-specific overall GUI state.".
 -type my_gui_state() :: #my_gui_state{}.
-% Test-specific overall GUI state.
-
 
 
 -record( my_opengl_state, {
@@ -138,7 +171,7 @@
 	program_id :: program_id(),
 
 	% Needs an OpenGL context:
-	texture :: maybe( texture() ),
+	texture :: option( texture() ),
 
 	% The identifier of the Model-View uniform matrix:
 	model_view_id :: uniform_id(),
@@ -158,128 +191,53 @@
 	% The VBO concentrating vertices and texture coordinates:
 	square_merged_vbo_id :: vbo_id(),
 
-	% Indices for the vertex:
+	% Indices of the vertices:
 	square_ebo_id :: ebo_id() } ).
 
+
+-doc """
+Test-specific overall OpenGL state.
+
+Storing VBOs and EBOs is probably only of use in order to deallocate them
+properly once not needed anymore.
+""".
 -type my_opengl_state() :: #my_opengl_state{}.
-% Test-specific overall OpenGL state.
-%
-% Storing VBOs and EBOs is probably only of use in order to deallocate them
-% properly once not needed anymore.
 
 
-% Key bindings (Z-up conventions), first supposing a keypad is available:
 
--define( has_keypad, true ).
-%-define( has_keypad, false ).
+% For the shared navigation defines:
+-include("gui_opengl_test_defines.hrl").
 
+
+% Test-specific defines:
 
 -if( ?has_keypad =:= true ).
 
-% X (abscissa) is controlled by left-right keypad numbers/arrows:
-
-% Object seen moving to the right:
--define( increase_x_scan_code, ?MYR_SCANCODE_KP_6 ).
-
-% To the left:
--define( decrease_x_scan_code, ?MYR_SCANCODE_KP_4 ).
-
-
-% Y (depth)
-
-% Moving farther:
--define( increase_y_scan_code, ?MYR_SCANCODE_KP_9 ).
-
-% Nearer:
--define( decrease_y_scan_code, ?MYR_SCANCODE_KP_3 ).
-
-
-% Z (ordinate)
-
-% Up:
--define( increase_z_scan_code, ?MYR_SCANCODE_KP_8 ).
-
-% Down:
--define( decrease_z_scan_code, ?MYR_SCANCODE_KP_2 ).
-
-
-% Re-center all:
+% Re-centers all:
 -define( reset_scan_code, ?MYR_SCANCODE_KP_5 ).
 
-
-% Switch to the next transformation mode:
+% Switches to the next transformation mode:
 -define( mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
-
 
 
 -else. % Not using keypad here:
 
-% X (abscissa) is controlled by left-right keypad numbers/arrows:
 
-% Object seen moving to the right:
--define( increase_x_scan_code, ?MYR_SCANCODE_RIGHT ).
-
-% To the left:
--define( decrease_x_scan_code, ?MYR_SCANCODE_LEFT ).
-
-
-% Y (depth)
-
-% Moving farther:
--define( increase_y_scan_code, ?MYR_SCANCODE_UP ).
-
-% Nearer:
--define( decrease_y_scan_code, ?MYR_SCANCODE_DOWN ).
-
-
-% Z (ordinate)
-
-% Up:
--define( increase_z_scan_code, ?MYR_SCANCODE_PAGEUP ).
-
-% Down:
--define( decrease_z_scan_code, ?MYR_SCANCODE_PAGEDOWN ).
-
-
-% Re-center all:
 -define( reset_scan_code, ?MYR_SCANCODE_SPACE ).
 
-
-% Switch to the next transformation mode:
 -define( mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
+
 
 -endif. % has_keypad
 
 
 
--define( projection_mode_scan_code, ?MYR_SCANCODE_P ).
+% Type shorthands:
 
-% End test:
--define( quit_scan_code, ?MYR_SCANCODE_ESCAPE ).
-
-
-
-
-% An increment on a given dimension:
--define ( delta_coord, 0.1 ).
-
-% An increment on a given angle, in degrees:
--define ( delta_angle, 2.0 ).
-
-% A factor of a given scaling:
--define ( delta_scale, 0.1 ).
-
-
-% Shorthands:
+-type ustring() :: text_utils:ustring().
 
 -type matrix4() :: matrix4:matrix4().
 -type projection_settings() :: projection:projection_settings().
-
--type orthographic_settings() ::
-	projection:orthographic_settings().
-
--type perspective_settings() ::
-	projection:perspective_settings().
 
 -type frame() :: gui_frame:frame().
 -type aspect_ratio() :: gui:aspect_ratio().
@@ -315,14 +273,19 @@
 -define( my_texture_coords_attribute_index, 1 ).
 
 
-% @doc Prepares all information needed to render the square, and returns them.
-%
-% Here a single VBO is used, merging the vertices and the texture coordinates;
-% additionally an EBO is used.
-%
+
+-doc """
+Prepares all information needed to render the square, and returns them.
+
+Here a single VBO is used, merging the vertices and the texture coordinates;
+additionally an EBO is used.
+""".
 -spec prepare_square( texture() ) -> { vao_id(), vbo_id(), ebo_id() }.
 prepare_square( Texture ) ->
 
+	% Creates the VAO context we need for the upcoming VBO (vertices and texture
+	% coordinates) and EBO (for indices in the VBO):
+	%
 	SquareVAOId = gui_shader:set_new_vao(),
 
 	% Half edge length:
@@ -346,11 +309,14 @@ prepare_square( Texture ) ->
 	OrigSquareTexCoords = [ _STC2={ O, O }, _STC1={ O, Z },
 							_STC0={ Z, Z }, _STC3={ Z, O } ],
 
+	% To have correct texture coordinates in spite of padding:
 	ActualSquareTexCoords = gui_texture:recalibrate_coordinates_for(
 		OrigSquareTexCoords, Texture ),
 
 	SquareAttrSeries= [ SquareVertices, ActualSquareTexCoords ],
 
+	% Creates a VBO from these two series.
+	%
 	% We start at vertex attribute index #0 in this VAO; as there are two
 	% series, the vertex attribute indices will be 0 and 1:
 	%
@@ -359,7 +325,7 @@ prepare_square( Texture ) ->
 
 	% We describe now our square as two triangles in CCW order; the first,
 	% S0-S1-S3 on the bottom left, the second, S1-S2-S3 on the top right; we
-	% have just a list of indices (not for example a list of triplets of
+	% have just a plain list of indices (not for example a list of triplets of
 	% indices):
 	%
 	SquareIndices = [ 0, 1, 3,   % As the first  triangle is S0-S1-S3
@@ -377,61 +343,46 @@ prepare_square( Texture ) ->
 	{ SquareVAOId, SquareMergedVBOId, SquareEBOId }.
 
 
+-spec get_help_text() -> ustring().
+get_help_text() ->
+
+	% Only true if keypad is enabled
+
+	% Using a Myriad 3D coordinate system here with Z-up, where the camera is
+	% fixed at the origin, pointing to the -Z axis, with its up direction being
+	% the +Y axis; so:
+	% - X increases from, onscreen, left to right
+	% - Y increases from bottom of screen to top
+	% - Z increases as getting from farther to nearer the observer
+	%
+
+	text_utils:format( "This test displays a square textured with a Myriad image, whose center is at the origin, which is belonging to the Z=0 plane (using Z-up conventions), and that can be moved by hitting keys on the numerical keypad (while the rendering window has the focus):~n"
+		"  - to translate it of ~f units along (if in translation mode):~n"
+		"    * the X (abscissa) axis: hit '4' to move it, on the left, '6' on the right~n"
+		"    * the Y (ordinate) axis: hit '2' to move it down, '8' up~n"
+		"    * the Z (depth/altitude) axis: hit '3' to move it further/downward, '9' nearer/upward~n"
+		"  - to rotate of ~f degrees around (if in rotation mode):~n"
+		"    * the X axis: hit '4' to turn it clockwise (CW), '6' counter-clockwise (CCW)~n"
+		"    * the Y axis: hit '2' to turn it CW, '8' CCW~n"
+		"    * the Z axis: hit '3' to turn it CW, '9' CCW~n"
+		"  - to scale it of a ~f factor along (if in scaling mode):~n"
+		"    * the X axis: hit '4' to scale it down, '6' up~n"
+		"    * the Y axis: hit '2' to scale it down, '8' up~n"
+		"    * the Z axis: hit '3' to scale it down, '9' up~n~n"
+		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
+		"to switch to the next transformation mode (cycling between translation, rotation, scaling), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
+		"Hints:~n"
+		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
+		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, first make the square go further/downward to make it appear~n",
+		[ ?delta_coord, ?delta_angle, ?delta_scale ] ).
 
 
-% @doc Runs the OpenGL test if possible.
--spec run_opengl_test() -> void().
-run_opengl_test() ->
 
-	test_facilities:display(
-		"~nStarting the test of transformation support with OpenGL shaders." ),
-
-	case gui_opengl:get_glxinfo_strings() of
-
-		undefined ->
-			test_facilities:display( "No proper OpenGL support detected on host"
-				" (no GLX visual reported), thus no test performed." );
-
-		GlxInfoStr ->
-			test_facilities:display( "Checking whether OpenGL hardware "
-				"acceleration is available: ~ts.",
-				[ gui_opengl:is_hardware_accelerated( GlxInfoStr ) ] ),
-			run_actual_test()
-
-	end.
-
-
-
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_actual_test() -> void().
 run_actual_test() ->
 
-	% Only true if keypad is enabled:
-	test_facilities:display( "This test will display a textured square "
-		"that can be moved by pressing keys on the numerical keypad:~n"
-		"  - to translate it of ~f units along (if in translation mode):~n"
-		"    * the X axis: hit '4' to move it on the left, '6' on the right~n"
-		"    * the Y axis: hit '3' to move it nearer, '9' farther "
-		"(note that in orthographic mode the square will not appear to move "
-		"along this axis - until reaching either the near or far clipping "
-		"plane)~n"
-		"    * the Z axis: hit '2' to move it down, '8' up~n"
-		"  - to rotate of ~f degrees around (if in rotation mode):~n"
-		"    * the X axis: hit '4' to turn it counter-clockwise (CCW), "
-		"'6' clockwise (CW)~n"
-		"    * the Y axis: hit '3' to turn it CCW, '9' CW~n"
-		"    * the Z axis: hit '2' to turn it CCW, '8' CW~n"
-		"  - to shear it of a ~f factor along (if in shearing mode):~n"
-		"    * the X axis: hit '4' to scale it down, '6' up~n"
-		"    * the Y axis: hit '3' to scale it down, '9' up~n"
-		"    * the Z axis: hit '2' to scale it down, '8' up~n~n"
-		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
-		"to switch to the next transformation mode, 'P' to toggle the "
-		"projection mode, 'Escape' to quit.~n~n"
-		"Hints:~n"
-		" - with the orthographic (default) projection, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range, will fully disappear~n"
-		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis~n",
-		[ ?delta_coord, ?delta_angle, ?delta_scale ] ),
+	test_facilities:display( get_help_text() ),
 
 	gui:start(),
 
@@ -449,26 +400,32 @@ run_actual_test() ->
 
 
 
-% @doc Creates the initial test GUI: a main frame containing an OpenGL canvas to
-% which an OpenGL context is associated.
-%
-% Once the rendering is done, the buffers are swapped, and the content is
-% displayed.
-%
+-doc """
+Creates the initial test GUI: a main frame containing an OpenGL canvas to which
+an OpenGL context is associated.
+
+Once the rendering is done, the buffers are swapped, and the content is
+displayed.
+""".
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
 	MainFrame = gui_frame:create(
 		"MyriadGUI OpenGL Shader-based Transformation Test",
-		_Size={ 1024, 768 } ),
+
+		% Preferring a square frame/viewport, otherwise due to aspect ratio the
+		% square will be a rectangle:
+		_Size={ 800, 800 } ),
+
+	% Better:
+	gui_frame:center_on_screen( MainFrame ),
 
 	% Using mostly default GL attributes:
 	GLCanvasAttrs =
 		[ use_core_profile | gui_opengl:get_default_canvas_attributes() ],
 
-	GLCanvas = gui_opengl:create_canvas( _Parent=MainFrame,
-										 [ { gl_attributes, GLCanvasAttrs } ] ),
-
+	GLCanvas = gui_opengl:create_canvas(
+		_CanvasOpts=[ { gl_attributes, GLCanvasAttrs } ], _Parent=MainFrame ),
 
 	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
@@ -477,7 +434,7 @@ init_test_gui() ->
 							   MainFrame } ),
 
 	% Needed, otherwise if that frame is moved out of the screen or if another
-	% windows overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
+	% window overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
 	%
 	% (key events collected at the canvas-level, as frames do not handle them)
 	%
@@ -487,7 +444,7 @@ init_test_gui() ->
 	TestImage = gui_image:load_from_file(
 		gui_opengl_texture_test:get_test_texture_path() ),
 
-	ProjSettings = get_base_orthographic_settings(),
+	ProjSettings = projection:get_base_orthographic_settings(),
 
 	_Zero = 0.0,
 
@@ -510,9 +467,9 @@ init_test_gui() ->
 
 
 
-% @doc The main loop of this test, driven by the receiving of MyriadGUI
-% messages.
-%
+-doc """
+The main loop of this test, driven by the receiving of MyriadGUI messages.
+""".
 -spec gui_main_loop( my_gui_state() ) -> void().
 gui_main_loop( GUIState ) ->
 
@@ -594,8 +551,8 @@ gui_main_loop( GUIState ) ->
 
 		% Less frequent messages looked up last:
 
-		% The most suitable first location to initialise OpenGL, as making a GL
-		% context current requires a shown window:
+		% This is the most suitable first location to initialise OpenGL, as
+		% making a GL context current requires a shown window:
 		%
 		{ onShown, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
 
@@ -609,7 +566,7 @@ gui_main_loop( GUIState ) ->
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
 
-			% A onRepaintNeeded event message expected just afterwards.
+			% A onRepaintNeeded event message is expected just afterwards.
 
 			gui_main_loop( InitGUIState );
 
@@ -631,9 +588,10 @@ gui_main_loop( GUIState ) ->
 
 
 
-% @doc Sets up OpenGL, once for all (regardless of next resizings), once a
-% proper OpenGL context is available.
-%
+-doc """
+Sets up OpenGL, once for all (regardless of next resizings), once a proper
+OpenGL context is available.
+""".
 -spec initialise_opengl( my_gui_state() ) -> my_gui_state().
 initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 										   context=GLContext,
@@ -684,7 +642,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	%
 	ProgramId = gui_shader:generate_program_from(
 		"gui_opengl_transformation_shader.vertex.glsl",
-		"gui_opengl_transformation_shader.fragment.glsl", UserVertexAttrs ),
+		"gui_opengl_transformation_shader.fragment.glsl", UserVertexAttrs,
+		_ExtraGLSLSearchPaths=[ "." ] ),
 
 	% Uniform locations can be fetched as soon as the program is linked:
 
@@ -702,9 +661,9 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	Texture = gui_texture:create_from_image( Image ),
 
 	% To showcase that we can use other texture units (locations) than the
-	% default ?GL_TEXTURE0 one:
+	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit:
 	%
-	gui_texture:set_current_texture_unit( ?GL_TEXTURE2 ),
+	gui_texture:set_current_texture_unit( 2 ),
 
 	% Thus associated to the previous texture unit:
 	gui_texture:set_as_current( Texture ),
@@ -743,15 +702,19 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 		projection_id=ProjMatUnifId,
 
 		square_vao_id=SquareVAOId,
+
 		% Two basic triangles referenced in the associated VBO:
 		square_vertex_count=6,
+
 		square_merged_vbo_id=SquareMergedVBOId,
 		square_ebo_id=SquareEBOId },
 
 	% Note that the default projection is orthographic; as a result, moving the
-	% square along the Y-axis (depth, with our Z-up conventions) will not change
-	% anything (until going out of the NDC [-1.0, 1.0] range and having the
-	% square disappear).
+	% square along the Z (depth) will not change anything (until going out of
+	% the NDC [-1.0, 1.0] range, and having the square disappear).
+
+	trace_utils:debug( "Starting with an orthographic projection "
+					   "with Z-up conventions, and in translation mode." ),
 
 	InitGUIState = GUIState#my_gui_state{
 		% Start at the origin:
@@ -764,7 +727,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
-% @doc Cleans up OpenGL.
+-doc "Cleans up OpenGL.".
 -spec cleanup_opengl( my_gui_state() ) -> void().
 cleanup_opengl( #my_gui_state{ opengl_state=undefined } ) ->
 	ok;
@@ -777,9 +740,12 @@ cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 
 	trace_utils:debug( "Cleaning up OpenGL." ),
 
-	gui_shader:delete_vbo( SquareMergedVBOId ),
+	% Deleting the VAO does not delete the VBO or the EBO (that are just
+	% referenced); deleting first the VAO is preferred:
 
 	gui_shader:delete_vao( SquareVAOId ),
+
+	gui_shader:delete_vbo( SquareMergedVBOId ),
 
 	gui_shader:delete_ebo( SquareEBOId ),
 
@@ -787,10 +753,11 @@ cleanup_opengl( #my_gui_state{ opengl_state=#my_opengl_state{
 
 
 
-% @doc Managing a resizing of the main frame.
-%
-% OpenGL context expected here to have already been set.
-%
+-doc """
+Managing a resizing of the main frame.
+
+OpenGL context expected here to have already been set.
+""".
 -spec on_main_frame_resized( my_gui_state() ) -> my_gui_state().
 on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 											   opengl_state=GLState } ) ->
@@ -812,7 +779,7 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% received and applied by the process of the target window, whereas a GL
 	% (NIF-based) operation is immediate; without a sufficient delay, the
 	% rendering will thus take place according to the former (e.g. minimised)
-	% canvas size, not according to the one that was expected to be already
+	% canvas size - not according to the one that was expected to be already
 	% resized.
 	%
 	gui_widget:sync( GLCanvas ),
@@ -823,25 +790,29 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% here.
 	%
 	% Using here normalised coordinates (in [0.0,1.0]), so no need to update the
-	% orthographic projection.
+	% projection.
 
 	render( GLState ),
 
 	% Includes a gl:flush/0:
 	gui_opengl:swap_buffers( GLCanvas ),
 
-	% No null height expected:
+	% No null canvas height expected:
 	GUIState#my_gui_state{ aspect_ratio=CanvasWidth/CanvasHeight }.
 
 
 
-% @doc Performs a (pure OpenGL) rendering.
+-doc "Performs a (pure OpenGL; no gui_* involved) rendering.".
 -spec render( my_opengl_state() ) -> void().
 render( #my_opengl_state{
 			square_vao_id=SquareVAOId,
-			square_vertex_count=SquareVCount,
-			square_merged_vbo_id=_SquareMergedVBOId,
-			square_ebo_id=_SquareEBOId } ) ->
+			square_vertex_count=SquareVCount
+
+			% Both bound thanks to the VAO:
+			%square_merged_vbo_id=SquareMergedVBOId,
+			%square_ebo_id=SquareEBOId
+
+		  } ) ->
 
 	%trace_utils:debug_fmt( "Rendering now for size {~B,~B}.",
 	%                       [ Width, Height ] ),
@@ -852,15 +823,15 @@ render( #my_opengl_state{
 
 	PrimType = ?GL_TRIANGLES,
 
-	% From now, all operations must be performed at each rendering; rendering
+	% From now, all operations must be performed at each rendering; displaying
 	% the square:
 
-	% Sets the vertex attribute; binds at well the square EBO, as it was still
-	% tracked by the VAO when this VAO was unset:
+	% Sets the vertex attribute; this binds as well the square EBO (and the
+	% VBO), as they were still tracked by the VAO when this VAO was unset:
 	%
 	gui_shader:set_current_vao_from_id( SquareVAOId ),
 
-	% No offset:
+	% No offset in the start index needed:
 	gui_shader:render_from_enabled_ebo( PrimType, SquareVCount ),
 
 	gui_shader:unset_current_vao(),
@@ -873,7 +844,8 @@ render( #my_opengl_state{
 	ok.
 
 
-% @doc Terminates the test.
+
+-doc "Terminates the test.".
 -spec terminate( my_gui_state() ) -> void().
 terminate( GUIState=#my_gui_state{ main_frame=MainFrame } ) ->
 
@@ -887,8 +859,10 @@ terminate( GUIState=#my_gui_state{ main_frame=MainFrame } ) ->
 	gui_frame:destruct( MainFrame ).
 
 
-% @doc Updates the scene based on the specified user-entered scan code.
-%
+
+-doc """
+Updates the scene, based on the specified user-entered (keyboard) scan code.
+""".
 % First managing translations:
 -spec update_scene( scancode(), my_gui_state() ) ->
 						{ my_gui_state(), DoQuit :: boolean() }.
@@ -904,10 +878,12 @@ update_scene( _Scancode=?increase_x_scan_code,
 	% Translation on the X axis:
 	VT = [ Inc, 0.0, 0.0 ],
 
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing X of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+
+	trace_utils:debug_fmt( "Increasing X of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -925,18 +901,16 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	% Translation on the X axis:
 	VT = [ -Inc, 0.0, 0.0 ],
 
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-
-% Note that moving along the Y axis whereas the projection is orthographic will
-% show no difference:
 
 update_scene( _Scancode=?increase_y_scan_code,
 			  GUIState=#my_gui_state{
@@ -949,10 +923,11 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	% Translation on the Y axis:
 	VT = [ 0.0, Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -969,15 +944,20 @@ update_scene( _Scancode=?decrease_y_scan_code,
 
 	% Translation on the Y axis:
 	VT = [ 0.0, -Inc, 0.0 ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
+
+
+% Note that moving along the Z axis whereas the projection is orthographic will
+% show no difference:
 
 update_scene( _Scancode=?increase_z_scan_code,
 			  GUIState=#my_gui_state{
@@ -990,10 +970,11 @@ update_scene( _Scancode=?increase_z_scan_code,
 
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, Inc ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1011,14 +992,16 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 	% Translation on the Z axis:
 	VT = [ 0.0, 0.0, -Inc ],
-	NewModelViewMat4 = matrix4:translate_homogeneous( ModelViewMat4, VT ),
+	NewModelViewMat4 = matrix4:translate_homogeneous_right( ModelViewMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in: MV = ~ts",
-						   [ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
+
 
 
 % Secondly managing rotations:
@@ -1036,11 +1019,12 @@ update_scene( _Scancode=?increase_x_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1059,11 +1043,12 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1083,11 +1068,12 @@ update_scene( _Scancode=?increase_y_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1107,11 +1093,12 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1131,11 +1118,12 @@ update_scene( _Scancode=?increase_z_scan_code,
 	Angle = math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1155,22 +1143,23 @@ update_scene( _Scancode=?decrease_z_scan_code,
 	Angle = - math_utils:degrees_to_radians( ?delta_angle ),
 
 	NewModelViewMat4 =
-		matrix4:rotate_homogeneous( ModelViewMat4, RotAxis, Angle ),
+		matrix4:rotate_homogeneous_right( ModelViewMat4, RotAxis, Angle ),
 
 	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts",
-		[ Angle, matrix4:to_string( NewModelViewMat4 ) ] ),
+		"radians, resulting in: MV = ~ts~ts",
+		[ Angle, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-% Thirdly managing shearings:
+% Thirdly managing scalings:
 update_scene( _Scancode=?increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1178,9 +1167,10 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1189,7 +1179,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 update_scene( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1197,22 +1187,20 @@ update_scene( _Scancode=?decrease_x_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_x( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the X axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-% Note that moving along the Y axis whereas the projection is orthographic will
-% show no difference:
-
 update_scene( _Scancode=?increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1220,9 +1208,10 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1231,7 +1220,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 update_scene( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1239,9 +1228,10 @@ update_scene( _Scancode=?decrease_y_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_y( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Y axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1251,7 +1241,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 update_scene( _Scancode=?increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1259,9 +1249,10 @@ update_scene( _Scancode=?increase_z_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1271,7 +1262,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 update_scene( _Scancode=?decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
-				transformation_mode=shearing,
+				transformation_mode=scaling,
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
 
@@ -1279,9 +1270,10 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 	NewModelViewMat4 = matrix4:scale_homogeneous_z( ModelViewMat4, Inc ),
 
-	trace_utils:debug_fmt( "Shearing on the Z axis of a factor ~f, "
-		"resulting in: MV = ~ts",
-		[ Inc, matrix4:to_string( NewModelViewMat4 ) ] ),
+	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
+		"resulting in: MV = ~ts~ts",
+		[ Inc, matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1293,8 +1285,13 @@ update_scene( _Scancode=?reset_scan_code,
 			  GUIState=#my_gui_state{
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
-	trace_utils:debug( "Resetting modelview matrix." ),
+
 	NewModelViewMat4 = identity_4,
+
+	trace_utils:debug_fmt(
+		"Resetting the modelview matrix, resulting in: MV = ~ts~ts",
+		[ matrix4:to_string( NewModelViewMat4 ),
+		  get_origin_description( NewModelViewMat4 ) ] ),
 
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
@@ -1310,9 +1307,9 @@ update_scene( _Scancode=?mode_switch_scan_code,
 			rotation;
 
 		rotation ->
-			shearing;
+			scaling;
 
-		shearing ->
+		scaling ->
 			translation
 
 	end,
@@ -1335,11 +1332,11 @@ update_scene( _Scancode=?projection_mode_scan_code,
 
 		orthographic_settings ->
 			PerspSettings =
-				get_base_perspective_settings( AspectRatio ),
+				projection:get_base_orthographic_settings( AspectRatio ),
 			{ PerspSettings, projection:perspective( PerspSettings ) };
 
 		perspective_settings ->
-			OrthoSettings = get_base_orthographic_settings(),
+			OrthoSettings = projection:get_base_orthographic_settings(),
 			{ OrthoSettings, projection:orthographic( OrthoSettings ) }
 
 	end,
@@ -1360,58 +1357,40 @@ update_scene( _Scancode=?quit_scan_code, GUIState ) ->
 	trace_utils:debug( "Requested to quit." ),
 	{ GUIState, _DoQuit=true };
 
+update_scene( _Scancode=?help_scan_code, GUIState ) ->
+	trace_utils:debug( get_help_text() ),
+	{ GUIState, _DoQuit=false };
+
 update_scene( _Scancode, GUIState ) ->
 	%trace_utils:debug_fmt( "(scancode ~B ignored)", [ Scancode ] ),
 	{ GUIState, _DoQuit=false }.
 
 
 
--spec get_base_orthographic_settings() ->
-						orthographic_settings().
-get_base_orthographic_settings() ->
-	%#orthographic_settings{
-	%	left=0.0,
-	%	right=800.0,
-	%	bottom=0.0,
-	%	top=600.0,
-	%	z_near=0.1,
-	%	z_far=100.0 }.
+-doc """
+Returns a description of the local origin of the square, in the global
+coordinate system.
+""".
+get_origin_description( ModelViewMat4 ) ->
 
-	% Corresponds to a default identity matrix:
-	#orthographic_settings{
-		left=-1.0,
-		right=1.0,
-		bottom=-1.0,
-		top=1.0,
-		z_near=1.0,
-		z_far=-1.0 }.
+	% Using a transformation would eliminate the need of this inversion:
+	InvMat4 = matrix4:inverse( ModelViewMat4 ),
+	LocalOrigin = matrix4:get_translation( InvMat4 ),
+
+	text_utils:format( "~nIn the global coordinate system, the local origin "
+		"of the square coordinate system is now: ~ts",
+		[ point3:to_string( LocalOrigin ) ] ).
 
 
--spec get_base_perspective_settings( aspect_ratio() ) ->
-						perspective_settings().
-get_base_perspective_settings( AspectRatio ) ->
-	#perspective_settings{
-		fov_y_angle=math_utils:degrees_to_radians( 45 ),
-		aspect_ratio=AspectRatio,
-		z_near=0.1,
-		z_far=100.0 }.
 
-
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	case executable_utils:is_batch() of
-
-		true ->
-			test_facilities:display(
-				"(not running this OpenGL test, being in batch mode)" );
-
-		false ->
-			run_opengl_test()
-
-	end,
+	gui_opengl_for_testing:can_be_run(
+			"the test of transformation support with OpenGL shaders" ) =:= yes
+		andalso run_actual_test(),
 
 	test_facilities:stop().

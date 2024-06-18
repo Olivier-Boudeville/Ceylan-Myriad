@@ -4,7 +4,9 @@ set output 'GENERATED_PNG'
 set autoscale x
 set yrange [0:]
 
-set title "Comparison between a PDF ({/:Italic Probability Density Function}) and its actual sampling for the LAW_DESC"
+set key spacing 4
+
+set title "Comparison between a PDF ({/:Italic Probability Density Function}) and its actual sampling\nfor the LAW_DESC"
 set xlabel "Sample values"
 set ylabel "Sample Probabilities / Frequencies"
-plot "PDF_DATA_FILENAME" using 1:2 with lines title "User-specified LAW_DESC PDF", "SAMPLED_DATA_FILENAME" using 1:2 with lines title "Actual sampling (with the alias method)",
+plot "PDF_DATA_FILENAME" using 1:2 with lines title "User-specified input raw PDF: LAW_DESC", "SAMPLED_DATA_FILENAME" using 1:2 with lines title "Actual sampling (with the alias method)",

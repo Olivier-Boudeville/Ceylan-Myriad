@@ -1,5 +1,10 @@
 # Prerequisite: MYRIAD_TOP must be set.
 
+# Useful for generic rules:
+ifndef PROJECT_TOP
+	PROJECT_TOP = $(MYRIAD_TOP)
+endif
+
 
 # On conditional variables depending on conditionals.
 #
@@ -71,6 +76,7 @@ ifndef EXECUTION_TARGET
 endif
 
 
+
 # We defined a symbol specific to the 'production' execution target
 # (exec_target_is_production) instead of relying only on an execution_target
 # variable that could be set either to 'development' or 'production', as we
@@ -81,7 +87,7 @@ endif
 #
 # So our code uses '-ifdef(exec_target_is_production)' instead of something like
 # '-if(execution_target ## production)'.' where ## could be '=', '==', '=:='
-# (not able to find the syntax for such macro conditions)
+# (not able to find the syntax for such macro conditions).
 #
 ifeq ($(EXECUTION_TARGET),development)
 
@@ -93,7 +99,20 @@ ifeq ($(EXECUTION_TARGET),development)
 	# No exec_target_is_production shall be defined here:
 	ERLANG_COMPILER_EXEC_TARGET_OPT =
 
-	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode
+	# By default, LCO kept:
+	MYRIAD_LCO_OPT :=
+
+	# LCO can be temporarily disabled:
+	#MYRIAD_LCO_OPT := -Dmyriad_disable_lco
+
+	# Last Call Optimisation (LCO) may be selectively disabled in order to have
+	# unellipsed stacktraces (note that disabling LCO will lead the memory
+	# footprint of recursive functions to explode, and the VM to be killed
+	# should a LCO-disabled module be updated more than once (e.g. with
+	# code:purge/1); therefore LCO should be left enabled in the general case -
+	# perhaps even in debug mode):
+	#
+	ERLANG_COMPILER_DEBUG_OPT = -Dmyriad_debug_mode $(MYRIAD_LCO_OPT)
 
 else ifeq ($(EXECUTION_TARGET),production)
 
@@ -140,30 +159,40 @@ endif
 #  - csv_support: the support of CSV files
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
-#  - environments: about the sharing/caching of application information
+#  - environments: about the sharing/caching of application information (hence
+#    not GUI-related)
 #  - resources: about the management of resources
 #  - files: about the management of files
+#  - network: regarding network-related operations
 #  - traces: for Myriad-level traces
 #  - random: about stochastic sample draws and probability density functions
+#  - graph: for graph-related operations, typically involving Gephi
 #  - math: for math-related operations
+#  - plot: for the rendering of all kinds of plots and graphs
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - gui_repaint_logic: how MyriadGUI manages repaints
 #  - gui_events: how MyriadGUI manages interface-related events
 #  - gui_canvas: how MyriadGUI manages canvases
 #  - gui_font: about font support
+#  - gui_splash: about splash screens
 #  - gui_instances: how MyriadGUI manages widget instances
+#  - gui_environments: the management of backend GUI environments
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
 #    operations
 #  - gui_id: about widget identifiers
 #  - gui_performance: about the runtime performance monitoring of MyriadGUI
 #
 #  - linear: for operations on vectors, matrices, etc.
+#  - ref_frames: for operations on reference frames in general
+#  - ref_trees: for operations on trees of reference frames
 #  - mesh: for the management of (3D) meshes
 #  - bounding_spaces: for computations of bounding spaces (surfaces, volumes)
 #  - opengl: outcome of OpenGL-related operations
 #  - textures: regarding the (OpenGL) texture management
 #  - shaders: regarding the GLSL shaders and programs
+#  - gl_encoding: about the encoding of data for OpenGL (e.g. to write VBOs)
+#  - gl_decoding: about the decoding of data for OpenGL (e.g. to read VBOs)
 #  - gltf_support: for the support of the glTF 2.0 format
 #
 # Defining debug flags (at least the most verbose are by default commented-out):
@@ -186,47 +215,56 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_resources
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_files
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_network
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_traces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_random
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_graph
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_encoding
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_decoding
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
 
 # Defining check flags:
 ifeq ($(EXECUTION_TARGET),development)
 
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
-	#MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_resources
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
-
 
 endif
 
@@ -288,16 +326,16 @@ ifndef PROJECT_SHORT_NAME
 endif
 
 
-# PROJECT_NAME_FOR_REBAR may be defined on a per-project basis.
-ifndef PROJECT_NAME_FOR_REBAR
-	PROJECT_NAME_FOR_REBAR := $(PROJECT_SHORT_NAME)
+# PROJECT_NAME_FOR_OTP may be defined on a per-project basis.
+ifndef PROJECT_NAME_FOR_OTP
+	PROJECT_NAME_FOR_OTP := $(PROJECT_SHORT_NAME)
 endif
 
 
-# The uniquely-defined version of this layer, for all uses (including rebar and
-# hex):
+# The uniquely-defined version of this layer, for all uses (including rebar, hex
+# and the code itself, see basic_utils:get_myriad_version{_string,}/0):
 #
-MYRIAD_VERSION := 1.0.32
+MYRIAD_VERSION := 1.0.38
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
@@ -306,11 +344,20 @@ ifndef PROJECT_VERSION
 endif
 
 
+PROJECT_WEB_HOST := esperide.org
+
+PROJECT_URL := "https://$(PROJECT_SHORT_NAME).$(PROJECT_WEB_HOST)"
+
+
+# So that edoc has the right define:
+PROJECT_EDOC_VERSION_KEY = $(PROJECT_SHORT_NAME)_version
+
+
 # Variable name intentionally not including the current layer, for more generic
 # rules:
 
-ifndef VERSION_FOR_REBAR
-	VERSION_FOR_REBAR := $(PROJECT_VERSION)
+ifndef VERSION_FOR_OTP
+	VERSION_FOR_OTP := $(PROJECT_VERSION)
 endif
 
 
@@ -324,7 +371,7 @@ ifndef PACKAGE_TOP
 endif
 
 
-# Needed, exactly as is (make trick to specify space as a parameter):
+# Needed, exactly as is ('make' trick to specify space as a parameter):
 space :=
 space +=
 
@@ -1185,6 +1232,10 @@ ERLANG_COMPILER := $$(PATH=$(ERLANG_USUAL_ROOT)/bin:$$PATH which erlc 2>/dev/nul
 # To check actual compile options:
 #ERLANG_COMPILER := echo "COMPILE OPTIONS:"
 
+#ERLANG_COMPILER_ENV :=
+
+# Should even the compiler be affected by backward monotonic time:
+ERLANG_COMPILER_ENV = env ERL_AFLAGS="$(TIME_OPTS)"
 
 ERLANG_BIN_ROOT := $(shell dirname "$(ERLANG_COMPILER)")
 
@@ -1267,16 +1318,17 @@ STARTUP_FUNCTION := run
 # Not far from being candidate for deprecation (next: schedule for removal), as
 # top-level 'ebin' does the trick.
 #
-MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password       \
-					$(MYRIAD_BEAM)/apps/merge-tool              \
-					$(MYRIAD_BEAM)/data-management              \
-					$(MYRIAD_BEAM)/maths                        \
-					$(MYRIAD_BEAM)/meta                         \
-					$(MYRIAD_BEAM)/scripts                      \
-					$(MYRIAD_BEAM)/user-interface/graphical     \
-					$(MYRIAD_BEAM)/user-interface/textual       \
-					$(MYRIAD_BEAM)/user-interface/audio         \
-					$(MYRIAD_BEAM)/user-interface               \
+MYRIAD_BEAM_DIRS := $(MYRIAD_BEAM)/apps/generate-password              \
+					$(MYRIAD_BEAM)/apps/merge-tool                     \
+					$(MYRIAD_BEAM)/data-management                     \
+					$(MYRIAD_BEAM)/maths                               \
+					$(MYRIAD_BEAM)/meta                                \
+					$(MYRIAD_BEAM)/scripts                             \
+					$(MYRIAD_BEAM)/user-interface                      \
+					$(MYRIAD_BEAM)/user-interface/audio                \
+					$(MYRIAD_BEAM)/user-interface/textual              \
+					$(MYRIAD_BEAM)/user-interface/graphical            \
+					$(MYRIAD_BEAM)/user-interface/graphical/opengl     \
 					$(MYRIAD_BEAM)/utils
 
 
@@ -1307,6 +1359,12 @@ ERL_LAUNCHER = "$(MYRIAD_SRC)/scripts/launch-erl.sh"
 # If wanting to specify (Erlang) configuration file(s):
 # INTERNAL_OPTIONS += --config my-traces-test.config
 
+# If wanting to enable the post-mortem investigations about any (OS-level) crash
+# (typically core dump) of the Erlang VM process:
+#
+#INTERNAL_OPTIONS += --investigate-crashes
+
+
 
 # Compiler section.
 
@@ -1334,7 +1392,6 @@ ifndef BOOTSTRAP_MODULES
 		$(MYRIAD_TOP)/src/meta/ast_generation_test.erl                  \
 		$(MYRIAD_TOP)/src/meta/meta_utils_test.erl                      \
 		$(MYRIAD_TOP)/src/meta/cond_utils_test.erl                      \
-
 
 
 	META_FILTERED_SRC_FILES = $(filter-out $(EXCLUDED_FROM_BOOTSTRAPPED_META),$(META_SRC_FILES))
@@ -1398,7 +1455,8 @@ DEBUG_INFO_KEY_OPT = +'{debug_info_key,$(DEBUG_INFO_KEY)}'
 # the same key as the ones normally built, in order that the Core Erlang of the
 # whole can be read by tools (e.g. Dialyzer):
 #
-ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT) \
+ERLANG_COMPILER_GENERAL_OPT += -b beam $(DEBUG_INFO_KEY_OPT)                 \
+							   -Dmyriad_version=\"$(MYRIAD_VERSION)\"        \
 							   -Dmyriad_debug_info_key=\"$(DEBUG_INFO_KEY)\"
 
 
@@ -1659,7 +1717,7 @@ endif
 # re-add temporarily an exit if wanting to spot faulty paths through a test
 # suite)
 #
-BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2 ; fi; done)
+BEAM_PATH_OPT = $$(for d in $(BEAM_DIRS) $(ABS_BEAM_DIRS); do real_d=$$(realpath $$d 2>/dev/null); if [ -d "$${real_d}" ]; then echo "--beam-dir $${real_d}"; else echo "Warning: the '$${d}' BEAM directory does not exist (from $$(pwd)), hence was not set in the code path." 1>&2; fi; done)
 
 
 # -pa rather than -pz, notably for Gradualizer (moreover a bit safer, including
@@ -1700,9 +1758,15 @@ endif
 # now that user-defined code paths are absolute, thus significantly longer
 #
 # OVERRIDDEN_OPT left for the user.
+#
+# Refer to -start-verbatim-options / -extra to define additional options.
+#
+# Could be added: '--display-command', to check the full call to erl, with
+# actual options.
+#
 ERL_PARAMETERIZED_LAUNCHER = $(ERL_LAUNCHER) $(HOSTNAME_OPT) $(FIREWALL_OPT)  \
-							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)       \
-							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)  \
+							 $(MAX_PROCESS_OPT) $(ASYNC_THREAD_OPT)           \
+							 $(BEAM_PATH_OPT) $(SCALE_OPT) $(COOKIE_OPT)      \
 							 $(LOG_DIR_OPT) $(ENCODING_OPT) $(OVERRIDDEN_OPT)
 
 
@@ -1767,6 +1831,27 @@ else
 endif
 
 
+# Should runtime errors like the next one be encountered, typically on some
+# (perhaps a bit exotic) virtual machines:
+#
+# Monotonic time stepped backwards!
+# Previous time: 1243166989
+# Current time:  1243164693
+# Aborted
+#
+# (then relevant for our launcher but for 'erlc' as well, and for any node
+# spawned afterwards)
+#
+TIME_OPTS =
+#TIME_OPTS = +C no_time_warp
+
+
+# Any extra options that shall be passed as it is to 'erl' through our launcher:
+EXTRA_OPTS = $(TIME_OPTS)
+
+
+
+
 # Regarding the VM-specific command-line options, we used to rely on '-noshell'
 # rather than on '-noinput', as no shell was wanted by default for executions,
 # since executables are supposed to interact by themselves with the user.
@@ -1800,18 +1885,18 @@ endif
 
 
 # In this case term_ui is ko (displays and terminates), text_ui is ok:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput -noshell
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput -noshell $(EXTRA_OPTS)
 
 # The same:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS)
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) $(EXTRA_OPTS)
 
 # term_ui is ok, text_ui by default has no input but with our workaround is ok -
 # yet crashing may disrupt the hosting UNIX shell:
 #
-EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput
+EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noinput $(EXTRA_OPTS)
 
 # term_ui is ok, text_ui has no input:
-#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noshell
+#EXEC_INTERNAL_OPTIONS := $(INTERNAL_OPTIONS) -start-verbatim-options -noshell $(EXTRA_OPTS)
 
 
 # EXEC_EXTERNAL_OPTIONS referenced so that upper layers may add their own
@@ -1835,6 +1920,9 @@ GLSL_REF_COMPILER_OPT :=
 
 
 ## Documentation section.
+#
+# Refer to https://myriad.esperide.org/#for-documentation-generation for further
+# information.
 
 # Available in Ceylan-Hull:
 DOC_TRACKER := $$(which track-make-automatic-source.sh 2>/dev/null)
@@ -1846,29 +1934,40 @@ ifdef PROJECT_ICON
 endif
 
 
-# When relying directly on edoc (the default):
+# We now rely on ExDoc, rather than on edoc:
+
+EXDOC := $$(which ex_doc 2>/dev/null)
+
+# Finally not used, as specifying the options on the command line allows the
+# Makefiles to set/override them conveniently:
+#
+#EXDOC_CONFIG_FILE := $(MYRIAD_ROOT)/conf/myriad-for-exdoc.config
+
+# Not using multiple --paths with $(BEAM_DIRS), relying on ebin instead:
+EXDOC_OPTS = --formatter html --homepage-url "$(PROJECT_URL)" --language en --logo "$(MYRIAD_TOP)/doc/doc/myriad-title.png" --output "$(API_DOC_ROOT)" --proglang erlang
+
 
 ifndef API_DOC_ROOT
 	API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
 endif
 
 
-ifndef EDOC_OPTS
-	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module, false}]}, {includes,["$(LAYER_TOP)/include"]}, {overview, "$(LAYER_TOP)/overview.edoc"}]'
-endif
+# When relying directly on edoc:
+#ifndef EDOC_OPTS
+#	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
+#endif
 
 
-# When relying directly on erldocs:
-
-API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
+# When relying directly on a second doc generator (like erldocs):
+#API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
 
 
 # We tested erldocs (see https://github.com/erldocs/erldocs), yet vanilla edoc
-# seems to generate a lot more informational content so is preferred now:
+# seems to generate a lot more informational content so was preferred:
 #
 # (commented out as was misleading)
 #ifndef API_DOC_GENERATOR
-#	API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
+#   API_DOC_GENERATOR := $$(which erldocs 2>/dev/null)
 #endif
 
 
@@ -1887,7 +1986,7 @@ API_DOC_ALT_ROOT := $(LAYER_TOP)/doc/api-doc-alt
 # variable known to be set/used by rebar.
 #
 # Note: for clarity (typically for variables to be defined by upper layers),
-# some variables are instead suffixed by "_FOR_REBAR" (e.g. VERSION_FOR_REBAR).
+# some variables could instead be suffixed by "_FOR_REBAR".
 
 # Toggle for additional logs (this is a rebar-specific variable):
 REBAR_DEBUG =
@@ -1929,7 +2028,7 @@ MYRIAD_REBAR_BUILD_BASE = $(MYRIAD_REBAR_BUILD_DIR)/lib/myriad
 
 
 ifndef MYRIAD_REBAR_BUILD_BASE
-	MYRIAD_REBAR_BUILD_BASE := $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_REBAR)
+	MYRIAD_REBAR_BUILD_BASE := $(MYRIAD_REBAR_BUILD_DIR)/lib/$(PROJECT_NAME_FOR_OTP)
 endif
 
 

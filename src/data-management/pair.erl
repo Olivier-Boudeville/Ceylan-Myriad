@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2023 Olivier Boudeville
+% Copyright (C) 2015-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,12 +25,15 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, April 30, 2015.
 
-
-% @doc Minor utilities to manage <b>pairs</b> (that is 2-element tuples).
 -module(pair).
 
+-moduledoc """
+Minor utilities to manage **pairs** (that is 2-element tuples).
+""".
+
+
 -export([ first/1, firsts/1, second/1, seconds/1,
-		  swap/1, check_list/1, to_list/1, to_string/1 ]).
+		  unzip/1, swap/1, check_list/1, to_list/1, to_string/1 ]).
 
 -compile( { inline, [ first/1, second/1, swap/1 ] } ).
 
@@ -39,19 +42,26 @@
 
 -type pair() :: { element(), element() }.
 
--export_type([ pair/0 ]).
+-type pair( _F, _S ) :: pair().
+% A pair whose first element is of type F, and second of type S.
 
 
-% @doc Returns the first element of the specified pair.
+-export_type([ pair/0, pair/2 ]).
+
+
+
+-doc "Returns the first element of the specified pair.".
 -spec first( pair() ) -> element().
 first( { X, _Y } ) ->
 	X.
 
 
-% @doc Returns the first elements of the specified list of pairs, in-order.
-%
-% Does not check whether non-pairs exist in the input list.
-%
+
+-doc """
+Returns the first elements of the specified list of pairs, in-order.
+
+Does not check whether non-pairs exist in the input list.
+""".
 -spec firsts( [ pair() ] ) -> [ element() ].
 firsts( Pairs ) ->
 	cond_utils:if_defined( myriad_debug_datastructures, check_list( Pairs ) ),
@@ -59,16 +69,18 @@ firsts( Pairs ) ->
 
 
 
-% @doc Returns the second element of the specified pair.
+-doc "Returns the second element of the specified pair.".
 -spec second( pair() ) -> element().
 second( { _X, Y } ) ->
 	Y.
 
 
-% @doc Returns the second elements of the specified list of pairs, in-order.
-%
-% Does not check whether non-pairs exist in the input list.
-%
+
+-doc """
+Returns the second elements of the specified list of pairs, in-order.
+
+Does not check whether non-pairs exist in the input list.
+""".
 -spec seconds( [ pair() ] ) -> [ element() ].
 seconds( Pairs ) ->
 	cond_utils:if_defined( myriad_debug_datastructures, check_list( Pairs ) ),
@@ -76,16 +88,28 @@ seconds( Pairs ) ->
 
 
 
-% @doc Returns a pair whose elements have been swapped compared to the specified
-% one.
-%
+-doc """
+Unzips the specified list of pairs.
+
+For example, unzip([{a,1}, {b,2}, {c,3}]) = {[a,b,c], [1,2,3]}.
+""".
+-spec unzip( [ pair( F, S ) ] ) -> pair( [ F ], [ S ] ).
+unzip( Pairs ) ->
+	% Mostly to remember that it exists:
+	lists:unzip( Pairs ).
+
+
+
+-doc """
+Returns a pair whose elements have been swapped compared to the specified one.
+""".
 -spec swap( pair() ) -> pair().
 swap( { X, Y } ) ->
 	{ Y, X }.
 
 
 
-% @doc Throws an exception if the specified list is not a list of pairs.
+-doc "Throws an exception if the specified list is not a list of pairs.".
 -spec check_list( term() ) -> void().
 check_list( Term ) ->
 	check_list( Term, Term ).
@@ -103,13 +127,14 @@ check_list( Other, Term ) ->
 
 
 
-% @doc Returns a list of two elements corresponding to the specified pair.
+-doc "Returns a list of two elements corresponding to the specified pair.".
 -spec to_list( pair() ) -> [ element() ].
 to_list( { F, S } ) ->
 	[ F, S ].
 
 
-% @doc Returns a textual description of the specified pair.
+
+-doc "Returns a textual description of the specified pair.".
 -spec to_string( pair() ) -> text_utils:ustring().
 to_string( { X, Y } ) ->
 	text_utils:format( "{ ~p, ~p }", [ X, Y ] ).

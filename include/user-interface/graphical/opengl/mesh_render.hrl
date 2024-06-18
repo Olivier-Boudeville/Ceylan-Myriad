@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2024-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,38 +23,37 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, March 13, 2023.
+% Creation date: Saturday, November 13, 2021.
 
 
-% For the base alpha coordinates (clearer; OpenGL conventions):
-
--define( alpha_fully_opaque,      1.0 ).
--define( alpha_fully_transparent, 0.0 ).
-
-
-% Corresponds to an OpenGL texture.
--record( texture, {
-
-	% The identifier (OpenGL "name") of that texture.
-	id :: gui_texture:texture_id(),
+% Describes a mesh rendering.
+%
+% Refer to mesh.hrl for the definition of the actual mesh.
 
 
-	% The pixel width of this texture:
-	width :: gui:length(),
 
-	% The pixel height of this texture:
-	height :: gui:length(),
+% Rendering (OpenGL-related) state of a mesh.
+-record( rendering_state, {
 
-
-	% The minimum abscissa of this texture relatively to its color buffer.
-	min_x :: gui_opengl:length_factor(),
-
-	% The minimum ordinate of this texture relatively to its color buffer.
-	min_y :: gui_opengl:length_factor(),
+	% The identifier of the corresponding GLSL program (typically needed to
+	% locate uniform variables):
+	%
+	program_id :: gui_shader:program_id(),
 
 
-	% The maximum abscissa of this texture relatively to its color buffer.
-	max_x :: gui_opengl:length_factor(),
+	% The overall VAO used for that mesh:
+	vao_id :: gui_shader:vao_id(),
 
-	% The maximum ordinate of this texture relatively to its color buffer.
-	max_y :: gui_opengl:length_factor() } ).
+
+	% The VBO holding the vertex-related data of that mesh:
+	vbo_id :: gui_shader:vbo_id(),
+
+	% The layout respected by the VBO and the corresponding shaders:
+	vbo_layout :: gui_shader:vbo_layout(),
+
+	% The number of compounds of vertex attributes (VBO entries) for this mesh:
+	compound_count :: gui_shader:compound_count(),
+
+
+	% The EBO holding the face indices of that mesh:
+	ebo_id :: gui_shader:ebo_id() } ).

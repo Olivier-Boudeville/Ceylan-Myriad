@@ -1,4 +1,4 @@
-% Copyright (C) 2016-2023 Olivier Boudeville
+% Copyright (C) 2012-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,15 +25,17 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, October 24, 2012.
 
-
-% @doc Gathering helper functions for the <b>development and use of all kinds of
-% scripts</b> (Erlang escripts and shell scripts alike).
-%
-% Intended use for escripts: add, in the script directory, a symbolic link to
-% this module so that the script can readily call it and thus bootstrap the use
-% of all others.
-%
 -module(script_utils).
+
+-moduledoc """
+Gathering helper functions for the **development and use of all kinds of
+scripts** (Erlang escripts and shell scripts alike).
+
+Intended use for escripts: add, in the script directory, a symbolic link to this
+module so that the script can readily call it and thus bootstrap the use of all
+others.
+""".
+
 
 
 % Implementation notes:
@@ -43,7 +45,7 @@
 % here meant to be run before the update of the code path.
 %
 -export([ is_running_as_escript/0, get_script_base_directory/0,
-		  get_myriad_base_directory/0,
+		  get_myriad_base_directory/0, get_myriad_path_from/1,
 		  update_code_path_for_myriad/0,
 		  update_code_path_for_myriad_from_module/0,
 		  get_arguments/1 ]).
@@ -66,9 +68,11 @@
 %-type directory_path() :: file_utils:directory_path().
 
 
-% @doc Tells whether the currently running Erlang code is executed as an escript
-% or as a regular Erlang program.
-%
+
+-doc """
+Tells whether the currently running Erlang code is executed as an escript or as
+a regular Erlang program.
+""".
 -spec is_running_as_escript() -> boolean().
 is_running_as_escript() ->
 
@@ -105,22 +109,19 @@ is_running_as_escript() ->
 
 
 
-% @doc Returns the base directory of that script, that is where it is stored
-% (regardless of the possibly relative path whence it was launched).
-%
-% Note: useful to locate resources (e.g. other modules) defined in link to that
-% script and needed by it.
-%
-% @private
-% @hidden
-%
+-doc """
+Returns the base directory of that script, that is where it is stored
+(regardless of the possibly relative path whence it was launched).
+
+Note: useful to locate resources (e.g. other modules) defined in link to that
+script and needed by it.
+""".
 -spec get_script_base_directory() -> file_utils:directory_path().
 get_script_base_directory() ->
 
 	case is_running_as_escript() of
 
 		true ->
-
 			%io:format( "Found running as escript.~n" ),
 
 			% filename:absname/1 could be used instead:
@@ -149,7 +150,6 @@ get_script_base_directory() ->
 
 
 		false ->
-
 			%io:format( "Found not running as escript.~n" ),
 
 			% Supposing Myriad is already available then?
@@ -226,36 +226,34 @@ get_myriad_path_from( [ Path | T ], BaseDirName ) ->
 
 
 
-% @doc Updates the VM code path so that all modules of the 'Myriad' layer can be
-% readily used from an escript.
-%
-% Returns as well the Myriad base directory, for any further use
-% (e.g. determining other sibling base directories).
-%
-% Note: this function and its helpers might be copied verbatim to the target
-% escript so that it can really be used from anywhere (not only from the
-% directory in which it is stored).
-%
-% (original version located in script_utils.erl, copied verbatim here)
-%
-% @private
-%
+-doc """
+Updates the VM code path so that all modules of the 'Myriad' layer can be
+readily used from an escript.
+
+Returns as well the Myriad base directory, for any further use (e.g. determining
+other sibling base directories).
+
+Note: this function and its helpers might be copied verbatim to the target
+escript so that it can really be used from anywhere (not only from the directory
+in which it is stored).
+
+(original version located in script_utils.erl, copied verbatim here)
+""".
 -spec update_code_path_for_myriad() -> file_utils:directory_path().
 update_code_path_for_myriad() ->
 	update_code_path_for_myriad( get_myriad_base_directory() ).
 
 
 
-% @doc Updates the VM code path so that all modules of the 'Myriad' layer can be
-% readily used from a module run as an escript.
-%
-% Returns as well the Myriad base directory, for any further use
-% (e.g. determining other sibling base directories).
-%
-% @private
-%
-% (original version located in script_utils.erl, copied verbatim here)
-%
+-doc """
+Updates the VM code path so that all modules of the 'Myriad' layer can be
+readily used from a module run as an escript.
+
+Returns as well the Myriad base directory, for any further use (e.g. determining
+other sibling base directories).
+
+(original version located in script_utils.erl, copied verbatim here)
+""".
 -spec update_code_path_for_myriad_from_module() -> file_utils:directory_path().
 update_code_path_for_myriad_from_module() ->
 	{ ok, CurrentDir } = file:get_cwd(),
@@ -264,22 +262,21 @@ update_code_path_for_myriad_from_module() ->
 
 
 
-% @doc Updates the VM code path so that all modules of the 'Myriad' layer can be
-% readily used from an escript.
-%
-% The specified root directory is supposed correct (no further checking made).
-%
-% Returns as well the Myriad base directory, for any further use
-% (e.g. determining other sibling base directories).
-%
-% Note: this function and its helpers might be copied verbatim to the target
-% escript so that it can really be used from anywhere (not only from the
-% directory it is stored).
-%
-% @private
+-doc """
+Updates the VM code path so that all modules of the 'Myriad' layer can be
+readily used from an escript.
 
-% (original version located in script_utils.erl, copied verbatim here)
-%
+The specified root directory is supposed correct (no further checking made).
+
+Returns as well the Myriad base directory, for any further use (e.g. determining
+other sibling base directories).
+
+Note: this function and its helpers might be copied verbatim to the target
+escript so that it can really be used from anywhere (not only from the directory
+it is stored).
+
+(original version located in script_utils.erl, copied verbatim here)
+""".
 -spec update_code_path_for_myriad( file_utils:directory_path() ) ->
 										file_utils:directory_path().
 update_code_path_for_myriad( MyriadRootDir ) ->
@@ -292,10 +289,11 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 	% An up-to-date version can be obtained thanks to the
 	% 'list-beam-relative-paths' make target:
 	%
-	MyriadBeamSubDirs = [ "data-management", "maths", "meta", "scripts",
-		"user-interface/graphical", "user-interface/textual",
-		"user-interface/audio", "user-interface", "utils" ],
-
+	MyriadBeamSubDirs = [ "apps/generate-password", "apps/merge-tool",
+		"data-management", "maths", "meta", "scripts",
+		"user-interface", "user-interface/audio", "user-interface/textual",
+		"user-interface/graphical", "user-interface/graphical/opengl",
+		"utils" ],
 
 	MyriadBeamDirs =
 		[ filename:join( MyriadSrcDir, D ) || D <- MyriadBeamSubDirs ],
@@ -323,15 +321,14 @@ update_code_path_for_myriad( MyriadRootDir ) ->
 
 
 
-% @doc Returns the root directory of the Myriad layer.
-%
-% (note that a double path conversion between root and script directories can
-% hardly be avoided)
-%
-% @private
-%
-% (original version located in script_utils.erl, copied verbatim here)
-%
+-doc """
+Returns the root directory of the Myriad layer.
+
+(note that a double path conversion between root and script directories can
+hardly be avoided)
+
+(original version located in script_utils.erl, copied verbatim here)
+""".
 -spec get_myriad_base_directory() -> file_utils:directory_path().
 get_myriad_base_directory() ->
 
@@ -416,14 +413,15 @@ get_myriad_base_directory() ->
 % filename:join/2 instead of the one of file_utils, and with type prefixes):
 
 
-% @doc Normalises specified path (canonicalises it), by translating it so that
-% no intermediate, superfluous '.' or '..' is present afterwards.
-%
-% For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
-% "/home/lisa/tube".
-%
-% Returns a path of the same string type as the specified parameter.
-%
+-doc """
+Normalises specified path (canonicalises it), by translating it so that no
+intermediate, superfluous '.' or '..' is present afterwards.
+
+For example, "/home/garfield/../lisa/./src/.././tube" shall be normalised in
+"/home/lisa/tube".
+
+Returns a path of the same string type as the specified parameter.
+""".
 -spec normalise_path( file_utils:path() ) -> file_utils:path();
 					( file_utils:bin_path() ) -> file_utils:bin_path().
 normalise_path( _Path="." ) ->
@@ -471,10 +469,11 @@ filter_elems_plain( _ElemList=[ E | T ], Acc ) ->
 
 
 
-% @doc Tests whether the specified path is a legit candidate one.
-%
-% (helper)
-%
+-doc """
+Tests whether the specified path is a legit candidate one.
+
+(helper)
+""".
 -spec is_legit_path( file_utils:path() ) -> boolean().
 is_legit_path( BaseCandidatePath ) ->
 
@@ -499,25 +498,26 @@ is_legit_path( BaseCandidatePath ) ->
 
 
 
-% @doc Returns a table allowing to manage the specified command-line arguments
-% more easily.
-%
-% These arguments are simply to be transmitted as a list of the corresponding
-% strings, typically as directly obtained through the main/1 function of an
-% escript) once transformed into our "canonical", more convenient form, which is
-% the same as the one used by shell_utils:get_argument_table/0 and is itself
-% similar to the one used by Erlang for its user/system flags (i.e. for all its
-% non-plain options).
-%
-% In this form, which by default is not available for escripts, options start
-% with a dash, may have any number of arguments, and may be specified more than
-% once in the command-line.
-%
-% Note: switches to the Unicode encoding (ex: use "~tp" then).
-%
-% Allows to write code that can be seamlessly triggered by a erl interpreter or
-% by an escript, by putting them in the latter case in our "canonical" form.
-%
+-doc """
+Returns a table allowing to manage the specified command-line arguments more
+easily.
+
+These arguments are simply to be transmitted as a list of the corresponding
+strings, typically as directly obtained through the main/1 function of an
+escript) once transformed into our "canonical", more convenient form, which is
+the same as the one used by shell_utils:get_argument_table/0 and is itself
+similar to the one used by Erlang for its user/system flags (i.e. for all its
+non-plain options).
+
+In this form, which by default is not available for escripts, options start with
+a dash, may have any number of arguments, and may be specified more than once in
+the command-line.
+
+Note: switches to the Unicode encoding (e.g. use "~tp" then).
+
+Allows to write code that can be seamlessly triggered by a erl interpreter or by
+an escript, by putting them in the latter case in our "canonical" form.
+""".
 -spec get_arguments( [ text_utils:ustring() ] ) -> shell_utils:argument_table().
 get_arguments( Args ) ->
 	shell_utils:get_argument_table_from_strings( Args ).

@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2023 Olivier Boudeville
+% Copyright (C) 2010-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,16 +23,18 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2003.
+% Creation date: Monday, February 15, 2010.
 
-
-% @doc Unit tests for <b>polygon management</b>.
-%
-% Depends on the gui module.
-%
-% See the polygon tested module.
-%
 -module(polygon_test).
+
+-moduledoc """
+Unit tests for **polygon management**.
+
+Depends on the gui module.
+
+See the polygon tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -46,14 +48,14 @@ run() ->
 
 	MyTriangle = polygon:update_bounding_surface( lazy_circle,
 		polygon:set_edge_color( yellow,
-				polygon:get_triangle( {110,110}, {250,155}, {120,335} ) ) ),
+			polygon:get_triangle( {110,110}, {250,155}, {120,335} ) ) ),
 
 	test_facilities:display( "Triangle description:~n~ts",
 							 [ polygon:to_string( MyTriangle ) ] ),
 
 
 	MyUprightSquare = polygon:update_bounding_surface( lazy_circle,
-	  polygon:set_fill_color( red,
+		polygon:set_fill_color( red,
 			polygon:get_upright_square( _Center={250,250},
 										_EdgeLength=50 ) ) ),
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2023 Olivier Boudeville
+% Copyright (C) 2018-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, January 21, 2018.
 
-
-% @doc Module in charge of <b>scanning an AST</b>, a prerequisite notably for
-% later transformations (see ast_transform.erl for that).
-%
 -module(ast_scan).
+
+-moduledoc """
+Module in charge of **scanning an AST**, a prerequisite notably for later
+transformations (see ast_transform.erl for that).
+""".
 
 
 % For the table macro for example:
@@ -41,15 +42,23 @@
 
 
 
+-doc """
+Name of any parse attribute.
+
+(typically in Form={attribute, FileLoc, AttributeName, AttributeValue})
+""".
 -type parse_attribute_name() :: atom().
-% Name of any parse attribute.
-%
-% (typically in Form={attribute, FileLoc, AttributeName, AttributeValue})
 
 
+
+-doc "A context of a scan.".
 -type scan_context() :: { ast_base:file_reference(), ast_base:line() }.
 
+
+
+-doc "An error report.".
 -type error_report() :: ustring().
+
 
 -export_type([ parse_attribute_name/0, scan_context/0, error_report/0 ]).
 
@@ -61,8 +70,12 @@
 
 % Shorthands:
 
+-type void() :: basic_utils:void().
+-type error_reason() :: basic_utils:error_reason().
+
 -type ast() :: ast_base:ast().
 -type form_context() :: ast_base:form_context().
+
 -type module_info() :: ast_info:module_info().
 -type compile_option_table() :: ast_info:compile_option_table().
 -type located_form() :: ast_info:located_form().
@@ -84,7 +97,7 @@
 % expecting the intended structure of AST elements (e.g. the structure of a
 % tuple corresponding to a 'receive' statement).
 %
-% Then, for a more complete control, we match the AST against its intended,
+% Then, for a more complete control, we matched the AST against its intended,
 % "official" structure, as defined in
 % http://erlang.org/doc/apps/erts/absform.html; however, for a mere scan, this
 % is mostly useless (as a more basic traversal is sufficient), and moreover
@@ -110,7 +123,7 @@
 
 
 
-% Order of the forms in the AST
+% About the orOrder of the forms in the AST.
 %
 % A parse transform receives an (ordered) list of forms as input AST: forms are
 % ordered only by their position in that list (file locations, i.e. line/column
@@ -158,9 +171,10 @@
 % be set before 'export_types_marker', it is still legit compilation-wise).
 
 
-% @doc Scans the specified AST, expected to correspond to a module definition,
-% and returns the corresponding module_info record.
-%
+-doc """
+Scans the specified AST, expected to correspond to a module definition, and
+returns the corresponding module_info record.
+""".
 -spec scan( ast() ) -> module_info().
 scan( AST ) ->
 
@@ -229,13 +243,13 @@ scan( AST ) ->
 
 
 
-% @doc Reports specified error, using the same format as erlc, so that tools can
-% parse these errors as well.
-%
-% For example foo.erl:102: can't find include file "bar.hrl"
-%
--spec report_error( { scan_context(), basic_utils:error_reason() } ) ->
-							basic_utils:void().
+-doc """
+Reports the specified error, using the same format as erlc, so that tools can
+parse these errors as well.
+
+For example: `foo.erl:102: can't find include file "bar.hrl"`.
+""".
+-spec report_error( { scan_context(), error_reason() } ) -> void().
 report_error( { Context, Error } ) ->
 
 	% No trace_utils yet here:
@@ -249,7 +263,7 @@ report_error( { Context, Error } ) ->
 			text_utils:format( "~ts", [ Msg ] );
 
 		{ undefined_macro_variable, VariableName }
-						when is_atom( VariableName ) ->
+										when is_atom( VariableName ) ->
 			text_utils:format( "undefined macro variable '~ts'",
 							   [ VariableName ] );
 
@@ -276,7 +290,7 @@ report_error( { Context, Error } ) ->
 
 		% For example Problem="unbalanced"
 		{ epp_error, { illegal, Problem, DirectiveName } }
-						when is_atom( DirectiveName )  ->
+				when is_atom( DirectiveName )  ->
 			text_utils:format( "illegal ~ts '~ts' preprocessor directive",
 							   [ Problem, DirectiveName ] );
 
@@ -295,13 +309,23 @@ report_error( { Context, Error } ) ->
 			text_utils:format( "could not find include_lib header file '~ts'",
 							   [ HeaderPath ] );
 
+		{ epp_error, { call, [ Char, Str ] } } ->
+			text_utils:format( "preprocessor error for character '~c' "
+				"regarding '~ts'", [ Char, Str ] );
+
+		{ epp_error, { redefine, DefineStr } } ->
+			text_utils:format(
+				"the preprocessor symbol '~ts' is already defined",
+				[ DefineStr ] );
+
+		% For example 'multiple definitions for ...', emitted by ast_scan:
 		String when is_list( String ) ->
-			%text_utils:format( "~ts (raw error string reported)", [ String ] );
+			%text_utils:format( "~ts [raw error string reported]", [ String ] );
 			text_utils:format( "~ts", [ String ] );
 
 		Other ->
-			%text_utils:format( "~p (raw error reported)", [ Other ] )
-			text_utils:format( "~p", [ Other ] )
+			text_utils:format( "~p (raw error reported)", [ Other ] )
+			%text_utils:format( "~p", [ Other ] )
 
 	end,
 
@@ -311,7 +335,7 @@ report_error( { Context, Error } ) ->
 
 
 
-% @doc Returns a textual representation of specified compilation context.
+-doc "Returns a textual representation of the specified compilation context.".
 -spec context_to_string( scan_context() ) -> ustring().
 context_to_string( { Filename, FileLoc } ) ->
 
@@ -331,13 +355,14 @@ context_to_string( { Filename, FileLoc } ) ->
 
 
 
-% @doc Main scanning function.
-%
-% Here all relevant parts of the specified AST (located forms) are matched in
-% turn, and stored in the specified module_info once located using
-% ast_base:form_location/0 identifiers, which allow easy insertions and
-% reordering.
-%
+-doc """
+Main scanning function.
+
+Here all relevant parts of the specified AST (located forms) are matched in
+turn, and stored in the specified module_info once located using
+ast_base:form_location/0 identifiers, which allow easy insertions and
+reordering.
+""".
 -spec scan_forms( ast(), module_info(), ast_base:form_location(),
 				  ast_base:file_reference() ) -> module_info().
 
@@ -398,7 +423,7 @@ scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'export', FunctionIds } | T ],
 
 			NewFunInfo = case ?table:lookup_entry( FunId, FunTableAcc ) of
 
-				 key_not_found ->
+				key_not_found ->
 
 					% New entry then:
 					#function_info{ name=Name,
@@ -411,8 +436,8 @@ scan_forms( _AST=[ _Form={ 'attribute', FileLoc, 'export', FunctionIds } | T ],
 									%callback=undefined,
 									exported=[ NextASTLoc ] };
 
-				 % A function *might* be exported more than once:
-				 { value, FunInfo } -> % F=#function_info{ exported=[] } } ->
+				% A function *might* be exported more than once:
+				{ value, FunInfo } -> % F=#function_info{ exported=[] } } ->
 					% Just add the fact that the function is exported then:
 					NewExp = [ NextASTLoc | FunInfo#function_info.exported ],
 					FunInfo#function_info{ exported=NewExp }
@@ -554,7 +579,7 @@ scan_forms( _AST=[ Form={ 'attribute', _FileLoc, 'file',
 	% bootstrapped as well, which does not seem desirable.
 
 	%NewCurrentFileReference = text_utils:string_to_binary(
-	%     file_utils:normalise_path( Filepath ) ),
+	%   file_utils:normalise_path( Filepath ) ),
 	NewCurrentFileReference = text_utils:string_to_binary( FilePath ),
 
 	% Avoids duplicates (in 'includes' only, not in definitions):
@@ -593,7 +618,7 @@ scan_forms(
   NextASTLoc, CurrentFileReference ) ->
 
 	%ast_utils:display_debug( "function definition for ~p/~p",
-	% [ FunctionName, FunctionArity ] ),
+	%   [ FunctionName, FunctionArity ] ),
 
 	% The non-first clauses could be checked as well:
 	%
@@ -1406,7 +1431,7 @@ scan_forms( Unexpected, _ModuleInfo, _NextASTLoc, CurrentFileReference ) ->
 
 
 
-% @doc Registers specified parse attribute regarding compilation.
+-doc "Registers the specified parse attribute regarding compilation.".
 -spec register_compile_attribute( term(), compile_option_table(),
 			scan_context() ) -> { compile_option_table(), [ located_form() ] }.
 % Full inlining requested:
@@ -1437,7 +1462,7 @@ register_compile_attribute( _CompileInfo={ 'inline', InlineValues },
 	?table:add_entry( inline, NewInlineValues, CompileTable );
 
 
-% Non-inlining, compile option with multiple values specified:
+% Non-inlining, compile option pair with multiple values specified:
 register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
 							CompileTable, _Context )
 		when is_atom( CompileOpt ) andalso is_list( OptValues ) ->
@@ -1445,11 +1470,55 @@ register_compile_attribute( _CompileInfo={ CompileOpt, OptValues },
 	?table:append_list_to_entry( CompileOpt, OptValues, CompileTable );
 
 
-% Non-inlining, single compile option (hence not a list):
-register_compile_attribute( _CompileInfo={ CompileOpt, OptValue }, CompileTable,
-							_Context ) when is_atom( CompileOpt ) ->
+% Non-inlining, pair with a single compile option (hence not a list):
+register_compile_attribute( CompileInfo={ CompileOpt, OptValue }, CompileTable,
+							Context ) when is_atom( CompileOpt ) ->
+
+	% Pair-based compile info option made of an atom and a non-list; not
+	% currently specifically managed, yet not wanting spurious warnings: (refer
+	% to https://www.erlang.org/doc/man/compile#file-2; last updated for Erlang
+	% 26/erts-14.2, March 2024)
+	%
+	KnownCompileOptsPairTags = [ debug_info_key, makedep_output, makedep_target,
+		error_location, source, outdir, i, d, parse_transform, no_auto_import,
+		extra_chunks, check_ssa, warn_format, nowarn_bif_clash,
+		nowarn_unused_function, nowarn_deprecated_function, nowarn_removed,
+		nowarn_unused_record, nowarn_redefined_builtin_type, inline_size ],
+
+	lists:member( CompileOpt, KnownCompileOptsPairTags ) orelse
+		begin
+			Msg = lists:flatten( io_lib:format( "Myriad-unknown compile "
+				"option pair (yet still included): ~p", [ CompileInfo ] ) ),
+
+			ast_utils:notify_warning( Msg, Context )
+
+		end,
 
 	?table:append_to_entry( CompileOpt, OptValue, CompileTable );
+
+
+% For all compile info triplets:
+register_compile_attribute(
+		CompileInfo={ CompileOpt, FirstOptValue, SecondOptValue }, CompileTable,
+		Context ) when is_atom( CompileOpt ) ->
+
+	% The known triplets are:
+	% - {d,Macro,Value}
+	% - {feature, Feature, enable | disable}
+	%
+	KnownCompileOptsTripletTags = [ 'd', 'feature' ],
+
+	lists:member( CompileOpt, KnownCompileOptsTripletTags ) orelse
+		begin
+			Msg = lists:flatten( io_lib:format( "Myriad-unknown compile "
+				"option triplet (yet still included): ~p", [ CompileInfo ] ) ),
+
+			ast_utils:notify_warning( Msg, Context )
+
+		end,
+
+	?table:append_to_entry( CompileOpt, { FirstOptValue, SecondOptValue },
+							CompileTable );
 
 
 register_compile_attribute( _CompileInfo=[], CompileTable, _Context ) ->
@@ -1468,14 +1537,33 @@ register_compile_attribute( _CompileInfo=[ CpInfo | T ], CompileTable,
 register_compile_attribute( CompileInfoOpt, CompileTable,
 							Context ) when is_atom( CompileInfoOpt ) ->
 
-	% Not currently specifically managed:
-	%KnownOptionlessCompileOpts = [ export_all, nowarn_export_all, debug_info ],
-	KnownOptionlessCompileOpts = [],
+	% Atom-based compile info option with no parameter; not currently
+	% specifically managed, yet not wanting spurious warnings: (refer to
+	% https://www.erlang.org/doc/man/compile#file-2; last updated for Erlang
+	% 26/erts-14.2, March 2024)
+	%
+	KnownOptionlessCompileOpts = [ brief, basic_validation, strong_validation,
+		binary, bin_opt_info, compressed, debug_info, encrypt_debug_info,
+		deterministic, makedep, makedep_side_effect, makedep_quote_target,
+		makedep_add_missing, makedep_phony, 'P', 'E', 'S', recv_opt_info,
+		report_errors, report_warnings, report, return_errors, return_warnings,
+		warnings_as_errors, return, verbose, absolute_source, export_all,
+		from_abstr, from_asm, from_core, no_spawn_compiler_process,
+		no_strict_record_tests, no_error_module_mismatch, no_auto_import,
+		no_line_info, no_lint, nowarn_bif_clash, nowarn_export_all,
+		warn_export_vars, nowarn_shadow_vars, warn_keywords,
+		nowarn_unused_function, nowarn_deprecated_function,
+		nowarn_deprecated_type, nowarn_removed, nowarn_obsolete_guard,
+		warn_unused_import, nowarn_underscore_match, nowarn_unused_vars,
+		nowarn_unused_record, nowarn_unused_type, nowarn_nif_inline,
+		warn_missing_spec, warn_missing_spec_all, nowarn_redefined_builtin_type,
+		nowarn_opportunistic, nowarn_failed, nowarn_ignored, nowarn_nomatch ],
+
 
 	lists:member( CompileInfoOpt, KnownOptionlessCompileOpts ) orelse
 		begin
-			Msg = io_lib:format( "unknown compile option: ~ts",
-								 [ CompileInfoOpt ] ),
+			Msg = io_lib:format( "Myriad-unknown compile option "
+				"(yet still included): ~ts", [ CompileInfoOpt ] ),
 
 			ast_utils:notify_warning( Msg, Context )
 
@@ -1490,11 +1578,12 @@ register_compile_attribute( Unexpected, _CompileTable, _Context ) ->
 
 
 
-% @doc Processes the fields of a given record definition.
-%
-% Note: field names could be full expressions here, but only atoms are allowed
-% by the parser (dixit the erl_id_trans parse transform).
-%
+-doc """
+Processes the fields of a given record definition.
+
+Note: field names could be full expressions here, but only atoms are allowed by
+the parser (dixit the erl_id_trans parse transform).
+""".
 -spec scan_field_descriptions( [ ast_base:ast_element() ],
 					ast_base:file_reference() ) -> ast_info:field_table().
 scan_field_descriptions( FieldDescriptions, CurrentFileReference ) ->
@@ -1574,8 +1663,7 @@ scan_field_descriptions( _FieldDescriptions=[ UnexpectedDesc | _T ],
 
 
 
-
-% @doc Checks that specified parse attribute name is legit.
+-doc "Checks that the specified parse attribute name is legit.".
 -spec check_parse_attribute_name( term(), form_context() ) ->
 										parse_attribute_name().
 check_parse_attribute_name( Name, _Context ) when is_atom( Name ) ->
@@ -1585,18 +1673,19 @@ check_parse_attribute_name( Other, Context ) ->
 	ast_utils:raise_error( [ invalid_parse_attribute_name, Other ], Context ).
 
 
-% @doc Checks that specified parse attribute name is legit.
+
+-doc "Checks that the specified parse attribute name is legit.".
 -spec check_parse_attribute_name( term() ) -> parse_attribute_name().
 check_parse_attribute_name( Name ) ->
 	check_parse_attribute_name( Name, _Context=undefined ).
 
 
 
-
-% @doc Finalizes the marker table, to ensure that, in all cases, after a scan
-% all markers are (adequately) defined (even if no clause in the AST triggered
-% their specific setting).
-%
+-doc """
+Finalizes the marker table, to ensure that, in all cases, after a scan all
+markers are (adequately) defined (even if no clause in the AST triggered their
+specific setting).
+""".
 -spec finalize_marker_table( ast_location(), marker_table() ) -> marker_table().
 finalize_marker_table( EndMarkerLoc, MarkerTable ) ->
 
@@ -1734,11 +1823,11 @@ add_missing_markers( _Markers=[ M | T ], DefaultLoc, MarkerTable ) ->
 
 
 
-% @doc Returns a list of {MarkerName,MarkerLoc} pairs, sorted by increasing
-% locations.
-%
-% (helper)
-%
+-doc """
+Returns a list of {MarkerName,MarkerLoc} pairs, sorted by increasing locations.
+
+(helper)
+""".
 -spec get_ordered_marker_location_pairs( marker_table() ) ->
 					[ { ast_info:section_marker(), ast_location() } ].
 get_ordered_marker_location_pairs( MarkerTable ) ->

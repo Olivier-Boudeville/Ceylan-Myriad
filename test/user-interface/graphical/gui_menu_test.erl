@@ -1,4 +1,4 @@
-% Copyright (C) 2022-2023 Olivier Boudeville
+% Copyright (C) 2022-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,27 +25,32 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Friday, April 22, 2022.
 
-
-% @doc Unit tests for the management of <b>menus</b>, in menu bars and popup
-% menus.
-%
 -module(gui_menu_test).
+
+-moduledoc """
+Unit tests for the management of **menus**, in menu bars and popup menus.
+""".
+
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
 
-% Shorthands:
+
+-doc """
+Here the main loop just has to remember the popup menu to activate in case of
+right click on the main frame, and this frame whose closing is awaited for.
+""".
+-type my_test_state() :: { frame(), menu() }.
+
+
+
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
 -type menu() :: gui_menu:menu().
 -type menu_bar() :: gui_menu:menu_bar().
-
-
--type my_test_state() :: { frame(), menu() }.
-% Here the main loop just has to remember the popup menu to activate in case of
-% right click on the main frame, and this frame whose closing is awaited for.
 
 
 
@@ -57,7 +62,7 @@ create_named_ids_dropdown( MenuBar ) ->
 
 	[ gui_menu:add_item( NamedMenu, N,
 		_Label=text_utils:format( "I am named &'~ts'", [ N ] ) )
-								|| N <- gui_menu:get_standard_item_names() ],
+			|| N <- gui_menu:get_standard_item_names() ],
 
 	gui_menu:add_menu( MenuBar, NamedMenu, "&Named menu" ),
 
@@ -72,7 +77,7 @@ create_numerical_ids_dropdown( MenuBar ) ->
 	NumMenu = gui_menu:create(),
 
 	[ gui_menu:add_item( NumMenu, N,
-					_Label=text_utils:format( "I am id #~B", [ N ] ) )
+		_Label=text_utils:format( "I am id #~B", [ N ] ) )
 								|| N <- lists:seq( 4999, 5206 ) ],
 
 	gui_menu:add_menu( MenuBar, NumMenu, "&Numerical menu" ),
@@ -102,7 +107,6 @@ create_popup_menu() ->
 	_D = gui_menu:append_submenu( PopupMenu, item_d, "Item D", SecondSubMenu,
 								  "I am D's help" ),
 
-
 	_E = gui_menu:add_checkable_item( FirstSubMenu, _EId=item_e, "Item E" ),
 	_F = gui_menu:add_checkable_item( FirstSubMenu, _FId=item_f, "Item F",
 									  "I am F's help" ),
@@ -110,7 +114,7 @@ create_popup_menu() ->
 
 	% E let as it is.
 	gui_menu:set_checkable_item( FirstSubMenu, item_f,
-									  _SetAsChecked=true ),
+								 _SetAsChecked=true ),
 
 	gui_menu:set_checkable_item( FirstSubMenu, item_g, false ),
 
@@ -128,7 +132,7 @@ create_popup_menu() ->
 
 
 
-% @doc Executes the actual test.
+-doc "Executes the actual test.".
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
@@ -151,7 +155,7 @@ run_gui_test() ->
 
 	NumMenu = create_numerical_ids_dropdown( MenuBar ),
 
-	gui_menu:set_menu_bar( MenuBar, Frame ),
+	gui_frame:set_menu_bar( Frame, MenuBar ),
 
 	{ PopupMenu, FirstSubMenu, SecondSubMenu } = create_popup_menu(),
 
@@ -167,11 +171,11 @@ run_gui_test() ->
 
 
 
-
-% @doc A very simple main loop, whose actual state is simply the GUI object
-% corresponding to the frame that shall be closed to stop the test
-% (i.e. CloseFrame).
-%
+-doc """
+A very simple main loop, whose actual state is simply the GUI object
+corresponding to the frame that shall be closed to stop the test
+(i.e. CloseFrame).
+""".
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( State={ Frame, PopupMenu } ) ->
 
@@ -182,7 +186,7 @@ test_main_loop( State={ Frame, PopupMenu } ) ->
 		{ onMouseRightButtonReleased, [ Frame, _FrameId, _Context ] } ->
 			%trace_utils:debug_fmt( "onMouseRightButtonReleased for frame ~w.",
 			%                       [ Frame ] ),
-			gui_menu:activate_as_popup( Frame, PopupMenu ),
+			gui_menu:activate_as_popup( PopupMenu, Frame ),
 			test_main_loop( State );
 
 		{ onItemSelected, [ _Menu, _ItemId=exit_menu_item, _Context ] } ->
@@ -208,7 +212,7 @@ test_main_loop( State={ Frame, PopupMenu } ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

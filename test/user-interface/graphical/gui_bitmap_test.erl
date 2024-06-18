@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2023 Olivier Boudeville
+% Copyright (C) 2023-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,11 +25,12 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, August 19, 2023.
 
-
-% @doc Testing the <b>support for the management of (mostly built-in)
-% bitmaps</b>.
-%
 -module(gui_bitmap_test).
+
+-moduledoc """
+Testing the **support for the management of (mostly built-in) bitmaps**.
+""".
+
 
 
 % Implementation notes:
@@ -45,14 +46,13 @@
 
 
 
-
-% Shorthands:
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
 
 
 
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_bitmap_test() -> void().
 run_bitmap_test() ->
 
@@ -77,7 +77,7 @@ run_bitmap_test() ->
 									   _HorizGap=3, _VertGap=3 ),
 
 	{ bitmap_id, BitmapEntries, _ElemLookup } =
-		gui_constants:get_bitmap_id_topic_spec(),
+		gui_constants:get_standard_bitmap_name_id_topic_spec(),
 
 	AllBitmapIds = pair:firsts( BitmapEntries ),
 
@@ -117,7 +117,7 @@ run_bitmap_test() ->
 
 
 
-% The main loop of this test.
+-doc "The main loop of this test.".
 -spec test_main_loop( frame() ) -> void().
 test_main_loop( MainFrame ) ->
 
@@ -145,7 +145,7 @@ test_main_loop( MainFrame ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2022-2023 Olivier Boudeville
+% Copyright (C) 2022-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -26,13 +26,13 @@
 % Creation date: Sunday, April 3, 2022.
 
 
-% State of a referential centralising resources.
--record( resource_referential, {
+% State of a repository centralising resources.
+-record( resource_repository, {
 
 	% The (absolute) root directory (if any) whence file-based resources are
 	% loaded: (this can be an actual directory or a symbolic link)
 	%
-	root_directory :: maybe( file_utils:bin_directory_path() ),
+	root_directory :: option( file_utils:bin_directory_path() ),
 
 	% The table storing the currently-loaded resources:
 	table :: resource:resource_table() } ).

@@ -1,4 +1,4 @@
-% Copyright (C) 2021-2023 Olivier Boudeville
+% Copyright (C) 2021-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,14 +25,16 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Thursday, December 23, 2021.
 
-
-% @doc Testing the <b>support for the management of images</b>.
-%
-% Useful for example to check whether a given format is correctly supported.
-%
-% See the gui_image.erl tested module.
-%
 -module(gui_image_test).
+
+-moduledoc """
+Testing the **support for the management of images**.
+
+Useful for example to check whether a given format is correctly supported.
+
+See the gui_image.erl tested module.
+""".
+
 
 
 % Implementation notes:
@@ -48,21 +50,10 @@
 
 
 % For re-use by other tests:
--export([ get_test_image_directory/0 ]).
+-export([ get_test_image_directory/0, get_test_main_image_path/0 ]).
 
 
 
-% Shorthands:
-
--type directory_path() :: file_utils:directory_path().
-
--type frame() :: gui:frame().
--type panel() :: gui:panel().
--type bitmap() :: gui:bitmap().
-
-
-
-% State of the test application, kept and updated by its main loop.
 -record( my_test_state, {
 
 	main_frame :: frame(),
@@ -76,7 +67,19 @@
 	% The ready-to-use in-memory data corresponding to an image to be displayed:
 	image_bitmap :: bitmap() } ).
 
+
+-doc "State of the test application, kept and updated by its main loop.".
 -type my_test_state() :: #my_test_state{}.
+
+
+
+% Type shorthands:
+
+-type directory_path() :: file_utils:directory_path().
+
+-type frame() :: gui:frame().
+-type panel() :: gui:panel().
+-type bitmap() :: gui:bitmap().
 
 
 
@@ -85,14 +88,15 @@
 
 
 
-% @doc Returns the path to a test image directory.
+-doc "Returns the path to a test image directory.".
 -spec get_test_image_directory() -> directory_path().
 get_test_image_directory() ->
 	% Points to myriad/doc; relative to this test directory:
 	file_utils:join( [ "..", "..", "..", "doc" ] ).
 
 
-% @doc Returns the path to the main test image.
+
+-doc "Returns the path to the main test image.".
 -spec get_test_main_image_path() -> directory_path().
 get_test_main_image_path() ->
 	ImageFilename = "myriad-title.png",
@@ -107,7 +111,7 @@ get_test_main_image_path() ->
 
 
 
-% @doc Runs the actual test.
+-doc "Runs the actual test.".
 -spec run_image_test() -> void().
 run_image_test() ->
 
@@ -156,7 +160,7 @@ run_image_test() ->
 
 
 
-% The main loop of this test.
+-doc "The main loop of this test.".
 -spec test_main_loop( my_test_state() ) -> void().
 test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 										  panel=Panel,
@@ -223,9 +227,10 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 
 
-% @doc Renders the scene: updates the (bitmap) backbuffer accordingly, and blits
-% it to the specified panel.
-%
+-doc """
+Renders the scene: updates the (bitmap) backbuffer accordingly, and blits it to
+the specified panel.
+""".
 render_scene( TargetPanel, BackbufferBitmap, ImageBitmap ) ->
 
 	% Updates the backbuffer with the stored image:
@@ -252,7 +257,9 @@ render_scene( TargetPanel, BackbufferBitmap, ImageBitmap ) ->
 
 
 
-% @doc Blits the current backbuffer bitmap to the specified panel once cleared.
+-doc """
+Blits the current backbuffer bitmap to the specified panel once cleared.
+""".
 update_panel( TargetPanel, BackbufferBitmap ) ->
 
 	% No need to update the update the framebuffer.
@@ -273,7 +280,7 @@ update_panel( TargetPanel, BackbufferBitmap ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

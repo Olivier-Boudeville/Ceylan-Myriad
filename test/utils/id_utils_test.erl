@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2023 Olivier Boudeville
+% Copyright (C) 2017-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,13 +23,16 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: Sunday, December 24, 2017.
 
-
-% Unit tests for the management of identifiers.
-%
-% See the id_utils.erl tested module.
-%
 -module(id_utils_test).
+
+-moduledoc """
+Unit tests for the **management of identifiers**.
+
+See the id_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -59,7 +62,7 @@ run() ->
 	FirstSortStrings = [ id_utils:sortable_id_to_string( Id ) || Id <- Ids ],
 
 	test_facilities:display( "Test first sortable identifiers are: ~ts",
-			[ text_utils:strings_to_enumerated_string( FirstSortStrings ) ] ),
+		[ text_utils:strings_to_enumerated_string( FirstSortStrings ) ] ),
 
 	LowerBound = id_utils:get_sortable_id_lower_bound(),
 	UpperBound = id_utils:get_sortable_id_upper_bound(),
@@ -82,8 +85,8 @@ run() ->
 
 	test_facilities:display( "Identifier table ~ts, once updated for elements "
 		"~w, with known identifiers ~w, is: ~ts",
-	  [ id_utils:identifier_table_to_string( IdentifierTable ),
-		ElementsToIdentify, KnownIds,
-		id_utils:identifier_table_to_string( NewIdentifierTable ) ] ),
+		[ id_utils:identifier_table_to_string( IdentifierTable ),
+		  ElementsToIdentify, KnownIds,
+		  id_utils:identifier_table_to_string( NewIdentifierTable ) ] ),
 
 	test_facilities:stop().

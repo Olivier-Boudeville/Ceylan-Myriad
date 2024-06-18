@@ -1,4 +1,4 @@
-% Copyright (C) 2009-2023 Olivier Boudeville
+% Copyright (C) 2009-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,11 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: 2009.
 
-
-% @doc This module defines a few <b>basic facilities for tests</b>, at the level
-% of the 'Myriad' layer.
-%
 -module(test_facilities).
+
+-moduledoc """
+This module defines a few **basic facilities for tests**, at the level of the
+'Myriad' layer.
+""".
+
 
 
 % To be output before each displayed message:
@@ -40,31 +42,38 @@
 		  fail/1, fail/2, finished/0 ] ).
 
 
+% Resource information, notably useful for multimedia tests:
+-export([ get_myriad_icon_path/0, get_myriad_logo_path/0 ]).
+
+
 % Shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
 
+-type image_path() :: gui_image:image_path().
 
 
-% @doc Starts a test; expected to be the first test statement.
-%
-% Here we disable explicitly the trapping of EXIT events, as a function run
-% through "erl -eval" (like our tests) or through "erl -run" will be executed in
-% a process which will silently trap EXIT events, which would mean that the
-% crash of any process created from the test, even thanks to spawn_link, would
-% most probably remain unnoticed (just leading to an EXIT message happily
-% sitting in the mailbox of the test process).
-%
+
+-doc """
+Starts a test; expected to be the first test statement.
+
+Here we disable explicitly the trapping of EXIT events, as a function run
+through "erl -eval" (like our tests) or through "erl -run" will be executed in a
+process which will silently trap EXIT events, which would mean that the crash of
+any process created from the test, even thanks to spawn_link, would most
+probably remain unnoticed (just leading to an EXIT message happily sitting in
+the mailbox of the test process).
+""".
 -spec start( module() | [ module() ] ) -> void().
 start( Module ) when is_atom( Module ) ->
 	start_common(),
-	basic_utils:display( "~n~n--> Testing module ~ts.~n", [ Module ] );
+	basic_utils:display( "~n--> Testing module ~ts.~n", [ Module ] );
 
 start( Modules ) when is_list( Modules ) ->
 	start_common(),
-	basic_utils:display( "~n~n--> Testing modules ~p.~n", [ Modules ] ).
+	basic_utils:display( "~n--> Testing modules ~p.~n", [ Modules ] ).
 
 
 % (helper)
@@ -91,7 +100,9 @@ start_common() ->
 
 
 
-% @doc Stops a test; expected to be the last test statement in the normal case.
+-doc """
+Stops a test; expected to be the last test statement in the normal case.
+""".
 -spec stop() -> no_return().
 stop() ->
 	basic_utils:display( "\n--> Successful end of test.\n" ),
@@ -99,7 +110,7 @@ stop() ->
 
 
 
-% @doc Displays a test message.
+-doc "Displays a test message.".
 -spec display( ustring() ) -> void().
 display( Message ) ->
 	% Carriage return already added in basic_utils:display/1:
@@ -108,23 +119,26 @@ display( Message ) ->
 
 
 
-% @doc Displays a test message, once formatted.
-%
-% FormatString is an io:format-style format string, Values is the
-% corresponding list of field values.
-%
+-doc """
+Displays a test message, once formatted.
+
+FormatString is an io:format-style format string, Values is the corresponding
+list of field values.
+""".
 -spec display( format_string(), format_values() ) -> void().
 display( FormatString, Values ) ->
 	basic_utils:display( FormatString, Values ).
 
 
-% @doc Displays a test message, once formatted.
-%
-% Defined for consistency.
-%
-% FormatString is an io:format-style format string, Values is the
-% corresponding list of field values.
-%
+
+-doc """
+Displays a test message, once formatted.
+
+Defined for consistency.
+
+FormatString is an io:format-style format string, Values is the corresponding
+list of field values.
+""".
 -spec display_fmt( format_string(), format_values() ) -> void().
 display_fmt( FormatString, Values ) ->
 	basic_utils:display( FormatString, Values ).
@@ -136,7 +150,8 @@ display_fmt( FormatString, Values ) ->
 %
 -define( exit_after_test, ).
 
-% @doc To be called when finishing successfully the execution of a test.
+
+-doc "To be called when finishing successfully the execution of a test.".
 -spec finished() -> no_return().
 
 
@@ -179,10 +194,11 @@ finished() ->
 
 
 
-% @doc To be called whenever a test is to fail (crash on error) immediately.
-%
-% For example: test_facilities:fail( "server on strike" )
-%
+-doc """
+To be called whenever a test is to fail (crash on error) immediately.
+
+For example: `test_facilities:fail("server on strike")`.
+""".
 -spec fail( ustring() ) -> no_return().
 fail( Reason ) ->
 
@@ -206,13 +222,14 @@ fail( Reason ) ->
 
 
 
-% @doc To be called whenever a test is to fail (crash on error) immediately.
-%
-% FormatString is an io:format-style format string, Values is the
-% corresponding list of field values.
-%
-% For example: test_facilities:fail("server ~ts on strike", ["foobar.org"])
-%
+-doc """
+To be called whenever a test is to fail (crash on error) immediately.
+
+FormatString is an io:format-style format string, Values is the corresponding
+list of field values.
+
+For example: `test_facilities:fail("server ~ts on strike", ["foobar.org"])`.
+""".
 -spec fail( format_string(), format_values() ) -> no_return().
 fail( FormatString, Values ) ->
 
@@ -222,3 +239,25 @@ fail( FormatString, Values ) ->
 	ReasonMessage = text_utils:format( FormatString, Values ),
 
 	fail( ReasonMessage ).
+
+
+
+-doc """
+Returns a path to the Myriad icon image, supposing the current directory is two
+levels above the root one, that is typically in a subdirectory of the 'test'
+one, like 'test/user-interface/'.
+""".
+-spec get_myriad_icon_path() -> image_path().
+get_myriad_icon_path() ->
+	"../../doc/myriad-icon.png".
+
+
+
+-doc """
+Returns a path to the Myriad logo (main representation) image, supposing the
+current directory is two levels above the root one, that is typically in a
+subdirectory of the 'test' one, like 'test/user-interface/'.
+""".
+-spec get_myriad_logo_path() -> image_path().
+get_myriad_logo_path() ->
+	"../../doc/myriad-title.png".

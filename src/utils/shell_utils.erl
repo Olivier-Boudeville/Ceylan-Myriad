@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2023 Olivier Boudeville
+% Copyright (C) 2020-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,13 +25,14 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, May 20, 2020.
 
-
-% @doc Gathering of various convenient facilities regarding the management of
-% the <b>shells and command lines</b> (e.g. specified arguments).
-%
-% See shell_utils_test.erl for the corresponding test.
-%
 -module(shell_utils).
+
+-moduledoc """
+Gathering of various convenient facilities regarding the management of the
+**shells and command lines** (e.g. specified arguments).
+
+See shell_utils_test.erl for the corresponding test.
+""".
 
 
 
@@ -56,13 +57,18 @@
 % The command-line is mostly managed like init:get_argument/1.
 
 
+-doc """
+Any element of a command-line, typically option name or value.
+""".
 -type command_line_element() :: ustring().
-% Any element of a command-line, typically option name or value.
 
 
+
+-doc """
+The name of a command-line option; e.g. '-color', for an actual option that is
+"--color". For the init standard module, this is named a "flag".
+""".
 -type actual_command_line_option() :: atom().
-% The name of a command-line option; e.g. '-color', for an actual option that is
-% "--color". For the init standard module, this is named a "flag".
 
 
 % To designate command-line arguments that are specified directly as such, not
@@ -78,87 +84,106 @@
 -define( no_option_key, '(none)' ).
 
 
+
+-doc """
+Note the special value ?no_option_key that is associated to option-less
+arguments.
+""".
 -type command_line_option() :: actual_command_line_option() | ?no_option_key.
-% Note the special value ?no_option_key that is associated to option-less
-% arguments.
 
 
+
+-doc "A unitary value specified in link to a command-line option.".
 -type command_line_value() :: text_utils:ustring().
-% A unitary value specified in link to a command-line option.
 
 
+
+-doc """
+The command-line values specified after an occurrence of a given option (e.g.
+["blue", "red"]).
+""".
 -type command_line_values() :: [ command_line_value() ].
-% The command-line values specified after an occurrence of a given option (e.g.
-% ["blue", "red"]).
 
 
+
+-doc """
+The association between a command-line option and the various values associated
+to its various occurrences, in a (non-unique) argument table.
+
+For example if arguments were "--color blue red [...] --color yellow", then the
+corresponding argument entry is {'-color', [["blue", "red"], ["yellow"]]}
+(i.e. with, associated to a command-line option, a list whose elements are
+*lists* of strings; in their order on the command-line).
+
+Note that keys are atoms (with one leading dash removed), and it is advisable to
+use only the executable_utils module support rather than mixing and matching it
+with the one of the 'init' module (different keys).
+""".
 -type command_line_argument() ::
 	% Yes, a *list* of command-line valueS:
 	{ command_line_option(), [ command_line_values() ] }.
-% The association between a command-line option and the various values
-% associated to its various occurrences, in a (non-unique) argument table.
-%
-% For example if arguments were "--color blue red [...] --color yellow", then
-% the corresponding argument entry is {'-color', [["blue", "red"], ["yellow"]]}
-% (i.e. with, associated to a command-line option, a list whose elements are
-% *lists* of strings; in their order on the command-line).
-%
-% Note that keys are atoms (with one leading dash removed), and it is advisable
-% to use only the executable_utils module support rather than mixing and
-% matching it with the one of the 'init' module (different keys).
 
 
 
+-doc """
+A table storing command-line user (plain, i.e arguments specified after either
+"--" or, preferably, "-extra") arguments conveniently (a bit like getopt), in a
+format exactly in the spirit of init:get_arguments/0, allowing to record options
+possibly repeated more than once, possibly each time with a series of values.
+
+Useful to manage arguments more easily, and also to handle uniformly the
+arguments specified for erl-based executions and escript ones alike.
+
+Note: to account for repeated options (i.e. options specified more than once on
+the command-line), a list of *lists* of values is associated to each option in
+such argument tables.
+
+For example, for actual command-line options such as:
+  some_value --foo --bar a b --width 15 --bar c
+a corresponding argument table would contain following entries:
+	'-foo' -> [ [] ]
+	'-bar' -> [ [ "a", "b" ], [ "c" ] ]
+	'-width -> [ [ "15" ] ]
+	?no_option_key -> [ "some_value"
+""".
 -type argument_table() ::
 	?arg_table:?arg_table( command_line_option(), [ command_line_values() ] ).
-% A table storing command-line user (plain, i.e arguments specified after either
-% "--" or, preferably, "-extra") arguments conveniently (a bit like getopt), in
-% a format exactly in the spirit of init:get_arguments/0, allowing to record
-% options possibly repeated more than once, possibly each time with a series of
-% values.
-%
-% Useful to manage arguments more easily, and also to handle uniformly the
-% arguments specified for erl-based executions and escript ones alike.
-%
-% Note: to account for repeated options (i.e. options specified more than once
-% on the command-line), a list of *lists* of values is associated to each option
-% in such argument tables.
-%
-% For example, for actual command-line options such as:
-%   some_value --foo --bar a b --width 15 --bar c
-% a corresponding argument table would contain following entries:
-%    '-foo' -> [ [] ]
-%    '-bar' -> [ [ "a", "b" ], [ "c" ] ]
-%    '-width -> [ [ "15" ] ]
-%     ?no_option_key -> [ "some_value" ]
 
 
 
+-doc """
+A table associating to a given option a (single) list of values (thus not having
+repeated options).
+
+For example, for actual command-line options such as:
+  some_value --foo --bar a b --width 15
+a corresponding argument table would contain following entries:
+   '-foo' -> []
+   '-bar' -> [ "a", "b" ]
+   '-width -> [ "15" ]
+   ?no_option_key -> [ "some_value" ]
+
+For convenience, "standard" argument tables may be converted into unique ones.
+""".
 -type unique_argument_table() ::
 		?arg_table:?arg_table( command_line_option(), command_line_values() ).
-% A table associating to a given option a (single) list of values (thus not
-% having repeated options).
-%
-% For example, for actual command-line options such as:
-%   some_value --foo --bar a b --width 15
-% a corresponding argument table would contain following entries:
-%    '-foo' -> []
-%    '-bar' -> [ "a", "b" ]
-%    '-width -> [ "15" ]
-%     ?no_option_key -> [ "some_value" ]
-%
-% For convenience, "standard" argument tables may be converted into unique ones.
 
 
+
+-doc "Non-null expected (otherwise meaningless).".
 -type actual_value_count() :: count().
-% Non-null expected (otherwise meaningless).
 
 
+
+-doc """
+How many values (possibly any number thereof - possibly none) are expected after
+a given command-line option.
+""".
 -type value_count() :: actual_value_count() | 'any'.
-% How many values (possibly any number thereof - possibly none) are expected
-% after a given command-line option.
 
 
+
+-doc "Describes the expected number of values associated to a given option.".
 -type value_spec() ::
 
 	% Exact count requested:
@@ -166,11 +191,11 @@
 
 	% A (possibly unlimited) range of counts accepted (bounds included):
 	| { actual_value_count(), value_count() }.
-% Describes the expected number of values associated to a given option.
 
 
+
+-doc "A specification of how many values are expected after specified option.".
 -type option_spec() :: { actual_command_line_option(), value_spec() }.
-% A specification of how many values are expected after specified option.
 
 
 
@@ -208,7 +233,7 @@
 -compile( { no_auto_import, [ error/2 ] } ).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -224,15 +249,16 @@
 % Section for command-line facilities.
 
 
-% @doc Protects specified argument from shell parsing, typically if specifying a
-% filename including a single quote.
-%
-% Note: currently does not transform binary arguments (double conversion with
-% improperly encoded strings might be tricky).
-%
-% When executing third-party programs, in order to avoid any need of protecting
-% their arguments, a system_utils:run_executable/n variation ought to be used.
-%
+-doc """
+Protects specified argument from shell parsing, typically if specifying a
+filename including a single quote.
+
+Note: currently does not transform binary arguments (double conversion with
+improperly encoded strings might be tricky).
+
+When executing third-party programs, in order to avoid any need of protecting
+their arguments, a system_utils:run_executable/n variation ought to be used.
+""".
 -spec protect_from_shell( any_string() ) -> any_string().
 protect_from_shell( ArgString ) when is_list( ArgString ) ->
 	% Simple approaches not sufficient (e.g. "echo 'aaa\'bbb'"):
@@ -266,19 +292,18 @@ protect_from_shell_helper( _Text=[ C | T ], Acc ) ->
 % Command-line argument section.
 
 
-% @doc Returns a canonical argument table, obtained from the user command-line
-% arguments supplied to the interpreter.
-%
-% Note:
-%
-% - only the arguments specified on the command-line after the '-extra' marker
-% will be taken into account; e.g.
-%    make ui_run CMD_LINE_OPT="-a -extra some_value -b --use-ui-backend text_ui"
-% (here "-a" and, of course, "-extra", will be ignored)
-%
-% - this function is to be called in the context of a standard erl execution (as
-% opposed to an escript one, which shall use script_utils:get_arguments/1)
-%
+-doc """
+Returns a canonical argument table, obtained from the user command-line
+arguments supplied to the interpreter.
+
+Note:
+- only the arguments specified on the command-line after the '-extra' marker
+will be taken into account; e.g.
+   make ui_run CMD_LINE_OPT="-a -extra some_value -b --use-ui-backend text_ui"
+(here "-a" and, of course, "-extra", will be ignored)
+- this function is to be called in the context of a standard erl execution (as
+opposed to an escript one, which shall use script_utils:get_arguments/1)
+""".
 -spec get_argument_table() -> argument_table().
 get_argument_table() ->
 
@@ -297,17 +322,18 @@ get_argument_table() ->
 
 
 
-% @doc Returns the specified command-line arguments (simply transmitted as a
-% list of the corresponding strings) once transformed into our "canonical", more
-% convenient form, which is quite similar to the one used by Erlang for its
-% user/system flags (that is for all its non-plain options).
-%
-% In this form, options start with a dash, may have any number of arguments, and
-% may be specified more than once in the command-line; non-option arguments are
-% collected as well (refer to the no_option_key define).
-%
-% Note: switches to the Unicode encoding (e.g. use "~tp" then).
-%
+-doc """
+Returns the specified command-line arguments (simply transmitted as a list of
+the corresponding strings) once transformed into our "canonical", more
+convenient form, which is quite similar to the one used by Erlang for its
+user/system flags (that is for all its non-plain options).
+
+In this form, options start with a dash, may have any number of arguments, and
+may be specified more than once in the command-line; non-option arguments are
+collected as well (refer to the no_option_key define).
+
+Note: switches to the Unicode encoding (e.g. use "~tp" then).
+""".
 -spec get_argument_table_from_strings( [ ustring() ] ) -> argument_table().
 get_argument_table_from_strings( ArgStrings ) ->
 
@@ -417,11 +443,12 @@ collect_values_for_option( _Args=[ OptValue | T ], AccValues ) ->
 
 
 
-% @doc Returns a canonical argument table, obtained from the specified single
-% string containing all options, verbatim; e.g. "--color red --set-foo".
-%
-% Note: useful for testing, to introduce specific command lines.
-%
+-doc """
+Returns a canonical argument table, obtained from the specified single string
+containing all options, verbatim; e.g. "--color red --set-foo".
+
+Note: useful for testing, to introduce specific command lines.
+""".
 -spec generate_argument_table( ustring() ) -> argument_table().
 generate_argument_table( ArgString ) ->
 
@@ -432,16 +459,17 @@ generate_argument_table( ArgString ) ->
 
 
 
-% @doc Returns, if this option was specified on the command-line, the in-order
-% list of the various (lists of) values (if any; no value at all being specified
-% for an option resulting thus in [ [] ]) associated to the specified option; if
-% this option was not specified on the command-line, returns 'undefined'.
-%
-% Note: generally the extract_command_arguments_for_option/{1,2} functions are
-% more relevant to use.
-%
+-doc """
+Returns, if this option was specified on the command-line, the in-order list of
+the various (lists of) values (if any; no value at all being specified for an
+option resulting thus in [ [] ]) associated to the specified option; if this
+option was not specified on the command-line, returns 'undefined'.
+
+Note: generally the extract_command_arguments_for_option/{1,2} functions are
+more relevant to use.
+""".
 -spec get_command_arguments_for_option( command_line_option() ) ->
-									maybe( [ command_line_values() ] ).
+									option( [ command_line_values() ] ).
 get_command_arguments_for_option( Option ) ->
 
 	ArgumentTable = get_argument_table(),
@@ -451,12 +479,13 @@ get_command_arguments_for_option( Option ) ->
 
 
 
-% @doc Returns the in-order list of the arguments that were directly (that is
-% not in the context of an option) specified on the command-line.
-%
-% Note: generally the extract_optionless_command_arguments/{0,1} functions are
-% more relevant to use.
-%
+-doc """
+Returns the in-order list of the arguments that were directly (that is not in
+the context of an option) specified on the command-line.
+
+Note: generally the extract_optionless_command_arguments/{0,1} functions are
+more relevant to use.
+""".
 -spec get_optionless_command_arguments() -> command_line_values().
 get_optionless_command_arguments() ->
 
@@ -470,19 +499,20 @@ get_optionless_command_arguments() ->
 
 
 
-% @doc Extracts, for specified command-line option (if any was specified;
-% otherwise returns 'undefined') its various in-order lists of associated
-% values, from the arguments specified to this executable.
-%
-% Returns a pair made of these lists of (lists of) values and of the shrunk
-% corresponding argument table.
-%
-% Note: a value set to 'undefined' means that the specified option is not in the
-% specified table, whereas a value set to [ [] ] means that this option is in
-% the table, yet that no parameter has been specified for it.
-%
+-doc """
+Extracts, for specified command-line option (if any was specified; otherwise
+returns 'undefined') its various in-order lists of associated values, from the
+arguments specified to this executable.
+
+Returns a pair made of these lists of (lists of) values and of the shrunk
+corresponding argument table.
+
+Note: a value set to 'undefined' means that the specified option is not in the
+specified table, whereas a value set to [ [] ] means that this option is in the
+table, yet that no parameter has been specified for it.
+""".
 -spec extract_command_arguments_for_option( command_line_option() ) ->
-			{ maybe( [ command_line_values() ] ), argument_table() }.
+			{ option( [ command_line_values() ] ), argument_table() }.
 extract_command_arguments_for_option( Option ) ->
 
 	ArgumentTable = get_argument_table(),
@@ -491,35 +521,36 @@ extract_command_arguments_for_option( Option ) ->
 
 
 
-% @doc Extracts, for the specified command-line option (if any was specified;
-% otherwise returns 'undefined') its various in-order lists of associated
-% values, from the specified argument table.
-%
-% Returns a pair made of these lists of (lists of) values and of the shrunk
-% corresponding argument table.
-%
-% Note: a value set to 'undefined' means that the specified option is not in the
-% specified table, whereas a value set to [ [] ] means that this option is in
-% the table, yet that no parameter has been specified for it.
-%
+-doc """
+Extracts, for the specified command-line option (if any was specified; otherwise
+returns 'undefined') its various in-order lists of associated values, from the
+specified argument table.
+
+Returns a pair made of these lists of (lists of) values and of the shrunk
+corresponding argument table.
+
+Note: a value set to 'undefined' means that the specified option is not in the
+specified table, whereas a value set to [ [] ] means that this option is in the
+table, yet that no parameter has been specified for it.
+""".
 -spec extract_command_arguments_for_option( command_line_option(),
 											argument_table() ) ->
-				{ maybe( [ command_line_values() ] ), argument_table() }.
+				{ option( [ command_line_values() ] ), argument_table() }.
 extract_command_arguments_for_option( Option, ArgumentTable ) ->
 	?arg_table:extract_entry_with_default( _K=Option, _DefaultValue=undefined,
 										   ArgumentTable ).
 
 
 
-% @doc Extracts the in-order list of the arguments that were directly (that is
-% not in the context of an option) specified on the command-line for this
-% executable.
-%
-% Returns a pair made of these lists of values and of the shrunk corresponding
-% argument table.
-%
+-doc """
+Extracts the in-order list of the arguments that were directly (that is not in
+the context of an option) specified on the command-line for this executable.
+
+Returns a pair made of these lists of values and of the shrunk corresponding
+argument table.
+""".
 -spec extract_optionless_command_arguments() ->
-			{ maybe( [ command_line_values() ] ), argument_table() }.
+			{ option( [ command_line_values() ] ), argument_table() }.
 extract_optionless_command_arguments() ->
 
 	ArgumentTable = get_argument_table(),
@@ -528,19 +559,21 @@ extract_optionless_command_arguments() ->
 
 
 
-% @doc Extracts, for the specified command-line option (if any was specified;
-% otherwise returns 'undefined') its various in-order lists of associated
-% values, from the specified argument table.
-%
-% Returns a pair made of these lists of (lists of) values and of the shrunk
-% corresponding argument table.
-%
-% Note: a value set to 'undefined' means that the specified option is not in the
-% specified table, whereas a value set to [ [] ] means that this option is in
-% the table, yet that no parameter has been specified for it.
-%
+-doc """
+Extracts, for the specified command-line option (if any was specified; otherwise
+returns 'undefined') its various in-order lists of associated values, from the
+specified argument table.
+
+Returns a pair made of these lists of (lists of) values and of the shrunk
+corresponding argument table.
+
+Note: a value set to 'undefined' means that the specified option is not in the
+specified table, whereas a value set to [ [] ] means that this option is in the
+table, yet that no parameter has been specified for it.
+
+""".
 -spec extract_optionless_command_arguments( argument_table() ) ->
-				{ maybe( [ command_line_values() ] ), argument_table() }.
+				{ option( [ command_line_values() ] ), argument_table() }.
 extract_optionless_command_arguments( ArgumentTable ) ->
 
 	%trace_utils:debug_fmt( "ArgumentTable: ~p.", [ ArgumentTable ] ),
@@ -560,14 +593,14 @@ extract_optionless_command_arguments( ArgumentTable ) ->
 
 
 
-% @doc Transforms specified argument table (possibly with repeated options) into
-% a unique argument table (thus with just a list of values associated to each
-% option).
-%
-% Should options be repeated in the specified table, their values will be merged
-% (concatenated in-order into a single list, rather than the prior list of
-% lists).
-%
+-doc """
+Transforms specified argument table (possibly with repeated options) into a
+unique argument table (thus with just a list of values associated to each
+option).
+
+Should options be repeated in the specified table, their values will be merged
+(concatenated in-order into a single list, rather than the prior list of lists).
+""".
 -spec uniquify_argument_table( argument_table() ) -> unique_argument_table().
 uniquify_argument_table( ArgumentTable ) ->
 	uniquify_argument_table( ?arg_table:enumerate( ArgumentTable ),
@@ -586,19 +619,18 @@ uniquify_argument_table( _Args=[ { Opt, ListOfLists } | T ], AccTable ) ->
 
 
 
+-doc """
+Generates a table from the arguments that were specified on the command-line for
+this executable, assigning to each of the specified command-line options the
+corresponding number of values.
 
+Should, for a given option, less values be found on the command-line than
+declared, an error will be raised; should more values be found, the extra ones
+will be considered as option-less arguments, and stored as such. Should a
+non-declared option be found, raises an error as well.
 
-% @doc Generates a table from the arguments that were specified on the
-% command-line for this executable, assigning to each of the specified
-% command-line options the corresponding number of values.
-%
-% Should, for a given option, less values be found on the command-line than
-% declared, an error will be raised; should more values be found, the extra ones
-% will be considered as option-less arguments, and stored as such. Should a
-% non-declared option be found, raises an error as well.
-%
-% Note: the order of the declared options spec does not matter.
-%
+Note: the order of the declared options spec does not matter.
+""".
 -spec get_command_line_arguments( value_spec(), [ option_spec() ] ) ->
 										unique_argument_table().
 get_command_line_arguments( OptionlessSpec, OptionSpecs ) ->
@@ -609,16 +641,17 @@ get_command_line_arguments( OptionlessSpec, OptionSpecs ) ->
 
 
 
-% @doc Reorganizes specified argument table, assigning to each of its
-% command-line options the corresponding number of values.
-%
-% Should, for a given option, less values be found than declared, an error will
-% be raised; should more values be found, the extra ones will be considered as
-% option-less arguments, and stored as such. Should a non-declared option be
-% found, an error is raised.
-%
-% Note: the order of the declared options spec does not matter.
-%
+-doc """
+Reorganizes specified argument table, assigning to each of its command-line
+options the corresponding number of values.
+
+Should, for a given option, less values be found than declared, an error will be
+raised; should more values be found, the extra ones will be considered as
+option-less arguments, and stored as such. Should a non-declared option be
+found, an error is raised.
+
+Note: the order of the declared options spec does not matter.
+""".
 -spec get_command_line_arguments( value_spec(), [ option_spec() ],
 								  argument_table() ) -> unique_argument_table().
 get_command_line_arguments( OptionlessSpec, OptionSpecs, ArgumentTable ) ->
@@ -898,7 +931,7 @@ sort_arguments( _OptionlessSpec, _OptionSpecs=[ { Opt, VCount } | _T ],
 
 
 
-% @doc Returns a textual representation of the specified argument table.
+-doc "Returns a textual representation of the specified argument table.".
 -spec argument_table_to_string( argument_table() ) -> ustring().
 argument_table_to_string( ArgTable ) ->
 
@@ -933,14 +966,14 @@ option_pair_to_string( Option, ArgumentLists ) ->
 
 
 
+-doc """
+Reports a fatal error, typically in an script/escript context, with the
+specified error return code (expected to be non-null).
 
-% @doc Reports a fatal error, typically in an script/escript context, with the
-% specified error return code (expected to be non-null).
-%
-% The message shall preferably not begin with an uppercase letter.
-%
-% Halts on error the current program.
-%
+The message shall preferably not begin with an uppercase letter.
+
+Halts on error the current program.
+""".
 -spec error( return_code(), ustring() ) -> no_return().
 error( ErrorCode, Message ) ->
 
@@ -955,13 +988,14 @@ error( ErrorCode, Message ) ->
 
 
 
-% @doc Reports a formatted, fatal error, typically in an script/escript context,
-% with the specified error return code (expected to be non-null).
-%
-% The message shall preferably not begin with an uppercase letter.
-%
-% Halts on error the current program.
-%
+-doc """
+Reports a formatted, fatal error, typically in an script/escript context, with
+the specified error return code (expected to be non-null).
+
+The message shall preferably not begin with an uppercase letter.
+
+Halts on error the current program.
+""".
 -spec error_fmt( return_code(), format_string(), format_values() ) ->
 											no_return().
 error_fmt( ErrorCode, Format, Values ) ->

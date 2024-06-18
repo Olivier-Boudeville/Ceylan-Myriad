@@ -97,13 +97,15 @@ The most obvious conventions are:
 
 - defining distinct (non-overlapping), explicit (with a clear-enough name), numerous (statically-defined) **atoms** is cheap; each atom found in the sources is generally to be involved in at least one type definition
 
-- the use of ``case ... of ... end`` should be preferred to the use of ``if`` (never used in our code base)
+- the use of ``case EXPR of ... end`` should be preferred to the use of ``if`` (never used in our code base); when only one branch may apply and does not depend on the actual value of EXPR, one-armed expressions based on ``andalso`` or ``orelse`` should be preferred to a ``case`` expression (e.g. ``DoDisplay andalso render(), ...``)
 
 - we also prefer that the various patterns of a case are indented with exactly one tabulation, and that the closing ``end`` lies as much as possible on the left (e.g. if having specified ``MyVar = case ... end``, then ``end`` should begin at the same column as ``MyVar``); the same applies to ``try ... catch ... end`` clauses
 
 - when a term is ignored, instead of using simply ``_``, one should define a **named mute variable** in order to provide more information about this term (e.g. ``_TimeManagerPid``); one should then to accidental matching of such names (now a warning is emitted)
 
 - some conventional variable names are, and may be, extensively used: ``Res`` for result, ``H`` and ``T`` for respectively the head and tail of a list on which we recursively iterate
+
+- generally, a plural variable name (e.g. ``Elements``) designates a list (e.g. ``[element()]``); consequently, a list of lists of ``element()`` (thus ``[[element()]]``, like ``[[E1,E2], [], [E3]]``) may be designated with the ``Elementss`` variable name
 
 .. _indices:
 
@@ -116,7 +118,7 @@ The most obvious conventions are:
   - if a text is to be rather static (constant) and/or if it is to be exchanged between processes, then it should be a UTF8 ``binary``, and its type shall be declared as ``text_utils:bin_string()``
   - other, a plain string (``text_utils:ustring()``) shall be used
 
-- when defining a non-trivial datastructure, a **record** shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding **type** should be then defined (e.g. a ``foobar`` record leading to a ``foobar()`` type), and a **function to describe it** as text shall be provided (e.g. ``-spec foobar_to_string(foobar()) -> text_utils:string()``)
+- when defining a non-trivial datastructure, a **record** shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding **type** should be then defined (e.g. a ``foobar`` record leading to a ``foobar()`` type), and a **function to describe it** as text shall be provided (e.g. ``-spec foobar_to_string(foobar()) -> text_utils:ustring()``)
 
   - **mute variables** should be used as well to document actual parameters; for example ``f(3,7,10)`` could preferably be written as a clearer ``f(_Min=3,_Max=7,_Deviation=10)``
 
@@ -197,9 +199,91 @@ Another option is to use ``ctags`` to generate Emacs' compliant `tags <https://w
 For Documentation Generation
 ----------------------------
 
-Refer now to our `dedicated HOW-TO <http://howtos.esperide.org/DocGeneration.html>`_.
+
+Generation of API documentation
+...............................
+
+Since Erlang/OTP 27, Myriad relies on the `overhauled documentation system <https://www.erlang.org/doc/system/documentation.html>`_ (stemming from `EEP 59 <https://www.erlang.org/eeps/eep-0059>`_) and on the `Markdown <https://en.wikipedia.org/wiki/Markdown>`_ syntax.
+
+This produces doc chunks, and `ExDoc <https://hexdocs.pm/ex_doc/readme.html>`_ is used (as a command-line tool) to generate the actual documentation out of it.
+
+As ExDoc is in Elixir, it is to be installed thanks to ``mix``, which can be installed on Arch thanks to ``pacman -S elixir``.
+
+Then ExDoc can be installed as an escript: ``mix escript.install hex ex_doc``; it becomes then available as ``~/.mix/escripts/ex_doc``, that may be added in one's ``PATH``. Refer to our ``generate-api-doc`` make target that automates the generation of the API documentation of the current layer.
 
 
+Writing API documentation
+.........................
+
+Short reminders for the writing of a proper corresponding documentation (see also the `Erlang reference guide <https://www.erlang.org/doc/system/documentation.html>`_ about it):
+
+- the documentation regarding an element must come just *before* that element
+- for each module file, first comes a ``-moduledoc`` (module-level) attribute
+- then as many ``-doc`` as there are elements that shall be documented: user-defined types (for ``-type`` and ``-opaque``), behaviour module attributes (``-callback``) and functions (``-spec``)
+- each of these documentation attributes (``-moduledoc`` / ``-doc``) can be followed by a single-quoted or a `triple-quoted string <https://www.erlang.org/blog/highlights-otp-27/#triple-quoted-strings>`_; this entry should start with a short paragraph describing the purpose of the documented element, and then go into greater detail if needed; we recommend the MarkDown syntax for it (see `this reference <https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax>`_); for example:
+
+
+.. code:: erlang
+
+ -moduledoc """
+ A module for **basic arithmetic**.
+
+ It is based on *XXX* and performs *YYY*.
+
+ ZZZ is of interest, see [this page](http://www.foobar.org).
+ See `sub/2`, <http://www.foobar.org#hello> and `arith:sub/2` for more details.
+ """.
+
+
+and
+
+.. code:: erlang
+
+ -doc "Adds two numbers."
+
+(note that both simple and triple quotes *must* be followed by a dot)
+
+Let's name an *element specification* the documentation attribute (``-doc``), possibly its type spec (``-spec``) and its actual (code-based) definition.
+
+We recommend that:
+
+- element specifications are separated by three blank lines
+- no blank line exists between a document attribute and the rest of the corresponding element specification
+
+
+.. comment For pick and paste:
+
+  -doc ".".
+
+  -doc """
+
+   """.
+
+
+
+For other documentation topics, refer to our `dedicated HOW-TO <http://howtos.esperide.org/DocGeneration.html>`_.
+
+
+
+Release Conventions
+===================
+
+These conventions apply to the release of any Myriad-based package, i.e. either Myriad itself or packages depending, directly or not, from it.
+
+The recommended procedure is (while being at the root of a clone):
+
+#. merge all new developments in the ``master`` (or ``main``) branch
+#. in ``GNUmakevars.inc``:
+
+   - ensure that all debug/check flags (like ``MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path``) are disabled, and that non-release elements (e.g. ``MYRIAD_LCO_OPT``) and optional ones are disabled as well
+   - bump the version of this local package (e.g. in ``MYRIAD_VERSION``)
+
+#. for packages having dependencies: upgrade their reference known of rebar3, with ``make rebar3-upgrade-lock``
+#. rebuild and test all from the root: ``make rebuild test``, fix any problem
+#. optional: perform `static code checking <#type-checking-myriad>`_
+#. if all went well, ensure that all files are committed (e.g. ``ebin/THIS_PACKAGE.app``)
+#. push them, it will trigger the CI/CD services; ensure everything is correct there as well
+#. go back to a development branch and merge/rebase the master one there
 
 
 

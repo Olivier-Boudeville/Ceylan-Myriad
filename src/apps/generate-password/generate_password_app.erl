@@ -1,18 +1,18 @@
-% Copyright (C) 2016-2023 Olivier Boudeville
-%
-% Module defined in order to be able to test the password generation services
-% outside of an escript context.
-%
-% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Copyright (C) 2016-2024 Olivier Boudeville
 %
 % Released as LGPL software.
-
-
-% @doc A Myriad application to <b>generate strong, safe passwords</b>.
 %
-% @hidden Not useful to list in API.
-%
+% Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Created date: 2016.
+
 -module(generate_password_app).
+
+-moduledoc """
+A Myriad application to **generate strong, safe passwords**.
+
+Module defined in order to be able to test the password generation services
+outside of an escript context.
+""".
 
 
 -export([ exec/0 ]).
@@ -23,7 +23,7 @@
 
 
 
-% @doc Executes this password-generating application.
+-doc "Executes this password-generating application.".
 -spec exec() -> void().
 exec() ->
 

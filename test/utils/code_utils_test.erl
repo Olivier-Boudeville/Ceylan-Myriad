@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2023 Olivier Boudeville
+% Copyright (C) 2007-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,13 +23,16 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: July 1, 2007.
 
-
-% Unit tests for the code utils toolbox.
-%
-% See the code_utils.erl tested module.
-%
 -module(code_utils_test).
+
+-moduledoc """
+Unit tests for the **code utils** toolbox.
+
+See the code_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -48,9 +51,9 @@ run() ->
 	ModuleName = hashtable,
 
 	test_facilities:display( "Determining whether '~ts' is in code path: ~p.",
-				[ ModuleName, code_utils:is_beam_in_path( ModuleName ) ] ),
+		[ ModuleName, code_utils:is_beam_in_path( ModuleName ) ] ),
 
 	test_facilities:display( "Current stack trace: ~ts",
-							 [ code_utils:interpret_stacktrace() ] ),
+		[ code_utils:interpret_stacktrace() ] ),
 
 	test_facilities:stop().

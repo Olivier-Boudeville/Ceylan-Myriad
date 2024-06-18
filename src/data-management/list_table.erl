@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2023 Olivier Boudeville
+% Copyright (C) 2014-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,38 +25,34 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, December 22, 2014.
 
-
-% @doc Implementation of an <b>associative table relying on a simple list of
-% key/value pairs</b>.
-%
-% Beware of multiple entries having the same key in such a list_table, as the
-% first one will eclipse all others; this may happen if not building explicitly,
-% with this API, one's list_table instance.
-%
-% See `list_table_test.erl' for the corresponding test.
-%
-% We provide different multiple types of tables, including:
-%
-% - 'hashtable', the most basic, safest, reference implementation - and quite
-% efficient as well
-%
-% - 'tracked_table', an attempt of optimisation of it (not necessarily the best)
-%
-% - 'lazy_table', deciding to optimise in a less costly way than 'tracked_table'
-%
-% - 'map_table', which is probably the most efficient implementation (speed/size
-% compromise)
-%
-% - 'list_table' (this module), a list-based implementation, efficient for
-% smaller table (and only them)
-%
-% They are to provide the same API (signatures and contracts).
-%
-% See also: `list_utils.erl' if having to deal with tagged lists, that is: lists
-% possibly containing pairs and also single atoms (e.g. see
-% list_utils:extract_{atom,pair}_*/*).
-%
 -module(list_table).
+
+-moduledoc """
+Implementation of an **associative table relying on a simple list of key/value
+pairs**.
+
+Beware of multiple entries having the same key in such a list_table, as the
+first one will eclipse all others; this may happen if not building explicitly,
+with this API, one's list_table instance.
+
+See `list_table_test.erl` for the corresponding test.
+
+We provide different multiple types of tables, including:
+- 'hashtable', the most basic, safest, reference implementation - and quite
+efficient as well
+- 'tracked_table', an attempt of optimisation of it (not necessarily the best)
+- 'lazy_table', deciding to optimise in a less costly way than 'tracked_table'
+- 'map_table', which is probably the most efficient implementation (speed/size
+compromise)
+- 'list_table' (this module), a list-based implementation, efficient for smaller
+table (and only them)
+
+They are to provide the same API (signatures and contracts).
+
+See also: `list_utils.erl` if having to deal with tagged lists, that is: lists
+possibly containing pairs and also single atoms (e.g. see
+`list_utils:extract_{atom,pair}_*/*`.
+""".
 
 
 
@@ -95,20 +91,34 @@
 
 -type entries() :: [ entry() ].
 
+
 -type entry_count() :: basic_utils:count().
 
 
 % Cannot be kept opaque:
+-doc """
+A list-based associative table.
+
+Not exactly as proplist:proplist/0 (pairs only, and any() as key).
+""".
 -type list_table() :: [ { key(), value() } ].
-% Not exactly as proplist:proplist/0 (pairs only, and any() as key).
+
 
 % Cannot be kept opaque:
+-doc """
+A list-based associative table.
+
+Not exactly as proplist:proplist/0 (pairs only, and any() as key).
+""".
 -type list_table( K, V ) :: [ { K, V } ].
 
 
 % Possible alternate naming:
+-doc "Alternative naming here for list-based associative tables.".
 -type table() :: list_table().
 
+
+-doc "Alternative naming here for list-based associative tables.".
 -type table( K, V ) :: list_table( K, V ).
 
 
@@ -119,6 +129,7 @@
 % Shorthands:
 
 -type accumulator() :: basic_utils:accumulator().
+
 -type ustring() :: text_utils:ustring().
 
 
@@ -137,17 +148,21 @@
 -define( default_bullet, " + " ).
 
 
-% @doc Returns an empty table dimensioned for the default number of entries.
+
+-doc """
+Returns an empty table dimensioned for the default number of entries.
+""".
 -spec new() -> list_table().
 new() ->
 	[].
 
 
 
-% @doc Returns an empty table dimensioned for the specified expected number of
-% entries / a table containing the specified (initial) entries, whose keys are
-% checked for uniqueness.
-%
+-doc """
+Returns an empty table dimensioned for the specified expected number of entries
+/ a table containing the specified (initial) entries, whose keys are checked for
+uniqueness.
+""".
 -spec new( entry_count() | entries() ) -> list_table().
 new( ExpectedNumberOfEntries ) when is_integer( ExpectedNumberOfEntries ) ->
 	% ExpectedNumberOfEntries not relevant for this implementation:
@@ -163,22 +178,24 @@ new( InitialEntries ) when is_list( InitialEntries ) ->
 
 
 
-% @doc Adds the specified key/value pair in the specified table.
-%
-% If there is already a pair with this key, then its previous value will be
-% replaced by the specified one.
-%
+-doc """
+Adds the specified key/value pair in the specified table.
+
+If there is already a pair with this key, then its previous value will be
+replaced by the specified one.
+""".
 -spec add_entry( key(), value(), list_table() ) -> list_table().
 add_entry( Key, Value, Table ) ->
 	lists:keystore( Key, _N=1, Table, _NewTuple={ Key, Value } ).
 
 
 
-% @doc Adds the specified list of key/value pairs in the specified table.
-%
-% If there is already a pair with this key, then its previous value will be
-% replaced by the specified one.
-%
+-doc """
+Adds the specified list of key/value pairs in the specified table.
+
+If there is already a pair with this key, then its previous value will be
+replaced by the specified one.
+""".
 -spec add_entries( entries(), list_table() ) -> list_table().
 add_entries( _EntryList=[], Table ) ->
 	Table;
@@ -191,9 +208,10 @@ add_entries( [ Other | _Rest ], _Table ) ->
 
 
 
-% @doc Adds the specified key/value pair in the specified table, expecting this
-% key not to be already defined in this table.
-%
+-doc """
+Adds the specified key/value pair in the specified table, expecting this key not
+to be already defined in this table.
+""".
 -spec add_new_entry( key(), value(), list_table() ) -> list_table().
 add_new_entry( Key, Value, Table ) ->
 
@@ -212,10 +230,11 @@ add_new_entry( Key, Value, Table ) ->
 
 
 
-% @doc Adds the specified list of key/value pairs in the specified table,
-% expecting that none of these keys is already defined in this table (otherwise
-% an exception is thrown).
-%
+-doc """
+Adds the specified list of key/value pairs in the specified table, expecting
+that none of these keys is already defined in this table (otherwise an exception
+is thrown).
+""".
 -spec add_new_entries( hashtable:entries(), list_table() ) -> list_table().
 add_new_entries( EntryList, Table ) ->
 
@@ -227,26 +246,28 @@ add_new_entries( EntryList, Table ) ->
 
 
 
-% @doc Removes the entry designated by the specified key, from the specified
-% table.
-%
-% Does nothing if the key is not found.
-%
-% Returns an updated table.
-%
+-doc """
+Removes the entry designated by the specified key, from the specified table.
+
+Does nothing if the key is not found.
+
+Returns an updated table.
+""".
 -spec remove_entry( key(), list_table() ) -> list_table().
 remove_entry( Key, Table ) ->
+	%trace_utils:debug_fmt( "Removing any entry of key '~p'.", [ Key ] ),
 	lists:keydelete( Key, _N=1, Table ).
 
 
 
-% @doc Removes the key/value pairs designated by the specified keys, from the
-% specified table.
-%
-% Does nothing if a key is not found.
-%
-% Returns an updated table.
-%
+-doc """
+Removes the key/value pairs designated by the specified keys, from the specified
+table.
+
+Does nothing if a key is not found.
+
+Returns an updated table.
+""".
 -spec remove_entries( [ key() ], list_table() ) -> list_table().
 remove_entries( Keys, Table ) ->
 	lists:foldl( fun( K, AccTable ) ->
@@ -257,12 +278,12 @@ remove_entries( Keys, Table ) ->
 
 
 
-% @doc Looks-up the specified entry (designated by its key) in the specified
-% table.
-%
-% Returns either 'key_not_found' if no such key is registered in the table, or
-% {value, Value}, with Value being the value associated to the specified key.
-%
+-doc """
+Looks-up the specified entry (designated by its key) in the specified table.
+
+Returns either 'key_not_found' if no such key is registered in the table, or
+{value, Value}, with Value being the value associated to the specified key.
+""".
 -spec lookup_entry( key(), list_table() ) ->
 								'key_not_found' | { 'value', value() }.
 lookup_entry( Key, Table ) ->
@@ -278,21 +299,24 @@ lookup_entry( Key, Table ) ->
 	end.
 
 
-% @doc Tells whether the specified key exists in the specified table: returns
-% true or false.
-%
+
+-doc """
+Tells whether the specified key exists in the specified table: returns true or
+false.
+""".
 -spec has_entry( key(), list_table() ) -> boolean().
 has_entry( Key, Table ) ->
 	lists:keymember( Key, _N=1, Table ).
 
 
 
-% @doc Retrieves the value corresponding to specified (existing) key and returns
-% it directly.
-%
-% The key/value pair is expected to exist already, otherwise an exception is
-% thrown.
-%
+-doc """
+Retrieves the value corresponding to specified (existing) key and returns it
+directly.
+
+The key/value pair is expected to exist already, otherwise an exception is
+thrown.
+""".
 -spec get_value( key(), list_table() ) -> value().
 get_value( Key, Table ) ->
 
@@ -312,12 +336,13 @@ get_value( Key, Table ) ->
 
 
 
-% @doc Extracts the specified entry from the specified table, that is returns
-% the associated value and removes that entry from the table.
-%
-% The key/value pair is expected to exist already in the specified table,
-% otherwise an exception is thrown.
-%
+-doc """
+Extracts the specified entry from the specified table, that is returns the
+associated value and removes that entry from the table.
+
+The key/value pair is expected to exist already in the specified table,
+otherwise an exception is thrown.
+""".
 -spec extract_entry( key(), list_table() ) -> { value(), list_table() }.
 extract_entry( Key, Table ) ->
 
@@ -334,12 +359,13 @@ extract_entry( Key, Table ) ->
 
 
 
-% @doc Extracts the specified entry from the specified table, that is returns
-% the associated value and removes that entry from the table.
-%
-% If no such key is available, returns the specified default value and the
-% original table.
-%
+-doc """
+Extracts the specified entry from the specified table, that is returns the
+associated value and removes that entry from the table.
+
+If no such key is available, returns the specified default value and the
+original table.
+""".
 -spec extract_entry_with_default( key(), value(), list_table() ) ->
 										{ value(), list_table() }.
 extract_entry_with_default( Key, DefaultValue, Table ) ->
@@ -356,11 +382,12 @@ extract_entry_with_default( Key, DefaultValue, Table ) ->
 
 
 
-% @doc Extracts the specified entry (if any) from the specified table, that is
-% returns its associated value and removes that entry from the returned table.
-%
-% Otherwise, that is if that entry does not exist, returns false.
-%
+-doc """
+Extracts the specified entry (if any) from the specified table, that is returns
+its associated value and removes that entry from the returned table.
+
+Otherwise, that is if that entry does not exist, returns false.
+""".
 -spec extract_entry_if_existing( key(), list_table() ) ->
 					'false' | { value(), list_table() }.
 extract_entry_if_existing( Key, Table ) ->
@@ -377,16 +404,16 @@ extract_entry_if_existing( Key, Table ) ->
 
 
 
-% @doc Extracts the specified entries from the specified table, that is returns
-% their associated values (in-order) and removes these entries from the returned
-% table.
-%
-% Each key/value pair is expected to exist already, otherwise an exception is
-% raised (typically {badkey, KeyNotFound}).
-%
-% For example: {[RedValue, GreenValue, BlueValue], ShrunkTable} =
-%   list_table:extract_entries([red, green, blue], MyTable)
-%
+-doc """
+Extracts the specified entries from the specified table, that is returns their
+associated values (in-order) and removes these entries from the returned table.
+
+Each key/value pair is expected to exist already, otherwise an exception is
+raised (typically {badkey, KeyNotFound}).
+
+For example: {[RedValue, GreenValue, BlueValue], ShrunkTable} =
+   list_table:extract_entries([red, green, blue], MyTable)
+""".
 -spec extract_entries( [ key() ], list_table() ) ->
 										{ [ value() ], list_table() }.
 extract_entries( Keys, ListTable ) ->
@@ -403,15 +430,18 @@ extract_entries( Keys, ListTable ) ->
 
 
 
-% @doc Extracts the specified entries (if any) from the specified table, that is
-% returns them (in-order), and removes them from the returned table.
-%
-% If a key is not present in the table, it is skipped.
-%
-% For example, if no 'green' key exists in MyTable:
-% {[{red,RedValue}, {blue,BlueValue}], ShrunkTable} =
-%   list_table:extract_entries_if_existing([red, green, blue], MyTable)
-%
+-doc """
+Extracts the specified entries (if any) from the specified table, that is
+returns them (in-order), and removes them from the returned table.
+
+If a key is not present in the table, it is skipped.
+
+For example, if no 'green' key exists in MyTable:
+```
+{[{red,RedValue}, {blue,BlueValue}], ShrunkTable} =
+   list_table:extract_entries_if_existing([red, green, blue], MyTable)
+```
+""".
 -spec extract_entries_if_existing( [ key() ], list_table() ) ->
 										{ entries(), list_table() }.
 extract_entries_if_existing( Keys, ListTable ) ->
@@ -439,14 +469,18 @@ extract_entries_if_existing( Keys, ListTable ) ->
 
 
 
-% @doc Extracts the specified entries from the specified table, that is returns
-% their associated values (in-order) if found, otherwise their specified default
-% value, and removes these entries from the returned table.
-%
-% For example: {[RedMaybeDefValue, GreenMaybeDefValue, BlueMaybeDefValue],
-% ShrunkTable} = list_table:extract_entries([{red,RedDefault},
-% {green,GreenDefault}, {blue,BlueDefault}], MyTable)
-%
+-doc """
+Extracts the specified entries from the specified table, that is returns their
+associated values (in-order) if found, otherwise their specified default value,
+and removes these entries from the returned table.
+
+For example:
+```
+{[RedMaybeDefValue, GreenMaybeDefValue, BlueMaybeDefValue],
+ShrunkTable} = list_table:extract_entries([{red,RedDefault},
+{green,GreenDefault}, {blue,BlueDefault}], MyTable)
+```
+""".
 -spec extract_entries_with_defaults( [ { key(), default_value()} ],
 				list_table() ) -> { [ value() ], list_table() }.
 extract_entries_with_defaults( KeyDefPairs, ListTable ) ->
@@ -464,9 +498,10 @@ extract_entries_with_defaults( KeyDefPairs, ListTable ) ->
 
 
 
-% @doc Looks for the specified entry in the specified table and, if found,
-% returns its associated value; otherwise returns the specified default value.
-%
+-doc """
+Looks for the specified entry in the specified table and, if found, returns its
+associated value; otherwise returns the specified default value.
+""".
 -spec get_value_with_default( key(), value(), list_table() ) -> value().
 get_value_with_default( Key, DefaultValue, Table ) ->
 
@@ -482,15 +517,19 @@ get_value_with_default( Key, DefaultValue, Table ) ->
 
 
 
-% @doc Returns the (ordered) list of values that correspond to the specified
-% (ordered) list of keys of this table.
-%
-% The key/value pairs are expected to exist already, otherwise an exception is
-% thrown.
-%
-% For example [Color=red, Age=23, Mass=51] = list_table:get_values(
-%    [color, age, mass], [{color, red}, {mass,51}, {age, 23}])
-%
+-doc """
+Returns the (ordered) list of values that correspond to the specified (ordered)
+list of keys of this table.
+
+The key/value pairs are expected to exist already, otherwise an exception is
+thrown.
+
+For example:
+```
+[Color=red, Age=23, Mass=51] = list_table:get_values(
+	[color, age, mass], [{color, red}, {mass,51}, {age, 23}])
+```
+""".
 -spec get_values( [ key() ], list_table() ) -> [ value() ].
 get_values( Keys, Table ) ->
 
@@ -509,16 +548,20 @@ get_values( Keys, Table ) ->
 
 
 
-% @doc Returns the (ordered) list of values that correspond to the specified
-% (ordered) list of keys of this table, ensuring all entries have been read,
-% otherwise throwing an exception.
-%
-% The key/value pairs are expected to exist already, otherwise an exception is
-% thrown.
-%
-% For example [Color=red, Age=23, Mass=51] = list_table:get_all_values(
-%   [color, age, mass], [{color, red}, {mass, 51}, {age, 23}])
-%
+-doc """
+Returns the (ordered) list of values that correspond to the specified (ordered)
+list of keys of this table, ensuring all entries have been read, otherwise
+throwing an exception.
+
+The key/value pairs are expected to exist already, otherwise an exception is
+thrown.
+
+For example:
+```
+[Color=red, Age=23, Mass=51] = list_table:get_all_values(
+	[color, age, mass], [{color, red}, {mass, 51}, {age, 23}])
+```
+""".
 -spec get_all_values( [ key() ], list_table() ) -> [ value() ].
 get_all_values( Keys, Table ) ->
 
@@ -542,20 +585,20 @@ get_all_values( Keys, Table ) ->
 
 
 
+-doc """
+Applies (maps) the specified anonymous function to each of the key-value entries
+contained in this table.
 
-% @doc Applies (maps) the specified anonymous function to each of the key-value
-% entries contained in this table.
-%
-% Allows to apply "in-place" an operation on all entries without having to
-% enumerate the content of the table and iterate on it (hence without having to
-% duplicate the whole content in memory).
-%
-% Note: as the fun may return modified keys, the whole structure of the table
-% may change (e.g. different buckets used for replaced entries, colliding keys
-% resulting in having less entries afterwards, etc.).
-%
-% One may request the returned table to be optimised after this call.
-%
+Allows to apply "in-place" an operation on all entries without having to
+enumerate the content of the table and iterate on it (hence without having to
+duplicate the whole content in memory).
+
+Note: as the fun may return modified keys, the whole structure of the table may
+change (e.g. different buckets used for replaced entries, colliding keys
+resulting in having less entries afterwards, etc.).
+
+One may request the returned table to be optimised after this call.
+""".
 -spec map_on_entries( fun( ( entry() ) -> entry() ), list_table() ) ->
 										list_table().
 map_on_entries( Fun, Table ) ->
@@ -563,17 +606,17 @@ map_on_entries( Fun, Table ) ->
 
 
 
+-doc """
+Applies (maps) the specified anonymous function to each of the values contained
+in this table.
 
-% @doc Applies (maps) the specified anonymous function to each of the values
-% contained in this table.
-%
-% Allows to apply "in-place" an operation on all values without having to
-% enumerate the content of the table and iterate on it (hence without having to
-% duplicate the whole content in memory).
-%
-% Note: the keys are left as are, hence the structure of the table does not
-% change.
-%
+Allows to apply "in-place" an operation on all values without having to
+enumerate the content of the table and iterate on it (hence without having to
+duplicate the whole content in memory).
+
+Note: the keys are left as are, hence the structure of the table does not
+change.
+""".
 -spec map_on_values( fun( ( value() ) -> value() ), list_table() ) ->
 												list_table().
 map_on_values( Fun, Table ) ->
@@ -581,12 +624,13 @@ map_on_values( Fun, Table ) ->
 
 
 
-% @doc Folds specified anonymous function on all entries of the specified table.
-%
-% The order of transformation for entries is not specified.
-%
-% Returns the final accumulator.
-%
+-doc """
+Folds the specified anonymous function on all entries of the specified table.
+
+The order of transformation for entries is not specified.
+
+Returns the final accumulator.
+""".
 -spec fold_on_entries( fun( ( entry(), accumulator() ) -> accumulator() ),
 					   accumulator(), list_table() ) -> accumulator().
 fold_on_entries( Fun, InitialAcc, Table ) ->
@@ -594,12 +638,13 @@ fold_on_entries( Fun, InitialAcc, Table ) ->
 
 
 
-% @doc Adds specified number to the value, supposed to be numerical, associated
-% to specified key.
-%
-% An exception is thrown if the key does not exist, a bad arithm is triggered if
-% no addition can be performed on the associated value.
-%
+-doc """
+Adds the specified number to the value, supposed to be numerical, associated to
+specified key.
+
+An exception is thrown if the key does not exist, a bad arithm is triggered if
+no addition can be performed on the associated value.
+""".
 -spec add_to_entry( key(), number(), list_table() ) -> list_table().
 add_to_entry( Key, Number, Table ) ->
 
@@ -615,12 +660,13 @@ add_to_entry( Key, Number, Table ) ->
 
 
 
-% @doc Subtracts the specified number from the value, supposed to be numerical,
-% associated to the specified key.
-%
-% An exception is thrown if the key does not exist, a bad arithm is triggered if
-% no subtraction can be performed on the associated value.
-%
+-doc """
+Subtracts the specified number from the value, supposed to be numerical,
+associated to the specified key.
+
+An exception is thrown if the key does not exist, a bad arithm is triggered if
+no subtraction can be performed on the associated value.
+""".
 -spec subtract_from_entry( key(), number(), list_table() ) -> list_table().
 subtract_from_entry( Key, Number, Table ) ->
 
@@ -636,12 +682,13 @@ subtract_from_entry( Key, Number, Table ) ->
 
 
 
-% @doc Toggles the boolean value associated with specified key: if true will be
-% false, if false will be true.
-%
-% An exception is thrown if the key does not exist or if its associated value is
-% not a boolean.
-%
+-doc """
+Toggles the boolean value associated with specified key: if true will be false,
+if false will be true.
+
+An exception is thrown if the key does not exist or if its associated value is
+not a boolean.
+""".
 -spec toggle_entry( key(), list_table() ) -> list_table().
 toggle_entry( Key, Table ) ->
 
@@ -663,12 +710,13 @@ toggle_entry( Key, Table ) ->
 
 
 
-% @doc Returns a table that started from TableBase and was enriched with the
-% TableAdd entries whose keys were not already in TableBase (if a key is in both
-% tables, the one from TableBase will be kept).
-%
-% Note: not the standard merge that one would expect, should values be lists.
-%
+-doc """
+Returns a table that started from TableBase and was enriched with the TableAdd
+entries whose keys were not already in TableBase (if a key is in both tables,
+the one from TableBase will be kept).
+
+Note: not the standard merge that one would expect, should values be lists.
+""".
 -spec merge( list_table(), list_table() ) -> list_table().
 merge( TableBase, TableAdd ) ->
 
@@ -682,19 +730,20 @@ merge( TableBase, TableAdd ) ->
 
 
 
-% @doc Gathers, from a table whose values are expected to be lists, all the
-% values associated to the keys listed in AlternateKeys and associates them to
-% ReferenceKey instead (in addition to any value that would already be
-% associated to it).
-%
-% Useful for example to gather in a single entry the values associated to
-% aliases in terms of command-line options, like the values associated to a
-% '--length' command-line option (hence associated to the '-length' key) and
-% also to the '-l' and '--len' alias command-line options (hence associated to
-% the 'l' and '-len' keys).
-%
-% For example MergedTable = merge_in_key('-length', ['l', '-len'], MyTable).
-%
+-doc """
+Gathers, from a table whose values are expected to be lists, all the values
+associated to the keys listed in AlternateKeys and associates them to
+ReferenceKey instead (in addition to any value that would already be associated
+to it).
+
+Useful for example to gather in a single entry the values associated to aliases
+in terms of command-line options, like the values associated to a '--length'
+command-line option (hence associated to the '-length' key) and also to the '-l'
+and '--len' alias command-line options (hence associated to the 'l' and '-len'
+keys).
+
+For example MergedTable = merge_in_key('-length', ['l', '-len'], MyTable).
+""".
 -spec merge_in_key( key(), [ key() ], list_table() ) -> list_table().
 merge_in_key( _ReferenceKey, _AlternateKeys=[], Table ) ->
 	Table;
@@ -715,12 +764,16 @@ merge_in_key( ReferenceKey, _AlternateKeys=[ K | T ], Table ) ->
 
 
 
-% @doc Performs a key merge, as merge_in_key/3, however not for a single
-% reference key / aliases entries, but for a set thereof.
-%
-% For example MergedTable = merge_in_keys([{'-length', [ 'l', '-len' ]},
-%                                  {'-help', [ 'h' ]} ], MyTable).
-%
+-doc """
+Performs a key merge, as merge_in_key/3, however not for a single reference key
+/ aliases entries, but for a set thereof.
+
+For example:
+```
+ MergedTable = merge_in_keys([{'-length', [ 'l', '-len' ]},
+								  {'-help', [ 'h' ]} ], MyTable).
+```
+""".
 -spec merge_in_keys( list_table(), list_table() ) -> list_table().
 merge_in_keys( _KeyAssoc=[], Table ) ->
 	Table;
@@ -731,14 +784,15 @@ merge_in_keys( _KeyAssoc=[ { K, AltKeys } | T ], Table ) ->
 
 
 
-% @doc Appends the specified element to the value, supposed to be a list,
-% associated to the specified key.
-%
-% An exception is thrown if the key does not exist.
-%
-% Note: no check is performed to ensure that the value is a list indeed, and the
-% '[|]' operation will not complain if not.
-%
+-doc """
+Appends the specified element to the value, supposed to be a list, associated to
+the specified key.
+
+An exception is thrown if the key does not exist.
+
+Note: no check is performed to ensure that the value is a list indeed, and the
+'[|]' operation will not complain if not.
+""".
 -spec append_to_existing_entry( key(), term(), list_table() ) -> list_table().
 append_to_existing_entry( Key, Element, Table ) ->
 
@@ -754,11 +808,12 @@ append_to_existing_entry( Key, Element, Table ) ->
 
 
 
-% @doc Appends the specified elements to the value, supposed to be a list,
-% associated to the specified key.
-%
-% An exception is thrown if the key does not exist.
-%
+-doc """
+Appends the specified elements to the value, supposed to be a list, associated
+to the specified key.
+
+An exception is thrown if the key does not exist.
+""".
 -spec append_list_to_existing_entry( key(), [ term() ], list_table() ) ->
 											list_table().
 append_list_to_existing_entry( Key, Elements, Table ) ->
@@ -775,15 +830,16 @@ append_list_to_existing_entry( Key, Elements, Table ) ->
 
 
 
-% @doc Appends the specified element to the value, supposed to be a list,
-% associated to the specified key.
-%
-% If that key does not already exist, it will be created and associated to a
-% list containing only the specified element.
-%
-% Note: no check is performed to ensure the value is a list indeed, and the
-% '[|]' operation will not complain if not.
-%
+-doc """
+Appends the specified element to the value, supposed to be a list, associated to
+the specified key.
+
+If that key does not already exist, it will be created and associated to a list
+containing only the specified element.
+
+Note: no check is performed to ensure the value is a list indeed, and the '[|]'
+operation will not complain if not.
+""".
 -spec append_to_entry( key(), term(), list_table() ) -> list_table().
 append_to_entry( Key, Element, Table ) ->
 
@@ -799,12 +855,13 @@ append_to_entry( Key, Element, Table ) ->
 
 
 
-% @doc Appends the specified elements to the value, supposed to be a list,
-% associated to the specified key.
-%
-% If that key does not already exist, it will be created and associated to a
-% list containing only the specified elements.
-%
+-doc """
+Appends the specified elements to the value, supposed to be a list, associated
+to the specified key.
+
+If that key does not already exist, it will be created and associated to a list
+containing only the specified elements.
+""".
 -spec append_list_to_entry( key(), [ term() ], list_table() ) -> list_table().
 append_list_to_entry( Key, Elements, Table ) ->
 
@@ -820,13 +877,14 @@ append_list_to_entry( Key, Elements, Table ) ->
 
 
 
-% @doc Deletes the first match of the specified element in the value associated
-% to specified key, this value being assumed to be a list.
-%
-% An exception is thrown if the key does not exist.
-%
-% If the element is not in the specified list, the list will not be modified.
-%
+-doc """
+Deletes the first match of the specified element in the value associated to
+specified key, this value being assumed to be a list.
+
+An exception is thrown if the key does not exist.
+
+If the element is not in the specified list, the list will not be modified.
+""".
 -spec delete_from_entry( key(), term(), list_table() ) -> list_table().
 delete_from_entry( Key, Element, Table ) ->
 
@@ -842,10 +900,10 @@ delete_from_entry( Key, Element, Table ) ->
 
 
 
-% @doc Pops the head of the value (supposed to be a list) associated to the
-% specified key, and returns a pair made of the popped head and of the new
-% table.
-%
+-doc """
+Pops the head of the value (supposed to be a list) associated to the specified
+key, and returns a pair made of the popped head and of the new table.
+""".
 -spec pop_from_entry( key(), list_table() ) -> { term(), list_table() }.
 pop_from_entry( Key, Table ) ->
 
@@ -862,20 +920,22 @@ pop_from_entry( Key, Table ) ->
 
 
 
-% @doc Returns a flat list whose elements are all the key/value pairs of the
-% table, in no particular order.
-%
-% For example [{K1,V1}, {K2,V2}, ...].
-%
+-doc """
+Returns a flat list whose elements are all the key/value pairs of the table, in
+no particular order.
+
+For example [{K1,V1}, {K2,V2}, ...].
+""".
 -spec enumerate( list_table() ) -> entries().
 enumerate( Table ) ->
 	Table.
 
 
 
-% @doc Returns a list of key/value pairs corresponding to the list of specified
-% keys, or throws a badmatch is at least one key is not found.
-%
+-doc """
+Returns a list of key/value pairs corresponding to the list of specified keys,
+or throws a badmatch is at least one key is not found.
+""".
 -spec select_entries( [ key() ], list_table() ) -> entries().
 select_entries( Keys, Table ) ->
 	select_entries( Keys, Table, _Acc=[] ).
@@ -899,27 +959,29 @@ select_entries( _Keys=[ K | T ], Table, Acc ) ->
 
 
 
-% @doc Returns a list containing all the keys of this table (with no duplicate).
+-doc """
+Returns a list containing all the keys of this table (with no duplicate).
+""".
 -spec keys( list_table() ) -> [ key() ].
 keys( Table ) ->
 	list_utils:uniquify( [ K || { K, _V } <- Table ] ).
 
 
 
-% @doc Returns a list containing all the values of this table.
-%
-% For example useful if the key was used as an index to generate this table
-% first.
-%
+-doc """
+Returns a list containing all the values of this table.
+
+For example useful if the key was used as an index to generate this table first.
+""".
 -spec values( list_table() ) -> [ value() ].
 values( Table ) ->
 	[ V || { _K, V } <- Table ].
 
 
 
-% @doc Returns whether the specified table is empty (not storing any key/value
-% pair).
-%
+-doc """
+Returns whether the specified table is empty (not storing any key/value pair).
+""".
 -spec is_empty( list_table() ) -> boolean().
 is_empty( _Table=[] ) ->
 	true;
@@ -929,19 +991,21 @@ is_empty( _Table ) ->
 
 
 
-% @doc Returns the size (number of entries, that is of key/value pairs) of the
-% specified table.
-%
+-doc """
+Returns the size (number of entries, that is of key/value pairs) of the
+specified table.
+""".
 -spec size( list_table() ) -> entry_count().
 size( Table ) ->
 	length( Table ).
 
 
 
-% @doc Optimises the specified table.
-%
-% Nothing to be done with this implementation.
-%
+-doc """
+Optimises the specified table.
+
+Nothing to be done with this implementation.
+""".
 -spec optimise( list_table() ) -> list_table().
 optimise( Table ) ->
 	Table.
@@ -959,19 +1023,20 @@ optimise( Table ) ->
 
 
 
-% @doc Returns a textual description of the specified table.
+-doc "Returns a textual description of the specified table.".
 -spec to_string( list_table() ) -> ustring().
 to_string( Table ) ->
 	to_string( Table, user_friendly ).
 
 
 
-% @doc Returns a textual description of the specified table.
-%
-% Either a bullet is specified, or the returned string is ellipsed if needed (if
-% using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or
-% even completly raw ('internal').
-%
+-doc """
+Returns a textual description of the specified table.
+
+Either a bullet is specified, or the returned string is ellipsed if needed (if
+using 'user_friendly'), or quite raw and non-ellipsed (if using 'full'), or even
+completly raw ('internal').
+""".
 -spec to_string( list_table(), hashtable:description_type() ) -> ustring().
 to_string( Table, DescriptionType ) ->
 
@@ -1033,16 +1098,17 @@ to_string( Table, DescriptionType ) ->
 
 
 
-% @doc Displays the specified table on the standard output.
+-doc "Displays the specified table on the standard output.".
 -spec display( list_table() ) -> void().
 display( Table ) ->
 	io:format( "~ts~n", [ to_string( Table ) ] ).
 
 
 
-% @doc Displays the specified table on the standard output, with the specified
-% title on top.
-%
+-doc """
+Displays the specified table on the standard output, with the specified title on
+top.
+""".
 -spec display( ustring(), list_table() ) -> void().
 display( Title, Table ) ->
 	io:format( "~ts:~n~ts~n", [ Title, to_string( Table ) ] ).

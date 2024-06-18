@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2023 Olivier Boudeville
+% Copyright (C) 2008-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,14 +23,16 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2003.
+% Creation date: Saturday, July 12, 2008.
 
-
-% Unit tests for the <b>file_utils toolbox</b>.
-%
-% See the file_utils.erl tested module.
-%
 -module(file_utils_test).
+
+-moduledoc """
+Unit tests for the **file_utils toolbox**.
+
+See the file_utils.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
@@ -50,8 +52,8 @@ run() ->
 	BeamExtension = ".beam",
 
 	test_facilities:display(
-	  "File elements in the current directory (~ts):~n~p",
-	  [ CurrentDir, Elements ] ),
+		"File elements in the current directory (~ts):~n~p",
+		[ CurrentDir, Elements ] ),
 
 	% Too many outputs:
 	%test_facilities:display( "Regular BEAM files in the current directory: "
@@ -72,7 +74,7 @@ run() ->
 	test_facilities:display( "All files found recursively "
 		"from the current directory, with directories ~p excluded:~n~p",
 		[ ExcludedDirs, file_utils:find_files_with_excluded_dirs( CurrentDir,
-															ExcludedDirs ) ] ),
+			ExcludedDirs ) ] ),
 
 
 	ExcludedSuffixes = [ ".erl", ".beam", "non-existing-suffix" ],
@@ -80,7 +82,7 @@ run() ->
 	test_facilities:display( "All files found recursively "
 		"from the current directory, with suffixes ~p excluded:~n~p",
 		[ ExcludedSuffixes, file_utils:find_files_with_excluded_suffixes(
-						CurrentDir, ExcludedSuffixes ) ] ),
+			CurrentDir, ExcludedSuffixes ) ] ),
 
 
 	test_facilities:display( "All files found recursively "
@@ -88,7 +90,7 @@ run() ->
 		"excluded:~n~p",
 		[ ExcludedDirs, ExcludedSuffixes,
 		  file_utils:find_files_with_excluded_dirs_and_suffixes(
-						CurrentDir, ExcludedDirs, ExcludedSuffixes ) ] ),
+			CurrentDir, ExcludedDirs, ExcludedSuffixes ) ] ),
 
 
 	true  = file_utils:is_absolute_path( "/etc/host.conf" ),
@@ -98,14 +100,14 @@ run() ->
 	RelativePath = "my-local-dir/a-file",
 
 	test_facilities:display( "Ensuring '~ts' is absolute: ~ts", [ RelativePath,
-					file_utils:ensure_path_is_absolute( RelativePath ) ] ),
+		file_utils:ensure_path_is_absolute( RelativePath ) ] ),
 
 	BasePath ="/etc",
 
 	test_facilities:display(
-	  "Ensuring '~ts' is absolute with base path '~ts': '~ts'",
-	  [ RelativePath, BasePath,
-		file_utils:ensure_path_is_absolute( RelativePath, BasePath ) ] ),
+		"Ensuring '~ts' is absolute with base path '~ts': '~ts'",
+		[ RelativePath, BasePath,
+		  file_utils:ensure_path_is_absolute( RelativePath, BasePath ) ] ),
 
 
 	"/home/lisa/tube" =
@@ -157,8 +159,8 @@ run() ->
 	FirstFilename = "media/frame/1-23-2-98.oaf",
 
 	test_facilities:display(
-	  "Path '~ts', once transformed into a variable name, results in: ~ts",
-	  [ FirstFilename, file_utils:path_to_variable_name( FirstFilename ) ] ),
+		"Path '~ts', once transformed into a variable name, results in: ~ts",
+		[ FirstFilename, file_utils:path_to_variable_name( FirstFilename ) ] ),
 
 
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2022-2023 Olivier Boudeville
+% Copyright (C) 2022-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -25,24 +25,28 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Saturday, May 28, 2022.
 
-
-% @doc Testing of the <b>MyriadGUI mouse support</b>.
-%
-% See the gui_mouse.erl tested module.
-%
 -module(gui_mouse_test).
+
+-moduledoc """
+Testing of the **MyriadGUI mouse support**.
+
+See the gui_mouse.erl tested module.
+""".
+
 
 
 % For run/0 export and al:
 -include("test_facilities.hrl").
 
 
+-doc """
+Here the main loop just has to remember the frame whose closing is awaited for.
+""".
 -type my_test_state() :: gui:frame().
-% Here the main loop just has to remember the frame whose closing is awaited
-% for.
 
 
-% @doc Actual execution of the test.
+
+-doc "Actual execution of the test.".
 -spec run_test_gui() -> void().
 run_test_gui() ->
 
@@ -90,9 +94,11 @@ run_test_gui() ->
 	test_main_loop( TestFrame ).
 
 
-% @doc A very simple main loop, whose actual state is simply the GUI object
-% corresponding to the frame that shall be closed to stop the test.
-%
+
+-doc """
+A very simple main loop, whose actual state is simply the GUI object
+corresponding to the frame that shall be closed to stop the test.
+""".
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( TestFrame ) ->
 
@@ -124,7 +130,7 @@ test_main_loop( TestFrame ) ->
 
 
 
-% @doc Runs the test.
+-doc "Runs the test.".
 -spec run() -> no_return().
 run() ->
 

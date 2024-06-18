@@ -1,4 +1,4 @@
-% Copyright (C) 2003-2023 Olivier Boudeville
+% Copyright (C) 2007-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,24 +23,22 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: August 30, 2007.
 
-
-% Unit tests for the fsm_utils toolbox.
-%
-% See the fsm_utils.erl tested module.
-%
 -module(fsm_utils_test).
 
+-moduledoc """
+Unit tests for the `fsm_utils` toolbox.
+
+See the fsm_utils.erl tested module.
+""".
 
 
 % For run/0 export and al:
-%
 -include("test_facilities.hrl").
 
 
-
 % For FSM macro defines:
-%
 -include("fsm_utils.hrl").
 
 
@@ -54,9 +52,9 @@ run() ->
 	{ value, 42 } = ?getFsmAttr( test_question ),
 
 	FsmStateTwo = fsm_utils:setFsmAttribute( FsmState, other_test_question,
-											43 ),
+											 43 ),
 
 	{ value, 43 } = fsm_utils:getFsmAttribute( FsmStateTwo,
-											  other_test_question ),
+											   other_test_question ),
 
 	test_facilities:stop().
