@@ -59,7 +59,10 @@ environments.
 		  create_server/0, create_server/1, create_server/2,
 
 		  create_linked_server/0, create_linked_server/1,
-		  create_linked_server/2 ]).
+		  create_linked_server/2,
+
+		  % Myriad built-in:
+		  get_builtin_directory/0 ]).
 
 
 
@@ -125,7 +128,7 @@ for the user.
 
 -doc "Any kind of file resource identifier.".
 -type any_resource_file_id() :: resource_file_id() | resource_file_id_string().
- 
+
 
 
 -doc """
@@ -215,13 +218,15 @@ repository.
 % and creation/last use timestamps.
 
 
-% Shorthands:
+% Type shorthands:
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 -type file_path() :: file_utils:file_path().
 -type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:any_file_path().
+
+-type directory_path() :: file_utils:directory_path().
 -type bin_directory_path() :: file_utils:bin_directory_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 
@@ -243,7 +248,7 @@ repository.
 -spec create_repository() -> resource_repository().
 create_repository() ->
 	#resource_repository{ root_directory=undefined,
-						   table=table:new() }.
+						  table=table:new() }.
 
 
 
@@ -360,6 +365,17 @@ create_linked_server( AnyRootDir, GUIBackendEnv ) ->
 					server_init( text_utils:ensure_binary( AnyRootDir ),
 								 GUIBackendEnv )
 				end ).
+
+
+
+% Myriad built-in elements.
+
+
+-doc "Returns the Myriad base built-in resource directory.".
+-spec get_builtin_directory() -> directory_path().
+get_builtin_directory() ->
+	file_utils:join(
+		[ basic_utils:get_myriad_root_path(), "priv", "resources" ] ).
 
 
 
@@ -985,19 +1001,19 @@ locate_multiple_data_from_ref( BinDataPaths, #resource_repository{
 
 	[ begin
 
-		  AbsBinDataPath =
+		AbsBinDataPath =
 			  file_utils:ensure_path_is_absolute( P, _BasePath=BinRootDir ),
 
-		  case file_utils:is_existing_file_or_link( AbsBinDataPath ) of
+		case file_utils:is_existing_file_or_link( AbsBinDataPath ) of
 
-			  true ->
-				  AbsBinDataPath;
+			true ->
+				AbsBinDataPath;
 
-			  _False ->
-				  throw( { data_file_not_found, P,
-						   text_utils:binary_to_string( BinRootDir ),
-						   file_utils:get_current_directory() } )
-		  end
+			_False ->
+				throw( { data_file_not_found, P,
+						 text_utils:binary_to_string( BinRootDir ),
+						 file_utils:get_current_directory() } )
+		end
 
 	end || P <- BinDataPaths ].
 

@@ -40,7 +40,8 @@ Unit tests for the management of **buttons**, possibly with icons in them.
 Here the main loop just has to remember the frame whose closing is awaited for
 (and a few buttons).
 """.
--type my_test_state() :: { frame(), [ button() ] }.
+-type my_test_state() :: { frame(),
+	{ toggle_button(), [ bitmap_button() ], [ button() ] } }.
 
 
 
@@ -48,6 +49,8 @@ Here the main loop just has to remember the frame whose closing is awaited for
 
 -type frame() :: gui_frame:frame().
 -type button() :: gui_button:button().
+-type toggle_button() :: gui_button:toggle_button().
+-type bitmap_button() :: gui_button:bitmap_button().
 
 
 
@@ -105,13 +108,57 @@ run_gui_test() ->
 		_TogId=toggle_button, ButtonParent ),
 
 
-	ImagePath = "../../../doc/myriad-very-small.png",
+	CustomImagePath = "../../../doc/myriad-very-small.png",
 
-	Bmp = gui_bitmap:create_from( ImagePath ),
+	CustomBmp = gui_bitmap:create_from( CustomImagePath ),
 
-	BitmapButton = gui_button:create_bitmap( Bmp, _BmpId=bitmap_button,
-											 ButtonParent ),
+	CustomBitmapButton = gui_button:create_bitmap( CustomBmp,
+		_BmpId=bitmap_button, ButtonParent ),
 
+
+	ResDir = resource:get_builtin_directory(),
+
+
+	LeftChevronImagePath =
+		file_utils:join( ResDir, "left-chevron-green-16.png" ),
+
+	LeftChevronBmp = gui_bitmap:create_from( LeftChevronImagePath ),
+
+	LeftChevronButton = gui_button:create_bitmap( LeftChevronBmp,
+		_ChevId=left_chevron_button, ButtonParent ),
+
+
+	RightChevronImagePath =
+		file_utils:join( ResDir, "right-chevron-green-16.png" ),
+
+	RightChevronBmp = gui_bitmap:create_from( RightChevronImagePath ),
+
+	RightChevronButton = gui_button:create_bitmap( RightChevronBmp,
+		right_chevron_button, ButtonParent ),
+
+
+	UpChevronImagePath =
+		file_utils:join( ResDir, "up-chevron-green-16.png" ),
+
+	UpChevronBmp = gui_bitmap:create_from( UpChevronImagePath ),
+
+	UpChevronButton = gui_button:create_bitmap( UpChevronBmp,
+		up_chevron_button, ButtonParent ),
+
+
+	DownChevronImagePath =
+		file_utils:join( ResDir, "down-chevron-green-16.png" ),
+
+	DownChevronBmp = gui_bitmap:create_from( DownChevronImagePath ),
+
+	DownChevronButton = gui_button:create_bitmap( DownChevronBmp,
+		down_chevron_button, ButtonParent ),
+
+
+	MyriadBuiltinButtons = [ LeftChevronButton, RightChevronButton,
+							 UpChevronButton, DownChevronButton ],
+
+	AllBitmapButtons= [ CustomBitmapButton | MyriadBuiltinButtons ],
 
 	% Showing that we cannot set custom labels if selecting a standard/stock
 	% identifier (so we cannot have both a non-default label and the
@@ -124,13 +171,17 @@ run_gui_test() ->
 	% To force the use of the stock labels:
 	NoLabel = "",
 
-	AllPlainButtons = [ ToggleButton, BitmapButton, LostIconButton |
-		[ gui_button:create( NoLabel, Position, ButtonSize, ButtonStyle, BId,
-							 ButtonParent ) || BId <- AllButtonIds ] ],
+	BasicButtons = [ LostIconButton |
+		[ gui_button:create( NoLabel, Position, ButtonSize, ButtonStyle,
+							 BId, ButtonParent ) || BId <- AllButtonIds ] ],
+
+	AllPlainButtons = AllBitmapButtons ++ BasicButtons,
+
+	AllButtons = [ ToggleButton | AllPlainButtons ],
 
 	ButtonFlags = [ { proportion, 0 }, { border_width, 4 }, all_borders ],
 
-	gui_sizer:add_elements( GridSizer, AllPlainButtons, ButtonFlags ),
+	gui_sizer:add_elements( GridSizer, AllButtons, ButtonFlags ),
 
 	% No specific need to call gui:layout/1 or gui:{refresh,update}/1.
 
@@ -140,7 +191,8 @@ run_gui_test() ->
 
 	gui_frame:show( Frame ),
 
-	test_main_loop( _InitialState={ Frame, AllPlainButtons } ).
+	test_main_loop( _InitialState={ Frame,
+		{ ToggleButton, AllBitmapButtons, BasicButtons } } ).
 
 
 
@@ -190,11 +242,12 @@ test_main_loop( State={ Frame, _Buttons } ) ->
 	end.
 
 
-stop( _State={ Frame,  [ ToggleButton, BitmapButton | BasicButtons ] } ) ->
+stop( _State={ Frame, { ToggleButton, AllBitmapButtons, BasicButtons } } ) ->
 	trace_utils:info( "Test success, destructing buttons." ),
 
 	gui_button:destruct_toggle( ToggleButton ),
-	gui_button:destruct_bitmap( BitmapButton ),
+
+	[ gui_button:destruct_bitmap( BMB ) || BMB <- AllBitmapButtons ],
 
 	[ gui_button:destruct( B ) || B <- BasicButtons ],
 
