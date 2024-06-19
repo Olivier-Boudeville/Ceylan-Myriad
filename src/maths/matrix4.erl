@@ -1980,6 +1980,10 @@ inverse( M ) when is_record( M, matrix4 ) ->
 	case math_utils:is_null( Det ) of
 
 		true ->
+			cond_utils:if_defined( myriad_debug_linear,
+				trace_utils:warning_fmt( "Cannot determine the inverse of the "
+					"following matrix, considered singular: ~ts",
+					[ to_string( M ) ] ) ),
 			undefined;
 
 		false ->
@@ -1993,6 +1997,10 @@ inverse( M ) when is_record( M, compact_matrix4 ) ->
 	case math_utils:is_null( Det ) of
 
 		true ->
+			cond_utils:if_defined( myriad_debug_linear,
+				trace_utils:warning_fmt( "Cannot determine the inverse of the "
+					"following compact matrix, considered singular: ~ts",
+					[ to_string( M ) ] ) ),
 			undefined;
 
 		false ->
