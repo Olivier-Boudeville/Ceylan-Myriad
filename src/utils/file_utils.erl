@@ -620,7 +620,7 @@ for further information)
 			   permission/0, permission_mask/0, improper_encoding_action/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
