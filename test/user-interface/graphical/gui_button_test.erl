@@ -37,15 +37,17 @@ Unit tests for the management of **buttons**, possibly with icons in them.
 
 
 -doc """
-Here the main loop just has to remember the frame whose closing is awaited for.
+Here the main loop just has to remember the frame whose closing is awaited for
+(and a few buttons).
 """.
--type my_test_state() :: frame().
+-type my_test_state() :: { frame(), [ button() ] }.
 
 
 
-% Type shorthand:
+% Type shorthands:
 
 -type frame() :: gui_frame:frame().
+-type button() :: gui_button:button().
 
 
 
@@ -96,20 +98,33 @@ run_gui_test() ->
 		[ length( AllButtonIds ),
 		  text_utils:atoms_to_listed_string( AllButtonIds ) ] ),
 
-	% Showing that we cannot set custom labels if selecting a standard/stock
-	% identifier (so we cannot have both a non-default label and the
-	% corresponding icon unfortunately)
-	%
-	LostIconButton = gui_button:create( "My label\n(lost icon)",
-		_ButtId=zoom_factor_fit_button, ButtonParent ),
+
+	% First, two non-basic buttons:
 
 	ToggleButton = gui_button:create_toggle( "I am a\ntoggle button",
 		_TogId=toggle_button, ButtonParent ),
 
+
+	ImagePath = "../../../doc/myriad-very-small.png",
+
+	Bmp = gui_bitmap:create_from( ImagePath ),
+
+	BitmapButton = gui_button:create_bitmap( Bmp, _BmpId=bitmap_button,
+											 ButtonParent ),
+
+
+	% Showing that we cannot set custom labels if selecting a standard/stock
+	% identifier (so we cannot have both a non-default label and the
+	% corresponding icon unfortunately)
+	%
+	LostIconButton = gui_button:create( "My label\n(thus no icon)",
+		_ButtId=zoom_factor_fit_button, ButtonParent ),
+
+
 	% To force the use of the stock labels:
 	NoLabel = "",
 
-	AllPlainButtons = [ LostIconButton, ToggleButton |
+	AllPlainButtons = [ ToggleButton, BitmapButton, LostIconButton |
 		[ gui_button:create( NoLabel, Position, ButtonSize, ButtonStyle, BId,
 							 ButtonParent ) || BId <- AllButtonIds ] ],
 
@@ -125,7 +140,7 @@ run_gui_test() ->
 
 	gui_frame:show( Frame ),
 
-	test_main_loop( _InitialState=Frame ).
+	test_main_loop( _InitialState={ Frame, AllPlainButtons } ).
 
 
 
@@ -135,7 +150,7 @@ corresponding to the frame that shall be closed to stop the test
 (i.e. CloseFrame).
 """.
 -spec test_main_loop( my_test_state() ) -> no_return().
-test_main_loop( State=Frame ) ->
+test_main_loop( State={ Frame, _Buttons } ) ->
 
 	trace_utils:info( "Test main loop running..." ),
 
@@ -147,7 +162,7 @@ test_main_loop( State=Frame ) ->
 				[ gui:object_to_string( Button ),
 				  gui_id:id_to_string( ButtonId ),
 				  gui_event:context_to_string( EventContext ) ] ),
-			stop( Frame );
+			stop( State );
 
 		{ onButtonClicked, [ Button, ButtonId, EventContext ] } ->
 			trace_utils:debug_fmt( "Plain button ~ts (~ts) clicked (~ts).",
@@ -165,7 +180,7 @@ test_main_loop( State=Frame ) ->
 
 		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
 			trace_utils:info( "Main frame has been closed." ),
-			stop( Frame );
+			stop( State );
 
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "
@@ -175,9 +190,17 @@ test_main_loop( State=Frame ) ->
 	end.
 
 
-stop( Frame ) ->
-	trace_utils:info( "Test success, stopping." ),
+stop( _State={ Frame,  [ ToggleButton, BitmapButton | BasicButtons ] } ) ->
+	trace_utils:info( "Test success, destructing buttons." ),
+
+	gui_button:destruct_toggle( ToggleButton ),
+	gui_button:destruct_bitmap( BitmapButton ),
+
+	[ gui_button:destruct( B ) || B <- BasicButtons ],
+
 	gui_frame:destruct( Frame ),
+
+	trace_utils:info( "Stopping." ),
 	gui:stop().
 
 

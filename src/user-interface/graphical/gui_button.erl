@@ -37,12 +37,16 @@ Usage notes:
   specified, its label must also exactly match a built-in one (e.g. "About" or
   "&About") - otherwise no image will be added; for a stock button it is thus
   recommended to specify an empty label
+- a button must be destructed according to its actual class: basic buttons by
+  destruct/1, toggle buttons by destruct_toggle/1, bitmap ones by
+  destruct_bitmap/1 (otherwise a {badtype,ActualButtonClass} exception will be
+  thrown)
 """.
 
 
 
 -doc """
-Designates an actual button instance.
+Designates an actual basic button instance.
 
 When such a button is clicked, it emits an onButtonClicked event.
 """.
@@ -61,6 +65,8 @@ stays pressed.
 It is therefore similar to a checkbox in functionality, but looks like a button.
 
 When such a toggle button is clicked, it emits an onButtonToggled event.
+
+It should be destructed thanks to destruct_toggle/1, not destruct/1.
 """.
 -opaque toggle_button() :: wxToggleButton:wxToggleButton().
 
@@ -68,6 +74,8 @@ When such a toggle button is clicked, it emits an onButtonToggled event.
 -doc """
 Designates an actual button instance displaying a bitmap instead of the usual
 label.
+
+It should be destructed thanks to destruct_bitmap/1, not destruct/1.
 """.
 -opaque bitmap_button() :: wxBitmapButton:wxBitmapButton().
 
@@ -104,7 +112,7 @@ A style element of a button, see
 		  create_multiple/2,
 		  create_toggle/3, create_toggle/4,
 		  create_bitmap/3,
-		  set_label/2, destruct/1 ]).
+		  set_label/2, destruct/1, destruct_toggle/1, destruct_bitmap/1 ]).
 
 
 % For related, internal, wx-related defines:
@@ -261,10 +269,24 @@ set_label( Button, Label ) ->
 	wxButton:setLabel( Button, Label ).
 
 
--doc "Destructs the specified button.".
+
+-doc "Destructs the specified basic button.".
 -spec destruct( button() ) -> void().
 destruct( Button ) ->
 	wxButton:destroy( Button ).
+
+
+-doc "Destructs the specified toggle button.".
+-spec destruct_toggle( button() ) -> void().
+destruct_toggle( Button ) ->
+	wxToggleButton:destroy( Button ).
+
+
+-doc "Destructs the specified bitmap button.".
+-spec destruct_bitmap( button() ) -> void().
+destruct_bitmap( Button ) ->
+	wxBitmapButton:destroy( Button ).
+
 
 
 
