@@ -138,9 +138,11 @@ See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 			   bitmap_name_id/0, backend_bitmap_id/0 ]).
 
 
+
 % Local types:
 
 -type wx_art_id() :: gui_wx_backend:wx_art_id().
+
 
 
 % Functions on bitmaps:
