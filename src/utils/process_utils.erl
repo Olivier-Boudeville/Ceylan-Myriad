@@ -36,14 +36,37 @@ See process_utils_test.erl for the corresponding test.
 
 
 -export([ spawn_message_queue_monitor/1, spawn_message_queue_monitor/2,
-		  spawn_message_queue_monitor/4 ]).
+		  spawn_message_queue_monitor/4,
+
+		  set_label/1, get_label/1 ]).
 
 
 
 -doc "The PID of a monitoring process.".
 -type monitor_pid() :: pid().
 
--export_type([ monitor_pid/0 ]).
+
+
+% Mostly defined here to remember it:
+-doc """
+A label set on a given process.
+
+Helps the debugging of unregistered processes.
+
+Many tools (observer, logger, crash reporter, etc.) will exploit this
+information afterwards.
+""".
+-type process_label() :: term().
+
+
+
+-export_type([ monitor_pid/0, process_label/0 ]).
+
+
+% Implementation notes:
+%
+% The proc_lib module is of interest here.
+
 
 
 % Type shorthands:
@@ -169,3 +192,17 @@ message_queue_monitor_main_loop( MonitoredPid, BinProcDesc, MsgThreshold,
 											 MsgThreshold, SamplingPeriod )
 
 	end.
+
+
+
+-doc "Sets the label of the current process.".
+-spec set_label( process_label() ) -> void().
+set_label( ProcessLabel ) ->
+	proc_lib:set_label( ProcessLabel ).
+
+
+
+-doc "Gets the label (if any) of the specified process.".
+-spec get_label( pid() ) -> option( process_label() ).
+get_label( Pid ) ->
+	proc_lib:set_label( Pid ).
