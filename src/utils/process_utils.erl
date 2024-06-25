@@ -48,10 +48,14 @@ See process_utils_test.erl for the corresponding test.
 
 
 % Mostly defined here to remember it:
+%
+% (stored with the '$process_label' key in the process dictionary)
+%
 -doc """
 A label set on a given process.
 
-Helps the debugging of unregistered processes.
+Helps the debugging of unregistered processes, notably when they are not able
+anymore to process messages.
 
 Many tools (observer, logger, crash reporter, etc.) will exploit this
 information afterwards.
