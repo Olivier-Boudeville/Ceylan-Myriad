@@ -4036,8 +4036,9 @@ remove_empty_lines( Strs ) ->
 
 
 -doc """
-Substitutes in the specified string the source character with the target one:
-replaces all occurrences thereof.
+Substitutes in the specified string the specified source character with the
+target one: replaces all occurrences thereof; returns a string of the same type
+as the specified one.
 
 Note: simpler and probably more efficient that a regular expression.
 
