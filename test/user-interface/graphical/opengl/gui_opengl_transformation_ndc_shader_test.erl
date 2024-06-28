@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 9, 2023.
 
--module(gui_opengl_transformation_shader_test).
+-module(gui_opengl_transformation_ndc_shader_test).
 
 -moduledoc """
 Minimal testing of **shader-based transformation rendering**: applies a
@@ -34,9 +34,12 @@ square based on it that can be moved with the keyboard to test transformations
 (translations, rotations and scalings) and directions thereof in the current
 coordinate system.
 
-This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
-opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
-(e.g. a Z-UP coordinate system).
+NDC (Normalized Device Coordinates) are used here.
+
+This test relies on:
+- shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x
+- on Myriad's conventions (e.g. a Z-UP coordinate system)
 """.
 
 
@@ -165,6 +168,7 @@ opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
 -type my_gui_state() :: #my_gui_state{}.
 
 
+
 -record( my_opengl_state, {
 
 	% The identifier of our GLSL program:
@@ -261,14 +265,15 @@ properly once not needed anymore.
 
 
 
-% The attribute in the vertex stream that will be passed to the our (vertex)
-% shader for the vertices; attribute 0 was chosen, yet no particular reason for
-% this index, it just must match the layout (cf. 'location = 0') in the shader.
+% The attribute in the vertex stream that will be passed to our (vertex) shader
+% for the vertices; attribute 0 was chosen, yet no particular reason for this
+% index, it just must match the layout (cf. 'location = 0') in the shader.
 %
 -define( my_vertex_attribute_index, 0 ).
 
-% The attribute in the vertex stream that will be passed to the our (vertex)
-% shader for the texture coordinates.
+
+% The attribute in the vertex stream that will be passed to our (vertex) shader
+% for the texture coordinates.
 %
 -define( my_texture_coords_attribute_index, 1 ).
 
@@ -343,6 +348,7 @@ prepare_square( Texture ) ->
 	{ SquareVAOId, SquareMergedVBOId, SquareEBOId }.
 
 
+
 -spec get_help_text() -> ustring().
 get_help_text() ->
 
@@ -373,7 +379,7 @@ get_help_text() ->
 		"to switch to the next transformation mode (cycling between translation, rotation, scaling), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
 		"Hints:~n"
 		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
-		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, first make the square go further/downward to make it appear~n",
+		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, to make the square appear, first make it go further/downward ~n",
 		[ ?delta_coord, ?delta_angle, ?delta_scale ] ).
 
 
@@ -661,7 +667,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	Texture = gui_texture:create_from_image( Image ),
 
 	% To showcase that we can use other texture units (locations) than the
-	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit:
+	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit
+	% here:
 	%
 	gui_texture:set_current_texture_unit( 2 ),
 
@@ -681,7 +688,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Same for the projection one:
 	gui_shader:set_uniform_matrix4( ProjMatUnifId, ProjMat4 ),
-
 
 	% Set the texture location of the sampler uniform:
 	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=2 ),
@@ -711,7 +717,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Note that the default projection is orthographic; as a result, moving the
 	% square along the Z (depth) will not change anything (until going out of
-	% the NDC [-1.0, 1.0] range, and having the square disappear).
+	% the NDC [-1.0, 1.0] range and then having the square disappear).
 
 	trace_utils:debug( "Starting with an orthographic projection "
 					   "with Z-up conventions, and in translation mode." ),
@@ -933,6 +939,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
+
 update_scene( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
@@ -1029,6 +1036,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
+
 
 update_scene( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
@@ -1176,6 +1184,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
+
 update_scene( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
@@ -1216,6 +1225,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 	gui_shader:set_uniform_matrix4( ModelViewMatUnifId, NewModelViewMat4 ),
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
+
 
 update_scene( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
@@ -1331,11 +1341,13 @@ update_scene( _Scancode=?projection_mode_scan_code,
 			case type_utils:get_record_tag( ProjSettings ) of
 
 		orthographic_settings ->
+			% No typo here, 'perspective' wanted:
 			PerspSettings =
-				projection:get_base_orthographic_settings( AspectRatio ),
+				projection:get_base_perspective_settings( AspectRatio ),
 			{ PerspSettings, projection:perspective( PerspSettings ) };
 
 		perspective_settings ->
+			% No typo here either, 'orthographic' wanted:
 			OrthoSettings = projection:get_base_orthographic_settings(),
 			{ OrthoSettings, projection:orthographic( OrthoSettings ) }
 
@@ -1371,14 +1383,34 @@ update_scene( _Scancode, GUIState ) ->
 Returns a description of the local origin of the square, in the global
 coordinate system.
 """.
+-spec get_origin_description( matrix4() ) -> ustring().
 get_origin_description( ModelViewMat4 ) ->
 
-	% Using a transformation would eliminate the need of this inversion:
-	InvMat4 = matrix4:inverse( ModelViewMat4 ),
-	LocalOrigin = matrix4:get_translation( InvMat4 ),
+	% For some reason, initially an inversion was done:
 
-	text_utils:format( "~nIn the global coordinate system, the local origin "
-		"of the square coordinate system is now: ~ts",
+	% Using a transformation would eliminate the need of this inversion:
+	%% case matrix4:inverse( ModelViewMat4 ) of
+
+	%	undefined ->
+	%		text_utils:format( "~nThe local origin of the square coordinate "
+	%			"system in the global coordinate system cannot be determined "
+	%			"(singular matrix); too much downscaling attempted?~n"
+	%			"Model-view matrix is ~ts",
+	%			[ matrix4:to_string( ModelViewMat4 ) ] );
+
+	%	InvMat4 ->
+	%		LocalOrigin = matrix4:get_translation( InvMat4 ),
+
+	%		text_utils:format( "~nIn the global coordinate system, "
+	%			"the local origin of the square coordinate system is now: ~ts",
+	%			[ point3:to_string( LocalOrigin ) ] )
+
+	%% end.
+
+	LocalOrigin = matrix4:get_translation( ModelViewMat4 ),
+
+	text_utils:format( "~nIn the global coordinate system, "
+		"the local origin of the square coordinate system is now: ~ts",
 		[ point3:to_string( LocalOrigin ) ] ).
 
 
