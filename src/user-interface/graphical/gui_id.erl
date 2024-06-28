@@ -417,6 +417,12 @@ declare_name_id_internal( NameId, NextId, NameTable ) ->
 			case gui_generated:get_maybe_second_for_menu_item_id( NameId ) of
 
 				undefined ->
+
+					cond_utils:if_defined( myriad_debug_gui_id,
+						trace_utils:debug_fmt(
+							"Registered name identifier: ~ts",
+							[ bijective_table:to_string( NameTable ) ] ) ),
+
 					% Neither a standard button nor a menu item name, hence this
 					% identifier must be auto-allocated:
 					%
@@ -448,7 +454,6 @@ Throws an exception if no corresponding backend identifier can be found.
 Typically called directly through the MyriadGUI main loop (thus without
 involving messages), which takes care of the identifier management as well.
 """.
-
 -spec resolve_named_id_internal( name_id(), id_name_alloc_table() ) ->
 											backend_id().
 resolve_named_id_internal( NameId, NameTable ) ->
