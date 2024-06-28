@@ -90,14 +90,15 @@ run_gui_test() ->
 
 	gui_widget:set_sizer( Panel, GridSizer ),
 
-	% Fetching all known button identifiers:
+	% Fetching all standard button identifiers:
 	{ button_id, Entries, _ElemLookup } =
 		gui_constants:get_button_id_topic_spec(),
 
-	% Button identifier:
-	AllButtonIds = pair:firsts( Entries ),
+	% Button identifier, with the MyriadGUI specific ones added::
+	AllButtonIds = pair:firsts( Entries )
+		++ gui_button:get_myriadgui_identifiers(),
 
-	trace_utils:notice_fmt( "Identifiers of the ~B standard buttons: ~ts.",
+	trace_utils:notice_fmt( "Identifiers of the ~B MyriadGUI buttons: ~ts.",
 		[ length( AllButtonIds ),
 		  text_utils:atoms_to_listed_string( AllButtonIds ) ] ),
 
@@ -116,55 +117,14 @@ run_gui_test() ->
 		_BmpId=bitmap_button, ButtonParent ),
 
 
-	ResDir = resource:get_builtin_directory(),
 
-
-	LeftChevronImagePath =
-		file_utils:join( ResDir, "left-chevron-green-16.png" ),
-
-	LeftChevronBmp = gui_bitmap:create_from( LeftChevronImagePath ),
-
-	LeftChevronButton = gui_button:create_bitmap( LeftChevronBmp,
-		_ChevId=left_chevron_button, ButtonParent ),
-
-
-	RightChevronImagePath =
-		file_utils:join( ResDir, "right-chevron-green-16.png" ),
-
-	RightChevronBmp = gui_bitmap:create_from( RightChevronImagePath ),
-
-	RightChevronButton = gui_button:create_bitmap( RightChevronBmp,
-		right_chevron_button, ButtonParent ),
-
-
-	UpChevronImagePath =
-		file_utils:join( ResDir, "up-chevron-green-16.png" ),
-
-	UpChevronBmp = gui_bitmap:create_from( UpChevronImagePath ),
-
-	UpChevronButton = gui_button:create_bitmap( UpChevronBmp,
-		up_chevron_button, ButtonParent ),
-
-
-	DownChevronImagePath =
-		file_utils:join( ResDir, "down-chevron-green-16.png" ),
-
-	DownChevronBmp = gui_bitmap:create_from( DownChevronImagePath ),
-
-	DownChevronButton = gui_button:create_bitmap( DownChevronBmp,
-		down_chevron_button, ButtonParent ),
-
-
-	MyriadBuiltinButtons = [ LeftChevronButton, RightChevronButton,
-							 UpChevronButton, DownChevronButton ],
-
-	AllBitmapButtons= [ CustomBitmapButton | MyriadBuiltinButtons ],
+	AllBitmapButtons= [ CustomBitmapButton ],
 
 	% Showing that we cannot set custom labels if selecting a standard/stock
 	% identifier (so we cannot have both a non-default label and the
 	% corresponding icon unfortunately)
 	%
-	LostIconButton = gui_button:create( "My label\n(thus no icon)",
+	LostIconButton = gui_button:create( "This is a label\n(thus no icon)",
 		_ButtId=zoom_factor_fit_button, ButtonParent ),
 
 
