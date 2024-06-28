@@ -287,7 +287,7 @@ Designates a filename, generally without a path (e.g. "foobar.txt").
 -type file_name() :: path().
 
 
--doc "Just a convenience alias.".
+-doc "Just a convenience type alias (which is the preferred version).".
 -type filename() :: file_name().
 
 
