@@ -31,6 +31,9 @@
 Gathering of various facilities for **OpenGL rendering**, notably done through
 wxWidgets.
 
+This is old-style, legacy OpenGL. A contemporary approach is to use GLSL shaders
+instead, see the gui_shader module for that.
+
 See gui_opengl_test.erl for the corresponding test.
 
 See gui.erl for more general rendering topics.
@@ -547,7 +550,7 @@ be enabled or disabled.
 
 -doc "A 3D (float) vector, according to the conventions of the gl module.".
 -type gl_vector3() :: { f(), f(), f() }. % A.k.a. point3:point3().
- 
+
 
 -doc "A 4D (float) vector, according to the conventions of the gl module.".
 -type gl_vector4() :: { f(), f(), f(), f() }. % A.k.a. point4:point4().
@@ -1065,7 +1068,7 @@ get_support_description() ->
 
 	VendStr = text_utils:format( "driver vendor: ~ts", [ get_vendor_name() ] ),
 
-	RendStr = text_utils:format( "driver renderer: ~ts", 
+	RendStr = text_utils:format( "driver renderer: ~ts",
 								 [ get_renderer_name() ] ),
 
 	% Checks that a proper version could be obtained indeed:
@@ -1329,7 +1332,7 @@ by disabling the specified message source, type and severity.
 Although debug messages may be enabled in a non-debug context, the quantity and
 detail of such messages may be substantially inferior to those in a debug
 context. In particular, a valid implementation of the debug message queue in a
-non-debug context may produce no messages at all. 
+non-debug context may produce no messages at all.
 """.
 -spec disable_debug_context_reporting( debug_source(), debug_type(),
 								   debug_severity() ) -> void().
@@ -2184,7 +2187,8 @@ buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=dynamic } ) ->
 
 
 -doc """
-Renders the specified indexed faces, supposing per-vertex colors.
+Renders the specified indexed faces, normals being per-face, colors being
+per-vertex.
 
 Note that, if a texture is bound, it will also be rendered, albeit without
 relying on the actual texture coordinates determined by gui_texture (thus, due
@@ -2224,9 +2228,12 @@ render_triangles( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx } | T ], FaceCount,
 	gl:normal3fv( point3:from_vector(
 		mesh:get_element_from_id( _NId=FaceCount, Normals ) ) ),
 
+	% Colors used to be indexed:
+	%gl:color3fv( lists:nth( V1Idx, Colors ) ),
+
 	% With older OpenGL with plain colors, we do not bother pre-converting
 	% color_by_decimal() into render_rgb_color(), we do it on the fly.
-	%
+
 	gl:color3fv( gui_color:decimal_to_render( V1Col ) ),
 	gl:texCoord2f( 0.0, 0.0 ),
 	gl:vertex3fv( mesh:get_vertex_from_id( V1Idx, Vertices ) ),

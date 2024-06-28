@@ -2667,7 +2667,7 @@ create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
 
 	trace_utils:debug_fmt( "Creating an application GUI state from:~n"
 		" - specs: ~p~n - OpenGL base information: ~p~n"
-		" - application-specific information: ~p",
+		" - application-specific information:~n ~p",
 		[ AppEventSpecs, MaybeOpenGLBaseInfo, MaybeAppSpecificInfo ] ),
 
 	EventDriverTable = get_default_event_driver_table(),
