@@ -414,6 +414,9 @@ test_onShown_driver( _Elements=[ Frame, FrameId, EventContext ],
 
 	%TestMesh = gui_opengl_for_testing:get_test_tetra_mesh(),
 
+	% We cannot call here mesh_render:initialise_for_opengl/2, as it is
+	% shader-based.
+
 	SphereId = glu:newQuadric(),
 
 	InitTestSpecificInfo = TestSpecificInfo#my_test_gui_info{

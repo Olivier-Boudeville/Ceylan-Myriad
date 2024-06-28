@@ -465,7 +465,7 @@ initialise_for_opengl( Mesh=#mesh{
 
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL "
-			"(triangle faces, wireframe) ~ts.", [ to_string( Mesh ) ] ) ),
+			"(triangle faces, wireframe) ~ts.", [ mesh:to_string( Mesh ) ] ) ),
 
 	FloatEdgeColor = gui_color:decimal_to_render( RGBEdgeColor ),
 
@@ -515,7 +515,8 @@ initialise_for_opengl( Mesh=#mesh{
 
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
-			"(triangle faces, per-face color) ~ts.", [ to_string( Mesh ) ] ) ),
+			"(triangle faces, per-face color) ~ts.",
+			[ mesh:to_string( Mesh ) ] ) ),
 
 	% Sanity check for input data (to be commented-out as already checked when
 	% canonicalised):
@@ -603,7 +604,7 @@ initialise_for_opengl( Mesh=#mesh{
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
 			"(triangle faces, per-vertex color) ~ts.",
-			[ to_string( Mesh ) ] ) ),
+			[ mesh:to_string( Mesh ) ] ) ),
 
 	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
 	% normals - at least currently ignored - and no texture coordinates, just a
@@ -680,8 +681,7 @@ initialise_for_opengl( Mesh=#mesh{
 
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
-			"(triangle, textured faces) ~ts.",
-			[ to_string( Mesh ) ] ) ),
+			"(triangle, textured faces) ~ts.", [ mesh:to_string( Mesh ) ] ) ),
 
 	% Sanity check for input data:
 	FaceCount = length( IndexedFaces ),
