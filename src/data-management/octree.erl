@@ -425,10 +425,10 @@ See hybrid_octree/0 for further details.
 
 
 
-%-doc """
-%A (thus sequential) octree-as-a-term, containing possibly a content, an octant
-%record and probably more information.
-%""".
+-doc """
+A (thus sequential) octree-as-a-term, containing possibly a content, an octant
+record and probably more information.
+""".
 %-type octree_term() :: #octree_term{}.
 -type octree_term() :: any().
 
@@ -565,7 +565,7 @@ diameter (largest distance between two points) of this locatable.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 -type accumulator() :: basic_utils:accumulator().
