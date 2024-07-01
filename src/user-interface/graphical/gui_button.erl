@@ -420,7 +420,17 @@ get_myriadgui_identifiers() ->
 	  left_arrow_red_button, right_arrow_red_button,
 	  up_arrow_red_button, down_arrow_red_button,
 
-	  move_blue_button, rotate_ccw_blue_button, rotate_cw_blue_button
+	  left_arrow_black_button, right_arrow_black_button,
+	  up_arrow_black_button, down_arrow_black_button,
+
+	  move_blue_button, move_black_button,
+	  rotate_black_button, rotate_ccw_blue_button, rotate_cw_blue_button,
+
+	  scale_black_button,
+
+	  jump_to_black_button, outbound_black_button, inbound_black_button,
+	  orthographic_black_button, perspective_black_button,
+	  add_bookmark_black_button, go_to_bookmark_black_button
 
 	].
 
