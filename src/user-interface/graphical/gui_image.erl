@@ -77,7 +77,10 @@ opposed to bitmaps).
 
 
 
--doc "Designates a supported file format able to store vector-based images.".
+-doc """
+Designates a supported file format able to store vector-based images.
+""".
+% Apparently not yet supported by the current wxWidgets backend:
 -type image_vector_format() :: 'svg'.
 
 
@@ -169,7 +172,8 @@ A small rectangular bitmap usually used for denoting a minimised application.
 % IMG_PATH}').
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -485,6 +489,7 @@ create_bitmap( ImagePath ) ->
 			ImgBitmap;
 
 		false ->
+			% No more information found:
 			throw( { bitmap_creation_failed,
 					 text_utils:ensure_string( ImagePath ) } )
 
