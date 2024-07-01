@@ -1946,7 +1946,7 @@ EXDOC := $$(which ex_doc 2>/dev/null)
 #EXDOC_CONFIG_FILE := $(MYRIAD_ROOT)/conf/myriad-for-exdoc.config
 
 # Not using multiple --paths with $(BEAM_DIRS), relying on ebin instead:
-EXDOC_OPTS = --formatter html --homepage-url "$(PROJECT_URL)" --language en --logo "$(MYRIAD_TOP)/doc/doc/myriad-title.png" --output "$(API_DOC_ROOT)" --proglang erlang
+EXDOC_OPTS = --formatter html --homepage-url "$(PROJECT_URL)" --language en --logo "$(MYRIAD_TOP)/doc/myriad-title.png" --output "$(API_DOC_ROOT)" --proglang erlang
 
 
 ifndef API_DOC_ROOT
