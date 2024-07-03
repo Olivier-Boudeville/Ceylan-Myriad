@@ -2384,7 +2384,7 @@ check_port( I ) when is_integer( I ) andalso I > 0 andalso I =< 65535 ->
 	I;
 
 check_port( Other ) ->
-	throw( { invalid_net_port, Other  } ).
+	throw( { invalid_net_port, Other } ).
 
 
 
