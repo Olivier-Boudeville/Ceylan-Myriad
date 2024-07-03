@@ -194,6 +194,8 @@ See random_utils_test.erl for the corresponding test.
 
 
 -doc """
+An element of a random seed.
+
 Not future-proof enough (e.g. not compliant with other solutions like
 SIMD-oriented Fast Mersenne Twister).
 """.
