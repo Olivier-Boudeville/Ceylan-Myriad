@@ -439,13 +439,28 @@ variable is not set.
 -type atom_user_name() :: atom().
 
 
+-doc "A user-level login.".
+-type login() :: bin_string().
+
+-doc "A login, as internally stored.".
+-type bin_login() :: bin_string().
+
+-doc "Any kind of login.".
+-type any_login() :: login() | bin_login().
+
 
 -doc "A password, typically of a user account.".
 -type password() :: ustring().
 
+-doc "A password, typically of a user account.".
+-type bin_password() :: bin_string().
+
+-doc "Any kind of password.".
+-type any_password() :: password() | bin_password().
 
 
--doc "A traditional, based credential.".
+
+-doc "A traditional, basic credential.".
 -type basic_credential() :: { user_name(), password() }.
 
 
@@ -491,7 +506,10 @@ identifier).
 			   encoding/0, encoding_option/0, encoding_options/0,
 
 			   user_name/0, atom_user_name/0,
-			   password/0, basic_credential/0,
+			   login/0, bin_login/0, any_login/0,
+			   password/0, bin_password/0, any_password/0,
+
+			   basic_credential/0,
 			   group_name/0,
 
 			   user_id/0, group_id/0, os_pid/0 ]).
@@ -507,6 +525,7 @@ identifier).
 -type any_version() :: basic_utils:any_version().
 
 -type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
 
 -type milliseconds() :: unit_utils:milliseconds().

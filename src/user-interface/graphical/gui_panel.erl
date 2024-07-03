@@ -89,7 +89,8 @@ Backend-level options to create a panel.
 -include("gui_base.hrl").
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -114,6 +115,7 @@ create() ->
 
 -doc "Creates a panel, associated to the specified parent.".
 -spec create( parent() ) -> panel().
+% Handles the MyriadGUI-introduced record:
 create( _Parent=#splitter{ splitter_window=Win } ) ->
 	%trace_utils:debug_fmt( "Creating panel from splitter window ~w.",
 	%                       [ Win ] ),

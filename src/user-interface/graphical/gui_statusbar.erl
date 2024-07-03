@@ -48,17 +48,23 @@ They are very useful to trace events, and can be split in separate fields.
 	'normal'
   | 'flat'
   | 'raised'
-  | 'sunken'.
- 
+  | 'sunken'
+  | 'default'
+  | 'ellipsize_begin'
+  | 'ellipsize_middle'
+  | 'ellipsize_end'
+  | 'show_tips'
+  | 'show_gripper'.
+
 
 
 -doc "A number of fields, typically in a status bar.".
 -type field_count() :: count().
- 
+
 
 -doc "The index (1 or more) of a field in a status bar.".
 -type field_index() :: positive_index().
- 
+
 
 
 -doc """
@@ -82,7 +88,7 @@ If negative, designates a width ratio among all variable-width fields.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 -type positive_index() :: basic_utils:positive_index().

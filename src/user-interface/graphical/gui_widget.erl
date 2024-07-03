@@ -98,7 +98,7 @@ one or more items of data.
 %-include("gui_internal_defines.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type label() :: gui:label().
 -type size() :: gui:size().

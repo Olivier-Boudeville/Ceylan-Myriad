@@ -711,11 +711,18 @@ Returns the two-way conversion specification for the 'status_bar_style' topic.
 						topic_spec( status_bar_style(), wx_enum() ).
 get_status_bar_style_topic_spec() ->
 
+	% See https://docs.wxwidgets.org/3.1/classwx_status_bar.html:
 	Entries = [
-		{ normal, ?wxSB_NORMAL },
-		{ flat,   ?wxSB_FLAT   },
-		{ raised, ?wxSB_RAISED },
-		{ sunken, ?wxSB_SUNKEN } ],
+		{ normal,           ?wxSB_NORMAL            },
+		{ flat,             ?wxSB_FLAT              },
+		{ raised,           ?wxSB_RAISED            },
+		{ sunken,           ?wxSB_SUNKEN            },
+		{ default,          ?wxSTB_DEFAULT_STYLE    },
+		{ ellipsize_end,    ?wxSTB_ELLIPSIZE_END    },
+		{ ellipsize_middle, ?wxSTB_ELLIPSIZE_MIDDLE },
+		{ ellipsize_begin,  ?wxSTB_ELLIPSIZE_START  },
+		{ show_tips,        ?wxSTB_SHOW_TIPS        },
+		{ show_gripper,     ?wxSTB_SIZEGRIP         } ],
 
 	{ status_bar_style, Entries }.
 

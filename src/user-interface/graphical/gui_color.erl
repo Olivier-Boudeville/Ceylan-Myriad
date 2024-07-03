@@ -75,7 +75,7 @@ RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
 -type color_by_decimal() ::
 		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
 		  Blue :: decimal_coordinate() }.
- 
+
 
 -doc """
 A RGB color that is encoded based on 6 hexadecimal digits in a string, with a

@@ -39,6 +39,9 @@ See also:
 - the gui_window_manager module regarding the insertion of windows in their
 environment
 - the gui_frame module
+
+The various corresponding tests, including gui_frame_test.erl and
+gui_splitter_test.erl.
 """.
 
 
@@ -66,7 +69,7 @@ instead.
 -type window_option() :: { 'position', point() }
 					   | { 'size', size() }
 					   | { 'style', [ window_style() ] }.
- 
+
 
 
 -doc """
@@ -107,7 +110,7 @@ See also <http://docs.wxwidgets.org/stable/classwx_window.html>.
 
 -doc "The identifier of an icon.".
 -type icon_name_id() :: standard_icon_name_id() | id().
- 
+
 
 
 -doc "The name identifiers of the standard icons.".
@@ -144,7 +147,7 @@ Represents a window able to be split into two panes.
 Information regarding the (fixed, static) horizontal or vertical splitting of a
 window into two ones.
 """.
--type splitter() :: #splitter{}.
+-opaque splitter() :: #splitter{}.
 
 
 
@@ -157,7 +160,8 @@ subwindows.
 
 
 -doc """
-Tells how much the first pane of a splitter window is to grow while resizing it:
+Tells, as a ratio, how much the first pane of a splitter window is to grow while
+resizing it; for example:
  - 0.0: only the bottom/right window is automatically resized
  - 0.5: both windows grow by equal size
  - 1.0: only left/top window grows
@@ -192,7 +196,9 @@ Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 
 
 % For splitters:
--export([ create_splitter/4, create_splitter/5, set_unique_pane/2 ]).
+-export([ create_splitter/4, create_splitter/5,
+		  get_splitter_window/1, get_orientation/1,
+		  set_unique_pane/2, set_panes/3, get_panes/1 ]).
 
 
 % Wx-level:
@@ -214,7 +220,7 @@ Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 -type wx_window_option() :: term().
 
 
-% Shorthands:
+% Type shorthands:
 
 -type bit_mask() :: basic_utils:bit_mask().
 
@@ -229,7 +235,7 @@ Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 -type sizing() :: gui:sizing().
 
 -type position() :: gui:position().
--type orientation() :: orientation().
+-type orientation() :: gui:orientation().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
 
@@ -538,12 +544,31 @@ create_splitter( ParentWindow, Orientation, SashGravity, PaneSize, OSType ) ->
 
 	SplitterWin = wxSplitterWindow:new( ParentWindow, [ { style, WxStyle } ] ),
 
+	% No wxSplitterWindow:split{Horizontally,Vertically}(Splitter, Win1, Win2)
+	% call, as we do not have Win1 or Win2, and cannot have them, as the parent
+	% must be the just-created splitter.
+
 	wxSplitterWindow:setSashGravity( SplitterWin, SashGravity ),
 
 	wxSplitterWindow:setMinimumPaneSize( SplitterWin, PaneSize ),
 
 	#splitter{ splitter_window=SplitterWin,
 			   orientation=gui:check_orientation( Orientation ) }.
+
+
+
+
+-doc "Returns the overall window corresponding to the specified splitter.".
+-spec get_splitter_window( splitter() ) -> window().
+get_splitter_window( #splitter{ splitter_window=SplitterWin } ) ->
+	SplitterWin.
+
+
+
+-doc "Returns the orientation of the specified splitter.".
+-spec get_orientation( splitter() ) -> orientation().
+get_orientation( #splitter{ orientation=Orientation } ) ->
+	Orientation.
 
 
 
@@ -554,6 +579,46 @@ specified window.
 -spec set_unique_pane( splitter(), parent() ) -> void().
 set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
 	wxSplitterWindow:initialize( SplitterWin, WindowPane ).
+
+
+
+-doc """
+Sets the two panes of the specified splitter window, splitting it according to
+its orientation.
+
+Returns an updated splitter and whether it has been split (true), or if it was
+already split (false).
+""".
+-spec set_panes( splitter(), window(), window() ) -> { splitter(), boolean() }.
+set_panes( S=#splitter{ splitter_window=SplitterWin, orientation=Orientation },
+		   FirstWindowPane, SecondWindowPane ) ->
+
+	NewS = S#splitter{ first_pane=FirstWindowPane,
+					   second_pane=SecondWindowPane },
+
+	HasSplit = case Orientation of
+
+		horizontal ->
+			wxSplitterWindow:splitHorizontally( SplitterWin, FirstWindowPane,
+												SecondWindowPane );
+
+		vertical ->
+			wxSplitterWindow:splitVertically( SplitterWin, FirstWindowPane,
+											  SecondWindowPane )
+
+	end,
+
+	{ NewS, HasSplit }.
+
+
+
+-doc "Returns the two panes (if any) of the specified splitter window.".
+-spec get_panes( splitter() ) -> { option( window() ), option( window() ) }.
+get_panes( #splitter{ first_pane=FirstWindowPane,
+					   second_pane=SecondWindowPane } ) ->
+	{ FirstWindowPane, SecondWindowPane }.
+
+
 
 
 

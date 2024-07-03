@@ -22,14 +22,16 @@ user-friendly debugging.
 
 -type alphabet() :: [ char() ].
 
--type password() :: text_utils:ustring().
 
 -export([ generate_password/2 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
+
+-type password() :: system_utils:password().
+
 
 
 
