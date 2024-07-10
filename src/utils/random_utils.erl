@@ -1996,20 +1996,22 @@ get_uniform_values_helper( Nmin, Nmax, Count, Acc ) ->
 % per-process).
 
 
--doc "Starts the random source with specified seeding.".
+-doc "Starts the random source with the specified seeding.".
 start_random_source( _A, _B, _C ) ->
 	throw( crypto_module_cannot_be_seeded ).
 
 
 
--doc "Starts the random source with specified seeding.".
+-doc "Starts the random source with the specified seeding.".
 start_random_source( default_seed ) ->
 
 	cond_utils:if_defined( myriad_debug_random,
 		trace_utils:info_fmt( "~w starting random source with crypto.",
 							  [ self() ] ) ),
 
-	ok = crypto:start();
+	% Better than crypto:start/0, as FIPS-mode compliant:
+	ok = application:start( crypto );
+
 
 start_random_source( time_based_seed ) ->
 	throw( crypto_module_cannot_be_seeded ).
@@ -2019,7 +2021,7 @@ start_random_source( time_based_seed ) ->
 -doc """
 Tells whether this random source can be seeded.
 
-crypto cannot be seeded, but rand can.
+'crypto' cannot be seeded, but 'rand' can.
 """.
 can_be_seeded() ->
 	false.
@@ -2034,7 +2036,7 @@ reset_random_source( _Seed ) ->
 
 -doc "Stops the random source.".
 stop_random_source() ->
-	ok = crypto:stop().
+	ok = application:stop( crypto ).
 
 
 
@@ -2206,7 +2208,7 @@ set_random_state( _NewState ) ->
 
 
 
-% doc: Starts the random source with specified seeding.
+% doc: Starts the random source with the specified seeding.
 %
 % Note: if a process does not explicitly select a seed, with 'rand' a
 % non-constant seed will be assigned. For reproducibility, start your random
@@ -2225,7 +2227,7 @@ start_random_source( A, B, C ) ->
 
 
 
-% doc: Seeds the random number generator, with specified seeding, or with a
+% doc: Seeds the random number generator, with the specified seeding, or with a
 % default seed (if wanting to obtain the same random series at each run) or with
 % current time (if wanting "real", non-reproducible randomness).
 %
@@ -3134,7 +3136,7 @@ get_gaussian_value( Mu, Sigma ) ->
 
 -doc """
 Returns a non-negative integer random value generated from the normal (Gaussian)
-distribution with specified settings.
+distribution with the specified settings.
 
 Given a mean Mu and a standard deviation Sigma, returns random integers drawn
 according the corresponding Gaussian law, updating the state in the process

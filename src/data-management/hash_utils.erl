@@ -409,7 +409,9 @@ Ensures that a support for cryptographic hashing is available and ready to use.
 """.
 -spec start_crypto_hashing() -> void().
 start_crypto_hashing() ->
-	case crypto:start() of
+
+	% Better than crypto:start/0, as FIPS-mode compliant:
+	case application:start( crypto ) of
 
 		ok ->
 			ok;
@@ -428,14 +430,15 @@ Never fails.
 """.
 -spec stop_crypto_hashing() -> void().
 stop_crypto_hashing() ->
-	case crypto:stop() of
+
+	case application:stop( crypto ) of
 
 		ok ->
 			ok;
 
 		{ error, Reason } ->
 			trace_bridge:error_fmt( "The stopping of the crypto hashing "
-									"service failed: ~p,", [ Reason ] )
+									"service failed: ~p.", [ Reason ] )
 
 	end.
 
