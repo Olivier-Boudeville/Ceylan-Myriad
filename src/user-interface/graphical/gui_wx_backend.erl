@@ -321,7 +321,8 @@ Refer to wxGLCanvas: <https://www.erlang.org/doc/man/wxglcanvas#new-2>.
 -export([ is_wx_event/1 ]).
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type maybe_list(T) :: list_utils:maybe_list( T ).
 

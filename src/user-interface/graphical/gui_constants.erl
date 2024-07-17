@@ -62,7 +62,10 @@ Called by gui:generate_support_modules/0.
 		  %get_font_selection_dialog_style_topic_spec/0,
 
 		  get_event_type_topic_spec/0,
-		  get_direction_topic_spec/0, get_orientation_topic_spec/0 ] ).
+		  get_direction_topic_spec/0, get_orientation_topic_spec/0,
+
+		  get_splitter_style_topic_spec/0,
+		  get_splitter_orientation_topic_spec/0 ] ).
 
 
 -export([ list_topic_spec_functions/0 ]).
@@ -209,6 +212,8 @@ list_topic_spec_functions() ->
 -type wx_id() :: gui_id:wx_id().
 
 -type backend_bitmap_id() :: gui_bitmap:backend_bitmap_id().
+
+-type splitter_style() :: gui_splitter:splitter_style().
 
 
 
@@ -1042,8 +1047,8 @@ Returns the two-way conversion specification for the 'direction' topic.
 -spec get_direction_topic_spec() ->
 						topic_spec( direction(), wx_direction() ).
 get_direction_topic_spec() ->
-	{ direction, [ { vertical,   ?wxVERTICAL   },
-				   { horizontal, ?wxHORIZONTAL } ] }.
+	OrientEntries = pair:second( get_orientation_topic_spec() ),
+	{ direction, [ { both, ?wxBOTH } | OrientEntries ] }.
 
 
 
@@ -1053,5 +1058,49 @@ Returns the two-way conversion specification for the 'orientation' topic.
 -spec get_orientation_topic_spec() ->
 						topic_spec( orientation(), wx_orientation() ).
 get_orientation_topic_spec() ->
-	DirEntries = pair:second( get_direction_topic_spec() ),
-	{ orientation, [ { both, ?wxBOTH } | DirEntries ] }.
+	{ orientation, [ { vertical,   ?wxVERTICAL   },
+					 { horizontal, ?wxHORIZONTAL } ] }.
+
+
+-doc """
+Returns the two-way conversion specification for the 'splitter_style' topic.
+""".
+-spec get_splitter_style_topic_spec() ->
+						topic_spec( splitter_style(), wx_enum() ).
+get_splitter_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_splitter_window.html for more
+	% information.
+
+	Entries = [
+		{ three_dim_effect,   ?wxSP_3D             },
+		{ thin_splitter,      ?wxSP_THIN_SASH      },
+		{ three_dim_splitter, ?wxSP_3DSASH         },
+		{ three_dim_border,   ?wxSP_3DBORDER       },
+		{ standard_border,    ?wxSP_BORDER         },
+		{ no_border,          ?wxSP_NOBORDER       },
+		{ no_xp_theme,        ?wxSP_NO_XP_THEME    },
+		{ allow_unsplit,      ?wxSP_PERMIT_UNSPLIT },
+		{ live_update,        ?wxSP_LIVE_UPDATE    } ],
+
+	{ splitter_style, Entries }.
+
+
+
+-doc """
+Returns the two-way conversion specification for the 'splitter_orientation'
+topic.
+""".
+-spec get_splitter_orientation_topic_spec() ->
+			topic_spec( orientation(), wx_enum() ).
+get_splitter_orientation_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_splitter_window.html for more
+	% information.
+
+	% Note that for wx wxHORIZONTAL and wxVERTICAL are different from:
+	Entries = [
+		{ horizontal, ?wxSPLIT_HORIZONTAL },
+		{ vertical,   ?wxSPLIT_VERTICAL   } ],
+
+	{ splitter_orientation, Entries }.

@@ -79,15 +79,6 @@ Backend-level options to create a panel.
 
 
 
-% Implementation notes:
-%
-% The parent of a panel can be widgets like windows, including splitter windows
-% that may have to be special-cased.
-
-
-% At least for the splitter record:
--include("gui_base.hrl").
-
 
 
 % Type shorthands:
@@ -115,12 +106,6 @@ create() ->
 
 -doc "Creates a panel, associated to the specified parent.".
 -spec create( parent() ) -> panel().
-% Handles the MyriadGUI-introduced record:
-create( _Parent=#splitter{ splitter_window=Win } ) ->
-	%trace_utils:debug_fmt( "Creating panel from splitter window ~w.",
-	%                       [ Win ] ),
-	wxPanel:new( Win );
-
 create( Parent ) ->
 	wxPanel:new( Parent ).
 
@@ -131,9 +116,6 @@ Creates a panel, associated to the specified parent and with the specified
 options.
 """.
 -spec create( panel_options(), parent() ) -> panel().
-create( Options, _Parent=#splitter{ splitter_window=Win } ) ->
-	create( Options, Win );
-
 create( Options, Parent ) ->
 	wxPanel:new( Parent, to_wx_panel_options( Options ) ).
 

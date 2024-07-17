@@ -70,22 +70,3 @@
 	% hierarchy)
 	%
 	backend_event = undefined :: option( gui:backend_event() ) } ).
-
-
-
-% Information regarding the splitting of a window into (up to) two panes,
-% horizontally or vertically.
-%
--record( splitter, {
-
-	% The overall splitter window (child of the split overall one):
-	splitter_window :: gui_window:splitter_window(),
-
-	% Tells whether this is an horizontal or a vertical splitter:
-	orientation :: gui:orientation(),
-
-	% The top or left pane (if any):
-	first_pane :: option( gui_window:window() ),
-
-	% The bottom or right pane (if any):
-	second_pane :: option( gui_window:window() ) } ).
