@@ -220,7 +220,7 @@ A domain name (e.g. "foo.baz.org"), as a string.
 
 
 -doc """
-A domain name (e.g. "foo.baz.org"), as a binary string.
+A domain name, as a binary string (e.g. ``<<"foo.baz.org">>``).
 """.
 -type bin_domain_name() :: bin_string().
 
@@ -234,8 +234,8 @@ An element of a domain name (e.g. "foo" in "bar.foo.baz.org"), as a string.
 
 
 -doc """
-An element of a domain name (e.g. "foo" in "bar.foo.baz.org"), as a binary
-string.
+An element of a domain name, as a binary string (e.g. <<"foo">> in
+"bar.foo.baz.org").
 """.
 -type bin_subdomain() :: bin_string().
 
@@ -289,8 +289,12 @@ The RFC 6056 says that the range for ephemeral (TCP or UDP) ports should be
 -doc "A TCP port.".
 -type tcp_port() :: net_port().
 
--doc "A TCP port dedicated to listening for new connections.".
+
+-doc "A (server) TCP port dedicated to the listening of new connections.".
 -type tcp_listening_port() :: tcp_port().
+
+-doc "An ephemeral TCP port.".
+-type ephemeral_tcp_port() :: tcp_port().
 
 
 
@@ -339,7 +343,7 @@ The RFC 6056 says that the range for ephemeral (TCP or UDP) ports should be
 			   check_duration/0, check_node_timing/0,
 			   node_naming_mode/0, erlang_naming_type/0, cookie/0,
 			   net_port/0, ephemeral_port/0,
-			   tcp_port/0, tcp_listening_port/0,
+			   tcp_port/0, tcp_listening_port/0, ephemeral_tcp_port/0,
 			   udp_port/0,
 			   tcp_port_range/0, udp_port_range/0,
 			   tcp_port_restriction/0,
@@ -737,7 +741,7 @@ get_local_ip_address() ->
 		% the selected one:
 
 		%[ _FirstAddr, SecondAddr | _T ] ->
-		%       SecondAddr;
+		%   SecondAddr;
 
 		[ Addr | _T ] ->
 			Addr
