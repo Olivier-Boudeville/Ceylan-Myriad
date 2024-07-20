@@ -152,9 +152,13 @@ length of the first pane is therefore fixed).
 -type wx_splitter_option() :: term().
 
 
-% Implementation notes
+% Implementation notes:
 %
 % MyriadGUI replaces the term 'sash' with 'splitter'.
+%
+% In wxWidgets/wx, in addition to the wxSplitterWindow used here, there is also
+% a wxSashWindow whose purpose seems quite the same. Maybe that the
+% wxSplitterWindow API is a bit more convenient.
 
 
 

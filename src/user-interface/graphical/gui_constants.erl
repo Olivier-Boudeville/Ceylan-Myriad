@@ -49,7 +49,8 @@ Called by gui:generate_support_modules/0.
 		  get_menu_item_kind_topic_spec/0, get_menu_style_topic_spec/0,
 		  get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
-		  get_static_text_display_style_topic_spec/0,
+		  get_text_display_style_topic_spec/0,
+		  get_text_editor_style_topic_spec/0,
 
 		  get_dialog_return_topic_spec/0,
 		  get_message_dialog_style_topic_spec/0,
@@ -86,7 +87,8 @@ list_topic_spec_functions() ->
 	  get_button_id_topic_spec, get_standard_bitmap_name_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
-	  get_static_text_display_style_topic_spec,
+	  get_text_display_style_topic_spec,
+	  get_text_editor_style_topic_spec,
 
 	  get_dialog_return_topic_spec,
 	  get_message_dialog_style_topic_spec,
@@ -99,7 +101,8 @@ list_topic_spec_functions() ->
 	  %get_font_selection_dialog_style_topic_spec,
 
 	  get_event_type_topic_spec,
-	  get_direction_topic_spec, get_orientation_topic_spec ].
+	  get_direction_topic_spec, get_orientation_topic_spec,
+	  get_splitter_style_topic_spec, get_splitter_orientation_topic_spec ].
 
 
 
@@ -187,6 +190,9 @@ list_topic_spec_functions() ->
 -type status_bar_style() :: gui_statusbar:status_bar_style().
 
 -type toolbar_style() :: gui_toolbar:toolbar_style().
+
+-type text_display_style() :: gui_text_display:text_display_style().
+-type text_editor_style() :: gui_text_editor:text_editor_style().
 
 -type dialog_return_code() :: gui_dialog:dialog_return_code().
 -type message_dialog_style() :: gui_dialog:message_dialog_style().
@@ -769,12 +775,12 @@ get_toolbar_style_topic_spec() ->
 
 
 -doc """
-Returns the two-way conversion specification for the 'static_text_display_style'
+Returns the two-way conversion specification for the 'text_display_style'
 topic.
 """.
--spec get_static_text_display_style_topic_spec() ->
-				topic_spec( gui_text:static_display_style(), wx_enum() ).
-get_static_text_display_style_topic_spec() ->
+-spec get_text_display_style_topic_spec() ->
+						topic_spec( text_display_style(), wx_enum() ).
+get_text_display_style_topic_spec() ->
 
 	% See https://docs.wxwidgets.org/stable/classwx_static_text.html:
 
@@ -787,7 +793,46 @@ get_static_text_display_style_topic_spec() ->
 		{ ellipsize_middle, ?wxST_ELLIPSIZE_MIDDLE     },
 		{ ellipsize_begin,  ?wxST_ELLIPSIZE_START      } ],
 
-	{ static_text_display_style, Entries }.
+	{ text_display_style, Entries }.
+
+
+
+-doc """
+Returns the two-way conversion specification for the 'text_editor_style' topic.
+""".
+-spec get_text_editor_style_topic_spec() ->
+						topic_spec( text_editor_style(), wx_enum() ).
+get_text_editor_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/stable/classwx_text_ctrl.html:
+
+	Entries = [
+		{ process_enter_key,     ?wxTE_PROCESS_ENTER },
+		{ process_tab_key,       ?wxTE_PROCESS_TAB   },
+		{ multiline,             ?wxTE_MULTILINE     },
+		{ password,              ?wxTE_PASSWORD      },
+		{ read_only,             ?wxTE_READONLY      },
+		{ rich_text_v1,          ?wxTE_RICH          },
+		{ rich_text_v2,          ?wxTE_RICH2         },
+		{ auto_url,              ?wxTE_AUTO_URL      },
+		{ always_show_selection, ?wxTE_NOHIDESEL     },
+		{ horiz_scrollbar,       ?wxHSCROLL          },
+		{ no_vert_scrollbar,     ?wxTE_NO_VSCROLL    },
+		{ left_justify,          ?wxTE_LEFT          },
+		{ center,                ?wxTE_CENTRE        },
+		{ right_justify,         ?wxTE_RIGHT         },
+		% Duplicate of wxHSCROLL: ?wxTE_DONTWRAP
+		{ char_wrap,             ?wxTE_CHARWRAP      },
+		{ word_wrap,             ?wxTE_WORDWRAP      },
+		{ best_wrap,             ?wxTE_BESTWRAP      } ],
+		% Not existing: ?wxTE_CAPITALIZE
+		% Not existing: ?wxTE_AUTO_SCROLL
+
+	% As ?wxTE_BESTWRAP =:= ?wxTE_LEFT at least on some configurations
+	% (platforms):
+	%
+	{ text_editor_style, Entries, _ElemLookup=strict,
+	  _Direction=first_to_second }.
 
 
 
@@ -1083,7 +1128,10 @@ get_splitter_style_topic_spec() ->
 		{ allow_unsplit,      ?wxSP_PERMIT_UNSPLIT },
 		{ live_update,        ?wxSP_LIVE_UPDATE    } ],
 
-	{ splitter_style, Entries }.
+	% As ?wxSP_3DBORDER =:= ?wxSP_BORDER and ?wxSP_THIN_SASH =:= ?wxSP_NOBORDER
+	% at least on some configurations (platforms):
+	%
+	{ splitter_style, Entries, _ElemLookup=strict, _Direction=first_to_second }.
 
 
 

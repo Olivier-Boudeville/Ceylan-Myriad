@@ -98,7 +98,7 @@ run_bitmap_test() ->
 	AllBitmaps = [ gui_bitmap:get_standard( BId, Dims )
 								|| BId <- AllBitmapIds ],
 
-	AllBitmapDisplays = [ gui_bitmap:create_static_display( B, BitmapParent )
+	AllBitmapDisplays = [ gui_bitmap:create_display( B, BitmapParent )
 								|| B <- AllBitmaps ],
 
 	gui_sizer:add_elements( GridSizer, AllBitmapDisplays, _BitmapFlags=[] ),

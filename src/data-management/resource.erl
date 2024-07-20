@@ -613,7 +613,7 @@ get_bitmap( BmpId, BmpRef=#resource_repository{ table=RscTable } ) ->
 					% cache:
 					%
 					%_StaticBmp = gui_bitmap:create_static_display( Bitmap,
-					%	_Parent=DummyFrame ),
+					%   _Parent=DummyFrame ),
 
 					NewBmpRef = BmpRef#resource_repository{
 						table=NewRscTable },

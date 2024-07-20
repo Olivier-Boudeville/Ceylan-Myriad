@@ -486,8 +486,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	MainBitmapWidth = gui_bitmap:get_width( MainBitmap ),
 
-	SymbolBmpDisplay =
-		gui_bitmap:create_static_display( SymbolBitmap, Parent ),
+	SymbolBmpDisplay = gui_bitmap:create_display( SymbolBitmap, Parent ),
 
 	% Border between this symbol and at its right the top panel:
 	gui_sizer:add_element( TopSizer, SymbolBmpDisplay,
@@ -561,8 +560,8 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	{ _TitleDisplay,
 	  _TitleDispSize={ TitleDW, _TitleDH, TitleDescent, _TitleExtLead } } =
-		gui_text:create_presized_static_display( TitleStr, TitleOpt,
-												 TitleFont, InfoPanel ),
+		gui_text_display:create_presized( TitleStr, TitleOpt, TitleFont,
+										  InfoPanel ),
 
 	%gui_widget:set_background_color( TitleDisplay, green ),
 
@@ -578,8 +577,8 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	DescOpt = { position, DescPos },
 
 	{ _DescDisplay, _DescDispSize } =
-		gui_text:create_presized_static_display( DescStr, DescOpt, DescFont,
-												 InfoPanel ),
+		gui_text_display:create_presized( DescStr, DescOpt, DescFont,
+										  InfoPanel ),
 
 	%gui_widget:set_background_color( DescDisplay, blue ),
 
@@ -606,9 +605,9 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	VersionOpt = { position, VersionPos },
 
-	% { VersionDisplay, _VersionDispSize } =
-	gui_text:create_presized_static_display( VersionStr, VersionOpt,
-											 VersionFont, InfoPanel ),
+	% {VersionDisplay, _VersionDispSize} =
+	gui_text_display:create_presized( VersionStr, VersionOpt, VersionFont,
+									  InfoPanel ),
 
 	%gui_widget:set_background_color( VersionDisplay, yellow ),
 
@@ -641,7 +640,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	UrlPos = { UrlAbscissa, ( SymbolHeight - UrlH ) div 2 },
 
-	UrlDisplay = gui_text:create_static_display( UrlStr,
+	UrlDisplay = gui_text_display:create( UrlStr,
 		_Opts=[ { position, UrlPos }, { size, UrlSize },
 				{ style, [ align_right ] } ], InfoPanel ),
 
@@ -668,10 +667,9 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	%   "whose dimensions are ~w.", [ MainDims ] ),
 
 	MainImgPanel = gui_panel:create(
-		[ { size, MainDims }, { style, no_border } ], Parent ),
+		[ { size, MainDims }, { style, [ no_border ] } ], Parent ),
 
-	MainStaticBtmpDisp =
-		gui_bitmap:create_static_display( MainBitmap, _Par=MainImgPanel ),
+	MainBmpDisp = gui_bitmap:create_display( MainBitmap, _Par=MainImgPanel ),
 
 	SpacerHeight = 0,
 
@@ -699,8 +697,8 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 
 	BottomSizer = gui_sizer:create( _HOrient=horizontal ),
 
-	LeftTextDisplay =
-		gui_text:create_static_display( _Lbel=GeneralInfoStr, _Pr=Parent ),
+	LeftTextDisplay = gui_text_display:create( _Lbel=GeneralInfoStr,
+											   _Pr=Parent ),
 
 	gui_sizer:add_element( BottomSizer, LeftTextDisplay,
 		[ { proportion, 0 }, { border_width, 5 }, left_border ] ),
@@ -709,7 +707,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	gui_sizer:add_spacer( BottomSizer, _Wdth=0, _Hght=0,
 						  [ { proportion, 1 }, expand_fully ] ),
 
-	RightTextDisplay = gui_text:create_static_display( _L=CopyrightStr,
+	RightTextDisplay = gui_text_display:create( _L=CopyrightStr,
 		{ style, [ align_right ] }, Parent ),
 
 	gui_sizer:add_element( BottomSizer, RightTextDisplay,
@@ -721,7 +719,7 @@ render_dynamic_splash( SymbolBitmap, TitleStr, VersionStr,
 	% Fitting is necessary to adopt a proper, sufficient parent size:
 	gui_widget:set_and_fit_to_sizer( Parent, MainSizer ),
 
-	{ MainSizer, InfoPanel, MainImgPanel, MainStaticBtmpDisp,
+	{ MainSizer, InfoPanel, MainImgPanel, MainBmpDisp,
 	  LeftTextDisplay, RightTextDisplay }.
 
 

@@ -23,13 +23,13 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Monday, July 1, 2024.
+% Creation date: Wednesday, July 17, 2024.
 
--module(gui_splitter_test).
+-module(gui_shell_test).
 
 -moduledoc """
-Unit tests for the management of **splitter windows**, that are windows that can
-manage up to two subwindows (child panes).
+Unit tests for the management of the **shell components**, providing access
+graphically to an Erlang interpreter.
 """.
 
 
@@ -40,13 +40,13 @@ manage up to two subwindows (child panes).
 -doc """
 Here the main loop just has to remember the frame whose closing is awaited for.
 """.
--type my_test_state() :: frame().
+-type my_test_state() :: shell().
 
 
 
 % Type shorthands:
 
--type frame() :: gui_frame:frame().
+-type shell() :: gui_shell:shell().
 
 
 
@@ -59,27 +59,9 @@ run_gui_test() ->
 	gui:start(),
 
 	Frame = gui_frame:create(
-		"This is the overall frame for splitter testing", _Size={ 1024, 768 } ),
+		"This is the overall frame for shell testing", _Size={ 1024, 768 } ),
 
-	% Only the top window is to grow, thanks to a horizontal splitter:
-	TopHorizSplitterWin = gui_splitter:create( _ParentWin=Frame ),
-
-	TopPanel = gui_panel:create( _Parent=TopHorizSplitterWin ),
-	gui_widget:set_background_color( TopPanel, blue ),
-
-	MidPanel = gui_panel:create( _P=TopHorizSplitterWin ),
-	gui_widget:set_background_color( MidPanel, yellow ),
-
-	gui_splitter:set_scaling_ratio( TopHorizSplitterWin, _ScalingRatio=0.5),
-
-	gui_splitter:set_minimum_pane_length( TopHorizSplitterWin,
-										  _MinPaneLength=50 ),
-
-	Orientation = horizontal,
-	%Orientation = vertical,
-
-	gui_splitter:set_panes( TopHorizSplitterWin, TopPanel, MidPanel,
-							Orientation ),
+	gui_shell:create( _ParentWin=Frame ),
 
 	gui:subscribe_to_events( { onWindowClosed, Frame } ),
 
