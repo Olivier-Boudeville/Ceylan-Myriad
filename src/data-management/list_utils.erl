@@ -1308,7 +1308,7 @@ intercalate( Elem, _TargetList=[ H | T ], Acc ) ->
 
 
 -doc """
-Appends specified element at the end of specified list, without changing the
+Appends the specified element at the end of specified list, without changing the
 order of the list.
 
 For example: append_at_end(d, [a,b,c]) returns [a,b,c,d].

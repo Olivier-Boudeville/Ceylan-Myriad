@@ -321,7 +321,7 @@ Useful to define the interface wanted and to interpret its outcome.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type module_name() :: basic_utils:module_name().
 

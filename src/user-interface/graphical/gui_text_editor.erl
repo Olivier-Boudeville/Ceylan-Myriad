@@ -30,7 +30,8 @@
 -moduledoc """
 Gathering of various facilities for **text editor**.
 
-See also the corresponding gui_dialog:text_entry_dialog() dialog.
+See also the corresponding gui_dialog:text_entry_dialog() dialog and the
+gui_text_editor_test.erl test.
 """.
 
 
@@ -47,6 +48,12 @@ inserted).
 
 Single line controls do not have a horizontal scrollbar, the text is
 automatically scrolled so that the insertion point is always visible.
+
+One can subscribe to the following events that can be emitted by a text editor:
+- onTextUpdated, if its text has been modified
+- onEnterPressed, if the Enter key is pressed whereas the text editor enabled
+  its process_enter_key option
+- onTextOverflow, if the length limit of the text in the editor is reached
 """.
 -opaque text_editor() :: wxTextCtrl: wxTextCtrl().
 
@@ -63,7 +70,7 @@ automatically scrolled so that the insertion point is always visible.
 
 
 -doc """
-A style element of a text editor.
+A style element specific to a text editor.
 
 See also <https://docs.wxwidgets.org/stable/classwx_text_ctrl.html>.
 """.
@@ -93,11 +100,50 @@ See also <https://docs.wxwidgets.org/stable/classwx_text_ctrl.html>.
 -type text_validator() :: wx:wx_object().
 
 
--export_type([ text_editor/0, text_editor_style/0, text_validator/0 ]).
+
+-doc """
+A zero-based index of a position in the text.
+""".
+-type char_pos() :: non_neg_integer().
+
+
+
+-doc """
+A type of event possibly emitted by a text editor, to which one can subscribe.
+""".
+-type text_editor_event_type() ::
+	'onTextUpdated' % If its text has been modified
+
+	% If the Enter key is pressed whereas the text editor enabled its
+	% process_enter_key option:
+	%
+	% (then subscribers will receive a {EventType, [GUIObject, BestSrcId,
+	% NewText, Context]} message)
+	%
+  | 'onEnterPressed'
+
+	% If the length limit of the text in the editor is reached.
+  | 'onTextOverflow'.
+
+
+
+-export_type([ text_editor/0, text_editor_style/0, text_validator/0, char_pos/0,
+			   text_editor_event_type/0 ]).
+
+
+
+-doc "The settings of a text range.".
+-opaque range_settings() :: wxTextAttr:wxTextAttr().
+
+
+-export_type([ range_settings/0 ]).
+
 
 
 % Operations related to text editors:
--export([ create_editor/1, create_editor/2, destruct_text_editor/1 ]).
+-export([ create/1, create/2, destruct/1,
+		  set_default_font/2, set_text/2, add_text/2, clear/1,
+		  show_position/2, show_text_end/1, get_last_position/1 ]).
 
 
 % For related defines:
@@ -125,32 +171,114 @@ See also <https://docs.wxwidgets.org/stable/classwx_text_ctrl.html>.
 -type point() :: gui:point().
 -type size() :: gui:size().
 
+-type font() :: gui_font:font().
+
 -type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
 
 
 
 
+
 -doc "Creates and shows a text editor.".
--spec create_editor( parent() ) -> text_editor().
-create_editor( Parent ) ->
+-spec create( parent() ) -> text_editor().
+create( Parent ) ->
 	wxTextCtrl:new( Parent, gui_id:get_any_id() ).
 
 
 -doc """
 Creates and shows a text editor, based on the specified option(s).
 """.
--spec create_editor( maybe_list( text_editor_option() ), parent() ) ->
+-spec create( maybe_list( text_editor_option() ), parent() ) ->
 										text_editor().
-create_editor( Options, Parent ) ->
+create( Options, Parent ) ->
 	WxOpts = to_wx_editor_opts( Options ),
 	wxTextCtrl:new( Parent, gui_id:get_any_id(), WxOpts ).
 
 
 
 -doc "Destructs the specified text editor.".
--spec destruct_text_editor( text_editor() ) -> void().
-destruct_text_editor( TextEditor ) ->
-	wxTextCtrl:destroy( TextEditor ).
+-spec destruct( text_editor() ) -> void().
+destruct( Editor ) ->
+	wxTextCtrl:destroy( Editor ).
+
+
+
+-doc """
+Sets the default font to be used by this editor.
+
+Returns true on success, false if an error occurred (this may also mean that the
+styles are not supported under this platform).
+""".
+-spec set_default_font( text_editor(), font() ) -> boolean().
+set_default_font( Editor, Font ) ->
+	RangeSettings = wxTextAttr:new(),
+	wxTextAttr:setFont( RangeSettings, Font ),
+	Res = wxTextCtrl:setDefaultStyle( Editor, RangeSettings ),
+	wxTextAttr:destroy( RangeSettings ),
+	Res.
+
+
+
+-doc """
+Sets the specified text as the new editor text content, from the start of the
+control (i.e. position 0).
+
+Does not generate an onEnterPressed event.
+""".
+-spec set_text( text_editor(), text() ) -> void().
+set_text( Editor, NewText ) ->
+	wxTextCtrl:changeValue( Editor, NewText ).
+
+
+
+-doc """
+Adds the specified text to the end of the editor text content, setting the
+insertion point at its new end.
+""".
+-spec add_text( text_editor(), text() ) -> void().
+add_text( Editor, Text ) ->
+	wxTextCtrl:appendText( Editor, Text ).
+
+
+
+-doc """
+Clears the text in the editor.
+
+Generates an onEnterPressed event.
+""".
+-spec clear( text_editor() ) -> void().
+clear( Editor ) ->
+	wxTextCtrl:clear( Editor ).
+
+
+
+-doc """
+Makes the line containing the specified position visible.
+""".
+-spec show_position( text_editor(), char_pos() ) -> void().
+show_position( Editor, Pos ) ->
+	wxTextCtrl:showPosition( Editor, Pos ).
+
+
+
+-doc """
+Shows the end of the text: makes the line containing the last position visible.
+""".
+-spec show_text_end( text_editor() ) -> void().
+show_text_end( Editor ) ->
+	show_position( Editor, get_last_position( Editor ) ).
+
+
+
+-doc """
+Returns the last position in the text stored by the editor (equal to its number
+of characters).
+""".
+-spec get_last_position( text_editor() ) -> char_pos().
+get_last_position( Editor ) ->
+	wxTextCtrl:getLastPosition( Editor ).
+
+
 
 
 

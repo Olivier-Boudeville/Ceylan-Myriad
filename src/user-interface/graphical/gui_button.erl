@@ -430,9 +430,9 @@ get_myriadgui_identifiers() ->
 
 	  jump_to_black_button, outbound_black_button, inbound_black_button,
 	  orthographic_black_button, perspective_black_button,
-	  add_bookmark_black_button, go_to_bookmark_black_button
+	  add_bookmark_black_button, go_to_bookmark_black_button,
 
-	].
+	  prompt_black_button ].
 
 
 

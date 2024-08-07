@@ -1021,6 +1021,8 @@ Returns the two-way conversion specification for the 'event_type' topic.
 						topic_spec( event_type(), wx_event_type() ).
 get_event_type_topic_spec() ->
 
+	% At least more event types can be found in src/gen/wxCommandEvent.erl:
+	%
 	Entries = [
 
 		% Mouse section:
@@ -1056,7 +1058,6 @@ get_event_type_topic_spec() ->
 
 
 		% Keyboard section:
-
 		{ onCharEntered,     char      },
 		{ onCharEnteredHook, char_hook },
 		{ onKeyPressed,      key_down  },
@@ -1064,7 +1065,6 @@ get_event_type_topic_spec() ->
 
 
 		% Menu section/tool(bar) section:
-
 		{ onItemSelected,     command_menu_selected },
 		{ onToolbarEntered,   command_tool_enter    },
 		{ onToolRightClicked, command_tool_rclicked },
@@ -1076,11 +1076,15 @@ get_event_type_topic_spec() ->
 
 
 		% Window section:
+		{ onShown,         show         },
+		{ onResized,       size         },
+		{ onRepaintNeeded, paint        },
+		{ onWindowClosed,  close_window },
 
-		{ onShown,         show },
-		{ onResized,       size },
-		{ onRepaintNeeded, paint },
-		{ onWindowClosed,  close_window } ],
+		% Text section:
+		{ onTextUpdated,  command_text_updated },
+		{ onEnterPressed, command_text_enter   },
+		{ onTextOverflow, text_maxlen          } ],
 
 	{ event_type, Entries }.
 

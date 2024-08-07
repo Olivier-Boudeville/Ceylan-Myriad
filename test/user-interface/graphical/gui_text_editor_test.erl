@@ -23,13 +23,12 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Wednesday, July 17, 2024.
+% Creation date: Sunday, July 21, 2024.
 
--module(gui_shell_test).
+-module(gui_text_editor_test).
 
 -moduledoc """
-Unit tests for the management of the **shell components**, providing access
-graphically to an Erlang interpreter.
+Unit tests for the management of the **GUI text editor**.
 """.
 
 
@@ -54,20 +53,31 @@ Here the main loop just has to remember the frame whose closing is awaited for.
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
-	test_facilities:display( "~nStarting the shell test." ),
+	test_facilities:display( "~nStarting the text editor test." ),
 
 	gui:start(),
 
 	Frame = gui_frame:create(
-		"This is the overall frame for shell testing", _Size={ 1024, 768 } ),
+		"This is the overall frame for text editor testing", 
+		_Size={ 1024, 768 } ),
 
-	gui_shell:create( _ParentWin=Frame ),
 
-	gui:subscribe_to_events( { onWindowClosed, Frame } ),
+
+
+	% Rich text for Windows, harmless elsewhere:
+	TextEditorStyle = [ process_enter_key, multiline, rich_text_v2 ],
+
+	Editor = gui_text_editor:create(
+		_Opts=[ { text, "This is the initial text" },
+				{ style, TextEditorStyle } ],
+		_ParentWin=Frame ),
+
+	gui:subscribe_to_events( [ { onEnterPressed, Editor },
+							   { onWindowClosed, Frame } ] ),
 
 	gui_frame:show( Frame ),
 
-	test_main_loop( _InitialState=Frame ).
+	test_main_loop( _InitialState={ Frame, Editor } ).
 
 
 
@@ -77,11 +87,17 @@ corresponding to the frame that shall be closed to stop the test
 (i.e. CloseFrame).
 """.
 -spec test_main_loop( my_test_state() ) -> no_return().
-test_main_loop( State=Frame ) ->
+test_main_loop( State={ Frame, Editor } ) ->
 
 	trace_utils:info( "Test main loop running..." ),
 
 	receive
+
+		{ onEnterPressed, [ Editor, _EditorId, NewText, _Context ] } ->
+			trace_utils:info_fmt(
+				"Text obtained after Enter was pressed: '~ts'.",
+				[ NewText ] ),
+			test_main_loop( State );
 
 		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
@@ -90,7 +106,7 @@ test_main_loop( State=Frame ) ->
 
 		Other ->
 			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~p.", [ Other ] ),
+									 "message:~n ~p.", [ Other ] ),
 			test_main_loop( State )
 
 	end.

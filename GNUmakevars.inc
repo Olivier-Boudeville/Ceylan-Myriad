@@ -177,6 +177,7 @@ endif
 #  - gui_buttons: how MyriadGUI manages buttons
 #  - gui_font: about font support
 #  - gui_splash: about splash screens
+#  - gui_shell: about GUI shells
 #  - gui_instances: how MyriadGUI manages widget instances
 #  - gui_environments: the management of backend GUI environments
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
@@ -230,6 +231,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_buttons
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_shell
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
