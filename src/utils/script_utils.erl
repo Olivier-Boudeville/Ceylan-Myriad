@@ -379,7 +379,7 @@ get_myriad_base_directory() ->
 						false ->
 							SecondAltBaseCandidate = normalise_path(
 								filename:join( SecondPrefixPath
-											   ++ [ ?shorthand_myriad_dir ] ) ),
+									++ [ ?shorthand_myriad_dir ] ) ),
 
 							case is_legit_path( SecondAltBaseCandidate ) of
 
@@ -505,7 +505,7 @@ easily.
 These arguments are simply to be transmitted as a list of the corresponding
 strings, typically as directly obtained through the main/1 function of an
 escript) once transformed into our "canonical", more convenient form, which is
-the same as the one used by shell_utils:get_argument_table/0 and is itself
+the same as the one used by cmd_line_utils:get_argument_table/0 and is itself
 similar to the one used by Erlang for its user/system flags (i.e. for all its
 non-plain options).
 
@@ -518,6 +518,7 @@ Note: switches to the Unicode encoding (e.g. use "~tp" then).
 Allows to write code that can be seamlessly triggered by a erl interpreter or by
 an escript, by putting them in the latter case in our "canonical" form.
 """.
--spec get_arguments( [ text_utils:ustring() ] ) -> shell_utils:argument_table().
+-spec get_arguments( [ text_utils:ustring() ] ) ->
+										cmd_line_utils:argument_table().
 get_arguments( Args ) ->
-	shell_utils:get_argument_table_from_strings( Args ).
+	cmd_line_utils:get_argument_table_from_strings( Args ).

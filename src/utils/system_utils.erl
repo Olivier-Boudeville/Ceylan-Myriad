@@ -665,7 +665,7 @@ get_user_home_directory() ->
 
 		false ->
 			% Thus expecting "XXXX -home a/path/to/home":
-			case shell_utils:get_command_arguments_for_option( 'home' ) of
+			case cmd_line_utils:get_command_arguments_for_option( 'home' ) of
 
 				undefined ->
 					throw( home_directory_not_found );

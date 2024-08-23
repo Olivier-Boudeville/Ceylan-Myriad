@@ -207,7 +207,7 @@ uniquified)
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 -type status_code() :: basic_utils:status_code().
@@ -217,8 +217,8 @@ uniquified)
 
 -type binary_hash() :: hash_utils:binary_hash().
 
--type command_line_option() :: shell_utils:command_line_option().
--type command_line_value() :: shell_utils:command_line_value().
+-type command_line_option() :: cmd_line_utils:command_line_option().
+-type command_line_value() :: cmd_line_utils:command_line_value().
 
 -type byte_size() :: system_utils:byte_size().
 
@@ -342,10 +342,10 @@ merge_app:exec/0).
 """.
 -spec run() -> void().
 run() ->
-	ArgTable = shell_utils:get_argument_table(),
+	ArgTable = cmd_line_utils:get_argument_table(),
 
 	%trace_utils:debug_fmt( "Run directly: ~ts",
-	%   [ shell_utils:argument_table_to_string( ArgTable ) ] ),
+	%   [ cmd_line_utils:argument_table_to_string( ArgTable ) ] ),
 
 	main( ArgTable ).
 
@@ -355,7 +355,7 @@ run() ->
 Sole entry point for this merge service, either triggered by `run/0` or by the
 associated escript.
 """.
--spec main( shell_utils:argument_table() ) -> void().
+-spec main( cmd_line_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
 	%trace_bridge:notice( "Running..." ),
@@ -370,7 +370,7 @@ main( ArgTable ) ->
 	% of the so-called 'raw' elements).
 
 	%trace_bridge:debug_fmt( "Script-specific argument(s): ~ts",
-	%   [ shell_utils:argument_table_to_string( FilteredArgTable ) ] ),
+	%   [ cmd_line_utils:argument_table_to_string( FilteredArgTable ) ] ),
 
 	case list_table:has_entry( 'h', FilteredArgTable )
 			orelse list_table:has_entry( ?help_opt, FilteredArgTable ) of
@@ -506,8 +506,8 @@ handle_non_reference_option( ArgumentTable, BinBaseDir ) ->
 						false ->
 							Msg = text_utils:format(
 								"unexpected extra options specified: ~ts",
-								[ shell_utils:argument_table_to_string(
-										ScanArgTable ) ] ),
+								[ cmd_line_utils:argument_table_to_string(
+									ScanArgTable ) ] ),
 							display_error_and_stop( Msg, 54 )
 
 					end;
@@ -565,7 +565,8 @@ handle_neither_scan_options( ArgTable, BinBaseDir ) ->
 
 								false ->
 									"; instead " ++
-						shell_utils:argument_table_to_string( NoUniqArgTable )
+						cmd_line_utils:argument_table_to_string(
+								NoUniqArgTable )
 
 							end,
 
@@ -833,7 +834,7 @@ check_no_option_remains( ArgTable ) ->
 	list_table:is_empty( ArgTable ) orelse
 		begin
 			Msg = text_utils:format( "unexpected extra options specified: ~ts",
-				[ shell_utils:argument_table_to_string( ArgTable ) ] ),
+				[ cmd_line_utils:argument_table_to_string( ArgTable ) ] ),
 			display_error_and_stop( Msg, 20 )
 		end.
 

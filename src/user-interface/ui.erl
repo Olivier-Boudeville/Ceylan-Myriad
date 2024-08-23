@@ -325,7 +325,7 @@ Useful to define the interface wanted and to interpret its outcome.
 
 -type module_name() :: basic_utils:module_name().
 
--type argument_table() :: shell_utils:argument_table().
+-type argument_table() :: cmd_line_utils:argument_table().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -353,7 +353,7 @@ start( Options ) ->
 	% Here, no argument table is specified, fetching it (thus supposedly not
 	% running as an escript):
 	%
-	start( Options, shell_utils:get_argument_table() ).
+	start( Options, cmd_line_utils:get_argument_table() ).
 
 
 
@@ -369,7 +369,7 @@ start( Options, ArgumentTable ) ->
 
 	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:debug_fmt(
 		"UI got following full argument(s): ~ts",
-		[ shell_utils:argument_table_to_string( ArgumentTable ) ] ) ),
+		[ cmd_line_utils:argument_table_to_string( ArgumentTable ) ] ) ),
 
 	% Just a check:
 	case process_dictionary:get( ?ui_name_key ) of
@@ -386,8 +386,8 @@ start( Options, ArgumentTable ) ->
 	OptName = ?ui_backend_opt,
 
 	{ BackendModuleName, RemainingArgTable } =
-		case shell_utils:extract_command_arguments_for_option( OptName,
-												ArgumentTable ) of
+		case cmd_line_utils:extract_command_arguments_for_option( OptName,
+			ArgumentTable ) of
 
 		{ undefined, ArgTable } ->
 

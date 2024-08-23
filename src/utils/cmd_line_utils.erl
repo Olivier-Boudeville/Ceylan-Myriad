@@ -25,13 +25,13 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Wednesday, May 20, 2020.
 
--module(shell_utils).
+-module(cmd_line_utils).
 
 -moduledoc """
 Gathering of various convenient facilities regarding the management of the
-**shells and command lines** (e.g. specified arguments).
+**command lines** (e.g. arguments specified to executables being run).
 
-See shell_utils_test.erl for the corresponding test.
+See cmd_line_utils_test.erl for the corresponding test.
 """.
 
 
@@ -233,6 +233,7 @@ a given command-line option.
 -compile( { no_auto_import, [ error/2 ] } ).
 
 
+
 % Type shorthands:
 
 -type count() :: basic_utils:count().
@@ -257,12 +258,13 @@ Note: currently does not transform binary arguments (double conversion with
 improperly encoded strings might be tricky).
 
 When executing third-party programs, in order to avoid any need of protecting
-their arguments, a system_utils:run_executable/n variation ought to be used.
+their arguments, a system_utils:run_executable/n variation ought to be used; no
+need to involve a shell for that.
 """.
 -spec protect_from_shell( any_string() ) -> any_string().
-protect_from_shell( ArgString ) when is_list( ArgString ) ->
+protect_from_shell( ArgStr ) when is_list( ArgStr ) ->
 	% Simple approaches not sufficient (e.g. "echo 'aaa\'bbb'"):
-	protect_from_shell_helper( ArgString, _Acc=[] );
+	protect_from_shell_helper( ArgStr, _Acc=[] );
 
 protect_from_shell( ArgBinString ) when is_binary( ArgBinString ) ->
 
@@ -335,15 +337,15 @@ collected as well (refer to the no_option_key define).
 Note: switches to the Unicode encoding (e.g. use "~tp" then).
 """.
 -spec get_argument_table_from_strings( [ ustring() ] ) -> argument_table().
-get_argument_table_from_strings( ArgStrings ) ->
+get_argument_table_from_strings( ArgStrs ) ->
 
 	%trace_utils:debug_fmt( "Creating argument table from: ~p.",
-	%                       [ ArgStrings ] ),
+	%                       [ ArgStrs ] ),
 
 	% Useful side-effect, difficult to troubleshoot:
 	system_utils:force_unicode_support(),
 
-	get_arguments_from_strings( ArgStrings, _OptionTable=?arg_table:new() ).
+	get_arguments_from_strings( ArgStrs, _OptionTable=?arg_table:new() ).
 
 
 % (helper)
@@ -450,10 +452,10 @@ containing all options, verbatim; e.g. "--color red --set-foo".
 Note: useful for testing, to introduce specific command lines.
 """.
 -spec generate_argument_table( ustring() ) -> argument_table().
-generate_argument_table( ArgString ) ->
+generate_argument_table( ArgStr ) ->
 
 	CommandLineArgs =
-		text_utils:split_per_element( ArgString, _Delimiters=[ $ ] ),
+		text_utils:split_per_element( ArgStr, _Delimiters=[ $ ] ),
 
 	get_argument_table_from_strings( CommandLineArgs ).
 
@@ -493,7 +495,7 @@ get_optionless_command_arguments() ->
 
 	% Not wanting here a list of lists of strings:
 	[ Args ] = ?arg_table:get_value_with_default( _K=?no_option_key,
-						_DefaultValue=[ [] ], ArgumentTable ),
+		_DefaultValue=[ [] ], ArgumentTable ),
 
 	Args.
 
@@ -819,7 +821,7 @@ sort_arguments( OptionlessSpec,
 					% No need to extract, will just be overwritten:
 					NewOptionlessArgs = ?arg_table:get_value_with_default(
 						_K=?no_option_key, _Default=[], AccTable )
-											++ OptionlessValues,
+							++ OptionlessValues,
 
 					?arg_table:add_entries( [ { Opt, NewValueList },
 						{ ?no_option_key, NewOptionlessArgs } ], AccTable )
@@ -942,12 +944,12 @@ argument_table_to_string( ArgTable ) ->
 			"no command-line argument specified";
 
 		ArgPairs ->
-			ArgStrings = [ option_pair_to_string( Option, ArgumentLists )
+			ArgStrs = [ option_pair_to_string( Option, ArgumentLists )
 							|| { Option, ArgumentLists } <- ArgPairs ],
 
 			text_utils:format( "~B type(s) of command-line element specified "
 				"(ordered alphabetically): ~ts", [ length( ArgPairs ),
-					text_utils:strings_to_sorted_string( ArgStrings ) ] )
+					text_utils:strings_to_sorted_string( ArgStrs ) ] )
 
 	end.
 

@@ -28,8 +28,8 @@
 -module(text_ui).
 
 -moduledoc """
-This is the most basic, line-based monochrome **textual interface**, directly in
-raw text, with no cursor control.
+This is the most basic, line-based monochrome/color **textual interface**,
+directly in raw text, with no cursor control.
 
 See:
 - text_ui_test.erl for the corresponding test
@@ -129,7 +129,26 @@ handling I/O protocols (returned from file:open/2).
 -define( error_suffix, "~n" ).
 
 
-% Shorthands:
+% Control codes for terminal output:
+%
+% Example of use:
+%
+% ColourCode = ?green_code,
+% ColourName = "green"
+%
+% ColourText = io_lib:format( "A text with a " ++ ColourCode
+%   ++ ColourName ++ " colour: ~ts" ++ ?reset_code, [ Some Text ] ),
+% ...
+
+-define( reset_code,  "\e[0m"    ).
+-define( red_code,    "\e[0;91m" ).
+-define( green_code,  "\e[0;92m" ).
+-define( yellow_code, "\e[0;93m" ).
+-define( white_code,  "\e[0;97m" ).
+
+
+
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().

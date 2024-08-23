@@ -283,7 +283,7 @@ different locations.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -335,7 +335,7 @@ get_file_hash( FilePath, Alg ) ->
 	%
 	Args = [ "dgst", "-hex", "-r", [ $- | OpenSSLAlg ],
 			 % By design no need for quoting here:
-			 %shell_utils:protect_from_shell( FilePath )
+			 %cmd_line_utils:protect_from_shell( FilePath )
 			 FilePath ],
 
 	%trace_utils:debug_fmt( "OpenSSL executable is: '~ts', arguments are ~p.",

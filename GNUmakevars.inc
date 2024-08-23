@@ -169,6 +169,7 @@ endif
 #  - graph: for graph-related operations, typically involving Gephi
 #  - math: for math-related operations
 #  - plot: for the rendering of all kinds of plots and graphs
+#  - shell: for (Erlang) Myriad shells
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - gui_repaint_logic: how MyriadGUI manages repaints
@@ -177,7 +178,7 @@ endif
 #  - gui_buttons: how MyriadGUI manages buttons
 #  - gui_font: about font support
 #  - gui_splash: about splash screens
-#  - gui_shell: about GUI shells
+#  - gui_shell: about (Erlang) MyriadGUI shells
 #  - gui_instances: how MyriadGUI manages widget instances
 #  - gui_environments: the management of backend GUI environments
 #  - gui_memory: how MyriadGUI manages memory allocated and related lower-level
@@ -223,6 +224,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_graph
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
