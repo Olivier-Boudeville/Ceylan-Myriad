@@ -113,6 +113,11 @@ A warning regarding a source file, corresponding to a list of error information.
 		  check_arity/1, check_arity/2 ]).
 
 
+% Interpreting:
+-export([ interpret_issue_reports/1, interpret_issue_report/1,
+		  interpret_issue_info/2, interpret_issue_description/2 ]).
+
+
 % Converting:
 -export([ erl_to_ast/1, erl_to_ast/2,
 		  beam_to_ast/1, term_to_form/1, variable_names_to_ast/2,
@@ -147,7 +152,8 @@ A warning regarding a source file, corresponding to a list of error information.
 		  write_ast_to_file/2 ]).
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type void() :: basic_utils:void().
 -type module_name() :: basic_utils:module_name().
@@ -169,6 +175,7 @@ A warning regarding a source file, corresponding to a list of error information.
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 -type function_id() :: meta_utils:function_id().
+
 
 
 % Checking section.
@@ -286,7 +293,7 @@ Note: full control is offered here to enrich this function at will, if wanted.
 -spec interpret_issue_description( issue_description(), module_name() ) ->
 										ustring().
 interpret_issue_description( IssueDescription, DectectorModule ) ->
-	%For example, the detector module may be erl_lint:
+	% For example, the detector module may be 'erl_lint':
 	DectectorModule:format_error( IssueDescription ).
 
 

@@ -126,7 +126,7 @@ Not exactly as proplist:proplist/0 (pairs only, and any() as key).
 			   list_table/0, list_table/2, table/0, table/2 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type accumulator() :: basic_utils:accumulator().
 

@@ -515,7 +515,9 @@ information.
 
 
 
+
 % Type shorthands:
+
 
 % A user-perceived character, consisting of one or more (Unicode) codepoints.
 -type grapheme_cluster() :: string:grapheme_cluster().
