@@ -192,7 +192,7 @@ thanks to the base, Erlang term order.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -739,13 +739,17 @@ sortable_id_to_string( _Id=?lower_bound_id ) ->
 sortable_id_to_string( _Id=?upper_bound_id ) ->
 	"upper bound";
 
-sortable_id_to_string( Id ) ->
+sortable_id_to_string( Id ) when is_list( Id ) ->
 	% Better represented as tuple:
-	text_utils:format( "~w", [ list_to_tuple( Id ) ] ).
+	text_utils:format( "~w", [ list_to_tuple( Id ) ] );
+
+sortable_id_to_string( Other ) ->
+	throw( { invalid_sortable_id, Other } ).
 
 
 
--doc "Returns a textual representation of specified sortable identifiers.".
+
+-doc "Returns a textual representation of the specified sortable identifiers.".
 -spec sortable_ids_to_string( [ sortable_id() ] ) -> ustring().
 sortable_ids_to_string( _Ids=[] ) ->
 	"(no sortable id)";
@@ -757,7 +761,7 @@ sortable_ids_to_string( Ids ) ->
 
 
 -doc """
-Returns a textual representation of specified table of sortable identifiers.
+Returns a textual representation of the specified table of sortable identifiers.
 """.
 -spec identifier_table_to_string( identifier_table() ) -> ustring().
 identifier_table_to_string( IdentifierTable ) ->
