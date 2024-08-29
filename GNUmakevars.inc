@@ -224,7 +224,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_graph
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
