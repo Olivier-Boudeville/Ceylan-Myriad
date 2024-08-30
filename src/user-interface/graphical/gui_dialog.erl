@@ -147,7 +147,7 @@ A dialog allowing the user to select multiple options from a set thereof.
 -type multi_choice_dialog_option() ::
 	{ 'style', [ multi_choice_dialog_style() ] }
   | { 'position', point() }.
- 
+
 
 
 -doc "A style element of a multiple-choice dialog.".
@@ -256,7 +256,7 @@ selection.
   | { 'default_dir', any_directory_path() }
   | { 'position', point() }
   | { 'size', dimensions() }.
- 
+
 
 
 -doc "A style element of a directory-selection dialog.".
@@ -277,7 +277,7 @@ selection.
 
 -doc "A dialog allowing to select a color.".
 -opaque color_selection_dialog() :: wxColorDialog:wxColorDialog().
- 
+
 
 % No color_selection_dialog_option() or color_selection_dialog_style() applies.
 
@@ -288,7 +288,7 @@ selection.
 A dialog allowing to select a font installed on the system, and its size.
 """.
 -opaque font_selection_dialog() :: wxFontDialog:wxFontDialog().
- 
+
 
 % No font_selection_dialog_option() or font_selection_dialog_style() applies.
 
@@ -340,7 +340,7 @@ A dialog allowing to select a font installed on the system, and its size.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -652,7 +652,7 @@ create_for_text_entry( Label, DialogOpts, Parent ) ->
 
 
 
--doc """ 
+-doc """
 Creates a dialog that will offer the user to enter a text with the specified
 options, while displaying the specified label, and once having set the specified
 initial text.
