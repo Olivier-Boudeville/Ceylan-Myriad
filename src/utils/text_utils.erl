@@ -52,7 +52,7 @@ See text_utils_test.erl for the corresponding test.
 		  integer_to_string/1, integer_to_binary/1,
 
 		  integer_to_hexastring/1, integer_to_hexastring/2,
-		  integer_to_hexasbintring/1, integer_to_hexabinstring/2,
+		  integer_to_hexabinstring/1, integer_to_hexabinstring/2,
 
 
 		  hexastring_to_integer/1, hexastring_to_integer/2,
@@ -106,6 +106,8 @@ See text_utils_test.erl for the corresponding test.
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  repetition_to_string/1, table_to_string/2,
+
+		  string_like_to_atom/1, string_like_to_bin_string/1,
 
 		  format/2, format_failsafe/1, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
@@ -786,8 +788,8 @@ For example: `integer_to_hexabinstring(3432) = <<"d68">>`.
 Refer to the 'Hexadecimal notes' section above, regarding zero-padding and "0x"
 prefixing.
 """.
--spec integer_to_hexasbintring( integer() ) -> hexastring().
-integer_to_hexasbintring( IntegerValue ) ->
+-spec integer_to_hexabinstring( integer() ) -> hexastring().
+integer_to_hexabinstring( IntegerValue ) ->
 	string_to_binary( integer_to_hexastring( IntegerValue ) ).
 
 
@@ -2095,6 +2097,31 @@ table_to_string( Table, EntryDesc ) ->
 			text_utils:format( "~B ~tss", [ S, EntryDesc ] )
 
 	end.
+
+
+
+-doc "Returns the atom corresponding to the specified string-like.".
+-spec string_like_to_atom( string_like() ) -> atom().
+string_like_to_atom( Str ) when is_list( Str ) ->
+	erlang:list_to_atom( Str );
+
+string_like_to_atom( BinStr ) when is_binary( BinStr ) ->
+	erlang:binary_to_atom( BinStr );
+
+string_like_to_atom( AtomStr ) when is_atom( AtomStr ) ->
+	AtomStr.
+
+
+
+-doc "Returns the binary string corresponding to the specified string-like.".
+string_like_to_bin_string( Str ) when is_list( Str ) ->
+	erlang:list_to_binary( Str );
+
+string_like_to_bin_string( AtomStr ) when is_atom( AtomStr ) ->
+	erlang:atom_to_binary( AtomStr );
+
+string_like_to_bin_string( BinStr ) when is_binary( BinStr ) ->
+	BinStr.
 
 
 
@@ -4194,7 +4221,7 @@ For example: `text_utils:update_with_keywords("Hello word!", table:new([{"foo",
 See also: file_utils:update_with_keywords/3.
 """.
 -spec update_with_keywords( any_string(), translation_table() ) ->
-									[ string_like() ].
+											[ string_like() ].
 update_with_keywords( Content, TranslationTable ) ->
 
 	TransPairs = ?table:enumerate( TranslationTable ),
