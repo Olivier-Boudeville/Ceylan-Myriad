@@ -505,6 +505,9 @@ associated value; otherwise returns the specified default value.
 -spec get_value_with_default( key(), value(), list_table() ) -> value().
 get_value_with_default( Key, DefaultValue, Table ) ->
 
+	%trace_utils:debug_fmt( "Getting value of key '~p' (default: '~p') "
+	%   "for table:~n ~p", [ Key, DefaultValue, Table ] ),
+
 	case lists:keyfind( Key, _N=1, Table ) of
 
 		{ Key, Value } ->
