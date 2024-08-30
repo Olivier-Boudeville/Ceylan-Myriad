@@ -151,7 +151,7 @@ See system_utils.erl for the actual execution of programs.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type width() :: text_utils:width().
