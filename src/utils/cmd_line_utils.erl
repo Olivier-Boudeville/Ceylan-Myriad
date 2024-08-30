@@ -65,10 +65,23 @@ Any element of a command-line, typically option name or value.
 
 
 -doc """
-The name of a command-line option; e.g. '-color', for an actual option that is
-"--color". For the init standard module, this is named a "flag".
+The name for a command-line option; e.g. '-color', for an actual option that
+would be entered, typically in a shell, as "--color".
+
+For the init standard module, this is named a "flag".
 """.
--type actual_command_line_option() :: atom().
+-type actual_command_line_option() :: atom(). % Not a string!
+
+
+-doc """
+The user can specify their command-line options as string-like elements
+(preferably atoms), and must ensure that their leading dash is *not* included.
+
+For example an option to be typed on a shell as "--width" can be specified here
+as '-width'; as for an option typed as "-u", it shall be specified to this API
+as 'u'.
+""".
+-type any_command_line_option() :: string_like().
 
 
 % To designate command-line arguments that are specified directly as such, not
@@ -89,12 +102,13 @@ The name of a command-line option; e.g. '-color', for an actual option that is
 Note the special value ?no_option_key that is associated to option-less
 arguments.
 """.
+% Hence an atom() in all cases:
 -type command_line_option() :: actual_command_line_option() | ?no_option_key.
 
 
 
 -doc "A unitary value specified in link to a command-line option.".
--type command_line_value() :: text_utils:ustring().
+-type command_line_value() :: ustring().
 
 
 
@@ -199,7 +213,8 @@ a given command-line option.
 
 
 
--export_type([ command_line_element/0,
+-export_type([ any_command_line_option/0,
+			   command_line_element/0,
 			   command_line_option/0, command_line_value/0,
 			   command_line_argument/0,
 			   argument_table/0, unique_argument_table/0,
@@ -242,6 +257,7 @@ a given command-line option.
 -type any_string() :: text_utils:any_string().
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
+-type string_like() :: text_utils:string_like().
 
 -type return_code() :: system_utils:return_code().
 
@@ -467,17 +483,23 @@ the various (lists of) values (if any; no value at all being specified for an
 option resulting thus in [ [] ]) associated to the specified option; if this
 option was not specified on the command-line, returns 'undefined'.
 
-Note: generally the extract_command_arguments_for_option/{1,2} functions are
-more relevant to use.
+Note: often the extract_command_arguments_for_option/{1,2} functions are more
+relevant to use.
 """.
--spec get_command_arguments_for_option( command_line_option() ) ->
+-spec get_command_arguments_for_option( any_command_line_option() ) ->
 									option( [ command_line_values() ] ).
-get_command_arguments_for_option( Option ) ->
+get_command_arguments_for_option( Option ) when is_atom( Option ) ->
 
 	ArgumentTable = get_argument_table(),
 
+	%trace_utils:debug_fmt( "Looking for option '~ts', whereas ~ts.",
+	%   [ Option, argument_table_to_string( ArgumentTable ) ] ),
+
 	?arg_table:get_value_with_default( _K=Option, _DefaultValue=undefined,
-									   ArgumentTable ).
+									   ArgumentTable );
+
+get_command_arguments_for_option( OtherStrLike ) ->
+	get_command_arguments_for_option( get_command_line_option( OtherStrLike ) ).
 
 
 
@@ -513,7 +535,7 @@ Note: a value set to 'undefined' means that the specified option is not in the
 specified table, whereas a value set to [ [] ] means that this option is in the
 table, yet that no parameter has been specified for it.
 """.
--spec extract_command_arguments_for_option( command_line_option() ) ->
+-spec extract_command_arguments_for_option( any_command_line_option() ) ->
 			{ option( [ command_line_values() ] ), argument_table() }.
 extract_command_arguments_for_option( Option ) ->
 
@@ -535,12 +557,12 @@ Note: a value set to 'undefined' means that the specified option is not in the
 specified table, whereas a value set to [ [] ] means that this option is in the
 table, yet that no parameter has been specified for it.
 """.
--spec extract_command_arguments_for_option( command_line_option(),
+-spec extract_command_arguments_for_option( any_command_line_option(),
 											argument_table() ) ->
 				{ option( [ command_line_values() ] ), argument_table() }.
 extract_command_arguments_for_option( Option, ArgumentTable ) ->
-	?arg_table:extract_entry_with_default( _K=Option, _DefaultValue=undefined,
-										   ArgumentTable ).
+	?arg_table:extract_entry_with_default( get_command_line_option( Option ),
+		_DefaultValue=undefined, ArgumentTable ).
 
 
 
@@ -582,7 +604,7 @@ extract_optionless_command_arguments( ArgumentTable ) ->
 
 	% Not wanting here a list of lists of strings:
 	case ?arg_table:extract_entry_with_default( _K=?no_option_key,
-							_DefaultValue=undefined, ArgumentTable ) of
+			_DefaultValue=undefined, ArgumentTable ) of
 
 		P={ undefined, _ArgTable } ->
 			P;
@@ -1002,3 +1024,12 @@ Halts on error the current program.
 											no_return().
 error_fmt( ErrorCode, Format, Values ) ->
 	error( ErrorCode, text_utils:format( Format, Values ) ).
+
+
+
+% Helper:
+-doc "Returns a suitable, internal command-line option.".
+-spec get_command_line_option( any_command_line_option() ) ->
+									actual_command_line_option().
+get_command_line_option( AnyCmdLineOpt ) ->
+	text_utils:string_like_to_atom( AnyCmdLineOpt ).

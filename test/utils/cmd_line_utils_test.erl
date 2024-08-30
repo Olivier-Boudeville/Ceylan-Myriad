@@ -43,7 +43,7 @@ See the cmd_line_utils.erl tested module.
 %
 % One can test the support of command-line arguments with, for example:
 %
-% make cmd_line_utils_run CMD_LINE_OPT="a b -my-first-opt u v w -my-other-opt x"
+% make cmd_line_utils_run CMD_LINE_OPT="a b --my-first-opt u v -my-other-opt x"
 
 
 
@@ -80,14 +80,14 @@ run() ->
 	{ PzValues=undefined, PzRemainingArgs } =
 		cmd_line_utils:extract_command_arguments_for_option( PzOption ),
 
-	test_facilities:display( "Knowing the actual command-line arguments were:~n"
-		"~p~nfor (VM, not user) option '~ts', we extracted following value(s), "
-		"expected not to be defined:~n~p~n"
+	test_facilities:display( "Knowing that the actual command-line arguments "
+		"were:~n~p~nfor (VM, not user) option '~ts', "
+		"we extracted following value(s), expected not to be defined:~n~p~n"
 		"and got the rest of the arguments:~n~p",
 		[ init:get_arguments(), PzOption, PzValues, PzRemainingArgs ] ),
 
 
-	RealOption = 'my-first-opt',
+	RealOption = '-my-first-opt',
 
 	{ RealOptValues, RealOptRemainingArgs } =
 		cmd_line_utils:extract_command_arguments_for_option( RealOption,
