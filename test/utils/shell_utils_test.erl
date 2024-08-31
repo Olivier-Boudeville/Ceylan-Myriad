@@ -30,6 +30,9 @@
 -moduledoc """
 Unit tests for the **shell-related** facilities.
 
+Note that, if run interactively, this test will use a text user interface that
+may cause problems on some terminals when terminating.
+
 See the shell_utils.erl tested module.
 """.
 
@@ -39,6 +42,53 @@ See the shell_utils.erl tested module.
 -include("test_facilities.hrl").
 
 
+
+% Type shorthands:
+
+-type shell_pid() :: shell_utils:shell_pid().
+
+
+
+-spec test_interactive( shell_pid() ) -> void().
+test_interactive( ShellPid ) ->
+
+	test_facilities:display( "Starting shell interaction with ~w "
+		"(one may enter 'halt().' to stop).", [ ShellPid ] ),
+
+	text_ui:start(),
+
+	test_main_loop( ShellPid ),
+
+	text_ui:stop(),
+
+	test_facilities:display( "Stopped shell interaction with ~w.",
+							 [ ShellPid ] ).
+
+
+
+test_main_loop( ShellPid ) ->
+	Prompt = "Enter the next Erlang expression to evaluate: ",
+	ExprText = text_ui:get_text( Prompt ),
+
+	case shell_utils:execute_command( text_utils:ensure_binary( ExprText ),
+									  ShellPid ) of
+
+		{ success, CmdResValue } ->
+			test_facilities:display(
+				"Shell expression '~ts' evaluated to '~p'.",
+				[ ExprText, CmdResValue ] );
+
+		{ error, ErrorInfo } ->
+			test_facilities:display( "The processing of shell expression '~ts' "
+				"failed with: '~ts'.", [ ExprText, ErrorInfo ] )
+
+	end,
+
+	test_main_loop( ShellPid ).
+
+
+
+
 -spec run() -> no_return().
 run() ->
 
@@ -46,31 +96,49 @@ run() ->
 
 	ShellPid = shell_utils:start_link_shell(),
 
-	FirstRes = shell_utils:execute_command( "A=1.", ShellPid ),
+	{ success, FirstRes } = shell_utils:execute_command( "A=1.", ShellPid ),
 
 	test_facilities:display( "First assignment result: ~p.", [ FirstRes ] ),
 	FirstRes = 1,
 
+	ShellPid ! flushHistory,
 
-	SecondRes = shell_utils:execute_command( "B=2.", ShellPid ),
+	{ success, SecondRes } = shell_utils:execute_command( "B=2.", ShellPid ),
 
 	test_facilities:display( "Second assignment result: ~p.", [ SecondRes ] ),
 	SecondRes = 2,
 
 
-	ThirdRes = shell_utils:execute_command( "A+B.", ShellPid ),
+	{ success, ThirdRes } = shell_utils:execute_command( "A+B.", ShellPid ),
 
 	test_facilities:display( "Addition result: ~p.", [ ThirdRes ] ),
 	ThirdRes = 3,
 
 
-	LRes = shell_utils:execute_command( "L = [3, 2, 1].", ShellPid ),
+	{ success, LRes } =
+		shell_utils:execute_command( "L = [3, 2, 1].", ShellPid ),
+
 	test_facilities:display( "List assignment result: ~p.", [ LRes ] ),
 	LRes = [ 3, 2, 1 ],
 
-	SortRes = shell_utils:execute_command( "lists:sort(L).", ShellPid ),
+	{ success, SortRes } =
+		shell_utils:execute_command( "lists:sort(L).", ShellPid ),
+
 	test_facilities:display( "Sorting result: ~p.", [ SortRes ] ),
 	SortRes = [ 1, 2, 3 ],
+
+	% Therefore typed as "--interactive-shell":
+	case cmd_line_utils:get_command_arguments_for_option(
+			_Option='-interactive-shell' ) of
+
+		undefined ->
+			test_facilities:display( "Not in interactive mode, stopping." );
+
+		_ ->
+			test_facilities:display( "Switching to interactive mode." ),
+			test_interactive( ShellPid )
+
+	end,
 
 	ShellPid ! { terminateSynch, self() },
 

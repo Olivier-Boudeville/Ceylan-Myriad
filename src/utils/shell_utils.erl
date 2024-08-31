@@ -40,14 +40,15 @@ See gui_shell_test.erl for an example of use thereof.
 -export([ start_shell/0, start_link_shell/0,
 		  start_integrated_shell/0,
 
-		  execute_command/2
-
-		]).
+		  execute_command/2 ]).
 
 
 % To enable spawns of them:
 -export([ start_integrated_helper/0 ]).
 
+
+% At least for silencing:
+-export([ shell_state_to_string/1 ]).
 
 
 -doc "The PID of a (Myriad) shell process.".
@@ -72,6 +73,7 @@ See gui_shell_test.erl for an example of use thereof.
 -type binding() :: { variable_name(), variable_value() }.
 
 
+
 -doc """
 A command to submit to a shell, corresponding to a sequence of expressions.
 
@@ -94,10 +96,24 @@ For example: <<"A=1, B=2, A+B.">>.
 
 
 
-% An history of a shell, that is the list of the previously submitted commands
-% (here in antichronological order):
-%
--type history() :: [ command() ].
+% An element kept in the history:
+-type history_element() :: { command(), command_result() }.
+
+
+-doc """
+An history of a shell, that is the list of the previously submitted commands and
+of their results (here in antichronological order).
+
+Note that this may allow huge terms to be kept around longer than expected (see
+the flushHistory request message).
+""".
+-type history() :: queue( history_element() ).
+
+
+-doc "Options to create a shell.".
+-type shell_option() ::
+	{ 'history', MaxLen :: count() }
+ |  'no_history'.
 
 
 -export_type([ shell_pid/0, client_pid/0,
@@ -107,6 +123,7 @@ For example: <<"A=1, B=2, A+B.">>.
 			   history/0 ]).
 
 
+-define( default_history_max_len, 20 ).
 
 % Local types:
 
@@ -114,6 +131,11 @@ For example: <<"A=1, B=2, A+B.">>.
 
 	% The number of commands submitted:
 	submission_count :: count(),
+
+	% Maximum number of history elements (0: none, 1: just the last one, etc.;
+	% undefined: infinite):
+	%
+	history_depth :: option( count() ),
 
 	% Possibly ellipsed:
 	history :: history(),
@@ -140,11 +162,12 @@ For example: <<"A=1, B=2, A+B.">>.
 -type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
 
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 % Not a [binding()]:
 -type binding_struct() :: erl_eval:binding_struct().
 
-
+-type queue( T ) :: queue:queue( T ).
 
 
 % Implementation notes:
@@ -154,7 +177,10 @@ For example: <<"A=1, B=2, A+B.">>.
 % We see two approaches in order to implement such a separate shell:
 %
 % - (A) define our own version of it, from scratch, based on our own
-% read/scan/eval loop
+% read/scan/eval loop; we prefer here that the shell resists to any failure
+% induced by user commands (e.g. not losing its bindings then); it is, at least
+% currently, a very basic shell: no command recall, no history, no built-in
+% functions (like f()), no shell switching, no remote shell, etc.
 %
 % - (B) plug in the group/user/shell built-in architecture ("integrated shell")
 %
@@ -193,15 +219,35 @@ For example: <<"A=1, B=2, A+B.">>.
 %% Shell user API.
 
 
+
 -doc """
-Starts a (non-linked) shell process according to approach A, returns its PID.
+Starts a (non-linked) shell process according to approach A with default
+options, and returns its PID.
+
+A history of depth ?default_history_max_len is enabled, and no logging is
+performed.
 """.
 -spec start_shell() -> shell_pid().
 start_shell() ->
+	start_shell( _Opts=[] ).
+
+
+
+-doc """
+Starts a (non-linked) shell process according to approach A with the specified
+options, and returns its PID.
+
+See start_shell/0 for defaults.
+""".
+-spec start_shell( maybe_list( shell_option() ) ) -> shell_pid().
+start_shell( Opts ) ->
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options( Opts ),
 
 	ShellPid = ?myriad_spawn(
 		fun() ->
-			shell_init()
+			shell_main_loop( InitShellState )
 		end ),
 
 	cond_utils:if_defined( myriad_debug_shell,
@@ -213,14 +259,31 @@ start_shell() ->
 
 
 -doc """
-Starts a linked shell process according to approach A, returns its PID.
+Starts a linked shell process according to approach A with default options, and
+returns its PID.
+
+See start_shell/0 for defaults.
 """.
 -spec start_link_shell() -> shell_pid().
 start_link_shell() ->
+	start_link_shell( _Opts=[] ).
+
+
+
+-doc """
+Starts a linked shell process according to approach A, and returns its PID.
+
+See start_shell/0 for defaults.
+""".
+-spec start_link_shell( maybe_list( shell_option() ) ) -> shell_pid().
+start_link_shell( Opts ) ->
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options( Opts ),
 
 	ShellPid = ?myriad_spawn_link(
 		fun() ->
-			shell_init()
+			shell_main_loop( InitShellState )
 		end ),
 
 	cond_utils:if_defined( myriad_debug_shell,
@@ -230,42 +293,69 @@ start_link_shell() ->
 
 
 
+% (helper)
+-spec vet_options( maybe_list( shell_option() ) ) -> shell_state().
+vet_options( Opts ) when is_list( Opts ) ->
+
+	% Defaults:
+	InitShellState = #shell_state{
+		submission_count=0,
+		history_depth=?default_history_max_len,
+		history=queue:new(),
+		bindings=erl_eval:new_bindings() },
+
+	vet_options( Opts, InitShellState );
+
+vet_options( Opt ) ->
+	vet_options( [ Opt ] ).
+
+
+
+% (helper)
+vet_options( _Opts=[], ShellState ) ->
+	ShellState;
+
+vet_options( _Opts=[ { history, MaxLen } | T ], ShellState )
+						when is_integer( MaxLen ) andalso MaxLen >= 0 ->
+	vet_options( T, ShellState#shell_state{ history_depth=MaxLen } );
+
+vet_options( _Opts=[ no_history | T ], ShellState ) ->
+	vet_options( T, ShellState#shell_state{ history_depth=0 } ).
+
+
+
+
+
 -doc """
 Executes the specified command on the specified shell, and returns its result.
 
 Throws an exception on error.
 """.
--spec execute_command( any_string(), shell_pid() ) -> variable_value().
+-spec execute_command( any_string(), shell_pid() ) -> command_outcome().
 execute_command( CmdAnyStr, ShellPid ) ->
 	CmdBinStr = text_utils:ensure_binary( CmdAnyStr ),
 	ShellPid ! { processCommand, CmdBinStr, self() },
 	receive
 
-		{ success, CmdResValue } ->
-			CmdResValue;
+		P={ success, _CmdResValue } ->
+			%CmdResValue;
+			P;
 
-		{ error, ErrorInfo } ->
-			trace_utils:error_fmt( "Failed to execute command '~ts' "
-				"on shell ~w:~n ~p", [ CmdAnyStr, ShellPid, ErrorInfo ] ),
-			throw( { shell_command_failed, ErrorInfo, ShellPid, CmdAnyStr } )
+		P={ error, ErrorBinStr } ->
+
+			cond_utils:if_defined( myriad_debug_shell,
+				trace_utils:error_fmt( "Failed to execute command '~ts' "
+					"on shell ~w: ~ts", [ CmdAnyStr, ShellPid, ErrorBinStr ] ),
+				basic_utils:ignore_unused( ErrorBinStr ) ),
+
+			%throw( { shell_command_failed, ErrorBinStr, ShellPid, CmdAnyStr } )
+			P
 
 	end.
 
 
 
 % Implementation helpers.
-
--doc "Initialises a shell.".
--spec shell_init() -> no_return().
-shell_init() ->
-
-	InitShellState = #shell_state{
-		submission_count=0,
-		history=[],
-		bindings=erl_eval:new_bindings() },
-
-	shell_main_loop( InitShellState ).
-
 
 
 -doc "Main loop of a shell instance (approach A).".
@@ -283,7 +373,12 @@ shell_main_loop( ShellState ) ->
 
 			% A failed command does not kill the shell:
 			ClientPid ! CmdOutcome,
+
 			ProcShellState;
+
+
+		flushHistory ->
+			ShellState#shell_state{ history=queue:new() };
 
 
 		terminate ->
@@ -307,7 +402,7 @@ shell_main_loop( ShellState ) ->
 	end,
 
 	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
-		"Now being a ~ts", [ shell_state_to_string( ShellState ) ] ) ),
+		"Now being a ~ts", [ shell_state_to_string( NewShellState ) ] ) ),
 
 	shell_main_loop( NewShellState ).
 
@@ -324,15 +419,13 @@ shell_main_loop( ShellState ) ->
 -spec process_command( command(), shell_state() ) ->
 										{ command_outcome(), shell_state() }.
 process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
-													 history=History,
 													 bindings=Bindings } ) ->
 
 	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
 		"Processing command '~ts'.", [ CmdBinStr ] ) ),
 
 	BaseShellState = ShellState#shell_state{
-		submission_count=SubCount+1,
-		history=[ CmdBinStr | History ] },
+		submission_count=SubCount+1 },
 
 	% Binaries cannot be scanned as are:
 	CmdStr = text_utils:binary_to_string( CmdBinStr ),
@@ -343,7 +436,8 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 
 			cond_utils:if_defined( myriad_debug_shell,
 				trace_utils:debug_fmt( "Scanned tokens '~p' (end location: ~p)",
-									   [ Tokens, EndLocation ] ) ),
+									   [ Tokens, EndLocation ] ),
+				basic_utils:ignore_unused( EndLocation ) ),
 
 			case erl_parse:parse_exprs( Tokens ) of
 
@@ -356,56 +450,116 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 						trace_utils:debug_fmt( "Parsed following expression "
 							"forms:~n ~p", [ ExprForms ] ) ),
 
-					% If an expression evaluation fails, what happens?
 					% Currently not using local/non-local function handlers:
-					{ value, CmdValue, NewBindings } =
-						erl_eval:exprs( ExprForms, Bindings ),
+					try erl_eval:exprs( ExprForms, Bindings ) of
 
-					ProcShellState = BaseShellState#shell_state{
-						bindings=NewBindings },
+						{ value, CmdValue, NewBindings } ->
 
-					CmdOutcome = { success, CmdValue },
+							ProcShellState = BaseShellState#shell_state{
+								bindings=NewBindings },
 
-					{ CmdOutcome, ProcShellState };
+							% Only updated on success:
+							HistShellState = update_history( CmdBinStr,
+								CmdValue, ProcShellState ),
 
+							CmdOutcome = { success, CmdValue },
 
-				CmdOutcome={ error, _ErrorInfo={ Loc, Mod, Desc } } ->
+							{ CmdOutcome, HistShellState }
+
+					catch Class:Reason ->
+
+						cond_utils:if_defined( myriad_debug_shell,
+							trace_utils:warning_fmt( "Evaluation error "
+								"for command '~ts' by shell ~w: ~p "
+								"(class: ~ts)",
+								[ CmdBinStr, self(), Reason, Class ] ),
+							basic_utils:ignore_unused( Class ) ),
+
+						ReasonBinStr = text_utils:bin_format(
+							"evaluation failed: ~p", [ Reason ] ),
+
+						CmdOutcome = { error, ReasonBinStr },
+
+						{ CmdOutcome, BaseShellState }
+
+					end;
+
+				{ error, _ErrorInfo={ Loc, Mod, Desc } } ->
+
+					IssueDesc = ast_utils:interpret_issue_description( Desc,
+																	   Mod ),
 
 					cond_utils:if_defined( myriad_debug_shell,
 						trace_utils:warning_fmt( "Parse error when evaluating "
 							"command '~ts' by shell ~w: ~ts (location: ~ts)",
-							[ CmdBinStr, self(),
-							  ast_utils:interpret_issue_description( Desc,
-																	 Mod ),
+							[ CmdBinStr, self(), IssueDesc,
 							  ast_utils:file_loc_to_string( Loc ) ] ),
-						basic_utils:ignore_unused( [ Loc, Mod, Desc ] ) ),
+						basic_utils:ignore_unused( Loc ) ),
+
+					ReasonBinStr = text_utils:bin_format(
+						"parsing failed: ~ts", [ IssueDesc ] ),
+
+					CmdOutcome = { error, ReasonBinStr },
 
 					{ CmdOutcome, BaseShellState }
 
 			end;
 
 
-		{ error, ErrorInfo={ Loc, Mod, Desc }, ErrorLocation } ->
+		% Not expected to happen frequently:
+		{ error, _ErrorInfo={ Loc, Mod, Desc }, ErrorLocation } ->
+
+			IssueDesc = ast_utils:interpret_issue_description( Desc, Mod ),
+
 			cond_utils:if_defined( myriad_debug_shell,
 				trace_utils:warning_fmt( "Scan error when evaluating "
 					"command '~ts' by shell ~w: ~ts (location: ~ts / ~ts)",
-					[ CmdBinStr, self(),
-					  ast_utils:interpret_issue_description( Desc, Mod ),
+					[ CmdBinStr, self(), IssueDesc,
 					  ast_info:location_to_string( Loc ),
 					  ast_info:location_to_string( ErrorLocation ) ] ),
-				basic_utils:ignore_unused(
-					[ Loc, Mod, Desc, ErrorLocation ] ) ),
+				basic_utils:ignore_unused( [ Loc, ErrorLocation ] ) ),
 
-			CmdOutcome = { error, ErrorInfo },
+			ReasonBinStr = text_utils:bin_format(
+				"scanning failed: ~ts", [ IssueDesc ] ),
+
+			CmdOutcome = { error, ReasonBinStr },
+
 			{ CmdOutcome, BaseShellState }
 
 	end.
 
 
 
+-doc "Updates the shell history for the specified command.".
+-spec update_history( command(), command_result(), shell_state() ) ->
+										shell_state().
+update_history( _Cmd, _CmdRes, ShellState=#shell_state{
+											history_depth=0 } ) ->
+	ShellState;
+
+update_history( Cmd, CmdRes, ShellState=#shell_state{
+											history_depth=HDepth,
+											history=HistQ } ) ->
+	DropHistQ = case queue:len( HistQ ) of
+
+		HDepth ->
+			% Full, thus dropping first (never expected to be empty):
+			{ { value, _FirstHItem }, ShrunkHistQ } = queue:out( HistQ ),
+			ShrunkHistQ;
+
+		_ ->
+			% Not full yet:
+			HistQ
+
+	end,
+
+	NewHistQ = queue:in( _HistElem={ Cmd, CmdRes }, DropHistQ ),
+
+	ShellState#shell_state{ history=NewHistQ }.
+
+
 
 % Section for an integrated shell (approach B).
-
 
 
 -doc """
@@ -455,9 +609,9 @@ shell_state_to_string( #shell_state{
 							history=History,
 							bindings=BindingStruct },
 					   _Verbose=true ) ->
-	text_utils:format( "shell with ~ts and ~B commands already submitted, "
+	text_utils:format( "shell ~w with ~ts and ~B commands already submitted, "
 		"with ~ts",
-		[ bindings_to_string( BindingStruct ),
+		[ self(), bindings_to_string( BindingStruct ),
 		  SubCount, history_to_string( History ) ] );
 
 
@@ -493,9 +647,26 @@ bindings_to_string( BindingStruct ) ->
 
 -doc "Returns a textual description of the specified history.".
 -spec history_to_string( history() ) -> ustring().
-history_to_string( _History=[] ) ->
-	"no history";
-
 history_to_string( History ) ->
-	"the following history: " ++ text_utils:strings_to_enumerated_string(
-									lists:reverse( History ) ).
+
+	case queue:len( History ) of
+
+		0 ->
+			"no history";
+
+		_ ->
+			Strs = [ history_element_to_string( HE )
+						|| HE <- queue:to_list( History ) ],
+
+			text_utils:format( "the following history: ~ts",
+				[ text_utils:strings_to_enumerated_string( Strs ) ] )
+
+	end.
+
+
+
+-doc "Returns a textual description of the specified history element.".
+-spec history_element_to_string( history_element() ) -> ustring().
+history_element_to_string( { Cmd, CmdRes } ) ->
+	text_utils:format_ellipsed( "command '~ts', resulting in ~p",
+								[ Cmd, CmdRes ] ).
