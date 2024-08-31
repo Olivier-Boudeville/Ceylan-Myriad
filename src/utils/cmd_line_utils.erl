@@ -68,6 +68,9 @@ Any element of a command-line, typically option name or value.
 The name for a command-line option; e.g. '-color', for an actual option that
 would be entered, typically in a shell, as "--color".
 
+Therefore here options are to be specified as atoms, and without their first,
+initial dash.
+
 For the init standard module, this is named a "flag".
 """.
 -type actual_command_line_option() :: atom(). % Not a string!
