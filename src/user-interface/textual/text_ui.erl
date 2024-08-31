@@ -50,8 +50,9 @@ See also: trace_utils.erl for another kind of output.
 % however it proved too cumbersome to define and use.
 
 % Note that, apparently in some cases (notably crashes), text_ui may leave the
-% user terminal in an invalid state (not responsive, not displaying anything),
-% and running 'reset' will not fix that.
+% user terminal in an invalid state (not responsive, not displaying anything, or
+% not taking input characters properly into account), and running 'reset' will
+% not fix that (the terminal can be considered as unusable for good then).
 
 
 % Basic UI operations.
