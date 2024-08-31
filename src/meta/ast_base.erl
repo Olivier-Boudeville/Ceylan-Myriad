@@ -42,7 +42,7 @@ notably in order to transform them (meta-programming).
 So that forms can be independently managed while being able to be reordered
 later, according to their original position in a source AST.
 
-Higher-level location, not to be mixed up with file_loc/0.
+Higher-level location, not to be mixed up with {stream,file}_loc/0.
 """.
 -type form_location() :: id_utils:sortable_id().
 
@@ -72,17 +72,28 @@ file.
 
 
 -doc """
+Line-related location in a stream of characters (either `line()` or `{line(),
+column()}`).
+
+The (newer) pair form shall now be preferred.
+""".
+-type stream_loc() :: erl_anno:location().
+
+
+
+-doc """
 Line-related location in a source file (either `line()` or `{line(),
 column()}`).
 
 The (newer) pair form shall now be preferred.
 """.
--type file_loc() :: erl_anno:location().
+-type file_loc() :: stream_loc().
+
 
 
 
 -doc "Context (if any) of a form.".
--type form_context() :: basic_utils:option( file_loc() ).
+-type form_context() :: basic_utils:option( stream_loc() ).
 
 
 
@@ -93,7 +104,8 @@ In-source context (typically to report errors); e.g. `{"foo.erl",{112,4}}`.
 		{ file_utils:filename(), basic_utils:option( file_loc() ) }.
 
 
--export_type([ form_location/0, file_reference/0, line/0, column/0, file_loc/0,
+-export_type([ form_location/0, file_reference/0, line/0, column/0,
+			   stream_loc/0, file_loc/0,
 			   form_context/0, source_context/0 ]).
 
 
