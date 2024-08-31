@@ -115,7 +115,7 @@ See also: `trace_utils.erl` for another kind of output.
 Any text, as a plain or binary (Unicode, UTF-8) string.
 
 Used to be a rather restrictive any_string(), now is more general (notably as
-recursive lists as such elements).
+recursive lists are such elements).
 """.
 -type text() :: unicode:chardata().
 
