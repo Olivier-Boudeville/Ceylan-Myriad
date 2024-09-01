@@ -65,7 +65,8 @@ See text_utils_test.erl for the corresponding test.
 		  atom_to_string/1,
 
 		  pid_to_string/1, pids_to_string/1,
-		  pid_to_short_string/1, pids_to_short_string/1, pid_to_core_string/1,
+		  pid_to_short_string/1, pids_to_short_string/1,
+		  pid_to_core_string/1, pid_to_filename/1,
 
 		  record_to_string/1,
 
@@ -327,7 +328,8 @@ For example: `<<"0x44e390a3">>` or `<<"44e390a3">>`.
 -doc """
 A Unicode (plain) string.
 
-This is our new default, and corresponds to charlist() | unicode_binary().
+This is our new default, and corresponds to charlist() | unicode_binary(), so
+basically any non-nested string.
 
 We mostly mean by that [char()], where char() is an integer corresponding to an
 ASCII character or to a unicode codepoint, expected to be in [0..16#10ffff].
@@ -379,6 +381,12 @@ Now is our default type of (plain) string.
 a builtin type; it cannot be redefined").
 """.
 -type ustring() :: unicode_string().
+
+
+-doc """
+A nested string, that is a possibly deep list containing only char() elements.
+""".
+-type chars() :: io_lib:chars(). % Thus [char() | chars()].
 
 
 
@@ -977,15 +985,23 @@ atom_to_string( Atom ) ->
 
 
 
--doc "Returns a plain string corresponding to the specified PID.".
--spec pid_to_string( pid() ) -> ustring().
+-doc """
+Returns nested characters corresponding to the specified PID.
+
+For example `["<0.84.0>"]`.
+""".
+-spec pid_to_string( pid() ) -> chars().
 pid_to_string( Pid ) ->
 	io_lib:format( "~w", [ Pid ] ).
 
 
 
--doc "Returns a plain string corresponding to the specified list of PIDs.".
--spec pids_to_string( [ pid() ] ) -> ustring().
+-doc """
+Returns nested characters corresponding to the specified list of PIDs.
+
+For example `[[91,["<0.84.0>",44,"<0.84.0>"],93]]`.
+""".
+-spec pids_to_string( [ pid() ] ) -> chars().
 pids_to_string( PidList ) ->
 	io_lib:format( "~w", [ PidList ] ).
 
@@ -994,7 +1010,8 @@ pids_to_string( PidList ) ->
 -doc """
 Returns a short, plain string corresponding to the specified PID.
 
-For example, `<0.33.0>` returned as `"|33|"` (half size).
+For example, `<0.33.0>` returned as `"|33|"` (half size); `<1.44.0>` returned as
+`"|1.44|"`, `<1.55.7>` as `"|1.55.7|"` (same size).
 
 Note though that the pipe character may be better avoided on some systems
 (e.g. Ceylan-Traces ones, at least for the name of trace emitters).
@@ -1028,7 +1045,10 @@ pids_to_short_string( PidList ) ->
 -doc """
 Returns a very short plain string corresponding to the specified PID.
 
-For example, for `<0.33.0>`, will return `"33"`.
+For example, for:
+ - `<0.33.0>` will return `"33"`
+ - `<1.44.0>` will return `"1.44"`
+ - `<1.55.7>` will return `"1.55.7"`
 """.
 -spec pid_to_core_string( pid() ) -> ustring().
 pid_to_core_string( Pid ) ->
@@ -1036,7 +1056,7 @@ pid_to_core_string( Pid ) ->
 	% A PID is akin to <X.Y.Z>.
 
 	% Needed otherwise returns ["<0.78.0>"], not "<0.78.0>":
-	PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
+	PidAsText = hd( io_lib:format( "~w", [ Pid ] ) ),
 
 	%trace_utils:debug_fmt( "PidAsText = '~p'.", [ PidAsText ] ),
 
@@ -1073,6 +1093,29 @@ pid_to_core_string( Pid ) ->
 
 	% For example: "33", "1.33", or "1.33.2":
 	ActualFirst ++ Second ++ ActualThird.
+
+
+
+-doc """
+Returns a plain string corresponding to the specified PID and that is suitable
+to be (at least part of) a filename.
+
+For example, for `<0.84.0>`, returns `"0.84.0"`.
+""".
+-spec pid_to_filename( pid() ) -> ustring().
+pid_to_filename( Pid ) ->
+
+	% A PID is akin to <X.Y.Z>.
+
+	% Needed otherwise returns ["<0.78.0>"], not "<0.78.0>":
+	PidAsText = hd( io_lib:format( "~w", [ Pid ] ) ),
+
+	%trace_utils:debug_fmt( "PidAsText = '~p'.", [ PidAsText ] ),
+
+	[ $< | Rest ] = PidAsText,
+
+	% Thus "X.Y.Z":
+	list_utils:remove_last_element( Rest ).
 
 
 
