@@ -67,16 +67,17 @@ test_interactive( ShellPid ) ->
 
 
 test_main_loop( ShellPid ) ->
+
 	Prompt = "Enter the next Erlang expression to evaluate: ",
 	ExprText = text_ui:get_text( Prompt ),
 
 	case shell_utils:execute_command( text_utils:ensure_binary( ExprText ),
 									  ShellPid ) of
 
-		{ success, CmdResValue } ->
-			test_facilities:display(
-				"Shell expression '~ts' evaluated to '~p'.",
-				[ ExprText, CmdResValue ] );
+		{ success, CmdResValue, CmdId, MaybeBinTimestamp } ->
+			test_facilities:display( "Shell expression '~ts' (#~B) "
+				"evaluated (timestamp: ~ts) to '~p'.",
+				[ ExprText, CmdId, MaybeBinTimestamp, CmdResValue ] );
 
 		{ error, ErrorInfo } ->
 			test_facilities:display( "The processing of shell expression '~ts' "
@@ -94,38 +95,69 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	ShellPid = shell_utils:start_link_shell(),
+	%ShellOpts = [],
 
-	{ success, FirstRes } = shell_utils:execute_command( "A=1.", ShellPid ),
+	%HistOpt = no_history,
+	%HistOpt = { history, _MaybeMaxDepth=0 },
+	%HistOpt = { history, 1 },
+	%HistOpt = { history, 10 },
+	HistOpt = { history, undefined },
 
-	test_facilities:display( "First assignment result: ~p.", [ FirstRes ] ),
+	%HistOpts = [],
+	HistOpts = [ HistOpt ],
+
+	%TimestampOpts = [],
+	TimestampOpts = [ timestamp ],
+
+	%LogOpts = [],
+	LogOpts = [ log ],
+	%LogOpts = [ { log, "../test-shell.txt" } ],
+
+	ShellOpts = HistOpts ++ TimestampOpts ++ LogOpts,
+
+
+	ShellPid = shell_utils:start_link_shell( ShellOpts ),
+
+	{ success, FirstRes, _FirstCmdId=1, MaybeFirstBinTimestamp } =
+		shell_utils:execute_command( "A=1.", ShellPid ),
+
+	test_facilities:display( "First assignment result (timestamp: ~ts): ~p.",
+							 [ MaybeFirstBinTimestamp, FirstRes ] ),
 	FirstRes = 1,
 
+	test_facilities:display( "Flushing history."),
 	ShellPid ! flushHistory,
 
-	{ success, SecondRes } = shell_utils:execute_command( "B=2.", ShellPid ),
+	{ success, SecondRes, _SecondCmdId=2, MaybeSecondBinTimestamp } =
+		shell_utils:execute_command( "B=2.", ShellPid ),
 
-	test_facilities:display( "Second assignment result: ~p.", [ SecondRes ] ),
+	test_facilities:display( "Second assignment result (timestamp: ~ts): ~p.",
+							 [ MaybeSecondBinTimestamp, SecondRes ] ),
 	SecondRes = 2,
 
 
-	{ success, ThirdRes } = shell_utils:execute_command( "A+B.", ShellPid ),
+	{ success, ThirdRes, _ThirdCmdId=3, MaybeThirdBinTimestamp } =
+		shell_utils:execute_command( "A+B.", ShellPid ),
 
-	test_facilities:display( "Addition result: ~p.", [ ThirdRes ] ),
+	test_facilities:display( "Addition result (timestamp: ~ts): ~p.",
+							 [ MaybeThirdBinTimestamp, ThirdRes ] ),
 	ThirdRes = 3,
 
 
-	{ success, LRes } =
+	{ success, LRes, _LCmdId=4, MaybeLBinTimestamp } =
 		shell_utils:execute_command( "L = [3, 2, 1].", ShellPid ),
 
-	test_facilities:display( "List assignment result: ~p.", [ LRes ] ),
+	test_facilities:display( "List assignment result (timestamp: ~ts): ~p.",
+							 [ MaybeLBinTimestamp, LRes ] ),
 	LRes = [ 3, 2, 1 ],
 
-	{ success, SortRes } =
+	{ success, SortRes, _SortCmdId=5, MaybeSortBinTimestamp } =
 		shell_utils:execute_command( "lists:sort(L).", ShellPid ),
 
-	test_facilities:display( "Sorting result: ~p.", [ SortRes ] ),
+	test_facilities:display( "Sorting result (timestamp: ~ts): ~p.",
+							 [ MaybeSortBinTimestamp, SortRes ] ),
 	SortRes = [ 1, 2, 3 ],
+
 
 	% Therefore typed as "--interactive-shell":
 	case cmd_line_utils:get_command_arguments_for_option(
