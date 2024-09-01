@@ -362,7 +362,7 @@ is 1970-01-01 00:00 UTC.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -1702,7 +1702,6 @@ short_string_to_timestamp( TimestampString ) ->
 Converts (with a bit of approximation) the specified number of Gregorian
 milliseconds into a proper, user-level (local, system) timestamp.
 """.
-
 -spec gregorian_ms_to_timestamp( ms_since_year_0() ) -> timestamp().
 gregorian_ms_to_timestamp( GregorianMs ) ->
 
