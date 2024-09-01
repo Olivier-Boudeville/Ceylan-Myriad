@@ -55,7 +55,6 @@ necessarily directly akin to a regular window.
 -type widget() :: wxWindow:wxWindow() | gui_canvas:canvas().
 
 
-
 -doc """
 A control is generally a small window that processes user input and/or displays
 one or more items of data.
@@ -63,7 +62,11 @@ one or more items of data.
 -opaque control() :: wxControl:wxControl().
 
 
--export_type([ widget/0, control/0 ]).
+-doc "The PID of a widget (process).".
+-type widget_pid() :: pid().
+
+
+-export_type([ widget/0, control/0, widget_pid/0 ]).
 
 
 
