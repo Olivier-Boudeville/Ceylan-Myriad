@@ -98,10 +98,10 @@ For example: <<"A=1, B=2, A+B.">>.
 -type command_info() ::
 
 	{ 'success', command_result(), command_id(),
-	  MaybeTimestampBinStr :: option( bin_timestamp() ) }
+	  MaybeTimestampBinStr :: option( timestamp_binstring() ) }
 
   | { 'error', command_error(),
-	  MaybeTimestampBinStr :: option( bin_timestamp() ) }.
+	  MaybeTimestampBinStr :: option( timestamp_binstring() ) }.
 
 
 % An element kept in the history:
@@ -159,11 +159,6 @@ Options that can be specified when creating a shell:
 
 
 
-% Local types:
-
--type bin_timestamp() :: bin_string().
-
-
 % Defaults set in vet_options/1:
 -record( shell_state, {
 
@@ -217,6 +212,8 @@ Options that can be specified when creating a shell:
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
+-type timestamp_binstring() :: time_utils:timestamp_binstring().
+
 -type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:any_file_path().
 -type file() :: file_utils:file().
@@ -266,6 +263,30 @@ Options that can be specified when creating a shell:
 %  (using edlin)
 %
 %  * https://erlang.org/pipermail/erlang-questions/2008-September/038476.html
+
+
+% Usage example (approach A):
+
+% Welcome to the MyriadGUI shell <0.93.0>.
+%
+% 1> A=1.
+% 1
+% 2> B=2.
+% 2
+% 3> A+B.
+% 3
+% 4> A
+% parsing failed: syntax error before:
+% 5> B=1.
+% evaluation failed: {badmatch,1}
+% 6> self().
+% <0.94.0>
+% 7> self().
+% <0.94.0>
+% 8> text_utils:get_timestamp().
+% evaluation failed: undef
+% 9> time_utils:get_timestamp().
+% {{2024,9,3},{22,29,59}}
 
 
 % For myriad_spawn_link/1:
@@ -431,7 +452,7 @@ execute_command( CmdAnyStr, ShellPid ) ->
 			%CmdResValue;
 			CmdInfo;
 
-		CmdInfo={ error, ErrorBinStr, _MaybeTimestampBinStr }  ->
+		CmdInfo={ error, ErrorBinStr, _CmdId, _MaybeTimestampBinStr }  ->
 
 			cond_utils:if_defined( myriad_debug_shell,
 				trace_utils:error_fmt( "Failed to execute command '~ts' "
@@ -534,8 +555,9 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
 		"Processing command '~ts'.", [ CmdBinStr ] ) ),
 
-	BaseShellState = ShellState#shell_state{
-		submission_count=SubCount+1 },
+	NewCmdId = SubCount + 1,
+
+	BaseShellState = ShellState#shell_state{ submission_count=NewCmdId },
 
 	% Binaries cannot be scanned as are:
 	CmdStr = text_utils:binary_to_string( CmdBinStr ),
@@ -584,7 +606,8 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 							ReasonBinStr, BaseShellState ),
 
-						CmdInfo={ error, ReasonBinStr, MaybeTimestampBinStr },
+						CmdInfo = { error, ReasonBinStr, NewCmdId,
+								  MaybeTimestampBinStr },
 
 						{ CmdInfo, BaseShellState }
 
@@ -608,8 +631,10 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 						ReasonBinStr, BaseShellState ),
 
-					{ _CmdInfo={ error, ReasonBinStr, MaybeTimestampBinStr },
-					  BaseShellState }
+					CmdInfo = { error, ReasonBinStr, NewCmdId,
+								MaybeTimestampBinStr },
+
+					{ CmdInfo, BaseShellState }
 
 			end;
 
@@ -633,16 +658,16 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
 													 BaseShellState ),
 
-			% Current command identifier unchanged:
-			{ _CmdInfo={ error, ReasonBinStr, MaybeTimestampBinStr },
-			  BaseShellState }
+			CmdInfo = { error, ReasonBinStr, NewCmdId, MaybeTimestampBinStr },
+
+			{ CmdInfo, BaseShellState }
 
 	end.
 
 
 % (helper)
 -spec manage_success_log( command(), command_result(), shell_state() ) ->
-										option( bin_timestamp() ).
+										option( timestamp_binstring() ).
 manage_success_log( _CmdBinStr, _CmdResValue,
 					#shell_state{ do_timestamp=true,
 								  log_file=undefined } ) ->
@@ -677,7 +702,7 @@ manage_success_log( CmdBinStr, CmdResValue,
 
 % (helper)
 -spec manage_error_log( command(), command_error(), shell_state() ) ->
-										option( bin_timestamp() ).
+										option( timestamp_binstring() ).
 manage_error_log( _CmdBinStr, _ReasonBinStr,
 				  #shell_state{ do_timestamp=true,
 								log_file=undefined } ) ->
