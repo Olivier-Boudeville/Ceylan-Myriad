@@ -4083,6 +4083,10 @@ concatenate( Elements ) ->
 -doc "Concatenates the two specified binary strings into the returned one.".
 -spec bin_concatenate( bin_string(), bin_string() ) -> bin_string().
 bin_concatenate( FirstBinStr, SecondBinStr ) ->
+
+	%trace_utils:debug_fmt( "Concatenating '~p' with '~p'.",
+	%                       [ FirstBinStr, SecondBinStr ] ),
+
 	% Presumably better than bin_format("~ts~ts", [FirstBinStr, SecondBinStr]),
 	% mostly the same as erlang:iolist_to_binary([FirstBinStr, SecondBinStr]):
 	%
