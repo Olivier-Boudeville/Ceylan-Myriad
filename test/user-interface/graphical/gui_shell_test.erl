@@ -54,14 +54,17 @@ Here the main loop just has to remember the frame whose closing is awaited for.
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
-	test_facilities:display( "~nStarting the shell test." ),
+	test_facilities:display( "~nStarting the GUI shell test." ),
 
 	gui:start(),
 
-	Frame = gui_frame:create(
-		"This is the overall frame for shell testing", _Size={ 1024, 768 } ),
+	Frame = gui_frame:create( "This is the overall frame for GUI shell testing",
+							  _Size={ 1024, 768 } ),
 
-	gui_shell:create( _ParentWin=Frame ),
+	%ShellOpts = [],
+	ShellOpts = [ timestamp, log ],
+
+	gui_shell:create( _FontSize=9, ShellOpts, _ParentWin=Frame ),
 
 	gui:subscribe_to_events( { onWindowClosed, Frame } ),
 
@@ -89,8 +92,8 @@ test_main_loop( State=Frame ) ->
 			gui:stop();
 
 		Other ->
-			trace_utils:warning_fmt( "Test main loop ignored following "
-									 "message: ~p.", [ Other ] ),
+			trace_utils:warning_fmt( "Test main loop ignored the following "
+									 "message:~n ~p.", [ Other ] ),
 			test_main_loop( State )
 
 	end.

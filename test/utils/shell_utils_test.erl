@@ -90,33 +90,15 @@ test_main_loop( ShellPid ) ->
 
 
 
--spec run() -> no_return().
-run() ->
+-doc "Tests the specified (custom or standard) shell.".
+-spec test_shell( shell_pid() ) -> void().
+test_shell( ShellPid ) ->
 
-	test_facilities:start( ?MODULE ),
+	% Was for standard shell:
+	%UTF8Binary = unicode:characters_to_binary( "P=1.\n" ),
+	%
+	%ShellPid ! { send, UTF8Binary },
 
-	%ShellOpts = [],
-
-	%HistOpt = no_history,
-	%HistOpt = { history, _MaybeMaxDepth=0 },
-	%HistOpt = { history, 1 },
-	%HistOpt = { history, 10 },
-	HistOpt = { history, undefined },
-
-	%HistOpts = [],
-	HistOpts = [ HistOpt ],
-
-	%TimestampOpts = [],
-	TimestampOpts = [ timestamp ],
-
-	%LogOpts = [],
-	LogOpts = [ log ],
-	%LogOpts = [ { log, "../test-shell.txt" } ],
-
-	ShellOpts = HistOpts ++ TimestampOpts ++ LogOpts,
-
-
-	ShellPid = shell_utils:start_link_shell( ShellOpts ),
 
 	{ success, FirstRes, _FirstCmdId=1, MaybeFirstBinTimestamp } =
 		shell_utils:execute_command( "A=1.", ShellPid ),
@@ -179,6 +161,72 @@ run() ->
 		onShellTerminated ->
 			ok
 
-	end,
+	end.
+
+
+
+get_test_shell_opts() ->
+
+	%[].
+
+	%HistOpt = no_history,
+	%HistOpt = { history, _MaybeMaxDepth=0 },
+	%HistOpt = { history, 1 },
+	%HistOpt = { history, 10 },
+	HistOpt = { history, undefined },
+
+	%HistOpts = [],
+	HistOpts = [ HistOpt ],
+
+	%TimestampOpts = [],
+	TimestampOpts = [ timestamp ],
+
+	%LogOpts = [],
+	LogOpts = [ log ],
+	%LogOpts = [ { log, "../test-shell.txt" } ],
+
+	HistOpts ++ TimestampOpts ++ LogOpts.
+
+
+
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	ShellOpts = get_test_shell_opts(),
+
+	TestCustom = true,
+	%TestCustom = false,
+
+	TestCustom andalso
+		begin
+
+			test_facilities:display( "Testing the custom shell, "
+				"based on following options:~n ~p.", [ ShellOpts ] ),
+
+			CustomShellPid = shell_utils:start_link_custom_shell( ShellOpts ),
+
+			test_shell( CustomShellPid )
+
+		end,
+
+
+	% Not functional (yet):
+	%TestStandard = true,
+	TestStandard = false,
+
+	TestStandard andalso
+		begin
+
+			test_facilities:display( "Testing the standard shell, "
+				"based on following options:~n ~p.", [ ShellOpts ] ),
+
+			StandardShellPid =
+				shell_utils:start_link_standard_shell( ShellOpts ),
+
+			test_shell( StandardShellPid )
+
+		end,
 
 	test_facilities:stop().

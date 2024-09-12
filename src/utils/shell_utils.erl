@@ -31,29 +31,46 @@
 Provides our own version of an Erlang shell process, typically in order to
 integrate it in a REPL-like interpreter.
 
-See gui_shell_test.erl for an example of use thereof.
+See shell_utils_test.erl for its testing, and gui_shell_test.erl for an
+example of use thereof.
 """.
+
+
+% Two versions were targeted:
+%
+% - a custom shell, using our own Myriad conventions; we use it
+%
+% - a standard shell, integrated in Erlang native subsystems; we drop it (see
+% reasons in implementation notes below)
 
 
 
 % User API:
--export([ start_shell/0, start_link_shell/0,
-		  start_shell/1, start_link_shell/1,
-		  start_integrated_shell/0,
+-export([ start_custom_shell/0, start_link_custom_shell/0,
+		  start_custom_shell/1, start_link_custom_shell/1,
 
 		  execute_command/2 ]).
 
 
-% To enable spawns of them:
--export([ start_integrated_helper/0 ]).
-
 
 % At least for silencing:
--export([ shell_state_to_string/1 ]).
+-export([ % As not ready for use:
+		  start_standard_shell/0, start_link_standard_shell/0,
+		  start_standard_shell/1, start_link_standard_shell/1,
+
+		  custom_shell_state_to_string/1, standard_shell_state_to_string/1 ]).
 
 
 -doc "The PID of a (Myriad) shell process.".
--type shell_pid() :: pid().
+-type shell_pid() :: custom_shell_pid() | standard_shell_pid().
+
+
+-doc "The PID of a Myriad custom shell process.".
+-type custom_shell_pid() :: pid().
+
+-doc "The PID of a Myriad standard shell process.".
+-type standard_shell_pid() :: pid().
+
 
 
 -doc "The PID of a shell client process.".
@@ -63,6 +80,7 @@ See gui_shell_test.erl for an example of use thereof.
 
 % Surprisingly, not a string-like, but term():
 -type variable_name() :: erl_eval:name().
+
 
 % term():
 -type variable_value() :: erl_eval:value().
@@ -90,12 +108,12 @@ For example: <<"A=1, B=2, A+B.">>.
 -doc "The result of a command, as evaluated by a shell.".
 -type command_result() :: variable_value().
 
--doc "An error generated when a shell evaluates a submitted command.".
+-doc "An error message generated when a shell evaluates a submitted command.".
 -type command_error() :: bin_string().
 
 
 -doc "The information returned once a command is processed.".
--type command_info() ::
+-type command_outcome() ::
 
 	{ 'success', command_result(), command_id(),
 	  MaybeTimestampBinStr :: option( timestamp_binstring() ) }
@@ -109,13 +127,14 @@ For example: <<"A=1, B=2, A+B.">>.
 
 
 -doc """
-An history of a shell, that is the list of the previously submitted commands and
-of their results (here in antichronological order).
+An history of a shell, that is a list of previously submitted commands and of
+their results (here in antichronological order).
 
 Note that this may allow huge terms to be kept around longer than expected (see
-the flushHistory request message).
+the flushHistory request message to avoid that).
 """.
 -type history() :: queue( history_element() ).
+
 
 
 -doc """
@@ -124,17 +143,17 @@ Options that can be specified when creating a shell:
 - 'timestamp': keep track also of the timestamp of the start of a command
 
 - 'log': logs the commands and their results, in a file whose default name is
-  `myriad-shell-SHELL_PID.log`, where SHELL_PID corresponds to the PID of the
-  shell creator, like in `myriad-shell-0.84.0.log` (then written in the current
-  directory)
+  `myriad-shell-CREATOR_PID.log`, where CREATOR_PID corresponds to the PID of
+  the shell creator, like in `myriad-shell-0.84.0.log` (then written in the
+  current directory)
 
-- {'log', LogPath :: file_utils:any_file_path()}: logs the commands and their
-  results in a file whose path is specified
+- {'log', LogPath :: any_file_path()}: logs the commands and their results in a
+  file whose path is specified
 
 - {'history', MaxDepth :: count()}: records a command history of the specified
- maximum depth.
+ maximum depth; 'undefined' means unlimited depth
 
-- no_history: do not store any command history
+- no_history: does not store any command history (synonym of {history,0})
 """.
 -type shell_option() ::
 	'timestamp'
@@ -145,45 +164,57 @@ Options that can be specified when creating a shell:
 
 
 
--export_type([ shell_pid/0, client_pid/0,
+-doc """
+The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
+""".
+-type group_pid() :: pid().
+
+
+-export_type([ shell_pid/0, custom_shell_pid/0, standard_shell_pid/0,
+			   client_pid/0,
+
 			   variable_name/0, variable_value/0,
 			   binding/0,
 
 			   command/0, command_id/0, command_result/0, command_error/0,
-			   command_info/0,
+			   command_outcome/0,
 
-			   history/0 ]).
+			   history/0,
+
+			   group_pid/0 ]).
 
 
 -define( default_history_max_depth, 20 ).
 
 
+% The state of a custom shell instance.
+%
+% Defaults set in vet_options_for_custom/1:
+-record( custom_shell_state, {
 
-% Defaults set in vet_options/1:
--record( shell_state, {
-
-	% The number of commands submitted; corresponds to the number (identifier)
-	% of any current command (or the one of the next command, minus 1):
+	% The number of commands already submitted; corresponds to the number
+	% (identifier) of any current command (or the one of the next command, minus
+	% 1):
 	%
-	submission_count :: count(),
+	submission_count = 0 :: count(),
 
 	% Tells whether the start of commands shall be timestamped:
-	do_timestamp :: boolean(),
+	do_timestamp = false :: boolean(),
 
 
 	% Tells whether the full history (inputs and outputs) shall be logged on
 	% file and, if yes, in which one:
 	%
-	log_path :: option( bin_file_path() ),
+	log_path = undefined :: option( bin_file_path() ),
 
 	% The file (if any) where logs are to be written:
-	log_file :: option( file() ),
+	log_file = undefined :: option( file() ),
 
 
-	% Maximum number of history elements (0: none, 1: just the last one, etc.;
+	% Maximum number of history elements (0: none; 1: just the last one, etc.;
 	% undefined: infinite):
 	%
-	history_max_depth :: option( count() ),
+	history_max_depth  = ?default_history_max_depth :: option( count() ),
 
 	% Possibly ellipsed:
 	history :: history(),
@@ -196,8 +227,24 @@ Options that can be specified when creating a shell:
 } ).
 
 
--doc "The state of a shell instance.".
--type shell_state() :: #shell_state{}.
+-doc "The state of a custom shell instance.".
+-type custom_shell_state() :: #custom_shell_state{}.
+
+
+% The state of a standard shell instance.
+%
+% Defaults set in vet_options_for_standard/1:
+-record( standard_shell_state, {
+
+	% The PID of the group leader being currently used (if any):
+	current_group :: option( group_pid() )
+
+} ).
+
+
+-doc "The state of a standard shell instance.".
+-type standard_shell_state() :: #standard_shell_state{}.
+
 
 
 
@@ -231,7 +278,7 @@ Options that can be specified when creating a shell:
 %
 % We see two approaches in order to implement such a separate shell:
 %
-% - (A) define our own version of it, from scratch, based on our own
+% - (A) define our own custom version of it, from scratch, based on our own
 % read/scan/eval loop; we prefer here that the shell resists to any failure
 % induced by user commands (e.g. not losing its bindings then); it is, at least
 % currently, a very basic shell: no command recall, no history, no built-in
@@ -240,32 +287,121 @@ Options that can be specified when creating a shell:
 % should be automatically added if lacking in a command") yet it was probably
 % not a relevant idea)
 %
-% - (B) plug in the group/user/shell built-in architecture ("integrated shell")
-%
-%
-% See also for approach B:
+% - (B) plug in the group/user/shell built-in architecture ("standard shell");
+% see also for this approach:
 %
 %  * a full description of the Erlang shell:
 %  https://ferd.ca/repl-a-bit-more-and-less-than-that.html; we understand that
-%  we shall register (as 'user_drv') a process running our own version of the
-%  usr_drv module, just in charge, through the 'group' processes that it
-%  manages, of feeding a set of standard 'shell/eval' processes (local or
-%  remote) and handling their results; one purpose of user_drv is to determine
-%  what is the current shell among the ones that it drives, and to drop in into
-%  shell management mode if the input text happens to be ^C or ^G (allowing to
-%  switch shells)
+%  we shall mimic the usr_drv module, just in charge, through the 'group'
+%  process(es) that it manages, of feeding a set of standard 'shell/eval'
+%  processes (local or remote) and handling their results; 'user_drv' is
+%  moreover able to determine what is the current shell among the ones that it
+%  drives, and to drop into shell management mode if the input text happens to
+%  be ^C or ^G (allowing to switch shells); here this would be done by the
+%  creator of our shells
 %
-%  * kernel/src/user_drv.erl for the (message-based) applicative protocol
-%  between a user_drv process and a group (see message/0 and request/0, which
-%  are sent by the user_drv process to its current group)
+%  * kernel/src/user_drv.erl (there is no user.erl) for the (message-based)
+%  applicative protocol between a user_drv process and a group (see message/0
+%  and request/0, which are sent by the user_drv process to its current group);
+%  inspiration can also be found from ssh/src/ssh_cli.erl, relying on
+%  kernel/src/group.erl (not referenced in user documentation),
+%  stdlib/src/edlin.erl
 %
 %  * https://erlangforums.com/t/adding-repl-like-feature-to-a-graphical-erlang-application/3795
 %  (using edlin)
 %
 %  * https://erlang.org/pipermail/erlang-questions/2008-September/038476.html
+%  * https://tryerlang.org/
+%  * https://github.com/seriyps/eplaypen and http://tryerl.seriyps.ru/
+%  * http://erlang.org/pipermail/erlang-questions/2013-April/073451.html
+
+% We tried to implement both, and found out that developing a custom shell was
+% way simpler and more satisfactory than trying to plug in the native shell
+% infrastructure. Despite much time spent, understanding how to properly
+% implement a sufficient protocol like the one between the prim_tty, group, and
+% shell modules is difficult (e.g. overlapping of responsabilities, every module
+% having to manage input/output text to some extent, many features getting in
+% the way - old/new/remote shell) and inconvenient (not much
+% documentation/examples/tests, no easy console or file logging).
+%
+% So, at least for now, we use exclusively our custom shell, not the standard
+% one.
+%
+% What are we losing in doing so / what extra features should be added in some
+% possible future?
+%
+% - enforce a true MVC pattern? Should be already quite the case; preferably
+% without using a FSM (gen_statem), as the code gets considerably less clear
+% then; a shell evaluator should not even be aware of multiline editing,
+% terminal geometry, etc.; enforce a clear modularity/separation of concerns
+% (multiple modules, probably multiple processes)
+%
+% - support various encodings? No, dealing only with UTF8 binaries is more than
+% enough nowadays
+%
+% - support noshell, oldshell or be compliant with the (native) newshell one?
+% Not interesting enough
+%
+% - switch to keypress/character-based handling with cursor control
+% (move/insert/delete, etc.), rather than full commands? Yes, could allow for a
+% bit of smart command editing, e.g. set of supported shortcuts - like an
+% Emacs-like one, (forward/backward) search mode, syntax highlighting,
+% auto-completion of module/function/variable names, and so on; possibly
+% callback-based; most probably the first addition to plan
+%
+% - support remote (Myriad) shells, on other nodes? Certainly, one day
+%
+% - provide solutions for shell control (like with Ctrl-g: listing, starting,
+% connecting, interrupting, killing shells)? Can be added later, with a
+% shell_controller, which would manage a set of shells (like the native "job
+% control manager" - jcl) and be their (smart) group leader for I/O (filtering
+% non-current shells, but possibly notifying of their activity and/or logging
+% them as well)
+%
+% - pseudo-local functions (i.e. "implicit modules", "built-in functions" -
+% callable without being prefixed with a module, as if they were local - for
+% example to offer built-in shell facilities like
+% https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands) in a
+% table, to have a set of them readily available on the shell? Yes, certainly
+% convenient; this requires most probably parse-transformation (not a large
+% problem with Myriad meta)
+%
+% - restricted shell, i.e. excluded modules and/or functions (to implement a
+% safer shell, like for https://www.tryerlang.org/restrictions) could be added?
+% Yes, certainly a useful feature, for security and to avoid silly mistakes;
+% could be based on a set of whitelisted patterns and/or a set of blacklisted
+% ones (or re-using pre-existing infrastructure)
+%
+% - provide per-shell history and make it persistent? To be determined
+%
+% - provide terminal multiplexing with transfers, like 'screen'? Some day maybe
+%
+% - support fancy constructs like records? Use case needed
+%
+% - enforce robust management of EXIT/DOWN messages, exceptions, etc.?
+% Certainly, possibly with aliases/monitors, synchronous operations, etc.
+%
+% - support fancier operations like password entering? Use case needed
 
 
-% Usage example (approach A):
+% What we are gaining with a custom shell ? Simplicity, dropping historical
+% retrocompatibility, having more proper comments, specs, etc.
+
+
+% Mode of operation (common to both kinds of shells):
+%
+% A caller creates such a shell.
+%
+% The shell may spontaneously send displayRequest messages (e.g. so that
+% slogan-like "Eshell V15.0 [...]" texts are displayed by the caller).
+%
+% The caller may (concurrently) run the execute_command/2 function (sending
+% processCommand messages to the shell), so that the corresponding command is
+% evaluated by the shell, and a corresponding command outcome is returned to the
+% caller.
+
+
+% Usage example (custom shell, no log or timestamp enabled):
 
 % Welcome to the MyriadGUI shell <0.93.0>.
 %
@@ -287,6 +423,9 @@ Options that can be specified when creating a shell:
 % evaluation failed: undef
 % 9> time_utils:get_timestamp().
 % {{2024,9,3},{22,29,59}}
+% 10> observer:start().
+% ok % and of course works
+
 
 
 % For myriad_spawn_link/1:
@@ -294,8 +433,9 @@ Options that can be specified when creating a shell:
 
 
 
-
-% Section for our own shell (approach A).
+%%%
+%%% Section for our own custom shell.
+%%%
 
 
 %% Shell user API.
@@ -303,39 +443,43 @@ Options that can be specified when creating a shell:
 
 
 -doc """
-Starts a (non-linked) shell process according to approach A with default
-options, and returns its PID.
-
-If logs are enabled, any corresponding file will be deleted first.
+Starts a (non-linked) custom shell process with default options, and returns its
+PID.
 
 A history of depth ?default_history_max_depth is enabled, and no logging is
 performed.
 """.
--spec start_shell() -> shell_pid().
-start_shell() ->
-	start_shell( _Opts=[] ).
+-spec start_custom_shell() -> custom_shell_pid().
+start_custom_shell() ->
+	start_custom_shell( _Opts=[] ).
 
 
 
 -doc """
-Starts a (non-linked) shell process according to approach A with the specified
-options, and returns its PID.
+Starts a (non-linked) custom shell process with the specified options, and
+returns its PID.
 
-See start_shell/0 for defaults.
+If logs are enabled, any corresponding file will be deleted first.
+
+See start_custom_shell/0 for defaults.
 """.
--spec start_shell( maybe_list( shell_option() ) ) -> shell_pid().
-start_shell( Opts ) ->
+-spec start_custom_shell( maybe_list( shell_option() ) ) -> custom_shell_pid().
+start_custom_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting (non-linked) custom shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
 
 	% Preferring checking in caller process:
-	InitShellState = vet_options( Opts ),
+	InitShellState = vet_options_for_custom( Opts ),
 
 	ShellPid = ?myriad_spawn(
 		fun() ->
-			shell_main_loop( InitShellState )
+			custom_shell_main_loop( InitShellState )
 		end ),
 
 	cond_utils:if_defined( myriad_debug_shell,
-		trace_utils:debug_fmt( "Started (non-linked) shell ~w.",
+		trace_utils:debug_fmt( "Started (non-linked) custom shell ~w.",
 							   [ ShellPid ] ) ),
 
 	ShellPid.
@@ -343,76 +487,79 @@ start_shell( Opts ) ->
 
 
 -doc """
-Starts a linked shell process according to approach A with default options, and
-returns its PID.
+Starts a linked custom shell process with default options, and returns its PID.
 
-See start_shell/0 for defaults.
+See start_custom_shell/0 for defaults.
 """.
--spec start_link_shell() -> shell_pid().
-start_link_shell() ->
-	start_link_shell( _Opts=[] ).
+-spec start_link_custom_shell() -> custom_shell_pid().
+start_link_custom_shell() ->
+	start_link_custom_shell( _Opts=[] ).
 
 
 
 -doc """
-Starts a linked shell process according to approach A, and returns its PID.
+Starts a linked custom shell process with the specified options, and returns its
+PID.
 
-See start_shell/0 for defaults.
+See start_custom_shell/0 for defaults.
 """.
--spec start_link_shell( maybe_list( shell_option() ) ) -> shell_pid().
-start_link_shell( Opts ) ->
+-spec start_link_custom_shell( maybe_list( shell_option() ) ) ->
+										custom_shell_pid().
+start_link_custom_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting a linked custom shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
 
 	% Preferring checking in caller process:
-	InitShellState = vet_options( Opts ),
+	InitShellState = vet_options_for_custom( Opts ),
 
 	ShellPid = ?myriad_spawn_link(
 		fun() ->
-			shell_main_loop( InitShellState )
+			custom_shell_main_loop( InitShellState )
 		end ),
 
 	cond_utils:if_defined( myriad_debug_shell,
-		trace_utils:debug_fmt( "Started linked shell ~w.", [ ShellPid ] ) ),
+		trace_utils:debug_fmt( "Started linked custom shell ~w.",
+							   [ ShellPid ] ) ),
 
 	ShellPid.
 
 
 
 % (helper)
--spec vet_options( maybe_list( shell_option() ) ) -> shell_state().
-vet_options( Opts ) when is_list( Opts ) ->
+-spec vet_options_for_custom( maybe_list( shell_option() ) ) ->
+											custom_shell_state().
+vet_options_for_custom( Opts ) when is_list( Opts ) ->
 
 	% Defaults:
-	InitShellState = #shell_state{
-		submission_count=0,
-		do_timestamp=false,
-		log_path=undefined,
-		log_file=undefined,
-		history_max_depth=?default_history_max_depth,
+	InitShellState = #custom_shell_state{
 		history=queue:new(),
 		bindings=erl_eval:new_bindings() },
 
-	vet_options( Opts, InitShellState );
+	vet_options_for_custom( Opts, InitShellState );
 
-vet_options( Opt ) ->
-	vet_options( [ Opt ] ).
+vet_options_for_custom( Opt ) ->
+	vet_options_for_custom( [ Opt ] ).
 
 
 
 % (helper)
-vet_options( _Opts=[], ShellState ) ->
+vet_options_for_custom( _Opts=[], ShellState ) ->
 	ShellState;
 
-vet_options( _Opts=[ timestamp | T ], ShellState ) ->
-	vet_options( T, ShellState#shell_state{ do_timestamp=true } );
+vet_options_for_custom( _Opts=[ timestamp | T ], ShellState ) ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ do_timestamp=true } );
 
-vet_options( _Opts=[ log | T ], ShellState ) ->
+vet_options_for_custom( _Opts=[ log | T ], ShellState ) ->
 
-	DefaultLogFilename = text_utils:format( "myriad-shell-~ts.log",
+	DefaultLogFilename = text_utils:bin_format( "myriad-shell-~ts.log",
 		[ text_utils:pid_to_filename( self() ) ] ),
 
-	vet_options( [ { log, DefaultLogFilename } | T ], ShellState );
+	vet_options_for_custom( [ { log, DefaultLogFilename } | T ], ShellState );
 
-vet_options( _Opts=[ { log, AnyLogFilePath } | T ], ShellState ) ->
+vet_options_for_custom( _Opts=[ { log, AnyLogFilePath } | T ], ShellState ) ->
 	BinLogFilePath = text_utils:ensure_binary( AnyLogFilePath ),
 	file_utils:remove_file_if_existing( BinLogFilePath ),
 
@@ -421,19 +568,26 @@ vet_options( _Opts=[ { log, AnyLogFilePath } | T ], ShellState ) ->
 	%
 	LogFile = file_utils:open( BinLogFilePath, _OpenOpts=[ write, exclusive ] ),
 
-	vet_options( T, ShellState#shell_state{ log_path=BinLogFilePath,
-											log_file=LogFile } );
+	vet_options_for_custom( T, ShellState#custom_shell_state{
+									log_path=BinLogFilePath,
+									log_file=LogFile } );
 
 
-vet_options( _Opts=[ { history, MaxLen } | T ], ShellState )
-						when is_integer( MaxLen ) andalso MaxLen >= 0 ->
-	vet_options( T, ShellState#shell_state{ history_max_depth=MaxLen } );
+vet_options_for_custom( _Opts=[ { history, MaxLen } | T ], ShellState )
+								when is_integer( MaxLen ) andalso MaxLen >= 0 ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ history_max_depth=MaxLen } );
 
-vet_options( _Opts=[ { history, undefined } | T ], ShellState ) ->
-	vet_options( T, ShellState#shell_state{ history_max_depth=undefined } );
+vet_options_for_custom( _Opts=[ { history, undefined } | T ], ShellState ) ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ history_max_depth=undefined } );
 
-vet_options( _Opts=[ no_history | T ], ShellState ) ->
-	vet_options( T, ShellState#shell_state{ history_max_depth=0 } ).
+vet_options_for_custom( _Opts=[ no_history | T ], ShellState ) ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ history_max_depth=0 } );
+
+vet_options_for_custom( _Opts=[ Other | _T ], _ShellState ) ->
+	throw( { unexpected_shell_option, Other } ).
 
 
 
@@ -442,26 +596,28 @@ Executes the specified command on the specified shell, and returns its result.
 
 Throws an exception on error.
 """.
--spec execute_command( any_string(), shell_pid() ) -> command_info().
+-spec execute_command( any_string(), custom_shell_pid() ) -> command_outcome().
 execute_command( CmdAnyStr, ShellPid ) ->
 	CmdBinStr = text_utils:ensure_binary( CmdAnyStr ),
 	ShellPid ! { processCommand, CmdBinStr, self() },
+
+	% Blocking, so no ShellPid to be pattern-matched to correlate answers:
 	receive
 
-		CmdInfo={ success, _CmdResValue, _CmdId, _MaybeTimestampBinStr } ->
+		CmdOutcome={ success, _CmdResValue, _CmdId, _MaybeTimestampBinStr } ->
 			%CmdResValue;
-			CmdInfo;
+			CmdOutcome;
 
-		CmdInfo={ error, ErrorBinStr, _CmdId, _MaybeTimestampBinStr }  ->
+		CmdOutcome={ error, ErrorBinStr, _CmdId, _MaybeTimestampBinStr }  ->
 
 			cond_utils:if_defined( myriad_debug_shell,
 				trace_utils:error_fmt( "Failed to execute command '~ts' "
-					"on shell ~w: ~ts",
+					"on custom shell ~w: ~ts",
 					[ CmdAnyStr, ShellPid, ErrorBinStr ] ),
 				basic_utils:ignore_unused( ErrorBinStr ) ),
 
 			%throw( { shell_command_failed, ErrorBinStr, ShellPid, CmdAnyStr } )
-			CmdInfo
+			CmdOutcome
 
 	end.
 
@@ -470,30 +626,31 @@ execute_command( CmdAnyStr, ShellPid ) ->
 % Implementation helpers.
 
 
--doc "Main loop of a shell instance (approach A).".
--spec shell_main_loop( shell_state() ) -> no_return().
-shell_main_loop( ShellState ) ->
+-doc "Main loop of a custom shell instance.".
+% No specific initialisation needed, like 'process_flag(trap_exit, true)'.
+-spec custom_shell_main_loop( custom_shell_state() ) -> no_return().
+custom_shell_main_loop( ShellState ) ->
 
 	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
-		"Now being ~ts", [ shell_state_to_string( ShellState ) ] ) ),
+		"Now being ~ts", [ custom_shell_state_to_string( ShellState ) ] ) ),
 
 	% WOOPER-like conventions:
-
 	receive
 
 		{ processCommand, CmdBinStr, ClientPid } ->
 
-			{ CmdInfo, ProcShellState } =
-				process_command( CmdBinStr, ShellState ),
+			{ CmdOutcome, ProcShellState } =
+				process_command_custom( CmdBinStr, ShellState ),
 
 			% A failed command does not kill the shell:
-			ClientPid ! CmdInfo,
+			ClientPid ! CmdOutcome,
 
-			shell_main_loop( ProcShellState );
+			custom_shell_main_loop( ProcShellState );
 
 
 		flushHistory ->
-			shell_main_loop( ShellState#shell_state{ history=queue:new() } );
+			custom_shell_main_loop( ShellState#custom_shell_state{
+										history=queue:new() } );
 
 
 		terminate ->
@@ -509,11 +666,12 @@ shell_main_loop( ShellState ) ->
 
 			CallerPid ! onShellTerminated;
 
+
 		UnexpectedMsg ->
 			trace_utils:error_fmt( "Unexpected message received and ignored "
-				"by Myriad shell ~w: ~p", [ self(), UnexpectedMsg ] ),
+				"by Myriad custom shell ~w: ~p", [ self(), UnexpectedMsg ] ),
 
-			shell_main_loop( ShellState )
+			custom_shell_main_loop( ShellState )
 
 	end.
 
@@ -521,12 +679,13 @@ shell_main_loop( ShellState ) ->
 
 % (helper)
 -spec on_command_success( command(), command_result(), binding_struct(),
-						  shell_state() ) -> { command_info(), shell_state() }.
+	custom_shell_state() ) -> { command_outcome(), custom_shell_state() }.
 on_command_success( CmdBinStr, CmdResValue, NewBindings,
-					ShellState=#shell_state{ submission_count=SubCount } ) ->
+					ShellState=#custom_shell_state{
+							submission_count=SubCount } ) ->
 
 	% submission_count already incremented:
-	ProcShellState = ShellState#shell_state{ bindings=NewBindings },
+	ProcShellState = ShellState#custom_shell_state{ bindings=NewBindings },
 
 	% Only updated on success:
 	HistShellState = update_history( CmdBinStr, CmdResValue, ProcShellState ),
@@ -534,30 +693,32 @@ on_command_success( CmdBinStr, CmdResValue, NewBindings,
 	MaybeTimestampBinStr =
 		manage_success_log( CmdBinStr, CmdResValue, HistShellState ),
 
-	CmdInfo = { success, CmdResValue, _CmdId=SubCount, MaybeTimestampBinStr },
+	CmdOutcome =
+		{ success, CmdResValue, _CmdId=SubCount, MaybeTimestampBinStr },
 
-	{ CmdInfo, HistShellState }.
-
-
-
-
-% Shell commands.
-%
-% We are still in the context of approach A.
+	{ CmdOutcome, HistShellState }.
 
 
--doc "Has this shell process the specified command.".
--spec process_command( command(), shell_state() ) ->
-								{ command_info(), shell_state() }.
-process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
-													 bindings=Bindings } ) ->
+
+
+% Custom Shell commands.
+
+
+-doc """
+Have this custom shell process the specified command and return its outcome.
+""".
+-spec process_command_custom( command(), custom_shell_state() ) ->
+								{ command_outcome(), custom_shell_state() }.
+process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
+											submission_count=SubCount,
+											bindings=Bindings } ) ->
 
 	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
 		"Processing command '~ts'.", [ CmdBinStr ] ) ),
 
 	NewCmdId = SubCount + 1,
 
-	BaseShellState = ShellState#shell_state{ submission_count=NewCmdId },
+	BaseShellState = ShellState#custom_shell_state{ submission_count=NewCmdId },
 
 	% Binaries cannot be scanned as are:
 	CmdStr = text_utils:binary_to_string( CmdBinStr ),
@@ -606,10 +767,10 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 							ReasonBinStr, BaseShellState ),
 
-						CmdInfo = { error, ReasonBinStr, NewCmdId,
-								  MaybeTimestampBinStr },
+						CmdOutcome = { error, ReasonBinStr, NewCmdId,
+									   MaybeTimestampBinStr },
 
-						{ CmdInfo, BaseShellState }
+						{ CmdOutcome, BaseShellState }
 
 					end;
 
@@ -631,10 +792,10 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 						ReasonBinStr, BaseShellState ),
 
-					CmdInfo = { error, ReasonBinStr, NewCmdId,
-								MaybeTimestampBinStr },
+					CmdOutcome = { error, ReasonBinStr, NewCmdId,
+								   MaybeTimestampBinStr },
 
-					{ CmdInfo, BaseShellState }
+					{ CmdOutcome, BaseShellState }
 
 			end;
 
@@ -658,29 +819,31 @@ process_command( CmdBinStr, ShellState=#shell_state{ submission_count=SubCount,
 			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
 													 BaseShellState ),
 
-			CmdInfo = { error, ReasonBinStr, NewCmdId, MaybeTimestampBinStr },
+			CmdOutcome =
+				{ error, ReasonBinStr, NewCmdId, MaybeTimestampBinStr },
 
-			{ CmdInfo, BaseShellState }
+			{ CmdOutcome, BaseShellState }
 
 	end.
 
 
+
 % (helper)
--spec manage_success_log( command(), command_result(), shell_state() ) ->
+-spec manage_success_log( command(), command_result(), custom_shell_state() ) ->
 										option( timestamp_binstring() ).
 manage_success_log( _CmdBinStr, _CmdResValue,
-					#shell_state{ do_timestamp=true,
-								  log_file=undefined } ) ->
+					#custom_shell_state{ do_timestamp=true,
+										 log_file=undefined } ) ->
 	time_utils:get_bin_textual_timestamp();
 
 manage_success_log( _CmdBinStr, _CmdResValue,
-					#shell_state{ do_timestamp=false,
-								  log_file=undefined } ) ->
+					#custom_shell_state{ do_timestamp=false,
+										 log_file=undefined } ) ->
 	undefined;
 
 manage_success_log( CmdBinStr, CmdResValue,
-					#shell_state{ do_timestamp=true,
-								  log_file=LogFile } ) ->
+					#custom_shell_state{ do_timestamp=true,
+										 log_file=LogFile } ) ->
 	TimestampBinStr = time_utils:get_bin_textual_timestamp(),
 
 	file_utils:write_ustring( LogFile,
@@ -690,8 +853,8 @@ manage_success_log( CmdBinStr, CmdResValue,
 	TimestampBinStr;
 
 manage_success_log( CmdBinStr, CmdResValue,
-					#shell_state{ do_timestamp=false,
-								  log_file=LogFile } ) ->
+					#custom_shell_state{ do_timestamp=false,
+										 log_file=LogFile } ) ->
 	file_utils:write_ustring( LogFile,
 		"Command '~ts' -> ~p~n", [ CmdBinStr, CmdResValue ] ),
 
@@ -701,21 +864,21 @@ manage_success_log( CmdBinStr, CmdResValue,
 
 
 % (helper)
--spec manage_error_log( command(), command_error(), shell_state() ) ->
+-spec manage_error_log( command(), command_error(), custom_shell_state() ) ->
 										option( timestamp_binstring() ).
 manage_error_log( _CmdBinStr, _ReasonBinStr,
-				  #shell_state{ do_timestamp=true,
-								log_file=undefined } ) ->
+				  #custom_shell_state{ do_timestamp=true,
+									   log_file=undefined } ) ->
 	time_utils:get_bin_textual_timestamp();
 
 manage_error_log( _CmdBinStr, _ReasonBinStr,
-				  #shell_state{ do_timestamp=false,
-								log_file=undefined } ) ->
+				  #custom_shell_state{ do_timestamp=false,
+									   log_file=undefined } ) ->
 	undefined;
 
 manage_error_log( CmdBinStr, ReasonBinStr,
-				  #shell_state{ do_timestamp=true,
-								log_file=LogFile } ) ->
+				  #custom_shell_state{ do_timestamp=true,
+									   log_file=LogFile } ) ->
 	TimestampBinStr = time_utils:get_bin_textual_timestamp(),
 
 	file_utils:write_ustring( LogFile,
@@ -725,8 +888,8 @@ manage_error_log( CmdBinStr, ReasonBinStr,
 	TimestampBinStr;
 
 manage_error_log( CmdBinStr, ReasonBinStr,
-				  #shell_state{ do_timestamp=false,
-								log_file=LogFile } ) ->
+				  #custom_shell_state{ do_timestamp=false,
+									   log_file=LogFile } ) ->
 	file_utils:write_ustring( LogFile,
 		"Evaluation failed for command '~ts': ~ts.~n",
 		[ CmdBinStr, ReasonBinStr ] ),
@@ -737,31 +900,31 @@ manage_error_log( CmdBinStr, ReasonBinStr,
 
 
 -doc "Updates the shell history for the specified command.".
--spec update_history( command(), command_result(), shell_state() ) ->
-										shell_state().
-update_history( _Cmd, _CmdRes, ShellState=#shell_state{
+-spec update_history( command(), command_result(), custom_shell_state() ) ->
+										custom_shell_state().
+update_history( _Cmd, _CmdRes, ShellState=#custom_shell_state{
 											history_max_depth=0 } ) ->
 	ShellState;
 
 
-update_history( Cmd, CmdRes, ShellState=#shell_state{
+update_history( Cmd, CmdRes, ShellState=#custom_shell_state{
 											history_max_depth=undefined,
 											history=HistQ } ) ->
 
 	% No length limit:
 	NewHistQ = queue:in( _HistElem={ Cmd, CmdRes }, HistQ ),
 
-	ShellState#shell_state{ history=NewHistQ };
+	ShellState#custom_shell_state{ history=NewHistQ };
 
 
-update_history( Cmd, CmdRes, ShellState=#shell_state{
+update_history( Cmd, CmdRes, ShellState=#custom_shell_state{
 											history_max_depth=HDepth,
 											history=HistQ } ) ->
 	DropHistQ = case queue:len( HistQ ) of
 
 		HDepth ->
 			% Full, thus dropping first (never expected to be empty):
-			{ { value, _FirstHItem }, ShrunkHistQ } = queue:out( HistQ ),
+			{ { _ValueAtom, _FirstHItem }, ShrunkHistQ } = queue:out( HistQ ),
 			ShrunkHistQ;
 
 		_ ->
@@ -772,63 +935,365 @@ update_history( Cmd, CmdRes, ShellState=#shell_state{
 
 	NewHistQ = queue:in( _HistElem={ Cmd, CmdRes }, DropHistQ ),
 
-	ShellState#shell_state{ history=NewHistQ }.
+	ShellState#custom_shell_state{ history=NewHistQ }.
 
 
 
 
+%%%
+%%% Section for integrating a standard shell.
+%%%
+%%% Currently not functional. Not worth it.
 
-% Section for an integrated shell (approach B).
+
+%% Shell user API.
+
 
 
 -doc """
-Starts a shell process according to approach B, returns its PID.
+Starts a (non-linked) standard shell process with default options, and returns
+its PID.
 """.
--spec start_integrated_shell() -> shell_pid().
-start_integrated_shell() ->
-
-	GrpServerPid = group:start( user_drv:start(),
-		{ ?MODULE, start_integrated_helper, [] } ),
-
-	trace_utils:debug_fmt( "Group server for integrated shell: ~w.",
-						   [ GrpServerPid ] ),
-
-	GrpServerPid.
-
-
-start_integrated_helper() ->
-	spawn_link( fun() -> integrated_shell_main_loop() end ).
+-spec start_standard_shell() -> standard_shell_pid().
+start_standard_shell() ->
+	start_standard_shell( _Opts=[] ).
 
 
 
--doc "Main loop of an integrated shell instance (approach B).".
--spec integrated_shell_main_loop() -> no_return().
-integrated_shell_main_loop() ->
-	throw(to_do).
+-doc """
+Starts a (non-linked) standard shell process with the specified options, and
+returns its PID.
+
+See start_standard_shell/0 for defaults.
+""".
+-spec start_standard_shell( maybe_list( shell_option() ) ) ->
+											standard_shell_pid().
+start_standard_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting (non-linked) standard shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options_for_standard( Opts ),
+
+	ShellPid = ?myriad_spawn(
+		fun() ->
+			standard_shell_init( InitShellState )
+		end ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Started (non-linked) standard shell ~w.",
+							   [ ShellPid ] ) ),
+
+	ShellPid.
+
+
+
+-doc """
+Starts a linked standard shell process with default options, and returns its
+PID.
+
+See start_standard_shell/0 for defaults.
+""".
+-spec start_link_standard_shell() -> standard_shell_pid().
+start_link_standard_shell() ->
+	start_link_standard_shell( _Opts=[] ).
+
+
+
+-doc """
+Starts a linked standard shell process with the specified options, and returns
+its PID.
+
+See start_standard_shell/0 for defaults.
+""".
+-spec start_link_standard_shell( maybe_list( shell_option() ) ) ->
+										standard_shell_pid().
+start_link_standard_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting a linked standard shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options_for_standard( Opts ),
+
+	ShellPid = ?myriad_spawn_link(
+		fun() ->
+			standard_shell_init( InitShellState )
+		end ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Started linked standard shell ~w.",
+							   [ ShellPid ] ) ),
+
+	ShellPid.
+
+
+
+% (helper)
+-spec vet_options_for_standard( maybe_list( shell_option() ) ) ->
+											standard_shell_state().
+vet_options_for_standard( Opts ) when is_list( Opts ) ->
+
+	% Defaults:
+	InitShellState = #standard_shell_state{},
+
+	vet_options_for_standard( Opts, InitShellState );
+
+vet_options_for_standard( Opt ) ->
+	vet_options_for_standard( [ Opt ] ).
+
+
+% (helper)
+%vet_options_for_standard( _Opts=[], ShellState ) ->
+vet_options_for_standard( _Opts, ShellState ) ->
+	ShellState.
+
+
+
+-doc "Initialises and runs a standard shell process.".
+-spec standard_shell_init( standard_shell_state() ) -> no_return().
+standard_shell_init( ShellState ) ->
+
+	process_flag( trap_exit, true ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug( "Initialising standard shell." ) ),
+
+
+	% Starting like lib/ssh/src/ssh_cli.erl or lib/kernel/src/user_drv.erl:
+
+	Ancestors = [ self() | case get( '$ancestors' ) of
+								undefined -> [];
+								Anc -> Anc
+						   end ],
+
+	Drv = self(),
+
+	%Shell = {},
+	%Shell = {RemoteNode, M, F, A},
+	Shell = { _Mod=shell, _Fun=start, _Args=[ init ] },
+
+	%GrpOpts = [],
+	%GrpOpts = [ {echo,true}, {noshell,true} ],
+	GrpOpts = [ { dumb, false }, { expand_below, true },
+				{ echo, true } ], % {expand_fun, ...
+
+	GrpLeaderPid = spawn_link( group, server,
+							   [ Ancestors, Drv, Shell, GrpOpts ] ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Created group leader ~w.", [ GrpLeaderPid ] ) ),
+
+	% Like primtty.erl:
+	%user_drv ! { self(), enable },
+	% user_drv ! { self(), {data, unicode:characters_to_binary("Z=3.") }},
+
+	% GrpLeaderPid = group:start( _Drv=self(), _Shell={}, GroupOpts ),
+	% %GrpLeaderPid = group:start( _Drv=self(), ActualShellPid, GroupOpts ),
+
+	% trace_utils:debug_fmt( "~w created group ~w.", [ self(), GrpLeaderPid ] ),
+	% GrpLeaderPid ! {driver_id,self()},
+	% receive
+
+	%	{GrpLeaderPid,driver_id,DrvPid} ->
+	%		trace_utils:debug_fmt("Driver: ~w", [ DrvPid ] )
+
+	% end,
+
+	%FirstText = text_utils:format("Hello!~n", []),
+	%FirstText = text_utils:format("A=1.~n", []),
+
+	%UTF8Binary = unicode:characters_to_binary(
+	%    io_lib:format("~ts", [FirstText])),
+
+	% Never managed to have an answer; either too short/incomplete, or some
+	% extra signal to trigger evaluation must happen:
+	%
+	%GrpLeaderPid ! { self(), { data, UTF8Binary } },
+
+	%GrpLeaderPid ! {self(), echo, true},
+	%GrpLeaderPid ! {self(),tty_geometry,{0,0}},
+	%GrpLeaderPid ! { _DrvPid=self(), {data, <<"X=9.\n">>} },
+	%GrpLeaderPid ! { _DrvPid=self(), {data, <<"X=9.">>} },
+	%GrpLeaderPid ! { _DrvPid=self(), {data, "X=9."} },
+	Req = {put_chars,unicode, <<"X=1.\n">>},
+	From=self(),
+	ReplyAs=self(),
+	FullReq = {io_request,From,ReplyAs,Req},
+	GrpLeaderPid ! FullReq,
+
+	GrpLeaderPid ! {io_request,From,ReplyAs,{put_chars,unicode, <<"Y=2.\n">>}},
+
+	Prompt = <<"ABC\n">>,
+
+	GrpLeaderPid ! {io_request,From,ReplyAs,{get_chars,unicode, Prompt}},
+
+
+	% We mimic user_drv:start/0; corresponds to group:start/0,
+	% gen_statem:start/4, then start_user/0:
+
+	% Start a group leader process and register it as 'user', unless a 'user'
+	% already exists (probably off-topic):
+	%
+	%% _UserGrpLeaderPid = case whereis(user) of
+	%%
+	%%	undefined ->
+	%%		UserPid = group:start(_Drv=self(), _Shell={},
+	%%							  _Opts=[{echo,false}, {noshell,true}]),
+	%%		trace_utils:debug_fmt( "Creation of 'user' group ~w.",
+	%% [ UserPid ] ),
+	%%		register(user, UserPid),
+	%%		UserPid;
+
+	%%	UserPid ->
+	%%		trace_utils:debug( "No 'user' group creation." ),
+	%%		UserPid
+
+	%% end,
+
+	InitShellState = ShellState#standard_shell_state{
+		current_group=GrpLeaderPid },
+
+	standard_shell_main_loop( InitShellState ).
+
+
+
+-doc "Main loop of an standard shell instance.".
+-spec standard_shell_main_loop( standard_shell_state() ) -> no_return().
+standard_shell_main_loop( ShellState=#standard_shell_state{
+										current_group=GrpLeaderPid } ) ->
+
+	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
+		"Standard shell ~w waiting for messages.", [ self() ] ) ),
+
+	receive
+
+%% {<0.89.0>,
+%%   {put_chars_sync,unicode,
+%%         <<"Eshell V15.0 (press Ctrl+G to abort, type help(). for help)\n">>,
+%%        {<0.90.0>,#Ref<0.1174729555.344195076.134393>}}}
+
+
+		% For example MsgBin may be <<"Eshell V15.0 (press Ctrl+G to abort, type
+		% help(). for help)\n">>:
+		%
+		{ GrpLeaderPid, { put_chars_sync, unicode, MsgBin,
+						  { _From=ActualShellPid, ReplyRef } } } ->
+			trace_utils:debug_fmt( "Display request from actual shell ~w: "
+				"'~ts'.", [ ActualShellPid, MsgBin ] ),
+
+% If not answering, ActualShellPid crashes with:
+
+%% {terminated,[{io,fwrite,
+%%                  ["Warning! The slogan \"~p\" could not be printed.\n",
+%%                   [[69,115,104,101,108,108,32,86,"15.0"]]],
+%%                  [{file,"io.erl"},
+%%                   {line,198},
+%%                   {error_info,#{cause => {io,terminated},
+%%                                 module => erl_stdlib_errors}}]},
+%%             {shell,server,1,[{file,"shell.erl"},{line,289}]}]}
+			ActualShellPid ! {reply, ReplyRef, ok},
+
+			standard_shell_main_loop( ShellState );
+
+		{ send, UTF8Binary } ->
+			% No effect:
+			GrpLeaderPid ! { self(), { data, UTF8Binary } },
+			standard_shell_main_loop( ShellState );
+
+		{ processCommand, CmdBinStr, ClientPid } ->
+
+			{ CmdOutcome, ProcShellState } =
+				process_command_standard( CmdBinStr, ShellState ),
+
+			trace_utils:debug_fmt( "Sending back outcome '~p' to client.",
+								   [ CmdOutcome ] ),
+
+			% A failed command does not kill the shell:
+			ClientPid ! CmdOutcome,
+
+			standard_shell_main_loop( ProcShellState );
+
+		Msg ->
+			trace_utils:warning_fmt( "Standard shell ~w received and ignored "
+				"the following message:~n ~p", [ self(), Msg ] ),
+
+			standard_shell_main_loop( ShellState )
+
+	end.
+
+
+
+
+% Standard Shell commands.
+
+
+-doc """
+Have this standard shell process the specified command, and return its outcome.
+""".
+-spec process_command_standard( command(), standard_shell_state() ) ->
+								{ command_outcome(), standard_shell_state() }.
+process_command_standard( CmdBinStr, ShellState=#standard_shell_state{
+											current_group=GrpLeaderPid } ) ->
+
+	%timer:sleep(1000),
+	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
+		"Processing command '~ts'.", [ CmdBinStr ] ) ),
+
+	ConvBin = case unicode:characters_to_binary( CmdBinStr ) of
+
+		B when is_binary( B ) ->
+			B;
+
+		Other ->
+			throw( { bin_conv_failed, Other } )
+
+	end,
+
+	GrpLeaderPid ! { self(), { data, ConvBin } },
+	%GrpLeaderPid ! { self(), { data, <<"io:format(\"Anyone?\").">> } },
+	GrpLeaderPid ! { self(), { data, <<"help().\n"/utf8>> } },
+	GrpLeaderPid ! { self(), { data, <<"A=1.\n/utf8">> } },
+	GrpLeaderPid ! { self(), { data, <<"B=C+1.\n/utf8">> } },
+	%GrpLeaderPid ! {put_chars, unicode, <<"X=1."/utf8>>},
+	%GrpLeaderPid ! { self(), {put_chars, unicode, <<"X=1."/utf8>>} },
+	%GrpLeaderPid ! { self(), eof },
+
+	receive
+
+		Any ->
+			trace_utils:debug_fmt( "Got ~p.", [ Any ] ),
+			{ Any, ShellState }
+
+	end.
 
 
 
 % Helpers
 
 
--doc "Returns a textual description of the specified shell state.".
--spec shell_state_to_string( shell_state() ) -> ustring().
-shell_state_to_string( ShellState ) ->
-	shell_state_to_string( ShellState, _Verbose=true ).
+-doc "Returns a textual description of the specified custom shell state.".
+-spec custom_shell_state_to_string( custom_shell_state() ) -> ustring().
+custom_shell_state_to_string( ShellState ) ->
+	custom_shell_state_to_string( ShellState, _Verbose=true ).
 
 
 
 -doc """
-Returns a textual description of the specified shell state, with the specified
-verbosity.
+Returns a textual description of the specified custom shell state, with the
+specified verbosity.
 """.
--spec shell_state_to_string( shell_state(), boolean() ) -> ustring().
-shell_state_to_string( #shell_state{
-							submission_count=SubCount,
-							history_max_depth=HistMaxDepth,
-							history=History,
-							bindings=BindingStruct },
-					   _Verbose=true ) ->
+-spec custom_shell_state_to_string( custom_shell_state(), boolean() ) ->
+											ustring().
+custom_shell_state_to_string( #custom_shell_state{
+								submission_count=SubCount,
+								history_max_depth=HistMaxDepth,
+								history=History,
+								bindings=BindingStruct },
+							  _Verbose=true ) ->
 	HistStr = case HistMaxDepth of
 
 		0 ->
@@ -845,17 +1310,17 @@ shell_state_to_string( #shell_state{
 
 	end,
 
-	text_utils:format( "shell ~w with ~ts and ~B commands already submitted, "
-		"with ~ts",
+	text_utils:format( "custom shell ~w with ~ts and ~B commands "
+		"already submitted, with ~ts",
 		[ self(), bindings_to_string( BindingStruct ), SubCount, HistStr ] );
 
 
-shell_state_to_string( #shell_state{
-							submission_count=SubCount,
-							%history=History,
-							bindings=BindingStruct },
-					   _Verbose=false ) ->
-	text_utils:format( "shell with ~B bindings, and ~B commands already "
+custom_shell_state_to_string( #custom_shell_state{
+								submission_count=SubCount,
+								%history=History,
+								bindings=BindingStruct },
+							  _Verbose=false ) ->
+	text_utils:format( "custom shell with ~B bindings, and ~B commands already "
 		"submitted",
 		[ length( erl_eval:bindings( BindingStruct ) ), SubCount ] ).
 
@@ -915,3 +1380,23 @@ history_to_string( History ) ->
 history_element_to_string( { Cmd, CmdRes } ) ->
 	text_utils:format_ellipsed( "command '~ts' that resulted in ~p",
 								[ Cmd, CmdRes ] ).
+
+
+
+-doc "Returns a textual description of the specified standard shell state.".
+-spec standard_shell_state_to_string( standard_shell_state() ) -> ustring().
+standard_shell_state_to_string( ShellState ) ->
+	standard_shell_state_to_string( ShellState, _Verbose=true ).
+
+
+-doc """
+Returns a textual description of the specified standard shell state, with the
+specified verbosity.
+""".
+-spec standard_shell_state_to_string( standard_shell_state(), boolean() ) ->
+											ustring().
+standard_shell_state_to_string( #standard_shell_state{
+									current_group=CurrentGrpPid },
+								_Verbose ) ->
+	text_utils:format( "standard shell ~w relying on group leader ~w",
+					   [ self(), CurrentGrpPid ] ).

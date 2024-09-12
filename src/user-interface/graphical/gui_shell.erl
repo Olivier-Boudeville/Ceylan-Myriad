@@ -47,7 +47,7 @@ Not to be mixed up with shell_utils:shell_pid().
 
 
 
--export([ create/1, create/2, destruct/1 ]).
+-export([ create/1, create/2, create/3, destruct/1 ]).
 
 
 
@@ -94,19 +94,26 @@ Not to be mixed up with shell_utils:shell_pid().
 % interest in syntax-highlighting the user inputs or the interpreter outputs.
 %
 % Intercepting inputs on a character basis could allow to offer smart key
-% shortcuts (e.g. like Emacs), for example to navigate in the history.
+% shortcuts (e.g. like Emacs), for example to navigate in the history or offer
+% autocompletion.
 %
-% Features like built-in functions (callable without being prefixed with a
-% module, as if they were local - for example to offer shell facilities) and
-% excluded modules and/or functions (to implement restricted shells) could be
-% added.
+% Indeed, rather than using a gui_text_editor for the input commands like here,
+% the entered characters shall be read one by one (an event each, rather than as
+% a whole string when enter is pressed) and possibly smartly integrated if
+% needed (so that Ctrl-A for example is considered as such), so that special
+% characters can be specifically handled (e.g. the down arrow, to recall a past
+% command, or even for some kind of auto-completion to be implemented).
+%
+% This could be done with a static text display (see gui_text_display), updated
+% based on its subscription to the onKeyPressed, onKeyReleased, onCharEntered,
+% etc. events.
 
-% Alternatively, the approach B defined in shell_utils could be used, to have
-% remote shells, Emacs-like shortcuts, etc. could be implemented.
+
 
 -define( default_font_size, 10 ).
 
 
+% The (internal) state of a GUI shell instance:
 -record( gui_shell_state, {
 
 	% The editor used by the shell for the input commands:
@@ -124,7 +131,7 @@ Not to be mixed up with shell_utils:shell_pid().
 	shell_pid :: shell_pid() } ).
 
 
--doc "The (internal) state of a shell instance.".
+-doc "The (internal) state of a GUI shell instance.".
 -type gui_shell_state() :: #gui_shell_state{}.
 
 
@@ -158,6 +165,9 @@ size and shell options.
 											gui_shell().
 create( FontSize, ShellOpts, ParentWindow ) ->
 
+	% Not wanting a crash of the shell_utils'shell to crash us in turn:
+	process_flag( trap_exit, true ),
+
 	BackendEnv = gui:get_backend_environment(),
 
 	% At least currently, linking to the caller process:
@@ -168,6 +178,7 @@ create( FontSize, ShellOpts, ParentWindow ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_shell,
 		trace_utils:debug_fmt( "Created GUI shell ~w.", [ GUIShellPid ] ) ),
+
 
 	GUIShellPid.
 
@@ -197,7 +208,7 @@ backend environment.
 					   backend_environment(), parent() ) -> no_return().
 start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
-	ActualShellPid = shell_utils:start_link_shell( ShellOpts ),
+	ActualShellPid = shell_utils:start_link_custom_shell( ShellOpts ),
 
 	gui:set_backend_environment( BackendEnv ),
 
@@ -244,7 +255,8 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 	gui_font:destruct( ShellFont ),
 
 	InitBinText = text_utils:bin_format(
-		"Welcome to the MyriadGUI shell ~w.~n", [ self() ] ),
+		"Welcome to the MyriadGUI shell ~w on node ~ts.~n~n",
+		[ self(), net_utils:localnode() ] ),
 
 	% Not wanting an onEnterPressed event for that:
 	gui_text_editor:set_text( PastOpsEditor, InitBinText ),
@@ -271,7 +283,7 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
 
 
--doc "Main loop of the shell process.".
+-doc "Main loop of the GUI shell process.".
 -spec gui_shell_main_loop( gui_shell_state() ) -> no_return().
 gui_shell_main_loop( GUIShellState=#gui_shell_state{
 										command_editor=CmdEditor,
@@ -330,11 +342,13 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 									   [ self() ] ) );
 
 		Other ->
-			trace_utils:warning_fmt( "GUI shell loop ignored following "
+			trace_utils:warning_fmt( "GUI shell loop ignored the following "
 									 "message:~n ~p.", [ Other ] ),
 			gui_shell_main_loop( GUIShellState )
 
 	end.
+
+
 
 
 
@@ -343,7 +357,7 @@ Returns the full prompt corresponding to the specified command identifier.
 """.
 -spec get_prompt_for( command_id() ) -> bin_string().
 get_prompt_for( CmdId ) ->
-	text_utils:bin_format( "~n~B> ", [ CmdId ] ).
+	text_utils:bin_format( "~B> ", [ CmdId ] ).
 
 
 
@@ -351,7 +365,7 @@ get_prompt_for( CmdId ) ->
 -spec format_text( bin_string(), option( timestamp_binstring() ) ) ->
 											bin_string().
 format_text( Text, _MaybeTimestampBinStr=undefined ) ->
-	Text;
+	text_utils:bin_format( "~ts~n", [ Text ] );
 
 format_text( Text, TimestampBinStr ) ->
-	text_utils:bin_format( "[~ts] ~ts", [ Text, TimestampBinStr ] ).
+	text_utils:bin_format( "[~ts] ~ts~n", [ TimestampBinStr, Text ] ).

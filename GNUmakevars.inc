@@ -1883,10 +1883,10 @@ EXTRA_OPTS = $(TIME_OPTS)
 # that marker) from the ones that shall be passed "as are" to the Erlang VM
 # (after that marker), while the '-extra' marker delimits user/system Erlang
 # flags from the application-specific command line arguments (which are
-# specifically managed by executable_utils).
+# specifically managed by cmd_line_utils).
 #
-# So additional arguments FOO_ARGS to be passed to the VM while not being known
-# of launch-erl.sh shall be specified between -start-verbatim-options and
+# So additional arguments FOO_ARGS, to be passed to the VM while not being known
+# of launch-erl.sh, shall be specified between -start-verbatim-options and
 # -extra, like in: '-start-verbatim-options $(FOO_ARGS) -extra'.
 
 
