@@ -92,7 +92,9 @@ See basic_utils_test.erl for the corresponding test.
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
-		  identity/1,
+
+		  identity/1, if_else/3,
+
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
 		  set_option/2,
@@ -694,6 +696,25 @@ not disappear from stacktraces
 identity( Term ) ->
 	Term.
 
+
+
+-doc """
+Returns, if the first argument is 'true', the second argument, otherwise the
+third.
+
+Interesting as more compact that a 'case' or a 'if' clause.
+
+`if_else(Condition, A, B)` can be seen just as a shortcut (see its actual code),
+and a good candidate for parse-transfrom based inlining. Note that due to strict
+evaluation, both arguments will always be evaluated.
+""".
+% First argument not necessarily boolean():
+-spec if_else( term(), term(), term() ) -> term().
+if_else( _Condition=true, A, _B ) ->
+	A;
+
+if_else( _Condition, _A, B ) ->
+	B.
 
 
 -doc "Checks that specified term is 'undefined', and returns it.".
