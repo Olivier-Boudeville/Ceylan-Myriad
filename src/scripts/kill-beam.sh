@@ -63,7 +63,7 @@ for target_pid in $(ps -edf | grep beam.smp | grep " -${target_mode} ${prog_name
 
 		   done ); do
 
-	if [ $is_interactive eq 0 ]; then
+	if [ $is_interactive -eq 0 ]; then
 
 		mfa="$(ps -p "${target_pid}" -o cmd= | sed "s|^.*${target_mode} ||1" | sed 's|\(\) .*$||1')"
 
