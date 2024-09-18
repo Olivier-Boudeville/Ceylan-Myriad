@@ -323,7 +323,7 @@ while [ $token_eaten -eq 0 ]; do
 
 		erlang_version="${erlang_version_candidate}"
 		erlang_sum="${erlang_sum_candidate}"
-		erlang_commit_id="${erlang_commit_id_candidate}"
+		#erlang_commit_id="${erlang_commit_id_candidate}"
 
 		plt_file="Erlang-${erlang_version_candidate}"
 
