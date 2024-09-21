@@ -28,8 +28,13 @@
 -module(tagged_list).
 
 -moduledoc """
-Utilities to manage **tagged lists** (strict or not), i.e. lists of tagged
-pairs.
+Utilities to manage **tagged lists** (strict or not), i.e. lists of tagged pairs
+(pairs whose first element is an atom) and possibly mere atoms (if the tagged
+list is not strict).
+
+Tagged lists may have entries with the same keys (a key being either a
+standalone one or the first element of a pair); use check_duplicate_keys*/1 to
+detect it.
 
 See also the pair module.
 """.
@@ -39,8 +44,8 @@ See also the pair module.
 A specific case of proplist(), whose tuples are only pairs made of an atom and a
 value of the specified type (and may comprise mere atoms as well).
 
-Not equivalent to list_table() either (which does not support mere atoms, and
-whose keys may not be atoms).
+Not equivalent to list_table() either (which does not support mere atoms, whose
+keys may not be atoms, and cannot be duplicated).
 """.
 -type tagged_list( T ) :: [ atom() | tagged_pair( T ) ].
 
@@ -52,10 +57,17 @@ any value, and may comprise mere atoms as well.
 -type tagged_list() :: tagged_list( element() ).
 
 
+-type invalid_tagged_list_reason() :: 'non_atom_tag'
+									| 'not_atom_or_tagged_pair'
+									| 'not_list'.
+
 
 -doc """
 A specific case of tagged list, whose tuples are only pairs made of an atom and
 a value of the specified type (mere atoms not supported).
+
+Not equivalent to list_table() either (whose keys may not be atoms, and cannot
+be duplicated).
 """.
 -type strict_tagged_list( T ) :: [ tagged_pair( T ) ].
 
@@ -67,20 +79,31 @@ of any value (mere atoms not supported).
 -type strict_tagged_list() :: [ tagged_pair( element() ) ].
 
 
+-type invalid_strict_tagged_list_reason() :: 'non_atom_tag'
+										   | 'not_tagged_pair'
+										   | 'not_list'.
+
+
 
 -export_type([ tagged_list/0, tagged_list/1,
-			   strict_tagged_list/0, strict_tagged_list/1 ]).
+			   strict_tagged_list/0, strict_tagged_list/1,
+			   invalid_tagged_list_reason/0,
+			   invalid_strict_tagged_list_reason/0 ]).
+
 
 
 % For tagged lists:
--export([ check_tagged_list/1, ensure_tagged_list/1,
+-export([ is_tagged_list/1, is_strict_tagged_list/1,
+		  check_tagged_list/1, ensure_tagged_list/1, check_duplicate_keys/1,
 		  extract_atom_if_existing/2, extract_atom_with_default/3,
 		  extract_pair_if_existing/2, extract_pair_with_default/3 ]).
 
 
 % For strict tagged lists:
 -export([ check_strict_tagged_list/1, ensure_strict_tagged_list/1,
-		  extract_pair_if_existing_strict/2, extract_pair_with_default/3 ]).
+		  check_strict_duplicate_keys/1,
+		  extract_pair_if_existing_strict/2,
+		  extract_pair_with_default_strict/3 ]).
 
 
 
@@ -100,6 +123,9 @@ of any value (mere atoms not supported).
 
 % Type shorthands:
 
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+-type duplicate_info() :: list_utils:duplicate_info().
+
 -type element() :: pair:element().
 
 -type tagged_pair( T ) :: pair:tagged_pair( T ).
@@ -110,33 +136,75 @@ of any value (mere atoms not supported).
 % Listing implementations for both types of tagged lists:
 
 
+
+-doc """
+Confirms that the specified term is a tagged list, otherwise returns an
+explanation pair.
+""".
+-spec is_tagged_list( term() ) ->
+		  'true' |
+		  { invalid_tagged_list_reason(), FirstFaultyEntry :: term() }.
+is_tagged_list( _Term=[] ) ->
+	true;
+
+is_tagged_list( [ { Atom, _Y } | T ] ) when is_atom( Atom ) ->
+	is_tagged_list( T );
+
+is_tagged_list( [ P={ _X, _Y } | _T ] ) ->
+	{ non_atom_tag, P };
+
+is_tagged_list( [ Atom | T ] ) when is_atom( Atom ) ->
+	is_tagged_list( T );
+
+is_tagged_list( [ Other | _T ] ) ->
+	{ not_atom_or_tagged_pair, Other };
+
+is_tagged_list( Other ) ->
+	{ not_list, Other }.
+
+
+
 -doc """
 Throws an exception if the specified term is not a tagged list, otherwise
 returns this exact list (for chaining).
 """.
 -spec check_tagged_list( term() ) -> tagged_list().
 check_tagged_list( Term ) ->
-	check_tagged_list( Term, Term ).
+	case is_tagged_list( Term ) of
+
+		true ->
+			Term;
+
+		P -> % { Reason, FirstFaultyEntry } ->
+			throw( { not_tagged_list, P, Term } )
+
+	end.
 
 
-% (helper)
-check_tagged_list( [], Term ) ->
-	Term;
 
-check_tagged_list( [ { X, _Y } | T ], Term ) when is_atom( X ) ->
-	check_tagged_list( T, Term );
 
-check_tagged_list( [ P={ X, _Y } | _T ], Term ) ->
-	throw( { non_atom_tag, X, P, Term } );
 
-check_tagged_list( [ Atom | T ], Term ) when is_atom( Atom ) ->
-	check_tagged_list( T, Term );
+-doc """
+Confirms that the specified term is a strict tagged list, otherwise returns an
+explanation pair.
+""".
+-spec is_strict_tagged_list( term() ) ->
+		  'true' |
+		  { invalid_strict_tagged_list_reason(), FirstFaultyEntry :: term() }.
+is_strict_tagged_list( _Term=[] ) ->
+	true;
 
-check_tagged_list( [ Other | _T ], Term ) ->
-	throw( { not_tagged_pair, Other, Term } );
+is_strict_tagged_list( [ { X, _Y } | T ] ) when is_atom( X ) ->
+	is_strict_tagged_list( T );
 
-check_tagged_list( Other, _Term ) ->
-	throw( { not_tagged_list, Other } ).
+is_strict_tagged_list( [ P={ _X, _Y } | _T ] ) ->
+	{ non_atom_tag, P };
+
+is_strict_tagged_list( [ Other | _T ] ) ->
+	{ not_tagged_pair, Other };
+
+is_strict_tagged_list( Other ) ->
+	{ not_list, Other }.
 
 
 
@@ -146,25 +214,15 @@ returns this exact list (for chaining).
 """.
 -spec check_strict_tagged_list( term() ) -> strict_tagged_list().
 check_strict_tagged_list( Term ) ->
-	check_strict_tagged_list( Term, Term ).
+	case is_strict_tagged_list( Term ) of
 
+		true ->
+			Term;
 
-% (helper)
-check_strict_tagged_list( [], Term ) ->
-	Term;
+		P -> % { Reason, FirstFaultyEntry } ->
+			throw( { not_strict_tagged_list, P, Term } )
 
-check_strict_tagged_list( [ { X, _Y } | T ], Term ) when is_atom( X ) ->
-	check_strict_tagged_list( T, Term );
-
-check_strict_tagged_list( [ P={ X, _Y } | _T ], Term ) ->
-	throw( { non_atom_tag, X, P, Term } );
-
-check_strict_tagged_list( [ Other | _T ], Term ) ->
-	throw( { not_tagged_pair, Other, Term } );
-
-check_strict_tagged_list( Other, _Term ) ->
-	throw( { not_strict_tagged_list, Other } ).
-
+	end.
 
 
 
@@ -201,12 +259,42 @@ ensure_tagged_list_helper( _L=[ P={ Atom, _Any } | T ], Acc )
 										when is_atom( Atom ) ->
 	ensure_tagged_list_helper( T, [ P | Acc ] );
 
-ensure_tagged_list_helper( _L=[ P={ Other, _Any } | _T ], _Acc ) ->
+ensure_tagged_list_helper( _L=[ _P={ Other, _Any } | _T ], _Acc ) ->
 	throw( { not_an_atom_tag, Other } );
 
 ensure_tagged_list_helper( [ Other | _T ], _Acc ) ->
 	throw( { invalid_tagged_list_element, Other } ).
 
+
+
+-doc """
+Returns an (unordered) list of the duplicated keys found in the specified tagged
+list.
+""".
+-spec check_duplicate_keys( tagged_list() ) -> duplicate_info().
+check_duplicate_keys( TaggedList ) ->
+	Ks = [ case E of
+
+			   { K, _V } ->
+				   K;
+
+			   A when is_atom( A ) ->
+				   A
+
+		   end || E <- TaggedList ],
+
+	list_utils:get_duplicates( Ks ).
+
+
+
+-doc """
+Returns an (unordered) list of the duplicated keys found in the specified strict
+tagged list.
+""".
+-spec check_strict_duplicate_keys( strict_tagged_list() ) -> duplicate_info().
+check_strict_duplicate_keys( StrictTaggedList ) ->
+	Ks = [ K || { K, _V } <- StrictTaggedList ],
+	list_utils:get_duplicates( Ks ).
 
 
 
@@ -238,7 +326,7 @@ ensure_strict_tagged_list_helper( _L=[ P={ Atom, _Any } | T ], Acc )
 										when is_atom( Atom ) ->
 	ensure_strict_tagged_list_helper( T, [ P | Acc ] );
 
-ensure_strict_tagged_list_helper( _L=[ P={ Other, _Any } | _T ], _Acc ) ->
+ensure_strict_tagged_list_helper( _L=[ _P={ Other, _Any } | _T ], _Acc ) ->
 	throw( { not_an_atom_tag, Other } );
 
 ensure_strict_tagged_list_helper( [ Other | _T ], _Acc ) ->
@@ -307,7 +395,7 @@ extract_atom_with_default_helper( Atom, DefaultValue,
 	extract_atom_with_default_helper( Atom, DefaultValue, T, [ Other | Acc ] ).
 
 
-% No extract_atom_with_default_helper/2 makes sense for strict tagged lists.
+% No extract_atom_with_default/3 makes sense for strict tagged lists.
 
 
 
@@ -369,7 +457,7 @@ the original tagged list if the default is returned, or a shrunk tagged list if
 an actual extraction could be done).
 """.
 -spec extract_pair_with_default( atom(), element(), tagged_list() ) ->
-										{ element(), tagged_list() }.
+		  { element(), tagged_list() }.
 extract_pair_with_default( KeyAtom, DefaultValue, TaggedList ) ->
 	extract_pair_with_default_helper( KeyAtom, DefaultValue, TaggedList,
 									  _Acc=[] ).

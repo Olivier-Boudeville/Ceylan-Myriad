@@ -104,7 +104,11 @@ the data that it manages.
 -export([ start/0, start/1, start/2, start_with_defaults/1,
 		  start_link/0, start_link/1, start_link/2, start_link_with_defaults/1,
 		  wait_available/0, wait_available/1,
-		  get/1, get/2, set/2, set/3, update_from_etf/1, update_from_etf/2,
+		  get/1, get/2, set/2, set/3,
+
+		  update_default_from_etf/1, update_default_from_etf/2,
+		  update_from_etf/2, update_from_etf/3,
+
 		  cache/1, cache/2, cache_return/1, cache_return/2,
 		  ensure_binary/2,
 		  to_string/0, to_bin_string/0, to_bin_string/1,
@@ -201,7 +205,7 @@ key associated to 'undefined').
 -include("app_facilities.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -214,6 +218,7 @@ key associated to 'undefined').
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
+-type etf_check_policy() :: environment:etf_check_policy().
 -type cache_spec() :: environment:cache_spec().
 
 -type any_app_info() :: app_facilities:app_info().
@@ -542,32 +547,80 @@ set( Key, Value, EnvData ) ->
 
 
 
+
+
 -doc """
 Updates the default preferences with the entries found in the specified ETF
-file.
+file, expected to contain the elements of a strict tagged list (see the
+`tagged_list` module).
 
-Loaded entries supersede any pre-existing ones.
+Loaded entries will be checked according to the 'strict_tagged_trace' policy,
+then will silently supersede any pre-existing ("default") ones: any pre-existing
+entry in the preferences will be directly replaced by any selected one found in
+the file.
+
+If duplicated keys are found in the ETF file, a trace will be emitted, and the
+one taken into account will be the last.
 """.
--spec update_from_etf( any_file_path() ) -> void().
-update_from_etf( AnyETFFilePath ) ->
+-spec update_default_from_etf( any_file_path() ) -> void().
+update_default_from_etf( AnyETFFilePath ) ->
+	update_default_from_etf( AnyETFFilePath,
+		_ETFCheckPolicy=strict_tagged_trace ).
+
+
+
+-doc """
+Updates the default preferences with the entries found in the specified ETF
+file, expected to contain the elements of a strict tagged list (see the
+`tagged_list` module), applying the specified check policy regarding the entries
+found in that file (only).
+
+Loaded entries will supersede any pre-existing ones: a pre-existing entry in the
+preferences will be directly replaced by any selected one found in the file.
+""".
+-spec update_default_from_etf( any_file_path(), etf_check_policy() ) -> void().
+update_default_from_etf( AnyETFFilePath, ETFCheckPolicy ) ->
 	update_from_etf( AnyETFFilePath,
-					 get_default_preferences_registration_name() ).
+					 _PrefDes=get_default_preferences_registration_name(),
+					 ETFCheckPolicy ).
 
 
 
 -doc """
 Updates the specified preferences with the entries found in the specified ETF
-file.
+file, expected to contain the elements of a strict tagged list (see the
+`tagged_list` module), applying the specified check policy regarding the entries
+found in that file (only).
 
-Loaded entries supersede any pre-existing ones.
+Loaded entries will be checked according to the 'strict_tagged_trace' policy,
+then will silently supersede any pre-existing ("default") ones: any pre-existing
+entry in the preferences will be directly replaced by any selected one found in
+the file.
 """.
 -spec update_from_etf( any_file_path(), preferences_designator() ) -> void().
 update_from_etf( AnyETFFilePath, PrefDesignator ) ->
+	update_from_etf( AnyETFFilePath, PrefDesignator,
+					 _ETFCheckPolicy=strict_tagged_trace ).
+
+
+-doc """
+Updates the specified preferences with the entries found in the specified ETF
+file, expected to contain the elements of a strict tagged list (see the
+`tagged_list` module), applying the specified check policy regarding the entries
+found in that file (only).
+
+Loaded entries will supersede any pre-existing ones: a pre-existing entry in the
+preferences will be directly replaced by any selected one found in the file.
+""".
+-spec update_from_etf( any_file_path(), preferences_designator(),
+					   etf_check_policy() ) -> void().
+update_from_etf( AnyETFFilePath, PrefDesignator, ETFCheckPolicy ) ->
 
 	%trace_utils:debug_fmt( "Updating preferences designated by ~w from "
 	%                       "file '~ts'.", [ PrefDesignator, AnyETFFilePath ] ),
 
-	environment:update_from_etf( AnyETFFilePath, PrefDesignator ).
+	environment:update_from_etf( AnyETFFilePath, PrefDesignator,
+								 ETFCheckPolicy ).
 
 
 

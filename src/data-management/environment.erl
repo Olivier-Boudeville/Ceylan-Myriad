@@ -147,7 +147,7 @@ resource.
 
 		  get/2, get/3,
 		  set/2, set/3, set/4, set_cond/2, set_cond/3, set_cond/4,
-		  update_from_etf/2,
+		  update_from_etf/2, update_from_etf/3,
 		  remove/2, extract/2,
 		  cache/2, cache_return/2,
 		  uncache/1, uncache/0, sync/1,
@@ -229,6 +229,25 @@ registered to 'undefined').
 -type entries() :: table:entries().
 
 
+-doc """
+How entries in an ETF stream shall be checked.
+
+For the strict_tagged_* policies, see the tagged_list module.
+""".
+-type etf_check_policy() ::
+
+		'no_check' % Do not perform any check (in terms of structure, key
+				   % duplication, etc.)
+
+	  | 'strict_tagged_trace'  % Assume that the elements of the ETF stream
+							   % form a strict tagged list, and emit a warning
+							   % trace if duplicated keys are found, while
+							   % retaining the last occurrence found for each
+							   % key
+
+	  | 'strict_tagged_throw'. % Assume that the elements of the ETF stream
+							   % form a strict tagged list, and throw an
+							   % exception if duplicated keys are found
 
 -doc """
 A specification of the environment keys (possibly with their initial values)
@@ -241,7 +260,8 @@ environment server).
 
 -export_type([ env_pid/0, env_reg_name/0, env_info/0, env_designator/0,
 			   env_data/0,
-			   key/0, value/0, entry/0, entries/0, cache_spec/0 ]).
+			   key/0, value/0, entry/0, entries/0, etf_check_policy/0,
+			   cache_spec/0 ]).
 
 
 % For myriad_spawn*:
@@ -275,7 +295,7 @@ dictionary of a process using environment caching.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -304,7 +324,9 @@ dictionary of a process using environment caching.
 
 % When requiring that an environment server is started, it will be returned
 % directly if it is found already available; yet then the link status may not be
-% honored (e.g. a start_link may thus return the PID of a non-linked process).
+% honored (e.g. a start may thus return the PID of a linked process - or the
+% reverse, as now starts based on files for get/set operations are linked, for
+% better error detection).
 
 % More generally, relying on transparent, implicit launching is generally not
 % recommended, as it is more error-prone.
@@ -327,7 +349,7 @@ dictionary of a process using environment caching.
 % the PID of its server) the registration name of that server and a table of its
 % cached entries.
 
-% May start functions look the same, but are not, minor variations prevent much
+% Many start functions look the same, but are not; minor variations prevent much
 % factorisation.
 
 
@@ -900,8 +922,8 @@ wait_available( ServerRegName ) ->
 -doc """
 Returns the value associated to each of the specified key(s) in the environment
 (if any), otherwise 'undefined', based on the specified environment file (and
-possibly launching a corresponding, non-linked, environment server if needed) or
-on an already-running environment server (specified as a registration name, an
+possibly launching a corresponding, linked environment server if needed) or on
+an already-running environment server (specified as a registration name, an
 environment information or a PID).
 
 Any cached key will be read from the local process cache, not from the
@@ -938,7 +960,7 @@ get( Keys, EnvRegName ) when is_atom( EnvRegName ) ->
 	get( Keys, EnvPid );
 
 get( KeyMaybes, FilePath ) when is_list( FilePath ) ->
-	EnvSrvPid = start( FilePath ),
+	EnvSrvPid = start_link( FilePath ),
 	get( KeyMaybes, EnvSrvPid );
 
 % Hence EnvPid expected to be a PID here:
@@ -1018,7 +1040,7 @@ aggregate_values( _TargetKeys=[ K | Tt ], ImmediateKeys, ImmediateValues,
 Returns the value associated to each of the specified key(s) in the environment
 (if any), otherwise 'undefined', based on the specified registration name: uses
 any server registered with that name, otherwise uses the specified filename to
-start a corresponding server.
+start a corresponding, linked server.
 
 Any cached key will be read from the local process cache, not from the
 environment server.
@@ -1039,7 +1061,7 @@ get( KeyMaybes, ServerRegName, FilePath ) ->
 												 _LookupScope=local ) of
 
 		not_registered ->
-			start( FilePath );
+			start_link( FilePath );
 
 		ServerPid ->
 			ServerPid
@@ -1074,9 +1096,9 @@ get_from_environment( KeyMaybes, EnvDesignator ) ->
 -doc """
 Sets (unconditionally) the specified key/value pairs (possibly overwriting any
 previous values) in the specified environment, based on the specified
-environment file (and possibly launching a corresponding environment server if
-needed) or on the designated already-running environment server (specified by
-registration name, environment information or PID).
+environment file (and possibly launching a corresponding, linked environment
+server if needed) or on the designated already-running environment server
+(specified by registration name, environment information or PID).
 
 Any cached key will be updated in the local process cache, in addition to the
 environment server.
@@ -1090,7 +1112,7 @@ set( Entries, EnvRegName ) when is_atom( EnvRegName ) ->
 	set( Entries, EnvPid );
 
 set( Entries, FilePath ) when is_list( FilePath ) ->
-	EnvPid = start( FilePath ),
+	EnvPid = start_link( FilePath ),
 	set( Entries, EnvPid );
 
 % Implicitly: when is_pid( EnvPid ).
@@ -1153,7 +1175,7 @@ set( Key, Value, AnyEnvElem ) ->
 Associates (unconditionally), in the specified environment, the specified value
 to the specified key (possibly overwriting any previous value), based on the
 specified registration name: uses any server registered with that name,
-otherwise uses the specified filename to start a corresponding server.
+otherwise uses the specified filename to start a corresponding, linked server.
 
 Any cached key will be updated in the local process cache, in addition to the
 environment server.
@@ -1164,7 +1186,7 @@ set( Key, Value, ServerRegName, FilePath ) ->
 											  _LookupScope=local ) of
 
 		not_registered ->
-			start( FilePath );
+			start_link( FilePath );
 
 		ServerPid ->
 			ServerPid
@@ -1179,9 +1201,9 @@ Sets conditionally the specified key/value pairs (that is, only if necessary,
 meaning only if the specified value does not match any currently cached one for
 that key; possibly overwriting any previous values) in the specified
 environment, based on the specified environment file (and possibly launching a
-corresponding environment server if needed) or on the designated already-running
-environment server (specified by registration name, environment information or
-PID).
+corresponding, linked environment server if needed) or on the designated
+already-running environment server (specified by registration name, environment
+information or PID).
 
 Any cached key will be updated in the local process cache, in addition to the
 environment server.
@@ -1195,7 +1217,7 @@ set_cond( Entries, EnvRegName ) when is_atom( EnvRegName ) ->
 	set_cond( Entries, EnvPid );
 
 set_cond( Entries, FilePath ) when is_list( FilePath ) ->
-	EnvPid = start( FilePath ),
+	EnvPid = start_link( FilePath ),
 	set_cond( Entries, EnvPid );
 
 
@@ -1251,13 +1273,89 @@ set_cond( Entries, EnvPid ) when is_list( Entries ) ->
 
 -doc """
 Updates the specified environment with the entries found in the specified ETF
-file.
+file, expected to contain the elements of a strict tagged list (see the
+`tagged_list` module).
 
-Loaded entries supersede any pre-existing ("default") ones.
+Loaded entries will be checked according to the 'strict_tagged_trace' policy,
+then will silently supersede any pre-existing ("default") ones.
 """.
 -spec update_from_etf( any_file_path(), env_data() ) -> void().
 update_from_etf( AnyETFFilePath, AnyEnvData ) ->
+	update_from_etf( AnyETFFilePath, AnyEnvData,
+					 _ETFCheckPolicy=strict_tagged_trace ).
+
+
+-doc """
+Updates the specified environment with the entries found in the specified ETF
+file, expected to contain the elements of a strict tagged list (see the
+`tagged_list` module), applying the specified check policy, before silently
+superseding any pre-existing ("default") ones.
+""".
+-spec update_from_etf( any_file_path(), env_data(), etf_check_policy() ) ->
+											void().
+update_from_etf( AnyETFFilePath, AnyEnvData, _ETFCheckPolicy=no_check ) ->
+
 	LoadedEntries = file_utils:read_etf_file( AnyETFFilePath ),
+
+	% Just load entries as bulk, no checking, last duplicated entry applies:
+	set( LoadedEntries, AnyEnvData );
+
+
+% Here we have to detect invalid structure and clashing keys:
+update_from_etf( AnyETFFilePath, AnyEnvData, ETFCheckPolicy ) when
+		ETFCheckPolicy =:= strict_tagged_trace orelse
+		ETFCheckPolicy =:= strict_tagged_throw ->
+
+	LoadedEntries = file_utils:read_etf_file( AnyETFFilePath ),
+
+	case tagged_list:is_strict_tagged_list( LoadedEntries ) of
+
+		true ->
+			ok;
+
+		{ ReasonWhyNot, FirstFaultyEntry } ->
+
+			FileAbsPath = file_utils:ensure_path_is_absolute( AnyETFFilePath ),
+
+			% In all cases:
+			trace_bridge:error_fmt( "Invalid entry in ETF file '~ts': "
+				"~ts for ~p.",
+				[ FileAbsPath, ReasonWhyNot, FirstFaultyEntry ] ),
+
+			throw( { invalid_etf_file, ReasonWhyNot, FirstFaultyEntry,
+					 text_utils:ensure_string( FileAbsPath ) } )
+
+
+	end,
+
+	case tagged_list:check_strict_duplicate_keys( LoadedEntries ) of
+
+		_DupInfo=[] ->
+			ok;
+
+		DupInfo ->
+
+			FAbsPath = file_utils:ensure_path_is_absolute( AnyETFFilePath ),
+
+			Msg = text_utils:format( "Duplicate keys found in ETF file '~ts': "
+				"~ts; the occurrences taken into account are always the last "
+				"ones.", [ FAbsPath,
+						   list_utils:duplicate_info_to_string( DupInfo ) ] ),
+
+			case ETFCheckPolicy of
+
+				strict_tagged_trace ->
+					trace_bridge:warning( Msg );
+
+				strict_tagged_throw ->
+					trace_bridge:error( Msg ),
+					throw( { invalid_etf_file, duplicated_keys, DupInfo,
+							 text_utils:ensure_string( FAbsPath ) } )
+
+			end
+
+	end,
+
 	set( LoadedEntries, AnyEnvData ).
 
 
@@ -1317,7 +1415,7 @@ specified value does not match any currently cached one for that key), in the
 specified environment, the specified value to the specified key (possibly
 overwriting any previous value), based on the specified registration name: uses
 any server registered with that name, otherwise uses the specified filename to
-start a corresponding server.
+start a corresponding, linked server.
 
 Any cached key will be updated in the local process cache, in addition to the
 environment server.
@@ -1328,7 +1426,7 @@ set_cond( Key, Value, ServerRegName, FilePath ) ->
 											  _LookupScope=local ) of
 
 		not_registered ->
-			start( FilePath );
+			start_link( FilePath );
 
 		ServerPid ->
 			ServerPid
@@ -2071,7 +2169,7 @@ stop( EnvPid ) ->
 
 
 -doc """
-Launcher of the environment server, to start with either a blank state or with
+Launches the environment server, starting with either a blank state or with
 default entries.
 """.
 -spec server_run( pid(), env_reg_name(), option( entries() ) ) -> no_return().

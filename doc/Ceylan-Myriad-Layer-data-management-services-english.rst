@@ -340,10 +340,10 @@ ETF files are notably used as **configuration files**. In this case following ex
 
 - their extension is preferably changed from ``.etf`` to ``.config``
 - before each entry, a comment describing it in general terms shall be available, with typing information
-- entries are pairs:
+- entries are generally expected to be strict tagged pairs (see the ``tagged_pair`` module), i.e. entries:
 
   - whose first element is an atom
-  - their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (e.g. ``"James Bond"``) rather than a binary one (e.g. ``<<"James Bond">>``); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include *binary* strings (not plain ones, even though plain ones are used in the configuration files)
+  - whose second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (e.g. ``"James Bond"``) rather than a binary one (e.g. ``<<"James Bond">>``); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include *binary* strings (not plain ones, even though plain ones are used in the configuration files)
 
 
 .. _`glTF file format`:
