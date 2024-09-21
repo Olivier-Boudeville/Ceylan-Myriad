@@ -717,7 +717,7 @@ if_else( _Condition, _A, B ) ->
 	B.
 
 
--doc "Checks that specified term is 'undefined', and returns it.".
+-doc "Checks that the specified term is 'undefined', and returns it.".
 -spec check_undefined( term() ) -> 'undefined'.
 check_undefined( undefined ) ->
 	undefined;
@@ -737,7 +737,7 @@ check_all_undefined( List ) ->
 
 
 
--doc "Checks that specified term is not 'undefined'; returns that term.".
+-doc "Checks that the specified term is not 'undefined'; returns that term.".
 -spec check_not_undefined( term() ) -> term().
 check_not_undefined( undefined ) ->
 	throw( is_undefined );
@@ -748,8 +748,8 @@ check_not_undefined( Term ) ->
 
 
 -doc """
-Checks that specified term is "defined" (not equal to 'undefined'); returns that
-term.
+Checks that the specified term is "defined" (not equal to 'undefined'); returns
+that term.
 """.
 -spec check_defined( term() ) -> term().
 check_defined( Term ) ->
@@ -2375,8 +2375,10 @@ is_alive( TargetPidString ) when is_list( TargetPidString ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
 is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
+
 	TargetPid = naming_utils:get_registered_pid_for( TargetPidName,
-						_RegistrationType=local_otherwise_global ),
+		_RegistrationType=local_otherwise_global ),
+
 	is_alive( TargetPid, node( TargetPid ) ).
 
 
