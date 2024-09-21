@@ -99,7 +99,8 @@ possibly containing pairs and also single atoms (e.g. see
 -doc """
 A list-based associative table.
 
-Not exactly as proplist:proplist/0 (pairs only, and any() as key).
+Not exactly as proplists:proplist/0 (here: a list only of pairs - not atoms or
+other tuples).
 """.
 -type list_table() :: [ { key(), value() } ].
 
@@ -108,7 +109,7 @@ Not exactly as proplist:proplist/0 (pairs only, and any() as key).
 -doc """
 A list-based associative table.
 
-Not exactly as proplist:proplist/0 (pairs only, and any() as key).
+Not exactly as proplists:proplist/0 (pairs only, and any() as key).
 """.
 -type list_table( K, V ) :: [ { K, V } ].
 

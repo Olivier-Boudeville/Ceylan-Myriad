@@ -129,12 +129,12 @@ They are to provide the same API (signatures and contracts).
 
 -doc "Any value associated to a key.".
 -type value() :: term().
- 
+
 
 
 -doc "A default value, associated to a key.".
 -type default_value() :: term().
- 
+
 
 
 -doc "An entry stored in the hashtable.".
@@ -149,7 +149,7 @@ They are to provide the same API (signatures and contracts).
 
 -doc "Very common, including in proplists.".
 -type atom_entry() :: entry( atom(), term() ).
- 
+
 
 
 -doc "Entries stored in the hashtable.".
@@ -223,7 +223,7 @@ A type of bullet (e.g. " * ").
 			   hashtable/0, hashtable/2, bullet/0, description_type/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type accumulator() :: basic_utils:accumulator().
 
@@ -516,7 +516,7 @@ The key/value pairs are expected to exist already, otherwise an exception is
 raised.
 
 For example `[Color, Age, Mass] = hashtable:get_values([color, age, mass],
-            MyTable])'`.
+			MyTable])'`.
 """.
 -spec get_values( [ key() ], hashtable() ) -> [ value() ].
 get_values( Keys, Hashtable ) ->
@@ -543,7 +543,7 @@ The key/value pairs are expected to exist already, otherwise an exception is
 raised.
 
 For example `[Color=red, Age=23, Mass=51] = hashtable:get_all_values([color,
-                 age, mass], [{color, red}, {mass, 51}, {age, 23}])`.
+				 age, mass], [{color, red}, {mass, 51}, {age, 23}])`.
 """.
 -spec get_all_values( [ key() ], hashtable() ) -> [ value() ].
 get_all_values( Keys, Hashtable ) ->
