@@ -5919,10 +5919,10 @@ write_whole_in_non_clashing( Content ) ->
 
 
 -doc """
-Reads the specified file, supposedly in ETF format (Erlang Term Format): tries
-to parse a list of terms (one per line, terminating with a dot) from it (as
-file:consult/1 does), and returns it. Lines starting with '%' are ignored (just
-considered as comments).
+Reads the specified file, which is supposedly in ETF format (Erlang Term
+Format): tries to parse a list of terms (one per line, terminating with a dot)
+from it (as file:consult/1 does), and returns it. Lines starting with '%' are
+ignored (just considered as comments).
 
 If expecting to read UTF-8 content from a file, it should:
 
