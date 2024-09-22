@@ -412,9 +412,11 @@ Designates a path to an (executable) script; e.g. "../my_dir/other/run.sh").
 -type any_directory_path() :: directory_path() | bin_directory_path().
 
 
-% Sometimes useful:
--doc "Any absolute directory path.".
+-doc "An absolute directory path.".
 -type abs_directory_path() :: directory_path().
+
+-doc "Any absolute directory path.".
+-type any_abs_directory_path() :: any_directory_path().
 
 
 
@@ -605,7 +607,8 @@ for further information)
 
 			   device_path/0, bin_device_path/0, any_device_path/0,
 
-			   any_directory_name/0, any_directory_path/0, abs_directory_path/0,
+			   any_directory_name/0, any_directory_path/0,
+			   abs_directory_path/0, any_abs_directory_path/0,
 			   executable_name/0, executable_path/0, bin_executable_path/0,
 			   any_executable_path/0,
 			   script_path/0, bin_script_path/0,
@@ -2237,9 +2240,12 @@ get_first_existing_dir( _DirPaths=[ Dir | T ], Acc ) ->
 
 
 -doc """
-Returns, as a full path, the first occurrence (if any) of the specified filename
-found (as a regular file or a symbolic link) through the specified (ordered)
-list of directories.
+Returns, as a path (made of a directory and the filename), the first occurrence
+(if any) of the specified filename found (as a regular file or a symbolic link)
+through the specified (ordered) list of directories.
+
+Note that any returned path is not necessarily absolute, as the specified
+directories may be relative.
 
 For example: `get_first_file_or_link_for("foobar.etf", ["/home/prefs",
 "/var/config"])` may return `"/var/config/foobar.etf"`, if this file exists and
@@ -4483,7 +4489,7 @@ Returns a string of the same type as the specified one.
 If it is not already absolute, it will made so by using the current working
 directory.
 
-Acts a bit like the realpath command.
+Acts a bit like the `realpath` command.
 """.
 -spec ensure_path_is_absolute( path() ) -> path();
 							 ( bin_path() ) -> bin_path().
