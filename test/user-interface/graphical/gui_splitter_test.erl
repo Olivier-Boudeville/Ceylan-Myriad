@@ -67,8 +67,8 @@ run_gui_test() ->
 	TopPanel = gui_panel:create( _Parent=TopHorizSplitterWin ),
 	gui_widget:set_background_color( TopPanel, blue ),
 
-	MidPanel = gui_panel:create( _P=TopHorizSplitterWin ),
-	gui_widget:set_background_color( MidPanel, yellow ),
+	BottomPanel = gui_panel:create( _P=TopHorizSplitterWin ),
+	gui_widget:set_background_color( BottomPanel, yellow ),
 
 	gui_splitter:set_scaling_ratio( TopHorizSplitterWin, _ScalingRatio=0.5),
 
@@ -78,7 +78,7 @@ run_gui_test() ->
 	Orientation = horizontal,
 	%Orientation = vertical,
 
-	gui_splitter:set_panes( TopHorizSplitterWin, TopPanel, MidPanel,
+	gui_splitter:set_panes( TopHorizSplitterWin, TopPanel, BottomPanel,
 							Orientation ),
 
 	gui:subscribe_to_events( { onWindowClosed, Frame } ),
