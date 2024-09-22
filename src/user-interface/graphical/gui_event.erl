@@ -2281,7 +2281,7 @@ register_in_event_loop_tables( _SubscribedEvents=[
 	% Objects, not identifiers for example:
 	GUIObjects = list_utils:ensure_tuples( GUIObjectMaybeList ),
 
-	SubOpts = list_utils:ensure_proplist( SubscriptionMaybeOpts ),
+	SubOpts = tagged_list:ensure_tagged_list( SubscriptionMaybeOpts ),
 	Subscribers = list_utils:ensure_pids( SubscriberMaybeList ),
 
 	NewLoopState = lists:foldl(
@@ -3849,7 +3849,16 @@ application_event_to_string( AE ) ->
 -doc "Converts a MyriadGUI type of event into a wx one.".
 -spec to_wx_event_type( event_type() ) -> wx_event_type().
 to_wx_event_type( EventType ) ->
-	gui_generated:get_second_for_event_type( EventType ).
+	case gui_generated:get_maybe_second_for_event_type( EventType ) of
+
+		undefined ->
+			% Possibly mispelled (e.g. 'onShow' instead of 'onShown'):
+			throw( { unsupported_event_type, EventType } );
+
+		WxEventType ->
+			WxEventType
+
+	end.
 
 
 -doc "Converts a wx type of event into a MyriadGUI one.".

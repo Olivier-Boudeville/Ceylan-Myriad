@@ -72,9 +72,9 @@ Refer to the gui_splash_test module for an example of use.
 
 
 
--doc "
+-doc """
 Information to be kept by an application using a basic splash screen.
-".
+""".
 -type basic_splash_info() :: #basic_splash_info{}.
 
 
@@ -157,7 +157,7 @@ terminate.
 		  destruct/1, update_panel/2 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type any_string() :: text_utils:any_string().
 

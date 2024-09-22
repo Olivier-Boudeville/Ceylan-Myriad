@@ -140,6 +140,8 @@ Not to be mixed up with shell_utils:shell_pid().
 -doc """
 Creates a GUI shell, in the specified parent window, using the default font
 size, and shell defaults.
+
+A typical parent window is a panel.
 """.
 -spec create( parent() ) -> gui_shell().
 create( ParentWindow ) ->
@@ -150,6 +152,8 @@ create( ParentWindow ) ->
 -doc """
 Creates a GUI shell, in the specified parent window, using the specified font
 size, and shell defaults.
+
+A typical parent window is a panel.
 """.
 -spec create( font_size(), parent() ) -> gui_shell().
 create( FontSize, ParentWindow ) ->
@@ -160,6 +164,8 @@ create( FontSize, ParentWindow ) ->
 -doc """
 Creates a GUI shell, in the specified parent window, using the specified font
 size and shell options.
+
+A typical parent window is a panel.
 """.
 -spec create( font_size(), maybe_list( shell_option() ), parent() ) ->
 											gui_shell().

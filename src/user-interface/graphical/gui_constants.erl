@@ -1022,7 +1022,6 @@ Returns the two-way conversion specification for the 'event_type' topic.
 get_event_type_topic_spec() ->
 
 	% At least more event types can be found in src/gen/wxCommandEvent.erl:
-	%
 	Entries = [
 
 		% Mouse section:
@@ -1086,7 +1085,8 @@ get_event_type_topic_spec() ->
 		{ onEnterPressed, command_text_enter   },
 		{ onTextOverflow, text_maxlen          } ],
 
-	{ event_type, Entries }.
+	% To allow the caller to intercept faulty types:
+	{ event_type, Entries, _ElemLookup='maybe' }.
 
 
 

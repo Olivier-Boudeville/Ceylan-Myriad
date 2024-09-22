@@ -333,6 +333,8 @@ direct OpenGL rendering: the rendering may actually happen before the resizing).
 
 See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details; see
 also the synchroniseWithCaller message supported by the MyriadGUI loop.
+
+See also gui_opengl:set_context_on_shown/2 for another synchronisation need.
 """.
 -spec sync( widget() ) -> size().
 sync( Widget ) ->
@@ -342,6 +344,7 @@ sync( Widget ) ->
 	% sufficient probability (and with certainty if past operations were
 	% triggered by the same process as this calling one):
 	%
+
 	wxWindow:getSize( Widget ).
 
 

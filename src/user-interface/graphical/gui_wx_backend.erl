@@ -278,12 +278,18 @@ Refer to wxGLCanvas: <https://www.erlang.org/doc/man/wxglcanvas#new-2>.
 -type wx_art_id() :: unicode:chardata().
 
 
+-doc """
+Visual attributes of an OpenGL canvas (not rendering context attributes).
+""".
+-type wx_gl_attributes() :: [ integer() ].
+
+
 -export_type([ wx_native_object_type/0, wx_opt_pair/0,
 			   wx_event_handler_option/0,
 			   other_wx_device_context_attribute/0,
 			   wx_device_context_attribute/0, wx_enum/0,
 			   wx_direction/0, wx_orientation/0,
-			   wx_art_id/0 ]).
+			   wx_art_id/0, wx_gl_attributes/0 ]).
 
 
 % Preferably no '-export_type' here to avoid leakage of backend conventions.
@@ -307,7 +313,8 @@ Refer to wxGLCanvas: <https://www.erlang.org/doc/man/wxglcanvas#new-2>.
 		  to_wx_direction/1, to_wx_orientation/1,
 		  wx_id_to_window/1, wx_id_to_string/1,
 
-		  to_wx_device_context_attributes/1 ]).
+		  to_wx_device_context_attributes/1, are_gl_attributes_supported/1,
+		  get_msaa_attributes/0 ]).
 
 % For event management:
 -export([ connect/2, connect/3, connect/4, disconnect/1, disconnect/2 ]).
@@ -559,6 +566,10 @@ to_wx_device_context_attributes( _Attrs=[ { depth_buffer_size, S } | T ],
 								 Acc ) ->
 	to_wx_device_context_attributes( T, [ S, ?WX_GL_DEPTH_SIZE | Acc ] );
 
+to_wx_device_context_attributes( _Attrs=[ msaa | T ], Acc ) ->
+	% Directly as listed elements, not as a nested list:
+	to_wx_device_context_attributes( T, get_msaa_attributes() ++ Acc );
+
 to_wx_device_context_attributes( _Attrs=[ use_core_profile | T ], Acc ) ->
 	to_wx_device_context_attributes( T, [ ?WX_GL_CORE_PROFILE | Acc ] );
 
@@ -567,6 +578,48 @@ to_wx_device_context_attributes( _Attrs=[ debug_context | T ], Acc ) ->
 
 to_wx_device_context_attributes( _Attrs=[ Other | _T ], _Acc ) ->
 	throw( { unsupported_device_context_attribute, Other } ).
+
+
+
+
+
+-doc """
+Returns whether an OpenGL canvas having the specified attributes is available.
+""".
+-spec are_gl_attributes_supported( wx_gl_attributes() ) -> boolean().
+are_gl_attributes_supported( Attrs ) ->
+
+	try
+
+		wxGLCanvas:isDisplaySupported( Attrs )
+
+	catch _ExceptionType:Reason:_Stacktrace ->
+		trace_utils:error_fmt( "Could not determine whether OpenGL canvas "
+			"attributes ~w are available (reason: ~p), supposing not.",
+			[ Attrs, Reason ] ),
+		false
+
+	end.
+
+
+
+-doc """
+Returns our default attribute settings for MSAA (Multisample anti-aliasing).
+""".
+-spec get_msaa_attributes() -> wx_gl_attributes().
+get_msaa_attributes() ->
+
+	% To enable MSAA:
+	MultisamplingSupport = 1,
+
+	% For 2x2 antialiasing supersampling on most graphics cards:
+	Supersampling = 4,
+
+	% At least wxWidgets-3.0 required:
+	[ ?WX_GL_SAMPLE_BUFFERS, MultisamplingSupport,
+	  ?WX_GL_SAMPLES, Supersampling, 0 ].
+
+
 
 
 

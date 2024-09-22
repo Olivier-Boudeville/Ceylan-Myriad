@@ -29,6 +29,10 @@
 
 -moduledoc """
 Gathering of various facilities for **panels**.
+
+Often a panel is registered to a sizer, to determine its size adequately.
+
+Panels are good placeholders, when creating a GUI.
 """.
 
 
@@ -114,6 +118,8 @@ create( Parent ) ->
 -doc """
 Creates a panel, associated to the specified parent and with the specified
 options.
+
+This is the most flexible way of creating a panel.
 """.
 -spec create( panel_options(), parent() ) -> panel().
 create( Options, Parent ) ->
@@ -177,6 +183,7 @@ create( X, Y, Width, Height, Options, Parent ) ->
 					| to_wx_panel_options( Options ) ],
 
 	wxPanel:new( Parent, WxOpts ).
+
 
 
 
