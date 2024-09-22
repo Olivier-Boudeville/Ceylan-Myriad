@@ -232,13 +232,15 @@ gui_main_loop( GUIState ) ->
 						"To be repainted, yet no OpenGL state yet." );
 
 				GLState ->
-					gui_widget:enable_repaint( GLCanvas ),
+					% Not relevant: gui_widget:enable_repaint( GLCanvas ),
 
 					% Simpler than storing these at each resize:
 					{ CanvasWidth, CanvasHeight } =
 						gui_widget:get_size( GLCanvas ),
 
-					render( CanvasWidth, CanvasHeight, GLState )
+					render( CanvasWidth, CanvasHeight, GLState ),
+
+					gui_opengl:swap_buffers( GLCanvas )
 
 			end,
 
@@ -405,7 +407,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
-	% As RGB triplet:
+	% As RGBA quadruplet:
 	gui_shader:set_uniform_point4( SomeColorUnifId,
 		gui_opengl_for_testing:get_myriad_blue_render() ),
 
@@ -584,7 +586,11 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
--doc "Performs a (pure OpenGL) rendering.".
+-doc """
+Performs a (pure OpenGL) rendering.
+
+As a consequence, no OpenGL buffer swapping is done here.
+""".
 -spec render( width(), height(), my_opengl_state()  ) -> void().
 render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
 										   triangle_vbo_id=_TriangleVBOId,
