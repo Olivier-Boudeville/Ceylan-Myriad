@@ -2014,6 +2014,3 @@ extract_elements_from( RemainingElems, Count, AccExtract ) ->
 
 	extract_elements_from( ShrunkRemainingElems, Count-1,
 						   [ DrawnElem | AccExtract ] ).
-
-
-
