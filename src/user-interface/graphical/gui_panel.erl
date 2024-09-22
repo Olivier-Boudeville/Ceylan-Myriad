@@ -121,7 +121,7 @@ options.
 
 This is the most flexible way of creating a panel.
 """.
--spec create( panel_options(), parent() ) -> panel().
+-spec create( maybe_list( panel_options() ), parent() ) -> panel().
 create( Options, Parent ) ->
 	wxPanel:new( Parent, to_wx_panel_options( Options ) ).
 

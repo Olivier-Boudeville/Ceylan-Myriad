@@ -28,12 +28,11 @@
 -module(gui_splitter).
 
 -moduledoc """
-Gathering of various facilities for **splitter windows**, a window able to be
-split into two panes.
+Gathering of various facilities for **splitter windows**, which are windows able
+to be split into two panes.
 
-See also the gui_window module.
-
-The corresponding test, gui_splitter_test.erl.
+See also the gui_window module and the corresponding test,
+gui_splitter_test.erl.
 """.
 
 
@@ -50,8 +49,8 @@ One may click (first mouse button) on the splitter and, while maintaining that
 button down, drag (if this movement is allowed) the splitter to another
 position.
 
-If the allow_unsplit style has been selected, otherwise if the minimum pane
-length is zero (the default), double-clicking on the splitter separation will
+If the allow_unsplit style has been selected - otherwise if the minimum pane
+length is zero (the default) - double-clicking on the splitter separation will
 unsplit the splitter, i.e. make the bottom (for vertical splitters) or right
 (for horizontal ones) pane disappear (any hidden pane will still exist).
 """.
@@ -81,7 +80,9 @@ See also <https://docs.wxwidgets.org/3.1/classwx_splitter_window.html>.
   | 'no_xp_theme' % On Windows, pre-XP look.
   | 'allow_unsplit' % Always allows to unsplit, even if the minimum pane length
 					% is zero.
-  | 'live_update'. % Resizes the child windows immediately.
+  | 'live_update'. % Resizes the child windows immediately (strongly recommended
+				   % for a smoother control, unless at least a pane is long to
+				   % redraw).
 
 
 -doc """
@@ -98,15 +99,26 @@ length of the first pane is therefore fixed).
 -type scaling_ratio() :: number().
 
 
--doc "The position of a splitter within its window, between the two panes.".
+-doc """
+The position, in pixels, of a splitter within its window, between the two panes.
+
+A null position will set the splitter to the middle of the window.
+
+A negative value will "wrap around" the splitter's position. For example, -10
+will place the splitter at 10 pixels from right of an (vertical) splitter
+window.
+""".
 -type splitter_position() :: length().
 
 
--export_type([ splitter_window/0, scaling_ratio/0, splitter_position/0 ]).
+
+
+-export_type([ splitter_window/0, scaling_ratio/0, splitter_position/0,
+			   splitter_option/0 ]).
 
 
 
--export([ create/1, create/5, create/6, destruct/1,
+-export([ create/1, create/2, create/5, create/6, destruct/1,
 		  get_scaling_ratio/1, set_scaling_ratio/2,
 		  get_splitter_position/1, set_splitter_position/2,
 		  get_minimum_pane_length/1, set_minimum_pane_length/2,
@@ -165,11 +177,27 @@ length of the first pane is therefore fixed).
 -doc """
 Creates a splitter, in the specified parent window.
 
+No live update will be enabled, resulting on the dragging of the splitter
+appearing not smooth.
+
 The up to two subwindows and splitting can be declared afterwards.
 """.
 -spec create( parent() ) -> splitter_window().
-create( ParentWindow ) ->
-	wxSplitterWindow:new( ParentWindow ).
+create( Parent ) ->
+	wxSplitterWindow:new( Parent ).
+
+
+
+-doc """
+Creates a splitter, in the specified parent window, with the specified options.
+
+This is the most flexible way of creating a splitter; however the versions of
+higher arities of this function are generally preferred, as the splitter styles
+are very platform-specific and offer actually little choices.
+""".
+-spec create( maybe_list( splitter_option() ), parent() ) -> splitter_window().
+create( Options, Parent ) ->
+	wxSplitterWindow:new( Parent, to_wx_splitter_options( Options ) ).
 
 
 
@@ -181,10 +209,10 @@ The up to two subwindows and splitting can be declared afterwards.
 """.
 -spec create( position(), size(), [ splitter_style() ], id(), parent() ) ->
 											splitter_window().
-create( Position, Size, Styles, Id, ParentWindow ) ->
+create( Position, Size, Styles, Id, Parent ) ->
 	create( Position, Size, Styles,
 			_OSType=system_utils:get_operating_system_type(),
-			Id, ParentWindow ).
+			Id, Parent ).
 
 
 
@@ -198,7 +226,7 @@ Most complete creation function.
 """.
 -spec create( position(), size(), [ splitter_style() ], os_type(), id(),
 			  parent() ) -> splitter_window().
-create( Position, Size, Styles, OSType, Id, ParentWindow ) ->
+create( Position, Size, Styles, OSType, Id, Parent ) ->
 
 	ExtraStyles = case OSType of
 
@@ -217,7 +245,7 @@ create( Position, Size, Styles, OSType, Id, ParentWindow ) ->
 
 	ActualId = gui_id:declare_any_id( Id ),
 
-	SplitterWin = wxSplitterWindow:new( ParentWindow, [
+	SplitterWin = wxSplitterWindow:new( Parent, [
 		{ id, ActualId },
 		{ pos, Position },
 		{ size, Size },
@@ -225,7 +253,7 @@ create( Position, Size, Styles, OSType, Id, ParentWindow ) ->
 
 	% No wxSplitterWindow:split{Horizontally,Vertically}(Splitter, Win1, Win2)
 	% call here, as we do not have Win1 or Win2 yet, and cannot have them at
-	% that point, as their parent must be the just-created, still to be returned
+	% that point, as their parent must be the just-created, still-to-be-returned
 	% splitter window.
 
 	SplitterWin.
@@ -270,6 +298,8 @@ get_splitter_position( SplitterWin ) ->
 
 -doc """
 Sets the current position of the splitter.
+
+Triggers a redraw.
 
 Does not currently check for an out-of-range value.
 """.

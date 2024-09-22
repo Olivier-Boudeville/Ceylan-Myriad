@@ -58,6 +58,9 @@ dynamically resized (stacked according to the corresponding orientation).
 
 These elements will be rendered in their addition order.
 
+So a vertical sizer will stack its elements from top to bottom, whereas an
+horizontal sizer will do it from left to right.
+
 A sizer should not be considered as a widget (e.g. it does not handle events),
 it is just an helper component to compute the respective sizes of the widgets
 that it registered.

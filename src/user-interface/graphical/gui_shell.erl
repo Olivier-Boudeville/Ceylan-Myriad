@@ -231,8 +231,9 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 		_ButtonSize=auto, _ButtonStyle=[], _BId=prompt_black_button,
 		ParentWindow ),
 
+	% Not adding the 'multiline' style, as the editor gets uselessly too tall:
 	CmdEditor = gui_text_editor:create(
-		[ { style, [ multiline, process_enter_key ] } ], ParentWindow ),
+		[ { style, [ process_enter_key ] } ], ParentWindow ),
 
 	gui_widget:set_focus( CmdEditor ),
 
