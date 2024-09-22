@@ -731,7 +731,7 @@ headers like "gui_shader.glsl.h") can be found in all cases.
 %-define( write_preprocessed_shader_sources, false ).
 
 
-% Shorthands:
+% Type shorthands:
 
 
 -type count() :: basic_utils:count().
@@ -741,6 +741,7 @@ headers like "gui_shader.glsl.h") can be found in all cases.
 
 -type file_path() :: file_utils:file_path().
 -type any_file_path() :: file_utils:any_file_path().
+-type any_abs_file_path() :: file_utils:any_abs_file_path().
 -type any_directory_path() :: file_utils:any_directory_path().
 
 -type byte_size() :: system_utils:byte_size().
@@ -1429,8 +1430,8 @@ get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
 			[ ShaderPath, text_utils:strings_to_enumerated_string(
 							FullGLSLSearchPaths ) ] ) ),
 
-	FullShaderPath =
-			case resolve_glsl_file( ShaderPath, FullGLSLSearchPaths ) of
+	FullShaderPath = case resolve_glsl_file( ShaderPath,
+											 FullGLSLSearchPaths ) of
 
 		undefined ->
 			trace_utils:error_fmt( "Shader source file '~ts' not found through "
@@ -1440,8 +1441,9 @@ get_shader_source( ShaderPath, ExtraGLSLSearchPaths ) ->
 			throw( { shader_source_file_not_found, ShaderPath,
 					 FullGLSLSearchPaths } );
 
-		SPath ->
-			SPath
+		AbsSPath ->
+			trace_utils:debug_fmt( "Shader found as '~ts'.", [ AbsSPath ] ),
+			AbsSPath
 
 	end,
 
@@ -1481,7 +1483,7 @@ Resolves the specified GLSL-related file (e.g. shader or include) based on the
 specified search paths.
 """.
 -spec resolve_glsl_file( any_file_path(), glsl_search_paths() ) ->
-									option( any_file_path() ).
+											option( any_abs_file_path() ).
 resolve_glsl_file( FilePath, ExtraGLSLSearchPaths ) ->
 
 	case file_utils:is_absolute_path( FilePath ) of
@@ -1502,8 +1504,11 @@ resolve_glsl_file( FilePath, ExtraGLSLSearchPaths ) ->
 
 		% Then is a relative path:
 		false ->
-			file_utils:get_first_file_or_link_for( FilePath,
-				_CandidateDirs=ExtraGLSLSearchPaths )
+
+			MoreCompleteFilePath = file_utils:get_first_file_or_link_for(
+				FilePath, _CandidateDirs=ExtraGLSLSearchPaths ),
+
+			file_utils:ensure_path_is_absolute( MoreCompleteFilePath )
 
 	end.
 
