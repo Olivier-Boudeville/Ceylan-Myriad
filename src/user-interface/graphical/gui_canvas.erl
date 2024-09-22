@@ -193,7 +193,7 @@ relating to a gui_object().
 """.
 -type canvas() :: { 'myriad_object_ref', 'myr_canvas', myriad_instance_id() }.
 
- 
+
 -export_type([ canvas_state/0, canvas/0 ]).
 
 
@@ -955,7 +955,7 @@ draw_label_impl( #canvas_state{ back_buffer=BackBuffer }, Point, LabelText ) ->
 
 -doc """
 Draws an upright cross at the specified location (2D point), with default edge
-length. 
+length.
 """.
 -spec draw_cross_impl( canvas_state(), point() ) -> void().
 draw_cross_impl( Canvas, Location ) ->
