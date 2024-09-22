@@ -711,6 +711,8 @@ the gl module.
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
 -type bit_size() :: system_utils:bit_size().
 -type byte_size() :: system_utils:byte_size().
 
@@ -1846,7 +1848,8 @@ Note: not to be mixed up with gui:create_canvas/1, which creates a basic
 Note also that using the use_core_profile attribute will result in also
 requesting OpenGL at least version 3.0.
 """.
--spec create_canvas( [ gl_canvas_option() ], widget() ) -> gl_canvas().
+-spec create_canvas( maybe_list( gl_canvas_option() ), widget() ) ->
+											gl_canvas().
 create_canvas( CanvasOpts, Parent ) ->
 
 	cond_utils:if_defined( myriad_debug_opengl,
@@ -1857,7 +1860,8 @@ create_canvas( CanvasOpts, Parent ) ->
 	% single atoms:
 	%
 	{ Attrs, OtherOpts } = tagged_list:extract_pair_with_default(
-		_K=gl_attributes, _Def=[ rgba, double_buffer ], CanvasOpts ),
+		_K=gl_attributes, _Def=[ rgba, double_buffer ],
+		tagged_list:ensure_tagged_list( CanvasOpts ) ),
 
 	%trace_utils:debug_fmt( "Creating a GL canvas from options:~n ~p,~n "
 	%   "hence with Attrs = ~p~n and OtherOpts = ~p.",
@@ -1953,9 +1957,10 @@ set_context( Canvas, Context ) ->
 -doc """
 Swaps the double-buffer of the corresponding OpenGL canvas (making the
 back-buffer the front-buffer and vice versa), so that the output of the previous
-OpenGL commands is displayed on this window.
+OpenGL commands is displayed on the corresponding window, which must already be
+shown.
 
-The corresponding window must already be shown.
+Generally called just after a pure-OpenGL rendering function.
 
 Includes a gl:flush/0.
 """.
