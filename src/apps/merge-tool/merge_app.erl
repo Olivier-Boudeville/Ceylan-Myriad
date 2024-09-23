@@ -30,11 +30,11 @@ exec() ->
 	update_code_path_for_myriad_from_module(),
 
 	% To force options for testing:
-	%ArgTable = shell_utils:generate_argument_table( "--help" ),
+	%ArgTable = cmd_line_utils:generate_argument_table( "--help" ),
 
-	ArgTable = shell_utils:get_argument_table(),
+	ArgTable = cmd_line_utils:get_argument_table(),
 
 	%trace_utils:debug_fmt( "Run as application: ~ts",
-	%   [ shell_utils:argument_table_to_string( ArgTable ) ] ),
+	%   [ cmd_line_utils:argument_table_to_string( ArgTable ) ] ),
 
 	merge_utils:main( ArgTable ).

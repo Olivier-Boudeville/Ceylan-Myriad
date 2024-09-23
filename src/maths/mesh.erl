@@ -252,7 +252,7 @@ specified ones, with no specific normal or bounding volume set.
 			  rendering_info() ) -> mesh().
 create( Vertices, FaceType, Faces, RenderingInfo ) ->
 	create( Vertices, FaceType, Faces, _AnyNormalType=per_face,
-		_MaybeNormals=undefined, RenderingInfo ).
+			_MaybeNormals=undefined, RenderingInfo ).
 
 
 

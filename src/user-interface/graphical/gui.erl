@@ -1511,6 +1511,10 @@ execute_instance_destruction( ObjectType, InstanceId ) ->
 
 -doc """
 Sets the current process as the controller of the specified GUI object handle.
+
+Useful when "subclassing" a type of GUI object with application-level
+behaviours, so that its instances are user-defined gen_server ones; refer to the
+(wx-specified) `wx_object` module).
 """.
 -spec set_as_controller( gui_object() ) -> gui_object().
 set_as_controller( Object ) ->
@@ -1521,6 +1525,10 @@ set_as_controller( Object ) ->
 -doc """
 Sets the process of specified PID as the controller of the specified GUI object
 handle.
+
+Useful when "subclassing" a type of GUI object with application-level
+behaviours, so that its instances are user-defined gen_server ones; refer to the
+(wx-specified) `wx_object` module).
 """.
 -spec set_controller( gui_object(), pid() ) -> gui_object().
 set_controller( Object, ControllerPid ) ->

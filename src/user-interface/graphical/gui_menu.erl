@@ -274,13 +274,13 @@ When a frame goes fullscreen, any menu bar it has is hidden.
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
+-type help_info() :: ui:help_info().
+
 -type label() :: gui:label().
 -type title() :: gui:title().
 -type widget() :: gui:widget().
 
 -type window() :: gui_window:window().
-
--type help_info() :: gui_text:help_info().
 
 -type id() :: gui_id:id().
 -type name_id() :: gui_id:name_id().

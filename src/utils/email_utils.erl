@@ -47,10 +47,10 @@ Electronic address for email (e.g. `"john@hello.org"`).
 Binary email address (e.g. `<<"john@hello.org">>`).
 """.
 -type bin_email_address() :: bin_string().
-%
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().

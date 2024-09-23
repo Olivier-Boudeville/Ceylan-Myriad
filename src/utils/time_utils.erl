@@ -279,9 +279,19 @@ Used to be calendar:datetime(), now uses our types.
 
 A timestamp shall preferably be canonical (e.g. with a canonical month).
 
-For example: {{2022,11,7}, {13,14,53}}.
+For example: `{{2022,11,7}, {13,14,53}}`.
 """.
 -type timestamp() :: { date(), time() }.
+
+
+-doc """
+A timestamp, as a binary string.
+
+For example: `<<"2024/9/2 21:37:22">>`.
+""".
+-type timestamp_binstring() :: bin_string().
+
+
 
 
 
@@ -352,7 +362,7 @@ is 1970-01-01 00:00 UTC.
 -type posix_seconds() :: integer().
 
 
--export_type([ timestamp/0, precise_timestamp/0,
+-export_type([ timestamp/0, timestamp_binstring/0, precise_timestamp/0,
 			   time_frame/0, user_time_frame/0,
 
 			   finite_time_out/0, time_out/0,
@@ -362,7 +372,7 @@ is 1970-01-01 00:00 UTC.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -1519,7 +1529,7 @@ Returns a binary string corresponding to the current timestamp, like:
 Note that the display order here is YY-MM-DD (same as when specifying the
 timestamp), as opposed to DD-MM-YY, which is maybe more usual.
 """.
--spec get_bin_textual_timestamp() -> bin_string().
+-spec get_bin_textual_timestamp() -> timestamp_binstring().
 get_bin_textual_timestamp() ->
 	text_utils:string_to_binary( get_textual_timestamp() ).
 
@@ -1702,7 +1712,6 @@ short_string_to_timestamp( TimestampString ) ->
 Converts (with a bit of approximation) the specified number of Gregorian
 milliseconds into a proper, user-level (local, system) timestamp.
 """.
-
 -spec gregorian_ms_to_timestamp( ms_since_year_0() ) -> timestamp().
 gregorian_ms_to_timestamp( GregorianMs ) ->
 

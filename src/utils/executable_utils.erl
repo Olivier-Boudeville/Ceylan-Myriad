@@ -31,8 +31,8 @@
 Gathering of various convenient facilities regarding the **execution of
 third-party programs**.
 
-See executable_utils_test.erl for the corresponding test, and shell_utils.erl
-for the management of the shells and command lines.
+See executable_utils_test.erl for the corresponding test, and cmd_line_utils.erl
+for the management of the command lines.
 
 See system_utils.erl for the actual execution of programs.
 """.
@@ -151,7 +151,7 @@ See system_utils.erl for the actual execution of programs.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type width() :: text_utils:width().
@@ -164,7 +164,7 @@ See system_utils.erl for the actual execution of programs.
 -type directory_path() :: file_utils:directory_path().
 
 -type command_output() :: system_utils:command_output().
--type command_line_argument() :: shell_utils:command_line_argument().
+-type command_line_argument() :: cmd_line_utils:command_line_argument().
 
 -type image_format() :: gui_image:image_format().
 
@@ -1074,7 +1074,7 @@ is_batch() ->
 	% Corresponds to the '--batch' command-line option (a *plain* argument,
 	% hence expected to be after a -extra command-line switch):
 	%
-	case shell_utils:get_command_arguments_for_option( '-batch' ) of
+	case cmd_line_utils:get_command_arguments_for_option( '-batch' ) of
 
 		% Normal case if set on the command-line:
 		[ [] ] ->

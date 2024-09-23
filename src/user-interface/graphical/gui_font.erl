@@ -106,7 +106,7 @@ A wx object.
 
 -doc "Length from the baseline of a font to the bottom of the descender.".
 -type descent() :: length().
- 
+
 
 
 -doc """
@@ -160,7 +160,7 @@ Useful for example so that texts are rendered at the same height.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type any_string() :: text_utils:any_string().
@@ -190,7 +190,7 @@ create( FontSize ) ->
 
 -doc """
 Creates a font object from the specified requirements, to determine the
-appearance of rendered texts from now on. 
+appearance of rendered texts from now on.
 """.
 -spec create( font_size() | point_size(), font_family() ) -> font().
 create( FontSize, FontFamily ) ->

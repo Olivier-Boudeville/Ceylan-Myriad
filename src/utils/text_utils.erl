@@ -52,7 +52,7 @@ See text_utils_test.erl for the corresponding test.
 		  integer_to_string/1, integer_to_binary/1,
 
 		  integer_to_hexastring/1, integer_to_hexastring/2,
-		  integer_to_hexasbintring/1, integer_to_hexabinstring/2,
+		  integer_to_hexabinstring/1, integer_to_hexabinstring/2,
 
 
 		  hexastring_to_integer/1, hexastring_to_integer/2,
@@ -65,7 +65,8 @@ See text_utils_test.erl for the corresponding test.
 		  atom_to_string/1,
 
 		  pid_to_string/1, pids_to_string/1,
-		  pid_to_short_string/1, pids_to_short_string/1, pid_to_core_string/1,
+		  pid_to_short_string/1, pids_to_short_string/1,
+		  pid_to_core_string/1, pid_to_filename/1,
 
 		  record_to_string/1,
 
@@ -106,6 +107,8 @@ See text_utils_test.erl for the corresponding test.
 		  percent_to_string/1, percent_to_string/2,
 		  distance_to_string/1, distance_to_short_string/1,
 		  repetition_to_string/1, table_to_string/2,
+
+		  string_like_to_atom/1, string_like_to_bin_string/1,
 
 		  format/2, format_failsafe/1, bin_format/2, atom_format/2, format/3,
 		  format_ellipsed/2, format_ellipsed/3,
@@ -325,7 +328,8 @@ For example: `<<"0x44e390a3">>` or `<<"44e390a3">>`.
 -doc """
 A Unicode (plain) string.
 
-This is our new default, and corresponds to charlist() | unicode_binary().
+This is our new default, and corresponds to charlist() | unicode_binary(), so
+basically any non-nested string.
 
 We mostly mean by that [char()], where char() is an integer corresponding to an
 ASCII character or to a unicode codepoint, expected to be in [0..16#10ffff].
@@ -377,6 +381,12 @@ Now is our default type of (plain) string.
 a builtin type; it cannot be redefined").
 """.
 -type ustring() :: unicode_string().
+
+
+-doc """
+A nested string, that is a possibly deep list containing only char() elements.
+""".
+-type chars() :: io_lib:chars(). % Thus [char() | chars()].
 
 
 
@@ -515,7 +525,9 @@ information.
 
 
 
+
 % Type shorthands:
+
 
 % A user-perceived character, consisting of one or more (Unicode) codepoints.
 -type grapheme_cluster() :: string:grapheme_cluster().
@@ -784,8 +796,8 @@ For example: `integer_to_hexabinstring(3432) = <<"d68">>`.
 Refer to the 'Hexadecimal notes' section above, regarding zero-padding and "0x"
 prefixing.
 """.
--spec integer_to_hexasbintring( integer() ) -> hexastring().
-integer_to_hexasbintring( IntegerValue ) ->
+-spec integer_to_hexabinstring( integer() ) -> hexastring().
+integer_to_hexabinstring( IntegerValue ) ->
 	string_to_binary( integer_to_hexastring( IntegerValue ) ).
 
 
@@ -973,15 +985,23 @@ atom_to_string( Atom ) ->
 
 
 
--doc "Returns a plain string corresponding to the specified PID.".
--spec pid_to_string( pid() ) -> ustring().
+-doc """
+Returns nested characters corresponding to the specified PID.
+
+For example `["<0.84.0>"]`.
+""".
+-spec pid_to_string( pid() ) -> chars().
 pid_to_string( Pid ) ->
 	io_lib:format( "~w", [ Pid ] ).
 
 
 
--doc "Returns a plain string corresponding to the specified list of PIDs.".
--spec pids_to_string( [ pid() ] ) -> ustring().
+-doc """
+Returns nested characters corresponding to the specified list of PIDs.
+
+For example `[[91,["<0.84.0>",44,"<0.84.0>"],93]]`.
+""".
+-spec pids_to_string( [ pid() ] ) -> chars().
 pids_to_string( PidList ) ->
 	io_lib:format( "~w", [ PidList ] ).
 
@@ -990,7 +1010,8 @@ pids_to_string( PidList ) ->
 -doc """
 Returns a short, plain string corresponding to the specified PID.
 
-For example, `<0.33.0>` returned as `"|33|"` (half size).
+For example, `<0.33.0>` returned as `"|33|"` (half size); `<1.44.0>` returned as
+`"|1.44|"`, `<1.55.7>` as `"|1.55.7|"` (same size).
 
 Note though that the pipe character may be better avoided on some systems
 (e.g. Ceylan-Traces ones, at least for the name of trace emitters).
@@ -1024,7 +1045,10 @@ pids_to_short_string( PidList ) ->
 -doc """
 Returns a very short plain string corresponding to the specified PID.
 
-For example, for `<0.33.0>`, will return `"33"`.
+For example, for:
+ - `<0.33.0>` will return `"33"`
+ - `<1.44.0>` will return `"1.44"`
+ - `<1.55.7>` will return `"1.55.7"`
 """.
 -spec pid_to_core_string( pid() ) -> ustring().
 pid_to_core_string( Pid ) ->
@@ -1032,7 +1056,7 @@ pid_to_core_string( Pid ) ->
 	% A PID is akin to <X.Y.Z>.
 
 	% Needed otherwise returns ["<0.78.0>"], not "<0.78.0>":
-	PidAsText = lists:flatten( io_lib:format( "~w", [ Pid ] ) ),
+	PidAsText = hd( io_lib:format( "~w", [ Pid ] ) ),
 
 	%trace_utils:debug_fmt( "PidAsText = '~p'.", [ PidAsText ] ),
 
@@ -1069,6 +1093,29 @@ pid_to_core_string( Pid ) ->
 
 	% For example: "33", "1.33", or "1.33.2":
 	ActualFirst ++ Second ++ ActualThird.
+
+
+
+-doc """
+Returns a plain string corresponding to the specified PID and that is suitable
+to be (at least part of) a filename.
+
+For example, for `<0.84.0>`, returns `"0.84.0"`.
+""".
+-spec pid_to_filename( pid() ) -> ustring().
+pid_to_filename( Pid ) ->
+
+	% A PID is akin to <X.Y.Z>.
+
+	% Needed otherwise returns ["<0.78.0>"], not "<0.78.0>":
+	PidAsText = hd( io_lib:format( "~w", [ Pid ] ) ),
+
+	%trace_utils:debug_fmt( "PidAsText = '~p'.", [ PidAsText ] ),
+
+	[ $< | Rest ] = PidAsText,
+
+	% Thus "X.Y.Z":
+	list_utils:remove_last_element( Rest ).
 
 
 
@@ -2093,6 +2140,31 @@ table_to_string( Table, EntryDesc ) ->
 			text_utils:format( "~B ~tss", [ S, EntryDesc ] )
 
 	end.
+
+
+
+-doc "Returns the atom corresponding to the specified string-like.".
+-spec string_like_to_atom( string_like() ) -> atom().
+string_like_to_atom( Str ) when is_list( Str ) ->
+	erlang:list_to_atom( Str );
+
+string_like_to_atom( BinStr ) when is_binary( BinStr ) ->
+	erlang:binary_to_atom( BinStr );
+
+string_like_to_atom( AtomStr ) when is_atom( AtomStr ) ->
+	AtomStr.
+
+
+
+-doc "Returns the binary string corresponding to the specified string-like.".
+string_like_to_bin_string( Str ) when is_list( Str ) ->
+	erlang:list_to_binary( Str );
+
+string_like_to_bin_string( AtomStr ) when is_atom( AtomStr ) ->
+	erlang:atom_to_binary( AtomStr );
+
+string_like_to_bin_string( BinStr ) when is_binary( BinStr ) ->
+	BinStr.
 
 
 
@@ -4011,6 +4083,10 @@ concatenate( Elements ) ->
 -doc "Concatenates the two specified binary strings into the returned one.".
 -spec bin_concatenate( bin_string(), bin_string() ) -> bin_string().
 bin_concatenate( FirstBinStr, SecondBinStr ) ->
+
+	%trace_utils:debug_fmt( "Concatenating '~p' with '~p'.",
+	%                       [ FirstBinStr, SecondBinStr ] ),
+
 	% Presumably better than bin_format("~ts~ts", [FirstBinStr, SecondBinStr]),
 	% mostly the same as erlang:iolist_to_binary([FirstBinStr, SecondBinStr]):
 	%
@@ -4036,8 +4112,9 @@ remove_empty_lines( Strs ) ->
 
 
 -doc """
-Substitutes in the specified string the source character with the target one:
-replaces all occurrences thereof.
+Substitutes in the specified string the specified source character with the
+target one: replaces all occurrences thereof; returns a string of the same type
+as the specified one.
 
 Note: simpler and probably more efficient that a regular expression.
 
@@ -4191,7 +4268,7 @@ For example: `text_utils:update_with_keywords("Hello word!", table:new([{"foo",
 See also: file_utils:update_with_keywords/3.
 """.
 -spec update_with_keywords( any_string(), translation_table() ) ->
-									[ string_like() ].
+											[ string_like() ].
 update_with_keywords( Content, TranslationTable ) ->
 
 	TransPairs = ?table:enumerate( TranslationTable ),

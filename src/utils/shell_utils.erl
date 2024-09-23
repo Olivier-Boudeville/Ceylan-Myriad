@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2024 Olivier Boudeville
+% Copyright (C) 2024-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -28,209 +28,224 @@
 -module(shell_utils).
 
 -moduledoc """
-Gathering of various convenient facilities regarding the management of the
-**shells and command lines** (e.g. specified arguments).
+Provides our own version of an Erlang shell process, typically in order to
+integrate it in a REPL-like interpreter.
 
-See shell_utils_test.erl for the corresponding test.
+See shell_utils_test.erl for its testing, and gui_shell_test.erl for an
+example of use thereof.
 """.
 
 
-
-% Section for command-line facilities:
--export([ protect_from_shell/1 ]).
-
-
-% Implementation notes:
+% Two versions were targeted:
 %
-% It does not seem possible with sh to properly pass arguments that contain at
-% least a space (e.g. my-script.sh "has a space"), regardless of the use of $@
-% and IFS; for bash, refer to
-% https://unix.stackexchange.com/questions/472589/pass-to-command-preserving-quotes
-% for more information; this is not a limitation induced by Erlang or this
-% module.
-
-
-% For easy table type substitution (note though that lists:keytake/3 is used):
--define( arg_table, list_table ).
-
-
-% The command-line is mostly managed like init:get_argument/1.
-
-
--doc """
-Any element of a command-line, typically option name or value.
-""".
--type command_line_element() :: ustring().
-
-
-
--doc """
-The name of a command-line option; e.g. '-color', for an actual option that is
-"--color". For the init standard module, this is named a "flag".
-""".
--type actual_command_line_option() :: atom().
-
-
-% To designate command-line arguments that are specified directly as such, not
-% in the context of any specific command-line option.
+% - a custom shell, using our own Myriad conventions; we use it
 %
-% Note that such option-less arguments should thus come first on the
-% command-line, otherwise they would be included in the list associated to the
-% last processed option (unless, in the context of a unique argument table, that
-% an option-spec allows to gather them separately).
+% - a standard shell, integrated in Erlang native subsystems; we drop it (see
+% reasons in implementation notes below)
+
+
+
+% User API:
+-export([ start_custom_shell/0, start_link_custom_shell/0,
+		  start_custom_shell/1, start_link_custom_shell/1,
+
+		  execute_command/2 ]).
+
+
+
+% At least for silencing:
+-export([ % As not ready for use:
+		  start_standard_shell/0, start_link_standard_shell/0,
+		  start_standard_shell/1, start_link_standard_shell/1,
+
+		  custom_shell_state_to_string/1, standard_shell_state_to_string/1 ]).
+
+
+-doc "The PID of a (Myriad) shell process.".
+-type shell_pid() :: custom_shell_pid() | standard_shell_pid().
+
+
+-doc "The PID of a Myriad custom shell process.".
+-type custom_shell_pid() :: pid().
+
+-doc "The PID of a Myriad standard shell process.".
+-type standard_shell_pid() :: pid().
+
+
+
+-doc "The PID of a shell client process.".
+-type client_pid() :: pid().
+
+
+
+% Surprisingly, not a string-like, but term():
+-type variable_name() :: erl_eval:name().
+
+
+% term():
+-type variable_value() :: erl_eval:value().
+
+
+
+% Apparently not exported as a standalone:
+-doc "Logical binding for a variable, as held by a shell.".
+-type binding() :: { variable_name(), variable_value() }.
+
+
+
+-doc """
+A command to submit to a shell, corresponding to a sequence of expressions.
+
+For example: <<"A=1, B=2, A+B.">>.
+""".
+-type command() :: bin_string().
+
+
+-doc "The number of a command, which is an identifier thereof.".
+-type command_id() :: count().
+
+
+-doc "The result of a command, as evaluated by a shell.".
+-type command_result() :: variable_value().
+
+-doc "An error message generated when a shell evaluates a submitted command.".
+-type command_error() :: bin_string().
+
+
+-doc "The information returned once a command is processed.".
+-type command_outcome() ::
+
+	{ 'success', command_result(), command_id(),
+	  MaybeTimestampBinStr :: option( timestamp_binstring() ) }
+
+  | { 'error', command_error(),
+	  MaybeTimestampBinStr :: option( timestamp_binstring() ) }.
+
+
+% An element kept in the history:
+-type history_element() :: { command(), command_result() }.
+
+
+-doc """
+An history of a shell, that is a list of previously submitted commands and of
+their results (here in antichronological order).
+
+Note that this may allow huge terms to be kept around longer than expected (see
+the flushHistory request message to avoid that).
+""".
+-type history() :: queue( history_element() ).
+
+
+
+-doc """
+Options that can be specified when creating a shell:
+
+- 'timestamp': keep track also of the timestamp of the start of a command
+
+- 'log': logs the commands and their results, in a file whose default name is
+  `myriad-shell-CREATOR_PID.log`, where CREATOR_PID corresponds to the PID of
+  the shell creator, like in `myriad-shell-0.84.0.log` (then written in the
+  current directory)
+
+- {'log', LogPath :: any_file_path()}: logs the commands and their results in a
+  file whose path is specified
+
+- {'history', MaxDepth :: count()}: records a command history of the specified
+ maximum depth; 'undefined' means unlimited depth
+
+- no_history: does not store any command history (synonym of {history,0})
+""".
+-type shell_option() ::
+	'timestamp'
+ |  'log'
+ | { 'log', LogPath :: any_file_path() }
+ | { 'history', MaybeMaxDepth :: option( count() ) }
+ |  'no_history'.
+
+
+
+-doc """
+The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
+""".
+-type group_pid() :: pid().
+
+
+-export_type([ shell_pid/0, custom_shell_pid/0, standard_shell_pid/0,
+			   client_pid/0,
+
+			   variable_name/0, variable_value/0,
+			   binding/0,
+
+			   command/0, command_id/0, command_result/0, command_error/0,
+			   command_outcome/0,
+
+			   history/0,
+
+			   group_pid/0 ]).
+
+
+-define( default_history_max_depth, 20 ).
+
+
+% The state of a custom shell instance.
 %
-% This is therefore a reserved option name.
+% Defaults set in vet_options_for_custom/1:
+-record( custom_shell_state, {
+
+	% The number of commands already submitted; corresponds to the number
+	% (identifier) of any current command (or the one of the next command, minus
+	% 1):
+	%
+	submission_count = 0 :: count(),
+
+	% Tells whether the start of commands shall be timestamped:
+	do_timestamp = false :: boolean(),
+
+
+	% Tells whether the full history (inputs and outputs) shall be logged on
+	% file and, if yes, in which one:
+	%
+	log_path = undefined :: option( bin_file_path() ),
+
+	% The file (if any) where logs are to be written:
+	log_file = undefined :: option( file() ),
+
+
+	% Maximum number of history elements (0: none; 1: just the last one, etc.;
+	% undefined: infinite):
+	%
+	history_max_depth  = ?default_history_max_depth :: option( count() ),
+
+	% Possibly ellipsed:
+	history :: history(),
+
+	% Records all current bindings:
+	bindings :: binding_struct()
+
+	% TODO: add local/non-local function handlers
+
+} ).
+
+
+-doc "The state of a custom shell instance.".
+-type custom_shell_state() :: #custom_shell_state{}.
+
+
+% The state of a standard shell instance.
 %
--define( no_option_key, '(none)' ).
+% Defaults set in vet_options_for_standard/1:
+-record( standard_shell_state, {
+
+	% The PID of the group leader being currently used (if any):
+	current_group :: option( group_pid() )
+
+} ).
 
 
-
--doc """
-Note the special value ?no_option_key that is associated to option-less
-arguments.
-""".
--type command_line_option() :: actual_command_line_option() | ?no_option_key.
+-doc "The state of a standard shell instance.".
+-type standard_shell_state() :: #standard_shell_state{}.
 
 
-
--doc "A unitary value specified in link to a command-line option.".
--type command_line_value() :: text_utils:ustring().
-
-
-
--doc """
-The command-line values specified after an occurrence of a given option (e.g.
-["blue", "red"]).
-""".
--type command_line_values() :: [ command_line_value() ].
-
-
-
--doc """
-The association between a command-line option and the various values associated
-to its various occurrences, in a (non-unique) argument table.
-
-For example if arguments were "--color blue red [...] --color yellow", then the
-corresponding argument entry is {'-color', [["blue", "red"], ["yellow"]]}
-(i.e. with, associated to a command-line option, a list whose elements are
-*lists* of strings; in their order on the command-line).
-
-Note that keys are atoms (with one leading dash removed), and it is advisable to
-use only the executable_utils module support rather than mixing and matching it
-with the one of the 'init' module (different keys).
-""".
--type command_line_argument() ::
-	% Yes, a *list* of command-line valueS:
-	{ command_line_option(), [ command_line_values() ] }.
-
-
-
--doc """
-A table storing command-line user (plain, i.e arguments specified after either
-"--" or, preferably, "-extra") arguments conveniently (a bit like getopt), in a
-format exactly in the spirit of init:get_arguments/0, allowing to record options
-possibly repeated more than once, possibly each time with a series of values.
-
-Useful to manage arguments more easily, and also to handle uniformly the
-arguments specified for erl-based executions and escript ones alike.
-
-Note: to account for repeated options (i.e. options specified more than once on
-the command-line), a list of *lists* of values is associated to each option in
-such argument tables.
-
-For example, for actual command-line options such as:
-  some_value --foo --bar a b --width 15 --bar c
-a corresponding argument table would contain following entries:
-	'-foo' -> [ [] ]
-	'-bar' -> [ [ "a", "b" ], [ "c" ] ]
-	'-width -> [ [ "15" ] ]
-	?no_option_key -> [ "some_value"
-""".
--type argument_table() ::
-	?arg_table:?arg_table( command_line_option(), [ command_line_values() ] ).
-
-
-
--doc """
-A table associating to a given option a (single) list of values (thus not having
-repeated options).
-
-For example, for actual command-line options such as:
-  some_value --foo --bar a b --width 15
-a corresponding argument table would contain following entries:
-   '-foo' -> []
-   '-bar' -> [ "a", "b" ]
-   '-width -> [ "15" ]
-   ?no_option_key -> [ "some_value" ]
-
-For convenience, "standard" argument tables may be converted into unique ones.
-""".
--type unique_argument_table() ::
-		?arg_table:?arg_table( command_line_option(), command_line_values() ).
-
-
-
--doc "Non-null expected (otherwise meaningless).".
--type actual_value_count() :: count().
-
-
-
--doc """
-How many values (possibly any number thereof - possibly none) are expected after
-a given command-line option.
-""".
--type value_count() :: actual_value_count() | 'any'.
-
-
-
--doc "Describes the expected number of values associated to a given option.".
--type value_spec() ::
-
-	% Exact count requested:
-	value_count()
-
-	% A (possibly unlimited) range of counts accepted (bounds included):
-	| { actual_value_count(), value_count() }.
-
-
-
--doc "A specification of how many values are expected after specified option.".
--type option_spec() :: { actual_command_line_option(), value_spec() }.
-
-
-
--export_type([ command_line_element/0,
-			   command_line_option/0, command_line_value/0,
-			   command_line_argument/0,
-			   argument_table/0, unique_argument_table/0,
-			   actual_value_count/0, value_count/0, value_spec/0,
-			   option_spec/0 ]).
-
-
-% Command-line argument section:
--export([ get_argument_table/0,
-		  get_argument_table_from_strings/1,
-		  generate_argument_table/1,
-
-		  get_command_arguments_for_option/1,
-		  get_optionless_command_arguments/0,
-
-		  extract_command_arguments_for_option/1,
-		  extract_command_arguments_for_option/2,
-
-		  extract_optionless_command_arguments/0,
-		  extract_optionless_command_arguments/1,
-
-		  get_command_line_arguments/2, get_command_line_arguments/3,
-		  uniquify_argument_table/1,
-
-		  argument_table_to_string/1 ]).
-
-
-% Factoring error reports:
--export([ error/2, error_fmt/3 ]).
-
--compile( { no_auto_import, [ error/2 ] } ).
 
 
 % Type shorthands:
@@ -238,765 +253,1150 @@ a given command-line option.
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
+
+-type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
--type format_string() :: text_utils:format_string().
--type format_values() :: text_utils:format_values().
 
--type return_code() :: system_utils:return_code().
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
+
+-type timestamp_binstring() :: time_utils:timestamp_binstring().
+
+-type bin_file_path() :: file_utils:bin_file_path().
+-type any_file_path() :: file_utils:any_file_path().
+-type file() :: file_utils:file().
+
+% Not a [binding()]:
+-type binding_struct() :: erl_eval:binding_struct().
+
+-type queue( T ) :: queue:queue( T ).
 
 
 
-% Section for command-line facilities.
+% Implementation notes:
+%
+% Perhaps that a smart use of the built-in 'shell' module could have sufficed.
+%
+% We see two approaches in order to implement such a separate shell:
+%
+% - (A) define our own custom version of it, from scratch, based on our own
+% read/scan/eval loop; we prefer here that the shell resists to any failure
+% induced by user commands (e.g. not losing its bindings then); it is, at least
+% currently, a very basic shell: no command recall, no history, no built-in
+% functions (like f()), no shell switching, no remote shell, etc; we considered
+% supporting an auto_add_trailing_dot option ("Tells whether a trailing dot
+% should be automatically added if lacking in a command") yet it was probably
+% not a relevant idea)
+%
+% - (B) plug in the group/user/shell built-in architecture ("standard shell");
+% see also for this approach:
+%
+%  * a full description of the Erlang shell:
+%  https://ferd.ca/repl-a-bit-more-and-less-than-that.html; we understand that
+%  we shall mimic the usr_drv module, just in charge, through the 'group'
+%  process(es) that it manages, of feeding a set of standard 'shell/eval'
+%  processes (local or remote) and handling their results; 'user_drv' is
+%  moreover able to determine what is the current shell among the ones that it
+%  drives, and to drop into shell management mode if the input text happens to
+%  be ^C or ^G (allowing to switch shells); here this would be done by the
+%  creator of our shells
+%
+%  * kernel/src/user_drv.erl (there is no user.erl) for the (message-based)
+%  applicative protocol between a user_drv process and a group (see message/0
+%  and request/0, which are sent by the user_drv process to its current group);
+%  inspiration can also be found from ssh/src/ssh_cli.erl, relying on
+%  kernel/src/group.erl (not referenced in user documentation),
+%  stdlib/src/edlin.erl
+%
+%  * https://erlangforums.com/t/adding-repl-like-feature-to-a-graphical-erlang-application/3795
+%  (using edlin)
+%
+%  * https://erlang.org/pipermail/erlang-questions/2008-September/038476.html
+%  * https://tryerlang.org/
+%  * https://github.com/seriyps/eplaypen and http://tryerl.seriyps.ru/
+%  * http://erlang.org/pipermail/erlang-questions/2013-April/073451.html
+
+% We tried to implement both, and found out that developing a custom shell was
+% way simpler and more satisfactory than trying to plug in the native shell
+% infrastructure. Despite much time spent, understanding how to properly
+% implement a sufficient protocol like the one between the prim_tty, group, and
+% shell modules is difficult (e.g. overlapping of responsabilities, every module
+% having to manage input/output text to some extent, many features getting in
+% the way - old/new/remote shell) and inconvenient (not much
+% documentation/examples/tests, no easy console or file logging).
+%
+% So, at least for now, we use exclusively our custom shell, not the standard
+% one.
+%
+% What are we losing in doing so / what extra features should be added in some
+% possible future?
+%
+% - enforce a true MVC pattern? Should be already quite the case; preferably
+% without using a FSM (gen_statem), as the code gets considerably less clear
+% then; a shell evaluator should not even be aware of multiline editing,
+% terminal geometry, etc.; enforce a clear modularity/separation of concerns
+% (multiple modules, probably multiple processes)
+%
+% - support various encodings? No, dealing only with UTF8 binaries is more than
+% enough nowadays
+%
+% - support noshell, oldshell or be compliant with the (native) newshell one?
+% Not interesting enough
+%
+% - switch to keypress/character-based handling with cursor control
+% (move/insert/delete, etc.), rather than full commands? Yes, could allow for a
+% bit of smart command editing, e.g. set of supported shortcuts - like an
+% Emacs-like one, (forward/backward) search mode, syntax highlighting,
+% auto-completion of module/function/variable names, and so on; possibly
+% callback-based; most probably the first addition to plan
+%
+% - support remote (Myriad) shells, on other nodes? Certainly, one day
+%
+% - provide solutions for shell control (like with Ctrl-g: listing, starting,
+% connecting, interrupting, killing shells)? Can be added later, with a
+% shell_controller, which would manage a set of shells (like the native "job
+% control manager" - jcl) and be their (smart) group leader for I/O (filtering
+% non-current shells, but possibly notifying of their activity and/or logging
+% them as well)
+%
+% - pseudo-local functions (i.e. "implicit modules", "built-in functions" -
+% callable without being prefixed with a module, as if they were local - for
+% example to offer built-in shell facilities like
+% https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands) in a
+% table, to have a set of them readily available on the shell? Yes, certainly
+% convenient; this requires most probably parse-transformation (not a large
+% problem with Myriad meta)
+%
+% - restricted shell, i.e. excluded modules and/or functions (to implement a
+% safer shell, like for https://www.tryerlang.org/restrictions) could be added?
+% Yes, certainly a useful feature, for security and to avoid silly mistakes;
+% could be based on a set of whitelisted patterns and/or a set of blacklisted
+% ones (or re-using pre-existing infrastructure)
+%
+% - provide per-shell history and make it persistent? To be determined
+%
+% - provide terminal multiplexing with transfers, like 'screen'? Some day maybe
+%
+% - support fancy constructs like records? Use case needed
+%
+% - enforce robust management of EXIT/DOWN messages, exceptions, etc.?
+% Certainly, possibly with aliases/monitors, synchronous operations, etc.
+%
+% - support fancier operations like password entering? Use case needed
+
+
+% What we are gaining with a custom shell ? Simplicity, dropping historical
+% retrocompatibility, having more proper comments, specs, etc.
+
+
+% Mode of operation (common to both kinds of shells):
+%
+% A caller creates such a shell.
+%
+% The shell may spontaneously send displayRequest messages (e.g. so that
+% slogan-like "Eshell V15.0 [...]" texts are displayed by the caller).
+%
+% The caller may (concurrently) run the execute_command/2 function (sending
+% processCommand messages to the shell), so that the corresponding command is
+% evaluated by the shell, and a corresponding command outcome is returned to the
+% caller.
+
+
+% Usage example (custom shell, no log or timestamp enabled):
+
+% Welcome to the MyriadGUI shell <0.93.0>.
+%
+% 1> A=1.
+% 1
+% 2> B=2.
+% 2
+% 3> A+B.
+% 3
+% 4> A
+% parsing failed: syntax error before:
+% 5> B=1.
+% evaluation failed: {badmatch,1}
+% 6> self().
+% <0.94.0>
+% 7> self().
+% <0.94.0>
+% 8> text_utils:get_timestamp().
+% evaluation failed: undef
+% 9> time_utils:get_timestamp().
+% {{2024,9,3},{22,29,59}}
+% 10> observer:start().
+% ok % and of course works
+
+
+
+% For myriad_spawn_link/1:
+-include("spawn_utils.hrl").
+
+
+
+%%%
+%%% Section for our own custom shell.
+%%%
+
+
+%% Shell user API.
+
 
 
 -doc """
-Protects specified argument from shell parsing, typically if specifying a
-filename including a single quote.
+Starts a (non-linked) custom shell process with default options, and returns its
+PID.
 
-Note: currently does not transform binary arguments (double conversion with
-improperly encoded strings might be tricky).
-
-When executing third-party programs, in order to avoid any need of protecting
-their arguments, a system_utils:run_executable/n variation ought to be used.
+A history of depth ?default_history_max_depth is enabled, and no logging is
+performed.
 """.
--spec protect_from_shell( any_string() ) -> any_string().
-protect_from_shell( ArgString ) when is_list( ArgString ) ->
-	% Simple approaches not sufficient (e.g. "echo 'aaa\'bbb'"):
-	protect_from_shell_helper( ArgString, _Acc=[] );
+-spec start_custom_shell() -> custom_shell_pid().
+start_custom_shell() ->
+	start_custom_shell( _Opts=[] ).
 
-protect_from_shell( ArgBinString ) when is_binary( ArgBinString ) ->
 
-	% text_utils:binary_to_string/1 may fail:
-	%text_utils:string_to_binary(
-	%   protect_from_shell( text_utils:binary_to_string( ArgBinString ) ) ).
 
-	ArgBinString.
+-doc """
+Starts a (non-linked) custom shell process with the specified options, and
+returns its PID.
+
+If logs are enabled, any corresponding file will be deleted first.
+
+See start_custom_shell/0 for defaults.
+""".
+-spec start_custom_shell( maybe_list( shell_option() ) ) -> custom_shell_pid().
+start_custom_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting (non-linked) custom shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options_for_custom( Opts ),
+
+	ShellPid = ?myriad_spawn(
+		fun() ->
+			custom_shell_main_loop( InitShellState )
+		end ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Started (non-linked) custom shell ~w.",
+							   [ ShellPid ] ) ),
+
+	ShellPid.
+
+
+
+-doc """
+Starts a linked custom shell process with default options, and returns its PID.
+
+See start_custom_shell/0 for defaults.
+""".
+-spec start_link_custom_shell() -> custom_shell_pid().
+start_link_custom_shell() ->
+	start_link_custom_shell( _Opts=[] ).
+
+
+
+-doc """
+Starts a linked custom shell process with the specified options, and returns its
+PID.
+
+See start_custom_shell/0 for defaults.
+""".
+-spec start_link_custom_shell( maybe_list( shell_option() ) ) ->
+										custom_shell_pid().
+start_link_custom_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting a linked custom shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options_for_custom( Opts ),
+
+	ShellPid = ?myriad_spawn_link(
+		fun() ->
+			custom_shell_main_loop( InitShellState )
+		end ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Started linked custom shell ~w.",
+							   [ ShellPid ] ) ),
+
+	ShellPid.
 
 
 
 % (helper)
-protect_from_shell_helper( _Text=[], Acc ) ->
-	lists:reverse( Acc );
+-spec vet_options_for_custom( maybe_list( shell_option() ) ) ->
+											custom_shell_state().
+vet_options_for_custom( Opts ) when is_list( Opts ) ->
 
-protect_from_shell_helper( _Text=[ $' | T ], Acc ) ->
-	% As will be reversed:
-	protect_from_shell_helper( T, "''\\'" ++ Acc );
+	% Defaults:
+	InitShellState = #custom_shell_state{
+		history=queue:new(),
+		bindings=erl_eval:new_bindings() },
 
-protect_from_shell_helper( _Text=[ C | T ], Acc ) ->
-	protect_from_shell_helper( T, [ C | Acc ] ).
+	vet_options_for_custom( Opts, InitShellState );
 
-
-
-
-
-% Command-line argument section.
-
-
--doc """
-Returns a canonical argument table, obtained from the user command-line
-arguments supplied to the interpreter.
-
-Note:
-- only the arguments specified on the command-line after the '-extra' marker
-will be taken into account; e.g.
-   make ui_run CMD_LINE_OPT="-a -extra some_value -b --use-ui-backend text_ui"
-(here "-a" and, of course, "-extra", will be ignored)
-- this function is to be called in the context of a standard erl execution (as
-opposed to an escript one, which shall use script_utils:get_arguments/1)
-""".
--spec get_argument_table() -> argument_table().
-get_argument_table() ->
-
-	% We do not want to include the VM-specific arguments (such as -noshell,
-	% -pz, etc.); use, in the command-line, '-extra', before (option-based)
-	% arguments to consider as plain ones:
-	%
-	%Args = init:get_arguments(),
-	Args = init:get_plain_arguments(),
-
-	%trace_utils:debug_fmt( "Arguments obtained by get_argument_table/0: ~p.",
-	%                       [ Args ] ),
-
-	% To convert a list of strings into per-option list of values:
-	get_argument_table_from_strings( Args ).
-
-
-
--doc """
-Returns the specified command-line arguments (simply transmitted as a list of
-the corresponding strings) once transformed into our "canonical", more
-convenient form, which is quite similar to the one used by Erlang for its
-user/system flags (that is for all its non-plain options).
-
-In this form, options start with a dash, may have any number of arguments, and
-may be specified more than once in the command-line; non-option arguments are
-collected as well (refer to the no_option_key define).
-
-Note: switches to the Unicode encoding (e.g. use "~tp" then).
-""".
--spec get_argument_table_from_strings( [ ustring() ] ) -> argument_table().
-get_argument_table_from_strings( ArgStrings ) ->
-
-	%trace_utils:debug_fmt( "Creating argument table from: ~p.",
-	%                       [ ArgStrings ] ),
-
-	% Useful side-effect, difficult to troubleshoot:
-	system_utils:force_unicode_support(),
-
-	get_arguments_from_strings( ArgStrings, _OptionTable=?arg_table:new() ).
-
-
-% (helper)
-get_arguments_from_strings( _Args=[], OptionTable ) ->
-	%trace_utils:debug_fmt( "Option table returned: ~p.", [ OptionTable ] ),
-	OptionTable;
-
-% The first option is detected, removing its initial dash:
-get_arguments_from_strings( _Args=[ [ $- | Option ] | T ], OptionTable ) ->
-	manage_option( Option, _RemainingArgs=T, OptionTable );
-
-% Apparently can happen (e.g. with releases run with erlexec):
-get_arguments_from_strings( _Args=[ _Dropped="" | T ], OptionTable ) ->
-	%trace_utils:warning( "Dropping an empty argument." ),
-	get_arguments_from_strings( T, OptionTable );
-
-% Here an initial argument does not start with a dash, hence is collected as a
-% non-option argument (unlike done by init:get_arguments/0):
-%
-get_arguments_from_strings( Args, OptionTable ) ->
-
-	% This may happen in a legit manner if for example wanting to establish if
-	% in batch mode (hence by calling is_batch/0) from a release, thus run with
-	% erlexec [...] console [...]:
-	%
-
-	% Used to be dropped:
-	%trace_utils:warning_fmt( "Dropping non-option initial argument '~ts'.",
-	%                         [ Dropped ] ),
-
-	%code_utils:display_stacktrace(),
-	%throw( { dropped, Dropped } ),
-
-	% Now collected thanks to:
-	manage_option( _Option=?no_option_key, Args, OptionTable ).
+vet_options_for_custom( Opt ) ->
+	vet_options_for_custom( [ Opt ] ).
 
 
 
 % (helper)
-%
-% (no_option_key being already an atom)
-%
-manage_option( OptionAtom, RemainingArgs, OptionTable )
-								when is_atom( OptionAtom ) ->
+vet_options_for_custom( _Opts=[], ShellState ) ->
+	ShellState;
 
-	{ OptValues, NextOptionInfo } =
-		collect_values_for_option( RemainingArgs, _AccValues=[] ),
+vet_options_for_custom( _Opts=[ timestamp | T ], ShellState ) ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ do_timestamp=true } );
 
-	% This option may already be registered in the table:
+vet_options_for_custom( _Opts=[ log | T ], ShellState ) ->
+
+	DefaultLogFilename = text_utils:bin_format( "myriad-shell-~ts.log",
+		[ text_utils:pid_to_filename( self() ) ] ),
+
+	vet_options_for_custom( [ { log, DefaultLogFilename } | T ], ShellState );
+
+vet_options_for_custom( _Opts=[ { log, AnyLogFilePath } | T ], ShellState ) ->
+	BinLogFilePath = text_utils:ensure_binary( AnyLogFilePath ),
+	file_utils:remove_file_if_existing( BinLogFilePath ),
+
+	% Cannot be 'raw', as the writer will be the shell process, not the
+	% caller one:
 	%
-	% (like list_utils:append_to_entry/3 except values are added on the right,
-	% thus in-order, rather than at the head)
-	%
-	Key = OptionAtom,
+	LogFile = file_utils:open( BinLogFilePath, _OpenOpts=[ write, exclusive ] ),
 
-	NewOptionTable = case lists:keytake( Key, _N=1, OptionTable ) of
-
-		{ value, { _Key, ListValue }, ShrunkTable } ->
-			[ { Key, list_utils:append_at_end( OptValues, ListValue ) }
-				| ShrunkTable ];
-
-		false ->
-			[ { Key, [ OptValues ] } | OptionTable ]
-
-	end,
-
-	case NextOptionInfo of
-
-		none ->
-			NewOptionTable;
-
-		{ NextOption, NextArgs } ->
-			manage_option( NextOption, NextArgs, NewOptionTable )
-
-	end;
-
-% Normal options come as strings:
-manage_option( Option, RemainingArgs, OptionTable ) ->
-	OptionAtom = text_utils:string_to_atom( Option ),
-	manage_option( OptionAtom, RemainingArgs, OptionTable ).
+	vet_options_for_custom( T, ShellState#custom_shell_state{
+									log_path=BinLogFilePath,
+									log_file=LogFile } );
 
 
+vet_options_for_custom( _Opts=[ { history, MaxLen } | T ], ShellState )
+								when is_integer( MaxLen ) andalso MaxLen >= 0 ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ history_max_depth=MaxLen } );
 
-% (helper)
-%
-% All arguments processed here:
-collect_values_for_option( _Args=[], AccValues ) ->
-	{ lists:reverse( AccValues ), _NextOption=none };
+vet_options_for_custom( _Opts=[ { history, undefined } | T ], ShellState ) ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ history_max_depth=undefined } );
 
-% New option detected:
-collect_values_for_option( _Args=[ [ $- | Option ] | T ], AccValues ) ->
-	{ lists:reverse( AccValues ), _NextOption={ Option, T } };
+vet_options_for_custom( _Opts=[ no_history | T ], ShellState ) ->
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ history_max_depth=0 } );
 
-% Still accumulating arguments for the current option:
-collect_values_for_option( _Args=[ OptValue | T ], AccValues ) ->
-	collect_values_for_option( T, [ OptValue | AccValues ] ).
+vet_options_for_custom( _Opts=[ Other | _T ], _ShellState ) ->
+	throw( { unexpected_shell_option, Other } ).
 
 
 
 -doc """
-Returns a canonical argument table, obtained from the specified single string
-containing all options, verbatim; e.g. "--color red --set-foo".
+Executes the specified command on the specified shell, and returns its result.
 
-Note: useful for testing, to introduce specific command lines.
+Throws an exception on error.
 """.
--spec generate_argument_table( ustring() ) -> argument_table().
-generate_argument_table( ArgString ) ->
+-spec execute_command( any_string(), custom_shell_pid() ) -> command_outcome().
+execute_command( CmdAnyStr, ShellPid ) ->
+	CmdBinStr = text_utils:ensure_binary( CmdAnyStr ),
+	ShellPid ! { processCommand, CmdBinStr, self() },
 
-	CommandLineArgs =
-		text_utils:split_per_element( ArgString, _Delimiters=[ $ ] ),
+	% Blocking, so no ShellPid to be pattern-matched to correlate answers:
+	receive
 
-	get_argument_table_from_strings( CommandLineArgs ).
+		CmdOutcome={ success, _CmdResValue, _CmdId, _MaybeTimestampBinStr } ->
+			%CmdResValue;
+			CmdOutcome;
 
+		CmdOutcome={ error, ErrorBinStr, _CmdId, _MaybeTimestampBinStr }  ->
 
+			cond_utils:if_defined( myriad_debug_shell,
+				trace_utils:error_fmt( "Failed to execute command '~ts' "
+					"on custom shell ~w: ~ts",
+					[ CmdAnyStr, ShellPid, ErrorBinStr ] ),
+				basic_utils:ignore_unused( ErrorBinStr ) ),
 
--doc """
-Returns, if this option was specified on the command-line, the in-order list of
-the various (lists of) values (if any; no value at all being specified for an
-option resulting thus in [ [] ]) associated to the specified option; if this
-option was not specified on the command-line, returns 'undefined'.
-
-Note: generally the extract_command_arguments_for_option/{1,2} functions are
-more relevant to use.
-""".
--spec get_command_arguments_for_option( command_line_option() ) ->
-									option( [ command_line_values() ] ).
-get_command_arguments_for_option( Option ) ->
-
-	ArgumentTable = get_argument_table(),
-
-	?arg_table:get_value_with_default( _K=Option, _DefaultValue=undefined,
-									   ArgumentTable ).
-
-
-
--doc """
-Returns the in-order list of the arguments that were directly (that is not in
-the context of an option) specified on the command-line.
-
-Note: generally the extract_optionless_command_arguments/{0,1} functions are
-more relevant to use.
-""".
--spec get_optionless_command_arguments() -> command_line_values().
-get_optionless_command_arguments() ->
-
-	ArgumentTable = get_argument_table(),
-
-	% Not wanting here a list of lists of strings:
-	[ Args ] = ?arg_table:get_value_with_default( _K=?no_option_key,
-						_DefaultValue=[ [] ], ArgumentTable ),
-
-	Args.
-
-
-
--doc """
-Extracts, for specified command-line option (if any was specified; otherwise
-returns 'undefined') its various in-order lists of associated values, from the
-arguments specified to this executable.
-
-Returns a pair made of these lists of (lists of) values and of the shrunk
-corresponding argument table.
-
-Note: a value set to 'undefined' means that the specified option is not in the
-specified table, whereas a value set to [ [] ] means that this option is in the
-table, yet that no parameter has been specified for it.
-""".
--spec extract_command_arguments_for_option( command_line_option() ) ->
-			{ option( [ command_line_values() ] ), argument_table() }.
-extract_command_arguments_for_option( Option ) ->
-
-	ArgumentTable = get_argument_table(),
-
-	extract_command_arguments_for_option( Option, ArgumentTable ).
-
-
-
--doc """
-Extracts, for the specified command-line option (if any was specified; otherwise
-returns 'undefined') its various in-order lists of associated values, from the
-specified argument table.
-
-Returns a pair made of these lists of (lists of) values and of the shrunk
-corresponding argument table.
-
-Note: a value set to 'undefined' means that the specified option is not in the
-specified table, whereas a value set to [ [] ] means that this option is in the
-table, yet that no parameter has been specified for it.
-""".
--spec extract_command_arguments_for_option( command_line_option(),
-											argument_table() ) ->
-				{ option( [ command_line_values() ] ), argument_table() }.
-extract_command_arguments_for_option( Option, ArgumentTable ) ->
-	?arg_table:extract_entry_with_default( _K=Option, _DefaultValue=undefined,
-										   ArgumentTable ).
-
-
-
--doc """
-Extracts the in-order list of the arguments that were directly (that is not in
-the context of an option) specified on the command-line for this executable.
-
-Returns a pair made of these lists of values and of the shrunk corresponding
-argument table.
-""".
--spec extract_optionless_command_arguments() ->
-			{ option( [ command_line_values() ] ), argument_table() }.
-extract_optionless_command_arguments() ->
-
-	ArgumentTable = get_argument_table(),
-
-	extract_optionless_command_arguments( ArgumentTable ).
-
-
-
--doc """
-Extracts, for the specified command-line option (if any was specified; otherwise
-returns 'undefined') its various in-order lists of associated values, from the
-specified argument table.
-
-Returns a pair made of these lists of (lists of) values and of the shrunk
-corresponding argument table.
-
-Note: a value set to 'undefined' means that the specified option is not in the
-specified table, whereas a value set to [ [] ] means that this option is in the
-table, yet that no parameter has been specified for it.
-
-""".
--spec extract_optionless_command_arguments( argument_table() ) ->
-				{ option( [ command_line_values() ] ), argument_table() }.
-extract_optionless_command_arguments( ArgumentTable ) ->
-
-	%trace_utils:debug_fmt( "ArgumentTable: ~p.", [ ArgumentTable ] ),
-
-	% Not wanting here a list of lists of strings:
-	case ?arg_table:extract_entry_with_default( _K=?no_option_key,
-							_DefaultValue=undefined, ArgumentTable ) of
-
-		P={ undefined, _ArgTable } ->
-			P;
-
-		{ [ Args ], ShrunkArgTable } ->
-			% Not wanting here a list of lists of strings:
-			{ Args, ShrunkArgTable }
+			%throw( { shell_command_failed, ErrorBinStr, ShellPid, CmdAnyStr } )
+			CmdOutcome
 
 	end.
 
 
 
--doc """
-Transforms specified argument table (possibly with repeated options) into a
-unique argument table (thus with just a list of values associated to each
-option).
-
-Should options be repeated in the specified table, their values will be merged
-(concatenated in-order into a single list, rather than the prior list of lists).
-""".
--spec uniquify_argument_table( argument_table() ) -> unique_argument_table().
-uniquify_argument_table( ArgumentTable ) ->
-	uniquify_argument_table( ?arg_table:enumerate( ArgumentTable ),
-							 _AccTable=?arg_table:new() ).
-
-% (helper)
-uniquify_argument_table( _Args=[], AccTable ) ->
-	AccTable;
-
-uniquify_argument_table( _Args=[ { Opt, ListOfLists } | T ], AccTable ) ->
-
-	NewAccTable = ?arg_table:add_new_entry( Opt,
-		list_utils:flatten_once( ListOfLists ), AccTable ),
-
-	uniquify_argument_table( T, NewAccTable ).
+% Implementation helpers.
 
 
+-doc "Main loop of a custom shell instance.".
+% No specific initialisation needed, like 'process_flag(trap_exit, true)'.
+-spec custom_shell_main_loop( custom_shell_state() ) -> no_return().
+custom_shell_main_loop( ShellState ) ->
 
--doc """
-Generates a table from the arguments that were specified on the command-line for
-this executable, assigning to each of the specified command-line options the
-corresponding number of values.
+	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
+		"Now being ~ts", [ custom_shell_state_to_string( ShellState ) ] ) ),
 
-Should, for a given option, less values be found on the command-line than
-declared, an error will be raised; should more values be found, the extra ones
-will be considered as option-less arguments, and stored as such. Should a
-non-declared option be found, raises an error as well.
+	% WOOPER-like conventions:
+	receive
 
-Note: the order of the declared options spec does not matter.
-""".
--spec get_command_line_arguments( value_spec(), [ option_spec() ] ) ->
-										unique_argument_table().
-get_command_line_arguments( OptionlessSpec, OptionSpecs ) ->
+		{ processCommand, CmdBinStr, ClientPid } ->
 
-	ArgumentTable = get_argument_table(),
+			{ CmdOutcome, ProcShellState } =
+				process_command_custom( CmdBinStr, ShellState ),
 
-	get_command_line_arguments( OptionlessSpec, OptionSpecs, ArgumentTable ).
+			% A failed command does not kill the shell:
+			ClientPid ! CmdOutcome,
+
+			custom_shell_main_loop( ProcShellState );
 
 
+		flushHistory ->
+			custom_shell_main_loop( ShellState#custom_shell_state{
+										history=queue:new() } );
 
--doc """
-Reorganizes specified argument table, assigning to each of its command-line
-options the corresponding number of values.
 
-Should, for a given option, less values be found than declared, an error will be
-raised; should more values be found, the extra ones will be considered as
-option-less arguments, and stored as such. Should a non-declared option be
-found, an error is raised.
+		terminate ->
+			cond_utils:if_defined( myriad_debug_shell,
+								   trace_utils:debug( "Terminating." ) ),
 
-Note: the order of the declared options spec does not matter.
-""".
--spec get_command_line_arguments( value_spec(), [ option_spec() ],
-								  argument_table() ) -> unique_argument_table().
-get_command_line_arguments( OptionlessSpec, OptionSpecs, ArgumentTable ) ->
+			terminated;
 
-	UniqArgTable = uniquify_argument_table( ArgumentTable ),
 
-	%trace_utils:debug_fmt( "Uniquified table: ~p", [ UniqArgTable ] ),
+		{ terminateSynch, CallerPid } ->
+			cond_utils:if_defined( myriad_debug_shell,
+				trace_utils:debug( "Terminating synchronously." ) ),
 
-	sort_arguments( OptionlessSpec, OptionSpecs, UniqArgTable,
-					_AccTable=?arg_table:new() ).
+			CallerPid ! onShellTerminated;
+
+
+		UnexpectedMsg ->
+			trace_utils:error_fmt( "Unexpected message received and ignored "
+				"by Myriad custom shell ~w: ~p", [ self(), UnexpectedMsg ] ),
+
+			custom_shell_main_loop( ShellState )
+
+	end.
+
 
 
 % (helper)
-%
-% No more option left, checking that no argument remains:
-sort_arguments( OptionlessSpec, _OptionSpecs=[], UniqArgTable, AccTable ) ->
+-spec on_command_success( command(), command_result(), binding_struct(),
+	custom_shell_state() ) -> { command_outcome(), custom_shell_state() }.
+on_command_success( CmdBinStr, CmdResValue, NewBindings,
+					ShellState=#custom_shell_state{
+							submission_count=SubCount } ) ->
 
-	% As we may have added optionless arguments in the course of the processing
-	% of option specs, we can check optionless only now, at the end:
+	% submission_count already incremented:
+	ProcShellState = ShellState#custom_shell_state{ bindings=NewBindings },
 
-	{ OptionLessValues, ShrunkArgTable } =
-		?arg_table:extract_entry_with_default( ?no_option_key, _Default=[],
-											   UniqArgTable ),
+	% Only updated on success:
+	HistShellState = update_history( CmdBinStr, CmdResValue, ProcShellState ),
 
-	%trace_utils:debug_fmt( "OptionLessValues = ~p, ShrunkArgTable = ~p.",
-	%                       [ OptionLessValues, ShrunkArgTable ] ),
+	MaybeTimestampBinStr =
+		manage_success_log( CmdBinStr, CmdResValue, HistShellState ),
 
-	% Checking option-less count:
-	case OptionlessSpec of
+	CmdOutcome =
+		{ success, CmdResValue, _CmdId=SubCount, MaybeTimestampBinStr },
 
-		any ->
-			ok;
-
-		_ ->
-			OptionLessCount = length( OptionLessValues ),
-
-			case OptionlessSpec of
-
-				{ MinCount, _MaxCount=any } when MinCount =< OptionLessCount ->
-					ok;
-
-				{ MinCount, MaxCount } when MinCount =< OptionLessCount
-										andalso OptionLessCount =< MaxCount ->
-					ok;
-
-				{ MinCount, _MaxCount } when OptionLessCount < MinCount ->
-
-					trace_utils:error_fmt( "Not enough option-less arguments "
-						"specified: at least ~B were expected, "
-						"got ~B (i.e. ~p).",
-						[ MinCount, OptionLessCount, OptionLessValues ] ),
-
-					throw( { not_enough_optionless_arguments, { min, MinCount },
-						{ got, OptionLessCount, OptionLessValues } } );
+	{ CmdOutcome, HistShellState }.
 
 
-				% Just as an extra (normally useless) check:
-				{ _MinCount, MaxCount } when OptionLessCount > MaxCount ->
-
-					trace_utils:error_fmt( "Too many option-less arguments "
-						"specified: at most ~B were expected, "
-						"got ~B (i.e. ~p).",
-						[ MaxCount, OptionLessCount, OptionLessValues ] ),
-
-					throw( { too_many_optionless_arguments, { max, MaxCount },
-						{ got, OptionLessCount, OptionLessValues } } )
-
-			end
-
-	end,
-
-	case ?arg_table:is_empty( ShrunkArgTable ) of
-
-		true ->
-			?arg_table:append_list_to_entry( ?no_option_key, OptionLessValues,
-											 AccTable );
-
-		false ->
-			trace_utils:error_fmt( "Unexpected argument(s), with extra ~ts",
-				[ argument_table_to_string( ShrunkArgTable ) ] ),
-			throw( { unexpected_command_line_arguments,
-					 ?arg_table:enumerate( ShrunkArgTable ) } )
-
-	end;
 
 
-% Any number of values accepted here:
-sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, _ExactCount=any } | T ],
-				UniqArgTable, AccTable ) ->
-
-	{ NewAccTable, NewUniqArgTable } =
-			case ?arg_table:has_entry( Opt, UniqArgTable ) of
-
-		true ->
-			{ ValueList, ShrunkArgTable } =
-				?arg_table:extract_entry( Opt, UniqArgTable ),
-
-			{ ?arg_table:add_new_entry( Opt, ValueList, AccTable ),
-			  ShrunkArgTable };
-
-		% Having no argument for that 'any' option is legit:
-		false ->
-			{ AccTable, UniqArgTable }
-
-	end,
-
-	sort_arguments( OptionlessSpec, T, NewUniqArgTable, NewAccTable );
+% Custom Shell commands.
 
 
-% Any value within this range accepted here:
-sort_arguments( OptionlessSpec,
-				_OptionSpecs=[ { Opt, { MinCount, MaxCount } } | T ],
-				UniqArgTable, AccTable ) ->
+-doc """
+Have this custom shell process the specified command and return its outcome.
+""".
+-spec process_command_custom( command(), custom_shell_state() ) ->
+								{ command_outcome(), custom_shell_state() }.
+process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
+											submission_count=SubCount,
+											bindings=Bindings } ) ->
 
-	{ NewAccTable, NewUniqArgTable } =
-			case ?arg_table:has_entry( Opt, UniqArgTable ) of
+	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
+		"Processing command '~ts'.", [ CmdBinStr ] ) ),
 
-		true ->
-			{ ValueList, ShrunkUniqArgTable } =
-				?arg_table:extract_entry( Opt, UniqArgTable ),
+	NewCmdId = SubCount + 1,
 
-			VCount = length( ValueList ),
+	BaseShellState = ShellState#custom_shell_state{ submission_count=NewCmdId },
 
-			AddAccTable = case MaxCount =:= any orelse VCount =< MaxCount of
+	% Binaries cannot be scanned as are:
+	CmdStr = text_utils:binary_to_string( CmdBinStr ),
 
-				true ->
-					case VCount >= MinCount of
+	case erl_scan:string( CmdStr ) of
 
-						true ->
-							?arg_table:add_new_entry( Opt, ValueList,
-													  AccTable );
+		{ ok, Tokens, EndLocation } ->
 
-						false ->
+			cond_utils:if_defined( myriad_debug_shell,
+				trace_utils:debug_fmt(
+					"Scanned tokens (end location: ~p):~n ~p",
+					[ EndLocation, Tokens ] ),
+				basic_utils:ignore_unused( EndLocation ) ),
 
-							trace_utils:error_fmt( "For command-line option "
-								"'-~ts', at least ~B values were expected, "
-								"whereas only ~B (i.e. ~p) were specified.",
-								[ Opt, MinCount, VCount, ValueList ] ),
+			case erl_parse:parse_exprs( Tokens ) of
 
-							throw( { not_enough_values_for_option, Opt,
-								{ min, MinCount },
-								{ got, VCount, ValueList } } )
+				% Supposedly multiple expression forms can be expected ("EXPR1,
+				% EXPR2"):
+				%
+				% { ok, [ ExprForm ] } ->
+				{ ok, ExprForms } ->
+
+					cond_utils:if_defined( myriad_debug_shell,
+						trace_utils:debug_fmt( "Parsed following expression "
+							"forms:~n ~p", [ ExprForms ] ) ),
+
+					% Currently not using local/non-local function handlers:
+					try erl_eval:exprs( ExprForms, Bindings ) of
+
+						{ value, CmdValue, NewBindings } ->
+							on_command_success( CmdBinStr, CmdValue,
+												NewBindings, BaseShellState )
+
+					catch Class:Reason ->
+
+						cond_utils:if_defined( myriad_debug_shell,
+							trace_utils:warning_fmt( "Evaluation error "
+								"for command '~ts' by shell ~w: ~p "
+								"(class: ~ts)",
+								[ CmdBinStr, self(), Reason, Class ] ),
+							basic_utils:ignore_unused( Class ) ),
+
+						ReasonBinStr = text_utils:bin_format(
+							"evaluation failed: ~p", [ Reason ] ),
+
+						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
+							ReasonBinStr, BaseShellState ),
+
+						CmdOutcome = { error, ReasonBinStr, NewCmdId,
+									   MaybeTimestampBinStr },
+
+						{ CmdOutcome, BaseShellState }
 
 					end;
 
-				% So here VCount > MaxCount:
-				false ->
+				{ error, _ErrorInfo={ Loc, Mod, Desc } } ->
 
-					% Rather than failing, we consider that the extra arguments
-					% (beyond MaxCount; hopefully we kept exactly the right
-					% ones) are actually unrelated, option-less ones:
+					IssueDesc = ast_utils:interpret_issue_description( Desc,
+																	   Mod ),
 
-					%trace_utils:error_fmt( "For command-line option '-~ts', "
-					%   "at most ~B values were expected, whereas ~B "
-					%   "(i.e. ~p) were specified.",
-					%   [ Opt, MaxCount, VCount, ValueList ] ),
-					%throw( { too_many_values_for_option, Opt,
-					%           { max, MaxCount },
-					%           { got, VCount, ValueList } } )
-					{ RevOptValues, OptionlessValues } =
-						list_utils:split_at( MaxCount, ValueList ),
+					cond_utils:if_defined( myriad_debug_shell,
+						trace_utils:warning_fmt( "Parse error when evaluating "
+							"command '~ts' by shell ~w: ~ts (location: ~ts)",
+							[ CmdBinStr, self(), IssueDesc,
+							  ast_utils:file_loc_to_string( Loc ) ] ),
+						basic_utils:ignore_unused( Loc ) ),
 
-					NewValueList = lists:reverse( RevOptValues ),
+					ReasonBinStr = text_utils:bin_format(
+						"parsing failed: ~ts", [ IssueDesc ] ),
 
-					% No need to extract, will just be overwritten:
-					NewOptionlessArgs = ?arg_table:get_value_with_default(
-						_K=?no_option_key, _Default=[], AccTable )
-											++ OptionlessValues,
+					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
+						ReasonBinStr, BaseShellState ),
 
-					?arg_table:add_entries( [ { Opt, NewValueList },
-						{ ?no_option_key, NewOptionlessArgs } ], AccTable )
+					CmdOutcome = { error, ReasonBinStr, NewCmdId,
+								   MaybeTimestampBinStr },
 
-			end,
+					{ CmdOutcome, BaseShellState }
 
-			{ AddAccTable, ShrunkUniqArgTable };
-
-		false ->
-			case MinCount of
-
-				0 ->
-					{ AccTable, UniqArgTable };
-
-				_ ->
-					trace_utils:error_fmt( "For command-line option '-~ts', "
-						"at least ~B values were expected, whereas none was "
-						"specified.", [ Opt, MinCount ] ),
-
-					throw( { no_value_for_option, Opt, { min, MinCount } } )
-
-			end
-
-	end,
-
-	sort_arguments( OptionlessSpec, T, NewUniqArgTable, NewAccTable );
+			end;
 
 
-% Exactly this number accepted here:
-sort_arguments( OptionlessSpec, _OptionSpecs=[ { Opt, ExactCount } | T ],
-				UniqArgTable, AccTable )
-			when is_integer( ExactCount ) andalso ExactCount >= 0 ->
+		% Not expected to happen frequently:
+		{ error, _ErrorInfo={ Loc, Mod, Desc }, ErrorLocation } ->
 
-	{ NewAccTable, NewUniqArgTable } =
-			case ?arg_table:has_entry( Opt, UniqArgTable ) of
+			IssueDesc = ast_utils:interpret_issue_description( Desc, Mod ),
 
-		true ->
-			{ ValueList, ShrunkUniqArgTable } =
-				?arg_table:extract_entry( Opt, UniqArgTable ),
+			cond_utils:if_defined( myriad_debug_shell,
+				trace_utils:warning_fmt( "Scan error when evaluating "
+					"command '~ts' by shell ~w: ~ts (location: ~ts / ~ts)",
+					[ CmdBinStr, self(), IssueDesc,
+					  ast_info:location_to_string( Loc ),
+					  ast_info:location_to_string( ErrorLocation ) ] ),
+				basic_utils:ignore_unused( [ Loc, ErrorLocation ] ) ),
 
-			UpdateAccTable = case length( ValueList ) of
+			ReasonBinStr = text_utils:bin_format( "scanning failed: ~ts",
+												  [ IssueDesc ] ),
 
-				ExactCount ->
-					?arg_table:add_new_entry( Opt, ValueList, AccTable );
+			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
+													 BaseShellState ),
 
-				OtherCount when OtherCount > ExactCount ->
-					%trace_utils:error_fmt( "For command-line option '-~ts', "
-					%   "exactly ~B values were expected, whereas ~B "
-					%   "(i.e. ~p) were specified.",
-					%   [ Opt, ExactCount, OtherCount, ValueList ] ),
-					%throw( { mismatching_value_count_for_option, Opt,
-					%        { expected, ExactCount },
-					%        { got, OtherCount, ValueList } } )
+			CmdOutcome =
+				{ error, ReasonBinStr, NewCmdId, MaybeTimestampBinStr },
 
-					% Too many arguments, considering the extra ones as
-					% option-less ones:
-					%
-					{ RevOptValues, OptionlessValues } =
-						list_utils:split_at( ExactCount, ValueList ),
-
-					NewValueList = lists:reverse( RevOptValues ),
-
-					% No need to extract, will just be overwritten:
-					NewOptionlessArgs = ?arg_table:get_value_with_default(
-						_Key=?no_option_key, _Default=[], AccTable )
-											++ OptionlessValues,
-
-					?arg_table:add_entries( [ { Opt, NewValueList },
-						{ ?no_option_key, NewOptionlessArgs } ], AccTable ) ;
-
-
-				OtherCount -> % when OtherCount < ExactCount ->
-					trace_utils:error_fmt( "For command-line option '-~ts', "
-						"exactly ~B values were expected, whereas only ~B "
-						"(i.e. ~p) were specified.",
-						[ Opt, ExactCount, OtherCount, ValueList ] ),
-					throw( { lacking_values_for_option, Opt,
-								{ expected, ExactCount },
-								{ got, OtherCount, ValueList } } )
-
-			end,
-
-			{ UpdateAccTable, ShrunkUniqArgTable };
-
-		false ->
-			case ExactCount of
-
-				% We nevertheless support this case for homogeneity with ranges:
-				0 ->
-					{ AccTable, UniqArgTable };
-
-				_ ->
-					trace_utils:error_fmt( "For command-line option '-~ts', "
-						"exactly ~B values were expected, whereas none was "
-						"specified.", [ Opt, ExactCount ] ),
-					throw( { no_value_for_option, Opt,
-								{ expected, ExactCount } } )
-
-			end
-
-	end,
-
-	sort_arguments( OptionlessSpec, T, NewUniqArgTable, NewAccTable );
-
-
-sort_arguments( _OptionlessSpec, _OptionSpecs=[ { Opt, VCount } | _T ],
-				_UniqArgTable, _AccTable ) ->
-	throw( { invalid_value_count_spec, VCount, { option, Opt } } ).
-
-
-
--doc "Returns a textual representation of the specified argument table.".
--spec argument_table_to_string( argument_table() ) -> ustring().
-argument_table_to_string( ArgTable ) ->
-
-	% No-op:
-	case ?arg_table:enumerate( ArgTable ) of
-
-		[] ->
-			"no command-line argument specified";
-
-		ArgPairs ->
-			ArgStrings = [ option_pair_to_string( Option, ArgumentLists )
-							|| { Option, ArgumentLists } <- ArgPairs ],
-
-			text_utils:format( "~B type(s) of command-line element specified "
-				"(ordered alphabetically): ~ts", [ length( ArgPairs ),
-					text_utils:strings_to_sorted_string( ArgStrings ) ] )
+			{ CmdOutcome, BaseShellState }
 
 	end.
 
 
+
 % (helper)
-option_pair_to_string( _Option=?no_option_key, [ Arguments ] ) ->
-	text_utils:format( "option-less arguments: ~p", [ Arguments ] );
+-spec manage_success_log( command(), command_result(), custom_shell_state() ) ->
+										option( timestamp_binstring() ).
+manage_success_log( _CmdBinStr, _CmdResValue,
+					#custom_shell_state{ do_timestamp=true,
+										 log_file=undefined } ) ->
+	time_utils:get_bin_textual_timestamp();
 
-option_pair_to_string( Option, _ArgumentLists=[ [] ] ) ->
-	% No value:
-	text_utils:format( "option '-~ts'", [ Option ] );
+manage_success_log( _CmdBinStr, _CmdResValue,
+					#custom_shell_state{ do_timestamp=false,
+										 log_file=undefined } ) ->
+	undefined;
 
-option_pair_to_string( Option, ArgumentLists ) ->
-	text_utils:format( "option '-~ts', with argument lists: ~p",
-					   [ Option, ArgumentLists ] ).
+manage_success_log( CmdBinStr, CmdResValue,
+					#custom_shell_state{ do_timestamp=true,
+										 log_file=LogFile } ) ->
+	TimestampBinStr = time_utils:get_bin_textual_timestamp(),
+
+	file_utils:write_ustring( LogFile,
+		"[~ts] Command '~ts' -> ~p~n",
+		[ TimestampBinStr, CmdBinStr, CmdResValue ] ),
+
+	TimestampBinStr;
+
+manage_success_log( CmdBinStr, CmdResValue,
+					#custom_shell_state{ do_timestamp=false,
+										 log_file=LogFile } ) ->
+	file_utils:write_ustring( LogFile,
+		"Command '~ts' -> ~p~n", [ CmdBinStr, CmdResValue ] ),
+
+	undefined.
+
+
+
+
+% (helper)
+-spec manage_error_log( command(), command_error(), custom_shell_state() ) ->
+										option( timestamp_binstring() ).
+manage_error_log( _CmdBinStr, _ReasonBinStr,
+				  #custom_shell_state{ do_timestamp=true,
+									   log_file=undefined } ) ->
+	time_utils:get_bin_textual_timestamp();
+
+manage_error_log( _CmdBinStr, _ReasonBinStr,
+				  #custom_shell_state{ do_timestamp=false,
+									   log_file=undefined } ) ->
+	undefined;
+
+manage_error_log( CmdBinStr, ReasonBinStr,
+				  #custom_shell_state{ do_timestamp=true,
+									   log_file=LogFile } ) ->
+	TimestampBinStr = time_utils:get_bin_textual_timestamp(),
+
+	file_utils:write_ustring( LogFile,
+		"[~ts] Evaluation failed for command '~ts': ~ts.~n",
+		[ TimestampBinStr, CmdBinStr, ReasonBinStr ] ),
+
+	TimestampBinStr;
+
+manage_error_log( CmdBinStr, ReasonBinStr,
+				  #custom_shell_state{ do_timestamp=false,
+									   log_file=LogFile } ) ->
+	file_utils:write_ustring( LogFile,
+		"Evaluation failed for command '~ts': ~ts.~n",
+		[ CmdBinStr, ReasonBinStr ] ),
+
+	undefined.
+
+
+
+
+-doc "Updates the shell history for the specified command.".
+-spec update_history( command(), command_result(), custom_shell_state() ) ->
+										custom_shell_state().
+update_history( _Cmd, _CmdRes, ShellState=#custom_shell_state{
+											history_max_depth=0 } ) ->
+	ShellState;
+
+
+update_history( Cmd, CmdRes, ShellState=#custom_shell_state{
+											history_max_depth=undefined,
+											history=HistQ } ) ->
+
+	% No length limit:
+	NewHistQ = queue:in( _HistElem={ Cmd, CmdRes }, HistQ ),
+
+	ShellState#custom_shell_state{ history=NewHistQ };
+
+
+update_history( Cmd, CmdRes, ShellState=#custom_shell_state{
+											history_max_depth=HDepth,
+											history=HistQ } ) ->
+	DropHistQ = case queue:len( HistQ ) of
+
+		HDepth ->
+			% Full, thus dropping first (never expected to be empty):
+			{ { _ValueAtom, _FirstHItem }, ShrunkHistQ } = queue:out( HistQ ),
+			ShrunkHistQ;
+
+		_ ->
+			% Not full yet:
+			HistQ
+
+	end,
+
+	NewHistQ = queue:in( _HistElem={ Cmd, CmdRes }, DropHistQ ),
+
+	ShellState#custom_shell_state{ history=NewHistQ }.
+
+
+
+
+%%%
+%%% Section for integrating a standard shell.
+%%%
+%%% Currently not functional. Not worth it.
+
+
+%% Shell user API.
 
 
 
 -doc """
-Reports a fatal error, typically in an script/escript context, with the
-specified error return code (expected to be non-null).
-
-The message shall preferably not begin with an uppercase letter.
-
-Halts on error the current program.
+Starts a (non-linked) standard shell process with default options, and returns
+its PID.
 """.
--spec error( return_code(), ustring() ) -> no_return().
-error( ErrorCode, Message ) ->
+-spec start_standard_shell() -> standard_shell_pid().
+start_standard_shell() ->
+	start_standard_shell( _Opts=[] ).
 
-	FullMsg = text_utils:format( "Error: ~ts", [ Message ] ),
 
-	% Probably useless, as halt expected to properly flush:
-	% (newline added by next call)
+
+-doc """
+Starts a (non-linked) standard shell process with the specified options, and
+returns its PID.
+
+See start_standard_shell/0 for defaults.
+""".
+-spec start_standard_shell( maybe_list( shell_option() ) ) ->
+											standard_shell_pid().
+start_standard_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting (non-linked) standard shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options_for_standard( Opts ),
+
+	ShellPid = ?myriad_spawn(
+		fun() ->
+			standard_shell_init( InitShellState )
+		end ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Started (non-linked) standard shell ~w.",
+							   [ ShellPid ] ) ),
+
+	ShellPid.
+
+
+
+-doc """
+Starts a linked standard shell process with default options, and returns its
+PID.
+
+See start_standard_shell/0 for defaults.
+""".
+-spec start_link_standard_shell() -> standard_shell_pid().
+start_link_standard_shell() ->
+	start_link_standard_shell( _Opts=[] ).
+
+
+
+-doc """
+Starts a linked standard shell process with the specified options, and returns
+its PID.
+
+See start_standard_shell/0 for defaults.
+""".
+-spec start_link_standard_shell( maybe_list( shell_option() ) ) ->
+										standard_shell_pid().
+start_link_standard_shell( Opts ) ->
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Starting a linked standard shell based "
+			"on following options:~n ~p.", [ Opts ] ) ),
+
+	% Preferring checking in caller process:
+	InitShellState = vet_options_for_standard( Opts ),
+
+	ShellPid = ?myriad_spawn_link(
+		fun() ->
+			standard_shell_init( InitShellState )
+		end ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Started linked standard shell ~w.",
+							   [ ShellPid ] ) ),
+
+	ShellPid.
+
+
+
+% (helper)
+-spec vet_options_for_standard( maybe_list( shell_option() ) ) ->
+											standard_shell_state().
+vet_options_for_standard( Opts ) when is_list( Opts ) ->
+
+	% Defaults:
+	InitShellState = #standard_shell_state{},
+
+	vet_options_for_standard( Opts, InitShellState );
+
+vet_options_for_standard( Opt ) ->
+	vet_options_for_standard( [ Opt ] ).
+
+
+% (helper)
+%vet_options_for_standard( _Opts=[], ShellState ) ->
+vet_options_for_standard( _Opts, ShellState ) ->
+	ShellState.
+
+
+
+-doc "Initialises and runs a standard shell process.".
+-spec standard_shell_init( standard_shell_state() ) -> no_return().
+standard_shell_init( ShellState ) ->
+
+	process_flag( trap_exit, true ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug( "Initialising standard shell." ) ),
+
+
+	% Starting like lib/ssh/src/ssh_cli.erl or lib/kernel/src/user_drv.erl:
+
+	Ancestors = [ self() | case get( '$ancestors' ) of
+								undefined -> [];
+								Anc -> Anc
+						   end ],
+
+	Drv = self(),
+
+	%Shell = {},
+	%Shell = {RemoteNode, M, F, A},
+	Shell = { _Mod=shell, _Fun=start, _Args=[ init ] },
+
+	%GrpOpts = [],
+	%GrpOpts = [ {echo,true}, {noshell,true} ],
+	GrpOpts = [ { dumb, false }, { expand_below, true },
+				{ echo, true } ], % {expand_fun, ...
+
+	GrpLeaderPid = spawn_link( group, server,
+							   [ Ancestors, Drv, Shell, GrpOpts ] ),
+
+	cond_utils:if_defined( myriad_debug_shell,
+		trace_utils:debug_fmt( "Created group leader ~w.", [ GrpLeaderPid ] ) ),
+
+	% Like primtty.erl:
+	%user_drv ! { self(), enable },
+	% user_drv ! { self(), {data, unicode:characters_to_binary("Z=3.") }},
+
+	% GrpLeaderPid = group:start( _Drv=self(), _Shell={}, GroupOpts ),
+	% %GrpLeaderPid = group:start( _Drv=self(), ActualShellPid, GroupOpts ),
+
+	% trace_utils:debug_fmt( "~w created group ~w.", [ self(), GrpLeaderPid ] ),
+	% GrpLeaderPid ! {driver_id,self()},
+	% receive
+
+	%	{GrpLeaderPid,driver_id,DrvPid} ->
+	%		trace_utils:debug_fmt("Driver: ~w", [ DrvPid ] )
+
+	% end,
+
+	%FirstText = text_utils:format("Hello!~n", []),
+	%FirstText = text_utils:format("A=1.~n", []),
+
+	%UTF8Binary = unicode:characters_to_binary(
+	%    io_lib:format("~ts", [FirstText])),
+
+	% Never managed to have an answer; either too short/incomplete, or some
+	% extra signal to trigger evaluation must happen:
 	%
-	basic_utils:display_timed( FullMsg, _TimeOut=30000 ),
+	%GrpLeaderPid ! { self(), { data, UTF8Binary } },
 
-	erlang:halt( ErrorCode ).
+	%GrpLeaderPid ! {self(), echo, true},
+	%GrpLeaderPid ! {self(),tty_geometry,{0,0}},
+	%GrpLeaderPid ! { _DrvPid=self(), {data, <<"X=9.\n">>} },
+	%GrpLeaderPid ! { _DrvPid=self(), {data, <<"X=9.">>} },
+	%GrpLeaderPid ! { _DrvPid=self(), {data, "X=9."} },
+	Req = {put_chars,unicode, <<"X=1.\n">>},
+	From=self(),
+	ReplyAs=self(),
+	FullReq = {io_request,From,ReplyAs,Req},
+	GrpLeaderPid ! FullReq,
+
+	GrpLeaderPid ! {io_request,From,ReplyAs,{put_chars,unicode, <<"Y=2.\n">>}},
+
+	Prompt = <<"ABC\n">>,
+
+	GrpLeaderPid ! {io_request,From,ReplyAs,{get_chars,unicode, Prompt}},
+
+
+	% We mimic user_drv:start/0; corresponds to group:start/0,
+	% gen_statem:start/4, then start_user/0:
+
+	% Start a group leader process and register it as 'user', unless a 'user'
+	% already exists (probably off-topic):
+	%
+	%% _UserGrpLeaderPid = case whereis(user) of
+	%%
+	%%	undefined ->
+	%%		UserPid = group:start(_Drv=self(), _Shell={},
+	%%							  _Opts=[{echo,false}, {noshell,true}]),
+	%%		trace_utils:debug_fmt( "Creation of 'user' group ~w.",
+	%% [ UserPid ] ),
+	%%		register(user, UserPid),
+	%%		UserPid;
+
+	%%	UserPid ->
+	%%		trace_utils:debug( "No 'user' group creation." ),
+	%%		UserPid
+
+	%% end,
+
+	InitShellState = ShellState#standard_shell_state{
+		current_group=GrpLeaderPid },
+
+	standard_shell_main_loop( InitShellState ).
+
+
+
+-doc "Main loop of an standard shell instance.".
+-spec standard_shell_main_loop( standard_shell_state() ) -> no_return().
+standard_shell_main_loop( ShellState=#standard_shell_state{
+										current_group=GrpLeaderPid } ) ->
+
+	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
+		"Standard shell ~w waiting for messages.", [ self() ] ) ),
+
+	receive
+
+%% {<0.89.0>,
+%%   {put_chars_sync,unicode,
+%%         <<"Eshell V15.0 (press Ctrl+G to abort, type help(). for help)\n">>,
+%%        {<0.90.0>,#Ref<0.1174729555.344195076.134393>}}}
+
+
+		% For example MsgBin may be <<"Eshell V15.0 (press Ctrl+G to abort, type
+		% help(). for help)\n">>:
+		%
+		{ GrpLeaderPid, { put_chars_sync, unicode, MsgBin,
+						  { _From=ActualShellPid, ReplyRef } } } ->
+			trace_utils:debug_fmt( "Display request from actual shell ~w: "
+				"'~ts'.", [ ActualShellPid, MsgBin ] ),
+
+% If not answering, ActualShellPid crashes with:
+
+%% {terminated,[{io,fwrite,
+%%                  ["Warning! The slogan \"~p\" could not be printed.\n",
+%%                   [[69,115,104,101,108,108,32,86,"15.0"]]],
+%%                  [{file,"io.erl"},
+%%                   {line,198},
+%%                   {error_info,#{cause => {io,terminated},
+%%                                 module => erl_stdlib_errors}}]},
+%%             {shell,server,1,[{file,"shell.erl"},{line,289}]}]}
+			ActualShellPid ! {reply, ReplyRef, ok},
+
+			standard_shell_main_loop( ShellState );
+
+		{ send, UTF8Binary } ->
+			% No effect:
+			GrpLeaderPid ! { self(), { data, UTF8Binary } },
+			standard_shell_main_loop( ShellState );
+
+		{ processCommand, CmdBinStr, ClientPid } ->
+
+			{ CmdOutcome, ProcShellState } =
+				process_command_standard( CmdBinStr, ShellState ),
+
+			trace_utils:debug_fmt( "Sending back outcome '~p' to client.",
+								   [ CmdOutcome ] ),
+
+			% A failed command does not kill the shell:
+			ClientPid ! CmdOutcome,
+
+			standard_shell_main_loop( ProcShellState );
+
+		Msg ->
+			trace_utils:warning_fmt( "Standard shell ~w received and ignored "
+				"the following message:~n ~p", [ self(), Msg ] ),
+
+			standard_shell_main_loop( ShellState )
+
+	end.
+
+
+
+
+% Standard Shell commands.
+
+
+-doc """
+Have this standard shell process the specified command, and return its outcome.
+""".
+-spec process_command_standard( command(), standard_shell_state() ) ->
+								{ command_outcome(), standard_shell_state() }.
+process_command_standard( CmdBinStr, ShellState=#standard_shell_state{
+											current_group=GrpLeaderPid } ) ->
+
+	%timer:sleep(1000),
+	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
+		"Processing command '~ts'.", [ CmdBinStr ] ) ),
+
+	ConvBin = case unicode:characters_to_binary( CmdBinStr ) of
+
+		B when is_binary( B ) ->
+			B;
+
+		Other ->
+			throw( { bin_conv_failed, Other } )
+
+	end,
+
+	GrpLeaderPid ! { self(), { data, ConvBin } },
+	%GrpLeaderPid ! { self(), { data, <<"io:format(\"Anyone?\").">> } },
+	GrpLeaderPid ! { self(), { data, <<"help().\n"/utf8>> } },
+	GrpLeaderPid ! { self(), { data, <<"A=1.\n/utf8">> } },
+	GrpLeaderPid ! { self(), { data, <<"B=C+1.\n/utf8">> } },
+	%GrpLeaderPid ! {put_chars, unicode, <<"X=1."/utf8>>},
+	%GrpLeaderPid ! { self(), {put_chars, unicode, <<"X=1."/utf8>>} },
+	%GrpLeaderPid ! { self(), eof },
+
+	receive
+
+		Any ->
+			trace_utils:debug_fmt( "Got ~p.", [ Any ] ),
+			{ Any, ShellState }
+
+	end.
+
+
+
+% Helpers
+
+
+-doc "Returns a textual description of the specified custom shell state.".
+-spec custom_shell_state_to_string( custom_shell_state() ) -> ustring().
+custom_shell_state_to_string( ShellState ) ->
+	custom_shell_state_to_string( ShellState, _Verbose=true ).
 
 
 
 -doc """
-Reports a formatted, fatal error, typically in an script/escript context, with
-the specified error return code (expected to be non-null).
-
-The message shall preferably not begin with an uppercase letter.
-
-Halts on error the current program.
+Returns a textual description of the specified custom shell state, with the
+specified verbosity.
 """.
--spec error_fmt( return_code(), format_string(), format_values() ) ->
-											no_return().
-error_fmt( ErrorCode, Format, Values ) ->
-	error( ErrorCode, text_utils:format( Format, Values ) ).
+-spec custom_shell_state_to_string( custom_shell_state(), boolean() ) ->
+											ustring().
+custom_shell_state_to_string( #custom_shell_state{
+								submission_count=SubCount,
+								history_max_depth=HistMaxDepth,
+								history=History,
+								bindings=BindingStruct },
+							  _Verbose=true ) ->
+	HistStr = case HistMaxDepth of
+
+		0 ->
+			"no history";
+
+		undefined ->
+
+			text_utils:format( "an unlimited ~ts",
+							   [ history_to_string( History ) ] );
+
+		_ ->
+			text_utils:format( "a ~B-deep ~ts",
+							   [ HistMaxDepth, history_to_string( History ) ] )
+
+	end,
+
+	text_utils:format( "custom shell ~w with ~ts and ~B commands "
+		"already submitted, with ~ts",
+		[ self(), bindings_to_string( BindingStruct ), SubCount, HistStr ] );
+
+
+custom_shell_state_to_string( #custom_shell_state{
+								submission_count=SubCount,
+								%history=History,
+								bindings=BindingStruct },
+							  _Verbose=false ) ->
+	text_utils:format( "custom shell with ~B bindings, and ~B commands already "
+		"submitted",
+		[ length( erl_eval:bindings( BindingStruct ) ), SubCount ] ).
+
+
+
+-doc "Returns a textual description of the specified bindings.".
+-spec bindings_to_string( binding_struct() ) -> ustring().
+bindings_to_string( BindingStruct ) ->
+	case erl_eval:bindings( BindingStruct ) of
+
+		[] ->
+			"no binding";
+
+		[ Binding ] ->
+			text_utils:format( "a single binding: '~ts'",
+							   [ binding_to_string( Binding ) ] );
+
+		Bindings ->
+			text_utils:format( "~B bindings: ~ts",
+				[ length( Bindings ),
+				  text_utils:strings_to_string( [ binding_to_string( B )
+						|| B <- lists:sort( Bindings ) ] ) ] )
+
+	end.
+
+
+
+-doc "Returns a textual description of the specified bindings.".
+-spec binding_to_string( binding() ) -> ustring().
+binding_to_string( _Binding={ N, V } ) ->
+	text_utils:format( "variable '~ts' has for value ~p", [ N, V ] ).
+
+
+
+-doc "Returns a textual description of the specified history.".
+-spec history_to_string( history() ) -> ustring().
+history_to_string( History ) ->
+
+	case queue:len( History ) of
+
+		0 ->
+			"empty history";
+
+		_ ->
+			Strs = [ history_element_to_string( HE )
+						|| HE <- queue:to_list( History ) ],
+
+			text_utils:format( "history corresponding to: ~ts",
+				[ text_utils:strings_to_enumerated_string( Strs ) ] )
+
+	end.
+
+
+
+-doc "Returns a textual description of the specified history element.".
+-spec history_element_to_string( history_element() ) -> ustring().
+history_element_to_string( { Cmd, CmdRes } ) ->
+	text_utils:format_ellipsed( "command '~ts' that resulted in ~p",
+								[ Cmd, CmdRes ] ).
+
+
+
+-doc "Returns a textual description of the specified standard shell state.".
+-spec standard_shell_state_to_string( standard_shell_state() ) -> ustring().
+standard_shell_state_to_string( ShellState ) ->
+	standard_shell_state_to_string( ShellState, _Verbose=true ).
+
+
+-doc """
+Returns a textual description of the specified standard shell state, with the
+specified verbosity.
+""".
+-spec standard_shell_state_to_string( standard_shell_state(), boolean() ) ->
+											ustring().
+standard_shell_state_to_string( #standard_shell_state{
+									current_group=CurrentGrpPid },
+								_Verbose ) ->
+	text_utils:format( "standard shell ~w relying on group leader ~w",
+					   [ self(), CurrentGrpPid ] ).

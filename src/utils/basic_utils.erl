@@ -49,7 +49,6 @@ See basic_utils_test.erl for the corresponding test.
 		  wait_for_acks_nothrow/3, wait_for_acks_nothrow/4,
 
 		  wait_for_acks/4, wait_for_acks/5,
-
 		  wait_for_summable_acks/5,
 		  wait_for_many_acks/4, wait_for_many_acks/5,
 		  send_to_pid_set/2 ]).
@@ -93,7 +92,9 @@ See basic_utils_test.erl for the corresponding test.
 		  create_uniform_tuple/2,
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
-		  identity/1,
+
+		  identity/1, if_else/3,
+
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
 		  set_option/2,
@@ -578,7 +579,7 @@ eliminate afterwards).
 -type io_list_mod() :: text_utils:io_list().
 
 
-% Shorthands:
+% Type shorthands:
 
 -type set( T ) :: set_utils:set( T ).
 
@@ -697,7 +698,26 @@ identity( Term ) ->
 
 
 
--doc "Checks that specified term is 'undefined', and returns it.".
+-doc """
+Returns, if the first argument is 'true', the second argument, otherwise the
+third.
+
+Interesting as more compact that a 'case' or a 'if' clause.
+
+`if_else(Condition, A, B)` can be seen just as a shortcut (see its actual code),
+and a good candidate for parse-transfrom based inlining. Note that due to strict
+evaluation, both arguments will always be evaluated.
+""".
+% First argument not necessarily boolean():
+-spec if_else( term(), term(), term() ) -> term().
+if_else( _Condition=true, A, _B ) ->
+	A;
+
+if_else( _Condition, _A, B ) ->
+	B.
+
+
+-doc "Checks that the specified term is 'undefined', and returns it.".
 -spec check_undefined( term() ) -> 'undefined'.
 check_undefined( undefined ) ->
 	undefined;
@@ -717,7 +737,7 @@ check_all_undefined( List ) ->
 
 
 
--doc "Checks that specified term is not 'undefined'; returns that term.".
+-doc "Checks that the specified term is not 'undefined'; returns that term.".
 -spec check_not_undefined( term() ) -> term().
 check_not_undefined( undefined ) ->
 	throw( is_undefined );
@@ -728,8 +748,8 @@ check_not_undefined( Term ) ->
 
 
 -doc """
-Checks that specified term is "defined" (not equal to 'undefined'); returns that
-term.
+Checks that the specified term is "defined" (not equal to 'undefined'); returns
+that term.
 """.
 -spec check_defined( term() ) -> term().
 check_defined( Term ) ->
@@ -2355,8 +2375,10 @@ is_alive( TargetPidString ) when is_list( TargetPidString ) ->
 	is_alive( TargetPid, node( TargetPid ) );
 
 is_alive( TargetPidName ) when is_atom( TargetPidName ) ->
+
 	TargetPid = naming_utils:get_registered_pid_for( TargetPidName,
-						_RegistrationType=local_otherwise_global ),
+		_RegistrationType=local_otherwise_global ),
+
 	is_alive( TargetPid, node( TargetPid ) ).
 
 

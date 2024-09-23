@@ -59,6 +59,17 @@ fi
 
 # To be obtained with: 'sha512sum otp_src_x.y.tar.gz':
 
+# As for erlang_commit_id_for_* (Git commit of the release; currently not used),
+# it is just obtained from (some) downloaded source archive.
+
+
+#erlang_sha512_for_27_1_0="2841e0f94e9bd939280eaa38c47d0c5a2f12c8a47c8ec676cfdcc1e04213d8ed1a37b70689826b53656b84e8f37ab4242bf9c75861e0a05a48a9a942bff6c20e"
+
+erlang_sha512_for_27_1="e923c063db63cab1946adede122887841503201f13244e42134845ad7ac3d456f2f48b735d147aea145f093b26ffc03dce36cd3a9ec8bf6c7bb598cf389f8813"
+#erlang_commit_id_for_27_1_0="g9ae2ef5"
+
+
+# Changed apparently:
 #erlang_sha512_for_27_0="7166b0a86b6ac0f84b628dc5fd649b69d35b1e271dd5d5f89adb75789098247a7344ea8f2101136ce17d04e0813f985e9361a9aaa638e6f0697f8e4bb904800b"
 
 erlang_sha512_for_27_0="64c9a46a74486fe733afcdbffccf4091306f2d68001cd35800a7251ca508bf2bd92cbd69f7baa2113665bc2bc634e475f0fa881edf5159ccbeed6870d6d7e447"
@@ -102,15 +113,25 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 
 
 # Current stable (an update of the next two lines is needed):
-erlang_version="27.0"
-erlang_sum="${erlang_sha512_for_27_0}"
+#
+# (refer to https://github.com/erlang/otp/releases/download/ to obtain the right
+# versions)
+#
+erlang_version="27.1"
+#erlang_version="27.1.0"
+
+erlang_sum="${erlang_sha512_for_27_1}"
+#erlang_sum="${erlang_sha512_for_27_1_0}"
+
+#erlang_commit_id="${erlang_commit_id_for_27_1_0}"
 
 
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="26.2.1" # "26.0.2", "25.3"
-erlang_sum_candidate="${erlang_sha512_for_26_2_1}"
+erlang_version_candidate="27.0" # "26.2.1"
+erlang_sum_candidate="${erlang_sha512_for_27_0}"
+#erlang_commit_id_candidate=""
 
 base_install_dir="${HOME}/Software/Erlang"
 
@@ -241,6 +262,8 @@ do_cpulimit=0
 
 # See list in https://github.com/erlang/otp/releases:
 erlang_download_location="https://github.com/erlang/otp/releases/download/OTP-${erlang_version}"
+#erlang_download_location="https://api.github.com/repos/erlang/otp/tarball/refs/tags/OTP-${erlang_version}"
+
 
 # The user that is to perform the build (everything but installation):
 build_user="$(id -un)"
@@ -300,7 +323,9 @@ while [ $token_eaten -eq 0 ]; do
 
 		erlang_version="${erlang_version_candidate}"
 		erlang_sum="${erlang_sum_candidate}"
-		plt_file="Erlang-${erlang_version}_candidate"
+		#erlang_commit_id="${erlang_commit_id_candidate}"
+
+		plt_file="Erlang-${erlang_version_candidate}"
 
 		echo "Warning: not installing the default version of Erlang currently supported, using candidate one, i.e. version ${erlang_version}." 1>&2
 
@@ -443,7 +468,8 @@ fi
 
 #echo "build_user=${build_user}"
 
-# On official site or on Github:
+# On official site or on Github (not at the right location apparently):
+#erlang_src_prefix="erlang-otp-OTP-${erlang_version}-${erlang_commit_id w}"
 erlang_src_prefix="otp_src_${erlang_version}"
 #erlang_src_prefix="otp-OTP-${erlang_version}"
 
@@ -452,12 +478,12 @@ erlang_src_archive="${erlang_src_prefix}.tar.gz"
 # As documentation archives were not generated for patch versions (e.g. 24.1.4),
 # only for "base" versions" (e.g. 24.1):
 #
-#erlang_doc_prefix="$(echo "otp_doc_html_${erlang_version}" | awk -F. '{print otp_doc_html_$1"."$2""}')"
+erlang_doc_prefix="$(echo "otp_doc_html_${erlang_version}" | awk -F. '{print otp_doc_html_$1"."$2""}')"
 
 
 # on Github now:
-#erlang_doc_archive="${erlang_doc_prefix}.tar.gz"
-erlang_doc_archive="otp_doc_html_${erlang_version}.tar.gz"
+erlang_doc_archive="${erlang_doc_prefix}.tar.gz"
+#erlang_doc_archive="otp_doc_html_${erlang_version}.tar.gz"
 
 
 # Some early checkings:
@@ -620,6 +646,10 @@ else
 
 			echo "  Error, Erlang documentation archive (${erlang_doc_archive}) could not be found, and no download was requested." 1>&2
 			exit 21
+
+		else
+
+			echo "(documentation archive '${erlang_doc_archive}' already available)"
 
 		fi
 	fi

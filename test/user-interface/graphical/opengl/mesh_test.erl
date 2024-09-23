@@ -206,8 +206,7 @@ gui_main_loop( GUIState, Mesh ) ->
 					{ CanvasWidth, CanvasHeight } =
 						gui_widget:get_size( GLCanvas ),
 
-					render( CanvasWidth, CanvasHeight, GLState,
-							Mesh#mesh.rendering_state ),
+					render( CanvasWidth, CanvasHeight, GLState, Mesh ),
 
 					gui_opengl:swap_buffers( GLCanvas ),
 
@@ -258,12 +257,14 @@ gui_main_loop( GUIState, Mesh ) ->
 			% Done once for all:
 			InitGUIState = initialise_opengl( GUIState ),
 
+			InitGLState = InitGUIState#my_gui_state.opengl_state,
+
 			% Now that OpenGL is initialised:
 			{ RegMesh, _MaybeTexCache } = mesh_render:initialise_for_opengl(
-				GUIState#my_gui_state.opengl_state#my_opengl_state.program_id ),
+				Mesh, InitGLState#my_opengl_state.program_id ),
 
 			test_facilities:display( "Registered mesh to OpenGL; its ~ts.",
-				[ mesh:rendering_state_to_string(
+				[ mesh_render:rendering_state_to_string(
 					RegMesh#mesh.rendering_state ) ] ),
 
 			% A onRepaintNeeded event message expected just afterwards.
@@ -272,7 +273,7 @@ gui_main_loop( GUIState, Mesh ) ->
 
 
 		{ onWindowClosed, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
-			CleanedMesh = mesh:cleanup_for_opengl( Mesh ),
+			CleanedMesh = mesh_render:cleanup_for_opengl( Mesh ),
 
 			cleanup_opengl( GUIState ),
 

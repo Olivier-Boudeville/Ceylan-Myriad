@@ -76,7 +76,7 @@ run_bitmap_test() ->
 	GridSizer = gui_sizer:create_grid( _RowCount=0, ColumnCount,
 									   _HorizGap=3, _VertGap=3 ),
 
-	{ bitmap_id, BitmapEntries, _ElemLookup } =
+	{ standard_bitmap_name_id, BitmapEntries, _ElemLookup } =
 		gui_constants:get_standard_bitmap_name_id_topic_spec(),
 
 	AllBitmapIds = pair:firsts( BitmapEntries ),
@@ -96,9 +96,9 @@ run_bitmap_test() ->
 	Dims = { 32, 32 },
 
 	AllBitmaps = [ gui_bitmap:get_standard( BId, Dims )
-					|| BId <- AllBitmapIds ],
+								|| BId <- AllBitmapIds ],
 
-	AllBitmapDisplays = [ gui_bitmap:create_static_display( B, BitmapParent )
+	AllBitmapDisplays = [ gui_bitmap:create_display( B, BitmapParent )
 								|| B <- AllBitmaps ],
 
 	gui_sizer:add_elements( GridSizer, AllBitmapDisplays, _BitmapFlags=[] ),

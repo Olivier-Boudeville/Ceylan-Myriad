@@ -173,7 +173,7 @@ A render-related element, typically in a list, associated to a vertex or a face.
 		  rendering_state_to_string/1 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -465,7 +465,7 @@ initialise_for_opengl( Mesh=#mesh{
 
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL "
-			"(triangle faces, wireframe) ~ts.", [ to_string( Mesh ) ] ) ),
+			"(triangle faces, wireframe) ~ts.", [ mesh:to_string( Mesh ) ] ) ),
 
 	FloatEdgeColor = gui_color:decimal_to_render( RGBEdgeColor ),
 
@@ -515,7 +515,8 @@ initialise_for_opengl( Mesh=#mesh{
 
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
-			"(triangle faces, per-face color) ~ts.", [ to_string( Mesh ) ] ) ),
+			"(triangle faces, per-face color) ~ts.",
+			[ mesh:to_string( Mesh ) ] ) ),
 
 	% Sanity check for input data (to be commented-out as already checked when
 	% canonicalised):
@@ -603,7 +604,7 @@ initialise_for_opengl( Mesh=#mesh{
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
 			"(triangle faces, per-vertex color) ~ts.",
-			[ to_string( Mesh ) ] ) ),
+			[ mesh:to_string( Mesh ) ] ) ),
 
 	% Creates the VAO context we need for the upcoming VBO (vertices, possibly
 	% normals - at least currently ignored - and no texture coordinates, just a
@@ -680,8 +681,7 @@ initialise_for_opengl( Mesh=#mesh{
 
 	cond_utils:if_defined( myriad_debug_mesh,
 		trace_utils:debug_fmt( "Initialising for OpenGL ~ts.",
-			"(triangle, textured faces) ~ts.",
-			[ to_string( Mesh ) ] ) ),
+			"(triangle, textured faces) ~ts.", [ mesh:to_string( Mesh ) ] ) ),
 
 	% Sanity check for input data:
 	FaceCount = length( IndexedFaces ),
@@ -1086,7 +1086,7 @@ prepare_vattrs( FaceGranularity, _RevIndexedFaces=[ VIdTuple | TIndexedFaces ],
 
 		per_face ->
 			[ list_utils:duplicate( Elem, _Count=FaceVCount )
-										 || Elem <- FaceHeadElems ]
+											|| Elem <- FaceHeadElems ]
 
 	end,
 
@@ -1124,8 +1124,8 @@ render_as_opengl( #mesh{ rendering_state=undefined } ) ->
 % (see the clause for non-textured cases for further details)
 %
 render_as_opengl( _M=#mesh{ %rendering_info={ textured, _TexSpecId,
-						   %                 _TexFaceInfo },
-						   rendering_state=#rendering_state{
+							%                 _TexFaceInfo },
+							rendering_state=#rendering_state{
 								program_id=ProgramId,
 								vao_id=VAOId,
 								vbo_layout=vtx3_uv,
@@ -1269,8 +1269,8 @@ rendering_info_to_string(
 					   [ length( Colors ), Colors ] );
 
 %rendering_info_to_string( _RI={ textured, TexInfos } ) ->
-%	text_utils:format( "rendering based on ~B texture information",
-%					   [ length( TexInfos ) ] ).
+%   text_utils:format( "rendering based on ~B texture information",
+%                      [ length( TexInfos ) ] ).
 rendering_info_to_string( _RI={ textured, TexSpecId, TexCoords } ) ->
 	text_utils:format( "rendering based on ~B texture coordinates relative "
 		"to texture specification #~B", [ length( TexCoords ), TexSpecId ] ).

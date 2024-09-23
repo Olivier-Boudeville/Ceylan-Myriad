@@ -95,6 +95,8 @@ A toolbar emits menu commands in the same way that a frame menubar does.
 
 % Shorthands:
 
+-type help_info() :: ui:help_info().
+
 -type wx_object() :: gui:wx_object().
 -type label() :: gui:label().
 
@@ -104,7 +106,6 @@ A toolbar emits menu commands in the same way that a frame menubar does.
 
 -type bitmap() :: gui_bitmap:bitmap().
 
--type help_info() :: gui_text:help_info().
 
 -type id() :: gui_id:id().
 

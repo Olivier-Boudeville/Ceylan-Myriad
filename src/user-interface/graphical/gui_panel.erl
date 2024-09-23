@@ -29,6 +29,10 @@
 
 -moduledoc """
 Gathering of various facilities for **panels**.
+
+Often a panel is registered to a sizer, to determine its size adequately.
+
+Panels are good placeholders, when creating a GUI.
 """.
 
 
@@ -79,17 +83,9 @@ Backend-level options to create a panel.
 
 
 
-% Implementation notes:
-%
-% The parent of a panel can be widgets like windows, including splitter windows
-% that may have to be special-cased.
 
 
-% At least for the splitter record:
--include("gui_base.hrl").
-
-
-% Shorthands:
+% Type shorthands:
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -114,11 +110,6 @@ create() ->
 
 -doc "Creates a panel, associated to the specified parent.".
 -spec create( parent() ) -> panel().
-create( _Parent=#splitter{ splitter_window=Win } ) ->
-	%trace_utils:debug_fmt( "Creating panel from splitter window ~w.",
-	%                       [ Win ] ),
-	wxPanel:new( Win );
-
 create( Parent ) ->
 	wxPanel:new( Parent ).
 
@@ -127,11 +118,10 @@ create( Parent ) ->
 -doc """
 Creates a panel, associated to the specified parent and with the specified
 options.
-""".
--spec create( panel_options(), parent() ) -> panel().
-create( Options, _Parent=#splitter{ splitter_window=Win } ) ->
-	create( Options, Win );
 
+This is the most flexible way of creating a panel.
+""".
+-spec create( maybe_list( panel_options() ), parent() ) -> panel().
 create( Options, Parent ) ->
 	wxPanel:new( Parent, to_wx_panel_options( Options ) ).
 
@@ -193,6 +183,7 @@ create( X, Y, Width, Height, Options, Parent ) ->
 					| to_wx_panel_options( Options ) ],
 
 	wxPanel:new( Parent, WxOpts ).
+
 
 
 

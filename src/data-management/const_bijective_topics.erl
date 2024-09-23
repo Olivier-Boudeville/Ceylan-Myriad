@@ -142,7 +142,7 @@ spaces, dashes, etc.).
 
 
 -doc """
-Designates the first elements of the table pairs.  
+Designates the first elements of the table pairs.
 
 A module-based storage cannot hold transient terms.
 
@@ -265,7 +265,7 @@ The 'strict' element look-up is the default one.
 % kinds of accessors are available in that case)
 
 
-% Shorthands:
+% Type shorthands:
 
 -type module_name() :: basic_utils:module_name().
 -type error_type() :: basic_utils:error_type().

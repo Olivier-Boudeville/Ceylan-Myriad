@@ -58,11 +58,11 @@ run() ->
 	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
 
 	CanonicalArgTables =
-		shell_utils:get_argument_table_from_strings( CommandLineArgs ),
+		cmd_line_utils:get_argument_table_from_strings( CommandLineArgs ),
 
 	test_facilities:display( "Command-line interpretation follows, for "
 							 "command-line arguments '~ts': ~ts",
 		 [ ArgString,
-		   shell_utils:argument_table_to_string( CanonicalArgTables ) ] ),
+		   cmd_line_utils:argument_table_to_string( CanonicalArgTables ) ] ),
 
 	test_facilities:stop().

@@ -86,7 +86,7 @@ One of the elements that could be sent by MyriadGUI when an event happened
 (together with the type of this event).
 
 For example the list in the {onWindowClosed, [WindowGUIObject, WindowId,
-EventContext]} event pair includes such event elements.
+EventContext]} event pair includes three of such event elements.
 """.
 -type event_element() :: gui_object() | backend_id() | event_context().
 
@@ -244,19 +244,20 @@ is the GUI object that generated that event (the closed window, here), and whose
 last element is the event context (intermediary elements carrying event-specific
 information):
 
-{event_type(), [gui_object(), ..., event_context()]}
+``{event_type(), [gui_object(), ..., event_context()]}``
 
-For example {onWindowClosed, [Window, CloseContext]}, {onButtonClicked, [Button,
-ButtonId, Context]} etc.
+For example ``{onWindowClosed, [Window, CloseContext]}``, ``{onButtonClicked,
+[Button, ButtonId, Context]}``, etc.
 
 
-So the event context can be fetched with:
-EventContext = list_utils:get_last_element( Elements ),
+So the event context can be fetched with: ``EventContext =
+list_utils:get_last_element(Elements)``, where Elements is the second part of
+the event pair.
 
 These values are sent as messages to the processes having subscribed to this
 type of event.
 
-Note: these messages respect the WOOPER conventions, and this is done on
+Note: these messages respect the Ceylan-WOOPER conventions, and this is done on
 purpose, to facilitate any integration with upper layers.
 """.
 -type gui_event() :: { event_type(), event_elements() }.
@@ -423,6 +424,9 @@ By default these lower-level events are not propagated in the widget hierarchy,
 as a single, user-defined handler usually suffices - unless a given handler
 chooses to propagate them explicitly.
 
+The user code just has to subscribe to such events - for a given widget instance
+- in order to receive its corresponding events.
+
 See <https://docs.wxwidgets.org/stable/classwx_event.html> to better picture
 them.
 """.
@@ -556,7 +560,7 @@ For example the gui_object() {wx_ref,63,wxFrame,AnyState} results in the
 {wxFrame,63} gui_wx_object_key() key.
 """.
 -type gui_wx_object_key() ::
-	{ gui_wx_backend:wx_native_object_type(), gui_wx_backend:wx_id() }.
+	{ gui_wx_backend:wx_native_object_type(), wx_id() }.
 
 
 
@@ -973,9 +977,10 @@ Examples of descriptions, as tuples:
 % skipping / trapping, we could not change it.
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
+
 -type time_out() :: time_utils:time_out().
 
 -type ustring() :: text_utils:ustring().
@@ -1776,7 +1781,7 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 		{ value, DispatchTable } ->
 
 			% Example: WxEventType=close_window (the first element being the
-			% record name, such as 'wxClose').
+			% record name (tag), such as 'wxClose').
 			%
 			WxEventType = element( 2, WxEventInfo ),
 
@@ -1819,8 +1824,8 @@ process_wx_event( EventSourceId, GUIObject, UserData, WxEventInfo, WxEvent,
 
 
 -doc """
-Updates specified GUI object (probably a MyriadGUI one, like a canvas) after
-specified event (e.g. an onResized one) has been received.
+Updates the specified GUI object (probably a MyriadGUI one, like a canvas) after
+the specified event (e.g. an onResized one) has been received.
 """.
 -spec update_instance_on_event( gui_object(), wx_event_info(),
 								myriad_type_table() ) -> myriad_type_table().
@@ -2168,6 +2173,35 @@ send_event( Subscribers, EventType=onItemSelected, EventSourceId, GUIObject,
 	send_event_for_id( BestSrcId, Subscribers, EventType, EventSourceId,
 					   GUIObject, UserData, Event );
 
+% Text control specific clause:
+send_event( Subscribers, EventType=onEnterPressed, EventSourceId, GUIObject,
+			UserData, Event, NameTable ) ->
+
+	BestSrcId = gui_id:get_best_id_internal( EventSourceId, NameTable ),
+
+	Context = #event_context{ id=EventSourceId, user_data=UserData,
+							  backend_event=Event },
+
+	% Making the input text readily available:
+
+	WxEventInfo = Event#wx.event,
+
+	% Defined in wx.hrl:
+	NewText = WxEventInfo#wxCommand.cmdString,
+
+	%trace_utils:debug_fmt( "onEnterPressed event: text now is ~p.",
+	%                       [ NewText ] ),
+
+	% Same structure as for OpenGL canvases:
+	Msg = { EventType, [ GUIObject, BestSrcId, NewText, Context ] },
+
+	%trace_utils:debug_fmt( "Sending back following resize event "
+	%   "to subscriber(s) ~w:~n~p.", [ Subscribers, Msg ] ),
+
+	% PID or name:
+	[ SubDesignator ! Msg || SubDesignator <- Subscribers ];
+
+
 % Base case, for all events that do not require specific treatments:
 send_event( Subscribers, EventType, EventSourceId, GUIObject, UserData, Event,
 			NameTable ) ->
@@ -2247,7 +2281,7 @@ register_in_event_loop_tables( _SubscribedEvents=[
 	% Objects, not identifiers for example:
 	GUIObjects = list_utils:ensure_tuples( GUIObjectMaybeList ),
 
-	SubOpts = list_utils:ensure_proplist( SubscriptionMaybeOpts ),
+	SubOpts = tagged_list:ensure_tagged_list( SubscriptionMaybeOpts ),
 	Subscribers = list_utils:ensure_pids( SubscriberMaybeList ),
 
 	NewLoopState = lists:foldl(
@@ -2667,7 +2701,7 @@ create_app_gui_state( AppEventSpecs, MaybeOpenGLBaseInfo,
 
 	trace_utils:debug_fmt( "Creating an application GUI state from:~n"
 		" - specs: ~p~n - OpenGL base information: ~p~n"
-		" - application-specific information: ~p",
+		" - application-specific information:~n ~p",
 		[ AppEventSpecs, MaybeOpenGLBaseInfo, MaybeAppSpecificInfo ] ),
 
 	EventDriverTable = get_default_event_driver_table(),
@@ -3815,7 +3849,16 @@ application_event_to_string( AE ) ->
 -doc "Converts a MyriadGUI type of event into a wx one.".
 -spec to_wx_event_type( event_type() ) -> wx_event_type().
 to_wx_event_type( EventType ) ->
-	gui_generated:get_second_for_event_type( EventType ).
+	case gui_generated:get_maybe_second_for_event_type( EventType ) of
+
+		undefined ->
+			% Possibly mispelled (e.g. 'onShow' instead of 'onShown'):
+			throw( { unsupported_event_type, EventType } );
+
+		WxEventType ->
+			WxEventType
+
+	end.
 
 
 -doc "Converts a wx type of event into a MyriadGUI one.".

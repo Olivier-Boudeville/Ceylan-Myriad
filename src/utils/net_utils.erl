@@ -38,7 +38,8 @@ See net_utils_test.erl for the corresponding test.
 
 
 % Host-related functions:
--export([ ping/1, localhost/0, bin_localhost/0, localhost_for_node_name/0,
+-export([ ping/1, localhost/0, bin_localhost/0,
+		  ensure_possibly_local_bin_hostname/1, localhost_for_node_name/0,
 		  localhost/1, bin_localhost/1,
 		  split_fqdn/1, get_hostname/1,
 		  get_local_ip_addresses/0, get_local_ip_address/0,
@@ -96,6 +97,7 @@ See net_utils_test.erl for the corresponding test.
 
 % Exported for convenience:
 -export([ wait_unavailable/3 ]).
+
 
 
 % Type declarations.
@@ -218,7 +220,7 @@ A domain name (e.g. "foo.baz.org"), as a string.
 
 
 -doc """
-A domain name (e.g. "foo.baz.org"), as a binary string.
+A domain name, as a binary string (e.g. ``<<"foo.baz.org">>``).
 """.
 -type bin_domain_name() :: bin_string().
 
@@ -232,8 +234,8 @@ An element of a domain name (e.g. "foo" in "bar.foo.baz.org"), as a string.
 
 
 -doc """
-An element of a domain name (e.g. "foo" in "bar.foo.baz.org"), as a binary
-string.
+An element of a domain name, as a binary string (e.g. <<"foo">> in
+"bar.foo.baz.org").
 """.
 -type bin_subdomain() :: bin_string().
 
@@ -277,9 +279,22 @@ port is optional and a value of zero means no port.
 -type net_port() :: non_neg_integer().
 
 
+-doc """
+The RFC 6056 says that the range for ephemeral (TCP or UDP) ports should be
+1024-65535.
+""".
+-type ephemeral_port() :: net_port().
+
 
 -doc "A TCP port.".
 -type tcp_port() :: net_port().
+
+
+-doc "A (server) TCP port dedicated to the listening of new connections.".
+-type tcp_listening_port() :: tcp_port().
+
+-doc "An ephemeral TCP port.".
+-type ephemeral_tcp_port() :: tcp_port().
 
 
 
@@ -288,16 +303,8 @@ port is optional and a value of zero means no port.
 
 
 
--doc """
-The RFC 6056 says that the range for ephemeral ports should be 1024-65535.
-""".
--type ephemeral_port() :: net_port().
-
-
-
 -doc "A TCP port range (bounds included).".
 -type tcp_port_range() :: { tcp_port(), tcp_port() }.
-
 
 
 -doc "A UDP port range (bounds included).".
@@ -335,20 +342,35 @@ The RFC 6056 says that the range for ephemeral ports should be 1024-65535.
 			   domain_name/0, bin_domain_name/0, subdomain/0, bin_subdomain/0,
 			   check_duration/0, check_node_timing/0,
 			   node_naming_mode/0, erlang_naming_type/0, cookie/0,
-			   net_port/0, tcp_port/0, udp_port/0,
+			   net_port/0, ephemeral_port/0,
+			   tcp_port/0, tcp_listening_port/0, ephemeral_tcp_port/0,
+			   udp_port/0,
 			   tcp_port_range/0, udp_port_range/0,
 			   tcp_port_restriction/0,
 			   lookup_tool/0, lookup_info/0, lookup_outcome/0 ]).
 
 
 
+
+-doc "Any kind of socket.".
+-type socket() :: socket:socket().
+
+
 -doc """
 A (low-level, NIF-based) TCP/IP socket used to listen to incoming connections.
 """.
--type listening_socket() :: socket:socket().
+-type listening_socket() :: socket().
 
 
--export_type([ listening_socket/0 ]).
+-doc """
+A (low-level, NIF-based) TCP/IP socket used to communicate in the context of
+connections.
+""".
+-type communication_socket() :: socket().
+
+
+
+-export_type([ socket/0, listening_socket/0, communication_socket/0 ]).
 
 
 
@@ -360,7 +382,7 @@ A (low-level, NIF-based) TCP/IP socket used to listen to incoming connections.
 -include_lib("kernel/include/file.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -433,6 +455,23 @@ Tries to collect a FQDN (Fully Qualified Domain Name).
 -spec bin_localhost() -> bin_host_name().
 bin_localhost() ->
 	bin_localhost( fqdn ).
+
+
+
+-doc """
+Returns a binary version (if relevant) of the specified possibly-local hostname.
+""".
+-spec ensure_possibly_local_bin_hostname( any_string() | 'localhost' ) ->
+									possibly_local_bin_hostname().
+ensure_possibly_local_bin_hostname( localhost ) ->
+	localhost;
+
+ensure_possibly_local_bin_hostname( BinLocalHost )
+						when is_binary( BinLocalHost ) ->
+	BinLocalHost;
+
+ensure_possibly_local_bin_hostname( LocalHost ) ->
+	text_utils:string_to_binary( LocalHost ).
 
 
 
@@ -702,7 +741,7 @@ get_local_ip_address() ->
 		% the selected one:
 
 		%[ _FirstAddr, SecondAddr | _T ] ->
-		%       SecondAddr;
+		%   SecondAddr;
 
 		[ Addr | _T ] ->
 			Addr
@@ -2349,7 +2388,7 @@ check_port( I ) when is_integer( I ) andalso I > 0 andalso I =< 65535 ->
 	I;
 
 check_port( Other ) ->
-	throw( { invalid_net_port, Other  } ).
+	throw( { invalid_net_port, Other } ).
 
 
 

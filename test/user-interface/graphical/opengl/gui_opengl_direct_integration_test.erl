@@ -96,7 +96,9 @@ See also gui_opengl_mvc_test.erl for a cleaner decoupling of concerns.
 	opengl_state :: option( my_opengl_state() ),
 
 	% Records the current time to update the clock texture when relevant:
-	time :: option( time() ) } ).
+	time :: option( time() ),
+
+	mesh :: mesh() } ).
 
 
 -doc "Test-specific overall GUI state.".
@@ -235,9 +237,21 @@ init_test_gui() ->
 	%
 	%gui_image:scale( Image, _NewWidth=128, _NewHeight=128 ),
 
+	TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(
+				 _EdgeLength=1.0, _FaceGranularity=per_vertex ),
+
+	trace_utils:debug_fmt( "The test mesh is a ~ts",
+						   [ mesh:to_string( TestMesh ) ] ),
+
+	%TestMesh = gui_opengl_for_testing:get_test_tetra_mesh(),
+
 	% No OpenGL state yet (GL context cannot be set as current yet):
-	#my_gui_state{ main_frame=MainFrame, panel=Panel, canvas=GLCanvas,
-				   context=GLContext, image=Image }.
+	#my_gui_state{ main_frame=MainFrame,
+				   panel=Panel,
+				   canvas=GLCanvas,
+				   context=GLContext,
+				   image=Image,
+				   mesh=TestMesh }.
 
 
 

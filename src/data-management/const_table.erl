@@ -131,7 +131,7 @@ A module-based storage cannot hold transient terms.
 % TO-DO: add a corresponding type specification (see ast_function).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type module_name() :: basic_utils:module_name().
 

@@ -22,21 +22,23 @@ user-friendly debugging.
 
 -type alphabet() :: [ char() ].
 
--type password() :: text_utils:ustring().
 
 -export([ generate_password/2 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
+
+-type password() :: system_utils:password().
+
 
 
 
 -doc "Typically for testing.".
 -spec run() -> void().
 run() ->
-	ArgTable = shell_utils:get_argument_table(),
+	ArgTable = cmd_line_utils:get_argument_table(),
 	main( ArgTable ).
 
 
@@ -78,11 +80,11 @@ get_usage() ->
 Sole entry point for this generation service, either triggered by `run/0` or by
 the associated escript.
 """.
--spec main( shell_utils:argument_table() ) -> void().
+-spec main( cmd_line_utils:argument_table() ) -> void().
 main( ArgTable ) ->
 
 	%trace_utils:debug_fmt( "Original script-specific arguments: ~ts",
-	%   [ shell_utils:argument_table_to_string( ArgTable ) ] ),
+	%   [ cmd_line_utils:argument_table_to_string( ArgTable ) ] ),
 
 	[ %InteractiveRefKey,
 	  LengthRefKey, AlphaRefKey, HelpRefKey ] =
@@ -97,7 +99,7 @@ main( ArgTable ) ->
 		{ HelpRefKey, [ 'h' ] } ], ArgTable ),
 
 	%trace_utils:debug_fmt( "Canonicalized script-specific arguments: ~ts",
-	%   [ shell_utils:argument_table_to_string( MergedTable ) ] ),
+	%   [ cmd_line_utils:argument_table_to_string( MergedTable ) ] ),
 
 	list_table:has_entry( HelpRefKey, MergedTable ) andalso display_usage(),
 
@@ -163,7 +165,7 @@ main( ArgTable ) ->
 
 		UnexpectedOpts ->
 			trace_utils:error_fmt( "Unexpected user input: ~ts~n~ts",
-				[ shell_utils:argument_table_to_string( AlphaTable ),
+				[ cmd_line_utils:argument_table_to_string( AlphaTable ),
 				  get_usage() ] ),
 			throw( { unexpected_command_line_options, UnexpectedOpts } )
 

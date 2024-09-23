@@ -188,16 +188,17 @@ init_test_gui() ->
 	GLCanvas = gui_opengl:create_canvas(
 		_CanvasOpts=[ { gl_attributes, GLCanvasAttrs } ], _Parent=MainFrame ),
 
+	% Needed, otherwise if that frame is moved out of the screen or if another
+	% windows overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
+	%
+	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
+
 	% Created, yet not bound yet (must wait for the main frame to be shown):
 	GLContext = gui_opengl:create_context( GLCanvas ),
 
 	gui:subscribe_to_events( { [ onResized, onShown, onWindowClosed ],
 							   MainFrame } ),
 
-	% Needed, otherwise if that frame is moved out of the screen or if another
-	% windows overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
-	%
-	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet), actual
 	% OpenGL initialisation to happen when available, i.e. when the main frame
@@ -231,13 +232,15 @@ gui_main_loop( GUIState ) ->
 						"To be repainted, yet no OpenGL state yet." );
 
 				GLState ->
-					gui_widget:enable_repaint( GLCanvas ),
+					% Not relevant: gui_widget:enable_repaint( GLCanvas ),
 
 					% Simpler than storing these at each resize:
 					{ CanvasWidth, CanvasHeight } =
 						gui_widget:get_size( GLCanvas ),
 
-					render( CanvasWidth, CanvasHeight, GLState )
+					render( CanvasWidth, CanvasHeight, GLState ),
+
+					gui_opengl:swap_buffers( GLCanvas )
 
 			end,
 
@@ -404,7 +407,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	% Rely on our shaders:
 	gui_shader:install_program( ProgramId ),
 
-	% As RGB triplet:
+	% As RGBA quadruplet:
 	gui_shader:set_uniform_point4( SomeColorUnifId,
 		gui_opengl_for_testing:get_myriad_blue_render() ),
 
@@ -583,7 +586,11 @@ on_main_frame_resized( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 
 
--doc "Performs a (pure OpenGL) rendering.".
+-doc """
+Performs a (pure OpenGL) rendering.
+
+As a consequence, no OpenGL buffer swapping is done here.
+""".
 -spec render( width(), height(), my_opengl_state()  ) -> void().
 render( _Width, _Height, #my_opengl_state{ triangle_vao_id=TriangleVAOId,
 										   triangle_vbo_id=_TriangleVBOId,

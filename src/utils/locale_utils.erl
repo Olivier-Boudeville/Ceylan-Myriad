@@ -37,7 +37,7 @@ character sets.
 
 -doc "Type to designate countries of interest.".
 -type country() :: 'france' | 'united_kingdom' | 'usa' | 'china' | 'japan'
-				   | atom().
+				   | 'unreferenced_country' | atom().
 
 
 
@@ -105,7 +105,7 @@ A locale with a character set, like "fr_FR.UTF-8".
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().

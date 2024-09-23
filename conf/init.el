@@ -358,6 +358,7 @@ no longer be necessary."
 (add-hook 'text-mode-hook 'fix-behaviours-for-text-modes)
 
 
+
 ;; Erlang support:
 
 ;; Adapted from the README distributed with the OTP tarballs:
@@ -374,8 +375,8 @@ no longer be necessary."
 (setq load-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/emacs" load-path))
 (setq load-path (cons "/usr/local/lib/erlang/emacs" load-path))
 
-;;(setq erlang-root-dir "~/Software/Erlang/Erlang-current-install/lib/erlang")
-;;(setq erlang-root-dir "/usr/local/lib/erlang")
+(setq erlang-root-dir "~/Software/Erlang/Erlang-current-install/lib/erlang")
+(setq erlang-root-dir "/usr/local/lib/erlang")
 
 (setq exec-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/bin" exec-path))
 (setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))

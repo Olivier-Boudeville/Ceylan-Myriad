@@ -154,7 +154,7 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 
 		%trace_utils:debug_fmt( "- new point computed: ~p", [ NewPoint ] ),
 
-		%ListenerPid ! { draw_point, NewPoint, self() },
+		%ListenerPid ! { drawPoint, NewPoint, self() },
 
 
 		% New version: sending a list of PointCount points at once, and moreover
@@ -169,7 +169,7 @@ solver_main_loop( F, CurrentPoint, CurrentTime, Timestep, Screen,
 		%trace_utils:debug_fmt( "Computed following points: ~w.",
 		%                       [ NewProjectedPoints ] ),
 
-		ListenerPid ! { draw_points, NewProjectedPoints, self() },
+		ListenerPid ! { drawPoints, NewProjectedPoints, self() },
 
 		% Slowed down, as otherwise results may ultimately result in overloading
 		% the MyriadGUI main loop:
@@ -391,8 +391,6 @@ start() ->
 
 	Canvas = gui_canvas:create( RightPanel ),
 
-	gui_canvas:set_background_color( Canvas, red ),
-
 	gui_canvas:clear( Canvas ),
 
 	gui:subscribe_to_events( { [ onRepaintNeeded, onResized ], Canvas } ),
@@ -416,6 +414,7 @@ start() ->
 					  zoom_x=ZoomFactor,
 					  zoom_y=ZoomFactor },
 
+	% They change at each run:
 	Colors = gui_color:get_random_colors( SolverCount ),
 
 	% The function corresponding to the equation system to solve:
@@ -651,7 +650,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			GUIState;
 
 
-		{ draw_points, NewPoints, SendingSolverPid } ->
+		{ drawPoints, NewPoints, SendingSolverPid } ->
 
 			%trace_utils:debug_fmt( "Drawing ~B points from ~w.",
 			%   [ length( NewPoints ), SendingSolverPid ] ),
@@ -674,7 +673,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			GUIState#gui_state{ solver_table=NewSolverTable };
 
 
-		{ draw_point, NewPoint, SendingSolverPid } ->
+		{ drawPoint, NewPoint, SendingSolverPid } ->
 
 			trace_utils:debug_fmt( " - drawing ~p (from ~p)~n",
 								   [ NewPoint, SendingSolverPid ] ),
@@ -689,7 +688,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			DestinationDrawPoint = project_2D( NewPoint, Screen ),
 
 			gui_canvas:draw_line( Canvas, SourceDrawPoint, DestinationDrawPoint,
-						   Color ),
+								  Color ),
 
 			gui_canvas:blit( Canvas ),
 

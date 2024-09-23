@@ -49,7 +49,8 @@ Called by gui:generate_support_modules/0.
 		  get_menu_item_kind_topic_spec/0, get_menu_style_topic_spec/0,
 		  get_status_bar_style_topic_spec/0,
 		  get_toolbar_style_topic_spec/0,
-		  get_static_text_display_style_topic_spec/0,
+		  get_text_display_style_topic_spec/0,
+		  get_text_editor_style_topic_spec/0,
 
 		  get_dialog_return_topic_spec/0,
 		  get_message_dialog_style_topic_spec/0,
@@ -62,7 +63,10 @@ Called by gui:generate_support_modules/0.
 		  %get_font_selection_dialog_style_topic_spec/0,
 
 		  get_event_type_topic_spec/0,
-		  get_direction_topic_spec/0, get_orientation_topic_spec/0 ] ).
+		  get_direction_topic_spec/0, get_orientation_topic_spec/0,
+
+		  get_splitter_style_topic_spec/0,
+		  get_splitter_orientation_topic_spec/0 ] ).
 
 
 -export([ list_topic_spec_functions/0 ]).
@@ -83,7 +87,8 @@ list_topic_spec_functions() ->
 	  get_button_id_topic_spec, get_standard_bitmap_name_id_topic_spec,
 	  get_icon_name_id_topic_spec, get_menu_item_kind_topic_spec,
 	  get_status_bar_style_topic_spec, get_toolbar_style_topic_spec,
-	  get_static_text_display_style_topic_spec,
+	  get_text_display_style_topic_spec,
+	  get_text_editor_style_topic_spec,
 
 	  get_dialog_return_topic_spec,
 	  get_message_dialog_style_topic_spec,
@@ -96,7 +101,8 @@ list_topic_spec_functions() ->
 	  %get_font_selection_dialog_style_topic_spec,
 
 	  get_event_type_topic_spec,
-	  get_direction_topic_spec, get_orientation_topic_spec ].
+	  get_direction_topic_spec, get_orientation_topic_spec,
+	  get_splitter_style_topic_spec, get_splitter_orientation_topic_spec ].
 
 
 
@@ -152,7 +158,7 @@ list_topic_spec_functions() ->
 % element look-up and the 'both' conversion direction).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type topic_spec( F, S ) :: const_bijective_topics:topic_spec( F, S ).
 
@@ -185,14 +191,19 @@ list_topic_spec_functions() ->
 
 -type toolbar_style() :: gui_toolbar:toolbar_style().
 
+-type text_display_style() :: gui_text_display:text_display_style().
+-type text_editor_style() :: gui_text_editor:text_editor_style().
+
 -type dialog_return_code() :: gui_dialog:dialog_return_code().
 -type message_dialog_style() :: gui_dialog:message_dialog_style().
 -type single_choice_dialog_style() :: gui_dialog:single_choice_dialog_style().
 -type multi_choice_dialog_style() :: gui_dialog:multi_choice_dialog_style().
 -type text_entry_dialog_style() :: gui_dialog:text_entry_dialog_style().
 -type file_selection_dialog_style() :: gui_dialog:file_selection_dialog_style().
+
 -type directory_selection_dialog_style() ::
 		gui_dialog:directory_selection_dialog_style().
+
 %-type colour_selection_dialog_style() ::
 %    gui_dialog:colour_selection_dialog_style().
 
@@ -207,6 +218,8 @@ list_topic_spec_functions() ->
 -type wx_id() :: gui_id:wx_id().
 
 -type backend_bitmap_id() :: gui_bitmap:backend_bitmap_id().
+
+-type splitter_style() :: gui_splitter:splitter_style().
 
 
 
@@ -709,11 +722,18 @@ Returns the two-way conversion specification for the 'status_bar_style' topic.
 						topic_spec( status_bar_style(), wx_enum() ).
 get_status_bar_style_topic_spec() ->
 
+	% See https://docs.wxwidgets.org/3.1/classwx_status_bar.html:
 	Entries = [
-		{ normal, ?wxSB_NORMAL },
-		{ flat,   ?wxSB_FLAT   },
-		{ raised, ?wxSB_RAISED },
-		{ sunken, ?wxSB_SUNKEN } ],
+		{ normal,           ?wxSB_NORMAL            },
+		{ flat,             ?wxSB_FLAT              },
+		{ raised,           ?wxSB_RAISED            },
+		{ sunken,           ?wxSB_SUNKEN            },
+		{ default,          ?wxSTB_DEFAULT_STYLE    },
+		{ ellipsize_end,    ?wxSTB_ELLIPSIZE_END    },
+		{ ellipsize_middle, ?wxSTB_ELLIPSIZE_MIDDLE },
+		{ ellipsize_begin,  ?wxSTB_ELLIPSIZE_START  },
+		{ show_tips,        ?wxSTB_SHOW_TIPS        },
+		{ show_gripper,     ?wxSTB_SIZEGRIP         } ],
 
 	{ status_bar_style, Entries }.
 
@@ -755,12 +775,12 @@ get_toolbar_style_topic_spec() ->
 
 
 -doc """
-Returns the two-way conversion specification for the 'static_text_display_style'
+Returns the two-way conversion specification for the 'text_display_style'
 topic.
 """.
--spec get_static_text_display_style_topic_spec() ->
-				topic_spec( gui_text:static_display_style(), wx_enum() ).
-get_static_text_display_style_topic_spec() ->
+-spec get_text_display_style_topic_spec() ->
+						topic_spec( text_display_style(), wx_enum() ).
+get_text_display_style_topic_spec() ->
 
 	% See https://docs.wxwidgets.org/stable/classwx_static_text.html:
 
@@ -773,7 +793,46 @@ get_static_text_display_style_topic_spec() ->
 		{ ellipsize_middle, ?wxST_ELLIPSIZE_MIDDLE     },
 		{ ellipsize_begin,  ?wxST_ELLIPSIZE_START      } ],
 
-	{ static_text_display_style, Entries }.
+	{ text_display_style, Entries }.
+
+
+
+-doc """
+Returns the two-way conversion specification for the 'text_editor_style' topic.
+""".
+-spec get_text_editor_style_topic_spec() ->
+						topic_spec( text_editor_style(), wx_enum() ).
+get_text_editor_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/stable/classwx_text_ctrl.html:
+
+	Entries = [
+		{ process_enter_key,     ?wxTE_PROCESS_ENTER },
+		{ process_tab_key,       ?wxTE_PROCESS_TAB   },
+		{ multiline,             ?wxTE_MULTILINE     },
+		{ password,              ?wxTE_PASSWORD      },
+		{ read_only,             ?wxTE_READONLY      },
+		{ rich_text_v1,          ?wxTE_RICH          },
+		{ rich_text_v2,          ?wxTE_RICH2         },
+		{ auto_url,              ?wxTE_AUTO_URL      },
+		{ always_show_selection, ?wxTE_NOHIDESEL     },
+		{ horiz_scrollbar,       ?wxHSCROLL          },
+		{ no_vert_scrollbar,     ?wxTE_NO_VSCROLL    },
+		{ left_justify,          ?wxTE_LEFT          },
+		{ center,                ?wxTE_CENTRE        },
+		{ right_justify,         ?wxTE_RIGHT         },
+		% Duplicate of wxHSCROLL: ?wxTE_DONTWRAP
+		{ char_wrap,             ?wxTE_CHARWRAP      },
+		{ word_wrap,             ?wxTE_WORDWRAP      },
+		{ best_wrap,             ?wxTE_BESTWRAP      } ],
+		% Not existing: ?wxTE_CAPITALIZE
+		% Not existing: ?wxTE_AUTO_SCROLL
+
+	% As ?wxTE_BESTWRAP =:= ?wxTE_LEFT at least on some configurations
+	% (platforms):
+	%
+	{ text_editor_style, Entries, _ElemLookup=strict,
+	  _Direction=first_to_second }.
 
 
 
@@ -962,6 +1021,7 @@ Returns the two-way conversion specification for the 'event_type' topic.
 						topic_spec( event_type(), wx_event_type() ).
 get_event_type_topic_spec() ->
 
+	% At least more event types can be found in src/gen/wxCommandEvent.erl:
 	Entries = [
 
 		% Mouse section:
@@ -997,7 +1057,6 @@ get_event_type_topic_spec() ->
 
 
 		% Keyboard section:
-
 		{ onCharEntered,     char      },
 		{ onCharEnteredHook, char_hook },
 		{ onKeyPressed,      key_down  },
@@ -1005,7 +1064,6 @@ get_event_type_topic_spec() ->
 
 
 		% Menu section/tool(bar) section:
-
 		{ onItemSelected,     command_menu_selected },
 		{ onToolbarEntered,   command_tool_enter    },
 		{ onToolRightClicked, command_tool_rclicked },
@@ -1017,13 +1075,18 @@ get_event_type_topic_spec() ->
 
 
 		% Window section:
+		{ onShown,         show         },
+		{ onResized,       size         },
+		{ onRepaintNeeded, paint        },
+		{ onWindowClosed,  close_window },
 
-		{ onShown,         show },
-		{ onResized,       size },
-		{ onRepaintNeeded, paint },
-		{ onWindowClosed,  close_window } ],
+		% Text section:
+		{ onTextUpdated,  command_text_updated },
+		{ onEnterPressed, command_text_enter   },
+		{ onTextOverflow, text_maxlen          } ],
 
-	{ event_type, Entries }.
+	% To allow the caller to intercept faulty types:
+	{ event_type, Entries, _ElemLookup='maybe' }.
 
 
 
@@ -1033,8 +1096,8 @@ Returns the two-way conversion specification for the 'direction' topic.
 -spec get_direction_topic_spec() ->
 						topic_spec( direction(), wx_direction() ).
 get_direction_topic_spec() ->
-	{ direction, [ { vertical,   ?wxVERTICAL   },
-				   { horizontal, ?wxHORIZONTAL } ] }.
+	OrientEntries = pair:second( get_orientation_topic_spec() ),
+	{ direction, [ { both, ?wxBOTH } | OrientEntries ] }.
 
 
 
@@ -1044,5 +1107,52 @@ Returns the two-way conversion specification for the 'orientation' topic.
 -spec get_orientation_topic_spec() ->
 						topic_spec( orientation(), wx_orientation() ).
 get_orientation_topic_spec() ->
-	DirEntries = pair:second( get_direction_topic_spec() ),
-	{ orientation, [ { both, ?wxBOTH } | DirEntries ] }.
+	{ orientation, [ { vertical,   ?wxVERTICAL   },
+					 { horizontal, ?wxHORIZONTAL } ] }.
+
+
+-doc """
+Returns the two-way conversion specification for the 'splitter_style' topic.
+""".
+-spec get_splitter_style_topic_spec() ->
+						topic_spec( splitter_style(), wx_enum() ).
+get_splitter_style_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_splitter_window.html for more
+	% information.
+
+	Entries = [
+		{ three_dim_effect,   ?wxSP_3D             },
+		{ thin_splitter,      ?wxSP_THIN_SASH      },
+		{ three_dim_splitter, ?wxSP_3DSASH         },
+		{ three_dim_border,   ?wxSP_3DBORDER       },
+		{ standard_border,    ?wxSP_BORDER         },
+		{ no_border,          ?wxSP_NOBORDER       },
+		{ no_xp_theme,        ?wxSP_NO_XP_THEME    },
+		{ allow_unsplit,      ?wxSP_PERMIT_UNSPLIT },
+		{ live_update,        ?wxSP_LIVE_UPDATE    } ],
+
+	% As ?wxSP_3DBORDER =:= ?wxSP_BORDER and ?wxSP_THIN_SASH =:= ?wxSP_NOBORDER
+	% at least on some configurations (platforms):
+	%
+	{ splitter_style, Entries, _ElemLookup=strict, _Direction=first_to_second }.
+
+
+
+-doc """
+Returns the two-way conversion specification for the 'splitter_orientation'
+topic.
+""".
+-spec get_splitter_orientation_topic_spec() ->
+			topic_spec( orientation(), wx_enum() ).
+get_splitter_orientation_topic_spec() ->
+
+	% See https://docs.wxwidgets.org/3.1/classwx_splitter_window.html for more
+	% information.
+
+	% Note that for wx wxHORIZONTAL and wxVERTICAL are different from:
+	Entries = [
+		{ horizontal, ?wxSPLIT_HORIZONTAL },
+		{ vertical,   ?wxSPLIT_VERTICAL   } ],
+
+	{ splitter_orientation, Entries }.

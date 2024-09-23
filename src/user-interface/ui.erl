@@ -114,11 +114,10 @@ See also: `trace_utils.erl` for another kind of output.
 -doc """
 Any text, as a plain or binary (Unicode, UTF-8) string.
 
-Could usually be a more general (notably as recursive lists as such elements),
-and more complex for the user, unicode:chardata(), yet this would have to be
-systematically type-checked beforehand.
+Used to be a rather restrictive any_string(), now is more general (notably as
+recursive lists are such elements).
 """.
--type text() :: any_string().
+-type text() :: unicode:chardata().
 
 
 -doc "A label, for example of a button.".
@@ -145,6 +144,9 @@ systematically type-checked beforehand.
 -doc "A message, typically displayed by a dialog, or sent as a trace.".
 -type message() :: text().
 
+
+-doc "A text for help information.".
+-type help_info() :: text().
 
 
 -doc "A binary choice.".
@@ -189,7 +191,7 @@ Useful to define the interface wanted and to interpret its outcome.
 
 
 -export_type([ text/0, label/0, prompt/0, title/0, bin_title/0,
-			   caption/0, message/0,
+			   caption/0, message/0, help_info/0,
 			   binary_choice/0,
 			   choice_text/0, choice_designator/0, choice_index/0,
 			   choice_element/0, choice_spec/0 ]).
@@ -319,14 +321,13 @@ Useful to define the interface wanted and to interpret its outcome.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type module_name() :: basic_utils:module_name().
 
--type argument_table() :: shell_utils:argument_table().
+-type argument_table() :: cmd_line_utils:argument_table().
 
 -type ustring() :: text_utils:ustring().
--type any_string() :: text_utils:any_string().
 -type bin_string() :: text_utils:bin_string().
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -352,7 +353,7 @@ start( Options ) ->
 	% Here, no argument table is specified, fetching it (thus supposedly not
 	% running as an escript):
 	%
-	start( Options, shell_utils:get_argument_table() ).
+	start( Options, cmd_line_utils:get_argument_table() ).
 
 
 
@@ -368,7 +369,7 @@ start( Options, ArgumentTable ) ->
 
 	cond_utils:if_defined( myriad_debug_user_interface, trace_utils:debug_fmt(
 		"UI got following full argument(s): ~ts",
-		[ shell_utils:argument_table_to_string( ArgumentTable ) ] ) ),
+		[ cmd_line_utils:argument_table_to_string( ArgumentTable ) ] ) ),
 
 	% Just a check:
 	case process_dictionary:get( ?ui_name_key ) of
@@ -385,8 +386,8 @@ start( Options, ArgumentTable ) ->
 	OptName = ?ui_backend_opt,
 
 	{ BackendModuleName, RemainingArgTable } =
-		case shell_utils:extract_command_arguments_for_option( OptName,
-												ArgumentTable ) of
+		case cmd_line_utils:extract_command_arguments_for_option( OptName,
+			ArgumentTable ) of
 
 		{ undefined, ArgTable } ->
 

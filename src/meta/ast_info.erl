@@ -437,7 +437,7 @@ All relevant information about an error found in an AST:
 		  type_info_to_string/1, type_info_to_string/3 ]).
 
 
-% Local shorthands:
+% Local type shorthands:
 
 -type option( T ) :: basic_utils:option( T ).
 

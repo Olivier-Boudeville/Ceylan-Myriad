@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2024 Olivier Boudeville
+% Copyright (C) 2024-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,12 +23,15 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Wednesday, May 20, 2020.
+% Creation date: Wednesday, August 28, 2024.
 
 -module(shell_utils_test).
 
 -moduledoc """
-Unit tests for the `shell_utils` toolbox.
+Unit tests for the **shell-related** facilities.
+
+Note that, if run interactively, this test will use a text user interface that
+may cause problems on some terminals when terminating.
 
 See the shell_utils.erl tested module.
 """.
@@ -39,11 +42,150 @@ See the shell_utils.erl tested module.
 -include("test_facilities.hrl").
 
 
-% Note:
-%
-% One can test the support of command-line arguments with, for example:
-%
-% make shell_utils_run CMD_LINE_OPT="a b -my-first-opt u v w -my-other-opt x"
+
+% Type shorthands:
+
+-type shell_pid() :: shell_utils:shell_pid().
+
+
+
+-spec test_interactive( shell_pid() ) -> void().
+test_interactive( ShellPid ) ->
+
+	test_facilities:display( "Starting shell interaction with ~w "
+		"(one may enter 'halt().' to stop).", [ ShellPid ] ),
+
+	text_ui:start(),
+
+	test_main_loop( ShellPid ),
+
+	text_ui:stop(),
+
+	test_facilities:display( "Stopped shell interaction with ~w.",
+							 [ ShellPid ] ).
+
+
+
+test_main_loop( ShellPid ) ->
+
+	Prompt = "Enter the next Erlang expression to evaluate: ",
+	ExprText = text_ui:get_text( Prompt ),
+
+	case shell_utils:execute_command( text_utils:ensure_binary( ExprText ),
+									  ShellPid ) of
+
+		{ success, CmdResValue, CmdId, MaybeBinTimestamp } ->
+			test_facilities:display( "Shell expression '~ts' (#~B) "
+				"evaluated (timestamp: ~ts) to '~p'.",
+				[ ExprText, CmdId, MaybeBinTimestamp, CmdResValue ] );
+
+		{ error, ErrorInfo } ->
+			test_facilities:display( "The processing of shell expression '~ts' "
+				"failed with: '~ts'.", [ ExprText, ErrorInfo ] )
+
+	end,
+
+	test_main_loop( ShellPid ).
+
+
+
+
+-doc "Tests the specified (custom or standard) shell.".
+-spec test_shell( shell_pid() ) -> void().
+test_shell( ShellPid ) ->
+
+	% Was for standard shell:
+	%UTF8Binary = unicode:characters_to_binary( "P=1.\n" ),
+	%
+	%ShellPid ! { send, UTF8Binary },
+
+
+	{ success, FirstRes, _FirstCmdId=1, MaybeFirstBinTimestamp } =
+		shell_utils:execute_command( "A=1.", ShellPid ),
+
+	test_facilities:display( "First assignment result (timestamp: ~ts): ~p.",
+							 [ MaybeFirstBinTimestamp, FirstRes ] ),
+	FirstRes = 1,
+
+	test_facilities:display( "Flushing history."),
+	ShellPid ! flushHistory,
+
+	{ success, SecondRes, _SecondCmdId=2, MaybeSecondBinTimestamp } =
+		shell_utils:execute_command( "B=2.", ShellPid ),
+
+	test_facilities:display( "Second assignment result (timestamp: ~ts): ~p.",
+							 [ MaybeSecondBinTimestamp, SecondRes ] ),
+	SecondRes = 2,
+
+
+	{ success, ThirdRes, _ThirdCmdId=3, MaybeThirdBinTimestamp } =
+		shell_utils:execute_command( "A+B.", ShellPid ),
+
+	test_facilities:display( "Addition result (timestamp: ~ts): ~p.",
+							 [ MaybeThirdBinTimestamp, ThirdRes ] ),
+	ThirdRes = 3,
+
+
+	{ success, LRes, _LCmdId=4, MaybeLBinTimestamp } =
+		shell_utils:execute_command( "L = [3, 2, 1].", ShellPid ),
+
+	test_facilities:display( "List assignment result (timestamp: ~ts): ~p.",
+							 [ MaybeLBinTimestamp, LRes ] ),
+	LRes = [ 3, 2, 1 ],
+
+	{ success, SortRes, _SortCmdId=5, MaybeSortBinTimestamp } =
+		shell_utils:execute_command( "lists:sort(L).", ShellPid ),
+
+	test_facilities:display( "Sorting result (timestamp: ~ts): ~p.",
+							 [ MaybeSortBinTimestamp, SortRes ] ),
+	SortRes = [ 1, 2, 3 ],
+
+
+	% Therefore typed as "--interactive-shell":
+	case cmd_line_utils:get_command_arguments_for_option(
+			_Option='-interactive-shell' ) of
+
+		undefined ->
+			test_facilities:display( "Not in interactive mode, stopping." );
+
+		_ ->
+			test_facilities:display( "Switching to interactive mode." ),
+			test_interactive( ShellPid )
+
+	end,
+
+	ShellPid ! { terminateSynch, self() },
+
+	receive
+
+		onShellTerminated ->
+			ok
+
+	end.
+
+
+
+get_test_shell_opts() ->
+
+	%[].
+
+	%HistOpt = no_history,
+	%HistOpt = { history, _MaybeMaxDepth=0 },
+	%HistOpt = { history, 1 },
+	%HistOpt = { history, 10 },
+	HistOpt = { history, undefined },
+
+	%HistOpts = [],
+	HistOpts = [ HistOpt ],
+
+	%TimestampOpts = [],
+	TimestampOpts = [ timestamp ],
+
+	%LogOpts = [],
+	LogOpts = [ log ],
+	%LogOpts = [ { log, "../test-shell.txt" } ],
+
+	HistOpts ++ TimestampOpts ++ LogOpts.
 
 
 
@@ -52,77 +194,39 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
-	ArgTable = shell_utils:get_argument_table(),
+	ShellOpts = get_test_shell_opts(),
 
-	test_facilities:display( "Obtained following argument table: ~ts",
-		[ shell_utils:argument_table_to_string( ArgTable ) ] ),
+	TestCustom = true,
+	%TestCustom = false,
 
-	OptionLessArgs = shell_utils:get_optionless_command_arguments(),
+	TestCustom andalso
+		begin
 
-	test_facilities:display( "Option-less arguments are: ~p.",
-							 [ OptionLessArgs ] ),
+			test_facilities:display( "Testing the custom shell, "
+				"based on following options:~n ~p.", [ ShellOpts ] ),
 
+			CustomShellPid = shell_utils:start_link_custom_shell( ShellOpts ),
 
-	{ OtherOptionLessArgs, ShrunkArgTable } =
-		shell_utils:extract_optionless_command_arguments(),
+			test_shell( CustomShellPid )
 
-	test_facilities:display(
-	  "Extracted option-less arguments are: ~p (remainder: ~ts).",
-	  [ OtherOptionLessArgs,
-		shell_utils:argument_table_to_string( ShrunkArgTable) ] ),
+		end,
 
 
-	% Not a user-level option (VM-level), hence no supposed to be defined at
-	% all:
-	%
-	PzOption = 'pz',
+	% Not functional (yet):
+	%TestStandard = true,
+	TestStandard = false,
 
-	{ PzValues=undefined, PzRemainingArguments } =
-		shell_utils:extract_command_arguments_for_option( PzOption ),
+	TestStandard andalso
+		begin
 
-	test_facilities:display( "Knowing the actual command-line arguments were:~n"
-		"~p~nfor (VM, not user) option '~ts', we extracted following value(s), "
-		"expected not to be defined:~n~p~n"
-		"and got the rest of the arguments:~n~p",
-		[ init:get_arguments(), PzOption, PzValues, PzRemainingArguments ] ),
+			test_facilities:display( "Testing the standard shell, "
+				"based on following options:~n ~p.", [ ShellOpts ] ),
 
+			StandardShellPid =
+				shell_utils:start_link_standard_shell( ShellOpts ),
 
-	RealOption = 'my-first-opt',
+			test_shell( StandardShellPid )
 
-	{ RealOptValues, RealOptRemainingArguments } =
-		shell_utils:extract_command_arguments_for_option( RealOption,
-			PzRemainingArguments ),
-
-	test_facilities:display( "For (user) option '~ts', we extracted following "
-		"value(s):~n~p~nand got the rest of the arguments: ~ts",
-		[ RealOption, RealOptValues,
-		  shell_utils:argument_table_to_string( RealOptRemainingArguments ) ] ),
-
-
-	AdHocCommandLine = "an_optionless_arg another_optionless_arg "
-		"--my-first-opt a b c a_third_optionless_arg -my-other-opt e "
-		"--my-first-opt d",
-
-	AdHocArgTable = shell_utils:generate_argument_table( AdHocCommandLine ),
-
-	test_facilities:display( "Ad hoc argument table from '~ts':~n~ts",
-		[ AdHocCommandLine,
-		  shell_utils:argument_table_to_string( AdHocArgTable ) ] ),
-
-
-	OptionLessSpec = { _Min=1, _Max=3 },
-
-	% Here we specify that the first option is to take only 2 (exactly; not 3)
-	% arguments, hence any argument found after the second will be considered as
-	% an option-less one (this is the case of 'c' and 'a_third_optionless_arg'):
-
-	OptionSpecs = [ { '-my-first-opt', 2 }, { 'my-other-opt', 1 } ],
-
-	UniqArgTable = shell_utils:get_command_line_arguments( OptionLessSpec,
-										OptionSpecs, AdHocArgTable ),
-
-	test_facilities:display( "Resulting argument table, based on option "
-		"specs ~p:~n~ts", [ OptionSpecs,
-			shell_utils:argument_table_to_string( UniqArgTable ) ] ),
+		end,
 
 	test_facilities:stop().

@@ -101,6 +101,7 @@ get_test_image_directory() ->
 get_test_main_image_path() ->
 	ImageFilename = "myriad-title.png",
 	%ImageFilename = "myriad-minimal-enclosing-circle-test.png",
+	%ImageFilename = "gui-mockup.svg",
 
 	% If having there a local symlink pointing to
 	% Erlang-x.y/lib/erlang/lib/wx-z/examples/demo/image.jpg:

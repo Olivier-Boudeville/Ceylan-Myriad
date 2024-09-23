@@ -138,9 +138,11 @@ See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 			   bitmap_name_id/0, backend_bitmap_id/0 ]).
 
 
+
 % Local types:
 
 -type wx_art_id() :: gui_wx_backend:wx_art_id().
+
 
 
 % Functions on bitmaps:
@@ -158,15 +160,15 @@ See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 
 
 % Functions about bitmap displays:
--export([ create_static_display/2, create_static_display/3,
-		  destruct_static_display/1 ]).
+-export([ create_display/2, create_display/3, destruct_display/1 ]).
 
 
 % For the wxBITMAP_SCREEN_DEPTH defined:
 -include_lib("wx/include/wx.hrl").
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type any_file_path() :: file_utils:any_file_path().
 
@@ -190,7 +192,6 @@ See also gui_constants:get_standard_bitmap_name_id_topic_spec/0.
 
 
 
-
 -doc """
 Returns a bitmap of the specified dimensions, using the current system color
 depth.
@@ -200,6 +201,7 @@ To be explicitly destructed (see destruct/1) when done with it.
 -spec create( width(), height() ) -> bitmap().
 create( Width, Height ) ->
 	create( Width, Height, ?wxBITMAP_SCREEN_DEPTH ).
+
 
 
 -doc """
@@ -212,6 +214,7 @@ create( Width, Height, ColorDepth ) ->
 	NewBitmap = create_empty( Width, Height ),
 	populate_buffer( NewBitmap, Width, Height, ColorDepth ),
 	NewBitmap.
+
 
 
 -doc """
@@ -273,7 +276,6 @@ Destructs the specified bitmap (which must not be locked).
 
 Decrements its reference count; may trigger an actual destruction immediately or
 not.
-
 """.
 -spec destruct( bitmap() ) -> void().
 destruct( Bitmap ) ->
@@ -409,10 +411,10 @@ draw( SourceBitmap, TargetDC, PosInTarget ) ->
 % Bitmap display section.
 
 
--doc "Creates a static bitmap display from the specified bitmap.".
--spec create_static_display( bitmap(), parent() ) -> bitmap_display().
-create_static_display( Bitmap, Parent ) ->
-	create_static_display( Bitmap, _Opts=[], Parent ).
+-doc "Creates a bitmap display from the specified bitmap.".
+-spec create_display( bitmap(), parent() ) -> bitmap_display().
+create_display( Bitmap, Parent ) ->
+	create_display( Bitmap, _Opts=[], Parent ).
 
 
 
@@ -420,17 +422,18 @@ create_static_display( Bitmap, Parent ) ->
 Creates a bitmap display from the specified bitmap and with the specified
 options.
 """.
--spec create_static_display( bitmap(), [ window_option() ], parent() ) ->
+-spec create_display( bitmap(), [ window_option() ], parent() ) ->
 												bitmap_display().
-create_static_display( Bitmap, Options, Parent ) ->
+create_display( Bitmap, Options, Parent ) ->
 	wxStaticBitmap:new( Parent, gui_id:get_any_id(), Bitmap, Options ).
 
 
 
 -doc "Destructs the specified bitmap display.".
--spec destruct_static_display( bitmap_display() ) -> void().
-destruct_static_display( BitmapDisplay ) ->
+-spec destruct_display( bitmap_display() ) -> void().
+destruct_display( BitmapDisplay ) ->
 	wxStaticBitmap:destroy( BitmapDisplay ).
+
 
 
 
@@ -451,7 +454,8 @@ wx-specific one.
 """.
 -spec to_wx_bitmap_id( bitmap_name_id() ) -> wx_art_id().
 to_wx_bitmap_id( BitmapId ) ->
-	case gui_generated:get_maybe_second_for_bitmap_id( BitmapId ) of
+	case gui_generated:get_maybe_second_for_standard_bitmap_name_id(
+			BitmapId ) of
 
 		undefined ->
 			throw( { unknown_bitmap_id, BitmapId } );

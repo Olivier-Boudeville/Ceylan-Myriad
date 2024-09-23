@@ -31,6 +31,9 @@
 Gathering of various facilities for **OpenGL rendering**, notably done through
 wxWidgets.
 
+This is old-style, legacy OpenGL. A contemporary approach is to use GLSL shaders
+instead, see the gui_shader module for that.
+
 See gui_opengl_test.erl for the corresponding test.
 
 See gui.erl for more general rendering topics.
@@ -265,10 +268,17 @@ example the WX_GL_DEBUG define does exist and is indeed managed.
 	% The number of bits for Z-buffer (typically 0, 16 or 32):
   | { 'depth_buffer_size', bit_size() }
 
+	% Enable MSAA, i.e. Multisample anti-aliasing; one should check it is
+	% available beforehand (see is_msaa_available/0), otherwise GPUs (e.g. Intel
+	% ones, if MSAA driver management has been turned off on Intel Control
+	% Panel) may crash (refer to wings_gl.erl for more details).
+	%
+  | 'msaa'
+
 	% Request the use of an OpenGL core profile (as opposed to a mere
 	% compatibility one); note that is implies requesting at least OpenGL
 	% version 3.0; at least in some settings, this attribute seems to be ignored
-	% (compatibility profile being returned).
+	% (a compatibility profile being returned).
 	%
   | 'use_core_profile'
 
@@ -276,7 +286,11 @@ example the WX_GL_DEBUG define does exist and is indeed managed.
   | 'debug_context'.
 
 
--doc "Options of an OpenGL canvas.".
+-doc "
+Options of an OpenGL canvas.
+
+Not limited to the GL attributes.
+".
 -type gl_canvas_option() :: { 'gl_attributes', [ device_context_attribute() ] }
 						  | gui_wx_backend:other_wx_device_context_attribute().
 
@@ -547,7 +561,7 @@ be enabled or disabled.
 
 -doc "A 3D (float) vector, according to the conventions of the gl module.".
 -type gl_vector3() :: { f(), f(), f() }. % A.k.a. point3:point3().
- 
+
 
 -doc "A 4D (float) vector, according to the conventions of the gl module.".
 -type gl_vector4() :: { f(), f(), f(), f() }. % A.k.a. point4:point4().
@@ -684,7 +698,7 @@ the gl module.
 -export([ generate_support_modules/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type f() :: float().
 
@@ -696,6 +710,8 @@ the gl module.
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+
+-type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 -type bit_size() :: system_utils:bit_size().
 -type byte_size() :: system_utils:byte_size().
@@ -1065,7 +1081,7 @@ get_support_description() ->
 
 	VendStr = text_utils:format( "driver vendor: ~ts", [ get_vendor_name() ] ),
 
-	RendStr = text_utils:format( "driver renderer: ~ts", 
+	RendStr = text_utils:format( "driver renderer: ~ts",
 								 [ get_renderer_name() ] ),
 
 	% Checks that a proper version could be obtained indeed:
@@ -1329,7 +1345,7 @@ by disabling the specified message source, type and severity.
 Although debug messages may be enabled in a non-debug context, the quantity and
 detail of such messages may be substantially inferior to those in a debug
 context. In particular, a valid implementation of the debug message queue in a
-non-debug context may produce no messages at all. 
+non-debug context may produce no messages at all.
 """.
 -spec disable_debug_context_reporting( debug_source(), debug_type(),
 								   debug_severity() ) -> void().
@@ -1778,9 +1794,27 @@ get_default_canvas_attributes() ->
 	% At least this number of bits per RGB component:
 	MinSize = 8,
 
-	[ rgba, double_buffer, { min_red_size, MinSize },
-	  { min_green_size, MinSize }, { min_blue_size, MinSize },
-	  { depth_buffer_size, 24 } ].
+	MSAAAttrs = case is_msaa_available() of
+
+		true ->
+			[ msaa ];
+
+		false ->
+			[]
+
+	end,
+
+	MSAAAttrs ++ [ rgba, double_buffer, { min_red_size, MinSize },
+				   { min_green_size, MinSize }, { min_blue_size, MinSize },
+				   { depth_buffer_size, 24 } ].
+
+
+
+-doc "Tells whether MSAA (Multisample anti-aliasing) is available.".
+-spec is_msaa_available() -> boolean().
+is_msaa_available() ->
+	gui_wx_backend:are_gl_attributes_supported(
+		gui_wx_backend:get_msaa_attributes() ).
 
 
 
@@ -1814,7 +1848,8 @@ Note: not to be mixed up with gui:create_canvas/1, which creates a basic
 Note also that using the use_core_profile attribute will result in also
 requesting OpenGL at least version 3.0.
 """.
--spec create_canvas( [ gl_canvas_option() ], widget() ) -> gl_canvas().
+-spec create_canvas( maybe_list( gl_canvas_option() ), widget() ) ->
+											gl_canvas().
 create_canvas( CanvasOpts, Parent ) ->
 
 	cond_utils:if_defined( myriad_debug_opengl,
@@ -1824,12 +1859,13 @@ create_canvas( CanvasOpts, Parent ) ->
 	% Not using list_table:extract_entry_with_default/3, as Opts may contain
 	% single atoms:
 	%
-	{ Attrs, OtherOpts } = list_utils:extract_pair_with_default(
-		_K=gl_attributes, _Def=[ rgba, double_buffer ], CanvasOpts ),
+	{ Attrs, OtherOpts } = tagged_list:extract_pair_with_default(
+		_K=gl_attributes, _Def=[ rgba, double_buffer ],
+		tagged_list:ensure_tagged_list( CanvasOpts ) ),
 
 	%trace_utils:debug_fmt( "Creating a GL canvas from options:~n ~p,~n "
 	%   "hence with Attrs = ~p~n and OtherOpts = ~p.",
-	%   [ Opts, Attrs, OtherOpts ] ),
+	%   [ CanvasOpts, Attrs, OtherOpts ] ),
 
 	WxAttrs = gui_wx_backend:to_wx_device_context_attributes( Attrs ),
 
@@ -1846,6 +1882,9 @@ create_canvas( CanvasOpts, Parent ) ->
 	% this point):
 	%
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
+
+	% For example, {wx_ref,157,wxGLCanvas,[]}:
+	%trace_utils:debug_fmt( "Canvas result = ~p", [ Res ] ),
 
 	Res.
 
@@ -1884,6 +1923,8 @@ on it.
 
 To be only called when the parent window is shown on screen; see
 gui_opengl_test.erl for an example thereof.
+
+See also gui_widget:sync/1 for another synchronisation need.
 """.
 -spec set_context_on_shown( gl_canvas(), gl_context() ) -> void().
 set_context_on_shown( Canvas, Context ) ->
@@ -1916,9 +1957,10 @@ set_context( Canvas, Context ) ->
 -doc """
 Swaps the double-buffer of the corresponding OpenGL canvas (making the
 back-buffer the front-buffer and vice versa), so that the output of the previous
-OpenGL commands is displayed on this window.
+OpenGL commands is displayed on the corresponding window, which must already be
+shown.
 
-The corresponding window must already be shown.
+Generally called just after a pure-OpenGL rendering function.
 
 Includes a gl:flush/0.
 """.
@@ -2184,7 +2226,8 @@ buffer_usage_hint_to_gl( _UsageHint={ _Usage=copy, _Access=dynamic } ) ->
 
 
 -doc """
-Renders the specified indexed faces, supposing per-vertex colors.
+Renders the specified indexed faces, normals being per-face, colors being
+per-vertex.
 
 Note that, if a texture is bound, it will also be rendered, albeit without
 relying on the actual texture coordinates determined by gui_texture (thus, due
@@ -2224,9 +2267,12 @@ render_triangles( _IndexedFaces=[ { V1Idx, V2Idx, V3Idx } | T ], FaceCount,
 	gl:normal3fv( point3:from_vector(
 		mesh:get_element_from_id( _NId=FaceCount, Normals ) ) ),
 
+	% Colors used to be indexed:
+	%gl:color3fv( lists:nth( V1Idx, Colors ) ),
+
 	% With older OpenGL with plain colors, we do not bother pre-converting
 	% color_by_decimal() into render_rgb_color(), we do it on the fly.
-	%
+
 	gl:color3fv( gui_color:decimal_to_render( V1Col ) ),
 	gl:texCoord2f( 0.0, 0.0 ),
 	gl:vertex3fv( mesh:get_vertex_from_id( V1Idx, Vertices ) ),

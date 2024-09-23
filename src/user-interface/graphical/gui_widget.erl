@@ -55,7 +55,6 @@ necessarily directly akin to a regular window.
 -type widget() :: wxWindow:wxWindow() | gui_canvas:canvas().
 
 
-
 -doc """
 A control is generally a small window that processes user input and/or displays
 one or more items of data.
@@ -63,7 +62,11 @@ one or more items of data.
 -opaque control() :: wxControl:wxControl().
 
 
--export_type([ widget/0, control/0 ]).
+-doc "The PID of a widget (process).".
+-type widget_pid() :: pid().
+
+
+-export_type([ widget/0, control/0, widget_pid/0 ]).
 
 
 
@@ -83,6 +86,8 @@ one or more items of data.
 
 		  get_focused/0, set_focus/1,
 
+		  set_enable_status/2, get_enable_status/1,
+
 		  get_size/1, get_client_size/1, get_best_size/1, set_client_size/2,
 		  fit/1, maximise_in_parent/1 ]).
 
@@ -98,7 +103,7 @@ one or more items of data.
 %-include("gui_internal_defines.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type label() :: gui:label().
 -type size() :: gui:size().
@@ -198,8 +203,8 @@ fit_to_sizer( Widget, Sizer ) ->
 
 
 -doc """
-Associates the specified sizer to the specified window, and sets the size and
-minimal size of the window accordingly.
+Associates the specified sizer to the specified widget, and sets the size and
+minimal size of the widget accordingly.
 """.
 -spec set_and_fit_to_sizer( widget(), sizer() ) -> void().
 set_and_fit_to_sizer( Canvas={ myriad_object_ref, myr_canvas, _CanvasId },
@@ -328,6 +333,8 @@ direct OpenGL rendering: the rendering may actually happen before the resizing).
 
 See gui_opengl_{minimal,2D}_test:on_main_frame_resize/1 for further details; see
 also the synchroniseWithCaller message supported by the MyriadGUI loop.
+
+See also gui_opengl:set_context_on_shown/2 for another synchronisation need.
 """.
 -spec sync( widget() ) -> size().
 sync( Widget ) ->
@@ -337,6 +344,7 @@ sync( Widget ) ->
 	% sufficient probability (and with certainty if past operations were
 	% triggered by the same process as this calling one):
 	%
+
 	wxWindow:getSize( Widget ).
 
 
@@ -440,6 +448,35 @@ further information.
 -spec set_focus( widget() ) -> void().
 set_focus( Widget ) ->
 	wxWindow:setFocus( Widget ).
+
+
+
+-doc """
+Enables or disables the specified widget regarding user input; returns true if
+the widget has been enabled or disabled, false if nothing was done, i.e. if the
+widget was already in the specified status.
+
+Note that when a parent widget is disabled, all of its children are disabled as
+well, and they are re-enabled again when the parent is.
+
+A widget can be created initially disabled by calling this function on it before
+calling its create/0 default constructor (if any).
+""".
+-spec set_enable_status( widget(), boolean() ) -> boolean().
+set_enable_status( Widget, DoEnable ) ->
+	wxWindow:enable( Widget, _Opt=[ { enable, DoEnable } ] ).
+
+
+-doc """
+Returns whether the specified widget is enabled, i.e. if it accepts user input.
+
+Note that this function can return false even if the specified widget itself had
+not been explicitly disabled when one of its parent widgets is disabled. To get
+the intrinsic status of this widget, use get_own_enable_status/1.
+""".
+-spec get_enable_status( widget() ) -> boolean().
+get_enable_status( Widget ) ->
+	wxWindow:isEnabled( Widget ).
 
 
 

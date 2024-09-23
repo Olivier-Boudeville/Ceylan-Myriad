@@ -30,15 +30,18 @@
 -moduledoc """
 Gathering of various facilities for **windows**.
 
-A window may be a top-level of not, a frame, a splitter window, etc.
+A window may be a top-level one or not, a frame (see gui_frame), a splitter
+window (see gui_splitter), etc.
 
-A window is a special case of widget, which is the most general form of
-graphical component.
+A window is a special case of widget (see gui_widget), which is the most general
+form of graphical component.
 
 See also:
 - the gui_window_manager module regarding the insertion of windows in their
 environment
-- the gui_frame module
+- the gui_frame and gui_splitter modules
+
+The various corresponding tests, including gui_frame_test.erl.
 """.
 
 
@@ -66,7 +69,7 @@ instead.
 -type window_option() :: { 'position', point() }
 					   | { 'size', size() }
 					   | { 'style', [ window_style() ] }.
- 
+
 
 
 -doc """
@@ -107,7 +110,7 @@ See also <http://docs.wxwidgets.org/stable/classwx_window.html>.
 
 -doc "The identifier of an icon.".
 -type icon_name_id() :: standard_icon_name_id() | id().
- 
+
 
 
 -doc "The name identifiers of the standard icons.".
@@ -134,44 +137,6 @@ window is typically any frame (including any main one) or any dialog.
 
 
 
-% At least for the splitter record:
--include("gui_base.hrl").
-
-
--doc """
-Represents a window able to be split into two panes.
-
-Information regarding the (fixed, static) horizontal or vertical splitting of a
-window into two ones.
-""".
--type splitter() :: #splitter{}.
-
-
-
--doc """
-A window able to be split into two panes; it may thus manage up to two
-subwindows.
-""".
--opaque splitter_window() :: wxSplitterWindow:wxSplitterWindow().
-
-
-
--doc """
-Tells how much the first pane of a splitter window is to grow while resizing it:
- - 0.0: only the bottom/right window is automatically resized
- - 0.5: both windows grow by equal size
- - 1.0: only left/top window grows
-
-Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
-""".
--type sash_gravity() :: number().
-
-
--export_type([ splitter/0, splitter_window/0, sash_gravity/0 ]).
-
-
-% Local types:
-
 
 % For standard, basic windows:
 -export([ create/0, create/1, create/2, create/5,
@@ -191,10 +156,6 @@ Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 		  is_active/1 ]).
 
 
-% For splitters:
--export([ create_splitter/4, create_splitter/5, set_unique_pane/2 ]).
-
-
 % Wx-level:
 -export([ window_styles_to_bitmask/1, to_wx_window_options/1,
 		  to_wx_icon_id/1 ]).
@@ -208,19 +169,26 @@ Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 % widget).
 
 
+% For gui_env_reg_name:
+-include("gui_base.hrl").
+
+
 % For ?gui_any_id:
 -include("gui_internal_defines.hrl").
+
+
+% Local type:
 
 -type wx_window_option() :: term().
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type bit_mask() :: basic_utils:bit_mask().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
--type os_type() :: system_utils:os_type().
 
 -type any_file_path() :: file_utils:any_file_path().
 
@@ -229,7 +197,7 @@ Gravity should be a value between 0.0 and 1.0; its default value is 0.0.
 -type sizing() :: gui:sizing().
 
 -type position() :: gui:position().
--type orientation() :: orientation().
+-type orientation() :: gui:orientation().
 -type parent() :: gui:parent().
 -type title() :: gui:title().
 
@@ -296,8 +264,8 @@ create( Size ) ->
 
 
 -doc "Creates a basic window from the specified settings.".
--spec create( position(), sizing(), [ window_style() ], id(), parent() ) ->
-											window().
+-spec create( position(), sizing(), [ window_style() ],
+			  id(), parent() ) -> window().
 create( Position, Sizing, Styles, Id, Parent ) ->
 
 	WxOpts = [ gui_wx_backend:to_wx_position( Position ),
@@ -493,70 +461,6 @@ is_active( TopLvlWin ) ->
 
 
 
-
-% Splitter subsection.
-%
-% Note that these functions handle splitter() instances - not any form of
-% splitter_window().
-
-
--doc """
-Creates a splitter of the specified orientation, in the specified window, based
-on the specified sash gravity and pane size, returning a corresponding splitter
-record so that the up to two subwindows can be declared afterwards.
-""".
--spec create_splitter( window(), orientation(), sash_gravity(), size() ) ->
-								splitter().
-create_splitter( ParentWindow, Orientation, SashGravity, PaneSize ) ->
-	create_splitter( ParentWindow, Orientation, SashGravity, PaneSize,
-					 system_utils:get_operating_system_type() ).
-
-
-
--doc """
-Creates a splitter of the specified orientation, in the specified window, based
-on the specified sash gravity and pane size, according to the specified OS,
-returning a corresponding splitter record so that the up to two subwindows can
-be declared afterwards.
-""".
--spec create_splitter( window(), orientation(), sash_gravity(), size(),
-					   os_type() ) -> splitter().
-create_splitter( ParentWindow, Orientation, SashGravity, PaneSize, OSType ) ->
-
-	WxStyle = case OSType of
-
-		{ _OSFamily=unix, _OSName=darwin } ->
-			?wxSP_LIVE_UPDATE bor ?wxSP_3DSASH;
-
-		{ win32, _ } ->
-			?wxSP_LIVE_UPDATE bor ?wxSP_BORDER;
-
-		_ ->
-			?wxSP_LIVE_UPDATE bor ?wxSP_3D
-
-		end,
-
-	SplitterWin = wxSplitterWindow:new( ParentWindow, [ { style, WxStyle } ] ),
-
-	wxSplitterWindow:setSashGravity( SplitterWin, SashGravity ),
-
-	wxSplitterWindow:setMinimumPaneSize( SplitterWin, PaneSize ),
-
-	#splitter{ splitter_window=SplitterWin,
-			   orientation=gui:check_orientation( Orientation ) }.
-
-
-
--doc """
-Sets the specified splitter in a single pane configuration, using for that the
-specified window.
-""".
--spec set_unique_pane( splitter(), parent() ) -> void().
-set_unique_pane( #splitter{ splitter_window=SplitterWin }, WindowPane ) ->
-	wxSplitterWindow:initialize( SplitterWin, WindowPane ).
-
-
-
 -doc """
 Records, in the MyriadGUI environment, the specified window (typically a frame)
 as the application top-level window.
@@ -585,16 +489,17 @@ wx-specific bit mask.
 
 (helper)
 """.
--spec window_styles_to_bitmask( [ window_style() ] ) -> bit_mask().
+-spec window_styles_to_bitmask( maybe_list( window_style() ) ) -> bit_mask().
 window_styles_to_bitmask( StyleOpts ) when is_list( StyleOpts ) ->
 	lists:foldl( fun( S, Acc ) ->
 					gui_generated:get_second_for_window_style( S ) bor Acc
 				 end,
 				 _InitialAcc=0,
-				 _List=StyleOpts );
+				 _List=StyleOpts ).
 
-window_styles_to_bitmask( StyleOpt ) ->
-	gui_generated:get_second_for_window_style( StyleOpt ).
+% Styles are better not maybe_lists (only options are):
+%window_styles_to_bitmask( StyleOpt ) ->
+%   gui_generated:get_second_for_window_style( StyleOpt ).
 
 
 
@@ -614,6 +519,7 @@ to_wx_window_options( Option ) ->
 
 
 
+% (helper)
 to_wx_window_options( _Options=[], Acc ) ->
 	Acc;
 

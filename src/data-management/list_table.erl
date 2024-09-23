@@ -99,7 +99,8 @@ possibly containing pairs and also single atoms (e.g. see
 -doc """
 A list-based associative table.
 
-Not exactly as proplist:proplist/0 (pairs only, and any() as key).
+Not exactly as proplists:proplist/0 (here: a list only of pairs - not atoms or
+other tuples).
 """.
 -type list_table() :: [ { key(), value() } ].
 
@@ -108,7 +109,7 @@ Not exactly as proplist:proplist/0 (pairs only, and any() as key).
 -doc """
 A list-based associative table.
 
-Not exactly as proplist:proplist/0 (pairs only, and any() as key).
+Not exactly as proplists:proplist/0 (pairs only, and any() as key).
 """.
 -type list_table( K, V ) :: [ { K, V } ].
 
@@ -126,7 +127,7 @@ Not exactly as proplist:proplist/0 (pairs only, and any() as key).
 			   list_table/0, list_table/2, table/0, table/2 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type accumulator() :: basic_utils:accumulator().
 
@@ -504,6 +505,9 @@ associated value; otherwise returns the specified default value.
 """.
 -spec get_value_with_default( key(), value(), list_table() ) -> value().
 get_value_with_default( Key, DefaultValue, Table ) ->
+
+	%trace_utils:debug_fmt( "Getting value of key '~p' (default: '~p') "
+	%   "for table:~n ~p", [ Key, DefaultValue, Table ] ),
 
 	case lists:keyfind( Key, _N=1, Table ) of
 

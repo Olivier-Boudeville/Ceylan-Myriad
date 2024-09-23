@@ -75,7 +75,7 @@ RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
 -type color_by_decimal() ::
 		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
 		  Blue :: decimal_coordinate() }.
- 
+
 
 -doc """
 A RGB color that is encoded based on 6 hexadecimal digits in a string, with a
@@ -257,7 +257,9 @@ For example {wx_ref,92,wxColourData,[]}.
 
 
 % Color definition related operations.
--export([ get_colors/0, get_color/1, get_logical_colors/0, get_logical_color/1,
+-export([ get_colors/0, get_color/1,
+		  get_render_rgb_color/1, get_render_rgba_color/1,
+		  get_logical_colors/0, get_logical_color/1,
 		  get_color_for_gnuplot/1, get_random_colors/1 ]).
 
 
@@ -276,7 +278,7 @@ For example {wx_ref,92,wxColourData,[]}.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -505,6 +507,24 @@ get_color( _RGBHexastr=[ $#, R1, R2, G1, G2, B1, B2 ] ) ->
 
 
 
+-doc "Returns the floating-point RGB definition of the specified color.".
+-spec get_render_rgb_color( color() ) -> render_rgb_color().
+get_render_rgb_color( Color ) ->
+	RGBCol = get_color( Color ),
+	decimal_to_render( RGBCol ).
+
+
+-doc """
+Returns the floating-point RGBA definition, considering it fully opaque, of the
+specified color.
+""".
+-spec get_render_rgba_color( render_rgba_color() ) -> render_rgba_color().
+get_render_rgba_color( Color ) ->
+	RGBACol = add_alpha_opaque( get_color( Color ) ),
+	decimal_to_render( RGBACol ).
+
+
+
 -doc "Returns the known logical colors.".
 -spec get_logical_colors() -> [ logical_color() ].
 get_logical_colors() ->
@@ -593,7 +613,7 @@ Returns a description of the specified RGBA color, a bit like used for HTML
 ("#a1710f12" for example).
 """.
 -spec color_by_decimal_with_alpha_to_string( color_by_decimal_with_alpha() ) ->
-								rgba_hexastring().
+												rgba_hexastring().
 color_by_decimal_with_alpha_to_string( { Red, Green, Blue, Alpha } ) ->
 
 	Strs = %[ RedStr, GreenStr, BlueStr, AlphaStr ]

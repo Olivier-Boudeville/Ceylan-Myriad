@@ -147,7 +147,7 @@ See also <http://docs.wxwidgets.org/stable/classwx_frame.html>.
 -include("gui_internal_defines.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type bit_mask() :: basic_utils:bit_mask().
 

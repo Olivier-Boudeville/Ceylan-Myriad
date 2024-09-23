@@ -61,7 +61,7 @@ register_display( Text, Family, Style, Weight, Sizer, Panel ) ->
 		gui_font:get_platform_dependent_description( Font ),
 		gui_font:get_user_friendly_description( Font ) ] ),
 
-	Display = gui_text:create_static_display( FullText, _Parent=Panel ),
+	Display = gui_text_display:create( FullText, _Parent=Panel ),
 
 	gui_widget:set_font( Display, Font ),
 
@@ -110,7 +110,7 @@ run_gui_test() ->
 		[ length( Families ), Families, length( Styles ), Styles,
 		  length( Weights ), Weights ] ),
 
-	IntroDisplay = gui_text:create_static_display(
+	IntroDisplay = gui_text_display:create(
 		_Text="Note that this content is scrollable horizontally "
 			  "and vertically.", _P=ScrollablePanel ),
 
@@ -143,8 +143,8 @@ render_fonts( Text, _Families=[ F | T ], Styles, Weights, Sizer,
 		"~n  I am a rendering example of font '~ts'.",
 		[ gui_font:get_platform_dependent_description( Font ) ] ),
 
-	FirstDisplay = gui_text:create_static_display( FirstText,
-												   _Parent=ScrollablePanel ),
+	FirstDisplay = gui_text_display:create( FirstText,
+											_Parent=ScrollablePanel ),
 
 	gui_widget:set_font( FirstDisplay, Font ),
 
