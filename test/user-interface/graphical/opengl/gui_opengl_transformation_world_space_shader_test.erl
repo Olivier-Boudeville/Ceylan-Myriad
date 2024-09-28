@@ -25,7 +25,7 @@
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, April 9, 2023.
 
--module(gui_opengl_transformation_shader_test).
+-module(gui_opengl_transformation_world_space_shader_test).
 
 -moduledoc """
 Minimal testing of **shader-based transformation rendering**: applies a
@@ -34,9 +34,13 @@ square based on it that can be moved with the keyboard to test transformations
 (translations, rotations and scalings) and directions thereof in the current
 coordinate system.
 
-This test relies on shaders and thus on modern versions of OpenGL (e.g. 3.3), as
-opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
-(e.g. a Z-UP coordinate system).
+World coordinates are used here; for NDC (Normalized Device Coordinates), refer
+to gui_opengl_transformation_ndc_shader_test.erl.
+
+This test relies on:
+- shaders and thus on modern versions of OpenGL (e.g. 3.3), as
+opposed to the compatibility mode for OpenGL 1.x
+- on Myriad's conventions (e.g. a Z-UP coordinate system)
 """.
 
 
@@ -45,40 +49,8 @@ opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
 %
 % Inspired from https://learnopengl.com/Getting-started/Transformations.
 %
-% Here, as we used NDC (normalised coordinates), no need to render based on the
-% dimensions of the canvas.
-%
-% Refer to https://myriad.esperide.org/#geometric-conventions to better
-% understand the coordinate system and transformations involved.
-%
-% A Myriad-textured square will be initially located "centered on the floor":
-% its center will be the origin, it will belong to the Z=0 plane (zero altitude)
-% and its axes will be parallel to the X and Y ones.
-%
-% The camera will be located at the origin, looking towards the -Z axis
-% ("downward"), and its up direction will be the Y axis.
-%
-% No specific lighting applies.
-%
-% Refer to myriad-opengl-transformation-setting.png for a (Blender-based) view
-% of the initial setting of this test.
-
-% An improvement could be not to texture the backside of the square (just
-% rendered as pure black); easily done with legacy OpenGL, maybe less with
-% shaders.
-
-% With a square of null thickness, scaling along the Z axis will not change
-% anything.
-
-% Due to how 4x4 matrix multiplication works, the translations will be applied
-% last, whereas rotations and scalings will happen in their reverse
-% specification order. As a result, for example if rotating the square whereas
-% it has been translated far away from the origin, it will not rotate around the
-% origin, but on itself, in its local coordinate system (around the origin of
-% its coordinate system).
-
-% This version uses matrices (matrix4), not transformations (transform4), and no
-% camera (the view matrix is the identity; only the model matrix applies).
+% We use here usual world coordinates. Refer to
+% gui_opengl_transformation_ndc_shader_test.erl for common details.
 
 
 % For GL/GLU defines; the sole include that MyriadGUI user code shall reference:
@@ -117,8 +89,8 @@ opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
 	% The image as loaded from file, to be transformed in a texture:
 	image :: image(),
 
-	% Currently, we directly update (translate, rotate, etc.) the previous
-	% model-view matrix based on requested the changes; this is prone to the
+	% Currently, we directly update (translate, rotate, etc.) the next
+	% model-view matrix based on the requested changes; this is prone to the
 	% accumulation of rounding errors, hence a better practice would be to
 	% recompute the model-view matrix from the next higher-level parameters:
 
@@ -165,6 +137,7 @@ opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
 -type my_gui_state() :: #my_gui_state{}.
 
 
+
 -record( my_opengl_state, {
 
 	% The identifier of our GLSL program:
@@ -197,6 +170,8 @@ opposed to the compatibility mode for OpenGL 1.x, and on Myriad's conventions
 
 -doc """
 Test-specific overall OpenGL state.
+
+Designed so that the render functions rely only on this state.
 
 Storing VBOs and EBOs is probably only of use in order to deallocate them
 properly once not needed anymore.
@@ -261,14 +236,15 @@ properly once not needed anymore.
 
 
 
-% The attribute in the vertex stream that will be passed to the our (vertex)
-% shader for the vertices; attribute 0 was chosen, yet no particular reason for
-% this index, it just must match the layout (cf. 'location = 0') in the shader.
+% The attribute in the vertex stream that will be passed to our (vertex) shader
+% for the vertices; attribute 0 was chosen, yet no particular reason for this
+% index, it just must match the layout (cf. 'location = 0') in the shader.
 %
 -define( my_vertex_attribute_index, 0 ).
 
-% The attribute in the vertex stream that will be passed to the our (vertex)
-% shader for the texture coordinates.
+
+% The attribute in the vertex stream that will be passed to our (vertex) shader
+% for the texture coordinates.
 %
 -define( my_texture_coords_attribute_index, 1 ).
 
@@ -288,22 +264,37 @@ prepare_square( Texture ) ->
 	%
 	SquareVAOId = gui_shader:set_new_vao(),
 
+	% We consider here a square whose edge length is (in units):
+	E = 5,
+
 	% Half edge length:
-	H = 0.5,
+	H = E / 2,
 
-	Z = 0.0,
+	% Depth (i.e. Z coordinate) of the square.
+	%
+	% Note that modifying depth does not change at all the rendering if in
+	% orthographic projection mode - provided that the points remain in the unit
+	% orthographic cube (so for example the square will disappear in
+	% orthographic mode if D < -1.0)
+	%
+	% So that is visible in the (initial) orthographic mode:
+	D = -1.0,
 
-	% Square defined as [vertex3()], directly in normalized device coordinates
-	% here, in the XY plane (Z=0); CCW order (bottom left, bottom right, top
-	% right, top left):
+
+	% Square defined as [vertex3()], in world coordinates here, in the XY plane
+	% (Z=0); CCW order (bottom left, bottom right, top right, top left):
 	%
 	%         S3--S2
 	%         |    |
 	%         S0--S1
 	%
-	SquareVertices = [ _SV2={  H,  H, Z }, _SV1={  H, -H, Z },
-					   _SV0={ -H, -H, Z }, _SV3={ -H,  H, Z } ],
+	SquareVertices = [ _SV2={  H,  H, D }, _SV1={  H, -H, D },
+					   _SV0={ -H, -H, D }, _SV3={ -H,  H, D } ],
 
+	% Zero:
+	Z = 0.0,
+
+	% One:
 	O = 1.0,
 
 	OrigSquareTexCoords = [ _STC2={ O, O }, _STC1={ O, Z },
@@ -343,6 +334,7 @@ prepare_square( Texture ) ->
 	{ SquareVAOId, SquareMergedVBOId, SquareEBOId }.
 
 
+
 -spec get_help_text() -> ustring().
 get_help_text() ->
 
@@ -373,7 +365,7 @@ get_help_text() ->
 		"to switch to the next transformation mode (cycling between translation, rotation, scaling), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
 		"Hints:~n"
 		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
-		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, first make the square go further/downward to make it appear~n",
+		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, to make the square appear, first make it go further/downward ~n",
 		[ ?delta_coord, ?delta_angle, ?delta_scale ] ).
 
 
@@ -433,8 +425,9 @@ init_test_gui() ->
 	gui:subscribe_to_events( { [ onResized, onShown, onWindowClosed ],
 							   MainFrame } ),
 
-	% Needed, otherwise if that frame is moved out of the screen or if another
-	% window overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
+	% onRepaintNeeded needed, otherwise if that frame is moved out of the screen
+	% or if another window overlaps, the OpenGL canvas gets garbled - and thus
+	% must be redrawn:
 	%
 	% (key events collected at the canvas-level, as frames do not handle them)
 	%
@@ -445,8 +438,6 @@ init_test_gui() ->
 		gui_opengl_texture_test:get_test_texture_path() ),
 
 	ProjSettings = projection:get_base_orthographic_settings(),
-
-	_Zero = 0.0,
 
 	% No OpenGL state yet (GL context cannot be set as current yet), actual
 	% OpenGL initialisation to happen when available, i.e. when the main frame
@@ -479,16 +470,16 @@ gui_main_loop( GUIState ) ->
 	receive
 
 
-		{ onKeyPressed, [ GLCanvas, _GLCanvasId, Context ] } ->
+		{ onKeyPressed, [ GLCanvas, _GLCanvasId, EventContext ] } ->
 			% Using here scancodes, not to depend on any keyboard layout or
 			% modifier:
 			%
-			Scancode = gui_keyboard:event_context_to_scancode( Context ),
+			Scancode = gui_keyboard:event_context_to_scancode( EventContext ),
 
 			%trace_utils:debug_fmt( "Scan code pressed: ~B on ~w.",
 			%                       [ Scancode, GLCanvas ] ),
 
-			case update_scene( Scancode, GUIState ) of
+			case update_scene_on_key_pressed( Scancode, GUIState ) of
 
 				{ NewGUIState, _DoQuit=true } ->
 					terminate( NewGUIState ),
@@ -661,7 +652,8 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 	Texture = gui_texture:create_from_image( Image ),
 
 	% To showcase that we can use other texture units (locations) than the
-	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit:
+	% default 0 (translating to ?GL_TEXTURE0) one; designating the third unit
+	% here:
 	%
 	gui_texture:set_current_texture_unit( 2 ),
 
@@ -681,7 +673,6 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Same for the projection one:
 	gui_shader:set_uniform_matrix4( ProjMatUnifId, ProjMat4 ),
-
 
 	% Set the texture location of the sampler uniform:
 	gui_shader:set_uniform_i( SamplerUnifId, _TextureUnit=2 ),
@@ -711,7 +702,7 @@ initialise_opengl( GUIState=#my_gui_state{ canvas=GLCanvas,
 
 	% Note that the default projection is orthographic; as a result, moving the
 	% square along the Z (depth) will not change anything (until going out of
-	% the NDC [-1.0, 1.0] range, and having the square disappear).
+	% the NDC [-1.0, 1.0] range and then having the square disappear).
 
 	trace_utils:debug( "Starting with an orthographic projection "
 					   "with Z-up conventions, and in translation mode." ),
@@ -864,9 +855,9 @@ terminate( GUIState=#my_gui_state{ main_frame=MainFrame } ) ->
 Updates the scene, based on the specified user-entered (keyboard) scan code.
 """.
 % First managing translations:
--spec update_scene( scancode(), my_gui_state() ) ->
+-spec update_scene_on_key_pressed( scancode(), my_gui_state() ) ->
 						{ my_gui_state(), DoQuit :: boolean() }.
-update_scene( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -889,7 +880,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-update_scene( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -912,7 +903,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -933,7 +924,8 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-update_scene( _Scancode=?decrease_y_scan_code,
+
+update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -959,7 +951,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 % Note that moving along the Z axis whereas the projection is orthographic will
 % show no difference:
 
-update_scene( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -981,7 +973,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -1006,7 +998,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 % Secondly managing rotations:
 
-update_scene( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1030,7 +1022,8 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-update_scene( _Scancode=?decrease_x_scan_code,
+
+update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1055,7 +1048,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1080,7 +1073,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1105,7 +1098,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1130,7 +1123,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1156,7 +1149,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 
 % Thirdly managing scalings:
-update_scene( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1176,7 +1169,8 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-update_scene( _Scancode=?decrease_x_scan_code,
+
+update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1197,7 +1191,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1217,7 +1211,8 @@ update_scene( _Scancode=?increase_y_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-update_scene( _Scancode=?decrease_y_scan_code,
+
+update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1238,7 +1233,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1259,7 +1254,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1281,7 +1276,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 
 
-update_scene( _Scancode=?reset_scan_code,
+update_scene_on_key_pressed( _Scancode=?reset_scan_code,
 			  GUIState=#my_gui_state{
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
@@ -1298,7 +1293,7 @@ update_scene( _Scancode=?reset_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?mode_switch_scan_code,
+update_scene_on_key_pressed( _Scancode=?mode_switch_scan_code,
 			  GUIState=#my_gui_state{ transformation_mode=TransfoMode } ) ->
 
 	NewTransfoMode = case TransfoMode of
@@ -1321,7 +1316,7 @@ update_scene( _Scancode=?mode_switch_scan_code,
 	  _DoQuit=false };
 
 
-update_scene( _Scancode=?projection_mode_scan_code,
+update_scene_on_key_pressed( _Scancode=?projection_mode_scan_code,
 			  GUIState=#my_gui_state{ aspect_ratio=AspectRatio,
 									  projection_settings=ProjSettings,
 									  opengl_state=#my_opengl_state{
@@ -1331,11 +1326,13 @@ update_scene( _Scancode=?projection_mode_scan_code,
 			case type_utils:get_record_tag( ProjSettings ) of
 
 		orthographic_settings ->
+			% No typo here, 'perspective' wanted:
 			PerspSettings =
-				projection:get_base_orthographic_settings( AspectRatio ),
+				projection:get_base_perspective_settings( AspectRatio ),
 			{ PerspSettings, projection:perspective( PerspSettings ) };
 
 		perspective_settings ->
+			% No typo here either, 'orthographic' wanted:
 			OrthoSettings = projection:get_base_orthographic_settings(),
 			{ OrthoSettings, projection:orthographic( OrthoSettings ) }
 
@@ -1353,15 +1350,15 @@ update_scene( _Scancode=?projection_mode_scan_code,
 	  _DoQuit=false };
 
 
-update_scene( _Scancode=?quit_scan_code, GUIState ) ->
+update_scene_on_key_pressed( _Scancode=?quit_scan_code, GUIState ) ->
 	trace_utils:debug( "Requested to quit." ),
 	{ GUIState, _DoQuit=true };
 
-update_scene( _Scancode=?help_scan_code, GUIState ) ->
+update_scene_on_key_pressed( _Scancode=?help_scan_code, GUIState ) ->
 	trace_utils:debug( get_help_text() ),
 	{ GUIState, _DoQuit=false };
 
-update_scene( _Scancode, GUIState ) ->
+update_scene_on_key_pressed( _Scancode, GUIState ) ->
 	%trace_utils:debug_fmt( "(scancode ~B ignored)", [ Scancode ] ),
 	{ GUIState, _DoQuit=false }.
 
@@ -1371,14 +1368,34 @@ update_scene( _Scancode, GUIState ) ->
 Returns a description of the local origin of the square, in the global
 coordinate system.
 """.
+-spec get_origin_description( matrix4() ) -> ustring().
 get_origin_description( ModelViewMat4 ) ->
 
-	% Using a transformation would eliminate the need of this inversion:
-	InvMat4 = matrix4:inverse( ModelViewMat4 ),
-	LocalOrigin = matrix4:get_translation( InvMat4 ),
+	% For some reason, initially an inversion was done:
 
-	text_utils:format( "~nIn the global coordinate system, the local origin "
-		"of the square coordinate system is now: ~ts",
+	% Using a transformation would eliminate the need of this inversion:
+	%% case matrix4:inverse( ModelViewMat4 ) of
+
+	%	undefined ->
+	%		text_utils:format( "~nThe local origin of the square coordinate "
+	%			"system in the global coordinate system cannot be determined "
+	%			"(singular matrix); too much downscaling attempted?~n"
+	%			"Model-view matrix is ~ts",
+	%			[ matrix4:to_string( ModelViewMat4 ) ] );
+
+	%	InvMat4 ->
+	%		LocalOrigin = matrix4:get_translation( InvMat4 ),
+
+	%		text_utils:format( "~nIn the global coordinate system, "
+	%			"the local origin of the square coordinate system is now: ~ts",
+	%			[ point3:to_string( LocalOrigin ) ] )
+
+	%% end.
+
+	LocalOrigin = matrix4:get_translation( ModelViewMat4 ),
+
+	text_utils:format( "~nIn the global coordinate system, "
+		"the local origin of the square coordinate system is now: ~ts",
 		[ point3:to_string( LocalOrigin ) ] ).
 
 
