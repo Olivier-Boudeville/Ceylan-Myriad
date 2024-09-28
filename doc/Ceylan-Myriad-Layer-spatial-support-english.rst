@@ -227,6 +227,12 @@ By default (see ``gui_opengl_transformation_shader_test.erl`` for an example the
   - with an **orthographic** one: the viewing volume is a cube within ``[-1.0, 1.0]`` in all dimensions; so for example a square whose edge length is 1.0, centered at the origin and pertaining to the X-Y plane will disappear as soon as its ``Z > 1.0`` or ``Z < -1.0``
   - with a **perspective** one: the same square will appear as soon as it is sufficiently far from the camera; more precisely, in the aforementioned test, the square starts at ``Z=0.0``, whereas for the camera the minimum viewable distance along the -Z axis is ``ZNear=0.1``; so the square shall move further down the Z axis so that the camera starts to see it (first at full size when its ``Z=ZNear``), until, as its Z still decreases, the square shrinks progressively in the distance
 
+This corresponds to this representation:
+
+:raw-html:`<center><img src="myriad-opengl-transformation-setting.png" id="responsive-image-medium"></img></center>`
+:raw-latex:`\begin{figure}[h] \centering \includegraphics[scale=0.5]{myriad-opengl-transformation-setting.png} \end{figure}`
+
+
 
 For **face culling**, front-facing is determined by relying on a counter-clockwise order winding order of triangles (like default OpenGL's `GL_CCW <https://www.khronos.org/opengl/wiki/Face_Culling>`_):
 
