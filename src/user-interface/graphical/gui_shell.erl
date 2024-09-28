@@ -43,7 +43,13 @@ Not to be mixed up with shell_utils:shell_pid().
 """.
 -type gui_shell() :: widget_pid().
 
--export_type([ gui_shell/0 ]).
+
+-type gui_shell_option() :: shell_option()
+	% Whether initially the shell has the event focus:
+ | 'focused'.
+
+
+-export_type([ gui_shell/0, gui_shell_option/0 ]).
 
 
 
@@ -214,7 +220,21 @@ backend environment.
 					   backend_environment(), parent() ) -> no_return().
 start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
-	ActualShellPid = shell_utils:start_link_custom_shell( ShellOpts ),
+	ShellGUIOptList = list_utils:ensure_list( ShellOpts ),
+
+	{ SetFocus, ShellOptList } =
+			case list_utils:extract_element_if_existing( _Elem=focused,
+														 ShellGUIOptList ) of
+
+		false ->
+			{ false, ShellGUIOptList };
+
+		ShOptList ->
+			{ true, ShOptList }
+
+	end,
+
+	ActualShellPid = shell_utils:start_link_custom_shell( ShellOptList ),
 
 	gui:set_backend_environment( BackendEnv ),
 
@@ -235,7 +255,7 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 	CmdEditor = gui_text_editor:create(
 		[ { style, [ process_enter_key ] } ], ParentWindow ),
 
-	gui_widget:set_focus( CmdEditor ),
+	SetFocus andalso gui_widget:set_focus( CmdEditor ),
 
 
 	gui_sizer:add_element( HSizer, PromptButton,
@@ -340,6 +360,13 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 			gui_shell_main_loop( GUIShellState#gui_shell_state{
 				past_ops_text=NewPastOpsText } );
+
+
+		acquireFocus ->
+			gui_widget:set_focus( CmdEditor ),
+
+			gui_shell_main_loop( GUIShellState );
+
 
 		destruct ->
 			[ gui_text_editor:destruct( Ed )
