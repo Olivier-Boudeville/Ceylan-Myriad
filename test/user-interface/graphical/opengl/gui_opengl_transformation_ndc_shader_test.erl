@@ -431,8 +431,8 @@ displayed.
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui_frame:create(
-		"MyriadGUI OpenGL Shader-based Transformation Test",
+	MainFrame = gui_frame:create( "MyriadGUI OpenGL Shader-based, "
+		"Normalized Device Coordinate, Transformation Test",
 
 		% Preferring a square frame/viewport, otherwise due to aspect ratio the
 		% square will be a rectangle:

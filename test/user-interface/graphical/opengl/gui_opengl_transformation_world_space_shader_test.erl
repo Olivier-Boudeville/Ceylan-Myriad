@@ -403,7 +403,7 @@ displayed.
 init_test_gui() ->
 
 	MainFrame = gui_frame:create(
-		"MyriadGUI OpenGL Shader-based Transformation Test",
+		"MyriadGUI OpenGL Shader-based World-Space Transformation Test",
 
 		% Preferring a square frame/viewport, otherwise due to aspect ratio the
 		% square will be a rectangle:
