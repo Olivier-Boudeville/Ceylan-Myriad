@@ -44,6 +44,7 @@ run() ->
 
 	test_facilities:start( ?MODULE ),
 
+	% The actual test is at compilation-time:
 	test_facilities:display( "This include test succeeded."),
 
 	test_facilities:stop().
