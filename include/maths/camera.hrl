@@ -39,44 +39,42 @@
 
 
 	% The actual direction at which this camera points, in world space, from its
-	% position:
+	% position, as a unit vector computed by look_at/3 (thus a value to be read,
+	% not set).
 	%
-	% (any negating of it due to conventions like OpenGL - whose cameras point
-	% to their -Z axis - is done internally; this vector thus corresponds to the
-	% +Z axis of the local coordinate system of this camera)
-	%
-	% (generally designated as A=[Ax,Ay,Az])
+	% (this direction will thus correspond to the -Z axis of the local
+	% coordinate system of this camera)
 	%
 	aim :: vector3:unit_vector3(),
 
 
-	% The direction, in world space, of the upper part of this camera:
+	% The direction, in world space, of the upper part of this camera, as a unit
+	% vector computed by look_at/3 (thus a value to be read, not set).
 	%
-	% (corresponds to the +Y axis of the local coordinate system of this camera)
-	%
-	% Note that this vector is supposed to be orthogonal to the aim one.
-	%
-	% (generally designated as U=[Ux,Uy,Uz])
+	% (this direction will thus correspond to the +Y axis of the local
+	% coordinate system of this camera)
 	%
 	up :: vector3:unit_vector3(),
 
 
-	% The direction, in world space, of the rightmost part of this camera:
+	% The direction, in world space, of the leftmost part of this camera, as a
+	% unit vector computed by look_at/3 (thus a value to be read, not set).
 	%
-	% (this could be a maybe-value or one that is not even stored, as it can be
-	% deduced from the aim and up vectors; it corresponds to the +X axis of the
-	% local coordinate system of this camera)
+	% (this direction will thus correspond to the +X axis of the local
+	% coordinate system of this camera)
 	%
-	right :: option( vector3:unit_vector3() ),
+	left :: vector3:unit_vector3(),
 
 
-	% Any view matrix (transition matrix from world space to camera space),
-	% based on the current camera settings.
+	% The view transformation, based on the current camera settings, between its
+	% coordinate system and another one - generally the world one.
 	%
-	% As a consequence, any change in the previous field should result in
-	% invalidating this one (i.e. setting it to 'undefined'), so that it gets
-	% recomputed whenever needed.
+	% More precisely, its reference matrix4 is Pcw, the transition one from
+	% camera to world, and Pwc, its inverse - generally the most useful one - is
+	% the transition matrix4 from world to camera space.
 	%
-	% (a full transform4 is currently not felt needed here)
+	% As a consequence, any change in the previous camera fields should result
+	% in invalidating this one (i.e. setting it to 'undefined'), so that it gets
+	% recomputed whenever needed (refer to look_at/3 for that).
 	%
-	view_mat4 :: option( camera:view_matrix4() ) } ).
+	view_transf4 :: camera:view_transform4() } ).

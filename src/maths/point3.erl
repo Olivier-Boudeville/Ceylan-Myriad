@@ -120,7 +120,7 @@ ones). Refer to the design notes in linear_3D.erl for further details.
 
 		  roundify/1,
 		  get_center/2, get_integer_center/2,
-		  translate/2, scale/2, vectorize/2,
+		  translate/2, scale/2, vectorize/2, unit_vectorize/2,
 		  are_close/2, are_equal/2, is_within/3, is_within_square/3,
 		  square_distance/2, distance/2,
 		  check/1,
@@ -129,7 +129,7 @@ ones). Refer to the design notes in linear_3D.erl for further details.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -143,8 +143,10 @@ ones). Refer to the design notes in linear_3D.erl for further details.
 -type distance() :: linear:distance().
 -type square_distance() :: linear:square_distance().
 
--type vector3() :: vector3:vector3().
 -type any_vector3() :: vector3:any_vector3().
+-type vector3() :: vector3:vector3().
+-type unit_vector3() :: vector3:unit_vector3().
+
 
 
 
@@ -323,11 +325,31 @@ scale( _P={X,Y,Z}, Factor ) ->
 
 
 -doc """
-Returns a vector V made from the specified two points, from P1 to P2: V12=P2-P1.
+Returns a vector V made from the specified two points, from P1 to P2: V=P2-P1.
 """.
 -spec vectorize( point3(), point3() ) -> vector3().
 vectorize( _P1={X1,Y1,Z1}, _P2={X2,Y2,Z2} ) ->
 	[ X2-X1, Y2-Y1, Z2-Z1 ].
+
+
+
+-doc """
+Returns a unit vector V made from the specified two points, from P1 to P2:
+V=1/magnitude(P1P2).(P2-P1).
+""".
+-spec unit_vectorize( point3(), point3() ) -> unit_vector3().
+unit_vectorize( P1={X1,Y1,Z1}, P2={X2,Y2,Z2} ) ->
+
+	% Possibly cheaper than relying on vector3:normalise/1:
+	D = distance( P1, P2 ),
+
+	math_utils:is_null( D ) andalso
+		throw( { same_point, P1, P2 } ),
+
+	% Thus licit:
+	Factor = 1.0 / D,
+
+	[ Factor*(X2-X1), Factor*(Y2-Y1), Factor*(Z2-Z1) ].
 
 
 
@@ -412,6 +434,13 @@ check( P ) ->
 -doc """
 Returns a textual representation of the specified 3D point; full float precision
 is shown.
+
+For example, for a point `P={2.0, 3.142, 0.0}`, returns:
+```
+{  2.0  }
+{ 3.142 }
+{  0.0  }
+```
 """.
 -spec to_string( any_point3() ) -> ustring().
 to_string( Point3 ) ->
@@ -421,6 +450,8 @@ to_string( Point3 ) ->
 
 -doc """
 Returns a compact, textual, informal representation of the specified 3D point.
+
+For example, for a point `P={2.0, 3.142, 0.0}`, returns: `2.0,3.142,0.0`.
 """.
 -spec to_compact_string( any_point3() ) -> ustring().
 to_compact_string( Point3 ) ->
@@ -431,6 +462,13 @@ to_compact_string( Point3 ) ->
 -doc """
 Returns a basic, not even fixed-width for floating-point coordinates (see
 linear.hrl for width and precision) representation of the specified 3D point.
+
+For example, for a point `P={2.0, 3.142, 0.0}`, returns:
+```
+{           2.00 }
+{           3.14 }
+{           0.00 }
+```
 """.
 -spec to_basic_string( any_point3() ) -> ustring().
 to_basic_string( Point3 ) ->
@@ -464,6 +502,13 @@ Returns a textual, more user-friendly representation of the specified 3D point;
 full float precision is shown.
 
 This is the recommended representation.
+
+For example, for a point `P={2.0, 3.142, 0.0}`, returns:
+```
+{  2.0  }
+{ 3.142 }
+{  0.0  }
+```
 """.
 -spec to_user_string( any_point3() ) -> ustring().
 to_user_string( Point3 ) ->

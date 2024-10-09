@@ -122,7 +122,7 @@ Defined for documentation purpose.
 
 -doc "A 3D vector containing texture coordinates.".
 -type texture_vector3() :: vector3().
- 
+
 
 
 -export_type([ user_vector3/0, vector3/0, integer_vector3/0, any_vector3/0,
@@ -135,12 +135,13 @@ Defined for documentation purpose.
 		  from_point/1, to_point/1,
 		  vector3_to_yup/1, yup_to_vector3/1,
 		  vector3_to_yups/1, yup_to_vector3s/1,
-		  add/2, add/1, cross_product/2,
+		  add/2, add/1, subtract/2, cross_product/2,
 		  are_close/2, are_equal/2,
 		  square_magnitude/1, magnitude/1, negate/1, scale/2,
 		  normalise/1,
-		  dot_product/2, are_orthogonal/2, get_orthogonal/1, check_orthogonal/2,
-		  compute_normal/3,
+		  dot_product/2,
+		  are_orthogonal/2, get_orthogonal/1, get_unit_orthogonal/2,
+		  check_orthogonal/2, compute_normal/3,
 		  is_unitary/1,
 		  check/1, check_vector/1, check_vectors/1,
 		  check_integer/1, check_unit_vector/1, check_unit_vectors/1,
@@ -149,7 +150,7 @@ Defined for documentation purpose.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -313,10 +314,17 @@ add( _Vectors=[ VFirst | VOthers ]  ) ->
 				 _List=VOthers ).
 
 
+-doc "Returns the difference of the two specified 3D vectors: `V = V1 - V2`.".
+-spec subtract( vector3(), vector3() ) -> vector3().
+subtract( _V1=[ X1, Y1, Z1 ], _V2=[ X2, Y2, Z2 ] ) ->
+	[ X1-X2, Y1-Y2, Z1-Z2 ].
+
+
 
 -doc """
-Returns the cross-product of the two specified vectors, that is the result of a
-regular 3D cross product of these input vectors.
+Returns the cross-product of the two specified vectors (V1xV2; with French
+conventions: V1^V2), that is the result of a regular 3D cross product of these
+input vectors.
 """.
 -spec cross_product( vector3(), vector3() ) -> vector3().
 cross_product( _V1=[X1,Y1,Z1], _V2=[X2,Y2,Z2] ) ->
@@ -467,6 +475,49 @@ check_orthogonal( V1, V2 ) ->
 		throw( { not_orthogonal, V1, V2, dot_product( V1, V2 ) } ).
 
 
+-doc """
+Projects the specified vector onto the specified target one, which is supposed
+to be unitary.
+""".
+-spec project( vector3(), unit_vector3() ) -> vector3().
+project( V, VTarget=[ X, Y, Z ] ) ->
+
+	cond_utils:if_defined( myriad_check_linear,
+						   check_unit_vector( VTarget ) ),
+
+	DotP = dot_product( V, VTarget ),
+
+	% A bit better than with scale/1:
+	[ DotP*X, DotP*Y, DotP*Z ].
+
+
+
+-doc """
+Returns a version of the vector V that is orthogonal to Vbase.
+
+Can be seen as applying a basic Gram-Schmidt process.
+""".
+-spec get_orthogonal( vector3(), unit_vector3() ) -> vector3().
+get_orthogonal( V, Vbase ) ->
+	% We simply remove the component of V that is colinear to Vbase, i.e. V -
+	% ProjVbase(V):
+
+	ProjVbase = project( V, Vbase ),
+	subtract( V, ProjVbase ).
+
+
+
+-doc """
+Returns a version of the vector V that is orthogonal to Vbase and unitary.
+
+Can be seen as applying a Gram-Schmidt process.
+""".
+-spec get_unit_orthogonal( vector3(), unit_vector3() ) -> unit_vector3().
+get_unit_orthogonal( V, Vbase ) ->
+	Orth = get_orthogonal( V, Vbase ),
+	normalise( Orth ).
+
+
 
 -doc """
 Returns a unit vector that is orthogonal to the plane defined by the three
@@ -545,6 +596,13 @@ check_unit_vectors( Vs ) ->
 -doc """
 Returns a textual representation of the specified 3D vector; full float
 precision is shown.
+
+For example, for a vector `V=[4.0, 3.142, -1.0]`, returns:
+```
+[  4.0  ]
+[ 3.142 ]
+[ -1.0  ]
+```
 """.
 -spec to_string( user_vector3() ) -> ustring().
 to_string( Vector ) ->
@@ -554,6 +612,8 @@ to_string( Vector ) ->
 
 -doc """
 Returns a compact, textual, informal representation of the specified 3D vector.
+
+For example, for a vector `V=[4.0, 3.142, -1.0]`, returns: `[4.0,3.142,-1.0]`.
 """.
 -spec to_compact_string( user_vector3() ) -> ustring().
 to_compact_string( Vector ) ->
@@ -569,6 +629,13 @@ to_compact_string( Vector ) ->
 -doc """
 Returns a basic, not even fixed-width for floating-vector coordinates (see
 linear.hrl for width and precision) representation of the specified 3D vector.
+
+For example, for a vector `V=[4.0, 3.142, -1.0]`, returns:
+```
+[           4.00 ]
+[           3.14 ]
+[          -1.00 ]
+```
 """.
 -spec to_basic_string( user_vector3() ) -> ustring().
 to_basic_string( Vector ) ->
@@ -590,6 +657,13 @@ Returns a textual, more user-friendly representation of the specified 3D vector;
 full float precision is shown.
 
 This is the recommended representation.
+
+For example, for a vector `V=[4.0, 3.142, -1.0]`, returns:
+```
+[  4.0  ]
+[ 3.142 ]
+[ -1.0  ]
+```
 """.
 -spec to_user_string( user_vector3() ) -> ustring().
 to_user_string( Vector ) ->
