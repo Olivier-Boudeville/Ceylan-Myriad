@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **basic utils** toolbox.
 
-See the basic_utils.erl tested module.
+See the `basic_utils` tested module.
 """.
 
 
