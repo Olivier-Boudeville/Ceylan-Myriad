@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2014-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,22 +23,27 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2018.
+% Creation date: Wednesday, October 9, 2024.
+
+-module(includes_test).
+
+-moduledoc """
+Test regarding the Myriad overall includes.
+""".
 
 
-% As, sometimes, defines in header files make sense:
--ifndef(myriad_gui_ui_base_hrl_guard).
--define(myriad_gui_ui_base_hrl_guard,).
+-include_lib("myriad/include/myriad.hrl").
 
 
-% The key used by UI modules to store their name in the process dictionary:
--define( ui_name_key, myriad_ui_name ).
-
-% The key used by UI modules to store their state in the process dictionary:
--define( ui_state_key, myriad_ui_state ).
-
-% The type of associated table used for the settings of user interfaces:
--define( ui_table, list_table ).
+% For run/0 export and al:
+-include("test_facilities.hrl").
 
 
--endif. % myriad_gui_ui_base_hrl_guard
+-spec run() -> no_return().
+run() ->
+
+	test_facilities:start( ?MODULE ),
+
+	test_facilities:display( "This include test succeeded."),
+
+	test_facilities:stop().

@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2024-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,22 +23,31 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2018.
+% Creation date: Wednesday, October 9, 2024.
 
 
-% As, sometimes, defines in header files make sense:
--ifndef(myriad_gui_ui_base_hrl_guard).
--define(myriad_gui_ui_base_hrl_guard,).
+% Possibly useful:
+-ifndef(myriad_maths_includes_hrl_guard).
+-define(myriad_maths_includes_hrl_guard,).
 
 
-% The key used by UI modules to store their name in the process dictionary:
--define( ui_name_key, myriad_ui_name ).
+% In alphabetical order:
 
-% The key used by UI modules to store their state in the process dictionary:
--define( ui_state_key, myriad_ui_state ).
+-include("bounding_surface.hrl").
+-include("bounding_volume.hrl").
+-include("camera.hrl").
+-include("linear.hrl").
+-include("math_utils.hrl").
+-include("matrix2.hrl").
+-include("matrix3.hrl").
+-include("matrix4.hrl").
+-include("mesh.hrl").
+-include("plot_utils.hrl").
+-include("polygon.hrl").
+-include("projection.hrl").
+-include("reference_frame3.hrl").
+-include("reference_tree.hrl").
+-include("transform4.hrl").
 
-% The type of associated table used for the settings of user interfaces:
--define( ui_table, list_table ).
 
-
--endif. % myriad_gui_ui_base_hrl_guard
+-endif. % myriad_maths_includes_hrl_guard

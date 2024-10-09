@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2024-2024 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -23,22 +23,17 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: 2018.
+% Creation date: Wednesday, October 9, 2024.
 
 
-% As, sometimes, defines in header files make sense:
--ifndef(myriad_gui_ui_base_hrl_guard).
--define(myriad_gui_ui_base_hrl_guard,).
+% Possibly useful:
+-ifndef(myriad_script_includes_hrl_guard).
+-define(myriad_script_includes_hrl_guard,).
 
 
-% The key used by UI modules to store their name in the process dictionary:
--define( ui_name_key, myriad_ui_name ).
+% In alphabetical order:
 
-% The key used by UI modules to store their state in the process dictionary:
--define( ui_state_key, myriad_ui_state ).
-
-% The type of associated table used for the settings of user interfaces:
--define( ui_table, list_table ).
+-include("myriad_script_include.hrl").
 
 
--endif. % myriad_gui_ui_base_hrl_guard
+-endif. % myriad_script_includes_hrl_guard
