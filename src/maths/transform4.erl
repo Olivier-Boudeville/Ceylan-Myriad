@@ -986,9 +986,9 @@ change-of-basis matrix from the current coordinate system (reference frame R1)
 to the R2 one; the origin, forward (X axis) and up directions (Z axis) of R1 are
 specified, relatively to R2 (typically R1->R2).
 
-So returns P1->2, allowing, for an (homogeneous) point P, to convert P1, its
-representation in current coordinate system R1, into P2, its counterpart in R2:
-`P2 = P1->2 . P1`.
+So returns, as reference matrix, P1->2, allowing, for an (homogeneous) point P,
+to convert P1, its representation in current coordinate system R1, into P2, its
+counterpart in R2: `P2 = P1->2 . P1`.
 
 The inverse matrix of this transformation corresponds thus to P2->1.
 """.
