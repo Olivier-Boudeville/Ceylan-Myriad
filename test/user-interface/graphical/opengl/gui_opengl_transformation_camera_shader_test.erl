@@ -197,18 +197,18 @@ properly once not needed anymore.
 -if( ?has_keypad =:= true ).
 
 % Re-centers all:
--define( reset_scan_code, ?MYR_SCANCODE_KP_5 ).
+-define( square_reset_scan_code, ?MYR_SCANCODE_KP_5 ).
 
 % Switches to the next transformation mode:
--define( mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
+-define( square_mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
 
 
 -else. % Not using keypad here:
 
 
--define( reset_scan_code, ?MYR_SCANCODE_SPACE ).
+-define( square_reset_scan_code, ?MYR_SCANCODE_SPACE ).
 
--define( mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
+-define( square_mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
 
 
 -endif. % has_keypad
@@ -287,8 +287,8 @@ prepare_square( Texture ) ->
 	% orthographic cube (so for example the square will disappear in
 	% orthographic mode if D < -1.0)
 	%
-	% So that is visible in the (initial) orthographic mode:
-	D = -1.0,
+	% So that is well visible in the (initial) perspective mode:
+	D = -15.0,
 
 
 	% Square defined as [vertex3()], in world coordinates here, in the XY plane
@@ -355,14 +355,14 @@ get_help_text() ->
 	% the +Y axis; so:
 	% - X increases from, onscreen, left to right
 	% - Y increases from bottom of screen to top
-	% - Z increases as getting from farther to nearer the observer
-	%
+	% - Z increases as getting from farther to nearer the observer (when Z<0)
+
 
 	text_utils:format( "This test displays a square textured with a Myriad image, whose center is at the origin, which is belonging to the Z=0 plane (using Z-up conventions), and that can be moved by hitting keys on the numerical keypad (while the rendering window has the focus):~n"
 		"  - to translate it of ~f units along (if in translation mode):~n"
-		"    * the X (abscissa) axis: hit '4' to move it, on the left, '6' on the right~n"
-		"    * the Y (ordinate) axis: hit '2' to move it down, '8' up~n"
-		"    * the Z (depth/altitude) axis: hit '3' to move it further/downward, '9' nearer/upward~n"
+		"    * the X (abscissa) axis: hit '4' to move it, on the left, '6' on the right (otherwise, if not compiled for keypad support, respectively the left and right arrow keys)~n"
+		"    * the Y (ordinate) axis: hit '2' to move it down, '8' up (otherwise the down and up arrow keys)~n"
+		"    * the Z (depth/altitude) axis: hit '3' to move it further/downward, '9' nearer/upward (otherwise the page-down and page-up arrow keys)~n"
 		"  - to rotate of ~f degrees around (if in rotation mode):~n"
 		"    * the X axis: hit '4' to turn it clockwise (CW), '6' counter-clockwise (CCW)~n"
 		"    * the Y axis: hit '2' to turn it CW, '8' CCW~n"
@@ -371,11 +371,11 @@ get_help_text() ->
 		"    * the X axis: hit '4' to scale it down, '6' up~n"
 		"    * the Y axis: hit '2' to scale it down, '8' up~n"
 		"    * the Z axis: hit '3' to scale it down, '9' up~n~n"
-		" Hit '5' to reset its position and direction, 'Enter' on the keypad "
-		"to switch to the next transformation mode (cycling between translation, rotation, scaling), 'p' to toggle the projection mode (cycling between orthographic and perspective), 'h' to display this help and 'Escape' to quit.~n~n"
+		" Hit '5' (otherwise: the spacebar) to reset its position and direction, 'Enter' on the keypad (otherwise the main 'Return' key)"
+		"to switch to the next transformation mode (cycling between translation, rotation, scaling), 'p' to toggle the projection mode (cycling between perspective and orthographic), 'h' to display this help and 'Escape' to quit.~n~n"
 		"Hints:~n"
-		" - with the (default) orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n"
-		" - with the perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, to make the square appear, first make it go further/downward ~n",
+		" - with the (default) perspective projection, the square will appear iff its Z is below -0.1 (as ZNear=0.1), and will then progressively shrink when progressing along the -Z axis; as a result, from the default position, to make the square appear, first make it go further/downward ~n"
+		" - with the orthographic projection mode, the square will remain the same for any Z in [-1.0, 1.0] (no perspective division) and, out of this range (past either the near or far clipping plane), it will fully disappear~n",
 		[ ?delta_coord, ?delta_angle, ?delta_scale ] ).
 
 
@@ -456,7 +456,8 @@ init_test_gui() ->
 
 	ViewMat4 = camera:get_view_matrix( Camera ),
 
-	ProjSettings = projection:get_base_orthographic_settings(),
+	ProjSettings = projection:get_base_perspective_settings(
+		_InitialAspectRatio=1.0 ),
 
 	% No OpenGL state yet (GL context cannot be set as current yet), actual
 	% OpenGL initialisation to happen when available, i.e. when the main frame
@@ -873,10 +874,12 @@ terminate( GUIState=#my_gui_state{ main_frame=MainFrame } ) ->
 -doc """
 Updates the scene, based on the specified user-entered (keyboard) scan code.
 """.
+% First section: regarding the movement of the square.
+%
 % First managing translations:
 -spec update_scene_on_key_pressed( scancode(), my_gui_state() ) ->
 						{ my_gui_state(), DoQuit :: boolean() }.
-update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -892,16 +895,17 @@ update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 
 	NewModelMat4 = matrix4:translate_homogeneous_right( ModelMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing X of ~f, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Translating square X of ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -917,16 +921,17 @@ update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 
 	NewModelMat4 = matrix4:translate_homogeneous_right( ModelMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing X of ~f, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Translating square X of -~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -941,16 +946,17 @@ update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 	VT = [ 0.0, Inc, 0.0 ],
 	NewModelMat4 = matrix4:translate_homogeneous_right( ModelMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Y of ~f, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Translating square Y of ~f, "
+		"resulting in: Mm= ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -965,9 +971,10 @@ update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 	VT = [ 0.0, -Inc, 0.0 ],
 	NewModelMat4 = matrix4:translate_homogeneous_right( ModelMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Y of ~f, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Translating square Y of -~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
@@ -978,7 +985,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 % Note that moving along the Z axis whereas the projection is orthographic will
 % show no difference:
 %
-update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -993,16 +1000,17 @@ update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 	VT = [ 0.0, 0.0, Inc ],
 	NewModelMat4 = matrix4:translate_homogeneous_right( ModelMat4, VT ),
 
-	trace_utils:debug_fmt( "Increasing Z of ~f, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Translating square Z of ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1017,9 +1025,10 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 	VT = [ 0.0, 0.0, -Inc ],
 	NewModelMat4 = matrix4:translate_homogeneous_right( ModelMat4, VT ),
 
-	trace_utils:debug_fmt( "Decreasing Z of ~f, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Translating square Z of -~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
@@ -1029,7 +1038,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 
 % Secondly managing rotations:
 
-update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1046,17 +1055,17 @@ update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 	NewModelMat4 =
 		matrix4:rotate_homogeneous_right( ModelMat4, RotAxis, Angle ),
 
-	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Rotating square around the X axis "
+		"of an angle of ~f radians, resulting in: Mm = ~ts~ts",
 		[ Angle, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1073,17 +1082,17 @@ update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 	NewModelMat4 =
 		matrix4:rotate_homogeneous_right( ModelMat4, RotAxis, Angle ),
 
-	trace_utils:debug_fmt( "Rotating around the X axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Rotating square around the X axis "
+		"of an angle of ~f radians, resulting in: Mm = ~ts~ts",
 		[ Angle, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1100,17 +1109,17 @@ update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 	NewModelMat4 =
 		matrix4:rotate_homogeneous_right( ModelMat4, RotAxis, Angle ),
 
-	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Rotating square around the Y axis "
+		"of an angle of ~f radians, resulting in: Mm = ~ts~ts",
 		[ Angle, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1127,17 +1136,17 @@ update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 	NewModelMat4 =
 		matrix4:rotate_homogeneous_right( ModelMat4, RotAxis, Angle ),
 
-	trace_utils:debug_fmt( "Rotating around the Y axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Rotating square around the Y axis "
+		"of an angle of ~f radians, resulting in: Mm = ~ts~ts",
 		[ Angle, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1154,17 +1163,17 @@ update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 	NewModelMat4 =
 		matrix4:rotate_homogeneous_right( ModelMat4, RotAxis, Angle ),
 
-	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Rotating square around the Z axis "
+		"of an angle of ~f radians, resulting in: Mm = ~ts~ts",
 		[ Angle, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1181,10 +1190,10 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 	NewModelMat4 =
 		matrix4:rotate_homogeneous_right( ModelMat4, RotAxis, Angle ),
 
-	trace_utils:debug_fmt( "Rotating around the Z axis of an angle of ~f "
-		"radians, resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Rotating square around the Z axis "
+		"of an angle of ~f radians, resulting in: Mm = ~ts~ts",
 		[ Angle, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
@@ -1192,7 +1201,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 
 
 % Thirdly managing scalings:
-update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1205,17 +1214,17 @@ update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 
 	NewModelMat4 = matrix4:scale_homogeneous_x( ModelMat4, Inc ),
 
-	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
-		"resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Scaling square on the X axis of a factor ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1228,17 +1237,17 @@ update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 
 	NewModelMat4 = matrix4:scale_homogeneous_x( ModelMat4, Inc ),
 
-	trace_utils:debug_fmt( "Scaling on the X axis of a factor ~f, "
-		"resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Scaling square on the X axis of a factor ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1251,17 +1260,17 @@ update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 
 	NewModelMat4 = matrix4:scale_homogeneous_y( ModelMat4, Inc ),
 
-	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
-		"resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Scaling square on the Y axis of a factor ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1274,17 +1283,17 @@ update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 
 	NewModelMat4 = matrix4:scale_homogeneous_y( ModelMat4, Inc ),
 
-	trace_utils:debug_fmt( "Scaling on the Y axis of a factor ~f, "
-		"resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Scaling square on the Y axis of a factor ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1297,17 +1306,17 @@ update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 
 	NewModelMat4 = matrix4:scale_homogeneous_z( ModelMat4, Inc ),
 
-	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
-		"resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Scaling square on the Z axis of a factor ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_mat4=ModelMat4,
 				view_mat4=ViewMat4,
@@ -1320,10 +1329,10 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 
 	NewModelMat4 = matrix4:scale_homogeneous_z( ModelMat4, Inc ),
 
-	trace_utils:debug_fmt( "Scaling on the Z axis of a factor ~f, "
-		"resulting in: MV = ~ts~ts",
+	trace_utils:debug_fmt( "Scaling square on the Z axis of a factor ~f, "
+		"resulting in: Mm = ~ts~ts",
 		[ Inc, matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
@@ -1331,7 +1340,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 
 
 
-update_scene_on_key_pressed( _Scancode=?reset_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_reset_scan_code,
 			  GUIState=#my_gui_state{
 				view_mat4=ViewMat4,
 				proj_mat4=ProjMat4,
@@ -1341,16 +1350,16 @@ update_scene_on_key_pressed( _Scancode=?reset_scan_code,
 	NewModelMat4 = identity_4,
 
 	trace_utils:debug_fmt(
-		"Resetting the modelview matrix, resulting in: MV = ~ts~ts",
+		"Resetting the model matrix, resulting in: Mm = ~ts~ts",
 		[ matrix4:to_string( NewModelMat4 ),
-		  get_origin_description( NewModelMat4 ) ] ),
+		  describe_square_origin( NewModelMat4 ) ] ),
 
 	update_mvp_matrix( NewModelMat4, ViewMat4, ProjMat4, MVPMatUnifId ),
 
 	{ GUIState#my_gui_state{ model_mat4=NewModelMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?mode_switch_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_mode_switch_scan_code,
 			  GUIState=#my_gui_state{ transformation_mode=TransfoMode } ) ->
 
 	NewTransfoMode = case TransfoMode of
@@ -1372,6 +1381,213 @@ update_scene_on_key_pressed( _Scancode=?mode_switch_scan_code,
 	{ GUIState#my_gui_state{ transformation_mode=NewTransfoMode },
 	  _DoQuit=false };
 
+
+
+% Second section: regarding the movement of the camera.
+
+update_scene_on_key_pressed( _Scancode=?camera_increase_x_scan_code,
+			  GUIState=#my_gui_state{ model_mat4=ModelMat4,
+									  camera=Camera,
+									  proj_mat4=ProjMat4,
+									  opengl_state=#my_opengl_state{
+										mvp_mat4_id=MVPMatUnifId } } ) ->
+
+	Inc = ?delta_coord,
+
+	% Translation on the X axis:
+	VT = [ Inc, 0.0, 0.0 ],
+
+	NewPos = point3:translate( Camera#camera.position, VT ),
+
+	NewCamera = camera:set_position( NewPos, Camera ),
+
+	NewViewMat4 = camera:get_view_matrix( NewCamera ),
+
+	trace_utils:debug_fmt( "Translating camera X of ~f, "
+		"resulting in: Mv = ~ts~ts",
+		[ Inc, matrix4:to_string( NewViewMat4 ),
+		  describe_camera_origin( NewViewMat4 ) ] ),
+
+	% Allows to check positioning:
+	%trace_utils:debug_fmt( "New camera position: ~p", [
+	%   matrix4:get_translation(
+	%       camera:get_view_matrix_inverse( NewCamera ) ) ] ),
+
+	update_mvp_matrix( ModelMat4, NewViewMat4, ProjMat4, MVPMatUnifId ),
+
+	{ GUIState#my_gui_state{ camera=NewCamera, view_mat4=NewViewMat4 },
+	  _DoQuit=false };
+
+
+update_scene_on_key_pressed( _Scancode=?camera_decrease_x_scan_code,
+			  GUIState=#my_gui_state{ model_mat4=ModelMat4,
+									  camera=Camera,
+									  proj_mat4=ProjMat4,
+									  opengl_state=#my_opengl_state{
+										mvp_mat4_id=MVPMatUnifId } } ) ->
+
+	Inc = ?delta_coord,
+
+	% Translation on the X axis:
+	VT = [ -Inc, 0.0, 0.0 ],
+
+	NewPos = point3:translate( Camera#camera.position, VT ),
+	NewCamera = camera:set_position( NewPos, Camera ),
+
+	NewViewMat4 = camera:get_view_matrix( NewCamera ),
+
+	trace_utils:debug_fmt( "Translating camera X of -~f, "
+		"resulting in: Mv = ~ts~ts",
+		[ Inc, matrix4:to_string( NewViewMat4 ),
+		  describe_camera_origin( NewViewMat4 ) ] ),
+
+	% Allows to check positioning:
+	%trace_utils:debug_fmt( "New camera position: ~p", [
+	%   matrix4:get_translation(
+	%       camera:get_view_matrix_inverse( NewCamera ) ) ] ),
+
+	update_mvp_matrix( ModelMat4, NewViewMat4, ProjMat4, MVPMatUnifId ),
+
+	{ GUIState#my_gui_state{ camera=NewCamera, view_mat4=NewViewMat4 },
+	  _DoQuit=false };
+
+
+update_scene_on_key_pressed( _Scancode=?camera_increase_y_scan_code,
+			  GUIState=#my_gui_state{ model_mat4=ModelMat4,
+									  camera=Camera,
+									  proj_mat4=ProjMat4,
+									  opengl_state=#my_opengl_state{
+										mvp_mat4_id=MVPMatUnifId } } ) ->
+
+	Inc = ?delta_coord,
+
+	% Translation on the Y axis:
+	VT = [ 0.0, Inc, 0.0 ],
+
+	NewPos = point3:translate( Camera#camera.position, VT ),
+
+	NewCamera = camera:set_position( NewPos, Camera ),
+
+	NewViewMat4 = camera:get_view_matrix( NewCamera ),
+
+	trace_utils:debug_fmt( "Translating camera Y of ~f, "
+		"resulting in: Mv = ~ts~ts",
+		[ Inc, matrix4:to_string( NewViewMat4 ),
+		  describe_camera_origin( NewViewMat4 ) ] ),
+
+	% Allows to check positioning:
+	trace_utils:debug_fmt( "New camera position: ~p", [
+	   matrix4:get_translation(
+		   camera:get_view_matrix_inverse( NewCamera ) ) ] ),
+
+	update_mvp_matrix( ModelMat4, NewViewMat4, ProjMat4, MVPMatUnifId ),
+
+	{ GUIState#my_gui_state{ camera=NewCamera, view_mat4=NewViewMat4 },
+	  _DoQuit=false };
+
+
+update_scene_on_key_pressed( _Scancode=?camera_decrease_y_scan_code,
+			  GUIState=#my_gui_state{ model_mat4=ModelMat4,
+									  camera=Camera,
+									  proj_mat4=ProjMat4,
+									  opengl_state=#my_opengl_state{
+										mvp_mat4_id=MVPMatUnifId } } ) ->
+
+	Inc = ?delta_coord,
+
+	% Translation on the Y axis:
+	VT = [ 0.0, -Inc, 0.0 ],
+
+	NewPos = point3:translate( Camera#camera.position, VT ),
+	NewCamera = camera:set_position( NewPos, Camera ),
+
+	NewViewMat4 = camera:get_view_matrix( NewCamera ),
+
+	trace_utils:debug_fmt( "Translating camera Y of -~f, "
+		"resulting in: Mv = ~ts~ts",
+		[ Inc, matrix4:to_string( NewViewMat4 ),
+		  describe_camera_origin( NewViewMat4 ) ] ),
+
+	% Allows to check positioning:
+	%trace_utils:debug_fmt( "New camera position: ~p", [
+	%   matrix4:get_translation(
+	%       camera:get_view_matrix_inverse( NewCamera ) ) ] ),
+
+	update_mvp_matrix( ModelMat4, NewViewMat4, ProjMat4, MVPMatUnifId ),
+
+	{ GUIState#my_gui_state{ camera=NewCamera, view_mat4=NewViewMat4 },
+	  _DoQuit=false };
+
+
+update_scene_on_key_pressed( _Scancode=?camera_increase_z_scan_code,
+			  GUIState=#my_gui_state{ model_mat4=ModelMat4,
+									  camera=Camera,
+									  proj_mat4=ProjMat4,
+									  opengl_state=#my_opengl_state{
+										mvp_mat4_id=MVPMatUnifId } } ) ->
+
+	Inc = ?delta_coord,
+
+	% Translation on the Z axis:
+	VT = [ 0.0, 0.0, Inc ],
+
+	NewPos = point3:translate( Camera#camera.position, VT ),
+
+	NewCamera = camera:set_position( NewPos, Camera ),
+
+	NewViewMat4 = camera:get_view_matrix( NewCamera ),
+
+	trace_utils:debug_fmt( "Translating camera Z of ~f, "
+		"resulting in: Mv = ~ts~ts",
+		[ Inc, matrix4:to_string( NewViewMat4 ),
+		  describe_camera_origin( NewViewMat4 ) ] ),
+
+	% Allows to check positioning:
+	trace_utils:debug_fmt( "New camera position: ~p", [
+	   matrix4:get_translation(
+		   camera:get_view_matrix_inverse( NewCamera ) ) ] ),
+
+	update_mvp_matrix( ModelMat4, NewViewMat4, ProjMat4, MVPMatUnifId ),
+
+	{ GUIState#my_gui_state{ camera=NewCamera, view_mat4=NewViewMat4 },
+	  _DoQuit=false };
+
+
+update_scene_on_key_pressed( _Scancode=?camera_decrease_z_scan_code,
+			  GUIState=#my_gui_state{ model_mat4=ModelMat4,
+									  camera=Camera,
+									  proj_mat4=ProjMat4,
+									  opengl_state=#my_opengl_state{
+										mvp_mat4_id=MVPMatUnifId } } ) ->
+
+	Inc = ?delta_coord,
+
+	% Translation on the Z axis:
+	VT = [ 0.0, 0.0, -Inc ],
+
+	NewPos = point3:translate( Camera#camera.position, VT ),
+	NewCamera = camera:set_position( NewPos, Camera ),
+
+	NewViewMat4 = camera:get_view_matrix( NewCamera ),
+
+	trace_utils:debug_fmt( "Translating camera Z of -~f, "
+		"resulting in: Mv = ~ts~ts",
+		[ Inc, matrix4:to_string( NewViewMat4 ),
+		  describe_camera_origin( NewViewMat4 ) ] ),
+
+	% Allows to check positioning:
+	%trace_utils:debug_fmt( "New camera position: ~p", [
+	%   matrix4:get_translation(
+	%       camera:get_view_matrix_inverse( NewCamera ) ) ] ),
+
+	update_mvp_matrix( ModelMat4, NewViewMat4, ProjMat4, MVPMatUnifId ),
+
+	{ GUIState#my_gui_state{ camera=NewCamera, view_mat4=NewViewMat4 },
+	  _DoQuit=false };
+
+
+
+% Third section: regarding the projection.
 
 update_scene_on_key_pressed( _Scancode=?projection_mode_scan_code,
 			  GUIState=#my_gui_state{ aspect_ratio=AspectRatio,
@@ -1397,8 +1613,8 @@ update_scene_on_key_pressed( _Scancode=?projection_mode_scan_code,
 
 	end,
 
-	trace_utils:debug_fmt( "Switching to ~ts, the corresponding matrix "
-		"being: ~ts.",
+	trace_utils:debug_fmt( "Switching to ~ts, the corresponding projection "
+		"matrix being: Mp = ~ts.",
 		[ projection:settings_to_string( NewProjSettings ),
 		  matrix4:to_string( NewProjMat4 ) ] ),
 
@@ -1424,11 +1640,11 @@ update_scene_on_key_pressed( _Scancode, GUIState ) ->
 
 
 -doc """
-Returns a description of the local origin of the square, in the global
+Returns a description of the local origin of the square, in the global (world)
 coordinate system.
 """.
--spec get_origin_description( matrix4() ) -> ustring().
-get_origin_description( ModelMat4 ) ->
+-spec describe_square_origin( matrix4() ) -> ustring().
+describe_square_origin( ModelMat4 ) ->
 
 	% For some reason, initially an inversion was done:
 
@@ -1455,6 +1671,21 @@ get_origin_description( ModelMat4 ) ->
 
 	text_utils:format( "~nIn the global coordinate system, "
 		"the local origin of the square coordinate system is now: ~ts",
+		[ point3:to_string( LocalOrigin ) ] ).
+
+
+
+-doc """
+Returns a description of the local origin of the camera, in the global (world)
+coordinate system.
+""".
+-spec describe_camera_origin( matrix4() ) -> ustring().
+describe_camera_origin( ViewMat4 ) ->
+
+	LocalOrigin = matrix4:get_translation( ViewMat4 ),
+
+	text_utils:format( "~nIn the global coordinate system, "
+		"the local origin of the camera coordinate system is now: ~ts",
 		[ point3:to_string( LocalOrigin ) ] ).
 
 
