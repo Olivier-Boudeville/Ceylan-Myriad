@@ -66,11 +66,11 @@ matrix4 from world to camera space.
 
 
 % Construction-related section.
--export([ create/3, look_at/3 ]).
+-export([ create/3, set_position/2, look_at/3 ]).
 
 
 % Operations on cameras:
--export([ get_view_matrix/1,
+-export([ get_view_matrix/1, get_view_matrix_inverse/1,
 		  to_string/1, to_string/2 ]).
 
 
@@ -126,6 +126,16 @@ create( Position, TargetPoint, UpDir ) ->
 
 
 -doc """
+Sets the position of the camera to the specified point, and updates it
+accordingly, so that it points to the same position.
+""".
+-spec set_position( point3(), camera() ) -> camera().
+set_position( NewPos, #camera{ target=TargetPoint, up=Up } ) ->
+	look_at( NewPos, TargetPoint, Up ).
+
+
+
+-doc """
 Returns a camera whose position is the specified one, looking at the specified
 target point, relying on the specified vector for its up direction, which is
 neither required to be unitary nor orthogonal to the aim vector (as obtained
@@ -142,14 +152,16 @@ look_at( Position, TargetPoint, Up ) ->
 	% Needed as such anyway:
 	Aim = point3:unit_vectorize( Position, TargetPoint ),
 
-	% Knowing that with OpenGL the camera shall point to its -Z axis:
-	% Aim corresponds to -Z:
+	% Knowing that with OpenGL the camera shall point to its -Z axis, Aim
+	% corresponds to -Z:
 	%
 	Z = vector3:negate( Aim ),
+
 
 	% To obtain Y, knowing that Up is not necessarily orthogonal to Aim, so
 	% Y = Up - (Up.Aim).Aim (and then normalised):
 	%
+	% (Up does not need to be unit)
 	Y = vector3:get_unit_orthogonal( Up, Aim ),
 
 	X = vector3:cross_product( Y, Z ),
@@ -164,6 +176,7 @@ look_at( Position, TargetPoint, Up ) ->
 								   _UpDir1InR2=Z ),
 
 	#camera{ position=Position,
+			 target=TargetPoint,
 			 aim=Aim,
 			 up=Y,
 			 left=X,
@@ -259,11 +272,23 @@ get_view_matrix( #camera{ view_transf4=#transform4{ inverse=InvM } } ) ->
 	InvM.
 
 
+-doc """
+Returns the inverse of the view matrix of this camera, corresponding to the
+transition matrix4 from camera to world space.
+""".
+-spec get_view_matrix_inverse( camera() ) -> view_matrix4().
+get_view_matrix_inverse( #camera{
+		view_transf4=#transform4{ reference=RefM } } ) ->
+	RefM.
+
+
+
 
 -doc "Returns a textual description of the specified camera.".
 -spec to_string( camera() ) -> ustring().
 to_string( Camera ) ->
 	to_string( Camera, _Verbose=false ).
+
 
 
 -doc """
@@ -272,18 +297,24 @@ verbosity.
 """.
 -spec to_string( camera(), boolean() ) -> ustring().
 to_string( #camera{ position=Pos,
-					aim=UnitAimVec }, _Verbose=false ) ->
+					target=TargetPoint
+					%aim=UnitAimVec
+				  }, _Verbose=false ) ->
 	text_utils:format( "camera located at ~ts, aimed at ~ts",
 		[ point3:to_compact_string( Pos ),
-		  vector3:to_compact_string( UnitAimVec ) ] );
+		  point3:to_compact_string( TargetPoint )
+		  %vector3:to_compact_string( UnitAimVec )
+		] );
 
 to_string( #camera{ position=Pos,
-					aim=UnitAimVec,
+					target=TargetPoint,
+					%aim=UnitAimVec,
 					up=UpVec,
 					view_transf4=Transf4 }, _Verbose=true ) ->
 	text_utils:format( "camera located at ~ts, aimed at ~ts, "
 		"whose up vector is ~ts, with a ~ts",
 		[ point3:to_compact_string( Pos ),
-		  vector3:to_compact_string( UnitAimVec ),
+		  point3:to_compact_string( TargetPoint ),
+		  %vector3:to_compact_string( UnitAimVec ),
 		  vector3:to_compact_string( UpVec ),
 		  transform4:to_string( Transf4 ) ] ).
