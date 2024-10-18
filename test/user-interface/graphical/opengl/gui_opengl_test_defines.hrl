@@ -38,8 +38,8 @@
 %
 % First supposing that a keypad is available:
 
--define( has_keypad, true ).
-%-define( has_keypad, false ).
+%-define( has_keypad, true ).
+-define( has_keypad, false ).
 
 
 
@@ -52,12 +52,12 @@
 % Object moving along the +X axis (to the right on the screen, with the default
 % camera) when hitting the key labelled "6" on keypad:
 %
--define( increase_x_scan_code, ?MYR_SCANCODE_KP_6 ).
+-define( square_increase_x_scan_code, ?MYR_SCANCODE_KP_6 ).
 
 % Object moving along the -X axis (to the left on the screen, with the default
 % camera) when hitting the key labelled "4" on keypad:
 %
--define( decrease_x_scan_code, ?MYR_SCANCODE_KP_4 ).
+-define( square_decrease_x_scan_code, ?MYR_SCANCODE_KP_4 ).
 
 
 % Y (depth in the Z-up coordinate system)
@@ -65,12 +65,12 @@
 % Object moving along the +Y axis (to the top of the screen, with the default
 % camera) when hitting the key labelled "8" on keypad:
 %
--define( increase_y_scan_code, ?MYR_SCANCODE_KP_8 ).
+-define( square_increase_y_scan_code, ?MYR_SCANCODE_KP_8 ).
 
 % Object moving along the -Y axis (to the bottom of the screen, with the default
 % camera) when hitting the key labelled "2" on keypad:
 %
--define( decrease_y_scan_code, ?MYR_SCANCODE_KP_2 ).
+-define( square_decrease_y_scan_code, ?MYR_SCANCODE_KP_2 ).
 
 
 % Z (ordinate / altitude in the Z-up coordinate system)
@@ -78,12 +78,12 @@
 % Object moving along the +Z axis (from front to behind, with the default
 % camera) when hitting the key labelled "9" on keypad:
 %
--define( increase_z_scan_code, ?MYR_SCANCODE_KP_9 ).
+-define( square_increase_z_scan_code, ?MYR_SCANCODE_KP_9 ).
 
 % Object moving along the -Z axis (from behind to front, with the default
 % camera) when hitting the key labelled "9" on keypad:
 %
--define( decrease_z_scan_code, ?MYR_SCANCODE_KP_3 ).
+-define( square_decrease_z_scan_code, ?MYR_SCANCODE_KP_3 ).
 
 
 
@@ -95,29 +95,28 @@
 % numbers/arrows:
 
 % Object seen moving to the right with the default camera:
--define( increase_x_scan_code, ?MYR_SCANCODE_RIGHT ).
+-define( square_increase_x_scan_code, ?MYR_SCANCODE_RIGHT ).
 
 % To the left:
--define( decrease_x_scan_code, ?MYR_SCANCODE_LEFT ).
+-define( square_decrease_x_scan_code, ?MYR_SCANCODE_LEFT ).
 
 
 % Y (ordinate)
 
 % Up:
--define( increase_y_scan_code, ?MYR_SCANCODE_UP ).
+-define( square_increase_y_scan_code, ?MYR_SCANCODE_UP ).
 
 % Down:
--define( decrease_y_scan_code, ?MYR_SCANCODE_DOWN ).
+-define( square_decrease_y_scan_code, ?MYR_SCANCODE_DOWN ).
 
 
 % Z (depth/altitude)
 
 % Moving nearer/upward:
--define( increase_z_scan_code, ?MYR_SCANCODE_PAGEUP ).
+-define( square_increase_z_scan_code, ?MYR_SCANCODE_PAGEUP ).
 
 % Moving farther/downward:
--define( decrease_z_scan_code, ?MYR_SCANCODE_PAGEDOWN ).
-
+-define( square_decrease_z_scan_code, ?MYR_SCANCODE_PAGEDOWN ).
 
 
 
@@ -133,6 +132,26 @@
 % Ends the test:
 -define( quit_scan_code, ?MYR_SCANCODE_ESCAPE ).
 
+
+
+
+% For camera control (movement of its origin in world space), we use the WASD
+% keys (translating, with French keyboards, to ZQSD); so using scancodes to
+% designate key locations, rather than the characters labelled on them.
+
+% Key layout:
+% qWeR
+% ASDF
+
+% As comments: onscreen camera movement
+-define( camera_decrease_x_scan_code, ?MYR_SCANCODE_A). % go left (-X)
+-define( camera_increase_x_scan_code, ?MYR_SCANCODE_D). % go right (+X)
+
+-define( camera_decrease_y_scan_code, ?MYR_SCANCODE_S). % go down (-Y)
+-define( camera_increase_y_scan_code, ?MYR_SCANCODE_W). % go up (+Y)
+
+-define( camera_decrease_z_scan_code, ?MYR_SCANCODE_R). % go forward (-Z)
+-define( camera_increase_z_scan_code, ?MYR_SCANCODE_F). % go backward (+Z)
 
 
 % An increment on a given dimension:
