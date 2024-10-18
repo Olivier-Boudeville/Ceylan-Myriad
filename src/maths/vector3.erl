@@ -386,6 +386,8 @@ scale( _V=[X,Y,Z], Factor ) ->
 -doc """
 Normalises the specified non-null 3D vector, that is returns it once scaled to
 an unit length (whose magnitude is thus 1.0).
+
+Could have been named get_unitary/1 as well.
 """.
 -spec normalise( vector3() ) -> unit_vector3().
 normalise( V ) ->
