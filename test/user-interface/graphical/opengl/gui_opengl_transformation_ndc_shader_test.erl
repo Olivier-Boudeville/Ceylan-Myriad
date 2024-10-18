@@ -218,21 +218,23 @@ properly once not needed anymore.
 
 % Test-specific defines:
 
+
+% Define set in gui_opengl_test_defines.hrl:
 -if( ?has_keypad =:= true ).
 
 % Re-centers all:
--define( reset_scan_code, ?MYR_SCANCODE_KP_5 ).
+-define( square_reset_scan_code, ?MYR_SCANCODE_KP_5 ).
 
 % Switches to the next transformation mode:
--define( mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
+-define( square_mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
 
 
 -else. % Not using keypad here:
 
 
--define( reset_scan_code, ?MYR_SCANCODE_SPACE ).
+-define( square_reset_scan_code, ?MYR_SCANCODE_SPACE ).
 
--define( mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
+-define( square_mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
 
 
 -endif. % has_keypad
@@ -888,7 +890,7 @@ Updates the scene, based on the specified user-entered (keyboard) scan code.
 % First managing translations:
 -spec update_scene_on_key_pressed( scancode(), my_gui_state() ) ->
 						{ my_gui_state(), DoQuit :: boolean() }.
-update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -911,7 +913,7 @@ update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -934,7 +936,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -956,7 +958,7 @@ update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -982,7 +984,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 % Note that moving along the Z axis whereas the projection is orthographic will
 % show no difference:
 
-update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -1004,7 +1006,7 @@ update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -1029,7 +1031,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 
 % Secondly managing rotations:
 
-update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1054,7 +1056,7 @@ update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1079,7 +1081,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1104,7 +1106,7 @@ update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1129,7 +1131,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1154,7 +1156,7 @@ update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1180,7 +1182,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 
 
 % Thirdly managing scalings:
-update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1201,7 +1203,7 @@ update_scene_on_key_pressed( _Scancode=?increase_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1222,7 +1224,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1243,7 +1245,7 @@ update_scene_on_key_pressed( _Scancode=?increase_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1264,7 +1266,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1285,7 +1287,7 @@ update_scene_on_key_pressed( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1307,7 +1309,7 @@ update_scene_on_key_pressed( _Scancode=?decrease_z_scan_code,
 
 
 
-update_scene_on_key_pressed( _Scancode=?reset_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_reset_scan_code,
 			  GUIState=#my_gui_state{
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
@@ -1324,7 +1326,7 @@ update_scene_on_key_pressed( _Scancode=?reset_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene_on_key_pressed( _Scancode=?mode_switch_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_mode_switch_scan_code,
 			  GUIState=#my_gui_state{ transformation_mode=TransfoMode } ) ->
 
 	NewTransfoMode = case TransfoMode of
