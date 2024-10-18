@@ -38,9 +38,17 @@
 	position :: point3:point3(),
 
 
+	% The target position at which this camera is pointing at, in world space:
+	%
+	% (generally designated as T={Tx,Ty,Tz}; stored in order to be able to move
+	% the camera whereas pointing at the same target)
+	%
+	target :: point3:point3(),
+
+
 	% The actual direction at which this camera points, in world space, from its
-	% position, as a unit vector computed by look_at/3 (thus a value to be read,
-	% not set).
+	% position to its target, as a unit vector computed by look_at/3 (thus a
+	% value to be read, not set).
 	%
 	% (this direction will thus correspond to the -Z axis of the local
 	% coordinate system of this camera)
