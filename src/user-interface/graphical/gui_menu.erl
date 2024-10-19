@@ -268,7 +268,7 @@ When a frame goes fullscreen, any menu bar it has is hidden.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type bit_mask() :: basic_utils:bit_mask().
 
@@ -571,7 +571,7 @@ create_bar() ->
 -spec create_bar( window() ) -> menu_bar().
 create_bar( Window ) ->
 	MenuBar = wxMenuBar:new(),
-	gui_window:set_menu_bar( Window, MenuBar ),
+	gui_frame:set_menu_bar( Window, MenuBar ),
 	MenuBar.
 
 
@@ -586,12 +586,12 @@ add_menu( MenuBar, Menu, MenuTitle ) ->
 -doc """
 Assigns the specified menu bar to the specified window.
 
-Note: to be deprecated soon; use gui_window:set_menu_bar/2 instead.
+Note: to be deprecated soon; use gui_frame:set_menu_bar/2 instead.
 """.
 -spec set_menu_bar( menu_bar(), window() ) -> void().
 set_menu_bar( MenuBar, Window ) ->
 	% More logical that way:
-	gui_window:set_menu_bar( Window, MenuBar ).
+	gui_frame:set_menu_bar( Window, MenuBar ).
 
 
 
