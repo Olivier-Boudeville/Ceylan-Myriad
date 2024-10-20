@@ -282,7 +282,7 @@ the child (R1) into its representation in the parent (R2), as V2 = RefM.V1.
 -define( dim, 4 ).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
