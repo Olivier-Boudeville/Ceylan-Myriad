@@ -112,25 +112,25 @@ test_main_loop( TestState={ TestFrame, CheckScanCode } ) ->
 
 	receive
 
-		{ onCharEntered, [ _TestFrame, _TestFrameId, Context ] } ->
-			interpret_event_context( Context, CheckScanCode ),
+		{ onCharEntered, [ _TestFrame, _TestFrameId, EventContext ] } ->
+			interpret_event_context( EventContext, CheckScanCode ),
 			test_main_loop( TestState );
 
 
-		{ onKeyPressed, [ _TestFrame, _TestFrameId, Context ] } ->
-			interpret_event_context( Context, CheckScanCode ),
+		{ onKeyPressed, [ _TestFrame, _TestFrameId, EventContext ] } ->
+			interpret_event_context( EventContext, CheckScanCode ),
 			test_main_loop( TestState );
 
 
-		{ onKeyReleased, [ _TestFrame, _TestFrameId, Context ] } ->
-			interpret_event_context( Context, CheckScanCode ),
+		{ onKeyReleased, [ _TestFrame, _TestFrameId, EventContext ] } ->
+			interpret_event_context( EventContext, CheckScanCode ),
 			test_main_loop( TestState );
 
 
-		{ onWindowClosed, [ _TestFrame, _TestFrameId, Context ] } ->
+		{ onWindowClosed, [ _TestFrame, _TestFrameId, EventContext ] } ->
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 
 			gui_frame:destruct( TestFrame ),
 
@@ -150,9 +150,9 @@ test_main_loop( TestState={ TestFrame, CheckScanCode } ) ->
 
 % (helper)
 -spec interpret_event_context( event_context(), boolean() ) -> void().
-interpret_event_context( Context, _CheckScanCode=true ) ->
+interpret_event_context( EventContext, _CheckScanCode=true ) ->
 
-	WxKeyEvent = gui_keyboard:get_backend_event( Context ),
+	WxKeyEvent = gui_keyboard:get_backend_event( EventContext ),
 
 	MaybeUChar = gui_keyboard:get_maybe_uchar( WxKeyEvent ),
 	Keycode = gui_keyboard:get_keycode( WxKeyEvent ),
@@ -175,8 +175,8 @@ interpret_event_context( Context, _CheckScanCode=true ) ->
 	end;
 
 
-interpret_event_context( Context, _CheckScanCode=false ) ->
-	WxKeyEvent = gui_keyboard:get_backend_event( Context ),
+interpret_event_context( EventContext, _CheckScanCode=false ) ->
+	WxKeyEvent = gui_keyboard:get_backend_event( EventContext ),
 	trace_utils:info_fmt( "Received ~ts.~n",
 						  [ gui_keyboard:key_event_to_string( WxKeyEvent ) ] ).
 
