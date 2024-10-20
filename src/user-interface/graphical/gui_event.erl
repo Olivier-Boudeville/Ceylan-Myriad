@@ -390,7 +390,7 @@ well.
 
 -doc """
 A type of events emitted by commands, a variety of simple controls
-(e.g. buttons, menus, toolbars) or an actual window.
+(e.g. buttons, menus, toolbars) of an actual window.
 
 By default these higher-level command events are propagated upward in the widget
 hierarchy, so that multiple handlers may manage them - unless a given handler
@@ -481,7 +481,7 @@ the 'propagate_event' option.
   | 'propagate_event'.
 
 
--doc " The PID of a user calling process.".
+-doc "The PID of a user calling process.".
 -type user_pid() :: pid().
 
 
@@ -920,9 +920,10 @@ Examples of descriptions, as tuples:
 % while climbing the widget hierarchy; generally the first handler triggered
 % will handle the event (especially if it is an higher-level command event) and
 % trap it (i.e. not propagate it further). Otherwise, typically if it is a basic
-% event, it may propagate it (handler "skipped", the search for any handler
-% continuing then), resulting in multiple handlers being possible triggered
-% (useful for example to trigger a resize or a repaint of each).
+% event, it may propagate it (the handler being "skipped", the search for any
+% handler continuing then; skip() can be understood as continueProcessing()),
+% resulting in multiple handlers being possible triggered (useful for example to
+% trigger a resize or a repaint of each).
 
 % Refer to:
 %  - <https://docs.wxwidgets.org/stable/overview_events.html#overview_events_propagation>
