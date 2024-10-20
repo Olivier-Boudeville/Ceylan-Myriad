@@ -77,9 +77,10 @@ See also <https://docs.wxwidgets.org/stable/classwx_text_ctrl.html>.
 -type text_editor_style() ::
 	'process_enter_key' % Generate an event if Enter is pressed.
   | 'process_tab_key'   % Generate an event if Tab is pressed.
-  | 'multiline' % Allow multiple lines of text.
+  | 'multiline' % Allow multiple lines of text. Note that multiline editors
+				% offer more features (e.g. styling).
   | 'password' % Text will be echoed as asterisks.
-  | 'read_only' % Rext will not be user-editable.
+  | 'read_only' % Text will not be user-editable.
   | 'rich_text_v1' % Use rich text control version 1 on Windows.
   | 'rich_text_v2' % Use rich text control version 2 on Windows.
   | 'auto_url' % Process URLs automatically.
@@ -142,7 +143,8 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 % Operations related to text editors:
 -export([ create/1, create/2, destruct/1,
-		  set_default_font/2, set_text/2, add_text/2, clear/1,
+		  set_default_font/2, set_default_background_color/2,
+		  set_text/2, add_text/2, clear/1,
 		  show_position/2, show_text_end/1, get_last_position/1 ]).
 
 
@@ -173,6 +175,8 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 -type font() :: gui_font:font().
 
+-type any_color() :: gui_color:any_color().
+
 -type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
 
 
@@ -202,19 +206,38 @@ destruct( Editor ) ->
 	wxTextCtrl:destroy( Editor ).
 
 
-
 -doc """
 Sets the default font to be used by this editor.
 
 Returns true on success, false if an error occurred (this may also mean that the
 styles are not supported under this platform).
+
+Only operates on multiline editors.
 """.
 -spec set_default_font( text_editor(), font() ) -> boolean().
 set_default_font( Editor, Font ) ->
-	RangeSettings = wxTextAttr:new(),
-	wxTextAttr:setFont( RangeSettings, Font ),
-	Res = wxTextCtrl:setDefaultStyle( Editor, RangeSettings ),
-	wxTextAttr:destroy( RangeSettings ),
+	Attr = wxTextAttr:new(),
+	wxTextAttr:setFont( Attr, Font ),
+	Res = wxTextCtrl:setDefaultStyle( Editor, Attr ),
+	wxTextAttr:destroy( Attr ),
+	Res.
+
+
+
+-doc """
+Sets the default background color to be used by this editor.
+
+Returns true on success, false if an error occurred (this may also mean that the
+styles are not supported under this platform).
+
+Only operates on multiline editors.
+""".
+-spec set_default_background_color( text_editor(), any_color() ) -> boolean().
+set_default_background_color( Editor, AnyColor ) ->
+	Attr = wxTextAttr:new(),
+	wxTextAttr:setBackgroundColour( Attr, gui_color:get_any_color( AnyColor ) ),
+	Res = wxTextCtrl:setDefaultStyle( Editor, Attr ),
+	wxTextAttr:destroy( Attr ),
 	Res.
 
 
