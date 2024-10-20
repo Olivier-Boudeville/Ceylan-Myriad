@@ -1052,8 +1052,8 @@ get_event_type_topic_spec() ->
 
 		{ onMouseWheelScrolled, mousewheel },
 
-		{ onMouseEnteredWindow, enter_window },
-		{ onMouseLeftWindow,    leave_window },
+		{ onMouseEnteredWidget, enter_window },
+		{ onMouseLeftWidget,    leave_window },
 
 
 		% Keyboard section:

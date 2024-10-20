@@ -82,7 +82,7 @@ run_test_gui() ->
 
 		onMouseWheelScrolled,
 
-		onMouseEnteredWindow, onMouseLeftWindow ],
+		onMouseEnteredWidget, onMouseLeftWidget ],
 
 	gui:subscribe_to_events(
 		{ [ onWindowClosed | MouseEventTypes ], TestFrame } ),
