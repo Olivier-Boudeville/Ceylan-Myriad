@@ -47,17 +47,16 @@ run() ->
 	test_facilities:display( "Testing the camera support." ),
 
 	Position = { 0.0, 0.0, 0.0 }, % Origin-centered
-	AimVec = [ 0.0, 0.0, -1.0 ], % Still towards -Z
+	TargetPoint = { 0.0, 0.0, -17.0 }, % Still towards -Z
 	UpVec = [ 0.0, 1.0, 0.0 ],
 
-	Cam1 = camera:create( Position, AimVec, UpVec ),
+	Cam1 = camera:create( Position, TargetPoint, UpVec ),
 
-	{ ViewMat4, _NewCam1 } = camera:get_view_matrix( Cam1 ),
-	
-	test_facilities:display( "For a camera located at ~ts, aiming at ~ts "
+	ViewMat4 = camera:get_view_matrix( Cam1 ),
+
+	test_facilities:display( "For a camera located at ~ts, targeted at ~ts "
 		"and whose up direction is ~ts, the view matrix is: ~ts",
-		[ point3:to_string( Position ), vector3:to_string( AimVec ),
+		[ point3:to_string( Position ), point3:to_string( TargetPoint ),
 		  vector3:to_string( UpVec ), matrix4:to_string( ViewMat4 ) ] ),
-
 
 	test_facilities:stop().
