@@ -78,6 +78,8 @@ Not to be mixed up with shell_utils:shell_pid().
 
 -type text_editor() :: gui_text_editor:text_editor().
 
+-type text_display() :: gui_text_display:text_display().
+
 -type shell_pid() :: shell_utils:shell_pid().
 -type shell_option() :: shell_utils:shell_option().
 -type command_id() :: shell_utils:command_id().
@@ -131,8 +133,8 @@ Not to be mixed up with shell_utils:shell_pid().
 % The (internal) state of a GUI shell instance:
 -record( gui_shell_state, {
 
-	% The editor used by the shell for the input commands:
-	command_editor :: text_editor(),
+	% The display used by the shell for the input commands:
+	command_display :: text_display(),
 
 	% The (read-only) editor displaying the past operations:
 	% (different from the shell's history)
@@ -186,7 +188,7 @@ A typical parent window is a panel.
 											gui_shell().
 create( FontSize, ShellOpts, ParentWindow ) ->
 
-	% Not wanting a crash of the shell_utils'shell to crash us in turn:
+	% Not wanting a crash of the shell_utils'shell process to crash us in turn:
 	process_flag( trap_exit, true ),
 
 	BackendEnv = gui:get_backend_environment(),
@@ -231,6 +233,7 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
 	ShellGUIOptList = list_utils:ensure_list( ShellOpts ),
 
+	% Splits between GUI shell and actual shell options:
 	{ SetFocus, ShellOptList } =
 			case list_utils:extract_element_if_existing( _Elem=focused,
 														 ShellGUIOptList ) of
@@ -254,25 +257,23 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
 	HSizer = gui_sizer:create( _Or=horizontal ),
 
-	gui_widget:set_sizer( ParentWindow, VSizer ),
-
 	PromptButton = gui_button:create( _NoLabel="", _Position=auto,
 		_ButtonSize=auto, _ButtonStyle=[], _BId=prompt_black_button,
 		ParentWindow ),
 
-	% Not adding the 'multiline' style, as the editor gets uselessly too tall:
-	CmdEditor = gui_text_editor:create(
-		%[ { style, [ multiline, process_enter_key ] } ], ParentWindow ),
-		[ { style, [ process_enter_key ] } ], ParentWindow ),
+	% As apparently a text display cannot intercept key presses:
+	CmdPanel = gui_panel:create( ParentWindow ),
 
-	SetFocus andalso gui_widget:set_focus( CmdEditor ),
+	SetFocus andalso gui_widget:set_focus( CmdPanel ),
+
+	CmdDisplay = gui_text_display:create( "1> ", _DispOpts=[], CmdPanel ),
 
 
 	gui_sizer:add_element( HSizer, PromptButton,
 		[ expand_fully, { proportion, _Fixed=0 } ] ),
 
-	gui_sizer:add_element( HSizer, CmdEditor,
-		% All available width shall be used:
+	gui_sizer:add_element( HSizer, CmdPanel,
+		% All the available width shall be used:
 		[ expand_fully, { proportion, _Resizable=1 } ] ),
 
 
@@ -287,11 +288,7 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 	% For example Monospace 11:
 	ShellFont = gui_font:create( FontSize, _FontFamily=modern ),
 
-	[ gui_text_editor:set_default_font( Ed, ShellFont )
-		|| Ed <- [ CmdEditor, PastOpsEditor ] ],
-
-	% true = gui_text_editor:set_default_background_color( Ed, red )
-	%   || Ed <- [ CmdEditor, PastOpsEditor ] ],
+	gui_text_editor:set_default_font( PastOpsEditor, ShellFont ),
 
 	gui_font:destruct( ShellFont ),
 
@@ -309,20 +306,17 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 	gui_sizer:add_element( VSizer, HSizer,
 						   [ expand_fully, { proportion, 0 } ] ),
 
-	gui:subscribe_to_events( { onEnterPressed, CmdEditor } ),
-
-	% To test finer control instead (yet still insufficient to control cursor
-	% based on keypresses):
-	%
-	%gui:subscribe_to_events( { onTextUpdated, CmdEditor } ),
+	% To collect commands and set focus:
+	gui:subscribe_to_events( { [ onKeyPressed, onMouseLeftButtonPressed ],
+							   CmdPanel } ),
 
 
 	% So that the editors take their actual size from the start:
 	gui_widget:layout( ParentWindow ),
 
-	InitShellState = #gui_shell_state{ command_editor=CmdEditor,
+	InitShellState = #gui_shell_state{ command_display=CmdDisplay,
 									   past_ops_editor=PastOpsEditor,
-									   past_ops_text= InitBinText,
+									   past_ops_text=InitBinText,
 									   shell_pid=ActualShellPid },
 
 	gui_shell_main_loop( InitShellState ).
@@ -332,14 +326,37 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 -doc "Main loop of the GUI shell process.".
 -spec gui_shell_main_loop( gui_shell_state() ) -> no_return().
 gui_shell_main_loop( GUIShellState=#gui_shell_state{
-										command_editor=CmdEditor,
-										past_ops_editor=PastOpsEditor,
-										past_ops_text=PastOpsText,
-										shell_pid=ShellPid } ) ->
+		command_display=CmdDisplay,
+		past_ops_editor=PastOpsEditor,
+		past_ops_text=PastOpsText,
+		shell_pid=ShellPid } ) ->
 
 	receive
 
-		{ onEnterPressed, [ _CmdEditor, _EditorId, NewText, _Context ] } ->
+		{ onKeyPressed, [ _CmdPanel, _CmdPanelId, EventContext ] } ->
+
+			BackendKeyEvent = gui_keyboard:get_backend_event( EventContext ),
+
+			Scancode = gui_keyboard:get_scancode( BackendKeyEvent ),
+
+			trace_utils:debug_fmt( "Scan code: ~p.", [ Scancode ] ),
+
+			gui_shell_main_loop( GUIShellState );
+
+
+		{ onMouseLeftButtonPressed,
+				[ CmdPanel, _CmdPanelId, _EventContext ] } ->
+
+			%trace_utils:debug_fmt( "Setting the focus on the command "
+			%                       "panel ~w.", [ CmdPanel ] ),
+
+			gui_widget:set_focus( CmdPanel ),
+
+			gui_shell_main_loop( GUIShellState );
+
+
+		{ onEnterPressed,
+				[ _CmdDisplay, _EditorId, NewText, _EventContext ] } ->
 
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug_fmt( "Read command '~ts'.", [ NewText ] ) ),
@@ -370,8 +387,8 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 			gui_text_editor:show_text_end( PastOpsEditor ),
 
-			%gui_text_editor:set_text( CmdEditor, get_prompt_for( NextCmdId ) ),
-			gui_text_editor:clear( CmdEditor ),
+			%gui_text_editor:set_text( CmdDisplay, get_prompt_for( NextCmdId ) ),
+			gui_text_editor:clear( CmdDisplay ),
 
 			%trace_utils:info_fmt(
 			%  "Shell read: '~ts'; new past operations are: <<<~n~ts>>>",
@@ -382,14 +399,14 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 
 		acquireFocus ->
-			gui_widget:set_focus( CmdEditor ),
+			gui_widget:set_focus( CmdDisplay ),
 
 			gui_shell_main_loop( GUIShellState );
 
 
 		destruct ->
 			[ gui_text_editor:destruct( Ed )
-				|| Ed <- [ CmdEditor, PastOpsEditor ] ],
+				|| Ed <- [ CmdDisplay, PastOpsEditor ] ],
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug_fmt( "GUI shell ~w terminated.",
 									   [ self() ] ) );
