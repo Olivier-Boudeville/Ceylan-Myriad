@@ -99,9 +99,10 @@ Not to be mixed up with shell_utils:shell_pid().
 % convenient, yet it is a rather enormous, complex API, and there is little
 % interest in syntax-highlighting the user inputs or the interpreter outputs.
 %
-% Intercepting inputs on a character basis could allow to offer smart key
-% shortcuts (e.g. like Emacs), for example to navigate in the history or offer
-% autocompletion.
+% Intercepting inputs on a character basis is now done, as least so that past
+% commands can be recalled (by pressing the down arrow); this could allow to
+% offer smart key shortcuts (e.g. like Emacs), for example to navigate in the
+% history or offer autocompletion.
 %
 % Indeed, rather than using a gui_text_editor for the input commands like here,
 % the entered characters shall be read one by one (an event each, rather than as
@@ -110,9 +111,17 @@ Not to be mixed up with shell_utils:shell_pid().
 % characters can be specifically handled (e.g. the down arrow, to recall a past
 % command, or even for some kind of auto-completion to be implemented).
 %
-% This could be done with a static text display (see gui_text_display), updated
-% based on its subscription to the onKeyPressed, onKeyReleased, onCharEntered,
-% etc. events.
+% Initially, for the command editor, a gui_text_editor was used, first while
+% subscribing to its onEnterPressed events (yet no cursor control could be
+% done), then to its onTextUpdated events (then the wxWidgets cursor control
+% would apply, not ours; for example the down arrow would set the cursor to the
+% start of text and the up arrow to its end, automatically, without generating
+% any event, whereas we want to intercept them to go through the command
+% history.
+%
+% To restore full (cursor) control, lower-level control is needed, obtained with
+% a static text display (see gui_text_display), updated based on its
+% subscription to the onKeyPressed, onKeyReleased, onCharEntered, etc. events.
 
 
 
@@ -253,6 +262,7 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
 	% Not adding the 'multiline' style, as the editor gets uselessly too tall:
 	CmdEditor = gui_text_editor:create(
+		%[ { style, [ multiline, process_enter_key ] } ], ParentWindow ),
 		[ { style, [ process_enter_key ] } ], ParentWindow ),
 
 	SetFocus andalso gui_widget:set_focus( CmdEditor ),
@@ -262,6 +272,7 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 		[ expand_fully, { proportion, _Fixed=0 } ] ),
 
 	gui_sizer:add_element( HSizer, CmdEditor,
+		% All available width shall be used:
 		[ expand_fully, { proportion, _Resizable=1 } ] ),
 
 
@@ -278,6 +289,9 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
 	[ gui_text_editor:set_default_font( Ed, ShellFont )
 		|| Ed <- [ CmdEditor, PastOpsEditor ] ],
+
+	% true = gui_text_editor:set_default_background_color( Ed, red )
+	%   || Ed <- [ CmdEditor, PastOpsEditor ] ],
 
 	gui_font:destruct( ShellFont ),
 
@@ -296,6 +310,11 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 						   [ expand_fully, { proportion, 0 } ] ),
 
 	gui:subscribe_to_events( { onEnterPressed, CmdEditor } ),
+
+	% To test finer control instead (yet still insufficient to control cursor
+	% based on keypresses):
+	%
+	%gui:subscribe_to_events( { onTextUpdated, CmdEditor } ),
 
 
 	% So that the editors take their actual size from the start:
