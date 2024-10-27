@@ -47,7 +47,7 @@ fit in the editor's size will be wrapped (but no newline character will be
 inserted).
 
 Single line controls do not have a horizontal scrollbar, the text is
-automatically scrolled so that the insertion point is always visible.
+automatically scrolled so that the cursor position is always visible.
 
 One can subscribe to the following events that can be emitted by a text editor:
 - onTextUpdated, if its text has been modified
@@ -108,6 +108,12 @@ A zero-based index of a position in the text.
 -type char_pos() :: non_neg_integer().
 
 
+-doc """
+A (signed) offset in terms of character position.
+""".
+-type offset_char_pos() :: integer().
+
+
 
 -doc """
 A type of event possibly emitted by a text editor, to which one can subscribe.
@@ -128,7 +134,8 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 
 
--export_type([ text_editor/0, text_editor_style/0, text_validator/0, char_pos/0,
+-export_type([ text_editor/0, text_editor_style/0, text_validator/0,
+			   char_pos/0, offset_char_pos/0,
 			   text_editor_event_type/0 ]).
 
 
@@ -145,7 +152,9 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 -export([ create/1, create/2, destruct/1,
 		  set_default_font/2, set_default_background_color/2,
 		  set_text/2, add_text/2, clear/1,
-		  show_position/2, show_text_end/1, get_last_position/1 ]).
+		  show_position/2, show_text_end/1, get_last_position/1,
+		  set_cursor_position/2, set_cursor_position_to_end/1,
+		  get_cursor_position/1, offset_cursor_position/2 ]).
 
 
 % For related defines:
@@ -160,6 +169,11 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 %
 % Currently based on wxTextCtrl (wxStyledTextCtrl would be another option, more
 % powerful yet more complex / expensive to integrate).
+%
+% Note that we can override the management of keys by subscribing for example to
+% onKeyPressed; see gui_shell for an example thereof.
+%
+% wxWidgets' insertion point is translated here as cursor (caret) position.
 
 
 
@@ -246,6 +260,8 @@ set_default_background_color( Editor, AnyColor ) ->
 Sets the specified text as the new editor text content, from the start of the
 control (i.e. position 0).
 
+If the text changed, resets the cursor position.
+
 Does not generate an onEnterPressed event.
 """.
 -spec set_text( text_editor(), text() ) -> void().
@@ -256,7 +272,7 @@ set_text( Editor, NewText ) ->
 
 -doc """
 Adds the specified text to the end of the editor text content, setting the
-insertion point at its new end.
+cursor position at its new end.
 """.
 -spec add_text( text_editor(), text() ) -> void().
 add_text( Editor, Text ) ->
@@ -292,7 +308,6 @@ show_text_end( Editor ) ->
 	show_position( Editor, get_last_position( Editor ) ).
 
 
-
 -doc """
 Returns the last position in the text stored by the editor (equal to its number
 of characters).
@@ -302,6 +317,41 @@ get_last_position( Editor ) ->
 	wxTextCtrl:getLastPosition( Editor ).
 
 
+
+-doc """
+Sets the text cursor position at the specified one.
+""".
+-spec set_cursor_position( text_editor(), char_pos() ) -> void().
+set_cursor_position( Editor, Pos ) ->
+	%trace_utils:debug_fmt( "Setting offset cursor position to ~B.", [ Pos ] ),
+	wxTextCtrl:setInsertionPoint( Editor, Pos ).
+
+
+-doc """
+Sets the cursor position at the end of the current text.
+""".
+-spec set_cursor_position_to_end( text_editor() ) -> void().
+set_cursor_position_to_end( Editor ) ->
+	wxTextCtrl:setInsertionPointEnd( Editor ).
+
+
+
+-doc "Returns the current text cursor position.".
+-spec get_cursor_position( text_editor() ) -> void().
+get_cursor_position( Editor ) ->
+	wxTextCtrl:getInsertionPoint( Editor ).
+
+
+-doc """
+Offsets the text cursor position of the specified (signed) number of character
+positions; returns the new current character position.
+""".
+-spec offset_cursor_position( text_editor(), offset_char_pos() ) -> char_pos().
+offset_cursor_position( Editor, PosOffset ) ->
+	NewPos = wxTextCtrl:getInsertionPoint( Editor ) + PosOffset,
+	set_cursor_position( Editor, NewPos ),
+	%trace_utils:debug_fmt( "New offset cursor position: ~B.", [ NewPos ] ),
+	NewPos.
 
 
 
