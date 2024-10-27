@@ -31,6 +31,11 @@
 A GUI component hosting an **Erlang shell**, like an Erlang interpreter (a kind
 of REPL) with which the user can interact (input/output) graphically.
 
+Keyboard shortcuts for this shell (Emacs-inspired):
+- Ctrl-a: to beginning of line
+- Ctrl-e: to end of line
+- Ctrl-c: clear command
+
 This graphical module relies on our shell_utils one.
 """.
 
@@ -56,33 +61,50 @@ Not to be mixed up with shell_utils:shell_pid().
 -export([ create/1, create/2, create/3, destruct/1 ]).
 
 
+% Silencing:
+-export([ text_state_to_string/1 ]).
+
+
 
 % For myriad_spawn_link:
 -include_lib("myriad/include/spawn_utils.hrl").
 
 
+% For scancodes:
+-include("ui_keyboard_scancodes.hrl").
+
+% For keycodes:
+-include("ui_keyboard_keycodes.hrl").
+
+
 
 % Type shorthands:
 
--type bin_string() :: text_utils:bin_ustring().
+-type ustring() :: text_utils:ustring().
+-type bin_string() :: text_utils:bin_string().
+-type uchar() :: text_utils:uchar().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 -type timestamp_binstring() :: time_utils:timestamp_binstring().
 
+-type shell_pid() :: shell_utils:shell_pid().
+-type shell_option() :: shell_utils:shell_option().
+-type command_id() :: shell_utils:command_id().
+
+
 -type parent() :: gui:parent().
+
 -type backend_environment() :: gui:backend_environment().
+
 -type widget_pid() :: gui_widget:widget_pid().
 
 -type font_size() :: gui_font:font_size().
 
+-type backend_keyboard_event() :: gui_keyboard:backend_keyboard_event().
+
 -type text_editor() :: gui_text_editor:text_editor().
 
--type text_display() :: gui_text_display:text_display().
-
--type shell_pid() :: shell_utils:shell_pid().
--type shell_option() :: shell_utils:shell_option().
--type command_id() :: shell_utils:command_id().
 
 
 
@@ -133,8 +155,22 @@ Not to be mixed up with shell_utils:shell_pid().
 % The (internal) state of a GUI shell instance:
 -record( gui_shell_state, {
 
-	% The display used by the shell for the input commands:
-	command_display :: text_display(),
+	% The editor used by the shell for the input commands:
+	%
+	% (a simple text_display() would not suffice, for example no cursor would be
+	% shown)
+	%
+	command_editor :: text_editor(),
+
+	% The characters (Unicode codepoints) that are strictly before the current
+	% cursor, in reverse order:
+	%
+	precursor_chars = [] :: [ uchar() ],
+
+	% The characters (Unicode codepoints) that are at or after the current
+	% cursor (in normal order):
+	%
+	postcursor_chars = [] :: [ uchar() ],
 
 	% The (read-only) editor displaying the past operations:
 	% (different from the shell's history)
@@ -261,18 +297,16 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 		_ButtonSize=auto, _ButtonStyle=[], _BId=prompt_black_button,
 		ParentWindow ),
 
-	% As apparently a text display cannot intercept key presses:
-	CmdPanel = gui_panel:create( ParentWindow ),
+	CmdEditor = gui_text_editor:create(
+		[ { style, [] } ], ParentWindow  ),
+		%[ { style, [ multiline, process_enter_key ] } ], ParentWindow  ),
 
-	SetFocus andalso gui_widget:set_focus( CmdPanel ),
-
-	CmdDisplay = gui_text_display:create( "1> ", _DispOpts=[], CmdPanel ),
-
+	SetFocus andalso gui_widget:set_focus( CmdEditor ),
 
 	gui_sizer:add_element( HSizer, PromptButton,
 		[ expand_fully, { proportion, _Fixed=0 } ] ),
 
-	gui_sizer:add_element( HSizer, CmdPanel,
+	gui_sizer:add_element( HSizer, CmdEditor,
 		% All the available width shall be used:
 		[ expand_fully, { proportion, _Resizable=1 } ] ),
 
@@ -307,14 +341,14 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 						   [ expand_fully, { proportion, 0 } ] ),
 
 	% To collect commands and set focus:
-	gui:subscribe_to_events( { [ onKeyPressed, onMouseLeftButtonPressed ],
-							   CmdPanel } ),
+	gui:subscribe_to_events( { [ onCharEntered, onMouseLeftButtonPressed ],
+							   CmdEditor } ),
 
 
 	% So that the editors take their actual size from the start:
 	gui_widget:layout( ParentWindow ),
 
-	InitShellState = #gui_shell_state{ command_display=CmdDisplay,
+	InitShellState = #gui_shell_state{ command_editor=CmdEditor,
 									   past_ops_editor=PastOpsEditor,
 									   past_ops_text=InitBinText,
 									   shell_pid=ActualShellPid },
@@ -326,24 +360,35 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 -doc "Main loop of the GUI shell process.".
 -spec gui_shell_main_loop( gui_shell_state() ) -> no_return().
 gui_shell_main_loop( GUIShellState=#gui_shell_state{
-		command_display=CmdDisplay,
+		command_editor=CmdEditor,
 		past_ops_editor=PastOpsEditor,
 		past_ops_text=PastOpsText,
 		shell_pid=ShellPid } ) ->
 
 	receive
 
-		{ onKeyPressed, [ _CmdPanel, _CmdPanelId, EventContext ] } ->
+		{ onCharEntered, [ _CmdEditor, _CmdPanelId, EventContext ] } ->
 
 			BackendKeyEvent = gui_keyboard:get_backend_event( EventContext ),
 
-			Scancode = gui_keyboard:get_scancode( BackendKeyEvent ),
+			NewGUIShellState =
+					case gui_keyboard:is_control_pressed( BackendKeyEvent ) of
 
-			trace_utils:debug_fmt( "Scan code: ~p.", [ Scancode ] ),
+				true ->
+					handle_ctrl_modified_key( BackendKeyEvent, GUIShellState );
 
-			gui_shell_main_loop( GUIShellState );
+				false ->
+					handle_non_ctrl_modified_key( BackendKeyEvent,
+												  GUIShellState )
+
+			end,
+
+			%trace_utils:debug( text_state_to_string( NewGUIShellState ) ),
+
+			gui_shell_main_loop( NewGUIShellState );
 
 
+		% To restore focus on command display widget:
 		{ onMouseLeftButtonPressed,
 				[ CmdPanel, _CmdPanelId, _EventContext ] } ->
 
@@ -356,7 +401,7 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 
 		{ onEnterPressed,
-				[ _CmdDisplay, _EditorId, NewText, _EventContext ] } ->
+				[ _CmdEditor, _EditorId, NewText, _EventContext ] } ->
 
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug_fmt( "Read command '~ts'.", [ NewText ] ) ),
@@ -387,8 +432,8 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 			gui_text_editor:show_text_end( PastOpsEditor ),
 
-			%gui_text_editor:set_text( CmdDisplay, get_prompt_for( NextCmdId ) ),
-			gui_text_editor:clear( CmdDisplay ),
+			%gui_text_editor:set_text( CmdEditor, get_prompt_for( NextCmdId ) ),
+			gui_text_editor:clear( CmdEditor ),
 
 			%trace_utils:info_fmt(
 			%  "Shell read: '~ts'; new past operations are: <<<~n~ts>>>",
@@ -399,17 +444,23 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 
 		acquireFocus ->
-			gui_widget:set_focus( CmdDisplay ),
+			gui_widget:set_focus( CmdEditor ),
 
 			gui_shell_main_loop( GUIShellState );
 
 
 		destruct ->
-			[ gui_text_editor:destruct( Ed )
-				|| Ed <- [ CmdDisplay, PastOpsEditor ] ],
+
+			% Destroying widgets (editor, panel, display, etc.) probably useless
+			% (done through parent window).
+			%
+			%gui_text_editor:destruct( PastOpsEditor ),
+
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug_fmt( "GUI shell ~w terminated.",
-									   [ self() ] ) );
+									   [ self() ] ) ),
+
+			ok;
 
 		Other ->
 			trace_utils:warning_fmt( "GUI shell loop ignored the following "
@@ -419,6 +470,217 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 	end.
 
 
+
+-doc "Handles a key with a Control modifier.".
+-spec handle_ctrl_modified_key( backend_keyboard_event(),
+								 gui_shell_state() ) -> gui_shell_state().
+handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
+		command_editor=CmdEditor,
+		precursor_chars=PreChars,
+		postcursor_chars=PostChars } ) ->
+
+	Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
+
+	%trace_utils:debug_fmt( "Keycode with Control modifier received: ~p (~ts)",
+	%	[ Keycode, gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ),
+
+	case Keycode of
+
+		% Ctrl-a:
+		?MYR_K_CTRL_A ->
+			%trace_utils:debug( "To start of line." ),
+
+			NewPreChars = [],
+
+			NewPostChars = lists:reverse( PreChars ) ++ PostChars,
+
+			gui_text_editor:set_cursor_position( CmdEditor, _CharPos=0 ),
+
+			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars,
+										   postcursor_chars=NewPostChars };
+
+		% Ctrl-e:
+		?MYR_K_CTRL_E ->
+			%trace_utils:debug( "To end of line." ),
+
+			NewPreChars = lists:reverse( PreChars ) ++ PostChars,
+
+			NewPostChars = [],
+
+			gui_text_editor:set_cursor_position_to_end( CmdEditor ),
+
+			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars,
+										   postcursor_chars=NewPostChars };
+
+		% Ctrl-c:
+		?MYR_K_CTRL_C ->
+			%trace_utils:debug( "Clearing command." ),
+
+			% Resets the cursor:
+			gui_text_editor:set_text( CmdEditor, "" ),
+
+			GUIShellState#gui_shell_state{ precursor_chars=[],
+										   postcursor_chars=[] };
+
+
+
+		Other ->
+			trace_utils:debug_fmt( "(ignoring keycode with Ctrl modifier ~p)",
+								   [ Other ] ),
+			GUIShellState
+
+	end.
+
+
+
+
+-doc "Handles a key with no Control modifier.".
+-spec handle_non_ctrl_modified_key( backend_keyboard_event(),
+								 gui_shell_state() ) -> gui_shell_state().
+handle_non_ctrl_modified_key( BackendKeyEvent,
+		GUIShellState=#gui_shell_state{
+			command_editor=CmdEditor,
+			precursor_chars=PreChars,
+			postcursor_chars=PostChars } ) ->
+
+	Scancode = gui_keyboard:get_scancode( BackendKeyEvent ),
+
+	%trace_utils:debug_fmt(
+	%   "Scancode (with no Control modifier) received: ~p (~ts).",
+	%   [ Scancode, gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ),
+
+	% Right arrow:
+	case Scancode of
+
+		?MYR_SCANCODE_RIGHT ->
+			%trace_utils:debug( "To right (any next character)." ),
+
+			{ NewPreChars, NewPostChars } = case PostChars of
+
+				[] ->
+					%trace_utils:debug( "To right but already at end." ),
+					% Wrapping around the cursor:
+					gui_text_editor:set_cursor_position( CmdEditor, _Pos=0 ),
+					NPostChars = lists:reverse( PreChars ) ++ PostChars,
+					{ _NPreChars=[], NPostChars };
+
+				[ RightChar | T ] ->
+					gui_text_editor:offset_cursor_position( CmdEditor,
+															_PosOffset=1 ),
+					{ [ RightChar | PreChars ], T }
+
+			end,
+
+			GUIShellState#gui_shell_state{
+				precursor_chars=NewPreChars,
+				postcursor_chars=NewPostChars };
+
+
+		?MYR_SCANCODE_LEFT ->
+			%trace_utils:debug( "To left (any previous character)." ),
+			{ NewPreChars, NewPostChars } = case PreChars of
+
+				[] ->
+					%trace_utils:debug( "To left but already at start." ),
+					% Wrapping around the cursor:
+					gui_text_editor:set_cursor_position_to_end( CmdEditor),
+					NPreChars = lists:reverse( PostChars ) ++ PreChars,
+					{ NPreChars, _NPostChars=[] };
+
+				[ RightChar | T ] ->
+					gui_text_editor:offset_cursor_position( CmdEditor,
+															_PosOffset=-1 ),
+					{ T, [ RightChar | PostChars ] }
+
+			end,
+
+			GUIShellState#gui_shell_state{
+				precursor_chars=NewPreChars,
+				postcursor_chars=NewPostChars };
+
+		?MYR_SCANCODE_UP ->
+			trace_utils:debug( "Recall previous command." ),
+			GUIShellState;
+
+		?MYR_SCANCODE_DOWN ->
+			trace_utils:debug( "Recall next command." ),
+			GUIShellState;
+
+
+		?MYR_SCANCODE_BACKSPACE ->
+			%trace_utils:debug( "Backspace entered." ),
+			NewPreChars = case PreChars of
+
+				[] ->
+					[];
+
+				[ _Last | Others ] ->
+					gui_text_editor:offset_cursor_position( CmdEditor,
+															_PosOffset=-1 ),
+					Others
+
+			end,
+
+			set_chars( NewPreChars, PostChars, CmdEditor ),
+
+			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars };
+
+
+		?MYR_SCANCODE_RETURN ->
+			trace_utils:debug( "Return entered." ),
+			GUIShellState;
+
+
+		_Other ->
+			Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
+			%trace_utils:debug_fmt( "(adding '~ts')", [ [ Keycode ] ] ),
+
+			NewPreChars = [ Keycode | PreChars ],
+
+			set_chars( NewPreChars, PostChars, CmdEditor ),
+
+			gui_text_editor:offset_cursor_position( CmdEditor, _PosOffset=1 ),
+
+			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars }
+
+	end.
+
+
+
+-doc "Sets the specified characters in the specified editor.".
+set_chars( PreChars, PostChars, CmdEditor ) ->
+	Text = lists:reverse( PreChars ) ++ PostChars,
+
+	% Useless:
+	%gui_text_editor:clear( CmdEditor ),
+
+	% Will have to be restored, as setting bound to put it at end:
+	SavedPos = gui_text_editor:get_cursor_position( CmdEditor ),
+
+	gui_text_editor:set_text( CmdEditor, Text ),
+
+	gui_text_editor:set_cursor_position( CmdEditor, SavedPos ).
+
+	% Wrong, we may edit in-text:
+	%gui_text_editor:set_cursor_position_to_end( CmdEditor ).
+
+
+
+
+
+-doc """
+Returns a textual description of the text state of the specified shell state.
+""".
+-spec text_state_to_string( gui_shell_state() ) -> ustring().
+text_state_to_string( #gui_shell_state{ command_editor=CmdEditor,
+										precursor_chars=PreChars,
+										postcursor_chars=PostChars } ) ->
+
+	Text = lists:reverse( PreChars ) ++ PostChars,
+
+	text_utils:format( "Current text is '~ts' (of length ~B), "
+		"cursor position is ~B", [ Text, length( Text ),
+			gui_text_editor:get_cursor_position( CmdEditor ) ] ).
 
 
 
