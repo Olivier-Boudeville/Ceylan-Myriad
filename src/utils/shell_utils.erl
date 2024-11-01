@@ -101,12 +101,16 @@ For example: <<"A=1, B=2, A+B.">>.
 -type command() :: bin_string().
 
 
--doc "The number of a command, which is an identifier thereof.".
+-doc """
+The number (count since shell start) of a command, which is an identifier
+thereof.
+""".
 -type command_id() :: count().
 
 
 -doc "The result of a command, as evaluated by a shell.".
 -type command_result() :: variable_value().
+
 
 -doc "An error message generated when a shell evaluates a submitted command.".
 -type command_error() :: bin_string().
@@ -221,6 +225,9 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 
 	% Records all current bindings:
 	bindings :: binding_struct()
+
+	% At least currently, a shell does not keep track of the process(es) using
+	% it.
 
 	% TODO: add local/non-local function handlers
 
@@ -634,7 +641,7 @@ custom_shell_main_loop( ShellState ) ->
 	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
 		"Now being ~ts", [ custom_shell_state_to_string( ShellState ) ] ) ),
 
-	% WOOPER-like conventions:
+	% WOOPER-like conventions, except that no wooper_result is sent back:
 	receive
 
 		{ processCommand, CmdBinStr, ClientPid } ->
@@ -652,6 +659,10 @@ custom_shell_main_loop( ShellState ) ->
 			custom_shell_main_loop( ShellState#custom_shell_state{
 										history=queue:new() } );
 
+		{ getCommandSubmissionCount, [], CallerPid } ->
+			Count = ShellState#custom_shell_state.submission_count,
+			CallerPid ! { submission_count, Count },
+			custom_shell_main_loop( ShellState );
 
 		terminate ->
 			cond_utils:if_defined( myriad_debug_shell,
