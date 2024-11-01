@@ -152,11 +152,9 @@ test_main_loop( TestState={ TestFrame, CheckScanCode } ) ->
 -spec interpret_event_context( event_context(), boolean() ) -> void().
 interpret_event_context( EventContext, _CheckScanCode=true ) ->
 
-	WxKeyEvent = gui_keyboard:get_backend_event( EventContext ),
-
-	MaybeUChar = gui_keyboard:get_maybe_uchar( WxKeyEvent ),
-	Keycode = gui_keyboard:get_keycode( WxKeyEvent ),
-	Scancode = gui_keyboard:get_scancode( WxKeyEvent ),
+	MaybeUChar = gui_keyboard:event_context_to_maybe_uchar( EventContext ),
+	Keycode = gui_keyboard:event_context_to_keycode( EventContext ),
+	Scancode = gui_keyboard:event_context_to_scancode( EventContext ),
 
 	%trace_utils:debug_fmt( "Maybe unicode char=~w, Keycode=~w, Scancode=~w.",
 	%                       [ MaybeUChar, Keycode, Scancode ] ),

@@ -213,8 +213,8 @@ init_test_gui() ->
 
 	GLBaseInfo = { GLCanvas, GLContext },
 
-	gui:subscribe_to_events( { [ onShown, onResized, onWindowClosed ],
-							   MainFrame } ),
+	gui:subscribe_to_events(
+		{ [ onShown, onResized, onWindowClosed ], MainFrame } ),
 
 	% (on Apple's Cocoa, subscribing to onRepaintNeeded might be required)
 	gui:subscribe_to_events( { onRepaintNeeded, GLCanvas } ),
@@ -519,9 +519,9 @@ test_onResized_driver( _Elements=[ _ParentWindow, _ParentWindowId,
 
 
 % Is actually a frame:
-test_onWindowClosed( Elements=[ ParentWindow, _ParentWindowId,
-								_EventContext ],
-					 AppGUIState ) ->
+test_onWindowClosed(
+		Elements=[ ParentWindow, _ParentWindowId, _EventContext ],
+		AppGUIState ) ->
 
 	trace_utils:info_fmt( "Main frame ~w closed, test success.",
 						  [ ParentWindow ] ),
@@ -552,6 +552,7 @@ OpenGL context expected here to have already been set.
 on_main_frame_resized( GUIState=#app_gui_state{
 		opengl_base_state={ initialised, GLCanvas, _GLContext },
 		app_specific_info=#my_test_gui_info{ panel=Panel } } ) ->
+
 	% Maximises widgets in their respective area:
 
 	% First, panel in main frame:

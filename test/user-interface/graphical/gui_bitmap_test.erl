@@ -106,7 +106,7 @@ run_bitmap_test() ->
 	gui_widget:set_sizer( Panel, GridSizer ),
 
 	% No need to subscribe to 'onRepaintNeeded' for the panel:
-	gui:subscribe_to_events( [ { onWindowClosed, MainFrame } ] ),
+	gui:subscribe_to_events( { onWindowClosed, MainFrame } ),
 
 	% Renders the GUI:
 	gui_frame:show( MainFrame ),
@@ -123,14 +123,14 @@ test_main_loop( MainFrame ) ->
 
 	receive
 
-		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
+		{ onWindowClosed, [ MainFrame, _MainFrameId, EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 					"(~ts), test success.",
 					[ gui:object_to_string( MainFrame ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			gui_frame:destruct( MainFrame );
 

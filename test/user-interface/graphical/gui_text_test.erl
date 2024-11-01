@@ -120,7 +120,7 @@ run_gui_test() ->
 
 	gui_widget:set_sizer( ScrollablePanel, VertSizer ),
 
-	gui:subscribe_to_events( [ { onWindowClosed, Frame } ] ),
+	gui:subscribe_to_events( { onWindowClosed, Frame } ),
 
 	gui_frame:show( Frame ),
 

@@ -68,11 +68,11 @@ run_test_gui() ->
 	% Not even a real main loop here, just a one-shot event waited:
 	receive
 
-		{ onWindowClosed, [ TestFrame, _TestFrameId, Context ] } ->
+		{ onWindowClosed, [ TestFrame, _TestFrameId, EventContext ] } ->
 
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 
 			% A frame is a window:
 			gui_frame:destruct( TestFrame ),

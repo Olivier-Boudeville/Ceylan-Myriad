@@ -532,15 +532,15 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 		% Routine messages sent by solvers shall be listed last, otherwise they
 		% will eclipse other messages (e.g. GUI ones):
 
-		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
+		{ onWindowClosed, [ MainFrame, _MainFrameId, EventContext ] } ->
 			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 				"(~ts), quitting Lorenz test, test success.",
 				[ gui:object_to_string( MainFrame ),
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 			undefined;
 
 
-		{ onButtonClicked, [ StartButton, _StartButtonId, _Context ] } ->
+		{ onButtonClicked, [ StartButton, _StartButtonId, _EventContext ] } ->
 			%test_facilities:display( "Start button clicked." ),
 
 			SolverTable = GUIState#gui_state.solver_table,
@@ -554,7 +554,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			GUIState;
 
 
-		{ onButtonClicked, [ IncButton, _IncButtonId, _Context ] } ->
+		{ onButtonClicked, [ IncButton, _IncButtonId, _EventContext ] } ->
 			%test_facilities:display( "Increase timestep button clicked." ),
 
 			NewTimestep = 1.05 * GUIState#gui_state.timestep,
@@ -568,7 +568,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			GUIState#gui_state{ timestep=NewTimestep };
 
 
-		{ onButtonClicked, [ DecButton, _DecButtonId, _Context ] } ->
+		{ onButtonClicked, [ DecButton, _DecButtonId, _EventContext ] } ->
 			%test_facilities:display( "Decrease timestep button clicked." ),
 
 			NewTimestep = 0.95 * GUIState#gui_state.timestep,
@@ -582,7 +582,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			GUIState#gui_state{ timestep=NewTimestep };
 
 
-		{ onButtonClicked, [ ClearButton, _ClearButtonId, _Context ] } ->
+		{ onButtonClicked, [ ClearButton, _ClearButtonId, _EventContext ] } ->
 			%test_facilities:display( "Clear button clicked." ),
 
 			gui_statusbar:push_text( GUIState#gui_state.status_bar,
@@ -593,7 +593,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			GUIState;
 
 
-		{ onButtonClicked, [ StopButton, _StopButtonId, _Context ] } ->
+		{ onButtonClicked, [ StopButton, _StopButtonId, _EventContext ] } ->
 			%test_facilities:display( "Stop button clicked." ),
 
 			SolverTable = GUIState#gui_state.solver_table,
@@ -607,7 +607,7 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 			GUIState;
 
 
-		{ onButtonClicked, [ ResetButton, _ResetButtonId, _Context ] } ->
+		{ onButtonClicked, [ ResetButton, _ResetButtonId, _EventContext ] } ->
 			%test_facilities:display( "Reset button clicked." ),
 
 			reset_solvers( GUIState#gui_state.solver_table,
@@ -619,32 +619,33 @@ gui_main_loop( GUIState=#gui_state{ main_frame=MainFrame,
 
 
 		% To showcase the use of name identifiers:
-		{ onButtonClicked, [ _QuitButton, quit_button_id, _Context ] } ->
+		{ onButtonClicked, [ _QuitButton, quit_button_id, _EventContext ] } ->
 			test_facilities:display( "Quit button clicked." ),
 			undefined;
 
 
-		{ onButtonClicked, [ AnyOtherButton, _AnyOtherButtonId, _Context ] } ->
+		{ onButtonClicked,
+				[ AnyOtherButton, _AnyOtherButtonId, _EventContext ] } ->
 			test_facilities:display( "Following unexpected button clicked: ~w.",
 									 [ AnyOtherButton ] ),
 			GUIState;
 
 
-		{ onRepaintNeeded, [ Canvas, _CanvasId, _Context ] } ->
+		{ onRepaintNeeded, [ Canvas, _CanvasId, _EventContext ] } ->
 
 			%trace_utils:notice_fmt( "Test canvas '~ts' needing repaint (~ts).",
 			%   [ gui:object_to_string( Canvas ),
-			%     gui_event:context_to_string( Context ) ] ),
+			%     gui_event:context_to_string( EventContext ) ] ),
 
 			gui_canvas:blit( Canvas ),
 			GUIState;
 
 
-		{ onResized, [ Canvas, _CanvasId, _NewSize, _Context ] } ->
+		{ onResized, [ Canvas, _CanvasId, _NewSize, _EventContext ] } ->
 
 			%trace_utils:notice_fmt( "Test canvas '~ts' resized to ~p (~ts).",
 			%   [ gui:object_to_string( Canvas ), NewSize,
-			%     gui_event:context_to_string( Context ) ] ),
+			%     gui_event:context_to_string( EventContext ) ] ),
 
 			gui_canvas:clear( Canvas ),
 			GUIState;

@@ -202,6 +202,7 @@ gui_main_loop( GUIState ) ->
 
 
 		{ onWindowClosed, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
+
 			cleanup_opengl( GUIState ),
 			trace_utils:info( "Main frame closed, test success." ),
 

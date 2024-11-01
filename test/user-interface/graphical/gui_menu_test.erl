@@ -183,22 +183,22 @@ test_main_loop( State={ Frame, PopupMenu } ) ->
 
 	receive
 
-		{ onMouseRightButtonReleased, [ Frame, _FrameId, _Context ] } ->
+		{ onMouseRightButtonReleased, [ Frame, _FrameId, _EventContext ] } ->
 			%trace_utils:debug_fmt( "onMouseRightButtonReleased for frame ~w.",
 			%                       [ Frame ] ),
 			gui_menu:activate_as_popup( PopupMenu, Frame ),
 			test_main_loop( State );
 
-		{ onItemSelected, [ _Menu, _ItemId=exit_menu_item, _Context ] } ->
+		{ onItemSelected, [ _Menu, _ItemId=exit_menu_item, _EventContext ] } ->
 			trace_utils:info( "Exit menu item selected, stopping test." );
 
-		{ onItemSelected, [ _Menu, ItemId, _Context ] } ->
+		{ onItemSelected, [ _Menu, ItemId, _EventContext ] } ->
 			%trace_utils:debug_fmt( "Received for menu ~w: ~w",
-			%                       [ Menu, Context ] ),
+			%                       [ Menu, EventContext ] ),
 			trace_utils:info_fmt( "Menu item '~w' selected.", [ ItemId ] ),
 			test_main_loop( State );
 
-		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
+		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui_frame:destruct( Frame ),
 			gui:stop();
