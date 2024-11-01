@@ -399,7 +399,8 @@ wx_native_object_type(); for example 'window', instead of 'wxWindow'.
 
 -doc """
 Reference to a GUI object (often designated as "widget" here), somewhat akin to
-a PID (e.g. {wx_ref, 35, wxFrame, []} or {myriad_object_ref, myr_canvas, 12}).
+a PID (e.g. ``{wx_ref, 35, wxFrame, []}`` or ``{myriad_object_ref, myr_canvas,
+12}``).
 """.
 -type gui_object() :: wx_object() | myriad_object_ref().
 
@@ -1110,34 +1111,39 @@ set_debug_level( DebugLevel ) ->
 
 
 -doc """
-Subscribes the current, calling process to the specified kind of events,
-resulting in corresponding MyriadGUI callback messages being received whenever
-such events occur, typically like:
-   {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
+Subscribes the current, calling process to the specified kind(s) of events,
+resulting in corresponding MyriadGUI callback messages being received by this
+caller whenever such events occur, typically like ``{onWindowClosed,
+[WindowGUIObject, WindowId, EventContext]}``.
 
-The MyriadGUI general convention is to send to the subscribers a message as a
-tuple whose:
+The MyriadGUI convention is to send to the subscribers a message as a
+pair, whose:
 
 - first element corresponds to the type of event having happened, as an atom
 (e.g. 'onWindowClosed', 'onResized', 'onShown', etc.; refer to
 gui_event:event_type())
-- second is a list whose elements depend on the type of this event
+- second element is a list whose elements depend on the type of this event
 
 In any case, this list respects the following structure:
 [EmitterGUIObject, EmitterId, ..., EventContext]; indeed it begins with:
 - first the reference onto the actual event emitter, as a gui_object()
-- second its identifier (any user-specified name, otherwise the lower-level
-backend one), as a gui_id:id()
+- second the identifier of that emitter (any user-specified name, otherwise the
+lower-level backend one), as a gui_id:id()
 - ends with an event context record (see gui_event:event_context())
-concentrating all available information, should it be needed
+concentrating all available information (in a backkend-specific way), should it
+be needed
 
 In-between, there may be additional key information for that type of event that
-are inserted (like the new dimensions for a onResized event, to have it readily
-available instead of having to peek in the associated event context).
+are inserted (like the new dimensions for a onResized event, in order to have it
+readily available instead of having to peek in the associated backend event
+context).
 
 So typical messages may be:
 - {onWindowClosed, [WindowGUIObject, WindowId, EventContext]}
 - {onResized, [WidgetGUIObject, WidgetId, NewSize, EventContext]}
+
+Refer to the documentation of the gui_event:gui_event/0 type for further
+details.
 
 By default (especially for non-command events), subscribing to an event type
 implies that the corresponding events will still be transmitted upward in the
@@ -1149,9 +1155,11 @@ or, later, in the corresponding event handler, call the trap_event/1 function.
 Note that trapping non-command events may prevent GUI updates that are to be
 done by the backend.
 
+For unsubscribing, refer to unsubscribe_from_events/1.
+
 Note also that, at least when creating the main frame, if having subscribed to
-onShown and onResized, on creation first a onResized event will be received by
-the subscriber (typically for a 20x20 size), then a onShown event.
+onShown and onResized, on its creation first a onResized event will be received
+by the subscriber (typically for a 20x20 size), then a onShown event.
 """.
 -spec subscribe_to_events( event_subscription_spec() ) -> void().
 subscribe_to_events( SubscribedEvents ) ->
@@ -1478,8 +1486,8 @@ execute_instance_creation( ObjectType, ConstructionParams ) ->
 
 			cond_utils:if_defined( myriad_debug_gui_instances,
 				trace_utils:debug_fmt(
-				   "'~ts' instance created, now referenced as ~w.",
-				   [ ObjectType, ObjectRef ] ) ),
+					"'~ts' instance created, now referenced as ~w.",
+					[ ObjectType, ObjectRef ] ) ),
 
 			ObjectRef
 
