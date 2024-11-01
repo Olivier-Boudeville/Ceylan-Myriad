@@ -497,6 +497,9 @@ myr_keycode_to_wx( MyrKeycode ) ->
 -doc """
 Returns the backend keyboard event included in the specified (keyboard-related)
 event context.
+
+Generally for internal use only; prefer relying on the event_context_to_*/1
+functions.
 """.
 -spec get_backend_event( event_context() ) -> backend_keyboard_event().
 get_backend_event( #event_context{
