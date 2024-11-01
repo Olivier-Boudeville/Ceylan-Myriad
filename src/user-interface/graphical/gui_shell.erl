@@ -31,10 +31,30 @@
 A GUI component hosting an **Erlang shell**, like an Erlang interpreter (a kind
 of REPL) with which the user can interact (input/output) graphically.
 
-Keyboard shortcuts for this shell (Emacs-inspired):
-- Ctrl-a: to beginning of line
-- Ctrl-e: to end of line
-- Ctrl-c: clear command
+Keyboard shortcuts for this shell (partly Emacs-inspired):
+- Ctrl-a: to beginning of command line
+- Ctrl-e: to end of command line
+- Ctrl-k: clear command line from cursor
+- Ctrl-c: clear current command (instead of killing/going in Erlang BREAK
+  mode/starting an Emacs sequence)
+
+Special-purpose keys:
+- Delete: delete any character at cursor
+- Backspace: delete any character just previous cursor
+- Left/Right arrows: move left/right in command line
+- Up/Down: recall previous/next command
+- Return: triggers the currently edited command
+
+Text can be intentionally:
+ - pasted in the editor (typically with the mouse), at the end of current
+   command
+ - selected in the past commands (e.g. for re-use)
+
+The sending of shell commands is synchronous: thid widget blocks untils the
+shell answers about the corresponding outcome.
+
+Timestamps are determined in the context of the actual (potentially remote)
+shell (not of this widget).
 
 This graphical module relies on our shell_utils one.
 """.
@@ -80,9 +100,12 @@ Not to be mixed up with shell_utils:shell_pid().
 
 % Type shorthands:
 
+%-type count() :: basic_utils:count().
+
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
 -type uchar() :: text_utils:uchar().
+-type length() :: text_utils:length().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -105,6 +128,10 @@ Not to be mixed up with shell_utils:shell_pid().
 
 -type text_editor() :: gui_text_editor:text_editor().
 
+
+% Local types:
+
+-type prefix_info() :: { ustring(), length() }.
 
 
 
@@ -162,6 +189,20 @@ Not to be mixed up with shell_utils:shell_pid().
 	%
 	command_editor :: text_editor(),
 
+	% Identifier (number) of the command being currently edited (hence that will
+	% be the "next" one).
+	%
+	% So corresponds to the number of commands already submitted (as obtained
+	% from the corresponding shell) plus one.
+	%
+	command_id :: command_id(),
+
+	% The (immutable) string before the leftmost position of the cursor:
+	prefix :: ustring(),
+
+	% The number of characters of the prefix:
+	prefix_len :: length(),
+
 	% The characters (Unicode codepoints) that are strictly before the current
 	% cursor, in reverse order:
 	%
@@ -171,6 +212,9 @@ Not to be mixed up with shell_utils:shell_pid().
 	% cursor (in normal order):
 	%
 	postcursor_chars = [] :: [ uchar() ],
+
+	% Tells whether the command cursor should wrap around:
+	wrap_cursor = false :: boolean(),
 
 	% The (read-only) editor displaying the past operations:
 	% (different from the shell's history)
@@ -284,6 +328,11 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
 	ActualShellPid = shell_utils:start_link_custom_shell( ShellOptList ),
 
+	% First submission ount is not necessarily zero (e.g. if connecting to a
+	% reloaded or already live shell):
+	%
+	ActualShellPid ! { getCommandSubmissionCount, [], self() },
+
 	gui:set_backend_environment( BackendEnv ),
 
 	VSizer = gui_sizer:create( _Orientation=vertical ),
@@ -340,15 +389,29 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 	gui_sizer:add_element( VSizer, HSizer,
 						   [ expand_fully, { proportion, 0 } ] ),
 
-	% To collect commands and set focus:
-	gui:subscribe_to_events( { [ onCharEntered, onMouseLeftButtonPressed ],
-							   CmdEditor } ),
+	% To collect commands, set focus, react to paste commands:
+	gui:subscribe_to_events( { [ onCharEntered, onMouseLeftButtonPressed,
+								 onTextUpdated ], CmdEditor } ),
 
 
 	% So that the editors take their actual size from the start:
 	gui_widget:layout( ParentWindow ),
 
+	% Interleaved for getCommandSubmissionCount:
+	CmdId = receive
+
+		{ submission_count, SubmCount } ->
+			% As this is the next command:
+			SubmCount+1
+
+	end,
+
+	{ Pfx, PfxLen } = edit_new_command( CmdId, CmdEditor ),
+
 	InitShellState = #gui_shell_state{ command_editor=CmdEditor,
+									   command_id=CmdId,
+									   prefix=Pfx,
+									   prefix_len=PfxLen,
 									   past_ops_editor=PastOpsEditor,
 									   past_ops_text=InitBinText,
 									   shell_pid=ActualShellPid },
@@ -357,13 +420,34 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 
 
 
+-doc "Prepares for the edition of the specified new command.".
+-spec edit_new_command( command_id(), text_editor() ) -> prefix_info().
+edit_new_command( CmdId, CmdEditor ) ->
+
+	PfxInfo = { Pfx, PfxLen } = get_prefix( CmdId ),
+
+	set_chars( Pfx, _PreChars=[], _PostChars=[], CmdEditor ),
+	gui_text_editor:set_cursor_position( CmdEditor, PfxLen ),
+
+	PfxInfo.
+
+
+
+
+-doc """
+Returns the (immutable) string before the leftmost position of the cursor, with
+its length.
+""".
+-spec get_prefix( command_id() ) -> prefix_info().
+get_prefix( CmdId ) ->
+	Str = text_utils:format( "~B> ", [ CmdId ] ),
+	{ Str, length( Str ) }.
+
+
+
 -doc "Main loop of the GUI shell process.".
 -spec gui_shell_main_loop( gui_shell_state() ) -> no_return().
-gui_shell_main_loop( GUIShellState=#gui_shell_state{
-		command_editor=CmdEditor,
-		past_ops_editor=PastOpsEditor,
-		past_ops_text=PastOpsText,
-		shell_pid=ShellPid } ) ->
+gui_shell_main_loop( GUIShellState ) ->
 
 	receive
 
@@ -390,61 +474,48 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 		% To restore focus on command display widget:
 		{ onMouseLeftButtonPressed,
-				[ CmdPanel, _CmdPanelId, _EventContext ] } ->
+				[ CmdEditor, _CmdEditorId, _EventContext ] } ->
 
-			%trace_utils:debug_fmt( "Setting the focus on the command "
-			%                       "panel ~w.", [ CmdPanel ] ),
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug_fmt( "Setting the focus on the command "
+									   "editor ~w.", [ CmdEditor ] ) ),
 
-			gui_widget:set_focus( CmdPanel ),
+			gui_widget:set_focus( CmdEditor ),
 
 			gui_shell_main_loop( GUIShellState );
 
 
-		{ onEnterPressed,
-				[ _CmdEditor, _EditorId, NewText, _EventContext ] } ->
+		% Typically called when pasting text with the mouse:
+		{ onTextUpdated,
+				[ CmdEditor, _CmdEditorId, NewText, _EventContext ] } ->
 
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug_fmt( "Read command '~ts'.", [ NewText ] ) ),
+			trace_utils:debug_fmt( "onTextUpdated: got '~ts'.", [ NewText ] ),
 
-			CmdBinStr = text_utils:string_to_binary( NewText ),
+			% We obtain the whole new line, including the prefix, which should
+			% thus be removed first:
 
-			{ BaseText, MaybeTmstpBinStr } =
-					case shell_utils:execute_command( CmdBinStr, ShellPid ) of
+			Prefix = GUIShellState#gui_shell_state.prefix,
 
-				{ success, CmdRes, CmdId, MaybeTimestampBinStr } ->
-					{ text_utils:bin_format( "~ts~ts~n~ts",
-						[ get_prompt_for( CmdId ), CmdBinStr,
-						  text_utils:term_to_binary( CmdRes ) ] ),
-					  MaybeTimestampBinStr };
+			ActualCmdStr = case text_utils:split_after_prefix( Prefix,
+															   NewText ) of
 
-				{ error, CmdError, CmdId, MaybeTimestampBinStr } ->
-					{ text_utils:bin_format( "~ts~ts~n~ts",
-						[ get_prompt_for( CmdId ), CmdBinStr, CmdError ] ),
-					  MaybeTimestampBinStr }
+				no_prefix ->
+					throw( { no_prefix_found, NewText, Prefix } );
+
+				Rest ->
+					Rest
 
 			end,
 
-			AddText = format_text( BaseText, MaybeTmstpBinStr ),
+			NewGUIShellState = set_full_command( Prefix, ActualCmdStr,
+												 CmdEditor, GUIShellState ),
 
-			NewPastOpsText = text_utils:bin_concatenate( PastOpsText, AddText ),
-
-			gui_text_editor:set_text( PastOpsEditor, NewPastOpsText ),
-
-			gui_text_editor:show_text_end( PastOpsEditor ),
-
-			%gui_text_editor:set_text( CmdEditor, get_prompt_for( NextCmdId ) ),
-			gui_text_editor:clear( CmdEditor ),
-
-			%trace_utils:info_fmt(
-			%  "Shell read: '~ts'; new past operations are: <<<~n~ts>>>",
-			%  [ NewText, NewPastOpsText ] ),
-
-			gui_shell_main_loop( GUIShellState#gui_shell_state{
-				past_ops_text=NewPastOpsText } );
+			gui_shell_main_loop( NewGUIShellState );
 
 
 		acquireFocus ->
-			gui_widget:set_focus( CmdEditor ),
+			gui_widget:set_focus(
+				GUIShellState#gui_shell_state.command_editor ),
 
 			gui_shell_main_loop( GUIShellState );
 
@@ -458,14 +529,15 @@ gui_shell_main_loop( GUIShellState=#gui_shell_state{
 
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug_fmt( "GUI shell ~w terminated.",
-									   [ self() ] ) ),
+									   [ self() ] ),
+				ok);
 
-			ok;
 
 		Other ->
 			trace_utils:warning_fmt( "GUI shell loop ignored the following "
 									 "message:~n ~p.", [ Other ] ),
 			gui_shell_main_loop( GUIShellState )
+
 
 	end.
 
@@ -481,29 +553,36 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 	Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
 
-	%trace_utils:debug_fmt( "Keycode with Control modifier received: ~p (~ts)",
-	%	[ Keycode, gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ),
+	cond_utils:if_defined( myriad_debug_gui_shell, trace_utils:debug_fmt(
+		"Keycode with Control modifier received: ~p (~ts)", [ Keycode,
+			gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ) ),
 
 	case Keycode of
 
 		% Ctrl-a:
 		?MYR_K_CTRL_A ->
-			%trace_utils:debug( "To start of line." ),
+
+			cond_utils:if_defined( myriad_debug_gui_shell,
+								   trace_utils:debug( "To start of line." ) ),
 
 			NewPreChars = [],
 
 			NewPostChars = lists:reverse( PreChars ) ++ PostChars,
 
-			gui_text_editor:set_cursor_position( CmdEditor, _CharPos=0 ),
+			gui_text_editor:set_cursor_position( CmdEditor,
+				_CharPos=GUIShellState#gui_shell_state.prefix_len ),
 
 			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars,
 										   postcursor_chars=NewPostChars };
 
+
 		% Ctrl-e:
 		?MYR_K_CTRL_E ->
-			%trace_utils:debug( "To end of line." ),
 
-			NewPreChars = lists:reverse( PreChars ) ++ PostChars,
+			cond_utils:if_defined( myriad_debug_gui_shell,
+								   trace_utils:debug( "To end of line." ) ),
+
+			NewPreChars = lists:reverse( PostChars ) ++ PreChars,
 
 			NewPostChars = [],
 
@@ -512,21 +591,43 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars,
 										   postcursor_chars=NewPostChars };
 
+
+		% Ctrl-k:
+		?MYR_K_CTRL_K ->
+
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "Killing to end of line." ) ),
+
+			NewPostChars = [],
+
+			set_chars( GUIShellState#gui_shell_state.prefix, PreChars,
+					   NewPostChars, CmdEditor ),
+
+			GUIShellState#gui_shell_state{ postcursor_chars=[] };
+
+
 		% Ctrl-c:
 		?MYR_K_CTRL_C ->
-			%trace_utils:debug( "Clearing command." ),
+
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "Clearing command." ) ),
 
 			% Resets the cursor:
-			gui_text_editor:set_text( CmdEditor, "" ),
+			gui_text_editor:set_text( CmdEditor,
+				GUIShellState#gui_shell_state.prefix  ),
+
+			gui_text_editor:set_cursor_position( CmdEditor,
+				_CharPos=GUIShellState#gui_shell_state.prefix_len ),
 
 			GUIShellState#gui_shell_state{ precursor_chars=[],
 										   postcursor_chars=[] };
 
 
-
 		Other ->
-			trace_utils:debug_fmt( "(ignoring keycode with Ctrl modifier ~p)",
-								   [ Other ] ),
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug_fmt(
+					"(ignoring keycode with Ctrl modifier ~p)", [ Other ] ),
+					basic_utils:ignore_unused( Other ) ),
 			GUIShellState
 
 	end.
@@ -545,22 +646,47 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 	Scancode = gui_keyboard:get_scancode( BackendKeyEvent ),
 
-	%trace_utils:debug_fmt(
-	%   "Scancode (with no Control modifier) received: ~p (~ts).",
-	%   [ Scancode, gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ),
+	cond_utils:if_defined( myriad_debug_gui_shell, trace_utils:debug_fmt(
+		"Scancode (with no Control modifier) received: ~p (~ts).",
+		[ Scancode, gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ) ),
 
 	% Right arrow:
 	case Scancode of
 
+		?MYR_SCANCODE_DELETE ->
+			cond_utils:if_defined( myriad_debug_gui_shell,
+								   trace_utils:debug( "Delete entered." ) ),
+
+			NewPostChars = case PostChars of
+
+				[] ->
+					[];
+
+				[ _Next | Others ] ->
+					Others
+
+			end,
+
+			set_chars( GUIShellState#gui_shell_state.prefix, PreChars,
+					   NewPostChars, CmdEditor ),
+
+			GUIShellState#gui_shell_state{ postcursor_chars=NewPostChars };
+
+
 		?MYR_SCANCODE_RIGHT ->
-			%trace_utils:debug( "To right (any next character)." ),
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "To right (any next character)." ) ),
 
 			{ NewPreChars, NewPostChars } = case PostChars of
 
 				[] ->
 					%trace_utils:debug( "To right but already at end." ),
-					% Wrapping around the cursor:
-					gui_text_editor:set_cursor_position( CmdEditor, _Pos=0 ),
+
+					% Wrapping around the cursor if enabled:
+					GUIShellState#gui_shell_state.wrap_cursor andalso
+						gui_text_editor:set_cursor_position( CmdEditor,
+							_Pos=GUIShellState#gui_shell_state.prefix_len ),
+
 					NPostChars = lists:reverse( PreChars ) ++ PostChars,
 					{ _NPreChars=[], NPostChars };
 
@@ -577,15 +703,26 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 		?MYR_SCANCODE_LEFT ->
-			%trace_utils:debug( "To left (any previous character)." ),
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "To left (any previous character)." ) ),
 			{ NewPreChars, NewPostChars } = case PreChars of
 
 				[] ->
 					%trace_utils:debug( "To left but already at start." ),
-					% Wrapping around the cursor:
-					gui_text_editor:set_cursor_position_to_end( CmdEditor),
-					NPreChars = lists:reverse( PostChars ) ++ PreChars,
-					{ NPreChars, _NPostChars=[] };
+
+					% Wrapping around the cursor if enabled:
+					case GUIShellState#gui_shell_state.wrap_cursor of
+
+						true ->
+							gui_text_editor:set_cursor_position_to_end(
+							  CmdEditor ),
+							NPreChars = lists:reverse( PostChars ) ++ PreChars,
+							{ NPreChars, _NPostChars=[] };
+
+						false ->
+							{ PreChars, PostChars }
+
+					end;
 
 				[ RightChar | T ] ->
 					gui_text_editor:offset_cursor_position( CmdEditor,
@@ -598,17 +735,25 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 				precursor_chars=NewPreChars,
 				postcursor_chars=NewPostChars };
 
+
 		?MYR_SCANCODE_UP ->
-			trace_utils:debug( "Recall previous command." ),
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "Recall previous command." ) ),
+
 			GUIShellState;
 
+
 		?MYR_SCANCODE_DOWN ->
-			trace_utils:debug( "Recall next command." ),
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "Recall next command." ) ),
+
 			GUIShellState;
 
 
 		?MYR_SCANCODE_BACKSPACE ->
-			%trace_utils:debug( "Backspace entered." ),
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "Backspace entered." ) ),
+
 			NewPreChars = case PreChars of
 
 				[] ->
@@ -621,23 +766,122 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 			end,
 
-			set_chars( NewPreChars, PostChars, CmdEditor ),
+			set_chars( GUIShellState#gui_shell_state.prefix, NewPreChars,
+					   PostChars, CmdEditor ),
 
 			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars };
 
 
-		?MYR_SCANCODE_RETURN ->
-			trace_utils:debug( "Return entered." ),
+		?MYR_SCANCODE_TAB ->
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "Tab entered." ) ),
+
 			GUIShellState;
+
+
+		?MYR_SCANCODE_RETURN ->
+
+			CmdStr = lists:reverse( PreChars ) ++ PostChars,
+
+			% So that it is converted only once:
+			CmdBinStr = text_utils:string_to_binary( CmdStr ),
+
+			ShellPid = GUIShellState#gui_shell_state.shell_pid,
+
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug_fmt(
+					"Return entered, triggering command '~ts' "
+					"on shell ~w.", [ CmdBinStr, ShellPid ] ) ),
+
+			CurrentCmdId = GUIShellState#gui_shell_state.command_id,
+
+			{ BaseText, MaybeTmstpBinStr } =
+					case shell_utils:execute_command( CmdBinStr, ShellPid ) of
+
+
+				{ success, CmdRes, CurrentCmdId, MaybeTimestampBinStr } ->
+
+					cond_utils:if_defined( myriad_debug_gui_shell,
+						trace_utils:debug_fmt(
+							"For command #~B (at ~ts), success value is ~p.",
+							[ CurrentCmdId, MaybeTimestampBinStr, CmdRes ] ) ),
+
+					{ text_utils:bin_format( "~ts~ts~n~ts",
+						[ get_prompt_for( CurrentCmdId ), CmdBinStr,
+						  text_utils:term_to_binary( CmdRes ) ] ),
+					  MaybeTimestampBinStr };
+
+
+				{ error, ErrorBinStr, CurrentCmdId, MaybeTimestampBinStr } ->
+
+					cond_utils:if_defined( myriad_debug_gui_shell,
+						trace_utils:debug_fmt(
+							"For command #~B (at ~ts), error is ~ts.",
+							[ CurrentCmdId, MaybeTimestampBinStr,
+							  ErrorBinStr ] ) ),
+
+					{ text_utils:bin_format( "~ts~ts~n~ts",
+						[ get_prompt_for( CurrentCmdId ), CmdBinStr,
+						  ErrorBinStr ] ),
+					  MaybeTimestampBinStr };
+
+
+				% Mostly useless security:
+				InvOutcome={ OutcomeAtom, _CmdResValue, OtherCmdId,
+							 MaybeTimestampBinStr }
+					when OutcomeAtom =:= success
+						 orelse OutcomeAtom =:= error ->
+
+					trace_utils:error_fmt( "Received an invalid command "
+						"outcome for (command identifier: ~p, tag: ~p, "
+						"timestamp ~ts).",
+						[ OtherCmdId, OutcomeAtom, MaybeTimestampBinStr ] ),
+
+					throw( { invalid_command_outcome, InvOutcome,
+							 CurrentCmdId } )
+
+			end,
+
+			AddText = format_text( BaseText, MaybeTmstpBinStr ),
+
+			NewPastOpsText = text_utils:bin_concatenate(
+				GUIShellState#gui_shell_state.past_ops_text, AddText ),
+
+			PastOpsEditor = GUIShellState#gui_shell_state.past_ops_editor,
+
+			gui_text_editor:set_text( PastOpsEditor, NewPastOpsText ),
+
+			gui_text_editor:show_text_end( PastOpsEditor ),
+
+			%gui_text_editor:set_text( CmdEditor, get_prompt_for( NextCmdId ) ),
+			gui_text_editor:clear( CmdEditor ),
+
+			NewCmdId = CurrentCmdId + 1,
+
+			{ Pfx, PfxLen } = edit_new_command( NewCmdId, CmdEditor ),
+
+			%trace_utils:info_fmt(
+			%  "Shell read: '~ts'; new past operations are: <<<~n~ts>>>",
+			%  [ NewText, NewPastOpsText ] ),
+
+			GUIShellState#gui_shell_state{ command_id=NewCmdId,
+										   prefix=Pfx,
+										   prefix_len=PfxLen,
+										   precursor_chars=[],
+										   postcursor_chars=[],
+										   past_ops_text=NewPastOpsText } ;
+
 
 
 		_Other ->
 			Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
+
 			%trace_utils:debug_fmt( "(adding '~ts')", [ [ Keycode ] ] ),
 
 			NewPreChars = [ Keycode | PreChars ],
 
-			set_chars( NewPreChars, PostChars, CmdEditor ),
+			set_chars( GUIShellState#gui_shell_state.prefix, NewPreChars,
+					   PostChars, CmdEditor ),
 
 			gui_text_editor:offset_cursor_position( CmdEditor, _PosOffset=1 ),
 
@@ -647,9 +891,15 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 
--doc "Sets the specified characters in the specified editor.".
-set_chars( PreChars, PostChars, CmdEditor ) ->
-	Text = lists:reverse( PreChars ) ++ PostChars,
+-doc """
+Sets the specified characters in the specified editor.
+
+Does not alter the cursor position.
+""".
+-spec set_chars( ustring(), [ uchar() ], [ uchar() ], text_editor() ) -> void().
+set_chars( Prefix, PreChars, PostChars, CmdEditor ) ->
+
+	Text = Prefix ++ lists:reverse( PreChars ) ++ PostChars,
 
 	% Useless:
 	%gui_text_editor:clear( CmdEditor ),
@@ -665,6 +915,23 @@ set_chars( PreChars, PostChars, CmdEditor ) ->
 	%gui_text_editor:set_cursor_position_to_end( CmdEditor ).
 
 
+
+-doc """
+Sets the specified full command, erasing any previous content, setting the
+cursor at end.
+""".
+-spec set_full_command( ustring(), ustring(), text_editor(),
+						gui_shell_state() ) -> gui_shell_state().
+set_full_command( Prefix, CmdText, CmdEditor, GUIShellState ) ->
+
+	trace_utils:debug_fmt( "Setting command '~ts'.", [ CmdText ] ),
+
+	Text = Prefix ++ CmdText,
+
+	gui_text_editor:set_text( CmdEditor, Text ),
+
+	GUIShellState#gui_shell_state{ precursor_chars=lists:reverse( CmdText ),
+								   postcursor_chars=[] }.
 
 
 
