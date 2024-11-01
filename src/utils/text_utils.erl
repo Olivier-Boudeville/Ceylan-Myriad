@@ -698,6 +698,7 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 
 		L when L > MaxLength ->
 			% We have to truncate here, length( "..." ) = 3
+			%
 			% MaxLength - 3 = 0 is allowed there:
 			string:sub_string( FullString, 1, MaxLength - 3 ) ++ " ..";
 
