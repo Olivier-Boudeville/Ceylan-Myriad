@@ -262,7 +262,7 @@ control (i.e. position 0).
 
 If the text changed, resets the cursor position.
 
-Does not generate an onEnterPressed event.
+Does not generate an onTextUpdated event.
 """.
 -spec set_text( text_editor(), text() ) -> void().
 set_text( Editor, NewText ) ->
@@ -283,11 +283,13 @@ add_text( Editor, Text ) ->
 -doc """
 Clears the text in the editor.
 
-Generates an onEnterPressed event.
+Does not generate any event (e.g. no onTextUpdated one).
 """.
 -spec clear( text_editor() ) -> void().
 clear( Editor ) ->
-	wxTextCtrl:clear( Editor ).
+	% Would generate an unwanted onTextUpdated/wxEVT_TEXT event:
+	%wxTextCtrl:clear( Editor ).
+	wxTextCtrl:changeValue( Editor, _NewText="" ).
 
 
 
