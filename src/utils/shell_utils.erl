@@ -126,18 +126,24 @@ thereof.
 	  MaybeTimestampBinStr :: option( timestamp_binstring() ) }.
 
 
-% An element kept in the history:
--type history_element() :: { command(), command_result() }.
 
 
 -doc """
-An history of a shell, that is a list of previously submitted commands and of
-their results (here in antichronological order).
+A command history of a shell, that is a list of previously submitted commands
+(here in antichronological order).
+""".
+-type command_history() :: queue( command() ).
+
+
+-doc """
+A result history of a shell, that is a list of the results of previously
+submitted commands (here in antichronological order).
 
 Note that this may allow huge terms to be kept around longer than expected (see
-the flushHistory request message to avoid that).
+the flushResultHistory request message to avoid that).
 """.
--type history() :: queue( history_element() ).
+-type result_history() :: queue( command_result() ).
+
 
 
 
@@ -154,17 +160,20 @@ Options that can be specified when creating a shell:
 - {'log', LogPath :: any_file_path()}: logs the commands and their results in a
   file whose path is specified
 
-- {'history', MaxDepth :: count()}: records a command history of the specified
- maximum depth; 'undefined' means unlimited depth
+- {'histories', MaxCmdDepth :: option( count() ), MaxResDepth :: option( count()
+ )}: records a command and result histories of the specified maximum depths,
+ 'undefined' meaning unlimited depth (beware to memory footprint)
 
-- no_history: does not store any command history (synonym of {history,0})
+- no_history: does not store any command or result history (synonym of
+  {histories,0,0})
 """.
 -type shell_option() ::
 	'timestamp'
  |  'log'
  | { 'log', LogPath :: any_file_path() }
- | { 'history', MaybeMaxDepth :: option( count() ) }
- |  'no_history'.
+ | { 'histories', MaxCmdDepth :: option( count() ),
+	 MaxCmdDepth :: option( count() ), MaxResDepth :: option( count() ) }
+ |  'no_histories'.
 
 
 
@@ -183,12 +192,13 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 			   command/0, command_id/0, command_result/0, command_error/0,
 			   command_outcome/0,
 
-			   history/0,
+			   command_history/0, result_history/0,
 
 			   group_pid/0 ]).
 
 
--define( default_history_max_depth, 20 ).
+-define( default_command_history_max_depth, 20 ).
+-define( default_result_history_max_depth, 20 ).
 
 
 % The state of a custom shell instance.
@@ -215,13 +225,25 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 	log_file = undefined :: option( file() ),
 
 
-	% Maximum number of history elements (0: none; 1: just the last one, etc.;
-	% undefined: infinite):
+	% Maximum number of command history elements (0: none; 1: just the last one,
+	% etc.; undefined: infinite):
 	%
-	history_max_depth  = ?default_history_max_depth :: option( count() ),
+	cmd_history_max_depth=?default_command_history_max_depth ::
+		option( count() ),
+
+	% Maximum number of result history elements (0: none; 1: just the last one,
+	% etc.; undefined: infinite):
+	%
+	res_history_max_depth=?default_result_history_max_depth ::
+		option( count() ),
+
 
 	% Possibly ellipsed:
-	history :: history(),
+	cmd_history :: command_history(),
+
+	% Possibly ellipsed:
+	res_history :: result_history(),
+
 
 	% Records all current bindings:
 	bindings :: binding_struct()
@@ -539,9 +561,12 @@ start_link_custom_shell( Opts ) ->
 											custom_shell_state().
 vet_options_for_custom( Opts ) when is_list( Opts ) ->
 
+	EmptyQueue = queue:new(),
+
 	% Defaults:
 	InitShellState = #custom_shell_state{
-		history=queue:new(),
+		cmd_history=EmptyQueue,
+		res_history=EmptyQueue,
 		bindings=erl_eval:new_bindings() },
 
 	vet_options_for_custom( Opts, InitShellState );
@@ -580,21 +605,34 @@ vet_options_for_custom( _Opts=[ { log, AnyLogFilePath } | T ], ShellState ) ->
 									log_file=LogFile } );
 
 
-vet_options_for_custom( _Opts=[ { history, MaxLen } | T ], ShellState )
-								when is_integer( MaxLen ) andalso MaxLen >= 0 ->
+vet_options_for_custom(
+		_Opts=[ H={ histories, MaxCmdDepth, MaxResDepth } | T ],
+		ShellState ) ->
 	vet_options_for_custom( T,
-		ShellState#custom_shell_state{ history_max_depth=MaxLen } );
+		ShellState#custom_shell_state{
+			cmd_history_max_depth=check_history_depth( MaxCmdDepth, H ),
+			res_history_max_depth=check_history_depth( MaxResDepth, H ) } );
 
-vet_options_for_custom( _Opts=[ { history, undefined } | T ], ShellState ) ->
-	vet_options_for_custom( T,
-		ShellState#custom_shell_state{ history_max_depth=undefined } );
-
-vet_options_for_custom( _Opts=[ no_history | T ], ShellState ) ->
-	vet_options_for_custom( T,
-		ShellState#custom_shell_state{ history_max_depth=0 } );
+vet_options_for_custom( _Opts=[ no_histories | T ], ShellState ) ->
+	vet_options_for_custom( T, ShellState#custom_shell_state{
+		cmd_history_max_depth=0,
+		res_history_max_depth=0 } );
 
 vet_options_for_custom( _Opts=[ Other | _T ], _ShellState ) ->
 	throw( { unexpected_shell_option, Other } ).
+
+
+
+% (helper)
+check_history_depth( _MaxDepth=undefined, _Histories ) ->
+	undefined;
+
+check_history_depth( MaxDepth, _Histories )
+		when is_integer( MaxDepth ) andalso MaxDepth >= 0 ->
+	MaxDepth;
+
+check_history_depth( InvMaxDepth, Histories ) ->
+	throw( { invalid_history_depth, InvMaxDepth, Histories } ).
 
 
 
@@ -654,10 +692,66 @@ custom_shell_main_loop( ShellState ) ->
 
 			custom_shell_main_loop( ProcShellState );
 
+		% Mostly useless:
+		{ getMaybeLastCommand, [], CallerPid } ->
 
-		flushHistory ->
+			MaybeBinCmd = case queue:peek(
+					ShellState#custom_shell_state.cmd_history ) of
+
+				empty ->
+					undefined;
+
+				{ value, BinCmd } ->
+					BinCmd
+
+			end,
+
+			CallerPid ! { last_command, MaybeBinCmd },
+
+			custom_shell_main_loop( ShellState );
+
+
+		{ getMaybeCommandFromId, TargetCmdId, CallerPid } ->
+
+			% For example [Cmd1, Cmd2, Cmd3]:
+			CmdHistList = queue:to_list(
+				ShellState#custom_shell_state.cmd_history ),
+
+			CmdHistLen = length( CmdHistList ),
+
+			LastId = ShellState#custom_shell_state.submission_count,
+
+			CmdIdOffset = LastId - TargetCmdId + 1,
+
+			trace_utils:debug_fmt( "Command ids: target=~B, last=~B, "
+				"offset=~B, hist_len=~B.",
+				[ TargetCmdId, LastId, CmdIdOffset, CmdHistLen ] ),
+
+			MaybeBinCmd = case CmdIdOffset > CmdHistLen of
+
+				true ->
+					undefined;
+
+				false ->
+					ListOffset = CmdHistLen - CmdIdOffset + 1,			  
+					lists:nth( ListOffset, CmdHistList )
+
+			end,
+
+			CallerPid ! { target_command, MaybeBinCmd },
+
+			custom_shell_main_loop( ShellState );
+
+
+		flushCommandHistory ->
 			custom_shell_main_loop( ShellState#custom_shell_state{
-										history=queue:new() } );
+				cmd_history=queue:new() } );
+
+		flushResultHistory ->
+			custom_shell_main_loop( ShellState#custom_shell_state{
+				res_history=queue:new() } );
+
+
 
 		{ getCommandSubmissionCount, [], CallerPid } ->
 			Count = ShellState#custom_shell_state.submission_count,
@@ -699,7 +793,7 @@ on_command_success( CmdBinStr, CmdResValue, NewBindings,
 	ProcShellState = ShellState#custom_shell_state{ bindings=NewBindings },
 
 	% Only updated on success:
-	HistShellState = update_history( CmdBinStr, CmdResValue, ProcShellState ),
+	HistShellState = update_histories( CmdBinStr, CmdResValue, ProcShellState ),
 
 	MaybeTimestampBinStr =
 		manage_success_log( CmdBinStr, CmdResValue, HistShellState ),
@@ -910,43 +1004,91 @@ manage_error_log( CmdBinStr, ReasonBinStr,
 
 
 
--doc "Updates the shell history for the specified command.".
--spec update_history( command(), command_result(), custom_shell_state() ) ->
+-doc "Updates the shell histories for the specified command and result.".
+-spec update_histories( command(), command_result(), custom_shell_state() ) ->
 										custom_shell_state().
-update_history( _Cmd, _CmdRes, ShellState=#custom_shell_state{
-											history_max_depth=0 } ) ->
+update_histories( Cmd, CmdRes, ShellState ) ->
+	CmdShellState = update_command_history( Cmd, ShellState ),
+	update_result_history( CmdRes, CmdShellState ).
+
+
+
+% (helper)
+update_command_history( _Cmd, ShellState=#custom_shell_state{
+									cmd_history_max_depth=0 } ) ->
 	ShellState;
 
-
-update_history( Cmd, CmdRes, ShellState=#custom_shell_state{
-											history_max_depth=undefined,
-											history=HistQ } ) ->
+update_command_history( Cmd, ShellState=#custom_shell_state{
+									cmd_history_max_depth=undefined,
+									cmd_history=CmdHistQ } ) ->
 
 	% No length limit:
-	NewHistQ = queue:in( _HistElem={ Cmd, CmdRes }, HistQ ),
+	NewCmdHistQ = queue:in( Cmd, CmdHistQ ),
 
-	ShellState#custom_shell_state{ history=NewHistQ };
+	ShellState#custom_shell_state{ cmd_history= NewCmdHistQ};
 
 
-update_history( Cmd, CmdRes, ShellState=#custom_shell_state{
-											history_max_depth=HDepth,
-											history=HistQ } ) ->
-	DropHistQ = case queue:len( HistQ ) of
+update_command_history( Cmd, ShellState=#custom_shell_state{
+									cmd_history_max_depth=HDepth,
+									cmd_history=CmdHistQ } ) ->
+	DropCmdHistQ = case queue:len( CmdHistQ ) of
 
 		HDepth ->
 			% Full, thus dropping first (never expected to be empty):
-			{ { _ValueAtom, _FirstHItem }, ShrunkHistQ } = queue:out( HistQ ),
-			ShrunkHistQ;
+			% { { _ValueAtom, _FirstHItem }, ShrunkCmdHistQ } =
+			%  queue:out( CmdHistQ ),
+			%ShrunkCmdHistQ;
+			queue:drop( CmdHistQ );
 
 		_ ->
 			% Not full yet:
-			HistQ
+			CmdHistQ
 
 	end,
 
-	NewHistQ = queue:in( _HistElem={ Cmd, CmdRes }, DropHistQ ),
+	NewCmdHistQ = queue:in( Cmd, DropCmdHistQ ),
 
-	ShellState#custom_shell_state{ history=NewHistQ }.
+	ShellState#custom_shell_state{ cmd_history=NewCmdHistQ }.
+
+
+
+% (helper)
+update_result_history(_Res, ShellState=#custom_shell_state{
+									res_history_max_depth=0 } ) ->
+	ShellState;
+
+update_result_history( Res, ShellState=#custom_shell_state{
+									res_history_max_depth=undefined,
+									res_history=ResHistQ } ) ->
+
+	% No length limit:
+	NewResHistQ = queue:in( Res, ResHistQ ),
+
+	ShellState#custom_shell_state{ res_history= NewResHistQ};
+
+
+update_result_history( Res, ShellState=#custom_shell_state{
+									res_history_max_depth=HDepth,
+									res_history=ResHistQ } ) ->
+	DropResHistQ = case queue:len( ResHistQ ) of
+
+		HDepth ->
+			% Full, thus dropping first (never expected to be empty):
+			%{ { _ValueAtom, _FirstHItem }, ShrunkResHistQ } =
+			%  queue:out( ResHistQ ),
+			%ShrunkResHistQ;
+			queue:drop( ResHistQ );
+
+		_ ->
+			% Not full yet:
+			ResHistQ
+
+	end,
+
+	NewResHistQ = queue:in( Res, DropResHistQ ),
+
+	ShellState#custom_shell_state{ res_history=NewResHistQ }.
+
 
 
 
@@ -1301,34 +1443,52 @@ specified verbosity.
 											ustring().
 custom_shell_state_to_string( #custom_shell_state{
 								submission_count=SubCount,
-								history_max_depth=HistMaxDepth,
-								history=History,
+								cmd_history_max_depth=CmdHistMaxDepth,
+								res_history_max_depth=ResHistMaxDepth,
+								cmd_history=CmdHistory,
+								res_history=ResHistory,
 								bindings=BindingStruct },
 							  _Verbose=true ) ->
-	HistStr = case HistMaxDepth of
+	CmdHistStr = case CmdHistMaxDepth of
 
 		0 ->
-			"no history";
+			"no command history";
 
 		undefined ->
 
-			text_utils:format( "an unlimited ~ts",
-							   [ history_to_string( History ) ] );
+			text_utils:format( "an unlimited  ~ts",
+							   [ command_history_to_string( CmdHistory ) ] );
 
 		_ ->
 			text_utils:format( "a ~B-deep ~ts",
-							   [ HistMaxDepth, history_to_string( History ) ] )
+				[ CmdHistMaxDepth, command_history_to_string( CmdHistory ) ] )
+
+	end,
+
+	ResHistStr = case ResHistMaxDepth of
+
+		0 ->
+			"no result history";
+
+		undefined ->
+
+			text_utils:format( "an unlimited  ~ts",
+							   [ result_history_to_string( ResHistory ) ] );
+
+		_ ->
+			text_utils:format( "a ~B-deep ~ts",
+				[ ResHistMaxDepth, result_history_to_string( ResHistory ) ] )
 
 	end,
 
 	text_utils:format( "custom shell ~w with ~ts and ~B commands "
-		"already submitted, with ~ts",
-		[ self(), bindings_to_string( BindingStruct ), SubCount, HistStr ] );
+		"already submitted, with ~ts and ~ts",
+		[ self(), bindings_to_string( BindingStruct ), SubCount,
+		  CmdHistStr, ResHistStr ] );
 
 
 custom_shell_state_to_string( #custom_shell_state{
 								submission_count=SubCount,
-								%history=History,
 								bindings=BindingStruct },
 							  _Verbose=false ) ->
 	text_utils:format( "custom shell with ~B bindings, and ~B commands already "
@@ -1366,31 +1526,49 @@ binding_to_string( _Binding={ N, V } ) ->
 
 
 
--doc "Returns a textual description of the specified history.".
--spec history_to_string( history() ) -> ustring().
-history_to_string( History ) ->
+-doc """
+Returns a textual description of the specified command history.
+""".
+-spec command_history_to_string( command_history() ) -> ustring().
+command_history_to_string( History ) ->
 
 	case queue:len( History ) of
 
 		0 ->
-			"empty history";
+			"empty command history";
 
 		_ ->
-			Strs = [ history_element_to_string( HE )
+			Strs = [ text_utils:format_ellipsed( "command '~ts'", [ HE ] )
 						|| HE <- queue:to_list( History ) ],
 
-			text_utils:format( "history corresponding to: ~ts",
+			text_utils:format( "command history corresponding to: ~ts",
 				[ text_utils:strings_to_enumerated_string( Strs ) ] )
 
 	end.
 
 
 
--doc "Returns a textual description of the specified history element.".
--spec history_element_to_string( history_element() ) -> ustring().
-history_element_to_string( { Cmd, CmdRes } ) ->
-	text_utils:format_ellipsed( "command '~ts' that resulted in ~p",
-								[ Cmd, CmdRes ] ).
+-doc """
+Returns a textual description of the specified result history.
+""".
+-spec result_history_to_string( result_history() ) -> ustring().
+result_history_to_string( History ) ->
+
+	case queue:len( History ) of
+
+		0 ->
+			"empty result history";
+
+		_ ->
+			Strs = [ text_utils:format_ellipsed( "result ~p", [ HE ] )
+						|| HE <- queue:to_list( History ) ],
+
+			text_utils:format( "result history corresponding to: ~ts",
+				[ text_utils:strings_to_enumerated_string( Strs ) ] )
+
+	end.
+
+
 
 
 

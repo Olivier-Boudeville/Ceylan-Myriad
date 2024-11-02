@@ -50,7 +50,14 @@ Text can be intentionally:
    command
  - selected in the past commands (e.g. for re-use)
 
-The sending of shell commands is synchronous: thid widget blocks untils the
+Separate histories, of arbitrary depths, for the commands and their results are
+managed.
+
+The command editing is based on a single line so, at least currently, no
+multi-line command editing is supported (no series of lines prefixed with '.. '
+are displayed).
+
+The sending of shell commands is synchronous: this widget blocks untils the
 shell answers about the corresponding outcome.
 
 Timestamps are determined in the context of the actual (potentially remote)
@@ -113,6 +120,7 @@ Not to be mixed up with shell_utils:shell_pid().
 
 -type shell_pid() :: shell_utils:shell_pid().
 -type shell_option() :: shell_utils:shell_option().
+-type command() :: shell_utils:command().
 -type command_id() :: shell_utils:command_id().
 
 
@@ -223,6 +231,12 @@ Not to be mixed up with shell_utils:shell_pid().
 
 	% The full text corresponding to the past operations:
 	past_ops_text :: bin_string(),
+
+	% The identifier of any command currently selected in their history:
+	hist_cmd_id :: option( command_id() ),
+
+	% To backup the currently-edited command while navigating in their history:
+	current_command :: command(),
 
 	% The PID of the underlying actual shell logic:
 	shell_pid :: shell_pid() } ).
@@ -489,7 +503,7 @@ gui_shell_main_loop( GUIShellState ) ->
 		{ onTextUpdated,
 				[ CmdEditor, _CmdEditorId, NewText, _EventContext ] } ->
 
-			trace_utils:debug_fmt( "onTextUpdated: got '~ts'.", [ NewText ] ),
+			%trace_utils:debug_fmt( "onTextUpdated: got '~ts'.", [ NewText ] ),
 
 			% We obtain the whole new line, including the prefix, which should
 			% thus be removed first:
@@ -500,7 +514,7 @@ gui_shell_main_loop( GUIShellState ) ->
 															   NewText ) of
 
 				no_prefix ->
-					throw( { no_prefix_found, NewText, Prefix } );
+					"";
 
 				Rest ->
 					Rest
@@ -545,7 +559,7 @@ gui_shell_main_loop( GUIShellState ) ->
 
 -doc "Handles a key with a Control modifier.".
 -spec handle_ctrl_modified_key( backend_keyboard_event(),
-								 gui_shell_state() ) -> gui_shell_state().
+								gui_shell_state() ) -> gui_shell_state().
 handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 		command_editor=CmdEditor,
 		precursor_chars=PreChars,
@@ -623,15 +637,20 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 										   postcursor_chars=[] };
 
 
+		% Holding 'Alt Gr' (e.g. in an attempt to obtain a '[' character, on a
+		% French keyboard) results into the control and alt modifiers being set,
+		% with a corresponding Unicode character available:
+		%
 		Other ->
+
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug_fmt(
-					"(ignoring keycode with Ctrl modifier ~p)", [ Other ] ),
+					"(received keycode with Ctrl modifier ~p)", [ Other ] ),
 					basic_utils:ignore_unused( Other ) ),
-			GUIShellState
+
+			add_char( Keycode, PreChars, PostChars, CmdEditor, GUIShellState )
 
 	end.
-
 
 
 
@@ -740,14 +759,100 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug( "Recall previous command." ) ),
 
-			GUIShellState;
+			ShellPid = GUIShellState#gui_shell_state.shell_pid,
+
+			% So new id can be zero:
+			{ NewHistCmdId, NewCurCmd } =
+					case GUIShellState#gui_shell_state.hist_cmd_id of
+
+				% Starting history navigation:
+				undefined ->
+					% Backup:
+					CurCmdStr = lists:reverse( PreChars ) ++ PostChars,
+					{ GUIShellState#gui_shell_state.command_id-1, CurCmdStr };
+
+				HistCmdId ->
+					{ HistCmdId-1,
+					  GUIShellState#gui_shell_state.current_command }
+
+			end,
+
+			ShellPid ! { getMaybeCommandFromId, NewHistCmdId, self() },
+
+			BackGUIShellState = GUIShellState#gui_shell_state{
+				current_command=NewCurCmd },
+
+			receive
+
+				% Exceeded history, not changing:
+				{ target_command, _MaybeCmdBinStr=undefined } ->
+					BackGUIShellState;
+
+				{ target_command, CmdBinStr } ->
+					CmdStr = text_utils:binary_to_string( CmdBinStr ),
+
+					NewGUIShellState = BackGUIShellState#gui_shell_state{
+						hist_cmd_id=NewHistCmdId },
+
+					set_full_command( NewGUIShellState#gui_shell_state.prefix,
+									  CmdStr, CmdEditor, NewGUIShellState )
+
+			end;
 
 
 		?MYR_SCANCODE_DOWN ->
 			cond_utils:if_defined( myriad_debug_gui_shell,
 				trace_utils:debug( "Recall next command." ) ),
 
-			GUIShellState;
+			ShellPid = GUIShellState#gui_shell_state.shell_pid,
+
+			CurrentCmdId = GUIShellState#gui_shell_state.command_id,
+
+			case GUIShellState#gui_shell_state.hist_cmd_id of
+
+				undefined ->
+					% Then nothing to do (already at end, no navigation):
+					GUIShellState;
+
+				HistCmdId  ->
+
+					{ NewCurrentCmd, NewHistCmdId } = case HistCmdId+1 of
+
+						% So leaving history navigation:
+						CurrentCmdId ->
+
+							% To restore current command:
+							{ GUIShellState#gui_shell_state.current_command,
+							  _NewHistCmdId=undefined };
+
+
+						% Still navigating towards current:
+						NextHistCmdId ->
+
+							ShellPid ! { getMaybeCommandFromId, NextHistCmdId,
+										 self() },
+
+							receive
+
+								% MaybeCmdBinStr=undefined not possible:
+								{ target_command, CmdBinStr } ->
+
+									CmdStr = text_utils:binary_to_string(
+										CmdBinStr ),
+
+									{ CmdStr, NextHistCmdId }
+
+							end
+
+					end,
+
+					NewGUIShellState = GUIShellState#gui_shell_state{
+						hist_cmd_id=NewHistCmdId },
+
+					set_full_command( NewGUIShellState#gui_shell_state.prefix,
+						NewCurrentCmd, CmdEditor, NewGUIShellState )
+
+			end;
 
 
 		?MYR_SCANCODE_BACKSPACE ->
@@ -869,25 +974,33 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 										   prefix_len=PfxLen,
 										   precursor_chars=[],
 										   postcursor_chars=[],
-										   past_ops_text=NewPastOpsText } ;
-
+										   past_ops_text=NewPastOpsText,
+										   hist_cmd_id=undefined } ;
 
 
 		_Other ->
 			Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
-
-			%trace_utils:debug_fmt( "(adding '~ts')", [ [ Keycode ] ] ),
-
-			NewPreChars = [ Keycode | PreChars ],
-
-			set_chars( GUIShellState#gui_shell_state.prefix, NewPreChars,
-					   PostChars, CmdEditor ),
-
-			gui_text_editor:offset_cursor_position( CmdEditor, _PosOffset=1 ),
-
-			GUIShellState#gui_shell_state{ precursor_chars=NewPreChars }
+			add_char( Keycode, PreChars, PostChars, CmdEditor, GUIShellState )
 
 	end.
+
+
+
+-doc "Adds the specified character (keycode).".
+-spec add_char( uchar(), [ uchar() ], [ uchar() ], text_editor(),
+				gui_shell_state() ) -> gui_shell_state().
+add_char( NewChar, PreChars, PostChars, CmdEditor, GUIShellState ) ->
+
+	%trace_utils:debug_fmt( "(adding '~ts')", [ [ NewChar ] ] ),
+
+	NewPreChars = [ NewChar | PreChars ],
+
+	set_chars( GUIShellState#gui_shell_state.prefix, NewPreChars,
+			   PostChars, CmdEditor ),
+
+	gui_text_editor:offset_cursor_position( CmdEditor, _PosOffset=1 ),
+
+	GUIShellState#gui_shell_state{ precursor_chars=NewPreChars }.
 
 
 
@@ -924,11 +1037,15 @@ cursor at end.
 						gui_shell_state() ) -> gui_shell_state().
 set_full_command( Prefix, CmdText, CmdEditor, GUIShellState ) ->
 
-	trace_utils:debug_fmt( "Setting command '~ts'.", [ CmdText ] ),
+	%trace_utils:debug_fmt( "Setting command '~ts'.", [ CmdText ] ),
 
 	Text = Prefix ++ CmdText,
 
 	gui_text_editor:set_text( CmdEditor, Text ),
+
+	% Not wanting a reset (which thus would be before prefix):
+	gui_text_editor:get_cursor_position( CmdEditor ) =:= 0 andalso
+		gui_text_editor:set_cursor_position_to_end( CmdEditor ),
 
 	GUIShellState#gui_shell_state{ precursor_chars=lists:reverse( CmdText ),
 								   postcursor_chars=[] }.
