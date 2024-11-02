@@ -339,7 +339,7 @@ set_cursor_position_to_end( Editor ) ->
 
 
 -doc "Returns the current text cursor position.".
--spec get_cursor_position( text_editor() ) -> void().
+-spec get_cursor_position( text_editor() ) -> char_pos().
 get_cursor_position( Editor ) ->
 	wxTextCtrl:getInsertionPoint( Editor ).
 
