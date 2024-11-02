@@ -87,7 +87,7 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 -include("ast_transform.hrl").
 
 
-% Local shorthands:
+% Local type shorthands:
 
 -type file_name() :: file_utils:file_name().
 
@@ -340,10 +340,10 @@ layer.
 (helper)
 """.
 -spec get_myriad_ast_transforms_for( module_info() ) -> ast_transforms().
-get_myriad_ast_transforms_for(
-			#module_info{ module=ModuleEntry,
-						  compilation_options=CompileOptTable,
-						  parse_attributes=ParseAttributes } ) ->
+get_myriad_ast_transforms_for( #module_info{
+									module=ModuleEntry,
+									compilation_options=CompileOptTable,
+									parse_attributes=ParseAttributes } ) ->
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
 	% to the actual module that may be designated by a specific parse attribute,
@@ -457,8 +457,8 @@ get_actual_table_type( ParseAttributeTable ) ->
 			TableType;
 
 		{ value, { InvalidTableType, _LocForm } } ->
-			ast_utils:raise_error( { invalid_table_type_override,
-									 InvalidTableType } );
+			ast_utils:raise_error(
+				{ invalid_table_type_override, InvalidTableType } );
 
 		key_not_found ->
 			TableType = ?default_table_type,
@@ -469,7 +469,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 	end,
 
 	%ast_utils:display_debug( "Will replace references to the 'table' module "
-	%     "and datatypes by references to '~ts'.", [ DesiredTableType ] ),
+	%  "and datatypes by references to '~ts'.", [ DesiredTableType ] ),
 
 	DesiredTableType.
 
@@ -866,7 +866,7 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 
 				% Right value found matching:
 				{ value, RequestedValue } ->
-					%ast_utils:display_debug( "Token '~p' defined and set to "
+					ast_utils:display_debug( "Token '~p' defined and set to "
 					%   "the right value ('~p'), hence "
 					%   "injecting the expression ~p",
 					%   [ Token, RequestedValue, ExprFormIfMatching ] ),
@@ -889,8 +889,8 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%       "injecting the expression~n ~p",
-					%       [ Token, ExprFormIfNotMatching ] ),
+					%   "injecting the expression~n ~p",
+					%   [ Token, ExprFormIfNotMatching ] ),
 					inject_expression( ExprFormIfNotMatching, Transforms,
 									   FileLocToken )
 
@@ -1250,7 +1250,8 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 
 -doc """
 The transformation function in charge of disabling LCO (Last Call Optimisation)
-by ending each local function call with a remote one to an identity function.
+by ending each local function call with a remote one to an identity function
+(namely basic_utils:identity/1).
 """.
 -spec lco_disabling_clause_transform_fun( ast_clause(), ast_transforms() ) ->
 									{ ast_clause(), ast_transforms() }.
@@ -1386,8 +1387,8 @@ inject_match_expression( ExpressionForm, Transforms, FileLoc ) ->
 	% should not clash with user-defined ones). So:
 	%
 	VarName = list_to_atom( lists:flatten(
-								io_lib:format( "Myriad_assert_var_name-~ts",
-		[ ast_utils:format_file_loc_alt( FileLoc ) ] ) ) ),
+		io_lib:format( "Myriad_assert_var_name-~ts",
+					   [ ast_utils:format_file_loc_alt( FileLoc ) ] ) ) ),
 
 	NewExpr = { 'case', FileLoc, ExpressionForm,
 				[ {clause,FileLoc,[{atom,FileLoc,true}],[],[{atom,FileLoc,ok}]},
