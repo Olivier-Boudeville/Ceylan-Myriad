@@ -135,15 +135,18 @@ two) of times they were present in a given container.
 % Type shorthands:
 
 
+-doc """
+A list whose elements can be atoms or tuples (not only pairs) whose first
+element is an atom.
+""".
 -type proplist() :: proplists:proplist().
-% A list whose elements can be atoms or tuples (not only pairs) whose first
-% element is an atom.
 
 
 -type count() :: basic_utils:count().
 
+
+-doc "These indexes start at 1.".
 -type positive_index() :: basic_utils:positive_index().
-% These indexes start at 1.
 
 -type ustring() :: text_utils:ustring().
 
@@ -264,7 +267,7 @@ are a lot more effective, when applicable.
 % Not tail recursive version:
 %
 % get_element_at( List, 1 ) ->
-%   hd(List);
+%   hd( List );
 %
 % get_element_at( [ _H | T ], Index ) ->
 %   get_element_at( T, Index-1 ).
