@@ -63,7 +63,9 @@ run_gui_test() ->
 
 	%ShellOpts = [],
 	ShellOpts = [ timestamp, log, focused, auto_add_trailing_dot,
-				  { histories, _MaxCmdDepth=5, _MaxResDepth=20 } ],
+				  { histories, _MaxCmdDepth=5, _MaxResDepth=20 }
+				  %{ callback_module, foo }
+				],
 
 	gui_shell:create( _FontSize=10, ShellOpts, _ParentWin=Frame ),
 
