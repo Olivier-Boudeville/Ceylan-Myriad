@@ -50,6 +50,22 @@ Text can be intentionally:
    command
  - selected in the past commands (e.g. for re-use)
 
+Shell built-in commands (shorter names comply with a subset of the ones
+documented in
+https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands):
+
+ - list_bindings()  or b(): displays the current variable bindings
+ - clear_bindings() or f() (presumably for forget): clears all variable bindings
+ - clear_binding(V) or f(V): clears the binding of variable V
+
+ - list_command_history() or h(): lists the history of commands
+ - list_result_history() or h(): lists the history of results
+ - repeat_command(Id)
+ - clear_commands() or fc(): clears the full history of commands
+ - clear_results()  or fr(): clears the full history of command results
+ - set_command_history_depth(D): sets the depth of the command history to D
+ - set_result_history_depth(D): sets the depth of the result history to D
+
 Separate histories, of arbitrary depths, for the commands and their results are
 managed.
 
