@@ -166,6 +166,9 @@ Options that can be specified when creating a shell:
 
 - no_history: does not store any command or result history (synonym of
   {histories,0,0})
+
+- callback_module: to specify the name of any implementation for the shell
+  callback module (see 'shell_default_callbacks' for the default one)
 """.
 -type shell_option() ::
 	'timestamp'
@@ -173,7 +176,8 @@ Options that can be specified when creating a shell:
  | { 'log', LogPath :: any_file_path() }
  | { 'histories', MaxCmdDepth :: option( count() ),
 	 MaxCmdDepth :: option( count() ), MaxResDepth :: option( count() ) }
- |  'no_histories'.
+ |  'no_histories'
+ | { 'callback_module', module_name() }.
 
 
 
@@ -197,6 +201,7 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 			   group_pid/0 ]).
 
 
+% Like the Erlang shell:
 -define( default_command_history_max_depth, 20 ).
 -define( default_result_history_max_depth, 20 ).
 
@@ -246,12 +251,20 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 
 
 	% Records all current bindings:
-	bindings :: binding_struct()
+	bindings :: binding_struct(),
+
+
+	% The name of the module used by this shell in order to locate its built-in
+	% functions:
+	%
+	% (made to be overridden with special-purpose modules, potentially using
+	% this one as for default implementations)
+	%
+	callback_module='shell_default_callbacks' :: module_name()
+
 
 	% At least currently, a shell does not keep track of the process(es) using
 	% it.
-
-	% TODO: add local/non-local function handlers
 
 } ).
 
@@ -285,6 +298,8 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 
 -type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
+
+-type module_name() :: meta_utils:module_name().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -618,6 +633,26 @@ vet_options_for_custom( _Opts=[ no_histories | T ], ShellState ) ->
 		cmd_history_max_depth=0,
 		res_history_max_depth=0 } );
 
+vet_options_for_custom( _Opts=[ { callback_module, CallbackModule } | T ],
+						ShellState ) ->
+
+	is_atom( CallbackModule ) orelse
+		throw( { non_atom_callback_module, CallbackModule } ),
+
+	code_utils:is_beam_in_path( CallbackModule ) =/= not_found orelse
+		begin
+			trace_utils:error_fmt( "The shell_utils callback module '~ts' "
+				"could not be found in the code path, made of (alphabetically) "
+				"of ~ts",
+				[ CallbackModule, code_utils:code_path_to_string() ] ),
+
+			throw( { shell_callback_module_not_found, CallbackModule } )
+
+		end,
+
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ callback_module=CallbackModule } );
+
 vet_options_for_custom( _Opts=[ Other | _T ], _ShellState ) ->
 	throw( { unexpected_shell_option, Other } ).
 
@@ -786,11 +821,12 @@ custom_shell_main_loop( ShellState ) ->
 
 
 % (helper)
--spec on_command_success( command(), command_result(), binding_struct(),
-	custom_shell_state() ) -> { command_outcome(), custom_shell_state() }.
-on_command_success( CmdBinStr, CmdResValue, NewBindings,
+-spec on_command_success( command(), command_result(), command_id(),
+						  binding_struct(), custom_shell_state() ) ->
+								{ command_outcome(), custom_shell_state() }.
+on_command_success( CmdBinStr, CmdResValue, CmdId, NewBindings,
 					ShellState=#custom_shell_state{
-							submission_count=SubCount } ) ->
+						submission_count=SubCount } ) ->
 
 	% submission_count already incremented:
 	ProcShellState = ShellState#custom_shell_state{ bindings=NewBindings },
@@ -799,7 +835,7 @@ on_command_success( CmdBinStr, CmdResValue, NewBindings,
 	ResHistShellState = update_result_history( CmdResValue, ProcShellState ),
 
 	MaybeTimestampBinStr =
-		manage_success_log( CmdBinStr, CmdResValue, ResHistShellState ),
+		manage_success_log( CmdBinStr, CmdResValue, CmdId, ResHistShellState ),
 
 	CmdOutcome =
 		{ success, CmdResValue, _CmdId=SubCount, MaybeTimestampBinStr },
@@ -862,7 +898,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 					try erl_eval:exprs( ExprForms, Bindings ) of
 
 						{ value, CmdValue, NewBindings } ->
-							on_command_success( CmdBinStr, CmdValue,
+							on_command_success( CmdBinStr, CmdValue, NewCmdId,
 												NewBindings, CmdHistShellState )
 
 					catch Class:Reason ->
@@ -878,7 +914,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 							"evaluation failed: ~p", [ Reason ] ),
 
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-							ReasonBinStr, CmdHistShellState ),
+							ReasonBinStr, NewCmdId, CmdHistShellState ),
 
 						CmdOutcome = { error, ReasonBinStr, NewCmdId,
 									   MaybeTimestampBinStr },
@@ -903,7 +939,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						"parsing failed: ~ts", [ IssueDesc ] ),
 
 					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-						ReasonBinStr, CmdHistShellState ),
+						ReasonBinStr, NewCmdId, CmdHistShellState ),
 
 					CmdOutcome = { error, ReasonBinStr, NewCmdId,
 								   MaybeTimestampBinStr },
@@ -930,7 +966,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 												  [ IssueDesc ] ),
 
 			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
-													 CmdHistShellState ),
+				NewCmdId, CmdHistShellState ),
 
 			CmdOutcome =
 				{ error, ReasonBinStr, NewCmdId, MaybeTimestampBinStr },
@@ -942,34 +978,34 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 
 
 % (helper)
--spec manage_success_log( command(), command_result(), custom_shell_state() ) ->
-										option( timestamp_binstring() ).
-manage_success_log( _CmdBinStr, _CmdResValue,
+-spec manage_success_log( command(), command_result(), command_id(),
+			custom_shell_state() ) -> option( timestamp_binstring() ).
+manage_success_log( _CmdBinStr, _CmdResValue, _CmdId,
 					#custom_shell_state{ do_timestamp=true,
 										 log_file=undefined } ) ->
 	time_utils:get_bin_textual_timestamp();
 
-manage_success_log( _CmdBinStr, _CmdResValue,
+manage_success_log( _CmdBinStr, _CmdResValue, _CmdId,
 					#custom_shell_state{ do_timestamp=false,
 										 log_file=undefined } ) ->
 	undefined;
 
-manage_success_log( CmdBinStr, CmdResValue,
+manage_success_log( CmdBinStr, CmdResValue, CmdId,
 					#custom_shell_state{ do_timestamp=true,
 										 log_file=LogFile } ) ->
 	TimestampBinStr = time_utils:get_bin_textual_timestamp(),
 
 	file_utils:write_ustring( LogFile,
-		"[~ts] Command '~ts' -> ~p~n",
-		[ TimestampBinStr, CmdBinStr, CmdResValue ] ),
+		"[~ts] Command #~B: '~ts' -> ~p~n",
+		[ TimestampBinStr, CmdId, CmdBinStr, CmdResValue ] ),
 
 	TimestampBinStr;
 
-manage_success_log( CmdBinStr, CmdResValue,
+manage_success_log( CmdBinStr, CmdResValue, CmdId,
 					#custom_shell_state{ do_timestamp=false,
 										 log_file=LogFile } ) ->
 	file_utils:write_ustring( LogFile,
-		"Command '~ts' -> ~p~n", [ CmdBinStr, CmdResValue ] ),
+		"Command #~B '~ts' -> ~p~n", [ CmdId, CmdBinStr, CmdResValue ] ),
 
 	undefined.
 
@@ -977,35 +1013,35 @@ manage_success_log( CmdBinStr, CmdResValue,
 
 
 % (helper)
--spec manage_error_log( command(), command_error(), custom_shell_state() ) ->
-										option( timestamp_binstring() ).
-manage_error_log( _CmdBinStr, _ReasonBinStr,
+-spec manage_error_log( command(), command_error(), command_id(),
+			custom_shell_state() ) -> option( timestamp_binstring() ).
+manage_error_log( _CmdBinStr, _ReasonBinStr, _CmdId,
 				  #custom_shell_state{ do_timestamp=true,
 									   log_file=undefined } ) ->
 	time_utils:get_bin_textual_timestamp();
 
-manage_error_log( _CmdBinStr, _ReasonBinStr,
+manage_error_log( _CmdBinStr, _ReasonBinStr, _CmdId,
 				  #custom_shell_state{ do_timestamp=false,
 									   log_file=undefined } ) ->
 	undefined;
 
-manage_error_log( CmdBinStr, ReasonBinStr,
+manage_error_log( CmdBinStr, ReasonBinStr, CmdId,
 				  #custom_shell_state{ do_timestamp=true,
 									   log_file=LogFile } ) ->
 	TimestampBinStr = time_utils:get_bin_textual_timestamp(),
 
 	file_utils:write_ustring( LogFile,
-		"[~ts] Evaluation failed for command '~ts': ~ts.~n",
-		[ TimestampBinStr, CmdBinStr, ReasonBinStr ] ),
+		"[~ts] Evaluation failed for command #~B '~ts': ~ts.~n",
+		[ TimestampBinStr, CmdId, CmdBinStr, ReasonBinStr ] ),
 
 	TimestampBinStr;
 
-manage_error_log( CmdBinStr, ReasonBinStr,
+manage_error_log( CmdBinStr, ReasonBinStr, CmdId,
 				  #custom_shell_state{ do_timestamp=false,
 									   log_file=LogFile } ) ->
 	file_utils:write_ustring( LogFile,
-		"Evaluation failed for command '~ts': ~ts.~n",
-		[ CmdBinStr, ReasonBinStr ] ),
+		"Evaluation failed for command #~B '~ts': ~ts.~n",
+		[ CmdId, CmdBinStr, ReasonBinStr ] ),
 
 	undefined.
 
@@ -1448,7 +1484,8 @@ custom_shell_state_to_string( #custom_shell_state{
 								res_history_max_depth=ResHistMaxDepth,
 								cmd_history=CmdHistory,
 								res_history=ResHistory,
-								bindings=BindingStruct },
+								bindings=BindingStruct,
+								callback_module=CallbackMod },
 							  _Verbose=true ) ->
 	CmdHistStr = case CmdHistMaxDepth of
 
@@ -1482,9 +1519,9 @@ custom_shell_state_to_string( #custom_shell_state{
 
 	end,
 
-	text_utils:format( "custom shell ~w with ~ts and ~B commands "
-		"already submitted, with ~ts and ~ts",
-		[ self(), bindings_to_string( BindingStruct ), SubCount,
+	text_utils:format( "custom shell ~w, relying on the ~ts callback module, "
+		"with ~ts and ~B commands already submitted, with ~ts and ~ts",
+		[ self(), CallbackMod, bindings_to_string( BindingStruct ), SubCount,
 		  CmdHistStr, ResHistStr ] );
 
 
