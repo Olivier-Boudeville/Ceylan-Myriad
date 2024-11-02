@@ -1257,7 +1257,7 @@ strings_to_enumerated_string( Strings, IndentationLevel, Prefix ) ->
 
 	OrderedStrings = lists:reverse( ReversedStrings ),
 
-	format( "~ts", [ lists:flatten( OrderedStrings ) ] ).
+	format( "~ts~n", [ lists:flatten( OrderedStrings ) ] ).
 
 
 
