@@ -55,7 +55,8 @@ managed.
 
 The command editing is based on a single line so, at least currently, no
 multi-line command editing is supported (no series of lines prefixed with '.. '
-are displayed).
+are displayed). As a result, the terminal dot can be added automatically if
+lacking.
 
 The sending of shell commands is synchronous: this widget blocks untils the
 shell answers about the corresponding outcome.
@@ -77,8 +78,13 @@ Not to be mixed up with shell_utils:shell_pid().
 
 
 -type gui_shell_option() :: shell_option()
+
 	% Whether initially the shell has the event focus:
- | 'focused'.
+ | 'focused'
+
+	% Whether a trailing dot should be automatically added if lacking in a
+	% command (convenient in the context of single-line edition):
+ | 'auto_add_trailing_dot'.
 
 
 -export_type([ gui_shell/0, gui_shell_option/0 ]).
@@ -106,8 +112,6 @@ Not to be mixed up with shell_utils:shell_pid().
 
 
 % Type shorthands:
-
-%-type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -221,6 +225,12 @@ Not to be mixed up with shell_utils:shell_pid().
 	%
 	postcursor_chars = [] :: [ uchar() ],
 
+
+	% Tells whether a trailing dot should be automatically added if lacking in a
+	% command (default: false):
+	%
+	auto_add_trailing_dot :: boolean(),
+
 	% Tells whether the command cursor should wrap around:
 	wrap_cursor = false :: boolean(),
 
@@ -328,15 +338,27 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 	ShellGUIOptList = list_utils:ensure_list( ShellOpts ),
 
 	% Splits between GUI shell and actual shell options:
-	{ SetFocus, ShellOptList } =
-			case list_utils:extract_element_if_existing( _Elem=focused,
+	{ SetFocus, FocusShellOptList } =
+			case list_utils:extract_element_if_existing( _FElem=focused,
 														 ShellGUIOptList ) of
 
 		false ->
 			{ false, ShellGUIOptList };
 
-		ShOptList ->
-			{ true, ShOptList }
+		FShOptList ->
+			{ true, FShOptList }
+
+	end,
+
+	{ AutoAddTrailingDot, ShellOptList } =
+			case list_utils:extract_element_if_existing(
+				_AElem=auto_add_trailing_dot, FocusShellOptList ) of
+
+		false ->
+			{ false, FocusShellOptList };
+
+		AShOptList ->
+			{ true, AShOptList }
 
 	end,
 
@@ -426,6 +448,7 @@ start_gui_shell( FontSize, ShellOpts, BackendEnv, ParentWindow ) ->
 									   command_id=CmdId,
 									   prefix=Pfx,
 									   prefix_len=PfxLen,
+									   auto_add_trailing_dot=AutoAddTrailingDot,
 									   past_ops_editor=PastOpsEditor,
 									   past_ops_text=InitBinText,
 									   shell_pid=ActualShellPid },
@@ -886,7 +909,26 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 		?MYR_SCANCODE_RETURN ->
 
-			CmdStr = lists:reverse( PreChars ) ++ PostChars,
+			InitCmdStr = lists:reverse( PreChars ) ++ PostChars,
+
+			% Adding a last '.' iff enabled and needed:
+			CmdStr = case GUIShellState#gui_shell_state.auto_add_trailing_dot of
+
+				true ->
+					case lists:reverse( InitCmdStr ) of
+
+						[ $. | _T ] ->
+							InitCmdStr;
+
+						RevCmdStr ->
+							lists:reverse( [ $. | RevCmdStr ] )
+
+					end;
+
+				false ->
+					InitCmdStr
+
+			end,
 
 			% So that it is converted only once:
 			CmdBinStr = text_utils:string_to_binary( CmdStr ),
@@ -900,6 +942,9 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 			CurrentCmdId = GUIShellState#gui_shell_state.command_id,
 
+			% Note that command/result histories are managed by the shell
+			% instance:
+			%
 			{ BaseText, MaybeTmstpBinStr } =
 					case shell_utils:execute_command( CmdBinStr, ShellPid ) of
 
@@ -957,6 +1002,8 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 			gui_text_editor:set_text( PastOpsEditor, NewPastOpsText ),
 
 			gui_text_editor:show_text_end( PastOpsEditor ),
+
+			% Prepare for next command:
 
 			%gui_text_editor:set_text( CmdEditor, get_prompt_for( NextCmdId ) ),
 			gui_text_editor:clear( CmdEditor ),

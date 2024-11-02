@@ -310,11 +310,11 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 % - (A) define our own custom version of it, from scratch, based on our own
 % read/scan/eval loop; we prefer here that the shell resists to any failure
 % induced by user commands (e.g. not losing its bindings then); it is, at least
-% currently, a very basic shell: no command recall, no history, no built-in
-% functions (like f()), no shell switching, no remote shell, etc; we considered
-% supporting an auto_add_trailing_dot option ("Tells whether a trailing dot
-% should be automatically added if lacking in a command") yet it was probably
-% not a relevant idea)
+% currently, a very basic shell: no shell switching, no remote shell, etc; we
+% considered supporting an auto_add_trailing_dot option ("Tells whether a
+% trailing dot should be automatically added if lacking in a command") yet it
+% was probably not a relevant idea at the shell level; on the contrary, a
+% single-line shell client (e.g. gui_shell) may support such an option
 %
 % - (B) plug in the group/user/shell built-in architecture ("standard shell");
 % see also for this approach:
@@ -646,7 +646,7 @@ execute_command( CmdAnyStr, ShellPid ) ->
 	CmdBinStr = text_utils:ensure_binary( CmdAnyStr ),
 	ShellPid ! { processCommand, CmdBinStr, self() },
 
-	% Blocking, so no ShellPid to be pattern-matched to correlate answers:
+	% Blocking, so no ShellPid needs to be pattern-matched to correlate answers:
 	receive
 
 		CmdOutcome={ success, _CmdResValue, _CmdId, _MaybeTimestampBinStr } ->
@@ -682,6 +682,7 @@ custom_shell_main_loop( ShellState ) ->
 	% WOOPER-like conventions, except that no wooper_result is sent back:
 	receive
 
+
 		{ processCommand, CmdBinStr, ClientPid } ->
 
 			{ CmdOutcome, ProcShellState } =
@@ -691,6 +692,7 @@ custom_shell_main_loop( ShellState ) ->
 			ClientPid ! CmdOutcome,
 
 			custom_shell_main_loop( ProcShellState );
+
 
 		% Mostly useless:
 		{ getMaybeLastCommand, [], CallerPid } ->
@@ -723,9 +725,9 @@ custom_shell_main_loop( ShellState ) ->
 
 			CmdIdOffset = LastId - TargetCmdId + 1,
 
-			trace_utils:debug_fmt( "Command ids: target=~B, last=~B, "
-				"offset=~B, hist_len=~B.",
-				[ TargetCmdId, LastId, CmdIdOffset, CmdHistLen ] ),
+			%trace_utils:debug_fmt( "Command ids: target=~B, last=~B, "
+			%   "offset=~B, hist_len=~B.",
+			%   [ TargetCmdId, LastId, CmdIdOffset, CmdHistLen ] ),
 
 			MaybeBinCmd = case CmdIdOffset > CmdHistLen of
 
@@ -733,7 +735,7 @@ custom_shell_main_loop( ShellState ) ->
 					undefined;
 
 				false ->
-					ListOffset = CmdHistLen - CmdIdOffset + 1,			  
+					ListOffset = CmdHistLen - CmdIdOffset + 1,
 					lists:nth( ListOffset, CmdHistList )
 
 			end,
@@ -757,6 +759,7 @@ custom_shell_main_loop( ShellState ) ->
 			Count = ShellState#custom_shell_state.submission_count,
 			CallerPid ! { submission_count, Count },
 			custom_shell_main_loop( ShellState );
+
 
 		terminate ->
 			cond_utils:if_defined( myriad_debug_shell,
@@ -793,15 +796,15 @@ on_command_success( CmdBinStr, CmdResValue, NewBindings,
 	ProcShellState = ShellState#custom_shell_state{ bindings=NewBindings },
 
 	% Only updated on success:
-	HistShellState = update_histories( CmdBinStr, CmdResValue, ProcShellState ),
+	ResHistShellState = update_result_history( CmdResValue, ProcShellState ),
 
 	MaybeTimestampBinStr =
-		manage_success_log( CmdBinStr, CmdResValue, HistShellState ),
+		manage_success_log( CmdBinStr, CmdResValue, ResHistShellState ),
 
 	CmdOutcome =
 		{ success, CmdResValue, _CmdId=SubCount, MaybeTimestampBinStr },
 
-	{ CmdOutcome, HistShellState }.
+	{ CmdOutcome, ResHistShellState }.
 
 
 
@@ -824,6 +827,11 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 	NewCmdId = SubCount + 1,
 
 	BaseShellState = ShellState#custom_shell_state{ submission_count=NewCmdId },
+
+	% We record a command in all cases (even its syntax is wrong), so that it
+	% can be edited/fixed afterwards:
+	%
+	CmdHistShellState = update_command_history( CmdBinStr, BaseShellState ),
 
 	% Binaries cannot be scanned as are:
 	CmdStr = text_utils:binary_to_string( CmdBinStr ),
@@ -855,7 +863,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 
 						{ value, CmdValue, NewBindings } ->
 							on_command_success( CmdBinStr, CmdValue,
-												NewBindings, BaseShellState )
+												NewBindings, CmdHistShellState )
 
 					catch Class:Reason ->
 
@@ -870,12 +878,12 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 							"evaluation failed: ~p", [ Reason ] ),
 
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-							ReasonBinStr, BaseShellState ),
+							ReasonBinStr, CmdHistShellState ),
 
 						CmdOutcome = { error, ReasonBinStr, NewCmdId,
 									   MaybeTimestampBinStr },
 
-						{ CmdOutcome, BaseShellState }
+						{ CmdOutcome, CmdHistShellState }
 
 					end;
 
@@ -895,12 +903,12 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						"parsing failed: ~ts", [ IssueDesc ] ),
 
 					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-						ReasonBinStr, BaseShellState ),
+						ReasonBinStr, CmdHistShellState ),
 
 					CmdOutcome = { error, ReasonBinStr, NewCmdId,
 								   MaybeTimestampBinStr },
 
-					{ CmdOutcome, BaseShellState }
+					{ CmdOutcome, CmdHistShellState }
 
 			end;
 
@@ -922,12 +930,12 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 												  [ IssueDesc ] ),
 
 			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
-													 BaseShellState ),
+													 CmdHistShellState ),
 
 			CmdOutcome =
 				{ error, ReasonBinStr, NewCmdId, MaybeTimestampBinStr },
 
-			{ CmdOutcome, BaseShellState }
+			{ CmdOutcome, CmdHistShellState }
 
 	end.
 
@@ -1004,16 +1012,9 @@ manage_error_log( CmdBinStr, ReasonBinStr,
 
 
 
--doc "Updates the shell histories for the specified command and result.".
--spec update_histories( command(), command_result(), custom_shell_state() ) ->
-										custom_shell_state().
-update_histories( Cmd, CmdRes, ShellState ) ->
-	CmdShellState = update_command_history( Cmd, ShellState ),
-	update_result_history( CmdRes, CmdShellState ).
-
-
-
-% (helper)
+-doc "Updates the command history.".
+-spec update_command_history( command(), custom_shell_state() ) ->
+											custom_shell_state().
 update_command_history( _Cmd, ShellState=#custom_shell_state{
 									cmd_history_max_depth=0 } ) ->
 	ShellState;
@@ -1052,8 +1053,8 @@ update_command_history( Cmd, ShellState=#custom_shell_state{
 
 
 
-% (helper)
-update_result_history(_Res, ShellState=#custom_shell_state{
+-doc "Updates the result history.".
+update_result_history( _Res, ShellState=#custom_shell_state{
 									res_history_max_depth=0 } ) ->
 	ShellState;
 

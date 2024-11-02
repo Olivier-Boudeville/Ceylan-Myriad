@@ -62,7 +62,8 @@ run_gui_test() ->
 							  _Size={ 1024, 768 } ),
 
 	%ShellOpts = [],
-	ShellOpts = [ timestamp, log, focused ],
+	ShellOpts = [ timestamp, log, focused, auto_add_trailing_dot,
+				  { histories, _MaxCmdDepth=5, _MaxResDepth=20 } ],
 
 	gui_shell:create( _FontSize=10, ShellOpts, _ParentWin=Frame ),
 
