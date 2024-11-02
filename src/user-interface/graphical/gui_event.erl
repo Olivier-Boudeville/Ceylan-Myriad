@@ -2264,8 +2264,8 @@ send_event( Subscribers, EventType=onTextUpdated, EventSourceId, GUIObject,
 	% Defined in wx.hrl:
 	NewText = WxEventInfo#wxCommand.cmdString,
 
-	trace_utils:debug_fmt( "onTextUpdated event: text now is '~p'.",
-						   [ NewText ] ),
+	%trace_utils:debug_fmt( "onTextUpdated event: text now is '~p'.",
+	%                       [ NewText ] ),
 
 	% Same structure as for OpenGL canvases:
 	Msg = { EventType, [ GUIObject, BestSrcId, NewText, EventContext ] },
