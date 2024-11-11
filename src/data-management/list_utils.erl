@@ -59,7 +59,7 @@ See also: set_utils.erl and list_table.erl.
 % Basic list operations:
 -export([ get_element_at/2, set_element_at/3, insert_element_at/3,
 		  extract_element_at/2, extract_element_if_existing/2,
-
+		  extract_first_elements/2, extract_last_elements/2,
 		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
 		  heads/2,
 		  get_last_element/1, extract_last_element/1,
@@ -376,6 +376,49 @@ extract_element_if_existing( Elem, _List=[ Elem | T ], Acc ) ->
 
 extract_element_if_existing( Elem, _List=[ H | T ], Acc ) ->
 	extract_element_if_existing( Elem, T, [ H | Acc ] ).
+
+
+
+-doc """
+Returns, as a list, the specified number of first elements from the specified
+list, and the remainder of that list.
+
+For example {[a,b,c], [d,e]} = extract_first_elements([a,b,c,d,e], 3).
+
+Throws an exception if there are not enough elements to do so.
+""".
+-spec extract_first_elements( list(), count() ) -> { list(), list() }.
+extract_first_elements( List, Count ) ->
+	extract_first_elements( List, Count, _Acc=[] ).
+
+
+% (helper)
+extract_first_elements( RemainderList, _Count=0, Acc ) ->
+	{ lists:reverse( Acc ), RemainderList };
+
+extract_first_elements( _RemainderList=[], LackingCount, _Acc ) ->
+	throw( { list_too_short, LackingCount } );
+
+extract_first_elements( _RemainderList=[ H | T ], Count, Acc ) ->
+	extract_first_elements( T, Count-1, [ H | Acc ] ).
+
+
+
+-doc """
+Returns, as a list, the specified number of last elements from the specified
+list, and the remainder of that list.
+
+For example {[c,d,e],[a,b]} = extract_last_elements([a,b,c,d,e], 3).
+
+Throws an exception if there are not enough elements to do so.
+""".
+-spec extract_last_elements( list(), count() ) -> { list(), list() }.
+extract_last_elements( List, Count ) ->
+	{ RevLastElems, RevRemainder } =
+		extract_first_elements( lists:reverse( List ), Count ),
+
+	{ lists:reverse( RevLastElems ), lists:reverse( RevRemainder ) }.
+
 
 
 
@@ -1581,7 +1624,6 @@ split_multi_heads_tails( _Lists=[ L | TL ], AccHeads, AccTails, HeadsLen ) ->
 
 
 -doc """
-
 Concatenates the specified lists to the specified lists: returns the
 concatenation of the two lists found at the same rank in both input lists, and
 returns the (in-order) list of these concatenated lists.
