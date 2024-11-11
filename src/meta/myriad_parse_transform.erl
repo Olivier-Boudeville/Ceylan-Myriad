@@ -866,7 +866,7 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 
 				% Right value found matching:
 				{ value, RequestedValue } ->
-					ast_utils:display_debug( "Token '~p' defined and set to "
+					%ast_utils:display_debug( "Token '~p' defined and set to "
 					%   "the right value ('~p'), hence "
 					%   "injecting the expression ~p",
 					%   [ Token, RequestedValue, ExprFormIfMatching ] ),
