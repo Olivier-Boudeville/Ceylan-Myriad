@@ -31,6 +31,12 @@
 Provides our own version of an Erlang shell process, typically in order to
 integrate it in a REPL-like interpreter.
 
+This shell supports (possibly timestamped) logging, (possibly bounded) command
+and result histories, persistent command history, built-in shell commands, which
+can be overridden/enriched based on callback modules.
+
+It can be of course local to the current node, or remote.
+
 See shell_utils_test.erl for its testing, and gui_shell_test.erl for an
 example of use thereof.
 """.
@@ -38,9 +44,10 @@ example of use thereof.
 
 % Two versions were targeted:
 %
-% - a custom shell, using our own Myriad conventions; we use it
+% - a custom shell, using our own Myriad conventions; we use it and are fond of
+% it
 %
-% - a standard shell, integrated in Erlang native subsystems; we drop it (see
+% - a standard shell, integrated in Erlang native subsystems; we dropped it (see
 % reasons in implementation notes below)
 
 
@@ -153,19 +160,29 @@ Options that can be specified when creating a shell:
 - 'timestamp': keep track also of the timestamp of the start of a command
 
 - 'log': logs the commands and their results, in a file whose default name is
-  `myriad-shell-CREATOR_PID.log`, where CREATOR_PID corresponds to the PID of
-  the shell creator, like in `myriad-shell-0.84.0.log` (then written in the
-  current directory)
+  `myriad-shell-for-CREATOR_PID-on-CREATION_TIMESTAMP.log`, where CREATOR_PID
+  corresponds to the PID of the shell creator, and CREATION_TIMESTAMP is the
+  timestamp of the creation of that shell, like in
+  `myriad-shell-for-0.93.0-on-2024-11-17-at-14h-31m-19s.log` (then written in
+  the current directory)
 
 - {'log', LogPath :: any_file_path()}: logs the commands and their results in a
   file whose path is specified
 
-- {'histories', MaxCmdDepth :: option( count() ), MaxResDepth :: option( count()
- )}: records a command and result histories of the specified maximum depths,
+- {'histories', MaxCmdDepth :: option(count()), MaxResDepth :: option(count())}:
+ records a command and result histories of the specified maximum depths,
  'undefined' meaning unlimited depth (beware to memory footprint)
 
-- no_history: does not store any command or result history (synonym of
+- no_histories: does not record any command or result history (synonym of
   {histories,0,0})
+
+- persistent_command_history: the command history is stored in the filesystem
+  for convenience, so that it can be reloaded when launching new shell
+  instances; note that it is then an history common to all shell instances, thus
+  collecting their various commands (according to a maximum depth of its own,
+  see the persistant_command_history_depth define); such a file will be reused
+  and then updated iff this option is selected (i.e. this option enables both
+  its reading and its writing)
 
 - callback_module: to specify the name of any implementation for the shell
   callback module (see 'shell_default_callbacks' for the default one)
@@ -177,6 +194,7 @@ Options that can be specified when creating a shell:
  | { 'histories', MaxCmdDepth :: option( count() ),
 	 MaxCmdDepth :: option( count() ), MaxResDepth :: option( count() ) }
  |  'no_histories'
+ | 'persistent_command_history'
  | { 'callback_module', module_name() }.
 
 
@@ -206,67 +224,19 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 -define( default_result_history_max_depth, 20 ).
 
 
-% The state of a custom shell instance.
+% Stored at the root of the account of the current user:
+-define( persistant_command_history_filename,
+		 ".ceylan-myriad-shell-history.dat" ).
+
+% The maximum depth of the persistant command history (possibly exceeds the
+% depth of the command history of a given shell):
 %
-% Defaults set in vet_options_for_custom/1:
--record( custom_shell_state, {
-
-	% The number of commands already submitted; corresponds to the number
-	% (identifier) of any current command (or the one of the next command, minus
-	% 1):
-	%
-	submission_count = 0 :: count(),
-
-	% Tells whether the start of commands shall be timestamped:
-	do_timestamp = false :: boolean(),
+%-define( persistant_command_history_depth, 40 ).
+-define( persistant_command_history_depth, 2 ).
 
 
-	% Tells whether the full history (inputs and outputs) shall be logged on
-	% file and, if yes, in which one:
-	%
-	log_path = undefined :: option( bin_file_path() ),
-
-	% The file (if any) where logs are to be written:
-	log_file = undefined :: option( file() ),
-
-
-	% Maximum number of command history elements (0: none; 1: just the last one,
-	% etc.; undefined: infinite):
-	%
-	cmd_history_max_depth=?default_command_history_max_depth ::
-		option( count() ),
-
-	% Maximum number of result history elements (0: none; 1: just the last one,
-	% etc.; undefined: infinite):
-	%
-	res_history_max_depth=?default_result_history_max_depth ::
-		option( count() ),
-
-
-	% Possibly ellipsed:
-	cmd_history :: command_history(),
-
-	% Possibly ellipsed:
-	res_history :: result_history(),
-
-
-	% Records all current bindings:
-	bindings :: binding_struct(),
-
-
-	% The name of the module used by this shell in order to locate its built-in
-	% functions:
-	%
-	% (made to be overridden with special-purpose modules, potentially using
-	% this one as for default implementations)
-	%
-	callback_module='shell_default_callbacks' :: module_name()
-
-
-	% At least currently, a shell does not keep track of the process(es) using
-	% it.
-
-} ).
+% For the custom_shell_state record:
+-include("shell_utils.hrl").
 
 
 -doc "The state of a custom shell instance.".
@@ -299,20 +269,25 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 -type bin_string() :: text_utils:bin_string().
 -type any_string() :: text_utils:any_string().
 
+-type format_string() :: text_utils:format_string().
+-type format_values() :: text_utils:format_values().
+
 -type module_name() :: meta_utils:module_name().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 -type timestamp_binstring() :: time_utils:timestamp_binstring().
 
--type bin_file_path() :: file_utils:bin_file_path().
+%-type bin_file_path() :: file_utils:bin_file_path().
 -type any_file_path() :: file_utils:any_file_path().
--type file() :: file_utils:file().
+%-type file() :: file_utils:file().
 
 % Not a [binding()]:
 -type binding_struct() :: erl_eval:binding_struct().
 
 -type queue( T ) :: queue:queue( T ).
+
+-type eval_error_term() :: term().
 
 
 
@@ -351,8 +326,7 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 %  kernel/src/group.erl (not referenced in user documentation),
 %  stdlib/src/edlin.erl
 %
-%  * https://erlangforums.com/t/adding-repl-like-feature-to-a-graphical-erlang-application/3795
-%  (using edlin)
+%  * https://erlangforums.com/t/adding-repl-like-feature-to-a-graphical-erlang-application/3795 (using edlin)
 %
 %  * https://erlang.org/pipermail/erlang-questions/2008-September/038476.html
 %  * https://tryerlang.org/
@@ -470,6 +444,29 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 % 10> observer:start().
 % ok % and of course works
 
+
+% Shell-related security:
+%
+% The shell user has to be trusted, as they can at least exhaust the local
+% resources (e.g. with <<0::size(99999999999999)>>"), or forge binaries that,
+% once decoded with binary_to_term/1 as MFA and applied, can executed arbitrary
+% code.
+
+
+% Filtering local/remote calls in commands
+%
+% This is useful to implement shell built-in commands (e.g. list_bindings/1).
+%
+% We see two options:
+%
+% (A) using the prebuilt machinery for that in erl_eval (see
+% https://www.erlang.org/doc/apps/stdlib/erl_eval.html#module-local-function-handler
+% for instance)
+%
+% (B) managing the whole by ourselves at the AST level, using our meta
+% facilities (see themyriad_parse_transform module as an example thereof)
+%
+% We start with (A).
 
 
 % For myriad_spawn_link/1:
@@ -592,8 +589,40 @@ vet_options_for_custom( Opt ) ->
 
 
 % (helper)
-vet_options_for_custom( _Opts=[], ShellState ) ->
-	ShellState;
+vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
+		callback_module=CallbackMod } ) ->
+
+	% Done last, as needing at least the callback_module option to be ready:
+	LocalFunHandler = fun( FName, FArgs ) ->
+
+		% (atom/list expected respectively)
+
+		trace_utils:debug_fmt( "Local fun handler called for function ~ts "
+			"with arguments ~p.", [ FName, FArgs ] ),
+
+		FArgCount = length( FArgs ),
+		FId = { FName, FArgCount },
+
+		case lists:member( FId, CallbackMod:list_builtin_commands() ) of
+
+			true ->
+				trace_utils:debug_fmt( "Command ~p found.", [ FId ] ),
+				fixme;
+
+			false ->
+				cond_utils:if_defined( myriad_debug_shell,
+					trace_utils:error_fmt( "Command ~p not found.", [ FId ] ) ),
+
+				% Only way found to escape erl_eval:exprs/3 normal path:
+				throw( { undef, FId } )
+
+		end
+
+	end,
+
+	ShellState#custom_shell_state{
+		local_fun_handler={ value, LocalFunHandler } };
+
 
 vet_options_for_custom( _Opts=[ timestamp | T ], ShellState ) ->
 	vet_options_for_custom( T,
@@ -601,8 +630,10 @@ vet_options_for_custom( _Opts=[ timestamp | T ], ShellState ) ->
 
 vet_options_for_custom( _Opts=[ log | T ], ShellState ) ->
 
-	DefaultLogFilename = text_utils:bin_format( "myriad-shell-~ts.log",
-		[ text_utils:pid_to_filename( self() ) ] ),
+	DefaultLogFilename = text_utils:bin_format(
+		"myriad-shell-for-~ts-on-~ts.log",
+		[ text_utils:pid_to_filename( self() ),
+		  time_utils:get_textual_timestamp_for_path() ] ),
 
 	vet_options_for_custom( [ { log, DefaultLogFilename } | T ], ShellState );
 
@@ -615,9 +646,11 @@ vet_options_for_custom( _Opts=[ { log, AnyLogFilePath } | T ], ShellState ) ->
 	%
 	LogFile = file_utils:open( BinLogFilePath, _OpenOpts=[ write, exclusive ] ),
 
+	trace_utils:debug_fmt( "Shell logs to be written in '~ts'.",
+						   [ BinLogFilePath ] ),
+
 	vet_options_for_custom( T, ShellState#custom_shell_state{
-									log_path=BinLogFilePath,
-									log_file=LogFile } );
+		log_path=BinLogFilePath, log_file=LogFile } );
 
 
 vet_options_for_custom(
@@ -632,6 +665,98 @@ vet_options_for_custom( _Opts=[ no_histories | T ], ShellState ) ->
 	vet_options_for_custom( T, ShellState#custom_shell_state{
 		cmd_history_max_depth=0,
 		res_history_max_depth=0 } );
+
+vet_options_for_custom( _Opts=[ persistent_command_history | T ],
+						ShellState ) ->
+
+	HistPath = file_utils:join( system_utils:get_user_home_directory(),
+								?persistant_command_history_filename ),
+
+	% Intentionally no raw, exclusive, delayed_write; created in all cases:
+	CmdHistFileOpts = [ write ],
+
+	{ CmdHistQueue, CmdHistFile } =
+			case file_utils:is_existing_file_or_link( HistPath ) of
+
+		true ->
+			% As to be stored as binaries in shell's history:
+			StoredCmds = text_utils:strings_to_binaries(
+				file_utils:read_lines( HistPath ) ),
+
+			InFileCount = length( StoredCmds ),
+
+			trace_utils:debug_fmt( "Read ~B command(s) from persistent history "
+				"in '~ts'.", [ InFileCount, HistPath ] ),
+
+			% Feeding our history from it:
+			SelectedCmds = case
+					ShellState#custom_shell_state.cmd_history_max_depth of
+
+				undefined ->
+					% Unlimited, thus keeping all of them:
+					StoredCmds;
+
+				MaxDepth ->
+					ToExtractCount = min( MaxDepth, InFileCount ),
+
+					{ ExtractedCmds, _Rest } = list_utils:extract_last_elements(
+						StoredCmds, ToExtractCount ),
+
+					ExtractedCmds
+
+			end,
+
+			CmdHistQ = queue:from_list( SelectedCmds ),
+
+			% Now we truncate if needed the history file, to avoid that it grows
+			% indefinitely:
+
+			ExcessCount = InFileCount - ?persistant_command_history_depth,
+
+			CmdHFile = case ExcessCount > 0 of
+
+				true ->
+					cond_utils:if_defined( myriad_debug_shell,
+						trace_utils:debug_fmt(
+							"Truncating '~ts' (~B lines in excess).",
+							[ HistPath, ExcessCount ] ) ),
+
+					% Cheaper than a extract_last_elements/2 call:
+					{ _PastExcessCmds, ToKeepCmds } =
+						list_utils:extract_first_elements( StoredCmds,
+														   ExcessCount ),
+
+					% Would have no newlines:
+					%file_utils:write_whole( HistPath, ToKeepCmds )
+
+					CmdFile = file_utils:open( HistPath, CmdHistFileOpts ),
+
+					[ file_utils:write_ustring( CmdFile, "~ts~n",
+												[ CmdBinStr ] )
+								|| CmdBinStr <- ToKeepCmds ],
+
+					CmdFile;
+
+				false ->
+					cond_utils:if_defined( myriad_debug_shell,
+						trace_utils:debug_fmt(
+							"Not needing to truncate '~ts'.", [ HistPath ] ) ),
+
+					file_utils:open( HistPath, [ append ] )
+
+			end,
+
+			{ CmdHistQ, CmdHFile };
+
+		false ->
+			{ queue:new(), file_utils:open( HistPath, CmdHistFileOpts ) }
+
+	end,
+
+
+	vet_options_for_custom( T, ShellState#custom_shell_state{
+									cmd_history=CmdHistQueue,
+									cmd_history_file=CmdHistFile } );
 
 vet_options_for_custom( _Opts=[ { callback_module, CallbackModule } | T ],
 						ShellState ) ->
@@ -855,6 +980,7 @@ Have this custom shell process the specified command and return its outcome.
 								{ command_outcome(), custom_shell_state() }.
 process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 											submission_count=SubCount,
+											cmd_history_file=MaybeCmdHistFile,
 											bindings=Bindings } ) ->
 
 	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
@@ -864,10 +990,16 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 
 	BaseShellState = ShellState#custom_shell_state{ submission_count=NewCmdId },
 
-	% We record a command in all cases (even its syntax is wrong), so that it
-	% can be edited/fixed afterwards:
+	% We record in the history of this shell a command in all cases (even its
+	% syntax is wrong), so that it can be edited/fixed afterwards:
 	%
 	CmdHistShellState = update_command_history( CmdBinStr, BaseShellState ),
+
+	% The size/depth of persistent command history is (only) managed at shell
+	% startup:
+	%
+	MaybeCmdHistFile =:= undefined orelse
+		file_utils:write_ustring( MaybeCmdHistFile, "~ts~n", [ CmdBinStr ] ),
 
 	% Binaries cannot be scanned as are:
 	CmdStr = text_utils:binary_to_string( CmdBinStr ),
@@ -894,8 +1026,12 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						trace_utils:debug_fmt( "Parsed following expression "
 							"forms:~n ~p", [ ExprForms ] ) ),
 
+					LocalFunHandler =
+						ShellState#custom_shell_state.local_fun_handler,
+
 					% Currently not using local/non-local function handlers:
-					try erl_eval:exprs( ExprForms, Bindings ) of
+					try erl_eval:exprs( ExprForms, Bindings,
+										LocalFunHandler ) of
 
 						{ value, CmdValue, NewBindings } ->
 							on_command_success( CmdBinStr, CmdValue, NewCmdId,
@@ -910,8 +1046,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 								[ CmdBinStr, self(), Reason, Class ] ),
 							basic_utils:ignore_unused( Class ) ),
 
-						ReasonBinStr = text_utils:bin_format(
-							"evaluation failed: ~p", [ Reason ] ),
+						ReasonBinStr = format_error( Reason ),
 
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 							ReasonBinStr, NewCmdId, CmdHistShellState ),
@@ -935,7 +1070,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 							  ast_utils:file_loc_to_string( Loc ) ] ),
 						basic_utils:ignore_unused( Loc ) ),
 
-					ReasonBinStr = text_utils:bin_format(
+					ReasonBinStr = format_error_message(
 						"parsing failed: ~ts", [ IssueDesc ] ),
 
 					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
@@ -962,8 +1097,8 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 					  ast_info:location_to_string( ErrorLocation ) ] ),
 				basic_utils:ignore_unused( [ Loc, ErrorLocation ] ) ),
 
-			ReasonBinStr = text_utils:bin_format( "scanning failed: ~ts",
-												  [ IssueDesc ] ),
+			ReasonBinStr = format_error_message( "scanning failed: ~ts",
+												 [ IssueDesc ] ),
 
 			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
 				NewCmdId, CmdHistShellState ),
@@ -1062,7 +1197,7 @@ update_command_history( Cmd, ShellState=#custom_shell_state{
 	% No length limit:
 	NewCmdHistQ = queue:in( Cmd, CmdHistQ ),
 
-	ShellState#custom_shell_state{ cmd_history= NewCmdHistQ};
+	ShellState#custom_shell_state{ cmd_history= NewCmdHistQ };
 
 
 update_command_history( Cmd, ShellState=#custom_shell_state{
@@ -1463,6 +1598,40 @@ process_command_standard( CmdBinStr, ShellState=#standard_shell_state{
 
 
 % Helpers
+
+
+-spec format_error( eval_error_term() ) -> bin_string().
+format_error( E ) ->
+	format_error_message( get_error_message( E ) ).
+
+
+-spec get_error_message( eval_error_term() ) -> ustring().
+get_error_message( { unbound, Var } ) ->
+	text_utils:format( "variable '~ts' is not bound", [ Var ] );
+
+get_error_message( { badmatch, Value } ) ->
+	text_utils:format( "bad match, right-hand side value is actually: ~p",
+					   [ Value ] );
+
+% At least our version of undef:
+get_error_message( { undef, { FunctionName, FunArity } } ) ->
+	text_utils:format( "function ~ts/~B is not defined",
+					   [ FunctionName, FunArity ] );
+
+get_error_message( Other ) ->
+	text_utils:format( "~p", [ Other ] ).
+
+
+
+-spec format_error_message( ustring() ) -> bin_string().
+format_error_message( Msg ) ->
+	text_utils:bin_format( "*** Error: ~ts.", [ Msg ] ).
+
+
+-spec format_error_message( format_string(), format_values() ) -> bin_string().
+format_error_message( Format, Values ) ->
+	format_error_message( text_utils:format( Format, Values ) ).
+
 
 
 -doc "Returns a textual description of the specified custom shell state.".
