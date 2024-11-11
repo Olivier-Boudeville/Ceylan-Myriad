@@ -1616,7 +1616,7 @@ get_time2_textual_timestamp( _Timestamp={ { Year, Month, Day },
 
 -doc """
 Returns a string corresponding to the current timestamp and able to be a part of
-a path, like: "2010-11-18-at-13h-30m-35s".
+a path (in a filesystem), like: "2010-11-18-at-13h-30m-35s".
 """.
 -spec get_textual_timestamp_for_path() -> ustring().
 get_textual_timestamp_for_path() ->
@@ -1626,7 +1626,7 @@ get_textual_timestamp_for_path() ->
 
 -doc """
 Returns a string corresponding to the specified timestamp and able to be a part
-of a path, like: "2010-11-18-at-13h-30m-35s".
+of a path (in a filesystem), like: "2010-11-18-at-13h-30m-35s".
 """.
 -spec get_textual_timestamp_for_path( timestamp() ) -> ustring().
 get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
