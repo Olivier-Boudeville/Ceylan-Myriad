@@ -50,21 +50,31 @@ Text can be intentionally:
    command
  - selected in the past commands (e.g. for re-use)
 
-Shell built-in commands (shorter names comply with a subset of the ones
+Shell built-in commands (their shorter names comply with a subset of the ones
 documented in
 https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands):
 
- - list_bindings()  or b(): displays the current variable bindings
+ - list_bindings() or b(): lists (as terms) the current variable bindings
+ - print_bindings(): displays the current variable bindings
  - clear_bindings() or f() (presumably for forget): clears all variable bindings
  - clear_binding(V) or f(V): clears the binding of variable V
 
- - list_command_history() or h(): lists the history of commands
- - list_result_history() or h(): lists the history of results
- - repeat_command(Id)
+ - print_command_history() or h(): displays the current history of commands
+ - print_result_history() or h(): displays the current history of results
+
+ - repeat_command(Id): re-evaluates the command of the specified identifier (if
+   it is still in command history)
+
+
+ - get_result(Id): returns the result corresponding to the command of specified
+   identifier (if still in result history)
  - clear_commands() or fc(): clears the full history of commands
  - clear_results()  or fr(): clears the full history of command results
  - set_command_history_depth(D): sets the depth of the command history to D
  - set_result_history_depth(D): sets the depth of the result history to D
+
+See our shell_default_callbacks module for their detailed signatures; note the
+implicit use of shell state variables.
 
 Separate histories, of arbitrary depths, for the commands and their results are
 managed.
@@ -93,6 +103,12 @@ Not to be mixed up with shell_utils:shell_pid().
 -type gui_shell() :: widget_pid().
 
 
+
+-doc """
+The options when creating a GUI shell.
+
+They include the ones when creating a shell process.
+""".
 -type gui_shell_option() :: shell_option()
 
 	% Whether initially the shell has the event focus:
