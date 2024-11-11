@@ -23,6 +23,8 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
+% Creation date: 2015.
+
 
 % The default, Erlang-level, EPMD TCP port:
 -define( default_epmd_port, 4369 ).
