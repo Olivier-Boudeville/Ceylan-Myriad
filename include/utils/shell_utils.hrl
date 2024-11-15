@@ -26,6 +26,14 @@
 % Creation date: Sunday, November 3, 2024.
 
 
+% Like the Erlang shell:
+-define( default_command_history_max_depth, 20 ).
+-define( default_result_history_max_depth, 20 ).
+
+% Thus a reserved (non-muted) name:
+-define( shell_state_binding_name, "_MyriadBindingForShellState" ).
+
+
 % The state of a custom shell instance.
 -record( custom_shell_state, {
 
@@ -69,6 +77,7 @@
 
 	% Any file for persistent storage of past commands:
 	cmd_history_file :: option( file_utils:file() ),
+
 
 	% Records all current bindings:
 	bindings :: erl_eval:binding_struct(),
