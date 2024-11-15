@@ -63,7 +63,7 @@ run_gui_test() ->
 
 	%ShellOpts = [],
 	ShellOpts = [ timestamp, log, focused, auto_add_trailing_dot,
-				  { histories, _MaxCmdDepth=5, _MaxResDepth=20 },
+				  { histories, _MaxCmdDepth=15, _MaxResDepth=20 },
 				  persistent_command_history
 				  %{ callback_module, foo }
 				],
