@@ -65,6 +65,10 @@ example of use thereof.
 		  start_standard_shell/0, start_link_standard_shell/0,
 		  start_standard_shell/1, start_link_standard_shell/1,
 
+		  filter_bindings/1,
+
+		  bindings_to_command_string/1,
+
 		  custom_shell_state_to_string/1, standard_shell_state_to_string/1 ]).
 
 
@@ -85,9 +89,19 @@ example of use thereof.
 
 
 
-% Surprisingly, not a string-like, but term():
+-doc """
+Surprisingly, not a string-like, but term(); in practice, at least generally, an
+atom.
+""".
 -type variable_name() :: erl_eval:name().
 
+
+-doc "String-based variable name.".
+-type variable_string_name() :: ustring().
+
+
+% In AST form:
+-type variable_ast_name() :: ast_base:form().
 
 % term():
 -type variable_value() :: erl_eval:value().
@@ -153,6 +167,19 @@ the flushResultHistory request message to avoid that).
 
 
 
+-doc "Result of the evaluation of a built-in command.".
+-type builtin_command_result(T) :: { custom_shell_state(), T }.
+
+
+-doc """
+Result of the evaluation of a built-in command not returning any result of
+interest.
+""".
+% Deemed clearer than 'void':
+-type builtin_state_only() :: builtin_command_result( 'ok' ).
+
+
+
 
 -doc """
 Options that can be specified when creating a shell:
@@ -208,20 +235,19 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 -export_type([ shell_pid/0, custom_shell_pid/0, standard_shell_pid/0,
 			   client_pid/0,
 
-			   variable_name/0, variable_value/0,
-			   binding/0,
+			   variable_name/0, variable_string_name/0, variable_ast_name/0,
+			   variable_value/0, binding/0,
 
 			   command/0, command_id/0, command_result/0, command_error/0,
 			   command_outcome/0,
 
 			   command_history/0, result_history/0,
 
+			   builtin_command_result/1, builtin_state_only/0,
+
 			   group_pid/0 ]).
 
 
-% Like the Erlang shell:
--define( default_command_history_max_depth, 20 ).
--define( default_result_history_max_depth, 20 ).
 
 
 % Stored at the root of the account of the current user:
@@ -592,26 +618,85 @@ vet_options_for_custom( Opt ) ->
 vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 		callback_module=CallbackMod } ) ->
 
+	cond_utils:if_defined( myriad_debug_shell,
+		begin
+			FunIds = meta_utils:list_exported_functions( CallbackMod ),
+			trace_utils:debug_fmt( "The shell_utils callback module '~ts' "
+				"exports the following ~B functions:~n ~p.",
+				[ CallbackMod, length( FunIds ), FunIds ] )
+		end ),
+
 	% Done last, as needing at least the callback_module option to be ready:
-	LocalFunHandler = fun( FName, FArgs ) ->
+	%
+	% (we want to be able to fetch from an executed shell built-in command any
+	% updated shell state and/or bindings)
+	%
+	LocalFunHandler = fun( FName, ASTArgs, Bndngs ) ->
 
-		% (atom/list expected respectively)
+		FArgCount = length( ASTArgs ),
 
-		trace_utils:debug_fmt( "Local fun handler called for function ~ts "
-			"with arguments ~p.", [ FName, FArgs ] ),
+		trace_utils:debug_fmt( "Local fun handler called for function ~ts, "
+			"with the following ~B direct AST arguments: ~p, "
+			"while bindings are:~n ~p.", [ FName, length( ASTArgs ), ASTArgs,
+										   erl_eval:bindings( Bndngs ) ] ),
 
-		FArgCount = length( FArgs ),
-		FId = { FName, FArgCount },
+		% As shell state will be the (first) argument:
+		FId = { FName, FArgCount+1 },
 
 		case lists:member( FId, CallbackMod:list_builtin_commands() ) of
 
 			true ->
-				trace_utils:debug_fmt( "Command ~p found.", [ FId ] ),
-				fixme;
 
+				% All arguments were received in AST form, so we have to
+				% evaluate each of them first.
+				%
+				% For example VarASTName={string,1,"B"} shall be translated in
+				% "B".
+				%
+				% We do not think folding the binding structures would matter;
+				% as expr/2 returns {value, Arg, _EvalBindingStruct}:
+				%
+				FArgs = [ element( _ArgIdx=2, erl_eval:expr( ASTArg, Bndngs ) )
+						  || ASTArg <- ASTArgs ],
+
+				% Fetching back from this handler the latest shell state, which
+				% had been bound just before the call to erl_eval:expr/3:
+				% (so 'unbound' not expected)
+				%
+				{ value, ShState } = erl_eval:binding(
+					?shell_state_binding_name, Bndngs ),
+
+				UpShState = ShState#custom_shell_state{ bindings=Bndngs },
+
+				FullArgs = [ UpShState | FArgs ],
+
+				trace_utils:debug_fmt(
+					"Applying ~ts:~ts/~B, with following arguments:~n ~p.",
+					[ CallbackMod, FName, length( FullArgs ), FullArgs ] ),
+
+				% By convention:
+				{ NewShState, Res } = apply( CallbackMod, FName, FullArgs ),
+
+				%trace_utils:debug_fmt(
+				%   "Built-in command ~ts/~B found; result: ~p.",
+				%   [ FName, FArgCount, Res ] ),
+
+				% Bindings have possibly been updated by the shell command:
+				ResBndngs = NewShState#custom_shell_state.bindings,
+
+				% We add back the shell state to these returned bindings:
+				FinalBndngs = erl_eval:add_binding(
+					?shell_state_binding_name, _Value=NewShState,
+					ResBndngs ),
+
+				{ value, Res, FinalBndngs };
+
+			% No other local function is legit:
 			false ->
 				cond_utils:if_defined( myriad_debug_shell,
-					trace_utils:error_fmt( "Command ~p not found.", [ FId ] ) ),
+					trace_utils:error_fmt(
+						"No built-in shell command ~ts/~B found.",
+						[ FName, FArgCount ] ) ),
 
 				% Only way found to escape erl_eval:exprs/3 normal path:
 				throw( { undef, FId } )
@@ -621,7 +706,8 @@ vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 	end,
 
 	ShellState#custom_shell_state{
-		local_fun_handler={ value, LocalFunHandler } };
+		% Not 'value' as we need to operate on bindings:
+		local_fun_handler={ eval, LocalFunHandler } };
 
 
 vet_options_for_custom( _Opts=[ timestamp | T ], ShellState ) ->
@@ -768,7 +854,7 @@ vet_options_for_custom( _Opts=[ { callback_module, CallbackModule } | T ],
 		begin
 			trace_utils:error_fmt( "The shell_utils callback module '~ts' "
 				"could not be found in the code path, made of (alphabetically) "
-				"of ~ts",
+				"of: ~ts",
 				[ CallbackModule, code_utils:code_path_to_string() ] ),
 
 			throw( { shell_callback_module_not_found, CallbackModule } )
@@ -836,8 +922,8 @@ execute_command( CmdAnyStr, ShellPid ) ->
 -spec custom_shell_main_loop( custom_shell_state() ) -> no_return().
 custom_shell_main_loop( ShellState ) ->
 
-	cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
-		"Now being ~ts", [ custom_shell_state_to_string( ShellState ) ] ) ),
+	%cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
+	%	"Now being ~ts", [ custom_shell_state_to_string( ShellState ) ] ) ),
 
 	% WOOPER-like conventions, except that no wooper_result is sent back:
 	receive
@@ -1027,21 +1113,41 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 							"forms:~n ~p", [ ExprForms ] ) ),
 
 					LocalFunHandler =
-						ShellState#custom_shell_state.local_fun_handler,
+						CmdHistShellState#custom_shell_state.local_fun_handler,
 
-					% Currently not using local/non-local function handlers:
-					try erl_eval:exprs( ExprForms, Bindings,
+					ExecBindings = erl_eval:add_binding(
+						?shell_state_binding_name, _Value=CmdHistShellState,
+						Bindings ),
+
+%trace_utils:debug_fmt( "BEFORE: ~p", [ ExecBindings ] ),
+					% Currently not using non-local function handlers:
+					try erl_eval:exprs( ExprForms, ExecBindings,
 										LocalFunHandler ) of
 
-						{ value, CmdValue, NewBindings } ->
-							on_command_success( CmdBinStr, CmdValue, NewCmdId,
-												NewBindings, CmdHistShellState )
+						{ value, CmdRes, UpdatedBindings } ->
+
+							%trace_utils:debug_fmt( "AFTER = ~p",
+							%					   [ UpdatedBindings ] ),
+
+							% Reading back the (possibly) updated shell state;
+							% not expecting 'unbound':
+							%
+							{ value, ResShellState } = erl_eval:binding(
+								?shell_state_binding_name, UpdatedBindings ),
+
+							% Would not fail if not present:
+							ResetBindings = erl_eval:del_binding(
+								?shell_state_binding_name, UpdatedBindings ),
+
+							% Will assign these bindings in state:
+							on_command_success( CmdBinStr, CmdRes, NewCmdId,
+												ResetBindings, ResShellState )
 
 					catch Class:Reason ->
 
 						cond_utils:if_defined( myriad_debug_shell,
 							trace_utils:warning_fmt( "Evaluation error "
-								"for command '~ts' by shell ~w: ~p "
+								"for command '~ts' by shell ~w:~n~p "
 								"(class: ~ts)",
 								[ CmdBinStr, self(), Reason, Class ] ),
 							basic_utils:ignore_unused( Class ) ),
@@ -1600,6 +1706,16 @@ process_command_standard( CmdBinStr, ShellState=#standard_shell_state{
 % Helpers
 
 
+-doc """
+Filters the specified binding structure, typically on behalf of shell commands,
+so that they access only to the legit bindings.
+""".
+-spec filter_bindings( binding_struct() ) -> [ binding() ].
+filter_bindings( BindingStruct ) ->
+	[ P || P={N,_V} <- erl_eval:bindings( BindingStruct ),
+		   N =/= ?shell_state_binding_name ].
+
+
 -spec format_error( eval_error_term() ) -> bin_string().
 format_error( E ) ->
 	format_error_message( get_error_message( E ) ).
@@ -1704,7 +1820,7 @@ custom_shell_state_to_string( #custom_shell_state{
 
 
 
--doc "Returns a textual description of the specified bindings.".
+-doc "Returns a textual description of the specified binding structure.".
 -spec bindings_to_string( binding_struct() ) -> ustring().
 bindings_to_string( BindingStruct ) ->
 	case erl_eval:bindings( BindingStruct ) of
@@ -1713,7 +1829,31 @@ bindings_to_string( BindingStruct ) ->
 			"no binding";
 
 		[ Binding ] ->
-			text_utils:format( "a single binding: '~ts'",
+			text_utils:format( "a single binding: ~ts",
+							   [ binding_to_string( Binding ) ] );
+
+		Bindings ->
+			text_utils:format( "~B bindings: ~ts",
+				[ length( Bindings ),
+				  text_utils:strings_to_string( [ binding_to_string( B )
+						|| B <- lists:sort( Bindings ) ] ) ] )
+
+	end.
+
+
+-doc """
+Returns a textual command-level description of the specified binding structure.
+""".
+-spec bindings_to_command_string( binding_struct() ) -> ustring().
+bindings_to_command_string( BindingStruct ) ->
+
+	case filter_bindings( BindingStruct ) of
+
+		[] ->
+			"no binding";
+
+		[ Binding ] ->
+			text_utils:format( "a single binding: ~ts",
 							   [ binding_to_string( Binding ) ] );
 
 		Bindings ->
