@@ -68,10 +68,11 @@ https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands):
 
  - get_result(Id): returns the result corresponding to the command of specified
    identifier (if still in result history)
- - clear_commands() or fc(): clears the full history of commands
+ - clear_commands() or fc(): clears the full (live) history of commands
  - clear_results()  or fr(): clears the full history of command results
  - set_command_history_depth(D): sets the depth of the command history to D
  - set_result_history_depth(D): sets the depth of the result history to D
+ - clear_persistent_command_history(): clears the persistent history of commands
 
 See our shell_default_callbacks module for their detailed signatures; note the
 implicit use of shell state variables.
@@ -550,8 +551,25 @@ gui_shell_main_loop( GUIShellState ) ->
 									   "editor ~w.", [ CmdEditor ] ) ),
 
 			gui_widget:set_focus( CmdEditor ),
+%EventContext
+%			xYToPosition(This, X, Y)
+			% Allows to avoid that a mouse click selects the full text, warps
+			% the cursor position and leads to a confusing non-operation; now
+			% has the same effect as Ctrl-e:
 
-			gui_shell_main_loop( GUIShellState );
+			PreChars =  GUIShellState#gui_shell_state.precursor_chars,
+			PostChars = GUIShellState#gui_shell_state.postcursor_chars,
+
+			NewPreChars = lists:reverse( PostChars ) ++ PreChars,
+			NewPostChars = [],
+
+			gui_text_editor:set_cursor_position_to_end( CmdEditor ),
+
+			NewGUIShellState = GUIShellState#gui_shell_state{
+				precursor_chars=NewPreChars,
+				postcursor_chars=NewPostChars },
+
+			gui_shell_main_loop( NewGUIShellState );
 
 
 		% Typically called when pasting text with the mouse:
@@ -622,9 +640,9 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 	Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
 
-	cond_utils:if_defined( myriad_debug_gui_shell, trace_utils:debug_fmt(
-		"Keycode with Control modifier received: ~p (~ts)", [ Keycode,
-			gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ) ),
+	%cond_utils:if_defined( myriad_debug_gui_shell, trace_utils:debug_fmt(
+	%   "Keycode with Control modifier received: ~p (~ts)", [ Keycode,
+	%       gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ) ),
 
 	case Keycode of
 
@@ -696,12 +714,12 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 		% French keyboard) results into the control and alt modifiers being set,
 		% with a corresponding Unicode character available:
 		%
-		Other ->
+		_Other ->
 
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug_fmt(
-					"(received keycode with Ctrl modifier ~p)", [ Other ] ),
-					basic_utils:ignore_unused( Other ) ),
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%   trace_utils:debug_fmt(
+			%       "(received keycode with Ctrl modifier ~p)", [ Other ] ),
+			%       basic_utils:ignore_unused( Other ) ),
 
 			add_char( Keycode, PreChars, PostChars, CmdEditor, GUIShellState )
 
@@ -720,16 +738,17 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 	Scancode = gui_keyboard:get_scancode( BackendKeyEvent ),
 
-	cond_utils:if_defined( myriad_debug_gui_shell, trace_utils:debug_fmt(
-		"Scancode (with no Control modifier) received: ~p (~ts).",
-		[ Scancode, gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ) ),
+	%cond_utils:if_defined( myriad_debug_gui_shell, trace_utils:debug_fmt(
+	%   "Scancode (with no Control modifier) received: ~p (~ts).",
+	%   [ Scancode, gui_keyboard:key_event_to_string( BackendKeyEvent ) ] ) ),
 
 	% Right arrow:
 	case Scancode of
 
 		?MYR_SCANCODE_DELETE ->
-			cond_utils:if_defined( myriad_debug_gui_shell,
-								   trace_utils:debug( "Delete entered." ) ),
+
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%                       trace_utils:debug( "Delete entered." ) ),
 
 			NewPostChars = case PostChars of
 
@@ -748,8 +767,9 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 		?MYR_SCANCODE_RIGHT ->
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug( "To right (any next character)." ) ),
+
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%   trace_utils:debug( "To right (any next character)." ) ),
 
 			{ NewPreChars, NewPostChars } = case PostChars of
 
@@ -777,8 +797,10 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 		?MYR_SCANCODE_LEFT ->
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug( "To left (any previous character)." ) ),
+
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%   trace_utils:debug( "To left (any previous character)." ) ),
+
 			{ NewPreChars, NewPostChars } = case PreChars of
 
 				[] ->
@@ -811,8 +833,9 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 		?MYR_SCANCODE_UP ->
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug( "Recall previous command." ) ),
+
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%   trace_utils:debug( "Recall previous command." ) ),
 
 			ShellPid = GUIShellState#gui_shell_state.shell_pid,
 
@@ -856,8 +879,9 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 		?MYR_SCANCODE_DOWN ->
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug( "Recall next command." ) ),
+
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%   trace_utils:debug( "Recall next command." ) ),
 
 			ShellPid = GUIShellState#gui_shell_state.shell_pid,
 
@@ -911,8 +935,9 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 		?MYR_SCANCODE_BACKSPACE ->
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug( "Backspace entered." ) ),
+
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%   trace_utils:debug( "Backspace entered." ) ),
 
 			NewPreChars = case PreChars of
 
@@ -933,8 +958,9 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 
 		?MYR_SCANCODE_TAB ->
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug( "Tab entered." ) ),
+
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%   trace_utils:debug( "Tab entered." ) ),
 
 			GUIShellState;
 
@@ -967,10 +993,10 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 			ShellPid = GUIShellState#gui_shell_state.shell_pid,
 
-			cond_utils:if_defined( myriad_debug_gui_shell,
-				trace_utils:debug_fmt(
-					"Return entered, triggering command '~ts' "
-					"on shell ~w.", [ CmdBinStr, ShellPid ] ) ),
+			%cond_utils:if_defined( myriad_debug_gui_shell,
+			%	trace_utils:debug_fmt(
+			%		"Return entered, triggering command '~ts' "
+			%		"on shell ~w.", [ CmdBinStr, ShellPid ] ) ),
 
 			CurrentCmdId = GUIShellState#gui_shell_state.command_id,
 
@@ -985,7 +1011,7 @@ handle_non_ctrl_modified_key( BackendKeyEvent,
 
 					cond_utils:if_defined( myriad_debug_gui_shell,
 						trace_utils:debug_fmt(
-							"For command #~B (at ~ts), success value is ~p.",
+							"For command #~B (at ~ts), success value is:~n ~p.",
 							[ CurrentCmdId, MaybeTimestampBinStr, CmdRes ] ) ),
 
 					{ text_utils:bin_format( "~ts~ts~n~ts",
