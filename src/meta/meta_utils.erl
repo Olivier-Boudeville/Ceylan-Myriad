@@ -240,7 +240,7 @@ InputTerm :: term()).
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type user_data() :: basic_utils:user_data().
 
