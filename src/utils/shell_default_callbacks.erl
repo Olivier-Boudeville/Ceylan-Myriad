@@ -54,7 +54,8 @@ implementations.
 		  clear_bindings/1, clear_binding/2,
 		  print_command_history/1, print_result_history/1,
 		  repeat_command/2, clear_commands/1, clear_results/1,
-		  set_command_history_depth/2, set_result_history_depth/2 ]).
+		  set_command_history_depth/2, set_result_history_depth/2,
+		  clear_persistent_command_history/1 ]).
 
 
 
@@ -64,6 +65,9 @@ implementations.
 
 -type count() :: basic_utils:count().
 
+-type ustring() :: text_utils:ustring().
+
+
 -type shell_state() :: shell_utils:custom_shell_state().
 
 -type command_id() :: shell_utils:command_id().
@@ -72,9 +76,11 @@ implementations.
 
 
 -type binding() :: shell_utils:binding().
--type variable_name() :: shell_utils:variable_name().
 
--type state_only() :: { shell_state(), 'void' }.
+-type variable_string_name() :: shell_utils:variable_string_name().
+
+-type builtin_state_only() :: shell_utils:builtin_state_only().
+
 
 -type function_id() :: meta_utils:function_id().
 
@@ -84,7 +90,7 @@ implementations.
 %
 % A shell built-in command is in the following form: `f(ShellState ::
 % shell_state(), Param1, Param2, ...  ) -> {shell_state(), Result}` where Result
-% (possibly 'void' if none applies) is returned to the caller (the updated shell
+% (possibly 'ok' if none applies) is returned to the caller (the updated shell
 % state is just extracted and reused internally, transparently).
 
 
@@ -100,50 +106,82 @@ list_builtin_commands() ->
 	  { print_command_history, 1 }, { print_result_history, 1 },
 	  { repeat_command, 2 },
 	  { clear_commands, 1 }, { clear_results, 1 },
-	  { set_command_history_depth, 2 }, { set_result_history_depth, 2 } ].
+	  { set_command_history_depth, 2 }, { set_result_history_depth, 2 },
+	  { clear_persistent_command_history, 1 } ].
+
+
+% For shell state record, shell_state_binding_name define:
+-include("shell_utils.hrl").
 
 
 
 % Implementation of the shell built-in commands:
+%
+% (beware: error report is less precise than usual; e.g. undef (class: error) /
+% *** Error: undef is reported as soon as a function call *in* a command is not
+% known (the command thus may be found defined)
+
 
 
 -doc "Lists (as terms) the current variable bindings.".
 -spec list_bindings( shell_state() ) -> { shell_state(), [ binding() ] }.
-list_bindings( ShellState ) ->
-	trace_utils:debug_fmt( "Listing bindings." ),
-	{ ShellState, [] }.
+list_bindings( ShellState=#custom_shell_state{ bindings=BindingStruct } ) ->
+	%trace_utils:debug( "Listing bindings." ),
+
+	FilteredBindings = shell_utils:filter_bindings( BindingStruct ),
+
+	{ ShellState, FilteredBindings }.
+
 
 
 -doc "Prints on the console the current variable bindings.".
--spec print_bindings( shell_state() ) -> state_only().
-print_bindings( ShellState ) ->
-	{ ShellState, void }.
+-spec print_bindings( shell_state() ) -> { shell_state(), ustring() }.
+print_bindings( ShellState=#custom_shell_state{ bindings=BindingStruct } ) ->
+
+	Res = text_utils:format( "Shell has ~ts",
+		[ shell_utils:bindings_to_command_string( BindingStruct ) ] ),
+
+	{ ShellState, Res }.
 
 
 
 -doc "Clears all variable bindings.".
--spec clear_bindings( shell_state() ) -> state_only().
+-spec clear_bindings( shell_state() ) -> builtin_state_only().
 clear_bindings( ShellState ) ->
-	{ ShellState, void }.
+	NewBindingStruct = erl_eval:new_bindings(),
+	{ ShellState#custom_shell_state{ bindings=NewBindingStruct }, ok }.
 
 
--doc "Clears the binding of the specified variable.".
--spec clear_binding( shell_state(), variable_name() ) -> state_only().
-clear_binding( ShellState, _VarName ) ->
-	{ ShellState, void }.
+
+-doc """
+Clears the binding of the specified variable.
+
+No error is triggered if no such variable was bound.
+""".
+-spec clear_binding( shell_state(), variable_string_name() ) ->
+										builtin_state_only().
+clear_binding( ShellState=#custom_shell_state{ bindings=BindingStruct },
+			   VarName ) ->
+
+	%trace_utils:debug_fmt( "Clearing binding '~ts'.", [ VarName ] ),
+
+	NewBindingStruct = erl_eval:del_binding( list_to_atom( VarName ),
+											 BindingStruct ),
+
+	{ ShellState#custom_shell_state{ bindings=NewBindingStruct }, ok }.
 
 
 
 -doc "Displays the current history of commands.".
--spec print_command_history( shell_state() ) -> state_only().
+-spec print_command_history( shell_state() ) -> builtin_state_only().
 print_command_history( ShellState ) ->
-	{ ShellState, void }.
+	{ ShellState, ok }.
 
 
 -doc "Displays the current history of results.".
--spec print_result_history( shell_state() ) -> state_only().
+-spec print_result_history( shell_state() ) -> builtin_state_only().
 print_result_history( ShellState ) ->
-	{ ShellState, void }.
+	{ ShellState, ok }.
 
 
 
@@ -157,25 +195,35 @@ repeat_command( ShellState, CmdId ) ->
 	{ ShellState, CmdId }.
 
 
--doc "Clears the full history of commands.".
--spec clear_commands( shell_state() ) -> state_only().
+-doc "Clears the full (live) history of commands.".
+-spec clear_commands( shell_state() ) -> builtin_state_only().
 clear_commands( ShellState ) ->
-	{ ShellState, void }.
+	{ ShellState, ok }.
 
 
 -doc "Clears the full history of command results.".
--spec clear_results( shell_state() ) -> state_only().
+-spec clear_results( shell_state() ) -> builtin_state_only().
 clear_results( ShellState ) ->
-	{ ShellState, void }.
+	{ ShellState, ok }.
+
 
 
 -doc "Sets the depth of the command history.".
--spec set_command_history_depth( shell_state(), count() ) -> state_only().
+-spec set_command_history_depth( shell_state(), count() ) ->
+											builtin_state_only().
 set_command_history_depth( ShellState, _NewDepth ) ->
-	{ ShellState, void }.
+	{ ShellState, ok }.
 
 
 -doc "Sets the depth of the result history.".
--spec set_result_history_depth( shell_state(), count() ) -> state_only().
+-spec set_result_history_depth( shell_state(), count() ) ->
+											builtin_state_only().
 set_result_history_depth( ShellState, _NewDepth ) ->
-	{ ShellState, void }.
+	{ ShellState, ok }.
+
+
+
+-doc "Clears the persistent history of commands.".
+-spec clear_persistent_command_history( shell_state() ) -> builtin_state_only().
+clear_persistent_command_history( ShellState ) ->
+	{ ShellState, ok }.
