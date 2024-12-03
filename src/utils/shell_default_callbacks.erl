@@ -53,7 +53,7 @@ implementations.
 -export([ list_bindings/1, print_bindings/1,
 		  clear_bindings/1, clear_binding/2,
 		  print_command_history/1, print_result_history/1,
-		  repeat_command/2, clear_commands/1, clear_results/1,
+		  recall_command/2, clear_commands/1, clear_results/1,
 		  set_command_history_depth/2, set_result_history_depth/2,
 		  clear_persistent_command_history/1 ]).
 
@@ -92,6 +92,11 @@ implementations.
 % shell_state(), Param1, Param2, ...  ) -> {shell_state(), Result}` where Result
 % (possibly 'ok' if none applies) is returned to the caller (the updated shell
 % state is just extracted and reused internally, transparently).
+%
+% The implementation of at least some of these commands has been defined in
+% shell_utils, both for an easier debugging (when called from a
+% non-erl_eval:expr/* context) and re-use (for other callback modules).
+
 
 
 -doc """
@@ -104,7 +109,7 @@ list_builtin_commands() ->
 	[ { list_bindings, 1 }, { print_bindings, 1 },
 	  { clear_bindings, 1 }, { clear_binding, 2 },
 	  { print_command_history, 1 }, { print_result_history, 1 },
-	  { repeat_command, 2 },
+	  { recall_command, 2 },
 	  { clear_commands, 1 }, { clear_results, 1 },
 	  { set_command_history_depth, 2 }, { set_result_history_depth, 2 },
 	  { clear_persistent_command_history, 1 } ].
@@ -115,11 +120,17 @@ list_builtin_commands() ->
 
 
 
-% Implementation of the shell built-in commands:
+% Implementation of the shell built-in commands.
 %
-% (beware: error report is less precise than usual; e.g. undef (class: error) /
-% *** Error: undef is reported as soon as a function call *in* a command is not
-% known (the command thus may be found defined)
+% Beware, for them, because of erl_eval evaluation, the error report is less
+% precise than usual.
+%
+% For example "undef (class: error)" / "*** Error: undef" is reported
+% as soon as a function call *in* a command is not known (the command thus may
+% be found defined).
+%
+% The best course of action is to test first each of these commands directly in
+% shell_utils.
 
 
 
@@ -173,26 +184,31 @@ clear_binding( ShellState=#custom_shell_state{ bindings=BindingStruct },
 
 
 -doc "Displays the current history of commands.".
--spec print_command_history( shell_state() ) -> builtin_state_only().
+-spec print_command_history( shell_state() ) -> { shell_state(), ustring() }.
 print_command_history( ShellState ) ->
-	{ ShellState, ok }.
+	Res = shell_utils:command_history_to_string_with_ids( ShellState ),
+	{ ShellState, Res }.
+
 
 
 -doc "Displays the current history of results.".
--spec print_result_history( shell_state() ) -> builtin_state_only().
+-spec print_result_history( shell_state() ) -> { shell_state(), ustring() }.
 print_result_history( ShellState ) ->
-	{ ShellState, ok }.
+	Res = shell_utils:result_history_to_string_with_ids( ShellState ),
+	{ ShellState, Res }.
 
 
 
 -doc """
-Re-evaluates the command of the specified identifier (if it is still in command
-history).
+Returns the command of the specified identifier (if it is still in command
+history), so that it can be evaluated again.
 """.
--spec repeat_command( shell_state(), command_id() ) ->
+-spec recall_command( shell_state(), command_id() ) ->
 								{ shell_state(), command_result() }.
-repeat_command( ShellState, CmdId ) ->
-	{ ShellState, CmdId }.
+recall_command( ShellState, CmdId ) ->
+	Res = shell_utils:recall_command( ShellState, CmdId ),
+	{ ShellState, Res }.
+
 
 
 -doc "Clears the full (live) history of commands.".
