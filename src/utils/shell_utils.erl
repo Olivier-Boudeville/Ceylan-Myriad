@@ -54,9 +54,11 @@ example of use thereof.
 
 % User API:
 -export([ start_custom_shell/0, start_link_custom_shell/0,
-		  start_custom_shell/1, start_link_custom_shell/1,
+		  start_custom_shell/1, start_link_custom_shell/1
 
-		  execute_command/2 ]).
+		%,execute_command/2
+
+ ]).
 
 
 
@@ -65,11 +67,21 @@ example of use thereof.
 		  start_standard_shell/0, start_link_standard_shell/0,
 		  start_standard_shell/1, start_link_standard_shell/1,
 
+		  custom_shell_state_to_string/1, custom_shell_state_to_string/2,
+		  standard_shell_state_to_string/1, standard_shell_state_to_string/2 ]).
+
+
+% Helpers directly called by shell callbacks:
+-export([ command_history_to_string_with_ids/1,
+		  result_history_to_string_with_ids/1, recall_command/2 ]).
+
+
+% Various other helpers:
+-export([ command_history_to_string/1, result_history_to_string/1,
+
 		  filter_bindings/1,
-
-		  bindings_to_command_string/1,
-
-		  custom_shell_state_to_string/1, standard_shell_state_to_string/1 ]).
+		  bindings_to_string/1, bindings_to_command_string/1,
+		  binding_to_string/1 ]).
 
 
 -doc "The PID of a (Myriad) shell process.".
@@ -77,10 +89,11 @@ example of use thereof.
 
 
 -doc "The PID of a Myriad custom shell process.".
--type custom_shell_pid() :: pid().
+-type custom_shell_pid() :: processor_pid().
+
 
 -doc "The PID of a Myriad standard shell process.".
--type standard_shell_pid() :: pid().
+-type standard_shell_pid() :: processor_pid().
 
 
 
@@ -119,28 +132,49 @@ A command to submit to a shell, corresponding to a sequence of expressions.
 
 For example: <<"A=1, B=2, A+B.">>.
 """.
--type command() :: bin_string().
+-type command() :: entry().
 
 
 -doc """
-The number (count since shell start) of a command, which is an identifier
-thereof.
+A command to submit to a shell, corresponding to a sequence of
+expressions, as a string.
+
+For example: "A=1, B=2, A+B.".
 """.
--type command_id() :: count().
+-type command_str() :: entry_str().
 
 
--doc "The result of a command, as evaluated by a shell.".
+-doc "Any message to be displayed on the shell (e.g. an error).".
+-type message() :: ustring().
+
+
+-doc """
+The number (in their history: count since shell start) of a command, which is an
+identifier thereof.
+""".
+-type command_id() :: entry_id().
+
+
+-doc """
+The result of a command, as evaluated by a shell.
+
+More precise than text_edit:process_result/0.
+""".
 -type command_result() :: variable_value().
 
 
 -doc "An error message generated when a shell evaluates a submitted command.".
--type command_error() :: bin_string().
+-type command_error() :: text_edit:process_error().
 
 
--doc "The information returned once a command is processed.".
+-doc """
+The information returned once a command is processed.
+
+A specialisation of text_edit:process_outcome/0.
+""".
 -type command_outcome() ::
 
-	{ 'success', command_result(), command_id(),
+	{ 'success', command_result(), ThisCmdId :: command_id(),
 	  MaybeTimestampBinStr :: option( timestamp_binstring() ) }
 
   | { 'error', command_error(),
@@ -204,12 +238,13 @@ Options that can be specified when creating a shell:
   {histories,0,0})
 
 - persistent_command_history: the command history is stored in the filesystem
-  for convenience, so that it can be reloaded when launching new shell
-  instances; note that it is then an history common to all shell instances, thus
-  collecting their various commands (according to a maximum depth of its own,
-  see the persistant_command_history_depth define); such a file will be reused
-  and then updated iff this option is selected (i.e. this option enables both
-  its reading and its writing)
+  for convenience, so that it can be reloaded when launching new shell instances
+  (then the number of the first entered command will be the next one after the
+  full history); note that it is then an history common to all shell instances,
+  thus collecting their various commands (according to a maximum depth of its
+  own, see the persistant_command_history_depth define); such a file will be
+  reused and then updated iff this option is selected (i.e. this option enables
+  both its reading and its writing)
 
 - callback_module: to specify the name of any implementation for the shell
   callback module (see 'shell_default_callbacks' for the default one)
@@ -238,8 +273,8 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 			   variable_name/0, variable_string_name/0, variable_ast_name/0,
 			   variable_value/0, binding/0,
 
-			   command/0, command_id/0, command_result/0, command_error/0,
-			   command_outcome/0,
+			   command/0, command_str/0, message/0, command_id/0,
+			   command_result/0, command_error/0, command_outcome/0,
 
 			   command_history/0, result_history/0,
 
@@ -257,8 +292,8 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 % The maximum depth of the persistant command history (possibly exceeds the
 % depth of the command history of a given shell):
 %
-%-define( persistant_command_history_depth, 40 ).
--define( persistant_command_history_depth, 2 ).
+-define( persistant_command_history_depth, 50 ).
+%-define( persistant_command_history_depth, 2 ).
 
 
 % For the custom_shell_state record:
@@ -293,7 +328,7 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 -type ustring() :: text_utils:ustring().
 
 -type bin_string() :: text_utils:bin_string().
--type any_string() :: text_utils:any_string().
+%-type any_string() :: text_utils:any_string().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -314,6 +349,11 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 -type queue( T ) :: queue:queue( T ).
 
 -type eval_error_term() :: term().
+
+-type entry() :: text_edit:entry().
+-type entry_str() :: text_edit:entry_str().
+-type entry_id() :: text_edit:entry_id().
+-type processor_pid() :: text_edit:processor_pid().
 
 
 
@@ -440,9 +480,8 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 % slogan-like "Eshell V15.0 [...]" texts are displayed by the caller).
 %
 % The caller may (concurrently) run the execute_command/2 function (sending
-% processCommand messages to the shell), so that the corresponding command is
-% evaluated by the shell, and a corresponding command outcome is returned to the
-% caller.
+% process messages to the shell), so that the corresponding command is evaluated
+% by the shell, and a corresponding command outcome is returned to the caller.
 
 
 % Usage example (custom shell, no log or timestamp enabled):
@@ -657,7 +696,7 @@ vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 				% as expr/2 returns {value, Arg, _EvalBindingStruct}:
 				%
 				FArgs = [ element( _ArgIdx=2, erl_eval:expr( ASTArg, Bndngs ) )
-						  || ASTArg <- ASTArgs ],
+							|| ASTArg <- ASTArgs ],
 
 				% Fetching back from this handler the latest shell state, which
 				% had been bound just before the call to erl_eval:expr/3:
@@ -686,8 +725,7 @@ vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 
 				% We add back the shell state to these returned bindings:
 				FinalBndngs = erl_eval:add_binding(
-					?shell_state_binding_name, _Value=NewShState,
-					ResBndngs ),
+					?shell_state_binding_name, _Value=NewShState, ResBndngs ),
 
 				{ value, Res, FinalBndngs };
 
@@ -699,7 +737,7 @@ vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 						[ FName, FArgCount ] ) ),
 
 				% Only way found to escape erl_eval:exprs/3 normal path:
-				throw( { undef, FId } )
+				throw( { undef,  { FName, FArgCount } } )
 
 		end
 
@@ -761,7 +799,7 @@ vet_options_for_custom( _Opts=[ persistent_command_history | T ],
 	% Intentionally no raw, exclusive, delayed_write; created in all cases:
 	CmdHistFileOpts = [ write ],
 
-	{ CmdHistQueue, CmdHistFile } =
+	{ CmdHistQueue, CmdHistFile, InitSubCount } =
 			case file_utils:is_existing_file_or_link( HistPath ) of
 
 		true ->
@@ -832,15 +870,16 @@ vet_options_for_custom( _Opts=[ persistent_command_history | T ],
 
 			end,
 
-			{ CmdHistQ, CmdHFile };
+			{ CmdHistQ, CmdHFile, InFileCount };
 
 		false ->
-			{ queue:new(), file_utils:open( HistPath, CmdHistFileOpts ) }
+			{ queue:new(), file_utils:open( HistPath, CmdHistFileOpts ), 0 }
 
 	end,
 
 
 	vet_options_for_custom( T, ShellState#custom_shell_state{
+									submission_count=InitSubCount,
 									cmd_history=CmdHistQueue,
 									cmd_history_file=CmdHistFile } );
 
@@ -882,35 +921,38 @@ check_history_depth( InvMaxDepth, Histories ) ->
 
 
 
--doc """
-Executes the specified command on the specified shell, and returns its result.
+%% -doc """
+%% Executes the specified command on the specified shell, and returns its result.
 
-Throws an exception on error.
-""".
--spec execute_command( any_string(), custom_shell_pid() ) -> command_outcome().
-execute_command( CmdAnyStr, ShellPid ) ->
-	CmdBinStr = text_utils:ensure_binary( CmdAnyStr ),
-	ShellPid ! { processCommand, CmdBinStr, self() },
+%% Throws an exception on error.
+%% """.
+%% -spec execute_command( any_string(), custom_shell_pid() ) -> command_outcome().
+%% execute_command( CmdAnyStr, ShellPid ) ->
+%%	CmdBinStr = text_utils:ensure_binary( CmdAnyStr ),
+%%	ShellPid ! { processEntry, CmdBinStr, self() },
 
-	% Blocking, so no ShellPid needs to be pattern-matched to correlate answers:
-	receive
+%%	% Blocking, so no ShellPid needs to be pattern-matched to correlate answers:
+%%	receive
 
-		CmdOutcome={ success, _CmdResValue, _CmdId, _MaybeTimestampBinStr } ->
-			%CmdResValue;
-			CmdOutcome;
+%%		CmdOutcome={ success, _CmdResValue, _CmdId, _MaybeTimestampBinStr } ->
+%%			%CmdResValue;
+%%			CmdOutcome;
 
-		CmdOutcome={ error, ErrorBinStr, _CmdId, _MaybeTimestampBinStr }  ->
+%%		CmdOutcome={ error, ErrorBinStr, _CmdId, _MaybeTimestampBinStr }  ->
 
-			cond_utils:if_defined( myriad_debug_shell,
-				trace_utils:error_fmt( "Failed to execute command '~ts' "
-					"on custom shell ~w: ~ts",
-					[ CmdAnyStr, ShellPid, ErrorBinStr ] ),
-				basic_utils:ignore_unused( ErrorBinStr ) ),
+%%			cond_utils:if_defined( myriad_debug_shell,
+%%				trace_utils:error_fmt( "Failed to execute command '~ts' "
+%%					"on custom shell ~w: ~ts",
+%%					[ CmdAnyStr, ShellPid, ErrorBinStr ] ),
+%%				basic_utils:ignore_unused( ErrorBinStr ) ),
 
-			%throw( { shell_command_failed, ErrorBinStr, ShellPid, CmdAnyStr } )
-			CmdOutcome
+%%			%throw( { shell_command_failed, ErrorBinStr, ShellPid, CmdAnyStr } )
+%%			CmdOutcome;
 
-	end.
+%%		CmdOutcome={ update_prompt, _NewPrompt } ->
+%%			CmdOutcome
+
+%%	end.
 
 
 
@@ -923,13 +965,20 @@ execute_command( CmdAnyStr, ShellPid ) ->
 custom_shell_main_loop( ShellState ) ->
 
 	%cond_utils:if_defined( myriad_debug_shell, trace_utils:debug_fmt(
-	%	"Now being ~ts", [ custom_shell_state_to_string( ShellState ) ] ) ),
+	%   "Now being ~ts", [ custom_shell_state_to_string( ShellState ) ] ) ),
+
+	% To test commands with proper runtime information:
+	%trace_utils:debug_fmt( "Shell main loop: ~ts.",
+	%	[ command_history_to_string_with_ids( ShellState ) ] ),
+
 
 	% WOOPER-like conventions, except that no wooper_result is sent back:
 	receive
 
-
-		{ processCommand, CmdBinStr, ClientPid } ->
+		% Using 'processEntry' rather than for example 'processCommand' to
+		% comply with the more generic text_edit interface:
+		%
+		{ processEntry, CmdBinStr, ClientPid } ->
 
 			{ CmdOutcome, ProcShellState } =
 				process_command_custom( CmdBinStr, ShellState ),
@@ -941,7 +990,7 @@ custom_shell_main_loop( ShellState ) ->
 
 
 		% Mostly useless:
-		{ getMaybeLastCommand, [], CallerPid } ->
+		{ getMaybeLastEntry, [], CallerPid } ->
 
 			MaybeBinCmd = case queue:peek(
 					ShellState#custom_shell_state.cmd_history ) of
@@ -954,12 +1003,12 @@ custom_shell_main_loop( ShellState ) ->
 
 			end,
 
-			CallerPid ! { last_command, MaybeBinCmd },
+			CallerPid ! { last_entry, MaybeBinCmd },
 
 			custom_shell_main_loop( ShellState );
 
 
-		{ getMaybeCommandFromId, TargetCmdId, CallerPid } ->
+		{ getMaybeEntryFromId, TargetCmdId, CallerPid } ->
 
 			% For example [Cmd1, Cmd2, Cmd3]:
 			CmdHistList = queue:to_list(
@@ -986,7 +1035,7 @@ custom_shell_main_loop( ShellState ) ->
 
 			end,
 
-			CallerPid ! { target_command, MaybeBinCmd },
+			CallerPid ! { target_entry, MaybeBinCmd },
 
 			custom_shell_main_loop( ShellState );
 
@@ -1000,10 +1049,12 @@ custom_shell_main_loop( ShellState ) ->
 				res_history=queue:new() } );
 
 
-
-		{ getCommandSubmissionCount, [], CallerPid } ->
+		% Returns the number of already recorded entries; to be understood in
+		% this context as getCommandSubmissionCount/0:
+		%
+		{ getEntryCount, [], CallerPid } ->
 			Count = ShellState#custom_shell_state.submission_count,
-			CallerPid ! { submission_count, Count },
+			CallerPid ! { entry_count, Count },
 			custom_shell_main_loop( ShellState );
 
 
@@ -1023,7 +1074,7 @@ custom_shell_main_loop( ShellState ) ->
 
 		UnexpectedMsg ->
 			trace_utils:error_fmt( "Unexpected message received and ignored "
-				"by Myriad custom shell ~w: ~p", [ self(), UnexpectedMsg ] ),
+				"by Myriad custom shell ~w:~n ~p", [ self(), UnexpectedMsg ] ),
 
 			custom_shell_main_loop( ShellState )
 
@@ -1048,8 +1099,8 @@ on_command_success( CmdBinStr, CmdResValue, CmdId, NewBindings,
 	MaybeTimestampBinStr =
 		manage_success_log( CmdBinStr, CmdResValue, CmdId, ResHistShellState ),
 
-	CmdOutcome =
-		{ success, CmdResValue, _CmdId=SubCount, MaybeTimestampBinStr },
+	CmdOutcome = { processing_success, CmdResValue, _CmdId=SubCount,
+				   MaybeTimestampBinStr },
 
 	{ CmdOutcome, ResHistShellState }.
 
@@ -1119,15 +1170,15 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						?shell_state_binding_name, _Value=CmdHistShellState,
 						Bindings ),
 
-%trace_utils:debug_fmt( "BEFORE: ~p", [ ExecBindings ] ),
 					% Currently not using non-local function handlers:
 					try erl_eval:exprs( ExprForms, ExecBindings,
 										LocalFunHandler ) of
 
-						{ value, CmdRes, UpdatedBindings } ->
+						{ value, _CmdRes={ update_prompt, _NewPrompt },
+						  _UpdatedBindings } ->
+							throw( fixme );
 
-							%trace_utils:debug_fmt( "AFTER = ~p",
-							%					   [ UpdatedBindings ] ),
+						{ value, CmdRes, UpdatedBindings } ->
 
 							% Reading back the (possibly) updated shell state;
 							% not expecting 'unbound':
@@ -1157,7 +1208,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 							ReasonBinStr, NewCmdId, CmdHistShellState ),
 
-						CmdOutcome = { error, ReasonBinStr, NewCmdId,
+						CmdOutcome = { processing_error, ReasonBinStr, NewCmdId,
 									   MaybeTimestampBinStr },
 
 						{ CmdOutcome, CmdHistShellState }
@@ -1182,7 +1233,7 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 						ReasonBinStr, NewCmdId, CmdHistShellState ),
 
-					CmdOutcome = { error, ReasonBinStr, NewCmdId,
+					CmdOutcome = { processing_error, ReasonBinStr, NewCmdId,
 								   MaybeTimestampBinStr },
 
 					{ CmdOutcome, CmdHistShellState }
@@ -1209,8 +1260,8 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
 				NewCmdId, CmdHistShellState ),
 
-			CmdOutcome =
-				{ error, ReasonBinStr, NewCmdId, MaybeTimestampBinStr },
+			CmdOutcome = { processing_error, ReasonBinStr, NewCmdId,
+						   MaybeTimestampBinStr },
 
 			{ CmdOutcome, CmdHistShellState }
 
@@ -1635,7 +1686,7 @@ standard_shell_main_loop( ShellState=#standard_shell_state{
 			GrpLeaderPid ! { self(), { data, UTF8Binary } },
 			standard_shell_main_loop( ShellState );
 
-		{ processCommand, CmdBinStr, ClientPid } ->
+		{ processEntry, CmdBinStr, ClientPid } ->
 
 			{ CmdOutcome, ProcShellState } =
 				process_command_standard( CmdBinStr, ShellState ),
@@ -1703,17 +1754,7 @@ process_command_standard( CmdBinStr, ShellState=#standard_shell_state{
 
 
 
-% Helpers
-
-
--doc """
-Filters the specified binding structure, typically on behalf of shell commands,
-so that they access only to the legit bindings.
-""".
--spec filter_bindings( binding_struct() ) -> [ binding() ].
-filter_bindings( BindingStruct ) ->
-	[ P || P={N,_V} <- erl_eval:bindings( BindingStruct ),
-		   N =/= ?shell_state_binding_name ].
+% Helpers:
 
 
 -spec format_error( eval_error_term() ) -> bin_string().
@@ -1820,7 +1861,216 @@ custom_shell_state_to_string( #custom_shell_state{
 
 
 
--doc "Returns a textual description of the specified binding structure.".
+
+-doc "Returns a textual description of the specified standard shell state.".
+-spec standard_shell_state_to_string( standard_shell_state() ) -> ustring().
+standard_shell_state_to_string( ShellState ) ->
+	standard_shell_state_to_string( ShellState, _Verbose=true ).
+
+
+-doc """
+Returns a textual description of the specified standard shell state, with the
+specified verbosity.
+""".
+-spec standard_shell_state_to_string( standard_shell_state(), boolean() ) ->
+											ustring().
+standard_shell_state_to_string( #standard_shell_state{
+									current_group=CurrentGrpPid },
+								_Verbose ) ->
+	text_utils:format( "standard shell ~w relying on group leader ~w",
+					   [ self(), CurrentGrpPid ] ).
+
+
+
+
+
+% Section for helpers directly called by shell callbacks:
+
+
+-doc """
+Returns a textual description of the command history from the specified shell
+state, with command identifiers specified (useful to repeat commands).
+""".
+-spec command_history_to_string_with_ids( custom_shell_state() ) -> ustring().
+command_history_to_string_with_ids( #custom_shell_state{
+										submission_count=SubCount,
+										cmd_history_max_depth=CmdHMaxD,
+										cmd_history=CmdQ } ) ->
+
+	case queue:len( CmdQ ) of
+
+		0 ->
+			"Empty command history";
+
+		1 ->
+			Cmd = queue:get( CmdQ ),
+			text_utils:format(
+				"History of a single command (out of ~B): #~B was '~ts'.",
+				[ SubCount, CmdHMaxD, Cmd ] );
+
+		CmdCount ->
+			Ids = lists:seq( SubCount - CmdCount + 1, SubCount ),
+			Cmds = queue:to_list( CmdQ ),
+
+			%trace_utils:debug_fmt( "Ids = ~p, Cmds = ~p.",
+			%                       [ Ids, Cmds ] ),
+
+			IdCmds = lists:zip( Ids, Cmds ),
+
+			Strs = [ text_utils:format( "command #~B was: '~ts'", [ Id, Cmd ] )
+						|| { Id, Cmd } <- IdCmds ],
+
+			text_utils:format( "History of ~B (out of ~B) commands: ~ts",
+				[ CmdCount, CmdHMaxD, text_utils:strings_to_string( Strs ) ] )
+
+	end.
+
+
+-doc """
+Returns a textual description of the result history from the specified shell
+state, with result identifiers specified (useful to featch past results).
+""".
+-spec result_history_to_string_with_ids( custom_shell_state() ) -> ustring().
+result_history_to_string_with_ids( #custom_shell_state{
+										submission_count=SubCount,
+										res_history_max_depth=ResHMaxD,
+										res_history=ResQ } ) ->
+
+	trace_utils:debug_fmt( "SubCount = ~p, ResHMaxD = ~p, ResQ = ~p",
+						   [ SubCount, ResHMaxD, ResQ ] ),
+
+	case queue:len( ResQ ) of
+
+		0 ->
+			"Empty result history";
+
+		1 ->
+			Res = queue:get( ResQ ),
+			text_utils:format(
+				"History of a single result (out of ~B): #~B -> '~ts'.",
+				[ SubCount, ResHMaxD, Res ] );
+
+		ResCount ->
+			Ids = lists:seq( SubCount - ResCount, SubCount-1 ),
+			Ress = queue:to_list( ResQ ),
+
+			%trace_utils:debug_fmt( "Ids = ~p, Ress = ~p.",
+			%                       [ Ids, Ress ] ),
+
+			IdRess = lists:zip( Ids, Ress ),
+
+			Strs = [ text_utils:format( "result #~B: ~p", [ Id, Res ] )
+						|| { Id, Res } <- IdRess ],
+
+			text_utils:format( "History of ~B (out of ~B) results: ~ts",
+				[ ResCount, ResHMaxD, text_utils:strings_to_string( Strs ) ] )
+
+	end.
+
+
+
+-doc """
+Returns the command of the specified identifier (if it is still in command
+history), so that it can be evaluated again.
+""".
+-spec recall_command( custom_shell_state(), command_id() ) ->
+							custom_shell_state() | message().
+recall_command( _ShellState=#custom_shell_state{ submission_count=SubCount,
+						cmd_history=CmdQ }, CmdId ) when CmdId =< SubCount ->
+
+	QLen = queue:len( CmdQ ),
+
+	% Index in the list corresponding to that queue:
+	Index = QLen - SubCount + CmdId,
+
+	case Index < 1 of
+
+		true ->
+			text_utils:format( "Command #~B is not in history anymore.",
+							   [ CmdId ] );
+
+		false ->
+			% Thus Index >=1; Index <= QLen as SubCount >= CmdId, so in range:
+			_Cmd = lists:nth( Index, queue:to_list( CmdQ ) ),
+			%text_utils:format( "Command #~B was: '~ts'.", [ CmdId, Cmd ] )
+			%ShellState=#custom_shell_state{
+			throw(fixme)
+
+	end;
+
+
+% Here CmdId > SubCount:
+recall_command( #custom_shell_state{
+		submission_count=SubCount }, CmdId ) ->
+	text_utils:format( "Command #~B would be ahead of this current one (#~B).",
+					   [ CmdId, SubCount ] ).
+
+
+
+
+% Section for various other helpers:
+
+-doc "Returns a textual description of the specified command history.".
+-spec command_history_to_string( command_history() ) -> ustring().
+command_history_to_string( History ) ->
+
+	case queue:len( History ) of
+
+		0 ->
+			"empty command history";
+
+		_ ->
+			Strs = [ text_utils:format( "command '~ts'", [ HE ] )
+						|| HE <- queue:to_list( History ) ],
+
+			text_utils:format( "command history corresponding to: ~ts",
+				[ text_utils:strings_to_enumerated_string( Strs ) ] )
+
+	end.
+
+
+
+
+
+
+-doc "Returns a textual description of the specified result history.".
+-spec result_history_to_string( result_history() ) -> ustring().
+result_history_to_string( History ) ->
+
+	case queue:len( History ) of
+
+		0 ->
+			"empty result history";
+
+		_ ->
+			Strs = [ text_utils:format_ellipsed( "result ~p", [ HE ] )
+						|| HE <- queue:to_list( History ) ],
+
+			text_utils:format( "result history corresponding to: ~ts",
+				[ text_utils:strings_to_enumerated_string( Strs ) ] )
+
+	end.
+
+
+
+
+
+% Binding-related section.
+
+
+-doc """
+Filters the specified binding structure, typically on behalf of shell commands,
+so that they access only to the legit bindings.
+""".
+-spec filter_bindings( binding_struct() ) -> [ binding() ].
+filter_bindings( BindingStruct ) ->
+	[ P || P={N,_V} <- erl_eval:bindings( BindingStruct ),
+		   N =/= ?shell_state_binding_name ].
+
+
+
+
+-doc "Returns a textual description of the full specified binding structure.".
 -spec bindings_to_string( binding_struct() ) -> ustring().
 bindings_to_string( BindingStruct ) ->
 	case erl_eval:bindings( BindingStruct ) of
@@ -1841,8 +2091,10 @@ bindings_to_string( BindingStruct ) ->
 	end.
 
 
+
 -doc """
-Returns a textual command-level description of the specified binding structure.
+Returns a textual command-level description of the specified, filtered, binding
+structure.
 """.
 -spec bindings_to_command_string( binding_struct() ) -> ustring().
 bindings_to_command_string( BindingStruct ) ->
@@ -1873,66 +2125,5 @@ binding_to_string( _Binding={ N, V } ) ->
 
 
 
--doc """
-Returns a textual description of the specified command history.
-""".
--spec command_history_to_string( command_history() ) -> ustring().
-command_history_to_string( History ) ->
-
-	case queue:len( History ) of
-
-		0 ->
-			"empty command history";
-
-		_ ->
-			Strs = [ text_utils:format_ellipsed( "command '~ts'", [ HE ] )
-						|| HE <- queue:to_list( History ) ],
-
-			text_utils:format( "command history corresponding to: ~ts",
-				[ text_utils:strings_to_enumerated_string( Strs ) ] )
-
-	end.
-
-
-
--doc """
-Returns a textual description of the specified result history.
-""".
--spec result_history_to_string( result_history() ) -> ustring().
-result_history_to_string( History ) ->
-
-	case queue:len( History ) of
-
-		0 ->
-			"empty result history";
-
-		_ ->
-			Strs = [ text_utils:format_ellipsed( "result ~p", [ HE ] )
-						|| HE <- queue:to_list( History ) ],
-
-			text_utils:format( "result history corresponding to: ~ts",
-				[ text_utils:strings_to_enumerated_string( Strs ) ] )
-
-	end.
-
-
-
-
-
--doc "Returns a textual description of the specified standard shell state.".
--spec standard_shell_state_to_string( standard_shell_state() ) -> ustring().
-standard_shell_state_to_string( ShellState ) ->
-	standard_shell_state_to_string( ShellState, _Verbose=true ).
-
-
--doc """
-Returns a textual description of the specified standard shell state, with the
-specified verbosity.
-""".
--spec standard_shell_state_to_string( standard_shell_state(), boolean() ) ->
-											ustring().
-standard_shell_state_to_string( #standard_shell_state{
-									current_group=CurrentGrpPid },
-								_Verbose ) ->
-	text_utils:format( "standard shell ~w relying on group leader ~w",
-					   [ self(), CurrentGrpPid ] ).
+% Section for helper functions that may be used by all kinds of shell
+% interfaces, for a better centralisation thereof.
