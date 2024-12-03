@@ -38,7 +38,7 @@
 -record( custom_shell_state, {
 
 	% The number of commands already submitted; corresponds to the number
-	% (identifier) of any current command (or the one of the next command, minus
+	% (identifier) of any last command (or the one of the next command, minus
 	% 1):
 	%
 	submission_count = 0 :: basic_utils:count(),
