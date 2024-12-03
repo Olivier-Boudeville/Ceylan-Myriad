@@ -537,7 +537,7 @@ information.
 -type count() :: basic_utils:count().
 
 % As this pioneer module is not parse-transformed:
--type option( T ) :: basic_utils:option( T ).
+-type option( T ) :: type_utils:option( T ).
 
 -type ?table() :: ?table:?table().
 -type ?table( K, V ) :: ?table:?table( K, V ).

@@ -126,12 +126,12 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 %     translated
 %
 % - replacing, in type specifications, any mention to a pseudo-builtin,
-% pseudo-type void() by its actual definition, which is basic_utils:void()
+% pseudo-types like void() by their actual definition (e.g. type_utils:void())
 % (ultimately: any(), simply)
 %
-%     As a result, one's code source may include '-spec f( boolean() ) ->
-%     void().' and have it accepted by the compiler (and void() is now a
-%     reserved, "builtin" type)
+%     As a result, one's code source may include '-spec f(boolean( ) -> void().'
+%     and have it accepted by the compiler (and void() is now a reserved,
+%     "builtin" type)
 
 
 % Errors raised by a failing compilation are apparently reported (1) one by one
@@ -362,8 +362,8 @@ get_myriad_ast_transforms_for( #module_info{
 	% specs, type definitions, etc.) is done.
 
 
-	% We also translate void() (which is not a builtin type) into
-	% basic_utils:void(), for example:
+	% We also translate types like void() (which are not builtin types) into
+	% for example type_utils:void():
 	%
 	% {attribute,FileLoc1,spec,
 	%       { {FunctionName,Arity},
@@ -378,17 +378,17 @@ get_myriad_ast_transforms_for( #module_info{
 	%         [ {type,FileLoc2,'fun',
 	%                [{type,FileLoc3,product,[]},
 	%                 {remote_type,FileLoc4,
-	%                              [{atom,FileLoc4,basic_utils},
+	%                              [{atom,FileLoc4,type_utils},
 	%                               {atom,FileLoc4,void},
 	%                               []]}]}]}},
 	%
 	% which means that, in a spec, any term in the form of
 	% '{user_type,FileLoc,void,[]}' shall be replaced with:
-	% '{remote_type,FileLoc, [ {atom,FileLoc,basic_utils},
+	% '{remote_type,FileLoc, [ {atom,FileLoc,type_utils},
 	%                          {atom,FileLoc,void}, [] ] }'
 
 	% We also manage option/1 here: if used as 'option(T)', translated as
-	% 'basic_utils:option(T)'; the same applies to safe_option/1, fallible/{1,2}
+	% 'type_utils:option(T)'; the same applies to safe_option/1, fallible/{1,2}
 	% and diagnosed_fallible/{1,2}.
 
 	% Determines the target table type that we want to rely on ultimately:
@@ -490,11 +490,11 @@ Returns the table specifying the transformation of the local types.
 
 Regarding local types, we want to replace:
 
-- void() with basic_utils:void() (i.e. prefixed with basic_utils)
+- void() with type_utils:void() (i.e. prefixed with basic_utils)
 
-- option(T) with basic_utils:option(T)
+- option(T) with type_utils:option(T)
 
-- safe_option(T) with basic_utils:safe_option(T)
+- safe_option(T) with type_utils:safe_option(T)
 
 - fallible(T) with basic_utils:fallible(T)
 
@@ -511,18 +511,24 @@ DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
 									ast_transform:local_type_transform_table().
 get_local_type_transforms( DesiredTableType ) ->
 
-	% Replacements to be done only for specified arities, here to be found in
-	% the basic_utils module:
+	% Replacements to be done only for the specified arities, here to be found
+	% in the basic_utils module:
 	%
-	BasicUtilsTypes = [ { void, 0 },
-						{ option, 1 },
-						{ safe_option, 1 },
-						{ fallible, 1 }, { fallible, 2 },
-						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 } ],
+	BasicUtilsTypes = [ { fallible, 1 },
+						{ fallible, 2 },
+						{ diagnosed_fallible, 1 },
+						{ diagnosed_fallible, 2 } ],
 
-	BasicUtilsReplacements = [ { T, basic_utils } || T <- BasicUtilsTypes ],
+	% Same regarding the type_utils module:
+	TypeUtilsTypes = [ { void, 0 },
+					   { option, 1 },
+					   { safe_option, 1 } ],
 
-	ast_transform:get_local_type_transform_table( BasicUtilsReplacements ++ [
+
+	BaseReplacements = [ { T, basic_utils } || T <- BasicUtilsTypes ]
+		++ [ { T, type_utils } || T <- TypeUtilsTypes ],
+
+	ast_transform:get_local_type_transform_table( BaseReplacements ++ [
 
 		% A transformation function is needed to discriminate correctly between
 		% the cases: the first clause is defined as we do not want to obtain

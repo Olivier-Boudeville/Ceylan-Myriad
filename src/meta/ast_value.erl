@@ -68,8 +68,7 @@ For example: nil, in {nil,{33,2}} for [] at column 2 of line #33.
 
 -type ast_immediate_value() :: ast_atomic_literal() | ast_compound_literal().
 
--type maybe_ast_immediate_value() ::
-		basic_utils:option( ast_immediate_value() ).
+-type maybe_ast_immediate_value() :: option( ast_immediate_value() ).
 
 
 
@@ -93,12 +92,16 @@ For example: nil, in {nil,{33,2}} for [] at column 2 of line #33.
 		]).
 
 
-% Shorthands:
+
+% Type shorthands:
+
+-type option( T ) :: type_utils:option( T ).
 
 -type ustring() :: text_utils:ustring().
 
 -type ast_element() :: ast_base:ast_element().
 -type file_loc() :: ast_base:file_loc().
+
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 

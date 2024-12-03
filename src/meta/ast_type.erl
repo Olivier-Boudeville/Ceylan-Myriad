@@ -128,8 +128,8 @@ For example, for `foo(atom())`: `{user_type,{45,1},foo,[{type,45,atom,[]}]}`.
 -doc """
 Reference to a remote type, in an AST.
 
-Example for `basic_utils:option(float())`:
-`{remote_type,43,[{atom,43,basic_utils},{atom,43,option},
+Example for `type_utils:option(float())`:
+`{remote_type,43,[{atom,43,type_utils},{atom,43,option},
    [{type,43,float,[]}]]}`.
 """.
 -type ast_remote_type() :: #remote_type{}.
@@ -140,7 +140,7 @@ Example for `basic_utils:option(float())`:
 -type ast_type() :: ast_builtin_type() | ast_user_type() | ast_remote_type().
 
 
--type maybe_ast_type() :: basic_utils:option( ast_type() ).
+-type maybe_ast_type() :: option( ast_type() ).
 
 
 %-doc """
@@ -232,10 +232,14 @@ For example:
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type module_name() :: meta_utils:module_name().
 -type variable_name() :: meta_utils:variable_name().
+
+-type type_name() :: type_utils:type_name().
+-type type_id() :: type_utils:type_id().
+-type option( T ) :: type_utils:option( T ).
 
 -type file_loc() :: ast_base:file_loc().
 -type form_context() :: ast_base:form_context().
@@ -245,8 +249,6 @@ For example:
 
 -type type_table() :: ast_info:type_table().
 
--type type_name() :: type_utils:type_name().
--type type_id() :: type_utils:type_id().
 
 -type record_table() :: ast_info:record_table().
 

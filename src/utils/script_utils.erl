@@ -60,7 +60,7 @@ others.
 
 
 
-% Shorthands to be avoided here, as at least some functions are meant to be
+% Type shorthands to be avoided here, as at least some functions are meant to be
 % copied verbatim in headers, such as myriad_script_include.hrl.
 
 %-type ustring() :: text_utils:ustring().
@@ -402,7 +402,7 @@ get_myriad_base_directory() ->
 	end.
 
 
-%-spec test_directory( file_utils:path() ) -> basic_utils:void().
+%-spec test_directory( file_utils:path() ) -> type_utils:void().
 %test_directory( D ) ->
 %   io:format( "Testing ~ts: ~p~n", [ D, file:read_file_info( D ) ] ).
 

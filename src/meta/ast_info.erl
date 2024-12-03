@@ -45,6 +45,13 @@ from ASTs**.
 -type module_info() :: #module_info{}.
 
 
+
+-doc "Description of a module name.".
+-type module_entry() ::
+	type_utils:option( { basic_utils:module_name(), ast_info:located_form() } ).
+
+
+
 -doc "Record type-related information.".
 -type type_info() :: #type_info{}.
 
@@ -350,7 +357,7 @@ All relevant information about an error found in an AST:
 -type error() :: { ast_scan:scan_context(), ast_scan:error_report() }.
 
 
--export_type([ module_info/0, type_info/0, function_info/0,
+-export_type([ module_info/0, module_entry/0, type_info/0, function_info/0,
 
 			   ast_location/0, located_form/0, located_ast/0,
 			   located_function_spec/0,
@@ -439,7 +446,8 @@ All relevant information about an error found in an AST:
 
 % Local type shorthands:
 
--type option( T ) :: basic_utils:option( T ).
+-type void() :: type_utils:void().
+-type option( T ) :: type_utils:option( T ).
 
 -type ustring() :: text_utils:ustring().
 
@@ -655,7 +663,7 @@ init_module_info() ->
 
 
 -doc "Checks the correctness of specified module information.".
--spec check_module_info( module_info() ) -> basic_utils:void().
+-spec check_module_info( module_info() ) -> void().
 check_module_info( #module_info{ module=undefined } ) ->
 	ast_utils:raise_error( "no '-module' define found" );
 
@@ -1169,7 +1177,7 @@ Writes specified module_info record into specified (text) file.
 Useful for example to determine faulty transformations.
 """.
 -spec write_module_info_to_file( module_info(), file_utils:file_path() ) ->
-										basic_utils:void().
+										void().
 write_module_info_to_file( ModuleInfo, FilePath ) ->
 
 	% Note: we cannot actually use file_utils, which is not a prerequisite of

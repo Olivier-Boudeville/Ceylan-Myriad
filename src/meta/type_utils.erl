@@ -487,6 +487,36 @@ floating-point values).
 						| 'float64'.
 
 
+-doc """
+Denotes an optional value, that is a value that may be set to one in T, or that
+may not be set at all.
+
+Note that the type T should not include the 'undefined' atom, otherwise one
+cannot discriminate between a value that happens to be set to 'undefined' versus
+a value not defined at all.
+
+Quite often, variables (e.g. record fields) are set to 'undefined' before being
+set later.
+""".
+-type option( T ) :: T | 'undefined'.
+
+
+-doc """
+Denotes a value that may be set to one of type T (with no restriction on T -
+unlike option/1 where T should not include the 'undefined' value), or that may
+not be set at all.
+
+A bit safer and more expensive than option/1.
+
+Obviously a nod to Haskell.
+""".
+-type safe_option( T ) :: { 'just', T } | 'nothing'.
+
+
+-doc "To account for wildcard entries.".
+-type wildcardable( T ) :: T | 'any'.
+
+
 
 % Definition of actual datatypes (useful for typing variables):
 
@@ -714,6 +744,8 @@ Transient terms are the opposite of permanent ones.
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
 			   low_level_type/0,
 
+			   option/1, safe_option/1, wildcardable/1,
+
 			   uint8/0, uint16/0, uint32/0, uint64/0,
 			   sint8/0, sint16/0, sint32/0, sint64/0,
 			   int8/0, int16/0, int32/0, int64/0,
@@ -853,7 +885,7 @@ Transient terms are the opposite of permanent ones.
 -export([ tokenise_per_union/1 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 -type level() :: basic_utils:level().
@@ -864,9 +896,6 @@ Transient terms are the opposite of permanent ones.
 -type ustring() :: text_utils:ustring().
 
 -type byte_size() :: system_utils:byte_size().
-
-% (cannot use our extended types here)
--type option( T ) :: T | 'undefined'.
 
 
 
