@@ -103,19 +103,6 @@ See also <https://docs.wxwidgets.org/stable/classwx_text_ctrl.html>.
 
 
 -doc """
-A zero-based index of a position in the text.
-""".
--type char_pos() :: non_neg_integer().
-
-
--doc """
-A (signed) offset in terms of character position.
-""".
--type offset_char_pos() :: integer().
-
-
-
--doc """
 A type of event possibly emitted by a text editor, to which one can subscribe.
 """.
 -type text_editor_event_type() ::
@@ -135,7 +122,6 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 
 -export_type([ text_editor/0, text_editor_style/0, text_validator/0,
-			   char_pos/0, offset_char_pos/0,
 			   text_editor_event_type/0 ]).
 
 
@@ -191,8 +177,10 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 -type any_color() :: gui_color:any_color().
 
--type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
+-type char_pos() :: text_edit:char_pos().
+-type offset_char_pos() :: text_edit:offset_char_pos().
 
+-type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
 
 
 
@@ -298,7 +286,8 @@ Makes the line containing the specified position visible.
 """.
 -spec show_position( text_editor(), char_pos() ) -> void().
 show_position( Editor, Pos ) ->
-	wxTextCtrl:showPosition( Editor, Pos ).
+	% As wx insertion points are zero-based:
+	wxTextCtrl:showPosition( Editor, Pos-1 ).
 
 
 
@@ -316,7 +305,8 @@ of characters).
 """.
 -spec get_last_position( text_editor() ) -> char_pos().
 get_last_position( Editor ) ->
-	wxTextCtrl:getLastPosition( Editor ).
+	% As wx insertion points are zero-based:
+	wxTextCtrl:getLastPosition( Editor ) + 1.
 
 
 
@@ -326,7 +316,9 @@ Sets the text cursor position at the specified one.
 -spec set_cursor_position( text_editor(), char_pos() ) -> void().
 set_cursor_position( Editor, Pos ) ->
 	%trace_utils:debug_fmt( "Setting offset cursor position to ~B.", [ Pos ] ),
-	wxTextCtrl:setInsertionPoint( Editor, Pos ).
+
+	% As wx insertion points are zero-based:
+	wxTextCtrl:setInsertionPoint( Editor, Pos-1 ).
 
 
 -doc """
@@ -341,7 +333,9 @@ set_cursor_position_to_end( Editor ) ->
 -doc "Returns the current text cursor position.".
 -spec get_cursor_position( text_editor() ) -> char_pos().
 get_cursor_position( Editor ) ->
-	wxTextCtrl:getInsertionPoint( Editor ).
+	% As wx insertion points are zero-based:
+	wxTextCtrl:getInsertionPoint( Editor ) + 1.
+
 
 
 -doc """
@@ -350,7 +344,8 @@ positions; returns the new current character position.
 """.
 -spec offset_cursor_position( text_editor(), offset_char_pos() ) -> char_pos().
 offset_cursor_position( Editor, PosOffset ) ->
-	NewPos = wxTextCtrl:getInsertionPoint( Editor ) + PosOffset,
+	% As wx insertion points are zero-based:
+	NewPos = wxTextCtrl:getInsertionPoint( Editor ) + PosOffset + 1,
 	set_cursor_position( Editor, NewPos ),
 	%trace_utils:debug_fmt( "New offset cursor position: ~B.", [ NewPos ] ),
 	NewPos.
