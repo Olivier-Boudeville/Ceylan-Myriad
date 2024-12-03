@@ -170,6 +170,7 @@ endif
 #  - math: for math-related operations
 #  - plot: for the rendering of all kinds of plots and graphs
 #  - shell: for (Erlang) Myriad shells
+#  - text_edit: for text edition
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - gui_repaint_logic: how MyriadGUI manages repaints
@@ -224,7 +225,8 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_graph
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_text_edit
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
@@ -233,14 +235,14 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_buttons
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_shell
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_shell
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
@@ -260,17 +262,18 @@ ifeq ($(EXECUTION_TARGET),development)
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_binaries
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_lists
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_resources
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_opengl
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_textures
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_shaders
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_text_edit
 
 endif
 
