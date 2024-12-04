@@ -490,7 +490,8 @@ process( TE=#text_edit{ processor_pid=ProcessorPid } ) ->
 		% Receiving ProcessOutcome:
 		{ processing_success, ProcessResult, NewCurrentEntryId,
 		  MaybeTimestampBinStr } ->
-			NewTE = ResetTE#text_edit{ entry_id=NewCurrentEntryId },
+			NewTE = ResetTE#text_edit{ entry_id=NewCurrentEntryId,
+									   hist_entry_id=undefined },
 
 			cond_utils:if_defined( myriad_debug_text_edit,
 				trace_utils:debug_fmt( "Next entry: #~B.",
@@ -503,7 +504,8 @@ process( TE=#text_edit{ processor_pid=ProcessorPid } ) ->
 
 		{ processing_error, ReasonBinStr, NewCurrentEntryId,
 		  MaybeTimestampBinStr } ->
-			NewTE = ResetTE#text_edit{ entry_id=NewCurrentEntryId },
+			NewTE = ResetTE#text_edit{ entry_id=NewCurrentEntryId,
+									   hist_entry_id=undefined },
 
 			cond_utils:if_defined( myriad_debug_text_edit,
 				trace_utils:debug_fmt( "Next entry: #~B.",
@@ -522,23 +524,29 @@ process( TE=#text_edit{ processor_pid=ProcessorPid } ) ->
 recall_previous_entry( TE=#text_edit{ entry_id=CurrentEntryId,
 									  hist_entry_id=undefined,
 									  processor_pid=ProcessorPid } ) ->
-	HistEntryId = CurrentEntryId - 1,
-	ProcessorPid ! { getMaybeEntryFromId, HistEntryId, self() },
+	PrevHistEntryId = CurrentEntryId - 1,
+	ProcessorPid ! { getMaybeEntryFromId, PrevHistEntryId, self() },
 
 	receive
 
 		% Exceeded history, not changing anything:
 		{ target_entry, _MaybeEntryBinStr=undefined } ->
+			cond_utils:if_defined( myriad_debug_text_edit,
+				trace_utils:debug( "Recall previous: unchanged." ) ),
 			unchanged;
 
 		{ target_entry, EntryBinStr } ->
 
 			EntryStr = text_utils:binary_to_string( EntryBinStr ),
 
+			cond_utils:if_defined( myriad_debug_text_edit,
+				trace_utils:debug_fmt( "Recall previous (A): '~p' (~p).",
+									   [ EntryStr, PrevHistEntryId ] ) ),
+
 			% Cursor will be just after this recalled entry:
 			TE#text_edit{ precursor_chars=lists:reverse( EntryStr ),
 						  postcursor_chars=[],
-						  hist_entry_id=HistEntryId,
+						  hist_entry_id=PrevHistEntryId,
 						  % Backup of the entry that was in edition:
 						  current_entry=get_entry( TE ) }
 
@@ -560,6 +568,10 @@ recall_previous_entry( TE=#text_edit{ hist_entry_id=HistEntryId,
 
 			EntryStr = text_utils:binary_to_string( EntryBinStr ),
 
+			cond_utils:if_defined( myriad_debug_text_edit,
+				trace_utils:debug_fmt( "Recall previous (B): '~p' (~p).",
+									   [ EntryStr, PrevHistEntryId ] ) ),
+
 			% Cursor will be just after this new recalled entry:
 			TE#text_edit{ precursor_chars=lists:reverse( EntryStr ),
 						  postcursor_chars=[],
@@ -573,7 +585,8 @@ recall_previous_entry( TE=#text_edit{ hist_entry_id=HistEntryId,
 -spec recall_next_entry( text_edit() ) -> 'unchanged' | text_edit().
 % Then nothing to do (already at end, no navigation):
 recall_next_entry( #text_edit{ hist_entry_id=undefined } ) ->
-	%trace_utils:debug( "Recall next: unchanged." ),
+	cond_utils:if_defined( myriad_debug_text_edit,
+						   trace_utils:debug( "Recall next: unchanged." ) ),
 	unchanged;
 
 recall_next_entry( TE=#text_edit{ entry_id=CurrentEntryId,
@@ -605,8 +618,9 @@ recall_next_entry( TE=#text_edit{ entry_id=CurrentEntryId,
 
 	end,
 
-	%trace_utils:debug_fmt( "Recall next: '~p' (~p).",
-	%                       [ NewEntryStr, NewHistEntryId ] ),
+	cond_utils:if_defined( myriad_debug_text_edit,
+		trace_utils:debug_fmt( "Recall next: '~p' (~p).",
+							   [ NewEntryStr, NewHistEntryId ] ) ),
 
 	TE#text_edit{ precursor_chars=lists:reverse( NewEntryStr ),
 				  postcursor_chars=[],
