@@ -406,7 +406,7 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 	gui_font:destruct( ShellFont ),
 
 	InitBinText = text_utils:bin_format(
-		"Welcome to the MyriadGUI shell ~w (whose GUI is ~w), on node ~ts.~n~n",
+		"Welcome to the MyriadGUI shell ~w (whose GUI is ~w), on node ~ts.~n",
 		[ ActualShellPid, self(), net_utils:localnode() ] ),
 
 	% Not wanting an onEnterPressed event for that:
@@ -428,14 +428,28 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 	gui_widget:layout( ParentWindow ),
 
 	% Interleaved for getEntryCount/0:
-	NextCmdId = receive
+	{ NextCmdId, HistBinText } = receive
+
+		{ entry_count, _CurrentEntryCount=0 } ->
+			HBinText = text_utils:bin_format(
+				"~ts(no command history available to reload)~n",
+				[ InitBinText ] ),
+			{ 1, HBinText };
+
+		{ entry_count, _CurrentEntryCount=1 } ->
+			HBinText = text_utils:bin_format(
+				"~ts(a history of a single command reloaded)~n",
+				[ InitBinText ] ),
+			{ 2, HBinText };
 
 		{ entry_count, CurrentEntryCount } ->
+			HBinText = text_utils:bin_format(
+				"~ts(past history of ~B commands reloaded)~n",
+				[ InitBinText, CurrentEntryCount ] ),
 			% As this is the next command:
-			CurrentEntryCount+1
+			{ CurrentEntryCount+1, HBinText }
 
 	end,
-
 
 	% And then the corresponding text edit, to which the ownership of that shell
 	% is transferred; prefix set just after:
@@ -445,9 +459,15 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 
 	NewTextEdit = edit_new_command( TextEdit, CmdEditor ),
 
+	gui_text_editor:set_text( PastOpsEditor, HistBinText ),
+
+	cond_utils:if_defined( myriad_debug_gui_shell,
+		trace_utils:debug_fmt( "Initial ~ts.",
+							   [ text_edit:to_string( NewTextEdit ) ] ) ),
+
 	InitShellState = #gui_shell_state{ command_editor=CmdEditor,
 									   past_ops_editor=PastOpsEditor,
-									   past_ops_text=InitBinText,
+									   past_ops_text=HistBinText,
 									   text_edit=NewTextEdit },
 
 	gui_shell_main_loop( InitShellState ).
@@ -465,7 +485,7 @@ edit_new_command( TE, CmdEditor ) ->
 	NewTE = text_edit:set_prefix( TE, PfxInfo ),
 
 	apply_text( NewTE, CmdEditor ),
-	gui_text_editor:set_cursor_position( CmdEditor, PfxLen ),
+	gui_text_editor:set_cursor_position( CmdEditor, PfxLen+1 ),
 
 	NewTE.
 
@@ -522,7 +542,7 @@ gui_shell_main_loop( GUIShellState ) ->
 
 			% Allows to avoid that a mouse click selects the full text, warps
 			% the cursor position and leads to a confusing non-operation; now
-			% has the same effect as Ctrl-e (otherwise EventContext /
+			% has the same effect as Ctrl-e (oatherwise EventContext /
 			% xYToPosition(This, X, Y) might be used):
 
 			TextEdit = GUIShellState#gui_shell_state.text_edit,
@@ -879,6 +899,8 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 								 gui_shell_state() ) -> gui_shell_state().
 handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 
+	ThisCmdId = text_edit:get_entry_id( TextEdit ),
+
 	% Note that command/result histories are managed by the shell instance:
 	{ BaseText, ProcessTE, MaybeTmstpBinStr } =
 			case text_edit:process( TextEdit ) of
@@ -892,11 +914,11 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 				trace_utils:debug_fmt( "For command #~B (at ~ts), "
 					"success value is:~n ~p; new command is #~B.",
 					% Not RecTextEdit:
-					[ text_edit:get_entry_id( TextEdit ), MaybeTimestampBinStr,
+					[ ThisCmdId, MaybeTimestampBinStr,
 					  CmdRes, NewCurrentCmdId ] ) ),
 
 			{ text_utils:bin_format( "~ts~ts~n~ts",
-				[ get_prompt_for( NewCurrentCmdId ), CmdBinStr,
+				[ get_prompt_for( ThisCmdId ), CmdBinStr,
 				  text_utils:term_to_binary( CmdRes ) ] ),
 			  RecTextEdit, MaybeTimestampBinStr };
 
@@ -910,12 +932,11 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 				trace_utils:debug_fmt( "For command #~B (at ~ts), "
 					"error is '~ts'; new command is #~B.",
 					% Not RecTextEdit:
-					[ text_edit:get_entry_id( TextEdit ), MaybeTimestampBinStr,
+					[ ThisCmdId, MaybeTimestampBinStr,
 					  CmdErrorBinStr, NewCurrentCmdId ] ) ),
 
 			{ text_utils:bin_format( "~ts~ts~n~ts",
-				[ get_prompt_for( NewCurrentCmdId ), CmdBinStr,
-				  CmdErrorBinStr ] ),
+				[ get_prompt_for( ThisCmdId ), CmdBinStr, CmdErrorBinStr ] ),
 			  RecTextEdit, MaybeTimestampBinStr };
 
 
@@ -932,7 +953,6 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 			throw( { invalid_command_outcome, InvalidOutcome } )
 
 	end,
-
 
 	AddText = format_text( BaseText, MaybeTmstpBinStr ),
 

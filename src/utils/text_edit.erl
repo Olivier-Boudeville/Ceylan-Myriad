@@ -139,6 +139,7 @@ The number of an entry (in their history), which is an identifier thereof.
 -export([ create/4, create/5, filter_options/1,
 		  recall_previous_entry/1, recall_next_entry/1,
 		  delete_current_char/1, delete_previous_char/1,
+		  to_string/1,
 		  destruct/1 ]).
 
 
@@ -476,8 +477,9 @@ process( TE=#text_edit{ processor_pid=ProcessorPid } ) ->
 	EntryBinStr = get_entry_for_submission( TE ),
 
 	cond_utils:if_defined( myriad_debug_text_edit,
-		trace_utils:debug_fmt( "Validation triggered for entry '~ts' "
-			"on processor ~w.", [ EntryBinStr, ProcessorPid ] ) ),
+		trace_utils:debug_fmt( "Validation triggered for entry '~ts' (#~B) "
+			"on processor ~w.",
+			[ EntryBinStr, TE#text_edit.entry_id, ProcessorPid ] ) ),
 
 	ProcessorPid ! { processEntry, EntryBinStr, self() },
 
@@ -490,6 +492,10 @@ process( TE=#text_edit{ processor_pid=ProcessorPid } ) ->
 		  MaybeTimestampBinStr } ->
 			NewTE = ResetTE#text_edit{ entry_id=NewCurrentEntryId },
 
+			cond_utils:if_defined( myriad_debug_text_edit,
+				trace_utils:debug_fmt( "Next entry: #~B.",
+									   [ NewCurrentEntryId ] ) ),
+
 			% A different atom, to be clearer:
 			{ success, NewTE, EntryBinStr, ProcessResult,
 			  MaybeTimestampBinStr };
@@ -498,6 +504,10 @@ process( TE=#text_edit{ processor_pid=ProcessorPid } ) ->
 		{ processing_error, ReasonBinStr, NewCurrentEntryId,
 		  MaybeTimestampBinStr } ->
 			NewTE = ResetTE#text_edit{ entry_id=NewCurrentEntryId },
+
+			cond_utils:if_defined( myriad_debug_text_edit,
+				trace_utils:debug_fmt( "Next entry: #~B.",
+									   [ NewCurrentEntryId ] ) ),
 
 			% A different atom, to be clearer:
 			{ error, NewTE, EntryBinStr, ReasonBinStr, MaybeTimestampBinStr }
@@ -626,3 +636,10 @@ delete_previous_char( #text_edit{ precursor_chars=[] } ) ->
 
 delete_previous_char( TE=#text_edit{ precursor_chars=[ _Prev | Others ] } ) ->
 	TE#text_edit{ precursor_chars=Others }.
+
+
+-doc "Returns a textual representation of the specified text edit.".
+-spec to_string( text_edit() ) -> ustring().
+to_string( #text_edit{ entry_id=EntryId,
+					   prefix=Pfx } ) ->
+	text_utils:format( "text edit #~B with prefix '~ts'", [ EntryId, Pfx ] ).

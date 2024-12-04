@@ -665,11 +665,12 @@ vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 				[ CallbackMod, length( FunIds ), FunIds ] )
 		end ),
 
-	% Done last, as needing at least the callback_module option to be ready:
+	% Done last, as needing at least the callback_module option to be ready.
 	%
 	% (we want to be able to fetch from an executed shell built-in command any
 	% updated shell state and/or bindings)
 	%
+	% Returns {'value', Result, NewBindings}:
 	LocalFunHandler = fun( FName, ASTArgs, Bndngs ) ->
 
 		FArgCount = length( ASTArgs ),
@@ -679,7 +680,7 @@ vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 			"while bindings are:~n ~p.", [ FName, length( ASTArgs ), ASTArgs,
 										   erl_eval:bindings( Bndngs ) ] ),
 
-		% As shell state will be the (first) argument:
+		% As the shell state will be the (first) argument of built-ins:
 		FId = { FName, FArgCount+1 },
 
 		case lists:member( FId, CallbackMod:list_builtin_commands() ) of
@@ -744,7 +745,7 @@ vet_options_for_custom( _Opts=[], ShellState=#custom_shell_state{
 	end,
 
 	ShellState#custom_shell_state{
-		% Not 'value' as we need to operate on bindings:
+		% Not 'value', as we need to operate on bindings:
 		local_fun_handler={ eval, LocalFunHandler } };
 
 
@@ -870,13 +871,12 @@ vet_options_for_custom( _Opts=[ persistent_command_history | T ],
 
 			end,
 
-			{ CmdHistQ, CmdHFile, InFileCount };
+			{ CmdHistQ, CmdHFile, length( SelectedCmds ) };
 
 		false ->
 			{ queue:new(), file_utils:open( HistPath, CmdHistFileOpts ), 0 }
 
 	end,
-
 
 	vet_options_for_custom( T, ShellState#custom_shell_state{
 									submission_count=InitSubCount,
@@ -909,6 +909,7 @@ vet_options_for_custom( _Opts=[ Other | _T ], _ShellState ) ->
 
 
 % (helper)
+% (Histories just for a more proper error message)
 check_history_depth( _MaxDepth=undefined, _Histories ) ->
 	undefined;
 
@@ -1099,7 +1100,7 @@ on_command_success( CmdBinStr, CmdResValue, CmdId, NewBindings,
 	MaybeTimestampBinStr =
 		manage_success_log( CmdBinStr, CmdResValue, CmdId, ResHistShellState ),
 
-	CmdOutcome = { processing_success, CmdResValue, _CmdId=SubCount,
+	CmdOutcome = { processing_success, CmdResValue, _CmdId=SubCount+1,
 				   MaybeTimestampBinStr },
 
 	{ CmdOutcome, ResHistShellState }.
@@ -1127,10 +1128,8 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 
 	BaseShellState = ShellState#custom_shell_state{ submission_count=NewCmdId },
 
-	% We record in the history of this shell a command in all cases (even its
-	% syntax is wrong), so that it can be edited/fixed afterwards:
-	%
-	CmdHistShellState = update_command_history( CmdBinStr, BaseShellState ),
+	% CmdBinStr recorded later so that print_command_history() will not list its
+	% own call.
 
 	% The size/depth of persistent command history is (only) managed at shell
 	% startup:
@@ -1164,10 +1163,10 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 							"forms:~n ~p", [ ExprForms ] ) ),
 
 					LocalFunHandler =
-						CmdHistShellState#custom_shell_state.local_fun_handler,
+						BaseShellState#custom_shell_state.local_fun_handler,
 
 					ExecBindings = erl_eval:add_binding(
-						?shell_state_binding_name, _Value=CmdHistShellState,
+						?shell_state_binding_name, _Value=BaseShellState,
 						Bindings ),
 
 					% Currently not using non-local function handlers:
@@ -1186,13 +1185,16 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 							{ value, ResShellState } = erl_eval:binding(
 								?shell_state_binding_name, UpdatedBindings ),
 
+							CmdHistShellState = update_command_history(
+								CmdBinStr, ResShellState ),
+
 							% Would not fail if not present:
 							ResetBindings = erl_eval:del_binding(
 								?shell_state_binding_name, UpdatedBindings ),
 
 							% Will assign these bindings in state:
 							on_command_success( CmdBinStr, CmdRes, NewCmdId,
-												ResetBindings, ResShellState )
+								ResetBindings, CmdHistShellState )
 
 					catch Class:Reason ->
 
@@ -1206,10 +1208,17 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						ReasonBinStr = format_error( Reason ),
 
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-							ReasonBinStr, NewCmdId, CmdHistShellState ),
+							ReasonBinStr, NewCmdId, BaseShellState ),
 
-						CmdOutcome = { processing_error, ReasonBinStr, NewCmdId,
+						CmdOutcome = { processing_error, ReasonBinStr, NewCmdId+1,
 									   MaybeTimestampBinStr },
+
+						% We record in the history of this shell a command in
+						% all cases (even its syntax is wrong), so that it can
+						% be edited/fixed afterwards:
+						%
+						CmdHistShellState = update_command_history( CmdBinStr,
+							BaseShellState ),
 
 						{ CmdOutcome, CmdHistShellState }
 
@@ -1231,10 +1240,13 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						"parsing failed: ~ts", [ IssueDesc ] ),
 
 					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-						ReasonBinStr, NewCmdId, CmdHistShellState ),
+						ReasonBinStr, NewCmdId, BaseShellState ),
 
-					CmdOutcome = { processing_error, ReasonBinStr, NewCmdId,
+					CmdOutcome = { processing_error, ReasonBinStr, NewCmdId+1,
 								   MaybeTimestampBinStr },
+
+					CmdHistShellState = update_command_history( CmdBinStr,
+						BaseShellState ),
 
 					{ CmdOutcome, CmdHistShellState }
 
@@ -1258,10 +1270,13 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 												 [ IssueDesc ] ),
 
 			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
-				NewCmdId, CmdHistShellState ),
+				NewCmdId, BaseShellState ),
 
 			CmdOutcome = { processing_error, ReasonBinStr, NewCmdId,
 						   MaybeTimestampBinStr },
+
+			CmdHistShellState = update_command_history( CmdBinStr,
+														BaseShellState ),
 
 			{ CmdOutcome, CmdHistShellState }
 
@@ -1905,11 +1920,11 @@ command_history_to_string_with_ids( #custom_shell_state{
 		1 ->
 			Cmd = queue:get( CmdQ ),
 			text_utils:format(
-				"History of a single command (out of ~B): #~B was '~ts'.",
-				[ SubCount, CmdHMaxD, Cmd ] );
+				"History of a single command (out of up to ~B): #~B was '~ts'.",
+				[ CmdHMaxD, SubCount, Cmd ] );
 
 		CmdCount ->
-			Ids = lists:seq( SubCount - CmdCount + 1, SubCount ),
+			Ids = lists:seq( SubCount - CmdCount, SubCount - 1 ),
 			Cmds = queue:to_list( CmdQ ),
 
 			%trace_utils:debug_fmt( "Ids = ~p, Cmds = ~p.",
@@ -1920,7 +1935,7 @@ command_history_to_string_with_ids( #custom_shell_state{
 			Strs = [ text_utils:format( "command #~B was: '~ts'", [ Id, Cmd ] )
 						|| { Id, Cmd } <- IdCmds ],
 
-			text_utils:format( "History of ~B (out of ~B) commands: ~ts",
+			text_utils:format( "History of ~B (out of up to ~B) commands: ~ts",
 				[ CmdCount, CmdHMaxD, text_utils:strings_to_string( Strs ) ] )
 
 	end.
