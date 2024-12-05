@@ -58,6 +58,13 @@
 	postcursor_chars = [] :: [ text_utils:uchar() ],
 
 
+	% Backup to support (one-level of) Ctrl-z in command editing:
+	prev_precursor_chars = [] :: [ text_utils:uchar() ],
+
+	% Backup to support (one-level of) Ctrl-z in command editing:
+	prev_postcursor_chars = [] :: [ text_utils:uchar() ],
+
+
 	% Tells whether a trailing dot should be automatically added if lacking in a
 	% entry (mostly useful for shells; default: false):
 	%

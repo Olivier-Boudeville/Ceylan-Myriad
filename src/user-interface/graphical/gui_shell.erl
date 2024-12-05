@@ -37,6 +37,8 @@ Keyboard shortcuts for this shell (partly Emacs-inspired):
 - Ctrl-k: clear command line from cursor
 - Ctrl-c: clear current command (instead of killing/going in Erlang BREAK
   mode/starting an Emacs sequence)
+- Ctrl-z: restore any previous editing line (i.e. not the previous command);
+  useful for example after a faulty paste
 
 Special-purpose keys:
 - Delete: delete any character at cursor
@@ -507,6 +509,11 @@ get_prefix_info( CmdId ) ->
 -spec gui_shell_main_loop( gui_shell_state() ) -> no_return().
 gui_shell_main_loop( GUIShellState ) ->
 
+	cond_utils:if_defined( myriad_debug_gui_shell,
+		trace_utils:debug_fmt( "GUI shell main loop editing '~ts'.",
+			[ text_edit:get_entry(
+				GUIShellState#gui_shell_state.text_edit ) ] ) ),
+
 	receive
 
 		{ onCharEntered, [ _CmdEditor, _CmdPanelId, EventContext ] } ->
@@ -693,6 +700,21 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 			% Resets the cursor:
 			apply_cursor_position( NewTextEdit, CmdEditor ),
+
+			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
+
+
+		% Ctrl-z:
+		?MYR_K_CTRL_Z ->
+
+			cond_utils:if_defined( myriad_debug_gui_shell,
+				trace_utils:debug( "Restoring previous line." ) ),
+
+			NewTextEdit = text_edit:restore_previous_line( TextEdit ),
+
+			apply_text( NewTextEdit, CmdEditor ),
+
+			% No cursor change.
 
 			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
 

@@ -50,7 +50,7 @@ implementations.
 %
 % (if updating this export, update list_builtin_commands/0 accordingly)
 %
--export([ list_bindings/1, print_bindings/1,
+-export([ list_bindings/1, b/1, print_bindings/1,
 		  clear_bindings/1, clear_binding/2,
 		  print_command_history/1, print_result_history/1,
 		  recall_command/2, clear_commands/1, clear_results/1,
@@ -106,7 +106,7 @@ this callback module.
 -spec list_builtin_commands() -> [ function_id() ].
 list_builtin_commands() ->
 	% See the corresponding export:
-	[ { list_bindings, 1 }, { print_bindings, 1 },
+	[ { list_bindings, 1 }, { b, 1 }, { print_bindings, 1 },
 	  { clear_bindings, 1 }, { clear_binding, 2 },
 	  { print_command_history, 1 }, { print_result_history, 1 },
 	  { recall_command, 2 },
@@ -142,6 +142,12 @@ list_bindings( ShellState=#custom_shell_state{ bindings=BindingStruct } ) ->
 	FilteredBindings = shell_utils:filter_bindings( BindingStruct ),
 
 	{ ShellState, FilteredBindings }.
+
+
+-doc "Shorthand for list_bindings/1.".
+-spec b( shell_state() ) -> { shell_state(), [ binding() ] }.
+b( ShellState ) ->
+	list_bindings( ShellState ).
 
 
 

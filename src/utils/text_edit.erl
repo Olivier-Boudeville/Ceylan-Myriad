@@ -155,7 +155,7 @@ The number of an entry (in their history), which is an identifier thereof.
 -export([ set_prefix/2, set_entry/2, add_char/2,
 		  move_cursor_left/1, move_cursor_right/1,
 		  set_cursor_to_start_of_line/1, set_cursor_to_end_of_line/1,
-		  kill_from_cursor/1, clear/1, process/1 ]).
+		  kill_from_cursor/1, restore_previous_line/1, clear/1, process/1 ]).
 
 
 
@@ -346,6 +346,12 @@ get_entry_for_submission( #text_edit{ precursor_chars=PreChars,
 %
 % Some of them may return 'unchanged' so that no update is triggered in the
 % caller.
+%
+% Note that operations that do not modify the edited text (e.g. moving the
+% cursor) are not cannot be restored (Ctrl-z). The others have to backup in all
+% cases both the pre *and* post chars (even if only one of them is modified),
+% otherwise, as any cursor movement is possible in-between, the restore would be
+% faulty in the general case.
 
 
 -doc "Sets the specified prefix of the specified text edit.".
@@ -357,23 +363,30 @@ set_prefix( TE, _PrefixInfo={ Pfx, PfxLen } ) ->
 
 -doc "Sets the currently edited entry (with no prefix taken into account).".
 -spec set_entry( text_edit(), text() ) -> text_edit().
-set_entry( TE, Text ) ->
+set_entry( TE=#text_edit{ precursor_chars=PreChars,
+						  postcursor_chars=PostChars }, Text ) ->
 
 	TextStr = text_utils:ensure_string( Text ),
 
-	TE#text_edit{ precursor_chars=lists:reverse( TextStr ) }.
+	TE#text_edit{ precursor_chars=lists:reverse( TextStr ),
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
 
 
 
 -doc "Adds the specified character to the current text.".
 -spec add_char( uchar(), text_edit() ) -> text_edit().
-add_char( NewChar, TE=#text_edit{ precursor_chars=PreChars } ) ->
+add_char( NewChar, TE=#text_edit{ precursor_chars=PreChars,
+								  postcursor_chars=PostChars } ) ->
 
 	%trace_utils:debug_fmt( "(adding '~ts')", [ [ NewChar ] ] ),
 
 	NewPreChars = [ NewChar | PreChars ],
 
-	TE#text_edit{ precursor_chars=NewPreChars }.
+	TE#text_edit{ precursor_chars=NewPreChars,
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
+
 
 
 
@@ -455,18 +468,39 @@ set_cursor_to_end_of_line( TE=#text_edit{ precursor_chars=PreChars,
 				  postcursor_chars=NewPostChars }.
 
 
+
 -doc "Kills all characters from the cursor to the end of line.".
 -spec kill_from_cursor( text_edit() ) -> text_edit().
-kill_from_cursor( TE ) ->
-	TE#text_edit{ postcursor_chars=[] }.
+kill_from_cursor( TE=#text_edit{ precursor_chars=PreChars,
+								 postcursor_chars=PostChars } ) ->
+	TE#text_edit{ postcursor_chars=[],
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
+
+
+
+-doc "Restores the previous edited line.".
+-spec restore_previous_line( text_edit() ) -> text_edit().
+restore_previous_line( TE=#text_edit{ precursor_chars=PreChars,
+									  postcursor_chars=PostChars,
+									  prev_precursor_chars=PrevPreChars,
+									  prev_postcursor_chars=PrevPostChars } ) ->
+	% Swaps:
+	TE#text_edit{ precursor_chars=PrevPreChars,
+				  postcursor_chars=PrevPostChars,
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
 
 
 
 -doc "Clears the current text.".
 -spec clear( text_edit() ) -> text_edit().
-clear( TE ) ->
+clear( TE=#text_edit{ precursor_chars=PreChars,
+					  postcursor_chars=PostChars } ) ->
 	TE#text_edit{ precursor_chars=[],
-				  postcursor_chars=[] }.
+				  postcursor_chars=[],
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
 
 
 
@@ -635,8 +669,11 @@ Deletes any character at the current cursor position (like with the DELETE key).
 delete_current_char( #text_edit{ postcursor_chars=[] } ) ->
 	unchanged;
 
-delete_current_char( TE=#text_edit{ postcursor_chars=[ _Next | Others ] } ) ->
-	TE#text_edit{ postcursor_chars=Others }.
+delete_current_char( TE=#text_edit{ precursor_chars=PreChars,
+									postcursor_chars=S=[ _Next | Others ] } ) ->
+	TE#text_edit{ postcursor_chars=Others,
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=S }.
 
 
 
@@ -648,8 +685,12 @@ BACKSPACE key).
 delete_previous_char( #text_edit{ precursor_chars=[] } ) ->
 	unchanged;
 
-delete_previous_char( TE=#text_edit{ precursor_chars=[ _Prev | Others ] } ) ->
-	TE#text_edit{ precursor_chars=Others }.
+delete_previous_char( TE=#text_edit{ precursor_chars=S=[ _Prev | Others ],
+									 postcursor_chars=PostChars } ) ->
+	TE#text_edit{ precursor_chars=Others,
+				  prev_precursor_chars=S,
+				  prev_postcursor_chars=PostChars }.
+
 
 
 -doc "Returns a textual representation of the specified text edit.".
