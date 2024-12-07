@@ -51,9 +51,10 @@ implementations.
 % (if updating this export, update list_builtin_commands/0 accordingly)
 %
 -export([ list_bindings/1, b/1, print_bindings/1,
-		  clear_bindings/1, clear_binding/2,
-		  print_command_history/1, print_result_history/1,
-		  recall_command/2, clear_commands/1, clear_results/1,
+		  clear_bindings/1, f/1, clear_binding/2, f/2,
+		  print_command_history/1, hc/1, print_result_history/1, hr/1,
+		  recall_command/2, r/2,
+		  clear_commands/1, clear_results/1,
 		  set_command_history_depth/2, set_result_history_depth/2,
 		  clear_persistent_command_history/1 ]).
 
@@ -71,8 +72,9 @@ implementations.
 -type shell_state() :: shell_utils:custom_shell_state().
 
 -type command_id() :: shell_utils:command_id().
+-type command_str() :: shell_utils:command_str().
 
--type command_result() :: shell_utils:command_result().
+%-type command_result() :: shell_utils:command_result().
 
 
 -type binding() :: shell_utils:binding().
@@ -107,9 +109,10 @@ this callback module.
 list_builtin_commands() ->
 	% See the corresponding export:
 	[ { list_bindings, 1 }, { b, 1 }, { print_bindings, 1 },
-	  { clear_bindings, 1 }, { clear_binding, 2 },
-	  { print_command_history, 1 }, { print_result_history, 1 },
-	  { recall_command, 2 },
+	  { clear_bindings, 1 }, { f, 1 }, { clear_binding, 2 }, { f, 2 },
+	  { print_command_history, 1 }, { hc, 1 },
+	  { print_result_history, 1 }, { hr, 1 },
+	  { recall_command, 2 }, { r, 2 },
 	  { clear_commands, 1 }, { clear_results, 1 },
 	  { set_command_history_depth, 2 }, { set_result_history_depth, 2 },
 	  { clear_persistent_command_history, 1 } ].
@@ -169,6 +172,11 @@ clear_bindings( ShellState ) ->
 	{ ShellState#custom_shell_state{ bindings=NewBindingStruct }, ok }.
 
 
+-doc "Shorthand for clear_bindings/1.".
+-spec f( shell_state() ) -> builtin_state_only().
+f( ShellState ) ->
+	clear_bindings( ShellState ).
+
 
 -doc """
 Clears the binding of the specified variable.
@@ -178,14 +186,24 @@ No error is triggered if no such variable was bound.
 -spec clear_binding( shell_state(), variable_string_name() ) ->
 										builtin_state_only().
 clear_binding( ShellState=#custom_shell_state{ bindings=BindingStruct },
-			   VarName ) ->
+			   VarName ) when is_list( VarName ) ->
 
 	%trace_utils:debug_fmt( "Clearing binding '~ts'.", [ VarName ] ),
 
 	NewBindingStruct = erl_eval:del_binding( list_to_atom( VarName ),
 											 BindingStruct ),
 
-	{ ShellState#custom_shell_state{ bindings=NewBindingStruct }, ok }.
+	{ ShellState#custom_shell_state{ bindings=NewBindingStruct }, ok };
+
+clear_binding( _ShellState, VarName ) ->
+	throw( { invalid_variable_name, VarName } ).
+
+
+
+-doc "Shorthand for clear_bindings/2.".
+-spec f( shell_state(), variable_string_name() ) -> builtin_state_only().
+f( ShellState, VarName ) ->
+	clear_binding( ShellState, VarName ).
 
 
 
@@ -196,6 +214,11 @@ print_command_history( ShellState ) ->
 	{ ShellState, Res }.
 
 
+-doc "Shorthand for print_command_history/1.".
+-spec hc( shell_state() ) -> { shell_state(), ustring() }.
+hc( ShellState ) ->
+	print_command_history( ShellState ).
+
 
 -doc "Displays the current history of results.".
 -spec print_result_history( shell_state() ) -> { shell_state(), ustring() }.
@@ -204,16 +227,28 @@ print_result_history( ShellState ) ->
 	{ ShellState, Res }.
 
 
+-doc "Shorthand for print_result_history/1.".
+-spec hr( shell_state() ) -> { shell_state(), ustring() }.
+hr( ShellState ) ->
+	print_result_history( ShellState ).
+
+
 
 -doc """
-Returns the command of the specified identifier (if it is still in command
-history), so that it can be evaluated again.
+Returns the command of the specified identifier (if it is in command history),
+so that, if validated by the user, it can be evaluated again.
 """.
 -spec recall_command( shell_state(), command_id() ) ->
-								{ shell_state(), command_result() }.
+								{ shell_state(), command_str() }.
 recall_command( ShellState, CmdId ) ->
 	Res = shell_utils:recall_command( ShellState, CmdId ),
 	{ ShellState, Res }.
+
+
+-doc "Shorthand for recall_command/2.".
+%-spec r( shell_state(), command_id() ) -> { shell_state(), command_str() }.
+r( ShellState, CmdId ) ->
+	recall_command( ShellState, CmdId ).
 
 
 

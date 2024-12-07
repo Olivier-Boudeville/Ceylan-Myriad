@@ -208,6 +208,7 @@ destruct( Editor ) ->
 	wxTextCtrl:destroy( Editor ).
 
 
+
 -doc """
 Sets the default font to be used by this editor.
 

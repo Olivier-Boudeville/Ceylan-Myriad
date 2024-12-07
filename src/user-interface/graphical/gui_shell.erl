@@ -43,38 +43,43 @@ Keyboard shortcuts for this shell (partly Emacs-inspired):
 Special-purpose keys:
 - Delete: delete any character at cursor
 - Backspace: delete any character just previous cursor
-- Left/Right arrows: move left/right in command line
-- Up/Down: recall previous/next command
+- Left/Right arrows: move one character left/right in the command line
+- Up/Down: recall previous/next command(s) (note that, for a more convenient
+  navigation in history, all series of a duplicated command are replaced by a
+  single instance thereof - even if the duplications remain stored in
+  history intentionally)
 - Return: triggers the currently edited command
 
 Text can be intentionally:
- - pasted in the editor (typically with the mouse), at the end of current
-   command
- - selected in the past commands (e.g. for re-use)
+- pasted in the editor (typically with the mouse, based on either the X
+  clipboard or the Copy/Paste system of the window manager), at the end of
+  current command
+- selected in the past commands (e.g. for re-use)
 
 Shell built-in commands (their shorter names comply with a subset of the ones
 documented in
 https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands):
+- list_bindings() or b(): lists (as terms) the current variable bindings
+- print_bindings(): displays the current variable bindings
+- clear_bindings() or f() (presumably for 'forget'): clears all variable
+  bindings
+- clear_binding(V) or f(V): clears the binding of variable named V, if any
+  (specified as a plain string)
 
- - list_bindings() or b(): lists (as terms) the current variable bindings
- - print_bindings(): displays the current variable bindings
- - clear_bindings() or f() (presumably for forget): clears all variable bindings
- - clear_binding(V) or f(V): clears the binding of variable V
+- print_command_history() or hc(): displays the current history of commands
+- print_result_history() or hr(): displays the current history of results
 
- - print_command_history() or h(): displays the current history of commands
- - print_result_history() or h(): displays the current history of results
+- recall_command(Id) or r(Id): re-evaluates the command of the specified
+  identifier (if it is in command history), so that, if validated by the user,
+  it can be evaluated again
 
- - repeat_command(Id): re-evaluates the command of the specified identifier (if
-   it is still in command history)
-
-
- - get_result(Id): returns the result corresponding to the command of specified
-   identifier (if still in result history)
- - clear_commands() or fc(): clears the full (live) history of commands
- - clear_results()  or fr(): clears the full history of command results
- - set_command_history_depth(D): sets the depth of the command history to D
- - set_result_history_depth(D): sets the depth of the result history to D
- - clear_persistent_command_history(): clears the persistent history of commands
+- get_result(Id): returns the result corresponding to the command of specified
+  identifier (if still in result history)
+- clear_commands() or fc(): clears the full (live) history of commands
+- clear_results()  or fr(): clears the full history of command results
+- set_command_history_depth(D): sets the depth of the command history to D
+- set_result_history_depth(D): sets the depth of the result history to D
+- clear_persistent_command_history(): clears the persistent history of commands
 
 See our shell_default_callbacks module for their detailed signatures; note the
 implicit use of shell state variables.
@@ -924,8 +929,7 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 	ThisCmdId = text_edit:get_entry_id( TextEdit ),
 
 	% Note that command/result histories are managed by the shell instance:
-	{ BaseText, ProcessTE, MaybeTmstpBinStr } =
-			case text_edit:process( TextEdit ) of
+	case text_edit:process( TextEdit ) of
 
 		% CmdBinStr is the actual command (e.g. with trailing dot added):
 		{ success, RecTextEdit, CmdBinStr, CmdRes, MaybeTimestampBinStr } ->
@@ -939,10 +943,12 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 					[ ThisCmdId, MaybeTimestampBinStr,
 					  CmdRes, NewCurrentCmdId ] ) ),
 
-			{ text_utils:bin_format( "~ts~ts~n~ts",
+			BaseText = text_utils:bin_format( "~ts~ts~n~ts",
 				[ get_prompt_for( ThisCmdId ), CmdBinStr,
 				  text_utils:term_to_binary( CmdRes ) ] ),
-			  RecTextEdit, MaybeTimestampBinStr };
+
+			prepare_new_command( BaseText, RecTextEdit, MaybeTimestampBinStr,
+								 CmdEditor, GUIShellState );
 
 
 		{ error, RecTextEdit, CmdBinStr, CmdErrorBinStr,
@@ -957,13 +963,19 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 					[ ThisCmdId, MaybeTimestampBinStr,
 					  CmdErrorBinStr, NewCurrentCmdId ] ) ),
 
-			{ text_utils:bin_format( "~ts~ts~n~ts",
+			BaseText = text_utils:bin_format( "~ts~ts~n~ts",
 				[ get_prompt_for( ThisCmdId ), CmdBinStr, CmdErrorBinStr ] ),
-			  RecTextEdit, MaybeTimestampBinStr };
+
+			prepare_new_command( BaseText, RecTextEdit, MaybeTimestampBinStr,
+								 CmdEditor, GUIShellState );
 
 
-		{ update_prompt, NewPrompt } ->
-			throw( {to_update, NewPrompt } );
+		% Typically for new prompt:
+		{ update_entry, NewTextEdit } ->
+			UpdatedCmd = text_edit:get_full_text( NewTextEdit ),
+			gui_text_editor:set_text( CmdEditor, UpdatedCmd ),
+			gui_text_editor:set_cursor_position_to_end( CmdEditor ),
+			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
 
 
 		% Mostly useless security:
@@ -974,7 +986,12 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 
 			throw( { invalid_command_outcome, InvalidOutcome } )
 
-	end,
+	end.
+
+
+
+prepare_new_command( BaseText, ProcessTE, MaybeTmstpBinStr, CmdEditor,
+					 GUIShellState ) ->
 
 	AddText = format_text( BaseText, MaybeTmstpBinStr ),
 

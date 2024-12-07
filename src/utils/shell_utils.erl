@@ -1084,6 +1084,26 @@ custom_shell_main_loop( ShellState ) ->
 
 
 % (helper)
+-spec on_prompt_update( command(), binding_struct(), custom_shell_state() ) ->
+							{ command_outcome(), custom_shell_state() }.
+on_prompt_update( NewPrompt, NewBindings,
+		ShellState=#custom_shell_state{ submission_count=SubCount } ) ->
+
+	% Command identifier was incremented, as a command was processed, yet a
+	% prompt update does not result directly in an actual being processed:
+	%
+	CorrectedSubCount = SubCount - 1,
+
+	ProcShellState = ShellState#custom_shell_state{
+						submission_count=CorrectedSubCount,
+						bindings=NewBindings },
+
+	CmdOutcome = { entry_update, NewPrompt },
+
+	{ CmdOutcome,  ProcShellState }.
+
+
+% (helper)
 -spec on_command_success( command(), command_result(), command_id(),
 						  binding_struct(), custom_shell_state() ) ->
 								{ command_outcome(), custom_shell_state() }.
@@ -1104,8 +1124,6 @@ on_command_success( CmdBinStr, CmdResValue, CmdId, NewBindings,
 				   MaybeTimestampBinStr },
 
 	{ CmdOutcome, ResHistShellState }.
-
-
 
 
 % Custom Shell commands.
@@ -1173,9 +1191,23 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 					try erl_eval:exprs( ExprForms, ExecBindings,
 										LocalFunHandler ) of
 
-						{ value, _CmdRes={ update_prompt, _NewPrompt },
-						  _UpdatedBindings } ->
-							throw( fixme );
+						{ value, _CmdRes={ update_command_prompt, NewPrompt },
+						  UpdatedBindings } ->
+
+							% Reading back the (possibly) updated shell state;
+							% not expecting 'unbound':
+							%
+							{ value, ResShellState } = erl_eval:binding(
+								?shell_state_binding_name, UpdatedBindings ),
+
+							% Would not fail if not present:
+							ResetBindings = erl_eval:del_binding(
+								?shell_state_binding_name, UpdatedBindings ),
+
+							% Will assign these bindings in state:
+							on_prompt_update( NewPrompt, ResetBindings,
+											  ResShellState );
+
 
 						{ value, CmdRes, UpdatedBindings } ->
 
@@ -1210,8 +1242,8 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
 							ReasonBinStr, NewCmdId, BaseShellState ),
 
-						CmdOutcome = { processing_error, ReasonBinStr, NewCmdId+1,
-									   MaybeTimestampBinStr },
+						CmdOutcome = { processing_error, ReasonBinStr,
+									   NewCmdId+1, MaybeTimestampBinStr },
 
 						% We record in the history of this shell a command in
 						% all cases (even its syntax is wrong), so that it can
@@ -1790,6 +1822,10 @@ get_error_message( { undef, { FunctionName, FunArity } } ) ->
 	text_utils:format( "function ~ts/~B is not defined",
 					   [ FunctionName, FunArity ] );
 
+get_error_message( { invalid_variable_name, VarName } ) ->
+	text_utils:format( "variable name '~p' is invalid (not a plain string)",
+					   [ VarName ] );
+
 get_error_message( Other ) ->
 	text_utils:format( "~p", [ Other ] ).
 
@@ -1989,14 +2025,14 @@ Returns the command of the specified identifier (if it is still in command
 history), so that it can be evaluated again.
 """.
 -spec recall_command( custom_shell_state(), command_id() ) ->
-							custom_shell_state() | message().
+		message() | { 'update_command_prompt', command_str() }.
 recall_command( _ShellState=#custom_shell_state{ submission_count=SubCount,
-						cmd_history=CmdQ }, CmdId ) when CmdId =< SubCount ->
+						cmd_history=CmdQ }, CmdId ) when CmdId < SubCount ->
 
 	QLen = queue:len( CmdQ ),
 
 	% Index in the list corresponding to that queue:
-	Index = QLen - SubCount + CmdId,
+	Index = QLen - SubCount + CmdId + 1,
 
 	case Index < 1 of
 
@@ -2006,18 +2042,16 @@ recall_command( _ShellState=#custom_shell_state{ submission_count=SubCount,
 
 		false ->
 			% Thus Index >=1; Index <= QLen as SubCount >= CmdId, so in range:
-			_Cmd = lists:nth( Index, queue:to_list( CmdQ ) ),
-			%text_utils:format( "Command #~B was: '~ts'.", [ CmdId, Cmd ] )
-			%ShellState=#custom_shell_state{
-			throw(fixme)
+			CmdStr = lists:nth( Index, queue:to_list( CmdQ ) ),
+			%text_utils:format( "Command #~B was: '~ts'.", [ CmdId, CmdStr ] )
+			{ update_command_prompt, CmdStr }
 
 	end;
-
 
 % Here CmdId > SubCount:
 recall_command( #custom_shell_state{
 		submission_count=SubCount }, CmdId ) ->
-	text_utils:format( "Command #~B would be ahead of this current one (#~B).",
+	text_utils:format( "Command #~B would not be prior to current one (#~B).",
 					   [ CmdId, SubCount ] ).
 
 
@@ -2117,14 +2151,14 @@ bindings_to_command_string( BindingStruct ) ->
 	case filter_bindings( BindingStruct ) of
 
 		[] ->
-			"no binding";
+			"no binding defined";
 
 		[ Binding ] ->
-			text_utils:format( "a single binding: ~ts",
+			text_utils:format( "a single binding defined: ~ts",
 							   [ binding_to_string( Binding ) ] );
 
 		Bindings ->
-			text_utils:format( "~B bindings: ~ts",
+			text_utils:format( "~B bindings defined: ~ts",
 				[ length( Bindings ),
 				  text_utils:strings_to_string( [ binding_to_string( B )
 						|| B <- lists:sort( Bindings ) ] ) ] )

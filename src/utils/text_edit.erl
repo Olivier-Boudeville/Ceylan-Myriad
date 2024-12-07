@@ -357,8 +357,7 @@ get_entry_for_submission( #text_edit{ precursor_chars=PreChars,
 -doc "Sets the specified prefix of the specified text edit.".
 -spec set_prefix( text_edit(), prefix_info() ) -> text_edit().
 set_prefix( TE, _PrefixInfo={ Pfx, PfxLen } ) ->
-	TE#text_edit{ prefix=Pfx,
-				  prefix_len=PfxLen }.
+	TE#text_edit{ prefix=Pfx, prefix_len=PfxLen }.
 
 
 -doc "Sets the currently edited entry (with no prefix taken into account).".
@@ -546,7 +545,15 @@ process( TE=#text_edit{ processor_pid=ProcessorPid } ) ->
 									   [ NewCurrentEntryId ] ) ),
 
 			% A different atom, to be clearer:
-			{ error, NewTE, EntryBinStr, ReasonBinStr, MaybeTimestampBinStr }
+			{ error, NewTE, EntryBinStr, ReasonBinStr, MaybeTimestampBinStr };
+
+
+		{ entry_update, NewBinEntry } ->
+			NewEntry = text_utils:binary_to_string( NewBinEntry ),
+			NewTE = TE#text_edit{ precursor_chars=lists:reverse( NewEntry ),
+								  postcursor_chars=[] },
+
+			{ update_entry, NewTE }
 
 	end.
 
@@ -606,10 +613,25 @@ recall_previous_entry( TE=#text_edit{ hist_entry_id=HistEntryId,
 				trace_utils:debug_fmt( "Recall previous (B): '~p' (~p).",
 									   [ EntryStr, PrevHistEntryId ] ) ),
 
-			% Cursor will be just after this new recalled entry:
-			TE#text_edit{ precursor_chars=lists:reverse( EntryStr ),
-						  postcursor_chars=[],
-						  hist_entry_id=PrevHistEntryId }
+			% Skipping over duplicated commands in history:
+
+			RevEntryStr = lists:reverse( EntryStr ),
+
+			% Expected: TE#text_edit.postcursor_chars =:= [].
+			case TE#text_edit.precursor_chars =:= RevEntryStr of
+
+				true ->
+					% Skipping duplicate:
+					recall_previous_entry( TE#text_edit{
+											hist_entry_id=PrevHistEntryId } );
+
+				false ->
+					% Cursor will be just after this new recalled entry:
+					TE#text_edit{ precursor_chars=RevEntryStr,
+								  postcursor_chars=[],
+								  hist_entry_id=PrevHistEntryId }
+
+			end
 
 	end.
 
@@ -629,12 +651,14 @@ recall_next_entry( TE=#text_edit{ entry_id=CurrentEntryId,
 
 	%trace_utils:debug_fmt( "Recall next: ~B.", [ HistEntryId+1 ] ),
 
-	{ NewEntryStr, NewHistEntryId } = case HistEntryId+1 of
+	case HistEntryId+1 of
 
 		% So leaving history navigation:
 		CurrentEntryId ->
 			% To restore current entry:
-			{ TE#text_edit.current_entry, _NewHistEntryId=undefined };
+			RevCurrentEntry = lists:reverse( TE#text_edit.current_entry ),
+			TE#text_edit{ precursor_chars=RevCurrentEntry,
+						  hist_entry_id=undefined };
 
 		% Still navigating towards current:
 		NextHistEntryId ->
@@ -644,21 +668,32 @@ recall_next_entry( TE=#text_edit{ entry_id=CurrentEntryId,
 				% MaybeEntryBinStr=undefined not possible:
 				{ target_entry, EntryBinStr } ->
 
-					EntryStr = text_utils:binary_to_string( EntryBinStr ),
+					RevEntryStr = lists:reverse(
+						text_utils:binary_to_string( EntryBinStr ) ),
 
-					{ EntryStr, NextHistEntryId }
+					case RevEntryStr =:= TE#text_edit.precursor_chars of
+
+						true ->
+							% Then skipping:
+							recall_next_entry( TE#text_edit{
+								hist_entry_id=NextHistEntryId } );
+
+						false ->
+
+							cond_utils:if_defined( myriad_debug_text_edit,
+								trace_utils:debug_fmt(
+									"Recall next: '~p' (~p).",
+									[ EntryBinStr, NextHistEntryId ] ) ),
+
+							TE#text_edit{ precursor_chars=RevEntryStr,
+										  postcursor_chars=[],
+										  hist_entry_id=NextHistEntryId }
+
+					end
 
 			end
 
-	end,
-
-	cond_utils:if_defined( myriad_debug_text_edit,
-		trace_utils:debug_fmt( "Recall next: '~p' (~p).",
-							   [ NewEntryStr, NewHistEntryId ] ) ),
-
-	TE#text_edit{ precursor_chars=lists:reverse( NewEntryStr ),
-				  postcursor_chars=[],
-				  hist_entry_id=NewHistEntryId }.
+	end.
 
 
 
@@ -695,6 +730,5 @@ delete_previous_char( TE=#text_edit{ precursor_chars=S=[ _Prev | Others ],
 
 -doc "Returns a textual representation of the specified text edit.".
 -spec to_string( text_edit() ) -> ustring().
-to_string( #text_edit{ entry_id=EntryId,
-					   prefix=Pfx } ) ->
+to_string( #text_edit{ entry_id=EntryId, prefix=Pfx } ) ->
 	text_utils:format( "text edit #~B with prefix '~ts'", [ EntryId, Pfx ] ).
