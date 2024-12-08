@@ -104,21 +104,21 @@ test_main_loop( CloseFrame ) ->
 
 	receive
 
-		{ onWindowClosed, [ CloseFrame, _FrameId, Context ] } ->
+		{ onWindowClosed, [ CloseFrame, _FrameId, EventContext ] } ->
 			trace_utils:info_fmt( "The closing frame ~ts has been, well, "
 				"closed (~ts); test success.",
 				[ gui:object_to_string( CloseFrame ),
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 
 			gui_frame:destruct( CloseFrame ),
 
 			gui:stop();
 
 
-		{ onWindowClosed, [ AnyFrame, AnyFrameId, Context ] } ->
+		{ onWindowClosed, [ AnyFrame, AnyFrameId, EventContext ] } ->
 			trace_utils:info_fmt( "Frame ~ts (id: ~w) closed (~ts).",
 				[ gui:object_to_string( AnyFrame ), AnyFrameId,
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 
 			gui_frame:destruct( AnyFrame ),
 			test_main_loop( CloseFrame );

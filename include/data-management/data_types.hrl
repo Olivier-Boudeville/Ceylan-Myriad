@@ -98,9 +98,8 @@
 -define( list_impl_type( T ), [ T ] ).
 
 
+-doc "Any kind of lists.".
 -type any_list() :: list() | ?list_impl_type.
-% Any kind of lists.
-
 
 
 

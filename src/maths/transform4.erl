@@ -282,7 +282,7 @@ the child (R1) into its representation in the parent (R2), as V2 = RefM.V1.
 -define( dim, 4 ).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -983,17 +983,27 @@ are_equal( T1=#transform4{ reference=HM1, inverse=InvHM1 },
 -doc """
 Returns a transition transformation T12 whose reference matrix is a
 change-of-basis matrix from the current coordinate system (reference frame R1)
-to one (R2); the origin, forward and up directions of R1 are specified,
-relatively to R2 (typically R1->R2).
+to the R2 one; the origin, forward (X axis) and up directions (Z axis) of R1 are
+specified, relatively to R2 (typically R1->R2).
 
-So returns P1->2, allowing, for an (homogeneous) point P, to convert P1, its
-representation in current coordinate system R1, into P2, its counterpart in R2:
-`P2 = P1->2 . P1`.
+So returns, as reference matrix, P1->2, allowing, for an (homogeneous) point P,
+to convert P1, its representation in current coordinate system R1, into P2, its
+counterpart in R2: `P2 = P1->2 . P1`.
 
 The inverse matrix of this transformation corresponds thus to P2->1.
 """.
--spec basis_change( point3(), vector3(), vector3() ) -> transform4().
-basis_change( _O1InR2={ XO1, YO1, ZO1 }, FwdDir1InR2, UpDir1InR2 ) ->
+-spec basis_change( point3(), unit_vector3(), unit_vector3() ) -> transform4().
+basis_change( O1InR2={ XO1, YO1, ZO1 }, FwdDir1InR2, UpDir1InR2 ) ->
+
+	cond_utils:if_defined( myriad_debug_linear,
+		trace_utils:debug_fmt( "Computing a transformation to a coordinate "
+			"system located at ~ts, whose forward direction is ~ts and "
+			"up direction is ~ts",
+			[ point3:to_compact_string( O1InR2 ),
+			  vector3:to_compact_string( FwdDir1InR2 ),
+			  vector3:to_compact_string( UpDir1InR2 ) ] ),
+		basic_utils:ignore_unused( O1InR2 ) ),
+
 
 	% A point whose coordinates are to be converted from R1 to R2 shall first be
 	% rotated, then translated; we determine here the axis vectors of R1, as
@@ -1001,7 +1011,7 @@ basis_change( _O1InR2={ XO1, YO1, ZO1 }, FwdDir1InR2, UpDir1InR2 ) ->
 	% https://howtos.esperide.org/ThreeDimensional.html#summary for more
 	% information.
 
-	% We now inline the definition of both matrices
+	% We now inline the definition of both matrices.
 
 	% I, J, K: I for forward, K for upward, J determined from them.
 
@@ -1010,19 +1020,19 @@ basis_change( _O1InR2={ XO1, YO1, ZO1 }, FwdDir1InR2, UpDir1InR2 ) ->
 	_Z1InR2 = [ XK1, YK1, ZK1 ] = UpDir1InR2,
 
 	% Y = Z^X:
-	%_Y1InR2 = [ XJ1, YJ1, ZJ1 ] = vector3:cross_product( Z1InR2, X1InR2 ),
+	% _Y1InR2 = [ XJ1, YJ1, ZJ1 ] = vector3:cross_product( Z1InR2, X1InR2 ),
 	% Inlined:
 	XJ1 = YK1*ZI1 - ZK1*YI1,
 	YJ1 = ZK1*XI1 - XK1*ZI1,
 	ZJ1 = XK1*YI1 - YK1*XI1,
 
-	%M = matrix4:compact_from_columns( X1InR2, Y1InR2, Z1InR2, O1InR2 ),
+	% Ref = matrix4:compact_from_columns( X1InR2, Y1InR2, Z1InR2, O1InR2 ),
 	% Inlined:
-	M = #compact_matrix4{ m11=XI1, m12=XJ1, m13=XK1, tx=XO1,
-						  m21=YI1, m22=YJ1, m23=YK1, ty=YO1,
-						  m31=ZI1, m32=ZJ1, m33=ZK1, tz=ZO1 },
+	Ref = #compact_matrix4{ m11=XI1, m12=XJ1, m13=XK1, tx=XO1,
+							m21=YI1, m22=YJ1, m23=YK1, ty=YO1,
+							m31=ZI1, m32=ZJ1, m33=ZK1, tz=ZO1 },
 
-	% Reversed, reciprocal operations; we compute the inverse of M by applying
+	% Reversed, reciprocal operations; we compute the inverse of Ref by applying
 	% https://howtos.esperide.org/ThreeDimensional.html#summary:
 
 	% Negation of the scalar product of new rows with new origin:
@@ -1030,11 +1040,11 @@ basis_change( _O1InR2={ XO1, YO1, ZO1 }, FwdDir1InR2, UpDir1InR2 ) ->
 	InvTy = - ( XJ1*XO1 + YJ1*YO1 + ZJ1*ZO1 ),
 	InvTz = - ( XK1*XO1 + YK1*YO1 + ZK1*ZO1 ),
 
-	InvM = #compact_matrix4{ m11=XI1, m12=YI1, m13=ZI1, tx=InvTx,
-							 m21=XJ1, m22=YJ1, m23=ZJ1, ty=InvTy,
-							 m31=XK1, m32=YK1, m33=ZK1, tz=InvTz },
+	InvRef = #compact_matrix4{ m11=XI1, m12=YI1, m13=ZI1, tx=InvTx,
+							   m21=XJ1, m22=YJ1, m23=ZJ1, ty=InvTy,
+							   m31=XK1, m32=YK1, m33=ZK1, tz=InvTz },
 
-	#transform4{ reference=M, inverse=InvM }.
+	#transform4{ reference=Ref, inverse=InvRef }.
 
 
 
@@ -1090,6 +1100,6 @@ check( T=#transform4{ reference=M, inverse=InvM } ) ->
 -doc "Returns a textual representation of the specified (4x4) transformation.".
 -spec to_string( transform4() ) -> ustring().
 to_string( #transform4{ reference=M, inverse=InvM } ) ->
-	text_utils:format( "4x4 transformation recording reference matrix ~ts and "
-		"its inverse ~ts",
+	text_utils:format( "4x4 transformation recording reference matrix: ~ts and "
+		"its inverse: ~ts",
 		[ matrix4:to_string( M ), matrix4:to_string( InvM ) ] ).

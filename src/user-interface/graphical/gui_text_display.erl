@@ -139,8 +139,8 @@ create_presized( Label, Font, Parent ) ->
 -doc """
 Creates a text display, based on the specified label and option(s).
 """.
--spec create( label(), maybe_list( text_display_option() ), parent() ) -> 
-		                                    text_display().
+-spec create( label(), maybe_list( text_display_option() ), parent() ) ->
+											text_display().
 create( Label, Options, Parent ) ->
 	create( Label, gui_id:get_any_id(), Options, Parent ).
 

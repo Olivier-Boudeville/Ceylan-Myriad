@@ -698,6 +698,7 @@ the gl module.
 -export([ generate_support_modules/0 ]).
 
 
+
 % Type shorthands:
 
 -type f() :: float().
@@ -1884,7 +1885,7 @@ create_canvas( CanvasOpts, Parent ) ->
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	% For example, {wx_ref,157,wxGLCanvas,[]}:
-	%trace_utils:debug_fmt( "Canvas result = ~p", [ Res ] ),
+	%trace_utils:debug_fmt( "Canvas creation result: ~p", [ Res ] ),
 
 	Res.
 

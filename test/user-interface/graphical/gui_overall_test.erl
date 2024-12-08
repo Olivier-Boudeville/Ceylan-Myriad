@@ -322,15 +322,15 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 	receive
 
-		{ onButtonClicked,
-				[ RenderShapeButton, _RenderShapeButtonId, Context ] } ->
+		{ onButtonClicked, [ RenderShapeButton, _RenderShapeButtonId,
+							 EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Render shape test button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( RenderShapeButton ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			NewTestState = TestState#my_test_state{
 				render_mode=test_shape_rendering },
@@ -340,14 +340,15 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ RenderMECButton, _RenderMECButtonId, Context ] } ->
+		{ onButtonClicked, [ RenderMECButton, _RenderMECButtonId,
+							 EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Render MEC test button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( RenderMECButton ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			NewTestState = TestState#my_test_state{
 				render_mode=test_dynamic_mec },
@@ -357,14 +358,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked, [ AddButton, _AddButtonId, Context ] } ->
+		{ onButtonClicked, [ AddButton, _AddButtonId, EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Add point test button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( AddButton ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			NewPointCount = TestState#my_test_state.point_count + 1,
 
@@ -373,15 +374,15 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( NewTestState );
 
 
-		{ onButtonClicked,
-					[ PasteImageButton, _PasteImageButtonId, Context ] } ->
+		{ onButtonClicked, [ PasteImageButton, _PasteImageButtonId,
+							 EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Paste image button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( PasteImageButton ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			ImagePath = "../../../doc/myriad-small.png",
 
@@ -391,15 +392,15 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked,
-				[ ClearCanvasButton, _ClearCanvasButtonId, Context ] } ->
+		{ onButtonClicked, [ ClearCanvasButton, _ClearCanvasButtonId,
+							 EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Clear canvas button ~ts has been clicked (~ts).",
 					[ gui:object_to_string( ClearCanvasButton ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			gui_canvas:clear( Canvas ),
 			gui_canvas:blit( Canvas ),
@@ -407,28 +408,28 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onButtonClicked, [ QuitButton, _QuitButtonId, Context ] } ->
+		{ onButtonClicked, [ QuitButton, _QuitButtonId, EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt( "Quit test button ~ts has been clicked "
 					"(~ts), test success.",
 					[ gui:object_to_string( QuitButton ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			gui_frame:destruct( MainFrame ),
 
 			gui:stop();
 
 
-		{ onRepaintNeeded, [ Canvas, _CanvasId, Context ] } ->
+		{ onRepaintNeeded, [ Canvas, _CanvasId, EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Test canvas '~ts' needing repaint (~ts).",
 					[ gui:object_to_string( Canvas ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			gui_canvas:blit( Canvas ),
 
@@ -436,14 +437,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				render_count=RenderCount+1 } );
 
 
-		{ onResized, [ Canvas, _CanvasId, NewSize, Context ] } ->
+		{ onResized, [ Canvas, _CanvasId, NewSize, EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt(
 					"Test canvas '~ts' resized to ~p (~ts).",
 					[ gui:object_to_string( Canvas ), NewSize,
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( [ NewSize, Context ] ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( [ NewSize, EventContext ] ) ),
 
 			render( RenderMode, TestState#my_test_state.point_count, Canvas ),
 
@@ -451,12 +452,12 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				render_count=RenderCount+1 } );
 
 
-		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
+		{ onWindowClosed, [ MainFrame, _MainFrameId, EventContext ] } ->
 
 			trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 				"(~ts), test success.",
 				[ gui:object_to_string( MainFrame ),
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 
 			gui_frame:destruct( MainFrame ),
 

@@ -26,6 +26,9 @@
 % Creation date: Sunday, May 24, 2020.
 
 
+% Note: only meant to be included by basic_utils.erl.
+
+
 % Currently, by default we are in development mode, and we want as much
 % information as possible, even at the expense of some performances, whereas in
 % production mode the reciprocal is true.

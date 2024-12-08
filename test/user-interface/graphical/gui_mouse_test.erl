@@ -82,7 +82,7 @@ run_test_gui() ->
 
 		onMouseWheelScrolled,
 
-		onMouseEnteredWindow, onMouseLeftWindow ],
+		onMouseEnteredWidget, onMouseLeftWidget ],
 
 	gui:subscribe_to_events(
 		{ [ onWindowClosed | MouseEventTypes ], TestFrame } ),
@@ -105,13 +105,13 @@ test_main_loop( TestFrame ) ->
 	receive
 
 		% Would be far more too numerous for the console:
-		{ onMouseMoved, [ TestFrame, _TestFrameId, _Context ] } ->
+		{ onMouseMoved, [ TestFrame, _TestFrameId, _EventContext ] } ->
 			test_main_loop( TestFrame );
 
-		{ onWindowClosed, [ TestFrame, _TestFrameId, Context ] } ->
+		{ onWindowClosed, [ TestFrame, _TestFrameId, EventContext ] } ->
 			trace_utils:info_fmt( "Test frame '~ts' closed (~ts).",
 				[ gui:object_to_string( TestFrame ),
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 
 			gui_frame:destruct( TestFrame ),
 

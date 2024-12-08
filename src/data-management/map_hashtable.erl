@@ -147,10 +147,11 @@ have been back-ported to the other table types.
 -define( default_bullet, " + " ).
 
 
-% Shorthands:
+% Type shorthands:
 
--type void() :: basic_utils:void().
 -type accumulator() :: basic_utils:accumulator().
+
+-type void() :: type_utils:void().
 
 -type ustring() :: text_utils:ustring().
 

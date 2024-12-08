@@ -5743,8 +5743,8 @@ write_ustring( File, FormatString, FormatValues ) ->
 
 -doc """
 Reads the content of the specified file, based on its filename specified as any
-kind of string (plain, binary, atom, etc), and returns the corresponding binary,
-or throws an exception on failure.
+kind of string (plain, binary, atom, etc.), and returns the corresponding
+binary, or throws an exception on failure.
 
 See also: read_terms/1 to read directly Erlang terms instead.
 """.
@@ -5772,7 +5772,7 @@ read_whole( FilePath ) ->
 
 -doc """
 Reads the content of the specified file, expected to be a text one, based on its
-filename specified as any kind of string (plain, binary, atom, etc) and returns
+filename specified as any kind of string (plain, binary, atom, etc.) and returns
 its content as a list of plain strings, or throws an exception on failure.
 
 Each returned line has any (trailing) newline(s) removed (knowing that the last

@@ -107,7 +107,7 @@ Refer to the 'cursor' example of wx:demo/0 that showcases them all.
 A table storing the correspondance between MyriadGUI and backend cursor types.
 """.
 -type cursor_table() :: table( cursor_type(), wx_cursor_type() ).
- 
+
 
 -doc """
 Tells whether the mouse shall be grabbed.
@@ -142,9 +142,9 @@ Tells whether the mouse shall be grabbed.
 	% Wheel:
 	| 'onMouseWheelScrolled'
 
-	| 'onMouseEnteredWindow' | 'onMouseLeftWindow'
+	| 'onMouseEnteredWidget' | 'onMouseLeftWidget'
 	| 'onMouseMoved'.
- 
+
 
 -export_type([ cursor_type/0, cursor_table/0, grab_status/0,
 			   mouse_event_type/0 ]).
@@ -168,7 +168,7 @@ Tells whether the mouse shall be grabbed.
 -export([ cursor_type_to_wx/1 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type coordinate() :: gui:coordinate().
 -type window() :: gui_window:window().
@@ -280,7 +280,7 @@ get_all_mouse_event_types() ->
 	  % Wheel:
 	  onMouseWheelScrolled,
 
-	  onMouseEnteredWindow, onMouseLeftWindow,
+	  onMouseEnteredWidget, onMouseLeftWidget,
 	  onMouseMoved ].
 
 

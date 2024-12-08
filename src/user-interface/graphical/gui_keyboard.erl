@@ -123,7 +123,7 @@ See also the gui_keyboard_test module.
 %
 % - altDown :: boolean(): tells whether Alt is pressed
 %
-% - metaDown :: boolean():tells whether Meta ("Super/Windows/Command key") is
+% - metaDown :: boolean(): tells whether Meta ("Super/Windows/Command key") is
 % pressed
 %
 % - uniChar :: integer(): should be used for the printable characters, as it
@@ -203,7 +203,7 @@ actual keyboard (which notably depends on its layout of choice).
 A modifier does not generate a keycode just by itself, as it is taken into
 account whenever generating a keycode.
 
-Refer to the corresponding MYR_K_* defines.
+Refer to the corresponding MYR_K_* keycode defines.
 """.
 -type keycode() :: uint32().
 
@@ -253,11 +253,12 @@ will be reported at the end, when the key is released).
 	% Event just about the physical key of interest (regardless of any
 	% modifier):
 	%
-	| 'onKeyPressed' % Does not take into account modifiers; for some reason,
-					 % associated Unicode characters are uppercased; so hitting
-					 % the 'a' key returns the 'A' uchar (not the 'a' one).
+	| 'onKeyPressed' % Does not take into account modifiers (use onCharEntered
+					 % to do so); for some reason, associated Unicode characters
+					 % are uppercased; so hitting the 'a' key returns the 'A'
+					 % uchar (not the 'a' one).
 
-	| 'onKeyReleased'.  % See onKeyPressed regarding modifiers and case.
+	| 'onKeyReleased'. % See onKeyPressed regarding modifiers and case.
 
 
 
@@ -267,7 +268,11 @@ will be reported at the end, when the key is released).
 
 
 
--doc "Backend-level keyboard event.".
+-doc """
+Backend-level keyboard event.
+
+Often used to detect keys being pressed (transitions from up to down).
+""".
 -type backend_keyboard_event() :: wxKey().
 
 
@@ -277,12 +282,15 @@ will be reported at the end, when the key is released).
 			   keyboard_event_type/0, backend_keyboard_event/0 ]).
 
 
--export([ is_modkey_pressed/1, is_key_pressed/1, to_lower/2,
+-export([ is_key_pressed/1, to_lower/2,
 		  get_backend_event/1,
 
 		  get_maybe_uchar/1,
 
 		  get_scancode/1, get_keycode/1, get_code_pair/1,
+
+		  is_modifier_pressed/1,
+		  is_control_pressed/1, is_shift_pressed/1, is_super_pressed/1,
 
 		  event_context_to_maybe_uchar/1, event_context_to_keycode/1,
 		  event_context_to_scancode/1, event_context_to_code_pair/1,
@@ -296,7 +304,7 @@ will be reported at the end, when the key is released).
 -export([ wx_keycode_to_myr/1, myr_keycode_to_wx/1 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type uint32() :: type_utils:uint32().
 
@@ -306,26 +314,6 @@ will be reported at the end, when the key is released).
 -type event_context() :: gui_event:event_context().
 
 -type wx_keycode() :: integer().
-
-
-
--doc """
-Tells whether the specified key, designated as a scancode comprising a modifier,
-is pressed.
-""".
--spec is_modkey_pressed( scancode() ) -> boolean().
-is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_SCANCODE_LCTRL ) > 0 ->
-	wx_misc:getKeyState( ?WXK_CONTROL );
-
-is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_K_LALT )  > 0 ->
-	wx_misc:getKeyState( ?WXK_ALT );
-
-is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_K_LSHIFT ) > 0 ->
-	wx_misc:getKeyState( ?WXK_SHIFT );
-
-is_modkey_pressed( Scancode ) when ( Scancode band ?MYR_K_LSUPER ) > 0 ->
-	wx_misc:getKeyState( ?WXK_WINDOWS_LEFT )
-		orelse wx_misc:getKeyState( ?WXK_WINDOWS_RIGHT ).
 
 
 
@@ -509,6 +497,9 @@ myr_keycode_to_wx( MyrKeycode ) ->
 -doc """
 Returns the backend keyboard event included in the specified (keyboard-related)
 event context.
+
+Generally for internal use only; prefer relying on the event_context_to_*/1
+functions.
 """.
 -spec get_backend_event( event_context() ) -> backend_keyboard_event().
 get_backend_event( #event_context{
@@ -538,7 +529,7 @@ get_maybe_uchar( _WxKey=#wxKey{ uniChar=Unichar } ) ->
 
 
 -doc """
-Returns the scancode corresponding to the key (interpreted as a "button code"
+Returns the scancode corresponding to the key (interpreted as a button "code"
 rather than as any character) referenced in the specified backend keyboard
 event.
 
@@ -583,6 +574,57 @@ specified backend keyboard event.
 get_code_pair( _WxKey=#wxKey{ rawFlags=Scancode,
 							  keyCode=Keycode } ) ->
 	{ Scancode, Keycode }.
+
+
+
+% Modifier subsection.
+
+
+-doc """
+Tells whether the specified key, designated as a scancode comprising a modifier,
+is pressed.
+""".
+-spec is_modifier_pressed( scancode() ) -> boolean().
+is_modifier_pressed( Scancode )
+				when ( Scancode band ?MYR_SCANCODE_LCTRL ) > 0 ->
+	wx_misc:getKeyState( ?WXK_CONTROL );
+
+is_modifier_pressed( Scancode ) when ( Scancode band ?MYR_K_LALT )  > 0 ->
+	wx_misc:getKeyState( ?WXK_ALT );
+
+is_modifier_pressed( Scancode ) when ( Scancode band ?MYR_K_LSHIFT ) > 0 ->
+	wx_misc:getKeyState( ?WXK_SHIFT );
+
+is_modifier_pressed( Scancode ) when ( Scancode band ?MYR_K_LSUPER ) > 0 ->
+	wx_misc:getKeyState( ?WXK_WINDOWS_LEFT )
+		orelse wx_misc:getKeyState( ?WXK_WINDOWS_RIGHT ).
+
+
+
+-doc """
+Returns whether the Control key is pressed for the specified keyboard event.
+""".
+-spec is_control_pressed( backend_keyboard_event() ) -> boolean().
+is_control_pressed( #wxKey{ controlDown=IsCtrlDown } ) ->
+	IsCtrlDown.
+
+
+-doc """
+Returns whether the Shift key is pressed for the specified keyboard event.
+""".
+-spec is_shift_pressed( backend_keyboard_event() ) -> boolean().
+is_shift_pressed( #wxKey{ shiftDown=IsShiftDown } ) ->
+	IsShiftDown.
+
+
+-doc """
+Returns whether the Super (a.k.a. Windows, Meta) key is pressed for the
+specified keyboard event.
+""".
+-spec is_super_pressed( backend_keyboard_event() ) -> boolean().
+is_super_pressed( #wxKey{ metaDown=IsMetaDown } ) ->
+	IsMetaDown.
+
 
 
 
@@ -647,9 +689,9 @@ event_context_to_code_pair( EventContext ) ->
 
 -doc """
 Returns a textual description of the specified key event, of type
-gui_wx_event_info().
+backend_keyboard_event()
 """.
--spec key_event_to_string( wxKey() ) -> ustring().
+-spec key_event_to_string( backend_keyboard_event() ) -> ustring().
 key_event_to_string( _WxKey=#wxKey{ type=WxKeyEventType,
 		x=X, y=Y, keyCode=KeyCode,
 		controlDown=CtrlDown, shiftDown=ShiftDown, altDown=AltDown,

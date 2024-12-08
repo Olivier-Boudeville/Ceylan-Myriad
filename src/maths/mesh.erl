@@ -142,7 +142,6 @@ Note that usually the vertex order matters (regarding culling).
 
 -doc "A number of faces.".
 -type face_count() :: count().
-%
 
 
 
@@ -186,7 +185,7 @@ Note that usually the vertex order matters (regarding culling).
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -703,6 +702,3 @@ normal_type_to_string( per_face ) ->
 %   SphereBVolume = bounding_volume:get_lazy_sphere( Mesh#mesh.vertices ),
 
 %   Mesh#mesh{ bounding_volume=SphereBVolume }.
-
-
-% Helper functions.

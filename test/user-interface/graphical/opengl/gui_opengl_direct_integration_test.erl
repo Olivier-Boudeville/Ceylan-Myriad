@@ -238,7 +238,7 @@ init_test_gui() ->
 	%gui_image:scale( Image, _NewWidth=128, _NewHeight=128 ),
 
 	TestMesh = gui_opengl_for_testing:get_test_colored_cube_mesh(
-				 _EdgeLength=1.0, _FaceGranularity=per_vertex ),
+		_EdgeLength=1.0, _FaceGranularity=per_vertex ),
 
 	trace_utils:debug_fmt( "The test mesh is a ~ts",
 						   [ mesh:to_string( TestMesh ) ] ),

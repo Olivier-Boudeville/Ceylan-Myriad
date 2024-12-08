@@ -175,7 +175,7 @@ test_main_loop( State={ Frame, Toolbar } ) ->
 								   [ ToolId ]  ),
 			test_main_loop( State );
 
-		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
+		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui_frame:destruct( Frame ),
 			gui:stop();

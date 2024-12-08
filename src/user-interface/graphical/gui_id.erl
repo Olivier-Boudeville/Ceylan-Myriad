@@ -62,13 +62,13 @@ an embedded allocation table (like the MyriadGUI main loop).
 
 
 -doc """
+A higher-level, user-defined identifier of a widget as a name (an atom,
+e.g. 'my_file_menu_id'); internally translated transparently to a relevant
+backend identifier (wx_id()).
+
+The 'undefined' atom is reserved.
 """.
 -type name_id() :: atom().
-% A higher-level, user-defined identifier of a widget as a name (an atom,
-% e.g. 'my_file_menu_id'); internally translated transparently to a relevant
-% backend identifier (wx_id()).
-%
-% The 'undefined' atom is reserved.
 
 
 -doc "Lowest-level, backend-specific identifier.".
@@ -109,9 +109,9 @@ and thus shall better be printed as "~w" (see id_to_string/1).
 
 
 
--doc "
+-doc """
 Any kind of reference onto a MyriadGUI allocator of (unique) object identifiers.
-".
+""".
 -type id_allocator_ref() :: pid_ref().
 
 
@@ -200,7 +200,7 @@ A table to convert between (MyriadGUI) name identifiers and backend ones.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -388,8 +388,8 @@ id_allocator_main_loop( NextId, NameTable ) ->
 		terminate ->
 			cond_utils:if_defined( myriad_debug_gui_id,
 				trace_utils:debug_fmt( "Identifier allocator ~w terminating.",
-									   [ self() ] ) ),
-			ok
+									   [ self() ] ),
+				ok )
 
 	end.
 

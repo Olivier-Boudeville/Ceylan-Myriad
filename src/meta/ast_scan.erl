@@ -68,9 +68,9 @@ Name of any parse attribute.
 
 
 
-% Shorthands:
+% Type shorthands:
 
--type void() :: basic_utils:void().
+-type void() :: type_utils:void().
 -type error_reason() :: basic_utils:error_reason().
 
 -type ast() :: ast_base:ast().

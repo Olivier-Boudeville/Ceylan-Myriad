@@ -61,8 +61,14 @@ run_gui_test() ->
 	Frame = gui_frame:create(
 		"This is the overall frame for splitter testing", _Size={ 1024, 768 } ),
 
+	% To test smoothness/flicker reduction:
+	%SplitterOpts = [],
+
+	% Strongly recommended:
+	SplitterOpts = [ { style, [ live_update, thin_splitter ] } ],
+
 	% Only the top window is to grow, thanks to a horizontal splitter:
-	TopHorizSplitterWin = gui_splitter:create( _ParentWin=Frame ),
+	TopHorizSplitterWin = gui_splitter:create( SplitterOpts, _ParentWin=Frame ),
 
 	TopPanel = gui_panel:create( _Parent=TopHorizSplitterWin ),
 	gui_widget:set_background_color( TopPanel, blue ),
@@ -101,7 +107,7 @@ test_main_loop( State=Frame ) ->
 
 	receive
 
-		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
+		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui_frame:destruct( Frame ),
 			gui:stop();

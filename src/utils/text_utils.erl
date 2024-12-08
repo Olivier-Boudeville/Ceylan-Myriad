@@ -537,7 +537,7 @@ information.
 -type count() :: basic_utils:count().
 
 % As this pioneer module is not parse-transformed:
--type option( T ) :: basic_utils:option( T ).
+-type option( T ) :: type_utils:option( T ).
 
 -type ?table() :: ?table:?table().
 -type ?table( K, V ) :: ?table:?table( K, V ).
@@ -698,6 +698,7 @@ term_to_string( Term, MaxDepthCount, MaxLength ) when MaxLength >= 3 ->
 
 		L when L > MaxLength ->
 			% We have to truncate here, length( "..." ) = 3
+			%
 			% MaxLength - 3 = 0 is allowed there:
 			string:sub_string( FullString, 1, MaxLength - 3 ) ++ " ..";
 
@@ -1256,7 +1257,7 @@ strings_to_enumerated_string( Strings, IndentationLevel, Prefix ) ->
 
 	OrderedStrings = lists:reverse( ReversedStrings ),
 
-	format( "~ts", [ lists:flatten( OrderedStrings ) ] ).
+	format( "~ts~n", [ lists:flatten( OrderedStrings ) ] ).
 
 
 

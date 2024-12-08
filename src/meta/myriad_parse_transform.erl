@@ -87,7 +87,7 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 -include("ast_transform.hrl").
 
 
-% Local shorthands:
+% Local type shorthands:
 
 -type file_name() :: file_utils:file_name().
 
@@ -126,12 +126,12 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 %     translated
 %
 % - replacing, in type specifications, any mention to a pseudo-builtin,
-% pseudo-type void() by its actual definition, which is basic_utils:void()
+% pseudo-types like void() by their actual definition (e.g. type_utils:void())
 % (ultimately: any(), simply)
 %
-%     As a result, one's code source may include '-spec f( boolean() ) ->
-%     void().' and have it accepted by the compiler (and void() is now a
-%     reserved, "builtin" type)
+%     As a result, one's code source may include '-spec f(boolean( ) -> void().'
+%     and have it accepted by the compiler (and void() is now a reserved,
+%     "builtin" type)
 
 
 % Errors raised by a failing compilation are apparently reported (1) one by one
@@ -340,10 +340,10 @@ layer.
 (helper)
 """.
 -spec get_myriad_ast_transforms_for( module_info() ) -> ast_transforms().
-get_myriad_ast_transforms_for(
-			#module_info{ module=ModuleEntry,
-						  compilation_options=CompileOptTable,
-						  parse_attributes=ParseAttributes } ) ->
+get_myriad_ast_transforms_for( #module_info{
+									module=ModuleEntry,
+									compilation_options=CompileOptTable,
+									parse_attributes=ParseAttributes } ) ->
 
 	% We will be replacing here all calls to the 'table' pseudo-module by calls
 	% to the actual module that may be designated by a specific parse attribute,
@@ -362,8 +362,8 @@ get_myriad_ast_transforms_for(
 	% specs, type definitions, etc.) is done.
 
 
-	% We also translate void() (which is not a builtin type) into
-	% basic_utils:void(), for example:
+	% We also translate types like void() (which are not builtin types) into
+	% for example type_utils:void():
 	%
 	% {attribute,FileLoc1,spec,
 	%       { {FunctionName,Arity},
@@ -378,17 +378,17 @@ get_myriad_ast_transforms_for(
 	%         [ {type,FileLoc2,'fun',
 	%                [{type,FileLoc3,product,[]},
 	%                 {remote_type,FileLoc4,
-	%                              [{atom,FileLoc4,basic_utils},
+	%                              [{atom,FileLoc4,type_utils},
 	%                               {atom,FileLoc4,void},
 	%                               []]}]}]}},
 	%
 	% which means that, in a spec, any term in the form of
 	% '{user_type,FileLoc,void,[]}' shall be replaced with:
-	% '{remote_type,FileLoc, [ {atom,FileLoc,basic_utils},
+	% '{remote_type,FileLoc, [ {atom,FileLoc,type_utils},
 	%                          {atom,FileLoc,void}, [] ] }'
 
 	% We also manage option/1 here: if used as 'option(T)', translated as
-	% 'basic_utils:option(T)'; the same applies to safe_option/1, fallible/{1,2}
+	% 'type_utils:option(T)'; the same applies to safe_option/1, fallible/{1,2}
 	% and diagnosed_fallible/{1,2}.
 
 	% Determines the target table type that we want to rely on ultimately:
@@ -457,8 +457,8 @@ get_actual_table_type( ParseAttributeTable ) ->
 			TableType;
 
 		{ value, { InvalidTableType, _LocForm } } ->
-			ast_utils:raise_error( { invalid_table_type_override,
-									 InvalidTableType } );
+			ast_utils:raise_error(
+				{ invalid_table_type_override, InvalidTableType } );
 
 		key_not_found ->
 			TableType = ?default_table_type,
@@ -469,7 +469,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 	end,
 
 	%ast_utils:display_debug( "Will replace references to the 'table' module "
-	%     "and datatypes by references to '~ts'.", [ DesiredTableType ] ),
+	%  "and datatypes by references to '~ts'.", [ DesiredTableType ] ),
 
 	DesiredTableType.
 
@@ -490,11 +490,11 @@ Returns the table specifying the transformation of the local types.
 
 Regarding local types, we want to replace:
 
-- void() with basic_utils:void() (i.e. prefixed with basic_utils)
+- void() with type_utils:void() (i.e. prefixed with basic_utils)
 
-- option(T) with basic_utils:option(T)
+- option(T) with type_utils:option(T)
 
-- safe_option(T) with basic_utils:safe_option(T)
+- safe_option(T) with type_utils:safe_option(T)
 
 - fallible(T) with basic_utils:fallible(T)
 
@@ -511,18 +511,24 @@ DesiredTableType:DesiredTableType() or DesiredTableType:DesiredTableType(K,V))
 									ast_transform:local_type_transform_table().
 get_local_type_transforms( DesiredTableType ) ->
 
-	% Replacements to be done only for specified arities, here to be found in
-	% the basic_utils module:
+	% Replacements to be done only for the specified arities, here to be found
+	% in the basic_utils module:
 	%
-	BasicUtilsTypes = [ { void, 0 },
-						{ option, 1 },
-						{ safe_option, 1 },
-						{ fallible, 1 }, { fallible, 2 },
-						{ diagnosed_fallible, 1 }, { diagnosed_fallible, 2 } ],
+	BasicUtilsTypes = [ { fallible, 1 },
+						{ fallible, 2 },
+						{ diagnosed_fallible, 1 },
+						{ diagnosed_fallible, 2 } ],
 
-	BasicUtilsReplacements = [ { T, basic_utils } || T <- BasicUtilsTypes ],
+	% Same regarding the type_utils module:
+	TypeUtilsTypes = [ { void, 0 },
+					   { option, 1 },
+					   { safe_option, 1 } ],
 
-	ast_transform:get_local_type_transform_table( BasicUtilsReplacements ++ [
+
+	BaseReplacements = [ { T, basic_utils } || T <- BasicUtilsTypes ]
+		++ [ { T, type_utils } || T <- TypeUtilsTypes ],
+
+	ast_transform:get_local_type_transform_table( BaseReplacements ++ [
 
 		% A transformation function is needed to discriminate correctly between
 		% the cases: the first clause is defined as we do not want to obtain
@@ -889,8 +895,8 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 
 				key_not_found ->
 					%ast_utils:display_debug( "Token '~p' not defined, hence "
-					%       "injecting the expression~n ~p",
-					%       [ Token, ExprFormIfNotMatching ] ),
+					%   "injecting the expression~n ~p",
+					%   [ Token, ExprFormIfNotMatching ] ),
 					inject_expression( ExprFormIfNotMatching, Transforms,
 									   FileLocToken )
 
@@ -1250,7 +1256,8 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 
 -doc """
 The transformation function in charge of disabling LCO (Last Call Optimisation)
-by ending each local function call with a remote one to an identity function.
+by ending each local function call with a remote one to an identity function
+(namely basic_utils:identity/1).
 """.
 -spec lco_disabling_clause_transform_fun( ast_clause(), ast_transforms() ) ->
 									{ ast_clause(), ast_transforms() }.
@@ -1386,8 +1393,8 @@ inject_match_expression( ExpressionForm, Transforms, FileLoc ) ->
 	% should not clash with user-defined ones). So:
 	%
 	VarName = list_to_atom( lists:flatten(
-								io_lib:format( "Myriad_assert_var_name-~ts",
-		[ ast_utils:format_file_loc_alt( FileLoc ) ] ) ) ),
+		io_lib:format( "Myriad_assert_var_name-~ts",
+					   [ ast_utils:format_file_loc_alt( FileLoc ) ] ) ) ),
 
 	NewExpr = { 'case', FileLoc, ExpressionForm,
 				[ {clause,FileLoc,[{atom,FileLoc,true}],[],[{atom,FileLoc,ok}]},

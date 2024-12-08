@@ -26,6 +26,11 @@
 % Creation date: Monday, March 13, 2023.
 
 
+% As, sometimes, defines in header files make sense:
+-ifndef(myriad_gui_texture_hrl_guard).
+-define(myriad_gui_texture_hrl_guard,).
+
+
 % For the base alpha coordinates (clearer; OpenGL conventions):
 
 -define( alpha_fully_opaque,      1.0 ).
@@ -72,3 +77,6 @@
 
 	% The identifier that will be assigned to the next texture spec:
 	next_spec_id :: basic_utils:count() } ).
+
+
+-endif. % myriad_gui_texture_hrl_guard

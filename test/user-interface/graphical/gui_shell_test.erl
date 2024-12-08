@@ -62,9 +62,13 @@ run_gui_test() ->
 							  _Size={ 1024, 768 } ),
 
 	%ShellOpts = [],
-	ShellOpts = [ timestamp, log ],
+	ShellOpts = [ timestamp, log, focused, auto_add_trailing_dot,
+				  { histories, _MaxCmdDepth=15, _MaxResDepth=20 }
+				  %persistent_command_history
+				  %{ callback_module, foo }
+				],
 
-	gui_shell:create( _FontSize=9, ShellOpts, _ParentWin=Frame ),
+	gui_shell:create( _FontSize=10, ShellOpts, _ParentWin=Frame ),
 
 	gui:subscribe_to_events( { onWindowClosed, Frame } ),
 
@@ -86,7 +90,7 @@ test_main_loop( State=Frame ) ->
 
 	receive
 
-		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
+		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui_frame:destruct( Frame ),
 			gui:stop();

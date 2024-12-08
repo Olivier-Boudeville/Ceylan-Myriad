@@ -34,7 +34,8 @@ square based on it that can be moved with the keyboard to test transformations
 (translations, rotations and scalings) and directions thereof in the current
 coordinate system.
 
-NDC (Normalized Device Coordinates) are used here.
+NDC (Normalized Device Coordinates) are used here; for the usual world
+coordinates, refer to gui_opengl_transformation_world_space_shader_test.erl.
 
 This test relies on:
 - shaders and thus on modern versions of OpenGL (e.g. 3.3), as
@@ -120,8 +121,8 @@ opposed to the compatibility mode for OpenGL 1.x
 	% The image as loaded from file, to be transformed in a texture:
 	image :: image(),
 
-	% Currently, we directly update (translate, rotate, etc.) the previous
-	% model-view matrix based on requested the changes; this is prone to the
+	% Currently, we directly update (translate, rotate, etc.) the next
+	% model-view matrix based on the requested changes; this is prone to the
 	% accumulation of rounding errors, hence a better practice would be to
 	% recompute the model-view matrix from the next higher-level parameters:
 
@@ -202,6 +203,8 @@ opposed to the compatibility mode for OpenGL 1.x
 -doc """
 Test-specific overall OpenGL state.
 
+Designed so that the render functions rely only on this state.
+
 Storing VBOs and EBOs is probably only of use in order to deallocate them
 properly once not needed anymore.
 """.
@@ -215,21 +218,23 @@ properly once not needed anymore.
 
 % Test-specific defines:
 
+
+% Define set in gui_opengl_test_defines.hrl:
 -if( ?has_keypad =:= true ).
 
 % Re-centers all:
--define( reset_scan_code, ?MYR_SCANCODE_KP_5 ).
+-define( square_reset_scan_code, ?MYR_SCANCODE_KP_5 ).
 
 % Switches to the next transformation mode:
--define( mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
+-define( square_mode_switch_scan_code, ?MYR_SCANCODE_KP_ENTER ).
 
 
 -else. % Not using keypad here:
 
 
--define( reset_scan_code, ?MYR_SCANCODE_SPACE ).
+-define( square_reset_scan_code, ?MYR_SCANCODE_SPACE ).
 
--define( mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
+-define( square_mode_switch_scan_code, ?MYR_SCANCODE_RETURN ).
 
 
 -endif. % has_keypad
@@ -296,7 +301,15 @@ prepare_square( Texture ) ->
 	% Half edge length:
 	H = 0.5,
 
-	Z = 0.0,
+	% Depth (i.e. Z coordinate) of the square.
+	%
+	% Note that modifying depth does not change at all the rendering if in
+	% orthographic projection mode - provided that the points remain in the unit
+	% orthographic cube (so for example the square will disappear in
+	% orthographic mode if D < -1.0)
+	%
+	% So that is visible in the (initial) orthographic mode:
+	D = -1.0,
 
 	% Square defined as [vertex3()], directly in normalized device coordinates
 	% here, in the XY plane (Z=0); CCW order (bottom left, bottom right, top
@@ -306,9 +319,13 @@ prepare_square( Texture ) ->
 	%         |    |
 	%         S0--S1
 	%
-	SquareVertices = [ _SV2={  H,  H, Z }, _SV1={  H, -H, Z },
-					   _SV0={ -H, -H, Z }, _SV3={ -H,  H, Z } ],
+	SquareVertices = [ _SV2={  H,  H, D }, _SV1={  H, -H, D },
+					   _SV0={ -H, -H, D }, _SV3={ -H,  H, D } ],
 
+	% Zero:
+	Z = 0.0,
+
+	% One:
 	O = 1.0,
 
 	OrigSquareTexCoords = [ _STC2={ O, O }, _STC1={ O, Z },
@@ -416,8 +433,8 @@ displayed.
 -spec init_test_gui() -> my_gui_state().
 init_test_gui() ->
 
-	MainFrame = gui_frame:create(
-		"MyriadGUI OpenGL Shader-based Transformation Test",
+	MainFrame = gui_frame:create( "MyriadGUI OpenGL Shader-based, "
+		"Normalized Device Coordinate, Transformation Test",
 
 		% Preferring a square frame/viewport, otherwise due to aspect ratio the
 		% square will be a rectangle:
@@ -439,8 +456,9 @@ init_test_gui() ->
 	gui:subscribe_to_events( { [ onResized, onShown, onWindowClosed ],
 							   MainFrame } ),
 
-	% Needed, otherwise if that frame is moved out of the screen or if another
-	% window overlaps, the OpenGL canvas gets garbled and thus must be redrawn:
+	% onRepaintNeeded needed, otherwise if that frame is moved out of the screen
+	% or if another window overlaps, the OpenGL canvas gets garbled - and thus
+	% must be redrawn:
 	%
 	% (key events collected at the canvas-level, as frames do not handle them)
 	%
@@ -485,16 +503,16 @@ gui_main_loop( GUIState ) ->
 	receive
 
 
-		{ onKeyPressed, [ GLCanvas, _GLCanvasId, Context ] } ->
+		{ onKeyPressed, [ GLCanvas, _GLCanvasId, EventContext ] } ->
 			% Using here scancodes, not to depend on any keyboard layout or
 			% modifier:
 			%
-			Scancode = gui_keyboard:event_context_to_scancode( Context ),
+			Scancode = gui_keyboard:event_context_to_scancode( EventContext ),
 
 			%trace_utils:debug_fmt( "Scan code pressed: ~B on ~w.",
 			%                       [ Scancode, GLCanvas ] ),
 
-			case update_scene( Scancode, GUIState ) of
+			case update_scene_on_key_pressed( Scancode, GUIState ) of
 
 				{ NewGUIState, _DoQuit=true } ->
 					terminate( NewGUIState ),
@@ -870,9 +888,9 @@ terminate( GUIState=#my_gui_state{ main_frame=MainFrame } ) ->
 Updates the scene, based on the specified user-entered (keyboard) scan code.
 """.
 % First managing translations:
--spec update_scene( scancode(), my_gui_state() ) ->
+-spec update_scene_on_key_pressed( scancode(), my_gui_state() ) ->
 						{ my_gui_state(), DoQuit :: boolean() }.
-update_scene( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -895,7 +913,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
-update_scene( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -918,7 +936,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -940,7 +958,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -966,7 +984,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 % Note that moving along the Z axis whereas the projection is orthographic will
 % show no difference:
 
-update_scene( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -988,7 +1006,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=translation,
@@ -1013,7 +1031,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 % Secondly managing rotations:
 
-update_scene( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1038,7 +1056,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1063,7 +1081,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1088,7 +1106,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1113,7 +1131,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1138,7 +1156,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=rotation,
@@ -1164,7 +1182,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 
 % Thirdly managing scalings:
-update_scene( _Scancode=?increase_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1185,7 +1203,7 @@ update_scene( _Scancode=?increase_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_x_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_x_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1206,7 +1224,7 @@ update_scene( _Scancode=?decrease_x_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1227,7 +1245,7 @@ update_scene( _Scancode=?increase_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_y_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_y_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1248,7 +1266,7 @@ update_scene( _Scancode=?decrease_y_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?increase_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_increase_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1269,7 +1287,7 @@ update_scene( _Scancode=?increase_z_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?decrease_z_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_decrease_z_scan_code,
 			  GUIState=#my_gui_state{
 				model_view=ModelViewMat4,
 				transformation_mode=scaling,
@@ -1291,7 +1309,7 @@ update_scene( _Scancode=?decrease_z_scan_code,
 
 
 
-update_scene( _Scancode=?reset_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_reset_scan_code,
 			  GUIState=#my_gui_state{
 				opengl_state=#my_opengl_state{
 					model_view_id=ModelViewMatUnifId } } ) ->
@@ -1308,7 +1326,7 @@ update_scene( _Scancode=?reset_scan_code,
 	{ GUIState#my_gui_state{ model_view=NewModelViewMat4 }, _DoQuit=false };
 
 
-update_scene( _Scancode=?mode_switch_scan_code,
+update_scene_on_key_pressed( _Scancode=?square_mode_switch_scan_code,
 			  GUIState=#my_gui_state{ transformation_mode=TransfoMode } ) ->
 
 	NewTransfoMode = case TransfoMode of
@@ -1331,7 +1349,7 @@ update_scene( _Scancode=?mode_switch_scan_code,
 	  _DoQuit=false };
 
 
-update_scene( _Scancode=?projection_mode_scan_code,
+update_scene_on_key_pressed( _Scancode=?projection_mode_scan_code,
 			  GUIState=#my_gui_state{ aspect_ratio=AspectRatio,
 									  projection_settings=ProjSettings,
 									  opengl_state=#my_opengl_state{
@@ -1365,15 +1383,15 @@ update_scene( _Scancode=?projection_mode_scan_code,
 	  _DoQuit=false };
 
 
-update_scene( _Scancode=?quit_scan_code, GUIState ) ->
+update_scene_on_key_pressed( _Scancode=?quit_scan_code, GUIState ) ->
 	trace_utils:debug( "Requested to quit." ),
 	{ GUIState, _DoQuit=true };
 
-update_scene( _Scancode=?help_scan_code, GUIState ) ->
+update_scene_on_key_pressed( _Scancode=?help_scan_code, GUIState ) ->
 	trace_utils:debug( get_help_text() ),
 	{ GUIState, _DoQuit=false };
 
-update_scene( _Scancode, GUIState ) ->
+update_scene_on_key_pressed( _Scancode, GUIState ) ->
 	%trace_utils:debug_fmt( "(scancode ~B ignored)", [ Scancode ] ),
 	{ GUIState, _DoQuit=false }.
 

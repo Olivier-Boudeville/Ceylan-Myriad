@@ -77,4 +77,13 @@ run() ->
 	test_facilities:display( "User-friendly representation for ~w: ~ts",
 							 [ P3, point3:to_user_string( P3 ) ] ),
 
+
+	UV = point3:unit_vectorize( P2, P3 ),
+
+	test_facilities:display( "Unit vector from ~ts to ~ts is: ~ts",
+		[ point3:to_compact_string( P2 ), point3:to_compact_string( P3 ),
+		  vector3:to_string( UV ) ] ),
+
+	true = vector3:is_unitary( UV ),
+
 	test_facilities:stop().

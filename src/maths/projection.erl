@@ -67,7 +67,7 @@ Gathering of various facilities for **projection management**.
 -include("matrix4.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
@@ -88,14 +88,19 @@ Gathering of various facilities for **projection management**.
 
 % Implementation notes:
 
-% Note that the eye coordinates are defined in the right-handed coordinate
-% system, but NDC uses the left-handed coordinate system. That is, the camera at
-% the origin is looking along -Z axis in eye space, but it is looking along +Z
-% axis in NDC.
+% Regarding OpenGL, note that the eye coordinates are defined in the
+% right-handed coordinate system, but NDC uses the left-handed coordinate
+% system. That is, the camera at the origin is looking along -Z axis in eye
+% space, but it is looking along +Z axis in NDC. This could be changed by
+% calling ``glDepthRange(1.0f, 0.0f);``, but MyriadGUI does not do it, we
+% recommend sticking to eye space.
 
 % The default projection matrix is the identity matrix, which is the same as
 % orthographic( _Left=-1.0, _Right=1.0, _Bottom=-1.0, _Top=1.0,
 %               _ZNear=-1.0, _ZFar=1.0). % Not _ZNear=1.0, _ZFar=-1.0).
+%
+% Also, as a consequence, points outside of this origin-centered cube of edge
+% length 2.0 will not be visible at all.
 
 
 

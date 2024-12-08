@@ -90,50 +90,48 @@ test_main_loop( ShellPid ) ->
 
 
 
--doc "Tests the specified (custom or standard) shell.".
+-doc "Tests the specified shell.".
 -spec test_shell( shell_pid() ) -> void().
 test_shell( ShellPid ) ->
 
-	% Was for standard shell:
-	%UTF8Binary = unicode:characters_to_binary( "P=1.\n" ),
-	%
-	%ShellPid ! { send, UTF8Binary },
-
-
-	{ success, FirstRes, _FirstCmdId=1, MaybeFirstBinTimestamp } =
-		shell_utils:execute_command( "A=1.", ShellPid ),
+	{ processing_success, FirstRes, _FirstNextCmdId=2,
+	  MaybeFirstBinTimestamp } = shell_utils:execute_command( "A=1.",
+															  ShellPid ),
 
 	test_facilities:display( "First assignment result (timestamp: ~ts): ~p.",
-							 [ MaybeFirstBinTimestamp, FirstRes ] ),
+							 [ MaybeFirstBinTimestamp,FirstRes  ] ),
 	FirstRes = 1,
 
-	test_facilities:display( "Flushing history."),
-	ShellPid ! flushHistory,
+	test_facilities:display( "Flushing command history."),
+	ShellPid ! flushCommandHistory,
 
-	{ success, SecondRes, _SecondCmdId=2, MaybeSecondBinTimestamp } =
-		shell_utils:execute_command( "B=2.", ShellPid ),
+	{ processing_success, SecondRes, _SecondNextCmdId=3,
+	  MaybeSecondBinTimestamp } = shell_utils:execute_command( "B=2.",
+															   ShellPid ),
 
 	test_facilities:display( "Second assignment result (timestamp: ~ts): ~p.",
 							 [ MaybeSecondBinTimestamp, SecondRes ] ),
 	SecondRes = 2,
 
 
-	{ success, ThirdRes, _ThirdCmdId=3, MaybeThirdBinTimestamp } =
-		shell_utils:execute_command( "A+B.", ShellPid ),
+	{ processing_success, ThirdRes, _ThirdNextCmdId=4,
+	  MaybeThirdBinTimestamp } = shell_utils:execute_command( "A+B.",
+															  ShellPid ),
 
 	test_facilities:display( "Addition result (timestamp: ~ts): ~p.",
 							 [ MaybeThirdBinTimestamp, ThirdRes ] ),
 	ThirdRes = 3,
 
 
-	{ success, LRes, _LCmdId=4, MaybeLBinTimestamp } =
+	{ processing_success, LRes, _LNextCmdId=5, MaybeLBinTimestamp } =
 		shell_utils:execute_command( "L = [3, 2, 1].", ShellPid ),
 
 	test_facilities:display( "List assignment result (timestamp: ~ts): ~p.",
 							 [ MaybeLBinTimestamp, LRes ] ),
 	LRes = [ 3, 2, 1 ],
 
-	{ success, SortRes, _SortCmdId=5, MaybeSortBinTimestamp } =
+
+	{ processing_success, SortRes, _SortNextCmdId=6, MaybeSortBinTimestamp } =
 		shell_utils:execute_command( "lists:sort(L).", ShellPid ),
 
 	test_facilities:display( "Sorting result (timestamp: ~ts): ~p.",
@@ -170,10 +168,9 @@ get_test_shell_opts() ->
 	%[].
 
 	%HistOpt = no_history,
-	%HistOpt = { history, _MaybeMaxDepth=0 },
-	%HistOpt = { history, 1 },
-	%HistOpt = { history, 10 },
-	HistOpt = { history, undefined },
+	%HistOpt = { histories, _MaybeMaxCmdDepth=0, _MaybeMaxResDepth=0 },
+	%HistOpt = { histories,  _MaybeMaxCmdDepth=1, undefined },
+	HistOpt = { histories,  _MaybeMaxCmdDepth=10, 2 },
 
 	%HistOpts = [],
 	HistOpts = [ HistOpt ],
@@ -196,37 +193,11 @@ run() ->
 
 	ShellOpts = get_test_shell_opts(),
 
-	TestCustom = true,
-	%TestCustom = false,
+	test_facilities:display( "Testing the Myriad custom shell, "
+		"based on following options:~n ~p.", [ ShellOpts ] ),
 
-	TestCustom andalso
-		begin
+	ShellPid = shell_utils:start_link_shell( ShellOpts ),
 
-			test_facilities:display( "Testing the custom shell, "
-				"based on following options:~n ~p.", [ ShellOpts ] ),
-
-			CustomShellPid = shell_utils:start_link_custom_shell( ShellOpts ),
-
-			test_shell( CustomShellPid )
-
-		end,
-
-
-	% Not functional (yet):
-	%TestStandard = true,
-	TestStandard = false,
-
-	TestStandard andalso
-		begin
-
-			test_facilities:display( "Testing the standard shell, "
-				"based on following options:~n ~p.", [ ShellOpts ] ),
-
-			StandardShellPid =
-				shell_utils:start_link_standard_shell( ShellOpts ),
-
-			test_shell( StandardShellPid )
-
-		end,
+	test_shell( ShellPid ),
 
 	test_facilities:stop().

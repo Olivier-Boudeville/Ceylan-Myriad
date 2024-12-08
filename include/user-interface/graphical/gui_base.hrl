@@ -32,6 +32,10 @@
 % See gui.hrl for the overall, single user-facing MyriadGUI include.
 
 
+% As, sometimes, defines in header files make sense:
+-ifndef(myriad_gui_base_hrl_guard).
+-define(myriad_gui_base_hrl_guard,).
+
 
 % Registration name of the MyriadGUI environment process:
 -define( gui_env_reg_name, 'myriad_gui_env' ).
@@ -70,3 +74,6 @@
 	% hierarchy)
 	%
 	backend_event = undefined :: option( gui:backend_event() ) } ).
+
+
+-endif. % myriad_gui_base_hrl_guard

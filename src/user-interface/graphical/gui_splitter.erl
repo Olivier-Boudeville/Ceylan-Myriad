@@ -81,8 +81,8 @@ See also <https://docs.wxwidgets.org/3.1/classwx_splitter_window.html>.
   | 'allow_unsplit' % Always allows to unsplit, even if the minimum pane length
 					% is zero.
   | 'live_update'. % Resizes the child windows immediately (strongly recommended
-				   % for a smoother control, unless at least a pane is long to
-				   % redraw).
+				   % for a smoother control / to avoid flicker, unless at least
+				   % a pane is long to redraw).
 
 
 -doc """
