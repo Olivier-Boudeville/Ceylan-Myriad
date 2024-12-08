@@ -34,8 +34,8 @@
 -define( shell_state_binding_name, "_MyriadBindingForShellState" ).
 
 
-% The state of a custom shell instance.
--record( custom_shell_state, {
+% The state of a Myriad (custom) shell instance.
+-record( shell_state, {
 
 	% The number of commands already submitted; corresponds to the number
 	% (identifier) of any last command (or the one of the next command, minus

@@ -313,7 +313,7 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 	FullShellOpts = [ { reference_module, ?MODULE } | ShellOpts ],
 
 	% So now we are able to create our text edit processor, here a shell:
-	ActualShellPid = shell_utils:start_link_custom_shell( FullShellOpts ),
+	ActualShellPid = shell_utils:start_link_shell( FullShellOpts ),
 
 	% Corresponds here to command submission count, which is not necessarily
 	% zero (e.g. if connecting to a reloaded or already live shell):
@@ -915,7 +915,8 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 					"success value is:~n ~p; new command is #~B.",
 					% Not RecTextEdit:
 					[ ThisCmdId, MaybeTimestampBinStr,
-					  CmdRes, NewCurrentCmdId ] ) ),
+					  CmdRes, NewCurrentCmdId ] ),
+				basic_utils:ignore_unused( NewCurrentCmdId ) ),
 
 			BaseText = text_utils:bin_format( "~ts~ts~n~ts",
 				[ get_prompt_for( ThisCmdId ), CmdBinStr,
@@ -935,7 +936,8 @@ handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
 					"error is '~ts'; new command is #~B.",
 					% Not RecTextEdit:
 					[ ThisCmdId, MaybeTimestampBinStr,
-					  CmdErrorBinStr, NewCurrentCmdId ] ) ),
+					  CmdErrorBinStr, NewCurrentCmdId ] ),
+				basic_utils:ignore_unused( NewCurrentCmdId ) ),
 
 			BaseText = text_utils:bin_format( "~ts~ts~n~ts",
 				[ get_prompt_for( ThisCmdId ), CmdBinStr, CmdErrorBinStr ] ),
@@ -1006,7 +1008,8 @@ apply_text( TextEdit, CmdEditor ) ->
 
 	Text = text_edit:get_full_text( TextEdit ),
 
-	trace_utils:debug_fmt( "Applying full text: '~ts'.", [ Text ] ),
+	cond_utils:if_defined( myriad_debug_gui_shell,
+		trace_utils:debug_fmt( "Applying full text: '~ts'.", [ Text ] ) ),
 
 	% Useless:
 	%gui_text_editor:clear( CmdEditor ),

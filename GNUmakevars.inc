@@ -225,8 +225,8 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_graph
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_text_edit
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_text_edit
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
@@ -235,7 +235,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_buttons
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_shell
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_shell
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_instances
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_environments
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_memory
