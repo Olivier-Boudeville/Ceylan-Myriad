@@ -73,7 +73,8 @@ example of use thereof.
 
 % Helpers directly called by shell callbacks:
 -export([ command_history_to_string_with_ids/1,
-		  result_history_to_string_with_ids/1, recall_command/2 ]).
+		  result_history_to_string_with_ids/1,
+		  recall_command/2, get_result/2 ]).
 
 
 % Various other helpers:
@@ -248,6 +249,10 @@ Options that can be specified when creating a shell:
 
 - callback_module: to specify the name of any implementation for the shell
   callback module (see 'shell_default_callbacks' for the default one)
+
+- reference_module: to specify the name of any implementation for the shell
+  reference module (e.g. 'gui_shell'), when information (e.g. help text) may
+  have to be obtained from it
 """.
 -type shell_option() ::
 	'timestamp'
@@ -257,8 +262,8 @@ Options that can be specified when creating a shell:
 	 MaxCmdDepth :: option( count() ), MaxResDepth :: option( count() ) }
  |  'no_histories'
  | 'persistent_command_history'
- | { 'callback_module', module_name() }.
-
+ | { 'callback_module', module_name() }
+ | { 'reference_module', module_name() }.
 
 
 -doc """
@@ -326,9 +331,6 @@ The PID of a group leader process for user IO (see lib/kernel/src/group.erl).
 -type count() :: basic_utils:count().
 
 -type ustring() :: text_utils:ustring().
-
--type bin_string() :: text_utils:bin_string().
-%-type any_string() :: text_utils:any_string().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
@@ -753,6 +755,7 @@ vet_options_for_custom( _Opts=[ timestamp | T ], ShellState ) ->
 	vet_options_for_custom( T,
 		ShellState#custom_shell_state{ do_timestamp=true } );
 
+
 vet_options_for_custom( _Opts=[ log | T ], ShellState ) ->
 
 	DefaultLogFilename = text_utils:bin_format(
@@ -761,6 +764,7 @@ vet_options_for_custom( _Opts=[ log | T ], ShellState ) ->
 		  time_utils:get_textual_timestamp_for_path() ] ),
 
 	vet_options_for_custom( [ { log, DefaultLogFilename } | T ], ShellState );
+
 
 vet_options_for_custom( _Opts=[ { log, AnyLogFilePath } | T ], ShellState ) ->
 	BinLogFilePath = text_utils:ensure_binary( AnyLogFilePath ),
@@ -786,10 +790,12 @@ vet_options_for_custom(
 			cmd_history_max_depth=check_history_depth( MaxCmdDepth, H ),
 			res_history_max_depth=check_history_depth( MaxResDepth, H ) } );
 
+
 vet_options_for_custom( _Opts=[ no_histories | T ], ShellState ) ->
 	vet_options_for_custom( T, ShellState#custom_shell_state{
 		cmd_history_max_depth=0,
 		res_history_max_depth=0 } );
+
 
 vet_options_for_custom( _Opts=[ persistent_command_history | T ],
 						ShellState ) ->
@@ -883,6 +889,7 @@ vet_options_for_custom( _Opts=[ persistent_command_history | T ],
 									cmd_history=CmdHistQueue,
 									cmd_history_file=CmdHistFile } );
 
+
 vet_options_for_custom( _Opts=[ { callback_module, CallbackModule } | T ],
 						ShellState ) ->
 
@@ -902,6 +909,27 @@ vet_options_for_custom( _Opts=[ { callback_module, CallbackModule } | T ],
 
 	vet_options_for_custom( T,
 		ShellState#custom_shell_state{ callback_module=CallbackModule } );
+
+
+vet_options_for_custom( _Opts=[ { reference_module, RefModule } | T ],
+						ShellState ) ->
+
+	is_atom( RefModule ) orelse
+		throw( { non_atom_reference_module, RefModule } ),
+
+	code_utils:is_beam_in_path( RefModule ) =/= not_found orelse
+		begin
+			trace_utils:error_fmt( "The shell_utils reference module '~ts' "
+				"could not be found in the code path, made of (alphabetically) "
+				"of: ~ts", [ RefModule, code_utils:code_path_to_string() ] ),
+
+			throw( { shell_reference_module_not_found, RefModule } )
+
+		end,
+
+	vet_options_for_custom( T,
+		ShellState#custom_shell_state{ reference_module=RefModule } );
+
 
 vet_options_for_custom( _Opts=[ Other | _T ], _ShellState ) ->
 	throw( { unexpected_shell_option, Other } ).
@@ -1114,7 +1142,6 @@ on_command_success( CmdBinStr, CmdResValue, CmdId, NewBindings,
 	% submission_count already incremented:
 	ProcShellState = ShellState#custom_shell_state{ bindings=NewBindings },
 
-	% Only updated on success:
 	ResHistShellState = update_result_history( CmdResValue, ProcShellState ),
 
 	MaybeTimestampBinStr =
@@ -1124,6 +1151,35 @@ on_command_success( CmdBinStr, CmdResValue, CmdId, NewBindings,
 				   MaybeTimestampBinStr },
 
 	{ CmdOutcome, ResHistShellState }.
+
+
+
+% (helper)
+-spec on_command_failure( command(), command_error(), command_id(),
+						  custom_shell_state() ) ->
+								{ command_outcome(), custom_shell_state() }.
+on_command_failure( CmdBinStr, ReasonBinStr, CmdId, ShellState ) ->
+
+	MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr, CmdId,
+											 ShellState ),
+
+	CmdOutcome = { processing_error, ReasonBinStr, CmdId+1,
+				   MaybeTimestampBinStr },
+
+	% We record in the history of this shell a command in all cases (even its
+	% syntax is wrong), so that it can be edited/fixed afterwards:
+	%
+	CmdHistShellState = update_command_history( CmdBinStr, ShellState ),
+
+	% Recorded even in case of error, so that the result queue is kept in synch
+	% with the command identifiers:
+	%
+	ResHistShellState =
+		update_result_history( ReasonBinStr, CmdHistShellState ),
+
+
+	{ CmdOutcome, ResHistShellState }.
+
 
 
 % Custom Shell commands.
@@ -1239,20 +1295,8 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 
 						ReasonBinStr = format_error( Reason ),
 
-						MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-							ReasonBinStr, NewCmdId, BaseShellState ),
-
-						CmdOutcome = { processing_error, ReasonBinStr,
-									   NewCmdId+1, MaybeTimestampBinStr },
-
-						% We record in the history of this shell a command in
-						% all cases (even its syntax is wrong), so that it can
-						% be edited/fixed afterwards:
-						%
-						CmdHistShellState = update_command_history( CmdBinStr,
-							BaseShellState ),
-
-						{ CmdOutcome, CmdHistShellState }
+						on_command_failure( CmdBinStr, ReasonBinStr, NewCmdId,
+											BaseShellState )
 
 					end;
 
@@ -1271,16 +1315,8 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 					ReasonBinStr = format_error_message(
 						"parsing failed: ~ts", [ IssueDesc ] ),
 
-					MaybeTimestampBinStr = manage_error_log( CmdBinStr,
-						ReasonBinStr, NewCmdId, BaseShellState ),
-
-					CmdOutcome = { processing_error, ReasonBinStr, NewCmdId+1,
-								   MaybeTimestampBinStr },
-
-					CmdHistShellState = update_command_history( CmdBinStr,
-						BaseShellState ),
-
-					{ CmdOutcome, CmdHistShellState }
+					on_command_failure( CmdBinStr, ReasonBinStr, NewCmdId,
+										BaseShellState )
 
 			end;
 
@@ -1301,16 +1337,8 @@ process_command_custom( CmdBinStr, ShellState=#custom_shell_state{
 			ReasonBinStr = format_error_message( "scanning failed: ~ts",
 												 [ IssueDesc ] ),
 
-			MaybeTimestampBinStr = manage_error_log( CmdBinStr, ReasonBinStr,
-				NewCmdId, BaseShellState ),
-
-			CmdOutcome = { processing_error, ReasonBinStr, NewCmdId,
-						   MaybeTimestampBinStr },
-
-			CmdHistShellState = update_command_history( CmdBinStr,
-														BaseShellState ),
-
-			{ CmdOutcome, CmdHistShellState }
+			on_command_failure( CmdBinStr, ReasonBinStr, NewCmdId,
+								BaseShellState )
 
 	end.
 
@@ -1804,7 +1832,7 @@ process_command_standard( CmdBinStr, ShellState=#standard_shell_state{
 % Helpers:
 
 
--spec format_error( eval_error_term() ) -> bin_string().
+-spec format_error( eval_error_term() ) -> ustring().
 format_error( E ) ->
 	format_error_message( get_error_message( E ) ).
 
@@ -1831,12 +1859,16 @@ get_error_message( Other ) ->
 
 
 
--spec format_error_message( ustring() ) -> bin_string().
+-doc """
+The returned message is a plain string, so that it appears nicely (not as a
+binary) in the result history.
+""".
+-spec format_error_message( ustring() ) -> ustring().
 format_error_message( Msg ) ->
-	text_utils:bin_format( "*** Error: ~ts.", [ Msg ] ).
+	text_utils:format( "*** Error: ~ts.", [ Msg ] ).
 
 
--spec format_error_message( format_string(), format_values() ) -> bin_string().
+-spec format_error_message( format_string(), format_values() ) -> ustring().
 format_error_message( Format, Values ) ->
 	format_error_message( text_utils:format( Format, Values ) ).
 
@@ -1987,18 +2019,18 @@ result_history_to_string_with_ids( #custom_shell_state{
 										res_history_max_depth=ResHMaxD,
 										res_history=ResQ } ) ->
 
-	trace_utils:debug_fmt( "SubCount = ~p, ResHMaxD = ~p, ResQ = ~p",
-						   [ SubCount, ResHMaxD, ResQ ] ),
+	%trace_utils:debug_fmt( "SubCount = ~p, ResHMaxD = ~p, ResQ = ~p",
+	%                       [ SubCount, ResHMaxD, ResQ ] ),
 
 	case queue:len( ResQ ) of
 
 		0 ->
-			"Empty result history";
+			"Empty history of command results";
 
 		1 ->
 			Res = queue:get( ResQ ),
-			text_utils:format(
-				"History of a single result (out of ~B): #~B -> '~ts'.",
+			text_utils:format( "History of a single command result "
+				"(out of up to ~B): #~B -> '~ts'.",
 				[ SubCount, ResHMaxD, Res ] );
 
 		ResCount ->
@@ -2013,7 +2045,8 @@ result_history_to_string_with_ids( #custom_shell_state{
 			Strs = [ text_utils:format( "result #~B: ~p", [ Id, Res ] )
 						|| { Id, Res } <- IdRess ],
 
-			text_utils:format( "History of ~B (out of ~B) results: ~ts",
+			text_utils:format( "History of ~B (out of up to ~B) "
+				"command results: ~ts",
 				[ ResCount, ResHMaxD, text_utils:strings_to_string( Strs ) ] )
 
 	end.
@@ -2050,9 +2083,53 @@ recall_command( _ShellState=#custom_shell_state{ submission_count=SubCount,
 
 % Here CmdId > SubCount:
 recall_command( #custom_shell_state{
-		submission_count=SubCount }, CmdId ) ->
-	text_utils:format( "Command #~B would not be prior to current one (#~B).",
+				submission_count=SubCount }, CmdId ) ->
+	text_utils:format( "Command #~B cannot be past the current one (#~B).",
 					   [ CmdId, SubCount ] ).
+
+
+
+-doc """
+Returns, as a term, the result corresponding to the command of the specified
+identifier, if it is still in result history, otherwise returns an error
+message as a string.
+""".
+% So the returned value is a bit ambiguous (not necessarily a past result), yet
+% this is not a problem as it is only for interactive use:
+%
+-spec get_result( custom_shell_state(), command_id() ) ->
+											message() | command_result().
+get_result( _ShellState=#custom_shell_state{ submission_count=SubCount,
+						res_history=ResQ }, CmdId ) when CmdId < SubCount ->
+
+	QLen = queue:len( ResQ ),
+
+	% Index in the list corresponding to that queue:
+	Index = QLen - SubCount + CmdId + 1,
+
+	case Index < 1 of
+
+		true ->
+			text_utils:format(
+				"Result of command #~B is not in history anymore.",
+				[ CmdId ] );
+
+		false ->
+			% Thus Index >=1; Index <= QLen as SubCount >= CmdId, so in range:
+			CmdRes = lists:nth( Index, queue:to_list( ResQ ) ),
+			text_utils:format( "Result of command #~B was: '~p'.",
+							   [ CmdId, CmdRes ] ),
+			CmdRes
+
+	end;
+
+% Here CmdId > SubCount:
+get_result( #custom_shell_state{
+				submission_count=SubCount }, CmdId ) ->
+
+	text_utils:format( "Command #~B cannot be past the current one (#~B).",
+					   [ CmdId, SubCount ] ).
+
 
 
 

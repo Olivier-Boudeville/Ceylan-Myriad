@@ -91,6 +91,11 @@
 	%
 	callback_module='shell_default_callbacks' :: meta_utils:module_name(),
 
+	% Any module (e.g. 'gui_shell') of reference, for example from which help
+	% information can be obtained.
+	%
+	reference_module :: option( meta_utils:module_name() ),
+
 
 	% The function that shall be called when there is a call to a local function
 	% in a shell command.

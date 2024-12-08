@@ -53,10 +53,11 @@ implementations.
 -export([ list_bindings/1, b/1, print_bindings/1,
 		  clear_bindings/1, f/1, clear_binding/2, f/2,
 		  print_command_history/1, hc/1, print_result_history/1, hr/1,
-		  recall_command/2, r/2,
+		  recall_command/2, r/2, get_result/2,
 		  clear_commands/1, clear_results/1,
 		  set_command_history_depth/2, set_result_history_depth/2,
-		  clear_persistent_command_history/1 ]).
+		  clear_persistent_command_history/1,
+		  help/1 ]).
 
 
 
@@ -73,8 +74,8 @@ implementations.
 
 -type command_id() :: shell_utils:command_id().
 -type command_str() :: shell_utils:command_str().
-
-%-type command_result() :: shell_utils:command_result().
+-type command_result() :: shell_utils:command_result().
+-type message() :: shell_utils:message().
 
 
 -type binding() :: shell_utils:binding().
@@ -100,6 +101,9 @@ implementations.
 % non-erl_eval:expr/* context) and re-use (for other callback modules).
 
 
+-include("shell_utils.hrl").
+
+
 
 -doc """
 Lists the name and arity for each of the shell built-in commands supported by
@@ -112,14 +116,12 @@ list_builtin_commands() ->
 	  { clear_bindings, 1 }, { f, 1 }, { clear_binding, 2 }, { f, 2 },
 	  { print_command_history, 1 }, { hc, 1 },
 	  { print_result_history, 1 }, { hr, 1 },
-	  { recall_command, 2 }, { r, 2 },
+	  { recall_command, 2 }, { r, 2 }, { get_result, 2 },
 	  { clear_commands, 1 }, { clear_results, 1 },
 	  { set_command_history_depth, 2 }, { set_result_history_depth, 2 },
-	  { clear_persistent_command_history, 1 } ].
+	  { clear_persistent_command_history, 1 },
+	  { help, 1 } ].
 
-
-% For shell state record, shell_state_binding_name define:
--include("shell_utils.hrl").
 
 
 
@@ -252,6 +254,22 @@ r( ShellState, CmdId ) ->
 
 
 
+-doc """
+Returns the result corresponding to the command of specified identifier, if
+still in result history, otherwise returns 'undefined'.
+""".
+% So the returned value is a bit ambiguous (not necessarily a past result), yet
+% this is not a problem as it is only for interactive use:
+%
+-spec get_result( shell_state(), command_id() ) ->
+								{ shell_state(), message() | command_result() }.
+get_result( ShellState, CmdId ) ->
+	Res = shell_utils:get_result( ShellState, CmdId ),
+	{ ShellState, Res }.
+
+
+
+
 -doc "Clears the full (live) history of commands.".
 -spec clear_commands( shell_state() ) -> builtin_state_only().
 clear_commands( ShellState ) ->
@@ -284,3 +302,13 @@ set_result_history_depth( ShellState, _NewDepth ) ->
 -spec clear_persistent_command_history( shell_state() ) -> builtin_state_only().
 clear_persistent_command_history( ShellState ) ->
 	{ ShellState, ok }.
+
+
+
+-doc "Displays help information.".
+-spec help( shell_state() ) -> builtin_state_only().
+help( ShellState=#custom_shell_state{ reference_module=undefined } ) ->
+	{ ShellState, "(no help information available)" };
+
+help( ShellState=#custom_shell_state{ reference_module=RefModule } ) ->
+	{ ShellState, RefModule:get_help() }.

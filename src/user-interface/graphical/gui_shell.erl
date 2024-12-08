@@ -31,55 +31,7 @@
 A GUI component hosting an **Erlang shell**, like an Erlang interpreter (a kind
 of REPL) with which the user can interact (input/output) graphically.
 
-Keyboard shortcuts for this shell (partly Emacs-inspired):
-- Ctrl-a: to beginning of command line
-- Ctrl-e: to end of command line
-- Ctrl-k: clear command line from cursor
-- Ctrl-c: clear current command (instead of killing/going in Erlang BREAK
-  mode/starting an Emacs sequence)
-- Ctrl-z: restore any previous editing line (i.e. not the previous command);
-  useful for example after a faulty paste
-
-Special-purpose keys:
-- Delete: delete any character at cursor
-- Backspace: delete any character just previous cursor
-- Left/Right arrows: move one character left/right in the command line
-- Up/Down: recall previous/next command(s) (note that, for a more convenient
-  navigation in history, all series of a duplicated command are replaced by a
-  single instance thereof - even if the duplications remain stored in
-  history intentionally)
-- Return: triggers the currently edited command
-
-Text can be intentionally:
-- pasted in the editor (typically with the mouse, based on either the X
-  clipboard or the Copy/Paste system of the window manager), at the end of
-  current command
-- selected in the past commands (e.g. for re-use)
-
-Shell built-in commands (their shorter names comply with a subset of the ones
-documented in
-https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands):
-- list_bindings() or b(): lists (as terms) the current variable bindings
-- print_bindings(): displays the current variable bindings
-- clear_bindings() or f() (presumably for 'forget'): clears all variable
-  bindings
-- clear_binding(V) or f(V): clears the binding of variable named V, if any
-  (specified as a plain string)
-
-- print_command_history() or hc(): displays the current history of commands
-- print_result_history() or hr(): displays the current history of results
-
-- recall_command(Id) or r(Id): re-evaluates the command of the specified
-  identifier (if it is in command history), so that, if validated by the user,
-  it can be evaluated again
-
-- get_result(Id): returns the result corresponding to the command of specified
-  identifier (if still in result history)
-- clear_commands() or fc(): clears the full (live) history of commands
-- clear_results()  or fr(): clears the full history of command results
-- set_command_history_depth(D): sets the depth of the command history to D
-- set_result_history_depth(D): sets the depth of the result history to D
-- clear_persistent_command_history(): clears the persistent history of commands
+Refer to get_help/0 for all usage information.
 
 See our shell_default_callbacks module for their detailed signatures; note the
 implicit use of shell state variables.
@@ -127,7 +79,7 @@ They include the ones when creating a text edit.
 
 
 
--export([ create/1, create/2, create/3, destruct/1 ]).
+-export([ create/1, create/2, create/3, destruct/1, get_help/0 ]).
 
 
 % Silencing:
@@ -358,8 +310,10 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 	{ AutoAddTrailingDot, WrapCursor, ShellOpts } =
 		text_edit:filter_options( OtherOpts ),
 
+	FullShellOpts = [ { reference_module, ?MODULE } | ShellOpts ],
+
 	% So now we are able to create our text edit processor, here a shell:
-	ActualShellPid = shell_utils:start_link_custom_shell( ShellOpts ),
+	ActualShellPid = shell_utils:start_link_custom_shell( FullShellOpts ),
 
 	% Corresponds here to command submission count, which is not necessarily
 	% zero (e.g. if connecting to a reloaded or already live shell):
@@ -650,33 +604,11 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 		% Ctrl-a:
 		?MYR_K_CTRL_A ->
-
-			cond_utils:if_defined( myriad_debug_gui_shell,
-								   trace_utils:debug( "To start of line." ) ),
-
-			NewTextEdit = text_edit:set_cursor_to_start_of_line( TextEdit ),
-
-			% Better than setting directly the cursor after prefix:
-			apply_cursor_position( NewTextEdit, CmdEditor ),
-
-			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
-
+			handle_to_line_start( CmdEditor, TextEdit, GUIShellState );
 
 		% Ctrl-e:
 		?MYR_K_CTRL_E ->
-
-			cond_utils:if_defined( myriad_debug_gui_shell,
-								   trace_utils:debug( "To end of line." ) ),
-
-			NewTextEdit = text_edit:set_cursor_to_end_of_line( TextEdit ),
-
-			% More reliable than:
-			% gui_text_editor:set_cursor_position_to_end( CmdEditor ),
-			%
-			apply_cursor_position( NewTextEdit, CmdEditor ),
-
-			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
-
+			handle_to_line_end( CmdEditor, TextEdit, GUIShellState );
 
 		% Ctrl-k:
 		?MYR_K_CTRL_K ->
@@ -901,6 +833,13 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 			handle_command_validation( CmdEditor, TextEdit, GUIShellState );
 
 
+		?MYR_SCANCODE_HOME ->
+			handle_to_line_start( CmdEditor, TextEdit, GUIShellState );
+
+		?MYR_SCANCODE_END ->
+			handle_to_line_end( CmdEditor, TextEdit, GUIShellState );
+
+
 		_Other ->
 
 			Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
@@ -918,6 +857,41 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 
 	end.
+
+
+-doc "Handles: got to start of line.".
+-spec handle_to_line_start( text_editor(), text_edit(), gui_shell_state() ) ->
+											gui_shell_state().
+handle_to_line_start( CmdEditor, TextEdit, GUIShellState ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_shell,
+						   trace_utils:debug( "To start of line." ) ),
+
+	NewTextEdit = text_edit:set_cursor_to_start_of_line( TextEdit ),
+
+	% Better than setting directly the cursor after prefix:
+	apply_cursor_position( NewTextEdit, CmdEditor ),
+
+	GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
+
+
+-doc "Handles: got to end of line.".
+-spec handle_to_line_end( text_editor(), text_edit(), gui_shell_state() ) ->
+											gui_shell_state().
+handle_to_line_end( CmdEditor, TextEdit, GUIShellState ) ->
+
+	cond_utils:if_defined( myriad_debug_gui_shell,
+						   trace_utils:debug( "To end of line." ) ),
+
+	NewTextEdit = text_edit:set_cursor_to_end_of_line( TextEdit ),
+
+	% More reliable than:
+	% gui_text_editor:set_cursor_position_to_end( CmdEditor ),
+	%
+	apply_cursor_position( NewTextEdit, CmdEditor ),
+
+	GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
+
 
 
 
@@ -1113,3 +1087,55 @@ format_text( Text, _MaybeTimestampBinStr=undefined ) ->
 
 format_text( Text, TimestampBinStr ) ->
 	text_utils:bin_format( "[~ts] ~ts~n", [ TimestampBinStr, Text ] ).
+
+
+
+-doc "Returns help information about usage.".
+-spec get_help() -> ustring().
+get_help() ->
+
+	% The shorter names of shell built-in commands may comply with a subset of
+	% the ones documented in
+	% https://www.erlang.org/doc/apps/stdlib/shell.html#module-shell-commands.
+
+	% Specific to
+	"""
+	Keyboard shortcuts for this shell (partly Emacs-inspired):
+	- Ctrl-a or Home/Begin key: to beginning of command line
+	- Ctrl-e or End key: to end of command line
+	- Ctrl-k: clear command line from cursor
+	- Ctrl-c: clear current command (instead of killing/going in Erlang BREAK mode/starting an Emacs sequence)
+	- Ctrl-z: restore any previous editing line (i.e. not the previous command); useful for example after a faulty paste
+
+	Special-purpose keys:
+	- Delete: delete any character at cursor
+	- Backspace: delete any character just previous cursor
+	- Left/Right arrows: move one character left/right in the command line
+	- Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if the duplications remain stored in history intentionally)
+	- Return/Enter: triggers the currently edited command
+
+	Text can be intentionally:
+	- pasted in the editor (typically with the mouse, based on either the X clipboard or the Copy/Paste system of the window manager), at the end of current command
+	- selected with the mouse in the past operations displayed (e.g. for re-use)
+
+	Shell built-in commands:
+	- list_bindings() or b(): lists (as terms) the current variable bindings
+	- print_bindings(): displays the current variable bindings
+	- clear_bindings() or f() (presumably for 'forget'): clears all variable bindings
+	- clear_binding(V) or f(V): clears the binding of variable named V, if any (specified as a plain string)
+
+	- print_command_history() or hc(): displays the current history of commands
+	- print_result_history() or hr(): displays the current history of results
+
+	- recall_command(Id) or r(Id): re-evaluates the command of the specified identifier (if it is in command history), so that, if validated by the user, it can be evaluated again
+
+	- get_result(Id): returns the result corresponding to the command of specified identifier (if still in result history)
+
+	- clear_commands() or fc(): clears the full (live) history of commands
+	- clear_results() or fr(): clears the full history of command results
+	- set_command_history_depth(D): sets the depth of the command history to D
+	- set_result_history_depth(D): sets the depth of the result history to D
+
+	- clear_persistent_command_history(): clears the persistent history of commands
+	- help(): this text
+	""".
