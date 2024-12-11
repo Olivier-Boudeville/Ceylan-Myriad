@@ -133,7 +133,7 @@ Useful for example so that texts are rendered at the same height.
 % Font-related instance-level operations.
 -export([ create/1, create/2, create/3, create/4, create/5, destruct/1,
 		  get_platform_dependent_description/1, get_user_friendly_description/1,
-		  get_text_extent/2, get_precise_text_extent/2 ]).
+		  is_fixed_width/1, get_text_extent/2, get_precise_text_extent/2 ]).
 
 
 % General font information.
@@ -278,6 +278,12 @@ For example, "Sans 10".
 get_user_friendly_description( Font ) ->
 	wxFont:getNativeFontInfoUserDesc( Font ).
 
+
+
+-doc "Tells whether the specified font is fixed-width.".
+-spec is_fixed_width( font() ) -> boolean().
+is_fixed_width( Font ) ->
+	wxFont:isFixedWidth( Font ).
 
 
 -doc """
