@@ -62,6 +62,7 @@ Called by gui:generate_support_modules/0.
 		  %get_colour_selection_dialog_style_topic_spec/0,
 		  %get_font_selection_dialog_style_topic_spec/0,
 
+		  get_select_box_style_topic_spec/0,
 		  get_event_type_topic_spec/0,
 		  get_direction_topic_spec/0, get_orientation_topic_spec/0,
 
@@ -100,6 +101,7 @@ list_topic_spec_functions() ->
 	  %get_colour_selection_dialog_style_topic_spec,
 	  %get_font_selection_dialog_style_topic_spec,
 
+	  get_select_box_style_topic_spec,
 	  get_event_type_topic_spec,
 	  get_direction_topic_spec, get_orientation_topic_spec,
 	  get_splitter_style_topic_spec, get_splitter_orientation_topic_spec ].
@@ -162,7 +164,7 @@ list_topic_spec_functions() ->
 
 -type topic_spec( F, S ) :: const_bijective_topics:topic_spec( F, S ).
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type myriad_object_type() :: gui:myriad_object_type().
 -type wx_object_type() :: gui:wx_object_type().
@@ -210,6 +212,7 @@ list_topic_spec_functions() ->
 %-type font_selection_dialog_style() ::
 %    gui_dialog:font_selection_dialog_style().
 
+-type select_box_style() :: gui_select_box:select_box_style().
 
 -type wx_enum() :: gui_wx_backend:wx_enum().
 -type wx_orientation() :: gui_wx_backend:wx_orientation().
@@ -1011,6 +1014,27 @@ get_directory_selection_dialog_style_topic_spec() ->
 % No colour_selection_dialog_style topuc.
 
 % No font_selection_dialog_style topic.
+
+
+
+-doc """
+Returns the two-way conversion specification for the 'select_box_style' topic.
+""".
+-spec get_select_box_style_topic_spec() ->
+					topic_spec( select_box_style(), bit_mask() ).
+get_select_box_style_topic_spec() ->
+
+	Entries = [ { single_selection,            ?wxLB_SINGLE },
+				{ multiple_selection,          ?wxLB_MULTIPLE },
+				{ extendable_selection,        ?wxLB_EXTENDED },
+				{ horizontal_scroll_if_needed, ?wxLB_HSCROLL },
+				{ vertical_scroll_always,      ?wxLB_ALWAYS_SB },
+				{ vertical_scroll_if_needed,   ?wxLB_NEEDED_SB },
+				{ vertical_no_scroll,          ?wxLB_NO_SB },
+				{ sorted,                      ?wxLB_SORT } ],
+
+	{ select_box_style, Entries }.
+
 
 
 
