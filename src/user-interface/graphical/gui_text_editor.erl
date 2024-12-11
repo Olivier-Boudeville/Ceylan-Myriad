@@ -150,6 +150,9 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 -include("gui_internal_defines.hrl").
 
 
+% Usage hints: to determine character/line sizes, rely on the underlying font
+% (e.g. gui_font:get_{precise_,}text_extent/*).
+
 
 % Implementation section:
 %
