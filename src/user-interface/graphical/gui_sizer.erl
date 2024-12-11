@@ -198,7 +198,7 @@ of that element relative to the other elements.
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().

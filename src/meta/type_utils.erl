@@ -520,6 +520,9 @@ Obviously a nod to Haskell.
 
 % Definition of actual datatypes (useful for typing variables):
 
+-doc "Describes a mask of bits.".
+-type bit_mask() :: integer().
+
 
 % Unsigned integers:
 
@@ -745,6 +748,8 @@ Transient terms are the opposite of permanent ones.
 			   low_level_type/0,
 
 			   option/1, safe_option/1, wildcardable/1,
+
+			   bit_mask/0,
 
 			   uint8/0, uint16/0, uint32/0, uint64/0,
 			   sint8/0, sint16/0, sint32/0, sint64/0,

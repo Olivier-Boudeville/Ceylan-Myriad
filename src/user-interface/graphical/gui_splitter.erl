@@ -140,7 +140,7 @@ window.
 
 % Type shorthands:
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 

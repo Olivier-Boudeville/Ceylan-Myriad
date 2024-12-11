@@ -168,7 +168,7 @@ A style element of a button, see
 
 % Type shorthands:
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type filename() :: file_utils:filename().
 
@@ -288,7 +288,6 @@ create( Label, Position, Size, Styles, Id, Parent ) ->
 
 
 		false ->
-
 			BackendId = gui_id:declare_any_id( Id ),
 
 			cond_utils:if_defined( myriad_debug_gui_buttons,

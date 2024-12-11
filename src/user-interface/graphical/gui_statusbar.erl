@@ -92,7 +92,8 @@ If negative, designates a width ratio among all variable-width fields.
 
 -type count() :: basic_utils:count().
 -type positive_index() :: basic_utils:positive_index().
--type bit_mask() :: basic_utils:bit_mask().
+
+-type bit_mask() :: type_utils:bit_mask().
 
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
