@@ -100,6 +100,9 @@ The number of an entry (in their history), which is an identifier thereof.
 -type entry_id() :: count().
 
 
+-doc "A text that could be suffixed to the current entry.".
+-type completion() :: bin_string().
+
 
 -doc "The PID of a process in charge of managing each validated entry.".
 -type processor_pid() :: pid().
@@ -139,6 +142,7 @@ The number of an entry (in their history), which is an identifier thereof.
 -export([ create/4, create/5, filter_options/1,
 		  recall_previous_entry/1, recall_next_entry/1,
 		  delete_current_char/1, delete_previous_char/1,
+		  get_completions/1,
 		  to_string/1,
 		  destruct/1 ]).
 
@@ -153,6 +157,7 @@ The number of an entry (in their history), which is an identifier thereof.
 
 % Operations.
 -export([ set_prefix/2, set_entry/2, add_char/2,
+		  append_string/2, append_string_truncate/2,
 		  move_cursor_left/1, move_cursor_right/1,
 		  set_cursor_to_start_of_line/1, set_cursor_to_end_of_line/1,
 		  kill_from_cursor/1, restore_previous_line/1, clear/1, process/1 ]).
@@ -373,7 +378,10 @@ set_entry( TE=#text_edit{ precursor_chars=PreChars,
 
 
 
--doc "Adds the specified character to the current text.".
+-doc """
+Adds the specified character to the current text, shifting the cursor
+accordingly.
+""".
 -spec add_char( uchar(), text_edit() ) -> text_edit().
 add_char( NewChar, TE=#text_edit{ precursor_chars=PreChars,
 								  postcursor_chars=PostChars } ) ->
@@ -386,6 +394,39 @@ add_char( NewChar, TE=#text_edit{ precursor_chars=PreChars,
 				  prev_precursor_chars=PreChars,
 				  prev_postcursor_chars=PostChars }.
 
+
+
+-doc """
+Appends the specified string to the text at the current cursor position,
+shifting the cursor to the end of this addition, and preserving after the text
+of that was on the right of that cursor.
+""".
+-spec append_string( ustring(), text_edit() ) -> text_edit().
+append_string( SuffixStr, TE=#text_edit{ precursor_chars=PreChars,
+										 postcursor_chars=PostChars } ) ->
+
+	NewPreChars = lists:reverse( SuffixStr ) ++ PreChars,
+
+	TE#text_edit{ precursor_chars=NewPreChars,
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
+
+
+-doc """
+Appends the specified string to the text at the current cursor position,
+shifting the cursor to the end of this addition, and removing all the text that
+was on the right of that cursor.
+""".
+-spec append_string_truncate( ustring(), text_edit() ) -> text_edit().
+append_string_truncate( SuffixStr, TE=#text_edit{ precursor_chars=PreChars,
+										postcursor_chars=PostChars } ) ->
+
+	NewPreChars = lists:reverse( SuffixStr ) ++ PreChars,
+
+	TE#text_edit{ precursor_chars=NewPreChars,
+				  postcursor_chars=[],
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
 
 
 
@@ -725,6 +766,18 @@ delete_previous_char( TE=#text_edit{ precursor_chars=S=[ _Prev | Others ],
 	TE#text_edit{ precursor_chars=Others,
 				  prev_precursor_chars=S,
 				  prev_postcursor_chars=PostChars }.
+
+
+
+-doc """
+Returns an updated text edit, completed as much as possible, together with any
+list of extra completions spotted.
+""".
+-spec get_completions( text_edit() ) ->
+				{ text_edit(), option( [ completion() ] ) }.
+get_completions( TextEdit ) ->
+	{ TextEdit, [ "aa", "bb", "cc" ] }.
+	%{ TextEdit, [ "ssssssss" ] }.
 
 
 
