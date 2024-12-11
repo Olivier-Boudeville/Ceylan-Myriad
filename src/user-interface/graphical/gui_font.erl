@@ -348,6 +348,9 @@ get_precise_text_extent( Text, Font ) ->
 
 	wxMemoryDC:setFont( TmpDC, Font ),
 
+	% The option (and return type) is the difference with a mere
+	% get_text_extent/2:
+	%
 	PExtent = wxDC:getTextExtent( TmpDC, Text, _Opts=[ { theFont, Font } ] ),
 
 	wxMemoryDC:destroy( TmpDC ),
