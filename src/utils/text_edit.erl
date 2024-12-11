@@ -151,12 +151,13 @@ The number of an entry (in their history), which is an identifier thereof.
 % Read-only accessors.
 -export([ get_entry_id/1, get_prefix/1, get_prefix_length/1,
 		  get_cursor_position/1,
-		  get_entry/1, get_bin_entry/1, get_full_text/1,
-		  get_entry_for_submission/1 ]).
+		  get_entry/1, get_bin_entry/1,
+		  get_full_text/1, get_full_text_with_cursor/1,
+		  get_entry_for_submission/1  ]).
 
 
 % Operations.
--export([ set_prefix/2, set_entry/2, add_char/2,
+-export([ set_prefix/2, set_entry/2, add_char/2, add_char_after/2,
 		  append_string/2, append_string_truncate/2,
 		  move_cursor_left/1, move_cursor_right/1,
 		  set_cursor_to_start_of_line/1, set_cursor_to_end_of_line/1,
@@ -311,6 +312,16 @@ get_full_text( TE=#text_edit{ prefix=Pfx } ) ->
 	Pfx ++ get_entry( TE ).
 
 
+-doc """
+Returns the current, full (prefix included) edited text, together with the
+cursor position.
+""".
+-spec get_full_text_with_cursor( text_edit() ) -> { text(), char_pos() }.
+get_full_text_with_cursor( TE=#text_edit{ prefix_len=PfxLen,
+										  precursor_chars=PreChars } ) ->
+	{ get_full_text( TE ), PfxLen + length( PreChars ) + 1 }.
+
+
 
 -doc """
 Returns the currently edited entry in a final form, ready to be submitted (hence
@@ -344,6 +355,9 @@ get_entry_for_submission( #text_edit{ precursor_chars=PreChars,
 	end,
 
 	text_utils:string_to_binary( CmdStr ).
+
+
+
 
 
 
@@ -391,6 +405,20 @@ add_char( NewChar, TE=#text_edit{ precursor_chars=PreChars,
 	NewPreChars = [ NewChar | PreChars ],
 
 	TE#text_edit{ precursor_chars=NewPreChars,
+				  prev_precursor_chars=PreChars,
+				  prev_postcursor_chars=PostChars }.
+
+
+-doc """
+Adds the specified character to the current text, leaving the cursor as was.
+""".
+-spec add_char_after( uchar(), text_edit() ) -> text_edit().
+add_char_after( NewChar, TE=#text_edit{ precursor_chars=PreChars,
+										postcursor_chars=PostChars } ) ->
+
+	%trace_utils:debug_fmt( "(adding '~ts' after)", [ [ NewChar ] ] ),
+
+	TE#text_edit{ postcursor_chars=[ NewChar | PostChars ],
 				  prev_precursor_chars=PreChars,
 				  prev_postcursor_chars=PostChars }.
 
@@ -783,5 +811,8 @@ get_completions( TextEdit ) ->
 
 -doc "Returns a textual representation of the specified text edit.".
 -spec to_string( text_edit() ) -> ustring().
-to_string( #text_edit{ entry_id=EntryId, prefix=Pfx } ) ->
-	text_utils:format( "text edit #~B with prefix '~ts'", [ EntryId, Pfx ] ).
+to_string( #text_edit{ entry_id=EntryId,
+					   precursor_chars=PreChars,
+					   postcursor_chars=PostChars } ) ->
+	text_utils:format( "text edit #~B whose text with cursor is '~ts|~ts'",
+					   [ EntryId, lists:reverse( PreChars ), PostChars ] ).

@@ -71,8 +71,14 @@ They include the ones when creating a text edit.
 """.
 -type gui_shell_option() :: text_edit_option()
 
-	% Whether initially the shell has the event focus:
-  | 'focused'.
+	% Whether initially the shell shall have the event focus:
+  | 'focused'
+
+	% Whether a closing parenthesis should be automatically added whenever an
+	% opening one is typed:
+	%
+  | 'auto_parenthesis'.
+
 
 
 -export_type([ gui_shell/0, gui_shell_option/0 ]).
@@ -212,7 +218,12 @@ They include the ones when creating a text edit.
 	command_char_width :: width(),
 
 	% The state of a general-purpose text edition facility:
-	text_edit :: text_edit() } ).
+	text_edit :: text_edit(),
+
+	% Tells whether a closing parenthesis should be automatically added whenever
+	% an opening one is typed:
+	%
+	auto_parenthesis = 'false' :: boolean() } ).
 
 
 -doc "The (internal) state of a GUI shell instance.".
@@ -305,21 +316,35 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 	% Splits between GUI shell, the actual text edit options and the
 	% shell-specific ones:
 
-	{ SetFocus, OtherOpts } =
+	{ SetFocus, OtherFocusOpts } =
 			case list_utils:extract_element_if_existing( _FElem=focused,
 														 GUIShellOpts ) of
 
+		% Option not defined:
 		false ->
 			{ false, GUIShellOpts };
 
-		OthOpts ->
-			{ true, OthOpts }
+		FRemainingOpts ->
+			{ true, FRemainingOpts }
+
+	end,
+
+	{ AutoParen, OtherParenOpts } =
+			case list_utils:extract_element_if_existing(
+					_ParenElem=auto_parenthesis, OtherFocusOpts ) of
+
+		% Option not defined:
+		false ->
+			{ false, OtherFocusOpts };
+
+		ParenRemainingOpts ->
+			{ true, ParenRemainingOpts }
 
 	end,
 
 	% The remaining options are by design the shell ones:
 	{ AutoAddTrailingDot, WrapCursor, ShellOpts } =
-		text_edit:filter_options( OtherOpts ),
+		text_edit:filter_options( OtherParenOpts ),
 
 	FullShellOpts = [ { reference_module, ?MODULE } | ShellOpts ],
 
@@ -465,7 +490,8 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 									   command_char_width=CharWidth,
 									   past_ops_editor=PastOpsEditor,
 									   past_ops_text=HistBinText,
-									   text_edit=NewTextEdit },
+									   text_edit=NewTextEdit,
+									   auto_parenthesis=AutoParen },
 
 	gui_shell_main_loop( InitShellState ).
 
@@ -508,7 +534,7 @@ gui_shell_main_loop( GUIShellState ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_shell,
 		trace_utils:debug_fmt( "GUI shell main loop editing '~ts'.",
-			[ text_edit:get_entry(
+			[ text_edit:to_string(
 				GUIShellState#gui_shell_state.text_edit ) ] ) ),
 
 	receive
@@ -592,7 +618,20 @@ gui_shell_main_loop( GUIShellState ) ->
 											TextEdit ),
 
 			gui_shell_main_loop( GUIShellState#gui_shell_state{
-								   text_edit=NewTextEdit } );
+									text_edit=NewTextEdit } );
+
+
+		{ onItemSelected, [ AutoCompPopupMenu, LabelId, _EventContext ] } ->
+
+			% Label of the selected item:
+			Label = wxMenu:getLabel( AutoCompPopupMenu, LabelId ),
+
+			%trace_utils:debug_fmt( "Selected label item: '~ts'.", [ Label ] ),
+
+			gui_text_editor:add_text(
+				GUIShellState#gui_shell_state.command_editor, Label ),
+
+			gui_shell_main_loop( GUIShellState );
 
 
 		acquireFocus ->
@@ -698,11 +737,14 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 			%       "(received keycode with Ctrl modifier ~p)", [ Other ] ),
 			%       basic_utils:ignore_unused( Other ) ),
 
-			NewTextEdit = text_edit:add_char( Keycode, TextEdit ),
+			%NewTextEdit = text_edit:add_char( Keycode, TextEdit ),
+			%gui_text_editor:set_from( CmdEditor, NewTextEdit ),
+			%GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
-			apply_text_and_cursor_to_end( NewTextEdit, CmdEditor ),
+			%trace_utils:debug_fmt( "Ignoring unmatched control character ~p.",
+			%                       [ Other ] ),
 
-			GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
+			GUIShellState
 
 	end.
 
@@ -854,19 +896,13 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 
 		_Other ->
-
-			Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
-
-			NewTextEdit = text_edit:add_char( Keycode, TextEdit ),
-
-			apply_text_and_cursor_to_end( NewTextEdit, CmdEditor ),
-
-			GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
+			handle_any_other_key( BackendKeyEvent, CmdEditor, TextEdit,
+								  GUIShellState )
 
 	end.
 
 
--doc "Handles: got to start of line.".
+-doc "Handles: go to start of line.".
 -spec handle_to_line_start( text_editor(), text_edit(), gui_shell_state() ) ->
 											gui_shell_state().
 handle_to_line_start( CmdEditor, TextEdit, GUIShellState ) ->
@@ -882,7 +918,7 @@ handle_to_line_start( CmdEditor, TextEdit, GUIShellState ) ->
 	GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
 
 
--doc "Handles: got to end of line.".
+-doc "Handles: go to end of line.".
 -spec handle_to_line_end( text_editor(), text_edit(), gui_shell_state() ) ->
 											gui_shell_state().
 handle_to_line_end( CmdEditor, TextEdit, GUIShellState ) ->
@@ -898,6 +934,48 @@ handle_to_line_end( CmdEditor, TextEdit, GUIShellState ) ->
 	apply_cursor_position( NewTextEdit, CmdEditor ),
 
 	GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
+
+
+
+-doc "Handles any non-specifically managed key.".
+-spec handle_any_other_key( backend_keyboard_event(), text_editor(),
+			text_edit(), gui_shell_state() ) -> gui_shell_state().
+handle_any_other_key( BackendKeyEvent, CmdEditor, TextEdit,
+		GUIShellState=#gui_shell_state{ auto_parenthesis=AutoParen } ) ->
+
+	%trace_utils:debug_fmt( "Other key event: ~p", [ BackendKeyEvent ] ),
+
+	NewTextEdit = case gui_keyboard:get_keycode( BackendKeyEvent ) of
+
+		?MYR_K_LEFTPAREN when AutoParen ->
+			add_parentheses( CmdEditor, TextEdit );
+
+		Keycode ->
+			AddTextEdit = text_edit:add_char( Keycode, TextEdit ),
+			gui_text_editor:set_from( CmdEditor, AddTextEdit ),
+			AddTextEdit
+
+	end,
+
+	GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
+
+
+
+-doc "Handles any non-specifically managed key.".
+-spec add_parentheses( text_editor(), text_edit() ) -> text_edit().
+add_parentheses( CmdEditor, TextEdit ) ->
+
+	% As we want the closing parenthesis to appear after the cursor:
+	OpenTextEdit = text_edit:add_char( $(, TextEdit ),
+	CloseTextEdit = text_edit:add_char_after( $), OpenTextEdit ),
+
+	%trace_utils:debug_fmt( "Resulting in ~ts",
+	%                       [ text_edit:to_string( CloseTextEdit ) ] ),
+
+	gui_text_editor:set_from( CmdEditor, CloseTextEdit ),
+
+	CloseTextEdit.
+
 
 
 
@@ -930,6 +1008,8 @@ handle_autocomplete( CmdEditor, TextEdit, GUIShellState ) ->
 		_ ->
 			CompMenu = gui_menu:create(),
 
+			gui:subscribe_to_events( { onItemSelected, CompMenu } ),
+
 			% For testing:
 			%[ gui_menu:add_item(M, text_utils:integer_to_string( I ) )
 			%   || I <- lists:seq(1, 15 )  ],
@@ -959,7 +1039,6 @@ handle_autocomplete( CmdEditor, TextEdit, GUIShellState ) ->
 			GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
 	end.
-
 
 
 
@@ -1227,7 +1306,7 @@ get_help() ->
 	- Backspace: delete any character just previous cursor
 	- Left/Right arrows: move one character left/right in the command line
 	- Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if the duplications remain stored in history intentionally)
-	- Tab: tries to auto-complete the current command
+	- Tab: tries to auto-complete the current command; adds the longest possible single completion and, if multiple options remain, display a popup that let one of them (browsed via the Up/Down keyboard arrows, or PageUp/PageDown) be selected (via the Return/Enter keys) , or have it dismissed (via the Escape key)
 	- Return/Enter: triggers the currently edited command
 
 	Text can be intentionally:
