@@ -161,6 +161,7 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 %
 % wxWidgets' insertion point is translated here as cursor (caret) position.
 
+% Unfortunately, wx (with wxTextCtrl) does not implement PositionToCoords().
 
 
 % Type shorthands:
