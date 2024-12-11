@@ -480,7 +480,10 @@ get_enable_status( Widget ) ->
 
 
 
--doc "Returns the size (as {Width,Height}) of the specified widget.".
+-doc """
+Returns the size (as {Width,Height}) of the specified widget, including canvases
+and menus.
+""".
 -spec get_size( widget() ) -> size().
 get_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 
@@ -493,6 +496,10 @@ get_size( _Canvas={ myriad_object_ref, myr_canvas, CanvasId } ) ->
 			Size
 
 	end;
+
+% Not available:
+%get_size( Menu={ _Wx_ref, _Id, wxMenu, _ } ) ->
+%  gui_menu:get_size( Menu );
 
 get_size( Widget ) ->
 	%trace_utils:debug_fmt( "get_size for ~w.", [ Widget ] ),
