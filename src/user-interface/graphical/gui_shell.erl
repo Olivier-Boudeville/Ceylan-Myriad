@@ -1305,7 +1305,7 @@ get_help() ->
 	- Delete: delete any character at cursor
 	- Backspace: delete any character just previous cursor
 	- Left/Right arrows: move one character left/right in the command line
-	- Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if the duplications remain stored in history intentionally)
+	- Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if, intentionally, the actual duplications remain stored in history)
 	- Tab: tries to auto-complete the current command; adds the longest possible single completion and, if multiple options remain, display a popup that let one of them (browsed via the Up/Down keyboard arrows, or PageUp/PageDown) be selected (via the Return/Enter keys) , or have it dismissed (via the Escape key)
 	- Return/Enter: triggers the currently edited command
 
