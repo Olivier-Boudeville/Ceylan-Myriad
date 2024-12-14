@@ -71,8 +71,14 @@ They include the ones when creating a text edit.
 """.
 -type gui_shell_option() :: text_edit_option()
 
-	% Whether initially the shell has the event focus:
-  | 'focused'.
+	% Whether initially the shell shall have the event focus:
+  | 'focused'
+
+	% Whether a closing parenthesis should be automatically added whenever an
+	% opening one is typed:
+	%
+  | 'auto_parenthesis'.
+
 
 
 -export_type([ gui_shell/0, gui_shell_option/0 ]).
@@ -112,6 +118,7 @@ They include the ones when creating a text edit.
 
 
 -type parent() :: gui:parent().
+-type width() :: gui:width().
 
 -type backend_environment() :: gui:backend_environment().
 
@@ -125,7 +132,6 @@ They include the ones when creating a text edit.
 
 -type text_edit() :: text_edit:text_edit().
 -type text_edit_option() :: text_edit:text_edit_option().
-
 -type prefix_info() :: text_edit:prefix_info().
 
 
@@ -140,7 +146,7 @@ They include the ones when creating a text edit.
 % A GUI shell corresponds, graphically, to an horizontal sizer; the top part is
 % a read-only text editor displaying the past operations of that shell, while
 % the bottom part is a (smaller) editable text editor, for the next command.
-
+%
 % wxStyledTextCtrl could be used instead of wxTextCtrl.
 %
 % Using the Scintilla-compliant Erlang lexers (see wxSTC_ERLANG_*) could be
@@ -175,6 +181,14 @@ They include the ones when creating a text edit.
 % in the shell_utils module, for a better centralisation thereof.
 
 
+% Possible enhancements:
+%
+% - support the recall of the last command to match a pattern, like '!mk' may
+% match in history 'mkdir foo'
+%
+% - support color-based syntax highlighting
+
+
 -define( default_font_size, 10 ).
 
 
@@ -200,8 +214,16 @@ They include the ones when creating a text edit.
 	%
 	command_editor :: text_editor(),
 
+	% The width of a character with the current font of the command editor:
+	command_char_width :: width(),
+
 	% The state of a general-purpose text edition facility:
-	text_edit :: text_edit() } ).
+	text_edit :: text_edit(),
+
+	% Tells whether a closing parenthesis should be automatically added whenever
+	% an opening one is typed:
+	%
+	auto_parenthesis = 'false' :: boolean() } ).
 
 
 -doc "The (internal) state of a GUI shell instance.".
@@ -294,21 +316,35 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 	% Splits between GUI shell, the actual text edit options and the
 	% shell-specific ones:
 
-	{ SetFocus, OtherOpts } =
+	{ SetFocus, OtherFocusOpts } =
 			case list_utils:extract_element_if_existing( _FElem=focused,
 														 GUIShellOpts ) of
 
+		% Option not defined:
 		false ->
 			{ false, GUIShellOpts };
 
-		OthOpts ->
-			{ true, OthOpts }
+		FRemainingOpts ->
+			{ true, FRemainingOpts }
+
+	end,
+
+	{ AutoParen, OtherParenOpts } =
+			case list_utils:extract_element_if_existing(
+					_ParenElem=auto_parenthesis, OtherFocusOpts ) of
+
+		% Option not defined:
+		false ->
+			{ false, OtherFocusOpts };
+
+		ParenRemainingOpts ->
+			{ true, ParenRemainingOpts }
 
 	end,
 
 	% The remaining options are by design the shell ones:
 	{ AutoAddTrailingDot, WrapCursor, ShellOpts } =
-		text_edit:filter_options( OtherOpts ),
+		text_edit:filter_options( OtherParenOpts ),
 
 	FullShellOpts = [ { reference_module, ?MODULE } | ShellOpts ],
 
@@ -337,9 +373,16 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 		_ButtonSize=auto, _ButtonStyle=[], _BId=prompt_black_button,
 		ParentWindow ),
 
-	CmdEditor = gui_text_editor:create(
-		[ { style, [] } ], ParentWindow  ),
-		%[ { style, [ multiline, process_enter_key ] } ], ParentWindow  ),
+	% For single-line:
+	%CmdStyles = [],
+
+	% Multiline now preferred (yet single-line works as well), as otherwise no
+	% fixed-width font can be used (needed to place correctly popups):
+	%
+	CmdStyles = [ multiline, process_enter_key ],
+
+	CmdEditor = gui_text_editor:create( [ { style, CmdStyles } ],
+										ParentWindow ),
 
 	SetFocus andalso gui_widget:set_focus( CmdEditor ),
 
@@ -360,8 +403,25 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 	%gui_widget:set_enable_status( PastOpsEditor, _DoEnable=false ),
 
 	% For example Monospace 11:
-	ShellFont = gui_font:create( FontSize, _FontFamily=modern ),
+	FontFamily = modern,
+	%FontFamily = teletype,
 
+	ShellFont = gui_font:create( FontSize, FontFamily ),
+
+	true = gui_font:is_fixed_width( ShellFont ),
+
+	_FSize = { CharWidth, _CharHeight } =
+		gui_font:get_text_extent( "W", ShellFont ),
+
+	%trace_utils:debug_fmt( "Size of shell font: ~p.", [ FSize ] ),
+
+
+	% A fixed-width font is necessary, for the placement of auto-completion
+	% popups:
+	%
+	true = gui_text_editor:set_default_font( CmdEditor, ShellFont ),
+
+	% Better looking; allowed to fail:
 	gui_text_editor:set_default_font( PastOpsEditor, ShellFont ),
 
 	gui_font:destruct( ShellFont ),
@@ -427,9 +487,11 @@ start_gui_shell( FontSize, MaybeGUIShellOpts, BackendEnv, ParentWindow ) ->
 							   [ text_edit:to_string( NewTextEdit ) ] ) ),
 
 	InitShellState = #gui_shell_state{ command_editor=CmdEditor,
+									   command_char_width=CharWidth,
 									   past_ops_editor=PastOpsEditor,
 									   past_ops_text=HistBinText,
-									   text_edit=NewTextEdit },
+									   text_edit=NewTextEdit,
+									   auto_parenthesis=AutoParen },
 
 	gui_shell_main_loop( InitShellState ).
 
@@ -445,7 +507,9 @@ edit_new_command( TE, CmdEditor ) ->
 
 	NewTE = text_edit:set_prefix( TE, PfxInfo ),
 
-	apply_text( NewTE, CmdEditor ),
+	apply_text_and_cursor_to_end( NewTE, CmdEditor ),
+
+	% Adds a space after text:
 	gui_text_editor:set_cursor_position( CmdEditor, PfxLen+1 ),
 
 	NewTE.
@@ -470,7 +534,7 @@ gui_shell_main_loop( GUIShellState ) ->
 
 	cond_utils:if_defined( myriad_debug_gui_shell,
 		trace_utils:debug_fmt( "GUI shell main loop editing '~ts'.",
-			[ text_edit:get_entry(
+			[ text_edit:to_string(
 				GUIShellState#gui_shell_state.text_edit ) ] ) ),
 
 	receive
@@ -554,7 +618,20 @@ gui_shell_main_loop( GUIShellState ) ->
 											TextEdit ),
 
 			gui_shell_main_loop( GUIShellState#gui_shell_state{
-								   text_edit=NewTextEdit } );
+									text_edit=NewTextEdit } );
+
+
+		{ onItemSelected, [ AutoCompPopupMenu, LabelId, _EventContext ] } ->
+
+			% Label of the selected item:
+			Label = wxMenu:getLabel( AutoCompPopupMenu, LabelId ),
+
+			%trace_utils:debug_fmt( "Selected label item: '~ts'.", [ Label ] ),
+
+			gui_text_editor:add_text(
+				GUIShellState#gui_shell_state.command_editor, Label ),
+
+			gui_shell_main_loop( GUIShellState );
 
 
 		acquireFocus ->
@@ -618,9 +695,7 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 			NewTextEdit = text_edit:kill_from_cursor( TextEdit ),
 
-			apply_text( NewTextEdit, CmdEditor ),
-
-			% No cursor change.
+			apply_text_and_cursor_to_end( NewTextEdit, CmdEditor ),
 
 			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
 
@@ -633,10 +708,7 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 			NewTextEdit = text_edit:clear( TextEdit ),
 
-			apply_text( NewTextEdit, CmdEditor ),
-
-			% Resets the cursor:
-			apply_cursor_position( NewTextEdit, CmdEditor ),
+			apply_text_and_cursor_to_end( NewTextEdit, CmdEditor ),
 
 			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
 
@@ -649,9 +721,7 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 			NewTextEdit = text_edit:restore_previous_line( TextEdit ),
 
-			apply_text( NewTextEdit, CmdEditor ),
-
-			% No cursor change.
+			apply_text_and_cursor_to_end( NewTextEdit, CmdEditor ),
 
 			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
 
@@ -667,16 +737,14 @@ handle_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 			%       "(received keycode with Ctrl modifier ~p)", [ Other ] ),
 			%       basic_utils:ignore_unused( Other ) ),
 
-			NewTextEdit = text_edit:add_char( Keycode, TextEdit ),
+			%NewTextEdit = text_edit:add_char( Keycode, TextEdit ),
+			%gui_text_editor:set_from( CmdEditor, NewTextEdit ),
+			%GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
-			apply_text( NewTextEdit, CmdEditor ),
+			%trace_utils:debug_fmt( "Ignoring unmatched control character ~p.",
+			%                       [ Other ] ),
 
-			% More reliable than:
-			% gui_text_editor:offset_cursor_position( CmdEditor, _PosOffset=1 ),
-			%
-			apply_cursor_position( NewTextEdit, CmdEditor ),
-
-			GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
+			GUIShellState
 
 	end.
 
@@ -748,8 +816,7 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 					GUIShellState;
 
 				NewTextEdit ->
-					apply_text( NewTextEdit, CmdEditor ),
-					apply_cursor_position( NewTextEdit, CmdEditor ),
+					apply_text_and_cursor_to_end( NewTextEdit, CmdEditor ),
 					GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
 			end;
@@ -767,8 +834,7 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 					GUIShellState;
 
 				NewTextEdit ->
-					apply_text( NewTextEdit, CmdEditor ),
-					apply_cursor_position( NewTextEdit, CmdEditor ),
+					apply_text_and_cursor_to_end( NewTextEdit, CmdEditor ),
 					GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
 			end;
@@ -786,10 +852,7 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 					GUIShellState;
 
 				NewTextEdit ->
-					apply_text( NewTextEdit, CmdEditor ),
-
-					% No cursor change.
-
+					apply_text_fixed_cursor( NewTextEdit, CmdEditor ),
 					GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
 			end;
@@ -806,15 +869,7 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 					GUIShellState;
 
 				NewTextEdit ->
-
-					apply_text( NewTextEdit, CmdEditor ),
-
-					% More reliable than:
-					% gui_text_editor:offset_cursor_position( CmdEditor,
-					% _PosOffset=-1 ):
-					%
-					apply_cursor_position( NewTextEdit, CmdEditor ),
-
+					apply_text_and_set_cursor( NewTextEdit, CmdEditor ),
 					GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
 
 			end;
@@ -825,7 +880,7 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 			%cond_utils:if_defined( myriad_debug_gui_shell,
 			%   trace_utils:debug( "Tab entered." ) ),
 
-			GUIShellState;
+			handle_autocomplete( CmdEditor, TextEdit, GUIShellState );
 
 
 		% Either the Return key or its keypad counterpart:
@@ -841,25 +896,13 @@ handle_non_ctrl_modified_key( BackendKeyEvent, GUIShellState=#gui_shell_state{
 
 
 		_Other ->
-
-			Keycode = gui_keyboard:get_keycode( BackendKeyEvent ),
-
-			NewTextEdit = text_edit:add_char( Keycode, TextEdit ),
-
-			apply_text( NewTextEdit, CmdEditor ),
-
-			% More reliable than:
-			% gui_text_editor:offset_cursor_position( CmdEditor, _PosOffset=1 ),
-			%
-			apply_cursor_position( NewTextEdit, CmdEditor ),
-
-			GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
-
+			handle_any_other_key( BackendKeyEvent, CmdEditor, TextEdit,
+								  GUIShellState )
 
 	end.
 
 
--doc "Handles: got to start of line.".
+-doc "Handles: go to start of line.".
 -spec handle_to_line_start( text_editor(), text_edit(), gui_shell_state() ) ->
 											gui_shell_state().
 handle_to_line_start( CmdEditor, TextEdit, GUIShellState ) ->
@@ -875,7 +918,7 @@ handle_to_line_start( CmdEditor, TextEdit, GUIShellState ) ->
 	GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
 
 
--doc "Handles: got to end of line.".
+-doc "Handles: go to end of line.".
 -spec handle_to_line_end( text_editor(), text_edit(), gui_shell_state() ) ->
 											gui_shell_state().
 handle_to_line_end( CmdEditor, TextEdit, GUIShellState ) ->
@@ -894,8 +937,112 @@ handle_to_line_end( CmdEditor, TextEdit, GUIShellState ) ->
 
 
 
+-doc "Handles any non-specifically managed key.".
+-spec handle_any_other_key( backend_keyboard_event(), text_editor(),
+			text_edit(), gui_shell_state() ) -> gui_shell_state().
+handle_any_other_key( BackendKeyEvent, CmdEditor, TextEdit,
+		GUIShellState=#gui_shell_state{ auto_parenthesis=AutoParen } ) ->
 
--doc "Handles the validation of a command.".
+	%trace_utils:debug_fmt( "Other key event: ~p", [ BackendKeyEvent ] ),
+
+	NewTextEdit = case gui_keyboard:get_keycode( BackendKeyEvent ) of
+
+		?MYR_K_LEFTPAREN when AutoParen ->
+			add_parentheses( CmdEditor, TextEdit );
+
+		Keycode ->
+			AddTextEdit = text_edit:add_char( Keycode, TextEdit ),
+			gui_text_editor:set_from( CmdEditor, AddTextEdit ),
+			AddTextEdit
+
+	end,
+
+	GUIShellState#gui_shell_state{ text_edit=NewTextEdit }.
+
+
+
+-doc "Handles any non-specifically managed key.".
+-spec add_parentheses( text_editor(), text_edit() ) -> text_edit().
+add_parentheses( CmdEditor, TextEdit ) ->
+
+	% As we want the closing parenthesis to appear after the cursor:
+	OpenTextEdit = text_edit:add_char( $(, TextEdit ),
+	CloseTextEdit = text_edit:add_char_after( $), OpenTextEdit ),
+
+	%trace_utils:debug_fmt( "Resulting in ~ts",
+	%                       [ text_edit:to_string( CloseTextEdit ) ] ),
+
+	gui_text_editor:set_from( CmdEditor, CloseTextEdit ),
+
+	CloseTextEdit.
+
+
+
+
+-doc """
+Handles the auto-completion of the current command, from the current cursor
+position (ignoring the characters on its right).
+""".
+-spec handle_autocomplete( text_editor(), text_edit(), gui_shell_state() ) ->
+											gui_shell_state().
+handle_autocomplete( CmdEditor, TextEdit, GUIShellState ) ->
+
+	{ NewTextEdit, Completions } = text_edit:get_completions( TextEdit ),
+
+	cond_utils:if_defined( myriad_debug_gui_shell,
+		trace_utils:debug_fmt( "Completions are: ~p", [ Completions ] ) ),
+
+	case Completions of
+
+		% Nothing suggested, nothing to do:
+		[] ->
+			GUIShellState#gui_shell_state{ text_edit=NewTextEdit };
+
+		[ SingleCompletion ] ->
+			CompletedTextEdit = text_edit:append_string_truncate(
+				SingleCompletion, NewTextEdit ),
+
+			apply_text_and_cursor_to_end( CompletedTextEdit, CmdEditor ),
+			GUIShellState#gui_shell_state{ text_edit=CompletedTextEdit };
+
+		_ ->
+			CompMenu = gui_menu:create(),
+
+			gui:subscribe_to_events( { onItemSelected, CompMenu } ),
+
+			% For testing:
+			%[ gui_menu:add_item(M, text_utils:integer_to_string( I ) )
+			%   || I <- lists:seq(1, 15 )  ],
+
+			[ gui_menu:add_item( CompMenu, C ) || C <- Completions],
+
+			% wxTextCtrl:positionToXY/2 is of no use here, as PositionToCoords()
+			% is not implemented in wx; and with wxWidgets it does not seem
+			% possible to determine a priori the size of a popup, which would be
+			% needed to place it properly onscreen.
+
+			CharWidth = GUIShellState#gui_shell_state.command_char_width,
+
+			% Relatively to the command editor widget:
+			XOffset = 0,
+
+			XPopup = XOffset
+				+ text_edit:get_cursor_position( TextEdit ) * CharWidth,
+
+			YOffset = 15,
+			YPopup = YOffset - gui_menu:get_height( CompMenu ),
+
+			% Certainly more relevant than gui_select_box:
+			gui_menu:activate_as_popup( CompMenu, CmdEditor,
+										{ XPopup, YPopup } ),
+
+			GUIShellState#gui_shell_state{ text_edit=NewTextEdit }
+
+	end.
+
+
+
+-doc "Handles the validation of the current command.".
 -spec handle_command_validation( text_editor(), text_edit(),
 								 gui_shell_state() ) -> gui_shell_state().
 handle_command_validation( CmdEditor, TextEdit, GUIShellState ) ->
@@ -996,23 +1143,70 @@ prepare_new_command( BaseText, ProcessTE, MaybeTmstpBinStr, CmdEditor,
 
 
 
+-doc """
+Sets the specified text in the specified editor, and synchronises the cursor
+position to the one corresponding to the specified text edit.
+""".
+-spec apply_text_and_set_cursor( text_edit(), text_editor() ) -> void().
+apply_text_and_set_cursor( TextEdit, CmdEditor ) ->
+
+	Text = text_edit:get_full_text( TextEdit ),
+
+	cond_utils:if_defined( myriad_debug_gui_shell,
+		trace_utils:debug_fmt( "Applying full text (set): '~ts'.",
+							   [ Text ] ) ),
+
+	% Useless:
+	%gui_text_editor:clear( CmdEditor ),
+
+	gui_text_editor:set_text( CmdEditor, Text ),
+
+	Pos = text_edit:get_cursor_position( TextEdit ),
+
+	% As cursor position has been reset to first position, if the text changed:
+	gui_text_editor:set_cursor_position( CmdEditor, Pos ).
+
+
+
+-doc """
+Sets the specified text in the specified editor, and sets the cursor position to
+the end of it.
+""".
+-spec apply_text_and_cursor_to_end( text_edit(), text_editor() ) -> void().
+apply_text_and_cursor_to_end( TextEdit, CmdEditor ) ->
+
+	% Useless:
+	%gui_text_editor:clear( CmdEditor ),
+
+	Text = text_edit:get_full_text( TextEdit ),
+
+	cond_utils:if_defined( myriad_debug_gui_shell,
+		trace_utils:debug_fmt( "Applying full text (to end) '~ts'.",
+							   [ Text ] ) ),
+
+	% Useless:
+	%gui_text_editor:clear( CmdEditor ),
+
+	gui_text_editor:set_text( CmdEditor, Text ),
+
+	% As cursor position has been reset to first position, if the text changed:
+	gui_text_editor:set_cursor_position_to_end( CmdEditor ).
+
 
 
 -doc """
 Sets the specified text in the specified editor.
 
-Does not alter the cursor position.
+Does not alter the current cursor position.
 """.
--spec apply_text( text_edit(), text_editor() ) -> void().
-apply_text( TextEdit, CmdEditor ) ->
+-spec apply_text_fixed_cursor( text_edit(), text_editor() ) -> void().
+apply_text_fixed_cursor( TextEdit, CmdEditor ) ->
 
 	Text = text_edit:get_full_text( TextEdit ),
 
 	cond_utils:if_defined( myriad_debug_gui_shell,
-		trace_utils:debug_fmt( "Applying full text: '~ts'.", [ Text ] ) ),
-
-	% Useless:
-	%gui_text_editor:clear( CmdEditor ),
+		trace_utils:debug_fmt( "Applying (fixed) full text: '~ts'.",
+							   [ Text ] ) ),
 
 	% Will have to be restored, as setting bound to put it at end:
 	SavedPos = gui_text_editor:get_cursor_position( CmdEditor ),
@@ -1020,9 +1214,6 @@ apply_text( TextEdit, CmdEditor ) ->
 	gui_text_editor:set_text( CmdEditor, Text ),
 
 	gui_text_editor:set_cursor_position( CmdEditor, SavedPos ).
-
-	% Wrong, we may edit in-text:
-	%gui_text_editor:set_cursor_position_to_end( CmdEditor ).
 
 
 
@@ -1114,7 +1305,8 @@ get_help() ->
 	- Delete: delete any character at cursor
 	- Backspace: delete any character just previous cursor
 	- Left/Right arrows: move one character left/right in the command line
-	- Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if the duplications remain stored in history intentionally)
+	- Up/Down: recall previous/next command(s) (note that, for a more convenient navigation in history, all series of a duplicated command are replaced by a single instance thereof - even if, intentionally, the actual duplications remain stored in history)
+	- Tab: tries to auto-complete the current command; adds the longest possible single completion and, if multiple options remain, display a popup that let one of them (browsed via the Up/Down keyboard arrows, or PageUp/PageDown) be selected (via the Return/Enter keys) , or have it dismissed (via the Escape key)
 	- Return/Enter: triggers the currently edited command
 
 	Text can be intentionally:

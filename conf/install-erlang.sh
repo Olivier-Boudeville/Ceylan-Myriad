@@ -62,8 +62,9 @@ fi
 # As for erlang_commit_id_for_* (Git commit of the release; currently not used),
 # it is just obtained from (some) downloaded source archive.
 
+erlang_sha512_for_27_2="3216d41cdde40764f3a39c219f2b5f85d50c2cc7ddd20573d785b1eb84f9500796fffe39956778e46de68652e9b934d8ee33e21f86c1e6f39ad7ace47debcde1"
 
-#erlang_sha512_for_27_1_0="2841e0f94e9bd939280eaa38c47d0c5a2f12c8a47c8ec676cfdcc1e04213d8ed1a37b70689826b53656b84e8f37ab4242bf9c75861e0a05a48a9a942bff6c20e"
+#erlang_sha512_for_27_1="2841e0f94e9bd939280eaa38c47d0c5a2f12c8a47c8ec676cfdcc1e04213d8ed1a37b70689826b53656b84e8f37ab4242bf9c75861e0a05a48a9a942bff6c20e"
 
 erlang_sha512_for_27_1="e923c063db63cab1946adede122887841503201f13244e42134845ad7ac3d456f2f48b735d147aea145f093b26ffc03dce36cd3a9ec8bf6c7bb598cf389f8813"
 #erlang_commit_id_for_27_1_0="g9ae2ef5"
@@ -117,11 +118,11 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 # (refer to https://github.com/erlang/otp/releases/download/ to obtain the right
 # versions)
 #
-erlang_version="27.1"
-#erlang_version="27.1.0"
+erlang_version="27.2"
+#erlang_version="27.1"
 
-erlang_sum="${erlang_sha512_for_27_1}"
-#erlang_sum="${erlang_sha512_for_27_1_0}"
+erlang_sum="${erlang_sha512_for_27_2}"
+#erlang_sum="${erlang_sha512_for_27_1}"
 
 #erlang_commit_id="${erlang_commit_id_for_27_1_0}"
 
@@ -129,8 +130,8 @@ erlang_sum="${erlang_sha512_for_27_1}"
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="27.0" # "26.2.1"
-erlang_sum_candidate="${erlang_sha512_for_27_0}"
+erlang_version_candidate="27.1" # "26.2.1"
+erlang_sum_candidate="${erlang_sha512_for_27_1}"
 #erlang_commit_id_candidate=""
 
 base_install_dir="${HOME}/Software/Erlang"
@@ -579,6 +580,14 @@ if [ $do_download -eq 0 ]; then
 	# However we check it is not already available in the current directory:
 	if [ -f "${erlang_src_archive}" ]; then
 
+		if [ -z "${erlang_sum}" ]; then
+
+			echo "  Error, no Erlang checksum available for this version." 1>&2
+
+			exit 55
+
+		fi
+
 		sum_res=$(${sha512sum} "${erlang_src_archive}")
 
 		computed_sum=$(echo "${sum_res}" | awk '{printf $1}')
@@ -660,6 +669,14 @@ fi
 if [ ! ${src_checked} -eq 0 ]; then
 
 	echo "Checksum for ${erlang_src_archive}"
+
+	if [ -z "${erlang_sum}" ]; then
+
+		echo "  Error, no Erlang checksum available for this version." 1>&2
+
+		exit 65
+
+	fi
 
 	sum_res=$(${sha512sum} "${erlang_src_archive}")
 

@@ -68,11 +68,6 @@ returned and complies with this type.
 
 
 
--doc "Describes a mask of bits.".
--type bit_mask() :: integer().
-
-
-
 -doc "Describes an (Erlang, inter-process) messsage.".
 -type message() :: any().
 
@@ -417,7 +412,7 @@ eliminate afterwards).
 
 
 -export_type([ void/0, count/0, non_null_count/0, level/0,
-			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
+			   message/0, pid_or_port/0, atom_key/0,
 			   reason/0, exit_reason/0, error_reason/0,
 			   error_diagnosis/0, error_bin_diagnosis/0,
 			   error_type/0, error_tuploid/0, error_message/0,

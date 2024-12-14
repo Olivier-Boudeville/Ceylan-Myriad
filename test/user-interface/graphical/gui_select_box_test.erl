@@ -23,13 +23,12 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: Wednesday, July 17, 2024.
+% Creation date: Sunday, December 8, 2024.
 
--module(gui_shell_test).
+-module(gui_select_box_test).
 
 -moduledoc """
-Unit tests for the management of the **shell components**, providing access
-graphically to an Erlang interpreter.
+Unit tests for the management of **selection boxes**.
 """.
 
 
@@ -38,15 +37,17 @@ graphically to an Erlang interpreter.
 
 
 -doc """
-Here the main loop just has to remember the frame whose closing is awaited for.
+Here the main loop just has to remember the frame whose closing is awaited for,
+and the test selection box.
 """.
--type my_test_state() :: shell().
+-type my_test_state() :: { frame(), select_box() }.
 
 
 
 % Type shorthands:
 
--type shell() :: gui_shell:shell().
+-type frame() :: gui_frame:frame().
+-type select_box() :: gui_select_box:select_box().
 
 
 
@@ -54,28 +55,28 @@ Here the main loop just has to remember the frame whose closing is awaited for.
 -spec run_gui_test() -> void().
 run_gui_test() ->
 
-	test_facilities:display( "~nStarting the GUI shell test." ),
+	test_facilities:display( "~nStarting the selection box test." ),
 
 	gui:start(),
 
-	Frame = gui_frame:create( "This is the overall frame for GUI shell testing",
-							  _Size={ 1024, 768 } ),
 
-	%ShellOpts = [],
-	ShellOpts = [ timestamp, log, focused, auto_parenthesis,
-				  auto_add_trailing_dot,
-				  { histories, _MaxCmdDepth=15, _MaxResDepth=20 }
-				  %persistent_command_history
-				  %{ callback_module, foo }
-				],
+	Frame = gui_frame:create(
+		"This is the overall frame for selection box testing",
+		_Size={ 1280, 1024 } ),
 
-	gui_shell:create( _FontSize=10, ShellOpts, _ParentWin=Frame ),
+	Panel = gui_panel:create( Frame ),
 
-	gui:subscribe_to_events( { onWindowClosed, Frame } ),
+	Items = [ "First item", "Second item", "Third item" ],
+
+	SelBox = gui_select_box:create( Items, _Parent=Panel ),
+	% No specific need to call gui:layout/1 or gui:{refresh,update}/1.
+
+	gui:subscribe_to_events( [ { onWindowClosed, Frame } ] ),
+	%						   { onButtonToggled, ToggleButton } ),
 
 	gui_frame:show( Frame ),
 
-	test_main_loop( _InitialState=Frame ).
+	test_main_loop( _InitialState={ Frame, SelBox } ).
 
 
 
@@ -85,23 +86,33 @@ corresponding to the frame that shall be closed to stop the test
 (i.e. CloseFrame).
 """.
 -spec test_main_loop( my_test_state() ) -> no_return().
-test_main_loop( State=Frame ) ->
+test_main_loop( State={ Frame, _SelBox } ) ->
 
 	trace_utils:info( "Test main loop running..." ),
 
 	receive
 
 		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
-			trace_utils:info( "Main frame has been closed; test success." ),
-			gui_frame:destruct( Frame ),
-			gui:stop();
+			trace_utils:info( "Main frame has been closed." ),
+			stop( State );
 
 		Other ->
-			trace_utils:warning_fmt( "Test main loop ignored the following "
-									 "message:~n ~p.", [ Other ] ),
+			trace_utils:warning_fmt( "Test main loop ignored following "
+									 "message: ~p.", [ Other ] ),
 			test_main_loop( State )
 
 	end.
+
+
+stop( _State={ Frame, SelBox } ) ->
+	trace_utils:info( "Test success, destructing widgets." ),
+
+	gui_select_box:destruct( SelBox ),
+
+	gui_frame:destruct( Frame ),
+
+	trace_utils:info( "Stopping." ),
+	gui:stop().
 
 
 

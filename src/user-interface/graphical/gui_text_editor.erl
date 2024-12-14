@@ -140,7 +140,8 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 		  set_text/2, add_text/2, clear/1,
 		  show_position/2, show_text_end/1, get_last_position/1,
 		  set_cursor_position/2, set_cursor_position_to_end/1,
-		  get_cursor_position/1, offset_cursor_position/2 ]).
+		  get_cursor_position/1, offset_cursor_position/2,
+		  set_from/2 ]).
 
 
 % For related defines:
@@ -149,6 +150,9 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 % For related, internal, wx-related defines:
 -include("gui_internal_defines.hrl").
 
+
+% Usage hints: to determine character/line sizes, rely on the underlying font
+% (e.g. gui_font:get_{precise_,}text_extent/*).
 
 
 % Implementation section:
@@ -161,6 +165,7 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 %
 % wxWidgets' insertion point is translated here as cursor (caret) position.
 
+% Unfortunately, wx (with wxTextCtrl) does not implement PositionToCoords().
 
 
 % Type shorthands:
@@ -168,6 +173,8 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
 -type text() :: ui:text().
+
+-type text_edit() :: text_edit:text_edit().
 
 -type parent() :: gui:parent().
 -type point() :: gui:point().
@@ -350,6 +357,14 @@ offset_cursor_position( Editor, PosOffset ) ->
 	set_cursor_position( Editor, NewPos ),
 	%trace_utils:debug_fmt( "New offset cursor position: ~B.", [ NewPos ] ),
 	NewPos.
+
+
+-doc "Sets the specified text editor based on the specified text edit.".
+-spec set_from( text_editor(), text_edit() ) -> void().
+set_from( Editor, TE ) ->
+	{ FullText, CursorPos } = text_edit:get_full_text_with_cursor( TE ),
+	set_text( Editor, FullText ),
+	set_cursor_position( Editor, CursorPos ).
 
 
 

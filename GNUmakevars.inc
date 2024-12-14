@@ -233,6 +233,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_buttons
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_select_boxes
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_shell

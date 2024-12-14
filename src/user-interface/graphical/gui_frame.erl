@@ -149,7 +149,7 @@ See also <http://docs.wxwidgets.org/stable/classwx_frame.html>.
 
 % Type shorthands:
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type any_file_path() :: file_utils:any_file_path().
 
