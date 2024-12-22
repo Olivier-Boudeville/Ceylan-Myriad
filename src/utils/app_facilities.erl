@@ -35,6 +35,11 @@ See also the preferences module for application preferences.
 """.
 
 
+% Note that if this module is found missing by rebar3, this means most probably
+% that Myriad as a whole is not found ('app_facilities' being the first listed
+% in ebin/myriad.app).
+
+
 -export([ start/1, stop/0,
 		  get_app_info/1, get_app_info/2, get_app_info/3, get_app_info_map/1,
 		  display/1, display/2, fail/1, fail/2, finished/0 ] ).
@@ -71,7 +76,7 @@ paths.
 -export_type([ app_info/0, app_info_map/0, any_app_info/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type any_version() :: basic_utils:any_version().
 
@@ -202,8 +207,7 @@ get_app_info_map( #app_info{ name=BinAppName,
 
 	end,
 
-	BaseMap = #{ name => BinAppName,
-				 os => OSType },
+	BaseMap = #{ name => BinAppName, os => OSType },
 
 	VersionMap = case MaybeAppVersion of
 
