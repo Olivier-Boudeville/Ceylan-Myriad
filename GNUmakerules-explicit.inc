@@ -640,7 +640,14 @@ rebar3-application: rebar3-real-clean clean rebar3-update set-rebar-conf \
 	@$(MAKE) -s rebar3-restore-unsupported-sources
 
 
-# Upgrades the rebar.lock file, regarding the dependencies of the current layer.
+# Upgrades the rebar.lock file (which must be kept in source control), regarding
+# the dependencies of the current layer.
+#
+# In practice, upgrading will rely on the information in
+# conf/rebar.config.template, typically for the Git URL and branch.
+#
+# Use 'rebar3 tree' for more detailed information. Refer to
+# https://www.rebar3.org/docs/configuration/dependencies/ for documentation.
 #
 # ebin/THIS_PACKAGE.app is necessary, as otherwise: 'Cannot read app file:
 #  "[...]/src/THIS_PACKAGE.app.src"'.
