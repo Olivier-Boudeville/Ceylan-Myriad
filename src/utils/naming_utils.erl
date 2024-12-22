@@ -114,7 +114,7 @@ registered.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type atom_node_name() :: net_utils:atom_node_name().
 
