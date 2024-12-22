@@ -270,7 +270,7 @@ Myriad is not an *active* OTP application, and as such does not rely on, or prov
 Getting rebar3
 ..............
 
-There are `various ways <https://www.rebar3.org/docs/getting-started>`_  for obtaining ``rebar3``; we prefer:
+There are `various ways <https://www.rebar3.org/docs/getting-started>`_  of obtaining ``rebar3``; we prefer:
 
 .. code:: bash
 
