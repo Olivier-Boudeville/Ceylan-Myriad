@@ -2412,50 +2412,53 @@ interpret_options( OptionList,
 scan_options( _OptionList=[], OptionTable ) ->
 	OptionTable;
 
-% For example {d,myriad_debug_mode}
+% For example {d,myriad_debug_mode}:
 scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
+	% No duplication check:
 	NewOptionTable = ?table:append_to_entry( _K=Name, Value, OptionTable ),
 	scan_options( T, NewOptionTable );
 
-% For example {d,my_second_test_token,200}
+% For example {d,my_second_test_token,200}:
 scan_options( _OptionList=[ { Name, BaseValue, OtherValue } | T ],
 			  OptionTable ) ->
+	% No duplication check either:
 	NewOptionTable = ?table:append_to_entry( _K=Name, { BaseValue, OtherValue },
 											 OptionTable ),
 	scan_options( T, NewOptionTable );
 
-% For example report_errors
+% For example 'report_errors':
 scan_options( _OptionList=[ Name | T ], OptionTable ) when is_atom( Name ) ->
 
-	% No clash wanted, throws an exception is the same key appears more than
+	% No clash was wanted, threw an exception if the same key appeared more than
 	% once:
 	%
-	NewOptionTable = ?table:add_new_entry( _K=Name, undefined, OptionTable ),
+	%NewOptionTable = ?table:add_new_entry( _K=Name, undefined, OptionTable ),
 
 	% Alternatively we may just warn if a key already exists, should the Myriad
 	% parse transform have to compile, notably through includes (such as
-	% "wf.hrl" in nitrogen_core), code including compilation options that are
-	% already defined (e.g. '-compile(debug_info)'):
+	% "wf.hrl" in nitrogen_core), code including compilation options that happen
+	% to be already defined (e.g. '-compile(debug_info)'):
 	%
-	%NewOptionTable = case ?table:lookup_entry( _K=Name, OptionTable ) of
-	%
-	%   % Perfect case:
-	%   key_not_found ->
-	%       ?table:add_entry( Name, undefined, OptionTable );
-	%
-	%   % Now acceptable (multiple, identical definitions):
-	%   { value, undefined } ->
-	%       OptionTable;
-	%
-	%   { value, OptValue } ->
-	%
-	%       Msg = io_lib:format( "The compilation option '~ts' was already "
-	%           "defined, with following value set: ~p.",
-	%           [ Name, OptValue ] ),
-	%
-	%       ast_utils:raise_error( Msg )
-	%
-	%end,
+	NewOptionTable = case ?table:lookup_entry( _K=Name, OptionTable ) of
+
+		% Usual, no problem case (defined once, at this point):
+		key_not_found ->
+			?table:add_entry( Name, undefined, OptionTable );
+
+		% Now acceptable (multiple, identical definitions):
+		{ value, undefined } ->
+		   OptionTable;
+
+		% Clashing definitions:
+		{ value, OptValue } ->
+
+			Msg = io_lib:format( "The compilation option '~ts' was already "
+				"defined, and with following value set: ~p.",
+				[ Name, OptValue ] ),
+
+			ast_utils:raise_error( Msg )
+
+	end,
 
 	scan_options( T, NewOptionTable );
 
