@@ -105,7 +105,7 @@ Example: $(basename $0) -v --ln ceylan --eval 'class_TimeManager_test:run()'
 
 
 # Should the Erlang VM crash, the terminal (console) may not recover well (e.g.
-# no more echoing of the typed characters)
+# no more echoing of the typed characters).
 #
 # (obtained thanks to a diff of 'stty --all' before and after the issue)
 #
@@ -114,6 +114,9 @@ Example: $(basename $0) -v --ln ceylan --eval 'class_TimeManager_test:run()'
 reset_keyboard()
 {
 
+	# May result, in some cases, on: "/bin/stty: 'standard input': Inappropriate
+	# ioctl for device":
+	#
 	/bin/stty -brkint -ignpar icrnl -imaxbel opost icanon echo
 	echo
 
@@ -1040,23 +1043,27 @@ else
 
 	fi
 
+	if [ ! ${res} -eq 0 ]; then
+
+		# Dispensable:
+		#echo "(launch command success reported)"
+		:
+
+		reset_keyboard
+		echo "(launch command failed, with error result ${res})" 1>&2
+		exit ${res}
+
+	else
+
+		# Dispensable:
+		#echo "(launch command success reported)"
+		:
+
+	fi
+
 fi
 
 
-# However run_erl may return 0 despite errors:
-if [ ! ${res} -eq 0 ]; then
-
-	reset_keyboard
-	echo "(launch command failed, with error result ${res})" 1>&2
-	exit ${res}
-
-elif [ ${use_run_erl} -eq 1 ]; then
-
-	# Dispensable:
-	#echo "(launch command success reported)"
-	:
-
-fi
 
 #pid=$!
 
