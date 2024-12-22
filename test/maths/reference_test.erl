@@ -41,8 +41,6 @@ See the reference_{frame,frame3,tree} tested modules.
 
 -import(reference_tree, [ ref3_to_string/2 ]).
 
--compile(nowarn_unused_vars).
-
 
 
 -spec run() -> no_return().
