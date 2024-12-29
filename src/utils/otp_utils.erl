@@ -53,7 +53,7 @@ tested application, the build trees of its prerequisites can be found (e.g. as
 
 
 -doc """
-Name of an OTP application as a string (e.g. "myriad").
+Name of an OTP application, as a string (e.g. "myriad").
 """.
 -type string_application_name() :: ustring().
 
@@ -200,6 +200,7 @@ gen_server:handle_{cast,continue,info}/2.
 -type time_out() :: time_utils:time_out().
 
 
+% Information regarding a (generally prerequisite, OTP) application:
 -record( app_info, {
 
 	% Stored here also only for convenience:
@@ -217,7 +218,6 @@ gen_server:handle_{cast,continue,info}/2.
 
 	% As contained in its .app file:
 	spec :: app_spec() } ).
-
 
 
 -doc "Information regarding a (generally prerequisite, OTP) application.".
@@ -405,15 +405,16 @@ prepare_for_execution( AppNames, BaseDir, BlacklistedApps )
 
 
 
-% Manages the specified application and, recursively, all its prerequisites
-% (direct or not), if any: checks that their .app specification can be found,
-% that they are built, updates the code path accordingly and lists the active
-% ones.
-%
-% Called recursively (through prepare_for_execution/3).
-%
-% (helper)
-%
+-doc """
+Manages the specified application and, recursively, all its prerequisites
+(direct or not), if any: checks that their .app specification can be found,
+that they are built, updates the code path accordingly and lists the active
+ones.
+
+Called recursively (through prepare_for_execution/3).
+
+(helper)
+""".
 -spec prepare_for_exec( [ application_name() ], abs_directory_path(),
 			[ application_name() ], [ application_name() ], app_table() ) ->
 				{ [ application_name() ], app_table() }.
@@ -596,10 +597,14 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 								"dependency, based on '~ts'.",
 								[ AppName, DepAppPath ] ),
 
+							% In reverse searched order:
+							FailedLocs = [ CheckBuildAppPath, CheckLocalAppPath,
+										   ThisAppFilePath ],
+
 							% To avoid insane nesting:
 							try_next_locations( AppName, AppNameStr,
 								AppFilename, DepEBinDir, DepAppPath,
-								AbsBaseDir )
+								AbsBaseDir, FailedLocs )
 
 					end
 
@@ -628,7 +633,7 @@ generate_app_info( AppName, AbsBaseDir, AppTable ) ->
 
 % (helper)
 try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
-					AbsBaseDir ) ->
+					AbsBaseDir, FailedLocs ) ->
 
 	case file_utils:is_existing_file_or_link( DepAppPath ) of
 
@@ -682,8 +687,10 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 							{ SibBuildAppPath, SibBuildEbinDir, SibBaseDir };
 
 						false ->
+							NextFailedLocs =
+								[ SibLocalAppPath, DepAppPath | FailedLocs ],
 							try_last_locations( AppName, AppFilename,
-												AbsBaseDir )
+												AbsBaseDir, NextFailedLocs )
 
 					end
 
@@ -695,7 +702,7 @@ try_next_locations( AppName, AppNameStr, AppFilename, DepEBinDir, DepAppPath,
 % Trying #5, i.e. as a standard OTP application:
 %
 % (helper)
-try_last_locations( AppName, AppFilename, AbsBaseDir ) ->
+try_last_locations( AppName, AppFilename, AbsBaseDir, FailedLocs ) ->
 
 	?debug_fmt( "[5] Application '~ts' not found as a sibling, "
 				"trying as a standard OTP application.", [ AppName ] ),
@@ -703,8 +710,14 @@ try_last_locations( AppName, AppFilename, AbsBaseDir ) ->
 	case code:lib_dir( AppName ) of
 
 		{ error, bad_name } ->
+
+			LocStr = text_utils:strings_to_enumerated_string(
+				lists:reverse( FailedLocs ) ),
+
 			trace_bridge:error_fmt( "Application '~ts' not found in any of "
-				"the supported locations.", [ AppName ] ),
+				"the supported locations, namely (in order): ~ts.",
+				[ AppName, LocStr ] ),
+
 			throw( { application_not_found, AppName, AppFilename,
 					 text_utils:ensure_string( AbsBaseDir ) } );
 
@@ -723,6 +736,10 @@ try_last_locations( AppName, AppFilename, AbsBaseDir ) ->
 
 				% Abnormal:
 				false ->
+
+					LocStr = text_utils:strings_to_enumerated_string(
+						lists:reverse( [ AbsStdPath | FailedLocs ] ) ),
+
 					trace_bridge:error_fmt( "No application information found "
 						"for the '~ts' OTP application (searched in turn in "
 						"local ebin, rebar3 _checkouts or _build directory, "
@@ -730,8 +747,9 @@ try_last_locations( AppName, AppFilename, AbsBaseDir ) ->
 						"application; this execution thus cannot be performed "
 						"(one may run beforehand, if relevant, "
 						"'make rebar3-compile' at the root of the ~ts source "
-						"tree for a more relevant testing).",
-						[ AppName, AbsBaseDir ] ),
+						"tree for a more relevant testing). "
+						"Searched locations were (in-order): ~ts",
+						[ AppName, AbsBaseDir, LocStr ] ),
 					throw( { otp_app_file_not_found, AppName, AppFilename,
 							 StdAppPath } )
 
