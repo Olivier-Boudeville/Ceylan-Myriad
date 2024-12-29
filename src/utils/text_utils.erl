@@ -1210,7 +1210,7 @@ strings_to_string_helper( _Strings=[ H | _T ], _Acc, _Bullet ) ->
 
 -doc """
 Returns a string that pretty-prints the specified list of strings, with
-enumerated (that is 1, 2, 3) bullets, not specifically indented.
+enumerated (that is 1, 2, 3) bullets, not specifically indented as a whole.
 """.
 -spec strings_to_enumerated_string( [ string_like() ] ) -> ustring().
 strings_to_enumerated_string( Strings ) ->
