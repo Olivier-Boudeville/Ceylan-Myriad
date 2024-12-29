@@ -715,7 +715,7 @@ try_last_locations( AppName, AppFilename, AbsBaseDir, FailedLocs ) ->
 				lists:reverse( FailedLocs ) ),
 
 			trace_bridge:error_fmt( "Application '~ts' not found in any of "
-				"the supported locations, namely (in order): ~ts.",
+				"the supported locations, namely (in order): ~ts",
 				[ AppName, LocStr ] ),
 
 			throw( { application_not_found, AppName, AppFilename,
