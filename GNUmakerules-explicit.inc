@@ -993,7 +993,7 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 #
 # Note that, here, only the content of the 'src' and 'include' tree is
 # synchronised (e.g. not the makefiles, not the configuration files, etc. that
-# are elsewhere); see the next 'sync-all-to-server' server.
+# are elsewhere); see the next 'sync-all-to-server' target.
 #
 sync-sources-to-server: all
 	@echo "  Synchronising the selected source content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
@@ -1006,7 +1006,8 @@ sync-sources-to-server: all
 #
 # A rebuild is triggered just before, as the BEAM files are transferred as well:
 # at arrival timestamps may not be respected, and we want the right BEAMs to be
-# executed.
+# executed. On the server, some log files may fail to be updated (not a real
+# problem).
 #
 sync-all-to-server: all
 	@echo "  Synchronising the full content of the $$(basename $$(pwd)) layer to $(WEB_SRV):$(CEYLAN_SYNC_TARGET_ROOT)"
