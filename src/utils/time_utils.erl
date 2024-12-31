@@ -1264,11 +1264,11 @@ time_to_seconds( { Hours, Minutes, Seconds } ) ->
 Returns the signed duration, in integer seconds, between the two specified
 times.
 
-A positive duration will be returned iff the first specified time is before the
-second one.
+A positive duration will be returned iff the first specified time (the "start"
+one) is before the second one (the "stop" one).
 """.
 -spec get_intertime_duration( time(), time() ) -> seconds().
-get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
+get_intertime_duration( _Start={ H1, M1, S1 }, _Stop={ H2, M2, S2 } ) ->
 	( ( H2 - H1 ) * 60 + ( M2 - M1 ) ) * 60 + ( S2 - S1 ).
 
 
