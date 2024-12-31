@@ -374,7 +374,7 @@ common to these samples.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type positive_index() :: basic_utils:positive_index().
 -type count() :: basic_utils:count().
