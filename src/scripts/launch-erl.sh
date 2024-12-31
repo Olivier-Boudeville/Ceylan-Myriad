@@ -1086,8 +1086,11 @@ if [ ${use_run_erl} -eq 0 ] && [ ${autostart} -eq 0 ]; then
 	# Wait for creation:
 
 	# Number of seconds before time-out:
-	wait_max=60
+	#wait_max=60
 	#wait_max=8
+
+	# Sufficient:
+	wait_max=15
 
 	wait_count=0
 
