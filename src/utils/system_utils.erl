@@ -208,7 +208,7 @@ Name of a (third-party) prerequisite package (e.g. "ErlPort", "jsx", etc.).
 		  get_dependency_base_directory/1, get_dependency_code_directory/1,
 
 		  is_json_support_available/0,
-		  get_json_unavailability_hint/0, get_json_unavailability_hint/1,
+		  get_json_unavailability_hint/0,
 
 		  is_hdf5_support_available/0, get_hdf5_unavailability_hint/0  ]).
 
@@ -3642,31 +3642,9 @@ available.
 """.
 -spec get_json_unavailability_hint() -> ustring().
 get_json_unavailability_hint() ->
-	get_json_unavailability_hint( _Backend=undefined ).
+	json_utils:get_json_unavailability_hint( _Backend=undefined ).
 
 
-
--doc """
-Returns a string explaining what to do in order to have the JSON support with
-the specified backend available.
-""".
--spec get_json_unavailability_hint( json_utils:parser_backend_name() ) ->
-										ustring().
-get_json_unavailability_hint( _Backend=undefined ) ->
-	% Note: the hints are *not* truncated here, this is normal:
-	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JSX_BASE / JIFFY_BASE runtime variables, knowing that the "
-		++ code_utils:get_code_path_as_string();
-
-get_json_unavailability_hint( _Backend=jsx ) ->
-	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JSX_BASE runtime variables, knowing that the "
-		++ code_utils:get_code_path_as_string();
-
-get_json_unavailability_hint( _Backend=jiffy ) ->
-	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
-	"JIFFY_BASE runtime variables, knowing that the "
-		++ code_utils:get_code_path_as_string().
 
 
 

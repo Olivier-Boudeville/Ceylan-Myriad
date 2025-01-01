@@ -105,7 +105,9 @@ run_stateless_testing() ->
 
 			{ TermToEncode, ExpectedJsonEncoded } = get_encoding_sample(),
 
-			case json_utils:to_json( TermToEncode ) of
+			% As iodata() might be returned;
+			case text_utils:io_to_binary(
+				   json_utils:to_json( TermToEncode ) ) of
 
 				ExpectedJsonEncoded ->
 					ok;
@@ -322,6 +324,7 @@ run() ->
 
 	end,
 
+	compare_with_if_available( MaybeAnyJsonDecodedTerm, json ),
 	compare_with_if_available( MaybeAnyJsonDecodedTerm, jsx ),
 	compare_with_if_available( MaybeAnyJsonDecodedTerm, jiffy ),
 

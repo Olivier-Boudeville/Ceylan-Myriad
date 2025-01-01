@@ -128,7 +128,7 @@ See text_utils_test.erl for the corresponding test.
 		  get_unique_string/2,
 		  safe_length/1, length/1,
 		  uppercase_initial_letter/1, to_lowercase/1, to_uppercase/1,
-		  flatten/1,
+		  flatten/1, io_to_binary/1,
 		  join/2, bin_join/2,
 
 		  split/2,
@@ -3659,6 +3659,17 @@ most standard functions can deal with them.
 -spec flatten( io_list() ) -> ustring().
 flatten( IOList ) ->
 	lists:flatten( IOList ).
+
+
+
+-doc """
+Returns a binary string corresponding to the specified io_data (i.e. already a
+binary, or an iolist()).
+""".
+-spec io_to_binary( io_data() ) -> bin_string().
+io_to_binary( IOData ) ->
+	iolist_to_binary( IOData ).
+
 
 
 
