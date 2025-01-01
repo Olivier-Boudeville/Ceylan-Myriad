@@ -115,7 +115,7 @@ have been back-ported to the other table types.
 			   map_hashtable/0, map_hashtable/2 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 % As this module is not parse-transformed:
 %
@@ -344,7 +344,6 @@ exception is thrown).
 """.
 -spec add_new_entries( entries(), map_hashtable() ) -> map_hashtable().
 add_new_entries( Entries, MapHashtable ) ->
-
 	lists:foldl( fun( { K, V }, Map ) ->
 					add_new_entry( K, V, Map )
 				 end,
@@ -909,7 +908,7 @@ fold/3 may be preferred (being more efficient) to this version.
 					   accumulator(), map_hashtable() ) -> accumulator().
 fold_on_entries( Fun, InitialAcc, MapHashtable ) ->
 
-	% Not exactly as maps:fold/3: we want f({K,V }, Acc), not f(K, V, Acc).
+	% Not exactly as maps:fold/3: we want f({K,V}, Acc), not f(K, V, Acc).
 
 	ConversionFun = fun( K, V, Acc ) ->
 						Fun( { K, V }, Acc )
