@@ -228,9 +228,11 @@ Besides the support for XML, an optional support (as it depends on third-party p
 - HDF5
 - SQLite
 
+
 .. _`XML use`:
 
-Some useful information for **XML use**:
+About XML use
+*************
 
 - Myriad's XML support is implemented by the ``xml_utils`` module (so one shall refer to ``xml_utils.{e,h}rl`` and ``xml_utils_test.erl``), which relies on the built-in ``xmerl`` modules
 - XML documents can be parsed from strings (see ``string_to_xml/1``) or files (see ``parse_xml_file/1``), and conversely can be serialised to strings (see ``xml_to_string/{1,2}``)
@@ -265,13 +267,14 @@ Refer to the ``xml_utils`` module for further details.
 
 .. _`JSON use`:
 
-Some useful information for **JSON use**:
+About JSON use
+**************
 
 - the nesting of elements shall be done thanks to (Erlang) maps, whose keys are binary strings (``text_utils:bin_string/0``); their order should not matter
 - it may thus be convenient to add ``-define(table_type, map_hashtable).`` in a user module, so that the ``table`` pseudo-module can be relied upon when building a ``json_term``, while being sure that the JSON parser at hand will be fed afterwards with the relevant datastructure
 - no comments shall be specified (even though some parsers may be configured to support them)
 - strings shall be specified as binary ones
-- the actual JSON backend used are either `jsx <https://github.com/talentdeficit/jsx/>`_ or `jiffy <https://github.com/davisp/jiffy>`_; to better understand their (mostly common) mapping between Erlang and JSON, one may refer to the `this section <https://github.com/talentdeficit/jsx/#json---erlang-mapping>`_ of the jsx documentation  and to `this one <https://github.com/davisp/jiffy#data-format>`_ regarding jiffy
+- the actual JSON backend used are any buit-in `json <https://www.erlang.org/doc/apps/stdlib/json.html>`_ one, otherwise `jsx <https://github.com/talentdeficit/jsx/>`_ or `jiffy <https://github.com/davisp/jiffy>`_; to better understand their (mostly common) mapping between Erlang and JSON, one may refer first to `this section of EEP 68 <https://github.com/erlang/eep/blob/master/eeps/eep-0068.md#data-mapping>`_, otherwise to `this section <https://github.com/talentdeficit/jsx/#json---erlang-mapping>`_ of the jsx documentation and to `this one <https://github.com/davisp/jiffy#data-format>`_ regarding jiffy
 
 Example:
 
@@ -398,7 +401,7 @@ Erlang supports, out of the box, `three main ASN.1 encodings <https://www.erlang
 
 - BER (`Basic Encoding Rules <https://en.wikipedia.org/wiki/X.690#BER_encoding>`_): a type-length-value encoding, too basic to be compact; its DER (for *Distinguished Encoding Rules*) variation is also available
 - PER (*Packed Encoding Rules*): a bit-level serialisation stream, either aligned to byte boundaries (PER) or not (UPER, for *Unaligned PER*); if both are very compact and complex to marshall/demarshall, it is especially true for the size/processing trade-off of UPER
-- JER (*JSON Encoding Rules*), hence based on JSON_
+- JER (*JSON Encoding Rules*), hence based on `JSON <#json-use>`_
 
 
 Our preference goes towards first UPER, then PER. A strength of ASN.1 is the expected ability to switch encodings easily; so, should the OER encoding (*Octet Encoding Rules*; faster to decode/encode than BER and PER, and almost as compact as PER) be supported in the future, it could be adopted "transparently".
