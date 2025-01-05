@@ -156,7 +156,8 @@ endif
 #  - lists: how lists are processed
 #  - datastructures: how (non-list) datastructures are processed
 #  - registration: regarding naming registering
-#  - csv_support: the support of CSV files
+#  - json_support: the support of JSON documents
+#  - csv_support: the support of CSV documents
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
 #  - environments: about the sharing/caching of application information (hence
@@ -213,6 +214,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_lists
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_datastructures
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_json_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
@@ -645,7 +647,13 @@ ifeq ($(USE_JSON),true)
 
 	# At least one parser backend shall then be selected:
 
-	# Default choice, should the JSON support be enabled:
+	# Default choice (built-in in Erlang 27.0 and more recent), should the JSON
+	# support be enabled:
+	#
+	USE_BUILTIN_JSON = true
+	#USE_BUILTIN_JSON = false
+
+	# Second default choice, should the JSON support be enabled:
 	USE_JSX = true
 	#USE_JSX = false
 
@@ -654,9 +662,9 @@ ifeq ($(USE_JSON),true)
 
 	ifeq ($(USE_JSX),true)
 
-		# JSX Installation section.
+		# jsx Installation section.
 
-		# The JSX JSON parser is available at
+		# The jsx JSON parser is available at
 		# https://github.com/talentdeficit/jsx.
 
 		# An install of it can be obtained thanks to (see also
@@ -684,7 +692,7 @@ ifeq ($(USE_JSON),true)
 		#JSON_OPT = -Duse_jsx_json_backend
 
 		# If the relevant USE_* variables are set to true, in the case of
-		# multiple dependencies involving Myriad, the same JSX lookup would be
+		# multiple dependencies involving Myriad, the same jsx lookup would be
 		# repeatedly done with different paths, possibly resulting in having the
 		# same install declared more than once in BEAM_DIRS, leading to a
 		# pseudo-clash of BEAM files (e.g. jsx.beam) being detected at runtime
@@ -727,7 +735,7 @@ ifeq ($(USE_JSON),true)
 			JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
 			JSX_SOFTWARE_EBIN := $(JSX_SOFTWARE_BASE)/ebin
 
-			# No includes for JSX:
+			# No includes for jsx:
 			#INC += -I$(JSX_REBAR_CHECKOUTS_BASE)/include -I$(JSX_REBAR_AS_DEP_BASE)/include -I$(JSX_REBAR_DIRECT_INSTALL_BASE)/include -I$(JSX_SOFTWARE_BASE)/include
 			# ($(JSX_*_BASE)/ebin/*.beam found at runtime)
 
@@ -768,7 +776,7 @@ ifeq ($(USE_JSON),true)
 							# No trailing dot shall be specified here
 							# (as it is automatically added):
 							#
-							FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD)))
+							FORCE_EVAL := $(error Unable to find a jsx installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD)))
 						endif
 					endif
 				endif
@@ -810,9 +818,12 @@ ifeq ($(USE_JSON),true)
 
 	endif
 
-	ifeq ($(USE_JSX),false)
-		ifeq ($(USE_JIFFY),false)
-			$(error JSON use enabled, yet no corresponding backend selected.)
+
+	ifeq ($(USE_BUILTIN_JSON),false)
+		ifeq ($(USE_JSX),false)
+			ifeq ($(USE_JIFFY),false)
+				$(error JSON use enabled, yet no corresponding backend selected.)
+			endif
 		endif
 	endif
 
@@ -1856,9 +1867,15 @@ TIME_OPTS =
 #TIME_OPTS = +C no_time_warp
 
 
-# Any extra options that shall be passed as it is to 'erl' through our launcher:
-EXTRA_OPTS = $(TIME_OPTS)
+# To disable non-systematic, unsolved warnings like "'global' at node
+# us_main@xxx requested disconnect from node 'us_main_controller_exec-uu@yyy' in
+# order to prevent overlapping partitions":
+#
+#DIST_OPTS := -kernel prevent_overlapping_partitions false
+DIST_OPTS :=
 
+# Any extra options that shall be passed as it is to 'erl' through our launcher:
+EXTRA_OPTS = $(TIME_OPTS) $(DIST_OPTS)
 
 
 
