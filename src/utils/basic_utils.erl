@@ -680,13 +680,15 @@ Interesting as more compact that a 'case' or a 'if' clause.
 and a good candidate for parse-transfrom based inlining. Note that due to strict
 evaluation, both arguments will always be evaluated.
 """.
-% First argument not necessarily boolean():
--spec if_else( term(), term(), term() ) -> term().
-if_else( _Condition=true, A, _B ) ->
-	A;
+% First argument not necessarily boolean(), just 'true' | T:
+-spec if_else( Condition :: term(),
+			   IfTrue :: term(), IfNotTrue :: term() ) -> term().
+if_else( _Condition=true, IfTrue, _IfNotTrue ) ->
+	IfTrue;
 
-if_else( _Condition, _A, B ) ->
-	B.
+if_else( _Condition, _IfTrue, IfNotTrue ) ->
+	IfNotTrue.
+
 
 
 -doc "Checks that the specified term is 'undefined', and returns it.".
