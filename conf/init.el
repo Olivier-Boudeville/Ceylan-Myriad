@@ -59,12 +59,17 @@
 
 ;; Defined early so that hooks can override it later:
 (straight-use-package 'whitespace)
+
 ;; Activated by default:
 (global-whitespace-mode 1)
 
-;; Don't enable whitespace for:
-(setq-default whitespace-global-modes
-			  '(not rust-mode))
+;; Don't enable whitespace (global mode) for:
+;; Does not work (always activated)
+;; setq-default whitespace-global-modes
+;;		  '(not erlang-mode))
+
+;; Not working:  '(and (not rust-mode) (not erlang-mode)))
+
 
 ;;(setq-default show-trailing-whitespace nil)
 ;;(setq whitespace-style '(space tabs lines-tail trailing empty indentation space-before-tab space-after-tab))
@@ -373,13 +378,14 @@ no longer be necessary."
 ;;  - or directly in the system tree (in /usr/local/lib/erlang/)
 
 (setq load-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/emacs" load-path))
-(setq load-path (cons "/usr/local/lib/erlang/emacs" load-path))
+;;(setq load-path (cons "/usr/local/lib/erlang/emacs" load-path))
+
 
 (setq erlang-root-dir "~/Software/Erlang/Erlang-current-install/lib/erlang")
-(setq erlang-root-dir "/usr/local/lib/erlang")
+;;(setq erlang-root-dir "/usr/local/lib/erlang")
 
 (setq exec-path (cons "~/Software/Erlang/Erlang-current-install/lib/erlang/bin" exec-path))
-(setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))
+;;(setq exec-path (cons "/usr/local/lib/erlang/bin" exec-path))
 
 
 ;; Allows to have Emacs automatically insert newlines to word-wrap:
