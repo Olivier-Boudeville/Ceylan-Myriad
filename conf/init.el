@@ -66,8 +66,7 @@
 ;; Don't enable whitespace (global mode) for:
 ;; Does not work (always activated)
 ;; setq-default whitespace-global-modes
-;;		  '(not erlang-mode))
-
+;;		  '(not rust-mode))
 ;; Not working:  '(and (not rust-mode) (not erlang-mode)))
 
 
@@ -223,7 +222,13 @@ no longer be necessary."
 '(frame-background-mode (quote dark))
 
 (global-font-lock-mode t)
-(setq font-lock-maximum-decoration t)
+
+;; Not set initially (will not trigger an initial update of the Erlang syntax
+;; highlighting  anyway)
+;;
+;;(setq font-lock-maximum-decoration t)
+;;(setq font-lock-maximum-decoration 4)
+
 (setq font-lock-maximum-size nil)
 (transient-mark-mode t)
 
@@ -403,8 +408,12 @@ no longer be necessary."
 
 ;;(require 'erlang-start)
 
-;; Not wanting single '%' to be set at the default column 48:
-(add-hook 'erlang-mode-hook (lambda () (setq-local comment-column 0)))
+;; Not wanting single '%' to be set at the default column 48.
+;; Decoration level set, yet will not trigger an initial update of the
+;; syntax highlighting unfortunately:
+;;
+(add-hook 'erlang-mode-hook (lambda () (setq-local comment-column 0)
+									   (setq font-lock-maximum-decoration 4)))
 
 ;; erlang-electric-semicolon removed, as more a nuisance than a help (function
 ;; headers generally pasted from first):
@@ -417,6 +426,11 @@ no longer be necessary."
 
 (setq auto-mode-alist
 	  (append '(("\\.escript$" . erlang-mode)) auto-mode-alist))
+
+
+;; Used to avoid weird syntax highlighting problems in Erlang modules (refer to the Erlang page of
+;; the Ceylan-HOWTOs):
+;;
 
 
 (straight-use-package 'erlang)
@@ -866,7 +880,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
   (message "F9        -> fd-switch-dictionary" )
   (message "Shift-F9  -> (currently not bound)" )
   (message "F10       -> save-buffers-kill-emacs" )
-  (message "F11       -> (does nothing)" )
+  (message "F11       -> sets Erlang syntax highlighting to preferred level (4)" )
   (message "F12       -> (does nothing)" )
 )
 
@@ -907,7 +921,7 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 (global-set-key [XF86AudioNext]   'whitespace-cleanup)
 
 
-;; Intercepted by Ubuntu:
+;; Intercepted at least on Ubuntu:
 (global-set-key [f9]			  'default-f9)
 (global-set-key [XF86New]		  'default-f9)
 
@@ -919,12 +933,16 @@ Exempt major modes are defined in `display-line-numbers-exempt-modes'."
 
 
 ;; Usable and behaves like expected:
-(global-set-key [f10]				'save-buffers-kill-emacs)
-(global-set-key [XF86Documents]     'save-buffers-kill-emacs)
+;;(global-set-key [f10]				'save-buffers-kill-emacs)
+;;(global-set-key [XF86Documents]     'save-buffers-kill-emacs)
 
 
-;; Not triggered on my keyboard:
-(global-set-key [f11]				'default-f11)
+;; Usable and behaves like expected:
+;;
+;; (only way found of updating the Erlang syntax highlighting for a proper
+;; rendering)
+;;
+(global-set-key [f11]				'erlang-font-lock-level-4)
 (global-set-key [XF86New]			'default-f11)
 
 
