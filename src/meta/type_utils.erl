@@ -666,7 +666,7 @@ MyTerm, not {MyTerm}.
 
 
 -doc "Probably that such a tuple would contain at least an element of type T.".
--type tuploid( T ) :: tuple() | T.
+-type tuploid( T ) :: tuple( T ) | T.
 
 
 -doc "Local alias.".
