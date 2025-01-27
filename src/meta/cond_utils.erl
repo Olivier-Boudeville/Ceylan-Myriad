@@ -71,6 +71,9 @@ macros.
 % -compile({nowarn_unused_function, [{my_func,3}, {my_other_func,0}]}).
 
 
+% These if_defined* compile-time constructs shall not be mixed up with the
+% (runtime) basic_utils:set_option/2 simple shortcut function.
+
 
 % About tokens:
 %
