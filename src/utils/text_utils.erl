@@ -139,7 +139,8 @@ See text_utils_test.erl for the corresponding test.
 
 		  tokenizable_to_camel_case/2,
 		  duplicate/2,
-		  concatenate/1, bin_concatenate/1, bin_concatenate/2,
+		  concatenate/1, concatenate/2,
+		  bin_concatenate/1, bin_concatenate/2,
 		  remove_empty_lines/1,
 
 		  find_substring_index/2, find_substring_index/3,
@@ -164,7 +165,7 @@ See text_utils_test.erl for the corresponding test.
 		  trim_whitespaces/1, trim_leading_whitespaces/1,
 		  trim_trailing_whitespaces/1,
 
-		  ellipse/1, ellipse/2, ellipse_fmt/2,
+		  ellipse/1, ellipse/2, ellipse_fmt/2, ellipse_fmt/3,
 		  tail/1, tail/2,
 
 		  get_default_bullet/0, get_bullet_for_level/1,
@@ -4075,9 +4076,6 @@ duplicate( Count, Str ) ->
 
 
 
-% concatenate/2 on plain strings is just '++'.
-
-
 -doc """
 Concatenates all elements (string-like ones or numbers) in the specified list
 into a single (plain) string.
@@ -4089,6 +4087,20 @@ list_utils:flatten_once/1.
 concatenate( Elements ) ->
 	%trace_utils:debug_fmt( "Concatenating ~p.", [ Elements ] ),
 	lists:concat( Elements ).
+
+
+-doc """
+Concatenates the two specified strings (supposed of the same type) into the
+returned one, of the same type.
+""".
+-spec concatenate( any_string(), any_string() ) -> any_string().
+concatenate( FirstBinStr, SecondBinStr ) when is_binary( FirstBinStr ) ->
+	bin_concatenate( FirstBinStr, SecondBinStr );
+
+% concatenate/2 on plain strings is just '++'.
+concatenate( FirstStr, SecondStr ) ->
+	% Implicit encoding: unicode.
+	unicode:characters_to_list( _Data=[ FirstStr, SecondStr ] ).
 
 
 
@@ -4874,13 +4886,14 @@ trim_trailing_whitespaces( String ) ->
 
 -doc """
 Ellipses (shortens by removing the end of) the specified string, so that its
-total length remains up to the default threshold.
+total length remains up to the default (maximum length) threshold (including a
+final " [...]" if it was shortened).
 
-Note: the specified threshold is expected to be equal at least to 6.
+Returns a string of the same type.
 
 See also: tail/1.
 """.
--spec ellipse( ustring() ) -> ustring().
+-spec ellipse( any_string() ) -> any_string().
 ellipse( String ) ->
 	ellipse( String, _DefaultMaxLen=800 ).
 
@@ -4888,26 +4901,39 @@ ellipse( String ) ->
 
 -doc """
 Ellipses (shortens by removing the end of) the specified string, so that its
-total length remains up to the specified threshold.
+total length remains up to the specified (maximum length) threshold (including a
+final " [...]" if it was shortened).
 
-Note: the specified threshold is expected to be equal at least to 6.
+Returns a string of the same type.
+
+See also: tail/2.
 """.
--spec ellipse( ustring(), length() | 'unlimited' ) -> ustring().
+-spec ellipse( any_string(), length() | 'unlimited' ) -> any_string().
 ellipse( String, _MaxLen=unlimited ) ->
 	String;
 
 ellipse( String, MaxLen ) ->
 
-	Suffix = " [...]",
-
-	% To avoid countless computations of a constant:
-	SuffixLen = 6,
-
-	case erlang:length( String ) of
+	case string:length( String ) of
 
 		L when L > MaxLen ->
+
+			% To allow for a proper next concatenation:
+			Suffix = case is_binary( String ) of
+
+				true ->
+					<<" [...]">>;
+
+				false ->
+					" [...]"
+
+			end,
+
+			% To avoid countless computations of a constant:
+			SuffixLen = 6,
+
 			TargetLen = MaxLen - SuffixLen,
-			string:slice( String, _Start=0, TargetLen ) ++ Suffix;
+			concatenate( string:slice( String, _Start=0, TargetLen ), Suffix );
 
 		_ ->
 			String
@@ -4918,9 +4944,8 @@ ellipse( String, MaxLen ) ->
 
 -doc """
 Ellipses (shortens) the specified string to format, so that its total length
-remains up to the specified threshold.
-
-Note: the specified threshold is expected to be equal at least to 6.
+remains up to the default (maximum length) threshold (including a final " [...]"
+if it was shortened).
 """.
 -spec ellipse_fmt( format_string(), format_values() ) -> ustring().
 ellipse_fmt( FormatString, Values ) ->
@@ -4929,10 +4954,21 @@ ellipse_fmt( FormatString, Values ) ->
 
 
 -doc """
-Tails (shortens by removing the beginning of) the specified string, so that its
-total length remains up to the default threshold.
+Ellipses (shortens) the specified string to format, so that its total length
+remains up to the default (maximum length) threshold (including a final " [...]"
+if it was shortened).
+""".
+-spec ellipse_fmt( format_string(), format_values(),
+				   length() | 'unlimited' ) -> ustring().
+ellipse_fmt( FormatString, Values, MaxLen ) ->
+	ellipse( format( FormatString, Values ), MaxLen ).
 
-Note: the specified threshold is expected to be equal at least to 6.
+
+
+-doc """
+Tails (shortens by removing the beginning of) the specified string, so that its
+total length remains up to the default (maximum length) threshold (including an
+initial " [...]"  if it was shortened).
 
 See also: ellipse/1.
 """.
@@ -4956,19 +4992,30 @@ tail( String, _MaxLen=unlimited ) ->
 
 tail( String, MaxLen ) ->
 
-	Prefix = "[...] ",
-
-	% To avoid countless computations of a constant:
-	PrefixLen = 6,
-
-	Len = erlang:length( String ),
+	Len = string:length( String ),
 
 	ExtraCount = Len - MaxLen,
 
 	case ExtraCount > 0 of
 
 		true ->
-			Prefix ++ string:slice( String, _Start=ExtraCount + PrefixLen );
+
+			% To allow for a proper next concatenation:
+			Prefix = case is_binary( String ) of
+
+				true ->
+					<<"[...] ">>;
+
+				false ->
+					"[...] "
+
+			end,
+
+			% To avoid countless computations of a constant:
+			PrefixLen = 6,
+
+			concatenate( Prefix,
+				string:slice( String, _Start=ExtraCount + PrefixLen ) );
 
 		_ ->
 			String
