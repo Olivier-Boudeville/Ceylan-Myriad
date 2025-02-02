@@ -35,6 +35,11 @@ One can see it as a `[{first_type(), second_type()}]` associative table allowing
 to transform any element of a set into its (unique) corresponding element in the
 other one.
 
+By convention, if ever relevant (typically for a translation/integration use
+case), the first type may correspond to a Myriad-specific, internal symbol,
+whereas the second type may be a foreign one (for example defined by a
+third-party library).
+
 See also const_bijective_table.erl for constant bijective tables that can be
 requested from any number (potentially extremely large) of callers very
 efficiently thanks to the generation (only in memory, or in file) of a
@@ -59,11 +64,30 @@ Refer to:
 		  to_string/1 ]).
 
 
+
+-doc """
+Type of the first elements stored in the bijective table.
+
+By convention, if ever relevant, the first type may correspond to a
+Myriad-specific, internal symbol.
+""".
+-type first_type() :: any().
+
+
+-doc """
+Type of the second elements stored in the bijective table.
+
+By convention, if ever relevant, the second type may correspond to a foreign,
+third-party symbol.
+""".
+-type second_type() :: any().
+
+
 % Apparently having bijective_table/N opaque causes problems (subtypes being
 % violated by the success typing), so:
 %
 -doc "A bijective table.".
--type bijective_table() :: bijective_table( Firsts: any(), Seconds: any() ).
+-type bijective_table() :: bijective_table( first_type(), second_type() ).
 
 
 
@@ -76,12 +100,6 @@ Internally, two tables used, one for each direction of conversion.
 
 
 
--doc "Type of the first elements stored in the bijective table.".
--type first_type() :: any().
-
-
--doc "Type of the second elements stored in the bijective table.".
--type second_type() :: any().
 
 
 -doc "An entry stored in a bijective table.".
