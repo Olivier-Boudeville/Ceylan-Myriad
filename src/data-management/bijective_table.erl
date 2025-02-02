@@ -63,7 +63,7 @@ Refer to:
 % violated by the success typing), so:
 %
 -doc "A bijective table.".
--type bijective_table() :: bijective_table( any(), any() ).
+-type bijective_table() :: bijective_table( Firsts: any(), Seconds: any() ).
 
 
 
@@ -73,7 +73,7 @@ A bijective table.
 Internally, two tables used, one for each direction of conversion.
 """.
 -type bijective_table( F, S ) :: { table:table( F, S ), table:table( S, F ) }.
- 
+
 
 
 -doc "Type of the first elements stored in the bijective table.".
@@ -94,7 +94,7 @@ Entries that can be fed to a bijective table.
 Now we recommend using [ entry() ] only.
 """.
 -type entries() :: [ entry() ].
- 
+
 
 -export_type([ bijective_table/0, bijective_table/2,
 			   entry/0, entries/0 ]).
