@@ -98,7 +98,7 @@ If negative, designates a width ratio among all variable-width fields.
 -type format_string() :: text_utils:format_string().
 -type format_values() :: text_utils:format_values().
 
--type text() :: gui_text:text().
+-type text() :: ui:text().
 
 -type frame() :: gui_frame:frame().
 

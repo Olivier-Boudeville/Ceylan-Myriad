@@ -152,9 +152,9 @@ window.
 
 -type position() :: gui:position().
 -type orientation() :: gui:orientation().
-
 -type parent() :: gui:parent().
--type window() :: gui:window().
+
+-type window() :: gui_window:window().
 
 -type id() :: gui_id:id().
 

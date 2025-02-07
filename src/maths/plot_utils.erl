@@ -264,6 +264,7 @@ generate a plot.
 			   bin_command_file_name/0,
 			   command_file_path/0, bin_command_file_path/0,
 
+			   plot_meta_data/0, plot_function/0,
 			   plot_data/0, plot_point/0,
 			   plot_parameter/0, plot_parameter_bin_string/0,
 			   plot_sample/0, plot_value/0,
@@ -670,7 +671,7 @@ command of the corresponding zone.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 

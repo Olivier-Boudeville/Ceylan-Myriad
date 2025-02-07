@@ -352,8 +352,7 @@ A dialog allowing to select a font installed on the system, and its size.
 
 -type any_string() :: text_utils:any_string().
 
--type text() :: gui_text:text().
-
+-type text() :: ui:text().
 -type caption() :: ui:caption().
 -type label() :: ui:label().
 -type message() :: ui:message().
