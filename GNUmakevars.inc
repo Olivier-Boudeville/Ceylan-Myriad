@@ -1963,6 +1963,7 @@ endif
 
 # We now rely on ExDoc, rather than on edoc:
 
+# Can be installed with: 'mix escript.install hex ex_doc':
 EXDOC := $$(which ex_doc 2>/dev/null)
 
 # Finally not used, as specifying the options on the command line allows the
