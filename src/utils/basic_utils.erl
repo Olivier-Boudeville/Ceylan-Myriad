@@ -35,24 +35,6 @@ See basic_utils_test.erl for the corresponding test.
 
 
 
-
--doc """
-To tell that a returned value is not of interest to the caller.
-
-Could have been: `-type void() :: 'myriad_void'` for example.
-
-Nevertheless, should, for any reason, a value of the void/0 type have to be
-specified, the 'void' atom shall be preferred, knowing that any value can be
-returned and complies with this type.
-""".
--type void() :: any() | 'void'.
-% Opaque types currently not always well managed by the Erlang standard
-% toolchain:
-%
-% -opaque void() :: any() | 'void'.
-
-
-
 -doc "Allows to count elements (positive integer, possibly zero).".
 -type count() :: non_neg_integer().
 
@@ -411,7 +393,7 @@ eliminate afterwards).
 -type fixme() :: any().
 
 
--export_type([ void/0, count/0, non_null_count/0, level/0,
+-export_type([ count/0, non_null_count/0, level/0,
 			   message/0, pid_or_port/0, atom_key/0,
 			   reason/0, exit_reason/0, error_reason/0,
 			   error_diagnosis/0, error_bin_diagnosis/0,
@@ -561,6 +543,7 @@ eliminate afterwards).
 
 -type directory_path() :: file_utils:directory_path().
 
+-type void() :: type_utils:void().
 -type option( T ) :: type_utils:option( T ).
 
 -type atom_node_name() :: net_utils:atom_node_name().

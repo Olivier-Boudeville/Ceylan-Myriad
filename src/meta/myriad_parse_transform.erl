@@ -490,7 +490,7 @@ Returns the table specifying the transformation of the local types.
 
 Regarding local types, we want to replace:
 
-- void() with type_utils:void() (i.e. prefixed with basic_utils)
+- void() with type_utils:void() (i.e. prefixed with type_utils)
 
 - option(T) with type_utils:option(T)
 

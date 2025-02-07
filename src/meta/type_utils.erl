@@ -469,6 +469,25 @@ constructs; it is thus autonomous, self-standing.
 
 
 
+
+-doc """
+To tell that a returned value is not of interest to the caller.
+
+Could have been: `-type void() :: 'myriad_void'` for example.
+
+Nevertheless, should, for any reason, a value of the void/0 type have to be
+specified, the 'void' atom shall be preferred, knowing that any value can be
+returned and complies with this type.
+""".
+-type void() :: any() | 'void'.
+% Opaque types currently not always well managed by the Erlang standard
+% toolchain:
+%
+% -opaque void() :: any() | 'void'.
+
+
+
+
 -doc """
 Designates lower-level types, with a prefix and a size, in bits.
 
@@ -745,7 +764,7 @@ Transient terms are the opposite of permanent ones.
 -export_type([ type_name/0, type_arity/0, type_id/0,
 			   primitive_type_description/0,
 			   type_description/0, nesting_depth/0, type/0, explicit_type/0,
-			   low_level_type/0,
+			   void/0, low_level_type/0,
 
 			   option/1, safe_option/1, wildcardable/1,
 
