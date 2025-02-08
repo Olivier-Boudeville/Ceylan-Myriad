@@ -3,7 +3,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-<meta name="generator" content="Docutils 0.20.1: https://docutils.sourceforge.io/" />
+<meta name="generator" content="Docutils 0.21.2: https://docutils.sourceforge.io/" />
 <meta content="Myriad, generic, general-purpose, helper code, library, layer" name="keywords" />
 <title>Welcome to the Ceylan-Myriad documentation</title>
 <script type="text/javascript" src="mathjax/tex-mml-chtml.js?config=TeX-AMS_CHTML"></script>
@@ -24,7 +24,7 @@
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field"><th class="field-name">Organisation:</th><td class="field-body"><p class="first">Copyright (C) 2008-2024 Olivier Boudeville</p>
+<tr class="field"><th class="field-name">Organisation:</th><td class="field-body"><p class="first">Copyright (C) 2008-2025 Olivier Boudeville</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Contact:</th><td class="field-body"><p class="first">about (dash) myriad (at) esperide (dot) com</p>
@@ -33,10 +33,10 @@
 <tr class="field"><th class="field-name">Creation date:</th><td class="field-body"><p class="first">Sunday, August 17, 2008</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Sunday, January 14, 2024</p>
+<tr class="field"><th class="field-name">Lastly updated:</th><td class="field-body"><p class="first">Saturday, February 8, 2025</p>
 </td>
 </tr>
-<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.37</p>
+<tr class="field"><th class="field-name">Version:</th><td class="field-body"><p class="first">1.0.38</p>
 </td>
 </tr>
 <tr class="field"><th class="field-name">Status:</th><td class="field-body"><p class="first">Stable</p>
@@ -59,7 +59,7 @@ The next level of information is either to browse the <a class="reference extern
 <p></p>
 <p><span class="raw-html"><a name="myriad_toc"></a></span></p>
 <div class="contents topic" id="topic-1">
-<span id="table-of-contents"></span><p class="topic-title"><strong>Table of Contents</strong></p>
+<span id="table-of-contents"></span><p class="topic-title"><a class="reference internal" href="#top"><strong>Table of Contents</strong></a></p>
 <ul class="simple">
 <li><a class="reference internal" href="#overview-context" id="toc-entry-1">Overview &amp; Context</a></li>
 <li><a class="reference internal" href="#usage-guidelines" id="toc-entry-2">Usage Guidelines</a><ul>
@@ -359,6 +359,7 @@ $<span class="w"> </span>rebar3<span class="w"> </span>upgrade<span class="w"> <
  </span><span class="mi">0</span><span class="p">}].</span>
 </pre>
 <p>where the specified reference is nothing more than the corresponding Git commit that will be used in order to build that dependency (Myriad here).</p>
+<p>Myriad-based projects should better execute their (inherited, more robust/integrated) <tt class="docutils literal"><span class="pre">rebar3-upgrade-lock</span></tt> make target instead.</p>
 <p><span class="raw-html"><a name="otp"></a></span></p>
 </div>
 <div class="section" id="otp-build-1">
@@ -389,7 +390,7 @@ $<span class="w"> </span>rebar3<span class="w"> </span>upgrade<span class="w"> <
 </table>
 <div class="section" id="getting-rebar3-1">
 <span id="getting-rebar3"></span><h4>Getting rebar3</h4>
-<p>There are <a class="reference external" href="https://www.rebar3.org/docs/getting-started">various ways</a>  for obtaining <tt class="docutils literal">rebar3</tt>; we prefer:</p>
+<p>There are <a class="reference external" href="https://www.rebar3.org/docs/getting-started">various ways</a>  of obtaining <tt class="docutils literal">rebar3</tt>; we prefer:</p>
 <pre class="code bash literal-block">
 $<span class="w"> </span><span class="nb">cd</span><span class="w"> </span>~/Software<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/erlang/rebar3.git<span class="w">
    </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">cd</span><span class="w"> </span>rebar3<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>./bootstrap
@@ -655,7 +656,7 @@ $ make rebar3-local-update
 <p>Finally, two extra table types exist:</p>
 <ul class="simple">
 <li><tt class="docutils literal">const_bijective_table</tt>, like a crossbreeding of <tt class="docutils literal">const_table</tt> and <tt class="docutils literal">bijective_table</tt>, to rely on module-supported const, bijective tables: a list of <tt class="docutils literal"><span class="pre">{type_utils:permanent_term(),</span> <span class="pre">type_utils:permanent_term()}</span></tt> entries can then provided so that a corresponding module (e.g. <tt class="docutils literal">foobar</tt>) is generated (either in-memory or as a file) that allows to resolve any element of a pair into the other one, thanks to two functions, <tt class="docutils literal">foobar:get_first_for/1</tt> and <tt class="docutils literal">foobar:get_second_for/1</tt>, automatically defined in that module; this is especially useful as soon as having non-small, const, bijective tables (since typing all information twice, one in a first direction and one in the other, is time-consuming and error-prone); refer to <tt class="docutils literal">const_bijective_table_test.erl</tt> for an example and a test thereof</li>
-<li><tt class="docutils literal">const_bijective_topics</tt> is the same as the previous type, except that it allows <em>multiple</em> of such (const, bijective) tables (named &quot;topics&quot; here) to be defined in the same module (e.g. <tt class="docutils literal">foobar</tt>); for that, each of such tables is designated by a topic (an atom, like: <tt class="docutils literal">colour</tt>, <tt class="docutils literal">bar_identifier</tt> or <tt class="docutils literal">font_style</tt>) that is associated to a declared list of corresponding entries (here also each with no duplicate); then, for each of these topics (e.g. <tt class="docutils literal">colour</tt>), two functions are automatically defined: <tt class="docutils literal">foobar:get_first_for_colour/1</tt> and <tt class="docutils literal">foobar:get_second_for_colour/1</tt>, returning respective elements of the specified pair, for the specified topic; extra options can be set, in order to generate strict conversions or ones returning a maybe-type (typically so that they cannot be crashed), or to generate only one-way conversions (should either collection of elements have duplicates); refer to <tt class="docutils literal">const_bijective_topics_test.erl</tt> for an example and a test thereof; the ability of defining multiple const, bijective tables in a single generated module can be useful typically when developping a binding (e.g. for a GUI, see <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/user-interface/graphical/gui_constants.erl">gui_constants.erl</a>) or when translating protocols (e.g. between a third-party library and internal conventions); refer to <a class="reference external" href="http://oceanic.esperide.org">Ceylan-Oceanic</a> for an example thereof, including about its build integration (based on the <tt class="docutils literal">EXTRA_BEAM_FILES</tt> make variable)</li>
+<li><tt class="docutils literal">const_bijective_topics</tt> is the same as the previous type, except that it allows <em>multiple</em> of such (const, bijective) tables (named &quot;topics&quot; here) to be defined in the same module (e.g. <tt class="docutils literal">foobar</tt>); for that, each of such tables is designated by a topic (an atom, like: <tt class="docutils literal">colour</tt>, <tt class="docutils literal">bar_identifier</tt> or <tt class="docutils literal">font_style</tt>) that is associated to a declared list of corresponding entries (here also each with no duplicate); then, for each of these topics (e.g. <tt class="docutils literal">colour</tt>), two functions are automatically defined: <tt class="docutils literal">foobar:get_first_for_colour/1</tt> and <tt class="docutils literal">foobar:get_second_for_colour/1</tt>, returning respective elements of the specified pair, for the specified topic; extra options can be set, in order to generate strict conversions or ones returning an optional type (typically so that they cannot be crashed), or to generate only one-way conversions (should either collection of elements have duplicates); refer to <tt class="docutils literal">const_bijective_topics_test.erl</tt> for an example and a test thereof; the ability of defining multiple const, bijective tables in a single generated module can be useful typically when developping a binding (e.g. for a GUI, see <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/user-interface/graphical/gui_constants.erl">gui_constants.erl</a>) or when translating protocols (e.g. between a third-party library and internal conventions); refer to <a class="reference external" href="http://oceanic.esperide.org">Ceylan-Oceanic</a> for an example thereof, including about its build integration (based on the <tt class="docutils literal">EXTRA_BEAM_FILES</tt> make variable)</li>
 </ul>
 </div>
 <div class="section" id="other-datatypes">
@@ -671,7 +672,7 @@ $ make rebar3-local-update
 </div>
 <div class="section" id="pseudo-builtin-types">
 <h4>Pseudo-Builtin Types</h4>
-<p>Such types, as <tt class="docutils literal">void/0</tt> (for functions only useful for their side-effects - this happens!), <tt class="docutils literal">maybe/1</tt> (<tt class="docutils literal">maybe(T)</tt> is either <tt class="docutils literal">T</tt> or <tt class="docutils literal">undefined</tt>), <tt class="docutils literal">safe_maybe/1</tt> (either <tt class="docutils literal">{just,T}</tt> or <tt class="docutils literal">nothing</tt>) and <tt class="docutils literal"><span class="pre">fallible/{1,2}</span></tt> (an operation either is successful and returns a result, or returns an error) are supported, thanks to <a class="reference internal" href="#the-myriad-parse-transform">the Myriad parse-transform</a>.</p>
+<p>Such types, as <tt class="docutils literal">void/0</tt> (for functions only useful for their side-effects - this happens!), <tt class="docutils literal">option/1</tt> (<tt class="docutils literal">option(T)</tt> is either <tt class="docutils literal">T</tt> or <tt class="docutils literal">undefined</tt>), <tt class="docutils literal">safe_option/1</tt> (either <tt class="docutils literal">{just,T}</tt> or <tt class="docutils literal">nothing</tt>) and <tt class="docutils literal"><span class="pre">fallible/{1,2}</span></tt> (an operation either is successful and returns a result, or returns an error) are supported, thanks to <a class="reference internal" href="#the-myriad-parse-transform">the Myriad parse-transform</a>.</p>
 </div>
 <div class="section" id="environments-preferences">
 <h4>Environments &amp; Preferences</h4>
@@ -710,7 +711,7 @@ $ make rebar3-local-update
 <p>For faster accesses (not involving any inter-process messaging), and if considering that their changes are rather infrequent (or never happening), at least some entries managed by an environment server may be cached directly in client processes.</p>
 <p>In this case, the process dictionary of these clients is used to store the cached entries, and when updating a cached key from a client process the corresponding environment server is updated in turn. However any other client process caching that key will not be aware of this change until it requests an update to this environment server.</p>
 <p>So a client process should cache a key mainly if no other is expected to update that key, i.e. typically if the associated value is const, or if this process is considered as the owner (sole controller) of that key (or if some other organisation ensures, possibly thanks to <tt class="docutils literal">sync/1</tt>, that its cache is kept consistent with the corresponding environment server.</p>
-<p>As soon as a key is declared to be cached, its value is set in the cache; there is thus always a value associated to a cached key (not a maybe-value), and thus cached values may be <tt class="docutils literal">undefined</tt>.</p>
+<p>As soon as a key is declared to be cached, its value is set in the cache; there is thus always a value associated to a cached key (not an option-value), and thus cached values may be <tt class="docutils literal">undefined</tt>.</p>
 <p>Multiple environments may be used concurrently. A specific case of environment corresponds to the user preferences. See our <tt class="docutils literal">preferences</tt> module for that, whose default settings file is <tt class="docutils literal"><span class="pre">~/.ceylan-settings.etf</span></tt>.</p>
 </div>
 </div>
@@ -730,7 +731,7 @@ $ make rebar3-local-update
 <h5>Resource Holders</h5>
 <p>Myriad provides, through its <tt class="docutils literal">resource</tt> module, two types of holders so that resources of interest can be obtained once, returned as often as needed, and stored for as long as wanted:</p>
 <ul class="simple">
-<li>resource <strong>referentials</strong>, which are process-local terms akin to associative tables</li>
+<li>resource <strong>repositories</strong>, which are process-local terms akin to associative tables</li>
 <li>resource <strong>servers</strong>, i.e. dedicated processes sharing resources (especially <a class="reference external" href="https://www.erlang.org/doc/efficiency_guide/binaryhandling.html#how-binaries-are-implemented">large-enough binaries</a>) between any number of consumer processes</li>
 </ul>
 <p>See also the <tt class="docutils literal">resource.hrl</tt> include and the <tt class="docutils literal">resource_test</tt> testing module.</p>
@@ -751,7 +752,8 @@ $ make rebar3-local-update
 <li>HDF5</li>
 <li>SQLite</li>
 </ul>
-<p id="xml-use">Some useful information for <strong>XML use</strong>:</p>
+<div class="section" id="about-xml-use">
+<span id="xml-use"></span><h5>About XML use</h5>
 <ul class="simple">
 <li>Myriad's XML support is implemented by the <tt class="docutils literal">xml_utils</tt> module (so one shall refer to <tt class="docutils literal"><span class="pre">xml_utils.{e,h}rl</span></tt> and <tt class="docutils literal">xml_utils_test.erl</tt>), which relies on the built-in <tt class="docutils literal">xmerl</tt> modules</li>
 <li>XML documents can be parsed from strings (see <tt class="docutils literal">string_to_xml/1</tt>) or files (see <tt class="docutils literal">parse_xml_file/1</tt>), and conversely can be serialised to strings (see <tt class="docutils literal"><span class="pre">xml_to_string/{1,2}</span></tt>)</li>
@@ -774,13 +776,15 @@ $ make rebar3-local-update
 </span><span class="nt">&lt;myThirdTag</span><span class="w"> </span><span class="na">color=</span><span class="s">&quot;red&quot;</span><span class="w"> </span><span class="na">age=</span><span class="s">&quot;71&quot;</span><span class="nt">&gt;</span>This<span class="w"> </span>is<span class="w"> </span>a<span class="w"> </span>text!<span class="nt">&lt;/myThirdTag&gt;</span>
 </pre>
 <p>Refer to the <tt class="docutils literal">xml_utils</tt> module for further details.</p>
-<p id="json-use">Some useful information for <strong>JSON use</strong>:</p>
+</div>
+<div class="section" id="about-json-use">
+<span id="json-use"></span><h5>About JSON use</h5>
 <ul class="simple">
 <li>the nesting of elements shall be done thanks to (Erlang) maps, whose keys are binary strings (<tt class="docutils literal">text_utils:bin_string/0</tt>); their order should not matter</li>
 <li>it may thus be convenient to add <tt class="docutils literal"><span class="pre">-define(table_type,</span> map_hashtable).</tt> in a user module, so that the <tt class="docutils literal">table</tt> pseudo-module can be relied upon when building a <tt class="docutils literal">json_term</tt>, while being sure that the JSON parser at hand will be fed afterwards with the relevant datastructure</li>
 <li>no comments shall be specified (even though some parsers may be configured to support them)</li>
 <li>strings shall be specified as binary ones</li>
-<li>the actual JSON backend used are either <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; to better understand their (mostly common) mapping between Erlang and JSON, one may refer to the <a class="reference external" href="https://github.com/talentdeficit/jsx/#json---erlang-mapping">this section</a> of the jsx documentation  and to <a class="reference external" href="https://github.com/davisp/jiffy#data-format">this one</a> regarding jiffy</li>
+<li>the actual JSON backend used are any buit-in <a class="reference external" href="https://www.erlang.org/doc/apps/stdlib/json.html">json</a> one, otherwise <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; to better understand their (mostly common) mapping between Erlang and JSON, one may refer first to <a class="reference external" href="https://github.com/erlang/eep/blob/master/eeps/eep-0068.md#data-mapping">this section of EEP 68</a>, otherwise to <a class="reference external" href="https://github.com/talentdeficit/jsx/#json---erlang-mapping">this section</a> of the jsx documentation and to <a class="reference external" href="https://github.com/davisp/jiffy#data-format">this one</a> regarding jiffy</li>
 </ul>
 <p>Example:</p>
 <pre class="code erlang literal-block">
@@ -804,6 +808,7 @@ $ make rebar3-local-update
 </pre>
 <p>Hint: the <a class="reference external" href="https://stedolan.github.io/jq/">jq</a> command-line tool may be very convenient in JSON contexts.</p>
 <p>Refer to the <a class="reference internal" href="#myriad-level-third-party-dependencies">Myriad-level Third-Party Dependencies</a> section for further information.</p>
+</div>
 </div>
 <div class="section" id="for-pure-erlang-uses-the-etf-file-format">
 <span id="etf"></span><h4>For Pure Erlang uses: the ETF File Format</h4>
@@ -832,9 +837,9 @@ $ make rebar3-local-update
 <ul class="simple">
 <li>their extension is preferably changed from <tt class="docutils literal">.etf</tt> to <tt class="docutils literal">.config</tt></li>
 <li>before each entry, a comment describing it in general terms shall be available, with typing information</li>
-<li>entries are pairs:<ul>
+<li>entries are generally expected to be strict tagged pairs (see the <tt class="docutils literal">tagged_pair</tt> module), i.e. entries:<ul>
 <li>whose first element is an atom</li>
-<li>their second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (e.g. <tt class="docutils literal">&quot;James Bond&quot;</tt>) rather than a binary one (e.g. <tt class="docutils literal"><span class="pre">&lt;&lt;&quot;James</span> <span class="pre">Bond&quot;&gt;&gt;</span></tt>); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include <em>binary</em> strings (not plain ones, even though plain ones are used in the configuration files)</li>
+<li>whose second element can be any value, typically of algebraic types; if a string value is included, for readability purpose it shall preferably be specified as a plain one (e.g. <tt class="docutils literal">&quot;James Bond&quot;</tt>) rather than a binary one (e.g. <tt class="docutils literal"><span class="pre">&lt;&lt;&quot;James</span> <span class="pre">Bond&quot;&gt;&gt;</span></tt>); it is up to the reading logic to accommodate both forms; it is tolerated to reference, in the comments of these configuration files, types that actually include <em>binary</em> strings (not plain ones, even though plain ones are used in the configuration files)</li>
 </ul>
 </li>
 </ul>
@@ -868,7 +873,7 @@ $ make rebar3-local-update
 <ul class="simple">
 <li>BER (<a class="reference external" href="https://en.wikipedia.org/wiki/X.690#BER_encoding">Basic Encoding Rules</a>): a type-length-value encoding, too basic to be compact; its DER (for <em>Distinguished Encoding Rules</em>) variation is also available</li>
 <li>PER (<em>Packed Encoding Rules</em>): a bit-level serialisation stream, either aligned to byte boundaries (PER) or not (UPER, for <em>Unaligned PER</em>); if both are very compact and complex to marshall/demarshall, it is especially true for the size/processing trade-off of UPER</li>
-<li>JER (<em>JSON Encoding Rules</em>), hence based on <a class="reference external" href="https://en.wikipedia.org/wiki/JSON">JSON</a></li>
+<li>JER (<em>JSON Encoding Rules</em>), hence based on <a class="reference external" href="#json-use">JSON</a></li>
 </ul>
 <p>Our preference goes towards first UPER, then PER. A strength of ASN.1 is the expected ability to switch encodings easily; so, should the OER encoding (<em>Octet Encoding Rules</em>; faster to decode/encode than BER and PER, and almost as compact as PER) be supported in the future, it could be adopted &quot;transparently&quot;.</p>
 <p>An issue of this approach is that, beyond Erlang, the (U)PER encoding does not seem so widely available as free software: besides commercial offers (like <a class="reference external" href="https://www.obj-sys.com/products/asn1c/index.php">this one</a>), some languages could be covered to some extent (e.g. <a class="reference external" href="https://github.com/eerimoq/asn1tools">Python</a>, Java with <a class="reference external" href="https://github.com/alexvoronov/gcdc-asn1/tree/master/asn1-uper">[1]</a> or <a class="reference external" href="https://github.com/ericsson-mts/mts-asn1">[2]</a>), but for example no such solution could be found for the .NET language family (e.g. for C#); also the complexity of the encoding may lead to solutions supporting only a subset of the standard.</p>
@@ -1396,7 +1401,7 @@ $<span class="w"> </span>make<span class="w"> </span>ui_run<span class="w"> </sp
 <p id="speech-synthesis"><span id="tts"></span>Speech synthesis (TTS, <em>Text-to-Speech</em>) is available thanks to <tt class="docutils literal">speech_utils.erl</tt>. In practice, for best results, the actual speech generation is delegated to cloud-based providers making use of AI (neural voices) for best fluidity.</p>
 <p>The input text shall preferably comply with <a class="reference external" href="https://en.wikipedia.org/wiki/Speech_Synthesis_Markup_Language">SSML</a>, typically so that it can be enriched with phonemes and prosody hints.</p>
 <p>One can listen to this <a class="reference external" href="speech-test-fr-FR.ogg.opus">French speech</a> and this <a class="reference external" href="speech-test-en-US.ogg.opus">English one</a> (most browsers are now able to playback <a class="reference external" href="https://en.wikipedia.org/wiki/Opus_(audio_format)">Opus</a> content), that have been both generated by <tt class="docutils literal">speech_utils_test.erl</tt>.</p>
-<p>Facilities to manage logical speeches (i.e. speeches designated by a base name such as <tt class="docutils literal">hello</tt> and declined in as many locales as needed) are available (see <tt class="docutils literal">speech_support:logical_speech/0</tt>), as well as for related containers (see <tt class="docutils literal">speech_support:speech_referential/0</tt>).</p>
+<p>Facilities to manage logical speeches (i.e. speeches designated by a base name such as <tt class="docutils literal">hello</tt> and declined in as many locales as needed) are available (see <tt class="docutils literal">speech_support:logical_speech/0</tt>), as well as for related containers (see <tt class="docutils literal">speech_support:speech_repository/0</tt>).</p>
 </div>
 <div class="section" id="for-interactive-applications">
 <h4>For Interactive Applications</h4>
@@ -1776,16 +1781,16 @@ $<span class="w"> </span>make<span class="w"> </span>ui_run<span class="w"> </sp
 <p>So the purpose of this parse transform is to <strong>convert ASTs that are Myriad-compliant into ASTs that are directly Erlang compliant</strong>.</p>
 <p id="table-transformations">For that, following changes are operated:</p>
 <ul class="simple">
-<li>in type specifications, the Myriad-specific <tt class="docutils literal">void/0</tt>, <tt class="docutils literal">maybe/1</tt>, <tt class="docutils literal">safe_maybe/1</tt> and <tt class="docutils literal"><span class="pre">fallible/{1,2}</span></tt> types are adequately translated:<ul>
+<li>in type specifications, the Myriad-specific <tt class="docutils literal">void/0</tt>, <tt class="docutils literal">option/1</tt>, <tt class="docutils literal">safe_option/1</tt> and <tt class="docutils literal"><span class="pre">fallible/{1,2}</span></tt> types are adequately translated:<ul>
 <li><tt class="docutils literal">void()</tt> becomes <tt class="docutils literal">basic_utils:void()</tt>, a type alias of <tt class="docutils literal">any()</tt>, made to denote returned terms that are not expected to be used by the caller (as if that function's only purpose was its side-effects)</li>
-<li><tt class="docutils literal">maybe(T)</tt> becomes the type union <tt class="docutils literal"><span class="pre">'undefined'|T</span></tt></li>
-<li><tt class="docutils literal">safe_maybe(T)</tt> becomes the type union <tt class="docutils literal"><span class="pre">'nothing'|{'just',T}</span></tt> so that T may include the <tt class="docutils literal">undefined</tt> (atom) value</li>
+<li><tt class="docutils literal">option(T)</tt> becomes the type union <tt class="docutils literal"><span class="pre">'undefined'|T</span></tt></li>
+<li><tt class="docutils literal">safe_option(T)</tt> becomes the type union <tt class="docutils literal"><span class="pre">'nothing'|{'just',T}</span></tt> so that T may include the <tt class="docutils literal">undefined</tt> (atom) value</li>
 <li><tt class="docutils literal">fallible(T)</tt> becomes ultimately the type union <tt class="docutils literal"><span class="pre">{'ok',T}|{'error',term()}</span></tt>, while <tt class="docutils literal">fallible(Tok, Terror)</tt> becomes <tt class="docutils literal"><span class="pre">{'ok',Tok}|{'error',Terror}</span></tt></li>
 </ul>
 </li>
 <li>both in type specifications and actual code, <tt class="docutils literal">table/2</tt>, the Myriad-specific associative table pseudo-type, is translated into an actual <a class="reference internal" href="#table-type">table type</a></li>
 <li>the <tt class="docutils literal">const_table</tt> module allows to generate sharable, read-only associative tables probably in the most efficient way in Erlang (refer to the <a class="reference internal" href="#const-table">const table</a> section for further information)</li>
-<li>the <tt class="docutils literal">cond_utils</tt> services drive conditional code injection: based on the build-time tokens defined, their values can be used to perform compilation-time operations such as <strong>if</strong> (see in this module <tt class="docutils literal">if_debug/1</tt>, <tt class="docutils literal"><span class="pre">if_defined/{2,3}</span></tt>, <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>), <strong>switch</strong> (see <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt>, possibly with a default clause) or <strong>assert</strong> (<tt class="docutils literal"><span class="pre">assert/{1,2,3}</span></tt>); if useful, it should be fairly easy (infrastructure mostly ready) to transform the (currently constant) user-defined build tokens into mutable variables and to add for example compile-time assignments (<tt class="docutils literal">cond_utils:create_token(TOKEN, MAYBE_INITIAL_VALUE)</tt>, <tt class="docutils literal">cond_utils:set_token_value(TOKEN, VALUE)</tt> and <tt class="docutils literal">cond_utils:remove_token(TOKEN, MAYBE_INITIAL_VALUE)</tt>) of these variables and loops (<strong>for</strong>, <strong>while</strong>, etc.) if not going for a Turing-complete language, if ever that made sense for some uses; see the <a class="reference internal" href="#support-for-code-injection">Support for Code Injection</a> for additional usage details regarding the supported primitives</li>
+<li>the <tt class="docutils literal">cond_utils</tt> services drive conditional code injection: based on the build-time tokens defined, their values can be used to perform compilation-time operations such as <strong>if</strong> (see in this module <tt class="docutils literal">if_debug/1</tt>, <tt class="docutils literal"><span class="pre">if_defined/{2,3}</span></tt>, <tt class="docutils literal"><span class="pre">if_set_to/{3,4}</span></tt>), <strong>switch</strong> (see <tt class="docutils literal"><span class="pre">switch_set_to/{2,3}</span></tt>, possibly with a default clause) or <strong>assert</strong> (<tt class="docutils literal"><span class="pre">assert/{1,2,3}</span></tt>); if useful, it should be fairly easy (infrastructure mostly ready) to transform the (currently constant) user-defined build tokens into mutable variables and to add for example compile-time assignments (<tt class="docutils literal">cond_utils:create_token(TOKEN, OPTION_INITIAL_VALUE)</tt>, <tt class="docutils literal">cond_utils:set_token_value(TOKEN, VALUE)</tt> and <tt class="docutils literal">cond_utils:remove_token(TOKEN, OPTION_INITIAL_VALUE)</tt>) of these variables and loops (<strong>for</strong>, <strong>while</strong>, etc.) if not going for a Turing-complete language, if ever that made sense for some uses; see the <a class="reference internal" href="#support-for-code-injection">Support for Code Injection</a> for additional usage details regarding the supported primitives</li>
 </ul>
 <p>More generally, Myriad offers the support to traverse <em>any</em> AST (the whole Erlang grammar is supported, in its abstract form) and to <strong>transform</strong> it (e.g. an expression being removed, transformed or replaced by other expressions), with the ability for the user to define his own type/call replacement mappings, or more general transformation functions to be triggered when specified elements are found in the AST (e.g. remote calls with relevant MFA).</p>
 <p>The traversal may be done in a stateful manner, i.e. any user-defined transformation will be able to access (read/write) any state of its own in the course of the traversal.</p>
@@ -1923,15 +1928,15 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <li>the most common operations are defined for each datatype: creating, modifying, comparing, displaying and, whenever appropriate: adding, subtracting, scaling, multiplying, rotating, measuring, transposing, reversing, etc.</li>
 <li>operations are not implemented defensively, in the sense that a base runtime error will be triggered if a type or a size does not match, rather than being tested explicitly (anyway generally no useful extra context could then be specifically reported)</li>
 <li>additional runtime checks (e.g. to check whether parameters expected to be unit vectors are normalised indeed) can nevertheless be enabled by setting the <tt class="docutils literal">myriad_check_linear</tt> flag (refer to <tt class="docutils literal">GNUmakevars.inc</tt>)</li>
-<li>for <a class="reference external" href="https://en.wikipedia.org/wiki/Homogeneous_coordinates#Use_in_computer_graphics_and_computer_vision">homogeneous coordinates</a>: any implicit homogeneous <cite>w</cite> coordinate is <tt class="docutils literal">1.0</tt></li>
+<li>for <a class="reference external" href="https://en.wikipedia.org/wiki/Homogeneous_coordinates#Use_in_computer_graphics_and_computer_vision">homogeneous coordinates</a>: any implicit homogeneous <cite>w</cite> coordinate is <tt class="docutils literal">1.0</tt>; many operations are provided thanks to the <tt class="docutils literal">matrix4</tt> and <tt class="docutils literal">transform4</tt> modules, for translations, rotations, scaling (including mirroring/reflection), etc.</li>
 <li>most operations here involve floating-point coordinates, rather than integer ones; as an Erlang's <tt class="docutils literal">float()</tt> is a double-precision one, it requires more resources (CPU and memory footprint) than a basic, single-precision one; for applications not requiring extra precision, maybe the Erlang VM could be compiled in order to rely on single-precision floats instead</li>
 </ul>
 </div>
 <div class="section" id="geometric-conventions">
 <h4>Geometric Conventions</h4>
-<p id="d-referential-1"><span id="d-referential"></span><span class="raw-html"><center><img src="myriad-space-time-referential.png" id="responsive-image-tiny"></img></center></span>
+<p id="d-coordinate-system-1"><span id="d-coordinate-system"></span><span class="raw-html"><center><img src="myriad-space-time-coordinate-system.png" id="responsive-image-tiny"></img></center></span>
 </p>
-<p>For <strong>space</strong> coordinates, three axes are defined for a global referential:</p>
+<p>For <strong>space</strong> coordinates, three axes are defined for a global coordinate system:</p>
 <ul class="simple">
 <li>abscissa: X axis (in red, <tt class="docutils literal">#FF0000</tt>)</li>
 <li>ordinate: Y axis (in green, <tt class="docutils literal">#008000</tt>)</li>
@@ -1944,13 +1949,13 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <tr><td class="label"><a class="fn-backref" href="#footnote-reference-22">[24]</a></td><td>Unlike many games, for which the Y axis is up, Z being the depth, perpendicular to the screen. Anyway a simple camera transformation is enough to switch conventions.</td></tr>
 </tbody>
 </table>
-<p id="d-referential-2">In 2D, typically for on-screen coordinates (e.g. when drawing in a canvas), the corresponding projected referential applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero <a class="footnote-reference" href="#footnote-23" id="footnote-reference-23">[25]</a>:</p>
-<p><span class="raw-html"><center><img src="myriad-2D-referential.png" id="responsive-image-xsmall"></img></center></span>
+<p id="d-coordinate-system-2">In 2D, typically for on-screen coordinates (e.g. when drawing in a canvas), the corresponding projected coordinate system applies, based on the X and Y axes, the origin being in the top-left corner, and all Z coordinates being zero <a class="footnote-reference" href="#footnote-23" id="footnote-reference-23">[25]</a>:</p>
+<p><span class="raw-html"><center><img src="myriad-2D-coordinate-system.png" id="responsive-image-xsmall"></img></center></span>
 </p>
 <table class="docutils footnote" frame="void" id="footnote-23" rules="none">
 <colgroup><col class="label" /><col /></colgroup>
 <tbody valign="top">
-<tr><td class="label"><a class="fn-backref" href="#footnote-reference-23">[25]</a></td><td><p class="first">This 2D referential corresponds to the base space-time one, when the viewpoint is located in the negative Z axis and looks at the origin.</p>
+<tr><td class="label"><a class="fn-backref" href="#footnote-reference-23">[25]</a></td><td><p class="first">This 2D coordinate system corresponds to the base space-time one, when the viewpoint is located in the negative Z axis and looks at the origin.</p>
 <p class="last">One may also refer to <tt class="docutils literal">gui_opengl:enter_2d_mode/1</tt> to apply these conventions.</p>
 </td></tr>
 </tbody>
@@ -1972,6 +1977,9 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 </ul>
 </li>
 </ul>
+<p>This corresponds to this representation:</p>
+<p><span class="raw-html"><center><img src="myriad-opengl-transformation-setting.png" id="responsive-image-medium"></img></center></span>
+</p>
 <p>For <strong>face culling</strong>, front-facing is determined by relying on a counter-clockwise order winding order of triangles (like default OpenGL's <a class="reference external" href="https://www.khronos.org/opengl/wiki/Face_Culling">GL_CCW</a>):</p>
 <p><span class="raw-html"><center><img src="myriad-culling-conventions.png" id="responsive-image-medium"></img></center></span>
 </p>
@@ -1985,7 +1993,7 @@ Q = A + B.\textbf{i} + C.\textbf{j} + D.\textbf{k}
 <p>A fourth coordinate besides X, Y and Z could be used, as an extra axis (in yellow, <tt class="docutils literal">#F6DE2D</tt>):</p>
 <ul class="simple">
 <li>either for <strong>homogeneous</strong> coordinates, in which case it will be considered to be spatial as well, with the same unit as the three first ones, and preferably designated as <tt class="docutils literal">W</tt></li>
-<li>or for <strong>time</strong> coordinates, with a single axis defined for a global referential: the <tt class="docutils literal">T</tt> one, for which <tt class="docutils literal">1.0</tt> corresponds to 1 second</li>
+<li>or for <strong>time</strong> coordinates, with a single axis defined for a global coordinate system: the <tt class="docutils literal">T</tt> one, for which <tt class="docutils literal">1.0</tt> corresponds to 1 second</li>
 </ul>
 <p>We consider that <strong>clip space</strong> ranges in <tt class="docutils literal"><span class="pre">[-1.0,</span> 1.0]</tt> (like OpenGL conventions; rather than for example <tt class="docutils literal">[0.0, 1.0]</tt>, which are the D3D ones).</p>
 </div>
@@ -2390,10 +2398,11 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <li>helper functions <strong>shall preferably be identified as such</strong>, with an <tt class="docutils literal">(helper)</tt> comment</li>
 <li>if an helper function is specific to an exported function, it shall be defined just after this function; otherwise it should be defined in the <strong>helper section</strong>, placed just after the definition of the exported functions</li>
 <li>defining distinct (non-overlapping), explicit (with a clear-enough name), numerous (statically-defined) <strong>atoms</strong> is cheap; each atom found in the sources is generally to be involved in at least one type definition</li>
-<li>the use of <tt class="docutils literal">case ... of ... end</tt> should be preferred to the use of <tt class="docutils literal">if</tt> (never used in our code base)</li>
+<li>the use of <tt class="docutils literal">case EXPR of ... end</tt> should be preferred to the use of <tt class="docutils literal">if</tt> (never used in our code base); when only one branch may apply and does not depend on the actual value of EXPR, one-armed expressions based on <tt class="docutils literal">andalso</tt> or <tt class="docutils literal">orelse</tt> should be preferred to a <tt class="docutils literal">case</tt> expression (e.g. <tt class="docutils literal">DoDisplay andalso <span class="pre">render(),</span> ...</tt>)</li>
 <li>we also prefer that the various patterns of a case are indented with exactly one tabulation, and that the closing <tt class="docutils literal">end</tt> lies as much as possible on the left (e.g. if having specified <tt class="docutils literal">MyVar = case ... end</tt>, then <tt class="docutils literal">end</tt> should begin at the same column as <tt class="docutils literal">MyVar</tt>); the same applies to <tt class="docutils literal">try ... catch ... end</tt> clauses</li>
 <li>when a term is ignored, instead of using simply <tt class="docutils literal">_</tt>, one should define a <strong>named mute variable</strong> in order to provide more information about this term (e.g. <tt class="docutils literal">_TimeManagerPid</tt>); one should then to accidental matching of such names (now a warning is emitted)</li>
 <li>some conventional variable names are, and may be, extensively used: <tt class="docutils literal">Res</tt> for result, <tt class="docutils literal">H</tt> and <tt class="docutils literal">T</tt> for respectively the head and tail of a list on which we recursively iterate</li>
+<li>generally, a plural variable name (e.g. <tt class="docutils literal">Elements</tt>) designates a list (e.g. <tt class="docutils literal"><span class="pre">[element()]</span></tt>); consequently, a list of lists of <tt class="docutils literal">element()</tt> (thus <tt class="docutils literal"><span class="pre">[[element()]]</span></tt>, like <tt class="docutils literal">[[E1,E2], [], [E3]]</tt>) may be designated with the <tt class="docutils literal">Elementss</tt> variable name</li>
 </ul>
 <ul class="simple" id="indices">
 <li>indices shall, as much as possible, start at index <tt class="docutils literal">1</tt> (rather than 0); this is a general Erlang convention (<a class="reference external" href="https://erlang.org/doc/man/lists.html#description">for lists</a>, like with <tt class="docutils literal">lists:nth/2</tt>, for tuples, etc. - unlike <a class="reference external" href="https://erlang.org/doc/man/array.html#description">arrays</a>, though); see <tt class="docutils literal">basic_utils:positive_index/0</tt></li>
@@ -2403,7 +2412,7 @@ In the Erlang source code found from XXX/ceylan/myriad, we have:
 <li>other, a plain string (<tt class="docutils literal">text_utils:ustring()</tt>) shall be used</li>
 </ul>
 </li>
-<li>when defining a non-trivial datastructure, a <strong>record</strong> shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding <strong>type</strong> should be then defined (e.g. a <tt class="docutils literal">foobar</tt> record leading to a <tt class="docutils literal">foobar()</tt> type), and a <strong>function to describe it</strong> as text shall be provided (e.g. <tt class="docutils literal"><span class="pre">-spec</span> <span class="pre">foobar_to_string(foobar())</span> <span class="pre">-&gt;</span> text_utils:string()</tt>)<ul>
+<li>when defining a non-trivial datastructure, a <strong>record</strong> shall be used (rather than, say, a mere ad-hoc tuple or a map of undocumented structure...), a corresponding <strong>type</strong> should be then defined (e.g. a <tt class="docutils literal">foobar</tt> record leading to a <tt class="docutils literal">foobar()</tt> type), and a <strong>function to describe it</strong> as text shall be provided (e.g. <tt class="docutils literal"><span class="pre">-spec</span> <span class="pre">foobar_to_string(foobar())</span> <span class="pre">-&gt;</span> text_utils:ustring()</tt>)<ul>
 <li><strong>mute variables</strong> should be used as well to document actual parameters; for example <tt class="docutils literal">f(3,7,10)</tt> could preferably be written as a clearer <tt class="docutils literal">f(_Min=3,_Max=7,_Deviation=10)</tt></li>
 </ul>
 </li>
@@ -2460,7 +2469,45 @@ $<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>
 </div>
 <div class="section" id="for-documentation-generation">
 <h3><a class="toc-backref" href="#toc-entry-68">For Documentation Generation</a></h3>
-<p>Refer now to our <a class="reference external" href="http://howtos.esperide.org/DocGeneration.html">dedicated HOW-TO</a>.</p>
+<div class="section" id="generation-of-api-documentation">
+<h4>Generation of API documentation</h4>
+<p>Since Erlang/OTP 27, Myriad relies on the <a class="reference external" href="https://www.erlang.org/doc/system/documentation.html">overhauled documentation system</a> (stemming from <a class="reference external" href="https://www.erlang.org/eeps/eep-0059">EEP 59</a>) and on the <a class="reference external" href="https://en.wikipedia.org/wiki/Markdown">Markdown</a> syntax.</p>
+<p>This produces doc chunks, and <a class="reference external" href="https://hexdocs.pm/ex_doc/readme.html">ExDoc</a> is used (as a command-line tool) to generate the actual documentation out of it.</p>
+<p>As ExDoc is in Elixir, it is to be installed thanks to <tt class="docutils literal">mix</tt>, which can be installed on Arch thanks to <tt class="docutils literal">pacman <span class="pre">-S</span> elixir</tt>.</p>
+<p>Then ExDoc can be installed as an escript: <tt class="docutils literal">mix escript.install hex ex_doc</tt>; it becomes then available as <tt class="docutils literal"><span class="pre">~/.mix/escripts/ex_doc</span></tt>, that may be added in one's <tt class="docutils literal">PATH</tt>. Refer to our <tt class="docutils literal"><span class="pre">generate-api-doc</span></tt> make target that automates the generation of the API documentation of the current layer.</p>
+</div>
+<div class="section" id="writing-api-documentation">
+<h4>Writing API documentation</h4>
+<p>Short reminders for the writing of a proper corresponding documentation (see also the <a class="reference external" href="https://www.erlang.org/doc/system/documentation.html">Erlang reference guide</a> about it):</p>
+<ul class="simple">
+<li>the documentation regarding an element must come just <em>before</em> that element</li>
+<li>for each module file, first comes a <tt class="docutils literal"><span class="pre">-moduledoc</span></tt> (module-level) attribute</li>
+<li>then as many <tt class="docutils literal"><span class="pre">-doc</span></tt> as there are elements that shall be documented: user-defined types (for <tt class="docutils literal"><span class="pre">-type</span></tt> and <tt class="docutils literal"><span class="pre">-opaque</span></tt>), behaviour module attributes (<tt class="docutils literal"><span class="pre">-callback</span></tt>) and functions (<tt class="docutils literal"><span class="pre">-spec</span></tt>)</li>
+<li>each of these documentation attributes (<tt class="docutils literal"><span class="pre">-moduledoc</span></tt> / <tt class="docutils literal"><span class="pre">-doc</span></tt>) can be followed by a single-quoted or a <a class="reference external" href="https://www.erlang.org/blog/highlights-otp-27/#triple-quoted-strings">triple-quoted string</a>; this entry should start with a short paragraph describing the purpose of the documented element, and then go into greater detail if needed; we recommend the MarkDown syntax for it (see <a class="reference external" href="https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax">this reference</a>); for example:</li>
+</ul>
+<pre class="code erlang literal-block">
+<span class="p">-</span><span class="ni">moduledoc</span><span class="w"> </span><span class="s">&quot;&quot;&quot;
+A module for **basic arithmetic**.
+
+It is based on *XXX* and performs *YYY*.
+
+ZZZ is of interest, see [this page](http://www.foobar.org).
+See `sub/2`, &lt;http://www.foobar.org#hello&gt; and `arith:sub/2` for more details.
+&quot;&quot;&quot;</span><span class="p">.</span>
+</pre>
+<p>and</p>
+<pre class="code erlang literal-block">
+<span class="p">-</span><span class="ni">doc</span><span class="w"> </span><span class="s">&quot;Adds two numbers.&quot;</span>
+</pre>
+<p>(note that both simple and triple quotes <em>must</em> be followed by a dot)</p>
+<p>Let's name an <em>element specification</em> the documentation attribute (<tt class="docutils literal"><span class="pre">-doc</span></tt>), possibly its type spec (<tt class="docutils literal"><span class="pre">-spec</span></tt>) and its actual (code-based) definition.</p>
+<p>We recommend that:</p>
+<ul class="simple">
+<li>element specifications are separated by three blank lines</li>
+<li>no blank line exists between a document attribute and the rest of the corresponding element specification</li>
+</ul>
+<p>For other documentation topics, refer to our <a class="reference external" href="http://howtos.esperide.org/DocGeneration.html">dedicated HOW-TO</a>.</p>
+</div>
 </div>
 </div>
 <div class="section" id="release-conventions">
@@ -2537,7 +2584,7 @@ $<span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>
 <h3><a class="toc-backref" href="#toc-entry-76">Myriad-level Third-Party Dependencies</a></h3>
 <p>Myriad as such has no mandatory dependency (except Erlang itself of course), but <em>optional</em> ones may be enabled, for:</p>
 <ul class="simple">
-<li>a basic <a class="reference external" href="https://en.wikipedia.org/wiki/JSON">JSON</a> support (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/json_utils.erl">json_utils</a> module), thanks to a suitable actual JSON parser, either <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; note that the detection and use of these parsers are done transparently at runtime, hence none of them is a declared dependency of Myriad, which will adapt to any choice made by the overall application that includes both Myriad and one of such parsers (provided, as mentioned above, that the proper <tt class="docutils literal">USE_*</tt> make variables are set)</li>
+<li>a basic <a class="reference external" href="https://en.wikipedia.org/wiki/JSON">JSON</a> support (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/json_utils.erl">json_utils</a> module), thanks to a suitable actual JSON parser: any available built-in <a class="reference external" href="https://www.erlang.org/doc/apps/stdlib/json.html">json</a> one, otherwise <a class="reference external" href="https://github.com/talentdeficit/jsx/">jsx</a> or <a class="reference external" href="https://github.com/davisp/jiffy">jiffy</a>; note that the detection and use of these parsers are done transparently at runtime, hence none of them is a declared dependency of Myriad, which will adapt to any choice made by the overall application that includes both Myriad and one of such parsers (provided, as mentioned above, that the proper <tt class="docutils literal">USE_*</tt> make variables are set)</li>
 <li>a first-level support of the <a class="reference external" href="https://www.hdfgroup.org/HDF5/">HDF5</a> file format (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/hdf5_support.erl">hdf5_support</a> module), based on - and thus requiring - the <a class="reference external" href="https://github.com/Olivier-Boudeville-EDF/erlhdf5">enhanced fork</a> that we made of <a class="reference external" href="https://github.com/RomanShestakov/erlhdf5">erlhdf5</a></li>
 <li><a class="reference external" href="https://en.wikipedia.org/wiki/Python_(programming_language)">Python</a> (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/utils/python_utils.erl">python_utils</a> module), thanks to <a class="reference external" href="https://github.com/hdima/erlport">erlport</a></li>
 <li><a class="reference external" href="https://en.wikipedia.org/wiki/SQLite">SQLite</a> (see our <a class="reference external" href="https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/sql_support.erl">sql_support</a> module), thanks to the SQLite 3 Erlang binding that we retained, <a class="reference external" href="https://github.com/alexeyr/erlang-sqlite3.git">erlang-sqlite3</a></li>
