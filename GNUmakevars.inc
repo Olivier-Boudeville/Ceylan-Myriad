@@ -1962,7 +1962,8 @@ endif
 
 
 # We now rely on ExDoc, rather than on edoc:
-
+# (see the generate-api-doc-with-exdoc target)
+#
 # Can be installed with: 'mix escript.install hex ex_doc':
 EXDOC := $$(which ex_doc 2>/dev/null)
 
@@ -1976,14 +1977,24 @@ EXDOC_OPTS = --formatter html --homepage-url "$(PROJECT_URL)" --language en --lo
 
 
 ifndef API_DOC_ROOT
-	API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+	# Relative links with "$(LAYER_TOP)" removed, as were misleading (evaluated
+	# in 'doc', so as ".." - but edoc is run from the clone root)
+	#
+	#API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+	API_DOC_ROOT := doc/api-doc
 endif
 
 
 # When relying directly on edoc:
-#ifndef EDOC_OPTS
-#	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
-#endif
+# (see the generate-api-with-edoc target)
+#
+# See API_DOC_ROOT above to understand why $(LAYER_TOP) is not used.
+#
+# (edoc is natively installed)
+#
+ifndef EDOC_OPTS
+	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,[".."]}, {overview,"doc/overview.edoc"}]'
+endif
 
 
 # When relying directly on a second doc generator (like erldocs):

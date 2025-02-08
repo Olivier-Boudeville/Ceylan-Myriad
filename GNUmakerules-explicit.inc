@@ -38,7 +38,7 @@
 			generate-protobuf                                                \
 			sync-sources-to-server sync-all-to-server                        \
 			generate-api-doc generate-api-doc-with-exdoc                     \
-			generate-api-edoc generate-api-doc-with-erldocs                  \
+			generate-api-doc-with-edoc generate-api-doc-with-erldocs         \
 			copy-static-content clean-api-doc clean-api-alt-doc              \
 			generate-list-of-erlang-types generate-list-of-local-types       \
 			generate-local-plt self-check-against-plt write-debug-key-file   \
@@ -352,7 +352,7 @@ generate-tags:
 #
 create-include-links:
 	@echo "  Populating the include symlinks"
-	@cd include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null); do ln -sf $$h; done; done
+	@cd $(LAYER_TOP)/include && for d in $$(find * -type d 2>/dev/null); do for h in $$(/bin/ls $$d/*.hrl 2>/dev/null); do ln -sf $$h; done; done
 
 
 # Gets rid of include symlinks created for tools like rebar or edoc (and only
@@ -360,7 +360,7 @@ create-include-links:
 #
 clean-include-links:
 	@echo "  Cleaning the include symlinks"
-	@cd include && find . -maxdepth 1 -type l -exec /bin/rm -f '{}' ';'
+	@cd $(LAYER_TOP)/include && find . -maxdepth 1 -type l -exec /bin/rm -f '{}' ';'
 
 
 
@@ -375,7 +375,7 @@ ifeq ($(BASE_MAKEFILE),true)
 #
 copy-beams-to-ebin:
 	@echo "  Copying BEAM files to local ebin ($$(pwd)/ebin)"
-	@mkdir -p ebin; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
+	@cd $(LAYER_TOP) && mkdir -p ebin; find src -name '*.beam' -exec /bin/cp -f '{}' ebin ';'
 
 
 # For a layer and its (potentially multiple) direct dependencies (for Myriad:
@@ -1016,7 +1016,9 @@ sync-all-to-server: all
 
 
 
-generate-api-doc: generate-api-doc-with-exdoc
+# Switched back to edoc, as ex_doc fails due to an "internal inconsistency":
+#generate-api-doc: generate-api-doc-with-exdoc
+generate-api-doc: generate-api-doc-with-edoc
 
 
 # Main doc generator, relying on ExDoc:
@@ -1024,7 +1026,7 @@ generate-api-doc: generate-api-doc-with-exdoc
 # (simpler to look into ebin rather than forging many --paths options)
 #
 generate-api-doc-with-exdoc:
-	@cd $(PROJECT_TOP) && $(MAKE) -s all copy-beams-to-ebin
+	@cd $(LAYER_TOP) && $(MAKE) -s all copy-beams-to-ebin
 	@echo "  Generating API documentation with ExDoc"
 	@$(EXDOC) "$(PROJECT_NAME)" "$(PROJECT_VERSION)" "$(PROJECT_TOP)/ebin" $(EXDOC_OPTS) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
 	@$(MAKE) -s copy-static-content
@@ -1034,16 +1036,20 @@ generate-api-doc-with-exdoc:
 #
 # (include symlinks needed for layers having a full include tree)
 #
-generate-api-edoc: overview.edoc create-include-links
+# (beware, changing path logic will result in a successful generation, yet it
+# will lack CSS, images, not take into account the sources, be generated in a
+#  wrong location, etc.)
+#
+generate-api-doc-with-edoc: overview.edoc create-include-links
 	@echo "  Generating API documentation with edoc"
-	@$(ERLANG_INTERPRETER) -noshell -run edoc_run application "'$(PROJECT_NAME)'" '"."' $(EDOC_OPTS) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
+	@cd $(LAYER_TOP) && $(ERLANG_INTERPRETER) -noshell -run edoc_run application "'$(PROJECT_NAME)'" '"."' $(EDOC_OPTS) && echo "  API documentation generated in file://$$(realpath $(API_DOC_ROOT)/index.html)"
 	@$(MAKE) -s copy-static-content
 
 
 # Doc generator relying on erldocs:
 generate-api-doc-with-erldocs: overview.edoc
 	@echo "  Generating API documentation with erldocs"
-	@$(API_DOC_GENERATOR) -o $(API_DOC_ALT_ROOT) $(LAYER_TOP) && echo "  API alternate documentation generated in file://$$(realpath $(API_DOC_ALT_ROOT)/index.html)"
+	@cd $(LAYER_TOP) && $(API_DOC_GENERATOR) -o $(API_DOC_ALT_ROOT) $(LAYER_TOP) && echo "  API alternate documentation generated in file://$$(realpath $(API_DOC_ALT_ROOT)/index.html)"
 
 
 # For the main doc generator:
@@ -1054,7 +1060,8 @@ copy-static-content:
 
 
 # Generates a relevant overview page for edoc:
-overview.edoc: doc/overview.edoc.template
+# (to be run from $(LAYER_TOP)/doc)
+overview.edoc: overview.edoc.template
 	@echo "  Generating $@ from $<"
 	@cat $< | sed "s|COPYRIGHT_YEAR|$$(date '+%Y')|g" | sed "s|PROJECT_VERSION|$(PROJECT_VERSION)|g" |sed "s|GENERATION_DATE|$$(date '+%A, %B %-e, %Y')|g" > $@
 
@@ -1499,11 +1506,11 @@ info-doc:
 	@echo "API_DOC_ROOT = $(API_DOC_ROOT)"
 	@echo "EXDOC = $(EXDOC)"
 	@echo "EXDOC_OPTS = $(EXDOC_OPTS)"
+	@echo "EDOC_OPTS = $(EDOC_OPTS)"
 
 
 # Previously:
 #   @echo "EXDOC_CONFIG_FILE = $(EXDOC_CONFIG_FILE)"
-#   @echo "EDOC_OPTS = $(EDOC_OPTS)"
 
 
 # Put here, as defining explicit targets:

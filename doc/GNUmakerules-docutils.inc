@@ -349,7 +349,7 @@ local-pdf: $(OVERALL_DOCUMENT_SOURCE)
 
 # To generate an actual API documentation tree:
 create-api-doc:
-	@cd $(LAYER_TOP) && $(MAKE) -s generate-api-doc
+	@cd $(LAYER_TOP)/doc && $(MAKE) -s generate-api-doc
 
 
 # As no Makefile in TMP_RST_REPOSITORY:
