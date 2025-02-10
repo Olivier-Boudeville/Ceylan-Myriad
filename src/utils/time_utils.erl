@@ -258,7 +258,7 @@ Refer to <https://en.wikipedia.org/wiki/ISO_8601 for further information>.
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  timestamp_to_weekday/1, date_to_weekday/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
-		  offset_timestamp/2, offset_time/2, next_month/1,
+		  timestamp_in/1, offset_timestamp/2, offset_time/2, next_month/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1,
 		  get_textual_duration/2, get_french_textual_duration/2,
@@ -1895,6 +1895,14 @@ compare offsets to it.
 timestamp_to_seconds( Timestamp ) ->
 	calendar:datetime_to_gregorian_seconds( Timestamp ).
 
+
+-doc """
+Returns the timestamp corresponding to the current one (i.e. now) once
+translated of the specified (signed) duration.
+""".
+-spec timestamp_in( dhms_duration() | seconds() ) -> timestamp().
+timestamp_in( Duration ) ->
+	offset_timestamp( _Now=get_timestamp(), Duration ).
 
 
 -doc """
