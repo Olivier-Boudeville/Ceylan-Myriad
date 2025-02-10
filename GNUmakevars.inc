@@ -2161,7 +2161,12 @@ ifndef SYNC_TOOL
 		SSH_OPT := -e "ssh -p $(SSH_PORT)"
 	endif
 
-	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT) --exclude '.git'
+	# Using '--no-perms' to avoid errors should the content on the remote host
+	# have a different owner (e.g. an in-production different user, yet being in
+	# the same group), to avoid 'rsync: [generator] failed to set permissions on
+	# "xxx/.": Operation not permitted (1)':
+	#
+	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT) --exclude '.git' --no-perms
 
 
 	# General-purpose, mostly to synchronise a remote webserver in terms of
