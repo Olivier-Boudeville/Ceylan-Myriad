@@ -1311,21 +1311,8 @@ ifndef COOKIE
 endif
 
 
+# For ERL_PARAMETERIZED_LAUNCHER:
 COOKIE_OPT = -c $(COOKIE)
-
-
-# One may switch to short names if network configuration does not allow for long
-# ones:
-#
-ifeq (NODE_NAMING,"--ln")
-
-	DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(HOSTNAME_FOR_NODE) -setcookie $(COOKIE)
-
-else ifeq (NODE_NAMING,"--sn")
-
-	DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(COOKIE)
-
-endif
 
 
 STARTUP_FUNCTION := run
@@ -1818,6 +1805,22 @@ ifndef NODE_NAMING
 	NODE_NAMING = "--sn"
 
 	#NODE_NAMING = "--nn"
+
+endif
+
+
+# One may switch to short names if network configuration does not allow for long
+# ones:
+#
+# (currently not used, see ERL_PARAMETERIZED_LAUNCHER)
+#
+ifeq (NODE_NAMING,"--ln")
+
+	DISTRIBUTED_NODE_OPT = -name $(VM_NAME)@$(HOSTNAME_FOR_NODE) -setcookie $(COOKIE)
+
+else ifeq (NODE_NAMING,"--sn")
+
+	DISTRIBUTED_NODE_OPT = -sname $(VM_NAME) -setcookie $(COOKIE)
 
 endif
 

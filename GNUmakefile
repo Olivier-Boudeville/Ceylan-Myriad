@@ -5,9 +5,7 @@ MYRIAD_TOP = .
 		register-version-in-header register-myriad list-beam-dirs             \
 		add-prerequisite-plts prepare-base-plt add-erlhdf5-plt add-jsx-plt    \
 		add-sqlite3-plt link-plt clean-ast-outputs clean-local stats          \
-		info-context info-versions info-paths                                 \
-		info-settings info-json info-sql                                      \
-		info-parse-transform-local info-conditionals info-glsl
+		info-versions info-parse-transform-local info-conditionals info-glsl
 
 
 #MODULES_DIRS = contrib src doc conf
@@ -136,8 +134,10 @@ info-versions:
 
 info-parse-transform: info-parse-transform-local
 
+
 info-parse-transform-local:
 	@echo "META_BEAM_FILES = $(META_BEAM_FILES)"
+
 
 info-conditionals:
 	@echo "MYRIAD_DEBUG_FLAGS = $(MYRIAD_DEBUG_FLAGS)"

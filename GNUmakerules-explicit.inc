@@ -1474,6 +1474,13 @@ info-options:
 	@echo "ALL_CMD_LINE_OPTIONS = $(ALL_CMD_LINE_OPTIONS)"
 
 
+# DISTRIBUTED_NODE_OPT not relevant, as generally not used:
+info-runtime:
+	@echo "ERL_PARAMETERIZED_LAUNCHER = $(ERL_PARAMETERIZED_LAUNCHER)"
+	@echo "NODE_NAMING = $(NODE_NAMING)"
+	@echo "ALL_CMD_LINE_OPTIONS = $(ALL_CMD_LINE_OPTIONS)"
+
+
 info-parse-transform:
 	@echo "BOOTSTRAP_MODULES = $(BOOTSTRAP_MODULES)"
 	@echo "ERLANG_COMPILER_OPT_FOR_PT = $(ERLANG_COMPILER_OPT_FOR_PT)"
