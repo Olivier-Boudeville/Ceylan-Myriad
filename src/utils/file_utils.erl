@@ -1253,7 +1253,7 @@ For example: `["baz", "json"] = get_extensions("/home/joe/foobar.baz.json").`.
 -spec get_extensions( file_path() ) -> [ extension() ] | 'no_extension'.
 get_extensions( Filename ) ->
 
-	case text_utils:split( Filename, _Delimiters=[ $. ] ) of
+	case text_utils:split( Filename, _Delimiter=$. ) of
 
 		[] ->
 			no_extension;
@@ -1315,7 +1315,7 @@ For example: `"/home/jack/rosie.tmp" =
 					  ( bin_file_path() ) -> bin_file_path().
 remove_extension( FilePath ) ->
 
-	case text_utils:split( FilePath, _Delimiters=[ $. ] ) of
+	case text_utils:split( FilePath, _Delimiter=$. ) of
 
 		% Returning an empty string for an empty string:
 		[] ->
@@ -1348,10 +1348,10 @@ remove_extension( BinFilePath, ExpectedExtension )
 remove_extension( FilePath, ExpectedExtension )
 										% To secure the match:
 										when is_list( ExpectedExtension ) ->
-
+	% Used more than once:
 	Separator = $.,
 
-	case text_utils:split( FilePath, _Delimiters=[ Separator ] ) of
+	case text_utils:split( FilePath, Separator ) of
 
 		[] ->
 			throw( empty_path );

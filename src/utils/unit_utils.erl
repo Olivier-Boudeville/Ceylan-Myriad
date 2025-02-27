@@ -1752,7 +1752,7 @@ parse_component( ComponentString ) ->
 	% exponent:
 
 	{ PrefixedUnitString, UnitExponent } = case text_utils:split(
-								ComponentString, _Delimiters=[ $^ ] ) of
+			ComponentString, _Delimiter=$^ ) of
 
 		% Returns for example { "km", -3 }:
 		[ PfxUnit, ExponentString ] ->

@@ -260,7 +260,7 @@ The result of the parsing of a CSV file, comprised of:
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -820,7 +820,7 @@ evaluate_separators_on( _Seps=[], _Line, SepAcc ) ->
 	SepAcc;
 
 evaluate_separators_on( _Seps=[ Sep | T ], Line, SepAcc ) ->
-	SubStrings = text_utils:split( Line, _Delimiters=[ Sep ] ),
+	SubStrings = text_utils:split( Line, _Delimiter=Sep ),
 	NewSepAcc = [ { Sep, length( SubStrings ) - 1 } | SepAcc ],
 	evaluate_separators_on( T, Line, NewSepAcc ).
 

@@ -1062,7 +1062,7 @@ get_supported_extensions() ->
 
 	end,
 
-	ExtStrs = text_utils:split( FilteredExtStr, _Delimiters=[ $ ] ),
+	ExtStrs = text_utils:split( FilteredExtStr, _Delimiter=$ ),
 	text_utils:strings_to_atoms( ExtStrs ).
 
 
@@ -1770,7 +1770,7 @@ get_glxinfo_strings() ->
 
 				{ _ReturnCode=0, ReturnedStr } ->
 					text_utils:remove_empty_lines(
-						text_utils:split( ReturnedStr, "\n" ) );
+						text_utils:split( ReturnedStr, _Delimiter=$\n ) );
 
 				{ ErrorCode, ReturnedStr } ->
 					trace_utils:error_fmt( "The ~ts query returned an error "
