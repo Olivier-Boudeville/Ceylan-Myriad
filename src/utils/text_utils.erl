@@ -23,7 +23,7 @@
 % <http://www.mozilla.org/MPL/>.
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
-% Creation date: July 1, 2007.
+% Creation date: July , 2007.
 
 -module(text_utils).
 
@@ -114,6 +114,7 @@ See text_utils_test.erl for the corresponding test.
 		  format_ellipsed/2, format_ellipsed/3,
 		  format_as_comment/1, format_as_comment/2, format_as_comment/3,
 		  format_as_comment/4,
+		  scan_format_string/1, interpret_faulty_format/2,
 
 		  ensure_string/1, ensure_string/2,
 		  ensure_strings/1, ensure_strings/2,
@@ -176,10 +177,10 @@ See text_utils_test.erl for the corresponding test.
 		  pad_string_right/2, pad_string_right/3,
 		  center_string/2, center_string/3,
 
-		  is_string/1, is_non_empty_string/1, are_strings/1,
-		  is_bin_string/1, are_binaries/1,
-		  is_any_string/1,
-		  are_of_same_string_type/2,
+		  is_char/1,
+		  is_string/1, is_bin_string/1, is_any_string/1, is_non_empty_string/1,
+		  is_string_like/1,
+		  are_strings/1, are_binaries/1, are_of_same_string_type/2,
 		  try_convert_to_unicode_list/1, to_unicode_list/1, to_unicode_list/2,
 		  try_convert_to_unicode_binary/1, to_unicode_binary/1,
 		  to_unicode_binary/2 ]).
@@ -512,7 +513,15 @@ information.
 
 
 
--export_type([ format_string/0, format_bin_string/0, format_values/0,
+-type format_parsing_error() ::
+	{ 'format_parsing_failed', ReasonStr :: ustring() }.
+
+% Expected types, based on a format string:
+-type scan_format_outcome() :: [ value_description() ] | format_parsing_error().
+
+
+-export_type([ format_string/0, format_bin_string/0, control_sequence/0,
+			   format_values/0,
 			   verbosity_level/0,
 			   regex_string/0,
 			   title/0, bin_title/0, any_title/0,
@@ -522,23 +531,28 @@ information.
 			   uchar/0, plain_string/0, ustring/0, string_like/0,
 			   parse_string/0, io_list/0, io_data/0,
 			   translation_table/0, length/0, width/0, depth/0,
-			   indentation_level/0, distance/0 ]).
+			   indentation_level/0, distance/0,
+
+			   format_parsing_error/0, scan_format_outcome/0 ]).
 
 
 
 
 % Type shorthands:
 
-
 % A user-perceived character, consisting of one or more (Unicode) codepoints.
 -type grapheme_cluster() :: string:grapheme_cluster().
 
 -type chardata() :: unicode:chardata().
 
+
+% As these pioneer modules are not parse-transformed:
+
+-type void() :: basic_utils:void().
 -type count() :: basic_utils:count().
 
-% As this pioneer module is not parse-transformed:
 -type option( T ) :: type_utils:option( T ).
+-type value_description() :: type_utils:value_description().
 
 -type ?table() :: ?table:?table().
 -type ?table( K, V ) :: ?table:?table( K, V ).
@@ -558,6 +572,8 @@ information.
 
 % Defining here length/1, so having to prefix the otherwise auto-imported
 % length/1 with its 'erlang' module.
+
+ -compile([ {nowarn_unused_function, [ local_display/1, local_display/2 ]} ]).
 
 
 
@@ -1164,7 +1180,7 @@ get_bullet_for_level( 1 ) ->
 get_bullet_for_level( 2 ) ->
 	"       * ";
 
-get_bullet_for_level( N ) when is_integer( N ) andalso N > 0 ->
+get_bullet_for_level( N ) when is_integer( N ), N > 0 ->
 	Base = get_bullet_for_level( N rem 3 ),
 	string:copies( "   ", ( N div 3 ) + 1 ) ++ Base.
 
@@ -1190,7 +1206,7 @@ strings_to_string_helper( _Strings=[], Acc, _Bullet ) ->
 
 % We do not want an extra newline at the end:
 strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
-		when is_list( LastString ) orelse is_binary( LastString ) ->
+		when is_list( LastString ); is_binary( LastString ) ->
 	%Pattern = "~ts~n",
 	% Added back, as makes sense?
 	% Nope:
@@ -1199,7 +1215,7 @@ strings_to_string_helper( _Strings=[ LastString ], Acc, Bullet )
 
 % We allow also for bin_string():
 strings_to_string_helper( _Strings=[ H | T ], Acc, Bullet )
-		when is_list( H ) orelse is_binary( H ) ->
+		when is_list( H ); is_binary( H ) ->
 	% Byproduct of the trailing newline: an empty line at the end if nested.
 	strings_to_string_helper( T,
 		Acc ++ Bullet ++ io_lib:format( "~ts~n", [ H ] ), Bullet );
@@ -1294,7 +1310,7 @@ strings_to_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_string( Strings=[ SingleString ] )
-		when is_list( SingleString ) orelse is_binary( SingleString ) ->
+		when is_list( SingleString ); is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
@@ -1361,7 +1377,7 @@ strings_to_string( Strings, IndentationLevel )
 	strings_to_string( Strings, Bullet );
 
 strings_to_string( Strings, Bullet )
-			when is_list( Strings ) andalso is_list( Bullet ) ->
+			when is_list( Strings ), is_list( Bullet ) ->
 
 	%trace_utils:debug_fmt( "strings_to_string/2 for '~p' : bullet is '~ts'.",
 	%                       [ Strings, Bullet ] ),
@@ -1400,7 +1416,7 @@ strings_to_spaced_string( _Strings=[] ) ->
 	"(empty list)";
 
 strings_to_spaced_string( Strings=[ SingleString ] )
-		when is_list( SingleString ) orelse is_binary( SingleString ) ->
+		when is_list( SingleString ); is_binary( SingleString ) ->
 
 	% Not retained, as the single string may itself correspond to a full, nested
 	% list and no dangling final quote is desirable:
@@ -1455,7 +1471,7 @@ strings_to_spaced_string( Strings, IndentationLevel )
 	strings_to_spaced_string( Strings, Bullet );
 
 strings_to_spaced_string( Strings, Bullet )
-			when is_list( Strings ) andalso is_list( Bullet ) ->
+			when is_list( Strings ), is_list( Bullet ) ->
 
 	%trace_utils:debug_fmt( "strings_to_spaced_string/2 for '~p' : "
 	%    "bullet is '~ts'.", [ Strings, Bullet ] ),
@@ -1526,7 +1542,7 @@ binaries_to_string( Binaries, IndentationLevel )
 	binaries_to_string( Binaries, Bullet );
 
 binaries_to_string( Binaries, Bullet )
-			when is_list( Binaries ) andalso is_list( Bullet ) ->
+						when is_list( Binaries ), is_list( Bullet ) ->
 	Pattern = "~n~ts~n",
 	% Actually no need for a dedicated binaries_to_string_helper/3:
 	io_lib:format( Pattern,
@@ -1589,12 +1605,12 @@ binaries_to_binary( _Binaries=[ SingleBin ], _Bullet ) ->
 	SingleBin;
 
 binaries_to_binary( Binaries, IndentationLevel )
-  when is_integer( IndentationLevel ) ->
+							when is_integer( IndentationLevel ) ->
 	Bullet = get_bullet_for_level( IndentationLevel ),
 	binaries_to_binary( Binaries, Bullet );
 
 binaries_to_binary( Binaries, Bullet )
-					when is_list( Binaries ) andalso is_list( Bullet ) ->
+							when is_list( Binaries ), is_list( Bullet ) ->
 
 	%trace_utils:debug_fmt( "Binaries: ~p, Bullet: '~p'.",
 	%                       [ Binaries, Bullet ] ),
@@ -2295,12 +2311,35 @@ format( FormatString, Values ) ->
 	lists:flatten( String ).
 
 
-% (beware, still within an -ifdef...)
+-endif. % exec_target_is_production
+
+
+-doc "Module-local version of (io_lib/text_utils):format/2.".
+-spec local_format( format_string(), format_values() ) -> ustring().
+local_format( FormatString, Values ) ->
+	lists:flatten( io_lib:format( FormatString, Values ) ).
+
+
+-doc "Module-local version of io:format/1.".
+-spec local_display( ustring() ) -> void().
+local_display( S ) ->
+	% To avoid a wrong number of arguments being detected due to ~:
+	EscapedS = string:replace( _In=S, _SearchPattern="~",
+							   _Replacement="\~", _Where=all),
+
+	io:format( "~ts~n", [ EscapedS ] ).
+
+
+-doc "Module-local version of io:format/2.".
+-spec local_display( format_string(), format_values() ) -> void().
+local_display( FormatString, Values ) ->
+	local_display( local_format( FormatString, Values ) ).
 
 
 
 -doc """
-Interprets a faulty format command, based on respectively a string and a list.
+Interprets a faulty format command, based on respectively a format string and a
+supposedly-corresponding list of values.
 """.
 -spec interpret_faulty_format( format_string(), format_values() ) -> ustring().
 interpret_faulty_format( FormatString, Values ) ->
@@ -2308,72 +2347,62 @@ interpret_faulty_format( FormatString, Values ) ->
 	%trace_utils:debug_fmt( "FormatString: ~p~nValues: ~p.",
 	%                       [ FormatString, Values ] ),
 
+	% Preferring not using 'text_utils:format/2' here, but io_lib.
+
 	ValueCount = erlang:length( Values ),
 
-	% The always-existing prefix before the first ~ is of no interest:
-	SplitSeqs = tl( split( FormatString, _Separators=[ $~ ] ) ),
+	Diagnosis = case scan_format_string( FormatString ) of
 
-	%trace_utils:debug_fmt( "SplitSeqs = ~p.", [ SplitSeqs ] ),
+		{ format_parsing_failed, ReasonStr } ->
+			local_format( " (the format string '~ts' is invalid: ~ts)",
+						  [ FormatString, ReasonStr ] );
 
-	% Rough, but sufficient for at least many cases:
-	Delimited = [ _AsStringWanted=[ strip_modifiers( FullSeq ) ]
-					|| FullSeq <- SplitSeqs ],
-
-	%trace_utils:debug_fmt( "Delimited = ~p", [ Delimited ] ),
-
-	Diagnosis = case Delimited of
-
-		% Not even one control sequence, strange:
+		% Not even one control sequence, a bit unusual:
 		[] ->
-			% Avoid any infinite recursion:
-			io_lib:format( " (no control sequence detected in format "
-						   "string '~ts')", [ FormatString ] );
+			% Of course not 'text_utils', to avoid any infinite recursion:
+			local_format( " (no control sequence detected in format "
+						  "string '~ts')", [ FormatString ] );
 
-		Seqs ->
-			% We filter out "autonomous" control sequences, i.e. the ones that
-			% require no specific value:
-			%
-			VSeqs = [ S || S <- Seqs, requires_value( S ) ],
-
-			SeqCount = erlang:length( VSeqs ),
+		ValueDescs ->
+			FmtValueCount = erlang:length( ValueDescs ),
 
 			% Counting value-based control sequences:
-			case ValueCount - SeqCount of
+			case ValueCount - FmtValueCount of
 
 				0 ->
 					"; apparently the correct number of values "
 					"has been specified, so the types may not all match: "
-					++ match_types( VSeqs, Values, _Count=1 ); % ++ ".";
+					++ match_types( ValueDescs, Values, _VCount=1 ); % ++ ".";
 
 				% Very common case:
 				1 ->
-					case SeqCount of
+					case FmtValueCount of
 
 						1 ->
 							" (expecting a single value, got two of them)";
 
 						_ ->
-							io_lib:format( " (expecting ~B values, got ~B, "
+							local_format( " (expecting ~B values, got ~B, "
 								"hence an extra value has been specified)",
-								[ SeqCount, ValueCount ] )
+								[ FmtValueCount, ValueCount ] )
 
 					end;
 
 				TooMany when TooMany > 1 ->
-					io_lib:format( " (expecting ~B values, got ~B, hence ~B "
+					local_format( " (expecting ~B values, got ~B, hence ~B "
 						"extra values have been specified)",
-						[ SeqCount, ValueCount, TooMany ] );
+						[ FmtValueCount, ValueCount, TooMany ] );
 
 				% Very common case:
 				-1 ->
-					io_lib:format( " (expecting ~B values, got ~B, hence an "
+					local_format( " (expecting ~B values, got ~B, hence an "
 						"additional value ought to have been specified)",
-						[ SeqCount, ValueCount ] );
+						[ FmtValueCount, ValueCount ] );
 
 				TooFew when TooFew < 1 ->
-					io_lib:format( " (expecting ~B values, got ~B, hence ~B "
+					local_format( " (expecting ~B values, got ~B, hence ~B "
 						"additional values ought to have been specified)",
-						[ SeqCount, ValueCount, -TooFew ] )
+						[ FmtValueCount, ValueCount, -TooFew ] )
 
 			end
 
@@ -2385,37 +2414,536 @@ interpret_faulty_format( FormatString, Values ) ->
 
 
 
-% Removes any leading modifier from a format sequence (e.g. remove 't' from
-% "ts", as if having '~ts' specified, we want to retain only 's').
+
+
+-doc """
+Scans the specified format string, returning, in case of success, a list of the
+corresponding value descriptions that are expected, otherwise returns the
+detected parsing error.
+""".
+
+% See also io_lib_format:collect/2 (in lib/stdlib/src/io_lib_format.erl) and
+% erl_lint:check_format_string/1 (in lib/stdlib/src/erl_lint.erl).
 %
-strip_modifiers( [ $t, Next | _T ] ) ->
-	Next;
+-spec scan_format_string( format_string() ) -> scan_format_outcome().
+scan_format_string( FormatString ) ->
+	%local_display( "### Scanning format string '~ts'...", [ FormatString ] ),
 
-strip_modifiers( [ H | _T ] ) ->
-	H;
+	case scan_format_string( FormatString, _ValueDescs=[] ) of
 
-strip_modifiers( [] ) ->
-	[].
+		P={ format_parsing_failed, _Reason } ->
+			P;
+
+		FinalValueDescs ->
+			InOrderDescs = lists:reverse( FinalValueDescs ),
+
+			%local_display( "### ... format string '~ts' interpreted as ~w.~n",
+			%               [ FormatString, InOrderDescs ] ),
+
+			InOrderDescs
+
+	end.
+
+
+
+% (helper)
+-spec scan_format_string( format_string(), [ value_description() ] ) ->
+												scan_format_outcome().
+%scan_format_string( _FormatString=[], ValueDescs ) ->
+%	lists:reverse( ValueDescs );
+
+scan_format_string( FormatStr, ValueDescs ) ->
+
+	% A strict left-to-right parsing would be difficult, due to the F.P.PadModC
+	% general form and the optional fields (refer to
+	% https://www.erlang.org/doc/apps/stdlib/io#fwrite/3 for all formatting
+	% options).
+	%
+	% So we follow here the approach of locating C first (the actual control
+	% sequence, the most explicative field, to which most others are relative).
+	%
+	% Then we could go backward from C, yet this would be a poor choice, as then
+	% a left-to-right parsing is more natural: for example, in "~.*f", "*"
+	% refers to the precision (for example: 'io:format("~.*f",
+	% [_DigitCountAfterComma=4, 1/3]' displays "0.3333"), not padding or
+	% modifier: a format is to be understood from left to right, as using
+	% directly for the first fields the values found. So, for example,
+	% specifying a precision atually *requires* a prior dot, and F.P.PadModC
+	% shall be interpreted as: (F)(.P)((.Pad)Mod)C (and we could have gone
+	% forward-only in one pass, as io_lib_format:collect/2).
+
+	case locate_control_seq( FormatStr ) of
+
+		not_found ->
+			% Reversed only ultimately:
+			ValueDescs;
+
+		{ CtrlSeqChar, PrevChars, NextStr } ->
+
+			%local_display( "Control sequence: ~tc, with previous "
+			%   "characters: '~ts', and next: '~ts'.",
+			%   [ CtrlSeqChar, PrevChars, NextStr ] ),
+
+			case parse_to_control_seq( CtrlSeqChar, PrevChars ) of
+
+				P={ format_parsing_failed, _Reason } ->
+					P;
+
+				ExtraValueDescs ->
+					%local_display( "Obtained for sequence '~tc': ~w.",
+					%               [ CtrlSeqChar, ExtraValueDescs ] ),
+
+					NewValueDescs = ExtraValueDescs ++ ValueDescs,
+					scan_format_string( NextStr, NewValueDescs )
+
+			end;
+
+		P={ format_parsing_failed, _Reason } ->
+			P
+
+	end.
+
 
 
 
 -doc """
-Tells whether the specified control sequence (without its ~ prefix) requires a
-value (e.g. ~B) or not (e.g. ~n, ~i).
+Locates the C part (control sequence), in "xx~F.P.PadModCyy".
 """.
-requires_value( "n" ++ _ ) ->
-	% ~n does not use a value:
-	false;
+-spec locate_control_seq( format_string() ) ->
+	'not_found' | { char(), [ char() ], ustring() } | format_parsing_error() .
+locate_control_seq( FormatStr ) ->
 
-% Ignore:
-requires_value( "i" ++ _ ) ->
-	false;
+	AllCtrlSeqChars = [ $~, $c, $f, $e, $g, $s, $w, $p, $W, $P, $B, $X, $#,
+						$b, $x, $+, $n, $i ],
 
-requires_value( _ ) ->
-	true.
+	locate_control_seq( FormatStr, AllCtrlSeqChars ).
 
 
--endif. % exec_target_is_production
+% (helper)
+locate_control_seq( _FormatStr=[], _AllCtrlSeqChars ) ->
+	not_found;
+
+% "~~" is not a control sequence per se:
+%locate_control_seq( _FormatStr=[ $~, $~ | T ], AllCtrlSeqChars ) ->
+%	locate_control_seq( T, AllCtrlSeqChars );
+
+locate_control_seq( _FormatStr=[ $~ | T ], AllCtrlSeqChars ) ->
+	% Now, in-sequence, extracting "F.P.PadModC":
+	extract_control_seq( T, AllCtrlSeqChars );
+
+% Not reached yet ( still in "xx"), hence character dropped:
+locate_control_seq( _FormatStr=[ _Char | T ], AllCtrlSeqChars ) ->
+	locate_control_seq( T, AllCtrlSeqChars ).
+
+
+
+-doc """
+Extracts the (post-tilde) content of the corresponding control sequence, by
+accumulating all characters before the first control sequence one found (if
+any).
+""".
+-spec extract_control_seq( [ char() ], [ char() ] ) ->
+	'not_found' | { char(), [ char() ], ustring() } | format_parsing_error() .
+extract_control_seq( Chars, AllCtrlSeqChars ) ->
+	extract_control_seq( Chars, AllCtrlSeqChars, _Acc=[] ).
+
+
+% (helper)
+extract_control_seq( _Chars=[], _AllCtrlSeqChars, _Acc ) ->
+	{ format_parsing_failed, "no ending control sequence found." };
+
+extract_control_seq( _Chars=[ Char |  T ], AllCtrlSeqChars, Acc ) ->
+
+	case lists:member( Char, AllCtrlSeqChars ) of
+
+		true ->
+			%local_display( "locate_c: returning sequence ~tc.", [ Char ] ),
+			{ Char, lists:reverse( Acc ), T };
+
+		false ->
+			extract_control_seq( T, AllCtrlSeqChars, [ Char | Acc ] )
+
+	end.
+
+
+
+-doc """
+Parses the specified characters that were after the initial tilde and before the
+specified control sequence one.
+""".
+-spec parse_to_control_seq( char(), [ char() ] ) -> scan_format_outcome().
+parse_to_control_seq( _CtrlSeqChar=$n, _PrevChars=[] ) ->
+	[];
+
+parse_to_control_seq( _CtrlSeqChar=$~, _PrevChars=[] ) ->
+	[];
+
+parse_to_control_seq( _CtrlSeqChar=$~, PrevChars ) ->
+	{ format_parsing_failed, local_format( "only direct double-tilde allowed "
+		"(whereas here '~ts' was found in-between); incorrect format string.",
+		[ PrevChars ] ) };
+
+parse_to_control_seq( CtrlSeqChar, PrevChars ) ->
+
+	% First, let's track the expected type of values corresponding to the
+	% specified control sequence (i.e. for C=CtrlSeqChar):
+	%
+	case integrate_control_sequence( CtrlSeqChar ) of
+
+		P={ format_parsing_failed, _ReasonStr } ->
+			P;
+
+		ValueDescs ->
+			% Now, knowing C=CtrlSeqChar, considering "F.P.PadMod" (or
+			% ".P.PadMod", or "..PadMod", or "Mod", or "", etc.), remembering
+			% the left-to-right parsing logic, i.e. for example that in "~.*f",
+			% "*" is for the precision; so we have to count the "macro-fields"
+			% (F, P or PadMod), whose number is the number of $. plus one:
+			%
+			case split( PrevChars, _Separator=$. ) of
+
+				[ FStr, PStr, PadModStr ] ->
+					case integrate_width_field( FStr, CtrlSeqChar,
+												ValueDescs ) of
+
+						P={ format_parsing_failed, _ReasonStr } ->
+							P;
+
+						FValueDescs ->
+							case integrate_precision_field( PStr, CtrlSeqChar,
+															FValueDescs ) of
+
+								P={ format_parsing_failed, _ReasonStr } ->
+									P;
+
+								PValueDescs ->
+									integrate_padmod_field( PadModStr,
+										CtrlSeqChar, PValueDescs )
+
+							end
+
+					end;
+
+				[ PStr, PadModStr ] ->
+					case integrate_precision_field( PStr, CtrlSeqChar,
+													ValueDescs ) of
+
+						P={ format_parsing_failed, _ReasonStr } ->
+							P;
+
+						PValueDescs ->
+							integrate_padmod_field( PadModStr, CtrlSeqChar,
+													PValueDescs )
+
+					end;
+
+				[ ModStr ] ->
+					% Not calling integrate_padmod_field/3, as we believe no
+					% padding character can be specified if there was no dot
+					% just before:
+					%
+					integrate_modifiers( ModStr, CtrlSeqChar, ValueDescs )
+
+			end
+
+	end.
+
+
+
+-doc """
+Returns the value descriptions implied by the specified control sequence ($n and
+$~ already managed).
+""".
+-spec integrate_control_sequence( char() ) -> scan_format_outcome().
+integrate_control_sequence( _CtrlSeqChar=$c ) ->
+	% A	number that is interpreted as an ASCII code:
+	[ char ];
+
+integrate_control_sequence( _CtrlSeqChar=$f ) ->
+	[ float ];
+
+integrate_control_sequence( _CtrlSeqChar=$e ) ->
+	[ float ];
+
+integrate_control_sequence( _CtrlSeqChar=$g ) ->
+	[ float ];
+
+integrate_control_sequence( _CtrlSeqChar=$s ) ->
+	[ string_like ];
+
+integrate_control_sequence( _CtrlSeqChar=$w ) ->
+	[ term ];
+
+integrate_control_sequence( _CtrlSeqChar=$p ) ->
+	[ term ];
+
+integrate_control_sequence( _CtrlSeqChar=$W ) ->
+	[ pos_integer, term ];
+
+integrate_control_sequence( _CtrlSeqChar=$P ) ->
+	[ pos_integer, term ];
+
+integrate_control_sequence( _CtrlSeqChar=$B ) ->
+	[ integer ];
+
+integrate_control_sequence( _CtrlSeqChar=$X ) ->
+	[ string_like, integer ];
+
+integrate_control_sequence( _CtrlSeqChar=$# ) ->
+	[ integer ];
+
+integrate_control_sequence( _CtrlSeqChar=$b ) ->
+	[ integer ];
+
+integrate_control_sequence( _CtrlSeqChar=$x ) ->
+	[ string_like, integer ];
+
+
+integrate_control_sequence( _CtrlSeqChar=$+ ) ->
+	[ integer ];
+
+integrate_control_sequence( _CtrlSeqChar=$i ) ->
+	[ term ].
+
+
+
+-doc """
+Integrates any field width (the F field) for the specified control sequence.
+""".
+-spec integrate_width_field( [ char() ], char(), [ value_description() ] ) ->
+									scan_format_outcome().
+% we expect a (signed) integer, or $*, or nothing.
+%
+% No width here, that was just "~.xx", hence default width:
+integrate_width_field( _FStr=[], _CtrlSeqChar, ValueDescs ) ->
+	ValueDescs;
+
+% Wildcard width:
+integrate_width_field( _FStr=[ $* ], _CtrlSeqChar, ValueDescs ) ->
+	[ integer | ValueDescs ];
+
+% Width directly set:
+integrate_width_field( FStr, CtrlSeqChar, ValueDescs ) ->
+
+	%local_display( "Integrating width field '~ts'.", [ FStr ] ),
+
+	% Negative widths allowed:
+	case skip_signed_integer( FStr ) of
+
+		P={ format_parsing_failed, _Reason } ->
+			P;
+
+		% Finished:
+		_NextStr=[] ->
+			ValueDescs;
+
+		_Other ->
+			{ format_parsing_failed, local_format( "invalid field width "
+				"specification for control character ~tc: '~ts'.",
+				[ CtrlSeqChar, FStr ] ) }
+
+	end.
+
+
+
+-doc """
+Integrates any precision (the P field) for the specified control sequence.
+""".
+-spec integrate_precision_field( [ char() ], char(), [ value_description() ] ) ->
+									scan_format_outcome().
+% Meaning of 'within' unclear; so we expect a non-negative integer, or $*, or
+% nothing.
+%
+% No precision here, that was just "~xx..yy", hence default precision:
+integrate_precision_field( _PStr=[], _CtrlSeqChar, ValueDescs ) ->
+	ValueDescs;
+
+% Wildcard precision:
+integrate_precision_field( _PStr=[ $* ], _CtrlSeqChar, ValueDescs ) ->
+	[ integer | ValueDescs ];
+
+% Precision directly set:
+integrate_precision_field( PStr, CtrlSeqChar, ValueDescs ) ->
+
+	case skip_non_negative_integer( PStr ) of
+
+		P={ format_parsing_failed, _Reason } ->
+			P;
+
+		% Finished:
+		_NextStr=[] ->
+			ValueDescs;
+
+		_Other ->
+			{ format_parsing_failed, local_format( "invalid field precision "
+				"specification for control character ~tc: '~ts'.",
+				[ CtrlSeqChar, PStr ] ) }
+
+	end.
+
+
+
+
+-doc """
+Integrates any padding character and/or modifiers (the PadMod field) for the
+specified control sequence.
+""".
+-spec integrate_padmod_field( [ char() ], char(), [ value_description() ] ) ->
+									scan_format_outcome().
+% In ~F.P.PadModC, the PadMod field can be: "", Pad, Mod, PadMod with multiple
+% modifiers.
+%
+% As shown by io:format("xx~10..ts", ["hello"]) displaying "xxttttthello", $t is
+% interpreted here as a padding character - rather than as a modifier;
+% nevertheless io:format("xx~..ts", ["hâte"]) displays "hâte" whereas
+% io:format("xx~..s", ["hâte"]) triggers bad_arg: $t is apparently interpreted
+% there as a modifier - but io:format("xx~10..ts", ["hâte"]) shows
+% "xxtttttthâte", so $t must be here a padding character, a side-effect being to
+% switch to Unicode (as if it was also a modifier).
+%
+% Looking at io_lib_format:pad_char/2, the rule seems simple: any second
+% $. means that the next character (possibly $*) designates the padding one.
+%
+% Previously we thought that a second $. did not necessarily implied a pad was
+% set; in that case that pad would have to be prioritary in all cases over mod
+% (otherwise the rule would be dangerous knowing that modifiers may be added in
+% the future), so the default pad ($ , i.e. "space") must be specified if
+% wanting a modifier to be taken into account then.
+%
+% Anyway:
+integrate_padmod_field( _PadModStr=[], _CtrlSeqChar, ValueDescs ) ->
+	% None of them:
+	ValueDescs;
+
+% Hence a padding character is expected, here as a wildcard::
+integrate_padmod_field( _PadModStr=[ _Pad=$* | Mods ], CtrlSeqChar,
+						ValueDescs ) ->
+	integrate_modifiers( Mods, CtrlSeqChar, [ char | ValueDescs ] );
+
+% A direct padding character, which we drop:
+integrate_padmod_field( _PadModStr=[ _Pad | Mods ], CtrlSeqChar, ValueDescs ) ->
+	integrate_modifiers( Mods, CtrlSeqChar, ValueDescs ).
+
+
+
+-doc """
+Takes into account the modifiers ("Mod").
+""".
+-spec integrate_modifiers( [ char() ], char(), [ value_description() ] ) ->
+									scan_format_outcome().
+integrate_modifiers( _Mods=[], _CtrlSeqChar, ValueDescs ) ->
+	ValueDescs;
+
+integrate_modifiers( _Mods=[ Mod | T ], CtrlSeqChar, ValueDescs ) ->
+	case interpret_as_modifier( Mod, CtrlSeqChar ) of
+
+		P= { format_parsing_failed, _Reason } ->
+			P;
+
+		% No value to add:
+		undefined ->
+			integrate_modifiers( T, CtrlSeqChar, ValueDescs );
+
+		VDesc ->
+			integrate_modifiers( T, CtrlSeqChar, [ VDesc | ValueDescs ] )
+
+	end.
+
+
+
+
+-doc """
+Interprets the specified character as a possible modifier, in the context of
+specified control sequence character.
+""".
+-spec interpret_as_modifier( char(), char() ) -> scan_format_outcome().
+% Apparently $t may apply to all control sequence chars (s, c, etc.):
+interpret_as_modifier( _Mod=$t, _CtrlSeqChar ) ->
+	% No impact on value count / types:
+	undefined;
+
+interpret_as_modifier( _Mod=$l, CtrlSeqChar )
+					   when CtrlSeqChar =:= $p; CtrlSeqChar =:= $P ->
+	undefined;
+
+interpret_as_modifier( _Mod=$k, CtrlSeqChar ) ->
+	case lists:member( CtrlSeqChar, [ $p, $P, $w, $W ] ) of
+
+		true ->
+			undefined;
+
+		false ->
+			{ format_parsing_failed, local_format( "modifier 'k' does not "
+				"apply to control sequence '~tc'.", [ CtrlSeqChar ] ) }
+
+	end;
+
+interpret_as_modifier( _Mod=$K, CtrlSeqChar ) ->
+	case lists:member( CtrlSeqChar, [ $p, $P, $w, $W ] ) of
+
+		true ->
+			% Expects another specific value, see
+			% https://www.erlang.org/doc/apps/stdlib/maps#t:iterator_order/0:
+			%
+			atom_or_function;
+
+		false ->
+			{ format_parsing_failed, local_format( "modifier 'K' does not "
+				"apply to control sequence '~tc'.", [ CtrlSeqChar ] ) }
+
+	end;
+
+interpret_as_modifier( Mod, CtrlSeqChar ) ->
+	{ format_parsing_failed, local_format( "invalid modifier '~tc' "
+		"(found in the context of control sequence '~tc').",
+		[ Mod, CtrlSeqChar ] ) }.
+
+
+
+-doc """
+Skips a non-negative integer.
+
+For example "31xx", returning then "xx".
+""".
+-spec skip_non_negative_integer( [ char() ] ) ->
+									[ char() ] | format_parsing_error().
+% At least one number expected:
+skip_non_negative_integer( [ C | T ] ) when C >= $0, C =< $9 ->
+	skip_all_numbers( T );
+
+% Either not a number or no character (empty string):
+skip_non_negative_integer( Other ) ->
+	{ format_parsing_failed, local_format( "Failed to skip non-negative "
+		"integer from '~ts'.", [ Other ] ) }.
+
+
+-doc "Skipping all numbers, if any (and only them).".
+-spec skip_all_numbers( [ char() ] ) -> [ char() ].
+skip_all_numbers( [ C | T ] ) when C >= $0, C =< $9 ->
+	skip_all_numbers( T );
+
+skip_all_numbers( NextStr ) ->
+	NextStr.
+
+
+-doc """
+Skips a (signed) integer.
+
+For example "31xx" or "-144xx", returning then, in both cases, "xx".
+""".
+-spec skip_signed_integer( [ char() ] ) -> [ char() ] | format_parsing_error().
+% At least one number expected, possibly after a $-:
+skip_signed_integer( _RevPrevChars=[ $-, C | T ] ) when C >= $0, C =< $9 ->
+	skip_all_numbers( T );
+
+skip_signed_integer( _RevPrevChars=[ C | T ] ) when C >= $0, C =< $9 ->
+	skip_all_numbers( T );
+
+% Either not a number or no character (empty string):
+skip_signed_integer( Other ) ->
+	{ format_parsing_failed, local_format( "Failed to skip signed "
+		"integer from '~ts'.", [ Other ] ) }.
+
 
 
 
@@ -2487,153 +3015,41 @@ format_ellipsed( FormatString, Values, MaxLen ) ->
 
 
 -doc """
-Compares the types specified through control sequences (typically emanating from
-a format string) to the types of specified, numbered values (expected to
-correspond), and detects some mismatches.
-
-Fancy sequences not taken into account: X, x, etc.
+Compares the value types (typically emanating from a format string based on
+control sequences) to the types of the specified, numbered values (expected to
+correspond), and detects mismatches.
 
 Note: beware to the output error messages comprising ~XXX not being afterwards
 interpreted as control sequences; we finally gave up including a ~ character in
 the output sequence, as it has to be escaped a number of times that depended on
 how many io*:format/* it was to go through (fragile at best).
 """.
--spec match_types( [ control_sequence() ], format_values(), count() ) ->
-			ustring().
-match_types( _Seqs=[], _Values=[], _Count ) ->
+-spec match_types( [ value_description() ], format_values(), count() ) ->
+													ustring().
+match_types( _TypeDescs=[], _Values=[], _Count ) ->
 	"yet no mismatch detected";
 
-% String-like:
-match_types( _Seqs=[ _Seq="s" | Ts ], _Values=[ V | Tv ], Count ) ->
+match_types( _TypeDescs=[ TypeDesc | Ts ], _Values=[ V | Tv ], VCount ) ->
 
-	VType = type_utils:get_type_of( V ),
-
-	VString = basic_utils:describe_term( V ),
-
-	% String-compliant primitive types:
-	CompliantTypes = [ 'boolean', 'atom', 'binary', 'string', '[string]' ],
-
-	case lists:member( VType, CompliantTypes ) of
+	case type_utils:is_value_matching( TypeDesc, V ) of
 
 		true ->
-			%trace_utils:debug_fmt
-			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
-			%   %"is ~ts, which is compliant with the control sequence '~~s'.",
-			%   "is ~ts, which is compliant with the control sequence 'ts'.~n",
-			%   [ Count, VString, VType ] ),
-			match_types( Ts, Tv, Count+1 );
+			% No: trace_utils:debug_fmt
+			%io:format( "[debug] The type of value #~B (i.e. '~ts'), which "
+			% "may be described as ~ts, matches the one specified by the control "
+			% "sequence, ~ts.~n",
+			% [ VCount, basic_utils:describe_term( V ),
+			%   type_utils:get_type_of( V ), TypeDesc ] ),
+			match_types( Ts, Tv, VCount+1 );
 
 		false ->
-			io_lib:format( "type mismatch for value #~B (i.e. '~ts'); got ~ts, "
-				"whereas expecting string-like, as the control "
-				% Correct, but commented-out for homogeneity with the other
-				% clauses:
-				% "sequence is ~~~~ts)", [ Count, VString, VType ] )
-				"sequence is 's'", [ Count, VString, VType ] )
+			io_lib:format( "type mismatch for value #~B (i.e. '~ts'), "
+				"which may be described as ~ts and does match "
+				"the one specified by the control sequence, ~ts",
+				[ VCount, basic_utils:describe_term( V ),
+				  type_utils:get_type_of( V ), TypeDesc  ] )
 
-	end;
-
-% With an Unicode prefix that can be dropped here:
-match_types( _Seqs=[ _Seq="ts" | Ts ], Values, Count ) ->
-	match_types( [ "s" | Ts ], Values, Count );
-
-
-% Float:
-match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count )
-		when Seq =:= "e" orelse Seq =:= "f" orelse Seq =:= "g" ->
-
-	VType = type_utils:get_type_of( V ),
-
-	VString = basic_utils:describe_term( V ),
-
-	case VType =:= float of
-
-		true ->
-			%trace_utils:debug_fmt
-			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
-			%   "is ~ts, which is compliant with a control sequence "
-			%   %"for floats ('~~~ts').", [ Count, VString, VType, Seq ] ),
-			%   "for floats ('~ts').~n", [ Count, VString, VType, Seq ] ),
-			match_types( Ts, Tv, Count+1 );
-
-		false ->
-			io_lib:format( "type mismatch for value #~B (i.e. '~ts'); got ~ts, "
-				"whereas expecting float, as the control "
-				%"sequence is ~~~ts)", [ Count, VString, VType, Seq ] )
-				"sequence is '~ts'", [ Count, VString, VType, Seq ] )
-
-	end;
-
-
-% Integer:
-match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count )
-		when Seq =:= "B" orelse Seq =:= "#"  orelse Seq =:= "b" ->
-
-	VType = type_utils:get_type_of( V ),
-
-	VString = basic_utils:describe_term( V ),
-
-	case VType =:= integer of
-
-		true ->
-			%trace_utils:debug_fmt
-			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
-			%   "is ~ts, which is compliant with the control sequence "
-			%   "for integers ('~B or # or b').~n",
-			%   [ Count, VString, VType, Seq ] ),
-			match_types( Ts, Tv, Count+1 );
-
-		false ->
-			io_lib:format( "type mismatch for value #~B (i.e. '~ts'): got ~ts, "
-					"whereas expecting integer, as the control "
-					%"sequence is ~~~ts)", [ Count, VString, VType, Seq ] )
-					"sequence is '~ts'", [ Count, VString, VType, Seq ] )
-
-	end;
-
-
-% Char:
-match_types( _Seqs=[ Seq="c" | Ts ], _Values=[ V | Tv ], Count ) ->
-
-	VType = type_utils:get_type_of( V ),
-
-	VString = basic_utils:describe_term( V ),
-
-	case VType =:= integer of
-
-		true ->
-			%trace_utils:debug_fmt
-			%io:format( "[debug] For value #~B (i.e. '~ts'), detected type "
-			%   "is ~ts, which is compliant with the control sequence "
-			%   "for chars ('~c').~n", [ Count, VString, VType, Seq ] ),
-			match_types( Ts, Tv, Count+1 );
-
-		false ->
-			io_lib:format( "type mismatch for value #~B (i.e. '~ts'): got ~ts, "
-				"whereas expecting char, as the control "
-				%"sequence is ~~~c)", [ Count, VString, VType, Seq ] )
-				"sequence is '~ts'", [ Count, VString, VType, Seq ] )
-
-	end;
-
-
-% Always correct:
-match_types( _Seqs=[ Seq | Ts ], _Values=[ _V | Tv ], Count )
-		when Seq =:= "w" orelse Seq =:= "p" orelse Seq =:= "P" ->
-	match_types( Ts, Tv, Count+1 );
-
-
-% Not recognised:
-match_types( _Seqs=[ Seq | Ts ], _Values=[ V | Tv ], Count ) ->
-
-	VString = basic_utils:describe_term( V ),
-
-	%trace_utils:debug_fmt( "Control sequence '~~~p' (i.e. '~~~w') not "
-	%trace_utils:debug_fmt
-	io:format( "[warning] Control sequence '~p' (i.e. '~w') not "
-		"recognised, accepting value '~ts'.~n", [ Seq, Seq, VString ] ),
-
-	match_types( Ts, Tv, Count+1 ).
+	end.
 
 
 
@@ -2826,19 +3242,19 @@ ensure_string( BinString, CanFailDueToTranscoding )
 											when is_binary( BinString ) ->
 	binary_to_string( BinString, CanFailDueToTranscoding );
 
-%ensure_string( Int, _CanFailDueToTranscodin ) when is_integer( Int ) ->
+%ensure_string( Int, _CanFailDueToTranscoding ) when is_integer( Int ) ->
 %   trace_utils:warning_fmt( "Implicit conversion of integer (here '~B') "
 %       "to plain string is now discouraged. "
 %       "Use text_utils:integer_to_string/1 instead.", [ Int ] ),
 %   integer_to_list( Int );
 
-%ensure_string( F, _CanFailDueToTranscodin ) when is_float( F ) ->
+%ensure_string( F, _CanFailDueToTranscoding ) when is_float( F ) ->
 %   trace_utils:warning_fmt( "Implicit conversion of float (here '~f') "
 %       "to plain string is now discouraged. "
 %       "Use text_utils:float_to_string/1 instead.", [ F ] ),
 %   float_to_list( F );
 
-ensure_string( U, _CanFailDueToTranscodin ) ->
+ensure_string( U, _CanFailDueToTranscoding ) ->
 	throw( { invalid_value, U } ).
 
 
@@ -3144,8 +3560,8 @@ get_uniq_helper( RevPrefix, AllStrs ) ->
 	Prefix = [ FirstChar | _ ] = lists:reverse( RevPrefix ),
 	SameStartStrs = [ S || S <- AllStrs, hd( S ) =:= FirstChar ],
 	% Add a trailing space if inner spaces are already used:
-	SpacedPrefix =
-			case lists:member( $ , Prefix ) andalso hd( RevPrefix ) =/= $ of
+	SpacedPrefix = case lists:member( $ , Prefix )
+					   andalso hd( RevPrefix ) =/= $ of
 
 		true ->
 			Prefix ++ " ";
@@ -3737,8 +4153,8 @@ bin_join( Separator, ListToJoin ) ->
 
 -doc """
 Splits the specified string into a list of strings (of the same type as the
-input one), based on the list of specified characters to be interpreted as
-separators.
+input one), based on the single specified character to be interpreted as a
+separator, or on the list thereof.
 
 Note that a series of contiguous separators (e.g. two spaces in a row) will
 result in inserting empty strings (i.e. []) in the returned list. Use
@@ -3750,8 +4166,14 @@ Defined here not to chase anymore after string:tokens/2 and friends.
 
 See also: split_at_whitespaces/0.
 """.
--spec split( ustring(), [ uchar() ] ) -> [ ustring() ];
-		   ( bin_string(), [ uchar() ] ) -> [ bin_string() ].
+-spec split( ustring(), [ uchar() ] | uchar() ) -> [ ustring() ];
+		   ( bin_string(), [ uchar() ] | uchar() ) -> [ bin_string() ].
+% Special-cased (clearer, more direct):
+split( AnyString, Separator ) when is_integer( Separator ) ->
+				   % As not a BIF: is_char( Separator ) ->
+	string:split( AnyString, _SearchPattern=[ Separator ], _Where=all );
+
+% List (of separators) expected:
 split( AnyString, Separators ) ->
 
 	%trace_utils:debug_fmt( "Splitting '~ts' with '~ts'.",
@@ -3770,7 +4192,9 @@ split( AnyString, Separators ) ->
 	% Would lead to a breach of contract (no empty string ever inserted):
 	%string:lexemes( AnyString, Separators ).
 
-	% So we go for a multi-pass splitting (one pass per separator):
+	% So we go for a not-so-expensive multi-pass splitting (one pass per
+	% separator):
+	%
 	split_helper( Separators, _Acc=[ AnyString ] ).
 
 
@@ -3836,9 +4260,9 @@ split_per_element( String, Separators ) ->
 
 
 -doc """
-Splits the specified parse string (typically returned by
-parse_quoted/{1,3}) into a list of plain strings, based on the list of
-specified characters to be interpreted as separators.
+Splits the specified parse string (typically returned by parse_quoted/{1,3})
+into a list of plain strings, based on the list of specified characters to be
+interpreted as separators.
 
 Note: implemented in an ad hoc way, so that any plain string found in the
 input character stream is properly handled (i.e. not searched for any
@@ -4140,11 +4564,9 @@ Substitutes in the specified string the specified source character with the
 target one: replaces all occurrences thereof; returns a string of the same type
 as the specified one.
 
-Note: simpler and probably more efficient that a regular expression.
+Note: simpler and probably more efficient than a regular expression.
 
-Use string:replace/3 for string-based substitutions.
-
-For example:
+Use string:replace/3 for string-based substitutions, like for example:
 ```
 EscapedArgStr = string:replace(_In=ArgStr, _SearchPattern="~",
 							   _Replacement="\~", _Where=all)
@@ -4158,6 +4580,7 @@ substitute( SourceChar, TargetChar, String ) ->
 	substitute( SourceChar, TargetChar, String, _Acc=[] ).
 
 
+% (helper)
 substitute( _SourceChar, _TargetChar, _String=[], Acc ) ->
 	lists:reverse( Acc );
 
@@ -4795,8 +5218,7 @@ is_uppercase( Char ) ->
 
 -doc "Tells whether the specified character is a figure (in 0..9).".
 -spec is_figure( char() ) -> boolean().
-is_figure( Char ) when is_integer( Char ) andalso Char >= $0
-					   andalso Char =< $9 ->
+is_figure( Char ) when is_integer( Char ), Char >= $0, Char =< $9 ->
 	true;
 
 is_figure( Char ) when is_integer( Char ) ->
@@ -5361,10 +5783,23 @@ center_string( String, Width, PaddingChar ) ->
 
 
 -doc """
-Returns true iff the parameter is a (non-nested) string (actually a plain list
-of integers).
+Tells whether the specified term is a (possibly Unicode, UTF-8) character,
+i.e. char().
+""".
+-spec is_char( term() ) -> boolean().
+is_char( I ) when is_integer( I ), I >= 0, I =< 16#10ffff ->
+	true;
 
-Taken from <http://lethain.com#distinguishing-strings-from-lists-in-erlang>.
+is_char( _Other ) ->
+	false.
+
+
+
+-doc """
+Returns true iff the parameter is a (non-nested) plain string (actually a list
+of characters).
+
+Improved from <http://lethain.com#distinguishing-strings-from-lists-in-erlang>.
 
 Note: something like `[$e, 1, 2, $r]` is deemed to be a string.
 """.
@@ -5372,20 +5807,31 @@ Note: something like `[$e, 1, 2, $r]` is deemed to be a string.
 is_string( [] ) ->
 	true;
 
-is_string( [ H | _ ] ) when not is_integer( H ) ->
-	false;
+is_string( [ H | T ] ) ->
+	case is_char( H ) of
 
-is_string( [ _ | T ] ) ->
-	is_string( T );
+		true ->
+			is_string( T );
+
+		false ->
+			false
+
+	end;
 
 is_string( _Other ) ->
 	false.
 
-% Alternate, less efficient version:
-%is_string( Term ) when is_list( Term ) ->
-%   lists:all( fun erlang:is_integer/1, Term );
-%
-%is_string( _Term ) -> false.
+
+
+-doc "Returns true iff the specified parameter is a binary string.".
+-spec is_bin_string( term() ) -> boolean().
+is_bin_string( Term ) when is_binary( Term ) ->
+	% Would probably be excessive:
+	%is_string( binary_to_list( Term ) );
+	true;
+
+is_bin_string( _Term ) ->
+	false.
 
 
 
@@ -5405,7 +5851,7 @@ is_any_string( Term ) ->
 
 
 -doc """
-Returns true iif the parameter is a (non-nested) non-empty string (actually a
+Returns true iff the parameter is a (non-nested) non-empty string (actually a
 plain list of at least one integer).
 """.
 -spec is_non_empty_string( term() ) -> boolean().
@@ -5413,13 +5859,27 @@ is_non_empty_string( [] ) ->
 	% Shall be not empty:
 	false;
 
-is_non_empty_string( [ H ] ) when is_integer( H ) ->
+is_non_empty_string( S ) ->
+	is_string( S ).
+
+
+
+-doc """
+Returns true iff the parameter is a string-like.
+""".
+-spec is_string_like( term() ) -> boolean().
+% Possibly to be further refined/fixed:
+is_string_like( A ) when is_atom( A ) ->
 	true;
 
-is_non_empty_string( [ H | T ] ) when is_integer( H ) ->
-	is_non_empty_string( T );
+is_string_like( BS ) when is_binary( BS ) ->
+	is_bin_string( BS );
 
-is_non_empty_string( _Other ) ->
+is_string_like( L ) when is_list( L ) ->
+	% Traverse recursively:
+	lists:all( [ is_char( E ) orelse is_string_like( E ) || E <- L ] );
+
+is_string_like( _Other ) ->
 	false.
 
 
@@ -5454,17 +5914,6 @@ are_strings( _Other ) ->
 
 
 
--doc "Returns true iff the specified parameter is a binary string.".
--spec is_bin_string( term() ) -> boolean().
-is_bin_string( Term ) when is_binary( Term ) ->
-	is_string( binary_to_list( Term ) );
-	%true;
-
-is_bin_string( _Term ) ->
-	false.
-
-
-
 -doc "Tells whether the specified term is a list of binary strings.".
 -spec are_binaries( term() ) -> boolean().
 are_binaries( List ) when is_list( List ) ->
@@ -5480,11 +5929,11 @@ Returns whether the two specified strings are of the same type (both plain or
 both binary ones).
 """.
 -spec are_of_same_string_type( any_string(), any_string() ) -> boolean().
-are_of_same_string_type( S1, S2 ) when is_list( S1 ) andalso is_list( S2 ) ->
+are_of_same_string_type( S1, S2 ) when is_list( S1 ), is_list( S2 ) ->
 	true;
 
 are_of_same_string_type( S1, S2 )
-				when is_binary( S1 ) andalso is_binary( S2 ) ->
+				when is_binary( S1 ), is_binary( S2 ) ->
 	true;
 
 are_of_same_string_type( _S1, _S2 ) ->
