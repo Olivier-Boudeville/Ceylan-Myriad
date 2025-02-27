@@ -34,8 +34,9 @@ See json_utils_test.erl for the corresponding test.
 
 Refer to http://myriad.esperide.org/#json-use for more details.
 
-Note that since Erlang 27.0 a built-in JSON parser is available, see the `json`
-module.
+Note that, since Erlang 27.0, a built-in JSON parser is available, see the
+`json` module; we now rely on it by default (`jsx` or `jiffy` were used
+beforehand, and remain possible choices).
 """.
 
 
