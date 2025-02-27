@@ -107,8 +107,12 @@ See net_utils_test.erl for the corresponding test.
 -type ip_v4_address() :: { byte(), byte(), byte(), byte() }.
 
 
--doc "An IPv6 address.".
--type ip_v6_address() :: { byte(), byte(), byte(), byte(), byte(), byte() }.
+-doc """
+An IPv6 address, using 16 bytes.
+
+For example 2001:0db8:0000:85a3:0000:0000:ac1f:8001.
+""".
+-type ip_v6_address() :: <<_:16*8>>.
 
 
 -doc "An IP address.".
@@ -576,7 +580,7 @@ localhost_for_node_name() ->
 
 		AtomNode ->
 			[ _ThisNodeName, LocalHostname ] = text_utils:split(
-				text_utils:atom_to_string( AtomNode ), [ $@ ] ),
+				text_utils:atom_to_string( AtomNode ), _Delimiter=$@ ),
 			LocalHostname
 
 	end.
@@ -2426,8 +2430,11 @@ ipv4_to_string( { N1, N2, N3, N4 }, Port ) ->
 Returns a string describing the specified IPv6 address.
 """.
 -spec ipv6_to_string( ip_v6_address() ) -> ustring().
-ipv6_to_string( { N1, N2, N3, N4, N5, N6 } ) ->
-	text_utils:format( "~B.~B.~B.~B", [ N1, N2, N3, N4, N5, N6 ] ).
+ipv6_to_string( Ipv6Bin ) ->
+	% Later to be described as "2001:0db8:0000:85a3:0000:0000:ac1f:8001" for
+	% example:
+	%
+	text_utils:format( "~p", [ Ipv6Bin ] ).
 
 
 
@@ -2435,7 +2442,10 @@ ipv6_to_string( { N1, N2, N3, N4, N5, N6 } ) ->
 Returns a string describing the specified IPv6 address and port.
 """.
 -spec ipv6_to_string( ip_v6_address(), net_port() ) -> ustring().
-ipv6_to_string( Ipv6={ _N1, _N2, _N3, _N4, _N5, _N6 }, Port ) ->
+ipv6_to_string( Ipv6, Port ) ->
+	% By default eight groups of four hexadecimal digits each, separated by
+	% colons:
+	%
 	text_utils:format( "~ts:~B", [ ipv6_to_string( Ipv6 ), Port ] ).
 
 
