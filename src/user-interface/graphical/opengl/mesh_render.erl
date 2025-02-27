@@ -1304,7 +1304,7 @@ rendering_info_to_compact_string(
 rendering_info_to_compact_string(
 		_RI={ textured, TexSpecInfo, _TextureInfo } ) ->
 	text_utils:format( "rendering based on texture whose specification "
-					   "identifier is #B", [ TexSpecInfo ] ).
+					   "identifier is #~B", [ TexSpecInfo ] ).
 
 
 
