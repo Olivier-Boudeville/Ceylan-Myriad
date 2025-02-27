@@ -33,7 +33,7 @@ forms).
 """.
 
 
--export([ list_to_form/1, form_to_list/1,
+-export([ list_to_form/1, form_to_list/1, list_form_length/1,
 		  atoms_to_form/1, form_to_atoms/1,
 		  enumerated_variables_to_form/1,
 		  get_iterated_param_name/1, get_header_params/1 ]).
@@ -82,6 +82,20 @@ form_to_list( { nil, _FileLoc } ) ->
 
 form_to_list( { cons, _FileLoc, E, NestedForm } ) ->
 	[ E | form_to_list( NestedForm ) ].
+
+
+
+-doc """
+Returns the length of the list whose AST form is specified.
+
+Cheaper than `length(form_to_list(MyForm))`.
+""".
+-spec list_form_length( form_element() ) -> count().
+list_form_length( { nil, _FileLoc } ) ->
+	0;
+
+list_form_length( { cons, _FileLoc, _E, NestedForm } ) ->
+	1 + list_form_length( NestedForm ).
 
 
 
