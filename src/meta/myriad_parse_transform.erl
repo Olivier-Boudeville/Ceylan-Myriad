@@ -89,8 +89,6 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 
 % Local type shorthands:
 
--type file_name() :: file_utils:file_name().
-
 -type ast() :: ast_base:ast().
 -type file_loc() :: ast_base:file_loc().
 
@@ -102,11 +100,17 @@ See `meta_utils.erl` and `meta_utils_test.erl`.
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 -type ast_transform_table() :: ast_transform:ast_transform_table().
+
 -type local_call_transform_table() ::
 		ast_transform:local_call_transform_table().
+
 -type remote_call_transform_table() ::
 		ast_transform:remote_call_transform_table().
+
 -type parse_transform_options() :: meta_utils:parse_transform_options().
+
+-type file_name() :: file_utils:file_name().
+-type format_string() :: text_utils:format_string().
 
 
 % Implementation notes:
@@ -246,6 +250,10 @@ Defined to be reused in multiple contexts.
 									{ ast(), module_info() }.
 apply_myriad_transform( InputAST, Options ) ->
 
+	% If uncommenting this trace and not seeing it in the console, check that a
+	% myriad_parse_transform.beam file is not eclipsing from ebin any proper
+	% one:
+	%
 	%ast_utils:display_debug( "  (applying parse transform '~p')",
 	%                         [ ?MODULE ] ),
 
@@ -318,7 +326,7 @@ apply_myriad_transform( InputAST, Options ) ->
 								{ module_info(), ast_transforms() }.
 transform_module_info( ModuleInfo ) when is_record( ModuleInfo, module_info ) ->
 
-	?display_trace( "[Myriad] Transforming module information." ),
+	?display_debug( "[Myriad] Transforming module information." ),
 
 	% First determines the right transforms:
 	Transforms = get_myriad_ast_transforms_for( ModuleInfo ),
@@ -462,7 +470,7 @@ get_actual_table_type( ParseAttributeTable ) ->
 
 		key_not_found ->
 			TableType = ?default_table_type,
-			%?display_trace( "Using default table ~p.~n",
+			%?display_debug( "Using default table ~p.~n",
 			%                [ TableType ] ),
 			TableType
 
@@ -585,7 +593,10 @@ get_local_call_transforms() ->
 
 
 
--doc "Returns the table specifying the transformation of the remote calls.".
+-doc """
+Returns the table specifying the transformation of the remote calls (see next
+get_ast_global_transforms/2).
+""".
 % None used anymore, superseded by a more powerful AST transform table.
 -spec get_remote_call_transforms() -> remote_call_transform_table().
 get_remote_call_transforms() ->
@@ -1220,18 +1231,76 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 			{ [ NewExpr ], NewTransforms };
 
 
+		%%%%%%% Section for text_utils %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+		% Each call to text_utils:format/2, provided that the format string is
+		% directly a string literal, shall be:
+		%
+		% (1) checked so that the number of specified values is equal to the
+		% number of element of the control sequence in the format string (the
+		% type of these values is not specifically checked)
+		%
+		% (2) possibly replaced by a direct (yet potentially crashing - so it
+		% may not be a good idea) call to io_lib:format/2
+
+		( FileLocCall,
+		  _FunctionRef={ remote, FileLoc1,
+						 _ModNameForm={atom,FileLoc2,text_utils},
+						 FunNameForm={atom,_FileLoc3,format} },
+		  Params=[ {string, _FileLoc4, _FormatString}, _FormatValuesForm ],
+		  Transforms ) ->
+
+			%?display_debug( "Call to text_utils:format(~p, ~p) "
+			%   "intercepted.", [ FormatString, FormatValuesForm ] ),
+
+			% Safety preferred over performance:
+			NewMod = text_utils,
+			%NewMod = io_lib,
+
+			NewFunctionRef = { remote, FileLoc1,
+							   _NewModNameForm={atom,FileLoc2,NewMod},
+							   FunNameForm },
+
+			{ NewParams=[ { string,_FileLoc5,NewFormatString},
+						  NewFormatValuesForm ], NewTransforms } =
+				ast_expression:transform_expressions( Params, Transforms ),
+
+			case NewFormatValuesForm of
+
+				% Generally is directly a list:
+				{ nil, _ } ->
+					check_format_string( NewFormatString, NewFormatValuesForm,
+						FileLocCall, NewFunctionRef, NewParams,
+						NewTransforms );
+
+				{ cons, _, _, _ } ->
+					check_format_string( NewFormatString, NewFormatValuesForm,
+						FileLocCall, NewFunctionRef, NewParams,
+						NewTransforms );
+
+				% For example '{call, ...'; then pass-through, no build-time
+				% checking applies:
+				%
+				_ ->
+					NewExpr = { call, FileLocCall, NewFunctionRef, NewParams },
+					{ [ NewExpr ], NewTransforms }
+
+			end;
+
+
 		% Other calls shall go through:
 		( FileLocCall, FunctionRef, Params, Transforms ) ->
 
-			%?display_trace( "(not changing function referenced as ~p "
-			%   "whose parameters are ~p)", [ FunctionRef, Params ] ),
+			% Of course very verbose:
+			%?display_debug( "(not changing function referenced as ~p "
+			%   "whose parameters are: ~n~p)", [ FunctionRef, Params ] ),
 
 			{ NewParams, NewTransforms } =
 				ast_expression:transform_expressions( Params, Transforms ),
 
 			RecursedExpr = { call, FileLocCall, FunctionRef, NewParams },
-			{ [ RecursedExpr ], NewTransforms }
 
+			{ [ RecursedExpr ], NewTransforms }
 
 	end,
 
@@ -1251,6 +1320,88 @@ get_ast_global_transforms( DesiredTableType, DisableLCO ) ->
 			BaseTable
 
 	end.
+
+
+
+-spec check_format_string( format_string(), term(), term(), term(),
+		list(), ast_transforms() ) -> { ast_clause(), ast_transforms() }.
+check_format_string( FormatString, FormatValuesForm, FileLocCall,
+					 FunctionRef, Params, Transforms ) ->
+
+	%ast_utils:display_debug( "Checking format string '~p' against values ~p.",
+	%                         [ FormatString, FormatValuesForm ] ),
+
+	case text_utils:scan_format_string( FormatString ) of
+
+		{ format_parsing_failed, ReasonStr } ->
+			ast_utils:display_error( "Failed to scan format string '~ts' "
+				"at ~ts: ~ts",
+				[ FormatString, ast_utils:file_loc_to_string( FileLocCall ),
+				  ReasonStr ] ),
+
+			ast_utils:raise_error( { invalid_format_string, FormatString,
+									 FileLocCall, ReasonStr } );
+
+		ValueDescs ->
+			% Here, at compile-time, we cannot make the finer study done at
+			% runtime by text_utils:scan_format_string/1, we can just compare
+			% counts:
+
+			FmtParamCount = length( ValueDescs ),
+			ParamCount = ast_generation:list_form_length( FormatValuesForm ),
+
+			case FmtParamCount of
+
+				ParamCount ->
+					%ast_utils:display_debug( "(use of format string '~ts' "
+					%   "validated)", [ FormatString ] ),
+
+					NewExpr = { call, FileLocCall, FunctionRef, Params },
+					{ [ NewExpr ], Transforms };
+
+				_ ->
+					FmtParamStr = case FmtParamCount of
+
+						0 ->
+							"no value";
+
+						1 ->
+							text_utils:format( "one value (of type ~ts)",
+											   [ hd( ValueDescs ) ] );
+
+						_ ->
+							text_utils:format( "~B values (of types ~w)",
+											   [ FmtParamCount, ValueDescs ] )
+
+					end,
+
+					ParamStr = case ParamCount of
+
+						0 ->
+							"no parameter is";
+
+						1 ->
+							"one parameter is";
+
+						_ ->
+							text_utils:format( "~B parameters are",
+											   [ ParamCount ] )
+
+					end,
+
+					ast_utils:display_error( "The format string '~ts' (~ts) "
+						"requires ~ts, but ~ts specified.",
+						[ FormatString,
+						  ast_utils:file_loc_to_string( FileLocCall ),
+						  FmtParamStr, ParamStr ] ),
+
+					ast_utils:raise_error( { inconsistent_format_string,
+						FileLocCall, FormatString, FmtParamCount, ParamCount } )
+
+			end
+
+	end.
+
 
 
 
@@ -1316,14 +1467,14 @@ lco_disabling_clause_transform_fun( _Clause={ 'clause', FileLoc,
 
 
 -doc """
-Injects the specified expression in AST.
+Injects the specified expression in the AST.
 
 (helper)
 """.
 -spec inject_expression( ast_expression(), ast_transforms(), file_loc() ) ->
 								{ [ ast_expression() ], ast_transforms() }.
 
-% Two next clauses not used anymore as semantically ambiguous, see
+% The two next clauses are not used anymore, as semantically ambiguous, see
 % documentation:
 
 % Nothing to inject here (empty conditional expression list):
