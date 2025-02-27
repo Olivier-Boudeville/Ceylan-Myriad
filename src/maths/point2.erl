@@ -114,7 +114,7 @@ vector), with two integer or floating-point coordinates.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 

@@ -98,7 +98,7 @@ See also: list_utils.erl and set_utils_test.erl.
 -export_type([ set/0, set/1, element/0, iterator/0, next_iteration/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
