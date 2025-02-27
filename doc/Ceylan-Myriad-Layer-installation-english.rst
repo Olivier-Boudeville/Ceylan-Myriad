@@ -69,7 +69,7 @@ This is pretty straightforward, based on the `project repository <https://github
 
  $ git clone https://github.com/Olivier-Boudeville/Ceylan-Myriad.git myriad
 
-This should download in your current directory the full Myriad repository. For OTP compliance, using for such a clone its short name (``myriad``) rather than its long one (``Ceylan-Myriad``) is recommended.
+This should download in your current directory the full Myriad repository. For OTP compliance, using for such a clone its short name (``myriad``) rather than its long one (``Ceylan-Myriad``) is recommended (otherwise a ``myriad`` symbolic link pointing to a Ceylan-Myriad clone of any name is sufficient).
 
 The Myriad ``master`` branch is meant to stick to the latest stable version: we try to ensure that this main line always stays functional (sorry for the pun). Evolutions are to take place in feature branches and to be merged only when ready.
 
