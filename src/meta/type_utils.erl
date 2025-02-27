@@ -302,7 +302,7 @@ plain types).
 
 
 -doc """
-The "most precise" description of a primitive, in which:
+The "most precise" description of a in-memory primitive, in which:
 - simple types (e.g. 'boolean' and 'atom') coexist (despite overlapping)
 - 'number' and 'bitstring' are not used (as they derive respectively from
 float()|integer() and binary())
@@ -336,6 +336,50 @@ which are relatively different.
 									| 'record'
 									| 'reference'
 									| 'tuple'.
+
+
+-doc """
+The "most precise" description of a value.
+
+Choices overlap intentionally (e.g. 'integer' and 'pos_integer'), to express
+finer types; as a result, the main purpose of this type is to tell whether a
+given value matches one of these types (see is_value_matching/2).
+
+See also get_ast_simple_builtin_types/0.
+""".
+-type value_description() :: 'atom'
+						   | 'binary'
+						   | 'bitstring'
+						   | 'boolean'
+						   | 'float'
+						   | 'function'
+						   | 'atom_or_function'
+
+						   | 'byte'
+						   | 'char'
+
+						   | 'string' % Plain one
+						   | 'nonempty_string'
+
+						   | 'string_like' % Plain, binary strings, atoms, lists
+										   % of them, etc.: iolist/0 or
+										   % unicode:chardata/0
+
+						   | 'integer'
+						   | 'pos_integer'
+						   | 'neg_integer'
+						   | 'non_neg_integer'
+
+						   | 'number'
+
+						   | 'list'
+						   | 'map' % Could have been 'table'
+						   | 'pid'
+						   | 'port'
+						   | 'record'
+						   | 'reference'
+						   | 'tuple'
+						   | 'term'.
 
 
 
@@ -802,8 +846,10 @@ Transient terms are the opposite of permanent ones.
 		  is_type/1, is_of_type/2,
 		  is_of_described_type/2, is_homogeneous/1, is_homogeneous/2,
 		  are_types_identical/2,
+		  is_value_matching/2,
 		  get_low_level_type_size/1,
-		  is_transient/1 ]).
+		  is_transient/1, is_byte/1,
+		  is_non_neg_integer/1, is_pos_integer/1, is_neg_integer/1 ]).
 
 
 
@@ -1082,9 +1128,9 @@ is_number/1, is_record/1, etc. not usable here.
 Note: often we do not want to retrieve the actual type of a term but need
 instead to determine whether the term can be considered as an instance of a
 specific type (this is not strictly the same need, as a given term in general
-may be seen of being of multiple types).
+may be seen of being of multiple types); for that see is_value_matching/2.
 
-The lowest-level/most precising typing can be obtained with the (undocumented)
+The lowest-level/most precise typing can be obtained with the (undocumented)
 erts_internal:term_type/1 function.
 """.
 -spec get_type_of( term() ) -> primitive_type_description().
@@ -1499,6 +1545,87 @@ are_types_identical( _FirstType, _SecondType ) ->
 	false.
 
 
+-doc """
+Tells whether the specified value matches the specified value description.
+""".
+-spec is_value_matching( value_description(), term() ) -> boolean().
+is_value_matching( _VDesc=atom, Value ) ->
+	is_atom( Value );
+
+is_value_matching( _VDesc=binary, Value ) ->
+	is_binary( Value );
+
+is_value_matching( _VDesc=bitstring, Value ) ->
+	is_bitstring( Value );
+
+is_value_matching( _VDesc=boolean, Value ) ->
+	is_boolean( Value );
+
+is_value_matching( _VDesc=float, Value ) ->
+	is_float( Value );
+
+is_value_matching( _VDesc=function, Value ) ->
+	is_function( Value );
+
+is_value_matching( _VDesc=atom_or_function, Value ) ->
+	is_atom( Value) orelse is_function( Value );
+
+is_value_matching( _VDesc=byte, Value ) ->
+	is_byte( Value );
+
+is_value_matching( _VDesc=char, Value ) ->
+	text_utils:is_char( Value );
+
+is_value_matching( _VDesc=string, Value ) ->
+	text_utils:is_string( Value );
+
+is_value_matching( _VDesc=nonempty_string, Value ) ->
+	text_utils:is_non_empty_string( Value );
+
+is_value_matching( _VDesc=string_like, Value ) ->
+	text_utils:is_string_like( Value );
+
+is_value_matching( _VDesc=integer, Value ) ->
+	is_integer( Value );
+
+is_value_matching( _VDesc=pos_integer, Value ) ->
+	is_pos_integer( Value );
+
+is_value_matching( _VDesc=neg_integer, Value ) ->
+	is_neg_integer( Value );
+
+is_value_matching( _VDesc=non_neg_integer, Value ) ->
+	is_non_neg_integer( Value );
+
+is_value_matching( _VDesc=number, Value ) ->
+	is_number( Value );
+
+is_value_matching( _VDesc=list, Value ) ->
+	is_list( Value );
+
+is_value_matching( _VDesc=map, Value ) ->
+	is_map( Value );
+
+is_value_matching( _VDesc=pid, Value ) ->
+	is_pid( Value );
+
+is_value_matching( _VDesc=port, Value ) ->
+	is_port( Value ) ;
+
+is_value_matching( _VDesc=record, Value ) ->
+	% The BIF is is_record/2. Records having at least a tag:
+	is_tuple( Value ) andalso is_atom( element( _FirstIndex=1, Value ) );
+
+is_value_matching( _VDesc=reference, Value ) ->
+	is_reference( Value );
+
+is_value_matching( _VDesc=tuple, Value ) ->
+	is_tuple( Value );
+
+is_value_matching( _VDesc=term, _Value ) ->
+	true.
+
+
 
 -doc """
 Returns the number of bytes used by each value of the specified low-level type.
@@ -1524,11 +1651,47 @@ get_low_level_type_size( float64 ) -> 8.
 -doc "Tells whether the specified term is, just by itself, a transient one.".
 -spec is_transient( term() ) -> boolean().
 % Maybe is_function/1 could be relevant here:
-is_transient( T ) when is_pid( T ) orelse is_port( T )
-					   orelse is_reference( T ) ->
+is_transient( T ) when is_pid( T ); is_port( T ); is_reference( T ) ->
 	true;
 
 is_transient( _T ) ->
+	false.
+
+
+
+-doc "Tells whether the specified term is a byte.".
+-spec is_byte( term() ) -> boolean().
+is_byte( I ) when is_integer( I ), I >= 0, I =< 255 ->
+	true;
+
+is_byte( _Other ) ->
+	false.
+
+
+-doc "Tells whether the specified term is a positive (possibly zero) integer.".
+-spec is_non_neg_integer( term() ) -> boolean().
+is_non_neg_integer( I ) when is_integer( I ), I >= 0 ->
+	true;
+
+is_non_neg_integer( _Other ) ->
+	false.
+
+
+-doc "Tells whether the specified term is a strictly positive integer.".
+-spec is_pos_integer( term() ) -> boolean().
+is_pos_integer( I ) when is_integer( I ), I > 0 ->
+	true;
+
+is_pos_integer( _Other ) ->
+	false.
+
+
+-doc "Tells whether the specified term is a strictly negative integer.".
+-spec is_neg_integer( term() ) -> boolean().
+is_neg_integer( I ) when is_integer( I ), I < 0 ->
+	true;
+
+is_neg_integer( _Other ) ->
 	false.
 
 
@@ -1636,10 +1799,10 @@ it.
 If it is an integer, will return a floating-point version of it.
 """.
 -spec ensure_positive_float( number() ) -> float().
-ensure_positive_float( F ) when is_float( F ) andalso F >= 0.0 ->
+ensure_positive_float( F ) when is_float( F ), F >= 0.0 ->
 	F;
 
-ensure_positive_float( I ) when is_integer( I ) andalso I >= 0 ->
+ensure_positive_float( I ) when is_integer( I ), I >= 0 ->
 	float( I );
 
 ensure_positive_float( Other ) ->
@@ -1823,7 +1986,7 @@ are_numbers( _Other ) ->
 are_maybe_numbers( [] )  ->
 	true;
 
-are_maybe_numbers( [ MN | T ] ) when is_number( MN ) orelse MN =:= undefined ->
+are_maybe_numbers( [ MN | T ] ) when is_number( MN ); MN =:= undefined ->
 	are_maybe_numbers( T );
 
 are_maybe_numbers( _Other ) ->
@@ -1849,8 +2012,7 @@ are_integers( _Other ) ->
 are_maybe_integers( [] )  ->
 	true;
 
-are_maybe_integers( [ MI | T ] )
-						when is_integer( MI ) orelse MI =:= undefined ->
+are_maybe_integers( [ MI | T ] ) when is_integer( MI ); MI =:= undefined ->
 	are_maybe_integers( T );
 
 are_maybe_integers( _Other ) ->
@@ -1877,7 +2039,7 @@ are_floats( _Other ) ->
 are_maybe_floats( [] )  ->
 	true;
 
-are_maybe_floats( [ MF | T ] ) when is_float( MF ) orelse MF =:= undefined ->
+are_maybe_floats( [ MF | T ] ) when is_float( MF ); MF =:= undefined ->
 	are_maybe_floats( T );
 
 are_maybe_floats( _Other ) ->
@@ -1890,7 +2052,7 @@ are_maybe_floats( _Other ) ->
 are_positive_floats( [] )  ->
 	true;
 
-are_positive_floats( [ PF | T ] ) when is_float( PF ) andalso PF >= 0.0 ->
+are_positive_floats( [ PF | T ] ) when is_float( PF ), PF >= 0.0 ->
 	are_positive_floats( T );
 
 are_positive_floats( _Other ) ->
@@ -2024,7 +2186,7 @@ Checks that the specified term is a positive or null number indeed, and returns
 it.
 """.
 -spec check_positive_number( term() ) -> number().
-check_positive_number( Num ) when is_number( Num ) andalso Num >= 0 ->
+check_positive_number( Num ) when is_number( Num ), Num >= 0 ->
 	Num;
 
 check_positive_number( Other ) ->
@@ -2037,7 +2199,7 @@ Checks that the specified term is a strictly positive number indeed, and returns
 it.
 """.
 -spec check_strictly_positive_number( term() ) -> number().
-check_strictly_positive_number( Num ) when is_number( Num ) andalso Num > 0 ->
+check_strictly_positive_number( Num ) when is_number( Num ), Num > 0 ->
 	Num;
 
 check_strictly_positive_number( Other ) ->
@@ -2070,7 +2232,7 @@ check_maybe_numbers( MaybeNumbers ) ->
 
 -doc "Checks that the specified term is a byte indeed, and returns it.".
 -spec check_byte( term() ) -> integer().
-check_byte( Int ) when is_integer( Int ) andalso Int >= 0 andalso Int =< 255 ->
+check_byte( Int ) when is_integer( Int ), Int >= 0, Int =< 255 ->
 	Int;
 
 check_byte( Other ) ->
@@ -2107,7 +2269,7 @@ check_maybe_integer( Other ) ->
 Checks that the specified term is a positive or null integer, and returns it.
 """.
 -spec check_positive_integer( term() ) -> pos_integer().
-check_positive_integer( Int ) when is_integer( Int ) andalso ( Int >= 0 ) ->
+check_positive_integer( Int ) when is_integer( Int ), ( Int >= 0 ) ->
 	Int;
 
 check_positive_integer( Other ) ->
@@ -2119,7 +2281,7 @@ check_positive_integer( Other ) ->
 Checks that the specified term is a strictly positive integer, and returns it.
 """.
 -spec check_strictly_positive_integer( term() ) -> pos_integer().
-check_strictly_positive_integer( Int ) when is_integer( Int ) andalso Int > 0 ->
+check_strictly_positive_integer( Int ) when is_integer( Int ), Int > 0 ->
 	Int;
 
 check_strictly_positive_integer( Other ) ->
@@ -2132,7 +2294,7 @@ Checks that the specified term is a positive or null integer or the 'undefined'
 atom, and returns it.
 """.
 -spec check_maybe_positive_integer( term() ) -> option( pos_integer() ).
-check_maybe_positive_integer( Int ) when is_integer( Int ) andalso Int >= 0 ->
+check_maybe_positive_integer( Int ) when is_integer( Int ), Int >= 0 ->
 	Int;
 
 check_maybe_positive_integer( undefined ) ->
@@ -2219,7 +2381,7 @@ it.
 """.
 -spec check_positive_float( term() ) -> float().
 check_positive_float( Float )
-			when is_float( Float ) andalso Float >= 0.0 ->
+			when is_float( Float ), Float >= 0.0 ->
 	Float;
 
 check_positive_float( Other ) ->
@@ -2236,7 +2398,7 @@ check_maybe_positive_float( undefined ) ->
 	undefined;
 
 check_maybe_positive_float( Float )
-			when is_float( Float ) andalso Float >= 0.0 ->
+			when is_float( Float ), Float >= 0.0 ->
 	Float;
 
 check_maybe_positive_float( Other ) ->
@@ -2280,7 +2442,7 @@ check_maybe_strictly_positive_float( undefined ) ->
 	undefined;
 
 check_maybe_strictly_positive_float( Float )
-			when is_float( Float ) andalso Float > 0.0 ->
+			when is_float( Float ), Float > 0.0 ->
 	Float;
 
 check_maybe_strictly_positive_float( Other ) ->
