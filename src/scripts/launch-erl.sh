@@ -504,7 +504,7 @@ done
 
 if [ -z "${to_execute}" ]; then
 
-	echo "Warning: no command to execute specified (neither with --eval nor with --run): the launched node will then start fully passive." 1>&2
+	echo "Warning: no command to execute specified (neither with --eval nor with --run): the launched node will then start fully passive (then possibly for an interactive shell)." 1>&2
 
 fi
 
