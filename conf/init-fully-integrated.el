@@ -1,8 +1,7 @@
 ;; This is the fully-integrated Ceylan Emacs configuration, for daily usage.
 
-;; So that our configuration files (which should not be in the
-;; user-emacs-directory ~/.emacs.d apparently) can be found:
-;;
+
+;; To find the next init-myriad-base.el:
 (add-to-list 'load-path (file-name-concat (getenv "CEYLAN_MYRIAD") "conf"))
 
 
@@ -32,13 +31,14 @@
 
 
 ;; Replaces flymake:
-(use-package flycheck
-  :ensure t (:wait t) :demand t
-  :init (global-flycheck-mode))
+;;(use-package flycheck
+;;  :ensure t (:wait t) :demand t
+;;  :init (global-flycheck-mode))
 
 
 ;; For more advanced Erlang configuration, requiring packages:
-(require 'init-myriad-erlang-advanced)
+;;(require 'init-myriad-erlang-advanced)
+
 
 
 ;; For host-specific settings:
