@@ -274,7 +274,6 @@
 ;;(setq-default show-trailing-whitespace nil)
 
 ;; Use C-h v whitespace-style for documentation.
-;;(setq whitespace-style '(space tabs lines-tail trailing empty indentation space-before-tab space-after-tab))
 ;;
 ;; Removed: spaces space-mark tab-mark newline-mark indentation (e.g. not
 ;; wanting a yellow rectangle from beginning of line to first non-whitespace
@@ -334,42 +333,6 @@
 
 
 ;; Compilation section.
-;; Mostly taken from http://ensiwiki.ensimag.fr/index.php/Dot_Emacs
-
-;; Makes the compile window disappear after a successful compilation:
-(setq compilation-finish-function
-	  (lambda (buf str)
-		(if (string-match "*Compilation*" (buffer-name buf))
-			(if (string-match "abnormally" str)
-				(message "There were errors :-(")
-			  ;; No errors, make the compilation window go away in 2 seconds:
-			  (run-at-time 2 nil
-						   (lambda (buf)
-							 (delete-windows-on buf)
-							 (bury-buffer buf))
-						   buf)
-			  (message "No errors :-)")))))
-
-
-(defun display-buffer-by-splitting-largest (buffer force-other-window)
-  "Display buffer BUFFER by splitting the largest buffer vertically, except if
-  there is already a window for it."
-  (or (get-buffer-window buffer)
-	  (let ((new-win
-			 (with-selected-window (get-largest-window)
-			   (split-window-vertically))))
-		(set-window-buffer new-win buffer)
-		new-win)))
-
-
-;; Smarter about how to display the new buffer:
-(defun myriad-compile ()
-  "Ad-hoc display of compilation buffer."
-  (interactive)
-  (let ((display-buffer-function 'display-buffer-by-splitting-largest))
-	(call-interactively 'compile)))
-
-
 
 
 ;; Taken from
@@ -391,7 +354,48 @@
 					  (switch-to-prev-buffer (get-buffer-window buf) 'kill))
 					buffer)))
 
-;;(add-hook 'compilation-finish-functions 'bury-compile-buffer-if-successful)
+(add-hook 'compilation-finish-functions 'bury-compile-buffer-if-successful)
+
+
+
+;; Previous implementation:
+
+;; Mostly taken from http://ensiwiki.ensimag.fr/index.php/Dot_Emacs
+
+;; Makes the compile window disappear after a successful compilation:
+;;(setq compilation-finish-function
+;;	  (lambda (buf str)
+;;		(if (string-match "*Compilation*" (buffer-name buf))
+;;			(if (string-match "abnormally" str)
+;;				(message "There were errors :-(")
+;;			  ;; No errors, make the compilation window go away in 2 seconds:
+;;			  (run-at-time 2 nil
+;;						   (lambda (buf)
+;;							 (delete-windows-on buf)
+;;							 (bury-buffer buf))
+;;						   buf)
+;;			  (message "No errors :-)")))))
+
+
+;;(defun display-buffer-by-splitting-largest (buffer force-other-window)
+;;  "Display buffer BUFFER by splitting the largest buffer vertically, except
+;;if there is already a window for it."
+;;  (or (get-buffer-window buffer)
+;;	  (let ((new-win
+;;			 (with-selected-window (get-largest-window)
+;;			   (split-window-vertically))))
+;;		(set-window-buffer new-win buffer)
+;;		new-win)))
+
+
+;; Smarter about how to display the new buffer:
+;;(defun myriad-compile ()
+;;  "Ad-hoc display of compilation buffer."
+;;  (interactive)
+;;  (let ((display-buffer-function 'display-buffer-by-splitting-largest))
+;;	(call-interactively 'compile)))
+
+
 
 ;; Misc compilation settings:
 (setq-default
@@ -583,9 +587,9 @@
 
 
 ;; Intercepted by Ubuntu:
-(global-set-key [f9]			               'fd-switch-dictionary)
+(global-set-key [f9]						   'fd-switch-dictionary)
 (global-set-key (kbd "<XF86AudioLowerVolume>") 'fd-switch-dictionary)
-(global-set-key [XF86New]		               'fd-switch-dictionary)
+(global-set-key [XF86New]					   'fd-switch-dictionary)
 
 
 ;; Usable and behaves like expected:
