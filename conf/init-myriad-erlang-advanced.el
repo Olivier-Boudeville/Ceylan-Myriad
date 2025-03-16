@@ -5,8 +5,8 @@
 ;; lag, use huge CPU resources, trigger numerous runtime errors ("LSP :: Method
 ;; not implemented: textDocument/documentSymbol" and all), report essentially
 ;; spurious errors (e.g. short of finding proper includes), lack documentation,
-;; trigger unsollicited, problematic rebar3-based rebuilds, and do not provide
-;; veritably interesting information. They are borderly unusable.
+;; trigger unsollicited, problematic rebar3-based rebuilds, freeze randomly and
+;; do not provide veritably interesting information. They are borderly unusable.
 
 
 ;; Require and enable the Yasnippet templating system:
