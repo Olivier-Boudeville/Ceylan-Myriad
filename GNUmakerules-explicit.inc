@@ -9,49 +9,49 @@
 
 .PHONY: .PHONY-myriad-explicit
 
-.PHONY-myriad-explicit: all all-pre-hook all-parallel-recurse all-recurse    \
-			all-parse-transforms bootstrap-modules make-all-parse-transforms \
-			build-debug rebuild                                              \
-			test test-recurse test-interactive test-interactive-recurse      \
-			doc-recurse build-tests                                          \
-			launch shell generate-tags                                       \
-			create-include-links clean-include-links copy-beams-to-ebin      \
-			install-all install-announce install-ebin install-bin            \
-			install-src install-include install-examples install-test        \
-			install-doc info-install info-install-locations                  \
-			info-install-content create-myriad-checkout create-app-file      \
-			rebar3-application rebar3-upgrade-lock                           \
-			set-rebar-conf set-rebar-conf-for-hex                            \
-			rebar3-release rebar3-development-release                        \
-			rebar3-production-release rebar3-hide-unsupported-sources        \
-			rebar3-restore-unsupported-sources                               \
-			rebar3-compile-pre-hook rebar3-compile-post-hook                 \
-			rebar3-bulletproof-compile-pre-hook                              \
-			rebar3-bulletproof-compile-post-hook                             \
-			rebar3-update rebar3-compile rebar3-create-tree                  \
-			rebar3-populate-build-tree                                       \
-			rebar3-copy-beams rebar3-clean rebar3-real-clean                 \
-			rebar3-test-clean                                                \
-			rebar3-cache-clean rebar3-info rebar3-hex-publish                \
-			rebar3-local-update                                              \
-			test-hex-package                                                 \
-			generate-protobuf                                                \
-			sync-sources-to-server sync-all-to-server                        \
-			generate-api-doc generate-api-doc-with-exdoc                     \
-			generate-api-doc-with-edoc generate-api-doc-with-erldocs         \
-			copy-static-content clean-api-doc clean-api-alt-doc              \
-			generate-list-of-erlang-types generate-list-of-local-types       \
-			generate-local-plt self-check-against-plt write-debug-key-file   \
-			check check-hook check-with-dialyzer check-with-gradualizer      \
-			help-intro help-erl                                              \
-			clean clean-erlang clean-layer-ebin clean-python clean-protobuf  \
-			clean-database clean-recurse clean-outputs clean-ast-debug       \
-			clean-previous real-clean track                                  \
-			info-platform info-hardware info-software info-source-layout     \
-			info-erlang-target-version                                       \
-			info info-files info-meta info-erlang info-python info-java      \
-			info-protobuf                                                    \
-			info-sync info-check info-rebar3 info-compile info-options       \
+.PHONY-myriad-explicit: all all-pre-hook all-parallel-recurse all-recurse      \
+			all-parse-transforms bootstrap-modules make-all-parse-transforms   \
+			build-debug rebuild                                                \
+			test test-recurse test-interactive test-interactive-recurse        \
+			doc-recurse build-tests                                            \
+			launch shell generate-tags                                         \
+			create-include-links clean-include-links copy-beams-to-ebin        \
+			install-all install-announce install-ebin install-bin              \
+			install-src install-include install-examples install-test          \
+			install-doc info-install info-install-locations                    \
+			info-install-content create-myriad-checkout create-app-file        \
+			rebar3-application rebar3-upgrade-lock                             \
+			set-rebar-conf set-rebar-conf-for-hex                              \
+			rebar3-release rebar3-development-release                          \
+			rebar3-production-release rebar3-hide-unsupported-sources          \
+			rebar3-restore-unsupported-sources info-rebar3-unsupported-sources \
+			rebar3-compile-pre-hook rebar3-compile-post-hook                   \
+			rebar3-bulletproof-compile-pre-hook                                \
+			rebar3-bulletproof-compile-post-hook                               \
+			rebar3-update rebar3-compile rebar3-create-tree                    \
+			rebar3-populate-build-tree                                         \
+			rebar3-copy-beams rebar3-clean rebar3-real-clean                   \
+			rebar3-test-clean                                                  \
+			rebar3-cache-clean rebar3-info rebar3-hex-publish                  \
+			rebar3-local-update                                                \
+			test-hex-package                                                   \
+			generate-protobuf                                                  \
+			sync-sources-to-server sync-all-to-server                          \
+			generate-api-doc generate-api-doc-with-exdoc                       \
+			generate-api-doc-with-edoc generate-api-doc-with-erldocs           \
+			copy-static-content clean-api-doc clean-api-alt-doc                \
+			generate-list-of-erlang-types generate-list-of-local-types         \
+			generate-local-plt self-check-against-plt write-debug-key-file     \
+			check check-hook check-with-dialyzer check-with-gradualizer        \
+			help-intro help-erl                                                \
+			clean clean-erlang clean-layer-ebin clean-python clean-protobuf    \
+			clean-database clean-recurse clean-outputs clean-ast-debug         \
+			clean-previous real-clean track                                    \
+			info-platform info-hardware info-software info-source-layout       \
+			info-erlang-target-version                                         \
+			info info-files info-meta info-erlang info-python info-java        \
+			info-protobuf                                                      \
+			info-sync info-check info-rebar3 info-compile info-options         \
 			info-parse-transform info-doc
 
 
@@ -681,15 +681,20 @@ remove-rebar-conf:
 	@/bin/rm -f rebar.config
 
 
+
 # Apparently no way of telling rebar to exclude some source files, so:
 rebar3-hide-unsupported-sources:
-	@echo "  Hiding unsupported sources"
-	@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f $$f-hidden; done 2>/dev/null || true
+	@echo "  Hiding rebar3 unsupported sources"
+	@for f in $(REBAR3_UNSUPPORTED_SOURCES); do /bin/mv -f $$f $$f-hidden; done 2>/dev/null || true
 
 
 rebar3-restore-unsupported-sources:
-	@echo "  Restoring unsupported sources"
-	-@for f in $(UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f; done 2>/dev/null || true
+	@echo "  Restoring rebar3 unsupported sources"
+	-@for f in $(REBAR3_UNSUPPORTED_SOURCES); do /bin/mv -f $$f-hidden $$f; done 2>/dev/null || true
+
+
+info-rebar3-unsupported-sources:
+	@echo "REBAR3_UNSUPPORTED_SOURCES = $(REBAR3_UNSUPPORTED_SOURCES)"
 
 
 

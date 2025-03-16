@@ -2148,11 +2148,11 @@ NOTIFIER_TOOL := $$(which bong.sh 2>/dev/null || true)
 #
 # (json_utils and related not listed here, as not needing specific includes)
 #
-UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
-					   src/data-management/sql_support_test.erl     \
-					   src/data-management/hdf5_support.erl         \
-					   src/data-management/hdf5_support_test.erl    \
-					   src/data-management/raw_hdf5_test.erl
+REBAR3_UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
+							  src/data-management/sql_support_test.erl     \
+							  src/data-management/hdf5_support.erl         \
+							  src/data-management/hdf5_support_test.erl    \
+							  src/data-management/raw_hdf5_test.erl
 
 
 # For the sync-* targets:
