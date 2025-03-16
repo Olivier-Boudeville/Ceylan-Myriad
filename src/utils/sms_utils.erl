@@ -205,7 +205,7 @@ actually SMS always shown as sent by the number "38200".
 			   sending_outcome/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
@@ -443,6 +443,7 @@ account_to_string( #sms_account{ provider=Provider, user_name=Username,
 								 password=Password, default_class=DefaultClass,
 								 credits=Credits, sent_count=SentCount,
 								 sent_success_count=SentSuccessCount } ) ->
+
 	text_utils:format( "SMS account on provider '~ts': user name is '~ts', "
 		"password is '~ts', relying on default sending class '~ts', "
 		"with stored credits: ~p; ~B success sendings over a total of ~B",
