@@ -55,6 +55,12 @@
 (setq custom-file (locate-user-emacs-file "custom-vars.el"))
 (load custom-file 'noerror 'nomessage)
 
+;; So that the configuration files of interest (which should not be directly in
+;; the user-emacs-directory ~/.emacs.d apparently) can be found, they are loaded
+;; from myriad/conf (e.g. acme-search.el):
+;;
+(add-to-list 'load-path (file-name-concat (getenv "CEYLAN_MYRIAD") "conf"))
+
 
 ;; Section about autosave and back-up (two different concepts).
 ;; Taken from http://snarfed.org/space/gnu%20emacs%20backup%20files:
@@ -666,14 +672,31 @@
 ;;(global-superword-mode 1)
 
 
-;; For proper mouse search (no such acme-search package anymore):
+
+;; For proper mouse search:
+
+;; Specific functions would have to be defined to act on a selection:
+;;(global-set-key [(mouse-3)] 'isearch-forward)
+;;(global-set-key [(shift mouse-3)] 'isearch-backward)
+
+;; The only functional, bearable mouse-based search that could be found is
+;; acme-search.
+
+;; It is not available as a package:
 ;;(use-package acme-search :ensure (:wait t) :demand t)
+;;(add-to-list 'load-path "~/.emacs.d/")
 
-;;(require 'acme-search)
-;;(global-set-key [(mouse-3)] 'acme-search-forward)
-;;(global-set-key [(shift mouse-3)] 'acme-search-backward)
+;; So we distribute it by ourselves our version of it; it does not involve a
+;; specified package (already available in the load-path), it can therefore
+;; belong to this base:
 
+(require 'acme-search)
+(global-set-key [(mouse-3)] 'acme-search-forward)
+(global-set-key [(shift mouse-3)] 'acme-search-backward)
+
+;; Possibly better:
 (setq mouse-drag-copy-region t)
+
 
 ;; To centralise Emacs instances, rather than having one per need:
 ;;(server-start)
@@ -682,16 +705,14 @@
 (or (server-running-p)
 	(server-start))
 
-;; No more question about clients being still there:
-;; (must be *after* server-start)
-(remove-hook 'kill-buffer-query-functions 'server-kill-buffer-query-function)
-
-
-
-
 ;; Also tried:
 ;;(load "server")
 ;;(unless (server-running-p) (server-start))
+
+
+;; No more question about clients being still there:
+;; (must be *after* server-start)
+(remove-hook 'kill-buffer-query-functions 'server-kill-buffer-query-function)
 
 
 ;; The Auto Fill mode is finally not so useful, more of a nuisance for text
