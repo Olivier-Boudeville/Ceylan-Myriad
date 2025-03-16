@@ -1,9 +1,12 @@
 ;; This is a more advanced configuration of Emacs regarding Erlang than
 ;; init-myriad-erlang-base.el.
 ;;
-;; In a nutshell: these advanced features do not seem ready for actual use; no
-;; autocompletion proposed, numerous runtime errors ("LSP :: Method not
-;; implemented: textDocument/documentSymbol"), lack of documentation, etc.
+;; In a nutshell: these advanced features do not seem ready for actual use; they
+;; lag, use huge CPU resources, trigger numerous runtime errors ("LSP :: Method
+;; not implemented: textDocument/documentSymbol" and all), report essentially
+;; spurious errors (e.g. short of finding proper includes), lack documentation,
+;; trigger unsollicited, problematic rebar3-based rebuilds, and do not provide
+;; veritably interesting information. They are borderly unusable.
 
 
 ;; Require and enable the Yasnippet templating system:
@@ -18,8 +21,9 @@
 ;; company-mode section, for auto-completion.
 ;; Suspected of freezing/halting.
 
+;; Default is 0.2; a null one interferes badly with searching:
 (setq company-minimum-prefix-length 1
-	  company-idle-delay 0.0) ;; default is 0.2
+	  company-idle-delay 0.5) ;; default is 0.2
 
 (use-package company :ensure (:wait t) :demand t)
 (add-hook 'after-init-hook 'global-company-mode)
@@ -34,6 +38,7 @@
   "Background color of the documentation.
 Only the `background' is used in this face."
   :group 'lsp-ui-doc)
+
 
 
 
@@ -78,7 +83,8 @@ Only the `background' is used in this face."
 
 ;; LSP UI Package.
 ;;
-;; See https://github.com/emacs-lsp/lsp-ui and https://emacs-lsp.github.io/lsp-ui/
+;; See https://github.com/emacs-lsp/lsp-ui and
+;; https://emacs-lsp.github.io/lsp-ui/
 
 (use-package lsp-ui :ensure (:wait t) :demand t)
 
@@ -86,7 +92,10 @@ Only the `background' is used in this face."
 ;; information about the symbols, flycheck diagnostics and LSP code actions; at
 ;; least often displays useless information).
 
-(setq lsp-ui-sideline-enable t)
+;; Way too much gibberish content:
+;;(setq lsp-ui-sideline-enable t)
+(setq lsp-ui-sideline-enable nil)
+
 (setq lsp-ui-sideline-show-diagnostics t)
 (setq lsp-ui-sideline-show-hover t)
 
@@ -94,8 +103,9 @@ Only the `background' is used in this face."
 ;;(setq lsp-ui-sideline-show-code-actions nil)
 
 ;;(setq lsp-ui-sideline-update-mode 'line)
-(setq lsp-ui-sideline-delay 0)
+(setq lsp-ui-sideline-delay 1)
 ;;(setq lsp-ui-sideline-diagnostic-max-lines 20)
+
 
 
 
@@ -118,13 +128,14 @@ Only the `background' is used in this face."
 (setq lsp-ui-doc-side 'left)
 
 ;; Number of seconds before showing the doc:
-(setq lsp-ui-doc-delay 0)
+(setq lsp-ui-doc-delay 0.5)
 
 (setq lsp-ui-doc-show-with-cursor t)
 (setq lsp-ui-doc-show-with-mouse t)
 
 ;; lsp-ui-doc-background previously set above.
 
+(setq lsp-ui-doc-border "orange")
 
 
 ;; There are lsp-ui-imenu options as well.
@@ -147,7 +158,7 @@ Only the `background' is used in this face."
 ;; - helm-lsp-global-workspace-symbol
 (use-package helm-lsp :ensure (:wait t) :demand t)
 
-(use-package lsp-treemacs :ensure (:wait t) :demand t) 
+(use-package lsp-treemacs :ensure (:wait t) :demand t)
 
 ;; Always show diagnostics at the bottom, using 1/3 of the available space:
 (add-to-list 'display-buffer-alist
