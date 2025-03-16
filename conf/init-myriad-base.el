@@ -1,9 +1,9 @@
 ;; This is the base, all-purpose Ceylan Emacs configuration.
 ;;
-;; This is an initialization script written in elisp.
+;; This is an initialisation script written in elisp.
 ;; Refer to https://www.gnu.org/software/emacs/manual/html_node/elisp/
 ;;
-;; It derives from our main init.el, yet only very safe, context-free
+;; It has been derived from our main init.el - yet only very safe, context-free
 ;; settings that do not induce dependencies are enabled here.
 ;;
 ;; More involved configurations may include it.
@@ -149,14 +149,67 @@
 ;; Show column-number in the mode line:
 (column-number-mode 1)
 
-;; Force some commands to move according to logical lines (i.e.,
-;; according to the text lines in the buffer, not the visual ones):
+;; Force some commands to move according to logical lines (i.e. according to the
+;; text lines in the buffer, not the visual ones):
 ;;
 (setq line-move-visual nil)
+
+;; Moves the cursor across "physical lines":
+;; (finally deactivated, as the 'go to end of line' key was leading to the
+;; cursor going downward...)
+;;(require 'physical-line)
+;;(add-hook 'find-file-hooks 'physical-line-mode-without-exception)
+
 
 ;; Only for older Emacs apparently: '(setq default-tab-width 4)'
 (setq-default tab-width 4)
 (setq tab-width 4)
+
+
+;; Automatic indentation while typing:
+
+;; Does not work correctly with inner bullet lists:
+;;(setq indent-line-function 'indent-relative-maybe)
+
+;; Just indents by default at the same level when Enter is hit:
+;;(add-hook 'find-file-hooks '(lambda ()
+;;      (local-set-key (kbd "RET") 'newline-and-indent)))
+
+
+;; Useful for most programming modes, but disrupts sub-bullet lists in
+;; text (e.g. RST) modes (puts them all at the same level):
+;; (not defined as a lambda in order to be able to remove it)
+(defun set-advanced-ret-behaviour ()
+  ;;(message "############ Setting advanced RET behaviour ###########")
+  ;;(local-set-key (kbd "RET") 'reindent-then-newline-and-indent)
+  (global-set-key (kbd "RET") 'reindent-then-newline-and-indent)
+  )
+
+;;(add-hook 'find-file-hooks 'set-advanced-ret-behaviour)
+
+
+(defun fix-behaviours-for-text-modes ()
+  (message "############## Fixing behaviours for text modes ###########")
+
+  ;; Advanced automatic indentation not adapted to text modes:
+  (remove-hook 'find-file-hooks 'set-advanced-ret-behaviour)
+
+  ;; This basic indentation is fine with text modes:
+  (global-set-key (kbd "RET") 'newline-and-indent)
+
+  ;;Long lines are normal in text modes:
+  ;;(remove-hook 'find-file-hook 'highlight-80+-mode)
+  ;; Surely an hack, but works great:
+  ;;(setq-local whitespace-line-column 9999)
+
+  ;; No 'lines' or 'empty':
+  (setq-local whitespace-style '(face
+	tabs trailing space-before-tab newline
+	indentation space-after-tab))
+  )
+
+(add-hook 'text-mode-hook 'fix-behaviours-for-text-modes)
+
 
 (setq scroll-step 1)
 
@@ -206,24 +259,61 @@
 ;; Displays the line numbers on the left of the editor, in all
 ;; programming modes:
 ;;
-(add-hook 'prog-mode-hook 'display-line-numbers-mode) 
+(add-hook 'prog-mode-hook 'display-line-numbers-mode)
 
 ;; Also useful, for the debugging of document generation:
-(add-hook 'rst-mode-hook 'display-line-numbers-mode) 
+(add-hook 'rst-mode-hook 'display-line-numbers-mode)
 
 
 
 ;; Function section:
 
+;; whitespace-mode is built-in:
+(global-whitespace-mode 1)
+
+;;(setq-default show-trailing-whitespace nil)
+
+;; Use C-h v whitespace-style for documentation.
+;;(setq whitespace-style '(space tabs lines-tail trailing empty indentation space-before-tab space-after-tab))
+;;
+;; Removed: spaces space-mark tab-mark newline-mark indentation (e.g. not
+;; wanting a yellow rectangle from beginning of line to first non-whitespace
+;; character)
+;;
+(setq whitespace-style '(face
+	tabs trailing lines space-before-tab newline
+	empty space-after-tab))
+
+(setq whitespace-line-column 80)
+
+;; We want to see whether we go past column 80:
+;; (currently disabled, as provided by the whitespace mode)
+;;(require 'highlight-80+)
+;;(add-hook 'find-file-hook 'highlight-80+-mode)
+
 
 ;; Indenting buffers as a whole:
-;; more info: https://www.emacswiki.org/emacs/DeletingWhitespace#h5o-11
+;; (more info: https://www.emacswiki.org/emacs/DeletingWhitespace#h5o-11)
 (defun indent-whole-buffer ()
   "Indent whole buffer."
   (interactive)
   (delete-trailing-whitespace)
   (indent-region (point-min) (point-max) nil)
-)
+  )
+
+;;(add-hook 'find-file-hook 'indent-whole-buffer)
+
+
+;; whitespace-cleanup is built-in:
+;;(add-hook 'find-file-hook 'whitespace-cleanup)
+
+
+;; To display the names of buffers corresponding to identical filenames (but
+;; different paths):
+;;
+;; Preferring default: (setq uniquify-buffer-name-style 'post-forward)
+(setq uniquify-after-kill-buffer-p 1)
+(setq uniquify-ignore-buffers-re "^\\*")
 
 
 (defun kill-full-line ()
@@ -242,11 +332,84 @@
 )
 
 
+
+;; Compilation section.
+;; Mostly taken from http://ensiwiki.ensimag.fr/index.php/Dot_Emacs
+
+;; Makes the compile window disappear after a successful compilation:
+(setq compilation-finish-function
+	  (lambda (buf str)
+		(if (string-match "*Compilation*" (buffer-name buf))
+			(if (string-match "abnormally" str)
+				(message "There were errors :-(")
+			  ;; No errors, make the compilation window go away in 2 seconds:
+			  (run-at-time 2 nil
+						   (lambda (buf)
+							 (delete-windows-on buf)
+							 (bury-buffer buf))
+						   buf)
+			  (message "No errors :-)")))))
+
+
+(defun display-buffer-by-splitting-largest (buffer force-other-window)
+  "Display buffer BUFFER by splitting the largest buffer vertically, except if
+  there is already a window for it."
+  (or (get-buffer-window buffer)
+	  (let ((new-win
+			 (with-selected-window (get-largest-window)
+			   (split-window-vertically))))
+		(set-window-buffer new-win buffer)
+		new-win)))
+
+
+;; Smarter about how to display the new buffer:
+(defun myriad-compile ()
+  "Ad-hoc display of compilation buffer."
+  (interactive)
+  (let ((display-buffer-function 'display-buffer-by-splitting-largest))
+	(call-interactively 'compile)))
+
+
+
+
+;; Taken from
+;; https://stackoverflow.com/questions/11043004/emacs-compile-buffer-auto-close:
+;;
+(defun bury-compile-buffer-if-successful (buffer string)
+ "Bury the compilation buffer (BUFFER STRING) if succeeded without warnings."
+ (when (and
+		 (buffer-live-p buffer)
+		 (string-match "compilation" (buffer-name buffer))
+		 (string-match "finished" string)
+		 (not
+		  (with-current-buffer buffer
+			(goto-char (point-min))
+			(search-forward "warning" nil t))))
+	(run-with-timer 1 nil
+					(lambda (buf)
+					  (bury-buffer buf)
+					  (switch-to-prev-buffer (get-buffer-window buf) 'kill))
+					buffer)))
+
+;;(add-hook 'compilation-finish-functions 'bury-compile-buffer-if-successful)
+
+;; Misc compilation settings:
+(setq-default
+ compile-command "make"
+ compilation-read-command nil
+ compilation-scroll-output 'first-error
+ compilation-ask-about-save nil
+ compilation-window-height 10
+ compilation-skip-threshold 0
+ compilation-auto-jump-to-first-error 1)
+
+
 (defun save-and-close ()
  (interactive)
  (save-buffer)
  (kill-this-buffer)
 )
+
 
 
 (defun show-assigned-keys ()
@@ -344,6 +507,8 @@
 
 (global-set-key [delete] 'delete-char)
 
+;;(global-set-key "TAB" 'reindent-then-newline-and-indent)
+
 ;; Not necessary (already built-in):
 ;; - already offered by C-s:
 ;;  * (global-set-key "\C-S" 'isearch-forward)
@@ -353,15 +518,20 @@
 ;; As C-r already taken:
 (global-set-key "\C-D" 'replace-string)
 
-;; Meant to be overriden
-(global-set-key "\C-O" 'find-file)
+;; Maybe better than F8:
+(global-set-key "\C-O" 'whitespace-cleanup)
+
+(global-set-key "\C-P" 'recompile)
 
 (global-set-key "\C-Q" 'next-error)
 
 (global-set-key "\C-Z" 'undo)
 (global-set-key "\C-L" 'goto-line)
 
-;; not available: (global-set-key "\C-P" 'recompile)
+
+;; Obsolete:
+;;(standard-display-european 1)
+
 
 ;; See windmove:
 (global-set-key [M-right] 'next-buffer)
@@ -413,8 +583,9 @@
 
 
 ;; Intercepted by Ubuntu:
-(global-set-key [f9]			  'default-f9)
-(global-set-key [XF86New]		  'default-f9)
+(global-set-key [f9]			               'fd-switch-dictionary)
+(global-set-key (kbd "<XF86AudioLowerVolume>") 'fd-switch-dictionary)
+(global-set-key [XF86New]		               'fd-switch-dictionary)
 
 
 ;; Usable and behaves like expected:
@@ -438,8 +609,101 @@
 (global-set-key [XF86New]           'save-buffer)
 
 
+(global-font-lock-mode t)
+(setq font-lock-maximum-decoration t)
+(setq font-lock-maximum-size nil)
 
 ;; Does not seem to apply (two buffers still shown in two window panes
 ;; if two files specified on the command-line):
 ;;
 ;;(delete-other-windows)
+
+
+
+;; Spelling section.
+
+;; Hit F9 to toggle english and french dictionaries:
+
+
+(setq ispell-dictionary "english")
+(setq ispell-program-name "aspell")
+
+;; new error: failed to define function flyspell-mode
+
+;;(add-hook 'text-mode-hook 'flyspell-mode)
+(dolist (hook '(text-mode-hook))
+(add-hook hook (lambda () (flyspell-mode 1))))
+(dolist (hook '(change-log-mode-hook log-edit-mode-hook))
+ (add-hook hook (lambda () (flyspell-mode -1))))
+
+(defun fd-switch-dictionary()
+	(interactive)
+	(let* ((dic ispell-current-dictionary)
+		(change (if (string= dic "english") "francais" "english")))
+		(ispell-change-dictionary change)
+		(message "Dictionary switched from %s to %s" dic change)
+	))
+
+
+;; Not working apparently:
+;;(require 'flyspell-guess)
+;;(eval-after-load "flyspell-guess" '(flyspell-insinuate-guess-indicator))
+
+
+
+;; Mouse search section.
+
+;; Do not consider underscores and dashes as word separators (otherwise
+;; mouse-based search changes its selection during search):
+;;
+;; (probably a bad idea, search patterns seem not to be found when having a
+;; prefix)
+;;
+;;(global-superword-mode 1)
+
+
+;; For proper mouse search (no such acme-search package anymore):
+;;(use-package acme-search :ensure (:wait t) :demand t)
+
+;;(require 'acme-search)
+;;(global-set-key [(mouse-3)] 'acme-search-forward)
+;;(global-set-key [(shift mouse-3)] 'acme-search-backward)
+
+(setq mouse-drag-copy-region t)
+
+;; To centralise Emacs instances, rather than having one per need:
+;;(server-start)
+
+(require 'server)
+(or (server-running-p)
+	(server-start))
+
+;; No more question about clients being still there:
+;; (must be *after* server-start)
+(remove-hook 'kill-buffer-query-functions 'server-kill-buffer-query-function)
+
+
+
+
+;; Also tried:
+;;(load "server")
+;;(unless (server-running-p) (server-start))
+
+
+;; The Auto Fill mode is finally not so useful, more of a nuisance for text
+;; modes or even programming modes:
+;;
+;;(add-hook 'text-mode-hook 'turn-on-auto-fill)
+;;(add-hook 'prog-mode-hook 'turn-on-auto-fill)
+;;(add-hook 'erlang-mode-hook 'turn-on-auto-fill)
+
+
+
+;; Does not seem to apply (two buffers still shown in two window panes
+;; if two files specified on the command-line):
+;;
+;;(delete-other-windows)
+
+
+;; So that it can be loaded with 'require':
+(provide 'init-myriad-base)
