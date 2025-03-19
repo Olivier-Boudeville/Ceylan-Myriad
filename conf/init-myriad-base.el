@@ -686,9 +686,9 @@
 ;;(use-package acme-search :ensure (:wait t) :demand t)
 ;;(add-to-list 'load-path "~/.emacs.d/")
 
-;; So we distribute it by ourselves our version of it; it does not involve a
-;; specified package (already available in the load-path), it can therefore
-;; belong to this base:
+;; So we distribute it directly by ourselves our version of it, therefore this
+;; does not involve a specific package; moreover it is already available in the
+;; load-path. It can therefore belong to this base:
 
 (require 'acme-search)
 (global-set-key [(mouse-3)] 'acme-search-forward)
