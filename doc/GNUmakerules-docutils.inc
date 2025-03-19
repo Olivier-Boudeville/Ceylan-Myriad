@@ -240,9 +240,15 @@ PDF_VIEWER := $$(which evince)
 VIEW_PDF := no
 
 
+# We noticed that running 'make clean foo.pdf' resulted in a PDF that had an
+# empty table of content, but that deleting and recreating this PDF resulted in
+# a perfect one - as if during the first creation a TOC was generated, but was
+# not used yet. So a double generation is automated (possibly that it could be
+# removed some day):
+#
 %.pdf: %.rst
 	@echo "     Generating PDF documentation $@"
-	@if $(RST_GENERATOR) $< --pdf; then if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 5; fi
+	@if $(RST_GENERATOR) $< --pdf; then /bin/rm -f $@; $(RST_GENERATOR) $< --pdf && if [ "$(VIEW_PDF)" != "no" ]; then $(PDF_VIEWER) $@ & fi; else exit 5; fi
 
 
 %.html: %.rst
