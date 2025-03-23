@@ -5,6 +5,10 @@
 (message "Applying local settings")
 
 
+(add-to-list 'default-frame-alist '(font . "Monospace-9"))
+
+;; Defines the default size of the Emacs window ("frame", in Emacs-speak).
+;; (units are characters)
 
 ;; 85 width would already allow to display correctly even files with
 ;; 9999 lines, knowing that the leftmost column for line numbers uses
@@ -20,6 +24,10 @@
 
 ;; For a normal screen:
 (add-to-list 'default-frame-alist (cons 'height 56))
+;;(add-to-list 'default-frame-alist (cons 'height 56))
+
+
+
 
 ;; So that it can be loaded with 'require':
 (provide 'init-myriad-local)
