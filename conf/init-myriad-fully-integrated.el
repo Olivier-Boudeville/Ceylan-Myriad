@@ -30,18 +30,26 @@
 (require 'init-myriad-rst-base)
 
 
-;; Replaces flymake:
+;; Replaces flymake; for Erlang, triggers rebar3 if such a project is found:
+;; (refer to https://www.flycheck.org/en/latest/languages.html#erlang)
+;;
 ;;(use-package flycheck
 ;;  :ensure t (:wait t) :demand t
 ;;  :init (global-flycheck-mode))
 
 
 ;; For more advanced Erlang configuration, requiring packages:
-;;(require 'init-myriad-erlang-advanced)
+(require 'init-myriad-erlang-advanced)
 
 
 
-;; For host-specific settings:
+;; For host-specific settings; intentionally searched in local configuration
+;; directory, so that none applies by default (the one in myriad/conf is just an
+;; example):
+;;
 (setq local-conf-file "~/.emacs.d/init-myriad-local.el")
 
 (if (file-exists-p local-conf-file) (require 'init-myriad-local) nil)
+
+;; So that it can be loaded with 'require':
+(provide 'init-myriad-fully-integrated)

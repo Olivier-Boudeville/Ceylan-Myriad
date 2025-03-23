@@ -42,6 +42,16 @@
 ;;(recentf-mode 1)
 
 
+;; Inhibit "Modified buffers exist; exit anyway?" messages:
+
+;; Works properly, bound to "C-x C-c":
+(defun save-buffers-kill-emacs ()
+  "save some buffers, then exit unconditionally"
+  (interactive)
+  (save-some-buffers nil t)
+  (kill-emacs))
+
+
 ;; Save previous minibuffer prompts:
 (setq history-length 25)
 (savehist-mode 1)
@@ -212,7 +222,11 @@
   (setq-local whitespace-style '(face
 	tabs trailing space-before-tab newline
 	indentation space-after-tab))
+
+  ;; Not wanting auto-completion (e.g. company) to apply when entering texts:
+  (setq lsp-completion-provider :none)
   )
+
 
 (add-hook 'text-mode-hook 'fix-behaviours-for-text-modes)
 
@@ -607,6 +621,7 @@
 ;; Usable and behaves like expected:
 (global-set-key [f10]				'save-buffers-kill-emacs)
 (global-set-key [XF86Documents]     'save-buffers-kill-emacs)
+(global-set-key (kbd "C-x C-c")     'save-buffers-kill-emacs)
 
 
 ;; Not triggered on my keyboard:
@@ -642,7 +657,8 @@
 
 ;;(add-hook 'text-mode-hook 'flyspell-mode)
 (dolist (hook '(text-mode-hook))
-(add-hook hook (lambda () (flyspell-mode 1))))
+ (add-hook hook (lambda () (flyspell-mode 1))))
+
 (dolist (hook '(change-log-mode-hook log-edit-mode-hook))
  (add-hook hook (lambda () (flyspell-mode -1))))
 
@@ -651,7 +667,12 @@
 	(let* ((dic ispell-current-dictionary)
 		(change (if (string= dic "english") "francais" "english")))
 		(ispell-change-dictionary change)
-		(message "Dictionary switched from %s to %s" dic change)
+	;; Otherwise buffer is not rescanned:
+	(flyspell-buffer)
+	  ;; Not wanting auto-completion (e.g. company) to apply when entering texts:
+  (setq lsp-completion-provider :none)
+
+	(message "Dictionary switched from %s to %s" dic change)
 	))
 
 
@@ -702,6 +723,7 @@
 ;;(server-start)
 
 (require 'server)
+
 (or (server-running-p)
 	(server-start))
 
@@ -712,6 +734,8 @@
 
 ;; No more question about clients being still there:
 ;; (must be *after* server-start)
+;; (yet does not seem to be taken into account)
+;;
 (remove-hook 'kill-buffer-query-functions 'server-kill-buffer-query-function)
 
 
