@@ -29,21 +29,52 @@
 ;;(use-package yasnippet :ensure (:wait t) :demand t)
 ;;(yas-global-mode t)
 
+(setq lsp-enable-snippet nil)
 
 
-;; company-mode section, for auto-completion.
+
+;; company-mode section, for auto-completion popups.
 ;;
 ;; Can be deactivated with '(setq lsp-completion-provider :none)'.
 
-;; Default is 0.2; a null one interferes badly with searching:
-(setq company-minimum-prefix-length 1
-	  company-idle-delay 0.2)
+
+;; Enable company by default, except for texts:
+
+;; This form does not allow to set/unset easily company based on mode:
+;;
+;; (use-package company
+;;   :after lsp-mode
+;;   ;; Does not work: ':hook prog-mode' ('company' not found)
+;;   ;;                ':hook (prog-mode . company-mode)'
+;;   :bind (:map company-active-map
+;;          ("<tab>" . company-complete-selection))
+;;         (:map lsp-mode-map
+;;          ("<tab>" . company-indent-or-complete-common))
+;;   :custom
+;;   (company-minimum-prefix-length 1)
+;;   ;; Default is 0.2:
+;;   (company-idle-delay 0.0))
 
 (use-package company :ensure (:wait t) :demand t)
-(add-hook 'after-init-hook 'global-company-mode)
+
+;;(global-company-mode 1)
+
+;; Does not work: '(add-hook 'after-init-hook 'global-company-mode)'
+(add-hook 'prog-mode-hook (company-mode 1))
 
 
+;; Not working properly either ('No such file or directory, company-box'):
+;;(use-package company-box
+;; :hook (company-mode . company-box-mode))
 
+
+;; Supposedly a tad better:
+(use-package company-box :ensure (:wait t) :demand t)
+(add-hook 'company-mode-hook 'company-box-mode)
+
+
+;; lsp-ui: for fancy sideline, popup documentation, VScode-like peek UI, etc.
+;;
 ;; With a dark theme, preferring a lightgrey background color for lsp-ui-doc
 ;; windows (and, for a light theme, a darkgrey background):
 ;;
@@ -92,7 +123,18 @@ Only the `background' is used in this face."
 ;;
 ;; erlang_ls shall be regularly updated ('git pull && make all')
 
-(use-package lsp-mode :ensure (:wait t) :demand t)
+;;(use-package lsp-mode :ensure (:wait t) :demand t)
+(use-package lsp-mode
+  :init
+  ;; set prefix for lsp-command-keymap (few alternatives - "C-l", "C-c l")
+  (setq lsp-keymap-prefix "C-c l")
+  :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
+         ;;(XXX-mode . lsp)
+         (erlang-mode . lsp)
+         ;; if you want which-key integration
+         (lsp-mode . lsp-enable-which-key-integration))
+  :commands lsp)
+
 
 
 ;; The extra text annotating our code source (e.g. "Used XXX times") is
@@ -123,7 +165,9 @@ Only the `background' is used in this face."
 ;; - enable auto-completion based not only an Erlang/OTP modules, but also user
 ;; ones
 ;;
-(add-hook 'erlang-mode-hook #'lsp)
+;;(add-hook 'erlang-mode-hook #'lsp)
+;; More general:
+(add-hook 'prog-mode-hook #'lsp)
 
 (with-eval-after-load 'lsp-mode
  (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration))
@@ -132,6 +176,19 @@ Only the `background' is used in this face."
 ;; Customize prefix for key-bindings:
 ;; (would clash with "Go to line")
 ;;(setq lsp-keymap-prefix "C-l")
+
+;; To trigger "Go to Definition", hit Super-key then d (for "Definition"); the
+;; default binding is "C-c l g g":
+(global-set-key (kbd "s-d") 'lsp-find-definition)
+
+;; To trigger "Go to References", hit Super-key then r (for "References"); the
+;; default binding is "C-c l g r":
+(global-set-key (kbd "s-r") 'lsp-find-references)
+
+;; To rename as a whole a symbol, hit Super-key then n (for "reName"); the
+;; default binding is "C-c l r r":
+(global-set-key (kbd "s-n") 'lsp-rename)
+
 
 
 ;; Enable logging for lsp-mode:
@@ -188,8 +245,8 @@ Only the `background' is used in this face."
 (setq lsp-ui-doc-enable t)
 ;;(setq lsp-ui-doc-enable nil)
 
-(setq lsp-ui-doc-position 'top)
-;;(setq lsp-ui-doc-position 'bottom)
+;;(setq lsp-ui-doc-position 'top)
+(setq lsp-ui-doc-position 'bottom)
 ;;(setq lsp-ui-doc-position 'at-point)
 
 (setq lsp-ui-doc-side 'left)

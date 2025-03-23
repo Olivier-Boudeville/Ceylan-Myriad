@@ -203,8 +203,11 @@
 
 ;;(add-hook 'find-file-hooks 'set-advanced-ret-behaviour)
 
-
+;; Visibly the text-mode-hook is triggered once for prog-mode, and twice for
+;; text-mode.
+;;
 (defun fix-behaviours-for-text-modes ()
+
   (message "############## Fixing behaviours for text modes ###########")
 
   ;; Advanced automatic indentation not adapted to text modes:
@@ -213,8 +216,9 @@
   ;; This basic indentation is fine with text modes:
   (global-set-key (kbd "RET") 'newline-and-indent)
 
-  ;;Long lines are normal in text modes:
+  ;; Long lines are normal in text modes:
   ;;(remove-hook 'find-file-hook 'highlight-80+-mode)
+
   ;; Surely an hack, but works great:
   ;;(setq-local whitespace-line-column 9999)
 
@@ -224,7 +228,9 @@
 	indentation space-after-tab))
 
   ;; Not wanting auto-completion (e.g. company) to apply when entering texts:
-  (setq lsp-completion-provider :none)
+  ;;(setq lsp-completion-provider :none)
+  (company-mode -1)
+
   )
 
 
@@ -690,7 +696,7 @@
 ;; (probably a bad idea, search patterns seem not to be found when having a
 ;; prefix)
 ;;
-;;(global-superword-mode 1)
+(global-superword-mode 1)
 
 
 
