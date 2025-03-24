@@ -4,8 +4,7 @@
 
 (message "Applying local settings")
 
-
-(add-to-list 'default-frame-alist '(font . "Monospace-9"))
+(add-to-list 'default-frame-alist '(font . "Monospace-11"))
 
 ;; Defines the default size of the Emacs window ("frame", in Emacs-speak).
 ;; (units are characters)
@@ -15,7 +14,8 @@
 ;; some place. Selecting 88 instead to leave some room to the ... sign
 ;; used to show a block was folded (anyway the 80-limit is shown by
 ;; background color).
-(add-to-list 'default-frame-alist (cons 'width  88))
+;;
+(add-to-list 'default-frame-alist (cons 'width  90))
 
 ;; Depends on the screen height:
 
@@ -23,10 +23,20 @@
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For a normal screen:
-(add-to-list 'default-frame-alist (cons 'height 56))
 ;;(add-to-list 'default-frame-alist (cons 'height 56))
 
+;; For a larger screen:
+(add-to-list 'default-frame-alist (cons 'height 124))
 
+
+
+;; Setting the proxy information on the command line prior to executing Emacs is
+;; another, possibly more reliable, option:
+;;
+;;(setq url-proxy-services
+;;    '(("no_proxy" . "^\\(localhost\\|10.*\\)")
+;;      ("https"    . "foobar.org:1030")
+;;      ("http"     . "foobar.org:1030")))
 
 
 ;; So that it can be loaded with 'require':
