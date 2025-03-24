@@ -228,8 +228,10 @@
 	indentation space-after-tab))
 
   ;; Not wanting auto-completion (e.g. company) to apply when entering texts:
-  ;;(setq lsp-completion-provider :none)
-  (company-mode -1)
+  (setq lsp-completion-provider :none)
+
+  ;; Not available at this point:
+  ;;(company-mode -1)
 
   )
 
