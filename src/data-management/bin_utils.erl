@@ -1,4 +1,4 @@
-% Copyright (C) 2017-2024 Olivier Boudeville
+% Copyright (C) 2017-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -36,6 +36,9 @@ See bin_utils_test.erl for the corresponding test.
 """.
 
 
+% See also the 'binary' native module (for example for part/3).
+
+
 % Binary basics (see also the 'binary' standard module):
 -export([ create_binary/1, concatenate/1, concatenate/2, concatenate/3,
 		  replicate/2 ]).
@@ -52,15 +55,19 @@ See bin_utils_test.erl for the corresponding test.
 		  concatenate_as_uint32s/1, concatenate_as_uint32s/2 ]).
 
 
+-export([ ellipse/1, ellipse/2 ]).
+
+
+% For CRC:
 -export([ get_crc8_table/0, compute_crc8_checksum/1 ]).
 
 
 
 -doc "A (binary) buffer, a series of bytes.".
 -type buffer() :: binary().
- 
 
--doc "A CRC8 checksum".
+
+-doc "A CRC8 checksum.".
 -type crc8_checksum() :: byte().
 
 
@@ -74,13 +81,15 @@ See bin_utils_test.erl for the corresponding test.
 % - https://cheatography.com/fylke/cheat-sheets/erlang-binaries/
 
 
-% Shorthands:
+% Type shorthands:
 
 -type count() :: basic_utils:count().
 
 -type tuple( T ) :: type_utils:tuple( T ).
 
 -type byte_size() :: system_utils:byte_size().
+
+-type length() :: byte_size().
 
 
 
@@ -377,6 +386,32 @@ concatenate_as_uint32s( _UInts=[ UI | T ], Bin ) ->
 
 	NewBin = <<Bin/binary, UI:32/integer-unsigned-native>>,
 	concatenate_as_uint32s( T, NewBin ).
+
+
+-doc """
+Ellipses the specified binary: returns it, truncated to a maximum default length
+if needed.
+""".
+-spec ellipse( binary() ) -> binary().
+ellipse( Bin ) ->
+	% Short, but anyway not really useful to display:
+	ellipse( Bin, _DefaultMaxLen=50 ).
+
+
+
+-doc """
+Ellipses the specified binary: returns it, truncated to the specified maximum
+length if needed.
+""".
+-spec ellipse( binary(), length() | 'unlimited' ) -> binary().
+ellipse( Bin, _MaxLen=unlimited ) ->
+	Bin;
+
+ellipse( Bin, MaxLen ) when size( Bin ) > MaxLen ->
+	binary:part( Bin, _Pos=0, MaxLen );
+
+ellipse( Bin, _MaxLen ) ->
+	Bin.
 
 
 

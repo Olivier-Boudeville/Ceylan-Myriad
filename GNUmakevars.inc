@@ -156,7 +156,8 @@ endif
 #  - lists: how lists are processed
 #  - datastructures: how (non-list) datastructures are processed
 #  - registration: regarding naming registering
-#  - csv_support: the support of CSV files
+#  - json_support: the support of JSON documents
+#  - csv_support: the support of CSV documents
 #  - sql_support: the support of SQL (database) operations
 #  - protobuf_support: regarding how Protocol Buffer shall be managed
 #  - environments: about the sharing/caching of application information (hence
@@ -170,6 +171,7 @@ endif
 #  - math: for math-related operations
 #  - plot: for the rendering of all kinds of plots and graphs
 #  - shell: for (Erlang) Myriad shells
+#  - text_edit: for text edition
 #
 #  - user_interface: all support regarding user interfaces of all sorts
 #  - gui_repaint_logic: how MyriadGUI manages repaints
@@ -212,6 +214,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_lists
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_datastructures
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_registration
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_json_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_csv_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_sql_support
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_protobuf_support
@@ -225,12 +228,14 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_math
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_plot
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shell
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_text_edit
 
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_user_interface
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_repaint_logic
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_events
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_canvas
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_buttons
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_select_boxes
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_font
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_splash
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_shell
@@ -240,7 +245,7 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
-	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
 	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
@@ -260,17 +265,18 @@ ifeq ($(EXECUTION_TARGET),development)
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_code_generation
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_waited_operations
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_strings
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_binaries
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_lists
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_binaries
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_lists
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_protobuf_support
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_resources
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_files
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_user_interface
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_linear
 	MYRIAD_CHECK_FLAGS += -Dmyriad_check_mesh
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_opengl
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_textures
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_check_shaders
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_opengl
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_textures
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_shaders
+	MYRIAD_CHECK_FLAGS += -Dmyriad_check_text_edit
 
 endif
 
@@ -641,7 +647,13 @@ ifeq ($(USE_JSON),true)
 
 	# At least one parser backend shall then be selected:
 
-	# Default choice, should the JSON support be enabled:
+	# Default choice (built-in in Erlang 27.0 and more recent), should the JSON
+	# support be enabled:
+	#
+	USE_BUILTIN_JSON = true
+	#USE_BUILTIN_JSON = false
+
+	# Second default choice, should the JSON support be enabled:
 	USE_JSX = true
 	#USE_JSX = false
 
@@ -650,9 +662,9 @@ ifeq ($(USE_JSON),true)
 
 	ifeq ($(USE_JSX),true)
 
-		# JSX Installation section.
+		# jsx Installation section.
 
-		# The JSX JSON parser is available at
+		# The jsx JSON parser is available at
 		# https://github.com/talentdeficit/jsx.
 
 		# An install of it can be obtained thanks to (see also
@@ -680,7 +692,7 @@ ifeq ($(USE_JSON),true)
 		#JSON_OPT = -Duse_jsx_json_backend
 
 		# If the relevant USE_* variables are set to true, in the case of
-		# multiple dependencies involving Myriad, the same JSX lookup would be
+		# multiple dependencies involving Myriad, the same jsx lookup would be
 		# repeatedly done with different paths, possibly resulting in having the
 		# same install declared more than once in BEAM_DIRS, leading to a
 		# pseudo-clash of BEAM files (e.g. jsx.beam) being detected at runtime
@@ -723,7 +735,7 @@ ifeq ($(USE_JSON),true)
 			JSX_SOFTWARE_BASE := $(HOME)/Software/jsx/jsx-current-install
 			JSX_SOFTWARE_EBIN := $(JSX_SOFTWARE_BASE)/ebin
 
-			# No includes for JSX:
+			# No includes for jsx:
 			#INC += -I$(JSX_REBAR_CHECKOUTS_BASE)/include -I$(JSX_REBAR_AS_DEP_BASE)/include -I$(JSX_REBAR_DIRECT_INSTALL_BASE)/include -I$(JSX_SOFTWARE_BASE)/include
 			# ($(JSX_*_BASE)/ebin/*.beam found at runtime)
 
@@ -764,7 +776,7 @@ ifeq ($(USE_JSON),true)
 							# No trailing dot shall be specified here
 							# (as it is automatically added):
 							#
-							FORCE_EVAL := $(error Unable to find a JSX installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD)))
+							FORCE_EVAL := $(error Unable to find a jsx installation base (looked to $(JSX_REBAR_CHECKOUTS_EBIN) first, then $(JSX_REBAR_AS_DEP_EBIN), $(JSX_REBAR_DIRECT_INSTALL_EBIN) and finally $(JSX_SOFTWARE_EBIN), from $(PWD)))
 						endif
 					endif
 				endif
@@ -806,9 +818,12 @@ ifeq ($(USE_JSON),true)
 
 	endif
 
-	ifeq ($(USE_JSX),false)
-		ifeq ($(USE_JIFFY),false)
-			$(error JSON use enabled, yet no corresponding backend selected.)
+
+	ifeq ($(USE_BUILTIN_JSON),false)
+		ifeq ($(USE_JSX),false)
+			ifeq ($(USE_JIFFY),false)
+				$(error JSON use enabled, yet no corresponding backend selected.)
+			endif
 		endif
 	endif
 
@@ -1296,21 +1311,8 @@ ifndef COOKIE
 endif
 
 
+# For ERL_PARAMETERIZED_LAUNCHER:
 COOKIE_OPT = -c $(COOKIE)
-
-
-# One may switch to short names if network configuration does not allow for long
-# ones:
-#
-ifeq (NODE_NAMING,"--ln")
-
-	DISTRIBUTED_NODE_OPT := -name $(VM_NAME)@$(HOSTNAME_FOR_NODE) -setcookie $(COOKIE)
-
-else ifeq (NODE_NAMING,"--sn")
-
-	DISTRIBUTED_NODE_OPT := -sname $(VM_NAME) -setcookie $(COOKIE)
-
-endif
 
 
 STARTUP_FUNCTION := run
@@ -1807,6 +1809,22 @@ ifndef NODE_NAMING
 endif
 
 
+# One may switch to short names if network configuration does not allow for long
+# ones:
+#
+# (currently not used, see ERL_PARAMETERIZED_LAUNCHER)
+#
+ifeq (NODE_NAMING,"--ln")
+
+	DISTRIBUTED_NODE_OPT = -name $(VM_NAME)@$(HOSTNAME_FOR_NODE) -setcookie $(COOKIE)
+
+else ifeq (NODE_NAMING,"--sn")
+
+	DISTRIBUTED_NODE_OPT = -sname $(VM_NAME) -setcookie $(COOKIE)
+
+endif
+
+
 # Force your local hostname, if ever relevant in your setting, and depending on
 # NODE_NAMING:
 #
@@ -1852,9 +1870,15 @@ TIME_OPTS =
 #TIME_OPTS = +C no_time_warp
 
 
-# Any extra options that shall be passed as it is to 'erl' through our launcher:
-EXTRA_OPTS = $(TIME_OPTS)
+# To disable non-systematic, unsolved warnings like "'global' at node
+# us_main@xxx requested disconnect from node 'us_main_controller_exec-uu@yyy' in
+# order to prevent overlapping partitions":
+#
+#DIST_OPTS := -kernel prevent_overlapping_partitions false
+DIST_OPTS :=
 
+# Any extra options that shall be passed as it is to 'erl' through our launcher:
+EXTRA_OPTS = $(TIME_OPTS) $(DIST_OPTS)
 
 
 
@@ -1941,7 +1965,9 @@ endif
 
 
 # We now rely on ExDoc, rather than on edoc:
-
+# (see the generate-api-doc-with-exdoc target)
+#
+# Can be installed with: 'mix escript.install hex ex_doc':
 EXDOC := $$(which ex_doc 2>/dev/null)
 
 # Finally not used, as specifying the options on the command line allows the
@@ -1954,14 +1980,24 @@ EXDOC_OPTS = --formatter html --homepage-url "$(PROJECT_URL)" --language en --lo
 
 
 ifndef API_DOC_ROOT
-	API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+	# Relative links with "$(LAYER_TOP)" removed, as were misleading (evaluated
+	# in 'doc', so as ".." - but edoc is run from the clone root)
+	#
+	#API_DOC_ROOT := $(LAYER_TOP)/doc/api-doc
+	API_DOC_ROOT := doc/api-doc
 endif
 
 
 # When relying directly on edoc:
-#ifndef EDOC_OPTS
-#	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,["$(LAYER_TOP)/include"]}, {overview,"$(LAYER_TOP)/overview.edoc"}]'
-#endif
+# (see the generate-api-with-edoc target)
+#
+# See API_DOC_ROOT above to understand why $(LAYER_TOP) is not used.
+#
+# (edoc is natively installed)
+#
+ifndef EDOC_OPTS
+	EDOC_OPTS = '[{dir,"$(API_DOC_ROOT)"}, {def,{vsn,"$(PROJECT_VERSION)"}}, {preprocess,true}, {macros,[{use_crypto_module,false}, {$(PROJECT_EDOC_VERSION_KEY),"$(PROJECT_VERSION)"}]}, {includes,[".."]}, {overview,"doc/overview.edoc"}]'
+endif
 
 
 # When relying directly on a second doc generator (like erldocs):
@@ -2112,11 +2148,11 @@ NOTIFIER_TOOL := $$(which bong.sh 2>/dev/null || true)
 #
 # (json_utils and related not listed here, as not needing specific includes)
 #
-UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
-					   src/data-management/sql_support_test.erl     \
-					   src/data-management/hdf5_support.erl         \
-					   src/data-management/hdf5_support_test.erl    \
-					   src/data-management/raw_hdf5_test.erl
+REBAR3_UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
+							  src/data-management/sql_support_test.erl     \
+							  src/data-management/hdf5_support.erl         \
+							  src/data-management/hdf5_support_test.erl    \
+							  src/data-management/raw_hdf5_test.erl
 
 
 # For the sync-* targets:
@@ -2128,7 +2164,12 @@ ifndef SYNC_TOOL
 		SSH_OPT := -e "ssh -p $(SSH_PORT)"
 	endif
 
-	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT) --exclude '.git'
+	# Using '--no-perms' to avoid errors should the content on the remote host
+	# have a different owner (e.g. an in-production different user, yet being in
+	# the same group), to avoid 'rsync: [generator] failed to set permissions on
+	# "xxx/.": Operation not permitted (1)':
+	#
+	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT) --exclude '.git' --no-perms
 
 
 	# General-purpose, mostly to synchronise a remote webserver in terms of

@@ -1,4 +1,4 @@
-% Copyright (C) 2008-2024 Olivier Boudeville
+% Copyright (C) 2008-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -1253,7 +1253,7 @@ For example: `["baz", "json"] = get_extensions("/home/joe/foobar.baz.json").`.
 -spec get_extensions( file_path() ) -> [ extension() ] | 'no_extension'.
 get_extensions( Filename ) ->
 
-	case text_utils:split( Filename, _Delimiters=[ $. ] ) of
+	case text_utils:split( Filename, _Delimiter=$. ) of
 
 		[] ->
 			no_extension;
@@ -1315,7 +1315,7 @@ For example: `"/home/jack/rosie.tmp" =
 					  ( bin_file_path() ) -> bin_file_path().
 remove_extension( FilePath ) ->
 
-	case text_utils:split( FilePath, _Delimiters=[ $. ] ) of
+	case text_utils:split( FilePath, _Delimiter=$. ) of
 
 		% Returning an empty string for an empty string:
 		[] ->
@@ -1348,10 +1348,10 @@ remove_extension( BinFilePath, ExpectedExtension )
 remove_extension( FilePath, ExpectedExtension )
 										% To secure the match:
 										when is_list( ExpectedExtension ) ->
-
+	% Used more than once:
 	Separator = $.,
 
-	case text_utils:split( FilePath, _Delimiters=[ Separator ] ) of
+	case text_utils:split( FilePath, Separator ) of
 
 		[] ->
 			throw( empty_path );
@@ -5743,8 +5743,8 @@ write_ustring( File, FormatString, FormatValues ) ->
 
 -doc """
 Reads the content of the specified file, based on its filename specified as any
-kind of string (plain, binary, atom, etc), and returns the corresponding binary,
-or throws an exception on failure.
+kind of string (plain, binary, atom, etc.), and returns the corresponding
+binary, or throws an exception on failure.
 
 See also: read_terms/1 to read directly Erlang terms instead.
 """.
@@ -5772,7 +5772,7 @@ read_whole( FilePath ) ->
 
 -doc """
 Reads the content of the specified file, expected to be a text one, based on its
-filename specified as any kind of string (plain, binary, atom, etc) and returns
+filename specified as any kind of string (plain, binary, atom, etc.) and returns
 its content as a list of plain strings, or throws an exception on failure.
 
 Each returned line has any (trailing) newline(s) removed (knowing that the last

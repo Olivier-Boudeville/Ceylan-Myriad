@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -40,6 +40,11 @@ See also the pair module.
 """.
 
 
+-type tagged_element( T ) :: atom() | tagged_pair( T ).
+
+-type tagged_element() :: atom() | tagged_pair().
+
+
 -doc """
 A specific case of proplist(), whose tuples are only pairs made of an atom and a
 value of the specified type (and may comprise mere atoms as well).
@@ -47,7 +52,7 @@ value of the specified type (and may comprise mere atoms as well).
 Not equivalent to list_table() either (which does not support mere atoms, whose
 keys may not be atoms, and cannot be duplicated).
 """.
--type tagged_list( T ) :: [ atom() | tagged_pair( T ) ].
+-type tagged_list( T ) :: [ tagged_element( T ) ].
 
 
 -doc """
@@ -85,7 +90,8 @@ of any value (mere atoms not supported).
 
 
 
--export_type([ tagged_list/0, tagged_list/1,
+-export_type([ tagged_element/0, tagged_element/1,
+			   tagged_list/0, tagged_list/1,
 			   strict_tagged_list/0, strict_tagged_list/1,
 			   invalid_tagged_list_reason/0,
 			   invalid_strict_tagged_list_reason/0 ]).
@@ -142,8 +148,8 @@ Confirms that the specified term is a tagged list, otherwise returns an
 explanation pair.
 """.
 -spec is_tagged_list( term() ) ->
-		  'true' |
-		  { invalid_tagged_list_reason(), FirstFaultyEntry :: term() }.
+		'true'
+	  | { invalid_tagged_list_reason(), FirstFaultyEntry :: term() }.
 is_tagged_list( _Term=[] ) ->
 	true;
 
@@ -183,14 +189,13 @@ check_tagged_list( Term ) ->
 
 
 
-
 -doc """
 Confirms that the specified term is a strict tagged list, otherwise returns an
 explanation pair.
 """.
 -spec is_strict_tagged_list( term() ) ->
-		  'true' |
-		  { invalid_strict_tagged_list_reason(), FirstFaultyEntry :: term() }.
+		'true'
+	  | { invalid_strict_tagged_list_reason(), FirstFaultyEntry :: term() }.
 is_strict_tagged_list( _Term=[] ) ->
 	true;
 
@@ -275,11 +280,11 @@ list.
 check_duplicate_keys( TaggedList ) ->
 	Ks = [ case E of
 
-			   { K, _V } ->
-				   K;
+				{ K, _V } ->
+					K;
 
-			   A when is_atom( A ) ->
-				   A
+				A when is_atom( A ) ->
+					A
 
 		   end || E <- TaggedList ],
 
@@ -457,7 +462,7 @@ the original tagged list if the default is returned, or a shrunk tagged list if
 an actual extraction could be done).
 """.
 -spec extract_pair_with_default( atom(), element(), tagged_list() ) ->
-		  { element(), tagged_list() }.
+										{ element(), tagged_list() }.
 extract_pair_with_default( KeyAtom, DefaultValue, TaggedList ) ->
 	extract_pair_with_default_helper( KeyAtom, DefaultValue, TaggedList,
 									  _Acc=[] ).

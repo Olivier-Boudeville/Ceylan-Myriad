@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2024 Olivier Boudeville
+% Copyright (C) 2020-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -32,17 +32,18 @@ The **trace bridge** allows modules to depend only on the Ceylan-Myriad layer,
 yet to rely optionally on a non-Myriad code for traces/logs (possibly the
 Ceylan-Traces layer, refer to <http://traces.esperide.org/>) at runtime for
 **its logging**, so that in all cases exactly one (and the most appropriate)
-logging system is used, even when lower-level libraries are involved (designed
-to operate with or without an advanced trace system), and with no change in the
-source code of these user modules to be operated.
+logging system is used, even when lower-level libraries are involved (they have
+to be designed to operate with or without an advanced trace system), and with no
+change in the source code of these user modules to be operated.
 
 It is useful to provide native, integrated, higher-level logging to basic
-libraries (e.g. Ceylan-LEEC, see <http://leec.esperide.org>), should their
-user require it - while being able to remain lean and mean if wanted (e.g
-while keeping the dependency to Ceylan-Traces optional).
+libraries (e.g. Ceylan-LEEC, see <http://leec.esperide.org> or Ceylan-Oceanic,
+see <http://oceanic.esperide.org>), should their user require it - while being
+able to remain lean and mean if wanted (e.g while keeping the dependency to
+Ceylan-Traces optional).
 
-Switching to a more advanced trace system (typically Ceylan-Traces) is just a
-matter of having the process of interest call the register/3 function below.
+Switching to a more advanced trace system (typically Ceylan-Traces) is then just
+a matter of having the process of interest call the register/3 function below.
 
 For usage examples, refer to:
 - Ceylan-Myriad: trace_bridge_test.erl (directly tracing through basic
@@ -50,11 +51,11 @@ For usage examples, refer to:
 - Ceylan-Traces: trace_bridging_test.erl (using then our advanced trace system);
   for example:
 ```
-BridgeSpec = trace_bridge:get_bridge_spec( _MyEmitterName="MyBridgeTester",
+BridgeSpec = trace_bridge:get_bridge_spec(_MyEmitterName="MyBridgeTester",
   _MyCateg="MyTraceCategory",
-  _BridgePid=class_TraceAggregator:get_aggregator() ),
+  _BridgePid=class_TraceAggregator:get_aggregator()),
 
-trace_bridge:register( BridgeSpec ), [...]
+trace_bridge:register(BridgeSpec), [...]
 ```
 - Ceylan-LEEC: most modules, including leec.erl
 """.
@@ -177,6 +178,9 @@ get_bridge_spec( TraceEmitterName,
 Returns the information to pass to a process so that it can register to the
 corresponding trace bridge and use it automatically from then.
 
+With Ceylan-Traces, BridgePid is typically obtained thanks to
+`class_TraceAggregator:get_aggregator()`.
+
 Allows not to break the opaqueness of the bridge_spec() type.
 """.
 -spec get_bridge_spec( any_string(), any_string(), bridge_pid() ) ->
@@ -216,7 +220,6 @@ register( BridgeSpec ) ->
 						   [ BridgeSpec ] ) );
 
 		UnexpectedInfo ->
-
 			error_fmt( "Myriad trace bridge already registered (as ~p), "
 				%"ignoring newer registration (as ~p).",
 				"whereas a newer registration (as ~p) was requested.",
@@ -503,6 +506,10 @@ send( SeverityType, MessageFormat, MessageValues ) ->
 
 		% A bridge is available:
 		BridgeInfo ->
+
+			% No need to add here an additional trace_utils-based sending, it
+			% will be done for error-like messages by the next call:
+			%
 			send_bridge( SeverityType, Message, BridgeInfo )
 
 	end.

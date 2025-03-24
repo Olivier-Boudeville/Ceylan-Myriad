@@ -1,4 +1,4 @@
-% Copyright (C) 2010-2024 Olivier Boudeville
+% Copyright (C) 2010-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -47,7 +47,7 @@ fit in the editor's size will be wrapped (but no newline character will be
 inserted).
 
 Single line controls do not have a horizontal scrollbar, the text is
-automatically scrolled so that the insertion point is always visible.
+automatically scrolled so that the cursor position is always visible.
 
 One can subscribe to the following events that can be emitted by a text editor:
 - onTextUpdated, if its text has been modified
@@ -77,9 +77,10 @@ See also <https://docs.wxwidgets.org/stable/classwx_text_ctrl.html>.
 -type text_editor_style() ::
 	'process_enter_key' % Generate an event if Enter is pressed.
   | 'process_tab_key'   % Generate an event if Tab is pressed.
-  | 'multiline' % Allow multiple lines of text.
+  | 'multiline' % Allow multiple lines of text. Note that multiline editors
+				% offer more features (e.g. styling).
   | 'password' % Text will be echoed as asterisks.
-  | 'read_only' % Rext will not be user-editable.
+  | 'read_only' % Text will not be user-editable.
   | 'rich_text_v1' % Use rich text control version 1 on Windows.
   | 'rich_text_v2' % Use rich text control version 2 on Windows.
   | 'auto_url' % Process URLs automatically.
@@ -102,13 +103,6 @@ See also <https://docs.wxwidgets.org/stable/classwx_text_ctrl.html>.
 
 
 -doc """
-A zero-based index of a position in the text.
-""".
--type char_pos() :: non_neg_integer().
-
-
-
--doc """
 A type of event possibly emitted by a text editor, to which one can subscribe.
 """.
 -type text_editor_event_type() ::
@@ -127,7 +121,7 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 
 
--export_type([ text_editor/0, text_editor_style/0, text_validator/0, char_pos/0,
+-export_type([ text_editor/0, text_editor_style/0, text_validator/0,
 			   text_editor_event_type/0 ]).
 
 
@@ -142,8 +136,12 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 % Operations related to text editors:
 -export([ create/1, create/2, destruct/1,
-		  set_default_font/2, set_text/2, add_text/2, clear/1,
-		  show_position/2, show_text_end/1, get_last_position/1 ]).
+		  set_default_font/2, set_default_background_color/2,
+		  set_text/2, add_text/2, clear/1,
+		  show_position/2, show_text_end/1, get_last_position/1,
+		  set_cursor_position/2, set_cursor_position_to_end/1,
+		  get_cursor_position/1, offset_cursor_position/2,
+		  set_from/2 ]).
 
 
 % For related defines:
@@ -153,12 +151,21 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 -include("gui_internal_defines.hrl").
 
 
+% Usage hints: to determine character/line sizes, rely on the underlying font
+% (e.g. gui_font:get_{precise_,}text_extent/*).
+
 
 % Implementation section:
 %
 % Currently based on wxTextCtrl (wxStyledTextCtrl would be another option, more
 % powerful yet more complex / expensive to integrate).
+%
+% Note that we can override the management of keys by subscribing for example to
+% onKeyPressed; see gui_shell for an example thereof.
+%
+% wxWidgets' insertion point is translated here as cursor (caret) position.
 
+% Unfortunately, wx (with wxTextCtrl) does not implement PositionToCoords().
 
 
 % Type shorthands:
@@ -167,14 +174,20 @@ A type of event possibly emitted by a text editor, to which one can subscribe.
 
 -type text() :: ui:text().
 
+-type text_edit() :: text_edit:text_edit().
+
 -type parent() :: gui:parent().
 -type point() :: gui:point().
 -type size() :: gui:size().
 
 -type font() :: gui_font:font().
 
--type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
+-type any_color() :: gui_color:any_color().
 
+-type char_pos() :: text_edit:char_pos().
+-type offset_char_pos() :: text_edit:offset_char_pos().
+
+-type wx_opt_pair() :: gui_wx_backend:wx_opt_pair().
 
 
 
@@ -208,13 +221,33 @@ Sets the default font to be used by this editor.
 
 Returns true on success, false if an error occurred (this may also mean that the
 styles are not supported under this platform).
+
+Only operates on multiline editors.
 """.
 -spec set_default_font( text_editor(), font() ) -> boolean().
 set_default_font( Editor, Font ) ->
-	RangeSettings = wxTextAttr:new(),
-	wxTextAttr:setFont( RangeSettings, Font ),
-	Res = wxTextCtrl:setDefaultStyle( Editor, RangeSettings ),
-	wxTextAttr:destroy( RangeSettings ),
+	Attr = wxTextAttr:new(),
+	wxTextAttr:setFont( Attr, Font ),
+	Res = wxTextCtrl:setDefaultStyle( Editor, Attr ),
+	wxTextAttr:destroy( Attr ),
+	Res.
+
+
+
+-doc """
+Sets the default background color to be used by this editor.
+
+Returns true on success, false if an error occurred (this may also mean that the
+styles are not supported under this platform).
+
+Only operates on multiline editors.
+""".
+-spec set_default_background_color( text_editor(), any_color() ) -> boolean().
+set_default_background_color( Editor, AnyColor ) ->
+	Attr = wxTextAttr:new(),
+	wxTextAttr:setBackgroundColour( Attr, gui_color:get_any_color( AnyColor ) ),
+	Res = wxTextCtrl:setDefaultStyle( Editor, Attr ),
+	wxTextAttr:destroy( Attr ),
 	Res.
 
 
@@ -223,7 +256,9 @@ set_default_font( Editor, Font ) ->
 Sets the specified text as the new editor text content, from the start of the
 control (i.e. position 0).
 
-Does not generate an onEnterPressed event.
+If the text changed, resets the cursor position.
+
+Does not generate an onTextUpdated event.
 """.
 -spec set_text( text_editor(), text() ) -> void().
 set_text( Editor, NewText ) ->
@@ -233,7 +268,7 @@ set_text( Editor, NewText ) ->
 
 -doc """
 Adds the specified text to the end of the editor text content, setting the
-insertion point at its new end.
+cursor position at its new end.
 """.
 -spec add_text( text_editor(), text() ) -> void().
 add_text( Editor, Text ) ->
@@ -244,11 +279,13 @@ add_text( Editor, Text ) ->
 -doc """
 Clears the text in the editor.
 
-Generates an onEnterPressed event.
+Does not generate any event (e.g. no onTextUpdated one).
 """.
 -spec clear( text_editor() ) -> void().
 clear( Editor ) ->
-	wxTextCtrl:clear( Editor ).
+	% Would generate an unwanted onTextUpdated/wxEVT_TEXT event:
+	%wxTextCtrl:clear( Editor ).
+	wxTextCtrl:changeValue( Editor, _NewText="" ).
 
 
 
@@ -257,7 +294,8 @@ Makes the line containing the specified position visible.
 """.
 -spec show_position( text_editor(), char_pos() ) -> void().
 show_position( Editor, Pos ) ->
-	wxTextCtrl:showPosition( Editor, Pos ).
+	% As wx insertion points are zero-based:
+	wxTextCtrl:showPosition( Editor, Pos-1 ).
 
 
 
@@ -269,16 +307,64 @@ show_text_end( Editor ) ->
 	show_position( Editor, get_last_position( Editor ) ).
 
 
-
 -doc """
 Returns the last position in the text stored by the editor (equal to its number
 of characters).
 """.
 -spec get_last_position( text_editor() ) -> char_pos().
 get_last_position( Editor ) ->
-	wxTextCtrl:getLastPosition( Editor ).
+	% As wx insertion points are zero-based:
+	wxTextCtrl:getLastPosition( Editor ) + 1.
 
 
+
+-doc """
+Sets the text cursor position at the specified one.
+""".
+-spec set_cursor_position( text_editor(), char_pos() ) -> void().
+set_cursor_position( Editor, Pos ) ->
+	%trace_utils:debug_fmt( "Setting offset cursor position to ~B.", [ Pos ] ),
+
+	% As wx insertion points are zero-based:
+	wxTextCtrl:setInsertionPoint( Editor, Pos-1 ).
+
+
+-doc """
+Sets the cursor position at the end of the current text.
+""".
+-spec set_cursor_position_to_end( text_editor() ) -> void().
+set_cursor_position_to_end( Editor ) ->
+	wxTextCtrl:setInsertionPointEnd( Editor ).
+
+
+
+-doc "Returns the current text cursor position.".
+-spec get_cursor_position( text_editor() ) -> char_pos().
+get_cursor_position( Editor ) ->
+	% As wx insertion points are zero-based:
+	wxTextCtrl:getInsertionPoint( Editor ) + 1.
+
+
+
+-doc """
+Offsets the text cursor position of the specified (signed) number of character
+positions; returns the new current character position.
+""".
+-spec offset_cursor_position( text_editor(), offset_char_pos() ) -> char_pos().
+offset_cursor_position( Editor, PosOffset ) ->
+	% As wx insertion points are zero-based:
+	NewPos = wxTextCtrl:getInsertionPoint( Editor ) + PosOffset + 1,
+	set_cursor_position( Editor, NewPos ),
+	%trace_utils:debug_fmt( "New offset cursor position: ~B.", [ NewPos ] ),
+	NewPos.
+
+
+-doc "Sets the specified text editor based on the specified text edit.".
+-spec set_from( text_editor(), text_edit() ) -> void().
+set_from( Editor, TE ) ->
+	{ FullText, CursorPos } = text_edit:get_full_text_with_cursor( TE ),
+	set_text( Editor, FullText ),
+	set_cursor_position( Editor, CursorPos ).
 
 
 

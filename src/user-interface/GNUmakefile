@@ -9,7 +9,7 @@ all: prepare-gui-generation
 
 
 # Introduced to be able to force the generation of modules (typically
-# *_constants ones) before other (e.g. *_generated ones and, above all, the
+# *_constants ones) before others (e.g. *_generated ones and, above all, the
 # modules that will generate the latter modules for the former ones; see gui for
 # an example thereof):
 #

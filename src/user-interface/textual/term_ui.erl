@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -324,7 +324,8 @@ The locale to be used by dialogs:
 -define( state_key, term_ui_state ).
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
@@ -470,7 +471,7 @@ init_state_with_dimensions( Tool=dialog, DialogPath ) ->
 
 			% Here, SizeString="28, 107".
 			[ HeightString, " " ++ WidthString ] =
-				text_utils:split( SizeString, [ $, ] ),
+				text_utils:split( SizeString, _Delimiter=$, ),
 
 			Height = text_utils:string_to_integer( HeightString ),
 

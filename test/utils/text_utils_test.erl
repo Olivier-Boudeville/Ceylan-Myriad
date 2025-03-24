@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2024 Olivier Boudeville
+% Copyright (C) 2007-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -64,18 +64,31 @@ test_format_error() ->
 	% text_utils:format/2:
 
 	test_facilities:display(
-		"~nTesting on purpose 5 mismatching text_utils:format/2 calls:" ),
+		"~nTesting on purpose mismatching text_utils:format/2 calls:" ),
+
+	% Tests with faulty arities commented out, as now detected at compilation
+	% time:
 
 	% One too few:
-	_ = text_utils:format( "aaaa~tsbbbb", [] ),
+	%_ = text_utils:format( "aaaa~tsbbbb", [] ),
 
 	% One too many:
-	_ = text_utils:format( "aaaa~tsbb~wbb", [ u, v, w ] ),
+	%_ = text_utils:format( "aaaa~tsbb~wbb", [ u, v, w ] ),
 
-	% Wrong types:
-	_ = text_utils:format( "~aaaa~tsbbbb", [ 1.2 ] ),
-	_ = text_utils:format( "~Baaaa~tsbbbb", [ 1.2, "hello" ] ),
-	_ = text_utils:format( "~Baaaa~tsbb~tsbb", [ 2, self(), "hello" ] ),
+	% Wrong types will be detected, but only at runtime:
+	% (uncomment to see the error messages)
+
+	%test_facilities:display( "Intentional fault 1: '~ts'", [
+		text_utils:format( "~~ay~~aaaa~tsbbbb", [ 1.2 ] ),
+	%													   ] ),
+
+	%test_facilities:display( "Intentional fault 2: '~ts'", [
+		text_utils:format( "~Baaaa~tsbbbb", [ 1.2, "hello" ] ),
+	%													   ] ),
+
+	%test_facilities:display( "Intentional fault 3: '~ts'", [
+		text_utils:format( "~Baaaa~tsbb~tsbb", [ 2, self(), "hello" ] ),
+	%													   ] ),
 
 	ok.
 
@@ -431,7 +444,7 @@ run() ->
 
 
 	[ "93171810", "95a0", "4382", "ad73" ] =
-		text_utils:split( UUIDText, _OtherSep="-" ),
+		text_utils:split( UUIDText, _OtherSep=$- ),
 
 	TestSplit = "  abcxdefxgh ",
 

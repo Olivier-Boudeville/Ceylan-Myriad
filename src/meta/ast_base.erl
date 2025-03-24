@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -33,6 +33,14 @@ notably in order to transform them (meta-programming).
 """.
 
 
+% Type shorthands:
+
+-type option( T ) :: type_utils:option( T ).
+
+-type filename() :: file_utils:filename().
+-type file_path() :: file_utils:file_path().
+
+
 
 % Section about general locations in AST, sources, etc.
 
@@ -52,7 +60,7 @@ Higher-level location, not to be mixed up with {stream,file}_loc/0.
 In-file reference, typically like:
  `{"../data-management/simple_parse_transform_target.erl",1}`.
 """.
--type file_reference() :: basic_utils:option( file_utils:file_path() ).
+-type file_reference() :: option( file_path() ).
 
 
 
@@ -93,15 +101,14 @@ The (newer) pair form shall now be preferred.
 
 
 -doc "Context (if any) of a form.".
--type form_context() :: basic_utils:option( stream_loc() ).
+-type form_context() :: option( stream_loc() ).
 
 
 
 -doc """
 In-source context (typically to report errors); e.g. `{"foo.erl",{112,4}}`.
 """.
--type source_context() ::
-		{ file_utils:filename(), basic_utils:option( file_loc() ) }.
+-type source_context() :: { filename(), option( file_loc() ) }.
 
 
 -export_type([ form_location/0, file_reference/0, line/0, column/0,

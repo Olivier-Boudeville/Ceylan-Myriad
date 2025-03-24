@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -26,6 +26,11 @@
 % Creation date: Saturday, March 16, 2024.
 
 
+% As, sometimes, defines in header files make sense:
+-ifndef(myriad_maths_reference_tree_hrl_guard).
+-define(myriad_maths_reference_tree_hrl_guard,).
+
+
 -define( root_ref_id, 0 ).
 % The identifier of the root, absolute reference frame.
 %
@@ -50,3 +55,6 @@
 
 	% The identifier to be allocated at the next registered frame:
 	next_ref_id = ?root_ref_id + 1 :: reference_tree:ref_id() } ).
+
+
+-endif. % myriad_maths_reference_tree_hrl_guard

@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2024 Olivier Boudeville
+% Copyright (C) 2020-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -34,28 +34,31 @@ See json_utils_test.erl for the corresponding test.
 
 Refer to http://myriad.esperide.org/#json-use for more details.
 
-Note that since Erlang 27.0 a built-in JSON parser is available, see the `json`
-module.
+Note that, since Erlang 27.0, a built-in JSON parser is available, see the
+`json` module; we now rely on it by default (`jsx` or `jiffy` were used
+beforehand, and remain possible choices).
 """.
 
 
 % Implementation notes:
 %
-% We rely here on a JSON parser, namely by default JSX
-% (https://github.com/talentdeficit/jsx/), version 3.0.0 at the time of this
-% writing; we expect the BEAM files from JSX to be available on the code path
-% (out of a rebar3 context, we may expect to find them in
-% ~/Software/jsx/jsx-current-install/ebin; in a rebar3 context, we expect them
-% to be readily found, in _checkouts, or as a sibling dependency). See the
-% 'USE_JSON' and 'USE_JSX' sections in GNUmakevars.inc for all possible
-% locations.
+% We rely here on a JSON parser, namely by default now the native Erlang one,
+% built-in since Erlang 27.0, in the `json` module.
 %
-% Refer to the 'JSX Installation' section in GNUmakevars.inc in order to perform
-% an installation thereof according to our standards - which is strongly
-% recommended.
+% Previously we used jsx (https://github.com/talentdeficit/jsx/), version 3.0.0
+% at the time of this writing; the BEAM files from jsx were expected to be
+% available on the code path (out of a rebar3 context, they may be expected to
+% be found in ~/Software/jsx/jsx-current-install/ebin; in a rebar3 context, they
+% were expected to be readily found in _checkouts or as a sibling
+% dependency). See the 'USE_JSON' and 'USE_JSX' sections in GNUmakevars.inc for
+% all possible locations.
 %
-% Jiffy (https://github.com/davisp/jiffy) is the second supported backend
-% option (with no specific action needed to be able to use it).
+% Refer to the 'jsx Installation' section in GNUmakevars.inc in order to perform
+% an installation thereof according to our standards - which used to be strongly
+% recommended, before the native 'json' module was used.
+%
+% Jiffy (https://github.com/davisp/jiffy) used to be the second supported
+% backend option (with no specific action needed to be able to use it).
 %
 % Indeed, as no static linking is performed, the parser selection can happen at
 % runtime rather than at compilation-time, reducing the need for preprocessor
@@ -66,7 +69,7 @@ module.
 % mode of operation at runtime. Not using such a state also implies that the
 % backend is stateless; we also consider that this state is const (e.g. like a
 % PID or any reference), in the sense that a JSON operation is not supposed to
-% impact it (otherwise each would have to return a new state).
+% impact it (otherwise each of them would have to return a new state).
 %
 % As a result, the current module is not cluttered by (rigid) preprocessor
 % directives, but the user may have to pass along a parser state. Another option
@@ -75,26 +78,24 @@ module.
 % Note that:
 %
 % - the actual JSON encoding of a given Erlang term depends on the parser
-% backend (e.g. the order of JSON keys might differ - note that the JSON RFC
-% (RFC 4627) indicates that order of object members should not matter)
+% backend (e.g. the order of JSON keys might differ - note that for example the
+% JSON RFC (RFC 4627) indicates that order of object members should not matter)
 %
 % - for each parser, we expect that from_json . to_json = Id, i.e. for each
 % valid Erlang term T, from_json(to_json(T)) = T
-%
-% - since Erlang 27.0, a built-in parser is available (`json` module)
 
 % Curently no extra (transverse) user-specified encoding/decoding options are
 % supported.
 
 
 % The typical type of (Erlang) terms to be encoded in JSON is a map whose keys
-% are binary strings (we would have preferred atoms, which is supported by JSX
+% are binary strings (we would have preferred atoms, which is supported by jsx
 % through its {labels, atom} option - yet Jiffy does not support it).
 
 % Comments are not supported in JSON; for them we rely on (non-duplicated)
 % "_comment" entries.
 
-% As the JSX mapping hardcodes the 'null' atom for the JSON null value, we
+% As the jsx mapping hardcodes the 'null' atom for the JSON null value, we
 % enforce the same setting with Jiffy (that can set it).
 
 
@@ -135,7 +136,9 @@ module.
 		  is_parser_backend_available/1,
 
 		  get_base_json_encoding_options/1,
-		  get_base_json_decoding_options/1 ]).
+		  get_base_json_decoding_options/1,
+
+		  get_json_unavailability_hint/1 ]).
 
 
 
@@ -145,40 +148,43 @@ module.
 
 
 -doc "The known, and potentially supported, backends in terms of JSON parsers.".
--type parser_backend_name() :: 'jsx' | 'jiffy' | otp_utils:application_name().
- 
+-type parser_backend_name() :: 'json'  % Built-in (recommended now)
+							 | 'jsx'   % Possible dependency
+							 | 'jiffy' % Possible dependency
+							 | otp_utils:application_name(). % Other
+
 
 
 -doc "Often no internal state is really needed.".
 -type parser_state() ::
 		{ parser_backend_name(), InternalBackendState :: option( term() ) }.
- 
+
 
 
 -doc "A (plain) string containing JSON content.".
 -type string_json() :: ustring().
 
- 
+
 
 -doc "A binary string containing JSON content.".
 -type bin_json() :: bin_string().
- 
+
 
 
 -doc "A JSON document.".
--type json() :: bin_json() | string_json().
+-type json() :: bin_json() | string_json() | iolist().
 
 
 
 -doc "A key in a decoded JSON table.".
 -type decoded_json_key() :: bin_string().
 
- 
+
 
 -doc "A value in a decoded JSON table.".
 -type decoded_json_value() :: decoded_json().
 
- 
+
 
 -doc "A decoded entry.".
 -type decoded_json_pair() :: { decoded_json_key(), decoded_json_value() }.
@@ -227,7 +233,8 @@ transparently with all supported backends).
 			   json_encoding_option/0, json_decoding_option/0 ]).
 
 
-% Shorthands:
+
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
@@ -240,30 +247,45 @@ transparently with all supported backends).
 
 
 
+
 -doc """
 Returns information regarding any JSON parser found, as a triplet made of its
-name, a resolvable path to its ebin directory (for example useful to any
-upcoming deployment of a vanilla node) and a directly resolved one; otherwise
-throws an exception.
+name, any resolvable path to any non-standard ebin directory (for example useful
+to any upcoming deployment of a vanilla node) and any directly-resolved path;
+otherwise throws an exception.
 """.
 -spec get_parser_name_paths() ->
-			{ parser_backend_name(), resolvable_path(), directory_path() }.
+	{ parser_backend_name(), option( resolvable_path() ),
+	  option( directory_path() ) }.
 get_parser_name_paths() ->
-	case get_paths_for( jsx ) of
 
-		undefined ->
-			case get_paths_for( jiffy ) of
+	% Pre-Erlang 27.0 versions do not have it:
+	case code_utils:is_beam_in_path( json ) of
+
+		not_found ->
+			case get_paths_for( jsx ) of
 
 				undefined ->
-					throw( unresolvable_json_parser );
+					case get_paths_for( jiffy ) of
 
-				{ JiffyRes, JiffyPlain } ->
-					{ jiffy, JiffyRes, JiffyPlain }
+						undefined ->
+							throw( unresolvable_json_parser );
+
+						{ JiffyRes, JiffyPlain } ->
+							{ jiffy, JiffyRes, JiffyPlain }
+
+					end;
+
+				{ JsxRes, JsxPlain } ->
+					{ jsx, JsxRes, JsxPlain }
 
 			end;
 
-		{ JsxRes, JsxPlain } ->
-			{ jsx, JsxRes, JsxPlain }
+		[ _JsonBeamPath | _ ] ->
+			% Built-in, so need to update the code path (supposing homogeneous
+			% Erlang versions):
+			%
+			{ json, undefined, undefined }
 
 	end.
 
@@ -322,7 +344,8 @@ start_parser() ->
 
 	ParserName = get_available_parser_backend_name(),
 
-	%trace_utils:info_fmt( "Selected JSON parser: '~ts'.", [ ParserName ] ),
+	cond_utils:if_defined( myriad_debug_json, trace_utils:info_fmt(
+		"Selected JSON parser: '~ts'.", [ ParserName ] ) ),
 
 	start_parser( ParserName ).
 
@@ -333,10 +356,10 @@ Starts the specified JSON parser, returns its initial state, which may be used
 optionally afterwards.
 """.
 -spec start_parser( parser_backend_name() ) -> parser_state().
-start_parser( BackendName )
-				when BackendName =:= jsx orelse BackendName =:= jiffy ->
+start_parser( BackendName ) when BackendName =:= json orelse BackendName =:= jsx
+								 orelse BackendName =:= jiffy ->
 
-	% Appropriate for both JSX and Jiffy:
+	% Appropriate for json, jsx and Jiffy:
 
 	% No specific initialisation needed.
 
@@ -362,35 +385,67 @@ get_parser_backend_name() ->
 	%
 	%trace_utils:info( "Determining the JSON backend to use." ),
 
-	% We prioritize JSX over Jiffy:
-	case is_parser_backend_available( jsx ) of
+	% We prioritise json over jsx over Jiffy:
+	case is_parser_backend_available( json ) of
 
 		false ->
-			case is_parser_backend_available( jiffy ) of
+			case is_parser_backend_available( jsx ) of
 
 				false ->
-					undefined;
+					case is_parser_backend_available( jiffy ) of
 
-				[ _JiffyPath ] ->
-					%trace_utils:debug_fmt( "Selected JSON parser is "
-					%   "Jiffy, in '~ts'.", [ JiffyPath ] ),
-					jiffy ;
+						false ->
+							undefined;
 
-				JiffyPaths ->
-					throw( { multiple_jiffy_json_backends_found, JiffyPaths } )
+						[ JiffyPath ] ->
+							cond_utils:if_defined( myriad_debug_json,
+								trace_utils:debug_fmt(
+									"Selected JSON parser is Jiffy, in '~ts'.",
+									[ JiffyPath ] ),
+								basic_utils:ignore_unused( JiffyPath ) ),
+
+							jiffy ;
+
+
+						JiffyPaths ->
+							trace_utils:error_fmt( "Multiple Jiffy backends "
+								"found (~ts), while ~ts",
+								[ text_utils:strings_to_listed_string(
+									JiffyPaths ),
+								  code_utils:get_code_path_as_string() ] ),
+
+							throw( { multiple_jiffy_json_backends_found,
+									 JiffyPaths } )
+
+					end;
+
+				[ JsxPath ] ->
+					cond_utils:if_defined( myriad_debug_json,
+						trace_utils:debug_fmt( "Selected JSON parser is jsx, "
+												"in '~ts'.", [ JsxPath ] ),
+						basic_utils:ignore_unused( JsxPath ) ),
+
+					jsx;
+
+
+				JsxPaths ->
+					trace_utils:error_fmt(
+						"Multiple jsx backends found (~ts), while ~ts",
+						[ text_utils:strings_to_listed_string( JsxPaths ),
+						  code_utils:get_code_path_as_string() ] ),
+
+					throw( { multiple_jsx_json_backends_found, JsxPaths } )
 
 			end;
 
-		[ _JsxPath ] ->
-			%trace_utils:debug_fmt( "Selected JSON parser is JSX, in '~ts'.",
-			%                       [ JsxPath ] ),
-			jsx ;
 
-		JsxPaths ->
-			trace_utils:error_fmt( "Multiple jsx backends found, while ~ts",
-								   [ code_utils:get_code_path_as_string() ] ),
+		[ JsonPath ] ->
+			cond_utils:if_defined( myriad_debug_json, trace_utils:debug_fmt(
+				"Selected JSON parser is (built-in) json, in '~ts'.",
+				[ JsonPath ] ),
+				basic_utils:ignore_unused( JsonPath ) ),
 
-			throw( { multiple_jsx_json_backends_found, JsxPaths } )
+			json
 
 	end.
 
@@ -461,7 +516,7 @@ get_available_parser_backend_name() ->
 
 		undefined ->
 			trace_utils:error( "No JSON parser found available "
-				"(neither JSX nor Jiffy). "
+				"(no json, jsx or jiffy). "
 				++ system_utils:get_json_unavailability_hint() ),
 			throw( no_json_parser_backend_found );
 
@@ -492,6 +547,32 @@ Checks whether the specified JSON parser is operational; returns an updated
 state if yes, otherwise throws an exception.
 """.
 -spec check_parser_operational( parser_state() ) -> parser_state().
+check_parser_operational( ParserState={ json, _InternalBackendState } ) ->
+
+	% This is a way to check that its BEAMs are available and fully usable:
+	try json:decode( <<"\"test\"">> ) of
+
+		<<"test">> ->
+			% Const:
+			ParserState
+
+	catch
+
+		error:undef ->
+			trace_utils:error_fmt(
+				"The built-in 'json' JSON parser is not operational.~n~ts",
+				[ system_utils:get_json_unavailability_hint( json ) ] ),
+			throw( { json_parser_not_operational, json } );
+
+		OtherError ->
+			trace_utils:error_fmt(
+				"The built-in 'json' JSON parser does not work properly: ~p.",
+				[ OtherError ] ),
+			throw( { json_parser_dysfunctional, json, OtherError } )
+
+	end;
+
+
 check_parser_operational( ParserState={ jsx, _InternalBackendState } ) ->
 
 	% This is a way to check that its BEAMs are available and fully usable:
@@ -505,17 +586,18 @@ check_parser_operational( ParserState={ jsx, _InternalBackendState } ) ->
 
 		error:undef ->
 			trace_utils:error_fmt(
-				"The JSX JSON parser is not operational.~n~ts",
+				"The jsx JSON parser is not operational.~n~ts",
 				[ system_utils:get_json_unavailability_hint( jsx ) ] ),
 			throw( { json_parser_not_operational, jsx } );
 
 		OtherError ->
 			trace_utils:error_fmt(
-				"The JSX JSON parser does not work properly: ~p.",
+				"The jsx JSON parser does not work properly: ~p.",
 				[ OtherError ] ),
 			throw( { json_parser_dysfunctional, jsx, OtherError } )
 
 	end;
+
 
 check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 
@@ -549,8 +631,8 @@ check_parser_operational( ParserState={ jiffy, _InternalBackendState } ) ->
 
 
 -doc """
-Converts (encodes) specified JSON-compliant Erlang term into a JSON counterpart
-element, using the looked-up default JSON backend for that.
+Converts (encodes) the specified JSON-compliant Erlang term into a JSON
+counterpart document, using the looked-up default JSON backend for that.
 
 For example `json_utils:to_json( #{
   <<"protected">> => Protected,
@@ -568,8 +650,8 @@ to_json( Term ) ->
 
 
 -doc """
-Converts (encodes) specified Erlang term into a JSON counterpart element, using
-directly the JSON backend designated by the specified parser state.
+Converts (encodes) the specified Erlang term into a JSON counterpart document,
+using directly the JSON backend designated by the specified parser state.
 
 For example `json_utils:to_json(#{
   <<"protected">> => Protected,
@@ -577,33 +659,55 @@ For example `json_utils:to_json(#{
   <<"signature">> => EncSigned }, _ParserName=jsx )`.
 """.
 -spec to_json( json_term(), parser_state() ) -> json().
+to_json( Term, _ParserState={ json, _UndefinedInternalBackendState } ) ->
+
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "json is to encode:~n ~p", [ Term ] ) ),
+
+	R = json:encode( Term ),
+
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "json returned encoded term:~n ~p", [ R ] ) ),
+
+	R;
+
+
 to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 	Opts = get_base_json_encoding_options( jsx ),
 
-	%trace_utils:debug_fmt( "JSX is to encode, with options ~p:~n ~p",
-	%                       [ Opts, Term ] ),
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "jsx is to encode, with options ~p:~n ~p",
+							   [ Opts, Term ] ) ),
 
 	R = jsx:encode( Term, Opts ),
 
-	%trace_utils:debug_fmt( "JSX returned encoded term:~n ~p", [ R ] ),
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "jsx returned encoded term:~n ~p", [ R ] ) ),
 
 	R;
+
 
 to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 
 	Opts = get_base_json_encoding_options( jiffy ),
 
-	%trace_utils:debug_fmt( "Jiffy is to encode, with options ~p:~n ~p",
-	%                       [ Opts, Term ] ),
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "Jiffy is to encode, with options ~p:~n ~p",
+							   [ Opts, Term ] ) ),
 
-	jiffy:encode( Term, Opts ).
+	R = jiffy:encode( Term, Opts ),
+
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "Jiffy returned encoded term:~n ~p", [ R ] ) ),
+
+	R.
 
 
 
 -doc """
-Converts (encodes) specified JSON-compliant Erlang term into a JSON file, using
-the looked-up default JSON backend for that.
+Converts (encodes) the specified JSON-compliant Erlang term into a JSON file,
+using the looked-up default JSON backend for that.
 
 For example `json_utils:to_json_file(#{
    <<"protected">> => Protected,
@@ -618,8 +722,8 @@ to_json_file( Term, TargetJsonFilePath ) ->
 
 
 -doc """
-Converts (encodes) specified JSON-compliant Erlang term into a JSON file, using
-the specified JSON backend for that.
+Converts (encodes) the specified JSON-compliant Erlang term into a JSON file,
+using the specified JSON backend for that.
 
 For example `json_utils:to_json_file(#{
    <<"protected">> => Protected,
@@ -636,6 +740,9 @@ to_json_file( Term, TargetJsonFilePath, ParserState ) ->
 -doc "Returns the default options for the JSON encoding.".
 -spec get_base_json_encoding_options( parser_backend_name() ) ->
 												[ json_encoding_option() ].
+get_base_json_encoding_options( _BackendName=json ) ->
+	[];
+
 get_base_json_encoding_options( _BackendName=jsx ) ->
 	[];
 
@@ -645,7 +752,7 @@ get_base_json_encoding_options( _BackendName=jiffy ) ->
 	% by fixing broken surrogate pairs and/or using the replacement character to
 	% remove broken UTF-8 sequences in data:
 	%
-	% We do not specify here 'use_nil' as we want to use 'null' as JSX does.
+	% We do not specify here 'use_nil' as we want to use 'null' as jsx does.
 	%
 	[ force_utf8 ].
 
@@ -657,13 +764,13 @@ get_base_json_encoding_options( _BackendName=jiffy ) ->
 
 
 -doc """
-Converts (decodes) specified JSON element into an Erlang term counterpart,
-recursively so that it cab return a table containing tables, themselves
+Converts (decodes) the specified JSON document into an Erlang term counterpart,
+recursively so that it can return a table containing tables, themselves
 containing potentially tables, and so on, using the looked-up default JSON
 backend for that.
 
 Note that if in a given scope a key is present more than once, only one of its
-values will be retained (actually the lastly defined one).
+values will be retained (generally the lastly defined one).
 """.
 -spec from_json( json() ) -> json_term().
 from_json( Json ) ->
@@ -673,14 +780,33 @@ from_json( Json ) ->
 
 
 -doc """
-Converts (decodes) specified JSON element into an Erlang term counterpart,
+Converts (decodes) the specified JSON document into an Erlang term counterpart,
 recursively so that it returns a table containing tables, themselves containing
 potentially tables, and so on, using the specified JSON backend for that.
 
 Note that if in a given scope a key is present more than once, only one of its
-values will be retained (actually the lastly defined one).
+values will be retained (generally the lastly defined one).
 """.
 -spec from_json( json(), parser_state() ) -> json_term().
+from_json( Json, _ParserState={ json, _UndefinedInternalBackendState } ) ->
+
+	BinJson = case is_binary( Json ) of
+
+		true ->
+			Json;
+
+		% Supposedly then a plain string:
+		false ->
+			text_utils:string_to_binary( Json )
+
+	end,
+
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "Decoding '~p' with json.", [ BinJson ] ) ),
+
+	json:decode( BinJson );
+
+
 from_json( Json, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 	BinJson = case is_binary( Json ) of
@@ -694,7 +820,8 @@ from_json( Json, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 	end,
 
-	%trace_utils:debug_fmt( "Decoding '~p' with JSX.", [ BinJson ] ),
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "Decoding '~p' with jsx.", [ BinJson ] ) ),
 
 	% Note that at least some errors in the JSON file (e.g. missing comma) will
 	% lead only to an exception such as:
@@ -708,7 +835,10 @@ from_json( Json, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 
 from_json( Json, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
-	%trace_utils:debug_fmt( "Decoding '~p' with Jiffy.", [ Json ] ),
+
+	cond_utils:if_defined( myriad_debug_json,
+		trace_utils:debug_fmt( "Decoding '~p' with jiffy.", [ BinJson ] ) ),
+
 	jiffy:decode( Json, get_base_json_decoding_options( jiffy ) ).
 
 
@@ -716,9 +846,13 @@ from_json( Json, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 -doc "Returns the default options for the JSON decoding.".
 -spec get_base_json_decoding_options( parser_backend_name() ) ->
 												[ json_decoding_option() ].
+get_base_json_decoding_options( _BackendName=json ) ->
+	% None applies anyway:
+	[];
+
 get_base_json_decoding_options( _BackendName=jsx ) ->
 	% We used to prefer {state,<<"PUBLISHED">>} to
-	% {<<"state">>,<<"PUBLISHED">>}, yet for compatibility with jiffy we stick
+	% {<<"state">>,<<"PUBLISHED">>}, yet for compatibility with Jiffy we stick
 	% to binaries now, so [{labels, atom}] is not used anymore.
 	%
 	% return_maps is default:
@@ -735,12 +869,12 @@ get_base_json_decoding_options( _BackendName=jiffy ) ->
 
 
 -doc """
-Converts (decodes) specified JSON file recursively into an Erlang term
+Converts (decodes) the specified JSON file recursively into an Erlang term
 counterpart, so that it returns typically a table containing tables, themselves
 containing potentially tables, and so on, with specified parser state.
 
 Note that if in a given scope a key is present more than once, only one of its
-values will be retained (actually the lastly defined one).
+values will be retained (generally the lastly defined one).
 """.
 -spec from_json_file( any_file_path() ) -> json_term().
 from_json_file( JsonFilePath ) ->
@@ -750,12 +884,12 @@ from_json_file( JsonFilePath ) ->
 
 
 -doc """
-Converts (decodes) specified JSON file recursively into an Erlang term
+Converts (decodes) the specified JSON file recursively into an Erlang term
 counterpart, so that it returns typically a table containing tables, themselves
 containing potentially tables, and so on, with specified parser state.
 
 Note that if in a given scope a key is present more than once, only one of its
-values will be retained (actually the lastly defined one).
+values will be retained (generally the lastly defined one).
 """.
 -spec from_json_file( any_file_path(), parser_state() ) -> json_term().
 from_json_file( JsonFilePath, ParserState ) ->
@@ -789,3 +923,31 @@ stop_parser() ->
 -spec stop_parser( parser_state() ) -> void().
 stop_parser( _ParserState ) ->
 	ok.
+
+
+
+-doc """
+Returns a string explaining what to do in order to have the JSON support with
+the specified backend available.
+""".
+-spec get_json_unavailability_hint( parser_backend_name() ) -> ustring().
+get_json_unavailability_hint( _Backend=undefined ) ->
+	% Note: the hints are *not* truncated here, this is normal:
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
+	"JSX_BASE / JIFFY_BASE runtime variables, knowing that the "
+		++ code_utils:get_code_path_as_string();
+
+get_json_unavailability_hint( _Backend=json ) ->
+	"Hint: check that using Erlang 27.0 or more recent, and inspect, in "
+	"myriad/GNUmakevars.inc, the USE_JSON runtime variables, knowing that the "
+	++ code_utils:get_code_path_as_string();
+
+get_json_unavailability_hint( _Backend=jsx ) ->
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
+	"JSX_BASE runtime variables, knowing that the "
+		++ code_utils:get_code_path_as_string();
+
+get_json_unavailability_hint( _Backend=jiffy ) ->
+	"Hint: inspect, in myriad/GNUmakevars.inc, the USE_JSON and "
+	"JIFFY_BASE runtime variables, knowing that the "
+		++ code_utils:get_code_path_as_string().

@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -81,8 +81,8 @@ See also <https://docs.wxwidgets.org/3.1/classwx_splitter_window.html>.
   | 'allow_unsplit' % Always allows to unsplit, even if the minimum pane length
 					% is zero.
   | 'live_update'. % Resizes the child windows immediately (strongly recommended
-				   % for a smoother control, unless at least a pane is long to
-				   % redraw).
+				   % for a smoother control / to avoid flicker, unless at least
+				   % a pane is long to redraw).
 
 
 -doc """
@@ -140,7 +140,7 @@ window.
 
 % Type shorthands:
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -152,9 +152,9 @@ window.
 
 -type position() :: gui:position().
 -type orientation() :: gui:orientation().
-
 -type parent() :: gui:parent().
--type window() :: gui:window().
+
+-type window() :: gui_window:window().
 
 -type id() :: gui_id:id().
 

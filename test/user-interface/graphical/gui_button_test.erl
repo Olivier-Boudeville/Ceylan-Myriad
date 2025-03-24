@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2024 Olivier Boudeville
+% Copyright (C) 2023-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -159,7 +159,7 @@ run_gui_test() ->
 -doc """
 A very simple main loop, whose actual state is simply the GUI object
 corresponding to the frame that shall be closed to stop the test
-(i.e. CloseFrame).
+(i.e. CloseFrame), and the buttons.
 """.
 -spec test_main_loop( my_test_state() ) -> no_return().
 test_main_loop( State={ Frame, _Buttons } ) ->

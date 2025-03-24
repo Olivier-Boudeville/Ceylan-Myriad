@@ -203,12 +203,12 @@ endif
 
 # To run an application as a service.
 #
-# Exactly like when running as %_exec_background, except services are shared
-# hence their node name must no depend on any user name; they are directly named
-# as their core target (e.g. 'make X_exec_service' results in a node named
-# 'X@LOCALHOSTNAME').
+# Exactly like when running as %_exec_background, except that services are to be
+# transverse/shared, hence their node name must no depend on any user name; they
+# are directly named as their core target (e.g. 'make X_exec_service' results in
+# a node named 'X@LOCALHOSTNAME').
 #
-# (these rules uses run_erl, that runs in the background)
+# (these rules use run_erl, that runs in the background)
 
 
 %_exec_service: %_app.beam %.beam

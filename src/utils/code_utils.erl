@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2024 Olivier Boudeville
+% Copyright (C) 2007-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -146,7 +146,7 @@ Defined as #{pos_integer() => unicode:chardata()} by the erl_erts_errors module.
 -include_lib("kernel/include/file.hrl").
 
 
-% Shorthands:
+% Type shorthands:
 
 -type module_name() :: basic_utils:module_name().
 -type function_name() :: basic_utils:function_name().
@@ -790,7 +790,7 @@ get_beam_filename( ModuleName ) when is_atom( ModuleName ) ->
 
 
 -doc """
-Tells whether specified module has its BEAM file in the current code path.
+Tells whether the specified module has its BEAM file in the current code path.
 
 Returns either a list of its absolute, canonicalised, unordered paths that
 include this BEAM file (if being available at least once), or 'not_found'.

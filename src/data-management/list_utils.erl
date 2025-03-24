@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2024 Olivier Boudeville
+% Copyright (C) 2007-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -59,7 +59,7 @@ See also: set_utils.erl and list_table.erl.
 % Basic list operations:
 -export([ get_element_at/2, set_element_at/3, insert_element_at/3,
 		  extract_element_at/2, extract_element_if_existing/2,
-
+		  extract_first_elements/2, extract_last_elements/2,
 		  remove_first_elements/2, remove_element_at/2, remove_last_element/1,
 		  heads/2,
 		  get_last_element/1, extract_last_element/1,
@@ -135,15 +135,18 @@ two) of times they were present in a given container.
 % Type shorthands:
 
 
+-doc """
+A list whose elements can be atoms or tuples (not only pairs) whose first
+element is an atom.
+""".
 -type proplist() :: proplists:proplist().
-% A list whose elements can be atoms or tuples (not only pairs) whose first
-% element is an atom.
 
 
 -type count() :: basic_utils:count().
 
+
+-doc "These indexes start at 1.".
 -type positive_index() :: basic_utils:positive_index().
-% These indexes start at 1.
 
 -type ustring() :: text_utils:ustring().
 
@@ -264,7 +267,7 @@ are a lot more effective, when applicable.
 % Not tail recursive version:
 %
 % get_element_at( List, 1 ) ->
-%   hd(List);
+%   hd( List );
 %
 % get_element_at( [ _H | T ], Index ) ->
 %   get_element_at( T, Index-1 ).
@@ -373,6 +376,49 @@ extract_element_if_existing( Elem, _List=[ Elem | T ], Acc ) ->
 
 extract_element_if_existing( Elem, _List=[ H | T ], Acc ) ->
 	extract_element_if_existing( Elem, T, [ H | Acc ] ).
+
+
+
+-doc """
+Returns, as a list, the specified number of first elements from the specified
+list, and the remainder of that list.
+
+For example {[a,b,c], [d,e]} = extract_first_elements([a,b,c,d,e], 3).
+
+Throws an exception if there are not enough elements to do so.
+""".
+-spec extract_first_elements( list(), count() ) -> { list(), list() }.
+extract_first_elements( List, Count ) ->
+	extract_first_elements( List, Count, _Acc=[] ).
+
+
+% (helper)
+extract_first_elements( RemainderList, _Count=0, Acc ) ->
+	{ lists:reverse( Acc ), RemainderList };
+
+extract_first_elements( _RemainderList=[], LackingCount, _Acc ) ->
+	throw( { list_too_short, LackingCount } );
+
+extract_first_elements( _RemainderList=[ H | T ], Count, Acc ) ->
+	extract_first_elements( T, Count-1, [ H | Acc ] ).
+
+
+
+-doc """
+Returns, as a list, the specified number of last elements from the specified
+list, and the remainder of that list.
+
+For example {[c,d,e],[a,b]} = extract_last_elements([a,b,c,d,e], 3).
+
+Throws an exception if there are not enough elements to do so.
+""".
+-spec extract_last_elements( list(), count() ) -> { list(), list() }.
+extract_last_elements( List, Count ) ->
+	{ RevLastElems, RevRemainder } =
+		extract_first_elements( lists:reverse( List ), Count ),
+
+	{ lists:reverse( RevLastElems ), lists:reverse( RevRemainder ) }.
+
 
 
 
@@ -1251,8 +1297,8 @@ intercalate( Elem, _TargetList=[ H | T ], Acc ) ->
 
 
 -doc """
-Appends the specified element at the end of specified list, without changing the
-order of the list.
+Appends the specified element at the end of the specified list, without changing
+the order of the list.
 
 For example: append_at_end(d, [a,b,c]) returns [a,b,c,d].
 
@@ -1578,7 +1624,6 @@ split_multi_heads_tails( _Lists=[ L | TL ], AccHeads, AccTails, HeadsLen ) ->
 
 
 -doc """
-
 Concatenates the specified lists to the specified lists: returns the
 concatenation of the two lists found at the same rank in both input lists, and
 returns the (in-order) list of these concatenated lists.

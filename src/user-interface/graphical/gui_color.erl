@@ -1,4 +1,4 @@
-% Copyright (C) 2010-2024 Olivier Boudeville
+% Copyright (C) 2010-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -35,7 +35,7 @@ Gathering of various facilities for **color management**.
 % Colors.
 %
 % Colors are designated here generally by {R,G,B} triplets, or as one of the
-% predefined names, like red, green, etc.
+% predefined (atom-based) names, like red, green, etc.
 %
 % For example {0,0,0} is black and {255,255,255} is white.
 
@@ -71,6 +71,8 @@ color. See get_colors/0 for a list thereof.
 
 -doc """
 RGB (integer coordinates, in [0;255]) color; no alpha coordinate here.
+
+Corresponds also to the wx_colour/0 triplets.
 """.
 -type color_by_decimal() ::
 		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
@@ -99,14 +101,22 @@ For example "#3ab001ee" corresponds to a mostly solid lightgreen.
 
 
 
--doc "RGBA (integer coordinates, in [0;255]) color.".
+-doc """
+RGBA (integer coordinates, in [0;255]) color.
+
+Corresponds also to wx_colour4/0.
+""".
 -type color_by_decimal_with_alpha() ::
 		{ Red :: decimal_coordinate(), Green :: decimal_coordinate(),
 		  Blue :: decimal_coordinate(), Alpha :: decimal_coordinate() }.
 
 
 
--doc "Any RGB or RGBA color.".
+-doc """
+Any RGB or RGBA color with integer coordinates, in [0;255].
+
+Corresponds also to wx_colour/0.
+""".
 -type any_color_by_decimal() ::
 		color_by_decimal() | color_by_decimal_with_alpha().
 
@@ -115,6 +125,12 @@ For example "#3ab001ee" corresponds to a mostly solid lightgreen.
 -doc "Any kind of RGB color.".
 -type color() :: color_by_name() | color_by_decimal() | rgb_hexastring().
 
+
+-doc "Any kind of RGB or RGBA color.".
+-type any_color() :: color_by_name()
+				   | color_by_decimal()
+				   | color_by_decimal_with_alpha()
+				   | rgb_hexastring().
 
 
 -doc """
@@ -245,7 +261,7 @@ For example {wx_ref,92,wxColourData,[]}.
 			   any_color_by_decimal/0,
 			   rgb_hexastring/0, rgba_hexastring/0,
 
-			   color/0,
+			   color/0, any_color/0,
 
 			   color_depth/0,
 			   color_coordinate/0, alpha_coordinate/0,
@@ -257,7 +273,7 @@ For example {wx_ref,92,wxColourData,[]}.
 
 
 % Color definition related operations.
--export([ get_colors/0, get_color/1,
+-export([ get_colors/0, get_color/1, get_any_color/1,
 		  get_render_rgb_color/1, get_render_rgba_color/1,
 		  get_logical_colors/0, get_logical_color/1,
 		  get_color_for_gnuplot/1, get_random_colors/1 ]).
@@ -472,7 +488,10 @@ No 'undefined' color (meaning transparent) accepted.
 """.
 -spec get_color( color() ) -> color_by_decimal().
 get_color( Color={ _R, _G, _B } ) ->
-	% Optimised for this most frequent form (first pattern):
+
+	% Optimised for this most frequent form (first pattern); coordinates are
+	% supposed to be integers:
+
 	Color;
 
 % Covers the logical colors as well:
@@ -504,6 +523,24 @@ get_color( _RGBHexastr=[ $#, R1, R2, G1, G2, B1, B2 ] ) ->
 	Green = text_utils:hexastring_to_integer( [ G1, G2 ] ),
 	Blue  = text_utils:hexastring_to_integer( [ B1, B2 ] ),
 	{ Red, Green, Blue }.
+
+
+
+
+-doc """
+Returns the RGB or RGBA definition of the color specified by name (atom), or
+directly as a triplet or quadruplet of color components.
+
+No 'undefined' color (meaning transparent) accepted.
+""".
+-spec get_any_color( any_color() ) -> any_color_by_decimal().
+get_any_color( Color={ _R, _G, _B, _A } ) ->
+	% Only RGBA case; coordinates are supposed to be integers:
+	Color;
+
+% Then a RGB case:
+get_any_color( Color ) ->
+	get_color( Color ).
 
 
 

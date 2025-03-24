@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -68,9 +68,9 @@ Name of any parse attribute.
 
 
 
-% Shorthands:
+% Type shorthands:
 
--type void() :: basic_utils:void().
+-type void() :: type_utils:void().
 -type error_reason() :: basic_utils:error_reason().
 
 -type ast() :: ast_base:ast().

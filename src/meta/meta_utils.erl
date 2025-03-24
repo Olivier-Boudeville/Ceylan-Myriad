@@ -1,4 +1,4 @@
-% Copyright (C) 2014-2024 Olivier Boudeville
+% Copyright (C) 2014-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -240,11 +240,12 @@ InputTerm :: term()).
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type user_data() :: basic_utils:user_data().
 
 -type primitive_type_description() :: type_utils:primitive_type_description().
+-type option(T) :: type_utils:option(T).
 
 -type form() :: ast_base:form().
 
@@ -633,8 +634,7 @@ systematically twice: it is first transformed as such, and the result is
 transformed in turn. If the transformed term is the same as the original one,
 then that content will be shown as analysed twice.
 """.
--spec transform_term( term(),
-					  basic_utils:option( primitive_type_description() ),
+-spec transform_term( term(), option( primitive_type_description() ),
 					  term_transformer(), user_data() ) ->
 						{ term(), user_data() }.
 % Here the term is a list and this is the type we want to intercept:

@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -40,8 +40,6 @@ See the reference_{frame,frame3,tree} tested modules.
 
 
 -import(reference_tree, [ ref3_to_string/2 ]).
-
--compile(nowarn_unused_vars).
 
 
 

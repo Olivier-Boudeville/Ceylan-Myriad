@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -202,6 +202,7 @@ gui_main_loop( GUIState ) ->
 
 
 		{ onWindowClosed, [ ParentFrame, _ParentFrameId, _EventContext ] } ->
+
 			cleanup_opengl( GUIState ),
 			trace_utils:info( "Main frame closed, test success." ),
 

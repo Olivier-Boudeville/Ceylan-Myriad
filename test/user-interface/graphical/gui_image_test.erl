@@ -1,4 +1,4 @@
-% Copyright (C) 2021-2024 Olivier Boudeville
+% Copyright (C) 2021-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -171,7 +171,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 	receive
 
 		% Not subscribed to onRepaintNeeded, so never activated:
-		%{ onRepaintNeeded, [ Panel, _Context ] } ->
+		%{ onRepaintNeeded, [ Panel, _PanelId, _EventContext ] } ->
 		%   trace_utils:debug( "Repainting test panel." ),
 		%
 		%   % No size change, backbuffer still legit:
@@ -182,7 +182,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 		%   test_main_loop( TestState );
 
 
-		{ onResized, [ Panel, _PanelId, NewSize, Context ] } ->
+		{ onResized, [ Panel, _PanelId, NewSize, EventContext ] } ->
 
 			%trace_utils:debug( "Resizing test panel." ),
 
@@ -190,8 +190,8 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				trace_utils:notice_fmt(
 					"Test panel '~ts' resized to ~p (~ts).",
 					[ gui:object_to_string( Panel ), NewSize,
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( [ NewSize, Context ] ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( [ NewSize, EventContext ] ) ),
 
 			% We have to resize the framebuffer first:
 			NewBackbufferBitmap = gui_bitmap:create_empty( NewSize ),
@@ -206,14 +206,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 				backbuffer=NewBackbufferBitmap } );
 
 
-		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
+		{ onWindowClosed, [ MainFrame, _MainFrameId, EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 					"(~ts), test success.",
 					[ gui:object_to_string( MainFrame ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			gui_frame:destruct( MainFrame );
 

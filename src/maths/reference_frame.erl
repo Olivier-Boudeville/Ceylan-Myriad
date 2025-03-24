@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -28,8 +28,8 @@
 -module(reference_frame).
 
 -moduledoc """
-Base module for the support of **reference frames** (frames of references) of
-any dimension.
+Base module for the support of **reference frames** (frames of reference) of any
+dimension.
 
 A frame of reference is a part of reference tree; it records the
 transformation between this frame and its parent frame (if any).
@@ -40,9 +40,10 @@ See https://en.wikipedia.org/wiki/Frame_of_reference for further information
 
 
 % Implementation notes:
-%
-% Refer to <https://howtos.esperide.org/reference-frame-tree.png> for an
-% example.
+% - "referential" is not a proper choice of word here
+% - refer to <https://howtos.esperide.org/reference-frame-tree.png> for an
+% example
+
 
 
 % For the matrix4 record:

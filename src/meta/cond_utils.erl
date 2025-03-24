@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -70,6 +70,9 @@ macros.
 %    OR
 % -compile({nowarn_unused_function, [{my_func,3}, {my_other_func,0}]}).
 
+
+% These if_defined* compile-time constructs shall not be mixed up with the
+% (runtime) basic_utils:set_option/2 simple shortcut function.
 
 
 % About tokens:
@@ -189,16 +192,17 @@ expression.
 Table to establish easily whether a token has been defined and, if yes, a value
 (if any; otherwise it is set to 'undefined') that has been associated to it.
 """.
--type token_table() :: ?table:?table( token(), basic_utils:option( term() ) ).
+-type token_table() :: ?table:?table( token(), option( term() ) ).
 
 
 -export_type([ token/0, expression/0, body/0, token_expr_table/0,
 			   token_table/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
--type void() :: basic_utils:void().
+-type void() :: type_utils:void().
+-type option( T ) :: type_utils:option( T ).
 
 
 

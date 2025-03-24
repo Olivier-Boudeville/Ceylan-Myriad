@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2024 Olivier Boudeville
+% Copyright (C) 2007-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -114,7 +114,7 @@ registered.
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type atom_node_name() :: net_utils:atom_node_name().
 

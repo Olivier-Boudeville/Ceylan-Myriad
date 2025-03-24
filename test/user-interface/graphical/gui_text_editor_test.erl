@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -93,13 +93,13 @@ test_main_loop( State={ Frame, Editor } ) ->
 
 	receive
 
-		{ onEnterPressed, [ Editor, _EditorId, NewText, _Context ] } ->
+		{ onEnterPressed, [ Editor, _EditorId, NewText, _EventContext ] } ->
 			trace_utils:info_fmt(
 				"Text obtained after Enter was pressed: '~ts'.",
 				[ NewText ] ),
 			test_main_loop( State );
 
-		{ onWindowClosed, [ Frame, _FrameId, _Context ] } ->
+		{ onWindowClosed, [ Frame, _FrameId, _EventContext ] } ->
 			trace_utils:info( "Main frame has been closed; test success." ),
 			gui_frame:destruct( Frame ),
 			gui:stop();

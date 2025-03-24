@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -365,7 +365,7 @@ context (e.g. in a guard, in an expression, etc.).
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 -type format_string() :: text_utils:format_string().
@@ -373,6 +373,7 @@ context (e.g. in a guard, in an expression, etc.).
 
 -type type_arity() :: type_utils:type_arity().
 -type type_name() :: type_utils:type_name().
+-type option( T ) :: type_utils:option( T ).
 
 -type function_name() :: meta_utils:function_name().
 -type module_name() :: meta_utils:module_name().
@@ -399,20 +400,21 @@ Returns a table describing local type replacements.
 
 For example:
 ```
-[{ { void, 0 }, basic_utils },
-	  { { my_maybe, 1 }, { basic_utils, maybe } },
-	  % First clause will never match due to arity:
-	  { { '_', 3 }, fun( other_void, 0 ) ->
-								   other_utils;
-					   ( _, '_' ) ->
-								  {foo_utils,some_type}
-					end }]
+[{ { void, 0 }, type_utils },
+ { { my_option, 1 }, { type_utils, my_option } },
+
+ % First clause will never match due to arity:
+ { { '_', 3 }, fun( other_void, 0 ) ->
+					other_utils;
+				  ( _, '_' ) ->
+					{foo_utils,some_type}
+			   end }]
 ```
 will return a description of the transformation of:
- - void() into basic_utils:void(), as the same type name is implied there; it
+ - void() into type_utils:void(), as the same type name is implied there; it
  is just the addition (prefix) of a module, as a remote type
 
- - my_option(T) into basic_utils:option(T)
+ - my_option(T) into option(T)
 
  - other_void() into other_utils:other_void()
 
@@ -476,9 +478,9 @@ For example:
 					end}]
 ```
 will return a description of the transformation of:
- - a_module:void() into basic_utils:void(), as the same type name is implied
+ - a_module:void() into type_utils:void(), as the same type name is implied
  there; it is just the modification of the module used by a remote type
- - a_module:my_option(T) into basic_utils:option(T)
+ - a_module:my_option(T) into option(T)
  - M:other_void() into M:other_utils()
  - any type of any module depending on three other types by
  foo_utils:some_type/3
@@ -618,9 +620,9 @@ For example:
 					end}]
 ```
 will return a description of the transformation of:
- - a_module:void() into basic_utils:void(), as the same type name is implied
+ - a_module:void() into type_utils:void(), as the same type name is implied
  there; it is just the modification of the module used by a remote type
- - a_module:my_option(T) into basic_utils:option(T)
+ - a_module:my_option(T) into option(T)
  - M:other_void() into M:other_utils()
  - any type of any module depending on three other types by
  foo_utils:some_type/3
@@ -777,7 +779,7 @@ ast_transforms_to_string( #ast_transforms{
 
 -doc "The default transform_formatter() to be used.".
 -spec default_formatter( format_string(), format_values() ) ->
-								basic_utils:option( ustring() ).
+								option( ustring() ).
 default_formatter( _FormatString, _FormatValue ) ->
 	%text_utils:format( "[Myriad-Transforms] " ++ FormatString, FormatValue ).
 	undefined.

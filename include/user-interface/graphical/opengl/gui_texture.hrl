@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2024 Olivier Boudeville
+% Copyright (C) 2023-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -24,6 +24,11 @@
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Monday, March 13, 2023.
+
+
+% As, sometimes, defines in header files make sense:
+-ifndef(myriad_gui_texture_hrl_guard).
+-define(myriad_gui_texture_hrl_guard,).
 
 
 % For the base alpha coordinates (clearer; OpenGL conventions):
@@ -72,3 +77,6 @@
 
 	% The identifier that will be assigned to the next texture spec:
 	next_spec_id :: basic_utils:count() } ).
+
+
+-endif. % myriad_gui_texture_hrl_guard

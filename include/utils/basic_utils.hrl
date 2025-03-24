@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2024 Olivier Boudeville
+% Copyright (C) 2020-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -24,6 +24,9 @@
 %
 % Author: Olivier Boudeville [olivier (dot) boudeville (at) esperide (dot) com]
 % Creation date: Sunday, May 24, 2020.
+
+
+% Note: only meant to be included by basic_utils.erl.
 
 
 % Currently, by default we are in development mode, and we want as much

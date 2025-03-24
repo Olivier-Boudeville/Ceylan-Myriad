@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -197,7 +197,7 @@ transforms.
 									{ function_table(), ast_transforms() }.
 transform_functions( FunctionTable, Transforms ) ?rec_guard ->
 
-	%?display_trace( "Transforming all functions" ),
+	%?display_debug( "Transforming all functions" ),
 
 	FunIdInfoPairs = ?table:enumerate( FunctionTable ),
 
@@ -221,7 +221,7 @@ more easily.
 										{ function_pair(), ast_transforms() }.
 transform_function_pair( { FunId, FunctionInfo }, Transforms ) ?rec_guard ->
 
-	?display_trace( "Transforming function ~p.", [ FunId ] ),
+	?display_debug( "Transforming function ~p.", [ FunId ] ),
 
 	{ NewFunctionInfo, NewTransforms } =
 		transform_function( FunctionInfo, Transforms ),
@@ -239,7 +239,7 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 
 	% We have to transform the clauses (first) and the spec (second):
 
-	?display_trace( "Transforming clauses." ),
+	?display_debug( "Transforming clauses." ),
 
 	{ NewClauseDefs, ClauseTransforms } = lists:mapfoldl(
 		fun ast_clause:transform_function_clause/2, _Acc0=Transforms,
@@ -252,7 +252,7 @@ transform_function( FunctionInfo=#function_info{ clauses=ClauseDefs,
 			{ undefined, ClauseTransforms } ;
 
 		{ Loc, FunSpec } ->
-			?display_trace( "Transforming function spec." ),
+			?display_debug( "Transforming function spec." ),
 			{ NewFunSpec, NewTransforms } =
 				transform_function_spec( FunSpec, Transforms ),
 			{ { Loc, NewFunSpec }, NewTransforms }
@@ -286,7 +286,7 @@ transform_function_spec( { 'attribute', FileLoc, SpecType,
 	% [{type,652,product,[{user_type,652,type_a,[]}]},
 	% {user_type,652,type_b,[]}] } ]
 
-	%?display_trace( "SpecList = ~p", [ SpecList ] ),
+	%?display_debug( "SpecList = ~p", [ SpecList ] ),
 
 	{ NewSpecList, NewTransforms } =
 		lists:mapfoldl( fun transform_spec/2, _Acc0=Transforms,

@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2024 Olivier Boudeville
+% Copyright (C) 2023-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -112,7 +112,7 @@ run_splash_screen_test() ->
 	gui_statusbar:push_text( StatusBar, "Displaying basic splash screen." ),
 
 	% Splash already subscribed by itself:
-	gui:subscribe_to_events( [ { onWindowClosed, MainFrame } ] ),
+	gui:subscribe_to_events( { onWindowClosed, MainFrame } ),
 
 	% Renders the GUI:
 	gui_frame:show( MainFrame ),
@@ -250,14 +250,14 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		% Then the events this test is subscribed to:
 
-		{ onWindowClosed, [ MainFrame, _MainFrameId, Context ] } ->
+		{ onWindowClosed, [ MainFrame, _MainFrameId, EventContext ] } ->
 
 			cond_utils:if_defined( myriad_gui_test_verbose,
 				trace_utils:notice_fmt( "Test main frame ~ts has been closed "
 					"(~ts), test success.",
 					[ gui:object_to_string( MainFrame ),
-					  gui_event:context_to_string( Context ) ] ),
-				basic_utils:ignore_unused( Context ) ),
+					  gui_event:context_to_string( EventContext ) ] ),
+				basic_utils:ignore_unused( EventContext ) ),
 
 			gui_frame:destruct( MainFrame ),
 
@@ -266,7 +266,7 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 
 		% The splash-related events to manage:
 
-		{ onRepaintNeeded, [ SplashPanel, _SplashPanelId, _Context ] } ->
+		{ onRepaintNeeded, [ SplashPanel, _SplashPanelId, _EventContext ] } ->
 
 			% Too verbose:
 			%trace_utils:debug_fmt( "Repainting splash panel ~w.",
@@ -278,13 +278,13 @@ test_main_loop( TestState=#my_test_state{ main_frame=MainFrame,
 			test_main_loop( TestState );
 
 
-		{ onResized, [ SplashPanel, _SplashPanelId, NewSize, Context ] } ->
+		{ onResized, [ SplashPanel, _SplashPanelId, NewSize, EventContext ] } ->
 
 			% May actually be resized to the exact same size:
 			trace_utils:debug_fmt( "Resizing splash panel ~w from ~w to ~w "
 				"(~ts).",
 				[ SplashPanel, gui_panel:get_size( SplashPanel ), NewSize,
-				  gui_event:context_to_string( Context ) ] ),
+				  gui_event:context_to_string( EventContext ) ] ),
 
 			NewSplashInfo =
 				gui_splash:on_resized( SplashPanel, NewSize, SplashInfo ),

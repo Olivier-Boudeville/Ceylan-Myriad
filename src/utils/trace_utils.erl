@@ -1,4 +1,4 @@
-% Copyright (C) 2013-2024 Olivier Boudeville
+% Copyright (C) 2013-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -52,6 +52,9 @@ This module is also a logger one, see
 <https://erlang.org/doc/apps/kernel/logger_chapter.html>.
 
 See trace_utils_test.erl for testing.
+
+Not to be mixed up with the traces_utils.erl module of Ceylan-Traces (note that
+their names differ).
 """.
 
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -55,14 +55,14 @@ run() ->
 	ArgString = "foo -color red white -bar baz -boom -color blue",
 
 	% Emulated as if they were obtained in the context of an escript:
-	CommandLineArgs = text_utils:split( ArgString, _Delimiters=[ $ ] ),
+	CommandLineArgs = text_utils:split( ArgString, _Delimiter=$ ),
 
 	CanonicalArgTables =
 		cmd_line_utils:get_argument_table_from_strings( CommandLineArgs ),
 
 	test_facilities:display( "Command-line interpretation follows, for "
-							 "command-line arguments '~ts': ~ts",
-		 [ ArgString,
-		   cmd_line_utils:argument_table_to_string( CanonicalArgTables ) ] ),
+		"command-line arguments '~ts': ~ts",
+		[ ArgString,
+		  cmd_line_utils:argument_table_to_string( CanonicalArgTables ) ] ),
 
 	test_facilities:stop().

@@ -1,4 +1,4 @@
-% Copyright (C) 2020-2024 Olivier Boudeville
+% Copyright (C) 2020-2025 Olivier Boudeville
 %
 % Released as LGPL software.
 %

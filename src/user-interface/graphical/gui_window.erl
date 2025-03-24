@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2024 Olivier Boudeville
+% Copyright (C) 2023-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -185,7 +185,7 @@ window is typically any frame (including any main one) or any dialog.
 
 % Type shorthands:
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 

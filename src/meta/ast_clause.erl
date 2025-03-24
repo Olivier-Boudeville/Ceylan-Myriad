@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -207,7 +207,7 @@ transform_clauses_generic( Clauses, Transforms ) ?rec_guard ->
 										{ ast_clause(), ast_transforms() }.
 transform_clause_generic( Clause, Transforms ) ?rec_guard ->
 
-	?display_trace( "Transforming clause:~n~p~n", [ Clause ] ),
+	?display_debug( "Transforming clause:~n~p~n", [ Clause ] ),
 
 	% Maybe a clause replacement function has been defined?
 	case Transforms#ast_transforms.transform_table of
@@ -257,26 +257,26 @@ transform_clause_default(
 				  BodyExprs },
 		Transforms ) ->
 
-	?display_trace( "Transforming head patterns." ),
+	?display_debug( "Transforming head patterns." ),
 
 	{ NewHeadPatternSequence, HeadTransforms } =
 		ast_pattern:transform_pattern_sequence( HeadPatternSequence,
 												Transforms ),
 
-	?display_trace( "Transforming guards." ),
+	?display_debug( "Transforming guards." ),
 
 	% Possibly empty guard list:
 	{ NewGuardSequence, GuardTransforms } =
 		ast_guard:transform_guard_sequence( GuardSequence, HeadTransforms ),
 
 
-	%?display_trace( "Transforming body." ),
-	?display_trace( "Transforming body:~n~p", [ BodyExprs ] ),
+	%?display_debug( "Transforming body." ),
+	?display_debug( "Transforming body:~n~p", [ BodyExprs ] ),
 
 	{ NewBodyExprs, BodyTransforms } =
 		transform_body( BodyExprs, GuardTransforms ),
 
-	?display_trace( "Transformed body:~n~p", [ NewBodyExprs ] ),
+	?display_debug( "Transformed body:~n~p", [ NewBodyExprs ] ),
 
 	NewExpr = { 'clause', FileLoc, NewHeadPatternSequence, NewGuardSequence,
 				NewBodyExprs },
@@ -561,7 +561,7 @@ Transforms the specified AST body.
 transform_body( BodyExprs, Transforms )
 						when is_list( BodyExprs ) ?andalso_rec_guard ->
 
-	%?display_trace( "transforming body: ~p...", [ BodyExprs ] ),
+	%?display_debug( "transforming body: ~p...", [ BodyExprs ] ),
 
 	case Transforms#ast_transforms.transform_table of
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2017-2024 Olivier Boudeville
+% Copyright (C) 2017-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -698,6 +698,7 @@ the gl module.
 -export([ generate_support_modules/0 ]).
 
 
+
 % Type shorthands:
 
 -type f() :: float().
@@ -1061,7 +1062,7 @@ get_supported_extensions() ->
 
 	end,
 
-	ExtStrs = text_utils:split( FilteredExtStr, _Delimiters=[ $ ] ),
+	ExtStrs = text_utils:split( FilteredExtStr, _Delimiter=$ ),
 	text_utils:strings_to_atoms( ExtStrs ).
 
 
@@ -1769,7 +1770,7 @@ get_glxinfo_strings() ->
 
 				{ _ReturnCode=0, ReturnedStr } ->
 					text_utils:remove_empty_lines(
-						text_utils:split( ReturnedStr, "\n" ) );
+						text_utils:split( ReturnedStr, _Delimiter=$\n ) );
 
 				{ ErrorCode, ReturnedStr } ->
 					trace_utils:error_fmt( "The ~ts query returned an error "
@@ -1884,7 +1885,7 @@ create_canvas( CanvasOpts, Parent ) ->
 	%cond_utils:if_defined( myriad_check_opengl, check_error() ),
 
 	% For example, {wx_ref,157,wxGLCanvas,[]}:
-	%trace_utils:debug_fmt( "Canvas result = ~p", [ Res ] ),
+	%trace_utils:debug_fmt( "Canvas creation result: ~p", [ Res ] ),
 
 	Res.
 

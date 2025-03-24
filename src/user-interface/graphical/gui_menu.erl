@@ -1,4 +1,4 @@
-% Copyright (C) 2023-2024 Olivier Boudeville
+% Copyright (C) 2023-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -229,6 +229,7 @@ When a frame goes fullscreen, any menu bar it has is hidden.
 -opaque menu_bar() :: wxMenuBar:wxMenuBar().
 
 
+
 % Not existing?
 %-type menu_bar_option() :: ''.
 
@@ -251,7 +252,8 @@ When a frame goes fullscreen, any menu bar it has is hidden.
 		  set_checkable_item/3,
 		  add_radio_item/3, add_radio_item/4,
 		  add_separator/1, set_item_status/3,
-		  remove_menu_item/2 ]).
+		  remove_menu_item/2,
+		  get_item_count/1, get_item_height/0, get_height/1 ]).
 
 
 % Functions for menu bars.
@@ -259,7 +261,7 @@ When a frame goes fullscreen, any menu bar it has is hidden.
 
 
 % Functions for popup menus.
--export([ activate_as_popup/2 ]).
+-export([ activate_as_popup/2, activate_as_popup/3 ]).
 
 
 % Exported helpers:
@@ -268,9 +270,9 @@ When a frame goes fullscreen, any menu bar it has is hidden.
 
 
 
-% Shorthands:
+% Type shorthands:
 
--type bit_mask() :: basic_utils:bit_mask().
+-type bit_mask() :: type_utils:bit_mask().
 
 -type maybe_list( T ) :: list_utils:maybe_list( T ).
 
@@ -279,6 +281,8 @@ When a frame goes fullscreen, any menu bar it has is hidden.
 -type label() :: gui:label().
 -type title() :: gui:title().
 -type widget() :: gui:widget().
+-type point() :: gui:point().
+-type height() :: height().
 
 -type window() :: gui_window:window().
 
@@ -556,6 +560,41 @@ remove_menu_item( Menu, MenuItemId ) ->
 
 
 
+-doc """
+Returns the number of items in the menu.
+""".
+-spec get_item_count( menu() ) -> height().
+get_item_count( Menu ) ->
+	wxMenu:getMenuItemCount( Menu ).
+
+
+-doc "Returns the total height of any entry in a menu.".
+-spec get_item_height() -> height().
+get_item_height() ->
+	% See get_height/1:
+	27.
+
+
+-doc """
+Returns the height of the specified menu.
+
+Currently only a (rather good) estimate.
+""".
+-spec get_height( menu() ) -> height().
+get_height( Menu ) ->
+	% For height h and number of items n, let h = a.n + b
+	% a = (h2-h1)/(n2-n1)
+	% For example, for n=4 items, h=115 pixels (measured on GTK).
+	%
+	% For n1=1, h1=34; for n2=15, h2=412.
+	% So a = (412-34)/14 = 27
+	% b = h - a.n = 412 - 27*15 = 7
+
+	N = wxMenu:getMenuItemCount( Menu ),
+
+	N*get_item_height() + 7.
+
+
 
 % Menu bar subsection.
 
@@ -571,7 +610,7 @@ create_bar() ->
 -spec create_bar( window() ) -> menu_bar().
 create_bar( Window ) ->
 	MenuBar = wxMenuBar:new(),
-	gui_window:set_menu_bar( Window, MenuBar ),
+	gui_frame:set_menu_bar( Window, MenuBar ),
 	MenuBar.
 
 
@@ -586,12 +625,12 @@ add_menu( MenuBar, Menu, MenuTitle ) ->
 -doc """
 Assigns the specified menu bar to the specified window.
 
-Note: to be deprecated soon; use gui_window:set_menu_bar/2 instead.
+Note: to be deprecated soon; use gui_frame:set_menu_bar/2 instead.
 """.
 -spec set_menu_bar( menu_bar(), window() ) -> void().
 set_menu_bar( MenuBar, Window ) ->
 	% More logical that way:
-	gui_window:set_menu_bar( Window, MenuBar ).
+	gui_frame:set_menu_bar( Window, MenuBar ).
 
 
 
@@ -600,7 +639,9 @@ set_menu_bar( MenuBar, Window ) ->
 
 
 -doc """
-Activates the specified menu as a popup one on the specified widget.
+Activates the specified menu as a popup one, on the specified widget.
+
+It appears at the position of the mouse cursor.
 
 Typically called on receiving of a onMouseRightButtonReleased event.
 """.
@@ -610,6 +651,19 @@ activate_as_popup( Menu, Widget ) ->
 
 	% Meaning of returned boolean unclear:
 	wxWindow:popupMenu( Widget, Menu ).
+
+
+-doc """
+Activates the specified menu as a popup one, on the specified widget.
+
+Typically called on receiving of a onMouseRightButtonReleased event.
+""".
+-spec activate_as_popup( menu(), widget(), point() ) -> void().
+activate_as_popup( Menu, Widget, Pos ) ->
+	% Probably more logical to place it in gui_widget.
+
+	% Meaning of returned boolean unclear:
+	wxWindow:popupMenu( Widget, Menu, [ { pos, Pos } ] ).
 
 
 

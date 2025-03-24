@@ -1,4 +1,4 @@
-% Copyright (C) 2017-2024 Olivier Boudeville
+% Copyright (C) 2017-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -196,6 +196,9 @@ thanks to the base, Erlang term order.
 
 -type ustring() :: text_utils:ustring().
 -type bin_string() :: text_utils:bin_string().
+
+-type void() :: type_utils:void().
+-type option( T ) :: type_utils:option( T ).
 
 
 
@@ -431,7 +434,7 @@ get_sortable_id_upper_bound() ->
 
 
 -doc "Checks that the specified sortable identifier is legit.".
--spec check_sortable_id( sortable_id() ) -> basic_utils:void().
+-spec check_sortable_id( sortable_id() ) -> void().
 check_sortable_id( _Id=[] ) ->
 	throw( { invalid_sortable_identifier, empty_list } );
 
@@ -603,7 +606,7 @@ does not matter).
 (helper)
 """.
 -spec find_lowest_identifier_in( [ identifiable_element() ],
-				identifier_table() ) -> basic_utils:option( sortable_id() ).
+			identifier_table() ) -> option( sortable_id() ).
 find_lowest_identifier_in( Elements, IdentifierTable ) ->
 
 	MaybeLowestId = find_lowest_identifier_in( Elements, IdentifierTable,

@@ -1,4 +1,4 @@
-% Copyright (C) 2015-2024 Olivier Boudeville
+% Copyright (C) 2015-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -258,7 +258,7 @@ Refer to <https://en.wikipedia.org/wiki/ISO_8601 for further information>.
 		  timestamp_to_seconds/0, timestamp_to_seconds/1,
 		  timestamp_to_weekday/1, date_to_weekday/1,
 		  local_to_universal_time/1, universal_to_local_time/1,
-		  offset_timestamp/2, offset_time/2, next_month/1,
+		  timestamp_in/1, offset_timestamp/2, offset_time/2, next_month/1,
 		  get_duration/1, get_duration/2,
 		  get_duration_since/1,
 		  get_textual_duration/2, get_french_textual_duration/2,
@@ -1264,11 +1264,11 @@ time_to_seconds( { Hours, Minutes, Seconds } ) ->
 Returns the signed duration, in integer seconds, between the two specified
 times.
 
-A positive duration will be returned iff the first specified time is before the
-second one.
+A positive duration will be returned iff the first specified time (the "start"
+one) is before the second one (the "stop" one).
 """.
 -spec get_intertime_duration( time(), time() ) -> seconds().
-get_intertime_duration( { H1, M1, S1 }, { H2, M2, S2 } ) ->
+get_intertime_duration( _Start={ H1, M1, S1 }, _Stop={ H2, M2, S2 } ) ->
 	( ( H2 - H1 ) * 60 + ( M2 - M1 ) ) * 60 + ( S2 - S1 ).
 
 
@@ -1616,7 +1616,7 @@ get_time2_textual_timestamp( _Timestamp={ { Year, Month, Day },
 
 -doc """
 Returns a string corresponding to the current timestamp and able to be a part of
-a path, like: "2010-11-18-at-13h-30m-35s".
+a path (in a filesystem), like: "2010-11-18-at-13h-30m-35s".
 """.
 -spec get_textual_timestamp_for_path() -> ustring().
 get_textual_timestamp_for_path() ->
@@ -1626,7 +1626,7 @@ get_textual_timestamp_for_path() ->
 
 -doc """
 Returns a string corresponding to the specified timestamp and able to be a part
-of a path, like: "2010-11-18-at-13h-30m-35s".
+of a path (in a filesystem), like: "2010-11-18-at-13h-30m-35s".
 """.
 -spec get_textual_timestamp_for_path( timestamp() ) -> ustring().
 get_textual_timestamp_for_path( _Timestamp={ { Year, Month, Day },
@@ -1895,6 +1895,14 @@ compare offsets to it.
 timestamp_to_seconds( Timestamp ) ->
 	calendar:datetime_to_gregorian_seconds( Timestamp ).
 
+
+-doc """
+Returns the timestamp corresponding to the current one (i.e. now) once
+translated of the specified (signed) duration.
+""".
+-spec timestamp_in( dhms_duration() | seconds() ) -> timestamp().
+timestamp_in( Duration ) ->
+	offset_timestamp( _Now=get_timestamp(), Duration ).
 
 
 -doc """

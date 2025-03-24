@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -161,9 +161,8 @@ A warning regarding a source file, corresponding to a list of error information.
 
 % Type shorthands:
 
--type void() :: basic_utils:void().
+-type void() :: type_utils:void().
 -type module_name() :: basic_utils:module_name().
--type option(T) :: basic_utils:option(T).
 -type error_reason() :: basic_utils:error_reason().
 
 -type ustring() :: text_utils:ustring().
@@ -182,6 +181,8 @@ A warning regarding a source file, corresponding to a list of error information.
 -type ast_transforms() :: ast_transform:ast_transforms().
 
 -type function_id() :: meta_utils:function_id().
+
+-type option( T ) :: type_utils:option( T ).
 
 
 

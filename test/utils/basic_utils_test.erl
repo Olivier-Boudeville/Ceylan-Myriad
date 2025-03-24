@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2024 Olivier Boudeville
+% Copyright (C) 2007-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -30,7 +30,7 @@
 -moduledoc """
 Unit tests for the **basic utils** toolbox.
 
-See the basic_utils.erl tested module.
+See the `basic_utils` tested module.
 """.
 
 

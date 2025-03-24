@@ -1,4 +1,4 @@
-% Copyright (C) 2011-2024 Olivier Boudeville
+% Copyright (C) 2011-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -33,6 +33,11 @@ sense, not OTP one).
 
 See also the preferences module for application preferences.
 """.
+
+
+% Note that if this module is found missing by rebar3, this means most probably
+% that Myriad as a whole is not found ('app_facilities' being the first listed
+% in ebin/myriad.app).
 
 
 -export([ start/1, stop/0,
@@ -71,7 +76,7 @@ paths.
 -export_type([ app_info/0, app_info_map/0, any_app_info/0 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type any_version() :: basic_utils:any_version().
 
@@ -202,8 +207,7 @@ get_app_info_map( #app_info{ name=BinAppName,
 
 	end,
 
-	BaseMap = #{ name => BinAppName,
-				 os => OSType },
+	BaseMap = #{ name => BinAppName, os => OSType },
 
 	VersionMap = case MaybeAppVersion of
 

@@ -1,4 +1,4 @@
-% Copyright (C) 2024-2024 Olivier Boudeville
+% Copyright (C) 2024-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -1304,7 +1304,7 @@ rendering_info_to_compact_string(
 rendering_info_to_compact_string(
 		_RI={ textured, TexSpecInfo, _TextureInfo } ) ->
 	text_utils:format( "rendering based on texture whose specification "
-					   "identifier is #B", [ TexSpecInfo ] ).
+					   "identifier is #~B", [ TexSpecInfo ] ).
 
 
 

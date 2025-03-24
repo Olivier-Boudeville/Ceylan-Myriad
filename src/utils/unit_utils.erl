@@ -1,4 +1,4 @@
-% Copyright (C) 2012-2024 Olivier Boudeville
+% Copyright (C) 2012-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -1752,7 +1752,7 @@ parse_component( ComponentString ) ->
 	% exponent:
 
 	{ PrefixedUnitString, UnitExponent } = case text_utils:split(
-								ComponentString, _Delimiters=[ $^ ] ) of
+			ComponentString, _Delimiter=$^ ) of
 
 		% Returns for example { "km", -3 }:
 		[ PfxUnit, ExponentString ] ->

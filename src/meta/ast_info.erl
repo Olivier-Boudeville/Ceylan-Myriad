@@ -1,4 +1,4 @@
-% Copyright (C) 2018-2024 Olivier Boudeville
+% Copyright (C) 2018-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -43,6 +43,13 @@ from ASTs**.
 
 -doc "Record module-related information.".
 -type module_info() :: #module_info{}.
+
+
+
+-doc "Description of a module name.".
+-type module_entry() ::
+	type_utils:option( { basic_utils:module_name(), ast_info:located_form() } ).
+
 
 
 -doc "Record type-related information.".
@@ -350,7 +357,7 @@ All relevant information about an error found in an AST:
 -type error() :: { ast_scan:scan_context(), ast_scan:error_report() }.
 
 
--export_type([ module_info/0, type_info/0, function_info/0,
+-export_type([ module_info/0, module_entry/0, type_info/0, function_info/0,
 
 			   ast_location/0, located_form/0, located_ast/0,
 			   located_function_spec/0,
@@ -439,7 +446,8 @@ All relevant information about an error found in an AST:
 
 % Local type shorthands:
 
--type option( T ) :: basic_utils:option( T ).
+-type void() :: type_utils:void().
+-type option( T ) :: type_utils:option( T ).
 
 -type ustring() :: text_utils:ustring().
 
@@ -655,7 +663,7 @@ init_module_info() ->
 
 
 -doc "Checks the correctness of specified module information.".
--spec check_module_info( module_info() ) -> basic_utils:void().
+-spec check_module_info( module_info() ) -> void().
 check_module_info( #module_info{ module=undefined } ) ->
 	ast_utils:raise_error( "no '-module' define found" );
 
@@ -1169,7 +1177,7 @@ Writes specified module_info record into specified (text) file.
 Useful for example to determine faulty transformations.
 """.
 -spec write_module_info_to_file( module_info(), file_utils:file_path() ) ->
-										basic_utils:void().
+										void().
 write_module_info_to_file( ModuleInfo, FilePath ) ->
 
 	% Note: we cannot actually use file_utils, which is not a prerequisite of
@@ -2404,50 +2412,53 @@ interpret_options( OptionList,
 scan_options( _OptionList=[], OptionTable ) ->
 	OptionTable;
 
-% For example {d,myriad_debug_mode}
+% For example {d,myriad_debug_mode}:
 scan_options( _OptionList=[ { Name, Value } | T ], OptionTable ) ->
+	% No duplication check:
 	NewOptionTable = ?table:append_to_entry( _K=Name, Value, OptionTable ),
 	scan_options( T, NewOptionTable );
 
-% For example {d,my_second_test_token,200}
+% For example {d,my_second_test_token,200}:
 scan_options( _OptionList=[ { Name, BaseValue, OtherValue } | T ],
 			  OptionTable ) ->
+	% No duplication check either:
 	NewOptionTable = ?table:append_to_entry( _K=Name, { BaseValue, OtherValue },
 											 OptionTable ),
 	scan_options( T, NewOptionTable );
 
-% For example report_errors
+% For example 'report_errors':
 scan_options( _OptionList=[ Name | T ], OptionTable ) when is_atom( Name ) ->
 
-	% No clash wanted, throws an exception is the same key appears more than
+	% No clash was wanted, threw an exception if the same key appeared more than
 	% once:
 	%
-	NewOptionTable = ?table:add_new_entry( _K=Name, undefined, OptionTable ),
+	%NewOptionTable = ?table:add_new_entry( _K=Name, undefined, OptionTable ),
 
 	% Alternatively we may just warn if a key already exists, should the Myriad
 	% parse transform have to compile, notably through includes (such as
-	% "wf.hrl" in nitrogen_core), code including compilation options that are
-	% already defined (e.g. '-compile(debug_info)'):
+	% "wf.hrl" in nitrogen_core), code including compilation options that happen
+	% to be already defined (e.g. '-compile(debug_info)'):
 	%
-	%NewOptionTable = case ?table:lookup_entry( _K=Name, OptionTable ) of
-	%
-	%   % Perfect case:
-	%   key_not_found ->
-	%       ?table:add_entry( Name, undefined, OptionTable );
-	%
-	%   % Now acceptable (multiple, identical definitions):
-	%   { value, undefined } ->
-	%       OptionTable;
-	%
-	%   { value, OptValue } ->
-	%
-	%       Msg = io_lib:format( "The compilation option '~ts' was already "
-	%           "defined, with following value set: ~p.",
-	%           [ Name, OptValue ] ),
-	%
-	%       ast_utils:raise_error( Msg )
-	%
-	%end,
+	NewOptionTable = case ?table:lookup_entry( _K=Name, OptionTable ) of
+
+		% Usual, no problem case (defined once, at this point):
+		key_not_found ->
+			?table:add_entry( Name, undefined, OptionTable );
+
+		% Now acceptable (multiple, identical definitions):
+		{ value, undefined } ->
+		   OptionTable;
+
+		% Clashing definitions:
+		{ value, OptValue } ->
+
+			Msg = io_lib:format( "The compilation option '~ts' was already "
+				"defined, and with following value set: ~p.",
+				[ Name, OptValue ] ),
+
+			ast_utils:raise_error( Msg )
+
+	end,
 
 	scan_options( T, NewOptionTable );
 

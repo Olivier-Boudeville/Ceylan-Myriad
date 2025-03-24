@@ -1,4 +1,4 @@
-% Copyright (C) 2007-2024 Olivier Boudeville
+% Copyright (C) 2007-2025 Olivier Boudeville
 %
 % This file is part of the Ceylan-Myriad library.
 %
@@ -35,119 +35,6 @@ See basic_utils_test.erl for the corresponding test.
 
 
 
-% Notification-related functions.
--export([ speak/1, notify_user/1, notify_user/2 ]).
-
-
-
-% Message-related functions.
--export([ flush_pending_messages/0, flush_pending_messages/1,
-		  notify_pending_messages/0, check_no_pending_message/0,
-
-		  wait_for/2, wait_for/4,
-
-		  wait_for_acks_nothrow/3, wait_for_acks_nothrow/4,
-
-		  wait_for_acks/4, wait_for_acks/5,
-		  wait_for_summable_acks/5,
-		  wait_for_many_acks/4, wait_for_many_acks/5,
-		  send_to_pid_set/2 ]).
-
-
-% Run-related functions.
-%
-% Not in code_utils, as we want them in a bootstrapped module.
--export([ run/1, run/2, run/3, exec/1, exec/2, exec/3,
-		  get_myriad_root_path/0 ]).
-
-
-% Version-related functions.
--export([ get_myriad_version/0, get_myriad_version_string/0,
-		  % See also text_utils:version_to_string/1:
-		  parse_version/1,
-		  check_three_digit_version/1, check_any_version/1,
-		  compare_versions/2 ]).
-
-
-% Miscellaneous functions.
--export([ get_process_info/1, get_process_info/2,
-		  display_process_info/1,
-		  checkpoint/1,
-
-		  assert/1, assert_true/1, assert_false/1,
-		  assert_equal/2, assert_different/2,
-
-		  display/1, display/2, display_timed/2, display_timed/3,
-		  display_error/1, display_error/2,
-		  throw_diagnosed/1, throw_diagnosed/2,
-		  debug/1, debug/2,
-
-		  get_unix_process_specific_string/0,
-		  get_process_specific_value/0, get_process_specific_value/1,
-		  get_process_specific_value/2,
-		  get_process_size/1,
-		  is_alive/1, is_alive/2, is_alive/3,
-		  is_debug_mode_enabled/0, get_execution_target/0,
-		  describe_term/1,
-		  create_uniform_tuple/2,
-		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
-		  stop_on_failure/1,
-
-		  identity/1, if_else/3,
-
-		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
-		  check_defined/1, check_not_undefined/1, check_all_defined/1,
-		  set_option/2,
-
-		  ignore_unused/1,
-		  do_nothing/0, freeze/0, crash/0, crash/1, enter_infinite_loop/0,
-		  trigger_oom/0 ]).
-
-
--compile( { inline, [ set_option/2 ] } ).
-
-
-
-% Hints about retrieving the name of the function being currently evaluated by a
-% process (as a ?FUNCTION macro could do):
-%
-% - either:
-%
-% current_function() ->
-%    catch throw( x ), [_, {_, F, _, _} | _] = erlang:get_stacktrace(),
-%    F.
-%
-% - or, maybe better:
-%
-% erlang:element(2, erlang:element(2,
-%   erlang:process_info(self(), current_function)))).
-
-
-
-% The default period (elementary time-slice; in milliseconds) according to which
-% a duration (typically of a time-out) is divided.
-%
--define( default_period_ms, 1000 ).
-
-
-
--doc """
-To tell that a returned value is not of interest to the caller.
-
-Could have been: `-type void() :: 'myriad_void'` for example.
-
-Nevertheless, should, for any reason, a value of the void/0 type have to be
-specified, the 'void' atom shall be preferred, knowing that any value can be
-returned and complies with this type.
-""".
--type void() :: any() | 'void'.
-% Opaque types currently not always well managed by the Erlang standard
-% toolchain:
-%
-% -opaque void() :: any() | 'void'.
-
-
-
 -doc "Allows to count elements (positive integer, possibly zero).".
 -type count() :: non_neg_integer().
 
@@ -160,11 +47,6 @@ returned and complies with this type.
 
 -doc "Allows to count levels (e.g. indentation ones, nesting ones).".
 -type level() :: non_neg_integer().
-
-
-
--doc "Describes a mask of bits.".
--type bit_mask() :: integer().
 
 
 
@@ -286,39 +168,6 @@ Tells whether an operation succeeded; if not, an error reason is specified (as a
 pair).
 """.
 -type base_outcome() :: 'ok' | error_term().
-
-
-
--doc """
-Denotes an optional value, that is a value that may be set to one in T, or that
-may not be set at all.
-
-Note that the type T should not include the 'undefined' atom, otherwise one
-cannot discriminate between a value that happens to be set to 'undefined' versus
-a value not defined at all.
-
-Quite often, variables (e.g. record fields) are set to 'undefined' before being
-set later.
-""".
--type option( T ) :: T | 'undefined'.
-
-
-
--doc """
-Denotes a value that may be set to one of type T (with no restriction on T -
-unlike option/1 where T should not include the 'undefined' value), or that may
-not be set at all.
-
-A bit safer and more expensive than option/1.
-
-Obviously a nod to Haskell.
-""".
--type safe_option( T ) :: { 'just', T } | 'nothing'.
-
-
-
--doc "To account for wildcard entries.".
--type wildcardable( T ) :: T | 'any'.
 
 
 
@@ -454,6 +303,14 @@ To distinguish with the built-in type, which can be a parameterised module.
 -type argument() :: any().
 
 
+-doc """
+Any kind of argument-level option.
+
+For example: foo:create(..., [basic_utils:option()])
+""".
+-type any_option() :: tagged_list:tagged_element().
+
+
 
 % Shorthand for Module, Function, Arity:
 %
@@ -536,16 +393,14 @@ eliminate afterwards).
 -type fixme() :: any().
 
 
--export_type([ void/0, count/0, non_null_count/0, level/0,
-			   bit_mask/0, message/0, pid_or_port/0, atom_key/0,
+-export_type([ count/0, non_null_count/0, level/0,
+			   message/0, pid_or_port/0, atom_key/0,
 			   reason/0, exit_reason/0, error_reason/0,
 			   error_diagnosis/0, error_bin_diagnosis/0,
 			   error_type/0, error_tuploid/0, error_message/0,
 			   diagnosed_error_reason/0, tagged_error/0,
 			   error_term/0, diagnosed_error_term/0,
 			   base_status/0, base_outcome/0,
-			   option/1, safe_option/1,
-			   wildcardable/1,
 			   fallible/1, fallible/2,
 			   diagnosed_fallible/1, diagnosed_fallible/2,
 			   external_data/0, unchecked_data/0, user_data/0,
@@ -553,12 +408,109 @@ eliminate afterwards).
 			   version_number/0, version/0, two_digit_version/0, any_version/0,
 			   three_digit_version/0, four_digit_version/0,
 			   positive_index/0, zero_index/0,
-			   module_name/0, function_name/0, argument/0,
+			   module_name/0, function_name/0, argument/0, any_option/0,
 			   command_spec/0, layer_name/0, record_name/0, field_name/0,
 			   activation_switch/0,
 			   comparison_result/0, execution_target/0, execution_context/0,
 			   exception_class/0, exception_term/0, status_code/0,
 			   fixme/0 ]).
+
+
+
+
+% Notification-related functions.
+-export([ speak/1, notify_user/1, notify_user/2 ]).
+
+
+
+% Message-related functions.
+-export([ flush_pending_messages/0, flush_pending_messages/1,
+		  notify_pending_messages/0, check_no_pending_message/0,
+
+		  wait_for/2, wait_for/4,
+
+		  wait_for_acks_nothrow/3, wait_for_acks_nothrow/4,
+
+		  wait_for_acks/4, wait_for_acks/5,
+		  wait_for_summable_acks/5,
+		  wait_for_many_acks/4, wait_for_many_acks/5,
+		  send_to_pid_set/2 ]).
+
+
+% Run-related functions.
+%
+% Not in code_utils, as we want them in a bootstrapped module.
+-export([ run/1, run/2, run/3, exec/1, exec/2, exec/3,
+		  get_myriad_root_path/0 ]).
+
+
+% Version-related functions.
+-export([ get_myriad_version/0, get_myriad_version_string/0,
+		  % See also text_utils:version_to_string/1:
+		  parse_version/1,
+		  check_three_digit_version/1, check_any_version/1,
+		  compare_versions/2 ]).
+
+
+% Miscellaneous functions.
+-export([ get_process_info/1, get_process_info/2,
+		  display_process_info/1,
+		  checkpoint/1,
+
+		  assert/1, assert_true/1, assert_false/1,
+		  assert_equal/2, assert_different/2,
+
+		  display/1, display/2, display_timed/2, display_timed/3,
+		  display_error/1, display_error/2,
+		  throw_diagnosed/1, throw_diagnosed/2,
+		  debug/1, debug/2,
+
+		  get_unix_process_specific_string/0,
+		  get_process_specific_value/0, get_process_specific_value/1,
+		  get_process_specific_value/2,
+		  get_process_size/1,
+		  is_alive/1, is_alive/2, is_alive/3,
+		  is_debug_mode_enabled/0, get_execution_target/0,
+		  describe_term/1,
+		  create_uniform_tuple/2,
+		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
+		  stop_on_failure/1,
+
+		  identity/1, if_else/3,
+
+		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
+		  check_defined/1, check_not_undefined/1, check_all_defined/1,
+		  set_option/2,
+
+		  ignore_unused/1,
+		  do_nothing/0, freeze/0, crash/0, crash/1, enter_infinite_loop/0,
+		  trigger_oom/0 ]).
+
+
+-compile( { inline, [ set_option/2 ] } ).
+
+
+
+% Hints about retrieving the name of the function being currently evaluated by a
+% process (as a ?FUNCTION macro could do):
+%
+% - either:
+%
+% current_function() ->
+%    catch throw( x ), [_, {_, F, _, _} | _] = erlang:get_stacktrace(),
+%    F.
+%
+% - or, maybe better:
+%
+% erlang:element(2, erlang:element(2,
+%   erlang:process_info(self(), current_function)))).
+
+
+
+% The default period (elementary time-slice; in milliseconds) according to which
+% a duration (typically of a time-out) is divided.
+%
+-define( default_period_ms, 1000 ).
 
 
 % To define get_execution_target/0:
@@ -590,6 +542,9 @@ eliminate afterwards).
 -type bin_string() :: text_utils:bin_string().
 
 -type directory_path() :: file_utils:directory_path().
+
+-type void() :: type_utils:void().
+-type option( T ) :: type_utils:option( T ).
 
 -type atom_node_name() :: net_utils:atom_node_name().
 
@@ -708,13 +663,15 @@ Interesting as more compact that a 'case' or a 'if' clause.
 and a good candidate for parse-transfrom based inlining. Note that due to strict
 evaluation, both arguments will always be evaluated.
 """.
-% First argument not necessarily boolean():
--spec if_else( term(), term(), term() ) -> term().
-if_else( _Condition=true, A, _B ) ->
-	A;
+% First argument not necessarily boolean(), just 'true' | T:
+-spec if_else( Condition :: term(),
+			   IfTrue :: term(), IfNotTrue :: term() ) -> term().
+if_else( _Condition=true, IfTrue, _IfNotTrue ) ->
+	IfTrue;
 
-if_else( _Condition, _A, B ) ->
-	B.
+if_else( _Condition, _IfTrue, IfNotTrue ) ->
+	IfNotTrue.
+
 
 
 -doc "Checks that the specified term is 'undefined', and returns it.".
