@@ -22,6 +22,19 @@
 ;; For the Python base configuration:
 (require 'init-myriad-python-base)
 
+
+;; For host-specific settings; intentionally searched in local configuration
+;; directory, so that none applies by default (the one in myriad/conf is just an
+;; example).
+;;
+;; Not done later, as the local settings may specify the use of a proxy, which
+;; must be setup priori to the package management below:
+;;
+(setq local-conf-file "~/.emacs.d/init-myriad-local.el")
+
+(if (file-exists-p local-conf-file) (require 'init-myriad-local) nil)
+
+
 ;; To be able to rely on a package manager:
 (require 'init-myriad-package-management)
 
@@ -42,14 +55,6 @@
 (require 'init-myriad-erlang-advanced)
 
 
-
-;; For host-specific settings; intentionally searched in local configuration
-;; directory, so that none applies by default (the one in myriad/conf is just an
-;; example):
-;;
-(setq local-conf-file "~/.emacs.d/init-myriad-local.el")
-
-(if (file-exists-p local-conf-file) (require 'init-myriad-local) nil)
 
 ;; So that it can be loaded with 'require':
 (provide 'init-myriad-fully-integrated)
