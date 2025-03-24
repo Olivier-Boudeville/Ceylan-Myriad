@@ -5801,7 +5801,7 @@ of characters).
 
 Improved from <http://lethain.com#distinguishing-strings-from-lists-in-erlang>.
 
-Note: something like `[$e, 1, 2, $r]` is deemed to be a string.
+Note: so something like `[$e, 1, 2, $r]` is deemed to be a string.
 """.
 -spec is_string( term() ) -> boolean().
 is_string( [] ) ->

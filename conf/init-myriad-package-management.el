@@ -3,6 +3,10 @@
 ;; After relying on package.el then straight.el, we use now Elpaca.
 
 
+;; At least in some cases, the "Package.el loaded before Elpaca" warning is
+;; issued whereas no prior package-related operation could be found.
+
+
 ;; Disabling package.el in our "early"-init file (see
 ;; https://www.gnu.org/software/emacs/manual/html_node/emacs/Early-Init-File.html):
 ;;
@@ -11,10 +15,14 @@
 
 
 ;; Taken verbatim from
-;; https://github.com/progfolio/elpaca?tab=readme-ov-file#installer. 
+;; https://github.com/progfolio/elpaca?tab=readme-ov-file#installer.
 ;;
 ;; It will clone/build/activate Elpaca into our user-emacs-directory, under the
 ;; 'elpaca' subdirectory:
+;;
+;; If the operation fails with "Cannot open load file, No such file or
+;; directory, elpaca", it may be solved by removing the ~/.emacs.d/elpaca
+;; directory (possibly created yet no valid to a proxy problem...)
 
 (defvar elpaca-installer-version 0.10)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
@@ -62,8 +70,8 @@
 
 ;; Install use-package support:
 (elpaca elpaca-use-package
-  ;; Enable use-package :ensure support for Elpaca.
-		(elpaca-use-package-mode))
+    ;; Enable use-package :ensure support for Elpaca.
+	(elpaca-use-package-mode))
 
 
 ;; Then packages (e.g. a foo one) are to be requested (here, synchronously,
