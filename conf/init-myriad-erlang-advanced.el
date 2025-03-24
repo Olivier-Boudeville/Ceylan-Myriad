@@ -164,10 +164,20 @@ Only the `background' is used in this face."
 ;;
 ;; - enable auto-completion based not only an Erlang/OTP modules, but also user
 ;; ones
+
+
+;; More general, even too much (e.g. will attempt to apply to
+;; makefile-gmake-mod, emacs-lisp-mode, etc. and will fail):
 ;;
-;;(add-hook 'erlang-mode-hook #'lsp)
-;; More general:
-(add-hook 'prog-mode-hook #'lsp)
+;;(add-hook 'prog-mode-hook #'lsp)
+
+
+;; So:
+(add-hook 'erlang-mode-hook #'lsp)
+(add-hook 'python-mode-hook #'lsp)
+(add-hook 'java-mode-hook   #'lsp)
+(add-hook 'sh-mode-hook     #'lsp)
+
 
 (with-eval-after-load 'lsp-mode
  (add-hook 'lsp-mode-hook #'lsp-enable-which-key-integration))
