@@ -230,7 +230,7 @@
   ;; Not wanting auto-completion (e.g. company) to apply when entering texts:
   ;;(setq lsp-completion-provider :none)
   (company-mode -1)
-
+  (company-box-mode -1)
   )
 
 
@@ -675,8 +675,9 @@
 		(ispell-change-dictionary change)
 	;; Otherwise buffer is not rescanned:
 	(flyspell-buffer)
-	  ;; Not wanting auto-completion (e.g. company) to apply when entering texts:
-  (setq lsp-completion-provider :none)
+
+	;; Not wanting auto-completion (e.g. company) to apply when entering texts:
+    ;;(setq lsp-completion-provider :none)
 
 	(message "Dictionary switched from %s to %s" dic change)
 	))
