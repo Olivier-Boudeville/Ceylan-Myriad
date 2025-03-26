@@ -98,6 +98,8 @@ beforehand, and remain possible choices).
 % As the jsx mapping hardcodes the 'null' atom for the JSON null value, we
 % enforce the same setting with Jiffy (that can set it).
 
+% The JSON generated may be either optimised for compactness (less whitespaces)
+% or readibility, depending on the requested formatting.
 
 
 -export([ get_parser_name_paths/0, get_paths_for/1,
@@ -125,7 +127,7 @@ beforehand, and remain possible choices).
 
 		  check_parser_operational/1,
 
-		  to_json/2, to_json_file/3,
+		  to_json/2, to_json_file/3, to_json_file/4,
 
 		  from_json/2, from_json_file/2,
 
@@ -638,6 +640,9 @@ For example `json_utils:to_json( #{
   <<"protected">> => Protected,
   <<"payload">> => Payload,
   <<"signature">> => EncSigned} )`.
+
+No specific whitespace-based formatting is done, hence the result is less
+readable but more compact.
 """.
 -spec to_json( json_term() ) -> json().
 to_json( Term ) ->
@@ -656,15 +661,42 @@ using directly the JSON backend designated by the specified parser state.
 For example `json_utils:to_json(#{
   <<"protected">> => Protected,
   <<"payload">> => Payload,
-  <<"signature">> => EncSigned }, _ParserName=jsx )`.
+  <<"signature">> => EncSigned}, _ParserName=jsx )`.
+
+No specific whitespace-based formatting is done, hence the result is less
+readable but more compact.
 """.
 -spec to_json( json_term(), parser_state() ) -> json().
-to_json( Term, _ParserState={ json, _UndefinedInternalBackendState } ) ->
+to_json( Term, ParserState ) ->
+    to_json( Term, _DoFormat=false, ParserState ).
+
+
+-doc """
+Converts (encodes) the specified Erlang term into a JSON counterpart document,
+formatting it for readability if requested (then with added whitespaces), using
+directly the JSON backend designated by the specified parser state.
+
+For example `json_utils:to_json(#{
+  <<"protected">> => Protected,
+  <<"payload">> => Payload,
+  <<"signature">> => EncSigned}, _ParserName=jsx)`.
+""".
+-spec to_json( json_term(), boolean(), parser_state() ) -> json().
+to_json( Term, DoFormat,
+         _ParserState={ json, _UndefinedInternalBackendState } ) ->
 
 	cond_utils:if_defined( myriad_debug_json,
 		trace_utils:debug_fmt( "json is to encode:~n ~p", [ Term ] ) ),
 
-	R = json:encode( Term ),
+	R = case DoFormat of
+
+        true ->
+            json:format( Term );
+
+        false ->
+            json:encode( Term )
+
+    end,
 
 	cond_utils:if_defined( myriad_debug_json,
 		trace_utils:debug_fmt( "json returned encoded term:~n ~p", [ R ] ) ),
@@ -672,7 +704,8 @@ to_json( Term, _ParserState={ json, _UndefinedInternalBackendState } ) ->
 	R;
 
 
-to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
+to_json( Term, _DoFormat,
+         _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 
 	Opts = get_base_json_encoding_options( jsx ),
 
@@ -680,6 +713,7 @@ to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 		trace_utils:debug_fmt( "jsx is to encode, with options ~p:~n ~p",
 							   [ Opts, Term ] ) ),
 
+    % No specific formatting applies:
 	R = jsx:encode( Term, Opts ),
 
 	cond_utils:if_defined( myriad_debug_json,
@@ -688,7 +722,8 @@ to_json( Term, _ParserState={ jsx, _UndefinedInternalBackendState } ) ->
 	R;
 
 
-to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
+to_json( Term, _DoFormat,
+         _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 
 	Opts = get_base_json_encoding_options( jiffy ),
 
@@ -696,6 +731,7 @@ to_json( Term, _ParserState={ jiffy, _UndefinedInternalBackendState } ) ->
 		trace_utils:debug_fmt( "Jiffy is to encode, with options ~p:~n ~p",
 							   [ Opts, Term ] ) ),
 
+    % No specific formatting applies:
 	R = jiffy:encode( Term, Opts ),
 
 	cond_utils:if_defined( myriad_debug_json,
@@ -712,28 +748,53 @@ using the looked-up default JSON backend for that.
 For example `json_utils:to_json_file(#{
    <<"protected">> => Protected,
    <<"payload">> => Payload,
-   <<"signature">> => EncSigned}, TargetJsonFilePath )`.
+   <<"signature">> => EncSigned}, TargetJsonFilePath)`.
+
+No specific whitespace-based formatting is done, hence the result is less
+readable but more compact.
 """.
 -spec to_json_file( json_term(), file_path() ) -> void().
 to_json_file( Term, TargetJsonFilePath ) ->
-	JsonContent = to_json( Term ),
-	file_utils:write_whole( TargetJsonFilePath, JsonContent ).
+    to_json_file( Term, _DoFormat=false, TargetJsonFilePath ).
 
 
 
 -doc """
 Converts (encodes) the specified JSON-compliant Erlang term into a JSON file,
-using the specified JSON backend for that.
+formatting it for readability if requested (then with added whitespaces), using
+the specified JSON backend for that.
 
 For example `json_utils:to_json_file(#{
    <<"protected">> => Protected,
    <<"payload">> => Payload,
-   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState )`.
+   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState)`.
 """.
--spec to_json_file( json_term(), file_path(), parser_state() ) -> void().
-to_json_file( Term, TargetJsonFilePath, ParserState ) ->
-	JsonContent = to_json( Term, ParserState ),
+-spec to_json_file( json_term(), file_path(), boolean() ) -> void().
+to_json_file( Term, TargetJsonFilePath, DoFormat ) ->
+
+	% The call that would be spared if using an explicit parser state:
+	ParserState = get_parser_backend_state(),
+
+    to_json_file( Term, TargetJsonFilePath, DoFormat, ParserState ).
+
+
+
+-doc """
+Converts (encodes) the specified JSON-compliant Erlang term into a JSON file,
+formatting it for readability if requested (then with added whitespaces), using
+the specified JSON backend for that.
+
+For example `json_utils:to_json_file(#{
+   <<"protected">> => Protected,
+   <<"payload">> => Payload,
+   <<"signature">> => EncSigned}, TargetJsonFilePath, ParserState)`.
+""".
+-spec to_json_file( json_term(), file_path(), boolean(), parser_state() ) ->
+                                                void().
+to_json_file( Term, TargetJsonFilePath, DoFormat, ParserState ) ->
+	JsonContent = to_json( Term, DoFormat, ParserState ),
 	file_utils:write_whole( TargetJsonFilePath, JsonContent ).
+
 
 
 
