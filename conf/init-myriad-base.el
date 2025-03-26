@@ -722,6 +722,7 @@
 ;; load-path. It can therefore belong to this base:
 
 (require 'acme-search)
+
 (global-set-key [(mouse-3)] 'acme-search-forward)
 (global-set-key [(shift mouse-3)] 'acme-search-backward)
 

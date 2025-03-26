@@ -286,7 +286,9 @@ Only the `background' is used in this face."
 ;; LSP Origami Mode (for folding ranges):
 ;; (does not seem to apply to Erlang)
 ;;
-(use-package lsp-origami :ensure (:wait t) :demand t)
+;; Moreover triggers 'Package cl is deprecated'...
+;;
+;;(use-package lsp-origami :ensure (:wait t) :demand t)
 
 (add-hook 'origami-mode-hook #'lsp-origami-mode)
 (add-hook 'erlang-mode-hook #'origami-mode)

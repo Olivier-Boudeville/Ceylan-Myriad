@@ -1,10 +1,19 @@
 ;; This is an optional, host-local Emacs configuration.
 ;; It provides an example to customise host-specific elements.
+;;
+;; To avoid committing its local, host-specific changes, we recommend executing:
+;; 'git update-index --skip-worktree init-myriad-local.el'.
 
 
-(message "Applying local settings")
+;;(message "Applying local settings")
 
-(add-to-list 'default-frame-alist '(font . "Monospace-11"))
+
+;; For a normal-resolution screen:
+(add-to-list 'default-frame-alist '(font . "Monospace-9"))
+
+;; For a high-resolution screen:
+;;(add-to-list 'default-frame-alist '(font . "Monospace-11"))
+
 
 ;; Defines the default size of the Emacs window ("frame", in Emacs-speak).
 ;; (units are characters)
@@ -17,16 +26,17 @@
 ;;
 (add-to-list 'default-frame-alist (cons 'width  90))
 
+
 ;; Depends on the screen height:
 
 ;; For a netbook or possibly a laptop:
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For a normal screen:
-;;(add-to-list 'default-frame-alist (cons 'height 56))
+(add-to-list 'default-frame-alist (cons 'height 56))
 
 ;; For a larger screen:
-(add-to-list 'default-frame-alist (cons 'height 124))
+;;(add-to-list 'default-frame-alist (cons 'height 124))
 
 
 
