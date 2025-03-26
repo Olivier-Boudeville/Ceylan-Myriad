@@ -136,6 +136,11 @@ Only the `background' is used in this face."
   :commands lsp)
 
 
+;; Not wanting to be prompted again and again about installing bash-ls and thus
+;; npm:
+;;
+(setq lsp-enable-suggest-server-download nil)
+
 
 ;; The extra text annotating our code source (e.g. "Used XXX times") is
 ;; displayed is a code lens (here "function-references"; see
