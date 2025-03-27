@@ -24,6 +24,10 @@
 ;; directory, elpaca", it may be solved by removing the ~/.emacs.d/elpaca
 ;; directory (possibly created yet no valid to a proxy problem...)
 
+;; (apparently triggers in some contexts a 'Package.el loaded before Elpaca'
+;; warning)
+
+
 (defvar elpaca-installer-version 0.10)
 (defvar elpaca-directory (expand-file-name "elpaca/" user-emacs-directory))
 (defvar elpaca-builds-directory (expand-file-name "builds/" elpaca-directory))
@@ -70,8 +74,8 @@
 
 ;; Install use-package support:
 (elpaca elpaca-use-package
-    ;; Enable use-package :ensure support for Elpaca.
-	(elpaca-use-package-mode))
+   ;; Enable use-package :ensure support for Elpaca.
+   (elpaca-use-package-mode))
 
 
 ;; Then packages (e.g. a foo one) are to be requested (here, synchronously,
