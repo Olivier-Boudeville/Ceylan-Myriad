@@ -11,6 +11,9 @@
 ;; For a normal-resolution screen:
 (add-to-list 'default-frame-alist '(font . "Monospace-9"))
 
+;; For some base laptop resolution screen:
+;;(add-to-list 'default-frame-alist '(font . "Monospace-10"))
+
 ;; For a high-resolution screen:
 ;;(add-to-list 'default-frame-alist '(font . "Monospace-11"))
 
@@ -24,13 +27,16 @@
 ;; used to show a block was folded (anyway the 80-limit is shown by
 ;; background color).
 ;;
-(add-to-list 'default-frame-alist (cons 'width  90))
+;;add-to-list 'default-frame-alist (cons 'width  90))
 
 
 ;; Depends on the screen height:
 
-;; For a netbook or possibly a laptop:
+;; For some netbook:
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
+
+;; For some laptop:
+;;(add-to-list 'default-frame-alist (cons 'height 53))
 
 ;; For a normal screen:
 (add-to-list 'default-frame-alist (cons 'height 56))
