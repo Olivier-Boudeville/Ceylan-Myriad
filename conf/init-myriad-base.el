@@ -104,6 +104,10 @@
 (setq backup-directory-alist (list (cons "." backup-dir)))
 
 
+;; We tend to prefer splitting the initial window (sized accordingly in the
+;; specific init-myriad-local.el at hand):
+;;
+(split-window-horizontally)
 
 
 ;; No more annoying, unmutable bell (e.g. when reaching buffer bounds):

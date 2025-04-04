@@ -295,8 +295,8 @@ Only the `background' is used in this face."
 ;;
 ;;(use-package lsp-origami :ensure (:wait t) :demand t)
 
-(add-hook 'origami-mode-hook #'lsp-origami-mode)
-(add-hook 'erlang-mode-hook #'origami-mode)
+;;(add-hook 'origami-mode-hook #'lsp-origami-mode)
+;;(add-hook 'erlang-mode-hook #'origami-mode)
 
 
 ;; Provide commands to list workspace symbols:
