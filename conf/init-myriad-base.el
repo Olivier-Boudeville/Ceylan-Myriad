@@ -104,10 +104,11 @@
 (setq backup-directory-alist (list (cons "." backup-dir)))
 
 
-;; We tend to prefer splitting the initial window (sized accordingly in the
-;; specific init-myriad-local.el at hand):
+;; We used to prefer splitting the initial window (sized accordingly in the
+;; specific init-myriad-local.el at hand), yet this proved actually impractical,
+;; as many Emacs are spawned punctually (so, just type C-x 3 when needed):
 ;;
-(split-window-horizontally)
+;;(split-window-horizontally)
 
 
 ;; No more annoying, unmutable bell (e.g. when reaching buffer bounds):
