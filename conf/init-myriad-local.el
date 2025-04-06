@@ -9,13 +9,10 @@
 
 
 ;; For a normal-resolution screen:
-(add-to-list 'default-frame-alist '(font . "Monospace-9"))
+;;(add-to-list 'default-frame-alist '(font . "Monospace-9"))
 
-;; For some base laptop resolution screen:
-;;(add-to-list 'default-frame-alist '(font . "Monospace-10"))
-
-;; For a high-resolution screen:
-;;(add-to-list 'default-frame-alist '(font . "Monospace-11"))
+;; For some base laptop resolution screen or high-resolution screens:
+(add-to-list 'default-frame-alist '(font . "Monospace-11"))
 
 
 ;; Defines the default size of the Emacs window ("frame", in Emacs-speak).
@@ -27,7 +24,17 @@
 ;; used to show a block was folded (anyway the 80-limit is shown by
 ;; background color).
 ;;
-;;add-to-list 'default-frame-alist (cons 'width  90))
+(add-to-list 'default-frame-alist (cons 'width  90))
+
+
+;; For two buffers side by side, on a normal screen:
+
+;; Just above 85 characters:
+;;(add-to-list 'default-frame-alist (cons 'width  180))
+
+;; Almost full screen width for a laptop:
+;;(add-to-list 'default-frame-alist (cons 'width  204))
+
 
 
 ;; Depends on the screen height:
@@ -36,10 +43,10 @@
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For some laptop:
-;;(add-to-list 'default-frame-alist (cons 'height 53))
+(add-to-list 'default-frame-alist (cons 'height 60))
 
 ;; For a normal screen:
-(add-to-list 'default-frame-alist (cons 'height 56))
+;;(add-to-list 'default-frame-alist (cons 'height 56))
 
 ;; For a larger screen:
 ;;(add-to-list 'default-frame-alist (cons 'height 124))
