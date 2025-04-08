@@ -9,10 +9,10 @@
 
 
 ;; For a normal-resolution screen:
-;;(add-to-list 'default-frame-alist '(font . "Monospace-9"))
+(add-to-list 'default-frame-alist '(font . "Monospace-9"))
 
 ;; For some base laptop resolution screen or high-resolution screens:
-(add-to-list 'default-frame-alist '(font . "Monospace-11"))
+;;(add-to-list 'default-frame-alist '(font . "Monospace-11"))
 
 
 ;; Defines the default size of the Emacs window ("frame", in Emacs-speak).
@@ -43,10 +43,10 @@
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For some laptop:
-(add-to-list 'default-frame-alist (cons 'height 60))
+;;(add-to-list 'default-frame-alist (cons 'height 60))
 
 ;; For a normal screen:
-;;(add-to-list 'default-frame-alist (cons 'height 56))
+(add-to-list 'default-frame-alist (cons 'height 56))
 
 ;; For a larger screen:
 ;;(add-to-list 'default-frame-alist (cons 'height 124))
