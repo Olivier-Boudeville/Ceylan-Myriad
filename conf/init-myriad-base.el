@@ -566,6 +566,8 @@
 (global-set-key "\C-Z" 'undo)
 (global-set-key "\C-L" 'goto-line)
 
+(setq smerge-command-prefix "\C-cv")
+
 
 ;; Obsolete:
 ;;(standard-display-european 1)
