@@ -245,16 +245,16 @@ ifeq ($(ENABLE_DEBUG),true)
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_id
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gui_performance
 
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_linear
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_frames
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_ref_trees
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_mesh
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_bounding_spaces
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_opengl
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_textures
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_encoding
-	MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_decoding
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_shaders
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_encoding
+	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gl_decoding
 	#MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_gltf_support
 
 endif
@@ -347,7 +347,7 @@ endif
 # The uniquely-defined version of this layer, for all uses (including rebar, hex
 # and the code itself, see basic_utils:get_myriad_version{_string,}/0):
 #
-MYRIAD_VERSION := 1.0.38
+MYRIAD_VERSION := 1.0.39
 
 
 # PROJECT_VERSION should be defined on a per-project basis.
