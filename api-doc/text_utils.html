@@ -83,6 +83,10 @@
 <p><code>format_bin_string() = <a href="#type-bin_string" docgen-rel="seetype" docgen-href="#bin_string/0">bin_string()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-format_parsing_error">format_parsing_error()</a></h3>
+<p><code>format_parsing_error() = {format_parsing_failed, ReasonStr::<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>}</code></p>
+
+
 <h3 class="typedecl"><a name="type-format_string">format_string()</a></h3>
 <p><code>format_string() = <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code></p>
 
@@ -159,6 +163,10 @@
 <p><code>regex_string() = <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-scan_format_outcome">scan_format_outcome()</a></h3>
+<p><code>scan_format_outcome() = [<a href="#type-value_description" docgen-rel="seetype" docgen-href="#value_description/0">value_description()</a>] | <a href="#type-format_parsing_error" docgen-rel="seetype" docgen-href="#format_parsing_error/0">format_parsing_error()</a></code></p>
+
+
 <h3 class="typedecl"><a name="type-string_like">string_like()</a></h3>
 <p><code>string_like() = <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a> | <a href="#type-unicode_string" docgen-rel="seetype" docgen-href="#unicode_string/0">unicode_string()</a> | <a href="#type-bin_string" docgen-rel="seetype" docgen-href="#bin_string/0">bin_string()</a> | atom()</code></p>
 
@@ -185,6 +193,10 @@
 
 <h3 class="typedecl"><a name="type-ustring">ustring()</a></h3>
 <p><code>ustring() = <a href="#type-unicode_string" docgen-rel="seetype" docgen-href="#unicode_string/0">unicode_string()</a></code></p>
+
+
+<h3 class="typedecl"><a name="type-value_description">value_description()</a></h3>
+<p><code>value_description() = <a href="type_utils.html#type-value_description" docgen-rel="seetype" docgen-href="type_utils#value_description/0">type_utils:value_description()</a></code></p>
 
 
 <h3 class="typedecl"><a name="type-verbosity_level">verbosity_level()</a></h3>
@@ -291,12 +303,15 @@
 <tr><td valign="top"><a href="#integer_to_hexastring-2">integer_to_hexastring/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#integer_to_string-1">integer_to_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#integers_to_listed_string-1">integers_to_listed_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#interpret_faulty_format-2">interpret_faulty_format/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#io_to_binary-1">io_to_binary/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_any_string-1">is_any_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_bin_string-1">is_bin_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_char-1">is_char/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_figure-1">is_figure/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_non_empty_string-1">is_non_empty_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_string-1">is_string/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_string_like-1">is_string_like/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_uppercase-1">is_uppercase/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#join-2">join/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#length-1">length/1</a></td><td></td></tr>
@@ -333,6 +348,7 @@
 <tr><td valign="top"><a href="#report_not_a_number-1">report_not_a_number/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#report_not_a_string-1">report_not_a_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#safe_length-1">safe_length/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#scan_format_string-1">scan_format_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#single_quote_string-1">single_quote_string/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#single_quote_strings-1">single_quote_strings/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#split-2">split/2</a></td><td></td></tr>
@@ -975,6 +991,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="interpret_faulty_format-2">interpret_faulty_format/2</a></h3>
+<div class="spec">
+<p><code>interpret_faulty_format(FormatString::<a href="#type-format_string" docgen-rel="seetype" docgen-href="#format_string/0">format_string()</a>, Values::<a href="#type-format_values" docgen-rel="seetype" docgen-href="#format_values/0">format_values()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="io_to_binary-1">io_to_binary/1</a></h3>
 <div class="spec">
 <p><code>io_to_binary(IOData::<a href="#type-io_data" docgen-rel="seetype" docgen-href="#io_data/0">io_data()</a>) -&gt; <a href="#type-bin_string" docgen-rel="seetype" docgen-href="#bin_string/0">bin_string()</a></code><br></p>
@@ -993,6 +1015,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="is_char-1">is_char/1</a></h3>
+<div class="spec">
+<p><code>is_char(I::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="is_figure-1">is_figure/1</a></h3>
 <div class="spec">
 <p><code>is_figure(Char::char()) -&gt; boolean()</code><br></p>
@@ -1001,13 +1029,19 @@
 
 <h3 class="function"><a name="is_non_empty_string-1">is_non_empty_string/1</a></h3>
 <div class="spec">
-<p><code>is_non_empty_string(T::term()) -&gt; boolean()</code><br></p>
+<p><code>is_non_empty_string(S::term()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
 <h3 class="function"><a name="is_string-1">is_string/1</a></h3>
 <div class="spec">
 <p><code>is_string(T::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="is_string_like-1">is_string_like/1</a></h3>
+<div class="spec">
+<p><code>is_string_like(A::term()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
@@ -1037,7 +1071,7 @@
 
 <h3 class="function"><a name="match_types-3">match_types/3</a></h3>
 <div class="spec">
-<p><code>match_types(Seqs::[<a href="#type-control_sequence" docgen-rel="seetype" docgen-href="#control_sequence/0">control_sequence()</a>], Values::<a href="#type-format_values" docgen-rel="seetype" docgen-href="#format_values/0">format_values()</a>, Count::<a href="#type-count" docgen-rel="seetype" docgen-href="#count/0">count()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
+<p><code>match_types(TypeDescs::[<a href="#type-value_description" docgen-rel="seetype" docgen-href="#value_description/0">value_description()</a>], Values::<a href="#type-format_values" docgen-rel="seetype" docgen-href="#format_values/0">format_values()</a>, Count::<a href="#type-count" docgen-rel="seetype" docgen-href="#count/0">count()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
 <p> </p>
 </div>
 
@@ -1227,6 +1261,12 @@
 <p> </p>
 </div>
 
+<h3 class="function"><a name="scan_format_string-1">scan_format_string/1</a></h3>
+<div class="spec">
+<p><code>scan_format_string(FormatString::<a href="#type-format_string" docgen-rel="seetype" docgen-href="#format_string/0">format_string()</a>) -&gt; <a href="#type-scan_format_outcome" docgen-rel="seetype" docgen-href="#scan_format_outcome/0">scan_format_outcome()</a></code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="single_quote_string-1">single_quote_string/1</a></h3>
 <div class="spec">
 <p><code>single_quote_string(AnyStr::<a href="#type-any_string" docgen-rel="seetype" docgen-href="#any_string/0">any_string()</a>) -&gt; <a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a></code><br></p>
@@ -1241,7 +1281,7 @@
 
 <h3 class="function"><a name="split-2">split/2</a></h3>
 <div class="spec">
-<p><code>split(AnyString::<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>, Separators::[<a href="#type-uchar" docgen-rel="seetype" docgen-href="#uchar/0">uchar()</a>]) -&gt; [<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>]</code><br></p><p><code>split(AnyString::<a href="#type-bin_string" docgen-rel="seetype" docgen-href="#bin_string/0">bin_string()</a>, Separators::[<a href="#type-uchar" docgen-rel="seetype" docgen-href="#uchar/0">uchar()</a>]) -&gt; [<a href="#type-bin_string" docgen-rel="seetype" docgen-href="#bin_string/0">bin_string()</a>]</code><br></p>
+<p><code>split(AnyString::<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>, Separator::[<a href="#type-uchar" docgen-rel="seetype" docgen-href="#uchar/0">uchar()</a>] | <a href="#type-uchar" docgen-rel="seetype" docgen-href="#uchar/0">uchar()</a>) -&gt; [<a href="#type-ustring" docgen-rel="seetype" docgen-href="#ustring/0">ustring()</a>]</code><br></p><p><code>split(AnyString::<a href="#type-bin_string" docgen-rel="seetype" docgen-href="#bin_string/0">bin_string()</a>, Separator::[<a href="#type-uchar" docgen-rel="seetype" docgen-href="#uchar/0">uchar()</a>] | <a href="#type-uchar" docgen-rel="seetype" docgen-href="#uchar/0">uchar()</a>) -&gt; [<a href="#type-bin_string" docgen-rel="seetype" docgen-href="#bin_string/0">bin_string()</a>]</code><br></p>
 <p> </p>
 <p> </p>
 </div>

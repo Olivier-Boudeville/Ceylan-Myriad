@@ -203,6 +203,10 @@
 <p><code>ustring() = <a href="text_utils.html#type-ustring" docgen-rel="seetype" docgen-href="text_utils#ustring/0">text_utils:ustring()</a></code></p>
 
 
+<h3 class="typedecl"><a name="type-value_description">value_description()</a></h3>
+<p><code>value_description() = atom | binary | bitstring | boolean | float | function | atom_or_function | byte | char | string | nonempty_string | string_like | integer | pos_integer | neg_integer | non_neg_integer | number | list | map | pid | port | record | reference | tuple | term</code></p>
+
+
 <h3 class="typedecl"><a name="type-void">void()</a></h3>
 <p><code>void() = any() | void</code></p>
 <p><p> Opaque types currently not always well managed by the Erlang standard 
@@ -284,12 +288,17 @@ toolchain:</p>
 <tr><td valign="top"><a href="#initialise_counters-2">initialise_counters/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#interpret_type_of-1">interpret_type_of/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#interpret_type_of-2">interpret_type_of/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_byte-1">is_byte/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_homogeneous-1">is_homogeneous/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_homogeneous-2">is_homogeneous/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_neg_integer-1">is_neg_integer/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_non_neg_integer-1">is_non_neg_integer/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_of_described_type-2">is_of_described_type/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_of_type-2">is_of_type/2</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_pos_integer-1">is_pos_integer/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_transient-1">is_transient/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#is_type-1">is_type/1</a></td><td></td></tr>
+<tr><td valign="top"><a href="#is_value_matching-2">is_value_matching/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#share-1">share/1</a></td><td></td></tr>
 <tr><td valign="top"><a href="#share-2">share/2</a></td><td></td></tr>
 <tr><td valign="top"><a href="#share-3">share/3</a></td><td></td></tr>
@@ -714,6 +723,12 @@ toolchain:</p>
 <p> </p>
 </div>
 
+<h3 class="function"><a name="is_byte-1">is_byte/1</a></h3>
+<div class="spec">
+<p><code>is_byte(I::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="is_homogeneous-1">is_homogeneous/1</a></h3>
 <div class="spec">
 <p><code>is_homogeneous(List::list() | tuple()) -&gt; {true, <a href="#type-primitive_type_description" docgen-rel="seetype" docgen-href="#primitive_type_description/0">primitive_type_description()</a>} | {false, {<a href="#type-primitive_type_description" docgen-rel="seetype" docgen-href="#primitive_type_description/0">primitive_type_description()</a>, <a href="#type-primitive_type_description" docgen-rel="seetype" docgen-href="#primitive_type_description/0">primitive_type_description()</a>}}</code><br></p>
@@ -723,6 +738,18 @@ toolchain:</p>
 <h3 class="function"><a name="is_homogeneous-2">is_homogeneous/2</a></h3>
 <div class="spec">
 <p><code>is_homogeneous(List::list() | tuple(), Type::<a href="#type-primitive_type_description" docgen-rel="seetype" docgen-href="#primitive_type_description/0">primitive_type_description()</a>) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="is_neg_integer-1">is_neg_integer/1</a></h3>
+<div class="spec">
+<p><code>is_neg_integer(I::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="is_non_neg_integer-1">is_non_neg_integer/1</a></h3>
+<div class="spec">
+<p><code>is_non_neg_integer(I::term()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
@@ -738,6 +765,12 @@ toolchain:</p>
 <p> </p>
 </div>
 
+<h3 class="function"><a name="is_pos_integer-1">is_pos_integer/1</a></h3>
+<div class="spec">
+<p><code>is_pos_integer(I::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
 <h3 class="function"><a name="is_transient-1">is_transient/1</a></h3>
 <div class="spec">
 <p><code>is_transient(T::term()) -&gt; boolean()</code><br></p>
@@ -747,6 +780,12 @@ toolchain:</p>
 <h3 class="function"><a name="is_type-1">is_type/1</a></h3>
 <div class="spec">
 <p><code>is_type(T::term()) -&gt; boolean()</code><br></p>
+<p> </p>
+</div>
+
+<h3 class="function"><a name="is_value_matching-2">is_value_matching/2</a></h3>
+<div class="spec">
+<p><code>is_value_matching(VDesc::<a href="#type-value_description" docgen-rel="seetype" docgen-href="#value_description/0">value_description()</a>, Value::term()) -&gt; boolean()</code><br></p>
 <p> </p>
 </div>
 
