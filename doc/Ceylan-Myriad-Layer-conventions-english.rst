@@ -272,18 +272,19 @@ These conventions apply to the release of any Myriad-based package, i.e. either 
 
 The recommended procedure is (while being at the root of a clone):
 
+#. ensure that your version of Erlang (see `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_) and of rebar3 (see `install-rebar3.sh <https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh>`_) are up to date
 #. merge all new developments in the ``master`` (or ``main``) branch
 #. in ``GNUmakevars.inc``:
 
-   - ensure that all debug/check flags (like ``MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path``) are disabled, and that non-release elements (e.g. ``MYRIAD_LCO_OPT``) and optional ones are disabled as well
+   - ensure that all debug/check flags (like, for Myriad: ``MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path``) are disabled, and that non-release elements (e.g. ``MYRIAD_LCO_OPT``) and optional ones are disabled as well
    - bump the version of this local package (e.g. in ``MYRIAD_VERSION``)
 
 #. for packages having dependencies: upgrade their reference known of rebar3, with ``make rebar3-upgrade-lock``
 #. rebuild and test all from the root: ``make rebuild test``, fix any problem
 #. optional: perform `static code checking <#type-checking-myriad>`_
-#. if all went well, ensure that all files are committed (e.g. ``ebin/THIS_PACKAGE.app``)
-#. push them, it will trigger the CI/CD services; ensure everything is correct there as well
-#. go back to a development branch and merge/rebase the master one there
+#. if all went well, ensure that all files are committed (including ``ebin/THIS_PACKAGE.app``)
+#. push them, it will trigger the CI/CD services; ensure that everything is correct there as well
+#. go back to a development branch and merge/rebase the master/main one there
 
 
 
