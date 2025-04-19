@@ -104,6 +104,9 @@
 (setq backup-directory-alist (list (cons "." backup-dir)))
 
 
+(add-to-list 'auto-mode-alist '("GNUmake.*\\.inc" . makefile-gmake-mode))
+
+
 ;; We used to prefer splitting the initial window (sized accordingly in the
 ;; specific init-myriad-local.el at hand), yet this proved actually impractical,
 ;; as many Emacs are spawned punctually (so, just type C-x 3 when needed):
