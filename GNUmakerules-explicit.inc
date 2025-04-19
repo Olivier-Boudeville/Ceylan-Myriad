@@ -1043,7 +1043,7 @@ generate-api-doc-with-exdoc:
 #
 # (beware, changing path logic will result in a successful generation, yet it
 # will lack CSS, images, not take into account the sources, be generated in a
-#  wrong location, etc.)
+# wrong location, etc.)
 #
 generate-api-doc-with-edoc: overview.edoc create-include-links
 	@echo "  Generating API documentation with edoc"
