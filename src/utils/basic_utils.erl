@@ -476,7 +476,7 @@ eliminate afterwards).
 		  stop/0, stop/1, stop_on_success/0, stop_on_failure/0,
 		  stop_on_failure/1,
 
-		  identity/1, if_else/3,
+		  identity/1, if_else/3, repeat/2,
 
 		  check_undefined/1, check_all_undefined/1, are_all_defined/1,
 		  check_defined/1, check_not_undefined/1, check_all_defined/1,
@@ -671,6 +671,23 @@ if_else( _Condition=true, IfTrue, _IfNotTrue ) ->
 
 if_else( _Condition, _IfTrue, IfNotTrue ) ->
 	IfNotTrue.
+
+
+-doc """
+Repeats the specified lamba function the specified number of times.
+
+Useful for example to receive a given number of test messages.
+""".
+-spec repeat( fun( () -> void() ), count() ) -> void().
+repeat( _Fun, _Count=0 ) ->
+    %trace_utils:debug( "Repeating over." ),
+    ok;
+
+repeat( Fun, Count ) ->
+    %trace_utils:debug_fmt( "Repeating #~B.", [ Count ] ),
+    Fun(),
+    repeat( Fun, Count-1 ).
+
 
 
 
