@@ -104,7 +104,12 @@
 (setq backup-directory-alist (list (cons "." backup-dir)))
 
 
-(add-to-list 'auto-mode-alist '("GNUmake.*\\.inc" . makefile-gmake-mode))
+(add-to-list 'auto-mode-alist '("GNUmake.*\\.inc\\'" . makefile-gmake-mode))
+
+
+;; YAML support surprisingly not built-in; so set in
+;; init-myriad-erlang-advanced.el
+
 
 
 ;; We used to prefer splitting the initial window (sized accordingly in the
@@ -244,7 +249,6 @@
 
   )
 
-
 (add-hook 'text-mode-hook 'fix-behaviours-for-text-modes)
 
 
@@ -300,7 +304,6 @@
 
 ;; Also useful, for the debugging of document generation:
 (add-hook 'rst-mode-hook 'display-line-numbers-mode)
-
 
 
 ;; Function section:
@@ -454,7 +457,8 @@
 
 
 (defun show-assigned-keys ()
-  "Shows the current key bindings (not updated yet)"
+  "Shows the current key bindings (not updated yet). Anyway the use of F*
+keys can be seen as counterproductive."
   (interactive)
   (message "F1        -> save-buffer" )
   (message "F2        -> query-replace" )
@@ -464,7 +468,7 @@
   (message "F6        -> repeat-complex-command" )
   (message "F7        -> goto-line" )
   (message "F8        -> whitespace-cleanup" )
-  (message "F9        -> fd-switch-dictionary" )
+  (message "F9        -> switch-dictionary" )
   (message "Shift-F9  -> (currently not bound)" )
   (message "F10       -> save-buffers-kill-emacs" )
   (message "F11       -> (does nothing)" )
@@ -588,26 +592,43 @@
 
 
 ;; Finally, management of all F* keys:
+;;
+;; (many are disabled, to encourage the use of regular key combinations)
+
 
 ;; Curiously hitting F1 triggers default-f12:
 (global-set-key [f1]			  'default-f1)
 (global-set-key [XF86New]		  'default-f1)
 
-;; Usable and behaves like expected:
-(global-set-key [f2]              'query-replace)
-(global-set-key [XF86Reply]       'query-replace)
 
 ;; Usable and behaves like expected:
-(global-set-key [f3]			  'query-replace-regexp)
-(global-set-key [XF86MailForward] 'query-replace-regexp)
+;;(global-set-key [f2]            'query-replace)
+(global-set-key [f2]              'default-f2)
+
+;;(global-set-key [XF86Reply]     'query-replace)
+(global-set-key [XF86Reply]       'default-f2)
+
 
 ;; Usable and behaves like expected:
-(global-set-key [f4]			  'indent-whole-buffer)
-(global-set-key [XF86Send]		  'indent-whole-buffer)
+;;(global-set-key [f3]			  'query-replace-regexp)
+(global-set-key [f3]			  'default-f3)
+
+;;(global-set-key [XF86MailForward] 'query-replace-regexp)
+(global-set-key [XF86MailForward]   'default-f3)
+
+
+;; Usable and behaves like expected:
+;;(global-set-key [f4]			  'indent-whole-buffer)
+(global-set-key [f4]			  'default-f4)
+
+;;(global-set-key [XF86Send]	  'indent-whole-buffer)
+(global-set-key [XF86Send]	  'default-f4)
+
 
 ;; Curiously bound to Undo:
 (global-set-key [f5]              'default-f5)
 (global-set-key [XF86New]         'default-f5)
+
 
 ;; Curiously bound to repeat-complex-command:
 (global-set-key [f6]			  'default-f6)
@@ -615,31 +636,49 @@
 
 
 ;; Usable and behaves like expected:
-(global-set-key [f7]			  'goto-line)
-(global-set-key [print]			  'goto-line)
+;;(global-set-key [f7]			  'goto-line)
+(global-set-key [f7]			  'default-f7)
+
+;;(global-set-key [print]		  'goto-line)
+(global-set-key [print]			  'default-f7)
 
 
 ;; Usable and behaves like expected:
-(global-set-key [f8]              'whitespace-cleanup)
-(global-set-key [XF86Save]        'whitespace-cleanup)
-(global-set-key [XF86AudioNext]   'whitespace-cleanup)
+;;(global-set-key [f8]            'whitespace-cleanup)
+(global-set-key [f8]              'default-f8)
+
+;;(global-set-key [XF86Save]      'whitespace-cleanup)
+(global-set-key [XF86Save]        'default-f8)
+
+;;(global-set-key [XF86AudioNext] 'whitespace-cleanup)
+(global-set-key [XF86AudioNext]   'default-f8)
 
 
 ;; Intercepted by Ubuntu:
-(global-set-key [f9]						   'fd-switch-dictionary)
-(global-set-key (kbd "<XF86AudioLowerVolume>") 'fd-switch-dictionary)
-(global-set-key [XF86New]					   'fd-switch-dictionary)
+;;(global-set-key [f9]						   'switch-dictionary)
+(global-set-key [f9]						   'default-f9)
+
+;;(global-set-key (kbd "<XF86AudioLowerVolume>") 'switch-dictionary)
+(global-set-key (kbd "<XF86AudioLowerVolume>") 'default-f9)
+
+;;(global-set-key [XF86New]					   'switch-dictionary)
+(global-set-key [XF86New]					   'default-f9)
 
 
 ;; Usable and behaves like expected:
-(global-set-key [(shift f9)]		'default-shift-f9)
-(global-set-key [(shift XF86New)]   'default-shift-f9)
-(global-set-key [XF86Explorer]      'default-shift-f9)
+;;(global-set-key [(shift f9)]		  'default-shift-f9)
+;;(global-set-key [(shift XF86New)]   'default-shift-f9)
+;;(global-set-key [XF86Explorer]      'default-shift-f9)
 
 
 ;; Usable and behaves like expected:
-(global-set-key [f10]				'save-buffers-kill-emacs)
-(global-set-key [XF86Documents]     'save-buffers-kill-emacs)
+;;(global-set-key [f10]				'save-buffers-kill-emacs)
+(global-set-key [f10]				'default-f10)
+
+;;(global-set-key [XF86Documents]   'save-buffers-kill-emacs)
+(global-set-key [XF86Documents]     'default-f10)
+
+;; Standard:
 (global-set-key (kbd "C-x C-c")     'save-buffers-kill-emacs)
 
 
@@ -649,8 +688,8 @@
 
 
 ;; Not triggered when hitting F12, but triggered when hitting F1 on my keyboard:
-(global-set-key [f12]               'save-buffer)
-(global-set-key [XF86New]           'save-buffer)
+;;(global-set-key [f12]               'save-buffer)
+;;(global-set-key [XF86New]           'save-buffer)
 
 
 (global-font-lock-mode t)
@@ -666,22 +705,13 @@
 
 ;; Spelling section.
 
-;; Hit F9 to toggle english and french dictionaries:
-
+;; Evaluate switch-dictionary or hit F9 to toggle english and french
+;; dictionaries:
 
 (setq ispell-dictionary "english")
 (setq ispell-program-name "aspell")
 
-;; new error: failed to define function flyspell-mode
-
-;;(add-hook 'text-mode-hook 'flyspell-mode)
-(dolist (hook '(text-mode-hook))
- (add-hook hook (lambda () (flyspell-mode 1))))
-
-(dolist (hook '(change-log-mode-hook log-edit-mode-hook))
- (add-hook hook (lambda () (flyspell-mode -1))))
-
-(defun fd-switch-dictionary()
+(defun switch-dictionary()
 	(interactive)
 	(let* ((dic ispell-current-dictionary)
 		(change (if (string= dic "english") "francais" "english")))
@@ -694,6 +724,16 @@
 
 	(message "Dictionary switched from %s to %s" dic change)
 	))
+
+
+;; new error: failed to define function flyspell-mode
+
+;;(add-hook 'text-mode-hook 'flyspell-mode)
+(dolist (hook '(text-mode-hook))
+ (add-hook hook (lambda () (flyspell-mode 1))))
+
+(dolist (hook '(change-log-mode-hook log-edit-mode-hook))
+ (add-hook hook (lambda () (flyspell-mode -1))))
 
 
 ;; Not working apparently:
