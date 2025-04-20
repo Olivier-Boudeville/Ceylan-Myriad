@@ -2155,6 +2155,9 @@ REBAR3_UNSUPPORTED_SOURCES := src/data-management/sql_support.erl          \
 							  src/data-management/raw_hdf5_test.erl
 
 
+CI_CONF_FILE := $(LAYER_TOP)/.github/workflows/erlang-ci.yml
+
+
 # For the sync-* targets:
 ifndef SYNC_TOOL
 
