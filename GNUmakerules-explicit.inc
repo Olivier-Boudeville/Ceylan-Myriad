@@ -46,7 +46,7 @@
 			help-intro help-erl                                                \
 			clean clean-erlang clean-layer-ebin clean-python clean-protobuf    \
 			clean-database clean-recurse clean-outputs clean-ast-debug         \
-			clean-previous real-clean track                                    \
+			clean-previous real-clean track check-ci                           \
 			info-platform info-hardware info-software info-source-layout       \
 			info-erlang-target-version                                         \
 			info info-files info-meta info-erlang info-python info-java        \
@@ -1296,6 +1296,11 @@ real-clean-recurse:
 track:
 	@$(DOC_TRACKER) $(OVERALL_DOCUMENT_SOURCE)
 
+
+# Of course 'yq' is required:
+check-ci:
+	@echo "Checking the correctness of the configuration for the CI (continuous integration)"
+	@if yq . "$(CI_CONF_FILE)"; then echo "YAML content of '$(CI_CONF_FILE)' validated!"; else echo "  Error, the YAML content of '$(CI_CONF_FILE)' is detected as incorrect."; fi
 
 
 # Typically useful to know the software context for continuous integration:
