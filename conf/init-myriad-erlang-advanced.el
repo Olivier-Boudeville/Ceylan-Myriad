@@ -80,7 +80,7 @@
 ;;
 (defface lsp-ui-doc-background
   '((((background light)) :background "#777777")
-	(t :background "#dddddd"))
+	(t :background "#cccccc"))
   "Background color of the documentation.
 Only the `background' is used in this face."
   :group 'lsp-ui-doc)
@@ -114,14 +114,9 @@ Only the `background' is used in this face."
 ;; LSP-related section.
 ;; See ~/Software/erlang_ls/misc/dotemacs for a configuration example.
 
-;; Requires erlang_ls, typically obtained with:
-;; cd ~/Software
-;; git clone https://github.com/erlang-ls/
-;; cd erlang_ls && make && mkdir bin && cd bin
-;;   && ln -s ../_build/default/bin/erlang_ls
-;; Then add ${HOME}/Software/erlang_ls/bin to your PATH.
-;;
-;; erlang_ls shall be regularly updated ('git pull && make all')
+;; Requires erlang_ls; refer to
+;; https://howtos.esperide.org/Emacs.html#regarding-erlang for installation/use
+;; guidelines.
 
 ;;(use-package lsp-mode :ensure (:wait t) :demand t)
 (use-package lsp-mode
@@ -131,7 +126,7 @@ Only the `background' is used in this face."
   :hook (;; replace XXX-mode with concrete major-mode(e. g. python-mode)
          ;;(XXX-mode . lsp)
          (erlang-mode . lsp)
-         ;; if you want which-key integration
+         ;; if you want which-key integration:
          (lsp-mode . lsp-enable-which-key-integration))
   :commands lsp)
 
@@ -142,6 +137,8 @@ Only the `background' is used in this face."
 (setq lsp-enable-suggest-server-download nil)
 
 
+;; Code lenses:
+
 ;; The extra text annotating our code source (e.g. "Used XXX times") is
 ;; displayed is a code lens (here "function-references"; see
 ;; https://erlang-ls.github.io/articles/tutorial-code-lenses/).
@@ -151,6 +148,7 @@ Only the `background' is used in this face."
 ;; point (as a symbolic link).
 ;;
 ;; Another deactivation option is to use '(setq lsp-lens-enable nil)'.
+
 
 ;; Displayed at the top of a frame (e.g. "src > utils > foo.erl"):
 (setq lsp-headerline-breadcrumb-enable t)
@@ -238,10 +236,12 @@ Only the `background' is used in this face."
 (setq lsp-ui-sideline-enable nil)
 
 ;;(setq lsp-ui-sideline-show-diagnostics t)
-(setq lsp-ui-sideline-show-hover t)
 
-(setq lsp-ui-sideline-show-code-actions t)
-;;(setq lsp-ui-sideline-show-code-actions nil)
+;;(setq lsp-ui-sideline-show-hover t)
+(setq lsp-ui-sideline-show-hover nil)
+
+;;(setq lsp-ui-sideline-show-code-actions t)
+(setq lsp-ui-sideline-show-code-actions nil)
 
 ;;(setq lsp-ui-sideline-update-mode 'line)
 (setq lsp-ui-sideline-delay 1)
@@ -269,11 +269,15 @@ Only the `background' is used in this face."
 ;; Number of seconds before showing the doc:
 (setq lsp-ui-doc-delay 0.2)
 
-;; Emacs (keyboard) cursor:
-(setq lsp-ui-doc-show-with-cursor t)
+;; Emacs (keyboard) cursor disabled, too much noise (only the mouse one
+;; applies):
+;;
+;;(setq lsp-ui-doc-show-with-cursor t)
+(setq lsp-ui-doc-show-with-cursor nil)
 
 ;; Mouse cursor:
 (setq lsp-ui-doc-show-with-mouse t)
+;;(setq lsp-ui-doc-show-with-mouse nil)
 
 
 ;; lsp-ui-doc-background previously set above.
@@ -283,9 +287,9 @@ Only the `background' is used in this face."
 
 ;; There are lsp-ui-imenu options as well.
 
-(setq lsp-modeline-diagnostics-enable t)
-(setq lsp-signature-auto-activate t)
-(setq lsp-signature-render-documentation t)
+;;(setq lsp-modeline-diagnostics-enable t)
+;;(setq lsp-signature-auto-activate t)
+;;(setq lsp-signature-render-documentation t)
 
 
 ;; LSP Origami Mode (for folding ranges):
