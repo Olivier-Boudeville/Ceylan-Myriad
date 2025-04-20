@@ -15,6 +15,24 @@
 ;;
 ;; So we finally selected only the relevant features, which are currently
 ;; auto-completion and display documentation of element at mouse cursor.
+;;
+;; Note that this file covers advanded Erlang features, but most of them apply
+;; to other languages as well.
+
+
+(add-hook 'yaml-mode-hook 'display-line-numbers-mode)
+
+;; Not wanting clumsy attempt of spellchecking there:
+(remove-hook 'yaml-mode-hook (lambda () (flyspell-mode 1)))
+
+;; Surprisingly not built-in:
+;;
+;; With treesitter: yaml-ts-mode, yet requires an extra library for this
+;; specific ts support.
+;;
+(use-package yaml-mode :ensure (:wait t) :demand t)
+
+;; Useless: (add-to-list 'auto-mode-alist '("\\.yml\\'" . yaml-mode))
 
 
 
