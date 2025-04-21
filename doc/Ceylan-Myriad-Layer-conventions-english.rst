@@ -274,7 +274,11 @@ The recommended procedure is (while being at the root of a clone):
 
 #. ensure that your version of Erlang (see `install-erlang.sh <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/install-erlang.sh>`_), of rebar3 (see `install-rebar3.sh <https://github.com/Olivier-Boudeville/Ceylan-Hull/blob/master/install-rebar3.sh>`_) and possibly of erlang_ls (see `this section <https://howtos.esperide.org/Emacs.html#regarding-erlang>`_) are up to date
 #. merge all new developments in the ``master`` (or ``main``) branch
-#. possibly update dependencies in ``conf/rebar.config.template``, in which case then run ``make set-rebar-conf``
+#. possibly update dependencies, then:
+
+   - in the corresponding ``GNUmakevars.inc`` settings
+   - in any ``priv/bin/deploy-*-native-build.sh`` script
+   - in ``conf/rebar.config.template``; in which case then run ``make set-rebar-conf``
 #. in ``GNUmakevars.inc``:
 
    - ensure that all debug/check flags (like, for Myriad: ``MYRIAD_DEBUG_FLAGS += -Dmyriad_debug_code_path``) are disabled, and that non-release elements (e.g. ``MYRIAD_LCO_OPT``) and optional ones are disabled as well
