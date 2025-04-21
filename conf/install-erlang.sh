@@ -27,7 +27,7 @@ nice_opt="nice --adjustment=19"
 # It may not be available on the local host (with Arch Linux, use 'pacman -Sy
 # cpulimit').
 #
-# No root priviledges specifically needed.
+# By default no root privileges will be specifically needed.
 #
 cpulimit="$(which cpulimit 2>/dev/null)"
 
@@ -188,8 +188,8 @@ usage="Usage: $(basename $0) [${help_opt_short}|${help_opt_long}] [${version_opt
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
 If no base install directory is specified, then:
- - if this script is run as root thanks to a sudo (i.e. 'sudo $(basename $0)...'), Erlang will be built by the (supposedly non-priviledged) original sudoer in the current directory, before being installed as root in /usr/local/ (i.e. system-wide); no Erlang-current-install symbolic link applies then
- - otherwise it will be installed in ${base_install_dir}/Erlang-${erlang_version}/.
+ - if this script is run as root thanks to a sudo (i.e. 'sudo $(basename $0)...'), Erlang will be built by the (supposedly non-privileged) original sudoer in the current directory, before being installed as root in /usr/local/ (i.e. system-wide); no Erlang-current-install symbolic link applies then
+ - otherwise it will be installed in ${base_install_dir}/Erlang-${erlang_version}/
 
 Otherwise, i.e. if a base install directory MY_DIR is specified, then Erlang will be installed into MY_DIR/Erlang/Erlang-${erlang_version}/.
 
@@ -391,7 +391,7 @@ while [ $token_eaten -eq 0 ]; do
 done
 
 
-# We had to define that variable, as for a (non-priviledged) user U, at least on
+# We had to define that variable, as for a (non-privileged) user U, at least on
 # some settings, sudo -u U <a command> will fail ("Sorry, user U is not allowed
 # to execute 'XXX' as U on H."), so now we execute sudo iff strictly necessary:
 #
@@ -412,7 +412,7 @@ if [ -z "${read_parameter}" ]; then
 
 		if [ -z "${SUDO_USER}" ]; then
 
-			echo "Error, if this script is to be run as root, 'sudo' shall be used, so that build operations can be performed as a normal user (not with root priviledges)." 1>&2
+			echo "Error, if this script is to be run as root, 'sudo' shall be used, so that build operations can be performed as a normal user (not with root privileges)." 1>&2
 			exit 55
 
 		fi
@@ -427,7 +427,7 @@ if [ -z "${read_parameter}" ]; then
 
 		echo "Run as sudo root, thus using default system installation directory, falling back to user '${build_user}' for the operations that permit it."
 
-		# So here sudo is a way to decrease, not increase, priviledges:
+		# So here sudo is a way to decrease, not increase, privileges:
 		sudo_cmd="sudo -u ${build_user}"
 
 	else
