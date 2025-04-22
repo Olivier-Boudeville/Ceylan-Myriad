@@ -8,6 +8,10 @@
 ;; For all general-purpose basics:
 ;;
 ;; (loads it iff it has not been loaded already)
+;;
+;; Apparently 'require' triggers package.el, leading to the following warning
+;; in some versions: "Warning (emacs): Package.el loaded before Elpaca".
+;;
 (require 'init-myriad-base)
 
 
