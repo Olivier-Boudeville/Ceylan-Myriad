@@ -176,6 +176,8 @@ limit_opt_long="--no-cpu-limit"
 previous_opt_short="-p"
 previous_opt_long="--previous"
 
+current_install_link_name="Erlang-current-install"
+
 # Currently removed:
 #   [${patch_opt_short}|${patch_opt_long}]
 #   downloads, patches, builds and installs
@@ -183,12 +185,12 @@ previous_opt_long="--previous"
 #   ${patch_opt_short} or ${patch_opt_long}: disable the automatic patching we
 #   make use of
 
-usage="Usage: $(basename $0) [${help_opt_short}|${help_opt_long}] [${version_opt_short}|${version_opt_long}] [${doc_opt_short}|${doc_opt_long}] [${plt_opt_short}|${plt_opt_long}] [${download_opt_short}|${download_opt_long}] [${limit_opt_short}|${limit_opt_long}] [${previous_opt_short}|${previous_opt_long}] [<base install directory>]: downloads, builds and installs a fresh ${erlang_version} Erlang version in the specified base install directory (if defined), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that an 'Erlang-current-install' symbolic link always points to the latest installed version.
+usage="Usage: $(basename $0) [${help_opt_short}|${help_opt_long}] [${version_opt_short}|${version_opt_long}] [${doc_opt_short}|${doc_opt_long}] [${plt_opt_short}|${plt_opt_long}] [${download_opt_short}|${download_opt_long}] [${limit_opt_short}|${limit_opt_long}] [${previous_opt_short}|${previous_opt_long}] [<base install directory>]: downloads, builds and installs a fresh ${erlang_version} Erlang version in the specified base install directory (if defined), or in default directory, and in this case adds a symbolic link pointing to it from its parent directory so that an '${current_install_link_name}' symbolic link always points to the latest installed version.
 
 Note that, if relevant archives are found in the current directory, they will be used, even if the user did not specify a 'no download' option.
 
 If no base install directory is specified, then:
- - if this script is run as root thanks to a sudo (i.e. 'sudo $(basename $0)...'), Erlang will be built by the (supposedly non-privileged) original sudoer in the current directory, before being installed as root in /usr/local/ (i.e. system-wide); no Erlang-current-install symbolic link applies then
+ - if this script is run as root thanks to a sudo (i.e. 'sudo $(basename $0)...'), Erlang will be built by the (supposedly non-privileged) original sudoer in the current directory, before being installed as root in /usr/local/ (i.e. system-wide); no ${current_install_link_name} symbolic link applies then
  - otherwise it will be installed in ${base_install_dir}/Erlang-${erlang_version}/
 
 Otherwise, i.e. if a base install directory MY_DIR is specified, then Erlang will be installed into MY_DIR/Erlang/Erlang-${erlang_version}/.
@@ -861,7 +863,9 @@ if ! ${sudo_cmd} ${nice_opt} ${cpu_limit_expr} make; then
 fi
 
 
-# No sudo here:
+# No sudo used here intentionally, as installation may have to be done in the
+# system (here root needed):
+#
 if ! ${nice_opt} ${cpu_limit_expr} make install; then
 
 	echo "Installation failed, exiting." 1>&2
@@ -870,32 +874,53 @@ if ! ${nice_opt} ${cpu_limit_expr} make install; then
 fi
 
 
-echo "  Erlang successfully built and installed in ${prefix}."
-
-
-# More global than 'if [ $use_prefix -eq 0 ]; then' so that most installs
-# include these links:
+# More global than 'if [ $use_prefix -eq 0 ]; then' so that most installs have
+# that:
 #
+if [ -z "${prefix}" ]; then
+
+	standard_loc="/usr/local/"
+
+	# For some strange reason, at least with 27.3.2, /usr/local/lib/erlang/bin
+	# is created as 'drwxr-x--- 2 root root', which prevents regular users from
+	# using it. So:
+	#
+	chmod 755 "${standard_loc}/lib/erlang/bin"
+
+	# For next operations:
+	install_base="${standard_loc}"
+
+else
+
+	install_base="${prefix}"
+
+fi
+
+
+echo "Post-fixing versions now."
+
+# First, let's create a symbolic link so that this new version can be
+# transparently used by emacs:
+#
+cd "${install_base}/lib/erlang"
+
+# Exactly one match expected for the wildcard (e.g. tools-2.8.2), useful to
+# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
+# version changes:
+#
+${ln} -sf lib/tools-*/emacs
+
+# Same story so that the crashdump viewer can be found irrespective of the
+# Erlang version:
+#
+${ln} -sf lib/observer-*/priv/bin/cdv
+
+# The same for JInterface:
+${ln} -sf lib/jinterface-* jinterface
+
+
+
 if [ -n "${prefix}" ]; then
-
-	# First, let's create a symbolic link so that this new version can be
-	# transparently used by emacs:
-	#
-	cd "${prefix}/lib/erlang"
-
-	# Exactly one match expected for the wildcard (e.g. tools-2.8.2), useful to
-	# avoid having to update our ~/.emacs.d/init.el file whenever the 'tools'
-	# version changes:
-	#
-	${ln} -sf lib/tools-*/emacs
-
-	# Same story so that the crashdump viewer can be found irrespective of the
-	# Erlang version:
-	#
-	${ln} -sf lib/observer-*/priv/bin/cdv
-
-	# The same for JInterface:
-	${ln} -sf lib/jinterface-* jinterface
 
 	# Then go again in the install (not source) tree to create the base link:
 	cd "${prefix}/.."
@@ -903,13 +928,13 @@ if [ -n "${prefix}" ]; then
 	# So we are in ${base_install_dir} now.
 
 	# Sets as current:
-	if [ -e "Erlang-current-install" ]; then
+	if [ -e "${current_install_link_name}" ]; then
 
-		${rm} -f Erlang-current-install
+		${rm} -f "${current_install_link_name}"
 
 	fi
 
-	${ln} -sf "Erlang-${erlang_version}" Erlang-current-install
+	${ln} -sf "Erlang-${erlang_version}" "${current_install_link_name}"
 
 fi
 
@@ -929,7 +954,7 @@ if [ $do_manage_doc -eq 0 ]; then
 	# No sudo from there, as we have to use any right needed (for example to
 	# write in the system tree)
 
-	erlang_doc_root="Erlang-${erlang_version}-documentation"
+	erlang_doc_root="$(pwd)/Erlang-${erlang_version}-documentation"
 
 	if [ -e "${erlang_doc_root}" ]; then
 
@@ -949,7 +974,7 @@ if [ $do_manage_doc -eq 0 ]; then
 	cd ..
 
 	# Sets as current:
-	if [ -e "Erlang-current-install" ]; then
+	if [ -e "${current_install_link_name}" ]; then
 
 		${rm} -f Erlang-current-documentation
 
@@ -957,7 +982,7 @@ if [ $do_manage_doc -eq 0 ]; then
 
 	${ln} -sf "${erlang_doc_root}" Erlang-current-documentation
 
-	echo "Erlang documentation successfully installed."
+	echo "Erlang documentation successfully installed, in '${erlang_doc_root}'."
 
 fi
 
@@ -977,9 +1002,9 @@ fi
 echo
 
 if [ -n "${prefix}" ]; then
-	echo "The Erlang environment was successfully installed in ${prefix}."
+	echo "The Erlang environment was successfully installed in '${install_base}}'."
 else
-	echo "The Erlang environment was successfully installed in its standard location."
+	echo "The Erlang environment was successfully installed in its standard location ('${install_base}')."
 fi
 
 
