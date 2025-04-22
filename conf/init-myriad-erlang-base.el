@@ -1,7 +1,7 @@
 ;; This is a minimal configuration of Emacs regarding Erlang.
 ;;
 ;; Only the base Erlang-related settings are specified here, i.e. the ones
-;; covered by the very long https://erlang.org/download/contrib/erlang.el
+;; covered by the very long https://erlang.org/download/contrib/erlang.el file
 ;; (hence, here, no LSP and all).
 ;;
 
@@ -14,22 +14,35 @@
 
 ;; See also https://www.erlang.org/doc/apps/tools/erlang-el.html
 
-
-;; Adapted from the README distributed with the OTP tarballs:
-
+;; Adapted from the README distributed with the OTP tarballs.
 
 
-;; As there are two possible conventional locations for an Erlang install:
+
+;; For us, there are two possible conventional locations for an Erlang install:
 ;;  - either in the user account (in ~/Software/Erlang/Erlang-current-install)
-;;  - or directly in the system tree (in /usr/local/lib/erlang/)
-;;
-;; Variable used erlang.el:
+;;  - or directly in the system tree (in /usr/local/)
+
+
+
+;; Auto-detect location, priority being the user account:
+(setq user-erlang-base-path '"~/Software/Erlang/Erlang-current-install")
+(setq system-erlang-base-path '"/usr/local")
+
+(if (file-directory-p user-erlang-base-path)
+	(progn (message "Using user-level Erlang install.")
+		   (setq erlang-root-dir user-erlang-base-path))
+    (if (file-directory-p system-erlang-base-path)
+		(progn (message "Using system-level Erlang install.")
+			   (setq erlang-root-dir system-erlang-base-path))
+		(error "No Erlang installation found.")))
+
+
 (setq erlang-root-dir "~/Software/Erlang/Erlang-current-install")
 ;;(setq erlang-root-dir "/usr/local")
 
 
 ;; Note that 'emacs' is here a symbolic link typically created by our
-;; install-erlang.sh script, so that upgrading Erlang does not risk to make the
+;; install-erlang.sh script, so that upgrading Erlang does not risk making the
 ;; actual directory (e.g. lib/tools-2.8.2/emacs) vanish because of a change in
 ;; the 'tools' version (thus requiring the current configuration file to be
 ;; endlessly modified):
