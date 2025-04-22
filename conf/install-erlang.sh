@@ -897,7 +897,7 @@ else
 fi
 
 
-echo "Post-fixing versions now."
+echo "Post-fixing versions of Erlang built-in libraries now."
 
 # First, let's create a symbolic link so that this new version can be
 # transparently used by emacs:
@@ -1002,7 +1002,7 @@ fi
 echo
 
 if [ -n "${prefix}" ]; then
-	echo "The Erlang environment was successfully installed in '${install_base}}'."
+	echo "The Erlang environment was successfully installed in '${install_base}'."
 else
 	echo "The Erlang environment was successfully installed in its standard location ('${install_base}')."
 fi
