@@ -668,6 +668,13 @@
 (setq font-lock-maximum-decoration t)
 (setq font-lock-maximum-size nil)
 
+
+;; Sensible defaults:
+(add-to-list 'default-frame-alist (cons 'width  90))
+(add-to-list 'default-frame-alist (cons 'height 56))
+
+
+
 ;; Does not seem to apply (two buffers still shown in two window panes
 ;; if two files specified on the command-line):
 ;;
@@ -790,4 +797,4 @@
 (setq initial-major-mode 'rst-mode)
 
 ;; So that it can be loaded with 'require':
-(provide 'init-myriad-security)
+(provide 'init-myriad-sensitive)
