@@ -1497,6 +1497,7 @@ info-parse-transform:
 	@echo "ERLANG_COMPILER_PARSE_TRANSFORM_OPT = $(ERLANG_COMPILER_PARSE_TRANSFORM_OPT)"
 
 
+# Now JSON support is built-in:
 info-json:
 	@echo "USE_JSON                      = $(USE_JSON)"
 	@echo "USE_JSX                       = $(USE_JSX)"

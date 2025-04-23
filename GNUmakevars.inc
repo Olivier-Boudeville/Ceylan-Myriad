@@ -645,7 +645,8 @@ endif
 
 ifeq ($(USE_JSON),true)
 
-	# At least one parser backend shall then be selected:
+	# At least one parser backend had to be selected previously, however now
+	# JSON support is built-in.
 
 	# Default choice (built-in in Erlang 27.0 and more recent), should the JSON
 	# support be enabled:
@@ -654,8 +655,8 @@ ifeq ($(USE_JSON),true)
 	#USE_BUILTIN_JSON = false
 
 	# Second default choice, should the JSON support be enabled:
-	USE_JSX = true
-	#USE_JSX = false
+	#USE_JSX = true
+	USE_JSX = false
 
 	#USE_JIFFY = true
 	USE_JIFFY = false
@@ -818,7 +819,7 @@ ifeq ($(USE_JSON),true)
 
 	endif
 
-
+    # Ensure a fallback is available if requested:
 	ifeq ($(USE_BUILTIN_JSON),false)
 		ifeq ($(USE_JSX),false)
 			ifeq ($(USE_JIFFY),false)

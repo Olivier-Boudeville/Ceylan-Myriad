@@ -215,8 +215,8 @@ File Formats
 Basic File Formats
 ..................
 
-
 A built-in very basic support for the `CSV <https://en.wikipedia.org/wiki/Comma-separated_values>`_, for *Comma-Separated Values* (see ``csv_utils``) and `RDF <https://en.wikipedia.org/wiki/Resource_Description_Framework>`_ (see ``rdf_utils``) conventions is provided.
+
 
 
 Most Usual, Standard File Formats
@@ -274,7 +274,7 @@ About JSON use
 - it may thus be convenient to add ``-define(table_type, map_hashtable).`` in a user module, so that the ``table`` pseudo-module can be relied upon when building a ``json_term``, while being sure that the JSON parser at hand will be fed afterwards with the relevant datastructure
 - no comments shall be specified (even though some parsers may be configured to support them)
 - strings shall be specified as binary ones
-- the actual JSON backend used are any buit-in `json <https://www.erlang.org/doc/apps/stdlib/json.html>`_ one, otherwise `jsx <https://github.com/talentdeficit/jsx/>`_ or `jiffy <https://github.com/davisp/jiffy>`_; to better understand their (mostly common) mapping between Erlang and JSON, one may refer first to `this section of EEP 68 <https://github.com/erlang/eep/blob/master/eeps/eep-0068.md#data-mapping>`_, otherwise to `this section <https://github.com/talentdeficit/jsx/#json---erlang-mapping>`_ of the jsx documentation and to `this one <https://github.com/davisp/jiffy#data-format>`_ regarding jiffy
+- the actual JSON backend used is by default the built-in `json <https://www.erlang.org/doc/apps/stdlib/json.html>`_ one, otherwise `jsx <https://github.com/talentdeficit/jsx/>`_ or `jiffy <https://github.com/davisp/jiffy>`_; to better understand their (mostly common) mapping between Erlang and JSON, one may refer first to `this section of EEP 68 <https://github.com/erlang/eep/blob/master/eeps/eep-0068.md#data-mapping>`_, otherwise to `this section <https://github.com/talentdeficit/jsx/#json---erlang-mapping>`_ of the jsx documentation and to `this one <https://github.com/davisp/jiffy#data-format>`_ regarding jiffy
 
 Example:
 

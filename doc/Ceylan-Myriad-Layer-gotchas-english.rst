@@ -26,9 +26,11 @@ Let's suppose we have an application named ``Foo`` that relies on Myriad.
 - either mandatory or optional
 - needed starting from build-time (e.g. if relying on their headers and/or modules - including parse-transforms), or only at runtime
 
-For a given **optional** dependency (e.g. regarding JSON), a USE make variable is to be defined in the layer that introduced this dependency (e.g. ``USE_JSON``, introduced by Myriad, therefore to be listed in its ``GNUmakevars.inc``). This variable allows to have our native build system register the associated additional include and ebin directories.
+For a given **optional** dependency (e.g. regarding JSON [#]_), a USE make variable is to be defined in the layer that introduced this dependency (e.g. ``USE_JSON``, introduced by Myriad, therefore to be listed in its ``GNUmakevars.inc``). This variable allows to have our native build system register the associated additional include and ebin directories.
 
-The first step to enable such a dependency (e.g. the JSON support) is to set its USE variable to ``true`` (e.g. ``USE_JSON = true``), as it is expected to be disabled by default. Depending on the service at hand, a specific backend may have also to be selected (e.g. either ``USE_JSX = true`` or ``USE_JIFFY = true`` to select a suitable JSON parser).
+.. [#] JSON is just an example, knowing moreover that now Erlang provides a built-in JSON support on which we rely by default.
+
+The first step to enable such a dependency (e.g. the JSON support) is to set its USE variable to ``true`` (e.g. ``USE_JSON = true``), as it is expected to be disabled by default. Depending on the service at hand, a specific (non-builtin) backend may have also to be selected (e.g. either ``USE_JSX = true`` or ``USE_JIFFY = true`` to select a suitable JSON parser).
 
 Finally, some supports may depend on others (e.g. enabling ``USE_REST`` will enable ``USE_JSON`` in turn).
 
@@ -49,7 +51,7 @@ Build-time Third-Party Dependencies
 
 Myriad does not have such dependencies, but layers above in the software stack (like a layer that would be named ``Foo``) may.
 
-To have such dependencies (e.g. let's suppose that the ``jsx`` JSON parser defined header files that one wants to include) *installed* as well when building one's project (e.g. ``Foo``), one may rely on rebar, and list them in the project's ``foo/conf/rebar.config.template`` file (e.g. ``{deps, [bar, jsx]}.``) from which the actual ``rebar.config`` is to be generated (use the ``make set-rebar-conf`` target for that).
+To have such dependencies (e.g., just for the sake of example, let's suppose that the ``jsx`` JSON parser defined header files that one wants to include) *installed* as well when building one's project (e.g. ``Foo``), one may rely on rebar, and list them in the project's ``foo/conf/rebar.config.template`` file (e.g. ``{deps, [bar, jsx]}.``) from which the actual ``rebar.config`` is to be generated (use the ``make set-rebar-conf`` target for that).
 
 The actual compilation will be done by our native build system in all cases, either directly (when running ``make all``) or when using ``rebar compile`` (rebar hooks will then ensure that in practice the application is compiled with our native rules anyway). Therefore appropriate make variables (e.g. ``JSX_REBAR_BASE``, in ``myriad/GNUmakevars.inc``) shall be defined so that the corresponding BEAM files installed through rebar can be found in this native context as well (through the ``BEAM_DIRS`` make variable).
 
@@ -65,14 +67,17 @@ Myriad-level Third-Party Dependencies
 Myriad as such has no mandatory dependency (except Erlang itself of course), but *optional* ones may be enabled, for:
 
 - a basic `JSON <https://en.wikipedia.org/wiki/JSON>`_ support (see our `json_utils <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/json_utils.erl>`_ module), thanks to a suitable actual JSON parser: any available built-in `json <https://www.erlang.org/doc/apps/stdlib/json.html>`_ one, otherwise `jsx <https://github.com/talentdeficit/jsx/>`_ or `jiffy <https://github.com/davisp/jiffy>`_; note that the detection and use of these parsers are done transparently at runtime, hence none of them is a declared dependency of Myriad, which will adapt to any choice made by the overall application that includes both Myriad and one of such parsers (provided, as mentioned above, that the proper ``USE_*`` make variables are set)
+
 - a first-level support of the `HDF5 <https://www.hdfgroup.org/HDF5/>`_ file format (see our `hdf5_support <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/hdf5_support.erl>`_ module), based on - and thus requiring - the `enhanced fork <https://github.com/Olivier-Boudeville-EDF/erlhdf5>`_ that we made of `erlhdf5 <https://github.com/RomanShestakov/erlhdf5>`_
+
 - `Python <https://en.wikipedia.org/wiki/Python_(programming_language)>`_ (see our `python_utils <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/utils/python_utils.erl>`_ module), thanks to `erlport <https://github.com/hdima/erlport>`_
+
 - `SQLite <https://en.wikipedia.org/wiki/SQLite>`_ (see our `sql_support <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/src/data-management/sql_support.erl>`_ module), thanks to the SQLite 3 Erlang binding that we retained, `erlang-sqlite3 <https://github.com/alexeyr/erlang-sqlite3.git>`_
 
 
 .. _`jsx install`:
 
-As an example, let's suppose that we need a JSON support and that we want to rely on the ``jsx`` parser (our default choice) for that.
+As an example, let's suppose that we need a JSON support and that we want to rely on the ``jsx`` parser (our previous default choice) for that.
 
 If applying our conventions, supposing that Erlang and Rebar3 are already installed (otherwise refer to the `getting Erlang`_ and `getting Rebar3`_ sections), ``jsx`` may be installed with:
 
