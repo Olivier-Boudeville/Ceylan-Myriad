@@ -63,13 +63,13 @@ Usage: $(basename $0) [-v] [-c a_cookie] [--sn a_short_node_name | --ln a_long_n
 Detailed options:
 	-v: be verbose
 	-c a_cookie: specify a cookie; otherwise no cookie will be specifically set
-	--sn a_short_node_name: distributed node using specified short name (e.g. 'my_short_name')
-	--ln a_long_node_name: distributed node using specified long name (e.g. 'my_long_name')
+	--sn a_short_node_name: distributed node using the specified short name (e.g. 'my_short_name')
+	--ln a_long_node_name: distributed node using the specified long name (e.g. 'my_long_name')
 	--nn an_ignored_node_name: non-distributed node; the specified name is ignored (useful to just switch the node naming options at runtime)
 	--hostname a_hostname: specify the hostname to be used (typically a FQDN for long node names, and a short hostname for short node names); otherwise it will be determined by the VM
 	--tcp-range min_port max_port: specify a TCP port range for inter-node communication (useful to comply with some firewall restrictions)
 	--epmd-port new_port: specify a specific EPMD port (instead of the default, 4369); only relevant if the VM is to be distributed (using short or long names) - initially or at runtime
-	--config cfg_filename: adds specified filename to the list of configuration ones (can be used multiple times)
+	--config cfg_filename: adds the specified filename to the list of configuration ones (can be used multiple times)
 	--max-process-count max_count: specify the maximum number of processes per VM (default: ${max_process_count})
 	--busy-limit kb_size: specify the distribution buffer busy limit, in kB (default: 1024)
 	--async-thread-count thread_count: specify the number of asynchronous threads for driver calls (default: ${asynch_thread_count})
