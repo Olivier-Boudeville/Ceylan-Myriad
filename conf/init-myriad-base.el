@@ -106,6 +106,22 @@
 
 (add-to-list 'auto-mode-alist '("GNUmake.*\\.inc\\'" . makefile-gmake-mode))
 
+(setq auto-mode-alist
+	  (append '(("\\.txt$"  . rst-mode)
+				("\\.rst$"  . rst-mode)
+				("\\.rst.template$"  . rst-mode)
+				("\\.rest$" . rst-mode)) auto-mode-alist))
+
+;; Displays the line numbers also with the next specified extensions:
+(add-hook 'find-file-hook 'maybe-activate-line-numbers-mode)
+
+(defun maybe-activate-line-numbers-mode()
+  (when (and (stringp buffer-file-name)
+             (or (string-match "\\.config\\'" buffer-file-name)
+                 (string-match "\\.etf\\'" buffer-file-name)
+				 ))
+    (display-line-numbers-mode)))
+
 
 ;; YAML support surprisingly not built-in; so set in
 ;; init-myriad-erlang-advanced.el
