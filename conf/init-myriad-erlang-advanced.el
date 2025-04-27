@@ -19,6 +19,7 @@
 ;; Note that this file covers advanded Erlang features, but most of them apply
 ;; to other languages as well.
 
+(message "Entering Myriad Erlang-advanced configuration...")
 
 (add-hook 'yaml-mode-hook 'display-line-numbers-mode)
 
@@ -58,7 +59,9 @@
 
 ;; Enable company by default, except for texts:
 
-;; This form does not allow to set/unset easily company based on mode:
+
+;; This form does not allow to set/unset easily company based on mode and, more
+;; generally, seems at least fragile if not dysfunctioning:
 ;;
 ;; (use-package company
 ;;   :after lsp-mode
@@ -73,13 +76,15 @@
 ;;   ;; Default is 0.2:
 ;;   (company-idle-delay 0.0))
 
-(use-package company :ensure (:wait t) :demand t)
-
-;;(global-company-mode 1)
+;;(use-package company :ensure (:wait t) :demand t)
 
 ;; Does not work: '(add-hook 'after-init-hook 'global-company-mode)'
-(add-hook 'prog-mode-hook (company-mode 1))
+(add-hook 'prog-mode-hook 'company-mode)
 
+(setq company-minimum-prefix-length 0)
+
+(setq company-idle-delay
+      (lambda () (if (company-in-string-or-comment) nil 0.2)))
 
 ;; Not working properly either ('No such file or directory, company-box'):
 ;;(use-package company-box
