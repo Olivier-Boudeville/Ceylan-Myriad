@@ -86,6 +86,11 @@
 (setq company-idle-delay
       (lambda () (if (company-in-string-or-comment) nil 0.2)))
 
+(custom-set-faces
+ ;; Purple / rather white:
+ '(company-tooltip ((t (:background "#111144" :foreground "#eeeeee")))))
+
+
 ;; Not working properly either ('No such file or directory, company-box'):
 ;;(use-package company-box
 ;; :hook (company-mode . company-box-mode))
