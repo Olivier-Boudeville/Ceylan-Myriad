@@ -671,8 +671,8 @@ keys can be seen as counterproductive."
 
 
 ;; Intercepted by Ubuntu:
-;;(global-set-key [f9]						   'switch-dictionary)
-(global-set-key [f9]						   'default-f9)
+(global-set-key [f9]						   'switch-dictionary)
+;;(global-set-key [f9]						   'default-f9)
 
 ;;(global-set-key (kbd "<XF86AudioLowerVolume>") 'switch-dictionary)
 (global-set-key (kbd "<XF86AudioLowerVolume>") 'default-f9)
@@ -702,6 +702,8 @@ keys can be seen as counterproductive."
 (global-set-key [f11]				'default-f11)
 (global-set-key [XF86New]			'default-f11)
 
+(global-set-key (kbd "s-l") 'switch-dictionary) ;; l for language
+
 
 ;; Not triggered when hitting F12, but triggered when hitting F1 on my keyboard:
 ;;(global-set-key [f12]               'save-buffer)
@@ -721,8 +723,8 @@ keys can be seen as counterproductive."
 
 ;; Spelling section.
 
-;; Evaluate switch-dictionary or hit F9 to toggle english and french
-;; dictionaries:
+;; Evaluate switch-dictionary or hit s-l (previously:F9) to toggle the English
+;; (default) and French dictionaries:
 
 (setq ispell-dictionary "english")
 (setq ispell-program-name "aspell")
