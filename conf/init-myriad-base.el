@@ -119,6 +119,7 @@
   (when (and (stringp buffer-file-name)
              (or (string-match "\\.config\\'" buffer-file-name)
                  (string-match "\\.etf\\'" buffer-file-name)
+                 (string-match "\\.xml\\'" buffer-file-name)
 				 ))
     (display-line-numbers-mode)))
 
