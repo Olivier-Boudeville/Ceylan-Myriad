@@ -127,7 +127,7 @@ A bounding surface defined based on any circle (e.g. lazy or MEC).
 
 
 
-% Shorthands:
+% Type shorthands:
 
 -type ustring() :: text_utils:ustring().
 
