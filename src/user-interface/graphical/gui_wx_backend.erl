@@ -506,7 +506,7 @@ to_wx_size( Size ) ->
 
 
 -doc """
-Converts to back-end direction.
+Converts to backend direction.
 
 (helper)
 """.
@@ -517,7 +517,7 @@ to_wx_direction( Direction ) ->
 
 
 -doc """
-Converts to back-end orientation.
+Converts to backend orientation.
 
 (helper)
 """.

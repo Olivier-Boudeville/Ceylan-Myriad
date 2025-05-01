@@ -372,7 +372,7 @@ set_from( Editor, TE ) ->
 
 
 -doc """
-Converts the specified text editor option(s) into the appropriate back-end
+Converts the specified text editor option(s) into the appropriate backend
 specific options.
 
 (helper)

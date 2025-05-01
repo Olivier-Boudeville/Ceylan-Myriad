@@ -70,7 +70,7 @@ See `polygon_test.erl` for the corresponding test.
 -export([ update_bounding_surface/2 ]).
 
 
-% Shorthands:
+% Type shorthands:
 
 -type option_list() :: option_list:option_list().
 
@@ -335,7 +335,7 @@ get_fill_color( Polygon ) ->
 
 -doc """
 Returns options for the rendering of this polygon that can be directly passed to
-the graphical back-end.
+the graphical backend.
 """.
 -spec get_rendering_options( polygon() ) -> option_list().
 get_rendering_options( Polygon ) ->

@@ -229,7 +229,7 @@ destruct( TextDisplay ) ->
 
 
 -doc """
-Converts the specified text display option(s) into the appropriate back-end
+Converts the specified text display option(s) into the appropriate backend
 specific options.
 
 (helper)
