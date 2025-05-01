@@ -2173,7 +2173,7 @@ ifndef SYNC_TOOL
 	# the same group), to avoid 'rsync: [generator] failed to set permissions on
 	# "xxx/.": Operation not permitted (1)':
 	#
-	SYNC_BASE_OPT := -rlpD -vz $(SSH_OPT) --exclude '.git' --no-perms
+	SYNC_BASE_OPT += -rlpD -vz $(SSH_OPT) --exclude '.git' --no-perms
 
 
 	# General-purpose, mostly to synchronise a remote webserver in terms of
@@ -2183,12 +2183,12 @@ ifndef SYNC_TOOL
 	#  - no "-t" either, as having not enough permissions to
 	# update the time metadata on the server
 	#
-	SYNC_OPT := $(SYNC_BASE_OPT)
+	SYNC_OPT += $(SYNC_BASE_OPT)
 
 	# Mostly to synchronise code to a remote server (without having to introduce
 	# bogus Git commits):
 	#
-	SYNC_CODE_OPT := -at $(SYNC_BASE_OPT)
+	SYNC_CODE_OPT += -at $(SYNC_BASE_OPT)
 
 endif
 
