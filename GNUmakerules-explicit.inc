@@ -990,11 +990,9 @@ generate-protobuf: $(PROTOBUF_GENERATED_ERL_FILES)
 # server.
 #
 # If the source tree is built and up to date, no need to (re)build on the server
-# (if homogeneous in terms of Erlang versions).
-#
-# A rebuild is triggered just before, as the BEAM files are transferred as well:
-# at arrival timestamps may not be respected, and we want the right BEAMs to be
-# executed.
+# (if homogeneous in terms of Erlang versions): a rebuild is triggered just
+# before, as the BEAM files are transferred as well: on arrival, timestamps may
+# not be respected, and we want the right BEAMs to be executed.
 #
 # Note that, here, only the content of the 'src' and 'include' tree is
 # synchronised (e.g. not the makefiles, not the configuration files, etc. that
@@ -1010,7 +1008,7 @@ sync-sources-to-server: all
 # location, with no VCS commit involved.
 #
 # A rebuild is triggered just before, as the BEAM files are transferred as well:
-# at arrival timestamps may not be respected, and we want the right BEAMs to be
+# on arrival timestamps may not be respected, and we want the right BEAMs to be
 # executed. On the server, some log files may fail to be updated (not a real
 # problem).
 #
