@@ -1090,7 +1090,7 @@ if [ ${use_run_erl} -eq 0 ] && [ ${autostart} -eq 0 ]; then
 	#wait_max=8
 
 	# Sufficient:
-	wait_max=15
+	wait_max=16
 
 	wait_count=0
 
@@ -1113,10 +1113,10 @@ if [ ${use_run_erl} -eq 0 ] && [ ${autostart} -eq 0 ]; then
 
 		fi
 
-		# Do not start displaying the count-down before 5 seconds, then only
-		# every 5 seconds:
+		# Do not start displaying the count-down before 4 seconds, then only
+		# every 4 seconds:
 		#
-		if [ ${wait_count} -gt 4 ] && [ $(expr ${wait_count} % 5) -eq 0 ]; then
+		if [ ${wait_count} -gt 3 ] && [ $(expr ${wait_count} % 4) -eq 0 ]; then
 			echo " (launch time-out in ${wait_remain} seconds)"
 		fi
 
