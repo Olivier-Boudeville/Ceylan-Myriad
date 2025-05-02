@@ -590,6 +590,9 @@ keys can be seen as counterproductive."
 (global-set-key "\C-Z" 'undo)
 (global-set-key "\C-L" 'goto-line)
 
+(global-set-key (kbd "<M-up>") 'scroll-down-command)
+(global-set-key (kbd "<M-down>") 'scroll-up-command)
+
 (setq smerge-command-prefix "\C-cv")
 
 
