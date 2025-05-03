@@ -234,7 +234,7 @@ Only the `background' is used in this face."
 
 ;; Enable logging for lsp-mode:
 ;;(setq lsp-log-io t)
-;;(setq lsp-log-io nil)
+(setq lsp-log-io nil)
 
 ;; To select options, see:
 ;; https://emacs-lsp.github.io/lsp-mode/tutorials/how-to-turn-off/
@@ -288,11 +288,13 @@ Only the `background' is used in this face."
 (setq lsp-ui-doc-enable t)
 ;;(setq lsp-ui-doc-enable nil)
 
-;;(setq lsp-ui-doc-position 'top)
-(setq lsp-ui-doc-position 'bottom)
+;; Less interfering:
+(setq lsp-ui-doc-position 'top)
+;;(setq lsp-ui-doc-position 'bottom)
 ;;(setq lsp-ui-doc-position 'at-point)
 
-(setq lsp-ui-doc-side 'left)
+;; Less crowded:
+(setq lsp-ui-doc-side 'right)
 
 ;; Number of seconds before showing the doc:
 (setq lsp-ui-doc-delay 0.2)
@@ -300,12 +302,12 @@ Only the `background' is used in this face."
 ;; Emacs (keyboard) cursor disabled, too much noise (only the mouse one
 ;; applies):
 ;;
-;;(setq lsp-ui-doc-show-with-cursor t)
-(setq lsp-ui-doc-show-with-cursor nil)
+(setq lsp-ui-doc-show-with-cursor t)
+;;(setq lsp-ui-doc-show-with-cursor nil)
 
-;; Mouse cursor:
-(setq lsp-ui-doc-show-with-mouse t)
-;;(setq lsp-ui-doc-show-with-mouse nil)
+;; Mouse cursor too random:
+;;(setq lsp-ui-doc-show-with-mouse t)
+(setq lsp-ui-doc-show-with-mouse nil)
 
 
 ;; lsp-ui-doc-background previously set above.
