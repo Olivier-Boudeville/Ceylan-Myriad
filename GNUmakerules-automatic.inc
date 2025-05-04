@@ -1,6 +1,5 @@
 # Here are gathered automatic (generic, pattern-based) rules for Myriad.
 
-
 # From the point of view of the make tool, they come first, yet the rules that
 # are actually selected are the ones with the longer name match, so any explicit
 # rule will override them.
@@ -26,7 +25,7 @@
 
 # Note: long lines in rules should not be word-wrapped (with \), as their
 # displaying on the console would print such characters, leading to poorly dense
-# outputs, that are not pleasing to the eye.
+# outputs that are not pleasing to the eye.
 
 
 
@@ -126,7 +125,6 @@ ifeq ($(USE_PROTOBUF),true)
 %.erl %.hrl: %.proto
 	@echo "		Generating $@ from Protobuf spec $<"
 	@"$(PB_COMPILER)" $(PB_OPT) $< $(GPB_SUFFIX_OPT)
-
 
 endif
 
