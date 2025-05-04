@@ -108,7 +108,7 @@
 ;;
 (defface lsp-ui-doc-background
   '((((background light)) :background "#777777")
-	(t :background "#cccccc"))
+	(t :background "#aaeeee"))
   "Background color of the documentation.
 Only the `background' is used in this face."
   :group 'lsp-ui-doc)
@@ -312,7 +312,8 @@ Only the `background' is used in this face."
 
 ;; lsp-ui-doc-background previously set above.
 
-(setq lsp-ui-doc-border "orange")
+;;(setq lsp-ui-doc-border "orange")
+(setq lsp-ui-doc-border "white")
 
 
 ;; There are lsp-ui-imenu options as well.
@@ -341,13 +342,16 @@ Only the `background' is used in this face."
 (use-package lsp-treemacs :ensure (:wait t) :demand t)
 
 ;; Always show diagnostics at the bottom, using 1/3 of the available space:
-(add-to-list 'display-buffer-alist
-			 `(,(rx bos "*Flycheck errors*" eos)
-			  (display-buffer-reuse-window
-			   display-buffer-in-side-window)
-			  (side            . bottom)
-			  (reusable-frames . visible)
-			  (window-height   . 0.33)))
+;; (deactivated, as suspected of add visual noise/expanding an additional bottom
+;; buffer)
+;;
+;; (add-to-list 'display-buffer-alist
+;;			 `(,(rx bos "*Flycheck errors*" eos)
+;;			  (display-buffer-reuse-window
+;;			   display-buffer-in-side-window)
+;;			  (side            . bottom)
+;;			  (reusable-frames . visible)
+;;			  (window-height   . 0.33)))
 
 
 ;; So that it can be loaded with 'require':
