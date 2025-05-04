@@ -2164,8 +2164,18 @@ ifndef SYNC_TOOL
 
 	SYNC_TOOL := $$(which rsync 2>/dev/null)
 
+	# One may set the next environment variables to adapt to local settings.
+
 	ifdef SSH_PORT
 		SSH_OPT := -e "ssh -p $(SSH_PORT)"
+	endif
+
+	# To set the group (and possibly user) of the target (remote) filesystem
+	# content, rather than having it overridden by the main group of the local
+	# user:
+	#
+	ifdef SYNC_TARGET_GROUP
+		SYNC_TARGET_GROUP_OPT := --chown=$(SYNC_TARGET_USER):$(SYNC_TARGET_GROUP)
 	endif
 
 	# Using '--no-perms' to avoid errors should the content on the remote host
@@ -2173,8 +2183,7 @@ ifndef SYNC_TOOL
 	# the same group), to avoid 'rsync: [generator] failed to set permissions on
 	# "xxx/.": Operation not permitted (1)':
 	#
-	SYNC_BASE_OPT += -rlpD -vz $(SSH_OPT) --exclude '.git' --no-perms
-
+	SYNC_BASE_OPT += -rlpD -vz $(SSH_OPT) $(SYNC_TARGET_GROUP_OPT) --exclude '.git' --no-perms
 
 	# General-purpose, mostly to synchronise a remote webserver in terms of
 	# content, so:
