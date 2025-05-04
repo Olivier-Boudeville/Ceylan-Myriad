@@ -166,16 +166,15 @@ Tooling Conventions
 Erlang LS
 ---------
 
-The `Language Server Protocol <https://en.wikipedia.org/wiki/Language_Server_Protocol>`_ (also known as LSP) may be used by one's editor of choice in order to provide various services facilitating the developments in various languages, including Erlang.
+The `Language Server Protocol <https://en.wikipedia.org/wiki/Language_Server_Protocol>`_ (also known as LSP) may be used by one's editor of choice in order to provide various services facilitating the developments in various languages, including Erlang, thanks to `Erlang LS <https://erlang-ls.github.io/>`_.
 
-For that `Erlang LS <https://erlang-ls.github.io/>`_ should be used. We then recommend to rely on our `erlang_ls.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/erlang_ls.config>`_ configuration file, which may be installed that way:
+Another option is to use ``ctags`` to generate Emacs' compliant `tags <https://www.emacswiki.org/emacs/EmacsTags>`_ (see the ``generate-tags`` make target) - however this solution is probably now superseded by Erlang LS.
 
-.. code:: bash
 
- $ mkdir -p ~/.config/erlang_ls && cd ~/.config/erlang_ls/
- $ ln -sf ${CEYLAN_MYRIAD}/conf/erlang_ls.config
+Installing Erlang LS
+....................
 
-As for the installation of `Erlang LS <https://erlang-ls.github.io/>`_ itself, we rely on:
+For that we rely on:
 
 .. code:: bash
 
@@ -188,11 +187,34 @@ As for the installation of `Erlang LS <https://erlang-ls.github.io/>`_ itself, w
 
 Then one would just have to ensure that ``~/Software/erlang_ls/bin`` is indeed in one's PATH.
 
-Note that not all bells and whistles of LSP may be retained, knowing that at least some of them are confused by various elements, especially when applied to code that is parse-transformed; as a result we did find LS features much useful.
 
-The Emacs configuration that we use (see the corresponding `init.el <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/init.el>`_) attempts to find some sweet spot in this matter.
+Configuring  Erlang LS
+......................
 
-Another option is to use ``ctags`` to generate Emacs' compliant `tags <https://www.emacswiki.org/emacs/EmacsTags>`_ (see the ``generate-tags`` make target); we did not find this solution very satisfactory either.
+We then recommend to rely on our `erlang_ls.config <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/erlang_ls.config>`_ configuration file, which preferably is at the root of the project it applies to [#]_ (hence the symbolic link at this root, pointing to the actual file in the ``conf`` subdirectory).
+
+.. [#] Rather than being centralised in the *user* configuration directory, typically in ``~/.config/erlang_ls/erlang_ls.config``.
+
+
+.. It may be installed that way:
+
+.. .. code:: bash
+
+..  $ mkdir -p ~/.config/erlang_ls && cd ~/.config/erlang_ls/
+..  $ ln -sf ${CEYLAN_MYRIAD}/conf/erlang_ls.config
+
+As we understand when reading the `Erlang LS documentation <https://erlang-ls.github.io/configuration/>`_, in this YAML-based ``erlang_ls.config``:
+
+- the current project is referenced by ``apps_dirs``, whose default value must contain ``.``; hence nothing needs to be done to designate our project
+- our convention being that all layers above Myriad are expected to be found as sibling directories (e.g. ``wooper`` having the same parent directory as ``myriad``), possibly as symbolic links, in order to designate a prerequisite of the current layer it should be enough to include, in the ``deps_dirs`` entry, a relative path to that specific directory (e.g. ``../wooper``)
+
+
+Using Erlang LS
+...............
+
+Note that not all bells and whistles of LSP may be retained, knowing that at least some of them are confused by various elements, especially when applied to code that is parse-transformed (as most tools operate on sources rather than on BEAM files); as a result, we did not find all LS features useful.
+
+The Emacs configuration on which we rely (see the corresponding `init.el <https://github.com/Olivier-Boudeville/Ceylan-Myriad/blob/master/conf/init.el>`_) attempts to find some sweet spot in this matter.
 
 
 
