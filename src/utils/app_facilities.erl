@@ -263,7 +263,7 @@ display( FormatString, Values ) ->
 
 
 
--doc "Called whenever the execution is finished.".
+-doc "Called whenever the execution of the main program is finished.".
 -spec finished() -> no_return().
 
 
