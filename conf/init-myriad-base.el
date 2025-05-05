@@ -586,6 +586,7 @@ keys can be seen as counterproductive."
 (global-set-key "\C-P" 'recompile)
 
 (global-set-key "\C-Q" 'next-error)
+(global-set-key (kbd "s-q") 'quoted-insert)
 
 (global-set-key "\C-Z" 'undo)
 (global-set-key "\C-L" 'goto-line)
