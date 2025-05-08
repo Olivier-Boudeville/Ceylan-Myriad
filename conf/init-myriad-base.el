@@ -594,6 +594,8 @@ keys can be seen as counterproductive."
 (global-set-key (kbd "<M-up>") 'scroll-down-command)
 (global-set-key (kbd "<M-down>") 'scroll-up-command)
 
+(global-set-key (kbd "s-c") 'comment-dwim) ;; c for comment/uncomment
+
 (setq smerge-command-prefix "\C-cv")
 
 
@@ -708,6 +710,7 @@ keys can be seen as counterproductive."
 (global-set-key [XF86New]			'default-f11)
 
 (global-set-key (kbd "s-l") 'switch-dictionary) ;; l for language
+
 
 
 ;; Not triggered when hitting F12, but triggered when hitting F1 on my keyboard:
