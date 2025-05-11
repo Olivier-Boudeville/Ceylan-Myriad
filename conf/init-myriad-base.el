@@ -722,6 +722,34 @@ keys can be seen as counterproductive."
 (setq font-lock-maximum-decoration t)
 (setq font-lock-maximum-size nil)
 
+
+;; Font section.
+
+
+
+;; Our default font name (no size wanted here, as to be set only in local
+;; settings):
+;;
+;; Usually, at least when requiring "Monospace-11", actual default is:
+;; "-UKWN-Nimbus Mono PS-regular-normal-normal".
+(setq myriad-font-name "Monospace")
+
+
+;; Could be added (when initial-window-system ;;
+(defun set-myriad-font-p (font-name)
+  (if (member font-name (font-family-list))
+	  (setq myriad-font-name font-name)))
+
+
+;; By increasing priority of fonts:
+(set-myriad-font-p "DejaVu Sans Mono")
+(set-myriad-font-p "Iosevka Fixed")
+(set-myriad-font-p "JetBrainsMono Nerd Font")
+
+(message "Myriad-selected font name: %s" myriad-font-name)
+
+
+
 ;; Does not seem to apply (two buffers still shown in two window panes
 ;; if two files specified on the command-line):
 ;;

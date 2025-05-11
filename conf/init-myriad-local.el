@@ -8,11 +8,37 @@
 ;;(message "Applying local settings")
 
 
+
+;; A problem with most font specifications is that they specify both the font
+;; name (albeit best selected in the generic configuration, based on theactual
+;; font availability) and its size (which is a local setting, hence best placed
+;; here).
+
+
+;; Often at least a bit relative to a font name (here: "JetBrainsMono Nerd
+;; Font"):
+
+
 ;; For a normal-resolution screen:
-(add-to-list 'default-frame-alist '(font . "Monospace-9"))
+;;(setq myriad-font-size "8")
+
 
 ;; For some base laptop resolution screen or high-resolution screens:
-;;(add-to-list 'default-frame-alist '(font . "Monospace-11"))
+;; (9 resolved in 12, 10 in 13, 11 in 15)
+(setq myriad-font-size "10")
+
+
+
+;; Based on myriad-font-name, the best font found available by our base
+;; configuration:
+;;
+(setq myriad-full-font (concat myriad-font-name "-" myriad-font-size))
+
+(message "Myriad-selected full font: %s" myriad-full-font)
+
+(set-frame-font myriad-full-font t t)
+
+
 
 
 ;; Defines the default size of the Emacs window ("frame", in Emacs-speak).
@@ -43,10 +69,11 @@
 ;;(add-to-list 'default-frame-alist (cons 'height 36))
 
 ;; For some laptop:
-;;(add-to-list 'default-frame-alist (cons 'height 60))
+;; (at least relevant for our "10" font size:
+(add-to-list 'default-frame-alist (cons 'height 53))
 
 ;; For a normal screen:
-(add-to-list 'default-frame-alist (cons 'height 56))
+;;(add-to-list 'default-frame-alist (cons 'height 56))
 
 ;; For a larger screen:
 ;;(add-to-list 'default-frame-alist (cons 'height 124))
