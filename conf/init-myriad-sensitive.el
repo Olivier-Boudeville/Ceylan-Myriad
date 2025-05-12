@@ -671,7 +671,9 @@
 
 ;; Sensible defaults:
 (add-to-list 'default-frame-alist (cons 'width  90))
-(add-to-list 'default-frame-alist (cons 'height 56))
+
+;;(add-to-list 'default-frame-alist (cons 'height 56))
+(add-to-list 'default-frame-alist (cons 'height 46))
 
 
 
