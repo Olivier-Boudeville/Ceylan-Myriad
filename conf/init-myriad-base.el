@@ -150,6 +150,9 @@
 ;;
 (which-key-mode)
 
+;; Not wanting to accumulate intermediate per-directory buffers:
+(setq dired-kill-when-opening-new-dired-buffer 1)
+
 
 ;; No limit in the buffer list:
 (setq buffers-menu-max-size nil)
