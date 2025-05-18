@@ -38,22 +38,22 @@ See myriad_otp_application_test.erl as an example.
 
 Following convention is supposed to apply for testing: all applications
 (i.e. the tested one and its prerequisites) are expected to have their build
-trees (typically GIT clones) located in the same parent directory (as siblings),
-each named as its application (e.g. "myriad" root directory for the myriad
-application, not for example "Ceylan-Myriad"), so that, from the build tree of a
-tested application, the build trees of its prerequisites can be found (e.g. as
-"../myriad").
+trees (typically Git clones) located in the same parent directory (as siblings),
+each named as its application (e.g. `"myriad"` root directory for the myriad
+application, not for example `"Ceylan-Myriad"`), so that, from the build tree of
+a tested application, the build trees of its prerequisites can be found (e.g. as
+`"../myriad"`).
 """.
 
 
 
--doc "Name of an OTP application (e.g. 'myriad').".
+-doc "Name of an OTP application (e.g. `'myriad'`).".
 -type application_name() :: atom().
 
 
 
 -doc """
-Name of an OTP application, as a string (e.g. "myriad").
+Name of an OTP application, as a string (e.g. `"myriad"`).
 """.
 -type string_application_name() :: ustring().
 
@@ -126,7 +126,7 @@ A result returned when starting an OTP instance, typically a supervisor bridge.
 
 -doc """
 The type corresponding to the values to be returned by
-gen_server:handle_{cast,continue,info}/2.
+`gen_server:handle_{cast,continue,info}/2`.
 """.
 -type handle_return() ::
 	{ 'noreply', otp_state() }
@@ -193,7 +193,7 @@ gen_server:handle_{cast,continue,info}/2.
 
 
 % Entries corresponding to the application specifications (see
-% <https://erlang.org/doc/man/app.html>) read from a .app file.
+% [https://erlang.org/doc/man/app.html]) read from a .app file.
 %
 -type app_spec() :: list_table:list_table().
 
@@ -227,7 +227,7 @@ gen_server:handle_{cast,continue,info}/2.
 
 -doc """
 A table allowing to look-up dependencies only once (and not many times, like for
-the kernel application).
+the `kernel` application).
 """.
 -type app_table() :: table( application_name(), app_info() ).
 
@@ -318,7 +318,7 @@ application(s) to be involved in a non-OTP execution - and also all their own
 prerequisites recursively in turn - can be later started, based on the specified
 current base tree.
 
-See prepare_for_execution/2.
+See `prepare_for_execution/2`.
 """.
 -spec prepare_for_execution( application_name() | [ application_name() ],
 							 directory_path() ) -> [ application_name() ].
@@ -342,8 +342,8 @@ lists applications that are actually not useful for the current application, or
 that even may induce clashes among prerequisites. Blacklisting them allows not
 searching for them, not modifying the overall code path accordingly, and
 ignoring their own dependencies. They shall then be blacklisted with
-start_applications/3 as well (otherwise an attempt of starting them will be done
-and will fail).
+`start_applications/3` as well (otherwise an attempt of starting them will be
+done and will fail).
 
 Returns an ordered, complete list (with no duplicates) of applications names
 that shall be started in turn (otherwise throws an exception), so that each
@@ -362,7 +362,7 @@ start module/arguments; this is not necessary though, as application:start/1
 seems able to support non-active applications, and for active ones to trigger by
 itself the right start call.
 
-Application information is now cached, so that base applications (e.g. kernel)
+Application information is now cached, so that base applications (e.g. `kernel`)
 are not repeatedly searched, but just once.
 """.
 -spec prepare_for_execution( application_name() | [ application_name() ],
@@ -475,14 +475,14 @@ Following locations will be searched for the relevant directories, from the root
 of the specified base directory, and in that order:
 
  1. local ebin (for the executed application itself)
- 2. any local _checkouts/APP_NAME/ebin (2.1) or
- _checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin (2.2)
- 3. any local _build/default/lib/APP_NAME/ebin (for the dependencies of the
+ 2. any local `_checkouts/APP_NAME/ebin` (2.1) or
+ `_checkouts/APP_NAME/_build/default/lib/APP_NAME/ebin` (2.2)
+ 3. any local `_build/default/lib/APP_NAME/ebin` (for the dependencies of the
  executed application)
- 4. any sibling ../APP_NAME/ebin (4.1) or
- ../APP_NAME/_build/default/lib/APP_NAME/ebin (4.2)
+ 4. any sibling `../APP_NAME/ebin` (4.1) or
+` ../APP_NAME/_build/default/lib/APP_NAME/ebin` (4.2)
  5. the installed OTP system tree itself, where standard applications are
- available (i.e. in ${ERLANG_ROOT}/lib/erlang/lib)
+ available (i.e. in `${ERLANG_ROOT}/lib/erlang/lib`)
 
 Returning also the application base directory of this application allows to
 locate in turn any prerequisite it would have (typically through checkouts,
@@ -707,6 +707,10 @@ try_last_locations( AppName, AppFilename, AbsBaseDir, FailedLocs ) ->
 	?debug_fmt( "[5] Application '~ts' not found as a sibling, "
 				"trying as a standard OTP application.", [ AppName ] ),
 
+    % If a standard module (e.g. sasl) is not found, it might be the sign that
+    % the configuration of the current user points to an unexpected Erlang
+    % installation (e.g. one done as `pacman -S erlang-core`):
+    %
 	case code:lib_dir( AppName ) of
 
 		{ error, bad_name } ->
@@ -768,7 +772,7 @@ get_string_application_name( AppName ) ->
 
 
 -doc """
-Returns the ebin in 'lib' subdirectory in the _build tree from specified base
+Returns the ebin in `lib` subdirectory in the _build tree from specified base
 directory, for specified application.
 """.
 -spec get_build_ebin_from_lib( directory_path(), string_application_name() ) ->
@@ -780,7 +784,7 @@ get_build_ebin_from_lib( BaseDir, AppNameStr ) ->
 
 
 -doc """
-Returns the ebin in 'checkouts' directory in the _build tree from specified base
+Returns the ebin in `checkouts` directory in the _build tree from specified base
 directory, for specified application.
 """.
 -spec get_build_ebin_from_checkouts( directory_path(),
@@ -1008,7 +1012,7 @@ app_info_to_string( #app_info{ app_name=AppName,
 
 
 -doc """
-Starts the specified OTP application, with the 'temporary' restart type.
+Starts the specified OTP application, with the `temporary` restart type.
 
 Note: all prerequisite applications shall have been started beforehand (not
 relying on OTP here, hence no automatic start of dependencies).
@@ -1074,7 +1078,7 @@ start_application( AppName, RestartType, BlacklistedApps ) ->
 
 -doc """
 Starts each of the specified OTP applications (if not started yet), sequentially
-and in the specified order, all with the 'temporary' restart type.
+and in the specified order, all with the `temporary` restart type.
 
 Note: any non-included prerequisite application shall have been started
 beforehand (not relying on OTP here, hence no automatic start of dependencies).
@@ -1218,6 +1222,7 @@ in the reverse order of the starting of these applications.
 """.
 -spec stop_user_applications( [ application_name() ] ) -> void().
 stop_user_applications( AppNames ) ->
+    % Possibly sasl:
 	BaseVMApps = [ kernel, stdlib ],
 	[ stop_application( App ) || App <- lists:reverse( AppNames ),
 								 not lists:member( App, BaseVMApps ) ].
@@ -1229,11 +1234,11 @@ Returns the supervisor-level settings corresponding to the specified restart
 strategy and execution context.
 
 Note that the execution context must be explicitly specified here (typically by
-calling a get_execution_target/0 function defined in a key module of that layer,
-based on Myriad's basic_utils.hrl), as otherwise the one that would apply is the
-one of Myriad - not the one of the calling layer.
+calling a `get_execution_target/0` function defined in a key module of that
+layer, based on Myriad's `basic_utils.hrl`), as otherwise the one that would
+apply is the one of Myriad - not the one of the calling layer.
 
-See <https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags>
+See [https://erlang.org/doc/design_principles/sup_princ.html#supervisor-flags]
 for further information.
 """.
 -spec get_supervisor_settings( supervisor:strategy(), execution_target() ) ->
@@ -1283,9 +1288,9 @@ Returns default, base restart settings depending on the specified execution
 target.
 
 Note that the execution context must be explicitly specified here (typically by
-calling a get_execution_target/0 function defined in a key module of that layer,
-based on Myriad's basic_utils.hrl), as otherwise the one that would apply is the
-one of Myriad - not the one of the calling layer.
+calling a `get_execution_target/0` function defined in a key module of that
+layer, based on Myriad's `basic_utils.hrl`), as otherwise the one that would
+apply is the one of Myriad - not the one of the calling layer.
 """.
 -spec get_restart_setting( execution_target() ) -> supervisor_restart().
 get_restart_setting( _ExecutionTarget=development ) ->
@@ -1343,15 +1348,16 @@ application_run_context_to_string( _AppRunContext=as_otp_release ) ->
 -doc """
 Returns the path to the root of the specified OTP application (i.e. its top
 directory, a.k.a. its "library directory"), for an application located under
-$OTPROOT/lib or on a directory referred to with environment variable ERL_LIBS.
+`$OTPROOT/lib `or on a directory referred to with environment variable
+`ERL_LIBS`.
 
 For example
-"/home/bond/Software/Erlang/Erlang-24.2/lib/erlang/lib/mnesia-4.20.1" =
-otp_utils:get_application_root( mnesia ).
+`"/home/bond/Software/Erlang/Erlang-24.2/lib/erlang/lib/mnesia-4.20.1" =
+otp_utils:get_application_root( mnesia ).`.
 
 For this look-up, it is expected that an application named 'foobar' defined a
 module of the same name (which is thus expected to be compiled as
-"foobar.beam").
+`"foobar.beam"`).
 """.
 -spec get_application_root( application_name() ) -> directory_path().
 get_application_root( AppName ) ->
@@ -1386,7 +1392,7 @@ get_application_root( AppName ) ->
 
 
 -doc """
-Returns the root directory of the application-private tree ('priv'), based on
+Returns the root directory of the application-private tree (`priv`), based on
 specified module (expected to belong to that application).
 
 It may be useful to fetch data or NIF code for example.
@@ -1401,8 +1407,8 @@ get_priv_root( ModuleName ) ->
 
 
 -doc """
-Returns the root directory of the application-private tree ('priv'), based on
-specified module (expected to belong to that application), being silent (no
+Returns the root directory of the application-private tree (`priv`), based on
+the specified module (expected to belong to that application), being silent (no
 trace) if requested.
 
 It may be useful to fetch data or NIF code for example.
