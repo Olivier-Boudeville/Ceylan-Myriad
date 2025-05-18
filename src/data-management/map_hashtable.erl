@@ -1051,8 +1051,8 @@ merge_unique( FirstHashtable, SecondHashtable ) ->
 
 
 -doc """
-Merges the all specified tables into one, expecting that their keys are unique
-(ie that they do not intersect), otherwise throws an exception.
+Merges all specified tables into one, expecting that their keys are unique
+(i.e. that they do not intersect), otherwise throws an exception.
 
 Note: for an improved efficiency, ideally the tables shall be listed by
 increasing sizes.
@@ -1090,7 +1090,7 @@ the specified key, which must already exist in that table.
 An exception is thrown if the key does not exist.
 
 Note: no check is performed to ensure that the value is already a list indeed,
-and the '[|]' operation will not complain if not.
+and the  `[|]` operation will not complain if not.
 """.
 -spec append_to_existing_entry( key(), term(), map_hashtable() ) ->
 									map_hashtable().
@@ -1329,6 +1329,12 @@ pair).
 %
 %is_empty( _MapHashtable ) ->
 %   false.
+%
+
+% Most probably the most efficient implementation (even if looking as computing
+% a size that is not really used), as a map includes its size in the header
+% word, so map_size/1 is O(1); furthermore, the JIT will inline calls to
+% map_size/1; so:
 %
 is_empty( MapHashtable ) when map_size( MapHashtable ) > 0 ->
 	false;
