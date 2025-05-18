@@ -84,7 +84,7 @@
 (setq company-minimum-prefix-length 0)
 
 (setq company-idle-delay
-      (lambda () (if (company-in-string-or-comment) nil 0.5)))
+      (lambda () (if (company-in-string-or-comment) nil 0.2)))
 
 (custom-set-faces
  ;; Purple / rather white:
