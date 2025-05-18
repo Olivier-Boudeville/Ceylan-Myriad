@@ -217,7 +217,7 @@ For situations where the local host shall be discriminated from all others.
 
 
 -doc """
-A domain name (e.g. "foo.baz.org"), as a string.
+A domain name (e.g. `"foo.baz.org"`), as a string.
 """.
 -type domain_name() :: nonempty_string().
 
@@ -231,7 +231,7 @@ A domain name, as a binary string (e.g. ``<<"foo.baz.org">>``).
 
 
 -doc """
-An element of a domain name (e.g. "foo" in "bar.foo.baz.org"), as a string.
+An element of a domain name (e.g. `"foo"` in `"bar.foo.baz.org"`), as a string.
 """.
 -type subdomain() :: nonempty_string().
 
@@ -1199,8 +1199,8 @@ get_node_naming_mode() ->
 Returns a transformed version (as a string) of the local hostname, so that it is
 compliant with the specified node naming convention.
 
-For example, if the short_name convention is specified, then a "bar.baz.org"
-local hostname will result into "bar".
+For example, if the short_name convention is specified, then a `"bar.baz.org"`
+local hostname will result into `"bar"`.
 """.
 -spec get_naming_compliant_hostname( node_naming_mode() ) -> string_host_name().
 get_naming_compliant_hostname( NamingMode ) ->
@@ -1213,8 +1213,8 @@ Returns a transformed version (as a string) of the specified FQDN hostname
 (itself specified as a string) so that it is compliant with the specified node
 naming convention.
 
-For example, if the short_name convention is specified, then a "bar.baz.org"
-hostname will result into "bar".
+For example, if the short_name convention is specified, then a `"bar.baz.org"`
+hostname will result into `"bar"`.
 """.
 -spec get_naming_compliant_hostname( string_host_name(),
 									 node_naming_mode() ) -> string_host_name().
@@ -1254,10 +1254,10 @@ Returns the complete name of the specified node (as a string), which has to be
 used to target it from another node, with respect to the local hostname and node
 naming conventions.
 
-For example for a node name "foo", the local hostname may be determined as
-"bar.org", and with short names, we may specify "foo@bar" to target the
-corresponding node with these conventions (neither with a mere "foo" nor with
-"foo@bar.org").
+For example for a node name `"foo"`, the local hostname may be determined as
+`"bar.org"`, and with short names, we may specify `"foo@bar"` to target the
+corresponding node with these conventions (neither with a mere `"foo"` nor with
+`"foo@bar.org"`).
 """.
 -spec get_complete_node_name( string_node_name() ) -> atom_node_name().
 get_complete_node_name( NodeName ) ->
@@ -1370,11 +1370,13 @@ Otherwise following messages might be output:
 In some cases yet (first time an Erlang program is run after boot?), a
 distribution_enabling_failed exception is raised, like in:
 
+```
 {"init terminating in do_boot",{{nocatch,{distribution_enabling_failed,
 'A_NODE_NAME',long_name,{{{shutdown,{failed_to_start_child,net_kernel,
 {'EXIT',nodistribution}}},{child,undefined,net_sup_dynamic,
 {erl_distribution,start_link,[['A_NODE_NAME',longnames],false]},permanent,
 1000,supervisor,[erl_distribution]}},'nonode@nohost'}}},[...]
+```
 
 This does not seem to be linked to a race condition with EPMD, as killing EPMD
 and re-running the program does not fail anymore.
@@ -2144,7 +2146,7 @@ receive_file( EmitterPid, TargetDir, MinTCPPort, MaxTCPPort )
 		{ sendFile, [ BinFilename, Permissions, EmitterPid ] } ->
 
 			{ ListenSock, ActualTCPPort } = listen_to_next_available_port(
-										  MinTCPPort, MinTCPPort, MaxTCPPort ),
+				MinTCPPort, MinTCPPort, MaxTCPPort ),
 
 			%trace_utils:debug_fmt( "File '~ts' will be received through "
 			%   "local TCP port ~p.", [ BinFilename, ActualTCPPort ] ),
