@@ -28,27 +28,24 @@
 (setq user-erlang-base-path '"~/Software/Erlang/Erlang-current-install")
 (setq system-erlang-base-path '"/usr/local")
 
-(if (file-directory-p user-erlang-base-path)
-	(progn (message "Using user-level Erlang install.")
-		   (setq erlang-root-dir user-erlang-base-path))
-    (if (file-directory-p system-erlang-base-path)
-		(progn (message "Using system-level Erlang install.")
-			   (setq erlang-root-dir system-erlang-base-path))
-		(error "No Erlang installation found.")))
-
-
-(setq erlang-root-dir "~/Software/Erlang/Erlang-current-install")
-;;(setq erlang-root-dir "/usr/local")
-
-
 ;; Note that 'emacs' is here a symbolic link typically created by our
 ;; install-erlang.sh script, so that upgrading Erlang does not risk making the
 ;; actual directory (e.g. lib/tools-2.8.2/emacs) vanish because of a change in
 ;; the 'tools' version (thus requiring the current configuration file to be
 ;; endlessly modified):
 ;;
-(setq erlang-emacs-dir (concat erlang-root-dir "/lib/erlang/emacs"))
+(if (file-directory-p user-erlang-base-path)
+	(progn (message "Using user-level Erlang install.")
+		   (setq erlang-root-dir user-erlang-base-path)
+		   (setq erlang-emacs-dir (concat erlang-root-dir "/emacs")))
+    (if (file-directory-p system-erlang-base-path)
+		(progn (message "Using system-level Erlang install.")
+			   (setq erlang-root-dir system-erlang-base-path)
+			   (setq erlang-emacs-dir (concat erlang-root-dir "/lib/erlang/emacs")))
+		(error "No Erlang installation found.")))
 
+
+(message (concat "Emacs for Erlang located at " erlang-emacs-dir))
 
 (setq load-path (cons erlang-emacs-dir load-path))
 
