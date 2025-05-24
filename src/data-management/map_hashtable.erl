@@ -683,7 +683,7 @@ Extracts the specified entry from the specified hashtable, that is returns its
 associated value and removes that entry from the returned table.
 
 The key/value pair is expected to exist already, otherwise an exception is
-raised (typically {badkey, KeyNotFound}).
+raised (typically `{badkey, KeyNotFound}`).
 """.
 -spec extract_entry( key(), map_hashtable() ) -> { value(), map_hashtable() }.
 %extract_entry( Key, MapHashtable=#{ Key := Value} ) ->
