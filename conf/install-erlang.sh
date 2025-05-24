@@ -63,6 +63,8 @@ fi
 # it is just obtained from (some) downloaded source archive.
 
 
+erlang_sha512_for_28_0="2d85ce5ec069e483b4471053faf602d61abcb6fb1d041a0956df95ab38786944e3c3674a0ef3e84815d99d3bf955f2c4d93e151151672249cd48a2f7367f5c56"
+
 erlang_sha512_for_27_3_2="2268b86a30d64c5a060547d793ed93209144e3e2d07adb177325140ca7a4cbeff92d21113ca9925cb6a9b619e6f250b17d37a3bdd0c0956ea2a3af174e8b4a0a"
 
 erlang_sha512_for_27_2="3216d41cdde40764f3a39c219f2b5f85d50c2cc7ddd20573d785b1eb84f9500796fffe39956778e46de68652e9b934d8ee33e21f86c1e6f39ad7ace47debcde1"
@@ -121,11 +123,11 @@ erlang_md5_for_20_1="4c9eb112cd0e56f17c474218825060ee"
 # (refer to https://github.com/erlang/otp/releases/download/ to obtain the right
 # versions)
 #
-erlang_version="27.3.2"
-#erlang_version="27.2"
+erlang_version="28.0"
+#erlang_version="27.3.2"
 
-erlang_sum="${erlang_sha512_for_27_3_2}"
-#erlang_sum="${erlang_sha512_for_27_2}"
+erlang_sum="${erlang_sha512_for_28_0}"
+#erlang_sum="${erlang_sha512_for_27_3_2}"
 
 #erlang_commit_id="${erlang_commit_id_for_27_1_0}"
 
@@ -133,8 +135,8 @@ erlang_sum="${erlang_sha512_for_27_3_2}"
 # Candidate version (e.g. either cutting-edge or, most probably, the previous
 # version that we deem stable enough, should the current introduce regressions):
 #
-erlang_version_candidate="27.2" # "26.2.1"
-erlang_sum_candidate="${erlang_sha512_for_27_1}"
+erlang_version_candidate="27.3.2" # "27.2"
+erlang_sum_candidate="${erlang_sha512_for_27_2}"
 #erlang_commit_id_candidate=""
 
 base_install_dir="${HOME}/Software/Erlang"
@@ -951,8 +953,8 @@ if [ $do_manage_doc -eq 0 ]; then
 
 	fi
 
-	# No sudo from there, as we have to use any right needed (for example to
-	# write in the system tree)
+	# No sudo from there, as we have to use any root rights that are needed (for
+	# example to write in the system tree)
 
 	erlang_doc_root="$(pwd)/Erlang-${erlang_version}-documentation"
 
