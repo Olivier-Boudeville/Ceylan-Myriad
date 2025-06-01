@@ -67,7 +67,9 @@ See file_utils_test.erl for the corresponding test.
 		  exists/1, get_type_of/1, resolve_type_of/1,
 		  resolve_symlink_once/1, resolve_symlink_fully/1,
 
-		  get_owner_of/1, get_group_of/1,
+		  get_owner_of/1, describe_owner_of/1,
+          get_group_of/1, describe_group_of/1,
+
 		  is_file/1, is_link/1,
 		  is_existing_file/1, is_existing_link/1,
 		  is_existing_file_or_link/1,
@@ -137,7 +139,8 @@ See file_utils_test.erl for the corresponding test.
 
 		  list_permission_pairs/0, to_permission_mask/1, from_permission_mask/1,
 
-		  get_permissions_of/1, change_permissions/2,
+		  get_permissions_of/1, describe_permissions_of/1,
+          change_permissions/2,
 
 		  is_absolute_path/1,
 		  ensure_path_is_absolute/1, ensure_path_is_absolute/2,
@@ -1545,7 +1548,7 @@ resolve_symlink_fully( SymlinkPath, OrigSymlinkPath, Depth ) ->
 Returns the user identifier (uid) of the owner of the specified file entry.
 """.
 -spec get_owner_of( any_path() ) -> system_utils:user_id().
-get_owner_of( Path  ) ->
+get_owner_of( Path ) ->
 
 	case file:read_file_info( Path ) of
 
@@ -1554,6 +1557,29 @@ get_owner_of( Path  ) ->
 
 		{ error, Reason } ->
 			throw( { owner_inquiry_failed, Reason, Path } )
+
+	end.
+
+
+
+-doc """
+Returns any description of the owner of the specified file entry.
+
+Never fails.
+""".
+-spec describe_owner_of( any_path() ) -> ustring().
+describe_owner_of( Path ) ->
+
+	case file:read_file_info( Path ) of
+
+		{ ok, #file_info{ uid=UID } } ->
+			text_utils:format( "user of UID ~B", [ UID] );
+
+		{ error, eacces} ->
+			"unknown user (insufficient permissions)";
+
+		{ error, Reason } ->
+			text_utils:format( "unknown user (reason: ~p)", [ Reason ] )
 
 	end.
 
@@ -1574,6 +1600,30 @@ get_group_of( Path ) ->
 			throw( { group_inquiry_failed, Reason, Path } )
 
 	end.
+
+
+
+-doc """
+Returns any description of the group of the specified file entry.
+
+Never fails.
+""".
+-spec describe_group_of( any_path() ) -> ustring().
+describe_group_of( Path ) ->
+
+	case file:read_file_info( Path ) of
+
+		{ ok, #file_info{ gid=GID } } ->
+			text_utils:format( "group of GID ~B", [ GID] );
+
+		{ error, eacces} ->
+			"unknown group (insufficient permissions)";
+
+		{ error, Reason } ->
+			text_utils:format( "unknown group (reason: ~p)", [ Reason ] )
+
+	end.
+
 
 
 
@@ -4199,9 +4249,9 @@ Creates a symbolic link pointing to the specified target path, at the specified
 new (link) path.
 
 For example `create_link("Projects/SomeProject", "/home/joe/my-link")` will
-create a "/home/joe/my-link" symlink pointing to "Projects/SomeProject" (thus
-relatively to "/home/joe/"), whether or not this
-"/home/joe/Projects/SomeProject" target exists (so the current directory does
+create a `"/home/joe/my-link"` symlink pointing to `"Projects/SomeProject"`
+(thus relatively to `"/home/joe/"`), whether or not this
+`"/home/joe/Projects/SomeProject"` target exists (so the current directory does
 not matter here).
 """.
 -spec create_link( any_path(), link_path() ) -> void().
@@ -4230,7 +4280,7 @@ is unique, meaning that it does not clash with any pre-existing entry.
 Note: of course multiple, parallel calls to this function with the same base
 path will result in potential race conditions and risks of collisions.
 
-See also basic_utils:get_unix_process_specific_string/0.
+See also `basic_utils:get_unix_process_specific_string/0`.
 """.
 -spec get_non_clashing_entry_name_from( any_path() ) -> any_path().
 get_non_clashing_entry_name_from( Path ) ->
@@ -4319,7 +4369,7 @@ append_file( TargetFilename, ToAppendFilename ) ->
 
 
 
--doc "Lists all known permission types, as {Perm,Mask} pairs.".
+-doc "Lists all known permission types, as `{Perm,Mask}` pairs.".
 -spec list_permission_pairs() -> [ { permission(), permission_mask() } ].
 list_permission_pairs() ->
 	[ { owner_read,    8#00400 },
@@ -4422,12 +4472,35 @@ get_permissions_of( EntryPath ) ->
 	end.
 
 
+-doc """
+Returns any description of the permissions corresponding to the specified file
+entry.
+
+Never fails.
+""".
+-spec describe_permissions_of( any_path() ) -> ustring().
+describe_permissions_of( EntryPath ) ->
+
+	case file:read_file_info( EntryPath ) of
+
+		{ ok, #file_info{ mode=Mode } } ->
+			text_utils:format( "~w", [ from_permission_mask( Mode ) ] );
+
+		{ error, eacces} ->
+			"unknown (insufficient permissions)";
+
+		{ error, Reason } ->
+			text_utils:format( "unknown (reason: ~p)", [ Reason ] )
+
+	end.
+
+
 
 -doc """
-Changes the permissions ("chmod") of specified filesystem element.
+Changes the permissions (`chmod`) of the specified filesystem element.
 
-Note: erases any prior permissions, i.e. if specifying [other_read] then a
-corresponding file will end up with (exactly) a -------r-- permission.
+Note: erases any prior permissions, i.e. if specifying `[other_read]` then a
+corresponding file will end up with (exactly) a `-------r--` permission.
 """.
 -spec change_permissions( any_path(), permission() | [ permission() ] ) ->
 								void().
@@ -5486,39 +5559,37 @@ open( AnyFilePath, Options, _AttemptMode=try_once ) ->
 % (helper)
 get_file_access_denied_info( AnyFilePath ) ->
 
-	Dir = filename:dirname( AnyFilePath ),
+	ParentDir = filename:dirname( AnyFilePath ),
 
-	case is_existing_directory( Dir ) of
+	case is_existing_directory( ParentDir ) of
 
 		true ->
-			UserInfo = [ { actual_user, system_utils:get_user_name_safe(),
-						   { user_id, system_utils:get_user_id() } },
-						 { actual_group, system_utils:get_group_name_safe(),
-						   { group_id, system_utils:get_group_id() } } ],
-
 			FileInfo = case is_existing_file_or_link( AnyFilePath ) of
 
 				true ->
-					{ existing_file, { owner_id, get_owner_of( AnyFilePath ) },
-					  { group_id, get_group_of( AnyFilePath ) },
-					  { permissions, get_permissions_of( AnyFilePath ) } };
+					{ target_file_exists,
+                      { owner, describe_owner_of( AnyFilePath ) },
+					  { group, describe_group_of( AnyFilePath ) },
+					  { permissions, describe_permissions_of( AnyFilePath ) } };
 
 				false ->
-					non_existing_file
+					target_file_does_not_exist
 
 			end,
 
-			DirOwnerInfo = { owner_id, get_owner_of( Dir ) },
-			DirGroupInfo = { group_id, get_group_of( Dir ) },
-			DirPerms = { permissions, get_permissions_of( Dir ) },
+            % At least generally, 0 is root:
+			ParentDirOwnerInfo = { owner, describe_owner_of( ParentDir ) },
+			ParentDirGroupInfo = { group, describe_group_of( ParentDir ) },
+			ParentDirPerms = { permissions,
+                               describe_permissions_of( ParentDir ) },
 
-			DirInfo = { existing_directory, Dir, DirOwnerInfo, DirGroupInfo,
-						DirPerms },
+			ParentDirInfo = { parent_directory_exists, ParentDir,
+                ParentDirOwnerInfo, ParentDirGroupInfo, ParentDirPerms },
 
-			{ UserInfo, FileInfo, DirInfo };
+			{ FileInfo, ParentDirInfo, get_runtime_user_info() };
 
 		false ->
-			{ non_existing_directory, Dir }
+			{ parent_directory_does_not_exist, ParentDir }
 
 	end.
 
@@ -5531,43 +5602,50 @@ get_directory_access_denied_info( AnyDirPath ) ->
 	case is_existing_directory( ParentDir ) of
 
 		true ->
-			UserInfo = [ { actual_user, system_utils:get_user_name_safe(),
-						   { user_id, system_utils:get_user_id() } },
-						 { actual_group, system_utils:get_group_name_safe(),
-						   { group_id, system_utils:get_group_id() } } ],
-
 			DirInfo = case is_existing_directory_or_link( AnyDirPath ) of
 
 				true ->
-					{ existing_directory,
-					  { owner_id, get_owner_of( AnyDirPath ) },
-					  { group_id, get_group_of( AnyDirPath ) },
-					  { permissions, get_permissions_of( AnyDirPath ) } };
+					{ target_directory_exists,
+					  { owner, describe_owner_of( AnyDirPath ) },
+					  { group, describe_group_of( AnyDirPath ) },
+					  { permissions, describe_permissions_of( AnyDirPath ) } };
 
 				false ->
-					non_existing_directory
+					target_directory_does_not_exist
 
 			end,
 
-			ParenDirOwnerInfo = { owner_id, get_owner_of( ParentDir ) },
-			ParenDirGroupInfo = { group_id, get_group_of( ParentDir ) },
-			ParenDirPerms = { permissions, get_permissions_of( ParentDir ) },
+			ParenDirOwnerInfo = { owner, describe_owner_of( ParentDir ) },
+			ParenDirGroupInfo = { group, describe_group_of( ParentDir ) },
+			ParenDirPerms = { permissions,
+                              describe_permissions_of( ParentDir ) },
 
-			ParentDirInfo = { existing_directory, ParentDir, ParenDirOwnerInfo,
-							  ParenDirGroupInfo, ParenDirPerms },
+			ParentDirInfo = { parent_directory_exists, ParentDir,
+                              ParenDirOwnerInfo, ParenDirGroupInfo,
+                              ParenDirPerms },
 
-			{ UserInfo, DirInfo, ParentDirInfo };
+			{ DirInfo, ParentDirInfo, get_runtime_user_info() };
 
 		false ->
-			{ non_existing_parent_directory, ParentDir }
+			{ parent_directory_does_not_exist, ParentDir }
 
 	end.
 
 
 
+% (helper)
+get_runtime_user_info() ->
+    [ { actual_runtime_user, system_utils:get_user_name_safe(),
+        { user_id, system_utils:get_user_id() } },
+      { actual_runtime_group,
+        system_utils:get_group_name_safe(),
+        { group_id, system_utils:get_group_id() } } ].
+
+
+
 -doc """
 Opens for a creation from scratch the specified file with the specified options
-(the 'write' one being implied and automatically added here); if the target file
+(the `write` one being implied and automatically added here); if the target file
 already exists, renames it first by suffixing '.previous' to its name (then
 overwriting any identically-named file that would already exist), before
 performing the creation.
@@ -5634,7 +5712,7 @@ close( File, _FailureMode=overcome_failure ) ->
 -doc """
 Reads the specified number of bytes/characters from the specified file.
 
-Returns either {ok, Data} if at least some data could be read, or eof if at
+Returns either `{ok, Data}` if at least some data could be read, or `eof` if at
 least one element was to read and end of file was reached before anything at all
 could be read.
 
@@ -5666,7 +5744,7 @@ normal mode as well).
 
 Throws an exception on failure.
 
-See write_ustring/{2,3} to write Unicode text.
+See `write_ustring/{2,3}` to write Unicode text.
 """.
 -spec write( file(), iodata() ) -> void().
 write( File, Content ) ->
@@ -5746,7 +5824,7 @@ Reads the content of the specified file, based on its filename specified as any
 kind of string (plain, binary, atom, etc.), and returns the corresponding
 binary, or throws an exception on failure.
 
-See also: read_terms/1 to read directly Erlang terms instead.
+See also: `read_terms/1` to read directly Erlang terms instead.
 """.
 -spec read_whole( any_file_path() ) -> binary().
 read_whole( FilePath ) ->
@@ -5951,18 +6029,18 @@ read_etf_file( AnyFilePath ) ->
 -doc """
 Reads the specified file supposedly in ETF format (Erlang Term Format): tries to
 parse a list of terms (one per line, terminating with a dot) from it (as
-file:consult/1 does), and returns it. Lines starting with '%' are ignored (just
-considered as comments).
+`file:consult/1` does), and returns it. Lines starting with `%` are ignored
+(just considered as comments).
 
 If expecting to read UTF-8 content from a file, it should:
 
-- have been then opened for writing typically while including the {encoding,
- utf8} option, or have been written with content already properly encoded (it
+- have been then opened for writing typically while including the `{encoding,
+ utf8}` option, or have been written with content already properly encoded (it
  may be more reliable that way)
 
-- start with a '%% -*- coding: utf-8 -*-' header
+- start with a `%% -*- coding: utf-8 -*-` header
 
-See <http://myriad.esperide.org/#etf> for more details.
+See [http://myriad.esperide.org/#etf] for more details.
 
 Throws an exception on error.
 """.
@@ -5975,24 +6053,29 @@ read_terms( AnyFilePath ) ->
 			Terms;
 
 		{ error, eacces }  ->
-			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
-					 access_denied,
-					 get_file_access_denied_info( AnyFilePath ) } );
+			throw( { etf_reading_failed,
+                     text_utils:ensure_string( AnyFilePath ),
+					 { reason, access_denied },
+                     get_file_access_denied_info( AnyFilePath ) } );
 
 		{ error, { _, file_io_server, invalid_unicode } } ->
 			% See also latin1_file_to_unicode/1:
-			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
-					 not_unicode } );
+			throw( { etf_reading_failed,
+                     text_utils:ensure_string( AnyFilePath ),
+                     { reason, not_unicode } } );
 
 		{ error, Error } when is_atom( Error ) ->
-			throw( { reading_failed, text_utils:ensure_string( AnyFilePath ),
-					 Error } );
+			throw( { etf_reading_failed,
+                     text_utils:ensure_string( AnyFilePath ),
+                     { reason, Error } } );
 
 		{ error, Error={ Line, Module, Term } } ->
 			Reason = file:format_error( Error ),
-			throw( { interpretation_failed,
-					 text_utils:ensure_string( AnyFilePath ), { line, Line },
-					 { module, Module }, { term, Term }, Reason } )
+			throw( { etf_interpretation_failed,
+					 text_utils:ensure_string( AnyFilePath ),
+                     { reason, Reason }, { line, Line },
+					 { module, Module },
+                     { raw_term, Term } } )
 
 	end.
 
@@ -6002,9 +6085,9 @@ read_terms( AnyFilePath ) ->
 Writes the specified terms in the specified file, in the ETF format, with no
 specific header or footer.
 
-See <http://myriad.esperide.org/#etf> for more details.
+See [http://myriad.esperide.org/#etf] for more details.
 
-Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+Heavily inspired from Joe Armstrong's `lib_misc:unconsult/2`.
 """.
 -spec write_etf_file( [ term() ], any_file_path() ) -> void().
 write_etf_file( Terms, AnyFilePath ) ->
@@ -6016,9 +6099,7 @@ write_etf_file( Terms, AnyFilePath ) ->
 Writes the specified terms in the specified file, in the ETF format, with no
 specific header or footer.
 
-See <http://myriad.esperide.org/#etf> for more details.
-
-Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+Refer to `write_etf_file/2` for more details.
 """.
 -spec write_terms( [ term() ], any_file_path() ) -> void().
 write_terms( Terms, AnyFilePath ) ->
@@ -6030,9 +6111,7 @@ write_terms( Terms, AnyFilePath ) ->
 Writes the specified terms in the specified file, in the ETF format, with the
 specified header and footer.
 
-See <http://myriad.esperide.org/#etf> for more details.
-
-Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+Refer to `write_etf_file/2` for more details.
 """.
 -spec write_etf_file( [ term() ], option( ustring() ), option( ustring() ),
 					  file_path() ) -> void().
@@ -6045,7 +6124,7 @@ write_etf_file( Terms, Header, Footer, Filename ) ->
 Writes the specified terms in the specified file, in the ETF format, with the
 specified header and footer.
 
-Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+Refer to `write_etf_file/2` for more details.
 """.
 -spec write_terms( [ term() ], option( ustring() ), option( ustring() ),
 				   any_file_path() ) -> void().
@@ -6067,9 +6146,7 @@ write_terms( Terms, Header, Footer, AnyFilePath ) ->
 Writes directly the specified terms int the specified already opened file, in
 the ETF format.
 
-See <http://myriad.esperide.org/#etf for more details>.
-
-Heavily inspired from Joe Armstrong's lib_misc:unconsult/2.
+Refer to `write_etf_file/2` for more details.
 """.
 -spec write_direct_terms( file(), [ term() ] ) -> void().
 write_direct_terms( File, Terms ) ->
@@ -6082,7 +6159,7 @@ write_direct_terms( File, Terms ) ->
 Tells whether the specified term is a file reference, i.e. a file object
 (pseudo-guard).
 
-Not to be confused with is_file/1, which is about file paths.
+Not to be confused with `is_file/1`, which is about file paths.
 """.
 -spec is_file_reference( term() ) -> boolean().
 is_file_reference( { file_descriptor, _Mode, _BufferMap } ) ->
@@ -6116,8 +6193,8 @@ get_extension_for( _CompressionFormat=xz ) ->
 
 
 -doc """
-Returns the dotted file extension (e.g. ".xz", not just "xz") corresponding to
-filenames compressed with specified format.
+Returns the dotted file extension (e.g. `".xz"`, not just `"xz"`) corresponding
+to filenames compressed with specified format.
 """.
 -spec get_dotted_extension_for( compression_format() ) -> dotted_extension().
 get_dotted_extension_for( CompressionFormat ) ->
@@ -6131,7 +6208,7 @@ most efficient, compacity-wise, compression tool available), whose filename,
 established based on usual conventions, is returned. If a file with that name
 already exists, it will be overwritten.
 
-For example, `compress("hello.png")` will generate a "hello.png.xz" file.
+For example, `compress("hello.png")` will generate a `"hello.png.xz"` file.
 
 The original file remain as is.
 
@@ -6150,7 +6227,8 @@ Compresses the specified file: creates a compressed version thereof, whose
 filename, established based on usual conventions, is returned. If a file with
 that name already exists, it will be overwritten.
 
-For example, compress("hello.png", zip) will generate a "hello.png.zip" file.
+For example, `compress("hello.png", zip)` will generate a `"hello.png.zip"`
+file.
 
 The original file remain as is.
 
